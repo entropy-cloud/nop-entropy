@@ -165,6 +165,14 @@ public final class StreamModelDslBuilder {
      */
     private final Map<String, Map<String, Object>> sideInputScopes = new LinkedHashMap<>();
 
+    /**
+     * WI12 (plan 2358): resolved sink functions by transform id — the bean instances
+     * the declared-requirements consistency check inspects (engine-equivalent to what
+     * the graph generator's detectRequirements aggregates).
+     */
+    private final Map<String, io.nop.stream.core.common.functions.SinkFunction<?>> resolvedSinkBeans =
+            new LinkedHashMap<>();
+
     private StreamModelDslBuilder(StreamModel model, BeanFunctionResolver beanResolver) {
         if (model == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "model");
@@ -238,9 +246,207 @@ public final class StreamModelDslBuilder {
         }
         applyCheckpointConfig(env);
         failFastOnUnsupportedRegistries();
+        // WI12 (plan 2358): the declared environment profile applies to THIS build
+        // (needs the live env instance for setDeploymentMode).
+        validateEnvironments(env);
         declareComponentRegistries(env);
         buildTransforms(env);
+        // WI12 (plan 2358): declared-requirements consistency runs AFTER
+        // buildTransforms — the 2PC verdict needs the resolved sink beans.
+        validateDeclaredRequirements();
         return env;
+    }
+
+    /**
+     * WI12 (plan 2358): the declared {@code <environments>} profile is a build-time
+     * configuration facet. Semantics: zero environments = current behavior (LOCAL
+     * default); exactly one environment applies its {@code deploymentMode} directly
+     * (attribute omitted = keep the LOCAL default — setDeploymentMode rejects null);
+     * MORE than one environment has no selection mechanism → typed reject (collapse
+     * to a single profile or switch via a Delta overlay instead).
+     *
+     * <p>DISTRIBUTED + an ACTIVE checkpoint declaration (mirroring the
+     * {@code enableCheckpointing} trigger: enabled && interval&gt;0) is a typed
+     * reject: the checkpoint-engine path runs BEFORE the DISTRIBUTED branch in
+     * {@code execute()} and does not read deploymentMode, so the declared mode would
+     * be silently inert in that combination (restart trigger: the checkpoint engine
+     * gains distributed-mode support). {@code enabled="false"} + DISTRIBUTED is legal.
+     */
+    private void validateEnvironments(StreamExecutionEnvironment env) {
+        List<io.nop.stream.flow.model.StreamEnvironmentModel> environments = model.getEnvironments();
+        if (environments == null || environments.isEmpty()) {
+            return;
+        }
+        if (environments.size() > 1) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, "<environments>")
+                    .param(ARG_DETAIL, environments.size() + " environment profiles declared; the"
+                            + " builder applies exactly one — collapse to a single profile"
+                            + " (switching profiles is a build-time overlay, not a runtime"
+                            + " selection): " + environments.stream()
+                            .map(io.nop.stream.flow.model.StreamEnvironmentModel::getName)
+                            .collect(java.util.stream.Collectors.toList()))
+                    .loc(model.getLocation());
+        }
+        io.nop.stream.flow.model.StreamEnvironmentModel environment = environments.get(0);
+        io.nop.stream.core.execution.DeploymentMode mode = environment.getDeploymentMode();
+        boolean activeCheckpoint = model.getCheckpoint() != null
+                && model.getCheckpoint().isEnabled()
+                && model.getCheckpoint().getInterval() > 0;
+        if (mode == io.nop.stream.core.execution.DeploymentMode.DISTRIBUTED && activeCheckpoint) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, elementDesc(environment))
+                    .param(ARG_DETAIL, "environment '" + environment.getName()
+                            + "' declares deploymentMode=DISTRIBUTED while an active checkpoint"
+                            + " declaration (enabled=true, interval>0) is present; the checkpoint"
+                            + " engine path runs before the distributed branch and does not read"
+                            + " deploymentMode, so the declared mode would be silently inert —"
+                            + " drop the checkpoint declaration or use LOCAL until the checkpoint"
+                            + " engine supports distributed mode")
+                    .loc(environment.getLocation());
+        }
+        if (mode != null) {
+            env.setDeploymentMode(mode);
+        }
+    }
+
+    /**
+     * WI12 (plan 2358): declared-requirements consistency. The declaration semantics
+     * is "capabilities this job NEEDS", so only statically decidable requirements are
+     * accepted:
+     * <ul>
+     *   <li>{@code TWO_PHASE_COMMIT_SINK} — checked against the resolved sink beans
+     *       (the same instances the graph generator's detectRequirements inspects):
+     *       declared but no 2PC sink present = declaration is false → typed reject;
+     *       a 2PC sink without the declaration is fine (a requirement is not a
+     *       census).</li>
+     *   <li>{@code DISTRIBUTED_EXECUTION} — always aggregated by the engine, so the
+     *       declaration is always satisfiable.</li>
+     *   <li>Every other value has no static verdict at build time → typed reject
+     *       (the declarative surface does not accept what it cannot check — no silent
+     *       pass-through).</li>
+     * </ul>
+     */
+    private void validateDeclaredRequirements() {
+        List<io.nop.stream.flow.model.StreamRequirementModel> requirements = model.getRequirements();
+        if (requirements == null || requirements.isEmpty()) {
+            return;
+        }
+        boolean twoPhaseDeclared = false;
+        for (io.nop.stream.flow.model.StreamRequirementModel req : requirements) {
+            io.nop.stream.core.model.StreamRequirement value = req.getValue();
+            if (value == io.nop.stream.core.model.StreamRequirement.TWO_PHASE_COMMIT_SINK) {
+                twoPhaseDeclared = true;
+            } else if (value != io.nop.stream.core.model.StreamRequirement.DISTRIBUTED_EXECUTION) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "<requirements>")
+                        .param(ARG_DETAIL, "requirement '" + value + "' has no build-time static"
+                                + " verdict — the declarative surface only accepts"
+                                + " TWO_PHASE_COMMIT_SINK (checked against the resolved sinks)"
+                                + " and DISTRIBUTED_EXECUTION (always aggregated by the engine)")
+                        .loc(req.getLocation());
+            }
+        }
+        if (twoPhaseDeclared) {
+            boolean present = resolvedSinkBeans.values().stream()
+                    .anyMatch(fn -> fn instanceof io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction);
+            if (!present) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "<requirements>")
+                        .param(ARG_DETAIL, "TWO_PHASE_COMMIT_SINK is declared but no sink in this"
+                                + " job resolves to a TwoPhaseCommitSinkFunction — the requirement"
+                                + " declaration is false (a requirement is not a census: leaving"
+                                + " it out is always legal)")
+                        .loc(requirements.get(0).getLocation());
+            }
+        }
+    }
+
+    /**
+     * WI12 (plan 2358): declared {@code <checkpointParticipants>} — an explicit
+     * contract pin on which transforms participate in checkpointing. Participation
+     * is decided by the FUNCTION BEAN implementing {@code CheckpointParticipant}
+     * (the runtime tests operator/UDF instances, never DSL types), so:
+     * <ul>
+     *   <li>the participant id must reference an existing transform
+     *       (ERR_STREAM_REF_UNKNOWN — typo protection),</li>
+     *   <li>the target must be a function-carrying transform
+     *       (source/sink/map/filter/flatMap/process/custom/aggregate/reduce) —
+     *       keyBy/union/sideOutput/window/cep/timestampsAndWatermarks have no
+     *       function the runtime could ask (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>xpl-form targets are rejected outright — the generated wrappers
+     *       (XplSinkFunction etc.) never implement CheckpointParticipant, so the
+     *       declaration could never hold (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>bean-form targets are resolved at build time and must implement
+     *       {@code CheckpointParticipant} (ERR_STREAM_INVALID_ARG) — same-instance
+     *       verification with what the runtime will test.</li>
+     * </ul>
+     */
+    private void validateCheckpointParticipants(Map<String, StreamTransformModel> byId) {
+        List<io.nop.stream.flow.model.CheckpointParticipantRefModel> participants =
+                model.getCheckpointParticipants();
+        if (participants == null || participants.isEmpty()) {
+            return;
+        }
+        for (io.nop.stream.flow.model.CheckpointParticipantRefModel p : participants) {
+            String id = p.getValue();
+            StreamTransformModel target = byId.get(id);
+            if (target == null) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, "<checkpointParticipants>")
+                        .param(ARG_REF_TYPE, "transform").param(ARG_REF_NAME, id)
+                        .param(ARG_DETAIL, "checkpointParticipant '" + id
+                                + "' does not reference an existing transform")
+                        .loc(p.getLocation());
+            }
+            if (!isParticipantCapable(target)) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "<checkpointParticipants>")
+                        .param(ARG_DETAIL, "checkpointParticipant '" + id + "' targets transform of"
+                                + " type " + target.getClass().getSimpleName()
+                                + " which carries no function the runtime could ask —"
+                                + " participation is decided by the function bean implementing"
+                                + " CheckpointParticipant")
+                        .loc(p.getLocation());
+            }
+            if (target.getBean() == null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "<checkpointParticipants>")
+                        .param(ARG_DETAIL, "checkpointParticipant '" + id + "' targets an xpl-fn"
+                                + " transform; the generated wrappers never implement"
+                                + " CheckpointParticipant, so the declaration could never hold —"
+                                + " use a bean-form function that implements it")
+                        .loc(p.getLocation());
+            }
+            Object bean = beanResolver().resolve(target.getBean(), Object.class);
+            if (!(bean instanceof io.nop.stream.core.checkpoint.participant.CheckpointParticipant)) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "<checkpointParticipants>")
+                        .param(ARG_DETAIL, "checkpointParticipant '" + id + "': bean '"
+                                + target.getBean() + "' ("
+                                + bean.getClass().getName()
+                                + ") does not implement CheckpointParticipant — the runtime asks"
+                                + " the function instance, not the declaration")
+                        .loc(p.getLocation());
+            }
+        }
+    }
+
+    /**
+     * WI12: transforms whose builder resolves a function bean the runtime can
+     * interrogate (the resolveFunctionOrXpl call sites). Virtual/structural
+     * transforms carry no such function.
+     */
+    private static boolean isParticipantCapable(StreamTransformModel t) {
+        return t instanceof io.nop.stream.flow.model.StreamSourceModel
+                || t instanceof io.nop.stream.flow.model.StreamSinkModel
+                || t instanceof io.nop.stream.flow.model.StreamMapModel
+                || t instanceof io.nop.stream.flow.model.StreamFilterModel
+                || t instanceof io.nop.stream.flow.model.StreamFlatMapModel
+                || t instanceof io.nop.stream.flow.model.StreamProcessModel
+                || t instanceof io.nop.stream.flow.model.StreamCustomModel
+                || t instanceof io.nop.stream.flow.model.StreamAggregateModel
+                || t instanceof io.nop.stream.flow.model.StreamReduceModel;
     }
 
     /**
@@ -449,30 +655,18 @@ public final class StreamModelDslBuilder {
      * consumer in the current execution chain must not be silently ignored.
      */
     private void failFastOnUnsupportedRegistries() {
-        if (model.hasStreams()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<streams> registry has no execution consumer")
-                    .loc(model.getLocation());
-        }
+        // WI12 (plan 2358): the <streams> registry was REMOVED from the schema — the
+        // "named stream cross-operator reference" face never had a consumer (the
+        // transforms+edges graph expresses the dataflow completely); a leftover
+        // declaration now fails at the xdef parse layer.
         // WI11 (plan 2357): <sideInputs> released — validated and materialized by
         // validateSideInputs/materializeSideInputs, injected into the xpl-fn call
         // scopes of its target transforms. The NOT_IMPLEMENTED gap is gone.
-        if (model.hasEnvironments()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<environments> registry has no execution consumer")
-                    .loc(model.getLocation());
-        }
-        if (!model.getRequirements().isEmpty()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<requirements> declarations have no builder-side consumer")
-                    .loc(model.getLocation());
-        }
-        if (!model.getCheckpointParticipants().isEmpty()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL,
-                            "<checkpointParticipants> declarations have no builder-side consumer")
-                    .loc(model.getLocation());
-        }
+        // WI12 (plan 2358): <environments>/<requirements>/<checkpointParticipants>
+        // released — validated by validateEnvironments (build-time, needs env) and
+        // validateDeclaredRequirements/validateCheckpointParticipants (after
+        // buildTransforms, when function beans are resolved). The <coders> registry
+        // STAYS a Java-only surface (see the message below).
         if (model.getOnStart() != null || model.getOnEnd() != null || model.getOnError() != null) {
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
                     .param(ARG_DETAIL, "<onStart>/<onEnd>/<onError> lifecycle callbacks")
@@ -481,11 +675,16 @@ public final class StreamModelDslBuilder {
         // WI8b: <schemas> declaration surface now has a consumer — fields resolve to
         // BasicTypeInfo at build time (managed names only, first error fails fast);
         // the field coder is the built-in SimpleTypeSerializer. The <coders> registry
-        // stays fail-fast (FU-3).
+        // stays a Java-only surface: wire formats attach at the connector layer
+        // (multi-engine WI18's AvroWireFormat), so the declarative registry has no
+        // consumer. The error code is pinned to NOT_IMPLEMENTED — the WI1 contract
+        // ledger and the nop-lint invalid fixtures depend on it.
         this.schemaRegistry = StreamSchemaRegistry.resolveSchemas(model);
         if (model.hasCoders()) {
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<coders> registry has no execution consumer")
+                    .param(ARG_DETAIL, "<coders> is a Java-only surface: wire formats attach at"
+                            + " the connector layer and the declarative registry has no consumer;"
+                            + " declare serializers on the Java side instead")
                     .loc(model.getLocation());
         }
     }
@@ -505,6 +704,9 @@ public final class StreamModelDslBuilder {
         // freezing the read-only snapshot into the xpl call scopes of its target.
         validateSideInputs(byId);
         materializeSideInputs();
+        // WI12 (plan 2358): checkpoint-participant contract pins (id spelling,
+        // function-carrying shape, bean instanceof) — same validateDag-stage pattern.
+        validateCheckpointParticipants(byId);
 
         List<StreamTransformModel> ordered = topologicalOrderTransforms(byId, upstreams, edges);
 
@@ -1597,6 +1799,10 @@ public final class StreamModelDslBuilder {
         // G8: shared bean-vs-xpl resolution (mirrors buildSource).
         SinkFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
                 SinkFunction.class, XplSinkFunction::new);
+        // WI12 (plan 2358): record the resolved sink function for the declared-requirements
+        // consistency check (the same bean instance the graph generator's
+        // detectRequirements will see — builder-side instanceof is engine-equivalent).
+        resolvedSinkBeans.put(t.getId(), fn);
         Integer declared = declaredSinkParallelism(t);
         if (declared != null) {
             // Item 29: explicit per-operator parallelism on the sink registration
@@ -1826,6 +2032,13 @@ public final class StreamModelDslBuilder {
      */
     static String elementDesc(StreamSideInputModel si) {
         return "sideInput '" + si.getId() + "'";
+    }
+
+    /**
+     * WI12 (plan 2358): registry-declaration element descriptor (environment).
+     */
+    static String elementDesc(io.nop.stream.flow.model.StreamEnvironmentModel e) {
+        return "environment '" + e.getName() + "'";
     }
 
     static NopException beanNotFound(String beanName) {

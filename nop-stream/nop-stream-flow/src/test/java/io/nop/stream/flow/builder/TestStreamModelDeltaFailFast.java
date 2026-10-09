@@ -43,21 +43,21 @@ public class TestStreamModelDeltaFailFast {
     }
 
     @Test
-    public void deltaAddingStreamsRegistryStillFailsFast() {
-        // This delta extends a valid base and introduces <streams> — an
-        // unsupported registry that Stage 50 fail-fast rejects.
+    public void deltaAddingJavaOnlyRegistryStillFailsFast() {
+        // WI12 (plan 2358): the delta carrier moved from <streams> (removed from the
+        // schema) to <coders> — the pinned Java-only registry whose fail-fast must
+        // still fire after the delta merge (the delta must NOT silently bypass it).
         StreamModel model = parseStreamXml("/nop/stream/test/test-delta-failfast-extends.stream.xml");
 
-        // The merged model genuinely has <streams> (proves the delta was applied)
-        assertTrue(model.hasStreams(),
-                "Delta-merged model must contain the delta-introduced <streams> registry");
+        assertTrue(model.hasCoders(),
+                "Delta-merged model must contain the delta-introduced <coders> registry");
 
         StreamException ex = assertThrows(StreamException.class,
                 () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
         assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString(),
                 () -> ex.getMessage());
-        assertTrue(ex.getMessage().contains("<streams>"),
-                "Fail-fast must reject <streams> even under delta merge: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("<coders>"),
+                "Fail-fast must reject <coders> even under delta merge: " + ex.getMessage());
     }
 
     private static StreamModel parseStreamXml(String vfsPath) {

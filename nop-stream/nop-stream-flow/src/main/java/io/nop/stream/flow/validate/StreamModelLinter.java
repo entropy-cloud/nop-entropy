@@ -268,32 +268,22 @@ public final class StreamModelLinter {
     }
 
     private void scanRegistries(StreamModel model, StreamConfValidationReport report) {
-        if (model.hasStreams()) {
-            report.add(ValidationIssue.warning(LAYER_LINT, "<streams>", CODE_NOT_IMPLEMENTED,
-                    "<streams> registry has no execution consumer (roadmap WI12 release face)"));
-        }
+        // WI12 (plan 2358): <streams> REMOVED from the schema (no consumer ever);
+        // <environments>/<requirements>/<checkpointParticipants> RELEASED — validated
+        // by StreamModelDslBuilder (validateEnvironments / validateDeclaredRequirements
+        // / validateCheckpointParticipants); their NOT_IMPLEMENTED lint warnings are
+        // gone.
         // WI11 (plan 2357): <sideInputs> released — validated/materialized by
         // StreamModelDslBuilder (validateSideInputs/materializeSideInputs); the
         // NOT_IMPLEMENTED lint warning is gone.
-        if (model.hasEnvironments()) {
-            report.add(ValidationIssue.warning(LAYER_LINT, "<environments>", CODE_NOT_IMPLEMENTED,
-                    "<environments> registry has no execution consumer (roadmap WI12 release face)"));
-        }
-        if (!model.getRequirements().isEmpty()) {
-            report.add(ValidationIssue.warning(LAYER_LINT, "<requirements>", CODE_NOT_IMPLEMENTED,
-                    "<requirements> declarations have no consumer (roadmap WI12 release face)"));
-        }
-        if (!model.getCheckpointParticipants().isEmpty()) {
-            report.add(ValidationIssue.warning(LAYER_LINT, "<checkpointParticipants>", CODE_NOT_IMPLEMENTED,
-                    "<checkpointParticipants> declarations have no consumer (roadmap WI12 release face)"));
-        }
         if (model.getOnStart() != null || model.getOnEnd() != null || model.getOnError() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, "<onStart>/<onEnd>/<onError>",
                     CODE_NOT_IMPLEMENTED, "lifecycle callbacks have no consumer (roadmap WI13 release face)"));
         }
         if (model.hasCoders()) {
             report.add(ValidationIssue.warning(LAYER_LINT, "<coders>", CODE_NOT_IMPLEMENTED,
-                    "<coders> registry has no execution consumer (roadmap WI12 release face)"));
+                    "<coders> is a Java-only surface: wire formats attach at the connector"
+                            + " layer and the declarative registry has no consumer"));
         }
     }
 

@@ -83,9 +83,19 @@ public class TestStreamModelDslBuilderFailFast {
     }
 
     @Test
-    public void streamsRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast("<streams><stream id=\"s1\" valueType=\"string\"/></streams>",
-                "<streams>");
+    public void streamsRegistryRemovedFromSchema() {
+        // WI12 (plan 2358): the <streams> registry was REMOVED from stream.xdef — a
+        // leftover declaration is rejected at the xdef parse layer (undefined child
+        // node), not by a builder fail-fast.
+        // The rejection happens INSIDE the parser (xdef schema validation), so the
+        // parse call itself is the code under test.
+        io.nop.api.core.exceptions.NopException ex = assertThrows(
+                io.nop.api.core.exceptions.NopException.class,
+                () -> parseInline("", "<streams><stream id=\"s1\" valueType=\"string\"/></streams>"));
+        assertEquals("nop.err.xlang.xdsl.undefined-child-node", ex.getErrorCode().toString(),
+                () -> "Parse layer must reject the removed face: " + ex);
+        assertTrue(ex.toString().contains("streams"),
+                () -> "Parse-layer rejection should name the removed face: " + ex);
     }
 
     @Test
@@ -111,13 +121,6 @@ public class TestStreamModelDslBuilderFailFast {
                         + ex.getMessage());
         assertTrue(ex.getMessage().contains("broadcast=true"),
                 "Exception should name the broadcast=true-only contract: " + ex.getMessage());
-    }
-
-    @Test
-    public void environmentsRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast(
-                "<environments><environment name=\"prod\"/></environments>",
-                "<environments>");
     }
 
     @Test
@@ -149,20 +152,6 @@ public class TestStreamModelDslBuilderFailFast {
     // WI1 (plan 2347): contract-ledger nails — every remaining registry/callback
     // face from failFastOnUnsupportedRegistries gets its own build-time pin so the
     // release work items (WI12/WI13) can retire them one by one.
-
-    @Test
-    public void requirementsRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast(
-                "<requirements><requirement value=\"EFFECTIVELY_ONCE\"/></requirements>",
-                "<requirements>");
-    }
-
-    @Test
-    public void checkpointParticipantsRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast(
-                "<checkpointParticipants><participant value=\"op1\"/></checkpointParticipants>",
-                "<checkpointParticipants>");
-    }
 
     @Test
     public void lifecycleCallbacksFailsFast() {
