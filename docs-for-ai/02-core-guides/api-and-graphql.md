@@ -89,6 +89,16 @@
 
 所有 HTTP 入口的统一分发由 `GraphQLWebService` 基类实现（见 `04-reference/source-anchors.md` 的 `GQL-002`）。Spring 适配器为 `SpringGraphQLWebService`，Quarkus 适配器为 `QuarkusGraphQLWebService`。
 
+## GraphQL 查询文档能力边界
+
+自定义 GraphQL 查询（`/graphql` 入口的 query 文档）对 named fragment 与变量的支持语义：
+
+1. **fragment 内变量引用**：named fragment body 的字段参数、body 内字段指令参数、fragment spread 指令参数，均可引用 operation 声明的变量（`GraphQLSelectionResolver` 按文档级并集校验变量存在性；全文档未声明的变量仍报 `nop.err.graphql.unknown-var`）。变量存在性校验发生在 fragment 预解析阶段；平台请求为单 operation 文档，并集与该 operation 的变量集重合。未提供的变量在执行期取 null（与 GraphQL 规范"省略 variables 键等同空变量集"一致）。
+2. **inline fragment 不支持**：`... on Type` 语法在解析期被显式拒绝（错误码 `nop.err.graphql.parse-unsupported-inline-fragment`），属既定工程取舍；named fragment 不受影响。
+3. **平台自有 `@Exclude` 指令**：用于 fragment spread 排除字段（`...F @Exclude(fields: ["name"])`），执行面由 `SelectionBeanBuilder` 求值；`@skip`/`@include` 标准 GraphQL 指令亦可用于字段与 fragment spread。
+
+实现锚点：`nop-graphql-core` 的 `GraphQLSelectionResolver`（校验）与 `SelectionBeanBuilder`（执行求值）；回归测试 `TestGraphQLFragmentVariables`。
+
 ## REST 调用（`/r/`）详细规则
 
 1. `@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
