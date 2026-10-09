@@ -8,8 +8,9 @@
 - **文件输入/输出**：支持 CSV/Excel 文件作为数据源或输出
 - **ORM/JDBC 读写**：内建 `orm-reader`/`orm-writer`、`jdbc-reader`/`jdbc-writer`
 - **断点续传**：通过 `completedIndex` 记录进度，中断后可恢复；语义为 at-least-once（失败 chunk 的行会重新投递，业务方需自带幂等）
-- **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
+- **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`，mandatory 三列 retryCount=0/batchSize=filtered.size()/handleStatus=0 由 saveProcessed 显式赋值——P1-3.4-002），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
 - **重试/跳过**：`retryPolicy` + `skipPolicy` 内建支持
+- **`snapshotBuilder="orm-entity"` 用法（P1-3.4-001，plan 2382）**：映射到 `OrmBatchRecordSnapshotBuilder`（魔法治具值经 `BatchConstants.SNAPSHOT_BUILDER_ORM_ENTITY`；也可 `snapshotBuilder="beanName"` 指向自定义 `IBatchRecordSnapshotBuilder`）。语义：ORM 实体在 processor 链前后做快照/恢复——`restore` 返回**恢复后的完整记录列表**并回写 retry 集；未配置时 retry 消费方拿不到恢复记录（失败 chunk 记录会静默丢弃），使用 ORM 实体 + 重试语义的任务应配置它。
 - **并发处理**：`concurrency` + `executor` 线程池
 - **分区处理**：`dispatcher` + `partitionIndexField` 按字段分区并行
 - **生命周期 Listener**：12 种回调（onTaskBegin/End, onChunkBegin/End 等）

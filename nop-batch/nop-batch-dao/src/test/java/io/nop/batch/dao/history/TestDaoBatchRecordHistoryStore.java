@@ -98,6 +98,10 @@ public class TestDaoBatchRecordHistoryStore {
         for (NopBatchRecordResult result : saved) {
             assertEquals("task-1", result.getBatchTaskId());
             assertEquals(0, result.getResultStatus());
+            // P1-3.4-002（plan 2382）：mandatory 三列显式赋值断言
+            assertEquals(0, result.getRetryCount(), "first-execution retryCount must be 0");
+            assertEquals(3, result.getBatchSize(), "batchSize = filtered.size()");
+            assertEquals(0, result.getHandleStatus(), "handleStatus success convention = 0");
         }
         assertEquals("a", saved.get(0).getRecordKey());
         assertEquals("b", saved.get(1).getRecordKey());

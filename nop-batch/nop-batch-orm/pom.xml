@@ -21,5 +21,11 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
         </dependency>
+        <!-- test-scope junit：OrmBatchRecordSnapshotBuilder.restore 判别测试（plan 2382，先例 nop-batch-core） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>
