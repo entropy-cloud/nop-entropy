@@ -591,6 +591,18 @@ execution（`generate-test-resources` = postcompile 同相位）接入——参�
 2. 一上来就大范围读源码，而不是先看真实模板例子和 schema。
 3. 把 `.xgen` 的生成链路说明写回本页；那属于代码生成 runbook 的主题。
 
+## 包级分层治理（nop-xlang 内部开发必读）
+
+`nop-kernel/nop-xlang` 的包级导入图按三档治理管理（裁定记录：开发过程文档库 design 目录下「nop-xlang 包级分层治理设计（三档）」，`xlang-package-layering-design`）：
+
+1. **expr 包硬边界**：`io.nop.xlang.expr` 包**禁止引用 `io.nop.xlang.compile`**（含 import 与限定名内联使用）。表达式编译管线（`buildExecutable`）经 `IExecutableExprCompiler` 接口缝由 compile 包实现，`META-INF/services` 装配、未注册 fail-loud。
+   检查命令：`grep -rn "io\.nop\.xlang\.compile" nop-kernel/nop-xlang/src/main/java/io/nop/xlang/expr/` 必须为空。
+2. **零新环红线**：包级导入图禁止新增会形成新环的方向边。
+3. **内核入边冻结**：SCC 内核成员禁止新增入边；接口-实现适配边须先登记进设计文档豁免表。
+4. SCC 复测命令：`python3 ai-dev/tools/xlang-package-scc-check.py`（成员数不得高于割离后基线）。
+
+改动 nop-xlang 包结构（新增跨包引用、搬类）前，先读设计文档的豁免表与红线；违反红线的跨包引用需要在设计文档登记豁免并附「不成环」论证。
+
 ## 相关文档
 
 - `./xdef-and-xdsl.md`

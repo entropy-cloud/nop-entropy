@@ -686,6 +686,9 @@ public interface XLangErrors {
     ErrorCode ERR_EXEC_NOT_SUPPORTED_AST_NODE = define("nop.err.xlang.exec.not-supported-node", "不支持的语法节点",
             ARG_AST_NODE);
 
+    ErrorCode ERR_EXEC_COMPILER_NOT_REGISTERED = define("nop.err.xlang.exec.compiler-not-registered",
+            "可执行表达式编译器未注册:META-INF/services 缺失 io.nop.xlang.expr.IExecutableExprCompiler 注册或注册被清除");
+
     ErrorCode ERR_EXEC_TRANSLATE_UNSUPPORTED_NODE = define("nop.err.xlang.exec.translate-unsupported-node",
             "java转译不支持的表达式子集外节点:{className} {location}", ARG_CLASS_NAME, ARG_LOCATION);
 

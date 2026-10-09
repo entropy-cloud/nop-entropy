@@ -82,7 +82,7 @@
 
 | Finding ID | 报告 | 目标 R1.x | 修复状态 |
 |---|---|---|---|
-| P1-1.2-001 | `1.2-xlang-structure-pipeline-audit.md` | R1.x（包级 SCC 三档治理，expr→compile 单边割离性价比最高） | open |
+| P1-1.2-001 | `1.2-xlang-structure-pipeline-audit.md` | R1.x（包级 SCC 三档治理，expr→compile 单边割离性价比最高） | fixed（2026-10-09，plan 2364——expr 包零 compile 引用接缝割离 + SCC 21→20 compile 出环实测 + 三档治理成文） |
 | P1-1.8-001 | `1.8-integration-periphery-audit.md` | R1.0（file/credential-app 半拆命运裁决：恢复 start()+web-orm-starter 或正式休眠+文档声明） | open |
 | P1-1.9-001 | `1.9-jq-refactor-first-audit.md` | R1.0（jq 工具接缝资源耗尽：4 叶节点预算+cancelToken 接线+env-supplier，精算在案） | open |
 | P1-1.10-001 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（bytecode 分析层异常收口+CLI 兜底 ~17 行；CI 接线前必修） | open |
@@ -251,6 +251,7 @@
 | 工作项 | 状态 | 证据 / 结论 |
 |---|---|---|
 | R1.0 | done | 汇聚 109 open P1 → 44 行 R1.1–R1.42+R1.6a/b/c 增补 roadmap MR 表；交叉核对零漏单；对抗审查 FAIL→3 Major+8 Minor 全修；登记 v7 |
+| R1.1 | done | plan 2364（2026-10-09）：expr→compile 单边割离——expr 包零 compile 引用（`IExecutableExprCompiler` 接缝 + META-INF/services + fail-loud），公开契约零改动；SCC 21→20 compile 出环实测；三档治理成文（设计文档 + owner doc）+ 红线脚本版本化；nop-xlang 859 tests 全绿 + 接缝回归 4 用例；closure audit 见 plan 2364 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
