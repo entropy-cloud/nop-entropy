@@ -24,7 +24,7 @@
 
 ### M0 — 可行性与选型裁定
 
-- [ ] WI0 GraalJS 选型与裸环境首图 spike：GraalJS 版本裁定（nop-dependencies 现有 graalvm.version=23.1.2 与 nop-xlang-truffle 钉 truffle 25.2.4 的对齐取舍，CI JDK21 + 本地 JDK26 双验）；echarts 资源获取裁定（Maven Central 的 org.mvnpm:echarts:6.1.0 依赖并排除 tslib/zrender 传递依赖 vs 提交 dist/echarts.js 3.8MB 入库）；最小裸环境（仅 global/console/timer/setPlatformAPI 假 canvas，**不定义** window/document/navigator）加载 dist/echarts.js 渲出第一张含中文 bar PNG；中文字体可得性初验。裁定报告落 ai-dev/analysis/ 当月目录（Deliverable: 裁定报告 + 依赖坐标裁定 + 首图 PoC；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 GraalJS 选型与裸环境首图 spike：GraalJS 版本裁定（nop-dependencies 现有 graalvm.version=23.1.2 与 nop-xlang-truffle 钉 truffle 25.2.4 的对齐取舍，CI JDK21 + 本地 JDK26 双验）；echarts 资源获取裁定（Maven Central 的 org.mvnpm:echarts:6.1.0 依赖并排除 tslib/zrender 传递依赖 vs 提交 dist/echarts.js 3.8MB 入库）；最小裸环境（仅 global/console/timer/setPlatformAPI 假 canvas，**不定义** window/document/navigator）加载 dist/echarts.js 渲出第一张含中文 bar PNG；中文字体可得性初验。裁定报告落 ai-dev/analysis/ 当月目录（Deliverable: 裁定报告 + 依赖坐标裁定 + 首图 PoC；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — nop-canvas2d（新模块：纯 Java2D Canvas2D，零 Graal/echarts/报表依赖）
 

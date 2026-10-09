@@ -27,7 +27,9 @@
         <spring-boot.version>3.5.14</spring-boot.version>
         <spring-cloud.version>2025.0.2</spring-cloud.version>
         <spring-ai.version>1.1.5</spring-ai.version>
-        <graalvm.version>23.1.2</graalvm.version>
+        <!-- GraalJS polyglot 线：与 nop-kernel/nop-xlang-truffle 钉定的 truffle.version 保持同线（plan 2358 WI0 裁定） -->
+        <graal-polyglot.version>25.2.4</graal-polyglot.version>
+        <mvnpm-echarts.version>6.1.0</mvnpm-echarts.version>
         <!-- 与quarkus3.14.4中使用版本一致 -->
         <antlr.version>4.13.0</antlr.version>
 
@@ -115,7 +117,6 @@
         <commons-lang3.version>3.8.1</commons-lang3.version>
         <commons-collections4.version>4.2</commons-collections4.version>
         <opencsv.version>4.6</opencsv.version>
-        <graalvm-js.version>${graalvm.version}</graalvm-js.version>
     </properties>
 
     <dependencyManagement>
@@ -540,11 +541,22 @@
                 <version>${jfreechart.version}</version>
             </dependency>
 
-            <!--            <dependency>-->
-            <!--                <groupId>org.graalvm.js</groupId>-->
-            <!--                <artifactId>js</artifactId>-->
-            <!--                <version>${graalvm.version}</version>-->
-            <!--            </dependency>-->
+            <dependency>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>polyglot</artifactId>
+                <version>${graal-polyglot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>js</artifactId>
+                <version>${graal-polyglot.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.mvnpm</groupId>
+                <artifactId>echarts</artifactId>
+                <version>${mvnpm-echarts.version}</version>
+            </dependency>
 
         </dependencies>
     </dependencyManagement>
