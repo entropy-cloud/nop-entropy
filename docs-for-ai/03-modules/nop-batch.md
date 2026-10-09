@@ -143,7 +143,7 @@ processor name="queryData":
 
 ### orm-reader 的传参
 
-orm-reader 支持两种查询方式：
+orm-reader 仅支持 `<query>` 结构化查询模型（P1-3.3-001 修复后；历史 `<eql>` 节点已移除，见下方查询模型说明）：
 
 **方式 1：query 查询模型（推荐简单场景）**
 
@@ -157,19 +157,16 @@ orm-reader entityName="ErpMdMaterial":
             field(name="code")
 ```
 
-**方式 2：eql 原始 EQL（复杂查询）**
-
-```
-orm-reader entityName="ErpMdMaterial":
-    eql: select o from ErpMdMaterial o where o.status = ${status} and o.stockQty > ${minStock}
-```
-
-> **关键区别**：`dao:FindFirst` 等标签的 body 直接是 EQL 文本；`orm-reader` 的 `<eql>` 也是 EQL 文本，但 `<query>` 是结构化的查询模型（filter/orderBy）。
+> **查询模型说明（P1-3.3-001，plan 2381）**：`orm-reader` 仅支持 `<query>` 结构化查询模型
+> （filter/orderBy）。历史版本的 `<eql>` 节点因引擎从未接线（声明后被静默丢弃→全表扫描）已从
+> DSL 移除；`dao:FindFirst` 等标签的 body 直接是 EQL 文本，与此处无关。orm-reader 未声明
+> `<query>` 时会全表加载（运行时打 `nop.batch.orm-reader-no-query` WARN）。
 
 **关键点**：
 - `inject('beanName')` 可获取任何 IoC Bean，包括 `I*Biz` 接口
 - `dao:SaveEntity` / `dao:FindFirst` 等标签来自 `/nop/orm/xlib/dao.xlib`
 - processor 中可调用多次 `consume(item)` 输出多个结果
+- 多个 processor 按 `order` 属性升序执行（P1-3.3-002 接线，plan 2381；此前声明序即执行序、order 无效）
 - consumer 中通过 `filter` 匹配不同的输出
 
 ## 常用 loader 类型
@@ -177,7 +174,7 @@ orm-reader entityName="ErpMdMaterial":
 | loader 类型 | 用途 | 关键配置 |
 |-------------|------|----------|
 | `file-reader` | CSV/Excel 文件读取 | `filePath`、`fileModelPath`、`headers` |
-| `orm-reader` | ORM 查询读取 | `entityName` + `<query>`（结构化查询模型）或 `<eql>`（原始 EQL） |
+| `orm-reader` | ORM 查询读取 | `entityName` + `<query>`（结构化查询模型；`<eql>` 已移除，P1-3.3-001） |
 | `jdbc-reader` | 原生 SQL 读取 | `sqlName` + `<sql>`（原生 SQL）或 `<query>`（结构化查询模型） |
 | `provider` | 自定义加载器 | 返回 `IBatchLoader` 或 `List` |
 

@@ -14,6 +14,8 @@ import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.api.IQueryBuilder;
 import io.nop.orm.sql_lib.ISqlLibManager;
@@ -23,6 +25,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 
 public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatchLoaderProvider<S> {
+    static final Logger LOG = LoggerFactory.getLogger(OrmQueryBatchLoaderProvider.class);
 
     private IQueryBuilder queryBuilder;
 
@@ -104,6 +107,11 @@ public class OrmQueryBatchLoaderProvider<S extends IDaoEntity> implements IBatch
 
     LoaderState<S> newLoaderState(IBatchTaskContext context) {
         LoaderState<S> state = new LoaderState<>();
+        if (queryBuilder == null) {
+            // P1-3.3-001（plan 2381）：全表加载兜底必须可观测——显式无过滤读全表是合法用途，
+            // 但静默兜底会让「声明了过滤条件却被丢弃」的配置缺陷不可见（init() Guard 仅覆盖 bean 形态）
+            LOG.warn("nop.batch.orm-reader-no-query:entityName={},fallback=full-table-scan", entityName);
+        }
         state.query = queryBuilder == null ? new QueryBean() : queryBuilder.buildQuery(context);
         IntRangeSet partitions = context.getPartitionRange();
 

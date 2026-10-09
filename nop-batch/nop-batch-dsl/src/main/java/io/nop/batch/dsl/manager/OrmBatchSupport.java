@@ -30,7 +30,6 @@ public class OrmBatchSupport {
 
         if (query != null)
             loader.setQueryBuilder(newQueryBuilder(query));
-        //loader.setSqlGenerator(loaderModel.getEql());
 
         return (IBatchLoaderProvider) loader;
     }

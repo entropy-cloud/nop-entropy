@@ -121,9 +121,9 @@
 | P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
 | P1-3.1-001 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK gate+引擎回调标记窗口+metadata 本地覆盖同步+submit 重提交守卫；E2E 锁定用例+WORKFLOW 全链绿） | fixed |
 | P1-3.1-002 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ATTR_WF_SYSTEM_ACTION_TRIGGER 服务端标记+allowCallByUser 入口放行；scanner 标记断言+引擎正负路径双锚） | fixed |
-| P1-3.3-001 | `3.3-batch-deep-audit-a.md` | R1.0（orm-reader `<eql>` 接线或移除节点+Guard 覆盖 new 直构实例——静默全表加载） | open |
-| P1-3.3-002 | `3.3-batch-deep-audit-a.md` | R1.0（processor order 排序接线+batch-dsl.md 勘正——参照 consumer :275 对照） | open |
-| P1-3.3-003 | `3.3-batch-deep-audit-a.md` | R1.0（allOf AtomicReference CAS 收集首个非取消异常——终态误分类 KILLED 不可重启） | open |
+| P1-3.3-001 | `3.3-batch-deep-audit-a.md` | R1.15/plan 2381（2026-10-09 修复：`<eql>` 全链移除〔EQL 文本无转换器实证〕+newLoaderState 全表兜底 WARN 可观测） | fixed |
+| P1-3.3-002 | `3.3-batch-deep-audit-a.md` | R1.15/plan 2381（2026-10-09 修复：拷贝后排序接线〔共享缓存禁原地〕+行为判别测试 1/1+文档勘正） | fixed |
+| P1-3.3-003 | `3.3-batch-deep-audit-a.md` | R1.15/plan 2381（2026-10-09 修复：primaryError CAS+优先级内嵌 onTaskComplete+机制直测 2/2） | fixed |
 | P1-3.4-001 | `3.4-batch-deep-audit-b.md` | R1.0（OrmBatchRecordSnapshotBuilder.restore 补 ret.add+`"orm-entity"` 魔法值文档） | open |
 | P1-3.4-002 | `3.4-batch-deep-audit-b.md` | R1.0（historyStore mandatory 三列补默认值或显式赋值+钉定测试升级真 IEntityDao flush 校验） | open |
 | P1-3.5-001 | `3.5-sys-deep-audit.md` | R1.0（nop-sys.md 分布式锁入口 ILockService 幻影——改为 IResourceLockManager 真实契约；与 P2-3.5-008/009 死装配族同批修复互引） | open |
@@ -268,6 +268,7 @@
 | R1.12 | done | plan 2378（2026-10-09）：16 项 auth 声明+五侧合并终值断言（含 tenant 继承）+loader 两路径装配（xbiz.xdef 再生成）+双配置键 fail-open 三处+ObjMetaBasedValidator 收敛（新错误码+空安全化）+全链 enforcement 2/2；附带来料：nop-sys-dao import 一行修正（R1.17 附带工单提前消化）+metadata 四快照重录（nop-graphql-orm prepend id 字段=平台预期行为，沿 datav 先例）；closure audit 见 plan 2378 Closure 段 |
 | R1.13 | done | plan 2379（2026-10-09）：P1-3.1-002 dueAction 系统触发标记通道（allowCallByUser 入口放行+双锚测试）+P1-3.1-001 审批 gate（ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK+绑定 flowId 活跃判定+approve/reject 标记放行+withdraw/reverse 无条件+submit 重提交守卫+metadata 两本地覆盖同步+3 listener 标记窗口）；E2E 8/8+wf 195+metadata 1345 全绿；执行裁定：XScript 闭包不过 xpl 解析→listener 内联 try/finally 标记窗口（机制等价）；owner doc 两小节；closure audit 见 plan 2379 Closure 段 |
 | R1.14 | done | plan 2380（2026-10-09）：task.xdef secret 属性（nop-task-core 再生成）+DaoTaskStateStore 五锚点过滤（模型直取规避 bean 环+空集字节级短路+fail-open 例外）+判别测试 6/6+owner doc residual-risk 全列清单；task-core 163/dao 6/service 1 全绿；closure audit 见 plan 2380 Closure 段 |
+| R1.15 | done | plan 2381（2026-10-09）：eql 移除+WARN 可观测/processor 拷贝后排序+行为判别/primaryError CAS 内嵌 onTaskComplete+机制直测 2/2；dsl 21/core 61 全绿；04-reference 副本同步；closure audit 见 plan 2381 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

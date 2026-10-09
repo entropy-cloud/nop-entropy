@@ -258,7 +258,11 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (batchTaskModel.getProcessors() != null) {
             List<IBatchProcessorProvider<?, ?>> list = new ArrayList<>(batchTaskModel.getProcessors().size());
 
-            for (BatchProcessorModel processorModel : batchTaskModel.getProcessors()) {
+            // P1-3.3-002（plan 2381）：processor 按 order 排序接线（consumer :275 同型）。
+            // 拷贝后排序——getProcessors() 返回共享缓存模型内部 KeyedList，禁止原地排序
+            List<BatchProcessorModel> processors = new ArrayList<>(batchTaskModel.getProcessors());
+            processors.sort(java.util.Comparator.comparingInt(BatchProcessorModel::getOrder));
+            for (BatchProcessorModel processorModel : processors) {
                 IBatchProcessorProvider<Object, Object> processor = buildProcessor(processorModel, builder, beanContainer);
                 if (processorModel.getFilter() != null) {
                     list.add(newFilterProcessor(processorModel.getFilter()));
