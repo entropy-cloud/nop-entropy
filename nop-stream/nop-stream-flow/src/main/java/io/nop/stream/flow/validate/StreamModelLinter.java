@@ -13,8 +13,6 @@ import io.nop.stream.flow.model.CheckpointConfigModel;
 import io.nop.stream.flow.model.StreamAggregateModel;
 import io.nop.stream.flow.model.StreamJoinModel;
 import io.nop.stream.core.windowing.AccumulationMode;
-import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
-import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.flow.builder.BeanFunctionResolver;
 import io.nop.stream.flow.model.StreamCepModel;
 import io.nop.stream.flow.model.StreamCustomModel;
@@ -160,14 +158,20 @@ public final class StreamModelLinter {
                             + "with checkpoint participation (roadmap R3 hint)"));
         }
 
-        // R6: idempotent-combination pre-check — dormant until WI15 releases the
-        // endpoint capability face; explicit skip, never silent.
+        // R6: idempotent-combination pre-check — RETIRED by WI15 (plan 2361): the
+        // endpoint capability static pre-check is explicitly adjudicated as retired.
+        // The engine's validateConnectorConsistency is the final gate for the
+        // processingGuarantee-sufficiency dimension; the builder's new
+        // declared-fidelity check covers the declaration-vs-bean dimension. The two
+        // dimensions are different and do not substitute for each other.
+        // Explicit skip, never silent.
         CheckpointConfigModel cfg = model.getCheckpoint();
         if (cfg != null && cfg.getProcessingGuarantee() == io.nop.stream.core.checkpoint.ProcessingGuarantee.STRICT_EXACTLY_ONCE) {
             report.add(ValidationIssue.skip(LAYER_LINT, model.getName(), CODE_INVALID_ARG,
-                    "R6: STRICT_EXACTLY_ONCE declared — endpoint REPLAYABLE-source/2PC-sink "
-                            + "static pre-check activates when WI15 releases the endpoint "
-                            + "capability face; the engine-side validator remains the final gate"));
+                    "R6: STRICT_EXACTLY_ONCE declared — the endpoint capability static pre-check"
+                            + " was retired by WI15; the engine-side"
+                            + " validateConnectorConsistency remains the final gate for the"
+                            + " guarantee-sufficiency dimension"));
         }
         // R13 model-aware half: scenario-registry comparison activates with WI21.
         report.add(ValidationIssue.skip(LAYER_LINT, model.getName(), CODE_INVALID_ARG,
@@ -198,31 +202,29 @@ public final class StreamModelLinter {
             if (s.hasParams()) {
                 report.add(ValidationIssue.warning(LAYER_LINT, "sink " + t.getId(),
                         CODE_NOT_IMPLEMENTED, "<sink> <params> has no execution consumer "
-                                + "(roadmap WI15 release face)"));
+                                + " (WI15 adjudication: maintained rejection — see the builder message for the rationale)"));
             }
             if (s.getMaxParallelism() > 0) {
                 report.add(ValidationIssue.warning(LAYER_LINT, "sink " + t.getId(),
                         CODE_NOT_IMPLEMENTED, "sink maxParallelism has no execution consumer "
-                                + "(roadmap WI15 release face)"));
+                                + " (WI15 adjudication: maintained rejection — see the builder message for the rationale)"));
             }
             if (s.getInputType() != null) {
                 report.add(ValidationIssue.warning(LAYER_LINT, "sink " + t.getId(),
                         CODE_NOT_IMPLEMENTED, "<sink> <inputType> has no execution consumer "
-                                + "(roadmap WI15 release face)"));
+                                + " (WI15 adjudication: maintained rejection — see the builder message for the rationale)"));
             }
-            if (s.getConsistencyCapability() != null
-                    && s.getConsistencyCapability() != SinkConsistencyCapability.AT_LEAST_ONCE) {
-                report.add(ValidationIssue.warning(LAYER_LINT, "sink " + t.getId(),
-                        CODE_NOT_IMPLEMENTED, "sink consistencyCapability has no execution consumer "
-                                + "(roadmap WI15 release face)"));
-            }
+            // WI15 (plan 2361): the consistencyCapability rule LEFT the linter — the
+            // builder validates declared-fidelity against the resolved bean (the linter
+            // has no bean access); guarantee sufficiency stays with the engine's
+            // validateConnectorConsistency (the final gate).
         }
         if (t instanceof StreamCustomModel) {
             StreamCustomModel c = (StreamCustomModel) t;
             if (c.hasParams() || c.getSource() != null) {
                 report.add(ValidationIssue.warning(LAYER_LINT, "custom " + t.getId(),
                         CODE_NOT_IMPLEMENTED, "<custom> <params>/<source> body has no consumer — "
-                                + "only customType beans are consumed (roadmap WI15 release face)"));
+                                + "only customType beans are consumed"));
             }
         }
     }
@@ -230,21 +232,19 @@ public final class StreamModelLinter {
     private void scanEndpoint(String target, StreamSourceModel t, StreamConfValidationReport report) {
         if (t.hasParams()) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "<source> <params> has no execution consumer (roadmap WI15 release face)"));
+                    "<source> <params> has no execution consumer"));
         }
         if (t.getMaxParallelism() > 0) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "source maxParallelism has no execution consumer (roadmap WI15 release face)"));
+                    "source maxParallelism has no execution consumer"));
         }
         if (t.getOutputType() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "<source> <outputType> has no execution consumer (roadmap WI15 release face)"));
+                    "<source> <outputType> has no execution consumer"));
         }
-        if (t.getConsistencyCapability() != null
-                && t.getConsistencyCapability() != SourceConsistencyCapability.AT_LEAST_ONCE) {
-            report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "source consistencyCapability has no execution consumer (roadmap WI15 release face)"));
-        }
+        // WI15 (plan 2361): the consistencyCapability rule LEFT the linter — see the
+        // sink-side note (builder-side declared-fidelity validation; linter has no
+        // bean access).
     }
 
     private void scanEdge(StreamEdgeModel e, StreamConfValidationReport report) {

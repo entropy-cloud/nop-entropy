@@ -1710,6 +1710,24 @@ public final class StreamModelDslBuilder {
         // ERR_STREAM_REQUIRED_BODY anchoring as the previous inline tree).
         SourceFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
                 SourceFunction.class, XplSourceFunction::new);
+        // WI15 (plan 2361): declared-capability fidelity check — the declaration must
+        // match what the resolved bean actually provides (the engine validates
+        // connector consistency against the BEAN's capability, so a diverging
+        // declaration would be inert). Value-exemption: AT_LEAST_ONCE (the xdef
+        // default, force-injected at parse time) is always exempt.
+        if (t.getConsistencyCapability() != null
+                && t.getConsistencyCapability() != SourceConsistencyCapability.AT_LEAST_ONCE
+                && fn.getSourceConsistency() != t.getConsistencyCapability()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
+                    .param(ARG_DETAIL, "declared source consistencyCapability=" + t.getConsistencyCapability()
+                            + " but the resolved bean provides " + fn.getSourceConsistency()
+                            + "; the engine validates connector consistency against the bean, so the"
+                            + " declaration would be inert — align the declaration with the bean or"
+                            + " switch to a connector bean providing the declared capability"
+                            + " (xpl-form sources always provide the default)")
+                    .loc(t.getLocation());
+        }
         String name = t.getName() == null ? "Source:" + t.getId() : t.getName();
         // Item 29: per-transform parallelism consumes the DataStreamSource entry
         // (covers the source vertex; undeclared inherits the stream-level value).
@@ -1717,13 +1735,14 @@ public final class StreamModelDslBuilder {
     }
 
     /**
-     * Item 11 FL-1: source-side connector configuration declarations that the current
-     * execution chain cannot honor must fail fast instead of being silently dropped.
-     * {@code <params>}, {@code outputType} and {@code maxParallelism} have no consumer
-     * (connector beans validate their own constructor args, see the item 10 audit
-     * §2.2 table), and {@code consistencyCapability} is not plumbed into the runtime
-     * source contract — declaring a non-default value promises semantics the engine
-     * does not deliver. Consumption of these fields is tracked as a follow-up.
+     * Item 11 FL-1 (WI15 revision): source-side connector configuration declarations
+     * that the current execution chain cannot honor must fail fast instead of being
+     * silently dropped. {@code <params>}, {@code outputType} and {@code maxParallelism}
+     * have no consumer (connector beans validate their own constructor args, see the
+     * item 10 audit §2.2 table). {@code consistencyCapability} LEFT this fail-fast in
+     * WI15 (plan 2361): a non-default declaration is now validated against the
+     * resolved bean's actual capability in buildSource (declared-fidelity dimension —
+     * the engine's validateConnectorConsistency remains the guarantee-sufficiency gate).
      */
     private static void failFastOnUnsupportedSourceConfig(StreamSourceModel t) {
         if (t.hasParams()) {
@@ -1745,14 +1764,9 @@ public final class StreamModelDslBuilder {
                     .param(ARG_DETAIL, "source outputType has no execution consumer")
                     .loc(t.getLocation());
         }
-        if (t.getConsistencyCapability() != null
-                && t.getConsistencyCapability() != SourceConsistencyCapability.AT_LEAST_ONCE) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
-                    .param(ARG_DETAIL, "source consistencyCapability has no execution consumer; declared="
-                            + t.getConsistencyCapability())
-                    .loc(t.getLocation());
-        }
+        // WI15 (plan 2361): the consistencyCapability branch LEFT this fail-fast —
+        // a non-default declaration is validated against the resolved bean's actual
+        // capability in buildSource (declared-fidelity dimension).
     }
 
     /**
@@ -1824,6 +1838,22 @@ public final class StreamModelDslBuilder {
         // consistency check (the same bean instance the graph generator's
         // detectRequirements will see — builder-side instanceof is engine-equivalent).
         resolvedSinkBeans.put(t.getId(), fn);
+        // WI15 (plan 2361): declared-capability fidelity check — see the buildSource
+        // counterpart. Value-exemption: AT_LEAST_ONCE (the xdef default, force-injected
+        // at parse time) is always exempt.
+        if (t.getConsistencyCapability() != null
+                && t.getConsistencyCapability() != SinkConsistencyCapability.AT_LEAST_ONCE
+                && fn.getSinkConsistency() != t.getConsistencyCapability()) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
+                    .param(ARG_DETAIL, "declared sink consistencyCapability=" + t.getConsistencyCapability()
+                            + " but the resolved bean provides " + fn.getSinkConsistency()
+                            + "; the engine validates connector consistency against the bean, so the"
+                            + " declaration would be inert — align the declaration with the bean or"
+                            + " switch to a connector bean providing the declared capability"
+                            + " (xpl-form sinks always provide the default)")
+                    .loc(t.getLocation());
+        }
         Integer declared = declaredSinkParallelism(t);
         if (declared != null) {
             // Item 29: explicit per-operator parallelism on the sink registration
@@ -1835,10 +1865,13 @@ public final class StreamModelDslBuilder {
     }
 
     /**
-     * Item 11 FL-1 (sink side, mirrors {@link #failFastOnUnsupportedSourceConfig}):
-     * {@code <params>}/{@code inputType}/{@code maxParallelism} have no consumer and a
-     * non-default {@code consistencyCapability} is not plumbed into the runtime sink
-     * contract — all fail fast instead of being silently dropped.
+     * Item 11 FL-1 (WI15 revision, mirrors {@link #failFastOnUnsupportedSourceConfig}):
+     * {@code <params>}/{@code inputType}/{@code maxParallelism} have no consumer and
+     * fail fast instead of being silently dropped. {@code consistencyCapability} LEFT
+     * this fail-fast in WI15 (plan 2361): a non-default declaration is validated
+     * against the resolved bean's actual capability in buildSink (declared-fidelity
+     * dimension — the engine's validateConnectorConsistency remains the
+     * guarantee-sufficiency gate).
      */
     private static void failFastOnUnsupportedSinkConfig(StreamSinkModel t) {
         if (t.hasParams()) {
@@ -1860,14 +1893,9 @@ public final class StreamModelDslBuilder {
                     .param(ARG_DETAIL, "sink inputType has no execution consumer")
                     .loc(t.getLocation());
         }
-        if (t.getConsistencyCapability() != null
-                && t.getConsistencyCapability() != SinkConsistencyCapability.AT_LEAST_ONCE) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "consistencyCapability")
-                    .param(ARG_DETAIL, "sink consistencyCapability has no execution consumer; declared="
-                            + t.getConsistencyCapability())
-                    .loc(t.getLocation());
-        }
+        // WI15 (plan 2361): the consistencyCapability branch LEFT this fail-fast —
+        // a non-default declaration is validated against the resolved bean's actual
+        // capability in buildSink (declared-fidelity dimension).
     }
 
     // ----------------------------------------------------------------
