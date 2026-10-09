@@ -3,7 +3,7 @@
  */
 package io.nop.sys.dao.log;
 
-import io.nop.core.unittest.JunitBaseTestCase;
+import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.dao.api.DaoProvider;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;

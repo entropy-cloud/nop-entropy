@@ -112,6 +112,16 @@
             <artifactId>nop-job-local</artifactId>
             <scope>test</scope>
         </dependency>
+        <!-- nop-auth-service (test scope): nopActionAuthChecker / siteMapProvider beans for
+             enable-action-auth enforcement tests (P1-2.6-005/006, plan 2378). 沿 nop-datav-service 先例。
+             注意：nop-auth-service 传递引入 nop-graphql-orm，其 OrmBizInitializer 会为无 id 字段的
+             实体 biz 对象 prepend GraphQL id 字段（OrmEntityIdFetcher），Save 响应因此多出 id——
+             AutoNopMeta* 四个快照基线已按该环境重录（plan 2378 Phase 1 附带）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-auth-service</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-autotest-junit</artifactId>

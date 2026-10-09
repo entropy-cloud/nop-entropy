@@ -10,6 +10,7 @@ package io.nop.biz.crud;
 import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.beans.DictBean;
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.beans.DictOptionBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeanConstants;
@@ -330,8 +331,22 @@ public class ObjMetaBasedValidator {
 
     protected void doCheckAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
         IActionAuthChecker authChecker = this.context.getActionAuthChecker();
-        if (authChecker == null || auth == null)
+        if (auth == null)
             return;
+
+        // P1-2.6 fail-open 同族收敛（plan 2378 Phase 3）：字段权限已显式声明而 checker 缺席时，
+        // require-auth-checker=true 按 fail-closed 处理；否则保持平台既有「无 checker 不检查」语义
+        if (authChecker == null) {
+            if (ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER.get())
+                throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
+                        .source(propMeta)
+                        .param(ARG_FIELD_NAME, propMeta.getName())
+                        .param(ARG_PERMISSION, auth.getPermissions())
+                        .param(ARG_ROLES, auth.getRoles())
+                        .param(ARG_OBJ_TYPE_NAME, objTypeName)
+                        .param(ARG_FIELD_DISPLAY_NAME, propMeta.getDisplayName());
+            return;
+        }
 
         // 如果是公开方法，则不检查用户权限
         if (auth.isPublicAccess())

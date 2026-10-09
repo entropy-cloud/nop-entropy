@@ -4,6 +4,7 @@
 
     <actions>
         <mutation name="approve" displayName="通过">
+            <auth roles="admin"/>
             <arg name="id" type="String" mandatory="true"/>
             <arg name="svcCtx" kind="ServiceContext"/>
             <return>
@@ -22,6 +23,7 @@
         </mutation>
 
         <mutation name="reject" displayName="驳回">
+            <auth roles="admin"/>
             <arg name="id" type="String" mandatory="true"/>
             <arg name="svcCtx" kind="ServiceContext"/>
             <return>

@@ -2,6 +2,7 @@ package io.nop.wf.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
+import io.nop.api.core.auth.ActionAuthMeta;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.biz.api.IBizObject;
@@ -277,7 +278,73 @@ public class TestUseApprovalE2E extends AbstractWorkflowTestCase {
         });
     }
 
+    /**
+     * P1-2.6-005 修复回归（plan 2378 R1.12 Phase 1）：approval-support.xbiz 的 5 个审批 mutation
+     * 在 x:extends 合并终值中必须携带 auth（roles=admin）。
+     * 断言对象是经 IBizObjectManager 解析的 merged definition（非源 XML）——
+     * TestUseApprovalComponents 的原始 XNode 断言不经过合并，不能作为合并终值锚点。
+     */
+    @Test
+    public void testApprovalSupportActionsCarryAdminAuthAfterMerge() {
+        IBizObject bizObj = bizObjectManager.getBizObject("NopWfApprovableItem");
+        assertNotNull(bizObj);
+
+        for (String action : new String[]{"submitForApproval", "withdrawApproval", "approve", "reject",
+                "reverseApprove"}) {
+            String operationName = "NopWfApprovableItem__" + action;
+            GraphQLFieldDefinition def = findOperation(bizObj, GraphQLOperationType.mutation, operationName);
+            assertNotNull(def, operationName + " must be registered");
+
+            ActionAuthMeta auth = def.getAuth();
+            assertNotNull(auth, operationName + " must carry <auth> after merge (P1-2.6-005)");
+            assertNotNull(auth.getRoles(), operationName + " auth must declare roles");
+            assertTrue(auth.getRoles().contains("admin"),
+                    operationName + " auth roles should contain admin, actual: " + auth.getRoles());
+        }
+    }
+
+    /**
+     * P1-2.6-006 修复回归（plan 2378 R1.12 Phase 1）：NopWfDefinition publish/unpublish 在合并终值中
+     * 必须携带 auth，且每动作单独声明自身权限（| 是 OR 组语义，跨动作连写会互相提权）。
+     */
+    @Test
+    public void testNopWfDefinitionPublishUnpublishAuthAfterMerge() {
+        IBizObject bizObj = bizObjectManager.getBizObject("NopWfDefinition");
+        assertNotNull(bizObj);
+
+        ActionAuthMeta publishAuth = requireOperationAuth(bizObj, GraphQLOperationType.mutation,
+                "NopWfDefinition__publish");
+        assertTrue(publishAuth.getRoles().contains("admin"), "publish roles should contain admin");
+        assertEquals("NopWfDefinition:publish", publishAuth.getPermissions().toString(),
+                "publish must declare only its own permission");
+
+        ActionAuthMeta unpublishAuth = requireOperationAuth(bizObj, GraphQLOperationType.mutation,
+                "NopWfDefinition__unpublish");
+        assertTrue(unpublishAuth.getRoles().contains("admin"), "unpublish roles should contain admin");
+        assertEquals("NopWfDefinition:unpublish", unpublishAuth.getPermissions().toString(),
+                "unpublish must declare only its own permission");
+    }
+
     // ======================== 辅助方法 ========================
+
+    private GraphQLFieldDefinition findOperation(IBizObject bizObj, GraphQLOperationType type, String operationName) {
+        Collection<GraphQLFieldDefinition> ops = bizObj.getOperationDefinitions(type);
+        if (ops == null)
+            return null;
+        for (GraphQLFieldDefinition def : ops) {
+            if (operationName.equals(def.getName()))
+                return def;
+        }
+        return null;
+    }
+
+    private ActionAuthMeta requireOperationAuth(IBizObject bizObj, GraphQLOperationType type, String operationName) {
+        GraphQLFieldDefinition def = findOperation(bizObj, type, operationName);
+        assertNotNull(def, operationName + " must be registered");
+        ActionAuthMeta auth = def.getAuth();
+        assertNotNull(auth, operationName + " must carry <auth> after merge (P1-2.6-006)");
+        return auth;
+    }
 
     @SuppressWarnings("unchecked")
     private <T> T invokeApprovalAction(IBizObject bizObj, String action, String entityId, String userId) {

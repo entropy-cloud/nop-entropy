@@ -469,6 +469,14 @@ public class ReflectionBizModelBuilder {
         if (func.isAnnotationPresent(LazyLoad.class))
             def.setLazy(true);
 
+        // P1-2.6-007：消费 @BizLoader 方法上的显式 @Auth 声明（此前为死注解——全仓唯一消费点在
+        // buildActionField）。无注解时不补缺省权限：loader 是字段装载器，缺省回填过严。
+        Auth auth = func.getAnnotation(Auth.class);
+        if (auth != null) {
+            def.setAuth(new ActionAuthMeta(auth.publicAccess(), ConvertHelper.toCsvSet(auth.roles()),
+                    MultiCsvSet.fromText(auth.permissions()), auth.skipWhenNoAuth()));
+        }
+
         return def;
     }
 

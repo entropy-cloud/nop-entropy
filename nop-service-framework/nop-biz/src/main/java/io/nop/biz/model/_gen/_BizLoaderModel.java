@@ -32,6 +32,13 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: auth
+     * 
+     */
+    private io.nop.api.core.auth.ActionAuthMeta _auth ;
+    
+    /**
+     *  
      * xml name: autoCreateField
      * 
      */
@@ -132,6 +139,25 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._argsNormalizer = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: auth
+     *  
+     */
+    
+    public io.nop.api.core.auth.ActionAuthMeta getAuth(){
+      return _auth;
+    }
+
+    
+    public void setAuth(io.nop.api.core.auth.ActionAuthMeta value){
+        checkAllowChange();
+        
+        this._auth = value;
            
     }
 
@@ -260,6 +286,8 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         
            this._args = io.nop.api.core.util.FreezeHelper.deepFreeze(this._args);
             
+           this._auth = io.nop.api.core.util.FreezeHelper.deepFreeze(this._auth);
+            
            this._cache = io.nop.api.core.util.FreezeHelper.deepFreeze(this._cache);
             
            this._return = io.nop.api.core.util.FreezeHelper.deepFreeze(this._return);
@@ -273,6 +301,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         
         out.putNotNull("args",this.getArgs());
         out.putNotNull("argsNormalizer",this.getArgsNormalizer());
+        out.putNotNull("auth",this.getAuth());
         out.putNotNull("autoCreateField",this.isAutoCreateField());
         out.putNotNull("cache",this.getCache());
         out.putNotNull("disabled",this.isDisabled());
@@ -292,6 +321,7 @@ public abstract class _BizLoaderModel extends io.nop.core.resource.component.Abs
         
         instance.setArgs(this.getArgs());
         instance.setArgsNormalizer(this.getArgsNormalizer());
+        instance.setAuth(this.getAuth());
         instance.setAutoCreateField(this.isAutoCreateField());
         instance.setCache(this.getCache());
         instance.setDisabled(this.isDisabled());

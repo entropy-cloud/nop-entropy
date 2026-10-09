@@ -113,9 +113,9 @@
 | P1-2.6-002 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（fragment body 变量误拒——GraphQLSelectionResolver 三位点一次闭合+三回归用例） | fixed（2026-10-09，plan 2377——collectDocVars 文档级并集传入 fragment 预解析+spread 指令 vars 传递，位点 3 随传播闭合；stash 判别 4 正向 FAIL 错误码逐字吻合审计探针；7 用例+graphql-core 141 全绿；并集宽松度裁定登记 owner doc） |
 | P1-2.6-003 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（spread 指令变量误拒——@Exclude 特性死胎） | fixed（2026-10-09，plan 2377——同上三位点闭合，spread 指令校验以传入 vars 替换空 map；@Exclude/@skip/@include 变量化使用恢复可用；负对照锁定拒绝路径未弱化） |
 | P1-2.6-004 | `2.6-biz-graphql-deep-audit.md` | R1.0 独立（DataLoader 调度点后移+终局兜底 dispatch+幂等+异步 op×批量 loader 回归） | open（2026-10-09 更新：plan 2375 拆出——初版锚点实测挂死，移交 successor plan 2376 独立调度生命周期重设计；跟踪至 2376 关闭） |
-| P1-2.6-005 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（approval-support 五 mutation 无 auth——先补 constraint 式逐文件验证合并终值） | open |
-| P1-2.6-006 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（纯 xbiz 静默公开 16 项清单——独立重扫已验证，移交执行） | open |
-| P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 C（@BizLoader 死注解——buildFetcherField setAuth+xdef 补 auth+测试升级运行时断言） | open |
+| P1-2.6-005 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：approval-support 五 mutation 补 `<auth roles="admin"/>`+合并终值断言 TestUseApprovalE2E 扩展+全链 enforcement 测试） | fixed |
+| P1-2.6-006 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：7 个 xbiz 文件 16 项 auth 声明，五侧 merged-model 终值断言含 NopAuthUser_tenant 继承） | fixed |
+| P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：buildFetcherField 消费 @Auth+xbiz.xdef BizLoaderModel 增 auth 再生成+toBuilder 装配；无注解 loader 群体裁定入 owner doc strict 前置清单） | fixed |
 | P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.0（EquiJoinOperator null 等值键误配——修复需覆盖 OUTER 补齐 matched 语义） | open |
 | P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.0（PerKeyOrderedBuffer.putAll 不搬 insertionSeq——restore 后 seq 对位碰撞静默丢失，探针双面实证） | open |
 | P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
@@ -265,6 +265,7 @@
 | R1.9 | done | plan 2374（2026-10-09）：平台工单 index 两路径物化（ddl.xlib+initializer）+job/batch UK constraint 化+retry 生成器物化+metadata/rule precision 修正+DDL 重生成 git-diff 断言全过+batch/metadata 脚本；stash 判别 index 缺失 FAIL；owner doc 物化规则三条；orm-eql 205/orm 217/job 87/batch 10/metadata 1340 全绿；closure audit 见 plan 2374 Closure 段 |
 | R1.10 | done（部分） | plan 2375（2026-10-09）：P1-2.6-001 交付（mutation 默认事务+bean 注册）；P1-2.6-004 拆出 successor plan 2376（初版锚点实测挂死，独立重设计）；owner doc 三处修正；closure audit 见 plan 2375 Closure 段 |
 | R1.11 | done | plan 2377（2026-10-09）：fragment 变量校验三位点一次闭合（collectDocVars 文档级并集+spread 指令 vars 传递，位点 3 随传播闭合）；stash 判别 4 正向用例 FAIL 错误码逐字 `nop.err.graphql.unknown-var` 吻合审计探针；7 用例+fixture+loader 变体；graphql-core 141 全绿；owner doc 能力边界小节（P3-2.6-007 伴随）；并集宽松度裁定登记；closure audit 见 plan 2377 Closure 段 |
+| R1.12 | done | plan 2378（2026-10-09）：16 项 auth 声明+五侧合并终值断言（含 tenant 继承）+loader 两路径装配（xbiz.xdef 再生成）+双配置键 fail-open 三处+ObjMetaBasedValidator 收敛（新错误码+空安全化）+全链 enforcement 2/2；附带来料：nop-sys-dao import 一行修正（R1.17 附带工单提前消化）+metadata 四快照重录（nop-graphql-orm prepend id 字段=平台预期行为，沿 datav 先例）；closure audit 见 plan 2378 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
