@@ -25,16 +25,31 @@ public final class ResourceLeakAnalyzer {
 
     private final ResourceRegistry registry = new ResourceRegistry();
 
+    /** Wall-clock deadline (System.nanoTime()); 0 = no deadline. Propagated to the solver loop. */
+    private long deadlineNanos;
+
+    public void setDeadlineNanos(long deadlineNanos) {
+        this.deadlineNanos = deadlineNanos;
+    }
+
     public List<UnclosedResourceFinding> analyze(byte[] classBytes) {
-        ClassReader reader = new ClassReader(classBytes);
-        ClassNode cn = new ClassNode();
-        reader.accept(cn, 0);
-        String className = cn.name.replace('/', '.');
-        List<UnclosedResourceFinding> all = new ArrayList<>();
-        for (MethodNode mn : cn.methods) {
-            all.addAll(analyzeMethod(className, mn));
+        // analysis failure must surface as NopBytecodeException (CLI exit 2), never escape
+        // as a raw RuntimeException (which would exit 1 — the nop-lint "violations" code)
+        try {
+            ClassReader reader = new ClassReader(classBytes);
+            ClassNode cn = new ClassNode();
+            reader.accept(cn, 0);
+            String className = cn.name.replace('/', '.');
+            List<UnclosedResourceFinding> all = new ArrayList<>();
+            for (MethodNode mn : cn.methods) {
+                all.addAll(analyzeMethod(className, mn));
+            }
+            return all;
+        } catch (NopBytecodeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopBytecodeException("resource analysis failure on class bytes", e);
         }
-        return all;
     }
 
     public List<UnclosedResourceFinding> analyze(InputStream in) {
@@ -61,7 +76,9 @@ public final class ResourceLeakAnalyzer {
         // solver revisits instructions as in-frames merge — findings dedup via Set (same as nullflow)
         java.util.Set<UnclosedResourceFinding> hitSet = new java.util.HashSet<>();
         ResourceSemantics sem = new ResourceSemantics(mn, className, mn.name, registry, hitSet::add);
-        new ForwardSolver(mn, cfg, sem).solve();
+        ForwardSolver solver = new ForwardSolver(mn, cfg, sem);
+        solver.setDeadlineNanos(deadlineNanos);
+        solver.solve();
         List<UnclosedResourceFinding> ordered = new ArrayList<>(hitSet);
         ordered.sort((a, b) -> {
             int c = a.className().compareTo(b.className());

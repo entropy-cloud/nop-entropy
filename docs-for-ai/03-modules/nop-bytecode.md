@@ -13,7 +13,8 @@ java -cp "nop-bytecode/target/classes:nop-bytecode/target/test-classes:$(cat nop
 ```
 
 - 输出：每行一条 finding——`[severity] ruleId class#method@insnIndex (ref) message`；`--json` 输出同序数组（字段：ruleId/severity/message/className/methodName/insnIndex/ref，结构与 nop-lint `Diagnostic` 对齐，位置为字节码坐标系而非源码行）。
-- 退出码（**report-only，与 nop-lint findings=1 哲学不同**）：`0` = 运行完成（有无 findings 均 0）；`2` = 失败（usage 错误 / 缺失输入 / 损坏产物 / 分析异常），fail-fast 不输出部分报告。升 hard gate 须独立 plan + 对照期误报数据。
+- 退出码（**report-only，与 nop-lint findings=1 哲学不同**）：`0` = 运行完成（有无 findings 均 0）；`2` = 失败（usage 错误 / 缺失输入 / 损坏产物 / 分析异常），fail-fast 不输出部分报告。分析层异常（含截断 class 深解析失败）经 `NopBytecodeException` 收口 + CLI `RuntimeException` 顺序兜底，一律归 `2`——不得逃逸为 `1`（R1.4 / plan 2367 收口；`1` 在 nop-lint 契约中是 violations）。升 hard gate 须独立 plan + 对照期误报数据。
+- 运行时限（R1.4 / plan 2367）：`--max-runtime-seconds <n>`（默认 600，合法域 ≥0，`0` = 立即超时）。deadline 检查在 `ForwardSolver.solve()` worklist 循环内——可中断单方法内 in-flight 的不收敛求解；超限以 `NopBytecodeException`（exit 2）终止。
 - 当前 ruleId：`nullflow/may-null-deref`（解引用前判空路径敏感分析，v1 降配口径：分支敏感仅 IFNULL/IFNONNULL；Wave 2 升级为全条件分支敏感）。豁免面：`Objects.requireNonNull` 系语义门控、守卫分支。
 
 ## 架构要点

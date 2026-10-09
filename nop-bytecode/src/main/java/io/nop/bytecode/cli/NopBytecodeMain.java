@@ -48,6 +48,7 @@ public final class NopBytecodeMain {
         List<Path> inputs = new ArrayList<>();
         Path manifestFile = null;
         boolean json = false;
+        long maxRuntimeSeconds = 600;
         for (int i = 0; i < args.length; i++) {
             String a = args[i];
             switch (a) {
@@ -58,6 +59,22 @@ public final class NopBytecodeMain {
                         return 2;
                     }
                     manifestFile = Path.of(args[++i]);
+                }
+                case "--max-runtime-seconds" -> {
+                    if (i + 1 >= args.length) {
+                        err.println("usage error: --max-runtime-seconds requires a value");
+                        return 2;
+                    }
+                    try {
+                        maxRuntimeSeconds = Long.parseLong(args[++i]);
+                    } catch (NumberFormatException e) {
+                        err.println("usage error: --max-runtime-seconds expects an integer: " + args[i]);
+                        return 2;
+                    }
+                    if (maxRuntimeSeconds < 0) {
+                        err.println("usage error: --max-runtime-seconds must be >= 0");
+                        return 2;
+                    }
                 }
                 default -> {
                     if (a.startsWith("--")) {
@@ -95,13 +112,19 @@ public final class NopBytecodeMain {
             checkNoDuplicateRelativePaths(flat);
             List<ClassArtifact> effective = preferBaseOverMultiRelease(flat);
 
+            long deadlineNanos = maxRuntimeSeconds == 0 ? System.nanoTime()
+                    : (maxRuntimeSeconds == Long.MAX_VALUE ? 0
+                        : System.nanoTime() + maxRuntimeSeconds * 1_000_000_000L);
+
             List<Finding> findings = new ArrayList<>();
             Set<String> findingKeys = new HashSet<>();
             for (CollectInput input : collectInputs) {
                 Map<String, ClassArtifact> byRelative = artifactsOfInput(input, flat);
                 for (Map.Entry<String, ClassArtifact> e : byRelative.entrySet()) {
                     byte[] bytes = readBytes(input, Path.of(e.getKey()), e.getValue());
-                    for (io.nop.bytecode.analysis.nullflow.DerefFinding d : new NullflowAnalyzer().analyze(bytes)) {
+                    NullflowAnalyzer nullflow = new NullflowAnalyzer();
+                    nullflow.setDeadlineNanos(deadlineNanos);
+                    for (io.nop.bytecode.analysis.nullflow.DerefFinding d : nullflow.analyze(bytes)) {
                         Finding f = new Finding(RuleIds.MAY_NULL_DEREF, Finding.SEVERITY_WARNING,
                                 "Value may be null on some path at this dereference",
                                 d.className(), d.methodName(), d.insnIndex(), d.ref());
@@ -111,8 +134,11 @@ public final class NopBytecodeMain {
                             findings.add(f);
                         }
                     }
+                    io.nop.bytecode.analysis.resources.ResourceLeakAnalyzer resourceAnalyzer =
+                            new io.nop.bytecode.analysis.resources.ResourceLeakAnalyzer();
+                    resourceAnalyzer.setDeadlineNanos(deadlineNanos);
                     for (io.nop.bytecode.analysis.resources.UnclosedResourceFinding d
-                            : new io.nop.bytecode.analysis.resources.ResourceLeakAnalyzer().analyze(bytes)) {
+                            : resourceAnalyzer.analyze(bytes)) {
                         Finding f = new Finding(RuleIds.UNCLOSED_RESOURCE, Finding.SEVERITY_WARNING,
                                 "Resource acquired here is not closed on some method-exit path",
                                 d.className(), d.methodName(), d.insnIndex(), d.ref());
@@ -136,6 +162,12 @@ public final class NopBytecodeMain {
         } catch (NopBytecodeException | IOException | java.io.UncheckedIOException e) {
             // MissingInputException is a NopBytecodeException subtype; both are loud failures (exit 2)
             err.println("error: " + e);
+            e.printStackTrace(err);
+            return 2;
+        } catch (RuntimeException e) {
+            // belt-and-suspenders: analysis-layer failures must be exit 2 ("analysis failure"),
+            // never exit 1 (nop-lint's "violations" code — a different contract)
+            err.println("error: analysis failed: " + e);
             e.printStackTrace(err);
             return 2;
         }

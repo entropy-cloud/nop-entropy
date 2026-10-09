@@ -85,8 +85,8 @@
 | P1-1.2-001 | `1.2-xlang-structure-pipeline-audit.md` | R1.x（包级 SCC 三档治理，expr→compile 单边割离性价比最高） | fixed（2026-10-09，plan 2364——expr 包零 compile 引用接缝割离 + SCC 21→20 compile 出环实测 + 三档治理成文） |
 | P1-1.8-001 | `1.8-integration-periphery-audit.md` | R1.0（file/credential-app 半拆命运裁决：恢复 start()+web-orm-starter 或正式休眠+文档声明） | fixed（2026-10-09，plan 2365——裁决正式休眠〔audit 预授权「降 P2 触发条件」行使且无残余误导公开面：两主类裁决注记+两 pom 勘注+owner doc 三处声明〕） |
 | P1-1.9-001 | `1.9-jq-refactor-first-audit.md` | R1.0（jq 工具接缝资源耗尽：4 叶节点预算+cancelToken 接线+env-supplier，精算在案） | fixed（2026-10-09，plan 2366——4 叶节点预算+取消检查点网络〔不可捕 JqCancellationException+fork 传播〕+JqToolExecutor cancelToken/deadline/env 三接线；P2-1.9-003 env 直通部分由本条同批承载收口；发现标题第三面「默认安全链自动批准」deferred 为 out-of-scope improvement，资源护栏落地后失控风险已收敛） |
-| P1-1.10-001 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（bytecode 分析层异常收口+CLI 兜底 ~17 行；CI 接线前必修） | open |
-| P1-1.10-002 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（ObligationToken equals/hashCode ~10 行+虚假 javadoc 修正+CLI 防线） | open |
+| P1-1.10-001 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（bytecode 分析层异常收口+CLI 兜底 ~17 行；CI 接线前必修） | fixed（2026-10-09，plan 2367——两分析器收口+CLI RuntimeException 顺序兜底，分析失败一律 exit 2；附超时防线 solve 内 deadline+--max-runtime-seconds） |
+| P1-1.10-002 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（ObligationToken equals/hashCode ~10 行+虚假 javadoc 修正+CLI 防线） | fixed（2026-10-09，plan 2367——equals/hashCode 三字段+真实终止契约 javadoc；回边 shape 死循环回归测试锁定；solve 内 deadline 防线） |
 | P1-2.1-001 | `2.1-orm-ormmodel-deep-audit.md` | R1.x（detach 对齐 evict 语义或文档契约+checkValid，补回归） | open |
 | P1-2.1-002 | `2.1-orm-ormmodel-deep-audit.md` | R1.x（装配路径对非 MANAGED 状态响亮失败/跳过，补 delete→select→flush 回归） | open |
 | P1-2.2-001 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（keyProp `_some` DML where 非法 SQL；nop-wf/nop-dyn 真实模型可达） | open |
@@ -254,6 +254,7 @@
 | R1.1 | done | plan 2364（2026-10-09）：expr→compile 单边割离——expr 包零 compile 引用（`IExecutableExprCompiler` 接缝 + META-INF/services + fail-loud），公开契约零改动；SCC 21→20 compile 出环实测；三档治理成文（设计文档 + owner doc）+ 红线脚本版本化；nop-xlang 859 tests 全绿 + 接缝回归 4 用例；closure audit 见 plan 2364 Closure 段 |
 | R1.2 | done | plan 2365（2026-10-09）：半拆命运裁决=正式休眠〔audit 预授权路径〕——两主类裸注释→裁决注记（复活三步）+两 pom 勘注+owner doc 三处声明（module-groups nop-file 行勘注/nop-credential 新增行/credential.md standalone 勘注/nop-file.md 无同类表述记录）；行为零差异编译通过；closure audit 见 plan 2365 Closure 段 |
 | R1.3 | done | plan 2366（2026-10-09）：jq 资源护栏三面修复——4 叶节点预算+取消检查点网络（不可捕异常+fork 传播）+JqToolExecutor cancelToken/deadline/env 接线（P2-1.9-003 env 部分同批收口）；官方 430/430 保持，nop-jq 569 + toolkit 266 tests 全绿；closure audit 见 plan 2366 Closure 段 |
+| R1.4 | done | plan 2367（2026-10-09）：bytecode 双 P1 修复——分析层异常收口+CLI 顺序兜底（exit 2 契约恢复）+ObligationToken equals/hashCode+javadoc 真实契约+回边 shape 死循环回归+ForwardSolver deadline 防线（--max-runtime-seconds）；owner doc 登记；34/34 tests 绿；closure audit 见 plan 2367 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

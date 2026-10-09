@@ -11,8 +11,13 @@ import java.util.TreeSet;
  * MAYBE, NULL} — the DEF/MAYBE dimension is required for guard-form exemption (a DEF token
  * compared against null makes the null branch unreachable, dropped via edgeFrame).
  *
- * <p>Values are immutable and merge by component-union (monotone, bounded → fixpoint
- * terminates). Tokens travel with the value through DUP/ASTORE/ALOAD (frame copy semantics).
+ * <p>Values are immutable and merge by component-union (monotone). Fixpoint termination
+ * requires the solver's equality-based change detection to see merged tokens as equal —
+ * which holds only because this class implements equals/hashCode over all three fields
+ * (kind, nullState, openSites). Without them, Object-identity equality reports "changed"
+ * on every merge and the worklist never drains. Tokens travel with the value through
+ * DUP/ASTORE/ALOAD (frame copy semantics); the openSites set is never mutated after
+ * construction (every transform builds a fresh TreeSet), so field-wise equality is stable.
  */
 public final class ObligationToken {
     enum NullState { DEF, MAYBE, NULL }
@@ -91,6 +96,18 @@ public final class ObligationToken {
 
     SortedSet<Integer> openSites() {
         return openSites;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof ObligationToken other)) return false;
+        return kind == other.kind && nullState == other.nullState && openSites.equals(other.openSites);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(kind, nullState, openSites);
     }
 
     @Override
