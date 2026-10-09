@@ -155,8 +155,8 @@
 | P1-6.7-004 | `6.7-check-p1-batch-c.md` | R1.0（LocalToolFileSystem.grep 文件路径静默空假阴性；文件时 grepInFile 或显式错误+单文件用例） | open |
 | P1-6.7-005 | `6.7-check-p1-batch-c.md` | R1.0（ReActAgentExecutor POST_REASONING BAIL 不移除已持久化 assistant/tool_call 会话复挂；bail 前 remove 或补 error response） | open |
 | P1-6.7-006 | `6.7-check-p1-batch-c.md` | R1.0（AgentCompactionCoordinator maxTokens 误作上下文窗口；独立 maxContextTokens 配置+改写钉死断言） | open |
-| P1-6.7-007 | `6.7-check-p1-batch-c.md` | R1.0（TimerServiceManager 吞定时器异常静默丢水印发射；不吞异常 addSuppressed+改固化缺陷契约的测试） | open |
-| P1-6.7-008 | `6.7-check-p1-batch-c.md` | R1.0（SourceReaderOperator.restoreState restore-先于-open 静默丢 split 位点；preOpenSplits 式暂存+restore→open→run 回归） | open |
+| P1-6.7-007 | `6.7-check-p1-batch-c.md` | R1.23/plan 2387（2026-10-10 修复：TimerServiceManager 异常聚合〔首个抛出+全部尝试+addSuppressed〕+ProcessingTimeServiceDriver 二次吞点删除〔审查 F1，checked 包装 ERR_STREAM_OPERATOR_ERROR〕+TestTimerServiceManagerRobustness 重写。原处方：不吞异常——首个异常抛出、其余 addSuppressed；per-service 日志仅诊断） | fixed |
+| P1-6.7-008 | `6.7-check-p1-batch-c.md` | R1.23/plan 2387（2026-10-10 修复：pendingRestoreSplits 暂存+open() 内 reader 创建→bridge→flushPreOpenSplits→restore flush〔替换语义〕→start 钉死顺序+SourceReader 生命周期 javadoc 修正+TestSourceReaderOperatorRestoreBeforeOpen 3 用例〔restore→open→run〕。原处方：splits 暂存字段〔类比 preOpenSplits〕，open() 创建 reader 后 flush；补 restore→open→run 消费位点连续回归） | fixed |
 | P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.0（CodeIndexService.analyzeChanges `file:` rootPath 建 git 必败且异常折叠为无变更；rootPath 规范化+异常不折叠 truncated=true） | open |
 | P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
 | P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
@@ -168,7 +168,7 @@
 | P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseDataSaver.removeInputTable 无 variant 守卫静默删除 default 基础表；补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | open |
 | P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.0（WI25 DefaultBackgroundTaskRegistry 懒重投递状态机双重破坏——失败/超时任务被永久误报 COMPLETED；重投区分源状态+补 FAILED/TIMEOUT 源用例） | open |
 | P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.0（PgVectorStore.search 列读取缺失——生产后端 hits content 恒 null 静默错误结果；回读 content/metadata+pgvector 路径内容断言测试） | open |
-| P1-7.2-001 | `7.2-nop-stream-incremental-audit.md` | R1.0（TestStreamConnectorRegistryDiscovery 断言与 WI4 工厂语义失配在窗回归——模块测试门禁恒红实跑复现；同步测试断言到 PARALLEL 禁止回退工厂语义） | open |
+| P1-7.2-001 | `7.2-nop-stream-incremental-audit.md` | R1.23/plan 2387（2026-10-10 修复：TestStreamConnectorRegistryDiscovery:132 断言 SINGLE_INSTANCE→PARALLEL（WI4 裁决对齐，禁止回退工厂语义）——runtime 测试门禁恢复绿。原处方：同步测试断言到 PARALLEL+连带核对 connectors 文档一致性断言） | fixed |
 | P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（LlmSemanticEdgeExtractor 生产不可达——CodeIndexService:285-291 硬编码 3 提取器零接线+roadmap done 误导面+G1-b 静默缺失复合缺陷；补接线或双向状态勘正；**条件判读登记供拆面**） | open |
 | P1-7.4-002 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（SearchQualityEvalTest 评测自证空转——零生产参与 MRR=1.0/F1=1.0 不可作质量证据；接真实链路或显式标注 smoke） | open |
 | P1-7.4-003 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（plan 31 证据链断裂——`[x]` 载体从未运行+@Disabled+closure 自审非独立；状态勘正+indexDirectory 验证补做或条目移除） | open |

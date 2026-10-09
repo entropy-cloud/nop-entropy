@@ -127,9 +127,11 @@ public class TestStreamConnectorRegistryDiscovery {
                 "io.nop.stream.connector.MessageSourceFunction",
                 "AT_LEAST_ONCE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.NONE, "topic", "messageService");
+        // P1-7.2-001（plan 2387）：WI4（1dad44a0c6）已裁决 debezium-cdc PARALLEL
+        // （B 层确定性表路由，cdc-design.md §3.3；connectors 文档已同步）——测试断言对齐。
         assertDescriptor(ConnectorDirection.SOURCE, "debezium-cdc",
                 "io.nop.stream.connector.debezium.DebeziumCdcSourceFunction",
-                "REPLAYABLE", ConnectorParallelism.SINGLE_INSTANCE,
+                "REPLAYABLE", ConnectorParallelism.PARALLEL,
                 ConnectorRecoverySemantic.OFFSET_CHECKPOINT, "config");
         assertDescriptor(ConnectorDirection.SOURCE, "batch-loader",
                 "io.nop.stream.connector.batch.BatchLoaderSourceFunction",

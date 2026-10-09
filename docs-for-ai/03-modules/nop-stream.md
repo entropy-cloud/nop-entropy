@@ -16,6 +16,14 @@
 | `nop-stream-flow` | XDSL 流程集成 |
 | `nop-stream-fraud-example` | 复合场景示例（S1/S2 + 分布式演练） |
 
+## 定时器异常语义（fail-fast，P1-6.7-007，plan 2387）
+
+`TimerServiceManager.advanceWatermark/fireProcessingTimeTimers` 对注册的 timer service 逐个尝试：任一失败时**首个异常在全部 service 尝试完毕后抛出**（后续失败 `addSuppressed` 附带）——定时器触发失败必须上抛致任务失败，不允许「失败 service 被跳过 + watermark 照常转发」的静默丢发射。`ProcessingTimeServiceDriver` 的 mail action 不二次吞该异常（经 `TaskMailbox.drainAndRun` 传播至任务循环，与 `TaskProcessingTimeService.fireDueTimers` 直接路径同语义；受检异常按 `ERR_STREAM_OPERATOR_ERROR` 包装为 unchecked）。
+
+## Source reader 恢复时序契约（P1-6.7-008，plan 2387）
+
+`SourceReaderOperator.restoreState` 支持恢复路径的 restore-先于-open 时序（`SupervisionLoop.rebuildTask` 对新建链恢复时 reader 尚未创建）：per-split 位点暂存于 operator，`open()` 内按「reader 创建 → enumerator 交付 flush（追加语义）→ restore flush（**替换语义**，后到者为准）→ `reader.start()`」顺序 flush——`SourceReader.restoreState` 契约为 "Called before start() on recovery"。恢复→重开→续读的 reader 侧位点不丢。
+
 ## 可观测性与运维面
 
 ### 分层指标标准集（P-REQ-1 / P-REQ-8）

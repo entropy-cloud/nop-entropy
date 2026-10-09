@@ -98,6 +98,15 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
     private final java.util.List<SourceSplit> preOpenSplits =
             java.util.Collections.synchronizedList(new java.util.ArrayList<>());
 
+    /**
+     * Restore-before-open buffer: per-split cursor state restored into this operator while
+     * the reader does not exist yet (recovery paths rebuild the operator chain and call
+     * {@link #restoreState} before {@link #open()}) are stashed here, then flushed into the
+     * reader in {@link #open()} — before {@code reader.start()} per the
+     * {@link SourceReader#restoreState} contract ("Called before start() on recovery").
+     */
+    private java.util.List<? extends SourceSplit> pendingRestoreSplits;
+
     private volatile boolean isRunning = true;
     private volatile boolean finished = false;
     private volatile boolean opened = false;
@@ -241,6 +250,12 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
             bridgeChannelToReader((LocalSourceCoordinator.ReaderChannel<?>) assignmentProxy);
         }
         flushPreOpenSplits();
+        // P1-6.7-008 (plan 2387): restored per-split cursors must reach the reader too.
+        // Order matters: enumerator deliveries first (append semantics), then the restore
+        // flush (replace semantics — SourceReader.restoreState resets assigned splits), so
+        // the restored cursors are the final authority. Must happen before reader.start()
+        // per the SourceReader.restoreState contract ("Called before start() on recovery").
+        flushPendingRestoreSplits();
 
         this.reader.start();
         LOG.debug("SourceReaderOperator opened: source={}, vertex={}, subtask={}/{}",
@@ -396,16 +411,43 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
     @Override
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
-        if (reader != null && snapshotResult != null) {
-            Object stored = snapshotResult.getOperatorState(READER_SPLITS_KEY);
-            if (stored instanceof java.util.List) {
-                java.util.List<? extends SourceSplit> splits =
-                        (java.util.List<? extends SourceSplit>) stored;
+        if (snapshotResult == null)
+            return;
+        Object stored = snapshotResult.getOperatorState(READER_SPLITS_KEY);
+        if (stored instanceof java.util.List) {
+            java.util.List<? extends SourceSplit> splits =
+                    (java.util.List<? extends SourceSplit>) stored;
+            if (reader != null) {
                 // Raw cast: SourceReader's generics capture can't be satisfied across the
                 // serializable operator-state boundary. The reader's own split serializer
                 // is responsible for the runtime type check.
                 ((SourceReader) reader).restoreState((java.util.List) splits);
+            } else {
+                // P1-6.7-008 (plan 2387): recovery paths (SupervisionLoop.rebuildTask →
+                // RescaleStateAssembler.restoreOperatorsFromState) restore operator state
+                // on a freshly built chain, before open() creates the reader. Stash the
+                // cursors — open() flushes them into the reader via
+                // flushPendingRestoreSplits() instead of silently dropping them.
+                this.pendingRestoreSplits = splits;
             }
+        }
+    }
+
+    /**
+     * Flushes cursor state that was restored before the reader existed (see
+     * {@link #restoreState}) into the now-non-null reader. Replace semantics: runs after
+     * {@link #flushPreOpenSplits()} so restored cursors win over concurrently delivered
+     * split assignments, and before {@code reader.start()} per the
+     * {@link SourceReader#restoreState} contract.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void flushPendingRestoreSplits() throws Exception {
+        if (reader == null)
+            return;
+        java.util.List<? extends SourceSplit> restored = this.pendingRestoreSplits;
+        this.pendingRestoreSplits = null;
+        if (restored != null) {
+            ((SourceReader) reader).restoreState((java.util.List) restored);
         }
     }
 
