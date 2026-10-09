@@ -41,6 +41,12 @@ TCC（Try-Confirm-Cancel）分布式事务协调器。
 | `nop-tcc-web` | Web 层与 AMIS 页面 |
 | `nop-tcc-integration` | 集成适配 |
 
+## 执行表访问权限（P1-3.8-003，plan 2386）
+
+`NopTccRecord` / `NopTccBranchRecord` 的 xbiz 覆写 `save/update/delete/saveAll/deleteAll` mutations，声明 `<auth roles="admin"/>`——表内 `serviceName`/`requestPayload`/`confirmMethod` 等字段即执行凭据，不向普通用户开放写入口。该声明为 opt-in enforcement（`enable-action-auth=false` 默认部署行为不变，见 `service-layer.md`）。TccEngine 等引擎内部对执行表走 dao 直写，不受 biz 层 auth 约束。
+
+Retry 侧（`NopRetryRecord`/`NopRetryPolicy`/`NopRetryAttempt`/`NopRetryDeadLetter`）同批采用相同收敛，见 `nop-retry` 模块。
+
 ## 源码锚点
 
 | 组件 | 路径 |

@@ -34,7 +34,7 @@
                 <column code="FILE_NAME" displayName="文件名" name="fileName" precision="300" propId="2"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="File Name"/>
                 <column code="FILE_PATH" displayName="文件路径" mandatory="true" name="filePath" precision="2000" propId="3"
-                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File Path"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="var" i18n-en:displayName="File Path" updatable="false"/>
                 <column code="FILE_EXT" displayName="扩展名" name="fileExt" precision="50" propId="4" stdDataType="string"
                         stdSqlType="VARCHAR" i18n-en:displayName="File Ext"/>
                 <column code="MIME_TYPE" displayName="内容类型" mandatory="true" name="mimeType" precision="100" propId="5"
@@ -55,7 +55,7 @@
                         name="originFileId" precision="50" propId="12" stdDataType="string" stdSqlType="VARCHAR"
                         tagSet="var" i18n-en:displayName="Original File ID"/>
                 <column code="IS_PUBLIC" displayName="是否允许公开访问" mandatory="true" name="isPublic" propId="13"
-                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Public"/>
+                        stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Is Public" updatable="false"/>
                 <column code="DEL_FLAG" displayName="删除标识" domain="delFlag" mandatory="true" name="delFlag" propId="14"
                         stdDataType="byte" stdDomain="boolFlag" stdSqlType="TINYINT" ui:show="X"
                         i18n-en:displayName="Deleted"/>
