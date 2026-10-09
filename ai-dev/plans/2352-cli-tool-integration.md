@@ -11,18 +11,21 @@
 
 ## Current Baseline
 
-- `nop-runner/nop-cli-core` 使用 picocli + Quarkus，`MainCommand` 当前注册 17 个子命令，编译目标 JDK 17。
-- `nop-rg/nop-rg-cli` 是独立 picocli CLI（`NopRgMain`），编译目标 JDK 22+，通过 `nop-rg/pom.xml` 的 `java22-modules` profile 挂入 reactor；`NopRgMain` 位于 `nop-rg-cli`，不是 `nop-rg-core`。
-- `nop-lint/nop-lint-core` 有 `NopLintCli`，使用自有 `CliOptions.parse(args)` 解析（非 picocli），入口为 `run(String[] args, PrintStream out, PrintStream err)`。其运行时语言绑定和规则库由调用方提供。
-- `nop-refactor/nop-refactor-core` 有 `NopRefactorCli`，使用自有 `RefactorOptions.parse(args)`，入口为 `run(String[] args, PrintStream out, PrintStream err)`。
-- `nop-jq` 是纯库，API 为 `JqEngine.compile(expr)` 和 `IJsonQuery.apply(root)`，无 CLI 入口。
-- `nop-cli-core` 不依赖上述工具；nop-bom 当前只管理 `nop-jq`，不管理其他待集成工具。
+- `nop-runner/nop-cli-core` 使用 picocli + Quarkus，编译目标 JDK 22，MainCommand 注册 21 个子命令。
+- `nop-rg/nop-rg-cli` 的 `NopRgMain` 已是 picocli 命令面（compile 22，与 cli-core 同一 JDK 基线），可直接 import 调用，无需反射。
+- `nop-lint/nop-lint-core` 有 `NopLintCli`，自有 fail-closed 参数解析（非 picocli），入口 `run(String[] args, PrintStream out, PrintStream err)`；运行时语言绑定与规则库由调用方提供。
+- `nop-refactor/nop-refactor-core` 有 `NopRefactorCli`，自有 fail-closed 解析，入口同上；命令面见 `ai-dev/design/nop-refactor/01-architecture-baseline.md`（`preview|apply --rules <vfs-prefix> [--json] <file|dir>...`）。
+- `nop-jq` 是纯库，API 为 `JqEngine.compile(expr)` 和 `IJsonQuery.apply(root)`，无既有 CLI（其命令面由本计划定义）。
+- `nop-cli-jdk11` 已删除（cli-core 升 JDK 22 后该 JDK 17 下游不再可构建，且其唯一价值是 MainCommand 的 JDK 11 入口）。
+- `--delegate-rg`（调起系统外部 ripgrep 做 A/B 对比）已从 nop-rg 命令面整体移除，对比能力下沉到 test scope 的 `SystemRgDelegate`。
 
 ## Goals
 
 - `nop-cli rg|lint|refactor|jq ...` 可调用对应工具，并保留各工具既有退出码和输出契约。
-- JDK 17 下 `nop-cli-core` 可编译并分发 lint、refactor、jq 子命令；JDK 22+ 才将 rg 的运行时依赖纳入分发。
-- 每个新增命令均有接线测试和端到端测试，确保 MainCommand 确实把请求送到对应引擎。
+- 调用方式统一：各子命令把参数原样转交目标工具自身的入口，**不复述任何目标工具已拥有的选项**，从结构上消除命令面二次定义导致的漂移（FIX-02 即此类）。
+- 编译基线统一到 JDK 22：`nop-cli-core` / `nop-cli` 为 release 22，`nop-rg-cli` 随之成为普通 compile 依赖，不再需要反射或按 JDK 切分的可选 profile。
+- 不引入依赖宿主机外部二进制的机制；A/B 对比属测试设施，不进命令面。
+- 每个新增命令均有接线测试和真实 uber-jar 端到端验证。
 
 ## Non-Goals
 
@@ -55,7 +58,8 @@ Targets: `nop-runner/nop-cli-core/pom.xml`, `nop-runner/nop-cli-core/src/main/ja
 - [x] 在 `nop-cli-core` 的依赖管理中为 `nop-rg-cli`、`nop-lint-core`、`nop-lint-java`、`nop-lint-nop`、`nop-refactor-core` 提供版本；nop-bom 未管理的 artifact 使用显式 `2.0.0-SNAPSHOT` 版本。
 - [x] 将 `nop-jq`、`nop-lint-core`、`nop-lint-java`、`nop-lint-nop`、`nop-refactor-core` 配置为 compile scope，使它们进入 nop-cli 的 uber-jar。
 - [x] 将 `nop-rg-cli` 配置为 optional/provided scope，避免 JDK 17 构建和分发被 Java 22 字节码阻断；增加仅 JDK >= 22 激活的 `java22-modules` profile，在该 profile 中将 nop-rg-cli 作为运行时依赖打包。
-- [x] 增加 `ToolBridge` 作为可选适配层：对 nop-rg-cli 使用反射，对其他三个工具使用直接调用；反射目标缺失时 fail-closed。
+- [x] FIX-04 (评审后修订): 原设计以「反射 + JDK 17/22 profile 门控」接入 rg。评审指出该设计把命令面复制了两份且用反射绕开编译期检查。改为：`nop-cli-core`/`nop-cli` 编译基线升到 release 22，`nop-rg-cli` 变普通 compile 依赖，删除 `ToolBridge` 与两侧 `java22-modules` profile；四个子命令统一为「参数原样转交目标工具入口」（`@Unmatched` 收集 + 直接调用）。仅 jq 例外——其命令面由本计划定义、无既有契约可循。
+- [x] FIX-05 (评审后修订): `--delegate-rg` 从 nop-rg 命令面**整体删除**（选项字段、`buildRgArgs`/`invokeRg`、`main()` 中的解析前拦截一并移除），ProcessBuilder 不再出现在任何生产路径。对比能力下沉为 test scope 的 `SystemRgDelegate`，并加回归钉子断言该开关不得回到命令面。删除 `nop-cli-jdk11`（cli-core 升 22 后其 JDK 17 下游不可构建）。
 
 Exit Criteria:
 

@@ -4,19 +4,19 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * End-to-end wiring tests for the {@code nop-cli rg} subcommand.
+ * Wiring tests for the {@code nop-cli rg} subcommand.
  *
- * <p>These assert real search outcomes and exit codes rather than a loose
- * "did not throw" bound: a reflective bridge that hands an unparsed
- * {@code NopRgMain} instance to {@code call()} NPEs on {@code Path.of(null)},
- * and a vacuous assertion would not catch it.
+ * <p>Asserts real search outcomes and exit codes rather than a loose "did not throw"
+ * bound: a bridge that hands an unparsed command instance to {@code call()} NPEs, and a
+ * vacuous assertion would not catch it.
  */
 public class TestCliRgCommand extends JunitBaseTestCase {
 
@@ -28,6 +28,12 @@ public class TestCliRgCommand extends JunitBaseTestCase {
         Files.writeString(corpus.resolve("b.txt"), "beta\nanother needle\n");
     }
 
+    private static CliRgCommand commandFor(String... argv) {
+        CliRgCommand cmd = new CliRgCommand();
+        cmd.args = List.of(argv);
+        return cmd;
+    }
+
     @Test
     void testRegisteredInMainCommand() {
         String help = new CommandLine(new MainCommand()).getUsageMessage().replaceAll("\\s+", " ");
@@ -35,12 +41,18 @@ public class TestCliRgCommand extends JunitBaseTestCase {
     }
 
     @Test
+    void testForwardsArgumentsVerbatim() {
+        // no option is redeclared here, so argv must reach NopRgMain untouched
+        assertArrayEquals(new String[]{"needle", "corpus", "-i", "--json"},
+                commandFor("needle", "corpus", "-i", "--json").toArgv());
+    }
+
+    @Test
     void testSearchFindsMatchesAndReturnsZero() throws Exception {
         writeCorpus();
         try {
-            int exit = ToolBridge.runRg(new String[]{"needle", corpus.toString()},
-                    System.out, System.err);
-            assertEquals(0, exit, "a matching search must exit 0");
+            assertEquals(0, commandFor("needle", corpus.toString()).call(),
+                    "a matching search must exit 0");
         } finally {
             deleteRecursively(corpus);
         }
@@ -50,25 +62,23 @@ public class TestCliRgCommand extends JunitBaseTestCase {
     void testSearchWithoutMatchesReturnsOne() throws Exception {
         writeCorpus();
         try {
-            int exit = ToolBridge.runRg(new String[]{"zzz-not-present", corpus.toString()},
-                    System.out, System.err);
-            assertEquals(1, exit, "a non-matching search must exit 1 (rg convention)");
+            assertEquals(1, commandFor("zzz-not-present", corpus.toString()).call(),
+                    "a non-matching search must exit 1 (rg convention)");
         } finally {
             deleteRecursively(corpus);
         }
     }
 
     @Test
-    void testMissingPathReturnsTwo() throws Exception {
-        int exit = ToolBridge.runRg(new String[]{"needle", corpus + "-does-not-exist"},
-                System.out, System.err);
-        assertEquals(2, exit, "an unusable search root must exit 2");
+    void testMissingPathReturnsTwo() {
+        assertEquals(2, commandFor("needle", "/no-such-dir-" + System.nanoTime()).call(),
+                "an unusable search root must exit 2");
     }
 
     private static void deleteRecursively(Path root) throws Exception {
         if (root == null || !Files.exists(root)) return;
         try (var walk = Files.walk(root)) {
-            walk.sorted(java.util.Comparator.reverseOrder()).forEach(p -> {
+            walk.sorted(Comparator.reverseOrder()).forEach(p -> {
                 try {
                     Files.delete(p);
                 } catch (Exception ignored) {

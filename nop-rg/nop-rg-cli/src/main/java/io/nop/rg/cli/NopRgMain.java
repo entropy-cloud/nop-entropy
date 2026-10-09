@@ -9,7 +9,6 @@ import io.nop.rg.core.coordinator.SearchCoordinator;
 import picocli.CommandLine;
 
 import java.io.BufferedOutputStream;
-import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -22,7 +21,7 @@ import java.util.concurrent.Callable;
  * nop-rg 命令行入口（plan 2264 CLI-01..03）。
  *
  * <p>用法：{@code nop-rg PATTERN [PATH] [-g glob]... [-i] [-c] [-l] [--json] [--no-ignore] [--threads N]
- * [--delegate-rg[=path]]}
+ * [--jfr <file>]
  *
  * <p>退出码对齐 rg：命中 0 / 未命中 1 / 错误 2。
  */
@@ -70,60 +69,13 @@ public class NopRgMain implements Callable<Integer> {
             + " if module present but incubator module missing; errors out if module absent)")
     private boolean vector;
 
-    // 说明：--delegate-rg 由 main() 在 picocli 解析前拦截处理，本字段仅用于 help 展示，运行时不可达
-    @CommandLine.Option(names = "--delegate-rg", arity = "0..1", fallbackValue = "rg",
-            description = "Delegate execution to system rg (optionally specify executable path via =path)")
-    private String delegateRg;
-
     @CommandLine.Option(names = "--jfr", arity = "1",
             description = "Record JFR events (CPU/alloc/lock) to the given .jfr file during the search")
     private String jfrOutput;
 
     public static void main(String[] args) {
-        // --delegate-rg 在 picocli 解析前拦截：原样透传全部参数给系统 rg
-        List<String> rgArgs = buildRgArgs(args);
-        if (rgArgs != null) {
-            System.exit(invokeRg(rgArgs));
-            return;
-        }
         int code = new CommandLine(new NopRgMain()).execute(args);
         System.exit(code);
-    }
-
-    /**
-     * 预解析 --delegate-rg：委托时返回 rg 命令行（rg 可执行路径 + 其余参数原样透传），否则返回 null。
-     * 包可见供测试直接验证桥接语义。
-     */
-    static List<String> buildRgArgs(String[] args) {
-        for (int i = 0; i < args.length; i++) {
-            String arg = args[i];
-            if (arg.equals("--delegate-rg") || arg.startsWith("--delegate-rg=")) {
-                String rgPath = arg.startsWith("--delegate-rg=")
-                        ? arg.substring("--delegate-rg=".length())
-                        : "rg";
-                List<String> rgArgs = new ArrayList<>();
-                rgArgs.add(rgPath);
-                for (int k = 0; k < args.length; k++) {
-                    if (k == i) continue;
-                    rgArgs.add(args[k]);
-                }
-                return rgArgs;
-            }
-        }
-        return null;
-    }
-
-    static int invokeRg(List<String> rgArgs) {
-        try {
-            Process process = new ProcessBuilder(rgArgs).inheritIO().start();
-            return process.waitFor();
-        } catch (IOException e) {
-            System.err.println("nop-rg: failed to launch rg (" + rgArgs.get(0) + "): " + e);
-            return 2;
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return 2;
-        }
     }
 
     @Override

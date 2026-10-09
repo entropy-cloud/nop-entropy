@@ -20,7 +20,6 @@
     <modules>
         <module>nop-cli-core</module>
         <module>nop-cli</module>
-        <module>nop-cli-jdk11</module>
         <module>nop-tool</module>
     </modules>
 </project>
