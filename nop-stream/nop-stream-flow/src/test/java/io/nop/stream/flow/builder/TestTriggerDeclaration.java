@@ -167,7 +167,7 @@ public class TestTriggerDeclaration {
         StreamException ex = assertThrows(StreamException.class,
                 () -> buildWindowed("<strategy strategyId=\"strat\" windowFnId=\"tumbling-event-time\""
                         + " duration=\"60m\" emit=\"UPDATE\" triggerId=\"event-time\"/>", null));
-        assertTrue(ex.getMessage().contains("conflict"), ex::getMessage);
+        assertTrue(ex.getMessage().contains("competing declarations"), ex::getMessage);
     }
 
     @Test

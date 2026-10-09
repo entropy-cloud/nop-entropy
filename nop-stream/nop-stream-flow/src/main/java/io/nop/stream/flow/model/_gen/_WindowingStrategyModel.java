@@ -46,6 +46,13 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: earlyResultsPeriod
+     * 
+     */
+    private java.lang.String _earlyResultsPeriod ;
+    
+    /**
+     *  
      * xml name: emit
      * 
      */
@@ -165,6 +172,25 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         checkAllowChange();
         
         this._duration = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: earlyResultsPeriod
+     *  
+     */
+    
+    public java.lang.String getEarlyResultsPeriod(){
+      return _earlyResultsPeriod;
+    }
+
+    
+    public void setEarlyResultsPeriod(java.lang.String value){
+        checkAllowChange();
+        
+        this._earlyResultsPeriod = value;
            
     }
 
@@ -321,6 +347,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("description",this.getDescription());
         out.putNotNull("duration",this.getDuration());
+        out.putNotNull("earlyResultsPeriod",this.getEarlyResultsPeriod());
         out.putNotNull("emit",this.getEmit());
         out.putNotNull("evictorId",this.getEvictorId());
         out.putNotNull("maxDelay",this.getMaxDelay());
@@ -343,6 +370,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setDescription(this.getDescription());
         instance.setDuration(this.getDuration());
+        instance.setEarlyResultsPeriod(this.getEarlyResultsPeriod());
         instance.setEmit(this.getEmit());
         instance.setEvictorId(this.getEvictorId());
         instance.setMaxDelay(this.getMaxDelay());
