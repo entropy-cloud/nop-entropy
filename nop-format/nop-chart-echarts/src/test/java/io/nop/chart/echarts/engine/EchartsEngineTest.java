@@ -86,4 +86,31 @@ class EchartsEngineTest {
         assertEquals(300, image.getWidth());
         assertNotEquals(0, image.getRGB(150, 100));
     }
+
+    @Test
+    void pumpMaxRoundsConfigureTakesEffect() {
+        // M1 回归：configure 的 timerPumpMaxRounds 真实生效——pump=1 时渐进渲染 pumpedTimers ≤ 1
+        StringBuilder data = new StringBuilder("[");
+        for (int i = 0; i < 4000; i++) {
+            if (i > 0)
+                data.append(',');
+            data.append(i % 97 + 5);
+        }
+        data.append(']');
+        String option = "{\"xAxis\":{\"type\":\"category\"},\"yAxis\":{\"type\":\"value\"},"
+                + "\"series\":[{\"type\":\"bar\",\"data\":" + data + "}]}";
+        long original = engine.getRenderTimeoutMs();
+        try {
+            EchartsEngine.configure(new TextMeasurer(), original, 1);
+            EchartsEngine.BufferedImageHolder result = engine.renderCanvasSeam(BAR_OPTION, 300, 200, null);
+            assertTrue(result.pumpedTimers() <= 1,
+                    "pump=1 must cap pumped timers, got " + result.pumpedTimers());
+            EchartsEngine.configure(new TextMeasurer(), original, 16);
+            EchartsEngine.BufferedImageHolder after = engine.renderCanvasSeam(BAR_OPTION, 300, 200, null);
+            assertTrue(after.pumpedTimers() > result.pumpedTimers(),
+                    "pump=16 must allow more rounds than pump=1");
+        } finally {
+            EchartsEngine.configure(new TextMeasurer(), original, 16);
+        }
+    }
 }

@@ -11,8 +11,6 @@ import org.graalvm.polyglot.Value;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -99,12 +97,21 @@ public class EchartsEngine {
      */
     BufferedImageHolder renderCanvasSeam(String normalizedOptionJson, int width, int height,
                                          String preRenderScript) {
+        return renderCanvasSeam(normalizedOptionJson, width, height, preRenderScript, false);
+    }
+
+    /**
+     * keepAlive=true：跳过 dispose-nulling（测试在 dispose 前经 evaluateForTest 断言 JS 状态），
+     * 测试结束须自行调 disposeForTest。
+     */
+    BufferedImageHolder renderCanvasSeam(String normalizedOptionJson, int width, int height,
+                                         String preRenderScript, boolean keepAlive) {
         Context context = contextForCurrentThread();
         renderCount.incrementAndGet();
         ScheduledFuture<?> timeoutTask = scheduleTimeout(context);
         try {
             Value bindings = context.getBindings(JS_LANG);
-            EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer));
+            EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer), timerPumpMaxRounds);
             bindings.putMember("__bridge", bridge);
             String script = renderScript(normalizedOptionJson, width, height, "canvas", preRenderScript);
             context.eval(JS_LANG, script);
@@ -119,7 +126,8 @@ public class EchartsEngine {
             throw new NopChartEchartsException("echarts JS execution failed: " + e.getMessage(), e);
         } finally {
             // D21：instances$1 主注册表强引用 chart（dist:30282）——每渲染必须 dispose 防泄漏
-            disposeActiveChart(context);
+            if (!keepAlive)
+                disposeActiveChart(context);
             timeoutTask.cancel(false);
         }
     }
@@ -140,7 +148,7 @@ public class EchartsEngine {
         ScheduledFuture<?> timeoutTask = scheduleTimeout(context);
         try {
             Value bindings = context.getBindings(JS_LANG);
-            EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer));
+            EchartsBridge bridge = new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer), timerPumpMaxRounds);
             bindings.putMember("__bridge", bridge);
             String script = renderScript(normalizedOptionJson, width, height, "svg", preRenderScript);
             context.eval(JS_LANG, script);
@@ -233,7 +241,7 @@ public class EchartsEngine {
                 .build();
         // 默认桥：shim 级测试（evaluateForTest）可独立于渲染流程使用；渲染时按次换新桥
         context.getBindings(JS_LANG).putMember("__bridge",
-                new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer)));
+                new EchartsBridge(new EchartsBridge.TextMeasurerHost(textMeasurer), timerPumpMaxRounds));
         context.eval(JS_LANG, bridgeSource());
         context.eval(JS_LANG, echartsSource());
         echartsEvalCount.incrementAndGet();
@@ -259,6 +267,14 @@ public class EchartsEngine {
      */
     String evaluateForTest(String js) {
         return contextForCurrentThread().eval(JS_LANG, js).toString();
+    }
+
+    /**
+     * keepAlive 渲染后的手动 dispose（测试收口）。
+     */
+    void disposeForTest() {
+        Context context = contextForCurrentThread();
+        disposeActiveChart(context);
     }
 
     /**
@@ -326,15 +342,6 @@ public class EchartsEngine {
     /**
      * 渲染产物：root 画布图像 + 泵/图像请求统计（供测试断言）。
      */
-    public record RenderedCanvas(java.awt.image.BufferedImage image, int pumpedTimers, int imageRequests) {
-    }
-
-    public record CanvasBindings(List<String> marker) {
-        public static CanvasBindings of(String... items) {
-            return new CanvasBindings(List.of(items));
-        }
-    }
-
     public static final class BufferedImageHolder {
         private final java.awt.image.BufferedImage image;
         private final int pumpedTimers;

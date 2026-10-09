@@ -20,17 +20,18 @@ import java.util.List;
  */
 public class EchartsBridge {
     private static final Logger LOG = LoggerFactory.getLogger(EchartsBridge.class);
-    private static final int MAX_TIMER_DRAIN_ROUNDS = 16;
 
     private final List<Java2DCanvas> canvases = new ArrayList<>();
     private final List<Value> pendingTimers = new ArrayList<>();
     private final TextMeasurerHost measurer;
+    private final int maxDrainRounds;
 
     private int timerCancelled;
     private int imageRequests;
 
-    public EchartsBridge(TextMeasurerHost measurer) {
+    public EchartsBridge(TextMeasurerHost measurer, int maxDrainRounds) {
         this.measurer = measurer;
+        this.maxDrainRounds = maxDrainRounds;
     }
 
     /**
@@ -93,12 +94,12 @@ public class EchartsBridge {
     }
 
     /**
-     * progressive 泵：执行排队回调至静默（上限 {@value MAX_TIMER_DRAIN_ROUNDS} 轮）。
+     * progressive 泵：执行排队回调至静默（上限由引擎配置注入，M1 修复：configure 生效）。
      * guest 回调抛出的异常原样向上传播。
      */
     public int drainTimers() {
         int executed = 0;
-        for (int round = 0; round < MAX_TIMER_DRAIN_ROUNDS && !pendingTimers.isEmpty(); round++) {
+        for (int round = 0; round < maxDrainRounds && !pendingTimers.isEmpty(); round++) {
             List<Value> batch = new ArrayList<>(pendingTimers);
             pendingTimers.clear();
             for (Value fn : batch) {

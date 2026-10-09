@@ -87,7 +87,10 @@ public final class CssColors {
             int b = colorComponent(parts[2]);
             int a = parts.length > 3 ? alphaComponent(parts[3]) : 255;
             return new Color(r, g, b, a);
-        } catch (NumberFormatException e) {
+        } catch (NopCanvas2DException e) {
+            throw e;
+        } catch (RuntimeException e) {
+            // 含 Color 构造器的分量越界（D2：解析失败一律包装，不泄漏 AWT 异常）
             throw new NopCanvas2DException("Unknown CSS color: " + s, e);
         }
     }
@@ -104,7 +107,9 @@ public final class CssColors {
             float light = percentOrFraction(parts[2]);
             float a = parts.length > 3 ? alphaComponent(parts[3]) / 255f : 1f;
             return hslToRgb(h, sat, light, a);
-        } catch (NumberFormatException e) {
+        } catch (NopCanvas2DException e) {
+            throw e;
+        } catch (RuntimeException e) {
             throw new NopCanvas2DException("Unknown CSS color: " + s, e);
         }
     }
@@ -165,16 +170,21 @@ public final class CssColors {
 
     private static int colorComponent(String part) {
         part = part.trim();
-        if (part.endsWith("%"))
-            return Math.round(Float.parseFloat(part.substring(0, part.length() - 1)) * 255f / 100f);
-        return Integer.parseInt(part);
+        // CSS 语义：数值分量超界静默钳制（zrender 计算性颜色可产出 >255，如 rgba(135,175,274,.2)）
+        return clampByte(part.endsWith("%")
+                ? Math.round(Float.parseFloat(part.substring(0, part.length() - 1)) * 255f / 100f)
+                : Integer.parseInt(part));
     }
 
     private static int alphaComponent(String part) {
         part = part.trim();
         if (part.endsWith("%"))
-            return Math.round(Float.parseFloat(part.substring(0, part.length() - 1)) * 255f / 100f);
-        return (int) Math.round(Double.parseDouble(part) * 255);
+            return clampByte(Math.round(Float.parseFloat(part.substring(0, part.length() - 1)) * 255f / 100f));
+        return clampByte((int) Math.round(Double.parseDouble(part) * 255));
+    }
+
+    private static int clampByte(int v) {
+        return Math.max(0, Math.min(255, v));
     }
 
     private static float percentOrFraction(String part) {
@@ -203,11 +213,137 @@ public final class CssColors {
         put(map, "teal", 0x008080);
         put(map, "white", 0xFFFFFF);
         put(map, "yellow", 0xFFFF00);
-        // 常用别名与扩展
+        // 常用别名
         put(map, "cyan", 0x00FFFF);
         put(map, "magenta", 0xFF00FF);
         put(map, "grey", 0x808080);
         put(map, "orange", 0xFFA500);
+        // CSS 扩展命名色（echarts 默认调色板与 rich 文本会产出，如 lightsteelblue）
+        put(map, "aliceblue", 0xF0F8FF);
+        put(map, "antiquewhite", 0xFAEBD7);
+        put(map, "aquamarine", 0x7FFFD4);
+        put(map, "azure", 0xF0FFFF);
+        put(map, "beige", 0xF5F5DC);
+        put(map, "bisque", 0xFFE4C4);
+        put(map, "blanchedalmond", 0xFFEBCD);
+        put(map, "blueviolet", 0x8A2BE2);
+        put(map, "brown", 0xA52A2A);
+        put(map, "burlywood", 0xDEB887);
+        put(map, "cadetblue", 0x5F9EA0);
+        put(map, "chartreuse", 0x7FFF00);
+        put(map, "chocolate", 0xD2691E);
+        put(map, "coral", 0xFF7F50);
+        put(map, "cornflowerblue", 0x6495ED);
+        put(map, "cornsilk", 0xFFF8DC);
+        put(map, "crimson", 0xDC143C);
+        put(map, "darkblue", 0x00008B);
+        put(map, "darkcyan", 0x008B8B);
+        put(map, "darkgoldenrod", 0xB8860B);
+        put(map, "darkgray", 0xA9A9A9);
+        put(map, "darkgreen", 0x006400);
+        put(map, "darkgrey", 0xA9A9A9);
+        put(map, "darkkhaki", 0xBDB76B);
+        put(map, "darkmagenta", 0x8B008B);
+        put(map, "darkolivegreen", 0x556B2F);
+        put(map, "darkorange", 0xFF8C00);
+        put(map, "darkorchid", 0x9932CC);
+        put(map, "darksalmon", 0xE9967A);
+        put(map, "darkseagreen", 0x8FBC8F);
+        put(map, "darkslateblue", 0x483D8B);
+        put(map, "darkslategray", 0x2F4F4F);
+        put(map, "darkslategrey", 0x2F4F4F);
+        put(map, "darkturquoise", 0x00CED1);
+        put(map, "darkviolet", 0x9400D3);
+        put(map, "deeppink", 0xFF1493);
+        put(map, "deepskyblue", 0x00BFFF);
+        put(map, "dimgray", 0x696969);
+        put(map, "dimgrey", 0x696969);
+        put(map, "dodgerblue", 0x1E90FF);
+        put(map, "firebrick", 0xB22222);
+        put(map, "floralwhite", 0xFFFAF0);
+        put(map, "forestgreen", 0x228B22);
+        put(map, "gainsboro", 0xDCDCDC);
+        put(map, "ghostwhite", 0xF8F8FF);
+        put(map, "gold", 0xFFD700);
+        put(map, "goldenrod", 0xDAA520);
+        put(map, "greenyellow", 0xADFF2F);
+        put(map, "honeydew", 0xF0FFF0);
+        put(map, "hotpink", 0xFF69B4);
+        put(map, "indianred", 0xCD5C5C);
+        put(map, "indigo", 0x4B0082);
+        put(map, "ivory", 0xFFFFF0);
+        put(map, "khaki", 0xF0E68C);
+        put(map, "lavender", 0xE6E6FA);
+        put(map, "lavenderblush", 0xFFF0F5);
+        put(map, "lawngreen", 0x7CFC00);
+        put(map, "lemonchiffon", 0xFFFACD);
+        put(map, "lightblue", 0xADD8E6);
+        put(map, "lightcoral", 0xF08080);
+        put(map, "lightcyan", 0xE0FFFF);
+        put(map, "lightgoldenrodyellow", 0xFAFAD2);
+        put(map, "lightgray", 0xD3D3D3);
+        put(map, "lightgreen", 0x90EE90);
+        put(map, "lightgrey", 0xD3D3D3);
+        put(map, "lightpink", 0xFFB6C1);
+        put(map, "lightsalmon", 0xFFA07A);
+        put(map, "lightseagreen", 0x20B2AA);
+        put(map, "lightskyblue", 0x87CEFA);
+        put(map, "lightslategray", 0x778899);
+        put(map, "lightslategrey", 0x778899);
+        put(map, "lightsteelblue", 0xB0C4DE);
+        put(map, "lightyellow", 0xFFFFE0);
+        put(map, "limegreen", 0x32CD32);
+        put(map, "linen", 0xFAF0E6);
+        put(map, "mediumaquamarine", 0x66CDAA);
+        put(map, "mediumblue", 0x0000CD);
+        put(map, "mediumorchid", 0xBA55D3);
+        put(map, "mediumpurple", 0x9370DB);
+        put(map, "mediumseagreen", 0x3CB371);
+        put(map, "mediumslateblue", 0x7B68EE);
+        put(map, "mediumspringgreen", 0x00FA9A);
+        put(map, "mediumturquoise", 0x48D1CC);
+        put(map, "mediumvioletred", 0xC71585);
+        put(map, "midnightblue", 0x191970);
+        put(map, "mintcream", 0xF5FFFA);
+        put(map, "mistyrose", 0xFFE4E1);
+        put(map, "moccasin", 0xFFE4B5);
+        put(map, "navajowhite", 0xFFDEAD);
+        put(map, "oldlace", 0xFDF5E6);
+        put(map, "olivedrab", 0x6B8E23);
+        put(map, "orchid", 0xDA70D6);
+        put(map, "palegoldenrod", 0xEEE8AA);
+        put(map, "palegreen", 0x98FB98);
+        put(map, "paleturquoise", 0xAFEEEE);
+        put(map, "palevioletred", 0xDB7093);
+        put(map, "papayawhip", 0xFFEFD5);
+        put(map, "peachpuff", 0xFFDAB9);
+        put(map, "peru", 0xCD853F);
+        put(map, "pink", 0xFFC0CB);
+        put(map, "plum", 0xDDA0DD);
+        put(map, "powderblue", 0xB0E0E6);
+        put(map, "rosybrown", 0xBC8F8F);
+        put(map, "rebeccapurple", 0x663399);
+        put(map, "saddlebrown", 0x8B4513);
+        put(map, "salmon", 0xFA8072);
+        put(map, "sandybrown", 0xF4A460);
+        put(map, "seagreen", 0x2E8B57);
+        put(map, "seashell", 0xFFF5EE);
+        put(map, "sienna", 0xA0522D);
+        put(map, "skyblue", 0x87CEEB);
+        put(map, "slateblue", 0x6A5ACD);
+        put(map, "slategray", 0x708090);
+        put(map, "slategrey", 0x708090);
+        put(map, "snow", 0xFFFAFA);
+        put(map, "springgreen", 0x00FF7F);
+        put(map, "steelblue", 0x4682B4);
+        put(map, "tan", 0xD2B48C);
+        put(map, "thistle", 0xD8BFD8);
+        put(map, "tomato", 0xFF6347);
+        put(map, "turquoise", 0x40E0D0);
+        put(map, "violet", 0xEE82EE);
+        put(map, "wheat", 0xF5DEB3);
+        put(map, "whitesmoke", 0xF5F5F5);
+        put(map, "yellowgreen", 0x9ACD32);
         return map;
     }
 

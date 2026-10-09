@@ -55,6 +55,15 @@ class CssColorsTest {
     }
 
     @Test
+    void outOfRangeRgbComponentsClampLikeBrowsers() {
+        // CSS 语义：分量超界钳制（zrender 计算性颜色实测产出 rgba(135,175,274,.2)——blue=274 → 255）
+        assertEquals(new Color(135, 175, 255, 51), CssColors.parse("rgba(135,175,274,0.2)"));
+        assertEquals(new Color(0, 0, 255), CssColors.parse("rgb(-20,0,300)"));
+        assertEquals(new Color(0, 0, 0, 255), CssColors.parse("rgba(0,0,0,2)"));
+        assertEquals(new Color(0, 0, 0, 0), CssColors.parse("rgba(0,0,0,-0.5)"));
+    }
+
+    @Test
     void invalidInputsThrow() {
         assertThrows(NopCanvas2DException.class, () -> CssColors.parse("nope"));
         assertThrows(NopCanvas2DException.class, () -> CssColors.parse("#12"));

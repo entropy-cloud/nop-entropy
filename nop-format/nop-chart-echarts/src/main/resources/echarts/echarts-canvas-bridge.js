@@ -287,6 +287,11 @@
                 ctxCache = makeContext(canvas);
             return ctxCache;
         };
+        // DOM 属性容忍面（heatmap 自定义层与 aria 路径对 fake canvas 调用 setAttribute——canvas 语义无 DOM）
+        canvas.setAttribute = function () {};
+        canvas.getAttribute = function () {
+            return null;
+        };
         return canvas;
     };
 
