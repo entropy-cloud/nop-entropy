@@ -114,6 +114,12 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 
 > 完整标志列表见 `_DialectFeatures.java`。这些标志由 dialect 模型文件（`_vfs/nop/dao/dialect/*.dialect.xml`）配置，开发时不需要手工干预。
 
+## 集合操作符与 DML 的位置约束（R1.6a）
+
+EQL 集合操作符（`_some`/`_all`）**仅支持在 select 语句的 where 子句中使用**（编译期改写为 exists 子查询）。出现在 update/delete 的 where、order by、having、投影、group by 等位置时编译期报错 `nop.err.eql.collection-operator-not-allowed-here`。
+
+update/delete 语句中起自目标表的**多段属性路径**（含相关子查询内经外层别名的引用、SET 赋值目标、RETURNING 投影）不支持隐式 join——编译期报错 `nop.err.eql.dml-prop-join-not-supported`，请改用相关子查询或显式关联条件。单段 owner 引用（如 `o.id`）合法，渲染时以物理表名限定。
+
 ## 相关文档
 
 - `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）

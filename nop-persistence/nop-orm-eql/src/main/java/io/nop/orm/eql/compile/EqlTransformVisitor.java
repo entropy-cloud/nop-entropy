@@ -56,6 +56,7 @@ import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.enums.SqlCollectionOperator;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.compile.CollectionOperatorTransformer;
@@ -97,6 +98,7 @@ import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_OPERATOR;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_COL_NAME;
@@ -121,6 +123,8 @@ import static io.nop.orm.eql.OrmEqlErrors.ARG_TABLE_SOURCE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
@@ -145,6 +149,9 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FUNCTION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_QUERY_SPACE;
 
 public class EqlTransformVisitor extends EqlASTVisitor {
+
+    /** R1.6a：当前正在 transform 的 update/delete 目标表 source；非 DML 语句为 null。 */
+    private SqlSingleTableSource dmlTargetSource;
 
     private final ISqlCompileContext context;
     // WI2: 当前查询链上已声明的命名窗口名（每个 SqlQuerySelect 入栈一层）
@@ -816,6 +823,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                                 .param(ARG_PROP_PATH, propPath)
                                 .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
+                    // R1.6a / P1-2.2-001·002·004: 集合操作符段只在 select 语句 where 中被
+                    // CollectionOperatorTransformer 前置改写；到达此分支即说明当前位置
+                    // （update/delete where、order by、having、投影、group by 等）不受支持，
+                    // 继续处理会把操作符当作 keyProp 键值生成非法或语义错误 SQL
+                    if (SqlCollectionOperator.fromText(propPath.getNext().getName()) != null) {
+                        throw new NopException(ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE)
+                                .source(source).param(ARG_OPERATOR, propPath.getNext().getName());
+                    }
+
                     String propJoinName = propPath.getName() + '.' + propPath.getNext().getName();
                     join = source.getPropJoin(propJoinName);
                     propPath = propPath.getNext();
@@ -1325,6 +1341,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             }
         } else {
             SqlPropJoin join = resolvePropPath(currentScope, node.getLocation(), node.getOwner().toPropPath());
+            // R1.6a / P1-2.2-008·005·010: update/delete 目标表不渲染 propJoin，起自目标表的
+            // 多段属性路径会产出未声明别名的非法 SQL——编译期响亮失败（单段 owner 走上方
+            // 分支由渲染层物理表名回退合法处理；子查询自身作用域路径 left≠目标 source 不受影响）
+            if (dmlTargetSource != null && join.getLeft() == dmlTargetSource) {
+                throw new NopException(ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED)
+                        .source(node).param(ARG_PROP_PATH, node.getOwner().toPropPath().toString());
+            }
             source = join.getRight();
         }
         resolveColName(source, node);
@@ -1552,8 +1575,10 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (tableMeta.getEntityModel().isTenantModel())
             this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
+        this.dmlTargetSource = source;
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
+        this.dmlTargetSource = null;
 
         // 分析所有的projection，并且确保每一列都有一个别名
         // returning * 与显式投影一样依赖方言的returning支持，必须在展开前统一校验
@@ -1611,7 +1636,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
 
+        this.dmlTargetSource = source;
         this.visitChild(node.getWhere());
+        this.dmlTargetSource = null;
 
         currentScope = currentScope.getParent();
     }
