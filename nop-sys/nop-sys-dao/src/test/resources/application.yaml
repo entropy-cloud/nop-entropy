@@ -1,0 +1,12 @@
+# 测试环境 datasource 配置（TestOrmEntityChangeLogInterceptorNullMarker 经 JunitBaseTestCase
+# 启动 IoC 容器需要 datasource bean 链；该测试用 Proxy 不触真库，h2 内存即可）
+nop:
+  datasource:
+    driver-class-name: org.h2.Driver
+    jdbc-url: jdbc:h2:mem:test;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  orm:
+    # 容器启动期 SysSequenceGenerator.lazyInit 会查询 NOP_SYS_SEQUENCE，
+    # 需要从 orm 模型建表（nop-sys-dao 自带模型）
+    init-database-schema: true

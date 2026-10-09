@@ -126,7 +126,7 @@
 | P1-3.3-003 | `3.3-batch-deep-audit-a.md` | R1.15/plan 2381（2026-10-09 修复：primaryError CAS+优先级内嵌 onTaskComplete+机制直测 2/2） | fixed |
 | P1-3.4-001 | `3.4-batch-deep-audit-b.md` | R1.16/plan 2382（2026-10-09 修复：ret.add+Proxy 判别测试 1/1+orm-entity 魔法值 owner doc 登记） | fixed |
 | P1-3.4-002 | `3.4-batch-deep-audit-b.md` | R1.16/plan 2382（2026-10-09 修复：三列显式赋值+真 IEntityDao flush 钉定测试升级〔Proxy 盲区封堵〕） | fixed |
-| P1-3.5-001 | `3.5-sys-deep-audit.md` | R1.0（nop-sys.md 分布式锁入口 ILockService 幻影——改为 IResourceLockManager 真实契约；与 P2-3.5-008/009 死装配族同批修复互引） | open |
+| P1-3.5-001 | `3.5-sys-deep-audit.md` | R1.17/plan 2383（2026-10-09 修复：nop-sys.md 三处改写为 IResourceLockManager 真实 API+勘误记录，零 ILockService 残留） | fixed |
 | P1-3.6-001 | `3.6-report-deep-audit.md` | R1.0（CellRowExpander/CellColExpander.removeCell 展开区域起点减号——offset≠0 删错行列；补 offset≠0 回归〔P2-3.6-004 测试缺口同批〕） | open |
 | P1-3.6-002 | `3.6-report-deep-audit.md` | R1.0（NopReportDefinitionAuth/DatasourceAuth/DatasetAuth 权限表零消费——引擎取数接入角色校验或显式休眠+文档勘正；nop-datav 双轨对账） | open |
 | P1-3.7-001 | `3.7-rule-dyn-deep-audit.md` | R1.0（动态模块 moduleName 保留名检查+遮蔽防线——stdDomain 排除既有静态模块名或发布前冲突检测+遮蔽告警；与 P2-3.7-010 路径逃逸同批） | open |
@@ -270,6 +270,7 @@
 | R1.14 | done | plan 2380（2026-10-09）：task.xdef secret 属性（nop-task-core 再生成）+DaoTaskStateStore 五锚点过滤（模型直取规避 bean 环+空集字节级短路+fail-open 例外）+判别测试 6/6+owner doc residual-risk 全列清单；task-core 163/dao 6/service 1 全绿；closure audit 见 plan 2380 Closure 段 |
 | R1.15 | done | plan 2381（2026-10-09）：eql 移除+WARN 可观测/processor 拷贝后排序+行为判别/primaryError CAS 内嵌 onTaskComplete+机制直测 2/2；dsl 21/core 61 全绿；04-reference 副本同步；closure audit 见 plan 2381 Closure 段 |
 | R1.16 | done | plan 2382（2026-10-09）：restore 补 ret.add+Proxy 判别测试/saveProcessed 三列显式赋值+真 IEntityDao flush 钉定升级（Proxy 盲区封堵）/orm-entity 魔法值 doc 登记；orm 1/dao 11 全绿；审查 2B 勘误（P2-3.4-005→007 审计滑号已在报告勘误）；closure audit 见 plan 2382 Closure 段 |
+| R1.17 | done | plan 2383（2026-10-09）：nop-sys.md ILockService 幻影改写（IResourceLockManager 真实 API+勘误记录，零残留）+附带工单实测补全（import 修正外补 datasource/orm 建表配置使 TestOrmEntityChangeLogInterceptorNullMarker 真正可运行）；nop-sys-dao 66/service 14 全绿；轻量 plan 工具门禁+三方核对收口；closure audit 见 plan 2383 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
