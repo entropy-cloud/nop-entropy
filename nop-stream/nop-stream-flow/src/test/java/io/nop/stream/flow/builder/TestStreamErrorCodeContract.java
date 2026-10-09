@@ -12,7 +12,6 @@ import java.util.Arrays;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.flow.model.StreamDefinitionModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
@@ -47,15 +46,17 @@ public class TestStreamErrorCodeContract {
 
     @Test
     public void notYetImplementedRegistryCarriesErrorCode() {
+        // WI12 (plan 2358): <streams> was removed from the schema; the NOT_IMPLEMENTED
+        // contract ledger carrier is now <coders> (the pinned Java-only surface).
         StreamModel model = new StreamModel();
         model.setName("registry-model");
-        model.setStreams(Arrays.asList(new StreamDefinitionModel()));
+        model.setCoders(Arrays.asList(new io.nop.stream.flow.model.CoderModel()));
 
         StreamException ex = assertThrows(StreamException.class,
                 () -> StreamModelDslBuilder.of(model, new InMemoryBeanFunctionResolver()).build());
         assertNotNull(ex.getErrorCode(), "getErrorCode() must be non-null for a StreamException");
         assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
-        assertTrue(ex.getMessage().contains("<streams>"), () -> ex.getMessage());
+        assertTrue(ex.getMessage().contains("<coders>"), () -> ex.getMessage());
     }
 
     @Test

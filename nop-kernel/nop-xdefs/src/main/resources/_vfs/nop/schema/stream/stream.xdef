@@ -133,14 +133,8 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
         </environment>
     </environments>
 
-    <!-- 流定义注册表（命名流，用于跨算子引用） -->
-    <streams xdef:key-attr="id" xdef:body-type="list">
-        <stream id="!string" valueType="generic-type"
-                xdef:name="StreamDefinitionModel" xdef:unique-attr="id">
-            <description>string</description>
-        </stream>
-    </streams>
-
+    <!-- WI12（plan 2358）：<streams> 注册表已移除——「命名流跨算子引用」无任何
+         消费点（图模型 transforms+edges 已完整表达数据流），schema 面随裁定删除。 -->
     <!-- 需求声明：运行时必须满足的能力集合 -->
     <requirements xdef:body-type="list">
         <requirement value="enum:io.nop.stream.core.model.StreamRequirement" xdef:name="StreamRequirementModel"/>

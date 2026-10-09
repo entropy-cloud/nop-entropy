@@ -248,7 +248,7 @@
 | 规则 ID | 锚点 | 说明 |
 |---------|------|------|
 | `STRM-001` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamModel.java` | 管道规范模型容器，持有 `StreamComponents` 和 transformations map |
-| `STRM-002` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamComponents.java` | 管道元数据注册表：transforms/streams/windowingStrategies/requirements/checkpointParticipants |
+| `STRM-002` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamComponents.java` | 管道元数据注册表：transforms/windowingStrategies/requirements/checkpointParticipants |
 | `STRM-003` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/model/StreamModelFingerprint.java` | 编译期 fingerprint，`isCompatibleWith()` 拒绝不兼容 requirements 组合 |
 | `STRM-004` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/graph/StreamGraphGenerator.java` | Transformation DAG → StreamGraph （Graph Path 第一阶段），含 `populateStreamModel()` |
 | `STRM-SQL-001` | `nop-stream/nop-stream-sql/src/main/java/io/nop/stream/sql/compile/StreamSqlCompiler.java` | WI17：EQL AST → 流模型 XML 编译器（`<sql>` SPI 底层实现） |

@@ -167,13 +167,6 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      *  
-     * xml name: streams
-     * 流定义注册表（命名流，用于跨算子引用）
-     */
-    private KeyedList<io.nop.stream.flow.model.StreamDefinitionModel> _streams = KeyedList.emptyList();
-    
-    /**
-     *  
      * xml name: transforms
      * 
      */
@@ -751,51 +744,6 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     
     /**
      * 
-     * xml name: streams
-     *  流定义注册表（命名流，用于跨算子引用）
-     */
-    
-    public java.util.List<io.nop.stream.flow.model.StreamDefinitionModel> getStreams(){
-      return _streams;
-    }
-
-    
-    public void setStreams(java.util.List<io.nop.stream.flow.model.StreamDefinitionModel> value){
-        checkAllowChange();
-        
-        this._streams = KeyedList.fromList(value, io.nop.stream.flow.model.StreamDefinitionModel::getId);
-           
-    }
-
-    
-    public io.nop.stream.flow.model.StreamDefinitionModel getStream(String name){
-        return this._streams.getByKey(name);
-    }
-
-    public boolean hasStream(String name){
-        return this._streams.containsKey(name);
-    }
-
-    public void addStream(io.nop.stream.flow.model.StreamDefinitionModel item) {
-        checkAllowChange();
-        java.util.List<io.nop.stream.flow.model.StreamDefinitionModel> list = this.getStreams();
-        if (list == null || list.isEmpty()) {
-            list = new KeyedList<>(io.nop.stream.flow.model.StreamDefinitionModel::getId);
-            setStreams(list);
-        }
-        list.add(item);
-    }
-    
-    public java.util.Set<String> keySet_streams(){
-        return this._streams.keySet();
-    }
-
-    public boolean hasStreams(){
-        return !this._streams.isEmpty();
-    }
-    
-    /**
-     * 
      * xml name: transforms
      *  
      */
@@ -954,8 +902,6 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
             
            this._sql = io.nop.api.core.util.FreezeHelper.deepFreeze(this._sql);
             
-           this._streams = io.nop.api.core.util.FreezeHelper.deepFreeze(this._streams);
-            
            this._transforms = io.nop.api.core.util.FreezeHelper.deepFreeze(this._transforms);
             
            this._windowingStrategies = io.nop.api.core.util.FreezeHelper.deepFreeze(this._windowingStrategies);
@@ -984,7 +930,6 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         out.putNotNull("schemas",this.getSchemas());
         out.putNotNull("sideInputs",this.getSideInputs());
         out.putNotNull("sql",this.getSql());
-        out.putNotNull("streams",this.getStreams());
         out.putNotNull("transforms",this.getTransforms());
         out.putNotNull("version",this.getVersion());
         out.putNotNull("watermarkInterval",this.getWatermarkInterval());
@@ -1017,7 +962,6 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
         instance.setSchemas(this.getSchemas());
         instance.setSideInputs(this.getSideInputs());
         instance.setSql(this.getSql());
-        instance.setStreams(this.getStreams());
         instance.setTransforms(this.getTransforms());
         instance.setVersion(this.getVersion());
         instance.setWatermarkInterval(this.getWatermarkInterval());

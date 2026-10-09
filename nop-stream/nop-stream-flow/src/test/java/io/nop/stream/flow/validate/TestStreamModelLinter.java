@@ -86,7 +86,7 @@ class TestStreamModelLinter {
         // them at once (the builder would fail-fast on the first only).
         StreamConfValidationReport report = lint("<stream xmlns:x=\"/nop/schema/xdsl.xdef\" "
                 + "x:schema=\"/nop/schema/stream/stream.xdef\" name=\"lint-faces\" version=\"1\">"
-                + "<streams><stream id=\"s1\" valueType=\"string\"/></streams>"
+                + "<coders><coder id=\"c1\" className=\"java.lang.String\"/></coders>"
                 + "<windowingStrategies>"
                 + "<strategy strategyId=\"s1\" windowFnId=\"tumbling-event-time\" duration=\"5s\""
                 + " accumulationMode=\"ACCUMULATING_AND_RETRACTING\"/>"
@@ -106,7 +106,7 @@ class TestStreamModelLinter {
         assertTrue(warnings >= 4, () -> "expected >=4 face findings, got: " + report.render());
         String rendered = report.render();
         assertTrue(rendered.contains("strategy s1"), rendered);
-        assertTrue(rendered.contains("<streams>"), rendered);
+        assertTrue(rendered.contains("<coders>"), rendered);
         assertTrue(rendered.contains("edge e1"), rendered);
         assertTrue(rendered.contains("source src"), rendered);
         // machine-readable contract: every lint finding carries a nop.err.stream.* code
@@ -123,7 +123,7 @@ class TestStreamModelLinter {
         // fail-fast as one FAIL — exit 1 with WARNING + FAIL coexisting.
         StreamConfValidationReport report = lint("<stream xmlns:x=\"/nop/schema/xdsl.xdef\" "
                 + "x:schema=\"/nop/schema/stream/stream.xdef\" name=\"lint-coexist\" version=\"1\">"
-                + "<streams><stream id=\"s1\" valueType=\"string\"/></streams>"
+                + "<coders><coder id=\"c1\" className=\"java.lang.String\"/></coders>"
                 + "<transforms>"
                 + "<source id=\"src\"><source>return;</source></source>"
                 + "<sink id=\"out\"><source>log.info('out: {}', event);</source></sink>"

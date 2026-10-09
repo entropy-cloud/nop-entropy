@@ -104,8 +104,9 @@ class TestXdslCorpusLintGate {
             // ---- R5 存量（roadmap R5：window 无水位供给；消号 = 补 timestampsAndWatermarks；
             //      与 R4 同模型同键，Set 语义去重）----
             "test-param-agg.stream.xml|nop.err.stream.invalid-arg|test-param-agg",
-            // ---- R12 存量（roadmap WI12/WI15 放行面；放行即删）----
-            "test-delta-failfast-extends.stream.xml|nop.err.stream.not-implemented|<streams>",
+            // ---- R12 存量（WI12 放行后载体更新：streams 已移除，coders 为 pinned
+            //      Java-only 面，delta fail-fast fixture 的 NOT_IMPLEMENTED 键随之换载）----
+            "test-delta-failfast-extends.stream.xml|nop.err.stream.not-implemented|<coders>",
             "test-loc-bad-source-config.stream.xml|nop.err.stream.not-implemented|source src");
 
     /**
