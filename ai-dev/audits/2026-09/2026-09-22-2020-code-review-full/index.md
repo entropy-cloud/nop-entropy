@@ -129,7 +129,7 @@
 | P1-3.5-001 | `3.5-sys-deep-audit.md` | R1.17/plan 2383（2026-10-09 修复：nop-sys.md 三处改写为 IResourceLockManager 真实 API+勘误记录，零 ILockService 残留） | fixed |
 | P1-3.6-001 | `3.6-report-deep-audit.md` | R1.18/plan 2384（2026-10-09 修复：removeCell 起点 -offset→+offset（Row/Col）+offset≠0 判别回归〔P2-3.6-004 测试缺口随修〕。原处方：CellRowExpander/CellColExpander.removeCell 展开区域起点减号——offset≠0 删错行列；补 offset≠0 回归〔P2-3.6-004 测试缺口同批〕） | fixed |
 | P1-3.6-002 | `3.6-report-deep-audit.md` | R1.18/plan 2384（2026-10-09 修复：按处方选项(2) 显式休眠声明：nop-report.md 三处「预留未接线」；auth 接线为后续 feature。原处方：NopReportDefinitionAuth/DatasourceAuth/DatasetAuth 权限表零消费——引擎取数接入角色校验或显式休眠+文档勘正；nop-datav 双轨对账） | fixed |
-| P1-3.7-001 | `3.7-rule-dyn-deep-audit.md` | R1.0（动态模块 moduleName 保留名检查+遮蔽防线——stdDomain 排除既有静态模块名或发布前冲突检测+遮蔽告警；与 P2-3.7-010 路径逃逸同批） | open |
+| P1-3.7-001 | `3.7-rule-dyn-deep-audit.md` | R1.19/plan 2385（2026-10-09 修复：三入口 nop- 前缀/静态 id 冲突拒绝（ERR_DYN_MODULE_ID_CONFLICT）+nop-dyn.md 边界声明。原处方：动态模块 moduleName 保留名检查+遮蔽防线——stdDomain 排除既有静态模块名或发布前冲突检测+遮蔽告警；与 P2-3.7-010 路径逃逸同批） | fixed |
 | P1-3.8-001 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（文件权限面族·读侧：NopFileRecord CRUD 零 auth + filePath/isPublic 可改 + LocalResourceStore .. 防御——动作 auth 补齐+路径校验；与 P1-2.6-006 修复族同批） | open |
 | P1-3.8-002 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（文件权限面族·毁侧：attachFile/detachFile 归属校验 + ORM flush 钩子触发面收敛；与 001 同批） | open |
 | P1-3.8-003 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（TCC/Retry 引擎执行表 CRUD 零 auth——动作 auth 补齐或引擎表退出公开 CRUD；P1-2.6-006 延伸项同批） | open |
@@ -272,6 +272,7 @@
 | R1.16 | done | plan 2382（2026-10-09）：restore 补 ret.add+Proxy 判别测试/saveProcessed 三列显式赋值+真 IEntityDao flush 钉定升级（Proxy 盲区封堵）/orm-entity 魔法值 doc 登记；orm 1/dao 11 全绿；审查 2B 勘误（P2-3.4-005→007 审计滑号已在报告勘误）；closure audit 见 plan 2382 Closure 段 |
 | R1.17 | done | plan 2383（2026-10-09）：nop-sys.md ILockService 幻影改写（IResourceLockManager 真实 API+勘误记录，零残留）+附带工单实测补全（import 修正外补 datasource/orm 建表配置使 TestOrmEntityChangeLogInterceptorNullMarker 真正可运行）；nop-sys-dao 66/service 14 全绿；轻量 plan 工具门禁+三方核对收口；closure audit 见 plan 2383 Closure 段 |
 | R1.18 | done | plan 2384（2026-10-09）：removeCell 符号修正+offset≠0 判别回归（P2-3.6-004 随修）+权限表显式休眠声明（处方选项 2）；nop-report-core 86 全绿；closure audit 见 plan 2384 Closure 段 |
+| R1.19 | done | plan 2385（2026-10-09）：三入口 checkModuleIdNotShadowingStatic（nop- 前缀+静态 _module 标记探针——执行裁定替代 getEnabledModuleMap 误报）+ERR_DYN_MODULE_ID_CONFLICT+nop-dyn.md 边界声明；判别测试 6/6+toggle 判别；nop-dyn-service 34 全绿；VFS 纵深防御 follow-up；closure audit 见 plan 2385 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

@@ -39,6 +39,12 @@ public interface NopDynErrors {
     ErrorCode ERR_DYN_MODULE_NAME_EXISTS =
             define("nop.err.dyn.module-name-exists", "同名动态模块已存在:{moduleName}", ARG_MODULE_NAME);
 
+    // P1-3.7-001（plan 2385）：动态模块 moduleName 保留前缀/静态模块冲突拒绝
+    ErrorCode ERR_DYN_MODULE_ID_CONFLICT =
+            define("nop.err.dyn.module-id-conflict",
+                    "动态模块名{moduleName}(moduleId={moduleId})与静态平台模块命名空间冲突：nop-前缀为平台保留前缀，且不得与已注册静态模块同名",
+                    ARG_MODULE_NAME, "moduleId");
+
     ErrorCode ERR_DYN_MAX_BIZ_OBJECTS_EXCEED =
             define("nop.err.dyn.max-biz-objects-exceed", "动态对象总数{currentCount}超过最大允许数量{maxCount}",
                     ARG_CURRENT_COUNT, ARG_MAX_COUNT);

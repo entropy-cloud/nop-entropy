@@ -12,6 +12,10 @@
 - 模块与应用组合
 - 应用级补丁文件覆盖
 
+## 动态模块命名约束（P1-3.7-001）
+
+动态模块 `moduleName` **不得**使用 `nop-` 保留前缀，也**不得**与已注册静态平台模块同名（ moduleId = moduleName 中 `-`→`/`，如 `nop-auth` → `nop/auth`）：动态模块资源经 VFS in-memory 第一优先层加载，与静态模块同路径会整体遮蔽静态 xbiz/xmeta/orm（导致口令哈希直读、XPL 注入、ORM 定义替换）。`generateByAI`/`importExcel`/`save` 三个入口均强制校验，违反抛 `nop.err.dyn.module-id-conflict`（plan 2385）。
+
 ## 核心实体
 
 | 实体 | 表名 | 用途 |
