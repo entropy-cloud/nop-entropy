@@ -1481,8 +1481,19 @@ public final class StreamModelDslBuilder {
             }
             String unsupportedAttr = firstDeclaredFlowControlAttr(e);
             if (unsupportedAttr != null) {
+                // WI14 (plan 2360): adjudicated keep-reject. The declarative wiring is
+                // blocked by three engine-level prerequisites (an edge-declaration
+                // carrier reachable from the plan layer, a model-id→vertex-id mapping
+                // across the chained graph, and chain-internal edge semantics) plus
+                // the missing consumers for receiveWindow/packetSize — an engine-level
+                // successor, registered on the roadmap WI14 row.
                 throw new StreamException(ERR_STREAM_EDGE_ATTR_UNSUPPORTED)
                         .param(ARG_EDGE_ID, e.getId()).param(ARG_ATTR_NAME, unsupportedAttr)
+                        .param(ARG_DETAIL, "edge flow-control attribute '" + unsupportedAttr
+                                + "' has no execution carrier on this edge: the declarative"
+                                + " wiring is deferred to an engine-level successor (edge"
+                                + " config channel, id mapping and chain semantics are the"
+                                + " recorded prerequisites; see roadmap WI14)")
                         .loc(e.getLocation());
             }
         }

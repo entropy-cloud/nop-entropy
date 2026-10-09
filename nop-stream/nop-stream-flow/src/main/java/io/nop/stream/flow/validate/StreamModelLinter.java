@@ -251,19 +251,19 @@ public final class StreamModelLinter {
         String target = "edge " + e.getId();
         if (e.getFlowControlPolicy() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "edge flowControlPolicy has no consumer (roadmap WI14 release face)"));
+                    "edge flowControlPolicy has no execution carrier on this edge: declarative wiring is deferred to an engine-level successor (roadmap WI14 adjudication)"));
         }
         if (e.getQueueCapacity() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "edge queueCapacity has no consumer (roadmap WI14 release face)"));
+                    "edge queueCapacity has no execution carrier on this edge: declarative wiring is deferred to an engine-level successor (roadmap WI14 adjudication)"));
         }
         if (e.getReceiveWindow() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "edge receiveWindow has no consumer (roadmap WI14 release face)"));
+                    "edge receiveWindow has no execution carrier on this edge: declarative wiring is deferred to an engine-level successor (roadmap WI14 adjudication)"));
         }
         if (e.getPacketSize() != null) {
             report.add(ValidationIssue.warning(LAYER_LINT, target, CODE_NOT_IMPLEMENTED,
-                    "edge packetSize has no consumer (roadmap WI14 release face)"));
+                    "edge packetSize has no execution carrier on this edge: declarative wiring is deferred to an engine-level successor (roadmap WI14 adjudication)"));
         }
     }
 
