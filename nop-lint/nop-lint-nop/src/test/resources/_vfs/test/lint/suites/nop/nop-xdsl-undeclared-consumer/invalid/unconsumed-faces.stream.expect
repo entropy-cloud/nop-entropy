@@ -3,10 +3,6 @@ diagnostics:
     endLine: 2
     ruleId: nop-xdsl-undeclared-consumer
     messageContains: "coders"
-  - line: 6
-    endLine: 6
-    ruleId: nop-xdsl-undeclared-consumer
-    messageContains: "triggerId"
   - line: 9
     endLine: 9
     ruleId: nop-xdsl-undeclared-consumer

@@ -7,7 +7,7 @@
         </schema>
     </schemas>
     <windowingStrategies>
-        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s" allowedLateness="1000"/>
+        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s" allowedLateness="1000" triggerId="event-time"/>
     </windowingStrategies>
     <transforms>
         <source id="src" name="in" bean="srcBean"/>

@@ -104,12 +104,7 @@ public final class StreamModelLinter {
         // WARNING advisories, the build stays authoritative.
         if (model.getWindowingStrategies() != null) {
             for (WindowingStrategyModel strategy : model.getWindowingStrategies()) {
-                if (strategy.getTriggerId() != null) {
-                    report.add(ValidationIssue.warning(LAYER_LINT, "strategy " + strategy.getStrategyId(),
-                            CODE_WINDOW_ATTR, "strategy triggerId has no execution consumer yet "
-                                    + "(roadmap WI5 release face; the builder rejects it with "
-                                    + CODE_WINDOW_ATTR + ")"));
-                }
+                // WI5 (plan 2351): triggerId released — no longer an unconsumed face.
                 if (strategy.getAccumulationMode() == AccumulationMode.ACCUMULATING_AND_RETRACTING) {
                     report.add(ValidationIssue.warning(LAYER_LINT, "strategy " + strategy.getStrategyId(),
                             CODE_WINDOW_ATTR, "ACCUMULATING_AND_RETRACTING is spec-only "
@@ -185,10 +180,7 @@ public final class StreamModelLinter {
     private void scanTransform(StreamTransformModel t, StreamConfValidationReport report) {
         if (t instanceof StreamWindowModel) {
             StreamWindowModel w = (StreamWindowModel) t;
-            if (w.getTriggerId() != null) {
-                report.add(ValidationIssue.warning(LAYER_LINT, "window " + t.getId(), CODE_WINDOW_ATTR,
-                        "window-node triggerId has no execution consumer (roadmap WI5 release face)"));
-            }
+            // WI5 (plan 2351): node-level triggerId released — no longer a face.
             if (t.getParallelism() != null && t.getParallelism() > 0) {
                 report.add(ValidationIssue.warning(LAYER_LINT, "window " + t.getId(),
                         CODE_NOT_IMPLEMENTED, "<window> is a virtual element — parallelism must be "
