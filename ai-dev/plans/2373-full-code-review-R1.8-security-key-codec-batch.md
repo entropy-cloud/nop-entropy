@@ -118,14 +118,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成时填写>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 安全四批修复全部落地并经独立审计双 stash 判别复现（CROSSSLOT docker 实测逐字吻合审计探针/verifiedAt null/泄漏回归）；closure audit 发现的 hash tag 下游断裂（TestLettuceNosqlService 预置键名）已修正，lettuce 全模块 docker-on 77/77 零跳过全绿；R1.6c 下游回归（nop-orm TestOrmTemplate 4 期望）透明修正并留档；CRED-01 勘误+ledger 补行完成。
+Completed: 2026-10-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<每条 Exit Criterion / Closure Gate 的 PASS-FAIL + 证据>>
+- Reviewer / Agent: 独立子 agent（fresh session，只读）agent_915c5809-aeba-4e84-bd1e-6da224bda5d8
+- Evidence:
+  - **Anti-Hollow 两项 stash 判别独立重做**：PASS——(a) hash tag：auditor docker 实测 stash 后 `CROSSSLOT Keys in request don't hash to the same slot`（与审计探针逐字同款）→ pop 后 8/8 绿；(b) peek：stash 后 `expected: not <null>` FAIL（对照用例绿）→ pop 后 2/2 绿。
+  - **P1-2.4-001**：PASS——两 helper `{key}` 包裹（:44-50），tryAcquireAsync(:54-55)/getAvailableTokensAsync(:89) 两构造点全改；集群用例断言 allowed/remaining/超容拒。
+  - **P1-check2-nosql-67**：PASS——peek 三分支（Number/String 解析/else）+parseTimestampText fail-closed 保持；真实 PrefixEncodeHelper 往返 2 用例。
+  - **P1-check-mcc-172**：PASS——Default entryInvalid reason 五值、param 仅 keyId/长度标记；Vault migrationKeyInvalid + 迁移窗口截断前缀；7 点全覆盖；泄漏回归断言真实（两侧 secret 不在 + keyId 保留）。
+  - **P1-3.10-001**：PASS——CRED-01 勘误为声明收窄（点名 5+3 throw 点、引台账号）；consolidation F-MCC-1 行 fixed + 表头 HIGH (2)。
+  - **状态回填四处一致**：PASS——roadmap :139/index 四行/MR :264/daily log。
+  - **Blocking-1（closure audit 发现，已修）**：hash tag 改键名破坏预存 docker-gated 测试 TestLettuceNosqlService:878 testRateLimiter_FractionalTokens 预置键名——已同步 `{test:rl:frac}:tokens`，**lettuce 全模块 docker-on 77/77 零跳过全绿**（closure 后复跑）。
+  - **R1.6c 下游回归透明记录**：nop-orm TestOrmTemplate 4 用例期望更新为 DML 租户注入后契约（SimsClass useTenant；注入即审计裁定的跨租户写面闭合）——plan 2371 验证面缺口（只覆盖 nop-orm-eql）在此留档。
+  - **验证环境注记**：nop-auth-service 全链需 install（nop-sys-dao 测试编译断裂=R1.17 在案预存，`-Dmaven.test.skip=true` 打通）；nop-stream-runtime TestStreamConnectorRegistryDiscovery FAIL=预存 P1-7.2-001（R1.23 承载），与本批无关。
+  - Advisory 处置：A1 随本 closure 提交（已做）；A2 consolidation :80 计数段勘注（已补）；A3 no-colon 分支更保守（字面偏差留档）；A4 @Order(5) 重复（无害留档）。
 
 Follow-up:
 
-- <<见 Deferred But Adjudicated / Non-Blocking Follow-ups>>
+- rateLimiter 生产调用方接线（Deferred But Adjudicated，out-of-scope improvement）
+- CRED-02~04 ledger 复审（P3 watch 通道）
