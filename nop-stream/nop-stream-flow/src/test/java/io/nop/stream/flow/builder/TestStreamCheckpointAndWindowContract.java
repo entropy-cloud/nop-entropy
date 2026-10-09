@@ -276,12 +276,12 @@ public class TestStreamCheckpointAndWindowContract {
 
     static Stream<Arguments> windowFailFastCases() {
         return Stream.of(
-                Arguments.of("triggerId=\"t\"", "", "triggerId"),
                 // WI10/D9: allowedLateness released — no longer fail-fast
                 // WI38/D10 (2026-10-08): ACCUMULATING released — only the spec-only
                 // A&R value stays rejected at build time.
-                Arguments.of("accumulationMode=\"ACCUMULATING_AND_RETRACTING\"", "", "accumulationMode"),
-                Arguments.of("", "<triggerId>t</triggerId>", "triggerId"));
+                Arguments.of("accumulationMode=\"ACCUMULATING_AND_RETRACTING\"", "", "accumulationMode"));
+        // WI5 (plan 2351): strategy/node-level triggerId released — wired by
+        // resolveTrigger; declaration tests live in TestTriggerDeclaration.
     }
 
     // ----------------------------------------------------------------

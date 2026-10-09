@@ -243,6 +243,7 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 | 拓扑算子 | map/flatMap/filter/reduce/keyBy/union/process（bean 或内联 xpl） | `StreamModelDslBuilder.buildMap` 等 |
 | 窗口 assigner 参数化 | `windowFnId="tumbling-event-time"` + `duration`；`sliding-event-time` + `duration`+`slide`（slide<=size 守卫）；`session-event-time` + `duration`；legacy 白名单 `global`/`tumbling-global`/`tumbling-event-time-1s`/`-5s`；bean 名优先解析 | `AdvancedTransforms.resolveWindowAssigner` |
 | 窗口控制已放行面 | `allowedLateness`（strategy 与节点双处，节点覆盖 strategy）；`maxDelay`（strategy 级兜底出数）；`accumulationMode=ACCUMULATING`；`emit="UPDATE"\|"CLOSE"`（UPDATE 强制 ACCUMULATING + EmitUpdateTrigger） | `AdvancedTransforms.buildWindow` |
+| 窗口触发器（WI5） | `triggerId`（strategy 属性 / window 节点子元素，节点覆盖 strategy）：bean 名优先 → 目录 `event-time`/`processing-time`/`count:N`/`continuous-event-time:<dur>`/`continuous-processing-time:<dur>`/`purging:<inner>`/`processing-timeout:<inner>:<dur>` → 未知 id `nop.err.stream.ref-unknown`；DeltaTrigger 与自定义 Trigger 走 bean 形态（Delta 需 DeltaFunction bean）；`emit="UPDATE"` 拥有触发器槽位，与 triggerId 互斥拒绝；适用域：canMerge=false 族（count/purging:count/processing-timeout:/Delta bean）× merging assigner（session-event-time）构建期拒绝 | `AdvancedTransforms.resolveTrigger` |
 | 聚合 | `aggregate`（bean 与 `aggregatorRef` 恰一；内建 sum/count/avg/min/max 目录） | `AdvancedTransforms.buildAggregate` |
 | 等值 join | `<joins>`/`joinSpec`（INNER/LEFT/RIGHT/FULL）；window join（INNER/LEFT + duration + `timeout`/`leftTimeout`/`rightTimeout`） | `StreamModelDslBuilder.validateJoinDeclarations`、`AdvancedTransforms.buildJoin` |
 | CEP | `<patterns>` 声明式（量词/where/until/within/gapWithin/skip 策略） | `AdvancedTransforms.buildCep` |
@@ -258,8 +259,7 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 
 | 声明面 | 锚点 | 钉子测试 | 放行归属 |
 |---|---|---|---|
-| strategy/节点级 `triggerId` | `AdvancedTransforms.failFastOnUnsupportedWindowStrategy` / `failFastOnUnsupportedWindowNodeAttrs` | `TestStreamCheckpointAndWindowContract`、`TestWindowEmitDeclaration` | WI5 |
-| `accumulationMode=ACCUMULATING_AND_RETRACTING` | 同上 | `TestWindowAccumulationModeDeclaration` | WI5 |
+| `accumulationMode=ACCUMULATING_AND_RETRACTING` | 同上 | `TestWindowAccumulationModeDeclaration` | 保持拒绝（D10 spec-only，WI38） |
 | 白名单外 `windowFnId`（bean 外未知 id） | `AdvancedTransforms.resolveWindowAssigner` default 分支 | `TestWindowAssignerBranches.unknownWindowFnIdFailsFast` | WI7 |
 | `<sideInputs>` 注册表（含 broadcast 属性） | `StreamModelDslBuilder.failFastOnUnsupportedRegistries` | `TestStreamModelDslBuilderFailFast.sideInputsRegistryFailsFast` | WI11 |
 | `<streams>`/`<environments>`/`<requirements>`/`<checkpointParticipants>`/`<coders>` 注册表 | 同上 | `TestStreamModelDslBuilderFailFast`（streams/environments/requirements/checkpointParticipants/coders 各一钉） | WI12 |

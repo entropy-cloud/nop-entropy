@@ -3,7 +3,7 @@
         <coder id="c1" className="java.lang.String"/>
     </coders>
     <windowingStrategies>
-        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s" triggerId="count10"/>
+        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s"/>
     </windowingStrategies>
     <transforms>
         <source id="src" name="in" bean="srcBean">

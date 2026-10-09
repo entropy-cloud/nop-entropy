@@ -144,18 +144,20 @@ public class TestWindowEmitDeclaration {
     }
 
     @Test
-    void triggerIdOnWindowNodeStillFailsFast() {
-        // D11 boundary: the emit tier is a closed enum, not a free-form trigger surface
+    void explicitTriggerIdConflictsWithEmitUpdate() {
+        // WI5 (plan 2351): emit=UPDATE owns the trigger slot; an explicit triggerId
+        // on the same window is a typed conflict (checked before resolution).
         String xml = "<stream xmlns:x=\"/nop/schema/xdsl.xdef\" "
                 + "x:schema=\"/nop/schema/stream/stream.xdef\" "
                 + "name=\"emit-declaration\" version=\"1\">"
                 + "<windowingStrategies>"
-                + "<strategy strategyId=\"strat\" windowFnId=\"tumbling-event-time\" duration=\"1s\"/>"
+                + "<strategy strategyId=\"strat\" windowFnId=\"tumbling-event-time\" duration=\"1s\""
+                + " emit=\"UPDATE\" triggerId=\"event-time\"/>"
                 + "</windowingStrategies>"
                 + "<transforms>"
                 + "<source id=\"src\" bean=\"srcFn\"/>"
                 + "<keyBy id=\"k\" keyExpr=\"event\"/>"
-                + "<window id=\"w\" strategyRef=\"strat\"><triggerId>t</triggerId></window>"
+                + "<window id=\"w\" strategyRef=\"strat\"/>"
                 + "</transforms>"
                 + "<edges><edge id=\"e1\" from=\"src\" to=\"k\"/><edge id=\"e2\" from=\"k\" to=\"w\"/></edges>"
                 + "</stream>";
@@ -164,11 +166,11 @@ public class TestWindowEmitDeclaration {
         resolver.register("srcFn", new io.nop.stream.flow.testing.TestSourceFunction());
         Exception ex = assertThrows(Exception.class,
                 () -> StreamModelDslBuilder.of(model, resolver).build(),
-                "the window-node triggerId gate must stay fail-fast");
-        assertTrue(String.valueOf(ex.getMessage()).contains("unsupported")
+                "emit=UPDATE and an explicit triggerId must conflict");
+        assertTrue(String.valueOf(ex.getMessage()).contains("conflict")
                         || ex.getCause() != null
-                                && String.valueOf(ex.getCause().getMessage()).contains("unsupported"),
-                () -> "expected the triggerId gate, got: " + ex.getMessage());
+                                && String.valueOf(ex.getCause().getMessage()).contains("conflict"),
+                () -> "expected the mutual-exclusion gate, got: " + ex.getMessage());
     }
 
     @Test

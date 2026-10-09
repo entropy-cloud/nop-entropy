@@ -44,11 +44,9 @@ xscript: |
     return;
   }
   if (k == 'strategy') {
-    if (node.attrValue('triggerId') != null) {
-      report({ message: 'strategy triggerId 无消费方（roadmap WI5 放行面）(strategy triggerId has no consumer)' });
-    }
+    // WI5 (plan 2351): triggerId released — no longer an unconsumed face here.
     if (node.attrValue('accumulationMode') == 'ACCUMULATING_AND_RETRACTING') {
-      report({ message: 'ACCUMULATING_AND_RETRACTING 无消费方（spec-only；roadmap WI5 放行面）(accumulation mode has no consumer)' });
+      report({ message: 'ACCUMULATING_AND_RETRACTING 无消费方（spec-only，D10）(accumulation mode has no consumer)' });
     }
     return;
   }
@@ -56,9 +54,7 @@ xscript: |
     if (node.attrValue('parallelism') != null) {
       report({ message: '<window> 是虚拟元素，parallelism 无消费方（应在聚合/规约节点声明）(window parallelism has no consumer)' });
     }
-    if (node.children('triggerId').size() > 0) {
-      report({ message: 'window 节点级 triggerId 无消费方（roadmap WI5 放行面）(window triggerId has no consumer)' });
-    }
+    // WI5 (plan 2351): node-level triggerId released — no longer an unconsumed face.
     return;
   }
   if (k == 'edge') {

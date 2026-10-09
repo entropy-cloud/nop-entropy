@@ -98,8 +98,10 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
  * <p>P1-XDSL-6 (updated WI38/D10): the window strategy {@code accumulationMode}
  * declaration is released — consumed by buildWindow and passed to the operator
  * (D10 2026-10-08 revision; {@code ACCUMULATING_AND_RETRACTING} stays rejected as
- * spec-only). {@code triggerId} (strategy- and node-level) remains rejected at
- * build time (D11: no free-form trigger surface). allowedLateness was released by
+ * spec-only). {@code triggerId} (strategy- and node-level, node overrides strategy)
+ * was released by WI5 (plan 2351): consumed by buildWindow via the trigger catalog
+ * (bean name first, then the catalog grammar; the emit=UPDATE declaration is
+ * mutually exclusive with an explicit trigger). allowedLateness was released by
  * D9: consumed by buildWindow and passed to the operator. maxDelay was released by WI8
  * (plan 2332): consumed by buildWindow and passed to the operator (event-time assigners
  * only — the operator constructor rejects the processing-time combination).
@@ -238,11 +240,140 @@ final class AdvancedTransforms {
         // omitted declaration, so "update" overrides the accumulation mode rather than
         // conflicting with it); CLOSE keeps the legacy default trigger and the declared
         // accumulation mode.
+        // WI5 (plan 2351): the declared trigger. An explicit emit=UPDATE declaration
+        // owns the trigger slot (EmitUpdateTrigger) — an explicit triggerId on either
+        // level is a conflict, checked BEFORE resolution so the error precedence is
+        // stable and no throwaway trigger is built.
+        String nodeTriggerId = m.getTriggerId();
+        String strategyTriggerId = strategy.getTriggerId();
+        if (strategy.getEmit() == StreamEmitMode.UPDATE
+                && (nodeTriggerId != null || strategyTriggerId != null)) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "triggerId")
+                    .param(ARG_DETAIL, "emit=\"UPDATE\" owns the window trigger (EmitUpdateTrigger); "
+                            + "an explicit triggerId on the same window is a conflict — drop one of the two")
+                    .loc(t.getLocation());
+        }
+        String triggerId = nodeTriggerId != null ? nodeTriggerId : strategyTriggerId;
+        if (triggerId != null) {
+            io.nop.stream.core.windowing.triggers.Trigger<?, ?> trigger =
+                    resolveTrigger(owner, t, triggerId, 0);
+            WindowAssigner<?, ?> declaredAssigner =
+                    (WindowAssigner<?, ?>) windowed.getWindowAssigner();
+            if (declaredAssigner instanceof io.nop.stream.core.windowing.assigners.MergingWindowAssigner
+                    && !trigger.canMerge()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "triggerId")
+                        .param(ARG_DETAIL, "trigger '" + triggerId + "' cannot merge (canMerge=false) and is "
+                                + "not usable on a merging window assigner ("
+                                + declaredAssigner.getClass().getSimpleName()
+                                + ") — the runtime onMerge contract would reject it")
+                        .loc(t.getLocation());
+            }
+            windowed.trigger((io.nop.stream.core.windowing.triggers.Trigger) trigger);
+        }
         if (strategy.getEmit() == StreamEmitMode.UPDATE) {
             windowed.trigger(new EmitUpdateTrigger<>());
             windowed.accumulationMode(AccumulationMode.ACCUMULATING);
         }
         return windowed;
+    }
+
+    /**
+     * WI5 (plan 2351): the trigger declaration catalog. Resolution order mirrors the
+     * windowFnId face: a bean name carrying a {@link Trigger} instance wins, then the
+     * catalog grammar, then {@code ERR_STREAM_REF_UNKNOWN} — never a silent default.
+     *
+     * <p>Catalog grammar (duration forms reuse {@link #parseDurationMillis}):
+     * <ul>
+     *   <li>{@code event-time} / {@code processing-time} — the default-family
+     *       assigner-aligned triggers</li>
+     *   <li>{@code count:N} — N-th element (no watermark needed; canMerge=false)</li>
+     *   <li>{@code continuous-event-time:<dur>} / {@code continuous-processing-time:<dur>}
+     *       — interval triggers, fire capped at window end (canMerge=true)</li>
+     *   <li>{@code purging:<inner>} — upgrades the nested trigger's FIRE to
+     *       FIRE_AND_PURGE (canMerge delegates to the nested trigger)</li>
+     *   <li>{@code processing-timeout:<inner>:<dur>} — arms a processing-time timeout
+     *       around the nested trigger (no canMerge override — unusable on merging
+     *       assigners)</li>
+     * </ul>
+     * DeltaTrigger and any custom trigger are consumed as beans (the delta form needs
+     * a {@code DeltaFunction} bean, so no catalog syntax). The emit=UPDATE slot is
+     * owned by EmitUpdateTrigger and mutually exclusive with this surface.
+     */
+    private static io.nop.stream.core.windowing.triggers.Trigger<?, ?> resolveTrigger(
+            StreamModelDslBuilder owner, StreamTransformModel t, String triggerId, int depth) {
+        if (depth > 4) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "triggerId")
+                    .param(ARG_DETAIL, "trigger nesting deeper than 4 levels: " + triggerId)
+                    .loc(t.getLocation());
+        }
+        if (owner.beanResolver().contains(triggerId)) {
+            return owner.resolveBean(t, triggerId, io.nop.stream.core.windowing.triggers.Trigger.class);
+        }
+        switch (triggerId) {
+            case "event-time":
+                return io.nop.stream.core.windowing.triggers.EventTimeTrigger.create();
+            case "processing-time":
+                return io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger.create();
+            default:
+                break;
+        }
+        if (triggerId.startsWith("count:")) {
+            long maxCount = parseCount(t, triggerId.substring("count:".length()), triggerId);
+            return io.nop.stream.core.windowing.triggers.CountTrigger.of(maxCount);
+        }
+        if (triggerId.startsWith("continuous-event-time:")) {
+            long millis = parseDurationMillis(triggerId.substring("continuous-event-time:".length()));
+            return io.nop.stream.core.windowing.triggers.ContinuousEventTimeTrigger.of(
+                    java.time.Duration.ofMillis(millis));
+        }
+        if (triggerId.startsWith("continuous-processing-time:")) {
+            long millis = parseDurationMillis(triggerId.substring("continuous-processing-time:".length()));
+            return io.nop.stream.core.windowing.triggers.ContinuousProcessingTimeTrigger.of(
+                    java.time.Duration.ofMillis(millis));
+        }
+        if (triggerId.startsWith("purging:")) {
+            io.nop.stream.core.windowing.triggers.Trigger<?, ?> nested =
+                    resolveTrigger(owner, t, triggerId.substring("purging:".length()), depth + 1);
+            return io.nop.stream.core.windowing.triggers.PurgingTrigger.of(nested);
+        }
+        if (triggerId.startsWith("processing-timeout:")) {
+            String rest = triggerId.substring("processing-timeout:".length());
+            int lastColon = rest.lastIndexOf(':');
+            if (lastColon <= 0) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ARG_NAME, "triggerId")
+                        .param(ARG_DETAIL, "processing-timeout trigger requires '<inner>:<duration>' "
+                                + "after the prefix, got: " + triggerId)
+                        .loc(t.getLocation());
+            }
+            long timeout = parseDurationMillis(rest.substring(lastColon + 1));
+            io.nop.stream.core.windowing.triggers.Trigger<?, ?> nested =
+                    resolveTrigger(owner, t, rest.substring(0, lastColon), depth + 1);
+            return io.nop.stream.core.windowing.triggers.ProcessingTimeoutTrigger.of(
+                    nested, java.time.Duration.ofMillis(timeout));
+        }
+        throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                .param(ARG_REF_TYPE, "triggerId").param(ARG_REF_NAME, triggerId)
+                .loc(t.getLocation());
+    }
+
+    private static long parseCount(StreamTransformModel t, String raw, String triggerId) {
+        try {
+            long value = Long.parseLong(raw.trim());
+            if (value <= 0) {
+                throw new NumberFormatException("non-positive");
+            }
+            return value;
+        } catch (NumberFormatException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "triggerId")
+                    .param(ARG_DETAIL, "count trigger requires a positive integer, got: " + triggerId)
+                    .loc(t.getLocation());
+        }
     }
 
     /**
@@ -254,12 +385,9 @@ final class AdvancedTransforms {
      */
     private static void failFastOnUnsupportedWindowStrategy(StreamTransformModel t,
                                                             WindowingStrategyModel strategy) {
-        if (strategy.getTriggerId() != null) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "triggerId").param(ARG_ATTR_VALUE, strategy.getTriggerId())
-                    .loc(t.getLocation());
-        }
+        // WI5 (plan 2351): strategy-level triggerId is now released — resolved by
+        // resolveTrigger (node level overrides strategy level, the allowedLateness
+        // precedent). ACCUMULATING_AND_RETRACTING stays rejected (D10 spec-only).
         // WI10/D9: allowedLateness is now released — consumed by buildWindow.
 
         // WI38/D10 (2026-10-08 revision): ACCUMULATING is released and wired through
@@ -280,12 +408,8 @@ final class AdvancedTransforms {
     private static void failFastOnUnsupportedWindowNodeAttrs(StreamTransformModel t,
                                                              StreamWindowModel m) {
         // WI10/D9: node-level allowedLateness is now released — consumed by buildWindow.
-        if (m.getTriggerId() != null) {
-            throw new StreamException(ERR_STREAM_WINDOW_ATTR_UNSUPPORTED)
-                    .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
-                    .param(ARG_ATTR_NAME, "triggerId").param(ARG_ATTR_VALUE, m.getTriggerId())
-                    .loc(t.getLocation());
-        }
+        // WI5 (plan 2351): node-level triggerId is now released — resolveTrigger
+        // lets an explicit node declaration override the strategy-level trigger.
     }
 
     private static WindowAssigner<? super Object, ?> resolveWindowAssigner(
