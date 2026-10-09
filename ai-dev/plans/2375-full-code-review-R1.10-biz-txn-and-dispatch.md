@@ -1,6 +1,6 @@
 # 2375 full-code-review R1.10 — nop-biz 事务+调度修复（P1-2.6-001/004）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-09
 > Source: `ai-dev/backlog/full-code-review-roadmap.md` R1.10 行；finding `P1-2.6-001`（dim07-09）+`P1-2.6-004`（dim12-07）（`2.6-biz-graphql-deep-audit.md`；探针 `_tmp/fcr26-probe/DataLoaderDispatchProbe.java`）
 > Related: owner doc service-layer.md「默认有事务」表述修正（P1-2.6-001 修复伴随——audit 转交 docs G.2 项）
@@ -49,7 +49,7 @@
 ### Phase 1 - 事务装饰器默认化 + dispatch 时序修复 + 回归
 
 Status: completed
-Targets: `TransactionActionDecoratorCollector.java`、`GraphQLExecutor.java`、`TestTransactionActionDecorator`（新）、`TestBeanMethodBatchFetcher`（扩展）
+Targets: `TransactionActionDecoratorCollector.java`、`TestTransactionActionDecorator.java`（新）；（004 的 GraphQLExecutor/TestBeanMethodBatchFetcher 移交 plan 2376）
 
 - Item Types: `Fix`
 
@@ -88,7 +88,7 @@ Exit Criteria:
 ## Closure Gates
 
 - [x] P1-2.6-001 修复落地：mutation 默认事务装饰器（回归锁定）
-- [x] P1-2.6-004 修复落地：dispatch 时序（异步注册覆盖+终局兜底，回归锁定）
+- [x] P1-2.6-004 → moved to explicit successor ownership（plan 2376，draft 含拆分缘由+三候选方向；guide Anti-Slacking 合法终态）
 - [x] owner doc 事务表述修正
 - [x] focused verification：nop-biz + nop-graphql-core 全绿
 - [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect
@@ -117,8 +117,20 @@ Completed: 2026-10-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent closure audit 待派>>
-- Evidence: <<待回填>>
+- Reviewer / Agent: 独立子 agent（fresh session，只读）agent_48d396e6-940e-419a-a4e0-143af6e4a899
+- Evidence:
+  - **拆分合法性**：PASS——guide Anti-Slacking 明列 moved to explicit successor ownership 为合法终态；plan 2376（draft）实读确认含拆分缘由节（初版锚点实测挂死）、两否定形态、三候选方向、回退留档（:98/:179 恢复原状，live 佐证 GraphQLExecutor 现存原始提前 dispatch，91e7ef0a81 变更清单零 graphql 文件）。
+  - **Anti-Hollow stash 判别独立重做**：PASS——auditor 检出修复前版本实测 testMutationWithoutTxnGetsDefaultDecorator FAIL（expected 1 but was 0），恰好命中被修分支（其余 3 用例双版本同绿，判别力精确）；恢复后 4/4 绿。
+  - **运行时接线（Rule 23）**：PASS——nopBizObjectManager.actionDecoratorCollectors（:77-79 collect-beans by-type）+ nopCrudBizInitializer.decoratorCollectors（:85-90）→ BizObjectBuildHelper.buildDecorators → 修复的 overload → decorateAction；TestBizDefaultsBeansWiring 断言装配 XML。
+  - **bean 注册**：PASS——biz-defaults.beans.xml:42-48（ioc:default=true+on-bean=nopTransactionTemplate 守卫，镜像 :50-58 先例）；守卫目标 nopTransactionTemplate 在 dao-defaults.beans.xml:77。
+  - **owner doc 三处**：PASS——service-layer.md ~:66/~:277、api-and-graphql.md ~:174 修正在场；@Transactional=冗余非死注解（dao-defaults:95-98 活切点）措辞对齐。
+  - **测试复跑**：PASS——nop-biz 115/0 全绿；doc-links --strict 0；hollow scan 0。
+  - **Blocking 修正记录**：B1 roadmap R1.10 行已回填 done 注记（auditor 发现 commit 未触碰 roadmap）；B2 daily log 10-09 已补 plan 2375 执行条目（含 stash 判别输出与 004 拆出缘由）；B3 Phase 1/Closure Gates 004 残留文本改写为 successor 移交形态（本 closure 前完成）。
+  - Advisory 处置：A1 Completed 预填顺序倒置（audit 后成立）；A2 MR 表前向引用（回填后成立）；A3 -am 失去 graphql-core 半边（HEAD 零 graphql 改动，收窄表述留档）；A4 successor 2376 draft 与移交约定一致。
+
+Follow-up:
+
+- P1-2.6-004 DataLoader 调度生命周期重设计（successor plan 2376）
 
 Follow-up:
 
