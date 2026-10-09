@@ -79,10 +79,23 @@ public class TestStreamAggregatorFunctionResolver {
 
     @Test
     public void builtinIdsAlignWithGrammarKeywords() {
-        // BaseRule.g4:273 sqlIdentifier_agg_ : MAX|MIN|SUM|COUNT|AVG — the catalog is
-        // the same closed set (lowercase, matching the parser's normalized names).
-        Set<String> expected = new HashSet<>(Arrays.asList("sum", "count", "avg", "min", "max"));
-        assertEquals(expected, StreamSqlAggregations.builtinIds());
+        // BaseRule.g4:273 sqlIdentifier_agg_ : MAX|MIN|SUM|COUNT|AVG — the five grammar
+        // keywords must ALL be in the catalog (alignment assertion; WI9/plan 2355
+        // broadened the catalog with declaration-face ids beyond the grammar set).
+        for (String grammarId : Arrays.asList("sum", "count", "avg", "min", "max")) {
+            assertTrue(StreamSqlAggregations.builtinIds().contains(grammarId),
+                    "grammar aggregate id missing from the catalog: " + grammarId);
+        }
+    }
+
+    @Test
+    public void declarationFaceIdsAreCatalogMembers() {
+        // WI9 (plan 2355): maxBy/distinct have no SQL grammar form — they are
+        // declaration-face ids tracked as their own layer (never polluting the
+        // grammar-alignment assertion above).
+        assertTrue(StreamSqlAggregations.builtinIds().containsAll(
+                java.util.Arrays.asList("maxBy", "distinct")),
+                () -> "declaration-face ids missing: " + StreamSqlAggregations.builtinIds());
     }
 
     @Test

@@ -355,11 +355,16 @@ public final class StreamSqlExprCompiler {
     public static TypeInformation<?> aggregateResultType(String fnId, TypeInformation<?> argType) {
         switch (fnId) {
             case "count":
+            case "distinct":
+                // WI9 (plan 2355): declaration-face dedup count — same LONG shape as count
                 return BasicTypeInfo.LONG;
             case "avg":
                 return BasicTypeInfo.DOUBLE;
             case "sum":
                 return promote(argType, argType);
+            case "maxBy":
+                // the result is the WHOLE record, not the argument column — untyped
+                return UnknownTypeInformation.INSTANCE;
             default:
                 return argType == null ? UnknownTypeInformation.INSTANCE : argType;
         }
