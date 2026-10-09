@@ -12,6 +12,7 @@ import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.stream.core.datastream.WindowedStreamImpl;
+import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.windowing.assigners.EventTimeSessionWindows;
 import io.nop.stream.core.windowing.assigners.SlidingEventTimeWindows;
 import io.nop.stream.flow.model.StreamModel;
@@ -133,5 +134,20 @@ public class TestWindowAssignerBranches {
                         || ex.getCause() != null
                                 && String.valueOf(ex.getCause().getMessage()).contains("exceed"),
                 () -> "expected the slide<=size guard, got: " + ex.getMessage());
+    }
+
+    /**
+     * WI1 (plan 2347) contract-ledger pin: a windowFnId outside the parameterized
+     * ids, the legacy whitelist, and the bean resolver has no consumer — the
+     * release work item is roadmap WI7 (global parameterization); until then the
+     * ref-unknown gate must stay fail-fast.
+     */
+    @Test
+    void unknownWindowFnIdFailsFast() {
+        StreamException ex = assertThrows(StreamException.class, () -> buildWindowedRaw(
+                "<strategy strategyId=\"strat\" windowFnId=\"no-such-window\"/>"));
+        assertEquals("nop.err.stream.ref-unknown", ex.getErrorCode().toString(),
+                () -> "unknown windowFnId must fail with ERR_STREAM_REF_UNKNOWN: " + ex.getMessage());
+        assertTrue(ex.getMessage().contains("no-such-window"), ex::getMessage);
     }
 }

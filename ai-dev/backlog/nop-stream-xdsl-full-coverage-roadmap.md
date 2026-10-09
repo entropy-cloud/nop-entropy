@@ -51,7 +51,7 @@ audit-rounds: 0
 | sink 的 `params`/`maxParallelism`/`inputType`/`consistencyCapability` | `StreamModelDslBuilder.java:1037-1063` | WI15 |
 | `<custom>` 的 `params` 与 `<source>` 体 | `AdvancedTransforms.java:707-727` | WI15 |
 
-全部为构建期 typed fail-fast（`ERR_STREAM_NOT_IMPLEMENTED`/`ERR_STREAM_WINDOW_ATTR_UNSUPPORTED`/`ERR_STREAM_EDGE_*` 等），无静默降级。WI1 负责把本清单固化为 owner doc 支持矩阵 + 每类钉子测试，作为后续放行的唯一底账。
+全部为构建期 typed fail-fast（`ERR_STREAM_NOT_IMPLEMENTED`/`ERR_STREAM_WINDOW_ATTR_UNSUPPORTED`/`ERR_STREAM_EDGE_*` 等），无静默降级。WI1 负责把本清单固化为 owner doc 支持矩阵 + 每类钉子测试，作为后续放行的唯一底账。**（WI1 已落地，2026-10-09）**：上表为 2026-10-06 快照，行号已随 multi-engine/sql-enhancement 合并漂移，且 sideOutput（multi-engine WI8b 接线）、sliding/session 参数化（sql WI26）、ACCUMULATING（WI38/D10）、maxDelay（WI8c）、emit 两档（WI37/D11）已放行——live 台账以 `docs-for-ai/03-modules/nop-stream-user-guide.md` 「声明面支持矩阵（WI1 契约基线）」两表为准（表 A 已实现面 / 表 B fail-fast 面含锚点、钉子测试与放行归属），后续放行以该矩阵为单一事实源，本表不再逐行维护。
 
 **既有硬裁定（本 roadmap 全程有效）**：vision §四 Non-Goals 六行（非等值/范围/广播双流 join、完整 SQL 栈、PB 级、复制 Flink Runtime/Netty、在线自动 reshard、通用异步算子）+ §六人审决策点 + §七 #G36（BroadcastState 永久排除）+ 2026-10-02 D2 收窄（窄 SQL 与等值 join 已交付）；`docs-for-ai/03-modules/nop-stream-sql.md` 不支持清单（DISTINCT 聚合、ORDER BY/LIMIT、CASE/CAST、HAVING/CTE、全局聚合、非等值 join、TIMESTAMP 列绑定）；connectors legacy 冻结裁定；2PC 跨并行度 typed 拒绝。
 
@@ -111,7 +111,7 @@ audit-rounds: 0
 
 ### M1 — 契约基线与检查门（先行，后续放行的唯一权威底账）
 
-- [ ] WI1 声明面-消费方契约清单与 fail-fast 钉子基线：把 Current Baseline 的 fail-fast 锚点表与已实现面固化为 owner doc 清单（XDSL 章节新增「声明面支持矩阵」），每类 fail-fast 补一个构建期钉子测试，作为后续逐项放行的唯一底账（Deliverable: 清单落 `docs-for-ai/03-modules/nop-stream-user-guide.md` + 钉子测试套件；deps: 无；Item Type: Proof）
+- [x] WI1 声明面-消费方契约清单与 fail-fast 钉子基线（2026-10-09，plan 2347：9 钉补齐 + user-guide 声明面支持矩阵两表 + Baseline 指针移交；audit agent_dc5c2a79 APPROVE）：把 Current Baseline 的 fail-fast 锚点表与已实现面固化为 owner doc 清单（XDSL 章节新增「声明面支持矩阵」），每类 fail-fast 补一个构建期钉子测试，作为后续逐项放行的唯一底账（Deliverable: 清单落 `docs-for-ai/03-modules/nop-stream-user-guide.md` + 钉子测试套件；deps: 无；Item Type: Proof）
 - [ ] WI2 XDSL 最佳实践检查第一层（nop-lint XML 规则集：R5 水位声明 / R7 凭据明文 / R8 Delta 化 / R9 并行度与边 / R10 命名与描述 / R12 无声明无消费 / R13 测试接线静态面）：`nop/xdsl-*` 规则 + 规则单测 + **两处硬编码 census 断言同步**（TestProductionRuleCount 条数、TestNopRuleSuites.EXPECTED_RULE_IDS）+ `gen-lint-rule-catalog.mjs` 再生成过 `--check` 门禁；确认规则能匹配 XDSL 节点族（`<window>`/`<edge>`/`<joinSpec>` 等，`.stream.xml` 已按末段扩展名归入 xml 扫描）（Deliverable: 规则集 + 单测 + census 同步 + 目录再生成；deps: WI1；Item Type: Feature + Proof）
 - [ ] WI3 XDSL 最佳实践检查第二层（模型感知 lint 子命令：R1 模型层一致性 / R2 声明式优先退化提示 / R3 状态归属 / R4 类型声明 / R5 水位供给 / R6 幂等组合预检 / R11 串联 conf-validate+dry-run / R14 平台复用 / R12 与 R13 的模型感知半边（fail-fast 面同源比对 + 场景注册表双向比对））：`StreamMaintenanceMain lint` 子命令（沿用既有子命令形态与退出码 0/1/2），复用构建期 StreamModel 解析链，错误面复用既有 `nop.err.stream.*` 码（零新增码，对齐 sql roadmap §4d 纪律）（Deliverable: 子命令 + 规则实现 + 单测 + 运维文档；deps: WI1；Item Type: Feature）
 - [ ] WI4 检查门禁接线与存量基线梯度：CI 接线（lint 子命令 + nop-lint 规则两道）+ 存量 `.stream.xml` 全量扫描 + warn→error 两阶段基线登记（以 Current Baseline 基线行为起点，负控夹具白名单化归本 WI）（Deliverable: CI 配置 + 存量违规清单（含负控白名单）+ 消号台账；deps: WI2 + WI3；Item Type: Feature + Proof）
