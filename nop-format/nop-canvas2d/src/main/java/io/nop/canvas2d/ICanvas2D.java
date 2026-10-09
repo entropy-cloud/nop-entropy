@@ -20,4 +20,9 @@ public interface ICanvas2D {
      * 返回当前渲染结果（ARGB，含 alpha 通道）。返回图像与内部渲染缓冲的后续独立性由实现保证。
      */
     BufferedImage getImage();
+
+    /**
+     * 像素级直写复制（WI3）：源画布内容替换本画布（要求同尺寸，不受 transform/clip/alpha 影响）。
+     */
+    void copyFrom(ICanvas2D source);
 }

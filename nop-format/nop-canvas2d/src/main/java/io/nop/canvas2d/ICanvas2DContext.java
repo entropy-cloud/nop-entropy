@@ -114,4 +114,46 @@ public interface ICanvas2DContext {
     void fillText(String text, double x, double y);
 
     void strokeText(String text, double x, double y);
+
+    // ----- gradients / patterns / shadows / images（WI3 追加） -----
+
+    ICanvasGradient createLinearGradient(double x0, double y0, double x1, double y1);
+
+    ICanvasGradient createRadialGradient(double x0, double y0, double r0, double x1, double y1, double r1);
+
+    void setFillStyleGradient(ICanvasGradient gradient);
+
+    void setStrokeStyleGradient(ICanvasGradient gradient);
+
+    /** repetition: "repeat"（缺省）| "repeat-x" | "repeat-y" | "no-repeat"；源图为创建时快照（D10） */
+    ICanvasPattern createPattern(java.awt.image.BufferedImage image, String repetition);
+
+    void setFillStylePattern(ICanvasPattern pattern);
+
+    void setStrokeStylePattern(ICanvasPattern pattern);
+
+    void setShadowBlur(double blur);
+
+    void setShadowColor(String cssColor);
+
+    void setShadowOffsetX(double offset);
+
+    void setShadowOffsetY(double offset);
+
+    /** D11：drawImage 受阴影影响；D12：源矩形越界求交 + 目标同比例收缩 */
+    void drawImage(java.awt.image.BufferedImage image, double dx, double dy);
+
+    void drawImage(java.awt.image.BufferedImage image, double dx, double dy, double dw, double dh);
+
+    void drawImage(java.awt.image.BufferedImage image, double sx, double sy, double sw, double sh,
+                   double dx, double dy, double dw, double dh);
+
+    /** D12：越界部分返回透明像素；w/h ≤ 0 抛错 */
+    IImageData getImageData(int x, int y, int width, int height);
+
+    /** D12：整块替换（wholesale 含 alpha 无混合），绕过变换/clip/alpha/阴影 */
+    void putImageData(IImageData data, double dx, double dy);
+
+    void putImageData(IImageData data, double dx, double dy, double dirtyX, double dirtyY,
+                      double dirtyWidth, double dirtyHeight);
 }
