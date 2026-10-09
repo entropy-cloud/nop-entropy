@@ -114,6 +114,16 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 
 > 完整标志列表见 `_DialectFeatures.java`。这些标志由 dialect 模型文件（`_vfs/nop/dao/dialect/*.dialect.xml`）配置，开发时不需要手工干预。
 
+## EQL DML 缺省过滤与边界（R1.6c）
+
+UPDATE/DELETE 与 SELECT 的实体级缺省过滤**已对齐**：目标表注入逻辑删除条件（`nop.orm.disable-logical-delete` 开关可关闭）、租户条件（useTenant 实体）与实体 filter（orm.xml 固定 filter）。
+
+边界声明：
+
+1. **enableFilter（数据权限 FILTER marker）仍为 SELECT-only**——DML 数据权限由上游 biz 层动作鉴权承担。
+2. **UPDATE 注入逻辑删除条件后，恢复类/触及已删行的语句**（如 `update X set deleted=0`）不再命中已删行——此类操作须走 `disableLogicalDelete` 通道或原生 SQL。
+3. sql_lib 盘查（2026-10-09，plan 2371）：现存 `_vfs` 资源库无手写 EQL UPDATE/DELETE 语句，注入对齐无存量回归面。
+
 ## 集合操作符与 DML 的位置约束（R1.6a）
 
 EQL 集合操作符（`_some`/`_all`）**仅支持在 select 语句的 where 子句中使用**（编译期改写为 exists 子查询）。出现在 update/delete 的 where、order by、having、投影、group by 等位置时编译期报错 `nop.err.eql.collection-operator-not-allowed-here`。

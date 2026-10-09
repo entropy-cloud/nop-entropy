@@ -1579,6 +1579,16 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
         this.dmlTargetSource = source;
+        // R1.6c / P1-2.2-009：与 SELECT 通道对齐——目标表注入缺省实体过滤
+        // （逻辑删除 + 租户 + 实体 filter），关闭手写 EQL DML 的跨租户写面
+        SqlWhere dmlWhere = node.getWhere();
+        if (dmlWhere == null) {
+            dmlWhere = new SqlWhere();
+            node.setWhere(dmlWhere);
+        }
+        source.setFilterAlreadyAdded(true);
+        collectDefaultEntityFilter(source, dmlWhere::appendFilter);
+
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
         this.dmlTargetSource = null;
@@ -1640,6 +1650,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         node.setResolvedTableSource(source);
 
         this.dmlTargetSource = source;
+        // R1.6c / P1-2.2-009：同 update——缺省实体过滤注入
+        SqlWhere dmlWhere = node.getWhere();
+        if (dmlWhere == null) {
+            dmlWhere = new SqlWhere();
+            node.setWhere(dmlWhere);
+        }
+        source.setFilterAlreadyAdded(true);
+        collectDefaultEntityFilter(source, dmlWhere::appendFilter);
+
         this.visitChild(node.getWhere());
         this.dmlTargetSource = null;
 

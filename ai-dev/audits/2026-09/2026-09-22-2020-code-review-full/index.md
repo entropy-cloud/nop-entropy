@@ -97,9 +97,9 @@
 | P1-2.2-006 | `2.2-orm-eql-deep-audit.md` | R1.0 簇B（生成别名绕过 assignedAliases 查重→撞名恒真/自比，dup dim10a-02） | fixed（2026-10-09，plan 2370——makeAlias 查重+回登记+makeTableAlias 回登记；用户别名遮蔽探针回归锁定） |
 | P1-2.2-007 | `2.2-orm-eql-deep-audit.md` | R1.0 簇C（mergeConditions:154 覆盖 commonAnd→AND+OR 形态编译失败，=dim16-03） | fixed（2026-10-09，plan 2370——提升下沉分支+删 ：154 无条件覆盖〔审查勘正承载性〕；D1/SILENT1 stash 判别逐字复现审计探针） |
 | P1-2.2-008 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D canonical（DML where 属性路径 join 渲染缺口，编译成功执行期必败） | fixed（2026-10-09，plan 2369——DML 多段路径守卫+渲染兜底，ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED） |
-| P1-2.2-009 | `2.2-orm-eql-deep-audit.md` | R1.0 簇E（EQL DML 不注入实体级缺省过滤器/租户列，单表形态静默跨租户写） | open |
+| P1-2.2-009 | `2.2-orm-eql-deep-audit.md` | R1.0 簇E（EQL DML 不注入实体级缺省过滤器/租户列，单表形态静默跨租户写） | fixed（2026-10-09，plan 2371——DML 注入逻辑删除+租户+实体 filter 三类缺省过滤〔disableLogicalDelete 开关保持〕；enableFilter DML 边界+恢复类语句边界文档化；sql_lib 盘查无现存手写 EQL DML） |
 | P1-2.2-010 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（相关子查询多段 owner 两层防线失效） | fixed（2026-10-09，plan 2369——同守卫覆盖相关子查询外层别名入口；单段 owner 物理表名回退合法面回归保持） |
-| P1-2.2-011 | `2.2-orm-eql-deep-audit.md` | R1.0（eval 转换器丢 not like/not in 否定，公开 jar 唯一 SQL→FilterBean 入口静默反转） | open |
+| P1-2.2-011 | `2.2-orm-eql-deep-audit.md` | R1.0（eval 转换器丢 not like/not in 否定，公开 jar 唯一 SQL→FilterBean 入口静默反转） | fixed（2026-10-09，plan 2371——FilterBean 侧 not/notIn 包裹〔含空值早退分支〕+Expression 侧 UnaryExpression.not；stash 判别肯定语义反转复现） |
 | P1-2.3-001 | `2.3-dao-migration-dbtool-deep-audit.md` | R1.0（callFunc 绑定偏移+OUT 类型硬编码合并修复，补带参回归；响亮失败零调用方） | open |
 | P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | open |
 | P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | open |
@@ -259,6 +259,7 @@
 | R1.5 | done | plan 2368（2026-10-09）：orm 会话状态机双 P1——detach 对齐 evict（checkValid+cache.remove+级联先行+javadoc/owner doc 契约）+internalAssemble DELETING/DELETED 守卫（跳过装配裁定）；stash 判别 3/3 FAIL→修复后绿；nop-orm 216+orm-model 34 全绿；closure audit 见 plan 2368 Closure 段 |
 | R1.6a | done | plan 2369（2026-10-09）：eql 簇 D 三层守卫（操作符位置矩阵+DML 多段路径四入口+渲染兜底）+两个新错误码+P1-2.2-003 核销；合法面零破坏回归；15 新用例+模块 191 全绿；closure audit 见 plan 2369 Closure 段 |
 | R1.6b | done | plan 2370（2026-10-09）：eql 簇 B/C——makeAlias 查重回登记+makeTableAlias 回登记+提升下沉分支+删 ：154；stash 判别 3 用例 FAIL 逐字复现审计探针；既有 32 transformer 测试保持；新增 6 用例+模块 197 全绿；closure audit 见 plan 2370 Closure 段 |
+| R1.6c | done | plan 2371（2026-10-09）：eql 簇 E——DML 缺省过滤注入对齐 SELECT（三类+开关保持）+eval 双转换器否定补全（含空值分支）；enableFilter/恢复类边界文档化+sql_lib 盘查落档；stash 判别 6/8 FAIL；新增 8 用例；closure audit 见 plan 2371 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

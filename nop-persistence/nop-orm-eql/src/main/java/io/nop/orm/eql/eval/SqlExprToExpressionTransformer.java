@@ -142,8 +142,12 @@ public class SqlExprToExpressionTransformer {
     }
 
     private Expression transformLike(SqlLikeExpr expr) {
-        return CompareOpExpression.valueOf(expr.getLocation(), transform(expr.getExpr()), FilterOp.LIKE,
+        Expression ret = CompareOpExpression.valueOf(expr.getLocation(), transform(expr.getExpr()), FilterOp.LIKE,
                 transform(expr.getValue()));
+        // R1.6c / P1-2.2-011：not like 语义补全
+        if (expr.getNot())
+            ret = UnaryExpression.not(expr.getLocation(), ret);
+        return ret;
     }
 
     private Expression transformUnary(SqlUnaryExpr expr) {
@@ -227,7 +231,11 @@ public class SqlExprToExpressionTransformer {
     private Expression transformInValues(SqlInValuesExpr expr) {
         Expression value = transform(expr.getExpr());
         Expression list = toListExpr(expr.getLocation(), expr.getValues());
-        return InExpression.valueOf(expr.getLocation(), value, list);
+        Expression ret = InExpression.valueOf(expr.getLocation(), value, list);
+        // R1.6c / P1-2.2-011：not in 语义补全
+        if (expr.getNot())
+            ret = UnaryExpression.not(expr.getLocation(), ret);
+        return ret;
     }
 
     private Expression toListExpr(SourceLocation loc, List<SqlExpr> exprs) {
