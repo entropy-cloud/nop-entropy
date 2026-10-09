@@ -61,7 +61,7 @@ xscript: |
     let flowAttrs = ['flowControlPolicy', 'queueCapacity', 'receiveWindow', 'packetSize'];
     for (let i = 0; i < flowAttrs.size(); i++) {
       if (node.attrValue(flowAttrs[i]) != null) {
-        report({ message: '边属性 ' + flowAttrs[i] + ' 无消费方（roadmap WI14 放行面）(edge attribute has no consumer)' });
+        report({ message: '边属性 ' + flowAttrs[i] + ' 在该边上无执行载体（WI14 裁定：声明式接线延后至引擎级 successor）(edge attribute has no execution carrier: deferred to an engine-level successor)' });
       }
     }
     return;
