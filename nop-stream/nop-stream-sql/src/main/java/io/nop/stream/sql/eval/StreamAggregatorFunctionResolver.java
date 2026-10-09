@@ -46,6 +46,18 @@ public class StreamAggregatorFunctionResolver implements IAggregatorFunctionReso
         // resolved here into the composite AggregateFunction — group-key evaluators plus
         // N builtin sub-aggregators. This extends (never rewrites) the WI8c dispatch:
         // regular fnIds keep flowing through the WI9 catalog below.
+        // WI9 (plan 2355): the declaration-face composite entry — fnId="composite"
+        // with a SqlRowAggregateSpec JSON payload in expr (keys typically empty; the
+        // result is the position-ordered value List). Resolved BEFORE the catalog and
+        // the shared scalar-expression path: the JSON payload is not a legal scalar
+        // expression, so parseExpr/validateArgType would both reject it wrongly.
+        if ("composite".equals(fnId)) {
+            if (expr == null || expr.isEmpty()) {
+                throw invalidArg("composite aggregator entry requires a "
+                        + "SqlRowAggregateSpec JSON payload in expr");
+            }
+            return StreamSqlAggregations.buildComposite(SqlRowAggregateSpec.fromJson(expr));
+        }
         if (SqlRowAggregateSpec.FN_ID.equals(fnId)) {
             if (expr == null || expr.isEmpty()) {
                 throw invalidArg("composite aggregator entry '" + SqlRowAggregateSpec.FN_ID
@@ -86,7 +98,8 @@ public class StreamAggregatorFunctionResolver implements IAggregatorFunctionReso
      */
     private void validateArgType(String fnId, String expr, StreamRecordEvaluator evaluator,
                                  Function<String, BasicTypeInfo<?>> columnTypes) {
-        if (evaluator == null || fnId.equals("count") || columnTypes == null) {
+        if (evaluator == null || fnId.equals("count") || fnId.equals("distinct")
+                || fnId.equals("maxBy") || columnTypes == null) {
             return;
         }
         io.nop.orm.eql.ast.SqlExpr ast = io.nop.stream.sql.parse.EqlExprSupport.parseExpr(expr);

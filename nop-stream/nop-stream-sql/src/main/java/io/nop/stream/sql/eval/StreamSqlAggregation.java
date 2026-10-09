@@ -117,6 +117,10 @@ public final class StreamSqlAggregation {
                 return new MinMaxAgg(argEvaluator, true);
             case "max":
                 return new MinMaxAgg(argEvaluator, false);
+            case "maxBy":
+                return new MaxByAgg(argEvaluator);
+            case "distinct":
+                return new DistinctCountAgg(argEvaluator);
             default:
                 throw invalidArg("unknown builtin aggregate id '" + fnId + "'");
         }
@@ -317,6 +321,129 @@ public final class StreamSqlAggregation {
         }
     }
 
+    /**
+     * WI9 (plan 2355): keeps the WHOLE record whose argument expression evaluates to
+     * the maximum — accumulator shape = Object[3]{extremeKey, record, saw-flag}.
+     * Tie-break = strict '>' (first-wins, MinMaxAgg precedent); null argument values
+     * are skipped; an empty window yields null. The comparison reuses the
+     * numeric-aware {@code compareValues} (JSON round-trip Integer/Long safety).
+     */
+    static final class MaxByAgg extends BaseAgg {
+        private static final long serialVersionUID = 1L;
+
+        MaxByAgg(StreamRecordEvaluator arg) {
+            super(arg);
+        }
+
+        @Override
+        String fnName() {
+            return "maxBy";
+        }
+
+        @Override
+        public Object createAccumulator() {
+            return new Object[]{null, null, Boolean.FALSE};
+        }
+
+        @Override
+        public Object add(Object record, Object accumulator) {
+            Object key = arg.eval(record);
+            if (key == null) {
+                return accumulator;
+            }
+            if (!(key instanceof Comparable)) {
+                throw invalid("maxBy requires a comparable operand, got "
+                        + key.getClass().getName());
+            }
+            Object[] acc = SqlAccShapeUtil.asArray(accumulator);
+            if (!(Boolean) acc[2]) {
+                acc[0] = key;
+                acc[1] = record;
+                acc[2] = Boolean.TRUE;
+                return acc;
+            }
+            if (MinMaxAgg.compareValues(key, acc[0]) > 0) {
+                acc[0] = key;
+                acc[1] = record;
+            }
+            return acc;
+        }
+
+        @Override
+        public Object getResult(Object accumulator) {
+            Object[] acc = SqlAccShapeUtil.asArray(accumulator);
+            return (Boolean) acc[2] ? acc[1] : null;
+        }
+
+        @Override
+        public Object merge(Object a, Object b) {
+            Object[] x = SqlAccShapeUtil.asArray(a);
+            Object[] y = SqlAccShapeUtil.asArray(b);
+            if (!(Boolean) y[2]) {
+                return x;
+            }
+            if (!(Boolean) x[2]) {
+                x[0] = y[0];
+                x[1] = y[1];
+                x[2] = Boolean.TRUE;
+                return x;
+            }
+            if (MinMaxAgg.compareValues(y[0], x[0]) > 0) {
+                x[0] = y[0];
+                x[1] = y[1];
+            }
+            return x;
+        }
+    }
+
+    /**
+     * WI9 (plan 2355): the declaration-face DISTINCT-count aggregate — window-scoped
+     * EXACT dedup semantics (the WI0(d) "approximate" wording was imprecise; the
+     * difference from the SQL-face DISTINCT aggregate is scope/lifecycle, not
+     * precision). Accumulator = HashSet of argument values (null skipped, mirroring
+     * DistinctAggregateWrapper); result = the set cardinality as a Long. Memory
+     * bound = the number of distinct argument values in the window, cleared with the
+     * window.
+     */
+    static final class DistinctCountAgg extends BaseAgg {
+        private static final long serialVersionUID = 1L;
+
+        DistinctCountAgg(StreamRecordEvaluator arg) {
+            super(arg);
+        }
+
+        @Override
+        String fnName() {
+            return "distinct";
+        }
+
+        @Override
+        public Object createAccumulator() {
+            return new java.util.LinkedHashSet<>();
+        }
+
+        @Override
+        public Object add(Object record, Object accumulator) {
+            Object v = arg.eval(record);
+            if (v == null) {
+                return accumulator;
+            }
+            ((java.util.Set<Object>) accumulator).add(v);
+            return accumulator;
+        }
+
+        @Override
+        public Object getResult(Object accumulator) {
+            return (long) ((java.util.Set<?>) accumulator).size();
+        }
+
+        @Override
+        public Object merge(Object a, Object b) {
+            ((java.util.Set<Object>) a).addAll((java.util.Set<?>) b);
+            return a;
+        }
+    }
+
     static final class MinMaxAgg extends BaseAgg {
         private static final long serialVersionUID = 1L;
 
@@ -393,7 +520,7 @@ public final class StreamSqlAggregation {
          * double, everything else stays on natural Comparable order.
          */
         @SuppressWarnings({"unchecked", "rawtypes"})
-        private static int compareValues(Object a, Object b) {
+        static int compareValues(Object a, Object b) {
             if (a instanceof Number && b instanceof Number) {
                 if (isIntegral(a) && isIntegral(b)) {
                     return Long.compare(((Number) a).longValue(), ((Number) b).longValue());

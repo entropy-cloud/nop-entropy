@@ -12,12 +12,20 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * The built-in aggregate catalog (WI9): the five SQL aggregate ids
- * sum/count/avg/min/max and their accumulation semantics (roadmap A4). Resolution
- * order with WI8c's declaration surface is bean-container-first, catalog-second —
- * {@link #resolve} returns {@code null} for unknown ids so that ordering stays
- * intact; unknown ids must surface as the caller's fail-fast, never as a silent
- * fallback.
+ * The built-in aggregate catalog (WI9, plan 2355): two layers —
+ * <ul>
+ *   <li>the five SQL grammar keyword ids sum/count/avg/min/max (same closed set as
+ *       the EQL parser's {@code SqlAggregateFunction}), and</li>
+ *   <li>declaration-face ids that have no SQL grammar form: {@code maxBy} (keep the
+ *       whole record with the max argument value) and {@code distinct} (window-scoped
+ *       exact dedup count; WI0(d) form). The composite face is NOT a catalog id — it
+ *       is special-cased in the resolver before catalog lookup (sql-row-agg
+ *       precedent, plan 2355).</li>
+ * </ul>
+ * Resolution order with WI8c's declaration surface is bean-container-first,
+ * catalog-second — {@link #resolve} returns {@code null} for unknown ids so that
+ * ordering stays intact; unknown ids must surface as the caller's fail-fast, never
+ * as a silent fallback.
  */
 public final class StreamSqlAggregations {
 
@@ -30,6 +38,9 @@ public final class StreamSqlAggregations {
         m.put("avg", new StreamSqlAggregation("avg", false));
         m.put("min", new StreamSqlAggregation("min", false));
         m.put("max", new StreamSqlAggregation("max", false));
+        // WI9 (plan 2355): declaration-face ids (no SQL grammar form)
+        m.put("maxBy", new StreamSqlAggregation("maxBy", false));
+        m.put("distinct", new StreamSqlAggregation("distinct", false));
         BUILTINS = Collections.unmodifiableMap(m);
     }
 
