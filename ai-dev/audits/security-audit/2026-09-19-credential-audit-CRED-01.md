@@ -35,6 +35,12 @@
 
 - No plaintext/ciphertext value exceeds the 16-char truncation in any error param or log
   (single truncate helper applied at the only error-param site).
+  **勘误（2026-10-09，P1-3.10-001 / plan 2373）**：该「无超限」声明仅覆盖 CredentialCipher
+  的 truncate 通道——`DefaultCredentialKeyProvider.init` 的 5 个 throw 点与
+  `VaultCredentialKeyProvider` migration 循环的 3 个 throw 点当时将**完整 master-key entry
+  （含真实 passphrase）**写入异常 param（NopException.getMessage 无条件拼接 params 全量），
+  不经 truncate。该泄漏面在本声明之外、当时未审计，3.10 增量审计以 P1-check-mcc-172 登记
+  still-live；2026-10-09 由 plan 2373 修复（param keyId-only/非材料定位符化）。
 - No secret literal in module main code or `_vfs` resources (sweep clean).
 - `getCredential`/`getCredentialData` not exposed as BizModel/GraphQL methods; xmeta
   `data` published=false + BizModel query rows force-null `data` (D1-01 two-layer).

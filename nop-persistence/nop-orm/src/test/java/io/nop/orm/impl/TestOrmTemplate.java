@@ -56,10 +56,15 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         ICompiledSql sql = factory.compileSql("test",
                 "update io.nop.app.SimsClass o set o.className='x'", false);
 
+        // R1.6c（plan 2371）起 DML 与 SELECT 对齐注入实体级缺省过滤（SimsClass 为
+        // useTenant 模型，租户条件经 TenantParamBuilder 以参数绑定）——
+        // 旧期望（无租户条件）对应修复前的跨租户写面
         assertEquals("update\n" +
                 "  SIMS_CLASS\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n" +
+                "where \n" +
+                "  TENANT_ID = ?\n", sql.getSql().getText());
     }
 
     @Test
@@ -71,7 +76,9 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         assertEquals("update\n" +
                 "  SIMS_CLASS\n" +
                 "set \n" +
-                "  CLASS_NAME= 'x' \n", sql.getSql().getText());
+                "  CLASS_NAME= 'x' \n" +
+                "where \n" +
+                "  TENANT_ID = ?\n", sql.getSql().getText());
     }
 
     @Test
@@ -84,7 +91,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  SIMS_CLASS\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
+                "  (CLASS_NAME =  'x' ) and (TENANT_ID = ?)\n", sql.getSql().getText());
     }
 
     @Test
@@ -97,7 +104,7 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
                 "from\n" +
                 "  SIMS_CLASS\n" +
                 "where \n" +
-                "  CLASS_NAME =  'x' \n", sql.getSql().getText());
+                "  (CLASS_NAME =  'x' ) and (TENANT_ID = ?)\n", sql.getSql().getText());
     }
 
     @Test

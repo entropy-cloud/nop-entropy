@@ -9,11 +9,12 @@
 
 ### CRITICAL — none (0)
 
-### HIGH (1)
+### HIGH (2)
 
 | ID | Sev | Source | Anchor (short) | Status |
 |---|---|---|---|---|
 | F-AI4-1 | HIGH (P1) | AI-04 | FailoverMetricsImpl.java:44-128 tags metric `account` with standby-account API key (~10 families, production default bean) | open → **batch 4 (mandatory)** |
+| F-MCC-1 | HIGH (P1) | msg-cluster-cred:172（3.10 标定 P1-check-mcc-172） | DefaultCredentialKeyProvider.init 5 throw 点 + VaultCredentialKeyProvider migration 3 点 param 完整 master-key entry（含 passphrase），启动失败日志泄漏主密钥口令（NopException.getMessage 拼 params 全量；样板 keyId-only 在 Vault :268-269 未推广） | **fixed（2026-10-09，plan 2373）**——param keyId-only/非材料定位符化 + reason 区分；泄漏回归测试锁定 |
 
 ### MEDIUM (23)
 
@@ -76,7 +77,7 @@ each deferred item's interim risk is bounded (documented in its report).
 
 Reports: 5 CORE + 6 AUTH + 4 CRED + 5 API/DYN + 3 WF + 4 AI + 4 NET + 4
 FILE/DATA/META = 35 report files. Findings ledger reconciles with per-report
-closure-audit verifications: 0 CRITICAL, 1 HIGH (fixed batch-4), 23 MEDIUM
+closure-audit verifications: 0 CRITICAL, 1 HIGH (fixed batch-4)；**勘误（2026-10-09，plan 2373）**：新增 F-MCC-1 行后 HIGH 实为 2（见上表）, 23 MEDIUM
 (3 fixed batches 1-2, 6 batch-4 [F-AI4-2/F-AI2-1/F-N2-1/F-N1-3/F-WF-03-1/F-N3-1],
 14 successor-deferred to roadmap item 14), ~31 open LOW/limitations (5 fixed,
 rest watch/constraint). Zero pending. Counts corrected 2026-09-19 per

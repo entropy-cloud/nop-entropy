@@ -17,6 +17,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -43,6 +44,33 @@ public class TestDefaultCredentialKeyProvider {
         assertTrue(p.getKeyIds().contains("keyA"));
         ITextCipher cipher = p.getKey("keyA");
         assertNotNull(cipher);
+    }
+
+    /**
+     * R1.8 / P1-check-mcc-172：异常 param 不得携带完整 entry（passphrase 泄漏入日志）。
+     * NopException.getMessage 无条件拼接 params 全量——断言 message 不含 passphrase 材料。
+     */
+    @Test
+    public void exceptionParamsDoNotLeakPassphrase() {
+        String secret = "SUPER-SECRET-PASSPHRASE";
+
+        // 形态1：keyId pattern 不匹配（entry 含真实 passphrase）——抛点在 init()
+        // keyId 带非法字符（点）走 pattern 拒绝分支
+        DefaultCredentialKeyProvider p1bad = newProvider(Collections.singletonList("bad.id:" + secret));
+        NopException e1 = assertThrows(NopException.class, p1bad::init);
+        assertFalse(e1.getMessage().contains(secret), "pattern 不匹配点泄漏：" + e1.getMessage());
+
+        // 形态2：重复 keyId（高频运维现实）
+        DefaultCredentialKeyProvider p2 = newProvider(Arrays.asList("dup:" + secret, "dup:other"));
+        NopException e2 = assertThrows(NopException.class, p2::init);
+        assertFalse(e2.getMessage().contains(secret), "重复 keyId 点泄漏：" + e2.getMessage());
+        assertTrue(e2.getMessage().contains("dup"), e2.getMessage());
+
+        // 形态3：缺冒号（整串可能是裸 passphrase——不输出任何 entry 派生字符）
+        DefaultCredentialKeyProvider p3 = newProvider(Collections.singletonList(secret));
+        NopException e3 = assertThrows(NopException.class, p3::init);
+        assertFalse(e3.getMessage().contains(secret), "缺冒号点泄漏：" + e3.getMessage());
+        assertFalse(e3.getMessage().contains("length=-1"), e3.getMessage());
     }
 
     @Test

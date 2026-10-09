@@ -101,8 +101,8 @@
 | P1-2.2-010 | `2.2-orm-eql-deep-audit.md` | R1.0 簇D（相关子查询多段 owner 两层防线失效） | fixed（2026-10-09，plan 2369——同守卫覆盖相关子查询外层别名入口；单段 owner 物理表名回退合法面回归保持） |
 | P1-2.2-011 | `2.2-orm-eql-deep-audit.md` | R1.0（eval 转换器丢 not like/not in 否定，公开 jar 唯一 SQL→FilterBean 入口静默反转） | fixed（2026-10-09，plan 2371——FilterBean 侧 not/notIn 包裹〔含空值早退分支〕+Expression 侧 UnaryExpression.not；stash 判别肯定语义反转复现） |
 | P1-2.3-001 | `2.3-dao-migration-dbtool-deep-audit.md` | R1.0（callFunc 绑定偏移+OUT 类型硬编码合并修复，补带参回归；响亮失败零调用方） | fixed（2026-10-09，plan 2372——setParameters SQL+startIndex 重载+偏移 1 绑定；OUT VARCHAR 契约 javadoc 化〔元数据化 Deferred〕；stash 判别 H2 错误逐字吻合审计探针） |
-| P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | open |
-| P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | open |
+| P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | fixed（2026-10-09，plan 2373——{key} hash tag 两构造点+集群 rateLimiter 用例；docker 实测修复前 CROSSSLOT 逐字复现/修复后绿） |
+| P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | fixed（2026-10-09，plan 2373——方向 a 落地：peek 数字 String 解析〔非数字保持 fail-closed〕+真实 PrefixEncodeHelper 往返回归锁定） |
 | P1-2.5-001 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-metadata 6 状态列补 precision+重生成三方言+迁移） | open |
 | P1-2.5-002 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-job 3 UK 补 constraint+重生成 DDL；先补属性否则重生成仍为空） | open |
 | P1-2.5-003 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-batch UK 同 002+补 upgrade 脚本） | open |
@@ -137,8 +137,8 @@
 | P1-3.8-005 | `3.8-tcc-retry-file-deep-audit.md` | R1.0（参与方 inbound TccContext 桥接——TccContextInvoker 接线或显式声明单跳约束；与 SM 静默 fork 同批） | open |
 | P1-check-gw-49 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :49 标定确认） | R1.0（GatewayHttpFilter 路由匹配前全量严格 JSON 解析——解析后置到路由命中或按路由 content-type 分流；缓解 http-filter.enabled opt-in） | open |
 | P1-check-gw-86 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :86 标定确认） | R1.0（OAuth code+redirect 分支不下发 auth cookie/不初始化用户上下文——SSO 回调登录循环；与 auth-core 登录链同批） | open |
-| P1-3.10-001 | `3.10-auth-credential-incremental-audit.md` | R1.0（CRED-01 no-finding 勘误注 + consolidation ledger 补 :172 行——安全台账链虚假保证修正） | open |
-| P1-check-mcc-172 | `3.10-auth-credential-incremental-audit.md`（check/msg-cluster-cred.md :172 标定维持） | R1.0（主密钥 passphrase 异常 param 泄漏——keyId-only param 改造〔样板 Vault:268-269〕，Default+Vault 双 provider 7 泄漏点；与 P1-check2-nosql-67 codec 修复同批） | open |
+| P1-3.10-001 | `3.10-auth-credential-incremental-audit.md` | R1.0（CRED-01 no-finding 勘误注 + consolidation ledger 补 :172 行——安全台账链虚假保证修正） | fixed（2026-10-09，plan 2373——CRED-01 声明收窄勘误+consolidation ledger 补 F-MCC-1 行〔fixed 状态〕） |
+| P1-check-mcc-172 | `3.10-auth-credential-incremental-audit.md`（check/msg-cluster-cred.md :172 标定维持） | R1.0（主密钥 passphrase 异常 param 泄漏——keyId-only param 改造〔样板 Vault:268-269〕，Default+Vault 双 provider 7 泄漏点；与 P1-check2-nosql-67 codec 修复同批） | fixed（2026-10-09，plan 2373——Default 4 点+Vault 3 点 keyId-only/非材料定位符化+reason 区分；泄漏回归断言 getMessage 不含 passphrase） |
 | P1-4.2-001 | `4.2-test-effectiveness-audit.md` | R1.0（nop-quarkus-web vertx HTTP 上下文适配层零测试补齐；e2e quarkus:dev 粗粒度缓解在案） | open |
 | P1-4.2-002 | `4.2-test-effectiveness-audit.md` | R1.0（nop-spring-web-starter servlet HTTP 上下文适配层零测试补齐——无任何 e2e 缓解，P1 最强） | open |
 | P1-4.2-003 | `4.2-test-effectiveness-audit.md` | R1.0（nop-batch-orm ORM 批处理 upsert 语义测试补齐） | open |
@@ -261,6 +261,7 @@
 | R1.6b | done | plan 2370（2026-10-09）：eql 簇 B/C——makeAlias 查重回登记+makeTableAlias 回登记+提升下沉分支+删 ：154；stash 判别 3 用例 FAIL 逐字复现审计探针；既有 32 transformer 测试保持；新增 6 用例+模块 197 全绿；closure audit 见 plan 2370 Closure 段 |
 | R1.6c | done | plan 2371（2026-10-09）：eql 簇 E——DML 缺省过滤注入对齐 SELECT（三类+开关保持）+eval 双转换器否定补全（含空值分支）；enableFilter/恢复类边界文档化+sql_lib 盘查落档；stash 判别 6/8 FAIL；新增 8 用例；closure audit 见 plan 2371 Closure 段 |
 | R1.7 | done | plan 2372（2026-10-09）：callFunc 绑定偏移修复——setParameters startIndex 重载+偏移 1+OUT VARCHAR 契约化；stash 判别 H2 错误逐字吻合审计探针；带参/双参回归锁定；nop-dao 168 全绿；closure audit 见 plan 2372 Closure 段 |
+| R1.8 | done | plan 2373（2026-10-09）：安全四批——hash tag 两点（docker CROSSSLOT 判别逐字复现）+peek 解析（真实 codec 往返判别）+7 泄漏点 keyId-only 化（泄漏回归）+CRED-01 勘误/ledger 补行；附带修 R1.6c 下游回归（nop-orm TestOrmTemplate 4 期望对齐 DML 注入后契约）；auth 462/credential 216 全绿；closure audit 见 plan 2373 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
