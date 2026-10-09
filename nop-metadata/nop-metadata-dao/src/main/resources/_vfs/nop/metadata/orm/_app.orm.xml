@@ -248,8 +248,9 @@
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Module Version"/>
                 <column code="BASE_MODULE_ID" displayName="基线模块版本ID" name="baseModuleId" precision="32" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Base Module Id"/>
-                <column code="STATUS" displayName="模块状态" mandatory="true" name="status" propId="7" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/module-status"/>
+                <column code="STATUS" displayName="模块状态" mandatory="true" name="status" precision="20" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
+                        ext:dict="meta/module-status"/>
                 <column code="MAVEN_GROUP_ID" displayName="Maven GroupId" name="mavenGroupId" precision="100" propId="8"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Maven Group Id"/>
                 <column code="MAVEN_ARTIFACT_ID" displayName="Maven ArtifactId" name="mavenArtifactId" precision="100"
@@ -374,8 +375,9 @@
                 <column code="CONNECTION_CONFIG" displayName="连接配置" domain="json-4000" name="connectionConfig"
                         precision="4000" propId="6" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         tagSet="sensitive" i18n-en:displayName="Connection Config"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="7" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/datasource-status"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" precision="20" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
+                        ext:dict="meta/datasource-status"/>
                 <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version" propId="8"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
                 <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
@@ -1703,7 +1705,7 @@
                         ext:dict="meta/quality-entity-type"/>
                 <column code="ENTITY_ID" displayName="挂载对象ID" mandatory="true" name="entityId" precision="32" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Entity Id"/>
-                <column code="SEVERITY" displayName="严重级别" mandatory="true" name="severity" propId="7"
+                <column code="SEVERITY" displayName="严重级别" mandatory="true" name="severity" precision="20" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Severity"
                         ext:dict="meta/quality-severity"/>
                 <column code="SQL_EXPRESSION" displayName="SQL表达式" domain="mediumtext" name="sqlExpression"
@@ -1764,8 +1766,9 @@
                         propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Quality Rule Id"/>
                 <column code="EXECUTE_TIME" displayName="执行时间" mandatory="true" name="executeTime" propId="3"
                         stdDataType="timestamp" stdSqlType="TIMESTAMP" i18n-en:displayName="Execute Time"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="4" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/quality-result-status"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" precision="20" propId="4"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
+                        ext:dict="meta/quality-result-status"/>
                 <column code="ACTUAL_VALUE" displayName="实际值" name="actualValue" propId="5" stdDataType="double"
                         stdSqlType="DOUBLE" i18n-en:displayName="Actual Value"/>
                 <column code="EXPECTED_VALUE" displayName="期望值" name="expectedValue" propId="6" stdDataType="double"
@@ -1850,8 +1853,9 @@
                         i18n-en:displayName="Validations"/>
                 <column code="ACTIONS" displayName="执行动作" domain="json-4000" name="actions" precision="4000" propId="7"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Actions"/>
-                <column code="STATUS" displayName="状态" mandatory="true" name="status" propId="8" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/checkpoint-status"/>
+                <column code="STATUS" displayName="状态" mandatory="true" name="status" precision="20" propId="8"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
+                        ext:dict="meta/checkpoint-status"/>
                 <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig" precision="4000"
                         propId="9" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="Ext Config"/>
@@ -2144,8 +2148,9 @@
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
                 <column code="META_ENTITY_ID" displayName="关联数据表ID" name="metaEntityId" precision="32" propId="4"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Table Id"/>
-                <column code="STATUS" displayName="契约状态" mandatory="true" name="status" propId="5" stdDataType="string"
-                        stdSqlType="VARCHAR" i18n-en:displayName="Status" ext:dict="meta/contract-status"/>
+                <column code="STATUS" displayName="契约状态" mandatory="true" name="status" precision="20" propId="5"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Status"
+                        ext:dict="meta/contract-status"/>
                 <column code="OWNER_USER_ID" displayName="契约所有者" name="ownerUserId" precision="50" propId="6"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Owner User Id"/>
                 <column code="SCHEMA" displayName="JSON Schema 定义" domain="mediumtext" name="schema"

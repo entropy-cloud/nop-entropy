@@ -207,6 +207,7 @@
             <unique-keys>
                 <unique-key name="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
                             columns="namespaceId,groupId,jobName"
+                            constraint="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
                             i18n-en:displayName="Unique Schedule Name Per Namespace Group"/>
             </unique-keys>
             <indexes>
@@ -321,6 +322,7 @@
             <unique-keys>
                 <unique-key name="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
                             columns="jobScheduleId,scheduledFireTime,triggerSource"
+                            constraint="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
                             i18n-en:displayName="Unique Fire Per Schedule Time Source"/>
             </unique-keys>
             <indexes>
@@ -449,6 +451,7 @@
             </relations>
             <unique-keys>
                 <unique-key name="UK_NOP_JOB_TASK_FIRE_NO" columns="jobFireId,taskNo"
+                            constraint="UK_NOP_JOB_TASK_FIRE_NO"
                             i18n-en:displayName="Unique Task Per Fire"/>
             </unique-keys>
             <indexes>

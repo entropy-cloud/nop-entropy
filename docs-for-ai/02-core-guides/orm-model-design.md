@@ -839,6 +839,18 @@ AMIS 列: name="partner.name"           ← 自动映射，显示 "五金件" �
 
 实践中，每个引用主数据实体的模块都需要在桩的 `name`（或 `code`）列上加 `tagSet="disp"`。这是重复的手工步骤，但一次配置永久自动，远优于手动维护 `@BizLoader` 方法。对于大量跨模块引用场景的方案选择，见 `cross-module-entity-reference.md` 中的"显示名解析策略对比"。
 
+## 唯一约束与索引的 DDL 物化规则（R1.9 / 平台工单-2.5）
+
+1. **unique-key 必须显式声明 `constraint` 属性**：`<unique-key name="UK_X" columns="..." constraint="UK_X"/>`。
+   无 `constraint` 属性的 unique-key 在任何 DDL 路径（deploy 生成 / 运行时自动建表）都**不会物化**——
+   这是全仓 16 个 UK 零物化缺陷（P1-2.5-002/003/004）的根因。
+2. **`<index>`（含 `unique="true"`）自 R1.9 起在两条路径物化**：deploy `createTables` 模板
+   （`ddl.xlib` CreateTable 后逐 index 输出 `create [unique] index`）与运行时
+   `DataBaseSchemaInitializer` 自动建表。此前 index 块一概丢失。
+3. **字段 precision 声明**：显式列级 `precision` 会静默覆盖 `domain` 声明（syncDomains 列优先）——
+   列级 precision 与 domain 声明必须一致；状态/枚举类 VARCHAR 列必须带 precision（参照 =20 惯例），
+   否则三方言物化为 LONGTEXT/CLOB/TEXT。
+
 ## 相关文档
 
 - `code-style.md` — ORM 命名规范（表名、列名、实体名格式）

@@ -103,12 +103,12 @@
 | P1-2.3-001 | `2.3-dao-migration-dbtool-deep-audit.md` | R1.0（callFunc 绑定偏移+OUT 类型硬编码合并修复，补带参回归；响亮失败零调用方） | fixed（2026-10-09，plan 2372——setParameters SQL+startIndex 重载+偏移 1 绑定；OUT VARCHAR 契约 javadoc 化〔元数据化 Deferred〕；stash 判别 H2 错误逐字吻合审计探针） |
 | P1-2.4-001 | `2.4-nosql-cdc-deep-audit.md` | R1.0（rate_limit.lua 双 key 加 hash tag 一行修+集群测试补 rateLimiter 用例；暴露面 caveat 在案） | fixed（2026-10-09，plan 2373——{key} hash tag 两构造点+集群 rateLimiter 用例；docker 实测修复前 CROSSSLOT 逐字复现/修复后绿） |
 | P1-check2-nosql-67 | `2.4-nosql-cdc-deep-audit.md`（来源 check2/nosql-cdc.md:67 复核） | R1.0（PrefixTextCodec 类型不对称 still-live——MFA 票据失效；修复方向 a=String.valueOf+peek 解析最小改 / b=类型保留编码捆绑回滚毒化评估；MFA 域归 3.10） | fixed（2026-10-09，plan 2373——方向 a 落地：peek 数字 String 解析〔非数字保持 fail-closed〕+真实 PrefixEncodeHelper 往返回归锁定） |
-| P1-2.5-001 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-metadata 6 状态列补 precision+重生成三方言+迁移） | open |
-| P1-2.5-002 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-job 3 UK 补 constraint+重生成 DDL；先补属性否则重生成仍为空） | open |
-| P1-2.5-003 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-batch UK 同 002+补 upgrade 脚本） | open |
-| P1-2.5-004 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-retry 2 唯一索引改写 unique-key+constraint，datav 路径已验证） | open |
-| P1-2.5-005 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-rule outputs precision 改 4000 或删列级让 domain 生效+重生成） | open |
-| 平台工单-2.5 | `2.5-orm-model-compliance-scan.md` | R1.0 平台工单（DDL 生成器不物化 `<index>` 含 unique=true——auth 7/ai 4/retry 2/sys 2） | open |
+| P1-2.5-001 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-metadata 6 状态列补 precision+重生成三方言+迁移） | fixed（2026-10-09，plan 2374——6 列 precision=20+三方言 DDL 重生成 VARCHAR(20)+三方言迁移脚本） |
+| P1-2.5-002 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-job 3 UK 补 constraint+重生成 DDL；先补属性否则重生成仍为空） | fixed（2026-10-09，plan 2374——3 UK constraint 化+三方言物化 constraint UK_* unique 断言） |
+| P1-2.5-003 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-batch UK 同 002+补 upgrade 脚本） | fixed（2026-10-09，plan 2374——UK constraint 化物化+三方言幂等 upgrade 脚本〔MySQL information_schema 守卫〕） |
+| P1-2.5-004 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-retry 2 唯一索引改写 unique-key+constraint，datav 路径已验证） | fixed（2026-10-09，plan 2374——经平台工单生成器修复路径：create unique index ×2 物化，模型零改动） |
+| P1-2.5-005 | `2.5-orm-model-compliance-scan.md` | R1.0（nop-rule outputs precision 改 4000 或删列级让 domain 生效+重生成） | fixed（2026-10-09，plan 2374——列 precision 50→4000 保留显式声明+DDL VARCHAR(4000) 重生成） |
+| 平台工单-2.5 | `2.5-orm-model-compliance-scan.md` | R1.0 平台工单（DDL 生成器不物化 `<index>` 含 unique=true——auth 7/ai 4/retry 2/sys 2） | fixed（2026-10-09，plan 2374——ddl.xlib CreateTables+DataBaseSchemaInitializer 两路径物化 index；回归断言 unique/普通 index 输出；auth/ai/sys 随下次构建自然落地） |
 | P1-2.6-001 | `2.6-biz-graphql-deep-audit.md` | R1.0（action 级事务装饰器死配置修复——后台直调写动作零事务；连带 owner doc 事务语义修正） | open |
 | P1-2.6-002 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（fragment body 变量误拒——GraphQLSelectionResolver 三位点一次闭合+三回归用例） | open |
 | P1-2.6-003 | `2.6-biz-graphql-deep-audit.md` | R1.0 修复族 A（spread 指令变量误拒——@Exclude 特性死胎） | open |
@@ -262,6 +262,7 @@
 | R1.6c | done | plan 2371（2026-10-09）：eql 簇 E——DML 缺省过滤注入对齐 SELECT（三类+开关保持）+eval 双转换器否定补全（含空值分支）；enableFilter/恢复类边界文档化+sql_lib 盘查落档；stash 判别 6/8 FAIL；新增 8 用例；closure audit 见 plan 2371 Closure 段 |
 | R1.7 | done | plan 2372（2026-10-09）：callFunc 绑定偏移修复——setParameters startIndex 重载+偏移 1+OUT VARCHAR 契约化；stash 判别 H2 错误逐字吻合审计探针；带参/双参回归锁定；nop-dao 168 全绿；closure audit 见 plan 2372 Closure 段 |
 | R1.8 | done | plan 2373（2026-10-09）：安全四批——hash tag 两点（docker CROSSSLOT 判别逐字复现）+peek 解析（真实 codec 往返判别）+7 泄漏点 keyId-only 化（泄漏回归）+CRED-01 勘误/ledger 补行；附带修 R1.6c 下游回归（nop-orm TestOrmTemplate 4 期望对齐 DML 注入后契约）；auth 462/credential 216 全绿；closure audit 见 plan 2373 Closure 段 |
+| R1.9 | done | plan 2374（2026-10-09）：平台工单 index 两路径物化（ddl.xlib+initializer）+job/batch UK constraint 化+retry 生成器物化+metadata/rule precision 修正+DDL 重生成 git-diff 断言全过+batch/metadata 脚本；stash 判别 index 缺失 FAIL；owner doc 物化规则三条；orm-eql 205/orm 217/job 87/batch 10/metadata 1340 全绿；closure audit 见 plan 2374 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

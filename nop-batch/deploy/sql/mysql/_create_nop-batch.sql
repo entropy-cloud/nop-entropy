@@ -50,9 +50,11 @@ CREATE TABLE nop_batch_task(
   UPDATED_BY VARCHAR(50) NOT NULL    COMMENT '修改人',
   UPDATE_TIME DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3)  NOT NULL    COMMENT '修改时间',
   REMARK VARCHAR(200) NULL    COMMENT '备注',
+  constraint UK_NOP_BATCH_TASK_NAME_KEY unique (TASK_NAME,TASK_KEY),
   constraint PK_nop_batch_task primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_BATCH_TASK_STATUS on nop_batch_task (TASK_STATUS) ;
 CREATE TABLE nop_batch_task_var(
   BATCH_TASK_ID VARCHAR(32) NOT NULL    COMMENT '主键',
   FIELD_NAME VARCHAR(100) NOT NULL    COMMENT '变量名',

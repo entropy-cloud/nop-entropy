@@ -202,7 +202,8 @@
                 </index>
             </indexes>
             <unique-keys>
-                <unique-key columns="namespaceId,groupId,jobName" name="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
+                <unique-key columns="namespaceId,groupId,jobName" constraint="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
+                            name="UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME"
                             i18n-en:displayName="Unique Schedule Name Per Namespace Group"/>
             </unique-keys>
         </entity>
@@ -310,6 +311,7 @@
             </relations>
             <unique-keys>
                 <unique-key columns="jobScheduleId,scheduledFireTime,triggerSource"
+                            constraint="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
                             name="UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE"
                             i18n-en:displayName="Unique Fire Per Schedule Time Source"/>
             </unique-keys>
@@ -407,8 +409,8 @@
                 </to-one>
             </relations>
             <unique-keys>
-                <unique-key columns="jobFireId,taskNo" name="UK_NOP_JOB_TASK_FIRE_NO"
-                            i18n-en:displayName="Unique Task Per Fire"/>
+                <unique-key columns="jobFireId,taskNo" constraint="UK_NOP_JOB_TASK_FIRE_NO"
+                            name="UK_NOP_JOB_TASK_FIRE_NO" i18n-en:displayName="Unique Task Per Fire"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.job.dao.entity.NopJobTaskLog" createTimeProp="createTime" createrProp="createdBy"

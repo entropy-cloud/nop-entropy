@@ -51,6 +51,9 @@ CREATE TABLE nop_retry_record(
   constraint PK_nop_retry_record primary key (SID)
 );
 
+create index IDX_RETRY_SCHEDULER_SCAN on nop_retry_record (STATUS,PARTITION_INDEX,NEXT_TRIGGER_TIME) ;
+create unique index UK_RETRY_IDEMPOTENT_ID on nop_retry_record (NAMESPACE_ID,GROUP_ID,IDEMPOTENT_ID) ;
+create index IDX_RETRY_MGMT_LOOKUP on nop_retry_record (NAMESPACE_ID,GROUP_ID,POLICY_ID) ;
 CREATE TABLE nop_retry_attempt(
   SID VARCHAR2(32) NOT NULL ,
   RECORD_ID VARCHAR2(32) NOT NULL ,
@@ -73,6 +76,9 @@ CREATE TABLE nop_retry_attempt(
   constraint PK_nop_retry_attempt primary key (SID)
 );
 
+create index IDX_RETRY_ATTEMPT_RECORD on nop_retry_attempt (RECORD_ID) ;
+create index IDX_RETRY_ATTEMPT_STATUS on nop_retry_attempt (STATUS) ;
+create unique index UK_RETRY_ATTEMPT_RECORD_NO on nop_retry_attempt (RECORD_ID,ATTEMPT_NO) ;
 CREATE TABLE nop_retry_dead_letter(
   SID VARCHAR2(32) NOT NULL ,
   NAMESPACE_ID VARCHAR2(64) NOT NULL ,
@@ -96,6 +102,9 @@ CREATE TABLE nop_retry_dead_letter(
   constraint PK_nop_retry_dead_letter primary key (SID)
 );
 
+create index IDX_RETRY_DL_RECORD on nop_retry_dead_letter (RECORD_ID) ;
+create index IDX_RETRY_DL_IDEMPOTENT_ID on nop_retry_dead_letter (IDEMPOTENT_ID) ;
+create index IDX_RETRY_DL_MGMT_LOOKUP on nop_retry_dead_letter (NAMESPACE_ID,GROUP_ID,POLICY_ID) ;
 
       COMMENT ON TABLE nop_retry_policy IS '重试策略';
                 
