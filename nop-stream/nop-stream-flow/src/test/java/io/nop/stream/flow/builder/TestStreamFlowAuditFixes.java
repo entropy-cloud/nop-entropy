@@ -15,6 +15,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.impl.ClassPathResource;
+import io.nop.core.type.PredefinedGenericTypes;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.BeanContainerBuilder;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
@@ -154,6 +155,77 @@ public class TestStreamFlowAuditFixes {
 
         StreamException ex = buildFailsFast(model);
         assertTrue(ex.getMessage().contains("maxParallelism"), () -> ex.getMessage());
+    }
+
+    // WI1 (plan 2347) contract-ledger nails: the remaining endpoint attribute faces
+    // from failFastOnUnsupportedSourceConfig/failFastOnUnsupportedSinkConfig each
+    // get their own pin — release work item is roadmap WI15.
+
+    @Test
+    public void sourceMaxParallelismFailFast() {
+        StreamModel model = baseModel("src-maxp");
+        StreamSourceModel src = source("src", "srcBean");
+        src.setMaxParallelism(4);
+        model.setTransforms(Arrays.asList(src, sink("out", "sinkBean")));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamException ex = buildFailsFast(model);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("maxParallelism"), () -> ex.getMessage());
+    }
+
+    @Test
+    public void sourceOutputTypeFailFast() {
+        StreamModel model = baseModel("src-output-type");
+        StreamSourceModel src = source("src", "srcBean");
+        src.setOutputType(PredefinedGenericTypes.STRING_TYPE);
+        model.setTransforms(Arrays.asList(src, sink("out", "sinkBean")));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamException ex = buildFailsFast(model);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("outputType"), () -> ex.getMessage());
+    }
+
+    @Test
+    public void sinkParamsFailFast() {
+        StreamModel model = baseModel("sink-params");
+        StreamSinkModel out = sink("out", "sinkBean");
+        StreamParamModel p = new StreamParamModel();
+        p.setName("table");
+        out.setParams(Arrays.asList(p));
+        model.setTransforms(Arrays.asList(source("src", "srcBean"), out));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamException ex = buildFailsFast(model);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("params"), () -> ex.getMessage());
+    }
+
+    @Test
+    public void sinkInputTypeFailFast() {
+        StreamModel model = baseModel("sink-input-type");
+        StreamSinkModel out = sink("out", "sinkBean");
+        out.setInputType(PredefinedGenericTypes.STRING_TYPE);
+        model.setTransforms(Arrays.asList(source("src", "srcBean"), out));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamException ex = buildFailsFast(model);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("inputType"), () -> ex.getMessage());
+    }
+
+    @Test
+    public void sinkNonDefaultConsistencyCapabilityFailFast() {
+        StreamModel model = baseModel("sink-capability");
+        StreamSinkModel out = sink("out", "sinkBean");
+        out.setConsistencyCapability(SinkConsistencyCapability.IDEMPOTENT);
+        model.setTransforms(Arrays.asList(source("src", "srcBean"), out));
+        model.setEdges(Arrays.asList(edge("e0", "src", "out")));
+
+        StreamException ex = buildFailsFast(model);
+        assertEquals("nop.err.stream.not-implemented", ex.getErrorCode().toString());
+        assertTrue(ex.getMessage().contains("consistencyCapability"), () -> ex.getMessage());
     }
 
     /**

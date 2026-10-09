@@ -127,6 +127,33 @@ public class TestStreamModelDslBuilderFailFast {
                 "<coders>");
     }
 
+    // WI1 (plan 2347): contract-ledger nails — every remaining registry/callback
+    // face from failFastOnUnsupportedRegistries gets its own build-time pin so the
+    // release work items (WI12/WI13) can retire them one by one.
+
+    @Test
+    public void requirementsRegistryFailsFast() {
+        assertTopLevelRegistryFailsFast(
+                "<requirements><requirement value=\"EFFECTIVELY_ONCE\"/></requirements>",
+                "<requirements>");
+    }
+
+    @Test
+    public void checkpointParticipantsRegistryFailsFast() {
+        assertTopLevelRegistryFailsFast(
+                "<checkpointParticipants><participant value=\"op1\"/></checkpointParticipants>",
+                "<checkpointParticipants>");
+    }
+
+    @Test
+    public void lifecycleCallbacksFailsFast() {
+        // xpl-fn bodies are function BODY statements compiled in the xdef signature's
+        // parameter scope (streamCtx) — a lambda literal is rejected at parse time by
+        // the XLang ERR_XPL_FN_BODY_IS_FUNCTION guard, so the pin uses a trivial
+        // expression body and asserts the builder's lifecycle-callback fail-fast.
+        assertTopLevelRegistryFailsFast("<onStart>streamCtx;</onStart>", "lifecycle");
+    }
+
     private void assertFailFast(String transformXml, String expectedToken) {
         StreamModel model = parseInline(transformXml, "");
         StreamException ex = assertThrows(StreamException.class,

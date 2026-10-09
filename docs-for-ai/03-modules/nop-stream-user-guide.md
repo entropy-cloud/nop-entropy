@@ -232,6 +232,45 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 | S2 文件聚合 | `/nop/stream/demo/fraud-s2-file.stream.xml` | 文件 source → 解析 → 水位 → keyBy(userId) → 滚动窗口聚合 → `FileTwoPhaseCommitSink` |
 | S2 Delta 派生 | `/nop/stream/demo/fraud-s2-file-delta.stream.xml` | 在 S2 基础上 `x:extends` 插入黑名单 filter 并重接边 |
 
+### 声明面支持矩阵（WI1 契约基线，2026-10-09）
+
+> 本矩阵是 XDSL 声明面变化的**单一事实源**（xdsl-full-coverage roadmap Cross-Cutting #7，roadmap 存放于仓库 ai-dev/backlog/ 目录）。放行规则（放行三步法）：每个声明面放行必须同时完成「builder 接线 + 删除对应 fail-fast 钉子测试并改为放行行为断言 + 本矩阵迁移行」，三者缺一不得视为放行。锚点只写类名+方法名（行号易漂移）。
+
+**表 A 已实现声明面**（能力 → 声明形态 → 代码锚点）：
+
+| 能力 | 声明形态 | 锚点（nop-stream-flow builder 包） |
+|---|---|---|
+| 拓扑算子 | map/flatMap/filter/reduce/keyBy/union/process（bean 或内联 xpl） | `StreamModelDslBuilder.buildMap` 等 |
+| 窗口 assigner 参数化 | `windowFnId="tumbling-event-time"` + `duration`；`sliding-event-time` + `duration`+`slide`（slide<=size 守卫）；`session-event-time` + `duration`；legacy 白名单 `global`/`tumbling-global`/`tumbling-event-time-1s`/`-5s`；bean 名优先解析 | `AdvancedTransforms.resolveWindowAssigner` |
+| 窗口控制已放行面 | `allowedLateness`（strategy 与节点双处，节点覆盖 strategy）；`maxDelay`（strategy 级兜底出数）；`accumulationMode=ACCUMULATING`；`emit="UPDATE"\|"CLOSE"`（UPDATE 强制 ACCUMULATING + EmitUpdateTrigger） | `AdvancedTransforms.buildWindow` |
+| 聚合 | `aggregate`（bean 与 `aggregatorRef` 恰一；内建 sum/count/avg/min/max 目录） | `AdvancedTransforms.buildAggregate` |
+| 等值 join | `<joins>`/`joinSpec`（INNER/LEFT/RIGHT/FULL）；window join（INNER/LEFT + duration + `timeout`/`leftTimeout`/`rightTimeout`） | `StreamModelDslBuilder.validateJoinDeclarations`、`AdvancedTransforms.buildJoin` |
+| CEP | `<patterns>` 声明式（量词/where/until/within/gapWithin/skip 策略） | `AdvancedTransforms.buildCep` |
+| sideOutput | `<sideOutput tag condition>` tap 顶点 + `<edge outputTag>` 消费边（配对校验） | `AdvancedTransforms.buildSideOutput`、`StreamModelDslBuilder.validateSideOutputDeclarations` |
+| 事件时间 | `timestampsAndWatermarks`（watermarkStrategyBean 或 xpl assigner+generator 至少一；`watermarkInterval=0` 逐事件） | `AdvancedTransforms.buildTimestampsAndWatermarks` |
+| 边 | FORWARD/HASH+keyExpr；per-transform parallelism | `StreamModelDslBuilder.validateEdgeDeclarations`、`applyDeclaredParallelism` |
+| 类型 | `<schemas>` 受管九类型（string/int/bigint/smallint/tinyint/float/double/boolean/bytes） | `StreamSchemaRegistry.resolveSchemas` |
+| checkpoint 配置族 | enabled/interval/timeout/minPause/processingGuarantee/barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/storageType(+s3)/storageConfig/jobId/pipelineId/jobTerminationMode | `StreamModelDslBuilder.applyCheckpointConfig` |
+| 顶层 SQL | `<sql>`（顶层唯一内容；SELECT/WHERE/五聚合+DISTINCT 聚合/HAVING/GROUP BY/TUMBLE/HOP/SESSION/等值 join/UNION ALL/CASE/CAST/全局聚合） | `StreamModelDslBuilder.expandSqlModel`（SPI：nop-stream-sql `ISqlStreamCompiler`） |
+| Delta | `x:extends` 显式路径 + 分层 Delta | `TestStreamModelDeltaExtends` |
+
+**表 B fail-fast 面**（声明面 → 锚点 → 钉子测试 → 放行归属）：
+
+| 声明面 | 锚点 | 钉子测试 | 放行归属 |
+|---|---|---|---|
+| strategy/节点级 `triggerId` | `AdvancedTransforms.failFastOnUnsupportedWindowStrategy` / `failFastOnUnsupportedWindowNodeAttrs` | `TestStreamCheckpointAndWindowContract`、`TestWindowEmitDeclaration` | WI5 |
+| `accumulationMode=ACCUMULATING_AND_RETRACTING` | 同上 | `TestWindowAccumulationModeDeclaration` | WI5 |
+| 白名单外 `windowFnId`（bean 外未知 id） | `AdvancedTransforms.resolveWindowAssigner` default 分支 | `TestWindowAssignerBranches.unknownWindowFnIdFailsFast` | WI7 |
+| `<sideInputs>` 注册表（含 broadcast 属性） | `StreamModelDslBuilder.failFastOnUnsupportedRegistries` | `TestStreamModelDslBuilderFailFast.sideInputsRegistryFailsFast` | WI11 |
+| `<streams>`/`<environments>`/`<requirements>`/`<checkpointParticipants>`/`<coders>` 注册表 | 同上 | `TestStreamModelDslBuilderFailFast`（streams/environments/requirements/checkpointParticipants/coders 各一钉） | WI12 |
+| `onStart`/`onEnd`/`onError` 生命周期回调 | 同上 | `TestStreamModelDslBuilderFailFast.lifecycleCallbacksFailsFast` | WI13 |
+| 边级流控四属性（flowControlPolicy/queueCapacity/receiveWindow/packetSize） | `StreamModelDslBuilder.validateEdgeDeclarations`（firstDeclaredFlowControlAttr） | `TestStreamModelEdgeContract`（参数化） | WI14 |
+| source/sink 端点 8 属性（params/maxParallelism/outputType·inputType/consistencyCapability 非默认） | `StreamModelDslBuilder.failFastOnUnsupportedSourceConfig` / `failFastOnUnsupportedSinkConfig` | `TestStreamFlowAuditFixes`（8 钉各一） | WI15 |
+| `<custom>` 的 `<params>` 与 `<source>` 体 | `AdvancedTransforms.buildCustom` | `TestAdvancedTransforms.customWithSourceBodyFailsFastInsteadOfSilentDrop` | WI15 |
+| `<window>` 上的 parallelism（虚拟元素） | `AdvancedTransforms.buildWindow` | `TestStreamCheckpointAndWindowContract` | 保持拒绝（R9 只做静态诊断） |
+| HASH 边 live 拒绝子面：HASH 无 keyExpr、非 HASH 边带 keyExpr、HASH 入 keyBy（冗余）/union、REBALANCE 与 BROADCAST 无消费方 | `StreamModelDslBuilder.validateEdgeDeclarations` | `TestStreamModelEdgeContract`、`TestAdvancedTransforms.hashEdgeIntoUnionFailsFast` | 保持拒绝（R9 只做静态诊断；HASH+keyExpr 进普通 transform 是合法路径） |
+| `<sql>` 与 transforms/edges 并存（顶层唯一约束） | `StreamModelDslBuilder.expandSqlModel` | `TestStreamSqlCompiler`（nop-stream-sql） | 维持（WI0(e) 裁定，vision §六 #WI0-XDSL） |
+
 ## 连接器使用指引
 
 现有连接器族（file / message / jdbc / debezium / batch 桥接）的**逐连接器能力矩阵**（方向、交付语义、并行度、恢复语义）见 `03-modules/nop-stream-connectors.md`。使用要点：
