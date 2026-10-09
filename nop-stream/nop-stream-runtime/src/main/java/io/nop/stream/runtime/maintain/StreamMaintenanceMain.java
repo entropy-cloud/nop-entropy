@@ -60,6 +60,10 @@ public final class StreamMaintenanceMain {
                 case "dry-run":
                     runConfValidate(java.util.Arrays.asList(args).subList(1, args.length), true);
                     break;
+                case "lint":
+                    System.exit(StreamLintCommand.run(
+                            java.util.Arrays.asList(args).subList(1, args.length)));
+                    break;
                 case "sample":
                     System.exit(StreamSampleCommand.run(
                             java.util.Arrays.asList(args).subList(1, args.length)));
@@ -157,6 +161,12 @@ public final class StreamMaintenanceMain {
                 + "      Exit code: 0 = passed, 1 = validation failed, 2 = usage error.\n"
                 + "  dry-run file=<path>\n"
                 + "      Pre-submit connectivity dry-run: conf-validate --connect (P-REQ-13).\n"
+                + "  lint file=<path> [--connect]\n"
+                + "      Model-aware best-practice lint (xdsl roadmap WI3): all unconsumed\n"
+                + "      declarations reported at once (WARNING — the build stays authoritative)\n"
+                + "      plus type/watermark/declarative-first hints, folding the conf-validate\n"
+                + "      verdict into the same report. Exit code: 0 = no failed finding,\n"
+                + "      1 = failed finding (incl. parse errors), 2 = usage error.\n"
                 + "  sample type=<typeName> param=value... [limit=<n>]\n"
                 + "      Connector-mode read-only data sampling (WI4): registry-resolved\n"
                 + "      SOURCE endpoint; SampleableSource endpoints return real records,\n"

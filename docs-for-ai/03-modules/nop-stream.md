@@ -191,6 +191,8 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 **数据采样（WI4，2026-10-07）**：`sample type=<typeName> param=value... [limit=<n>]`（connector 校验模式）——registry 解析 SOURCE 工厂 → 参数规则校验（required/未知/INT/allowedValues/pattern，sensitive 值脱敏，EXPERIMENTAL 端点非阻断 warning）→ 只读采样。仅接受 SOURCE 类型（SINK 类型名 = typed direction-mismatch FAIL，exit 1）；SOURCE 族中实现 `SampleableSource` 的端点（当前内建 = `file`）返回真实记录，未实现者（message/debezium-cdc/batch-loader）显式 SKIP（`nop.err.stream.sample-not-supported`）。副作用红线与 dry-run 探测同族（只读，不分配 split/不订阅/不拉引擎/不消费批数据）。classpath 须含 nop-ioc（反射装配注册容器；缺失时 typed 报错）与目标连接器模块 jar。exit 契约：0 = 采样成功或显式 SKIP，1 = 校验失败，2 = 用法错误。
 
+**模型感知 lint（xdsl roadmap WI3，2026-10-09）**：`lint file=<path> [--connect]`——最佳实践预检层（区别于 conf-validate 的提交硬校验）：无消费方声明**一次报齐**（WARNING，`nop.err.stream.*` 同源码；builder fail-fast 仍是最终权威并以 FAIL 折叠进同一报告）+ R4 类型声明/R5 水位供给/R2 声明式优先退化提示/R3 custom 状态归属提示；R6（幂等组合预检，待 WI15 端点能力面）/R13（场景注册表比对，待 WI21）/R14（维表接线形态，待 WI15 params 面）以显式 SKIP 注记表达休眠检查面（非静默）。`--connect` 透传连通探测（对齐 conf-validate 层 3）。实现：`StreamModelLinter`（flow/validate，复用 DslModelParser 解析链与 `ValidationIssue`/报告基建）+ `StreamLintCommand`（runtime/maintain，参数形态与 bean 来源三形态同 conf-validate）。exit 契约：0 = 无 FAIL（WARNING/SKIP 允许），1 = 有 FAIL（含 xdef 解析失败），2 = 用法错误。规则面清单的单一事实源 = `nop-stream-user-guide.md` 声明面支持矩阵（WI1 表 B）。
+
 ### 凭据引用与明文边界（P-REQ-14）
 
 - **引用语法**：`credential:{credentialId}#{field}`（如 `credential:mysql-prod#password`）——置于连接器配置字段值处（CDC 族必达点 = `DebeziumConfig.databaseUser/databasePassword`；SPI 工厂程序化参数 `credentialProvider`（OBJECT，optional）注入平台 provider）。语法解析与解密：`io.nop.stream.core.credentials.StreamCredentialSupport`，经 nop-credential 唯一解密点 `ICredentialProvider`（kms-vault 等后端经接口透明）。

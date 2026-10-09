@@ -851,9 +851,15 @@ nop.err.ioc.unknown-concrete-bean-ref: 引用名[{beanRef}]没有指向已定义
 nop.err.ioc.unknown-depend-ref: '[{beanName}]的依赖[{depend}]没有指向已定义的bean'
 nop.err.ioc.unknown-parent-ref: bean[{beanName}]的parent属性值[{parent}]没有指向已定义的bean
 nop.err.ioc.unresolved-alias: alias[{alias}]对应的bean[{beanName}]未定义
+nop.err.javac.compile-fail: Java编译失败:{detail}
+nop.err.javac.compiler-not-acquired: 编译器尚未acquire或已release，无法释放
 nop.err.javac.invalid-class-name: 非法的Java类名:{className}
+nop.err.javac.invalid-encoding: 不支持的源码编码:{encoding}
+nop.err.javac.invalid-option-value: 非法的编译选项取值:{option}={value}
+nop.err.javac.invalid-output-dir: 非法的编译输出目录:{path}
 nop.err.javac.not-support-transform-to-xlang-ast-fail: 不支持转换到XLang AST语法树节点
 nop.err.javac.parse-fail: 解析java文件失败
+nop.err.javac.source-not-decodable: 源文件无法按指定编码解码:{sourceFile},encoding={encoding}
 nop.err.javaparser.parse-failed: Java解析失败:{parseResult}
 nop.err.json.unknown-bind-expr-type: 未知的绑定表达式类型:{type}
 nop.err.json.unknown-value-pattern-type: 未知的模式类型:{type}
