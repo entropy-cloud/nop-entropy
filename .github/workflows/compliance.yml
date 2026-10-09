@@ -61,3 +61,36 @@ jobs:
         run: node ai-dev/tools/check-silent-wrong-result.mjs --fixture
       - name: Scan nop-message (exit 0 required)
         run: node ai-dev/tools/check-silent-wrong-result.mjs --module nop-message
+
+  xdsl-lint:
+    name: XDSL best-practice lint (nop-xdsl-* rules, baseline 只减不增)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      # xdsl-full-coverage roadmap WI4 (plan 2350): the L1 static rule set over the
+      # nop-stream .stream.xml corpus (38 files, including the _delta layer; the
+      # nop-lint rule-suite fixtures are excluded — they carry their own
+      # TestNopRuleSuites gate). Warnings are captured by the committed baseline:
+      # --baseline-check suppresses the registered stock and enforces 只减不增
+      # (a NEW violation or an unregenerated fix both exit 1); --max-warnings 0 is
+      # load-bearing for warning-severity rules (baseline-check alone would let
+      # fresh warnings through the severity count). 消号 = fix + regenerate the
+      # baseline in the SAME change (stale entries fail the check).
+      - name: Compile nop-lint modules
+        run: mvn -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-nop -DskipTests compile
+      - name: Build nop-lint classpath
+        run: mvn -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
+      - name: Check XDSL declaration-face best practices (nop-xdsl-*)
+        run: |-
+          CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
+          FILES=$(find nop-stream -name "*.stream.xml" -not -path "*/target/*" | sort)
+          java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
+            $FILES \
+            --rules nop-xdsl-watermark-required,nop-xdsl-credential-plaintext,nop-xdsl-delta-derivation,nop-xdsl-edge-partition,nop-xdsl-transform-naming,nop-xdsl-undeclared-consumer \
+            --baseline-check ai-dev/tools/nop-lint-xdsl-baseline.txt --max-warnings 0

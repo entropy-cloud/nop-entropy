@@ -273,6 +273,11 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 
 **L1 静态规则映射（WI2，2026-10-09，全部 warning 上线）**：nop-lint XML 规则集 `nop-xdsl-*` 与本矩阵同源——`nop-xdsl-watermark-required`（R5：window/cep 无水位供给）、`nop-xdsl-credential-plaintext`（R7：固定 kind/attr 候选面的明文凭据）、`nop-xdsl-delta-derivation`（R8 收窄子面：派生模型 transforms x:override=replace 整体重写）、`nop-xdsl-edge-partition`（R9 静态子面：HASH 缺 keyExpr / 非 HASH 带 keyExpr / REBALANCE·BROADCAST 声明）、`nop-xdsl-transform-naming`（R10：kebab-case + 端点命名）、`nop-xdsl-undeclared-consumer`（R12：表 B 无消费方面的静态镜像）。规则目录见 `nop-lint/docs/rule-catalog.md`。**L2 模型感知层（WI3）**：`StreamMaintenanceMain lint` 子命令在解析后模型上一次报齐全部无消费方声明（R1/R12 同源）+ R2/R3/R4/R5 提示面 + R6/R13/R14 显式 SKIP 注记，conf-validate 裁定折叠（见 `03-modules/nop-stream.md` 提交前校验节）。**R13（测试接线）的 L1 半边裁定移交**：nop-lint 单文件 AST 无文件路径/注册表信号，该面随 WI21 场景注册表落地时以仓扫 check 工具实现（roadmap R13 行层标记已同步微调）。存量命中基线（2026-10-09 实扫 38 份 .stream.xml）：R5=1、R10=21 站点（13 坏 id + 8 未命名端点；roadmap v3 记 16 为 distinct-id+端点混合口径）、R12=2（负控夹具）、R7=R8=R9=0。
 
+**消号台账（WI4 门禁接线，2026-10-09）**：两层门禁 + 两份机器台账——
+- **L1**：`.github/workflows/compliance.yml` 的 `xdsl-lint` 作业对 nop-stream 子树 38 份语料（含 `_vfs/_delta` 层；排除 nop-lint 规则套件 fixtures——其归 TestNopRuleSuites 自门禁）跑六规则，nop-lint-xdsl-baseline.txt（仓库 ai-dev/tools/ 目录，24 entries）+ `--baseline-check --max-warnings 0` 只减不增（指纹为诊断内容 sha256，行号漂移不失效；新违规或消号未再生 baseline 均即红）。
+- **L2**：`nop-stream-flow` 的 `TestXdslCorpusLintGate` 仓扫门禁（mvn test 通道）：WARNING 逐站点白名单（R4 存量 7 模型补 `<schemas>` 即消号、R5 存量 1（test-param-agg）补水位即消号、R12 存量 2（WI12/WI15 放行即删））、FAIL 文件级白名单（test 资源树整体 + 5 个 main 资源 demo/quickstart 模型的应用容器 bean 依赖显式登记）、R6/R13/R14 休眠 SKIP 注记不入门禁（激活义务 WI15/WI21）。
+- **消号操作语义**：消号 = 修违规/放行 face + **同 PR** 再生 baseline（L1）或删白名单行（L2）——修违规不再生则 stale entries 即红；新增第 7 条规则时须再生 baseline。warn→error 升级条件 = 对应存量消号完毕（两阶段第二阶段）。
+
 ## 连接器使用指引
 
 现有连接器族（file / message / jdbc / debezium / batch 桥接）的**逐连接器能力矩阵**（方向、交付语义、并行度、恢复语义）见 `03-modules/nop-stream-connectors.md`。使用要点：
