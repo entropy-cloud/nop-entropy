@@ -172,7 +172,9 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **allowedLateness 声明（WI10/D9）**：strategy 级属性或 window 节点级子元素均可声明。allowedLateness > 0 时，迟到记录在 cleanup 时点（window end + allowedLateness）前被接受并重新触发窗口（fire-then-update——迟到更新携带全量聚合）。行为约束：仅 event-time 窗口生效（GlobalWindows / processing-time 路径忽略该声明并保持 eager purge）。
 
-可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）、`sideOutput`（`tag` + 可选 `condition`，复制 tap 语义，见上节）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）、`outputTag`（tag 通道消费边，配对规则见上节）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
+**lateData 迟到数据侧输出（WI10/plan 2356）**：`<window strategyRef="..." lateData="late-tag"/>` 把窗口算子丢弃面（skipped 且 `ts + allowedLateness <= watermark` 的记录，`isElementLate` 联动语义——allowedLateness=0 时越过 watermark 的 skipped 记录即 late）从「计数丢弃」改为「发往 tag 通道」。`<window>` 是 virtual build point（无自有顶点，窗口算子属于下游 `<aggregate>/<reduce>` 宿主），因此消费边从**宿主顶点**出发：`<edge from="<宿主 id>" to="<map|filter|flatMap|process|custom>" outputTag="late-tag"/>`。配对校验全部前移 `validateDag`（`validateSideOutputDeclarations` 扩展，build 期 typed 拒绝）：tag 全局唯一（与 `<sideOutput>` tag / 其他 window lateData tag 撞名 → `nop.err.stream.duplicate-id`）、宿主恰一（0 或 >1 → `nop.err.stream.invalid-arg`，不静默取第一宿主）、消费边恰一、from 必须是宿主（否则 `nop.err.stream.ref-unknown`）、目标类型/partition/keyExpr 约束同 tap 边；`lateData=""` 经 xdef 归一化为未声明（平台级可选 string 属性行为）。锚点：`TestWi10LateDataDeclaration`（结构校验 8 用例）、`TestLateDataSideOutputE2E`（数据面：main=[10,120]、late=[50] 反事实断言 + 变异探针断线必红）。
+
+可用 transform 类型：`source`、`timestampsAndWatermarks`、`map`、`flatMap`、`filter`、`keyBy`（`keyExpr`）、`window`（`strategyRef`、`lateData`）、`aggregate`、`reduce`、`process`、`join`（`joinRef`，引用 `<joins>` 注册表）、`union`（多入边合并）、`cep`（`patternRef`）、`sink`、`custom`（customType）、`sideOutput`（`tag` + 可选 `condition`，复制 tap 语义，见上节）。边属性：`partition`（FORWARD/HASH，HASH 需 `keyExpr`）、`outputTag`（tag 通道消费边，配对规则见上节）等。CEP 模式在 `<patterns>` 块声明（内联 xpl `<where>` 谓词）。
 
    **WI27 非对称窗口 join timeout（2026-10-08）**：`<joins>/<joinSpec>` 支持对称 `timeout` 或非对称 `leftTimeout`/`rightTimeout`（duration 格式，恰一或双声明，与 timeout 互斥，未声明侧缺省 0=窗口末即完成）。语义边界：配对在记录到达时按窗口内叉积 eager 完成，配对集合恒等于对称 min(leftTimeout, rightTimeout) 的配对集合（ksql WITHIN(before,after) 窗偏移语义的 narrowing 转译）；非对称的真实效果是 LEFT 未匹配左的 (L,null) 完成时点解耦到 leftTimeout、长侧缓冲保留至自身 fire 点。窗口 join 仅 INNER/LEFT。
 
@@ -250,6 +252,7 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 | 等值 join | `<joins>`/`joinSpec`（INNER/LEFT/RIGHT/FULL）；window join（INNER/LEFT + duration + `timeout`/`leftTimeout`/`rightTimeout`） | `StreamModelDslBuilder.validateJoinDeclarations`、`AdvancedTransforms.buildJoin` |
 | CEP | `<patterns>` 声明式（量词/where/until/within/gapWithin/skip 策略） | `AdvancedTransforms.buildCep` |
 | sideOutput | `<sideOutput tag condition>` tap 顶点 + `<edge outputTag>` 消费边（配对校验） | `AdvancedTransforms.buildSideOutput`、`StreamModelDslBuilder.validateSideOutputDeclarations` |
+| 窗口迟到数据侧输出（WI10） | `<window lateData="tag">` 声明面：迟到记录（skipped 且 ts+allowedLateness≤wm）经 tag 通道发往宿主顶点的下游 transform；tag 全局唯一/宿主恰一/消费边恰一/from=宿主 校验全部前移 validateDag | `StreamModelDslBuilder.validateSideOutputDeclarations`（lateData 段）、`AdvancedTransforms.buildWindow`（sideOutputLateData 接线） |
 | 事件时间 | `timestampsAndWatermarks`（watermarkStrategyBean 或 xpl assigner+generator 至少一；`watermarkInterval=0` 逐事件） | `AdvancedTransforms.buildTimestampsAndWatermarks` |
 | 边 | FORWARD/HASH+keyExpr；per-transform parallelism | `StreamModelDslBuilder.validateEdgeDeclarations`、`applyDeclaredParallelism` |
 | 类型 | `<schemas>` 受管九类型（string/int/bigint/smallint/tinyint/float/double/boolean/bytes） | `StreamSchemaRegistry.resolveSchemas` |
