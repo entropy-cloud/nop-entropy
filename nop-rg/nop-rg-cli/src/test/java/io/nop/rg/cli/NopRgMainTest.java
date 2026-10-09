@@ -162,22 +162,31 @@ public class NopRgMainTest {
     }
 
     @Test
-    public void testDelegateRgPositiveBridgeUsesSystemRg() throws IOException {
+    public void testDelegatePositiveBridgeUsesSystemRg() throws IOException {
         buildTree();
-        // 正向桥接：经 main 的预解析透传给真实系统 rg 并执行
-        List<String> rgArgs = NopRgMain.buildRgArgs(new String[]{"--delegate-rg", "needle", tempDir.toString()});
-        assertEquals(List.of("rg", "needle", tempDir.toString()), rgArgs);
-        assertEquals(0, NopRgMain.invokeRg(rgArgs));
+        // 系统 rg 对比属测试设施，不在产品命令面内：正向桥接由 SystemRgDelegate 提供
+        List<String> rgArgs = SystemRgDelegate.buildRgArgs(
+                new String[]{"needle", tempDir.toString()});
+        assertEquals(0, SystemRgDelegate.invokeRg(rgArgs));
         // =path 形式指定 rg 可执行路径
-        List<String> custom = NopRgMain.buildRgArgs(new String[]{"--delegate-rg=/custom/rg", "-i", "x"});
+        List<String> custom = SystemRgDelegate.buildRgArgs("/custom/rg", new String[]{"-i", "x"});
         assertEquals(List.of("/custom/rg", "-i", "x"), custom);
     }
 
     @Test
-    public void testDelegateRgMissingBinaryFailsWithCode2() {
+    public void testDelegateMissingBinaryFailsWithCode2() {
         // 可注入测试缝：指向不存在的 rg 可执行文件 → 明确报错 + 退出码 2
-        int code = NopRgMain.invokeRg(List.of(tempDir.resolve("no-such-rg").toString(), "--version"));
+        int code = SystemRgDelegate.invokeRg(
+                List.of(tempDir.resolve("no-such-rg").toString(), "--version"));
         assertEquals(2, code);
+    }
+
+    @Test
+    public void testDelegateRgIsNotPartOfTheProductCommandSurface() {
+        // 回归钉子：--delegate-rg 不得回到 NopRgMain 的命令面
+        String help = new CommandLine(new NopRgMain()).getUsageMessage();
+        assertFalse(help.contains("--delegate-rg"),
+                "--delegate-rg must stay out of the shipped command surface");
     }
 
     /**

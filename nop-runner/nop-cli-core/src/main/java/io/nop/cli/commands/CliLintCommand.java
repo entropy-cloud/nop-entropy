@@ -1,75 +1,37 @@
 package io.nop.cli.commands;
 
+import io.nop.lint.core.cli.NopLintCli;
 import picocli.CommandLine;
 
-import java.io.PrintStream;
+import java.util.List;
 import java.util.concurrent.Callable;
 
+/**
+ * {@code nop-cli lint} —— 将参数原样转交 {@link NopLintCli} 这一命令面。
+ *
+ * <p>与 {@link CliRgCommand} 同理：lint 的 {@code check|match|test} 子命令与全部选项由
+ * {@code NopLintCli}/{@code CliOptions} 自己定义（且其参数解析是 fail-closed 的），本处
+ * 不复述任何选项，只把 {@code lint} 之后的参数整体转发，返回其退出码
+ * （0=OK / 1=violations / 2=internal error）。
+ *
+ * <p>语言绑定与规则库（nop-lint-java / nop-lint-nop）随 uber-jar 分发，
+ * {@code JavaLanguage} 经 ServiceLoader 自动发现，无需在此注册。
+ */
 @CommandLine.Command(
         name = "lint",
-        mixinStandardHelpOptions = true,
-        description = "Lint source files with AST-based pattern matching.",
-        subcommands = {CommandLine.HelpCommand.class}
+        description = "Lint source files with AST-based pattern matching."
 )
 public class CliLintCommand implements Callable<Integer> {
 
-    @CommandLine.Parameters(index = "0", description = "Lint subcommand: check|match|test")
-    String subcommand;
-
-    @CommandLine.Parameters(index = "1..*", description = "Target file or directory paths")
-    String[] targets;
-
-    @CommandLine.Option(names = {"-p", "--profile"}, defaultValue = "fast",
-            description = "Lint profile: fast|standard")
-    private String profile;
-
-    @CommandLine.Option(names = {"-f", "--format"}, defaultValue = "console",
-            description = "Output format: console|sarif|checkstyle-xml|json|junit-xml")
-    private String format;
-
-    @CommandLine.Option(names = {"--fix"}, description = "Apply safe fixes")
-    private boolean fix;
-
-    @CommandLine.Option(names = {"--rules"}, description = "Rule ID filter (repeatable)")
-    private java.util.List<String> rules;
-
-    @CommandLine.Option(names = {"--max-warnings"}, description = "Max allowed warnings")
-    private Integer maxWarnings;
+    @CommandLine.Unmatched
+    List<String> args;
 
     @Override
     public Integer call() {
-        PrintStream out = System.out;
-        PrintStream err = System.err;
-        return ToolBridge.runLint(toArgv(), out, err);
+        return NopLintCli.run(toArgv(), System.out, System.err);
     }
 
     String[] toArgv() {
-        java.util.List<String> args = new java.util.ArrayList<>();
-        args.add(subcommand != null ? subcommand : "check");
-        if (targets != null) {
-            for (String t : targets) {
-                args.add(t);
-            }
-        }
-        if (profile != null && !"fast".equals(profile)) {
-            args.add("--profile");
-            args.add(profile);
-        }
-        if (format != null && !"console".equals(format)) {
-            args.add("--format");
-            args.add(format);
-        }
-        if (fix) args.add("--fix");
-        if (rules != null) {
-            for (String r : rules) {
-                args.add("--rules");
-                args.add(r);
-            }
-        }
-        if (maxWarnings != null) {
-            args.add("--max-warnings");
-            args.add(String.valueOf(maxWarnings));
-        }
-        return args.toArray(new String[0]);
+        return args == null ? new String[0] : args.toArray(new String[0]);
     }
 }

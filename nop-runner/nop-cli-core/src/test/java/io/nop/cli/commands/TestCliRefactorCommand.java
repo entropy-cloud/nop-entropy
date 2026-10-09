@@ -4,17 +4,27 @@ import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Contract tests for the {@code nop-cli refactor} bridge.
+ * Wiring tests for the {@code nop-cli refactor} subcommand.
  *
- * <p>{@code RefactorOptions.parse} owns fail-closed parsing and expects
- * {@code preview|apply --rules <vfs-prefix> [--json] <file|dir>...}. The emitted
- * argv must match that grammar positionally, so a renamed option or reordered
- * argument fails here instead of surfacing as a runtime usage error.
+ * <p>The engine grammar {@code preview|apply --rules <vfs-prefix> [--json] <file|dir>...}
+ * is owned by {@code RefactorOptions.parse} and is fail-closed, so these assert the
+ * arguments survive forwarding untouched and that the engine's own rejection still
+ * reaches the caller as a non-zero exit code.
  */
 public class TestCliRefactorCommand extends JunitBaseTestCase {
+
+    private static CliRefactorCommand commandFor(String... argv) {
+        CliRefactorCommand cmd = new CliRefactorCommand();
+        cmd.args = List.of(argv);
+        return cmd;
+    }
 
     @Test
     void testRegisteredInMainCommand() {
@@ -23,38 +33,27 @@ public class TestCliRefactorCommand extends JunitBaseTestCase {
     }
 
     @Test
-    void testEmitsEngineGrammarOrder() {
-        CliRefactorCommand cmd = new CliRefactorCommand();
-        cmd.mode = "preview";
-        cmd.rules = "demo/rules";
-        cmd.json = false;
-        cmd.targets = new String[]{"src/a.java", "src/b.java"};
-
-        assertArrayEquals(new String[]{
-                "preview", "--rules", "demo/rules", "src/a.java", "src/b.java"
-        }, cmd.toArgv());
+    void testForwardsArgumentsVerbatim() {
+        // options precede positionals in the engine grammar; forwarding must not reorder
+        assertArrayEquals(new String[]{"apply", "--rules", "demo/rules", "--json", "src/a.java"},
+                commandFor("apply", "--rules", "demo/rules", "--json", "src/a.java").toArgv());
     }
 
     @Test
-    void testJsonFlagPrecedesTargets() {
-        CliRefactorCommand cmd = new CliRefactorCommand();
-        cmd.mode = "apply";
-        cmd.rules = "demo/rules";
-        cmd.json = true;
-        cmd.targets = new String[]{"src/a.java"};
-
-        assertArrayEquals(new String[]{
-                "apply", "--rules", "demo/rules", "--json", "src/a.java"
-        }, cmd.toArgv());
-    }
-
-    @Test
-    void testRulesOptionIsRequired() {
-        CommandLine commandLine = new CommandLine(new MainCommand());
-        // --rules is the verified safe surface; omitting it must be rejected at
-        // parse time rather than silently defaulting to some ruleset.
-        assertThrows(CommandLine.ParameterException.class,
-                () -> commandLine.parseArgs("refactor", "preview", "src/a.java"),
-                "refactor without --rules must fail closed");
+    void testMissingRulesFailsClosed() {
+        // --rules is the verified safe surface: the engine must reject the run, and that
+        // rejection must not be reported as success.
+        ByteArrayOutputStream err = new ByteArrayOutputStream();
+        PrintStream originalErr = System.err;
+        System.setErr(new PrintStream(err));
+        int exit;
+        try {
+            exit = commandFor("preview", "src").call();
+        } finally {
+            System.setErr(originalErr);
+        }
+        assertEquals(2, exit, "a refactor run without --rules must exit 2, not 0");
+        assertTrue(err.toString().contains("--rules"),
+                "the engine's usage message must reach stderr: " + err);
     }
 }

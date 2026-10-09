@@ -209,7 +209,7 @@ JFR 配置文件 `nop-rg-jfr.jfc` 包含：
 
 ## 六、与外部系统的关系
 
-- **ripgrep**：默认行为参考对象，`--delegate-rg` 可委托执行
+- **ripgrep**：默认行为参考对象（语义对齐目标）。**不做运行时委托**：命令面不提供 `--delegate-rg` 一类的外部二进制开关，A/B 对比由 nop-rg-cli test scope 的 `SystemRgDelegate` 承担，以免工具运行时依赖宿主机预装 ripgrep、并在命令面引入第二条语义迥异的执行路径。
 - **nop-search**：不依赖、不交互，服务不同场景（文件扫描 vs 索引搜索）
 - **nop-core**：复用 `GitIgnoreFile`（从 `nop-ai-code-analyzer` 抽取到 `io.nop.core.git`）
 - **JGit**：参考其 FastIgnoreRule 设计思路，不引入依赖
