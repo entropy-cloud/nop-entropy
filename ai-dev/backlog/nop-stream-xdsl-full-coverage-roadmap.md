@@ -98,7 +98,7 @@ audit-rounds: 0
 | R10 | 命名与文档：transform id 用 kebab-case 语义命名（不含物理表名/环境名）；source/sink 须命名；关键节点须有 `description`（存量 16） | L1 | warning | id 形态正则 + 必填属性缺失 |
 | R11 | 提交前可验证：作业模型须能通过 `conf-validate` 与 `dry-run`（检查器串联两命令为 CI 步骤）；**by-design 负控夹具登记白名单后方可达 error**（白名单化归 WI4 消号台账，存量 5） | L2 | warning → error | 两命令退出码 + 负控夹具白名单 |
 | R12 | 无声明无消费：模型不得声明无执行消费方元素（随 WI5–WI16 放行逐项转正；存量 2 为负控夹具） | L1+L2 | warning → info | 与构建期 fail-fast 面清单同源比对 |
-| R13 | 测试接线：已登记场景（E1–E12）的 fixture 必须在场景注册表内且有对应单测；修改 fixture 必须同步测试 | L1+L2 | warning → error | fixture 清单 ↔ 测试类注册表双向比对 |
+| R13 | 测试接线：已登记场景（E1–E12）的 fixture 必须在场景注册表内且有对应单测；修改 fixture 必须同步测试 | CI+L2（WI2 裁定：L1 单文件 AST 无文件路径/注册表信号，原 L1 半边随 WI21 注册表落地以仓扫 check 工具实现） | warning → error | fixture 清单 ↔ 测试类注册表双向比对 |
 | R14 | 平台复用：静态维表必须走 `IJdbcTemplate`/`IBatchLoader` 而非自建数据源；checkpoint/凭据/消息复用平台设施（依据 `ai-dev/design/nop-stream/00-vision.md` §三 #8 与 §十，以及 sql-subset-and-semantics 承袭该两条的裁定） | L2 | warning | 维表接线形态（bean 类型声明 + 自建连接检测） |
 
 ## Work Item Status
@@ -112,7 +112,7 @@ audit-rounds: 0
 ### M1 — 契约基线与检查门（先行，后续放行的唯一权威底账）
 
 - [x] WI1 声明面-消费方契约清单与 fail-fast 钉子基线（2026-10-09，plan 2347：9 钉补齐 + user-guide 声明面支持矩阵两表 + Baseline 指针移交；audit agent_dc5c2a79 APPROVE）：把 Current Baseline 的 fail-fast 锚点表与已实现面固化为 owner doc 清单（XDSL 章节新增「声明面支持矩阵」），每类 fail-fast 补一个构建期钉子测试，作为后续逐项放行的唯一底账（Deliverable: 清单落 `docs-for-ai/03-modules/nop-stream-user-guide.md` + 钉子测试套件；deps: 无；Item Type: Proof）
-- [ ] WI2 XDSL 最佳实践检查第一层（nop-lint XML 规则集：R5 水位声明 / R7 凭据明文 / R8 Delta 化 / R9 并行度与边 / R10 命名与描述 / R12 无声明无消费 / R13 测试接线静态面）：`nop/xdsl-*` 规则 + 规则单测 + **两处硬编码 census 断言同步**（TestProductionRuleCount 条数、TestNopRuleSuites.EXPECTED_RULE_IDS）+ `gen-lint-rule-catalog.mjs` 再生成过 `--check` 门禁；确认规则能匹配 XDSL 节点族（`<window>`/`<edge>`/`<joinSpec>` 等，`.stream.xml` 已按末段扩展名归入 xml 扫描）（Deliverable: 规则集 + 单测 + census 同步 + 目录再生成；deps: WI1；Item Type: Feature + Proof）
+- [x] WI2 XDSL 最佳实践检查第一层（2026-10-09，plan 2348：6 条 nop-xdsl-* 规则 + suite 正控 + census 76 + 存量试扫对表零偏差；R13 L1 半边裁定移交 WI21 仓扫工具；audit agent_c3314554 APPROVE）（nop-lint XML 规则集：R5 水位声明 / R7 凭据明文 / R8 Delta 化 / R9 并行度与边 / R10 命名与描述 / R12 无声明无消费 / R13 测试接线静态面）：`nop/xdsl-*` 规则 + 规则单测 + **两处硬编码 census 断言同步**（TestProductionRuleCount 条数、TestNopRuleSuites.EXPECTED_RULE_IDS）+ `gen-lint-rule-catalog.mjs` 再生成过 `--check` 门禁；确认规则能匹配 XDSL 节点族（`<window>`/`<edge>`/`<joinSpec>` 等，`.stream.xml` 已按末段扩展名归入 xml 扫描）（Deliverable: 规则集 + 单测 + census 同步 + 目录再生成；deps: WI1；Item Type: Feature + Proof）
 - [ ] WI3 XDSL 最佳实践检查第二层（模型感知 lint 子命令：R1 模型层一致性 / R2 声明式优先退化提示 / R3 状态归属 / R4 类型声明 / R5 水位供给 / R6 幂等组合预检 / R11 串联 conf-validate+dry-run / R14 平台复用 / R12 与 R13 的模型感知半边（fail-fast 面同源比对 + 场景注册表双向比对））：`StreamMaintenanceMain lint` 子命令（沿用既有子命令形态与退出码 0/1/2），复用构建期 StreamModel 解析链，错误面复用既有 `nop.err.stream.*` 码（零新增码，对齐 sql roadmap §4d 纪律）（Deliverable: 子命令 + 规则实现 + 单测 + 运维文档；deps: WI1；Item Type: Feature）
 - [ ] WI4 检查门禁接线与存量基线梯度：CI 接线（lint 子命令 + nop-lint 规则两道）+ 存量 `.stream.xml` 全量扫描 + warn→error 两阶段基线登记（以 Current Baseline 基线行为起点，负控夹具白名单化归本 WI）（Deliverable: CI 配置 + 存量违规清单（含负控白名单）+ 消号台账；deps: WI2 + WI3；Item Type: Feature + Proof）
 

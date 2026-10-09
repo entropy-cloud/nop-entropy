@@ -159,7 +159,14 @@ public class TestNopRuleSuites {
             "nop-xbiz-auth-not-sole-guard",
             "nop-orm-unique-key",
             "nop-bean-naming",
-            "nop-orm-icons");
+            "nop-orm-icons",
+            // xdsl-full-coverage roadmap WI2 (plan 2348): XDSL L1 static rules
+            "nop-xdsl-watermark-required",
+            "nop-xdsl-credential-plaintext",
+            "nop-xdsl-delta-derivation",
+            "nop-xdsl-edge-partition",
+            "nop-xdsl-transform-naming",
+            "nop-xdsl-undeclared-consumer");
 
     @BeforeAll
     static void init() {

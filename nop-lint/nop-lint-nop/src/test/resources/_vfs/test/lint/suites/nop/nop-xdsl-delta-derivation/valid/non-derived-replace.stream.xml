@@ -1,0 +1,9 @@
+<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="non-derived" version="1">
+    <transforms x:override="replace">
+        <source id="src" name="in" bean="srcBean"/>
+        <sink id="out" name="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e1" from="src" to="out"/>
+    </edges>
+</stream>

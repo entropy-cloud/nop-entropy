@@ -107,7 +107,14 @@ public class TestProductionRuleCount {
             "nop-bean-naming",
             "nop-orm-icons",
             // item 7 (plan nop-lint/23): resource-leak v1 pilots
-            "quality/closeable-not-closed");
+            "quality/closeable-not-closed",
+            // xdsl-full-coverage roadmap WI2 (plan 2348): XDSL L1 static rules
+            "nop-xdsl-watermark-required",
+            "nop-xdsl-credential-plaintext",
+            "nop-xdsl-delta-derivation",
+            "nop-xdsl-edge-partition",
+            "nop-xdsl-transform-naming",
+            "nop-xdsl-undeclared-consumer");
 
     @BeforeAll
     static void init() {
@@ -131,8 +138,9 @@ public class TestProductionRuleCount {
         // item 7 (plan 23): one resource-leak v1 pilot added, 69 -> 70
         // (finally-missing-close dropped: xscript DSL lacks multi-descendant
         // enumeration and regex-literal exec — the face is covered by
-        // closeable-not-closed which flags any resource without a close call)
-        assertEquals(70, ids.size(), "production rule census size");
+        // closeable-not-closed which flags any resource without a close call);
+        // xdsl-full-coverage roadmap WI2 (plan 2348): +6 XDSL L1 rules -> 76
+        assertEquals(76, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

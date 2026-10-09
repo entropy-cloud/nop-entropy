@@ -1,0 +1,13 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: nop-xdsl-transform-naming
+    messageContains: "kebab-case"
+  - line: 3
+    endLine: 3
+    ruleId: nop-xdsl-transform-naming
+    messageContains: "name"
+  - line: 5
+    endLine: 5
+    ruleId: nop-xdsl-transform-naming
+    messageContains: "kebab-case"

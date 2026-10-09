@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/nop/nop-xdsl-edge-partition.rule.yml
