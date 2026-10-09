@@ -17,7 +17,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * 验证全局事务 endAsync 的补偿路由语义：
  * 成功→confirm；业务异常/失败响应/分支 rollbackOnly→cancel；
- * CONFIRMING/CONFIRM_FAILED 中间态必须续跑 confirm；CANCELLING 中间态拒绝再 confirm。
+ * CONFIRMING/CONFIRM_FAILED 中间态必须续跑 confirm；
+ * CANCELLING/CANCEL_FAILED 中间态必须续跑 cancel（cancel 开始后不允许 confirm——
+ * P1-3.8-004，plan 2388：原断言「零 RPC no-op」固化了恢复死锁缺陷，随修复改写）。
  */
 @Timeout(10)
 public class TestTccTransactionEndStates {
@@ -144,6 +146,11 @@ public class TestTccTransactionEndStates {
         FakeTccRecordStore.assertStatus(branch, TccStatus.CONFIRM_SUCCESS);
     }
 
+    /**
+     * P1-3.8-004（plan 2388）：CANCELLING 中间态——即使调用方报告业务成功也必须续跑 cancel
+     * （cancel 开始后不允许 confirm），confirm 方法不得被调用。修复前本用例锚定
+     * 「no-op + 零 RPC」——恢复路径死锁的缺陷契约。
+     */
     @Test
     public void testCancellingStateRejectsConfirm() throws Exception {
         Fixture f = new Fixture();
@@ -153,10 +160,12 @@ public class TestTccTransactionEndStates {
         f.newTxn(record).endAsync(false, ApiResponse.success("ok"), null)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        assertEquals(TccStatus.CANCELLING, record.getTccStatus(),
-                "cancelling txn must not be re-confirmed");
-        assertEquals(List.of(), f.invoker.methods,
-                "no rpc may be invoked when state guard blocks confirm");
+        assertEquals(TccStatus.CANCEL_SUCCESS, record.getTccStatus(),
+                "cancelling txn must resume cancel to a terminal state (P1-3.8-004)");
+        assertEquals(List.of("svc__cancelMethod"), f.invoker.methods,
+                "cancel method is invoked to complete the started cancellation");
+        assertTrue(!f.invoker.methods.contains("svc__confirmMethod"),
+                "confirm must never be invoked once cancelling has begun");
     }
 
     @Test
