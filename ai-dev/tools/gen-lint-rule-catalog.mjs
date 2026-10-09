@@ -128,9 +128,10 @@ function selfTest() {
   const generated = generateCatalog(rules);
   // facet review (roadmap item 2): 62 -> 58; item 3a (plan 17): +4 -> 62;
   // item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 -> 69;
-  // item 7 (plan 23): +1 resource-leak v1 pilot -> 70
-  if (rules.length !== 70) {
-    console.error('self-test expected the 62-rule library, found ' + rules.length);
+  // item 7 (plan 23): +1 resource-leak v1 pilot -> 70;
+  // xdsl-full-coverage roadmap WI2 (plan 2348): +6 XDSL L1 rules -> 76
+  if (rules.length !== 76) {
+    console.error('self-test expected the 76-rule library, found ' + rules.length);
     process.exit(2);
   }
 
