@@ -39,6 +39,19 @@ public final class XplFunctionSupport {
     }
 
     /**
+     * WI11 (plan 2357): call scope with static bindings — the declarative side-input
+     * snapshots ({@code sideInputs.<id>} access) plus any future build-time-frozen
+     * bindings. The map's entries are bound as scope variables; {@code null} bindings
+     * behave exactly like {@link #newCallScope()}.
+     */
+    public static IEvalScope newCallScope(java.util.Map<String, Object> bindings) {
+        if (bindings == null || bindings.isEmpty()) {
+            return ROOT_SCOPE.newChildScope();
+        }
+        return ROOT_SCOPE.newChildScope(bindings);
+    }
+
+    /**
      * Convert the xpl body return value to a {@code boolean}. Used by filter
      * functions ({@code xpl-fn:(event)=>boolean}).
      */

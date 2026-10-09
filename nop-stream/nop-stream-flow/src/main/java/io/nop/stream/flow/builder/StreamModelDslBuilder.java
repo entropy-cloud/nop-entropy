@@ -55,6 +55,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalFunction;
@@ -89,6 +90,7 @@ import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamFilterModel;
 import io.nop.stream.flow.model.StreamFlatMapModel;
+import io.nop.stream.flow.model.StreamSideInputModel;
 import io.nop.stream.core.model.JoinType;
 import io.nop.stream.flow.model.StreamJoinModel;
 import io.nop.stream.flow.model.StreamJoinSpecModel;
@@ -153,6 +155,15 @@ public final class StreamModelDslBuilder {
     private Consumer<StreamExecutionEnvironment> preBuildEnvironmentConfigurer;
 
     private final Map<String, Object> streamRegistry = new LinkedHashMap<>();
+
+    /**
+     * WI11 (plan 2357): per-target-transform xpl bindings — the declared side-input
+     * snapshots frozen at build time. Key = target transform id; value = the binding
+     * map handed to {@code XplFunctionSupport.newCallScope} ({@code sideInputs} →
+     * snapshot Map keyed by sideInput id). Populated by {@link #materializeSideInputs}
+     * after validation; consumed by the map/filter/flatMap build paths.
+     */
+    private final Map<String, Map<String, Object>> sideInputScopes = new LinkedHashMap<>();
 
     private StreamModelDslBuilder(StreamModel model, BeanFunctionResolver beanResolver) {
         if (model == null) {
@@ -443,11 +454,9 @@ public final class StreamModelDslBuilder {
                     .param(ARG_DETAIL, "<streams> registry has no execution consumer")
                     .loc(model.getLocation());
         }
-        if (model.hasSideInputs()) {
-            throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<sideInputs> registry has no execution consumer")
-                    .loc(model.getLocation());
-        }
+        // WI11 (plan 2357): <sideInputs> released — validated and materialized by
+        // validateSideInputs/materializeSideInputs, injected into the xpl-fn call
+        // scopes of its target transforms. The NOT_IMPLEMENTED gap is gone.
         if (model.hasEnvironments()) {
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
                     .param(ARG_DETAIL, "<environments> registry has no execution consumer")
@@ -489,6 +498,13 @@ public final class StreamModelDslBuilder {
         Map<String, StreamTransformModel> byId = new LinkedHashMap<>();
         Map<String, Set<String>> upstreams = new HashMap<>();
         List<StreamEdgeModel> edges = validateDag(byId, upstreams);
+
+        // WI11 (plan 2357): structural side-input checks first (validateDag stage, all
+        // typed rejects), then the build-time snapshot materialization — each declared
+        // sideInput's Supplier bean is resolved and get()-invoked exactly once here,
+        // freezing the read-only snapshot into the xpl call scopes of its target.
+        validateSideInputs(byId);
+        materializeSideInputs();
 
         List<StreamTransformModel> ordered = topologicalOrderTransforms(byId, upstreams, edges);
 
@@ -889,6 +905,134 @@ public final class StreamModelDslBuilder {
                                 + " partitioning and cannot re-key the tag channel")
                         .loc(consumer.getLocation());
             }
+        }
+    }
+
+    /**
+     * WI11 (plan 2357): structural checks for {@code <sideInputs>} declarations.
+     * Runs in validateDag — BEFORE any build-loop work — so every failure is a typed
+     * reject with the declaring element's location. Seven checks:
+     * <ol>
+     *   <li>duplicate sideInput id (ERR_STREAM_DUPLICATE_ID),</li>
+     *   <li>{@code broadcast="false"} — including the shape where the attribute is
+     *       omitted and the xdef legacy default (false) is back-filled. Only the
+     *       broadcast=true injection style (snapshot copied to every parallel
+     *       instance at build time) is supported; no streaming broadcast exists
+     *       (vision §七 #G36) (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>the {@code to} transform does not exist (ERR_STREAM_REF_UNKNOWN),</li>
+     *   <li>the {@code to} transform is not a map/filter/flatMap (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>the {@code to} transform is a bean-form map/filter/flatMap — the sideInput
+     *       binding can only reach an xpl-fn body; a bean-form function would silently
+     *       never see the snapshot, so the detectable shape is rejected instead of
+     *       degrading (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>the {@code from} bean does not exist (ERR_STREAM_BEAN_NOT_FOUND),</li>
+     *   <li>the {@code from} bean is not a {@code Supplier} (ERR_STREAM_BEAN_TYPE_MISMATCH).</li>
+     * </ol>
+     */
+    private void validateSideInputs(Map<String, StreamTransformModel> byId) {
+        if (!model.hasSideInputs()) {
+            return;
+        }
+        Set<String> ids = new HashSet<>();
+        for (StreamSideInputModel si : model.getSideInputs()) {
+            if (!ids.add(si.getId())) {
+                throw new StreamException(ERR_STREAM_DUPLICATE_ID)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_ID, si.getId())
+                        .param(ARG_DETAIL, "sideInput id '" + si.getId()
+                                + "' is declared twice; a sideInput id is the binding key"
+                                + " consumers use to reach the snapshot")
+                        .loc(si.getLocation());
+            }
+            if (!si.isBroadcast()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_DETAIL, "sideInput '" + si.getId() + "' declares broadcast=false"
+                                + " (or omits the attribute and inherits the legacy xdef default"
+                                + " false); only broadcast=true is supported — the snapshot is"
+                                + " materialized at build time and copied to every parallel"
+                                + " instance; no streaming broadcast exists (vision §七 #G36)")
+                        .loc(si.getLocation());
+            }
+            StreamTransformModel target = byId.get(si.getTo());
+            if (target == null) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_REF_TYPE, "transform").param(ARG_REF_NAME, si.getTo())
+                        .param(ARG_DETAIL, "sideInput '" + si.getId() + "' targets transform '"
+                                + si.getTo() + "' which does not exist")
+                        .loc(si.getLocation());
+            }
+            if (!(target instanceof StreamMapModel || target instanceof StreamFilterModel
+                    || target instanceof StreamFlatMapModel)) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_DETAIL, "sideInput '" + si.getId() + "' targets transform '"
+                                + si.getTo() + "' of type "
+                                + target.getClass().getSimpleName()
+                                + "; a side-input snapshot can only be injected into the xpl-fn"
+                                + " body of a map/filter/flatMap transform")
+                        .loc(si.getLocation());
+            }
+            if (target.getBean() != null) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_DETAIL, "sideInput '" + si.getId() + "' targets transform '"
+                                + si.getTo() + "' which declares bean=\"" + target.getBean()
+                                + "\"; a bean-form function is assembled by IoC and can never"
+                                + " see the side-input binding — switch the target to an xpl-fn"
+                                + " body or read the snapshot in the bean's own wiring")
+                        .loc(si.getLocation());
+            }
+            String from = si.getFrom();
+            if (!beanResolver().contains(from)) {
+                throw new StreamException(ERR_STREAM_BEAN_NOT_FOUND)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_BEAN_NAME, from)
+                        .loc(si.getLocation());
+            }
+            try {
+                beanResolver().resolve(from, Supplier.class);
+            } catch (StreamException e) {
+                // Re-anchor the resolver's typed error to the declaring element so the
+                // diagnosis points at the offending <sideInput> line.
+                throw e.loc(si.getLocation());
+            }
+        }
+    }
+
+    /**
+     * WI11 (plan 2357): build-time snapshot materialization. Every declared
+     * sideInput's {@code Supplier} bean is invoked exactly once here — the returned
+     * map is the frozen read-only snapshot (low-frequency refresh = restart the job).
+     * Targets that collect multiple sideInputs see the union under the single
+     * {@code sideInputs} binding. A null snapshot is a typed error, never an empty
+     * map: a silently-empty dictionary would look exactly like missing data.
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void materializeSideInputs() {
+        if (!model.hasSideInputs()) {
+            return;
+        }
+        Map<String, Map<String, Object>> snapshotsByTarget = new LinkedHashMap<>();
+        for (StreamSideInputModel si : model.getSideInputs()) {
+            Supplier<Map<String, Object>> supplier =
+                    beanResolver().resolve(si.getFrom(), Supplier.class);
+            Map<String, Object> snapshot = supplier.get();
+            if (snapshot == null) {
+                throw new StreamException(ERR_STREAM_NULL_ARG)
+                        .param(ARG_ELEMENT, elementDesc(si))
+                        .param(ARG_ARG_NAME, "sideInput snapshot bean '" + si.getFrom() + "'")
+                        .param(ARG_DETAIL, "the Supplier returned null — declare an empty map"
+                                + " explicitly if the table is genuinely empty")
+                        .loc(si.getLocation());
+            }
+            snapshotsByTarget.computeIfAbsent(si.getTo(), k -> new LinkedHashMap<>())
+                    .put(si.getId(), snapshot);
+        }
+        for (Map.Entry<String, Map<String, Object>> entry : snapshotsByTarget.entrySet()) {
+            sideInputScopes.put(entry.getKey(),
+                    Collections.singletonMap("sideInputs", entry.getValue()));
         }
     }
 
@@ -1410,21 +1554,27 @@ public final class StreamModelDslBuilder {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T, R> SingleOutputStreamOperator<R> buildMap(DataStream<?> in, StreamMapModel t) {
         MapFunction<T, R> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
-                MapFunction.class, XplMapFunction::new);
+                MapFunction.class,
+                // WI11: the xpl branch injects the frozen side-input snapshots under
+                // the `sideInputs` binding (null when the transform is not a declared
+                // sideInput target — identical behavior to the plain wrapper).
+                body -> new XplMapFunction<>(body, sideInputScopes.get(t.getId())));
         return applyDeclaredParallelism(((DataStream<T>) in).map((MapFunction) fn), t);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T> SingleOutputStreamOperator<T> buildFilter(DataStream<?> in, StreamFilterModel t) {
         FilterFunction<T> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
-                FilterFunction.class, XplFilterFunction::new);
+                FilterFunction.class,
+                body -> new XplFilterFunction<>(body, sideInputScopes.get(t.getId())));
         return applyDeclaredParallelism(((DataStream<T>) in).filter((FilterFunction) fn), t);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     private <T, R> SingleOutputStreamOperator<R> buildFlatMap(DataStream<?> in, StreamFlatMapModel t) {
         FlatMapFunction<T, R> fn = resolveFunctionOrXpl(t, t.getBean(), t.getSource(),
-                FlatMapFunction.class, XplFlatMapFunction::new);
+                FlatMapFunction.class,
+                body -> new XplFlatMapFunction<>(body, sideInputScopes.get(t.getId())));
         return applyDeclaredParallelism(((DataStream<T>) in).flatMap((FlatMapFunction) fn), t);
     }
 
@@ -1499,6 +1649,15 @@ public final class StreamModelDslBuilder {
 
     BeanFunctionResolver beanResolver() {
         return beanResolver;
+    }
+
+    /**
+     * WI11 (plan 2357): test-visible view of the sideInput consumer registration —
+     * the transform ids whose xpl-fn bodies will receive the {@code sideInputs}
+     * binding. Empty when the model declares no sideInputs.
+     */
+    java.util.Set<String> sideInputScopeTargetIds() {
+        return sideInputScopes.keySet();
     }
 
     /**
@@ -1659,6 +1818,14 @@ public final class StreamModelDslBuilder {
             name = name.substring(0, name.length() - "Model".length());
         }
         return name.toLowerCase() + " '" + t.getId() + "'";
+    }
+
+    /**
+     * WI11 (plan 2357): same shape as {@link #elementDesc(StreamTransformModel)} for a
+     * registry declaration that is not a graph transform (sideInput).
+     */
+    static String elementDesc(StreamSideInputModel si) {
+        return "sideInput '" + si.getId() + "'";
     }
 
     static NopException beanNotFound(String beanName) {

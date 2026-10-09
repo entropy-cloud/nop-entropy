@@ -69,11 +69,14 @@ public final class StreamModelLinter {
         } catch (Exception e) {
             // short-circuit: the folded conf-validator run would report the same
             // parse failure — emit exactly one authoritative FAIL, no face scan.
+            // e.toString() keeps the exception class name in the single-issue text
+            // (the report is the user-facing surface; a stack adds nothing for a
+            // DSL syntax error whose location the xdef layer already carries).
             String code = (e instanceof NopException)
                     ? ((NopException) e).getErrorCode()
                     : CODE_INVALID_ARG;
             report.add(ValidationIssue.of(StreamConfValidator.LAYER_MODEL, resource.getPath(),
-                    code, null, "model parse failed: " + e.getMessage()));
+                    code, null, "model parse failed: " + e));
             return report;
         }
         scanFaces(model, report);
@@ -269,10 +272,9 @@ public final class StreamModelLinter {
             report.add(ValidationIssue.warning(LAYER_LINT, "<streams>", CODE_NOT_IMPLEMENTED,
                     "<streams> registry has no execution consumer (roadmap WI12 release face)"));
         }
-        if (model.hasSideInputs()) {
-            report.add(ValidationIssue.warning(LAYER_LINT, "<sideInputs>", CODE_NOT_IMPLEMENTED,
-                    "<sideInputs> registry has no execution consumer (roadmap WI11 release face)"));
-        }
+        // WI11 (plan 2357): <sideInputs> released — validated/materialized by
+        // StreamModelDslBuilder (validateSideInputs/materializeSideInputs); the
+        // NOT_IMPLEMENTED lint warning is gone.
         if (model.hasEnvironments()) {
             report.add(ValidationIssue.warning(LAYER_LINT, "<environments>", CODE_NOT_IMPLEMENTED,
                     "<environments> registry has no execution consumer (roadmap WI12 release face)"));

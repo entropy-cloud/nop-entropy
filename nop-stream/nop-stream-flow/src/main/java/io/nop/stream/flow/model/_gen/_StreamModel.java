@@ -144,7 +144,14 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     /**
      *  
      * xml name: sideInputs
-     * ==================== 侧输入（Side Input，流间引用） ====================
+     * WI11（plan 2357，WI0(c) 裁定语义）：有限维表构建期只读快照注入——
+     * from 是 bean id（类型 java.util.function.Supplier<Map<String,Object>>），
+     * builder 构建期调用 get() 一次物化快照并冻结（低频更新=重启作业刷新）；
+     * to 是消费 transform 的 id，仅限 map/filter/flatMap 的 xpl-fn 形态（bean
+     * 形态 typed 拒绝——绑定无法注入 IoC 装配的函数）；消费端 xpl 体经
+     * sideInputs 绑定变量访问（key=sideInput id）。broadcast 是注入方式标记：
+     * 仅支持 true（快照复制到所有并行实例）；xdef 默认值 false 为历史遗留、
+     * 现 typed 拒绝。无流式广播、无 BroadcastState（vision §七 #G36）。
      */
     private KeyedList<io.nop.stream.flow.model.StreamSideInputModel> _sideInputs = KeyedList.emptyList();
     
@@ -671,7 +678,14 @@ public abstract class _StreamModel extends io.nop.core.resource.component.Abstra
     /**
      * 
      * xml name: sideInputs
-     *  ==================== 侧输入（Side Input，流间引用） ====================
+     *  WI11（plan 2357，WI0(c) 裁定语义）：有限维表构建期只读快照注入——
+     * from 是 bean id（类型 java.util.function.Supplier<Map<String,Object>>），
+     * builder 构建期调用 get() 一次物化快照并冻结（低频更新=重启作业刷新）；
+     * to 是消费 transform 的 id，仅限 map/filter/flatMap 的 xpl-fn 形态（bean
+     * 形态 typed 拒绝——绑定无法注入 IoC 装配的函数）；消费端 xpl 体经
+     * sideInputs 绑定变量访问（key=sideInput id）。broadcast 是注入方式标记：
+     * 仅支持 true（快照复制到所有并行实例）；xdef 默认值 false 为历史遗留、
+     * 现 typed 拒绝。无流式广播、无 BroadcastState（vision §七 #G36）。
      */
     
     public java.util.List<io.nop.stream.flow.model.StreamSideInputModel> getSideInputs(){
