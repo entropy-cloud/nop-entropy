@@ -277,8 +277,14 @@ public final class StreamModelLinter {
         // StreamModelDslBuilder (validateSideInputs/materializeSideInputs); the
         // NOT_IMPLEMENTED lint warning is gone.
         if (model.getOnStart() != null || model.getOnEnd() != null || model.getOnError() != null) {
+            // WI13 (plan 2359): the roadmap WI13 release-face note is retired — the
+            // face is adjudicated Java-only (runtime job event bus is the designated
+            // wiring seam; four gaps block the DSL wiring, see the builder message).
             report.add(ValidationIssue.warning(LAYER_LINT, "<onStart>/<onEnd>/<onError>",
-                    CODE_NOT_IMPLEMENTED, "lifecycle callbacks have no consumer (roadmap WI13 release face)"));
+                    CODE_NOT_IMPLEMENTED, "lifecycle callbacks are a Java-only surface: the"
+                            + " runtime job event bus is the designated wiring seam, but the"
+                            + " streamCtx type, onStart timing contract, local-execute bus"
+                            + " coverage and owner authorization are not in place yet"));
         }
         if (model.hasCoders()) {
             report.add(ValidationIssue.warning(LAYER_LINT, "<coders>", CODE_NOT_IMPLEMENTED,

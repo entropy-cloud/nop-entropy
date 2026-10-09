@@ -668,8 +668,18 @@ public final class StreamModelDslBuilder {
         // buildTransforms, when function beans are resolved). The <coders> registry
         // STAYS a Java-only surface (see the message below).
         if (model.getOnStart() != null || model.getOnEnd() != null || model.getOnError() != null) {
+            // WI13 (plan 2359): lifecycle callbacks are a Java-only surface for now.
+            // The runtime already has a job event bus (StreamJobEvent
+            // JOB_STARTED/JOB_FINISHED/JOB_FAILED), but the declarative wiring lacks
+            // the streamCtx context type, the onStart timing design, a bus on the
+            // local execute() path, and an owner authorization — so the DSL surface
+            // stays fail-fast until those four gaps close.
             throw new StreamException(ERR_STREAM_NOT_IMPLEMENTED)
-                    .param(ARG_DETAIL, "<onStart>/<onEnd>/<onError> lifecycle callbacks")
+                    .param(ARG_DETAIL, "lifecycle callbacks are a Java-only surface: the"
+                            + " runtime job event bus (StreamJobEventBus) is the designated"
+                            + " wiring seam, but the streamCtx context type, the onStart timing"
+                            + " contract, the local-execute bus coverage and the owner"
+                            + " authorization are not in place yet")
                     .loc(model.getLocation());
         }
         // WI8b: <schemas> declaration surface now has a consumer — fields resolve to
