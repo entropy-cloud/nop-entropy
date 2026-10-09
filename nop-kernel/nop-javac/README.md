@@ -148,19 +148,20 @@ io.nop.javac/
 ## Key Interfaces
 
 ### IJavaCompileTool
-Main interface for Java compilation operations:
-- `compileAndLoadClass()`: Compiles and loads a class
-- `compile()`: Compiles source code without loading
-- `parseSource()`: Parses source code without compiling
+Janino-backed tool interface. It carries **no compilation method** — compilation lives on the
+concrete `io.nop.javac.jdk.JdkJavaCompiler` class, not on this interface.
+- `createDynamicClassLoader(ClassLoader parentLoader, JavaLibConfig config)`: Creates a Janino dynamic class loader
+- `parseJavaSource(SourceLocation loc, String source)` (inherited from `IJavaSourceParser`): Parses source code
 
 ### IJavaSourceParser
 Interface for parsing Java source code:
-- `parse()`: Parses Java source code into a structured result
+- `parseJavaSource(SourceLocation loc, String source)`: Parses Java source code into a structured result
 
 ### IDynamicClassLoader
 Interface for dynamic class loading:
-- `addURL()`: Adds a URL to the classpath
-- `loadClass()`: Loads a class dynamically
+- `loadClass(String name)`: Loads a class dynamically
+- `isClosed()`: Reports whether the loader has been closed
+- `close()`: Releases resources held by the loader (`AutoCloseable`)
 
 ## Dependencies
 
