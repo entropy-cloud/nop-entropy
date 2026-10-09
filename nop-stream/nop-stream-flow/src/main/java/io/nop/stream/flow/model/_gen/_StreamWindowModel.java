@@ -25,6 +25,13 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
     
     /**
      *  
+     * xml name: evictorId
+     * 
+     */
+    private java.lang.String _evictorId ;
+    
+    /**
+     *  
      * xml name: strategyRef
      * 
      */
@@ -59,6 +66,25 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         checkAllowChange();
         
         this._allowedLateness = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: evictorId
+     *  
+     */
+    
+    public java.lang.String getEvictorId(){
+      return _evictorId;
+    }
+
+    
+    public void setEvictorId(java.lang.String value){
+        checkAllowChange();
+        
+        this._evictorId = value;
            
     }
 
@@ -136,6 +162,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         super.outputJson(out);
         
         out.putNotNull("allowedLateness",this.getAllowedLateness());
+        out.putNotNull("evictorId",this.getEvictorId());
         out.putNotNull("strategyRef",this.getStrategyRef());
         out.putNotNull("triggerId",this.getTriggerId());
         out.putNotNull("type",this.getType());
@@ -151,6 +178,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         super.copyTo(instance);
         
         instance.setAllowedLateness(this.getAllowedLateness());
+        instance.setEvictorId(this.getEvictorId());
         instance.setStrategyRef(this.getStrategyRef());
         instance.setTriggerId(this.getTriggerId());
         instance.setType(this.getType());

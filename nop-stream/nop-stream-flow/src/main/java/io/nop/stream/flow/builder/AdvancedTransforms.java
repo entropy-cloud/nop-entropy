@@ -254,6 +254,19 @@ final class AdvancedTransforms {
                             + "an explicit triggerId on the same window is a conflict — drop one of the two")
                     .loc(t.getLocation());
         }
+        String nodeEvictorId = m.getEvictorId();
+        String strategyEvictorId = strategy.getEvictorId();
+        String evictorId = nodeEvictorId != null ? nodeEvictorId : strategyEvictorId;
+        if (evictorId != null) {
+            // WI5/WI6: the two declaration faces are orthogonal — the trigger owns
+            // WHEN the window fires, the evictor prunes the fired pane copy on the
+            // fire path (emit=UPDATE only owns the trigger slot, so it co-exists
+            // with an explicit evictor). This comment closes the WI5 deferred
+            // trigger×evictor matrix slot.
+            io.nop.stream.core.windowing.evictors.Evictor<?, ?> evictor =
+                    resolveEvictor(owner, t, evictorId);
+            windowed.evictor((io.nop.stream.core.windowing.evictors.Evictor) evictor);
+        }
         String triggerId = nodeTriggerId != null ? nodeTriggerId : strategyTriggerId;
         if (triggerId != null) {
             io.nop.stream.core.windowing.triggers.Trigger<?, ?> trigger =
@@ -358,6 +371,43 @@ final class AdvancedTransforms {
         throw new StreamException(ERR_STREAM_REF_UNKNOWN)
                 .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
                 .param(ARG_REF_TYPE, "triggerId").param(ARG_REF_NAME, triggerId)
+                .loc(t.getLocation());
+    }
+
+    /**
+     * WI6 (plan 2352): the evictor declaration catalog. Resolution order mirrors the
+     * trigger face: a bean name carrying an {@link Evictor} instance wins, then the
+     * flat catalog grammar, then {@code ERR_STREAM_REF_UNKNOWN}.
+     *
+     * <p>Catalog grammar: {@code count:N} (keep the newest N records) and
+     * {@code time:<dur>} (drop records at or before paneMaxElementTimestamp − dur;
+     * durations reuse {@link #parseDurationMillis}). {@code DeltaEvictor} needs a
+     * {@code DeltaFunction}, so delta eviction is consumed as a bean. SPI timing
+     * contract (documented, unchanged): both callbacks run on the FIRE path —
+     * evictBefore → window function → evictAfter → physical write-back of the
+     * survivors (the GlobalWindows + evictor state-boundedness guarantee); both
+     * receive the pre-eviction element count (Flink semantics); TimeEvictor judges
+     * by the element's OWN event time. Trigger×evictor are orthogonal faces (see
+     * buildWindow).
+     */
+    private static io.nop.stream.core.windowing.evictors.Evictor<?, ?> resolveEvictor(
+            StreamModelDslBuilder owner, StreamTransformModel t, String evictorId) {
+        if (owner.beanResolver().contains(evictorId)) {
+            return owner.resolveBean(t, evictorId,
+                    io.nop.stream.core.windowing.evictors.Evictor.class);
+        }
+        if (evictorId.startsWith("count:")) {
+            long maxCount = parseCount(t, evictorId.substring("count:".length()), evictorId);
+            return io.nop.stream.core.windowing.evictors.CountEvictor.of(maxCount);
+        }
+        if (evictorId.startsWith("time:")) {
+            long millis = parseDurationMillis(evictorId.substring("time:".length()));
+            return io.nop.stream.core.windowing.evictors.TimeEvictor.of(
+                    java.time.Duration.ofMillis(millis));
+        }
+        throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                .param(ARG_ELEMENT, StreamModelDslBuilder.elementDesc(t))
+                .param(ARG_REF_TYPE, "evictorId").param(ARG_REF_NAME, evictorId)
                 .loc(t.getLocation());
     }
 

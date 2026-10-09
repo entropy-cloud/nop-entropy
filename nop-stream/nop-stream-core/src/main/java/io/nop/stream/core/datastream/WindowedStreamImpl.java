@@ -159,6 +159,14 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return trigger;
     }
 
+    /**
+     * WI6 (plan 2352): the resolved evictor observation point (mirror of
+     * {@link #getTrigger()} — additive accessor, no behavior change).
+     */
+    public Evictor<? super T, W> getEvictor() {
+        return evictor;
+    }
+
     @Override
     public WindowedStreamImpl<T, K, W> trigger(Trigger<? super T, ? super W> trigger) {
         this.trigger = (Trigger<? super T, W>) trigger;
