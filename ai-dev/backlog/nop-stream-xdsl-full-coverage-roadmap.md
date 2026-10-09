@@ -4,7 +4,8 @@ audit-rounds: 0
 
 # nop-stream XDSL 声明面全功能补全与 12 场景验收 Roadmap
 
-> Last updated: 2026-10-10（v16：WI17 异步算子默认分支落地（plan 2363）——WI0(a) 维持 Non-Goal：同步替代声明形态四要素契约（process bean 外部调用封装/有界容量 CAS 门/**超时显式降级（Future+deadline，慢调用→TIMEOUT: 降级输出）**/串行语义标注）+ 示范 E2E TestWi17SyncReplacementPatternE2E（**含超时降级钉与容量门单元钉**——本地串行模式容量门结构性不可达故单元级断言）；解除分支无需处置（Non-Goal 维持，重启触发=owner 解除裁定回写 vision）；E6 套件归 WI23）
+> Last updated: 2026-10-10（v17：WI18 BETWEEN 变通形态落地（plan 2364）——WI0(b) 维持排除项：变通模式=分流拆段+分段等值 join+union+谓词过滤（半开区间铺瓦），拓扑合法 build+边界三侧断言（TestWi18BetweenWorkaroundPattern，flow 模块）；E11/E12 全语义验收归 WI26；解除分支重启触发=owner 解除裁定回写 vision）
+> 历史版本：2026-10-10（v16：WI17 异步算子默认分支落地（plan 2363）——WI0(a) 维持 Non-Goal：同步替代声明形态四要素契约（process bean 外部调用封装/有界容量 CAS 门/**超时显式降级（Future+deadline，慢调用→TIMEOUT: 降级输出）**/串行语义标注）+ 示范 E2E TestWi17SyncReplacementPatternE2E（**含超时降级钉与容量门单元钉**——本地串行模式容量门结构性不可达故单元级断言）；解除分支无需处置（Non-Goal 维持，重启触发=owner 解除裁定回写 vision）；E6 套件归 WI23）
 > 历史版本：2026-10-10（v15：WI16 transform 级 SQL 裁定落地（plan 2362）——WI0(e) 执行：`<sql>` 顶层唯一约束不放宽，transform 级 SQL=Java-only（`ISqlStreamCompiler` SPI 按类型直调→parse→build，SPI 契约面锁定；形态测试 TestWi16TransformSqlJavaPath 落 sql 模块——delta=SPI 直调 vs 静态 facade 先例；E8 套件归 WI24）；user guide :289 顶层唯一约束钉引用修正（实际钉=flow TestSqlModelExpansion 双钉）；行内旧锚 :288-302 改写为 expandSqlModel :516/:521-530）
 > 历史版本：2026-10-10（v14：WI15 端点属性处置落地（plan 2361）——consistencyCapability 接线为声明保真度校验（按值豁免 AT_LEAST_ONCE——xdef 默认 parse 注入故按值非存在性；声明 vs bean 实际 capability 不符 invalid-arg；合法匹配 build 通过有 Anti-退化钉；xpl 形态恒默认；source 侧默认不对称 residual 登记）；params/maxParallelism/outputType·inputType/custom params·source 维持拒绝（消息裁定口径）；linter 平行 capability 规则删除+R6 静态预检显式退役（引擎 guarantee 门+builder 声明失真维度）；两合同钉错误码迁移 not-implemented→invalid-arg）
 > 历史版本：2026-10-10（v13：WI14 边级流控裁定落地（plan 2360）——四属性维持 typed 拒绝：接线三引擎级前置（声明载体/id 映射/链化语义，对抗性审查 live 查证）+ receiveWindow/packetSize 零消费点，登记引擎级 successor；拒绝面消息双侧改写（错误码保持 edge-attr-unsupported，合同账不破）；交付语映射=拒绝面回归钉+既有 TestBufferPoolWiring 消费端覆盖引用替代新背压测试）
@@ -149,7 +150,7 @@ audit-rounds: 0
 ### M4 — 生态算子面（每项「补声明面」或「裁定后的变通形态固化」，禁止留白）
 
 - [x] WI17 异步算子面（分叉交付）：**默认分支**（WI0(a) 维持 vision §四异步算子 Non-Goal）交付同步替代声明形态（`process` bean 承载外部调用 + 有界容量与超时的行为契约 + 显式串行语义标注）+ E6 降级验收；**解除分支**（WI0 裁定 go 并回写 vision）补 async 声明面（capacity/timeout/ordered·unordered 声明）（Deliverable: 分支二选一落地 + E6 验收；deps: WI0 + WI1；Item Type: Feature + Decision）✅ 2026-10-10 plan 2363（默认分支：四要素契约（封装/CAS 有界容量/超时显式降级/串行标注）落 user guide + 示范 E2E TestWi17SyncReplacementPatternE2E 行为断言（峰值≤容量/外部调用计数/降级路径/每记录外呼）；解除分支无需处置（Non-Goal 维持）；E6 套件归 WI23；audit agent 见 plan Closure）
-- [ ] WI18 多源聚合与区间谓词的声明式表达（分叉交付）：**默认分支**（区间/非等值 join 属 vision §四排除项）交付变通形态——`<union>` + 多次两路等值 join + `<process>` 聚合，配合事件时间过滤实现 `BETWEEN` 语义并固化为 E11/E12 验收用例；**解除分支**（WI0(b) 裁定 go）补区间谓词声明面（Deliverable: 分支二选一落地 + 变通形态正确性测试；deps: WI0；Item Type: Feature + Decision）
+- [x] WI18 多源聚合与区间谓词的声明式表达（分叉交付）：**默认分支**（区间/非等值 join 属 vision §四排除项）交付变通形态——`<union>` + 多次两路等值 join + `<process>` 聚合，配合事件时间过滤实现 `BETWEEN` 语义并固化为 E11/E12 验收用例；**解除分支**（WI0(b) 裁定 go）补区间谓词声明面（Deliverable: 分支二选一落地 + 变通形态正确性测试；deps: WI0；Item Type: Feature + Decision）✅ 2026-10-10 plan 2364（默认分支：变通模式=分流拆段+分段等值 join（ON 段键）+union+谓词过滤（半开区间铺瓦）；TestWi18BetweenWorkaroundPattern 拓扑合法 build+BETWEEN 边界三侧断言；E11/E12 全语义验收归 WI26；解除分支重启触发=owner 解除裁定回写 vision；audit agent 见 plan Closure）
 - [ ] WI19 持续源与回补作业声明面（分叉交付）：file tailing 持续源按 WI0 裁定（不做则交付 bounded 重放 + DRAIN 变通形态并登记触发条件）；FILL_HISTORY/RECALCULATE 作业形态声明面接线（引擎语义外部前置 multi-engine WI10）+ `jobTerminationMode`/DRAIN 语义与回补幂等契约（Deliverable: 分支落地 + 回补重算幂等断言；deps: WI0；Item Type: Feature + Decision）
 - [ ] WI20 多表与分区键流声明面：多表/tableId 声明面接线 + 分区键传播形态（目标形态按 WI0 逐场景条款裁定——E8 多表形态；引擎语义外部前置 multi-engine WI7 CatalogTable/RowKind）；不可用时的声明式降级形态（单表 + 表标识字段）固化并登记（Deliverable: 声明面 + 降级形态 + 多表路由测试；deps: WI0；Item Type: Feature + Decision）
 
