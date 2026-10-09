@@ -1,0 +1,9 @@
+type Tree {
+    id: ID
+    name: String
+    children(limit: Int): [Tree]
+}
+
+type Query {
+
+}

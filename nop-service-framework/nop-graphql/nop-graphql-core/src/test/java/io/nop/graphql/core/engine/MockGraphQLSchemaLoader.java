@@ -46,7 +46,11 @@ public class MockGraphQLSchemaLoader implements IGraphQLSchemaLoader {
     }
 
     public MockGraphQLSchemaLoader(List<Object> extraBeans) {
-        IResource resource = new ClassPathResource("classpath:io/nop/graphql/core/engine/test.graphql");
+        this("classpath:io/nop/graphql/core/engine/test.graphql", extraBeans);
+    }
+
+    public MockGraphQLSchemaLoader(String fixturePath, List<Object> extraBeans) {
+        IResource resource = new ClassPathResource(fixturePath);
         defs = GraphQLDocumentHelper.parseObjectDefinitions(resource);
 
         List<Object> beans = new ArrayList<>(Arrays.asList(new MyEntityBizModel(), new MyChildBizModel()));
