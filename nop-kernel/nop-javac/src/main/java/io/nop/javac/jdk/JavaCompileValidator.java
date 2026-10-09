@@ -119,10 +119,9 @@ class JavaCompileValidator {
             try {
                 bytes = Files.readAllBytes(file.toPath());
             } catch (java.io.IOException e) {
-                // 诊断面只承载字符串，不承载堆栈；异常对象一并交给日志避免丢失现场
-                LOG.warn("nop.javac.read-source-fail:file={}", file, e);
+                // 异常对象交给日志保留完整堆栈；诊断面只承载字符串，故取描述走 logFailure
                 out.addError(ERR_JAVAC_COMPILE_FAIL,
-                        ARG_DETAIL, "read-source-fail:" + e.getMessage());
+                        ARG_DETAIL, logReadFailure(file, e));
                 continue;
             }
 
@@ -154,6 +153,19 @@ class JavaCompileValidator {
             out.addError(ERR_JAVAC_INVALID_OPTION_VALUE,
                     ARG_OPTION, "sourceFiles", ARG_VALUE, String.valueOf(file));
         }
+    }
+
+    /**
+     * 记录读源码失败并返回可放进诊断面的描述串。
+     *
+     * <p>拆成独立方法而非在 catch 里直接 {@code LOG.warn(msg, e.getMessage(), e)}：
+     * catch 块内同时出现"日志"与"诊断串"两处用途会让堆栈要么进不了诊断面、要么被
+     * {@code e.getMessage()} 截断。此处异常对象完整交给日志，诊断面只拿描述。
+     */
+    private static String logReadFailure(File file, java.io.IOException e) {
+        String detail = "read-source-fail:" + e.getMessage();
+        LOG.warn("nop.javac.read-source-fail:file={},detail={}", file, detail, e);
+        return detail;
     }
 
     /**
