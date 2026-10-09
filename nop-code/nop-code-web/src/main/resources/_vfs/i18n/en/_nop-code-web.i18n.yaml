@@ -40,6 +40,10 @@ site:
       displayName: Modify Semantic Edge
     FNPT:NopCodeSemanticEdge:query:
       displayName: Query Semantic Edge
+    FNPT:NopCodeShardLedger:mutation:
+      displayName: Modify Shard Ledger
+    FNPT:NopCodeShardLedger:query:
+      displayName: Query Shard Ledger
     FNPT:NopCodeSymbol:mutation:
       displayName: Modify Symbols
     FNPT:NopCodeSymbol:query:
@@ -76,6 +80,8 @@ site:
       displayName: Inheritance
     NopCodeSemanticEdge-main:
       displayName: Semantic Edge
+    NopCodeShardLedger-main:
+      displayName: Shard Ledger
     NopCodeSymbol-main:
       displayName: Symbol Search
     NopCodeUsage-main:

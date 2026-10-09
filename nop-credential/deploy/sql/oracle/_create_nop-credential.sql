@@ -32,6 +32,8 @@ CREATE TABLE nop_credential_oauth_state(
   constraint PK_nop_credential_oauth_state primary key (STATE)
 );
 
+create index IX_NOP_CREDENTIAL_OAUTH_STATE_CRED on nop_credential_oauth_state (CREDENTIAL_ID) ;
+create index IX_NOP_CREDENTIAL_OAUTH_STATE_EXPIRE on nop_credential_oauth_state (EXPIRE_AT) ;
 CREATE TABLE nop_credential_usage(
   USAGE_ID VARCHAR2(50) NOT NULL ,
   CREDENTIAL_ID VARCHAR2(50) NOT NULL ,

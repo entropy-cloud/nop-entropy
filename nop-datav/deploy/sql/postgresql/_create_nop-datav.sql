@@ -42,6 +42,8 @@ CREATE TABLE nop_datav_export_task(
   constraint PK_nop_datav_export_task primary key (task_id)
 );
 
+create index IX_NOP_DATAV_EXPORT_TASK_OWNER on nop_datav_export_task (created_by) ;
+create index IX_NOP_DATAV_EXPORT_TASK_STATUS on nop_datav_export_task (status) ;
 CREATE TABLE nop_datav_screen(
   screen_id VARCHAR(32) NOT NULL ,
   screen_name VARCHAR(100) NOT NULL ,
@@ -81,6 +83,7 @@ CREATE TABLE nop_datav_chat_session(
   constraint PK_nop_datav_chat_session primary key (session_id)
 );
 
+create index IX_NOP_DATAV_CHAT_SESSION_USER on nop_datav_chat_session (user_name) ;
 CREATE TABLE nop_datav_panel(
   panel_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -101,6 +104,7 @@ CREATE TABLE nop_datav_panel(
   constraint PK_nop_datav_panel primary key (panel_id)
 );
 
+create index IX_NOP_DATAV_PANEL_DASHBOARD on nop_datav_panel (dashboard_id) ;
 CREATE TABLE nop_datav_tab(
   tab_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -118,6 +122,7 @@ CREATE TABLE nop_datav_tab(
   constraint PK_nop_datav_tab primary key (tab_id)
 );
 
+create index IX_NOP_DATAV_TAB_DASHBOARD on nop_datav_tab (dashboard_id) ;
 CREATE TABLE nop_datav_dataset_ref(
   dataset_ref_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -134,6 +139,7 @@ CREATE TABLE nop_datav_dataset_ref(
   constraint PK_nop_datav_dataset_ref primary key (dataset_ref_id)
 );
 
+create index IX_NOP_DATAV_DATASET_REF_DASHBOARD on nop_datav_dataset_ref (dashboard_id) ;
 CREATE TABLE nop_datav_snapshot(
   snapshot_id VARCHAR(32) NOT NULL ,
   dashboard_id VARCHAR(32) NOT NULL ,
@@ -152,6 +158,7 @@ CREATE TABLE nop_datav_snapshot(
   constraint PK_nop_datav_snapshot primary key (snapshot_id)
 );
 
+create index IX_NOP_DATAV_SNAPSHOT_DASHBOARD on nop_datav_snapshot (dashboard_id) ;
 CREATE TABLE nop_datav_filter_state(
   state_id VARCHAR(32) NOT NULL ,
   user_name VARCHAR(50) NOT NULL ,
@@ -168,6 +175,7 @@ CREATE TABLE nop_datav_filter_state(
   constraint PK_nop_datav_filter_state primary key (state_id)
 );
 
+create index IX_NOP_DATAV_FILTER_STATE_DASHBOARD on nop_datav_filter_state (dashboard_id) ;
 CREATE TABLE nop_datav_share(
   share_id VARCHAR(32) NOT NULL ,
   share_token VARCHAR(64) NOT NULL ,
@@ -188,6 +196,7 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (share_id)
 );
 
+create index IX_NOP_DATAV_SHARE_DASHBOARD on nop_datav_share (dashboard_id) ;
 CREATE TABLE nop_datav_report_task(
   report_task_id VARCHAR(32) NOT NULL ,
   task_name VARCHAR(100) NOT NULL ,
@@ -214,6 +223,9 @@ CREATE TABLE nop_datav_report_task(
   constraint PK_nop_datav_report_task primary key (report_task_id)
 );
 
+create index IX_NOP_DATAV_REPORT_TASK_DASHBOARD on nop_datav_report_task (dashboard_id) ;
+create index IX_NOP_DATAV_REPORT_TASK_OWNER on nop_datav_report_task (created_by) ;
+create index IX_NOP_DATAV_REPORT_TASK_STATUS on nop_datav_report_task (status) ;
 CREATE TABLE nop_datav_screen_widget(
   widget_id VARCHAR(32) NOT NULL ,
   screen_id VARCHAR(32) NOT NULL ,
@@ -237,6 +249,7 @@ CREATE TABLE nop_datav_screen_widget(
   constraint PK_nop_datav_screen_widget primary key (widget_id)
 );
 
+create index IX_NOP_DATAV_SCREEN_WIDGET_SCREEN on nop_datav_screen_widget (screen_id) ;
 CREATE TABLE nop_datav_screen_snapshot(
   snapshot_id VARCHAR(32) NOT NULL ,
   screen_id VARCHAR(32) NOT NULL ,
@@ -255,6 +268,7 @@ CREATE TABLE nop_datav_screen_snapshot(
   constraint PK_nop_datav_screen_snapshot primary key (snapshot_id)
 );
 
+create index IX_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN on nop_datav_screen_snapshot (screen_id) ;
 CREATE TABLE nop_datav_chat_message(
   message_id VARCHAR(32) NOT NULL ,
   session_id VARCHAR(32) NOT NULL ,
@@ -273,6 +287,7 @@ CREATE TABLE nop_datav_chat_message(
   constraint PK_nop_datav_chat_message primary key (message_id)
 );
 
+create index IX_NOP_DATAV_CHAT_MSG_SESSION on nop_datav_chat_message (session_id) ;
 CREATE TABLE nop_datav_alert_rule(
   alert_rule_id VARCHAR(32) NOT NULL ,
   rule_name VARCHAR(100) NOT NULL ,
@@ -300,6 +315,9 @@ CREATE TABLE nop_datav_alert_rule(
   constraint PK_nop_datav_alert_rule primary key (alert_rule_id)
 );
 
+create index IX_NOP_DATAV_ALERT_RULE_PANEL on nop_datav_alert_rule (panel_id) ;
+create index IX_NOP_DATAV_ALERT_RULE_OWNER on nop_datav_alert_rule (created_by) ;
+create index IX_NOP_DATAV_ALERT_RULE_STATUS on nop_datav_alert_rule (status) ;
 CREATE TABLE nop_datav_report_delivery(
   delivery_id VARCHAR(32) NOT NULL ,
   report_task_id VARCHAR(32) NOT NULL ,
@@ -321,6 +339,8 @@ CREATE TABLE nop_datav_report_delivery(
   constraint PK_nop_datav_report_delivery primary key (delivery_id)
 );
 
+create index IX_NOP_DATAV_REPORT_DELIVERY_TASK on nop_datav_report_delivery (report_task_id) ;
+create index IX_NOP_DATAV_REPORT_DELIVERY_STATUS on nop_datav_report_delivery (status) ;
 CREATE TABLE nop_datav_alert_state(
   alert_state_id VARCHAR(32) NOT NULL ,
   alert_rule_id VARCHAR(32) NOT NULL ,
@@ -342,6 +362,7 @@ CREATE TABLE nop_datav_alert_state(
   constraint PK_nop_datav_alert_state primary key (alert_state_id)
 );
 
+create index IX_NOP_DATAV_ALERT_STATE_STATE on nop_datav_alert_state (state) ;
 
       COMMENT ON TABLE nop_datav_dashboard IS '看板';
                 
