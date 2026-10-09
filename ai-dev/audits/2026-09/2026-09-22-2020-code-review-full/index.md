@@ -250,7 +250,7 @@
 
 | 工作项 | 状态 | 证据 / 结论 |
 |---|---|---|
-| R1.0 | todo | |
+| R1.0 | done | 汇聚 109 open P1 → 44 行 R1.1–R1.42+R1.6a/b/c 增补 roadmap MR 表；交叉核对零漏单；对抗审查 FAIL→3 Major+8 Minor 全修；登记 v7 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
