@@ -5,6 +5,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 /**
  * Runtime environment for jq execution: variable scopes and function
@@ -25,6 +26,10 @@ public class JqEnvironment {
     private int outputCount = 0;
     /** Extra input documents available to input/inputs (empty by default). */
     private Deque<JqValue> pendingInputs = new ArrayDeque<>();
+    /** Wall-clock deadline (epoch millis) for the whole computation; 0 = no deadline. */
+    private long deadlineAtMillis;
+    /** Host-provided environment variables for $ENV/env; null = fall back to System.getenv(). */
+    private Supplier<Map<String, String>> envVarSupplier;
 
     public JqEnvironment() {
         scopes.push(new HashMap<>());
@@ -32,13 +37,16 @@ public class JqEnvironment {
 
     private JqEnvironment(Deque<Map<String, JqValue>> scopes, Map<String, Object> functionDefs,
                           boolean defsShared, int callDepth, int outputCount,
-                          Deque<JqValue> pendingInputs) {
+                          Deque<JqValue> pendingInputs, long deadlineAtMillis,
+                          Supplier<Map<String, String>> envVarSupplier) {
         this.scopes.addAll(scopes);
         this.functionDefs = functionDefs;
         this.defsShared = defsShared;
         this.callDepth = callDepth;
         this.outputCount = outputCount;
         this.pendingInputs = pendingInputs;
+        this.deadlineAtMillis = deadlineAtMillis;
+        this.envVarSupplier = envVarSupplier;
     }
 
     // ---- variable scopes ----
@@ -103,13 +111,48 @@ public class JqEnvironment {
         callDepth--;
     }
 
-    // ---- output budget ----
+    // ---- output budget & cancellation checkpoints ----
 
+    /**
+     * Output-budget guard. Doubles as the cancellation/deadline checkpoint for
+     * the whole defense network: interrupt and wall-clock deadline are checked
+     * here via the uncatchable {@link JqCancellationException} (never a
+     * {@link JqRuntimeException}, so {@code try}/{@code //}/{@code recurse}
+     * cannot swallow a cancellation and revive the runaway computation).
+     */
     public void checkOutputLimit() {
+        if (Thread.currentThread().isInterrupted())
+            throw new JqCancellationException("jq computation cancelled");
+        if (deadlineAtMillis > 0 && System.currentTimeMillis() > deadlineAtMillis)
+            throw new JqCancellationException("jq computation deadline exceeded");
         if (++outputCount > MAX_OUTPUT_COUNT) {
             throw new JqRuntimeException(
                     "Output count limit exceeded (max=" + MAX_OUTPUT_COUNT + ")");
         }
+    }
+
+    public void setDeadlineAtMillis(long deadlineAtMillis) {
+        this.deadlineAtMillis = deadlineAtMillis;
+    }
+
+    public void setEnvVarSupplier(Supplier<Map<String, String>> envVarSupplier) {
+        this.envVarSupplier = envVarSupplier;
+    }
+
+    /**
+     * The {@code $ENV} / {@code env} object: host-supplied variables when a
+     * supplier is set (tool sandbox seam), otherwise the full process
+     * environment (standalone CLI behavior).
+     */
+    public JqValue environmentObject() {
+        Map<String, String> vars = envVarSupplier == null ? null : envVarSupplier.get();
+        if (vars == null)
+            vars = System.getenv();
+        Map<String, JqValue> props = new LinkedHashMap<>();
+        for (Map.Entry<String, String> e : vars.entrySet()) {
+            props.put(e.getKey(), JqString.of(e.getValue()));
+        }
+        return new JqObject(props);
     }
 
     // ---- input stream for input/inputs ----
@@ -139,7 +182,7 @@ public class JqEnvironment {
      */
     public JqEnvironment fork() {
         JqEnvironment env = new JqEnvironment(scopes, functionDefs, true, callDepth,
-                outputCount, pendingInputs);
+                outputCount, pendingInputs, deadlineAtMillis, envVarSupplier);
         return env;
     }
 }

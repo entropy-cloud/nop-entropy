@@ -14,6 +14,17 @@ public interface IJsonQuery {
     List<Object> apply(Object root);
 
     /**
+     * Execute with host-provided resource controls (tool sandbox seam):
+     * {@code envVars} replaces the process environment for {@code $ENV}/
+     * {@code env} (null = default {@code System.getenv()}); {@code deadlineAtMillis}
+     * bounds wall-clock time (0 = no deadline). Implementations may ignore the
+     * controls; the default falls back to {@link #apply(Object)}.
+     */
+    default List<Object> apply(Object root, java.util.Map<String, String> envVars, long deadlineAtMillis) {
+        return apply(root);
+    }
+
+    /**
      * Execute the query and return only the first output.
      */
     Object applyOne(Object root);

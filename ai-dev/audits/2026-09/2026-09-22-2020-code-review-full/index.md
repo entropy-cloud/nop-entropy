@@ -84,7 +84,7 @@
 |---|---|---|---|
 | P1-1.2-001 | `1.2-xlang-structure-pipeline-audit.md` | R1.x（包级 SCC 三档治理，expr→compile 单边割离性价比最高） | fixed（2026-10-09，plan 2364——expr 包零 compile 引用接缝割离 + SCC 21→20 compile 出环实测 + 三档治理成文） |
 | P1-1.8-001 | `1.8-integration-periphery-audit.md` | R1.0（file/credential-app 半拆命运裁决：恢复 start()+web-orm-starter 或正式休眠+文档声明） | fixed（2026-10-09，plan 2365——裁决正式休眠〔audit 预授权「降 P2 触发条件」行使且无残余误导公开面：两主类裁决注记+两 pom 勘注+owner doc 三处声明〕） |
-| P1-1.9-001 | `1.9-jq-refactor-first-audit.md` | R1.0（jq 工具接缝资源耗尽：4 叶节点预算+cancelToken 接线+env-supplier，精算在案） | open |
+| P1-1.9-001 | `1.9-jq-refactor-first-audit.md` | R1.0（jq 工具接缝资源耗尽：4 叶节点预算+cancelToken 接线+env-supplier，精算在案） | fixed（2026-10-09，plan 2366——4 叶节点预算+取消检查点网络〔不可捕 JqCancellationException+fork 传播〕+JqToolExecutor cancelToken/deadline/env 三接线；P2-1.9-003 env 直通部分由本条同批承载收口；发现标题第三面「默认安全链自动批准」deferred 为 out-of-scope improvement，资源护栏落地后失控风险已收敛） |
 | P1-1.10-001 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（bytecode 分析层异常收口+CLI 兜底 ~17 行；CI 接线前必修） | open |
 | P1-1.10-002 | `1.10-bytecode-duckdb-first-audit.md` | R1.x（ObligationToken equals/hashCode ~10 行+虚假 javadoc 修正+CLI 防线） | open |
 | P1-2.1-001 | `2.1-orm-ormmodel-deep-audit.md` | R1.x（detach 对齐 evict 语义或文档契约+checkValid，补回归） | open |
@@ -253,6 +253,7 @@
 | R1.0 | done | 汇聚 109 open P1 → 44 行 R1.1–R1.42+R1.6a/b/c 增补 roadmap MR 表；交叉核对零漏单；对抗审查 FAIL→3 Major+8 Minor 全修；登记 v7 |
 | R1.1 | done | plan 2364（2026-10-09）：expr→compile 单边割离——expr 包零 compile 引用（`IExecutableExprCompiler` 接缝 + META-INF/services + fail-loud），公开契约零改动；SCC 21→20 compile 出环实测；三档治理成文（设计文档 + owner doc）+ 红线脚本版本化；nop-xlang 859 tests 全绿 + 接缝回归 4 用例；closure audit 见 plan 2364 Closure 段 |
 | R1.2 | done | plan 2365（2026-10-09）：半拆命运裁决=正式休眠〔audit 预授权路径〕——两主类裸注释→裁决注记（复活三步）+两 pom 勘注+owner doc 三处声明（module-groups nop-file 行勘注/nop-credential 新增行/credential.md standalone 勘注/nop-file.md 无同类表述记录）；行为零差异编译通过；closure audit 见 plan 2365 Closure 段 |
+| R1.3 | done | plan 2366（2026-10-09）：jq 资源护栏三面修复——4 叶节点预算+取消检查点网络（不可捕异常+fork 传播）+JqToolExecutor cancelToken/deadline/env 接线（P2-1.9-003 env 部分同批收口）；官方 430/430 保持，nop-jq 569 + toolkit 266 tests 全绿；closure audit 见 plan 2366 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
