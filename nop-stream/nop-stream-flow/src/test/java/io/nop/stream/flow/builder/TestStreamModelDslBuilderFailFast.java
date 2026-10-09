@@ -11,6 +11,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.xml.XNode;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.xlang.xdsl.DslModelParser;
@@ -89,9 +90,27 @@ public class TestStreamModelDslBuilderFailFast {
 
     @Test
     public void sideInputsRegistryFailsFast() {
-        assertTopLevelRegistryFailsFast(
-                "<sideInputs><sideInput id=\"si1\" from=\"x\" to=\"y\"/></sideInputs>",
-                "<sideInputs>");
+        // WI11 (plan 2357): <sideInputs> is released — the NOT_IMPLEMENTED gap is
+        // gone. The legacy pin shape (broadcast omitted → xdef default false) now
+        // maps to the broadcast-only-true reject; an EMPTY sideInputs declaration is
+        // legal. Full contract coverage lives in TestWi11SideInputDeclaration.
+        StreamModel empty = parseInline("", "<sideInputs/>"
+                + "<transforms><source id=\"s\" bean=\"src\"/><sink id=\"o\" bean=\"snk\"/></transforms>"
+                + "<edges><edge id=\"e0\" from=\"s\" to=\"o\"/></edges>");
+        StreamModelDslBuilder.of(empty, new InMemoryBeanFunctionResolver()
+                .register("src", new NoopSource())
+                .register("snk", (io.nop.stream.core.common.functions.SinkFunction<Object>) v -> {
+                })).build();
+
+        StreamModel legacyDefault = parseInline("",
+                "<sideInputs><sideInput id=\"si1\" from=\"x\" to=\"y\"/></sideInputs>");
+        StreamException ex = assertThrows(StreamException.class,
+                () -> StreamModelDslBuilder.of(legacyDefault, new InMemoryBeanFunctionResolver()).build());
+        assertEquals("nop.err.stream.invalid-arg", ex.getErrorCode().toString(),
+                () -> "Legacy broadcast default (false) must fail with ERR_STREAM_INVALID_ARG: "
+                        + ex.getMessage());
+        assertTrue(ex.getMessage().contains("broadcast=true"),
+                "Exception should name the broadcast=true-only contract: " + ex.getMessage());
     }
 
     @Test
@@ -172,6 +191,18 @@ public class TestStreamModelDslBuilderFailFast {
                 () -> "Exception should carry ERR_STREAM_NOT_IMPLEMENTED: " + ex.getMessage());
         assertTrue(ex.getMessage().contains(expectedToken),
                 "Exception should mention " + expectedToken + ": " + ex.getMessage());
+    }
+
+    /** Emit-nothing source for contract tests that only need a buildable graph. */
+    public static class NoopSource
+            implements SourceFunction<Object> {
+        @Override
+        public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext ctx) {
+        }
+
+        @Override
+        public void cancel() {
+        }
     }
 
     private StreamModel parseInline(String transformXml, String topLevelXml) {

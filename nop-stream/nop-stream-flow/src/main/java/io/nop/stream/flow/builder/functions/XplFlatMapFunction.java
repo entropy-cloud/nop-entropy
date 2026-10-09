@@ -28,16 +28,27 @@ public final class XplFlatMapFunction<T, R> implements FlatMapFunction<T, R> {
 
     private final IEvalFunction body;
 
+    /**
+     * WI11 (plan 2357): static per-invocation bindings (the declarative side-input
+     * snapshots, bound under {@code sideInputs}); {@code null} = no extra bindings.
+     */
+    private final java.util.Map<String, Object> bindings;
+
     public XplFlatMapFunction(IEvalFunction body) {
+        this(body, null);
+    }
+
+    public XplFlatMapFunction(IEvalFunction body, java.util.Map<String, Object> bindings) {
         if (body == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "xpl FlatMapFunction body");
         }
         this.body = body;
+        this.bindings = bindings;
     }
 
     @Override
     public void flatMap(T value, Collector<R> out) {
-        IEvalScope scope = XplFunctionSupport.newCallScope();
+        IEvalScope scope = XplFunctionSupport.newCallScope(bindings);
         body.call2(null, value, out, scope);
     }
 }

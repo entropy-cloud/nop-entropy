@@ -25,16 +25,27 @@ public final class XplFilterFunction<T> implements FilterFunction<T> {
 
     private final IEvalFunction body;
 
+    /**
+     * WI11 (plan 2357): static per-invocation bindings (the declarative side-input
+     * snapshots, bound under {@code sideInputs}); {@code null} = no extra bindings.
+     */
+    private final java.util.Map<String, Object> bindings;
+
     public XplFilterFunction(IEvalFunction body) {
+        this(body, null);
+    }
+
+    public XplFilterFunction(IEvalFunction body, java.util.Map<String, Object> bindings) {
         if (body == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "xpl FilterFunction body");
         }
         this.body = body;
+        this.bindings = bindings;
     }
 
     @Override
     public boolean filter(T value) {
-        Object result = body.call1(null, value, XplFunctionSupport.newCallScope());
+        Object result = body.call1(null, value, XplFunctionSupport.newCallScope(bindings));
         return XplFunctionSupport.toBoolean(result);
     }
 }

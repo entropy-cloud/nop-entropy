@@ -24,17 +24,28 @@ public final class XplMapFunction<T, R> implements MapFunction<T, R> {
 
     private final IEvalFunction body;
 
+    /**
+     * WI11 (plan 2357): static per-invocation bindings (the declarative side-input
+     * snapshots, bound under {@code sideInputs}); {@code null} = no extra bindings.
+     */
+    private final java.util.Map<String, Object> bindings;
+
     public XplMapFunction(IEvalFunction body) {
+        this(body, null);
+    }
+
+    public XplMapFunction(IEvalFunction body, java.util.Map<String, Object> bindings) {
         if (body == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "xpl MapFunction body");
         }
         this.body = body;
+        this.bindings = bindings;
     }
 
     @Override
     @SuppressWarnings("unchecked")
     public R map(T value) {
-        Object result = body.call1(null, value, XplFunctionSupport.newCallScope());
+        Object result = body.call1(null, value, XplFunctionSupport.newCallScope(bindings));
         return (R) result;
     }
 }
