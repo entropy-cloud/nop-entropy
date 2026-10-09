@@ -91,4 +91,27 @@ public interface ICanvas2DContext {
     void setLineDashOffset(double offset);
 
     void setGlobalAlpha(double alpha);
+
+    // ----- text（WI2 追加） -----
+
+    /**
+     * 解析并设置 CSS font 简写（D5/D6：非法串或缺字体显式抛 {@link NopCanvas2DException}；
+     * 解析结果走缓存快路径）。line-height 未指定时派生为 width('国')。
+     */
+    void setFont(String cssFont);
+
+    /** @param align "start" | "end" | "left" | "right" | "center"（D8：start≡left、end≡right） */
+    void setTextAlign(String align);
+
+    /** @param baseline "alphabetic" | "top" | "hanging" | "middle" | "ideographic" | "bottom" */
+    void setTextBaseline(String baseline);
+
+    /**
+     * 度量文本宽度（不受 textAlign/textBaseline 影响；null 强转 "null"，空串宽 0）。
+     */
+    ITextMetrics measureText(String text);
+
+    void fillText(String text, double x, double y);
+
+    void strokeText(String text, double x, double y);
 }

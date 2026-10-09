@@ -4,10 +4,13 @@ import java.awt.AlphaComposite;
 import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Composite;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Paint;
 import java.awt.RenderingHints;
 import java.awt.Shape;
+import java.awt.font.TextLayout;
 import java.awt.geom.AffineTransform;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Area;
@@ -41,6 +44,12 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
     private float lineDashOffset;
     private float globalAlpha = 1f;
 
+    // 文本状态（WI2）：初始为 canvas 规范默认，未 setFont 即 fillText 合法（D8）
+    private TextMeasurer textMeasurer;
+    private TextMeasurer.ResolvedFont resolvedFont;
+    private String textAlign = "start";
+    private String textBaseline = "alphabetic";
+
     private Path2D.Double path;
     private boolean pathBegun;
     private int pathSegments;
@@ -48,6 +57,10 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
     private final Deque<CtxState> stack = new ArrayDeque<>();
 
     public Java2DCanvas(int width, int height) {
+        this(width, height, null);
+    }
+
+    public Java2DCanvas(int width, int height, TextMeasurer textMeasurer) {
         if (width <= 0 || height <= 0)
             throw new NopCanvas2DException("Canvas size must be positive, got: " + width + "x" + height);
         image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
@@ -55,6 +68,9 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
         // D4c：hints 是本模块像素语义的一部分，不得按调用点切换
         g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
         g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
+        g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        this.textMeasurer = textMeasurer != null ? textMeasurer : new TextMeasurer();
+        this.resolvedFont = this.textMeasurer.resolveFont("10px sans-serif");
     }
 
     @Override
@@ -89,7 +105,8 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
     @Override
     public void save() {
         stack.push(new CtxState((AffineTransform) transform.clone(), clipShape, fillPaint, strokePaint,
-                lineWidth, lineCap, lineJoin, miterLimit, lineDash, lineDashOffset, globalAlpha));
+                lineWidth, lineCap, lineJoin, miterLimit, lineDash, lineDashOffset, globalAlpha,
+                resolvedFont, textAlign, textBaseline));
     }
 
     @Override
@@ -108,6 +125,9 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
         this.lineDash = s.lineDash;
         this.lineDashOffset = s.lineDashOffset;
         this.globalAlpha = s.globalAlpha;
+        this.resolvedFont = s.resolvedFont;
+        this.textAlign = s.textAlign;
+        this.textBaseline = s.textBaseline;
     }
 
     // ----- transforms -----
@@ -506,6 +526,118 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
         this.globalAlpha = (float) alpha;
     }
 
+    // ----- text（WI2） -----
+
+    @Override
+    public void setFont(String cssFont) {
+        this.resolvedFont = textMeasurer.resolveFont(cssFont);
+    }
+
+    @Override
+    public void setTextAlign(String align) {
+        switch (align == null ? "" : align) {
+            case "start":
+            case "end":
+            case "left":
+            case "right":
+            case "center":
+                this.textAlign = align;
+                break;
+            default:
+                throw new NopCanvas2DException("Unknown textAlign: " + align);
+        }
+    }
+
+    @Override
+    public void setTextBaseline(String baseline) {
+        switch (baseline == null ? "" : baseline) {
+            case "alphabetic":
+            case "top":
+            case "hanging":
+            case "middle":
+            case "ideographic":
+            case "bottom":
+                this.textBaseline = baseline;
+                break;
+            default:
+                throw new NopCanvas2DException("Unknown textBaseline: " + baseline);
+        }
+    }
+
+    @Override
+    public ITextMetrics measureText(String text) {
+        return textMeasurer.measure(text, resolvedFont.cssFont());
+    }
+
+    @Override
+    public void fillText(String text, double x, double y) {
+        requireFinite("fillText", x, y);
+        String normalized = text == null ? "null" : text;
+        if (normalized.isEmpty())
+            return;
+        applyState();
+        g.setFont(resolvedFont.font());
+        FontMetrics fm = g.getFontMetrics();
+        double[] origin = anchorText(normalized, x, y, fm);
+        g.drawString(normalized, (float) origin[0], (float) origin[1]);
+    }
+
+    @Override
+    public void strokeText(String text, double x, double y) {
+        requireFinite("strokeText", x, y);
+        String normalized = text == null ? "null" : text;
+        if (normalized.isEmpty())
+            return;
+        applyStrokeState();
+        g.setFont(resolvedFont.font());
+        FontMetrics fm = g.getFontMetrics();
+        double[] origin = anchorText(normalized, x, y, fm);
+        // D8：FRC 取自 g，与渲染 hints 保持一致
+        TextLayout layout = new TextLayout(normalized, resolvedFont.font(), g.getFontRenderContext());
+        Shape outline = layout.getOutline(null);
+        AffineTransform saved = (AffineTransform) transform.clone();
+        g.translate(origin[0], origin[1]);
+        g.draw(outline);
+        g.setTransform(saved);
+    }
+
+    /**
+     * D8 锚点换算：textAlign 水平（start/left→x、center→x-w/2、right/end→x-w），
+     * textBaseline 垂直（top/hanging→+ascent、middle→(ascent-descent)/2、alphabetic→0、
+     * bottom/ideographic→-descent）；返回 drawString 基线点。
+     */
+    private double[] anchorText(String text, double x, double y, FontMetrics fm) {
+        double dx = x;
+        switch (textAlign) {
+            case "center":
+                dx = x - fm.stringWidth(text) / 2.0;
+                break;
+            case "right":
+            case "end":
+                dx = x - fm.stringWidth(text);
+                break;
+            default:
+                break;
+        }
+        double dy = y;
+        switch (textBaseline) {
+            case "top":
+            case "hanging":
+                dy = y + fm.getAscent();
+                break;
+            case "middle":
+                dy = y + (fm.getAscent() - fm.getDescent()) / 2.0;
+                break;
+            case "bottom":
+            case "ideographic":
+                dy = y - fm.getDescent();
+                break;
+            default:
+                break;
+        }
+        return new double[]{dx, dy};
+    }
+
     // ----- internals -----
 
     private void ensurePath() {
@@ -540,6 +672,7 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
 
     private record CtxState(AffineTransform transform, Shape clip, Paint fillPaint, Paint strokePaint,
                             float lineWidth, int lineCap, int lineJoin, float miterLimit, float[] lineDash,
-                            float lineDashOffset, float globalAlpha) {
+                            float lineDashOffset, float globalAlpha, TextMeasurer.ResolvedFont resolvedFont,
+                            String textAlign, String textBaseline) {
     }
 }

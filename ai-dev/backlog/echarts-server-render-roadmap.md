@@ -29,7 +29,7 @@
 ### M1 — nop-canvas2d（新模块：纯 Java2D Canvas2D，零 Graal/echarts/报表依赖）
 
 - [x] WI1 路径与样式状态机核心：模块注册（根 pom modules + nop-dependencies BOM 条目）；save/restore/setTransform/translate/scale/rotate 状态机；beginPath/moveTo/lineTo/bezierCurveTo/quadraticCurveTo/arc/arcTo/ellipse/rect 路径；fill（非零缠绕）/stroke、lineWidth/Cap/Join/miterLimit、setLineDash+lineDashOffset、clip、globalAlpha、CSS 颜色解析（rgb/hex/rgba/hsla/命名色）。Java2D 渲染后端 + 单测（Deliverable: 模块 + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI2 文本与度量：CSS 字体串解析（style/weight/size/family）、textAlign/textBaseline 语义换算、measureText（含 zrender 的 lineHeight = width('国') 规则与缓存）、fillText/strokeText（strokeFirst 描边）、truncate/ellipsis 截断与富文本分行、FontMapper（sans-serif 等泛族 → 可配置具体字体，中文必须覆盖，缺字体显式报错）。单测（Deliverable: 文本子系统 + 测试；deps: WI1；Item Type: Feature）
+- [x] WI2 文本与度量：CSS 字体串解析（style/weight/size/family）、textAlign/textBaseline 语义换算、measureText（含 zrender 的 lineHeight = width('国') 规则与缓存）、fillText/strokeText（strokeFirst 描边）、truncate/ellipsis 截断与富文本分行、FontMapper（sans-serif 等泛族 → 可配置具体字体，中文必须覆盖，缺字体显式报错）。单测（Deliverable: 文本子系统 + 测试；deps: WI1；Item Type: Feature）
 - [ ] WI3 渐变/图案/阴影/图像：createLinearGradient/createRadialGradient（用户空间坐标语义）、createPattern + 变换矩阵、shadowBlur/shadowColor/shadowOffsetX/Y 离屏合成、drawImage 三形态、getImageData/putImageData/copyFrom（heatmap 依赖）、createCanvas 离屏。单测（Deliverable: 特效子系统 + 测试；deps: WI1；Item Type: Feature）
 
 ### M2 — nop-chart-echarts（引擎：已有空壳 pom）
