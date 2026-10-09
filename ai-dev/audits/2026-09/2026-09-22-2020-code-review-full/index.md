@@ -119,8 +119,8 @@
 | P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.0（EquiJoinOperator null 等值键误配——修复需覆盖 OUTER 补齐 matched 语义） | open |
 | P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.0（PerKeyOrderedBuffer.putAll 不搬 insertionSeq——restore 后 seq 对位碰撞静默丢失，探针双面实证） | open |
 | P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
-| P1-3.1-001 | `3.1-wf-deep-audit.md` | R1.0（approval-support 绕引擎双事实源——wf 活跃时拒绝直改+受派人校验；与 P1-2.6-005 分立互补同批修复互引） | open |
-| P1-3.1-002 | `3.1-wf-deep-audit.md` | R1.0（超时 dueAction 通道 allowCallByUser 阻断——系统身份旁路或契约修订；与 P2-3.1 bean 失配/remind 链同批） | open |
+| P1-3.1-001 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK gate+引擎回调标记窗口+metadata 本地覆盖同步+submit 重提交守卫；E2E 锁定用例+WORKFLOW 全链绿） | fixed |
+| P1-3.1-002 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ATTR_WF_SYSTEM_ACTION_TRIGGER 服务端标记+allowCallByUser 入口放行；scanner 标记断言+引擎正负路径双锚） | fixed |
 | P1-3.3-001 | `3.3-batch-deep-audit-a.md` | R1.0（orm-reader `<eql>` 接线或移除节点+Guard 覆盖 new 直构实例——静默全表加载） | open |
 | P1-3.3-002 | `3.3-batch-deep-audit-a.md` | R1.0（processor order 排序接线+batch-dsl.md 勘正——参照 consumer :275 对照） | open |
 | P1-3.3-003 | `3.3-batch-deep-audit-a.md` | R1.0（allOf AtomicReference CAS 收集首个非取消异常——终态误分类 KILLED 不可重启） | open |
@@ -266,6 +266,7 @@
 | R1.10 | done（部分） | plan 2375（2026-10-09）：P1-2.6-001 交付（mutation 默认事务+bean 注册）；P1-2.6-004 拆出 successor plan 2376（初版锚点实测挂死，独立重设计）；owner doc 三处修正；closure audit 见 plan 2375 Closure 段 |
 | R1.11 | done | plan 2377（2026-10-09）：fragment 变量校验三位点一次闭合（collectDocVars 文档级并集+spread 指令 vars 传递，位点 3 随传播闭合）；stash 判别 4 正向用例 FAIL 错误码逐字 `nop.err.graphql.unknown-var` 吻合审计探针；7 用例+fixture+loader 变体；graphql-core 141 全绿；owner doc 能力边界小节（P3-2.6-007 伴随）；并集宽松度裁定登记；closure audit 见 plan 2377 Closure 段 |
 | R1.12 | done | plan 2378（2026-10-09）：16 项 auth 声明+五侧合并终值断言（含 tenant 继承）+loader 两路径装配（xbiz.xdef 再生成）+双配置键 fail-open 三处+ObjMetaBasedValidator 收敛（新错误码+空安全化）+全链 enforcement 2/2；附带来料：nop-sys-dao import 一行修正（R1.17 附带工单提前消化）+metadata 四快照重录（nop-graphql-orm prepend id 字段=平台预期行为，沿 datav 先例）；closure audit 见 plan 2378 Closure 段 |
+| R1.13 | done | plan 2379（2026-10-09）：P1-3.1-002 dueAction 系统触发标记通道（allowCallByUser 入口放行+双锚测试）+P1-3.1-001 审批 gate（ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK+绑定 flowId 活跃判定+approve/reject 标记放行+withdraw/reverse 无条件+submit 重提交守卫+metadata 两本地覆盖同步+3 listener 标记窗口）；E2E 8/8+wf 195+metadata 1345 全绿；执行裁定：XScript 闭包不过 xpl 解析→listener 内联 try/finally 标记窗口（机制等价）；owner doc 两小节；closure audit 见 plan 2379 Closure 段 |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

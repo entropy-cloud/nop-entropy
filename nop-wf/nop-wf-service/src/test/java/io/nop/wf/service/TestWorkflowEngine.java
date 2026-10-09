@@ -747,6 +747,11 @@ public class TestWorkflowEngine extends BaseTestCase {
         record.setActorId("ghost");
 
         assertFalse(step.allowCallByUser(context));
+
+        // P1-3.1-002（plan 2379 Phase 1）：同一被拒步骤在携带系统触发标记的 context 下放行
+        // （dueAction 超时触发主体是系统；标记仅服务端内部组件可设）
+        context.getContext().setAttribute(NopWfCoreConstants.ATTR_WF_SYSTEM_ACTION_TRIGGER, Boolean.TRUE);
+        assertTrue(step.allowCallByUser(context));
     }
 
     /**

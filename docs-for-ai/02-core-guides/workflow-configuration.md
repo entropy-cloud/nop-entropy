@@ -437,6 +437,42 @@ CREATED (0)
 
 ---
 
+## 审批落点契约（approval-support 双事实源收口）
+
+`/nop/wf/base/approval-support.xbiz` 提供的五个审批 mutation（submitForApproval/withdrawApproval/approve/reject/reverseApprove）按「引擎路由 gate + 引擎回调标记」分层（P1-3.1-001，plan 2379）：
+
+| 场景 | 行为 |
+|------|------|
+| 实体未绑定审批流（无 `wf:wfName` / 未写 flowId / 流程已结束） | 直调窗口保持（DIRECT 模式），受 `nop.auth.enable-action-auth` 与 `<auth roles="admin"/>`（R1.12）约束 |
+| 绑定的审批流活跃（未结束）期间直调 approve/reject | 拒绝：`nop.err.wf.approval-flow-active-lock` |
+| 活跃期间直调 withdrawApproval/reverseApprove | 无条件拒绝（引擎从不回调这两个动作，标记也不放行） |
+| 活跃期间 submitForApproval 重提交 | 拒绝（同错误码）——封死第二活跃实例/孤儿步骤；REJECTED 且旧流程已结束的正常重提交不受影响 |
+| wf `*end` listener 回调 approve | 唯一合法落点：listener 在回调窗口内设置 `NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK` 标记（try/finally 收敛作用域），gate 放行 |
+
+- **受派人校验**：活跃期唯一落点是引擎回调，审批人身份由 xwf 步骤动作的 `allowCallByUser`（owner/actor/委托链）在步骤层校验——实体 mutation 不重复做身份判定。
+- **绑定读取链**：`wf:wfName` → `IWorkflowManager.getWorkflowModel` → 模型 `bizEntityFlowIdProp` → 实体属性取 flowId → `getWorkflow(flowId)` → `isEnded()`。flowIdProp 与引擎启动时回写（`bindBizEntityFlowId`）同源。
+- **新流程 listener 写法**：`*end` listener 中调用实体 approve 前必须包裹标记窗口：
+
+```js
+import io.nop.wf.core.NopWfCoreConstants;
+wfRt.svcCtx.getContext().setAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK, true);
+try {
+    entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+} finally {
+    wfRt.svcCtx.getContext().removeAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK);
+}
+```
+
+- 本地覆盖 approval-support 动作的实体（如 NopMetaDataContract/NopMetaTagLabel 的 approve/reject 自带 source）必须在**本地文件**同步 gate 判定（沿 R1.12 同一注意点：x:extends 本地覆盖不受 base 脚本改动影响）。
+- `wf-approval.xlib` 的 `<notifyResult>` 标签为 deprecated 死标签（无消费方），新流程禁止使用。
+
+## 步骤超时 dueAction 的系统触发（P1-3.1-002）
+
+`<step>` 的 `dueAction` 超时自动触发由 `WfTaskScanner`（nop-wf-scheduler）扫描执行。触发主体是系统而非用户：scanner 构造的 context 携带固定虚拟身份 `wf-scheduler` **和** 服务端内部标记 `NopWfCoreConstants.ATTR_WF_SYSTEM_ACTION_TRIGGER`，引擎 `allowCallByUser` 见标记放行（步骤动作名来自流程定义，非用户输入）。标记仅服务端内部可达——RPC 入口的 context 由框架构建，用户请求不可伪造。
+
+- 修复前：`wf-scheduler` 虚拟身份对 owner/actor/委托四路径全部不匹配，dueAction 调用被 `ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER` 结构性阻断（scanner 仅 WARN 跳过），xdef 的「自动触发」承诺对唯一目标场景永不生效。
+- dueAction 整体生效的开启前置：① nop-wf-scheduler 的扫描 job 在 host app 装配（job yaml 的 `invoker.bean` 必须与实际 bean id 一致——历史失配见 P2-3.1-001 台账行）；② 步骤定义配置了 `dueAction`。
+
 ## 常见误区
 
 ### 1. selectUser ≠ 前端选择框

@@ -325,6 +325,37 @@ public class TestUseApprovalE2E extends AbstractWorkflowTestCase {
                 "unpublish must declare only its own permission");
     }
 
+    /**
+     * P1-3.1-001（plan 2379 Phase 2）：实体绑定的审批流活跃期间，approve/reject/withdraw/reverseApprove
+     * 直调被 ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK 拒绝；submitForApproval 重提交同被拒绝（封死第二活跃实例）。
+     */
+    @Test
+    public void testActiveFlowLocksDirectApprovalMutations() {
+        final String entityId = run(() -> {
+            IEntityDao<NopWfApprovableForm> dao = DaoProvider.instance().dao("NopWfApprovableForm");
+            NopWfApprovableForm entity = dao.newEntity();
+            entity.setFormTitle("Lock Test Form");
+            entity.setApproveStatus("UNSUBMITTED");
+            dao.saveOrUpdateEntity(entity);
+            return entity.orm_idString();
+        });
+
+        IBizObject bizObj = bizObjectManager.getBizObject("NopWfApprovableForm");
+        // submitForApproval 启动 wf → 流程活跃
+        NopWfApprovableForm submitted = invokeApprovalAction(bizObj, "submitForApproval", entityId, "test001");
+        assertEquals("SUBMITTED", submitted.getApproveStatus());
+
+        for (String action : new String[]{"approve", "reject", "withdrawApproval", "reverseApprove",
+                "submitForApproval"}) {
+            final String act = action;
+            NopException e = assertThrows(NopException.class,
+                    () -> invokeApprovalAction(bizObj, act, entityId, "test001"),
+                    action + " must be locked while bound approval flow is active");
+            assertEquals(io.nop.wf.core.NopWfCoreErrors.ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK.getErrorCode(),
+                    e.getErrorCode(), action + " must fail with the flow-active-lock error code");
+        }
+    }
+
     // ======================== 辅助方法 ========================
 
     private GraphQLFieldDefinition findOperation(IBizObject bizObj, GraphQLOperationType type, String operationName) {

@@ -268,4 +268,12 @@ public interface NopWfCoreErrors {
 
     ErrorCode ERR_WF_SUB_WF_NOT_ENDED = define("nop.err.wf.sub-wf-not-ended",
             "子流程未结束或状态不一致，不允许通知父流程: subWfId={subWfId}", "subWfId");
+
+    // P1-3.1-001（plan 2379）：审批双事实源 gate——实体绑定的审批流活跃期间，
+    // 引擎回调（携带 ATTR_WF_ENGINE_CALLBACK 标记）以外的直调一律拒绝
+    String ARG_BIZ_OBJ_NAME = "bizObjName";
+
+    ErrorCode ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK = define("nop.err.wf.approval-flow-active-lock",
+            "实体绑定的审批流尚未结束，不允许绕过工作流直接修改审批状态: wfId={wfId},bizObjName={bizObjName},bizObjId={bizObjId}",
+            ARG_WF_ID, ARG_BIZ_OBJ_NAME, "bizObjId");
 }

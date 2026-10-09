@@ -15,6 +15,9 @@
                     import io.nop.wf.core.support.ApprovalFlowHelper;
 
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：绑定审批流未结束时禁止重提交（封死第二活跃实例/孤儿步骤）
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, false);
                     const status = entity.approveStatus;
 
                     if (status !== 'UNSUBMITTED' && status !== null && status !== 'REJECTED') {
@@ -53,7 +56,12 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：撤销/反审核从不被引擎回调，活跃期无条件拒绝直调
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, false);
                     const status = entity.approveStatus;
 
                     if (status !== 'SUBMITTED') {
@@ -80,7 +88,13 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：活跃审批流期间仅引擎回调通道（ATTR_WF_ENGINE_CALLBACK 标记）可落点；
+                    // 受派人校验由引擎步骤动作 allowCallByUser 承担。非活跃（无绑定/已结束）直调窗口保持（DIRECT 模式）
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, true);
                     const status = entity.approveStatus;
 
                     if (status !== 'SUBMITTED') {
@@ -109,7 +123,13 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：活跃审批流期间仅引擎回调通道（ATTR_WF_ENGINE_CALLBACK 标记）可落点；
+                    // 受派人校验由引擎步骤动作 allowCallByUser 承担。非活跃（无绑定/已结束）直调窗口保持（DIRECT 模式）
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, true);
                     const status = entity.approveStatus;
 
                     if (status !== 'SUBMITTED') {
@@ -138,7 +158,12 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：撤销/反审核从不被引擎回调，活跃期无条件拒绝直调
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, false);
                     const status = entity.approveStatus;
 
                     if (status !== 'APPROVED') {

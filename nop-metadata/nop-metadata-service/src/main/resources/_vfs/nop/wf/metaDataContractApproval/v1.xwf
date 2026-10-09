@@ -14,6 +14,8 @@
                     // 参照平台 approval-form 测试流模式）。wf 正常结束（agree 正路径）即视为审批通过；
                     // 但经基模板 oa.xwf 的 disagree 动作结束（wf.record.appState='disagree'，驳回/退回路径）
                     // 不视为通过——不得调用 approve（MA7.6-01：驳回即通过 / 发起人可自批）。
+                    import io.nop.wf.core.NopWfCoreConstants;
+
                     const wfAppState = wfRt.wf.record.appState;
                     if (wfAppState !== 'disagree') {
                         const bizObjManager = inject('nopBizObjectManager');
@@ -22,7 +24,12 @@
                         if (entityId != null) {
                             const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
                             if (entity.approveStatus === 'SUBMITTED') {
+                                wfRt.svcCtx.getContext().setAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK, true);
+                            try {
                                 entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                            } finally {
+                                wfRt.svcCtx.getContext().removeAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK);
+                            }
                             }
                         }
                     }
