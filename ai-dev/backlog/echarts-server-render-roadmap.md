@@ -34,7 +34,7 @@
 
 ### M2 — nop-chart-echarts（引擎：已有空壳 pom）
 
-- [ ] WI4 引擎核心：GraalJS Context 池（每线程复用、echarts.js 只加载一次、超时/异常 → 模块级错误码 English 消息）；polyglut↔canvas2d 桥（假 canvas 根节点、ctx 属性写入、drawImage 吃 fake canvas、getImageData → BufferedImage）；setPlatformAPI 注入（createCanvas 覆盖默认 false、loadImage defer 到 timer、measureText、getTime）；OptionNormalizer（剥离 toolbox 交互件等）；EChartsRenderer.render(optionJson, w, h) → PNG/SVG 统一入口；progressive 16ms timer 泵。单测（Deliverable: 引擎模块 + 测试；deps: WI0、WI2、WI3；Item Type: Feature）
+- [x] WI4 引擎核心：GraalJS Context 池（每线程复用、echarts.js 只加载一次、超时/异常 → 模块级错误码 English 消息）；polyglut↔canvas2d 桥（假 canvas 根节点、ctx 属性写入、drawImage 吃 fake canvas、getImageData → BufferedImage）；setPlatformAPI 注入（createCanvas 覆盖默认 false、loadImage defer 到 timer、measureText、getTime）；OptionNormalizer（剥离 toolbox 交互件等）；EChartsRenderer.render(optionJson, w, h) → PNG/SVG 统一入口；progressive 16ms timer 泵。单测（Deliverable: 引擎模块 + 测试；deps: WI0、WI2、WI3；Item Type: Feature）
 - [ ] WI5 option JSON 全类型出图验证 + 容差对比工具：bar/line/area/pie/doughnut/scatter/radar/heatmap/funnel/gauge/boxplot/graph/sankey/tree/treemap/sunburst/lines/map(GeoJSON)/parallel/calendar/candlestick + legend/axis/visualMap/dataZoom/markLine/markPoint/rich 文本/渐变/decal/image://；heatmap getImageData、aria setAttribute、SVG 地图 DOMParser 裁定（GeoJSON 优先）、progressive 泵复验。新建像素容差 image-diff 测试工具（仓库现无），产出自有基线 golden（Deliverable: 覆盖测试矩阵 + golden 基线 + 容差工具；deps: WI4；Item Type: Proof）
 
 ### M3 — nop-chart-export 换内脏（JFreeChart 退役）
@@ -115,7 +115,7 @@ flowchart TD
 ## Cross-Cutting（每个 WI 的完成判定）
 
 1. **验证门**：`./mvnw test -pl <module> -am` 绿（触及多模块跑 `./mvnw clean install -T 1C`）；命令口径以 `docs-for-ai/00-start-here/project-context.md` Verification Commands 为准。
-2. **裸环境红线**：引擎内严禁定义 window/document/navigator（保 env.node → 官方强制 animation:false）；不用 ssr:true（重开动画且不自动 flush）；createCanvas/loadImage 必须注入覆盖与 defer。
+2. **裸环境红线**：引擎内严禁定义 window/document/navigator（保 env.node → 官方强制 animation:false）；canvas 路径不用 ssr:true（重开动画且不自动 flush）；SVG SSR 路径用 ssr:true + 强制 animation:false（静态终态，plan 2362 D16）；createCanvas/loadImage 必须注入覆盖与 defer。
 3. **生成物禁改**：不手编辑 _ 前缀与 _gen 生成物；适配与接线一律改源模型/契约层。
 4. **错误处理**：两档惯例（`docs-for-ai/02-core-guides/error-handling.md`）——canvas/引擎/适配模块级异常 + English 消息，不裸 RuntimeException。
 5. **字体确定性**：FontMapper 可配置且中文必覆盖；缺字体显式报错而非静默 fallback；golden 与对版依赖字体环境一致。
