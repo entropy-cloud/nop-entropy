@@ -53,6 +53,13 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      *  
+     * xml name: evictorId
+     * 
+     */
+    private java.lang.String _evictorId ;
+    
+    /**
+     *  
      * xml name: maxDelay
      * 
      */
@@ -183,6 +190,25 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
     
     /**
      * 
+     * xml name: evictorId
+     *  
+     */
+    
+    public java.lang.String getEvictorId(){
+      return _evictorId;
+    }
+
+    
+    public void setEvictorId(java.lang.String value){
+        checkAllowChange();
+        
+        this._evictorId = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: maxDelay
      *  
      */
@@ -296,6 +322,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         out.putNotNull("description",this.getDescription());
         out.putNotNull("duration",this.getDuration());
         out.putNotNull("emit",this.getEmit());
+        out.putNotNull("evictorId",this.getEvictorId());
         out.putNotNull("maxDelay",this.getMaxDelay());
         out.putNotNull("slide",this.getSlide());
         out.putNotNull("strategyId",this.getStrategyId());
@@ -317,6 +344,7 @@ public abstract class _WindowingStrategyModel extends io.nop.core.resource.compo
         instance.setDescription(this.getDescription());
         instance.setDuration(this.getDuration());
         instance.setEmit(this.getEmit());
+        instance.setEvictorId(this.getEvictorId());
         instance.setMaxDelay(this.getMaxDelay());
         instance.setSlide(this.getSlide());
         instance.setStrategyId(this.getStrategyId());

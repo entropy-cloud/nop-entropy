@@ -47,6 +47,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
     <!-- 窗口策略注册表 -->
     <windowingStrategies xdef:key-attr="strategyId" xdef:body-type="list">
         <strategy strategyId="!string" windowFnId="!string" duration="string" triggerId="string"
+                  evictorId="string"
                   allowedLateness="!long=0"
                   maxDelay="long"
                   accumulationMode="!enum:io.nop.stream.core.windowing.AccumulationMode=DISCARDING"
@@ -203,6 +204,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
         <window strategyRef="!string" xdef:name="StreamWindowModel" xdef:ref="StreamTransformModel">
             <allowedLateness>long</allowedLateness>
             <triggerId>string</triggerId>
+            <evictorId>string</evictorId>
         </window>
 
         <!-- Aggregate 节点：实现 AggregateFunction 接口。WI8c：bean 与 aggregatorRef
