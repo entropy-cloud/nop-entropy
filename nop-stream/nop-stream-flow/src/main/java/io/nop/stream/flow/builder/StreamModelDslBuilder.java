@@ -49,6 +49,7 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -83,6 +84,7 @@ import io.nop.stream.flow.builder.functions.XplSinkFunction;
 import io.nop.stream.flow.builder.functions.XplSourceFunction;
 import io.nop.stream.flow.model.CheckpointConfigModel;
 import io.nop.stream.flow.model.StorageConfigEntryModel;
+import io.nop.stream.flow.model.StreamAggregateModel;
 import io.nop.stream.flow.model.StreamCustomModel;
 import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamFilterModel;
@@ -95,11 +97,13 @@ import io.nop.stream.flow.model.WindowingStrategyModel;
 import io.nop.stream.flow.model.StreamMapModel;
 import io.nop.stream.flow.model.StreamModel;
 import io.nop.stream.flow.model.StreamProcessModel;
+import io.nop.stream.flow.model.StreamReduceModel;
 import io.nop.stream.flow.model.StreamSideOutputModel;
 import io.nop.stream.flow.model.StreamSinkModel;
 import io.nop.stream.flow.model.StreamSourceModel;
 import io.nop.stream.flow.model.StreamUnionModel;
 import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.model.StreamWindowModel;
 import io.nop.stream.flow.spi.ISqlStreamCompiler;
 
 /**
@@ -591,6 +595,27 @@ public final class StreamModelDslBuilder {
      *       cannot take a side-output input, and sink targets consume side outputs via
      *       the Java API {@code getSideOutput(tag)} view instead.</li>
      * </ol>
+     *
+     * <p>WI10 (plan 2356): {@code <window lateData="tag">} declarations register a
+     * SECOND class of tag producer — the window operator's late-data channel. The
+     * window itself is a virtual build point (no vertex of its own), so the consuming
+     * tag edge starts at the window's HOST vertex: the single aggregate/reduce
+     * transform that directly consumes the window node. Checks (in order, so the
+     * error for the minimal broken model is stable):
+     * <ol>
+     *   <li>a blank {@code lateData} value (ERR_STREAM_REQUIRED_ATTR),</li>
+     *   <li>a lateData tag colliding with a {@code <sideOutput>} tag or another
+     *       window's lateData tag (ERR_STREAM_DUPLICATE_ID),</li>
+     *   <li>the window's host vertex count is not exactly one — zero hosts (no
+     *       aggregate/reduce downstream) or multiple hosts both reject; the first
+     *       host is never silently picked (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>the lateData tag has no consuming edge, or more than one
+     *       (ERR_STREAM_INVALID_ARG),</li>
+     *   <li>the consuming edge's {@code from} is not the resolved host vertex
+     *       (ERR_STREAM_REF_UNKNOWN),</li>
+     *   <li>the same edge constraints as a tap edge apply: target type, non-FORWARD
+     *       partition and keyExpr all reject (same codes as the tap path).</li>
+     * </ol>
      */
     private void validateSideOutputDeclarations(List<StreamEdgeModel> edges,
                                                 Map<String, StreamTransformModel> byId) {
@@ -613,9 +638,59 @@ public final class StreamModelDslBuilder {
             }
         }
 
+        // WI10 (plan 2356): lateData tag registry. Blank value and tag collisions
+        // reject here (checks 1-2) before any edge or host resolution.
+        Map<String, StreamWindowModel> lateDataByTag = new LinkedHashMap<>();
+        for (StreamTransformModel t : model.getTransforms()) {
+            if (!(t instanceof StreamWindowModel)) {
+                continue;
+            }
+            StreamWindowModel w = (StreamWindowModel) t;
+            String lateTag = w.getLateData();
+            if (lateTag == null) {
+                continue;
+            }
+            if (lateTag.isEmpty()) {
+                throw new StreamException(ERR_STREAM_REQUIRED_ATTR)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_ATTR_NAME, "lateData")
+                        .loc(w.getLocation());
+            }
+            StreamSideOutputModel tapOwner = nodeByTag.get(lateTag);
+            if (tapOwner != null) {
+                throw new StreamException(ERR_STREAM_DUPLICATE_ID)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_ID, lateTag)
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "window '" + w.getId() + "' declares lateData tag '"
+                                + lateTag + "' which is already declared by <sideOutput> '"
+                                + tapOwner.getId() + "'; a tag id is a global identity — pick a"
+                                + " distinct tag for the late-data channel")
+                        .loc(w.getLocation());
+            }
+            StreamWindowModel prevW = lateDataByTag.put(lateTag, w);
+            if (prevW != null) {
+                throw new StreamException(ERR_STREAM_DUPLICATE_ID)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_ID, lateTag)
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "lateData tag '" + lateTag + "' is declared by two"
+                                + " windows ('" + prevW.getId() + "' and '" + w.getId()
+                                + "'); a tag id is a global identity — split the producers"
+                                + " onto distinct tags")
+                        .loc(w.getLocation());
+            }
+        }
+
         Map<String, List<StreamEdgeModel>> consumerEdgesByTag = new LinkedHashMap<>();
         for (StreamEdgeModel e : edges) {
             if (e.getOutputTag() == null) {
+                continue;
+            }
+            // WI10: a lateData tag edge is validated by the per-window loop below —
+            // it must not trip the tap pairing checks (its from is the window's HOST
+            // vertex, not a <sideOutput> node).
+            if (lateDataByTag.containsKey(e.getOutputTag())) {
                 continue;
             }
             StreamSideOutputModel producer = nodeByTag.get(e.getOutputTag());
@@ -691,6 +766,128 @@ public final class StreamModelDslBuilder {
                                 + " silently take each other over. Route additional consumers"
                                 + " behind the first tag-fed transform instead")
                         .loc(consumers.get(1).getLocation());
+            }
+        }
+
+        // WI10 (plan 2356): per-window lateData pairing — host resolution (check 3)
+        // then consumer-edge checks (checks 4-6). The window is a virtual build point:
+        // its late-data channel leaves the HOST vertex (the single aggregate/reduce
+        // transform that directly consumes the window node), so the consuming tag edge
+        // must start there, exactly like a tap edge starts at its <sideOutput> node.
+        for (Map.Entry<String, StreamWindowModel> entry : lateDataByTag.entrySet()) {
+            String lateTag = entry.getKey();
+            StreamWindowModel w = entry.getValue();
+
+            Set<String> hostIds = new LinkedHashSet<>();
+            for (StreamEdgeModel e : edges) {
+                if (!w.getId().equals(e.getFrom())) {
+                    continue;
+                }
+                StreamTransformModel target = byId.get(e.getTo());
+                if (target instanceof StreamAggregateModel || target instanceof StreamReduceModel) {
+                    hostIds.add(e.getTo());
+                }
+            }
+            if (hostIds.isEmpty()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "window '" + w.getId() + "' declares lateData tag '"
+                                + lateTag + "' but has no aggregate/reduce downstream — the"
+                                + " late-data channel has no host operator to emit from; add"
+                                + " <edge from=\"" + w.getId() + "\" to=\"<aggregate|reduce>\"/>"
+                                + " or drop the lateData declaration")
+                        .loc(w.getLocation());
+            }
+            if (hostIds.size() > 1) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "window '" + w.getId() + "' declares lateData tag '"
+                                + lateTag + "' but feeds multiple aggregate/reduce hosts "
+                                + hostIds + "; the late-data channel has no single host vertex"
+                                + " — declare the lateData tag on a window with exactly one"
+                                + " aggregate/reduce consumer")
+                        .loc(w.getLocation());
+            }
+            String hostId = hostIds.iterator().next();
+
+            List<StreamEdgeModel> consumers = new ArrayList<>();
+            for (StreamEdgeModel e : edges) {
+                if (lateTag.equals(e.getOutputTag())) {
+                    consumers.add(e);
+                }
+            }
+            if (consumers.isEmpty()) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "window '" + w.getId() + "' declares lateData tag '"
+                                + lateTag + "' but no consuming tag edge exists; declare"
+                                + " <edge id=\"...\" from=\"" + hostId + "\" to=\"<transform>\""
+                                + " outputTag=\"" + lateTag + "\"/>")
+                        .loc(w.getLocation());
+            }
+            if (consumers.size() > 1) {
+                List<String> consumerEdgeIds = new ArrayList<>();
+                for (StreamEdgeModel e : consumers) {
+                    consumerEdgeIds.add(e.getId());
+                }
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, elementDesc(w))
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "lateData tag '" + lateTag + "' is consumed by"
+                                + " multiple edges " + consumerEdgeIds + "; the tag"
+                                + " registration is replace-by-id semantics — route"
+                                + " additional consumers behind the first tag-fed transform"
+                                + " instead")
+                        .loc(consumers.get(1).getLocation());
+            }
+            StreamEdgeModel consumer = consumers.get(0);
+            if (!hostId.equals(consumer.getFrom())) {
+                throw new StreamException(ERR_STREAM_REF_UNKNOWN)
+                        .param(ARG_ELEMENT, "edge '" + consumer.getId() + "'")
+                        .param(ARG_REF_TYPE, "<window> lateData declaration")
+                        .param(ARG_REF_NAME, lateTag)
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "edge '" + consumer.getId() + "' consumes lateData"
+                                + " tag '" + lateTag + "' but its from transform '"
+                                + consumer.getFrom() + "' is not the window's host vertex '"
+                                + hostId + "'; the window is a virtual build point — a"
+                                + " late-data tag edge must start at the aggregate/reduce"
+                                + " transform that consumes window '" + w.getId() + "'")
+                        .loc(consumer.getLocation());
+            }
+            if (!isTagTargetSupported(byId.get(consumer.getTo()))) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_ELEMENT, "edge '" + consumer.getId() + "'")
+                        .param(ARG_OUTPUT_TAG, lateTag)
+                        .param(ARG_DETAIL, "lateData tag edge '" + consumer.getId()
+                                + "' targets transform '" + consumer.getTo() + "' of type "
+                                + byId.get(consumer.getTo()).getClass().getSimpleName()
+                                + "; a tag channel can only feed a single-input transform"
+                                + " (map/filter/flatMap/process/custom)")
+                        .loc(consumer.getLocation());
+            }
+            if (consumer.getPartition() != null
+                    && consumer.getPartition() != PartitionPolicy.FORWARD) {
+                throw new StreamException(ERR_STREAM_EDGE_ATTR_UNSUPPORTED)
+                        .param(ARG_EDGE_ID, consumer.getId())
+                        .param(ARG_ATTR_NAME, "partition")
+                        .param(ARG_DETAIL, "lateData tag edge '" + consumer.getId()
+                                + "' declares partition=" + consumer.getPartition()
+                                + "; a tag edge follows the producer's partitioning and"
+                                + " cannot re-partition the tag channel")
+                        .loc(consumer.getLocation());
+            }
+            if (consumer.getKeyExpr() != null) {
+                throw new StreamException(ERR_STREAM_EDGE_ATTR_UNSUPPORTED)
+                        .param(ARG_EDGE_ID, consumer.getId())
+                        .param(ARG_ATTR_NAME, "keyExpr")
+                        .param(ARG_DETAIL, "lateData tag edge '" + consumer.getId()
+                                + "' declares keyExpr; a tag edge follows the producer's"
+                                + " partitioning and cannot re-key the tag channel")
+                        .loc(consumer.getLocation());
             }
         }
     }

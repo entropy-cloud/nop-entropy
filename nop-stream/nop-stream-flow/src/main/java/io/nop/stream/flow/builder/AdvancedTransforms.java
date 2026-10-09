@@ -216,6 +216,16 @@ final class AdvancedTransforms {
         if (lateness > 0) {
             windowed.allowedLateness(lateness);
         }
+        // WI10 (plan 2356): consume the declared late-data side-output tag. The
+        // structural pairing checks (non-blank, unique, exactly-one host and
+        // consumer edge) already ran in validateSideOutputDeclarations; here we
+        // only wire the tag into the windowed stream so the window operator
+        // routes skipped late records (ts + allowedLateness <= watermark) onto
+        // the tag channel instead of counting them as dropped.
+        if (m.getLateData() != null) {
+            windowed.sideOutputLateData(
+                    new OutputTag(m.getLateData(), UnknownTypeInformation.INSTANCE));
+        }
         // WI8 (plan 2332): consume the strategy-level maxDelay fallback (null/0 =
         // disabled). Flows through the WindowedStream API into the window operator;
         // the operator constructor rejects a processing-time assigner combined with

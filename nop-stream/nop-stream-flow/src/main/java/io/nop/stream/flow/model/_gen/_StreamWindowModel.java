@@ -10,7 +10,11 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/stream/stream.xdef <p>
- * Window 节点：窗口
+ * Window 节点：窗口。WI10：lateData 声明迟到数据侧输出 tag（可选）——
+ * 迟到记录（ts+allowedLateness <= wm 的 skipped 记录）经该 tag 通道发往
+ * 下游顶点；消费协议 <edge from="<窗口的 aggregate/reduce 宿主节点>"
+ * to="<transform>" outputTag="<tag>">，pairing 校验由
+ * validateSideOutputDeclarations 前移把关。
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -36,6 +40,13 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
      * 
      */
     private java.lang.String _evictorId ;
+    
+    /**
+     *  
+     * xml name: lateData
+     * 
+     */
+    private java.lang.String _lateData ;
     
     /**
      *  
@@ -117,6 +128,25 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
     
     /**
      * 
+     * xml name: lateData
+     *  
+     */
+    
+    public java.lang.String getLateData(){
+      return _lateData;
+    }
+
+    
+    public void setLateData(java.lang.String value){
+        checkAllowChange();
+        
+        this._lateData = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: strategyRef
      *  
      */
@@ -190,6 +220,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         out.putNotNull("allowedLateness",this.getAllowedLateness());
         out.putNotNull("earlyResultsPeriod",this.getEarlyResultsPeriod());
         out.putNotNull("evictorId",this.getEvictorId());
+        out.putNotNull("lateData",this.getLateData());
         out.putNotNull("strategyRef",this.getStrategyRef());
         out.putNotNull("triggerId",this.getTriggerId());
         out.putNotNull("type",this.getType());
@@ -207,6 +238,7 @@ public abstract class _StreamWindowModel extends io.nop.stream.flow.model.Stream
         instance.setAllowedLateness(this.getAllowedLateness());
         instance.setEarlyResultsPeriod(this.getEarlyResultsPeriod());
         instance.setEvictorId(this.getEvictorId());
+        instance.setLateData(this.getLateData());
         instance.setStrategyRef(this.getStrategyRef());
         instance.setTriggerId(this.getTriggerId());
         instance.setType(this.getType());
