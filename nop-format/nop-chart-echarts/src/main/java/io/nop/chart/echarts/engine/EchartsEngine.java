@@ -45,6 +45,15 @@ public class EchartsEngine {
         engine.timerPumpMaxRounds = timerPumpMaxRounds;
     }
 
+    /**
+     * plan 2364 D28 最小缝：仅调整全局渲染超时（毫秒），不触碰 textMeasurer 与
+     * timerPumpMaxRounds（避免把 WI7/WI8 报表装配注入的字体配置打回默认）。全局
+     * last-write-wins：并发异值导出以最后一次调用为准。
+     */
+    public static void configureTimeout(long renderTimeoutMs) {
+        instance.renderTimeoutMs = renderTimeoutMs;
+    }
+
     private final Engine sharedEngine = Engine.newBuilder()
             .option("engine.WarnInterpreterOnly", "false")
             .build();

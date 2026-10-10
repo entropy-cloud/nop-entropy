@@ -1,6 +1,6 @@
 # ECharts 服务端静态渲染与 JFreeChart 退役 Roadmap（nop-chart-echarts）
 
-> Last updated: 2026-10-10（WI0–WI5 已完成；WI6–WI10 未启动）
+> Last updated: 2026-10-10（WI0–WI6 已完成；WI7–WI10 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources: 2026-10-06 会话裁定（路线 B：JVM 内 GraalJS 执行 dist/echarts.js + Java2D 实现 Canvas2D shim；范围=常见图型全量 + 直接吃 ECharts option JSON；换机制同时接线报表导出；保留 nop-chart-export 壳换内脏；四 jar 拆分且接线 jar 归 nop-report；对版标准=结构语义对版+样式尽量贴近）。对版素材：`docs/dev-guide/report/excel-chart.md`（17 张 Excel 截图）+ `nop-format/nop-chart-export/src/test/resources/xlsx/test-all-charts.xlsx`（17 图型 fixture，2026-10-06 已核对一一对应）。
 
@@ -12,7 +12,7 @@
 
 - **不迁移不移植** ECharts/zrender 源码——直接执行官方 dist 文件；不做纯 Java 移植，不做 Node sidecar。
 - **xlsx 原生 OOXML 图表路径零改动**（ExpandedSheetChartGenerator → DrawingChartBuilder 照旧），本 roadmap 只替换非 xlsx 输出（HTML/PDF/docx）的图表生成机制。
-- **JFreeChart 全量移除**：nop-chart-export 内 24 个 org.jfree 实现文件与 nop-kernel/nop-dependencies/pom.xml 版本项全部删除；契约（IChartExporter/ChartExportOptions/ChartExportErrors/Registry/ChartDataFilter）保留。
+- **JFreeChart 全量移除**：nop-chart-export 内 org.jfree 实现文件（实测 22 main+1 test，其中 ChartExporter 原地换内脏、净删 21 main+1 test）与 nop-kernel/nop-dependencies/pom.xml 版本项全部删除；契约（IChartExporter/ChartExportOptions/ChartExportErrors/Registry/ChartDataFilter）保留。
 - **不做动画/交互/工具箱**：toolbox saveAsImage 等交互件由 OptionNormalizer 剥离。
 - 对版验收采用「结构语义对版 + 样式尽量贴近」（图型/系列/数据/标签/图例/轴必须一致；配色等从 ChartModel 携带尽量贴近 Excel，不追求像素等同）。
 
@@ -39,7 +39,7 @@
 
 ### M3 — nop-chart-export 换内脏（JFreeChart 退役）
 
-- [ ] WI6 ChartModel→option 适配器与 JFreeChart 删除：以 /nop/schema/excel/chart.xdef 为映射规范实现常见 ChartType 适配（系列/样式/渐变/图例/坐标轴/数据标签/trendLine→markLine，series 配色携带以贴近对版）；IChartExporter 等契约与 ChartDataFilter 保留、既有 3 个测试迁移；删除 24 个 org.jfree 文件与 nop-dependencies 中 jfreechart 版本项；确认审计发现的 5 个死配置/趋势线热力图缺陷随之消灭（Deliverable: 适配层 + 依赖删除 + 测试迁移；deps: WI5；Item Type: Feature + Proof）
+- [x] WI6 ChartModel→option 适配器与 JFreeChart 删除：以 /nop/schema/excel/chart.xdef 为映射规范实现常见 ChartType 适配（系列/样式/渐变/图例/坐标轴/数据标签/trendLine→markLine，series 配色携带以贴近对版）；IChartExporter 等契约与 ChartDataFilter 保留、既有 3 个测试迁移；删除 jfree 实现文件（实测口径：21 个 main + 1 个 jfree 测试 + 1 个示例 docs，另 ChartExporter 原地换内脏）与 nop-dependencies 中 jfreechart 版本项；确认审计发现的 5 个死配置/趋势线热力图缺陷随之消灭（trendLine→markLine 仅 linear，其余趋势线类型按类别计算值生成叠加线系列——markLine 只能表达直线段，plan 2364 D29）（Deliverable: 适配层 + 依赖删除 + 测试迁移；deps: WI5；Item Type: Feature + Proof）
 
 ### M4 — 报表接线（SPI 在 nop-excel，实现在 nop-report/nop-chart-report）
 
@@ -59,7 +59,7 @@
 
 **已存在：**
 
-- **JFreeChart 足迹**：nop-chart-export 24 个 org.jfree 文件（约 4.9K LOC）**零生产调用方**；版本项在 nop-kernel/nop-dependencies/pom.xml。契约 IChartExporter/ChartExportOptions/ChartExportErrors/Registry/ChartDataFilter 无 org.jfree 耦合，可原样保留。
+- **JFreeChart 足迹**：nop-chart-export org.jfree 文件 22 main + 1 test（约 4.9K LOC）**零生产调用方**；版本项在 nop-kernel/nop-dependencies/pom.xml。契约 IChartExporter/ChartExportOptions/ChartExportErrors/Registry/ChartDataFilter 无 org.jfree 耦合，可原样保留。
 - **空壳与先例**：nop-format/nop-chart-echarts 空壳 pom 已注册；nop-frontend-support/nop-js 已用 GraalJS 23.1.2 但模块被注释禁用（`nop-frontend-support/pom.xml` 不在 reactor）→ 新模块自包含 Graal 依赖，不依赖 nop-js。
 - **ECharts 本体**：~/sources/echarts v6.1.0；dist/echarts.js（3,847,293 B，纯 ES5，0 eval/with/async/import）已在 Node vm + Proxy 假 canvas 实测跑通全部图表类型；仅需 global、timer、console、setPlatformAPI、假 canvas 根。默认 createCanvas 返回 false 需注入；loadImage 需 defer；非 ssr 模式保 env.node → animation:false 且 setOption 末尾自动 flush；ssr:true 反而重开动画不自动 flush（不用）。
 - **shim 实测面**：zrender 只用约 30 个 Canvas2D 方法，从不用 ctx.filter/roundRect/evenodd；Java2D 原生覆盖约 70%，需手写 measureText/基线、径向与用户空间渐变、shadow 离屏合成、pattern 矩阵、getImageData/putImageData。

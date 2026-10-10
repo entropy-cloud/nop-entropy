@@ -70,6 +70,19 @@ class EchartsEngineTest {
     }
 
     @Test
+    void configureTimeoutChangesOnlyTheTimeout() {
+        // plan 2364 D28：configureTimeout 只改全局超时，不触碰 font/pump 配置
+        long original = engine.getRenderTimeoutMs();
+        try {
+            EchartsEngine.configureTimeout(1234);
+            assertEquals(1234, EchartsEngine.get().getRenderTimeoutMs());
+        } finally {
+            EchartsEngine.configureTimeout(original);
+        }
+        assertEquals(original, EchartsEngine.get().getRenderTimeoutMs());
+    }
+
+    @Test
     void timeoutFailsAndLaterRenderStaysHealthy() {
         // D14：超时 → render timed out；迟到中断不毒化下一次渲染（M1 回归）
         long original = engine.getRenderTimeoutMs();
