@@ -94,3 +94,29 @@ jobs:
             $FILES \
             --rules nop-xdsl-watermark-required,nop-xdsl-credential-plaintext,nop-xdsl-delta-derivation,nop-xdsl-edge-partition,nop-xdsl-transform-naming,nop-xdsl-undeclared-consumer \
             --baseline-check ai-dev/tools/nop-lint-xdsl-baseline.txt --max-warnings 0
+
+  # WI27 (plan 2373): the 12-scenario acceptance suites + the four release-face
+  # regression pins run as a blocking CI gate. These tests execute the full
+  # XDSL chain (fixture → DslModelParser → StreamModelDslBuilder → env.execute)
+  # so any release-face regression (registry families / lifecycle callbacks /
+  # edge flow-control / endpoint attributes) or scenario data-plane breakage
+  # blocks the merge.
+  xdsl-scenarios:
+    name: XDSL acceptance scenarios (E1-E12) + release-face pins
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+      - name: Build flow + runtime modules
+        run: mvn -q -pl nop-stream/nop-stream-flow,nop-stream/nop-stream-runtime -am -DskipTests install
+      - name: Run 12-scenario acceptance suites (E1-E12)
+        run: |-
+          mvn -pl nop-stream/nop-stream-runtime test -Dtest='TestXdslScenarioE1,TestXdslScenarioE2,TestXdslScenarioE3,TestXdslScenarioE4,TestXdslScenarioE5,TestXdslScenarioE6,TestXdslScenarioE7,TestXdslScenarioE8,TestXdslScenarioE9,TestXdslScenarioE10,TestXdslScenarioE11,TestXdslScenarioE12' -DfailIfNoTests=true
+      - name: Run release-face regression pins (WI12/WI13/WI14/WI15)
+        run: |-
+          mvn -pl nop-stream/nop-stream-flow test -Dtest='TestWi12RegistryFamilies,TestStreamModelDslBuilderFailFast,TestStreamModelEdgeContract,TestWi15EndpointAttributes' -DfailIfNoTests=true
