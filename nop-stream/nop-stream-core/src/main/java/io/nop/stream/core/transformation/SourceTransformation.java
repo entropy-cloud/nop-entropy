@@ -36,6 +36,15 @@ public class SourceTransformation<OUT> extends Transformation<OUT> {
     private final SourceFunction<OUT> sourceFunction;
 
     /**
+     * U4 (deferred-unlock, plan 2377): optional table identity declared on the DSL
+     * {@code <source>} node. Non-null means every record emitted by this source is
+     * stamped {@code withChangeMetadata(INSERT, tableId)} at the emission points —
+     * unless the value itself carries a {@code ChangeSemanticView}, which wins.
+     * Nullable: absent/blank declaration = plain append semantics (historic default).
+     */
+    private String declaredTableId;
+
+    /**
      * Creates a new source transformation with the specified parameters.
      *
      * @param name the name of the source transformation
@@ -43,7 +52,7 @@ public class SourceTransformation<OUT> extends Transformation<OUT> {
      * @param outputType the output type information for the produced elements
      * @param parallelism the parallelism for the source transformation
      */
-    public SourceTransformation(String name, SourceFunction<OUT> sourceFunction, 
+    public SourceTransformation(String name, SourceFunction<OUT> sourceFunction,
                                 TypeInformation<OUT> outputType, int parallelism) {
         super(name, outputType, parallelism);
         this.sourceFunction = sourceFunction;
@@ -56,6 +65,22 @@ public class SourceTransformation<OUT> extends Transformation<OUT> {
      */
     public SourceFunction<OUT> getSourceFunction() {
         return sourceFunction;
+    }
+
+    /**
+     * U4: the table identity declared for this source, or null when undeclared.
+     */
+    public String getDeclaredTableId() {
+        return declaredTableId;
+    }
+
+    /**
+     * U4: sets the declared table identity. Null/blank normalizes to undeclared
+     * (no stamping), so callers never have to guard the blank case.
+     */
+    public void setDeclaredTableId(String declaredTableId) {
+        this.declaredTableId = (declaredTableId == null || declaredTableId.isBlank())
+                ? null : declaredTableId;
     }
 
     /**

@@ -2034,9 +2034,39 @@ public final class StreamModelDslBuilder {
         // AFTER the fidelity check so consistency validation sees the delegate.
         fn = applyRateLimitDeclaration(fn, t);
         String name = t.getName() == null ? "Source:" + t.getId() : t.getName();
+        DataStream<T> source = (DataStream<T>) env.addSource(fn, name);
+        // U4 (deferred-unlock, plan 2377): the declared tableId rides the registered
+        // SourceTransformation — the graph generator passes it to the source operator,
+        // which stamps (INSERT, tableId) at the emission points. Null/blank declaration
+        // = undeclared (the setter normalizes; union/parallelism keep the same instance).
+        applyDeclaredTableId(source, t);
         // Item 29: per-transform parallelism consumes the DataStreamSource entry
         // (covers the source vertex; undeclared inherits the stream-level value).
-        return applyDeclaredParallelism((DataStream<T>) env.addSource(fn, name), t);
+        return applyDeclaredParallelism(source, t);
+    }
+
+    /**
+     * U4 (deferred-unlock, plan 2377): the {@code <source tableId>} declaration is
+     * copied onto the registered {@link io.nop.stream.core.transformation.SourceTransformation}
+     * so it reaches the source operator through the graph generator. Package-private
+     * static for direct wiring pinning; the null/blank → undeclared normalization lives
+     * in the transformation setter.
+     */
+    static <T> void applyDeclaredTableId(DataStream<T> source, StreamSourceModel t) {
+        if (t.getTableId() == null) {
+            return;
+        }
+        io.nop.stream.core.transformation.Transformation<T> transformation =
+                ((io.nop.stream.core.datastream.DataStreamImpl<T>) source).getTransformation();
+        if (!(transformation instanceof io.nop.stream.core.transformation.SourceTransformation)) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, elementDesc(t)).param(ARG_ATTR_NAME, "tableId")
+                    .param(ARG_DETAIL, "the declared tableId must land on a SourceTransformation, got "
+                            + transformation.getClass().getName())
+                    .loc(t.getLocation());
+        }
+        ((io.nop.stream.core.transformation.SourceTransformation<T>) transformation)
+                .setDeclaredTableId(t.getTableId());
     }
 
     /**

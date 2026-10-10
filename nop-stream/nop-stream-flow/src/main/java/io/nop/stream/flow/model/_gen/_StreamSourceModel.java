@@ -12,7 +12,10 @@ import io.nop.commons.util.ClassHelper;
  * generate from /nop/schema/stream/stream.xdef <p>
  * Source 节点：实现 SourceFunction 接口。U3/deferred-unlock：rateLimitRowsPerSecond/
  * rateLimitBytesPerSecond 声明作业级限速（引擎 SourceRateLimiter 令牌桶，与 connector
- * 参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装）
+ * 参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装）。
+ * U4/deferred-unlock：tableId 声明表身份（可选）——源记录在发射点盖
+ * withChangeMetadata(INSERT, tableId)；值自带 ChangeSemanticView 时以值为准；
+ * 空/缺省=未声明
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -66,6 +69,13 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
      * 
      */
     private io.nop.core.lang.eval.IEvalFunction _source ;
+    
+    /**
+     *  
+     * xml name: tableId
+     * 
+     */
+    private java.lang.String _tableId ;
     
     /**
      *  
@@ -235,6 +245,25 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
     
     /**
      * 
+     * xml name: tableId
+     *  
+     */
+    
+    public java.lang.String getTableId(){
+      return _tableId;
+    }
+
+    
+    public void setTableId(java.lang.String value){
+        checkAllowChange();
+        
+        this._tableId = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: 
      *  
      */
@@ -276,6 +305,7 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
         out.putNotNull("rateLimitBytesPerSecond",this.getRateLimitBytesPerSecond());
         out.putNotNull("rateLimitRowsPerSecond",this.getRateLimitRowsPerSecond());
         out.putNotNull("source",this.getSource());
+        out.putNotNull("tableId",this.getTableId());
         out.putNotNull("type",this.getType());
     }
 
@@ -295,6 +325,7 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
         instance.setRateLimitBytesPerSecond(this.getRateLimitBytesPerSecond());
         instance.setRateLimitRowsPerSecond(this.getRateLimitRowsPerSecond());
         instance.setSource(this.getSource());
+        instance.setTableId(this.getTableId());
         instance.setType(this.getType());
     }
 
