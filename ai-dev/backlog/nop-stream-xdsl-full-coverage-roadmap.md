@@ -4,7 +4,8 @@ audit-rounds: 0
 
 # nop-stream XDSL 声明面全功能补全与 12 场景验收 Roadmap
 
-> Last updated: 2026-10-10（v26：WI27 验收门禁落地（plan 2373）——12 场景套件（TestXdslScenarioE1-E12）+四条释放面回归钉（WI12=TestWi12RegistryFamilies/WI13=lifecycleCallbacksFailsFast/WI14=TestStreamModelEdgeContract/WI15=TestWi15EndpointAttributes）纳入 compliance.yml xdsl-scenarios CI 作业（失败即阻塞）；场景注册表=12 场景矩阵）
+> Last updated: 2026-10-10（v27：**roadmap 宣告收口**（plan 2374 WI28）——WI0-WI27 全部闭环（29/29 勾选：28 执行项+1 收口项），12 场景套件全绿纳入 CI 门禁（compliance.yml xdsl-scenarios），两层检查器零阻塞违规（nop-lint error 0/doc-links 0/scan-hollow 0 high），owner doc 全面同步（user guide 支持矩阵+12 场景段+迁移引用），vision #WI0-XDSL 五项裁定全部落地；显式 deferred：E3 主路径引擎路由 defect（successor 登记）、E1 限速声明面、E6 async 声明面、E9 MAX_DELAY DSL 面/E10 topN 目录化、区间谓词声明面、file tailing、tableId 声明面、transform 级 SQL 声明面（各带触发条件/owner 人审门））
+> 历史版本：2026-10-10（v26：WI27 验收门禁落地（plan 2373）——12 场景套件（TestXdslScenarioE1-E12）+四条释放面回归钉（WI12=TestWi12RegistryFamilies/WI13=lifecycleCallbacksFailsFast/WI14=TestStreamModelEdgeContract/WI15=TestWi15EndpointAttributes）纳入 compliance.yml xdsl-scenarios CI 作业（失败即阻塞）；场景注册表=12 场景矩阵）
 > 历史版本：2026-10-10（v25：WI26 E11-E12 验收套件落地（plan 2372）——E11 Enrichment 降级形态（CEP within=30s 钉：patterns+keyBy+cep bean；TestXdslScenarioE11 build 钉；**契约事实：cep 须 KeyedStream 上游+PatternProcessFunction.processMatch 匹配为 Map&lt;String,List&gt;**）+ 组件引用（WI14 lookup/WI18 N 路/WI17 同步替代既有套件）；E12 early-tail 降级形态（earlyResultsPeriod=10s ACCUMULATING 乱序部分结果非递减+DRAIN/AT_LEAST_ONCE 声明钉（processingGuarantee 默认注入实证）；TestXdslScenarioE12 非递减 partial 断言；tail 源裁定引用 WI19））
 > 历史版本：2026-10-10（v24：WI25 E9-E10 验收套件落地（plan 2371）——E9 TDengine 降级形态（sliding 5s/2.5s 重叠面 n≥2 多元素 pane+earlyResultsPeriod=10s+回补引用 multi-engine WI10；TestXdslScenarioE9 非递减 avg 序列断言）；E10 Hazelcast 降级形态（session gap=3s 合并序列 [0,2000,2500]+[9000]→两 flush maxBy=43/99+maxBy bean 复合聚合；TestXdslScenarioE10））
 > 历史版本：2026-10-10（v23：WI24 E7-E8 验收套件落地（plan 2370）——E7 Table API 降级形态（TUMBLE 聚合终值 alice=25/bob=7 每 key 断言+DISTINCT 近似口径 WI9 引用+排除项钉；TestXdslScenarioE7）；E8 SeaTunnel 三例降级（1 源 4 分支 4 sink 零交叉+多表降级路由 WI20 模式+transform 级 SQL WI16 引用；TestXdslScenarioE8））
@@ -175,7 +176,7 @@ audit-rounds: 0
 
 ### M6 — 收口
 
-- [ ] WI28 roadmap 收口：12 场景全绿 + 两层检查器零阻塞违规（存量清单全消号、负控白名单登记完毕）+ owner doc 全面一致性核对（XDSL 章节支持矩阵/触发与窗口语义/迁移指南/连接器矩阵）+ vision·D-GAP·sql 裁定一致性终核 + 独立 closure audit（Deliverable: 收口证据 + 文档核对 + 存量消号清单；deps: WI0 + WI4 + WI12 + WI13 + WI14 + WI15 + WI27；Item Type: Proof）
+- [x] WI28 roadmap 收口：12 场景全绿 + 两层检查器零阻塞违规（存量清单全消号、负控白名单登记完毕）+ owner doc 全面一致性核对（XDSL 章节支持矩阵/触发与窗口语义/迁移指南/连接器矩阵）+ vision·D-GAP·sql 裁定一致性终核 + 独立 closure audit（Deliverable: 收口证据 + 文档核对 + 存量消号清单；deps: WI0 + WI4 + WI12 + WI13 + WI14 + WI15 + WI27；Item Type: Proof）✅ 2026-10-10 plan 2374（12 场景 13 run 0 fail（E3 skip=预期 @Disabled）；检查器零阻塞（nop-lint error 0/doc-links 0/scan-hollow 0 high）；owner doc 同步核对通过；WI0(a)-(e) 五项裁定全部落地核对通过；独立 audit 见 plan Closure；**roadmap 宣告收口**——显式 deferred 清单见本 header v27 注记）
 
 ## Follow-up Backlog
 
