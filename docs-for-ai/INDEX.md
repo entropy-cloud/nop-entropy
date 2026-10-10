@@ -207,6 +207,7 @@
 | **生成报表 / 单据打印（含套打）** | **`03-runbooks/generate-report.md`**（XPT 单元格展开语法 + 数据集 + 三种输出 xlsx/pdf/html + 套打 `ExcelImage.print=false` + 调用范例） |
 | **理解 Record Mapping DSL（`when`/`mandatory`/`schema`/`itemMapping`/gateway `bodyMapping`）** | **`02-core-guides/record-mapping.md`** |
 | 理解 nop-report（报表引擎） | `03-modules/nop-report.md` |
+| **在报表中渲染图表（ECharts 静态渲染）/ 直接渲染 ChartModel 或 option JSON 为 PNG/SVG** | **`02-core-guides/chart-static-render.md`**（模块边界、字体配置、双入口、opt-in 接入、xlsx 原生路径边界） |
 | 理解 nop-rule（规则引擎：决策树/矩阵、二重 DSL、Excel 编辑） | `03-modules/nop-rule.md` |
 | 理解 nop-task（任务/逻辑流） | `03-modules/nop-task.md`（含 xbiz 绑定、事务模型、VFS 动态更新、step 写法、与 nop-wf/BizModel/状态机/nop-rule 的分工） |
 | 用 task flow 编排复杂业务流程 | `03-modules/nop-task.md`（xbiz action 绑定 task flow，或 Java 调 ITaskFlowManager） |

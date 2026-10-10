@@ -1,6 +1,6 @@
 # ECharts 服务端静态渲染与 JFreeChart 退役 Roadmap（nop-chart-echarts）
 
-> Last updated: 2026-10-10（WI0–WI9 已完成；WI10 未启动）
+> Last updated: 2026-10-10（WI0–WI10 全部完成，roadmap 收口）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources: 2026-10-06 会话裁定（路线 B：JVM 内 GraalJS 执行 dist/echarts.js + Java2D 实现 Canvas2D shim；范围=常见图型全量 + 直接吃 ECharts option JSON；换机制同时接线报表导出；保留 nop-chart-export 壳换内脏；四 jar 拆分且接线 jar 归 nop-report；对版标准=结构语义对版+样式尽量贴近）。对版素材：`docs/dev-guide/report/excel-chart.md`（17 张 Excel 截图）+ `nop-format/nop-chart-export/src/test/resources/xlsx/test-all-charts.xlsx`（17 图型 fixture，2026-10-06 已核对一一对应）。
 
@@ -13,7 +13,7 @@
 - **不迁移不移植** ECharts/zrender 源码——直接执行官方 dist 文件；不做纯 Java 移植，不做 Node sidecar。
 - **xlsx 原生 OOXML 图表路径零改动**（ExpandedSheetChartGenerator → DrawingChartBuilder 照旧），本 roadmap 只替换非 xlsx 输出（HTML/PDF/docx）的图表生成机制。
 - **JFreeChart 全量移除**：nop-chart-export 内 org.jfree 实现文件（实测 22 main+1 test，其中 ChartExporter 原地换内脏、净删 21 main+1 test）与 nop-kernel/nop-dependencies/pom.xml 版本项全部删除；契约（IChartExporter/ChartExportOptions/ChartExportErrors/Registry/ChartDataFilter）保留。
-- **不做动画/交互/工具箱**：toolbox saveAsImage 等交互件由 OptionNormalizer 剥离。
+- **不做动画/交互/工具箱**：toolbox saveAsImage 等交互件由 EChartsRenderer.normalize 剥离。
 - 对版验收采用「结构语义对版 + 样式尽量贴近」（图型/系列/数据/标签/图例/轴必须一致；配色等从 ChartModel 携带尽量贴近 Excel，不追求像素等同）。
 
 不含实现细节。每个 WI 由独立执行计划承载（`ai-dev/plans/00-plan-authoring-and-execution-guide.md`）；roadmap 就绪后可经 mission-driver draft 生成 mission config 驱动（当前未立项 mission）。
@@ -49,11 +49,11 @@
 ### M5 — 对版验收与收口
 
 - [x] WI9 17 图型截图对版验收：test-all-charts.xlsx（17 sheet / 17 图型）全链路解析 → 适配 → 渲染 17 张 PNG，逐张对 `docs/dev-guide/report/excel-chart/` 下 17 张 Excel 截图判定——结构语义（图型/系列数/数据形状/标签/图例/坐标轴）必须一致，样式（配色/图例位置/轴样式）尽量贴近；AI vision 逐图判定 + 人工抽查，验收报告落 ai-dev/analysis/ 当月目录；失败项回灌适配器或 shim（Deliverable: 17 图渲染 + 对版验收报告；deps: WI6；Item Type: Proof）
-- [ ] WI10 文档与路由收口：docs-for-ai owner doc（图表静态渲染：模块边界、字体配置、option/ChartModel 双入口、opt-in 接入）+ docs-for-ai/INDEX.md 路由 + 01-repo-map/module-groups.md 登记 nop-canvas2d/nop-chart-echarts/nop-chart-report + 04-reference source-anchors；当日 ai-dev/logs/ 状态一致（Deliverable: 文档 + 路由更新；deps: WI0–WI9 完成或显式裁定；Item Type: Proof）
+- [x] WI10 文档与路由收口：docs-for-ai owner doc（图表静态渲染：模块边界、字体配置、option/ChartModel 双入口、opt-in 接入）+ docs-for-ai/INDEX.md 路由 + 01-repo-map/module-groups.md 登记 nop-canvas2d/nop-chart-echarts/nop-chart-report + 04-reference source-anchors；当日 ai-dev/logs/ 状态一致（Deliverable: 文档 + 路由更新；deps: WI0–WI9 完成或显式裁定；Item Type: Proof）
 
 - ★ **Milestone: ECharts 引擎可用基线**（WI0–WI5 全部完成后勾选）✔
-- ★ **Milestone: JFreeChart 退役完成**（WI6–WI8 全部完成后勾选）
-- ★ **Milestone: 17 图型对版通过**（WI9 完成后勾选）
+- ★ **Milestone: JFreeChart 退役完成**（WI6–WI8 全部完成后勾选）✔
+- ★ **Milestone: 17 图型对版通过**（WI9 完成后勾选）✔
 
 ## Current Baseline（2026-10-06 核对）
 
