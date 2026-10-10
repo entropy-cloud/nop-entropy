@@ -1,7 +1,8 @@
 # 2393 full-code-review R1.27 — nop-autotest 数据面修复批（P1-6.8-003/005/006）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.27；findings `P1-6.8-003/005/006`（6.8-check-p1-batch-d.md），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.8-check-p1-batch-d.md`
 > Related: R1.26（同批次 d 已收口项）；`unit-test-antipatterns.md`（skill 指定）
 > Owner Doc: `docs-for-ai/02-core-guides/testing.md`
@@ -89,9 +90,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（nop-autotest-core 测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-autotest/nop-autotest-core` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-autotest/nop-autotest-core` 全绿（26=22+4，执行轮+审计独立重跑双验证）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -99,19 +100,28 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
-- AutoTestCaseData 其余 variant 面（getInputFileName 的 fallback 回退语义）核查
+- AutoTestCaseData 其余 variant 面（getInputFileName 的 fallback 回退语义）核查——**具体后果（closure audit 点名）**：removeInputTable 非 default 路径经 fallback 仍可触达基础表（variant 无该表局部副本时 getInputTableFile(t,v) 回退 input/tables/<t>.csv 被删）；触发窄（variant 录制+表仅写不读+无局部副本）且严格窄于修前，归并本项核查
 - splitter 的 init/sql 产物与消费方 getInitSqlFiles 对齐核查（非本批发现面）
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 三修全部落地且与原 finding 处方一致；判别三腿失败签名精确（splitter 恰 1F/variant 恰 1F/guard 恰 2F）；26/26 全绿经审计独立重跑复现；owner doc 与 live 逐句一致；Anti-Hollow 三项实证（往返消费断言/扫描面=写入面读码验证/守卫判别实证+hollow 扫 0）；follow-up 分类诚实（audit 点名的 fallback 具体后果已补进 FU1）。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_97c279e8-a6f1-4813-931b-dfbc21b70685
 - Evidence:
+  - P1-6.8-003 PASS：TestCaseJsonDataSplitter :129/:145/:189/:240 四处落点消费方契约
+  - P1-6.8-005 PASS：AutoTestCaseData :245/:257/:274/:283 四处 variants/<v>/… 统一，mergeFiles fallback 保留
+  - P1-6.8-006 PASS：AutoTestCaseDataSaver :96-103 isDefaultVariant 守卫双分支
+  - 判别证据：_tmp/disc-splitter.log（1F 精确）/ _tmp/disc-variant.log（1F）/ _tmp/disc-guard.log（2F 双分支）
+  - 测试证据：_tmp/autotest-tests.log 26/26 + 审计独立重跑 _tmp/audit-r127-module-test.log 同结果
+  - Anti-Hollow：往返消费断言（getInputTableFiles(null)/getOutputTableFiles(null) 计数）+ 生产消费链 AutoTestCaseDataBaseInitializer:95/:96/:141 与 ResultChecker:79；扫描面=写入面读码验证（Saver:107→getOutputFileName:205 ↔ Checker:79→getOutputTableFiles:257）；守卫判别实证+hollow 扫 0
+  - 收口完整性：roadmap :158 done；index :165/:167/:168 fixed；daily log 10-10.md:16-28；owner doc testing.md:537-539 三句逐句核实一致；doc-links 独立重跑 exit 0
+  - Minor 处置：fallback 具体后果补进 FU1（已落）；「单一定义点」路径统一 vs 抽公共 builder 符合最小 diff 约定（audit 记录性确认）
 
 Follow-up:
 
--
+- getInputFileName fallback 回退语义核查（含 audit 点名的 removeInputTable 非 default 回退触达基础表后果）；splitter init/sql 对齐核查
