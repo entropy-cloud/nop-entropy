@@ -1,7 +1,8 @@
 # 2392 full-code-review R1.26 — nop-integration 消息通道修复批（P1-6.8-002/004）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.26；findings `P1-6.8-002`（Yunpian null areaCode）+ `P1-6.8-004`（Feishu DATA 帧零 ACK），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.8-check-p1-batch-d.md`
 > Related: 6.4 #8（Tencent 腿已修——Yunpian 为同根残腿，parity 修复）；R1.24（同批次 d 面已收口项）
 > Owner Doc: `docs-for-ai/03-modules/nop-network.md`
@@ -85,9 +86,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（两模块测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-integration/nop-integration-sms-yunpian,nop-integration/nop-integration-feishu` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-integration/nop-integration-sms-yunpian,nop-integration/nop-integration-feishu` 全绿（14+53，执行轮+审计独立重跑双验证）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -100,14 +101,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 双修净新增落地、判别双腿证据链完整（yunpian 恰 2F 逐字复现缺陷形态；feishu 首轮字段类编译级如实记录+Client-only 行为级恰 1F）、14+53 测试审计独立重跑全绿、四处收口一致、Anti-Hollow 三项全过、follow-ups 分类诚实。审计 Minor 四项：空串场景未单测（与 null 同分支平凡等同）/feishu stash 判别精度（补偿：git show 净新增+绿态断言直接验证）/ACK 块双空行格式噪音（已在本轮清理）/收口机械步骤（本轮完成）。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_127b7513-4d0b-421e-8e0f-b63f53a3f8d0
 - Evidence:
+  - P1-6.8-002 PASS：YunpianSmsSender.java:158-166 resolveMobile（null/empty→裸 mobile、非空 strip+，javadoc 裁定在位）；sendMessage:141 接线实证
+  - P1-6.8-004 PASS：FeishuClient.java:341-359 ACK 构造（headers 原样+requestId 沿用）经 transport.send 回发；toInbound:396 setHeaders；InboundMessage:38-39 headers 字段
+  - 判别证据：_tmp/disc-yunpian.log（14 run 恰 2 FAIL——expected 13800000000 was null13800000000 逐字复现）+ _tmp/disc-feishu3.log（11 run 恰 1F 其余 10 不受扰）
+  - 测试证据：审计独立重跑 exit 0，yunpian 14/14、feishu 53/53（fresh surefire 13:09）
+  - Anti-Hollow：resolveMobile 真实接线（两入口均达）；ACK 与连接同一 transport 实例（sentFrames 恰 2 帧契约字段验证）；ACK 失败 LOG.warn 显式记录非吞没；hollow 扫 0
+  - 收口完整性：roadmap:157 done；index:164/:166 fixed；daily log 10-10.md:30-40；owner doc network.md:57-60 逐句一致；doc-links 审计亲跑 0 errors
+  - Follow-ups 诚实性：ACK 超时重发（optimization candidate）/国际号码校验（watch-only）——无 in-scope defect 降级
 
 Follow-up:
 
--
+- Feishu ACK 超时重发机制（订阅语义域）；Yunpian 国际号码格式校验（watch-only）；空串 areaCode 场景与 null 同分支未单测（装饰性）
