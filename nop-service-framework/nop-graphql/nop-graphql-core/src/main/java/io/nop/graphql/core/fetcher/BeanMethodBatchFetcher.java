@@ -70,9 +70,17 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
                 };
                 loader = DataLoaderFactory.newDataLoader(batchLoader);
                 context.registerDataLoader(key, loader);
+                // P1-2.6-004（plan 2376）：新注册的 loader 请求异步 dispatch 周期——
+                // executor 的 dispatchAll 已在 operation 发起时跑过（异步 body 场景注册表为空、
+                // 递归链断裂），没有本调用则 body await 的 load future 永不完成
+                context.requestDispatch();
             }
+            // load 必须与 check-then-register 同锁：若在锁外 load，get 线程可能「查到已出册
+            // 前的 loader → 释放锁 → 调度周期快照+清空+dispatch 完成 → load 才入队」——key
+            // 滞留在已 dispatch 且已移出注册表的实例上，无人再 dispatch（P1-2.6-004 判别中
+            // 实测的丢 key 竞态）。同锁后 key 要么进当前批，要么走新注册+新周期。
+            return loader.load(env.getSource());
         }
-        return loader.load(env.getSource());
     }
 
     /**

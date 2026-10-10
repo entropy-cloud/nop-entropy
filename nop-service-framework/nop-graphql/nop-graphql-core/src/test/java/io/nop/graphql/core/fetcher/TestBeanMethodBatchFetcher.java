@@ -7,7 +7,6 @@
  */
 package io.nop.graphql.core.fetcher;
 
-import java.util.concurrent.CompletionException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -16,6 +15,7 @@ import org.dataloader.DataLoaderFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletionException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;
@@ -34,6 +34,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 2. 并发分支同时首次注册同名loader时后到方复用先注册实例，不再抛ERR_GRAPHQL_DUPLICATED_LOADER。
  */
 public class TestBeanMethodBatchFetcher {
+
+    /**
+     * 测试替身（plan 2376 Phase 1 确定性化）：记录 requestDispatch 调用但不提交调度周期，
+     * 使断言不依赖后台周期时序（周期会清空注册表/抢跑拆批）。生产实现见
+     * GraphQLExecutionContext.requestDispatch——此处覆写不是静默 no-op 的生产路径。
+     */
+    static class NoAutoDispatchContext extends GraphQLExecutionContext {
+        final java.util.concurrent.atomic.AtomicInteger requestDispatchCalls =
+                new java.util.concurrent.atomic.AtomicInteger();
+
+        @Override
+        public void requestDispatch() {
+            requestDispatchCalls.incrementAndGet();
+        }
+    }
 
     private static class BatchCallRecord {
         final Object[] args;
@@ -144,7 +159,9 @@ public class TestBeanMethodBatchFetcher {
      */
     @Test
     public void testNoExtraArgsKeepsOriginalLoaderName() {
-        IGraphQLExecutionContext context = new GraphQLExecutionContext();
+        // 记录型替身：requestDispatch 不提交周期——若用真实 context，调度周期可能抢跑清空
+        // 注册表使 assertNotNull 间歇失败（plan 2376 Phase 1 确定性化）
+        NoAutoDispatchContext context = new NoAutoDispatchContext();
         RecordingFetcher fetcher = new RecordingFetcher();
         List<Function<IDataFetchingEnvironment, Object>> argBuilders = List.of(env -> null);
         BeanMethodBatchFetcher batchFetcher = new BeanMethodBatchFetcher(
@@ -153,6 +170,8 @@ public class TestBeanMethodBatchFetcher {
         batchFetcher.get(env(context, "src-1", null));
         assertNotNull(context.getDataLoader("TestObj__items"),
                 "loader without extra args must be registered under the original loaderName");
+        assertEquals(1, context.requestDispatchCalls.get(),
+                "registration must request a dispatch cycle (P1-2.6-004 wiring)");
     }
 
     /**
@@ -162,7 +181,9 @@ public class TestBeanMethodBatchFetcher {
      */
     @Test
     public void testConcurrentFirstRegistrationSharesLoader() throws Exception {
-        IGraphQLExecutionContext context = new GraphQLExecutionContext();
+        // 记录型替身抑制周期时序（最坏交错下周期夹在两 load 之间会清空注册表、令手动
+        // dispatchAll 变 no-op、src-2 滞留缓冲）——保留原断言集 + requestDispatch 接线断言
+        NoAutoDispatchContext context = new NoAutoDispatchContext();
         RecordingFetcher fetcher = new RecordingFetcher();
         CyclicBarrier barrier = new CyclicBarrier(2);
 
@@ -200,6 +221,8 @@ public class TestBeanMethodBatchFetcher {
         t2.join(10000);
 
         assertEquals(List.of(), errors, "concurrent first registration must not fail the request");
+        assertTrue(context.requestDispatchCalls.get() >= 1,
+                "first registration must have requested a dispatch cycle (P1-2.6-004 wiring)");
 
         FutureHelper.syncGet(context.dispatchAll());
         assertEquals(1, fetcher.calls.size(), "both sources must share the single registered loader");

@@ -201,6 +201,8 @@ BizModel 方法的返回值是 `ApiResponse.data`，即**成功场景下的业�
 2. 给已有 API 增加新字段但不改基础代码：Delta + `@BizLoader(autoCreateField = true)`。
 3. 昂贵字段默认配合 `@LazyLoad`，只在 selection 请求时计算。
 
+**批量 loader 的 dispatch 时机**：`@BizLoader` 批量方法（BeanMethodBatchFetcher）注册 loader 后即请求一个异步 dispatch 周期（P1-2.6-004，plan 2376）——即使 operation body 是异步方法且在 body 内部 await loader 结果（此时引擎入口处的 dispatch 已错过），调度周期也会在注册后触发批量执行；同一请求内同 loader 的多次 load 会尽量聚合为一批。手写调用方无需（也不应）自行调用 `dispatchAll` 来驱动批量字段。
+
 ## XMeta 中可配置的 `graphql:*` 属性完整参考
 
 > **注意**：命名空间是 `graphql:` 不是 `graph:`。所有属性在 `obj-schema.xdef` 和 `schema.xdef` 中定义。
