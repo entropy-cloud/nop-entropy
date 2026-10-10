@@ -69,7 +69,7 @@ Exit Criteria:
 - [x] 所有 lint 运行时模块（core/java/nop/treesitter）确实在 uber-jar classpath 中；不存在空语言注册表导致的静默 no-op。
 - [x] 工具类加载失败时抛出带工具名称的异常，不返回成功退出码。
 - [x] `docs-for-ai/INDEX.md` 和 `docs-for-ai/04-reference/source-anchors.md` 已更新（新增 rg/lint/refactor/jq 子命令路由），或明确写明 `No owner-doc update required`。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ### Phase 2 - rg 子命令
 
@@ -90,7 +90,7 @@ Exit Criteria:
 - [x] 接线测试确认 rg 命令确实通过反射调用 NopRgMain 搜索流程；退出码按 0/1/2 传播。
 - [x] delegate-rg 场景确认调用系统 rg，而非被 picocli 当作普通字段吞掉。
 - [x] `docs-for-ai/04-reference/source-anchors.md` 已更新 rg 子命令锚点，或明确写明 `No owner-doc update required`。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ### Phase 3 - lint 子命令
 
@@ -109,7 +109,7 @@ Exit Criteria:
 - [x] 测试验证 check/match/test 和核心选项被原样传给 NopLintCli，返回值 0/1/2 正确传播。
 - [x] 接线测试验证语言绑定已通过 ServiceLoader 自动发现；空绑定或规则加载失败时 fail-closed，不报告检查成功。
 - [x] `docs-for-ai/04-reference/source-anchors.md` 已更新 lint 子命令锚点，或明确写明 `No owner-doc update required`。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ### Phase 4 - refactor 子命令
 
@@ -128,7 +128,7 @@ Exit Criteria:
 - [x] 测试覆盖 preview/apply 两种模式的参数解析、结果输出和退出码传播。
 - [x] 接线测试确认 NopRefactorCli 被实际调用，不存在空方法体或 silent no-op。
 - [x] `docs-for-ai/04-reference/source-anchors.md` 已更新 refactor 子命令锚点，或明确写明 `No owner-doc update required`。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ### Phase 5 - jq 子命令
 
@@ -147,7 +147,7 @@ Exit Criteria:
 - [x] 单元测试覆盖常量表达式、管道表达式、字段访问、数组迭代，以及 stdin/file 两种输入路径。
 - [x] 多输出 jq 查询按多个 stdout 结果逐行输出；任一输入或编译错误均不返回伪成功。
 - [x] `docs-for-ai/04-reference/source-anchors.md` 已更新 jq 子命令锚点，或明确写明 `No owner-doc update required`。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ### Phase 6 - 集成测试与验证
 
@@ -169,7 +169,7 @@ Exit Criteria:
 - [x] `./mvnw compile -pl nop-runner/nop-cli-core`（JDK 17）通过。
 - [x] `./mvnw test -pl nop-runner/nop-cli-core -am` 全部通过；JDK 22+ 环境执行 rg profile 的编译验证。
 - [x] `docs-for-ai/INDEX.md` 已更新子命令列表。
-- [x] `ai-dev/logs/2026-10-09.md` 已追加本 Phase 的记录。
+- [x] `ai-dev/logs/2026/10-09.md` 已追加本 Phase 的记录。
 
 ## Closure Gates
 

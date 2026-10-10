@@ -211,14 +211,22 @@ FORWARD
 }
 
 do_unregister() {
-    local removed=0 dir
-    for dir in "$HOME/.local/bin" "$HOME/bin" /usr/local/bin "$NOP_CLI_HOME/bin"; do
+    local removed=0 failed=0 dir
+    # Only the PATH entries are removed. $NOP_CLI_HOME/bin/$COMMAND_NAME is the
+    # installed launcher itself, not a registration — deleting it would break a
+    # later re-install's target, so it stays.
+    for dir in "$HOME/.local/bin" "$HOME/bin" /usr/local/bin; do
         local link="$dir/$COMMAND_NAME"
-        if [ -L "$link" ] || [ -f "$link" ]; then
-            rm -f "$link" && log "==> removed $link" && removed=1
+        [ -L "$link" ] || [ -f "$link" ] || continue
+        if rm -f "$link" 2>/dev/null; then
+            log "==> removed $link"
+            removed=1
+        else
+            warn "==> could not remove $link (needs elevated permissions)"
+            failed=1
         fi
     done
-    if [ "$removed" = "0" ]; then
+    if [ "$removed" = "0" ] && [ "$failed" = "0" ]; then
         log "==> no '$COMMAND_NAME' registration found; nothing to remove"
     fi
     log ""

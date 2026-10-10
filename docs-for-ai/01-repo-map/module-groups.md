@@ -106,7 +106,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 理解 ORM / DAO / 迁移 | `nop-persistence/` |
 | 理解 BizModel / GraphQL | `nop-service-framework/` |
 | 找标准业务实现参考 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` |
-| 找 CLI 或生成入口 | `nop-runner/`、`scripts/nop-cli.cmd` |
+| 找 CLI 或生成入口 | `nop-runner/`、`tools/install-cli.sh`、`scripts/nop-cli.cmd` |
 | 找测试基类与快照机制 | `nop-autotest/` |
 | 找可运行示例 | `nop-demo/`、`demo/` |
 | 流处理引擎开发/修改 | `nop-stream/` |

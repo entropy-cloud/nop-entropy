@@ -1,5 +1,9 @@
-# ast-grep ignore rules (respected by ai-dev/tools/run-java-lint.sh, the
-# pre-commit hook, and any sg scan from the repo root).
+# ast-grep ignore rules, respected by any `sg scan` from the repo root.
+#
+# NOTE: the pre-commit Java lint gate no longer runs ast-grep — it runs
+# `nop-cli lint check` via ai-dev/tools/run-java-lint.sh, which filters these
+# paths itself (nop-lint has no ignore-file mechanism). This file still governs
+# ad-hoc `sg scan` invocations.
 #
 # RuleTester fixtures are intentionally-dirty test data: invalid/*.java files
 # exist to prove the nop-lint rules fire, and their violations are asserted by

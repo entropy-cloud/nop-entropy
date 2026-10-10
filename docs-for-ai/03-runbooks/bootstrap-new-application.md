@@ -30,24 +30,38 @@ cd /path/to/nop-entropy
 
 ## nop-cli：获取与三种用法
 
-`nop-cli` 是一个 uber-jar，来自 `nop-entropy/nop-runner/nop-cli/`，提供三个子命令。**外部应用只有在「首次生成项目骨架」和「ORM 模型 orm.xml↔xlsx 互转」时才需要它**；日常迭代不需要。
+`nop-cli` 是一个 uber-jar，来自 `nop-entropy/nop-runner/nop-cli/`，提供 21 个子命令（本手册只用其中 `gen` / `convert` / `validate` 三个）。**外部应用只有在「首次生成项目骨架」和「ORM 模型 orm.xml↔xlsx 互转」时才需要它**；日常迭代不需要。
 
 ### 获取 nop-cli
 
+**推荐：注册为全局命令**（git bash / macOS / Linux 通用，一次安装后在任何目录直接用 `nop-cli`）：
+
 ```bash
 cd /path/to/nop-entropy
-./mvnw install -pl nop-runner/nop-cli -am -DskipTests
-# 产出：nop-runner/nop-cli/target/nop-cli-2.0.0-BETA.1.jar（uber-jar，自带所有依赖）
+bash tools/install-cli.sh
 ```
 
-或者直接用仓库根目录的封装脚本 `scripts/nop-cli.cmd`：
+脚本会把 uber-jar 复制到 `~/.nop/cli/` 并注册 `nop-cli` 命令。若 PATH 目录未就绪，它会打印需要追加到 shell rc 文件的一行命令。安装细节、验证方法与已知问题见 [`nop-cli-and-lint-gate.md`](nop-cli-and-lint-gate.md)。
+
+也可以直接构建并用完整路径调用：
+
+```bash
+cd /path/to/nop-entropy
+./mvnw install -pl nop-runner/nop-cli-core -DskipTests
+./mvnw install -pl nop-runner/nop-cli        -DskipTests
+# 产出：nop-runner/nop-cli/target/nop-cli-<version>.jar（uber-jar，自带所有依赖）
+```
+
+> `nop-cli` 的打包模块版本独立于 reactor（不继承 parent），因此 jar 名里的版本号不是 `2.0.0-SNAPSHOT`；用 glob 匹配或看 `ls` 的实际输出，不要硬编码。
+
+Windows 下可用仓库根目录的封装脚本 `scripts/nop-cli.cmd`：
 
 ```bash
 # scripts/nop-cli.cmd 内部等价于：
 java -jar nop-runner/nop-cli/target/nop-cli-2.0.0-BETA.1.jar %*
 ```
 
-后续示例统一写作 `java -jar nop-cli.jar ...`，请把 `nop-cli.jar` 替换为上面的真实路径。
+后续示例统一写作 `nop-cli <子命令> ...`；若你没有注册全局命令，把 `nop-cli` 替换为 `java -jar <上面的真实 jar 路径>`。
 
 ### 三种用法
 
@@ -60,7 +74,7 @@ java -jar nop-runner/nop-cli/target/nop-cli-2.0.0-BETA.1.jar %*
 #### `gen` 命令语法（源码：`nop-runner/nop-cli-core/.../CliGenCommand.java`）
 
 ```bash
-java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-xxx.orm.xml -o=.
+nop-cli gen -t=/nop/templates/orm model/app-xxx.orm.xml -o=.
 # 可选：
 #   -F / --force         强制覆盖输出目录已有文件
 #   -i / --input 'JSON'  注入生成参数
@@ -72,10 +86,10 @@ java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-xxx.orm.xml -o=.
 
 ```bash
 # orm.xml（代码生成源头）→ xlsx（人工编辑视图）
-java -jar nop-cli.jar convert model/app-xxx.orm.xml -o=model/app-xxx.orm.xlsx
+nop-cli convert model/app-xxx.orm.xml -o=model/app-xxx.orm.xlsx
 
 # 编辑后再转回 orm.xml（成为新的生成源头）
-java -jar nop-cli.jar convert model/app-xxx.orm.xlsx -o=model/app-xxx.orm.xml
+nop-cli convert model/app-xxx.orm.xlsx -o=model/app-xxx.orm.xml
 ```
 
 > **关键约定**：**`orm.xml` 是代码生成的唯一源头**。`xlsx` 仅用于人工编辑维护（列宽、批注、下拉更友好），编辑完必须 `convert` 回 `orm.xml`，再触发 `gen` 或 Maven。不要把 `xlsx` 直接作为 `gen` 输入（虽然技术上可行，但会让两份模型并存导致真相分裂）。
@@ -91,7 +105,7 @@ java -jar nop-cli.jar convert model/app-xxx.orm.xlsx -o=model/app-xxx.orm.xml
 用于**项目第一次创建**时生成完整的 Maven 多模块结构（parent pom、codegen/api/dao/meta/service/web/app 七个子模块、`postcompile/*.xgen`、`ErpXxxCodeGen.java` 等）。
 
 ```bash
-java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-xxx.orm.xml -o=.
+nop-cli gen -t=/nop/templates/orm model/app-xxx.orm.xml -o=.
 ```
 
 跑完后会得到一个完整的 `module-xxx/` 目录骨架，把它放进你的应用工程根 pom 的 `<modules>` 即可。

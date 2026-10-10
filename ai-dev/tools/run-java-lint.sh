@@ -42,7 +42,12 @@ die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 # Three sources, most convenient first: a global install, the copy that
 # tools/install-cli.sh puts in ~/.nop/cli, and a jar built in this worktree.
 resolve_nop_cli() {
-    if command -v nop-cli >/dev/null 2>&1; then
+    local found
+    # -x, not just presence: a stale registration can leave a non-executable
+    # entry early on PATH, which would otherwise win the lookup and then fail
+    # to exec.
+    found="$(command -v nop-cli 2>/dev/null || true)"
+    if [ -n "$found" ] && [ -x "$found" ]; then
         echo "nop-cli"
         return 0
     fi
@@ -149,8 +154,18 @@ fi
 report="$(mktemp)"
 trap 'rm -f "$report"' EXIT
 
+command -v node >/dev/null 2>&1 || die "node not found. It renders nop-lint's JSON report into the gate decision.
+Install Node.js 18+ (or use a version manager such as nvm/fnm/volta)."
+
 # shellcheck disable=SC2086 # $NOP_CLI may be a multi-word "java -jar <path>"
-$NOP_CLI lint check --rules "$rules" --format json "${filtered[@]}" > "$report" || true
+$NOP_CLI lint check --rules "$rules" --format json "${filtered[@]}" > "$report"
+lint_status=$?
+# 0 clean, 1 error-severity findings (a real result, reported below),
+# 2 usage/parse/internal failure (nothing usable was written).
+if [ "$lint_status" -eq 2 ]; then
+    die "nop-cli lint check failed to run (exit 2). See the message above."
+fi
+[ -s "$report" ] || die "nop-cli lint check produced no report (exit $lint_status, empty output)."
 
 GATE_RULES_CSV="$rules" node -e '
 const fs = require("fs");

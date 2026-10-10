@@ -12,7 +12,7 @@ pnpm install       # first time only
 pnpm check         # run all checks
 ```
 
-未安装依赖时，依赖 Node 包的工具会显式输出跳过原因并降级为轻量检查（不产生误报）。**例外**：`run-java-lint.sh`（pre-commit 钩子的 Java lint 门禁）没有降级路径——`sg` 是 `@ast-grep/cli` 提供的原生二进制，缺失时直接失败并输出一键安装指引（`pnpm --dir ai-dev/tools install`）。`node_modules/` 不受 git 跟踪，新 clone / 新 worktree 提交 Java 文件前需先装一次。
+未安装依赖时，依赖 Node 包的工具会显式输出跳过原因并降级为轻量检查（不产生误报）。**例外**：`run-java-lint.sh`（pre-commit 钩子的 Java lint 门禁）没有降级路径——它需要 `node`（渲染 nop-lint 的 JSON 报告）和一个可用的 `nop-cli`（缺失时直接失败并输出一键安装指引 `bash tools/install-cli.sh`）。`node_modules/` 不受 git 跟踪，新 clone / 新 worktree 提交 Java 文件前需先装一次。
 
 ## Tool Index
 
@@ -28,7 +28,7 @@ pnpm check         # run all checks
 | `code-stats.mjs` | Per-module code statistics (files, LOC, test ratio) | `pnpm stats` |
 | `check-plan-checklist.mjs` | Verify all plan checklist items are checked before closure | `pnpm check:plan` |
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
-| `run-java-lint.sh` | Run ast-grep Java lint rules (empty catches, getMessage-only, bare RuntimeException, etc.) | `pnpm lint:java` |
+| `run-java-lint.sh` | Java lint gate via `nop-cli lint` (empty catches, getMessage-only, bare RuntimeException) | `pnpm lint:java` |
 | `check-nop-stream-invariants.mjs` | nop-stream invariant gate scanner (inventory / sync / scan-iterations / scan-output-contract / scan-wiring / self-test / init / all) | `node ai-dev/tools/check-nop-stream-invariants.mjs all` |
 
 ## 非脚本使用方（Node 依赖）
@@ -169,40 +169,43 @@ Checks performed:
 
 Required by: `ai-dev/plans/00-plan-authoring-and-execution-guide.md` (Rule #26), `ai-dev/skills/codex-goal-driven-development-prompt.md` (C-4.1, C-4.2, C-6).
 
-### run-java-lint.sh (ast-grep rules)
+### run-java-lint.sh (nop-lint gate)
 
-Uses [ast-grep](https://ast-grep.github.io/) (based on tree-sitter AST) to lint Java code for anti-patterns. Rules are YAML files in `rules/`.
+Runs the Java lint gate through `nop-cli lint check` (the `nop-lint` engine, 65 rules in `nop-lint/nop-lint-nop`). The ast-grep ruleset this used to run has been migrated into nop-lint; the three rules below are the landed equivalents, traceable via each rule's `metadata.source` field.
 
 ```bash
-pnpm lint:java                                          # scan entire project
+pnpm lint:java                                          # scan every git-tracked .java
 pnpm lint:java nop-ai                                   # scan a module
-pnpm lint:java --filter empty-catch                       # run a subset of rules
-pnpm lint:java --report-style medium                     # compact output
+pnpm lint:java --rules nop/no-empty-catch some/dir     # run a different rule set
 ```
 
-**Available rules** (in `rules/`):
+**Gate rules** (default):
 
-| Rule file | Checks for |
-|-----------|-----------|
-| `java-lint-empty-catch.yml` | Empty `catch (X e) {}` blocks that silently swallow exceptions |
-| `java-lint-getmessage-only.yml` | Catch blocks that use `e.getMessage()` but don't pass `e` to logger or rethrow |
-| `java-lint-bare-runtimeexception.yml` | `throw new RuntimeException(...)` — should use NopException subclass |
+| ast-grep rule (now historical) | nop-lint rule | Severity |
+|-------------------------------|---------------|----------|
+| `rules/java-lint-empty-catch.yml` | `nop/no-empty-catch` | warning |
+| `rules/java-lint-getmessage-only.yml` | `nop/no-log-getmessage` | warning |
+| `rules/java-lint-bare-runtimeexception.yml` | `nop/no-raw-exception` | warning |
 
-**Pre-commit hook**: Staged `.java` files are automatically checked before each commit.
+**nop-cli resolution** (first hit wins): `nop-cli` on PATH → `~/.nop/cli/bin/nop-cli` → a jar built in this worktree. Run `bash tools/install-cli.sh` for the first, or build the jar for the third. A PATH entry that exists but is not executable is skipped — a stale registration otherwise wins the lookup and then fails to exec.
+
+**Why the gate filters `ruleId`** instead of using `--max-warnings 0`: nop-lint also emits the engine meta-diagnostic `unused-disable-directive` (fixed severity `warning`) for any file carrying a stale suppression directive. Those are pre-existing debt in files a commit merely touches, so counting them would fail unrelated commits. The wrapper runs one `--format json` pass and counts only the loaded gate rules' diagnostics.
+
+**Fixture exclusion**: `src/test/resources/_vfs/test/lint/` is filtered out before the file list reaches the CLI. Those `invalid/*.java` files are intentionally dirty; their violations are asserted by nop-lint's own RuleTestRunner suite gate. nop-lint has no ignore-file mechanism and `--rules` cannot exclude them (they violate real rules).
+
+**Pre-commit hook**: Staged `.java` files (ACMR) are checked before each commit.
 
 ```bash
 git config core.hooksPath .githooks       # activate (one-time setup per clone)
 ```
 
-The hook lives at `.githooks/pre-commit` (project root), uses `ai-dev/tools/` rules.
-Use `--error` mode so lint findings block the commit; bypass with `git commit --no-verify`.
+The hook lives at `.githooks/pre-commit` and calls this wrapper. Exit codes: 0 clean, 1 gate findings, 2 usage/parse error. Bypass with `git commit --no-verify`.
 
-**Adding new rules**:
-1. Create `rules/java-lint-<name>.yml`
-2. Run `pnpm lint:java --filter <name>` to test
-3. Rules auto-discovered from `rules/` directory
+**Widening the gate**: switching to the full 65-rule profile is a deliberate follow-up, gated on paying down the existing findings (e.g. `nop-stream/nop-stream-flow` already has 10 `nop/silent-swallow` errors).
 
-**Design**: Each rule is a standalone YAML file. Rules can be composed (`any`/`all`/`not`) for complex patterns. No JS coding needed.
+**Full docs**: `docs-for-ai/03-runbooks/nop-cli-and-lint-gate.md`.
+
+**Adding new rules**: add a rule YAML under `nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/`, then select it by id via `--rules <id>`. nop-lint discovers rules from that VFS prefix; `--rules` with an unknown id fails the run.
 
 
 Checks `I*Biz` service interfaces (in `*-dao` modules' `biz` package, `extends ICrudBiz`) against the platform contract in `docs-for-ai/02-core-guides/service-layer.md`:

@@ -22,7 +22,7 @@
 - 首次建模块（一次性生成完整骨架）：
 
   ```bash
-  java -jar nop-cli.jar gen -t=/nop/templates/orm model/{app}.orm.xml -o=.
+  nop-cli gen -t=/nop/templates/orm model/{app}.orm.xml -o=.
   ```
   `nop-cli` 是 uber-jar，获取方式见 `bootstrap-new-application.md`。从零创建外部应用项目时读本 runbook；本文件假设项目骨架已存在。
 

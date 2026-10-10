@@ -54,7 +54,7 @@ ORM 模型（唯一真相）
 ### 第 2 步：一次性生成模块骨架（仅一次）
 
 ```bash
-java -jar nop-cli.jar gen -t=/nop/templates/orm module-<domain>/model/app-<app>-<domain>.orm.xml
+nop-cli gen -t=/nop/templates/orm module-<domain>/model/app-<app>-<domain>.orm.xml
 ```
 
 产出七子模块（`<app>-<short>-codegen/-dao/-meta/-service/-web/-app/-api`）+ 建表脚本目录（deploy/sql，生成于新模块内）。工程化细节、路径 A/B 边界与常见卡点见 `bootstrap-new-application.md`。
