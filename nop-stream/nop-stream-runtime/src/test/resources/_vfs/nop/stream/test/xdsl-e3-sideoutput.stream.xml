@@ -1,0 +1,35 @@
+<!--
+  WI22 E3 (Flink SideOutputExample shape): a word stream splits by word length —
+  long words (len>3) go through the <sideOutput> tap channel to a downstream
+  vertex; short words stay on the main path into a 5s tumbling-window sum.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e3-sideoutput" version="1" parallelism="1">
+
+    <windowingStrategies>
+        <strategy strategyId="win5s" windowFnId="tumbling-event-time" duration="5s"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="words" name="WordSource" bean="e3WordSource" parallelism="1"/>
+        <sideOutput id="longTap" name="LongTap" tag="long-words"
+                    condition="event.len &gt; 3"/>
+        <filter id="shortRoute" name="ShortRoute">
+            <source>event.len &lt;= 3</source>
+        </filter>
+        <map id="shortCount" name="ShortWindowSum"><source>event.len</source></map>
+        <map id="longMark" name="LongMark"><source>event.word</source></map>
+        <sink id="shortSink" name="ShortSink" bean="e3ShortSink" parallelism="1"/>
+        <sink id="longSink" name="LongSink" bean="e3LongSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="words" to="longTap" partition="FORWARD"/>
+        <edge id="e1" from="longTap" to="shortRoute" partition="FORWARD"/>
+        <edge id="e2" from="shortRoute" to="shortCount" partition="FORWARD"/>
+        <edge id="e5" from="shortCount" to="shortSink" partition="FORWARD"/>
+        <edge id="e3" from="longTap" to="longMark" outputTag="long-words"/>
+        <edge id="e4" from="longMark" to="longSink" partition="FORWARD"/>
+    </edges>
+</stream>
