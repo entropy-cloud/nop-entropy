@@ -189,7 +189,7 @@
 | P1-4.5-R1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.37/plan 2403（2026-10-10 修复：loadModel 用参数解析资源 + -N required=true + 资源缺失抛 ERR_CLI_FILE_NOT_EXISTS（fail-loud）+ MainCommand 注册 CliDiffCommand〔P2 #7 可达性同批〕；判别 stash ①恰 3F/②恰 2F；TestCliDiffAndWatchFixes 6/6） | fixed |
 | P1-4.5-R2 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.37/plan 2403（2026-10-10 修复：CliWatchCommand `WatcherHandle{watcher,locallyOwned}`+`newFileWatcher()` 无注入回退本地 NioFileWatchService+GlobalExecutors，call() finally 仅停本地实例（注入归容器，镜像 CliWatchZipCommand 先例）；jdk11/factory==null NPE 消除；#23 代码读数判别） | fixed |
 | P1-4.5-D1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.5 标定维持） | R1.37/plan 2403（2026-10-10 修复：EntityDefDirTransformer.addCatalog `setValue(index-1)` 序号=行位置；**删除 runner 死副本方法 `GenOrmHelper.addCatalog`**（类与 saveOrmXml/saveOrmToExcel 活方法保留、import 清理）；判别 stash ③恰 1F expected 1 vs 2；TestEntityDefCatalogAddCatalog 1/1） | fixed |
-| P1-4.5-B1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.4 抽查表标定维持） | R1.0（check/frontend-benchmark.md#P1-2 PageProvider transformPermissions 竞态原地删键可变共享缓存；copy-on-write 或防御性拷贝；复核勘正补入清单第 18 条） | open |
+| P1-4.5-B1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.4 抽查表标定维持） | R1.38/plan 2404（2026-10-10 修复：transformPermissions 改 copy-on-write + 匹配节点内递归（嵌套 `xui:permissions` 亦转换，回写 entry value），绝不改写缓存 PageModel；roles 合并/`none` 兜底逐字保持；判别 stash 腿 `git show HEAD` 就地版 → 恰 5/5 FAIL；TestPageProviderPermissionsTransform 5/5） | fixed |
 | P1-7.7-001 | `7.7-pulsar-record-residual-audit.md` | R1.31/plan 2397（2026-10-10 修复：subStart 捕获移到 subInput 之前（对齐流式 :358-362 形态）+急切回归测试（IllegalArgumentException newPosition>limit 双重跳过实证）。原处方：subStart 捕获点前移+补「急切+非流式+fixed 集合」回归测试） | fixed |
 
 
@@ -291,6 +291,7 @@
 | R1.35 | done | plan 2401（2026-10-10，plan review 两轮 NOT READY→READY）：①analyzeChanges rootPath `file:` 规范化 + ChangeAnalyzer 失败 truncated=true；②triggerIncrementalIndex 删写重排（失败文件旧记录/指纹保留+下轮重试，四类失败含 null）；③deleteFileRecords 依赖删除 indexId scoping；④P1-7.4-001 状态双向勘正（roadmap N7.1 deferred + plan 28 deferred + G1-b Feature successor）。判别 stash 四腿；flow 43/0/0 + service 289/0/0 全绿；hollow nop-code 0；独立 closure audit PASS（plan 2401 Closure 段） |
 | R1.36 | done | plan 2402（2026-10-10，plan review 三轮 NOT READY→READY→READY）：评测测试接真实生产链路（Lucene ISearchEngine MRR + 端到端 computeAffectedFiles F1，方向敏感）；plan 31 证据链事实勘正（5 处虚假 [x]→shell 测量交付物+边界段）；plan 30 切片对账；testing.md 评测口径节。判别 stash 腿（反向-only → F1=0.0）；service 290/0/0 全绿；独立 closure audit 补注后 Can Close（plan 2402 Closure 段） |
 | R1.37 | done | plan 2403（2026-10-10，plan review 两轮 NOT READY→READY）：CliDiffCommand loadModel 参数化 + -N required + 资源 fail-loud + MainCommand 注册（17→18）；CliWatchCommand 无 DI 回退（WatcherHandle/本地所有权）；EntityDefDirTransformer.addCatalog off-by-one + 删 GenOrmHelper.addCatalog 死方法（import 清理）。判别 stash 三腿（3F/2F/1F）；cli-core 42/0/0 + ofbiz-migration 2/0/0 全绿；doc-links 0；hollow ×2 0；独立 closure audit PASS（plan 2403 Closure 段） |
+| R1.38 | done | plan 2404（2026-10-10，plan review 两轮 NOT READY〔B1 嵌套权限〕→READY）：PageProvider.transformPermissions copy-on-write + 嵌套递归（缓存 PageModel 不再被就地改写）；5 单测/集成/并发 + 新 fixture；判别 stash 腿恰 5F；nop-web 96/0/0 + nop-web-page 34/0/0 全绿；doc-links 0；hollow nop-frontend-support 0；独立 closure audit PASS（plan 2404 Closure 段） |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |
