@@ -1,0 +1,30 @@
+<!--
+  WI25 E10 (Hazelcast TopNStocks+SessionWindow degradation): session window
+  (session-event-time, gap 3s) with ACCUMULATING — the merge face pinned by the
+  [0,30,55,200] → [85,200] sequence (TestXdslSessionMergeE2E precedent) plus a
+  maxBy-bean composite aggregation (price max per merged session).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e10-hazelcast-window" version="1" parallelism="1">
+
+    <windowingStrategies>
+        <strategy strategyId="sessionAgg" windowFnId="session-event-time"
+                  duration="3s" accumulationMode="ACCUMULATING"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="stocks" name="StockSource" bean="e10StockSource" parallelism="1"/>
+        <keyBy id="bySym" name="BySymbol" keyExpr="event.sym"/>
+        <window id="w" strategyRef="sessionAgg"/>
+        <aggregate id="topPrice" name="MaxPrice" bean="e10MaxPriceFn"/>
+        <sink id="out" name="SessionSink" bean="e10SessionSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="stocks" to="bySym" partition="FORWARD"/>
+        <edge id="e1" from="bySym" to="w" partition="FORWARD"/>
+        <edge id="e2" from="w" to="topPrice" partition="FORWARD"/>
+        <edge id="e3" from="topPrice" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

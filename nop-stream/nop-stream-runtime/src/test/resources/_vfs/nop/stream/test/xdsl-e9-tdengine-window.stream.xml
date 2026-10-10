@@ -1,0 +1,32 @@
+<!--
+  WI25 E9 (TDengine avg_current_stream degradation): sliding window (5s size, 2.5s
+  slide → overlapping emissions) + earlyResults (10s periodic early firing on the
+  event-time axis). The backfill (RECALCULATE/FILL_HISTORY) reference points to
+  multi-engine WI10's TestRecalculateBackfillE2E.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e9-tdengine-window" version="1" parallelism="1">
+
+    <windowingStrategies>
+        <strategy strategyId="slidingEarly" windowFnId="sliding-event-time"
+                  duration="5s" slide="2500ms"
+                  earlyResultsPeriod="10s"
+                  accumulationMode="ACCUMULATING"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="current" name="CurrentSource" bean="e9CurrentSource" parallelism="1"/>
+        <keyBy id="byMeter" name="ByMeter" keyExpr="event.meter"/>
+        <window id="w" strategyRef="slidingEarly"/>
+        <aggregate id="avgCurrent" name="AvgCurrent" bean="e9AvgFn"/>
+        <sink id="out" name="AvgSink" bean="e9AvgSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="current" to="byMeter" partition="FORWARD"/>
+        <edge id="e1" from="byMeter" to="w" partition="FORWARD"/>
+        <edge id="e2" from="w" to="avgCurrent" partition="FORWARD"/>
+        <edge id="e3" from="avgCurrent" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
