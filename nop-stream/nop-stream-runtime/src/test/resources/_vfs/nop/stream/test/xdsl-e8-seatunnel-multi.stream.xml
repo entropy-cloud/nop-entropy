@@ -1,0 +1,32 @@
+<!--
+  WI24 E8 (SeaTunnel three-examples degradation): one source fanning out to FOUR
+  branches/sinks via filter splits (branch by kind), plus the multi-table
+  degradation routing (tableTag field) per the WI0 adjudication.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e8-seatunnel-multi" version="1" parallelism="1">
+
+    <transforms>
+        <source id="mixed" name="MixedSource" bean="e8MixedSource" parallelism="1"/>
+        <filter id="bA" name="BranchA"><source>event.kind == 'A'</source></filter>
+        <filter id="bB" name="BranchB"><source>event.kind == 'B'</source></filter>
+        <filter id="bC" name="BranchC"><source>event.kind == 'C'</source></filter>
+        <filter id="bD" name="BranchD"><source>event.kind == 'D'</source></filter>
+        <sink id="sinkA" name="SinkA" bean="e8SinkA" parallelism="1"/>
+        <sink id="sinkB" name="SinkB" bean="e8SinkB" parallelism="1"/>
+        <sink id="sinkC" name="SinkC" bean="e8SinkC" parallelism="1"/>
+        <sink id="sinkD" name="SinkD" bean="e8SinkD" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="mixed" to="bA" partition="FORWARD"/>
+        <edge id="e1" from="mixed" to="bB" partition="FORWARD"/>
+        <edge id="e2" from="mixed" to="bC" partition="FORWARD"/>
+        <edge id="e3" from="mixed" to="bD" partition="FORWARD"/>
+        <edge id="e4" from="bA" to="sinkA" partition="FORWARD"/>
+        <edge id="e5" from="bB" to="sinkB" partition="FORWARD"/>
+        <edge id="e6" from="bC" to="sinkC" partition="FORWARD"/>
+        <edge id="e7" from="bD" to="sinkD" partition="FORWARD"/>
+    </edges>
+</stream>
