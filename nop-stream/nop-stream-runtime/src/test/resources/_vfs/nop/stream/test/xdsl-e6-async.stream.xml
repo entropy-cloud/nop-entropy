@@ -1,0 +1,20 @@
+<!--
+  WI23 E6 (Flink AsyncIOExample degradation): the WI17 synchronous-replacement
+  contract (process bean with bounded capacity + timeout + explicit fallback) as a
+  fixture-pinned scenario. The async operator surface stays a Non-Goal (WI0(a)).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e6-async" version="1" parallelism="1">
+
+    <transforms>
+        <source id="src" name="AsyncWorkItems" bean="e6ItemSource" parallelism="1"/>
+        <process id="syncAsync" name="SyncReplacement" bean="e6SyncCallFn"/>
+        <sink id="out" name="ResultSink" bean="e6ResultSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="syncAsync" partition="FORWARD"/>
+        <edge id="e1" from="syncAsync" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
