@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
 
-    <bean id="e3WordSource" class="io.nop.stream.runtime.acceptance.E3WordBeans$WordSource"/>
+    <!-- U5: prototype scope — the WordSource carries a one-shot running flag that
+         env cancel() flips; a singleton would be exhausted by the first test
+         method's execute() and silently emit nothing for subsequent methods. -->
+    <bean id="e3WordSource" class="io.nop.stream.runtime.acceptance.E3WordBeans$WordSource"
+          scope="prototype"/>
     <bean id="e3ShortSink" class="io.nop.stream.runtime.acceptance.E3WordBeans$ShortSink"/>
     <bean id="e3LongSink" class="io.nop.stream.runtime.acceptance.E3WordBeans$LongSink"/>
 

@@ -63,6 +63,9 @@ Exit Criteria:
 - Successor Required: `yes`
 - Successor Path: 引擎路由修复 WI（诊断证据：恒真 filter 对照实验 SHORT=[3,4,3,4]——matched 记录重复出现在主边、无 tag 记录丢失；修复后启用 TestXdslScenarioE3.shortWordsStayOnMainPath @Disabled 钉验证 SHORT=[2,3]+LONG=[long,word] 全量归属）。登记至 roadmap WI22 行与 WI27 门禁清单。
 
+> **⚠️ 勘误（2026-10-10，U5/deferred-unlock roadmap，全链路诊断+实测反转）**：本段「live defect」裁定**不成立**——是诊断误判。证据链：(1) fixture 词表 `{cat, long, dog, word}` 长度=[3,4,3,4]，本段「cat len=2」为算术误记（`"cat".length()==3`）；(2) 观察值 SHORT=[3,3] 恰是 cat+dog 两条无 tag 记录的正确 len 值（matched 记录 len=4，[3,3] 不可能是它们）；(3) 恒真 filter 对照 SHORT=[3,4,3,4] 是 copy-tap 合同本身——tap 主路无条件直通全部记录（SideOutputTapOperator），匹配记录 ADDITIONALLY 进 tag 通道，该实验对「引擎路由是否损坏」无判别力；(4) 引擎路由（StreamTaskInvokable.EdgeWriterOutput 按 tagId 边裁决）经全链路静态核验语义自洽，WI8b TestSideOutputPipelineE2E main=[1,2,3] 钉定同一 copy 语义。
+> U5 处置：期望值更正为 [3,3] 并启用 @Disabled 钉（`shortWordsStayOnMainPath`）；顺带发现并修复**真实测试隔离缺陷**——`e3WordSource` singleton 的 running 标志被首个测试方法的 cancel() 置 false，后续方法零发射（SHORT=[]），改 `scope="prototype"` 后 E3 全类 2/0 绿。引擎零改动。
+
 ## Closure
 
 Status Note: E3/E4 验收套件落地：E3 tap 通道归属钉（LONG=[long,word]）+ 主路径完整性 @Disabled defect 钉（**WI22 发现 live defect：3 出边 tap vertex 吞无 tag 主路记录**——恒真 filter 对照实验实证，诊断证据与 successor 登记于 Deferred；显式 @Disabled 非静默跳过）；E4 窗口 LEFT join 声明面 build+execute 钉（算子级语义=既有 TestEquiJoinHashSemantics 覆盖引用）。同会话全项核验（验收套件型 plan：纯新增 fixture/测试/文档，E3/E4 亲跑 2/0+1/0）。
