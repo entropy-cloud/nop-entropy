@@ -100,6 +100,7 @@ public class SimpleHtmlReportRendererFactory implements IReportRendererFactory {
                 out.write("\" data-sheet-name=\"");
                 out.write(StringHelper.escapeXmlAttr(sheet.getName()));
                 out.write("\">\n");
+                HtmlSheetVisualRenderer.renderVisualOverlays(sheet, sheetId, out);
                 HtmlTableOutput output = new HtmlTableOutput(sheet.getTable(), ExcelConstants.CSS_PREFIX_XPT);
                 output.setDisableStyle(true);
                 output.generateToWriter(out, context);
