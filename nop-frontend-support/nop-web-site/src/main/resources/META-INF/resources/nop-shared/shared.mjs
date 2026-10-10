@@ -7,6 +7,7 @@ const moduleRef = getSharedModule("@nop-chaos/shared");
 
 export default moduleRef.default ?? moduleRef;
 export const HOST_API_VERSION = moduleRef["HOST_API_VERSION"];
+export const PLATFORM_ADMIN_ROLES = moduleRef["PLATFORM_ADMIN_ROLES"];
 export const SHARED_MODULE_NAMES = moduleRef["SHARED_MODULE_NAMES"];
 export const appIconNames = moduleRef["appIconNames"];
 export const clearTokens = moduleRef["clearTokens"];
@@ -21,6 +22,7 @@ export const getAuthConfig = moduleRef["getAuthConfig"];
 export const getBaseOrigin = moduleRef["getBaseOrigin"];
 export const getRefreshToken = moduleRef["getRefreshToken"];
 export const getValidToken = moduleRef["getValidToken"];
+export const hasPlatformAdminRole = moduleRef["hasPlatformAdminRole"];
 export const isAbsoluteUrl = moduleRef["isAbsoluteUrl"];
 export const isApiPayload = moduleRef["isApiPayload"];
 export const isApiVersion = moduleRef["isApiVersion"];

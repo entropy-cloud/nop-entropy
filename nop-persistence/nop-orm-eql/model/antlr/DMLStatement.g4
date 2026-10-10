@@ -25,6 +25,20 @@ sqlInsert
         ( values=sqlValues | select=sqlSelect)
     ;
 
+// Plan 2380：upsert —— 中立语法的"按冲突键幂等写"。方言差异全部下沉到 SQL 生成层
+// （PG 族 on conflict .. do update set / MySQL 族 on duplicate key update / H2 族 merge .. key .. values），
+// 由 supportUpsert 能力位门控；本规则只描述用户书写的形态，不含任何方言分支。
+// v1 只支持 VALUES 源（不支持 upsert into T(..) select ..）——更新集右值在 select 源下
+// 无法引用源列，语义契约需单独设计。
+sqlUpsert
+    : decorators=sqlDecorators_? UPSERT INTO tableName=sqlTableName LP_ <indent> columns=columnNames_ <br> RP_
+        values=sqlValues
+        ON CONFLICT LP_ <indent> conflictColumns=columnNames_ <br> RP_
+        // ⚠️ sqlAssignments_ 规则自身以 SET 开头（DMLStatement.g4 的 sqlAssignments_），
+        // 此处不得再写 SET —— 写了会变成 SET SET 而解析失败（sqlUpdate 同款写法）。
+        DO UPDATE assignments=sqlAssignments_
+    ;
+
 sqlUpdate
     : decorators=sqlDecorators_? UPDATE tableName=sqlTableName (AS? alias=sqlAlias?)
     (<br> assignments=sqlAssignments_)

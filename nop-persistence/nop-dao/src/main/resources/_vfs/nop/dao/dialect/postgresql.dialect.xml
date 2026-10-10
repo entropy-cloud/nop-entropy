@@ -91,11 +91,15 @@
         </errorCode>
     </errorCodes>
 
+    <!-- Plan 2380 Phase 2：supportUpsert/ReturningFor{Insert,Delete} = true。[文档] PG 15
+         INSERT ... ON CONFLICT (conflict_target) DO UPDATE SET + INSERT/UPDATE/DELETE ... RETURNING。
+         postgis/duckdb 沿继承链取同值（duckdb 因自带 <features> 需显式覆盖，见其文件）。 -->
     <features supportSequence="true" supportNullsFirst="true" supportReturningForUpdate="true"
               supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
               supportLateral="true"
               supportRollup="true" supportCube="true"
+              supportUpsert="true" supportReturningForInsert="true" supportReturningForDelete="true"
     />
 
     <sqls escapeSlash="false" trueString="true" falseString="false">

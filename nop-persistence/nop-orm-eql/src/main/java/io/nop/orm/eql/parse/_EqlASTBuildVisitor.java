@@ -1643,6 +1643,45 @@ public java.util.List<io.nop.orm.eql.ast.SqlStatement> buildSqlStatements_(SqlSt
           return ret;
       }
             
+      public io.nop.orm.eql.ast.SqlUpsert visitSqlUpsert(SqlUpsertContext ctx){
+          io.nop.orm.eql.ast.SqlUpsert ret = new io.nop.orm.eql.ast.SqlUpsert();
+          ret.setLocation(ParseTreeHelper.loc(ctx));
+          
+            if(ctx.decorators != null){
+               ret.setDecorators((buildSqlDecorators_(ctx.decorators)));
+            }else{
+               ret.setDecorators(Collections.emptyList());
+            }
+            
+            if(ctx.tableName != null){
+               ret.setTableName((visitSqlTableName(ctx.tableName)));
+            }
+            if(ctx.columns != null){
+               ret.setColumns((buildColumnNames_(ctx.columns)));
+            }else{
+               ret.setColumns(Collections.emptyList());
+            }
+            
+            if(ctx.values != null){
+               ret.setValues((visitSqlValues(ctx.values)));
+            }
+            if(ctx.conflictColumns != null){
+               ret.setConflictColumns((buildColumnNames_(ctx.conflictColumns)));
+            }else{
+               ret.setConflictColumns(Collections.emptyList());
+            }
+            
+            if(ctx.assignments != null){
+               ret.setAssignments((buildSqlAssignments_(ctx.assignments)));
+            }else{
+               ret.setAssignments(Collections.emptyList());
+            }
+            
+            ret.normalize();
+            ret.validate();
+          return ret;
+      }
+            
       public io.nop.orm.eql.ast.SqlValues visitSqlValues(SqlValuesContext ctx){
           io.nop.orm.eql.ast.SqlValues ret = new io.nop.orm.eql.ast.SqlValues();
           ret.setLocation(ParseTreeHelper.loc(ctx));

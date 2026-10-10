@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="8" uniqueCount="8"><si><t>beforeExpand</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>Preoduct</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>A</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>B</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>C</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>Test Data</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>1. 通过图标的【可选文字】来配置动态数据来源
+2. seriesTestExpr控制生成哪几个series，要求最多有哪几个series必须预先在模板中设计好
+3. seriesModel.index可以知道自己是第几个series，index从0开始
+4. 通过seriesDataCellRefExpr等表达式动态生成excel单元格引用。IXptRuntime提供了buildCellRef帮助函数。</t><phoneticPr fontId="3" type="noConversion"/></si><si><t>let ds1 = [
+  {
+    "product": "Laptop",
+    "year2003": 1200,
+    "year2004": 1350,
+    "year2005": 1500
+  },
+  {
+    "product": "Desktop",
+    "year2003": 800,
+    "year2004": 780,
+    "year2005": 760
+  },
+  {
+    "product": "Tablet",
+    "year2003": 300,
+    "year2004": 420,
+    "year2005": 500
+  },
+  {
+    "product": "Smartphone",
+    "year2003": 950,
+    "year2004": 1100,
+    "year2005": 1300
+  },
+  {
+    "product": "Monitor",
+    "year2003": 600,
+    "year2004": 620,
+    "year2005": 640
+  }
+];
+assign("ds1",ds1);</t><phoneticPr fontId="3" type="noConversion"/></si></sst>

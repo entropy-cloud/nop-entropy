@@ -59,6 +59,12 @@ public interface EqlVisitor<T> extends ParseTreeVisitor<T> {
 	 */
 	T visitSqlInsert(EqlParser.SqlInsertContext ctx);
 	/**
+	 * Visit a parse tree produced by {@link EqlParser#sqlUpsert}.
+	 * @param ctx the parse tree
+	 * @return the visitor result
+	 */
+	T visitSqlUpsert(EqlParser.SqlUpsertContext ctx);
+	/**
 	 * Visit a parse tree produced by {@link EqlParser#sqlUpdate}.
 	 * @param ctx the parse tree
 	 * @return the visitor result

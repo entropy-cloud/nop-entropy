@@ -661,4 +661,30 @@ class EqlAST {
         List<String> columns;
     }
 
+    // Plan 2380：upsert 语句（尾部追加，ordinal 70 —— 中间插入会重排全部后续序号）。
+    // prop 名与类型必须与 DMLStatement.g4 的 sqlUpsert 规则 label 逐一对应：codegen 按
+    // label → 本节点 prop 逐个查表解析，名字写错 NPE、类型写错编译期炸。
+    // 同名不同型的反例就在本文件：SqlValuesTableSource.columns 是 List<String>，
+    // SqlInsert.columns 是 List<SqlColumnName>。
+    class SqlUpsert extends SqlDmlStatement {
+        @PropMeta(mandatory = true)
+        SqlTableName tableName;
+
+        // 本次写入的列，顺序即占位符顺序
+        @PropMeta(mandatory = true, minItems = 1)
+        List<SqlColumnName> columns;
+
+        // v1 只支持 VALUES 源（select 源下更新集右值无法引用源列）
+        @PropMeta(mandatory = true)
+        SqlValues values;
+
+        // 冲突键列：判定"同一行"的唯一键列。非空；须 ⊆ columns（编译期强校验）
+        @PropMeta(mandatory = true, minItems = 1)
+        List<SqlColumnName> conflictColumns;
+
+        // 撞键时执行的赋值：复用 SqlUpdate.assignments 的同款节点，零新增
+        @PropMeta(mandatory = true, minItems = 1)
+        List<SqlAssignment> assignments;
+    }
+
 }

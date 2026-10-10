@@ -114,6 +114,18 @@ public class EqlBaseListener implements EqlListener {
 	 *
 	 * <p>The default implementation does nothing.</p>
 	 */
+	@Override public void enterSqlUpsert(EqlParser.SqlUpsertContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
+	@Override public void exitSqlUpsert(EqlParser.SqlUpsertContext ctx) { }
+	/**
+	 * {@inheritDoc}
+	 *
+	 * <p>The default implementation does nothing.</p>
+	 */
 	@Override public void enterSqlUpdate(EqlParser.SqlUpdateContext ctx) { }
 	/**
 	 * {@inheritDoc}

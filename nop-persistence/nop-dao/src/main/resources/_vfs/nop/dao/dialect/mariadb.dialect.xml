@@ -112,8 +112,11 @@
          （版本前提与升级路径见 owner doc，Phase 7 落档）。 -->
     <!-- WI7b（plan 37）：supportRollup/supportCube=false——MariaDB 无函数式 ROLLUP/CUBE
          （roadmap ledger 永久口径）；GROUPING 不注册（EQL 无 WITH ROLLUP 通路 ⇒ 死能力）。 -->
+    <!-- Plan 2380 Phase 2：supportUpsert=true。[文档] MariaDB 10.2 承诺基线即有 INSERT ...
+         ON DUPLICATE KEY UPDATE。RETURNING 自 MariaDB 13.0 起且仅单表，承诺基线 10.2 不含 ⇒ 缺省 false。 -->
     <features supportSequence="true" supportReturningForUpdate="false" supportLateral="false" supportFullJoin="false"
-              supportRollup="false" supportCube="false"/>
+              supportRollup="false" supportCube="false"
+              supportUpsert="true"/>
 
     <!-- WI3 版本门（形态③+哨兵，裁定文档 §二）：MariaDB 10.3 起才有 INTERSECT/EXCEPT
          （MDEV-10141），承诺下限 10.2 无 ⇒ 哨兵 none 声明无该算子，编译含 INTERSECT/EXCEPT

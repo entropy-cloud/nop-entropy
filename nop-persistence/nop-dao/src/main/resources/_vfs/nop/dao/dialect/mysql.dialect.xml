@@ -142,8 +142,12 @@
          超 G-1 承诺基线 8.0.31（successor 触发 = 承诺基线上调需求先走 G-1 门再登记 roadmap）；
          supportCube=false——MySQL 全版本无 CUBE（roadmap ledger 永久口径）。
          GROUPING()：MySQL 8.0+ 有，但 EQL 无法为其生成 super-aggregate 行 ⇒ 死能力不注册。 -->
+    <!-- Plan 2380 Phase 2：supportUpsert=true。[文档] MySQL 8.0 INSERT ... ON DUPLICATE KEY UPDATE。
+         无 RETURNING 子句（全文法零出现）⇒ ReturningFor{Insert,Delete} 不配置（缺省 false）。
+         mysql5.7 继承本值（5.7 已有 ON DUPLICATE KEY UPDATE）。 -->
     <features supportSequence="false" supportReturningForUpdate="false" supportLateral="true" supportFullJoin="false"
-              supportRollup="false" supportCube="false"/>
+              supportRollup="false" supportCube="false"
+              supportUpsert="true"/>
 
     <sqls escapeSlash="true">
         <!-- WI7b（plan 37，roadmap EC ③）：interval 字面量模板。[文档] MySQL

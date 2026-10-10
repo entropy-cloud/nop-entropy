@@ -88,6 +88,16 @@ public interface EqlListener extends ParseTreeListener {
 	 */
 	void exitSqlInsert(EqlParser.SqlInsertContext ctx);
 	/**
+	 * Enter a parse tree produced by {@link EqlParser#sqlUpsert}.
+	 * @param ctx the parse tree
+	 */
+	void enterSqlUpsert(EqlParser.SqlUpsertContext ctx);
+	/**
+	 * Exit a parse tree produced by {@link EqlParser#sqlUpsert}.
+	 * @param ctx the parse tree
+	 */
+	void exitSqlUpsert(EqlParser.SqlUpsertContext ctx);
+	/**
 	 * Enter a parse tree produced by {@link EqlParser#sqlUpdate}.
 	 * @param ctx the parse tree
 	 */

@@ -18,7 +18,14 @@
     > - 支持 `NULLS FIRST` 和 `NULLS LAST`: https://duckdb.org/docs/stable/sql/query_syntax/orderby#syntax
     > - 支持事务管理：https://duckdb.org/docs/stable/sql/statements/transactions
     -->
-    <features supportNullsFirst="true" supportReturningForUpdate="false" supportLateral="true"/>
+    <!-- Plan 2380 Phase 2：supportReturningForUpdate=false 是 DuckDB 的既有显式覆盖（其 RETURNING
+         只在 INSERT/DELETE/MERGE 上，UPDATE 文档零出现）。[文档] DuckDB 支持
+         ON CONFLICT (conflict_target) DO UPDATE SET 与 INSERT/DELETE ... RETURNING，故三新位显式 true。
+         ⚠️ 本文件自带 <features>，只覆盖显式属性，其余从 postgresql 继承——三新位必须写全，
+         否则将来父方言改值时会静默漂移。DuckDB 的 ON CONFLICT DO UPDATE 不覆盖"新插入数据内部同键互撞"，
+         对 EQL 单语句 upsert（VALUES 形态，一次一行）无影响。 -->
+    <features supportNullsFirst="true" supportReturningForUpdate="false" supportLateral="true"
+             supportUpsert="true" supportReturningForInsert="true" supportReturningForDelete="true"/>
 
     <!-- https://duckdb.org/docs/stable/core_extensions/spatial/overview -->
     <geometryTypeHandler>io.nop.orm.geo.dialect.postgis.PostgisGeometryTypeHandler</geometryTypeHandler>

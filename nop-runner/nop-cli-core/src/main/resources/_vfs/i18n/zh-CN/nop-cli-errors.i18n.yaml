@@ -558,6 +558,11 @@ nop.err.dao.missing-entity-with-props: 类型为[{entityName}]的记录不存在
 nop.err.dao.no-data-source-available: 没有可用的数据库连接池
 nop.err.dao.no-dialect-for-datasource: 没有适用于数据库[{productName}]的Dialect
 nop.err.dao.query-space-not-jdbc-connection: querySpace[{querySpace}]对应的连接对象不是JDBC连接
+nop.err.dao.readwrite.config-invalid: 'Invalid readwrite-splitting config: {reason}'
+nop.err.dao.readwrite.no-replica-available: 'No replica available for querySpace [{querySpace}].
+  Replica status: {summary}'
+nop.err.dao.shard.algorithm-fail: 'Shard algorithm failed: {reason}'
+nop.err.dao.shard.config-invalid: 'Invalid sharding config: {reason}'
 nop.err.dao.sql.bad-sql-grammar: SQL语法错误或者数据库对象不存在
 nop.err.dao.sql.cannot-serialize-transaction: 数据库事务序列化失败
 nop.err.dao.sql.concurrency-failure: 数据库并发冲突导致回滚
@@ -588,9 +593,10 @@ nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
 nop.err.doc.convert-unsupported-text-output: 目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}
 nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
   operator2={operator2}'
-nop.err.eql.collection-access-not-support: 集合下标表达式[{expr}]不支持翻译为SQL，请改写为关联属性join或集合操作符(_some/_all)
 nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
   scope2=[{collectionPrefix2}]'
+nop.err.eql.cross-join-not-allow-condition: cross join不能指定连接条件
+nop.err.eql.cte-column-name-unresolved: 递归CTE的列名无法确定：投影[{astNode}]既没有别名也没有已解析的表达式元信息。请为递归CTE的每个投影显式指定别名
 nop.err.eql.decorator-arg-count-is-not-expected: 注解[{decorator}]的参数必须为{expectedCount}
 nop.err.eql.decorator-arg-type-is-not-expected: 注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}
 nop.err.eql.dialect-not-support-feature: 数据库方言[{dialect}]不支持特性[{feature}]
@@ -620,7 +626,10 @@ nop.err.eql.not-single-expr: 不是合法SQL表达式
 nop.err.eql.not-support-ilike-operator: 数据库不支持ilike运算符
 nop.err.eql.not-support-multi-join-on-alias: 表关联不支持多个别名字段关联条件
 nop.err.eql.not-support-multiple-statement: 一次调用只允许执行一条SQL语句
+nop.err.eql.not-support-transaction-statement: EQL不支持事务控制语句[{statementKind}]，请使用ITransactionTemplate或连接层API
 nop.err.eql.null-predicate-operand-has-param-marker: NULL语义谓词[{expr}]的操作数包含参数标记(?)——lowering展开会复制操作数导致参数绑定错位，请改用列或实体属性作操作数
+nop.err.eql.nulls-order-not-supported: 当前形态无法表达NULLS {reason}（方言{dialect}）。请改写排序表达式、去掉DISTINCT，或在不支持空序修饰的窗口位置避免使用NULLS
+  FIRST/LAST
 nop.err.eql.only-support-single-table-source: 只支持实体表数据源
 nop.err.eql.owner-not-ref-to-entity: 属性表达式的owner必须是实体对象
 nop.err.eql.param-not-component: 参数[{paramIndex}]不是IOrmComponent类型[{expected}]
@@ -645,6 +654,7 @@ nop.err.eql.unknown-query-space: sql语句使用了未知的querySpace[{querySpa
 nop.err.eql.unknown-window-name: 未声明的窗口名[{windowName}]
 nop.err.eql.unsupported-eval-expr: 不支持的表达式类型
 nop.err.eql.unsupported-op: 不支持的运算符:{op}
+nop.err.eql.unsupported-projection-type: 无法解析的投影类型[{astNode}]：投影既不是SqlExprProjection，其表达式也没有已解析的元信息
 nop.err.eql.values-row-arity-mismatch: VALUES 表源第{rowIndex}行的元素数量与第1行不一致
 nop.err.excel.export.invalid-config-name: 未定义的配置项名称:{name}
 nop.err.excel.import-sheet-with-duplicate-key-prop: 导入表格[{sheetName}]时[{keyProp}]的属性重复
@@ -922,6 +932,9 @@ nop.err.orm.dao.update-entity-not-managed: 只有从数据库中成功加载的�
 nop.err.orm.dim-fields-mismatch: '{sourceName}和{subSourceName}的维度字段的个数不匹配'
 nop.err.orm.dirty-entity-set-not-allow-change-tenant: 集合[{collectionName}]中存在未提交的修改，不允许切换到其他租户访问：oldTenant={tenantId},currentTenant={currentTenant}
 nop.err.orm.duplicate-short-entity-name: 实体名[{entityName}]和实体名[{otherEntityName}]的短名字重复
+nop.err.orm.enc-column-not-searchable: 加密列[{entityName}.{propName}]不支持该检索谓词[{reason}]，只支持等值(=/!=)/IN/LIKE(不含escape)改写到辅助列；范围比较、ORDER
+  BY、GROUP BY、JOIN ON 等涉及加密列一律拒绝（避免全表解密扫描）
+nop.err.orm.enc-helper-column-readonly: 加密辅助列[{propName}]由框架自动维护，不允许业务代码直接赋值
 nop.err.orm.entity-already-exists: 实体对象[{entityName}:{entityId}]已存在，不允许插入重复的记录
 nop.err.orm.entity-id-not-set: 实体的主键字段[{propName}]没有被设置，而且主键字段上没有seq标签，无法自动生成
 nop.err.orm.entity-is-readonly: 只读对象不允许被修改:{entity}
@@ -959,6 +972,7 @@ nop.err.orm.lock-entity-fail: 锁定对象[{entityName}:{entityId}]失败
 nop.err.orm.lock-entity-must-not-be-dirty: 必须先锁定对象然后才能修改，不允许锁定已经被修改的对象
 nop.err.orm.lock-must-run-in-txn: lock语句必须在事务中执行
 nop.err.orm.mandatory-prop-is-null: 实体对象[{entityName}:{entityId}]的非空属性[{propName}]为null
+nop.err.orm.migration-write-gate-closed: 数据搬迁写停止关已关闭(nop.orm.migration.write-gate=closed)，禁止DML提交：entity={entityName},operation={operation}。读路径不受影响
 nop.err.orm.missing-tenant-id: 实体对象[{entityName}:{entityId}]没有设置租户属性[{propName}]
 nop.err.orm.missing-tenant-id-in-context: 访问实体对象[{entityName}:{entityId}]时上下文环境中没有设置租户
 nop.err.orm.model.col-data-type-not-match-domain-definition: 实体[{entityName}]上的列[{colName}]的数据类型定义[{dataType}]与数据域上的类型定义[domainDataType]不一致
@@ -969,6 +983,14 @@ nop.err.orm.model.duplicate-col-code: 对象模型[{entityName}]的列[{propName
 nop.err.orm.model.duplicate-entity-short-name: 实体[{entityName}]的短名称和实体[{otherEntityName}]的短名称冲突
 nop.err.orm.model.duplicate-prop: 对象模型[{entityName}]的属性[{propName}]重复
 nop.err.orm.model.duplicate-prop-id: 对象模型[{entityName}]的列[{propName}]和[{otherPropName}]的编号都是[{propId}]
+nop.err.orm.model.enc-assisted-not-enc: 对象模型[{entityName}]的列[{propName}]声明了加密辅助列引用，但未标记enc标签
+nop.err.orm.model.enc-helper-chained: 对象模型[{entityName}]的加密辅助列[{colName}]不允许再声明加密辅助列引用
+nop.err.orm.model.enc-helper-duplicate: 对象模型[{entityName}]的加密辅助列[{colName}]被多个加密主列引用
+nop.err.orm.model.enc-helper-not-varchar: 对象模型[{entityName}]的加密辅助列[{colName}]必须为VARCHAR类型
+nop.err.orm.model.enc-helper-primary-key: 对象模型[{entityName}]的加密辅助列[{colName}]不允许为主键列
+nop.err.orm.model.enc-helper-tag-mismatch: 对象模型[{entityName}]的列[{colName}]被加密主列引用为辅助列，但缺少对应的角色标签[{tag}]
+nop.err.orm.model.enc-helper-tag-orphan: 对象模型[{entityName}]的列[{colName}]标记了角色标签[{tag}]，但未被任何加密主列引用
+nop.err.orm.model.enc-helper-unknown-column: 对象模型[{entityName}]的加密辅助列引用指向不存在的列[{colName}]
 nop.err.orm.model.entity-model-no-pk: 对象模型[{entityName}]没有定义主键
 nop.err.orm.model.entity-name-conflicted: 实体名称不能重复:{entityName}
 nop.err.orm.model.invalid-column-domain: 实体[{entityName}]上的列[{colName}]上设置的数据域[{domain}]未在模型中定义
@@ -1007,6 +1029,7 @@ nop.err.orm.not-singleton-set: 集合[{collectionName}]中的元素个数不是1
 nop.err.orm.not-support-compute: 对象[{entityName}:{entityId}]不支持计算属性[{propName}]
 nop.err.orm.not-support-multiple-query-space-in-one-sql: 一条SQL语句只允许访问一个数据源:sql={sql},querySpace={querySpace}
 nop.err.orm.null-binder-for-column: 对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口
+nop.err.orm.nulls-order-not-supported: 当前方言无法表达请求的排序空序
 nop.err.orm.prop-id-is-reserved: 对象模型[{entityName}]的属性名不能为id，id为系统保留名称
 nop.err.orm.query-invalid-join: 不支持的join类型
 nop.err.orm.query-no-dim-fields: 查询对象没有指定dimFields属性
@@ -1018,6 +1041,10 @@ nop.err.orm.save-entity-replace-existing-entity: session中已经存在类型为
 nop.err.orm.session-closed: session已关闭
 nop.err.orm.session-not-run-on-context: ORM会话只能在单线程上访问，不支持并发访问
 nop.err.orm.session.not-attached: 实体未与session关联，不能访问
+nop.err.orm.shard-condition-missing: 分片实体[{entityName}]的SQL缺少分片键[{propName}]的等值条件，无法路由到分片（missing-shard-policy={policy}{reason}）
+nop.err.orm.shard-strategy-missing: 分片实体[{entityName}]未绑定任何分片策略（存在全局分片配置，须显式绑定策略或default-strategy）
+nop.err.orm.shard.fanout-not-support: SQL语句包含分片执行引擎（missing-shard-policy=fanout）不支持跨分片归并的构造或资格越界形态：实体[{entityName}]，构造[{construct}]，排序键[{orderKey}]，原因：{reason}
+nop.err.orm.shard.fanout-row-limit-exceeded: 分片归并行数[{count}]超过上限[{limit}]（nop.orm.shard.fanout-max-rows，逐分片增量计数），已中断后续分片且不返回部分结果
 nop.err.orm.sql-lib.convert-return-type-fail: 结果类型转换错误
 nop.err.orm.sql-lib.invalid-col-index: sql语句的column配置的index必须在0和1000之间
 nop.err.orm.sql-lib.invalid-sql-name: sqlName[{sqlName}]格式不合法，要求的格式为sqlLibName.sqlItemName

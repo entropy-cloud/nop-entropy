@@ -273,7 +273,7 @@ oracle（**不可**用"跑一次 `mvn clean compile` 比对"这种写法——`c
 | G7 | 注解处理器模块 | 全部回退 / 映射为处理器路径 | 全部回退。实测只影响少数模块（10 个 pom 配处理器，其中多数在测试侧） |
 | G8 | 是否列为受保护区域 | 是 / 否 | 建议**是**（写构建产物，超出 `implement` autonomy） |
 | G9 | 快照录制能力 | 不暴露 / 独立端点 | 不暴露【裁定】 |
-| G10 | **编译能力来源** | (a) 扩展既有编译封装；(b) 自建文件式编译驱动；(c) 复用仓内已有的文件式编译实现 | 【待裁】。实测生产封装**三项能力全无**（无编译入口 / 只吃内存源码 / 无 release 通道），且它正被 AOP 生产链消费。但**仓内测试代码已有文件式 + `--release` + 输出目录的实现**（字节码分析模块的测试夹具），(c) 是成本最低的路径 |
+| G10 | **编译能力来源** | (a) 扩展既有编译封装；(b) 自建薄驱动；(c) 依赖 plexus-compiler-javac | **(b) 建议**。【实测】既有生产封装三项能力全无（无编译入口 / 只吃内存源码 / 无 release 通道）且正被 AOP 生产链消费。但**参考实现已存在**：plexus-compiler-javac 走 `javax.tools` 标准路径——源文件用 `getJavaFileObjectsFromStrings` 传路径、选项用 CLI 风格 `String[]`、配标准 file manager、并有编译器实例池 + 三种复用策略。其 `CompilerConfiguration` 已含 `--release` 与 **`-implicit:`** 两个本设计必需但现有封装缺失的开关。选项 (b) 只需约 200 行薄驱动（`getTask` + `-d`/`--release`/`-implicit`/classpath），接口对齐现有封装形状；不引 plexus 抽象（其 `CompilerConfiguration` 与本仓元数据模型不匹配） |
 | G11 | 索引召回率闸门方向 | 解析器级别 `==` release / `>=` release / 不设语言闸门 | **`>=`**（超集方向才安全）。`==` 会使服务对几乎所有模块**永久拒绝启动** |
 | G12 | 构建环境固化程度 | 记录哪些环境要素并在漂移时拒绝增量 | 至少固化：`./mvnw` 绝对路径、Maven 版本、本地仓库路径、`settings.xml` 路径与哈希、JDK 主版本、`.mvn/jvm.config` 内容 |
 

@@ -38,6 +38,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-ai/` | nop-ai 模块组跨模块契约（文件操作抽象 + code-analyzer 边界） | [README](nop-ai/README.md) | active — IFileOperator vs IToolFileSystem 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件）；nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定：不拆模块 + maven 包内部子域 + git 包公共面） |
 | `nop-job/` | Job Scheduling | [README](nop-job/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Execution Strategy / Observability / Cluster) |
 | `nop-code/` | Code Indexing & Semantic Analysis | [README](nop-code/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / Query / Analysis / Integration) |
+| `nop-find/` | 模糊文件查找工具（fuzzy file finder） | [README](nop-find/README.md) | 定稿 — 独立 CLI（对标 zcode `@` 面板 / fzf file mode）；三级打分（前缀 < 子串 < 子序列）+ top-K 二分插入；复用 nop-rg `ParallelFileWalker`；`nop-cli find` 透传 |
 | `nop-refactor/` | 代码修改工具链（AI-First refactor / codemod） | [README](nop-refactor/README.md) | Vision active + Baseline 草案 — AI 一等用户原则 / GraphQL-first 非 LSP / self-verification 反馈载荷 / 读(nop-code)查(nop-lint)改(refactor) 三件套闭环 / 自完备能力源自建 / 复杂度预算不超 nop-lint 量级 + 性价比门（P0 codemod 面、P1 rename、结构变换类 out）；实现未启动，逐操作立项前为模块拓扑与契约权威 |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |
 | `nop-wf/` | Workflow Engine | [README](nop-wf/README.md) | active — 审批流核心模式 + 扩展机制（AI 审批 / 调度器 / 离职转办 / 票签策略 / 动态审批） |

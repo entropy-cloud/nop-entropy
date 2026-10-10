@@ -34,6 +34,14 @@ public interface OrmEqlConstants {
     String FEATURE_SUPPORT_WINDOW_FRAME_RANGE = "supportWindowFrameRange";
     String FEATURE_SUPPORT_WINDOW_FRAME_GROUPS = "supportWindowFrameGroups";
 
+    // Plan 2380 Phase 2：upsert 编译期能力门。取值必须与 UpsertStatements.resolveUpsertStyle 一致
+    String FEATURE_UPSERT = "upsert";
+    // Plan 2380 Phase 2：H2 形态约束门（更新集列名集合 / 右值列引用两条必要条件不满足时报此 feature）
+    String FEATURE_UPSERT_PARTIAL_UPDATE = "upsertPartialUpdate";
+    // Plan 2380 Phase 2：insert/delete returning 能力门，与 FEATURE_SUPPORT_RETURNING_FOR_UPDATE 分立
+    String FEATURE_SUPPORT_RETURNING_FOR_INSERT = "supportReturningForInsert";
+    String FEATURE_SUPPORT_RETURNING_FOR_DELETE = "supportReturningForDelete";
+
     // WI3 版本门：集合算子关键字的哨兵值。方言 XML 配置 intersectKeyword="none" /
     // exceptKeyword="none" 表示该方言无此集合算子，编译期显式报错而非静默输出目标库
     // 不支持的算子。（空串经 xdef string 绑定实测被规范化为 null、与未配置不可区分，

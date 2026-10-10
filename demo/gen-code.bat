@@ -1,1 +1,0 @@
-java -Xbootclasspath/a:app-templates/src/main/resources/ -jar ../nop-cli/target/nop-cli-2.0.0-BETA.1.jar  gen model/test.msg.xlsx -t=/app/templates/msg -o=target

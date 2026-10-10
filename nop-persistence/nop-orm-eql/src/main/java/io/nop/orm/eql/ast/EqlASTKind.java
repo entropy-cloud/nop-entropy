@@ -143,4 +143,6 @@ public enum EqlASTKind{
         
             SqlValuesTableSource, // ordinal: 69
         
+            SqlUpsert, // ordinal: 70
+        
 }
