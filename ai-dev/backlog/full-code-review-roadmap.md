@@ -178,7 +178,7 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| V.1 | 全量回归：`./mvnw test -T 1C`（与规则 #10/mission commands 同口径；如需验证安装链另跑 `clean install -DskipTests`）——先记录预存失败清单，再以「修复后无新增失败」为通过标准；报告落 V.1-full-regression.md（执行时创建于轮次子目录，命名遵循规则 #2），路径登记 index | todo | 轮次子目录 | R2.0 | none |
+| V.1 | 全量回归：`./mvnw test -T 1C`（与规则 #10/mission commands 同口径；如需验证安装链另跑 `clean install -DskipTests`）——先记录预存失败清单，再以「修复后无新增失败」为通过标准；报告落 V.1-full-regression.md（执行时创建于轮次子目录，命名遵循规则 #2），路径登记 index | done（2026-10-10，5 轮执行首建全量测试基线：454 模块全覆盖——4 次全量（三次被单点失败 fail-fast 截断于不同模块+一次 ignore 标志被根 pom testFailureIgnore=false 硬配置压制）+77 个未启动模块补查；**新增失败=0**：5 个失败点逐项甄别=1 预存测试数据缺陷（R1.9 UK vs TestNopJobFireBizModel taskNo=1,1，本批按 R1.9 先例修复销账 49/49 绿）+3 负载敏感 flaky（lint/stream-checkpoint/graphql testLoad JSON 键序，各自单跑绿、lint 经基线 worktree 双验非本会话引入）+1 预存配置缺陷（nop-code-web 缺 IHttpClient bean，入预存清单走 P2 通道）；报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/V.1-full-regression.md`） | 轮次子目录 | R2.0 | none |
 | V.2 | 修复项独立 closure audit（全部 P0 + 关键 P1 抽样回归） | todo | 轮次子目录 | V.1 | `plan-closure-audit-prompt.md` |
 | V.3 | 轮次 `summary.md` 汇总 + 矩阵终态回填 + 本 roadmap 状态收口 | todo | 矩阵文件 | V.2 | `closure-audit-prompt.md` |
 | G.1 | 新失败模式沉淀 `ai-dev/lessons/` | todo | `ai-dev/lessons/README.md` | V.3 | — |
