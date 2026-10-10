@@ -33,6 +33,7 @@ import picocli.CommandLine;
                 CliFileCommand.class,
                 CliCallToolsCommand.class,
                 CliRgCommand.class,
+                CliFindCommand.class,
                 CliLintCommand.class,
                 CliRefactorCommand.class,
                 CliJqCommand.class

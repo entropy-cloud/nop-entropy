@@ -277,6 +277,9 @@ Dialect 通过 `DialectFeatures` 模型声明各数据库的语法差异，ORM �
 | `supportFullJoin` | 是否支持 `FULL JOIN`/`FULL OUTER JOIN` 表源 | MySQL/MariaDB 显式 `false`（已确认无 FULL JOIN，roadmap WI7b 证据）；TDengine ≥3.3.0.0、MSSQL、PG、H2 等继承 default 的 `true` `[文档]`。已接线编译期门（见下文 FULL JOIN 小节） |
 | `supportRightJoin` | 是否支持 RIGHT JOIN | 全部方言继承 default 的 `true`。**已接线编译期门**（2026-10-04 WI10b，`checkJoinTypeFeature` RIGHT_JOIN 分支，见「RIGHT JOIN 表源」小节）；负向载体 = 合成方言（无任何真实方言应配 false 的一手证据） |
 | `supportLateral` | 是否支持 `LATERAL` 子查询表源 | MySQL 8.0.14+/PG/DuckDB 支持；未配置 = 保守 false（编译期报错） |
+| `supportUpsert` | 是否支持 EQL `upsert` 语句的完整语义（含冲突键编译期校验与方言特定的更新列集约束） | **Plan 2380 Phase 2 新增**。postgresql/postgis/duckdb/mysql/mysql5.7/mariadb/h2/h2gis `true`；其余方言未配置 = 保守 false（编译期报 `feature=upsert`）。⚠️ **取值必须与 `UpsertStatements.resolveUpsertStyle` 的结论一致**——该形态解析器按方言名前缀匹配，postgis/duckdb 已随本计划纳入 PG 族。方言 XML 的 `<features>` 是**逐属性合并**的，"父方言 true 而形态解析 null"者必须显式写 false |
+| `supportReturningForInsert` | **仅指 INSERT 上返回投影列表形式（无 `INTO` 宿主变量）的 `RETURNING`**。与 `supportReturningForUpdate` 分立：两者方言支持集合不同（duckdb 支持 INSERT/DELETE 的 RETURNING 却不支持 UPDATE 的），且扩展后者会改动既有方言取值 | **Plan 2380 Phase 2 新增**。postgresql/postgis/duckdb `true`；其余未配置 = 保守 false（编译期报 `feature=supportReturningForInsert`） |
+| `supportReturningForDelete` | 同上，`DELETE` 上的投影列表形式 `RETURNING` | **Plan 2380 Phase 2 新增**。postgresql/postgis/duckdb `true`；其余未配置 = 保守 false（编译期报 `feature=supportReturningForDelete`） |
 | `supportWithAsClause` | 是否支持 CTE（WITH AS） | MySQL 8.0+ 支持 |
 | `supportBatchUpdate` | 是否支持批量更新 | 大部分数据库支持 |
 

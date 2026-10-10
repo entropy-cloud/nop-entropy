@@ -54,8 +54,22 @@ public final class UpsertStatements {
 
     /**
      * Resolve the native upsert style of a dialect by its name family prefix
-     * (case-insensitive): {@code postgresql}/{@code pg} → POSTGRESQL,
-     * {@code mysql}/{@code mariadb} → MYSQL, {@code h2} → H2.
+     * (case-insensitive): {@code postgresql}/{@code pg}/{@code postgis}/{@code duckdb}
+     * → POSTGRESQL, {@code mysql}/{@code mariadb} → MYSQL, {@code h2} → H2.
+     *
+     * <p>{@code postgis} inherits every dialect feature of {@code postgresql}, and
+     * DuckDB documents {@code ON CONFLICT (conflict_target) DO UPDATE SET} as
+     * PostgreSQL-compatible. Both were added in Plan 2380 Phase 2: before that they
+     * fell into the "no native upsert" branch, which forced the existing consumers
+     * (checkpoint storage, two-phase-commit sink) onto the row-granular two-transaction
+     * fallback even though a single-statement native form was available. No existing
+     * test exercised these two dialects, so this widens capability without regression.
+     *
+     * <p>Contract for new callers: {@code DialectFeatures.supportUpsert} must agree
+     * with this method — a dialect resolving to {@code null} here must declare
+     * {@code supportUpsert=false}. Note that {@code <features>} merges attribute by
+     * attribute along {@code x:extends}, so a dialect inheriting {@code true} from a
+     * parent must override it explicitly when this method returns {@code null}.
      *
      * @return the resolved style, or {@code null} when the dialect (or its name)
      *         resolves to no supported native upsert. The null return is an explicit
@@ -67,7 +81,8 @@ public final class UpsertStatements {
             return null;
         }
         String name = dialect.getName() == null ? "" : dialect.getName().toLowerCase();
-        if (name.startsWith("postgresql") || name.startsWith("pg")) {
+        if (name.startsWith("postgresql") || name.startsWith("pg")
+                || name.startsWith("postgis") || name.startsWith("duckdb")) {
             return UpsertStyle.POSTGRESQL;
         }
         if (name.startsWith("mysql") || name.startsWith("mariadb")) {

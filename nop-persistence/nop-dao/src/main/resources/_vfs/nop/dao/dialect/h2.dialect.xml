@@ -26,11 +26,16 @@
          （ai-dev/audits/eql-wi0/2026-10-04-h2-probe-transcript.txt）：H2 2.3.232/2.4.240 ×
          DEFAULT/Oracle/PG 模式全部 Function "ROLLUP"/"CUBE"/"GROUPING" not found（90022）。
          h2 = 三函数负向载体方言。 -->
+    <!-- Plan 2380 Phase 2：supportUpsert=true，但受限——H2 的 MERGE INTO t(cols) KEY(kcols) VALUES(...)
+         没有更新子句、固定按列清单整列更新 ⇒ EQL 侧有两道编译期必要条件（更新集列名集合 == 列清单列名集合，
+         且 do update set 右值不含列引用），不满足即报 feature=upsertPartialUpdate。
+         RETURNING：H2 文档全库无该子句 ⇒ 缺省 false。h2gis 继承本值。 -->
     <features supportSequence="true" supportNullsFirst="true" useGetStringForDate="true"
               supportILike="true" supportExecuteLargeUpdate="true" supportReturningForUpdate="false"
               supportValuesTableSource="true" supportWindowFrameRows="true" supportWindowFrameRange="true"
               supportWindowFrameGroups="true"
               supportRollup="false" supportCube="false"
+              supportUpsert="true"
     />
 
     <reservedKeywords>

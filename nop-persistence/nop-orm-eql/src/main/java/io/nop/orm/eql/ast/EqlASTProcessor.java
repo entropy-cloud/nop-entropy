@@ -219,6 +219,9 @@ public class EqlASTProcessor<T,C>{
             case SqlValuesTableSource:
                 return processSqlValuesTableSource((SqlValuesTableSource)node,context);
         
+            case SqlUpsert:
+                return processSqlUpsert((SqlUpsert)node,context);
+        
           default:
              throw new IllegalArgumentException("invalid ast kind");
        }
@@ -502,6 +505,10 @@ public class EqlASTProcessor<T,C>{
 	}
     
 	public T processSqlValuesTableSource(SqlValuesTableSource node, C context){
+        return defaultProcess(node, context);
+	}
+    
+	public T processSqlUpsert(SqlUpsert node, C context){
         return defaultProcess(node, context);
 	}
     

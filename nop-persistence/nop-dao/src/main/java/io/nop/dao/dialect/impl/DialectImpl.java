@@ -387,6 +387,22 @@ public class DialectImpl implements IDialect {
     }
 
     @Override
+    public boolean isSupportUpsert() {
+        // Plan 2380 Phase 2：缺省 false（保守缺省，编译期报错 feature=upsert）
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportUpsert());
+    }
+
+    @Override
+    public boolean isSupportReturningForInsert() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportReturningForInsert());
+    }
+
+    @Override
+    public boolean isSupportReturningForDelete() {
+        return Boolean.TRUE.equals(dialectModel.getFeatures().getSupportReturningForDelete());
+    }
+
+    @Override
     public String getSqlIntervalLiteral() {
         // WI1 BUG-5 骨架：直读 <sqls> 配置文本，未配置为 null。
         // WI7b Phase 1 起本 accessor 获得首个生产消费点（AstToSqlGenerator.visitSqlIntervalExpr），

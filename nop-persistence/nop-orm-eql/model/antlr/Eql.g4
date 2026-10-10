@@ -33,6 +33,7 @@ sqlDmlStatement
     : sqlSelectWithCte
     | sqlSelect
     | sqlInsert
+    | sqlUpsert
     | sqlUpdate
     | sqlDelete
 //    | createDatabase

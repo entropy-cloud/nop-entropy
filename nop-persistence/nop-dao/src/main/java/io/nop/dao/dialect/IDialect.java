@@ -124,6 +124,43 @@ public interface IDialect extends IComponentModel {
     boolean isSupportCube();
 
     /**
+     * Plan 2380 Phase 2：是否支持 EQL {@code upsert} 语句的完整语义
+     * （{@code upsert into T(cols) values(...) on conflict(k) do update set ...}），
+     * 含冲突键的编译期校验与方言特定的更新列集约束。
+     *
+     * <p>未配置时返回 false（保守缺省）：EQL 编译期报
+     * {@code nop.err.eql.dialect-not-support-feature}（feature=upsert），
+     * 而不是静默产出目标库不支持的 SQL。
+     *
+     * <p><b>一致性硬约束</b>：本标志的取值必须与
+     * {@code io.nop.dao.jdbc.UpsertStatements#resolveUpsertStyle} 的结论一致——
+     * 形态解析器返回 null（无原生 upsert）的方言本标志必须为 false。方言 XML 的
+     * {@code <features>} 是<b>逐属性合并</b>的，子方言会从父方言继承 true，因此凡
+     * "父方言为 true 而本方言形态解析为 null"者必须显式写 false。
+     */
+    boolean isSupportUpsert();
+
+    /**
+     * Plan 2380 Phase 2：是否支持 {@code INSERT} 上返回<b>投影列表形式</b>（无
+     * {@code INTO} 宿主变量）的 {@code RETURNING}。未配置时返回 false（保守缺省）：
+     * EQL 编译期报 {@code nop.err.eql.dialect-not-support-feature}
+     * （feature=supportReturningForInsert）。
+     *
+     * <p>不要用"该库有没有 RETURNING 子句"来理解本标志——与
+     * {@link #isSupportReturningForUpdate()} 同款，语义只覆盖投影列表形式。
+     * 与既有 {@code isSupportReturningForUpdate()} <b>分立</b>，本次扩展不得改动
+     * 后者的方言取值（BC）。
+     */
+    boolean isSupportReturningForInsert();
+
+    /**
+     * Plan 2380 Phase 2：是否支持 {@code DELETE} 上的投影列表形式 {@code RETURNING}。
+     * 未配置时返回 false（保守缺省），编译期报
+     * {@code nop.err.eql.dialect-not-support-feature}（feature=supportReturningForDelete）。
+     */
+    boolean isSupportReturningForDelete();
+
+    /**
      * WI2 BUG-6: 是否支持 `full join`/`full outer join` 表源。已确认无 FULL JOIN 的
      * 只有 MySQL/MariaDB（TDengine 自 3.3.0.0 起支持、MSSQL 支持 FULL OUTER JOIN，
      * 继承 default 的 true）。未配置或配置为 false 时 EQL 编译期对含 full [outer] join

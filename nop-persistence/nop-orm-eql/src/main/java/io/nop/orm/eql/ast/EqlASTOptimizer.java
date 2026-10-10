@@ -220,6 +220,9 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                 case SqlValuesTableSource:
                 return optimizeSqlValuesTableSource((SqlValuesTableSource)node,context);
             
+                case SqlUpsert:
+                return optimizeSqlUpsert((SqlUpsert)node,context);
+            
         default:
         throw new IllegalArgumentException("invalid ast kind");
         }
@@ -2084,6 +2087,79 @@ public class EqlASTOptimizer<C> extends AbstractOptimizer<EqlASTNode,C>{
                                incChangeCount();
                                if(shouldClone(ret,node)) { aliasOpt.setASTParent(null); ret = node.deepClone();}
                                ret.setAlias(aliasOpt);
+                            }
+                        
+                    }
+                
+		return ret;
+	}
+    
+	public EqlASTNode optimizeSqlUpsert(SqlUpsert node, C context){
+        SqlUpsert ret = node;
+
+        
+                    if(node.getDecorators() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlDecorator> decoratorsOpt = optimizeList(node.getDecorators(),true, context);
+                            if(decoratorsOpt != node.getDecorators()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(decoratorsOpt); ret = node.deepClone();}
+                                ret.setDecorators(decoratorsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getTableName() != null){
+                    
+                            io.nop.orm.eql.ast.SqlTableName tableNameOpt = (io.nop.orm.eql.ast.SqlTableName)optimize(node.getTableName(),context);
+                            if(tableNameOpt != node.getTableName()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { tableNameOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setTableName(tableNameOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getColumns() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlColumnName> columnsOpt = optimizeList(node.getColumns(),true, context);
+                            if(columnsOpt != node.getColumns()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(columnsOpt); ret = node.deepClone();}
+                                ret.setColumns(columnsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getValues() != null){
+                    
+                            io.nop.orm.eql.ast.SqlValues valuesOpt = (io.nop.orm.eql.ast.SqlValues)optimize(node.getValues(),context);
+                            if(valuesOpt != node.getValues()){
+                               incChangeCount();
+                               if(shouldClone(ret,node)) { valuesOpt.setASTParent(null); ret = node.deepClone();}
+                               ret.setValues(valuesOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getConflictColumns() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlColumnName> conflictColumnsOpt = optimizeList(node.getConflictColumns(),true, context);
+                            if(conflictColumnsOpt != node.getConflictColumns()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(conflictColumnsOpt); ret = node.deepClone();}
+                                ret.setConflictColumns(conflictColumnsOpt);
+                            }
+                        
+                    }
+                
+                    if(node.getAssignments() != null){
+                    
+                            java.util.List<io.nop.orm.eql.ast.SqlAssignment> assignmentsOpt = optimizeList(node.getAssignments(),true, context);
+                            if(assignmentsOpt != node.getAssignments()){
+                                incChangeCount();
+                                if(shouldClone(ret,node))  { clearParent(assignmentsOpt); ret = node.deepClone();}
+                                ret.setAssignments(assignmentsOpt);
                             }
                         
                     }

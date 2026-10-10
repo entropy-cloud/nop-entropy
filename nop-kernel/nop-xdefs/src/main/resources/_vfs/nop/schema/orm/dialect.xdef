@@ -67,6 +67,18 @@
     @useGetStringForDate 使用ResultSet.getString来获取日期时间类型的值。
         h2数据库的Date类型读取存在问题。1899以前的日期按照Date读取会少一天，例如1899-02-03会变成1899-02-02。所以需要改成按照字符串格式读取
     @useAsInFrom select xx from t as v 这种语句是否允许使用as，oracle不允许使用as
+    @supportUpsert (Plan 2380 Phase 2) EQL upsert 语句能力位。缺省 false = 编译含 upsert 的语句时
+        编译期报错 nop.err.eql.dialect-not-support-feature（feature=upsert），不静默产出目标库不支持的 SQL。
+        取值必须与 io.nop.dao.jdbc.UpsertStatements#resolveUpsertStyle 的结论一致：形态解析器返回 null
+        （无原生 upsert）的方言本标志必须为 false。方言 XML 的 <features> 是逐属性合并的，子方言会从父方言
+        继承 true，因此凡"父方言 true 而本方言形态解析 null"者必须显式写 false（postgis/duckdb 即属此列，
+        已随 Plan 2380 纳入 UpsertStyle 的 PG 族前缀表，故为 true）。
+    @supportReturningForInsert (Plan 2380 Phase 2) INSERT 上返回投影列表形式（无 INTO 宿主变量）的
+        RETURNING 能力位。语义只覆盖投影列表形式，**不是**"该库有没有 RETURNING 子句"。与既有的
+        supportReturningForUpdate 分立：分立是因为两者方言支持集合不同（duckdb 支持 INSERT/DELETE 的
+        RETURNING 却不支持 UPDATE 的），且本次扩展不得改动 supportReturningForUpdate 的既有取值（BC）。
+    @supportReturningForDelete (Plan 2380 Phase 2) DELETE 上返回投影列表形式的 RETURNING 能力位。
+        语义边界同上，与 supportReturningForInsert 同样分立。
     -->
     <!-- WI12（plan 38 交付⑤）：supportValuesTableSource = FROM (VALUES …) 表源能力位。缺省 false = 编译含 VALUES 表源的查询时编译期报错（feature=valuesTableSource）。h2(+h2gis)/postgresql(+postgis+duckdb)/mssql 配置 true [文档]；mysql 族/oracle 族/db2/dm/tdengine 不配置（响亮或未取证）。 -->
     <features xdef:name="DialectFeatures" xdef:mandatory="true"
@@ -86,6 +98,8 @@
               supportLateral="boolean"
               supportValuesTableSource="boolean"
               supportRollup="boolean" supportCube="boolean"
+              supportUpsert="boolean"
+              supportReturningForInsert="boolean" supportReturningForDelete="boolean"
     />
     <!-- WI7b（plan 37）：supportRollup/supportCube = GROUP BY 位置 grouping 操作符
          ROLLUP(...)/CUBE(...) 能力位（EqlTransformVisitor.visitSqlGroupingOp 消费）。

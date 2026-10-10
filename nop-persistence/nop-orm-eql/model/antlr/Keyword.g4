@@ -565,3 +565,16 @@ PARTITION: P A R T I T I O N;
 RETURNING
     : R E T U R N I N G
     ;
+
+
+// Plan 2380：EQL upsert 语句的两个新关键字（中性语法
+// `upsert into T(cols) values(...) on conflict(k) do update set ...`）。
+// 定义在本文件（Keyword.g4）而非 Literals.g4：本文件的 token 因 import 顺序
+// 天然排在 Literals.g4 的 IDENTIFIER_ 之前，不受"必须排在 IDENTIFIER_ 之前"的顺序约束。
+UPSERT
+    : U P S E R T
+    ;
+
+CONFLICT
+    : C O N F L I C T
+    ;

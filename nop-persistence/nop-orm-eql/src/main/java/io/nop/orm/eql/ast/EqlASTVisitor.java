@@ -290,6 +290,10 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     visitSqlValuesTableSource((SqlValuesTableSource)node);
                     return;
             
+                case SqlUpsert:
+                    visitSqlUpsert((SqlUpsert)node);
+                    return;
+            
         default:
         throw new IllegalArgumentException("invalid ast kind");
         }
@@ -699,6 +703,16 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChildren(node.getDecorators());         
                     this.visitChildren(node.getRows());         
                     this.visitChild(node.getAlias());
+            }
+        
+            public void visitSqlUpsert(SqlUpsert node){
+            
+                    this.visitChildren(node.getDecorators());         
+                    this.visitChild(node.getTableName());
+                    this.visitChildren(node.getColumns());         
+                    this.visitChild(node.getValues());
+                    this.visitChildren(node.getConflictColumns());         
+                    this.visitChildren(node.getAssignments());         
             }
         
 }

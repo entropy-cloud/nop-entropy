@@ -22,6 +22,15 @@ public class DialectFeatures extends _DialectFeatures {
     private Boolean supportRollup;
     private Boolean supportCube;
 
+    // Plan 2380 Phase 2：EQL upsert 语句能力位。缺省（未配置）= null，
+    // 由 IDialect.isSupportUpsert() 归一为 false（保守缺省，编译期报错）。
+    private Boolean supportUpsert;
+    // Plan 2380 Phase 2：INSERT / DELETE 上的投影列表形式 RETURNING 能力位。
+    // 与 supportReturningForUpdate **分立**：三个标志各自的方言支持集合不同，
+    // 且既有 supportReturningForUpdate 的方言取值不得因本次扩展而改变（BC）。
+    private Boolean supportReturningForInsert;
+    private Boolean supportReturningForDelete;
+
     public DialectFeatures() {
 
     }
@@ -102,5 +111,44 @@ public class DialectFeatures extends _DialectFeatures {
 
     public void setSupportValuesTableSource(Boolean supportValuesTableSource) {
         this.supportValuesTableSource = supportValuesTableSource;
+    }
+
+    /**
+     * Plan 2380 Phase 2：EQL {@code upsert} 语句能力位（与 {@code supportLateral} 同款
+     * 保留类手法——nop-dao precompile 生成管线未接线，xdef 绑定按属性名反射 setter）。
+     * 未配置由 {@code IDialect.isSupportUpsert()} 归一为 false（保守缺省，编译期报错）。
+     *
+     * <p>取值必须与 {@code UpsertStatements.resolveUpsertStyle} 的结论一致：形态解析器
+     * 返回 null 的方言本标志必须为 false，否则会出现"能力位说支持、SQL 生成器无对应
+     * 分支"的静默不一致。
+     */
+    public Boolean getSupportUpsert() {
+        return supportUpsert;
+    }
+
+    public void setSupportUpsert(Boolean supportUpsert) {
+        this.supportUpsert = supportUpsert;
+    }
+
+    /**
+     * Plan 2380 Phase 2：{@code INSERT} 上返回投影列表形式（无 INTO 宿主变量）的
+     * {@code RETURNING} 能力位。语义边界与 {@code supportReturningForUpdate} 同款，
+     * 但两者是分立标志——不要用"该库有没有 RETURNING 子句"来理解它们。
+     */
+    public Boolean getSupportReturningForInsert() {
+        return supportReturningForInsert;
+    }
+
+    public void setSupportReturningForInsert(Boolean supportReturningForInsert) {
+        this.supportReturningForInsert = supportReturningForInsert;
+    }
+
+    /** Plan 2380 Phase 2：{@code DELETE} 上的投影列表形式 {@code RETURNING} 能力位。 */
+    public Boolean getSupportReturningForDelete() {
+        return supportReturningForDelete;
+    }
+
+    public void setSupportReturningForDelete(Boolean supportReturningForDelete) {
+        this.supportReturningForDelete = supportReturningForDelete;
     }
 }

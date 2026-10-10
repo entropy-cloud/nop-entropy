@@ -113,6 +113,10 @@ unreservedWord_:
     // 解析为 SqlRegularFunction，报错依赖函数表未注册（unknown-function）。
     | ROLLUP | CUBE
     | NOWAIT | SKIP_ | LOCKED
+    // Plan 2380：upsert 语句的两个新关键字双登记 unreservedWord_，保住标识符位置
+    // （列名/表名/别名 upsert / conflict 仍可解析）。语句起始无歧义——
+    // sqlUpsert 与 sqlDelete/sqlInsert 的首 token 不同。
+    | UPSERT | CONFLICT
     ;
 
 // variable
