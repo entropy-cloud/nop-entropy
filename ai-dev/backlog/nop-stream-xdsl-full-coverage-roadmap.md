@@ -4,7 +4,8 @@ audit-rounds: 0
 
 # nop-stream XDSL 声明面全功能补全与 12 场景验收 Roadmap
 
-> Last updated: 2026-10-10（v19：WI20 多表降级形态固化（plan 2366）——多表/tableId 声明面不新增（引擎 record 元数据=连接器职责，multi-engine R4 已交付 StreamRecord.tableId/withChangeMetadata）；降级形态固化=单表流+表标识字段 filter 路由→每 table 独立 sink（TestWi20TableTagRoutingPatternE2E 混合流零交叉断言；E8 场景归 WI24）；successor=owner 裁定 tableId 进 DSL 声明面）
+> Last updated: 2026-10-10（v20：WI21 E1-E2 验收套件落地（plan 2367）——E1 StateMachine 降级形态（per-key DFA process bean+checkpoint+双 sink filter 分流；限速=bean 内自限速；TestXdslScenarioE1：DFA 转移/告警分支/双 sink 断言）；E2 TopSpeedWindowing（global+DeltaTrigger bean（speed delta>50，DeltaTrigger.of 工厂）+TimeEvictor evictorId=time:5s+maxBy bean 聚合（aggregatorRef 需 sql provider 故 bean 面）；TestXdslScenarioE2 delta 跳变发射+maxBy 断言）；**E2 关键事实：TimeEvictor 驱逐无事件时间戳元素——source 须 collectWithTimestamp**（无 ts 元素 pane 清空零发射，对照实验实证））
+> 历史版本：2026-10-10（v19：WI20 多表降级形态固化（plan 2366）——多表/tableId 声明面不新增（引擎 record 元数据=连接器职责，multi-engine R4 已交付 StreamRecord.tableId/withChangeMetadata）；降级形态固化=单表流+表标识字段 filter 路由→每 table 独立 sink（TestWi20TableTagRoutingPatternE2E 混合流零交叉断言；E8 场景归 WI24）；successor=owner 裁定 tableId 进 DSL 声明面）
 > 历史版本：2026-10-10（v18：WI19 回补作业声明面落地（plan 2365）——file tailing 不做（WI0 裁定，触发条件登记 user guide：tailing 诉求→connector 工厂面扩展）；回补声明形态钉：jobTerminationMode=DRAIN 声明→env checkpoint config（TestWi19BackfillDeclaration：DRAIN/CANCEL 默认双钉）+ bounded 重放 source bean 声明面可用（TestWi19BoundedReplayDeclarationE2E）；引擎语义与幂等=multi-engine WI10 既有交付）
 > 历史版本：2026-10-10（v17：WI18 BETWEEN 变通形态落地（plan 2364）——WI0(b) 维持排除项：变通模式=分流拆段+分段等值 join+union+谓词过滤（半开区间铺瓦），拓扑合法 build+边界三侧断言（TestWi18BetweenWorkaroundPattern，flow 模块）；E11/E12 全语义验收归 WI26；解除分支重启触发=owner 解除裁定回写 vision）
 > 历史版本：2026-10-10（v16：WI17 异步算子默认分支落地（plan 2363）——WI0(a) 维持 Non-Goal：同步替代声明形态四要素契约（process bean 外部调用封装/有界容量 CAS 门/**超时显式降级（Future+deadline，慢调用→TIMEOUT: 降级输出）**/串行语义标注）+ 示范 E2E TestWi17SyncReplacementPatternE2E（**含超时降级钉与容量门单元钉**——本地串行模式容量门结构性不可达故单元级断言）；解除分支无需处置（Non-Goal 维持，重启触发=owner 解除裁定回写 vision）；E6 套件归 WI23）
@@ -158,7 +159,7 @@ audit-rounds: 0
 
 ### M5 — 12 场景验收套件与门禁（套件 WI 每 WI 2 场景：1 份 fixture + 1 个单测类 + 接线与语义断言）
 
-- [ ] WI21 E1–E2 验收套件：StateMachine（DFA/checkpoint/双 sink，限速走外部前置降级形态）与 TopSpeedWindowing（delta 发射序列 + evictor 物理驱逐）（Deliverable: 2 fixture + TestXdslScenarioE1/E2 + 场景注册表条目；deps: WI5 + WI6 + WI7 + WI9；Item Type: Proof）
+- [x] WI21 E1–E2 验收套件：StateMachine（DFA/checkpoint/双 sink，限速走外部前置降级形态）与 TopSpeedWindowing（delta 发射序列 + evictor 物理驱逐）（Deliverable: 2 fixture + TestXdslScenarioE1/E2 + 场景注册表条目；deps: WI5 + WI6 + WI7 + WI9；Item Type: Proof）✅ 2026-10-10 plan 2367（2 fixture+beans+双测试类落 runtime acceptance 包；E1=DFA 转移/告警分支/双 sink 断言（限速=bean 内自限速降级）；E2=delta 跳变发射+maxBy 断言（DeltaTrigger.of 工厂+DeltaFunction bean；maxBy 用 bean 聚合面——aggregatorRef 需 sql provider）；**E2 事实钉：TimeEvictor 驱逐无 ts 元素（对照实验实证）→ source collectWithTimestamp**；audit agent 见 plan Closure）
 - [ ] WI22 E3–E4 验收套件：SideOutputExample（侧输出分区归属）与 WindowJoin（匹配对发射 + outer 补齐 + 边界寿命）（Deliverable: 2 fixture + TestXdslScenarioE3/E4 + 场景注册表条目；deps: WI10；Item Type: Proof）
 - [ ] WI23 E5–E6 验收套件：CountNewsClicks+CountSales（预发布点击缓冲 + 定时器 flush + idleness）与 AsyncIOExample（capacity 上界 + timeout + 完成顺序，按 WI17 分支形态）（Deliverable: 2 fixture + TestXdslScenarioE5/E6 + 场景注册表条目；deps: WI17；Item Type: Proof）
 - [ ] WI24 E7–E8 验收套件：Flink Table API 集（终值语义 + DISTINCT 近似口径 + 不支持项 typed fail-fast）与 SeaTunnel 三例（1 源 4 分支 4 sink + 多表/transform 级 SQL 降级形态）（Deliverable: 2 fixture + TestXdslScenarioE7/E8 + 场景注册表条目；deps: WI9 + WI16 + WI20；Item Type: Proof）

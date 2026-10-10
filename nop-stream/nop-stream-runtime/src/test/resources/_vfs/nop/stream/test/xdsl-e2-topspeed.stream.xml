@@ -1,0 +1,35 @@
+<!--
+  WI21 E2 (Flink TopSpeedWindowing degradation): GlobalWindows (windowFnId=global)
+  + DeltaTrigger (bean form: triggerId=e2DeltaTrigger resolves the Trigger bean,
+  which wraps a DeltaFunction bean with the speed delta=50 contract) + TimeEvictor
+  (evictorId=time:5s) + maxBy aggregation (aggregatorRef on speed). Emission
+  sequence pinned by the delta-triggered fires (delta > 50 on speed fires).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e2-topspeed" version="1" parallelism="1">
+
+    <windowingStrategies>
+        <strategy strategyId="topSpeed" windowFnId="global"
+                  accumulationMode="ACCUMULATING"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="rides" name="TaxiRides" bean="e2RideSource" parallelism="1"/>
+        <keyBy id="byCar" name="ByCar" keyExpr="event.car"/>
+        <window id="w" strategyRef="topSpeed">
+            <evictorId>time:5s</evictorId>
+            <triggerId>e2DeltaTrigger</triggerId>
+
+        </window>
+        <aggregate id="topSpeed" name="MaxBySpeed" bean="e2MaxByFn"/>
+        <sink id="out" name="TopSpeedSink" bean="e2TopSpeedSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="rides" to="byCar" partition="FORWARD"/>
+        <edge id="e1" from="byCar" to="w" partition="FORWARD"/>
+        <edge id="e2" from="w" to="topSpeed" partition="FORWARD"/>
+        <edge id="e3" from="topSpeed" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
