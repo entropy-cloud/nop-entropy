@@ -59,6 +59,10 @@ options.setMode(UploadMode.BASE64_FORM);
 - **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
 - **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
 
+## nop-search 引擎语义（P1-4.4-S-02..06，plan 2394）
+
+LuceneSearchEngine（先修批后）五条契约：①空 query（`SearchRequest.query` 省略）= match all，可与 tags/filter 组合浏览；②filter `not` 组合条件为补集语义（NOT 补 MatchAllDocs 锚点）；③写入失败回滚时自动清理 writer/SearcherManager 缓存——单条坏文档不再永久打死 topic（下次访问重建）；④`ISearchEngine.getDoc(topic, docId)`（**API 签名变更**：原 `getDoc(docId)` 全量遍历取首命中=跨 topic 串读）——限定单 topic 查找；⑤`SearchEngine__indexDir` fail-closed：需要 admin 角色（`nop.err.search.no-permission`），直解析路径受 `nop.search.index-dir-roots` 白名单约束（未配置=仅工作目录相对路径；resourceLocator 解析豁免）。pattern 正则回溯限制为 admin 自伤面，随拆分计划处理。
+
 ## JDK client 503 响应语义（P1-check-netrpc-24，plan 2391）
 
 JdkHttpClient.toHttpResponse 不再把 HTTP 503 映射为 NopConnectException——503 按正常响应送达（status/body/headers 完整），与 Apache/OkHttp 实现对齐（此前仅 JDK 把 503 误判为连接失败且丢 body）。旧「某些 MAC/JDK 连接失败表现为 503」workaround 已移除：现代 JDK 连接失败正确抛 ConnectException（经 wrapException 归一化为 NopConnectException），调用方需自行处理 503 状态（重试/降级语义属调用方域）。

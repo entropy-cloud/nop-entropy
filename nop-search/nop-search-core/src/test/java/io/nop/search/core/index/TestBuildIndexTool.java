@@ -44,7 +44,7 @@ public class TestBuildIndexTool {
         }
 
         @Override
-        public SearchableDoc getDoc(String docId) {
+        public SearchableDoc getDoc(String topic, String docId) {
             return null;
         }
 

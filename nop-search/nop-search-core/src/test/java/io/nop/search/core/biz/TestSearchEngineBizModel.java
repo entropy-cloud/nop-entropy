@@ -1,5 +1,6 @@
 package io.nop.search.core.biz;
 
+import io.nop.api.core.auth.IUserContext;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.search.api.ISearchEngine;
 import io.nop.search.api.SearchRequest;
@@ -9,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
+import java.lang.reflect.Proxy;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -45,7 +47,7 @@ public class TestSearchEngineBizModel {
         }
 
         @Override
-        public SearchableDoc getDoc(String docId) {
+        public SearchableDoc getDoc(String topic, String docId) {
             return null;
         }
 
@@ -84,6 +86,22 @@ public class TestSearchEngineBizModel {
         public void removeTopic(String topic) {
             // no-op
         }
+    }
+
+    static IUserContext adminUser() {
+        return (IUserContext) Proxy.newProxyInstance(
+                TestSearchEngineBizModel.class.getClassLoader(),
+                new Class[]{IUserContext.class},
+                (proxy, method, args) -> {
+                    switch (method.getName()) {
+                        case "isUserInRole":
+                            return "admin".equals(args[0]);
+                        case "getUserId":
+                            return "test-admin";
+                        default:
+                            return null;
+                    }
+                });
     }
 
     private static SearchEngineBizModel newBizModel(ISearchEngine engine) {
@@ -125,6 +143,8 @@ public class TestSearchEngineBizModel {
         SearchEngineBizModel bizModel = new SearchEngineBizModel();
         File target = Files.write(dir.resolve("doc.md"), "# doc".getBytes()).toFile();
         bizModel.setResourceLocator(path -> new FileResource(target));
+        // plan 2394：fail-closed 校验需要 admin 上下文
+        IUserContext.set(adminUser());
 
         assertSame(target, bizModel.getLocalFile("whatever.md"),
                 "the locator's resource file wins when a locator is registered");
@@ -152,6 +172,8 @@ public class TestSearchEngineBizModel {
 
         SearchRequest request = new SearchRequest();
         request.setTopic("docs");
+        // plan 2394：checkAllowAccess fail-closed——biz 调用需 admin 上下文
+        IUserContext.set(adminUser());
         java.util.concurrent.CompletionStage<SearchResponse> future = bizModel.searchAsync(request);
         assertNotNull(future);
         future.toCompletableFuture().get(5, java.util.concurrent.TimeUnit.SECONDS);
@@ -166,6 +188,8 @@ public class TestSearchEngineBizModel {
 
         SearchableDoc doc = new SearchableDoc();
         doc.setId("d1");
+        // plan 2394：checkAllowAccess fail-closed——biz 调用需 admin 上下文
+        IUserContext.set(adminUser());
         bizModel.addDoc("topics", doc);
 
         assertEquals("topics", engine.addedTopic);

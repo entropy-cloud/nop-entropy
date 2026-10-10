@@ -174,11 +174,11 @@
 | P1-7.4-003 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（plan 31 证据链断裂——`[x]` 载体从未运行+@Disabled+closure 自审非独立；状态勘正+indexDirectory 验证补做或条目移除） | open |
 | P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.25/plan 2391（2026-10-10 修复：删除 toHttpResponse 503→NopConnectException 特判——503 按正常响应送达与 Apache/OkHttp 对齐（三实现行为分歧消除），ERR_HTTP_CONNECT_FAIL 保留于真连接失败路径+判别测试（stub 503 带 body 正常送达）。原处方：沿 3.9 §2.5#1 行修复方向） | fixed |
 | P1-4.4-A5 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.1 A面 条目5 标定维持） | R1.0（check/format-misc.md#P1-5 生成器-文法对齐探针 0/13 still-live；**与 P2-4.4-001/002 合并的是修复立项通道**——P1 登记位单点保留） | open |
-| P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-1 空 query 构造空 BooleanQuery 恒空；LuceneSearchEngine 先修 5 条 P1〔S-02..06〕再动拆分——4.4 执行顺序约束） | open |
-| P1-4.4-S-03 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-2 visitNot 纯 MUST_NOT 匹配空集；同 S-02..06 先修批次） | open |
-| P1-4.4-S-04 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-3 rollback 后缓存 map 残留单条坏文档打死 topic；同 S-02..06 先修批次） | open |
-| P1-4.4-S-05 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-4 getDoc 忽略 topic 跨 topic 串读；**修复触 nop-search-api 签名属 plan-first 区**） | open |
-| P1-4.4-S-06 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-5 indexDir 任意路径+checkAllowAccess 空实现；**安全面**；S-06 注 6.4 #6a 纯引用裁定勿双立） | open |
+| P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.28/plan 2394（2026-10-10 修复：空 query→MatchAllDocsQuery+判别测试。原处方：空 query 时使用 MatchAllDocsQuery） | fixed |
+| P1-4.4-S-03 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.28/plan 2394（2026-10-10 修复：visitNot 补 MatchAllDocsQuery MUST 锚点（NE 分支既有形态）+补集判别测试。原处方：仿照 NE 分支补锚点） | fixed |
+| P1-4.4-S-04 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.28/plan 2394（2026-10-10 修复：rollback(topic,writer)——先移除 searcherManagers（close）/indexWriters 条目再 rollback+坏文档批次自愈回归。原处方：失败时从缓存移除条目后再 rollback/close，下次访问重建） | fixed |
+| P1-4.4-S-05 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.28/plan 2394（2026-10-10 修复：ISearchEngine.getDoc(topic,docId) 签名变更（plan-first 载体 plan 2394，调用方全量迁移 4 处）+单 topic 查找+确定性隔离判别。原处方：ISearchEngine.getDoc 增加 topic 参数，实现限定指定 topic 内查找） | fixed |
+| P1-4.4-S-06 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.28/plan 2394（2026-10-10 修复：checkAllowAccess fail-closed admin 校验（nop.err.search.no-permission）+indexDir 路径白名单（nop.search.index-dir-roots，未配置=仅相对路径；resourceLocator 豁免）+access-control 判别测试。6.4 #6a 纯引用勿双立维持；pattern 回溯限制归 follow-up（admin 门后自伤面）。原处方：checkAllowAccess 默认拒绝/管理员校验；path 规范化白名单；pattern 超时/限制） | fixed |
 | P1-4.4-C1 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-1 选主注解 @cfg; 笔误装配即启动失败；修笔误+装配冒烟） | open |
 | P1-4.4-C2 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-2 LeastActive 未取模下标越界；取模+TestLoadBalance 补 LeastActive 用例） | open |
 | P1-4.4-C3 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.3 标定维持） | R1.0（check/msg-cluster-cred.md#P1-3 SentinelFlowControl runAsync Context 泄漏；finally 无条件 exit；**与 P1-4.2-004 sentinel 补测同批**） | open |

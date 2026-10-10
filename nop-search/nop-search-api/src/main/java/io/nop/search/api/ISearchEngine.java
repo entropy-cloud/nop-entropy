@@ -20,7 +20,11 @@ public interface ISearchEngine {
 
     SearchResponse search(@Name("request") SearchRequest request);
 
-    SearchableDoc getDoc(String docId);
+    /**
+     * P1-4.4-S-05（plan 2394）：增加 topic 参数限定查找范围——docId 是相对路径 md5，
+     * 不同 topic 会产生相同 docId；无 topic 的全量遍历取首个命中即跨 topic 串读。
+     */
+    SearchableDoc getDoc(@Name("topic") String topic, @Name("docId") String docId);
 
     List<SearchableDoc> getDocsByTerm(String topic, String term);
 
