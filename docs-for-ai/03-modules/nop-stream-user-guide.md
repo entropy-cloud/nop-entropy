@@ -177,6 +177,8 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **持续源与回补声明形态（WI19/plan 2365，WI0 默认分支）**：file tailing 持续源**不做**（WI0 裁定——连续流模型由 connector 工厂面承载持续源；触发条件=真实 tailing 数据源诉求出现，届时按 connector 工厂扩展而非 DSL 内核）。回补作业声明形态：`jobTerminationMode="DRAIN"`（checkpoint 块声明）+ bounded 重放 source（`TimeRangeReplayableSource`/`BatchLoaderSourceFunction` bean 形态）即 RECALCULATE 配方（声明面钉 `TestWi19BackfillDeclaration`/`TestWi19BoundedReplayDeclarationE2E`；引擎语义与 UPSERT 幂等=multi-engine WI10 的 `TestRecalculateBackfillE2E` 与「重算作业配方」节）。
 
+**E1/E2 场景验收套件（WI21/plan 2367）**：E1 StateMachineExample 降级形态（per-key DFA process bean+checkpoint+双 sink filter 分流，限速=bean 内自限速降级）——`xdsl-e1-statemachine.stream.xml`+`TestXdslScenarioE1`（DFA 转移/告警分支/双 sink 数据面断言）；E2 TopSpeedWindowing（global window+DeltaTrigger bean（speed delta>50）+TimeEvictor（evictorId=time:5s）+maxBy bean 聚合）——`xdsl-e2-topspeed.stream.xml`+`TestXdslScenarioE2`（delta 跳变发射+maxBy 值断言）。**E2 关键事实**：TimeEvictor 驱逐无事件时间戳元素（source 须用 `collectWithTimestamp` 发射，否则 pane 清空零发射）。场景注册表=12 场景矩阵。
+
 **多表流声明式降级形态（WI20/plan 2366，WI0 默认分支）**：多表/tableId 的 DSL 声明面**不新增**（引擎级 record 元数据 `StreamRecord.tableId`/`withChangeMetadata(RowKind, tableId)` 是连接器层职责——CDC 连接器写入，multi-engine R4 交付）；DSL 路由用**单表流 + 表标识字段**降级形态：记录携带 tableTag 字段 → `<filter>` 按表标识分流 → 每 table 独立 sink（锚点 `TestWi20TableTagRoutingPatternE2E`：混合流按表路由零交叉）。E8 多表场景按此形态降级验收（套件归 WI24）。record 元数据不在 xpl value 绑定内（value 字段路由 vs record 元数据边界）。
 
 **BETWEEN 区间谓词变通形态（WI18/plan 2364，WI0(b) 默认分支）**：区间/非等值 join 维持 §四排除项；`BETWEEN` 语义的声明式变通=**分流拆段 + 分段等值 join + union + 谓词过滤**——区间表离散化为分段行（半开区间 [low,high) 铺瓦不重叠），每段经两路等值 join（ON 段键）收窄候选，union 合流后 `<process>` 谓词过滤施加精确 `low<=x<high` 语义（锚点 `TestWi18BetweenWorkaroundPattern`：拓扑合法 build + 边界三侧断言）。E11/E12 全语义验收归 WI26。解除分支重启触发=owner 解除裁定并回写 vision。

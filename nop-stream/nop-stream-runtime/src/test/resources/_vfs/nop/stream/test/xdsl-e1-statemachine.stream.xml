@@ -1,0 +1,35 @@
+<!--
+  WI21 E1 (Flink StateMachineExample degradation): per-key DFA in a process bean +
+  keyed state semantics (per-key journal) + checkpoint declaration + dual sinks
+  (main + alert branch via filter split). Rate limiting degraded to in-bean
+  self-limiting per the WI0 adjudication.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e1-statemachine" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" jobTerminationMode="DRAIN" processingGuarantee="AT_LEAST_ONCE"/>
+
+    <transforms>
+        <source id="events" name="StateMachineEvents" bean="e1EventSource" parallelism="1"/>
+        <keyBy id="byEntity" name="ByEntity" keyExpr="event.entity"/>
+        <process id="dfa" name="DfaMachine" bean="e1DfaFunction"/>
+        <filter id="alertRoute" name="AlertBranch">
+            <source>event.state == 'ALERT'</source>
+        </filter>
+        <filter id="mainRoute" name="MainBranch">
+            <source>event.state != 'ALERT'</source>
+        </filter>
+        <sink id="mainSink" name="MainSink" bean="e1MainSink" parallelism="1"/>
+        <sink id="alertSink" name="AlertSink" bean="e1AlertSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="events" to="byEntity" partition="FORWARD"/>
+        <edge id="e1" from="byEntity" to="dfa" partition="FORWARD"/>
+        <edge id="e2" from="dfa" to="alertRoute" partition="FORWARD"/>
+        <edge id="e3" from="dfa" to="mainRoute" partition="FORWARD"/>
+        <edge id="e4" from="alertRoute" to="alertSink" partition="FORWARD"/>
+        <edge id="e5" from="mainRoute" to="mainSink" partition="FORWARD"/>
+    </edges>
+</stream>

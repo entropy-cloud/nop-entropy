@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <bean id="e2RideSource" class="io.nop.stream.runtime.acceptance.E2TopSpeedBeans$RideSource"/>
+    <bean id="e2DeltaFunction" class="io.nop.stream.runtime.acceptance.E2TopSpeedBeans$SpeedDelta"/>
+    <bean id="e2DeltaTrigger" class="io.nop.stream.runtime.acceptance.E2TopSpeedBeans$DeltaTriggerFactory" factory-method="create"/>
+    <bean id="e2MaxByFn" class="io.nop.stream.runtime.acceptance.E2TopSpeedBeans$MaxBySpeedFn"/>
+    <bean id="e2TopSpeedSink" class="io.nop.stream.runtime.acceptance.E2TopSpeedBeans$TopSpeedSink"/>
+
+</beans>
