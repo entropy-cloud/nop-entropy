@@ -157,9 +157,12 @@ trap 'rm -f "$report"' EXIT
 command -v node >/dev/null 2>&1 || die "node not found. It renders nop-lint's JSON report into the gate decision.
 Install Node.js 18+ (or use a version manager such as nvm/fnm/volta)."
 
+# `|| lint_status=$?` rather than a bare command followed by `$?`: under
+# `set -e` a bare non-zero command aborts the script before the status can be
+# inspected, which would leak nop-cli's exit code past the mapping below.
 # shellcheck disable=SC2086 # $NOP_CLI may be a multi-word "java -jar <path>"
-$NOP_CLI lint check --rules "$rules" --format json "${filtered[@]}" > "$report"
-lint_status=$?
+lint_status=0
+$NOP_CLI lint check --rules "$rules" --format json "${filtered[@]}" > "$report" || lint_status=$?
 # 0 clean, 1 error-severity findings (a real result, reported below),
 # 2 usage/parse/internal failure (nothing usable was written).
 if [ "$lint_status" -eq 2 ]; then
