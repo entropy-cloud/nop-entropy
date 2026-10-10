@@ -86,7 +86,7 @@ Targets: `nop-web/src/test/**`、测试 fixture
 - [x] 集成测（`JunitBaseTestCase`，`new PageProvider()` + stub `IRolePermissionMapping` 返回固定 roles）：新增含 `xui:permissions` 的页面 fixture（如 `test-permissions.page.yaml`，形如 `page: x` + `xui:permissions` + 带 permissions 的子节点），`getPage(path, "zh-CN")` 两次——结果 roles 正确；再经 `ResourceComponentManager.instance().loadComponentModel("zh-CN|"+path)` 取回缓存 `PageModel`，断言其 `getData()` **仍含 `xui:permissions`**（确定性判据；修复前 FAIL）
 - [x] 并发测：N 线程（≥8）barrier 同调 `getPage` 同 path——无异常、缓存 data 仍含 `xui:permissions`（确定性判据）；「每结果均含 `xui:roles`」作为 best-effort 附加断言（非主判据，注释说明时序性）
 - [x] 用 `new PageProvider()` 避免污染注入的全局 bean；如注入则 `@AfterEach` 复位 `rolePermissionMapping=null`；locale 固定启用值 `zh-CN`（缓存键与 `getPage` 归一化一致）
-- [x] **BizModel 入口裁定**：`PageProviderBizModel.getPage`（publicAccess）仅 `pageProvider.getPage(path, locale)` 一行委托，故 provider 方法为可接受的端到端入口；若需真实 BizModel 级测试则超出本行（Rationale 记录在 plan）
+- [x] **BizModel 入口裁定**：`PageProviderBizModel.getPage`（publicAccess）核心为其一行 `pageProvider.getPage(path, locale)` 委托（另有 locale/文件校验前置），故 provider 方法为可接受的端到端入口；若需真实 BizModel 级测试则超出本行（Rationale 记录在 plan）
 - [x] **判别验证（stash 腿）**：临时还原 `transformPermissions` 就地写法 → 单测（源被删键）+ 集成测（缓存 data 丢 `xui:permissions`）FAIL，恢复后 PASS
 - [x] 本 Phase owner-doc 处置：`No owner-doc update required`
 - [x] `ai-dev/logs/` 对应日期条目已更新
@@ -154,7 +154,7 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: plan 2404 R1.38 可关闭：`transformPermissions` 已为 copy-on-write + 匹配节点内递归，`getPage` 返回新结构且缓存 PageModel 不被改写，嵌套 `xui:permissions` 亦被转换；独立 closure audit 亲读 live 代码与测试并独立复现判别 stash 腿（5/5 FAIL → 5/5 PASS），nop-web 全绿。唯一未勾项为 Lead 负责的 roadmap R1.38 / index P1-4.5-B1 治理收口（本审计不改治理文件）。
+Status Note: plan 2404 R1.38 可关闭：`transformPermissions` 已为 copy-on-write + 匹配节点内递归，`getPage` 返回新结构且缓存 PageModel 不被改写，嵌套 `xui:permissions` 亦被转换；独立 closure audit 亲读 live 代码与测试并独立复现判别 stash 腿（5/5 FAIL → 5/5 PASS），nop-web 全绿；roadmap R1.38=done、index P1-4.5-B1=fixed 已由 Lead 同步，`check-plan-checklist --strict` 退出码 0，无剩余 plan-owned work。
 Completed: 2026-10-10
 
 Closure Audit Evidence:
@@ -172,9 +172,9 @@ Closure Audit Evidence:
   - E9 无静默跳过 / 无残留 in-scope defect：PASS。无空实现、无吞异常；`rolePermissionMapping==null` 按引用返回缓存 data 的既有行为已诚实登记为 watch-only residual（`Deferred But Adjudicated`）。
   - E10 owner-doc：PASS。`No owner-doc update required`（内部实现修复，无契约面）。
   - E11 治理：`check-doc-links.mjs --strict` 退出码 0（0 errors，6 条为无关历史计划既有 warning）；`./mvnw -q compile -pl nop-frontend-support/nop-web -am` 退出码 0。
-  - E12 `check-plan-checklist.mjs --strict` 退出码：非 0，未勾项仅为 Lead 收口项 roadmap R1.38 / index P1-4.5-B1（L112、L122 及其依赖的 checklist gate L135）；Closure Evidence 本身已满足工具校验。
+  - E12 `check-plan-checklist.mjs --strict` 退出码 0（Lead 同步 roadmap R1.38=done / index P1-4.5-B1=fixed 后重跑：Passed 1, Failed 0；Closure Evidence 满足工具校验）。
 
 Follow-up:
 
-- Lead 收口（非 plan-owned 代码项）：roadmap R1.38 → done、index P1-4.5-B1 → fixed（daily log 已落），勾选 Phase 3 L112/L122 后重跑 `check-plan-checklist --strict` 即应退出码 0。
-- 勘正项（已在本 plan 执行证据段修正，daily log 同源数字待 Lead 一并勘正）：daily log 2026-10-10 R1.38 条目中的 `nop-web-page 34/0/0` 应为 `3/0/0`。
+- 无剩余 plan-owned work（roadmap/index/daily log 收口已由 Lead 完成）。
+- 勘正项（已在本 plan 执行证据段修正；daily log 同源数字待 Lead 一并勘正）：daily log 2026-10-10 R1.38 条目中的 `nop-web-page 34/0/0` 应为 `3/0/0`。
