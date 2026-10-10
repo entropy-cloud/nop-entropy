@@ -1,12 +1,17 @@
 quarkus:
+  banner:
+    enabled: false
   log:
-    level: INFO
+    level: WARN
 
     category:
       "io.nop":
         level: ERROR
 
 nop:
+  banner:
+    enabled: false
+
   application:
     locale: en
 

@@ -67,6 +67,8 @@ import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceConsistencyCapability;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.source.RateLimitedSourceFunction;
+import io.nop.stream.core.source.SourceRateLimiter;
 import io.nop.stream.core.datastream.DataStream;
 import io.nop.stream.core.datastream.DataStreamImpl;
 import io.nop.stream.core.datastream.KeyedStream;
@@ -2027,10 +2029,42 @@ public final class StreamModelDslBuilder {
                             + " (xpl-form sources always provide the default)")
                     .loc(t.getLocation());
         }
+        // U3 (deferred-unlock, plan 2376): declared rate limiting wraps ANY resolved
+        // source (bean or xpl) with the engine-side token bucket — wrapping happens
+        // AFTER the fidelity check so consistency validation sees the delegate.
+        fn = applyRateLimitDeclaration(fn, t);
         String name = t.getName() == null ? "Source:" + t.getId() : t.getName();
         // Item 29: per-transform parallelism consumes the DataStreamSource entry
         // (covers the source vertex; undeclared inherits the stream-level value).
         return applyDeclaredParallelism((DataStream<T>) env.addSource(fn, name), t);
+    }
+
+    /**
+     * U3 (deferred-unlock, plan 2376): the {@code <source>} rate-limit declaration
+     * ({@code rateLimitRowsPerSecond}/{@code rateLimitBytesPerSecond}, xdef default 0
+     * = unlimited) wraps the resolved {@link SourceFunction} with
+     * {@link RateLimitedSourceFunction}. Negative declarations typed-reject; the
+     * all-zero declaration returns the delegate unwrapped (no wrapper overhead).
+     * Package-private static for direct wiring pinning.
+     */
+    static <T> SourceFunction<T> applyRateLimitDeclaration(SourceFunction<T> fn,
+                                                           StreamSourceModel t) {
+        long rows = t.getRateLimitRowsPerSecond();
+        long bytes = t.getRateLimitBytesPerSecond();
+        if (rows < 0 || bytes < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, elementDesc(t))
+                    .param(ARG_ATTR_NAME, rows < 0 ? "rateLimitRowsPerSecond" : "rateLimitBytesPerSecond")
+                    .param(ARG_DETAIL, "rate-limit declaration must not be negative, got "
+                            + "rateLimitRowsPerSecond=" + rows + ", rateLimitBytesPerSecond="
+                            + bytes + " (0 = unlimited; rate limiting IS backpressure — "
+                            + "the source thread blocks on token acquisition)")
+                    .loc(t.getLocation());
+        }
+        if (rows == 0 && bytes == 0) {
+            return fn;
+        }
+        return new RateLimitedSourceFunction<>(fn, new SourceRateLimiter(rows, bytes));
     }
 
     /**
