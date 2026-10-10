@@ -61,7 +61,7 @@
 - 面积未延伸至绘图区左右边缘（类目轴 band 语义差异）
 - 雷达辐条起始方向与 Excel 镜像；横向簇状条形组内系列排列方向与 Excel 相反（Excel 条形图默认系列反序）
 - 雷达无径向刻度数字；网格线密度/深浅；无绘图区外框
-- **已知渲染瑕疵（跟踪项）**：圆环图扇区几何畸形（内缘楔形切口、色楔伸入内圈；饼图无此缺陷，问题特定于 innerRadius 路径几何）——数据形状与比例完全可辨识，不阻断；建议后续排查 zrender 圆环 path 或 innerRadius 传参
+- ~~已知渲染瑕疵（跟踪项）~~ → **已修复（用户复核驱动，2026-10-10）**：圆环图扇区几何畸形根因 = Java2DCanvas.appendEllipticalArc 以 `path.append(segment, connect=false)` 追加第二弧——Arc2D 迭代器以 SEG_MOVETO 另起子路径，closePath 只闭合最后一子路径，多弧扇区的 fill 退化为「外弧+弦」弓形 ∪「内弧+弦」细弓形的并集（单弧饼图不受影响）。修复 = connect=true（OpenJDK ArcIterator 顶点级实证：负号角度翻译本身严格正确，问题仅在子路径拼接）。连带效应：修复同时消除了 Arc2D 负 start 角镜像导致的扇区顺序/位置偏差；折线断言回归钉（canvas2d Java2DCanvasAnnularSectorTest + chart-echarts EchartsBridgeTest.annularSectorViaShimFillsFullBand）
 
 ## 结论
 

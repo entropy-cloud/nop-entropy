@@ -376,12 +376,19 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
         pathSegments++;
         if (sweep == 0)
             return;
-        // Canvas 角度在 y 向下坐标系中顺时针增长；Java2D Arc2D 角度按数学方向取度数，
-        // 取负号把屏幕顺时针映射为 frame 内逆时针（WI0 spike 实证正确）
+        // Canvas 角度在 y 向下坐标系中顺时针增长；Java2D ArcIterator 参数化：
+        // 点 = center + (r·cos θ, r·sin θ)，θ 从 -start 沿 -extent/n 推进（OpenJDK
+        // ArcIterator 源码：angStRad=-toRadians(start)，increment=-toRadians(extent)/n）
+        // —— 负号两侧取反与 canvas 语义严格同构（顶点级实证：外弧 12点→4点、内弧
+        // 4点回扫 12点）。
         Arc2D segment = new Arc2D.Double(cx - rx, cy - ry, rx * 2, ry * 2,
                 -Math.toDegrees(startAngle), -Math.toDegrees(sweep), Arc2D.OPEN);
+        // connect=true：多弧扇区（圆环图 = 外弧 cw + 内弧 ccw）中第二个弧必须并入
+        // 当前子路径；connect=false 会以 SEG_MOVETO 另起子路径，closePath 只闭合
+        // 最后一子路径，fill 退化为两个「弧+弦」弓形的并集（月牙缺陷，WI9 实证）。
+        boolean connect = pathSegments > 0;
         if (rotation == 0) {
-            path.append(segment, false);
+            path.append(segment, connect);
         } else {
             Path2D.Double local = new Path2D.Double(segment);
             AffineTransform rot = new AffineTransform();
@@ -389,7 +396,7 @@ public class Java2DCanvas implements ICanvas2D, ICanvas2DContext {
             rot.rotate(rotation);
             rot.translate(-cx, -cy);
             local.transform(rot);
-            path.append(local, false);
+            path.append(local, connect);
         }
     }
 
