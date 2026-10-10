@@ -10,7 +10,9 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/stream/stream.xdef <p>
- * Source 节点：实现 SourceFunction 接口
+ * Source 节点：实现 SourceFunction 接口。U3/deferred-unlock：rateLimitRowsPerSecond/
+ * rateLimitBytesPerSecond 声明作业级限速（引擎 SourceRateLimiter 令牌桶，与 connector
+ * 参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装）
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
@@ -43,6 +45,20 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
      * 
      */
     private KeyedList<io.nop.stream.flow.model.StreamParamModel> _params = KeyedList.emptyList();
+    
+    /**
+     *  
+     * xml name: rateLimitBytesPerSecond
+     * 
+     */
+    private long _rateLimitBytesPerSecond  = 0;
+    
+    /**
+     *  
+     * xml name: rateLimitRowsPerSecond
+     * 
+     */
+    private long _rateLimitRowsPerSecond  = 0;
     
     /**
      *  
@@ -162,6 +178,44 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
     
     /**
      * 
+     * xml name: rateLimitBytesPerSecond
+     *  
+     */
+    
+    public long getRateLimitBytesPerSecond(){
+      return _rateLimitBytesPerSecond;
+    }
+
+    
+    public void setRateLimitBytesPerSecond(long value){
+        checkAllowChange();
+        
+        this._rateLimitBytesPerSecond = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: rateLimitRowsPerSecond
+     *  
+     */
+    
+    public long getRateLimitRowsPerSecond(){
+      return _rateLimitRowsPerSecond;
+    }
+
+    
+    public void setRateLimitRowsPerSecond(long value){
+        checkAllowChange();
+        
+        this._rateLimitRowsPerSecond = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -219,6 +273,8 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
         out.putNotNull("maxParallelism",this.getMaxParallelism());
         out.putNotNull("outputType",this.getOutputType());
         out.putNotNull("params",this.getParams());
+        out.putNotNull("rateLimitBytesPerSecond",this.getRateLimitBytesPerSecond());
+        out.putNotNull("rateLimitRowsPerSecond",this.getRateLimitRowsPerSecond());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
     }
@@ -236,6 +292,8 @@ public abstract class _StreamSourceModel extends io.nop.stream.flow.model.Stream
         instance.setMaxParallelism(this.getMaxParallelism());
         instance.setOutputType(this.getOutputType());
         instance.setParams(this.getParams());
+        instance.setRateLimitBytesPerSecond(this.getRateLimitBytesPerSecond());
+        instance.setRateLimitRowsPerSecond(this.getRateLimitRowsPerSecond());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
     }
