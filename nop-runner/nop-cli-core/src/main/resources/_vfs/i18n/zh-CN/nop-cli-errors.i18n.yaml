@@ -11,6 +11,16 @@ nop.err.ai.command.not-found: 'Command not found: {command}'
 nop.err.ai.command.tools-node-parse-failed: Failed to parse the call-tools node
 nop.err.ai.core.invalid-argument: 'Invalid argument: {detail}'
 nop.err.ai.core.invalid-state: 'Invalid state: {detail}'
+nop.err.ai.embedding.account-chain-exhausted: LLM {llmName} backup account chain exhausted
+  for embedding call
+nop.err.ai.embedding.empty-response: Embedding response from LLM {llmName} contains
+  no data entries
+nop.err.ai.embedding.no-embed-url: LLM {llmName} has no embedUrl configured for embedding
+  calls
+nop.err.ai.embedding.no-provider: No embedding provider specified and no default configured
+  via nop.ai.embedding.default-llm
+nop.err.ai.embedding.unsupported-api-style: Embedding client supports apiStyle=openai
+  only, LLM {llmName} has apiStyle={apiStyle}
 nop.err.ai.file-content.no-path: The file object has no path attribute specified
 nop.err.ai.file.invalid-edit-type: Invalid edit type
 nop.err.ai.invalid-expr-var-name: 'Invalid variable name in prompt expression: {varName}'
@@ -319,6 +329,7 @@ nop.err.core.filter.op-not-allow-content: 判断节点只允许包含子节点�
 nop.err.core.filter.unknown-op: 不支持的判断条件类型:{op}
 nop.err.core.i18n.duplicated-message-key: i18n消息字符串[{key}]的定义重复:locA={locA},valueA={valueA},locB={locB},valueB={valueB}
 nop.err.core.i18n.invalid-message-value: i18n消息字符串[{key}]的值[{value}]不是字符串类型
+nop.err.core.jpath.no-evaluator: JPath求值功能未启用：classpath中缺少nop-jq模块，未注册JPathEvaluator:{path}
 nop.err.core.json-value-not-node: 值无法转换为XNode类型
 nop.err.core.json.bind-expr-invalid-type: 未识别的绑定表达式类型：{type}
 nop.err.core.json.bind-options-not-string: 类型[{type}]的绑定表达式的参数必须为字符串
@@ -574,11 +585,13 @@ nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
 nop.err.doc.convert-unsupported-text-output: 目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}
 nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
   operator2={operator2}'
+nop.err.eql.collection-operator-not-allowed-here: 集合操作符[{operator}]仅支持在select语句的where子句中使用，当前位置不支持
 nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
   scope2=[{collectionPrefix2}]'
 nop.err.eql.decorator-arg-count-is-not-expected: 注解[{decorator}]的参数必须为{expectedCount}
 nop.err.eql.decorator-arg-type-is-not-expected: 注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}
 nop.err.eql.dialect-not-support-feature: 数据库方言[{dialect}]不支持特性[{feature}]
+nop.err.eql.dml-prop-join-not-supported: update/delete语句中不支持属性路径隐式join，请改用相关子查询或显式关联条件
 nop.err.eql.duplicate-table-alias: 数据源[{table1}]和[{table2}]的别名[{alias}]相同
 nop.err.eql.field-not-in-subquery: 查询语句的返回结果中没有包含字段:{fieldName}
 nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
@@ -590,7 +603,9 @@ nop.err.eql.invalid-collection-operator-path: 集合操作符路径不合法:{pr
 nop.err.eql.invalid-datetime-type: 时间日期类型只能是t,s,或者ts
 nop.err.eql.invalid-hex-literal: 非法的十六进制字面量:{value}
 nop.err.eql.invalid-interval-unit: 时间区间类型只能是MICROSECOND/SECOND/MINUTE/HOUR/DAY/WEEK/MONTH/QUARTER/YEAR
+nop.err.eql.invalid-interval-value: 非法的INTERVAL时长定义:{value}
 nop.err.eql.invalid-sql-type: 未定义的SQL数据类型[{sqlType}]。只允许StdSqlType中定义的常量:{allowedNames}
+nop.err.eql.invalid-window-frame: 非法的窗口frame定义:{value}
 nop.err.eql.join-no-condition: 表关联没有指定连接条件
 nop.err.eql.join-prop-path-is-duplicated: 同一关联属性表达式[{propPath}]不能在join语句中多次定义
 nop.err.eql.join-right-source-must-be-prop-path-of-left-source: 关联关系的右侧如果不是实体对象，则必须是左侧对象的关联属性，例如UserInfo
@@ -622,6 +637,7 @@ nop.err.eql.unknown-field-in-entity: 实体[{entityName}]上没有属性:{propNa
 nop.err.eql.unknown-field-in-selection: 字段选择列表中没有属性:{propName}
 nop.err.eql.unknown-function: 未知的函数[{funcName}]
 nop.err.eql.unknown-query-space: sql语句使用了未知的querySpace[{querySpace}]
+nop.err.eql.unknown-window-name: 未声明的窗口名[{windowName}]
 nop.err.eql.unsupported-eval-expr: 不支持的表达式类型
 nop.err.eql.unsupported-op: 不支持的运算符:{op}
 nop.err.excel.export.invalid-config-name: 未定义的配置项名称:{name}
@@ -676,6 +692,9 @@ nop.err.graphql.action-with-empty-id-arg: 执行[{actionName}]操作要求id参�
 nop.err.graphql.action-with-empty-ids-arg: 执行[{actionName}]操作要求id参数不能为空
 nop.err.graphql.arg-max-must-be-positive: 参数max必须为正整数
 nop.err.graphql.batch-load-method-must-return-list: 批量加载方法[{methodName}]必须返回列表数据类型
+nop.err.graphql.cancel.not-login: 取消在途请求前需要先登录
+nop.err.graphql.cancel.not-owner: 在途请求[{reqId}]不属于当前用户，不允许取消他人的请求
+nop.err.graphql.cancel.req-id-conflict: 请求ID[{reqId}]已被其他用户注册，不允许复用
 nop.err.graphql.class-no-biz-model: 类[{class}]上没有@BizModel注解
 nop.err.graphql.doc-not-operation: graphql请求不是query/mutation/subscription等操作指令
 nop.err.graphql.doc-operation-size-not-one: graphql请求文本中只能包含唯一一个操作语句
@@ -716,6 +735,8 @@ nop.err.graphql.missing-field-arg: 对象[{objName}]的属性[{fieldName}]要求
 nop.err.graphql.multi-biz-file-for-biz-obj: 存在多个biz文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}
 nop.err.graphql.multi-class-has-same-biz-obj-name: 类[{class}]和[{otherClass}]标记了同样的对象名[{bizObjName}]
 nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}
+nop.err.graphql.no-action-auth-checker: 操作权限验证已启用(enable-action-auth={enableActionAuth})但IActionAuthChecker
+  bean缺席，require-auth-checker=true时禁止fail-open跳过权限检查
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
@@ -879,6 +900,7 @@ nop.err.orm.collection-element-not-allow-multiple-owner: 需要先把[{ownerProp
 nop.err.orm.collection-is-readonly: 只读集合不允许被修改:collectionName={collectionName},owner={owner}
 nop.err.orm.collection-not-allow-null: 对象[{entityName}]的集合属性[{propName}]不允许为null
 nop.err.orm.collection-not-in-session: 集合对象不属于当前session:collectionName={entityName},owner={owner}
+nop.err.orm.compute-prop-arg-missing: 实体[{entityName}]的计算属性[{propName}]缺少必需参数[{argName}]
 nop.err.orm.copy-entity-prop-not-collection: 值的类型是[{propClass}]，不能复制到实体的集合属性[{propName}]上
 nop.err.orm.cursor-order-by-not-column: 游标分页的排序字段[{propName}]不是实体[{entityName}]的简单列属性，无法生成游标条件
 nop.err.orm.cursor-sort-value-null: 游标分页的排序字段[{propName}]在游标实体上的值为null，无法比较
@@ -1102,6 +1124,7 @@ nop.err.task.already-failed: 任务[{taskName}]在历史状态中已终态失败
 nop.err.task.already-killed: 任务[{taskName}]在历史状态中已中止，恢复执行时重抛终态异常
 nop.err.task.already-timeout: 任务[{taskName}]在历史状态中已超时，恢复执行时重抛终态异常
 nop.err.task.cancelled: 任务已经被取消
+nop.err.task.crud-write-disabled: 实体[{bizObjName}]为引擎独占数据，禁止CRUD写操作[{action}]
 nop.err.task.duplicate-step-in-graph: 流程图[{graphStepName}]中存在重复的步骤名[{stepName}]
 nop.err.task.graph-no-active-step: 流程图[{stepPath}]已经没有活跃步骤，但是流程执行还没有结束
 nop.err.task.graph-step-contains-loop: 流程图[{graphStepName}]包含循环结构，不满足要求，需要删除以下连接:{loopEdges}
@@ -1113,6 +1136,7 @@ nop.err.task.mandatory-input-not-allow-empty: 步骤[{stepPath}]的输入[{input
 nop.err.task.nop-persist-state-store: 没有定义持久化任务状态存储
 nop.err.task.request-rate-exceed-limit: 访问速率超过限制：TPS={requestPerSecond}
 nop.err.task.static-method-not-found: 类[{className}]中没有找到静态方法[{methodName}({argCount})]
+nop.err.task.step-config-invalid: 步骤[{stepName}]的配置属性[{attrName}]={attrValue}非法：{reason}
 nop.err.task.step-mandatory-output-is-empty: 步骤[{stepPath}]的输出[{output}]不允许为空
 nop.err.task.step-result-is-async: Step result is async and cannot be accessed synchronously
 nop.err.task.step-timeout: 步骤已超时
@@ -1169,6 +1193,8 @@ nop.err.xlang.exec.class-no-static-method: 类[{className}]上没有定义静态
 nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属性表达式:{className}
 nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
+nop.err.xlang.exec.compiler-not-registered: 可执行表达式编译器未注册:META-INF/services 缺失 io.nop.xlang.expr.IExecutableExprCompiler
+  注册或注册被清除
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
 nop.err.xlang.exec.delete-attr-expr-return-null: delete操作的下标表达式不能为空
 nop.err.xlang.exec.delete-not-supported: 对象类型[{className}]不支持delete操作
