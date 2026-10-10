@@ -149,10 +149,10 @@
 | P1-5.1-002 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-2.6-001 同批互引——INDEX:38 + transaction-boundaries.md + nop-task.md×3 + TXN-001；文档修复不受代码修复阻塞） | open |
 | P1-5.1-003 | `5.1-docs-consistency-audit.md` | R1.0（与 P1-3.5-001 同批互引——nop-job.md:246-262 @IocBean 幻影改 beans.xml 注册教程） | open |
 | P1-5.2-001 | `5.2-design-drift-audit.md` | R1.0（maker-checker/03 头部与各节「目标架构（未落地）」标注+删现在时机制陈述；与 P2-2.7-001 同批互引；文档修复不受代码修复阻塞） | open |
-| P1-6.7-001 | `6.7-check-p1-batch-c.md` | R1.0（AnthropicDialect.getRole assistant→"model" 多轮必 400；role 改回+TestAnthropicDialect :394 断言同步+thinking signature 残余〔CL-1〕同批） | open |
-| P1-6.7-002 | `6.7-check-p1-batch-c.md` | R1.0（OpenAi/Gemini/Ollama 工具轮 content=arguments JSON 污染+四方言 reasoning 双发；跳过置入/不双发+roundtrip 等价测试，ResponsesDialect 为范本） | open |
-| P1-6.7-003 | `6.7-check-p1-batch-c.md` | R1.0（LocalToolFileSystem.readLines totalLines 填请求值假总行数；countLines 或置 null） | open |
-| P1-6.7-004 | `6.7-check-p1-batch-c.md` | R1.0（LocalToolFileSystem.grep 文件路径静默空假阴性；文件时 grepInFile 或显式错误+单文件用例） | open |
+| P1-6.7-001 | `6.7-check-p1-batch-c.md` | R1.33/plan 2399（2026-10-10 修复：getRole 移除 assistant→model 映射+TestAnthropicDialect 断言同步+TestDialectBidirectionalConversion sample 更新。原处方：role 映射改回 assistant 并同步 TestAnthropicDialect :394 断言；thinking block 回放 signature 残余 CL-1 同批处置→随修复自然消解） | fixed |
+| P1-6.7-002 | `6.7-check-p1-batch-c.md` | R1.33/plan 2399（2026-10-10 修复：三方言 ChatToolCallMessage content 跳过（tool_calls/functionCall 字段承载）+四方言 ChatReasoningMessage 双发消除（仅 thinking 载荷——ResponsesDialect 范本）+TestDialectBidirectionalConversion 闭环样本同步。原处方：跳过 content 置入/不双发/以回放 roundtrip 后 messages 等价测试锁定） | fixed |
+| P1-6.7-003 | `6.7-check-p1-batch-c.md` | R1.33/plan 2399（2026-10-10 修复：readLines totalLines=countLines(path, MAX_VALUE) 真实总行数（删无用 int[] 数组）+判别测试。原处方：分支用 countLines 取真实总行数，删除无用数组） | fixed |
+| P1-6.7-004 | `6.7-check-p1-batch-c.md` | R1.33/plan 2399（2026-10-10 修复：grep path 为文件时直接 grepInFile+判别测试（双 hello 行匹配）。原处方：path 为文件时直接 grepInFile，或显式错误；补单文件 grep 用例） | fixed |
 | P1-6.7-005 | `6.7-check-p1-batch-c.md` | R1.0（ReActAgentExecutor POST_REASONING BAIL 不移除已持久化 assistant/tool_call 会话复挂；bail 前 remove 或补 error response） | open |
 | P1-6.7-006 | `6.7-check-p1-batch-c.md` | R1.0（AgentCompactionCoordinator maxTokens 误作上下文窗口；独立 maxContextTokens 配置+改写钉死断言） | open |
 | P1-6.7-007 | `6.7-check-p1-batch-c.md` | R1.23/plan 2387（2026-10-10 修复：TimerServiceManager 异常聚合〔首个抛出+全部尝试+addSuppressed〕+ProcessingTimeServiceDriver 二次吞点删除〔审查 F1，checked 包装 ERR_STREAM_OPERATOR_ERROR〕+TestTimerServiceManagerRobustness 重写。原处方：不吞异常——首个异常抛出、其余 addSuppressed；per-service 日志仅诊断） | fixed |

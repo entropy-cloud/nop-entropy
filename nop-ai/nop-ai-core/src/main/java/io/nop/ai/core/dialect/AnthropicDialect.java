@@ -746,8 +746,9 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             return "user";
         }
         String role = getBaseRole(message);
-        // Claude 使用 model 而不是 assistant
-        return "assistant".equals(role) ? "model" : role;
+        // P1-6.7-001（plan 2399）：Anthropic Messages API 请求侧只接受 user/assistant
+        // （model 仅出现在响应侧）——assistant→model 映射使多轮对话第二轮起必 400。
+        return role;
     }
 
     /**

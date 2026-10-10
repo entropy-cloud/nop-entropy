@@ -70,6 +70,12 @@
 | ORM 模型 | `nop-ai/model/nop-ai.orm.xml` |
 | 引擎可靠性/超时 | `AIREL-001`（见 `../04-reference/source-anchors.md`）：`nop-ai-agent` 的 `DefaultAgentEngine` |
 
+## LLM 方言请求序列化契约（P1-6.7-001..002，plan 2399）
+
+- **Anthropic Messages API 请求侧 role**：仅 `user`/`assistant`（`model` 仅出现在响应侧）——`assistant` 原样保留，映射为 `model` 会使多轮对话第二轮起 400。
+- **工具调用轮**：`ChatToolCallMessage` 的调用参数由 `tool_calls`（OpenAI/Ollama）或 `functionCall`（Gemini）字段承载——不把 arguments JSON 重复置入 `content`/text part（请求体污染消除）。
+- **Reasoning 消息**：只发 thinking 载荷（OpenAI/Ollama `thinking` 字段、Gemini `<thinking>` text part、Anthropic thinking block）——不双发裸文本 content。
+
 ## 后台任务状态机与 pgvector 回读（P1-7.1-001/002，plan 2398）
 
 - **后台任务状态机（DefaultBackgroundTaskRegistry）**：`NOTIFICATION_FAILED` 是簿记态（桥通知失败标记），不承载业务语义——Entry 保留 `originalStatus`（首个业务终态 FAILED/TIMEOUT/COMPLETED）；懒重投递成功后桥回调携带原始终态且任务状态**恢复为原始终态**（不会把 FAILED/TIMEOUT 任务误报为 COMPLETED）。

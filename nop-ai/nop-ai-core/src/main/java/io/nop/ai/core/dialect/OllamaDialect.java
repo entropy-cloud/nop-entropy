@@ -380,19 +380,21 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         Map<String, Object> msgMap = new LinkedHashMap<>();
 
         msgMap.put("role", getRole(message));
-        msgMap.put("content", message.getContent());
-
-        if (message instanceof ChatReasoningMessage) {
-            msgMap.put("thinking", message.getContent());
-        }
 
         if (message instanceof ChatToolCallMessage) {
+            // P1-6.7-002（plan 2399）：tool_calls 字段承载调用参数——不把 arguments JSON
+            // 重复置入 content（请求体污染）。
             ChatToolCallMessage toolCallMsg = (ChatToolCallMessage) message;
             ChatToolCall tc = new ChatToolCall();
             tc.setId(toolCallMsg.getCallId());
             tc.setName(toolCallMsg.getName());
             tc.setArguments(toolCallMsg.getArguments());
             msgMap.put("tool_calls", convertToolCalls(java.util.Collections.singletonList(tc)));
+        } else if (message instanceof ChatReasoningMessage) {
+            // P1-6.7-002（plan 2399）：reasoning 只发 thinking 载荷——不再双发裸文本 content。
+            msgMap.put("thinking", message.getContent());
+        } else {
+            msgMap.put("content", message.getContent());
         }
 
         if (message instanceof ChatToolResponseMessage) {

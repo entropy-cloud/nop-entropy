@@ -127,8 +127,9 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
         List<Map<String, Object>> messages = new ArrayList<>();
         messages.add(messageWithTextBlock("user", "Hello!"));
         // plan 2284 请求侧形态修正后 buildBody 的规范形态：相邻同角色轮合并为单一
-        // model 轮（text + tool_use），tool_result 独立 user 轮且仅含 tool_result 块
-        messages.add(messageWithTextAndToolUse("model", "Hi back"));
+        // assistant 轮（text + tool_use），tool_result 独立 user 轮且仅含 tool_result 块
+        // P1-6.7-001（plan 2399）：请求侧 role 保持 assistant（映射为 model 会 400）
+        messages.add(messageWithTextAndToolUse("assistant", "Hi back"));
         messages.add(messageWithToolResult());
         sample.put("messages", messages);
         List<Map<String, Object>> tools = new ArrayList<>();
@@ -791,12 +792,12 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
     private Map<String, Object> contentWithFunctionCallPart() {
         Map<String, Object> content = new LinkedHashMap<>();
         content.put("role", "model");
-        // 含 convertMessage 伪影 text part（ChatToolCallMessage.getContent()=arguments JSON）——
-        // 这是 buildBody 产出的原生形态，E2E 闭环样本必须与之一致
+        // P1-6.7-002（plan 2399）：functionCall 承载调用参数——修复后 buildBody 不再把
+        // arguments JSON 重复置入 text part（请求体污染消除），E2E 闭环样本与之一致
         Map<String, Object> functionCall = new LinkedHashMap<>();
         functionCall.put("name", "get_weather");
         functionCall.put("args", Map.of("location", "beijing"));
-        content.put("parts", List.of(Map.of("text", "{\"location\":\"beijing\"}"), Map.of("functionCall", functionCall)));
+        content.put("parts", List.of(Map.of("functionCall", functionCall)));
         return content;
     }
 
