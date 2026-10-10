@@ -1,0 +1,39 @@
+<!--
+  WI26 E12 (TradingVolume/AccessLog degradation): early-results periodic emission
+  (10s grid, ACCUMULATING full-pane partial results) over out-of-order data. The
+  tail-source adjudication (file tailing OUT per WI0; bounded replay + DRAIN is the
+  recorded workaround) is pinned by the WI19 declaration tests
+  (TestWi19BackfillDeclaration / TestWi19BoundedReplayDeclarationE2E).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e12-early-tail" version="1" parallelism="1">
+
+    <checkpoint enabled="true" interval="100" jobTerminationMode="DRAIN" processingGuarantee="AT_LEAST_ONCE"/>
+
+    <windowingStrategies>
+        <strategy strategyId="early" windowFnId="tumbling-event-time" duration="60m"
+                  earlyResultsPeriod="10s" accumulationMode="ACCUMULATING"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="src" name="VolumeSource" bean="e12VolumeSource" parallelism="1"/>
+        <timestampsAndWatermarks id="wm" watermarkInterval="0">
+            <timestampAssigner>event</timestampAssigner>
+            <watermarkGenerator>output.emitWatermark(
+                new io.nop.stream.core.streamrecord.watermark.Watermark(eventTimestamp))</watermarkGenerator>
+        </timestampsAndWatermarks>
+        <keyBy id="k" name="Global" keyExpr="1"/>
+        <window id="w" strategyRef="early"/>
+        <reduce id="sum" name="VolumeSum" bean="e12SumReduce"/>
+        <sink id="out" name="PartialSink" bean="e12PartialSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="src" to="wm" partition="FORWARD"/>
+        <edge id="e1" from="wm" to="k" partition="FORWARD"/>
+        <edge id="e2" from="k" to="w" partition="FORWARD"/>
+        <edge id="e3" from="w" to="sum" partition="FORWARD"/>
+        <edge id="e4" from="sum" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

@@ -1,0 +1,36 @@
+<!--
+  WI26 E11 (Hazelcast TransactionTracking+Enrichment degradation): a CEP transaction
+  pair with within=30s (TTL-over-timeout degradation) over a keyed transaction
+  stream, resolved through a PatternProcessFunction bean. The lookup enrichment and
+  N-way workaround components are covered by the WI14/WI18 suites (TestDimLookupPipelineE2E
+  / TestWi18BetweenWorkaroundPattern) and the async replacement by WI17
+  (TestWi17SyncReplacementPatternE2E).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e11-enrichment" version="1" parallelism="1">
+
+    <patterns>
+        <pattern name="tx-pair" start="first" within="30s">
+            <single name="first" next="second" followKind="next">
+                <where>return event.amount.doubleValue() &gt; 1000;</where>
+            </single>
+            <single name="second">
+                <where>return event.amount.doubleValue() &gt; 1000;</where>
+            </single>
+        </pattern>
+    </patterns>
+
+    <transforms>
+        <source id="tx" name="TxSource" bean="e11TxSource" parallelism="1"/>
+        <keyBy id="byUser" name="ByUser" keyExpr="event.userId"/>
+        <cep id="pair" name="TxPair" patternRef="tx-pair" bean="e11SelectFn"/>
+        <sink id="out" name="PairSink" bean="e11PairSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="tx" to="byUser" partition="FORWARD"/>
+        <edge id="e1" from="byUser" to="pair" partition="FORWARD"/>
+        <edge id="e2" from="pair" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
