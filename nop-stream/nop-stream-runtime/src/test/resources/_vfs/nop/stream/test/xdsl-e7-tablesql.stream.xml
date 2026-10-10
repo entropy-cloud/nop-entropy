@@ -1,0 +1,38 @@
+<!--
+  WI24 E7 (Flink Table API degradation): tumbling-window aggregate final value +
+  DISTINCT approximate-count semantics (WI9 dedup face) + the excluded-construct
+  pins (retraction/LATERAL/temporal-join stay excluded per vision §四).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e7-tablesql" version="1" parallelism="1">
+
+    <schemas>
+        <schema id="ordersSch">
+            <fields>
+                <field name="user" type="string"/>
+                <field name="amount" type="bigint"/>
+            </fields>
+        </schema>
+    </schemas>
+
+    <windowingStrategies>
+        <strategy strategyId="winAgg" windowFnId="tumbling-event-time" duration="5s"
+                  accumulationMode="DISCARDING"/>
+    </windowingStrategies>
+
+    <transforms>
+        <source id="orders" name="Orders" bean="e7OrderSource" parallelism="1"/>
+        <keyBy id="byUser" name="ByUser" keyExpr="event.user"/>
+        <window id="w" strategyRef="winAgg"/>
+        <aggregate id="sumAmt" name="SumAmount" bean="e7SumFn"/>
+        <sink id="out" name="SumSink" bean="e7SumSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="orders" to="byUser" partition="FORWARD"/>
+        <edge id="e1" from="byUser" to="w" partition="FORWARD"/>
+        <edge id="e2" from="w" to="sumAmt" partition="FORWARD"/>
+        <edge id="e3" from="sumAmt" to="out" partition="FORWARD"/>
+    </edges>
+</stream>

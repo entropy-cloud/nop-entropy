@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <bean id="e8MixedSource" class="io.nop.stream.runtime.acceptance.E8MultiSinkBeans$MixedSource"/>
+    <bean id="e8SinkA" class="io.nop.stream.runtime.acceptance.E8MultiSinkBeans$SinkByKind"/>
+    <bean id="e8SinkB" class="io.nop.stream.runtime.acceptance.E8MultiSinkBeans$SinkByKind"/>
+    <bean id="e8SinkC" class="io.nop.stream.runtime.acceptance.E8MultiSinkBeans$SinkByKind"/>
+    <bean id="e8SinkD" class="io.nop.stream.runtime.acceptance.E8MultiSinkBeans$SinkByKind"/>
+
+</beans>
