@@ -525,6 +525,16 @@ nop-metadata 模块现在包含以下测试基础设施：
 - **MockHttpClient 实例级状态**：mock 客户端使用实例字段而非 static 字段，支持并行执行（`-DforkCount=2`）无串扰。
 - **所有 BizModel 测试使用 `I*Biz` 接口注入**：通过 `@Inject INopMetaEntityBiz` / `INopMetaLineageEdgeBiz` 等接口，搭配 `ServiceContextImpl` 传入上下文。
 
+## 双实现 HTTP 适配层契约测试（plan 2406，P1-4.2-001/002）
+
+同一接口的多个部署形态实现（如 `IHttpServerContext` 的 servlet/vertx 两份适配）应各有一份**直接行为测试**，且用例集按方法逐一镜像：
+
+- **零新增依赖**：被适配的容器类型（`HttpServletRequest/Response`、`RoutingContext`/`HttpServerRequest/Response`、`MultiMap`、`SocketAddress`、websocket `Session`/`EndpointConfig`）都是接口，用 JDK 动态代理 stub 即可（先例 `TestServletHttpServerContextRemoveCookie`）；不要为测试引入 mock 框架。
+- **逐实现期望，而非共享期望**：两实现在 `getHost`/`getRequestUrl`/`getRequestPath`/query 语义/同名头冲突策略/`setResponseHeader(null)`/charset 追加时机/`addCookie` 上**故意分歧**；每份测试必须按各自在场行为断言，并在类 javadoc 与「分歧清单」中显式登记，避免统一的错误期望掩盖真实行为。
+- **全局单例要保存/还原**：适配层可能经 `BeanContainer.instance()` 取 bean（无 provider 时抛 `ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED`）。测试用 `@BeforeEach` 注册 stub、`@AfterEach` 通过反射保存/还原 `BeanContainer._provider`，不要只 `registerInstance(null)`（会留下非空 provider，跨类污染）。
+- **请求链判据（Rule #22）**：至少一条用例走 entry→output 全链（如 proxy 请求 → filter 分支 → 捕获 forward/响应头），而非只测单个方法。
+- **可判别性**：用 mutation 腿证明测试有效——临时改坏被测方法（返回错值/去掉归一化/短路分支）须使对应用例 FAIL，随后核对 `git diff --stat -- '*/src/main/**'` 确认已还原。
+
 ## 相关文档
 
 - `../05-examples/test-examples.java`（示例代码，先看这个）

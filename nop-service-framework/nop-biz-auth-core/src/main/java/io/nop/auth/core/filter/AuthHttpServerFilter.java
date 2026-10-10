@@ -532,7 +532,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         error.setData(Collections.emptyMap());
 
         context.setResponseHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
-        if (context.getRequestUrl().endsWith("/graphql")) {
+        // plan 2406: use the service path (no queryString). The full request URL may carry a
+        // query (?query=... for GET /graphql) which would break the endsWith check.
+        if (context.getRequestPath().endsWith("/graphql")) {
             GraphQLResponseBean response = new GraphQLResponseBean();
             response.setErrorCode(error.getCode());
             response.setMsg(error.getMsg());

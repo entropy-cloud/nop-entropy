@@ -139,8 +139,8 @@
 | P1-check-gw-86 | `3.9-gateway-network-deep-audit.md`（check/gateway-bizauth.md :86 标定确认） | R1.24/plan 2390（2026-10-10 修复：OAuth redirect 分支 sendRedirect 前补 initUserContext+auth cookie 下发（新会话凭证；凭证交付先于 redirect 提交）——判别测试钉定 cookie+redirect 行为。原处方：下发 auth cookie+初始化用户上下文，与 auth-core 登录链同批） | fixed |
 | P1-3.10-001 | `3.10-auth-credential-incremental-audit.md` | R1.0（CRED-01 no-finding 勘误注 + consolidation ledger 补 :172 行——安全台账链虚假保证修正） | fixed（2026-10-09，plan 2373——CRED-01 声明收窄勘误+consolidation ledger 补 F-MCC-1 行〔fixed 状态〕） |
 | P1-check-mcc-172 | `3.10-auth-credential-incremental-audit.md`（check/msg-cluster-cred.md :172 标定维持） | R1.0（主密钥 passphrase 异常 param 泄漏——keyId-only param 改造〔样板 Vault:268-269〕，Default+Vault 双 provider 7 泄漏点；与 P1-check2-nosql-67 codec 修复同批） | fixed（2026-10-09，plan 2373——Default 4 点+Vault 3 点 keyId-only/非材料定位符化+reason 区分；泄漏回归断言 getMessage 不含 passphrase） |
-| P1-4.2-001 | `4.2-test-effectiveness-audit.md` | R1.0（nop-quarkus-web vertx HTTP 上下文适配层零测试补齐；e2e quarkus:dev 粗粒度缓解在案） | open |
-| P1-4.2-002 | `4.2-test-effectiveness-audit.md` | R1.0（nop-spring-web-starter servlet HTTP 上下文适配层零测试补齐——无任何 e2e 缓解，P1 最强） | open |
+| P1-4.2-001 | `4.2-test-effectiveness-audit.md` | R1.40/plan 2406（2026-10-10 补齐：`TestVertxHttpServerContextAdapter` 10 用例〔逐实现期望 + 与 servlet 分歧显式断言〕+ `JsonRpcWebSocketEndpoint` 会话生命周期 2 用例（含 onError）；`nop-quarkus-web` 增 test-scope junit-jupiter；mutation 腿 getQueryParam/setResponseHeader null 各恰 1F） | fixed |
+| P1-4.2-002 | `4.2-test-effectiveness-audit.md` | R1.40/plan 2406（2026-10-10 补齐：`TestServletHttpServerContextAdapter` 10 + `TestZipContentEncodingFilter` 6〔含 Rule #22 请求链端到端〕+ `JsonRpcWebSocketEndpoint` 3；**并修复测试暴露的缺陷**：`getRequestUrl` 补 queryString〔对齐接口 javadoc〕+ `AuthHttpServerFilter:535` 判据改 `getRequestPath`〔带 query 的 graphql 错误体形态回归，同时修复 vertx 潜伏同缺陷〕；mutation 腿 4 条各恰 1F） | fixed |
 | P1-4.2-003 | `4.2-test-effectiveness-audit.md` | R1.0（nop-batch-orm ORM 批处理 upsert 语义测试补齐） | open |
 | P1-4.2-004 | `4.2-test-effectiveness-audit.md` | R1.0（nop-cluster-sentinel 限流 entry/exit 配对与降级映射测试补齐） | open |
 | P1-4.2-005 | `4.2-test-effectiveness-audit.md` | R1.0（nop-fsm 状态机引擎转移语义直接测试补齐） | open |
@@ -293,6 +293,7 @@
 | R1.37 | done | plan 2403（2026-10-10，plan review 两轮 NOT READY→READY）：CliDiffCommand loadModel 参数化 + -N required + 资源 fail-loud + MainCommand 注册（17→18）；CliWatchCommand 无 DI 回退（WatcherHandle/本地所有权）；EntityDefDirTransformer.addCatalog off-by-one + 删 GenOrmHelper.addCatalog 死方法（import 清理）。判别 stash 三腿（3F/2F/1F）；cli-core 42/0/0 + ofbiz-migration 2/0/0 全绿；doc-links 0；hollow ×2 0；独立 closure audit PASS（plan 2403 Closure 段） |
 | R1.38 | done | plan 2404（2026-10-10，plan review 两轮 NOT READY〔B1 嵌套权限〕→READY）：PageProvider.transformPermissions copy-on-write + 嵌套递归（缓存 PageModel 不再被就地改写）；5 单测/集成/并发 + 新 fixture；判别 stash 腿恰 5F；nop-web 96/0/0 + nop-web-page 34/0/0 全绿；doc-links 0；hollow nop-frontend-support 0；独立 closure audit PASS（plan 2404 Closure 段） |
 | R1.39 | done | plan 2405（2026-10-10，plan review 两轮 NOT READY→READY）：mermaid 生成器-文法对齐（探针 0/13→13/13）+ P2-4.4-001/002 合并（isStatic NPE、id() 覆盖、空串 fail-loud）；TestMermaidRoundTrip 19/19 + TestMermaidGenerator 7/7；判别 stash 腿 26 例 17F+5E；nop-mermaid 48/0/0 全绿；doc-links 0；hollow nop-format/nop-mermaid 0；独立 closure audit PASS（plan 2405 Closure 段） |
+| R1.40 | done | plan 2406（2026-10-10，plan review 三轮 NOT READY→READY）：HTTP 适配层测试补齐（spring 22/0/0、quarkus 13/0/0、auth-core 118/0/0）+ 生产修复 getRequestUrl queryString / AuthHttpServerFilter 判据；逐实现期望表 + 分歧清单；mutation 腿 6/6 判别；doc-links 0；hollow 两模块 0；独立 closure audit PASS（plan 2406 Closure 段） |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

@@ -260,6 +260,7 @@ public class TestAuthHttpServerFilterSemantics {
     public void testResponseNotLoginWritesGraphQLShapeOnGraphqlEndpoint() throws Exception {
         AuthHttpServerFilter filter = newFilter();
         FakeHttpContext ctx = context(new HashMap<>());
+        ctx.requestPath = "/graphql";
         ctx.requestUrl = "/graphql";
         ctx.headers.put("accept", "application/json");
 
@@ -273,6 +274,27 @@ public class TestAuthHttpServerFilterSemantics {
                 "graphql endpoint must receive GraphQLResponseBean shape, got: " + ctx.responseBody);
         assertFalse(ctx.responseBody.contains("\"code\":\"" + AuthCoreErrors.ERR_AUTH_NOT_AUTHORIZED.getErrorCode() + "\""),
                 "graphql shape must not use the REST top-level code field");
+    }
+
+    /**
+     * plan 2406：带 query 的 GraphQL 请求仍须返回 GraphQL 形态。判据用 requestPath（不含
+     * queryString）；若退回 getRequestUrl（含 query 的完整 URL），endsWith("/graphql") 为 false
+     * 会误用 REST ApiResponse 形态。
+     */
+    @Test
+    public void testResponseNotLoginWritesGraphQLShapeWhenGraphqlUrlHasQuery() throws Exception {
+        AuthHttpServerFilter filter = newFilter();
+        FakeHttpContext ctx = context(new HashMap<>());
+        ctx.requestPath = "/graphql";
+        ctx.requestUrl = "http://localhost/graphql?query=%7Bme%7D";
+        ctx.headers.put("accept", "application/json");
+
+        filter.responseNotLogin(ctx, false).toCompletableFuture().get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+        assertEquals(401, ctx.responseStatus);
+        assertTrue(ctx.responseBody.contains("\"extensions\"")
+                        && ctx.responseBody.contains("nop-error-code"),
+                "query-bearing graphql request must still receive GraphQLResponseBean shape, got: " + ctx.responseBody);
     }
 
     /**

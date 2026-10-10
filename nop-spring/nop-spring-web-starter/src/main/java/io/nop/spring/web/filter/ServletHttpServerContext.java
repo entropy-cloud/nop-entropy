@@ -79,7 +79,14 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public String getRequestUrl() {
-        return request.getRequestURI();
+        // plan 2406 (P1-4.2-002): IHttpServerContext requires the full request link including the
+        // queryString; getRequestURI() alone dropped it (e.g. AuthHttpServerFilter redirect-back).
+        StringBuilder url = new StringBuilder(request.getRequestURL());
+        String query = request.getQueryString();
+        if (query != null && !query.isEmpty()) {
+            url.append('?').append(query);
+        }
+        return url.toString();
     }
 
     @Override
