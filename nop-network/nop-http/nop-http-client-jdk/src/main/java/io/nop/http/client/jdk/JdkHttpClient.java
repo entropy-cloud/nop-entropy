@@ -7,7 +7,6 @@
  */
 package io.nop.http.client.jdk;
 
-import io.nop.api.core.exceptions.NopConnectException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
 import io.nop.api.core.util.ApiStringHelper;
@@ -21,7 +20,6 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.HttpApiErrors;
-import io.nop.http.api.HttpStatus;
 import io.nop.http.api.client.DownloadOptions;
 import io.nop.http.api.client.HttpClientConfig;
 import io.nop.http.api.client.HttpRequest;
@@ -73,7 +71,6 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.http.api.HttpApiConfigs.CFG_HTTP_LOG_PRINT_ALL_HEADERS;
-import static io.nop.http.api.HttpApiErrors.ERR_HTTP_CONNECT_FAIL;
 
 public class JdkHttpClient implements IHttpClient {
     static final Logger LOG = LoggerFactory.getLogger(JdkHttpClient.class);
@@ -318,10 +315,10 @@ public class JdkHttpClient implements IHttpClient {
     }
 
     IHttpResponse toHttpResponse(HttpResponse<?> response, boolean ignoreBody) {
-        // 某些MAC系统或者JDK版本中连接不上也不会抛出connect异常，而是会返回503错误码
-        if (response.statusCode() == HttpStatus.SC_SERVICE_UNAVAILABLE)
-            throw new NopConnectException(ERR_HTTP_CONNECT_FAIL);
-
+        // P1-check-netrpc-24（plan 2391）：移除「503 → 连接失败」特判。该 workaround
+        //（旧 MAC/JDK 连接失败表现为 503）使所有真实 503 响应被误判为连接失败且丢弃
+        // body——与 Apache/OkHttp（503 按正常响应返回）行为分歧。连接失败在现代 JDK
+        // 上正确抛 ConnectException；503 属服务端响应语义，按正常响应送达调用方。
         DefaultHttpResponse ret = new DefaultHttpResponse();
         ret.setHttpStatus(response.statusCode());
         if (!ignoreBody)

@@ -160,7 +160,7 @@
 | P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.0（CodeIndexService.analyzeChanges `file:` rootPath 建 git 必败且异常折叠为无变更；rootPath 规范化+异常不折叠 truncated=true） | open |
 | P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
 | P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
-| P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.0（ServletHttpServerContext.removeCookie 无 null 守卫登出链 NPE；补 cookies==null 守卫对齐 getCookie 形态；zero-test 证据弱化登记） | open |
+| P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.25/plan 2391（2026-10-10 修复：removeCookie null 守卫——cookies==null 落兜底过期 Cookie 分支对齐 getCookie 形态+零测试模块测试树首建（Proxy stub 3 用例）。原处方：补 cookies==null 守卫对齐 getCookie 形态） | fixed |
 | P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.0（YunpianSmsSender null areaCode 拼接——6.4 #8 同根未修残腿；null 守卫+两腿 parity 回归与 6.4 #8 同批） | open |
 | P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.0（TestCaseJsonDataSplitter 产物目录布局与消费方契约颠倒静默不可加载；输出路径对齐+splitter→loader 往返测试） | open |
 | P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.0（FeishuClient DATA 帧零 ACK 回发+headers 丢失；按协议回 ACK+恢复 headers 透传+wire 契约测试） | open |
@@ -172,7 +172,7 @@
 | P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（LlmSemanticEdgeExtractor 生产不可达——CodeIndexService:285-291 硬编码 3 提取器零接线+roadmap done 误导面+G1-b 静默缺失复合缺陷；补接线或双向状态勘正；**条件判读登记供拆面**） | open |
 | P1-7.4-002 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（SearchQualityEvalTest 评测自证空转——零生产参与 MRR=1.0/F1=1.0 不可作质量证据；接真实链路或显式标注 smoke） | open |
 | P1-7.4-003 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（plan 31 证据链断裂——`[x]` 载体从未运行+@Disabled+closure 自审非独立；状态勘正+indexDirectory 验证补做或条目移除） | open |
-| P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.0（check/net-http-rpc.md#P1-1 JdkHttpClient :320-323 错误路径 still-live——沿 3.9 §2.5#1 行修复方向；3.9 仅登记 gw-49/86 本条独立） | open |
+| P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.25/plan 2391（2026-10-10 修复：删除 toHttpResponse 503→NopConnectException 特判——503 按正常响应送达与 Apache/OkHttp 对齐（三实现行为分歧消除），ERR_HTTP_CONNECT_FAIL 保留于真连接失败路径+判别测试（stub 503 带 body 正常送达）。原处方：沿 3.9 §2.5#1 行修复方向） | fixed |
 | P1-4.4-A5 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.1 A面 条目5 标定维持） | R1.0（check/format-misc.md#P1-5 生成器-文法对齐探针 0/13 still-live；**与 P2-4.4-001/002 合并的是修复立项通道**——P1 登记位单点保留） | open |
 | P1-4.4-S-02 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-1 空 query 构造空 BooleanQuery 恒空；LuceneSearchEngine 先修 5 条 P1〔S-02..06〕再动拆分——4.4 执行顺序约束） | open |
 | P1-4.4-S-03 | `6.8-check-p1-batch-d.md`（承接：4.4 §2.2 标定维持） | R1.0（check/nop-search.md#P1-2 visitNot 纯 MUST_NOT 匹配空集；同 S-02..06 先修批次） | open |
