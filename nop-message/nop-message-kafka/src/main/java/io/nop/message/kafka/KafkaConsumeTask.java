@@ -155,8 +155,10 @@ public class KafkaConsumeTask {
         }
 
         if (mode == null || mode == SeekMode.DEFAULT) {
-            // seekToTime without an explicit mode still applies (INIT semantics).
-            if (options.getSeekToTime() > 0) {
+            // seekToTime without an explicit mode still applies (INIT semantics —
+            // P1-4.4-M03/audit 问题 1：必须受 initSeekDone 守卫，否则每次 rebalance
+            // 都回卷到时间戳重复消费；此前置位但从不读取为实现疏漏）。
+            if (options.getSeekToTime() > 0 && !initSeekDone) {
                 seekByTime(options.getSeekToTime(), partitions);
             }
             initSeekDone = true;
@@ -181,6 +183,8 @@ public class KafkaConsumeTask {
                 break;
         }
 
+        // ALWAYS 语义下 seekToTime 随 ALWAYS 每次执行（显式裁定：ALWAYS 表示每次
+        // assigned 都跳到指定位点；与 INIT 路径的仅首次区分是本方法的核心契约）。
         if (options.getSeekToTime() > 0) {
             seekByTime(options.getSeekToTime(), partitions);
         }

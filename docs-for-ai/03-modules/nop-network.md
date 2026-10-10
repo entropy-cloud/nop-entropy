@@ -61,7 +61,7 @@ options.setMode(UploadMode.BASE64_FORM);
 
 ## Kafka 消费生命周期语义（P1-4.4-M01..M03，plan 2396）
 
-三条契约：①**suspend/resume = 期望态标志**（线程安全 setter）——消费循环每轮对当前分配分区应用 pause/resume，rebalance listener 对新分配分区按标志补应用（调用线程不再直操 consumer，rebalance 后暂停不失效）；②**seek = onPartitionsAssigned 驱动**——ALWAYS_SEEK_TO_END 每次 assigned 执行，INIT_SEEK_TO_BEGIN/END 与 seekToTime 仅首次 assigned 执行，seekToMessage fail-loud；③**cancel 顺序 = 先停线程后 close**——task.stop()（wakeup）→ executor.shutdown/awaitTermination → consumer.close()（消费线程退出后才关闭，杜绝 CME 吞异常导致的 consumer 泄漏）。
+三条契约：①**suspend/resume = 期望态标志**（线程安全 setter）——消费循环每轮对当前分配分区应用 pause/resume，rebalance listener 对新分配分区按标志补应用（调用线程不再直操 consumer，rebalance 后暂停不失效）；②**seek = onPartitionsAssigned 驱动**——ALWAYS_SEEK_TO_END 每次 assigned 执行，INIT_SEEK_TO_BEGIN/END 与 seekToTime 仅首次 assigned 执行（ALWAYS 语义下 seekToTime 随 ALWAYS 每次），seekToMessage fail-loud；③**cancel 顺序 = 先停线程后 close**——task.stop()（wakeup）→ executor.shutdown/awaitTermination → consumer.close()（消费线程退出后才关闭，杜绝 CME 吞异常导致的 consumer 泄漏）。
 
 ## nop-cluster 语义（P1-4.4-C1..C4，plan 2395）
 

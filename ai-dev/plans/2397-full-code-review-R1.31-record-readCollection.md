@@ -1,7 +1,8 @@
 # 2397 full-code-review R1.31 — nop-record readCollection fixed 分支 subStart 错序（P1-7.7-001）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.31；finding `P1-7.7-001`（7.7-pulsar-record-residual-audit.md 派生，plan-203 R 面 still-live），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/7.7-pulsar-record-residual-audit.md`
 > Related: plan-203（e530b5c0cc 引入缺陷本体）；P1-4.4-M03（R1.30 已收口）
 > Owner Doc: `docs-for-ai/02-core-guides/record-mapping.md`
@@ -83,9 +84,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（nop-record 测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-format/nop-record` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-format/nop-record` 全绿（196，执行轮+审计独立复跑双验证）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -97,14 +98,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 修复语义正确、判别证据精确到异常逐字（IllegalArgumentException newPosition>limit 30>20 双重跳过越界——audit 预言实证）、196/196 审计独立复跑全绿、收口四件套齐备（roadmap/index/daily log/owner doc 核对为零）、Follow-up 分类诚实（audit 确认）。该审计出自 2396+2397 合并 audit agent（报告 B）。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session，2396+2397 合并审计）agent_34a41001-ec1b-452e-ac7b-4a3bcabb532f
 - Evidence:
+  - 修复落地 PASS：AbstractModelBasedRecordDeserializer:268-271 subStart 移至 subInput 之前（与 StreamingRecordDeserializer:357-361 形态对齐；Cosmetic：行号快照 3 行内偏差不构成 drift）
+  - 判别测试 PASS：testFixedCollectionWithEagerReaderReadsTrailingField:236-252（断言 items=3 且 c=CCCCC，与 plan 处方逐字一致）；判别腿恰 1 ERROR IllegalArgumentException newPosition>limit (30>20)
+  - nop-record 196/196 审计独立复跑全绿（1 skipped=@Disabled 既有）
+  - 收口完整性：roadmap:162 done；index:193 fixed；daily log 10-10.md:3-11；owner doc 核对为零经 audit 标题面全文核验确认
+  - Anti-Hollow：无新组件、行为由新用例端到端证明（ModelBasedBinaryRecordInput.next() → readCollection → 区域后字段 c 正确读出）；hollow 亲跑 0 findings
+  - Follow-up 诚实性：@Disabled 使用方启用验证（业务决策+路径已守卫）——合法 non-blocking 确认
 
 Follow-up:
 
--
+- @Disabled 唯一使用方启用时的端到端验证（业务决策；新回归测试已守卫路径本身）

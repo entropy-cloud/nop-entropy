@@ -2,7 +2,7 @@
 
 > Plan Status: completed
 > Last Reviewed: 2026-10-10
-> Completed: 2026-10-10
+> Completed: 2026-10-10（首轮 completed 经第二份独立审计 Cannot Close 后修复 seekToTime 守卫并记录双轮证据——见 Closure 段）
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.30；findings `P1-4.4-M01..M03`（check/msg-cluster-cred.md P1-5..P1-7，4.4 §2.3 标定维持），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/4.4-format-search-message-cluster-audit.md` §2.3（M-01..M-03）与 §5 裁决移交④②
 > Related: P2-6.1-001 同点位唯一承载勿双立（R1.0 裁决：本行吸收）；7.7 移交①②（suspended 脱钩并入 M-01、ALWAYS/INIT 区分必须随 M-03）；P3-4.4-008（runTask onException 未防护——P3 台账不混入）
 > Owner Doc: `docs-for-ai/03-modules/nop-network.md`
@@ -122,6 +122,13 @@ Closure Audit Evidence:
   - 收口完整性：roadmap :161 done；index :186-188 fixed；owner doc network.md:62 逐句吻合；doc-links 审计亲跑 EXIT=0
   - Follow-ups 诚实性：P3-4.4-008（从未入 scope，4.4 :527 P3 通道）/Pulsar stub（Out Of Scope 指名 successor）——诚实 non-blocking
   - audit 问题清单处置：问题 1（daily log 缺失）已补写；问题 2（P2-6.1-001 注记）已入 daily log；问题 3（doNothing 未用 import/用例名残留）为 cosmetic 留观；问题 4（38MB 判别日志）卫生注记
+
+**第二份独立审计（agent_34a41001-ec1b-452e-ac7b-4a3bcabb532f，Cannot Close→解除）**：
+- 发现（Must-fix）：seekToTime INIT-once 守卫缺失——DEFAULT/null 模式分支每次 assigned 都重放 seekByTime（initSeekDone 置位但从不读取，实现疏漏），rebalance 后回卷时间戳重复消费；plan 勾选项/owner doc/roadmap 三处声明与 live 不符。判别：_tmp/disc-seektimetone.log 恰 1F。
+- 修复：DEFAULT/null 分支 seekByTime 增 `!initSeekDone` 守卫；ALWAYS+seekToTime 显式裁定每次执行（注释记录）；owner doc :64 措辞修正（「ALWAYS 语义下 seekToTime 随 ALWAYS 每次」）。
+- 补测：seekOnAssignedDefaultModeSeekToTimeOnlyOnce（DEFAULT+seekToTime 二调不重放 offsetsForTimes times(1)）。
+- 回归：nop-message-kafka 35/35 全绿。
+- 该审计同时裁定 plan 2397（R1.31）**Can Close**（独立报告 B），已回填。
 
 Follow-up:
 

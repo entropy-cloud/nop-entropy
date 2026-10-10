@@ -268,4 +268,23 @@ class TestKafkaConsumeTask {
         task.stop();
         org.mockito.Mockito.verify(consumer, org.mockito.Mockito.atLeastOnce()).pause(assignment);
     }
+
+    /** P1-4.4-M03/audit 问题 1（plan 2396）：DEFAULT+seekToTime 仅首次 assigned 执行——二调不重放。 */
+    @Test
+    void seekOnAssignedDefaultModeSeekToTimeOnlyOnce() {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekToTime(1000L);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        Set<TopicPartition> assignment = new LinkedHashSet<>();
+        assignment.add(new TopicPartition("test-topic", 0));
+        when(consumer.assignment()).thenReturn(assignment);
+        when(consumer.offsetsForTimes(any())).thenReturn(java.util.Collections.emptyMap());
+
+        task.seekOnAssigned(assignment);
+        task.seekOnAssigned(assignment);
+        verify(consumer, org.mockito.Mockito.times(1)).offsetsForTimes(any());
+    }
 }

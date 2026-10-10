@@ -166,8 +166,8 @@
 | P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：DATA 帧处理后回 ACK（headers 原样复制+requestId 沿用）+FeishuInboundMessage.headers 透传+wire 契约测试。原处方：DATA 帧处理后按协议回 ACK（需恢复 headers 透传）；补 wire 层契约测试） | fixed |
 | P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：AutoTestCaseData 四处列表访问器 variant 路径统一 `variants/<v>/…`（多数派）——ResultChecker 扫描面与 Saver 写入面对齐+往返判别测试。原处方：统一 variant 路径约定（单一定义点）；补 variant 往返（录制→校验）测试） | fixed |
 | P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：removeInputTable isDefaultVariant 守卫——default 基础表不自动删（INFO 记录）、非 default 删 variant 局部文件（删/写对称）+判别测试（反射调私有方法）。原处方：补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | fixed |
-| P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.0（WI25 DefaultBackgroundTaskRegistry 懒重投递状态机双重破坏——失败/超时任务被永久误报 COMPLETED；重投区分源状态+补 FAILED/TIMEOUT 源用例） | open |
-| P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.0（PgVectorStore.search 列读取缺失——生产后端 hits content 恒 null 静默错误结果；回读 content/metadata+pgvector 路径内容断言测试） | open |
+| P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.32/plan 2398（2026-10-10 修复：Entry.originalStatus（首个终态簿记覆盖前记录）+retryBridgeIfNeeded 桥回调传原始终态/重投成功后恢复原始终态+FAILED/TIMEOUT 源判别用例×2。原处方：重投时区分源状态，状态迁移仅在原态为 NOTIFICATION_FAILED 时执行；补 FAILED/TIMEOUT 源重投用例） | fixed |
+| P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.32/plan 2398（2026-10-10 修复：search 回读 content/metadata 列填充 VectorData（content 键+jsonb 逐键）+readSearchMetadata 抽取单测判别+TestPgVectorIntegration 内容断言增强。原处方：search 回读 content/metadata 列并填充 VectorData；补 pgvector 路径内容断言测试） | fixed |
 | P1-7.2-001 | `7.2-nop-stream-incremental-audit.md` | R1.23/plan 2387（2026-10-10 修复：TestStreamConnectorRegistryDiscovery:132 断言 SINGLE_INSTANCE→PARALLEL（WI4 裁决对齐，禁止回退工厂语义）——runtime 测试门禁恢复绿。原处方：同步测试断言到 PARALLEL+连带核对 connectors 文档一致性断言） | fixed |
 | P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（LlmSemanticEdgeExtractor 生产不可达——CodeIndexService:285-291 硬编码 3 提取器零接线+roadmap done 误导面+G1-b 静默缺失复合缺陷；补接线或双向状态勘正；**条件判读登记供拆面**） | open |
 | P1-7.4-002 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（SearchQualityEvalTest 评测自证空转——零生产参与 MRR=1.0/F1=1.0 不可作质量证据；接真实链路或显式标注 smoke） | open |

@@ -6,6 +6,7 @@ import io.nop.ai.core.api.vectorstore.VectorQueryBean;
 import io.nop.ai.core.api.vectorstore.VectorStoreOptions;
 import io.nop.ai.core.api.vectorstore.VectorStoreResult;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.json.JSON;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +88,8 @@ public class PgVectorStore extends IVectorStore<VectorData> {
             stmt.execute();
         } catch (SQLException e) {
             // extension may be pre-created by the DBA without create privilege
-            LOG.info("nop.ai.rag.pgvector.create-extension-skipped: {}", e.getMessage());
+            // (expected benign case — full trace retained below for diagnosis)
+            LOG.info("nop.ai.rag.pgvector.create-extension-skipped: {}", String.valueOf(e), e);
         }
         // table name cannot be parameterized — validated by the whitelist above
         try (PreparedStatement stmt = connection.prepareStatement(
@@ -198,6 +200,7 @@ public class PgVectorStore extends IVectorStore<VectorData> {
                     while (rs.next()) {
                         VectorData data = new VectorData();
                         data.setVector(fromVectorLiteral(rs.getString(1)));
+                        readSearchMetadata(data, rs);
                         out.add(data);
                     }
                 }
@@ -264,6 +267,36 @@ public class PgVectorStore extends IVectorStore<VectorData> {
             sb.append(vector[i]);
         }
         return sb.append(']').toString();
+    }
+
+    /**
+     * P1-7.1-002（plan 2398）：回读 content 列与 metadata jsonb——此前仅回读
+     * embedding，hits 的 content/docId/chunkIndex 恒 null（下游合成上下文退化
+     * 为 [1] null）。
+     */
+    protected void readSearchMetadata(VectorData data, ResultSet rs) throws SQLException {
+        String content = rs.getString(2);
+        if (content != null)
+            data.addMetadata("content", content);
+        String metadataJson = rs.getString(3);
+        if (metadataJson != null)
+            applyMetadataJson(data, metadataJson);
+    }
+
+    /**
+     * P1-7.1-002（plan 2398）：search 回读时把 metadata jsonb（ingest 写入的
+     * docId/chunkIndex/indexId 等）解析回 VectorData 元数据。
+     */
+    private static void applyMetadataJson(VectorData data, String metadataJson) {
+        Object parsed = JSON.parse(metadataJson);
+        if (parsed instanceof Map) {
+            for (Object o : ((Map<?, ?>) parsed).entrySet()) {
+                Map.Entry<?, ?> entry = (Map.Entry<?, ?>) o;
+                if (entry.getKey() != null)
+                    data.addMetadata(String.valueOf(entry.getKey()),
+                            entry.getValue() == null ? null : String.valueOf(entry.getValue()));
+            }
+        }
     }
 
     private static String toMetadataJson(VectorData data) {
