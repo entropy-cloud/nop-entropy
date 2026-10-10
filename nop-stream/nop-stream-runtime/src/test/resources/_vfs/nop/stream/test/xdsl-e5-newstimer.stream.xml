@@ -1,0 +1,23 @@
+<!--
+  WI23 E5 (Flink CountNewsClicks+CountSales degradation): process bean carries the
+  per-key state + event-time timer (register at first click, flush at publishTime
+  + 1h) + late-click buffer semantics. Watermark-first-class handling is the
+  declared Java-face degradation (matrix adjudication).
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e5-newstimer" version="1" parallelism="1">
+
+    <transforms>
+        <source id="clicks" name="ClickSource" bean="e5ClickSource" parallelism="1"/>
+        <keyBy id="byNews" name="ByNews" keyExpr="event.newsId"/>
+        <process id="newsTimer" name="NewsTimer" bean="e5NewsTimerFn"/>
+        <sink id="out" name="FlushedSink" bean="e5FlushedSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="clicks" to="byNews" partition="FORWARD"/>
+        <edge id="e1" from="byNews" to="newsTimer" partition="FORWARD"/>
+        <edge id="e2" from="newsTimer" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
