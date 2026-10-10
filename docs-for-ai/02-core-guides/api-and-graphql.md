@@ -201,7 +201,7 @@ BizModel 方法的返回值是 `ApiResponse.data`，即**成功场景下的业�
 2. 给已有 API 增加新字段但不改基础代码：Delta + `@BizLoader(autoCreateField = true)`。
 3. 昂贵字段默认配合 `@LazyLoad`，只在 selection 请求时计算。
 
-**批量 loader 的 dispatch 时机**：`@BizLoader` 批量方法（BeanMethodBatchFetcher）注册 loader 后即请求一个异步 dispatch 周期（P1-2.6-004，plan 2376）——即使 operation body 是异步方法且在 body 内部 await loader 结果（此时引擎入口处的 dispatch 已错过），调度周期也会在注册后触发批量执行；同一请求内同 loader 的多次 load 会尽量聚合为一批。手写调用方无需（也不应）自行调用 `dispatchAll` 来驱动批量字段。
+**批量 loader 的 dispatch 时机**：DataLoader 的调度完全由 GraphQLExecutor 统一驱动，fetcher 只负责「注册 + `load()`」（P1-2.6-004）。调度点有三处：①operation 发起时点名（同步路径的游走内联发生在该点之前，等效回合出口）；②每个游走回合出口（operation 结果回调与嵌套异步字段的续行回合，游走完毕、上游等待之前）；③上一批完成后的递归兜底。因此无论 operation body 是同步还是异步、批量字段在第几层，注册都会被最近的回合出口承接；回合内同 loader 的多次 load 聚合为一批。手写调用方无需（也不应）自行调用 `dispatchAll` 来驱动批量字段；在引擎游走之外直接向 context 注册 loader 并 await 其结果的用法不受支持。
 
 ## XMeta 中可配置的 `graphql:*` 属性完整参考
 

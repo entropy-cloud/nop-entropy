@@ -137,14 +137,24 @@ public class GraphQLExecutor implements IGraphQLExecutor {
                 return FutureHelper.toCompletionStage(opResult.getValue());
             }
             env.setRoot(opResult.getValue());
-            return FutureHelper.toCompletionStage(fetchNext(opResult.getValue(), env));
+            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(opResult.getValue(), env));
+            // P1-2.6-004：游走回合出口统一调度。fetchNext回合内注册的批量loader，其load
+            // future的完成被本回合返回的future所依赖（回合future完成 ⇔ load完成），任何
+            // 「完成后再dispatch」的形态都晚于挂死点。回合出口（游走完毕、上游等待之前）
+            // 是executor能统一承接注册的唯一确定性缝隙，错过则load永无调度来源
+            dispatchAll(env.getGraphQLExecutionContext());
+            return ret;
         });
     }
 
     private CompletionStage<Object> thenFetchNext(CompletionStage<?> future, DataFetchingEnvironment env) {
         // thenOnContext确保所有fetcher都在同一个异步context上执行
         return ContextProvider.thenOnContext(future, env.getContext()).thenCompose(v -> {
-            return FutureHelper.toCompletionStage(fetchNext(v, env));
+            CompletionStage<Object> ret = FutureHelper.toCompletionStage(fetchNext(v, env));
+            // P1-2.6-004：游走回合出口统一调度（同invokeOperation处说明）——嵌套异步字段
+            // 与批量loader下游的注册发生在本接缝的游走回合内
+            dispatchAll(env.getGraphQLExecutionContext());
+            return ret;
         });
     }
 
@@ -180,6 +190,13 @@ public class GraphQLExecutor implements IGraphQLExecutor {
         return future;
     }
 
+    /**
+     * P1-2.6-004：DataLoader调度统一由executor驱动，三个调度来源协同：
+     * ①发起时点名（:98/:120/:179，同步路径游走内联先于该点，等效回合出口）；
+     * ②游走回合出口泵（invokeOperation.thenCompose / thenFetchNext——异步续行回合
+     * 的注册只能在此承接）；③本递归兜底（上一批完成后承接batch执行期间的新注册）。
+     * dispatchAll快照并清空注册表，返回null表示注册表空、本轮调度链终止。
+     */
     void dispatchAll(IGraphQLExecutionContext context) {
         CompletionStage<Void> promise = context.dispatchAll();
         if (promise != null) {

@@ -33,14 +33,6 @@ public interface IGraphQLExecutionContext {
     }
 
     /**
-     * P1-2.6-004（plan 2376）：请求一次异步 dispatch 周期。批量 loader 注册后由调度周期
-     * 异步 dispatch——异步 operation body 内注册并 await loader 结果时，executor 的
-     * dispatchAll（:98/:120/:179）已错过，本方法是该场景的活性保障。同一时刻至多一个
-     * 周期在途；注册落在在途窗口内由周期末「注册表非空续调」承接。
-     */
-    void requestDispatch();
-
-    /**
      * 如果启用makerChecker机制，则实际执行的是tryAction，而不是原始的action本身
      */
     boolean isMakerCheckerEnabled();

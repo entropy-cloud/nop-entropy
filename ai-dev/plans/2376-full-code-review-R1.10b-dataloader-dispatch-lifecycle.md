@@ -1,7 +1,7 @@
 # 2376 full-code-review R1.10b — GraphQL DataLoader 调度生命周期重构（P1-2.6-004 承接）
 
-> Plan Status: completed
-> Last Reviewed: 2026-10-10
+> Plan Status: completed（**2026-10-11 机制被返工替代**——requestDispatch 调度周期方案三缺陷实跑证实〔抢跑拆批/OrmBatchLoader 漏网/全局池活性依赖〕，改为 GraphQLExecutor 游走回合出口泵统一驱动；见 `ai-dev/bugs/2026-10/2026-10-11-graphql-dataloader-dispatch-lifecycle.md` 与 `ai-dev/logs/2026/10-11.md`）
+> Last Reviewed: 2026-10-11
 > Source: finding `P1-2.6-004`（`2.6-biz-graphql-deep-audit.md` dim12-07）；从 plan 2375（R1.10）拆出——见「拆分缘由」
 > Related: plan 2375（R1.10，P1-2.6-001 事务修复，已独立交付）
 > Plan Review Log 见文末
@@ -137,6 +137,7 @@ Follow-up:
 
 - 批拆分竞态彻底消除：watch-only residual（见 Deferred But Adjudicated）
 - closed-context 重提交自旋（audit m-4 观察）：context 已关闭且注册表非空时以 worker 池 RejectedExecutionException 自限，修复前同状态为静默挂死，属可接受劣化，watch
+- **2026-10-11 supersede**：本 plan 交付的 requestDispatch 调度周期机制被整体移除，改由 GraphQLExecutor 游走回合出口泵统一驱动（fetcher 回归纯「注册+load」、OrmBatchLoader 自动覆盖、同步路径恢复确定性单批）。缺陷场景描述失真（body-await 形态不可达）与本方案三缺陷的实跑证据见 `ai-dev/bugs/2026-10/2026-10-11-graphql-dataloader-dispatch-lifecycle.md`。上文「已知取舍/关键设计约束/终止不变式」随机制一并失效，仅存档。
 
 ## Plan Review Log
 
