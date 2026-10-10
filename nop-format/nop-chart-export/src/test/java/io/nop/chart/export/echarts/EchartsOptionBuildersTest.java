@@ -293,6 +293,24 @@ class EchartsOptionBuildersTest {
     }
 
     @Test
+    void allHiddenDataLabelsStayHidden() {
+        // WI9 对版事实（plan 2367）：fixture dLbls 旗标全 0 = 标签隐藏，不得无条件显示
+        LineChartOptionBuilder line = new LineChartOptionBuilder();
+        ChartModel model = chart(ChartType.LINE, series("s1"));
+        io.nop.excel.chart.model.ChartDataLabelsModel labels = new io.nop.excel.chart.model.ChartDataLabelsModel();
+        labels.setShowVal(false);
+        labels.setShowCatName(false);
+        labels.setShowSerName(false);
+        model.setDataLabels(labels);
+        Map<String, Object> opt = option(line, model, data("s1", CATS, Arrays.asList(1, 2, 3)));
+        Map<String, Object> s = seriesList(opt).get(0);
+        if (s.containsKey("label")) {
+            assertEquals(false, ((Map<String, Object>) s.get("label")).get("show"),
+                    "all-zero dLbls flags must keep labels hidden");
+        }
+    }
+
+    @Test
     void markersMapToSymbols() {
         LineChartOptionBuilder line = new LineChartOptionBuilder();
         ChartModel model = chart(ChartType.LINE, series("s1"));

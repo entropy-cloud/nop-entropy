@@ -185,6 +185,10 @@ public abstract class AbstractEchartsChartBuilder implements IChartOptionBuilder
         Map<String, Object> map = EchartsStyleMapper.newMap();
         map.put("name", ctx.seriesName(series));
         Map<String, Object> itemStyle = EchartsStyleMapper.itemStyle(series.getShapeStyle());
+        // WI9 对版回灌（plan 2367 D55）：line/scatter 族系列的 marker fill 白色
+        // （fixture spPr solidFill white）在白底上不可见且无信息量——丢弃让 ECharts
+        // 调色板着色（Excel 视觉 = 主题色实心标记/彩色折线）。
+        EchartsStyleMapper.dropWhiteFill(itemStyle);
         if (!itemStyle.isEmpty())
             map.put("itemStyle", itemStyle);
         Map<String, Object> lineStyle = EchartsStyleMapper.lineStyle(series.getLineStyle());

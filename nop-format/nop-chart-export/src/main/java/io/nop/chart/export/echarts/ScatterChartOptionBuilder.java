@@ -42,13 +42,42 @@ public class ScatterChartOptionBuilder extends AbstractEchartsChartBuilder {
             Map<String, Object> map = baseSeries(series, ctx);
             map.put("type", lineMarker ? "line" : "scatter");
             map.put("data", xyData(ctx, series));
-            if (lineMarker && map.get("symbol") == null)
-                map.put("symbol", "circle");
+            if (lineMarker) {
+                map.put("symbol", map.get("symbol") != null ? map.get("symbol") : "circle");
+                applyScatterLineVisibility(map, series);
+            }
             applyDataLabels(map, series, ctx, false);
             seriesOut.add(map);
             ctx.addMainSeriesName(String.valueOf(map.get("name")));
         }
         return seriesOut;
+    }
+
+    /**
+     * WI9 对版回灌（plan 2367）：xlsx 散点系列的连接线样式挂在 series spPr 的 a:ln
+     * 上，解析为 shapeStyle.border——noFill = 无连线（纯点散点图），solidFill =
+     * 连线取其颜色/宽度（散点连线图）。基类 baseSeries 只映射 series.lineStyle，
+     * 不覆盖该语义，故在此补齐。
+     */
+    @SuppressWarnings("unchecked")
+    private void applyScatterLineVisibility(Map<String, Object> map, ChartSeriesModel series) {
+        io.nop.excel.chart.model.ChartShapeStyleModel shapeStyle = series.getShapeStyle();
+        io.nop.excel.chart.model.ChartBorderModel border =
+                shapeStyle != null ? shapeStyle.getBorder() : null;
+        if (border == null)
+            return;
+        Map<String, Object> lineStyle = (Map<String, Object>) map.get("lineStyle");
+        if (Boolean.TRUE.equals(border.getNoFill())) {
+            Map<String, Object> style = lineStyle != null ? lineStyle : EchartsStyleMapper.newMap();
+            style.put("opacity", 0);
+            map.put("lineStyle", style);
+        } else if (lineStyle == null && border.getColor() != null) {
+            Map<String, Object> style = EchartsStyleMapper.newMap();
+            style.put("color", EchartsStyleMapper.normalizeColor(border.getColor()));
+            if (border.getWidth() != null)
+                style.put("width", border.getWidth());
+            map.put("lineStyle", style);
+        }
     }
 
     /**

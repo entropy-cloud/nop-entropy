@@ -266,12 +266,20 @@ public final class EchartsStyleMapper {
                 sb.append(separator(labels));
             sb.append("{d}%");
         }
-        label.put("show", true);
-        label.put("formatter", sb.length() > 0 ? sb.toString() : "{c}");
-
-        String pos = labelPosition(labels.getPosition(), pieFamily);
-        if (pos != null)
-            label.put("position", pos);
+        // WI9 对版事实（plan 2367 D54）：dLbls 存在但 show 旗标全 0 = 模型隐藏标签，
+        // Excel 渲染无标签——可见性必须由旗标 OR 决定，不无条件显示。
+        boolean anyShow = Boolean.TRUE.equals(labels.getShowSerName())
+                || Boolean.TRUE.equals(labels.getShowCatName())
+                || Boolean.TRUE.equals(labels.getShowVal())
+                || Boolean.TRUE.equals(labels.getShowPercent())
+                || Boolean.TRUE.equals(labels.getShowBubbleSize());
+        label.put("show", anyShow);
+        if (anyShow) {
+            label.put("formatter", sb.length() > 0 ? sb.toString() : "{c}");
+            String pos = labelPosition(labels.getPosition(), pieFamily);
+            if (pos != null)
+                label.put("position", pos);
+        }
         return label;
     }
 
@@ -305,6 +313,21 @@ public final class EchartsStyleMapper {
             default:
                 return null;
         }
+    }
+
+    /**
+     * WI9 回灌：白色 fill 在白底渲染中不可见且不携带信息（Excel 系列色由主题
+     * 调色板承担）。移除白色 color，保留其余键；空 map 由调用方丢弃。
+     */
+    public static void dropWhiteFill(Map<String, Object> itemStyle) {
+        Object color = itemStyle.get("color");
+        if (color instanceof String && isWhite((String) color))
+            itemStyle.remove("color");
+    }
+
+    private static boolean isWhite(String color) {
+        String c = color.trim().toLowerCase();
+        return c.equals("#fff") || c.equals("#ffffff") || c.equals("white");
     }
 
     /**

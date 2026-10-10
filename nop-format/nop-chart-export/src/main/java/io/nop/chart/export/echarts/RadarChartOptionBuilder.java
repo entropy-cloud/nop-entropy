@@ -35,15 +35,18 @@ public class RadarChartOptionBuilder extends AbstractEchartsChartBuilder {
                 : ctx.dataSets().get(0).getValues();
         int count = Math.max(categories.size(), firstValues.size());
 
+        // WI9 对版回灌（plan 2367 D55）：全部辐条共享一个全局最大值——Excel 雷达的
+        // 值轴是单一刻度；per-spoke max 会把每个系列在各辐条上都归一化到近满值，
+        // 数据形状退化为正多边形。
+        Double globalMax = globalMax(ctx);
         List<Object> indicators = new ArrayList<>(count);
         for (int i = 0; i < count; i++) {
             Map<String, Object> indicator = EchartsStyleMapper.newMap();
             indicator.put("name", i < categories.size() && categories.get(i) != null
                     ? categories.get(i).toString()
                     : "I" + (i + 1));
-            Double max = indicatorMax(ctx, i);
-            if (max != null)
-                indicator.put("max", max);
+            if (globalMax != null)
+                indicator.put("max", globalMax);
             indicators.add(indicator);
         }
         radar.put("indicator", indicators);
@@ -56,19 +59,20 @@ public class RadarChartOptionBuilder extends AbstractEchartsChartBuilder {
     }
 
     /**
-     * Indicator max = the largest value at this index across all series, with 10%
-     * headroom; zero/empty keeps the ECharts auto maximum.
+     * Global maximum across every series value (10% headroom, rounded up); zero or
+     * empty data keeps the ECharts auto maximum.
      */
-    private Double indicatorMax(EchartsBuildContext ctx, int index) {
+    private Double globalMax(EchartsBuildContext ctx) {
         double max = 0;
         boolean found = false;
         for (io.nop.excel.chart.util.ChartDataSet ds : ctx.dataSets()) {
-            if (ds == null || ds.getValues() == null || index >= ds.getValues().size())
+            if (ds == null || ds.getValues() == null)
                 continue;
-            Number v = ds.getValues().get(index);
-            if (v != null) {
-                max = Math.max(max, Math.abs(v.doubleValue()));
-                found = true;
+            for (Number v : ds.getValues()) {
+                if (v != null) {
+                    max = Math.max(max, Math.abs(v.doubleValue()));
+                    found = true;
+                }
             }
         }
         if (!found || max == 0)

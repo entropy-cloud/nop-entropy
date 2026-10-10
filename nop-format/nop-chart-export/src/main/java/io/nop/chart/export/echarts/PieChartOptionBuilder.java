@@ -58,10 +58,17 @@ public class PieChartOptionBuilder extends AbstractEchartsChartBuilder {
             if (doughnut) {
                 ChartDoughnutConfigModel config = plotArea.getDoughnutConfig();
                 if (config != null) {
-                    if (config.getHoleSize() != null)
-                        inner = config.getHoleSize() + "%";
                     if (config.getOuterRadius() != null)
                         outer = config.getOuterRadius() + "%";
+                    if (config.getHoleSize() != null) {
+                        // WI9 对版回灌（plan 2367）：Excel holeSize 是外径的百分比
+                        //（内径 = 外径 × holeSize/100）。直接把 holeSize 当内径会得到
+                        // inner==outer 的零宽圆环（fixture 实测不可见）。
+                        double outerPct = config.getOuterRadius() != null
+                                ? config.getOuterRadius() : 75.0;
+                        double innerPct = outerPct * config.getHoleSize() / 100.0;
+                        inner = stripTrailingZero(innerPct) + "%";
+                    }
                 }
             } else {
                 ChartPieConfigModel config = plotArea.getPieConfig();
@@ -72,6 +79,10 @@ public class PieChartOptionBuilder extends AbstractEchartsChartBuilder {
         if (doughnut)
             return java.util.Arrays.asList(inner, outer);
         return outer;
+    }
+
+    private String stripTrailingZero(double v) {
+        return v == Math.floor(v) ? String.valueOf((int) v) : String.valueOf(v);
     }
 
     private List<Object> pieData(EchartsBuildContext ctx, ChartSeriesModel series) {

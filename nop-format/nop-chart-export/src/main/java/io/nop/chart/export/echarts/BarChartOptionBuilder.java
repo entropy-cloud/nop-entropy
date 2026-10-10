@@ -60,6 +60,20 @@ public class BarChartOptionBuilder extends AbstractEchartsChartBuilder {
         }
 
         List<Object> seriesOut = new ArrayList<>();
+        // WI9 对版回灌（plan 2367 D55）：Excel gapWidth = gap 占「单条柱宽」的百分比
+        //（柱宽 = band/(n_eff + g)）；ECharts barCategoryGap = gap 占「类目带宽」的
+        // 百分比（柱宽 = band×(1−G)/n_eff）。直接透传会把柱宽算成负数（钳到 1px，
+        // fixture 实测全部柱形发丝化）。换算：G = g/(n_eff + g)。
+        int effSeries = seriesModels == null ? 1 : seriesModels.size();
+        double g = config != null && config.getGapWidth() != null ? config.getGapWidth() / 100.0 : -1;
+        String categoryGap = null;
+        if (g >= 0) {
+            double nEff = stacked ? 1 : Math.max(1, effSeries);
+            double gapFraction = g / (nEff + g);
+            categoryGap = (gapFraction == Math.floor(gapFraction)
+                    ? String.valueOf((int) gapFraction) : String.valueOf(gapFraction)) + "%";
+        }
+
         int index = 0;
         for (ChartSeriesModel series : seriesModels == null ? new ArrayList<ChartSeriesModel>() : seriesModels) {
             requireFamilyMatch(series, ChartType.BAR);
@@ -77,12 +91,10 @@ public class BarChartOptionBuilder extends AbstractEchartsChartBuilder {
 
             if (stacked)
                 map.put("stack", "stack");
-            if (config != null) {
-                if (config.getGapWidth() != null)
-                    map.put("barCategoryGap", config.getGapWidth() + "%");
-                if (config.getOverlap() != null)
-                    map.put("barGap", config.getOverlap() + "%");
-            }
+            if (categoryGap != null)
+                map.put("barCategoryGap", categoryGap);
+            if (config != null && config.getOverlap() != null)
+                map.put("barGap", config.getOverlap() + "%");
             applyDataLabels(map, series, ctx, false);
             applyInvertIfNegative(map, series);
             applyDataPointStyles(map, series);
