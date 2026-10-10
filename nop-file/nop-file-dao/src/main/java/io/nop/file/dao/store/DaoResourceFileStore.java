@@ -361,8 +361,10 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
 
     @Override
     public void detachFile(String fileId, String bizObjName, String objId, String fieldName) {
-        // P1-3.8-002（plan 2386）：与 attachFile 对齐——单 session 内完成校验与删除
-        ormTemplate.runInNewSession(session -> {
+        // P1-3.8-002（plan 2386）：与 attachFile 对齐——单 session 内完成校验与删除。
+        // runInSession：复用外层 session，无外层时退化为 newSession；
+        // 事务归属由 TransactionRegistry 决定，与 session 选择正交。
+        ormTemplate.runInSession(session -> {
             detachFileInSession(fileId, bizObjName, objId, fieldName);
             return null;
         });
@@ -418,9 +420,11 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
 
     @Override
     public void attachFile(String fileId, String bizObjName, String objId, String fieldName) {
-        // P1-3.8-002（plan 2386）：load 与 save 放入同一新 session，避免跨 session 实体状态
-        // 导致 saveOrUpdate 误走 save 分支（save-entity-not-transient）
-        ormTemplate.runInNewSession(session -> {
+        // P1-3.8-002（plan 2386）：load 与 save 放入同一 session 作用域，避免逐 DAO 调用
+        // 各开一次性 session 导致 saveOrUpdate 误走 save 分支（save-entity-not-transient）。
+        // runInSession：复用外层 session，无外层时退化为 newSession；
+        // 事务归属由 TransactionRegistry 决定，与 session 选择正交。
+        ormTemplate.runInSession(session -> {
             IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
             NopFileRecord record = dao.requireEntityById(fileId);
             if (!Objects.equals(record.getBizObjName(), bizObjName))

@@ -129,7 +129,7 @@ public class TestDaoResourceFileStoreAttachPermission extends JunitAutoTestCase 
         NopFileRecord record = newRecord("creator-a");
 
         IUserContext.set(newUser("admin-user", "admin"));
-        // store 内部 dao.load/save 跨 session 的实体状态由外层统一 session 管辖
+        // attach/detach 使用 runInSession：有外层 session 时复用，无外层时退化为 newSession
         ormTemplate.runInSession(session -> {
             fileStore.attachFile(record.getFileId(), "TestObj", "obj-3", "attach");
             return null;
@@ -138,6 +138,29 @@ public class TestDaoResourceFileStoreAttachPermission extends JunitAutoTestCase 
         NopFileRecord reloaded = daoProvider.daoFor(NopFileRecord.class)
                 .requireEntityById(record.getFileId());
         assertEquals("obj-3", reloaded.getBizObjId(), "admin attach must succeed");
+    }
+
+    /**
+     * 作用域判别（作者裁定 2026-10-10）：store 内部 load/save 必须复用外层 session
+     * （runInSession），而不是强制新开 session（runInNewSession）。判别方式：外层 session
+     * 中先加载的实体实例，attach 后必须反映新值（同一持久化上下文共享实例）；
+     * 若 store 强制 newSession，外层实例将保持旧值。
+     */
+    @Test
+    public void testAttachReusesAmbientSession() {
+        NopFileRecord record = newRecord("creator-a");
+        NopFileRecord saved = daoProvider.daoFor(NopFileRecord.class)
+                .requireEntityById(record.getFileId());
+        IUserContext.set(newUser(saved.getCreatedBy(), "user"));
+
+        ormTemplate.runInSession(session -> {
+            NopFileRecord preLoaded = daoProvider.daoFor(NopFileRecord.class)
+                    .getEntityById(record.getFileId());
+            fileStore.attachFile(record.getFileId(), "TestObj", "obj-ambient", "attach");
+            assertEquals("obj-ambient", preLoaded.getBizObjId(),
+                    "store must join the ambient session (runInSession), not force a new one");
+            return null;
+        });
     }
 
     @Test
