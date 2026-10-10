@@ -190,7 +190,7 @@
 | P1-4.5-R2 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.3 标定维持） | R1.0（check/runner-cli.md#P1-2 CDI factory 不可用 @Inject null；同 R1 共享引导批次，pom exclude 在位未修复） | open |
 | P1-4.5-D1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.5 标定维持） | R1.0（check/demo-migration.md#P1-2 addCatalog off-by-one；**修复时同步删 runner 死副本 GenOrmHelper**——4.5 撞车去重表指令） | open |
 | P1-4.5-B1 | `6.8-check-p1-batch-d.md`（承接：4.5 §2.4 抽查表标定维持） | R1.0（check/frontend-benchmark.md#P1-2 PageProvider transformPermissions 竞态原地删键可变共享缓存；copy-on-write 或防御性拷贝；复核勘正补入清单第 18 条） | open |
-| P1-7.7-001 | `7.7-pulsar-record-residual-audit.md` | R1.0（nop-record readCollection fixed 分支 subStart 在 subInput 后捕获——急切 reader 双重跳过；捕获点前移+补「急切+非流式+fixed 集合」回归测试；R1.0 可从严升 P0 依据已附） | open |
+| P1-7.7-001 | `7.7-pulsar-record-residual-audit.md` | R1.31/plan 2397（2026-10-10 修复：subStart 捕获移到 subInput 之前（对齐流式 :358-362 形态）+急切回归测试（IllegalArgumentException newPosition>limit 双重跳过实证）。原处方：subStart 捕获点前移+补「急切+非流式+fixed 集合」回归测试） | fixed |
 
 
 ## P2 裁决台账（例外通道）

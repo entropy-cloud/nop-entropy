@@ -233,4 +233,24 @@ public class TestRecordRegionBoundary extends BaseTestCase {
 
         assertEquals("aaabbb2 cccddd2 eee1 ", sb.toString());
     }
+
+    /**
+     * P1-7.7-001（plan 2397）：急切 reader + 非流式 + fixed 集合——subStart 须在
+     * subInput 之前捕获。修复后区域尾字段（c）正确读取；修复前 subStart 污染导致
+     * remaining 多算 15 字节，readOffset 双重跳过把 c 读丢/越界。
+     */
+    @Test
+    public void testFixedCollectionWithEagerReaderReadsTrailingField() throws Exception {
+        RecordFileMeta fileMeta = meta("/test/record/test-fixed-collection-boundary.record-file.xml");
+        byte[] data = "111112222233333CCCCC".getBytes(StandardCharsets.UTF_8);
+        ModelBasedBinaryRecordInput<Map<String, Object>> input = new ModelBasedBinaryRecordInput<>(
+                new ByteBufferBinaryDataReader(data), fileMeta);
+
+        Map<String, Object> record = input.next();
+        List<?> items = (List<?>) record.get("items");
+        assertEquals(3, items.size(), "fixed collection reads all 3 items from the sub-region");
+        assertEquals("CCCCC", record.get("c"),
+                "trailing field must be read at the correct position after the fixed region (P1-7.7-001)");
+        input.close();
+    }
 }

@@ -259,9 +259,13 @@ public abstract class AbstractModelBasedRecordDeserializer<Input extends IDataRe
         } else if (field.getRepeatKind() == FieldRepeatKind.fixed) {
             int length = getFieldLength(in, field, record, context);
 
+            // P1-7.7-001（plan 2397）：subStart 必须在 subInput 之前捕获——急切 reader
+            // （ByteBuffer/ByteBuf）的 subInput 会推进父位置，后捕获则 subStart 污染为
+            // 区域末尾，remaining 计算出多余残留 → readOffset 再跳一个区域 = 双重跳过。
+            // 对齐 StreamingRecordDeserializer:358-362 的捕获顺序。
+            long subStart = in.pos();
             Input subInput = length > 0 ? (Input) in.subInput(length) : in;
             Input baseIn = in;
-            long subStart = in.pos();
 
             try {
                 do {
