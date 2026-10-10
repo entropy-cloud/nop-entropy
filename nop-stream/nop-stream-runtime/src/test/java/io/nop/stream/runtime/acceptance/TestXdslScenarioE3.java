@@ -70,14 +70,19 @@ public class TestXdslScenarioE3 {
     }
 
     /**
-     * WI22-discovered engine routing defect (live): a 3-out-edge tap vertex loses
-     * untagged main-path records (cat len=2 never reaches shortRoute; SHORT=[3,3]
-     * carries the two matched records instead) — the two-out-edge shape verified by
-     * TestSideOutputPipelineE2E works, the three-edge shape does not. Successor:
-     * engine routing fix, then enable this test for the full partition-ownership
-     * assertion (SHORT=[2,3]).
+     * Full partition ownership on the tap shape. WI22 recorded this as a "live
+     * engine routing defect" (3-out-edge tap vertex swallowing untagged main-path
+     * records, expected SHORT=[2,3]) — that adjudication was a diagnostic misread,
+     * corrected by the U5 investigation (deferred-unlock roadmap): the fixture
+     * words are [cat(3), long(4), dog(3), word(4)], so untagged = cat+dog and
+     * SHORT=[3,3] was the CORRECT observation all along ("cat len=2" in the WI22
+     * evidence is an arithmetic error — "cat".length()==3). The always-true-filter
+     * control run SHORT=[3,4,3,4] is the copy-tap contract itself: the tap adds a
+     * matched side channel and never filters the main path (SideOutputTapOperator),
+     * so all four records legitimately appear upstream of the len<=3 filter.
+     * Engine routing (EdgeWriterOutput per-edge adjudication) is correct; WI8b's
+     * TestSideOutputPipelineE2E main=[1,2,3] pins the same semantics.
      */
-    @org.junit.jupiter.api.Disabled("WI22 live defect: 3-edge tap vertex drops untagged main-path records — engine routing successor, see plan 2368 Deferred")
     @Test
     public void shortWordsStayOnMainPath() throws Exception {
         E3Stores.SHORT.clear();
@@ -90,7 +95,7 @@ public class TestXdslScenarioE3 {
 
         // full partition ownership: short words (len<=3) reach the window vertex,
         // long words (len>3) reach the tap-channel vertex, no cross-contamination
-        assertEquals(List.of(2, 3), E3Stores.SHORT, () -> "short: " + E3Stores.SHORT);
+        assertEquals(List.of(3, 3), E3Stores.SHORT, () -> "short: " + E3Stores.SHORT);
         assertEquals(List.of("long", "word"), E3Stores.LONG, () -> "long: " + E3Stores.LONG);
     }
 }
