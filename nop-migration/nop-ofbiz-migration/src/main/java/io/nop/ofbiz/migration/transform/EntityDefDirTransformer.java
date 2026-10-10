@@ -128,7 +128,7 @@ public class EntityDefDirTransformer {
 
         for (IEntityModel entityModel : tables) {
             ExcelRow row = table.makeRow(index++);
-            row.makeCell(0).setValue(index);
+            row.makeCell(0).setValue(index - 1);
             ((ExcelCell) row.makeCell(0)).setStyleId(styleId0);
 
             ExcelCell cell = (ExcelCell) row.makeCell(1);

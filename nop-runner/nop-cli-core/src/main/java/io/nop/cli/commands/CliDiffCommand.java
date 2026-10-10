@@ -8,6 +8,7 @@
 package io.nop.cli.commands;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.cli.CliErrors;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
@@ -35,7 +36,7 @@ public class CliDiffCommand implements Callable<Integer> {
         description = "Old model path")
     String oldModelPath;
 
-    @CommandLine.Option(names = {"-N", "--new-model"}, description = "New model path")
+    @CommandLine.Option(names = {"-N", "--new-model"}, required = true, description = "New model path")
     String newModelPath;
 
     @CommandLine.Option(names = {"-f", "--format"}, description = "Output format: json|xml|yaml")
@@ -76,7 +77,11 @@ public class CliDiffCommand implements Callable<Integer> {
     }
 
     Object loadModel(String modelPath) {
-        IResource resource = ResourceHelper.resolveRelativePathResource(newModelPath);
+        IResource resource = ResourceHelper.resolveRelativePathResource(modelPath);
+        if (!resource.exists()) {
+            throw new NopException(CliErrors.ERR_CLI_FILE_NOT_EXISTS)
+                    .param(CliErrors.ARG_PATH, resource.getPath());
+        }
         String fileExt = StringHelper.fileExt(modelPath);
         if (JsonTool.isJsonOrYamlFileExt(fileExt))
             return JsonTool.parseBeanFromResource(resource);
