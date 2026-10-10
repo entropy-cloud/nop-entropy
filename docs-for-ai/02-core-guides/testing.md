@@ -14,6 +14,14 @@
 6. `@Inject` 字段不能是 `private`。
 7. 外部依赖优先使用测试专用 bean、stub 或 fake，而不是默认从 HTTP E2E 开始。
 
+## 测试必须触及 SUT（反模式）
+
+历史上 `TestStringHelper` 中混入过两类「名义测试」：断言 JDK 而非 SUT（如断言 `Character.isWhitespace`、`String.split`、`MessageFormat`），以及只有打印零断言。这类测试在 SUT 行为改变时仍绿，属无效覆盖。规则：
+
+1. 每个测试方法的断言目标必须是**本模块 SUT**（如 `StringHelper.*`），不是等价的 JDK API。
+2. 测试方法若无断言（仅打印/仅构造对象），必须补断言或删除；打印不是验证。
+3. 若 SUT 与某 JDK API 存在**刻意的语义分歧**，用 pinning 测试锚定分歧点并在注释写明「勿改为代理 JDK」，例如 `StringHelper.isWhitespace` 采用 XML 6 字符集 `{' ','\n','\r','\t','\f','\b'}`：认 `\b`、拒 VT `\u000B` 与 `\u001C-\u001F`（`Character.isWhitespace` 恰好相反，双向分歧）。锚定见 `TestStringHelper.testWhitespace`（plan 2407 / P2-4.2-009）。
+
 ## 何时选哪种基类
 
 | 场景 | 默认基类 |
