@@ -1,7 +1,8 @@
 # 2396 full-code-review R1.30 — nop-message kafka 消费生命周期修复批（P1-4.4-M01..M03）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.30；findings `P1-4.4-M01..M03`（check/msg-cluster-cred.md P1-5..P1-7，4.4 §2.3 标定维持），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/4.4-format-search-message-cluster-audit.md` §2.3（M-01..M-03）与 §5 裁决移交④②
 > Related: P2-6.1-001 同点位唯一承载勿双立（R1.0 裁决：本行吸收）；7.7 移交①②（suspended 脱钩并入 M-01、ALWAYS/INIT 区分必须随 M-03）；P3-4.4-008（runTask onException 未防护——P3 台账不混入）
 > Owner Doc: `docs-for-ai/03-modules/nop-network.md`
@@ -89,9 +90,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（nop-message-kafka 测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-message/nop-message-kafka` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-message/nop-message-kafka` 全绿（34/34，执行轮+审计独立复跑双验证）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -104,14 +105,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 三修语义完整落地、判别三腿精确（含 M-01 首轮无效腿如实改腿且最终腿为行为载体）、34/34 审计独立复跑全绿、owner doc/index/roadmap 一致。audit「Can Close（有条件）」的两步机械回填（daily log 条目补写 + Closure 段证据落盘）已完成。P2-6.1-001 Pulsar 半边维持 open 待独立 Pulsar plan 承接（daily log 已注记，防「唯一承载+done」记账掩埋 live P2——audit 问题 2 建议）。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_833dfb58-269e-4963-9a6b-1d4d9d65601a
 - Evidence:
+  - M-01 PASS：KafkaConsumeTask:73 desiredPaused/:218 轮首应用/:117-127 pause-resume；Service:296-301 listener 补 pause；Subscription:384-396 零 consumer 直操
+  - M-03 PASS：seekOnAssigned:137 参数驱动；INIT 守卫 :152-155 + 置位 :169/:173；seekToMessage :146-149 fail-loud；start :97-103 无直调
+  - M-02 PASS：cancel :347-371 顺序严格（stop→shutdown→await 5s→close 末位）
+  - 测试证据：审计独立执行 34/34 EXIT=0（Send 5+Helper 9+IoC 5+Subscription 5+ConsumeTask 10）
+  - 判别证据：_tmp/disc-m03.log（恰 INIT-once 1F）/ _tmp/disc-m02.log（恰 closeDuringRun 1F，消息逐字翻转）/ _tmp/disc-m01.log（首轮直调腿 0F 确证无效——如实记录）+ _tmp/disc-m01b.log（改腿后恰 suspendFlagAppliedByConsumeLoop 1F，Wanted pause 未调用+176,257 次 poll 证明循环在跑）
+  - Anti-Hollow：运行时接线（代码追踪+行为级测试双证）；无静默 no-op（既存设计决策均有 javadoc）；hollow 扫描 0 findings
+  - 收口完整性：roadmap :161 done；index :186-188 fixed；owner doc network.md:62 逐句吻合；doc-links 审计亲跑 EXIT=0
+  - Follow-ups 诚实性：P3-4.4-008（从未入 scope，4.4 :527 P3 通道）/Pulsar stub（Out Of Scope 指名 successor）——诚实 non-blocking
+  - audit 问题清单处置：问题 1（daily log 缺失）已补写；问题 2（P2-6.1-001 注记）已入 daily log；问题 3（doNothing 未用 import/用例名残留）为 cosmetic 留观；问题 4（38MB 判别日志）卫生注记
 
 Follow-up:
 
--
+- P3-4.4-008 runTask onException 防护（P3 台账通道）；PulsarConsumeTask.seekToPosition stub（独立 Pulsar plan，M-03 seekOnAssigned 为语义模板）
