@@ -64,6 +64,8 @@ Exit Criteria:
 - Successor Required: `yes`
 - Successor Path: owner 裁定后交付（roadmap Follow-up 登记）。
 
+> **⚠️ 勘误（2026-10-10，U1/deferred-unlock roadmap，owner 指令触发）**：本段「E9 MAX_DELAY DSL 声明面属 Follow-up」为**失实登记**——该声明面当时已由 WI8/plan 2332 交付：`stream.xdef:52` `<strategy maxDelay="long">`、`_WindowingStrategyModel._maxDelay`、`AdvancedTransforms.buildWindow` 消费（:229-232）、`TestWindowMaxDelayWiring`（flow）与 `TestWindowMaxDelay`（runtime）双面钉；本段引用的「TestMaxDelayWiring」实为这两个测试的误记。本 roadmap 的 12 场景矩阵 E9 行「MAX_DELAY≈maxDelay（已接线）」当时即为正确记载。E9 场景的 maxDelay 声明路径补强测试：`TestXdslScenarioE9.maxDelayDeclarationPathIsConsumedOnScenarioWindow`。E10 topN 目录化维持延期。
+
 ## Closure
 
 Status Note: E9/E10 验收套件落地：E9 TDengine 降级形态（sliding 5s/2.5s 重叠面钉——n≥2 多元素 pane 出现证 overlap+非递减 avg 序列+earlyResultsPeriod=10s 声明+回补引用 WI10）+ E10 Hazelcast 降级形态（session gap=3s 合并序列 [0,2000,2500]+[9000]→两 flush maxBy=43/99+maxBy bean 复合聚合）。两轮断言校准（滑窗 pane 独立性/session 点距按 gap 毫秒拉开）记录 daily log。同会话全项核验（验收套件型 plan：零 main 改动+纯新增 fixture/测试/文档，clean 复跑 2/0）。

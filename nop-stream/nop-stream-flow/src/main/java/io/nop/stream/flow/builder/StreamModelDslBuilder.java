@@ -1954,7 +1954,13 @@ public final class StreamModelDslBuilder {
         return columns::get;
     }
 
-    Object registeredStream(String transformId) {
+    /**
+     * Inspection accessor: the DataStream produced for the transform with the given id
+     * (null when the transform produced no registered stream). Public so acceptance
+     * tests in other modules (e.g. runtime scenario suites) can assert declaration
+     * consumption without reaching into builder internals.
+     */
+    public Object registeredStream(String transformId) {
         return streamRegistry.get(transformId);
     }
 

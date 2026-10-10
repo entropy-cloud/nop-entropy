@@ -82,8 +82,20 @@ public final class E9TdengineBeans {
         }
     }
 
+    /** U1: separate store so the maxDelay-declaration chain never perturbs EMISSIONS. */
+    public static class MaxDelaySink implements SinkFunction<String> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public void consume(String value) {
+            E9Stores.MAX_DELAY_EMISSIONS.add(value);
+        }
+    }
+
     static final class E9Stores {
         static final List<String> EMISSIONS =
+                java.util.Collections.synchronizedList(new ArrayList<>());
+        static final List<String> MAX_DELAY_EMISSIONS =
                 java.util.Collections.synchronizedList(new ArrayList<>());
         static final Map<String, Integer> SEEN =
                 new java.util.concurrent.ConcurrentHashMap<>();

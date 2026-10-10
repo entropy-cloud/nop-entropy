@@ -3,6 +3,11 @@
   slide → overlapping emissions) + earlyResults (10s periodic early firing on the
   event-time axis). The backfill (RECALCULATE/FILL_HISTORY) reference points to
   multi-engine WI10's TestRecalculateBackfillE2E.
+  U1 (deferred-unlock): a second chain declares the SAME sliding shape via the
+  `<strategy maxDelay>` attribute — the DSL declaration face WI25's Deferred section
+  wrongly recorded as missing (it was delivered by WI8/plan 2332). The declaration
+  consumption is asserted at the builder level; the operator-level fallback behavior
+  is pinned by TestWindowMaxDelay (runtime) and TestWindowMaxDelayWiring (flow).
 -->
 <stream x:schema="/nop/schema/stream/stream.xdef"
         xmlns:x="/nop/schema/xdsl.xdef"
@@ -13,6 +18,10 @@
                   duration="5s" slide="2500ms"
                   earlyResultsPeriod="10s"
                   accumulationMode="ACCUMULATING"/>
+        <strategy strategyId="slidingMaxDelay" windowFnId="sliding-event-time"
+                  duration="5s" slide="2500ms"
+                  maxDelay="500"
+                  accumulationMode="ACCUMULATING"/>
     </windowingStrategies>
 
     <transforms>
@@ -21,6 +30,12 @@
         <window id="w" strategyRef="slidingEarly"/>
         <aggregate id="avgCurrent" name="AvgCurrent" bean="e9AvgFn"/>
         <sink id="out" name="AvgSink" bean="e9AvgSink" parallelism="1"/>
+
+        <source id="currentMd" name="CurrentMaxDelaySource" bean="e9MaxDelaySource" parallelism="1"/>
+        <keyBy id="byMeterMd" name="ByMeterMaxDelay" keyExpr="event.meter"/>
+        <window id="wMaxDelay" name="WindowMaxDelay" strategyRef="slidingMaxDelay"/>
+        <aggregate id="avgCurrentMd" name="AvgCurrentMaxDelay" bean="e9AvgFn"/>
+        <sink id="outMd" name="MaxDelaySink" bean="e9MaxDelaySink" parallelism="1"/>
     </transforms>
 
     <edges>
@@ -28,5 +43,10 @@
         <edge id="e1" from="byMeter" to="w" partition="FORWARD"/>
         <edge id="e2" from="w" to="avgCurrent" partition="FORWARD"/>
         <edge id="e3" from="avgCurrent" to="out" partition="FORWARD"/>
+
+        <edge id="m0" from="currentMd" to="byMeterMd" partition="FORWARD"/>
+        <edge id="m1" from="byMeterMd" to="wMaxDelay" partition="FORWARD"/>
+        <edge id="m2" from="wMaxDelay" to="avgCurrentMd" partition="FORWARD"/>
+        <edge id="m3" from="avgCurrentMd" to="outMd" partition="FORWARD"/>
     </edges>
 </stream>
