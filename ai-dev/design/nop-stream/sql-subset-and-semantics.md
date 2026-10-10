@@ -157,3 +157,16 @@ WI0b 落档的清单草案经 WI16 对照 live 实现定稿。每项附 fail-fas
 
 - 六条裁定的 roadmap 行由承载 plan Phase 2 同步「已裁定 owner + 日期」；本档为落档权威文本。
 - 本档不裁 D7/D8/D13（归 sql-compiler-contract.md，WI0c）、D14（已裁定，归 sql-landing-decision.md，WI8a）、D9-D12（归 window-failfast-decisions.md，WI0d）。
+
+## 8. transform 级 SQL 声明面（deferred-unlock U2/plan 2375，2026-10-10）
+
+owner 指令解除 WI16 transform 形态延期（vision §六 2026-10-10 条目）。`<sqlTransform>` 顶点：EQL 子集/emit 两档/lateness 注解/错误码表（4d）与顶层 `<sql>` **完全共用**——`compileTransform` 与 `compileSql` 走同一 parse→分派管线，差异仅在产物形态：
+
+| 维度 | 顶层 `<sql>` | transform 级 `<sqlTransform>` |
+|---|---|---|
+| 产物 | 完整模型（含 sink，替换全部内容） | 完整 `<stream>` 形态片段（无 sink；FROM source id=保留常量 `sqlTransformEntry`，builder 剥离拼接） |
+| 位置约束 | 模型唯一内容 | 图中顶点：入度恰一（FORWARD、无 outputTag）、≥1 出边、fan-out 合法 |
+| 多 source 形态（join/UNION） | 支持（编译入图） | fail-fast（片段单入口） |
+| id 语义 | 编译器自命名（前缀 `s`） | builder 以顶点 id 前缀改名去重（transforms/edges/registries+引用同步） |
+
+锚点：`StreamSqlCompiler.compileTransform`、`StreamModelDslBuilder.expandSqlTransforms`；测试 `TestSqlTransformFragmentCompile`/`TestSqlTransformExpansion`/`TestSqlTransformE2E`。

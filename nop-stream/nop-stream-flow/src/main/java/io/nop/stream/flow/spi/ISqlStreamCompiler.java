@@ -29,6 +29,37 @@ import java.util.Map;
 public interface ISqlStreamCompiler {
 
     /**
+     * U2 (deferred-unlock): reserved id of the FROM-table source vertex in a
+     * {@link #compileTransform} product. The builder strips this vertex and splices
+     * the fragment's first operator onto the declaring {@code <sqlTransform>} vertex's
+     * upstream; a product without exactly one source vertex carrying this id is
+     * rejected at build time.
+     */
+    String TRANSFORM_ENTRY_ID = "sqlTransformEntry";
+
+    /**
+     * U2: compiles one SQL query into a TRANSFORM FRAGMENT for the
+     * {@code <sqlTransform>} vertex. The product is a complete, xdef-valid
+     * {@code <stream>} model XML (same shape as {@link #compileSql}) WITHOUT a sink:
+     * the FROM-table source vertex keeps the reserved id {@link #TRANSFORM_ENTRY_ID}
+     * and is stripped by the builder, whose upstream edge replaces it. Join queries
+     * and UNION (two or more sources) fail fast — multi-entry splicing is not
+     * supported. Emit/lateness semantics are identical to {@link #compileSql}.
+     *
+     * @param sql      the SQL text declared by the {@code <sqlTransform><source>} body
+     * @param schema   the SQL-side self-carried schema (column name → D7 managed type
+     *                 name); never null, may be empty
+     * @param emit     the declared {@code emit} attribute (UPDATE only legal on the
+     *                 windowed-aggregate path, same rule as {@link #compileSql})
+     * @param fieldLateness the declared {@code <field lateness>} values in millis;
+     *                      only the TUMBLE time column's value is honored
+     * @return the fragment model XML text
+     * @throws io.nop.stream.core.exceptions.StreamException on any compile failure
+     */
+    String compileTransform(String sql, Map<String, String> schema, StreamEmitMode emit,
+                            Map<String, Long> fieldLateness);
+
+    /**
      * Compiles one SQL query into a complete stream-model XML string.
      *
      * @param sql      the SQL text declared by the {@code <sql><source>} body

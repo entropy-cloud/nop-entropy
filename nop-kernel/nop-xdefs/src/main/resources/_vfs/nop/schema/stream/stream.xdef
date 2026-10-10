@@ -119,7 +119,7 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
             <!-- WI25/Q1 裁定：lateness 为时间列注解（Feldera LATENESS 形态子集化）——毫秒，仅 TUMBLE
              时间列生效（映射产物 strategy allowedLateness，D9 管线零运行时改动）；非时间列声明
              与无 strategy 路径声明构建期 fail-fast -->
-    <field name="!string" type="!string" lateness="long" xdef:name="StreamSqlFieldModel"/>
+    <field xdef:ref="StreamSqlFieldModel"/>
         </schemas>
         <source>string</source>
     </sql>
@@ -152,6 +152,10 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
                  id="!string" name="string" bean="bean-name" parallelism="int">
         <description>string</description>
     </xdef:define>
+
+    <!-- U2：SQL 面自带 schema 列声明（<sql>/<sqlTransform> 共用 define——
+         原 <sql> 内联定义提级，类名不变） -->
+    <xdef:define xdef:name="StreamSqlFieldModel" name="!string" type="!string" lateness="long"/>
 
     <transforms xdef:key-attr="id" xdef:body-type="list" xdef:bean-sub-type-prop="type"
                 xdef:bean-child-name="transform" xdef:bean-body-type="List&lt;io.nop.stream.flow.model.StreamTransformModel>">
@@ -251,6 +255,21 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
                 <param xdef:ref="StreamParamModel"/>
             </params>
         </custom>
+
+        <!-- U2/deferred-unlock（owner 2026-10-10 解除 WI16 transform 形态延期）：transform 级
+             SQL 声明面。<sqlTransform> 是图中单入（入度恰一，入边须 FORWARD 无 outputTag）
+             多出（fan-out 合法）的 SQL 变换顶点：EQL 编译产物为完整 <stream> 模型形态的
+             片段（FROM 表 source 顶点 id 恒为保留常量 sqlTransformEntry、无 sink），构建期由
+             StreamModelDslBuilder 剥离 entry、改名去重后拼接进图。与顶层 <sql> 的边界：
+             顶层是 model generator（必须为模型唯一内容、产物含 sink 并替换全部内容），
+             本顶点只承载一个变换子链，可与既有 transforms/registries 共存。emit 语义同
+             顶层（UPDATE 仅窗口聚合查询合法）；join/UNION 多 source 形态不支持（fail-fast）。 -->
+        <sqlTransform emit="!enum:io.nop.stream.core.windowing.StreamEmitMode=CLOSE" xdef:name="StreamSqlTransformModel" xdef:ref="StreamTransformModel">
+            <schemas xdef:key-attr="name" xdef:body-type="list">
+                <field xdef:ref="StreamSqlFieldModel"/>
+            </schemas>
+            <source>string</source>
+        </sqlTransform>
 
     </transforms>
 

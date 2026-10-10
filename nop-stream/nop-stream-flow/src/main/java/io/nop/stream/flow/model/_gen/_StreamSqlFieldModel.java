@@ -10,9 +10,8 @@ import io.nop.commons.util.ClassHelper;
 // tell cpd to start ignoring code - CPD-OFF
 /**
  * generate from /nop/schema/stream/stream.xdef <p>
- * WI25/Q1 裁定：lateness 为时间列注解（Feldera LATENESS 形态子集化）——毫秒，仅 TUMBLE
- * 时间列生效（映射产物 strategy allowedLateness，D9 管线零运行时改动）；非时间列声明
- * 与无 strategy 路径声明构建期 fail-fast
+ * U2：SQL 面自带 schema 列声明（<sql>/<sqlTransform> 共用 define——
+ * 原 <sql> 内联定义提级，类名不变）
  */
 @SuppressWarnings({"PMD.UselessOverridingMethod","PMD.UnusedLocalVariable",
     "PMD.UnnecessaryFullyQualifiedName","PMD.EmptyControlStatement","java:S116","java:S101","java:S1128","java:S1161"})
