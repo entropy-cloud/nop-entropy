@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc">
+
+    <bean id="e12VolumeSource" class="io.nop.stream.runtime.acceptance.E12EarlyTailBeans$VolumeSource"/>
+    <bean id="e12SumReduce" class="io.nop.stream.runtime.acceptance.E12EarlyTailBeans$SumReduce"/>
+    <bean id="e12PartialSink" class="io.nop.stream.runtime.acceptance.E12EarlyTailBeans$PartialSink"/>
+
+</beans>
