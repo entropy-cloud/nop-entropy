@@ -162,10 +162,10 @@
 | P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
 | P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.25/plan 2391（2026-10-10 修复：removeCookie null 守卫——cookies==null 落兜底过期 Cookie 分支对齐 getCookie 形态+零测试模块测试树首建（Proxy stub 3 用例）。原处方：补 cookies==null 守卫对齐 getCookie 形态） | fixed |
 | P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：resolveMobile——null/empty→裸 mobile（国内约定）、非空 strip+ 拼接（Tencent parity）+parity 判别测试 2 用例。原处方：areaCode null/空守卫+与 6.4 #8 修复同批回归（两腿 parity 测试）） | fixed |
-| P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.0（TestCaseJsonDataSplitter 产物目录布局与消费方契约颠倒静默不可加载；输出路径对齐+splitter→loader 往返测试） | open |
+| P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：splitter 四处表落点改 `<dir>/input|output/tables/` 消费方契约+splitter→AutoTestCaseData 往返测试。原处方：splitter 输出路径改对齐消费方契约（或反向统一），补 splitter→loader 往返测试） | fixed |
 | P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：DATA 帧处理后回 ACK（headers 原样复制+requestId 沿用）+FeishuInboundMessage.headers 透传+wire 契约测试。原处方：DATA 帧处理后按协议回 ACK（需恢复 headers 透传）；补 wire 层契约测试） | fixed |
-| P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseData variant 双约定——输出表永不校验框架假绿；统一 variant 路径约定+录制→校验往返测试） | open |
-| P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseDataSaver.removeInputTable 无 variant 守卫静默删除 default 基础表；补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | open |
+| P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：AutoTestCaseData 四处列表访问器 variant 路径统一 `variants/<v>/…`（多数派）——ResultChecker 扫描面与 Saver 写入面对齐+往返判别测试。原处方：统一 variant 路径约定（单一定义点）；补 variant 往返（录制→校验）测试） | fixed |
+| P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：removeInputTable isDefaultVariant 守卫——default 基础表不自动删（INFO 记录）、非 default 删 variant 局部文件（删/写对称）+判别测试（反射调私有方法）。原处方：补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | fixed |
 | P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.0（WI25 DefaultBackgroundTaskRegistry 懒重投递状态机双重破坏——失败/超时任务被永久误报 COMPLETED；重投区分源状态+补 FAILED/TIMEOUT 源用例） | open |
 | P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.0（PgVectorStore.search 列读取缺失——生产后端 hits content 恒 null 静默错误结果；回读 content/metadata+pgvector 路径内容断言测试） | open |
 | P1-7.2-001 | `7.2-nop-stream-incremental-audit.md` | R1.23/plan 2387（2026-10-10 修复：TestStreamConnectorRegistryDiscovery:132 断言 SINGLE_INSTANCE→PARALLEL（WI4 裁决对齐，禁止回退工厂语义）——runtime 测试门禁恢复绿。原处方：同步测试断言到 PARALLEL+连带核对 connectors 文档一致性断言） | fixed |

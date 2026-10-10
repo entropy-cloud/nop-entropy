@@ -533,3 +533,7 @@ nop-metadata 模块现在包含以下测试基础设施：
 - `../03-runbooks/write-integration-test-with-noptestconfig.md`
 - `../03-runbooks/add-test-mock-bean.md`
 - `e2e-testing.md`（E2E 测试模式）
+
+## 测试数据目录契约（P1-6.8-003/005/006，plan 2393）
+
+录制/回放的测试数据目录遵循单一定义：表产物落 `<caseDir>/input|output/tables/<table>.csv`（TestCaseJsonDataSplitter 产物与 AutoTestCaseData 消费契约对齐）；variant（@EnableVariants）路径统一为 `variants/<variant>/…`（列表访问器与单文件访问器、Saver 写入面、ResultChecker 校验面一致）；`input/tables/` 下的 default 基础表是手写维护资产，录制流程不会自动删除（仅删除 variant 局部表文件）。

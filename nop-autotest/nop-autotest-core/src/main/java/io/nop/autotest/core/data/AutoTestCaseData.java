@@ -242,7 +242,7 @@ public class AutoTestCaseData {
             return getInputTableFiles();
 
         List<File> files = getInputTableFiles();
-        List<File> varFiles = getFiles("input/" + variant + "/tables", ".csv");
+        List<File> varFiles = getFiles("variants/" + variant + "/input/tables", ".csv");
         return mergeFiles(files, varFiles);
     }
 
@@ -251,7 +251,10 @@ public class AutoTestCaseData {
             return getOutputTableFiles();
 
         List<File> files = getOutputTableFiles();
-        List<File> varFiles = getFiles("input/" + variant + "/tables", ".csv");
+        // P1-6.8-005（plan 2393）：variant 路径统一到 variants/<v>/…（与单文件访问器、
+        // Saver 写入面及 readInputTableData 一致）——此前 input/<v>/tables 使变体输出表
+        // 永不进入 ResultChecker 校验面
+        List<File> varFiles = getFiles("variants/" + variant + "/output/tables", ".csv");
         return mergeFiles(files, varFiles);
     }
 
@@ -268,7 +271,7 @@ public class AutoTestCaseData {
             return getInputSqlFiles();
 
         List<File> files = getInputSqlFiles();
-        List<File> varFiles = getFiles("input/" + variant, ".sql");
+        List<File> varFiles = getFiles("variants/" + variant + "/input", ".sql");
         return mergeFiles(files, varFiles);
     }
 
@@ -277,7 +280,7 @@ public class AutoTestCaseData {
             return getInitSqlFiles();
 
         List<File> files = getInitSqlFiles();
-        List<File> varFiles = getFiles("init/" + variant, ".sql");
+        List<File> varFiles = getFiles("variants/" + variant + "/init", ".sql");
         return mergeFiles(files, varFiles);
     }
 

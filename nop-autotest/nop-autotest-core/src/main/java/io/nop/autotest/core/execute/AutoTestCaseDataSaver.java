@@ -90,9 +90,16 @@ public class AutoTestCaseDataSaver {
     }
 
     private void removeInputTable(IEntityModel entityModel) {
-        File file = caseData.getInputTableFile(entityModel.getTableName(), null);
-        if(file.delete()){
-            LOG.debug("nop.autotest.remove-input-file:{}",file);
+        // P1-6.8-006（plan 2393）：default 基础表是手写维护的测试资产，录制流程不得
+        // 静默删除（与 saveInputTable 的 isDefaultVariant 守卫对称——删/写对称）；
+        // 非 default 时仅删除 variant 局部表文件。
+        if (AutoTestDataHelper.isDefaultVariant(variant)) {
+            LOG.info("nop.autotest.skip-remove-default-input-table:table={}", entityModel.getTableName());
+            return;
+        }
+        File file = caseData.getInputTableFile(entityModel.getTableName(), variant);
+        if (file.delete()) {
+            LOG.debug("nop.autotest.remove-input-file:{}", file);
         }
     }
 
