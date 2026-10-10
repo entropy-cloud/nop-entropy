@@ -48,50 +48,50 @@
 
 ### Phase 1 - 四修 + 判别测试
 
-Status: planned
+Status: completed
 Targets: 上列文件
 
 - Item Types: `Fix`
 
-- [ ] C1：AbstractLeaderElector:72 `@cfg;` → `@cfg:`
-- [ ] C2：LeastActiveLoadBalance:64 `int i = (startIndex + currentCursor) % n;`（items.get(i) 直接用；javadoc 记录回绕语义）
-- [ ] C3：runAsync finally 改无条件 `ContextUtil.exit()`（保留 serviceEntry 的 !proceedCalled exit 分支；javadoc 记录 entry/context 配对差异）
-- [ ] C4：copyFromInstance `pos > 0` 守卫（对齐 getNormalizedServiceName；无 "@@" 时 groupName 保持 null、serviceName 原样）
-- [ ] 测试：①C1 装配冒烟——elector 测试包新增（临时 beans 定义 elector 子类 bean 或直接容器加载验证注解解析通过；实施时核 elector 测试现有形态）；②C2——TestLoadBalance 补 testLeastActiveWrapsWithoutOverflow：n=3 实例、差异化 active（adapter stub）+回绕起步 → 不抛 IOOBE 且选中活跃最小者；③C3——sentinel 测试树首建：runAsync 正常完成后 `ContextUtil.getCurEntry()==null`（修复前泄漏非 null）+BlockException 路径 exit 配对；④C4——nacos 测试树首建：copyFromInstance 无 "@@" serviceName 不抛且原样；带 "@@" 正常拆组
-- [ ] **判别验证（四腿 stash）**：各修 stash 后对应测试 FAIL（C1 装配异常/C2 IOOBE/C3 context 残留/C4 StringIndexOutOfBounds），恢复后绿
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] C1：AbstractLeaderElector:72 `@cfg;` → `@cfg:`
+- [x] C2：LeastActiveLoadBalance:64 `int i = (startIndex + currentCursor) % n;`（items.get(i) 直接用；javadoc 记录回绕语义）
+- [x] C3：runAsync finally 改无条件 `ContextUtil.exit()`（保留 serviceEntry 的 !proceedCalled exit 分支；javadoc 记录 entry/context 配对差异）
+- [x] C4：copyFromInstance `pos > 0` 守卫（对齐 getNormalizedServiceName；无 "@@" 时 groupName 保持 null、serviceName 原样）
+- [x] 测试：①C1 装配冒烟——elector 测试包新增（临时 beans 定义 elector 子类 bean 或直接容器加载验证注解解析通过；实施时核 elector 测试现有形态）；②C2——TestLoadBalance 补 testLeastActiveWrapsWithoutOverflow：n=3 实例、差异化 active（adapter stub）+回绕起步 → 不抛 IOOBE 且选中活跃最小者；③C3——sentinel 测试树首建：runAsync 正常完成后 `ContextUtil.getCurEntry()==null`（修复前泄漏非 null）+BlockException 路径 exit 配对；④C4——nacos 测试树首建：copyFromInstance 无 "@@" serviceName 不抛且原样；带 "@@" 正常拆组
+- [x] **判别验证（四腿 stash）**：各修 stash 后对应测试 FAIL（C1 装配异常/C2 IOOBE/C3 context 残留/C4 StringIndexOutOfBounds），恢复后绿
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 四修全落地
-- [ ] 判别测试四腿绿 + 既有测试零回归
-- [ ] nop-cluster-core/sentinel/nacos 测试全绿（sentinel/nacos 测试树首建）
-- [ ] owner doc 处置归 Phase 2
+- [x] 四修全落地
+- [x] 判别测试四腿绿 + 既有测试零回归
+- [x] nop-cluster-core/sentinel/nacos 测试全绿（sentinel/nacos 测试树首建）
+- [x] owner doc 处置归 Phase 2
 
 ### Phase 2 - owner doc + 收口
 
-Status: planned
+Status: completed
 Targets: `docs-for-ai/03-modules/nop-network.md`
 
 - Item Types: `Fix`
 
-- [ ] network.md：cluster 语义注记（LeastActive 回绕取模；Sentinel async exit 配对；Nacos groupName 守卫；leader 注解修正）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] roadmap R1.29 翻 done；index P1-4.4-C1..C4 → fixed；daily log 条目
+- [x] network.md：cluster 语义注记（LeastActive 回绕取模；Sentinel async exit 配对；Nacos groupName 守卫；leader 注解修正）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] roadmap R1.29 翻 done；index P1-4.4-C1..C4 → fixed；daily log 条目
 
 Exit Criteria:
 
-- [ ] owner doc 条目在位且与 live 行为一致
-- [ ] doc-links 检查退出码 0
-- [ ] 收口动作落盘
+- [x] owner doc 条目在位且与 live 行为一致
+- [x] doc-links 检查退出码 0
+- [x] 收口动作落盘
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（P1-4.4-C1..C4）
-- [ ] 行为/契约结果已达成（判别四腿 + 零回归）
-- [ ] 必要 focused verification 已完成（cluster 各模块测试全绿）
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 受影响 owner docs 已同步
+- [x] 所有 in-scope confirmed live defects 已修复（P1-4.4-C1..C4）
+- [x] 行为/契约结果已达成（判别四腿 + 零回归）
+- [x] 必要 focused verification 已完成（cluster 各模块测试全绿）
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] 受影响 owner docs 已同步
 - [ ] 独立子 agent closure-audit 已完成并记录证据
 - [ ] `./mvnw test -pl nop-cluster/nop-cluster-core,nop-cluster/nop-cluster-sentinel,nop-cluster/nop-cluster-nacos` 全绿
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
