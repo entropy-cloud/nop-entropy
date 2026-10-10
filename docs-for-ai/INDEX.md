@@ -35,7 +35,7 @@
 - BizModel 方法实体能表达的优先返回 Entity，汇总/简化/组合数据用 `@DataBean` DTO。字段可见性在 xmeta 中控制。详见 `02-core-guides/service-layer.md`。
 - 标准实体服务默认使用 `CrudBizModel<T>`。
 - 普通取数优先 `requireEntity()`、`doFindList()`、`doFindPage()`，不要先写原始 `dao()` 模板。
-- 普通 `@BizMutation` 已自动进入事务，不要默认叠加 `@Transactional`。
+- 普通 `@BizMutation` 自动进入事务（R1.10 起 action 装饰器默认开启，mutation 限定；query 无事务），不要默认叠加 `@Transactional`。特殊部署形态与各入口边界见 `03-runbooks/transaction-boundaries.md` 事务入口矩阵。
 - `@Inject` 不支持 `private` 字段，配置值使用 `@InjectValue`。
 - 构建和再生成优先走 Maven Reactor 与 `./mvnw`，不要手改生成物。
 

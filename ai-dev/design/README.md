@@ -41,7 +41,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-refactor/` | 代码修改工具链（AI-First refactor / codemod） | [README](nop-refactor/README.md) | Vision active + Baseline 草案 — AI 一等用户原则 / GraphQL-first 非 LSP / self-verification 反馈载荷 / 读(nop-code)查(nop-lint)改(refactor) 三件套闭环 / 自完备能力源自建 / 复杂度预算不超 nop-lint 量级 + 性价比门（P0 codemod 面、P1 rename、结构变换类 out）；实现未启动，逐操作立项前为模块拓扑与契约权威 |
 | `nop-stream/` | Stream Processing | [README](nop-stream/README.md) | active — AGE 8-layer structure (Vision / Architecture Baseline / Core Model / Graph & Execution / Checkpoint / State & Time / Integration / Reference) |
 | `nop-wf/` | Workflow Engine | [README](nop-wf/README.md) | active — 审批流核心模式 + 扩展机制（AI 审批 / 调度器 / 离职转办 / 票签策略 / 动态审批） |
-| `maker-checker/` | 通用 Maker-Checker（四眼原则）机制 | [README](maker-checker/README.md) | active — AGE owner-doc（Vision / Architecture Baseline / 快照与嵌套数据 / 待审互斥与并发 / 审核页对比契约）；补全平台既有 maker 侧骨架的 checker 侧目标架构，ORM 变更待 plan-first 落地 |
+| `maker-checker/` | 通用 Maker-Checker（四眼原则）机制 | [README](maker-checker/README.md) | active — AGE owner-doc（Vision / Architecture Baseline / 快照与嵌套数据 / 待审互斥与并发 / 审核页对比契约）；补全平台既有 maker 侧骨架的 checker 侧**目标架构（未落地）**——`03-pending-lock-and-concurrency.md` 为 draft 态，机制节带〔目标架构·未落地〕标注），ORM 变更待 plan-first 落地 |
 | `nop-core/` | Core Reflection & Type System | [README](nop-core/README.md) | active — record 类型支持设计 |
 | `nop-ai-shell/` | AI Shell Command Execution | [README](nop-ai-shell/README.md) | active — AGE owner-doc (Vision / Architecture Baseline / IO & Pipeline / Executor & Async / Bash Syntax). Supports optional fallback to OS shell via `nop-shell` |
 | `nop-nosql/` | NoSQL Data Access | [README](nop-nosql/README.md) | active — business-semantic NoSQL abstraction, Redis driver comparison |

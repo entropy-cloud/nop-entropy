@@ -240,13 +240,13 @@ NopIoC 在容器启动时自动调用 `LifeCycleSupport` bean 的 `start()`，�
 
 ### 2.3 新增一个调度作业（完整步骤）
 
-**步骤 1：实现并注册 IJobInvoker**
+**步骤 1：实现 IJobInvoker 并经 beans.xml 注册**
+
+平台 IoC **没有类路径注解扫描**——一切 bean 经 `beans.xml` 显式声明（先实现 Java 类，再注册）：
 
 ```java
-import io.nop.api.core.annotations.ioc.IocBean;
 import io.nop.job.api.execution.*;
 
-@IocBean("nopJobInvoker_myJob")   // bean 名必须为 nopJobInvoker_<executorKind>
 public class MyJobInvoker implements IJobInvoker {
     @Override
     public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
@@ -261,7 +261,13 @@ public class MyJobInvoker implements IJobInvoker {
 }
 ```
 
-> **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。`nop-job-service` 当前内置 `nopJobInvoker_rpc`、`nopJobInvoker_test`；`nop-job-coordinator`（REST Worker 模式）内置 `nopJobInvoker_rpcPoll`（见下文 REST Worker 模式）。
+注册（bean id 必须为 `nopJobInvoker_<executorKind>`）——放入模块 `_vfs/{moduleId}/beans/app-*.beans.xml`（文件名必须是 `app.beans.xml` 或 `app-` 前缀，任意命名不会被自动装载；模块级 `app-*.beans.xml` 被发现的前提是该模块提供 `_vfs/{moduleId}/_module` 标记，装载规则见 `../02-core-guides/ioc-and-config.md`），或应用级 `app.beans.xml`：
+
+```xml
+<bean id="nopJobInvoker_myJob" class="com.yourcompany.job.MyJobInvoker"/>
+```
+
+> **bean 命名约定**：Worker 通过 `DefaultJobInvokerResolver` 解析 invoker，bean 名固定前缀为 `nopJobInvoker_`，后缀为作业记录中的 `executorKind` 字段值。上面的例子对应 `executorKind = myJob`。注册方式只有 beans.xml 显式声明一条（平台无注解扫描，与 `../02-core-guides/ioc-and-config.md` 口径一致）；内置先例见 `nop-job/nop-job-service/src/main/resources/_vfs/nop/job/beans/app-service.beans.xml`（`nopJobInvoker_test`/`nopJobInvoker_rpc`）。`nop-job-service` 当前内置 `nopJobInvoker_rpc`、`nopJobInvoker_test`；`nop-job-coordinator`（REST Worker 模式）内置 `nopJobInvoker_rpcPoll`（见下文 REST Worker 模式）。
 
 > **执行日志上报（可选，plan 2254 Phase 4）**：worker 执行日志可集中上报到 coordinator（`nop_job_task_log` 表，按 `taskId` 归组查询）。worker 侧部署时受信配置上报地址（**不随请求头下发**，防伪造地址导致日志泄露/SSRF）：`nop.job.log.report-url`；未配置则上报功能显式关闭（`JobLogReporter.isEnabled()=false`，调用 `report()` 抛 `nop.err.job.log.report-disabled`，不是静默吞错）。上报端点：`NopJobTaskLogBizModel.reportTaskLog`（`/r/` 入口，批量接收 `TaskLogEntry` 列表，校验 jobTaskId/logTime/logLevel=TRACE/DEBUG/INFO/WARN/ERROR，冗余展示列从 task/fire 快照填充）；上报失败 best-effort（异步 + WARN 日志），不影响任务执行与状态机。业务代码在 worker 侧显式调用 `JobLogReporter`（SLF4J/logback appender 属后续增强）。
 

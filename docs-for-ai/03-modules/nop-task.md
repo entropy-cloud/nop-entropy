@@ -103,7 +103,7 @@ task flow 的权威定义文件是 `*.task.xml`，由 `nop/schema/task/task.xdef
 
 NopTaskFlow **默认复用外部环境中的事务**，不自带事务边界：
 
-- task flow 作为 xbiz 的 action 直接定义（见下文"用法一"），或在某个 action（`@BizMutation`）内被调用时，整条流程跑在该 action 所开启的**同一个事务**内，零额外配置。
+- task flow 作为 xbiz 的 action 直接定义（见下文"用法一"），或在某个 action（`@BizMutation`）内被调用时，整条流程跑在该 action 所开启的**同一个事务**内，零额外配置（action 的事务由入口层决定：R1.10 起 `@BizMutation` 经 action 装饰器默认开启，经 GraphQL mutation 入口另有 operation 层事务；见 `../03-runbooks/transaction-boundaries.md` 入口矩阵）。
 - 需要对某个步骤做更细粒度控制时（子流程独立事务、某步失败不回滚前置步骤），在对应 `<step>` 上配置 `<decorator bean="..." >`，使用 `nop-task-ext` 提供的 `TransactionTaskStepDecorator`，指定 `txnGroup` 与 `propagation`（`REQUIRES_NEW` 等）。
 - 对应还有 `OrmSessionTaskStepDecorator`（管理 ORM 会话）等，都在 `nop-task-ext`。
 
@@ -119,7 +119,7 @@ xbiz schema 原生支持把一个 BizModel action 直接绑定到 task flow 定�
 <mutation name="approveOrder" task:name="approve-order" task:version="1"/>
 ```
 
-绑定后，`<arg>` 和 `<return>` 由 task flow 的 `<input>` / `<output>` 定义**自动生成**（实现见 `BizActionGenHelper.buildBizActionFromActionModel`），不需要手写。task 的 input name/type/mandatory/schema 直接映射为 xbiz 的 arg 属性。该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>`（或 `@BizMutation` 默认）开启，task flow 内部所有 step 默认复用。
+绑定后，`<arg>` 和 `<return>` 由 task flow 的 `<input>` / `<output>` 定义**自动生成**（实现见 `BizActionGenHelper.buildBizActionFromActionModel`），不需要手写。task 的 input name/type/mandatory/schema 直接映射为 xbiz 的 arg 属性。该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>` 显式声明或 `@BizMutation` 默认（R1.10 起 action 装饰器）开启，task flow 内部所有 step 默认复用。
 
 ### 用法二：在 BizModel/Processor Java 内调用 task flow（命令式）
 
@@ -133,7 +133,7 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 
     @BizMutation
     public ApproveResult approveOrder(@RequestBean ApproveRequest req, IServiceContext ctx) {
-        // 1. 事务由 @BizMutation 开启；状态真相源的写回留在 Java
+        // 1. 事务由 @BizMutation 经 action 装饰器默认开启（R1.10 起）；状态真相源的写回留在 Java
         // 2. 内部编排交给 task flow（复用本事务）
         ITask task = taskFlowManager.getTask("sal-approve-order", 1);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, ctx);
