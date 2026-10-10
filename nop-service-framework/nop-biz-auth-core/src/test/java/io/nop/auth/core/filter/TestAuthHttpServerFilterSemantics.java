@@ -319,6 +319,56 @@ public class TestAuthHttpServerFilterSemantics {
         assertEquals(AuthCoreConstants.USER_ID_SYS, sys.getUserId());
     }
 
+    // ==================== P1-check-gw-86（plan 2390）OAuth redirect 凭证 ====================
+
+    /**
+     * OAuth code+redirect 分支：redirect 前必须下发 auth cookie 并初始化用户上下文
+     * （修复前 sendRedirect 即返回——服务端会话已建但浏览器零凭证，回调登录循环）。
+     */
+    @Test
+    public void testOAuthRedirectPlantsCookieAndUserContext() throws Exception {
+        AuthHttpServerFilter filter = newFilter();
+        OAuthFakeContext ctx = new OAuthFakeContext();
+        ctx.queryParams.put("code", "oauth-code-1");
+        ctx.queryParams.put("redirect_uri", "/welcome");
+
+        loginService.oauthAccessToken = "tok-oauth-1";
+
+        boolean[] nextCalled = {false};
+        filter.processOAuthCode(ctx, true, () -> {
+            nextCalled[0] = true;
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }).toCompletableFuture().get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+        assertEquals("/welcome", ctx.redirectUrl, "redirect to the allowed relative uri");
+        assertTrue(ctx.cookies.stream().anyMatch(c -> c.getValue().equals("tok-oauth-1")),
+                "auth cookie carrying the fresh access token must be planted (P1-check-gw-86)");
+        assertTrue(nextCalled[0], "chain continues after redirect (existing semantics)");
+    }
+
+    /**
+     * 无 redirect_uri 的 OAuth 登录走原 handleUserContext 行为（cookie+上下文+next）不变。
+     */
+    @Test
+    public void testOAuthWithoutRedirectKeepsOriginalFlow() throws Exception {
+        AuthHttpServerFilter filter = newFilter();
+        OAuthFakeContext ctx = new OAuthFakeContext();
+        ctx.queryParams.put("code", "oauth-code-2");
+
+        loginService.oauthAccessToken = "tok-oauth-2";
+
+        boolean[] nextCalled = {false};
+        filter.processOAuthCode(ctx, true, () -> {
+            nextCalled[0] = true;
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        }).toCompletableFuture().get(5, java.util.concurrent.TimeUnit.SECONDS);
+
+        assertNull(ctx.redirectUrl, "no redirect without redirect_uri param");
+        assertTrue(ctx.cookies.stream().anyMatch(c -> c.getValue().equals("tok-oauth-2")),
+                "cookie planted via the original handleUserContext path");
+        assertTrue(nextCalled[0]);
+    }
+
     // ==================== fixtures ====================
 
     private AuthHttpServerFilter newFilter() {
@@ -345,10 +395,16 @@ public class TestAuthHttpServerFilterSemantics {
     }
 
     static class TestLoginService implements ILoginService {
+        String oauthAccessToken;
+
         @Override
         public CompletionStage<IUserContext> loginAsync(io.nop.auth.api.messages.LoginRequest request,
                                                         Map<String, Object> headers) {
-            return null;
+            io.nop.auth.core.login.UserContextImpl userContext = new io.nop.auth.core.login.UserContextImpl();
+            userContext.setUserId("oauth-user");
+            userContext.setUserName("oauth-user");
+            userContext.setAccessToken(oauthAccessToken);
+            return java.util.concurrent.CompletableFuture.completedFuture(userContext);
         }
 
         @Override
@@ -390,12 +446,33 @@ public class TestAuthHttpServerFilterSemantics {
 
         @Override
         public AuthToken parseAuthToken(String accessToken) {
-            return null;
+            if (accessToken == null)
+                return null;
+            return new AuthToken(accessToken, "sub", "oauth-user", "s1",
+                    System.currentTimeMillis() + 3600_000L, 3600, null);
         }
 
         @Override
         public String refreshToken(IUserContext userContext, AuthToken authToken) {
             return null;
+        }
+    }
+
+    /** 支持 code/redirect_uri 查询参数的上下文（OAuth 回调场景）；真实流程中
+     * RouteContext 已初始化 IContext（initUserContext 向其写 userId/tenant 等）。 */
+    static class OAuthFakeContext extends FakeHttpContext {
+        final Map<String, String> queryParams = new HashMap<>();
+        private final io.nop.api.core.context.IContext context =
+                new io.nop.api.core.context.BaseContext();
+
+        @Override
+        public String getQueryParam(String name) {
+            return queryParams.get(name);
+        }
+
+        @Override
+        public io.nop.api.core.context.IContext getContext() {
+            return context;
         }
     }
 

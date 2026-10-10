@@ -54,6 +54,10 @@ options.setMode(UploadMode.BASE64_FORM);
 - **上行订阅**：`MqttServerMessageService.subscribe("cmd/#", listener)` 注册进程内监听；设备上行 publish 按同一通配语义分发，`data` 为 payload 的 UTF-8 文本；二进制场景直接实现 `IMqttHandler`。
 - 会话接管（同 clientId 新连接踢旧连接）、断连清理（连接与订阅登记）由 `MqttSessionManager` 维护。
 
+## 网关 HTTP 过滤语义（P1-check-gw-49/86，plan 2390）
+
+GatewayHttpFilter 两条契约：①**路由预匹配后置**——path 级路由预匹配（`GatewayHandler.hasRouteFor`）无命中时请求体零消费直接放行下游；请求体解析按 content-type 分流，仅 JSON（或未声明）content-type 走严格解析（非法 body fail-fast 5xx），multipart/表单等不再炸滤器（body 不向下游透传，data=null）；异步段异常经 `exceptionally` 兜底写 5xx，响应已提交（streaming 中途失败）时只记日志不二次写出。②**OAuth redirect 凭证下发**——code+redirect_uri 分支在 sendRedirect 前初始化用户上下文并下发 auth cookie（新会话凭证；redirect 提交后 header/cookie 必丢），消除 SSO 回调登录循环；redirect 后下游对已提交响应的写入为无害噪音（现状既有行为）。
+
 ## 相关文档
 
 - `../02-core-guides/rpc-and-distributed-rpc.md`（RPC 分层调用模型，`/px/` 代理）

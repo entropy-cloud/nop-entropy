@@ -71,7 +71,11 @@ public class TestGatewayHttpFilterSemantics {
      * buildRequest：解析 JSON body，携带请求头与 HTTP URL/method 元数据。
      */
     @Test
-    public void testBuildRequestParsesJsonAndCarriesHttpMeta() {
+    public void testBuildRequestParsesJsonAndCarriesHttpMeta() throws Exception {
+        // plan 2390 顺带修复：本测试直调 buildRequest 依赖 JSON provider——此前靠同
+        // 类其他测试的 CoreInitialization 泄漏状态才通过（顺序依赖），显式初始化
+        CoreInitialization.initialize();
+        try {
         GatewayHttpFilter filter = new GatewayHttpFilter();
         FakeHttpContext ctx = new FakeHttpContext();
         ctx.requestUrl = "/test/simple?x=1";
@@ -88,6 +92,9 @@ public class TestGatewayHttpFilterSemantics {
                 "request must carry the http method property");
         assertEquals("v1", request.getHeaders().get("x-custom"),
                 "request must carry the inbound headers");
+        } finally {
+            CoreInitialization.destroy();
+        }
     }
 
     /**
@@ -278,6 +285,143 @@ public class TestGatewayHttpFilterSemantics {
         }
     }
 
+    // ==================== P1-check-gw-49（plan 2390）判别 ====================
+
+    /**
+     * 非 JSON content-type 的非空 body 不再触发严格 JSON 解析异常——路由命中、
+     * 正常走 RPC 并写回 200（修复前 JSON.parse(multipart文本) 在异步段抛出，
+     * filterAsync future 异常完成）。
+     */
+    @Test
+    public void testNonJsonBodyNotParsed() throws Exception {
+        AppConfig.getConfigProvider().updateConfigValue(GatewayConfigs.CFG_GATEWAY_MODEL_PATH,
+                "/nop/test/test.gateway.xml");
+        CoreInitialization.initialize();
+        try {
+            GatewayHttpFilter filter = newGatewayFilter();
+            FakeHttpContext ctx = new FakeHttpContext();
+            ctx.requestPath = "/test/simple";
+            ctx.requestUrl = "/test/simple";
+            ctx.method = "POST";
+            ctx.requestBody = "--boundary\ncontent-disposition: form-data; name=\"f\"\n\nbinary-ish";
+            ctx.headers.put("content-type", "multipart/form-data; boundary=boundary");
+
+            filter.filterAsync(ctx, () -> CompletableFuture.completedFuture(null))
+                    .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+            assertEquals(200, ctx.responseStatus,
+                    "multipart body must not blow up the filter (P1-check-gw-49)");
+        } finally {
+            CoreInitialization.destroy();
+        }
+    }
+
+    /**
+     * 无路由命中时 body 零消费——预匹配守卫在 resumeRequest/getRequestBody 之前放行。
+     * （修复前 body 必被读取：bodyReadCount>0。既有 testFilterAsyncUnmatchedPathPassesThrough
+     * 因 fake 默认 body="{}" 解析成功而不判别，本测试用读计数直接钉定消费行为。）
+     */
+    @Test
+    public void testUnmatchedPathBodyUntouched() throws Exception {
+        AppConfig.getConfigProvider().updateConfigValue(GatewayConfigs.CFG_GATEWAY_MODEL_PATH,
+                "/nop/test/test.gateway.xml");
+        CoreInitialization.initialize();
+        try {
+            GatewayHttpFilter filter = newGatewayFilter();
+            FakeHttpContext ctx = new FakeHttpContext();
+            ctx.requestPath = "/no/such/route";
+            ctx.requestUrl = "/no/such/route";
+            ctx.requestBody = "{\"input\":\"must-not-be-read\"}";
+
+            filter.filterAsync(ctx, () -> CompletableFuture.completedFuture(null))
+                    .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+            assertEquals(0, ctx.bodyReadCount,
+                    "unmatched path must not consume the request body (P1-check-gw-49)");
+        } finally {
+            CoreInitialization.destroy();
+        }
+    }
+
+    /**
+     * JSON content-type 的非法 body 保持 fail-fast，但异步段异常由 exceptionally
+     * 兜底转 5xx 错误响应（修复前 future 异常完成、无响应写出）。
+     */
+    @Test
+    public void testMalformedJsonBodyFailsFastWith5xx() throws Exception {
+        AppConfig.getConfigProvider().updateConfigValue(GatewayConfigs.CFG_GATEWAY_MODEL_PATH,
+                "/nop/test/test.gateway.xml");
+        CoreInitialization.initialize();
+        try {
+            GatewayHttpFilter filter = newGatewayFilter();
+            FakeHttpContext ctx = new FakeHttpContext();
+            ctx.requestPath = "/test/simple";
+            ctx.requestUrl = "/test/simple";
+            ctx.method = "POST";
+            ctx.requestBody = "{not-valid-json";
+            ctx.headers.put("content-type", "application/json");
+
+            filter.filterAsync(ctx, () -> CompletableFuture.completedFuture(null))
+                    .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+            assertTrue(ctx.responseStatus >= 500,
+                    "malformed JSON-declared body must fail fast as a 5xx error response");
+        } finally {
+            CoreInitialization.destroy();
+        }
+    }
+
+    /**
+     * 响应已提交（streaming 中途失败穿透）时 exceptionally 只记日志不二次写出——
+     * P2 审查守卫：对已提交响应再 sendResponse 会抛 IllegalStateException。
+     */
+    @Test
+    public void testAsyncErrorAfterResponseSentDoesNotDoubleWrite() throws Exception {
+        AppConfig.getConfigProvider().updateConfigValue(GatewayConfigs.CFG_GATEWAY_MODEL_PATH,
+                "/nop/test/test.gateway.xml");
+        CoreInitialization.initialize();
+        try {
+            // write() 提交响应后异步失败——模拟 streaming 中途错误穿透到外层链
+            GatewayHttpFilter filter = new GatewayHttpFilter() {
+                @Override
+                protected CompletionStage<Void> write(IHttpServerContext context,
+                                                      ApiResponse<?> response,
+                                                      io.nop.gateway.core.context.IGatewayContext gatewayCtx) {
+                    context.sendResponse(200, "partial-stream");
+                    return CompletableFuture.failedFuture(new IllegalStateException("stream mid-flight boom"));
+                }
+            };
+            filter.setRpcServiceInvoker(new MockRpcServiceInvoker());
+            filter.setHttpClient(new MockHttpClient());
+            filter.setRecordMappingManager(null);
+            filter.init();
+
+            FakeHttpContext ctx = new FakeHttpContext();
+            ctx.requestPath = "/test/simple";
+            ctx.requestUrl = "/test/simple";
+            ctx.method = "POST";
+            ctx.requestBody = "{\"input\":\"test\"}";
+
+            filter.filterAsync(ctx, () -> CompletableFuture.completedFuture(null))
+                    .toCompletableFuture().get(10, TimeUnit.SECONDS);
+
+            assertEquals(200, ctx.responseStatus, "committed response status untouched");
+            assertEquals("partial-stream", ctx.responseBody,
+                    "no second write after the response was committed (isResponseSent guard)");
+        } finally {
+            CoreInitialization.destroy();
+        }
+    }
+
+    private GatewayHttpFilter newGatewayFilter() {
+        GatewayHttpFilter filter = new GatewayHttpFilter();
+        filter.setRpcServiceInvoker(new MockRpcServiceInvoker());
+        filter.setHttpClient(new MockHttpClient());
+        filter.setRecordMappingManager(null);
+        filter.init();
+        return filter;
+    }
+
     // ==================== fixtures ====================
 
     static class MockRpcServiceInvoker implements IRpcServiceInvoker {
@@ -438,8 +582,11 @@ public class TestGatewayHttpFilterSemantics {
         public void setResponseCharacterEncoding(String encoding) {
         }
 
+        int bodyReadCount = 0;
+
         @Override
         public IAsyncBody getRequestBody() {
+            bodyReadCount++;
             String text = requestBody == null ? "{}" : requestBody;
             return () -> CompletableFuture.completedFuture(text);
         }
