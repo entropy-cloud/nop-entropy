@@ -21,6 +21,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -76,5 +77,29 @@ public class TestXdslScenarioE9 {
         // the same size would emit each count exactly once)
         assertTrue(emissions.stream().anyMatch(e -> e.contains("n=2")),
                 () -> "overlap must produce at least one two-element pane: " + emissions);
+    }
+
+    /**
+     * U1 (deferred-unlock): the fixture's second chain declares the same sliding shape
+     * via the {@code <strategy maxDelay>} attribute — the DSL declaration face WI25's
+     * Deferred section wrongly recorded as missing (delivered by WI8/plan 2332). The
+     * declaration must be consumed by buildWindow and reach the WindowedStream; the
+     * maxDelay chain's sink writes to a separate store so this chain's execute() side
+     * effects never perturb the overlap assertions above.
+     */
+    @Test
+    public void maxDelayDeclarationPathIsConsumedOnScenarioWindow() {
+        StreamModel model = (StreamModel) new DslModelParser().parseFromResource(
+                new ClassPathResource("classpath:_vfs/nop/stream/test/xdsl-e9-tdengine-window.stream.xml"));
+        StreamModelDslBuilder builder = StreamModelDslBuilder.of(model);
+        builder.build();
+
+        Object windowed = builder.registeredStream("wMaxDelay");
+        assertTrue(windowed instanceof io.nop.stream.core.datastream.WindowedStreamImpl,
+                () -> "the maxDelay-declared window must build to a WindowedStream, got: "
+                        + (windowed == null ? "null" : windowed.getClass().getName()));
+        assertEquals(500L,
+                ((io.nop.stream.core.datastream.WindowedStreamImpl<?, ?, ?>) windowed).getMaxDelay(),
+                "the <strategy maxDelay=\"500\"> declaration must reach the scenario window");
     }
 }

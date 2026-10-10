@@ -5,4 +5,8 @@
     <bean id="e9AvgFn" class="io.nop.stream.runtime.acceptance.E9TdengineBeans$AvgFn"/>
     <bean id="e9AvgSink" class="io.nop.stream.runtime.acceptance.E9TdengineBeans$AvgSink"/>
 
+    <!-- U1: dedicated instances so the maxDelay-declaration chain has its own source/sink -->
+    <bean id="e9MaxDelaySource" class="io.nop.stream.runtime.acceptance.E9TdengineBeans$CurrentSource"/>
+    <bean id="e9MaxDelaySink" class="io.nop.stream.runtime.acceptance.E9TdengineBeans$MaxDelaySink"/>
+
 </beans>
