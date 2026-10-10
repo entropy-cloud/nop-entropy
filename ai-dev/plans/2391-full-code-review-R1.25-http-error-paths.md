@@ -1,6 +1,6 @@
 # 2391 full-code-review R1.25 — HTTP 错误路径修复批（P1-6.8-001 + P1-check-netrpc-24）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.25；findings `P1-6.8-001`（6.8-check-p1-batch-d.md）+ `P1-check-netrpc-24`（承接 3.9 §2.5 表#1 标定维持），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.8-check-p1-batch-d.md` 与 `3.9-gateway-network-deep-audit.md`
 > Related: R1.24（同网关面已收口）；3.9 audit :846 三实现行为分歧证据（仅 JDK 把 503 映射为连接失败，Apache/OkHttp 按正常响应返回）
@@ -85,9 +85,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（两模块测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-spring/nop-spring-web-starter,nop-network/nop-http/nop-http-client-jdk` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-spring/nop-spring-web-starter,nop-network/nop-http/nop-http-client-jdk` 全绿
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -100,14 +100,22 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 两条 in-scope P1 均已在 live 代码中确认修复：①`ServletHttpServerContext.removeCookie`（:146-166）对 `request.getCookies()` 加 null 守卫，cookies==null 时落兜底过期 Cookie 分支（对齐 `getCookie` :119-129 形态），零测试模块测试树首建（pom junit test 依赖 + JDK 动态代理 stub）；②`JdkHttpClient.toHttpResponse`（:317-323）已删除 503→NopConnectException 特判，503 按正常响应返回 status/body/headers，与 Apache/OkHttp 对齐，`ERR_HTTP_CONNECT_FAIL` 仍保留于真连接失败路径。owner doc `docs-for-ai/03-modules/nop-network.md:74-76` 已记录 503 语义；doc-links --strict 退出码 0。无空壳实现，无 in-scope live defect 被降级。
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: subagent closure-audit backfill（独立审计子会话；未参与实现）
 - Evidence:
+  - **Exit Criteria Phase 1**：PASS——live `ServletHttpServerContext.java:146-166` null 守卫在位；`JdkHttpClient.java:317-323` 503 特判已删（grep `SERVICE_UNAVAILABLE`/`NopConnectException` 在 toHttpResponse 无残留，未用 import 已清理）。
+  - **Exit Criteria Phase 2**：PASS——`docs-for-ai/03-modules/nop-network.md:74-76`「JDK client 503 响应语义」节在位且与 live 行为一致；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+  - **指认测试在位且断言目标行为**：`nop-network/nop-http/nop-http-client-jdk/src/test/java/io/nop/http/client/jdk/TestToHttpResponseStatus.java`（503 stub + body → status=503/body 完整，`assertDoesNotThrow`；200 回归）；`nop-spring/nop-spring-web-starter/src/test/java/io/nop/spring/web/filter/TestServletHttpServerContextRemoveCookie.java`（null/匹配/无匹配三场景）。
+  - **focused verification**：`./mvnw test -pl nop-spring/nop-spring-web-starter,nop-network/nop-http/nop-http-client-jdk -am -DskipTests=false` → BUILD SUCCESS（脚本退出码 0）。nop-http-client-jdk `Tests run: 20, Failures: 0, Errors: 0, Skipped: 3`（含 `TestToHttpResponseStatus` 2/2）；nop-spring-web-starter `Tests run: 3, Failures: 0, Errors: 0`（`TestServletHttpServerContextRemoveCookie` 3/3）。
+  - **Anti-Hollow**：`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-spring-web-starter --severity high` 与 `--module nop-http-client-jdk` 均 0 findings；调用链 `HttpClient.sendAsync → thenApply(toHttpResponse)`（:173/:543/:580）连通，503 分支不再抛出。
+  - **Closure Gate 全项**：全部 in-scope defects 修复 / 判别测试绿 / 零回归 / 无静默降级 / owner doc 同步 / 独立 audit / anti-hollow —— 均 PASS。
+  - **Deferred 分类检查**：`Deferred But Adjudicated` 为空；`Non-Blocking Follow-ups` 两项（wrapException 丢 cause 通用修复属异常归一化契约批；旧 workaround 部署影响观察）确为 non-blocking，未含 in-scope live defect。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2391-full-code-review-R1.25-http-error-paths.md --strict` 退出码 0。
 
 Follow-up:
 
--
+- 无 remaining plan-owned work（Non-Blocking Follow-ups 见上节）。

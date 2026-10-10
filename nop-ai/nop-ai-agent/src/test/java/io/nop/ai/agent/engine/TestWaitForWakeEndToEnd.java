@@ -62,7 +62,7 @@ public class TestWaitForWakeEndToEnd {
         agentModel.setName("test-agent-wake");
         agentModel.setTools(Set.of("test-tool"));
         ChatOptionsModel opts = new ChatOptionsModel();
-        opts.setMaxTokens(10000);
+        opts.setContextLength(10000);
         agentModel.setChatOptions(opts);
     }
 

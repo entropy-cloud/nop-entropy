@@ -5,6 +5,7 @@ import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolDefinition;
@@ -35,7 +36,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * <p>
  * roundtrip 有损点裁定（plan 附录）：finish_reason 样本取归一化目标值（stop/length）；
  * Anthropic roundtrip 请求显式 setMaxTokens；system 样本限一条；Anthropic usage 断言含 cache 字段；
- * Anthropic/Gemini/Ollama 请求方向样本不含 reasoning 消息（convertMessage 双 block 伪影，落档）；
+ * Anthropic/Gemini/Ollama roundtrip 请求方向样本不含 reasoning 消息——reasoning 请求侧单发
+ * （仅 thinking/等价载荷）由 `testRequestBuildBody_anthropicReasoningEmitsOnlyThinkingBlock`
+ * 与各方言 dedicated 用例覆盖（P1-6.7-002，plan 2399+2400）；
  * Ollama 样本不含 system（buildBody 丢弃，落档）。
  */
 public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
@@ -72,6 +75,30 @@ public class TestDialectBidirectionalConversion extends JunitBaseTestCase {
         assertMessagesEqual(request.getMessages(), parsed.getMessages());
         assertOptionsEqual(request.getOptions(), parsed.getOptions());
         assertToolsEqual(request.getTools(), parsed.getTools());
+    }
+
+    @Test
+    void testRequestBuildBody_anthropicReasoningEmitsOnlyThinkingBlock() {
+        // P1-6.7-002 (plan 2399, 4th dialect completed by plan 2400): Anthropic
+        // request-side reasoning must produce exactly ONE content block
+        // (thinking). The old fall-through emitted a leading text block with
+        // the same getContent() first — the double-emission artifact.
+        List<ChatMessage> messages = new ArrayList<>();
+        messages.add(new ChatUserMessage("hi"));
+        messages.add(new ChatReasoningMessage("let me think"));
+        ChatRequest request = new ChatRequest(messages);
+        AnthropicDialect dialect = new AnthropicDialect();
+
+        Map<String, Object> body = dialect.buildBody(request, newConfig(ApiStyle.anthropic), null,
+                "claude-3-5-sonnet-20241022", false);
+
+        List<?> wireMessages = (List<?>) body.get("messages");
+        Map<?, ?> reasoningTurn = (Map<?, ?>) wireMessages.get(wireMessages.size() - 1);
+        List<?> blocks = (List<?>) reasoningTurn.get("content");
+        assertEquals(1, blocks.size(),
+                "Anthropic reasoning request must carry exactly one content block (thinking)");
+        assertEquals("thinking", ((Map<?, ?>) blocks.get(0)).get("type"));
+        assertEquals("let me think", ((Map<?, ?>) blocks.get(0)).get("thinking"));
     }
 
     @Test

@@ -697,6 +697,15 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
             toolBlock.put("name", toolCallMsg.getName());
             toolBlock.put("input", toolCallMsg.getArguments());
             contentBlocks.add(toolBlock);
+        } else if (message instanceof ChatReasoningMessage) {
+            // P1-6.7-002 (Anthropic, the 4th dialect): reasoning is carried by
+            // the thinking block ONLY. Emitting a text block with the same
+            // getContent() first (the old fall-through branch) double-emitted
+            // the reasoning payload in the request body.
+            Map<String, Object> thinkingBlock = new LinkedHashMap<>();
+            thinkingBlock.put("type", "thinking");
+            thinkingBlock.put("thinking", message.getContent());
+            contentBlocks.add(thinkingBlock);
         } else {
             String textContent = message.getContent();
             if (textContent != null && !textContent.isEmpty()) {
@@ -704,13 +713,6 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 textBlock.put("type", "text");
                 textBlock.put("text", textContent);
                 contentBlocks.add(textBlock);
-            }
-
-            if (message instanceof ChatReasoningMessage) {
-                Map<String, Object> thinkingBlock = new LinkedHashMap<>();
-                thinkingBlock.put("type", "thinking");
-                thinkingBlock.put("thinking", message.getContent());
-                contentBlocks.add(thinkingBlock);
             }
         }
 

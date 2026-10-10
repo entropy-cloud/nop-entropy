@@ -73,7 +73,7 @@ public class TestWaitForSuspend {
         agentModel.setName("test-agent-wait");
         agentModel.setTools(Set.of("test-tool"));
         ChatOptionsModel opts = new ChatOptionsModel();
-        opts.setMaxTokens(10000);
+        opts.setContextLength(10000);
         agentModel.setChatOptions(opts);
     }
 

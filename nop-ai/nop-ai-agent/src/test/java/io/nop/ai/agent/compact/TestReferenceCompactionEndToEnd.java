@@ -70,11 +70,11 @@ public class TestReferenceCompactionEndToEnd {
     private AgentModel agentModel() {
         AgentModel m = new AgentModel();
         m.setName("test-agent");
-        // Small maxTokens so the pipeline does NOT short-circuit as "relieved"
+        // Small contextLength so the pipeline does NOT short-circuit as "relieved"
         // before the reference strategy gets a chance to run (the dual-dim
         // OR-gate trigger needs the context to be genuinely over threshold).
         io.nop.ai.core.model.ChatOptionsModel opts = new io.nop.ai.core.model.ChatOptionsModel();
-        opts.setMaxTokens(200);
+        opts.setContextLength(200);
         m.setChatOptions(opts);
         return m;
     }

@@ -346,17 +346,38 @@ public class TestEngineExtractedCoordinators {
     }
 
     @Test
-    void resolveMaxContextTokensFallsBackToDefault() {
+    void resolveMaxContextTokensUsesIndependentDeclarationAndNeverOutputCap() {
         AgentHookInvoker invoker = invokerWith(null, null);
         AgentCompactionCoordinator coordinator = new AgentCompactionCoordinator(
                 new NoOpContextCompactor(), NoOpCheckpoint.noOp(), null,
                 TokenEstimators.defaultEstimator(), invoker);
         AgentExecutionContext c = ctx();
         assertEquals(ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS, coordinator.resolveMaxContextTokens(c));
-        ChatOptions o = new ChatOptions();
-        o.setMaxTokens(4096);
-        c.setChatOptions(o);
-        assertEquals(4096, coordinator.resolveMaxContextTokens(c));
+
+        // P1-6.7-006: maxTokens is the generation cap and must NOT be read as
+        // the context window. 10k tokens used is far below the 128k default
+        // window, so no compaction may be triggered by a small output cap.
+        ChatOptions outputCapOnly = new ChatOptions();
+        outputCapOnly.setMaxTokens(4096);
+        c.setChatOptions(outputCapOnly);
+        c.setTokensUsed(10000);
+        assertEquals(ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS, coordinator.resolveMaxContextTokens(c));
+        assertFalse(coordinator.shouldTriggerCompaction(c),
+                "a small maxTokens output cap must not make the context look exhausted");
+
+        // the independent declaration is honoured when present
+        ChatOptions declared = new ChatOptions();
+        declared.setMaxContextTokens(1000);
+        c.setChatOptions(declared);
+        assertEquals(1000, coordinator.resolveMaxContextTokens(c));
+        assertTrue(coordinator.shouldTriggerCompaction(c),
+                "10k tokens used exceeds 0.8 * declared 1000-token context window");
+
+        // non-positive declaration falls back to the engine default (fail-safe)
+        ChatOptions nonPositive = new ChatOptions();
+        nonPositive.setMaxContextTokens(0);
+        c.setChatOptions(nonPositive);
+        assertEquals(ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS, coordinator.resolveMaxContextTokens(c));
     }
 
     // ============ AgentToolPlanResolver ============

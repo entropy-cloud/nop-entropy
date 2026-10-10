@@ -1,6 +1,6 @@
 # 2384 full-code-review R1.18 — nop-report 双修复（P1-3.6-001 removeCell offset 符号 + P1-3.6-002 权限表休眠声明）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-10-09
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.18；findings `P1-3.6-001`（维度12-01/check:103）+ `P1-3.6-002`（13-01），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/3.6-report-deep-audit.md`
 > Related: P2-3.6-004 测试缺口为 advisory 同批（removeCell 回归测试已在本 plan 落地，随修即消化）；nop-datav 双轨对账归 R2.0 注记

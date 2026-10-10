@@ -320,19 +320,19 @@ public class Layer3FullSummaryStrategy implements ICompressionStrategy {
      * Dynamic budget when {@code compressionPromptBudget} is unconfigured
      * (sentinel -1): half of the compression trigger watermark. Mirrors
      * {@link PipelineCompactor#resolveMaxContextTokens} semantics — an
-     * explicit {@code maxTokens} on the execution chat options wins, otherwise
-     * the engine default.
+     * explicit {@code maxContextTokens} on the execution chat options wins,
+     * otherwise the engine default.
      */
     private long resolveCompressionPromptBudget(CompactionContext ctx, CompactConfig config) {
         int budget = config.getCompressionPromptBudget();
         if (budget >= 0) {
             return budget;
         }
-        long maxContextTokens = ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS;
-        if (ctx.getExecutionContext() != null && ctx.getExecutionContext().getChatOptions() != null
-                && ctx.getExecutionContext().getChatOptions().getMaxTokens() != null) {
-            maxContextTokens = ctx.getExecutionContext().getChatOptions().getMaxTokens();
-        }
+        // P1-6.7-006: the context window comes from the independent
+        // maxContextTokens declaration, never from maxTokens (output cap).
+        long maxContextTokens = ReActAgentExecutor.resolveMaxContextTokens(
+                ctx.getExecutionContext() != null
+                        ? ctx.getExecutionContext().getChatOptions() : null);
         long watermark = (long) (maxContextTokens * config.getTriggerTokenPercent());
         return watermark / 2;
     }

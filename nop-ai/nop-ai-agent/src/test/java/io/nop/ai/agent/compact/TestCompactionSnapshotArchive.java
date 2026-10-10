@@ -65,7 +65,7 @@ public class TestCompactionSnapshotArchive {
         AgentModel m = new AgentModel();
         m.setName("test-agent");
         ChatOptionsModel opts = new ChatOptionsModel();
-        opts.setMaxTokens(MAX_CONTEXT_TOKENS);
+        opts.setContextLength(MAX_CONTEXT_TOKENS);
         m.setChatOptions(opts);
         return m;
     }
