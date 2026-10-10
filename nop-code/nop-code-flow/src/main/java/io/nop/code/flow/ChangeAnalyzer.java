@@ -132,10 +132,20 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
         Map<String, List<LineRange>> result = new LinkedHashMap<>();
         boolean truncated = false;
 
+        // P1-6.7-009: a missing/non-directory working directory makes
+        // ProcessBuilder.start() throw and would otherwise be folded into an
+        // empty diff with truncated=false ("no changes"). Fail loud instead.
+        if (workingDirectory != null && !workingDirectory.isEmpty()
+                && !new java.io.File(workingDirectory).isDirectory()) {
+            LOG.warn("Git diff working directory does not exist or is not a directory: {}; "
+                    + "returning empty diff with truncated=true", workingDirectory);
+            return new DiffResult(result, true);
+        }
+
         try {
             ProcessBuilder pb = new ProcessBuilder(
                     "git", "diff", baseline + ".." + target, "--unified=0");
-            if (workingDirectory != null) {
+            if (workingDirectory != null && !workingDirectory.isEmpty()) {
                 pb.directory(new java.io.File(workingDirectory));
             }
             pb.redirectErrorStream(true);
@@ -204,17 +214,25 @@ public class ChangeAnalyzer implements IChangeAnalyzer {
                 if (!process.waitFor(30, TimeUnit.SECONDS)) {
                     LOG.warn("Git diff process timed out after 30 seconds for {}..{}", baseline, target);
                     truncated = true;
+                } else if (process.exitValue() != 0) {
+                    // P1-6.7-009: a non-zero git exit (bad refs, not a repo, bad
+                    // working directory) means the diff is incomplete — surface it
+                    // instead of silently reporting "no changes".
+                    LOG.warn("Git diff exited with code {} for {}..{} (workingDirectory={}); "
+                                    + "diff may be incomplete",
+                            process.exitValue(), baseline, target, workingDirectory);
+                    truncated = true;
                 }
             } finally {
                 process.destroyForcibly();
             }
         } catch (IOException e) {
-            LOG.warn("Failed to parse git diff output", e);
-            return new DiffResult(result, truncated);
+            LOG.warn("Failed to parse git diff output; returning truncated result", e);
+            return new DiffResult(result, true);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            LOG.warn("Interrupted while parsing git diff output", e);
-            return new DiffResult(result, truncated);
+            LOG.warn("Interrupted while parsing git diff output; returning truncated result", e);
+            return new DiffResult(result, true);
         }
 
         return new DiffResult(result, truncated);

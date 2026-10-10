@@ -160,3 +160,10 @@ See `entityToExecutionFlow()` and `persistFlows()` in `CodeIndexService` for the
 Unique key: `uk_usage_unique(indexId, symbolId, fileId, kind, line, column)`.
 
 The `column` column is nullable (`mandatory` not set, defaults to nullable). In standard SQL, NULL ≠ NULL, so two rows with identical values but both having `column = NULL` would **not** violate the unique constraint. In practice, the Java analyzer always sets `column` from `expr.getRange()`, which may be absent for some AST nodes. To guarantee deduplication, application-level dedup is applied via deterministic ID generation (SHA-256 hash of indexId + kind + callerId + fileId + line).
+
+## 变更分析 / 增量索引契约（P1-6.7-009/010/011，plan 2401）
+
+- **`analyzeChanges` 的工作目录**：`NopCodeIndex.rootPath` 以 vfs 形态（`file:/abs/path`）持久化；`analyzeChanges` 在交给 `ChangeAnalyzer` 之前剥去 `file:` 前缀（Windows 下并还原 `C:/...`），使 git 进程以本地绝对路径为工作目录。git 失败不再静默折叠为「无变更」——工作目录不存在/非目录、非零退出、IOException 均使 `ChangeAnalysisResult.isTruncated()==true`。
+- **增量索引失败文件语义**：`triggerIncrementalIndex` 先对全部 changed 文件做分析、再删除并写回；无法分析的文件（无 analyzer / 资源缺失 / 分析抛异常 / 分析返回 null）不删除旧记录、不写新指纹（旧 `NopCodeFile` 指纹行保留），因此下一次增量会重新检出并重试。返回值为**成功持久化**的文件数；失败以 WARN 可观测。
+- **文件记录删除的索引作用域**：`deleteFileRecords` 删除 `NopCodeDependency` 时同时按 `indexId` 过滤——同一仓库/文件路径被多个索引覆盖时，删除某一索引不会波及另一索引的依赖边（call/symbol/usage 经 `generateFileId(indexId, path)` 生成 ID，天然具备索引作用域）。
+- **失败文件与本轮重分析文件的关系**：N3.1-s 依赖边快照/重绑作用域限于「成功重分析文件 ∪ 已删除文件」；失败文件的符号与边保留原状，不纳入重建集合。

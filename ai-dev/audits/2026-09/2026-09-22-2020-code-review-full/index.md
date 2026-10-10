@@ -157,9 +157,9 @@
 | P1-6.7-006 | `6.7-check-p1-batch-c.md` | R1.0（AgentCompactionCoordinator maxTokens 误作上下文窗口；独立 maxContextTokens 配置+改写钉死断言） | open |
 | P1-6.7-007 | `6.7-check-p1-batch-c.md` | R1.23/plan 2387（2026-10-10 修复：TimerServiceManager 异常聚合〔首个抛出+全部尝试+addSuppressed〕+ProcessingTimeServiceDriver 二次吞点删除〔审查 F1，checked 包装 ERR_STREAM_OPERATOR_ERROR〕+TestTimerServiceManagerRobustness 重写。原处方：不吞异常——首个异常抛出、其余 addSuppressed；per-service 日志仅诊断） | fixed |
 | P1-6.7-008 | `6.7-check-p1-batch-c.md` | R1.23/plan 2387（2026-10-10 修复：pendingRestoreSplits 暂存+open() 内 reader 创建→bridge→flushPreOpenSplits→restore flush〔替换语义〕→start 钉死顺序+SourceReader 生命周期 javadoc 修正+TestSourceReaderOperatorRestoreBeforeOpen 3 用例〔restore→open→run〕。原处方：splits 暂存字段〔类比 preOpenSplits〕，open() 创建 reader 后 flush；补 restore→open→run 消费位点连续回归） | fixed |
-| P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.0（CodeIndexService.analyzeChanges `file:` rootPath 建 git 必败且异常折叠为无变更；rootPath 规范化+异常不折叠 truncated=true） | open |
-| P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
-| P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
+| P1-6.7-009 | `6.7-check-p1-batch-c.md` | R1.35/plan 2401（2026-10-10 修复：`toLocalWorkingDirectory` 剥 `file:`+Windows 盘符还原供 git 工作目录；ChangeAnalyzer 工作目录缺失/非零退出/IOException → `truncated=true`；判别 stash 恰 1F `file:/...` 工作目录；TestAnalyzeChangesFileRootPath 真实 git 仓库端到端） | fixed |
+| P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.35/plan 2401（2026-10-10 修复：先分析后删；failedFiles 四类〔analyzer null/resource null/抛异常/返回 null〕旧记录+指纹保留、下轮重试；N3.1-s 快照作用域收窄；返回成功持久化数；判别 stash 恰 2F hash 覆盖 + null 分支恰 1F） | fixed |
+| P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.35/plan 2401（2026-10-10 修复：`deleteEntitiesByFilters` 多 filter 重载 + `and(eq(sourceFilePath), eq(indexId))`；同类删除 helper 作用域核对无缺口；判别 stash 恰 1F 跨索引删除；TestDeleteFileRecordsIndexScoping） | fixed |
 | P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.25/plan 2391（2026-10-10 修复：removeCookie null 守卫——cookies==null 落兜底过期 Cookie 分支对齐 getCookie 形态+零测试模块测试树首建（Proxy stub 3 用例）。原处方：补 cookies==null 守卫对齐 getCookie 形态） | fixed |
 | P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：resolveMobile——null/empty→裸 mobile（国内约定）、非空 strip+ 拼接（Tencent parity）+parity 判别测试 2 用例。原处方：areaCode null/空守卫+与 6.4 #8 修复同批回归（两腿 parity 测试）） | fixed |
 | P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.27/plan 2393（2026-10-10 修复：splitter 四处表落点改 `<dir>/input|output/tables/` 消费方契约+splitter→AutoTestCaseData 往返测试。原处方：splitter 输出路径改对齐消费方契约（或反向统一），补 splitter→loader 往返测试） | fixed |
@@ -169,7 +169,7 @@
 | P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.32/plan 2398（2026-10-10 修复：Entry.originalStatus（首个终态簿记覆盖前记录）+retryBridgeIfNeeded 桥回调传原始终态/重投成功后恢复原始终态+FAILED/TIMEOUT 源判别用例×2。原处方：重投时区分源状态，状态迁移仅在原态为 NOTIFICATION_FAILED 时执行；补 FAILED/TIMEOUT 源重投用例） | fixed |
 | P1-7.1-002 | `7.1-nop-ai-incremental-audit.md` | R1.32/plan 2398（2026-10-10 修复：search 回读 content/metadata 列填充 VectorData（content 键+jsonb 逐键）+readSearchMetadata 抽取单测判别+TestPgVectorIntegration 内容断言增强。原处方：search 回读 content/metadata 列并填充 VectorData；补 pgvector 路径内容断言测试） | fixed |
 | P1-7.2-001 | `7.2-nop-stream-incremental-audit.md` | R1.23/plan 2387（2026-10-10 修复：TestStreamConnectorRegistryDiscovery:132 断言 SINGLE_INSTANCE→PARALLEL（WI4 裁决对齐，禁止回退工厂语义）——runtime 测试门禁恢复绿。原处方：同步测试断言到 PARALLEL+连带核对 connectors 文档一致性断言） | fixed |
-| P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（LlmSemanticEdgeExtractor 生产不可达——CodeIndexService:285-291 硬编码 3 提取器零接线+roadmap done 误导面+G1-b 静默缺失复合缺陷；补接线或双向状态勘正；**条件判读登记供拆面**） | open |
+| P1-7.4-001 | `7.4-nop-code-gated-incremental-audit.md` | R1.35/plan 2401（2026-10-10 状态勘正处置：roadmap N7.1 `done`→`deferred`〔汇总 33/6/0〕+ plan 28 `draft`→`deferred` + G1-b 移入 Deferred〔Feature successor `nop-code-llm-semantic-edge-wiring`〕+ design §4.3 状态注；误导面消除。原处方即「补接线或双向状态勘正」；接线属新能力装配，successor 承接） | fixed |
 | P1-7.4-002 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（SearchQualityEvalTest 评测自证空转——零生产参与 MRR=1.0/F1=1.0 不可作质量证据；接真实链路或显式标注 smoke） | open |
 | P1-7.4-003 | `7.4-nop-code-gated-incremental-audit.md` | R1.0（plan 31 证据链断裂——`[x]` 载体从未运行+@Disabled+closure 自审非独立；状态勘正+indexDirectory 验证补做或条目移除） | open |
 | P1-check-netrpc-24 | `6.8-check-p1-batch-d.md`（承接：3.9 §2.5 表#1 标定维持） | R1.25/plan 2391（2026-10-10 修复：删除 toHttpResponse 503→NopConnectException 特判——503 按正常响应送达与 Apache/OkHttp 对齐（三实现行为分歧消除），ERR_HTTP_CONNECT_FAIL 保留于真连接失败路径+判别测试（stub 503 带 body 正常送达）。原处方：沿 3.9 §2.5#1 行修复方向） | fixed |
@@ -288,6 +288,7 @@
 | R1.32 | done | plan 2398（2026-10-10，closure audit 2026-10-10 集中补跑 PASS）：DefaultBackgroundTaskRegistry originalStatus 状态机修复+PgVectorStore content/metadata 回读；agent 3537/rag 31 全绿；closure audit 见 plan 2398 Closure 段 |
 | R1.33 | done | plan 2399（2026-10-10）：001/003/004 首轮 PASS；**P1-6.7-002 首轮 audit Cannot Close**（Anthropic 第 4 方言 reasoning 双发仍 live）→ 补修 AnthropicDialect 单发 thinking block + 请求侧回归（判别 stash 恰 1F expected 1 vs 2）+ owner doc 勘正 → 重审 **PASS**（core 474/工具面 268 全绿）；closure audit 见 plan 2399 Closure 段 |
 | R1.34 | done | plan 2400（2026-10-10）：①BAIL tool_call 配对注入 + persistInjectedMessages 重同步（TestBailInReActLoop 双锚回归；判别 stash 恰 1F calls=[bail-c1] responses=[]）；②ChatOptions.maxContextTokens 独立声明 + ChatOptionsModel.contextLength 映射 + 单一解析入口收敛三同根消费者（判别 stash 恰 1F 128000 vs 4096）+ 12 测试布景迁移；nop-ai-api/agent/core 全绿（agent 3538）；独立 closure audit PASS（plan 2400 Closure 段） |
+| R1.35 | done | plan 2401（2026-10-10，plan review 两轮 NOT READY→READY）：①analyzeChanges rootPath `file:` 规范化 + ChangeAnalyzer 失败 truncated=true；②triggerIncrementalIndex 删写重排（失败文件旧记录/指纹保留+下轮重试，四类失败含 null）；③deleteFileRecords 依赖删除 indexId scoping；④P1-7.4-001 状态双向勘正（roadmap N7.1 deferred + plan 28 deferred + G1-b Feature successor）。判别 stash 四腿；flow 43/0/0 + service 289/0/0 全绿；hollow nop-code 0；独立 closure audit PASS（plan 2401 Closure 段） |
 | R2.0 | todo | |
 | V.1 | todo | |
 | V.2 | todo | |

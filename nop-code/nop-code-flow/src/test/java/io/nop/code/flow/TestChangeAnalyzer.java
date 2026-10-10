@@ -126,6 +126,17 @@ class TestChangeAnalyzer {
             var diff = analyzer.parseGitDiff("nonexistent~" + i, "nonexistent~" + (i + 1), null);
             assertNotNull(diff, "parseGitDiff should return non-null even for invalid refs");
             assertTrue(diff.fileChanges.isEmpty(), "Invalid refs should produce empty diff");
+            assertTrue(diff.truncated,
+                    "P1-6.7-009: a non-zero git exit must be surfaced as truncated, not silently reported as no changes");
         }
+    }
+
+    @Test
+    void testParseGitDiffMissingWorkingDirectoryIsTruncated() {
+        var diff = analyzer.parseGitDiff("HEAD~1", "HEAD", "/definitely/not/a/real/directory-6f7d");
+        assertNotNull(diff);
+        assertTrue(diff.fileChanges.isEmpty());
+        assertTrue(diff.truncated,
+                "P1-6.7-009: a missing working directory must fail loud (truncated=true)");
     }
 }
