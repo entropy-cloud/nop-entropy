@@ -116,9 +116,9 @@
 | P1-2.6-005 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：approval-support 五 mutation 补 `<auth roles="admin"/>`+合并终值断言 TestUseApprovalE2E 扩展+全链 enforcement 测试） | fixed |
 | P1-2.6-006 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：7 个 xbiz 文件 16 项 auth 声明，五侧 merged-model 终值断言含 NopAuthUser_tenant 继承） | fixed |
 | P1-2.6-007 | `2.6-biz-graphql-deep-audit.md` | R1.12/plan 2378（2026-10-09 修复：buildFetcherField 消费 @Auth+xbiz.xdef BizLoaderModel 增 auth 再生成+toBuilder 装配；无注解 loader 群体裁定入 owner doc strict 前置清单） | fixed |
-| P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.0（EquiJoinOperator null 等值键误配——修复需覆盖 OUTER 补齐 matched 语义） | open |
-| P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.0（PerKeyOrderedBuffer.putAll 不搬 insertionSeq——restore 后 seq 对位碰撞静默丢失，探针双面实证） | open |
-| P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.0（hash completeUnmatched 缺水位前缘过滤——ts>wm 补 null+再配对双发，判别回归已验证可行） | open |
+| P1-2.8-001 | `2.8-stream-sql-first-audit.md` | R1.22/plan 2389（2026-10-10 修复：bufferKeyOf null 哨兵+emitMatches null 早退——SQL NULL≠NULL 语义，OUTER 补齐/INNER 修剪保持，字面量 "null" 键正常配对。原处方：String.valueOf(null)="null" 互配消除+OUTER 补齐 matched 语义覆盖） | fixed |
+| P1-2.8-002 | `2.8-stream-sql-first-audit.md` | R1.22/plan 2389（2026-10-10 修复：putAll 推进 insertionSeq+审查 M1 扩张——EquiJoinOperator.restoreState 双路分流（已开直并/未开暂存 open 合并），生产 restore-before-open 序 NPE 同面消除。原处方：putAll 搬 insertionSeq 防恢复后 seq 对位碰撞） | fixed |
+| P1-2.8-003 | `2.8-stream-sql-first-audit.md` | R1.22/plan 2389（2026-10-10 修复：completeUnmatched 水位前缘过滤（ts≤wm 才补齐）——hash 形态消除提前补齐+留缓冲再配对双发；窗口形态触发条件保证无行为变化。原处方：hash 形态补齐加水位前缘） | fixed |
 | P1-3.1-001 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK gate+引擎回调标记窗口+metadata 本地覆盖同步+submit 重提交守卫；E2E 锁定用例+WORKFLOW 全链绿） | fixed |
 | P1-3.1-002 | `3.1-wf-deep-audit.md` | R1.13/plan 2379（2026-10-09 修复：ATTR_WF_SYSTEM_ACTION_TRIGGER 服务端标记+allowCallByUser 入口放行；scanner 标记断言+引擎正负路径双锚） | fixed |
 | P1-3.3-001 | `3.3-batch-deep-audit-a.md` | R1.15/plan 2381（2026-10-09 修复：`<eql>` 全链移除〔EQL 文本无转换器实证〕+newLoaderState 全表兜底 WARN 可观测） | fixed |

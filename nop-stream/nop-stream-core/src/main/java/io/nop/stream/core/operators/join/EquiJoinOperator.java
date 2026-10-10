@@ -86,10 +86,31 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private final Long windowDuration;
     private final long timeout;
 
+    /**
+     * Reserved buffer-key form for a NULL equi-key (P1-2.8-001, plan 2389). SQL join
+     * semantics: NULL never equals NULL (nor anything else), so null-keyed records must
+     * never match — not even each other. {@code String.valueOf(null)} is the string
+     * {@code "null"}, which would collide with a legitimate string equi-key {@code "null"}
+     * and produce phantom matches. The sentinel deliberately avoids {@code SEP}
+     * ({@code \u0000}) so the side/window parsing remains well-formed; a residual
+     * collision is only possible for a contrived non-null key whose toString equals this
+     * exact reserved form (same tolerance class as the separator constraint, see
+     * P3-2.8-003 ledger).
+     */
+    static final String NULL_EQUI_KEY_BUFFER_PREFIX = "\u0001null\u0001";
+
     /** working view: bufferKey → ordered entries (restored through the operator-state transport). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, JoinSideRecord<Object>> bufferState;
+
+    /**
+     * Restore-before-open stash (P1-2.8-002, plan 2389): recovery paths rebuild the
+     * operator chain and call {@link #restoreState} before {@link #open()} creates the
+     * transient working buffer — the restored snapshot is stashed here and merged in
+     * open() (WindowOperator / SourceReaderOperator precedent).
+     */
+    private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> pendingRestoredBuffer;
 
     private static final String JOIN_OUTPUTS_METRIC_NAME = "numJoinOutputsEmitted";
 
@@ -127,6 +148,12 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             applyPendingRestoreState();
         }
         buffer = new PerKeyOrderedBuffer<>();
+        if (pendingRestoredBuffer != null) {
+            // P1-2.8-002 (plan 2389): restoreState ran before open() on a rebuilt chain —
+            // merge the stashed snapshot now that the working buffer exists.
+            buffer.putAll(pendingRestoredBuffer);
+            pendingRestoredBuffer = null;
+        }
         if (keyedStateBackend != null) {
             bufferState = rawKeyedBackend().getMapState(
                     new MapStateDescriptor(BUFFER_STATE, String.class, JoinSideRecord.class));
@@ -161,7 +188,19 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
         if (snapshotResult != null) {
             Object restored = snapshotResult.getOperatorState(BUFFER_STATE);
             if (restored instanceof PerKeyOrderedBuffer) {
-                buffer.putAll((PerKeyOrderedBuffer<String, JoinSideRecord<Object>>) restored);
+                PerKeyOrderedBuffer<String, JoinSideRecord<Object>> restoredBuffer =
+                        (PerKeyOrderedBuffer<String, JoinSideRecord<Object>>) restored;
+                if (buffer != null) {
+                    // already-open sequence (harness / late re-restore): merge directly
+                    buffer.putAll(restoredBuffer);
+                } else {
+                    // P1-2.8-002 (plan 2389): restoreState runs before open() on recovery
+                    // paths (SupervisionLoop.rebuildTask → restoreOperatorsFromState on a
+                    // freshly deep-copied chain) — the transient working buffer does not
+                    // exist yet. Stash; open() merges it (putAll advances the insertion
+                    // seq past the restored entries).
+                    this.pendingRestoredBuffer = restoredBuffer;
+                }
             }
         }
     }
@@ -267,6 +306,13 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     // ----------------------------------------------------------------
 
     private void emitMatches(JoinSideRecord<Object> rec, long ts) throws Exception {
+        // P1-2.8-001 (plan 2389): SQL join semantics — a NULL equi-key matches nothing
+        // (not even another NULL). The record still buffers and completes as unmatched
+        // on OUTER forms; String.valueOf(null) would otherwise collide with the literal
+        // "null" key and emit phantom pairs, robbing both sides of their outer completion.
+        if (rec.getEquiKey() == null) {
+            return;
+        }
         String otherKey = bufferKeyOf(rec.getEquiKey(), !rec.isLeft(), ts);
         for (long[] tsKey : buffer.sortedTimestamps(otherKey)) {
             JoinSideRecord<Object> other = buffer.valueAt(otherKey, tsKey);
@@ -285,7 +331,19 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     }
 
     private void completeUnmatched(String key) throws Exception {
+        // P1-2.8-003 (plan 2389): completion frontier is the watermark. Without this
+        // filter, hash-form completion (run before trim) would complete out-of-order
+        // records with ts > watermark prematurely AND leave them buffered — the later
+        // arriving partner then pairs with them again = double emission (exactly-once
+        // violation). Window form is unaffected: its fire condition
+        // (wm >= winStart+duration+timeout) guarantees every buffered ts <= watermark.
+        // Records beyond the frontier stay buffered and complete exactly once when the
+        // watermark passes them (completions never set the matched flag — they are
+        // removed by trim/drop in the same pass, so no re-completion is possible).
         for (long[] tsKey : buffer.sortedTimestamps(key)) {
+            if (tsKey[0] > currentWatermark) {
+                continue;
+            }
             JoinSideRecord<Object> rec = buffer.valueAt(key, tsKey);
             if (!rec.isMatched()) {
                 output.collect(new StreamRecord<>(completionOf(sideOf(key), rec), tsKey[0]));
@@ -366,7 +424,9 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     }
 
     private String bufferKeyOf(Object equiKey, boolean left, long ts) {
-        String key = String.valueOf(equiKey) + SEP + (left ? LEFT_TAG : RIGHT_TAG);
+        // null equi-key uses the reserved sentinel form (see NULL_EQUI_KEY_BUFFER_PREFIX)
+        String key = (equiKey == null ? NULL_EQUI_KEY_BUFFER_PREFIX : String.valueOf(equiKey))
+                + SEP + (left ? LEFT_TAG : RIGHT_TAG);
         if (windowDuration != null) {
             key = key + SEP + windowStart(ts);
         }
@@ -450,6 +510,11 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
             }
         }
         return false;
+    }
+
+    /** test/diagnostic: whether a restored snapshot is stashed awaiting open() (P1-2.8-002). */
+    public boolean hasPendingRestoredBuffer() {
+        return pendingRestoredBuffer != null;
     }
 
     /** test/diagnostic: total buffered (working view) entries across all keys. */

@@ -52,11 +52,28 @@ public class PerKeyOrderedBuffer<K, V> implements Serializable {
         }
     }
 
-    /** merge another buffer's entries into this one (restore path). */
+    /**
+     * Merge another buffer's entries into this one (restore path). The receiving
+     * instance's insertion counter is advanced past the largest merged seq
+     * (P1-2.8-002, plan 2389) — otherwise post-restore {@link #add} calls allocate
+     * seqs that collide with restored entries at the same timestamp, and the TreeMap
+     * put silently REPLACES the restored entry (same comparator-equal key), dropping
+     * restored records from the working view. Invariant: after putAll, future adds
+     * are seq-monotonic across the merged set.
+     */
     public void putAll(PerKeyOrderedBuffer<K, V> other) {
+        long maxMergedSeq = -1L;
         for (Map.Entry<K, TreeMap<long[], V>> e : other.buffers.entrySet()) {
             TreeMap<long[], V> tree = buffers.computeIfAbsent(e.getKey(), k -> new TreeMap<>(TsSeqComparator.INSTANCE));
             tree.putAll(e.getValue());
+            for (long[] tsKey : e.getValue().keySet()) {
+                if (tsKey[1] > maxMergedSeq) {
+                    maxMergedSeq = tsKey[1];
+                }
+            }
+        }
+        if (maxMergedSeq >= insertionSeq) {
+            insertionSeq = maxMergedSeq + 1;
         }
     }
 

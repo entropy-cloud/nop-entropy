@@ -24,6 +24,10 @@
 
 `SourceReaderOperator.restoreState` 支持恢复路径的 restore-先于-open 时序（`SupervisionLoop.rebuildTask` 对新建链恢复时 reader 尚未创建）：per-split 位点暂存于 operator，`open()` 内按「reader 创建 → enumerator 交付 flush（追加语义）→ restore flush（**替换语义**，后到者为准）→ `reader.start()`」顺序 flush——`SourceReader.restoreState` 契约为 "Called before start() on recovery"。恢复→重开→续读的 reader 侧位点不丢。
 
+## 双流等值 join 语义注记（P1-2.8-001/002/003，plan 2389）
+
+EquiJoinOperator（hash/window 双形态）三条契约：①NULL 等值键不与任何记录配对（SQL NULL 语义，含另一 NULL），OUTER 形态按未匹配补齐、INNER 随水位修剪丢弃，缓冲键以保留哨兵承载（不与字面量 "null" 键碰撞）；②补齐前缘=水位——仅 ts≤watermark 的未匹配记录被补齐，乱序未越界记录留下轮，配对恰一次（exactly-once）；③恢复路径 restoreState 先于 open（rebuild 链 transient 未建）时快照暂存、open 时合并，合并推进插入序号保证 restore 后新增元素不覆盖恢复条目。规范性设计档为平台内部文档（ai-dev/design/nop-stream/ 下 join-operator 档 §3，按 docs-for-ai 边界规则不以路径引用）。
+
 ## 可观测性与运维面
 
 ### 分层指标标准集（P-REQ-1 / P-REQ-8）

@@ -21,7 +21,7 @@ WI8d 交付了 join 声明面（joins 注册表 + joinRef + 八项构造期校�
 
 - 拓扑形态：`left 流 + right 流 → union → keyBy(joinKey) → process(join 算子)`——与 roadmap §3.1 裁定一致（HASH 边与 keyBy 互斥后，共置唯一机制是 union 后 keyBy）。
 - 算子形态：keyed process 算子（`KeyedProcessFunction` 家族或等价），双侧缓冲以 **keyed state** 承载（§三 #8 拒绝自管 HashMap；§十 明确窗口状态走 namespace-based keyed state——join 缓冲同规则）。
-- 语义（WI13 落地）：配对即时发射（后到元素与对侧已缓冲记录配对，每 key 笛卡尔积，恰一次）；LEFT/RIGHT/FULL 的补齐在 watermark 推进时发放且仅对从未匹配的记录（matched 旗标工作视图与 keyed durable 副本同步翻转）；INNER 零补齐。补齐时机若取元素到达即时发放，乱序下同一记录会补齐+配对双发——watermark 门是乱序安全的最小时机。
+- 语义（WI13 落地）：配对即时发射（后到元素与对侧已缓冲记录配对，每 key 笛卡尔积，恰一次）；LEFT/RIGHT/FULL 的补齐在 watermark 推进时发放且仅对从未匹配的记录（matched 旗标工作视图与 keyed durable 副本同步翻转）；INNER 零补齐。补齐时机若取元素到达即时发放，乱序下同一记录会补齐+配对双发——watermark 门是乱序安全的最小时机。**补齐前缘=水位（P1-2.8-003，plan 2389）**：仅 ts≤watermark 的未匹配记录被补齐；ts>watermark 的乱序记录留下轮（提前补齐+留缓冲再配对=双发）。**NULL 等值键 SQL 语义（P1-2.8-001，plan 2389）**：null join key 与任何记录（含另一 null）都不配对；OUTER 形态下按未匹配补齐、INNER 随修剪丢弃；缓冲键用保留哨兵形态承载（见算子 javadoc NULL_EQUI_KEY_BUFFER_PREFIX）。
 - joinType 的 `isOuter()` 在算子补齐分支中消费（WI8d audit M-2 义务已由 TestEquiJoinHashSemantics.isOuterConsumedDrivesCompletionBranch 履行）。
 - 状态有界性：hash join 的匹配寿命止于 watermark 边界——水位越过的记录即被修剪（配对后不再参与后续匹配），状态规模与水位内未决记录数成正比，无界增长被结构性排除。代价是已修剪记录不再与后来的新记录配对（晚到数据按引擎既有 fire-and-update 语义丢弃，D9 口径）。
 
