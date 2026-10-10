@@ -162,11 +162,15 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
 
         <!-- Source 节点：实现 SourceFunction 接口。U3/deferred-unlock：rateLimitRowsPerSecond/
              rateLimitBytesPerSecond 声明作业级限速（引擎 SourceRateLimiter 令牌桶，与 connector
-             参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装） -->
+             参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装）。
+             U4/deferred-unlock：tableId 声明表身份（可选）——源记录在发射点盖
+             withChangeMetadata(INSERT, tableId)；值自带 ChangeSemanticView 时以值为准；
+             空/缺省=未声明 -->
         <source maxParallelism="!int=0"
                 consistencyCapability="!enum:io.nop.stream.core.common.functions.source.SourceConsistencyCapability=AT_LEAST_ONCE"
                 rateLimitRowsPerSecond="!long=0"
                 rateLimitBytesPerSecond="!long=0"
+                tableId="string"
                 xdef:name="StreamSourceModel" xdef:ref="StreamTransformModel">
             <outputType>generic-type</outputType>
             <source>xpl-fn:(ctx)=>void</source>

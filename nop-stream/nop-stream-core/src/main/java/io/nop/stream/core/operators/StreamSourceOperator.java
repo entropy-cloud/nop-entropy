@@ -84,6 +84,15 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
 
     private final SourceFunction<OUT> sourceFunction;
 
+    /**
+     * U4 (deferred-unlock, plan 2377): table identity declared on the DSL {@code <source>}
+     * node, carried here through the graph generator so both emission points stamp
+     * {@code withChangeMetadata(INSERT, tableId)}. Null = undeclared (historic default).
+     * Must survive {@link #copyForSubtask()} — every executed source in a real job
+     * (any out-edge) is a copy.
+     */
+    private final String declaredTableId;
+
     private volatile boolean isRunning = true;
 
     /**
@@ -94,7 +103,20 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
     private volatile boolean finished = false;
 
     public StreamSourceOperator(SourceFunction<OUT> sourceFunction) {
+        this(sourceFunction, null);
+    }
+
+    public StreamSourceOperator(SourceFunction<OUT> sourceFunction, String declaredTableId) {
         this.sourceFunction = sourceFunction;
+        this.declaredTableId = declaredTableId;
+    }
+
+    /**
+     * U4: read accessor for wiring pins — the declaration must be observable on the
+     * operator the graph generator builds, not only on the transformation.
+     */
+    String getDeclaredTableId() {
+        return declaredTableId;
     }
 
     /**
@@ -203,7 +225,9 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      */
     @Override
     public StreamSourceOperator<OUT> copyForSubtask() {
-        return new StreamSourceOperator<>(sourceFunction);
+        // U4: the declared tableId must survive the copy — every executed source in a
+        // real job (any out-edge) is a copy built here, not the graph-generator instance.
+        return new StreamSourceOperator<>(sourceFunction, declaredTableId);
     }
 
     /**
@@ -217,7 +241,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
         SourceFunction<OUT> fn = this.sourceFunction;
         if (fn instanceof SubtaskShardedSourceFunction) {
             SubtaskShardedSourceFunction<OUT> sharded = (SubtaskShardedSourceFunction<OUT>) fn;
-            return new StreamSourceOperator<>(sharded.copyForSubtask(subtaskIndex));
+            return new StreamSourceOperator<>(sharded.copyForSubtask(subtaskIndex), declaredTableId);
         }
         return copyForSubtask();
     }
@@ -244,7 +268,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(applyChangeMetadata(new StreamRecord<>(element), element));
+                output.collect(applyChangeMetadata(new StreamRecord<>(element), element, declaredTableId));
             }
 
             @Override
@@ -254,7 +278,7 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
                 if (recordCounter != null) {
                     recordCounter.accept(1L);
                 }
-                output.collect(applyChangeMetadata(new StreamRecord<>(element, timestamp), element));
+                output.collect(applyChangeMetadata(new StreamRecord<>(element, timestamp), element, declaredTableId));
             }
 
             @Override
@@ -321,9 +345,25 @@ public class StreamSourceOperator<OUT> extends AbstractStreamOperator<OUT> {
      * {@code ChangeSemanticView} value. No-op for plain values (the historic default).
      */
     static <T> StreamRecord<T> applyChangeMetadata(StreamRecord<T> record, Object value) {
+        return applyChangeMetadata(record, value, null);
+    }
+
+    /**
+     * U4 (deferred-unlock, plan 2377): stamps engine-level change metadata with the
+     * declared-tableId precedence: a value-provided {@code ChangeSemanticView} WINS
+     * (per-record CDC identity is richer than the static declaration — overriding it
+     * would corrupt real change streams); otherwise a non-null declared tableId stamps
+     * {@code withChangeMetadata(INSERT, tableId)}; otherwise the record is untouched.
+     * The FLIP-27 path ({@code SourceReaderOperator}) keeps calling the 2-arg form —
+     * declared tableId does not apply there (successor registered).
+     */
+    static <T> StreamRecord<T> applyChangeMetadata(StreamRecord<T> record, Object value,
+                                                   String declaredTableId) {
         if (value instanceof io.nop.api.core.stream.ChangeSemanticView) {
             io.nop.api.core.stream.ChangeSemanticView view = (io.nop.api.core.stream.ChangeSemanticView) value;
             record.withChangeMetadata(view.getRowKind(), view.getTableId());
+        } else if (declaredTableId != null) {
+            record.withChangeMetadata(io.nop.api.core.stream.RowKind.INSERT, declaredTableId);
         }
         return record;
     }

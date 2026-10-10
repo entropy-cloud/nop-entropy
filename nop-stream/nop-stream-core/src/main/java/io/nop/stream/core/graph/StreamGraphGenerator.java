@@ -251,9 +251,11 @@ public class StreamGraphGenerator {
      * @param <OUT> the output type of the source
      */
     private <OUT> void transformSource(SourceTransformation<OUT> transformation) {
-        // Create operator factory wrapper for the source function
+        // Create operator factory wrapper for the source function. U4: the declared
+        // tableId rides the factory so the operator stamps (INSERT, tableId) at emission.
         StreamOperatorFactory<OUT> operatorFactory =
-            new SourceOperatorFactory<>(transformation.getSourceFunction());
+            new SourceOperatorFactory<>(transformation.getSourceFunction(),
+                    transformation.getDeclaredTableId());
         addSourceNode(transformation, operatorFactory);
     }
 
@@ -528,18 +530,28 @@ public class StreamGraphGenerator {
         private static final long serialVersionUID = 1L;
         
         private final SourceFunction<OUT> sourceFunction;
-        
+        private final String declaredTableId;
+
         public SourceOperatorFactory(SourceFunction<OUT> sourceFunction) {
-            this.sourceFunction = sourceFunction;
+            this(sourceFunction, null);
         }
-        
+
+        public SourceOperatorFactory(SourceFunction<OUT> sourceFunction, String declaredTableId) {
+            this.sourceFunction = sourceFunction;
+            this.declaredTableId = declaredTableId;
+        }
+
         public SourceFunction<OUT> getSourceFunction() {
             return sourceFunction;
         }
-        
+
+        public String getDeclaredTableId() {
+            return declaredTableId;
+        }
+
         @Override
         public StreamOperator<OUT> createStreamOperator(TypeInformation<OUT> outputType) {
-            return new StreamSourceOperator<>(sourceFunction);
+            return new StreamSourceOperator<>(sourceFunction, declaredTableId);
         }
         
         @Override
