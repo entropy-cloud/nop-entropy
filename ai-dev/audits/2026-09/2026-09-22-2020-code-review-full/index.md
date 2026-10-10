@@ -297,7 +297,7 @@
 | R1.42 | done | plan 2408（2026-10-10，plan review 两轮 NOT READY→READY，纯文档批）：①P1-5.1-001 核验 R1.10 已承载零残留；②P1-5.1-002 六处统一 R1.10 修复后事务入口矩阵口径（runbook 新增矩阵节+INDEX/nop-task/TXN-001 对齐）；③P1-5.1-003 幻影注解清零（beans.xml 教程+装载规则）；④P1-5.2-001 maker-checker/03 草稿态标注（设计内容零删改）；doc-links 0 errors；closure audit 见 plan 2408 Closure 段 |
 | R2.0 | todo | |
 | V.1 | done | 2026-10-10：5 轮全量回归首建测试基线（454 模块全覆盖，报告 V.1-full-regression.md）——新增失败=0；1 预存测试数据缺陷修复销账（R1.9 UK vs job test taskNo）+3 负载 flaky watch（lint/stream-runtime/graphql testLoad 键序）+1 预存配置缺陷入清单（nop-code-web IHttpClient，P2 通道） |
-| V.2 | todo | |
+| V.2 | done | 2026-10-10：独立子 agent 8/8 全 VERIFIED 判定 PASS（P0×4 + 关键 P1×6 + Anti-Hollow×3；live 逐锚+重放+git 溯源），报告 V.2-fix-closure-audit.md |
 | V.3 | todo | |
 | G.1 | todo | |
 | G.2 | todo | |
