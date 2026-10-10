@@ -112,11 +112,17 @@ jobs:
           java-version: '21'
           distribution: 'temurin'
           cache: maven
-      - name: Build flow + runtime modules
-        run: mvn -q -pl nop-stream/nop-stream-flow,nop-stream/nop-stream-runtime -am -DskipTests install
-      - name: Run 12-scenario acceptance suites (E1-E12)
+      - name: Build flow + sql + runtime modules
+        run: mvn -q -pl nop-stream/nop-stream-flow,nop-stream/nop-stream-sql,nop-stream/nop-stream-runtime -am -DskipTests install
+      - name: Run 12-scenario acceptance suites (E1-E12) + deferred-unlock declaration E2Es
         run: |-
-          mvn -pl nop-stream/nop-stream-runtime test -Dtest='TestXdslScenarioE1,TestXdslScenarioE2,TestXdslScenarioE3,TestXdslScenarioE4,TestXdslScenarioE5,TestXdslScenarioE6,TestXdslScenarioE7,TestXdslScenarioE8,TestXdslScenarioE9,TestXdslScenarioE10,TestXdslScenarioE11,TestXdslScenarioE12' -DfailIfNoTests=true
-      - name: Run release-face regression pins (WI12/WI13/WI14/WI15)
+          mvn -pl nop-stream/nop-stream-runtime test -Dtest='TestXdslScenarioE1,TestXdslScenarioE2,TestXdslScenarioE3,TestXdslScenarioE4,TestXdslScenarioE5,TestXdslScenarioE6,TestXdslScenarioE7,TestXdslScenarioE8,TestXdslScenarioE9,TestXdslScenarioE10,TestXdslScenarioE11,TestXdslScenarioE12,TestSourceRateLimitE2E,TestSourceTableIdE2E' -DfailIfNoTests=true
+      - name: Run release-face regression pins (WI12/WI13/WI14/WI15) + deferred-unlock declaration pins
         run: |-
-          mvn -pl nop-stream/nop-stream-flow test -Dtest='TestWi12RegistryFamilies,TestStreamModelDslBuilderFailFast,TestStreamModelEdgeContract,TestWi15EndpointAttributes' -DfailIfNoTests=true
+          mvn -pl nop-stream/nop-stream-flow test -Dtest='TestWi12RegistryFamilies,TestStreamModelDslBuilderFailFast,TestStreamModelEdgeContract,TestWi15EndpointAttributes,TestSourceRateLimitDeclaration,TestSourceTableIdDeclaration' -DfailIfNoTests=true
+      - name: Run deferred-unlock core stamping pins (U3 rate-limit wrapper / U4 tableId stamping / WI7 bridge)
+        run: |-
+          mvn -pl nop-stream/nop-stream-core test -Dtest='TestRateLimitedSourceFunction,TestDeclaredTableIdStamping,TestChangeMetadataBridgeAndGuard' -DfailIfNoTests=true
+      - name: Run deferred-unlock U2 transform-SQL fragment pins
+        run: |-
+          mvn -pl nop-stream/nop-stream-sql test -Dtest='TestSqlTransformFragmentCompile,TestSqlTransformE2E' -DfailIfNoTests=true
