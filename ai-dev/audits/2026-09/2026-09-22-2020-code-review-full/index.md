@@ -295,13 +295,13 @@
 | R1.40 | done | plan 2406（2026-10-10，plan review 三轮 NOT READY→READY）：HTTP 适配层测试补齐（spring 22/0/0、quarkus 13/0/0、auth-core 118/0/0）+ 生产修复 getRequestUrl queryString / AuthHttpServerFilter 判据；逐实现期望表 + 分歧清单；mutation 腿 6/6 判别；doc-links 0；hollow 两模块 0；独立 closure audit PASS（plan 2406 Closure 段） |
 | R1.41 | done | plan 2407（2026-10-10，plan review 两轮 NOT READY→READY〔B1 Validator 不校验 transition target/M1 fake 面欠规格/M2 动作类型 IEvalAction≠IEvalFunction〕）：四模块测试有效性补齐——batch-orm `TestOrmBatchConsumer` 8/sentinel `TestSentinelFlowControlRunner` 6/fsm `TestStateMachine` 12（测试树首建）/commons TestStringHelper 清理 6 反模式+isWhitespace pinning；mutation 腿 8/8 判别；**附带生产修复** `_escapeControlAscii` append(int)→(char)（判别测试暴露）；owner doc testing.md 反模式+pinning 两节；doc-links 0 errors；四模块全绿；closure audit 见 plan 2407 Closure 段 |
 | R1.42 | done | plan 2408（2026-10-10，plan review 两轮 NOT READY→READY，纯文档批）：①P1-5.1-001 核验 R1.10 已承载零残留；②P1-5.1-002 六处统一 R1.10 修复后事务入口矩阵口径（runbook 新增矩阵节+INDEX/nop-task/TXN-001 对齐）；③P1-5.1-003 幻影注解清零（beans.xml 教程+装载规则）；④P1-5.2-001 maker-checker/03 草稿态标注（设计内容零删改）；doc-links 0 errors；closure audit 见 plan 2408 Closure 段 |
-| R2.0 | todo | |
+| R2.0 | done | plan 2409（2026-10-10）：承接 R1.0 遗留义务——P2 裁决台账 45 行 deferred-watch 清账（WNB+Successor 三要素+升级触发保留）+ index 登记缺口修正（P1-6.7-005/006）+ 修复冲突 sweep 五起交叉事件全在案；closure audit Cannot Close→修正后关（plan 2409 Closure 段） |
 | V.1 | done | 2026-10-10：5 轮全量回归首建测试基线（454 模块全覆盖，报告 V.1-full-regression.md）——新增失败=0；1 预存测试数据缺陷修复销账（R1.9 UK vs job test taskNo）+3 负载 flaky watch（lint/stream-runtime/graphql testLoad 键序）+1 预存配置缺陷入清单（nop-code-web IHttpClient，P2 通道） |
 | V.2 | done | 2026-10-10：独立子 agent 8/8 全 VERIFIED 判定 PASS（P0×4 + 关键 P1×6 + Anti-Hollow×3；live 逐锚+重放+git 溯源），报告 V.2-fix-closure-audit.md |
-| V.3 | todo | |
-| G.1 | todo | |
-| G.2 | todo | |
-| G.3 | todo | |
+| V.3 | done | 2026-10-10：summary.md 撰写 + 矩阵 ❓ 79→0 终态回填 + roadmap 状态收口（四方一致核对） |
+| G.1 | done | 2026-10-10：lessons 17（全量回归三重假象与普查方法论）/18（治理文本静默替换失配）+ README 索引同步 |
+| G.2 | done | 2026-10-10：owner doc 增量经各 plan 落地（doc-links 0）；unit-test-antipatterns skill 增 P-9 触及 SUT 反模式 |
+| G.3 | done | 2026-10-10：roadmap/index/summary/矩阵/log 四方一致终检通过，轮次闭环 |
 
 ## 汇总
 

@@ -1,6 +1,6 @@
 # 全仓代码审查路线图（full-code-review）
 
-> 最后更新：2026-10-09（v7 — R1.0 展开器产物：42+2=44 行 R1.x 增补；v6 — 基线刷新增补：新增 0.5 基线刷新 + 1.9/1.10/2.8/4.6 四个 Wave 1 工作项，覆盖 2026-09-22 基线后新增的模块组与子模块；修订 1.5/6.1 的 jq 空壳前提、7.1 增量窗口、7.2/7.4 增量注记；审核工作项 50→54。v5 = 第四轮收敛审查共识达成；v4 = 第三轮 F1–F7；v3 = 第二轮 N1–N9；v2 = 第一轮 F1–F7）
+> 最后更新：2026-10-10（**轮次收口**——Wave 0–3 全部工作项 done：V.1 全量回归 454 模块新增失败=0、V.2 修复闭环审核 8/8 PASS、V.3 summary/矩阵终态、G.1-G.3 沉淀收口；v7 — R1.0 展开器产物：42+2=44 行 R1.x 增补；v6 — 基线刷新增补：新增 0.5 基线刷新 + 1.9/1.10/2.8/4.6 四个 Wave 1 工作项，覆盖 2026-09-22 基线后新增的模块组与子模块；修订 1.5/6.1 的 jq 空壳前提、7.1 增量窗口、7.2/7.4 增量注记；审核工作项 50→54。v5 = 第四轮收敛审查共识达成；v4 = 第三轮 F1–F7；v3 = 第二轮 N1–N9；v2 = 第一轮 F1–F7）
 > 来源：`ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`
 > 关联轮次目录：`ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/`
 > Mission 配置：`missions/full-code-review.json`
@@ -180,10 +180,10 @@
 |---|-----------|--------|-----------|------|-------|
 | V.1 | 全量回归：`./mvnw test -T 1C`（与规则 #10/mission commands 同口径；如需验证安装链另跑 `clean install -DskipTests`）——先记录预存失败清单，再以「修复后无新增失败」为通过标准；报告落 V.1-full-regression.md（执行时创建于轮次子目录，命名遵循规则 #2），路径登记 index | done（2026-10-10，5 轮执行首建全量测试基线：454 模块全覆盖——4 次全量（三次被单点失败 fail-fast 截断于不同模块+一次 ignore 标志被根 pom testFailureIgnore=false 硬配置压制）+77 个未启动模块补查；**新增失败=0**：5 个失败点逐项甄别=1 预存测试数据缺陷（R1.9 UK vs TestNopJobFireBizModel taskNo=1,1，本批按 R1.9 先例修复销账 49/49 绿）+3 负载敏感 flaky（lint/stream-checkpoint/graphql testLoad JSON 键序，各自单跑绿、lint 经基线 worktree 双验非本会话引入）+1 预存配置缺陷（nop-code-web 缺 IHttpClient bean，入预存清单走 P2 通道）；报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/V.1-full-regression.md`） | 轮次子目录 | R2.0 | none |
 | V.2 | 修复项独立 closure audit（全部 P0 + 关键 P1 抽样回归） | done（2026-10-10，独立子 agent 8/8 项全 VERIFIED 判定 **PASS**——报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/V.2-fix-closure-audit.md`：A 全部 P0×4（plan 2320 NOT 语义族三锚+32/32 重放、plan 2327 SumAgg 三通道+19/19）+ B 关键 P1 抽样×6（R1.5 3/3、R1.8 含 docker 真实 Redis Cluster 8/8、R1.12 enforcement 2/2、R1.28 lucene 22+core 19、R1.10b 7/7、R1.22 join 判别全绿）+ C Anti-Hollow×3（SumAgg 工厂→SPI→beans 注册链/auth 声明→引擎消费 enforcement/requestDispatch 活性承载）——live 逐锚+测试重放+git 溯源三重验证，零 OVERCLAIM 零静默跳过；Minor×2 观察级（Vault keys 非泄漏勿双立、任务书命名出入）） | 轮次子目录 | V.1 | `plan-closure-audit-prompt.md` |
-| V.3 | 轮次 `summary.md` 汇总 + 矩阵终态回填 + 本 roadmap 状态收口 | todo | 矩阵文件 | V.2 | `closure-audit-prompt.md` |
-| G.1 | 新失败模式沉淀 `ai-dev/lessons/` | todo | `ai-dev/lessons/README.md` | V.3 | — |
-| G.2 | owner docs（docs-for-ai/）与 skills 同步 | todo | `docs-for-ai/INDEX.md` | V.3 | — |
-| G.3 | 本 roadmap 终态收口（文本一致性核对 + 日志收口） | todo | 本文件 | V.3, G.1, G.2 | — |
+| V.3 | 轮次 `summary.md` 汇总 + 矩阵终态回填 + 本 roadmap 状态收口 | done（2026-10-10：summary.md 落盘（55 篇 Wave 1 报告 P0=4/P1=86/P2=322/P3=596 + 修复闭环率 + 残留风险清单）；矩阵 ❓ 79→0 终态回填（逐格映射覆盖工作项）；本 roadmap Work Item Status 全表 done + index/summary/matrix/log 四方一致核对） | 矩阵文件 | V.2 | `closure-audit-prompt.md` |
+| G.1 | 新失败模式沉淀 `ai-dev/lessons/` | done（2026-10-10：lessons 17/18 两条——17 全量回归三重假象（陈旧 ~/.m2 工件假绿假红/fail-fast 截断/pom 硬配置压制 ignore 开关，含甄别顺序与普查方法论）；18 治理文本静默替换失配（replace 无断言等于没做，含收口顺序固化）；lessons README 索引同步） | `ai-dev/lessons/README.md` | V.3 | — |
+| G.2 | owner docs（docs-for-ai/）与 skills 同步 | done（2026-10-10：owner doc 本批增量已在各 plan 落地并经 doc-links --strict 0 errors（testing.md 触及 SUT 反模式+isWhitespace pinning、api-and-graphql.md 批量 loader dispatch 时机+事务入口矩阵、transaction-boundaries.md 入口矩阵节）；G.2 终验：三处新增段在位 grep 实证；skills 同步——unit-test-antipatterns.md 增 P-9「断言目标不是 SUT（名义测试）」引用 testing.md 规则） | `docs-for-ai/INDEX.md` | V.3 | — |
+| G.3 | 本 roadmap 终态收口（文本一致性核对 + 日志收口） | done（2026-10-10：文本一致性终检——Work Item Status 全表 62 行 done、与 index「报告清单 55 行+MR/MV/MG 节」、summary.md、矩阵终态（❓=0）、daily log 四方核对一致；MV/MG 全里程碑完成，轮次闭环） | 本文件 | V.3, G.1, G.2 | — |
 
 ## 框架/平台复用
 

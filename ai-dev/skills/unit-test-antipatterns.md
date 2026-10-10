@@ -245,6 +245,27 @@ void testEmptyInput() {
 
 ---
 
+### P-9. 断言目标不是 SUT（名义测试）
+
+```java
+// ❌ 断言的是 JDK 等价 API，不是本模块被测代码——SUT 行为改变时测试仍绿
+@Test
+public void testWhitespace() {
+    assertTrue(Character.isWhitespace('\n'));   // 应为 StringHelper.isWhitespace
+}
+
+@Test
+public void testFileName() throws IOException {
+    File file = new File("\u007F");
+    file.createNewFile();                        // 只测了 java.io.File，与 SUT 无关
+    assertTrue(file.exists());
+    file.delete();
+}
+```
+
+**规则**：断言目标必须是本模块 SUT；与 JDK 存在刻意语义分歧的（如 `StringHelper.isWhitespace` 的 XML 6 字符集），用 pinning 断言锚定分歧点并注明"勿改为代理 JDK"。零断言（仅打印）的测试方法必须补断言或删除。详见 `docs-for-ai/02-core-guides/testing.md`「测试必须触及 SUT（反模式）」。
+
+
 ## 写测试前的检查清单
 
 写每个 `@Test` 方法前问自己：

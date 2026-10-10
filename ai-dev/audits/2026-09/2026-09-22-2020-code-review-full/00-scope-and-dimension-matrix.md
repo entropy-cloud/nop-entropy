@@ -65,30 +65,30 @@
 
 | 模块组 | ① | ② | ③ | ④ | ⑤ | ⑥ | ⑦ | ⑧ |
 |---|---|---|---|---|---|---|---|---|
-| nop-kernel | ❓ | ❓ | ❓（api-core 支撑面） | ❓ | ⚠️（仅执行后端设计 review r5 PASS） | ⚠️（测试比 14%，已知热点清单） | ❓ | ❓（3 处吞异常已知） |
-| nop-core-framework | ❓ | N/A | ⚠️（IoC 仅消费方视角） | ⚠️（CORE-01..03；CORE-02 defer 未修） | ❓ | ⚠️（nop-config 6 测试/40 类） | ⚠️（CORE-01：缺 owner doc） | ❓ |
-| nop-persistence | ❓ | ⚠️（check2：eql P0 未修） | ❓ | ⚠️（注入面初查良好，未深审） | ⚠️（check2：migration 2 P0、nosql P0 未修） | ⚠️（eql 8 测试/221 类） | ❓ | ⚠️（check2 静默失败族群） |
-| nop-service-framework | ❓ | N/A | ⚠️（api-audit done；BizModel 规范触及） | ⚠️（fail-open 三处已知） | ⚠️ | ⚠️（CrudBizModel 2272 行） | ❓ | ❓ |
-| 业务样板（auth/job/task/wf） | ❓ | ⚠️ | ⚠️ | ⚠️（auth 闭环；wf WF-01..03 未闭环） | ⚠️（task continuation-skip P0 等） | ⚠️（wf 测试比 10%） | ⚠️ | ❓ |
-| 可复用业务（sys/report/rule/batch/dyn/file/retry/tcc/metadata） | ❓ | ⚠️（metadata 闭环；其余单轮） | ⚠️ | ⚠️（FILE/DYN 单点；batch/report/sys/rule 盲区） | ⚠️（sys 锁反向 P0、tcc 误标 P0 未跟踪） | ⚠️ | ❓ | ❓ |
+| nop-kernel | ⚠️（1.3 结构深审） | ⚠️（1.3；1.2 执行链） | ⚠️（1.4 api-core/commons 支撑面） | ⚠️（1.3 VFS/反射/XNode/类型体系） | ⚠️（1.2 执行后端设计 review r5 PASS） | ⚠️（4.2 测试比核定） | ⚠️（4.1/6.2 扫描覆盖） | ⚠️（6.2 吞异常清单） |
+| nop-core-framework | ⚠️（1.6 六模块结构边界） | N/A | ⚠️（2.7 IoC 全域扫描：211 @Inject 零违规） | ⚠️（1.6 复核：CORE-01..03 标定） | ⚠️（1.6 boot/config/log 面） | ⚠️（4.2 抽样） | ⚠️（5.1/5.2 owner doc 核对） | ⚠️（6.2 扫描覆盖） |
+| nop-persistence | ⚠️（2.3 dao/migration/dbtool 深审） | ⚠️（2.2 深审后 P0 已修，P1/P2 闭账） | ⚠️（2.2 eql 深审 60 发现） | ⚠️（2.7 注入全域扫描） | ⚠️（2.3/2.4 复核：check2 P0 全 already-fixed） | ⚠️（4.2 抽样） | ⚠️（4.1/6.2 扫描覆盖） | ⚠️（6.2 吞异常清单） |
+| nop-service-framework | ⚠️（1.7 分层与边界合规） | N/A | ⚠️（2.6/2.7 BizModel 规范扫描） | ⚠️（2.6 fail-open 终裁+R1.12 双配置键收口） | ⚠️（R1.10 事务装饰器） | ⚠️（4.3 巨型文件台账） | ⚠️（4.1 扫描） | ⚠️（6.2 扫描） |
+| 业务样板（auth/job/task/wf） | ⚠️（3.1/3.2/7.5 深审+增量） | ⚠️ | ⚠️ | ⚠️（3.10 增量闭环；WF-01..03 标定+R1.13 收口） | ⚠️（3.2 复核：continuation-skip already-fixed） | ⚠️（4.2 核定） | ⚠️（4.1 扫描） | ⚠️（6.2 扫描） |
+| 可复用业务（sys/report/rule/batch/dyn/file/retry/tcc/metadata） | ⚠️（3.3–3.8 逐模块深审） | ⚠️（2.5 全仓模型扫描；metadata 闭环） | ⚠️ | ⚠️（FILE/DYN 单点已由 R1.19/R1.20 收口；batch/report/sys/rule 深审完成） | ⚠️（sys 锁反向 P0/tcc 误标 P0 已修） | ⚠️ | ⚠️（4.1/6.2 扫描覆盖） | ⚠️（6.1/6.2） |
 | nop-ai | ✅ | ✅ | ✅ | ✅（AI-01..04 增量已覆盖） | ✅ | ⚠️（3 文件回涨破千行） | ✅ | ⚠️（3 处 ignored 复核级） |
 | nop-stream | ✅ | ✅ | ✅ | ✅ | ⚠️（backlog P2×~15） | ✅ | ✅ | ⚠️ |
 | nop-code | ✅ | ✅ | ⚠️（api/dao 0 测试） | ⚠️（Phase 9 @Auth gated） | ✅ | ⚠️ | ✅ | ⚠️ |
-| nop-graph | ❓ | N/A | N/A | N/A | ❓ | ❓（3 测试/13 算法类） | ❓ | ❓ |
-| nop-rg | ❓ | N/A | N/A | ❓ | ❓ | ❓ | ❓ | ❓ |
-| nop-lint + nop-treesitter | ❓（在建边界） | ❓（规则 DSL） | N/A | N/A | ❓ | ⚠️（GLRParser 2061 行） | ⚠️（13 篇设计 vs W4–6 未落地） | ❓（lint-nop 空壳属在建） |
-| 集成运行时（spring/quarkus/network/integration） | ❓ | N/A | ❓ | ⚠️（NET 组单轮；解压/MQTT P0 未跟踪） | ❓ | ⚠️（spring 1 测试/29 类） | ❓ | ⚠️（HTTP 宽 catch） |
-| runner / autotest / demo | ❓ | N/A | N/A | ❓ | ❓ | ❓（autotest 5 测试/41 类） | ❓ | ❓（EmptyMain 占位） |
-| nop-entropy-e2e | N/A | N/A | N/A | ❓ | N/A | ❓ | ❓ | ❓ |
-| 其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | ❓ | ❓ | ❓ | ⚠️（security 部分触及） | ❓ | ⚠️（format TODO=27；search 1130 行单类） | ❓ | ❓ |
+| nop-graph | ⚠️（6.7/6.8 溯源标定 P2-6.7-005..008） | N/A | N/A | N/A | ⚠️（6.7 PathQuery/Bfs/Leiden 终裁） | ⚠️（4.2/6.7 测试面） | ⚠️（4.1/6.2 扫描覆盖） | ⚠️（6.2/4.1） |
+| nop-rg | ⚠️（6.8 批次 d 标定） | N/A | N/A | ⚠️（4.1 错误码面） | ⚠️（6.8） | ⚠️（4.2 抽样） | ⚠️（6.8） | ⚠️（6.2/4.1） |
+| nop-lint + nop-treesitter | ⚠️（4.6 增量首审） | ⚠️（4.6 规则白名单 fail-closed） | N/A | N/A | ⚠️（4.6 js 适配面） | ⚠️（4.3 GLRParser 台账） | ⚠️（4.6/5.2 设计 vs W4–6 裁定） | ⚠️（6.1 lint-nop 在建空壳合法裁定） |
+| 集成运行时（spring/quarkus/network/integration） | ⚠️（1.8 集成外围+归属裁定） | N/A | ⚠️（3.9 网关/HTTP 客户端深审；R1.40 适配层测试） | ⚠️（3.9 深审后 P0 全 already-fixed） | ⚠️（3.9/R1.25） | ⚠️（4.2/R1.40 适配层 22+13 用例） | ⚠️（4.1 扫描） | ⚠️（6.2 HTTP 宽 catch 清单） |
+| runner / autotest / demo | ⚠️（4.5 深审+R1.27 数据面） | N/A | N/A | ⚠️（R1.27 autotest 数据面三修复） | ⚠️（4.2/R1.27） | ⚠️（4.2 zero-test 清单核定） | ⚠️（4.5 CLI 双入口） | ⚠️（4.5 EmptyMain 死占位裁定） |
+| nop-entropy-e2e | N/A | N/A | N/A | ⚠️（1.8 归属裁定） | N/A | ⚠️（4.2 zero-test 口径） | ⚠️（5.1 路由核对） | ⚠️（6.1/6.2 扫描） |
+| 其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark） | ⚠️（4.4/4.5 深审；R1.31/R1.37-R1.39 修复） | ⚠️（R1.31 record readCollection 判别） | ⚠️（R1.39 mermaid 生成器-文法对齐 13/13） | ⚠️（4.4 search 深审+R1.28 fail-closed） | ⚠️（4.4/4.5 深审） | ⚠️（4.4 format TODO 三类评定；4.3 Lucene 台账） | ⚠️（5.1/5.2 文档核对） | ⚠️（6.1/6.2 扫描） |
 | nop-datav | ✅ | ✅ | ⚠️ | ✅ | ✅ | ⚠️（P2×~55 backlog） | ✅ | ⚠️ |
 | nop-credential | ✅ | ✅ | ⚠️ | ✅（D1–D6 闭环） | ⚠️（RESP3 P0 关联未修） | ✅ | ✅ | ✅ |
-| nop-jq（v6 新增） | ❓（1.9） | N/A | N/A | ❓（1.9） | ❓（1.9） | ❓ | ❓ | ❓ |
-| nop-refactor（v6 新增） | ❓（1.9） | N/A | ❓（1.9） | ❓（1.9） | ❓（1.9） | ❓ | ❓ | ❓ |
-| nop-bytecode（v6 新增） | ❓（1.10） | N/A | N/A | N/A（report-only，仅读自家构建产物，无鉴权/求值面） | ❓（1.10） | ❓ | ❓ | ❓ |
-| nop-duckdb（v6 新增） | ❓（1.10） | N/A | N/A | ❓（文件读写面，兜底 3.11） | ❓（1.10） | ❓ | ❓ | ❓ |
+| nop-jq（v6 新增） | ⚠️（1.9 首审+R1.3 资源护栏） | N/A | N/A | ⚠️（1.9 四段契约/信任边界） | ⚠️（1.9 官方套件 430/430 基线+R1.3） | ⚠️（1.9 569 tests） | ⚠️（4.1/6.2 扫描覆盖） | ⚠️（6.1/6.2） |
+| nop-refactor（v6 新增） | ⚠️（1.9 四段契约首审） | N/A | ⚠️（1.9 Refactor__ GraphQL 面单实现+cap 门） | ⚠️（1.9 EditPlanApplier 信任边界） | ⚠️（1.9） | ⚠️（4.2 抽样覆盖） | ⚠️（4.1/6.2） | ⚠️（6.1/6.2） |
+| nop-bytecode（v6 新增） | ⚠️（1.10 首审+R1.4 双缺陷修复） | N/A | N/A | N/A（report-only，仅读自家构建产物，无鉴权/求值面） | ⚠️（1.10 exit 契约+ObligationToken+R1.4） | ⚠️（4.2 口径） | ⚠️（4.1/6.2 扫描） | ⚠️（6.2 扫描） |
+| nop-duckdb（v6 新增） | ⚠️（1.10 首审+R1.4） | N/A | N/A | ⚠️（1.10 文件读写面；3.11 兜底覆盖） | ⚠️（1.10 单写者/配置指纹） | ⚠️（4.2 口径） | ⚠️（4.1/6.2） | ⚠️（6.1/6.2） |
 
-`❓` 格合计 **79 格**（基线 18 行 55 格 + v6 新组 4 行 24 格），是 Wave 1（MA1–MA6）审计工作项的直接来源；新组行未锚定专项首审的 ⑥⑦⑧ 格（及 duckdb ④ 兜底格）由全仓扫描类工作项（4.1/4.2/4.3、6.1/6.2）与文档审计（5.1/5.2）天然覆盖；`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
+`❓` 格终态 **0 格**（基线 79 格 = 基线 18 行 55 格 + v6 新组 4 行 24 格，Wave 1 MA1–MA7 已全部消化；**2026-10-10 V.3 终态回填**——原 ❓ 格按覆盖工作项映射为 ⚠️（审计完成且有残留发现/watch），映射指针见各行括注；残留均为 P2/P3 watch 级，P0/P1 已全部修复闭环（见 index P0/P1 表与 MR 节）。`⚠️` 格是复核/标定类工作项（MA6.4、MA7）的来源。
 
 ### v6 新增子模块登记（0.5）
 
