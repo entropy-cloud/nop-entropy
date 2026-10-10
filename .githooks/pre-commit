@@ -1,39 +1,44 @@
 #!/bin/sh
 # ============================================================
-# pre-commit hook — run ast-grep Java lint on staged .java files
+# pre-commit hook — run the nop-cli Java lint gate on staged .java files
 # ============================================================
 # Designed for git's core.hooksPath mechanism (zero deps).
 # Activate with: git config core.hooksPath .githooks
+#
+# Engine: `nop-cli lint check` (65 rules ship in nop-lint; this gate enforces
+# the three migrated from the old ast-grep ruleset — see
+# ai-dev/tools/run-java-lint.sh for the rule mapping). The wrapper also
+# filters nop-lint's own RuleTester fixture trees, which are intentionally
+# dirty test data.
 # ============================================================
 
-set -euo pipefail
+set -eu
 
 # Collect staged Java files (Added, Copied, Modified, Renamed).
-# RuleTester fixture trees are excluded: invalid/*.java fixtures are
-# intentionally-dirty test data whose violations are asserted by nop-lint's
-# own RuleTestRunner suite gate (and .ast-grepignore does not apply to
-# explicitly-passed paths, so the filter lives here).
-staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java' \
-  | grep -v '_vfs/test/lint/' || true)
+staged=$(git diff --cached --name-only --diff-filter=ACMR -- '*.java' || true)
 
 if [ -z "$staged" ]; then
   exit 0
 fi
 
-echo "--- Checking staged Java files with ast-grep rules..."
+echo "--- Checking staged Java files with nop-cli lint..."
 
-# Run lint; report-style=medium gives compact output per finding
-# If sg exits non-zero, the hook aborts the commit
-echo "$staged" | tr '\n' '\0' | xargs -0 \
-  "$(dirname "$0")/../ai-dev/tools/run-java-lint.sh" --report-style medium --error
+# --max-warnings is deliberately NOT used: nop-lint counts the engine
+# meta-diagnostic `unused-disable-directive` as a warning, and stale
+# suppression directives are pre-existing debt in files a commit merely
+# touches. The wrapper gates on gate-rule ids instead. Exit codes:
+# 0 clean, 1 gate findings, 2 usage/parse error.
+# shellcheck disable=SC2086 # deliberate word splitting of the file list
+printf '%s\n' "$staged" | tr '\n' '\0' | xargs -0 \
+  "$(dirname "$0")/../ai-dev/tools/run-java-lint.sh" || result=$?
 
-result=$?
+result=${result:-0}
 
-if [ $result -eq 0 ]; then
+if [ "$result" -eq 0 ]; then
   echo "--- Java lint check passed."
 else
   echo "--- Java lint check FAILED. Fix issues above before committing."
   echo "--- To bypass: git commit --no-verify"
 fi
 
-exit $result
+exit "$result"
