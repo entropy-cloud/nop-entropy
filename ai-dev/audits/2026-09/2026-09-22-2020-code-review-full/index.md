@@ -161,9 +161,9 @@
 | P1-6.7-010 | `6.7-check-p1-batch-c.md` | R1.0（triggerIncrementalIndex 先删后不补+指纹照存文件永久消失；失败文件不纳入指纹/先分析后删写） | open |
 | P1-6.7-011 | `6.7-check-p1-batch-c.md` | R1.0（deleteFileRecords 依赖边删除无 indexId scoping 跨索引互删；补 eq("indexId",indexId)+同类 helper 作用域核对） | open |
 | P1-6.8-001 | `6.8-check-p1-batch-d.md` | R1.25/plan 2391（2026-10-10 修复：removeCookie null 守卫——cookies==null 落兜底过期 Cookie 分支对齐 getCookie 形态+零测试模块测试树首建（Proxy stub 3 用例）。原处方：补 cookies==null 守卫对齐 getCookie 形态） | fixed |
-| P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.0（YunpianSmsSender null areaCode 拼接——6.4 #8 同根未修残腿；null 守卫+两腿 parity 回归与 6.4 #8 同批） | open |
+| P1-6.8-002 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：resolveMobile——null/empty→裸 mobile（国内约定）、非空 strip+ 拼接（Tencent parity）+parity 判别测试 2 用例。原处方：areaCode null/空守卫+与 6.4 #8 修复同批回归（两腿 parity 测试）） | fixed |
 | P1-6.8-003 | `6.8-check-p1-batch-d.md` | R1.0（TestCaseJsonDataSplitter 产物目录布局与消费方契约颠倒静默不可加载；输出路径对齐+splitter→loader 往返测试） | open |
-| P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.0（FeishuClient DATA 帧零 ACK 回发+headers 丢失；按协议回 ACK+恢复 headers 透传+wire 契约测试） | open |
+| P1-6.8-004 | `6.8-check-p1-batch-d.md` | R1.26/plan 2392（2026-10-10 修复：DATA 帧处理后回 ACK（headers 原样复制+requestId 沿用）+FeishuInboundMessage.headers 透传+wire 契约测试。原处方：DATA 帧处理后按协议回 ACK（需恢复 headers 透传）；补 wire 层契约测试） | fixed |
 | P1-6.8-005 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseData variant 双约定——输出表永不校验框架假绿；统一 variant 路径约定+录制→校验往返测试） | open |
 | P1-6.8-006 | `6.8-check-p1-batch-d.md` | R1.0（AutoTestCaseDataSaver.removeInputTable 无 variant 守卫静默删除 default 基础表；补 isDefaultVariant 守卫对齐 saveInputTable 对称性） | open |
 | P1-7.1-001 | `7.1-nop-ai-incremental-audit.md` | R1.0（WI25 DefaultBackgroundTaskRegistry 懒重投递状态机双重破坏——失败/超时任务被永久误报 COMPLETED；重投区分源状态+补 FAILED/TIMEOUT 源用例） | open |

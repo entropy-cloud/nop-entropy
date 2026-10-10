@@ -2,6 +2,8 @@ package io.nop.integration.feishu.client;
 
 import io.nop.api.core.annotations.data.DataBean;
 
+import java.util.Map;
+
 /**
  * Inbound Feishu message delivered to an {@link IMessageHandler} when a
  * {@code im.message.receive_v1} DATA frame arrives over the Stream
@@ -33,6 +35,9 @@ public class FeishuInboundMessage {
     private String content;
     private String senderId;
     private String chatType;
+    /** P1-6.8-004（plan 2392）：wire 帧头透传（message_id/log_id 等），供下游回执定位。 */
+    private Map<String, String> headers;
+
     private byte[] rawPayload;
 
     public String getReceiveIdType() {
@@ -89,5 +94,13 @@ public class FeishuInboundMessage {
 
     public void setRawPayload(byte[] rawPayload) {
         this.rawPayload = rawPayload;
+    }
+
+    public Map<String, String> getHeaders() {
+        return headers;
+    }
+
+    public void setHeaders(Map<String, String> headers) {
+        this.headers = headers;
     }
 }

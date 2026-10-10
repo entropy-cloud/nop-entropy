@@ -54,6 +54,11 @@ options.setMode(UploadMode.BASE64_FORM);
 - **上行订阅**：`MqttServerMessageService.subscribe("cmd/#", listener)` 注册进程内监听；设备上行 publish 按同一通配语义分发，`data` 为 payload 的 UTF-8 文本；二进制场景直接实现 `IMqttHandler`。
 - 会话接管（同 clientId 新连接踢旧连接）、断连清理（连接与订阅登记）由 `MqttSessionManager` 维护。
 
+## SMS areaCode 与 Feishu ACK 契约（P1-6.8-002/004，plan 2392）
+
+- **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
+- **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
+
 ## JDK client 503 响应语义（P1-check-netrpc-24，plan 2391）
 
 JdkHttpClient.toHttpResponse 不再把 HTTP 503 映射为 NopConnectException——503 按正常响应送达（status/body/headers 完整），与 Apache/OkHttp 实现对齐（此前仅 JDK 把 503 误判为连接失败且丢 body）。旧「某些 MAC/JDK 连接失败表现为 503」workaround 已移除：现代 JDK 连接失败正确抛 ConnectException（经 wrapException 归一化为 NopConnectException），调用方需自行处理 503 状态（重试/降级语义属调用方域）。
