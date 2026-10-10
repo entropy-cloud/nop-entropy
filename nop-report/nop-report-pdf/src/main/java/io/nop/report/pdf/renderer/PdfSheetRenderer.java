@@ -12,6 +12,8 @@ import io.nop.core.model.table.utils.TableSplitHelper;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelHeaderFooter;
 import io.nop.excel.model.ExcelImage;
+import io.nop.excel.renderer.ChartImageProviderRegistry;
+import io.nop.excel.renderer.IChartImageProvider;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.IExcelSheet;
@@ -185,6 +187,7 @@ public class PdfSheetRenderer {
             renderTable(pageRenderer, sheet, table);
 
             renderImages(pageRenderer, sheet, printArea, region, pageClipRect, pageHeight);
+            renderCharts(pageRenderer, sheet, region, pageClipRect);
 
         } catch (IOException e) {
             throw NopException.wrap(e);
@@ -229,6 +232,52 @@ public class PdfSheetRenderer {
             PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), image,
                     imageX, -imageY - image.getHeight(),
                     image.getWidth(), image.getHeight(), pageClipRect);
+        }
+    }
+
+    /**
+     * plan 2366 D47：渲染图表（provider 产的 ExcelImage 无 anchor，直接带 sheet 绝对
+     * pt 坐标，不经 calcSize）。provider 缺席或 sheet 无图表时静默跳过（D43 显式裁定，
+     * 与 HTML 渲染器一致）；provider 异常上抛。产物独立循环，不并入 sheet.getImages()
+     * （renderImages 的 anchor 解引用对无 anchor 图会 NPE）。
+     */
+    private void renderCharts(PdfPageRenderer pageRenderer, IExcelSheet sheet, CellRange region,
+                              java.awt.Rectangle pageClipRect) {
+        IChartImageProvider provider = ChartImageProviderRegistry.getProvider();
+        if (provider == null || !sheet.hasChart())
+            return;
+
+        List<ExcelImage> charts = provider.renderCharts(sheet);
+        if (charts == null || charts.isEmpty())
+            return;
+
+        double startX = 0;
+        double startY = 0;
+        double endX = Double.MAX_VALUE;
+        double endY = Double.MAX_VALUE;
+        if (region != null) {
+            startX = sheet.getTable().getRangeWidth(0, region.getFirstColIndex() - 1, sheet.defaultColumnWidth());
+            startY = sheet.getTable().getRangeHeight(0, region.getFirstRowIndex() - 1, sheet.defaultRowHeight());
+            // 分页归属（D47）：left/top 落入 region 坐标范围才绘制，跨页图归首个包含页
+            endX = startX + sheet.getTable().getRangeWidth(region.getFirstColIndex(), region.getLastColIndex(),
+                    sheet.defaultColumnWidth());
+            endY = startY + sheet.getTable().getRangeHeight(region.getFirstRowIndex(), region.getLastRowIndex(),
+                    sheet.defaultRowHeight());
+        }
+
+        for (ExcelImage chart : charts) {
+            if (chart.getData() == null || chart.getData().isEmpty())
+                continue;
+            double left = chart.getLeft();
+            double top = chart.getTop();
+            if (region != null && (left < startX || left >= endX || top < startY || top >= endY))
+                continue;
+
+            double imageX = left - startX;
+            double imageY = top - startY;
+            PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), chart.getData().toByteArray(),
+                    imageX, -imageY - chart.getHeight(),
+                    chart.getWidth(), chart.getHeight(), pageClipRect);
         }
     }
 

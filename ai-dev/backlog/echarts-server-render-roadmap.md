@@ -1,6 +1,6 @@
 # ECharts 服务端静态渲染与 JFreeChart 退役 Roadmap（nop-chart-echarts）
 
-> Last updated: 2026-10-10（WI0–WI7 已完成；WI8–WI10 未启动）
+> Last updated: 2026-10-10（WI0–WI8 已完成；WI9–WI10 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources: 2026-10-06 会话裁定（路线 B：JVM 内 GraalJS 执行 dist/echarts.js + Java2D 实现 Canvas2D shim；范围=常见图型全量 + 直接吃 ECharts option JSON；换机制同时接线报表导出；保留 nop-chart-export 壳换内脏；四 jar 拆分且接线 jar 归 nop-report；对版标准=结构语义对版+样式尽量贴近）。对版素材：`docs/dev-guide/report/excel-chart.md`（17 张 Excel 截图）+ `nop-format/nop-chart-export/src/test/resources/xlsx/test-all-charts.xlsx`（17 图型 fixture，2026-10-06 已核对一一对应）。
 
@@ -44,7 +44,7 @@
 ### M4 — 报表接线（SPI 在 nop-excel，实现在 nop-report/nop-chart-report）
 
 - [x] WI7 SPI 与 HTML 出图：nop-excel 定义 IChartImageProvider + registry（IReportRendererFactory 旁），HTML 两处 hook（HtmlReportRendererFactory/SimpleHtmlReportRendererFactory，hook ≤30 行，provider 不在 classpath 静默跳过）；新建 nop-report/nop-chart-report 模块（provider 实现 bean、ExpandedSheet/IExcelSheet → 图表模型 resolver、锚点→坐标、demo/app opt-in 拉入，不进 nop-report-core）。HTML 出图测试（Deliverable: SPI + 接线模块 + HTML 测试；deps: WI6；Item Type: Feature）
-- [ ] WI8 PDF/docx 出图与三格式回归：nop-report-pdf PdfSheetRenderer 增 renderCharts（镜像 renderImages 路径，PdfImageHelper 增 byte[] 重载，countImageXObjects 断言）；nop-report-docx XptWordTableRenderer 表后插图（pointsToTwips）；test-bar-chart.xpt.xlsx fixture 的 xlsx/html/pdf/docx 四路断言，xlsx 原生路径零改动回归（Deliverable: pdf/docx 出图 + 回归；deps: WI7；Item Type: Feature + Proof）
+- [x] WI8 PDF/docx 出图与三格式回归：nop-report-pdf PdfSheetRenderer 增 renderCharts（镜像 renderImages 路径，PdfImageHelper 增 byte[] 重载，countImageXObjects 断言）；nop-report-docx XptWordTableRenderer 表后插图（pointsToTwips）；test-bar-chart.xpt.xlsx fixture 的 xlsx/html/pdf/docx 四路断言，xlsx 原生路径零改动回归（Deliverable: pdf/docx 出图 + 回归；deps: WI7；Item Type: Feature + Proof）
 
 ### M5 — 对版验收与收口
 

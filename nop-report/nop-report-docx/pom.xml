@@ -31,6 +31,14 @@
             <artifactId>nop-autotest-junit</artifactId>
         </dependency>
 
+        <!-- plan 2366 WI8：仅测试使用——provider bean + GraalJS 图表引擎（main 零依赖，
+             provider 缺席时 docx 图表静默跳过） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-chart-report</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>
