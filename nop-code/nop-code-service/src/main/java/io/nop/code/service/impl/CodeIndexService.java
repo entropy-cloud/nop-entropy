@@ -2324,9 +2324,9 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         // File-level propagation over nop_code_dependency (import graph): a changed file
-        // affects files that import it (reverse deps), 2 hops out. Symbol-level call edges
-        // are unsuitable here because cross-file calleeId is only resolved by the full-index
-        // flow (Deferred successor: incremental callee resolution).
+        // affects files that import it AND files it imports (bidirectional), 2 hops out.
+        // Symbol-level call edges are unsuitable here because cross-file calleeId is only
+        // resolved by the full-index flow (Deferred successor: incremental callee resolution).
         Set<String> affectedFiles = DependencyPropagator.propagate(seedFiles,
                 ids -> {
                     Set<String> neighbours = new java.util.LinkedHashSet<>();

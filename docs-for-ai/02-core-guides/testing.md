@@ -537,3 +537,13 @@ nop-metadata 模块现在包含以下测试基础设施：
 ## 测试数据目录契约（P1-6.8-003/005/006，plan 2393）
 
 录制/回放的测试数据目录遵循单一定义：表产物落 `<caseDir>/input|output/tables/<table>.csv`（TestCaseJsonDataSplitter 产物与 AutoTestCaseData 消费契约对齐）；variant（@EnableVariants）路径统一为 `variants/<variant>/…`（列表访问器与单文件访问器、Saver 写入面、ResultChecker 校验面一致）；`input/tables/` 下的 default 基础表是手写维护资产，录制流程不会自动删除（仅删除 variant 局部表文件）。
+
+## 评测测试口径：真实链路优先（plan 2402，P1-7.4-002）
+
+评测类测试（搜索质量 MRR、影响分析 F1 等）的指标必须来自**生产代码链路**，否则只能标注为 smoke，不得作为质量证据：
+
+- **搜索质量评测**：经生产 `ISearchEngine`（Lucene）`addDocs`/`refreshBlocking`/`search` 建索引与检索，MRR 由真实 `SearchHit.getId()` 计算——不要在测试内自实现 token 评分器（`SearchQualityEvalTest` 现按此口径）。
+- **影响分析评测**：经 `ICodeIndexService.indexDirectory` + `triggerIncrementalIndex` + `getLastIncrementalAffectedFiles` 读取生产 `computeAffectedFiles` 的实际受影响集，再与 ground-truth 算 F1——不要在测试内自实现传播 BFS（`ImpactAnalysisF1EvalTest` 现按此口径）。
+- **方向敏感断言**：影响分析评测需含能区分传播方向的场景（例如 change 根节点时期望其 import 依赖链；反向-only 实现会给出空集/F1=0），否则评测对方向回归失明。
+- **配置隔离**：覆盖 `nop.search.index-dir` 等非 System 属性后，按本文「测试配置隔离」节规则跑**全模块**测试确认无跨类泄漏。
+- **边界如实标注**：测试注释须写明语料规模、edge 方向由测试提供等局限，避免把 smoke 评测读成全量质量结论。
