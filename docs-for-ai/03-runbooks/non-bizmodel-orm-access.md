@@ -131,6 +131,26 @@ void process() {
 
 `IOrmTemplate.runInSession()` 会在回调执行期间保证存在一个 ORM Session。如果当前线程已有 Session 则复用，否则新建。
 
+### Session 与事务是两条正交的轴（重要）
+
+**Session 是持久化上下文**（identity map、脏跟踪、flush 时机），**事务是连接级提交边界**（由 `ITransactionTemplate` / `TransactionRegistry` 管理）。两者独立选择、互不决定：
+
+- ORM 的所有 SQL 执行统一经 `JdbcTemplateImpl.withTxn`，以 `SUPPORTS` 传播挂到**当前线程已注册的 `ITransaction`** 上复用其连接；无注册事务时用一个未 open 的事务对象承载普通连接。commit/rollback 只发生在业务边界的 `ITransactionTemplate.runInTransaction`。
+- `OrmSessionImpl.close()` 只清空持久化上下文，**不持有、不提交、不回滚任何连接**；连接按次执行获取、用完即还（`eagerReleaseConnection`）。
+
+由此推论：**`runInNewSession` 不会改变事务归属**——在业务事务内新开的 session，其写入仍在同一连接上，随外层事务提交/回滚。session 的选择只决定"操作发生在哪个持久化上下文里"。
+
+### 多步 DAO 操作的作用域选择：runInSession，不要默认 runInNewSession
+
+跨多个 DAO 调用的复合操作（如 load → 校验 → save/delete）必须包在一个显式 session 作用域里，否则无外层 session 时每个 DAO 调用各开一次性 session：load 得到的实体在 save 时已 detached，`saveOrUpdate` 按 `contains(entity)` 判分支会误走 save 分支（`save-entity-not-transient`）。
+
+作用域用 **`ormTemplate.runInSession(...)`**：有外层 session 时复用（与 `IEntityDao` 自身约定一致），无外层时自动退化为 newSession。不要默认 `runInNewSession`：
+
+- 强制隔离没有事务收益（见上节：事务归属与 session 正交）；
+- 会让 store 内部的实体状态与调用方上下文脱节——同一实体在外层 session 中留下过期副本，flush 期回调场景下还会绕开引擎的 flush 中变更机制（`addChangeDuringFlush` / `flushChanged`）。
+
+典型案例：`DaoResourceFileStore.attachFile/detachFile`（P1-3.8-002 修订，2026-10-10 作者裁定）。
+
 ## 批量处理 — 分页流式
 
 切勿使用 `dao.findAll()` 全量加载一个可能持续增长的表。对于定时任务，使用 **分页流式**：
