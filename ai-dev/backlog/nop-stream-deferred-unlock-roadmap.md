@@ -10,12 +10,13 @@
 > 5. **E3「引擎路由 defect」**：诊断为**误判反转**（U5）——非引擎缺陷（词表长度算错+copy-tap 语义误读）；测试期望已更正、@Disabled 钉已启用（[3,3]），顺带修复 singleton source 测试隔离缺陷。
 > 6. **topN 目录化 / E6 async / 区间谓词 / file tailing**：非易实现（需聚合目录扩展设计 / vision §六决策点 / §四边界解除 / 真连接器工程），**维持延期**，触发条件不变。
 
-> Last updated: 2026-10-10（v1：立项——六项核实 + U1-U5 分解）
+> Last updated: 2026-10-10（v2：U2 交付——`<sqlTransform>` transform 级 SQL 声明面（plan 2375，对抗审查 4 Major 并入+独立 audit 首轮 REJECT 2 must-fix 修复后 APPROVE）；sql 165/0 + flow 307/0 + 12 场景 15/0；顺带发现并登记 E1-E12 fixture 的 lint gate 存量缺登记（10 条 WARNING 白名单补齐，与 U2 无关））
+> 历史版本：2026-10-10（v1：立项——六项核实 + U1-U5 分解；U1 当日落地（maxDelay 勘误）、U5 当日落地（E3 误判反转+测试隔离缺陷修复））
 
 ## 工作项
 
 - [x] **U1** maxDelay 登记失实修正 + E9 声明路径验收补强：plan 2371 Deferred 段勘误注记 ✅ + roadmap v27→v28 header 订正（deferred 清单移除 E9 MAX_DELAY）✅ + `TestXdslScenarioE9.maxDelayDeclarationPathIsConsumedOnScenarioWindow`（fixture 第二条链 `<strategy maxDelay="500">`+独立 source/sink bean；`StreamModelDslBuilder.registeredStream` 放宽 public 供跨模块验收断言）✅ E9 2/0 绿（fork+JDK25）+ user guide 核实本就正确（:75-79/:280 已记载放行面，无需改）✅（Completed: 2026-10-10）
-- [ ] **U2** transform 级 SQL 声明面（WI16 successor 原方案 A，owner 解除落地）：`ISqlStreamCompiler` 增 `compileTransform` 片段契约（输入 schema 自携带，复用顶层 parse 链，产物=transforms+edges 片段）+ xdef 新 transform 顶点 `<sqlTransform>` + `StreamModelDslBuilder` 拼接（DslModelParser 回灌）+ 顶层 `<sql>` 唯一约束不放宽（双钉保持，generator 语义不变）+ 形态/反退化测试（flow+sql+runtime）+ user guide 场景段。（Deliverable: SPI 契约 + 声明面 + 拼接 + 测试；deps: 无；Item Type: Feature）
+- [x] **U2** transform 级 SQL 声明面（WI16 successor 原方案 A，owner 解除落地）：`<sqlTransform>` 顶点（xdef+再生成）+ `ISqlStreamCompiler.compileTransform` 片段契约 + `StreamSqlCompiler.compileTransform`（UNION/JOIN fail-fast）+ `expandSqlTransforms` 拼接（入度恰一/FORWARD 无 outputTag/全量改名/原位拼接/注册表合并/终点唯一）+ 测试 sql 165/0（fragment 契约 8+E2E 2）+ flow 307/0（expansion 10）+ 12 场景 15/0 + 变异探针红绿闭环 + 文档四处。对抗性审查 4 Major 并入；独立 audit 首轮 REJECT（2 must-fix）修复后 APPROVE（agent_8ee9e38e）。plan 2375。（Completed: 2026-10-10）
 - [ ] **U3** 限速泛化 XDSL 声明面：`<source rateLimitRowsPerSecond/rateLimitBytesPerSecond>` 属性（xdef+模型）+ `buildSource` 泛化包装（`SourceRateLimiter` 令牌桶，任意 SourceFunction，非 connector 专属）+ typed 校验（负数拒绝）+ runtime E2E 断言 + connector 参数面文档互引。（Deliverable: 声明面 + 泛化包装 + 测试；deps: 无；Item Type: Feature）
 - [ ] **U4** tableId XDSL 声明面：`<source tableId="...">` 属性 → 源记录 `withChangeMetadata(INSERT, tableId)` 元数据注入 + 多表路由场景断言（与 WI20 表标识字段 filter 路由降级形态互补——声明面可用时直达 record 元数据）。（Deliverable: 声明面 + 元数据 E2E；deps: 无；Item Type: Feature）
 - [x] **U5** E3「引擎路由 defect」诊断反转（非缺陷）：探查代理全链路诊断 + 实测亲证——(1) 词表长度算错（`"cat".length()==3` 非 2，观察值 SHORT=[3,3] 是 cat+dog 的正确 len）；(2) 恒真对照 [3,4,3,4] 是 copy-tap 直通合同本身（SideOutputTapOperator 主路无条件透传），对「路由是否损坏」无判别力；(3) 引擎路由（StreamTaskInvokable.EdgeWriterOutput）静态核验自洽+WI8b main=[1,2,3] 钉佐证。处置：期望更正 [2,3]→[3,3] 并启用 @Disabled 钉（shortWordsStayOnMainPath）；顺带发现并修复真实测试隔离缺陷（e3WordSource singleton 被 cancel 耗尽→`scope="prototype"`）；E3 全类 2/0 绿。plan 2368 勘误注记 + roadmap v29。（Completed: 2026-10-10）

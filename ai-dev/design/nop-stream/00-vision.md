@@ -101,6 +101,8 @@ nop-stream 是 Nop 平台的流处理引擎，定位为**声明式图模型驱�
 
 影响面：WI9（(d) 近似口径落地）、WI11（(c) 语义落地）、WI16（(e) Java-only 记录）、WI17（(a) 默认分支）、WI18（(b) 默认分支）、WI19（tail 源裁定不做 → bounded 重放 + DRAIN 变通落地）、WI20（E8 多表目标形态 = WI20 声明面，CatalogTable 前置已交付）。
 
+**2026-10-10（deferred-unlock，owner 指令解除）**：owner 指令「（maxDelay 声明面）这个不是很容易实现吗？容易实现的部分都写计划自动完成」+ 对 transform 级 SQL 的 EQL 支持质疑（「stream sql 不是已经有内置支持了吗，nop orm eql 也做了很多增强，并且有执行器可以直接解析 AST 执行」），构成对 #WI0-XDSL (e) 延期项中 **transform 形态**的解除裁定：`<sqlTransform>` 顶点声明面交付（`ISqlStreamCompiler.compileTransform` 片段契约 + `expandSqlTransforms` 拼接，plan 2375）。**边界不变式维持**：`<sql>` 顶层唯一约束不放宽（本裁定不触碰 (e) 的「单一编译入口」内核——`<sqlTransform>` 与顶层共用同一 SPI provider/解析器，非第二编译设施）；其余四项裁定 (a)(b)(c)(d) 与 §四 Non-Goals 零变更。承载：`ai-dev/backlog/nop-stream-deferred-unlock-roadmap.md`（U1-U6；另含 WI25/WI22 两处登记勘误与 E3 误判反转）。
+
 ## 七、核心取舍
 
 - **保留**：Barrier 快照、算子链化、多 Task 并行执行、窗口/CEP 语义、key-group 重分布（Stage 34 KeyGroup 模型 + Stage 35 `parallelism` rescale + Stage 37 `maxParallelism` 离线 reshard migration）

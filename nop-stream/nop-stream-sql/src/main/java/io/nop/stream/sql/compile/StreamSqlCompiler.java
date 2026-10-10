@@ -208,6 +208,86 @@ public final class StreamSqlCompiler {
         return stream.xml();
     }
 
+    /**
+     * U2 (deferred-unlock): TRANSFORM FRAGMENT variant of {@link #compile} for the
+     * {@code <sqlTransform>} vertex. Same parse/validate/dispatch pipeline, but:
+     * no sink is appended, the FROM-table source vertex keeps the reserved id
+     * {@link ISqlStreamCompiler#TRANSFORM_ENTRY_ID} (stripped and rewired by the
+     * builder), and multi-source shapes (JOIN, UNION) fail fast — the fragment has
+     * exactly one entry. The product is a complete xdef-valid {@code <stream>} model
+     * XML so the builder reuses the standard DSL parse/validation path.
+     */
+    public static String compileTransform(SourceLocation loc, String sql,
+                                          Map<String, String> schema, StreamEmitMode emit,
+                                          Map<String, Long> fieldLateness) {
+        if (sql == null || sql.trim().isEmpty()) {
+            throw CompileErrors.invalidArg("SQL text is blank");
+        }
+        SqlProgram program = new EqlASTParser().parseFromText(loc, sql);
+        if (program == null || program.getStatements() == null
+                || program.getStatements().isEmpty()) {
+            throw CompileErrors.invalidArg("SQL text parses to no statement: '" + sql + "'");
+        }
+        if (program.getStatements().size() > 1) {
+            throw CompileErrors.invalidArg("multi-statement SQL is outside the stream SQL v1 subset");
+        }
+        if (program.getStatements().get(0) instanceof SqlUnionSelect) {
+            throw CompileErrors.invalidArg("UNION produces a two-source fragment: a "
+                    + "<sqlTransform> fragment has exactly one entry, so UNION is "
+                    + "outside the transform-level SQL surface (fail-fast, no silent "
+                    + "merge; use <union> on the graph level instead)");
+        }
+        validateSchema(schema);
+
+        XNode stream = XNode.make(loc, "stream");
+        stream.setAttr("x:schema", "/nop/schema/stream/stream.xdef");
+        stream.setAttr("xmlns:x", "/nop/schema/xdsl.xdef");
+        stream.setAttr("name", "sql-transform-fragment");
+        stream.setAttr("version", 1);
+
+        CompileContext ctx = new CompileContext(schema);
+        ctx.emit = emit == null ? StreamEmitMode.CLOSE : emit;
+        ctx.fieldLateness = fieldLateness == null ? java.util.Collections.emptyMap() : fieldLateness;
+        ctx.transformFragment = true;
+        for (Map.Entry<String, Long> e : ctx.fieldLateness.entrySet()) {
+            if (e.getValue() == null || e.getValue() < 0) {
+                throw CompileErrors.invalidArg("lateness must be a non-negative millisecond "
+                        + "value, but field '" + e.getKey() + "' declared: " + e.getValue());
+            }
+        }
+        List<XNode> transforms = new ArrayList<>();
+        List<XNode> edges = new ArrayList<>();
+        compileStatement(program.getStatements().get(0), ctx, transforms, edges, "s");
+
+        // registry + transform/edge assembly identical to compile() minus appendSink
+        if (!ctx.schemaFields.isEmpty()) {
+            stream.appendChild(buildSchemasNode(loc, ctx));
+        }
+        if (!ctx.aggregatorEntries.isEmpty()) {
+            XNode aggs = XNode.make(loc, "aggregators");
+            ctx.aggregatorEntries.forEach(aggs::appendChild);
+            stream.appendChild(aggs);
+        }
+        if (!ctx.joinSpecs.isEmpty()) {
+            XNode joins = XNode.make(loc, "joins");
+            ctx.joinSpecs.forEach(joins::appendChild);
+            stream.appendChild(joins);
+        }
+        if (!ctx.strategies.isEmpty()) {
+            XNode strategies = XNode.make(loc, "windowingStrategies");
+            ctx.strategies.forEach(strategies::appendChild);
+            stream.appendChild(strategies);
+        }
+        XNode transformsNode = XNode.make(loc, "transforms");
+        transforms.forEach(transformsNode::appendChild);
+        stream.appendChild(transformsNode);
+        XNode edgesNode = XNode.make(loc, "edges");
+        edges.forEach(edgesNode::appendChild);
+        stream.appendChild(edgesNode);
+
+        return stream.xml();
+    }
+
     // ----------------------------------------------------------------
     // statement dispatch
     // ----------------------------------------------------------------
@@ -300,6 +380,12 @@ public final class StreamSqlCompiler {
         }
         SqlTableSource table = from.getTableSources().get(0);
         if (table instanceof SqlJoinTableSource) {
+            if (ctx.transformFragment) {
+                throw CompileErrors.invalidArg("JOIN produces a two-source fragment: a "
+                        + "<sqlTransform> fragment has exactly one entry, so join "
+                        + "queries are outside the transform-level SQL surface "
+                        + "(fail-fast; use <joins> on the graph level instead)");
+            }
             return compileJoinQuery(select, (SqlJoinTableSource) table, ctx, transforms, edges,
                     idPrefix);
         }
@@ -456,7 +542,9 @@ public final class StreamSqlCompiler {
                 ? (SqlTumbleTableSource) table : null;
         String tableName = tumble != null ? tumble.getTableName()
                 : ((SqlSingleTableSource) table).getTableName().getName();
-        String srcId = idPrefix + "src";
+        String srcId = ctx.transformFragment
+                ? io.nop.stream.flow.spi.ISqlStreamCompiler.TRANSFORM_ENTRY_ID
+                : idPrefix + "src";
         transforms.add(sourceNode(loc(table), srcId, tableName));
 
         String prev = srcId;
@@ -489,7 +577,9 @@ public final class StreamSqlCompiler {
                                                    String filterId, GroupedAggregate grouped,
                                                    CompileContext ctx, List<XNode> transforms,
                                                    List<XNode> edges, String idPrefix) {
-        String srcId = idPrefix + "src";
+        String srcId = ctx.transformFragment
+                ? io.nop.stream.flow.spi.ISqlStreamCompiler.TRANSFORM_ENTRY_ID
+                : idPrefix + "src";
         transforms.add(sourceNode(loc(window.source), srcId, window.tableName));
         String tswId = idPrefix + "tsw";
         transforms.add(timestampsNode(loc(window.source), tswId, window.timeColumn));
@@ -547,7 +637,9 @@ public final class StreamSqlCompiler {
         // no close semantic here — reject UPDATE instead of silently ignoring it.
         ctx.failFastOnEmitUpdate(loc(select), "continuous aggregate");
         ctx.failFastOnFieldLateness(loc(select), "continuous aggregate");
-        String srcId = idPrefix + "src";
+        String srcId = ctx.transformFragment
+                ? io.nop.stream.flow.spi.ISqlStreamCompiler.TRANSFORM_ENTRY_ID
+                : idPrefix + "src";
         transforms.add(sourceNode(loc(base), srcId, base.getTableName().getName()));
         String prev = srcId;
         if (filterId != null) {
@@ -1267,6 +1359,13 @@ public final class StreamSqlCompiler {
          * declaration. Only the TUMBLE time column's value reaches the product.
          */
         Map<String, Long> fieldLateness = java.util.Collections.emptyMap();
+
+        /**
+         * U2 (deferred-unlock): fragment mode for {@code <sqlTransform>} — the
+         * FROM-table source vertex is emitted with the reserved entry id instead of
+         * {@code idPrefix + "src"}, and multi-source shapes fail fast.
+         */
+        boolean transformFragment;
 
         /**
          * WI25 no-silent guard: lateness has no carrier on paths that produce no

@@ -195,7 +195,25 @@ xdef 合同：`/nop/schema/stream/stream.xdef`（根元素 `<stream>`，模型�
 
 **异步算子同步替代裁定（WI17/plan 2363，WI0(a) 默认分支）**：通用异步算子维持 §四 Non-Goal；异步 I/O 场景走**同步替代声明形态**——`<process>` bean 承载外部调用的四要素契约：①外部调用封装（客户端为 bean 成员/IoC 注入）；②**有界容量**（信号量或 CAS 门显式限并发，峰值可观察）；③**超时**（调用期限显式，超时路径产出显式降级值而非挂起或静默跳过）；④**显式串行语义标注**（javadoc 标注 SYNCHRONOUS SERIAL caller——吞吐受外部 RT 约束）。锚点：`TestWi17SyncReplacementPatternE2E`（四要素行为断言）。E6/E11 的异步场景按此形态降级验收（E6 套件归 WI23）。解除分支重启触发=owner 解除裁定并回写 vision。
 
-**transform 级 SQL 裁定（WI16/plan 2362，WI0(e) 执行）**：`<sql>` **顶层唯一约束不放宽**（顶层生成器是唯一 SQL 编译入口的单一事实源；并存内容 fail-fast——`TestSqlModelExpansion` 双钉）。transform 级 SQL 的支持形态=**Java-only**：Java 侧经 `io.nop.stream.flow.spi.ISqlStreamCompiler` SPI（按类型从容器解析，sql 模块 `StreamSqlCompilerProvider` 提供）程序化编译 SQL 段为完整模型 XML，再 `DslModelParser` parse → `StreamModelDslBuilder.build()`——SPI 契约面（sql/schema/sinkBean/emit/fieldLateness 五参）锁在接口上（`TestWi16TransformSqlJavaPath` SPI 直调 E2E + fail-fast 面钉）；E8 验收形态（Java 编译产物挂接）的套件归 WI24。重启触发=真实多段 SQL 管线声明诉求出现（WI0(e) 原文）。
+**transform 级 SQL 裁定（WI16/plan 2362，WI0(e) 执行）→ 声明面交付（deferred-unlock U2/plan 2375，owner 2026-10-10 解除）**：`<sql>` **顶层唯一约束不放宽**（顶层生成器是唯一 SQL 编译入口的单一事实源；并存内容 fail-fast——`TestSqlModelExpansion` 双钉维持）。transform 级 SQL 的形态演进：WI16 先交付 **Java-only** SPI 直调形态（`ISqlStreamCompiler` 五参 `compileSql`，程序化编译→parse→build）；2026-10-10 owner 指令解除 transform 形态延期后，U2 交付**声明面**——`<sqlTransform>` 顶点（见下节）。Java 直调路径保留为程序化替代（`TestWi16TransformSqlJavaPath` 钉不变）。
+
+**`<sqlTransform>` transform 级 SQL 声明面（deferred-unlock U2/plan 2375）**：图中任意位置的 SQL 变换顶点，单入（入度恰一，入边须 `FORWARD` 且无 `outputTag`）多出（fan-out 合法）：
+
+```xml
+<sqlTransform id="agg" emit="UPDATE">
+    <schemas>
+        <field name="ts" type="bigint"/>
+        <field name="item" type="string"/>
+        <field name="amount" type="int"/>
+    </schemas>
+    <source>SELECT item, sum(amount) AS total FROM TUMBLE(events.ts, INTERVAL 5 SECOND) GROUP BY item</source>
+</sqlTransform>
+```
+
+- **语义**：EQL 编译产物为完整 `<stream>` 模型形态的片段（FROM 表 source 顶点 id 恒为保留常量 `sqlTransformEntry`、无 sink），构建期由 `StreamModelDslBuilder.expandSqlTransforms` 剥离 entry、以顶点 id 为前缀改名去重（transforms/edges/registries 及 strategyRef/aggregatorRef/joinRef/schemaId 引用同步重写）后原位拼接；片段终点接入全部下游边。
+- **与顶层 `<sql>` 的边界**：顶层是 model generator（必须为模型唯一内容、产物含 sink 并替换全部内容）；`<sqlTransform>` 只承载一个变换子链，可与既有 transforms/registries 共存。SQL 子集/emit 语义/lateness 注解与顶层完全一致（UPDATE 仅窗口聚合查询合法）。
+- **typed fail-fast 面**（全部有测试钉，`TestSqlTransformExpansion`/`TestSqlTransformFragmentCompile`/`TestSqlTransformE2E`）：无 provider（缺 nop-stream-sql 依赖）、无入边/多入边、入边 HASH 或带 outputTag、无出边、JOIN/UNION 多 source 片段、`<sql>` 与 `<sqlTransform>` 并存（顶层唯一约束）、片段终点不唯一。
+- **锚点**：builder `expandSqlTransforms`；SPI `compileTransform`（新增抽象方法，生产 provider `StreamSqlCompilerProvider` 与 flow 测试 fake 同步实现）。
 
 **端点属性裁定（WI15/plan 2361）**：`consistencyCapability` **接线为声明保真度校验**——非 AT_LEAST_ONCE 声明（xdef 默认经 parse 强制注入，豁免按值判定而非「属性存在性」）须与解析 bean 的实际 `getSourceConsistency()/getSinkConsistency()` 一致，不符 `nop.err.stream.invalid-arg`（引擎按 bean 参与 connector 一致性校验，失真声明惰性）；xpl 形态端点恒提供默认 capability（非默认声明请用 bean 连接器）；**保真缺口 residual**：source 侧 xdef 默认与 `SourceFunction` 默认（BEST_EFFORT）不对称，「声明 AT_LEAST_ONCE 的 BEST_EFFORT bean」结构性豁免（watch-only residual，successor=schema 默认对齐 WI）。`params`/`maxParallelism`/`outputType`·`inputType` **维持拒绝**（bean 装配即配置通道；端点级 maxParallelism/类型声明无消费点）；linter 平行 capability 规则删除（builder 声明失真维度 + 引擎 guarantee 充分性维度，R6 静态预检显式退役）。
 
@@ -292,6 +310,7 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 | 类型 | `<schemas>` 受管九类型（string/int/bigint/smallint/tinyint/float/double/boolean/bytes） | `StreamSchemaRegistry.resolveSchemas` |
 | checkpoint 配置族 | enabled/interval/timeout/minPause/processingGuarantee/barrierAlignmentTimeout/maxConsecutiveCheckpointFailures/storageType(+s3)/storageConfig/jobId/pipelineId/jobTerminationMode | `StreamModelDslBuilder.applyCheckpointConfig` |
 | 顶层 SQL | `<sql>`（顶层唯一内容；SELECT/WHERE/五聚合+DISTINCT 聚合/HAVING/GROUP BY/TUMBLE/HOP/SESSION/等值 join/UNION ALL/CASE/CAST/全局聚合） | `StreamModelDslBuilder.expandSqlModel`（SPI：nop-stream-sql `ISqlStreamCompiler`） |
+| transform 级 SQL | `<sqlTransform>`（图中单入多出顶点；SQL 子集同顶层，JOIN/UNION 不支持；片段拼接入图） | `StreamModelDslBuilder.expandSqlTransforms`（SPI `compileTransform`，deferred-unlock U2） |
 | Delta | `x:extends` 显式路径 + 分层 Delta | `TestStreamModelDeltaExtends` |
 
 **表 B fail-fast 面**（声明面 → 锚点 → 钉子测试 → 放行归属）：

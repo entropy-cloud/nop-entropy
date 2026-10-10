@@ -104,6 +104,22 @@ class TestXdslCorpusLintGate {
             // ---- R5 存量（roadmap R5：window 无水位供给；消号 = 补 timestampsAndWatermarks；
             //      与 R4 同模型同键，Set 语义去重）----
             "test-param-agg.stream.xml|nop.err.stream.invalid-arg|test-param-agg",
+            // ---- WI21-WI26 存量（U2/plan 2375 全量回归发现：E 场景 fixture 落地时
+            //      只跑了场景定向套件、未重跑本门禁——R2 process 启发/R4 模型级 schemas/
+            //      R5 window 水位供给的 WARNING 提示未登记。各场景行为面由 TestXdslScenarioE1-E12
+            //      亲跑钉定（绿）；消号 = 补 tsw/schemas 声明或按 R2 裁定登记。
+            //      注：E3/E8 在全量套件上下文中不产出该提示（隔离单跑会产出——lint 的
+            //      bean 面上下文差异），故不登记，见 STALE 双向检查）----
+            "xdsl-e1-statemachine.stream.xml|nop.err.stream.invalid-arg|xdsl-e1-statemachine",
+            "xdsl-e2-topspeed.stream.xml|nop.err.stream.invalid-arg|xdsl-e2-topspeed",
+            "xdsl-e4-windowjoin.stream.xml|nop.err.stream.invalid-arg|xdsl-e4-windowjoin",
+            "xdsl-e5-newstimer.stream.xml|nop.err.stream.invalid-arg|xdsl-e5-newstimer",
+            "xdsl-e6-async.stream.xml|nop.err.stream.invalid-arg|xdsl-e6-async",
+            "xdsl-e7-tablesql.stream.xml|nop.err.stream.invalid-arg|xdsl-e7-tablesql",
+            "xdsl-e9-tdengine-window.stream.xml|nop.err.stream.invalid-arg|xdsl-e9-tdengine-window",
+            "xdsl-e10-hazelcast-window.stream.xml|nop.err.stream.invalid-arg|xdsl-e10-hazelcast-window",
+            "xdsl-e11-enrichment.stream.xml|nop.err.stream.invalid-arg|xdsl-e11-enrichment",
+            "xdsl-e12-early-tail.stream.xml|nop.err.stream.invalid-arg|xdsl-e12-early-tail",
             // ---- R12 存量（WI12 放行后载体更新：streams 已移除，coders 为 pinned
             //      Java-only 面，delta fail-fast fixture 的 NOT_IMPLEMENTED 键随之换载）----
             "test-delta-failfast-extends.stream.xml|nop.err.stream.not-implemented|<coders>",

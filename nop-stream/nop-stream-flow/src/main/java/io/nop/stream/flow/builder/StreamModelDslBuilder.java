@@ -227,6 +227,7 @@ public final class StreamModelDslBuilder {
      */
     public StreamExecutionEnvironment build() {
         expandSqlModel();
+        expandSqlTransforms();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         if (preBuildEnvironmentConfigurer != null) {
             // R6 plan 2322: runs before applyCheckpointConfig/buildTransforms so a
@@ -592,6 +593,304 @@ public final class StreamModelDslBuilder {
                         + " provider is registered; add io.github.entropy-cloud:nop-stream-sql "
                         + "to the classpath")
                 .loc(sql.getLocation());
+    }
+
+    /**
+     * U2 (deferred-unlock): expand every {@code <sqlTransform>} vertex into the
+     * operator-chain fragment produced by {@link ISqlStreamCompiler#compileTransform}.
+     * Runs after {@link #expandSqlModel()} (the top-level generator keeps priority)
+     * and before registry/transform validation, so downstream passes only ever see
+     * ordinary transforms/edges. Splice contract (plan 2375, review conditions M1-M4):
+     * the fragment is a complete xdef-valid stream model whose FROM-table source
+     * vertex carries the reserved id {@link ISqlStreamCompiler#TRANSFORM_ENTRY_ID} —
+     * it is stripped and replaced by the declaring vertex's single upstream edge
+     * (plain FORWARD, no outputTag); fragment ids (transforms/edges/registries and
+     * their refs) are determinically renamed with the vertex-id prefix; the fragment
+     * terminal feeds every downstream edge (fan-out allowed).
+     */
+    private void expandSqlTransforms() {
+        if (model.getTransforms() == null || model.getTransforms().isEmpty()) {
+            return;
+        }
+        for (io.nop.stream.flow.model.StreamTransformModel t : new ArrayList<>(model.getTransforms())) {
+            if (t instanceof io.nop.stream.flow.model.StreamSqlTransformModel) {
+                expandSqlTransformVertex((io.nop.stream.flow.model.StreamSqlTransformModel) t);
+            }
+        }
+    }
+
+    private void expandSqlTransformVertex(io.nop.stream.flow.model.StreamSqlTransformModel v) {
+        String vid = v.getId();
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized()) {
+            throw noSqlTransformProvider(v);
+        }
+        ISqlStreamCompiler compiler =
+                io.nop.api.core.ioc.BeanContainer.instance()
+                        .tryGetBeanByType(ISqlStreamCompiler.class);
+        if (compiler == null) {
+            throw noSqlTransformProvider(v);
+        }
+
+        // input contract: in-degree exactly 1, plain FORWARD edge without outputTag —
+        // a deleted edge's HASH keyBy effect or tag channel would otherwise be
+        // silently dropped (P1-XDSL-5: every declaration is consumed or rejected)
+        StreamEdgeModel inEdge = null;
+        int inDegree = 0;
+        int outDegree = 0;
+        for (StreamEdgeModel e : model.getEdges()) {
+            if (vid.equals(e.getTo())) {
+                inDegree++;
+                inEdge = e;
+            }
+            if (vid.equals(e.getFrom())) {
+                outDegree++;
+            }
+        }
+        if (inDegree == 0) {
+            throw invalidSqlTransform(v, "has no incoming edge: a SQL transform consumes "
+                    + "exactly one upstream stream");
+        }
+        if (inDegree > 1) {
+            throw invalidSqlTransform(v, "has " + inDegree + " incoming edges: a SQL "
+                    + "transform consumes exactly one upstream stream (multi-entry fusion "
+                    + "is not supported — use <union> upstream)");
+        }
+        if (inEdge.getPartition() != null && inEdge.getPartition() != PartitionPolicy.FORWARD) {
+            throw invalidSqlTransform(v, "input edge must be partition=FORWARD (a HASH "
+                    + "edge's keyExpr would be silently dropped by the splice)");
+        }
+        if (inEdge.getOutputTag() != null) {
+            throw invalidSqlTransform(v, "input edge must not declare outputTag (the tag "
+                    + "channel would be silently dropped by the splice)");
+        }
+        if (outDegree == 0) {
+            throw invalidSqlTransform(v, "has no outgoing edge: the fragment result would "
+                    + "be unreachable");
+        }
+        String upstream = inEdge.getFrom();
+
+        Map<String, String> schema = new LinkedHashMap<>();
+        Map<String, Long> fieldLateness = new LinkedHashMap<>();
+        if (v.getSchemas() != null) {
+            for (io.nop.stream.flow.model.StreamSqlFieldModel f : v.getSchemas()) {
+                schema.put(f.getName(), f.getType());
+                java.lang.Long lateness = f.getLateness();
+                if (lateness != null && lateness > 0) {
+                    fieldLateness.put(f.getName(), lateness);
+                }
+            }
+        }
+
+        String xml = compiler.compileTransform(v.getSource(), schema, v.getEmit(), fieldLateness);
+        io.nop.core.lang.xml.XNode node;
+        try {
+            node = io.nop.core.lang.xml.XNode.parse(xml);
+        } catch (Exception e) {
+            throw invalidSqlTransform(v, "SQL compiler returned invalid fragment XML: "
+                    + e.getMessage(), e);
+        }
+        String prefix = vid + "_";
+        stripAndRenameFragment(node, upstream, prefix);
+        StreamModel fragment;
+        try {
+            fragment = (StreamModel) new io.nop.xlang.xdsl.DslModelParser().parseFromNode(node);
+        } catch (NopException e) {
+            throw invalidSqlTransform(v, "SQL fragment failed stream.xdef validation: "
+                    + e.getMessage(), e);
+        }
+
+        // exit = the unique fragment terminal (it is the source of no internal edge;
+        // the stripped entry has already left the parsed fragment)
+        java.util.Set<String> sources = new java.util.HashSet<>();
+        for (StreamEdgeModel e : fragment.getEdges()) {
+            sources.add(e.getFrom());
+        }
+        String exit = null;
+        for (io.nop.stream.flow.model.StreamTransformModel t : fragment.getTransforms()) {
+            if (!sources.contains(t.getId())) {
+                if (exit != null) {
+                    throw invalidSqlTransform(v, "fragment has multiple terminal transforms ("
+                            + exit + ", " + t.getId() + "): the product must be a single chain");
+                }
+                exit = t.getId();
+            }
+        }
+        if (exit == null) {
+            throw invalidSqlTransform(v, "fragment has no terminal transform");
+        }
+
+        // splice transforms (id-collision check is a safety net — the rename makes
+        // collisions impossible for unique vertex ids); the fragment takes the
+        // declaring vertex's position to keep the model readable
+        java.util.List<io.nop.stream.flow.model.StreamTransformModel> newTransforms =
+                new ArrayList<>(model.getTransforms());
+        int vIndex = newTransforms.indexOf(v);
+        newTransforms.remove(vIndex);
+        java.util.Set<String> existingIds = new java.util.HashSet<>();
+        for (io.nop.stream.flow.model.StreamTransformModel t : newTransforms) {
+            existingIds.add(t.getId());
+        }
+        for (io.nop.stream.flow.model.StreamTransformModel t : fragment.getTransforms()) {
+            if (!existingIds.add(t.getId())) {
+                throw invalidSqlTransform(v, "fragment transform id collision: " + t.getId());
+            }
+        }
+        newTransforms.addAll(vIndex, fragment.getTransforms());
+        model.setTransforms(newTransforms);
+
+        // splice edges: the replaced input edge's position carries the fragment's
+        // internal edges; every downstream edge retargets to the fragment terminal
+        java.util.List<StreamEdgeModel> newEdges = new ArrayList<>();
+        for (StreamEdgeModel e : model.getEdges()) {
+            if (vid.equals(e.getTo())) {
+                newEdges.addAll(fragment.getEdges());
+            } else if (vid.equals(e.getFrom())) {
+                e.setFrom(exit);
+                newEdges.add(e);
+            } else {
+                newEdges.add(e);
+            }
+        }
+        model.setEdges(newEdges);
+
+        // merge fragment registries (ids already renamed with the vertex prefix)
+        if (fragment.getSchemas() != null) {
+            fragment.getSchemas().forEach(model::addSchema);
+        }
+        if (fragment.getAggregators() != null) {
+            fragment.getAggregators().forEach(model::addAggregator);
+        }
+        if (fragment.getJoins() != null) {
+            fragment.getJoins().forEach(model::addJoinSpec);
+        }
+        if (fragment.getWindowingStrategies() != null
+                && !fragment.getWindowingStrategies().isEmpty()) {
+            java.util.List<io.nop.stream.flow.model.WindowingStrategyModel> ws =
+                    new ArrayList<>(model.getWindowingStrategies());
+            ws.addAll(fragment.getWindowingStrategies());
+            model.setWindowingStrategies(ws);
+        }
+    }
+
+    /**
+     * Node-tree level strip + rename, run before the DSL parse so the typed merge
+     * never has to touch id bookkeeping: removes the reserved entry source vertex,
+     * renames every id/ref attr with the vertex prefix, and rewires the fragment's
+     * entry edges to the upstream vertex id.
+     */
+    private static void stripAndRenameFragment(io.nop.core.lang.xml.XNode streamNode,
+                                               String upstream, String prefix) {
+        io.nop.core.lang.xml.XNode transforms = childByTag(streamNode, "transforms");
+        if (transforms == null || transforms.getChildren() == null) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, "<sqlTransform>")
+                    .param(ARG_DETAIL, "SQL fragment product has no <transforms> section");
+        }
+        io.nop.core.lang.xml.XNode entry = null;
+        for (io.nop.core.lang.xml.XNode t : transforms.getChildren()) {
+            Object id = t.getAttr("id");
+            if (id != null && ISqlStreamCompiler.TRANSFORM_ENTRY_ID.equals(id)) {
+                if (entry != null) {
+                    throw duplicateEntry();
+                }
+                entry = t;
+            }
+        }
+        if (entry == null) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ELEMENT, "<sqlTransform>")
+                    .param(ARG_DETAIL, "SQL fragment product has no source vertex with the "
+                            + "reserved entry id '" + ISqlStreamCompiler.TRANSFORM_ENTRY_ID
+                            + "' (SPI contract violation)");
+        }
+        transforms.removeChild(entry);
+
+        renameIds(streamNode, prefix, upstream);
+    }
+
+    private static StreamException duplicateEntry() {
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_ELEMENT, "<sqlTransform>")
+                .param(ARG_DETAIL, "SQL fragment product declares multiple entry sources "
+                        + "(id='" + ISqlStreamCompiler.TRANSFORM_ENTRY_ID + "'): a fragment "
+                        + "has exactly one entry");
+    }
+
+    private static io.nop.core.lang.xml.XNode childByTag(io.nop.core.lang.xml.XNode parent,
+                                                         String tag) {
+        if (parent.getChildren() == null) {
+            return null;
+        }
+        for (io.nop.core.lang.xml.XNode c : parent.getChildren()) {
+            if (tag.equals(c.getTagName())) {
+                return c;
+            }
+        }
+        return null;
+    }
+
+    private static final java.util.Set<String> FRAGMENT_ID_ATTRS = new java.util.HashSet<>(
+            java.util.Arrays.asList("id", "strategyId", "aggregatorId", "joinId",
+                    "strategyRef", "aggregatorRef", "joinRef", "schemaId",
+                    "windowStrategyRef"));
+
+    /** Recursive rename of every fragment-local id/ref attr; edge endpoints are
+     * special-cased (entry → upstream, everything else prefixed). */
+    private static void renameIds(io.nop.core.lang.xml.XNode node, String prefix,
+                                  String upstream) {
+        if (node.getChildren() != null) {
+            for (io.nop.core.lang.xml.XNode child : node.getChildren()) {
+                renameIds(child, prefix, upstream);
+            }
+        }
+        if ("edge".equals(node.getTagName())) {
+            Object from = node.getAttr("from");
+            if (from != null) {
+                node.setAttr("from", ISqlStreamCompiler.TRANSFORM_ENTRY_ID.equals(from)
+                        ? upstream : prefix + from);
+            }
+            Object to = node.getAttr("to");
+            if (to != null) {
+                node.setAttr("to", prefix + to);
+            }
+            Object eid = node.getAttr("id");
+            if (eid != null) {
+                node.setAttr("id", prefix + eid);
+            }
+            return;
+        }
+        for (String attr : FRAGMENT_ID_ATTRS) {
+            Object value = node.getAttr(attr);
+            if (value != null) {
+                node.setAttr(attr, prefix + value);
+            }
+        }
+    }
+
+    private static StreamException invalidSqlTransform(
+            io.nop.stream.flow.model.StreamSqlTransformModel v, String detail) {
+        return invalidSqlTransform(v, detail, null);
+    }
+
+    private static StreamException invalidSqlTransform(
+            io.nop.stream.flow.model.StreamSqlTransformModel v, String detail, Throwable cause) {
+        StreamException e = (StreamException) new StreamException(ERR_STREAM_INVALID_ARG, cause)
+                .param(ARG_ELEMENT, "<sqlTransform>")
+                .param(ARG_DETAIL, "<sqlTransform id='" + v.getId() + "'> " + detail);
+        e.loc(v.getLocation());
+        return e;
+    }
+
+    private static StreamException noSqlTransformProvider(
+            io.nop.stream.flow.model.StreamSqlTransformModel v) {
+        return (StreamException) new StreamException(ERR_STREAM_INVALID_ARG)
+                .param(ARG_ELEMENT, "<sqlTransform>")
+                .param(ARG_DETAIL, "<sqlTransform id='" + v.getId()
+                        + "'> declares a SQL transform but no "
+                        + ISqlStreamCompiler.class.getName()
+                        + " provider is registered; add io.github.entropy-cloud:nop-stream-sql "
+                        + "to the classpath")
+                .loc(v.getLocation());
     }
 
     private void applyCheckpointConfig(StreamExecutionEnvironment env) {
