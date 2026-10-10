@@ -85,7 +85,7 @@
 首次创建业务模块时，使用：
 
 ```bash
-java -jar nop-cli.jar gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
+nop-cli gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
 ```
 
 `nop-cli` 是一个 uber-jar（来自 `nop-entropy/nop-runner/nop-cli/`，获取方式见 `../03-runbooks/bootstrap-new-application.md`）。

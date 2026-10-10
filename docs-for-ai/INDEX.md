@@ -67,6 +67,7 @@
 | **后端开发教训速查（nop-app-erp 实战返工，ORM/权限/模块/服务测试前必读）** | **`00-start-here/application-project-pitfalls-backend.md`** |
 | **前端页面教训速查（nop-app-erp 实战返工，页面/E2E 前必读）** | **`00-start-here/application-project-pitfalls-frontend.md`** |
 | **从零创建外部应用项目（冷启动：nop-cli 获取/使用、项目骨架、最小配置、启动验证）** | **`03-runbooks/bootstrap-new-application.md`** |
+| **在平台仓库里安装/使用 nop-cli，或配置 Java lint 门禁（注册全局命令、已知问题）** | **`03-runbooks/nop-cli-and-lint-gate.md`** |
 | **已有应用工程内新增业务域模块（ORM→骨架→action-auth 菜单→页面→i18n→冒烟→聚合）** | **`03-runbooks/bootstrap-new-domain-module.md`** |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
 | 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
@@ -249,7 +250,7 @@
 - 业务模块普遍遵循 `model -> codegen -> dao -> meta -> service -> web -> app -> api` 的骨架。
 - `nop-auth`、`nop-job`、`nop-task`、`nop-wf`、`nop-ai` 是最适合用来理解这套骨架的代表模块。
 - `nop-kernel`、`nop-core-framework`、`nop-persistence`、`nop-service-framework` 是框架主干。
-- `nop-runner/` 是 CLI / runner 入口（`nop-cli` uber-jar 构建产物在 `nop-runner/nop-cli/` 模块的 target/ 目录，提供 `gen`/`convert`/`rg`/`lint`/`refactor`/`jq` 子命令，获取与用法见 `03-runbooks/bootstrap-new-application.md`）；`nop-demo/` 和 `demo/` 是示例入口。
+- `nop-runner/` 是 CLI / runner 入口（`nop-cli` uber-jar 构建产物在 `nop-runner/nop-cli/` 模块的 target/ 目录，提供 `gen`/`validate`/`convert`/`rg`/`lint`/`refactor`/`jq` 等 21 个子命令；全局安装用 `bash tools/install-cli.sh`，用法与 Java lint 门禁见 `03-runbooks/nop-cli-and-lint-gate.md`，外部项目里的用法见 `03-runbooks/bootstrap-new-application.md`）；`nop-demo/` 和 `demo/` 是示例入口。
 - `docs/theory/` 下的论文与技术报告属于研究/论证材料，不是开发 AI 的默认规范入口；出现解释歧义时，不要把其中术语直接当作 `docs-for-ai/` 级别的开发规则。
 - `nop-stream/` 是流处理引擎子模块组，包含 `nop-stream-core`（核心 API、状态、算子）、`nop-stream-cep`（CEP 复杂事件处理）、`nop-stream-runtime`（运行时、检查点、协调器）、`nop-stream-connector`（连接器基础：file 源/汇、message 源/汇、FLIP-27 split source 契约）、`nop-stream-connector-batch`（nop-batch 桥接连接器）、`nop-stream-connector-jdbc`（JDBC 两阶段提交 exactly-once sink）、`nop-stream-connector-debezium`（Debezium CDC source）、`nop-stream-connector-kafka`（Kafka 原生 exactly-once source/sink 连接器）、`nop-stream-format-avro`（Avro/Schema Registry 格式层）、`nop-stream-rocksdb`（RocksDB 增量状态后端）、`nop-stream-flow`（XDSL StreamModel 声明式编排 + Delta 定制）、`nop-stream-sql`（声明式 SQL 窄范围接口编译宿主）、`nop-stream-fraud-example`（欺诈检测示例）——与 `nop-stream/pom.xml` `<modules>` 一一对应共 13 个，权威口径见 `01-repo-map/module-groups.md` nop-stream 条目。
 

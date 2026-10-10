@@ -194,7 +194,7 @@
 </orm>
 <!--
   下一步：把本文件放到 module-{domain}/model/ 下，然后
-    1. 首次生成骨架：java -jar nop-cli.jar gen -t=/nop/templates/orm model/app-demo-master-data.orm.xml -o=.
+    1. 首次生成骨架：nop-cli gen -t=/nop/templates/orm model/app-demo-master-data.orm.xml -o=.
     2. 日常迭代：./mvnw clean install -T 1C （Maven 自动跑 postcompile/gen-orm.xgen）
   详见 docs-for-ai/03-runbooks/bootstrap-new-application.md
 -->

@@ -53,9 +53,12 @@
 | CLI 聚合模块 | `nop-runner/` |
 | CLI 核心 | `nop-runner/nop-cli-core/` |
 | CLI 打包模块 | `nop-runner/nop-cli/` |
+| **安装/注册全局 nop-cli 命令（git bash / macOS / Linux）** | **`tools/install-cli.sh`** |
 | Windows 命令入口 | `scripts/nop-cli.cmd` |
 | Demo 聚合 | `nop-demo/` |
 | 额外模板与示例 | `demo/` |
+
+安装与注册、Java lint 门禁、以及已知问题，见 [`../03-runbooks/nop-cli-and-lint-gate.md`](../03-runbooks/nop-cli-and-lint-gate.md)。
 
 ## 最适合用来观察骨架的真实路径
 

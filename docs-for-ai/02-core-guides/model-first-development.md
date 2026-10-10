@@ -25,7 +25,7 @@
 ### 首次生成骨架（一次性）
 
 ```bash
-java -jar nop-cli.jar gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
+nop-cli gen -t=/nop/templates/orm model/{appName}.orm.xml -o=.
 ```
 
 `nop-cli` 是一个 uber-jar，来自 `nop-entropy/nop-runner/nop-cli/`。获取方式：
