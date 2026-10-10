@@ -1,0 +1,32 @@
+<!--
+  WI22 E4 (Flink WindowJoin shape): two event-time streams equi-joined on key with
+  a tumbling window join spec; LEFT join (outer) completes unmatched left records
+  at the watermark with a null right companion.
+-->
+<stream x:schema="/nop/schema/stream/stream.xdef"
+        xmlns:x="/nop/schema/xdsl.xdef"
+        name="xdsl-e4-windowjoin" version="1" parallelism="1">
+
+    <windowingStrategies>
+        <strategy strategyId="win10s" windowFnId="tumbling-event-time" duration="10s"/>
+    </windowingStrategies>
+
+    <joins>
+        <joinSpec joinId="wjoin" joinType="LEFT"
+                  leftKeyExprs="event.k" rightKeyExprs="event.k"
+                  windowStrategyRef="win10s" timeout="10s"/>
+    </joins>
+
+    <transforms>
+        <source id="left" name="LeftStream" bean="e4LeftSource" parallelism="1"/>
+        <source id="right" name="RightStream" bean="e4RightSource" parallelism="1"/>
+        <join id="j" name="WindowJoin" joinRef="wjoin"/>
+        <sink id="out" name="JoinSink" bean="e4JoinSink" parallelism="1"/>
+    </transforms>
+
+    <edges>
+        <edge id="e0" from="left" to="j" partition="FORWARD"/>
+        <edge id="e1" from="right" to="j" partition="FORWARD"/>
+        <edge id="e2" from="j" to="out" partition="FORWARD"/>
+    </edges>
+</stream>
