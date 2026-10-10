@@ -1,7 +1,8 @@
 # 2395 full-code-review R1.29 — nop-cluster 修复批（P1-4.4-C1..C4）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.29；findings `P1-4.4-C1..C4`（check/msg-cluster-cred.md P1-1..P1-4，4.4 §2.3 标定维持），见 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/4.4-format-search-message-cluster-audit.md` §2.3
 > Related: P1-4.2-004（sentinel 零测试——本批 sentinel 判别测试即首建测试树，补测义务部分履行，完整补测归 R1.41）；P2-4.2-001（nacos 零测试——同上，互补关系维持）；P1-4.4-C3 与 R1.41 同批互引
 > Owner Doc: `docs-for-ai/01-repo-map/module-groups.md`（cluster 面无独立 owner doc——语义注记落 network.md 与既有先例一致）
@@ -92,9 +93,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（cluster 各模块测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-cluster/nop-cluster-core,nop-cluster/nop-cluster-sentinel,nop-cluster/nop-cluster-nacos` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-cluster/nop-cluster-core,nop-cluster/nop-cluster-sentinel,nop-cluster/nop-cluster-nacos` 全绿（core 60/sentinel 2/nacos 2，audit 复跑 _tmp/audit-2395-gate.log）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -107,14 +108,24 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 四修 live 亲核在位且失败链与 baseline 逐字吻合；判别四腿签名精确（@cfg; 逐字/IOOBE Index 3 of 3/context 残留 2F/Range [0,-1) 逐字）；core 60/sentinel 2/nacos 2 审计复跑全绿；收口四方一致；Anti-Hollow 三项过；follow-ups 三方一致（R1.41 补测/getActiveCount 设计决策）。audit Minor 5 项处置：归档日志缺陷（cluster-tests.log 非终态绿——以 audit-2395-gate.log 终态为准，已记录）/真实代码 commit 注明（C2-C4 diff 实际落 22de5578d7，1882d28cf1 为 sentinel 测试迭代——git index 冲突事故副产品，本段即为溯源声明）/C1 反射形态裁定（index.md 已记，plan 补记）/C2 成员断言替代最小活跃断言（恒 0 语义下无意义，判别力无损）/javadoc 行内注释化（语义满足）。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_fb2b2a0b-3ab4-419c-8c6a-74997fe53021
 - Evidence:
+  - C1 PASS：AbstractLeaderElector:72 @cfg:（ConfigExpressionProcessor:139/:155 失败链亲读）；TestLeaderElectorConfigBinding 1/1
+  - C2 PASS：LeastActiveLoadBalance:66 取模（Dubbo 形态）；回绕用例 5/5（含新用例）
+  - C3 PASS：SentinelFlowControlRunner:98 无条件 exit（:88-93 entry 分支保留；:169-176 同步版对照）；2/2
+  - C4 PASS：NacosNamingService:292-296 pos>0（static 化）；2/2
+  - 判别证据：disc-c1b（got @cfg; 逐字）/disc-c2（IOOBE 逐字）/disc-c3（恰 2F）/disc-c4（Range [0,-1) 逐字）
+  - 收口完整性：roadmap :160 done；index :182-185 fixed；daily log 10-10.md:3-14（环境事件如实记录）；network.md :62-64
+  - 工具门禁：doc-links/checklist/hollow 三模块均 0（audit 亲跑）
+  - Follow-ups 诚实性：R1.41 补测/getActiveCount 恒 0 设计决策三方一致，non-blocking 成立
+  - Minor 处置：归档日志缺陷以 audit-2395-gate.log 为终态证据；真实 commit 注明（22de5578d7+1882d28cf1）；C1/C2 形态裁定补记本段
 
 Follow-up:
 
--
+- sentinel/nacos 完整补测（R1.41——本批判别级测试为首个覆盖）；getActiveCount 恒 0 语义（独立设计决策 follow-up）；ConsistentHash 环缓存等 P2 台账行

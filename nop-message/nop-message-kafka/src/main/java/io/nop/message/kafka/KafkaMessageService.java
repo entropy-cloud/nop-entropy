@@ -273,8 +273,8 @@ public class KafkaMessageService implements IMessageService {
         KafkaConsumer<String, String> kConsumer = new KafkaConsumer<>(
                 buildConsumerProps(groupId), new StringDeserializer(), new StringDeserializer());
         java.util.List<String> topics = java.util.Collections.singletonList(subConfig.getTopic());
-        kConsumer.subscribe(topics);
-
+        // P1-4.4-M03（plan 2396）：seek 由 rebalance listener 以实际分配分区驱动（ALWAYS
+        // 每次/INIT 首次）；P1-4.4-M01：onPartitionsAssigned 时按期望暂停态对新分区补 pause。
         long pollTimeout = options != null && options.getBatchReceiveTimeout() > 0
                 ? options.getBatchReceiveTimeout() : 1000L;
 
@@ -285,6 +285,23 @@ public class KafkaMessageService implements IMessageService {
         });
         KafkaConsumeTask task = new KafkaConsumeTask(this, executor, kConsumer, subConfig,
                 KafkaConsumeTask.DEFAULT_CONSUME_ERROR_BACKOFF_MS, pollTimeout);
+
+        kConsumer.subscribe(topics, new org.apache.kafka.clients.consumer.ConsumerRebalanceListener() {
+            @Override
+            public void onPartitionsRevoked(java.util.Collection<org.apache.kafka.common.TopicPartition> partitions) {
+                // offsets 由 at-least-once 提交语义管理，无需额外处理
+            }
+
+            @Override
+            public void onPartitionsAssigned(java.util.Collection<org.apache.kafka.common.TopicPartition> partitions) {
+                // P1-4.4-M03：seek 由实际分配分区驱动；P1-4.4-M01：期望暂停态对新分区补应用
+                task.seekOnAssigned(partitions);
+                if (task.isDesiredPaused()) {
+                    kConsumer.pause(partitions);
+                }
+            }
+        });
+
         task.start();
 
         KafkaMessageSubscription subscription = new KafkaMessageSubscription(kConsumer, executor, task);
@@ -332,12 +349,10 @@ public class KafkaMessageService implements IMessageService {
                 return;
             }
             cancelled = true;
+            // P1-4.4-M02（plan 2396）：先唤醒并等消费线程退出，再 close——此前 close 先于
+            // 线程退出，消费线程在 poll/commitSync 中触发 CME 被吞，consumer 泄漏且
+            // cancel 线程阻塞最长 60s。
             task.stop();
-            try {
-                consumer.close();
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.cancel-close-consumer-failed", e);
-            }
             executor.shutdown();
             try {
                 if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -346,6 +361,11 @@ public class KafkaMessageService implements IMessageService {
             } catch (InterruptedException e) {
                 executor.shutdownNow();
                 Thread.currentThread().interrupt();
+            }
+            try {
+                consumer.close();
+            } catch (Exception e) {
+                LOG.error("nop.message.kafka.cancel-close-consumer-failed", e);
             }
             subscriptions.remove(this);
         }
@@ -362,21 +382,16 @@ public class KafkaMessageService implements IMessageService {
 
         @Override
         public void suspend() {
+            // P1-4.4-M01（plan 2396）：仅设期望态（线程安全）——消费循环每轮应用、
+            // rebalance listener 对新分配分区补应用。此前调用线程直操 consumer 且
+            // 标志与 poll 循环脱钩，rebalance 后 pause 静默失效。
             suspended = true;
-            try {
-                consumer.pause(consumer.assignment());
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.suspend-failed", e);
-            }
+            task.setDesiredPaused(true);
         }
 
         @Override
         public void resume() {
-            try {
-                consumer.resume(consumer.assignment());
-            } catch (Exception e) {
-                LOG.error("nop.message.kafka.resume-failed", e);
-            }
+            task.setDesiredPaused(false);
             suspended = false;
         }
     }

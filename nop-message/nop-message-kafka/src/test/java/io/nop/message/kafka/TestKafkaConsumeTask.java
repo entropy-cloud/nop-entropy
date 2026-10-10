@@ -150,8 +150,14 @@ class TestKafkaConsumeTask {
         verify(consumer).commitSync();
     }
 
+    /**
+     * P1-4.4-M03（plan 2396）重写（原 seekToBeginHonoredNotStubbed 以 mock 注入非空
+     * assignment 掩盖「assignment 恒空时 seek 全 no-op」缺陷）：seek 语义现由
+     * seekOnAssigned(assignment) 以实际分配分区参数驱动——分区作为方法入参直传，
+     * 无需 stub consumer.assignment()。
+     */
     @Test
-    void seekToBeginHonoredNotStubbed() {
+    void seekOnAssignedHonorsInitModeOnce() {
         IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         options.setSeekMode(SeekMode.INIT_SEEK_TO_BEGIN);
@@ -160,12 +166,50 @@ class TestKafkaConsumeTask {
 
         Set<TopicPartition> assignment = new LinkedHashSet<>();
         assignment.add(new TopicPartition("test-topic", 0));
-        when(consumer.assignment()).thenReturn(assignment);
-        doNothing().when(consumer).seekToBeginning(any());
 
-        task.seekToPosition();
-
+        task.seekOnAssigned(assignment);
         verify(consumer).seekToBeginning(assignment);
+
+        // INIT 语义：第二次 assigned 不再 seek（7.7 裁决②）
+        task.seekOnAssigned(assignment);
+        verify(consumer, org.mockito.Mockito.times(1)).seekToBeginning(assignment);
+    }
+
+    /** ALWAYS 语义：每次 assigned 都 seekToEnd。 */
+    @Test
+    void seekOnAssignedAlwaysModeEveryTime() {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        MessageSubscribeOptions options = new MessageSubscribeOptions();
+        options.setSeekMode(SeekMode.ALWAYS_SEEK_TO_END);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, options), 100L, 100L);
+
+        Set<TopicPartition> assignment = new LinkedHashSet<>();
+        assignment.add(new TopicPartition("test-topic", 0));
+
+        task.seekOnAssigned(assignment);
+        task.seekOnAssigned(assignment);
+        verify(consumer, org.mockito.Mockito.times(2)).seekToEnd(assignment);
+    }
+
+    /** P1-4.4-M01（plan 2396）：期望暂停态由消费循环应用——applyDesiredPause 按标志驱动 pause/resume。 */
+    @Test
+    void applyDesiredPauseDrivesPauseAndResume() {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, null), 100L, 100L);
+
+        Set<TopicPartition> assignment = new LinkedHashSet<>();
+        assignment.add(new TopicPartition("test-topic", 0));
+        when(consumer.assignment()).thenReturn(assignment);
+
+        task.setDesiredPaused(true);
+        task.applyDesiredPause();
+        verify(consumer).pause(assignment);
+
+        task.setDesiredPaused(false);
+        task.applyDesiredPause();
+        verify(consumer).resume(assignment);
     }
 
     @Test
@@ -180,7 +224,7 @@ class TestKafkaConsumeTask {
         NopException real = new NopException(KafkaErrors.ERR_KAFKA_SEEK_NOT_SUPPORTED);
         when(service.error(any(), any())).thenReturn(real);
 
-        assertThrows(NopException.class, task::seekToPosition);
+        assertThrows(NopException.class, () -> task.seekOnAssigned(new LinkedHashSet<>(java.util.Collections.singleton(new TopicPartition("t", 0)))));
     }
 
     @Test
@@ -199,5 +243,29 @@ class TestKafkaConsumeTask {
         assertTrue(task.isActive());
         task.stop();
         assertFalse(task.isActive());
+    }
+
+    /**
+     * P1-4.4-M01（plan 2396）循环集成：suspend 置期望态后，消费循环每轮自动
+     * applyDesiredPause——rebalance 后新分区同样被覆盖。修复前标志与循环脱钩，
+     * 无任何机制对分区应用 pause。
+     */
+    @Test
+    void suspendFlagAppliedByConsumeLoop() throws Exception {
+        IMessageConsumer msgConsumer = mock(IMessageConsumer.class);
+        KafkaConsumeTask task = new KafkaConsumeTask(service, executor, consumer,
+                config(msgConsumer, null), 100L, 100L);
+
+        Set<TopicPartition> assignment = new LinkedHashSet<>();
+        assignment.add(new TopicPartition("test-topic", 0));
+        when(consumer.assignment()).thenReturn(assignment);
+        when(consumer.poll(any(Duration.class))).thenReturn(ConsumerRecords.empty());
+
+        task.setDesiredPaused(true);
+        task.start();
+        // 消费循环至少跑一轮（poll empty → applyDesiredPause 已在轮首执行）
+        Thread.sleep(300);
+        task.stop();
+        org.mockito.Mockito.verify(consumer, org.mockito.Mockito.atLeastOnce()).pause(assignment);
     }
 }

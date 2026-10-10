@@ -65,6 +65,16 @@ public class KafkaConsumeTask {
 
     private volatile boolean active = false;
 
+    /**
+     * P1-4.4-M01（plan 2396）：期望暂停态——suspend/resume 只置此标志（线程安全），
+     * 消费循环每轮应用、rebalance listener 对新分配分区补应用。此前在调用线程直操
+     * consumer 且 suspended 与 poll 循环脱钩——rebalance 后 pause 静默失效。
+     */
+    private volatile boolean desiredPaused = false;
+
+    /** P1-4.4-M03（plan 2396）：INIT 类 seek 仅在首次分区分配时执行。 */
+    private volatile boolean initSeekDone = false;
+
     public KafkaConsumeTask(KafkaMessageService service, ExecutorService executor,
                             Consumer<String, String> consumer,
                             MessageSubscriptionConfig config) {
@@ -86,24 +96,45 @@ public class KafkaConsumeTask {
 
     public void start() {
         active = true;
-        executor.execute(() -> {
-            try {
-                seekToPosition();
-            } catch (Exception e) {
-                LOG.error("nop.err.message.kafka.seek-fail", e);
-                active = false;
-                return;
-            }
-            runTask();
-        });
+        // P1-4.4-M03（plan 2396）：seek 迁移至 ConsumerRebalanceListener.onPartitionsAssigned
+        // （doSubscribe 装配）——真实 KafkaConsumer 首次 poll 前 assignment 恒空，启动期直调
+        // seekToPosition 全部静默 no-op。
+        executor.execute(this::runTask);
+    }
+
+    public void setDesiredPaused(boolean paused) {
+        this.desiredPaused = paused;
+    }
+
+    public boolean isDesiredPaused() {
+        return desiredPaused;
     }
 
     /**
-     * Honors {@link SeekMode} (NOT a stub). Called once before the poll loop begins, on
-     * the consume thread. Maps each {@link SeekMode} to the corresponding
-     * {@link Consumer} seek call on every assigned partition.
+     * P1-4.4-M01（plan 2396）：按期望态对当前分配的分区应用 pause/resume。消费循环每轮
+     * 调用（rebalance 后新分区也由此覆盖），成本可忽略（对已暂停分区的重复 pause 幂等）。
      */
-    void seekToPosition() {
+    void applyDesiredPause() {
+        Collection<TopicPartition> partitions = consumer.assignment();
+        if (partitions.isEmpty()) {
+            return;
+        }
+        if (desiredPaused) {
+            consumer.pause(partitions);
+        } else {
+            consumer.resume(partitions);
+        }
+    }
+
+    /**
+     * Honors {@link SeekMode} (NOT a stub). P1-4.4-M03（plan 2396）：由
+     * ConsumerRebalanceListener.onPartitionsAssigned 以实际分配的分区驱动——启动期直调
+     * 时 assignment 恒空，全部 seek 静默 no-op。ALWAYS_SEEK_TO_END 每次 assigned 执行；
+     * INIT_SEEK_TO_BEGIN/INIT_SEEK_TO_END/seekToTime 仅首次 assigned 执行（7.7 裁决②）。
+     * seekToMessage (offset-by-message-id) unsupported regardless of mode; fail loud
+     * rather than silently skip (plan guide #24).
+     */
+    void seekOnAssigned(Collection<TopicPartition> partitions) {
         io.nop.api.core.message.MessageSubscribeOptions options = config.getOptions();
         if (options == null) {
             return;
@@ -118,21 +149,28 @@ public class KafkaConsumeTask {
         }
 
         SeekMode mode = options.getSeekMode();
-        if (mode == null || mode == SeekMode.DEFAULT) {
-            // seekToTime without an explicit mode still applies.
-            if (options.getSeekToTime() > 0) {
-                seekByTime(options.getSeekToTime());
-            }
+        boolean initMode = mode == SeekMode.INIT_SEEK_TO_BEGIN || mode == SeekMode.INIT_SEEK_TO_END;
+        if (initMode && initSeekDone) {
             return;
         }
 
-        Collection<TopicPartition> partitions = consumer.assignment();
+        if (mode == null || mode == SeekMode.DEFAULT) {
+            // seekToTime without an explicit mode still applies (INIT semantics).
+            if (options.getSeekToTime() > 0) {
+                seekByTime(options.getSeekToTime(), partitions);
+            }
+            initSeekDone = true;
+            return;
+        }
+
         switch (mode) {
             case INIT_SEEK_TO_BEGIN:
                 consumer.seekToBeginning(partitions);
+                initSeekDone = true;
                 break;
             case INIT_SEEK_TO_END:
                 consumer.seekToEnd(partitions);
+                initSeekDone = true;
                 break;
             case ALWAYS_SEEK_TO_END:
                 consumer.seekToEnd(partitions);
@@ -144,13 +182,13 @@ public class KafkaConsumeTask {
         }
 
         if (options.getSeekToTime() > 0) {
-            seekByTime(options.getSeekToTime());
+            seekByTime(options.getSeekToTime(), partitions);
         }
     }
 
-    private void seekByTime(long timestamp) {
+    private void seekByTime(long timestamp, Collection<TopicPartition> partitions) {
         Map<TopicPartition, Long> timestamps = new HashMap<>();
-        for (TopicPartition partition : consumer.assignment()) {
+        for (TopicPartition partition : partitions) {
             timestamps.put(partition, timestamp);
         }
         Map<TopicPartition, org.apache.kafka.clients.consumer.OffsetAndTimestamp> offsets =
@@ -177,6 +215,7 @@ public class KafkaConsumeTask {
     private void runTask() {
         while (active) {
             try {
+                applyDesiredPause();
                 if (config.getOptions() != null && config.getOptions().allowBatchConsume()) {
                     batchConsume();
                 } else {

@@ -59,6 +59,10 @@ options.setMode(UploadMode.BASE64_FORM);
 - **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
 - **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
 
+## Kafka 消费生命周期语义（P1-4.4-M01..M03，plan 2396）
+
+三条契约：①**suspend/resume = 期望态标志**（线程安全 setter）——消费循环每轮对当前分配分区应用 pause/resume，rebalance listener 对新分配分区按标志补应用（调用线程不再直操 consumer，rebalance 后暂停不失效）；②**seek = onPartitionsAssigned 驱动**——ALWAYS_SEEK_TO_END 每次 assigned 执行，INIT_SEEK_TO_BEGIN/END 与 seekToTime 仅首次 assigned 执行，seekToMessage fail-loud；③**cancel 顺序 = 先停线程后 close**——task.stop()（wakeup）→ executor.shutdown/awaitTermination → consumer.close()（消费线程退出后才关闭，杜绝 CME 吞异常导致的 consumer 泄漏）。
+
 ## nop-cluster 语义（P1-4.4-C1..C4，plan 2395）
 
 四条契约：①leader 选举租约配置绑定使用 IoC 认知的 `@cfg:` 前缀（`@cfg;` 笔误会使装配即启动失败）；②LeastActive 负载均衡窗口回绕取模（`(startIndex+currentCursor)%n`，多实例回绕场景不再越界）；③SentinelFlowControlRunner.runAsync 的 `ContextUtil.enter/exit` 无条件配对（成功路径不再泄漏发起线程 context 栈；entry 的 exit 在 whenComplete/失败分支独立配对）；④Nacos 服务发现 serviceName 无组名（不含 `@@`）时原样保留、groupName 为 null（对齐 getNormalizedServiceName 守卫）。
