@@ -1,7 +1,8 @@
 # 2394 full-code-review R1.28 — nop-search 先修批（P1-4.4-S-02..06）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-10
+> Completed: 2026-10-10
 > Source: roadmap `ai-dev/backlog/full-code-review-roadmap.md` R1.28；findings `P1-4.4-S-02..06`（check/nop-search.md P1-1..P1-5，4.4 §2.2 标定维持），见 `ai-dev/audits/check/nop-search.md`
 > Related: **⚠️ plan-first 载体**：S-05 触 nop-search-api `ISearchEngine.getDoc` 签名变更（Protected Area：跨模块公共 API plan-first）——本 plan 即载体，调用方迁移清单见 Execution Plan；S-06 注 6.4 #6a 纯引用裁定勿双立；执行顺序约束：先修 5 条 P1 再动 LuceneSearchEngine 拆分（4.4 裁定）
 > Owner Doc: `docs-for-ai/03-modules/nop-network.md`（nop-search 面无独立 owner doc——实施时核对，network.md 为 search 相关语义既有落点）
@@ -96,9 +97,9 @@ Exit Criteria:
 - [x] 必要 focused verification 已完成（nop-search 三模块测试全绿）
 - [x] 不存在被静默降级的 in-scope live defect
 - [x] 受影响 owner docs 已同步
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] `./mvnw test -pl nop-search/nop-search-api,nop-search/nop-search-core,nop-search/nop-search-lucene` 全绿
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] `./mvnw test -pl nop-search/nop-search-api,nop-search/nop-search-core,nop-search/nop-search-lucene` 全绿（lucene 22/core 19，执行轮+审计独立重跑双验证；下游 3 模块迁移后 266/281/1345 全绿）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0
 
 ## Deferred But Adjudicated
 
@@ -116,14 +117,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:
-Completed:
+Status Note: 五修本体与判别证据达标（audit 确认 S-02/03/04/06 PASS、S-05 本体 PASS）；**audit 首轮 Cannot Close**——S-05 plan-first 载体迁移不完整（初版 grep 只搜调用面漏实现面，4 个外部测试期实现类未迁移致 3 下游模块 test-compile 破损）。解除：4 mock 补迁（topic 形参）→ toolkit 266/code-service 281/metadata 1345 全绿 → roadmap/daily log「迁移清单」表述勘正 → 本 Closure 段如实记录审计与修复闭环 → checklist 复跑 0。audit Minor：「五腿」实为 3 次运行（A 腿三修合并 stash，失败签名各自可归因且 daily log 已如实披露）——按实际形态记录。
+
+Completed: 2026-10-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立子 agent（fresh session）agent_84b5c576-85ce-4455-b380-6d87984caecb
 - Evidence:
+  - 首轮裁定 **Cannot Close**（Blocker：S-05 载体迁移不完整——3 模块 test-compile 破损，逐一 clean test-compile 实证）；修复后解除条件全部满足
+  - S-02/S-03/S-04/S-06 PASS（audit 亲验：buildQuery:870-874/visitNot:193-202/rollback:1158-1173 双调用点/checkAllowAccess:108-114+CFG:96+getLocalFile:120-167）
+  - S-05 修复本体 PASS + 载体迁移补全 PASS：4 外部 mock 迁移后 toolkit 266/code-service 281/metadata 1345 全绿（_tmp/migration-tests.log BUILD SUCCESS）
+  - 判别证据：_tmp/disc-s02-05.log（A 腿 3F+1E，AlreadyClosed 实证）/ _tmp/disc-s03.log（B 腿恰 1F）/ _tmp/disc-s06.log（core 腿恰 2F）——**按实际形态记录：3 次运行非 5 次单腿**（audit Minor-2）
+  - Anti-Hollow 五项 PASS（audit 亲验：beans 注册/全链判别/无 no-op/hollow 0/接口即语义——跨 topic 返回 null 判别实证）
+  - 收口完整性：roadmap :159 done（已勘正迁移表述）；index :177-181 fixed；daily log（已勘正）；owner doc network.md :62-64 五条契约逐句一致
+  - 工具门禁：doc-links 审计亲跑 0；checklist --strict 0（completed 态复跑）；hollow 扫 0
+  - 执行事故核验 PASS（audit：git checkout -- 重建后 BizModel 修复完整在位、无 _-前缀违规）
 
 Follow-up:
 
--
+- LuceneSearchEngine 拆分（4.4 裁定独立计划——本 plan 先修批已解锁）；pattern 正则回溯限制（Deferred 已裁定）；SearchRequest.limit/HYBRID 阈值（P2 台账）；**经验**：public API 签名变更的迁移清单必须同时 grep 调用面与实现面（implements）
