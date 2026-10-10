@@ -63,6 +63,8 @@ Exit Criteria:
 - Successor Required: `yes`
 - Successor Path: 限速声明面 Follow-up（roadmap 登记）。
 
+> **✅ 收口（2026-10-10，deferred-unlock U3/plan 2376，owner 指令触发）**：本段 Follow-up 已交付——`<source rateLimitRowsPerSecond/rateLimitBytesPerSecond>` 声明面（`applyRateLimitDeclaration` + `RateLimitedSourceFunction` 泛化包装，任意 bean/xpl 源可达；与 connector 参数面独立）。E1 场景的 bean 内自限速降级形态升级为声明面直达（bean 自限速仍合法）。测试钉：TestSourceRateLimitDeclaration（决策 5/0）+ TestSourceRateLimitE2E（含 1 rps 接线节流钉 2/0）。
+
 ## Closure
 
 Status Note: E1/E2 验收套件落地：E1（StateMachine 降级形态——per-key DFA process bean+checkpoint+双 sink filter 分流，断言=DFA 转移序列/告警分支/双 sink 数据面，限速=bean 内自限速降级）+ E2（TopSpeedWindowing——global+DeltaTrigger bean+TimeEvictor+maxBy bean 聚合，断言=delta 跳变恰一次发射+maxBy 值）。**E2 事实钉（对照实验实证入文档）**：TimeEvictor 驱逐无事件时间戳元素——source 须 collectWithTimestamp 否则 pane 清空零发射。两轮断言校准（DFA 事件序列修正/TimeEvictor 事实）。同会话全项核验（验收套件型 plan：纯新增 fixture/测试/文档，零 main 改动）。

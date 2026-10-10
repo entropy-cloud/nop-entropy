@@ -160,9 +160,13 @@ StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan
     <transforms xdef:key-attr="id" xdef:body-type="list" xdef:bean-sub-type-prop="type"
                 xdef:bean-child-name="transform" xdef:bean-body-type="List&lt;io.nop.stream.flow.model.StreamTransformModel>">
 
-        <!-- Source 节点：实现 SourceFunction 接口 -->
+        <!-- Source 节点：实现 SourceFunction 接口。U3/deferred-unlock：rateLimitRowsPerSecond/
+             rateLimitBytesPerSecond 声明作业级限速（引擎 SourceRateLimiter 令牌桶，与 connector
+             参数面独立——任意 bean/xpl 源可达；负值构建期 typed reject；0=不限，不包装） -->
         <source maxParallelism="!int=0"
                 consistencyCapability="!enum:io.nop.stream.core.common.functions.source.SourceConsistencyCapability=AT_LEAST_ONCE"
+                rateLimitRowsPerSecond="!long=0"
+                rateLimitBytesPerSecond="!long=0"
                 xdef:name="StreamSourceModel" xdef:ref="StreamTransformModel">
             <outputType>generic-type</outputType>
             <source>xpl-fn:(ctx)=>void</source>

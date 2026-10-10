@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <bean id="rlSrc" class="io.nop.stream.runtime.acceptance.RateLimitE2EBeans$TenRecordSource"/>
+    <bean id="rlSrc3" class="io.nop.stream.runtime.acceptance.RateLimitE2EBeans$ThreeRecordSource"/>
+    <bean id="rlSink" class="io.nop.stream.runtime.acceptance.RateLimitE2EBeans$CollectingSink"/>
+
+</beans>
