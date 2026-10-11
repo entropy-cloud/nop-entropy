@@ -7,6 +7,10 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
+import io.nop.stream.runtime.protocol.JobStatus;
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -33,7 +37,7 @@ import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 
 /**
  * ST-8 (plan 357 Phase 3): the assignment-planning collaborator of
@@ -107,7 +111,7 @@ class AssignmentPlanner {
      * The caller issues the RPCs after releasing the lock.
      */
     List<AssignmentDispatch> prepareAssignmentsLocked(boolean remoteDeployMode, JobGraph jobGraph,
-                                                      io.nop.stream.runtime.rpc.RemotePipelineSpec pipelineSpec,
+                                                      io.nop.stream.runtime.protocol.RemotePipelineSpec pipelineSpec,
                                                       String checkpointStoragePath) {
         long epoch = fencingEpoch.get();
 

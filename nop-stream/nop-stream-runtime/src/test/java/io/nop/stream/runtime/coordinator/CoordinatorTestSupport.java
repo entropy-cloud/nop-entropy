@@ -14,7 +14,7 @@ import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

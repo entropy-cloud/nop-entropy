@@ -13,8 +13,8 @@ import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 
 import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;

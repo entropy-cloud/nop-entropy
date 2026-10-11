@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,11 +51,11 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_S
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.TaskProgress;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
 import io.nop.stream.runtime.transport.RemoteResultPartition;
 import io.nop.stream.runtime.transport.SubtaskPlanBuilder;
@@ -303,12 +304,10 @@ public class TaskManager implements IStreamTaskRpcService {
         // Running-task gauge (same counting
         // semantics as getRunningTaskCount — excludes finished tasks).
         io.nop.stream.runtime.metrics.TaskNodeMetrics.registerRunningGauge(
-                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
                 nodeId, this::getRunningTaskCount);
 
         // R5-CC-10 backlog gauge: live depth of the commit executor's wait queue.
         io.nop.stream.runtime.metrics.TaskNodeMetrics.registerCommitQueueDepthGauge(
-                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
                 nodeId, this::commitQueueDepth);
 
         heartbeatExecutor.scheduleAtFixedRate(
@@ -560,7 +559,7 @@ public class TaskManager implements IStreamTaskRpcService {
         // Inject per-task data-plane
         // metrics on the real in-process install path.
         invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
-                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                io.nop.stream.runtime.metrics.RuntimeMetrics.registry(),
                 jobId, vertexId, subtaskIndex));
         runningTask.setInvokable(invokable);
     }
@@ -582,7 +581,7 @@ public class TaskManager implements IStreamTaskRpcService {
      * <p><strong>No silent skip</strong>: if deployment fails (build error,
      * fencing mismatch, target-node mismatch, capacity exhausted), this method
      * throws a {@link StreamException} AND reports a FAILED
-     * {@link io.nop.stream.runtime.coordinator.TaskStatusReport} to the coordinator
+     * {@link io.nop.stream.runtime.protocol.TaskStatusReport} to the coordinator
      * so the failure is observable and triggers recovery. Throwing alone is
      * insufficient because the {@code deployTask} RPC is one-way (fire-and-forget,
      * see {@code StreamControlRpcTransformer}) — the exception does not propagate
@@ -748,7 +747,7 @@ public class TaskManager implements IStreamTaskRpcService {
         // Inject per-task data-plane
         // metrics on the real remote-deploy path.
         invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
-                io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                io.nop.stream.runtime.metrics.RuntimeMetrics.registry(),
                 descriptor.getJobId(), descriptor.getVertexId(), descriptor.getSubtaskIndex()));
         LOG.info("TaskManager {} deployed task {} via deployTask RPC (attempt={}, checkpointRestorePath={})",
                 nodeId, taskKey, descriptor.getAttemptId(), descriptor.getCheckpointRestorePath());

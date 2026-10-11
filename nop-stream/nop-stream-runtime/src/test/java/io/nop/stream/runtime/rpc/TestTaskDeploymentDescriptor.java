@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.ObjectInputStream;

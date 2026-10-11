@@ -114,8 +114,8 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> restoredBuffer;
 
-    /** test-visible: restoreState ran before open() and the captured buffer is not yet applied. */
-    boolean hasPendingRestoredBuffer() {
+    /** test-visible (cross-package test): restoreState ran before open() and the captured buffer is not yet applied. */
+    public boolean hasPendingRestoredBuffer() {
         return restoredBuffer != null;
     }
     /** durable copy: one keyed-state entry per buffered element. */

@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -14,7 +16,7 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

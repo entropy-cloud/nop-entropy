@@ -7,7 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
-import io.nop.stream.core.metrics.StreamMetricsRegistries;
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
 
 import io.micrometer.core.instrument.Gauge;
 
@@ -49,7 +49,7 @@ public final class DbBacklogGauges {
             AtomicReference<RemoteResultPartition> ref = new AtomicReference<>(partition);
             Gauge.builder(METRIC_NAME, ref, DbBacklogGauges::backlogOf)
                     .tag(TAG_TOPIC, topic)
-                    .register(StreamMetricsRegistries.registry());
+                    .register(RuntimeMetrics.registry());
             return ref;
         });
         holder.set(partition);

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 import io.nop.stream.core.jobgraph.JobGraph;
 
 /**

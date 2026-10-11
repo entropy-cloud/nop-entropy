@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.runtime.protocol.JobStatus;
+import io.nop.stream.runtime.protocol.JobStatusResponse;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_ALREADY_HOSTED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_ILLEGAL_HEALTH_TRANSITION;
 import io.nop.core.lang.json.JsonTool;
@@ -373,7 +375,7 @@ public class StreamOpsHttpServer {
     }
 
     private Map<String, Object> jobSummary(io.nop.stream.runtime.coordinator.JobCoordinator c) {
-        io.nop.stream.runtime.coordinator.JobStatusResponse status = c.getJobStatus();
+        io.nop.stream.runtime.protocol.JobStatusResponse status = c.getJobStatus();
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("jobId", c.getJobId());
         summary.put("jobStatus", status.getJobStatus() == null ? null : status.getJobStatus().name());
@@ -455,7 +457,7 @@ public class StreamOpsHttpServer {
             return;
         }
         Map<String, Object> body = jobSummary(coordinator);
-        io.nop.stream.runtime.coordinator.JobStatusResponse status = coordinator.getJobStatus();
+        io.nop.stream.runtime.protocol.JobStatusResponse status = coordinator.getJobStatus();
         body.put("failureCause", status.getFailureCause());
         var snapshot = coordinator.getCheckpointCoordinator().getMetrics().snapshot();
         body.put("checkpointOverview", Map.of(

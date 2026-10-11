@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

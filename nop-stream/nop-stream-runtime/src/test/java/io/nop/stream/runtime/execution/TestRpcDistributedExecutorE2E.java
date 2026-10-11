@@ -26,7 +26,7 @@ import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
-import io.nop.stream.runtime.coordinator.JobStatus;
+import io.nop.stream.runtime.protocol.JobStatus;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;

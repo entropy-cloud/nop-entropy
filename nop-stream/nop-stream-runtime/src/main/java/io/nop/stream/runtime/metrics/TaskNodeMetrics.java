@@ -141,6 +141,16 @@ public final class TaskNodeMetrics {
     }
 
     /**
+     * WI6 plan 2416: convenience overload sourcing the process composite registry
+     * internally, so call sites never reference {@code StreamMetricsRegistries}
+     * directly (the wrapper layer owns registry access). The explicit-registry
+     * variant is retained for isolated-registry tests.
+     */
+    public static void registerRunningGauge(String nodeId, Supplier<Number> supplier) {
+        registerRunningGauge(RuntimeMetrics.registry(), nodeId, supplier);
+    }
+
+    /**
      * R5-CC-10 (plan 369 Phase 4): registers the per-node commit-queue-depth
      * gauge. Idempotent per registry for identical id; released with the node's
      * other meters by {@link #releaseNode(String)}.
@@ -150,6 +160,14 @@ public final class TaskNodeMetrics {
         COMMIT_QUEUE_GAUGE_REFS.put(nodeId, supplier);
         registry.gauge(METRIC_COMMIT_QUEUE_DEPTH, Tags.of(Tag.of(TAG_NODE_ID, nodeId)),
                 supplier, s -> s.get().doubleValue());
+    }
+
+    /**
+     * WI6 plan 2416: convenience overload sourcing the process composite registry
+     * internally (see {@link #registerRunningGauge(String, Supplier)}).
+     */
+    public static void registerCommitQueueDepthGauge(String nodeId, Supplier<Number> supplier) {
+        registerCommitQueueDepthGauge(RuntimeMetrics.registry(), nodeId, supplier);
     }
 
     /**

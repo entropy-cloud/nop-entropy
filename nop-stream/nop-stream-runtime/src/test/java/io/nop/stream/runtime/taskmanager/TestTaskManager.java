@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -22,7 +23,7 @@ import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -568,8 +569,8 @@ class TestTaskManager {
                     "error should point at the invokable installation: " + result.getError().getMessage());
 
             assertEquals(1, mockRpc.statusReports.size(), "exactly one terminal report expected");
-            io.nop.stream.runtime.coordinator.TaskStatusReport report = mockRpc.statusReports.get(0);
-            assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+            io.nop.stream.runtime.protocol.TaskStatusReport report = mockRpc.statusReports.get(0);
+            assertEquals(io.nop.stream.runtime.protocol.TaskStatusReport.TerminalState.FAILED,
                     report.getTerminalState(),
                     "timeout must report FAILED so failover can act (was COMPLETED before the fix)");
             assertNotNull(report.getErrorCause());
@@ -612,7 +613,7 @@ class TestTaskManager {
         assertEquals(CAPACITY, taskManager.getRunningTaskCount(), "overflow must not run");
         assertEquals(1, mockRpc.statusReports.size(),
                 "capacity rejection must be observable to the coordinator");
-        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+        assertEquals(io.nop.stream.runtime.protocol.TaskStatusReport.TerminalState.FAILED,
                 mockRpc.statusReports.get(0).getTerminalState());
         assertEquals("vertex-1", mockRpc.statusReports.get(0).getVertexId());
     }
@@ -634,7 +635,7 @@ class TestTaskManager {
         assertEquals(0, taskManager.getRunningTaskCount());
         assertEquals(1, mockRpc.statusReports.size(),
                 "fencing rejection must be observable to the coordinator");
-        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+        assertEquals(io.nop.stream.runtime.protocol.TaskStatusReport.TerminalState.FAILED,
                 mockRpc.statusReports.get(0).getTerminalState());
     }
 
@@ -662,7 +663,7 @@ class TestTaskManager {
                 "descriptor epoch diverging from the RPC parameter must fail fast");
         assertEquals(0, taskManager.getRunningTaskCount());
         assertEquals(1, mockRpc.statusReports.size(), "rejection must be reported to the coordinator");
-        assertEquals(io.nop.stream.runtime.coordinator.TaskStatusReport.TerminalState.FAILED,
+        assertEquals(io.nop.stream.runtime.protocol.TaskStatusReport.TerminalState.FAILED,
                 mockRpc.statusReports.get(0).getTerminalState());
     }
 
@@ -1173,9 +1174,9 @@ class TestTaskManager {
 
     static class MockCoordinatorRpcService implements IStreamCoordinatorRpcService {
         volatile CheckpointAckMessage lastAck;
-        final java.util.List<io.nop.stream.runtime.coordinator.TaskStatusReport> statusReports =
+        final java.util.List<io.nop.stream.runtime.protocol.TaskStatusReport> statusReports =
                 new java.util.concurrent.CopyOnWriteArrayList<>();
-        final java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> livenessReports =
+        final java.util.List<io.nop.stream.runtime.protocol.TaskProgress> livenessReports =
                 new java.util.concurrent.CopyOnWriteArrayList<>();
 
         @Override
@@ -1184,12 +1185,12 @@ class TestTaskManager {
         }
 
         @Override
-        public void reportTaskStatus(io.nop.stream.runtime.coordinator.TaskStatusReport report) {
+        public void reportTaskStatus(io.nop.stream.runtime.protocol.TaskStatusReport report) {
             statusReports.add(report);
         }
 
         @Override
-        public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> progress) {
+        public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.protocol.TaskProgress> progress) {
             livenessReports.addAll(progress);
         }
 
@@ -1202,8 +1203,8 @@ class TestTaskManager {
         }
 
         @Override
-        public io.nop.stream.runtime.coordinator.JobStatusResponse getJobStatus() {
-            return new io.nop.stream.runtime.coordinator.JobStatusResponse();
+        public io.nop.stream.runtime.protocol.JobStatusResponse getJobStatus() {
+            return new io.nop.stream.runtime.protocol.JobStatusResponse();
         }
     }
 }

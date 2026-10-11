@@ -12,7 +12,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
-import io.nop.stream.runtime.rpc.RemotePipelineSpec;
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 
 /**
  * Item 14 (composite-scenario distributed): pluggable pipeline source for the

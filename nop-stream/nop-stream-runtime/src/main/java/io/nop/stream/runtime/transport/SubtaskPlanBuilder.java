@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -19,7 +20,7 @@ import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.execution.task.Subtask;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.runtime.rpc.RemotePipelineResolver;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
@@ -166,7 +167,7 @@ public final class SubtaskPlanBuilder {
      * graph).
      */
     private static io.nop.stream.core.jobgraph.JobGraph resolvePipelineSpec(
-            io.nop.stream.runtime.rpc.RemotePipelineSpec spec) {
+            io.nop.stream.runtime.protocol.RemotePipelineSpec spec) {
         RemotePipelineResolver resolver = null;
         for (RemotePipelineResolver candidate : java.util.ServiceLoader.load(RemotePipelineResolver.class)) {
             resolver = candidate;

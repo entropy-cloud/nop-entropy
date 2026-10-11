@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.execution;
 
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -97,7 +98,7 @@ class TaskCheckpointWiring {
             for (Subtask subtask : execPlan.getSubtasks(vertexId)) {
                 StreamTaskInvokable invokable = subtask.getInvokable();
                 invokable.setTaskMetrics(new io.nop.stream.core.metrics.MicrometerStreamTaskMetrics(
-                        io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                        io.nop.stream.runtime.metrics.RuntimeMetrics.registry(),
                         jobId, vertexId, subtask.getTaskIndex()));
                 allInvokables.add(invokable);
 

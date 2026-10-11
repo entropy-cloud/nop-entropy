@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.taskmanager;
+package io.nop.stream.runtime.protocol;
 
 import java.io.Serializable;
 

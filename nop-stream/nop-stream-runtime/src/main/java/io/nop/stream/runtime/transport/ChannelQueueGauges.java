@@ -13,7 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.micrometer.core.instrument.Gauge;
 
-import io.nop.stream.core.metrics.StreamMetricsRegistries;
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
 
 /**
  * Item 32 (D2/D2b/D2c): process-local gauge registration for
@@ -102,7 +102,7 @@ public final class ChannelQueueGauges {
                     .tag(TAG_EDGE_ID, edgeId)
                     .tag(TAG_SOURCE_SUBTASK, String.valueOf(sourceSubtask))
                     .tag(TAG_TARGET_SUBTASK, String.valueOf(targetSubtask))
-                    .register(StreamMetricsRegistries.registry());
+                    .register(RuntimeMetrics.registry());
             // WI16: the fill ratio is a derived readout on the SAME holder — one probe,
             // two views (review F4 reconciliation with adjudication P1 #12)
             Gauge.builder(METRIC_FILL_RATIO, ref, ChannelQueueGauges::fillRatioOf)
@@ -110,7 +110,7 @@ public final class ChannelQueueGauges {
                     .tag(TAG_EDGE_ID, edgeId)
                     .tag(TAG_SOURCE_SUBTASK, String.valueOf(sourceSubtask))
                     .tag(TAG_TARGET_SUBTASK, String.valueOf(targetSubtask))
-                    .register(StreamMetricsRegistries.registry());
+                    .register(RuntimeMetrics.registry());
             return ref;
         });
         // Re-registration (recovery rebuild): the SAME meter now follows the new

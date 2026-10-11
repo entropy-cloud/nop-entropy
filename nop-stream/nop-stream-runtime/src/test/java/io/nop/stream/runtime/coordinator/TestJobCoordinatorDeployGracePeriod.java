@@ -7,13 +7,14 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.protocol.TaskProgress;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

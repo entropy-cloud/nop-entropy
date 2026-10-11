@@ -32,7 +32,7 @@ import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 
 import org.junit.jupiter.api.AfterEach;

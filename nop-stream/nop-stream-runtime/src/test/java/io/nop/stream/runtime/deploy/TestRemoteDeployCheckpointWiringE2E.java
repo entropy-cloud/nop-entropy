@@ -187,8 +187,8 @@ class TestRemoteDeployCheckpointWiringE2E {
         //    restored pendings were already committed (idempotent guard).
         RecordingTwoPhaseSink restoreSink = new RecordingTwoPhaseSink();
         JobGraph restoreGraph = buildPipeline(JOB_ID, new ThrottledElementSource(0, 0L, 0L), restoreSink);
-        io.nop.stream.runtime.rpc.TaskDeploymentDescriptor descriptor =
-                new io.nop.stream.runtime.rpc.TaskDeploymentDescriptor(
+        io.nop.stream.runtime.protocol.TaskDeploymentDescriptor descriptor =
+                new io.nop.stream.runtime.protocol.TaskDeploymentDescriptor(
                         JOB_ID, "sink", 0, "tm-1", "restore-attempt", 1, 1L,
                         restoreGraph, deploymentPlan,
                         storage.getBaseDir());
