@@ -42,7 +42,7 @@ audit-rounds: 0
 > - `ai-dev/design/nop-stream/00-vision.md`（§三 #8 / §四 Non-Goals 六行 / §六人审决策点 / §七 #G36；解禁唯一通道 = WI0 且须 owner 人审）
 > - `ai-dev/backlog/nop-stream-multi-engine-comparison-roadmap.md`（引擎侧外部前置：WI1 生产入口 / WI4 连接器参数规则化 / WI5 限速 / WI7 CatalogTable / WI8（a 窗口事件模型、b sideOutput 路由协议、c 兜底出数）/ WI10 重算 / WI11 lookup 异步 / WI15 CDC schema evolution / WI17a DISTINCT·HAVING / WI18 Avro）
 > - `ai-dev/backlog/nop-stream-sql-roadmap.md`（WI14 静态维表 lookup done、WI16 DISTINCT 不支持清单——本 roadmap 的 SQL 面基线）
-> - `nop-lint/docs/rule-catalog.md`、`ai-dev/tools/README.md`（检查门禁惯例：nop-lint 规则目录确定性生成 + `--check` 门禁、check-*.mjs 工具族与新工具登记义务）
+> - `nop-tools/nop-lint/docs/rule-catalog.md`、`ai-dev/tools/README.md`（检查门禁惯例：nop-lint 规则目录确定性生成 + `--check` 门禁、check-*.mjs 工具族与新工具登记义务）
 
 ## Purpose
 
@@ -81,7 +81,7 @@ audit-rounds: 0
 
 **既有硬裁定（本 roadmap 全程有效）**：vision §四 Non-Goals 六行（非等值/范围/广播双流 join、完整 SQL 栈、PB 级、复制 Flink Runtime/Netty、在线自动 reshard、通用异步算子）+ §六人审决策点 + §七 #G36（BroadcastState 永久排除）+ 2026-10-02 D2 收窄（窄 SQL 与等值 join 已交付）；`docs-for-ai/03-modules/nop-stream-sql.md` 不支持清单（DISTINCT 聚合、ORDER BY/LIMIT、CASE/CAST、HAVING/CTE、全局聚合、非等值 join、TIMESTAMP 列绑定）；connectors legacy 冻结裁定；2PC 跨并行度 typed 拒绝。
 
-**检查门禁现状**：`ai-dev/tools/` 24 个 `check-*.mjs`（+ 生成器与辅助脚本；README Tool Index 登记 12 个）；`nop-lint` 平台规则 70 条（65 Java + 5 XML，XML 侧已有 `nop-bean-naming` 作用于 `beans.xml`、`nop-orm-*` 作用于模型 XML），规则目录 `nop-lint/docs/rule-catalog.md` 由 `ai-dev/tools/gen-lint-rule-catalog.mjs` 确定性生成并有 `--check` 门禁（新增规则必须登记并再生成），规则条数另有两处硬编码 census 断言（`TestProductionRuleCount`、`TestNopRuleSuites.EXPECTED_RULE_IDS`）。`.stream.xml` 已被 nop-lint 目标扫描覆盖（按末段扩展名归入 xml），但无任何 XDSL 专属规则；模型感知检查只有 `conf-validate`/`dry-run`（构建期校验/连通性探测，不含最佳实践预检）。
+**检查门禁现状**：`ai-dev/tools/` 24 个 `check-*.mjs`（+ 生成器与辅助脚本；README Tool Index 登记 12 个）；`nop-lint` 平台规则 70 条（65 Java + 5 XML，XML 侧已有 `nop-bean-naming` 作用于 `beans.xml`、`nop-orm-*` 作用于模型 XML），规则目录 `nop-tools/nop-lint/docs/rule-catalog.md` 由 `ai-dev/tools/gen-lint-rule-catalog.mjs` 确定性生成并有 `--check` 门禁（新增规则必须登记并再生成），规则条数另有两处硬编码 census 断言（`TestProductionRuleCount`、`TestNopRuleSuites.EXPECTED_RULE_IDS`）。`.stream.xml` 已被 nop-lint 目标扫描覆盖（按末段扩展名归入 xml），但无任何 XDSL 专属规则；模型感知检查只有 `conf-validate`/`dry-run`（构建期校验/连通性探测，不含最佳实践预检）。
 
 **检查规则存量命中基线（2026-10-06 实扫 37 份仓内 `.stream.xml`，全部 warning 级，不阻塞）**：R5 = 1（`test-param-agg.stream.xml` 用 `<window>` 无水位节点；另一份 `wi21-registry-wiring.stream.xml` 只声明 `windowingStrategies` 注册表而无 `<window>`/`<cep>` 节点，按现行信号不计入）；R7 = 0；R8 = 0；R9 = 0；R10 = 16（8 个非 kebab-case id：`deltaFilter`/`deltaLayerMap`/`intSrc`/`sL`/`sR`/`srcL`/`srcR`/`wi19DropB` + 8 处未命名 `<source>`/`<sink>`；`description` 维度本轮不进 warning 面——仓内 141 个 transform 元素 0 命中，全部转正后再分档）；R11 = 5（by-design 负控夹具：`test-loc-bad-edge`、`test-loc-parse-error`、`test-loc-bad-source-config`、`test-delta-failfast-extends`、`fraud-conf-validate-bad-edge`）；R12 = 2（同负控夹具）。WI4 消号台账以本基线为起点。
 
@@ -300,7 +300,7 @@ flowchart TD
 5. **无静默跳过**（plan guide #24）：放行面不得留下「声明了但静默忽略」路径；能力不支持的配置一律 typed fail-fast；检查器规则必须有「已知坏样例必须被拒」的正控自测（对齐 `check-lint-coverage-manifest.mjs self-test` 惯例）。
 6. **放行三步法**：每个声明面放行必须同时完成「接线 + 删除对应 fail-fast 钉子测试并改为放行行为断言 + owner doc 更新」，三者缺一不得勾选（防双状态面）。
 7. **owner doc 同步**：每个实施 WI 的 Phase 级 exit criteria 含 docs-for-ai 更新项（无则显式声明 No owner-doc update required）；XDSL 支持矩阵与触发语义表是声明面变化的单一事实源。
-8. **测试范围**：`./mvnw test -pl nop-stream/nop-stream-flow -am` + 涉及模块（core/cep/runtime）回归；`./mvnw test -pl nop-lint/nop-lint-nop -am`（规则与 census）；检查器 `node ai-dev/tools/gen-lint-rule-catalog.mjs --check`；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
+8. **测试范围**：`./mvnw test -pl nop-stream/nop-stream-flow -am` + 涉及模块（core/cep/runtime）回归；`./mvnw test -pl nop-tools/nop-lint/nop-lint-nop -am`（规则与 census）；检查器 `node ai-dev/tools/gen-lint-rule-catalog.mjs --check`；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0。
 
 ## Rules
 

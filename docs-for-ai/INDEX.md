@@ -195,9 +195,9 @@
 | 理解 nop-treesitter（纯 Java tree-sitter 运行时：架构 / 恢复语义 / 性能） | `03-modules/nop-treesitter.md` |
 | **分析一段 shell 命令（AI Agent 执行前：证明型拆分 / 字面量收割 / heredoc 提取 / 动态构造标记 / 路径抽取 / 结构化摘要）** | **`03-modules/nop-treesitter.md`**（"shell 分析语义层"一节，含可证明/不可证明边界与三条使用限制） |
 | 理解 nop-refactor（纯 Java tree-sitter 运行时：架构 / 恢复语义 / 性能） | `03-modules/nop-refactor.md` |
-| **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL @BizQuery / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-treesitter/README.md`（用户指南） |
+| **使用 tree-sitter 解析（直接 API / NopIoC provider / GraphQL @BizQuery / 自定义语法注册）** | **`03-modules/nop-treesitter.md`**（快速开始）+ `nop-tools/nop-treesitter/README.md`（用户指南） |
 | 理解 nop-bytecode（字节码分析通道：架构 / 内核 / 性能基线） | `03-modules/nop-bytecode.md` |
-| **使用字节码发现流 CLI（report-only 诊断 / JSON 输出 / 退出码语义）** | **`03-modules/nop-bytecode.md`**（快速开始）+ `nop-bytecode/README.md`（模块指南） |
+| **使用字节码发现流 CLI（report-only 诊断 / JSON 输出 / 退出码语义）** | **`03-modules/nop-bytecode.md`**（快速开始）+ `nop-tools/nop-bytecode/README.md`（模块指南） |
 | 理解 nop-duckdb（数据文件与本地库的进程内分析执行层：配置 / 执行层 API / task step / 单写者与内存约束 / 分析侧接入） | `03-modules/nop-duckdb.md` |
 | **用 DuckDB 做 CSV/Parquet 分析或 nop-task SQL 步骤编排（执行层 API / task step 输入输出 / 第二数据源路由 / 单写者与写边界硬约束）** | **`03-modules/nop-duckdb.md`** |
 | 理解 nop-auth（认证/权限/多租户） | `03-modules/nop-auth.md`（多租户核心机制见 `02-core-guides/tenant-model.md`，MFA 两阶段登录见同文件"多因子验证（MFA）"章节 + 操作级 MFA（敏感操作二次验证）见同文件"操作级 MFA"章节 + 角色级强制策略与受限会话见同文件"角色级强制策略与受限会话（W13）"章节 + 邮件验证码因子与可信设备豁免见同文件"邮件验证码因子（W15）"/"可信设备（记住此设备，W15）"章节 + `02-core-guides/auth-and-permissions.md`"两阶段登录（MFA）"章节） |

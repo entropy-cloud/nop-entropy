@@ -52,9 +52,9 @@ Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/semantic/`
 
 - Item Types: `Fix`
 
-- [x] `LlmEdgeBudget`：maxTokensPerProject 构造参数；`tryConsume(int estimatedTokens) → boolean`；`remaining()`（**2026-10-10 delivered-but-unchecked 回填**：`semantic/LlmEdgeBudget.java` live）
-- [x] `LlmEdgeCache`：`getOrCompute(String promptKey, Supplier<String>) → String`，SHA256(prompt) 为键，ConcurrentHashMap（**回填**：`semantic/LlmEdgeCache.java` live）
-- [x] `LlmSemanticEdgeExtractor`：构造注入 `IChatService` + `LlmEdgeBudget` + `LlmEdgeCache` + `confidenceThreshold`（缺省 0.7）；extract() 从 SymbolTable.getAll() 取符号、候选对选取 = qn 前缀匹配（同包/同类内）+ CallGraph 互补边（M1 裁定：社区边界 deferred）；prompt 下发 qn、解析回 getByQualifiedName 回查 symbol.getId()；JSON relation 限定 8 值枚举白名单（M2：未知值 WARN+跳过）；置信度 >= threshold 生成 CodeSemanticEdge(INFERRED, sourceSymbolId=symbol.getId(), directed=false, indexId)；预算耗尽停止（**回填**：`semantic/LlmSemanticEdgeExtractor.java` live）
+- [x] `LlmEdgeBudget`：maxTokensPerProject 构造参数；`tryConsume(int estimatedTokens) → boolean`；`remaining()`（**2026-10-10 delivered-but-unchecked 回填**：`../../../nop-code/nop-code-service/src/main/java/io/nop/code/service/semantic/LlmEdgeBudget.java` live）
+- [x] `LlmEdgeCache`：`getOrCompute(String promptKey, Supplier<String>) → String`，SHA256(prompt) 为键，ConcurrentHashMap（**回填**：`../../../nop-code/nop-code-service/src/main/java/io/nop/code/service/semantic/LlmEdgeCache.java` live）
+- [x] `LlmSemanticEdgeExtractor`：构造注入 `IChatService` + `LlmEdgeBudget` + `LlmEdgeCache` + `confidenceThreshold`（缺省 0.7）；extract() 从 SymbolTable.getAll() 取符号、候选对选取 = qn 前缀匹配（同包/同类内）+ CallGraph 互补边（M1 裁定：社区边界 deferred）；prompt 下发 qn、解析回 getByQualifiedName 回查 symbol.getId()；JSON relation 限定 8 值枚举白名单（M2：未知值 WARN+跳过）；置信度 >= threshold 生成 CodeSemanticEdge(INFERRED, sourceSymbolId=symbol.getId(), directed=false, indexId)；预算耗尽停止（**回填**：`../../../nop-code/nop-code-service/src/main/java/io/nop/code/service/semantic/LlmSemanticEdgeExtractor.java` live）
 - [ ] service 接线（G1-b）：**已移入 `Deferred But Adjudicated`**（见下节）——本项是 P1-7.4-001 的缺口，随后续 successor 计划落地
 - [x] 测试：Stub IChatService（确定性 JSON 回答）→ 候选选取/prompt 构造/JSON 解析/置信度过滤/缓存命中不重复调用/预算超限停止（**回填**：`TestLlmSemanticEdgeExtractor` 7 用例 live）
 

@@ -69,7 +69,7 @@ Exit Criteria:
 
 ## Phase 3 — LR(1) parser + TSTree + toSExpression
 
-Targets: `nop-treesitter/src/main/java/io/nop/treesitter/parser/`, `nop-treesitter/src/main/java/io/nop/treesitter/TSTree.java`, tests
+Targets: `nop-treesitter/src/main/java/io/nop/treesitter/parser/`, `../../../nop-tools/nop-treesitter/src/main/java/io/nop/treesitter/TSTree.java`, tests
 
 - Item Types: `Fix | Proof`
 

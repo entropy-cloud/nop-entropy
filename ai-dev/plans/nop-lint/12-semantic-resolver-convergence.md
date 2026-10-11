@@ -54,7 +54,7 @@
 ### Phase 1 - 异常翻译与缓存对齐（Fix）
 
 Status: completed
-Targets: `nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/JavaSemanticResolver.java`、`SemanticAnalyzer.java`、`JavaTypeResolver.java`
+Targets: `../../../nop-tools/nop-lint/nop-lint-java/src/main/java/io/nop/lint/java/semantic/JavaSemanticResolver.java`、`SemanticAnalyzer.java`、`JavaTypeResolver.java`
 
 - Item Types: `Fix`
 

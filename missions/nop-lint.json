@@ -14,10 +14,10 @@
     "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commands": {
-    "test": "./mvnw -pl nop-lint/nop-lint-core -am test -T 1C",
-    "build": "./mvnw -pl nop-lint/nop-lint-core -am clean package -DskipTests -T 1C",
-    "lint": "./mvnw -pl nop-lint/nop-lint-core -am checkstyle:check -q 2>/dev/null || echo 'lint not configured'",
-    "typecheck": "./mvnw -pl nop-lint/nop-lint-core -am test-compile -T 1C"
+    "test": "./mvnw -pl nop-tools/nop-lint/nop-lint-core -am test -T 1C",
+    "build": "./mvnw -pl nop-tools/nop-lint/nop-lint-core -am clean package -DskipTests -T 1C",
+    "lint": "./mvnw -pl nop-tools/nop-lint/nop-lint-core -am checkstyle:check -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw -pl nop-tools/nop-lint/nop-lint-core -am test-compile -T 1C"
   },
   "commitFormat": "feat(nop-lint): <description>"
 }

@@ -2,7 +2,7 @@
 
 > Plan Status: active
 > Last Reviewed: 2026-09-29
-> Source: [nop-bytecode-analysis roadmap](../../backlog/nop-bytecode-analysis-roadmap.md) Wave 3 item 7 + [gap-ledger](../../../nop-bytecode/docs/gap-ledger.md) G2 + plan 23 Option A（源码 lane Deferred 面的字节码承接）+ plan 05 对照形态先例
+> Source: [nop-bytecode-analysis roadmap](../../backlog/nop-bytecode-analysis-roadmap.md) Wave 3 item 7 + [gap-ledger](../../../nop-tools/nop-bytecode/docs/gap-ledger.md) G2 + plan 23 Option A（源码 lane Deferred 面的字节码承接）+ plan 05 对照形态先例
 > Related: [05-null-flow-v1.md](05-null-flow-v1.md)（M2a 已达成；内核/通道复用）
 
 ## Purpose
@@ -38,8 +38,8 @@
 
 - `nop-bytecode/src/main/java/io/nop/bytecode/analysis/resources/**`
 - `nop-bytecode/src/test/java/**`（义务分析测试）
-- `nop-bytecode/src/main/java/io/nop/bytecode/cli/NopBytecodeMain.java`（最小接线：第二分析器挂载 + ruleId）
-- `nop-bytecode/docs/resource-comparison.md`（对照记录）
+- `../../../nop-tools/nop-bytecode/src/main/java/io/nop/bytecode/../../../nop-tools/nop-bytecode/src/main/java/io/nop/bytecode/cli/NopBytecodeMain.java`（最小接线：第二分析器挂载 + ruleId）
+- `../../../nop-tools/nop-bytecode/../../../nop-tools/nop-bytecode/docs/resource-comparison.md`（对照记录）
 - `ai-dev/backlog/nop-bytecode-analysis-roadmap.md`、gap-ledger G2、`ai-dev/logs/{执行当日}.md`
 
 ### Out Of Scope
@@ -51,7 +51,7 @@
 ### Phase 1 — 义务分析 v1
 
 Status: completed
-Targets: `analysis/resources/**`、`cli/NopBytecodeMain.java`
+Targets: `analysis/resources/**`、`../../../nop-tools/nop-bytecode/src/main/java/io/nop/bytecode/cli/NopBytecodeMain.java`
 
 - Item Types: `Fix`
 
@@ -80,7 +80,7 @@ Exit Criteria:
 ### Phase 2 — fixture 命中集与对照
 
 Status: completed
-Targets: `src/test/java/**`、`docs/resource-comparison.md`、`_tmp/nop-bytecode-resource-compare/`
+Targets: `src/test/java/**`、`../../../nop-tools/nop-bytecode/docs/resource-comparison.md`、`_tmp/nop-bytecode-resource-compare/`
 
 - Item Types: `Proof`
 
@@ -88,7 +88,7 @@ Targets: `src/test/java/**`、`docs/resource-comparison.md`、`_tmp/nop-bytecode
 - [x] **SpotBugs fixture 语料对照腿（主腿）**：五/八形态 fixture 编译产物用本机 SpotBugs 4.9.8 standalone 只读实跑（产出落 `_tmp/nop-bytecode-resource-compare/`），记录 OBL 对 leak/TWR/finally/别名/条件泄漏各形态是否命中——这是有信息量的对照
 - [x] **SpotBugs 全语料腿**：nop-jq 重跑（复用 plan 05 命令形态）——预期空集，归因如实记录（语料资源面为零，非 OBL 关闭——审查订正）
 - [x] **plan 23 案例集对照腿**：closeable-not-closed 保守面（源码 lane Option B）的典型形态过本通道——路径敏感面是否互补（源码 lane 报声明型，本通道报路径敏感型），逐形态记归属
-- [x] 对照记录 `docs/resource-comparison.md`（口径/命令/数字/裁定/FP 声明/已知限制清单：**隐式异常传播退出不报**、逃逸保守面=普通方法实参 FP 方向、名单制类型面、链式 acquire/store-over/栈上-only-handler-入口/非白名单包装器实参消耗 token 等 FN 面——审查 m3 清单全收录）
+- [x] 对照记录 `../../../nop-tools/nop-bytecode/docs/resource-comparison.md`（口径/命令/数字/裁定/FP 声明/已知限制清单：**隐式异常传播退出不报**、逃逸保守面=普通方法实参 FP 方向、名单制类型面、链式 acquire/store-over/栈上-only-handler-入口/非白名单包装器实参消耗 token 等 FN 面——审查 m3 清单全收录）
 
 Exit Criteria:
 

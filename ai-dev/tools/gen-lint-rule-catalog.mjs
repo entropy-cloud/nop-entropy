@@ -30,9 +30,9 @@ import yaml from 'js-yaml';
 
 const TOOL_DIR = import.meta.dirname;
 const PROJECT_ROOT = resolve(TOOL_DIR, '..', '..');
-const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
+const RULES_ROOT = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
-const CATALOG_FILE = join(PROJECT_ROOT, 'nop-lint', 'docs', 'rule-catalog.md');
+const CATALOG_FILE = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'docs', 'rule-catalog.md');
 
 function scanRules(root) {
   const rules = [];

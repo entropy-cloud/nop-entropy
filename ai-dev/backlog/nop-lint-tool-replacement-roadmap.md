@@ -3,7 +3,7 @@
 > Last updated: 2026-10-03（账本对账：承载 plan 21/24/24b/25/26/27 均 completed、统一账本工具级终裁表已回填、MT4 里程碑 2026-09-28 已记 UNLOCKED——items 5/10-20 的 `planned` 系漏翻，据实翻 done；EP/NullAway 终裁行记 待裁 为 plan 26 裁定终态非欠账）
 > 定位权威: `ai-dev/design/nop-lint/00-overview.md` §1 定位增注（2026-09-28）
 > 设计权威: `ai-dev/design/nop-lint/`（迁移路径 08-migration.md；PMD/EP 对齐 06-pmd-errorprone-alignment.md；mjs 账本 12-check-scripts-migration-manifest.md）
-> 既有行级账本: [checkstyle-pmd-migration.md](../../nop-lint/docs/checkstyle-pmd-migration.md)（26 行）· design 12（24 行）· PMD/EP coverage manifest（186 行）
+> 既有行级账本: [checkstyle-pmd-migration.md](../../nop-tools/nop-lint/docs/checkstyle-pmd-migration.md)（26 行）· design 12（24 行）· PMD/EP coverage manifest（186 行）
 
 ## Purpose
 
@@ -21,7 +21,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 ## 定位三轴准入判据（AI 消费场景）
 
 1. **高信号优先**：发现流由 AI/开发者消费，误报成本高于漏报——新规则必须声明误报控制面（constraints / 类型门控 / 豁免机制），纯噪音面不入库。
-2. **编码期延迟预算**：fast 档 <50ms/文件（design 11 §6，JMH 锚点见 `nop-lint/docs/perf-baseline.md`）。
+2. **编码期延迟预算**：fast 档 <50ms/文件（design 11 §6，JMH 锚点见 `../../nop-tools/nop-lint/docs/perf-baseline.md`）。
 3. **可修复加分**：带 autofix/suggestion 的规则优先（AI 可自纠）。
 4. **老规矩**：每规则 RuleTester fixtures + 行为对照。
 
@@ -54,7 +54,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 ### Wave 1 — 定位基线与存量收口
 
-- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
+- 1. 统一工具替代账本 [tool-replacement-ledger.md](../../nop-tools/nop-lint/docs/tool-replacement-ledger.md)（骨架已随本 roadmap 建立）：防腐门禁脚本（终裁词表 + 分面三轴 enum-set + self-test 正控）+ 逐工具终裁行回填机制。**顺带修正 design 12 汇总行与逐行状态的不一致**（逐行实况 migrated-pending-switchover 5 / candidate 2 / deferred 3；汇总写 3/5/2——门禁若放行该汇总则门禁同修）: `done`（plan: ai-dev/plans/nop-lint/15-tool-replacement-ledger.md；closure audit agent_28e0e96c APPROVE）
 - 2. **现有 62 条生产规则分面复审**：按新定位逐条标注 core / optional 分面（预期 no-star-import、control-statement-braces 等风格面规则降出默认档、降 info 或移出库——逐条裁定），分面表落统一账本；此后新规则按准入判据执行: `done`（plan: ai-dev/plans/nop-lint/16-rule-facet-review.md；closure audit agent_a3d8c4ac APPROVE；裁定 core 46 / out-of-purpose 16（demote 8 / remove 4 / keep 4），"降出默认档"按引擎杠杆重裁定为降 info/移出库，见 design 02 §5）
 - 3. checkstyle.xml 收口（新轴重裁）：keep-checkstyle 12 行逐行归入三轴——核心缺陷行升规则；风格行记 `out-of-purpose`（不迁移）；判据达成后 qa profile 配置段按行结果处置（独立 plan + closure audit + 单 commit 回退）: `done`（plan 3a: ai-dev/plans/nop-lint/17-checkstyle-facet-adjudication.md，audit agent_200546ad APPROVE；plan 3b: ai-dev/plans/nop-lint/18-checkstyle-qa-profile-switchover.md；Checkstyle 终裁 core-face-replaced 已回填统一账本） — deps: 1, 2
 - 4. pmd-ruleset.xml 收口（同上）：keep-pmd 7 行集中 Clone 族/控制流面——先证是否属核心缺陷面再裁去向: `done`（plan 4a: ai-dev/plans/nop-lint/19-pmd-facet-adjudication.md，audit agent_be230c23 APPROVE；plan 4b: ai-dev/plans/nop-lint/20-pmd-verdict-backfill.md——判据未全达配置段保留，PMD 终裁 replaced-partial 已回填统一账本） — deps: 1, 2
@@ -93,7 +93,7 @@ nop-lint 的使用目的：**AI 辅助开发的编码期防线**——在编程�
 
 - 18. ArchUnit 盘点与裁定：清单化 nop-ai-shell / nop-ai-agent 架构断言测试；pattern-expressible 且属平台不变式者迁规则，依赖图闭包类断言（超出 per-file 引擎问题域）→ keep-archunit 逐条记录: `done`（plan: ai-dev/plans/nop-lint/27-archunit-scope-summary.md completed——keep-tool 已回填统一账本 ArchUnit 行） — deps: 1
 - 19. out-of-purpose / out-of-scope 记录终稿：统一账本落两节清单（不做理由 + 重估触发）——风格行（来自 items 3/4/9）、覆盖率 JaCoCo、变异测试 PIT、依赖 CVE 扫描、格式化、IDE 交互面、PMD CPD（引 design 06 §7.2）、跨过程 taint（引 item 14）: `done`（合并至 plan 27——账本 §out-of-scope 记录终稿在档） — deps: 3, 4, 9, 14
-- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `done`（合并至 plan 27——统一账本工具级终裁表 8 工具行全部回填含证据链接；EP/NullAway 行按 plan 26 裁定记 待裁） — deps: 5, 11, 14, 17, 18, 19
+- 20. 终裁汇总报告：[tool-replacement-ledger.md](../../nop-tools/nop-lint/docs/tool-replacement-ledger.md) 终裁表收敛为逐工具分面结论（核心面承接了多少 / out-of-purpose 多少 / out-of-principle 多少 + 证据链接），直接回答"nop-lint 对工具 X 的核心缺陷职责替代到什么程度": `done`（合并至 plan 27——统一账本工具级终裁表 8 工具行全部回填含证据链接；EP/NullAway 行按 plan 26 裁定记 待裁） — deps: 5, 11, 14, 17, 18, 19
 - ★ **Milestone MT4: 逐工具分面裁定完成且汇总成账**（unlocks when 1–19 done；MT1/MT2/MT3a/MT3b/MT3c 均为其子集）——**UNLOCKED 2026-09-28**（items 1–4/6–20 done；item 5 = 6/7 switched + #3 面级，CI successor deferred）
 
 ## Status values

@@ -32,12 +32,12 @@ jobs:
       # BEAN-ID / COLLECT-PREFIX face (nop-lint rule nop-bean-naming, error)
       # tool-replacement roadmap item 5, plan nop-lint/21 + 28
       - name: Compile nop-lint modules
-        run: mvn -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-nop -DskipTests compile
+        run: mvn -q -pl nop-tools/nop-lint/nop-lint-core,nop-tools/nop-lint/nop-lint-java,nop-tools/nop-lint/nop-lint-nop -DskipTests compile
       - name: Build nop-lint classpath
-        run: mvn -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
+        run: mvn -q -pl nop-tools/nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
       - name: Check bean id naming (nop-lint nop-bean-naming)
         run: |-
-          CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-java/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
+          CP="nop-tools/nop-lint/nop-lint-core/target/classes:nop-tools/nop-lint/nop-lint-java/target/classes:nop-tools/nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
           FILES=$(find . -name "*.beans.xml" \
             -not -path "*/target/*" -not -path "*/_gen/*" -not -path "*/_tmp/*" \
             -not -path "*/src/test/*" -not -path "*nop-demo*" \
@@ -83,12 +83,12 @@ jobs:
       # fresh warnings through the severity count). 消号 = fix + regenerate the
       # baseline in the SAME change (stale entries fail the check).
       - name: Compile nop-lint modules
-        run: mvn -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-nop -DskipTests compile
+        run: mvn -q -pl nop-tools/nop-lint/nop-lint-core,nop-tools/nop-lint/nop-lint-nop -DskipTests compile
       - name: Build nop-lint classpath
-        run: mvn -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
+        run: mvn -q -pl nop-tools/nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile=/tmp/nop-lint-cp.txt
       - name: Check XDSL declaration-face best practices (nop-xdsl-*)
         run: |-
-          CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
+          CP="nop-tools/nop-lint/nop-lint-core/target/classes:nop-tools/nop-lint/nop-lint-nop/target/classes:$(cat /tmp/nop-lint-cp.txt)"
           FILES=$(find nop-stream -name "*.stream.xml" -not -path "*/target/*" | sort)
           java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
             $FILES \

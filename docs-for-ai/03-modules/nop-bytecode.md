@@ -1,6 +1,6 @@
 # nop-bytecode（字节码分析通道）
 
-字节码通道是源码通道 nop-lint（见同目录 nop-lint 模块页） 之外的**第二条编码期防线**：在编译产物（Maven reactor 输出目录与 jar 产物）之上做字节码层缺陷发现。两通道**零依赖并行、并行不替代**——缺口面归属见通道缺口账本（`nop-bytecode/docs/gap-ledger.md`）；架构决策记录在本仓 ai-dev 设计目录（按仓内路由惯例查阅，不在此互链）。
+字节码通道是源码通道 nop-lint（见同目录 nop-lint 模块页） 之外的**第二条编码期防线**：在编译产物（Maven reactor 输出目录与 jar 产物）之上做字节码层缺陷发现。两通道**零依赖并行、并行不替代**——缺口面归属见通道缺口账本（`nop-tools/nop-bytecode/docs/gap-ledger.md`）；架构决策记录在本仓 ai-dev 设计目录（按仓内路由惯例查阅，不在此互链）。
 
 ## 快速开始（发现流 CLI，report-only）
 
@@ -8,7 +8,7 @@
 ./mvnw test-compile -pl nop-bytecode
 ./mvnw -pl nop-bytecode dependency:build-classpath \
   -Dmdep.outputFile=target/test-classpath.txt -Dmdep.includeScope=test
-java -cp "nop-bytecode/target/classes:nop-bytecode/target/test-classes:$(cat nop-bytecode/target/test-classpath.txt)" \
+java -cp "nop-tools/nop-bytecode/target/classes:nop-bytecode/target/test-classes:$(cat nop-tools/nop-bytecode/target/test-classpath.txt)" \
   io.nop.bytecode.cli.NopBytecodeMain <class目录或jar>... [--manifest <path>] [--json]
 ```
 

@@ -47,7 +47,7 @@
 ### Wave 1 — 内核最小闭环
 
 - 3. **模块骨架**：模块组定名（默认候选 `nop-bytecode`，与 nop-treesitter 同型定位——底座库；最终名随 item 2 裁定）+ class 文件采集口径（Maven reactor target/classes / jar；增量采集策略）+ 与 nop-lint 的依赖关系裁定（零依赖并行，还是复用 nop-core 基础设施）: `done`（plan: ai-dev/plans/nop-bytecode/02-module-skeleton.md——模块 + 采集层 v0 落地，5/5 tests，零 nop-* 依赖；closure audit agent_ad5221af APPROVE，M1 已补测试处置） — deps: 2
-- 4. **方法内 CFG + 抽象解释内核 v1**：nullness lattice 优先；`tree.analysis` 复用 vs 自建随 item 2 数据裁（ADR §五已裁自建）；内核 JMH 基线（对标 `nop-lint/docs/perf-baseline.md` 形态）: `done`（plan: ai-dev/plans/nop-bytecode/03-kernel-cfg-dataflow-nullflow.md——内核 v1 + nullness 分析 + JMH 基线，13/13 tests；closure audit agent_bc4ff98a REJECT→fix→APPROVE（M1 日志补档+清理项处置）） — deps: 3
+- 4. **方法内 CFG + 抽象解释内核 v1**：nullness lattice 优先；`tree.analysis` 复用 vs 自建随 item 2 数据裁（ADR §五已裁自建）；内核 JMH 基线（对标 `../../nop-tools/nop-lint/docs/perf-baseline.md` 形态）: `done`（plan: ai-dev/plans/nop-bytecode/03-kernel-cfg-dataflow-nullflow.md——内核 v1 + nullness 分析 + JMH 基线，13/13 tests；closure audit agent_bc4ff98a REJECT→fix→APPROVE（M1 日志补档+清理项处置）） — deps: 3
 - 5. **发现流通道**：独立 CLI / maven goal 形态裁定；诊断输出格式与 nop-lint 诊断结构对齐（统一 AI/开发者消费面）；准入判据 3 的去重口径在本项落实: `done`（plan: ai-dev/plans/nop-bytecode/04-discovery-channel-cli.md——CLI+诊断对齐+去重口径落地，20/20 tests；closure audit agent_176d6bd2 REJECT→4 Major 修复（manifest 响亮/命令真机复演/多版本 base 优先/补测试）→复审要点全过） — deps: 3
 - ★ **Milestone M1: 内核 + 通道可跑，基线在档**（unlocks when 3–5 done）——**UNLOCKED 2026-09-29**
 
@@ -69,7 +69,7 @@
 
 ### Wave 5 — 跨过程扩展（adopt-or-skip）
 
-- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`done`（plan: ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md——三轮腿数据落 [interprocedural-spike.md](../../nop-bytecode/docs/interprocedural-spike.md)：G4 读取能力实证+jq 语料契约空集诚实记录 / SootUp 34 jars 调用图 0.35s·170MB+注解入口 demo PASS[v61+v65] / Tai-e 仓外构建实跑 jq CHA 22.6k reachable 1.57s·1.13GB；五判据全过→裁定 **adopt 窄桥接**；closure audit agent_5f8d0835 APPROVE 见 plan Closure） — deps: 9
+- 10. **跨过程调用图 spike**：候选 C 复评（SootUp 最小工程）；参数 nullness 契约面；注解契约可读性（RuntimeVisibleAnnotations 在字节码层可直接读取）：`done`（plan: ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md——三轮腿数据落 [interprocedural-spike.md](../../nop-tools/nop-bytecode/docs/interprocedural-spike.md)：G4 读取能力实证+jq 语料契约空集诚实记录 / SootUp 34 jars 调用图 0.35s·170MB+注解入口 demo PASS[v61+v65] / Tai-e 仓外构建实跑 jq CHA 22.6k reachable 1.57s·1.13GB；五判据全过→裁定 **adopt 窄桥接**；closure audit agent_5f8d0835 APPROVE 见 plan Closure） — deps: 9
 - 11. **taint 面重估**：统一账本 Sonar 行 not-replaceable 在案；仅当 item 10 成立才进入，否则归档不追：`done`（合并至 plan 09——item 10 成立 → taint 面重估落档：Tai-e taint 探针 1 flow[source/sink 双定位]+source/sink 注册表=误报控制面形态+PTA 资源风险如实登记[toy 13.4s/2.3GB]，successor 面清单 §三.1；重估触发三条在档） — deps: 10
 - ★ **Milestone M4: 跨过程面 adopt-or-skip 落档**（unlocks when 10–11 done）——**UNLOCKED 2026-09-30**（裁定 = adopt 窄桥接形态[数据驱动，五判据对照在档]；实现归 successor plan——M4 语义为裁定落档）
 
@@ -96,4 +96,4 @@
 - **需求输入**：源码 lane 两类已知未覆盖面（tool-replacement roadmap Current baseline 第 3 条原文："资源泄漏类（acquire/release 路径配对）与空指针解引用流（null-flow）在当前 L3 数据流之上属未覆盖面——这正是'隐蔽 bug'定位下最需要补的两类"）；plan 23（资源泄漏 v1 Option A Deferred）；plan 24（null-flow Deferred + NullAway not-replaceable）；统一账本 Sonar 行（跨过程 taint not-replaceable，HC 口径）。
 - **并行不替代的对照资产**（现有字节码系接线，零改动）：SpotBugs qa profile（root `pom.xml:521` 起）+ nop-kernel 自带 plugin（`nop-kernel/pom.xml:451`）+ 根 `spotbugs-exclude.xml`；Sonar 属性组（`pom.xml:35–51`）；ArchUnit 测试依赖（`nop-ai/nop-ai-shell/pom.xml:27`、`nop-ai/nop-ai-agent/pom.xml:55`）。
 - **ASM 现状**：仓库**无直接 ASM 依赖**（全部 pom grep 零命中；SpotBugs 仅传递携带，未被直接消费）——底座引入为净新增依赖，依赖体积评估入 item 2 spike 口径。
-- **工程先例**（纪律对标物）：源码 lane 的 RuleTester fixtures 纪律、JMH 基线形态（`nop-lint/docs/perf-baseline.md`）、CI 接线先例（`.github/workflows/compliance.yml` nop-lint CLI job）、替代验证的证据纪律（tool-replacement Hard constraint 3）。
+- **工程先例**（纪律对标物）：源码 lane 的 RuleTester fixtures 纪律、JMH 基线形态（`../../nop-tools/nop-lint/docs/perf-baseline.md`）、CI 接线先例（`.github/workflows/compliance.yml` nop-lint CLI job）、替代验证的证据纪律（tool-replacement Hard constraint 3）。

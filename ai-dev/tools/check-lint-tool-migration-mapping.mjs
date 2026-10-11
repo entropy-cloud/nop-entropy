@@ -3,7 +3,7 @@
 //
 // Anti-drift gate for the checkstyle/pmd → nop-lint migration mapping
 // (roadmap item 40, plan 2026-09-24-2350-1). Validates
-// `nop-lint/docs/checkstyle-pmd-migration.md` §2 against the LIVE tool
+// `nop-tools/nop-lint/docs/checkstyle-pmd-migration.md` §2 against the LIVE tool
 // configs and rule library:
 //   - enum-set  : the mapping row set ≡ the ACTIVE rule set parsed from
 //                 checkstyle.xml + pmd-ruleset.xml (TreeWalker/Checker
@@ -33,10 +33,10 @@ import { fileURLToPath } from 'node:url';
 
 const TOOL_DIR = import.meta.dirname;
 const PROJECT_ROOT = resolve(TOOL_DIR, '..', '..');
-const DOC_FILE = join(PROJECT_ROOT, 'nop-lint', 'docs', 'checkstyle-pmd-migration.md');
+const DOC_FILE = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'docs', 'checkstyle-pmd-migration.md');
 const CHECKSTYLE_FILE = join(PROJECT_ROOT, 'checkstyle.xml');
 const PMD_FILE = join(PROJECT_ROOT, 'pmd-ruleset.xml');
-const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
+const RULES_ROOT = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 
 const STATUS_VOCAB = new Set(['landed', 'keep-checkstyle', 'keep-pmd', 'deferred',

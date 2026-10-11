@@ -2,7 +2,7 @@
 
 > Plan Status: active
 > Last Reviewed: 2026-09-29
-> Source: [nop-bytecode-analysis roadmap](../../backlog/nop-bytecode-analysis-roadmap.md) Wave 4 item 9 + [dual-run-convergence.md](../../../nop-bytecode/docs/dual-run-convergence.md)（item 8 误报数据）+ HC6 硬门禁不对称纪律
+> Source: [nop-bytecode-analysis roadmap](../../backlog/nop-bytecode-analysis-roadmap.md) Wave 4 item 9 + [dual-run-convergence.md](../../../nop-tools/nop-bytecode/docs/dual-run-convergence.md)（item 8 误报数据）+ HC6 硬门禁不对称纪律
 > Related: [07-spotbugs-dual-run.md](07-spotbugs-dual-run.md)
 
 ## Purpose
@@ -31,7 +31,7 @@
 
 ### In Scope
 
-- `nop-bytecode/docs/dual-run-convergence.md`（追加 §六 CI 接线裁定节）
+- `../../../nop-tools/nop-bytecode/docs/dual-run-convergence.md`（追加 §六 CI 接线裁定节）
 - `ai-dev/backlog/nop-bytecode-analysis-roadmap.md`（item 9 + M3 动态块）
 - `ai-dev/logs/{执行当日}.md`
 
