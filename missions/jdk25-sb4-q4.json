@@ -1,0 +1,18 @@
+{
+  "name": "jdk25-sb4-q4",
+  "description": "JDK 25 / Spring Boot 4.1.1 / Quarkus 4.0.0.Beta1 / GraalVM 25 平台升级:build-chain 统一、CI 迁移、双框架 BOM 对齐、BOM-first 依赖治理、死内容清除(javax mail/JSR-107 cache/Hibernate5 benchmark/旧 demo/legacy pipeline)",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": ".",
+  "commands": {
+    "test": "./mvnw test -T 1C -fae",
+    "build": "./mvnw clean install -DskipTests -T 1C -fae",
+    "lint": "node ai-dev/tools/check-doc-links.mjs --strict",
+    "typecheck": "./mvnw compile -q -T 1C"
+  },
+  "commitFormat": "build(platform): <description> (jdk25-sb4-q4 WI<n>)"
+}
