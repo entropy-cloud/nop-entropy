@@ -21,17 +21,19 @@
             <artifactId>nop-core</artifactId>
         </dependency>
 
+        <!-- WI8(plan 2440):旧 GraalJS 线升 25.0.4.1 与 JDK 25 对齐;两 BOM 均不管理该族(WI0 G5),显式 pin;
+             js-community 坐标 25.0.4.1 起官方 Deprecated,按标准替代迁移到 org.graalvm.polyglot:js -->
         <dependency>
             <groupId>org.graalvm.polyglot</groupId>
-            <artifactId>js-community</artifactId>
-            <version>23.1.2</version>
+            <artifactId>js</artifactId>
+            <version>25.0.4.1</version>
             <type>pom</type>
         </dependency>
 
         <dependency>
             <groupId>org.graalvm.polyglot</groupId>
             <artifactId>polyglot</artifactId>
-            <version>23.1.2</version>
+            <version>25.0.4.1</version>
         </dependency>
 
         <dependency>

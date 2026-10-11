@@ -28,7 +28,6 @@
         <spring-cloud.version>2025.1.3</spring-cloud.version>
         <spring-ai.version>2.0.1</spring-ai.version>
         <testcontainers.version>1.21.4</testcontainers.version>
-        <graalvm.version>23.1.2</graalvm.version>
         <!-- 与quarkus3.14.4中使用版本一致 -->
         <antlr.version>4.13.0</antlr.version>
 
@@ -120,7 +119,6 @@
         <commons-lang3.version>3.8.1</commons-lang3.version>
         <commons-collections4.version>4.2</commons-collections4.version>
         <opencsv.version>4.6</opencsv.version>
-        <graalvm-js.version>${graalvm.version}</graalvm-js.version>
     </properties>
 
     <dependencyManagement>
@@ -562,12 +560,6 @@
                 <artifactId>jfreechart</artifactId>
                 <version>${jfreechart.version}</version>
             </dependency>
-
-            <!--            <dependency>-->
-            <!--                <groupId>org.graalvm.js</groupId>-->
-            <!--                <artifactId>js</artifactId>-->
-            <!--                <version>${graalvm.version}</version>-->
-            <!--            </dependency>-->
 
         </dependencies>
     </dependencyManagement>
