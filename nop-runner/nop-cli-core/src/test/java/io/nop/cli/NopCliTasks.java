@@ -139,13 +139,21 @@ public class NopCliTasks {
         System.setProperty("nop.datasource.username", "nop");
         System.setProperty("nop.datasource.password", "nop-test");
 
-
-        String[] args = new String[]{"gen-file",
-                "-t", "/xpt/test-large-ds.xpt.xlsx", "-o", "target/gen/out.xlsx"};
-        NopCliApplication app = new NopCliApplication();
-        app.setFactory(factory);
-        int ret = app.run(args);
-        assertEquals(0, ret);
+        // nop.* 命名空间的系统属性会被 SysPropertyConfigSourceLoader 装入后续
+        // 每次 CoreInitialization.initialize 的 config source，必须对称清理
+        try {
+            String[] args = new String[]{"gen-file",
+                    "-t", "/xpt/test-large-ds.xpt.xlsx", "-o", "target/gen/out.xlsx"};
+            NopCliApplication app = new NopCliApplication();
+            app.setFactory(factory);
+            int ret = app.run(args);
+            assertEquals(0, ret);
+        } finally {
+            System.clearProperty("nop.datasource.driver-class-name");
+            System.clearProperty("nop.datasource.jdbc-url");
+            System.clearProperty("nop.datasource.username");
+            System.clearProperty("nop.datasource.password");
+        }
     }
 
     @Test
