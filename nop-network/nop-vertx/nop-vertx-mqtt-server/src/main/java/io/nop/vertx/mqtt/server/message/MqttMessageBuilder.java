@@ -18,7 +18,8 @@ public class MqttMessageBuilder {
         bean.setWill(false);
         bean.setRetain(msg.isRetain());
         // vertx-mqtt 管线会在 handler 返回后释放原始 buffer，必须拷贝副本
-        bean.setBinaryPayload(msg.payload().getByteBuf().copy());
+        // Vert.x 5:Buffer 不再暴露 Netty ByteBuf(plan 2431 WI5),经字节数组拷贝
+        bean.setBinaryPayload(io.netty.buffer.Unpooled.copiedBuffer(msg.payload().getBytes()));
         bean.setDup(msg.isDup());
         bean.setMqttProperties(msg.properties());
         return bean;

@@ -78,7 +78,7 @@ Human-owned choices; execution plans must not re-litigate them:
 
 ### C — Quarkus 4 adoption
 
-- WI5 Quarkus 4.0.0.Beta1 version unification (all pins incl. divergent 3.29.2/3.21.4): `todo`
+- WI5 Quarkus 4.0.0.Beta1 version unification (all pins incl. divergent 3.29.2/3.21.4): `done`
 
 ### D — Spring Boot 4 adoption
 

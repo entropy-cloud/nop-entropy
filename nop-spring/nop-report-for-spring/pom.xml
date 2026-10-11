@@ -12,7 +12,6 @@
         <maven.compiler.compilerVersion>17</maven.compiler.compilerVersion>
         <maven.deploy.skip>true</maven.deploy.skip>
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
-<!--        <quarkus.platform.version>3.21.4</quarkus.platform.version>-->
     </properties>
 
 <!--    <dependencyManagement>-->

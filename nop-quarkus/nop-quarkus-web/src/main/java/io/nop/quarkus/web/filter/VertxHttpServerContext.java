@@ -59,7 +59,7 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public String getHost() {
-        return routingContext.request().host();
+        return routingContext.request().authority().host();
     }
 
     @Override
@@ -226,14 +226,13 @@ public class VertxHttpServerContext implements IHttpServerContext {
             @Override
             public void onNext(String item) {
                 if (item != null && !completed.get()) {
-                    resp.write(item, ar -> {
-                        if (ar.failed()) {
-                            subscription.cancel();
-                            completeWithError(ar.cause());
-                        } else {
-                            subscription.request(1);
-                        }
-                    });
+                    // Vert.x 5:write 回调重载移除,改 Future API(plan 2431 WI5)
+                    resp.write(item)
+                            .onSuccess(v -> subscription.request(1))
+                            .onFailure(t -> {
+                                subscription.cancel();
+                                completeWithError(t);
+                            });
                 } else {
                     subscription.request(1);
                 }
@@ -247,13 +246,9 @@ public class VertxHttpServerContext implements IHttpServerContext {
             @Override
             public void onComplete() {
                 if (completed.compareAndSet(false, true)) {
-                    resp.end(ar -> {
-                        if (ar.succeeded()) {
-                            future.complete(null);
-                        } else {
-                            future.completeExceptionally(ar.cause());
-                        }
-                    });
+                    resp.end()
+                            .onSuccess(v -> future.complete(null))
+                            .onFailure(future::completeExceptionally);
                 }
             }
 
@@ -289,13 +284,10 @@ public class VertxHttpServerContext implements IHttpServerContext {
             @Override
             public CompletionStage<Void> write(String chunk) {
                 CompletableFuture<Void> writeFuture = new CompletableFuture<>();
-                resp.write(chunk, ar -> {
-                    if (ar.succeeded()) {
-                        writeFuture.complete(null);
-                    } else {
-                        writeFuture.completeExceptionally(ar.cause());
-                    }
-                });
+                // Vert.x 5:write 回调重载移除,改 Future API(plan 2431 WI5)
+                resp.write(chunk)
+                        .onSuccess(v -> writeFuture.complete(null))
+                        .onFailure(writeFuture::completeExceptionally);
                 return writeFuture;
             }
 
@@ -303,15 +295,16 @@ public class VertxHttpServerContext implements IHttpServerContext {
             public CompletionStage<Void> complete() {
                 if (completed.compareAndSet(false, true)) {
                     CompletableFuture<Void> endFuture = new CompletableFuture<>();
-                    resp.end(ar -> {
-                        if (ar.succeeded()) {
-                            endFuture.complete(null);
-                            future.complete(null);
-                        } else {
-                            endFuture.completeExceptionally(ar.cause());
-                            future.completeExceptionally(ar.cause());
-                        }
-                    });
+                    // Vert.x 5:end 回调重载移除,改 Future API(plan 2431 WI5)
+                    resp.end()
+                            .onSuccess(v -> {
+                                endFuture.complete(null);
+                                future.complete(null);
+                            })
+                            .onFailure(t -> {
+                                endFuture.completeExceptionally(t);
+                                future.completeExceptionally(t);
+                            });
                     return endFuture;
                 }
                 return FutureHelper.success(null);

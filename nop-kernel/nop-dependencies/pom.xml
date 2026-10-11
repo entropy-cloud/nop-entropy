@@ -23,7 +23,7 @@
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
 
-        <quarkus.platform.version>3.35.1</quarkus.platform.version>
+        <quarkus.platform.version>4.0.0.Beta1</quarkus.platform.version>
         <spring-boot.version>3.5.14</spring-boot.version>
         <spring-cloud.version>2025.0.2</spring-cloud.version>
         <spring-ai.version>1.1.5</spring-ai.version>
@@ -80,7 +80,7 @@
 
         <commonmark.version>0.22.0</commonmark.version>
 
-        <!-- 与quarkus 3.21.4保持一致 -->
+        <!-- javaparser-core 由 quarkus-bom 管理（Q4 @3.28.2）；本属性仅余 symbol-solver-core 等非 BOM 管理件使用 -->
         <javaparser.version>3.26.3</javaparser.version>
         <!--        <grpc.version>1.60.0</grpc.version>-->
         <!--        <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>-->
@@ -289,12 +289,15 @@
             </dependency>
 
             <!--
-                WI33 实测裁定：quarkus-bom 导入把 pulsar-common / pulsar-transaction-common /
-                pulsar-client-admin-api 管到 4.0.9，而 pulsar-client-original 固定 2.8.0，
-                混版栈在构造真实 PulsarClient 时抛 NoSuchMethodError
-                （PulsarByteBufAllocator → bookkeeper allocator API 漂移）。mock 单测从未
-                构造真实 client，故潜伏至今。全仓唯一 pulsar 消费方是 nop-message-pulsar，
-                此处对齐为与 client 同版本，无其他模块受影响。
+                WI33 实测裁定（plan 2431 WI5 按 Q4 BOM 复核更新）：quarkus-bom 3.x 时代曾把
+                pulsar-common / pulsar-transaction-common / pulsar-client-admin-api 管到 4.0.9
+                而 pulsar-client-original 固定 2.8.0，混版栈构造真实 PulsarClient 时抛
+                NoSuchMethodError。Q4（4.0.0.Beta1）改为直接管理 pulsar-client-original 与
+                pulsar-client-messagecrypto-bc @4.2.1——若丢本族钉，client-original 被抬到
+                4.2.1 而本族其余 artifact 停留本地钉版本，将 recreate 混栈形态；故整族同钉
+                4.0.14 保留（why not BOM-managed：族一致性约束优先于单点跟 BOM）。
+                messagecrypto-bc 本地未钉（optional 传递、不入依赖图，Q4 管理无冲突）。
+                运行时回归（mock 单测不覆盖真实 client 构造）归 WI16 GA 后全量回归。
             -->
             <dependency>
                 <groupId>org.apache.pulsar</groupId>

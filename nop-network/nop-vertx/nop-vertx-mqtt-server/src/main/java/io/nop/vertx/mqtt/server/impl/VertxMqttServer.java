@@ -173,7 +173,8 @@ public class VertxMqttServer extends LifeCycleSupport {
     @Override
     protected void doStop() {
         if (mqttServer != null) {
-            mqttServer.close(res -> {
+            // Vert.x 5:close 回调重载移除,改 Future API(plan 2431 WI5)
+            mqttServer.close().onComplete(res -> {
                 if (res.failed()) {
                     LOG.error("nop.vertx.mqtt.server.stop-fail", res.cause());
                 } else {
