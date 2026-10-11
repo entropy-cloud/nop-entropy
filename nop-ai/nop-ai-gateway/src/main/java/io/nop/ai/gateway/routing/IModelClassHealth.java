@@ -1,4 +1,6 @@
-package io.nop.ai.core.routing;
+package io.nop.ai.gateway.routing;
+
+import io.nop.ai.core.model.ModelClassCandidate;
 
 /**
  * 候选健康状态视图（plan 2026-08-15-0849-2，设计 §3.3）——选择策略的输入契约。

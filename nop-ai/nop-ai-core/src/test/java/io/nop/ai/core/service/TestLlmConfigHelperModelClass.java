@@ -2,7 +2,7 @@ package io.nop.ai.core.service;
 
 import io.nop.ai.core.model.ModelClassCandidateModel;
 import io.nop.ai.core.model.ModelClassModel;
-import io.nop.ai.core.routing.ModelClassCandidate;
+import io.nop.ai.core.model.ModelClassCandidate;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import org.junit.jupiter.api.Test;

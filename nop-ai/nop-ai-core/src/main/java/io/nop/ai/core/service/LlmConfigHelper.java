@@ -9,7 +9,7 @@ import io.nop.ai.core.model.LlmModelModel;
 import io.nop.ai.core.model.ModelClassCandidateModel;
 import io.nop.ai.core.model.ModelClassConfig;
 import io.nop.ai.core.model.ModelClassModel;
-import io.nop.ai.core.routing.ModelClassCandidate;
+import io.nop.ai.core.model.ModelClassCandidate;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.cache.ICache;
@@ -220,6 +220,17 @@ public class LlmConfigHelper {
     public static final String FAILOVER_CONFIG_PATH = "/nop/ai/llm/_default.llm-failover.xml";
 
     /**
+     * 可选覆盖键（plan 2421/WI4 无关，plan 2424/WI5 引擎测试迁移引入）：测试可将
+     * failover 表放到独立路径以避免与其他测试家族的同名 fixture 冲突。缺省 = 原路径，
+     * 生产行为零变化。
+     */
+    public static final String CFG_LLM_FAILOVER_CONFIG_PATH = "nop.ai.llm.failover-config-path";
+
+    static String failoverConfigPath() {
+        return AppConfig.getConfigProvider().getConfigValue(CFG_LLM_FAILOVER_CONFIG_PATH, FAILOVER_CONFIG_PATH);
+    }
+
+    /**
      * 解析 {@code primaryProvider} 的跨 provider 有序故障转移目标链（plan 2026-08-01-1905-3，
      * 设计 §13.4 裁定 A）。
      * <p>
@@ -245,11 +256,12 @@ public class LlmConfigHelper {
             return Collections.emptyList();
         }
         // opt-in：文件缺省 = 无 provider 链 = 零回归 fail-loud（非异常——合法状态）。
-        if (!VirtualFileSystem.instance().getResource(FAILOVER_CONFIG_PATH).exists()) {
+        String failoverPath = failoverConfigPath();
+        if (!VirtualFileSystem.instance().getResource(failoverPath).exists()) {
             return Collections.emptyList();
         }
         LlmFailoverConfig config = (LlmFailoverConfig) ResourceComponentManager.instance()
-                .loadComponentModel(FAILOVER_CONFIG_PATH);
+                .loadComponentModel(failoverPath);
         List<LlmFailoverProviderModel> providers = config.getProviders();
         if (providers == null || providers.isEmpty()) {
             return Collections.emptyList();
@@ -276,6 +288,15 @@ public class LlmConfigHelper {
     public static final String MODEL_CLASS_CONFIG_PATH = "/nop/ai/llm/_default.model-class.xml";
 
     /**
+     * 可选覆盖键（plan 2424/WI5）：同 {@link #CFG_LLM_FAILOVER_CONFIG_PATH}。
+     */
+    public static final String CFG_LLM_MODEL_CLASS_CONFIG_PATH = "nop.ai.llm.model-class-config-path";
+
+    static String modelClassConfigPath() {
+        return AppConfig.getConfigProvider().getConfigValue(CFG_LLM_MODEL_CLASS_CONFIG_PATH, MODEL_CLASS_CONFIG_PATH);
+    }
+
+    /**
      * 解析请求 {@code model} 所属的模型类（plan 2026-08-15-0849-2，设计 §3.3）。
      * <p>
      * 归属机制 = 显式成员声明（每个模型类的 {@code members} 清单，model 名全局匹配）；
@@ -297,11 +318,12 @@ public class LlmConfigHelper {
             return null;
         }
         // opt-in：文件缺省 = 无路由组 = 零回归（非异常——合法状态）。
-        if (!VirtualFileSystem.instance().getResource(MODEL_CLASS_CONFIG_PATH).exists()) {
+        String modelClassPath = modelClassConfigPath();
+        if (!VirtualFileSystem.instance().getResource(modelClassPath).exists()) {
             return null;
         }
         ModelClassConfig config = (ModelClassConfig) ResourceComponentManager.instance()
-                .loadComponentModel(MODEL_CLASS_CONFIG_PATH);
+                .loadComponentModel(modelClassPath);
         List<ModelClassModel> classes = config.getModelClasses();
         if (classes == null || classes.isEmpty()) {
             return null;

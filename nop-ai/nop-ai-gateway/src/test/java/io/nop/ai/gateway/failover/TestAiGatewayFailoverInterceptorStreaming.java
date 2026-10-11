@@ -4,7 +4,7 @@ import io.nop.ai.gateway.AiDialectBackendMessageConverter;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
-import io.nop.ai.core.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;

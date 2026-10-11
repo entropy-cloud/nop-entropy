@@ -3,7 +3,6 @@ package io.nop.ai.core;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.core.api.support.Media;
 import io.nop.ai.core.mock.MockChatService;
-import io.nop.ai.core.routing.CandidateHealthProvider;
 import org.junit.jupiter.api.Test;
 
 import java.net.URL;
@@ -32,8 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>Representative throw-site inventory (Proof, plan M5-P1 Phase 1):
  * <ul>
  *   <li>{@code ERR_AI_CORE_INVALID_ARGUMENT} — routing path:
- *       routing/CandidateHealthProvider.java:32 (null candidate) — the only
- *       throw site for this code in main.</li>
+ *       CandidateHealthProvider (moved to gateway with the routing engine,
+ *       plan 2424/WI5; contract case lives in gateway TestRoutingSecureDefaultGate).</li>
  *   <li>{@code ERR_AI_CORE_INVALID_STATE} — service path:
  *       mock/MockChatService.java:55 (ResponseProvider not set),
  *       mock/InMemoryResponseProvider.java:170 (no mock response available),
@@ -56,19 +55,6 @@ public class TestNopAiCoreErrorsContract {
                 "detail param must be attached by the throw site");
         assertTrue(ex.getMessage().contains(detailValue),
                 "message template must render the detail param. Got: " + ex.getMessage());
-    }
-
-    // ========================================================================
-    // ERR_AI_CORE_INVALID_ARGUMENT
-    // ========================================================================
-
-    @Test
-    void invalidArgumentFromCandidateHealthProvider() {
-        CandidateHealthProvider provider = new CandidateHealthProvider(null, null);
-        NopAiCoreException ex = assertThrows(NopAiCoreException.class,
-                () -> provider.healthOf(null));
-        assertCoreCode(ex, ERR_AI_CORE_INVALID_ARGUMENT, "nop.err.ai.core.invalid-argument",
-                "candidate must not be null");
     }
 
     // ========================================================================

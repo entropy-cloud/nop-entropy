@@ -1,4 +1,6 @@
-package io.nop.ai.core.routing;
+package io.nop.ai.gateway.routing;
+
+import io.nop.ai.core.model.ModelClassCandidate;
 
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
@@ -7,6 +9,7 @@ import io.nop.ai.core.NopAiCoreException;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.config.AppConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.eval.IEvalScope;
@@ -15,6 +18,8 @@ import io.nop.rule.core.IRuleManager;
 import io.nop.rule.core.IRuleRuntime;
 import io.nop.rule.core.RuleErrors;
 import io.nop.rule.core.execute.RuleManager;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashSet;
@@ -45,6 +50,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code ERR_RULE_UNKNOWN_INPUT_VAR}）；接线（router 运行时调用策略）与端到端全链。
  */
 public class TestRuleBasedSelectionStrategy extends JunitBaseTestCase {
+
+    // plan 2424/WI5：fixture 走独立路径（routing-test/），避免与 gateway failover 测试家族的
+    // gw-* 同名 _default 资源终端链冲突（gw-sat 与 test-failover 均要求链表尾）。
+    // @NopTestProperty 是 fork 级持久配置——会泄漏给同 fork 的 failover 测试家族
+    // （gw-* 模型类在其眼中消失），故用 @BeforeAll/@AfterAll 作用域赋值 + 恢复。
+    @BeforeAll
+    static void useRoutingTestFixtures() {
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.failover-config-path",
+                "/nop/ai/llm/routing-test/_default.llm-failover.xml");
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.model-class-config-path",
+                "/nop/ai/llm/routing-test/_default.model-class.xml");
+    }
+
+    @AfterAll
+    static void restoreDefaultFixtures() {
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.failover-config-path", null);
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.model-class-config-path", null);
+    }
 
     private final ThresholdBreaker breaker = new ThresholdBreaker(3, 60_000L);
     private final ConcurrencyRegistry registry = new ConcurrencyRegistry();

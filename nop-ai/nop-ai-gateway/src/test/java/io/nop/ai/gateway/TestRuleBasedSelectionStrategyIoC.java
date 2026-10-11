@@ -2,12 +2,12 @@ package io.nop.ai.gateway;
 
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.ThresholdBreaker;
-import io.nop.ai.core.routing.CandidateHealthProvider;
-import io.nop.ai.core.routing.ConcurrencyRegistry;
-import io.nop.ai.core.routing.IModelClassHealth;
-import io.nop.ai.core.routing.ISelectionStrategy;
-import io.nop.ai.core.routing.ModelClassCandidate;
-import io.nop.ai.core.routing.RuleBasedSelectionStrategy;
+import io.nop.ai.gateway.routing.CandidateHealthProvider;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.IModelClassHealth;
+import io.nop.ai.gateway.routing.ISelectionStrategy;
+import io.nop.ai.core.model.ModelClassCandidate;
+import io.nop.ai.gateway.routing.RuleBasedSelectionStrategy;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.core.CoreConstants;

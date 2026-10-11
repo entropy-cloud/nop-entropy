@@ -172,7 +172,7 @@ W1 spike §6.4 契约）；**选择期饱和检查 = 预检语义**（B-13 裁�
 - **配置面扩展（新增工作项）**：并发上限 `concurrencyLimit` 为**本期必须新增**的字段（`_LlmAccountModel` 无此字段）。`llm.xdef` 位于 **nop-kernel/nop-xdefs**（跨模块足迹，属 protected area，需 plan-first）；`_LlmAccountModel` 为 xdef 生成物，**经 codegen 再生成，禁止手编**。配置粒度：**provider 级缺省 + 账号级覆盖**（`{provider}.llm.xml` 根元素提供缺省值，`<accounts>` 账号可覆盖；主账号无 `LlmAccountModel` 实例，限流值取 provider 级缺省）。缺省 = 不限制 → 既有 `<accounts>` 配置与 `TestLlmConfigHelperAccountChain` 等测试零回归。权重 / 按账号覆盖 `model` 若需求确认则一并列入（默认不扩展）。
   - **与既有 `rateLimit` 的关系**：`llm.xdef` 根元素已有 `rateLimit`（每秒 QPS，`ChatServiceImpl.checkRateLimit` 排队等待语义）；新增 `concurrencyLimit` 是 in-flight 并发计数（**跳过**语义——超限换账号）。两者语义不同（排队 vs 跳过），并行共存，不互斥。
 - **模型类分组配置（新增工作项）**：模型类（级别）→ 候选集（模型 + 账号组合）的声明，形态待定（选项：① 扩展 `llm.xdef`/`llm-failover.xdef` 增加 model-class 分组；② 新 `model-class.xdef` 配置面）。候选可引用 `{provider}.llm.xml` `<accounts>` 与 `llm-failover.xdef` provider 链。
-  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：**Q8 裁定 = 选项②新建 `model-class.xdef` 配置面**（模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动）。配置面 = `nop-kernel/nop-xdefs/.../ai/model-class.xdef`（`xdef:name="ModelClassConfig"`，bean 包 `io.nop.ai.core.model`）+ opt-in 文件 `/nop/ai/llm/_default.model-class.xml`；候选 = provider（必填）+ model（可选 = provider defaultModel）+ accountRef（可选 = 单账号；缺省 = 主账号 + 有序账号链）；归属 = 显式成员声明（members 清单，model 名全局匹配，首个声明命中胜出）；未归属 = 无路由组零回归。
+  - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`）**：**Q8 裁定 = 选项②新建 `model-class.xdef` 配置面**（模型类候选集是跨 provider 全局语义，与 `llm.xdef` per-provider 结构、`llm-failover.xdef` provider 级链语义不同层；新 xdef 保持既有 xdef 零改动）。配置面 = `nop-kernel/nop-xdefs/.../ai/model-class.xdef`（`xdef:name="ModelClassConfig"`，bean 包 `io.nop.ai.core.model`；引擎类后随 plan 2424/WI5 迁 gateway io.nop.ai.gateway.routing）+ opt-in 文件 `/nop/ai/llm/_default.model-class.xml`；候选 = provider（必填）+ model（可选 = provider defaultModel）+ accountRef（可选 = 单账号；缺省 = 主账号 + 有序账号链）；归属 = 显式成员声明（members 清单，model 名全局匹配，首个声明命中胜出）；未归属 = 无路由组零回归。
 - **动态选择策略配置（新增工作项）**：选择策略为策略接口，默认策略无需配置；规则配置（XLang 规则 DSL）为可选实现，规则文件经 IoC bean 绑定到网关/适配器。
   - **落地状态（2026-08-15，W5，plan `2026-08-15-0849-2`；W5b，plan `2026-08-15-1116-1`）**：策略接口 + 默认策略已落地（`ISelectionStrategy`/`DefaultSelectionStrategy`，健康度 + 并发感知 + 声明序）；**规则策略 W5b 收口**——`RuleBasedSelectionStrategy`（rule.xdef DSL + `IRuleManager` 消费）+ bean 注册（nop-ai-gateway `ai-gateway-defaults.beans.xml`，`ruleManager` ref `nopRuleManager` `ioc:optional` + ruleName/ruleVersion 属性）；规则输入/输出契约与语义分支见 §五 Q10。
 - 密钥路径区分（既有行为）：
@@ -265,6 +265,7 @@ ollama, responses}）全绿；`ILlmDialect` javadoc/UOE 消息已同步（"one-w
 |------|------|------|
 | 选择策略接口 + 默认/规则策略 | **nop-ai-core** | 通用 LLM 选择能力，服务网关/适配器/agent 引擎所有形态；规则配置为可选实现 |
 | 模型类候选集（数据结构 + 解析） | **nop-ai-core** | 与账号链/provider 链同层，`LlmConfigHelper` 家族 |
+| 模型选路引擎（ModelClassRouter/SelectionStrategy/ConcurrencyRegistry/健康视图） | nop-ai-gateway（io.nop.ai.gateway.routing，plan 2424/WI5 自 nop-ai-core 迁入） | 引擎仅被 failover 编排消费；配置层（候选集 + LlmConfigHelper 解析）留守 nop-ai-core |
 | 网关游走/切换/缓冲/重试编排 | **nop-ai-gateway** | 网关专属执行逻辑（拦截器、converter 扩展、流式字节层） |
 | 本地适配器（包装 ChatServiceImpl） | **nop-ai-gateway** | 现不存在 |
 

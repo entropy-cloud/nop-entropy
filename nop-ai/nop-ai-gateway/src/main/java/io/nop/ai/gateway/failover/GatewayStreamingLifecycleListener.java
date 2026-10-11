@@ -1,6 +1,6 @@
 package io.nop.ai.gateway.failover;
 
-import io.nop.ai.core.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.gateway.core.streaming.IStreamingLifecycleListener;
 
