@@ -1,11 +1,12 @@
 ---
-audit-rounds: 3
+audit-rounds: 4
 ---
 
 # nop-refactor Roadmap — AI-First 代码修改工具链（P0 codemod + P1 rename）
 
-> Last updated: 2026-09-26
+> Last updated: 2026-10-11
 > Design authority: `ai-dev/design/nop-refactor/`（00-vision.md / 01-architecture-baseline.md / README.md）；跨域约束：`ai-dev/design/self-contained-design.md`
+> M4 重开证据（2026-10-11 实测复现，全记录见当日 log）：codemod 通道对包名重构场景——package 声明与 imports 改写可用（guard rollback/stale 校验正常工作）、目录不移动（内容改写后磁盘即坏）、XML 引用面被 fail-closed 矩阵拒绝（WI3 设计裁定）、裸字段访问链 pattern 零命中而调用链命中（复现实验 `_tmp/refactor-pkg-test/`）。
 > 背景（过程记录，结论以 design 为准）：`ai-dev/analysis/2026-09/2026-09-25d-tree-sitter-refactor-feasibility-and-nop-lint-relationship.md`、`ai-dev/analysis/2026-09/2026-09-25e-jdt-java-refactoring-catalog-and-nop-path.md`（两文头部增注标记了被后续裁定作废的条款）
 > 位置：按仓库 roadmap 惯例存放于 `ai-dev/backlog/`。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的 owner / 参考文档路径用反引号，持续受 check-doc-links 保护。
 
@@ -16,6 +17,7 @@ audit-rounds: 3
 - **P0 codemod 面**（性价比最高）：批量 pattern 改写 + 统一 self-verification 反馈载荷，复用 nop-lint 存量（pattern DSL、fix 机制、Reporter、GraphQL 先例），新增量集中在契约面
 - **P1 rename**（唯一入预算的语义级操作）：rename 阶梯（第一档：局部变量/参数，单文件内；第二档：字段/非虚方法/类型，模块内符号域）
 - **明确不做**（vision §四 Non-Goals / §六 拒绝项）：LSP 面、交互式向导、结构变换型重构机器（extract/inline/change signature/move 族）、外部引擎（jdt.ls 桥、OpenRewrite 包装——违反 `ai-dev/design/self-contained-design.md`）
+- **P2 rename 升级面（M4，2026-10-11 用户裁定重开）**：RenamePackage / MoveType / 继承链 rename / WORKSPACE 跨模块符号域——拟由 WI14 裁定归入 vision §四"精确符号级修改"家族（2026-10-11 用户裁定意向，以 WI14 增注为准；WI13 终态 Deferred 注记"rename 升级面归 design 层"的兑现）；**结构变换型重构机器（extract/inline/change signature）维持 Non-Goal 不重开**，MoveType 与"move 族"的边界由 WI14 在 design 层钉死（rename 家族跨包延伸、复用 WI9 四段契约 vs 通用结构变换机）；外部参照只读不引入（vision 原则 8）
 
 **复杂度预算**：总复杂度不超过 nop-lint 模块族量级（上界锚点：main Java 约 2.2 万行 / 6 模块，2026-09-25 实测 21,927 行；预期实际落点 3 模块、约 4-6k 行——超预算砍功能，不加预算）。**终态**：全部 WI 落地或显式裁定移出，每项通过独立 closure audit，AI agent 可经 GraphQL 完成 preview → 自检 diff/verification → apply 的无人工闭环。
 
@@ -52,6 +54,18 @@ audit-rounds: 3
 
 - [x] WI13 复杂度预算审计 + 收口：**计数口径钉死**——main Java（src/main/java，排除生成物与测试）× 模块清单（nop-refactor-core/java/graphql + 对 nop-lint 侧的增量行单列归属），对照上界锚点 2.2 万行记录（超线则裁剪功能并回写 design）；docs-for-ai 模块文档新建 + design 增注对齐 live；能力目录（操作清单 × verification 契约）发布（Deliverable: 审计记录 + docs；deps: M1+M2 全部 WI；Item Type: Proof）
 
+### M4 — P2 rename 升级面（设计前置修订 → 引擎缺口修复 → 能力扩展，2026-10-11 重开）
+
+> 重开依据：用户 2026-10-11 裁定 + 实测复现（头部证据行）；WI13 Deferred 注记"rename 升级面归 design 层"由此兑现。预算规则不变：**WI14 修订 design 增注落地前，WI16–WI20 不得开工**；WI15 无 deps 于 WI14，按 Rules 允许并行。
+
+- [ ] WI14 设计前置修订（**M4 门禁 Decision**）：`ai-dev/design/nop-refactor/00-vision.md` §四 Non-Goals 精化——rename 升级面（PACKAGE 符号种类 / MoveType / 继承链 rename / WORKSPACE 符号域）裁定为"精确符号级修改"家族延伸入预算，结构变换型重构机器（extract/inline/change signature）维持 Non-Goal 不重开，MoveType 与"move 族"的边界（rename 家族跨包延伸、复用 WI9 四段契约 vs 通用结构变换机）在 design 层钉死；`ai-dev/design/nop-refactor/01-architecture-baseline.md` 增补：FileMovePlan 文件移动面与四段契约的适配设计（preview diff 含文件树变更、apply 移动+内容改写的原子序、verify 目录/声明一致性）+ RenameScope 阶梯修订 + WORKSPACE 域准入门（以 `ai-dev/analysis/2026-09/2026-09-25-wi2-symbol-solver-coverage-spike.md` 覆盖率类目数字为门）+ 非 Java 引用面裁定（XML+fix 拒绝面是 WI3 显式设计：裁定维持拒绝走 nonApplied + `nop-cli lint` XML 诊断，或设计受限 attribute-值 transform 形态——不放松 fail-closed）；复杂度预算重裁定：M0–M3 实际落点 4,010 行/33 文件（`ai-dev/analysis/2026-09/2026-09-26-wi13-budget-audit.md`），M4 增量行数上限入账（超线砍功能规则不变）；外部参照只读不引入（vision 原则 8）：eclipse.jdt.ui RenamePackageTests fixture 库、intellij-community 层次 rename 参照（本机 ~/sources/refactor 参考库 14 仓库已备齐）（Deliverable: 00-vision.md / 01-architecture-baseline.md 两篇 design 修订增注 + `ai-dev/design/nop-refactor/README.md` 索引校准；deps: 无；Item Type: Decision）
+- [ ] WI15 引擎缺口核实与修复（上游扩展承载形态）：裸字段访问链 pattern 零命中核实与处置——2026-10-11 实测不对称（`a.hello()` 命中 vs `Alpha.CONST` / `com.demo.oldpkg.Alpha` 零命中，复现实验 `_tmp/refactor-pkg-test/`）：裁定为缺陷则修复 nop-lint-core 匹配内核并补 fixture，裁定为设计意图（pattern 习语边界）则补 `ai-dev/design/nop-lint/01-pattern-dsl.md` 习语文档；**两分支均须给出 FQN 字段引用的 codemod 改写通路，且通路必须经 pattern DSL 扩展承载——禁止规则引擎外第二改写路径**（防双引擎漂移裁定；WI16 的前置）。行为红线按 Rules 豁免条款核对：既有 golden 字节不变 + nop-lint 全测试绿 + 新行为有 fixture 覆盖（Deliverable: 修复或习语文档 + fixtures + design 增注；deps: 无；Item Type: Fix）
+- [ ] WI16 RenamePackage：SymbolKind.PACKAGE + FileMovePlan——package 声明 / imports / FQN 引用同步更新复用 WI11 引用搜索与 stale-import 检查；目录移动入 plan/apply/verify（preview diff 含文件树变更）；非 Java 引用面按 WI14 裁定执行（支持或显式 nonApplied，不静默漏改）；verify 扩展 stale-FQN 检查 + 目录/声明一致性断言；fixture 参照 eclipse.jdt.ui RenamePackageTests 改编（Deliverable: 代码 + fixtures + GraphQL RPC e2e + CLI e2e + baseline 增注；deps: WI11, WI14, WI15；Item Type: Fix）
+- [ ] WI17 MoveType：类型跨包移动（与 WI16 共享 FileMovePlan 面）；package-private 可见性破坏检查 fail-closed 进 nonApplied；同包移动与跨包移动的 diff 语义区分；**WI14 裁定 MoveType 不入预算时本项显式移出并回写 Deferred 台账（WI20 承接）**（Deliverable: 代码 + fixtures + GraphQL RPC e2e；deps: WI16；Item Type: Fix）
+- [ ] WI18 WORKSPACE 符号域：RenameScope 从 MODULE 扩至 classpath 可达域（含 RenameInput scope 契约字段扩展与 RPC 面同型演进）——跨模块引用按 WI2 spike 覆盖率类目裁定改写或显式 nonApplied（低置信类目不静默改）；零外部索引器（vision 原则 8）；**WI14 裁定 WORKSPACE 准入门不通过（覆盖率类目不达标）时本项显式移出并回写 Deferred 台账（WI20 承接）**（Deliverable: 代码 + 跨模块 fixtures + GraphQL RPC e2e + baseline 增注；deps: WI11, WI14；Item Type: Fix）
+- [ ] WI19 继承链 rename：虚方法/override 链传播（声明 + 全部重写 + 接口契约面同步改写，构建于 WI11 METHOD 保守面之上）；层次分析落点（操作器内嵌 vs nop-code 查询面）由 WI14 裁定；反射/动态分派残余不在覆盖面，以 symbolIntact 断言 + 残留报告收口（Deliverable: 代码 + fixtures + GraphQL RPC e2e + baseline 增注；deps: WI11, WI14；Item Type: Fix）
+- [ ] WI20 设计校准与 M4 收口：预算审计 v2（WI13 同口径：main Java × 模块清单 + nop-lint 增量单列）；`docs-for-ai/03-modules/nop-refactor.md` 能力目录更新（新操作 × verification 契约）；design 全文档 live 校准核查（WI14 增注与实现逐条对照，失真即回写）；Deferred 台账回写（Deliverable: 审计记录 + docs；deps: WI16, WI17, WI18, WI19；Item Type: Proof）
+
 ## Dependency Graph
 
 ```mermaid
@@ -79,6 +93,18 @@ flowchart TD
     WI7 --> WI13
     WI8 --> WI13
     WI12 --> WI13
+    WI14[WI14 设计前置修订] --> WI16[WI16 RenamePackage]
+    WI14 --> WI18[WI18 WORKSPACE 符号域]
+    WI14 --> WI19[WI19 继承链 rename]
+    WI15[WI15 引擎缺口核实修复] --> WI16
+    WI11 --> WI16
+    WI11 --> WI18
+    WI11 --> WI19
+    WI16 --> WI17[WI17 MoveType]
+    WI16 --> WI20[WI20 设计校准收口]
+    WI17 --> WI20
+    WI18 --> WI20
+    WI19 --> WI20
 ```
 
 ## Framework / Platform Reuse
@@ -100,24 +126,29 @@ flowchart TD
 - nop-lint 存量可用：pattern DSL 引擎、fix 管线（roadmap item 25）、GraphQL 面（item 38）、CLI/Reporter（item 39）、62 条生产规则——全部 autoFixable=false（P0 内容机会）；质量优化 plan 07–09 已 completed、plan 10 active（在途）、plan 11–14 为 draft（2026-09-25 快照，live 为准），其中 plan 11 是 WI8 的前置（WI1 门）。
 - 预算锚点实测：nop-lint 族 main Java 21,927 行 / 6 模块（2026-09-25 实测，口径见 vision §三.9）。
 - 外部生态结论（背景）：语法级 codemod 用 byte-range 替换是业界标准（ast-grep 同型）；语义级 rename 需编译器级符号解析，Java 侧 = JavaParser SymbolSolver（覆盖率待 WI2 实测）。
+- **M0–M3 终态（2026-09-26）**：能力账 4,010 行/33 文件 + 上游增量净 +399（详见终态节）。
+- **2026-10-11 实测补充（M4 重开证据）**：codemod 对包名重构——声明/imports 改写可用；目录不移动；XML 引用被 fail-closed 拒绝（WI3 设计）；裸字段访问链 pattern 零命中、调用链命中（复现实验 `_tmp/refactor-pkg-test/`，当日 log 全记录）。
+- **外部参照库**（M4 起只读参照，不引入依赖——vision 原则 8）：本机 ~/sources/refactor 已备齐 14 仓库——eclipse.jdt.ui / eclipse.jdt.core（IDE 级 rename/move 实现与 RenamePackageTests fixture 库）、intellij-community（PSI 层次 rename 参照）、openrewrite/rewrite（recipe 架构与文件操作面参照）、AutoRefactor、JDeodorant、RefactoringMiner（重构实例挖掘 → 回归语料候选）、GumTree（AST diff → verify 行为等价参照）、javaparser（已消费）等。
 
 ## Cross-Cutting（每个 WI 的完成判定）
 
 - 独立 plan 承载 + 对抗性 draft review + 独立 closure audit（`ai-dev/plans/00-plan-authoring-and-execution-guide.md` 全部最小规则适用，含 Anti-Hollow / 端到端验证 / 接线验证 / 无静默跳过 / 新功能必有测试）。
 - 设计约束回扣：每 WI closure audit 显式核对 vision 原则 1–9 未被违反（GraphQL-first 无状态、self-verification 载荷不缩水、自完备、复杂度预算、fail-closed）。
-- **上游扩展承载形态**：WI3（nop-lint DSL 扩展）与 WI4（如落点为 nop-lint-core 新增入口）属 baseline §七"确需上游扩展"——其 WI plan（含对抗审查记录）+ 对应 design 文档增注即该条所指的 design 记录，无需单独立卷。
+- **上游扩展承载形态**：WI3（nop-lint DSL 扩展）、WI4（如落点为 nop-lint-core 新增入口）与 WI15（缺陷修复/习语裁定分支，涉及 nop-lint-core 匹配内核或 DSL 文档）属 baseline §七"确需上游扩展"——其 WI plan（含对抗审查记录）+ 对应 design 文档增注即该条所指的 design 记录，无需单独立卷。
 - 性价比门：预算内新操作才可立项；结构性扩张（新增第四模块/超预算行数）须先修订 design 并由用户裁定。
 
-## 终态（2026-09-26）
+## 终态（M0–M3，2026-09-26）
 
 WI1–WI13 全部落地（本节勾选全满）。能力账：nop-refactor 三模块 main Java 4,010 行/33 文件 + 能力归属上游增量净 +399（WI3–WI7 对 nop-lint），预算收口通过（`ai-dev/analysis/2026-09/2026-09-26-wi13-budget-audit.md`）。能力目录发布于 `docs-for-ai/03-modules/nop-refactor.md`。Deferred 项各归其主（rename 升级面归 design 层，GraphQL glob 归后续）。
+
+> **2026-10-11 重开注记**：用户裁定兑现上述 Deferred 注记，rename 升级面以 M4 重开（WI14 设计前置先行）。本节保留为 M0–M3 终态记录；"全部 WI 落地或显式裁定移出"的终态判定自 M4 起重新起算。
 
 ## Rules
 
 - 状态只在 `## Work Item Status` 的 checkbox 通道维护，不设第二状态面；WI 编号全文件递增不重排。
 - **编号顺序为依赖拓扑序；无 deps 关系的 WI 允许并行**（deps 是唯一并行屏障，编号不是）。
 - deps 未完成的 WI 不得开工；WI1 是门禁型 Proof——未通过时其下游（WI3、WI8）保持 todo。
-- 行为红线：nop-lint / nop-treesitter / nop-code 零行为修改（golden 字节不变 + 全测试绿是每 WI closure audit 的固定核对项）。
+- 行为红线：refactor 对 nop-lint / nop-treesitter / nop-code 的**消费面零行为修改**；唯一例外是经"上游扩展承载形态"豁免的 WI（WI3 / WI4 / WI15）——其 closure audit 核对项为：既有 golden 字节不变 + 全测试绿（既有行为不回归）+ 新行为有 fixture 覆盖。
 
 ## Authoring Review Record
 
@@ -138,4 +169,13 @@ WI1–WI13 全部落地（本节勾选全满）。能力账：nop-refactor 三�
 
 - **R3（2026-09-25，agent_43a58be7-5473-4ae4-9980-3e78e8b7d5f8，fresh session）：CONSENSUS**——R2 六项修复逐条 FIXED-VERIFIED（含 live 复核 plan 快照逐号吻合、baseline 裸名正则零命中）；13 WI 的 deps/依赖图/拓扑序/审查记录四方逐边互洽（23 条边双向核对通过，WI13 对 M1+M2 的覆盖经传递闭包验证完备）；无 Blocker/Major。一条非阻塞观察（WI1 下游措辞）已顺手修正（"下游（WI8）"→"下游（WI3、WI8）"）。共识达成，roadmap 进入执行排队。
 
-**审查共识：R1 REVISE → 修订 → R2 REVISE → 修订 → R3 CONSENSUS（3 轮，3 个独立 fresh-session agent）。**
+**审查共识：R1 REVISE → 修订 → R2 REVISE → 修订 → R3 CONSENSUS（M0–M3，3 轮，3 个独立 fresh-session agent）；M4 重开扩展：R4 REVISE → 修订（第 4 个独立 fresh-session agent）。**
+
+- **R4（2026-10-11，agent_db15180c-f472-4023-84d6-b964c7da27e2，fresh session）：REVISE**——针对 M4 扩展（WI14–WI20）判 1 Blocker + 4 Major + 4 Minor，全部修订：
+  - Blocker-B1 M4 重开证据链悬空（当日 log 无条目、实验无结果存档、未提交）→ 当日 log 补 M4 重开条目（用户裁定 + 实验方法与实测输出）；`_tmp/refactor-pkg-test/` 补 EVIDENCE.md 运行记录；roadmap 随本次修订提交入 HEAD；
+  - Major-M1 WI15 与 Rules 行为红线冲突且不在豁免条款字面内 → Cross-Cutting 豁免条款显式扩入 WI15；Rules 红线改写为"消费面零行为修改 + 豁免 WI 专用核对项（golden 不变 / 全绿 / 新行为有 fixture）"；
+  - Major-M2 未定义术语"结构 WI"致门禁与 Rules 并行裁定碰撞 → 引导语改编号精确门禁（"WI16–WI20 不得开工；WI15 无 deps 于 WI14 可并行"）；
+  - Major-M3 对 WI14 裁定结果单向预设（Purpose 断言家族归属为现在时；WI17/WI18 无"裁定不入"处置分支）→ Purpose P2 改"拟由 WI14 裁定归入（用户裁定意向，以增注为准）"；WI17/WI18 各补"裁定不入预算/准入门不通过时显式移出并回写 Deferred 台账（WI20 承接）"；
+  - Major-M4 M4 能力的 GraphQL 闭环 e2e 无归属 + WI18 隐含 schema 变更未列 → WI16/WI17/WI18/WI19 Deliverable 补 GraphQL RPC e2e；WI18 显式列入 RenameInput scope 契约字段扩展；
+  - Minor（4 项）：m1 front matter audit-rounds 与记录块失配（本轮 R4 补记修复）；m2 "三篇 design 文档"仅可辨识两篇 → 改为逐篇枚举；m3 WI18/WI19 deps 补 WI11（含图边 WI11 --> WI18、WI11 --> WI19）；m4 WI15 分支二改写通路限定"经 pattern DSL 扩展承载，禁止引擎外第二改写路径"；
+  - 通过项（核验记录）：WI14–WI20 拓扑序合法；10 条新边与文本 deps 双向互映；4,010 行/33 文件与 `ai-dev/analysis/2026-09/2026-09-26-wi13-budget-audit.md` 逐项吻合；WI2 spike 覆盖率数字真实在文；路径存在性全过（含 `_tmp/refactor-pkg-test/`、~/sources/refactor 14 仓库）；终态重开注记与 Purpose 终态定义一致；无双引擎表述。
