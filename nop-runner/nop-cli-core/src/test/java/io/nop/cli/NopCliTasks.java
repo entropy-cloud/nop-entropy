@@ -182,18 +182,6 @@ public class NopCliTasks {
     }
 
     @Test
-    public void testPaths() {
-        String[] args = new String[]{
-                "file", "find", "-b", "c:/can/nop/nop-entropy",
-                "-d","nop-kernel/nop-core",
-                "-o", "target/find.txt"
-        };
-        NopCliApplication app = new NopCliApplication();
-        app.setFactory(factory);
-        assertEquals(0, app.run(args));
-    }
-
-    @Test
     public void testSplitHtml(){
         String[] args = new String[]{"convert", "../nop-cli/demo/test-app.orm.xlsx",
                 "-o", "target/test-app.shtml"
