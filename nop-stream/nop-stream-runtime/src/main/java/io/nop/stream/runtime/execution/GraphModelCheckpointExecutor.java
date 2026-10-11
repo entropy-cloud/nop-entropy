@@ -373,7 +373,7 @@ public class GraphModelCheckpointExecutor {
         CheckpointIDCounter idCounter = new CheckpointIDCounter();
         ICheckpointStorage storage = createStorage(checkpointConfig);
         if (overrideStoragePath != null && !overrideStoragePath.isEmpty()) {
-            storage = new LocalFileCheckpointStorage(overrideStoragePath);
+            storage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(overrideStoragePath);
         }
         CheckpointPlan checkpointPlan = CheckpointPlanBuilder.build(execPlan, jobId, pipelineId, null, checkpointConfig);
 
@@ -901,27 +901,14 @@ public class GraphModelCheckpointExecutor {
                 snap.getTotalStateSize());
     }
 
+    /**
+     * WI11 (plan 2432): delegates to the shared factory
+     * {@link io.nop.stream.runtime.checkpoint.storage.CheckpointStorages#create}.
+     * Retained (delegating) because focused tests call it directly; new code
+     * should use the factory entry.
+     */
     public static ICheckpointStorage createStorage(CheckpointConfig config) {
-        String storageType = config.getStorageType();
-        if ("jdbc".equalsIgnoreCase(storageType)) {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
-                    .param(ARG_DETAIL,
-                            "JdbcCheckpointStorage requires IJdbcTemplate configuration. " +
-                            "Use storageType='local' or provide JDBC configuration.");
-        }
-        if ("s3".equalsIgnoreCase(storageType)) {
-            // WI13 (plan 2339): S3-compatible object storage
-            return io.nop.stream.runtime.checkpoint.storage.S3CheckpointStorage.fromConfig(config);
-        }
-        if (storageType == null || !"local".equalsIgnoreCase(storageType)) {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_EXECUTOR_FAILED)
-                    .param(ARG_DETAIL, "Unknown storage type: " + storageType);
-        }
-        String basePath = config.getStorageProperty("path");
-        if (basePath == null || basePath.isEmpty()) {
-            basePath = defaultStorageBaseDir();
-        }
-        return new LocalFileCheckpointStorage(basePath);
+        return io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.create(config);
     }
 
     /**
@@ -1194,7 +1181,7 @@ public class GraphModelCheckpointExecutor {
             String savepointPath,
             int configuredMaxParallelism) throws Exception {
 
-        ICheckpointStorage savepointStorage = new LocalFileCheckpointStorage(savepointPath);
+        ICheckpointStorage savepointStorage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(savepointPath);
         String jobId = checkpointPlan.getJobId();
         String pipelineId = checkpointPlan.getPipelineId();
         CompletedCheckpoint savepointCheckpoint = savepointStorage.getLatestCheckpoint(jobId, pipelineId);
@@ -1208,7 +1195,7 @@ public class GraphModelCheckpointExecutor {
             if (java.nio.file.Files.exists(path) && savepointPath.endsWith(".checkpoint")) {
                 java.nio.file.Path parentDir = path.getParent();
                 String parentPath = parentDir != null ? parentDir.toString() : savepointPath;
-                ICheckpointStorage parentStorage = new LocalFileCheckpointStorage(parentPath);
+                ICheckpointStorage parentStorage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(parentPath);
                 savepointCheckpoint = parentStorage.getLatestCheckpoint(jobId, pipelineId);
             }
         }

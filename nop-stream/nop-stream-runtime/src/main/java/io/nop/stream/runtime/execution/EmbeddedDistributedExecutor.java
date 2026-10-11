@@ -257,7 +257,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
         // actual transport this topology was built on (see RpcDistributedExecutor
         // and TransportDurability).
         checkpointConfig.setTransportPersistence(TransportDurability.resolve(messageService));
-        LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
+        LocalFileCheckpointStorage checkpointStorage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(
                 GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
         CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
                 jobId, "pipeline-0", idCounter, checkpointStorage, checkpointConfig);

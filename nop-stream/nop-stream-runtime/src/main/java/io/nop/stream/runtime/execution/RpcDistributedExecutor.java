@@ -217,7 +217,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
             // DURABLE declaration is only a conservative guess; here the
             // runtime knows the injected IMessageService.
             checkpointConfig.setTransportPersistence(TransportDurability.resolve(messageService));
-            LocalFileCheckpointStorage checkpointStorage = new LocalFileCheckpointStorage(
+            LocalFileCheckpointStorage checkpointStorage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(
                     GraphModelCheckpointExecutor.defaultStorageBaseDir() + "/" + jobId);
             CheckpointCoordinator checkpointCoordinator = new CheckpointCoordinator(
                     jobId, "pipeline-0", idCounter, checkpointStorage, checkpointConfig);
