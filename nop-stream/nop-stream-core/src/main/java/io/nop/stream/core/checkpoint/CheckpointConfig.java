@@ -48,6 +48,15 @@ public class CheckpointConfig implements Serializable {
     private boolean checkpointEnabled = true;
     private long checkpointInterval = DEFAULT_CHECKPOINT_INTERVAL;
     private long checkpointTimeout = DEFAULT_CHECKPOINT_TIMEOUT;
+    /**
+     * WI10 (plan 2426): named termination-budget knob (SAVEPOINT / terminal /
+     * final checkpoint bounded-retry trigger budget). Nullable by design —
+     * {@code null} resolves to {@link #checkpointTimeout}, which keeps every
+     * existing caller's behavior byte-identical (the field unifies the CONCEPT
+     * across driver faces; per-face default values are adjudicated in WI11 on
+     * differential evidence, per the WI9 §4.3 1c ruling).
+     */
+    private Long terminationCheckpointTimeoutMs;
     private long barrierAlignmentTimeout = DEFAULT_BARRIER_ALIGNMENT_TIMEOUT;
     private long minPause = DEFAULT_MIN_PAUSE;
     private int maxConcurrentCheckpoints = DEFAULT_MAX_CONCURRENT_CHECKPOINTS;
@@ -151,6 +160,27 @@ public class CheckpointConfig implements Serializable {
 
     public long getCheckpointTimeout() {
         return checkpointTimeout;
+    }
+
+    /** WI10 (plan 2426): nullable termination-budget override (null = checkpointTimeout). */
+    public Long getTerminationCheckpointTimeoutMs() {
+        return terminationCheckpointTimeoutMs;
+    }
+
+    /** WI10 (plan 2426): nullable termination-budget override. */
+    public void setTerminationCheckpointTimeoutMs(Long terminationCheckpointTimeoutMs) {
+        this.terminationCheckpointTimeoutMs = terminationCheckpointTimeoutMs;
+    }
+
+    /**
+     * WI10 (plan 2426): the effective SAVEPOINT/terminal/final trigger budget —
+     * the explicit termination knob when set, otherwise the general checkpoint
+     * timeout (pre-WI10 behavior, byte-identical).
+     */
+    public long resolveTerminationCheckpointTimeout() {
+        return terminationCheckpointTimeoutMs != null
+                ? terminationCheckpointTimeoutMs
+                : checkpointTimeout;
     }
 
     public void setCheckpointTimeout(long checkpointTimeout) {
@@ -530,6 +560,11 @@ public class CheckpointConfig implements Serializable {
 
         public Builder pipelineId(String pipelineId) {
             config.setPipelineId(pipelineId);
+            return this;
+        }
+
+        public Builder terminationCheckpointTimeoutMs(Long terminationCheckpointTimeoutMs) {
+            config.setTerminationCheckpointTimeoutMs(terminationCheckpointTimeoutMs);
             return this;
         }
 
