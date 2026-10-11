@@ -4,8 +4,6 @@ import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
-import io.nop.ai.core.mock.InMemoryResponseProvider;
-import io.nop.ai.core.mock.MockChatService;
 import io.nop.ai.core.prompt.ChatExchange;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
 import io.nop.ai.core.prompt.PromptTemplateManager;
@@ -54,14 +52,24 @@ public class AiTaskStepExecuteWiringTest {
 
         StaticBeanContainer container = new StaticBeanContainer();
 
-        MockChatService chatService = new MockChatService();
-        InMemoryResponseProvider provider = new InMemoryResponseProvider();
-        provider.setResponseHandler(req -> {
-            assertEquals("mock", req.getOptions().getProvider(),
-                    "xlib chatOptions map must bind onto the new ChatOptions");
-            return ChatResponse.success(new ChatAssistantMessage("echo: hi"));
-        });
-        chatService.setResponseProvider(provider);
+        // plan 2434/WI7：core mock 族已下沉 core test scope（coder 不可见），
+        // 改用内联匿名 IChatService stub（行为断言与原 MockChatService 链等价）。
+        IChatService chatService = new IChatService() {
+            @Override
+            public java.util.concurrent.CompletionStage<ChatResponse> callAsync(ChatRequest request,
+                    io.nop.api.core.util.ICancelToken cancelToken) {
+                assertEquals("mock", request.getOptions().getProvider(),
+                        "xlib chatOptions map must bind onto the new ChatOptions");
+                return java.util.concurrent.CompletableFuture
+                        .completedFuture(ChatResponse.success(new ChatAssistantMessage("echo: hi")));
+            }
+
+            @Override
+            public java.util.concurrent.Flow.Publisher<io.nop.ai.api.chat.stream.ChatStreamChunk> callStream(
+                    ChatRequest request, io.nop.api.core.util.ICancelToken cancelToken) {
+                throw new UnsupportedOperationException("stream not expected in wiring test");
+            }
+        };
         container.registerBean("nopChatService", chatService);
 
         IPromptTemplateManager promptManager = new PromptTemplateManager();

@@ -34,9 +34,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       CandidateHealthProvider (moved to gateway with the routing engine,
  *       plan 2424/WI5; contract case lives in gateway TestRoutingSecureDefaultGate).</li>
  *   <li>{@code ERR_AI_CORE_INVALID_STATE} — service path:
- *       mock/MockChatService.java:55 (ResponseProvider not set),
+ *       mock/MockChatService.java:55 (ResponseProvider not set); api path:
  *       mock/InMemoryResponseProvider.java:170 (no mock response available),
- *       mock/FileSystemResponseProvider.java:91 (mock timeout); api path:
  *       api/support/Media.java:149 (data is not byte[]); reliability path:
  *       reliability/ThresholdBreaker.java:141 (unknown circuit state).</li>
  * </ul>
