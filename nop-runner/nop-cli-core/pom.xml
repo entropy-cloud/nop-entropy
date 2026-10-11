@@ -18,13 +18,13 @@
         <skipITs>true</skipITs>
         <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
 
-        <!-- nop-cli 要求 JDK 22+：统一承载 nop-rg（JDK 22 字节码，FFM API）等工具子命令，
+        <!-- nop-cli 要求 JDK 25+：统一承载 nop-rg（JDK 22 字节码，FFM API）等工具子命令，
              使各子命令可直接 import 调用，无需反射或按 JDK 切分的可选 profile。
-             与根 reactor 中 nop-rg 自身的 java22-modules 门控保持同一 JDK 基线。 -->
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <maven.compiler.release>22</maven.compiler.release>
-        <java.version>22</java.version>
+             与根 reactor 中 nop-rg 自身的 java22-modules 门控保持同一 JDK 基线(25,WI2 起 nop-rg 跟进)。 -->
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
+        <java.version>25</java.version>
     </properties>
 
     <dependencies>
