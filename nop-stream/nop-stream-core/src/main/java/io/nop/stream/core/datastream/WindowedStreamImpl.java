@@ -13,7 +13,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
-import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
@@ -28,6 +27,7 @@ import io.nop.stream.core.operators.IWindowOperatorFactory;
 import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamOperatorFactory;
+import io.nop.stream.core.operators.WindowSpec;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.model.StreamComponents;
@@ -302,6 +302,32 @@ public class WindowedStreamImpl<T, K, W extends Window>
         return defaultFactory;
     }
 
+    /**
+     * WI8 (plan 2420): assembles the immutable {@link WindowSpec} from the fluent
+     * fields. The effective assigner comes from the call-site
+     * ({@link #getEffectiveWindowAssigner()}, components-aware); the element type
+     * keeps the {@link #inferElementClass(TypeInformation)} inference. Every axis
+     * the former four-overload factory generations carried travels in the spec, so
+     * a new field cannot be silently dropped by a shim.
+     */
+    @SuppressWarnings("unchecked")
+    private WindowSpec<T, K, W> buildSpec(WindowAssigner<? super T, W> assigner) {
+        return WindowSpec.<T, K, W>builder(
+                        assigner,
+                        keyedStream.getKeySelector(),
+                        (Class<K>) (Class<?>) Object.class)
+                .trigger(trigger)
+                .evictor(evictor)
+                .allowedLateness(allowedLateness)
+                .elementType((Class<T>) (Class<?>) inferElementClass(getType()))
+                .lateDataOutputTag(lateDataOutputTag)
+                .maxDelay(maxDelay)
+                .emitWindowEvents(emitWindowEvents)
+                .windowEventsOutputTag(windowEventsOutputTag)
+                .accumulationMode(accumulationMode)
+                .build();
+    }
+
     public WindowedStreamImpl<T, K, W> withComponents(StreamComponents components) {
         this.components = components;
         return this;
@@ -317,11 +343,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                     "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
-                assigner, trigger, evictor, allowedLateness, function,
-                inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
-                accumulationMode);
+                buildSpec(assigner), function);
         return transform("WindowApply", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -334,15 +356,11 @@ public class WindowedStreamImpl<T, K, W extends Window>
             throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
                     "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
-        // F-05: pass the inferred IN element class — the aggregate+evictor branch
-        // buffers raw IN elements in a ListState and needs the element type.
+        // F-05: the spec's elementType carries the inferred IN element class — the
+        // aggregate+evictor branch buffers raw IN elements in a ListState and needs
+        // the element type.
         OneInputStreamOperator<T, R> operator = factory.createAggregateOperator(
-                assigner, trigger, evictor, allowedLateness, function,
-                (Class<ACC>) (Class<?>) Object.class,
-                (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
-                accumulationMode);
+                buildSpec(assigner), function, (Class<ACC>) (Class<?>) Object.class);
         return transform("WindowAggregate", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 
@@ -356,11 +374,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                     "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
-                assigner, trigger, evictor, allowedLateness, function,
-                (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
-                accumulationMode);
+                buildSpec(assigner), function);
         return transform("WindowReduce", getType(), operator);
     }
 
@@ -374,11 +388,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
                     "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
-                assigner, trigger, evictor, allowedLateness, function,
-                (Class<T>) (Class<?>) inferElementClass(getType()),
-                keyedStream.getKeySelector(), (Class<K>) (Class<?>) Object.class,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag,
-                accumulationMode);
+                buildSpec(assigner), function);
         return transform("WindowProcess", (TypeInformation<R>) UnknownTypeInformation.INSTANCE, operator);
     }
 

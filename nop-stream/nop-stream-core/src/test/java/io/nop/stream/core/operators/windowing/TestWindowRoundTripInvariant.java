@@ -26,6 +26,7 @@ import io.nop.stream.core.operators.OneInputStreamOperator;
 import io.nop.stream.core.operators.SimpleStreamOperatorFactory;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamOperatorFactory;
+import io.nop.stream.core.operators.WindowSpec;
 import io.nop.stream.core.transformation.OneInputTransformation;
 import io.nop.stream.core.transformation.Transformation;
 import io.nop.stream.core.util.Collector;
@@ -47,16 +48,18 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Gate ① — Window 粘合层构造参数完备性（invariant #1）.
  *
  * <p>参数化验证 4 个 call-site（apply/aggregate/reduce/process）经真实
- * {@link WindowOperatorFactoryImpl}（经 {@code IWindowOperatorFactory} 接口）到
- * {@link WindowOperatorBuilder} 最终 round-trip 到 {@link WindowOperator} 构造器的字段。
- * 断言映射以 call-site 实参表为准（8 实参），映射表明示于 {@link WindowRoundTripAssertions}：
- * windowAssigner→构造器 windowAssigner、trigger→trigger、evictor→evictor、
- * allowedLateness→allowedLateness、function→wrapped userFunction、elementType→
- * accClass/ListStateDescriptor 类型、keySelector→keySelector、keyClass→keyClass。
+ * {@link WindowOperatorFactoryImpl}（经 {@code IWindowOperatorFactory} 接口，WI8 起
+ * 以 {@code WindowSpec} 单一契约携带配置）到 {@link WindowOperatorBuilder} 最终
+ * round-trip 到 {@link WindowOperator} 构造器的字段。断言映射以 call-site 配置为准，
+ * 映射表明示于 {@link WindowRoundTripAssertions}：windowAssigner→构造器 windowAssigner、
+ * trigger→trigger、evictor→evictor、allowedLateness→allowedLateness、function→wrapped
+ * userFunction、elementType→accClass/ListStateDescriptor 类型、keySelector→keySelector、
+ * keyClass→keyClass。
  *
- * <p>正反例：正例 = 真实 {@code WindowedStreamImpl} call-site → {@code IWindowOperatorFactory}
- * → 真实 {@code WindowOperatorFactoryImpl} 的接线链；反例 = 漏传 allowedLateness 的桩 factory
- * 产生的算子，经判定辅助类 {@link WindowRoundTripAssertions} 必须被抓住。
+ * <p>正反例：正例 = 真实 {@code WindowedStreamImpl} call-site → {@code WindowSpec}
+ * → 真实 {@code WindowOperatorFactoryImpl} 的接线链；反例 = 复制 spec 后改写
+ * allowedLateness 的桩 factory 产生的算子，经判定辅助类 {@link WindowRoundTripAssertions}
+ * 必须被抓住。
  */
 public class TestWindowRoundTripInvariant {
 
@@ -117,8 +120,9 @@ public class TestWindowRoundTripInvariant {
     static final Evictor<? super Integer, TimeWindow> EVICTOR = CountEvictor.of(2);
     static final long ALLOWED_LATENESS = 42L;
     static final KeySelector<Integer, String> KEY_SELECTOR = v -> "key-" + v;
-    // live call-site 实参表：WindowedStreamImpl 的 4 个 call-site 均传 Object.class 作为
-    // elementType 与 keyClass（见 WindowedStreamImpl.java:194-195/:209-210/:224-225/:239-240）
+    // live call-site 实参表：WindowedStreamImpl 的 buildSpec（WI8 plan 2420）把
+    // inferElementClass(getType()) 结果装入 spec.elementType，keyClass 为 erasure
+    // 占位 Object.class（后续 keyClass/keySelector 经 WindowSpec 携带进工厂）。
     static final Class<Object> ELEMENT_TYPE = Object.class;
     static final Class<Object> KEY_CLASS = Object.class;
 
@@ -138,9 +142,10 @@ public class TestWindowRoundTripInvariant {
     }
 
     /**
-     * 正例：4 个 call-site × 有/无 evictor，经真实 WindowOperatorFactoryImpl 的完整调用链，
-     * 断言 8 实参全部 round-trip 到 WindowOperator 构造器字段（接线验证：非 mock，真实经
-     * {@code IWindowOperatorFactory} 接口调用 runtime 类）。
+     * 正例：4 个 call-site × 有/无 evictor，经真实 WindowOperatorFactoryImpl 的完整调用链
+     * （fluent API → buildSpec 装配 WindowSpec → IWindowOperatorFactory →
+     * WindowOperatorBuilder），断言 call-site 配置全部 round-trip 到 WindowOperator
+     * 构造器字段（接线验证：非 mock，真实经 core 内工厂接口与实现）。
      */
     @ParameterizedTest
     @MethodSource("expectations")
@@ -226,6 +231,7 @@ public class TestWindowRoundTripInvariant {
 
     /**
      * 桩 factory：委托真实实现但漏传 allowedLateness（写固定值）。用于反例 fixture。
+     * WI8 后 allowedLateness 经 WindowSpec 携带，漏传实现为复制 spec 并改写该字段。
      */
     static class DroppingAllowedLatenessFactory implements IWindowOperatorFactory {
         private final long droppedValue;
@@ -237,66 +243,40 @@ public class TestWindowRoundTripInvariant {
         @Override
         public <IN, ACC, OUT, K, W extends Window>
         OneInputStreamOperator<IN, OUT> createAggregateOperator(
-                io.nop.stream.core.windowing.assigners.WindowAssigner<? super IN, W> windowAssigner,
-                Trigger<? super IN, ? super W> trigger,
-                Evictor<? super IN, W> evictor,
-                long allowedLateness,
+                WindowSpec<IN, K, W> spec,
                 AggregateFunction<IN, ACC, OUT> aggregateFunction,
-                Class<ACC> accumulatorType,
-                KeySelector<IN, K> keySelector,
-                Class<K> keyClass) {
+                Class<ACC> accumulatorType) {
             // 故意漏传：写 droppedValue（0）而非调用方传入的 allowedLateness
             return new WindowOperatorFactoryImpl().createAggregateOperator(
-                    windowAssigner, trigger, evictor, droppedValue,
-                    aggregateFunction, accumulatorType, keySelector, keyClass);
+                    WindowSpec.builder(spec).allowedLateness(droppedValue).build(),
+                    aggregateFunction, accumulatorType);
         }
 
         @Override
         public <IN, K, W extends Window>
         OneInputStreamOperator<IN, IN> createReduceOperator(
-                io.nop.stream.core.windowing.assigners.WindowAssigner<? super IN, W> windowAssigner,
-                Trigger<? super IN, ? super W> trigger,
-                Evictor<? super IN, W> evictor,
-                long allowedLateness,
-                ReduceFunction<IN> reduceFunction,
-                Class<IN> valueType,
-                KeySelector<IN, K> keySelector,
-                Class<K> keyClass) {
+                WindowSpec<IN, K, W> spec,
+                ReduceFunction<IN> reduceFunction) {
             return new WindowOperatorFactoryImpl().createReduceOperator(
-                    windowAssigner, trigger, evictor, droppedValue,
-                    reduceFunction, valueType, keySelector, keyClass);
+                    WindowSpec.builder(spec).allowedLateness(droppedValue).build(), reduceFunction);
         }
 
         @Override
         public <IN, OUT, K, W extends Window>
         OneInputStreamOperator<IN, OUT> createApplyOperator(
-                io.nop.stream.core.windowing.assigners.WindowAssigner<? super IN, W> windowAssigner,
-                Trigger<? super IN, ? super W> trigger,
-                Evictor<? super IN, W> evictor,
-                long allowedLateness,
-                WindowFunction<IN, OUT, K, W> windowFunction,
-                Class<IN> elementType,
-                KeySelector<IN, K> keySelector,
-                Class<K> keyClass) {
+                WindowSpec<IN, K, W> spec,
+                WindowFunction<IN, OUT, K, W> windowFunction) {
             return new WindowOperatorFactoryImpl().createApplyOperator(
-                    windowAssigner, trigger, evictor, droppedValue,
-                    windowFunction, elementType, keySelector, keyClass);
+                    WindowSpec.builder(spec).allowedLateness(droppedValue).build(), windowFunction);
         }
 
         @Override
         public <IN, OUT, K, W extends Window>
         OneInputStreamOperator<IN, OUT> createProcessOperator(
-                io.nop.stream.core.windowing.assigners.WindowAssigner<? super IN, W> windowAssigner,
-                Trigger<? super IN, ? super W> trigger,
-                Evictor<? super IN, W> evictor,
-                long allowedLateness,
-                ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
-                Class<IN> elementType,
-                KeySelector<IN, K> keySelector,
-                Class<K> keyClass) {
+                WindowSpec<IN, K, W> spec,
+                ProcessWindowFunction<IN, OUT, K, W> processWindowFunction) {
             return new WindowOperatorFactoryImpl().createProcessOperator(
-                    windowAssigner, trigger, evictor, droppedValue,
-                    processWindowFunction, elementType, keySelector, keyClass);
+                    WindowSpec.builder(spec).allowedLateness(droppedValue).build(), processWindowFunction);
         }
     }
 }

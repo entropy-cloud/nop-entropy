@@ -38,16 +38,13 @@ import java.util.Arrays;
  * {@code .stream.xml → DslModelParser → StreamModelDslBuilder → StreamExecutionEnvironment
  * → execute() → sink} path.
  *
- * <p><b>Why reduce-on-KeyedStream and not window→aggregate?</b> The plan's Phase 2
- * exit criterion calls for a window→aggregate end-to-end pipeline. However,
- * {@code WindowedStream.aggregate/reduce} require an {@code IWindowOperatorFactory}
- * (provided by {@code nop-stream-runtime}, a heavy dependency not on the
- * {@code nop-stream-flow} test classpath). {@code KeyedStream.reduce} executes
- * without that factory (proven by {@code TestKeyedStreamAggregation} in
- * {@code nop-stream-core}), so this test exercises the advanced-transform dispatch
- * (reduce on KeyedStream) end-to-end. The window→aggregate wiring is covered by
- * {@link TestAdvancedTransforms#aggregateDispatchesToWindowedAggregatePath}
- * (proves dispatch up to the runtime boundary).
+ * <p><b>Why reduce-on-KeyedStream and not window→aggregate?</b> This test's Phase 2
+ * exit criterion targets a reduce end-to-end pipeline executing through the real
+ * container; {@code KeyedStream.reduce} needs no window operator factory (proven by
+ * {@code TestKeyedStreamAggregation} in {@code nop-stream-core}). Since WI7
+ * (plan 2417) the {@code IWindowOperatorFactory} ships in core, and the
+ * window→aggregate / window→reduce build wiring is covered by
+ * {@link TestAdvancedTransforms#aggregateDispatchesToWindowedAggregatePath}.
  *
  * <p>Pipeline: {@code source[bean=intSource]} (emits [1,2,3]) → {@code keyBy[keyExpr]}
  * → {@code reduce[bean=sumReducer]} → {@code sink[bean=collectingSink]}.

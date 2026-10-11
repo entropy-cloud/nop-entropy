@@ -25,6 +25,7 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.operators.IWindowOperatorFactory;
 import io.nop.stream.core.operators.TimestampsAndWatermarksOperator;
+import io.nop.stream.core.operators.WindowSpec;
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.windows.TimeWindow;
@@ -345,10 +346,13 @@ public class TestWindowOperatorUnificationE2E {
 
         io.nop.stream.core.operators.OneInputStreamOperator<Object, Object> operator =
                 factory.createAggregateOperator(
-                        TumblingEventTimeWindows.of(100),
-                        io.nop.stream.core.windowing.triggers.EventTimeTrigger.create(),
-                        null,
-                        0L,
+                        WindowSpec.<Object, Object, TimeWindow>builder(
+                                        TumblingEventTimeWindows.of(100),
+                                        (KeySelector<Object, Object>) v -> v,
+                                        Object.class)
+                                .trigger(io.nop.stream.core.windowing.triggers.EventTimeTrigger.create())
+                                .elementType(Object.class)
+                                .build(),
                         new AggregateFunction<Object, Object, Object>() {
                             private static final long serialVersionUID = 1L;
                             @Override public Object createAccumulator() { return null; }
@@ -356,8 +360,6 @@ public class TestWindowOperatorUnificationE2E {
                             @Override public Object getResult(Object accumulator) { return null; }
                             @Override public Object merge(Object a, Object b) { return null; }
                         },
-                        Object.class,
-                        (KeySelector<Object, Object>) v -> v,
                         Object.class);
 
         assertNotNull(operator);

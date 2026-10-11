@@ -12,331 +12,46 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
-import io.nop.stream.core.util.OutputTag;
-import io.nop.stream.core.windowing.AccumulationMode;
-import io.nop.stream.core.windowing.WindowLifecycleEvent;
-import io.nop.stream.core.windowing.assigners.WindowAssigner;
-import io.nop.stream.core.windowing.evictors.Evictor;
-import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
 
+/**
+ * WI8 (plan 2420): single-contract window operator factory. The former
+ * 17-method surface (4 abstract methods + 13 default shims grown by four
+ * parameter-creep generations: elementType → lateDataOutputTag →
+ * maxDelay/emitWindowEvents/windowEventsOutputTag → accumulationMode) is
+ * replaced by the immutable {@link WindowSpec} value object — every
+ * configuration axis travels in the spec; the operation function and (for
+ * aggregate only) the accumulator type are the sole companion parameters, so
+ * a new configuration axis can never fork another interface method or revive
+ * a parameter-dropping default shim.
+ *
+ * <p>Replacement adjudication (2026-10-11, plan 2420): direct replacement
+ * without a {@code @Deprecated(forRemoval=true)} bridge — the factory has
+ * zero code consumers outside nop-stream (repo-wide grep), the roadmap M2
+ * milestone requires the 17-method surface to disappear, and a deprecated
+ * shim layer would preserve exactly the silent parameter-dropping failure
+ * mode this contract removes.
+ */
 public interface IWindowOperatorFactory extends java.io.Serializable {
+
     <IN, ACC, OUT, K, W extends Window>
     OneInputStreamOperator<IN, OUT> createAggregateOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
+            WindowSpec<IN, K, W> spec,
             AggregateFunction<IN, ACC, OUT> aggregateFunction,
-            Class<ACC> accumulatorType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass);
-
-    /**
-     * F-05 (plan 1326-2 Phase 1): aggregate with an explicit IN element type. The
-     * evictor branch of the aggregate path stores raw IN elements in a
-     * {@code ListStateDescriptor} — the element type must be inferable or bean
-     * elements break on the RocksDB backend / Memory-JSON restore. Default
-     * delegates to the legacy overload (elementType treated as unknown) so
-     * existing implementations stay source-compatible.
-     */
-    default <IN, ACC, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createAggregateOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            AggregateFunction<IN, ACC, OUT> aggregateFunction,
-            Class<ACC> accumulatorType,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass) {
-        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
-                aggregateFunction, accumulatorType, keySelector, keyClass);
-    }
+            Class<ACC> accumulatorType);
 
     <IN, K, W extends Window>
     OneInputStreamOperator<IN, IN> createReduceOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ReduceFunction<IN> reduceFunction,
-            Class<IN> valueType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass);
+            WindowSpec<IN, K, W> spec,
+            ReduceFunction<IN> reduceFunction);
 
     <IN, OUT, K, W extends Window>
     OneInputStreamOperator<IN, OUT> createApplyOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            WindowFunction<IN, OUT, K, W> windowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass);
+            WindowSpec<IN, K, W> spec,
+            WindowFunction<IN, OUT, K, W> windowFunction);
 
     <IN, OUT, K, W extends Window>
     OneInputStreamOperator<IN, OUT> createProcessOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass);
-
-    // ------------------------------------------------------------------
-    // G-2+09e① (plan 369 Phase 2): late-data side output aware variants.
-    // Each overload carries the {@code OutputTag} configured via
-    // {@code WindowedStream#sideOutputLateData} into the created window
-    // operator. Default implementations delegate to the tag-less variants
-    // (ignoring the tag) so existing implementations stay source-compatible;
-    // the runtime factory overrides them and wires the tag through the
-    // {@code WindowOperatorBuilder.lateDataOutputTag} chain.
-    // ------------------------------------------------------------------
-
-    default <IN, ACC, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createAggregateOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            AggregateFunction<IN, ACC, OUT> aggregateFunction,
-            Class<ACC> accumulatorType,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag) {
-        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
-                aggregateFunction, accumulatorType, elementType, keySelector, keyClass);
-    }
-
-    default <IN, K, W extends Window>
-    OneInputStreamOperator<IN, IN> createReduceOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ReduceFunction<IN> reduceFunction,
-            Class<IN> valueType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag) {
-        return createReduceOperator(windowAssigner, trigger, evictor, allowedLateness,
-                reduceFunction, valueType, keySelector, keyClass);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createApplyOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            WindowFunction<IN, OUT, K, W> windowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag) {
-        return createApplyOperator(windowAssigner, trigger, evictor, allowedLateness,
-                windowFunction, elementType, keySelector, keyClass);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createProcessOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag) {
-        return createProcessOperator(windowAssigner, trigger, evictor, allowedLateness,
-                processWindowFunction, elementType, keySelector, keyClass);
-    }
-
-    // ------------------------------------------------------------------
-    // WI8 (plan 2332): max-delay + window lifecycle event aware variants.
-    // Each overload additionally carries the maxDelay fallback (0 = disabled)
-    // and the window-events switch + its dedicated OutputTag configured via
-    // {@code WindowedStream#emitWindowEvents()} into the created window
-    // operator. Default implementations delegate to the late-data aware
-    // variants (ignoring the new configuration) so existing implementations
-    // stay source-compatible; the runtime factory overrides them and wires
-    // everything through the {@code WindowOperatorBuilder} chain.
-    // ------------------------------------------------------------------
-
-    default <IN, ACC, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createAggregateOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            AggregateFunction<IN, ACC, OUT> aggregateFunction,
-            Class<ACC> accumulatorType,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
-        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
-                aggregateFunction, accumulatorType, elementType, keySelector, keyClass,
-                lateDataOutputTag);
-    }
-
-    default <IN, K, W extends Window>
-    OneInputStreamOperator<IN, IN> createReduceOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ReduceFunction<IN> reduceFunction,
-            Class<IN> valueType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
-        return createReduceOperator(windowAssigner, trigger, evictor, allowedLateness,
-                reduceFunction, valueType, keySelector, keyClass, lateDataOutputTag);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createApplyOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            WindowFunction<IN, OUT, K, W> windowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
-        return createApplyOperator(windowAssigner, trigger, evictor, allowedLateness,
-                windowFunction, elementType, keySelector, keyClass, lateDataOutputTag);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createProcessOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag) {
-        return createProcessOperator(windowAssigner, trigger, evictor, allowedLateness,
-                processWindowFunction, elementType, keySelector, keyClass, lateDataOutputTag);
-    }
-
-    // ------------------------------------------------------------------
-    // WI38 (plan 03, FU-8 fix / D10 release): accumulation-mode aware
-    // variants. Each overload additionally carries the declared
-    // {@code AccumulationMode} (from the model's windowing strategy) into
-    // the created window operator. FU-8: previously the declared value never
-    // reached the operator, so every model-built window ran ACCUMULATING
-    // regardless of the DISCARDING declaration. Null keeps the operator's
-    // legacy default (ACCUMULATING) for the pure Java API path. Default
-    // implementations delegate to the WI8-aware variants (dropping the mode)
-    // so existing implementations stay source-compatible; the runtime factory
-    // overrides them and wires the mode through
-    // {@code WindowOperatorBuilder.accumulationMode}.
-    // ------------------------------------------------------------------
-
-    default <IN, ACC, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createAggregateOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            AggregateFunction<IN, ACC, OUT> aggregateFunction,
-            Class<ACC> accumulatorType,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag,
-            AccumulationMode accumulationMode) {
-        return createAggregateOperator(windowAssigner, trigger, evictor, allowedLateness,
-                aggregateFunction, accumulatorType, elementType, keySelector, keyClass,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
-    }
-
-    default <IN, K, W extends Window>
-    OneInputStreamOperator<IN, IN> createReduceOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ReduceFunction<IN> reduceFunction,
-            Class<IN> valueType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag,
-            AccumulationMode accumulationMode) {
-        return createReduceOperator(windowAssigner, trigger, evictor, allowedLateness,
-                reduceFunction, valueType, keySelector, keyClass,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createApplyOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            WindowFunction<IN, OUT, K, W> windowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag,
-            AccumulationMode accumulationMode) {
-        return createApplyOperator(windowAssigner, trigger, evictor, allowedLateness,
-                windowFunction, elementType, keySelector, keyClass,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
-    }
-
-    default <IN, OUT, K, W extends Window>
-    OneInputStreamOperator<IN, OUT> createProcessOperator(
-            WindowAssigner<? super IN, W> windowAssigner,
-            Trigger<? super IN, ? super W> trigger,
-            Evictor<? super IN, W> evictor,
-            long allowedLateness,
-            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction,
-            Class<IN> elementType,
-            KeySelector<IN, K> keySelector,
-            Class<K> keyClass,
-            OutputTag<IN> lateDataOutputTag,
-            long maxDelay,
-            boolean emitWindowEvents,
-            OutputTag<WindowLifecycleEvent> windowEventsOutputTag,
-            AccumulationMode accumulationMode) {
-        return createProcessOperator(windowAssigner, trigger, evictor, allowedLateness,
-                processWindowFunction, elementType, keySelector, keyClass,
-                lateDataOutputTag, maxDelay, emitWindowEvents, windowEventsOutputTag);
-    }
-
+            WindowSpec<IN, K, W> spec,
+            ProcessWindowFunction<IN, OUT, K, W> processWindowFunction);
 }

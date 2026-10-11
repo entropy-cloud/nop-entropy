@@ -269,7 +269,7 @@
 | `STRM-016` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/CheckpointCoordinator.java` | Checkpoint 协调器 |
 | `STRM-017` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/PendingCheckpoint.java` | 待完成 checkpoint 状态 |
 | `STRM-018` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java` | 窗口算子（WI7 已归位 core，2026-10-11） |
-| `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口（预告：结构重构 WI8 将其收敛为 WindowSpec 单一契约，届时本行描述由 WI8 更新；路径不变） |
+| `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口——WI8（plan 2420）后为 WindowSpec 单一契约：4 个 create 方法（零 default），全部窗口配置轴经不可变值对象 `WindowSpec`（同包）携带，操作函数与（仅 aggregate）accumulatorType 为唯一伴随参数 |
 | `STRM-020` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/HeapInternalTimerService.java` | 堆内 timer 服务 |
 | `STRM-021` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java` | 多 `InputChannel` 合并读取入口（core/execution）；承担生产 barrier 对齐（`handleBarrierNonRecursive()`）、watermark 合并、channel 阻塞/恢复（`blockConsumption`/`resumeConsumptionAll`） |
 | `STRM-022` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/CheckpointBarrierTracker.java` | task 内 barrier ACK 聚合器（core/execution，`@Internal`）；追踪 `operatorsToAck` 计数，收齐后回调 `Consumer<TaskStateSnapshot>` 通知 task snapshot 完成 |

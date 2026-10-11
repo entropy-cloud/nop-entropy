@@ -203,9 +203,9 @@
 
 | 类（live 路径） | 变更型方法 |
 |---|---|
-| `nop-stream-core/.../datastream/WindowedStreamImpl.java` | `apply`(:186), `aggregate`(:201), `reduce`(:216), `process`(:231)（4 个 call-site）；I1 补表：`trigger`(:120), `evictor`(:130), `allowedLateness`(:135), `withComponents`(:179), `transform`(:245) |
-| `nop-stream-core/.../operators/IWindowOperatorFactory.java` | `createAggregateOperator`(:22), `createReduceOperator`(:33), `createApplyOperator`(:44), `createProcessOperator`(:55) |
-| `nop-stream-core/.../operators/windowing/WindowOperatorFactoryImpl.java` | `createAggregateOperator`(:31), `createReduceOperator`(:54), `createApplyOperator`(:77), `createProcessOperator`(:100) |
+| `nop-stream-core/.../datastream/WindowedStreamImpl.java` | `apply`(:338), `aggregate`(:352), `reduce`(:369), `process`(:383)（4 个 call-site，WI8 plan 2420 起经 buildSpec 装配 WindowSpec）；I1 补表：`trigger`(:171), `evictor`(:177), `allowedLateness`(:233), `withComponents`(:331), `transform`(:396) |
+| `nop-stream-core/.../operators/IWindowOperatorFactory.java` | `createAggregateOperator`(:38), `createReduceOperator`(:44), `createApplyOperator`(:49), `createProcessOperator`(:54)（WI8 plan 2420 起 4 方法零 default，配置轴经 WindowSpec 携带） |
+| `nop-stream-core/.../operators/windowing/WindowOperatorFactoryImpl.java` | `createAggregateOperator`(:43), `createReduceOperator`(:55), `createApplyOperator`(:65), `createProcessOperator`(:75)（WI8 后 4 覆写，配置经 configureBuilder(spec) 漏斗） |
 | `nop-stream-core/.../operators/windowing/WindowOperatorBuilder.java` | `windowAssigner`(:61), `trigger`(:66), `evictor`(:71), `allowedLateness`(:76), `keySelector`(:81), `keyClass`(:86), `keySerializer`(:91), `windowSerializer`(:96), `lateDataOutputTag`(:101), `accumulationMode`(:106), `reduce`(:135), `apply`(:163), `process`(:173), `aggregate`(:119) |
 | `nop-stream-core/.../operators/windowing/WindowOperator.java` | `open`(:386), `processElement`(:578), `processWatermark`(:494), `onEventTime`(:725), `onProcessingTime`(:791), `snapshotState`(:513), `restoreState`(:545), `close`(:500), `copyForSubtask`(:381)；I1 补表：`createAccumulatorForWindow`(:1075), `deleteCleanupTimer`(:1052), `registerCleanupTimer`(:1059), `sideOutput`(:1015) |
 | `nop-stream-core/.../operators/StreamReduceOperator.java` | I1 复核落定：`copyForSubtask`(:55), `setCurrentKey`(:60), `open`(:74), `processElement`(:80), `snapshotState`(:101), `restoreState`(:121) |

@@ -23,29 +23,32 @@ import io.nop.stream.core.operators.windowing.functions.InternalIterableProcessW
 import io.nop.stream.core.operators.windowing.functions.InternalIterableWindowFunction;
 
 /**
- * 可测试的判定辅助类（门禁 ①）：把「call-site 实参 → WindowOperator 构造器字段」的 round-trip
- * 判定提取为独立组件，反例 fixture（如漏传 allowedLateness 的桩 factory）作用于本组件，
+ * 可测试的判定辅助类（门禁 ①）：把「call-site 配置 → WindowOperator 构造器字段」的 round-trip
+ * 判定提取为独立组件，反例 fixture（如复制 spec 改写 allowedLateness 的桩 factory）作用于本组件，
  * 无需在真实类上注入违背代码。
  *
- * <p>断言映射（以 call-site 实参表为准，8 实参，映射表内明示）：
+ * <p>断言映射（call-site 配置经 {@code WindowSpec} 单一契约传输，WI8 plan 2420；
+ * 映射表内明示）：
  * <table border="1">
- *   <tr><th>call-site 实参</th><th>WindowOperator 构造器字段 / 断言目标</th></tr>
- *   <tr><td>windowAssigner</td><td>构造器 windowAssigner（同一实例）</td></tr>
- *   <tr><td>trigger</td><td>trigger（同一实例）</td></tr>
- *   <tr><td>evictor</td><td>evictor（同一实例或双 null）</td></tr>
- *   <tr><td>allowedLateness</td><td>allowedLateness（数值相等）</td></tr>
- *   <tr><td>function</td><td>wrapped userFunction（apply/process 解包 InternalIterable*
+ *   <tr><th>call-site 配置（WindowSpec 字段 / 伴随参数）</th><th>WindowOperator 构造器字段 / 断言目标</th></tr>
+ *   <tr><td>windowAssigner（spec）</td><td>构造器 windowAssigner（同一实例）</td></tr>
+ *   <tr><td>trigger（spec）</td><td>trigger（同一实例）</td></tr>
+ *   <tr><td>evictor（spec）</td><td>evictor（同一实例或双 null）</td></tr>
+ *   <tr><td>allowedLateness（spec）</td><td>allowedLateness（数值相等）</td></tr>
+ *   <tr><td>function（伴随参数）</td><td>wrapped userFunction（apply/process 解包 InternalIterable*
  *       wrappedFunction；aggregate/reduce 无 evictor 经 AggregatingStateDescriptor
  *       getAggregateFunction；有 evictor 经 Buffering*ProcessWindowFunction 内字段）</td></tr>
- *   <tr><td>elementType</td><td>accClass（构造器第 10 参）/ ListStateDescriptor valueType</td></tr>
- *   <tr><td>keySelector</td><td>keySelector（同一实例）</td></tr>
- *   <tr><td>keyClass</td><td>keyClass（同一 Class）</td></tr>
+ *   <tr><td>elementType（spec）</td><td>accClass（构造器第 10 参，aggregate 路径为
+ *       accumulatorType 经推断后的值）/ ListStateDescriptor valueType</td></tr>
+ *   <tr><td>keySelector（spec）</td><td>keySelector（同一实例）</td></tr>
+ *   <tr><td>keyClass（spec）</td><td>keyClass（同一 Class）</td></tr>
  * </table>
  * 构造器本身 17 参（windowAssigner/windowSerializer/keySelector/keySerializer/keyClass/
  * windowFunction/trigger/allowedLateness/lateDataOutputTag/accClass/stateDesc/mergeFn/evictor/
- * accumulationMode/maxDelay/emitWindowEvents/windowEventsOutputTag），本组件只断言 call-site 8 实参的
- * 传输完备性；accumulationMode 的第四代（WI8 感知 + mode）传输由
- * TestWindowOperatorFactoryAccumulationModeWiring 单独钉（WI38）。
+ * accumulationMode/maxDelay/emitWindowEvents/windowEventsOutputTag），本组件只断言上表
+ * call-site 配置的传输完备性；spec 其余蠕变字段（lateDataOutputTag/maxDelay/emitWindowEvents/
+ * windowEventsOutputTag/accumulationMode）的传输由 TestWindowSpecFieldTransfer（直调路径）
+ * 与 TestWindowedStreamAccumulationModeWiring（fluent 路径全字段钉）覆盖。
  */
 public class WindowRoundTripAssertions {
 
