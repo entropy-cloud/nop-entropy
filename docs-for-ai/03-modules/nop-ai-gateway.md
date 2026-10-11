@@ -237,15 +237,15 @@ bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（经 `/
 
 ## 规则选择策略（可选）
 
-选择策略 = `ISelectionStrategy` 接口（nop-ai-core `io.nop.ai.core.routing`）。默认策略 = `DefaultSelectionStrategy`（健康度 + 并发感知 + 声明序），无需配置。规则策略 `RuleBasedSelectionStrategy` 为可插拔替换实现（XLang 规则 DSL）。
+选择策略 = `ISelectionStrategy` 接口（nop-ai-gateway `io.nop.ai.gateway.routing`——plan 2424/WI5 自 nop-ai-core 迁入；模型类配置类型与解析 helper 仍留守 nop-ai-core）。默认策略 = `DefaultSelectionStrategy`（健康度 + 并发感知 + 声明序），无需配置。规则策略 `RuleBasedSelectionStrategy` 为可插拔替换实现（XLang 规则 DSL）。
 
 ### IoC 绑定
 
 ```xml
 <!-- ai-gateway-defaults.beans.xml（模块内置） -->
 <bean id="nopAiRuleBasedSelectionStrategy"
-      class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
-      ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+      class="io.nop.ai.gateway.routing.RuleBasedSelectionStrategy"
+      ioc:type="io.nop.ai.gateway.routing.ISelectionStrategy">
     <property name="ruleManager">
         <ref bean="nopRuleManager" ioc:optional="true"/>
     </property>
@@ -296,7 +296,7 @@ bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（经 `/
 | 重执行回调 / 生命周期监听器 | `GatewayStreamingRetryCallback.java` / `GatewayStreamingLifecycleListener.java` |
 | 指标 | `IFailoverMetrics.java` / `FailoverMetricsImpl.java` |
 | 缓冲/重订阅层（nop-gateway） | `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/core/executor/BufferedStreamingPublisher.java` |
-| 模型类路由组 / 选择策略（nop-ai-core） | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ModelClassRouter.java` / `ISelectionStrategy.java` / `RuleBasedSelectionStrategy.java` |
+| 模型类路由组 / 选择策略（nop-ai-gateway，plan 2424/WI5 迁入） | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/routing/ModelClassRouter.java` / `ISelectionStrategy.java` / `RuleBasedSelectionStrategy.java` |
 | 熔断/错误分类（nop-ai-core） | `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java` / `LlmErrorClassifier.java` |
 | 配置面 xdef | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/ai/model-class.xdef` / `llm.xdef` / `gateway.xdef` |
 | 传输层桥接抽象 | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/IChannelConnector.java` / `ChannelConnectorManager.java` / `ChannelConnectorContext.java` |

@@ -31,7 +31,7 @@ public final class FailoverConstants {
     /** 接管标记：拦截器选中候选并下沉后置 true（onError/onStreamElement 只对接管请求生效）。 */
     public static final String PROP_ACTIVE = "nop.ai.gateway.failover.active";
 
-    /** context attribute：本轮共享 {@link io.nop.ai.core.routing.ModelClassRouter}。 */
+    /** context attribute：本轮共享 {@link io.nop.ai.gateway.routing.ModelClassRouter}。 */
     public static final String ATTR_ROUTER = "nop.ai.gateway.failover.router";
 
     /** HTTP 429 Too Many Requests（RATE_LIMITED 分类）。 */

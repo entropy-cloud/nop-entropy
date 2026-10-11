@@ -1,4 +1,6 @@
-package io.nop.ai.core.routing;
+package io.nop.ai.gateway.routing;
+
+import io.nop.ai.core.model.ModelClassCandidate;
 
 import io.nop.ai.api.chat.ChatRequest;
 

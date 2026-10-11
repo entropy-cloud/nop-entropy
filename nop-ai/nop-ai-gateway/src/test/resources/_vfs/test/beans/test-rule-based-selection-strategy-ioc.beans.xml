@@ -12,8 +12,8 @@
     <import resource="/nop/rule/beans/rule-defaults.beans.xml"/>
 
     <bean id="nopAiRuleBasedSelectionStrategy"
-          class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
-          ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+          class="io.nop.ai.gateway.routing.RuleBasedSelectionStrategy"
+          ioc:type="io.nop.ai.gateway.routing.ISelectionStrategy">
         <property name="ruleManager">
             <ref bean="nopRuleManager"/>
         </property>

@@ -7,7 +7,7 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
-import io.nop.ai.core.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
 import io.nop.ai.core.service.ChatServiceImpl;
 import io.nop.ai.core.service.DefaultChatLogger;
 import io.nop.ai.core.service.LlmConfigHelper;
@@ -73,6 +73,7 @@ class TestFailoverMetricsLocal {
 
     @AfterAll
     static void destroy() {
+        System.clearProperty("nop.ai.service.rate-limit-acquire-timeout");
         CoreInitialization.destroy();
     }
 

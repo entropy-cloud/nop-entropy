@@ -1,0 +1,36 @@
+<modelClass x:schema="/nop/schema/ai/model-class.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!--
+    测试用模型类路由组声明（plan 2026-08-15-0849-2，设计 §3.3）。
+    归属机制 = 显式成员声明（members 清单，model 名全局匹配，首个声明命中胜出）。
+    候选展开语义（LlmConfigHelper.resolveModelClassCandidates）：
+      - tier-v4 候选 1（test-accounts/deepseek-v4，无 accountRef）= 主账号 + test-accounts 账号链（backup-1/2/3，主账号在前）；
+      - tier-v4 候选 2（test-accounts/deepseek-v4-max，accountRef=backup-2）= 只展开为 backup-2；
+      - tier-v4 候选 3（test-modelclass，model 缺省）= 主账号 + 空账号链，model 取 defaultModel（test-model-1）；
+      - tier-misc 候选（test-accounts/misc-a）= 主账号 + 账号链；
+      - tier-sat 候选（test-sat/sat-model）= 主账号（limit 2）+ backup-s1/s2（各 limit 1）——饱和与被动路径扩展测试用。
+    -->
+
+    <modelClasses>
+        <modelClass id="tier-v4" members="deepseek-v4,deepseek-v4-max">
+            <candidates>
+                <candidate provider="test-accounts" model="deepseek-v4"/>
+                <candidate provider="test-accounts" model="deepseek-v4-max" accountRef="backup-2"/>
+                <candidate provider="test-modelclass"/>
+            </candidates>
+        </modelClass>
+
+        <modelClass id="tier-misc" members="misc-model-a">
+            <candidates>
+                <candidate provider="test-accounts" model="misc-a"/>
+            </candidates>
+        </modelClass>
+
+        <modelClass id="tier-sat" members="sat-model">
+            <candidates>
+                <candidate provider="test-sat" model="sat-model"/>
+            </candidates>
+        </modelClass>
+    </modelClasses>
+
+</modelClass>

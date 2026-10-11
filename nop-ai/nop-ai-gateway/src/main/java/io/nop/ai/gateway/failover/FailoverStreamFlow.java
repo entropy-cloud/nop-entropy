@@ -5,8 +5,8 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
-import io.nop.ai.core.routing.ModelClassCandidate;
-import io.nop.ai.core.routing.ModelClassRouter;
+import io.nop.ai.core.model.ModelClassCandidate;
+import io.nop.ai.gateway.routing.ModelClassRouter;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 

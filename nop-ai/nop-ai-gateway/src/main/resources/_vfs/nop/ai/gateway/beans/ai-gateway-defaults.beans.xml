@@ -155,8 +155,8 @@
          ERR_AI_AGENT_INVALID_ARG (no silent fallback). ruleName/ruleVersion
          are deployment-level config (rule files live under /nop/rule). -->
     <bean id="nopAiRuleBasedSelectionStrategy"
-          class="io.nop.ai.core.routing.RuleBasedSelectionStrategy"
-          ioc:type="io.nop.ai.core.routing.ISelectionStrategy">
+          class="io.nop.ai.gateway.routing.RuleBasedSelectionStrategy"
+          ioc:type="io.nop.ai.gateway.routing.ISelectionStrategy">
         <property name="ruleManager">
             <ref bean="nopRuleManager" ioc:optional="true"/>
         </property>
@@ -166,7 +166,7 @@
         <property name="ruleName" value="@cfg:nop.ai.gateway.rule-selection.rule-name|"/>
         <!-- ruleVersion omitted: null = latest version of the rule -->
         <ioc:condition>
-            <on-class>io.nop.ai.core.routing.RuleBasedSelectionStrategy</on-class>
+            <on-class>io.nop.ai.gateway.routing.RuleBasedSelectionStrategy</on-class>
         </ioc:condition>
     </bean>
 
@@ -205,9 +205,9 @@
     </bean>
 
     <bean id="nopFailoverConcurrencyRegistry"
-          class="io.nop.ai.core.routing.ConcurrencyRegistry">
+          class="io.nop.ai.gateway.routing.ConcurrencyRegistry">
         <ioc:condition>
-            <on-class>io.nop.ai.core.routing.ConcurrencyRegistry</on-class>
+            <on-class>io.nop.ai.gateway.routing.ConcurrencyRegistry</on-class>
         </ioc:condition>
     </bean>
 

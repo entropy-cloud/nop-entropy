@@ -1,4 +1,6 @@
-package io.nop.ai.core.routing;
+package io.nop.ai.gateway.routing;
+
+import io.nop.ai.core.model.ModelClassCandidate;
 
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
@@ -6,7 +8,10 @@ import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.config.AppConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -27,6 +32,24 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * {@code resolveFailoverChain} 扩展（primary = 请求目标 provider）。
  */
 public class TestModelClassRouter extends JunitBaseTestCase {
+
+    // plan 2424/WI5：fixture 走独立路径（routing-test/），避免与 gateway failover 测试家族的
+    // gw-* 同名 _default 资源终端链冲突（gw-sat 与 test-failover 均要求链表尾）。
+    // @NopTestProperty 是 fork 级持久配置——会泄漏给同 fork 的 failover 测试家族
+    // （gw-* 模型类在其眼中消失），故用 @BeforeAll/@AfterAll 作用域赋值 + 恢复。
+    @BeforeAll
+    static void useRoutingTestFixtures() {
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.failover-config-path",
+                "/nop/ai/llm/routing-test/_default.llm-failover.xml");
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.model-class-config-path",
+                "/nop/ai/llm/routing-test/_default.model-class.xml");
+    }
+
+    @AfterAll
+    static void restoreDefaultFixtures() {
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.failover-config-path", null);
+        AppConfig.getConfigProvider().assignConfigValue("nop.ai.llm.model-class-config-path", null);
+    }
 
     private final ThresholdBreaker breaker = new ThresholdBreaker(3, 60_000L);
     private final ConcurrencyRegistry registry = new ConcurrencyRegistry();

@@ -36,7 +36,7 @@ audit-rounds: 0
 - WI1 废弃 chat 栈迁移收口（AiCommand 链迁移 + 25 废弃类删除）: `done`
 - WI2 工具 SPI 归一裁定与落地: `done`
 - WI4 RAG SPI 归位 nop-ai-rag: `done`
-- WI5 模型选路 routing 归位 gateway: `todo`
+- WI5 模型选路 routing 归位 gateway: `done`
 - WI6 编码代理关注点归位裁定（core file/response）: `todo`
 - WI7 mock 设施收敛下沉: `todo`
 - WI8 dialect 家族结构消重: `todo`

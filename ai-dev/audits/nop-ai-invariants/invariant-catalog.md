@@ -99,7 +99,7 @@
 
 ### 3.1 Default* 类表（35 条）
 
-> 门禁①对应：known-gaps family `gate-1-default-secure`（机制见 §3.5）；I1 首跑 33/33 无 `@SecureDefault` 声明已全部登记（I4 补注解）。**plan 2301（WI25，2026-10-03）按 Loop Rule 增补 23 号行 `tool/DefaultBackgroundTaskRegistry`（`@SecureDefault` 注解在位，声明直判通过、无 gaps 登记）；同批修复存量漂移——24 号行 `routing/DefaultSelectionStrategy`（plan 2026-08-15-0849 落地时漏同步本表，门禁①完备性测试不覆盖 core 模块故未变红；本次补录 + 补 `@SecureDefault`）。**
+> 门禁①对应：known-gaps family `gate-1-default-secure`（机制见 §3.5）；I1 首跑 33/33 无 `@SecureDefault` 声明已全部登记（I4 补注解）。**plan 2301（WI25，2026-10-03）按 Loop Rule 增补 23 号行 `tool/DefaultBackgroundTaskRegistry`（`@SecureDefault` 注解在位，声明直判通过、无 gaps 登记）；同批修复存量漂移——24 号行 `routing/DefaultSelectionStrategy`（plan 2026-08-15-0849 落地时漏同步本表，门禁①完备性测试不覆盖 core 模块故未变红；本次补录 + 补 `@SecureDefault`）。**plan 2424/WI5（2026-10-11）：`routing/DefaultSelectionStrategy` 随选路引擎迁 gateway（`gateway/routing/DefaultSelectionStrategy`），agent 门禁 TABLE 删该行（33→32），等价覆盖移至 gateway 侧 `TestRoutingSecureDefaultGate`（agent 加 gateway 依赖不可行——reactor 禁环）。**
 
 - **判定标准**：文件名以 `Default` 开头且位于 `src/main`（非测试、非生成）的 Java 类。文件在仓库中的位置由下方复现命令机械决定；是否参与 I1 门禁①以本表为准（表完备性 = 命令输出 == 表行数）。
 - **复现命令**：
@@ -139,7 +139,7 @@
 | 26 | nop-ai-core | `persist/DefaultAiChatExchangePersister.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.5-002 修复载体 |
 | 27 | nop-ai-core | `persist/DefaultAiChatResponseCache.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；MA6.5-AR-7 修复载体 |
 | 28 | nop-ai-core | `prompt/DefaultSystemPromptLoader.java` | 构造注入候选（`AiCommand` 引用） |
-| 29 | nop-ai-core | `routing/DefaultSelectionStrategy.java` | 构造注入候选（`ModelClassRouter` 默认策略；plan 2026-08-15-0849 产物，plan 2301 WI25 补录表） |
+| 29 | nop-ai-gateway | `gateway/routing/DefaultSelectionStrategy.java` | 构造注入候选（`ModelClassRouter` 默认策略；plan 2026-08-15-0849 产物，plan 2301 WI25 补录表） |
 | 30 | nop-ai-core | `service/DefaultAiChatService.java` | **IoC bean 注册**（`ai-defaults.beans.xml`，废弃 API 保留向后兼容）；MR1/MR2 修复载体 |
 | 31 | nop-ai-core | `service/DefaultAiChatSession.java` | 构造注入候选（`DefaultAiChatService` 内部） |
 | 32 | nop-ai-core | `service/DefaultChatLogger.java` | **IoC bean 注册**（`ai-defaults.beans.xml`）；P1-MA6.1-003 修复载体 |

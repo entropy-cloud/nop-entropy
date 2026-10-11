@@ -1,4 +1,4 @@
-package io.nop.ai.core.routing;
+package io.nop.ai.core.model;
 
 import java.util.Objects;
 

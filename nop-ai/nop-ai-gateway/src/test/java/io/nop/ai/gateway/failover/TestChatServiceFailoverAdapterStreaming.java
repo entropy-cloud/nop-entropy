@@ -9,9 +9,9 @@ import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.LlmErrorClassifier;
 import io.nop.ai.core.reliability.ThresholdBreaker;
-import io.nop.ai.core.routing.ConcurrencyRegistry;
-import io.nop.ai.core.routing.ISelectionStrategy;
-import io.nop.ai.core.routing.ModelClassCandidate;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.ISelectionStrategy;
+import io.nop.ai.core.model.ModelClassCandidate;
 import io.nop.ai.core.service.ChatServiceImpl;
 import io.nop.ai.core.service.DefaultChatLogger;
 import io.nop.ai.core.service.LlmConfigHelper;
@@ -64,6 +64,7 @@ class TestChatServiceFailoverAdapterStreaming {
 
     @AfterAll
     static void destroy() {
+        System.clearProperty("nop.ai.service.rate-limit-acquire-timeout");
         CoreInitialization.destroy();
     }
 

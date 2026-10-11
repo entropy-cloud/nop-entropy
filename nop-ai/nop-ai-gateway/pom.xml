@@ -24,6 +24,18 @@
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-core</artifactId>
         </dependency>
+        <!-- W5b：模型选路规则策略（RuleBasedSelectionStrategy 消费 IRuleManager）。
+             原经 nop-ai-core 传递，WI5 引擎迁入后改为直接依赖（plan 2424）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-rule-core</artifactId>
+        </dependency>
+        <!-- test：routing 引擎测试随 WI5 迁入，需 autotest 基建（JunitBaseTestCase） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- IChannelConnector context carries IAgentEngine + IAgentEventPublisher
              (transport-layer adapters call into the agent engine). No reverse
              dependency edge exists: nop-ai-agent does not depend on nop-ai-gateway. -->

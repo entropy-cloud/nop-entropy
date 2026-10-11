@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.nop.ai.core.reliability.ThresholdBreaker;
-import io.nop.ai.core.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.ConcurrencyRegistry;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.ai.gateway.AiDialectBackendMessageConverter;
 import io.nop.api.core.beans.ApiRequest;
