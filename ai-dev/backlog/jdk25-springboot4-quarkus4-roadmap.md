@@ -88,9 +88,9 @@ Human-owned choices; execution plans must not re-litigate them:
 ### E — GraalVM, containers & dependency governance
 
 - WI8 GraalVM 25 sync (version bump, js-community pin, polyglot/truffle pins, native config): `done`
-- WI9a Container bases → UBI 10 / JDK 25 (JVM Dockerfiles): `todo`
-- WI9b Container bases → UBI 10 (native + micro-image Dockerfiles): `todo`
-- WI9c Codegen Docker templates → UBI 10 (4 `.xgen`, nop-codegen is plan-first): `todo`
+- WI9a Container bases → UBI 10 / JDK 25 (JVM Dockerfiles): `done`
+- WI9b Container bases → UBI 10 (native + micro-image Dockerfiles): `done`
+- WI9c Codegen Docker templates → UBI 10 (4 `.xgen`, nop-codegen is plan-first): `done`
 - WI10 BOM-first version governance (drop BOM-managed pins; codify divergence policy): `todo`
 - WI11 angus-mail migration (drop `com.sun.mail`, switch `javax.mail`→`jakarta.mail`): `todo`
 
