@@ -195,7 +195,7 @@ nop-ai-core 的旧 chat API 已整体删除，公共 API 变更如下（Protecte
 | `IAiChatService`/`IAiChatSession`/`IAiChatProgressListener`/`AiChatOptions`（`core/api/chat/`） | `IChatService`/`ChatRequest`/`ChatResponse`/`ChatOptions`（nop-ai-api，bean `nopChatService`） |
 | `core/api/messages/` 全部（`AiChatExchange`/`Prompt`/`AiMessage` 族 14 文件） | `ChatRequest`/`ChatResponse` + `io.nop.ai.core.prompt.ChatExchange`（脚本门面：outputs/validate/resultValue） |
 | `core/api/tool/`（`IAiChatToolSet`/`IAiChatFunctionTool`/`ToolSpecification` 族） | 无——工具调用不在 AiCommand 命令路径（plan 2419 退役）；agent 引擎 toolkit 运行时是唯一工具执行面 |
-| `DefaultAiChatService`/`MockAiChatService`/`DefaultAiChatSession` 族 | `ChatServiceImpl`（bean `nopChatService`）/`MockChatService`（`core/mock`，新栈） |
+| `DefaultAiChatService`/`MockAiChatService`/`DefaultAiChatSession` 族 | `ChatServiceImpl`（bean `nopChatService`）/`MockChatService`（`core/mock` 新栈——plan 2434/WI7 已下沉 core **test scope**，无 main 装配；FileSystemResponseProvider record/replay 死能力随删） |
 | persist 族 `IAiChatExchangePersister`/`DefaultAiChatExchangePersister` | `IChatExchangePersister`/`DefaultChatExchangePersister`（JSON 序列化 + AES；**旧 `/nop/ai/cache` 磁盘条目一次性失效**） |
 | 错误码 8 个（result-invalid-end-line/result-invalid-number/get-session-deprecated/unknown-role/command.not-found/command.empty-tools-node/command.tools-node-parse-failed/command.file-path-empty） | —（随废弃栈退役） |
 
