@@ -857,17 +857,17 @@ public class CheckpointSerDe {
                 result.put(entry.getKey(),
                         ((io.nop.stream.core.operators.HeapInternalTimerService.TimerSnapshot<?, ?>) value)
                                 .toSerializableForm());
-            } else if (value instanceof io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) {
+            } else if (value instanceof io.nop.stream.core.operators.windowing.WindowOperator.PaneTrackingSnapshot) {
                 result.put(entry.getKey(),
-                        ((io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot) value)
+                        ((io.nop.stream.core.operators.windowing.WindowOperator.PaneTrackingSnapshot) value)
                                 .toSerializableForm());
-            } else if (value instanceof io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot) {
+            } else if (value instanceof io.nop.stream.core.operators.windowing.WindowOperator.ActiveWindowSnapshot) {
                 // WI8 R-registry (plan 2332): the active-window registry rides the
                 // operator-state transport as a self-describing form; without this
                 // branch the JSON persist path cannot round-trip the registry and a
                 // restored operator would re-announce OPEN for in-flight windows.
                 result.put(entry.getKey(),
-                        ((io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot) value)
+                        ((io.nop.stream.core.operators.windowing.WindowOperator.ActiveWindowSnapshot) value)
                                 .toSerializableForm());
             } else if (value instanceof io.nop.stream.core.common.buffer.PerKeyOrderedBuffer) {
                 // R5 KR-7: the join/over-window working views ride the
@@ -923,10 +923,10 @@ public class CheckpointSerDe {
             return io.nop.stream.core.operators.HeapInternalTimerService.TimerSnapshot.fromSerializableForm(form);
         }
         if ("PaneTrackingSnapshot".equals(type)) {
-            return io.nop.stream.runtime.operators.windowing.WindowOperator.PaneTrackingSnapshot.fromSerializableForm(form);
+            return io.nop.stream.core.operators.windowing.WindowOperator.PaneTrackingSnapshot.fromSerializableForm(form);
         }
         if ("ActiveWindowSnapshot".equals(type)) {
-            return io.nop.stream.runtime.operators.windowing.WindowOperator.ActiveWindowSnapshot
+            return io.nop.stream.core.operators.windowing.WindowOperator.ActiveWindowSnapshot
                     .fromSerializableForm(form);
         }
         if ("PerKeyOrderedBuffer".equals(type)) {

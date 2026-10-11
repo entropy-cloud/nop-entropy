@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.commons.tuple.Tuple2;
 import io.nop.core.context.IServiceContext;

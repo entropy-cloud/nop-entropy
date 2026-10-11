@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeinfo.UnknownTypeInformation;
@@ -33,7 +33,7 @@ import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -410,7 +410,7 @@ public class TestWindowMaxDelay {
         } catch (ReflectiveOperationException e) {
             throw new AssertionError("cannot unwrap factory operator", e);
         }
-        assertInstanceOf(io.nop.stream.runtime.operators.windowing.WindowOperator.class, wrapped,
+        assertInstanceOf(io.nop.stream.core.operators.windowing.WindowOperator.class, wrapped,
                 "the java-api wiring must build a WindowOperator");
     }
 

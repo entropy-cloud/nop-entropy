@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -114,12 +115,11 @@ public class TestParameterizedAggregateModel {
         StreamModel model = parseStreamXml("/nop/stream/test/test-param-agg.stream.xml");
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model);
 
-        // The resolution succeeds; the pipeline then hits the known runtime
-        // window-operator-factory gap (no nop-stream-runtime on this classpath) —
-        // proving the builder kept going past resolution with the resolved function.
-        StreamException ex = assertThrows(StreamException.class, builder::build);
-        assertTrue(ex.getMessage().contains("nop-stream-runtime"),
-                () -> "Expected runtime-factory gap after resolution, got: " + ex.getMessage());
+        // The resolution succeeds; the pipeline builds end-to-end now that the
+        // window operator factory ships in core (WI7 plan 2417) — proving the
+        // builder kept going past resolution with the resolved function.
+        assertNotNull(builder.build(),
+                "windowed aggregate build should succeed with the factory in core");
         assertEquals(1, CountingFakeResolver.CALLS.get(),
                 "the BeanContainer-registered resolver must be invoked exactly once at build time");
     }

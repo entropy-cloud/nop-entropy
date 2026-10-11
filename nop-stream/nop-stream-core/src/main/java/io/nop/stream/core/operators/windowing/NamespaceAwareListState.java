@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.state.ListState;
 import io.nop.stream.core.common.state.backend.IKeyedStateBackend;

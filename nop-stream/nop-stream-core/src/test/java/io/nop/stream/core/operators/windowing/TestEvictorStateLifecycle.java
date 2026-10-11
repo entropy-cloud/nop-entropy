@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.functions.AggregateFunction;
 import io.nop.stream.core.common.functions.KeySelector;

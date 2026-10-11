@@ -7,6 +7,9 @@
  */
 package io.nop.stream.runtime.operators.windowing;
 
+import io.nop.stream.core.common.typeutils.TypeSerializer;
+import io.nop.stream.core.operators.windowing.WindowOperator;
+import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.SinkFunction;
@@ -117,7 +120,7 @@ class TestIdlePeriodProcessingTimeWindowE2E {
 
     /** Emits the single accumulated element's value per fired window. */
     private static class IntEventValueWindowFunction
-            implements io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction<
+            implements io.nop.stream.core.operators.windowing.functions.InternalWindowFunction<
             Object, Integer, String, TimeWindow> {
         private static final long serialVersionUID = 1L;
 
@@ -140,9 +143,9 @@ class TestIdlePeriodProcessingTimeWindowE2E {
         WindowOperator<String, IntEvent, Object, Integer, TimeWindow> windowOp =
                 new WindowOperator<String, IntEvent, Object, Integer, TimeWindow>(
                         TumblingProcessingTimeWindows.of(WINDOW_SIZE),
-                        new TestProcessingTimeWindowProductionE2E.SimpleTimeWindowSerializer(),
+                        new LocalSerializers.SimpleTimeWindowSerializer(),
                         (KeySelector<IntEvent, String>) e -> e.key,
-                        new TestProcessingTimeWindowProductionE2E.SimpleStringSerializer(),
+                        new LocalSerializers.SimpleStringSerializer(),
                         String.class,
                         new IntEventValueWindowFunction(),
                         ProcessingTimeTrigger.create(),
@@ -261,9 +264,9 @@ class TestIdlePeriodProcessingTimeWindowE2E {
         WindowOperator<String, IntEvent, Object, Integer, TimeWindow> windowOp =
                 new WindowOperator<String, IntEvent, Object, Integer, TimeWindow>(
                         TumblingProcessingTimeWindows.of(WINDOW_SIZE),
-                        new TestProcessingTimeWindowProductionE2E.SimpleTimeWindowSerializer(),
+                        new LocalSerializers.SimpleTimeWindowSerializer(),
                         (KeySelector<IntEvent, String>) e -> e.key,
-                        new TestProcessingTimeWindowProductionE2E.SimpleStringSerializer(),
+                        new LocalSerializers.SimpleStringSerializer(),
                         String.class,
                         new IntEventValueWindowFunction(),
                         ProcessingTimeTrigger.create(),
@@ -304,15 +307,15 @@ class TestIdlePeriodProcessingTimeWindowE2E {
         long deadline = System.currentTimeMillis() + 3000L;
         while (System.currentTimeMillis() < deadline
                 && (output.isEmpty()
-                || windowOp.internalTimerService.numProcessingTimeTimers() > 0)) {
+                || windowOp.numPendingProcessingTimeTimers() > 0)) {
             Thread.sleep(50);
         }
         assertFalse(output.isEmpty(),
                 "PT window must fire mid-idle (idle drain wiring): " + error.get());
-        assertEquals(0, windowOp.internalTimerService.numProcessingTimeTimers(),
+        assertEquals(0, windowOp.numPendingProcessingTimeTimers(),
                 "PT cleanup timer must fire mid-idle — the idle drain must reach the "
                         + "mailbox, not just the EOS drain. Remaining timers: "
-                        + windowOp.internalTimerService.numProcessingTimeTimers());
+                        + windowOp.numPendingProcessingTimeTimers());
         assertTrue(taskThread.isAlive(),
                 "Task must still be running (no EOS yet) — the mid-idle assertions "
                         + "must not rely on the termination drain");
@@ -323,4 +326,28 @@ class TestIdlePeriodProcessingTimeWindowE2E {
         assertNull(error.get(), () -> "Task must not fail: " + error.get());
         assertFalse(taskThread.isAlive(), "Task must terminate after EOS");
     }
+
+    /** WI7 plan 2417: local copies — the production-test serializers are package-private in core. */
+    private static class LocalSerializers {
+        static class SimpleTimeWindowSerializer implements io.nop.stream.core.common.typeutils.TypeSerializer<TimeWindow> {
+            private static final long serialVersionUID = 1L;
+            @Override public boolean isImmutableType() { return true; }
+            @Override public TypeSerializer<TimeWindow> duplicate() { return this; }
+            @Override public TimeWindow createInstance() { return new TimeWindow(0, 0); }
+            @Override public TimeWindow copy(TimeWindow from) { return new TimeWindow(from.getStart(), from.getEnd()); }
+            @Override public TimeWindow copy(TimeWindow from, TimeWindow reuse) { return new TimeWindow(from.getStart(), from.getEnd()); }
+            @Override public int getLength() { return -1; }
+        }
+
+        static class SimpleStringSerializer implements io.nop.stream.core.common.typeutils.TypeSerializer<String> {
+            private static final long serialVersionUID = 1L;
+            @Override public boolean isImmutableType() { return true; }
+            @Override public TypeSerializer<String> duplicate() { return this; }
+            @Override public String createInstance() { return ""; }
+            @Override public String copy(String from) { return from; }
+            @Override public String copy(String from, String reuse) { return from; }
+            @Override public int getLength() { return -1; }
+        }
+    }
+
 }

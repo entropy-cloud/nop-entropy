@@ -33,7 +33,7 @@
 - WI4 connector-jdbc provided+optional 依赖硬化: `done`（plan 2413，2026-10-11；裁定方案 b 窄接口隔离——a 方案 compile 化实测边际 65 构件约 33.6MB 触发 roadmap 预设的不可接受阈值；防回归门禁为 surefire 独立 execution insert-no-debezium 持久自动化）
 - WI5 runtime 测试侧 connector 反向 fan-in 收敛: `done`（plan 2415，2026-10-11；裁定方案 b 显式登记例外、最小集=现有 6 个 test 依赖——debezium 被 P-REQ-28 discovery 断言硬性要求、rocksdb 有 9 个真实消费文件、门控分支同样削弱验收面；pom 注释重写为逐依赖消费者普查表；runtime 测试基线重钉：surefire 1377 run/0 failed/10 skipped——Docker 不可用环境、Docker 可用时 skipped=8——加测试树 361 java 文件、320 个 Test* 类，WI6/WI7/WI10 以此值为不得下降基线）
 - WI6 runtime 包级环打破与 wire DTO 叶子包提取: `done`（plan 2416，2026-10-11；三环全消——7 个 wire 类型含 JobStatus/RemotePipelineSpec 迁入 protocol 零出边叶子，四环包编译级依赖图成 DAG；Kafka/Pulsar codec 抽 AbstractStringWireCodec 消除登记在案的克隆；metrics 收口 10/12——windowing 2 处顺延 WI7 防 core→runtime 反向边，StreamOpsHttpServer 的 addMember/removeMember 属成员管理非 registry 访问器不计；runtime 测试 1380/0/10——基线 1377 全数保持加新增 wire 兼容钉 3）
-- WI7 窗口算子实现包归位 core: `todo`
+- WI7 窗口算子实现包归位 core: `done`（plan 2417，2026-10-11；main 17 + test 46 迁入 core/operators/windowing，TestIdlePeriodProcessingTimeWindowE2E 留守 runtime 并以 test-visible 访问器适配白盒探针；WindowedStreamImpl 反射删除改直接构造、4 处 call-site 消息随事实改写、flow 3 用例正向化；E4 双向销号 invariant-loop P2-01-03/P2-23 完成；invariant inventory exit 0、24 条先存漂移交 WI12 重生成；基线 core 1952/0/1、runtime 1195/0/10、flow 315/0/0；不变式钉 core src 的 io.nop.stream.runtime 命中数=0 达成）
 - WI8 IWindowOperatorFactory 收敛为 WindowSpec 单一契约: `todo`
 - WI9 双 checkpoint 驱动面重叠测绘与收敛设计裁定: `todo`
 - WI10 共享 checkpoint 内核抽取: `todo`

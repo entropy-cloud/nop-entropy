@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,7 +49,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * builder. Transforms that require the {@code nop-stream-runtime}
  * {@code IWindowOperatorFactory} (window→aggregate, window→reduce) are asserted to
  * dispatch correctly by checking that the expected {@link StreamException}
- * ("nop-stream-runtime on classpath") is thrown — proving the builder reached the right
+ * ("window operator factory ships in core (WI7)") is thrown — proving the builder reached the right
  * branch, with the runtime gap already documented in the plan's Deferred section.
  */
 public class TestAdvancedTransforms {
@@ -121,12 +122,11 @@ public class TestAdvancedTransforms {
         resolver.register("aggFn", new SumAggregateFunction());
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
-        // The builder reaches the aggregate branch (windowed.aggregate(fn)); the runtime
-        // throws StreamException because no IWindowOperatorFactory is on the test classpath.
-        // This proves dispatch + wiring up to the runtime boundary.
-        StreamException ex = assertThrows(StreamException.class, builder::build);
-        assertTrue(ex.getMessage().contains("nop-stream-runtime"),
-                () -> "Expected runtime-factory gap exception, got: " + ex.getMessage());
+        // WI7 (plan 2417): the window operator factory now ships in core, so the
+        // aggregate branch (windowed.aggregate(fn)) dispatches and builds successfully.
+        // This proves dispatch + wiring through the windowed aggregate path end-to-end.
+        assertNotNull(builder.build(),
+                "windowed aggregate dispatch should build now that the factory ships in core");
     }
 
     @Test
@@ -262,9 +262,9 @@ public class TestAdvancedTransforms {
         resolver.register("reduceFn", new SumReduceFunction());
 
         StreamModelDslBuilder builder = StreamModelDslBuilder.of(model, resolver);
-        StreamException ex = assertThrows(StreamException.class, builder::build);
-        assertTrue(ex.getMessage().contains("nop-stream-runtime"),
-                () -> "Expected runtime-factory gap exception, got: " + ex.getMessage());
+        // WI7 (plan 2417): factory ships in core — windowed reduce dispatch builds.
+        assertNotNull(builder.build(),
+                "windowed reduce dispatch should build now that the factory ships in core");
     }
 
     @Test

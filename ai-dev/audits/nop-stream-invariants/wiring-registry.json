@@ -22,7 +22,7 @@
       ],
       "consumers": [
         "io.nop.stream.cep.operator.CepOperator",
-        "io.nop.stream.runtime.operators.windowing.WindowOperator"
+        "io.nop.stream.core.operators.windowing.WindowOperator"
       ],
       "disposition": "production-wired",
       "reason": "wired unconditionally at task construction by setupProcessingTimeServices(); P0-01/P1-02 fix baseline (plan 2026-08-13-0132-1)"
@@ -44,7 +44,7 @@
       ],
       "consumers": [
         "io.nop.stream.core.operators.ProcessOperator",
-        "io.nop.stream.runtime.operators.windowing.WindowOperator"
+        "io.nop.stream.core.operators.windowing.WindowOperator"
       ],
       "disposition": "production-wired",
       "reason": "wired unconditionally at task construction; operators register their HeapInternalTimerService in open() via registerTimerService (P1-02 fix baseline)"
@@ -174,22 +174,22 @@
       "behaviorWithoutService": "fail-fast: PT-mode processElement throws StreamException ERR_STREAM_STATE_ERROR (explicit, no silent NPE); open()/registerCacheStatisticsTimer() WARN + skip registration (P0-01 guard)"
     },
     {
-      "class": "io.nop.stream.runtime.operators.windowing.WindowOperator",
+      "class": "io.nop.stream.core.operators.windowing.WindowOperator",
       "getterOrRegistration": "getProcessingTimeService()",
       "callLines": [
         479
       ],
-      "file": "nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java",
+      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java",
       "service": "io.nop.stream.core.operators.ProcessingTimeService",
       "behaviorWithoutService": "WARN in open() for processing-time windows (timers would never fire without a driver; P1-02 guard)"
     },
     {
-      "class": "io.nop.stream.runtime.operators.windowing.WindowOperator",
+      "class": "io.nop.stream.core.operators.windowing.WindowOperator",
       "getterOrRegistration": "registerTimerService(",
       "callLines": [
         471
       ],
-      "file": "nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java",
+      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java",
       "service": "io.nop.stream.core.operators.TimerServiceManager",
       "behaviorWithoutService": "normal semantics: null-guarded registration (timer service still works standalone via advanceWatermark/onProcessingTime; P1-02 four-link production connectivity)"
     },

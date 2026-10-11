@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.StateSnapshotContext;
@@ -11,7 +11,7 @@ import io.nop.stream.core.util.OutputTag;
 import io.nop.stream.core.windowing.assigners.GlobalWindows;
 import io.nop.stream.core.windowing.triggers.CountTrigger;
 import io.nop.stream.core.windowing.windows.GlobalWindow;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

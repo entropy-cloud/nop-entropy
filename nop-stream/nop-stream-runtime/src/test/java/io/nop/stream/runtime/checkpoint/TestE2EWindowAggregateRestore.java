@@ -13,7 +13,7 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.model.StreamComponents;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.runtime.execution.CheckpointExecutorFactoryImpl;
-import io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl;
+import io.nop.stream.core.operators.windowing.WindowOperatorFactoryImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;

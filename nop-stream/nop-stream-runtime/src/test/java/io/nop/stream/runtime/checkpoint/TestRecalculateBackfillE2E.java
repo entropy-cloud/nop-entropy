@@ -27,7 +27,7 @@ import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.assigners.TumblingEventTimeWindows;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.runtime.execution.CheckpointExecutorFactoryImpl;
-import io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl;
+import io.nop.stream.core.operators.windowing.WindowOperatorFactoryImpl;
 import io.nop.stream.runtime.source.TimeRangeReplayableSource;
 
 import com.zaxxer.hikari.HikariDataSource;

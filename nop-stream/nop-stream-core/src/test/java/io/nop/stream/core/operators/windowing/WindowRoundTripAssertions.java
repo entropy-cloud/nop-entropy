@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -19,8 +19,8 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
-import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
-import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalIterableProcessWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalIterableWindowFunction;
 
 /**
  * 可测试的判定辅助类（门禁 ①）：把「call-site 实参 → WindowOperator 构造器字段」的 round-trip

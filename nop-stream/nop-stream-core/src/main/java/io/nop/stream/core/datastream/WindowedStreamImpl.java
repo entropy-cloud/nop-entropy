@@ -291,18 +291,11 @@ public class WindowedStreamImpl<T, K, W extends Window>
         if (defaultFactory == null) {
             synchronized (WindowedStreamImpl.class) {
                 if (defaultFactory == null) {
-                    try {
-                        Class<?> factoryClass = Class.forName(
-                                "io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl");
-                        defaultFactory = (IWindowOperatorFactory)
-                                factoryClass.getDeclaredConstructor().newInstance();
-                    } catch (Exception e) {
-                        // nop-stream-runtime not on classpath. Leave defaultFactory=null so that the
-                        // call-sites (apply/aggregate/reduce/process) fail fast with StreamException
-                        // ("requires nop-stream-runtime on classpath") rather than silently swallowing.
-                        LOG.warn("nop-stream-runtime not on classpath; IWindowOperatorFactory unavailable"
-                                + " (window operations will fail fast at call-site)", e);
-                    }
+                    // WI7 plan 2417: the window operator family now lives in this module
+                    // (io.nop.stream.core.operators.windowing) — direct construction, no
+                    // reflective fallback. defaultFactory can only stay null when a caller
+                    // supplies StreamComponents without a factory (call-sites fail fast).
+                    defaultFactory = new io.nop.stream.core.operators.windowing.WindowOperatorFactoryImpl();
                 }
             }
         }
@@ -321,7 +314,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
             throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
-                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+                    "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, R> operator = factory.createApplyOperator(
                 assigner, trigger, evictor, allowedLateness, function,
@@ -339,7 +332,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
             throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
-                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+                    "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         // F-05: pass the inferred IN element class — the aggregate+evictor branch
         // buffers raw IN elements in a ListState and needs the element type.
@@ -360,7 +353,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
             throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
-                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+                    "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, T> operator = factory.createReduceOperator(
                 assigner, trigger, evictor, allowedLateness, function,
@@ -378,7 +371,7 @@ public class WindowedStreamImpl<T, K, W extends Window>
         IWindowOperatorFactory factory = getFactory();
         if (factory == null) {
             throw new StreamException(ERR_STREAM_UNSUPPORTED).param(ARG_OPERATION,
-                    "WindowOperator requires nop-stream-runtime on classpath: no IWindowOperatorFactory available");
+                    "WindowOperator requires an IWindowOperatorFactory: none available (components factory is null)");
         }
         OneInputStreamOperator<T, R> operator = factory.createProcessOperator(
                 assigner, trigger, evictor, allowedLateness, function,

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.state.AggregatingState;
 import io.nop.stream.core.common.state.AggregatingStateDescriptor;

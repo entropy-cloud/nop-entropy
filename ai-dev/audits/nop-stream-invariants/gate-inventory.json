@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updated": "2026-10-03",
+  "updated": "2026-10-11",
   "classifier": "I0 §4.1 mechanical form: change-type methods = public/protected/package-private (non-private) methods declared by the class/interface itself; excluded: private, static, abstract-in-classes, constructors, synthetic/bridge, test-only accessors (get/set*ForTesting), 0-param read accessors named get*/is*/has* (getAnd*/getOr* are mutators and ARE included). Mirrored by ChangeTypeMethodClassifier in nop-stream-core/src/test and the mjs parser in check-nop-stream-invariants.mjs.",
   "pinRegistry": {
     "note": "I4 (plan 2026-08-12-1217-5) pin-registry sync: static pins (mjs-pins.json) and JUnit behavior pins aligned to the fixed baseline.",
@@ -45,6 +45,72 @@
   },
   "modules": {
     "nop-stream-core": {
+      "io.nop.stream.core.operators.windowing.WindowOperatorFactoryImpl": {
+        "methods": [
+          "createAggregateOperator",
+          "createApplyOperator",
+          "createProcessOperator",
+          "createReduceOperator"
+        ]
+      },
+      "io.nop.stream.core.operators.windowing.WindowOperatorBuilder": {
+        "methods": [
+          "accumulationMode",
+          "aggregate",
+          "allowedLateness",
+          "apply",
+          "emitWindowEvents",
+          "evictor",
+          "keyClass",
+          "keySelector",
+          "keySerializer",
+          "lateDataOutputTag",
+          "maxDelay",
+          "process",
+          "reduce",
+          "trigger",
+          "windowAssigner",
+          "windowSerializer"
+        ]
+      },
+      "io.nop.stream.core.operators.windowing.WindowOperator": {
+        "methods": [
+          "close",
+          "copyForSubtask",
+          "createAccumulatorForWindow",
+          "deleteCleanupTimer",
+          "deleteMaxDelayTimer",
+          "onEventTime",
+          "onProcessingTime",
+          "open",
+          "processElement",
+          "processWatermark",
+          "processWatermarkStatus",
+          "registerCleanupTimer",
+          "registerMaxDelayTimer",
+          "restoreState",
+          "sideOutput",
+          "snapshotState",
+          "numPendingProcessingTimeTimers"
+        ]
+      },
+      "io.nop.stream.core.operators.windowing.OverWindowOperator": {
+        "methods": [
+          "bufferedKeys",
+          "copyForSubtask",
+          "keyedBufferEntries",
+          "keyedStore",
+          "mergeRestoredBuffer",
+          "open",
+          "processElement",
+          "processWatermark",
+          "processWatermarkStatus",
+          "rebuildViewFromKeyedState",
+          "restoreState",
+          "snapshotState",
+          "sortedView"
+        ]
+      },
       "io.nop.stream.core.datastream.WindowedStreamImpl": {
         "methods": [
           "accumulationMode",
@@ -141,54 +207,6 @@
       }
     },
     "nop-stream-runtime": {
-      "io.nop.stream.runtime.operators.windowing.WindowOperatorFactoryImpl": {
-        "methods": [
-          "createAggregateOperator",
-          "createApplyOperator",
-          "createProcessOperator",
-          "createReduceOperator"
-        ]
-      },
-      "io.nop.stream.runtime.operators.windowing.WindowOperatorBuilder": {
-        "methods": [
-          "accumulationMode",
-          "aggregate",
-          "allowedLateness",
-          "apply",
-          "emitWindowEvents",
-          "evictor",
-          "keyClass",
-          "keySelector",
-          "keySerializer",
-          "lateDataOutputTag",
-          "maxDelay",
-          "process",
-          "reduce",
-          "trigger",
-          "windowAssigner",
-          "windowSerializer"
-        ]
-      },
-      "io.nop.stream.runtime.operators.windowing.WindowOperator": {
-        "methods": [
-          "close",
-          "copyForSubtask",
-          "createAccumulatorForWindow",
-          "deleteCleanupTimer",
-          "deleteMaxDelayTimer",
-          "onEventTime",
-          "onProcessingTime",
-          "open",
-          "processElement",
-          "processWatermark",
-          "processWatermarkStatus",
-          "registerCleanupTimer",
-          "registerMaxDelayTimer",
-          "restoreState",
-          "sideOutput",
-          "snapshotState"
-        ]
-      },
       "io.nop.stream.runtime.checkpoint.CheckpointCoordinator": {
         "methods": [
           "abortAllPendingCheckpoints",
@@ -293,23 +311,6 @@
         "methods": [
           "assertConsistent",
           "check"
-        ]
-      },
-      "io.nop.stream.runtime.operators.windowing.OverWindowOperator": {
-        "methods": [
-          "bufferedKeys",
-          "copyForSubtask",
-          "keyedBufferEntries",
-          "keyedStore",
-          "mergeRestoredBuffer",
-          "open",
-          "processElement",
-          "processWatermark",
-          "processWatermarkStatus",
-          "rebuildViewFromKeyedState",
-          "restoreState",
-          "snapshotState",
-          "sortedView"
         ]
       }
     },
