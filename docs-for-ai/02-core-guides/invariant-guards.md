@@ -69,7 +69,7 @@ silent-wrong-result 门禁初始 red list 非空（2026-08-15 快照 67 命中 /
 
 ### CI
 
-`.github/workflows/maven.yml` 的 `invariant-gate` job（`needs: build`）在 `build` 成功后运行聚合入口。4 条 Node 扫描器依赖 `pnpm` + Node 20（工具目录的 pnpm-lock.yaml）；limit 测试依赖 JDK 21。**非零即红**——不得用 `continue-on-error` 或 `|| true` 静默放行。门禁 5 由聚合入口以 `--baseline` 形式调用（模式 b）。
+`.github/workflows/maven.yml` 的 `invariant-gate` job（`needs: build`）在 `build` 成功后运行聚合入口。4 条 Node 扫描器依赖 `pnpm` + Node 22（工具目录的 pnpm-lock.yaml）；limit 测试依赖 JDK 25（CI 与本仓编译基线一致，plan 2428 WI3）。**非零即红**——不得用 `continue-on-error` 或 `|| true` 静默放行。门禁 5 由聚合入口以 `--baseline` 形式调用（模式 b）。
 
 > INV-LIMIT 的 `TestLimitNegativeValueInvariant` 采用**双重运行（defense-in-depth）**：① 默认 surefire（本地 `./mvnw test -pl nop-metadata -am` 即覆盖，底层 limit 缺陷已修复，该测试全绿）；② CI `invariant-gate` job 经聚合入口 `run-nop-metadata-invariants.sh` step 4 显式 fail-fast 复跑（第二层，任一重新引入 `limit<0?0:limit` / `Math.abs(limit)` 的改动在本地默认测试与 CI 两处均变红）。表完备性由 `TestLimitTargetSetCompleteness`（默认 surefire，常驻 PASS）守护——新增 limit-taking 入口方法不入方法表即该测试变红。
 
