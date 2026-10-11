@@ -122,11 +122,11 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>0.10.6</version>
+                        <version>1.1.14</version>
                         <configuration>
                             <imageName>${project.artifactId}</imageName>
                             <classesDirectory>${project.build.outputDirectory}</classesDirectory>
-                            <requiredVersion>22.3</requiredVersion>
+                            <requiredVersion>25</requiredVersion>
                         </configuration>
                         <executions>
                             <execution>

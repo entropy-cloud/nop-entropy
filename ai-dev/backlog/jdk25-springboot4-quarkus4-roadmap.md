@@ -87,7 +87,7 @@ Human-owned choices; execution plans must not re-litigate them:
 
 ### E — GraalVM, containers & dependency governance
 
-- WI8 GraalVM 25 sync (version bump, js-community pin, polyglot/truffle pins, native config): `todo`
+- WI8 GraalVM 25 sync (version bump, js-community pin, polyglot/truffle pins, native config): `done`
 - WI9a Container bases → UBI 10 / JDK 25 (JVM Dockerfiles): `todo`
 - WI9b Container bases → UBI 10 (native + micro-image Dockerfiles): `todo`
 - WI9c Codegen Docker templates → UBI 10 (4 `.xgen`, nop-codegen is plan-first): `todo`
