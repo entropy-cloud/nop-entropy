@@ -109,6 +109,19 @@
 - **JC 启动路径残留**（JobCoordinatorMain raw restore + counter 推进）未在本 WI 对齐，如实残留——归 WI11 评估。
 - **新增实测事实（修正测绘）**：本地 face pipelineId 实为 `pipeline-0`（与分布式同约定，修正 §三加载链旁注）；终态 COMPLETED_POINT_TYPE epoch 仅写 manifest 无数据行，restore 点=最新数据 checkpoint——恢复点定时漂移属引擎语义，差分断言按边界无关不变量钉。
 
+## 四.6 WI11 落地回写（2026-10-11，plan 2432）
+
+- **CheckpointStorages 工厂**：`runtime.checkpoint.storage.CheckpointStorages`（create(config) 分派 local/jdbc-failfast/s3 + defaultBaseDir + local(path) 显式路径入口）。GMCE.createStorage 改委托保留签名（3 个测试文件约 10 处直调零迁移）；savepoint 存储/launch/embed/rpc 五处显式路径构型收口经 `local(path)` 单 choke-point（savepoint 格式本就是 local file——直构属设计内，收敛意义在未来的存储类型演进单点切换）。src/main 内 `new LocalFileCheckpointStorage` 仅剩工厂内部。
+- **启动路径校验门**：共享助手 `checkpoint.core.RestoreGates.applyManifestGate`（指纹 fail-closed〔无源=不可证明〕+ counter 越 manifest epoch 封堵 shadow window）；JC failover 门与 JobCoordinatorMain 启动路径两调用点同语义；**启动路径语义裁定：门失败 = launch 失败（抛出），非静默 fresh**。TestRestoreGate 四场景钉。
+- **EXPORT 接入评估结论 = defer**（4 契约缺口，接入须先做 materialize 契约参数化设计）：①materialize 硬编码 SAVEPOINT vs 矩阵钉 EXPORTED_SAVEPOINT；②预算源三方冲突（config-resolve/JC 字段/矩阵显式 set）；③分布式面无 GraphExecutionPlan，KeyGroup 归属戳机制不存在（WI9 4a 原裁定 EXPORT 无归属戳）；④storage 实例不可达（JC 仅持路径字符串）。语义注记：materialize 末次 storeCheckPoint 为幂等覆写；EXPORT 丢弃路径返回不损失持久性（coordinator 完成路径先行落盘）。successor → r5-successors。
+- **终态预算默认值归一 = defer**：无差分语料可仲裁（钉子测试属 WI10 零变更契约；其余相关测试显式传预算或不走 resolve）。E3 方向（分布式 60s）为 successor 指引 → r5-successors。
+- **已知差异台账（双跑归零状态）**：恢复点=最新数据 checkpoint（定时漂移，结构性保留——差分断言按边界无关不变量钉）；指纹非对称（分布式携带/本地 JobGraph 入口 null，结构性保留——GMCE pinned asymmetry）；终态 COMPLETED_POINT_TYPE 仅本地面写（生命周期差异，结构性保留）；以上三项均已在差分 harness 白名单中显式排除并有依据记录——无未解释差异。
+
+## 四.7 execution 包拆分评估裁定（plan 2432，只裁不拆）
+
+- **迁出后剩余职责**：dispatcher 双实现（Embedded/Rpc）/supervision（SupervisionLoop）/rescale（RescaleStateAssembler）/TM 侧 wiring（TaskCheckpointWiring）/plan 生成 + storage 工厂委托（GMCE 内）/DeploymentPlanProvider——checkpoint 编排主体已归 checkpoint/coordinator/core。
+- **裁定：暂不拆分。** 理由：①checkpoint 相关大头已随 WI10/WI11 迁出（materializer/gate/factory），剩余五类职责间耦合点集中在 GMCE 一个类而非包级网状；②execution 的扇出 7 包主要来自 GMCE 与 JobCoordinator 两个巨型类，包拆分不解决类级膨胀（RD-05 JobCoordinator 拆分才是对症项，归 r5-successors 既有登记）；③拆分要求先定义 execution 与 checkpoint 两包的稳定接口面，当前 WI11 刚收口，接口面未经一个迭代周期检验。**复核触发条件**：GMCE/JobCoordinator 任一完成类级拆分（RD-05）后重新评估，或 execution 包再增第 8 个扇出方向时。
+
 ## 五、拒绝了什么
 
 - **方案 (b) 统一单一驱动面引擎**：见 §4.1 三条理由。核心拒绝理由：合并即消灭差分参照面，反向污染敞口最大化；且内核已共享，(b) 的收益（一个面）不解决病根（面间语义分叉）。

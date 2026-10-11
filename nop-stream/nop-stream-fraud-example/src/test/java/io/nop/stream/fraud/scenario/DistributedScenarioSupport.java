@@ -467,7 +467,7 @@ public final class DistributedScenarioSupport {
      * DeploymentPlan (materialized assignment over the launch's expected nodes when
      * provided; otherwise local, letting the coordinator assign round-robin).
      *
-     * <p>The returned artifacts ALSO carry a {@link io.nop.stream.runtime.rpc.RemotePipelineSpec}
+     * <p>The returned artifacts ALSO carry a {@link io.nop.stream.runtime.protocol.RemotePipelineSpec}
      * (declaration + serializable beans): the compiled graph embeds non-serializable
      * expression objects, so the launch ships the spec and every TaskManager rebuilds
      * an identical graph locally via the registered
@@ -498,8 +498,8 @@ public final class DistributedScenarioSupport {
         Long interval = getLongOrNull(config, KEY_CHECKPOINT_INTERVAL);
         Long timeout = getLongOrNull(config, KEY_CHECKPOINT_TIMEOUT);
         Integer retained = getIntOrNull(config, KEY_MAX_RETAINED);
-        io.nop.stream.runtime.rpc.RemotePipelineSpec spec =
-                new io.nop.stream.runtime.rpc.RemotePipelineSpec(streamVfsPath, resolver.getBeans());
+        io.nop.stream.runtime.protocol.RemotePipelineSpec spec =
+                new io.nop.stream.runtime.protocol.RemotePipelineSpec(streamVfsPath, resolver.getBeans());
         return new ClusterPipelineFactory.PipelineArtifacts(
                 jobGraph, deploymentPlan,
                 interval != null ? interval : DEFAULT_DISTRIBUTED_CHECKPOINT_INTERVAL_MS,

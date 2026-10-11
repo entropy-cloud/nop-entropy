@@ -15,7 +15,7 @@ import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.flow.builder.InMemoryBeanFunctionResolver;
 import io.nop.stream.flow.builder.StreamModelDslBuilder;
 import io.nop.stream.runtime.rpc.RemotePipelineResolver;
-import io.nop.stream.runtime.rpc.RemotePipelineSpec;
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 
 /**
  * Item 14 (composite-scenario distributed): rebuilds a scenario JobGraph on the
