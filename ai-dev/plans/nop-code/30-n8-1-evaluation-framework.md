@@ -5,6 +5,14 @@
 > Source: `ai-dev/backlog/nop-code-feature-completion-roadmap.md` N8.1；deps N1.3 done（查询路径物化）、N4.3 done（混合搜索）
 > Related: M9（任务级验收——本项测工具自身指标，非 AI 代理有效性）
 
+## Outdated Note（2026-10-10，plan 2402 对账）
+
+G1/G2 的评测测试切片已由 `ai-dev/plans/2402-full-code-review-R1.36-eval-evidence-chain-fixes.md` 以**真实生产链路**交付并取代原设计：
+
+- 搜索质量评测：`SearchQualityEvalTest` 经生产 `ISearchEngine`（Lucene）索引+检索、MRR 由真实命中计算（取代原 InMemoryVectorStore + KeywordEmbedding 设计）。
+- 影响分析评测：`ImpactAnalysisF1EvalTest` 经 `indexDirectory`+`triggerIncrementalIndex`+`getLastIncrementalAffectedFiles` 的真实 `computeAffectedFiles` 链路算 F1（取代原测试内 BFS）。
+- 本 plan 仍为 N8.1 owner，承接余量：G3 token/规模基线报告、全量语料/多查询集/CI 门槛。
+
 ## Purpose
 
 落地 N8.1：nop-code 工具自身指标的评测框架——搜索质量 MRR（Mean Reciprocal Rank）、影响分析准确性 F1、token 效率基线。产出评测脚本（JUnit 测试）+ ground-truth 集 + 基线报告。

@@ -248,19 +248,19 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
         // 迁移残余列表：只并入解密 keyMap（不进入 active 候选），WARN 审计提示收尾
         if (migrationKeys != null) {
             for (String entry : migrationKeys) {
+                // R1.8 / P1-check-mcc-172：异常 param 一律 keyId-only 或非材料定位符
+                // （完整 entry 含 passphrase，不进任何异常消息）
                 int colonIdx = entry == null ? -1 : entry.indexOf(':');
                 if (colonIdx <= 0 || colonIdx == entry.length() - 1
                         || !KEY_ID_PATTERN.matcher(entry.substring(0, colonIdx)).matches()) {
-                    throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MIGRATION_KEY_INVALID)
-                            .param(VaultCredentialErrors.ARG_MIGRATION_KEY, String.valueOf(entry));
+                    throw migrationKeyInvalid("no-colon-separator-or-key-id-pattern", entry);
                 }
                 String keyId = entry.substring(0, colonIdx);
                 String passphrase = entry.substring(colonIdx + 1);
                 // D5-06（A1-audit successor，2026-08-17）：残余 passphrase 纯空白拒绝
                 // （isBlank；含空格的非空白 passphrase 保持合法）
                 if (StringHelper.isBlank(passphrase)) {
-                    throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MIGRATION_KEY_INVALID)
-                            .param(VaultCredentialErrors.ARG_MIGRATION_KEY, String.valueOf(entry));
+                    throw migrationKeyInvalid("blank-passphrase", entry);
                 }
                 // 禁含 active key 检查先于 keyId 冲突检查（active 必属 Vault 密钥集，
                 // 先查冲突会吞掉更具体的"残余含 active"错误信号）
@@ -269,8 +269,7 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
                             .param(VaultCredentialErrors.ARG_KEY_ID, keyId);
                 }
                 if (built.containsKey(keyId)) {
-                    throw new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MIGRATION_KEY_INVALID)
-                            .param(VaultCredentialErrors.ARG_MIGRATION_KEY, entry);
+                    throw migrationKeyInvalid("duplicate-key-id", entry);
                 }
                 built.put(keyId, new AESTextCipher().encKey(passphrase));
                 LOG.warn("nop.credential.vault.migration-keys residual key still active: keyId={}, "
@@ -382,4 +381,18 @@ public class VaultCredentialKeyProvider implements ICredentialKeyProvider {
         }
         return false;
     }
+    private static NopException migrationKeyInvalid(String reason, String entry) {
+        NopException e = new NopException(VaultCredentialErrors.ERR_CREDENTIAL_VAULT_MIGRATION_KEY_INVALID)
+                .param(VaultCredentialErrors.ARG_MIGRATION_KEY_REASON, reason);
+        // 迁移窗口运维定位：param 截断前缀（冒号前段=keyId 部分；无冒号则仅长度），
+        // 冒号后段（passphrase）永不输出
+        int colonIdx = entry == null ? -1 : entry.indexOf(':');
+        if (colonIdx > 0)
+            e.param(VaultCredentialErrors.ARG_KEY_ID, entry.substring(0, colonIdx));
+        else
+            e.param(VaultCredentialErrors.ARG_MIGRATION_KEY,
+                    "<entry length=" + (entry == null ? -1 : entry.length()) + ">");
+        return e;
+    }
+
 }

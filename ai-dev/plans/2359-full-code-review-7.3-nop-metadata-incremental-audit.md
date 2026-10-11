@@ -1,0 +1,136 @@
+# 2359 full-code-review 7.3 nop-metadata P1×1 终验 + P2 台账巡检
+
+> Plan Status: completed
+> Last Reviewed: 2026-10-08
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.3（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
+> Related: `ai-dev/audits/arm-unclosed-findings-nop-metadata.md`（Owner Doc，137 行 v3——**只读不动**：roadmap 规则 #2「既有非本目录审计文件一律不动」）；`ai-dev/audits/arm-index-nop-metadata.md`（P1 汇总镜像 :240 已记维度20-01 fixed）。
+> 机械基线（**对抗审查 agent_9621ec45 重定基勘正——初稿「P1×1 live」系虚假基线**）：台账维度20-01（OrmModelImporter currentTimeMillis 残余）**已由 MR2 修复**——commit 7478eeffe0（2026-08-05，plan-2026-08-04-1543-3 R2.5，diff=两处 System→CoreMetrics+TestCoreMetricsUsage 扫描扩展至 dao）；现状 `OrmModelImporter.java:55/:65` 为 DDD-006 合规形态（:58/:68 锚漂移为空行）；nop-metadata 主代码 `System.currentTimeMillis`=**0 处**；**台账行「open」与 arm-index「fixed」状态分叉**（流程缺陷，本项登记不回写台账）。roadmap 7.3 行「P1×1 live 复核」措辞记口径缺陷注记（沿 7.2「记不改文本」先例）。**重定基范围 = P1×1 fixed 终验（修复亲读+git 锚）+ P2×16 台账巡检 + 台账↔index 状态对账**。P2×16 计数精确（对抗审查实测：48 行=3 P1+11 登记+3 P0+16 P2+15 P3；4 行已裁定 watch-only/optimization）。
+> **方法学裁定**：① P1×1 fixed 终验=修复 commit 亲读+当前代码合规形态核对+arm-index :240 镜像核对；② **P2 三分类标定（m1 勘正——沿 2358 实为三分类）**：fixed-by-later-plan/still-open/watch-only-维持；**条=行**（16 行；行 4 捆 3 ID/7 位点逐 ID 标定〔m2〕；行 16 内嵌 P2-MA3-03 已 arm R2.15 终裁 deferred——沿既有裁决收口不另开题）；③ 每条判定依据一句+代码/台账锚（15/16 行带锚，16-03 可重推导）；④ 撞车检索面=6.7（check nop-metadata P1=MetaTableProfiler 非同条声明核对）/6.9（nop-metadata 3 条升级候选：#P2-L119 维持/#P2-L80、#P2-L98 降级）；⑤ **watch-only P1 落账核对显式对准（m3）**：维度16-01 台账行无完成复核注记+仍题「19/40」vs MA4.4 :165-173 终判「收敛为 8/40 维持 watch-only」——落账缺口登记于报告；⑥ 裁决落账（M1 勘正）：**本项不回写既有台账文件（规则 #2）**——状态分叉与标定终态登记于本项报告+轮次 index；⑦ 验证协议：双锚；Phase 2 抽验 ≥30%；冻结协议三要素（seed=2359+台账行清单哈希）落盘。
+> **执行分支口径**：以当前工作树为读、以 master 可达性为锚。
+> Draft Review: agent_9621ec45 首轮 **1 Blocker（B1 机械基线虚假实测——P1 已被 MR2 修复 62 天，台账 open 与 arm-index fixed 分叉，:58/:68 锚漂移空行）** + 2 Major（M1/M2）+ 4 Minor（m1–m4）——本轮全部修复（详见各节勘正注记）；聚焦复核（同一审查员）逐项 PASS 全锚亲读为真（1 cosmetic：Phase 2 EC 措辞未展开——语义由方法学⑥全局定义零矛盾）——转 active。
+
+## Purpose
+
+执行 roadmap 工作项 7.3：nop-metadata P1×1 fixed 终验（台账↔index 状态对账）+ P2×16 台账巡检，产出报告 `7.3-nop-metadata-incremental-audit.md`；P2 still-open 归 P2 台账通道。
+
+## Current Baseline
+
+- 台账 v3（2026-08-05）48 行：3 P1（维度20-01 已 fixed 分叉/MISSING-AUTH watch-only/维度16-01 watch-only 落账缺口）+11 登记 P1（08-05 两轮全 fixed）+3 P0+**16 P2**+15 P3；arm-index :240 已记维度20-01 fixed。
+- 绿色基线：编制期全仓 BUILD SUCCESS；工作树在前序收口 commit 后干净。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/7.3-nop-metadata-incremental-audit.md`：摘要 + P1 fixed 终验段（修复亲读+git 锚+状态分叉缺陷登记）+ P2×16 三分类标定台账 + watch-only P1 落账缺口登记 + 裁决（附录记冻结协议）。
+- P2 still-open 归 P2 台账通道；终态全量登记于本项报告+轮次 index（不回写既有台账）。
+- index 登记 7.3 行 + 独立 closure audit + roadmap 7.3 翻 done（closure audit 先于翻 done）。
+
+## Non-Goals
+
+- 修复执行；回写既有台账文件（规则 #2——状态更正登记于本项报告）；watch-only P1 重复复核（落账缺口登记即可）；P3×15（roadmap 规则 #3 不处理）/前序 deferred 登记 5 行（已裁定触发条件挂起）/08-05 两轮 11 P1 fixed 段重验（带承接 plan 与测试证据）/check nop-metadata 重标定（6.7 已闭）。
+
+## Scope
+
+### In Scope
+
+- P1×1 fixed 终验（7478eeffe0 亲读+现状合规核对+arm-index 镜像核对+状态分叉登记）
+- P2×16 行三分类标定（行 4 逐 ID 展开；行 16 内嵌沿既有裁决）
+- watch-only P1 落账缺口核对（维度16-01 两点显式对准）
+- 只读输入：git 历史、台账、arm-index、6.7/6.9 metadata 域发现
+
+### Out Of Scope
+
+- 修复执行；回写既有台账；watch-only P1 重复复核；P3×15；deferred 5 行；08-05 fixed 段重验；非台账发现。
+
+## Execution Plan
+
+### Phase 1 - 终验与标定（1 agent）
+
+Status: in progress
+Targets: 台账 P1×1+P2×16
+
+- Item Types: `Proof`
+
+- [x] 动手前基线确认：本 plan 已提交（00bc7d0e0d）、`git status` 干净后开始
+- [x] 主 agent 对账落盘（委派审计 agent）：① **P1×1 fixed 终验 PASS 四锚一致**（7478eeffe0 diff 亲读+HEAD 祖先验证+现状 :55/:65 合规形态+主代码 grep=0+arm-index :240 逐字吻合）；**状态分叉缺陷登记**（台账 open vs arm-index fixed——v3 漏更 owner 行非产品缺陷）② P2×16 三分类 **fixed 8/still-open 5/watch 3**（行 4 七位点 7/7 全 fixed/消亡——含 MetaTableProfiler 整类被 plan 2261 删除；行 16 沿 R2.15 收口且后继 plan 已落地，残余=null-schema 族 watch-only）③ **落账缺口登记成立**（维度16-01 两点；MISSING-AUTH 无缺口）；**超预期勘正 3 条**（MetaTableProfiler 消亡/行 10 共享状态断言 6b00d6022d 已引入——台账 v3 滞后/行 16 R2.15 deferred 被后继 plan 落地取代）④ 撞车零冲突（6.7 非同条独立复核为真/6.9 三条候选零 ID 重叠且 #P2-L119 互证）⑤ 冻结（seed=2359+台账行清单 `ff3afd8e…`+样本 5 行）→ `_tmp/fcr-7.3-audit-a.md`
+- [x] 主 agent 抽查质量：冻结表重放一致（ff3afd8e…）+ 终验锚亲读（:55/:65 CoreMetrics 合规形态在位）+ still-open 锚亲读（queryAggregation :349 真实——路径 entity/ 非 biz/ 微漂移登记）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（零 P0 疑似）
+
+Exit Criteria:
+
+- [x] 审计产物落盘；标定双锚证据
+- [x] P1 终验+16 行全量标定；样本表可重放（SHA 重放一致）
+- [x] No owner-doc update required（只读——不回写既有台账；终态登记于本项报告+轮次 index）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核
+
+Status: completed
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——P1 终验四锚独立复现全 PASS（双 HEAD 祖先验证）；P2 标定 **16/16 行全量独立核验**（超 ≥30% 配额：7 行深验+9 行锚位亲读）8/5/3 全维持；行 4 抽 3/7 位点全 fixed；行 16 内嵌收口成立（R2.15→d15c0de884 落地+D4 watch-only 残余）；落账缺口两点核实；SHA 双重验证（文件哈希+台账独立推导串接哈希同值）
+- [x] 主 agent 汇总：台账收敛（3 cosmetic 微漂移注记随报告）
+
+Exit Criteria:
+
+- [x] 复核结论落盘 `_tmp/fcr-7.3-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: completed
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- [x] 编制 `7.3-nop-metadata-incremental-audit.md`；index 登记 7.3 行 + still-open 归 P2 台账通道（P1 无 R1.0 新输入——终验 fixed）
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（四项）；**通过后** roadmap 7.3 翻 `done`；plan 关闭（双 `--strict`）；commit
+
+Exit Criteria:
+
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+
+## Closure Gates
+
+> 只读审计计划，免除全量构建。
+
+- [x] 报告落盘且 P1 终验+16 行全量标定+状态分叉登记
+- [x] 每条双锚证据可复现；撞车比对留痕
+- [x] index 计数与报告清单一一对应；still-open 清单完整归 P2 台账通道
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.3 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（状态分叉登记供台账 owner 后续维护参考；watch-only 维持。）
+
+## Closure
+
+Status Note: 工作项 7.3 收口——**重定基**后 P1×1 fixed 终验 PASS 四锚一致（7478eeffe0），台账↔arm-index 状态分叉缺陷登记；P2×16 三分类 fixed 8/still-open 5/watch 3（16/16 行全量独立核验零翻案）；落账缺口登记（维度16-01）；still-open 5 归 P2 台账通道。独立 closure audit（agent_aa2bb7c7）首轮 **FAIL 附 1 Major**（报告 §二 8/16 行偏离 canonical 链——2 处类级翻转+2 幻影 ID+2 行缺失+1 证据误挂，与 2353 M-1 同型的报告转写级缺陷），处方 R1（8 行 canonical 收敛+附录措辞）落实后轻量复检 **PASS**（逐行对拍一致+冻结链未扰动+doc-links exit 0）。
+Completed: 2026-10-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: agent_aa2bb7c7-3c91-4a22-931f-d8fbb9760703（独立子 agent，fresh session，只读）
+- Evidence:
+  - 核验 A 证据完整性：首轮 FAIL（M-1 报告 §二 转写缺陷）→ R1 落实后复检 PASS（8 行逐行对拍 canonical 一致+计数与身份双收敛+未改动 8 行原样）
+  - 核验 B 计数对应 PASS：SHA 重放 ff3afd8e…（重放件 diff 为空+复核员独立推导串接双验证）；16 行逐行数 8+5+3；报告=index 7.3 行=still-open×5 行逐 ID 一致
+  - 核验 C 引用路径真实性 PASS：4/4 抽验+7478eeffe0 diff 抽验+附加三锚（反向证伪被污染行，canonical 为真）
+  - 核验 D 流程状态 PASS：roadmap 翻 done 前 todo；规则 #2 合规（台账未被回写——git status 三文件干净）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2359-full-code-review-7.3-nop-metadata-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；still-open 5 走 P2 台账通道（roadmap 规则 #3 允许通道）
+
+Follow-up:
+
+- still-open 5 → R1.0 批量裁决（P2 台账承载）；状态分叉+落账缺口登记供台账 owner 维护参考——无本 plan 自有剩余工作

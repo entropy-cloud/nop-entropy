@@ -19,8 +19,10 @@ import java.util.Optional;
  * A reader may hold zero, one, or several splits at a time and may request more via the
  * {@link SplitAssignmentProxy} once it has drained its current set.
  *
- * <p>Lifecycle: {@link #start()} → zero or more rounds of {@link #addSplits(List)} /
- * {@link #pollNext()} / {@link #snapshotState(long)} / {@link #restoreState(List)} →
+ * <p>Lifecycle: on recovery {@link #restoreState(List)} is called BEFORE {@link #start()}
+ * (see its method javadoc); otherwise and afterwards:
+ * {@link #start()} → zero or more rounds of {@link #addSplits(List)} /
+ * {@link #pollNext()} / {@link #snapshotState(long)} →
  * {@link #close()}. Per-split cursor state lives in the reader; the enumerator's
  * coordinator-side state (which splits exist, who owns them, which are finished) lives in
  * {@link SplitEnumerator} and is checkpointed separately via

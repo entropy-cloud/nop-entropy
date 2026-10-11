@@ -103,36 +103,35 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
         // LinkedHashMap 保持配置顺序，便于 active key 缺省取首项
         Map<String, ITextCipher> built = new LinkedHashMap<>();
         for (String entry : masterKeys) {
+            // R1.8 / P1-check-mcc-172：异常 param 一律 keyId-only 或非材料定位符，
+            // 完整 entry（含 passphrase）不再进入任何异常消息（NopException.getMessage
+            // 无条件拼接 params 全量，泄漏即主密钥口令入日志）；rejectReason 区分四形态
             if (entry == null || entry.isEmpty()) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
-                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, String.valueOf(entry));
+                throw entryInvalid("empty", null, entry);
             }
 
             int colonIdx = entry.indexOf(':');
             if (colonIdx <= 0 || colonIdx == entry.length() - 1) {
-                // 缺少分隔冒号或 passphrase 为空
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
-                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
+                // 缺少分隔冒号或 passphrase 为空——整串可能是裸 passphrase，
+                // 不输出任何 entry 派生字符，仅静态标记 + 长度定位
+                throw entryInvalid("no-colon-separator", null, entry);
             }
 
             String keyId = entry.substring(0, colonIdx);
             String passphrase = entry.substring(colonIdx + 1);
 
             if (!KEY_ID_PATTERN.matcher(keyId).matches()) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
-                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
+                throw entryInvalid("key-id-pattern", keyId, entry);
             }
 
             // D5-06（A1-audit successor，2026-08-17）：passphrase 纯空白拒绝（isBlank）——
             // 空白材料构造的 cipher 形同弱密钥；含空格的非空白 passphrase 保持合法
             if (StringHelper.isBlank(passphrase)) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
-                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
+                throw entryInvalid("blank-passphrase", keyId, entry);
             }
 
             if (built.containsKey(keyId)) {
-                throw new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
-                        .param(CredentialErrors.ARG_MASTER_KEY_ENTRY, entry);
+                throw entryInvalid("duplicate-key-id", keyId, entry);
             }
 
             ITextCipher cipher = new AESTextCipher().encKey(passphrase);
@@ -189,4 +188,14 @@ public class DefaultCredentialKeyProvider implements ICredentialKeyProvider {
     Map<String, ITextCipher> internalKeyMap() {
         return new HashMap<>(keyMap);
     }
+    private static NopException entryInvalid(String reason, String keyId, String entry) {
+        NopException e = new NopException(CredentialErrors.ERR_CREDENTIAL_MASTER_KEY_ENTRY_INVALID)
+                .param(CredentialErrors.ARG_REJECT_REASON, reason);
+        if (keyId != null)
+            e.param(CredentialErrors.ARG_MASTER_KEY_ID, keyId);
+        // 非 entry 派生字符：仅长度用于运维定位（长度本身无材料价值）
+        e.param(CredentialErrors.ARG_MASTER_KEY_ENTRY, "<entry length=" + (entry == null ? -1 : entry.length()) + ">");
+        return e;
+    }
+
 }

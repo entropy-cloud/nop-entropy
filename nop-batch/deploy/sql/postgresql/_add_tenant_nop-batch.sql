@@ -19,4 +19,7 @@ alter table nop_batch_task_var add constraint PK_nop_batch_task_var primary key 
 alter table nop_batch_record_result drop constraint PK_nop_batch_record_result;
 alter table nop_batch_record_result add constraint PK_nop_batch_record_result primary key (NOP_TENANT_ID, batch_task_id,record_key);
 
+alter table nop_batch_task drop constraint UK_NOP_BATCH_TASK_NAME_KEY;
+alter table nop_batch_task add constraint UK_NOP_BATCH_TASK_NAME_KEY unique (NOP_TENANT_ID,task_name,task_key);
 
+                

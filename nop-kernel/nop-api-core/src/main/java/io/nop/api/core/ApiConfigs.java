@@ -91,6 +91,14 @@ public interface ApiConfigs {
     IConfigReference<Boolean> CFG_AUTH_ENABLE_DATA_AUTH =
             varRef(s_loc, "nop.auth.enable-data-auth", Boolean.class, false);
 
+    @Description("严格模式：enable-action-auth=true 但 IActionAuthChecker bean 缺席时请求入口直接失败（fail-closed），而非告警后跳过权限检查。开启前置：部署环境必须保证 checker bean 在位")
+    IConfigReference<Boolean> CFG_AUTH_REQUIRE_AUTH_CHECKER =
+            varRef(s_loc, "nop.auth.require-auth-checker", Boolean.class, false);
+
+    @Description("严格模式：未声明 auth 的动作/字段按 deny 处理（缺省为 allow，显式声明模型）。开启前置：全部公开面 auth 声明盘点完成（plan 2378 收口清单），无注解 loader 群体已登记")
+    IConfigReference<Boolean> CFG_AUTH_STRICT_ACTION_AUTH =
+            varRef(s_loc, "nop.auth.strict-action-auth", Boolean.class, false);
+
 
 //    @Description("时间戳类型是否返回毫秒信息")
 //    IConfigReference<Boolean> CFG_CONVERT_IGNORE_MILLIS_IN_TIMESTAMP =

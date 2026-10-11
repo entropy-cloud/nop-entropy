@@ -37,6 +37,16 @@
 
     <bean id="nopGraphQLAuditer" class="io.nop.graphql.core.audit.DefaultGraphQLAuditer" ioc:default="true"/>
 
+    <!-- R1.10 / P1-2.6-001：action 级事务装饰器（mutation 默认事务，对齐 owner doc 契约）。
+         on-bean 守卫：无 nop-dao 的 IoC 环境豁免（transactionTemplate 不存在）。 -->
+    <bean id="nopTransactionActionDecoratorCollector"
+          class="io.nop.biz.decorator.TransactionActionDecoratorCollector" ioc:default="true">
+        <ioc:condition>
+            <on-bean>nopTransactionTemplate</on-bean>
+        </ioc:condition>
+        <constructor-arg index="0" ref="nopTransactionTemplate"/>
+    </bean>
+
     <bean id="nopGraphQLTransactionOperationInvoker"
           class="io.nop.graphql.core.engine.GraphQLTransactionOperationInvoker" ioc:default="true">
         <ioc:condition>

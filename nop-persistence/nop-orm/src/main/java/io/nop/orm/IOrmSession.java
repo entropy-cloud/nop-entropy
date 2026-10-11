@@ -206,6 +206,15 @@ public interface IOrmSession extends AutoCloseable {
      */
     void attach(IOrmEntity entity, boolean cascade);
 
+    /**
+     * 将实体从session中移除（与 {@link #evict(IOrmEntity)} 同一缓存语义），已加载的关联实体
+     * 按 selection 级联 detach（未初始化的 proxy 关联保持原状、留在session中）。detach 后实体
+     * 不再参与flush处理（pre/post-detach 的修改均不落库），contains/get 也不再命中；已关闭的
+     * session 上调用响亮失败。
+     *
+     * @param entity
+     * @param selection
+     */
     void detach(IOrmEntity entity, FieldSelectionBean selection);
 
     <T extends IOrmEntity> T findFirstByExample(T example);

@@ -63,7 +63,7 @@ public class OrderBizModel extends CrudBizModel<Order> implements IOrderBiz {
 如果修改入口最终走 `CrudBizModel.copyToEntity()` / `OrmEntityCopier`，则 xmeta 中的 `autoExpr` 会在实体拷贝阶段执行。
 对 inline 主子表关系，子实体的 `autoExpr` 可以依赖已绑定的主实体反向 relation（例如 `refPropName` 对应的 owner 属性）；不要假设必须等到整棵对象图挂载完成后才可读取主表字段。
 
-注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提；`@BizQuery` 和其他无事务场景下不要直接套用。
+注意：`txn().afterCommit(...)` 只有在当前已经处于事务中时才能注册。普通 `@BizMutation` 场景满足这个前提（R1.10 起 mutation 默认事务装饰器对后台直调亦生效）；`@BizQuery` 和其他无事务场景下不要直接套用。
 
 ### 参数与返回值
 
@@ -209,6 +209,39 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 - `@Auth` 只放在自定义方法上；标准 CRUD 方法（`CrudBizModel` 继承的 `findPage`/`save` 等）由平台按 BizObjName 自动派生权限，不需要也不应该重复标注。
 - 权限字符串应能对应到权限配置/数据字典中的条目，保持与 `I*Biz` 调用方期望一致；不要用空字符串或占位符绕过权限检查。
 
+## xbiz 动作的 auth 声明（默认公开 + 显式收权模型）
+
+Java BizModel 方法不标注 `@Auth` 时平台自动派生缺省权限（`obj:opType|obj:name`），但 **xbiz 文件里声明的动作不声明 `<auth>` 即公开**（`GraphQLActionAuthChecker.isAllowAccess` 对 `auth==null` 返回 true——这是平台的显式声明模型，`nop.auth.enable-action-auth` 默认关闭时整条链路不生效；即使开启，auth==null 的动作也直接放行）。纯 xbiz 自定义动作（如状态机触发的 publish/unpublish、绕过 findPage 权限的 active_findPage、审批类 mutation）**必须显式声明 `<auth>`**：
+
+```xml
+<mutation name="publish" bo:triggerStateChange="true">
+    <auth roles="admin" permissions="NopWfDefinition:publish"/>
+</mutation>
+
+<query name="active_findPage" x:prototype="findPage">
+    <!-- 单动作内 | 分组 = OR 组，镜像 Java 缺省串 obj:query|obj:findPage 的语义 -->
+    <auth permissions="NopAuthUser:query|NopAuthUser:findPage"/>
+</mutation>
+```
+
+要点（P1-2.6-005/006 修复后确立，plan 2378）：
+
+- **每动作单独声明自身权限，禁止跨动作权限串连写**。`permissions` 中 `|` 是 OR 组分隔符（组内逗号 AND、任一组全满足即放行），`publish|unpublish` 连写会互相提权。
+- **`<auth>` 必须是 action 的第一个子元素**（`xbiz.xdef` BizActionModel 的元素顺序：auth → txn → arg → return → source）。
+- **x:extends 合并终值决定生效权限**：本地覆盖文件（自带 `<source>` 的动作）必须在本地文件补 `<auth>`，只改基库不生效；继承文件（如 `NopAuthUser_tenant.xbiz`）继承基库动作的 auth。改动后应经 `IBizObjectManager` 取 merged definition 断言终值（参考 `TestUseApprovalE2E` 的合并终值断言写法）。
+- **审批类公共基座 `approval-support.xbiz`**（`/nop/wf/base/approval-support.xbiz`）的 5 个 mutation 缺省 `roles="admin"`。可用性裁定：opt-in 部署（enable-action-auth=true）默认收紧到 admin；非 admin 提交人场景由应用按实体经 x:extends 覆盖点差异化声明（如 submitForApproval 放开到业务角色）。
+
+## @BizLoader 的 auth 声明（两条路径）
+
+loader（GraphQL 字段装载器）的权限声明有两条等价路径（P1-2.6-007 修复前 `@Auth` 是死注解、xbiz loader 无 auth 元素，均已收敛）：
+
+| 路径 | 写法 | 装配点 |
+|------|------|--------|
+| Java 注解 | `@BizLoader` 方法上标注 `@Auth(roles/permissions=...)` | `ReflectionBizModelBuilder.buildFetcherField` 消费注解 → `field.setAuth` |
+| xbiz 声明 | `<loaders><loader name="x"><auth roles="admin"/></loader></loaders>` | `BizModelToGraphQLDefinition.toBuilder` 装配 `loaderModel.getAuth()` |
+
+与 action 路径的关键差异：**loader 不补缺省权限**——无 `@Auth`/无 `<auth>` 的 loader 字段 `auth==null`（公开）。loader 是字段装载器，按 action 缺省串回填过严，因此采用「显式声明才收权」。这意味着开启 `nop.auth.strict-action-auth` 前必须盘点全部无声明 loader（当前已知无 @Auth 生产 loader：`NopAuthRoleBizModel.roleUsers/roleResourceIds`、`NopDynEntityMetaBizModel.allProps`、`NopRuleNodeBizModel.predicateLabel`，见 `./auth-and-permissions.md` 严格模式章节）。
+
 ## 普通 BizModel 默认优先的 API
 
 | 场景 | 默认方法 |
@@ -274,7 +307,7 @@ Nop 平台回避 Controller / Service 这类命名。这些词在 Spring 中有�
 | `dao().getEntityById(id)` 作为默认模板 | 绕过 `CrudBizModel` 的统一流程 |
 | `dao().findAllByQuery(query)` 作为默认模板 | 绕过 query 预处理与权限过滤 |
 | `dao().saveEntity(entity)` 作为默认模板 | 绕过上层封装与默认行为 |
-| `@BizMutation @Transactional`，或在 BizModel 方法上叠 `@SingleSession` | BizModel 管道已自动包事务并提供 ORM Session：`@Transactional` 是重复事务包裹，`@SingleSession` 是 **non-BizModel** 场景注解（定时任务、独立 service bean，见 `../03-runbooks/non-bizmodel-orm-access.md`），BizModel 上不需要 |
+| `@BizMutation @Transactional`，或在 BizModel 方法上叠 `@SingleSession` | BizModel 管道已自动包事务并提供 ORM Session（R1.10 起 mutation **默认**包事务——含无 `<txn>` 声明与后台直调路径）：`@Transactional` 是重复事务包裹（冗余非禁止，由 dao 层 AOP 切点消费），`@SingleSession` 是 **non-BizModel** 场景注解（定时任务、独立 service bean，见 `../03-runbooks/non-bizmodel-orm-access.md`），BizModel 上不需要 |
 | BizModel/`I*Biz` 自定义方法签名缺 `IServiceContext context` 末参 | 对齐基类 `ICrudBiz` 契约（其所有方法末参均为 `IServiceContext context`）。`context` 承载 `IUserContext`（用户身份/数据权限）、缓存与事务上下文；跨服务调用（A 域注入并调用 B 域 `I*Biz`）必须把 `context` 透传给下游，否则下游拿不到身份、静默跳过数据权限、丢失缓存。查询带 `FieldSelectionBean` 时，`context` 仍是最后参数。在 xbiz `<source>` 脚本中，该上下文以内置变量 `svcCtx` 提供（详见 `./xlang-and-xpl-basics.md` 的"xbiz action source 内置变量"章节） |
 | 直接注入其他 BizModel 实现类 | 降低跨模块可替换性 |
 | 创建无 xmeta 的伪 BizModel | GraphQL 无法识别，浏览器页面报"未定义的对象" |

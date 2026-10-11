@@ -76,6 +76,13 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: secret
+     * 
+     */
+    private boolean _secret  = false;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -258,6 +265,25 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: secret
+     *  
+     */
+    
+    public boolean isSecret(){
+      return _secret;
+    }
+
+    
+    public void setSecret(boolean value){
+        checkAllowChange();
+        
+        this._secret = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -357,6 +383,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("roles",this.getRoles());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("secret",this.isSecret());
         out.putNotNull("source",this.getSource());
         out.putNotNull("toTaskScope",this.isToTaskScope());
         out.putNotNull("type",this.getType());
@@ -380,6 +407,7 @@ public abstract class _TaskOutputModel extends io.nop.core.resource.component.Ab
         instance.setPersist(this.isPersist());
         instance.setRoles(this.getRoles());
         instance.setSchema(this.getSchema());
+        instance.setSecret(this.isSecret());
         instance.setSource(this.getSource());
         instance.setToTaskScope(this.isToTaskScope());
         instance.setType(this.getType());

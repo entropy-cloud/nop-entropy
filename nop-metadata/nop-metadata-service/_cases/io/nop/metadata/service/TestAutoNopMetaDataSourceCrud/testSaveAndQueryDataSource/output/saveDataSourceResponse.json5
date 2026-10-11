@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "@var:NopMetaDataSource@dataSourceId",
     "dataSourceId": "@var:NopMetaDataSource@dataSourceId",
     "querySpace": "ds-test",
     "name": "@var:NopMetaDataSource@dataSourceId",

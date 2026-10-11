@@ -162,7 +162,7 @@ public class JqExecutor {
                 List<JqValue> rightVals = execute(n.right(), input, env);
                 for (JqValue left : leftVals) {
                     for (JqValue right : rightVals) {
-                        outputs.add(evalMathOp(n.op(), left, right));
+                        outputs.add(evalMathOp(n.op(), left, right, env));
                     }
                 }
                 return JqValue.NULL;
@@ -295,7 +295,7 @@ public class JqExecutor {
             @Override public JqValue visitVariable(VariableNode n) {
                 String name = n.name();
                 if (name.equals("$ENV")) {
-                    outputs.add(environmentObject());
+                    outputs.add(env.environmentObject());
                     return JqValue.NULL;
                 }
                 if (name.equals("$__loc__")) {
@@ -464,7 +464,7 @@ public class JqExecutor {
             }
 
             @Override public JqValue visitEnv(EnvNode n) {
-                outputs.add(environmentObject());
+                outputs.add(env.environmentObject());
                 return JqValue.NULL;
             }
         });
@@ -572,6 +572,7 @@ public class JqExecutor {
                                   Map<String, JqValue> current, JqValue input,
                                   JqEnvironment env, List<JqValue> outputs) {
         if (index == fields.size()) {
+            env.checkOutputLimit();
             outputs.add(JqObject.ofFresh(current));
             return;
         }
@@ -594,6 +595,7 @@ public class JqExecutor {
     private void interpParts(List<Object> parts, int index, StringBuilder current,
                              JqValue input, JqEnvironment env, List<JqValue> outputs) {
         if (index == parts.size()) {
+            env.checkOutputLimit();
             outputs.add(JqString.of(current.toString()));
             return;
         }
@@ -678,7 +680,7 @@ public class JqExecutor {
                     JqValue result = input;
                     for (List<Object> path : paths) {
                         JqValue current = JqPathEval.getAt(result, path);
-                        JqValue updated = arith(n.op(), current, arg);
+                        JqValue updated = arith(n.op(), current, arg, env);
                         result = JqPathEval.setAt(result, path, updated);
                     }
                     outputs.add(result);
@@ -687,13 +689,13 @@ public class JqExecutor {
         }
     }
 
-    private JqValue arith(UpdateAssignNode.Op op, JqValue current, JqValue arg) {
+    private JqValue arith(UpdateAssignNode.Op op, JqValue current, JqValue arg, JqEnvironment env) {
         return switch (op) {
-            case ADD -> evalMathOp(MathOpNode.Op.ADD, current, arg);
-            case SUB -> evalMathOp(MathOpNode.Op.SUB, current, arg);
-            case MUL -> evalMathOp(MathOpNode.Op.MUL, current, arg);
-            case DIV -> evalMathOp(MathOpNode.Op.DIV, current, arg);
-            case MOD -> evalMathOp(MathOpNode.Op.MOD, current, arg);
+            case ADD -> evalMathOp(MathOpNode.Op.ADD, current, arg, env);
+            case SUB -> evalMathOp(MathOpNode.Op.SUB, current, arg, env);
+            case MUL -> evalMathOp(MathOpNode.Op.MUL, current, arg, env);
+            case DIV -> evalMathOp(MathOpNode.Op.DIV, current, arg, env);
+            case MOD -> evalMathOp(MathOpNode.Op.MOD, current, arg, env);
             default -> throw new IllegalStateException("not an arithmetic op: " + op);
         };
     }
@@ -710,20 +712,12 @@ public class JqExecutor {
         callFunction(name, args, input, env, outputs);
     }
 
-    JqValue evalMathOpPublic(MathOpNode.Op op, JqValue left, JqValue right) {
-        return evalMathOp(op, left, right);
+    JqValue evalMathOpPublic(MathOpNode.Op op, JqValue left, JqValue right, JqEnvironment env) {
+        return evalMathOp(op, left, right, env);
     }
 
     void debug(JqValue v) {
         debugSink.accept(JqPrinter.print(v));
-    }
-
-    JqValue environmentObject() {
-        Map<String, JqValue> props = new LinkedHashMap<>();
-        for (Map.Entry<String, String> e : System.getenv().entrySet()) {
-            props.put(e.getKey(), JqString.of(e.getValue()));
-        }
-        return new JqObject(props);
     }
 
     // ===== user function invocation =====
@@ -867,7 +861,7 @@ public class JqExecutor {
 
     // ===== arithmetic =====
 
-    private JqValue evalMathOp(MathOpNode.Op op, JqValue left, JqValue right) {
+    private JqValue evalMathOp(MathOpNode.Op op, JqValue left, JqValue right, JqEnvironment env) {
         if (left instanceof JqNumber ln && right instanceof JqNumber rn) {
             return numbers(op, ln, rn);
         }
@@ -908,9 +902,9 @@ public class JqExecutor {
                 }
             }
             case MUL -> {
-                JqValue repeated = repeatString(left, right);
+                JqValue repeated = repeatString(left, right, env);
                 if (repeated == null)
-                    repeated = repeatString(right, left);
+                    repeated = repeatString(right, left, env);
                 if (repeated != null)
                     return repeated;
                 if (left instanceof JqObject lo && right instanceof JqObject ro)
@@ -960,15 +954,18 @@ public class JqExecutor {
      * jq string repetition: s * n repeats s floor(n) times; a negative or NaN
      * count yields null. Returns null when the operands are not (string, number).
      */
-    private JqValue repeatString(JqValue a, JqValue b) {
+    private JqValue repeatString(JqValue a, JqValue b, JqEnvironment env) {
         if (a instanceof JqString s && b instanceof JqNumber n) {
             double count = n.doubleValue();
             if (Double.isNaN(count) || count < 0)
                 return JqValue.NULL;
             long reps = (long) Math.floor(count);
             StringBuilder sb = new StringBuilder();
-            for (long i = 0; i < reps; i++)
+            for (long i = 0; i < reps; i++) {
+                // per-append budget: a single huge repeat ("a"*1e9) is bounded here
+                env.checkOutputLimit();
                 sb.append(s.value());
+            }
             return JqString.of(sb.toString());
         }
         return null;

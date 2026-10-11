@@ -197,6 +197,72 @@ public class TestEquiJoinHashSemantics {
         assertTrue(!JoinType.INNER.isOuter());
     }
 
+    // ------------------------------------------------------------------
+    // P1-2.8-001 (plan 2389): NULL equi-key SQL semantics
+    // ------------------------------------------------------------------
+
+    @Test
+    public void nullEquiKeysNeverMatchAnything() throws Exception {
+        EquiJoinOperator<String, String> op = join(JoinType.INNER);
+        // NULL vs NULL: SQL says NULL != NULL — must not pair
+        feed(op, true, null, "a", 10);
+        feed(op, false, null, "b", 20);
+        assertEquals(List.of(), outs(op), "null equi-keys must never match (SQL NULL semantics)");
+        // NULL vs literal "null" string: String.valueOf(null) must not collide
+        feed(op, true, "null", "c", 30);
+        assertEquals(List.of(), outs(op),
+                "null must not collide with the literal string key 'null' (phantom pair)");
+        wm(op, 100);
+        assertEquals(List.of(), outs(op), "INNER completes nothing unmatched");
+        assertEquals(0, op.bufferedCount(), "null-keyed records trim like any other");
+    }
+
+    @Test
+    public void nullEquiKeysCompleteAsUnmatchedOnFull() throws Exception {
+        EquiJoinOperator<String, String> op = join(JoinType.FULL);
+        feed(op, true, null, "a", 10);
+        feed(op, false, null, "b", 10);
+        wm(op, 50);
+        // both null-keyed records complete as UNMATCHED (never paired with each other)
+        assertEquals(java.util.Set.of("J|a|null", "J|null|b"),
+                new java.util.HashSet<>(outs(op)),
+                "null-keyed records complete as unmatched, never paired (SQL semantics)");
+        assertEquals(2, outs(op).size(), "exactly one completion per null-keyed record");
+
+        // the literal "null" string key still joins normally (string equality)
+        EquiJoinOperator<String, String> op2 = join(JoinType.INNER);
+        feed(op2, true, "null", "x", 10);
+        feed(op2, false, "null", "y", 20);
+        assertEquals(List.of("J|x|y"), outs(op2), "literal 'null' string key joins normally");
+    }
+
+    // ------------------------------------------------------------------
+    // P1-2.8-003 (plan 2389): completion frontier is the watermark
+    // ------------------------------------------------------------------
+
+    @Test
+    public void recordsBeyondWatermarkNotCompletedEarly() throws Exception {
+        EquiJoinOperator<String, String> op = join(JoinType.FULL);
+        feed(op, true, "k", "a", 10);
+        feed(op, true, "k", "b", 100);
+
+        wm(op, 50);
+        // 'b' (ts=100) is beyond the watermark frontier: it must NOT be completed here.
+        // (Bug: premature completion + record stays buffered → partner pairs with it
+        // later = the same logical row emitted twice.)
+        assertEquals(List.of("J|a|null"), outs(op),
+                "only records at or before the watermark complete (P1-2.8-003)");
+
+        feed(op, false, "k", "y", 60);
+        assertEquals(List.of("J|a|null", "J|b|y"), outs(op),
+                "buffered 'b' pairs eagerly with the later right arrival");
+
+        wm(op, 100);
+        assertEquals(List.of("J|a|null", "J|b|y"), outs(op),
+                "matched 'b' is not completed at the watermark — exactly-once preserved");
+        assertEquals(0, op.bufferedCount());
+    }
+
     /** output buffer with no E2E env — collects formatted JoinMatch values. */
     static final class ListOutput implements Output<StreamRecord<JoinMatch<String, String>>> {
         final List<String> records = new ArrayList<>();

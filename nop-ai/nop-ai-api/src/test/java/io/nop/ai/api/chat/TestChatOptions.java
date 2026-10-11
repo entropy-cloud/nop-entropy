@@ -40,6 +40,58 @@ public class TestChatOptions {
     }
 
     // ========================================================================
+    // P1-6.7-006：maxContextTokens（独立上下文窗口声明）必须随 copy()/merge()/Builder
+    // 全链携带，否则 routedOptions 复制/合并时静默丢窗口声明，退回缺省 128000。
+    // ========================================================================
+
+    @Test
+    public void testMaxContextTokensIsIndependentOfMaxTokens() {
+        ChatOptions options = new ChatOptions();
+        options.setMaxTokens(4096);
+        assertNull(options.getMaxContextTokens(),
+                "maxContextTokens must default to null (resolved to the engine default 128000), independent of maxTokens");
+        options.setMaxContextTokens(1000000);
+        assertEquals(4096, options.getMaxTokens().intValue());
+        assertEquals(1000000, options.getMaxContextTokens().intValue());
+    }
+
+    @Test
+    public void testCopyPreservesMaxContextTokens() {
+        ChatOptions original = new ChatOptions();
+        original.setMaxContextTokens(200000);
+        ChatOptions copy = original.copy();
+        assertEquals(200000, copy.getMaxContextTokens().intValue(),
+                "copy() must carry maxContextTokens");
+    }
+
+    @Test
+    public void testMergeOverridesMaxContextTokens() {
+        ChatOptions base = new ChatOptions();
+        base.setMaxContextTokens(128000);
+        ChatOptions override = new ChatOptions();
+        override.setMaxContextTokens(8192);
+        ChatOptions merged = base.merge(override);
+        assertEquals(8192, merged.getMaxContextTokens().intValue(),
+                "merge() must let other's maxContextTokens override");
+
+        ChatOptions nullOverride = new ChatOptions();
+        nullOverride.setModel("gpt-4");
+        assertEquals(128000, base.merge(nullOverride).getMaxContextTokens().intValue(),
+                "null maxContextTokens in other must not overwrite base");
+    }
+
+    @Test
+    public void testBuilderSetsMaxContextTokens() {
+        ChatOptions options = ChatOptions.builder()
+                .model("gpt-4")
+                .maxTokens(4096)
+                .maxContextTokens(64000)
+                .build();
+        assertEquals(64000, options.getMaxContextTokens().intValue());
+        assertEquals(4096, options.getMaxTokens().intValue());
+    }
+
+    // ========================================================================
     // 账号回退链字段（plan 2026-08-01-1505-1，设计 §3.6）：
     // copy()/merge()/Builder 必须携带 accountKey/accountBaseUrl，否则重试循环切换账号时
     // 静默丢账号（Rule #11 陷阱）。

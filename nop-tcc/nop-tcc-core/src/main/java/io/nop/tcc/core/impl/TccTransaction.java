@@ -64,6 +64,14 @@ public class TccTransaction implements ITccTransaction {
             if (curStatus == TccStatus.CONFIRMING || curStatus == TccStatus.CONFIRM_FAILED) {
                 return doConfirmAsync(branchTxns);
             }
+            // cancel半区的对称路由（P1-3.8-004，plan 2388）：cancel开始后不允许confirm（TCC语义），
+            // 存活调用方与崩溃恢复路径同路由。此前全局CANCELLING/CANCEL_FAILED落入分支证据判定：
+            // 恢复调用(endAsync(true,null,null))无回滚证据时被导向doConfirmAsync，又被其CANCELLING
+            // 守卫拦截为no-op——每轮被扫描器重拾bump retryTimes，耗尽maxRetryCount后被永久遗弃
+            if (curStatus == TccStatus.CANCELLING || curStatus == TccStatus.CANCEL_FAILED) {
+                LOG.info("nop.tcc.resume-cancel:txn={},status={}", this, curStatus);
+                return doCancelAsync(timeout, branchTxns);
+            }
 
             if (isRollbackOnly(branchTxns) || isFailed(response, ex)) {
                 if (ex != null) {

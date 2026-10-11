@@ -593,6 +593,7 @@ nop.err.dao.unknown-query-space: 未定义的数据源:{querySpace}
 nop.err.doc.convert-unsupported-text-output: 目标类型的渲染器不支持文本输出：{fromFileType} -> {toFileType}
 nop.err.eql.cannot-merge-collection-scopes: '无法合并集合操作符作用域: operator1={operator1},
   operator2={operator2}'
+nop.err.eql.collection-operator-not-allowed-here: 集合操作符[{operator}]仅支持在select语句的where子句中使用，当前位置不支持
 nop.err.eql.collection-prefix-mismatch: '集合操作符的collectionPrefix不匹配: scope1=[{collectionPrefix1}],
   scope2=[{collectionPrefix2}]'
 nop.err.eql.cross-join-not-allow-condition: cross join不能指定连接条件
@@ -600,6 +601,7 @@ nop.err.eql.cte-column-name-unresolved: 递归CTE的列名无法确定：投影[
 nop.err.eql.decorator-arg-count-is-not-expected: 注解[{decorator}]的参数必须为{expectedCount}
 nop.err.eql.decorator-arg-type-is-not-expected: 注解[{decorator}]的参数[{argIndex}]的类型不是期待的数据类型:{expected}
 nop.err.eql.dialect-not-support-feature: 数据库方言[{dialect}]不支持特性[{feature}]
+nop.err.eql.dml-prop-join-not-supported: update/delete语句中不支持属性路径隐式join，请改用相关子查询或显式关联条件
 nop.err.eql.duplicate-table-alias: 数据源[{table1}]和[{table2}]的别名[{alias}]相同
 nop.err.eql.field-not-in-subquery: 查询语句的返回结果中没有包含字段:{fieldName}
 nop.err.eql.field-not-prop: 字段不是实体上的属性:{fieldName}
@@ -751,6 +753,8 @@ nop.err.graphql.missing-field-arg: 对象[{objName}]的属性[{fieldName}]要求
 nop.err.graphql.multi-biz-file-for-biz-obj: 存在多个biz文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}
 nop.err.graphql.multi-class-has-same-biz-obj-name: 类[{class}]和[{otherClass}]标记了同样的对象名[{bizObjName}]
 nop.err.graphql.multi-meta-file-for-biz-obj: 存在多个meta文件对应于同一个对象[{bizObjName}]:pathA={pathA},pathB={pathB}
+nop.err.graphql.no-action-auth-checker: 操作权限验证已启用(enable-action-auth={enableActionAuth})但IActionAuthChecker
+  bean缺席，require-auth-checker=true时禁止fail-open跳过权限检查
 nop.err.graphql.not-allow-directive-at-location: GraphQL扩展[{directive}]不允许出现在位置[{location}]
 nop.err.graphql.not-obj-type: '[{type}]不是对象类型，不支持字段选择'
 nop.err.graphql.not-obj-type-for-field: 对象[{objType}]的属性[{fieldName}]的类型[{type}]未定义
@@ -1230,6 +1234,8 @@ nop.err.xlang.exec.class-no-static-method: 类[{className}]上没有定义静态
 nop.err.xlang.exec.class-not-allow-attr-expr: 不允许在静态类上执行属性表达式:{className}
 nop.err.xlang.exec.class-not-found: 类[{className}]不存在
 nop.err.xlang.exec.collect-result-not-single-node: c:collect标签设置了singleMode模式，但是具体执行得到的结果节点不是单节点
+nop.err.xlang.exec.compiler-not-registered: 可执行表达式编译器未注册:META-INF/services 缺失 io.nop.xlang.expr.IExecutableExprCompiler
+  注册或注册被清除
 nop.err.xlang.exec.convert-func-only-allow-one-arg: 类型转换函数[{funcName}]只允许一个参数
 nop.err.xlang.exec.delete-attr-expr-return-null: delete操作的下标表达式不能为空
 nop.err.xlang.exec.delete-not-supported: 对象类型[{className}]不支持delete操作

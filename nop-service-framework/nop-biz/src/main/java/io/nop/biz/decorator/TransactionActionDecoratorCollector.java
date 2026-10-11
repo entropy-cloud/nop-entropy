@@ -39,17 +39,26 @@ public class TransactionActionDecoratorCollector implements IActionDecoratorColl
     @Override
     public void collectDecorator(BizActionModel actionModel, List<IServiceActionDecorator> decorators) {
         BizTxnModel txnModel = actionModel.getTxn();
-        if (txnModel != null) {
-            boolean defaultTransactional = BizConstants.BIZ_ACTION_TYPE_MUTATION.equals(actionModel.getType());
-            boolean transactional = txnModel.getTransactional() != null ? txnModel.getTransactional()
-                    : defaultTransactional;
-
-            if (transactional) {
-                String txnGroup = txnModel.getTxnGroup();
-                TransactionPropagation propagation = txnModel.getPropagation();
-                decorators.add(new TransactionActionDecorator(transactionTemplate, txnGroup, propagation,
-                        actionModel.isAsync()));
+        // R1.10 / P1-2.6-001：无 <txn> 元素时 mutation 默认获得事务装饰器（对齐 owner doc
+        // 「默认有事务」契约，关闭后台直调零事务写面）；query 不加；显式 <txn transactional="false">
+        // 仍然关断。
+        if (txnModel == null) {
+            if (BizConstants.BIZ_ACTION_TYPE_MUTATION.equals(actionModel.getType())) {
+                decorators.add(new TransactionActionDecorator(transactionTemplate, null,
+                        TransactionPropagation.REQUIRED, actionModel.isAsync()));
             }
+            return;
+        }
+
+        boolean defaultTransactional = BizConstants.BIZ_ACTION_TYPE_MUTATION.equals(actionModel.getType());
+        boolean transactional = txnModel.getTransactional() != null ? txnModel.getTransactional()
+                : defaultTransactional;
+
+        if (transactional) {
+            String txnGroup = txnModel.getTxnGroup();
+            TransactionPropagation propagation = txnModel.getPropagation();
+            decorators.add(new TransactionActionDecorator(transactionTemplate, txnGroup, propagation,
+                    actionModel.isAsync()));
         }
     }
 }

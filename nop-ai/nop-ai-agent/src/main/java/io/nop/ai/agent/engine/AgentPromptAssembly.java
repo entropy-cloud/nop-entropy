@@ -250,6 +250,8 @@ public class AgentPromptAssembly {
                 options.setTopP(model.getTopP());
             if (model.getMaxTokens() != null)
                 options.setMaxTokens(model.getMaxTokens());
+            if (model.getMaxContextTokens() != null)
+                options.setMaxContextTokens(model.getMaxContextTokens());
             if (model.getTopK() != null)
                 options.setTopK(model.getTopK());
             if (model.getStop() != null)

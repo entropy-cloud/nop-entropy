@@ -118,6 +118,8 @@ CREATE TABLE nop_auth_mfa_challenge(
   constraint PK_nop_auth_mfa_challenge primary key (CHALLENGE_TOKEN)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_MFA_CHALLENGE_USER on nop_auth_mfa_challenge (USER_ID) ;
+create index IX_NOP_AUTH_MFA_CHALLENGE_EXPIRE on nop_auth_mfa_challenge (EXPIRE_AT) ;
 CREATE TABLE nop_auth_sms_code(
   CODE_KEY VARCHAR(100) NOT NULL    COMMENT '验证码Key',
   PHONE VARCHAR(50) NULL    COMMENT '手机号',
@@ -131,6 +133,7 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (CODE_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_SMS_CODE_EXPIRE on nop_auth_sms_code (EXPIRE_AT) ;
 CREATE TABLE nop_auth_rate_limit_counter(
   COUNTER_KEY VARCHAR(150) NOT NULL    COMMENT '限流Key',
   COUNTER_COUNT BIGINT default 0  NULL    COMMENT '计数',
@@ -142,6 +145,7 @@ CREATE TABLE nop_auth_rate_limit_counter(
   constraint PK_nop_auth_rate_limit_counter primary key (COUNTER_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_RATE_LIMIT_EXPIRE on nop_auth_rate_limit_counter (EXPIRE_AT) ;
 CREATE TABLE nop_auth_login_attempt(
   ATTEMPT_KEY VARCHAR(150) NOT NULL    COMMENT '尝试Key',
   EXPIRE_AT BIGINT NULL    COMMENT '过期时间',
@@ -153,6 +157,7 @@ CREATE TABLE nop_auth_login_attempt(
   constraint PK_nop_auth_login_attempt primary key (ATTEMPT_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_LOGIN_ATTEMPT_EXPIRE on nop_auth_login_attempt (EXPIRE_AT) ;
 CREATE TABLE nop_auth_role_mfa_policy(
   ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',
   MIN_MFA_LEVEL INTEGER NOT NULL    COMMENT '最低MFA强度',
@@ -181,6 +186,7 @@ CREATE TABLE nop_auth_email_code(
   constraint PK_nop_auth_email_code primary key (CODE_KEY)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_EMAIL_CODE_EXPIRE on nop_auth_email_code (EXPIRE_AT) ;
 CREATE TABLE nop_auth_mfa_trusted_device(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   USER_ID VARCHAR(50) NOT NULL    COMMENT '用户ID',
@@ -402,6 +408,7 @@ CREATE TABLE nop_auth_mfa_credential(
   constraint PK_nop_auth_mfa_credential primary key (SID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_AUTH_MFA_CREDENTIAL_USER on nop_auth_mfa_credential (USER_ID) ;
 CREATE TABLE nop_auth_role_resource(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   ROLE_ID VARCHAR(50) NOT NULL    COMMENT '角色ID',

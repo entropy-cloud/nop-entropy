@@ -93,6 +93,14 @@ public class DaoBatchRecordHistoryStore<S> implements IBatchRecordHistoryStore<S
             result.setBatchTaskId(taskId);
             result.setRecordKey(getRecordKey(record, keyFn, scope));
             result.setResultStatus(0);
+            // P1-3.4-002（plan 2382）：mandatory 三列显式赋值（缺省即 ERR_ORM_MANDATORY_PROP_IS_NULL
+            // ——首个成功 chunk 即整任务失败）。retryCount=0 沿 orm.xml 注释「第一次执行时重试次数为0」；
+            // batchSize=实际处理批次大小（filterProcessed 后的本 chunk 待处理集，签名内唯一可得值——
+            // 与 chunk 总量读法的歧义在此钉死为显式约定）；handleStatus=0 显式约定取值，
+            // 援引同实体 resultStatus「0表示成功」语义（handleStatus 无既有字典/常量）。
+            result.setRetryCount(0);
+            result.setBatchSize(filtered.size());
+            result.setHandleStatus(0);
             if (infoFn != null) {
                 Object info = infoFn.call1(null, record, scope);
                 if (info != null)

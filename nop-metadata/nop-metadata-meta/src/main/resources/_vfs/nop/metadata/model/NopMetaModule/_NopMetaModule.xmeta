@@ -49,7 +49,7 @@
         </prop>
         <prop name="status" displayName="模块状态" propId="7" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" dict="meta/module-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/module-status"/>
         </prop>
         <prop name="mavenGroupId" displayName="Maven GroupId" propId="8" i18n-en:displayName="Maven Group Id"
               queryable="true" sortable="true" insertable="true" updatable="true">

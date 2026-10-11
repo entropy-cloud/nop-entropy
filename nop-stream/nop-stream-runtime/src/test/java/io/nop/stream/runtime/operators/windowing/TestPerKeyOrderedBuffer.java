@@ -117,4 +117,26 @@ public class TestPerKeyOrderedBuffer {
         }
         assertTrue(buf.size("k") == 1);
     }
+
+    /**
+     * P1-2.8-002 (plan 2389): putAll must advance the receiving instance's insertion
+     * counter past the merged entries — otherwise post-restore add() at the same
+     * timestamp allocates a comparator-equal (ts, seq) key and the TreeMap put silently
+     * REPLACES the restored entry.
+     */
+    @Test
+    public void putAllAdvancesInsertionSeqNoCollision() {
+        PerKeyOrderedBuffer<String, String> restored = new PerKeyOrderedBuffer<>();
+        restored.add("k", 10L, "restored"); // (ts=10, seq=0)
+
+        PerKeyOrderedBuffer<String, String> target = new PerKeyOrderedBuffer<>();
+        target.putAll(restored);
+
+        // same timestamp as the restored entry: must get seq > 0, not collide
+        target.add("k", 10L, "fresh");
+
+        List<String> view = target.sortedView("k");
+        assertEquals(java.util.List.of("restored", "fresh"), view,
+                "restored entry survives; fresh entry appended after it (arrival order)");
+    }
 }

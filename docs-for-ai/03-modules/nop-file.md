@@ -227,6 +227,14 @@ Bean ID：`nopFileStore`（同时 alias 为 `nopOrmEntityFileStore`）。
 - `originFileId` — 原始文件 ID（跟踪复制来源）
 - `isPublic` — 是否公开访问
 
+### 记录权限与保护列（P1-3.8-001/002，plan 2386）
+
+`NopFileRecord` 的写入口有两层收敛：
+
+- **CRUD mutations 仅 admin**：`NopFileRecord.xbiz` 覆写 `save/update/delete/saveAll/deleteAll` 声明 `<auth roles="admin"/>`（opt-in enforcement，默认 `enable-action-auth=false` 时行为不变，见 `service-layer.md` 的 auth 配置节）。
+- **filePath/isPublic 不可经 CRUD 更新**：源模型 `nop-file.orm.xml` 中两列声明 `updatable="false"`（xmeta 生成一致）。CRUD update 携带这两列的变更会被 meta 层丢弃（`validateForUpdate` 过滤 `isUpdatable()=false` 属性），落库值不变；内部插入路径（上传/复制创建新记录）不受影响。
+- **attach/detach 归属校验**：`DaoResourceFileStore.attachFile/detachFile` 校验当前用户（`IUserContext`）必须是记录创建者（`createdBy`）或 `admin` 角色，否则抛 `ERR_FILE_NO_ATTACH_PERMISSION`（`nop.err.file.no-attach-permission`）。`IUserContext` 为 null 的引擎内部调用放行（系统调用语义）。detach 会物理删除文件与记录，此校验同时封堵「劫持他人文件记录后触发物理销毁」路径。
+
 ## 自定义 MIME 映射
 
 通过 VFS 提供 `/nop/file/media-type.json`：

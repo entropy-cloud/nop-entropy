@@ -32,6 +32,7 @@ import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -351,6 +352,31 @@ public class TestVaultCredentialKeyProvider {
                 Collections.singletonList("keyA:secret/data/cred/a"));
         p.setMigrationKeys(Collections.singletonList("no-colon"));
         assertEquals("nop.err.credential.vault.migration-key-invalid", initError(p));
+    }
+
+    /**
+     * R1.8 / P1-check-mcc-172：migration 异常 param 不得携带完整 entry（passphrase 泄漏）。
+     */
+    @Test
+    public void migrationExceptionParamsDoNotLeakPassphrase() {
+        String secret = "VAULT-SECRET-PASSPHRASE";
+
+        // 重复 keyId 形态（param 曾为完整 entry）
+        VaultCredentialKeyProvider p = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        p.setMigrationKeys(Arrays.asList("dupKey:dup-secret", "dupKey:other"));
+        NopException e = assertThrows(NopException.class, p::init);
+        assertFalse(e.getMessage().contains(secret), "重复 keyId 点泄漏：" + e.getMessage());
+        assertTrue(e.getMessage().contains("dupKey"), "keyId 保留供运维定位：" + e.getMessage());
+
+        // blank passphrase 形态
+        VaultCredentialKeyProvider p2 = newProvider(new StubHttpClient(
+                req -> new StubResponse(200, kvV2Body("m"))),
+                Collections.singletonList("keyA:secret/data/cred/a"));
+        p2.setMigrationKeys(Collections.singletonList("mKey:   "));
+        NopException e2 = assertThrows(NopException.class, p2::init);
+        assertFalse(e2.getMessage().contains("mKey:"), "blank 点 entry 泄漏：" + e2.getMessage());
     }
 
     @Test

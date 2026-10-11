@@ -29,3 +29,5 @@
 | 14 | [14-conditional-activation-bypass.md](14-conditional-activation-bypass.md) | 条件激活的旁路面："开关默认 false" 必须三方实证，不能想当然 | 2026-08-05 |
 | 15 | [15-optional-dependency-compile-time-type-ref-crashes-startup.md](15-optional-dependency-compile-time-type-ref-crashes-startup.md) | optional 依赖 + 编译期类型引用 = 启动崩溃；SPI 多实现应经 ioc:collect-beans 自动发现 | 2026-08-13 |
 | 16 | [16-xlang-dsl-call-sites-invisible-to-java-grep.md](16-xlang-dsl-call-sites-invisible-to-java-grep.md) | XLang DSL 调用点对 Java 向 grep 不可见：删"死代码"必须全资源搜方法名+跑下游模块 | 2026-08-28 |
+| 17 | [17-full-regression-three-artifacts.md](17-full-regression-three-artifacts.md) | 全量回归三重假象：陈旧 ~/.m2 工件、fail-fast 截断与被硬配置压制的 ignore 开关 | 2026-10-10 |
+| 18 | [18-governance-text-replace-silent-noop.md](18-governance-text-replace-silent-noop.md) | 治理文本的静默替换失配：python replace 无断言等于没做 | 2026-10-10 |

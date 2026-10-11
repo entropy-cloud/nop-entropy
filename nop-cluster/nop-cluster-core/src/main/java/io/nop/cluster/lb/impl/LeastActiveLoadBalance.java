@@ -61,8 +61,10 @@ public class LeastActiveLoadBalance<T, R> implements ILoadBalance<T, R> {
         boolean sameWeight = true; // 是否所有权重相同
 
         while (currentCursor < max) {
-            int i = startIndex + currentCursor;
-            T item = items.get(i % n);
+            // P1-4.4-C2（plan 2395）：窗口回绕取模——startIndex>0 时 startIndex+currentCursor
+            // 会越过 n，未取模的下标存入 leastIndexs 后 items.get 直接越界
+            int i = (startIndex + currentCursor) % n;
+            T item = items.get(i);
             currentCursor++;
 
             int active = adapter.getActiveCount(item);// 活跃数

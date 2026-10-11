@@ -70,6 +70,22 @@
 | ORM 模型 | `nop-ai/model/nop-ai.orm.xml` |
 | 引擎可靠性/超时 | `AIREL-001`（见 `../04-reference/source-anchors.md`）：`nop-ai-agent` 的 `DefaultAgentEngine` |
 
+## LLM 方言请求序列化契约（P1-6.7-001..002，plan 2399）
+
+- **Anthropic Messages API 请求侧 role**：仅 `user`/`assistant`（`model` 仅出现在响应侧）——`assistant` 原样保留，映射为 `model` 会使多轮对话第二轮起 400。
+- **工具调用轮**：`ChatToolCallMessage` 的调用参数由 `tool_calls`（OpenAI/Ollama）或 `functionCall`（Gemini）字段承载——不把 arguments JSON 重复置入 `content`/text part（请求体污染消除）。
+- **Reasoning 消息**：只发 thinking 载荷（OpenAI/Ollama `thinking` 字段、Gemini `<thinking>` text part、Anthropic thinking block）——不双发裸文本 content。
+
+## 后台任务状态机与 pgvector 回读（P1-7.1-001/002，plan 2398）
+
+- **后台任务状态机（DefaultBackgroundTaskRegistry）**：`NOTIFICATION_FAILED` 是簿记态（桥通知失败标记），不承载业务语义——Entry 保留 `originalStatus`（首个业务终态 FAILED/TIMEOUT/COMPLETED）；懒重投递成功后桥回调携带原始终态且任务状态**恢复为原始终态**（不会把 FAILED/TIMEOUT 任务误报为 COMPLETED）。
+- **pgvector search 回读**：`PgVectorStore.search` 回读 embedding/content/metadata 三列并填充 VectorData（content 键 + metadata jsonb 的 docId/chunkIndex/indexId 各键）——检索 hits 携带完整来源信息供合成上下文使用。
+
+## Agent 循环契约（P1-6.7-005 / P1-6.7-006，plan 2400）
+
+- **POST_REASONING BAIL 的 tool_call 配对不变量**：`ReActAgentExecutor` 在 BAIL 判定之前已把 assistant 消息与其 `ChatToolCallMessage` 写入 `ctx` 并经 LLM_TURN checkpoint 持久化到 session。BAIL 丢弃该轮时，会为每个 tool_call 注入配对的 `ChatToolResponseMessage.error`（reason 携带 bail 原因）并重同步 persisted session——下一轮请求不携带无 response 的 tool_call（配对严格 provider，如 Anthropic Messages API，不会因 tool_call_id 失配返回 400），崩溃/恢复也不会复现坏配对。空 tool_calls 的 BAIL 行为不变（仅计数/日志/continue）。
+- **上下文窗口独立于生成上限**：压缩触发与 forced-stop 判定的上下文窗口取自独立声明 `ChatOptions.maxContextTokens`（agent 模型侧 `ChatOptionsModel.contextLength` 经 `ChatOptionsHelper.toChatOptions` 映射），缺省回落 `ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS`（128000）。**不得**用 `ChatOptions.maxTokens`（最大生成 token 数，仅约束输出）充当上下文窗口——否则常见配置（如 4096）会使首轮即触达水位而误触发 forced-stop。单一解析入口 `ReActAgentExecutor.resolveMaxContextTokens(ChatOptions)`，由 `AgentCompactionCoordinator`、`PipelineCompactor`、`Layer3FullSummaryStrategy` 共用。
+
 ## NopAiModel 凭证库迁移（credentialId）
 
 `NopAiModel` 增加了可选普通列 `credentialId`（`credential_id VARCHAR(50)`，propId=17），作为指向加密凭证库 `nop_credential` 的**逻辑外键**。运行时消费读取路径**已接通**（W7-successor，2026-08-13；2026-08-17 A1-audit D6-01 修复装配缺位——此前 resolver 实现类从未在 beans.xml 注册（NopIoC 无注解扫描），`ChatServiceImpl.credentialResolver` 恒 null，credentialId 在运行时静默回退 config apiKey）。

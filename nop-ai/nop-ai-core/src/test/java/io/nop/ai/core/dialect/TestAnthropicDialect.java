@@ -388,10 +388,11 @@ public class TestAnthropicDialect extends JunitBaseTestCase {
         Map<String, Object> body = dialect.buildBody(request, config, null, "claude-3-5-sonnet-20241022", false);
 
         List<Map<String, Object>> turnList = (List<Map<String, Object>>) body.get("messages");
-        // system 提为 body.system；其余合并为 3 轮：user → model → user
+        // system 提为 body.system；其余合并为 3 轮：user → assistant → user
+        // （P1-6.7-001：请求侧 role 保持 assistant，映射为 model 会 400）
         assertEquals(3, turnList.size());
         assertEquals("user", turnList.get(0).get("role"));
-        assertEquals("model", turnList.get(1).get("role"));
+        assertEquals("assistant", turnList.get(1).get("role"));
         assertEquals("user", turnList.get(2).get("role"));
 
         List<Map<String, Object>> assistantBlocks = (List<Map<String, Object>>) turnList.get(1).get("content");

@@ -1,5 +1,6 @@
 package io.nop.bytecode.kernel.dataflow;
 
+import io.nop.bytecode.NopBytecodeException;
 import io.nop.bytecode.kernel.cfg.MethodCfg;
 import org.objectweb.asm.tree.MethodNode;
 
@@ -23,6 +24,8 @@ public final class ForwardSolver {
     private final Frame[] inFrames;
     private final Frame[] outFrames;
     private final ArrayDeque<Integer> work = new ArrayDeque<>();
+    /** Wall-clock deadline (System.nanoTime()); 0 = no deadline. Checked per worklist step. */
+    private long deadlineNanos;
 
     public ForwardSolver(MethodNode mn, MethodCfg cfg, DataflowSemantics sem) {
         this.mn = mn;
@@ -41,12 +44,21 @@ public final class ForwardSolver {
         return outFrames[index];
     }
 
+    /** Set a wall-clock deadline for the solve loop (System.nanoTime() base; 0 disables). */
+    public void setDeadlineNanos(long deadlineNanos) {
+        this.deadlineNanos = deadlineNanos;
+    }
+
     public void solve() {
         if (cfg.instructionCount() == 0) return;
         inFrames[0] = sem.initialFrame(mn);
         work.add(0);
 
         while (!work.isEmpty()) {
+            if (deadlineNanos != 0 && System.nanoTime() > deadlineNanos) {
+                throw new NopBytecodeException("Analysis deadline exceeded while solving method '"
+                        + methodNameHint + "'");
+            }
             int i = work.poll();
             Frame cur = inFrames[i].copy();
             if (mn.instructions.get(i).getOpcode() != -1) {

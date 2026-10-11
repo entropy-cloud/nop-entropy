@@ -45,7 +45,7 @@
 | **业务编码 / 单据编号** | ORM 列加 `tagSet="code"` → autoExpr 自动取号；或 BizModel 注入 `ICodeRuleGenerator` | **`../03-runbooks/generate-business-code.md`**（模式语法 / Sequence 并发模型 / 三种调用方式 / 反模式） |
 | **序列号 / 自增主键** | 注入 `ISequenceGenerator.generateLong(seqName, useDefault)`；主键列用 `tagSet="seq"` / `seq-default` | `../03-runbooks/generate-business-code.md`（Sequence 并发模型节）、`../02-core-guides/orm-model-design.md`（主键策略） |
 | **数据字典** | ORM `<dict>` 标签 + `NopSysDict`/`NopSysDictOption`；AMIS select 自动加载 | `../03-runbooks/add-dict-and-constants.md` |
-| **分布式锁** | 注入 `ILockService.tryLock/unlock` | 见下方"分布式锁" |
+| **分布式锁** | 注入 `IResourceLockManager.getLock/callWithLock`（实现 `SysDaoResourceLockManager`，bean `nopSysDaoResourceLockManager`，`ioc:default=true`） | 见下方"分布式锁" |
 | **扩展字段(EAV)** | 实体 `tagSet="use-ext-field"` + `NopSysExtField` | `../02-core-guides/orm-model-design.md` |
 | **国际化(i18n)** | ORM 列 `i18n-en:displayName` + `NopSysI18n` | `../02-core-guides/orm-model-design.md` |
 | **事件队列** | `SysDaoMessageService`（事件存储 + 广播消费 + 普通事件触发原语） / `nop-batch-sys`（普通事件 batch trigger） | 见下方"事件队列" |
@@ -67,13 +67,29 @@ long nextVal = sequenceGenerator.generateLong("order_seq", false);
 
 ## 分布式锁
 
+分布式锁统一入口为 `IResourceLockManager`（`io.nop.commons.concurrent.lock.IResourceLockManager`），nop-sys 提供基于 DB 的实现 `SysDaoResourceLockManager`（bean `nopResourceLockManager`，经 `nop_sys_resource_lock` / `nop_sys_resource_lock_state` 表持久化锁与租约状态）。
+
 ```java
 @Inject
-ILockService lockService;
+IResourceLockManager lockManager;
 
-boolean acquired = lockService.tryLock("order_lock", "lock_group", holderId, expireSeconds);
-lockService.unlock("order_lock", "lock_group", holderId);
+// 推荐：callWithLock 封装获取-执行-释放（默认 waitTime/leaseTime 见 SysDaoResourceLockManager 配置）
+String result = lockManager.callWithLock("order_lock", holderId, "reason",
+        lock -> doInLock());
+
+// 或手动 getLock：IResourceLock extends java.util.concurrent.locks.Lock
+// （lock()/tryLock()/unlock()），另有带租约的 tryLockWithLease(waitTime, leaseTime)
+IResourceLock lock = lockManager.getLock("order_lock", holderId);
+if (lock.tryLockWithLease(0, expireTime)) {
+    try {
+        // ...
+    } finally {
+        lock.unlock();
+    }
+}
 ```
+
+> **勘误记录（P1-3.5-001，plan 2383）**：本文档历史版本记载的唯一入口 `ILockService` 全仓不存在（文档→API→装配三层断裂）；真实入口即上述 `IResourceLockManager`。相关死装配族见审计 P2-3.5-008/009（台账行）。
 
 ## 事件队列
 

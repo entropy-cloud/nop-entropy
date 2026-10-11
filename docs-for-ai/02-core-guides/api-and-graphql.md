@@ -89,6 +89,16 @@
 
 所有 HTTP 入口的统一分发由 `GraphQLWebService` 基类实现（见 `04-reference/source-anchors.md` 的 `GQL-002`）。Spring 适配器为 `SpringGraphQLWebService`，Quarkus 适配器为 `QuarkusGraphQLWebService`。
 
+## GraphQL 查询文档能力边界
+
+自定义 GraphQL 查询（`/graphql` 入口的 query 文档）对 named fragment 与变量的支持语义：
+
+1. **fragment 内变量引用**：named fragment body 的字段参数、body 内字段指令参数、fragment spread 指令参数，均可引用 operation 声明的变量（`GraphQLSelectionResolver` 按文档级并集校验变量存在性；全文档未声明的变量仍报 `nop.err.graphql.unknown-var`）。变量存在性校验发生在 fragment 预解析阶段；平台请求为单 operation 文档，并集与该 operation 的变量集重合。未提供的变量在执行期取 null（与 GraphQL 规范"省略 variables 键等同空变量集"一致）。
+2. **inline fragment 不支持**：`... on Type` 语法在解析期被显式拒绝（错误码 `nop.err.graphql.parse-unsupported-inline-fragment`），属既定工程取舍；named fragment 不受影响。
+3. **平台自有 `@Exclude` 指令**：用于 fragment spread 排除字段（`...F @Exclude(fields: ["name"])`），执行面由 `SelectionBeanBuilder` 求值；`@skip`/`@include` 标准 GraphQL 指令亦可用于字段与 fragment spread。
+
+实现锚点：`nop-graphql-core` 的 `GraphQLSelectionResolver`（校验）与 `SelectionBeanBuilder`（执行求值）；回归测试 `TestGraphQLFragmentVariables`。
+
 ## REST 调用（`/r/`）详细规则
 
 1. `@BizQuery` 可通过 `GET /r/{operationName}` 或 `POST /r/{operationName}` 调用。
@@ -171,7 +181,7 @@ BizModel 方法通过返回 `WebContentBean` 或包含 `contentType` + `content`
 - `requireEntity()` / `save()` / `updateEntity()`
 - 必要时 `txn().afterCommit(...)`
 
-注意：`txn().afterCommit(...)` 依赖当前已有事务。普通 `@BizMutation` 默认有事务；query 场景不要把它当作无条件可用模板。
+注意：`txn().afterCommit(...)` 依赖当前已有事务。普通 `@BizMutation` 默认有事务（R1.10 起 action 级装饰器默认化，后台直调写动作亦生效）；query 场景不要把它当作无条件可用模板。
 
 ## 返回值建议
 
@@ -190,6 +200,8 @@ BizModel 方法的返回值是 `ApiResponse.data`，即**成功场景下的业�
 1. 给已有字段补加载逻辑：`@BizLoader`。
 2. 给已有 API 增加新字段但不改基础代码：Delta + `@BizLoader(autoCreateField = true)`。
 3. 昂贵字段默认配合 `@LazyLoad`，只在 selection 请求时计算。
+
+**批量 loader 的 dispatch 时机**：DataLoader 的调度完全由 GraphQLExecutor 统一驱动，fetcher 只负责「注册 + `load()`」（P1-2.6-004）。调度点有三处：①operation 发起时点名（同步路径的游走内联发生在该点之前，等效回合出口）；②每个游走回合出口（operation 结果回调与嵌套异步字段的续行回合，游走完毕、上游等待之前）；③上一批完成后的递归兜底。因此无论 operation body 是同步还是异步、批量字段在第几层，注册都会被最近的回合出口承接；回合内同 loader 的多次 load 聚合为一批。手写调用方无需（也不应）自行调用 `dispatchAll` 来驱动批量字段；在引擎游走之外直接向 context 注册 loader 并 await 其结果的用法不受支持。
 
 ## XMeta 中可配置的 `graphql:*` 属性完整参考
 

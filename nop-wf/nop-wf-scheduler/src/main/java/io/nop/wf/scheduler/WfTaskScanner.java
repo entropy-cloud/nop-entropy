@@ -10,6 +10,7 @@ import io.nop.wf.api.WfReference;
 import io.nop.wf.api.beans.WfActionRequestBean;
 import io.nop.wf.core.IWorkflowManager;
 import io.nop.wf.core.IWorkflowStep;
+import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.NopWfCoreErrors;
 import io.nop.wf.core.model.IWorkflowModel;
 import io.nop.wf.core.model.IWorkflowStepModel;
@@ -102,8 +103,8 @@ public class WfTaskScanner {
                 }
                 if (NopWfCoreErrors.ERR_WF_NOT_ALLOW_CALL_ACTION_BY_USER.getErrorCode()
                         .equals(e.getErrorCode())) {
-                    // wf-scheduler固定身份对普通user/dept/role步骤必然通不过allowCallByUser：
-                    // 超时动作的触发主体是系统而非用户，该拒绝属预期形态，记录后继续处理后续到期任务
+                    // P1-3.1-002 修复后 scanner context 携带系统触发标记，allowCallByUser 应放行；
+                    // 此分支仅剩防御意义（并发步骤状态变迁竞态下 invokeAction 前置校验仍可能拒绝）
                     LOG.warn("nop.wf.scheduler.due-action-blocked-by-user-check:wfId={},stepId={},dueAction={}",
                             stepRecord.getWfId(), stepRecord.getStepId(), dueAction);
                     continue;
@@ -150,6 +151,9 @@ public class WfTaskScanner {
     private IServiceContext newSchedulerContext() {
         ServiceContextImpl context = new ServiceContextImpl();
         context.getContext().setUserId("wf-scheduler");
+        // P1-3.1-002（plan 2379）：dueAction 的触发主体是系统而非用户，携带系统触发标记使
+        // 引擎 allowCallByUser 对步骤动作调用放行（attr 仅服务端可达，用户请求不可伪造）
+        context.getContext().setAttribute(NopWfCoreConstants.ATTR_WF_SYSTEM_ACTION_TRIGGER, Boolean.TRUE);
         return context;
     }
 }

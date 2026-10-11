@@ -98,6 +98,9 @@ public class TestNopJobFireBizModel extends JunitBaseTestCase {
         saveTask(running);
 
         NopJobTask finished = newTask("task-cancel-n2", fire, TASK_STATUS_SUCCESS);
+        // V.1 全量回归暴露（plan 2409 后）：R1.9 物化的 UK_NOP_JOB_TASK_FIRE_NO(jobFireId,taskNo)
+        // 禁止同 fire 下 taskNo 重复——同 fire 第二个任务必须错开序号（对齐 R1.9 TestJobStoreImpl 先例）
+        finished.setTaskNo(2);
         saveTask(finished);
 
         RecordingCancelHandler handler = new RecordingCancelHandler();

@@ -202,7 +202,7 @@ public class SearchEngineExecutorTest extends JunitBaseTestCase {
         }
 
         @Override
-        public SearchableDoc getDoc(String docId) { return null; }
+        public SearchableDoc getDoc(String topic, String docId) { return null; }
 
         @Override
         public List<SearchableDoc> getDocsByTerm(String topic, String term) { return Collections.emptyList(); }

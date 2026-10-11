@@ -42,6 +42,8 @@ CREATE TABLE nop_datav_export_task(
   constraint PK_nop_datav_export_task primary key (TASK_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_EXPORT_TASK_OWNER on nop_datav_export_task (CREATED_BY) ;
+create index IX_NOP_DATAV_EXPORT_TASK_STATUS on nop_datav_export_task (STATUS) ;
 CREATE TABLE nop_datav_screen(
   SCREEN_ID VARCHAR(32) NOT NULL    COMMENT '大屏ID',
   SCREEN_NAME VARCHAR(100) NOT NULL    COMMENT '大屏名',
@@ -81,6 +83,7 @@ CREATE TABLE nop_datav_chat_session(
   constraint PK_nop_datav_chat_session primary key (SESSION_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_CHAT_SESSION_USER on nop_datav_chat_session (USER_NAME) ;
 CREATE TABLE nop_datav_panel(
   PANEL_ID VARCHAR(32) NOT NULL    COMMENT '面板ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -101,6 +104,7 @@ CREATE TABLE nop_datav_panel(
   constraint PK_nop_datav_panel primary key (PANEL_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_PANEL_DASHBOARD on nop_datav_panel (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_tab(
   TAB_ID VARCHAR(32) NOT NULL    COMMENT '页签ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -118,6 +122,7 @@ CREATE TABLE nop_datav_tab(
   constraint PK_nop_datav_tab primary key (TAB_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_TAB_DASHBOARD on nop_datav_tab (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_dataset_ref(
   DATASET_REF_ID VARCHAR(32) NOT NULL    COMMENT '数据集引用ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -134,6 +139,7 @@ CREATE TABLE nop_datav_dataset_ref(
   constraint PK_nop_datav_dataset_ref primary key (DATASET_REF_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_DATASET_REF_DASHBOARD on nop_datav_dataset_ref (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_snapshot(
   SNAPSHOT_ID VARCHAR(32) NOT NULL    COMMENT '快照ID',
   DASHBOARD_ID VARCHAR(32) NOT NULL    COMMENT '看板ID',
@@ -152,6 +158,7 @@ CREATE TABLE nop_datav_snapshot(
   constraint PK_nop_datav_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_SNAPSHOT_DASHBOARD on nop_datav_snapshot (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_filter_state(
   STATE_ID VARCHAR(32) NOT NULL    COMMENT '状态ID',
   USER_NAME VARCHAR(50) NOT NULL    COMMENT '用户名',
@@ -168,6 +175,7 @@ CREATE TABLE nop_datav_filter_state(
   constraint PK_nop_datav_filter_state primary key (STATE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_FILTER_STATE_DASHBOARD on nop_datav_filter_state (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_share(
   SHARE_ID VARCHAR(32) NOT NULL    COMMENT '分享ID',
   SHARE_TOKEN VARCHAR(64) NOT NULL    COMMENT '分享令牌',
@@ -188,6 +196,7 @@ CREATE TABLE nop_datav_share(
   constraint PK_nop_datav_share primary key (SHARE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_SHARE_DASHBOARD on nop_datav_share (DASHBOARD_ID) ;
 CREATE TABLE nop_datav_report_task(
   REPORT_TASK_ID VARCHAR(32) NOT NULL    COMMENT '报告任务ID',
   TASK_NAME VARCHAR(100) NOT NULL    COMMENT '任务名',
@@ -214,6 +223,9 @@ CREATE TABLE nop_datav_report_task(
   constraint PK_nop_datav_report_task primary key (REPORT_TASK_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_REPORT_TASK_DASHBOARD on nop_datav_report_task (DASHBOARD_ID) ;
+create index IX_NOP_DATAV_REPORT_TASK_OWNER on nop_datav_report_task (CREATED_BY) ;
+create index IX_NOP_DATAV_REPORT_TASK_STATUS on nop_datav_report_task (STATUS) ;
 CREATE TABLE nop_datav_screen_widget(
   WIDGET_ID VARCHAR(32) NOT NULL    COMMENT '组件ID',
   SCREEN_ID VARCHAR(32) NOT NULL    COMMENT '大屏ID',
@@ -237,6 +249,7 @@ CREATE TABLE nop_datav_screen_widget(
   constraint PK_nop_datav_screen_widget primary key (WIDGET_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_SCREEN_WIDGET_SCREEN on nop_datav_screen_widget (SCREEN_ID) ;
 CREATE TABLE nop_datav_screen_snapshot(
   SNAPSHOT_ID VARCHAR(32) NOT NULL    COMMENT '快照ID',
   SCREEN_ID VARCHAR(32) NOT NULL    COMMENT '大屏ID',
@@ -255,6 +268,7 @@ CREATE TABLE nop_datav_screen_snapshot(
   constraint PK_nop_datav_screen_snapshot primary key (SNAPSHOT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_SCREEN_SNAPSHOT_SCREEN on nop_datav_screen_snapshot (SCREEN_ID) ;
 CREATE TABLE nop_datav_chat_message(
   MESSAGE_ID VARCHAR(32) NOT NULL    COMMENT '消息ID',
   SESSION_ID VARCHAR(32) NOT NULL    COMMENT '会话ID',
@@ -273,6 +287,7 @@ CREATE TABLE nop_datav_chat_message(
   constraint PK_nop_datav_chat_message primary key (MESSAGE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_CHAT_MSG_SESSION on nop_datav_chat_message (SESSION_ID) ;
 CREATE TABLE nop_datav_alert_rule(
   ALERT_RULE_ID VARCHAR(32) NOT NULL    COMMENT '告警规则ID',
   RULE_NAME VARCHAR(100) NOT NULL    COMMENT '规则名',
@@ -300,6 +315,9 @@ CREATE TABLE nop_datav_alert_rule(
   constraint PK_nop_datav_alert_rule primary key (ALERT_RULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_ALERT_RULE_PANEL on nop_datav_alert_rule (PANEL_ID) ;
+create index IX_NOP_DATAV_ALERT_RULE_OWNER on nop_datav_alert_rule (CREATED_BY) ;
+create index IX_NOP_DATAV_ALERT_RULE_STATUS on nop_datav_alert_rule (STATUS) ;
 CREATE TABLE nop_datav_report_delivery(
   DELIVERY_ID VARCHAR(32) NOT NULL    COMMENT '交付ID',
   REPORT_TASK_ID VARCHAR(32) NOT NULL    COMMENT '报告任务ID',
@@ -321,6 +339,8 @@ CREATE TABLE nop_datav_report_delivery(
   constraint PK_nop_datav_report_delivery primary key (DELIVERY_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_REPORT_DELIVERY_TASK on nop_datav_report_delivery (REPORT_TASK_ID) ;
+create index IX_NOP_DATAV_REPORT_DELIVERY_STATUS on nop_datav_report_delivery (STATUS) ;
 CREATE TABLE nop_datav_alert_state(
   ALERT_STATE_ID VARCHAR(32) NOT NULL    COMMENT '状态ID',
   ALERT_RULE_ID VARCHAR(32) NOT NULL    COMMENT '告警规则ID',
@@ -342,6 +362,7 @@ CREATE TABLE nop_datav_alert_state(
   constraint PK_nop_datav_alert_state primary key (ALERT_STATE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_DATAV_ALERT_STATE_STATE on nop_datav_alert_state (STATE) ;
 
    ALTER TABLE nop_datav_dashboard COMMENT '看板';
                 

@@ -186,6 +186,8 @@ CREATE TABLE nop_wf_step_instance(
   constraint PK_nop_wf_step_instance primary key (STEP_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_WF_STEP_DUE_TIME on nop_wf_step_instance (STATUS,DUE_TIME) ;
+create index IX_WF_STEP_REMIND_TIME on nop_wf_step_instance (STATUS,REMIND_TIME) ;
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR(32) NOT NULL    COMMENT '工作流实例ID',
   FIELD_NAME VARCHAR(100) NOT NULL    COMMENT '变量名',

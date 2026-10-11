@@ -46,7 +46,7 @@
         </prop>
         <prop name="outputs" displayName="输出结果" propId="6" i18n-en:displayName="Outputs" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="outputsComponent">
-            <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="50"/>
+            <schema stdDomain="json" domain="json-4k" type="java.lang.String" precision="4000"/>
         </prop>
         <prop name="parentId" displayName="父ID" propId="7" i18n-en:displayName="Parent ID" tagSet="parent"
               queryable="true" sortable="true" insertable="true" updatable="true" ui:control="tree-parent"

@@ -8,6 +8,7 @@
 package io.nop.cluster.lb;
 
 import io.nop.cluster.discovery.ServiceInstance;
+import io.nop.cluster.lb.impl.LeastActiveLoadBalance;
 import io.nop.cluster.lb.impl.RandomLoadBalance;
 import io.nop.cluster.lb.impl.RoundRobinLoadBalance;
 import io.nop.cluster.lb.impl.ServiceLoadBalanceAdapter;
@@ -115,6 +116,25 @@ public class TestLoadBalance {
         System.out.println(ArrayHelper.toList(counts));
         for (int count : counts) {
             assertTrue(count > 300);
+        }
+    }
+
+    /**
+     * P1-4.4-C2（plan 2395）：LeastActive 窗口回绕取模——startIndex>0 时
+     * startIndex+currentCursor 越过 n，未取模下标 items.get 直接越界
+     * （修复前 IndexOutOfBoundsException 高概率复现）。
+     */
+    @Test
+    public void testLeastActiveWrapsWithoutOverflow() {
+        LeastActiveLoadBalance<ServiceInstance, String> lb = new LeastActiveLoadBalance<>(
+                new ServiceLoadBalanceAdapter());
+        int n = 3;
+        List<ServiceInstance> items = getItems(n);
+
+        // 活跃数恒 0（adapter 默认）→ 全体并列最小 → 等权随机分支，多轮必触发回绕窗口
+        for (int round = 0; round < 1000; round++) {
+            ServiceInstance picked = lb.choose(items, "a");
+            assertTrue(items.contains(picked), "picked instance must be one of the candidates");
         }
     }
 }

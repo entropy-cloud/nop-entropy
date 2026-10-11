@@ -56,9 +56,12 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_COLLECTION_PREFIX_MISMATCH;
  */
 public class CollectionOperatorTransformer {
     private final IAliasGenerator aliasGenerator;
+    /** R1.6b / P1-2.2-006：与 EqlTransformVisitor 共享的用户/已分配别名集合（引用语义）。 */
+    private final Set<String> assignedAliases;
 
-    public CollectionOperatorTransformer(IAliasGenerator aliasGenerator) {
+    public CollectionOperatorTransformer(IAliasGenerator aliasGenerator, Set<String> assignedAliases) {
         this.aliasGenerator = aliasGenerator;
+        this.assignedAliases = assignedAliases;
     }
 
     public void transform(SqlWhere where) {
@@ -151,7 +154,10 @@ public class CollectionOperatorTransformer {
                 } else if (canMergeScope(scope, scope2)) {
                     removedScopes.add(scope2);
                     it.remove();
-                    scope.setLogicUnitNode(findLogicUnitNode(scope2.getLogicUnitNode().getASTParent()));
+                    // R1.6b / P1-2.2-007：logicUnitNode 的设置已下沉到 canMergeSomeScopes/
+                    // canMergeAllScopes 各分支（共享父提升）；原无条件覆盖行会把跨分支合并的
+                    // commonAnd 覆盖回 scope2 自己的分支，产生悬空引用（unknown-alias[t1]）
+                    // 与静默篡改，故删除。
 
                     // Only re-add if not already merged in this round
                     if (!alreadyMerged.contains(scope)) {
@@ -231,6 +237,9 @@ public class CollectionOperatorTransformer {
                 if (parent1.getASTKind() == EqlASTKind.SqlAndExpr ||
                     parent1.getASTKind() == EqlASTKind.SqlOrExpr) {
                     scope1.merge(scope2);
+                    // R1.6b / P1-2.2-007：共享父提升下沉到本分支（原 mergeConditions :154 的
+                    // 无条件覆盖对跨分支 commonAnd 形态是破坏性的）；本路径的共享父即 parent1
+                    scope1.setLogicUnitNode(findLogicUnitNode(parent1));
                     return true;
                 }
                 return false;
@@ -260,6 +269,8 @@ public class CollectionOperatorTransformer {
             }
 
         scope1.merge(scope2);
+        // R1.6b / P1-2.2-007：共享父提升下沉到本分支（同上）
+        scope1.setLogicUnitNode(findLogicUnitNode(parent1));
         return true;
     }
 
@@ -291,7 +302,12 @@ public class CollectionOperatorTransformer {
     }
 
     private void transformCollectionScope(CollectionScope scope) {
-        
+
+        // 根 scope 在任何树变换前记录被 EXISTS 吸收的外层 NOT 包装数（子 scope 由路径语法构造，恒为 0）
+        if (scope.getParent() == null) {
+            scope.setAbsorbedNotParity(countAbsorbedNots(scope));
+        }
+
         makeAlias(scope);
         
         if (scope.hasChild()) {
@@ -385,7 +401,7 @@ public class CollectionOperatorTransformer {
             conditionExpr = scope.getClonedCondition();
         } else {
             SqlExpr originalCondition = (SqlExpr) scope.getLogicUnitNode();
-            conditionExpr = (SqlExpr) originalCondition.deepClone();
+            conditionExpr = unwrapNotChain((SqlExpr) originalCondition.deepClone());
             scope.setClonedCondition(conditionExpr);
         }
 
@@ -433,31 +449,63 @@ public class CollectionOperatorTransformer {
         return existsExpr;
     }
 
+    /**
+     * EXISTS-not 编码（见 _tmp/fcr-2320-truth-table.md）：
+     * EXISTS-not(scope_i) = (o_i==ALL) XOR (o_{i-1}==ALL) XOR (吸收 NOT 奇偶)；
+     * 叶子条件取反由 replaceLogicNode 按 (o_n==ALL) 独立处理，不受 NOT 影响。
+     */
     private boolean shouldNegateExists(CollectionScope scope) {
-        if (scope.hasChild()) {
-            return false;
+        boolean negate = scope.getOperator() == SqlCollectionOperator.ALL;
+
+        CollectionScope parent = scope.getParent();
+        if (parent != null && parent.getOperator() == SqlCollectionOperator.ALL) {
+            negate = !negate;
         }
-        int allCount = countAllAncestors(scope);
-        return (allCount % 2) == 1;
+
+        if (scope.getAbsorbedNotParity() % 2 == 1) {
+            negate = !negate;
+        }
+        return negate;
     }
 
-    private int countAllAncestors(CollectionScope scope) {
+    private int countAbsorbedNots(CollectionScope scope) {
         int count = 0;
-        CollectionScope current = scope;
-        while (current != null) {
-            if (current.getOperator() == SqlCollectionOperator.ALL) {
+        EqlASTNode node = scope.getColNameNode();
+        EqlASTNode unit = scope.getLogicUnitNode();
+        while (node != null) {
+            if (node instanceof SqlNotExpr) {
                 count++;
             }
-            current = current.getParent();
+            if (node == unit) {
+                break;
+            }
+            node = node.getASTParent();
         }
         return count;
+    }
+
+    /**
+     * 剥离 fresh clone 根部的 NOT 包装链（ absorbs 的 NOT 已由 shouldNegateExists 按 parity 编码进 EXISTS-not），
+     * 返回剥离后的条件根节点。仅对刚 deepClone 出的子树调用。
+     */
+    private SqlExpr unwrapNotChain(SqlExpr expr) {
+        while (expr instanceof SqlNotExpr) {
+            expr = ((SqlNotExpr) expr).getExpr();
+        }
+        expr.setASTParent(null);
+        return expr;
     }
 
     private String makeAlias(CollectionScope scope) {
         String alias = scope.getAlias();
         if (alias == null) {
-            alias = aliasGenerator.genTableAlias();
+            // R1.6b / P1-2.2-006：与 EqlTransformVisitor.makeTableAlias 同纪律——
+            // 跳过用户别名/已分配别名并回登记，否则 EXISTS 子查询同名遮蔽外层别名
+            do {
+                alias = aliasGenerator.genTableAlias();
+            } while (assignedAliases.contains(alias));
             scope.setAlias(alias);
+            assignedAliases.add(alias);
         }
         return alias;
     }
@@ -514,8 +562,7 @@ public class CollectionOperatorTransformer {
             conditionExpr = scope.getClonedCondition();
             conditionExpr.setASTParent(null);
         } else {
-            conditionExpr = (SqlExpr) oldLogicNode.deepClone();
-            conditionExpr.setASTParent(null);
+            conditionExpr = unwrapNotChain((SqlExpr) oldLogicNode.deepClone());
         }
 
 
@@ -523,9 +570,9 @@ public class CollectionOperatorTransformer {
         String collectionPrefix = getFullCollectionPrefix(scope);
         updateColNameOwners(conditionExpr, alias, collectionPrefix);
 
+        // 叶子条件取反只由本 scope 自身的量词决定（∀P 编码为 NOT EXISTS(¬P)），与吸收的 NOT 无关
         if (!scope.hasChild()) {
-            int allCount = countAllAncestors(scope);
-            if (allCount % 2 == 1) {
+            if (scope.getOperator() == SqlCollectionOperator.ALL) {
                 conditionExpr = negateConditionForAll(conditionExpr);
             }
         }
@@ -623,9 +670,11 @@ public class CollectionOperatorTransformer {
             return andExpr;
         }
 
-        // NOT(NOT x) === x
+        // NOT(NOT x) === x（inner 必须 detach，否则 setExpr 时因残留 parent 抛 ast-node-not-allow-multiple-parent）
         if (expr instanceof SqlNotExpr) {
-            return ((SqlNotExpr) expr).getExpr();
+            SqlExpr inner = ((SqlNotExpr) expr).getExpr();
+            inner.setASTParent(null);
+            return inner;
         }
 
         if (expr instanceof SqlBetweenExpr) {

@@ -59,6 +59,9 @@ public class TestOrmTemplate extends AbstractOrmTestCase {
         // 该测试栈的 app.orm.xml 通过 pdman:GenOrm 的 tenantCol="TENANT_ID" 声明了租户列，
         // 所有实体的 useTenant 为 true（见 pdman.xlib useTenant="${colCodeMap[tenantCol] ? true : null}"），
         // 因此 update/delete 与 select 一样必须自动追加缺省租户条件。
+        // R1.6c（plan 2371）起 DML 与 SELECT 对齐注入实体级缺省过滤（SimsClass 为
+        // useTenant 模型，租户条件经 TenantParamBuilder 以参数绑定）——
+        // 旧期望（无租户条件）对应修复前的跨租户写面
         assertEquals("update\n" +
                 "  SIMS_CLASS\n" +
                 "set \n" +

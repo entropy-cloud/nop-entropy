@@ -77,6 +77,16 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
 
     private static final long serialVersionUID = 1L;
 
+    /**
+     * Reserved buffer-key form for a NULL equi-key (P1-2.8-001, plan 2389). SQL join
+     * semantics: NULL never equals NULL (nor anything else), so null-keyed records must
+     * never match — not even each other. {@code String.valueOf(null)} is the string
+     * {@code "null"}, which would collide with a legitimate string equi-key {@code "null"}
+     * and produce phantom matches. The sentinel deliberately avoids {@code SEP}
+     * ({@code \u0000}) so the side/window parsing remains well-formed.
+     */
+    static final String NULL_EQUI_KEY_BUFFER_PREFIX = "\u0001null\u0001";
+
     // R6 plan 2324: the literal lives in TimerStateKeys so the rescale guard and
     // the operator cannot drift apart.
     private static final String BUFFER_STATE = io.nop.stream.core.operators.TimerStateKeys.EQUI_JOIN_BUFFER;
@@ -103,6 +113,11 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> buffer;
     /** R5 KR-7: captured in restoreState (before open), applied deferredly in open(). */
     private transient PerKeyOrderedBuffer<String, JoinSideRecord<Object>> restoredBuffer;
+
+    /** test-visible: restoreState ran before open() and the captured buffer is not yet applied. */
+    boolean hasPendingRestoredBuffer() {
+        return restoredBuffer != null;
+    }
     /** durable copy: one keyed-state entry per buffered element. */
     private transient MapState<String, JoinSideRecord<Object>> bufferState;
 
@@ -326,6 +341,13 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     // ----------------------------------------------------------------
 
     private void emitMatches(JoinSideRecord<Object> rec, long ts) throws Exception {
+        // P1-2.8-001 (plan 2389): SQL join semantics — a NULL equi-key matches nothing
+        // (not even another NULL). The record still buffers and completes as unmatched
+        // on OUTER forms; String.valueOf(null) would otherwise collide with the literal
+        // "null" key and emit phantom pairs.
+        if (rec.getEquiKey() == null) {
+            return;
+        }
         String otherKey = bufferKeyOf(rec.getEquiKey(), !rec.isLeft(), ts);
         for (long[] tsKey : buffer.sortedTimestamps(otherKey)) {
             JoinSideRecord<Object> other = buffer.valueAt(otherKey, tsKey);
@@ -345,6 +367,15 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
 
     private void completeUnmatched(String key) throws Exception {
         for (long[] tsKey : buffer.sortedTimestamps(key)) {
+            // P1-2.8-003 (plan 2389): completion frontier is the watermark. Without this
+            // filter, hash-form completion (run before trim) would complete out-of-order
+            // records with ts > watermark prematurely AND leave them buffered — the later
+            // arriving partner then pairs with them again = double emission. Records
+            // beyond the frontier stay buffered and complete exactly once when the
+            // watermark passes them.
+            if (tsKey[0] > currentWatermark) {
+                continue;
+            }
             JoinSideRecord<Object> rec = buffer.valueAt(key, tsKey);
             if (!rec.isMatched()) {
                 output.collect(new StreamRecord<>(completionOf(sideOf(key), rec), tsKey[0]));
@@ -425,7 +456,9 @@ public class EquiJoinOperator<L, R> extends AbstractStreamOperator<JoinMatch<L, 
     }
 
     private String bufferKeyOf(Object equiKey, boolean left, long ts) {
-        String key = String.valueOf(equiKey) + SEP + (left ? LEFT_TAG : RIGHT_TAG);
+        // null equi-key uses the reserved sentinel form (see NULL_EQUI_KEY_BUFFER_PREFIX)
+        String key = (equiKey == null ? NULL_EQUI_KEY_BUFFER_PREFIX : String.valueOf(equiKey))
+                + SEP + (left ? LEFT_TAG : RIGHT_TAG);
         if (windowDuration != null) {
             key = key + SEP + windowStart(ts);
         }

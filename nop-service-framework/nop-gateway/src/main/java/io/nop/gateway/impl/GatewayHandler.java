@@ -85,7 +85,17 @@ public class GatewayHandler {
     }
 
     /**
-     * 处理网关请求的主入口
+     * Path-level route pre-match (P1-check-gw-49, plan 2390): same router call as
+     * {@link #handle}, without touching the request body — the HTTP filter uses it to
+     * skip body consumption entirely when no gateway route can match this path,
+     * letting unmatched requests pass through to downstream filters untouched.
+     */
+    public boolean hasRouteFor(String requestPath) {
+        return model.getRouter().matchPath(requestPath) != null;
+    }
+
+    /**
+     * 处理网关请求的主入口：路由匹配 → 逐路由执行（拦截器链 + 后端调用）。
      */
     public CompletionStage<ApiResponse<?>> handle(ApiRequest<?> request, IGatewayContext svcCtx) {
         // 匹配路由

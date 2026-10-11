@@ -10,6 +10,7 @@ package io.nop.stream.core.execution;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_OPERATOR_ERROR;
 import io.nop.api.core.time.CoreMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -134,7 +135,13 @@ public class ProcessingTimeServiceDriver implements Runnable {
     /**
      * Executed on the task thread via the mail action. Fires both the direct
      * {@link TaskProcessingTimeService} callbacks and the {@link TimerServiceManager}
-     * (HeapInternalTimerService) processing-time timers.
+     * (HeapInternalTimerService) processing-time timers. Timer failures propagate
+     * (fail-fast): since {@code Mail.control} takes a {@link Runnable}, a checked failure
+     * is rethrown as-is when already unchecked, otherwise wrapped in an unchecked
+     * {@link StreamException} — the mail action's exception escapes through
+     * {@code TaskMailbox.drainAndRun()} into the task loop, exactly like a failure of the
+     * direct {@code processingTimeService.fireDueTimers} path. Timer callbacks must not
+     * be silently swallowed while timers are marked fired.
      */
     private void fireDueTimersOnTaskThread() {
         long now = CoreMetrics.currentTimeMillis();
@@ -143,9 +150,10 @@ public class ProcessingTimeServiceDriver implements Runnable {
             try {
                 timeServiceManager.fireProcessingTimeTimers(now);
             } catch (Exception e) {
-                // TimerServiceManager already catches per-service failures and logs them
-                // (its established robustness contract); this is the unexpected tail.
-                LOG.error("Unexpected failure firing processing-time timers via TimerServiceManager", e);
+                if (e instanceof RuntimeException)
+                    throw (RuntimeException) e;
+                throw new StreamException(ERR_STREAM_OPERATOR_ERROR, e)
+                        .param(ARG_DETAIL, "processing-time timer fire failed via TimerServiceManager");
             }
         }
     }

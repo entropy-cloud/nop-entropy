@@ -17,6 +17,18 @@
 | `nop-stream-sql` | 声明式 SQL 窄范围接口（`.stream.xml` 顶层 `<sql>` 元素编译宿主；使用文档 `03-modules/nop-stream-sql.md`） |
 | `nop-stream-fraud-example` | 复合场景示例（S1/S2 + 分布式演练） |
 
+## 定时器异常语义（fail-fast，P1-6.7-007，plan 2387）
+
+`TimerServiceManager.advanceWatermark/fireProcessingTimeTimers` 对注册的 timer service 逐个尝试：任一失败时**首个异常在全部 service 尝试完毕后抛出**（后续失败 `addSuppressed` 附带）——定时器触发失败必须上抛致任务失败，不允许「失败 service 被跳过 + watermark 照常转发」的静默丢发射。`ProcessingTimeServiceDriver` 的 mail action 不二次吞该异常（经 `TaskMailbox.drainAndRun` 传播至任务循环，与 `TaskProcessingTimeService.fireDueTimers` 直接路径同语义；受检异常按 `ERR_STREAM_OPERATOR_ERROR` 包装为 unchecked）。
+
+## Source reader 恢复时序契约（P1-6.7-008，plan 2387）
+
+`SourceReaderOperator.restoreState` 支持恢复路径的 restore-先于-open 时序（`SupervisionLoop.rebuildTask` 对新建链恢复时 reader 尚未创建）：per-split 位点暂存于 operator，`open()` 内按「reader 创建 → enumerator 交付 flush（追加语义）→ restore flush（**替换语义**，后到者为准）→ `reader.start()`」顺序 flush——`SourceReader.restoreState` 契约为 "Called before start() on recovery"。恢复→重开→续读的 reader 侧位点不丢。
+
+## 双流等值 join 语义注记（P1-2.8-001/002/003，plan 2389）
+
+EquiJoinOperator（hash/window 双形态）三条契约：①NULL 等值键不与任何记录配对（SQL NULL 语义，含另一 NULL），OUTER 形态按未匹配补齐、INNER 随水位修剪丢弃，缓冲键以保留哨兵承载（不与字面量 "null" 键碰撞）；②补齐前缘=水位——仅 ts≤watermark 的未匹配记录被补齐，乱序未越界记录留下轮，配对恰一次（exactly-once）；③恢复路径 restoreState 先于 open（rebuild 链 transient 未建）时快照暂存、open 时合并，合并推进插入序号保证 restore 后新增元素不覆盖恢复条目。规范性设计档为平台内部文档（ai-dev/design/nop-stream/ 下 join-operator 档 §3，按 docs-for-ai 边界规则不以路径引用）。
+
 ## 可观测性与运维面
 
 ### 分层指标标准集（P-REQ-1 / P-REQ-8）

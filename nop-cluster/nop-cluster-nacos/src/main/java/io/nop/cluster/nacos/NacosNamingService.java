@@ -277,7 +277,7 @@ public class NacosNamingService implements INamingService {
         }
     }
 
-    private void copyFromInstance(Instance inst, ServiceInstance ret) {
+    static void copyFromInstance(Instance inst, ServiceInstance ret) {
         ret.setAddr(inst.getIp());
         ret.setPort(inst.getPort());
         ret.setServiceName(inst.getServiceName());
@@ -287,9 +287,13 @@ public class NacosNamingService implements INamingService {
         ret.setInstanceId(inst.getInstanceId());
         ret.setHealthy(inst.isHealthy());
         ret.setWeight((int) inst.getWeight());
+        // P1-4.4-C4（plan 2395）：pos 守卫对齐 ServiceInstance.getNormalizedServiceName——
+        // 无组名的 serviceName（不含 "@@"）原样保留，此前直接 substring 抛 StringIndexOutOfBounds
         int pos = inst.getServiceName().indexOf("@@");
-        ret.setGroupName(inst.getServiceName().substring(0, pos));
-        ret.setServiceName(inst.getServiceName().substring(pos + 2));
+        if (pos > 0) {
+            ret.setGroupName(inst.getServiceName().substring(0, pos));
+            ret.setServiceName(inst.getServiceName().substring(pos + 2));
+        }
 
         if (inst.getMetadata() != null) {
             ret.setMetadata(new TreeMap<>(inst.getMetadata()));

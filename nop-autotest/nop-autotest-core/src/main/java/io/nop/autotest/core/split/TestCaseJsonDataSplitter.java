@@ -125,7 +125,8 @@ public class TestCaseJsonDataSplitter {
             return;
         }
         IEntityModel entityModel = dao.getEntityModel();
-        File entityFile = getInputFile(new File(dir, "tables"), entityModel.getTableName() + ".csv");
+        // P1-6.8-003（plan 2393）：表产物落 <dir>/input/tables/（消费方 AutoTestCaseData 契约）
+        File entityFile = getInputFile(dir, "tables/" + entityModel.getTableName() + ".csv");
         List<String> headers = getColNames(entityModel);
         List<Map<String, Object>> rows = data.stream().map(item -> transformPropToCol(entityModel, item)).collect(Collectors.toList());
         CsvHelper.writeCsv(new FileResource(entityFile), CSVFormat.DEFAULT, headers, rows);
@@ -140,7 +141,8 @@ public class TestCaseJsonDataSplitter {
             return;
         }
         IEntityModel entityModel = dao.getEntityModel();
-        File entityFile = getOutputFile(new File(dir, "tables"), entityModel.getTableName() + ".csv");
+        // P1-6.8-003（plan 2393）：表产物落 <dir>/output/tables/（消费方 AutoTestCaseData 契约）
+        File entityFile = getOutputFile(dir, "tables/" + entityModel.getTableName() + ".csv");
         List<String> headers = getChgFileHeaders(entityModel);
         List<Map<String, Object>> rows = data.stream().map(item -> transformPropToCol(entityModel, item)).collect(Collectors.toList());
         CsvHelper.writeCsv(new FileResource(entityFile), CSVFormat.DEFAULT, headers, rows);
@@ -183,7 +185,8 @@ public class TestCaseJsonDataSplitter {
         }
 
         IEntityModel entityModel = dao.getEntityModel();
-        File tableFile = getInputFile(new File(dir, "tables"), tableName + ".csv");
+        // P1-6.8-003（plan 2393）：表产物落 <dir>/input/tables/（消费方 AutoTestCaseData 契约）
+        File tableFile = getInputFile(dir, "tables/" + tableName + ".csv");
 
         // 获取表头时只保留存在的列
         List<String> headers = getColNames(entityModel);
@@ -233,7 +236,8 @@ public class TestCaseJsonDataSplitter {
         }
 
         IEntityModel entityModel = dao.getEntityModel();
-        File tableFile = getOutputFile(new File(dir, "tables"), tableName + ".csv");
+        // P1-6.8-003（plan 2393）：表产物落 <dir>/output/tables/（消费方 AutoTestCaseData 契约）
+        File tableFile = getOutputFile(dir, "tables/" + tableName + ".csv");
 
         // 获取表头时只保留存在的列
         List<String> headers = getChgFileHeaders(entityModel);

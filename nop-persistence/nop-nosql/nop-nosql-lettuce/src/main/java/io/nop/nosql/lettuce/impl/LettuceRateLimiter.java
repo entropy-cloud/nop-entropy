@@ -37,10 +37,22 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
         this.config = config;
     }
 
+    /**
+     * R1.8 / P1-2.4-001：hash tag（{key}）使双 key 在 Redis Cluster 下同槽，
+     * Lua 多 key 操作不再 CROSSSLOT。
+     */
+    private String tokensKey() {
+        return "{" + key + "}:tokens";
+    }
+
+    private String timestampKey() {
+        return "{" + key + "}:timestamp";
+    }
+
     @Override
     public CompletableFuture<RateLimitResult> tryAcquireAsync(int permits) {
-        String tokensKey = key + ":tokens";
-        String timestampKey = key + ":timestamp";
+        String tokensKey = tokensKey();
+        String timestampKey = timestampKey();
         long now = CoreMetrics.currentTimeMillis() / 1000;
 
         return LettuceExecutor.evalScript(async(), RedisScripts.RATE_LIMIT,
@@ -74,7 +86,7 @@ public class LettuceRateLimiter extends AbstractLettuceOperations implements INo
 
     @Override
     public CompletableFuture<Long> getAvailableTokensAsync() {
-        String tokensKey = key + ":tokens";
+        String tokensKey = tokensKey();
         return async().get(tokensKey)
                 .thenApply(v -> {
                     if (v == null) return config.getCapacity() > 0

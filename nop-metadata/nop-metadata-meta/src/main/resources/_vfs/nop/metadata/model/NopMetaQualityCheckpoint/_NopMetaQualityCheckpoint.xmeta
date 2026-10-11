@@ -53,7 +53,7 @@
         </prop>
         <prop name="status" displayName="状态" propId="8" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" dict="meta/checkpoint-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/checkpoint-status"/>
         </prop>
         <prop name="extConfig" displayName="扩展配置" propId="9" i18n-en:displayName="Ext Config" queryable="true"
               sortable="true" insertable="true" updatable="true" graphql:jsonComponentProp="extConfigComponent">

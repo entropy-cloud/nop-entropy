@@ -114,6 +114,7 @@ CREATE TABLE nop_task_step_instance(
   constraint PK_nop_task_step_instance primary key (STEP_INSTANCE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_TASK_STEP_TASK_ID on nop_task_step_instance (TASK_INSTANCE_ID) ;
 
    ALTER TABLE nop_task_definition COMMENT '逻辑流模型定义';
                 

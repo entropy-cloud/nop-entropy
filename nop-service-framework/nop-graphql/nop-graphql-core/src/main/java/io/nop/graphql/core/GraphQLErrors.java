@@ -10,6 +10,7 @@ package io.nop.graphql.core;
 import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.ApiConstants.API_STATUS_BAD_REQUEST;
+import static io.nop.api.core.ApiConstants.API_STATUS_FAIL;
 import static io.nop.api.core.ApiConstants.API_STATUS_FORBIDDEN;
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
@@ -423,4 +424,12 @@ public interface GraphQLErrors {
 
     ErrorCode ERR_GRAPHQL_CANCEL_REQ_ID_CONFLICT = define(API_STATUS_BAD_REQUEST, "nop.err.graphql.cancel.req-id-conflict",
             "请求ID[{reqId}]已被其他用户注册，不允许复用", ARG_REQ_ID);
+
+    // 严格模式 fail-closed（P1-2.6 fail-open 三处收敛，plan 2378 Phase 3）
+    String ARG_ENABLE_ACTION_AUTH = "enableActionAuth";
+
+    ErrorCode ERR_GRAPHQL_NO_ACTION_AUTH_CHECKER = define(API_STATUS_FAIL, "nop.err.graphql.no-action-auth-checker",
+            "操作权限验证已启用(enable-action-auth={enableActionAuth})但IActionAuthChecker bean缺席，"
+                    + "require-auth-checker=true时禁止fail-open跳过权限检查",
+            ARG_ENABLE_ACTION_AUTH);
 }

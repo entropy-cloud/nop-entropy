@@ -17,6 +17,8 @@ import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.OrmConstants;
 import io.nop.orm.ddl.DdlSqlCreator;
 import io.nop.orm.model.IEntityModel;
+import io.nop.orm.model.OrmEntityModel;
+import io.nop.orm.model.OrmIndexModel;
 import io.nop.orm.model.IOrmModel;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -74,6 +76,16 @@ public class DataBaseSchemaInitializer {
                 if (!jdbcTemplate.existsTable(querySpace, table.getTableName())) {
                     jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
                             .name("create:" + table.getTableName()).sql(createSql).end());
+
+                    // R1.9 / 平台工单-2.5：建表后物化 model 中的 <index>（含 unique=true），
+                    // 与 deploy 生成路径对齐。此前自动建表只建表不建索引。
+                    if (table instanceof OrmEntityModel) {
+                        for (OrmIndexModel index : ((OrmEntityModel) table).getIndexes()) {
+                            String indexSql = creator.addIndex(table, index);
+                            jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
+                                    .name("createIndex:" + index.getName()).sql(indexSql).end());
+                        }
+                    }
                 }
             } else {
                 for (String physicalTableName : shardTables) {
@@ -82,6 +94,16 @@ public class DataBaseSchemaInitializer {
                     String createSql = creator.createTable(table, false, physicalTableName);
                     jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
                             .name("create:" + physicalTableName).sql(createSql).end());
+
+                    // R1.9 / 平台工单-2.5：分片物理表同样物化 <index>（物理表名代入模板）
+                    if (table instanceof OrmEntityModel) {
+                        for (OrmIndexModel index : ((OrmEntityModel) table).getIndexes()) {
+                            String indexSql = creator.addIndex(table, index, physicalTableName);
+                            jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
+                                    .name("createIndex:" + physicalTableName + ":" + index.getName())
+                                    .sql(indexSql).end());
+                        }
+                    }
                 }
             }
         }

@@ -42,6 +42,13 @@
             <artifactId>nop-web</artifactId>
         </dependency>
 
+        <!-- plan 2406 (P1-4.2-001): adapter contract tests; version managed by quarkus-bom -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 

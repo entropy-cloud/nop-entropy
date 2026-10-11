@@ -174,4 +174,36 @@ public class TestEquiJoinWithCheckpoint {
         public void close() {
         }
     }
+
+    /**
+     * P1-2.8-002 (plan 2389): production recovery rebuilds the operator chain and calls
+     * restoreState BEFORE open() (SupervisionLoop.rebuildTask → deepCopy fresh instance
+     * with transient buffer == null). The restored working-view snapshot must be stashed
+     * and merged at open() — pre-fix this path NPE'd on the null transient buffer.
+     */
+    @Test
+    public void restoreBeforeOpenStashesAndMergesAtOpen() throws Exception {
+        EquiJoinOperator<String, String> op1 = openJoin(JoinType.INNER);
+        feed(op1, true, "k", "a", 10);
+
+        CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
+        op1.processBarrier(barrier);
+        OperatorSnapshotResult snapshot = op1.getLastSnapshotResult();
+        assertNotNull(snapshot);
+
+        // production sequence: restoreState on a fresh (not yet opened) instance
+        EquiJoinOperator<String, String> op2 = new EquiJoinOperator<>(JoinType.INNER, null, 0L);
+        op2.setStateBackend(new MemoryStateBackend());
+        op2.setOutput(new CheckpointListOutput());
+        op2.restoreState(snapshot); // must not NPE; stash-only pre-open
+        assertTrue(op2.hasPendingRestoredBuffer(), "snapshot stashed, not yet merged");
+
+        op2.open();
+        assertEquals(1, op2.bufferedCount(),
+                "stashed snapshot merged into the working view at open()");
+
+        // join continuity across the production-sequence restore
+        feed(op2, false, "k", "b", 20);
+        assertEquals(List.of("J|a|b"), outs(op2), "restored buffer joins post-restore arrival");
+    }
 }

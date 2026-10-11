@@ -1,5 +1,6 @@
 {
   "data": {
+    "id": "@var:NopMetaQualityRule@qualityRuleId",
     "qualityRuleId": "@var:NopMetaQualityRule@qualityRuleId",
     "ruleName": "auto-test-qrule-01",
     "displayName": "Auto Test Quality Rule",
@@ -10,15 +11,15 @@
     "entityId": "auto-test-table-01",
     "severity": "ERROR",
     "severity_label": "ERROR-错误",
-    "sqlExpression": null,
-    "threshold": null,
-    "params": null,
-    "extConfig": null,
     "version": 0,
     "createdBy": "autotest-ref",
     "createTime": "@var:NopMetaQualityRule@createTime",
     "updatedBy": "autotest-ref",
     "updateTime": "@var:NopMetaQualityRule@createTime",
+    "sqlExpression": null,
+    "threshold": null,
+    "params": null,
+    "extConfig": null,
     "remark": null
   },
   "status": 0

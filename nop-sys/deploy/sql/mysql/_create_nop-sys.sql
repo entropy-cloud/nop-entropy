@@ -207,6 +207,7 @@ CREATE TABLE nop_sys_event(
   constraint PK_nop_sys_event primary key (EVENT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_SYS_EVENT_TOPIC_STATUS on nop_sys_event (EVENT_TOPIC,EVENT_STATUS,SCHEDULE_TIME) ;
 CREATE TABLE nop_sys_broadcast_event(
   EVENT_ID BIGINT NOT NULL    COMMENT '事件ID',
   EVENT_TOPIC VARCHAR(100) NOT NULL    COMMENT '事件主题',
@@ -226,6 +227,7 @@ CREATE TABLE nop_sys_broadcast_event(
   constraint PK_nop_sys_broadcast_event primary key (EVENT_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_SYS_BROADCAST_TOPIC_TIME on nop_sys_broadcast_event (EVENT_TOPIC,EVENT_TIME) ;
 CREATE TABLE nop_sys_service_instance(
   INSTANCE_ID VARCHAR(50) NOT NULL    COMMENT '服务实例ID',
   SERVICE_NAME VARCHAR(100) NOT NULL    COMMENT '服务名',

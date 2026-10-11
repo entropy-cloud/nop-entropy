@@ -114,6 +114,7 @@ CREATE TABLE nop_task_step_instance(
   constraint PK_nop_task_step_instance primary key (STEP_INSTANCE_ID)
 );
 
+create index IX_TASK_STEP_TASK_ID on nop_task_step_instance (TASK_INSTANCE_ID) ;
 
       COMMENT ON TABLE nop_task_definition IS '逻辑流模型定义';
                 

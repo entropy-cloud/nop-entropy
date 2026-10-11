@@ -11,12 +11,17 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.dao.AbstractDaoHandler;
+import io.nop.core.resource.component.ResourceComponentManager;
+import io.nop.core.resource.component.version.ResourceVersionHelper;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.ITaskStepState;
 import io.nop.task.TaskConstants;
+import io.nop.task.model.TaskFlowModel;
+import io.nop.task.model.TaskInputModel;
+import io.nop.task.model.TaskOutputModel;
 import io.nop.task.core._NopTaskCoreConstants;
 import io.nop.task.dao.entity.NopTaskInstance;
 import io.nop.task.dao.entity.NopTaskStepInstance;
@@ -27,8 +32,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import static io.nop.task.dao.entity._gen._NopTaskInstance.PROP_NAME_taskInstanceId;
 import static io.nop.task.dao.entity._gen._NopTaskStepInstance.PROP_NAME_stepPath;
@@ -169,10 +177,14 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         // plan 349 Phase 6（closure audit 修正）：task 输入（request）持久化到既有 taskInputs 列
         // （VARCHAR 4000，"逻辑流参数"——引擎此前从未写该列），使跨进程 resume 可恢复任务输入；
         // 为 null 时显式清列。taskVars 无对应列，维持暂缓裁定（不新增 ORM 列）。
+        // P1-3.2-005 / F-WF-02-1（plan 2380）：secret 标记脱敏契约——按 task 模型声明的
+        // secret 属性名集过滤落库 JSON（递归键匹配，宁过滤勿漏）
+        Set<String> secretProps = collectSecretProps(state.getTaskName(), state.getTaskVersion());
+
         Object request = state.getRequest();
         if (request != null) {
             try {
-                String inputsJson = JsonTool.serialize(request, false);
+                String inputsJson = filterSecretProps(JsonTool.serialize(request, false), secretProps);
                 if (inputsJson != null && inputsJson.length() <= 4000) {
                     entity.setTaskInputs(inputsJson);
                 } else {
@@ -193,7 +205,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         Object resultValue = state.getResultValue();
         if (resultValue != null) {
             try {
-                String json = JsonTool.serialize(resultValue, false);
+                String json = filterSecretProps(JsonTool.serialize(resultValue, false), secretProps);
                 if (json != null) {
                     if (json.length() <= REMARK_MAX_LEN)
                         entity.setRemark(json);
@@ -224,7 +236,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                 if (errMsg != null && errMsg.length() > TASK_ERR_MSG_MAX_LEN)
                     errMsg = errMsg.substring(0, TASK_ERR_MSG_MAX_LEN);
                 entity.setErrMsg(errMsg);
-                String errorBeanJson = serializeErrorBeanData(exp, errorBean);
+                String errorBeanJson = filterSecretProps(serializeErrorBeanData(exp, errorBean), secretProps);
                 if (errorBeanJson != null)
                     entity.setErrorBeanData(errorBeanJson);
             }
@@ -351,7 +363,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
                         ? StringHelper.generateUUID() : state.getStepInstanceId());
             }
             state.beforeSave(stepRt.getTaskRuntime());
-            copyStepStateToEntity(state, entity);
+            Set<String> secretProps = collectSecretProps(stepRt.getTaskRuntime().getTaskName(),
+                    stepRt.getTaskRuntime().getTaskVersion());
+            copyStepStateToEntity(state, entity, secretProps);
             if (isNew)
                 stepDao().saveEntityDirectly(entity);
             else
@@ -470,6 +484,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
     }
 
     protected void copyStepStateToEntity(ITaskStepState state, NopTaskStepInstance entity) {
+        copyStepStateToEntity(state, entity, Collections.emptySet());
+    }
+
+    protected void copyStepStateToEntity(ITaskStepState state, NopTaskStepInstance entity, Set<String> secretProps) {
         entity.setTaskInstanceId(state.getTaskInstanceId());
         String stepType = state.getStepType();
         entity.setStepType(StringHelper.isEmpty(stepType) ? TaskConstants.STEP_TYPE_SIMPLE : stepType);
@@ -495,7 +513,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         // plan 349 Phase 6: 版本化 wrapper 将 resultValue/stateBean（loop/fork/if/choose/suspend 的
         // continuation 状态）/outputs/nextStepName/persistVars 序列化到既有 stateBeanData 列；
         // 序列化返回 null（失败/超长降级后仍超限）时显式清空列，修复残留旧值误导展示层
-        entity.setStateBeanData(serializeStepStateData(state));
+        entity.setStateBeanData(serializeStepStateData(state, secretProps));
 
         // exception 提取 errCode + errMsg
         // plan 261: 追加完整 ErrorBean JSON（含 params + cause chain）持久化到 errorBeanData，使 cross-restart resume
@@ -506,7 +524,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             if (errorBean != null) {
                 entity.setErrCode(errorBean.getErrorCode());
                 entity.setErrMsg(errorBean.getDescription());
-                String errorBeanJson = serializeErrorBeanData(exp, errorBean);
+                String errorBeanJson = filterSecretProps(serializeErrorBeanData(exp, errorBean), secretProps);
                 if (errorBeanJson != null)
                     entity.setErrorBeanData(errorBeanJson);
             }
@@ -540,6 +558,10 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
      * 超长时优先剥离扩展字段仅保留 resultValue（终态 result 持久化优先），仍超限返回 null（列清空，有日志）。
      */
     protected String serializeStepStateData(ITaskStepState state) {
+        return serializeStepStateData(state, Collections.emptySet());
+    }
+
+    protected String serializeStepStateData(ITaskStepState state, Set<String> secretProps) {
         // 全空 payload 直接清列（plan 349 Phase 6：不残留旧数据）
         if (state.getResultValue() == null && state.getStateBean(Object.class) == null
                 && state.getOutputs() == null && state.getSavedNextStepName() == null
@@ -554,7 +576,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         wrapper.put("nextStepName", state.getSavedNextStepName());
         wrapper.put("persistVars", state.getPersistVarsSnapshot());
         try {
-            String json = JsonTool.serialize(wrapper, false);
+            String json = filterSecretProps(JsonTool.serialize(wrapper, false), secretProps);
             if (json != null && json.length() <= 4000)
                 return json;
 
@@ -562,7 +584,7 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
             Map<String, Object> minimal = new LinkedHashMap<>();
             minimal.put(STATE_DATA_VERSION_KEY, STATE_DATA_VERSION_VALUE);
             minimal.put("resultValue", state.getResultValue());
-            json = JsonTool.serialize(minimal, false);
+            json = filterSecretProps(JsonTool.serialize(minimal, false), secretProps);
             if (json != null && json.length() <= 4000) {
                 LOG.warn("nop.task.step-state-data-too-long:stepPath={},degrade=resultValueOnly",
                         state.getStepPath());
@@ -899,4 +921,84 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         Object val = params.get(PARAM_EXCEPTION_CLASS);
         return val == null ? null : val.toString();
     }
+
+    /**
+     * P1-3.2-005 / F-WF-02-1（plan 2380）：收集 task 模型中声明 secret="true" 的 input/output
+     * 属性名集。模型不可解析（路径未注册/加载失败）时返回空集=不过滤（保持既有落库行为，
+     * 与模型解析失败的容错语义一致）。
+     */
+    protected Set<String> collectSecretProps(String taskName, Long taskVersion) {
+        if (StringHelper.isEmpty(taskName))
+            return Collections.emptySet();
+        try {
+            long version = taskVersion == null ? 0L : taskVersion;
+            String path = ResourceVersionHelper.buildResolvePath(TaskConstants.MODEL_TYPE_TASK, taskName, version);
+            Object component = ResourceComponentManager.instance().loadComponentModel(path);
+            return secretPropsOfModel(component);
+        } catch (Exception e) {
+            LOG.debug("nop.task.collect-secret-props-failed:taskName={}", taskName, e);
+            return Collections.emptySet();
+        }
+    }
+
+    Set<String> secretPropsOfModel(Object flowModelObj) {
+        if (!(flowModelObj instanceof TaskFlowModel))
+            return Collections.emptySet();
+        TaskFlowModel flowModel = (TaskFlowModel) flowModelObj;
+        Set<String> ret = new HashSet<>();
+        collectSecret(flowModel.getInputs(), true, ret);
+        collectSecret(flowModel.getOutputs(), false, ret);
+        return ret;
+    }
+
+    private void collectSecret(java.util.List<?> models, boolean input, Set<String> ret) {
+        if (models == null)
+            return;
+        for (Object modelObj : models) {
+            if (input && modelObj instanceof TaskInputModel && ((TaskInputModel) modelObj).isSecret())
+                ret.add(((TaskInputModel) modelObj).getName());
+            if (!input && modelObj instanceof TaskOutputModel && ((TaskOutputModel) modelObj).isSecret())
+                ret.add(((TaskOutputModel) modelObj).getName());
+        }
+    }
+
+    /**
+     * 按 secret 属性名集过滤落库 JSON：递归删除任意层级同名键（宁过滤勿漏）。
+     * 空集短路返回原文（字节级零变化）；解析/序列化失败返回原文（fail-open，warn 可见）——
+     * 过滤作用于自家刚产出的 JSON，失败属异常路径，保持 resume 数据完整性优先。
+     */
+    protected String filterSecretProps(String json, Set<String> secretProps) {
+        if (StringHelper.isEmpty(json) || secretProps == null || secretProps.isEmpty())
+            return json;
+        try {
+            Object parsed = JsonTool.parse(json);
+            Object filtered = stripSecretKeys(parsed, secretProps);
+            return JsonTool.serialize(filtered, false);
+        } catch (Exception e) {
+            LOG.warn("nop.task.filter-secret-props-failed", e);
+            return json;
+        }
+    }
+
+    private Object stripSecretKeys(Object value, Set<String> secretProps) {
+        if (value instanceof Map) {
+            Map<?, ?> map = (Map<?, ?>) value;
+            Map<String, Object> ret = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> en : map.entrySet()) {
+                if (en.getKey() != null && secretProps.contains(en.getKey().toString()))
+                    continue;
+                ret.put(String.valueOf(en.getKey()), stripSecretKeys(en.getValue(), secretProps));
+            }
+            return ret;
+        }
+        if (value instanceof Iterable) {
+            java.util.List<Object> ret = new java.util.ArrayList<>();
+            for (Object item : (Iterable<?>) value) {
+                ret.add(stripSecretKeys(item, secretProps));
+            }
+            return ret;
+        }
+        return value;
+    }
+
 }

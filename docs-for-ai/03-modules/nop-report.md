@@ -8,7 +8,7 @@
 - **三种输出载体**：XLSX、PDF（PDFBox 直接渲染）、HTML（屏幕预览）—— 均可作打印载体
 - **套打**：背景图（`ExcelImage.print=false`）屏幕可见、打印隐藏，动态文字对位填表单
 - 数据集支持程序构造 / 原生 SQL / ORM / query-bean（`xpt-rt.xlib` 标签）
-- 角色级报表与数据源访问权限
+- 角色级报表与数据源访问权限（**预留未接线**——权限表可配置但渲染与取数链路当前不校验，勿依赖；勘误见下方实体表标注）
 - 报表结果文件缓存
 - 可从导入模板（Excel + `imp.xml`）自动生成报表模型
 
@@ -25,12 +25,12 @@
 | 实体 | 表名 | 用途 |
 |------|------|------|
 | NopReportDefinition | `nop_report_definition` | 报表定义 |
-| NopReportDefinitionAuth | `nop_report_definition_auth` | 报表访问权限（按角色） |
+| NopReportDefinitionAuth | `nop_report_definition_auth` | 报表访问权限（按角色；**预留未接线**——引擎渲染/取数当前不消费，P1-3.6-002） |
 | NopReportDataset | `nop_report_dataset` | 数据集定义 |
 | NopReportSubDataset | `nop_report_sub_dataset` | 子数据集关联 |
 | NopReportDatasetRef | `nop_report_dataset_ref` | 报表-数据集引用 |
 | NopReportDatasource | `nop_report_datasource` | 数据源定义 |
-| NopReportDatasourceAuth | `nop_report_datasource_auth` | 数据源权限（按角色） |
+| NopReportDatasourceAuth | `nop_report_datasource_auth` | 数据源权限（按角色；**预留未接线**——同上，P1-3.6-002） |
 | NopReportResultFile | `nop_report_result_file` | 缓存的报表结果文件 |
 
 ## 子模块

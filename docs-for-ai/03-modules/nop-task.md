@@ -27,6 +27,8 @@
 **安全与授权边界（plan 364 裁定）**：
 - `NopTaskDefinitionAuth`（任务定义权限）**当前仅为登记用途，不参与执行鉴权**——引擎加载与执行路径不消费 definitionAuths，配置它不产生任何强制效果（管理页已同文标注）；接入执行入口鉴权为独立后续计划。
 - 任务实例/步骤表的错误诊断列（errCode/errMsg/errorStack/errorBeanData）持久化是既定设计（plan 265/266），读出面经通用 CRUD `query` 权限可见、**无字段级裁剪**——裁定为 residual-risk-only：内部类名/XPL 栈可辅助框架测绘、异常 params 可能含业务值，部署时应将 `NopTaskInstance:query` 授予可信角色。
+- **持久化明文 residual-risk 全列清单（F-WF-02-1 脱敏契约，plan 2380）**：除错误诊断列外，以下列同样以结构化明文落库且读出面无字段级裁剪——`taskInputs`（任务输入 request）、`remark`（终态 resultValue）、`stateBeanData`（resultValue/stateBean/outputs/nextStepName/persistVars 版本化 wrapper）、`errorBeanData`（ErrorBean 含 params + cause chain）。DB 泄露即暴露结构化明文，部署时应将实例/步骤表的 `query` 权限收敛到可信角色。
+- **`secret` 标记脱敏契约（plan 2380）**：task 模型的 `<input>`/`<output>` 属性支持 `secret="true"`——`DaoTaskStateStore` 序列化落库（taskInputs/remark/stateBeanData/errorBeanData 五锚点）时按声明名集递归排除同名键（任意层级、宁过滤勿漏）。语义要点：①无 secret 声明的任务落库行为字节级零变化；②**secret 属性不持久化 → 中断恢复（resume）时该属性不可用**（输出可由步骤体重算的才适合标记）；③过滤失败的异常路径 fail-open 返回原文（resume 数据完整性优先，warn 可见）；④落库加密（encrypted-at-rest）为正交补充手段，平台不翻 persist 缺省、不内置加密。
 - 任务实例表族**无租户列**（tenantId/namespaceId）：多租户场景的行级隔离需应用层自行过滤（数据权限按租户过滤对本模块不可下推）。
 - `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）；注册表为强引用、按配置容量阈值告警（plan 364 [05-04]，在用实例永不驱逐）。
 
@@ -101,7 +103,7 @@ task flow 的权威定义文件是 `*.task.xml`，由 `nop/schema/task/task.xdef
 
 NopTaskFlow **默认复用外部环境中的事务**，不自带事务边界：
 
-- task flow 作为 xbiz 的 action 直接定义（见下文"用法一"），或在某个 action（`@BizMutation`）内被调用时，整条流程跑在该 action 所开启的**同一个事务**内，零额外配置。
+- task flow 作为 xbiz 的 action 直接定义（见下文"用法一"），或在某个 action（`@BizMutation`）内被调用时，整条流程跑在该 action 所开启的**同一个事务**内，零额外配置（action 的事务由入口层决定：R1.10 起 `@BizMutation` 经 action 装饰器默认开启，经 GraphQL mutation 入口另有 operation 层事务；见 `../03-runbooks/transaction-boundaries.md` 入口矩阵）。
 - 需要对某个步骤做更细粒度控制时（子流程独立事务、某步失败不回滚前置步骤），在对应 `<step>` 上配置 `<decorator bean="..." >`，使用 `nop-task-ext` 提供的 `TransactionTaskStepDecorator`，指定 `txnGroup` 与 `propagation`（`REQUIRES_NEW` 等）。
 - 对应还有 `OrmSessionTaskStepDecorator`（管理 ORM 会话）等，都在 `nop-task-ext`。
 
@@ -117,7 +119,7 @@ xbiz schema 原生支持把一个 BizModel action 直接绑定到 task flow 定�
 <mutation name="approveOrder" task:name="approve-order" task:version="1"/>
 ```
 
-绑定后，`<arg>` 和 `<return>` 由 task flow 的 `<input>` / `<output>` 定义**自动生成**（实现见 `BizActionGenHelper.buildBizActionFromActionModel`），不需要手写。task 的 input name/type/mandatory/schema 直接映射为 xbiz 的 arg 属性。该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>`（或 `@BizMutation` 默认）开启，task flow 内部所有 step 默认复用。
+绑定后，`<arg>` 和 `<return>` 由 task flow 的 `<input>` / `<output>` 定义**自动生成**（实现见 `BizActionGenHelper.buildBizActionFromActionModel`），不需要手写。task 的 input name/type/mandatory/schema 直接映射为 xbiz 的 arg 属性。该 action 的执行体就是这个 task flow。事务由 action 的 `<txn>` 显式声明或 `@BizMutation` 默认（R1.10 起 action 装饰器）开启，task flow 内部所有 step 默认复用。
 
 ### 用法二：在 BizModel/Processor Java 内调用 task flow（命令式）
 
@@ -131,7 +133,7 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 
     @BizMutation
     public ApproveResult approveOrder(@RequestBean ApproveRequest req, IServiceContext ctx) {
-        // 1. 事务由 @BizMutation 开启；状态真相源的写回留在 Java
+        // 1. 事务由 @BizMutation 经 action 装饰器默认开启（R1.10 起）；状态真相源的写回留在 Java
         // 2. 内部编排交给 task flow（复用本事务）
         ITask task = taskFlowManager.getTask("sal-approve-order", 1);
         ITaskRuntime taskRt = taskFlowManager.newTaskRuntime(task, false, ctx);

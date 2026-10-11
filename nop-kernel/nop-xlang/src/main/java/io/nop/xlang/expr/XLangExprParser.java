@@ -8,16 +8,12 @@
 package io.nop.xlang.expr;
 
 import io.nop.antlr4.common.ParseTreeResult;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.ast.Expression;
 import io.nop.xlang.ast.Program;
-import io.nop.xlang.compile.BuildExecutableProcessor;
-import io.nop.xlang.compile.LexicalScopeAnalysis;
-import io.nop.xlang.compile.PrintResolvedIdentifier;
-import io.nop.xlang.compile.TypeInferenceProcessor;
-import io.nop.xlang.compile.TypeInferenceState;
 import io.nop.xlang.parse.XLangASTBuildVisitor;
 import io.nop.xlang.parse.XLangParseTreeParser;
 import io.nop.xlang.parse.antlr.XLangParser;
@@ -25,10 +21,49 @@ import io.nop.xlang.xpl.impl.XplExprParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static io.nop.xlang.XLangConfigs.CFG_XLANG_TYPE_INFERENCE_ENABLED;
+import java.util.Iterator;
+import java.util.ServiceLoader;
+
+import static io.nop.xlang.XLangErrors.ERR_EXEC_COMPILER_NOT_REGISTERED;
 
 public class XLangExprParser implements IXLangExprParser {
     private static final Logger LOG = LoggerFactory.getLogger(XLangExprParser.class);
+
+    private static final Object s_lock = new Object();
+    /** 显式注册的编译器（测试/定制覆盖入口）；null 表示未注册（回退 ServiceLoader 默认实现） */
+    private static volatile IExecutableExprCompiler s_override;
+    /** 显式注册标志：置位后不再回退 ServiceLoader（支持 set(null) 模拟未注册态） */
+    private static volatile boolean s_explicit;
+    /** ServiceLoader 解析结果缓存（null 表示已解析但 classpath 无实现） */
+    private static volatile IExecutableExprCompiler s_default;
+
+    /**
+     * 注册编译器覆盖实例。传 null 可清除覆盖并进入显式未注册态（后续解析直接失败，不再回退默认实现）。
+     */
+    public static void registerExecutableExprCompiler(IExecutableExprCompiler compiler) {
+        s_override = compiler;
+        s_explicit = true;
+    }
+
+    public static IExecutableExprCompiler requireExecutableExprCompiler() {
+        if (s_explicit)
+            return s_override;
+
+        IExecutableExprCompiler compiler = s_default;
+        if (compiler != null)
+            return compiler;
+
+        synchronized (s_lock) {
+            if (s_default == null)
+                s_default = resolveDefaultCompiler();
+            return s_default;
+        }
+    }
+
+    private static IExecutableExprCompiler resolveDefaultCompiler() {
+        Iterator<IExecutableExprCompiler> it = ServiceLoader.load(IExecutableExprCompiler.class).iterator();
+        return it.hasNext() ? it.next() : null;
+    }
 
     @Override
     public Program parseFullExpr(SourceLocation loc, String source, IXLangCompileScope scope, boolean resolveMacro) {
@@ -59,25 +94,9 @@ public class XLangExprParser implements IXLangExprParser {
 
     @Override
     public IExecutableExpression buildExecutable(Expression expr, boolean optimize, IXLangCompileScope scope) {
-        expr = new LexicalScopeAnalysis(scope).analyze(expr);
-
-        if (LOG.isTraceEnabled()) {
-            PrintResolvedIdentifier print = new PrintResolvedIdentifier();
-            print.visit(expr);
-            LOG.trace(print.getOutput());
-        }
-
-        if (CFG_XLANG_TYPE_INFERENCE_ENABLED.get()) {
-            TypeInferenceProcessor typeInference = new TypeInferenceProcessor();
-            typeInference.processAST(expr, new TypeInferenceState());
-            // 类型推导错误以警告日志形式暴露，不中断编译
-            if (typeInference.getErrors().hasErrors()) {
-                for (io.nop.xlang.compile.TypeErrorCollector.TypeError typeError : typeInference.getErrors().getErrors()) {
-                    LOG.warn("nop_xlang_type_inference_error: {}", typeError);
-                }
-            }
-        }
-
-        return new BuildExecutableProcessor().processAST(expr, scope);
+        IExecutableExprCompiler compiler = requireExecutableExprCompiler();
+        if (compiler == null)
+            throw new NopException(ERR_EXEC_COMPILER_NOT_REGISTERED);
+        return compiler.buildExecutable(expr, optimize, scope);
     }
 }

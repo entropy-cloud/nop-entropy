@@ -8,6 +8,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dyn.dao.entity.NopDynModule;
+import io.nop.dyn.service.NopDynErrors;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.entity.NopDynEntity;
 import io.nop.orm.IOrmEntitySet;
@@ -39,6 +41,42 @@ public class TestNopDynModuleBizModel extends JunitBaseTestCase {
 
         ormTemplate.runInSession(() -> {
             bizModel.generateByAI(ormText, null, null);
+        });
+    }
+
+    /**
+     * P1-3.7-001（plan 2385）：moduleName 为平台保留前缀（nop-*，即静态模块命名模式）时
+     * generateByAI 必须拒绝——否则动态模块资源经 VFS in-memory 第一优先层遮蔽静态模块
+     * xbiz/xmeta/orm（口令哈希直读/XPL 注入/ORM 定义替换）。
+     */
+    @Test
+    public void testGenerateByAIReservedPrefixRejected() {
+        String ormText = attachmentText("test.orm.xml");
+
+        NopException ex = assertThrows(NopException.class, () -> ormTemplate.runInSession(() -> {
+            bizModel.generateByAI(ormText, "nop-auth", null);
+        }));
+        assertEquals(NopDynErrors.ERR_DYN_MODULE_ID_CONFLICT.getErrorCode(), ex.getErrorCode(),
+                "reserved nop- prefix moduleName must be rejected with module-id-conflict");
+    }
+
+    /**
+     * P1-3.7-001（plan 2385）：save 路径 moduleName="nop-auth"（与已注册静态模块 id 冲突）
+     * 必须拒绝——VFS 中已存在 /nop/auth/_module 静态模块标记。
+     */
+    @Test
+    public void testSaveStaticModuleIdConflictRejected() {
+        ormTemplate.runInSession(() -> {
+            NopDynModule module = daoProvider.daoFor(NopDynModule.class).newEntity();
+            module.setModuleName("nop-auth");
+            module.setDisplayName("shadow");
+            module.setModuleVersion(1);
+            module.setStatus(io.nop.dyn.dao.NopDynDaoConstants.MODULE_STATUS_UNPUBLISHED);
+
+            NopException ex = assertThrows(NopException.class,
+                    () -> bizModel.saveEntity(module, null, null));
+            assertEquals(NopDynErrors.ERR_DYN_MODULE_ID_CONFLICT.getErrorCode(), ex.getErrorCode(),
+                    "moduleName conflicting with registered static module must be rejected on save");
         });
     }
 

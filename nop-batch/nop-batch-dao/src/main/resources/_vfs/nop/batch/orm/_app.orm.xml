@@ -141,8 +141,8 @@
                 </to-many>
             </relations>
             <unique-keys>
-                <unique-key columns="taskName,taskKey" name="UK_NOP_BATCH_TASK_NAME_KEY"
-                            i18n-en:displayName="Unique Task Key Per Task Name"/>
+                <unique-key columns="taskName,taskKey" constraint="UK_NOP_BATCH_TASK_NAME_KEY"
+                            name="UK_NOP_BATCH_TASK_NAME_KEY" i18n-en:displayName="Unique Task Key Per Task Name"/>
             </unique-keys>
         </entity>
         <entity className="io.nop.batch.dao.entity.NopBatchTaskVar" createTimeProp="createTime" createrProp="createdBy"

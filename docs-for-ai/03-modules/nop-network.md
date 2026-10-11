@@ -54,6 +54,31 @@ options.setMode(UploadMode.BASE64_FORM);
 - **上行订阅**：`MqttServerMessageService.subscribe("cmd/#", listener)` 注册进程内监听；设备上行 publish 按同一通配语义分发，`data` 为 payload 的 UTF-8 文本；二进制场景直接实现 `IMqttHandler`。
 - 会话接管（同 clientId 新连接踢旧连接）、断连清理（连接与订阅登记）由 `MqttSessionManager` 维护。
 
+## SMS areaCode 与 Feishu ACK 契约（P1-6.8-002/004，plan 2392）
+
+- **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
+- **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
+
+## Kafka 消费生命周期语义（P1-4.4-M01..M03，plan 2396）
+
+三条契约：①**suspend/resume = 期望态标志**（线程安全 setter）——消费循环每轮对当前分配分区应用 pause/resume，rebalance listener 对新分配分区按标志补应用（调用线程不再直操 consumer，rebalance 后暂停不失效）；②**seek = onPartitionsAssigned 驱动**——ALWAYS_SEEK_TO_END 每次 assigned 执行，INIT_SEEK_TO_BEGIN/END 与 seekToTime 仅首次 assigned 执行（ALWAYS 语义下 seekToTime 随 ALWAYS 每次），seekToMessage fail-loud；③**cancel 顺序 = 先停线程后 close**——task.stop()（wakeup）→ executor.shutdown/awaitTermination → consumer.close()（消费线程退出后才关闭，杜绝 CME 吞异常导致的 consumer 泄漏）。
+
+## nop-cluster 语义（P1-4.4-C1..C4，plan 2395）
+
+四条契约：①leader 选举租约配置绑定使用 IoC 认知的 `@cfg:` 前缀（`@cfg;` 笔误会使装配即启动失败）；②LeastActive 负载均衡窗口回绕取模（`(startIndex+currentCursor)%n`，多实例回绕场景不再越界）；③SentinelFlowControlRunner.runAsync 的 `ContextUtil.enter/exit` 无条件配对（成功路径不再泄漏发起线程 context 栈；entry 的 exit 在 whenComplete/失败分支独立配对）；④Nacos 服务发现 serviceName 无组名（不含 `@@`）时原样保留、groupName 为 null（对齐 getNormalizedServiceName 守卫）。
+
+## nop-search 引擎语义（P1-4.4-S-02..06，plan 2394）
+
+LuceneSearchEngine（先修批后）五条契约：①空 query（`SearchRequest.query` 省略）= match all，可与 tags/filter 组合浏览；②filter `not` 组合条件为补集语义（NOT 补 MatchAllDocs 锚点）；③写入失败回滚时自动清理 writer/SearcherManager 缓存——单条坏文档不再永久打死 topic（下次访问重建）；④`ISearchEngine.getDoc(topic, docId)`（**API 签名变更**：原 `getDoc(docId)` 全量遍历取首命中=跨 topic 串读）——限定单 topic 查找；⑤`SearchEngine__indexDir` fail-closed：需要 admin 角色（`nop.err.search.no-permission`），直解析路径受 `nop.search.index-dir-roots` 白名单约束（未配置=仅工作目录相对路径；resourceLocator 解析豁免）。pattern 正则回溯限制为 admin 自伤面，随拆分计划处理。
+
+## JDK client 503 响应语义（P1-check-netrpc-24，plan 2391）
+
+JdkHttpClient.toHttpResponse 不再把 HTTP 503 映射为 NopConnectException——503 按正常响应送达（status/body/headers 完整），与 Apache/OkHttp 实现对齐（此前仅 JDK 把 503 误判为连接失败且丢 body）。旧「某些 MAC/JDK 连接失败表现为 503」workaround 已移除：现代 JDK 连接失败正确抛 ConnectException（经 wrapException 归一化为 NopConnectException），调用方需自行处理 503 状态（重试/降级语义属调用方域）。
+
+## 网关 HTTP 过滤语义（P1-check-gw-49/86，plan 2390）
+
+GatewayHttpFilter 两条契约：①**路由预匹配后置**——path 级路由预匹配（`GatewayHandler.hasRouteFor`）无命中时请求体零消费直接放行下游；请求体解析按 content-type 分流，仅 JSON（或未声明）content-type 走严格解析（非法 body fail-fast 5xx），multipart/表单等不再炸滤器（body 不向下游透传，data=null）；异步段异常经 `exceptionally` 兜底写 5xx，响应已提交（streaming 中途失败）时只记日志不二次写出。②**OAuth redirect 凭证下发**——code+redirect_uri 分支在 sendRedirect 前初始化用户上下文并下发 auth cookie（新会话凭证；redirect 提交后 header/cookie 必丢），消除 SSO 回调登录循环；redirect 后下游对已提交响应的写入为无害噪音（现状既有行为）。
+
 ## 相关文档
 
 - `../02-core-guides/rpc-and-distributed-rpc.md`（RPC 分层调用模型，`/px/` 代理）

@@ -6,7 +6,7 @@ CREATE TABLE nop_meta_module(
   DISPLAY_NAME VARCHAR2(200)  ,
   MODULE_VERSION NUMBER(20) NOT NULL ,
   BASE_MODULE_ID VARCHAR2(32)  ,
-  STATUS CLOB NOT NULL ,
+  STATUS VARCHAR2(20) NOT NULL ,
   MAVEN_GROUP_ID VARCHAR2(100)  ,
   MAVEN_ARTIFACT_ID VARCHAR2(100)  ,
   MAVEN_VERSION VARCHAR2(50)  ,
@@ -25,6 +25,9 @@ CREATE TABLE nop_meta_module(
   constraint PK_nop_meta_module primary key (META_MODULE_ID)
 );
 
+create index IX_NOP_META_MODULE_STATUS on nop_meta_module (STATUS) ;
+create index IX_NOP_META_MODULE_ID on nop_meta_module (MODULE_ID) ;
+create index IX_NOP_META_MODULE_BASE_MODULE on nop_meta_module (BASE_MODULE_ID) ;
 CREATE TABLE nop_meta_data_source(
   DATA_SOURCE_ID VARCHAR2(32) NOT NULL ,
   QUERY_SPACE VARCHAR2(100) NOT NULL ,
@@ -32,7 +35,7 @@ CREATE TABLE nop_meta_data_source(
   DISPLAY_NAME VARCHAR2(200)  ,
   DATASOURCE_TYPE VARCHAR2(30) NOT NULL ,
   CONNECTION_CONFIG VARCHAR2(4000)  ,
-  STATUS CLOB NOT NULL ,
+  STATUS VARCHAR2(20) NOT NULL ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
   CREATE_TIME TIMESTAMP NOT NULL ,
@@ -44,6 +47,7 @@ CREATE TABLE nop_meta_data_source(
   constraint PK_nop_meta_data_source primary key (DATA_SOURCE_ID)
 );
 
+create index IX_NOP_META_DATA_SOURCE_STATUS on nop_meta_data_source (STATUS) ;
 CREATE TABLE nop_meta_semantic_type(
   SEMANTIC_TYPE_ID VARCHAR2(32) NOT NULL ,
   TYPE_NAME VARCHAR2(50) NOT NULL ,
@@ -68,7 +72,7 @@ CREATE TABLE nop_meta_quality_rule(
   RULE_TYPE VARCHAR2(30) NOT NULL ,
   ENTITY_TYPE VARCHAR2(20) NOT NULL ,
   ENTITY_ID VARCHAR2(32) NOT NULL ,
-  SEVERITY CLOB NOT NULL ,
+  SEVERITY VARCHAR2(20) NOT NULL ,
   SQL_EXPRESSION CLOB  ,
   THRESHOLD BINARY_DOUBLE  ,
   PARAMS VARCHAR2(4000)  ,
@@ -83,6 +87,7 @@ CREATE TABLE nop_meta_quality_rule(
   constraint PK_nop_meta_quality_rule primary key (QUALITY_RULE_ID)
 );
 
+create index IX_NOP_META_QRULE_ENTITY on nop_meta_quality_rule (ENTITY_TYPE,ENTITY_ID) ;
 CREATE TABLE nop_meta_reconciliation_entity(
   RECON_ENTITY_ID VARCHAR2(32) NOT NULL ,
   ENTITY_ID VARCHAR2(100) NOT NULL ,
@@ -102,6 +107,7 @@ CREATE TABLE nop_meta_reconciliation_entity(
   constraint PK_nop_meta_reconciliation_entity primary key (RECON_ENTITY_ID)
 );
 
+create index IX_NOP_META_RECONCILIATION_ENTITY_TYPE on nop_meta_reconciliation_entity (ENTITY_TYPE,IDENTIFIER_SPACE) ;
 CREATE TABLE nop_meta_model_changed_event(
   MODEL_CHANGED_EVENT_ID VARCHAR2(32) NOT NULL ,
   EVENT_TYPE VARCHAR2(30) NOT NULL ,
@@ -124,6 +130,9 @@ CREATE TABLE nop_meta_model_changed_event(
   constraint PK_nop_meta_model_changed_event primary key (MODEL_CHANGED_EVENT_ID)
 );
 
+create index IX_NOP_META_EVENT_TYPE_TIME on nop_meta_model_changed_event (ENTITY_TYPE,ENTITY_ID,CHANGE_TIME) ;
+create index IX_NOP_META_EVENT_SOURCE on nop_meta_model_changed_event (CHANGE_SOURCE) ;
+create index IX_NOP_META_EVENT_TX on nop_meta_model_changed_event (TRANSACTION_ID) ;
 CREATE TABLE nop_meta_glossary(
   GLOSSARY_ID VARCHAR2(32) NOT NULL ,
   NAME VARCHAR2(100) NOT NULL ,
@@ -184,6 +193,8 @@ CREATE TABLE nop_meta_business_domain(
   constraint PK_nop_meta_business_domain primary key (BUSINESS_DOMAIN_ID)
 );
 
+create index IX_NOP_META_BUSINESS_DOMAIN_PARENT on nop_meta_business_domain (PARENT_DOMAIN_ID) ;
+create index IX_NOP_META_BUSINESS_DOMAIN_DISPLAY_NAME on nop_meta_business_domain (DISPLAY_NAME) ;
 CREATE TABLE nop_meta_orm_model(
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -201,6 +212,7 @@ CREATE TABLE nop_meta_orm_model(
   constraint PK_nop_meta_orm_model primary key (ORM_MODEL_ID)
 );
 
+create index IX_NOP_META_ORM_MODEL_MODULE on nop_meta_orm_model (META_MODULE_ID) ;
 CREATE TABLE nop_meta_pipeline(
   PIPELINE_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -220,6 +232,7 @@ CREATE TABLE nop_meta_pipeline(
   constraint PK_nop_meta_pipeline primary key (PIPELINE_ID)
 );
 
+create index IX_NOP_META_PIPELINE_MODULE on nop_meta_pipeline (META_MODULE_ID) ;
 CREATE TABLE nop_meta_quality_checkpoint(
   CHECKPOINT_ID VARCHAR2(32) NOT NULL ,
   CHECKPOINT_NAME VARCHAR2(100) NOT NULL ,
@@ -228,7 +241,7 @@ CREATE TABLE nop_meta_quality_checkpoint(
   DESCRIPTION VARCHAR2(1000)  ,
   VALIDATIONS CLOB  ,
   ACTIONS VARCHAR2(4000)  ,
-  STATUS CLOB NOT NULL ,
+  STATUS VARCHAR2(20) NOT NULL ,
   EXT_CONFIG VARCHAR2(4000)  ,
   VERSION NUMBER(20) NOT NULL ,
   CREATED_BY VARCHAR2(50) NOT NULL ,
@@ -240,6 +253,7 @@ CREATE TABLE nop_meta_quality_checkpoint(
   constraint PK_nop_meta_quality_checkpoint primary key (CHECKPOINT_ID)
 );
 
+create index IX_NOP_META_QCHECKPOINT_MODULE on nop_meta_quality_checkpoint (META_MODULE_ID) ;
 CREATE TABLE nop_meta_manifest(
   MANIFEST_ID VARCHAR2(32) NOT NULL ,
   META_MODULE_ID VARCHAR2(32) NOT NULL ,
@@ -257,6 +271,7 @@ CREATE TABLE nop_meta_manifest(
   constraint PK_nop_meta_manifest primary key (MANIFEST_ID)
 );
 
+create index IX_NOP_META_MANIFEST_MODULE on nop_meta_manifest (META_MODULE_ID) ;
 CREATE TABLE nop_meta_glossary_term(
   GLOSSARY_TERM_ID VARCHAR2(32) NOT NULL ,
   GLOSSARY_ID VARCHAR2(32) NOT NULL ,
@@ -283,6 +298,8 @@ CREATE TABLE nop_meta_glossary_term(
   constraint PK_nop_meta_glossary_term primary key (GLOSSARY_TERM_ID)
 );
 
+create index IX_NOP_META_GLOSSARY_TERM_PARENT on nop_meta_glossary_term (PARENT_TERM_ID) ;
+create index IX_NOP_META_GLOSSARY_TERM_GLOSSARY on nop_meta_glossary_term (GLOSSARY_ID) ;
 CREATE TABLE nop_meta_tag(
   TAG_ID VARCHAR2(32) NOT NULL ,
   CLASSIFICATION_ID VARCHAR2(32) NOT NULL ,
@@ -304,6 +321,8 @@ CREATE TABLE nop_meta_tag(
   constraint PK_nop_meta_tag primary key (TAG_ID)
 );
 
+create index IX_NOP_META_TAG_CLASSIFICATION on nop_meta_tag (CLASSIFICATION_ID) ;
+create index IX_NOP_META_TAG_PARENT on nop_meta_tag (PARENT_TAG_ID) ;
 CREATE TABLE nop_meta_data_product(
   DATA_PRODUCT_ID VARCHAR2(32) NOT NULL ,
   BUSINESS_DOMAIN_ID VARCHAR2(32) NOT NULL ,
@@ -331,6 +350,7 @@ CREATE TABLE nop_meta_data_product(
   constraint PK_nop_meta_data_product primary key (DATA_PRODUCT_ID)
 );
 
+create index IX_NOP_META_DATA_PRODUCT_DOMAIN on nop_meta_data_product (BUSINESS_DOMAIN_ID) ;
 CREATE TABLE nop_meta_entity(
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
@@ -371,6 +391,11 @@ CREATE TABLE nop_meta_entity(
   constraint PK_nop_meta_entity primary key (META_ENTITY_ID)
 );
 
+create index IX_NOP_META_ENTITY_MODEL on nop_meta_entity (ORM_MODEL_ID) ;
+create index IX_NOP_META_ENTITY_TABLE on nop_meta_entity (TABLE_NAME) ;
+create index IX_NOP_META_ENTITY_NAME on nop_meta_entity (ENTITY_NAME) ;
+create index IX_NOP_META_ENTITY_BUSINESS_DOMAIN on nop_meta_entity (BUSINESS_DOMAIN_ID) ;
+create index IX_NOP_META_ENTITY_MODULE on nop_meta_entity (META_MODULE_ID) ;
 CREATE TABLE nop_meta_domain(
   META_DOMAIN_ID VARCHAR2(32) NOT NULL ,
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
@@ -399,6 +424,8 @@ CREATE TABLE nop_meta_domain(
   constraint PK_nop_meta_domain primary key (META_DOMAIN_ID)
 );
 
+create index IX_NOP_META_DOMAIN_MODEL on nop_meta_domain (ORM_MODEL_ID) ;
+create index IX_NOP_META_DOMAIN_SOURCE_MODULE on nop_meta_domain (SOURCE_MODULE_ID) ;
 CREATE TABLE nop_meta_dict(
   META_DICT_ID VARCHAR2(32) NOT NULL ,
   ORM_MODEL_ID VARCHAR2(32) NOT NULL ,
@@ -422,11 +449,12 @@ CREATE TABLE nop_meta_dict(
   constraint PK_nop_meta_dict primary key (META_DICT_ID)
 );
 
+create index IX_NOP_META_DICT_MODEL on nop_meta_dict (ORM_MODEL_ID) ;
 CREATE TABLE nop_meta_quality_result(
   QUALITY_RESULT_ID VARCHAR2(32) NOT NULL ,
   QUALITY_RULE_ID VARCHAR2(32) NOT NULL ,
   EXECUTE_TIME TIMESTAMP NOT NULL ,
-  STATUS CLOB NOT NULL ,
+  STATUS VARCHAR2(20) NOT NULL ,
   ACTUAL_VALUE BINARY_DOUBLE  ,
   EXPECTED_VALUE BINARY_DOUBLE  ,
   MESSAGE VARCHAR2(1000)  ,
@@ -444,6 +472,8 @@ CREATE TABLE nop_meta_quality_result(
   constraint PK_nop_meta_quality_result primary key (QUALITY_RESULT_ID)
 );
 
+create index IX_NOP_META_QRESULT_RULE on nop_meta_quality_result (QUALITY_RULE_ID,EXECUTE_TIME) ;
+create index IX_NOP_META_QRESULT_RUN on nop_meta_quality_result (RUN_ID,EXECUTE_TIME) ;
 CREATE TABLE nop_meta_tag_label(
   TAG_LABEL_ID VARCHAR2(32) NOT NULL ,
   SOURCE VARCHAR2(20) NOT NULL ,
@@ -471,6 +501,10 @@ CREATE TABLE nop_meta_tag_label(
   constraint PK_nop_meta_tag_label primary key (TAG_LABEL_ID)
 );
 
+create index IX_NOP_META_TAG_LABEL_ENTITY on nop_meta_tag_label (ENTITY_TYPE,ENTITY_ID) ;
+create index IX_NOP_META_TAG_LABEL_TAG on nop_meta_tag_label (TAG_ID) ;
+create index IX_NOP_META_TAG_LABEL_TERM on nop_meta_tag_label (GLOSSARY_TERM_ID) ;
+create index IX_NOP_META_TAG_LABEL_STATE on nop_meta_tag_label (STATE) ;
 CREATE TABLE nop_meta_entity_field(
   ENTITY_FIELD_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -508,6 +542,8 @@ CREATE TABLE nop_meta_entity_field(
   constraint PK_nop_meta_entity_field primary key (ENTITY_FIELD_ID)
 );
 
+create index IX_NOP_META_FIELD_ENTITY on nop_meta_entity_field (META_ENTITY_ID) ;
+create index IX_NOP_META_FIELD_BUSINESS_DOMAIN on nop_meta_entity_field (BUSINESS_DOMAIN_ID) ;
 CREATE TABLE nop_meta_entity_relation(
   RELATION_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -533,6 +569,7 @@ CREATE TABLE nop_meta_entity_relation(
   constraint PK_nop_meta_entity_relation primary key (RELATION_ID)
 );
 
+create index IX_NOP_META_REL_ENTITY on nop_meta_entity_relation (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_entity_unique_key(
   UNIQUE_KEY_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -552,6 +589,7 @@ CREATE TABLE nop_meta_entity_unique_key(
   constraint PK_nop_meta_entity_unique_key primary key (UNIQUE_KEY_ID)
 );
 
+create index IX_NOP_META_UK_ENTITY on nop_meta_entity_unique_key (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_entity_index(
   INDEX_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -571,6 +609,7 @@ CREATE TABLE nop_meta_entity_index(
   constraint PK_nop_meta_entity_index primary key (INDEX_ID)
 );
 
+create index IX_NOP_META_IDX_ENTITY on nop_meta_entity_index (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_entity_dimension(
   DIMENSION_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -594,6 +633,9 @@ CREATE TABLE nop_meta_entity_dimension(
   constraint PK_nop_meta_entity_dimension primary key (DIMENSION_ID)
 );
 
+create index IX_NOP_META_DIM_TABLE on nop_meta_entity_dimension (META_ENTITY_ID) ;
+create index IX_NOP_META_DIM_BUSINESS_DOMAIN on nop_meta_entity_dimension (BUSINESS_DOMAIN_ID) ;
+create index IX_NOP_META_DIM_ENTITY_FIELD on nop_meta_entity_dimension (ENTITY_FIELD_ID) ;
 CREATE TABLE nop_meta_entity_measure(
   MEASURE_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -618,6 +660,9 @@ CREATE TABLE nop_meta_entity_measure(
   constraint PK_nop_meta_entity_measure primary key (MEASURE_ID)
 );
 
+create index IX_NOP_META_MEASURE_TABLE on nop_meta_entity_measure (META_ENTITY_ID) ;
+create index IX_NOP_META_MEASURE_BUSINESS_DOMAIN on nop_meta_entity_measure (BUSINESS_DOMAIN_ID) ;
+create index IX_NOP_META_MEASURE_ENTITY_FIELD on nop_meta_entity_measure (ENTITY_FIELD_ID) ;
 CREATE TABLE nop_meta_entity_filter(
   FILTER_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -637,6 +682,7 @@ CREATE TABLE nop_meta_entity_filter(
   constraint PK_nop_meta_entity_filter primary key (FILTER_ID)
 );
 
+create index IX_NOP_META_FILTER_TABLE on nop_meta_entity_filter (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_entity_join(
   JOIN_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -656,6 +702,9 @@ CREATE TABLE nop_meta_entity_join(
   constraint PK_nop_meta_entity_join primary key (JOIN_ID)
 );
 
+create index IX_NOP_META_JOIN_TABLE on nop_meta_entity_join (META_ENTITY_ID) ;
+create index IX_NOP_META_JOIN_LEFT_ENTITY on nop_meta_entity_join (LEFT_ENTITY_ID) ;
+create index IX_NOP_META_JOIN_RIGHT_ENTITY on nop_meta_entity_join (RIGHT_ENTITY_ID) ;
 CREATE TABLE nop_meta_lineage_edge(
   LINEAGE_EDGE_ID VARCHAR2(32) NOT NULL ,
   SOURCE_TABLE_ID VARCHAR2(32) NOT NULL ,
@@ -678,6 +727,9 @@ CREATE TABLE nop_meta_lineage_edge(
   constraint PK_nop_meta_lineage_edge primary key (LINEAGE_EDGE_ID)
 );
 
+create index IX_NOP_META_LINEAGE_SOURCE on nop_meta_lineage_edge (SOURCE_TABLE_ID) ;
+create index IX_NOP_META_LINEAGE_TARGET on nop_meta_lineage_edge (TARGET_TABLE_ID) ;
+create index IX_NOP_META_LINEAGE_PIPELINE on nop_meta_lineage_edge (PIPELINE_ID) ;
 CREATE TABLE nop_meta_catalog(
   META_CATALOG_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -697,6 +749,7 @@ CREATE TABLE nop_meta_catalog(
   constraint PK_nop_meta_catalog primary key (META_CATALOG_ID)
 );
 
+create index IX_NOP_META_CATALOG_TABLE on nop_meta_catalog (META_ENTITY_ID,COLLECTED_AT) ;
 CREATE TABLE nop_meta_profiling_rule(
   PROFILING_RULE_ID VARCHAR2(32) NOT NULL ,
   RULE_NAME VARCHAR2(100) NOT NULL ,
@@ -716,12 +769,13 @@ CREATE TABLE nop_meta_profiling_rule(
   constraint PK_nop_meta_profiling_rule primary key (PROFILING_RULE_ID)
 );
 
+create index IX_NOP_META_PROFRULE_TABLE on nop_meta_profiling_rule (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_data_contract(
   CONTRACT_ID VARCHAR2(32) NOT NULL ,
   CONTRACT_NAME VARCHAR2(100) NOT NULL ,
   DISPLAY_NAME VARCHAR2(200)  ,
   META_ENTITY_ID VARCHAR2(32)  ,
-  STATUS CLOB NOT NULL ,
+  STATUS VARCHAR2(20) NOT NULL ,
   OWNER_USER_ID VARCHAR2(50)  ,
   SCHEMA CLOB  ,
   SLA VARCHAR2(4000)  ,
@@ -743,6 +797,7 @@ CREATE TABLE nop_meta_data_contract(
   constraint PK_nop_meta_data_contract primary key (CONTRACT_ID)
 );
 
+create index IX_NOP_META_CONTRACT_TABLE on nop_meta_data_contract (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_reconciliation_config(
   CONFIG_ID VARCHAR2(32) NOT NULL ,
   CONFIG_NAME VARCHAR2(100) NOT NULL ,
@@ -766,6 +821,8 @@ CREATE TABLE nop_meta_reconciliation_config(
   constraint PK_nop_meta_reconciliation_config primary key (CONFIG_ID)
 );
 
+create index IX_NOP_META_RECONCILIATION_CONFIG_TABLE on nop_meta_reconciliation_config (META_ENTITY_ID) ;
+create index IX_NOP_META_RECONCILIATION_CONFIG_MODULE on nop_meta_reconciliation_config (META_MODULE_ID) ;
 CREATE TABLE nop_meta_quality_score(
   QUALITY_SCORE_ID VARCHAR2(32) NOT NULL ,
   META_ENTITY_ID VARCHAR2(32) NOT NULL ,
@@ -784,6 +841,7 @@ CREATE TABLE nop_meta_quality_score(
   constraint PK_nop_meta_quality_score primary key (QUALITY_SCORE_ID)
 );
 
+create index IX_NOP_META_QSCORE_TABLE on nop_meta_quality_score (META_ENTITY_ID,SCORE_TIME) ;
 CREATE TABLE nop_meta_dict_item(
   DICT_ITEM_ID VARCHAR2(32) NOT NULL ,
   META_DICT_ID VARCHAR2(32) NOT NULL ,
@@ -806,6 +864,7 @@ CREATE TABLE nop_meta_dict_item(
   constraint PK_nop_meta_dict_item primary key (DICT_ITEM_ID)
 );
 
+create index IX_NOP_META_DICT_ITEM_DICT on nop_meta_dict_item (META_DICT_ID) ;
 CREATE TABLE nop_meta_profiling_result(
   PROFILING_RESULT_ID VARCHAR2(32) NOT NULL ,
   PROFILING_RULE_ID VARCHAR2(32)  ,
@@ -822,6 +881,8 @@ CREATE TABLE nop_meta_profiling_result(
   constraint PK_nop_meta_profiling_result primary key (PROFILING_RESULT_ID)
 );
 
+create index IX_NOP_META_PROF_RESULT_RULE on nop_meta_profiling_result (PROFILING_RULE_ID,SNAPSHOT_TIME) ;
+create index IX_NOP_META_PROF_RESULT_TABLE on nop_meta_profiling_result (META_ENTITY_ID) ;
 CREATE TABLE nop_meta_reconciliation_result(
   RESULT_ID VARCHAR2(32) NOT NULL ,
   CONFIG_ID VARCHAR2(32) NOT NULL ,
@@ -839,6 +900,8 @@ CREATE TABLE nop_meta_reconciliation_result(
   constraint PK_nop_meta_reconciliation_result primary key (RESULT_ID)
 );
 
+create index IX_NOP_META_RECONCILIATION_RESULT_CONFIG on nop_meta_reconciliation_result (CONFIG_ID,EXECUTE_TIME) ;
+create index IX_NOP_META_RECONCILIATION_RESULT_TABLE on nop_meta_reconciliation_result (META_ENTITY_ID) ;
 
       COMMENT ON TABLE nop_meta_module IS '元数据模块';
                 

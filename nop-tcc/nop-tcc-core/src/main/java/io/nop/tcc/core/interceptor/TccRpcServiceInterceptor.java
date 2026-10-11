@@ -22,6 +22,8 @@ import jakarta.inject.Inject;
 
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.api.core.context.ContextProvider.thenOnContext;
+
 public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
 
     private final ITccEngine tccEngine;
@@ -36,6 +38,19 @@ public class TccRpcServiceInterceptor implements IRpcServiceInterceptor {
     @Override
     public CompletionStage<ApiResponse<?>> interceptAsync(IRpcServiceInvocation inv) {
         TccContext tccContext = TccContext.getCurrent();
+        // P1-3.8-005（plan 2388）：参与方 inbound TccContext 框架级桥接——服务端（非网关）
+        // 收到携带 txn 头的请求时，从请求头建立 TccContext，使业务方法内的嵌套 TCC 调用
+        // join 入站事务而非静默 fork 独立事务。请求头描述入站事务：setCurrent 无条件
+        //（镜像 TccGatewayInterceptor），txnGroup 匹配检查只决定本方法是否 join；
+        // thread-local 已有上下文时不覆盖（thread-local 赢，见测试钉定的优先级）。
+        if (inv.isInbound() && tccContext == null) {
+            TccContext fromRequest = TccContext.buildFromRequest(inv.getRequest());
+            if (fromRequest != null) {
+                TccContext.setCurrent(fromRequest);
+                return thenOnContext(runWithTccContext(fromRequest, inv)).whenComplete((ret, err) ->
+                        TccContext.removeCurrent(fromRequest));
+            }
+        }
         return runWithTccContext(tccContext, inv);
     }
 

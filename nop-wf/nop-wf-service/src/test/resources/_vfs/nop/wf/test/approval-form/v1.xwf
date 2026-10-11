@@ -7,6 +7,7 @@
             <source>
                 <c:script><![CDATA[
                     import io.nop.biz.api.IBizObjectManager;
+                    import io.nop.wf.core.NopWfCoreConstants;
                     // 幂等：仅在 approveStatus=SUBMITTED 时调用 approve（避免 EVENT_BEFORE_END/AFTER_END 重复触发）。
                     // 结束原因判定（MA7.6-01 / G6-22-01）：经基模板 oa.xwf 的 disagree 动作结束
                     // （wf.record.appState='disagree'，驳回路径）不视为审批通过，不得调用业务 approve。
@@ -17,7 +18,14 @@
                         const entityId = wfRt.wf.bizEntityId;
                         const entity = entityBizObj.invoke('requireEntity', {id: entityId}, null, wfRt.svcCtx);
                         if (entity.approveStatus === 'SUBMITTED') {
-                            entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                            // P1-3.1-001（plan 2379）：引擎回调窗口内设置引擎回调标记（gate 放行），
+                            // finally 清除使标记作用域收敛到单次回调
+                            wfRt.svcCtx.getContext().setAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK, true);
+                            try {
+                                entityBizObj.invoke('approve', {id: entityId}, null, wfRt.svcCtx);
+                            } finally {
+                                wfRt.svcCtx.getContext().removeAttribute(NopWfCoreConstants.ATTR_WF_ENGINE_CALLBACK);
+                            }
                         }
                     }
                 ]]></c:script>

@@ -196,4 +196,48 @@ class TestKafkaSubscription {
                         + consumeThreadStateAtClose.get());
         assertTrue(sub.isCancelled());
     }
+
+    /**
+     * P1-4.4-M02（plan 2395→2396 承接）：cancel 必须**先**等消费线程退出**再** close
+     * consumer——此前 close 先于线程退出，消费线程在 poll/commitSync 中触发 CME 被
+     * 吞掉，consumer 泄漏且 cancel 线程阻塞。
+     */
+    @Test
+    void cancelClosesConsumerOnlyAfterWorkerExits() throws Exception {
+        java.util.concurrent.CountDownLatch workerStarted = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.CountDownLatch releaseWorker = new java.util.concurrent.CountDownLatch(1);
+        java.util.concurrent.atomic.AtomicBoolean closedWhileWorkerRunning =
+                new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        // 模拟消费线程正在 poll（被 latch 阻塞）
+        java.util.concurrent.Future<?> worker = executor.submit(() -> {
+            workerStarted.countDown();
+            try {
+                releaseWorker.await(10, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return null;
+        });
+        workerStarted.await();
+
+        org.mockito.Mockito.doAnswer(inv -> {
+            closedWhileWorkerRunning.set(releaseWorker.getCount() > 0);
+            return null;
+        }).when(consumer).close();
+
+        KafkaMessageService.KafkaMessageSubscription sub = service.new KafkaMessageSubscription(consumer, executor, task);
+        Thread cancelThread = new Thread(sub::cancel);
+        cancelThread.start();
+        // 给 cancel 足够时间走到 close（若顺序错误，此时 close 已在 worker 运行中触发）
+        Thread.sleep(300);
+        boolean closeDuringRun = closedWhileWorkerRunning.get();
+        releaseWorker.countDown();
+        cancelThread.join(10_000);
+
+        assertFalse(closeDuringRun,
+                "consumer.close must happen only after the consume worker exited (P1-4.4-M02)");
+        assertTrue(executor.isShutdown() || executor.isTerminated(), "executor shut down during cancel");
+        worker.get(5, java.util.concurrent.TimeUnit.SECONDS);
+    }
 }

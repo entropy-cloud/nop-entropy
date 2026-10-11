@@ -1,13 +1,26 @@
 package io.nop.biz.crud;
 
+import io.nop.api.core.ApiConfigs;
+import io.nop.api.core.auth.ActionAuthMeta;
+import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.MultiCsvSet;
+import io.nop.auth.api.AuthApiErrors;
 import io.nop.biz.BizConstants;
+import io.nop.commons.util.CollectionHelper;
+import io.nop.core.context.IServiceContext;
+import io.nop.core.context.ServiceContextImpl;
 import io.nop.xlang.xmeta.IObjPropMeta;
 import io.nop.xlang.xmeta.ISchema;
 import io.nop.xlang.xmeta.ObjRelationWriteMode;
 import io.nop.xlang.xmeta.impl.ObjMetaImpl;
 import io.nop.xlang.xmeta.impl.ObjPropMetaImpl;
 import io.nop.xlang.xmeta.impl.SchemaImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -123,6 +136,76 @@ public class TestObjMetaBasedValidator {
 
         // 修复前：simple schema的validator在SimpleSchemaValidator内外各执行一次
         assertEquals(1, count.get());
+    }
+
+    // ===== P1-2.6 fail-open 同族收敛（plan 2378 Phase 3）：ObjMetaBasedValidator.doCheckAuth =====
+
+    private Boolean oldRequire;
+
+    @BeforeEach
+    public void captureRequireConfig() {
+        oldRequire = ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER.get();
+    }
+
+    @AfterEach
+    public void restoreRequireConfig() {
+        AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER, oldRequire);
+    }
+
+    /**
+     * require-auth-checker=true 且字段权限已显式声明而 checker 缺席：fail-closed 抛
+     * ERR_AUTH_NO_PERMISSION_FOR_FIELD（修复前静默 return = fail-open）。
+     */
+    @Test
+    public void testRequireModeFailsClosedForDeclaredFieldAuthWithoutChecker() {
+        AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER, true);
+
+        IServiceContext ctx = new ServiceContextImpl();
+        AuthCheckValidator validator = new AuthCheckValidator(ctx, newParentMeta(newRelationProp("child", null)));
+        ObjPropMetaImpl prop = newRelationProp("child", null);
+        ActionAuthMeta auth = new ActionAuthMeta(false, CollectionHelper.buildImmutableSet("admin"),
+                MultiCsvSet.fromText("Parent:mutation"), false);
+
+        NopException e = assertThrows(NopException.class, () -> validator.checkAuth("Parent", prop, auth),
+                "require mode must fail closed for declared field auth without checker");
+        assertEquals(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD.getErrorCode(), e.getErrorCode());
+    }
+
+    /**
+     * 默认配置（require=false）：既有 fail-open 语义保持——字段权限声明+无 checker 静默跳过。
+     */
+    @Test
+    public void testDefaultModeKeepsSkippingFieldAuthWithoutChecker() {
+        IServiceContext ctx = new ServiceContextImpl();
+        AuthCheckValidator validator = new AuthCheckValidator(ctx, newParentMeta(newRelationProp("child", null)));
+        ObjPropMetaImpl prop = newRelationProp("child", null);
+        ActionAuthMeta auth = new ActionAuthMeta(false, CollectionHelper.buildImmutableSet("admin"),
+                MultiCsvSet.fromText("Parent:mutation"), false);
+
+        validator.checkAuth("Parent", prop, auth);
+    }
+
+    /**
+     * auth==null 半支保持显式声明模型：无声明即跳过（strict 不动该半支——isAllowAccess 层处理）。
+     */
+    @Test
+    public void testNullFieldAuthStillSkipped() {
+        AppConfig.getConfigProvider().updateConfigValue(ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER, true);
+        IServiceContext ctx = new ServiceContextImpl();
+        AuthCheckValidator validator = new AuthCheckValidator(ctx, newParentMeta(newRelationProp("child", null)));
+        ObjPropMetaImpl prop = newRelationProp("child", null);
+
+        validator.checkAuth("Parent", prop, null);
+    }
+
+    private static class AuthCheckValidator extends ObjMetaBasedValidator {
+        AuthCheckValidator(IServiceContext context, ObjMetaImpl objMeta) {
+            super(null, objMeta.getBizObjName(), objMeta, context, false);
+        }
+
+        void checkAuth(String objTypeName, IObjPropMeta propMeta, ActionAuthMeta auth) {
+            doCheckAuth(objTypeName, propMeta, auth);
+        }
     }
 
     private static ObjMetaImpl newParentMeta(ObjPropMetaImpl prop) {

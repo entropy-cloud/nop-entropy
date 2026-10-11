@@ -19,6 +19,9 @@ import io.nop.biz.crud.CrudBizModel;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
+import io.nop.core.module.ModuleManager;
+import io.nop.core.resource.IResource;
+import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.IResource;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dyn.dao.NopDynDaoConstants;
@@ -38,6 +41,7 @@ import jakarta.inject.Inject;
 import java.util.List;
 
 import static io.nop.dyn.service.NopDynErrors.ARG_MODULE_NAME;
+import static io.nop.dyn.service.NopDynErrors.ERR_DYN_MODULE_ID_CONFLICT;
 import static io.nop.dyn.service.NopDynErrors.ERR_DYN_MODULE_NAME_EXISTS;
 
 @BizModel("NopDynModule")
@@ -51,6 +55,13 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
 
     public NopDynModuleBizModel() {
         setEntityName(NopDynModule.class.getName());
+    }
+
+    @Override
+    public void saveEntity(NopDynModule entity, String action, IServiceContext context) {
+        if (entity != null)
+            checkModuleIdNotShadowingStatic(entity.getModuleName());
+        super.saveEntity(entity, action, context);
     }
 
     @BizMutation
@@ -68,6 +79,7 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         NopDynModule entity = dao.newEntity();
         entity.setStatus(NopDynDaoConstants.MODULE_STATUS_UNPUBLISHED);
         entity.setModuleName((String) ormModel.prop_get(OrmModelConstants.EXT_APP_NAME));
+        checkModuleIdNotShadowingStatic(entity.getModuleName());
         entity.setDisplayName(entity.getModuleName());
         entity.setBasePackageName((String) ormModel.prop_get(OrmModelConstants.EXT_BASE_PACKAGE_NAME));
         entity.setMavenGroupId((String) ormModel.prop_get(OrmModelConstants.EXT_MAVEN_GROUP_ID));
@@ -96,12 +108,41 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         return ExcelReportHelper.downloadXlsx(fileName, OrmModelConstants.ORM_IMPL_PATH, model, 5);
     }
 
+    /**
+     * P1-3.7-001（plan 2385）：动态模块 moduleName 遮蔽防线——
+     * ①`nop-` 前缀为平台保留前缀（静态平台模块全集均为 nop-子名 命名模式）；
+     * ②moduleName 对应的 moduleId 不得与已注册静态模块 id 冲突。
+     * 动态模块资源经 VFS in-memory 第一优先层加载，与静态模块同路径即整体遮蔽
+     * （xbiz/xmeta/orm），导致口令哈希直读/XPL 注入/ORM 定义替换。
+     */
+    public static void checkModuleIdNotShadowingStatic(String moduleName) {
+        if (StringHelper.isEmpty(moduleName))
+            return;
+        if (moduleName.startsWith("nop-"))
+            throw new NopException(ERR_DYN_MODULE_ID_CONFLICT)
+                    .param(ARG_MODULE_NAME, moduleName)
+                    .param("moduleId", moduleName.replace('-', '/'));
+
+        // 仅校验静态注册模块（modules 集合）——动态模块自身的重复由表内去重负责，
+        // 若含动态集合会把既有动态模块的二次 generateByAI 误报为冲突
+        String moduleId = moduleName.replace('-', '/');
+        IResource moduleMarker = VirtualFileSystem.instance()
+                .getResource("/" + moduleId + "/_module");
+        if (moduleMarker != null && moduleMarker.exists()) {
+            throw new NopException(ERR_DYN_MODULE_ID_CONFLICT)
+                    .param(ARG_MODULE_NAME, moduleName)
+                    .param("moduleId", moduleId);
+        }
+    }
+
     @BizMutation
     public void generateByAI(@Name("response") String response,
                              @Optional @Name("moduleName") String moduleName,
                              IServiceContext context) {
         if (StringHelper.isEmpty(moduleName))
             moduleName = "app-demo";
+
+        checkModuleIdNotShadowingStatic(moduleName);
 
         OrmModel ormModel = new GptCodeGen().generateOrmModel(response);
         ormModel.init();

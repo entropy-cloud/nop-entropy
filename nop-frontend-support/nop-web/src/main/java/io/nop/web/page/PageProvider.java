@@ -45,7 +45,7 @@ import jakarta.inject.Inject;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -209,20 +209,22 @@ public class PageProvider extends ResourceWithHistoryProvider {
 
     protected Object transformPermissions(Object value) {
         // 将xui:permissions判断转换为xui:roles判断，这样转换的结果是可以被缓存的，前端不同的用户执行不同的roles过滤即可。
-        // 写时复制：PageModel 是全局缓存模型，此处不得原地修改（remove xui:permissions）——
-        // 否则首个请求（如启动期页面校验）会把当时的角色快照永久冻结进缓存模型，
-        // 后续请求的 hasXuiAuth 判空短路，角色变化（授权调整、启动早于种子数据）不再生效。
+        // P1-4.5-B1 (plan 2404): the PageModel data held by ResourceComponentManager is a shared
+        // cached instance, so this conversion MUST be copy-on-write — never remove/put on the
+        // incoming map. JsonTransformHelper.transform short-circuits once a map matches the
+        // predicate, therefore nested matches under a matched map must be completed here, on the
+        // copy, by recursing into each value with the same transformer.
         Map<String, Object> map = (Map<String, Object>) value;
         Object perms = map.get(WebConstants.ATTR_XUI_PERMISSIONS);
         if (perms == null)
             return value;
 
-        Map<String, Object> ret = new HashMap<>(map);
-        ret.remove(WebConstants.ATTR_XUI_PERMISSIONS);
+        Map<String, Object> copy = new LinkedHashMap<>(map);
+        copy.remove(WebConstants.ATTR_XUI_PERMISSIONS);
 
         Set<String> permissions = ConvertHelper.toCsvSet(perms);
         Set<String> roles = rolePermissionMapping.getRolesWithPermission(permissions);
-        Set<String> oldRoles = ConvertHelper.toCsvSet(map.get(WebConstants.ATTR_XUI_ROLES));
+        Set<String> oldRoles = ConvertHelper.toCsvSet(copy.get(WebConstants.ATTR_XUI_ROLES));
         Set<String> merged = CollectionHelper.mergeSet(roles, oldRoles);
 
         // 如果没有任何角色具有该权限，则roles设置为none，避免前台因为roles为空误以为不需要判断权限
@@ -230,8 +232,16 @@ public class PageProvider extends ResourceWithHistoryProvider {
         if (!CollectionHelper.isEmpty(merged)) {
             mergedRoles = StringHelper.join(merged, ",");
         }
-        ret.put(WebConstants.ATTR_XUI_ROLES, mergedRoles);
-        return ret;
+        copy.put(WebConstants.ATTR_XUI_ROLES, mergedRoles);
+
+        for (Map.Entry<String, Object> entry : copy.entrySet()) {
+            Object child = entry.getValue();
+            Object transformed = JsonTransformHelper.transform(child, this::transformPermissions, this::hasXuiAuth);
+            if (transformed != child) {
+                entry.setValue(transformed);
+            }
+        }
+        return copy;
     }
 
     boolean hasXuiAuth(Object value) {

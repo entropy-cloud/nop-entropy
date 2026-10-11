@@ -64,6 +64,7 @@ import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRollback;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlSubQueryExpr;
@@ -86,6 +87,8 @@ import io.nop.orm.eql.enums.SqlOperator;
 
 import java.util.List;
 import java.util.Locale;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_PATH;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED;
 
 public class AstToEqlGenerator extends EqlASTVisitor {
     protected final SQL.SqlBuilder sb;
@@ -336,6 +339,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getAlias() != null)
             this.ownerShouldBeIgnored = node.getAlias().getAlias();
 
+        // R1.6a / P1-2.2-008·005·010 渲染兜底：update/delete 渲染不输出 propJoin，残留的
+        // 隐式 join 必然产出未声明别名的非法 SQL（判空：本渲染器同时服务未 transform 的
+        // toSQL/dump 通道，resolvedTableSource 可为 null）
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
         printUpdateKeyword();
         beginBlock();
         visitSqlTableName(node.getTableName());
@@ -375,11 +383,20 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getAlias() != null)
             this.ownerShouldBeIgnored = node.getAlias().getAlias();
 
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
         print("delete\nfrom");
         beginBlock();
         visitSqlTableName(node.getTableName());
         endBlock();
         printWhere(node.getWhere());
+    }
+
+    private void assertNoPropJoins(Object node, SqlSingleTableSource source) {
+        if (source != null && source.getPropJoins() != null && !source.getPropJoins().isEmpty()) {
+            throw new NopException(ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED)
+                    .param(ARG_PROP_PATH, String.valueOf(node));
+        }
     }
 
     protected void printWhere(SqlWhere where) {

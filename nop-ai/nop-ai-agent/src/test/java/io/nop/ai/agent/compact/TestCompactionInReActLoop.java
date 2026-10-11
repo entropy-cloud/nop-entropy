@@ -148,7 +148,7 @@ public class TestCompactionInReActLoop {
         };
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -276,7 +276,7 @@ public class TestCompactionInReActLoop {
         // maxTokens kept high enough that the pre-call estimate of these short
         // messages stays below the 90% forced-stop threshold (Layer 4), so this
         // test still exercises compaction-once-per-iteration rather than forced stop.
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -309,7 +309,7 @@ public class TestCompactionInReActLoop {
     @Test
     void defaultNoOpCompactorDoesNotModifyMessages() {
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(100);
+        chatOptions.setContextLength(100);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();

@@ -186,6 +186,8 @@ CREATE TABLE nop_wf_step_instance(
   constraint PK_nop_wf_step_instance primary key (STEP_ID)
 );
 
+create index IX_WF_STEP_DUE_TIME on nop_wf_step_instance (STATUS,DUE_TIME) ;
+create index IX_WF_STEP_REMIND_TIME on nop_wf_step_instance (STATUS,REMIND_TIME) ;
 CREATE TABLE nop_wf_output(
   WF_ID VARCHAR2(32) NOT NULL ,
   FIELD_NAME VARCHAR2(100) NOT NULL ,

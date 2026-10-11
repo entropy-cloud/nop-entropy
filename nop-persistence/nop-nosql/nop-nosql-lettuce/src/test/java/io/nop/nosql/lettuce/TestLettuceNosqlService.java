@@ -875,7 +875,8 @@ public class TestLettuceNosqlService {
     @Test
     void testRateLimiter_FractionalTokens() {
         // the rate limit script stores fractional token counts as text (e.g. "9.5") when rate is fractional
-        service.put("test:rl:frac:tokens", 9.5);
+        // R1.8 / P1-2.4-001：limiter 键名加 {key} hash tag——预置键名同步更新
+        service.put("{test:rl:frac}:tokens", 9.5);
         INosqlRateLimiter limiter = service.rateLimiter("test:rl:frac", new RateLimiterConfig(0.5, 10));
 
         assertEquals(9, limiter.getAvailableTokens());

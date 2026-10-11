@@ -30,6 +30,7 @@ public interface OrmEqlErrors {
     String ARG_LEFT_SOURCE = "leftSource";
     String ARG_RIGHT_SOURCE = "rightSource";
     String ARG_PROP_PATH = "propPath";
+    String ARG_OPERATOR = "operator";
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_COL_NAME = "colName";
     String ARG_FUNC_NAME = "funcName";
@@ -139,6 +140,14 @@ public interface OrmEqlErrors {
             ARG_ENTITY_NAME);
 
     ErrorCode ERR_EQL_UNKNOWN_ALIAS = define("nop.err.eql.unknown-alias", "未知的实体别名[{alias}]", ARG_ALIAS, ARG_PROP_PATH);
+
+    ErrorCode ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE = define(
+            "nop.err.eql.collection-operator-not-allowed-here",
+            "集合操作符[{operator}]仅支持在select语句的where子句中使用，当前位置不支持", ARG_OPERATOR);
+
+    ErrorCode ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED = define(
+            "nop.err.eql.dml-prop-join-not-supported",
+            "update/delete语句中不支持属性路径隐式join，请改用相关子查询或显式关联条件", ARG_PROP_PATH);
 
     ErrorCode ERR_EQL_OWNER_NOT_REF_TO_ENTITY = define("nop.err.eql.owner-not-ref-to-entity", "属性表达式的owner必须是实体对象");
 

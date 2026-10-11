@@ -33,6 +33,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -40,6 +41,11 @@ import java.util.function.Consumer;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
 
 public class BatchTask<S> implements IBatchTask {
+
+    // P1-3.3-003（plan 2381 Phase 2）：首个非取消异常收集器——allOf 的异常交付受完成时序竞态影响
+    // （兄弟线程循环顶的 BatchCancelException 可能抢先），CAS 保留真根因驱动 saveTaskState 终态。
+    // 全仓调用点均每次新建 BatchTask 单次 executeAsync，per-execution 字段并发安全。
+    final AtomicReference<Throwable> primaryErrorRef = new AtomicReference<>();
     static final Logger LOG = LoggerFactory.getLogger(BatchTask.class);
 
     private final String taskName;
@@ -83,6 +89,9 @@ public class BatchTask<S> implements IBatchTask {
 
     @Override
     public CompletableFuture<Void> executeAsync(IBatchTaskContext context) {
+        // P1-3.3-003（plan 2381）：per-execution 重置（防御性——全仓调用点均每次新建实例，
+        // 此重置保证即便未来出现实例复用也不会跨执行携带旧根因）
+        primaryErrorRef.set(null);
         // 如果context上尚未设置限制，则设置，否则以外部设置的为准
         if (context.getAllowStartIfComplete() == null && allowStartIfComplete != null)
             context.setAllowStartIfComplete(allowStartIfComplete);
@@ -168,6 +177,13 @@ public class BatchTask<S> implements IBatchTask {
         // 便于stateStore按异常类型判定任务状态（如BatchCancelException对应KILLED/CANCELLED状态）
         err = unwrapCompletionException(err);
 
+        // P1-3.3-003（plan 2381）：primaryError 优先——首个非取消异常（executeChunkLoop catch
+        // 中 CAS 收集）优先于 allOf 的时序性交付，消除 cancel 异常掩蔽 fail-fast 根因 → KILLED 误分类。
+        // err==null（成功路径）或 err 即 primary 时维持原值。
+        Throwable primary = primaryErrorRef.get();
+        if (primary != null && err != null && err != primary)
+            err = primary;
+
         IBatchTaskMetrics metrics = context.getMetrics();
 
         try {
@@ -226,6 +242,10 @@ public class BatchTask<S> implements IBatchTask {
                     future.complete(null);
                 } catch (Exception e) {
                     NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
+                    // P1-3.3-003（plan 2381）：CAS 收集首个非取消异常作为 primaryError
+                    //（时序竞态下 allOf 可能交付兄弟线程的 BatchCancelException，掩蔽真根因）
+                    if (!(e instanceof BatchCancelException))
+                        primaryErrorRef.compareAndSet(null, e);
                     // 先完成future，确保allOf报告的是原始异常而不是兄弟线程随后抛出的BatchCancelException
                     future.completeExceptionally(e);
 

@@ -15,10 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-import java.io.IOException;
-import java.net.URI;
-import java.text.MessageFormat;
 import java.util.Arrays;
 import java.util.Map;
 
@@ -70,14 +66,34 @@ public class TestStringHelper {
 
     @Test
     public void testWhitespace() {
-        assertTrue(Character.isWhitespace('\n'));
-    }
+        // P2-4.2-009 pinning（plan 2407）：isWhitespace 采用 XML 6 字符集 {' ','\n','\r','\t','\f','\b'}，
+        // 与 Character.isWhitespace 双向分歧——本测试锚定该刻意分歧，勿改为代理 JDK 语义
+        assertTrue(StringHelper.isWhitespace(' '));
+        assertTrue(StringHelper.isWhitespace('\n'));
+        assertTrue(StringHelper.isWhitespace('\r'));
+        assertTrue(StringHelper.isWhitespace('\t'));
+        assertTrue(StringHelper.isWhitespace('\f'));
+        // 分歧点 1：SUT 认 \b（JDK Character.isWhitespace 为 false）
+        assertTrue(StringHelper.isWhitespace('\b'));
+        // 分歧点 2：SUT 拒 VT（JDK 为 true）
+        assertFalse(StringHelper.isWhitespace('\u000B'));
+        // 分歧点 3：SUT 拒 file/group/record/unit separator（JDK 为 true）
+        assertFalse(StringHelper.isWhitespace('\u001C'));
+        assertFalse(StringHelper.isWhitespace('\u001F'));
+        assertFalse(StringHelper.isWhitespace('a'));
+        assertFalse(StringHelper.isWhitespace(0));
 
-    @Test
-    public void testUrlPath() {
-        File file = new File(".").getAbsoluteFile();
-        URI url = file.toURI();
-        System.out.println(url);
+        assertTrue(StringHelper.onlyContainsWhitespace(null));
+        assertTrue(StringHelper.onlyContainsWhitespace(" \t\n\r\f\b"));
+        assertFalse(StringHelper.onlyContainsWhitespace("a"));
+        assertFalse(StringHelper.onlyContainsWhitespace(" \u000B"));
+
+        assertFalse(StringHelper.containsWhitespace(null));
+        assertFalse(StringHelper.containsWhitespace(""));
+        assertFalse(StringHelper.containsWhitespace("ab"));
+        assertTrue(StringHelper.containsWhitespace("a b"));
+        assertTrue(StringHelper.containsWhitespace("a\bb"));
+        assertFalse(StringHelper.containsWhitespace("a\u000Bb"));
     }
 
     String escapeTo(String s) {
@@ -106,8 +122,12 @@ public class TestStringHelper {
 
     @Test
     public void testSplit() {
-        String[] s = "a-b".split("-");
+        // P1-4.2-006：原实现断言 JDK String.split（不触 SUT）——改为 SUT splitToArray
+        String[] s = StringHelper.splitToArray("a-b", '-');
+        assertEquals(2, s.length);
         assertEquals("a", s[0]);
+        assertEquals("b", s[1]);
+        assertEquals(0, StringHelper.splitToArray("", '-').length);
     }
 
     @Test
@@ -397,12 +417,14 @@ public class TestStringHelper {
     }
 
     @Test
-    public void testFileName() throws IOException {
-        char c = 127;
-        File file = new File(c + "");
-        file.createNewFile();
-        assertTrue(file.exists());
-        file.delete();
+    public void testFileName() {
+        // P1-4.2-006：原实现直接操作 java.io.File 建删临时文件（不触 SUT）——改为 SUT safeFileName 净化语义
+        assertEquals("abc.txt", StringHelper.safeFileName("abc.txt"));
+        assertEquals("a_b", StringHelper.safeFileName("a/b"));
+        assertEquals("a_b_c", StringHelper.safeFileName("a:b*c"));
+        // 控制 ASCII（0-31）转义为下划线；DEL 127 不在控制转义域
+        assertEquals("a_b", StringHelper.safeFileName("a\u0001b"));
+        assertEquals("a\u007Fb", StringHelper.safeFileName("a\u007Fb"));
     }
 
     @Test
@@ -494,7 +516,11 @@ public class TestStringHelper {
 
     @Test
     public void testUUID() {
-        System.out.println(StringHelper.generateUUID());
+        // P1-4.2-006：原实现仅打印零断言——补齐生成契约断言
+        String uuid = StringHelper.generateUUID();
+        assertEquals(32, uuid.length(), "generateUUID must return 32-char id (UUID without dashes)");
+        assertTrue(uuid.matches("[0-9a-f]{32}"), "generateUUID must be lowercase hex without dashes");
+        assertFalse(uuid.equals(StringHelper.generateUUID()), "two generateUUID calls must not collide");
     }
 
     @Test
@@ -584,9 +610,9 @@ public class TestStringHelper {
 
     @Test
     public void testStringFormat() {
-        String str = MessageFormat.format("{0} a", "DEBUG");
-        System.out.println(str);
-        assertEquals("DEBUG a", str);
+        // P1-4.2-006：原实现断言 JDK MessageFormat（不触 SUT）——改为 SUT format（String.format 语义）
+        assertEquals("DEBUG a", StringHelper.format("%s a", "DEBUG"));
+        assertEquals("n=42", StringHelper.format("n=%d", 42));
     }
 
     @Test

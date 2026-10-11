@@ -5,6 +5,7 @@
     "hasPrev": null,
     "items": [
       {
+        "id": "auto-test-mod-1",
         "metaModuleId": "auto-test-mod-1",
         "moduleId": "nop/test-module",
         "moduleName": "test-module",

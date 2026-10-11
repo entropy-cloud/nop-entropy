@@ -120,7 +120,7 @@
                 <column code="PREDICATE" displayName="判断条件" domain="json-4k" mandatory="true" name="predicate"
                         precision="4000" propId="5" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
                         i18n-en:displayName="PREDICATE"/>
-                <column code="OUTPUTS" displayName="输出结果" domain="json-4k" name="outputs" precision="50" propId="6"
+                <column code="OUTPUTS" displayName="输出结果" domain="json-4k" name="outputs" precision="4000" propId="6"
                         stdDataType="string" stdDomain="json" stdSqlType="VARCHAR" i18n-en:displayName="Outputs"/>
                 <column code="PARENT_ID" displayName="父ID" name="parentId" precision="32" propId="7"
                         stdDataType="string" stdSqlType="VARCHAR" tagSet="parent" i18n-en:displayName="Parent ID"/>

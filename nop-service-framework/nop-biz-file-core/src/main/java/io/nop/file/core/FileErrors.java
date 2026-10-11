@@ -48,4 +48,11 @@ public interface FileErrors {
     ErrorCode ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ = define("nop.err.file.attach-file-not-same-obj",
             "文件与实体绑定时指定的对象名不一致:bizObjName={bizObjName},fileId={fileId},fileObj={fileObjName}",
             ARG_BIZ_OBJ_NAME, ARG_FILE_ID, ARG_FILE_OBJ_NAME);
+
+    // P1-3.8-002（plan 2386）：attach/detach 归属校验——非创建者且非 admin 不允许挂接/卸载/物理删除
+    String ARG_CREATED_BY = "createdBy";
+
+    ErrorCode ERR_FILE_NO_ATTACH_PERMISSION = define("nop.err.file.no-attach-permission",
+            "当前用户无权操作该文件记录（非创建者且非管理员）:fileId={fileId},createdBy={createdBy},userId={userId}",
+            ARG_FILE_ID, ARG_CREATED_BY, "userId");
 }

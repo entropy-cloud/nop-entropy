@@ -20,6 +20,9 @@ public class NopCredentialApplication {
     static String[] globalArgs;
 
     public void start(@Observes StartupEvent event) {
+        // 休眠裁决（R1.2 / plan 2365，2026-10-09）：本 app 不是可部署 HTTP 服务——Quarkus 集成有意不启动，
+        // 依赖树亦无 quarkus web 扩展。复活路径：①恢复 io.nop.quarkus.core.QuarkusIntegration import；
+        // ②取消下方 start() 调用注释；③恢复 nop-quarkus-web-orm-starter 依赖并重验证 quarkus-web 栈。
 //        QuarkusIntegration.start();
 
         new NopApplication().run(globalArgs);

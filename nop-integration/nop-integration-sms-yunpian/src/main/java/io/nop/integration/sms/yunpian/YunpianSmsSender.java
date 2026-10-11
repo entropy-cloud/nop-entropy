@@ -138,7 +138,7 @@ public class YunpianSmsSender implements ISmsSender {
         LOG.info("nop.send-sms:areaCode={},mobile={}", message.getAreaCode(), message.getMobile());
 
         Map<String, String> param = client.newParam(2);
-        param.put(YunpianClient.MOBILE, message.getAreaCode() + message.getMobile());
+        param.put(YunpianClient.MOBILE, resolveMobile(message));
         param.put(YunpianClient.TEXT, message.getText());
         Result<SmsSingleSend> result = client.sms().single_send(param);
         if (result.getCode() != 0) {
@@ -148,5 +148,20 @@ public class YunpianSmsSender implements ISmsSender {
                     .param(ARG_MSG, result.getMsg())
                     .param(ARG_MOBILE, message.getMobile());
         }
+    }
+
+    /**
+     * P1-6.8-002（plan 2392）：areaCode null/空（平台主链路 MfaCodeSender 不设置——
+     * 国内短信常态）时仅用裸 mobile，不再拼接出 "null138…" 数据损坏形态；非空时
+     * 剥离 "+" 前缀后拼接（对齐 TencentSmsSender 6.4 #8 修复的 strip+ 裁定）。
+     */
+    private String resolveMobile(SmsMessage message) {
+        String mobile = message.getMobile();
+        String areaCode = message.getAreaCode();
+        if (areaCode == null || areaCode.isEmpty())
+            return mobile;
+        if (areaCode.startsWith("+"))
+            areaCode = areaCode.substring(1);
+        return areaCode + mobile;
     }
 }

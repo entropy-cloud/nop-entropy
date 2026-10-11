@@ -295,4 +295,55 @@ public class TestYunpianSmsSenderCredential {
         sender.init(); // 不抛错
         assertEquals(1, provider.registerUsageCalls);
     }
+
+    // ==================== P1-6.8-002（plan 2392）areaCode 缺省语义 ====================
+
+    /**
+     * areaCode null（平台主链路 MfaCodeSender 不设置——国内短信常态）时 MOBILE 参数
+     * 不得拼接出 "null138…" 数据损坏形态；非空 "+86" 剥离 "+" 后拼接（Tencent strip+
+     * 裁定 parity）。
+     */
+    @Test
+    public void testNullAreaCodeNotConcatenated() {
+        TestableSender sender = new TestableSender();
+        sender.stubClient = newStubClient();
+        sender.setApiKey("static-key");
+        sender.setCredentialProvider(new FakeProvider());
+
+        SmsMessage message = message();
+        message.setAreaCode(null);
+
+        sender.sendMessage(message);
+
+        // 捕获 single_send 收到的参数（stub 的 map 即原样透传的 param）
+        org.mockito.ArgumentCaptor<Map<String, String>> captor =
+                org.mockito.ArgumentCaptor.forClass(Map.class);
+        org.mockito.Mockito.verify(sender.stubClient.sms(),
+                org.mockito.Mockito.atLeastOnce()).single_send(captor.capture());
+        assertEquals("13800000000", captor.getValue().get(YunpianClient.MOBILE),
+                "null areaCode must degrade to bare mobile (P1-6.8-002)");
+    }
+
+    @Test
+    public void testPlusPrefixedAreaCodeStrippedBeforeConcatenation() {
+        TestableSender sender = new TestableSender();
+        YunpianClient client = org.mockito.Mockito.mock(YunpianClient.class);
+        SmsApi smsApi = org.mockito.Mockito.mock(SmsApi.class);
+        Result<SmsSingleSend> result = new Result<>();
+        result.setCode(0);
+        Map<String, String> sent = new HashMap<>();
+        org.mockito.Mockito.when(client.newParam(org.mockito.ArgumentMatchers.anyInt())).thenReturn(sent);
+        org.mockito.Mockito.when(client.sms()).thenReturn(smsApi);
+        org.mockito.Mockito.when(smsApi.single_send(org.mockito.ArgumentMatchers.anyMap())).thenReturn(result);
+        sender.stubClient = client;
+        sender.setApiKey("static-key");
+        sender.setCredentialProvider(new FakeProvider());
+
+        SmsMessage message = message(); // areaCode = "+86"
+
+        sender.sendMessage(message);
+
+        assertEquals("8613800000000", sent.get(YunpianClient.MOBILE),
+                "'+' prefix must be stripped before concatenation (Tencent parity)");
+    }
 }

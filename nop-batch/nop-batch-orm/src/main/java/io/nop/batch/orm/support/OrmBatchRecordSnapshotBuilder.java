@@ -38,6 +38,9 @@ public class OrmBatchRecordSnapshotBuilder<T extends IOrmEntity>
                     Map<String, Object> values = map.get(item);
                     item.orm_restoreValues(values);
                     session.attach(item, cascadeAttach);
+                    // P1-3.4-001（plan 2382）：补入恢复后的记录——restore 返回值替换 retry 集
+                    //（AbstractRetryBatchConsumer/RetryConsumeHelper），恒空列表会静默丢弃整 chunk 记录
+                    ret.add(item);
                 }
                 return ret;
             }

@@ -331,9 +331,33 @@ public class FeishuClient {
         public void onBinary(byte[] data) {
             try {
                 FeishuStreamFrame frame = FeishuPbCodec.decode(data);
+
                 if (frame.getMethod() == FeishuFrameType.DATA.getMethod()) {
+
                     FeishuInboundMessage msg = toInbound(frame);
+
                     handler.onMessage(msg);
+
+                    // P1-6.8-004（plan 2392）：DATA 帧处理后按 wire 协议回 ACK——headers 原样复制
+
+                    //（携带 message_id/log_id 等回执定位信息）、requestId 沿用；缺失时服务端
+
+                    // 视为未确认而重复投递/反复断连。
+
+                    try {
+
+                        FeishuStreamFrame ack = new FeishuStreamFrame(FeishuFrameType.ACK.getMethod(),
+
+                                frame.getHeaders(), null, frame.getRequestId());
+
+                        transport.send(FeishuPbCodec.encode(ack));
+
+                    } catch (Exception e) {
+
+                        LOG.warn("feishu-client ack send failed", e);
+
+                    }
+
                 } else if (frame.getMethod() == FeishuFrameType.ACK.getMethod()) {
                     LOG.debug("feishu-client received ACK frame");
                 } else {
@@ -369,6 +393,7 @@ public class FeishuClient {
         m.setContent(FeishuJsons.extractString(json, "content"));
         m.setSenderId(FeishuJsons.extractString(json, "sender_id"));
         m.setChatType(FeishuJsons.extractString(json, "chat_type"));
+        m.setHeaders(frame.getHeaders());
         m.setRawPayload(frame.getPayload());
         return m;
     }

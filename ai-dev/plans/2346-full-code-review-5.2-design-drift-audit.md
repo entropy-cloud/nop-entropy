@@ -1,0 +1,141 @@
+# 2346 full-code-review 5.2 ai-dev/design 设计文档 drift 审计
+
+> Plan Status: completed
+> Last Reviewed: 2026-10-06
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 5.2（MA5）；Skill=`ai-dev/skills/design-doc-audit-prompt.md`
+> Related: owner doc `ai-dev/design/README.md`；Roadmap Details：「design/ 各子系统设计文档是否残留 "Proposed vs Current" 草稿态、与 live 基线 drift」。
+> 机械基线（主 agent 实测）：ai-dev/design/ 36 子目录 + 13 根级散篇 md，合计 274 md 文件；「Proposed vs Current/Proposed Design」草稿态标记 3 文件命中（00-design-writing-guide.md 自身/nop-datav 两篇）。
+> 只读审计（P0 走异步注入）。**抽样制 + 机械全量扫描结合**：草稿态标记机械全量 grep（274 文件）；drift 深审抽样 ≥10 个子系统（优先历次深审域 + 4.6 已核对的 nop-lint）。**方法学裁定**（同 5.1 先例）：design-doc-audit-prompt.md 仅部分适用——维度 3「稳定与时间敏感责任」、维度 4「设计漂移分类」可作判定辅助；维度 1 外部基准覆盖度探测与 verdict 输出契约不采用；「274 全读」条款被抽样制取代。判级=deep-audit 共享前缀 P0–P3（:329-333）；drift 面方法锚=维度 18（scoped 至 ai-dev/design）；草稿态面判级锚=guide Rule #14 + ai-dev/design/00-design-writing-guide.md:35（禁对比条款）+:183（「草案」是状态词表合法值——标记本身不违规，须叠加「实现已落地」判定）。
+> Draft Review: agent_286b1f6c 首轮 4 Major（F3 方法学裁定——skill 部分适用+P0-P3 判级锚 :329-333+维度 18 scoped+草稿态判级锚 Rule #14/writing-guide :35/:183；F4 nop-orm 域无设计文档替换 maker-checker/+≤14 篇上限；F1 基线按模式分列——英文 3 命中=0 真草稿态、草案/Draft 41 文件含 nop-lint 12 篇族；F2 裁定分类 6 类+实现落地判定方法）+ 3 Minor（P0 前移/上限/锚点判据）——本轮修复后 agent_f1d4f3ad 聚焦复核全 PASS（12→13 篇计数勘正）——进入执行。
+
+## Purpose
+
+执行 roadmap 工作项 5.2：ai-dev/design 各子系统设计文档 drift 审计（草稿态残留 + live 基线 drift），产出报告 `5.2-design-drift-audit.md`。
+
+## Current Baseline
+
+- 机械基线（主 agent 实测）：36 子目录 + 13 根级散篇 = 274 md；「Proposed vs Current|Proposed Design」grep 命中 3 文件（00-design-writing-guide.md 为写作指南自身引用、nop-datav/schedule-report-design.md、nop-datav/screen-design.md）。
+- 绿色基线：编制期（2026-09-22）全仓 BUILD SUCCESS；本项为文档对照型（验证以复核员独立抽验为锚）。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/5.2-design-drift-audit.md`：摘要 + 草稿态全量扫描台账 + drift 抽样台账 + P0–P3 发现（`P<级别>-5.2-<序号>`）+ 驳回台账 + 裁决。
+- **草稿态全量扫描**（roadmap 点名「Proposed vs Current 草稿态残留」）：274 文件机械 grep（Proposed vs Current/Proposed Design/草案/Draft 状态标记）+ 命中逐个裁定。**裁定分类 6 类**：真草稿态违规（实现已落地仍标草案——guide Rule #14 触发）/合法前置草案（实现未启动，如 xdef-declarative-validation-design 自述执行器未实现）/指南自身引用/显式否定句/历史合理保留/领域术语误命中（如 getScreenDraftLayout 的产品数据草稿）。判定方法：对照模块实现状态（代码在库/已收口）。
+- **drift 深审抽样 ≥10 子系统**（优先历次深审域；**子系统无设计文档时记发现并从备选池补位——nop-orm 域无 design 目录，替换为 maker-checker/**）：nop-lint（4.6 刚审——fail-closed 语义与设计 03 文档对照）/nop-sys + maker-checker/（3.5：锁 P0 复核、Maker-Checker 契约、事件队列）/nop-stream/nop-wf/nop-task/nop-report/nop-auth/nop-metadata/nop-datav/nop-ai 域——每子系统抽 1-2 篇核心设计文档对照 live（**文档数上限 ≤14 篇**；选取判据：优先 00-vision/01-architecture-baseline + 历次深审点名篇目）。
+- index 登记 + 独立 closure audit + roadmap 5.2 翻 done。
+
+## Non-Goals
+
+- 274 文件全量逐字 drift 校对（抽样制）；设计文档内容改进执行（发现归 R1.0）；5.1 已覆盖的 docs-for-ai 域。
+
+## Scope
+
+### In Scope
+
+- `ai-dev/design/**`（草稿态标记全量 grep + drift 抽样 ≥10 子系统）
+- 只读输入：`ai-dev/skills/design-doc-audit-prompt.md`、历次深审报告（drift 对照）
+
+### Out Of Scope
+
+- 全量逐字校对；设计改进执行；5.1/5.3 域。
+
+## Execution Plan
+
+### Phase 1 - 扫描与抽样（双 agent 并行）
+
+Status: completed
+Targets: ai-dev/design
+
+- Item Types: `Proof`
+
+- [x] 动手前基线确认：本 plan 已提交、`git status` 干净后开始（不干净：登记在途变更，触及扫描域则等待，未触及登记豁免继续）
+- [x] 机械基线：274 文件清单、草稿态 grep 模式写死、抽样表选取（≥10 子系统）、历次深审 drift 对照清单
+- [x] 草稿态扫描 agent：机械全量 grep + 命中逐个裁定
+- [x] drift 抽样 agent：≥10 子系统抽 1-2 篇核心设计文档对照 live（每篇 ≥3 条核对声明）
+- [x] 裁定复核迭代：初稿完成后主 agent 抽查质量（完成判据达成：草稿态全量 150 命中/61 文件 + 12 篇子系统 drift 对照）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 产物 `_tmp/fcr-5.2-design.md`
+
+Exit Criteria:
+
+- [x] 初稿落盘，每条发现 ≥9 行含 file:line 与修复方向
+- [x] 草稿态全量台账 + drift 抽样台账落盘
+- [x] No owner-doc update required（只读——发现归 R1.0 修复）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核与判级收敛
+
+Status: completed
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [x] 独立复核子 agent（fresh session）：逐条 保留/降级/驳回 + 扫描口径重放（§A 口径重放 5/5 精确、①类抽 8 全成立、②类 1 处改判〔xdef-declarative-validation ②→①〕、调和后 ①39/②15；§B drift 6 条全保留、声明抽验 8/8）
+- [x] 主 agent 汇总：判级统一、撞车去重终裁（4.6/2.7/5.1 撞车 5/5 零重复）
+- [x] 台账收敛
+
+Exit Criteria:
+
+- [x] 复核结论落盘 `_tmp/fcr-5.2-design-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: completed
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- Item Types: `Proof`
+
+- [x] 编制 `5.2-design-drift-audit.md`；index 登记 5.2 行 + P2 裁决台账 P2-5.2-001 行 + P1 汇总 P1-5.2-001 行
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（本项零 P0）
+- [x] 定向验证锚点：扫描口径重放由复核员独立执行（5/5 精确）；doc-links exit 0
+- [x] 独立子 agent closure audit（四项：证据完整性/严重性标定/引用路径真实性/计数对应——实质全过，处方 R1 台账两行/R2 log/R3 plan 补记已落实）；通过后 roadmap 5.2 翻 `done`；plan 关闭（双 --strict）；commit
+
+Exit Criteria:
+
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 扫描口径可复现（复核员重放一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码，以 roadmap 6.1 全仓扫描覆盖
+
+## Closure Gates
+
+> 只读审计计划，免除全量构建验证；以复核员独立重放为验证锚点。
+
+- [x] 报告落盘且草稿态全量扫描/drift 抽样全覆盖——覆盖度量：274 文件 grep 台账 + 12 篇/10 子系统 drift 对照
+- [x] 每条发现 file:line 可复现；判级依据共享前缀；误报校准留痕
+- [x] index 计数与报告发现清单一一对应
+- [x] 独立 closure audit PASS 并留痕
+- [x] roadmap 5.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（无预设；docs 修复工单归 R1.0/R1.x。）
+
+## Closure
+
+Status Note: design drift 审计计划收口。报告 `5.2-design-drift-audit.md` 落盘：草稿态违规 39 处/29 篇整体立案 P2-5.2-001 走 P2 裁决台账 + drift 抽样新发现 7 条（P1×1/P2×3/P3×3——P1-5.2-001 进 index P1 汇总）。**口径重放三重独立确认 5/5 精确**；②类 1 处改判透明记载（xdef-declarative-validation ②→①——执行器实存、文档定稿后未更新）；7/12 篇零 drift 正结论。closure audit 实质全过（处方 R1 index 台账两行/R2 log/R3 plan 补记已落实）。
+Completed: 2026-10-06
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子 agent agent_4ce74c6d-f559-4270-8c8d-a36ae65b5295（fresh session，只读 closure auditor；FAIL→处方 R1 台账两行落实后转 PASS）
+- Evidence:
+  - 计数勾稽：finding 7 条（0/1/3/3）+ P2-5.2-001 整体立案 39 处/29 篇 ↔ 报告实点 ↔ index 5.2 行（0/1/3/3）↔ P2 台账行 ↔ P1 汇总行 ↔ 映射表 ↔ 复核净账六处闭合；39 处逐单元实点 30+9 吻合
+  - P1/P0 台账：P1-5.2-001 已登记（R1 落实）；「P0 发现追踪」无 5.2 新增正确
+  - 关键判定亲读 4/4：NopSysCheckerRecord 23 列逐列实数无锁列/nop-stream pom 11 模块 vs 文档 10/XDefConstraintValidator.java:51 实存 + plan 2270 completed + 文档 :5 未更新/nop-lint 528 java + roadmap done 53 + 00-nop-lint-design:4 原文
+  - 格式：抽 4 条 9-10 要素完整
+  - 验证：doc-links exit 0
+  - Anti-Hollow：只读审计计划，无新增组件/代码路径；验证以复核员口径重放 + closure auditor 亲读为锚
+  - Deferred 项分类检查：无 deferred；P1-5.2-001 进 index P1 汇总；P2×3 进 R1.0 输入池；P2-5.2-001 经 P2 裁决台账转 R1.0 裁决；P3×3 watch-only，无 in-scope live defect 被静默降级
+
+Follow-up:
+
+- no remaining plan-owned work（P1-5.2-001/P2×3 修复归属 R1.0 分族；P2-5.2-001 经 P2 裁决台账转 R1.0 裁决〔Rule #14 重写波次〕；P3×3 watch-only；账本纪律漂移交 tool-replacement roadmap 维护）

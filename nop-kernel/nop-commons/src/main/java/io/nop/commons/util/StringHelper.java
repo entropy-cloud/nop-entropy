@@ -2530,7 +2530,8 @@ public class StringHelper extends ApiStringHelper {
             if (c >= 0 && c <= 31) {
                 sb.append('_');
             } else {
-                sb.append(c);
+                // plan 2407 判别测试发现：append(int) 会把字符写成十进制码——须按 char 追加
+                sb.append((char) c);
             }
         }
         return sb.toString();

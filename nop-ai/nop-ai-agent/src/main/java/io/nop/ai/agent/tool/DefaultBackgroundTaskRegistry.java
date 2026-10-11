@@ -153,6 +153,10 @@ public class DefaultBackgroundTaskRegistry implements IBackgroundTaskRegistry {
                     bridge.accept(entry, status);
                     entry.notificationSent = true;
                 } catch (Exception e) {
+                    // P1-7.1-001（plan 2398）：簿记覆盖前保存原始终态——懒重投需以真实
+                    // 业务终态（FAILED/TIMEOUT/COMPLETED）回调并恢复状态
+                    if (entry.originalStatus == null)
+                        entry.originalStatus = status;
                     entry.status = STATUS_NOTIFICATION_FAILED;
                     LOG.warn("DefaultBackgroundTaskRegistry: completion notification failed for task {} "
                             + "(will retry on next snapshot/readOutput)", taskId, e);
@@ -234,9 +238,14 @@ public class DefaultBackgroundTaskRegistry implements IBackgroundTaskRegistry {
                 return;
             }
             try {
-                bridge.accept(entry, entry.status);
+                // P1-7.1-001（plan 2398）：桥回调必须携带原始终态（FAILED/TIMEOUT/
+                // COMPLETED）——NOTIFICATION_FAILED 只是簿记态，不承载业务语义。重投
+                // 成功后状态恢复为原始终态（此前无条件置 COMPLETED，FAILED/TIMEOUT
+                // 源的任务被永久误报完成）。
+                String original = entry.originalStatus != null ? entry.originalStatus : entry.status;
+                bridge.accept(entry, original);
                 entry.notificationSent = true;
-                entry.status = STATUS_COMPLETED;
+                entry.status = original;
                 LOG.debug("DefaultBackgroundTaskRegistry: lazy notification redelivery succeeded for {}",
                         entry.taskId);
             } catch (Exception e) {
@@ -318,6 +327,12 @@ public class DefaultBackgroundTaskRegistry implements IBackgroundTaskRegistry {
         public final long submitTime = CoreMetrics.currentTimeMillis();
         public final long timeoutMs;
         volatile String status = STATUS_RUNNING;
+
+        /**
+         * P1-7.1-001（plan 2398）：首个终态的原始终态（NOTIFICATION_FAILED 簿记覆盖
+         * 之前记录）——懒重投递成功后状态回到原始终态而非无条件 COMPLETED。
+         */
+        volatile String originalStatus;
         /**
          * Public: the engine's completion bridge reads the captured tail
          * directly (via registry.snapshot would re-enter the lazy
