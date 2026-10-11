@@ -17,10 +17,10 @@
             <artifactId>nop-stream-core</artifactId>
         </dependency>
 
+        <!-- rocksdbjni version is centrally managed (nop-dependencies, rocksdb.version) -->
         <dependency>
             <groupId>org.rocksdb</groupId>
             <artifactId>rocksdbjni</artifactId>
-            <version>9.11.2</version>
         </dependency>
 
         <dependency>
