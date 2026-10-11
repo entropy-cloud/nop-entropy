@@ -1,9 +1,9 @@
 # nop-ai 模块结构审计——模块划分、分层与内部结构实证评估
 
 > Status: resolved
-> Date: 2026-10-11
-> Scope: `nop-ai/` 全部 21 个 Maven 子模块（main 代码约 161k 行 / 约 1,046 个 java 文件）
-> Conclusion: 分层骨架（api → core/toolkit → agent/coder/rag/… → gateway/web/app）方向正确、无编译期循环依赖与分层倒置，**不需要推倒式重构**；但存在四类结构性债务需要分阶段收敛——①废弃 chat 栈迁移半途（新旧 API 并存 8 个月）、②nop-ai-core 沦为堆场（混装 4 类异质关注点）、③agent 引擎装配面蔓延（48 参构造 + 51 字段配置 × 4 处重复暴露）、④微模块碎片与孤儿模块（3 个零消费者模块、3 个 MCP 模块共 5 个文件）。结论已编排为 `ai-dev/backlog/nop-ai-structure-refactor-roadmap.md`（21 个工作项 / 4 个里程碑）。
+> Date: 2026-10-11（v2，同日经 round 1 两名独立子代理对抗审查修订——修正 2 处事实错误与多处数字漂移，修订处均标注；复审记录见 roadmap 文末 Authoring Review Record）
+> Scope: `nop-ai/` 全部 21 个 Maven 子模块（main 代码约 161k 行 / 1,179 个 java 文件，含 nop-ai-skills/nop-ai-code-analyzer 33 个）
+> Conclusion: 分层骨架（api → core/toolkit → agent/coder/rag/… → gateway/web/app）方向正确、无编译期循环依赖与分层倒置，**不需要推倒式重构**；但存在四类结构性债务需要分阶段收敛——①废弃 chat 栈迁移半途（新旧 API 并存 8 个月）、②nop-ai-core 沦为堆场（混装 4 类异质关注点）、③agent 引擎装配面蔓延（48 参构造 + 51 字段配置 × 4 处重复暴露）、④微模块碎片与孤儿模块（shell/maven 零生产消费者、dsl-orm 仅存一个平台模块消费者、3 个 MCP 模块共 5 个文件）。结论已编排为 `ai-dev/backlog/nop-ai-structure-refactor-roadmap.md`（21 个工作项 / 4 个里程碑，经对抗审查修订）。
 
 ## Context
 
@@ -20,7 +20,7 @@
 |---|---|---|---|
 | nop-ai-agent | 555 | 76,789 | 执行引擎，占全组代码量 47% |
 | nop-ai-core | 180 | 25,549 | LLM 调用内核 + 堆场（见 P1-3） |
-| nop-ai-dao | 69 | 18,459 | 标准分层；手写仅约 500 行，其余为 `_gen` |
+| nop-ai-dao | 69 | 18,459 | 标准分层；`_gen` 23 文件 17,845 行，手写 46 文件 614 行 |
 | nop-ai-api | 95 | 11,433 | 公开契约，但 70% 是应用实体契约（见 P2-5） |
 | nop-ai-toolkit | 81 | 8,528 | 工具执行层，分层健康 |
 | nop-ai-gateway | 27 | 5,201 | 三块不相关能力硬捆（见 P2-3） |
@@ -59,16 +59,16 @@
 ### P1 级缺陷
 
 **P1-1 废弃 chat 栈迁移半途，卡点是一个未标废弃的锚点类。**
-`core/api/chat/IAiChatService` 等于 2026-02-15 整体标 `@Deprecated(forRemoval=true)`（新 API `IChatService` 2026-02-14 落地于 nop-ai-api），至今 8 个月未收口。core main 中 25 个文件带废弃标记，但唯一的重要消费者 `core/command/AiCommand.java`（496 行，**自身未标废弃**）把 prompt+tool+retry+persist 全部绑在废弃栈上，下游 `nop-ai-tools` 的 `GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 经它间接绑死。同时双消息模型并存：`api/chat/messages/`（ChatMessage 族 13 文件，外部消费者 258+ 处 import）vs `core/api/messages/`（AiMessage 族 13 文件，core 自留），代价实体化为 gateway 的 `AiDialectBackendMessageConverter` + `ChatServiceFailoverAdapter` 专职互转。
+`core/api/chat/IAiChatService` 等于 2026-02-15 整体标 `@Deprecated(forRemoval=true)`（新 API `IChatService` 2026-02-14 落地于 nop-ai-api），至今 8 个月未收口。core main 中 25 个文件带废弃标记，但唯一的重要消费者 `core/command/AiCommand.java`（496 行，**自身未标废弃**）把 prompt+tool+retry+persist 全部绑在废弃栈上，下游 `nop-ai-tools` 的 `GraphQLToolProvider`/`GraphQLToolSetFactoryBean` 经它间接绑死。同时双消息模型并存：`api/chat/messages/`（ChatMessage 族 13 文件；外部消费面按 import 语句口径排除 api/core 自身实测 main scope 77 文件 200 条 import、含 test 289 文件 829 条——v2.1 勘误口径标签）vs `core/api/messages/`（AiMessage 族 13 文件，core 自留）。~~代价实体化为 gateway 的两个类专职互转~~（v2 勘误：gateway main 对 `io.nop.ai.core.api.messages` 零 import；`AiDialectBackendMessageConverter` 实为前端 wire-format ↔ ChatRequest 协议转换器、`ChatServiceFailoverAdapter` implements 新栈 IChatService——双消息模型的现存代价是 core 自留废弃面与删除阻力，**不存在运行时桥接层**；全仓唯一双模型转换点是 core 测试类 TestChatLogHelper）。
 
 **P1-2 工具（Tool）抽象散布 5 处、3 套并行 SPI、4 套文件工具实现。**
-SPI 三套：`nop-ai-api/api/tool/IToolDefinition`（新）、`core/api/tool/`（IAiChatFunctionTool 族 6 文件，已废弃）、`toolkit/api/IToolManager`+`IToolExecutor`（新运行时）。文件工具四份：toolkit 20 个 `*Executor` + `LocalToolFileSystem`、`nop-ai-tools` 的 `FileToolBizModel`（BizModel 路线，依赖 nop-biz）、`nop-ai-mcp-server/AiFileTool`（又一个 @BizModel 文件工具，为用 2 个 Simplifier 依赖整个 coder）、core `file/IFileOperator`（废弃仍保留）。两条注册路线（BizModel vs IToolExecutor）无裁定并存。agent 另有 `agent/tool/` 21 文件 dispatcher 与 9 个 `*.tool.xml`，toolkit 有 15 个 `*.tool.xml`，`_vfs/nop/ai/tools/` 两处同名目录。
+SPI 三套：`nop-ai-api/api/tool/IToolDefinition`（新）、`core/api/tool/`（IAiChatFunctionTool 族 6 文件，已废弃）、`toolkit/api/IToolManager`+`IToolExecutor`（新运行时）。文件工具四份：toolkit 20 个 `*Executor` + `LocalToolFileSystem`、`nop-ai-tools` 的 `FileToolBizModel`（BizModel 路线，依赖 nop-biz）、`nop-ai-mcp-server/AiFileTool`（又一个 @BizModel 文件工具，为用 2 个 Simplifier 依赖整个 coder）、core `file/IFileOperator`（废弃仍保留）。两条注册路线（BizModel vs IToolExecutor）无裁定并存。agent 另有 `agent/tool/` 21 文件 dispatcher 与 9 个 `*.tool.xml`，toolkit 有 25 个 `*.tool.xml`（v2 修正），`_vfs/nop/ai/tools/` 两处同名目录。
 
 **P1-3 nop-ai-core 是 god-module：LLM 内核混装 4 类异质关注点。**
-强内聚的 LLM 内核（dialect 8 文件 4,622 行、model 39、reliability 20、prompt 8，约占 60%）之外混装：①RAG 的 SPI 与数学工具（`api/vectorstore` 4 + `api/embedding` 4 含 CosineSimilarity/RelevanceScore + `search/AiModelTextEmbedding`）；②编码代理关注点（`file/` 9 文件文件编辑原语 + `response/` 5 个结构化输出解析器——与「LLM 调用内核」无关）；③网关级模型选路（`routing/` 9 文件，且 `RuleBasedSelectionStrategy` 拖入 `nop-rule-core` 依赖，使 rag/coder/dsl-orm/agent 全部传递依赖规则引擎）；④测试设施在 main scope（`mock/` 6 文件含文件轮询+线程池的 record/replay 机制，与 `service/MockAiChatService` 两套并存；消费面全部是 test scope）。另 core 的 `NopAiCoreErrors` 代管上层模块错误码（`nop.err.ai.agent.*`、`nop.err.ai.tools.*`）。
+强内聚的 LLM 内核（dialect 8 文件 4,622 行、model 39、reliability 20、prompt 8，约占 60%）之外混装：①RAG 的 SPI 与数学工具（`api/vectorstore` 4 + `api/embedding` 4 含 CosineSimilarity/RelevanceScore + `search/AiModelTextEmbedding`）；②编码代理关注点（`file/` 9 文件文件编辑原语 + `response/` 5 个结构化输出解析器——与「LLM 调用内核」无关）；③网关级模型选路（`routing/` 9 文件，且 `RuleBasedSelectionStrategy` 拖入 `nop-rule-core` 依赖，使 rag/coder/dsl-orm/agent 全部传递依赖规则引擎）；④测试设施在 main scope（`mock/` 6 文件含文件轮询+线程池的 record/replay 机制，与 `service/MockAiChatService` 两套并存；v2 修正消费面口径：直接消费 `io.nop.ai.core.mock` 的仅 core 1 个测试类，nop-datav-service 4 个测试类各自定义私有本地 MockChatService 不消费 core mock）。另 core 的 `NopAiCoreErrors` 代管上层模块错误码（`nop.err.ai.agent.*`、`nop.err.ai.tools.*`）。
 
 **P1-4 agent 引擎装配面蔓延（config sprawl）。**
-`ReActAgentExecutor` 构造函数 **48 个参数**（`engine/ReActAgentExecutor.java:209-256` 实测），配套 700 行 Builder；`DefaultAgentEngine`（1,300 行）有 **8 个 telescoping 构造函数**（`:304-345`）+ 约 40 个纯委托 getter/setter；`DefaultAgentEngineConfig` 51 个私有字段 × 4 处重复暴露（Config 字段 / Engine 委托 / Builder 方法 / Executor 构造参数）。新增一个引擎能力平均要改 5-6 个文件。配套发现：`NopAiAgentException` 放在 `engine` 包却被全模块 130 个文件引用，形成 engine⇄security（144/46 处互 import）、engine⇄reliability（53/16）两个包级环。已知裁定：agent-refactor roadmap（已收口）只覆盖执行模型语义，未触碰装配面——本次不重复、不冲突。
+`ReActAgentExecutor` 构造函数 **48 个参数**（`engine/ReActAgentExecutor.java:210-256` 实测），配套 700 行 Builder；`DefaultAgentEngine`（1,300 行）有 **8 个 telescoping 构造函数**（起始行 :303-:351）+ 49 个纯委托 getter/setter（:384-480 窗口内实测，全文件 77 处单行委托——v2 修正 v1"约 40"）；`DefaultAgentEngineConfig` 51 个私有字段 × 4 处重复暴露（Config 字段 / Engine 委托 / Builder 方法 / Executor 构造参数）。新增一个引擎能力平均要改 5-6 个文件。配套发现：`NopAiAgentException` 放在 `engine` 包却被全模块 130 个文件引用，形成 engine⇄security（144/30 处互 import——v2 修正：main scope security→engine 为 30 条，14 处 NopAiAgentException + 16 处 AgentExecutionContext，27 个文件）、engine⇄reliability（53/16）两个包级环；且该 FQN 被 gateway `FeishuConnector` 4 处硬编码、被 `nop-task-dao` `TaskExceptionRegistry` 以反射字符串注册（跨模块契约，v2 补充）。已知裁定：agent-refactor roadmap（已收口）只覆盖执行模型语义，未触碰装配面——本次不重复、不冲突。
 
 ### P2 级缺陷
 
@@ -79,10 +79,10 @@ SPI 三套：`nop-ai-api/api/tool/IToolDefinition`（新）、`core/api/tool/`�
 五个 dialect（Anthropic 977 / Gemini 784 / Responses 770 / Ollama 580 / OpenAi 493 行）方法集完全同构；私有 helper 三份复制——`toInt(Object)`（`AnthropicDialect.java:665`、`OpenAiDialect.java:407`、`ResponsesDialect.java:764` 实测）、`getString(Map,String)` 三份、`reverseFinishReason` 两份，而 `AbstractLlmDialect` 已有 `getStringByPath` 未被复用；buildBody 骨架逐字同构，差异只是字段名（errorMappings 已证明配置驱动可行）。估计可净省 800-1,200 行。
 
 **P2-3 nop-ai-gateway 三块不相关能力硬捆。**
-`failover/`（11 文件）+ `channel/`（12 文件，飞书 IM）+ `login/`（4 文件，扫码登录，依赖 nop-auth）。后果：只用 LLM failover 也要传递依赖 IM 渠道、auth、agent、dao、netty 网关框架。与 `nop-ai-gateway-failover-roadmap.md`（active）的划界：该 roadmap 演进 failover 能力语义，本报告只裁定模块承载边界，不重复立项。
+`failover/`（11 文件）+ `channel/`（11 文件——10 顶层 + feishu/FeishuConnector，v2.1 修正）+ `login/`（4 文件，扫码登录，依赖 nop-auth）。后果：只用 LLM failover 也要传递依赖 IM 渠道、auth、agent、dao、netty 网关框架。与 `nop-ai-gateway-failover-roadmap.md`（active）的划界：该 roadmap 演进 failover 能力语义，本报告只裁定模块承载边界，不重复立项。
 
-**P2-4 三个零消费者孤儿模块。**
-①`nop-ai-shell`（4.5k 行 bash lexer/parser/执行器）：`nop-ai-agent/pom.xml:30-32` 注释自证 "no production consumer (orphan module, plan 2301 Known Residual)"，唯一引用是 2 个测试类；**但** `nop-ai-shell-bash-cst-frontend-roadmap.md`（2026-10-05，活跃）仍在投入其 bash parser 前端——处置必须先裁定，不能直接退役。②`nop-ai-maven`（6 文件）：全仓 `ai.maven.` 零外部引用。③`nop-ai-dsl-orm`（4 文件）：零外部引用，且与 coder/orm 重复（`GptOrmSqlType` vs `AiOrmSqlType`、`GptOrmModelParser` vs `AiOrmModel`）。
+**P2-4 孤儿模块与名不副实的重复模块。**
+①`nop-ai-shell`（4.5k 行 bash lexer/parser/执行器）：`nop-ai-agent/pom.xml:28-32` 注释自证 "no production consumer (orphan module, plan 2301 Known Residual)"，生产消费者为 0（唯一引用是 2 个测试类）；**但** `nop-ai-shell-bash-cst-frontend-roadmap.md`（2026-10-05，活跃）仍在投入其 bash parser 前端——处置必须先裁定，不能直接退役。②`nop-ai-maven`（6 文件）：全仓 `io.nop.ai.maven` 包外引用为 0（v2 复核确认）。③`nop-ai-dsl-orm`（4 文件）：与 coder/orm 重复（`GptOrmSqlType` vs `AiOrmSqlType`、`GptOrmModelParser` vs `AiOrmModel`）；~~零外部引用~~（v2 勘误：`nop-dyn/nop-dyn-service/pom.xml:86` compile 依赖它，`GptCodeGen.java:11,18` import 并调用 `GptOrmModelParser`——退役须先安置该平台模块消费者）。
 
 **P2-5 nop-ai-api 70% 是应用实体契约，约 1/3 是死代码。**
 `api/beans/`（44 文件 7,224 行）+ `api/crud/`（22 个 13 行接口）= 66/95 文件，覆盖 Project/Requirement/TestCase/Todo 等 AI 开发平台应用实体；`api/crud/` 22 个接口全仓 0 外部消费者（实测）。真正的能力契约（chat/messages/stream、IToolDefinition、mcp/credential/secure/exceptions）约 25-30 文件。后果：只用 IChatService 的下游（toolkit、spring-mcp-server-support）被迫背 7,000 行实体 bean。
@@ -99,7 +99,7 @@ SPI 三套：`nop-ai-api/api/tool/IToolDefinition`（新）、`core/api/tool/`�
 - **`guardrail/test` 是 main 源码里的测试 harness**：24 文件 2,393 行（CheckpointTestHarness、AttackPlugin、CrescendoAttackTransform 等）+ 攻击语料打进 main resources，并 import engine 加深耦合。
 - **命名冲突**：`agent/reliability`（长任务韧性：checkpoint/sustainer）与 `core/reliability`（调用层容错：retry/breaker）同名不同义。
 - **dao 双限界上下文**：会话/聊天域（Session/ChatRequest/Model…）与 AI 项目管理域（Project/Requirement/TestCase/Todo/GenFile）混在一个 dao，后者只有 web CRUD 页面和 service BizModel 消费。
-- **Eclipse 工程文件入库**：全部 21 个模块的 `.project`/`.classpath`/`.settings/` 在 git 跟踪中（根 .gitignore 已列但先入库文件不受影响）。
+- **Eclipse 工程文件未入库**（v2 勘误：v1 误报"已被 git 跟踪"）：`git ls-files` 实测全仓 0 个 `.project`/`.classpath`/`.settings` 被跟踪——根 .gitignore:10-12 与 nop-ai/.gitignore 均已忽略，磁盘上存在的是未跟踪工作文件，仅本地卫生问题。
 - **工作笔记混入代码树**：根级 `nop-ai/model/chat-history/` 产品分析笔记属 `ai-dev/` 性质的内容。
 - 同一 compaction 关注点散在 3 个包（toolkit/api 的 ICompactionArchive、agent/compact 的实现、agent/session 的 Config/Result）。
 
@@ -107,7 +107,7 @@ SPI 三套：`nop-ai-api/api/tool/IToolDefinition`（新）、`core/api/tool/`�
 
 按「先收口迁移、再归位关注点、后动装配面、最后整合模块」顺序编排为 4 个里程碑 21 个工作项，完整立项见 `ai-dev/backlog/nop-ai-structure-refactor-roadmap.md`。要点：
 
-1. **M1 废弃栈收口与双轨合一**：迁走 AiCommand 链 → 删 25 个废弃类 → 工具 SPI 归一裁定 → gateway 桥接层简化。迁移面经 grep 验证很小，是低成本高杠杆的低垂果实。
+1. **M1 废弃栈收口与双轨合一**：迁走 AiCommand 链 → 删 25 个废弃类 → 工具 SPI 归一裁定（BizModel 路线 vs IToolExecutor 路线）。迁移面经 grep 验证很小，是低成本高杠杆的低垂果实。
 2. **M2 core 瘦身与关注点归位**：RAG SPI 归 rag、routing（连同 rule-core 依赖）归 gateway、file/response 归 coder、mock 下沉 testkit、dialect 消重（净省约 1,000 行）、错误码归还各模块。
 3. **M3 agent 装配面收敛**：NopAiAgentException 上移断包环、48 参构造改分组对象、8 个 telescoping 构造与委托 getter/setter 删除（净删约 800 行）、微包合并与 NoOp 审计、guardrail/test 移出 main。
 4. **M4 模块整合与卫生**：api 瘦身（实体契约迁出）、MCP 合并 + servrer 更名、孤儿模块裁定（shell 必须与 CST roadmap 划界后裁定）、skills 拉平、dao 双上下文与 gateway 拆分裁定、仓库卫生。
