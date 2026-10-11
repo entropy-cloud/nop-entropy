@@ -147,6 +147,16 @@ public class StreamReduceOperator<T>
     public void restoreState(OperatorSnapshotResult snapshotResult) throws Exception {
         super.restoreState(snapshotResult);
 
+        // Fresh-start contract (AbstractStreamOperator#restoreState(null) propagates
+        // initializeState(null)): the remote-deploy fresh path calls restoreState(null)
+        // with no durable snapshot — start from empty accumulators instead of NPE-ing
+        // on the null result (graphModelCheckpointExecutor fresh-deploy bug found by
+        // the WI10 differential harness, plan 2426).
+        if (snapshotResult == null) {
+            this.values = new HashMap<>();
+            return;
+        }
+
         Object stateObj = snapshotResult.getOperatorState(REDUCE_STATE_KEY);
         if (stateObj instanceof List) {
             values = new HashMap<>();
