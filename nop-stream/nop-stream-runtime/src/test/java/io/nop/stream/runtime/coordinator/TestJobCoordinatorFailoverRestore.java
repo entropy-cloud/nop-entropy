@@ -342,6 +342,139 @@ class TestJobCoordinatorFailoverRestore {
         coordinator.stop();
     }
 
+    // ==================== WI10 (plan 2426) 6a: manifest-first gate ====================
+
+    private io.nop.stream.core.checkpoint.EpochManifest gateManifest(
+            long epochId, io.nop.stream.core.model.StreamModelFingerprint fingerprint) {
+        Map<TaskLocation, TaskStateSnapshot> snapshots = new LinkedHashMap<>();
+        snapshots.put(LOC_1, TaskStateSnapshot.empty(LOC_1));
+        snapshots.put(LOC_2, TaskStateSnapshot.empty(LOC_2));
+        return new io.nop.stream.core.checkpoint.EpochManifest(epochId, JOB_ID, PIPELINE_ID,
+                System.currentTimeMillis(), CheckpointType.CHECKPOINT,
+                io.nop.stream.core.checkpoint.EpochState.COMMITTED,
+                snapshots, fingerprint, null);
+    }
+
+    private io.nop.stream.core.model.StreamModelFingerprint fingerprintOf(String dag) {
+        return new io.nop.stream.core.model.StreamModelFingerprint("1.0",
+                Map.of("c", "x"), dag, "req", "part");
+    }
+
+    /** (6a-1) manifest WITHOUT fingerprint: gate skips validation, raw rebuild proceeds. */
+    @Test
+    void manifestWithoutFingerprintSkipsValidationAndRawRestores() throws Exception {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(buildCompletedCheckpoint(JOB_ID, PIPELINE_ID, 5L));
+        storage.storeEpochManifest(JOB_ID, PIPELINE_ID, gateManifest(5L, null));
+
+        CheckpointCoordinator coord = new CheckpointCoordinator(
+                JOB_ID, PIPELINE_ID, new CheckpointIDCounter(), storage, baseConfig());
+        TestLeaderElector elector = new TestLeaderElector("host-gate-nofp");
+        JobCoordinator coordinator = buildHaCoordinator(coord, elector, storage);
+        coordinator.start();
+        elector.grantLeadership(1L);
+
+        assertTrue(coordinator.isActive(), "no-fingerprint manifest must not block activation");
+        assertEquals(5L, coord.getLatestCheckpoint().getCheckpointId(),
+                "raw rebuild restores the data epoch");
+        coord.setTasksToAcknowledge(java.util.Collections.singletonList(LOC_1));
+        PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertEquals(6L, pending.getCheckpointId(),
+                "counter advanced past the manifest epoch (5) → next trigger 6");
+        coordinator.stop();
+    }
+
+    /** (6a-2) manifest WITH a compatible fingerprint: gate passes, activation proceeds. */
+    @Test
+    void manifestWithCompatibleFingerprintPassesGate() throws Exception {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(buildCompletedCheckpoint(JOB_ID, PIPELINE_ID, 5L));
+        io.nop.stream.core.model.StreamModelFingerprint fp = fingerprintOf("dag-1");
+        storage.storeEpochManifest(JOB_ID, PIPELINE_ID, gateManifest(5L, fp));
+
+        CheckpointCoordinator coord = new CheckpointCoordinator(
+                JOB_ID, PIPELINE_ID, new CheckpointIDCounter(), storage, baseConfig());
+        coord.setCurrentFingerprint(fp);
+
+        TestLeaderElector elector = new TestLeaderElector("host-gate-match");
+        JobCoordinator coordinator = buildHaCoordinator(coord, elector, storage);
+        coordinator.start();
+        elector.grantLeadership(1L);
+
+        assertTrue(coordinator.isActive(), "compatible fingerprint must pass the gate");
+        assertEquals(5L, coord.getLatestCheckpoint().getCheckpointId(),
+                "raw view population still runs after the gate");
+        coordinator.stop();
+    }
+
+    /** (6a-3) fingerprint MISMATCH: leadership activation fails loud. */
+    @Test
+    void manifestFingerprintMismatchFailsLeadershipActivation() throws Exception {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(buildCompletedCheckpoint(JOB_ID, PIPELINE_ID, 5L));
+        storage.storeEpochManifest(JOB_ID, PIPELINE_ID, gateManifest(5L, fingerprintOf("dag-old")));
+
+        CheckpointCoordinator coord = new CheckpointCoordinator(
+                JOB_ID, PIPELINE_ID, new CheckpointIDCounter(), storage, baseConfig());
+        coord.setCurrentFingerprint(fingerprintOf("dag-new"));
+
+        TestLeaderElector elector = new TestLeaderElector("host-gate-mismatch");
+        JobCoordinator coordinator = buildHaCoordinator(coord, elector, storage);
+        coordinator.start();
+        assertThrows(StreamException.class, () -> elector.grantLeadership(1L),
+                "incompatible manifest fingerprint must fail the rebuild loud");
+        assertFalse(coordinator.isActive(), "rejected activation must not leave a leader");
+        coordinator.stop();
+    }
+
+    /** (6a-4) manifest carries a fingerprint but the coordinator has NO source: fail-closed. */
+    @Test
+    void manifestFingerprintWithoutSourceFailsClosed() throws Exception {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(buildCompletedCheckpoint(JOB_ID, PIPELINE_ID, 5L));
+        storage.storeEpochManifest(JOB_ID, PIPELINE_ID, gateManifest(5L, fingerprintOf("dag-1")));
+
+        CheckpointCoordinator coord = new CheckpointCoordinator(
+                JOB_ID, PIPELINE_ID, new CheckpointIDCounter(), storage, baseConfig());
+        // no setCurrentFingerprint — no fingerprint source
+
+        TestLeaderElector elector = new TestLeaderElector("host-gate-nosource");
+        JobCoordinator coordinator = buildHaCoordinator(coord, elector, storage);
+        coordinator.start();
+        assertThrows(StreamException.class, () -> elector.grantLeadership(1L),
+                "unprovable compatibility must fail closed");
+        coordinator.stop();
+    }
+
+    /**
+     * (6a-5) shadow window: manifest epoch beyond the latest DATA epoch — the counter
+     * must advance past the MANIFEST epoch so the next trigger cannot collide with a
+     * durable manifest id.
+     */
+    @Test
+    void shadowWindowManifestEpochAdvancesCounter() throws Exception {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        storage.storeCheckPoint(buildCompletedCheckpoint(JOB_ID, PIPELINE_ID, 5L));
+        storage.storeEpochManifest(JOB_ID, PIPELINE_ID, gateManifest(9L, null));
+
+        CheckpointCoordinator coord = new CheckpointCoordinator(
+                JOB_ID, PIPELINE_ID, new CheckpointIDCounter(), storage, baseConfig());
+        TestLeaderElector elector = new TestLeaderElector("host-gate-shadow");
+        JobCoordinator coordinator = buildHaCoordinator(coord, elector, storage);
+        coordinator.start();
+        elector.grantLeadership(1L);
+
+        assertTrue(coordinator.isActive());
+        assertEquals(5L, coord.getLatestCheckpoint().getCheckpointId(),
+                "raw view restores the latest DATA epoch (5)");
+        coord.setTasksToAcknowledge(java.util.Collections.singletonList(LOC_1));
+        PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+        assertNotNull(pending);
+        assertTrue(pending.getCheckpointId() > 9L,
+                "next trigger must exceed the MANIFEST epoch (9), got " + pending.getCheckpointId());
+        coordinator.stop();
+    }
+
     // ==================== Helpers ====================
 
     private CheckpointConfig baseConfig() {
