@@ -156,6 +156,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- SB4 测试设施模块化:@AutoConfigureTestDatabase 移入 org.springframework.boot.jdbc.test.autoconfigure(WI6 plan 2437) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jdbc-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
 
         <dependency>
             <groupId>org.junit.jupiter</groupId>
@@ -193,7 +200,8 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.4.5</version>
+                <!-- 独立 pom(无 parent,root pluginManagement 不可达):显式对齐 nop-dependencies 管理的 SB 4.1.1 线(WI6 plan 2437;BOM import 不合并 pluginManagement,删 version 会被静默解析到 latest) -->
+                <version>4.1.1</version>
                 <configuration>
                     <!--                    <classifier>${repackage.classifier}</classifier>-->
                     <!--                    <image>-->

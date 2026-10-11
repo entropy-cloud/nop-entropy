@@ -50,13 +50,14 @@ public class SpringSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // Spring Security 7: authorizeRequests() 已移除，标准替代为 authorizeHttpRequests(lambda DSL)（WI6 plan 2437）
         http
-                .authorizeRequests()
-                .requestMatchers("/r/**").authenticated()
-                .requestMatchers("/p/**").authenticated()
-                .requestMatchers("/f/**").authenticated()
-                .requestMatchers("/graphql").authenticated()
-                .requestMatchers("/error").permitAll();
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/r/**").authenticated()
+                        .requestMatchers("/p/**").authenticated()
+                        .requestMatchers("/f/**").authenticated()
+                        .requestMatchers("/graphql").authenticated()
+                        .requestMatchers("/error").permitAll());
 
         http
                 .csrf(Customizer.withDefaults())

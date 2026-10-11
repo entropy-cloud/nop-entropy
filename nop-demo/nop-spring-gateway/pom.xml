@@ -128,7 +128,8 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.4.5</version>
+                <!-- 独立 pom(无 parent,root pluginManagement 不可达):显式对齐 nop-dependencies 管理的 SB 4.1.1 线(WI6 plan 2437) -->
+                <version>4.1.1</version>
                 <executions>
                     <execution>
                         <goals>

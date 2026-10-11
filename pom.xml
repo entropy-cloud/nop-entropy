@@ -78,6 +78,7 @@
         <nop-entropy.version>2.0.0-SNAPSHOT</nop-entropy.version>
 
         <quarkus.platform.version>4.0.0.Beta1</quarkus.platform.version>
+        <spring-boot.version>4.1.1</spring-boot.version>
 
         <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -408,6 +409,12 @@
                     <groupId>org.jacoco</groupId>
                     <artifactId>jacoco-maven-plugin</artifactId>
                     <version>0.8.14</version>
+                </plugin>
+
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <version>${spring-boot.version}</version>
                 </plugin>
             </plugins>
 
