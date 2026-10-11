@@ -148,7 +148,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * invariants (stale-leader rejection + same-leader prior-recovery rejection)
      * hold under a single long comparison.
      */
-    private final AtomicLong fencingEpoch;
+    private final AtomicLong fencingEpoch;    /**
+     * CC-06 (R5, plan 2435): per-node single-thread executors for barrier
+     * fan-out. The periodic trigger thread must never block on N× per-node RPC
+     * sends, and one slow node must not stall the OTHER nodes' barriers either
+     * — hence one serial executor per node (preserves that node's barrier
+     * ordering by epoch) instead of one shared queue. Initialized lazily per
+     * node id; all executors shut down in stop().
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, java.util.concurrent.ExecutorService> barrierFanoutExecutors =
+            new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
      * Optional platform leader elector. When non-null the coordinator
@@ -492,6 +501,7 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.checkpointCoordinator = checkpointCoordinator;
         this.taskRpcServices = taskRpcServices != null ? taskRpcServices : Collections.emptyMap();
         this.fencingEpoch = new AtomicLong(0L);
+
         this.taskAssignmentMap = new ConcurrentHashMap<>();
         this.allTaskLocations = ConcurrentHashMap.newKeySet();
         this.assignmentPlanner = new AssignmentPlanner(jobId, deploymentPlan, clusterRegistry,
@@ -706,6 +716,23 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         // try/catch, failures logged, never blocking or failing the
         // coordinator-side shutdown.
         cancelAllAssignedTasks("coordinator stop");
+
+        // CC-06 (plan 2435): drain in-flight barrier/cancel fan-outs, then stop.
+        // shutdown() lets queued fan-outs finish; a hung RPC send is bounded by
+        // the await below, after which shutdownNow interrupts the sender.
+        for (java.util.concurrent.ExecutorService ex : barrierFanoutExecutors.values()) {
+            ex.shutdown();
+        }
+        for (java.util.concurrent.ExecutorService ex : barrierFanoutExecutors.values()) {
+            try {
+                if (!ex.awaitTermination(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    ex.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                ex.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
+        }
 
         // Stop listening to the elector so callbacks cannot fire into a
         // stopped coordinator. The elector bean itself is IoC-managed and is not
@@ -945,14 +972,21 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         Set<String> barrierNodeIds = assignmentPlanner.computeAssignedNodeIds();
 
         if (!taskRpcServices.isEmpty()) {
+            // CC-06 (plan 2435): fan out off the trigger thread, one serial task
+            // per node — a slow node must not stall later nodes' barriers or the
+            // next periodic tick, while each node's own barriers stay
+            // epoch-ordered. Loop body (per-node try/catch + no-RPC WARN)
+            // unchanged.
             for (String nodeId : barrierNodeIds) {
                 IStreamTaskRpcService rpc = taskRpcServices.get(nodeId);
                 if (rpc != null) {
-                    try {
-                        rpc.triggerCheckpoint(barrier, epoch);
-                    } catch (Exception e) {
-                        LOG.error("Failed to send checkpoint signal to node {}", nodeId, e);
-                    }
+                    fanoutExecutorFor(nodeId).execute(() -> {
+                        try {
+                            rpc.triggerCheckpoint(barrier, epoch);
+                        } catch (Exception e) {
+                            LOG.error("Failed to send checkpoint signal to node {}", nodeId, e);
+                        }
+                    });
                 } else {
                     // No silent skip: a source node without an RPC service dooms this
                     // checkpoint to timeout-abort; surface why at WARN so operators
@@ -2894,14 +2928,28 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return jobFailureCause;
     }
 
+    /** CC-06 (plan 2435): one serial executor per node — epoch-ordered per node, isolated across nodes. */
+    private java.util.concurrent.ExecutorService fanoutExecutorFor(String nodeId) {
+        return barrierFanoutExecutors.computeIfAbsent(nodeId,
+                id -> java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                    Thread t = new Thread(r, "jc-barrier-fanout-" + jobId + "-" + id);
+                    t.setDaemon(true);
+                    return t;
+                }));
+    }
+
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
-        long epoch = fencingEpoch.get();
+        // CC-06 (plan 2435): same per-node off-trigger-thread fan-out.
         for (Map.Entry<String, IStreamTaskRpcService> entry : taskRpcServices.entrySet()) {
-            try {
-                entry.getValue().triggerCheckpoint(barrier, epoch);
-            } catch (Exception e) {
-                LOG.error("Failed to send barrier signal to node {}", entry.getKey(), e);
-            }
+            String nodeId = entry.getKey();
+            fanoutExecutorFor(nodeId).execute(() -> {
+                long epoch = fencingEpoch.get();
+                try {
+                    entry.getValue().triggerCheckpoint(barrier, epoch);
+                } catch (Exception e) {
+                    LOG.error("Failed to send barrier signal to node {}", nodeId, e);
+                }
+            });
         }
     }
 }
