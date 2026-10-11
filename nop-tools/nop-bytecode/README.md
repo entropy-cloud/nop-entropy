@@ -1,6 +1,6 @@
 # nop-bytecode
 
-字节码分析底座库（源码通道 [nop-lint](../../nop-lint/) 之外的第二条编码期防线通道）。与 nop-lint **零依赖并行、并行不替代**：nop-lint 在源码层做纯源码分析，本模块在**编译产物**（Maven reactor `target/classes` 目录与 jar）之上做字节码层分析。
+字节码分析底座库（源码通道 [nop-lint](../nop-lint/) 之外的第二条编码期防线通道）。与 nop-lint **零依赖并行、并行不替代**：nop-lint 在源码层做纯源码分析，本模块在**编译产物**（Maven reactor `target/classes` 目录与 jar）之上做字节码层分析。
 
 - 设计权威：[ai-dev/design/nop-bytecode/00-overview.md](../../../ai-dev/design/nop-bytecode/00-overview.md)
 - 底座终裁 ADR：[ai-dev/design/nop-bytecode/substrate-adjudication.md](../../../ai-dev/design/nop-bytecode/substrate-adjudication.md)（ASM 自研路线）
