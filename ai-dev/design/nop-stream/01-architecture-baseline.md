@@ -11,7 +11,7 @@
 1. 系统分为七层：API → StreamComponents → Transformation → 执行计划 → 算子 → 状态&时间 → 存储
 2. 核心模型是 StreamModel——可序列化算子图，三种入口（XDSL / Java API / Delta）最终生成同一类 canonical 模型
 3. 五阶段执行管线：StreamModel → StreamGraph → JobGraph → PartitionedPlan → DeploymentPlan（原第六阶段 RuntimeTopology 概念已退役——2026-09-01 D-GAP 裁定：0 Java 引用，运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担；图模型层数仍为 2：StreamGraph → JobGraph；详见 §四）
-4. 依赖方向严格单向：runtime/connector(+ connector-* 子模块)/rocksdb/cep/flow → core → api
+4. 依赖方向严格单向：runtime/connector(+ connector-* 子模块)/rocksdb/cep/flow → core → api（例外：runtime.maintain 维护工具链 → flow，见 §二 依赖方向表例外登记）
 
 ## 二、模块划分
 
@@ -23,13 +23,16 @@ nop-stream/
 ├── nop-stream-connector-batch    [实现] nop-batch 桥接连接器（批源/批汇）
 ├── nop-stream-connector-jdbc     [实现] JDBC 两阶段提交 exactly-once sink
 ├── nop-stream-connector-debezium [实现] Debezium CDC source
+├── nop-stream-connector-kafka    [实现] Kafka 原生连接器（source + 2PC exactly-once sink）
+├── nop-stream-format-avro        [实现] Avro/Schema Registry wire format 层
 ├── nop-stream-rocksdb            [实现] RocksDB off-heap 增量状态后端
 ├── nop-stream-cep                [实现] Pattern/NFA/SharedBuffer、CEP operator（接入统一状态后端）
+├── nop-stream-sql                [实现] 声明式 SQL 窄范围接口（.stream.xml 顶层 <sql> 元素编译宿主）
 ├── nop-stream-flow               [实现] XDSL StreamModel 编排（DslModelParser + StreamModelDslBuilder），支持 Delta 定制
 └── nop-stream-fraud-example      [实现] 端到端欺诈检测示例
 ```
 
-> 子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 10 个）。
+> 子模块清单与 `nop-stream/pom.xml` `<modules>` 一一对应（共 13 个）。
 
 ### 模块职责边界
 
@@ -61,6 +64,8 @@ runtime / connector(+ connector-* 子模块) / rocksdb / cep / flow  →  core
 | core 不依赖 runtime | core 只定义模型和编译结果 |
 | connector 不依赖具体 runtime | connector 声明 source/sink 能力和状态协议 |
 | cep 不依赖 runtime checkpoint 实现 | CEP operator 通过标准 state/timer 接口接入 |
+| runtime → flow（可辩护例外） | 编译期边但仅 `runtime.maintain` 3 个文件（StreamConfValidateCommand / StreamSampleCommand / StreamLintCommand）消费，服务维护工具链；runtime pom 注释自述动机——maintenance tooling 编译面 + TM 部署路径经 SPI（RemotePipelineResolver）与 flow 的 XDSL 声明语法解耦 |
+| runtime 测试侧 connector fan-in（已登记，WI5 处置） | runtime pom 以 test 作用域依赖全部 5 个 connector（debezium/batch/kafka/connector/connector-jdbc）——违反 connector pom AR-2 注释「引擎不依赖具体 connector」的意图（该意图在编译面成立、测试面被 reintroduce）；收敛处置归结构重构 roadmap WI5 |
 
 ## 三、分层设计
 

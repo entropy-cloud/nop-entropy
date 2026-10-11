@@ -69,9 +69,9 @@ public abstract class WindowAssigner<T, W extends Window> implements Serializabl
      * A context provided to the {@link WindowAssigner} that allows it to query the current
      * processing time.
      *
-     * <p>This is provided to the assigner by its containing {@link
-     * io.nop.stream.runtime.operators.windowing.WindowOperator}, which, in turn, gets
-     * it from the containing {@link io.nop.stream.runtime.task.StreamTask}.
+     * <p>This is provided to the assigner by its containing window operator,
+     * which, in turn, obtains it from the runtime execution context of the
+     * task that runs the operator.
      */
     public interface WindowAssignerContext {
 

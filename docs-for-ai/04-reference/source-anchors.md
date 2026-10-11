@@ -268,8 +268,8 @@
 | `STRM-015` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/common/state/backend/memory/MemoryKeyedStateBackend.java` | Keyed state 后端 |
 | `STRM-016` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/CheckpointCoordinator.java` | Checkpoint 协调器 |
 | `STRM-017` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/PendingCheckpoint.java` | 待完成 checkpoint 状态 |
-| `STRM-018` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java` | 窗口算子 |
-| `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口 |
+| `STRM-018` | `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java` | 窗口算子（预告：结构重构 WI7 将窗口算子族归位 core 的 operators.windowing 包，届时本行路径由 WI7 改写） |
+| `STRM-019` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/IWindowOperatorFactory.java` | 窗口算子工厂接口（预告：结构重构 WI8 将其收敛为 WindowSpec 单一契约，届时本行描述由 WI8 更新；路径不变） |
 | `STRM-020` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/HeapInternalTimerService.java` | 堆内 timer 服务 |
 | `STRM-021` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/InputGate.java` | 多 `InputChannel` 合并读取入口（core/execution）；承担生产 barrier 对齐（`handleBarrierNonRecursive()`）、watermark 合并、channel 阻塞/恢复（`blockConsumption`/`resumeConsumptionAll`） |
 | `STRM-022` | `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/execution/CheckpointBarrierTracker.java` | task 内 barrier ACK 聚合器（core/execution，`@Internal`）；追踪 `operatorsToAck` 计数，收齐后回调 `Consumer<TaskStateSnapshot>` 通知 task snapshot 完成 |
