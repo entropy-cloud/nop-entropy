@@ -46,11 +46,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Each test builds a minimal pipeline (via inline {@code .stream.xml} parsed through
  * the real XDSL parser) and asserts on the registered stream type produced by the
- * builder. Transforms that require the {@code nop-stream-runtime}
- * {@code IWindowOperatorFactory} (window→aggregate, window→reduce) are asserted to
- * dispatch correctly by checking that the expected {@link StreamException}
- * ("window operator factory ships in core (WI7)") is thrown — proving the builder reached the right
- * branch, with the runtime gap already documented in the plan's Deferred section.
+ * builder. The window→aggregate / window→reduce dispatches are proven end-to-end by
+ * asserting a successful {@code build()} — since WI7 (plan 2417) the
+ * {@code IWindowOperatorFactory} (and, since WI8 plan 2420, its {@code WindowSpec}
+ * contract) ships in core, so the windowed branches build without the runtime module.
  */
 public class TestAdvancedTransforms {
 

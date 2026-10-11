@@ -949,6 +949,7 @@ graph TD
 - **Source**: 同上 [P2-6]
 - **Description**: `WindowedStreamImpl.java:184-242` 总传 `(Class<T>)(Class<?>)Object.class`，工厂仅用于建 dummy serializer。
 - **Recommendation**: 改用可选 `TypeSerializer<...>`。
+- **Status**: ✅ Closed (E4 联动 plan 2420, 2026-10-11) — 17 方法 performative Class 参数蠕变面（四代 default shim）随 `WindowSpec` 单一契约消亡（结构重构 roadmap WI8：接口 4 方法零 default，全部配置轴经不可变 WindowSpec 携带）；字面残余（keyClass 占位 Object.class 强转 + dummy key serializer）登记为 watch-only 已知限制（无行为缺陷记录，见 plan 2420 Deferred But Adjudicated 节）；双向记录见 structure-refactor roadmap WI8。
 
 ### CheckpointCoordinator.onCompletePersistFailure 重复日志
 

@@ -24,8 +24,8 @@
 
 > 交叉引用：`ai-dev/audits/nop-stream-invariants/invariant-catalog.md` §5 不变式 #1（覆盖失败族 F1）。
 
-- **窗口粘合层构造参数完备性**：`WindowedStreamImpl` 4 个聚合入口（apply/aggregate/reduce/process）的 8 参数元组 `(windowAssigner, trigger, evictor, allowedLateness, function, elementType, keySelector, keyClass)` 必须 round-trip 至 `WindowOperator` 构造器（经 `IWindowOperatorFactory.create*` → `WindowOperatorBuilder.buildWindowOperator` → `WindowOperator(...)`），任何参数不得在传输链上被遗漏、替换或置默认值。
-- **门禁（已入 CI）**：JUnit `TestWindowRoundTripInvariant`（`nop-stream-runtime/src/test`，与 `TestWindowOperatorUnificationE2E` 同包）——8 组参数化（4 call-site × 有/无 evictor）经真实 `WindowOperatorFactoryImpl` 接线验证，反例（漏传 allowedLateness 的桩 factory）必须被 `WindowRoundTripAssertions` 判定 helper 抓住；`IWindowOperatorFactory` 新增 create 方法必须入 `gate-inventory.json`（表完备性门禁，`check-nop-stream-invariants.mjs inventory`）。
+- **窗口粘合层构造参数完备性**：`WindowedStreamImpl` 4 个聚合入口（apply/aggregate/reduce/process）的全部配置轴（WI8 起 12 字段 `WindowSpec`：windowAssigner/trigger/evictor/allowedLateness/keySelector/keyClass/elementType/lateDataOutputTag/maxDelay/emitWindowEvents/windowEventsOutputTag/accumulationMode）加操作函数与（仅 aggregate）accumulatorType 必须 round-trip 至 `WindowOperator` 构造器（经 `WindowedStreamImpl.buildSpec` → `IWindowOperatorFactory.create*` → `WindowOperatorBuilder.buildWindowOperator` → `WindowOperator(...)`），任何字段不得在传输链上被遗漏、替换或置默认值。
+- **门禁（已入 CI）**（WI8 plan 2420 起两条路径双钉）：JUnit `TestWindowRoundTripInvariant`、`TestWindowSpecFieldTransfer`、`TestWindowedStreamAccumulationModeWiring` 均在 `nop-stream-core/src/test`（WI7 搬迁后位置，与 `TestWindowOperatorUnificationE2E` 同包）——8 组参数化（4 call-site × 有/无 evictor）经真实 `WindowOperatorFactoryImpl` 接线验证，反例（复制 spec 改写 allowedLateness 的桩 factory）必须被 `WindowRoundTripAssertions` 判定 helper 抓住；直调路径全量 12 字段钉（`TestWindowSpecFieldTransfer`，探针目标 `configureBuilder`）+ fluent 路径全量 12 字段钉（`fullSpecReachesFactoryThroughFluentApi`，探针目标 `buildSpec`）；`IWindowOperatorFactory` 的 create 方法（WI8 后恒 4 个、零 default）必须入 `gate-inventory.json`（表完备性门禁，`check-nop-stream-invariants.mjs inventory`）。
 - **历史证据**：R16-AR-2（allowedLateness 死 API）、R8-AR-58（resolveKey 方向反转）、R10-AR-5/6/7、R15-AR-3、R16-AR-4（详见 catalog §5 不变式 #1）。
 
 ## 3. 窗口模型四要素
@@ -365,11 +365,11 @@ processWatermark(watermark)
 
 ### 10.1 工厂注入
 
-`WindowedStream` API 通过 `IWindowOperatorFactory` 获取 `WindowOperatorBuilder`，而非直接实例化。工厂在 runtime 模块实现，通过 SPI 注册。`WindowedStreamImpl` 从 `StreamComponents` 获取工厂（见 `core-design.md` §2.2.1）。
+`WindowedStream` API 通过 `IWindowOperatorFactory` 构建窗口算子，而非直接实例化。WI7（plan 2417）后工厂实现 `WindowOperatorFactoryImpl` 与窗口算子族同住 core 模块（`io.nop.stream.core.operators.windowing`），`WindowedStreamImpl` 无反射兜底直接构造默认实例；注入面二条：`StreamComponents.setWindowOperatorFactory`（模型路径）与 `WindowedStreamImpl.setDefaultFactory`（静态，测试/特化用）。WI8（plan 2420）起工厂契约为 `WindowSpec` 单一契约：4 个 create 方法、零 default，全部窗口配置轴经不可变值对象 `WindowSpec`（`io.nop.stream.core.operators`）携带，操作函数与（仅 aggregate）accumulatorType 为唯一伴随参数——新增配置轴只能在 WindowSpec 上加字段，不得再派生接口重载。
 
 **设计约束**：工厂缺失时窗口操作必须快速失败，不允许静默回退到不支持 checkpoint 的简化路径。
 
-**core-only 场景**：`WindowOperator` 依赖 `IInternalStateBackend` 和 `InternalTimerService`（runtime 模块）。core 模块不提供窗口算子的运行时实现，只定义接口和 API。core-only 测试如需验证窗口逻辑，使用 `OperatorTestHarness` 直接构造算子，不走 `WindowedStream` API 路径。
+**core-only 场景**：WI7 后 `WindowOperator` 全族（含 `HeapInternalTimerService`、状态适配器、`WindowOperatorBuilder`）皆在 core，core 模块自带完整的窗口算子运行时实现；runtime 模块在其上提供分布式执行与 checkpoint 编排（`GraphModelCheckpointExecutor` 等）。core-only 测试可经 `WindowedStream` API 或直接构造算子验证窗口逻辑。
 
 ### 10.2 无 Evictor 构建
 
