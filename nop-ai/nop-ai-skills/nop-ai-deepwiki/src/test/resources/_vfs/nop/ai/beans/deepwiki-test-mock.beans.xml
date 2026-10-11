@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+       xmlns:ioc="ioc">
+
+    <!-- plan 2415: the deepwiki test classpath has no nopRawHttpClient
+         implementation, so the conditional default bean nopHttpClient never
+         activates and the ai-defaults graph fails at startup when building
+         nopChatService.httpClient. Register a fail-loud stub for the by-type
+         injection; the smoke tests never issue HTTP. -->
+    <bean id="testStubHttpClient" class="io.nop.ai.deepwiki.mock.StubHttpClient"
+          ioc:type="io.nop.http.api.client.IHttpClient" primary="true"/>
+
+</beans>

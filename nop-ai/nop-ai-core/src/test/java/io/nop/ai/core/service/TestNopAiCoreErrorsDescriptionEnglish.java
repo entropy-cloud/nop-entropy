@@ -29,7 +29,6 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -77,14 +76,13 @@ public class TestNopAiCoreErrorsDescriptionEnglish {
             new CodeSpec(ERR_AI_PROMPT_UNCLOSED_EXPR, "nop.err.ai.prompt-unclosed-expr"),
             new CodeSpec(ERR_AI_PROMPT_EMPTY_EXPR, "nop.err.ai.prompt-empty-expr"),
             new CodeSpec(ERR_AI_INVALID_EXPR_VAR_NAME, "nop.err.ai.invalid-expr-var-name", "{varName}"),
-            new CodeSpec(ERR_AI_UNKNOWN_TOOL_CALL, "nop.err.ai.unknown-tool-call", "{toolName}"),
             new CodeSpec(ERR_AI_FILE_CONTENT_NO_PATH, "nop.err.ai.file-content.no-path")
     );
 
     @Test
     public void testRound4CodesDescriptionIsEnglishAndContractStable() {
-        assertEquals(19, ROUND4_CODES.size(),
-                "round-4 scope must stay 19 codes (WI1 retired 6 codes; drift is caught)");
+        assertEquals(18, ROUND4_CODES.size(),
+                "round-4 scope must stay 18 codes (WI1 retired 6, WI2 retired unknown-tool-call; drift is caught)");
         for (CodeSpec spec : ROUND4_CODES) {
             ErrorCode code = spec.code();
             assertEquals(spec.expectedId(), code.getErrorCode(),

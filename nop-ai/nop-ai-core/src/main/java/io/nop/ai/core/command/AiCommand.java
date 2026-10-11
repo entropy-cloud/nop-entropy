@@ -8,8 +8,6 @@ import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.ResponseFormat;
 import io.nop.ai.api.chat.messages.ChatAttachment;
 import io.nop.ai.api.chat.messages.ChatMessage;
-import io.nop.ai.api.chat.messages.ChatToolCall;
-import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.persist.IAiChatResponseCache;
 import io.nop.ai.core.prompt.ChatExchange;
@@ -34,21 +32,22 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletionStage;
 
 import static io.nop.ai.core.AiCoreConfigs.CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT;
-import static io.nop.ai.core.NopAiCoreErrors.ARG_TOOL_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
 
 /**
  * Executes a prompt template against the {@code IChatService} stack: renders the
- * prompt, applies chat options, calls the LLM (with an optional tool invocation
- * loop), parses declared outputs into a {@link ChatExchange} and persists
- * responses through the response cache. This is the runtime behind the
- * {@code ai:Execute} xlib tag (task XML {@code ai:TaskStep} steps).
+ * prompt, applies chat options, calls the LLM, parses declared outputs into a
+ * {@link ChatExchange} and persists responses through the response cache. This
+ * is the runtime behind the {@code ai:Execute} xlib tag (task XML
+ * {@code ai:TaskStep} steps).
+ *
+ * <p>Tool invocation is not part of this command path: the legacy tool loop and
+ * its transitional invocation seam were retired by plan 2419 (roadmap WI2) —
+ * the agent engine's toolkit runtime is the single tool execution path.
  */
 public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
@@ -65,11 +64,8 @@ public class AiCommand {
     private boolean returnExceptionAsResponse = true;
     private IChatLogger chatLogger;
 
-    private int maxSteps;
     private List<ChatAttachment> attachments;
     private String workMode;
-    private Set<String> enabledTools;
-    private IAiToolInvoker toolInvoker;
 
     public AiCommand(IChatService chatService, IPromptTemplateManager promptTemplateManager) {
         this.chatService = chatService;
@@ -80,32 +76,6 @@ public class AiCommand {
         return new AiCommand(
                 BeanContainer.getBeanByType(IChatService.class),
                 BeanContainer.getBeanByType(IPromptTemplateManager.class));
-    }
-
-    public int getMaxSteps() {
-        return maxSteps;
-    }
-
-    public void setMaxSteps(int maxSteps) {
-        this.maxSteps = maxSteps;
-    }
-
-    public AiCommand maxSteps(int maxSteps) {
-        setMaxSteps(maxSteps);
-        return this;
-    }
-
-    public IAiToolInvoker getToolInvoker() {
-        return toolInvoker;
-    }
-
-    public void setToolInvoker(IAiToolInvoker toolInvoker) {
-        this.toolInvoker = toolInvoker;
-    }
-
-    public AiCommand toolInvoker(IAiToolInvoker toolInvoker) {
-        this.toolInvoker = toolInvoker;
-        return this;
     }
 
     public IChatService getChatService() {
@@ -138,28 +108,6 @@ public class AiCommand {
 
     public void setPrevMessages(List<ChatMessage> prevMessages) {
         this.prevMessages = prevMessages;
-    }
-
-    public Set<String> getEnabledTools() {
-        return enabledTools;
-    }
-
-    public void setEnabledTools(Set<String> tools) {
-        this.enabledTools = tools;
-    }
-
-    public AiCommand enableTools(Set<String> tools) {
-        if (this.enabledTools == null)
-            this.enabledTools = new java.util.LinkedHashSet<>();
-        this.enabledTools.addAll(tools);
-        return this;
-    }
-
-    public AiCommand enableTool(String toolName) {
-        if (this.enabledTools == null)
-            this.enabledTools = new java.util.LinkedHashSet<>();
-        this.enabledTools.add(toolName);
-        return this;
     }
 
     public ChatOptions getChatOptions() {
@@ -382,9 +330,19 @@ public class AiCommand {
         }
     }
 
+    private CompletionStage<ChatExchange> callChat(ChatRequest request, ICancelToken cancelToken) {
+        if (cancelToken != null && cancelToken.isCancelled()) {
+            LOG.info("nop.ai.cancel-call-ai");
+            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
+        }
+
+        return chatService.callAsync(request, cancelToken)
+                .thenApply(response -> new ChatExchange(request, response));
+    }
+
     public CompletionStage<ChatExchange> executeOnceAsync(ChatRequest request, ChatOptions chatOptions,
                                                           IEvalScope scope, ICancelToken cancelToken) {
-        CompletionStage<ChatExchange> future = executeWithTools(0, request, scope, cancelToken);
+        CompletionStage<ChatExchange> future = callChat(request, cancelToken);
         if (FutureHelper.isError(future))
             return future;
 
@@ -413,58 +371,6 @@ public class AiCommand {
         return future;
     }
 
-    protected CompletionStage<ChatExchange> executeWithTools(int stepIndex, ChatRequest request,
-                                                             IEvalScope scope, ICancelToken cancelToken) {
-        if (cancelToken != null && cancelToken.isCancelled()) {
-            LOG.info("nop.ai.cancel-call-ai");
-            return FutureHelper.reject(new CancellationException("cancel-call-ai"));
-        }
-
-        CompletionStage<ChatResponse> future = chatService.callAsync(request, cancelToken);
-        return future.thenCompose(response -> {
-            int maxSteps = getMaxSteps();
-            if (maxSteps == 0)
-                maxSteps = 3;
-            if (stepIndex >= maxSteps)
-                return FutureHelper.success(new ChatExchange(request, response));
-
-            List<ChatToolCall> toolCalls = response.outputToolCalls();
-            if (toolCalls == null || toolCalls.isEmpty()) {
-                return FutureHelper.success(new ChatExchange(request, response));
-            }
-
-            return executeTools(stepIndex + 1, toolCalls, request, scope, cancelToken);
-        });
-    }
-
-    protected CompletionStage<ChatExchange> executeTools(int stepIndex, List<ChatToolCall> toolCalls,
-                                                         ChatRequest request, IEvalScope scope, ICancelToken cancelToken) {
-        List<CompletionStage<Object>> toolResults = new ArrayList<>(toolCalls.size());
-        for (ChatToolCall toolCall : toolCalls) {
-            if (toolInvoker == null || toolInvoker.findTool(toolCall.getName()) == null)
-                throw new NopException(ERR_AI_UNKNOWN_TOOL_CALL).param(ARG_TOOL_NAME, toolCall.getName());
-
-            toolResults.add(toolInvoker.callTool(toolCall.getName(), toolCall.getArguments()));
-        }
-
-        return FutureHelper.waitAll(toolResults).thenCompose(ret -> {
-            for (int i = 0; i < toolResults.size(); i++) {
-                ChatToolCall toolCall = toolCalls.get(i);
-                Object result = FutureHelper.syncGet(toolResults.get(i));
-                request.addToolResponse(toolCall.getId(), toolCall.getName(), toString(result));
-            }
-            return executeWithTools(stepIndex, request, scope, cancelToken);
-        });
-    }
-
-    private String toString(Object result) {
-        if (result == null)
-            return "";
-        if (result instanceof String)
-            return result.toString();
-        return io.nop.core.lang.json.JsonTool.stringify(result);
-    }
-
     protected ChatExchange postProcess(ChatExchange ret) {
         return ret;
     }
@@ -484,28 +390,7 @@ public class AiCommand {
             message.setAttachments(new ArrayList<>(attachments));
         request.addMessage(message);
 
-        addTools(request);
         return request;
-    }
-
-    protected void addTools(ChatRequest request) {
-        if (getToolInvoker() == null)
-            return;
-
-        if (this.getEnabledTools() != null && !this.getEnabledTools().isEmpty()) {
-            List<ChatToolDefinition> tools = new ArrayList<>();
-            for (String toolName : this.getEnabledTools()) {
-                ChatToolDefinition tool = getToolInvoker().findTool(toolName);
-                if (tool == null) {
-                    LOG.error("nop.ai.unknown-tool:toolName={}", toolName);
-                    continue;
-                }
-                tools.add(tool);
-            }
-            if (!tools.isEmpty()) {
-                request.setTools(tools);
-            }
-        }
     }
 
     protected void addSystemPrompt(ChatRequest request, IEvalScope scope) {

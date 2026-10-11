@@ -34,7 +34,7 @@ audit-rounds: 0
 > 唯一动态状态块。`done` = 独立 closure audit 通过（见 Cross-Cutting）。WI 编号全文件唯一递增；文档顺序即执行顺序，AI 不重排。无 deps 关系的 WI 允许并行，但同模块 WI 建议串行以避免冲突。**WI3 编号已退役**（round 1 证伪撤销，见 Authoring Review Record），编号不复用、后续 WI 编号不受影响。
 
 - WI1 废弃 chat 栈迁移收口（AiCommand 链迁移 + 25 废弃类删除）: `done`
-- WI2 工具 SPI 归一裁定与落地: `todo`
+- WI2 工具 SPI 归一裁定与落地: `done`
 - WI4 RAG SPI 归位 nop-ai-rag: `todo`
 - WI5 模型选路 routing 归位 gateway: `todo`
 - WI6 编码代理关注点归位裁定（core file/response）: `todo`
@@ -55,7 +55,7 @@ audit-rounds: 0
 - WI22 nop-ai-app 产品组装闭环裁定: `todo`
 - WI21 全量收口与分层速查回写校对: `todo`
 
-- ★ **里程碑：M1 双轨合一**（WI1 + WI2 全部 done——废弃栈 25 类删除、工具 SPI 单一）：`todo`
+- ★ **里程碑：M1 双轨合一**（WI1 + WI2 全部 done——废弃栈 25 类删除、工具 SPI 单一）：`done`
 - ★ **里程碑：M2 core 瘦身归位**（WI4—WI9 全部 done——core 仅剩 LLM 内核关注点，rag/gateway/coder/testkit 各归其位，dialect 净省约 1,000 行）：`todo`
 - ★ **里程碑：M3 装配面收敛**（WI10—WI13 全部 done——包级环消除、装配路径单一、净删约 800 行转发代码）：`todo`
 - ★ **里程碑：M4 模块整合收口**（WI14—WI22 全部 done——api 回归纯能力契约、孤儿与碎片模块按裁定处置、结构门禁固化于 WI21）：`todo`

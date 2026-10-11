@@ -3,8 +3,6 @@ package io.nop.ai.core.command;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
-import io.nop.ai.api.chat.messages.ChatToolCallMessage;
-import io.nop.ai.api.chat.messages.ChatToolDefinition;
 import io.nop.ai.core.mock.InMemoryResponseProvider;
 import io.nop.ai.core.mock.MockChatService;
 import io.nop.ai.core.prompt.ChatExchange;
@@ -12,9 +10,7 @@ import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.SimplePromptTemplate;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 
@@ -25,9 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * WI1 focused tests for {@link AiCommand} on the {@code IChatService} stack:
  * the end-to-end execute path (prompt render -> ChatRequest -> IChatService ->
- * ChatExchange), the tool invocation loop over the {@link IAiToolInvoker} seam,
- * and the retry predicate — a success-but-empty response must keep retrying
- * (legacy {@code AiChatExchange::isValid} semantics, plan 2414 review A2).
+ * ChatExchange) and the retry predicate — a success-but-empty response must
+ * keep retrying (legacy {@code AiChatExchange::isValid} semantics, plan 2414
+ * review A2). The legacy tool loop was retired by plan 2419 (roadmap WI2).
  */
 public class TestAiCommandExecute {
 
@@ -107,44 +103,4 @@ public class TestAiCommandExecute {
         assertEquals("nop.err.ai.service.result-is-empty", result.getInvalidReason().getErrorCode());
     }
 
-    @Test
-    public void testToolLoopInvokesSeamAndFeedsToolResponse() {
-        AtomicInteger calls = new AtomicInteger();
-        MockChatService service = mockService(req -> {
-            if (calls.incrementAndGet() == 1) {
-                return ChatResponse.success(List.of(
-                        new ChatToolCallMessage("call-1", "echoTool", Map.of("arg", "value"))));
-            }
-            return textResponse("tool said: " + req.getLastNonSystemMessage().getContent());
-        });
-
-        AiCommand command = new AiCommand(service, null);
-        command.promptTemplate(SimplePromptTemplate.simplePrompt("test/tool", "use tool"));
-        command.maxSteps(3);
-        AtomicInteger toolCalls = new AtomicInteger();
-        command.toolInvoker(new IAiToolInvoker() {
-            @Override
-            public ChatToolDefinition findTool(String toolName) {
-                assertEquals("echoTool", toolName);
-                ChatToolDefinition definition = new ChatToolDefinition();
-                definition.setName(toolName);
-                definition.setDescription("echo test tool");
-                return definition;
-            }
-
-            @Override
-            public java.util.concurrent.CompletionStage<Object> callTool(String toolName, Map<String, Object> args) {
-                toolCalls.incrementAndGet();
-                assertEquals(Map.of("arg", "value"), args);
-                return java.util.concurrent.CompletableFuture.completedFuture("42");
-            }
-        });
-        command.setEnabledTools(Set.of("echoTool"));
-
-        ChatExchange result = command.execute(Map.of(), null);
-
-        assertTrue(result.isValid());
-        assertEquals(1, toolCalls.get(), "the seam must be invoked exactly once");
-        assertTrue(result.getContent().contains("tool said"), "final answer must follow the tool response");
-    }
 }

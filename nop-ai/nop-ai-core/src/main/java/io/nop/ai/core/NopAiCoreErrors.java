@@ -43,7 +43,6 @@ public interface NopAiCoreErrors {
 
     String ARG_INPUT = "input";
 
-    String ARG_TOOL_NAME = "toolName";
 
     String ARG_FILE_PATH = "filePath";
 
@@ -173,9 +172,6 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_INVALID_EXPR_VAR_NAME =
             define("nop.err.ai.invalid-expr-var-name", "Invalid variable name in prompt expression: {varName}",
                     ARG_VAR_NAME);
-
-    ErrorCode ERR_AI_UNKNOWN_TOOL_CALL =
-            define("nop.err.ai.unknown-tool-call", "The tool being called is not registered: {toolName}", ARG_TOOL_NAME);
 
     ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path",
             "The file object has no path attribute specified");
