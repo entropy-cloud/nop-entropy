@@ -43,7 +43,7 @@ is owned by its execution plan.
 - 11. Error recovery + ERROR node preservation + missing-token injection: `done` (plan `2026-09-09-1600-1-error-recovery.md`, closure-derived; C-oracle-verified recovery — JS corpus de-adjudicated to **116/116** byte-exact, JSON 7/7, Java 108/108, 373 tests green; ERROR/MISSING/UNEXPECTED rendering + missing-token injection + strategy-1/2 cost selection; 5 multi-round shape divergences adjudicated as watch-only residual with C-log evidence)
 - ★ **Milestone M3: production API surface** (unlocks when 8 + 9 + 10 + 11 done): `done` (derived: items 8, 9, 10, 11 all `done`)
 - 12. Nop platform integration: `ITreeSitterLanguageProvider` NopIoC bean, GraphQL `parseTreeSitter(source, language)` action, README user guide: `done` (plan `2026-09-10-0800-1-nop-integration.md`, closure-derived; container-wired provider + BizModel bean, ServiceLoader third-party extension with custom-wins shadowing, GraphQL end-to-end via container bean, 381 tests green)
-- 13. Performance benchmark + arena/GC tuning (target: within 3x of C runtime on JSON/Java benchmarks; log arena memory profile): `done` (plan `2026-09-10-0900-1-perf-benchmark.md`, closure-derived; JMH + same-work C comparison: json-10k 2.29x / json-100k 2.56x within target, json-1m 3.50x / java-single 4.28x over — recorded honestly with attribution in `nop-treesitter/docs/perf-tuning.md`; ~550B garbage/source-byte, arena profile in docs)
+- 13. Performance benchmark + arena/GC tuning (target: within 3x of C runtime on JSON/Java benchmarks; log arena memory profile): `done` (plan `2026-09-10-0900-1-perf-benchmark.md`, closure-derived; JMH + same-work C comparison: json-10k 2.29x / json-100k 2.56x within target, json-1m 3.50x / java-single 4.28x over — recorded honestly with attribution in `../../nop-tools/nop-treesitter/docs/perf-tuning.md`; ~550B garbage/source-byte, arena profile in docs)
 - 14. Documentation: `docs-for-ai/03-modules/nop-treesitter.md` (architecture + public API + grammar registration), reference Nop wiki entry, Javadoc on every public class: `done` (plan `2026-09-10-1000-1-docs.md`, closure-derived; module page + wiki.md + INDEX/anchors TS-001..004 + zero-gap Javadoc scan; 24 stale doc links fixed repo-wide, checker 0 errors)
 - ★ **Milestone M4: ready for downstream consumers** (unlocks when 12 + 13 + 14 done): `done` (derived: items 12, 13, 14 all `done`)
 - 15. Recovery hardening: `done` (plan `2026-09-11-1500-1-recovery-hardening.md`, closure-derived; real root cause of the python splat divergences was GSS pop-path enumeration order — FIFO BFS vs C stack__iter scan — fixed in a477a4c887, plus stale-index slice handling in reduce() fixed in 055c8cbaa6; supersedes the earlier selectTree/addSlice narratives below; buildErrorComposite child-count crash fixed f87068bc3f; 15-input cross-grammar recovery verification set 10/15 C-identical with 5 watch-only multi-round shape residuals; zero-width loop class has no live member — guard reclassified safety-net-only; 15(b) per-version scanner state proven by PythonScannerStateIsolationTest)
@@ -128,10 +128,10 @@ is owned by its execution plan.
 the mission has a known-good starting baseline.
 
 **Deliverables:**
-- SCF-01: `nop-treesitter/pom.xml` declaring JDK 17, `nop-commons`, slf4j, JUnit 5 (test)
+- SCF-01: `../../nop-tools/nop-treesitter/pom.xml` declaring JDK 17, `nop-commons`, slf4j, JUnit 5 (test)
 - SCF-02: `pom.xml` `<modules>` includes `nop-treesitter`
 - SCF-03: `io.nop.treesitter.TreeSitterBootstrap` placeholder + 2 unit tests（该占位类及其测试已随 plan 2271 的死代码清理移除）
-- SCF-04: `nop-treesitter/README.md` linking roadmap + mission
+- SCF-04: `../../nop-tools/nop-treesitter/README.md` linking roadmap + mission
 
 **Out of scope:** real runtime, grammar blobs, Nop integration.
 
@@ -151,7 +151,7 @@ no grammar can be loaded by the runtime.
   generated `ParserMain.java`)
 - EXR-02: Extracts symbols (named + anonymous), state table, parse actions, lex modes,
   keyword lex modes — verified against upstream `tree-sitter-json/src/parser.c`
-- EXR-03: Output format documented in `nop-treesitter/src/main/resources/blob-format.md`
+- EXR-03: Output format documented in `../../nop-tools/nop-treesitter/src/main/resources/blob-format.md`
 - EXR-04: Pre-built `tree-sitter-java-blob.bin` shipped under `src/main/resources/grammars/json/`
   for instant smoke test
 
@@ -248,7 +248,7 @@ matter only insofar as they produce a navigable tree.
 - CUR-03: 15 unit tests covering deep navigation, field names, named-child iteration
 
 **Module / area:** `nop-treesitter/src/main/java/io/nop/treesitter/cursor/`,
-`nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`
+`../../nop-tools/nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`
 
 ### 7. External scanner bytecode VM
 
@@ -339,7 +339,7 @@ editors.
 - ER-04: 10 unit tests with intentionally broken inputs (unclosed braces,
   premature EOF, garbage tokens)
 
-**Module / area:** the recovery logic inside `nop-treesitter/src/main/java/io/nop/treesitter/parser/glr/GLRParser.java`
+**Module / area:** the recovery logic inside `../../nop-tools/nop-treesitter/src/main/java/io/nop/treesitter/parser/glr/GLRParser.java`
 
 ### 12. Nop platform integration
 
@@ -354,12 +354,12 @@ registration, GraphQL action for parsing, README user guide.
 - NOP-02: GraphQL action: `parseTreeSitter(source: String, language: String): String`
   returning S-expression
 - NOP-03: `nop-treesitter.beans.xml` registering built-in grammars
-- NOP-04: User guide section in `nop-treesitter/README.md`
+- NOP-04: User guide section in `../../nop-tools/nop-treesitter/README.md`
 
 **Out of scope:** custom DSL wrapper (XLang integration — deferred).
 
-**Module / area:** the `META-INF/services` extension point documented in `nop-treesitter/README.md`,
-`nop-treesitter/src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`
+**Module / area:** the `META-INF/services` extension point documented in `../../nop-tools/nop-treesitter/README.md`,
+`../../nop-tools/nop-treesitter/src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`
 
 ### 13. Performance benchmark
 
@@ -375,7 +375,7 @@ Java benchmarks.
 - PERF-02: JSON parse benchmark (10 KB, 100 KB, 1 MB inputs)
 - PERF-03: Java parse benchmark (single-file, multi-file project)
 - PERF-04: Arena memory profile (heap usage at peak, GC pauses)
-- PERF-05: Optimization log in `nop-treesitter/docs/perf-tuning.md` documenting
+- PERF-05: Optimization log in `../../nop-tools/nop-treesitter/docs/perf-tuning.md` documenting
   what worked (linear-path fast stack, int-array arena) and what didn't
   (per-node heap allocation, premature arena reservation — learned from
   ast-grep Rust rewrite blog)
@@ -392,7 +392,7 @@ Java benchmarks.
 - DOC-01: `docs-for-ai/03-modules/nop-treesitter.md` — architecture, public API,
   grammar registration, performance characteristics
 - DOC-02: Javadoc on every public class in `io.nop.treesitter.*`
-- DOC-03: Reference Nop wiki entry (or `nop-treesitter/docs/wiki.md`)
+- DOC-03: Reference Nop wiki entry (or `../../nop-tools/nop-treesitter/docs/wiki.md`)
 - DOC-04: Update `docs-for-ai/INDEX.md` to link the new module page
 
 **Module / area:** `docs-for-ai/03-modules/nop-treesitter.md` (new file)

@@ -22,7 +22,7 @@
 ### G1 空指针解引用路径（null-flow，方法内路径敏感）
 
 - 归属裁定: **承接**（Wave 2）
-- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md；对照记录: [nullflow-comparison.md](../../nop-bytecode/docs/nullflow-comparison.md)——SpotBugs 同语料空集基线 + plan 24 案例集 5 条裁定 + 分层抽检）
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md；对照记录: [nullflow-comparison.md](../../../nop-bytecode/docs/nullflow-comparison.md)——SpotBugs 同语料空集基线 + plan 24 案例集 5 条裁定 + 分层抽检）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 24（null-flow Deferred）
 - 理由/机制面证据: 源码 lane L3 数据流为方法内 def-use + 常量传播，无路径敏感 nullness 传播能力（plan 24 归因原文）；其 pattern 面 5 条规则（throw-null / equals-null / no-throw-npe / catch-npe / no-return-null）只覆盖**模式可表达子面**，解引用前判空的路径敏感面显式 Deferred。字节码层方法内 CFG 显式化 + 抽象解释（SpotBugs NullDerefAnalysis 同形态）是该面的成熟工程形态——本通道 Wave 1 内核（CFG + nullness lattice）直接承接。
 - 误报控制面（已细化，2026-09-29 item 6 落地）: 豁免面 = assert（$assertionsDisabled 习语按断言恒启用建模）/ `Objects.requireNonNull` 系语义门控 / 平台 `NopException` 前置检查形态（IFNULL+ATHROW 同构）/ ACMP-null 侧精化；已知 FP 方向 = 字段与静态字段载荷保守 MAYNULL（无构造器非空推导）、varargs 参数、catch-NPE 控制流未建模豁免、参数保守 MAYNULL——逐条 source-line 定性见对照记录 §三。
@@ -31,7 +31,7 @@
 ### G2 资源泄漏 acquire/release 跨路径配对
 
 - 归属裁定: **承接**（Wave 3）
-- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md；对照记录: [resource-comparison.md](../../nop-bytecode/docs/resource-comparison.md)——SpotBugs fixture 腿零 diff + 全语料空集 + plan 23 归属）
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md；对照记录: [resource-comparison.md](../../../nop-bytecode/docs/resource-comparison.md)——SpotBugs fixture 腿零 diff + 全语料空集 + plan 23 归属）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 23 Deferred But Adjudicated（Option A）
 - 理由/机制面证据: plan 23 归因——路径敏感 acquire/release 配对需"路径敏感资源追踪 + 跨分支 release 状态合并"，超出源码 lane L3 通道；v1 Option B 保守面（closeable-not-closed，判据四条件交集）已落地，其误报数据是本面重估输入。方法内资源配对在字节码层有成熟参考形态（SpotBugs ObligationAnalysis / ResourceValueAnalysis / FindOpenStream 三件，机制本体量级约 1.5k 行——roadmap 底座候选表与 Wave 3 描述在案），属方法内路径敏感分析，本通道内核可承载。
 - 误报控制面（已细化，2026-09-29 item 7 落地）: 豁免面 = TWR（声明式 + existing-var）/ finally-close（含守卫式——DEF 丢边）/ 所有权转移（ARETURN/字段/白名单包装器）/ 别名 close 全帧扫描；已知 FP 方向 = 普通方法实参逃逸；已知 FN 面 = 隐式异常传播、非名单 acquire、store-over 等——交付两类注册表（Closeable NEW + JDBC 工厂；锁归 follow-up），逐形态对照见 resource-comparison.md §一。
@@ -40,7 +40,7 @@
 ### G3 跨过程 taint 分析
 
 - 归属裁定: **承接**（Wave 5 adopt——2026-09-30 plan 09 spike 五判据全过，窄桥接形态，判定首选 Tai-e）
-- 执行状态: `open`（successor 待立项；面清单指针 = [interprocedural-spike.md](../../nop-bytecode/docs/interprocedural-spike.md) §三.1）
+- 执行状态: `open`（successor 待立项；面清单指针 = [interprocedural-spike.md](../../../nop-bytecode/docs/interprocedural-spike.md) §三.1）
 - 来源锚点: 统一账本 Sonar 行（跨过程 taint not-replaceable，HC 口径）+ plan 09 spike §一.3
 - 理由/机制面证据: 自建多年量级（设计权威 §4 已拒）；外部窄桥接实测可行——Tai-e（master 0.5.5-SNAPSHOT fatJar，仓外源码构建，GPL 源码不出仓）toy taint 探针 `Detected 1 taint flow(s)`（source/sink 双定位可解析，常量对照零误报形态）；jq 语料 CHA 22,595 reachable / 277,262 edges @ 1.57 s / 1.13 GB。资源风险如实登记 = 全程序 PTA toy 已达 13.4 s / 2.30 GB，模块级资源实测为 successor 第一验收项。
 - 误报控制面: taint source/sink 注册表白名单（Tai-e `taint-config` YAML 声明式——即本行原预设最小控制面的实现形态）；successor 实施时按平台方法/注解约定落注册表。
@@ -80,7 +80,7 @@
 - **空指针**：源码 lane pattern 面 5 条已落地规则归源码 lane；本通道只做路径敏感 null-flow 面，不重复模式可表达子面。
 - **资源泄漏**：源码 lane closeable-not-closed（Option B 保守面，warning 档）归源码 lane live 规则；本通道只做路径敏感 acquire/release 配对面。
 - **双报处置**：并行对照期若同缺陷同位置双报，归属裁定在 Wave 4 item 8 对照收敛中逐条裁决（重复/互补/一方误报三分类），裁决记录回填本账本对应行。
-  - **item 8 裁定（2026-09-29，plan: ai-dev/plans/nop-bytecode/07-spotbugs-dual-run.md）**：equals-null 双报面 = 通道 247 条 equals 子集 vs 源码 lane equals-null 规则——**裁决保留双报（命名空间隔离）**，豁免会连带丢失参数 may-null 真阳性且两 ruleId 语义并非全同；重估触发 = 源码 lane equals-null 语义精化或通道 FP 收敛落地。对照数据见 [dual-run-convergence.md](../../nop-bytecode/docs/dual-run-convergence.md) §三。
+  - **item 8 裁定（2026-09-29，plan: ai-dev/plans/nop-bytecode/07-spotbugs-dual-run.md）**：equals-null 双报面 = 通道 247 条 equals 子集 vs 源码 lane equals-null 规则——**裁决保留双报（命名空间隔离）**，豁免会连带丢失参数 may-null 真阳性且两 ruleId 语义并非全同；重估触发 = 源码 lane equals-null 语义精化或通道 FP 收敛落地。对照数据见 [dual-run-convergence.md](../../../nop-bytecode/docs/dual-run-convergence.md) §三。
 - **归属单一**：每个缺口面归属唯一通道；源码 lane 未来若落地 Deferred 面（Option A / null-flow），本通道对应行进入并行对照期，不撤销承接（互补优先，去重裁决在对照数据上做）。
 
 ## 四、执行状态总览

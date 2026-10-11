@@ -8,4 +8,4 @@
 # RuleTester fixtures are intentionally-dirty test data: invalid/*.java files
 # exist to prove the nop-lint rules fire, and their violations are asserted by
 # nop-lint's own RuleTestRunner suite gate — not by the ast-grep ruleset.
-nop-lint/**/src/test/resources/_vfs/test/lint/
+nop-tools/nop-lint/**/src/test/resources/_vfs/test/lint/

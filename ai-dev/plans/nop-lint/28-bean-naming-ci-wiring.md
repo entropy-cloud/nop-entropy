@@ -3,7 +3,7 @@
 > Plan Status: active
 > Last Reviewed: 2026-09-29
 > Source: [plan 21 Deferred](21-mjs-switchover.md)
-> Related: [compliance.yml](../../../.github/workflows/compliance.yml) · [check-bean-naming.mjs](../../../ai-dev/tools/check-bean-naming.mjs)（REF 面已修剪保留）· [nop-bean-naming 规则](../../../nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/nop/nop-bean-naming.rule.yml)（BEAN-ID/COLLECT-PREFIX 面，对照 9/9 零 diff 已在档）
+> Related: [compliance.yml](../../../.github/workflows/compliance.yml) · [check-bean-naming.mjs](../../../ai-dev/tools/check-bean-naming.mjs)（REF 面已修剪保留）· [nop-bean-naming 规则](../../../nop-tools/nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/nop/nop-bean-naming.rule.yml)（BEAN-ID/COLLECT-PREFIX 面，对照 9/9 零 diff 已在档）
 
 ## Purpose
 

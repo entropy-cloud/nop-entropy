@@ -4,7 +4,7 @@
 > Created: 2026-09-28
 > 防腐门禁: `node ai-dev/tools/check-lint-tool-replacement-ledger.mjs`（主检查）/ 同命令 `self-test` 子命令（正控）；exit 0 = 账本结构与词表合法
 > 书写纪律: 本文件所有表格单元格内禁止 `|` 与 `\|` 字符（分隔一律用 `/` 或 `；`）——checker 列数校验会响亮拒绝违例
-> 状态分工：**工具级终裁执行期状态以 [roadmap](../../ai-dev/backlog/nop-lint-tool-replacement-roadmap.md) 为准**（含 wave 进度，本账本不双写）；本文件是行级账本索引 + 终裁汇总出口（roadmap item 20）+ out-of-scope 记录承载（roadmap item 19）。
+> 状态分工：**工具级终裁执行期状态以 [roadmap](../../../ai-dev/backlog/nop-lint-tool-replacement-roadmap.md) 为准**（含 wave 进度，本账本不双写）；本文件是行级账本索引 + 终裁汇总出口（roadmap item 20）+ out-of-scope 记录承载（roadmap item 19）。
 
 ## 定位
 
@@ -18,12 +18,12 @@
 |---|---|---|---|---|
 | Checkstyle 10.21.1 | core-face-replaced | 风格/可选面 8 行 out-of-purpose（显式不迁移） | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md) | 3 |
 | PMD 7.26.0 | replaced-partial | ImplicitSwitchFallThrough deferred 面（机制缺口）+ report-only 接线保留 | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md) | 4 |
-| check-\*.mjs ×24 | replaced-partial | 6 行 switched-over（对照零 diff + 脚本下线）+ 1 行面级收口（#3 bean-naming REF 面 mjs 保留）+ candidate 1 行（orm-icons 已落地）+ 3 行 deferred（机制缺口）+ 7 行 maintain-mjs + 7 行 exclude | [design 12](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 5 |
+| check-\*.mjs ×24 | replaced-partial | 6 行 switched-over（对照零 diff + 脚本下线）+ 1 行面级收口（#3 bean-naming REF 面 mjs 保留）+ candidate 1 行（orm-icons 已落地）+ 3 行 deferred（机制缺口）+ 7 行 maintain-mjs + 7 行 exclude | [design 12](../../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 5 |
 | SpotBugs 4.9.8.3 | keep-tool | 字节码专属面 out-of-principle（全 pattern 目录 HC1）；风格/边缘面 out-of-purpose（排除后实际触发极低）；1 处 RCN 命中不立项 | [实跑记录](./checkstyle-pmd-migration.md) §4.3 | 9–11 |
-| SonarQube | replaced-partial | 跨过程 taint/hotspot not-replaceable（HC1 跨过程源码分析）+ 覆盖率面 out-of-scope（JaCoCo）+ 工作流面 out-of-scope（主动触发） | [root pom 属性组](../../pom.xml) | 12–14 |
+| SonarQube | replaced-partial | 跨过程 taint/hotspot not-replaceable（HC1 跨过程源码分析）+ 覆盖率面 out-of-scope（JaCoCo）+ 工作流面 out-of-scope（主动触发） | [root pom 属性组](../../../pom.xml) | 12–14 |
 | ErrorProne（未接线） | 待裁 | — | — | 15–16 |
 | NullAway / 空类型系统族 | 待裁 | — | — | 17 |
-| ArchUnit | keep-tool | 依赖图闭包类断言（ClassFileImporter 全量导入→包依赖规则检查）= 超出 per-file 源码引擎问题域 | [TestInvariantGate1SecureDefault](../../nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/gate/TestInvariantGate1SecureDefault.java) | 18 |
+| ArchUnit | keep-tool | 依赖图闭包类断言（ClassFileImporter 全量导入→包依赖规则检查）= 超出 per-file 源码引擎问题域 | [TestInvariantGate1SecureDefault](../../../nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/gate/TestInvariantGate1SecureDefault.java) | 18 |
 
 终裁词表（门禁 enum-set，定义见 roadmap §工具级终裁词表）：
 
@@ -40,14 +40,14 @@
 |---|---|---|---|---|
 | Checkstyle 10.21.1 | core / out-of-purpose | [行级账本 §2/§4.2](./checkstyle-pmd-migration.md)（core 9 行承接 + 风格 8 行归档，对照零 diff） | 风格面入 mandate 或对照被推翻 | core-face-replaced |
 | PMD 7.26.0 | core / out-of-purpose | [行级账本 §2/§4.3](./checkstyle-pmd-migration.md)（core 7 行承接对照零 diff + 风格 1 行归档 + deferred 1 行机制缺口未入库） | ImplicitSwitchFallThrough 表达力具备时（机制缺口）；风格面入 mandate 或对照被推翻 | replaced-partial |
-| check-\*.mjs ×24 | core / out-of-purpose / out-of-scope | [design 12](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md)（6 switched + 1 face-level + 1 candidate landed + 3 deferred + 7 maintain + 7 exclude） | #3 CI 接线 successor 解锁 MT1 | replaced-partial |
+| check-\*.mjs ×24 | core / out-of-purpose / out-of-scope | [design 12](../../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md)（6 switched + 1 face-level + 1 candidate landed + 3 deferred + 7 maintain + 7 exclude） | #3 CI 接线 successor 解锁 MT1 | replaced-partial |
 | SpotBugs 4.9.8.3 | out-of-principle / out-of-purpose | 字节码级分析器（HC1 纯源码原则——核心面判定依赖 class-file 信息，超出 per-file 引擎问题域）；排除后实际触发极低 | 实跑记录 plan 24 | keep-tool |
-| SonarQube | core / out-of-scope | [root pom 属性组](../../pom.xml)（Sonar 默认规则集与 nop-lint 高度重叠→部分承接；taint/hotspot = 跨过程原则外；覆盖率/工作流 = out-of-scope） | 纯源码原则被推翻时 | replaced-partial |
+| SonarQube | core / out-of-scope | [root pom 属性组](../../../pom.xml)（Sonar 默认规则集与 nop-lint 高度重叠→部分承接；taint/hotspot = 跨过程原则外；覆盖率/工作流 = out-of-scope） | 纯源码原则被推翻时 | replaced-partial |
 | ErrorProne（未接线） | 待裁 | — | — | 待裁 |
 | NullAway / 空类型系统族 | 待裁 | — | — | 待裁 |
-| ArchUnit | out-of-principle | [TestInvariantGate1SecureDefault](../../nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/gate/TestInvariantGate1SecureDefault.java)（依赖图闭包） | per-file 引擎支持全程序依赖图分析时 | keep-tool |
+| ArchUnit | out-of-principle | [TestInvariantGate1SecureDefault](../../../nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/gate/TestInvariantGate1SecureDefault.java)（依赖图闭包） | per-file 引擎支持全程序依赖图分析时 | keep-tool |
 
-### 规则级分面表（62 条复审 + item 3a +4 + item 4a +5 + item 5 +2 = live 70 行 + remove 4 行，roadmap item 2/3a/4a/5，plan nop-lint/16、17、19、21）
+### 规则级分面表（62 条复审 + item 3a +4 + item 4a +5 + item 5 +2 + item 7 +1 + nop-xdsl-* 6 = live 76 行 + remove 4 行，roadmap item 2/3a/4a/5，plan nop-lint/16、17、19、21；nop-xdsl-* 6 行系 plan 2348/2350 入库时漏登记、plan 2417 Phase 2 补账）
 
 > 分面：core = 核心缺陷发现面（正确性/资源/并发/安全/数据流/平台不变式）；out-of-purpose = 风格/可选面。处置词表与裁定约束见 design 02 §5（keep / demote-info / remove；landed 行禁 remove；core 行必 keep）。remove 行在处置落地后**保留在本表**（证据链：理由 + 重估触发，Hard constraint 3），防腐门禁按"live 规则恰一行 + remove 行不 live"双向看守。裁定汇总：复审 core 46 / out-of-purpose 16（demote-info 8 / remove 4 / keep 4）；item 3a 新增 4 行全 core/keep；item 4a 新增 5 行全 core/keep（no-branching-in-loop-body、no-clone-without-cloneable、clone-return-type-mismatch、proper-clone-implementation、no-hardcoded-iv）；item 5 新增 2 行全 core/keep（nop-bean-naming、nop-orm-icons，XNode）；item 7 新增 1 行 core/keep（closeable-not-closed）；implicit-switch-fall-through 因形状近似对照不可逐条裁定（PMD 6 vs 形状 219 extras）按 Deferred 裁定不入库（机制缺口：dataflow 判定 + falls-through 注释豁免），行 status = deferred。
 
@@ -127,6 +127,12 @@
 | quality/no-native-method | core | keep | native 禁令=纯 Java 平台不变式（item 3a 新增） | — |
 | exception/no-raw-throws | core | keep | Nop 异常契约声明面（item 3a 新增） | — |
 | quality/covariant-equals | core | keep | 协变 equals 破坏等价契约（正确性面，item 3a 新增） | — |
+| nop-xdsl-watermark-required | core | keep | XDSL 声明面不变式：流水印缺失破坏 exactly-once 语义（xdsl-full-coverage WI4 一代，plan 2350 入库；本行为补登记，plan 2417 Phase 2） | — |
+| nop-xdsl-credential-plaintext | core | keep | XDSL 声明面安全不变式：流配置明文凭证（plan 2350 入库；补登记 plan 2417 Phase 2） | — |
+| nop-xdsl-delta-derivation | core | keep | XDSL 声明面不变式：delta 派生声明（plan 2350 入库；补登记 plan 2417 Phase 2） | — |
+| nop-xdsl-edge-partition | core | keep | XDSL 声明面不变式：边分区声明（plan 2350 入库；补登记 plan 2417 Phase 2） | — |
+| nop-xdsl-transform-naming | core | keep | XDSL 声明面不变式：transform 命名契约（plan 2350 入库；补登记 plan 2417 Phase 2） | — |
+| nop-xdsl-undeclared-consumer | core | keep | XDSL 声明面不变式：未声明消费者（plan 2350 入库；补登记 plan 2417 Phase 2） | — |
 
 ## 核心缺陷类覆盖矩阵
 
@@ -150,8 +156,8 @@
 | 账本 | 行数 | 状态分布 | 防腐门禁 |
 |---|---|---|---|
 | [checkstyle-pmd 迁移映射](./checkstyle-pmd-migration.md) | 26（checkstyle 17 + pmd 9） | item 3b/4a 后：checkstyle 侧已切换移除（landed 9 + out-of-purpose 8）；pmd 侧 landed 7 / out-of-purpose 1 / deferred 1（全表 landed 16）——pmd 配置段不可移除 | `ai-dev/tools/check-lint-tool-migration-mapping.mjs` |
-| [check-\*.mjs 迁移 manifest](../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 24 | maintain-mjs 7 / exclude 7 / migrated-pending-switchover 5 / candidate 2 / deferred 3（与文档分类汇总行一致，2026-09-28 修正） | `ai-dev/tools/check-lint-migration-manifest.mjs` |
-| [PMD/EP coverage manifest](../../nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 33 已落地带 live fixture（item 2 翻转 out-of-purpose 3 行、item 3a 提升 2 行、item 4a 提升 1 行）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
+| [check-\*.mjs 迁移 manifest](../../../ai-dev/design/nop-lint/12-check-scripts-migration-manifest.md) | 24 | maintain-mjs 7 / exclude 7 / migrated-pending-switchover 5 / candidate 2 / deferred 3（与文档分类汇总行一致，2026-09-28 修正） | `ai-dev/tools/check-lint-migration-manifest.mjs` |
+| [PMD/EP coverage manifest](../../../nop-tools/nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml) | 186（去重后） | tier 1 = 33 已落地带 live fixture（item 2 翻转 out-of-purpose 3 行、item 3a 提升 2 行、item 4a 提升 1 行）；tier 2/3 = 机制面前瞻；out-of-purpose 3 = 已移出规则锚 | `ai-dev/tools/check-lint-coverage-manifest.mjs` |
 
 ## out-of-scope 记录（终稿：roadmap item 19，plan nop-lint/27）
 

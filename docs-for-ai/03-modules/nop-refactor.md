@@ -53,6 +53,6 @@ nop-refactor 三模块 main Java **4,010 行 / 33 文件**（core 1,848 + java 1
 
 ## Runbook 指针
 
-- 规则/DSL 语义（transform/fix 载体语法）：`nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/` 下规则 YAML 即权威示例；lint-rule xdef（lint 模型注册）随 nop-lint-core 资源目录发布，规则 YAML 即权威示例。
-- 编辑应用机制（冲突仲裁/原子写/回滚）：`nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/fix/`（EditPlanApplier/FixApplier javadoc）
-- 操作框架与载荷类型：`nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/`（operation/symbol 包 + RefactorResult record javadoc）
+- 规则/DSL 语义（transform/fix 载体语法）：`nop-tools/nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/` 下规则 YAML 即权威示例；lint-rule xdef（lint 模型注册）随 nop-lint-core 资源目录发布，规则 YAML 即权威示例。
+- 编辑应用机制（冲突仲裁/原子写/回滚）：`nop-tools/nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/fix/`（EditPlanApplier/FixApplier javadoc）
+- 操作框架与载荷类型：`nop-tools/nop-refactor/nop-refactor-core/src/main/java/io/nop/refactor/core/`（operation/symbol 包 + RefactorResult record javadoc）

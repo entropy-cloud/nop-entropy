@@ -14,7 +14,7 @@ verify: [test]
 
 - 依赖满足：item 19 deps = M1（2026-09-21 达成，plans 01–04 全 `done`）。语言适配先例完整：plan 02（LintNode 门面 + Java 语言适配）已交付 `JavaLanguage` 绑定、ServiceLoader 发现机制、`TreeSitterLanguageAdapter` 共享适配器。
 - ts/tsx grammar blob 已随 nop-treesitter 出货：`/grammars/typescript/tree-sitter-typescript-blob.bin` 与 `/grammars/tsx/tree-sitter-tsx-blob.bin`（`nop-treesitter/src/main/resources/grammars/` 下实存）；`DefaultTreeSitterLanguageProvider` 以 id `typescript`/`tsx` 注册两 blob（命名先例）；`TsCorpusTest`/`TsxCorpusTest` 证明双 grammar 解析可用。
-- 当前 nop-lint 模块组只有三个模块（`nop-lint/pom.xml` `<modules>`：nop-lint-core、nop-lint-java、nop-lint-nop）；无 nop-lint-js。design 01 §1 模块图已预留 `nop-lint-js/`（"TypeScript/TSX 支持（含 tsc bridge，Phase 2）"）。
+- 当前 nop-lint 模块组只有三个模块（`../../../nop-tools/nop-lint/pom.xml` `<modules>`：nop-lint-core、nop-lint-java、nop-lint-nop）；无 nop-lint-js。design 01 §1 模块图已预留 `nop-lint-js/`（"TypeScript/TSX 支持（含 tsc bridge，Phase 2）"）。
 - `LintLanguage` 契约（lang 包 LintLanguage）：id/treeSitter/parse/parseIncremental/preprocessPattern/kindId/suppressionProvider（default null）。`TreeSitterLanguageAdapter(id, language, expando)` 的 expando 为 null 时即 identity 预处理；`JavaLanguage` 用 identity，理由是 `$` 是合法 Java 标识符字符——ECMAScript/TS 同样允许 `$` 作标识符字符（含连续 `$$$`），故 TS/TSX 预期同样 identity，但该断言必须由两 grammar 的测试钉死，不得作为未验证假设落地。
 - `LanguageRegistry`（engine 包 LanguageRegistry）：语言 id 大小写不敏感解析（规则 `language: TypeScript` → `typescript`）；同 id 冲突注册 fail-closed。kind 名映射由 adapter 的 `buildKindIds` 全名表（含 alias、named 优先）覆盖，TS kind 名（`call_expression`/`member_expression`/`variable_declarator` 等）无需额外映射层。
 - CLI 现状：`cli/TargetScanner.java:19-22` v1 约定 `extension == language id`，javadoc **显式把更丰富的扩展名表指派给本 item**（"richer extension tables arrive with the language modules that need them (e.g. ts/tsx, roadmap item 19)"）——当前 `.ts`/`.tsx` 文件进 skipped summary（显式计数，不静默丢弃）。
@@ -41,7 +41,7 @@ verify: [test]
 ## Phase 1 — nop-lint-js 模块骨架与双语言绑定（Fix + Proof）
 
 Status: completed
-Targets: `nop-lint/pom.xml`、`nop-lint/nop-lint-js/`（新模块：pom + `io.nop.lint.js` + `META-INF/services`）
+Targets: `../../../nop-tools/nop-lint/pom.xml`、`nop-lint/nop-lint-js/`（新模块：pom + `io.nop.lint.js` + `META-INF/services`）
 
 - Item Types: `Fix | Decision | Proof`
 

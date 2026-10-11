@@ -26,7 +26,7 @@
 | `nop-runner/nop-cli-core/` | 全部命令行代码（`io.nop.cli` 包）。`NopCliApplication` 是入口，`MainCommand` 注册全部子命令 |
 | `nop-runner/nop-cli/` | Quarkus 打包壳，只负责产出 uber-jar，源码里仅有一个占位类 `io.nop.cli_app.EmptyMain` |
 | `nop-runner/nop-cli/target/nop-cli-<version>.jar` | 构建产物，约 57MB |
-| `nop-lint/` | lint 引擎与规则库（`nop-lint-nop` 提供 65 条规则） |
+| `nop-tools/nop-lint/` | lint 引擎与规则库（`nop-lint-nop` 提供 65 条规则） |
 | `tools/install-cli.sh` | 注册脚本：复制到 `~/.nop/cli` 并注册全局 `nop-cli` 命令 |
 
 **注意版本号**：`nop-runner/nop-cli/pom.xml` **不继承 reactor 的 parent**，版本独立固定（当前 `2.0.0-BETA.1`），且依赖 `nop-cli-core:2.0.0-SNAPSHOT`。因此 jar 名与 `2.0.0-SNAPSHOT` 无关，脚本一律用 glob 匹配，**不要硬编码版本号**。

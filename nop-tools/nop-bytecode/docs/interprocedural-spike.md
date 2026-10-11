@@ -1,7 +1,7 @@
 # Wave 5 跨过程调用图 spike 数据与终裁（Interprocedural Spike）
 
 > 日期: 2026-09-30
-> 状态: active（plan: [ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md](../../ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md)）
+> 状态: active（plan: [ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md](../../../ai-dev/plans/nop-bytecode/09-wave5-interprocedural-spike.md)）
 > 定位: roadmap Wave 5 item 10（跨过程调用图 spike，候选 C 复评）+ item 11（taint 面重估条件分支）的 spike 数据与 adopt-or-skip 终裁记录
 > 判据权威: plan 09「裁定判据」节（执行前钉死，本文件 §二 逐条对照）
 > 原始数据: `_tmp/nop-bytecode-w5-spike/`（gitignore；复现命令随各腿记录）

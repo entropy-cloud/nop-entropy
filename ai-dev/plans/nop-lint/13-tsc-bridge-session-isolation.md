@@ -49,7 +49,7 @@
 ### Phase 1 - 代际隔离与资源治理（Fix）
 
 Status: planned
-Targets: `nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/NodeTscBridge.java`
+Targets: `../../../nop-tools/nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/NodeTscBridge.java`
 
 - Item Types: `Fix`
 
@@ -68,7 +68,7 @@ Exit Criteria:
 ### Phase 2 - 惰性环境与协议面收敛（Fix）
 
 Status: planned
-Targets: `nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/TscBridgeConfig.java`、`TscProtocol.java`
+Targets: `../../../nop-tools/nop-lint/nop-lint-js/src/main/java/io/nop/lint/js/tsc/TscBridgeConfig.java`、`TscProtocol.java`
 
 - Item Types: `Fix`
 

@@ -9,16 +9,16 @@
   "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
   "auditsDir": "ai-dev/audits/nop-jq",
   "contextDir": "docs-for-ai/00-start-here",
-  "moduleDir": "nop-kernel/nop-jq",
+  "moduleDir": "nop-tools/nop-jq",
   "prompts": {
     "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
     "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
   },
   "commands": {
-    "test": "cd nop-kernel/nop-jq && mvn test -T 4",
-    "build": "cd nop-kernel/nop-jq && mvn clean package -DskipTests -T 4",
-    "lint": "cd nop-kernel/nop-jq && mvn validate",
-    "typecheck": "cd nop-kernel/nop-jq && mvn test-compile -T 4"
+    "test": "cd nop-tools/nop-jq && mvn test -T 4",
+    "build": "cd nop-tools/nop-jq && mvn clean package -DskipTests -T 4",
+    "lint": "cd nop-tools/nop-jq && mvn validate",
+    "typecheck": "cd nop-tools/nop-jq && mvn test-compile -T 4"
   },
   "commitFormat": "feat(nop-jq): <description>"
 }

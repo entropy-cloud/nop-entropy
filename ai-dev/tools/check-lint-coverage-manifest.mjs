@@ -4,7 +4,7 @@
 // Anti-corruption gate for the PMD/ErrorProne coverage manifest (roadmap
 // item 29, design 06 §7). Style precedent: check-lint-migration-manifest.mjs.
 //
-// Validates `nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml`:
+// Validates `nop-tools/nop-lint/nop-lint-nop/src/main/resources/manifest/pmd-errorprone-coverage.yml`:
 //   - enum-set  : the manifest's source_rule set equals the source rule set
 //                 parsed from the design 06 §1–§2 tables — a design row
 //                 without a manifest entry (and vice versa) is a hard error
@@ -32,11 +32,11 @@ import yaml from 'js-yaml';
 
 const TOOL_DIR = import.meta.dirname;
 const PROJECT_ROOT = resolve(TOOL_DIR, '..', '..');
-const MANIFEST_FILE = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main', 'resources',
+const MANIFEST_FILE = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'nop-lint-nop', 'src', 'main', 'resources',
   'manifest', 'pmd-errorprone-coverage.yml');
 const DESIGN_FILE = join(PROJECT_ROOT, 'ai-dev', 'design', 'nop-lint',
   '06-pmd-errorprone-alignment.md');
-const TEST_VFS_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'test', 'resources',
+const TEST_VFS_ROOT = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'nop-lint-nop', 'src', 'test', 'resources',
   '_vfs');
 
 // 'out-of-purpose' (rubric v3, tool-replacement roadmap item 2): the mapped rule was

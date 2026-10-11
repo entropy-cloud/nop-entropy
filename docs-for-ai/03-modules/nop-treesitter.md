@@ -5,7 +5,7 @@
 nop-treesitter 把上游 [tree-sitter](https://github.com/tree-sitter/tree-sitter) C 运行时用纯 Java 重写（无 JNI / FFM / native lib），使 Nop 平台可直接消费 200+ 上游 grammar 生态：
 
 - **解析**：GLR 解析器 + 图结构栈（C runtime 语义，线性栈快路径），输出与 C runtime 字节一致的 S-expression 树
-- **错误恢复**：`ERROR` / `MISSING` 节点、缺失 token 注入、基于错误成本的变体选择（与上游 C 运行时行为对齐，见 `nop-treesitter/docs/perf-tuning.md` 与 item 11 计划）
+- **错误恢复**：`ERROR` / `MISSING` 节点、缺失 token 注入、基于错误成本的变体选择（与上游 C 运行时行为对齐，见 `nop-tools/nop-treesitter/docs/perf-tuning.md` 与 item 11 计划）
 - **增量重解析**：`parseIncremental` + `getChangedRanges`（叶子粒度子树复用，结果与全量重解析字节等价）
 - **Query**：S-expression 查询编译器 + 执行器（captures / `#eq?` / `#match?` 谓词）
 - **外部 scanner**：scanner.c 翻译为字节码 DSL，由 `ScannerVM` 解释执行
@@ -54,7 +54,7 @@ String sexp = tree.toSExpression();
 ### NopIoC / GraphQL
 
 Nop IoC **无注解扫描**，每个 bean 都必须在
-`nop-treesitter/src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`
+`nop-tools/nop-treesitter/src/main/resources/_vfs/nop/treesitter/beans/app-treesitter.beans.xml`
 显式声明。该文件注册 3 个 bean：
 
 | bean id | 类型 | 作用 |
@@ -300,7 +300,7 @@ design / analysis 文档。
 Java vs C（同工作量 parse+serialize，arm64 开发机，JMH vs gcc -O2，2026-09-13
 perf-closure 后）：json-10k **1.20x**、json-100k **1.26x**、json-1m **1.56x**、
 java-single **2.76x**，四基准全部在 ≤3x 目标内；纯 Java 101.4 ops/s vs JNI 45.2。
-优化史与残余归因见 `nop-treesitter/docs/perf-tuning.md`。
+优化史与残余归因见 `nop-tools/nop-treesitter/docs/perf-tuning.md`。
 分配强度 ≈550–600 B/源字节；arena ≈1 节点/2.2 源字节。
 
 ## 异常处理约定
@@ -318,7 +318,7 @@ java-single **2.76x**，四基准全部在 ≤3x 目标内；纯 Java 101.4 ops/
 
 ## 相关文档
 
-- `nop-treesitter/README.md` — 用户指南（安装/注册/GraphQL 示例）
-- `nop-treesitter/docs/perf-tuning.md` — 基准方法、Java vs C 数字、调优记录
-- `nop-treesitter/docs/wiki.md` — 一页式导航
-- `nop-treesitter/src/main/resources/blob-format.md` — blob 二进制格式权威规格
+- `nop-tools/nop-treesitter/README.md` — 用户指南（安装/注册/GraphQL 示例）
+- `nop-tools/nop-treesitter/docs/perf-tuning.md` — 基准方法、Java vs C 数字、调优记录
+- `nop-tools/nop-treesitter/docs/wiki.md` — 一页式导航
+- `nop-tools/nop-treesitter/src/main/resources/blob-format.md` — blob 二进制格式权威规格

@@ -110,7 +110,7 @@ rules:
 
 ## 4. autofix 载体增注（WI8，2026-09-26）
 
-> 落地增注（nop-refactor roadmap WI8，plan `ai-dev/plans/nop-refactor/08-wi8-p0-content-first-batch.md`）：62 条生产规则中首批 6 条补齐 `fix` 模板并翻转 `autoFixable`。live 以 `nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/` 与 `nop-lint/docs/rule-catalog.md`（gen-lint-rule-catalog.mjs 产出，--check 门禁）为准。
+> 落地增注（nop-refactor roadmap WI8，plan `ai-dev/plans/nop-refactor/08-wi8-p0-content-first-batch.md`）：62 条生产规则中首批 6 条补齐 `fix` 模板并翻转 `autoFixable`。live 以 `nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/` 与 `../../../nop-tools/nop-lint/docs/rule-catalog.md`（gen-lint-rule-catalog.mjs 产出，--check 门禁）为准。
 
 - **入选 6 条**（性价比 = AI 使用频率 × pattern 可表达性 ÷ 模板复杂度，选取准则与落选记录见 plan 08）：
   | 规则 | fix 模板 |
@@ -127,7 +127,7 @@ rules:
 
 ## 5. 分面复审与规则准入（2026-09-28，工具替代 roadmap item 2，plan nop-lint/16）
 
-> nop-lint 定位收窄为 AI 编码期核心缺陷防线（roadmap Purpose + design 00 §1 定位增注）后，规则库按分面复审管理：62 条存量规则逐条标注分面并落处置，此后新规则按准入判据执行。**逐条裁定结果与证据链的权威位置 = [统一账本规则级分面表](../../../nop-lint/docs/tool-replacement-ledger.md) §分面裁定登记**（防腐门禁 `ai-dev/tools/check-lint-tool-replacement-ledger.mjs` 看守），本节只记词表与纪律，不双写逐条状态。
+> nop-lint 定位收窄为 AI 编码期核心缺陷防线（roadmap Purpose + design 00 §1 定位增注）后，规则库按分面复审管理：62 条存量规则逐条标注分面并落处置，此后新规则按准入判据执行。**逐条裁定结果与证据链的权威位置 = [统一账本规则级分面表](../../../nop-tools/nop-lint/docs/tool-replacement-ledger.md) §分面裁定登记**（防腐门禁 `ai-dev/tools/check-lint-tool-replacement-ledger.mjs` 看守），本节只记词表与纪律，不双写逐条状态。
 
 - **分面词表**（与 roadmap Purpose 分面表一致）：`core`（正确性 / 资源 / 并发 / 安全 / 数据流 / 平台不变式）/ `out-of-purpose`（风格 / 可选面）。
 - **处置词表**（引擎杠杆重裁定：`LintProfile` 为 one-shared-rule-set 设计，无 per-profile 成员机制，"降出默认档"不是引擎概念）：`keep`（保持现 severity）/ `demote-info`（severity→info + version 1.1 + 头注记录）/ `remove`（移出库——须按 plan 16 的 10 点消费面联动清单逐点同步）。

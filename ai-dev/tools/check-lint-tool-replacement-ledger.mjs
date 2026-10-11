@@ -4,7 +4,7 @@
 // Anti-corruption gate for the tool-replacement ledger (roadmap item 1,
 // plan nop-lint/15). Style precedent: check-lint-migration-manifest.mjs.
 //
-// Validates `nop-lint/docs/tool-replacement-ledger.md`:
+// Validates `nop-tools/nop-lint/docs/tool-replacement-ledger.md`:
 //   - verdict table : the tool-level verdict table enumerates EXACTLY the
 //                     eight pinned tools (added/renamed/dropped rows are hard
 //                     errors), every verdict is a legal vocabulary value
@@ -34,7 +34,7 @@ import { fileURLToPath } from 'node:url';
 
 const TOOL_DIR = import.meta.dirname;
 const PROJECT_ROOT = resolve(TOOL_DIR, '..', '..');
-const LEDGER_FILE = join(PROJECT_ROOT, 'nop-lint', 'docs', 'tool-replacement-ledger.md');
+const LEDGER_FILE = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'docs', 'tool-replacement-ledger.md');
 
 // the eight pinned tool rows — exact cell strings, no more, no less
 const PINNED_TOOLS = [
@@ -72,8 +72,8 @@ const ITEMS_GRAMMAR = /^\d+(–\d+)?$/; // bare item number or contiguous range 
 // RULE_FACET_CENSUS alongside TestProductionRuleCount and the catalog generator.
 const RULE_FACET_VOCAB = new Set(['core', 'out-of-purpose']);
 const RULE_DISPOSITION_VOCAB = new Set(['keep', 'demote-info', 'remove']);
-const RULE_FACET_CENSUS = 74; // 70 live (69+1 item7) + 4 removed = 74 rows
-const RULES_ROOT = join(PROJECT_ROOT, 'nop-lint', 'nop-lint-nop', 'src', 'main',
+const RULE_FACET_CENSUS = 80; // 76 live (70 + 6 nop-xdsl-*, plan 2417 backfill) + 4 removed = 80 rows
+const RULES_ROOT = join(PROJECT_ROOT, 'nop-tools', 'nop-lint', 'nop-lint-nop', 'src', 'main',
   'resources', '_vfs', 'nop', 'lint', 'rules');
 
 // defect-coverage matrix (roadmap item 6): pinned 10 defect classes, the

@@ -20,7 +20,7 @@ verify: [test]
 
 - `Ts2Java` CLI (invoked via `mvn exec:java` or a generated `ParserMain.main`) that reads an upstream `parser.c` and emits a compact binary blob containing: named + anonymous symbol table, symbol metadata, state table, parse actions, lex modes, keyword lex modes.
 - Extraction correctness proven against the JSON grammar's `parser.c` static tables — counts and names, not just "runs without error".
-- Blob format documented authoritatively in `nop-treesitter/src/main/resources/blob-format.md` (field order, widths, offsets, version stamp) — this doc is the loader contract consumed by plan `...-3-lr1-parser-json-corpus`.
+- Blob format documented authoritatively in `../../../nop-tools/nop-treesitter/src/main/resources/blob-format.md` (field order, widths, offsets, version stamp) — this doc is the loader contract consumed by plan `...-3-lr1-parser-json-corpus`.
 - Pre-built `tree-sitter-json-blob.bin` shipped at `src/main/resources/grammars/json/`, produced by the CLI itself (end-to-end run), verified by an independent read-back round-trip test.
 
 ## Non-Goals
@@ -73,13 +73,13 @@ Exit Criteria:
 
 ## Phase 3 — binary blob encoding, format doc, shipped JSON blob
 
-Targets: `nop-treesitter/src/main/resources/blob-format.md`, `src/main/resources/grammars/json/`, codegen package
+Targets: `../../../nop-tools/nop-treesitter/src/main/resources/blob-format.md`, `src/main/resources/grammars/json/`, codegen package
 
 - Item Types: `Fix | Decision | Proof`
 
 - [x] Binary writer: compact blob layout (magic + language-version stamp, symbol table, metadata, state table, parse actions, lex modes, keyword lex modes) written via `java.nio.ByteBuffer`, big-endian, widths justified by data range.
 - [x] `Decision` recorded in the format doc: int-width choice per section with range rationale (e.g. symbol ids ≤ 255 → 1 byte; state ids ≤ 65535 → 2 bytes).
-- [x] Author the format contract in `nop-treesitter/src/main/resources/blob-format.md` (field order, widths, offsets, version stamp) — the loader contract for plan `...-3-lr1-parser-json-corpus`.
+- [x] Author the format contract in `../../../nop-tools/nop-treesitter/src/main/resources/blob-format.md` (field order, widths, offsets, version stamp) — the loader contract for plan `...-3-lr1-parser-json-corpus`.
 - [x] End-to-end CLI run: `Ts2Java <vendored parser.c> <blob>` produces `tree-sitter-json-blob.bin` at `src/main/resources/grammars/json/`; commit the binary.
 - [x] Read-back round-trip test: an independent minimal reader (not the writer) decodes the shipped blob and asserts symbol names / counts, state count, lex-mode count equal the vendored `parser.c` static tables.
 - [x] Determinism test: regenerating the blob from the same `parser.c` yields byte-identical output.

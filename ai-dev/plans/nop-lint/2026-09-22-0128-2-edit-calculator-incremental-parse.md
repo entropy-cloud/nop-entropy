@@ -19,7 +19,7 @@ verify: [test]
 - Lint 侧现状：`LintTree` 包装 `TSTree`（`node/LintTree.java:41 tree()` / `:50 source()`）；`TreeSitterLanguageAdapter.parse` 经 `TSParser.parse` 全量解析（`lang/TreeSitterLanguageAdapter.java:78-85`）；`LintEngine.lint(rules, language, LintTree)` 预解析树入口已存在且 javadoc 明示供增量 run 使用（`engine/LintEngine.java:56-59`）——但**当前无任何调用方增量地产树**；nop-lint 全源码树无 EditCalculator、无增量路径。
 - design 03 §1.2 的 `lintFiles(FileFilter, incremental)` 多文件形态与持久缓存是最终消费形态；CLI（item 18）与编辑器（item 41）尚不存在，本 plan 的集成落点限定为**单文件增量解析入口**。
 - 性能声称的门槛 = roadmap item 13 benchmark（done）；本 plan 只做正确性声称，不做性能数字（design 11 §8 Phase 4 调优属后续）。
-- 现成语料：`nop-lint/bench/corpus/OrderService.java` 与 nop-lint 测试夹具中的真实 Java 源码可作为编辑矩阵与随机编辑的语料。
+- 现成语料：`../../../nop-tools/nop-lint/bench/corpus/OrderService.java` 与 nop-lint 测试夹具中的真实 Java 源码可作为编辑矩阵与随机编辑的语料。
 
 ## Goals
 

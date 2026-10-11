@@ -35,7 +35,7 @@ verify: [test]
 ## Phase 1 — TSNode + TSTreeCursor core navigation
 
 Status: planned
-Targets: `nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`, `io.nop.treesitter.cursor/`, tests under `src/test/java/io/nop/treesitter/cursor/`
+Targets: `../../../nop-tools/nop-treesitter/src/main/java/io/nop/treesitter/TSNode.java`, `io.nop.treesitter.cursor/`, tests under `src/test/java/io/nop/treesitter/cursor/`
 
 - Item Types: `Fix | Proof`
 

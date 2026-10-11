@@ -171,7 +171,7 @@ Required by: `ai-dev/plans/00-plan-authoring-and-execution-guide.md` (Rule #26),
 
 ### run-java-lint.sh (nop-lint gate)
 
-Runs the Java lint gate through `nop-cli lint check` (the `nop-lint` engine, 65 rules in `nop-lint/nop-lint-nop`). The ast-grep ruleset this used to run has been migrated into nop-lint; the three rules below are the landed equivalents, traceable via each rule's `metadata.source` field.
+Runs the Java lint gate through `nop-cli lint check` (the `nop-lint` engine, 65 rules in `nop-tools/nop-lint/nop-lint-nop`). The ast-grep ruleset this used to run has been migrated into nop-lint; the three rules below are the landed equivalents, traceable via each rule's `metadata.source` field.
 
 ```bash
 pnpm lint:java                                          # scan every git-tracked .java
@@ -205,7 +205,7 @@ The hook lives at `.githooks/pre-commit` and calls this wrapper. Exit codes: 0 c
 
 **Full docs**: `docs-for-ai/03-runbooks/nop-cli-and-lint-gate.md`.
 
-**Adding new rules**: add a rule YAML under `nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/`, then select it by id via `--rules <id>`. nop-lint discovers rules from that VFS prefix; `--rules` with an unknown id fails the run.
+**Adding new rules**: add a rule YAML under `nop-tools/nop-lint/nop-lint-nop/src/main/resources/_vfs/nop/lint/rules/`, then select it by id via `--rules <id>`. nop-lint discovers rules from that VFS prefix; `--rules` with an unknown id fails the run.
 
 
 Checks `I*Biz` service interfaces (in `*-dao` modules' `biz` package, `extends ICrudBiz`) against the platform contract in `docs-for-ai/02-core-guides/service-layer.md`:

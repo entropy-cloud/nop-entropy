@@ -74,7 +74,7 @@ Exit Criteria:
 ### Phase 2 - RuleDslParser XOR 收敛 + CheckRunner 编排拆分（Fix）
 
 Status: planned
-Targets: `nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/rule/RuleDslParser.java`、`nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/CheckRunner.java`
+Targets: `../../../nop-tools/nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/rule/RuleDslParser.java`、`../../../nop-tools/nop-lint/nop-lint-core/src/main/java/io/nop/lint/core/cli/CheckRunner.java`
 
 - Item Types: `Fix`
 

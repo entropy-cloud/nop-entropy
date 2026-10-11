@@ -60,17 +60,17 @@ echo "==> [1-3/6] nop-lint invariants: silent-swallow / orm-unique-key / sensiti
 # plan nop-lint/21): the nop-lint rules nop/silent-swallow (error),
 # nop-orm-unique-key (error) and security/no-sensitive-literal (error, v1.2)
 # carry the same faces — comparison zero-diff records in
-# nop-lint/docs/checkstyle-pmd-migration.md §4.3 / plan 21 comparison table.
+# nop-tools/nop-lint/docs/checkstyle-pmd-migration.md §4.3 / plan 21 comparison table.
 # The retired scanners were removed together with this switch (single revert
 # point = the plan 21 commit).
 NOP_LINT_CP_FILE="$(mktemp)"
-"$MVN" -q -pl nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile="$NOP_LINT_CP_FILE"
+"$MVN" -q -pl nop-tools/nop-lint/nop-lint-nop dependency:build-classpath -Dmdep.outputFile="$NOP_LINT_CP_FILE"
 # non-recursive: the three nop-lint modules only depend on each other and on
 # installed/compiled upstream artifacts; a recursive -am compile would enter
 # unrelated modules (e.g. nop-metadata) without their codegen lifecycle state
 # and break the INV-LIMIT test step that follows (plan 21 execution finding).
-"$MVN" -q -pl nop-lint/nop-lint-core,nop-lint/nop-lint-java,nop-lint/nop-lint-nop -DskipTests compile
-NOP_LINT_CP="nop-lint/nop-lint-core/target/classes:nop-lint/nop-lint-java/target/classes:nop-lint/nop-lint-nop/target/classes:$(cat "$NOP_LINT_CP_FILE")"
+"$MVN" -q -pl nop-tools/nop-lint/nop-lint-core,nop-tools/nop-lint/nop-lint-java,nop-tools/nop-lint/nop-lint-nop -DskipTests compile
+NOP_LINT_CP="nop-tools/nop-lint/nop-lint-core/target/classes:nop-tools/nop-lint/nop-lint-java/target/classes:nop-tools/nop-lint/nop-lint-nop/target/classes:$(cat "$NOP_LINT_CP_FILE")"
 
 echo "  -> INV-SILENT-SWALLOW + INV-SENSITIVE (java source face)"
 java -cp "$NOP_LINT_CP" io.nop.lint.core.cli.NopLintCli check \
