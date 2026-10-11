@@ -35,6 +35,10 @@ GATE_RULES="nop/no-raw-exception,nop/no-empty-catch,nop/no-log-getmessage"
 # `--rules` does not help either (these fixtures violate real rules), so the
 # filter has to happen before the file list reaches the CLI.
 FIXTURE_FILTER='/src/test/resources/_vfs/test/lint/'
+# nop-lint bench corpus (OrderService.java etc.) is intentionally dirty input
+# for benchmarks; its violations are the measured signal, not gate findings.
+# Path fragment matches both the legacy (nop-lint/) and nop-tools layout.
+BENCH_CORPUS_FILTER='/nop-lint/bench/corpus/'
 
 die() { printf 'Error: %s\n' "$*" >&2; exit 1; }
 
@@ -111,7 +115,7 @@ if [ "${#targets[@]}" -eq 0 ]; then
     trap 'rm -f "$file_list"' EXIT
     git ls-files -z -- '*.java' \
         | tr '\0' '\n' \
-        | grep -v "$FIXTURE_FILTER" > "$file_list" || true
+        | grep -v -e "$FIXTURE_FILTER" -e "$BENCH_CORPUS_FILTER" > "$file_list" || true
 
     if [ ! -s "$file_list" ]; then
         die "no tracked .java files found (is this a git repository root?)"
@@ -135,6 +139,7 @@ filtered=()
 for t in "${targets[@]}"; do
     case "$t" in
         *"$FIXTURE_FILTER"*) continue ;;
+        *"$BENCH_CORPUS_FILTER"*) continue ;;
     esac
     filtered+=("$t")
 done
