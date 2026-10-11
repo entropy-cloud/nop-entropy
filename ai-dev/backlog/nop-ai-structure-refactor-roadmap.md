@@ -37,7 +37,7 @@ audit-rounds: 0
 - WI2 工具 SPI 归一裁定与落地: `done`
 - WI4 RAG SPI 归位 nop-ai-rag: `done`
 - WI5 模型选路 routing 归位 gateway: `done`
-- WI6 编码代理关注点归位裁定（core file/response）: `todo`
+- WI6 编码代理关注点归位裁定（core file/response）: `done`（plan 2433：response 留守 core 裁定 + file 死面收口；IFileOperator→IToolFileSystem 全面收口立 successor——前置条件 = 契约文档三条件 + CliFileCommand 补测试）
 - WI7 mock 设施收敛下沉: `todo`
 - WI8 dialect 家族结构消重: `todo`
 - WI9 错误码归位（NopAiCoreErrors 代管项归还各模块）: `todo`

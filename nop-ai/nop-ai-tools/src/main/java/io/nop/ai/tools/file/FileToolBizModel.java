@@ -251,7 +251,8 @@ public class FileToolBizModel implements IFileToolBiz {
         // M5-P1 round-1 audit finding 3, decision A: IDslTool/DslToolImpl sunk
         // down from nop-ai-coder to nop-ai-tools (io.nop.ai.tools.xdsl) — this
         // module no longer depends on the nop-ai-coder heavyweight chain.
-        return new DslToolImpl(getFileOperator(projectName));
+        // plan 2429/WI6：DslToolImpl 去 IFileOperator 依赖，直接持 baseDir（沙箱语义内聚于 DslToolImpl）
+        return new DslToolImpl(getProjectDir(projectName));
     }
 
     private String convertToGrepStrings(List<IFileOperator.GrepResult> results) {

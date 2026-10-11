@@ -176,15 +176,6 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path",
             "The file object has no path attribute specified");
 
-    /**
-     * Converted from bare {@code IllegalArgumentException} throws (plan
-     * 2026-08-01-0936-2): English descriptions preserve the historical
-     * message semantics verbatim (AGENTS.md English error-message
-     * convention for newly added codes).
-     */
-    ErrorCode ERR_AI_FILE_INVALID_EDIT_TYPE =
-            define("nop.err.ai.file.invalid-edit-type", "Invalid edit type");
-
     ErrorCode ERR_AI_PROMPT_TEMPLATE_NULL =
             define("nop.err.ai.prompt-template-null", "prompt template is null");
 

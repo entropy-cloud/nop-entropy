@@ -63,3 +63,11 @@ nop-ai 存在两个文件操作抽象，方法面与语义均无 1:1 对应：
 - 上游：`P2-MA3-05` 裁定（1834-3 批次）记录于 `FileToolBizModel` / `DslToolImpl` javadoc——本契约文档为该裁定的正式收口。
 - 相关：`docs-for-ai/` 无 file tool / FS 抽象章节（核验 0 引用），使用层面文档无需同步。
 - 追踪：`ai-dev/audits/arm-index.md` §P2 修复追踪（结构类 P2 后续批次）P2-MA1-012 行。
+
+
+## WI6 裁定注记（plan 2429，2026-10-11）
+
+- **死面已删**：`FileContentParser`（全仓零消费者）、`FileDiff`/`FileDiffGenerator`/`FileDiffApplier`（main 包外零消费、`applyDiff` 无调用方；能力覆盖方 = toolkit `PatchFileExecutor` 的 nop-diff UnifiedDiff 与 `ApplyDeltaExecutor` 的 xlang DeltaMerger）；`IFileOperator.applyDiff` default 方法与 `ERR_AI_FILE_INVALID_EDIT_TYPE` 错误码随删。
+- **IFileOperator→IToolFileSystem 全面收口立显式 successor**：前置条件（即本契约 §三三条）仍未满足——IToolFileSystem 需补 char offset/limit 切片读、FileContents XML bundle、mergeFile、GrepResult 等价面；`CliFileCommand` 零测试覆盖需先补测试；FileToolBizModel 18 操作回归方案。successor 验收 = 三前置条件 + core/file 目录清空 + 消费者（FileToolBizModel/CliFileCommand/ai-coder.xlib）迁移。本 plan 完成第 0 步（死面删除缩小收口面）。
+- **core/response 留守 core 裁定**（同 plan 排除性裁定）：→coder 被约束条款命中（nop-dyn-service 被迫新增 coder 依赖）、→toolkit 为 core→toolkit 倒置（ChatExchange 门面 + ModelBasedPromptTemplate 是 core main 消费者）——response 是 prompt 求值引擎内在能力 + dsl-orm→dyn-service 生成链消费，留守 core（详见 plan 2429 Current Baseline）。
+- **DslToolImpl 去废弃依赖**：删除 IFileOperator 依赖，base-dir 沙箱语义（相对解析 + `..`/`:` 拒绝 + canonical 包含性检查 + 绝对路径 VFS 回退）等价内联，`TestDslToolImpl` 为等价钉。

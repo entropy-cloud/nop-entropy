@@ -17,8 +17,8 @@ import java.util.regex.Pattern;
  * {@code io.nop.ai.toolkit.fs.IToolFileSystem} — the two abstractions serve
  * different contracts: IFileOperator = base-dir-scoped resource access
  * ({@code IResource} results, FileContent offset/limit reads,
- * AntPath/Regex/Glob finders, xdef-aware {@code mergeFile},
- * {@code applyDiff}); IToolFileSystem = sandboxed executor file access
+ * AntPath/Regex/Glob finders, xdef-aware {@code mergeFile});
+ * IToolFileSystem = sandboxed executor file access
  * (path permission checks, char-count limited DTO results, depth/max
  * bounded glob/grep). Their method surfaces do not map 1:1, so migration
  * must first reconcile the abstractions; scheduled as future major-version
@@ -251,14 +251,6 @@ public interface IFileOperator {
         copy(sourcePath, targetPath, true);
     }
 
-    /**
-     * Applies the operations described by a file diff (add/delete/rename/modify sections).
-     *
-     * @param diff the diff describing the file changes to apply
-     */
-    default void applyDiff(FileDiff diff) {
-        new FileDiffApplier(this).apply(diff);
-    }
 
     /**
      * Merges the given text into a file, respecting its xdef model when one is registered for the file type.

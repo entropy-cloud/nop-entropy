@@ -38,8 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       mock/InMemoryResponseProvider.java:170 (no mock response available),
  *       mock/FileSystemResponseProvider.java:91 (mock timeout); api path:
  *       api/support/Media.java:149 (data is not byte[]); reliability path:
- *       reliability/ThresholdBreaker.java:141 (unknown circuit state);
- *       file path: file/FileDiffApplier.java:139 (application position lost).</li>
+ *       reliability/ThresholdBreaker.java:141 (unknown circuit state).</li>
  * </ul>
  */
 public class TestNopAiCoreErrorsContract {
