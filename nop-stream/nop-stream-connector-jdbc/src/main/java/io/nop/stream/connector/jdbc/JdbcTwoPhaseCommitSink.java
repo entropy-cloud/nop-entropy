@@ -24,7 +24,10 @@ import java.util.function.Function;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.UpsertStatements;
-import io.nop.message.debezium.ChangeEvent;
+// WI4 plan 2413: no direct ChangeEvent import — every CDC envelope link lives in
+// CdcEventOps and is gated behind CDC_PRESENT so pure INSERT deployments that do
+// not carry nop-message-debezium run zero-linked (no NoClassDefFoundError from
+// the instanceof branches below).
 
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
@@ -86,6 +89,21 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
 
     /** Default JDBC batch segmentation size. */
     public static final int DEFAULT_MAX_BATCH_SIZE = 1000;
+
+    /**
+     * Optional-capability probe for the CDC envelope (WI4 plan 2413). Resolved once
+     * at class init against the defining classloader (never the TCCL — container and
+     * surefire loaders may diverge) with {@code initialize=false}, so a future static
+     * initializer in the envelope class cannot break this class. Any linkage failure
+     * simply means the capability is absent: the CDC branches below short-circuit and
+     * {@link CdcEventOps} is never resolved, keeping pure INSERT deployments
+     * zero-linked against nop-message-debezium (kept provided+optional in the pom).
+     *
+     * <p>Contract coupling: this probe string, the import in {@link CdcEventOps} and
+     * the pom dependency must stay in sync — renaming or moving ChangeEvent silently
+     * disables the CDC envelope paths.
+     */
+    private static final boolean CDC_PRESENT = probeCdcPresent();
     /**
      * Ledger namespace column (plan 368 Phase 4, audit R5-CON-01): the v2 ledger key is
      * {@code (sink_namespace, epoch_id, subtask_id)} so same-epoch commits from
@@ -178,13 +196,13 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private final List<String> keyColumns;
     /**
      * Operation source for keyed modes: maps a record to its Debezium operation code
-     * (c/u/d/r). Optional — when absent, records must be {@link ChangeEvent} instances
+     * (c/u/d/r). Optional — when absent, records must be {@code ChangeEvent} instances
      * (the operation is read from the envelope).
      */
     private final Function<IN, String> opMapper;
     /**
      * Key map source for KIND_DELETE ops in keyed modes. Optional — ChangeEvent records
-     * use {@link ChangeEvent#getKey()}; mapped records fall back to the value row
+     * use the envelope's key image; mapped records fall back to the value row
      * restricted to {@code keyColumns}.
      */
     private final Function<IN, Map<String, Object>> deleteKeyMapper;
@@ -287,7 +305,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * <p>Validation is mode-conditional: INSERT requires fixed {@code columnNames} and a
      * {@code recordMapper}; keyed modes (UPSERT/UPSERT_DELETE) require non-empty
      * {@code keyColumns}, accept a null {@code recordMapper} (native
-     * {@link ChangeEvent} path) and derive operations from {@code opMapper} or the
+     * {@code ChangeEvent} path) and derive operations from {@code opMapper} or the
      * ChangeEvent envelope.
      */
     JdbcTwoPhaseCommitSink(IJdbcTemplate jdbcTemplate, String querySpace, String tableName,
@@ -476,12 +494,25 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     }
 
     /**
+     * Resolves the optional CDC envelope capability once. See {@link #CDC_PRESENT}.
+     */
+    private static boolean probeCdcPresent() {
+        try {
+            Class.forName(CdcEventOps.CHANGE_EVENT_CLASS, false,
+                    JdbcTwoPhaseCommitSink.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException | LinkageError e) {
+            return false;
+        }
+    }
+
+    /**
      * Maps a record to its buffered {@link DmlOp} according to {@link #dmlMode}.
      */
     private DmlOp toDmlOp(IN value) {
         if (dmlMode == DmlMode.INSERT) {
-            if (value instanceof ChangeEvent) {
-                String operation = ((ChangeEvent) value).getOperation();
+            if (CDC_PRESENT && CdcEventOps.isChangeEvent(value)) {
+                String operation = CdcEventOps.operationOf(value);
                 if ("u".equals(operation) || "d".equals(operation)) {
                     throw new StreamException(ERR_STREAM_STATE_ERROR)
                             .param(ARG_DETAIL, "dmlMode=INSERT received an update/delete CDC event"
@@ -497,8 +528,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         String operation;
         if (opMapper != null) {
             operation = opMapper.apply(value);
-        } else if (value instanceof ChangeEvent) {
-            operation = ((ChangeEvent) value).getOperation();
+        } else if (CDC_PRESENT && CdcEventOps.isChangeEvent(value)) {
+            operation = CdcEventOps.operationOf(value);
         } else {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "dmlMode " + dmlMode + " requires an opMapper for records"
@@ -543,8 +574,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         if (recordMapper != null) {
             return requireRow(recordMapper.apply(value), value);
         }
-        if (value instanceof ChangeEvent) {
-            Map<String, Object> after = ((ChangeEvent) value).getAfter();
+        if (CDC_PRESENT && CdcEventOps.isChangeEvent(value)) {
+            Map<String, Object> after = CdcEventOps.afterOf(value);
             if (after == null || after.isEmpty()) {
                 throw new StreamException(ERR_STREAM_STATE_ERROR)
                         .param(ARG_DETAIL, "ChangeEvent carries no after-image for an upsert op");
@@ -564,8 +595,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             }
             return key;
         }
-        if (value instanceof ChangeEvent) {
-            Map<String, Object> key = ((ChangeEvent) value).getKey();
+        if (CDC_PRESENT && CdcEventOps.isChangeEvent(value)) {
+            Map<String, Object> key = CdcEventOps.keyOf(value);
             if (key != null && !key.isEmpty()) {
                 return key;
             }
