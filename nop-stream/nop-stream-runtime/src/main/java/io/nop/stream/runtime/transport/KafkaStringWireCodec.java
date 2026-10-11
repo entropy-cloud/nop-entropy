@@ -7,12 +7,6 @@
  */
 package io.nop.stream.runtime.transport;
 
-import java.util.Map;
-
-import io.nop.api.core.beans.ApiMessage;
-import io.nop.core.lang.json.JsonTool;
-import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
-
 /**
  * Wire codec for the Apache Kafka {@code KafkaMessageService} backend.
  *
@@ -21,56 +15,12 @@ import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
  * STRING-schema backend. On subscribe the backend wraps the Kafka record value in an
  * {@code ApiMessage} whose {@code data} is that {@code String}.
  *
- * <p>This codec therefore mirrors {@link PulsarStringWireCodec} exactly:
- * <ul>
- *   <li><b>send</b>: serializes the envelope to a JSON {@code String}, which
- *       {@code KafkaMessageService.sendAsync} passes to the StringSerializer.</li>
- *   <li><b>receive</b>: reads the JSON {@code String} out of the delivered
- *       {@code ApiMessage} and reconstructs the envelope.</li>
- * </ul>
- *
- * <p><strong>Why a separate class instead of reusing {@link PulsarStringWireCodec}.</strong>
- * {@code PulsarStringWireCodec} is {@code final} (cannot be extended), and naming a Kafka
- * deployment's codec "Pulsar" is misleading. Only {@code toWire} is shared via
- * {@link DataPlaneWireSupport}; the {@code fromWire} + {@code extractData} pair below is a
- * verbatim parallel copy of the Pulsar codec — a known, deliberately deferred duplication
- * (any new wire form or decode fix must be applied to both codecs).
- *
- * <p>The codec only references {@link ApiMessage} / {@link JsonTool} — it does NOT depend
- * on {@code KafkaMessageService} or {@code kafka-clients}, keeping {@code nop-stream-runtime}
- * backend-dep-free (vision §三 constraint 8).
+ * <p>Encoding/decoding is shared with the Pulsar codec via
+ * {@link AbstractStringWireCodec} (WI6 plan 2416 — the previously deferred verbatim
+ * duplication is resolved; a Kafka deployment's codec no longer carries the Pulsar
+ * name).
  */
-public final class KafkaStringWireCodec implements IDataPlaneWireCodec {
+public final class KafkaStringWireCodec extends AbstractStringWireCodec {
 
     public static final KafkaStringWireCodec INSTANCE = new KafkaStringWireCodec();
-
-    @Override
-    public Object toWire(StreamMessageEnvelope envelope) {
-        return JsonTool.stringify(DataPlaneWireSupport.toWireMap(envelope));
-    }
-
-    @Override
-    public StreamMessageEnvelope fromWire(Object message) {
-        Object data = extractData(message);
-        if (data == null) {
-            return null;
-        }
-        if (data instanceof StreamMessageEnvelope) {
-            return (StreamMessageEnvelope) data;
-        }
-        if (data instanceof String) {
-            return JsonTool.parseBeanFromText((String) data, StreamMessageEnvelope.class);
-        }
-        if (data instanceof Map) {
-            return (StreamMessageEnvelope) JsonTool.jsonObjectToBean(data, StreamMessageEnvelope.class);
-        }
-        return null;
-    }
-
-    private static Object extractData(Object message) {
-        if (message instanceof ApiMessage) {
-            return ((ApiMessage) message).getData();
-        }
-        return message;
-    }
 }

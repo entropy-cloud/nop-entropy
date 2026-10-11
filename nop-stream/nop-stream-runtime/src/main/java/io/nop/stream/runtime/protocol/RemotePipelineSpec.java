@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/entropy-cloud/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.rpc;
+package io.nop.stream.runtime.protocol;
 
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;

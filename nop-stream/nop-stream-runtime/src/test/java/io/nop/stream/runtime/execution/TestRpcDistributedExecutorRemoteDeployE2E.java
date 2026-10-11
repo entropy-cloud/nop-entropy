@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <p>A correct sink result is only reachable if:
  * <ol>
  *   <li>{@link io.nop.stream.runtime.coordinator.JobCoordinator#assignTasks()}
- *       actually built a {@link io.nop.stream.runtime.rpc.TaskDeploymentDescriptor}
+ *       actually built a {@link io.nop.stream.runtime.protocol.TaskDeploymentDescriptor}
  *       per subtask and sent it via the {@code deployTask} RPC;</li>
  *   <li>each TaskManager received the descriptor, rebuilt its invokable locally
  *       from the {@link io.nop.stream.core.jobgraph.JobGraph} + edge config, and

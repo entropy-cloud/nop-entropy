@@ -19,7 +19,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;

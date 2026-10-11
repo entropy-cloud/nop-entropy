@@ -18,8 +18,8 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.JobStatus;
-import io.nop.stream.runtime.coordinator.JobStatusResponse;
+import io.nop.stream.runtime.protocol.JobStatus;
+import io.nop.stream.runtime.protocol.JobStatusResponse;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -177,15 +177,15 @@ class TestStreamControlRpc {
         volatile JobTerminationMode lastTerminateMode;
 
         @Override
-        public void receiveCheckpointAck(io.nop.stream.runtime.taskmanager.CheckpointAckMessage ack) {
+        public void receiveCheckpointAck(io.nop.stream.runtime.protocol.CheckpointAckMessage ack) {
         }
 
         @Override
-        public void reportTaskStatus(io.nop.stream.runtime.coordinator.TaskStatusReport report) {
+        public void reportTaskStatus(io.nop.stream.runtime.protocol.TaskStatusReport report) {
         }
 
         @Override
-        public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.coordinator.TaskProgress> progress) {
+        public void reportNodeTaskLiveness(String nodeId, java.util.List<io.nop.stream.runtime.protocol.TaskProgress> progress) {
         }
 
         @Override

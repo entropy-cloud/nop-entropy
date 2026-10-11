@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.rpc;
 
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_OPERATION;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_UNSUPPORTED;

@@ -96,7 +96,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
     /**
      * Stage 42 Phase 0: when {@code true}, the coordinator deploys task logic via
      * the {@code deployTask} RPC (each TaskManager rebuilds its own invokable locally
-     * from a {@link io.nop.stream.runtime.rpc.TaskDeploymentDescriptor}) instead of
+     * from a {@link io.nop.stream.runtime.protocol.TaskDeploymentDescriptor}) instead of
      * the executor's direct {@code TaskManager.installInvokable} Java call. Default
      * {@code false} preserves the in-process fast-path; the Stage 42 multi-JVM test
      * harness and the in-process remote-deploy E2E test flip this to {@code true}.

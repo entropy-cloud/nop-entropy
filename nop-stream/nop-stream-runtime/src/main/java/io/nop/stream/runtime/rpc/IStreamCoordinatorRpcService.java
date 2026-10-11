@@ -12,10 +12,10 @@ import java.util.List;
 import io.nop.api.core.annotations.core.Internal;
 
 import io.nop.stream.core.checkpoint.JobTerminationMode;
-import io.nop.stream.runtime.coordinator.JobStatusResponse;
-import io.nop.stream.runtime.coordinator.TaskProgress;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.protocol.JobStatusResponse;
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 
 /**
  * Coordinator-side control-plane RPC surface: the calls TaskManagers issue back
@@ -113,7 +113,7 @@ public interface IStreamCoordinatorRpcService {
     /**
      * G23: returns a serializable snapshot of the current job status, including
      * the captured failure cause when the job has reached
-     * {@link io.nop.stream.runtime.coordinator.JobStatus#FAILED}. Enables a
+     * {@link io.nop.stream.runtime.protocol.JobStatus#FAILED}. Enables a
      * remote caller (Stage 39) to query job health without a second round-trip.
      *
      * @return a {@link JobStatusResponse} carrying the current status (never null)

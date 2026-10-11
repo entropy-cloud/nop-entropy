@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -16,8 +17,8 @@ import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.TaskProgress;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -355,8 +356,8 @@ class TestTaskManagerLivenessAndReporting {
         public void abortCheckpoint(long epochId) {}
 
         @Override
-        public io.nop.stream.runtime.coordinator.JobStatusResponse getJobStatus() {
-            return new io.nop.stream.runtime.coordinator.JobStatusResponse();
+        public io.nop.stream.runtime.protocol.JobStatusResponse getJobStatus() {
+            return new io.nop.stream.runtime.protocol.JobStatusResponse();
         }
     }
 

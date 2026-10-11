@@ -28,7 +28,7 @@ import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.execution.GraphModelCheckpointExecutor;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import io.nop.stream.runtime.taskmanager.TaskManager;
 
 /**
@@ -53,7 +53,7 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
  *       ({@code GraphModelCheckpointExecutor.snapshotHasKeyedState}).</li>
  *   <li><b>Barrier tracker + ACK wiring</b> — a tracker is attached to the
  *       invokable whose completion callback sends the
- *       {@code io.nop.stream.runtime.taskmanager.CheckpointAckMessage} back to
+ *       {@code io.nop.stream.runtime.protocol.CheckpointAckMessage} back to
  *       the coordinator over the control RPC (the TM analog of the LOCAL
  *       {@code wireTaskCheckpointPipeline} callback that calls
  *       {@code coordinator.acknowledgeTask} in-process).</li>

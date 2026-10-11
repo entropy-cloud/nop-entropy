@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
@@ -215,8 +217,8 @@ class TestJobCoordinatorLeaderElection {
     @Test
     void testStandbyRejectsCollectAckExplicitly() {
         coordinator.start();
-        io.nop.stream.runtime.taskmanager.CheckpointAckMessage ack =
-                new io.nop.stream.runtime.taskmanager.CheckpointAckMessage(
+        io.nop.stream.runtime.protocol.CheckpointAckMessage ack =
+                new io.nop.stream.runtime.protocol.CheckpointAckMessage(
                         new io.nop.stream.core.checkpoint.TaskLocation(JOB_ID, "pipeline-0", "source", 0),
                         1L, null, JobCoordinator.deriveHaFencingEpoch(1L, 0L));
         boolean accepted = coordinator.collectAck(ack);

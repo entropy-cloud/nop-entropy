@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;

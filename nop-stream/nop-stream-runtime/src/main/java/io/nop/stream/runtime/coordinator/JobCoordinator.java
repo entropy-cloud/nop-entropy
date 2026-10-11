@@ -7,6 +7,12 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
+import io.nop.stream.runtime.protocol.JobStatus;
+import io.nop.stream.runtime.protocol.JobStatusResponse;
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -52,9 +58,8 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.event.StreamJobEvent;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
-import io.nop.stream.runtime.taskmanager.TaskManager;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 
 /**
  * JobCoordinator is the single point of control for a distributed streaming job.
@@ -433,11 +438,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * shipped in the deployment descriptors INSTEAD of the (non-serializable)
      * compiled {@link #jobGraph} when the pipeline is XDSL-declared. Each
      * TaskManager rebuilds an identical graph locally (see
-     * {@link io.nop.stream.runtime.rpc.RemotePipelineSpec}). When non-null, the
+     * {@link io.nop.stream.runtime.protocol.RemotePipelineSpec}). When non-null, the
      * descriptors carry the spec; {@link #jobGraph} is still required for the
      * coordinator's own fail-fast/plan consistency.
      */
-    private volatile io.nop.stream.runtime.rpc.RemotePipelineSpec pipelineSpec;
+    private volatile io.nop.stream.runtime.protocol.RemotePipelineSpec pipelineSpec;
 
     /**
      * Shared filesystem path of the
@@ -1918,7 +1923,6 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
     private void registerNodesActiveGauge() {
         if (clusterRegistry != null) {
             io.nop.stream.runtime.metrics.EngineMetrics.registerNodesActiveGauge(
-                    io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
                     () -> clusterRegistry.getActiveNodes().size());
         }
     }
@@ -2833,11 +2837,11 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
      * with {@link #setJobGraph(JobGraph)} — the coordinator still needs its own
      * graph for consistency checks; only the TM-bound copy is replaced by the spec.
      */
-    public void setPipelineSpec(io.nop.stream.runtime.rpc.RemotePipelineSpec pipelineSpec) {
+    public void setPipelineSpec(io.nop.stream.runtime.protocol.RemotePipelineSpec pipelineSpec) {
         this.pipelineSpec = pipelineSpec;
     }
 
-    public io.nop.stream.runtime.rpc.RemotePipelineSpec getPipelineSpec() {
+    public io.nop.stream.runtime.protocol.RemotePipelineSpec getPipelineSpec() {
         return pipelineSpec;
     }
 

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.execution.InputGate;
@@ -18,8 +19,8 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
-import io.nop.stream.runtime.coordinator.TaskProgress;
-import io.nop.stream.runtime.coordinator.TaskStatusReport;
+import io.nop.stream.runtime.protocol.TaskProgress;
+import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
 import org.junit.jupiter.api.Test;
 
@@ -254,8 +255,8 @@ class TestPlan358LifecycleHardening {
         }
 
         @Override
-        public io.nop.stream.runtime.coordinator.JobStatusResponse getJobStatus() {
-            return new io.nop.stream.runtime.coordinator.JobStatusResponse();
+        public io.nop.stream.runtime.protocol.JobStatusResponse getJobStatus() {
+            return new io.nop.stream.runtime.protocol.JobStatusResponse();
         }
     }
 
@@ -268,7 +269,7 @@ class TestPlan358LifecycleHardening {
         }
 
         @Override
-        public void receiveCheckpointAck(io.nop.stream.runtime.taskmanager.CheckpointAckMessage ack) {
+        public void receiveCheckpointAck(io.nop.stream.runtime.protocol.CheckpointAckMessage ack) {
             if (attempts.incrementAndGet() <= failuresBeforeSuccess) {
                 throw new IllegalStateException("transient backend failure (plan 358 Fix-6 test)");
             }

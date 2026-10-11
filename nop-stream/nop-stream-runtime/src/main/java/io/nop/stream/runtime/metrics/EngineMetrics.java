@@ -149,6 +149,15 @@ public final class EngineMetrics {
         registry.gauge(METRIC_NODES_ACTIVE, supplier, s -> s.get().doubleValue());
     }
 
+    /**
+     * WI6 plan 2416: convenience overload sourcing the process composite registry
+     * internally, so call sites never reference {@code StreamMetricsRegistries}
+     * directly. The explicit-registry variant is retained for isolated-registry tests.
+     */
+    public static void registerNodesActiveGauge(Supplier<Number> supplier) {
+        registerNodesActiveGauge(RuntimeMetrics.registry(), supplier);
+    }
+
     public long getLatestSizeBytes() {
         return latestSizeBytes.get();
     }

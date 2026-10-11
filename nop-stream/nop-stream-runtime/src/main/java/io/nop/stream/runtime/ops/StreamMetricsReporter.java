@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.ops;
 
+import io.nop.stream.runtime.metrics.RuntimeMetrics;
 import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
@@ -107,7 +108,7 @@ public class StreamMetricsReporter {
     void report() {
         try {
             String text = MeterPrinter.scrape(
-                    io.nop.stream.core.metrics.StreamMetricsRegistries.registry(),
+                    io.nop.stream.runtime.metrics.RuntimeMetrics.registry(),
                     new MeterPrintConfig());
             if ("file".equals(target)) {
                 writeSnapshot(text);

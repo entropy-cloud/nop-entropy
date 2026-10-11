@@ -14,7 +14,7 @@ import io.nop.stream.core.source.coordinator.SourceCoordinatorRegistry;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.testsupport.TestAwait;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import io.nop.stream.core.jobgraph.JobGraph;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

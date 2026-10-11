@@ -17,7 +17,7 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.ResultPartitionType;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.StreamMap;
-import io.nop.stream.runtime.rpc.TaskDeploymentDescriptor;
+import io.nop.stream.runtime.protocol.TaskDeploymentDescriptor;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;

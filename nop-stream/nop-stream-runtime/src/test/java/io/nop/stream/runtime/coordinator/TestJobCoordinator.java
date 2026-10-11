@@ -21,7 +21,7 @@ import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -328,7 +328,7 @@ class TestJobCoordinator {
 
         // The coordinator itself is not stopped on the failure path (failJob
         // disables triggers via the FAILED status); the job status is FAILED.
-        assertEquals(io.nop.stream.runtime.coordinator.JobStatus.FAILED,
+        assertEquals(io.nop.stream.runtime.protocol.JobStatus.FAILED,
                 coordinator.getJobStatus().getJobStatus(),
                 "C2 (plan 369): a failed terminal savepoint must fail the job, not declare it FINISHED");
 
@@ -351,7 +351,7 @@ class TestJobCoordinator {
         // savepoint cannot complete (C2, plan 369 — same as DRAIN).
         coordinator.terminate(JobTerminationMode.SUSPEND);
 
-        assertEquals(io.nop.stream.runtime.coordinator.JobStatus.FAILED,
+        assertEquals(io.nop.stream.runtime.protocol.JobStatus.FAILED,
                 coordinator.getJobStatus().getJobStatus(),
                 "C2 (plan 369): a failed suspend savepoint must fail the job");
     }

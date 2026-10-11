@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.rpc;
+package io.nop.stream.runtime.protocol;
 
 import java.io.Serializable;
 
@@ -27,7 +27,7 @@ import io.nop.stream.runtime.cluster.TaskIdentity;
  * {@link Serializable} and carries the per-vertex {@link io.nop.stream.core.jobgraph.OperatorChain}
  * templates) and wires its input/output channels using the deterministic topic
  * naming derived from {@code jobId + edgeId + subtaskIndex} (see
- * {@link io.nop.stream.runtime.transport.StreamTopicNaming}). The resulting
+ * {@code transport.StreamTopicNaming}). The resulting
  * topic names match the coordinator's view exactly, so a subtask built locally
  * on the TaskManager connects to the same data-plane topics the coordinator
  * would have wired.
@@ -41,7 +41,7 @@ import io.nop.stream.runtime.cluster.TaskIdentity;
  * TaskManager turns into a local invokable.
  *
  * <p>The descriptor is self-contained: in remote-deploy mode
- * {@link io.nop.stream.runtime.coordinator.JobCoordinator#assignTasks()} calls
+ * {@code JobCoordinator.assignTasks()} (coordinator package) calls
  * {@code deployTask(descriptor, epoch)} instead of
  * {@link IStreamTaskRpcService#receiveAssignment} + a separate direct
  * {@code installInvokable} call. The in-process executors

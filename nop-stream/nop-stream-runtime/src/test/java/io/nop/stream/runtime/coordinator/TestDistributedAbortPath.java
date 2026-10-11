@@ -35,7 +35,7 @@ import io.nop.stream.runtime.rpc.IStreamTaskRpcService;
 import io.nop.stream.runtime.rpc.StreamControlRpcProxyFactory;
 import io.nop.stream.runtime.rpc.StreamControlRpcServer;
 import io.nop.stream.runtime.rpc.StreamControlRpcTopics;
-import io.nop.stream.runtime.taskmanager.CheckpointAckMessage;
+import io.nop.stream.runtime.protocol.CheckpointAckMessage;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
