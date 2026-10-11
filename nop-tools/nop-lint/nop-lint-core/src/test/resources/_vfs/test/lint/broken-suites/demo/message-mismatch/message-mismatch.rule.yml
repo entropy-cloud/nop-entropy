@@ -1,0 +1,6 @@
+id: demo/broken-message
+language: Java
+severity: warning
+message: Broken fixture rule for message fragment mismatch
+rule:
+  pattern: "System.out.println($$$ARGS)"

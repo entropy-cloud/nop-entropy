@@ -1,0 +1,16 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #5, manifest credit
+# EP:SelfEquals): x.equals(x) is trivially true unless equals is broken —
+# the check carries no information and hides a typo. Distinct face from
+# no-self-compare (== / !=) and self-comparison (compareTo); each keeps its
+# own id so the manifest credits stay one-to-one.
+id: quality/self-equals
+language: Java
+severity: warning
+message: "equals 自比较恒为 true (self-equals; equals on the same expression)"
+rule:
+  pattern: "$X.equals($X)"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #5 (EP:SelfEquals)"

@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 7
+    endLine: 7
+    ruleId: nop/no-raw-exception
+    messageContains: "instead of RuntimeException/Exception"
+  - line: 16
+    endLine: 16
+    ruleId: nop/no-raw-exception
+    messageContains: "instead of RuntimeException/Exception"

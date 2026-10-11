@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: demo/scope-shadow
+    messageContains: "shadow: value"

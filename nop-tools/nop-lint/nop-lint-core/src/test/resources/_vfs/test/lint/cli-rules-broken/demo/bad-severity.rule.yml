@@ -1,0 +1,11 @@
+# nop-lint check CLI test rule: violates the severity enum on purpose —
+# loading through the xdef pipeline must fail (CheckRunner fail-closed path).
+id: demo/bad-severity
+language: Java
+severity: fatal
+message: "severity outside the xdef enum must reject the rule"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+metadata:
+  category: style
+  version: "1.0"

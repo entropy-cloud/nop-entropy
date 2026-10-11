@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/nop/nop-xbiz-auth-not-sole-guard.rule.yml

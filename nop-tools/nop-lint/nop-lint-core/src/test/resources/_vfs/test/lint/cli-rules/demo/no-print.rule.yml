@@ -1,0 +1,14 @@
+# nop-lint check CLI test rule (plan 2026-09-22-0544-1): a warning-severity
+# pattern rule over the test binding (language Java resolves case-insensitively
+# to the java binding the CLI registry provides).
+id: demo/no-print
+language: Java
+severity: warning
+message: "Do not use System.out.println for logging"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

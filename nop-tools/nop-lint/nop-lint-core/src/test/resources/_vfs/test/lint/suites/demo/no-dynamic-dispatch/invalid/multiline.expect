@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 6
+    endLine: 7
+    ruleId: demo/no-dynamic-dispatch
+    messageContains: "dynamic method dispatch"

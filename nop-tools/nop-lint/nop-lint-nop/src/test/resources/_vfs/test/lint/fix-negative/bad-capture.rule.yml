@@ -1,0 +1,22 @@
+# The WI8 negative anchor (plan nop-refactor/08): a fix template that
+# references a capture the pattern never declares must fail closed when the
+# rule is compiled into the engine (CompiledRule.compile -> TemplateFix.compile
+# via the first LintEngine.lint) — loadRuleModel only parses and does not
+# compile, so the rejection is engine-compile-time, not load-time. This file
+# lives outside the suites/ tree on purpose: the suite launcher census counts
+# every directory under /test/lint/suites, and a deliberately broken rule is
+# not a suite.
+id: demo/bad-capture
+language: Java
+severity: warning
+message: "fixture rule: template references an undeclared capture"
+rule:
+  pattern: "$X.equals(null)"
+fix:
+  description: "deliberately broken template"
+  template: "$UNDECLARED == null"
+metadata:
+  category: style
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"

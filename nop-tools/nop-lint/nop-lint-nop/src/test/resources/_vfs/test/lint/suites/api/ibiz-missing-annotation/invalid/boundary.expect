@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: nop/ibiz-missing-annotation
+    messageContains: "must declare @BizQuery/@BizMutation/@BizAction"
+  - line: 10
+    endLine: 10
+    ruleId: nop/ibiz-missing-annotation
+    messageContains: "must declare @BizQuery/@BizMutation/@BizAction"

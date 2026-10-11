@@ -1,0 +1,4 @@
+x:extends: /test/lint/rules/base-rule.rule.yml
+
+id: demo/child-logging
+message: Overridden child message

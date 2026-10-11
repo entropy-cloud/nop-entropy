@@ -1,0 +1,7 @@
+# The fail-closed fixture: an exemption without a reason must not load
+# (design 09 §4 — an undocumented exemption is a load failure).
+id: demo/bad-reason-ruleset
+rules: []
+exemptions:
+  - rule: demo/whatever
+    files: "**/legacy/**"

@@ -1,0 +1,14 @@
+id: demo/xml-xbiz-auth
+language: XML
+severity: warning
+message: "xbiz action auth declaration is not a sole guard"
+metadata:
+  category: demo
+  version: "1.0"
+rule:
+  all:
+    - pattern: '<action name="$$$">$$$</action>'
+    - has:
+        pattern: <auth>$$$</auth>
+    - inside:
+        pattern: '<xbiz entity="$$$">$$$</xbiz>'

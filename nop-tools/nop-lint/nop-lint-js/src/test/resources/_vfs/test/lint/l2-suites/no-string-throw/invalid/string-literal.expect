@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 2
+    ruleId: nop-lint/no-string-throw
+    messageContains: "Error object"

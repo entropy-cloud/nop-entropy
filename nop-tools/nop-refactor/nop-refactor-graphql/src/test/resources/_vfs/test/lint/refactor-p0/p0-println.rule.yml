@@ -1,0 +1,11 @@
+# The WI8 p0 demo set (plan nop-refactor/08, roadmap WI8 closure payload):
+# demo rule (a) — println to the log facade. Rewrite-only fixture rule, it
+# stays out of the production library by design (the 62-rule census).
+id: p0/println-to-loginfo
+language: Java
+message: "Rewrite System.out.println to the log facade"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+transform:
+  description: "Rewrite println to log.info"
+  template: "log.info($$$ARGS)"

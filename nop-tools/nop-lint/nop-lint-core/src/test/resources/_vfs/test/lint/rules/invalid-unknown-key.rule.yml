@@ -1,0 +1,7 @@
+id: demo/unknown-key
+language: Java
+severity: warning
+message: Unknown top level key must fail
+notAField: oops
+rule:
+  pattern: "System.out.println($arg)"

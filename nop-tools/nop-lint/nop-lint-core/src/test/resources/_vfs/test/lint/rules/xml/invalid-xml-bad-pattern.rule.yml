@@ -1,0 +1,6 @@
+id: demo/xml-invalid-bad-pattern
+language: XML
+severity: warning
+message: "rejected at compile time"
+rule:
+  pattern: '<a/><b/>'

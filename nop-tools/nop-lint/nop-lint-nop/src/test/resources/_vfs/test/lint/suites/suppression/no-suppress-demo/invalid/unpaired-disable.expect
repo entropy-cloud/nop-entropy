@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 1
+    endLine: 1
+    ruleId: unpaired-disable
+    messageContains: "never closed"

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<orm ext:icon="/nop/icons/db.svg">
+    <entity name="io.nop.demo.DemoUser" ext:icon="/nop/icons/user.svg">
+        <id name="id" code="ID"/>
+    </entity>
+</orm>

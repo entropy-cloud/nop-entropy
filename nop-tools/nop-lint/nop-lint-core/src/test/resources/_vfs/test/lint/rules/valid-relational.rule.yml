@@ -1,0 +1,21 @@
+# Item 23 Phase 2 fixture: the relational/composite round-trip shape the
+# successor rules use (all + kind + has + not:has). Loaded through the
+# registered rule.yml pipeline; structural assertions in TestRuleDslParser.
+id: demo/relational-roundtrip
+language: Java
+severity: warning
+message: relational roundtrip
+rule:
+  all:
+    - kind: catch_clause
+    - has:
+        pattern: "$E.getMessage()"
+        stopBy: end
+    - not:
+        has:
+          pattern: "throw $$$"
+          stopBy: end
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-0544-2"

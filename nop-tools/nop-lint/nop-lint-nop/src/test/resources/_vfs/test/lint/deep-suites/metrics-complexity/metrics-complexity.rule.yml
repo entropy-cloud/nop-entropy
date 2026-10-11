@@ -1,0 +1,21 @@
+# roadmap item 32 demo suite (plan 2026-09-24-1000-1): the deep-profile
+# metrics binding end to end — a requires: METRICS rule queries
+# metrics.cyclomatic(node) through the JavaMetricsResolver ServiceLoader
+# provider and reports on a threshold comparison. Suite-local demo rule:
+# the production complexity rules land with roadmap item 35.
+id: demo/metrics-complexity
+language: Java
+severity: warning
+message: "方法圈复杂度过高 (method cyclomatic complexity too high)"
+requires: METRICS
+rule:
+  kind: method_declaration
+xscript: |
+  let c = metrics.cyclomatic(node);
+  if (c > 2) {
+    report({ message: 'cyclomatic=' + c, severity: 'warning' });
+  }
+metadata:
+  category: deep
+  autoFixable: false
+  version: "1.0"

@@ -1,0 +1,25 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #8, R1 修正形态): an empty
+# synchronized block still pays the monitor enter/exit (and the lock
+# documentation claim) while protecting nothing. Same kind+xscript emptiness
+# shape as empty-if-block (#6): the body block must exist, be a block, and
+# hold no named children (a comment-only body reads as an intentional TODO).
+id: antipattern/empty-sync-block
+language: Java
+severity: warning
+message: "synchronized 空语句块：持锁却什么都不做 (Empty synchronized block; it acquires the monitor and protects nothing)"
+rule:
+  kind: synchronized_statement
+xscript: |
+  let body = node.child('body');
+  if (body == null || body.kind() != 'block') {
+    return;
+  }
+  if (body.children().size() > 0) {
+    return;
+  }
+  report({ message: 'synchronized 空语句块：锁开销白付 (empty synchronized body)' });
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #8"

@@ -1,0 +1,14 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #4): a library method must
+# never terminate the JVM — exit codes belong to the application entry point
+# and the container lifecycle, not to framework/service code.
+id: antipattern/system-exit
+language: Java
+severity: warning
+message: "禁止 System.exit 直接退出 JVM (Do not call System.exit; return/throw and let the entry point manage the process lifecycle)"
+rule:
+  pattern: "System.exit($$$ARGS)"
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #4"

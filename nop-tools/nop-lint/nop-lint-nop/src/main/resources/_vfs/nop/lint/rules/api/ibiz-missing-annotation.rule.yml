@@ -1,0 +1,53 @@
+# Ported from ai-dev/tools/check-ibiz-interfaces.mjs rule 1 (roadmap item 11).
+# I*Biz contract methods are routed through annotation scanning
+# (BizProxyInvocationHandler): a method without @BizQuery/@BizMutation/@BizAction
+# cannot be dispatched. Adjudicated delta vs the mjs source: the mjs scopes by
+# file name (I[A-Z]*Biz.java), this rule scopes by interface name — the same
+# convention, anchored on the declaration instead of the file.
+id: nop/ibiz-missing-annotation
+language: Java
+severity: error
+message: "I*Biz interface methods must declare @BizQuery/@BizMutation/@BizAction"
+rule:
+  kind: method_declaration
+xscript: |
+  let iface = node.ancestor('interface_declaration');
+  if (iface == null) {
+    return;
+  }
+  let ifName = iface.child('name').text();
+  if (!ifName.matches('^I[A-Z][A-Za-z0-9_]*Biz$')) {
+    return;
+  }
+  let ext = iface.children('extends_interfaces');
+  if (ext.size() == 0 || !ext.get(0).text().contains('ICrudBiz')) {
+    return;
+  }
+  let mods = null;
+  let modList = node.children('modifiers');
+  if (modList.size() > 0) {
+    mods = modList.get(0);
+  }
+  let hasBiz = false;
+  if (mods != null) {
+    for (let anno of mods.children('marker_annotation')) {
+      let n = anno.child('name').text();
+      if (n == 'BizQuery' || n == 'BizMutation' || n == 'BizAction') {
+        hasBiz = true;
+      }
+    }
+    for (let anno of mods.children('annotation')) {
+      let n = anno.child('name').text();
+      if (n == 'BizQuery' || n == 'BizMutation' || n == 'BizAction') {
+        hasBiz = true;
+      }
+    }
+  }
+  if (!hasBiz) {
+    report({ message: "I*Biz method '" + node.child('name').text() + "' must declare @BizQuery/@BizMutation/@BizAction (proxy routing depends on it)" });
+  }
+metadata:
+  category: api-contract
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-ibiz-interfaces.mjs"

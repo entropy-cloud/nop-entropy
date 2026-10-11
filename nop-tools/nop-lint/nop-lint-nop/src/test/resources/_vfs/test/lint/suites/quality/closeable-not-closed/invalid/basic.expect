@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: quality/closeable-not-closed
+    messageContains: "never closed"

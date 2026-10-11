@@ -1,0 +1,1 @@
+This is not a Java fixture; the runner must report it instead of ignoring it.

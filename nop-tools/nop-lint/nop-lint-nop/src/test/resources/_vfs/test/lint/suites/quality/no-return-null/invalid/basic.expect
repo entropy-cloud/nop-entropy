@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: quality/no-return-null
+    messageContains: "return null"
+  - line: 8
+    endLine: 8
+    ruleId: quality/no-return-null
+    messageContains: "return null"

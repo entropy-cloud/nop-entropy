@@ -1,0 +1,11 @@
+id: demo/ts-no-enum
+language: TypeScript
+severity: warning
+message: Prefer union types over enum declarations
+rule:
+  kind: enum_declaration
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "demo-fixture"

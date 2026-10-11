@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 6
+    endLine: 6
+    ruleId: nop/bizmodel-safe-api
+    messageContains: "bypasses the CrudBizModel unified flow"
+  - line: 10
+    endLine: 10
+    ruleId: nop/bizmodel-safe-api
+    messageContains: "bypasses the CrudBizModel unified flow"

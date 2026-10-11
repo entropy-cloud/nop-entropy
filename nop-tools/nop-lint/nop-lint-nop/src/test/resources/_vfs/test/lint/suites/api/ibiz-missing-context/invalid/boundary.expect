@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: nop/ibiz-missing-context
+    messageContains: "must accept IServiceContext as last parameter"
+  - line: 7
+    endLine: 7
+    ruleId: nop/ibiz-missing-context
+    messageContains: "must accept IServiceContext as last parameter"

@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 7
+    ruleId: quality/random-mod
+    messageContains: "biased"
+  - line: 8
+    ruleId: quality/random-mod
+    messageContains: "biased"

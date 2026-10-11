@@ -1,0 +1,17 @@
+# Item 22 fixture (plan 2026-09-22-1045-3): sameText constraint — the match
+# is reported only when both captures carry identical source text
+# (design 01 §3.2 filter polarity). invalid fixtures hold the constraint,
+# valid fixtures break it (filtered, counted — never reported).
+id: demo/same-text
+language: Java
+severity: warning
+message: operands must be identical text (constraint demo)
+rule:
+  pattern: "$A == $B"
+constraints:
+  - sameText:
+      captures: ["$A", "$B"]
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

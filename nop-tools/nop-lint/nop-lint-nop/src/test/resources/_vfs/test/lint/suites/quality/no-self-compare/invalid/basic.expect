@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 5
+    ruleId: quality/no-self-compare
+    messageContains: "self-compare"
+  - line: 8
+    ruleId: quality/no-self-compare
+    messageContains: "self-compare"

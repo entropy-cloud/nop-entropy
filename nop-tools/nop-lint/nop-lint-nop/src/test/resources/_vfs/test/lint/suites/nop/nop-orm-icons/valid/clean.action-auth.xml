@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<auth>
+    <resources>
+        <resource id="nop-demo-main" resourceType="TOPM" icon="/nop/icons/menu.svg" displayName="Demo"/>
+        <resource id="nop-demo-sub" resourceType="SUBM" icon="/nop/icons/sub.svg" displayName="Sub"/>
+        <resource id="nop-demo-api" resourceType="FUNC" displayName="Func"/>
+    </resources>
+</auth>

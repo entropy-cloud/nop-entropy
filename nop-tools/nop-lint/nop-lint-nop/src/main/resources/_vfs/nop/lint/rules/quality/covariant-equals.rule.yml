@@ -1,0 +1,60 @@
+# tool-replacement roadmap item 3a (plan nop-lint/17): checkstyle
+# CovariantEquals successor — an equals(Foo) overload without a matching
+# equals(Object) breaks the equality contract (HashMap/contains rely on the
+# Object signature). Alignment to checkstyle semantics: only reference-type
+# parameters count (primitives are neither covariant nor the Object
+# baseline), every covariant method reports on its own line, the face spans
+# class/enum bodies, and a class that declares equals(Object) suppresses
+# the whole face. report({node}) targets each method (design 07 §2.3).
+id: quality/covariant-equals
+language: Java
+severity: warning
+message: "协变 equals 破坏等价契约，请覆写 equals(Object) (covariant equals breaks the equality contract; override equals(Object))"
+rule:
+  any:
+    - kind: class_declaration
+    - kind: enum_declaration
+xscript: |
+  let methods = [];
+  for (let body of node.children('class_body')) {
+    for (let m of body.children('method_declaration')) {
+      methods.push(m);
+    }
+  }
+  for (let ebody of node.children('enum_body')) {
+    for (let ebd of ebody.children('enum_body_declarations')) {
+      for (let m of ebd.children('method_declaration')) {
+        methods.push(m);
+      }
+    }
+  }
+  let hasObjectEquals = false;
+  let covariants = [];
+  for (let m of methods) {
+    if (m.child('name').text() != 'equals') {
+      continue;
+    }
+    let ps = m.child('parameters').children('formal_parameter');
+    if (ps.size() != 1) {
+      continue;
+    }
+    let t = ps.get(0).child('type').text();
+    if (t == 'Object' || t == 'java.lang.Object') {
+      hasObjectEquals = true;
+      continue;
+    }
+    if (!t.matches('^(boolean|byte|short|int|long|char|float|double)$')) {
+      covariants.push(m);
+    }
+  }
+  if (hasObjectEquals) {
+    return;
+  }
+  for (let m of covariants) {
+    report({ node: m, message: 'equals(' + m.child('parameters').children('formal_parameter').get(0).child('type').text() + ') 是协变覆载，等价契约依赖 equals(Object) (covariant equals overload; the contract needs equals(Object))' });
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "checkstyle.xml CovariantEquals (tool-replacement roadmap item 3a)"

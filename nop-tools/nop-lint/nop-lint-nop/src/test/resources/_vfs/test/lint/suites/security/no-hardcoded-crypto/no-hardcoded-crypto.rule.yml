@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/security/no-hardcoded-crypto.rule.yml

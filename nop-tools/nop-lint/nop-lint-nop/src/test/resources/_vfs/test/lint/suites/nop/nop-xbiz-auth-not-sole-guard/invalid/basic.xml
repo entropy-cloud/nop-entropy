@@ -1,0 +1,8 @@
+<xbiz entity="app.AuditLog" xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <query name="findFirst">
+            <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
+            <auth roles="admin"/>
+        </query>
+    </actions>
+</xbiz>

@@ -1,0 +1,11 @@
+<orm xmlns:x="/nop/schema/xdsl.xdef">
+    <entities>
+        <entity name="app.Order" tableName="app_order">
+            <columns>
+                <column name="orderId" mandatory="true" defaultValue="auto-uuid" stdSqlType="VARCHAR"/>
+                <column name="amount" stdSqlType="INTEGER"/>
+                <column name="remark" precision="200" stdSqlType="VARCHAR"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

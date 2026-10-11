@@ -1,0 +1,8 @@
+<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="wm-bad" version="1">
+    <transforms>
+        <window id="win" strategyRef="strat"/>
+    </transforms>
+    <windowingStrategies>
+        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s"/>
+    </windowingStrategies>
+</stream>

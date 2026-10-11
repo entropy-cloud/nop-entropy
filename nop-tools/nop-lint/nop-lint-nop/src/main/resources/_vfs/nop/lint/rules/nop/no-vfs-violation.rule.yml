@@ -1,0 +1,54 @@
+# Ported from ai-dev/tools/check-vfs-violations.mjs (roadmap item 11): direct
+# java.io / java.nio file access bypasses the VFS-first principle
+# (docs-for-ai/00-start-here/ai-defaults.md). AST-matching the mjs pattern list
+# removes its textual false positives (e.g. Files.size matched inside comments
+# or on a Collection .size() call). Adjudicated deltas vs the mjs: per-file
+# whitelist exemptions belong to suppression (roadmap item 17); qualification
+# chains deeper than the listed forms (e.g. a.b.Files.readString) are not
+# matched (needs relational matching, roadmap item 23).
+id: nop/no-vfs-violation
+language: Java
+severity: warning
+message: "Direct file IO bypasses VFS; use IResource / VFS APIs (readText/getStdPath) instead of java.io/java.nio file access"
+rule:
+  any:
+    # imports
+    - pattern: "import java.nio.file.Files;"
+    - pattern: "import java.nio.file.Path;"
+    - pattern: "import java.nio.file.Paths;"
+    - pattern: "import java.nio.file.*;"
+    # constructors
+    - pattern: "new File($$$ARGS)"
+    - pattern: "new java.io.File($$$ARGS)"
+    - pattern: "new FileInputStream($$$ARGS)"
+    - pattern: "new FileOutputStream($$$ARGS)"
+    - pattern: "new FileReader($$$ARGS)"
+    - pattern: "new FileWriter($$$ARGS)"
+    # java.nio.file.Files statics (bare + fully-qualified forms)
+    - pattern: "Files.readString($$$ARGS)"
+    - pattern: "Files.readAllBytes($$$ARGS)"
+    - pattern: "Files.lines($$$ARGS)"
+    - pattern: "Files.size($$$ARGS)"
+    - pattern: "Files.walk($$$ARGS)"
+    - pattern: "Files.getLastModifiedTime($$$ARGS)"
+    - pattern: "Files.isRegularFile($$$ARGS)"
+    - pattern: "Files.write($$$ARGS)"
+    - pattern: "Files.exists($$$ARGS)"
+    - pattern: "Files.createDirectories($$$ARGS)"
+    - pattern: "Files.deleteIfExists($$$ARGS)"
+    - pattern: "Files.move($$$ARGS)"
+    - pattern: "Files.copy($$$ARGS)"
+    - pattern: "java.nio.file.Files.readString($$$ARGS)"
+    - pattern: "java.nio.file.Files.write($$$ARGS)"
+    - pattern: "java.nio.file.Files.exists($$$ARGS)"
+    # path construction / conversion
+    - pattern: "Path.of($$$ARGS)"
+    - pattern: "Paths.get($$$ARGS)"
+    - pattern: "java.nio.file.Paths.get($$$ARGS)"
+    - pattern: "$P.toPath()"
+    - pattern: "$P.relativize($$$ARGS)"
+metadata:
+  category: vfs-usage
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-vfs-violations.mjs"

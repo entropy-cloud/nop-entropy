@@ -1,0 +1,146 @@
+package io.nop.lint.nop;
+
+import io.nop.core.CoreConstants;
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.lint.core.cli.RuleSetLoader;
+import io.nop.lint.core.rule.RuleDslModel;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * The production rule library census (roadmap items 29/35, plan
+ * 2026-09-24-1400-1): the conventional prefix must load exactly the landed
+ * rule set — a rule file dropped or renamed without bookkeeping shifts this
+ * count, and a coexistence regression (ruleset/dual-source handling) shows
+ * up as a load failure. Before item 29 the library held 11 rules (slash-id
+ * 9: exception 4 + api 4 + nop 1; XNode 2); item 29 brought it to 18; item
+ * 35 landed the 48-rule target (18 + 30); item 36 brings it to 62 (48 + 14:
+ * ESLint 移植 2 + EP P0 6 + PMD P1 6, plan 2026-09-24-2300-1).
+ */
+public class TestProductionRuleCount {
+
+    private static final Set<String> EXPECTED_IDS = Set.of(
+            // item 29 baseline (18)
+            "nop/no-raw-exception",
+            "nop/no-empty-catch",
+            "nop/silent-swallow",
+            "nop/no-log-getmessage",
+            "nop/ibiz-missing-annotation",
+            "nop/ibiz-missing-context",
+            "nop/bizmodel-dao-access",
+            "nop/bizmodel-safe-api",
+            "nop/no-vfs-violation",
+            "quality/no-system-out",
+            "quality/no-return-null",
+            "quality/no-transactional-annotation",
+            "quality/no-star-import",
+            "security/no-sensitive-literal",
+            "security/no-hardcoded-crypto",
+            "nop-orm-mandatory-default",
+            "nop-xbiz-auth-not-sole-guard",
+            "nop-orm-unique-key",
+            // item 35: enum #1/#2 (nop)
+            "nop/query-limit-required",
+            "nop/no-direct-datasource-inject",
+            // item 35: enum #3-#10, #23 (antipattern)
+            "antipattern/double-brace-init",
+            "antipattern/system-exit",
+            "antipattern/print-stack-trace",
+            "antipattern/empty-if-block",
+            "antipattern/new-primitive-boxing",
+            "antipattern/empty-sync-block",
+            "antipattern/catch-npe",
+            "antipattern/throw-in-finally",
+            // item 35: enum #11-#17 (deep metrics/L3/L4)
+            "quality/method-cyclomatic-complexity",
+            "quality/method-cognitive-complexity",
+            "quality/method-npath-complexity",
+            "quality/unused-local-variable",
+            "quality/self-assigned-local",
+            "api/no-proxy-hostile-method",
+            "api/no-nonslf4j-logger-call",
+            // item 35: enum #18-#22, #24-#30 (quality/security 迁移吸收)
+            "security/no-runtime-exec",
+            "security/no-class-forname",
+            "security/no-md5-digest",
+            "security/no-des-encryption",
+            "exception/no-catch-throwable",
+            "quality/no-finalize",
+            "quality/replace-hashtable",
+            "quality/replace-vector",
+            "quality/empty-while-body",
+            "quality/control-statement-braces",
+            // item 36: enum #1-#14 (ESLint 移植 2 + EP P0 6 + PMD P1 6)
+            "quality/no-constant-condition",
+            "quality/no-self-compare",
+            "exception/equals-null",
+            "quality/self-comparison",
+            "quality/self-equals",
+            "quality/collection-size-nonnegative",
+            "exception/throw-null",
+            "quality/random-mod",
+            "quality/use-collection-isempty",
+            "quality/string-instantiation",
+            "quality/biginteger-instantiation",
+            "exception/no-throw-npe",
+            "exception/empty-finally-block",
+            // item 3a (plan nop-lint/17): checkstyle core-face successors
+            "quality/string-literal-equality",
+            "quality/no-native-method",
+            "exception/no-raw-throws",
+            "quality/covariant-equals",
+            // item 4a (plan nop-lint/19): pmd core-face successors
+            "quality/no-branching-in-loop-body",
+            "quality/no-clone-without-cloneable",
+            "quality/clone-return-type-mismatch",
+            "quality/proper-clone-implementation",
+            "security/no-hardcoded-iv",
+            // item 5 (plan nop-lint/21): mjs switchover successors (XNode)
+            "nop-bean-naming",
+            "nop-orm-icons",
+            // item 7 (plan nop-lint/23): resource-leak v1 pilots
+            "quality/closeable-not-closed",
+            // xdsl-full-coverage roadmap WI2 (plan 2348): XDSL L1 static rules
+            "nop-xdsl-watermark-required",
+            "nop-xdsl-credential-plaintext",
+            "nop-xdsl-delta-derivation",
+            "nop-xdsl-edge-partition",
+            "nop-xdsl-transform-naming",
+            "nop-xdsl-undeclared-consumer");
+
+    @BeforeAll
+    static void init() {
+        CoreInitialization.initializeTo(CoreConstants.INITIALIZER_PRIORITY_REGISTER_COMPONENT);
+    }
+
+    @AfterAll
+    static void destroy() {
+        CoreInitialization.destroy();
+    }
+
+    @Test
+    public void productionPrefixLoadsExactlyTheLandedRules() {
+        Map<String, List<RuleDslModel>> grouped = new RuleSetLoader().loadGroupedByLanguage();
+
+        Set<String> ids = new TreeSet<>();
+        grouped.values().forEach(rules -> rules.forEach(rule -> ids.add(rule.getId())));
+
+        // facet review (roadmap item 2): 62 -> 58; item 3a (plan nop-lint/17):
+        // +4 -> 62; item 4a (plan 19): +6 -1 -> 67; item 5 (plan 21): +2 -> 69;
+        // item 7 (plan 23): one resource-leak v1 pilot added, 69 -> 70
+        // (finally-missing-close dropped: xscript DSL lacks multi-descendant
+        // enumeration and regex-literal exec — the face is covered by
+        // closeable-not-closed which flags any resource without a close call);
+        // xdsl-full-coverage roadmap WI2 (plan 2348): +6 XDSL L1 rules -> 76
+        assertEquals(76, ids.size(), "production rule census size");
+        assertEquals(EXPECTED_IDS, ids, "production rule census");
+    }
+}

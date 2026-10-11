@@ -1,0 +1,18 @@
+# design 02 §1 first-20 batch, quality category (roadmap item 29, plan
+# 2026-09-24-0330-1): direct System.out/err writes bypass the logging
+# facade. The method-name capture form was spike-verified (round-1 review):
+# $M matches the invocation name position, no-arg calls match, and a
+# non-System receiver (foo.out.println) does not.
+id: quality/no-system-out
+language: Java
+severity: warning
+message: "禁止直接使用 System.out/System.err 输出，请使用日志门面 (Do not write to System.out/System.err; use the logging facade)"
+rule:
+  any:
+    - pattern: "System.out.$M($$$ARGS)"
+    - pattern: "System.err.$M($$$ARGS)"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/02-rule-library.md §1"

@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 4
+    endLine: 4
+    ruleId: quality/no-clone-without-cloneable
+    messageContains: "Cloneable"

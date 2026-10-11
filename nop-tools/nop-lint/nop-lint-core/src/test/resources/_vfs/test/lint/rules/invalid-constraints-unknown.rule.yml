@@ -1,0 +1,11 @@
+# Item 22 negative fixture: an unknown constraint kind must fail closed at
+# load time (RuleDslParser is the runtime authority, design 10 §2).
+id: demo/constraints-unknown
+language: Java
+severity: warning
+message: unknown constraint kind must fail
+rule:
+  pattern: "$A == $B"
+constraints:
+  - sameTextx:
+      captures: ["$A", "$B"]

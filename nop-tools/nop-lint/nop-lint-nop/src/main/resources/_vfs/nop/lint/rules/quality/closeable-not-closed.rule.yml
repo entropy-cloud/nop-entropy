@@ -1,0 +1,52 @@
+# tool-replacement roadmap item 7 (plan nop-lint/23): resource leak v1
+# conservative face (Option B). A method-scope local variable whose type
+# simple name matches a resource suffix (Stream/Reader/Writer/Channel/
+# Connection/Statement/ResultSet/Session) that is NOT in try-with-resources
+# (TWR uses `resource` nodes, not variable_declarator — anchor-naturally
+# excluded), NOT returned/passed as an argument (ownership transfer), and
+# NOT explicitly closed (word-boundary `name.close(` text match) is a leak.
+# v1 = warning (heap-memory types like ByteArrayOutputStream hit the wide
+# suffix; PMD CloseResource uses an ignore list — v1 defers that refinement,
+# the false-positive direction and magnitude are recorded in the comparison).
+id: quality/closeable-not-closed
+language: Java
+severity: warning
+message: "资源类型局部变量未关闭也无所有权转移 (resource-type local variable never closed and no ownership transfer)"
+rule:
+  kind: variable_declarator
+xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
+  let decl = node.ancestor('local_variable_declaration');
+  if (decl == null) {
+    return;
+  }
+  let typeNode = decl.child('type');
+  if (typeNode == null) {
+    return;
+  }
+  let tn = typeNode.text();
+  if (!tn.matches('.*(Stream|Reader|Writer|Channel|Connection|Statement|ResultSet|Session)$')) {
+    return;
+  }
+  let name = node.child('name').text();
+  let method = node.ancestor('method_declaration');
+  let methodText = method.text();
+  // exemption 3: explicit close (word-boundary regex)
+  let closePattern = '\\b' + name + '\\s*\\.\\s*close\\s*\\(';
+  if (methodText.matches('(?s).*' + closePattern + '.*')) {
+    return;
+  }
+  // exemption 2: ownership transfer via return (method-invocation-argument transfer is a recorded v1 FP direction)
+  // statement or inside a method-invocation argument list
+  let returnPattern = 'return\\s[^;]*\\b' + name + '\\b';
+  if (methodText.matches('(?s).*' + returnPattern + '.*')) {
+    return;
+  }
+  report({ message: '资源 ' + name + ' (' + tn + ') 未关闭且无所有权转移 (resource ' + name + ' never closed, no ownership transfer)' });
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "tool-replacement roadmap item 7 (plan nop-lint/23) — PMD CloseResource / SpotBugs ODR semantic anchor"

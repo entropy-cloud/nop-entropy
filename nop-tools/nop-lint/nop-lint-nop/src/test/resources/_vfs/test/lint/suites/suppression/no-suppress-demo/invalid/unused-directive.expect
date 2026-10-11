@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: unused-disable-directive
+    messageContains: "suppresses nothing"
+  - line: 4
+    endLine: 4
+    ruleId: demo/no-suppress-demo
+    messageContains: "debugging"

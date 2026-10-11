@@ -1,0 +1,13 @@
+# nop-lint check CLI test rule (plan 2026-09-22-0544-1): an error-severity
+# rule whose diagnostics drive the exit-code-1 condition.
+id: demo/no-bare-throw
+language: Java
+severity: error
+message: "Do not throw bare RuntimeException; use a typed exception"
+rule:
+  pattern: "throw new RuntimeException($$$ARGS)"
+metadata:
+  category: error-handling
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

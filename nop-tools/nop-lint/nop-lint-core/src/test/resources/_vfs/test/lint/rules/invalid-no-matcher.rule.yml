@@ -1,0 +1,5 @@
+id: demo/no-matcher
+language: Java
+severity: warning
+message: Rule container with zero matchers must fail
+rule: {}

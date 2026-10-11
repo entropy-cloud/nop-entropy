@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 7
+    ruleId: quality/collection-size-nonnegative
+    messageContains: "never negative"

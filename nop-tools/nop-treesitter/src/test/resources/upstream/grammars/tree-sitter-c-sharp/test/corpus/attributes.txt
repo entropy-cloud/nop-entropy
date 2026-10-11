@@ -1,0 +1,478 @@
+================================================================================
+Attribute targets
+================================================================================
+
+[assembly: Single]
+[module: A, C()]
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_attribute
+    (attribute
+      name: (identifier)))
+  (global_attribute
+    (attribute
+      name: (identifier))
+    (attribute
+      name: (identifier)
+      (attribute_argument_list))))
+
+
+================================================================================
+Attributes
+================================================================================
+
+[A(B.C)]
+class D {}
+
+[NS.A(B.C)]
+class D {}
+
+[One][Two]
+[Three]
+class A { }
+
+[A,B()][C]
+struct A { }
+
+class Zzz {
+  [A,B()][C]
+  public int Z;
+}
+
+class Methods {
+  [ValidatedContract]
+  int Method1() { return 0; }
+
+  [method: ValidatedContract]
+  int Method2() { return 0; }
+
+  [return: ValidatedContract]
+  int Method3() { return 0; }
+}
+
+[Single]
+enum A { B, C }
+
+class Zzz {
+  [A,B()][C]
+  public event EventHandler SomeEvent { add { } remove { } }
+}
+
+class Class<[A, B][C()]T1> {
+  void Method<[E] [F, G(1)] T2>() {
+  }
+}
+
+class Zzz {
+  public event EventHandler SomeEvent {
+    [A,B()][C] add { }
+    [A,B()][C] remove { }
+  }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)
+        (attribute_argument_list
+          (attribute_argument
+            (member_access_expression
+              expression: (identifier)
+              name: (identifier))))))
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    (attribute_list
+      (attribute
+        name: (qualified_name
+          qualifier: (identifier)
+          name: (identifier))
+        (attribute_argument_list
+          (attribute_argument
+            (member_access_expression
+              expression: (identifier)
+              name: (identifier))))))
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    name: (identifier)
+    body: (declaration_list))
+  (struct_declaration
+    (attribute_list
+      (attribute
+        name: (identifier))
+      (attribute
+        name: (identifier)
+        (attribute_argument_list)))
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (field_declaration
+        (attribute_list
+          (attribute
+            name: (identifier))
+          (attribute
+            name: (identifier)
+            (attribute_argument_list)))
+        (attribute_list
+          (attribute
+            name: (identifier)))
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier))))))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        (attribute_list
+          (attribute
+            name: (identifier)))
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (integer_literal))))
+      (method_declaration
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            name: (identifier)))
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (integer_literal))))
+      (method_declaration
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            name: (identifier)))
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (integer_literal))))))
+  (enum_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    name: (identifier)
+    body: (enum_member_declaration_list
+      (enum_member_declaration
+        name: (identifier))
+      (enum_member_declaration
+        name: (identifier))))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (event_declaration
+        (attribute_list
+          (attribute
+            name: (identifier))
+          (attribute
+            name: (identifier)
+            (attribute_argument_list)))
+        (attribute_list
+          (attribute
+            name: (identifier)))
+        (modifier)
+        type: (identifier)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block))
+          (accessor_declaration
+            body: (block))))))
+  (class_declaration
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        (attribute_list
+          (attribute
+            name: (identifier))
+          (attribute
+            name: (identifier)))
+        (attribute_list
+          (attribute
+            name: (identifier)
+            (attribute_argument_list)))
+        name: (identifier)))
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        type_parameters: (type_parameter_list
+          (type_parameter
+            (attribute_list
+              (attribute
+                name: (identifier)))
+            (attribute_list
+              (attribute
+                name: (identifier))
+              (attribute
+                name: (identifier)
+                (attribute_argument_list
+                  (attribute_argument
+                    (integer_literal)))))
+            name: (identifier)))
+        parameters: (parameter_list)
+        body: (block))))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (event_declaration
+        (modifier)
+        type: (identifier)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            (attribute_list
+              (attribute
+                name: (identifier))
+              (attribute
+                name: (identifier)
+                (attribute_argument_list)))
+            (attribute_list
+              (attribute
+                name: (identifier)))
+            body: (block))
+          (accessor_declaration
+            (attribute_list
+              (attribute
+                name: (identifier))
+              (attribute
+                name: (identifier)
+                (attribute_argument_list)))
+            (attribute_list
+              (attribute
+                name: (identifier)))
+            body: (block)))))))
+
+================================================================================
+Attribute targets (non-global)
+================================================================================
+
+[type: Obsolete]
+class A<[typevar: B] TC>
+{
+  [field:JsonIgnore]
+  [property: JsonIgnore]
+  public int D { get; set; }
+
+  [method: Obsolete]
+  [return: MaybeNull]
+  public void E([param: AllowNull] int f) { }
+
+  [event: Obsolete]
+  public event EventHandler OnG;
+}
+
+---
+
+(compilation_unit
+  (class_declaration
+    (attribute_list
+      (attribute_target_specifier)
+      (attribute
+        (identifier)))
+    (identifier)
+    (type_parameter_list
+      (type_parameter
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (identifier)))
+    (declaration_list
+      (property_declaration
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (modifier)
+        (predefined_type)
+        (identifier)
+        (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))
+      (method_declaration
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (modifier)
+        (predefined_type)
+        (identifier)
+        (parameter_list
+          (parameter
+            (attribute_list
+              (attribute_target_specifier)
+              (attribute
+                (identifier)))
+            (predefined_type)
+            (identifier)))
+        (block))
+      (event_field_declaration
+        (attribute_list
+          (attribute_target_specifier)
+          (attribute
+            (identifier)))
+        (modifier)
+        (variable_declaration
+          (identifier)
+          (variable_declarator
+            (identifier)))))))
+
+
+================================================================================
+Attribute quirks
+================================================================================
+
+[Theory,]
+void A() { }
+
+[Theory<About,Life>]
+void A() { }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_function_statement
+      (attribute_list
+        (attribute
+          name: (identifier)))
+      type: (predefined_type)
+      name: (identifier)
+      parameters: (parameter_list)
+      body: (block)))
+  (global_statement
+    (local_function_statement
+      (attribute_list
+        (attribute
+          name: (generic_name
+            (identifier)
+            (type_argument_list
+              (identifier)
+              (identifier)))))
+      type: (predefined_type)
+      name: (identifier)
+      parameters: (parameter_list)
+      body: (block))))
+
+================================================================================
+Lambda with attribute
+================================================================================
+
+var greeting = [Hello] () => Console.WriteLine("hello");
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (global_statement
+    (local_declaration_statement
+      (variable_declaration
+        type: (implicit_type)
+        (variable_declarator
+          name: (identifier)
+          (lambda_expression
+            (attribute_list
+              (attribute
+                name: (identifier)))
+            parameters: (parameter_list)
+            body: (invocation_expression
+              function: (member_access_expression
+                expression: (identifier)
+                name: (identifier))
+              arguments: (argument_list
+                (argument
+                  (string_literal
+                    (string_literal_content)))))))))))
+
+================================================================================
+Attribute named arguments with colon
+================================================================================
+
+[RegularExpression(pattern: "/.+", ErrorMessage = "The Callback Path Must start with a forward slash '/' followed by one or more characters")]
+class Validator { }
+
+[Route(Name: "default", Template = "/api/{id}")]
+[Obsolete(message: "Use NewMethod instead", error: true)]
+class Example { }
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)
+        (attribute_argument_list
+          (attribute_argument
+            name: (identifier)
+            (string_literal
+              (string_literal_content)))
+          (attribute_argument
+            name: (identifier)
+            (string_literal
+              (string_literal_content))))))
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)
+        (attribute_argument_list
+          (attribute_argument
+            name: (identifier)
+            (string_literal
+              (string_literal_content)))
+          (attribute_argument
+            name: (identifier)
+            (string_literal
+              (string_literal_content))))))
+    (attribute_list
+      (attribute
+        name: (identifier)
+        (attribute_argument_list
+          (attribute_argument
+            name: (identifier)
+            (string_literal
+              (string_literal_content)))
+          (attribute_argument
+            name: (identifier)
+            (boolean_literal)))))
+    name: (identifier)
+    body: (declaration_list)))

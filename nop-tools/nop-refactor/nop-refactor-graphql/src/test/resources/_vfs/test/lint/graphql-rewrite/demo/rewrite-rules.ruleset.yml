@@ -1,0 +1,18 @@
+# The GraphQL e2e ruleset fixture (nop-refactor WI6): an inline transform
+# rule plus the ruleset exemption referencing the standalone rewrite-target
+# rule — the same semantics the CLI face exercises, through the GraphQL
+# contract face.
+id: demo/graphql-rewrite-ruleset
+rules:
+  - id: demo/rewrite-inline
+    language: Java
+    message: "Rewrite inline call"
+    rule:
+      pattern: "inlineCall($$$A)"
+    transform:
+      description: "Rewrite inline call to direct call"
+      template: "directCall($$$A)"
+exemptions:
+  - rule: demo/rewrite-target
+    files: "**/legacy/**"
+    reason: "legacy module, rewrite planned"

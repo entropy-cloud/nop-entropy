@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 13
+    endLine: 15
+    ruleId: nop/no-log-getmessage
+    messageContains: "full stack trace is lost"
+  - line: 22
+    endLine: 24
+    ruleId: nop/no-log-getmessage
+    messageContains: "full stack trace is lost"

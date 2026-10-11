@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 1
+    endLine: 1
+    ruleId: quality/no-star-import
+    messageContains: "Wildcard"
+  - line: 2
+    endLine: 2
+    ruleId: quality/no-star-import
+    messageContains: "Wildcard"

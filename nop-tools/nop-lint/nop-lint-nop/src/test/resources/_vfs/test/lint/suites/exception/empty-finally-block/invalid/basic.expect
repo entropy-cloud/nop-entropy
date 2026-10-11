@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 7
+    endLine: 8
+    ruleId: exception/empty-finally-block
+    messageContains: "empty finally"

@@ -1,0 +1,38 @@
+# tool-replacement roadmap item 5 (plan nop-lint/21): check-orm-icons.mjs
+# successor — source ORM roots/entities carry ext:icon and source
+# TOPM/SUBM menu resources carry icon. Single open-world xscript rule
+# branching on the tag kind (the attribute-ABSENCE face has no pattern
+# spec, same adjudication as nop-orm-unique-key). Corpus scope caveat:
+# generated _app.orm.xml and demo modules are excluded on the mjs side by
+# path filters the rule cannot see — comparison and switch commands pin
+# the same source-model corpus.
+id: nop-orm-icons
+language: XML
+severity: warning
+message: "源模型缺少图标属性：orm 根/entity 须 ext:icon，TOPM/SUBM 菜单须 icon (missing icon attributes on orm root/entity or menu resource)"
+rule:
+  any:
+    - pattern: "<orm/>"
+    - pattern: "<entity/>"
+    - pattern: "<resource/>"
+xscript: |
+  let k = node.kind();
+  if (k == 'orm' || k == 'entity') {
+    let icon = node.attrValue('ext:icon');
+    if (icon == null || icon == '') {
+      report({ message: '<' + k + '> 缺少 ext:icon 属性 (missing ext:icon attribute)' });
+    }
+    return;
+  }
+  let rt = node.attrValue('resourceType');
+  if (rt == 'TOPM' || rt == 'SUBM') {
+    let icon = node.attrValue('icon');
+    if (icon == null || icon == '') {
+      report({ message: '菜单资源缺少 icon 属性 (menu resource missing icon attribute)' });
+    }
+  }
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-orm-icons.mjs (tool-replacement roadmap item 5)"

@@ -1,0 +1,14 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #5), anchored to design 06
+# §4.1 AvoidPrintStackTrace: stack traces belong in the logging facade (with
+# the throwable as the last argument), not on the bare stderr stream.
+id: antipattern/print-stack-trace
+language: Java
+severity: warning
+message: "禁止 printStackTrace，请将异常交给日志门面 (Do not call printStackTrace; pass the throwable to the logging facade)"
+rule:
+  pattern: "$E.printStackTrace($$$ARGS)"
+metadata:
+  category: antipattern
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #5 (design 06 §4.1 AvoidPrintStackTrace)"

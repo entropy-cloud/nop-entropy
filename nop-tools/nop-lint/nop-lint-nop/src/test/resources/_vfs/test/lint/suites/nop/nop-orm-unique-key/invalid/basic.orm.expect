@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 2
+    endLine: 2
+    ruleId: nop-orm-unique-key
+    messageContains: "unique-key"
+  - line: 3
+    endLine: 3
+    ruleId: nop-orm-unique-key
+    messageContains: "unique-key"

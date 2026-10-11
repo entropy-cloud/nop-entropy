@@ -1,0 +1,13 @@
+diagnostics:
+  - line: 4
+    ruleId: quality/no-branching-in-loop-body
+    messageContains: "return_statement"
+  - line: 7
+    ruleId: quality/no-branching-in-loop-body
+    messageContains: "break_statement"
+  - line: 10
+    ruleId: quality/no-branching-in-loop-body
+    messageContains: "continue_statement"
+  - line: 13
+    ruleId: quality/no-branching-in-loop-body
+    messageContains: "return_statement"

@@ -1,0 +1,25 @@
+<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="consumer-ok" version="1">
+    <schemas>
+        <schema id="trade">
+            <fields>
+                <field name="userId" type="string"/>
+            </fields>
+        </schema>
+    </schemas>
+    <windowingStrategies>
+        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s" allowedLateness="1000" triggerId="event-time"/>
+    </windowingStrategies>
+    <transforms>
+        <source id="src" name="in" bean="srcBean"/>
+        <keyBy id="by-user" keyExpr="event.userId"/>
+        <window id="win" strategyRef="strat"/>
+        <aggregate id="sum-agg" aggregatorRef="sum"/>
+        <sink id="out" name="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e1" from="src" to="by-user"/>
+        <edge id="e2" from="by-user" to="win"/>
+        <edge id="e3" from="win" to="sum-agg"/>
+        <edge id="e4" from="sum-agg" to="out"/>
+    </edges>
+</stream>

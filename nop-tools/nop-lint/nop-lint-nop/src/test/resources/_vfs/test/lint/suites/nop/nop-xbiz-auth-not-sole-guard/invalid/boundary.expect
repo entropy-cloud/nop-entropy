@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: nop-xbiz-auth-not-sole-guard
+    messageContains: "must not be the sole guard"

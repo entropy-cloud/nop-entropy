@@ -1,0 +1,6 @@
+id: demo/broken-empty
+language: Java
+severity: warning
+message: Broken fixture rule for suite without fixtures
+rule:
+  pattern: "System.out.println($$$ARGS)"

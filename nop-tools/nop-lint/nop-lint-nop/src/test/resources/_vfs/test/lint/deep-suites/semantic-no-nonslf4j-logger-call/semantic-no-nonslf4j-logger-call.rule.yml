@@ -1,0 +1,35 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #17, R1 fixture 裁定):
+# deep-suite rule copy of the production no-nonslf4j-logger-call rule —
+# log-family calls whose receiver is not a recognized logger facade. The
+# valid fixture pins the JUL receiver (resolves from the JDK; recognized —
+# silent) and the same-CU custom receiver (the skip-and-count face: the
+# solver cannot complete, no fabricated answer, no diagnostic); the invalid
+# fixture pins a resolvable non-logger receiver (String).
+id: api/no-nonslf4j-logger-call
+language: Java
+severity: warning
+message: "疑似非日志门面调用 (log-family call on a non-logger receiver; go through the logging facade)"
+requires: L4
+rule:
+  pattern: "$L.$M($$$ARGS)"
+constraints:
+  - inList:
+      capture: M
+      values: ["trace", "debug", "info", "warn", "error", "log"]
+xscript: |
+  if (node.ancestor('method_declaration') == null) {
+    return;
+  }
+  let recv = captures.get('L');
+  if (recv == null) {
+    return;
+  }
+  if (semantic.isLoggerCall(node)) {
+    return;
+  }
+  report({ message: '非日志门面调用：' + recv.text() + '.' + captures.get('M').text() + '() (log-family call whose receiver is not a recognized logger)' });
+metadata:
+  category: api
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #17"

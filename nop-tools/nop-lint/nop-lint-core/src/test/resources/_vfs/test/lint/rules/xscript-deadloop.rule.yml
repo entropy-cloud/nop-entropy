@@ -1,0 +1,16 @@
+id: demo/xscript-deadloop
+language: Java
+severity: warning
+message: never reported - the deadloop match is aborted at its deadline
+rule:
+  pattern: "System.out.println($MSG)"
+xscriptTimeoutMs: 25
+xscript: |
+  let i = 0;
+  while (i >= 0) {
+    i = i + 1;
+  }
+metadata:
+  category: xscript-deadloop
+  autoFixable: false
+  version: "1.0"

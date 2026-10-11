@@ -1,0 +1,19 @@
+<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="consumer-bad" version="1">
+    <coders>
+        <coder id="c1" className="java.lang.String"/>
+    </coders>
+    <windowingStrategies>
+        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s"/>
+    </windowingStrategies>
+    <transforms>
+        <source id="src" name="in" bean="srcBean">
+            <params>
+                <param name="topic" defaultValue="demo"/>
+            </params>
+        </source>
+        <sink id="out" name="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e1" from="src" to="out" queueCapacity="100"/>
+    </edges>
+</stream>

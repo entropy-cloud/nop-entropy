@@ -1,0 +1,7 @@
+id: demo/two-matchers
+language: Java
+severity: warning
+message: Rule container with two matchers must fail
+rule:
+  pattern: "System.out.println($arg)"
+  kind: expression_statement

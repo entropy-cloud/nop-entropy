@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 5
+    endLine: 5
+    ruleId: antipattern/system-exit
+    messageContains: "Do not call System.exit"
+  - line: 6
+    endLine: 6
+    ruleId: antipattern/system-exit
+    messageContains: "Do not call System.exit"

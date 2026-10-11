@@ -1,0 +1,10 @@
+<xbiz entity="app.Order" xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <mutation name="saveDraft" auth="role:editor">
+            <source>svc.saveDraft(entity)</source>
+        </mutation>
+        <query name="findPage">
+            <arg name="query" type="io.nop.api.core.beans.query.QueryBean"/>
+        </query>
+    </actions>
+</xbiz>

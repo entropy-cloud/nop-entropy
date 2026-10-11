@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 18
+    ruleId: quality/method-cognitive-complexity
+    messageContains: "cognitive=21"

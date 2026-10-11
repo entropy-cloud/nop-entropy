@@ -1,0 +1,35 @@
+# tool-replacement roadmap item 4a (plan nop-lint/19): PMD
+# CloneMethodReturnTypeMustMatchClassName successor — a zero-arg clone()
+# whose return type is not the enclosing class simple name (Object included)
+# breaks the covariant copy contract. Violation anchors on the method, same
+# as PMD.
+id: quality/clone-return-type-mismatch
+language: Java
+severity: warning
+message: "clone() 返回类型应为类本身（协变拷贝契约）(clone() should return the enclosing class type)"
+rule:
+  kind: class_declaration
+xscript: |
+  let clsName = node.child('name').text();
+  for (let body of node.children('class_body')) {
+    for (let m of body.children('method_declaration')) {
+      if (m.child('name').text() != 'clone') {
+        continue;
+      }
+      if (m.child('parameters').children('formal_parameter').size() != 0) {
+        continue;
+      }
+      let rt = m.child('type');
+      if (rt == null) {
+        continue;
+      }
+      if (rt.text() != clsName) {
+        report({ node: m.child('name'), message: 'clone() 返回 ' + rt.text() + ' 应为 ' + clsName + ' (clone() returns ' + rt.text() + ', expected ' + clsName + ')' });
+      }
+    }
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "pmd-ruleset.xml CloneMethodReturnTypeMustMatchClassName (tool-replacement roadmap item 4a)"

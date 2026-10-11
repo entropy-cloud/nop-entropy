@@ -1,0 +1,242 @@
+================================================================================
+Class field declarations
+================================================================================
+
+class A {
+  public readonly int _B;
+  Int64 D_e_f, g;
+  Tuple<char, Nullable<int>> z;
+
+  public readonly int? i;
+  private Byte? b;
+
+  public readonly int* i;
+  private Byte* b;
+  private void* c;
+
+  // Function pointer equivalent without calling convention
+  delegate*<string, int> a;
+  delegate*<delegate*<in string, int>, delegate*<ref string, ref readonly int>> b;
+
+  // Function pointer equivalent with calling convention
+  delegate* managed<string, int> c;
+  delegate*<delegate* unmanaged[MyCallConv, YourCallConv]<string, int>, delegate*<string, int>> d;
+
+  ref readonly Point Origin => ref origin;
+  ref readonly Point* Origin;
+  ref readonly Point[] Origin;
+  ref readonly Point? Origin;
+
+  (int, string str) a;
+  (B b, C c, D d) a;
+
+  nint a;
+  nuint b;
+
+  public required int B;
+}
+
+struct A {
+  private readonly int c_;
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (identifier)
+          (variable_declarator
+            name: (identifier))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (predefined_type)
+              (generic_name
+                (identifier)
+                (type_argument_list
+                  (predefined_type)))))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (nullable_type
+            type: (predefined_type))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (variable_declaration
+          type: (nullable_type
+            type: (identifier))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (pointer_type
+            type: (predefined_type))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (variable_declaration
+          type: (pointer_type
+            type: (identifier))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (variable_declaration
+          type: (pointer_type
+            type: (predefined_type))
+          (variable_declarator
+            name: (identifier))))
+      (comment)
+      (field_declaration
+        (variable_declaration
+          type: (function_pointer_type
+            (function_pointer_parameter
+              type: (predefined_type))
+            returns: (predefined_type))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (function_pointer_type
+            (function_pointer_parameter
+              type: (function_pointer_type
+                (function_pointer_parameter
+                  type: (predefined_type))
+                returns: (predefined_type)))
+            returns: (function_pointer_type
+              (function_pointer_parameter
+                type: (predefined_type))
+              returns: (ref_type
+                type: (predefined_type))))
+          (variable_declarator
+            name: (identifier))))
+      (comment)
+      (field_declaration
+        (variable_declaration
+          type: (function_pointer_type
+            (calling_convention)
+            (function_pointer_parameter
+              type: (predefined_type))
+            returns: (predefined_type))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (function_pointer_type
+            (function_pointer_parameter
+              type: (function_pointer_type
+                (calling_convention
+                  (identifier)
+                  (identifier))
+                (function_pointer_parameter
+                  type: (predefined_type))
+                returns: (predefined_type)))
+            returns: (function_pointer_type
+              (function_pointer_parameter
+                type: (predefined_type))
+              returns: (predefined_type)))
+          (variable_declarator
+            name: (identifier))))
+      (property_declaration
+        type: (ref_type
+          type: (identifier))
+        name: (identifier)
+        value: (arrow_expression_clause
+          (ref_expression
+            (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (ref_type
+            type: (pointer_type
+              type: (identifier)))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (ref_type
+            type: (array_type
+              type: (identifier)
+              rank: (array_rank_specifier)))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (ref_type
+            type: (nullable_type
+              type: (identifier)))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (tuple_type
+            (tuple_element
+              type: (predefined_type))
+            (tuple_element
+              type: (predefined_type)
+              name: (identifier)))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (tuple_type
+            (tuple_element
+              type: (identifier)
+              name: (identifier))
+            (tuple_element
+              type: (identifier)
+              name: (identifier))
+            (tuple_element
+              type: (identifier)
+              name: (identifier)))
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier))))
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier))))))
+  (struct_declaration
+    name: (identifier)
+    body: (declaration_list
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier)))))))

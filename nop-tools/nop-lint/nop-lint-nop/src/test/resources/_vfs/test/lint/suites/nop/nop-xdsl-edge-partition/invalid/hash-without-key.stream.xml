@@ -1,0 +1,11 @@
+<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="edge-bad" version="1">
+    <transforms>
+        <source id="src" name="in" bean="srcBean"/>
+        <map id="enrich" bean="enrichFn"/>
+        <sink id="out" name="out" bean="sinkBean"/>
+    </transforms>
+    <edges>
+        <edge id="e1" from="src" to="enrich" partition="HASH"/>
+        <edge id="e2" from="enrich" to="out"/>
+    </edges>
+</stream>

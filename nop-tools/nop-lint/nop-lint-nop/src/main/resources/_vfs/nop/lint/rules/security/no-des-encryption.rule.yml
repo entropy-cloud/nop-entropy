@@ -1,0 +1,20 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #21, manifest tier2 迁移吸收):
+# DES/DESede are broken legacy ciphers. The receiver stays open on purpose
+# (Cipher/KeyGenerator/SecretKeyFactory ... all share the getInstance shape)
+# — the inList constraint pins the quoted algorithm literals; overlap with
+# no-md5-digest is adjudicated as conflict-free (plan enum note).
+id: security/no-des-encryption
+language: Java
+severity: warning
+message: "禁止 DES/DESede 加密算法 (DES is broken; use AES with modern key sizes)"
+rule:
+  pattern: "$C.getInstance($ALG)"
+constraints:
+  - inList:
+      capture: ALG
+      values: ['"DES"', '"DESede"']
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #21 (manifest 12 迁移吸收)"

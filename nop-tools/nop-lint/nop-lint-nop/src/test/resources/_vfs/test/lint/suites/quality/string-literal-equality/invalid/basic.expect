@@ -1,0 +1,10 @@
+diagnostics:
+  - line: 3
+    ruleId: quality/string-literal-equality
+    messageContains: "equals"
+  - line: 6
+    ruleId: quality/string-literal-equality
+    messageContains: "equals"
+  - line: 9
+    ruleId: quality/string-literal-equality
+    messageContains: "equals"

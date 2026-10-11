@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/quality/string-literal-equality.rule.yml

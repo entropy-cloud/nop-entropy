@@ -1,0 +1,5 @@
+<config>
+    <pool>
+        <driver>com.mysql.jdbc.Driver</driver>
+    </pool>
+</config>

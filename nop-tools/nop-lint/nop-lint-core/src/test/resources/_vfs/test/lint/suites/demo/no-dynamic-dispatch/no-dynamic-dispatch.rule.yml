@@ -1,0 +1,6 @@
+id: demo/no-dynamic-dispatch
+language: Java
+severity: error
+message: Avoid unguarded dynamic method dispatch
+rule:
+  pattern: "$OBJ.invoke($NAME)"
