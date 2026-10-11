@@ -1,9 +1,0 @@
-<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="wm-ok" version="1">
-    <transforms>
-        <timestampsAndWatermarks id="wm" watermarkInterval="100"/>
-        <window id="win" strategyRef="strat"/>
-    </transforms>
-    <windowingStrategies>
-        <strategy strategyId="strat" windowFnId="tumbling-event-time" duration="5s"/>
-    </windowingStrategies>
-</stream>

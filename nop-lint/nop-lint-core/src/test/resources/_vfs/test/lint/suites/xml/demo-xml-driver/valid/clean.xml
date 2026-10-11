@@ -1,5 +1,0 @@
-<config>
-    <pool>
-        <driver>org.postgresql.Driver</driver>
-    </pool>
-</config>

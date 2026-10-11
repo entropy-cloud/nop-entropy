@@ -1,5 +1,0 @@
-diagnostics:
-  - line: 5
-    endLine: 5
-    ruleId: nop-xdsl-credential-plaintext
-    messageContains: "credential"

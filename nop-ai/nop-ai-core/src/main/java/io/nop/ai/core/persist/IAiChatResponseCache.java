@@ -1,12 +1,12 @@
 package io.nop.ai.core.persist;
 
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatExchange;
-import io.nop.ai.core.api.messages.Prompt;
+import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
+import io.nop.ai.core.prompt.ChatExchange;
 
 public interface IAiChatResponseCache {
 
-    AiChatExchange loadCachedResponse(Prompt prompt, AiChatOptions options);
+    ChatExchange loadCachedResponse(ChatRequest request, ChatOptions options, String promptName);
 
-    void saveCachedResponse(AiChatExchange exchange);
+    void saveCachedResponse(ChatExchange exchange, String promptName);
 }

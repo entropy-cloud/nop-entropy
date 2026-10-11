@@ -1,0 +1,12 @@
+template: |
+  echo: {{word}}
+
+inputs:
+  - name: word
+    mandatory: true
+
+outputs:
+  - name: noChange
+    type: Boolean
+    parseFromResponse:
+      containsText: "[NO_CHANGE]"

@@ -1,7 +1,6 @@
 package io.nop.ai.tools.graphql;
 
-import io.nop.ai.core.api.tool.DefaultAiChatToolSet;
-import io.nop.ai.core.api.tool.IAiChatToolSet;
+import io.nop.ai.core.command.IAiToolInvoker;
 import io.nop.api.core.annotations.ioc.BeanMethod;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.commons.util.CollectionHelper;
@@ -12,13 +11,10 @@ import java.util.Set;
 
 /**
  * IoC factory bean producing the {@code nopGraphQLToolSet} bean
- * ({@code IAiChatToolSet} over GraphQL operations).
- * <p>
- * <b>P2-MA3-03 ruling — retained with documentation (no migration this batch):</b>
- * see {@link GraphQLToolProvider}; the bean output type is pinned to the legacy
- * {@code IAiChatToolSet} because task XML ({@code ai:toolSet}) and
- * {@code AiCommand} consume exactly that contract. Migrates together with the
- * legacy chat pipeline in a future major version.
+ * ({@link IAiToolInvoker} over GraphQL operations).
+ *
+ * <p>Migrated from the deprecated legacy tool-set contract (roadmap WI1);
+ * the bean id and conditional registration semantics are unchanged.
  */
 public class GraphQLToolSetFactoryBean {
     private IGraphQLEngine graphQLEngine;
@@ -35,10 +31,9 @@ public class GraphQLToolSetFactoryBean {
     }
 
     @BeanMethod
-    public IAiChatToolSet buildToolSet() {
+    public IAiToolInvoker buildToolSet() {
         if (CollectionHelper.isEmpty(toolNames))
-            return new DefaultAiChatToolSet();
-        GraphQLToolProvider provider = new GraphQLToolProvider(graphQLEngine);
-        return provider.getToolSet(toolNames);
+            return new GraphQLToolProvider(graphQLEngine, new java.util.LinkedHashSet<>());
+        return new GraphQLToolProvider(graphQLEngine, toolNames);
     }
 }

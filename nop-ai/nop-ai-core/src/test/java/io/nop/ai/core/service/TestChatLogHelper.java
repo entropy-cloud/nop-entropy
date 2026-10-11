@@ -4,8 +4,6 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatExchange;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.commons.util.FileHelper;
@@ -82,30 +80,6 @@ public class TestChatLogHelper extends JunitBaseTestCase {
 
         assertNotNull(request.getOptions().getSessionId());
         assertTrue(resource.getPath().contains("/" + request.getOptions().getSessionId() + "/"));
-    }
-
-    @Test
-    public void testSessionResourceForExchange() {
-        AiChatExchange exchange = new AiChatExchange();
-        exchange.setExchangeId("exchange-1");
-        exchange.setBeginTime(2000);
-
-        IResource resource = ChatLogHelper.getSessionResource("target/test-log", exchange, "-response.md");
-
-        assertTrue(resource.getPath().contains("/exchange-1/2000-response.md"),
-                "unexpected resource path: " + resource.getPath());
-    }
-
-    @Test
-    public void testSessionResourceForExchangeGeneratesId() {
-        AiChatExchange exchange = new AiChatExchange();
-        AiChatOptions options = new AiChatOptions();
-        exchange.setChatOptions(options);
-
-        IResource resource = ChatLogHelper.getSessionResource("target/test-log", exchange, "-prompt.md");
-
-        assertNotNull(exchange.getExchangeId());
-        assertTrue(resource.getPath().contains("/" + exchange.getExchangeId() + "/"));
     }
 
     @Test

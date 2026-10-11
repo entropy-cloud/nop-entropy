@@ -1,6 +1,0 @@
-id: demo/unknown-key-in-rule
-language: Java
-severity: warning
-message: Unknown key inside the rule container must fail
-rule:
-  notAMatcher: oops

@@ -1,7 +1,6 @@
 package io.nop.ai.core.prompt;
 
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.model.PromptOutputModel;
 import io.nop.core.context.IEvalContext;
@@ -45,12 +44,12 @@ public interface IPromptTemplate extends IActionModel {
     PromptOutputModel getOutput(String name);
 
     /**
-     * Applies the template's declared chat settings to the given legacy chat options,
+     * Applies the template's declared chat settings to the given chat options,
      * filling in only the options that are not already set.
      *
-     * @param chatOptions the legacy chat options to configure
+     * @param chatOptions the chat options to configure
      */
-    void applyChatOptions(AiChatOptions chatOptions);
+    void applyChatOptions(ChatOptions chatOptions);
 
     /**
      * Prepares an evaluation scope with the given variables bound (no context).
@@ -83,8 +82,8 @@ public interface IPromptTemplate extends IActionModel {
      * Processes a chat response, parsing the template's declared outputs into the response
      * and running any post-processing function.
      *
-     * @param chatResponse the legacy chat response to process
+     * @param chatResponse the prompt execution exchange to process
      * @param scope        the eval scope used for parsing
      */
-    void processChatResponse(AiChatExchange chatResponse, IEvalScope scope);
+    void processChatResponse(ChatExchange chatResponse, IEvalScope scope);
 }

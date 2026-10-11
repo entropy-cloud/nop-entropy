@@ -1,5 +1,0 @@
-<stream xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/stream/stream.xdef" name="delta-ok" version="1" x:extends="/nop/stream/demo/base.stream.xml">
-    <transforms>
-        <filter id="blacklist-filter" bean="blacklistFilter"/>
-    </transforms>
-</stream>

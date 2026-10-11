@@ -1,8 +1,6 @@
 package io.nop.ai.core.service;
 
 import io.nop.ai.core.AiCoreConfigs;
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.Prompt;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
@@ -18,8 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * MA6.3-AR-6 focused tests for the bounded {@code tryAcquire} rate limiting
- * in {@link ChatServiceImpl#checkRateLimit} and the aligned (deprecated)
- * {@link DefaultAiChatService} path:
+ * in {@link ChatServiceImpl#checkRateLimit}:
  *
  * <ul>
  *   <li>under quota → passes</li>
@@ -169,50 +166,11 @@ public class TestChatServiceRateLimit {
     }
 
     // ========================================================================
-    // DefaultAiChatService (deprecated) alignment (MA6.3-AR-6)
-    // ========================================================================
-
-    /**
-     * {@link DefaultAiChatService} with the model load and limiter factory
-     * overridden so the rate-limit path is exercised without llm.xml or HTTP.
-     */
-    static final class TestableDefaultAiChatService extends DefaultAiChatService {
-        final IRateLimiter limiter;
-
-        TestableDefaultAiChatService(IRateLimiter limiter) {
-            this.limiter = limiter;
-        }
-
-        @Override
-        protected IRateLimiter getRateLimiter(String llmName) {
-            return limiter;
-        }
-
-        @Override
-        protected LlmModel loadLlmModel(String llmName) {
-            return rateLimitedModel();
-        }
-    }
-
-    @Test
-    void defaultAiChatServiceRateLimitExhaustedFailsFast() {
-        TestableDefaultAiChatService service =
-                new TestableDefaultAiChatService(new FakeRateLimiter(0));
-        AiChatOptions options = new AiChatOptions();
-        options.setProvider(TEST_PROVIDER);
-        options.setModel("test-model");
-
-        NopException error = assertThrows(NopException.class,
-                () -> service.sendChatAsync(Prompt.userText("hi"), options, null),
-                "Deprecated DefaultAiChatService must align: bounded tryAcquire + ERR_AI_RATE_LIMITED");
-        assertEquals(ERR_AI_RATE_LIMITED.getErrorCode(), error.getErrorCode());
-        assertEquals(429, error.getParam(ARG_HTTP_STATUS));
-    }
 
     @Test
     void chatServiceErrorCodeParamKeysMatchClassifierContract() {
         // Contract guard (MA6.3-AR-6): the ARG_* param keys used by
-        // ChatServiceImpl/DefaultAiChatService are exactly the keys
+        // ChatServiceImpl is exactly the key owner
         // LlmErrorClassifier.readHttpStatus reads (nop-ai-agent). A rename in
         // one side breaks the retryable classification — this test pins the
         // key constants so the contract drift is caught at compile time.

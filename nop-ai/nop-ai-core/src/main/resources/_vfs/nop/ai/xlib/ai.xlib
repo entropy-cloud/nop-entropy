@@ -77,9 +77,6 @@
                     execNode.setAttr('asyncExec', true);
                     execNode.setAttr('inputs', "${{"+inputNames.join(',')+"}}");
                     execNode.setAttr('retryTimesPerRequest', node.attrValueLoc('ai:retryTimesPerRequest'));
-                    if(node.hasAttr('ai:streamListener')){
-                        execNode.setAttr('streamListener', node.attrValueLoc('ai:streamListener'));
-                    }
                     if(node.hasAttr('ai:useResponseCache'))
                         execNode.setAttr('useResponseCache', node.attrValueLoc('ai:useResponseCache'));
 
@@ -125,7 +122,6 @@
             <attr name="stream" stdDomain="boolean" optional="true"/>
             <attr name="enableThinking" stdDomain="boolean" optional="true"/>
             <attr name="responseFormat" stdDomain="string" optional="true"/>
-            <attr name="streamListener" optional="true"/>
             <attr name="workMode" optional="true"/>
 
             <attr name="asyncExec" stdDomain="boolean" optional="true"/>
@@ -138,9 +134,8 @@
                 import io.nop.ai.core.command.AiCommand;
 
                 let chatOptions = {
-                    provider, model, seed,sessionId, temperature, topP, topK, maxTokens, responseFormat,
-                    contextLength, stop, requestTimeout, stream, frequencyPenalty, enableThinking, streamListener,
-                    workMode
+                    provider, model, sessionId, temperature, topP, topK, maxTokens, responseFormat,
+                    stop, requestTimeout, stream, frequencyPenalty, enableThinking
                 };
 
                 const cmd = AiCommand.create();

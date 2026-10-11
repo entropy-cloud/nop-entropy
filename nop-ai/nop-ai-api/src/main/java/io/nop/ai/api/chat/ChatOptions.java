@@ -16,18 +16,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 聊天选项，用于控制AI大模型的生成行为（new AI API，{@code IChatService} 使用）。
+ * 聊天选项，用于控制AI大模型的生成行为（{@code IChatService} 唯一选项类型）。
  * <p>
- * <b>P2-MA3-06 ruling — historical residue documented, no merge this batch:</b>
- * the legacy pipeline keeps its own options type
- * {@code io.nop.ai.core.api.chat.AiChatOptions} (deprecated, used by
- * {@code IAiChatService}/{@code AiCommand}); the two classes overlap on a common
- * subset of fields but each carries pipeline-specific fields (this class:
- * {@code tools}/{@code toolChoice}/{@code responseFormat}; the legacy class:
- * {@code seed}/{@code contextLength}/{@code workMode}/{@code botId}/
- * {@code conversationId}/{@code userId}/{@code streamListener}/
- * {@code enabledTools} etc.). Consolidation into a single options type is part of
- * the legacy-pipeline migration (future major version). New code must use this class.
+ * P2-MA3-06 记录的双 options 类型并存随 plan 2414（roadmap WI1，2026-10-11）终止：
+ * legacy options 类型已整体删除，本类为唯一 chat options 契约。部分 legacy 字段
+ * （seed/contextLength/workMode/streamListener/enabledTools/disableCache）在新栈
+ * 无对应物——dialect 层从不消费，行为登记见 plan 2414 迁移说明。
  */
 @DataBean
 public class ChatOptions {

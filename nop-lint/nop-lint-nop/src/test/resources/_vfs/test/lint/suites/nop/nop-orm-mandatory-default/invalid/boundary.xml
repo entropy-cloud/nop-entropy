@@ -1,9 +1,0 @@
-<orm xmlns:x="/nop/schema/xdsl.xdef">
-    <entities>
-        <entity name="app.Refund" tableName="app_refund">
-            <columns>
-                <column name="reason" mandatory="true" domain="remark" stdSqlType="VARCHAR"/>
-            </columns>
-        </entity>
-    </entities>
-</orm>

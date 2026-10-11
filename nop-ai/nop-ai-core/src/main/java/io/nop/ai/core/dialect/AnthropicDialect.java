@@ -500,7 +500,7 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
      * 解析 Anthropic API tool_use 块的 input 字段。
      * <p>
      * input 的合法形态为 JSON object；部分兼容实现以 JSON 字符串形式返回 input，
-     * 与 {@code DefaultAiChatService.parseToolCalls} 使用相同的 String → parseMap 降级规则。
+     * 使用与网关/方言层一致的 String → parseMap 降级规则。
      * input 缺失或形态不符时显式抛错，避免把畸形响应静默降级为空 Map。
      */
     private Map<String, Object> parseToolInput(Object input) {

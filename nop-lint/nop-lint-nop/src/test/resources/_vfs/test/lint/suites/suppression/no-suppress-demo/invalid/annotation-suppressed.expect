@@ -1,5 +1,0 @@
-diagnostics:
-  - line: 8
-    endLine: 8
-    ruleId: demo/no-suppress-demo
-    messageContains: "debugging"

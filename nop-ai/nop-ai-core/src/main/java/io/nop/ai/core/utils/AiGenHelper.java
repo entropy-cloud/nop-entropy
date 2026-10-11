@@ -1,7 +1,7 @@
 package io.nop.ai.core.utils;
 
 import io.nop.ai.core.AiCoreConstants;
-import io.nop.ai.core.api.chat.AiChatOptions;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.api.core.util.Guard;
 import io.nop.core.lang.xml.XNode;
@@ -27,7 +27,7 @@ public class AiGenHelper {
 
         XNode chatOptionsNode = actionNode.childByTag(AiCoreConstants.TAG_AI_CHAT_OPTIONS);
         if (chatOptionsNode != null) {
-            XDslValidateHelper.validateForClassProps(chatOptionsNode, AiChatOptions.class);
+            XDslValidateHelper.validateForClassProps(chatOptionsNode, ChatOptions.class);
             executeNode._assignAttrs(chatOptionsNode.attrValueLocs());
         }
 

@@ -1,11 +1,7 @@
 package io.nop.ai.tools.graphql;
 
-import io.nop.ai.core.api.tool.DefaultAiChatFunctionTool;
-import io.nop.ai.core.api.tool.DefaultAiChatToolSet;
-import io.nop.ai.core.api.tool.IAiChatFunctionTool;
-import io.nop.ai.core.api.tool.IAiChatToolSet;
-import io.nop.ai.core.api.tool.ToolSpecification;
-import io.nop.ai.core.api.tool.ToolSpecificationLoader;
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
+import io.nop.ai.core.command.IAiToolInvoker;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
@@ -19,90 +15,56 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Builds callable tools for GraphQL operations, exposed as a legacy
- * {@code IAiChatToolSet} ({@code nopGraphQLToolSet} bean).
- * <p>
- * <b>P2-MA3-03 ruling — retained with documentation (no migration this batch):</b>
- * this class deliberately produces the deprecated {@code IAiChatToolSet} contract
- * because that is the consumer contract of the legacy chat pipeline: task XML
- * ({@code ai:toolSet="nopGraphQLToolSet"}) resolves the bean through
- * {@code AiCommand.toolSet()}. The new tool contracts ({@code IToolDefinition} /
- * {@code IToolExecutor} / {@code IToolManager}) live in a different engine path
- * (agent engine over VFS tool definitions) and have no drop-in counterpart for this
- * wiring; migrating the provider alone would orphan the bean consumers (task XML,
- * TestDeepWikiPrompts) and produce a half-migration. When the legacy API surface is
- * removed (future major version), the GraphQL tool capability maps to
- * {@code AiToolModel} + {@code IToolExecutor}; the {@link #callTool} body (GraphQL
- * RPC invocation) carries over 1:1.
+ * Exposes GraphQL operations as AI tools through the core
+ * {@link IAiToolInvoker} seam, backed by the {@code nopGraphQLToolSet} bean.
+ *
+ * <p>Migrated from the deprecated legacy tool-set contract (roadmap WI1;
+ * P2-MA3-03 ruling): the GraphQL RPC invocation body carried over 1:1. The
+ * final unification with the toolkit {@code IToolManager} runtime is adjudicated
+ * by roadmap WI2. When {@code toolNames} is configured (config key
+ * {@code nop.ai.tools.graphql-tool-names}), only those operations are resolvable.
  */
-public class GraphQLToolProvider {
-    private final Map<String, IAiChatFunctionTool> cache = new ConcurrentHashMap<>();
+public class GraphQLToolProvider implements IAiToolInvoker {
+    private final Map<String, ChatToolDefinition> cache = new ConcurrentHashMap<>();
 
     private final IGraphQLEngine graphqlEngine;
+    private final Set<String> toolNames;
 
     public GraphQLToolProvider(IGraphQLEngine graphqlEngine) {
-        this.graphqlEngine = graphqlEngine;
+        this(graphqlEngine, null);
     }
 
-    public IAiChatFunctionTool getTool(String toolName) {
+    public GraphQLToolProvider(IGraphQLEngine graphqlEngine, Set<String> toolNames) {
+        this.graphqlEngine = graphqlEngine;
+        // null = unrestricted (all schema operations); an empty set allows none —
+        // the unconfigured nopGraphQLToolSet must expose no tools (fail-safe).
+        this.toolNames = toolNames;
+    }
+
+    /**
+     * The configured operation-name filter; null means every schema operation
+     * resolves, an empty set means none do.
+     */
+    public Set<String> configuredToolNames() {
+        return toolNames;
+    }
+
+    @Override
+    public ChatToolDefinition findTool(String toolName) {
+        if (toolNames != null && !toolNames.contains(toolName))
+            return null;
         return cache.computeIfAbsent(toolName, this::buildTool);
     }
 
-    public IAiChatToolSet getToolSet(Set<String> toolNames) {
-        DefaultAiChatToolSet toolSet = new DefaultAiChatToolSet();
-        if (toolNames != null && !toolNames.isEmpty()) {
-            toolNames.forEach(opName -> toolSet.addFunction(getTool(opName)));
-        }
-        return toolSet;
-    }
-
-    public IAiChatToolSet getToolsByPrefix(String prefix) {
-        List<GraphQLFieldDefinition> opList = graphqlEngine.getSchemaLoader().getOperationDefinitions(null);
-        Set<String> toolNames = new LinkedHashSet<>();
-        List<String> prefixList = ConvertHelper.toCsvList(prefix, NopException::new);
-
-        opList.forEach(op -> {
-            for (String prefixItem : prefixList) {
-                if (op.getName().startsWith(prefixItem))
-                    toolNames.add(op.getName());
-            }
-        });
-        return getToolSet(toolNames);
-    }
-
-    protected IAiChatFunctionTool buildTool(String toolName) {
-        DefaultAiChatFunctionTool tool = new DefaultAiChatFunctionTool();
-        ToolSpecification spec = loadToolSpec(toolName);
-        tool.setName(toolName);
-        tool.setDescription(spec.getDescription());
-        tool.setInputSchema(spec.getInputSchema());
-        tool.setOutputSchema(spec.getOutputSchema());
-        String operationName = spec.getName() == null ? toolName : spec.getName();
-        tool.setInvoker(args -> callTool(operationName, args));
-        return tool;
-    }
-
-    protected ToolSpecification loadToolSpec(String operationName) {
-        ToolSpecification spec = ToolSpecificationLoader.loadSpecification(operationName);
-        if (spec != null) {
-            return spec;
-        }
-
-        spec = new ToolSpecification();
-        spec.setName(operationName);
-        GraphQLFieldDefinition op = graphqlEngine.getOperationDefinition(null, operationName);
-        spec.setDescription(op.getDescription());
-        spec.setInputSchema(GraphQLToJsonSchema.INSTANCE.argsToJsonSchema(op.getArguments()));
-        return spec;
-    }
-
-    protected Object callTool(String operationName, Map<String, Object> args) {
+    @Override
+    public CompletionStage<Object> callTool(String toolName, Map<String, Object> args) {
         ApiRequest<Map<String, Object>> request = new ApiRequest<>();
         request.setData(args);
-        IGraphQLExecutionContext ctx = graphqlEngine.newRpcContext(null, operationName, request);
+        IGraphQLExecutionContext ctx = graphqlEngine.newRpcContext(null, toolName, request);
         return graphqlEngine.executeRpcAsync(ctx).thenApply(response -> {
             if (response.isOk()) {
                 if (response.getData() instanceof String)
@@ -112,5 +74,28 @@ public class GraphQLToolProvider {
                 return JsonTool.stringify(response);
             }
         });
+    }
+
+    Set<String> listOperationNamesByPrefix(String prefix) {
+        List<GraphQLFieldDefinition> opList = graphqlEngine.getSchemaLoader().getOperationDefinitions(null);
+        Set<String> names = new LinkedHashSet<>();
+        List<String> prefixList = ConvertHelper.toCsvList(prefix, NopException::new);
+
+        opList.forEach(op -> {
+            for (String prefixItem : prefixList) {
+                if (op.getName().startsWith(prefixItem))
+                    names.add(op.getName());
+            }
+        });
+        return names;
+    }
+
+    protected ChatToolDefinition buildTool(String toolName) {
+        GraphQLFieldDefinition op = graphqlEngine.getOperationDefinition(null, toolName);
+        ChatToolDefinition tool = new ChatToolDefinition();
+        tool.setName(toolName);
+        tool.setDescription(op.getDescription());
+        tool.setParameters(JsonTool.parseMap(GraphQLToJsonSchema.INSTANCE.argsToJsonSchema(op.getArguments()).toJson()));
+        return tool;
     }
 }

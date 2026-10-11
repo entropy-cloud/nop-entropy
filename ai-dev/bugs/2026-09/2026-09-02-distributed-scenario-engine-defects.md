@@ -89,7 +89,7 @@ roadmap item 14（复合场景分布式落地）执行中发现并就地修复�
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/checkpoint/CheckpointCoordinator.java`
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/taskmanager/TaskManager.java`
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/transport/SubtaskPlanBuilder.java`、`nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/transport/RemoteGraphExecutionPlanBuilder.java`
-- `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/rpc/RemotePipelineSpec.java`、`RemotePipelineResolver.java`、`TaskDeploymentDescriptor.java`、`IStreamTaskRpcService.java`
+- `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/protocol/RemotePipelineSpec.java`、`RemotePipelineResolver.java`、`TaskDeploymentDescriptor.java`、`IStreamTaskRpcService.java`
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/launch/JobCoordinatorMain.java`（pipelineFactoryClass seam）
 
 ## Notes For Future Refactors

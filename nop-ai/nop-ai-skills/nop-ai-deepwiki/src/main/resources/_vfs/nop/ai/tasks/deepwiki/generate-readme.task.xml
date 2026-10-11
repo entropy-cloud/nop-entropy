@@ -73,8 +73,7 @@
 
         <!-- 步骤4: 调用AI prompt生成README -->
         <step name="generateReadme" customType="ai:TaskStep"
-              ai:promptName="deepwiki/generate-readme"
-              ai:toolSet="nopGraphQLToolSet">
+              ai:promptName="deepwiki/generate-readme">
             <!-- 向prompt传入所需变量 -->
             <input name="fileTree" value="${fileTree}"/>
             <input name="gitRepository" value="${gitRepository}"/>

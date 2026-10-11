@@ -32,12 +32,13 @@
                     <source><![CDATA[
                         import io.nop.markdown.utils.MarkdownHelper;
                         import io.nop.image.utils.ImageCompressHelper;
-                        import io.nop.ai.core.api.messages.AiMessageAttachment;
+                        import io.nop.ai.api.chat.messages.ChatAttachment;
+import io.nop.commons.util.StringHelper;
                         import io.nop.core.resource.ResourceHelper;
 
                         const fileName = imageRes.name;
                         const imageData = ImageCompressHelper.compressImageWithLimit(imageRes, 1024*60);
-                        return {fileName, binaryData: AiMessageAttachment.fromBinaryData(imageData)};
+                        return {fileName, binaryData: ChatAttachment.forImageData(imageData.contentType, StringHelper.encodeBase64(imageData.data))};
                     ]]></source>
                     <output name="RESULT" exportAs="imageData"/>
                 </step>

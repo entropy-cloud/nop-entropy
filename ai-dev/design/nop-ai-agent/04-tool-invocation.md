@@ -136,6 +136,10 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 
 ---
 
+## WI1 过渡接缝 IAiToolInvoker（plan 2414，2026-10-11）
+
+旧 chat 栈删除时，AiCommand（core）的工具面引入 `io.nop.ai.core.command.IAiToolInvoker` 过渡接缝（findTool 规格类型 `ChatToolDefinition` + callTool 异步返回）。约束：nop-ai-core 不依赖 nop-ai-toolkit，接缝只能落在 core；`GraphQLToolProvider`/`GraphQLToolSetFactoryBean`（nop-ai-tools）已迁到该接缝，bean id `nopGraphQLToolSet` 与条件注册语义不变。**该接缝是过渡态**：WI2（工具 SPI 归一）裁定时须将其与 toolkit `IToolManager`/`IToolExecutor` 合并或收编，并顺带处置 nop-ai-tools 的 13 个 `*.tool.json` 惰性资源（其唯一 loader `ToolSpecificationLoader` 已随 WI1 删除）。
+
 ## 与其他文档的关系
 
 - `02-execution-model.md` — 本篇嵌入的执行模型（ReAct 循环中的工具执行环节）

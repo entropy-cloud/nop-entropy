@@ -1,6 +1,0 @@
-id: demo/xml-invalid-unknown-kind
-language: XML
-severity: warning
-message: "rejected at compile time"
-rule:
-  kind: $$$

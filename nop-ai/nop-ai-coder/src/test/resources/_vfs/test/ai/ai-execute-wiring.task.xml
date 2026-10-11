@@ -1,0 +1,23 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      xmlns:ai="/nop/ai/xlib/ai.xlib" xmlns:task="task"
+      x:extends="/nop/task/lib/common.task.xml">
+
+    <ai:chatOptions provider="mock" model="test-model" contextLength="30000" maxTokens="100"/>
+
+    <input name="word" type="String" mandatory="true"/>
+
+    <steps>
+        <step name="aiEcho" customType="ai:TaskStep" ai:promptPath="/test/ai/execute-wiring.prompt.yaml">
+            <input name="word"/>
+            <output name="noChange" exportAs="noChange"/>
+        </step>
+
+        <step name="checkResult">
+            <input name="echoResult"/>
+            <output name="RESULT" exportAs="proof"/>
+            <source><![CDATA[
+                return {echo: echoResult, type: echoResult == null ? 'null' : echoResult.getClass?.() ? 'object' : 'value'};
+            ]]></source>
+        </step>
+    </steps>
+</task>
