@@ -1,6 +1,7 @@
 package io.nop.ai.gateway.failover;
 
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.gateway.routing.ConcurrencyRegistry;
@@ -33,7 +34,7 @@ final class FailoverProbeSupport {
         try {
             return active ? router.selectNext() : router.selectNextAfterFailure();
         } catch (NopException e) {
-            if (!NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode().equals(e.getErrorCode())) {
+            if (!NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode().equals(e.getErrorCode())) {
                 throw e;
             }
             if (probeBrokenCandidates(breaker, registry, router, primaryProvider, metrics)) {

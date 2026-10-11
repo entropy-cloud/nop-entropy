@@ -124,8 +124,8 @@ public class TestModelClassRouter extends JunitBaseTestCase {
         ModelClassRouter router = router("sat-model", "test-sat");
         saturateTierSat();
         NopException e = assertThrows(NopException.class, router::selectNext);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
-        assertEquals("tier-sat", e.getParam(NopAiCoreErrors.ARG_MODEL_CLASS),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals("tier-sat", e.getParam(NopAiRoutingErrors.ARG_MODEL_CLASS),
                 "saturation error carries the triggering model class");
     }
 
@@ -138,7 +138,7 @@ public class TestModelClassRouter extends JunitBaseTestCase {
         tripOpen("test-modelclass:test-model-1");
 
         NopException e = assertThrows(NopException.class, router::selectNext);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
     }
 
     @Test
@@ -165,7 +165,7 @@ public class TestModelClassRouter extends JunitBaseTestCase {
         registry.acquire("test-failover", null);
         // 扩展候选（test-failover 主账号，limit 2）也已饱和 → 全池饱和 fail-loud。
         NopException e = assertThrows(NopException.class, router::selectNextAfterFailure);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
     }
 
     @Test
@@ -250,8 +250,8 @@ public class TestModelClassRouter extends JunitBaseTestCase {
         registry.acquire("test-failover", null);
 
         NopException e = assertThrows(NopException.class, router::selectNextAfterFailure);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
-        assertEquals("tier-v4", e.getParam(NopAiCoreErrors.ARG_MODEL_CLASS));
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals("tier-v4", e.getParam(NopAiRoutingErrors.ARG_MODEL_CLASS));
     }
 
     @Test

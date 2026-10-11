@@ -24,4 +24,14 @@ public interface NopAiRagErrors {
     ErrorCode ERR_AI_RAG_EMPTY_QUERY =
             define("nop.err.ai.rag.empty-query",
                     "Query text must not be blank", ARG_QUERY);
+
+    /**
+     * Relocated verbatim from {@code io.nop.ai.core.NopAiCoreErrors} (WI9
+     * error-code relocation, plan 2438): WI4 moved CosineSimilarity /
+     * RelevanceScore into nop-ai-rag, leaving this code with zero core-side
+     * consumers, so the holder moves next to its consumer. ID and English
+     * description preserved verbatim (persisted/logged contract).
+     */
+    ErrorCode ERR_AI_VECTOR_LENGTH_MISMATCH =
+            define("nop.err.ai.vector-length-mismatch", "Length of vector a  must be equal to the length of vector b");
 }

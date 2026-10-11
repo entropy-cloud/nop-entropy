@@ -149,8 +149,8 @@ public final class ModelClassRouter {
         }
         if (candidate == null) {
             // 全池饱和 fail-loud：并发饱和与健康度饱和共用此码（语义 = 无可用候选）。
-            throw new NopException(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED)
-                    .param(NopAiCoreErrors.ARG_MODEL_CLASS, modelClass.getId());
+            throw new NopException(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED)
+                    .param(NopAiRoutingErrors.ARG_MODEL_CLASS, modelClass.getId());
         }
         attempted.add(candidate);
         return candidate;

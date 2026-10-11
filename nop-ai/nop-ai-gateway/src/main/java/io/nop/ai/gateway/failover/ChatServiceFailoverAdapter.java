@@ -8,6 +8,7 @@ import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.core.NopAiCoreException;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.LlmErrorClassifier;
@@ -403,7 +404,7 @@ public class ChatServiceFailoverAdapter implements IChatService {
         try {
             return active ? router.selectNext() : router.selectNextAfterFailure();
         } catch (NopException e) {
-            if (!NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode().equals(e.getErrorCode())) {
+            if (!NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode().equals(e.getErrorCode())) {
                 throw e;
             }
             if (probeBrokenCandidates(router, request)) {

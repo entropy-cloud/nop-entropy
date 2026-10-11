@@ -5,6 +5,7 @@ import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.gateway.routing.ConcurrencyRegistry;
@@ -167,7 +168,7 @@ class TestFailoverMetricsLocal {
         NopException e = assertThrows(NopException.class,
                 () -> syncGet(adapter.callAsync(
                         FailoverTestSupport.request("gw-test", "gw-model-1", false), null)));
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
 
         // 冷却期计数：OPEN 下 allowCall 未期满拒绝。探活遍历 = 类内（tier-gw：gw-test 主 +
         // gw-backup-a/b + gw-test2 主） + provider 链（gw-test2/gw-rl/gw-sat 及账号展开）；

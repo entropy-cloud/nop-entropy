@@ -25,8 +25,8 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
 
-import static io.nop.ai.core.NopAiCoreErrors.ARG_FILE_PATH;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID;
+import static io.nop.ai.tools.NopAiToolsErrors.ARG_FILE_PATH;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID;
 
 /**
  * JSON file-backed storage for sequential-thinking session thoughts (P3-MA1-013 ruling).

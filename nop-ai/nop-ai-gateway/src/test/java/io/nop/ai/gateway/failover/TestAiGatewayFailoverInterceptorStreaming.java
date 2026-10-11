@@ -1,10 +1,10 @@
 package io.nop.ai.gateway.failover;
 
 import io.nop.ai.gateway.AiDialectBackendMessageConverter;
-import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.gateway.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.core.service.LlmConfigHelper;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
@@ -432,7 +432,7 @@ class TestAiGatewayFailoverInterceptorStreaming {
         CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
         ApiResponse<?> response = future.toCompletableFuture().join();
 
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), response.getCode(),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), response.getCode(),
                 "全池并发饱和必须 fail-loud（ERR_AI_MODEL_CLASS_SATURATED 透传）");
         assertEquals(0, fake.requests.size(), "饱和时不得发起任何 fetch");
     }
@@ -458,7 +458,7 @@ class TestAiGatewayFailoverInterceptorStreaming {
         CompletionStage<ApiResponse<?>> future = handler.handle(request, ctx);
         ApiResponse<?> response = future.toCompletableFuture().join();
 
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), response.getCode(),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), response.getCode(),
                 "全池健康度饱和必须 fail-loud（ERR_AI_MODEL_CLASS_SATURATED 透传）");
         assertEquals(0, fake.requests.size(), "饱和时不得发起任何 fetch");
     }

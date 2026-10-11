@@ -1,6 +1,7 @@
 package io.nop.ai.tools.sequential_thinking.service;
 
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.tools.NopAiToolsErrors;
 import io.nop.ai.tools.sequential_thinking.model.ProcessThoughtRequest;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtAnalysis;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtSummary;
@@ -27,7 +28,7 @@ public class TestSequentialThinkingBizModel {
         NopException thrown = assertThrows(NopException.class, () -> {
             bizModel.processThought(request, null);
         });
-        assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT.getErrorCode(), thrown.getErrorCode());
+        assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_INVALID_THOUGHT.getErrorCode(), thrown.getErrorCode());
     }
 
     @Test
@@ -41,7 +42,7 @@ public class TestSequentialThinkingBizModel {
         NopException thrown = assertThrows(NopException.class, () -> {
             bizModel.processThought(request, null);
         });
-        assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT.getErrorCode(), thrown.getErrorCode());
+        assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_INVALID_THOUGHT.getErrorCode(), thrown.getErrorCode());
     }
 
     @Test

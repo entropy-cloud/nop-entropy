@@ -5,6 +5,7 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.LlmErrorClassifier;
 import io.nop.ai.core.reliability.ThresholdBreaker;
@@ -265,7 +266,7 @@ class TestChatServiceFailoverAdapterNonStreaming {
 
         NopException e = assertThrows(NopException.class,
                 () -> syncGet(adapter.callAsync(FailoverTestSupport.request("gw-sat", "gw-sat-model", false), null)));
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode(),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode(),
                 "full-pool saturation must fail loud with the saturation error code");
 
         assertEquals(0, fake.requests.size(), "no request must be sent when the pool is saturated");
@@ -285,7 +286,7 @@ class TestChatServiceFailoverAdapterNonStreaming {
 
         NopException e = assertThrows(NopException.class,
                 () -> syncGet(adapter.callAsync(FailoverTestSupport.request("gw-sat", "gw-sat-model", false), null)));
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(), e.getErrorCode());
         assertEquals(0, fake.requests.size());
     }
 

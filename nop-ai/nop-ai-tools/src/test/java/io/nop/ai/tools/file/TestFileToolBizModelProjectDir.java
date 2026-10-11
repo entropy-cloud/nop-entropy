@@ -1,6 +1,6 @@
 package io.nop.ai.tools.file;
 
-import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.tools.NopAiToolsErrors;
 import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -46,10 +46,10 @@ public class TestFileToolBizModelProjectDir {
         NopException ex = assertThrows(NopException.class,
                 () -> model.saveFile(projectName, "probe.txt", "x", null),
                 label + " must be rejected at the tool entry (saveFile)");
-        assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME.getErrorCode(), ex.getErrorCode(),
+        assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME.getErrorCode(), ex.getErrorCode(),
                 label + " must carry ERR_AI_TOOLS_INVALID_PROJECT_NAME");
         if (projectName != null) {
-            assertEquals(projectName, ex.getParam(NopAiCoreErrors.ARG_VALUE),
+            assertEquals(projectName, ex.getParam(NopAiToolsErrors.ARG_VALUE),
                     label + " must be attached as ARG_VALUE");
         }
     }
@@ -73,7 +73,7 @@ public class TestFileToolBizModelProjectDir {
             NopException ex = assertThrows(NopException.class,
                     () -> exposed.exposeGetProjectDir(evil),
                     "getProjectDir must reject: " + evil);
-            assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME.getErrorCode(), ex.getErrorCode());
+            assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME.getErrorCode(), ex.getErrorCode());
         }
     }
 

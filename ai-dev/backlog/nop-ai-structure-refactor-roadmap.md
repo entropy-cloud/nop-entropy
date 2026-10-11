@@ -40,7 +40,7 @@ audit-rounds: 0
 - WI6 编码代理关注点归位裁定（core file/response）: `done`（plan 2433：response 留守 core 裁定 + file 死面收口；IFileOperator→IToolFileSystem 全面收口立 successor——前置条件 = 契约文档三条件 + CliFileCommand 补测试）
 - WI7 mock 设施收敛下沉: `done`（plan 2434：mock 族 4 移 2 删——FileSystemResponseProvider record/replay 死能力按 0 使用三重实证改判删除，余 4 文件下沉 core test scope）
 - WI8 dialect 家族结构消重: `done`（plan 2435：目标重校准净 +73 行结构统一——私有副本清零 + 表驱动 + 声明式绑定；800-1200 原目标按事件词表排除条款不可达已登记）
-- WI9 错误码归位（NopAiCoreErrors 代管项归还各模块）: `todo`
+- WI9 错误码归位（NopAiCoreErrors 代管项归还各模块）: `done`（plan 2438：11 码归位——tools 9 码迁新建 NopAiToolsErrors、model-class 码迁新建 NopAiRoutingErrors、vector-length 码迁既有 NopAiRagErrors，后两个为 WI4/WI5 遗留孤儿码执行期纳入；ERR_AI_AGENT_INVALID_ARG 经重裁定留守 core——消费属地跨 core/gateway/agent、core 不可依赖 agent，重启条件 = reliability 类迁回则随迁；ID/描述零变化；nop-cli yaml 生成清单已补新 holder）
 - WI10 NopAiAgentException 上移断包环: `todo`
 - WI11 agent 引擎装配面收敛: `todo`
 - WI12 扩展点微包收敛与 NoOp 审计: `todo`
@@ -56,7 +56,7 @@ audit-rounds: 0
 - WI21 全量收口与分层速查回写校对: `todo`
 
 - ★ **里程碑：M1 双轨合一**（WI1 + WI2 全部 done——废弃栈 25 类删除、工具 SPI 单一）：`done`
-- ★ **里程碑：M2 core 瘦身归位**（WI4—WI9 全部 done——core 仅剩 LLM 内核关注点，rag/gateway/coder/testkit 各归其位，dialect 净省约 1,000 行）：`todo`
+- ★ **里程碑：M2 core 瘦身归位**（WI4—WI9 全部 done——core 仅剩 LLM 内核关注点，rag/gateway/coder/testkit 各归其位，dialect 净省约 1,000 行）：`done`
 - ★ **里程碑：M3 装配面收敛**（WI10—WI13 全部 done——包级环消除、装配路径单一、净删约 800 行转发代码）：`todo`
 - ★ **里程碑：M4 模块整合收口**（WI14—WI22 全部 done——api 回归纯能力契约、孤儿与碎片模块按裁定处置、结构门禁固化于 WI21）：`todo`
 

@@ -5,7 +5,7 @@ import io.nop.ai.core.api.support.VectorData;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
+import static io.nop.ai.rag.NopAiRagErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
 
 /**
  * Utility class for calculating cosine similarity between two vectors.

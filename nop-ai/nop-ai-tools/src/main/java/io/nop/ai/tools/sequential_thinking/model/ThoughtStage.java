@@ -3,8 +3,8 @@ package io.nop.ai.tools.sequential_thinking.model;
 import io.nop.api.core.annotations.data.DataBean;
 import io.nop.api.core.exceptions.NopException;
 
-import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_STAGE;
+import static io.nop.ai.tools.NopAiToolsErrors.ARG_VALUE;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_STAGE;
 
 @DataBean
 public enum ThoughtStage {
