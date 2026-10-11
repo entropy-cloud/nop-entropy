@@ -200,9 +200,9 @@ usage: nop-lint check <path>... [--profile fast|standard|deep] [--fix|--fix-dry-
 
 `CliDiffCommand` 已实现但没有加入 `MainCommand` 的 `subcommands`，因此 `nop-cli diff` 不可用；且其 `loadModel` 有恒定加载 `newModelPath` 的缺陷（diff 结果恒为空）。已知 P2 缺陷，修复前不要依赖。
 
-### CI 未构建 nop-cli
+### CI lint 门禁(maven.yml build job)
 
-`.github/workflows/maven.yml` 使用 JDK 21，而 `nop-cli` 以 `--release 22` 编译。CI 目前无法构建 nop-cli，lint 门禁只在本机 git hook 中生效，不在 CI 中生效。
+自 JDK 25 统一(plan 2425 WI1)与 CI 迁移(plan 2428 WI3)后,`.github/workflows/maven.yml` 的 build job 在 JDK 25 下全 reactor `mvn -B package` 构建(含 `nop-cli` uber-jar,release=25),随后运行仓库工具 `run-java-lint.sh`(Java lint 门禁包装脚本,位于 ai-dev 仓库工具区)无参全仓扫描(3 条 gate 规则:nop/no-raw-exception、nop/no-empty-catch、nop/no-log-getmessage;fixture/bench-corpus 过滤内建),退出码非 0 即 job 失败。本机 pre-commit hook(`.githooks/pre-commit`,经 `core.hooksPath` 启用)与 CI 扫描同一脚本同一规则集。
 
 ## 6. 相关文档
 
