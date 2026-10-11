@@ -12,8 +12,8 @@
 
 ## checkpoint 编排并发重构
 
-- **CC-06** CheckpointCoordinator monitor 内执行 N×阻塞 RPC fan-out（monitor 与 fan-out 线程分离）。
-- **CC-17**（同波次）taskExecutor 无界队列 + 终端 RPC 在任务线程 finally 同步发送。——其**超时契约 javadoc 前半已由 plan 369 Phase 4 落地**（`IStreamTaskRpcService`/`IStreamCoordinatorRpcService` 接口级"单向、无内建超时/重试、逐方法丢失兜底"契约；队列/线程后半仍 open）。
+- **CC-06** CheckpointCoordinator monitor 内执行 N×阻塞 RPC fan-out（monitor 与 fan-out 线程分离）。——收口（plan 2435，2026-10-11；映射勘误：monitor 半已由 plan 2326/CC-01 收口，本条实际收的是 JC 周期触发线程半——barrier fan-out 改每节点单线程执行器派发〔同节点 epoch 保序、跨节点隔离〕，定向测试 TestCheckpointBarrierFanoutAsync；同节点挂死串行残余=watch-only 由 checkpoint timeout 兜底，登记于 plan 2435）
+- **CC-17**（同波次）taskExecutor 无界队列 + 终端 RPC 在任务线程 finally 同步发送。——其**超时契约 javadoc 前半已由 plan 369 Phase 4 落地**（`IStreamTaskRpcService`/`IStreamCoordinatorRpcService` 接口级"单向、无内建超时/重试、逐方法丢失兜底"契约；——队列/线程后半已收口（plan 2435，2026-10-11）：taskExecutor 有界化（queue 1000 + AbortPolicy，两 submit 位点 RejectedExecutionException typed 化：deployTask 走 rejectDeploy→FAILED、receiveAssignment 走 reportAssignmentFailure）+ 终态 RPC 经 terminalReportExecutor 异步（拒绝始终内联不丢报告）；定向测试 TestCc17TerminalReportAsync 两例。Maven 全量复跑待并发 Quarkus BOM 迁移（plan 2431）解冻，javac 直验已过——WI12 兜底复核。
 
 ## HA / fencing 专项
 
