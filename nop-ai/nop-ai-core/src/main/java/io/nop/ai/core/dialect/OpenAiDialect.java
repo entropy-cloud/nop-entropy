@@ -21,6 +21,7 @@ import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.http.api.client.HttpRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -156,11 +157,14 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
 
         ChatOptions options = request.getOptions();
         if (options != null) {
-            addOptionIfNotNull(body, "temperature", options.getTemperature());
-            addOptionIfNotNull(body, "max_tokens", resolveMaxTokens(options, modelConfig));
-            addOptionIfNotNull(body, "top_p", options.getTopP());
-            addOptionIfNotNull(body, "top_k", options.getTopK());
-            addOptionIfNotNull(body, "stop", options.getStop());
+            // plan 2435/WI8 声明式选项绑定（原 22 处 addOptionIfNotNull 平铺调用收敛）
+            applyOptionBindings(body, options, new LinkedHashMap<String, java.util.function.Supplier<Object>>() {{
+                put("temperature", () -> options.getTemperature());
+                put("max_tokens", () -> resolveMaxTokens(options, modelConfig));
+                put("top_p", () -> options.getTopP());
+                put("top_k", () -> options.getTopK());
+                put("stop", () -> options.getStop());
+            }});
 
             // Plan 2302 (WI20): per-provider cache-key placement — the
             // OpenAI field form. Config-gated and session-keyed; missing
@@ -250,10 +254,10 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
         ChatStreamChunk chunk = new ChatStreamChunk();
 
-        chunk.setId(getString(dataMap, "id"));
+        chunk.setId(getStringByPath(dataMap, "id"));
 
         // choices[0].delta
-        Object deltaObj = getByPath(dataMap, "choices.0.delta");
+        Object deltaObj = BeanTool.getComplexProperty(dataMap, "choices.0.delta");
         Map<String, Object> deltaMap = deltaObj instanceof Map ? (Map<String, Object>) deltaObj : null;
 
         if (deltaMap != null) {
@@ -291,7 +295,7 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         }
 
         // finish 信号 → DONE
-        String finishReason = normalizeFinishReason(getString(dataMap, "choices.0.finish_reason"));
+        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "choices.0.finish_reason"));
         if (finishReason != null) {
             chunk.setPhase(StreamItemPhase.DONE);
             chunk.setFinishReason(finishReason);
@@ -355,7 +359,7 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
      */
     @SuppressWarnings("unchecked")
     private List<ChatToolCall> parseNonStreamingToolCalls(Map<String, Object> responseMap) {
-        Object toolCallsObj = getByPath(responseMap, "choices.0.message.tool_calls");
+        Object toolCallsObj = BeanTool.getComplexProperty(responseMap, "choices.0.message.tool_calls");
         if (!(toolCallsObj instanceof List)) {
             return Collections.emptyList();
         }
@@ -400,14 +404,7 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         }
     }
 
-    private Object getByPath(Map<String, Object> map, String path) {
-        return io.nop.core.reflect.bean.BeanTool.getComplexProperty(map, path);
-    }
 
-    private Integer toInt(Object value) {
-        if (value instanceof Number) return ((Number) value).intValue();
-        return null;
-    }
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
@@ -451,23 +448,7 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
     // ==================== 私有辅助方法 ====================
 
     private List<Map<String, Object>> buildMessages(ChatRequest request, LlmModelModel modelConfig) {
-        List<Map<String, Object>> messages = new ArrayList<>();
-        if (request.getMessages() == null) {
-            return messages;
-        }
-
-        ChatMessage lastMessage = request.getLastMessage();
-        ChatOptions options = request.getOptions();
-
-        for (ChatMessage msg : request.getMessages()) {
-            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
-            if (msg == lastMessage && modelConfig != null) {
-                msgMap.put("content", applyThinkingPrompt((String) msgMap.get("content"), modelConfig, options));
-            }
-            messages.add(msgMap);
-        }
-
-        return messages;
+        return super.buildMessages(request, modelConfig, this::convertMessage, false);
     }
 
     private List<Map<String, Object>> convertToolCalls(List<ChatToolCall> toolCalls) {
@@ -487,7 +468,4 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         return result;
     }
 
-    private String getString(Map<String, Object> map, String path) {
-        return getStringByPath(map, path);
-    }
 }

@@ -19,6 +19,7 @@ import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.api.core.json.JSON;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.reflect.bean.BeanTool;
 import io.nop.http.api.client.HttpRequest;
 
 import java.util.ArrayList;
@@ -192,11 +193,13 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatOptions options = request.getOptions();
         if (options != null) {
             Map<String, Object> ollamaOptions = new LinkedHashMap<>();
-            addOptionIfNotNull(ollamaOptions, "temperature", options.getTemperature());
-            addOptionIfNotNull(ollamaOptions, "num_predict", resolveMaxTokens(options, modelConfig));
-            addOptionIfNotNull(ollamaOptions, "top_p", options.getTopP());
-            addOptionIfNotNull(ollamaOptions, "top_k", options.getTopK());
-            addOptionIfNotNull(ollamaOptions, "stop", options.getStop());
+            applyOptionBindings(ollamaOptions, options, new LinkedHashMap<String, java.util.function.Supplier<Object>>() {{
+                put("temperature", () -> options.getTemperature());
+                put("num_predict", () -> resolveMaxTokens(options, modelConfig));
+                put("top_p", () -> options.getTopP());
+                put("top_k", () -> options.getTopK());
+                put("stop", () -> options.getStop());
+            }});
 
             if (!ollamaOptions.isEmpty()) {
                 body.put("options", ollamaOptions);
@@ -314,12 +317,12 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
         ChatStreamChunk chunk = new ChatStreamChunk();
 
-        chunk.setModel(getString(dataMap, "model"));
+        chunk.setModel(getStringByPath(dataMap, "model"));
 
         // 文本内容增量
-        String content = getString(dataMap, "message.content");
+        String content = getStringByPath(dataMap, "message.content");
         // 思考内容增量（某些模型支持 thinking 字段，如 DeepSeek R1）
-        String thinking = getString(dataMap, "message.thinking");
+        String thinking = getStringByPath(dataMap, "message.thinking");
 
         if (content != null) {
             chunk.setItemType(StreamItemType.text);
@@ -333,7 +336,7 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
             chunk.setDelta(thinking);
         } else {
             // 工具调用（Ollama 使用 OpenAI 风格，流式下通常完整出现于终止帧）
-            Object toolCallsObj = getByPath(dataMap, "message.tool_calls");
+            Object toolCallsObj = BeanTool.getComplexProperty(dataMap, "message.tool_calls");
             if (toolCallsObj instanceof List && !((List<?>) toolCallsObj).isEmpty()) {
                 Object first = ((List<?>) toolCallsObj).get(0);
                 if (first instanceof Map) {
@@ -361,7 +364,7 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         }
 
         // 结束信号
-        String finishReason = normalizeFinishReason(getString(dataMap, "done_reason"));
+        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "done_reason"));
         if (finishReason != null) {
             chunk.setPhase(StreamItemPhase.DONE);
             chunk.setFinishReason(finishReason);
@@ -370,9 +373,6 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         return chunk;
     }
 
-    private Object getByPath(Map<String, Object> map, String path) {
-        return io.nop.core.reflect.bean.BeanTool.getComplexProperty(map, path);
-    }
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,
@@ -552,29 +552,7 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
     // ==================== 私有辅助方法 ====================
 
     private List<Map<String, Object>> buildMessages(ChatRequest request, LlmModelModel modelConfig) {
-        List<Map<String, Object>> messages = new ArrayList<>();
-        if (request.getMessages() == null) {
-            return messages;
-        }
-
-        ChatMessage lastMessage = request.getLastMessage();
-        ChatOptions options = request.getOptions();
-
-        for (ChatMessage msg : request.getMessages()) {
-            if (msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
-                continue;
-            }
-            Map<String, Object> msgMap = convertMessage(msg, modelConfig, options);
-            if (msg == lastMessage && modelConfig != null) {
-                msgMap.put("content", applyThinkingPrompt((String) msgMap.get("content"), modelConfig, options));
-            }
-            messages.add(msgMap);
-        }
-
-        return messages;
+        return super.buildMessages(request, modelConfig, this::convertMessage, true);
     }
 
-    private String getString(Map<String, Object> map, String path) {
-        return getStringByPath(map, path);
-    }
 }

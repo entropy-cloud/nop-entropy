@@ -64,6 +64,20 @@ public class TestGeminiDialect extends JunitBaseTestCase {
     }
 
     @Test
+    public void testBuildBodyEmptyOptionsOmitsGenerationConfigKey() {
+        // plan 2435/WI8 absent-key 回归钉：空 ChatOptions 时不得生成空 generationConfig 子 map
+        // （声明式绑定 applier 的「空则不挂载」语义；线上请求字节级契约）。
+        GeminiDialect dialect = new GeminiDialect();
+        ChatRequest request = new ChatRequest();
+        request.addMessage(new ChatUserMessage("Hello"));
+        request.setOptions(new ChatOptions());
+
+        Map<String, Object> body = dialect.buildBody(request, newConfig(), null, "gemini-1.5-pro", false);
+
+        assertFalse(body.containsKey("generationConfig"), "empty ChatOptions must not emit an empty generationConfig sub-map");
+    }
+
+    @Test
     public void testParseResponseWithThinking() {
         GeminiDialect dialect = new GeminiDialect();
         String responseJson = "{\"candidates\":[{\"content\":{\"parts\":[" +
