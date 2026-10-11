@@ -101,6 +101,7 @@ import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
 import io.nop.stream.core.common.functions.source.ReplayableSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
+import io.nop.stream.runtime.checkpoint.core.SavepointMaterializer;
 import io.nop.stream.runtime.checkpoint.CheckpointPlanBuilder;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointMetricsSnapshot;
@@ -429,32 +430,14 @@ public class GraphModelCheckpointExecutor {
             // with the C3 participant contraction every task is terminal, so
             // there is nothing to snapshot). A final trigger failure throws
             // (loud) instead of returning a null savepoint path.
-            PendingCheckpoint savepointPending = rt.coordinator.triggerCheckpointBounded(
-                    CheckpointType.SAVEPOINT, checkpointConfig.getCheckpointTimeout());
-            String savepointPath = null;
-            if (savepointPending != null) {
-                // C2×C3: an all-terminal epoch is completed inline by the
-                // coordinator from inherited states — no live invokable left to
-                // fan a barrier into; the fan-out itself is contained, but
-                // skipping it for an already-done epoch avoids misleading
-                // per-task barrier warnings.
-                if (!savepointPending.getCompletableFuture().isDone()) {
-                    triggerBarrierOnAllInvokables(rt.allInvokables, savepointPending);
-                } else {
-                    LOG.info("Savepoint {} assembled from terminal states (no live participants); "
-                            + "barrier fan-out skipped", savepointPending.getCheckpointId());
-                }
-
-                CompletedCheckpoint completed = (CompletedCheckpoint) savepointPending.getCompletableFuture()
-                        .get(checkpointConfig.getCheckpointTimeout(), TimeUnit.MILLISECONDS);
-                if (completed != null) {
-                    // Materialize per-subtask KeyGroupRange ownership so the
-                    // savepoint records which subtask owned which range (the restore path
-                    // can then route keyed state on a parallelism change).
-                    materializeKeyGroupOwnership(completed, rt.execPlan);
-                    savepointPath = rt.storage.storeCheckPoint(completed);
-                }
-            }
+            // WI10 (plan 2426): the trigger/await/ownership/store sequence is the
+            // shared savepoint materialization (checkpoint.core) — the local face
+            // delegates byte-for-byte; face mechanics (barrier fan-out, KeyGroup
+            // ownership) are injected as callbacks.
+            String savepointPath = SavepointMaterializer.materialize(rt.coordinator,
+                    pending -> triggerBarrierOnAllInvokables(rt.allInvokables, pending),
+                    completed -> materializeKeyGroupOwnership(completed, rt.execPlan),
+                    rt.storage, checkpointConfig);
 
             checkTaskFailures(rt.tasks);
             return savepointPath;
@@ -546,7 +529,7 @@ public class GraphModelCheckpointExecutor {
             // job without its durable savepoint); NO_TASKS_TO_ACK short-circuits
             // as success; the retry budget exhausting throws (job fail, loud).
             PendingCheckpoint terminalPending = coordinator.triggerCheckpointBounded(
-                    checkpointType, config.getCheckpointTimeout());
+                    checkpointType, config.resolveTerminationCheckpointTimeout());
             if (terminalPending != null) {
                 // C2×C3: an already-done epoch (assembled from terminal states)
                 // needs no barrier fan-out — see triggerSavepoint.
@@ -788,7 +771,7 @@ public class GraphModelCheckpointExecutor {
             return;
         }
         PendingCheckpoint finalPending = coordinator.triggerCheckpointBounded(
-                CheckpointType.COMPLETED_POINT_TYPE, config.getCheckpointTimeout());
+                CheckpointType.COMPLETED_POINT_TYPE, config.resolveTerminationCheckpointTimeout());
         if (finalPending != null) {
             // C2×C3: an already-done epoch (assembled from terminal states)
             // needs no barrier fan-out — see triggerSavepoint.
