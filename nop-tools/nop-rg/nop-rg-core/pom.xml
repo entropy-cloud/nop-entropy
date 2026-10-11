@@ -12,12 +12,8 @@
 
     <artifactId>nop-rg-core</artifactId>
 
-    <!-- nop-rg-core 依赖 FFM API（MemorySegment + Arena，JDK 22 正式版），强制 JDK 22+ -->
+    <!-- nop-rg-core 依赖 FFM API（MemorySegment + Arena，22+ 正式版，25 下可用）；编译级别由根 pom release=25 统一，reactor 纳入门控见父 pom java22-modules -->
     <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <maven.compiler.release>22</maven.compiler.release>
-        <java.version>22</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- 默认排除 large-file 组（>1GB 测试）；显式运行：-DexcludedGroups= -Dgroups=large-file -->
         <excludedGroups>large-file</excludedGroups>

@@ -74,7 +74,6 @@
                     <execution>
                         <id>default-testCompile</id>
                         <configuration>
-                            <release>16</release>
                             <compilerArgs>
                                 <arg>--add-modules</arg>
                                 <arg>java.base</arg>

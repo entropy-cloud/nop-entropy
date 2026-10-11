@@ -12,13 +12,9 @@
 
     <artifactId>nop-rg-vector</artifactId>
 
-    <!-- 与 nop-rg-core 一致 release=22（审查实测 ct.sym 含孵化模块 release-22 历史）；
-         孵化模块需显式 add-modules。本模块依赖孵化 API，仅 JDK 25+ 环境验证。 -->
+    <!-- 依赖孵化 API（jdk.incubator.vector，add-modules 配置见下方插件），ct.sym 实测历史为 release-22，25 下由根 pom release=25 统一（plan 2427 WI2 实测复核）；
+         本模块仅 JDK 25+ 环境验证。 -->
     <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <maven.compiler.release>22</maven.compiler.release>
-        <java.version>22</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 

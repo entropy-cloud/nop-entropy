@@ -14,7 +14,6 @@
     <artifactId>nop-file-api</artifactId>
 
     <properties>
-        <java.version>11</java.version>
     </properties>
 
     <dependencies>

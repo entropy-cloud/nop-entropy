@@ -14,7 +14,6 @@
     <artifactId>nop-ai-api</artifactId>
 
     <properties>
-        <java.version>11</java.version>
         <jackson.version>2.15.2</jackson.version>
     </properties>
 
