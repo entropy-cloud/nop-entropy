@@ -134,7 +134,7 @@ public final class JobCoordinatorMain {
         messageService = new PollingJdbcMessageService(jdbc.getJdbcTemplate(), pollIntervalMs);
         messageService.initialize();
         clusterRegistry = new JdbcClusterRegistry(jdbc.getJdbcTemplate());
-        checkpointStorage = new LocalFileCheckpointStorage(checkpointBaseDir);
+        checkpointStorage = io.nop.stream.runtime.checkpoint.storage.CheckpointStorages.local(checkpointBaseDir);
 
         // Item 14 (composite-scenario distributed): the pipeline is pluggable.
         // Default = the trivial empty-source graph (Stage 42 capability tests);
@@ -172,6 +172,24 @@ public final class JobCoordinatorMain {
         // checkpoint dir) must not re-issue epoch ids below the durable epoch
         // (the shadow-window problem, P0-03). Restore the latest durable epoch
         // and advance the id counter past it.
+        // WI11 (plan 2432): manifest-first validation gate before the raw restore —
+        // fingerprint fail-closed + counter past the manifest epoch (shadow window).
+        // Ruling: a gate failure throws — the launch FAILS rather than silently
+        // fresh-starting against an unprovable durable state.
+        try {
+            io.nop.stream.runtime.checkpoint.core.RestoreGates.applyManifestGate(
+                    checkpointCoordinator, jobId);
+        } catch (io.nop.stream.core.exceptions.StreamException launchFailure) {
+            // fail-closed ruling: unchecked — the launch fails loud instead of
+            // silently fresh-starting against an unprovable durable state
+            throw launchFailure;
+        } catch (Exception gateEx) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE, gateEx)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "Manifest-first gate failed at launch for job " + jobId + ": "
+                                    + (gateEx.getMessage() == null ? gateEx.toString() : gateEx.getMessage()));
+        }
         try {
             io.nop.stream.core.checkpoint.CompletedCheckpoint restored =
                     checkpointCoordinator.restoreFromCheckpoint();
