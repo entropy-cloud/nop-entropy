@@ -8,6 +8,7 @@
 package io.nop.graphql.core.engine;
 
 import io.nop.api.core.auth.ActionAuthMeta;
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FieldSelectionBean;
@@ -98,30 +99,39 @@ public class GraphQLActionAuthChecker {
                     .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
 
+        // strict-action-auth=true 时 auth==null 也会走到这里（deny），参数取值必须 null 安全
         if (action) {
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION)
                     .param(AuthApiErrors.ARG_ACTION_NAME, fieldName)
-                    .param(ARG_PERMISSION, auth.getPermissions())
-                    .param(ARG_ROLES, auth.getRoles())
+                    .param(ARG_PERMISSION, auth == null ? null : auth.getPermissions())
+                    .param(ARG_ROLES, auth == null ? null : auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
         } else {
-            if (auth.isSkipWhenNoAuth())
+            if (auth != null && auth.isSkipWhenNoAuth())
                 return false;
             throw new NopException(AuthApiErrors.ERR_AUTH_NO_PERMISSION_FOR_FIELD)
                     .param(AuthApiErrors.ARG_FIELD_NAME, fieldName)
-                    .param(ARG_PERMISSION, auth.getPermissions())
-                    .param(ARG_ROLES, auth.getRoles())
+                    .param(ARG_PERMISSION, auth == null ? null : auth.getPermissions())
+                    .param(ARG_ROLES, auth == null ? null : auth.getRoles())
                     .param(ARG_OBJ_TYPE_NAME, objTypeName);
         }
     }
 
     public static boolean isAllowAccess(ActionAuthMeta auth, IServiceContext context) {
-        if (auth == null)
-            return true;
-
         IActionAuthChecker checker = context.getActionAuthChecker();
-        if (checker == null)
+        if (checker == null) {
+            // P1-2.6 fail-open 处3收敛（plan 2378 Phase 3）：权限已显式声明（auth!=null）而
+            // checker 缺席时，require-auth-checker=true 按 deny 处理（fail-closed），否则保持
+            // 平台既有「无 checker 不检查」语义
+            if (auth != null && ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER.get())
+                return false;
             return true;
+        }
+
+        // P1-2.6 fail-open 处2收敛（plan 2378 Phase 3）：strict-action-auth=true 时未声明
+        // auth 的动作/字段按 deny（缺省 allow=显式声明模型保持不变）
+        if (auth == null)
+            return !ApiConfigs.CFG_AUTH_STRICT_ACTION_AUTH.get();
 
         // 如果是公开方法，则不检查用户权限
         if (auth.isPublicAccess())

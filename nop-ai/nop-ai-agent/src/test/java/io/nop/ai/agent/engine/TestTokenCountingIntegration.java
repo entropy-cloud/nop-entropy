@@ -140,7 +140,7 @@ public class TestTokenCountingIntegration {
 
         AgentModel agentModel = simpleAgentModel();
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = AgentExecutionContext.create(agentModel, "itest");

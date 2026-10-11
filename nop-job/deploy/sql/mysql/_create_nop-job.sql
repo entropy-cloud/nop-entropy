@@ -43,9 +43,11 @@ CREATE TABLE nop_job_schedule(
   DISPATCH_MODE VARCHAR(30) default 'single'  NULL    COMMENT '派发模式',
   PARTITION_COUNT INTEGER default 1  NULL    COMMENT '分片数量',
   PRIORITY INTEGER default 0  NULL    COMMENT '优先级',
+  constraint UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME unique (NAMESPACE_ID,GROUP_ID,JOB_NAME),
   constraint PK_nop_job_schedule primary key (JOB_SCHEDULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_JOB_SCHEDULE_SCAN on nop_job_schedule (SCHEDULE_STATUS,PARTITION_INDEX,NEXT_FIRE_TIME) ;
 CREATE TABLE nop_job_task_log(
   JOB_TASK_LOG_ID VARCHAR(32) NOT NULL    COMMENT '日志ID',
   JOB_TASK_ID VARCHAR(32) NOT NULL    COMMENT '任务ID',
@@ -66,6 +68,8 @@ CREATE TABLE nop_job_task_log(
   constraint PK_nop_job_task_log primary key (JOB_TASK_LOG_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_JOB_TASK_LOG_TASK_TIME on nop_job_task_log (JOB_TASK_ID,LOG_TIME) ;
+create index IX_NOP_JOB_TASK_LOG_TIME on nop_job_task_log (LOG_TIME) ;
 CREATE TABLE nop_job_fire(
   JOB_FIRE_ID VARCHAR(32) NOT NULL    COMMENT '触发批次ID',
   JOB_SCHEDULE_ID VARCHAR(32) NOT NULL    COMMENT '调度ID',
@@ -95,9 +99,15 @@ CREATE TABLE nop_job_fire(
   REMARK VARCHAR(200) NULL    COMMENT '备注',
   SOURCE_FIRE_ID VARCHAR(32) NULL    COMMENT '源触发批次ID',
   DISPATCH_MODE VARCHAR(30) NULL    COMMENT '派发模式',
+  constraint UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE unique (JOB_SCHEDULE_ID,SCHEDULED_FIRE_TIME,TRIGGER_SOURCE),
   constraint PK_nop_job_fire primary key (JOB_FIRE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_JOB_FIRE_DISPATCH_SCAN on nop_job_fire (FIRE_STATUS,PARTITION_INDEX,SCHEDULED_FIRE_TIME) ;
+create index IX_NOP_JOB_FIRE_SCHEDULE on nop_job_fire (JOB_SCHEDULE_ID,SCHEDULED_FIRE_TIME) ;
+create index IX_NOP_JOB_FIRE_DISPATCH_TIME on nop_job_fire (FIRE_STATUS,PARTITION_INDEX,START_TIME,JOB_FIRE_ID) ;
+create index IX_NOP_JOB_FIRE_SCHEDULE_STATUS on nop_job_fire (JOB_SCHEDULE_ID,FIRE_STATUS) ;
+create index IX_NOP_JOB_FIRE_SOURCE on nop_job_fire (SOURCE_FIRE_ID) ;
 CREATE TABLE nop_job_task(
   JOB_TASK_ID VARCHAR(32) NOT NULL    COMMENT '任务ID',
   JOB_FIRE_ID VARCHAR(32) NOT NULL    COMMENT '批次ID',
@@ -125,9 +135,14 @@ CREATE TABLE nop_job_task(
   COST_MEMORY INTEGER default 0  NULL    COMMENT '内存开销(MB)',
   PARTITION_RANGE VARCHAR(400) NULL    COMMENT '分片范围',
   PRIORITY INTEGER default 0  NULL    COMMENT '优先级',
+  constraint UK_NOP_JOB_TASK_FIRE_NO unique (JOB_FIRE_ID,TASK_NO),
   constraint PK_nop_job_task primary key (JOB_TASK_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index IX_NOP_JOB_TASK_RUN_SCAN on nop_job_task (TASK_STATUS,PARTITION_INDEX,CREATE_TIME) ;
+create index IX_NOP_JOB_TASK_RUN_TIME on nop_job_task (TASK_STATUS,PARTITION_INDEX,START_TIME,JOB_TASK_ID) ;
+create index IX_NOP_JOB_TASK_FIRE on nop_job_task (JOB_FIRE_ID) ;
+create index IX_NOP_JOB_TASK_STATUS_WORKER on nop_job_task (TASK_STATUS,WORKER_INSTANCE_ID) ;
 
    ALTER TABLE nop_job_schedule COMMENT '调度定义';
                 

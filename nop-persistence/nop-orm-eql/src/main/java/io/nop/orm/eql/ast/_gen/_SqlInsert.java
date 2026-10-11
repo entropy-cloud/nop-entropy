@@ -18,6 +18,10 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
     
     protected java.util.List<io.nop.orm.eql.ast.SqlColumnName> columns;
     
+    protected boolean returnAll;
+    
+    protected java.util.List<io.nop.orm.eql.ast.SqlProjection> returnProjections;
+    
     protected io.nop.orm.eql.ast.SqlSelect select;
     
     protected io.nop.orm.eql.ast.SqlTableName tableName;
@@ -48,6 +52,39 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
         if(list == null){
             list = new java.util.ArrayList<>();
             setColumns(list);
+        }
+        return list;
+    }
+    
+    public boolean getReturnAll(){
+        return returnAll;
+    }
+
+    public void setReturnAll(boolean value){
+        checkAllowChange();
+        
+        this.returnAll = value;
+    }
+    
+    public java.util.List<io.nop.orm.eql.ast.SqlProjection> getReturnProjections(){
+        return returnProjections;
+    }
+
+    public void setReturnProjections(java.util.List<io.nop.orm.eql.ast.SqlProjection> value){
+        checkAllowChange();
+        
+                if(value != null){
+                  value.forEach(node->node.setASTParent((EqlASTNode)this));
+                }
+            
+        this.returnProjections = value;
+    }
+    
+    public java.util.List<io.nop.orm.eql.ast.SqlProjection> makeReturnProjections(){
+        java.util.List<io.nop.orm.eql.ast.SqlProjection> list = getReturnProjections();
+        if(list == null){
+            list = new java.util.ArrayList<>();
+            setReturnProjections(list);
         }
         return list;
     }
@@ -146,6 +183,18 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                       
                 }
             
+                ret.setReturnAll(returnAll);
+            
+                if(returnProjections != null){
+                  
+                          java.util.List<io.nop.orm.eql.ast.SqlProjection> copy_returnProjections = new java.util.ArrayList<>(returnProjections.size());
+                          for(io.nop.orm.eql.ast.SqlProjection item: returnProjections){
+                              copy_returnProjections.add(item.deepClone());
+                          }
+                          ret.setReturnProjections(copy_returnProjections);
+                      
+                }
+            
        return ret;
     }
 
@@ -171,6 +220,11 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
             if(values != null)
                 processor.accept(values);
         
+            if(returnProjections != null){
+               for(io.nop.orm.eql.ast.SqlProjection child: returnProjections){
+                    processor.accept(child);
+                }
+            }
     }
 
     @Override
@@ -197,6 +251,12 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
             if(values != null && processor.apply(values) == ProcessResult.STOP)
                return ProcessResult.STOP;
         
+            if(returnProjections != null){
+               for(io.nop.orm.eql.ast.SqlProjection child: returnProjections){
+                    if(processor.apply(child) == ProcessResult.STOP)
+                        return ProcessResult.STOP;
+               }
+            }
        return ProcessResult.CONTINUE;
     }
 
@@ -234,6 +294,14 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                return true;
             }
         
+            if(this.returnProjections != null){
+               int index = this.returnProjections.indexOf(oldChild);
+               if(index >= 0){
+                   java.util.List<io.nop.orm.eql.ast.SqlProjection> list = this.replaceInList(this.returnProjections,index,newChild);
+                   this.setReturnProjections(list);
+                   return true;
+               }
+            }
         return false;
     }
 
@@ -271,6 +339,14 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                 return true;
             }
         
+            if(this.returnProjections != null){
+               int index = this.returnProjections.indexOf(child);
+               if(index >= 0){
+                   java.util.List<io.nop.orm.eql.ast.SqlProjection> list = this.removeInList(this.returnProjections,index);
+                   this.setReturnProjections(list);
+                   return true;
+               }
+            }
     return false;
     }
 
@@ -298,6 +374,13 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                return false;
             }
         
+                if(!isValueEquivalent(this.returnAll,other.getReturnAll())){
+                   return false;
+                }
+            
+            if(isListEquivalent(this.returnProjections,other.getReturnProjections())){
+               return false;
+            }
         return true;
     }
 
@@ -340,6 +423,15 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                           
                     }
                 
+                   json.put("returnAll", returnAll);
+                
+                    if(returnProjections != null){
+                      
+                              if(!returnProjections.isEmpty())
+                                json.put("returnProjections", returnProjections);
+                          
+                    }
+                
     }
 
     @Override
@@ -354,6 +446,7 @@ public abstract class _SqlInsert extends io.nop.orm.eql.ast.SqlDmlStatement {
                     select.freeze(cascade);
                 if(values != null)
                     values.freeze(cascade);
+                returnProjections = io.nop.api.core.util.FreezeHelper.freezeList(returnProjections,cascade);         
     }
 
 }

@@ -319,7 +319,7 @@ class TestNopMetaIndexBuilder {
         }
 
         @Override
-        public SearchableDoc getDoc(String docId) {
+        public SearchableDoc getDoc(String topic, String docId) {
             return docs.get(docId);
         }
 

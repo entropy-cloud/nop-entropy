@@ -273,6 +273,57 @@ public class TestTccEngine extends AbstractTccTest {
     }
 
     /**
+     * cancel半区崩溃恢复（P1-3.8-004，plan 2388）：全局停在CANCELLING、分支全部TRY_SUCCESS
+     * （cancel RPC在途时进程崩溃的最常见窗口）时，超时扫描必须续跑cancel直到终态。
+     * 此前endAsync无cancel半区对称路由：无回滚证据被导向doConfirmAsync又被其CANCELLING守卫
+     * 拦截为no-op，每轮重拾bump retryTimes，耗尽maxRetryCount后被扫描器永久遗弃（CONFIRMING
+     * 镜像已修而本半区漏修）。恢复入口固定timeout=true：分支终态TIMEOUT_SUCCESS，全局经
+     * aggregateCancelBranchStatus折叠为CANCEL_SUCCESS。
+     */
+    @Test
+    public void testCancelRecoveryAfterCrash() {
+        IEntityDao<NopTccRecord> recordDao = daoProvider.daoFor(NopTccRecord.class);
+        IEntityDao<NopTccBranchRecord> branchDao = daoProvider.daoFor(NopTccBranchRecord.class);
+
+        NopTccRecord record = recordDao.newEntity();
+        record.setTxnGroup("test-cancel-recovery");
+        record.setAppId("test");
+        record.setStatus(TccStatus.CANCELLING.getCode());
+        record.setBeginTime(CoreMetrics.currentTimestamp());
+        record.setExpireTime(new Timestamp(System.currentTimeMillis() - 60000));
+        record.setRetryTimes(0);
+        recordDao.saveEntity(record);
+
+        NopTccBranchRecord branch = branchDao.newEntity();
+        branch.setTxnId(record.getTxnId());
+        branch.setBranchNo(1);
+        branch.setStatus(TccStatus.TRY_SUCCESS.getCode());
+        branch.setServiceName("testService");
+        branch.setServiceMethod("tryMethod");
+        branch.setConfirmMethod("confirmMethod");
+        branch.setCancelMethod("cancelMethod");
+        branch.setRequestData("{\"data\":{}}");
+        branch.setExpireTime(new Timestamp(System.currentTimeMillis() - 60000));
+        branch.setBeginTime(CoreMetrics.currentTimestamp());
+        branch.setMaxRetryTimes(5);
+        branchDao.saveEntity(branch);
+
+        tccEngine.checkExpiredTransactions(30000, 5, null);
+
+        // 全局：TIMEOUT_SUCCESS 经聚合折叠为 CANCEL_SUCCESS 终态
+        assertEquals(TccStatus.CANCEL_SUCCESS.getCode(),
+                recordDao.getEntityById(record.getTxnId()).getStatus());
+        // 分支：恢复入口 timeout=true → BEFORE_TIMEOUT → TIMEOUT_SUCCESS
+        NopTccBranchRecord recovered = branchDao.getEntityById(branch.getBranchId());
+        assertEquals(TccStatus.TIMEOUT_SUCCESS.getCode(), recovered.getStatus());
+        // 分支补偿尝试计数递增（BEFORE_TIMEOUT 进入时 store bump）
+        assertEquals(Integer.valueOf(1), recovered.getRetryTimes());
+        // 全局重试计数递增（fetchExpiredRecords 拾取时 bump）；收敛终态后不再被扫描窗口拾取
+        assertEquals(Integer.valueOf(1),
+                recordDao.getEntityById(record.getTxnId()).getRetryTimes());
+    }
+
+    /**
      * confirm阶段崩溃恢复：全局与分支停在CONFIRMING时，超时扫描必须续跑confirm直到成功。
      * 此前CONFIRMING被分支rollbackOnly导向cancel路径又被doCancelAsync拦截为no-op，事务永久卡死
      */

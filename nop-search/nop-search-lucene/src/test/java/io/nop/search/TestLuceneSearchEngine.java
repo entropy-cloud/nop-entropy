@@ -141,7 +141,7 @@ public class TestLuceneSearchEngine extends JunitBaseTestCase {
         System.out.println(JsonTool.serialize(response, true));
 
         String docPath = "/nop-converter/src/main/java/io/nop/converter/impl/DslDocumentConverter.java";
-        SearchableDoc doc = searchEngine.getDoc(StringHelper.md5Hash(docPath));
+        SearchableDoc doc = searchEngine.getDoc("nop", StringHelper.md5Hash(docPath));
         System.out.println(JsonTool.serialize(doc, true));
 
         Map<String, List<String>> tokens = searchEngine.analyzeDoc(doc);

@@ -1149,6 +1149,14 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
 
     @Override
     public boolean allowCallByUser(IWorkflowStepImplementor step, IServiceContext ctx) {
+        // P1-3.1-002（plan 2379 Phase 1）：系统动作触发标记放行——dueAction 超时触发的主体是
+        // 系统（WfTaskScanner 固定虚拟身份），步骤动作名来自流程定义而非用户输入。标记仅
+        // 服务端内部组件可设（RPC 入口 context 由框架构建，用户不可伪造）。
+        // 标记读取与 WfTaskScanner 的设置侧同层（内层 IContext——与 userId 同一存放位置）
+        if (ctx.getContext() != null
+                && Boolean.TRUE.equals(ctx.getContext().getAttribute(NopWfCoreConstants.ATTR_WF_SYSTEM_ACTION_TRIGGER)))
+            return true;
+
         IWfActor owner = step.getOwner();
         String userId = ctx.getUserId();
 

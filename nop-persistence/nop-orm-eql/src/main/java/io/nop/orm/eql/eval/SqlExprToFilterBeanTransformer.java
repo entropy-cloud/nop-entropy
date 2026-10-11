@@ -121,11 +121,16 @@ public class SqlExprToFilterBeanTransformer {
     private TreeBean transformLike(SqlLikeExpr expr) {
         String name = getName(expr.getExpr());
         Object value = getValue(expr.getValue());
+        // R1.6c / P1-2.2-011：not like 语义补全（空值早退分支同样包裹，
+        // not like '' 应为恒真形态而非 alwaysFalse）
+        boolean not = expr.getNot();
         if (StringHelper.isEmptyObject(value))
-            return FilterBeans.alwaysFalse();
+            return not ? FilterBeans.alwaysTrue() : FilterBeans.alwaysFalse();
 
         TreeBean ret = FilterBeans.like(name, value.toString());
         ret.setLocation(expr.getLocation());
+        if (not)
+            ret = FilterBeans.not(ret);
         return ret;
     }
 
@@ -165,6 +170,9 @@ public class SqlExprToFilterBeanTransformer {
         String name = getName(expr.getExpr());
 
         List<Object> values = expr.getValues().stream().map(this::getValue).collect(Collectors.toList());
+        // R1.6c / P1-2.2-011：not in 语义补全
+        if (expr.getNot())
+            return FilterBeans.notIn(name, values);
         TreeBean in = FilterBeans.in(name, values);
         in.setLocation(expr.getLocation());
         return in;

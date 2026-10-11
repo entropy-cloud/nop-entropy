@@ -43,9 +43,11 @@ CREATE TABLE nop_job_schedule(
   dispatch_mode VARCHAR(30) default 'single'   ,
   partition_count INT4 default 1   ,
   priority INT4 default 0   ,
+  constraint UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME unique (namespace_id,group_id,job_name),
   constraint PK_nop_job_schedule primary key (job_schedule_id)
 );
 
+create index IX_NOP_JOB_SCHEDULE_SCAN on nop_job_schedule (schedule_status,partition_index,next_fire_time) ;
 CREATE TABLE nop_job_task_log(
   job_task_log_id VARCHAR(32) NOT NULL ,
   job_task_id VARCHAR(32) NOT NULL ,
@@ -66,6 +68,8 @@ CREATE TABLE nop_job_task_log(
   constraint PK_nop_job_task_log primary key (job_task_log_id)
 );
 
+create index IX_NOP_JOB_TASK_LOG_TASK_TIME on nop_job_task_log (job_task_id,log_time) ;
+create index IX_NOP_JOB_TASK_LOG_TIME on nop_job_task_log (log_time) ;
 CREATE TABLE nop_job_fire(
   job_fire_id VARCHAR(32) NOT NULL ,
   job_schedule_id VARCHAR(32) NOT NULL ,
@@ -95,9 +99,15 @@ CREATE TABLE nop_job_fire(
   remark VARCHAR(200)  ,
   source_fire_id VARCHAR(32)  ,
   dispatch_mode VARCHAR(30)  ,
+  constraint UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE unique (job_schedule_id,scheduled_fire_time,trigger_source),
   constraint PK_nop_job_fire primary key (job_fire_id)
 );
 
+create index IX_NOP_JOB_FIRE_DISPATCH_SCAN on nop_job_fire (fire_status,partition_index,scheduled_fire_time) ;
+create index IX_NOP_JOB_FIRE_SCHEDULE on nop_job_fire (job_schedule_id,scheduled_fire_time) ;
+create index IX_NOP_JOB_FIRE_DISPATCH_TIME on nop_job_fire (fire_status,partition_index,start_time,job_fire_id) ;
+create index IX_NOP_JOB_FIRE_SCHEDULE_STATUS on nop_job_fire (job_schedule_id,fire_status) ;
+create index IX_NOP_JOB_FIRE_SOURCE on nop_job_fire (source_fire_id) ;
 CREATE TABLE nop_job_task(
   job_task_id VARCHAR(32) NOT NULL ,
   job_fire_id VARCHAR(32) NOT NULL ,
@@ -125,9 +135,14 @@ CREATE TABLE nop_job_task(
   cost_memory INT4 default 0   ,
   partition_range VARCHAR(400)  ,
   priority INT4 default 0   ,
+  constraint UK_NOP_JOB_TASK_FIRE_NO unique (job_fire_id,task_no),
   constraint PK_nop_job_task primary key (job_task_id)
 );
 
+create index IX_NOP_JOB_TASK_RUN_SCAN on nop_job_task (task_status,partition_index,create_time) ;
+create index IX_NOP_JOB_TASK_RUN_TIME on nop_job_task (task_status,partition_index,start_time,job_task_id) ;
+create index IX_NOP_JOB_TASK_FIRE on nop_job_task (job_fire_id) ;
+create index IX_NOP_JOB_TASK_STATUS_WORKER on nop_job_task (task_status,worker_instance_id) ;
 
       COMMENT ON TABLE nop_job_schedule IS '调度定义';
                 

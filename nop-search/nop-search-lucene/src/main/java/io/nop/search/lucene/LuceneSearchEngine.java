@@ -23,6 +23,7 @@ import jakarta.annotation.PreDestroy;
 import jakarta.annotation.Nullable;
 import jakarta.inject.Inject;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.charfilter.HTMLStripCharFilterFactory;
 import org.apache.lucene.analysis.core.LowerCaseFilterFactory;
@@ -309,33 +310,31 @@ public class LuceneSearchEngine implements ISearchEngine {
     }
 
     @Override
-    public SearchableDoc getDoc(String docId) {
+    public SearchableDoc getDoc(String topic, String docId) {
+        Guard.notEmpty(topic, "topic");
         Guard.notEmpty(docId, "docId");
 
-        // 优先查有缓存的topic
-        for (String topic : searcherManagers.keySet()) {
-            SearcherManager manager = getSearcherManager(topic);
+        // P1-4.4-S-05（plan 2394）：限定在指定 topic 内查找——docId 是相对路径的 md5，
+        // 不同 topic 会产生相同 docId，跨 topic 遍历取第一个命中即数据串读（且 biz 层
+        // 基于 topic 的访问校验被绕过）。
+        SearcherManager manager = getSearcherManager(topic);
+        try {
+            manager.maybeRefresh();
+            IndexSearcher searcher = manager.acquire();
             try {
-                manager.maybeRefresh();
-                IndexSearcher searcher = manager.acquire();
-
-                try {
-                    Query query = new TermQuery(new Term(FIELD_ID, docId));
-                    // 只查第一个
-                    TopFieldDocs docs = searcher.search(query, 1, Sort.RELEVANCE);
-                    if (docs.scoreDocs != null && docs.scoreDocs.length > 0) {
-                        int docNum = docs.scoreDocs[0].doc;
-                        Document luceneDoc = searcher.storedFields().document(docNum);
-                        return convertDocumentToSearchableDoc(luceneDoc);
-                    }
-                } finally {
-                    manager.release(searcher);
+                Query query = new TermQuery(new Term(FIELD_ID, docId));
+                TopFieldDocs docs = searcher.search(query, 1, Sort.RELEVANCE);
+                if (docs.scoreDocs != null && docs.scoreDocs.length > 0) {
+                    int docNum = docs.scoreDocs[0].doc;
+                    Document luceneDoc = searcher.storedFields().document(docNum);
+                    return convertDocumentToSearchableDoc(luceneDoc);
                 }
-            } catch (IOException e) {
-                throw NopException.adapt(e);
+            } finally {
+                manager.release(searcher);
             }
+        } catch (IOException e) {
+            throw NopException.adapt(e);
         }
-        // 若所有topic找完没找到
         return null;
     }
 
@@ -853,7 +852,7 @@ public class LuceneSearchEngine implements ISearchEngine {
 
             LOG.info("nop.search.bulk-update:topic={},count={}", topic, docs.size());
         } catch (Exception e) {
-            rollback(writer);
+            rollback(topic, writer);
             throw NopException.adapt(e);
         }
     }
@@ -868,8 +867,10 @@ public class LuceneSearchEngine implements ISearchEngine {
                     FIELD_FILE_SIZE, new PointsConfig(NumberFormat.getNumberInstance(), Long.class)
             ));
 
+            // P1-4.4-S-02（plan 2394）：零子句 BooleanQuery 匹配 0 文档（Lucene 语义），
+            // 以 MUST 加入会使整体恒空——空 query 的「Match all」意图必须用 MatchAllDocsQuery
             Query mainQuery = StringHelper.isEmpty(request.getQuery())
-                    ? new BooleanQuery.Builder().build() // Match all if no query
+                    ? new MatchAllDocsQuery()
                     : parser.parse(request.getQuery(), FIELD_CONTENT);
 
             BooleanQuery.Builder finalQueryBuilder = new BooleanQuery.Builder()
@@ -1108,7 +1109,7 @@ public class LuceneSearchEngine implements ISearchEngine {
 
             LOG.info("nop.search.remove-docs:topic={},count={}", topic, ids.size());
         } catch (Exception e) {
-            rollback(writer);
+            rollback(topic, writer);
             throw NopException.adapt(e);
         }
     }
@@ -1148,7 +1149,22 @@ public class LuceneSearchEngine implements ISearchEngine {
         LOG.info("nop.search.remove-topic:topic={}", topic);
     }
 
-    protected void rollback(IndexWriter writer) {
+    /**
+     * P1-4.4-S-04（plan 2394）：IndexWriter.rollback() 语义即「关闭且不提交」——writer
+     * 不可再用。失败路径必须先把 writer/SearcherManager 从缓存 map 移除再 rollback，
+     * 否则 getIndexWriter 持续返回已关闭 writer，单条坏文档即可永久打死整个 topic
+     * （AlreadyClosedException 直到重启）。条目移除后下次访问按 computeIfAbsent 重建。
+     */
+    protected void rollback(String topic, IndexWriter writer) {
+        SearcherManager manager = searcherManagers.remove(topic);
+        if (manager != null) {
+            try {
+                manager.close();
+            } catch (IOException e) {
+                LOG.error("nop.search.close-searcher-manager-fail", e);
+            }
+        }
+        indexWriters.remove(topic);
         try {
             writer.rollback();
         } catch (Exception e) {

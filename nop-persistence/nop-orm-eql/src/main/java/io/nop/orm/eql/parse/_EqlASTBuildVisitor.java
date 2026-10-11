@@ -842,6 +842,15 @@ public java.util.List<io.nop.orm.eql.ast.SqlDecorator> buildSqlDecorators_(SqlDe
             if(ctx.where != null){
                ret.setWhere((visitSqlWhere(ctx.where)));
             }
+            if(ctx.returnAll != null){
+               ret.setReturnAll((SqlDelete_returnAll(ctx.returnAll)));
+            }
+            if(ctx.returnProjections != null){
+               ret.setReturnProjections((buildSqlProjections_(ctx.returnProjections)));
+            }else{
+               ret.setReturnProjections(Collections.emptyList());
+            }
+            
             ret.normalize();
             ret.validate();
           return ret;
@@ -1088,6 +1097,15 @@ public java.util.List<io.nop.orm.eql.ast.SqlExpr> buildSqlInValues_(SqlInValues_
             if(ctx.select != null){
                ret.setSelect((visitSqlSelect(ctx.select)));
             }
+            if(ctx.returnAll != null){
+               ret.setReturnAll((SqlInsert_returnAll(ctx.returnAll)));
+            }
+            if(ctx.returnProjections != null){
+               ret.setReturnProjections((buildSqlProjections_(ctx.returnProjections)));
+            }else{
+               ret.setReturnProjections(Collections.emptyList());
+            }
+            
             ret.normalize();
             ret.validate();
           return ret;
@@ -1879,6 +1897,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
   public abstract boolean SqlCteStatement_recursive(org.antlr.v4.runtime.Token token);
 
   /**
+   * rules: sqlDelete
+   */
+  public abstract boolean SqlDelete_returnAll(org.antlr.v4.runtime.Token token);
+
+  /**
    * rules: SqlInQueryExpr
    */
   public abstract boolean SqlInQueryExpr_not(org.antlr.v4.runtime.Token token);
@@ -1887,6 +1910,11 @@ public java.util.List<io.nop.orm.eql.ast.SqlTableSource> buildTableSources_(Tabl
    * rules: SqlInValuesExpr
    */
   public abstract boolean SqlInValuesExpr_not(org.antlr.v4.runtime.Token token);
+
+  /**
+   * rules: sqlInsert
+   */
+  public abstract boolean SqlInsert_returnAll(org.antlr.v4.runtime.Token token);
 
   /**
    * rules: SqlIsNullExpr,SqlIsNullExpr_isUnknown

@@ -14,6 +14,8 @@
 
     <properties>
         <!-- 该模块为独立服务包，不会被其他项目所依赖，故，不发布至仓库 -->
+        <!-- 休眠勘注（R1.2 / plan 2365，2026-10-09）：休眠态下本模块不构成可部署 HTTP 服务（无 quarkus web 扩展，
+             QuarkusIntegration.start() 有意不启动，见 NopCredentialApplication 注记）。 -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <maven.install.skip>true</maven.install.skip>
         <!-- End -->

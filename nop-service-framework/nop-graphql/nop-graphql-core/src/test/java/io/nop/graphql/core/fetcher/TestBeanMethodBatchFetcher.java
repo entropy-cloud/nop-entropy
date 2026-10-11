@@ -7,7 +7,6 @@
  */
 package io.nop.graphql.core.fetcher;
 
-import java.util.concurrent.CompletionException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.graphql.core.IDataFetchingEnvironment;
 import io.nop.graphql.core.IGraphQLExecutionContext;
@@ -16,6 +15,7 @@ import org.dataloader.DataLoaderFactory;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.concurrent.CompletionException;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CyclicBarrier;

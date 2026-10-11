@@ -123,7 +123,11 @@ public class LocalToolFileSystem implements IToolFileSystem {
 
         int maxLen = maxLineLength > 0 ? maxLineLength : Integer.MAX_VALUE;
         List<Line> lines = new ArrayList<>();
-        int[] totalLines = {0};
+
+        // P1-6.7-003（plan 2399）：totalLines 必须是文件真实总行数（契约 read-file.tool.xml）——
+        // 此前填请求值 toLine（假总行数，AI 消费方据假值提前终止即漏读）。
+        int realTotalLines = countLines(path, Integer.MAX_VALUE);
+
 
         Reader reader = null;
         try {
@@ -140,7 +144,7 @@ public class LocalToolFileSystem implements IToolFileSystem {
             IoHelper.safeClose(reader);
         }
 
-        return new LineResult(path, lines.isEmpty() ? 0 : toLine, fromLine, Math.min(toLine, fromLine + lines.size() - 1), lines);
+        return new LineResult(path, realTotalLines, fromLine, Math.min(toLine, fromLine + lines.size() - 1), lines);
     }
 
     @Override
@@ -350,6 +354,12 @@ public class LocalToolFileSystem implements IToolFileSystem {
         int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
         Pattern regex = Pattern.compile(pattern, flags);
         File dir = resolveFile(searchDir);
+        // P1-6.7-004（plan 2399）：path 为文件时直接 grepInFile（grep.tool.xml 契约
+        // 「目标文件或目录路径」）——此前对文件路径静默返回空（假阴性）。
+        if (dir.exists() && dir.isFile()) {
+            grepInFile(dir, searchDir, regex, maxMatchesPerFile, result);
+            return result;
+        }
         if (!dir.exists() || !dir.isDirectory()) {
             return result;
         }

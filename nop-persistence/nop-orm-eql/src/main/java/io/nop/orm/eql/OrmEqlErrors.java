@@ -30,11 +30,15 @@ public interface OrmEqlErrors {
     String ARG_LEFT_SOURCE = "leftSource";
     String ARG_RIGHT_SOURCE = "rightSource";
     String ARG_PROP_PATH = "propPath";
+    String ARG_OPERATOR = "operator";
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_COL_NAME = "colName";
     String ARG_FUNC_NAME = "funcName";
     String ARG_WINDOW_NAME = "windowName";
     String ARG_ARG_COUNT = "argCount";
+
+    // Plan 2380：upsert 冲突键列清单（逗号拼接的 prop 名）
+    String ARG_CONFLICT_COLUMNS = "conflictColumns";
     String ARG_MIN_ARG_COUNT = "minArgCount";
     String ARG_MAX_ARG_COUNT = "maxArgCount";
     String ARG_DIALECT = "dialect";
@@ -140,6 +144,14 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_UNKNOWN_ALIAS = define("nop.err.eql.unknown-alias", "未知的实体别名[{alias}]", ARG_ALIAS, ARG_PROP_PATH);
 
+    ErrorCode ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE = define(
+            "nop.err.eql.collection-operator-not-allowed-here",
+            "集合操作符[{operator}]仅支持在select语句的where子句中使用，当前位置不支持", ARG_OPERATOR);
+
+    ErrorCode ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED = define(
+            "nop.err.eql.dml-prop-join-not-supported",
+            "update/delete语句中不支持属性路径隐式join，请改用相关子查询或显式关联条件", ARG_PROP_PATH);
+
     ErrorCode ERR_EQL_OWNER_NOT_REF_TO_ENTITY = define("nop.err.eql.owner-not-ref-to-entity", "属性表达式的owner必须是实体对象");
 
     ErrorCode ERR_EQL_JOIN_RIGHT_SOURCE_MUST_BE_PROP_PATH_OF_LEFT_SOURCE = define(
@@ -229,6 +241,17 @@ public interface OrmEqlErrors {
 
     ErrorCode ERR_EQL_FIELD_NOT_PROP =
             define("nop.err.eql.field-not-prop", "字段不是实体上的属性:{fieldName}", ARG_FIELD_NAME);
+
+    // Plan 2380：upsert 冲突键的结构性校验失败。与"方言能力不足"（ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE）
+    // 是不同诊断类别——复用后者会让用户朝错误方向排查。
+    // 触发场景：①冲突键列集未落在写入列清单内；②冲突键列集既不匹配任何已声明的唯一键也不匹配主键；
+    // ③无主键实体使用了 upsert。消息按 AGENTS.md 约定用英文（本文件历史码串为中文，属既有遗留）。
+    ErrorCode ERR_EQL_INVALID_CONFLICT_COLUMNS =
+            define("nop.err.eql.invalid-conflict-columns",
+                    "Upsert conflict columns [{conflictColumns}] are invalid for entity [{entityName}]: "
+                            + "they must be a subset of the insert column list and must match one of the "
+                            + "entity's declared unique keys or its primary key",
+                    ARG_CONFLICT_COLUMNS, ARG_ENTITY_NAME);
 
     ErrorCode ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE =
             define("nop.err.eql.dialect-not-support-feature", "数据库方言[{dialect}]不支持特性[{feature}]",

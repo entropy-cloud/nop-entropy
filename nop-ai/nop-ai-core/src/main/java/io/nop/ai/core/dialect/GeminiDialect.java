@@ -529,17 +529,21 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
 
         List<Map<String, Object>> parts = new ArrayList<>();
 
-        String textContent = message.getContent();
-        if (textContent != null && !textContent.isEmpty()) {
-            Map<String, Object> textPart = new LinkedHashMap<>();
-            textPart.put("text", textContent);
-            parts.add(textPart);
-        }
-
         if (message instanceof ChatReasoningMessage) {
+            // P1-6.7-002（plan 2399）：reasoning 只发 thinking 载荷——不再双发裸文本 text part。
             Map<String, Object> thinkingPart = new LinkedHashMap<>();
             thinkingPart.put("text", "<thinking>" + message.getContent() + "</thinking>");
             parts.add(thinkingPart);
+        } else if (message instanceof ChatToolCallMessage) {
+            // P1-6.7-002（plan 2399）：functionCall 字段承载调用参数——不把 arguments JSON
+            // 重复置入 text part。
+        } else {
+            String textContent = message.getContent();
+            if (textContent != null && !textContent.isEmpty()) {
+                Map<String, Object> textPart = new LinkedHashMap<>();
+                textPart.put("text", textContent);
+                parts.add(textPart);
+            }
         }
 
         if (message instanceof ChatToolCallMessage) {

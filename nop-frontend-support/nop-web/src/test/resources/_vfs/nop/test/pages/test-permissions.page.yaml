@@ -1,0 +1,6 @@
+page: x
+xui:permissions: p1
+children:
+  - component: div
+    xui:permissions: p1
+  - component: span

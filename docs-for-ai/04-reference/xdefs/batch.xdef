@@ -124,7 +124,6 @@
         -->
         <orm-reader xdef:name="BatchOrmReaderModel" batchLoadProps="csv-list" partitionIndexField="prop-path"
                     entityName="class-name">
-            <eql>xpl-sql</eql>
             <query>xpl-node</query>
         </orm-reader>
 

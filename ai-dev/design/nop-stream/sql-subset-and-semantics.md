@@ -170,3 +170,18 @@ owner 指令解除 WI16 transform 形态延期（vision §六 2026-10-10 条目�
 | id 语义 | 编译器自命名（前缀 `s`） | builder 以顶点 id 前缀改名去重（transforms/edges/registries+引用同步） |
 
 锚点：`StreamSqlCompiler.compileTransform`、`StreamModelDslBuilder.expandSqlTransforms`；测试 `TestSqlTransformFragmentCompile`/`TestSqlTransformExpansion`/`TestSqlTransformE2E`。
+## 9. sum 聚合数值提升契约（plan 2327，P0-2.8-001 修复裁定）
+
+> 裁定日期：2026-10-05。来源：full-code-review 2.8 首审 P0-2.8-001 + dim10-10（连带修复）。
+
+**契约**：`sum` 聚合的数值语义不因输入类型分布改变。累加器为三通道精确累加器 `{long, double, BigDecimal}` + 双单调旗标 `sawFloating`/`sawDecimal`；结果阶梯：`sawDecimal → BigDecimal`（三槽归一相加）、else `sawFloating → Double`（long 槽并入）、else `Long`、else `null`。旗标一经置位不回落——消除旧实现的 0.0 类型塌缩。
+
+**强制裁定（对抗审查 F4 两分叉）**：
+1. BigDecimal/BigInteger 超 double 域（≥1e308）不产生静默 Infinity：BigDecimal 通道精确累加；若混入 double 记录，`BigDecimal.valueOf(double)` 对 Infinity 抛 NumberFormatException（fail-loud，非静默）。
+2. long + BigDecimal 混流：sawDecimal 优先，输出 BigDecimal（回归钉 sumLongPlusBigDecimalMixRuling）。
+
+**merge 契约**：三槽各自相加 + 双旗标 OR（SumAgg.merge 与 SqlRowCompositeFunction 委托链同步；回归钉 sumMixedMergeCombinesAllSlotsAndFlags）。
+
+**静态契约不变量**：`StreamSqlExprCompiler.aggregateResultType` 与 `TestStreamSqlAggregations.resultTypesFollowD7StyleRules` 零改动——schema DECIMAL 绑定在 SQL 子集外，BigDecimal 只经无型 Map 记录到达，静态类型规则天然不受影响。
+
+**边界**：MinMaxAgg 混型 CCE（dim10-09，P2）为独立条目不在本契约；Avg/Count 混型行为已正确（复核探针实测干净）。

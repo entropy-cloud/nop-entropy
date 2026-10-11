@@ -41,7 +41,7 @@
         </prop>
         <prop name="status" displayName="契约状态" propId="5" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" dict="meta/contract-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/contract-status"/>
         </prop>
         <prop name="ownerUserId" displayName="契约所有者" propId="6" i18n-en:displayName="Owner User Id" queryable="true"
               sortable="true" insertable="true" updatable="true">

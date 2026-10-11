@@ -130,4 +130,58 @@ public class TestDefaultBackgroundTaskRegistry {
         assertEquals(DefaultBackgroundTaskRegistry.OUTPUT_TAIL_LIMIT,
                 registry.readOutput(taskId).length(), "captured tail is bounded");
     }
+
+    /**
+     * P1-7.1-001（plan 2398）：FAILED 源的懒重投递——桥回调必须收到真实业务终态
+     * FAILED（非簿记态 NOTIFICATION_FAILED），且重投成功后状态恢复 FAILED
+     * （修复前被无条件改写 COMPLETED——失败任务被永久误报完成）。
+     */
+    @Test
+    void failedSourceLazyRedeliveryKeepsFailedStatusAndPassesRealStatusToBridge() {
+        java.util.List<String> bridgeStatuses = new java.util.ArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger attempts = new java.util.concurrent.atomic.AtomicInteger();
+        DefaultBackgroundTaskRegistry registry = new DefaultBackgroundTaskRegistry((entry, status) -> {
+            bridgeStatuses.add(status);
+            if (attempts.incrementAndGet() == 1) {
+                throw new IllegalStateException("session store down");
+            }
+        });
+        String taskId = registry.submit("bash", "s1", "call-f", 1000L);
+        registry.complete(taskId, IBackgroundTaskRegistry.STATUS_FAILED, "biz failed");
+
+        assertEquals(IBackgroundTaskRegistry.STATUS_NOTIFICATION_FAILED, registry.rawStatus(taskId));
+
+        registry.snapshot(taskId); // 触发懒重投（第二次桥调用成功）
+
+        assertEquals(IBackgroundTaskRegistry.STATUS_FAILED,
+                registry.snapshot(taskId).getStatus(),
+                "FAILED source must stay FAILED after successful redelivery (P1-7.1-001)");
+        assertEquals(IBackgroundTaskRegistry.STATUS_FAILED, bridgeStatuses.get(0),
+                "bridge must receive the real terminal status, not the bookkeeping state");
+        assertEquals(IBackgroundTaskRegistry.STATUS_FAILED, bridgeStatuses.get(1),
+                "redelivery must also carry the real terminal status");
+    }
+
+    /** TIMEOUT 源同型：重投成功后状态保持 TIMEOUT。 */
+    @Test
+    void timeoutSourceLazyRedeliveryKeepsTimeoutStatus() {
+        java.util.List<String> bridgeStatuses = new java.util.ArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger attempts = new java.util.concurrent.atomic.AtomicInteger();
+        DefaultBackgroundTaskRegistry registry = new DefaultBackgroundTaskRegistry((entry, status) -> {
+            bridgeStatuses.add(status);
+            if (attempts.incrementAndGet() == 1) {
+                throw new IllegalStateException("session store down");
+            }
+        });
+        String taskId = registry.submit("bash", "s1", "call-t", 1000L);
+        registry.complete(taskId, IBackgroundTaskRegistry.STATUS_TIMEOUT, "timed out");
+
+        registry.snapshot(taskId);
+
+        assertEquals(IBackgroundTaskRegistry.STATUS_TIMEOUT,
+                registry.snapshot(taskId).getStatus(),
+                "TIMEOUT source must stay TIMEOUT after successful redelivery (P1-7.1-001)");
+        assertEquals(IBackgroundTaskRegistry.STATUS_TIMEOUT, bridgeStatuses.get(1),
+                "redelivery must carry the real TIMEOUT status");
+    }
 }

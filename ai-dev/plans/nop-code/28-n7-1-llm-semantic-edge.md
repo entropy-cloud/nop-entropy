@@ -1,7 +1,7 @@
 # 28 N7.1 语义边 LLM 增强（LlmSemanticEdgeExtractor）
 
-> Plan Status: draft
-> Last Reviewed: 2026-09-28
+> Plan Status: deferred
+> Last Reviewed: 2026-10-10
 > Source: `ai-dev/backlog/nop-code-feature-completion-roadmap.md` N7.1；`ai-dev/design/nop-code/semantic-edge-design.md` §4.3；先例模块 nop-code-core 确定性提取器（NameSimilarityExtractor 等）
 > Related: N4.2（Embedding 客户端已完成——LLM 调用经 nop-ai IChatService）
 
@@ -17,7 +17,7 @@
 - `EdgeConfidence.INFERRED` 用于 LLM 推断边。
 - 确定性提取器 3 个已实现（NameSimilarityExtractor/DocKeywordExtractor/AnnotationPatternExtractor）。
 - nop-ai IChatService：call(ChatRequest, ICancelToken) → ChatResponse.outputText()。
-- **nop-code-service pom 当前不依赖 nop-ai-api**（审查 B1 实证）——Phase 1 需新增该依赖。
+- **nop-code-service pom 现已依赖 nop-ai-api / nop-ai-rag**（2026-10-10 勘正——编制期「当前不依赖 nop-ai-api」的表述已过时；仍无功能 `IChatService` bean，`ChatServiceImpl` 由 nop-ai-core 提供）。Phase 1 的依赖项已满足。
 - `ProjectAnalyzer` 代码路径：`if (!extractor.requiresLlm())` 无条件跳过 LLM 提取器（审查 B2 实证）——**v1 接线裁定 = CodeIndexService 分析完成后显式调用**（不在 nop-code-core 改动）。
 
 ## Goals
@@ -52,11 +52,11 @@ Targets: `nop-code/nop-code-service/src/main/java/io/nop/code/service/semantic/`
 
 - Item Types: `Fix`
 
-- [ ] `LlmEdgeBudget`：maxTokensPerProject 构造参数；`tryConsume(int estimatedTokens) → boolean`；`remaining()`
-- [ ] `LlmEdgeCache`：`getOrCompute(String promptKey, Supplier<String>) → String`，SHA256(prompt) 为键，ConcurrentHashMap
-- [ ] `LlmSemanticEdgeExtractor`：构造注入 `IChatService` + `LlmEdgeBudget` + `LlmEdgeCache` + `confidenceThreshold`（缺省 0.7）；extract() 从 SymbolTable.getAll() 取符号、候选对选取 = qn 前缀匹配（同包/同类内）+ CallGraph 互补边（M1 裁定：社区边界 deferred）；prompt 下发 qn、解析回 getByQualifiedName 回查 symbol.getId()；JSON relation 限定 8 值枚举白名单（M2：未知值 WARN+跳过）；置信度 >= threshold 生成 CodeSemanticEdge(INFERRED, sourceSymbolId=symbol.getId(), directed=false, indexId)；预算耗尽停止
-- [ ] service 接线：`CodeIndexService` 增 `@InjectValue("@cfg:nop.code.llm-semantic.enabled|false")` 开关 + `LlmSemanticEdgeExtractor` 可选注入（`@Inject @Nullable`），分析完成后开关启用时显式调用并合并边
-- [ ] 测试：Stub IChatService 返回确定性 JSON → 验证提取边数量/关系类型/置信度/rationale；缓存命中不重复调 LLM；预算耗尽停止；JSON 解析失败跳过该对（WARN）；confidenceScore < threshold 过滤；未知 relation 跳过（M2）
+- [x] `LlmEdgeBudget`：maxTokensPerProject 构造参数；`tryConsume(int estimatedTokens) → boolean`；`remaining()`（**2026-10-10 delivered-but-unchecked 回填**：`semantic/LlmEdgeBudget.java` live）
+- [x] `LlmEdgeCache`：`getOrCompute(String promptKey, Supplier<String>) → String`，SHA256(prompt) 为键，ConcurrentHashMap（**回填**：`semantic/LlmEdgeCache.java` live）
+- [x] `LlmSemanticEdgeExtractor`：构造注入 `IChatService` + `LlmEdgeBudget` + `LlmEdgeCache` + `confidenceThreshold`（缺省 0.7）；extract() 从 SymbolTable.getAll() 取符号、候选对选取 = qn 前缀匹配（同包/同类内）+ CallGraph 互补边（M1 裁定：社区边界 deferred）；prompt 下发 qn、解析回 getByQualifiedName 回查 symbol.getId()；JSON relation 限定 8 值枚举白名单（M2：未知值 WARN+跳过）；置信度 >= threshold 生成 CodeSemanticEdge(INFERRED, sourceSymbolId=symbol.getId(), directed=false, indexId)；预算耗尽停止（**回填**：`semantic/LlmSemanticEdgeExtractor.java` live）
+- [ ] service 接线（G1-b）：**已移入 `Deferred But Adjudicated`**（见下节）——本项是 P1-7.4-001 的缺口，随后续 successor 计划落地
+- [x] 测试：Stub IChatService（确定性 JSON 回答）→ 候选选取/prompt 构造/JSON 解析/置信度过滤/缓存命中不重复调用/预算超限停止（**回填**：`TestLlmSemanticEdgeExtractor` 7 用例 live）
 
 Exit Criteria:
 
@@ -72,15 +72,15 @@ Targets: docs-for-ai、roadmap、semantic-edge-design.md 增注
 
 - Item Types: `Fix`
 
-- [ ] semantic-edge-design.md §4.3 增注 "已实现（N7.1）"
-- [ ] docs-for-ai/03-modules/nop-code.md 增 LLM 语义边提取节
-- [ ] roadmap N7.1 todo→done + 汇总
-- [ ] check-doc-links exit 0；logs 条目
+- [x] semantic-edge-design.md §4.3 增注 "已实现（N7.1）"（**已在位**；2026-10-10 追注「提取器实现已交付，生产接线 G1-b 见 Deferred」）
+- [ ] docs-for-ai/03-modules/nop-code.md 增 LLM 语义边提取节——**移入 successor**（未接线的类不宜作为正式能力文档；随 successor 接线计划一并落地）
+- [x] roadmap N7.1 todo→done + 汇总（**2026-10-10 勘正**：N7.1 置 `deferred`（非 done），汇总 34/5→33/6，原因列明 G1-b 缺口）
+- [x] check-doc-links exit 0；logs 条目
 
 Exit Criteria:
 
-- [ ] checker exit 0；roadmap N7.1 done
-- [ ] logs 条目已更新
+- [x] checker exit 0；roadmap N7.1 状态已按实勘正（deferred + 汇总同步）
+- [x] logs 条目已更新（2026-10-10 plan 2401/2400 日志）
 
 ## Closure Gates
 
@@ -95,6 +95,13 @@ Exit Criteria:
 - [ ] `./mvnw test -pl nop-code/nop-code-service -am -T 1C` 全绿
 
 ## Deferred But Adjudicated
+
+### G1-b 生产接线（CodeIndexService 消费 LlmSemanticEdgeExtractor）
+
+- Classification: `out-of-scope improvement`（Feature/装配面，非缺陷）
+- Why Not Blocking Closure: 提取器本体（G1/G2/G3 + 单测）已交付；生产接线需要功能 `IChatService` bean（仅 nop-ai-core 提供 `ChatServiceImpl`，nop-code-service 现仅依赖 nop-ai-api/nop-ai-rag）、预算/缓存配置面、边持久化与 `nop.code.llm-semantic.enabled` 开关语义的完整设计，属新能力装配。本 plan 已 `deferred`，P1-7.4-001 的「roadmap done 误导面」已由 plan 2401 双向状态勘正消除（N7.1 → deferred + 汇总同步）。
+- Successor Required: `yes`
+- Successor Path: successor plan 尚未创建；当前仅在 `ai-dev/backlog/nop-code-feature-completion-roadmap.md` N7.1 行登记 successor 归属，待起草 `nop-code-llm-semantic-edge-wiring` plan（含 docs-for-ai 文档节）
 
 ### 异步 BatchExecutor
 
@@ -114,14 +121,14 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: （closure 时填写）
+Status Note: **DEFERRED（2026-10-10，plan 2401 状态勘正）**。G1 提取器 / G2 缓存 / G3 预算与 `TestLlmSemanticEdgeExtractor`（7 用例）已 live；G1-b 生产接线未落地，已移入 `Deferred But Adjudicated` 并登记 successor 归属。本 plan 不再作为 active 执行项；P1-7.4-001 的误导面（roadmap N7.1 `done`）已由 plan 2401 修正为 `deferred` + 汇总同步。
+Completed: 未完成（deferred；G1-b successor 承接）
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （closure 时填写）
-- Evidence: （closure 时填写）
+- Reviewer / Agent: 状态勘正由 plan 2401 独立 closure audit 覆盖（reviewer agent_a9882851 复审 READY；closure 见 plan 2401 Closure 段）
+- Evidence: roadmap N7.1 `done`→`deferred` + 汇总 `done 33 · deferred 6`；本 plan G1/G2/G3/测试勾选回填；G1-b → Deferred + successor 登记
 
 Follow-up:
 
-- （closure 时填写）
+- G1-b 接线 + docs-for-ai nop-code.md 文档节：successor plan（见 Deferred But Adjudicated）

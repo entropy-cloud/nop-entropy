@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<batch x:schema="/nop/schema/task/batch.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:c="c"
+       taskName="processor-order-test" concurrency="1" batchSize="10">
+
+    <loader>
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestProcessorOrderCollector;
+            // 仅首 chunk 返回数据，其后空页终止 chunk 循环（固定列表会导致无限循环）
+            if (TestProcessorOrderCollector.items().isEmpty()) {
+                return ['x'];
+            }
+            return [];
+        ]]></source>
+    </loader>
+
+    <!-- 声明序故意与 order 序相反：order=2 声明在前 -->
+    <processor name="secondByOrder" order="2">
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestProcessorOrderCollector;
+            TestProcessorOrderCollector.add("p2:" + item);
+            consume(item);
+        ]]></source>
+    </processor>
+
+    <processor name="firstByOrder" order="1">
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestProcessorOrderCollector;
+            TestProcessorOrderCollector.add("p1:" + item);
+            consume(item);
+        ]]></source>
+    </processor>
+
+    <consumer name="write">
+        <source><![CDATA[
+            import io.nop.batch.dsl.TestProcessorOrderCollector;
+            items.forEach(item => TestProcessorOrderCollector.add("consumed:" + item));
+        ]]></source>
+    </consumer>
+</batch>

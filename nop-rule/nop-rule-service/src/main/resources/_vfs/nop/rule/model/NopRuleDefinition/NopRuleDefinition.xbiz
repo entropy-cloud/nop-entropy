@@ -3,6 +3,7 @@
 
     <actions>
         <query name="getOutputFieldsEditSchema">
+           <auth permissions="NopRuleDefinition:query|NopRuleDefinition:getOutputFields"/>
            <arg name="ruleId" mandatory="true" type="String" />
            <arg name="selection" kind="FieldSelection"/>
            <arg name="svcCtx" kind="ServiceContext" />

@@ -1,0 +1,143 @@
+# 2358 full-code-review 7.2 nop-stream 增量巡检（CDC WI1–WI8/Debezium 换代/dmlMode 面 + invariant-loop backlog P2 批量标定）
+
+> Plan Status: completed
+> Last Reviewed: 2026-10-08
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 7.2（MA7）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md` + `deep-audit-prompts.md`（维度 04/10/14）
+> Related: **`ai-dev/backlog/nop-stream-cdc-roadmap.md`（CDC WI1–WI8 权威出处——对抗审查 M1 钉定）**；`ai-dev/backlog/nop-stream-invariant-loop-roadmap.md`（闭环飞轮 377 行，Owner Doc——**backlog P2 清单在 Follow-up Backlog 各批次 Status 字段，非 Work Item Status 区**〔对抗审查 m1 指位勘正〕）；`ai-dev/backlog/nop-stream-production-roadmap.md`（40/43 done；Debezium 2.4 基线 item 53）；2.8 报告（stream-sql 首审+预存失败锚 :83）/6.7 批次 c stream 四单元 P1 标定/6.4（stream P0×4 :53）。
+> 机械基线（主 agent 实测 2026-10-08；对抗审查 agent_c66ea00b 复核勘正）：nop-stream/ **2026-09-22..HEAD = 62 提交**（2026-09-26..10-05；**确定性口径沿 2357 先验**：裸 `--since` 时区敏感，对账取确定性超集+偏差登记〔m3〕）。**四套 WI 编号并存（聚焦复核 M1 二次勘正）**：cdc WI1–8（已全 done，权威=`nop-stream-cdc-roadmap.md`）/stream-sql wi11–wi23（`nop-stream-sql-roadmap.md`）/**eql-cross-db-compat WI11**（970f45a0ba，DAO upsert 原语迁 nop-dao，plan `29-eql-wi11-dao-upsert-primitive`）/**multi-engine-comparison WI8**（cdcda8ad45，窗口事件化，plan `2332-wi8-window-events-maxdelay`）——production roadmap 本窗无 WI 编号提交；映射表 Phase 1 落盘。**stream-sql 波 ≈27–29 提交（~45%）**为 2.8 已审域；CDC 收口 3c542f7046 触域外（nop-dependencies kafka 3.5.0→3.9.2/nop-kernel/nop-message）、WI11 迁 UpsertDialect 入 nop-dao。**Debezium 2.4→3.7.0.Final 换代属实**（nop-message/nop-message-debezium/pom.xml:16）；**dmlMode 面= nop-stream-connector-jdbc**（JdbcTwoPhaseCommitSink/Builder/ConnectorFactory，WI5 提交 706a5b8a4c）。
+> **invariant-loop backlog 量级勘正（对抗审查 B1——roadmap 7.2 行「P2×~15」低报 6 倍，记 roadmap 口径缺陷不改文本）**：Follow-up Backlog `Status: todo` **98 行（P3 2 条→open P2 ≈96 条；捆绑条目展开 >120 单元）**。**标定采用 6.9 式批量标定**（非逐条深标定——单会话粒度纪律）：三分类=fixed-by-subsequent-plan（后续 plan/轮已修）/**still-open**（含 P1 级→升级 R1.0；P2 级→P2 裁决台账通道）/watch-only，抽验 ≥20%（≥20 条）含实跑 ≥5。
+> **范围裁定（对抗审查 M2/M3/M4 勘正）**：① **提交级已审域标记**：2.8 收口（plan 2326/2327 修复验证，2026-10-05）前合入的 stream-sql 波提交=已审域登记不重审；其后提交=在审（覆盖账 62=在审 N+已审域登记 M 双记，机械核验）；② **域外触碰登记移交**（2357 M4 规则继承）：nop-dependencies kafka 版本面→平台 BOM 责任面登记、nop-dao UpsertDialect 迁入面登记；③ 巡检维度=**04/10/14**（m2 勘正：2PC/checkpoint/offset 为状态机维度 10 高发面）；④ **发现准入规则（2357 形态）**：增量引入/实质恶化才立条，预存缺陷登记撞车台账；⑤ **预存锚精确归属（对抗审查 M4 勘正）**：TestBatchTaskCheckpoint 实位 nop-batch-core（2.8 自判归 3.4 域）——红测试归因 3.3 台账非本批；**TestStreamConnectorRegistryDiscovery 红为窗内 WI4 引入且 HEAD 仍红（SINGLE_INSTANCE 断言 vs PARALLEL 工厂）=本批最确定在窗发现，必须审计而非豁免**。
+> **方法学裁定**：① 巡检两跳：聚类→逐簇 diff triage；② 发现编号 `P1-7.2-NNN`/`P2-7.2-NNN`；P0 即时通道；③ 撞车检索面=2.8/6.4/6.7/6.9/invariant 各轮 AR 台账/cdc-roadmap；④ 验证协议：发现双锚；Phase 2 still-live 100% 亲读+其余抽验 ≥30%；主 agent 抽查 ≥3 条含 ≥1 实跑；冻结协议三要素（seed=2358+提交簇哈希+backlog 样本表）落盘。
+> **执行分支口径**：以当前工作树为读、以 master 可达性为锚；实跑红先对照 2.8 :83 的 TestStreamConnectorRegistryDiscovery（在窗回归，见上）与 6.4 台账，其余红按 2331 :93 先例归因登记。
+> Draft Review: agent_c66ea00b 首轮 **1 Blocker（B1 backlog open P2 实测 ~96 条〔展开 >120 单元〕vs 主张 ~15——6 倍低报，记 roadmap 口径缺陷）** + 4 Major（M1–M4）+ 4 Minor（m1–m4）——本轮全部修复（详见各节勘正注记）；聚焦复核 9 项 PASS 但发现 M1 修复引入新张冠李戴（production WI11 实为 eql-cross-db-compat WI11；窗内编号实为四套体系），一行修正后二次核认 **PASS 零问题**（commits `4f5ff5c8ce`/`ba822d061a`；跨 worktree plan 文件注记为非阻塞观察）——转 active。
+
+## Purpose
+
+执行 roadmap 工作项 7.2：nop-stream 增量巡检（62 提交：CDC WI1–WI8/Debezium 换代/jdbc-2pc dmlMode 面，按提交级已审域标记划分）+ invariant-loop backlog open P2（~96 条）批量标定，产出报告 `7.2-nop-stream-incremental-audit.md`，仍 live 者进 R1.0 输入。
+
+## Current Baseline
+
+- nop-stream 已有 21 轮 deep/adversarial+23 阶段独立审计+飞轮——本项为增量巡检+backlog 批量标定。
+- 2.8 已首审 stream-sql（收口 2026-10-05）；6.7 已标定 stream 四单元 P1；6.4 已闭 stream P0。
+- 绿色基线：编制期全仓 BUILD SUCCESS；工作树在前序收口 commit 后干净。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/7.2-nop-stream-incremental-audit.md`：摘要 + 增量对账台账（62 提交聚类+三 roadmap WI 映射+已审域标记）+ backlog P2 批量标定台账（~96 条三分类+抽验）+ 发现列表（双锚）+ 域外触碰登记 + 裁决（附录记冻结协议）。
+- 仍 live 者编号进 R1.0 输入（backlog still-open P1 级升级上报）；P0 即时通道。
+- index 登记 7.2 行 + 独立 closure audit + roadmap 7.2 翻 done（closure audit 先于翻 done）。
+
+## Non-Goals
+
+- 已审域提交重审（登记不重审）；stream-sql 重审（2.8 已闭）；飞轮自身运营（归其 mission）；修复执行。
+
+## Scope
+
+### In Scope
+
+- nop-stream/ 62 提交中「在审」提交的 diff 巡检（维度 04/10/14；已审域提交登记）
+- invariant-loop backlog open P2（~96 条）批量标定（三分类+抽验 ≥20% 含实跑 ≥5）
+- 只读输入：git 历史、cdc-roadmap、invariant-loop 台账、2.8/6.4/6.7 报告
+
+### Out Of Scope
+
+- 已审域提交重审；飞轮运营；修复执行；非本窗口增量；域外路径审计（登记移交）。
+
+## Execution Plan
+
+### Phase 1 - 增量对账、巡检与 backlog 标定（2 agent 并行）
+
+Status: completed
+Targets: nop-stream/ 在审增量面 + invariant backlog
+
+- Item Types: `Proof`
+
+- [x] 动手前基线确认：本 plan 已提交（ba822d061a）、`git status` 干净后开始
+- [x] 主 agent 对账落盘（委派对账 agent）：① **62 提交全量清单**（确定性口径零偏差——最早窗内提交距边界 4 天；聚类+**四套 WI 映射表**落盘〔eql WI11 不在 HEAD 窗/multi-engine WI8 在分支——按 subject+commit tree 钉死〕+**提交级已审域标记**〔**覆盖账 62=在审 35+已审域 27 账平**；M=stream-sql 波 26+2.8 收口锚 816a394d12〕+**域外触碰 20/62 登记移交**〔kafka 面仅 3c542f7046〕）② invariant backlog open P2 **98 todo 行=96 P2+2 P3 与先验精确一致**（捆绑展开 ~135 单元；3 个批次头注计数失真登记）③ 冻结协议三要素（seed=2358；clusters `f5d32ea6…`/backlog `a1cd1d0c…`/sample `6452b489…`）④ **分支口径边界登记**：master 侧窗内另有 ≈20 提交不在 HEAD 62 覆盖账（互不为祖先 393/167 分叉）
+- [x] Agent 1「增量面巡检」：在审 35 提交巡检完成——**新发现 2 条**：P1-7.2-001 在窗回归（WI4 工厂 PARALLEL vs 测试 SINGLE_INSTANCE 断言失配，实跑终判红，模块测试门禁恒红；修复方向=同步测试断言禁止回退工厂语义）+P3-7.2-001（JdbcTwoPhaseCommitSink.keyTuple 无类型标定/无 NUL 转义——异键静默折叠丢 op）+7 条 watch-only 观察；**撞车移交 6 项**（含 6.7 P1-6.7-007/008 still-live HEAD 亲读零触碰确认）；CDC 5 提交全量亲读+R 波高危 hunk 逐点核验零 P0 → `_tmp/fcr-7.2-audit-a.md`（覆盖局限如实登记：82d287b9e9 64 文件为逻辑行扫描抽读）
+- [x] Agent 2「backlog 批量标定」：98 行三分类 **fixed-by-subsequent-plan 35 / still-open 35（全 P2 级）/watch-only 28**（含 P3 2 条按规则不深标）；**P1 级升级上报 1 条：AR-06**（DebeziumMessageSource.dispatchEvent 逐 consumer 吞 collect 异常且 offset 前移=静默 CDC 数据丢失，与已修 P1-9 同族；实体在 nop-message-debezium 域外面，归属注记）；深抽 20 条判定分布 fixed 5/open 11/watch 4 零翻案+实跑 5 次 44 用例（43 绿+1 红=在窗回归移交 Agent 1）；open 行内同根归并 4 组 → `_tmp/fcr-7.2-audit-b.md`（R0 误定位偏差登记在案）
+- [x] 主 agent 抽查质量：冻结三件套重放一致（f5d32ea6/a1cd1d0c/6452b489）+ P1-7.2-001 断言失配亲读成立 + AR-06 吞异常模式亲读成立
+- [x] 产物 `_tmp/fcr-7.2-audit-a/b.md` + 聚类清单 + backlog 清单
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（两 agent 一致零 P0 疑似）
+
+Exit Criteria:
+
+- [x] 审计产物落盘；still-live ≥9 行条目；双锚证据
+- [x] 覆盖账 62=35+27 账平；backlog P2 全量三分类（96 条）；样本表可重放
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核与判级收敛
+
+Status: completed
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零事实翻案**——P1-7.2-001 **P1 维持**（三路独立重证：静态失配/在窗历史〔05e81257e6 曾观测该红误归因兄弟 worktree〕/独立实跑复现 `Tests run: 8, Failures: 1` EXIT=1；降档判例不适用——模块门禁恒红全域触发）；**P3-7.2-001 升 P2**（keyTuple 三类碰撞机理双锚+测试盲区互证——P2-6.5-001/6.8-001 判例，触发面窄只挡 P1 不挡 P2）；**AR-06 升级撤销→P2 残余收敛**（机制成立但升级文本在 HEAD 为事实错误——窗内 e20b7cef1b plan 368 R5-CON-02/03 已按 AR-06 建议同形态闭合生产链路，P2-6.6-001 无可达生产路径判例；升级触发=绕过 DebeziumCdcSourceFunction 直接订阅）；backlog 三分类 35/35/28 维持（AR-06 子类残余收敛 9→10）；**升级上报定稿 0 条 P1 级**；抽验 13 条+同根归并 2/2+机械重放全过
+- [x] 主 agent 汇总：四态统一（P3→P2 升档+AR-06 撤销）、台账收敛（报告按终裁落笔）
+
+Exit Criteria:
+
+- [x] 复核结论落盘 `_tmp/fcr-7.2-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: completed
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- [x] 编制 `7.2-nop-stream-incremental-audit.md`；index 登记 7.2 行 + P1-7.2-001 进 P1 汇总 + P2-7.2-001/AR-06/backlog×35 进 P2 台账
+- [x] 定向验证锚点：在窗回归实跑对照在案；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项）；**通过后** roadmap 7.2 翻 `done`；plan 关闭（双 `--strict`）；commit
+
+Exit Criteria:
+
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 巡检口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+
+## Closure Gates
+
+> 只读审计计划（实跑为验证副作用），免除全量构建。
+
+- [x] 报告落盘且在审增量面全覆盖（覆盖账 62=35+27）+ backlog P2 全量三分类
+- [x] 每条发现/标定双锚证据可复现；撞车全量比对留痕（含在窗回归对照）
+- [x] index 计数与报告清单一一对应；仍 live 清单完整进 R1.0 输入（P1-7.2-001；升级上报定稿 0 条 P1 级——AR-06 复核撤销）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 7.2 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（仍 live 修复归 R1.x；backlog still-open P2 级 → P2 裁决台账通道；飞轮继续归其 mission。）
+
+## Closure
+
+Status Note: 工作项 7.2 收口——覆盖账 62=在审 35+已审域 27 账平，backlog 98 行三分类 35/35/28 深抽零翻案，发现 P1-7.2-001（在窗回归，实跑复现）+P2-7.2-001（升档），AR-06 升级复核撤销改 P2 残余收敛，升级上报定稿 0 条 P1 级。独立 closure audit（agent_ff01000b）**一次 PASS 六项全过**，3 Minor 不阻塞（backlog 行数简写 102=98+4 留痕/残余收敛子类基数注记/台账压缩头部块）。
+Completed: 2026-10-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: agent_ff01000b-6832-46e3-a111-2eed2c532d59（独立子 agent，fresh session，只读）
+- Evidence:
+  - 核验 A 证据完整性 PASS：报告齐备；双锚亲证；产物八件在盘吻合（testrun.log 实测含在窗回归红）
+  - 核验 B 计数对应 PASS（csv 模块亲手重算）：62 行/98 行/20 行三 SHA 逐字重合；覆盖账 62=35+27；三分类 35/35/28 逐行重算；抽样公式重放逐位 MATCH；报告=index=P1 汇总 1 行=P2 台账 3 行一一对应；AR-06 撤销+触发在案
+  - 核验 C 引用路径真实性 PASS：4+3 抽验全中（失配断言 :132 唯一性七 connector 核对/keyTuple 双锚/吞异常/文档 :87 PARALLEL）
+  - 核验 D 严重性标定 PASS：P1 维持（全域触发+双实跑）与 P2 升档判例恰当；AR-06 撤销亲证（e20b7cef1b+R5-CON-02/03 护栏 HEAD 在位）
+  - 核验 E 已审域标记合规 PASS：27 M 提交零重审；35 N 全覆盖如实登记分级深度；无静默跳过（偏差全部留痕）
+  - 核验 F 流程状态 PASS：roadmap 翻 done 前 todo；doc-links exit 0 实测
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2358-full-code-review-7.2-nop-stream-incremental-audit.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；backlog still-open 35 走 P2 台账通道（roadmap 规则 #3 允许通道）；watch-only 28 规则 #3 终态
+
+Follow-up:
+
+- P1-7.2-001 修复归 R1.0；P2-7.2-001+AR-06+backlog still-open 35 → R1.0 批量裁决（P2 台账承载）；TestBatchTaskCheckpoint 红归 3.3 台账；飞轮继续归其 mission——无本 plan 自有剩余工作

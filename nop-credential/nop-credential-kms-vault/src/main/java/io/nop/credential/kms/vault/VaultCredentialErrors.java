@@ -31,6 +31,7 @@ public interface VaultCredentialErrors {
     String ARG_ERROR = "error";
     String ARG_KEY_MAPPING = "keyMapping";
     String ARG_MIGRATION_KEY = "migrationKey";
+    String ARG_MIGRATION_KEY_REASON = "migrationKeyReason";
     String ARG_KEY_PROVIDER = "keyProvider";
 
     ErrorCode ERR_CREDENTIAL_VAULT_CONFIG_MISSING = define(

@@ -47,10 +47,13 @@
         @persist [是否持久化保存] 标记为persist的变量会自动保存，支持中断后恢复执行。
         注意 input 缺省 persist=true（步骤输入一般来自上游、需要在恢复时重建），
         而 output 的 persist 见下方 output 节点说明，两者缺省值不同
+        @secret 标记为敏感的属性在任务状态持久化序列化时被排除（DaoTaskStateStore 落库过滤，
+        plan 2380 R1.14 脱敏契约）。注意：secret 属性不会持久化，中断恢复时该属性不可用
         -->
         <input name="!var-name" displayName="string" xdef:name="TaskInputModel" defaultValue="any"
                type="generic-type" mandatory="!boolean=false" role="string" value="t-expr" optional="!boolean=false"
-               xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false">
+               xdef:unique-attr="name" persist="!boolean=true" fromTaskScope="!boolean=false" dump="!boolean=false"
+               secret="!boolean=false">
             <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
             <source>xpl</source>
@@ -64,7 +67,8 @@
         -->
         <output name="!var-name" displayName="string" persist="!boolean=false" value="t-expr"
                 xdef:name="TaskOutputModel" toTaskScope="!boolean=false" type="generic-type"
-                xdef:unique-attr="name" exportAs="var-name" roles="csv-set" dump="!boolean=false">
+                xdef:unique-attr="name" exportAs="var-name" roles="csv-set" dump="!boolean=false"
+                secret="!boolean=false">
             <description>string</description>
             <schema xdef:ref="../schema/schema.xdef"/>
             <source>xpl</source>

@@ -36,7 +36,9 @@ public class CellColExpander extends AbstractCellExpander {
             }
         }
 
-        int startIndex = cell.getColIndex() - cell.getModel().getColExpandOffset();
+        // P1-3.6-001（plan 2384）：展开区域起点与 extendCells/duplicateCell 同语义（+offset），
+        // 此前的减号会在 offset≠0 时删除错位的列
+        int startIndex = cell.getColIndex() + cell.getModel().getColExpandOffset();
         int endIndex = startIndex + cell.getModel().getColExpandSpan();
         ExpandedTable table = cell.getTable();
         // 展开范围可能越过表格边界，需要钳制到实际列数，避免越界

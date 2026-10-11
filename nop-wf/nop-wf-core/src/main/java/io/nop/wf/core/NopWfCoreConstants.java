@@ -39,6 +39,21 @@ public interface NopWfCoreConstants extends _NopWfCoreConstants {
 
     String VAR_SELECTED_STEP_ACTORS = "selectedStepActors";
 
+    /**
+     * P1-3.1-002（plan 2379 Phase 1）：系统动作触发标记——由 wf 调度器（WfTaskScanner）等
+     * 平台内部组件在服务端 IContext 上设置，引擎 allowCallByUser 见此标记放行步骤动作调用。
+     * 该 attr 仅服务端内部可达（RPC 入口 context 由框架构建），用户请求不可伪造。
+     */
+    String ATTR_WF_SYSTEM_ACTION_TRIGGER = "nop.wf.system-action-trigger";
+
+    /**
+     * P1-3.1-001（plan 2379 Phase 2）：引擎审批回调标记——wf *end listener 在回调窗口内
+     * 设置（set→invoke→finally remove，作用域收敛单次回调），approval gate 据此区分
+     * 「引擎合法落点」与「活跃期直调」。与系统动作触发标记分立（语义不同：后者放行
+     * 步骤动作鉴权，前者放行审批 gate）。
+     */
+    String ATTR_WF_ENGINE_CALLBACK = "nop.wf.engine-callback";
+
     String INTERNAL_ACTION_TRANSFER_TO_ACTOR = "_transferToActor_";
 
     String INTERNAL_ADD_ACTOR = "_addActor_";

@@ -12,6 +12,8 @@ import io.nop.stream.core.common.typeinfo.BasicTypeInfo;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.core.exceptions.StreamException;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -231,10 +233,15 @@ public final class StreamSqlAggregation {
             return "sum";
         }
 
-        /** Accumulator: long[0]=integral sum, double[1]=floating sum, Boolean[0]=saw value. */
+        /**
+         * Accumulator slots (plan 2327, P0-2.8-001): [0]=integral sum, [1]=floating sum,
+         * [2]=decimal sum, [3]=saw floating flag, [4]=saw decimal flag, [5]=saw value.
+         * Result ladder: sawDecimal -> BigDecimal, else sawFloating -> Double, else Long,
+         * else null. Flags are monotonic so the result type never collapses back.
+         */
         @Override
         public Object createAccumulator() {
-            return new Object[]{0L, 0.0, Boolean.FALSE};
+            return new Object[]{0L, 0.0, BigDecimal.ZERO, Boolean.FALSE, Boolean.FALSE, Boolean.FALSE};
         }
 
         @Override
@@ -244,9 +251,15 @@ public final class StreamSqlAggregation {
                 return accumulator;
             }
             Object[] acc = SqlAccShapeUtil.asArray(accumulator);
-            acc[2] = Boolean.TRUE;
+            acc[5] = Boolean.TRUE;
             if (v instanceof Double || v instanceof Float) {
+                acc[3] = Boolean.TRUE;
                 acc[1] = SqlAccShapeUtil.asDouble(acc[1]) + ((Number) v).doubleValue();
+            } else if (v instanceof BigDecimal || v instanceof BigInteger) {
+                acc[4] = Boolean.TRUE;
+                BigDecimal dec = (v instanceof BigDecimal) ? (BigDecimal) v
+                        : new BigDecimal((BigInteger) v);
+                acc[2] = ((BigDecimal) acc[2]).add(dec);
             } else {
                 Number n = RecordColumnAccess.toNumber(v, "sum operand");
                 acc[0] = SqlAccShapeUtil.asLong(acc[0]) + n.longValue();
@@ -257,10 +270,19 @@ public final class StreamSqlAggregation {
         @Override
         public Object getResult(Object accumulator) {
             Object[] acc = SqlAccShapeUtil.asArray(accumulator);
-            if (!(Boolean) acc[2]) {
+            if (!(Boolean) acc[5]) {
                 return null;
             }
-            return SqlAccShapeUtil.asDouble(acc[1]) != 0.0 ? acc[1] : acc[0];
+            if ((Boolean) acc[4]) {
+                BigDecimal sum = (BigDecimal) acc[2];
+                if ((Boolean) acc[3])
+                    sum = sum.add(BigDecimal.valueOf(SqlAccShapeUtil.asDouble(acc[1])));
+                return sum.add(BigDecimal.valueOf(SqlAccShapeUtil.asLong(acc[0])));
+            }
+            if ((Boolean) acc[3]) {
+                return SqlAccShapeUtil.asDouble(acc[1]) + SqlAccShapeUtil.asLong(acc[0]);
+            }
+            return acc[0];
         }
 
         @Override
@@ -269,7 +291,10 @@ public final class StreamSqlAggregation {
             Object[] y = SqlAccShapeUtil.asArray(b);
             x[0] = SqlAccShapeUtil.asLong(x[0]) + SqlAccShapeUtil.asLong(y[0]);
             x[1] = SqlAccShapeUtil.asDouble(x[1]) + SqlAccShapeUtil.asDouble(y[1]);
-            x[2] = (Boolean) x[2] || (Boolean) y[2];
+            x[2] = ((BigDecimal) x[2]).add((BigDecimal) y[2]);
+            x[3] = (Boolean) x[3] || (Boolean) y[3];
+            x[4] = (Boolean) x[4] || (Boolean) y[4];
+            x[5] = (Boolean) x[5] || (Boolean) y[5];
             return x;
         }
     }

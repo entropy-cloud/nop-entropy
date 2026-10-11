@@ -373,4 +373,39 @@ class TestFeishuClient {
             errors.add(error);
         }
     }
+
+    // ==================== P1-6.8-004（plan 2392）DATA→ACK wire 契约 ====================
+
+    /**
+     * DATA 帧处理后必须按 wire 协议回 ACK 帧：headers 原样复制（携带 message_id/log_id
+     * 等回执定位信息）、requestId 沿用；下游消息携带透传的 headers。修复前零 ACK 回发
+     * 且 headers 丢失（服务端视为未确认→重复投递/反复断连）。
+     */
+    @Test
+    void dataFrameIsAcknowledgedAndHeadersPassThrough() {
+        client.start(creds(), handler);
+
+        java.util.Map<String, String> headers = new java.util.LinkedHashMap<>();
+        headers.put("type", "data");
+        headers.put("message_id", "om_abc123");
+        String payload = "{\"receive_id_type\":\"chat_id\",\"receive_id\":\"oc_1\","
+                + "\"msg_type\":\"text\",\"content\":\"{\\\"text\\\":\\\"hi\\\"}\","
+                + "\"sender_id\":\"ou_sender\",\"chat_type\":\"p2p\"}";
+        FeishuStreamFrame dataFrame = new FeishuStreamFrame(
+                FeishuFrameType.DATA.getMethod(), headers,
+                payload.getBytes(StandardCharsets.UTF_8), "req-9");
+        transport.deliver(FeishuPbCodec.encode(dataFrame));
+
+        assertEquals(1, handler.messages.size(), "DATA frame delivered to handler");
+        java.util.Map<String, String> inboundHeaders = handler.messages.get(0).getHeaders();
+        assertNotNull(inboundHeaders, "inbound message must carry frame headers (P1-6.8-004)");
+        assertEquals("om_abc123", inboundHeaders.get("message_id"), "headers pass through");
+
+        // handshake(1) + ACK(1) = 2；ACK 为最新帧且契约字段齐备
+        assertEquals(2, transport.sentFrames.size(), "exactly one ACK frame sent after DATA");
+        FeishuStreamFrame ack = FeishuPbCodec.decode(transport.sentFrames.get(1));
+        assertEquals(FeishuFrameType.ACK.getMethod(), ack.getMethod(), "reply must be an ACK frame");
+        assertEquals("om_abc123", ack.getHeaders().get("message_id"), "ACK carries the original headers");
+        assertEquals("req-9", ack.getRequestId(), "ACK reuses the original requestId");
+    }
 }

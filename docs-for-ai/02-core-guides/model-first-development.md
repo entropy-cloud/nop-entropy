@@ -573,6 +573,17 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 - **投影别名与行映射（两种组合二选一）**：EQL 结果集字段名大小写敏感且别名原样保留。(a) `BeanRowMapper.of(clazz, true)`（camelCase 模式）时投影别名必须 snake_case——该模式先整体小写化 key（`as totalPromptTokens` 会变成 `totalprompttokens` 而 miss 属性）；(b) `BeanRowMapper.of(clazz, false)`（缺省模式，key 原样精确匹配）时 camelCase 别名可直接命中同名属性。无别名的裸列名字段名即属性名原样。
 - 条件更新/删除可用 `SQL.begin().update(实体名).set()...where()...` + `orm().executeUpdate`，affected rows 原样返回；`update o set o.x = o.x + 1` 自引用算术与 `where ... is null` 条件守卫均支持（探针实证，记录见 ai-dev 调研文档）。结构化 EQL 管理优先用 `sql-lib.xml`（`eql` 类型 item 走同一编译链，debug 模式自动语法校验，经 mapper 接口调用）。
 
+## detach 与 evict 的会话契约（R1.5 / P1-2.1-001）
+
+`IOrmSession` 上有两个「移出会话」入口，缓存语义相同：
+
+| 入口 | 关联处理 | 语义 |
+|---|---|---|
+| `evict(entity)` | 不级联 | 单实体从一级缓存移除 |
+| `detach(entity, selection)` | 按 selection 级联 detach **已加载**关联实体（未初始化 proxy 关联保持原状、留在 session） | 主实体与级联实体均移出一级缓存 |
+
+两者共同契约：移出后**不再参与 flush**（移出前的未提交修改与移出后的新修改均不落库）、`contains`/`get` 不再命中、已关闭 session 上调用响亮失败。需要「丢弃未提交修改并脱离会话」时用任一入口均可；需要保留未提交修改请先 flush 再 detach。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。

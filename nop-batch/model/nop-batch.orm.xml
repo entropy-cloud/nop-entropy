@@ -130,6 +130,7 @@
                      对照nop-job的UK_NOP_JOB_*惯例；查询语义对照DaoBatchStateStore.loadExistingTask） -->
                 <unique-key name="UK_NOP_BATCH_TASK_NAME_KEY"
                             columns="taskName,taskKey"
+                            constraint="UK_NOP_BATCH_TASK_NAME_KEY"
                             i18n-en:displayName="Unique Task Key Per Task Name"/>
             </unique-keys>
             <indexes>

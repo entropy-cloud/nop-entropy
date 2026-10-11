@@ -120,7 +120,7 @@ public class TestCompactionDataPathway {
         };
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -161,7 +161,7 @@ public class TestCompactionDataPathway {
                 new CompactionResult(ctx.getSessionId(), 100, 100, ctx.getMessages().size(), null, null);
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -200,7 +200,7 @@ public class TestCompactionDataPathway {
                 new CompactionResult(ctx.getSessionId(), 100, 50, 0, null, Collections.emptyList());
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -243,7 +243,7 @@ public class TestCompactionDataPathway {
         };
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();
@@ -317,7 +317,7 @@ public class TestCompactionDataPathway {
         };
 
         ChatOptionsModel chatOptions = new ChatOptionsModel();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setContextLength(1000);
         agentModel.setChatOptions(chatOptions);
 
         AgentExecutionContext ctx = buildContext();

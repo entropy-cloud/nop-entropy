@@ -977,6 +977,95 @@ roadmap BUG-13 点名的 14 个存量死标志，WI10b Phase 0 终裁后全部�
 
 测试载体（全部真实执行，无 mock）：`TestUpsertStatements`（静态面 10 例：三方言形态/key-only/保留字转义/三段判定逐段隔离/双链遍历/结构化字段纪律）、`TestUpsertPrimitiveH2`（H2 真库 9 例：插入/更新/冲突两腿/混合批/NATIVE_ONLY 响亮/key-only 拒绝/check 约束不误判）、`TestDialect#testDb2DuplicateKeyTranslationChain`（DB2 `-803` 结构证据）。
 
+### EQL `upsert` 语句与 `insert`/`delete ... returning`（2026-10-10 plan 2380 落地）
+
+EQL 语法层的**单语句 upsert**（原先只在 `nop-dao` 批量原语里可用）与**写语句 returning** 已落地。
+它们与 DAO 原语并存不互斥：语法层服务于 sql-lib / BizModel 的声明式单语句写路径，DAO 原语服务于
+绕过 ORM 的批量 JDBC 直写。
+
+#### `upsert` 语法
+
+```sql
+upsert into AppUser (id, name, age) values (?, ?, ?)
+    on conflict (id)
+    do update set id = ?, name = ?, age = ?
+```
+
+未撞键时按 `insert` 插入本行；撞键时只执行 `do update set` 中的赋值。整条语句在目标库侧是单语句原子的。
+
+| 目标方言 | 生成形态 | 附加约束 |
+|---|---|---|
+| PostgreSQL / postgis / duckdb | `insert into T (cols) values (…) on conflict (k) do update set …` | 无 |
+| MySQL / MariaDB | `insert into T (cols) values (…) on duplicate key update …` | **冲突键列表被丢弃**（MySQL 查表上任意唯一键） |
+| H2 / h2gis | `merge into T (cols) key (k) values (…)` | **更新集列名集合必须等于列清单列名集合**，且 `do update set` 右值**不得含列引用** |
+| 其余全部 | — | 编译期 `nop.err.eql.dialect-not-support-feature`（`feature=upsert`） |
+
+⚠️ **四条编译期硬校验**（它们的存在意义就是把跨库行为分叉从运行期的静默错误提前成响亮失败）：
+
+1. **方言能力门**：`supportUpsert` 为 false（含未配置）⇒ `feature=upsert`。
+   该能力位的取值**必须与 `UpsertStatements.resolveUpsertStyle` 逐方言一致**——形态解析器返回 null 的方言必须配 false。
+   ⚠️ 方言 XML 的 `<features>` 是**逐属性合并**的，子方言会从父方言继承 `true`；
+   `postgis` / `duckdb` 因此已随 plan 2380 纳入 `UpsertStyle` 的 PG 族前缀表。
+2. **冲突键必须 ⊆ 写入列清单**：H2 的 `MERGE … KEY(k)` 要求键列在 `VALUES` 列清单内，PG / MySQL 不要求——
+   不统一就是跨库行为分叉。
+3. **冲突键必须等于实体声明的某个唯一键列集或主键列集**：MySQL 族**完全忽略**冲突键列表，改为查表上任意唯一键；
+   若声明的冲突键在表上并非唯一键，MySQL 会**静默退化为普通插入**（不报错、语义与意图不符），PG 则在运行期报"约束不存在"。
+   比较域一律是 **prop 名**（不是列 code）。唯一键经 `IEntityModel.getUniqueKeyPropNames()` 读取（`default` 方法，
+   只含唯一键、不含主键、不含隐式租户列；实体没声明唯一键时只允许主键作冲突键）。
+4. **H2 形态约束的两条必要条件**（`feature=upsertPartialUpdate`）：
+   - 更新集 ⊊ 列清单 ⇒ H2 会把未列出的列一并覆盖为新值（**静默语义分歧**）；
+   - 更新集 ⊋ 列清单 ⇒ H2 无法表达该赋值；
+   - **右值引用列**（如 `do update set b = b + 1`）⇒ H2 的 `MERGE … KEY … VALUES` 没有更新子句，
+     `VALUES` 行内无法引用被更新行的旧值（PG / MySQL 都可以，MySQL 的裸列名指旧行值）。
+     **这条单靠前两条拦不住**——更新集与列清单完全相同时仍会通过前两条，因此必须独立成条件。
+
+冲突键两类失败共用 `nop.err.eql.invalid-conflict-columns`，参数 `conflictColumns`（用户书写的 prop 名，逗号拼接）与 `entityName`。
+
+**H2 的参数位说明**：`MERGE … KEY … VALUES` 形态**只有 `values(…)` 的参数进入 SQL**，`do update set` 的
+参数不参与绑定。因为编译期已强制更新集 == 列清单且右值无列引用，H2 按列清单从 `VALUES` 行整列更新，
+语义与用户书写的更新集等价。
+
+**v1 边界**：只支持 `VALUES` 源（`upsert into T (…) select …` 未支持）；**不提供 `excluded` 伪表**
+（PG 上惯用的 `ON CONFLICT … DO UPDATE SET c = EXCLUDED.c` 在 EQL 里写成 `set c = ?`）——
+引入 `excluded` 会把 H2 分支从"受限可用"降级为"一律不可用"。
+
+`upsert` 与 `conflict` 是 **unreserved 关键字**（`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 定义 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` 登记），
+在列名 / 表名 / 别名位置仍可解析；语句起始无歧义（与 `delete`/`insert` 首 token 不同）。
+
+测试载体：`TestEqlUpsertGrammarParse`（解析矩阵 19 例）、`TestEqlUpsertCompileGate`（三方言 lowering +
+四条编译期门 19 例，负向一律断言到错误码 + 参数）、`TestH2UpsertCompileEndToEnd`（H2 真库端到端 3 例）、
+`TestDialectUpsertAndReturningFlags`（方言取值与形态解析一致性 8 例）。
+
+#### `insert ... returning` / `delete ... returning`
+
+```sql
+insert into AppUser (id, name) values (?, ?) returning id, name
+delete from AppUser o where o.id = ? returning o.id, o.name
+insert into AppUser (id, name) values (?, ?) returning *
+```
+
+- 三个能力位**分立**：`supportReturningForUpdate` / `supportReturningForInsert` / `supportReturningForDelete`。
+  分立的原因是方言支持集合不同——**duckdb 支持 insert/delete 的 RETURNING 却不支持 update 的**，
+  合并成一个标志会引入假阴性。既有 `supportReturningForUpdate` 的方言取值**未被本次扩展改变**（BC）。
+- 值现状：postgresql / postgis / duckdb 三新位 `true`；其余方言未配置 = 保守 false（编译期报错，
+  `feature` 参数分别为 `supportReturningForInsert` / `supportReturningForDelete`）。
+- `returning *` 在编译期展开为实体全部列投影；投影可含函数等非列表达式（走与 select 一致的类型解析）。
+- **returning 投影不带生成别名**（普通 SELECT 投影仍带 ` as c1` 形式的生成别名）。该判定的实现**只能按
+  三种写语句节点逐一列举**，**禁止**写成 `instanceof SqlDmlStatement`——`SqlSelect` 同继承该基类，
+  那样会静默打掉所有 SELECT 投影别名且既有断言不会转红。
+- 三个写语句的 returning 处理在 AST 上是同名同型的 `returnAll` / `returnProjections`（接口
+  `ISqlReturningSupport`），门控 / `*` 展开 / 类型解析 / 打印**共用一条路径**，不复制第二份。
+- **取回返回行必须显式声明**：sql-lib 的执行方式探测按 SQL 文本是否以 `select` 开头分流
+  （`SqlItemModel.invoke`），写语句默认落到"执行"分支并**丢弃返回行**——要拿行须显式写
+  `sqlMethod="findAll"` / `"findFirst"`。v1 不改探测逻辑。
+
+测试载体：`TestEqlInsertDeleteReturning`（11 例：正/负向方言矩阵、`returning *` 展开、三标志分立的
+显式断言、别名抑制的**正反两面**断言——反向断言"普通 SELECT 仍带生成别名"是必需项）。
+`insert/delete` 的**真执行**证据不可得（CI 无 PostgreSQL、Testcontainers 默认关闭），默认 CI 覆盖的是
+编译期门控 + SQL 文本断言。
+
+#### 与「明确不做的事」的关系
+
 ### `MERGE`/`UPDATE..FROM`：显式移出（2026-10-05 WI11 裁定，EQL 语法层不做）
 
 EQL 语法层**不做** `MERGE` 语句语法（与「明确不做的事」UPSERT 不进语法层同批裁定；跨库 upsert 语义由上文 DAO 批量 upsert 原语承载——那是 JDBC 语句文本生成，不经 EQL 文法，两者不矛盾）。successor = 未来 EQL `MERGE` 语法 WI（plan-first：`.g4` 生成管线）；触发条件 = 出现 EQL 层 `MERGE` 语义（条件 upsert / `WHEN MATCHED THEN DELETE` / `BY SOURCE`）的真实产品需求 + 最低版本门裁决（已知分叉：PG 15 `MERGE` 无 `BY SOURCE` 需 17；MSSQL `MERGE` 强制终止 `;`，error 10713；Oracle `WHEN MATCHED THEN DELETE` 三版文档确认存在）。`UPDATE..FROM` 半行维持 WI10b 改档结论（EQL 文法无此语法 = 解析响亮失败 + 契约登记，见「死标志台账」`supportUpdateFromJoin` 行），不重开。
@@ -1027,12 +1116,18 @@ example 查询（`findAllByExample / findFirstByExample / findPageByExample / co
 ### 可检索加密：存量回填（plan 2318 Phase 5 落地）
 
 辅助列声明后加入模型的存量库：先经既有 auto-upgrade（`nop.orm.db-differ.auto-upgrade-database`）自动 `ALTER TABLE ADD COLUMN`（`TestEncAssistedAutoUpgrade`，nop-dbtool-core），再执行 `EncAssistedBackfiller`（`io.nop.orm.enc`）回填——按主键排序分批（`nop.orm.enc-backfill-batch-size` 缺省 500）读 id+主列密文 → 解密（`@enc:` 前缀剥离 + v1/legacy 格式识别；未带前缀按明文）→ 重算摘要 → 仅批量更新辅助列；幂等、主列为 null 跳过（`TestEncAssistedBackfill` 6 例，含回填后等值/LIKE 命中端到端）。
+## EQL DML 缺省过滤与边界（R1.6c）
 
-## 相关文档
+UPDATE/DELETE 与 SELECT 的实体级缺省过滤**已对齐**：目标表注入逻辑删除条件（`nop.orm.disable-logical-delete` 开关可关闭）、租户条件（useTenant 实体）与实体 filter（orm.xml 固定 filter）。
 
-- `orm-model-design.md` — ORM 模型设计规范（stdSqlType / stdDataType、主键、关系、字典）
-- `model-first-development.md` — VARCHAR precision 自动选择、代码生成链路
-- `05-examples/sql-lib-and-mapper.java` — sql-lib 文件结构、XPL 参数化规则、Mapper 接口、**rowType DTO 封装**
-- `orm-model-design.md` — Sql-Lib Mapper 自动生成（`tagSet="mapper"`）
-- `04-reference/debugging-checklist.md` — EQL / SQL-lib 调试排障速查
-- `logical-deletion.md` — 逻辑删除（`deleted` / `delVersion`）
+边界声明：
+
+1. **enableFilter（数据权限 FILTER marker）仍为 SELECT-only**——DML 数据权限由上游 biz 层动作鉴权承担。
+2. **UPDATE 注入逻辑删除条件后，恢复类/触及已删行的语句**（如 `update X set deleted=0`）不再命中已删行——此类操作须走 `disableLogicalDelete` 通道或原生 SQL。
+3. sql_lib 盘查（2026-10-09，plan 2371）：现存 `_vfs` 资源库无手写 EQL UPDATE/DELETE 语句，注入对齐无存量回归面。
+
+## 集合操作符与 DML 的位置约束（R1.6a）
+
+EQL 集合操作符（`_some`/`_all`）**仅支持在 select 语句的 where 子句中使用**（编译期改写为 exists 子查询）。出现在 update/delete 的 where、order by、having、投影、group by 等位置时编译期报错 `nop.err.eql.collection-operator-not-allowed-here`。
+
+update/delete 语句中起自目标表的**多段属性路径**（含相关子查询内经外层别名的引用、SET 赋值目标、RETURNING 投影）不支持隐式 join——编译期报错 `nop.err.eql.dml-prop-join-not-supported`，请改用相关子查询或显式关联条件。单段 owner 引用（如 `o.id`）合法，渲染时以物理表名限定。

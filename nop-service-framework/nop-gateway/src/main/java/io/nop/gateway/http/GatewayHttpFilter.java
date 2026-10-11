@@ -133,6 +133,13 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             if (handler.getModel().getRoutes().isEmpty()) {
                 return next.get();
             }
+            // P1-check-gw-49 (plan 2390): path-level route pre-match before ANY body
+            // consumption — when no route can match this path, pass through with the
+            // body untouched (previously the body was read and strict-JSON-parsed even
+            // for requests the gateway would not route).
+            if (!handler.hasRouteFor(context.getRequestPath())) {
+                return next.get();
+            }
             context.resumeRequest();
 
             return context.getRequestBody().getTextAsync().thenCompose(text -> {
@@ -145,6 +152,18 @@ public class GatewayHttpFilter implements IHttpServerFilter {
                 }
 
                 return future.thenCompose(ret -> write(context, ret, gatewayCtx));
+            }).exceptionally(ex -> {
+                // P1-check-gw-49 (plan 2390): async-segment failures (body read, JSON
+                // parse, handle/write failures) previously escaped the sync catch above.
+                // If the response is already committed (streaming failure mid-flight),
+                // only log — a second write would throw on the committed response.
+                LOG.error("nop.gateway.process-error:path={}", context.getRequestPath(), ex);
+                if (!context.isResponseSent()) {
+                    String locale = ContextProvider.currentLocale();
+                    ApiResponse<?> res = ErrorMessageManager.instance().buildResponseForException(locale, ex);
+                    writeErrorResponse(context, res);
+                }
+                return null;
             });
         } catch (Exception e) {
             LOG.error("nop.gateway.process-error:path={}", context.getRequestPath(), e);
@@ -300,15 +319,35 @@ public class GatewayHttpFilter implements IHttpServerFilter {
     }
 
     /**
-     * 构建API请求
+     * Builds the ApiRequest. P1-check-gw-49 (plan 2390): strict JSON parsing applies
+     * only to JSON-declared (or content-type-less) bodies — non-JSON content types
+     * (multipart/form submissions) no longer blow up the filter; their body is not
+     * forwarded (data=null, see gateway body-forwarding follow-up). Empty bodies
+     * yield null data (unchanged behavior). A malformed JSON-declared body still
+     * fails fast.
      */
     protected ApiRequest<?> buildRequest(IHttpServerContext context, String requestText) {
         ApiRequest<Object> request = new ApiRequest<>();
         request.setHeaders(context.getRequestHeaders());
-        request.setData(JSON.parse(requestText));
+        request.setData(parseRequestData(context, requestText));
         RpcHelper.setHttpUrl(request, context.getRequestUrl());
         RpcHelper.setHttpMethod(request, context.getMethod());
         return request;
+    }
+
+    /**
+     * Content-type split for request body parsing: JSON-declared or unspecified
+     * content types go through strict {@code JSON.parse} (fail-fast on malformed
+     * bodies); any other declared content type (multipart, form-urlencoded, ...) is
+     * not parsed. Empty body text yields null regardless.
+     */
+    protected Object parseRequestData(IHttpServerContext context, String requestText) {
+        if (StringHelper.isEmpty(requestText))
+            return null;
+        String contentType = context.getRequestStringHeader(HttpApiConstants.HEADER_CONTENT_TYPE);
+        if (contentType != null && !contentType.toLowerCase().contains("json"))
+            return null;
+        return JSON.parse(requestText);
     }
 
     protected IGatewayContext buildGatewayContext(ApiRequest<?> request, IHttpServerContext context) {

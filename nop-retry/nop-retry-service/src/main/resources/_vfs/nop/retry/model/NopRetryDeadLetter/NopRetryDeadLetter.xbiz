@@ -1,5 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef" x:extends="_NopRetryDeadLetter.xbiz">
 
-    <actions/>
+    <actions>
+        <mutation name="save">
+            <auth roles="admin"/>
+        </mutation>
+        <mutation name="update">
+            <auth roles="admin"/>
+        </mutation>
+        <mutation name="delete">
+            <auth roles="admin"/>
+        </mutation>
+        <mutation name="saveAll">
+            <auth roles="admin"/>
+        </mutation>
+        <mutation name="deleteAll">
+            <auth roles="admin"/>
+        </mutation>
+    </actions>
 </biz>

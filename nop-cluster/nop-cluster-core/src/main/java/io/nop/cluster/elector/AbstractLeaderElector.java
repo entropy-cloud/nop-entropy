@@ -69,7 +69,7 @@ public abstract class AbstractLeaderElector extends LifeCycleSupport implements 
         return leaseSafeGap;
     }
 
-    @InjectValue("@cfg;nop.cluster.leader.lease-safe-gap|4000")
+    @InjectValue("@cfg:nop.cluster.leader.lease-safe-gap|4000")
     public void setLeaseSafeGap(int leaseSafeGap) {
         this.leaseSafeGap = leaseSafeGap;
     }

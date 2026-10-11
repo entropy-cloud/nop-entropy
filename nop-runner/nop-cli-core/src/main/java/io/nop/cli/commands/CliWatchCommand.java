@@ -8,6 +8,7 @@
 package io.nop.cli.commands;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.FileHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.json.JsonTool;
@@ -15,6 +16,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.watch.FileChangeEvent;
 import io.nop.core.resource.watch.FileWatcher;
+import io.nop.core.resource.watch.NioFileWatchService;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.XplModel;
 import io.nop.xlang.ast.XLangOutputMode;
@@ -62,9 +64,47 @@ public class CliWatchCommand implements Callable<Integer> {
     @Inject
     FileWatcherFactory fileWatcherFactory;
 
+    /**
+     * P1-4.5-R2: the jdk11 launcher and NopCliApplication's {@code factory == null}
+     * branch do not perform container injection, so {@link #fileWatcherFactory} is
+     * null there. Fall back to a locally owned watch service instead of NPEing.
+     * The injected instance is owned by the container and must NOT be stopped here;
+     * only a locally created one is stopped by the caller.
+     */
+    static final class WatcherHandle {
+        final FileWatcher watcher;
+        final boolean locallyOwned;
+
+        WatcherHandle(FileWatcher watcher, boolean locallyOwned) {
+            this.watcher = watcher;
+            this.locallyOwned = locallyOwned;
+        }
+    }
+
+    WatcherHandle newFileWatcher() {
+        if (fileWatcherFactory != null) {
+            return new WatcherHandle(fileWatcherFactory.newFileWatcher(), false);
+        }
+        NioFileWatchService service = new NioFileWatchService();
+        service.start();
+        return new WatcherHandle(new FileWatcher(service, GlobalExecutors.globalTimer()), true);
+    }
+
     @Override
     public Integer call() {
-        FileWatcher watcher = fileWatcherFactory.newFileWatcher();
+        WatcherHandle handle = newFileWatcher();
+        FileWatcher watcher = handle.watcher;
+        try {
+            return doWatch(watcher);
+        } finally {
+            if (handle.locallyOwned) {
+                // only a locally created watch service is owned by this invocation
+                watcher.stop();
+            }
+        }
+    }
+
+    private Integer doWatch(FileWatcher watcher) {
         Map<String, Object> state = new ConcurrentHashMap<>();
 
         if (outputDir == null) outputDir = FileHelper.currentDir();
@@ -88,6 +128,8 @@ public class CliWatchCommand implements Callable<Integer> {
         try {
             System.in.read();
         } catch (IOException e) {
+            // EOF (e.g. stdin closed) is a normal way to stop watching; log it for diagnosis.
+            LOG.debug("nop.cli.watch: input read ended, stopping watch", e);
         }
 
         return 0;

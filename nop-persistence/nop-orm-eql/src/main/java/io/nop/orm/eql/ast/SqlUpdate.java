@@ -10,7 +10,7 @@ package io.nop.orm.eql.ast;
 import io.nop.orm.eql.ast._gen._SqlUpdate;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 
-public class SqlUpdate extends _SqlUpdate implements ISqlTableSourceSupport {
+public class SqlUpdate extends _SqlUpdate implements ISqlTableSourceSupport, ISqlReturningSupport {
     private SqlSingleTableSource resolvedTableSource;
 
     @Override

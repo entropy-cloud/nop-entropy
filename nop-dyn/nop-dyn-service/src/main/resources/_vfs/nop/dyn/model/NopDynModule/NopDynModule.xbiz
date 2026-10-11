@@ -4,6 +4,7 @@
 
     <actions>
         <query name="active_findPage" x:prototype="findPage">
+            <auth permissions="NopDynModule:query|NopDynModule:findPage"/>
 
             <source>
                 <c:import class="io.nop.dyn.dao.NopDynDaoConstants"/>
@@ -17,6 +18,7 @@
         </query>
 
         <mutation name="publish" displayName="发布">
+            <auth roles="admin" permissions="NopDynModule:publish"/>
             <arg name="ids" type="Set&lt;String>"/>
             <arg name="svcCtx" kind="ServiceContext" />
 
@@ -36,6 +38,7 @@
         </mutation>
 
         <mutation name="unpublish" displayName="取消发布">
+            <auth roles="admin" permissions="NopDynModule:unpublish"/>
             <arg name="id" type="String"/>
             <arg name="svcCtx" kind="ServiceContext" />
 

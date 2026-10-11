@@ -171,8 +171,9 @@ public class JdbcHelper {
 
         CallableStatement st = conn.prepareCall(sql.getText());
         try {
+            // OUT 返回参数占 JDBC 位置 1；IN 参数 marker 自位置 2 起绑定
             st.registerOutParameter(1, Types.VARCHAR);
-            setParameters(dialect, st, sql);
+            setParameters(dialect, st, sql, 1);
         } catch (SQLException e) {
             IoHelper.safeCloseObject(st);
             throw e;
@@ -289,11 +290,20 @@ public class JdbcHelper {
     }
 
     public static void setParameters(IDialect dialect, PreparedStatement ps, SQL sql) {
+        setParameters(dialect, ps, sql, 0);
+    }
+
+    /**
+     * R1.7 / P1-2.3-001：callable 语句的 OUT 返回参数占 JDBC 位置 1，marker 绑定须从
+     * index 1（JDBC 位置 2）起——否则带参 {@code {? = call f(?)}} 的首个 IN 参数错绑到
+     * OUT 槽位，必然失败。
+     */
+    public static void setParameters(IDialect dialect, PreparedStatement ps, SQL sql, int startIndex) {
         if (sql.getMarkers().isEmpty())
             return;
 
         JdbcStatement jst = new JdbcStatement(ps, dialect);
-        int index = 0;
+        int index = startIndex;
         for (Marker marker : sql.getMarkers()) {
             if (marker instanceof TypedValueMarker) {
                 TypedValueMarker valueMarker = (TypedValueMarker) marker;

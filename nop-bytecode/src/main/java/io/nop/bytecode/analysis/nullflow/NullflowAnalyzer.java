@@ -25,17 +25,32 @@ import java.util.Set;
  */
 public final class NullflowAnalyzer {
 
+    /** Wall-clock deadline (System.nanoTime()); 0 = no deadline. Propagated to the solver loop. */
+    private long deadlineNanos;
+
+    public void setDeadlineNanos(long deadlineNanos) {
+        this.deadlineNanos = deadlineNanos;
+    }
+
     /** Analyze one class file (raw bytes). */
     public List<DerefFinding> analyze(byte[] classBytes) {
-        ClassReader reader = new ClassReader(classBytes);
-        ClassNode cn = new ClassNode();
-        reader.accept(cn, 0);
-        String className = cn.name.replace('/', '.');
-        List<DerefFinding> all = new ArrayList<>();
-        for (MethodNode mn : cn.methods) {
-            all.addAll(analyzeMethod(className, mn));
+        // analysis failure must surface as NopBytecodeException (CLI exit 2), never escape
+        // as a raw RuntimeException (which would exit 1 — the nop-lint "violations" code)
+        try {
+            ClassReader reader = new ClassReader(classBytes);
+            ClassNode cn = new ClassNode();
+            reader.accept(cn, 0);
+            String className = cn.name.replace('/', '.');
+            List<DerefFinding> all = new ArrayList<>();
+            for (MethodNode mn : cn.methods) {
+                all.addAll(analyzeMethod(className, mn));
+            }
+            return all;
+        } catch (NopBytecodeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new NopBytecodeException("nullflow analysis failure on class bytes", e);
         }
-        return all;
     }
 
     /** Analyze one class file from a stream. */
@@ -63,6 +78,7 @@ public final class NullflowAnalyzer {
         Set<DerefFinding> hits = new HashSet<>();
         NullnessSemantics sem = new NullnessSemantics(mn, className, mn.name, hits::add);
         ForwardSolver solver = new ForwardSolver(mn, cfg, sem);
+        solver.setDeadlineNanos(deadlineNanos);
         solver.solve();
         List<DerefFinding> out = new ArrayList<>(hits);
         out.sort((a, b) -> {

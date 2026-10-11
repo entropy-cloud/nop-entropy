@@ -4,6 +4,7 @@
 
     <actions>
         <query name="active_findPage" x:prototype="findPage">
+            <auth permissions="NopAuthUser:query|NopAuthUser:findPage"/>
 
             <source>
                 <c:import class="io.nop.auth.api.AuthApiConstants" />

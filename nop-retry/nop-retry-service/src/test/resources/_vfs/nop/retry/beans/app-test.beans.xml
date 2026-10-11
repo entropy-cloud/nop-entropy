@@ -6,8 +6,10 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans
         http://www.springframework.org/schema/beans/spring-beans-2.5.xsd" xmlns:ioc="ioc">
 
-    <!-- Mock RpcServiceInvoker for testing, override default with primary -->
+    <!-- Mock RpcServiceInvoker for testing, override default with primary.
+         修正（plan 2386）：原指向 io.nop.retry.engine.impl.MockRpcServiceInvoker，
+         该类在 nop-retry-engine 的 test 源集，本模块类路径不可达。 -->
     <bean id="io.nop.api.core.rpc.IRpcServiceInvoker" primary="true"
-          class="io.nop.retry.engine.impl.MockRpcServiceInvoker"/>
+          class="io.nop.retry.service.test.MockRpcServiceInvoker"/>
 
 </beans>

@@ -154,6 +154,26 @@ public class ReActAgentExecutor implements IAgentExecutor {
      */
     public static final int MAX_POST_REASONING_BAILS = 3;
 
+    /**
+     * P1-6.7-006: single resolution point for the context-window size used by
+     * compaction / forced-stop decisions. The explicit, independent
+     * {@link ChatOptions#getMaxContextTokens()} declaration wins; otherwise the
+     * engine default {@link #DEFAULT_MAX_CONTEXT_TOKENS} applies.
+     * <p>
+     * {@link ChatOptions#getMaxTokens()} is the max <em>generation</em> token
+     * count and MUST NOT be used as the context window: a common configuration
+     * (e.g. {@code maxTokens=4096}) would otherwise make the first turn look
+     * like it already exhausted the context and trigger a premature
+     * forced-stop.
+     */
+    public static long resolveMaxContextTokens(ChatOptions chatOptions) {
+        if (chatOptions != null && chatOptions.getMaxContextTokens() != null
+                && chatOptions.getMaxContextTokens() > 0) {
+            return chatOptions.getMaxContextTokens();
+        }
+        return DEFAULT_MAX_CONTEXT_TOKENS;
+    }
+
     private final ITokenEstimator tokenEstimator;
     private final ICompletionJudge completionJudge;
     private final IGoalTracker goalTracker;
@@ -1137,6 +1157,27 @@ public class ReActAgentExecutor implements IAgentExecutor {
             if (state.bailCount > MAX_POST_REASONING_BAILS) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "POST_REASONING middleware bail cap (" + MAX_POST_REASONING_BAILS
                                 + ") exceeded; last bail reason: " + bailReason);
+            }
+            // P1-6.7-005: the assistant message and its tool-call messages were
+            // appended to ctx (and already persisted by
+            // saveLlmTurnCheckpoint) BEFORE this adjudication. Discarding the
+            // round must not leave an assistant tool_call without a matching
+            // tool response: a pairing-strict provider (e.g. Anthropic) rejects
+            // the next request with HTTP 400, and the already-persisted session
+            // would reproduce the bad pairing after a resume. Same repair shape
+            // as AgentPromptAssembly.checkOutputGuardrail and the heartbeat
+            // abandon path (inject one error tool response per callId).
+            List<ChatToolCall> bailToolCalls = turn.responseToolCalls();
+            if (bailToolCalls != null && !bailToolCalls.isEmpty()) {
+                String bailText = "Tool call discarded because POST_REASONING middleware bailed: "
+                        + (bailReason != null ? bailReason : "unspecified");
+                for (ChatToolCall tc : bailToolCalls) {
+                    ctx.addMessage(ChatToolResponseMessage.error(tc.getId(), tc.getName(), bailText));
+                }
+                // Only additions happen here, so the LLM_TURN checkpoint count
+                // (messageCount=N, written before this point) still satisfies
+                // checkpoint.messageCount <= session.messageCount.
+                persistInjectedMessages(ctx, sessionId);
             }
             LOG.warn("POST_REASONING middleware bailed (count={}/{}, reason={}); "
                             + "discarding response and re-prompting. session={}",

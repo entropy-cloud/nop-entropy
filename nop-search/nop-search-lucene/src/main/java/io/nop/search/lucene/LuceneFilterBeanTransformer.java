@@ -192,6 +192,9 @@ public class LuceneFilterBeanTransformer extends FilterBeanVisitor<Query> {
     @Override
     public Query visitNot(ITreeBean filter, IVariableScope scope) {
         BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        // P1-4.4-S-03（plan 2394）：纯 MUST_NOT 子句的 BooleanQuery 匹配空集——补集
+        // 语义必须额外加 MatchAllDocsQuery MUST 锚点（同文件 NE 分支既有形态）。
+        builder.add(new MatchAllDocsQuery(), BooleanClause.Occur.MUST);
         for (ITreeBean child : filter.getChildren()) {
             builder.add(visit(child, scope), BooleanClause.Occur.MUST_NOT);
         }

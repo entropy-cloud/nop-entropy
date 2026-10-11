@@ -10,7 +10,7 @@ package io.nop.orm.eql.ast;
 import io.nop.orm.eql.ast._gen._SqlInsert;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 
-public class SqlInsert extends _SqlInsert implements ISqlTableSourceSupport {
+public class SqlInsert extends _SqlInsert implements ISqlTableSourceSupport, ISqlReturningSupport {
     private SqlSingleTableSource resolvedTableSource;
 
     @Override

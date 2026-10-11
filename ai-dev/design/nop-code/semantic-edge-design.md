@@ -103,7 +103,9 @@ nop-code 已实现的分析能力全部基于**确定性 AST 提取**：
 
 确定性边 confidence=EXTRACTED，confidenceScore=算法相似度分数。
 
-### 4.3 LLM 增强提取器（已实现，N7.1）
+### 4.3 LLM 增强提取器（提取器已实现，N7.1；生产接线未落地）
+
+> **状态（2026-10-10，P1-7.4-001/plan 2401 勘正）**：类 `LlmSemanticEdgeExtractor`（extractorId="llm-infer"）、`LlmEdgeBudget`、`LlmEdgeCache` 已实现并有单测；**但生产接线未落地**——`CodeIndexService.discoverSemanticExtractors` 仍硬编码 3 个确定性提取器，LLM 提取器无 bean、无调用点，`ProjectAnalyzer` 对 `requiresLlm()=true` 无条件跳过（§5.1 描述的目标形态依赖尚未实现的「LLM 启用开关」）。该缺口为 Feature/装配面，登记于 plan `ai-dev/plans/nop-code/28-n7-1-llm-semantic-edge.md` 的 `Deferred But Adjudicated`（successor 承接）；roadmap N7.1 已由 `done` 勘正为 `deferred`。
 
 `LlmSemanticExtractor`（extractorId = "llm-claude" 或 "llm-gpt"）：
 - 从符号表选择候选对（同一社区内、跨社区边界、高入口点分数）

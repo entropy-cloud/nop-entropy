@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.file.FileStatusBean;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
@@ -25,6 +26,7 @@ import io.nop.core.resource.impl.InputStreamResource;
 import io.nop.core.resource.store.LocalResourceStore;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.IOrmTemplate;
 import io.nop.file.core.FileConstants;
 import io.nop.file.core.IFileRecord;
 import io.nop.file.core.IFileStore;
@@ -60,6 +62,7 @@ import static io.nop.file.core.FileErrors.ARG_FILE_OBJ_NAME;
 import static io.nop.file.core.FileErrors.ARG_LENGTH;
 import static io.nop.file.core.FileErrors.ARG_MAX_LENGTH;
 import static io.nop.file.core.FileErrors.ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ;
+import static io.nop.file.core.FileErrors.ERR_FILE_NO_ATTACH_PERMISSION;
 import static io.nop.file.core.FileErrors.ERR_FILE_LENGTH_EXCEED_LIMIT;
 import static io.nop.file.core.FileErrors.ERR_FILE_NOT_ALLOW_ACCESS_FILE;
 import static io.nop.file.core.FileErrors.ERR_FILE_NOT_EXISTS;
@@ -77,6 +80,13 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
     static final ErrorCode ERR_FILE_DIGEST_NOT_AVAILABLE =
             ErrorCode.define("nop.err.file.digest-not-available", "SHA-256 digest algorithm is not available");
     private IDaoProvider daoProvider;
+
+    @Inject
+    private IOrmTemplate ormTemplate;
+
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
 
     private IResourceStore resourceStore;
 
@@ -351,9 +361,20 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
 
     @Override
     public void detachFile(String fileId, String bizObjName, String objId, String fieldName) {
+        // P1-3.8-002（plan 2386）：与 attachFile 对齐——单 session 内完成校验与删除。
+        // runInSession：复用外层 session，无外层时退化为 newSession；
+        // 事务归属由 TransactionRegistry 决定，与 session 选择正交。
+        ormTemplate.runInSession(session -> {
+            detachFileInSession(fileId, bizObjName, objId, fieldName);
+            return null;
+        });
+    }
+
+    private void detachFileInSession(String fileId, String bizObjName, String objId, String fieldName) {
         IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
         NopFileRecord record = dao.getEntityById(fileId);
         if (record != null) {
+            checkAttachPermission(record);
             if (Objects.equals(record.getBizObjName(), bizObjName)
                     && Objects.equals(record.getBizObjId(), objId)
                     && Objects.equals(record.getFieldName(), fieldName)) {
@@ -379,16 +400,42 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         return dao.findFirstByQuery(query) == null;
     }
 
+    /**
+     * P1-3.8-002（plan 2386）：attach/detach 归属校验——文件记录只能由创建者或 admin
+     * 挂接/卸载（防止劫持他人文件记录并触发物理删除）。IUserContext 为 null 的
+     * 引擎内部路径放行（与 GraphQL 层 auth 语义一致：无用户上下文=系统调用）。
+     */
+    protected void checkAttachPermission(NopFileRecord record) {
+        IUserContext userContext = IUserContext.get();
+        if (userContext == null)
+            return;
+        if (userContext.isUserInRole("admin"))
+            return;
+        if (!java.util.Objects.equals(record.getCreatedBy(), userContext.getUserId()))
+            throw new NopException(io.nop.file.core.FileErrors.ERR_FILE_NO_ATTACH_PERMISSION)
+                    .param(ARG_FILE_ID, record.getFileId())
+                    .param("createdBy", record.getCreatedBy())
+                    .param("userId", userContext.getUserId());
+    }
+
     @Override
     public void attachFile(String fileId, String bizObjName, String objId, String fieldName) {
-        IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
-        NopFileRecord record = dao.requireEntityById(fileId);
-        if (!Objects.equals(record.getBizObjName(), bizObjName))
-            throw new NopException(ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ)
-                    .param(ARG_FILE_ID, fileId).param(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_FILE_OBJ_NAME, record.getBizObjName());
-        record.setBizObjId(objId);
-        record.setFieldName(fieldName);
-        dao.saveOrUpdateEntity(record);
+        // P1-3.8-002（plan 2386）：load 与 save 放入同一 session 作用域，避免逐 DAO 调用
+        // 各开一次性 session 导致 saveOrUpdate 误走 save 分支（save-entity-not-transient）。
+        // runInSession：复用外层 session，无外层时退化为 newSession；
+        // 事务归属由 TransactionRegistry 决定，与 session 选择正交。
+        ormTemplate.runInSession(session -> {
+            IEntityDao<NopFileRecord> dao = daoProvider.daoFor(NopFileRecord.class);
+            NopFileRecord record = dao.requireEntityById(fileId);
+            if (!Objects.equals(record.getBizObjName(), bizObjName))
+                throw new NopException(ERR_FILE_ATTACH_FILE_NOT_SAME_OBJ)
+                        .param(ARG_FILE_ID, fileId).param(ARG_BIZ_OBJ_NAME, bizObjName).param(ARG_FILE_OBJ_NAME, record.getBizObjName());
+            checkAttachPermission(record);
+            record.setBizObjId(objId);
+            record.setFieldName(fieldName);
+            dao.saveOrUpdateEntity(record);
+            return null;
+        });
     }
 
     @Override

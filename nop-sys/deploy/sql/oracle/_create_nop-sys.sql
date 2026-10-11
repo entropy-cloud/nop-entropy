@@ -207,6 +207,7 @@ CREATE TABLE nop_sys_event(
   constraint PK_nop_sys_event primary key (EVENT_ID)
 );
 
+create index IX_NOP_SYS_EVENT_TOPIC_STATUS on nop_sys_event (EVENT_TOPIC,EVENT_STATUS,SCHEDULE_TIME) ;
 CREATE TABLE nop_sys_broadcast_event(
   EVENT_ID NUMBER(20) NOT NULL ,
   EVENT_TOPIC VARCHAR2(100) NOT NULL ,
@@ -226,6 +227,7 @@ CREATE TABLE nop_sys_broadcast_event(
   constraint PK_nop_sys_broadcast_event primary key (EVENT_ID)
 );
 
+create index IX_NOP_SYS_BROADCAST_TOPIC_TIME on nop_sys_broadcast_event (EVENT_TOPIC,EVENT_TIME) ;
 CREATE TABLE nop_sys_service_instance(
   INSTANCE_ID VARCHAR2(50) NOT NULL ,
   SERVICE_NAME VARCHAR2(100) NOT NULL ,

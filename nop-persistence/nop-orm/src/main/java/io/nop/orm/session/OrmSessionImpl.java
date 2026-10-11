@@ -371,6 +371,15 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         env.getOrmMetrics().onLoadEntity(entity.orm_entityName());
 
+        // R1.5 / P1-2.1-002: 当前事务的查询仍会返回本会话已删除（或正在删除）实体的行，
+        // 但查询装配不得静默取消会话内的删除意图——保持 DELETING/DELETED 状态与内存值，
+        // flush 仍会发出 DELETE。这是裁定语义（审计给出的「响亮失败或跳过装配」中取跳过）：
+        // 同事务先删后查是合法使用模式，响亮失败会破坏该模式。
+        OrmEntityState curState = entity.orm_state();
+        if (curState.isDeleting() || curState.isDeleted()) {
+            return;
+        }
+
         if (!entity.orm_state().isManaged()) {
             for (int i = 0, n = values.length; i < n; i++) {
                 int propId = propIds.get(i);
@@ -1375,11 +1384,14 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void detach(IOrmEntity entity, FieldSelectionBean selection) {
+        checkContext();
+        checkValid();
+
         if (entity.orm_enhancer() == null)
             return;
 
-        entity.orm_detach();
-
+        // 先级联 detach 已加载关联实体（此时 enhancer 仍在，属性读取可用），
+        // 再脱离主实体——顺序颠倒会使 detachProp 的属性读取在 enhancer 清除后 NPE
         IEntityModel entityModel = entity.orm_entityModel();
 
         if (selection != null) {
@@ -1399,6 +1411,11 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
                 detachProp(entity, relModel.getName(), null);
             }
         }
+
+        entity.orm_detach();
+        // R1.5 / P1-2.1-001: 与 evict 契约对齐——从一级缓存移除后实体不再参与 flush，
+        // contains/get 不再命中；pre/post-detach 的修改均不落库
+        cache.remove(entity);
     }
 
     private void detachProp(IOrmEntity entity, String name, FieldSelectionBean field) {

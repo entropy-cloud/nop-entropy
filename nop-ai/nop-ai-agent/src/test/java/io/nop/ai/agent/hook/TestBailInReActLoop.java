@@ -8,11 +8,16 @@ import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
+import io.nop.ai.agent.session.AgentSession;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolManager;
@@ -226,6 +231,87 @@ public class TestBailInReActLoop {
         // POST_REASONING bail does NOT set bailReason (only POST_CALL does)
         assertNull(result.getBailReason(),
                 "POST_REASONING bail must not set the final result's bailReason");
+    }
+
+    @Test
+    void postReasoningBailKeepsToolCallResponsePairing() {
+        // P1-6.7-005: the bailed round's assistant message and tool_call were
+        // already committed (and persisted) before adjudication. The discard
+        // path must repair the pairing invariant: every tool_call needs a
+        // matching tool response, otherwise the next request 400s on
+        // pairing-strict providers (e.g. Anthropic) and a resume replays the
+        // bad pairing from the persisted session.
+        AtomicInteger bailReturnedCount = new AtomicInteger(0);
+        IAgentMiddleware bailOnceMiddleware = (ctx, next) -> {
+            HookResult r = next.proceed(ctx);
+            if (r.isPass() && bailReturnedCount.get() == 0) {
+                bailReturnedCount.incrementAndGet();
+                return new HookResult.BailResult("pairing-check");
+            }
+            return r;
+        };
+        DefaultHookRegistry registry = new DefaultHookRegistry();
+        registry.registerMiddleware(AgentLifecyclePoint.POST_REASONING, bailOnceMiddleware);
+
+        List<List<ChatMessage>> capturedRequests = Collections.synchronizedList(new ArrayList<>());
+        IChatService chatService = new IChatService() {
+            private int idx = 0;
+
+            @Override
+            public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+                capturedRequests.add(new ArrayList<>(request.getMessages()));
+                int n = idx++;
+                ChatResponse resp = n == 0
+                        ? toolCallResponse("bail-c1", "test-tool", null)
+                        : successResponse("done");
+                return CompletableFuture.completedFuture(resp);
+            }
+
+            @Override
+            public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+                return subscriber -> {
+                };
+            }
+        };
+
+        InMemorySessionStore sessionStore = new InMemorySessionStore();
+        sessionStore.getOrCreate("test-session", "test-agent");
+
+        ReActAgentExecutor executor = ReActAgentExecutor.builder()
+                .chatService(chatService).toolManager(simpleToolManager(null))
+                .hookRegistry(registry).sessionStore(sessionStore).build();
+
+        AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
+
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertEquals(1, bailReturnedCount.get());
+        assertTrue(capturedRequests.size() >= 2, "expected the BAIL re-prompt request to be captured");
+
+        // The request issued right after the BAIL round must be pairing-complete.
+        assertToolCallResponsePairing(capturedRequests.get(1), "BAIL re-prompt request");
+
+        // The persisted session resynced by the BAIL branch must be pairing-complete too,
+        // so a crash/resume cannot restore an unpaired tool_call.
+        AgentSession persisted = sessionStore.get("test-session");
+        assertNotNull(persisted);
+        assertToolCallResponsePairing(persisted.getMessages(), "persisted session");
+    }
+
+    private static void assertToolCallResponsePairing(List<ChatMessage> messages, String where) {
+        Set<String> callIds = new java.util.HashSet<>();
+        Set<String> responseIds = new java.util.HashSet<>();
+        for (ChatMessage message : messages) {
+            if (message instanceof ChatToolCallMessage) {
+                callIds.add(((ChatToolCallMessage) message).getCallId());
+            } else if (message instanceof ChatToolResponseMessage) {
+                responseIds.add(((ChatToolResponseMessage) message).getCallId());
+            }
+        }
+        assertFalse(callIds.isEmpty(),
+                where + ": expected the bailed tool_call to remain in history");
+        assertTrue(responseIds.containsAll(callIds),
+                where + ": every tool_call must have a matching tool response; calls=" + callIds
+                        + " responses=" + responseIds);
     }
 
     // ============================================================

@@ -35,6 +35,22 @@ public class JqDirectQuery implements IJsonQuery {
     }
 
     @Override
+    public List<Object> apply(Object root, java.util.Map<String, String> envVars, long deadlineAtMillis) {
+        JqValue input = JqValue.of(root);
+        JqEnvironment env = new JqEnvironment();
+        if (envVars != null)
+            env.setEnvVarSupplier(() -> envVars);
+        if (deadlineAtMillis > 0)
+            env.setDeadlineAtMillis(deadlineAtMillis);
+        List<JqValue> results = executor.execute(ast, input, env);
+        List<Object> output = new ArrayList<>(results.size());
+        for (JqValue v : results) {
+            output.add(v.toJava());
+        }
+        return output;
+    }
+
+    @Override
     public Object applyOne(Object root) {
         List<Object> results = apply(root);
         return results.isEmpty() ? null : results.get(0);

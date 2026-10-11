@@ -22,6 +22,8 @@ public interface CredentialErrors {
     String ARG_CIPHERTEXT = "ciphertext";
     String ARG_AVAILABLE_KEY_IDS = "availableKeyIds";
     String ARG_MASTER_KEY_ENTRY = "masterKeyEntry";
+    String ARG_MASTER_KEY_ID = "masterKeyId";
+    String ARG_REJECT_REASON = "rejectReason";
     String ARG_TYPE_NAME = "typeName";
     String ARG_AVAILABLE_TYPE_NAMES = "availableTypeNames";
     String ARG_CREDENTIAL_ID = "credentialId";

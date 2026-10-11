@@ -79,7 +79,14 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public String getRequestUrl() {
-        return request.getRequestURI();
+        // plan 2406 (P1-4.2-002): IHttpServerContext requires the full request link including the
+        // queryString; getRequestURI() alone dropped it (e.g. AuthHttpServerFilter redirect-back).
+        StringBuilder url = new StringBuilder(request.getRequestURL());
+        String query = request.getQueryString();
+        if (query != null && !query.isEmpty()) {
+            url.append('?').append(query);
+        }
+        return url.toString();
     }
 
     @Override
@@ -144,11 +151,17 @@ public class ServletHttpServerContext implements IHttpServerContext {
 
     @Override
     public void removeCookie(String name) {
-        for (Cookie cookie : request.getCookies()) {
-            if (cookie.getName().equals(name)) {
-                cookie.setMaxAge(0);
-                response.addCookie(cookie);
-                return;
+        // P1-6.8-001（plan 2391）：请求无任何 Cookie 时 getCookies() 返回 null
+        //（Servlet 规范允许）——直接落到兜底过期 Cookie 分支（对齐 getCookie 的 null 守卫形态）。
+        // 此前 NPE 使无 Cookie 的登出请求（过期会话/扫描器/curl）500。
+        Cookie[] cookies = request.getCookies();
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if (cookie.getName().equals(name)) {
+                    cookie.setMaxAge(0);
+                    response.addCookie(cookie);
+                    return;
+                }
             }
         }
         Cookie retCookie = new Cookie(name, "");

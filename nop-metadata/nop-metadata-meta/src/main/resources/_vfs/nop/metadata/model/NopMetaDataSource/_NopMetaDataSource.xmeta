@@ -51,7 +51,7 @@
         </prop>
         <prop name="status" displayName="状态" propId="7" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" dict="meta/datasource-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/datasource-status"/>
         </prop>
         <prop name="version" displayName="数据版本" propId="8" i18n-en:displayName="Version" mandatory="true"
               queryable="true" sortable="true" insertable="false" updatable="false" internal="true">

@@ -203,6 +203,16 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                     throw new NopException(ERR_AUTH_INVALID_REDIRECT_URI);
                 }
 
+                // P1-check-gw-86（plan 2390）：redirect 分支此前不下发 auth cookie、
+                // 不初始化用户上下文——SSO 服务端会话已建但浏览器零凭证，回调即登录
+                // 循环。凭证必须在 sendRedirect 之前交付（redirect 提交后 header/cookie
+                // 必丢）。新登录会话 cookie 必然与请求携带的不一致，直接下发；
+                // initUserContext 与 handleUserContext 同款（请求 IContext 上的
+                // attribute，跨线程可见，无需 runOnContext）。
+                initUserContext(userContext, routeContext);
+                if (config.getAuthCookie() != null) {
+                    addCookie(authCookieName(), accessToken, routeContext);
+                }
                 routeContext.sendRedirect(redirectUri);
                 return next.get();
             }
@@ -522,7 +532,9 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         error.setData(Collections.emptyMap());
 
         context.setResponseHeader(HttpApiConstants.HEADER_CONTENT_TYPE, HttpApiConstants.CONTENT_TYPE_JSON);
-        if (context.getRequestUrl().endsWith("/graphql")) {
+        // plan 2406: use the service path (no queryString). The full request URL may carry a
+        // query (?query=... for GET /graphql) which would break the endsWith check.
+        if (context.getRequestPath().endsWith("/graphql")) {
             GraphQLResponseBean response = new GraphQLResponseBean();
             response.setErrorCode(error.getCode());
             response.setMsg(error.getMsg());

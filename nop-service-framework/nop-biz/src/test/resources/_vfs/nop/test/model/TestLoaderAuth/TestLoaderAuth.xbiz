@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<biz x:schema="/nop/schema/biz/xbiz.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <loaders>
+        <loader name="authedField">
+            <auth roles="admin" permissions="TestLoaderAuth:authedField"/>
+            <return graphql:type="String"/>
+            <source>return 'ok'</source>
+        </loader>
+
+        <loader name="openField">
+            <return graphql:type="String"/>
+            <source>return 'ok'</source>
+        </loader>
+    </loaders>
+</biz>

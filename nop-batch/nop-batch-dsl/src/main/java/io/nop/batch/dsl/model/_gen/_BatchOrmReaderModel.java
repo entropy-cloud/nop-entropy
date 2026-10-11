@@ -32,13 +32,6 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
     
     /**
      *  
-     * xml name: eql
-     * 
-     */
-    private io.nop.core.lang.sql.ISqlGenerator _eql ;
-    
-    /**
-     *  
      * xml name: partitionIndexField
      * 实体上的分区标识。如果设置了这个字段，且IBatchTaskContext传入了partitionRange参数，则会自动追加分区过滤条件
      */
@@ -85,25 +78,6 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         checkAllowChange();
         
         this._entityName = value;
-           
-    }
-
-    
-    /**
-     * 
-     * xml name: eql
-     *  
-     */
-    
-    public io.nop.core.lang.sql.ISqlGenerator getEql(){
-      return _eql;
-    }
-
-    
-    public void setEql(io.nop.core.lang.sql.ISqlGenerator value){
-        checkAllowChange();
-        
-        this._eql = value;
            
     }
 
@@ -163,7 +137,6 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         
         out.putNotNull("batchLoadProps",this.getBatchLoadProps());
         out.putNotNull("entityName",this.getEntityName());
-        out.putNotNull("eql",this.getEql());
         out.putNotNull("partitionIndexField",this.getPartitionIndexField());
         out.putNotNull("query",this.getQuery());
     }
@@ -179,7 +152,6 @@ public abstract class _BatchOrmReaderModel extends io.nop.core.resource.componen
         
         instance.setBatchLoadProps(this.getBatchLoadProps());
         instance.setEntityName(this.getEntityName());
-        instance.setEql(this.getEql());
         instance.setPartitionIndexField(this.getPartitionIndexField());
         instance.setQuery(this.getQuery());
     }

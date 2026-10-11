@@ -34,5 +34,11 @@
             <version>2.0.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
+        <!-- test-scope junit：DaoTaskStateStore secret 脱敏契约判别测试（plan 2380，沿 nop-task-core 先例） -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 </project>

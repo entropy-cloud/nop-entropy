@@ -11,6 +11,8 @@
                   feature:on="nop.file.store-impl == 'local' || !nop.file.store-impl"/>
         <property name="resourceStore" ref="nopOssResourceStore"
                   feature:on="nop.file.store-impl == 'oss'"/>
+        <!-- P1-3.8-002（plan 2386）：attach/detach 归属校验与单 session 保存需要 ormTemplate -->
+        <property name="ormTemplate" ref="nopOrmTemplate"/>
     </bean>
 
     <alias name="nopFileStore" alias="nopOrmEntityFileStore" />

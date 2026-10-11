@@ -16,6 +16,7 @@ import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAggregateFunction;
+import io.nop.orm.eql.ast.ISqlReturningSupport;
 import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlAllProjection;
 import io.nop.orm.eql.ast.SqlAndExpr;
@@ -64,6 +65,7 @@ import io.nop.orm.eql.ast.SqlQuerySelect;
 import io.nop.orm.eql.ast.SqlRollback;
 import io.nop.orm.eql.ast.SqlRegularFunction;
 import io.nop.orm.eql.ast.SqlSelectWithCte;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlStringLiteral;
 import io.nop.orm.eql.ast.SqlSubQueryExpr;
@@ -78,6 +80,7 @@ import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.ast.SqlUpdate;
+import io.nop.orm.eql.ast.SqlUpsert;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.ast.SqlWindowExpr;
@@ -86,6 +89,8 @@ import io.nop.orm.eql.enums.SqlOperator;
 
 import java.util.List;
 import java.util.Locale;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_PROP_PATH;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED;
 
 public class AstToEqlGenerator extends EqlASTVisitor {
     protected final SQL.SqlBuilder sb;
@@ -314,10 +319,56 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         } else {
             visitSqlValues(node.getValues());
         }
+        printReturning(node);
+    }
+
+    /**
+     * Plan 2380：写语句 returning 子句的共享打印路径（update / insert / delete 共用）。
+     * {@code *} 已在 transform 期展开为投影列表，因此这里只有"有投影才打印"一种形态。
+     */
+    protected void printReturning(ISqlReturningSupport node) {
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            print(" returning ");
+            printList(node.getReturnProjections(), ",");
+        } else if (node.getReturnAll()) {
+            print(" returning *");
+        }
     }
 
     protected void printInsertKeyword() {
         print("insert ");
+    }
+
+    /**
+     * Plan 2380：{@code upsert} 的<b>回显</b>打印（方言无关的中立形态）。
+     *
+     * <p>方言形态差异由 {@link AstToSqlGenerator} 覆写本方法处理——本实现只负责
+     * {@code toSqlString()} 通道把用户写下的结构原样还原，不做任何方言分支。
+     */
+    @Override
+    public void visitSqlUpsert(SqlUpsert node) {
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
+        print("upsert\ninto ");
+        visitSqlTableName(node.getTableName());
+        beginBraceBlock();
+        printList(node.getColumns(), ",");
+        endBraceBlock();
+
+        visitSqlValues(node.getValues());
+
+        println();
+        print("on conflict ");
+        beginBraceBlock();
+        printList(node.getConflictColumns(), ",");
+        endBraceBlock();
+
+        println();
+        print("do update set ");
+        beginBlock();
+        printList(node.getAssignments(), ",");
+        endBlock();
+        println();
     }
 
     @Override
@@ -336,6 +387,11 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getAlias() != null)
             this.ownerShouldBeIgnored = node.getAlias().getAlias();
 
+        // R1.6a / P1-2.2-008·005·010 渲染兜底：update/delete 渲染不输出 propJoin，残留的
+        // 隐式 join 必然产出未声明别名的非法 SQL（判空：本渲染器同时服务未 transform 的
+        // toSQL/dump 通道，resolvedTableSource 可为 null）
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
         printUpdateKeyword();
         beginBlock();
         visitSqlTableName(node.getTableName());
@@ -346,12 +402,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         endBlock();
         printWhere(node.getWhere());
 
-        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
-            print(" returning ");
-            printList(node.getReturnProjections(), ",");
-        } else if (node.getReturnAll()) {
-            print(" returning *");
-        }
+        printReturning(node);
     }
 
     protected void printUpdateKeyword() {
@@ -375,11 +426,23 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         if (node.getAlias() != null)
             this.ownerShouldBeIgnored = node.getAlias().getAlias();
 
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
         print("delete\nfrom");
         beginBlock();
         visitSqlTableName(node.getTableName());
         endBlock();
         printWhere(node.getWhere());
+        // Plan 2380：delete ... returning
+        printReturning(node);
+    }
+
+    /** Plan 2380：改为 protected——AstToSqlGenerator 的 upsert 覆写需要复用同一道 prop-join 渲染兜底。 */
+    protected void assertNoPropJoins(Object node, SqlSingleTableSource source) {
+        if (source != null && source.getPropJoins() != null && !source.getPropJoins().isEmpty()) {
+            throw new NopException(ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED)
+                    .param(ARG_PROP_PATH, String.valueOf(node));
+        }
     }
 
     protected void printWhere(SqlWhere where) {

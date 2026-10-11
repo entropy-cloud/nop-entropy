@@ -63,6 +63,41 @@ class NopBytecodeMainTest {
         assertFalse(r.out().contains("derefGuarded"), "guarded method must not appear");
     }
 
+    /**
+     * R1.4 / P1-1.10-001 regression: a class truncated AFTER collect-level parsing (constant
+     * pool intact, methods section cut) must exit 2 ("analysis failure"), never 1 (nop-lint's
+     * "violations" code — a different contract).
+     */
+    @Test
+    void truncatedClassExitsTwoNotOne(@TempDir Path tmp) throws IOException {
+        Path classes = toyClasses(tmp);
+        byte[] full = Files.readAllBytes(classes.resolve("ToyNull.class"));
+        // cut inside the methods section: collect survives, analysis-level accept() hits it
+        Files.write(classes.resolve("ToyNull.class"), java.util.Arrays.copyOf(full, full.length - 24));
+        RunResult r = run(new String[]{classes.toString()});
+        assertEquals(2, r.exitCode(), "analysis failure must be exit 2, got " + r.exitCode()
+                + " err=" + r.err());
+        assertTrue(r.out().isEmpty(), "fail-fast: no partial report");
+    }
+
+    /** R1.4 / P1-1.10-002 defense line: --max-runtime-seconds 0 is a deterministic timeout hook (exit 2). */
+    @Test
+    void zeroRuntimeBudgetFailsFastWithExitTwo(@TempDir Path tmp) throws IOException {
+        Path classes = toyClasses(tmp);
+        RunResult r = run(new String[]{classes.toString(), "--max-runtime-seconds", "0"});
+        assertEquals(2, r.exitCode(), "deadline 0 = immediate timeout -> exit 2, err=" + r.err());
+        assertTrue(r.err().contains("deadline") || r.err().contains("Analysis deadline"),
+                "timeout diagnostics expected, got: " + r.err());
+    }
+
+    @Test
+    void negativeRuntimeBudgetIsUsageError(@TempDir Path tmp) throws IOException {
+        Path classes = toyClasses(tmp);
+        RunResult r = run(new String[]{classes.toString(), "--max-runtime-seconds", "-1"});
+        assertEquals(2, r.exitCode());
+        assertTrue(r.err().contains("must be >= 0"));
+    }
+
     @Test
     void jsonFormParsesAndEscapes(@TempDir Path tmp) throws IOException {
         Path classes = toyClasses(tmp);

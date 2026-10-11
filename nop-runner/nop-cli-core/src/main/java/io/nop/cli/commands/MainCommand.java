@@ -36,7 +36,7 @@ import picocli.CommandLine;
                 CliFindCommand.class,
                 CliLintCommand.class,
                 CliRefactorCommand.class,
-                CliJqCommand.class
-        })
+                CliJqCommand.class,
+                CliDiffCommand.class        })
 public class MainCommand {
 }

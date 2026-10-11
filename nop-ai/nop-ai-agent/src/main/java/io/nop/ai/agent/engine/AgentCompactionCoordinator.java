@@ -14,7 +14,6 @@ import io.nop.ai.agent.session.CompactConfig;
 import io.nop.ai.agent.session.CompactionResult;
 import io.nop.ai.agent.session.ISessionStore;
 import io.nop.ai.agent.session.ICompactionSnapshotArchive;
-import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.toolkit.api.ICompactionArchive;
 
 import org.slf4j.Logger;
@@ -64,11 +63,9 @@ public class AgentCompactionCoordinator {
     }
 
     public long resolveMaxContextTokens(AgentExecutionContext ctx) {
-        ChatOptions chatOpts = ctx.getChatOptions();
-        if (chatOpts != null && chatOpts.getMaxTokens() != null) {
-            return chatOpts.getMaxTokens();
-        }
-        return ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS;
+        // P1-6.7-006: the context window is resolved from the independent
+        // maxContextTokens declaration, never from maxTokens (output cap).
+        return ReActAgentExecutor.resolveMaxContextTokens(ctx.getChatOptions());
     }
     public void performCompaction(AgentExecutionContext ctx, String agentName, int[] checkpointSeq) {
         CompactConfig config = CompactConfig.defaults();

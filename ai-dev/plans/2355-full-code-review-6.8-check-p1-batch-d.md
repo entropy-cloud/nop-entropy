@@ -1,0 +1,149 @@
+# 2355 full-code-review 6.8 check 系列 P1 抽样标定 d（集成运行时/外围/工具/格式/其他）
+
+> Plan Status: completed
+> Last Reviewed: 2026-10-08
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.8（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
+> Related: 批次权威定义=矩阵 §6：批次 d 成员 = **集成运行时（spring/quarkus/network/integration）、runner/autotest/demo、nop-entropy-e2e、nop-rg、nop-lint + nop-treesitter、其他（format/record/utils/search/message/cluster/dev-tools/frontend-support/migration/benchmark）**（metadata 唯一归批次 c〔6.7 已闭〕、search 唯一归批次 d）。同族先例=plan 2352/2353/2354（修复后形态照抄：独立枚举 diff/维度派生/冻结三要素/dup 方向/符号匹配键/分支口径/强制实跑/处置面实测先验/承接规则/双轨口径）。
+> 机械基线（主 agent 实测，2026-10-08；对抗审查 agent_d2cf04c9 逐份复核吻合）：批次 d 候选单元 **17 份**＝集成运行时 4（spring-quarkus P1=1 / net-http-rpc P1=4 / net-misc P1=7 / nop-integration P1=4）+ runner/autotest/demo 3（runner-cli P1=2 / nop-autotest P1=3 / demo-migration P1=2）+ format 5（nop-excel P1=3 / format-record P1=6 / format-pdf-svg P1=4 / format-office P1=3 / format-misc P1=7）+ 其他 5（nop-utils P1=7 / nop-search P1=5 / dev-tools P1=2 / frontend-benchmark P1=2 / msg-cluster-cred 份额 7〔该单元 P1=8=cluster 4+message 3+credential 1；credential 1 条已由 6.7 承接 P1-check-mcc-172〕）。**e2e/nop-rg/nop-lint+treesitter 无 check 单元报告**（Phase 1 对账落盘零报告声明）。**批次 d P1 分母 = 69 条**（70−1 credential 份额）；SUMMARY 分相账平（Phase 3 42=18+1+3+20 / Phase 4 49=44+5 / Phase 5 26 / Phase 6 16）。
+> **抽样协议（双轨口径，对抗审查 B1 处方——本批承接面大，写死下限不可行）**：Phase 1 承接实测得净池 N=69−C（C=轮内行级终判承接数）。**净池轨**：抽样 S ≥ ⌈N/2⌉；**严格基线轨**：批次半覆盖 S+C ≥ 35（=⌈69/2⌉，承接已裁定的条目计入批次覆盖）。两轨同时满足；D5/D1 全抽（在净池内）若已超 ⌈N/2⌉ 则「其他」抽 0（同 2352/2353 形态）；A/B/C 分配按实际抽样数均分（弹性：>39 时 13/13/13±，否则按量均分并在脚本注释写死规则）。**承接面先验（对抗审查实测勘正）**：确定性承接 ≈44 条＝format-misc 7〔4.4 A 面行 1-7 全锚〕+ nop-search 5〔4.4 B 面 S-02..S-06 全部「保留 P1 live」带锚〕+ msg-cluster 份额 7〔4.4 C 面 M-01..03+cluster P1×4 全确认〕+ nop-utils 7〔4.5 台账 23/23 已修，7 条 P1 全带 2026-08-22 处置块〕+ dev-tools 2〔4.5 台账 #1/#2 行级锚〕+ runner-cli 2〔4.5 台账 #1/#2〕+ frontend-benchmark ≥1〔4.5 §2.4 blanket+PageProvider 行级锚；JavaScriptService.refreshConfig 仅单元级判定——按「行级锚才承接」严格口径入池，Phase 1 裁定〕+ demo-migration 1〔4.5 §2.5 仅覆盖 nop-migration addCatalog P1；**demo-migration 另一条 P1（nop-quarkus-demo DemoBizModel 匿名调用 NPE）不在 4.5 台账、必须入池**〕+ net-misc 7 + net-http-rpc ≥3〔3.9 net-misc 24 条表+net-http-rpc 表逐条终判；:24 still-live/:65 AF/:83 adjudicated-deferred plan 2283〕。**1.8 不在承接先验**（结构审计维度 01/02，其 P1×1 file/credential-app 半拆不对应任何 check nop-integration P1——nop-integration 4 条 P1 全部无轮内锚、必须入池）。**4.4/4.5 preempt 声明即承接依据**：4.4 :678「6.8 直接引用台账不再重开标定」、4.5 :515「dev-tools 25 条无需重复标定」；Phase 1 承接实测以行级锚逐条验证为准（先验仅供聚焦），实测 C 后落盘双轨下限。
+> **承接条目的 R1.0 路由与编号（对抗审查 M1 处方）**：承接条目**不新编 P1-6.8-NNN 号**——仍 live 者沿轮内台账行标识（如 4.4 A 面/B 面行号〔format-misc 行 1-7、S-02..S-06〕、4.4 C 面 M-01..03、4.5 标定台账行、3.9 §2.4/§2.5 表行；4.4/4.5 无 P1 级新发现编号），dup/AF 保留 check # 溯源；6.8 报告承接台账逐条登记「check # → 在先行标识 → 终判 → index 登记状态」映射；**发现轮内 still-live 条目未在 index P1 汇总登记的，Phase 3 补登记**（R1.0 汇聚以报告全集为准防漏单——roadmap R1.0 Details 对账规则）；禁止双重立项（既有在先登记 open 者不重复入 P1 汇总）。
+> **处置面先验（主 agent grep 实测 2026-10-08，对抗审查逐单元复核吻合；提及数含 P0/P2/P3 注释，P1 级归属 Phase 1 逐条实测）**：format×4=76 提及（record 20/pdf-svg 22/office 18/misc 16——format-record 全部 21 条带处置块抽查属实）、nop-utils 23（全部 23 条带 2026-08-22 处置块）、dev-tools 25、net-misc 3、nop-integration 2、nop-search 1；spring-quarkus/net-http-rpc/runner-cli/nop-autotest/demo-migration/nop-excel/frontend-benchmark/msg-cluster-cred 零提及。
+> 上游标定富集面（撞车承载）：4.4/4.5/3.9 全标定面（见上）/1.8（集成层结构审计——撞车面对照非承接源）/4.2（**测试有效性审计——zero-test 清单据点+P1-4.2-001/002 HTTP 适配层、P2-4.2-002/005 与 spring-quarkus/net/autotest 池成员邻接，对抗审查 m3 补入**）/6.2（吞异常扫描）/6.3（接线审计——runner/spring 邻接）/2.7（IoC 合规整域）/4.1（错误处理全仓面）/3.11（JWT 主密钥族 22 文件）/5.1（docs 一致性）；**7.7（pulsar/record 残留）todo 勿引**；6.1（空壳扫描 P2-6.1-001 Pulsar seekToPosition——message 面邻接登记不立案）；3.6 与 format-pdf-svg 零管辖交叉（对抗审查实测确认）。
+> 只读审计。**执行分支口径**：live-ness 以当前工作树（audit/full-code-review）为读、以 master 可达性为锚。
+> **方法学裁定**（照抄 2354 修复后形态 + 本批特有补全）：① 四态 + partially-fixed 映射规则（暂缓残余→still-live 附 residual）+ dup 归并方向写死（同根→并入轮内发现 ID 保留 check #溯源；归并 AF 目标亦记 dup 列——2354 B-2 canonical 裁定沿用）；② 抽样双轨协议（见头部）+ D5/D1 全抽 + 其余 seed 抽样；D5/D1 量级 Phase 1 净池上落盘；冻结协议三要素（**seed=2355 + 宇宙快照哈希 + 冻结表 `_tmp/fcr-6.8-frozen.csv`**——两处表述一致，对抗审查 m2 勘正）落盘，脚本 `_tmp/fcr-6.8-sample.py`，报告记 SHA-256；③ live-ness 双锚=代码亲读+实跑三分支：处置标注指名测试→实跑之 / 标注无指名测试→实跑域内或模块测试 / 无标注→实跑域内测试；**零测试模块退化规则**：nop-spring-web-starter 实测无 src/test（4.2 清单为据）——无域内测试可跑时双锚退化为「代码亲读+git 历史锚+同模块邻接测试/构建验证」，逐条登记「证据弱化：zero-test」不得静默跳过；**实跑红处置（对抗审查 m1 勘正——2.8 :83 两条预存均在批次 b/c 域与本批零交集，撤死锚）**：红测试先查 6.4 台账与轮内报告有无预存登记，有则对照归因；无预存锚的红测试按 plan 2331 :93 先例「归因预存并登记」（git 历史+失败模式归因）后裁定，禁止径判 still-live；④ 撞车检索面=相邻工作项发现清单全量 grep（4.4/4.5/3.9/1.8/4.2/6.2/6.3/2.7/4.1/3.11/5.1），匹配键=归一化文件路径+类/方法符号。
+
+> Draft Review: agent_d2cf04c9-f0d6-47e7-aae3-6ee4ebf5f031 首轮 **1 Blocker（B1 承接后净池/双轨口径缺失——按 plan 自身承接规则+4.4 :678/4.5 :515 preempt 实测确定性承接 ≈44 条、净池 ≈25<写死下限 35，Exit Criteria 字面不可满足，2354 双轨口径被遗漏）** + 2 Major（M1 承接 still-live 条目 R1.0 路由与编号规则未写——~18 条 live 漏接管或双重立项风险/M2 承接面声明与实测不符——1.8 结构审计误列承接先验+4.5 migration 仅覆盖一条）+ 4 Minor（m1 2.8 死锚+缺红测试 fallback/m2 冻结三要素漏宇宙快照哈希/m3 4.2 未列撞车面/m4 frontend-benchmark 粒度未注记）——本轮全部修复；聚焦复核（同一审查员，2026-10-08）7 项逐处核对 **PASS**（双轨口径五处一致、承接先验 ≈44 与实测吻合、无新引入矛盾；3 条 cosmetic 顺带修：台账行标识示例措辞/匿名调用 NPE 笔误）——转 active。
+
+## Purpose
+
+执行 roadmap 工作项 6.8：check 系列 P1 批次 d 抽样标定 ≥50%（双轨口径），产出报告 `6.8-check-p1-batch-d.md`，仍 live 者按路由规则进 R1.0 输入。
+
+## Current Baseline
+
+- 批次 d 定义、候选单元、双轨抽样协议、承接先验见头部注记；精确分母/承接数/净池 Phase 1 对账落盘（对账含独立枚举 diff 步骤防漏单元——2352 B1 教训）。
+- 绿色基线：编制期全仓 BUILD SUCCESS；本项只读（测试实跑为验证副作用）；工作树在前序收口 commit 后干净。
+- net-http-rpc 单元在 check/ROADMAP.md 状态为 in-progress（报告已存在）——Phase 1 对账时如实登记，不影响 P1 清单提取。
+- 撞车面（Phase 2 必查）：4.4（format/search/msg-cluster 全标定+preempt）/4.5（utils/dev-tools/runner/frontend-benchmark/migration 全标定 88 条+preempt）/3.9（NET 族全标定——net-http-rpc/net-misc）/1.8（集成层结构对照）/4.2（zero-test 清单+测试缺口邻接）/6.2/6.3/2.7/4.1/3.11/5.1；7.7 todo 勿引；6.1 message 面邻接登记。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.8-check-p1-batch-d.md`：摘要 + 对账台账（含承接台账：check #→在先 ID→终判→index 登记状态映射）+ 冻结抽样表 + 标定台账 + 仍 live 清单 + 驳回台账（FP=0 亦显式宣告）+ 裁决（附录记冻结协议 SHA-256）。
+- **抽样标定双轨达标**（净池轨 S≥⌈N/2⌉ + 严格基线轨 S+C≥35）；仍 live 者按路由规则进 R1.0（净池新发现编 `P1-6.8-<序号>`；承接仍 live 者沿在先 ID 并核对 index 登记状态）。
+- index 登记 + 独立 closure audit + roadmap 6.8 翻 done（closure audit 先于翻 done）。
+
+## Non-Goals
+
+- 批次 a/b/c（6.5/6.6/6.7 已闭）；P0（6.4 已闭）；P2/P3（6.9 归档——批次 d 单元报告内 P2/P3 与处置残余不在本项范围）；修复执行；e2e/nop-rg/nop-lint 域（无 check 发现，非本项范围）。
+
+## Scope
+
+### In Scope
+
+- 批次 d 成员组 check P1 全量对账（17 份单元+1 份额裁定+承接实测）+ 双轨抽样标定
+- 只读输入：check/ 单元报告、轮内深审报告（4.4/4.5/3.9/1.8/4.2 等）、git 历史
+
+### Out Of Scope
+
+- 批次 a/b/c；credential 份额（6.7 已承接）；P0；P2/P3（6.9）；修复执行；e2e/nop-rg/nop-lint 域。
+
+## Execution Plan
+
+### Phase 1 - 对账、承接实测、抽样与标定（3 agent 并行）
+
+Status: completed
+Targets: 批次 d check 单元报告 P1 清单
+
+- Item Types: `Proof`
+
+- [x] 动手前基线确认：本 plan 已提交（bacd41a56e）、`git status` 干净后开始
+- [x] 主 agent 对账落盘（委派对账 agent 执行）：① **独立枚举 diff=一致零出入**（ROADMAP Phase 3/4/5/6 单元表 vs plan 候选 17 份吻合；msg-cluster-cred 拆分裁定执行：cluster 4+message 3 入池、credential 1 归 6.7 已承接；e2e/nop-rg/nop-lint 零报告声明落盘；net-http-rpc in-progress 如实登记）② 批次 d 对账池 69 条全量清单（处置标注逐条实测+**承接实测 C=43/净池 N=26——43 条全部在 4.4/4.5/3.9 行级锚逐条回读：终判 AF 22/partially 2/adjudicated-deferred 1/still-live 17**；frontend-benchmark JavaScriptService 按严格口径入池留痕、PageProvider 承接；D5/D1 净池量级落盘）③ **统计表机械核对 17/17+SUMMARY 分相账平** ④ 冻结协议三要素落盘：seed=2355 + 净池快照 `1d150e72…` + 冻结表 `_tmp/fcr-6.8-frozen.csv` SHA-256 `8f367c53…`（**22 条=D5+D1 全抽**，双轨达标：净池轨 22/26=84.6%≥⌈26/2⌉=13、严格基线轨 22+43=65≥35；分配 A8/B7/C7；双跑逐字节 PASS）
+- [x] Agent 1/2/3「抽样标定份 A/B/C」：逐条四态标定——**粗账 A=AF 4/live 4、B=AF 4/live 3、C=AF 6/live 1，合计 AF 14 / still-live 8 / dup 0 / FP 0**；零 P0 疑似；实跑全绿（B 7 批 57/57、C 六模块 69 用例）零红测试；A 份零测试退化规则启用 1 条（spring-quarkus，登记证据弱化）；**方法学勘正留痕**：A 份 8 条中 3 条实带 labeled-fixed 处置块（任务书「全部无标注」表述不准，冻结表 disposal 列如实，实跑按分支①②③正确归属）
+- [x] 主 agent 抽查质量：冻结表重放 SHA-256 一致（8f367c53…）+ 标定抽验——A#1 removeCookie 无 null 守卫亲读在位 / B#3 DemoBizModel :107 裸取 token 亲读在位 / AF 提交 52705d9bc8（nop-excel 四条修复）可达且描述吻合 / 独立复跑 TestSftpHostKeyChecking 5/5 绿与 C 份一致
+- [x] 产物 `_tmp/fcr-6.8-checkp1-a/b/c.md` + 冻结表 + 承接台账（universe ⑤节，含 still-live missing 清单 17 条）
+- [x] 如有 P0：**发现即异步注入** + 「P0 发现追踪」登记（三份初判零 P0 疑似）
+
+Exit Criteria:
+
+- [x] 初稿落盘，每条 still-live 条目 ≥9 行完整；标定台账双锚证据（zero-test 退化逐条登记）
+- [x] 双轨抽样达标（净池轨 84.6% + 严格基线轨 65≥35，实测 N=26/C=43 落盘）；抽样表可重放（SHA-256 记录+主 agent 重放一致）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核与判级收敛
+
+Status: completed
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 四态零翻案**——still-live 8/8 亲读（全部零 diff vs origin/master）+ 严重性终裁 **P1×6 / P2×2**（A#8 JavaScriptService→P2-6.8-001〔nop-js 已注释出 reactor pom.xml:22 亲读，P2-6.6-001 同判例，升级触发=模块复活〕/B-3 DemoBizModel→P2-6.8-002〔demo 单端点响亮 500，P2-6.5-001 同判例〕）；AF 抽验 10 条亲读+4 实跑批次全绿，5 修复提交 master 祖先实测；SftpClient residual canonical=AF 附 adjudicated-deferred（沿 3.9 §2.5#4 OkHttp 先例，plan 2283 承载）；22 锚×11 撞车面全量 grep 零新增同根；承接台账回读 41/43 在先锚全部吻合；**index missing 勘正 17→18**（universe 汇总算术滑漏漏列 PageProvider——台账行标记在场，C 分解 22+2+1+18=43 时账平）；**canonical AF 14 / dup 0 / still-live 8 / FP 0=22**；69=43+26、26=22+4（未抽样 4 条全「其他」类）账平；双轨 84.6%/65≥35 两 MET
+- [x] 主 agent 汇总：四态统一（dup=0 维持）、撞车去重终裁（零新增同根）、承接 18 条 index 补登记清单采纳
+- [x] 台账收敛（复核 §5 canonical + §4b 补登记清单为 Phase 3 输入）
+
+Exit Criteria:
+
+- [x] 复核结论落盘 `_tmp/fcr-6.8-checkp1-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: completed
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- Item Types: `Proof`
+
+- [x] 编制 `6.8-check-p1-batch-d.md`（附录记冻结协议 SHA-256）；index 登记 6.8 行（替换占位行）+ 净池仍 live 进 P1 汇总（P1-6.8-001..006）+ **承接仍 live 18 条沿在先行标识补登记**（P1-check-netrpc-24/P1-4.4-A5/S-02..06/C1..C4/M01..03/P1-4.5-R1/R2/D1/B1，含勿双立注记）+ P2 裁决台账 2 行
+- [x] 定向验证锚点：标定抽验由复核员独立执行；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（五项）；**通过后** roadmap 6.8 翻 `done`；plan 关闭（双 `--strict`）；commit
+
+Exit Criteria:
+
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 标定口径可复现（复核员抽验一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+
+## Closure Gates
+
+> 只读审计计划；live-ness 验证含只读测试实跑（处置指名测试强制），免除全量构建。
+
+- [x] 报告落盘且批次 d 对账 + 双轨抽样标定全覆盖（含承接台账）
+- [x] 每条标定双锚证据可复现（zero-test 模块按退化规则登记）；四态归属依据 roadmap 定义；撞车全量比对留痕
+- [x] index 计数与报告标定台账一一对应；净池仍 live 清单完整进 P1 汇总；承接仍 live 条目 index 登记状态全部核对（缺失 18 条补登）
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 6.8 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（无预设；still-live 修复归 R1.x；未抽样余量按抽样制设计为可接受残留。）
+
+## Closure
+
+Status Note: 工作项 6.8 收口——批次 d 69 条 P1 对账闭合 + 承接实测 C=43（4.4/4.5/3.9 行级锚回读零错配，still-live 18）+ 冻结抽样 22 条标定零翻案，canonical **AF 14 / dup 0 / still-live 8 / FP 0**；复核终裁 P1×6（P1-6.8-001..006 进 R1.0）+ P2×2（P2-6.8-001/002 进 P2 裁决台账）；双轨抽样 84.6% 净池 / 65≥35 严格两 MET；承接 still-live 18 条沿在先行标识补登记 index P1 汇总（plan M1 路由规则落地）。独立 closure audit（agent_55f0b61c）首轮 **FAIL 附 1 Major 纯文本处方**（M-1 index P1-4.5-R1 行缺陷主体错记——误挂同报告 P3 条目），处方 R1 落实 + 顺手修 m-1（index :118 遗留合并行拆分）/m-2（报告 P1-6.8-001 修复方向对齐 A 份产物建议）后轻量复核 **PASS**。
+Completed: 2026-10-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: agent_55f0b61c-3669-49ea-af29-450d11198eee（独立子 agent，fresh session，只读）
+- Evidence:
+  - 核验 A 证据完整性 PASS：报告六节+附录齐备；FP=0/dup=0 显式宣告；三份标定产物逐条双锚（A 零测试退化登记/B 57/57/C 69 用例 0F0E）；产物与引用逐项吻合
+  - 核验 B 计数对应 PASS（亲手重算）：冻结表 SHA-256 重放 `8f367c53…` 四处一致；canonical 14+0+8+0=22 按产物亲数；69=43+22+4、C 分解 22+2+1+18=43、26=22+4 逐行重算；未抽样 4 条亲手枚举全「其他」类；报告 0/6/2/0=index 6.8 行=P1 汇总 6 行=P2 台账 2 行一一对应；**承接核验：index 恰 18 行与报告 §二 一一对应，8 条回读在先报告原文全部吻合（超抽 5 要求），勿双立注记三处在场**；双轨 84.6%/65≥35 两 MET
+  - 核验 C 引用路径真实性 PASS：6 条 file:line 亲读在位（含 pom.xml :22 nop-js 注释出 reactor 逐行）；4 条修复方向与产物一致（m-2 对齐后）
+  - 核验 D 严重性标定 PASS：6 条 P1 维持依据成立；2 条 P2 降档论证抽验成立（判例 P2-6.6-001/P2-6.5-001 真实在场+升级触发登记）；SftpClient residual canonical 三处如实记载；零 P0 遗漏嫌疑
+  - 核验 E 流程状态 PASS：roadmap 6.8 翻 done 前 todo（前置正确）；plan Phase 3 未勾状态与本审计时点对应
+  - 轻量复核 PASS：R1（P1-4.5-R1 行改写逐字一致+相邻行未损）+ m-1（:118 拆行结构完好）+ m-2（修复方向与 A 份精确一致）；check-doc-links EXIT=0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2355-full-code-review-6.8-check-p1-batch-d.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；2 条 P2 系 Phase 2 复核终裁（附升级触发登记）走 P2 裁决例外台账（roadmap 规则 #3 允许通道，非静默降级）；未抽样余量 4 条为抽样制设计内残留（双轨协议内）
+  - Minor m-3（不阻塞）：报告 001 引 getCookie 守卫锚 :119-123 实测 :120-123（1 行偏移，6.7 先例不阻塞）
+
+Follow-up:
+
+- P1-6.8-001..006 + P2-6.8-001/002 修复归 R1.0 裁决；承接 still-live 18 条已沿在先行标识进 P1 汇总（R1.0 对账防漏单）；CL-2 SftpClient residual 归 R1.0 对 plan 2283 Deferred 统一裁决——无本 plan 自有剩余工作

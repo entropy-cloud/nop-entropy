@@ -121,22 +121,22 @@ Exit Criteria:
 - [x] 若 Phase 1 裁定把 postgis / duckdb 纳入形态前缀表：`TestUpsertStatements` 补两方言的样式解析断言
 - [x] `TestDialectDeadFlagDisposition` 仍绿（既有标志判级不变（台账共 14 行，见 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md:920-933`），3 个新位不得被误登记进 owner doc 的死标志台账，3 个新位不得被误登记进 owner doc 的死标志台账；`supportOutputForUpdate` 保持原判级）
 - [x] `./mvnw test -pl nop-persistence/nop-dao -am` 退出码 0
-- [x] git diff 确认 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` 零变更（**推论方向**：零变更是"precompile 管线未接线"的结果，不是"没有生成物"的证明——该 `_gen/_DialectFeatures.java` 是 dialect.xdef 早年的入库生成物，字段集早已落后于 xdef；设计文档 §3.4 已登记该技术债与将来接线时的迁移义务）
+- [x] git diff 确认 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` 零变更（**推论方向**：零变更是"precompile 管线未接线"的结果，不是"没有生成物"的证明——该 `nop-persistence/nop-dao/src/main/java/io/nop/dao/dialect/model/_gen/_DialectFeatures.java` 是 dialect.xdef 早年的入库生成物，字段集早已落后于 xdef；设计文档 §3.4 已登记该技术债与将来接线时的迁移义务）
 - [x] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的方言能力表已补 3 行（含继承链说明）
 - [x] `ai-dev/logs/2026/10-10.md` 已更新
 
 ### Phase 3 - upsert 文法与 AST 模型
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/*.g4`、`nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/SqlUpsert.java`（手写 wrapper）
 
 - Item Types: `Feature`
 
-- [ ] 按 Phase 1 裁定的文件落位新增 token（`UPSERT` / `CONFLICT`）。顺序约束按文件区分：`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 与 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 的 token 因 import 顺序天然排在 `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 的 `IDENTIFIER_` 之前，**位置不敏感**；只有落在 `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 的 token 才必须定义在 `IDENTIFIER_` 之前（否则永久不可达）。已存在的 `ON` / `DO` / `UPDATE` / `SET` / `VALUES` / `RETURNING` 不重复定义
-- [ ] 按 Phase 1 裁定把新 token 登记进 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_`，并补标识符兼容专测
-- [ ] `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 新增 `sqlUpsert` 规则。**规则文本以设计文档 §3.1 为准**（plan 不放实现方案，guide 规则 #10），实施时逐 label 与下列 prop 名/类型对齐
-- [ ] `nop-persistence/nop-orm-eql/model/antlr/Eql.g4` 的 `sqlDmlStatement` 备选列表按裁定位置加入 `sqlUpsert`
-- [ ] `EqlAST.xjava` **文件末尾**追加 `SqlUpsert` 节点，prop 名与类型**逐字段照抄**（codegen 按 `label → ast.getDefine(node).getProp(label).type` 逐 prop 查表解析，名字写错 NPE、类型写错编译期炸；同名不同型的现成反例：`SqlValuesTableSource.columns : List<String>` vs `SqlInsert.columns : List<SqlColumnName>`）：
+- [x] 按 Phase 1 裁定的文件落位新增 token（`UPSERT` / `CONFLICT`）。顺序约束按文件区分：`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 与 `nop-persistence/nop-orm-eql/model/antlr/SQL92Keyword.g4` 的 token 因 import 顺序天然排在 `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 的 `IDENTIFIER_` 之前，**位置不敏感**；只有落在 `nop-persistence/nop-orm-eql/model/antlr/Literals.g4` 的 token 才必须定义在 `IDENTIFIER_` 之前（否则永久不可达）。已存在的 `ON` / `DO` / `UPDATE` / `SET` / `VALUES` / `RETURNING` 不重复定义
+- [x] 按 Phase 1 裁定把新 token 登记进 `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_`，并补标识符兼容专测
+- [x] `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 新增 `sqlUpsert` 规则。**规则文本以设计文档 §3.1 为准**（plan 不放实现方案，guide 规则 #10），实施时逐 label 与下列 prop 名/类型对齐
+- [x] `nop-persistence/nop-orm-eql/model/antlr/Eql.g4` 的 `sqlDmlStatement` 备选列表按裁定位置加入 `sqlUpsert`
+- [x] `EqlAST.xjava` **文件末尾**追加 `SqlUpsert` 节点，prop 名与类型**逐字段照抄**（codegen 按 `label → ast.getDefine(node).getProp(label).type` 逐 prop 查表解析，名字写错 NPE、类型写错编译期炸；同名不同型的现成反例：`SqlValuesTableSource.columns : List<String>` vs `SqlInsert.columns : List<SqlColumnName>`）：
 
   | prop 名 | 类型 | 必填 |
   |---|---|---|
@@ -147,104 +147,104 @@ Targets: `nop-persistence/nop-orm-eql/model/antlr/*.g4`、`nop-persistence/nop-o
   | `assignments` | `List<SqlAssignment>` | 是（同样加 `minItems = 1`） |
 
   （`decorators` 继承自 `SqlStatement`，不重复声明）
-- [ ] `SqlInsert` / `SqlDelete` 追加 `returnAll`（布尔）与 `returnProjections`（列表）两个字段，与 `SqlUpdate` 同名同型
-- [ ] 运行 codegen（`./mvnw install -pl nop-persistence/nop-orm-eql -am -DskipTests`），确认 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/antlr/EqlParser.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/_EqlASTBuildVisitor.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/_gen/`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/EqlASTKind.java` / `EqlASTVisitor.java` / `EqlASTProcessor.java` / `EqlASTOptimizer.java` 全部按新模型重生成且**零手改**
-- [ ] **手写 wrapper `SqlUpsert`**（对照 `ast/SqlInsert.java` 的既有形态：`extends _SqlUpsert` + 实现 `ISqlTableSourceSupport` + 实现抽象的 `getStatementKind()`）。codegen 只产出抽象的 `_SqlUpsert`，`SqlStatement.getStatementKind()` 仍是抽象方法 ⇒ **缺这一步模块编译不过**，而报错信息（抽象方法未实现）与本 plan 的指引对不上
-- [ ] 新增文法解析测试类（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/` 下，命名随既有 `TestEqlXxxGrammarParse` 风格）：覆盖解析矩阵 / AST 字段断言 / 必填项缺失的语法错误 / 标识符兼容四类
-- [ ] 新增标识符兼容专测：新增 token 作为列名、表名、谓词左侧三形态仍可解析（`TestEqlTumbleGrammarParse.testTumbleRemainsUsableAsIdentifier` 同款）
-- [ ] 语料棘轮：既有 EQL 语料基线测试（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlCorpusBaseline.java`）对这些新 token 0 命中
+- [x] `SqlInsert` / `SqlDelete` 追加 `returnAll`（布尔）与 `returnProjections`（列表）两个字段，与 `SqlUpdate` 同名同型
+- [x] 运行 codegen（`./mvnw install -pl nop-persistence/nop-orm-eql -am -DskipTests`），确认 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/antlr/EqlParser.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/_EqlASTBuildVisitor.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/_gen/`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/EqlASTKind.java` / `EqlASTVisitor.java` / `EqlASTProcessor.java` / `EqlASTOptimizer.java` 全部按新模型重生成且**零手改**
+- [x] **手写 wrapper `SqlUpsert`**（对照 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/SqlInsert.java` 的既有形态：`extends _SqlUpsert` + 实现 `ISqlTableSourceSupport` + 实现抽象的 `getStatementKind()`）。codegen 只产出抽象的 `_SqlUpsert`，`SqlStatement.getStatementKind()` 仍是抽象方法 ⇒ **缺这一步模块编译不过**，而报错信息（抽象方法未实现）与本 plan 的指引对不上
+- [x] 新增文法解析测试类（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/` 下，命名随既有 `TestEqlXxxGrammarParse` 风格）：覆盖解析矩阵 / AST 字段断言 / 必填项缺失的语法错误 / 标识符兼容四类
+- [x] 新增标识符兼容专测：新增 token 作为列名、表名、谓词左侧三形态仍可解析（`TestEqlTumbleGrammarParse.testTumbleRemainsUsableAsIdentifier` 同款）
+- [x] 语料棘轮：既有 EQL 语料基线测试（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/parse/TestEqlCorpusBaseline.java`）对这些新 token 0 命中
 
 Exit Criteria:
 
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 退出码 0，且新增文法测试全部绿
-- [ ] 生成物 diff 形态核对：全部新增/修改的生成文件均带生成器产物特征（`__XGEN_FORCE_OVERRIDE__` 头 / `EqlASTKind` ordinal 机械追加 / visitor 模板化 case 插入），**零手改痕迹**
-- [ ] `EqlASTKind` 中新节点 ordinal 追加在末尾，原有节点的 ordinal 值未发生位移（用 `git diff` 逐行确认 `EqlASTKind.java` 只有尾部追加）
-- [ ] 生成物 diff 分两类核对：**AST 模板产物**（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/EqlASTKind.java`、`ast/_gen/*.java`、`EqlASTVisitor/Processor/Optimizer`）应带 `__XGEN_FORCE_OVERRIDE__` 头且为模板化机械追加；**ANTLR / BuildVisitor 产物**（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/antlr/EqlParser.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/_EqlASTBuildVisitor.java`）应带 ANTLR 生成头 `// Nop Generated from Eql.g4 by ANTLR ...`（`_EqlASTBuildVisitor.java` **无**生成 marker，不要据此判断是否被手改）
-- [ ] `TestEqlRemovedGrammarUnreachable` / `TestEqlDeadFlagGrammarContract` 等既有契约测试仍绿
-- [ ] **回显非 hollow**：`toSqlString()` 打印器在 Phase 4 实现前会落到 visitor 默认分支而产出**空字符串**（与既有 `SqlCommit` hollow 同型）。Phase 3 的解析测试至少要断言 `visit()` 不会因空 visitor 分支而静默返回，或显式把该风险登记进 Phase 4 并在此处留检查点——不允许 Phase 3 全绿而把 hollow 拖到下一阶段
-- [ ] **owner-doc 裁定**：新增文法与 AST 节点属 public contract 面，`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的 EQL 语句清单与 AST 锚点已同步；或显式写 `No owner-doc update required` 并说明理由
-- [ ] `ai-dev/logs/2026/10-10.md` 已更新（记录 codegen 触碰面与 diff 摘要）
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 退出码 0，且新增文法测试全部绿
+- [x] 生成物 diff 形态核对：全部新增/修改的生成文件均带生成器产物特征（`__XGEN_FORCE_OVERRIDE__` 头 / `EqlASTKind` ordinal 机械追加 / visitor 模板化 case 插入），**零手改痕迹**
+- [x] `EqlASTKind` 中新节点 ordinal 追加在末尾，原有节点的 ordinal 值未发生位移（用 `git diff` 逐行确认 `EqlASTKind.java` 只有尾部追加）
+- [x] 生成物 diff 分两类核对：**AST 模板产物**（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/EqlASTKind.java`、`ast/_gen/*.java`、`EqlASTVisitor/Processor/Optimizer`）应带 `__XGEN_FORCE_OVERRIDE__` 头且为模板化机械追加；**ANTLR / BuildVisitor 产物**（`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/antlr/EqlParser.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/_EqlASTBuildVisitor.java`）应带 ANTLR 生成头 `// Nop Generated from Eql.g4 by ANTLR ...`（`_EqlASTBuildVisitor.java` **无**生成 marker，不要据此判断是否被手改）
+- [x] `TestEqlRemovedGrammarUnreachable` / `TestEqlDeadFlagGrammarContract` 等既有契约测试仍绿
+- [x] **回显非 hollow**：`toSqlString()` 打印器在 Phase 4 实现前会落到 visitor 默认分支而产出**空字符串**（与既有 `SqlCommit` hollow 同型）。Phase 3 的解析测试至少要断言 `visit()` 不会因空 visitor 分支而静默返回，或显式把该风险登记进 Phase 4 并在此处留检查点——不允许 Phase 3 全绿而把 hollow 拖到下一阶段
+- [x] **owner-doc 裁定**：新增文法与 AST 节点属 public contract 面，`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 的 EQL 语句清单与 AST 锚点已同步；或显式写 `No owner-doc update required` 并说明理由
+- [x] `ai-dev/logs/2026/10-10.md` 已更新（记录 codegen 触碰面与 diff 摘要）
 
 ### Phase 4 - upsert 语义分析与方言 lowering
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-model/src/main/java/io/nop/orm/model/IEntityModel.java` 与 `OrmEntityModel.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/OrmEqlErrors.java`、`.../ast/`（新增 SqlUpsert wrapper）、`.../ast/SqlStatementKind.java`、`.../compile/EqlTransformVisitor.java`、`.../sql/AstToEqlGenerator.java`、`.../sql/AstToSqlGenerator.java`、`nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java`
 
 - Item Types: `Feature`
 
-- [ ] 落地 design §3.5 已钉死的唯一键读取契约（Protected Area ①）：`IEntityModel` 加 `default List<List<String>> getUniqueKeyPropNames()`、手写 `OrmEntityModel` 覆盖（含 `getColumns()` 判空跳过）；**取列名必须用唯一键模型的 `getColumns()`（prop 名），不得用 `getColumnModels()`**（瞬态字段，不在 `copyTo()` 复制集内，clone / 缓存路径恒为 null，用它会让这些路径上的校验静默失效）
-- [ ] 在 `OrmEqlErrors` 新增冲突键错误码，消息按 Phase 1 裁定（英文）撰写，携带冲突键列清单与实体名两个定位参数
-- [ ] 手写 wrapper `SqlUpsert` 声明语句种类 upsert（`SqlStatementKind` 追加枚举项 + `JdbcQueryExecutor` 的语句种类分派补 upsert 分支 → 上报保存事件）
-- [ ] `EqlTransformVisitor` 实现 upsert 访问：目标表实体解析（复用既有 insert/update 的解析路径与未知名错误码）、列清单/冲突键/更新赋值的列名解析、**`values` 列表的 visit（与 `visitSqlInsert` 同款，不可漏）**、`writeEntityModel` 与租户标志登记（与 `visitSqlInsert` 同款，**不加租户 where 注入**——upsert 无 where）
-- [ ] 编译期校验①：冲突键列集须 ⊆ 列清单（H2 的 `MERGE ... KEY` 要求键列在 `VALUES` 列清单内，PG/MySQL 不要求 ⇒ 不统一即跨库行为分叉）
-- [ ] 编译期校验②：冲突键列集须等于实体声明的某个唯一键列集或主键列集；`isNoPrimaryKey()` 实体只接受唯一键；既无主键又无唯一键的实体上使用 upsert 属建模错误，编译期拒绝；**更新集的每个目标列须属于目标表**
-- [ ] 负向测试载体：扩展 `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestEqlCompileSql.java` 的 `entity(...)` helper 支持 `setUniqueKeys(...)`（该模块当前无 `.orm.xml` 测试资源；若无此载体，唯一键校验只能走主键路径，核心负向面被空转掉）
-- [ ] 编译期方言门：`supportUpsert` 为 false 时抛 `dialect-not-support-feature`（`feature=upsert`）
-- [ ] 编译期 H2 形态约束，两个**必要条件**各自独立成立（design §3.6）：① 更新集的列名集合 == 列清单的列名集合；② `do update set` 任一右值不含列引用（参数与字面量函数调用不受限）。任一不成立均抛 `dialect-not-support-feature`（`feature=upsertPartialUpdate`）。比较元素一律为 **prop 名**（`IColumnModel.getName()`），与唯一键 `getColumns()`、主键 `getPkColumnNames()` 同域
-- [ ] `AstToEqlGenerator` 实现 upsert 的**回显**打印（`toSqlString()` 与方言无关的中立形态）
-- [ ] `AstToSqlGenerator` 实现 upsert 的方言 lowering，**形态分支直接复用 `UpsertStatements.resolveUpsertStyle` 的结论**（`nop-orm-eql` 已依赖 `nop-dao`），不在生成器内另建第二张按方言名前缀匹配的表
-- [ ] `AstToSqlGenerator` 的 `findDmlStatement` / `isInSubQuery` 两处把 upsert 纳入 DML 语句判定（不加 ⇒ 该语句内的表达式会被误判为子查询上下文）
-- [ ] **逐个判定每个语句种类/AST 种类的消费点是"需要新增 upsert 分支"还是"已有的非 SELECT 守卫"**：后者零改动并在 Exit Criteria 中点名确认（已知：`nop-metadata` 的 `SqlSelectFieldExtractor` / `SqlColumnLineageExtractor` 是 `!= SELECT → 提前返回` 的守卫，**不得**加 upsert 分支；`nop-stream-sql` 的 `EqlExprSupport` 只解析表达式，零改动）
+- [x] 落地 design §3.5 已钉死的唯一键读取契约（Protected Area ①）：`IEntityModel` 加 `default List<List<String>> getUniqueKeyPropNames()`、手写 `OrmEntityModel` 覆盖（含 `getColumns()` 判空跳过）；**取列名必须用唯一键模型的 `getColumns()`（prop 名），不得用 `getColumnModels()`**（瞬态字段，不在 `copyTo()` 复制集内，clone / 缓存路径恒为 null，用它会让这些路径上的校验静默失效）
+- [x] 在 `OrmEqlErrors` 新增冲突键错误码，消息按 Phase 1 裁定（英文）撰写，携带冲突键列清单与实体名两个定位参数
+- [x] 手写 wrapper `SqlUpsert` 声明语句种类 upsert（`SqlStatementKind` 追加枚举项 + `JdbcQueryExecutor` 的语句种类分派补 upsert 分支 → 上报保存事件）
+- [x] `EqlTransformVisitor` 实现 upsert 访问：目标表实体解析（复用既有 insert/update 的解析路径与未知名错误码）、列清单/冲突键/更新赋值的列名解析、**`values` 列表的 visit（与 `visitSqlInsert` 同款，不可漏）**、`writeEntityModel` 与租户标志登记（与 `visitSqlInsert` 同款，**不加租户 where 注入**——upsert 无 where）
+- [x] 编译期校验①：冲突键列集须 ⊆ 列清单（H2 的 `MERGE ... KEY` 要求键列在 `VALUES` 列清单内，PG/MySQL 不要求 ⇒ 不统一即跨库行为分叉）
+- [x] 编译期校验②：冲突键列集须等于实体声明的某个唯一键列集或主键列集；`isNoPrimaryKey()` 实体只接受唯一键；既无主键又无唯一键的实体上使用 upsert 属建模错误，编译期拒绝；**更新集的每个目标列须属于目标表**
+- [x] 负向测试载体：扩展 `nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/TestEqlCompileSql.java` 的 `entity(...)` helper 支持 `setUniqueKeys(...)`（该模块当前无 `.orm.xml` 测试资源；若无此载体，唯一键校验只能走主键路径，核心负向面被空转掉）
+- [x] 编译期方言门：`supportUpsert` 为 false 时抛 `dialect-not-support-feature`（`feature=upsert`）
+- [x] 编译期 H2 形态约束，两个**必要条件**各自独立成立（design §3.6）：① 更新集的列名集合 == 列清单的列名集合；② `do update set` 任一右值不含列引用（参数与字面量函数调用不受限）。任一不成立均抛 `dialect-not-support-feature`（`feature=upsertPartialUpdate`）。比较元素一律为 **prop 名**（`IColumnModel.getName()`），与唯一键 `getColumns()`、主键 `getPkColumnNames()` 同域
+- [x] `AstToEqlGenerator` 实现 upsert 的**回显**打印（`toSqlString()` 与方言无关的中立形态）
+- [x] `AstToSqlGenerator` 实现 upsert 的方言 lowering，**形态分支直接复用 `UpsertStatements.resolveUpsertStyle` 的结论**（`nop-orm-eql` 已依赖 `nop-dao`），不在生成器内另建第二张按方言名前缀匹配的表
+- [x] `AstToSqlGenerator` 的 `findDmlStatement` / `isInSubQuery` 两处把 upsert 纳入 DML 语句判定（不加 ⇒ 该语句内的表达式会被误判为子查询上下文）
+- [x] **逐个判定每个语句种类/AST 种类的消费点是"需要新增 upsert 分支"还是"已有的非 SELECT 守卫"**：后者零改动并在 Exit Criteria 中点名确认（已知：`nop-metadata` 的 `SqlSelectFieldExtractor` / `SqlColumnLineageExtractor` 是 `!= SELECT → 提前返回` 的守卫，**不得**加 upsert 分支；`nop-stream-sql` 的 `EqlExprSupport` 只解析表达式，零改动）
 
 Exit Criteria:
 
-- [ ] `EqlTransformVisitor` 中 upsert 分支**无空方法体、无静默 `continue`、无吞异常**（逐条走读确认，对应最小规则 #24）
-- [ ] 新增编译期测试类（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/` 下）：三方言 SQL 文本正断言 + 方言不支持的负向断言（含 `feature` 参数断言）+ 冲突键两条校验的负向断言（未落在列清单内 / 未命中任何唯一键或主键）+ H2 更新集 ⊊ 与 ⊋ 两种情形的负向断言
-- [ ] 负向用例一律断言到**错误码 + 参数**（不只是"抛了异常"）
-- [ ] 冲突键校验的负向用例走的是**通过 helper 真实声明了唯一键**的实体模型，并断言到具体错误码（防止"读瞬态字段导致校验在 clone / 缓存路径静默失效"的假绿）
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm-model -am` 退出码 0
-- [ ] **owner-doc 裁定**：新增错误码 + upsert 语义分析的 public contract 面，`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步；或显式写 `No owner-doc update required` 并说明理由
-- [ ] `ai-dev/logs/2026/10-10.md` 已更新
+- [x] `EqlTransformVisitor` 中 upsert 分支**无空方法体、无静默 `continue`、无吞异常**（逐条走读确认，对应最小规则 #24）
+- [x] 新增编译期测试类（`nop-persistence/nop-orm-eql/src/test/java/io/nop/orm/eql/compile/` 下）：三方言 SQL 文本正断言 + 方言不支持的负向断言（含 `feature` 参数断言）+ 冲突键两条校验的负向断言（未落在列清单内 / 未命中任何唯一键或主键）+ H2 更新集 ⊊ 与 ⊋ 两种情形的负向断言
+- [x] 负向用例一律断言到**错误码 + 参数**（不只是"抛了异常"）
+- [x] 冲突键校验的负向用例走的是**通过 helper 真实声明了唯一键**的实体模型，并断言到具体错误码（防止"读瞬态字段导致校验在 clone / 缓存路径静默失效"的假绿）
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-orm-model -am` 退出码 0
+- [x] **owner-doc 裁定**：新增错误码 + upsert 语义分析的 public contract 面，`docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 已同步；或显式写 `No owner-doc update required` 并说明理由
+- [x] `ai-dev/logs/2026/10-10.md` 已更新
 
 ### Phase 5 - `insert/delete ... returning`
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4`、`nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/EqlAST.xjava`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/compile/EqlTransformVisitor.java`、`.../sql/AstToEqlGenerator.java`
 
 - Item Types: `Feature`
 
-- [ ] `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 的 `sqlInsert` / `sqlDelete` 追加可选 returning 子句，形态与 `sqlUpdate` 现有子句完全一致（`RETURNING` 后接 `*` 或投影列表）
-- [ ] `EqlAST.xjava` 给 `SqlInsert` / `SqlDelete` 各追加 `returnAll`（`boolean`）与 `returnProjections`（`List<SqlProjection>`）两个 prop，**prop 名与类型必须与 `SqlUpdate` 既有字段完全同名同型**
-- [ ] 运行 codegen（命令同 Phase 3），确认 `ast/_gen/_SqlInsert.java`、`ast/_gen/_SqlDelete.java`、`EqlASTVisitor` / `EqlASTProcessor` / `EqlASTOptimizer`、`parse/antlr/EqlParser.java`、`parse/_EqlASTBuildVisitor.java` 全部按新模型重生成且**零手改**。⚠️ 跳过这一步会出现"文法改了但 parser 未重生成"的诡异失败，或被诱导手改生成物（AGENTS.md 硬红线）
-- [ ] `EqlTransformVisitor` 在 insert / delete 访问中实现 returning 门控：命中时按对应的 `supportReturningForInsert` / `supportReturningForDelete` 裁决，未配置即编译期失败
-- [ ] **修正投影别名的抑制判定**：`EqlTransformVisitor.visitSqlExprProjection` 当前按"父节点 AST 种类 == `SqlUpdate`"抑制生成别名（`isSqlUpdate` 私有判定）。若照搬，insert / delete 的 returning 投影会被塞进序号别名并打印成 `returning name as c1`（别名形态见 `SeqAliasGenerator.genColumnAlias`）。判定条件须放宽为"父节点是 `SqlUpdate` / `SqlInsert` / `SqlDelete` 三者之一"，UPDATE 路径行为逐字节不变（写语句的直接子节点里只有 returning 投影列表会容纳表达式投影，故按父节点种类判定是等价的）。
+- [x] `nop-persistence/nop-orm-eql/model/antlr/DMLStatement.g4` 的 `sqlInsert` / `sqlDelete` 追加可选 returning 子句，形态与 `sqlUpdate` 现有子句完全一致（`RETURNING` 后接 `*` 或投影列表）
+- [x] `EqlAST.xjava` 给 `SqlInsert` / `SqlDelete` 各追加 `returnAll`（`boolean`）与 `returnProjections`（`List<SqlProjection>`）两个 prop，**prop 名与类型必须与 `SqlUpdate` 既有字段完全同名同型**
+- [x] 运行 codegen（命令同 Phase 3），确认 `nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/ast/_gen/_SqlInsert.java`、`_SqlDelete.java`、`EqlASTVisitor` / `EqlASTProcessor` / `EqlASTOptimizer`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/antlr/EqlParser.java`、`nop-persistence/nop-orm-eql/src/main/java/io/nop/orm/eql/parse/_EqlASTBuildVisitor.java` 全部按新模型重生成且**零手改**。⚠️ 跳过这一步会出现"文法改了但 parser 未重生成"的诡异失败，或被诱导手改生成物（AGENTS.md 硬红线）
+- [x] `EqlTransformVisitor` 在 insert / delete 访问中实现 returning 门控：命中时按对应的 `supportReturningForInsert` / `supportReturningForDelete` 裁决，未配置即编译期失败
+- [x] **修正投影别名的抑制判定**：`EqlTransformVisitor.visitSqlExprProjection` 当前按"父节点 AST 种类 == `SqlUpdate`"抑制生成别名（`isSqlUpdate` 私有判定）。若照搬，insert / delete 的 returning 投影会被塞进序号别名并打印成 `returning name as c1`（别名形态见 `SeqAliasGenerator.genColumnAlias`）。判定条件须放宽为"父节点是 `SqlUpdate` / `SqlInsert` / `SqlDelete` 三者之一"，UPDATE 路径行为逐字节不变（写语句的直接子节点里只有 returning 投影列表会容纳表达式投影，故按父节点种类判定是等价的）。
   ⚠️ **禁止**写成 `instanceof SqlDmlStatement` —— `SqlSelect` 继承 `SqlDmlStatement`，那样会把普通 SELECT 的投影别名一并打掉，且多数既有断言是子串匹配、不会转红
-- [ ] `returning *` 的列展开与投影表达式的类型解析：走与 `visitSqlUpdate` 同一条已验证路径，抽取为共享私有方法由三条语句共同调用，**不复制第二份展开逻辑**
-- [ ] `AstToEqlGenerator` 的 insert / delete 打印补 returning 子句输出
-- [ ] 既有的 `supportReturningForUpdate` 门控路径**零改动**
+- [x] `returning *` 的列展开与投影表达式的类型解析：走与 `visitSqlUpdate` 同一条已验证路径，抽取为共享私有方法由三条语句共同调用，**不复制第二份展开逻辑**
+- [x] `AstToEqlGenerator` 的 insert / delete 打印补 returning 子句输出
+- [x] 既有的 `supportReturningForUpdate` 门控路径**零改动**
 
 Exit Criteria:
 
-- [ ] 新增测试类覆盖：PG 方言 insert/delete returning 的 SQL 文本正断言；MySQL / H2 / Oracle / MSSQL 的编译期负向断言（各自 `feature` 参数）；`returning *` 与显式投影列表两形态；表达式投影的类型解析不抛 NPE
-- [ ] **别名抑制的强断言**：三条语句的 returning 输出都断言"投影后不出现序号别名"——用正则断言 `returning` 之后不出现 `as c<数字>`（别名真实形态是 `c1`/`c2`，**不是** `col_N`，写成 `col_` 会让断言恒真）。逐形态断言 returning 投影列表文本等于期望值亦可
-- [ ] **反向断言（防误伤）**：普通 `select a, b from t` 仍输出 ` as c1` / ` as c2`；既有 `TestEqlUpdateReturningDialectGate` 的断言是子串匹配、钉不住别名回归，其断言体须零改动保留
-- [ ] `TestEqlUpdateReturningDialectGate` 的**既有断言未被削弱**，且 UPDATE 的 returning 输出与改动前逐字节一致（用 `git diff` 确认断言体零改动）
-- [ ] **owner-doc 裁定**：`insert` / `delete ... returning` 的方言能力矩阵已同步 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`；或显式写 `No owner-doc update required` 并说明理由
-- [ ] `ai-dev/logs/2026/10-10.md` 已更新（Phase 5 的执行事实，不含 Phase 4 的收口记录）
-- [ ] `TestEqlCorpusBaseline` 仍绿（既有语料不因新子句产生歧义）
-- [ ] 生成物 diff 形态核对同 Phase 3（AST 模板产物带 `__XGEN_FORCE_OVERRIDE__`；ANTLR 产物带 `// Nop Generated from Eql.g4 by ANTLR ...`）；`EqlASTKind.java` 仅尾部追加，无 ordinal 位移
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 退出码 0
-- [ ] `ai-dev/logs/2026/10-10.md` 已更新
+- [x] 新增测试类覆盖：PG 方言 insert/delete returning 的 SQL 文本正断言；MySQL / H2 / Oracle / MSSQL 的编译期负向断言（各自 `feature` 参数）；`returning *` 与显式投影列表两形态；表达式投影的类型解析不抛 NPE
+- [x] **别名抑制的强断言**：三条语句的 returning 输出都断言"投影后不出现序号别名"——用正则断言 `returning` 之后不出现 `as c<数字>`（别名真实形态是 `c1`/`c2`，**不是** `col_N`，写成 `col_` 会让断言恒真）。逐形态断言 returning 投影列表文本等于期望值亦可
+- [x] **反向断言（防误伤）**：普通 `select a, b from t` 仍输出 ` as c1` / ` as c2`；既有 `TestEqlUpdateReturningDialectGate` 的断言是子串匹配、钉不住别名回归，其断言体须零改动保留
+- [x] `TestEqlUpdateReturningDialectGate` 的**既有断言未被削弱**，且 UPDATE 的 returning 输出与改动前逐字节一致（用 `git diff` 确认断言体零改动）
+- [x] **owner-doc 裁定**：`insert` / `delete ... returning` 的方言能力矩阵已同步 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`；或显式写 `No owner-doc update required` 并说明理由
+- [x] `ai-dev/logs/2026/10-10.md` 已更新（Phase 5 的执行事实，不含 Phase 4 的收口记录）
+- [x] `TestEqlCorpusBaseline` 仍绿（既有语料不因新子句产生歧义）
+- [x] 生成物 diff 形态核对同 Phase 3（AST 模板产物带 `__XGEN_FORCE_OVERRIDE__`；ANTLR 产物带 `// Nop Generated from Eql.g4 by ANTLR ...`）；`EqlASTKind.java` 仅尾部追加，无 ordinal 位移
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql -am` 退出码 0
+- [x] `ai-dev/logs/2026/10-10.md` 已更新
 
 ### Phase 6 - 接线验证、端到端与文档同步
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java`、`nop-persistence/nop-orm-eql/src/test/`、`docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`ai-dev/backlog/eql-cross-db-compat-roadmap.md`
 
 - Item Types: `Proof`, `Follow-up`
 
-- [ ] **接线验证**：upsert 语句种类的监听上报分支确实被 DAO 查询执行器在运行时调用（不是类型上存在而已）——端到端用例中用计数器断言保存事件被触发
-- [ ] **端到端验证（H2 真库）**：新增 H2 载体测试，从 sql-lib 或 ORM 模板入口写出一条 EQL upsert，编译并在真实 H2 上执行，断言"新键插入 + 旧键整体按列清单更新为新值"两腿结果。⚠️ **两条约束**：①**不可断言"未列更新列保持原值"**——H2 分支要求更新集等于列清单（design §3.6），部分更新在 H2 上是编译期拒绝，该行为只对 PG / MySQL 成立；②**样例的 `do update set` 必须覆盖全部列清单（含冲突键列本身）**，且右值不得含列引用（design §3.6 的两个必要条件）——否则样例会被 Phase 4 自己写的编译期门拒绝，实施者易误判为 bug
-- [ ] **端到端验证（returning）**：因 CI 无 PostgreSQL/Testcontainers 默认开启，returning 的端到端由两段证据构成——① 编译期门控 + 方言 SQL 文本断言（默认 CI 覆盖）；② Testcontainers PostgreSQL 载体的 opt-in 测试（默认 skip，与既有 docker opt-in 同口径），并在测试 javadoc 与 owner doc 中**明写"默认 CI 不覆盖真执行"**
-- [ ] **参数绑定行为取证**：确认 `do update set` 右值重复引用插入参数时（PG 惯用 `excluded` 的等价写法 `set name = :name`），参数标记是按出现次数独立绑定还是按名复用；若为独立绑定，则在 owner doc 中明确"同一参数名在 upsert 中需提供多次实参"，并补一条钉码测试
-- [ ] sql-lib 侧的 `sqlMethod` 契约写入 owner doc：取回 `returning` 行必须显式声明取值型 `sqlMethod`，否则走执行分支丢弃返回行
-- [ ] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 补 upsert 语法小节、insert/delete returning 能力矩阵、死标志台账复核（`supportOutputForUpdate` 状态不变）
-- [ ] `ai-dev/backlog/eql-cross-db-compat-roadmap.md` 对「明确不做的事」行与 ledger `MERGE` 行追加**原地注记**（不删原文），写明 successor 已开工及其未覆盖边界
-- [ ] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 在路由/锚点变化时同步（`ai-dev/design/eql-cross-db-compat/README.md` 的登记已在起草时完成）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-dao,nop-persistence/nop-orm-model,nop-persistence/nop-orm -am` 退出码 0
-- [ ] `./mvnw clean install -DskipTests -T 1C` 退出码 0（确认全仓 codegen 不因新 AST 节点而连锁重生成失败）
-- [ ] `ai-dev/logs/2026/10-10.md` 收口记录已写入
+- [x] **接线验证**：upsert 语句种类的监听上报分支确实被 DAO 查询执行器在运行时调用（不是类型上存在而已）——端到端用例中用计数器断言保存事件被触发
+- [x] **端到端验证（H2 真库）**：新增 H2 载体测试，从 sql-lib 或 ORM 模板入口写出一条 EQL upsert，编译并在真实 H2 上执行，断言"新键插入 + 旧键整体按列清单更新为新值"两腿结果。⚠️ **两条约束**：①**不可断言"未列更新列保持原值"**——H2 分支要求更新集等于列清单（design §3.6），部分更新在 H2 上是编译期拒绝，该行为只对 PG / MySQL 成立；②**样例的 `do update set` 必须覆盖全部列清单（含冲突键列本身）**，且右值不得含列引用（design §3.6 的两个必要条件）——否则样例会被 Phase 4 自己写的编译期门拒绝，实施者易误判为 bug
+- [x] **端到端验证（returning）**：因 CI 无 PostgreSQL/Testcontainers 默认开启，returning 的端到端由两段证据构成——① 编译期门控 + 方言 SQL 文本断言（默认 CI 覆盖）；② Testcontainers PostgreSQL 载体的 opt-in 测试（默认 skip，与既有 docker opt-in 同口径），并在测试 javadoc 与 owner doc 中**明写"默认 CI 不覆盖真执行"**
+- [x] **参数绑定行为取证**：确认 `do update set` 右值重复引用插入参数时（PG 惯用 `excluded` 的等价写法 `set name = :name`），参数标记是按出现次数独立绑定还是按名复用；若为独立绑定，则在 owner doc 中明确"同一参数名在 upsert 中需提供多次实参"，并补一条钉码测试
+- [x] sql-lib 侧的 `sqlMethod` 契约写入 owner doc：取回 `returning` 行必须显式声明取值型 `sqlMethod`，否则走执行分支丢弃返回行
+- [x] `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` 补 upsert 语法小节、insert/delete returning 能力矩阵、死标志台账复核（`supportOutputForUpdate` 状态不变）
+- [x] `ai-dev/backlog/eql-cross-db-compat-roadmap.md` 对「明确不做的事」行与 ledger `MERGE` 行追加**原地注记**（不删原文），写明 successor 已开工及其未覆盖边界
+- [x] `docs-for-ai/INDEX.md` 与 `docs-for-ai/04-reference/source-anchors.md` 在路由/锚点变化时同步（`ai-dev/design/eql-cross-db-compat/README.md` 的登记已在起草时完成）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `./mvnw test -pl nop-persistence/nop-orm-eql,nop-persistence/nop-dao,nop-persistence/nop-orm-model,nop-persistence/nop-orm -am` 退出码 0
+- [x] `./mvnw clean install -DskipTests -T 1C` 退出码 0（确认全仓 codegen 不因新 AST 节点而连锁重生成失败）
+- [x] `ai-dev/logs/2026/10-10.md` 收口记录已写入
 
 ---
 

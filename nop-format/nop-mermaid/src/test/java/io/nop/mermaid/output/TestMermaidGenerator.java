@@ -1,12 +1,20 @@
 package io.nop.mermaid.output;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.mermaid.MermaidErrors;
 import io.nop.mermaid.ast.MermaidClassNode;
 import io.nop.mermaid.ast.MermaidComment;
+import io.nop.mermaid.ast.MermaidFlowEdge;
+import io.nop.mermaid.ast.MermaidFlowNode;
+import io.nop.mermaid.ast.MermaidFlowSubgraph;
+import io.nop.mermaid.ast.MermaidGanttTask;
+import io.nop.mermaid.ast.MermaidParticipant;
 import io.nop.mermaid.ast.MermaidPieItem;
+import io.nop.mermaid.ast.MermaidStateNode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -60,5 +68,73 @@ public class TestMermaidGenerator {
 
         MermaidGenerator generator = new MermaidGenerator();
         assertDoesNotThrow(() -> generator.visitMermaidPieItem(item));
+    }
+
+    // ======================= P2-4.4-001 / P2-4.4-002 (plan 2405) =======================
+
+    @Test
+    public void testNonStaticClassMemberDoesNotNpe() {
+        // getIsStatic() defaults to null; a direct unboxing NPEs on the common case
+        String src = "classDiagram\n class Foo [\n +name : String\n ]";
+        var doc = new io.nop.mermaid.parse.MermaidASTParser().parseFromText(null, src);
+        MermaidGenerator generator = new MermaidGenerator();
+        assertDoesNotThrow(() -> generator.visit(doc));
+        assertTrue(generator.getResult().contains("class Foo ["));
+    }
+
+    @Test
+    public void testIdentifierValidatedAtAllAppendPoints() {
+        String bad = "a-b"; // '-' is outside Identifier_
+
+        assertThrows(NopException.class, () -> {
+            MermaidFlowNode node = new MermaidFlowNode();
+            node.setId(bad);
+            new MermaidGenerator().visitMermaidFlowNode(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidFlowEdge node = new MermaidFlowEdge();
+            node.setFrom(bad);
+            node.setTo("b");
+            new MermaidGenerator().visitMermaidFlowEdge(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidFlowEdge node = new MermaidFlowEdge();
+            node.setFrom("a");
+            node.setTo(bad);
+            new MermaidGenerator().visitMermaidFlowEdge(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidParticipant node = new MermaidParticipant();
+            node.setName(bad);
+            new MermaidGenerator().visitMermaidParticipant(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidClassNode node = new MermaidClassNode();
+            node.setClassName(bad);
+            new MermaidGenerator().visitMermaidClassNode(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidFlowSubgraph node = new MermaidFlowSubgraph();
+            node.setId(bad);
+            node.setStatements(new java.util.ArrayList<>());
+            new MermaidGenerator().visitMermaidFlowSubgraph(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidStateNode node = new MermaidStateNode();
+            node.setId(bad);
+            new MermaidGenerator().visitMermaidStateNode(node);
+        });
+        assertThrows(NopException.class, () -> {
+            MermaidGanttTask node = new MermaidGanttTask();
+            node.setId(bad);
+            node.setTitle("t");
+            new MermaidGenerator().visitMermaidGanttTask(node);
+        });
+    }
+
+    @Test
+    public void testEmptyIdentifierFailsLoudly() {
+        NopException ex = assertThrows(NopException.class, () -> MermaidGenerator.id(""));
+        assertEquals(MermaidErrors.ERR_MERMAID_INVALID_IDENTIFIER.getErrorCode(), ex.getErrorCode());
     }
 }

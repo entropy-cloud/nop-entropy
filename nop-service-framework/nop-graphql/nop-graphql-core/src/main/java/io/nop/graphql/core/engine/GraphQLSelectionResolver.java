@@ -99,9 +99,10 @@ public class GraphQLSelectionResolver {
     }
 
     public void resolveSelection(GraphQLDocument doc) {
+        Map<String, GraphQLVariableDefinition> docVars = collectDocVars(doc);
         for (GraphQLDefinition def : doc.getDefinitions()) {
             if (def instanceof GraphQLFragment) {
-                resolveFragment(doc, (GraphQLFragment) def, 0);
+                resolveFragment(doc, (GraphQLFragment) def, 0, docVars);
             }
         }
 
@@ -112,6 +113,28 @@ public class GraphQLSelectionResolver {
         }
 
         checkFragmentExpansion(doc);
+    }
+
+    /**
+     * fragment body 与 spread 指令中引用的变量按文档级并集校验：在任一 operation 中声明即合法，
+     * 全文档未声明的变量仍然拒绝。fragment 预解析先于 operation 解析执行，生产路径为单 operation
+     * 文档，此时并集与该 operation 的变量集重合。
+     */
+    private Map<String, GraphQLVariableDefinition> collectDocVars(GraphQLDocument doc) {
+        Map<String, GraphQLVariableDefinition> docVars = null;
+        for (GraphQLDefinition def : doc.getDefinitions()) {
+            if (!(def instanceof GraphQLOperation))
+                continue;
+            List<GraphQLVariableDefinition> varDefs = ((GraphQLOperation) def).getVariableDefinitions();
+            if (varDefs == null)
+                continue;
+            if (docVars == null)
+                docVars = new HashMap<>();
+            for (GraphQLVariableDefinition varDef : varDefs) {
+                docVars.put(varDef.getName(), varDef);
+            }
+        }
+        return docVars == null ? Collections.emptyMap() : docVars;
     }
 
     /**
@@ -164,11 +187,12 @@ public class GraphQLSelectionResolver {
         }
     }
 
-    private void resolveFragment(GraphQLDocument doc, GraphQLFragment fragment, int level) {
+    private void resolveFragment(GraphQLDocument doc, GraphQLFragment fragment, int level,
+                                 Map<String, GraphQLVariableDefinition> vars) {
         if (fragment.isResolved())
             return;
         fragment.setResolved(true);
-        resolveSelections(doc, fragment.getOnType(), fragment.getSelectionSet(), new HashMap<>(), level - 1);
+        resolveSelections(doc, fragment.getOnType(), fragment.getSelectionSet(), vars, level - 1);
     }
 
     private void resolveOperation(GraphQLDocument doc, GraphQLOperation op) {
@@ -220,7 +244,7 @@ public class GraphQLSelectionResolver {
                     resolveFieldSelection(doc, typeDef, fieldSelection, vars, level + 1);
                 } else if (selection instanceof GraphQLFragmentSelection) {
                     GraphQLFragmentSelection fragmentSelection = (GraphQLFragmentSelection) selection;
-                    resolveFragmentSelection(doc, typeDef, fragmentSelection, level);
+                    resolveFragmentSelection(doc, typeDef, fragmentSelection, level, vars);
                 } else {
                     throw new NopException(ERR_GRAPHQL_UNSUPPORTED_AST).param(ARG_AST_NODE, selection);
                 }
@@ -269,8 +293,9 @@ public class GraphQLSelectionResolver {
     }
 
     private void resolveFragmentSelection(GraphQLDocument doc, GraphQLTypeDefinition typeDef,
-                                          GraphQLFragmentSelection fragmentSelection, int level) {
-        resolveDirectives(fragmentSelection.getDirectives(), GraphQLDirectiveLocation.FRAGMENT_SPREAD, new HashMap<>());
+                                          GraphQLFragmentSelection fragmentSelection, int level,
+                                          Map<String, GraphQLVariableDefinition> vars) {
+        resolveDirectives(fragmentSelection.getDirectives(), GraphQLDirectiveLocation.FRAGMENT_SPREAD, vars);
 
         String name = fragmentSelection.getFragmentName();
         if (name.startsWith(GraphQLConstants.FRAGMENT_SELECTION_PREFIX)) {
@@ -300,7 +325,7 @@ public class GraphQLSelectionResolver {
             throw new NopException(ERR_GRAPHQL_INVALID_FRAGMENT).param(ARG_AST_NODE, fragmentSelection)
                     .param(ARG_FRAGMENT_NAME, fragment.getName());
 
-        resolveFragment(doc, fragment, level);
+        resolveFragment(doc, fragment, level, vars);
     }
 
     /**

@@ -1,0 +1,146 @@
+# 2356 full-code-review 6.9 check 系列 P2/P3 批量状态标定（watch-only 归档）
+
+> Plan Status: completed
+> Last Reviewed: 2026-10-08
+> Source: `ai-dev/backlog/full-code-review-roadmap.md` 工作项 6.9（MA6）；Skill=`ai-dev/skills/audit-remediation-verification-prompt.md`
+> Related: 承接 6.4（P0 全标定——fix-ai-check 分支处置以 master 为准的方法学先例）与 6.5–6.8（P1 四批全闭）。同族先例=plan 2352–2355（独立枚举 diff/冻结三要素/处置面实测/承接路由/双轨校验形态照抄；本项为批量归档而非逐条深标定——性质对齐 6.4 的「批量状态标定」）。
+> 机械基线（主 agent 实测 2026-10-08；对抗审查 agent_877eef9f 复核勘正）：check 系列 P2/P3 宇宙 = **694 条**（P2 359 + P3 335，`### [P2]`/`### [P3]` 逐份 grep 亲手加总吻合）× **54 份单元报告**（check/ 目录 56 md − ROADMAP − SUMMARY；SUMMARY :4 自证「54 个检查单元」——对抗审查 B1 勘正，初稿误写 52）。**计数口径调和（对抗审查 M1）**：标题实测 359/335（本项权威口径——逐条目自身标题）；SUMMARY 总表 355/330 与逐报告统计表 356/331 系陈旧汇总（5 份报告统计表与标题漂移：ai-core-api +1/+1/db-migration +1/0/dev-tools 0/+1/nop-excel 0/+1/nop-orm +1/+1（聚焦复核 N4 勘正：均为单向漂移非 ±）——Phase 1 对账落盘勘正表，作为流程缺陷登记不回写历史报告）；SUMMARY :101「P1/P2/P3 尚未处置」过时（实测处置块 505 个/40 文件——6.4 #6b/2353 B2 同族失败模式，本项以逐条实测为准）。fix-ai-check 提及 514 处/41 文件（含 SUMMARY 正文 3 处提及——对抗审查 m9 口径注记）。**P0 已由 6.4 全标定、P1 已由 6.5–6.8 四批全闭**——本项仅处理 P2/P3 层。
+> **分类规则（三分类，归入且仅归入一类，优先级①>②>③）**：
+> - **① 轮内已标定**：该 check 条目被轮内审计报告的 **check-条目级标定台账行**覆盖（对抗审查 M2 勘正——承接源仅限已实证的 check-条目级终判面：**3.9 §2.2–2.5 表〔71 行，含 3 条 P0 行不在本宇宙；§2.1 系 check2 面排除——聚焦复核 N3 勘正计数注记〕/4.4 §2.1–2.3 台账〔format-misc/search/msg-cluster 50 条〕/4.5 §2.1–2.5 台账〔dev-tools/utils/runner-cli/frontend-benchmark/migration 88 条〕/6.4 P0 台账（P0 层不在本宇宙）**；3.5/3.6/3.7 等「净新发现计数」非 check 标定计数不入承接源；**check2/ 为独立目录不在本宇宙，且行号体系与 check 相近——禁止按行号跨目录匹配**）。Phase 1 须产出「单元×承接源」覆盖矩阵（54 单元逐个登记有无行级承接面），防止虚假承接与空转超载。承接终判路由（对抗审查 M3）：**still-live（含 partially 带 live 残余）且未在 index 登记者 → 并入升级候选清单上报 R1.0（附在先行标识）**；已登记（P2-3.9-XXX 等承载）→ registered；fixed/partially-fixed 已闭合 → fixed；adjudicated-deferred → registered。
+> - **② 处置块已标**：条目带 fix-ai-check 处置块（子型如实记录：fixed/partially-fixed/确认属实/暂缓维持——对抗审查 m7 勘正：②含全部处置块形态，「确认属实/暂缓」非③）。机械采信 + 抽验（下）。
+> - **③ watch-only 默认**：非①非②（无处置块且无轮内行级终判）。批量归档 watch-only；**dup 溯源列**（对抗审查 m10）：若与轮内发现同根但无行级终判，登记在先发现 ID 保留溯源（归档不变）。
+> **升级筛查（异常项通道，roadmap 6.9 Details）**：②③类 **P2 全部**逐条读标题+现状段（③类含 dup 溯源面），凡疑似 P1+ 量级（操作化判据：安全击穿/静默数据损坏或不可逆删除/核心契约漂移且无护栏且可达）→ 列入「升级候选清单」上报 R1.0 裁决（**不自动改判**、不自动入 P1 汇总——R1.0 裁决后才定）；①类 still-live 未登记者并入本清单（见①路由）；P3 不做升级筛查（规则 #3 watch-only）。升级候选清单**冻结落盘**（对抗审查 m8）：`_tmp/fcr-6.9-escalation.csv`，SHA-256 入冻结协议。
+> **验证协议（抽验门槛，对抗审查 m5 校验点）**：② 类处置块采信抽验 = max(≥35, ②类实测数的 10%)——Phase 1 实测 ② 规模后确认下限并落盘（②∈[35,70) 时按 max 公式即 35——聚焦复核 N4 注记：小 ② 档位覆盖 max 下限，按预期 ②≈200–300 不触发，Phase 1 落盘时写明解释；<35 时全抽）；抽验含实跑 ≥10 条（6.4 F4 教训：仅读断言不判 fixed）；① 类承接锚回读 ≥15 条；③ 类升级筛查 100% 覆盖②③类 P2。冻结协议四件套（seed=2356 + 宇宙快照哈希 + 抽验样本表 `_tmp/fcr-6.9-sample.csv` + 升级候选表 `_tmp/fcr-6.9-escalation.csv`）落盘，脚本 `_tmp/fcr-6.9-sample.py`，报告附录记 SHA-256。
+> **升级候选的 index 挂载（对抗审查 m6）**：沿「R1.0 输入池」先例——index 6.9 行裁决摘要列载升级候选计数，清单本体在报告 §升级候选（每条附疑似理由+在先锚）；R1.0 以报告全集对账规则读取；不占 P1 汇总/P2 台账（裁决权在 R1.0）。
+> 上游承接源（仅限①类清单，对抗审查 M2 勘正）：3.9/4.4/4.5 三份 check-条目级台账（详见分类规则）；6.5–6.8 的 P1 标定不重复（已闭批次不在本宇宙）；6.5–6.8 各报告 Non-Goals 移交的「P2/P3 处置残余」即本项②③类输入。
+> 只读审计。**执行分支口径**：以当前工作树（audit/full-code-review）为读、以 master 可达性为锚；实跑红按 plan 2331 :93 先例归因预存并登记。
+> Draft Review: agent_877eef9f-f622-4ea3-92d8-76a32c03430f 首轮 **1 Blocker（B1 单元数 52 实为 54+Phase 1 缺独立枚举 diff）** + 4 Major（M1 SUMMARY 三口径并存未调和/:101 过时/M2 ①类承接源清单失真——净新发现计数冒充标定计数+check2 行号误配风险+无覆盖矩阵/M3 ①类 still-live 承接条目无路由——2355 M1 同型复发/M4 对账单 agent 超载 694 条×16 源）+ 6 Minor（m5–m10）——本轮全部修复（详见各节勘正注记）；聚焦复核（同一审查员）10 项全 PASS 但新发现 **N1 Major（承接面归属「甲管 3.9/乙管 4.4+4.5」与单元分组矛盾——net 族 3.9 面跨组漏认领）**+3 Minor，修复（承接面改按单元归属对照三源/分组候选文件避竞态/计数注记 71 行/措辞）后二次核认 **PASS 零问题**（commits `905f1d8edd`/`ac5cc845ae`）——转 active。
+
+## Purpose
+
+执行 roadmap 工作项 6.9：check 系列 P2/P3（694 条/54 单元）批量状态标定——①轮内已标定承接（含 still-live 路由）+ ②处置块采信抽验 + ③watch-only 归档（含 dup 溯源）+ 升级候选上报 R1.0，产出报告 `6.9-check-p2p3-watchonly-archive.md`。
+
+## Current Baseline
+
+- 宇宙 694 条/54 单元、三口径差异、分类规则见头部注记；P0/P1 层已闭不在本项范围。
+- 6.5–6.8 各报告 Non-Goals 移交的 P2/P3 处置残余即本项②③类输入（移交声明属实——对抗审查实测确认）。
+- 绿色基线：编制期全仓 BUILD SUCCESS；本项只读（实跑为抽验副作用）；工作树在前序收口 commit 后干净。
+
+## Goals
+
+- 报告 `ai-dev/audits/2026-09/2026-09-22-2020-code-review-full/6.9-check-p2p3-watchonly-archive.md`：摘要 + 宇宙对账台账（694 条三分类计数逐单元分布+三口径勘正表）+ 承接台账（①类含 still-live 路由）+ 处置块采信抽验记录（②类）+ 升级候选清单（上报 R1.0，冻结 SHA-256）+ watch-only 归档宣告（③类，全表 `_tmp` 产物引用）+ 裁决（附录记冻结协议 SHA-256）。
+- 三分类全覆盖：694 = ①+②+③ 账平；「单元×承接源」覆盖矩阵落盘。
+- index 登记 6.9 行（含升级候选计数）+ 独立 closure audit + roadmap 6.9 翻 done（closure audit 先于翻 done）。
+
+## Non-Goals
+
+- P0（6.4 已闭）/P1（6.5–6.8 已闭）层任何重标定；修复执行；升级候选的改判与登记（R1.0 裁决权）；非 check 系列的 P2/P3（各轮内报告自有发现不在本项宇宙）；check2/ 目录（独立宇宙）。
+
+## Scope
+
+### In Scope
+
+- check 系列 54 份单元报告 P2/P3 全量分类（694 条，独立枚举 diff 防漏单元）+ 三分类落地 + 抽验 + 升级筛查
+- 只读输入：check/ 单元报告、3.9/4.4/4.5 承接台账、git 历史
+
+### Out Of Scope
+
+- P0/P1 层；修复执行；改判级（R1.0 裁决权）；轮内报告自有发现（非 check 系列）；check2/ 目录。
+
+## Execution Plan
+
+### Phase 1 - 对账、分类与抽验（2 对账 agent 分组 + 2 验证 agent）
+
+Status: completed
+Targets: check 系列 P2/P3 全量清单
+
+- Item Types: `Proof`
+
+- [x] 动手前基线确认：本 plan 已提交（ac5cc845ae）、`git status` 干净后开始
+- [x] **对账 agent 甲（Phase 1–3 单元组 31 份）+ 对账 agent 乙（Phase 4–6 单元组 23 份）**（对抗审查 M4 拆分）：各自对账落盘：① 独立枚举 diff（ROADMAP 单元表 vs 报告全集 54 份——2352 B1 教训防漏单元）② 所辖单元 694 条中份额的全量清单（条目号/处置标注实测/「单元×承接源」覆盖矩阵登记——**各 agent 对所辖单元逐一对照三源（3.9/4.4/4.5）登记覆盖矩阵**〔聚焦复核 N1 勘正：承接面按单元归属而非按源归属——3.9 面跨甲乙两组（gateway-bizauth 在甲/net-http-rpc+net-misc 在乙）、4.4 面亦跨（format-misc 在甲/search+msg-cluster 在乙）〕，覆盖矩阵汇总落盘）③ 三分类机械划分（规则见头部；①类承接台账逐条在先行标识；**①类 still-live 未登记者并入升级候选**）④ 升级筛查（所辖②③类 P2 全部标题+现状段过读，候选附 ≥3 行疑似理由，写分组文件 `_tmp/fcr-6.9-escalation-a.csv`/`-b.csv`——聚焦复核 N2 避免同名并行写竞态；主 agent 合并后统一冻结 `_tmp/fcr-6.9-escalation.csv`）⑤ 所辖统计核对（逐份+三分类账平）
+- [x] Agent 1「抽验」：②类 35 条抽验**属实 33/不属实 1/无法验证 0**（94.3% 真实率；实跑覆盖 19 条 ≥10 达标——110 用例全绿）+ ①类承接锚回读 **19/19 三方一致零虚假承接** → `_tmp/fcr-6.9-verify-a.md`；**重要发现 1 条**：nop-core-framework#P2-L108 修复被 plan-2309 重构静默回退（4ffaebb267→5f301a1399/0030615056）——入升级候选
+- [x] Agent 2「升级候选复核」：126 行复核=**维持 109（①路由 77 全核+②③筛查 32）/降级 17（主因 check 报告与 live 代码时效差——后续 plan 已修，逐条理由在案）/无法验证 0/新增 3**（Pulsar seekToPosition 空 TODO/ai-rest 管道 stage 错误伪装成功/硬编码密钥族扩展锚）；②③类 P2 快扫 232 条标题全覆盖兜底零漏 → `_tmp/fcr-6.9-verify-b.md`
+- [x] 主 agent 汇总：两分组合并 **694=400+294 精确账平**（①148+②315+③231；P2 359+P3 335 与权威口径精确吻合）；升级候选定稿冻结 `_tmp/fcr-6.9-escalation-final.csv` **130 行=维持 109+降级留痕 17+新增 4**（SHA-256 `3910ed88…`）；冻结协议四件套齐备（universe `372b30ea…`/sample `c38996d2…`/escalation 初版 `92037425…`/final `3910ed88…`，seed=2356）
+- [x] 如发现 live P0：**发现即异步注入** + 「P0 发现追踪」登记（零 live P0 新形态——两验证 agent 一致确认）
+
+Exit Criteria:
+
+- [x] 初稿落盘；三分类账平（①148+②315+③231=694）；升级候选每条 ≥3 行疑似理由且冻结落盘（130 行定稿）
+- [x] 抽验达标（②类 35=max(35,10%) 落盘+实跑 19≥10；①类 19≥15 锚回读）；样本表可重放（SHA-256 四件套落盘）
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 1 事实
+
+### Phase 2 - 独立复核与收敛
+
+Status: completed
+Targets: Phase 1 产物
+
+- Item Types: `Proof` + `Decision`
+
+- [x] 独立复核子 agent（fresh session）：**VERDICT PASS 零翻案**——三分类边界抽验 **33/33=100% 正确**（①13/②10/③10，覆盖 gateway-bizauth/format-misc/net 族/search/msg-cluster/4.5 面；防虚假承接/防 check2 行号串配/判别式=台账行承载列有无 finding-ID）；候选终裁复核维持 16/16+降级 6/6+新增 4/4 全部代码事实成立（含 #:192 与 P2-6.1-001 同一缺陷双立标记——R1.0 合并裁定注记）；①路由「未在 index 登记」前提 5/5 grep 证实；计数收敛 694=148+315+231、130=109+17+4、SHA-256 四件套重放一致
+- [x] 主 agent 汇总：分类统一（零改判）、升级候选清单定稿（130 行冻结维持，5 条 Minor 口径注记吸收进 Phase 3 报告）
+
+Exit Criteria:
+
+- [x] 复核结论落盘 `_tmp/fcr-6.9-review.md`
+- [x] No owner-doc update required（只读）
+- [x] `ai-dev/logs/` 对应执行日 log 已追加 Phase 2 事实
+
+### Phase 3 - 报告编制、index、closure audit 与收口
+
+Status: completed
+Targets: 轮次目录报告 + index + roadmap + 本 plan
+
+- [x] 编制 `6.9-check-p2p3-watchonly-archive.md`（附录记冻结协议 SHA-256 四件套）；index 登记 6.9 行（替换占位行，裁决摘要列载升级候选计数——沿 R1.0 输入池先例，不占 P1 汇总/P2 台账）
+- [x] 定向验证锚点：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 独立子 agent closure audit（六项）；**通过后** roadmap 6.9 翻 `done`；plan 关闭（双 `--strict`）；commit
+
+Exit Criteria:
+
+- [x] index/roadmap/log 三处一致；closure audit 证据写入本 plan Closure 段
+- [x] 分类口径可复现（复核员抽验一致——sample.py 补落后重放逐字节一致）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `scan-hollow-implementations.mjs` 豁免声明：只读审计无新增代码
+
+## Closure Gates
+
+> 只读审计计划；抽验含只读测试实跑，免除全量构建。
+
+- [x] 报告落盘且 694 条三分类全覆盖（①+②+③=694 账平，54 单元枚举 diff 一致）
+- [x] 抽验达标（②类实测下限落盘+含实跑 ≥10、①类 ≥15）；升级筛查 ②③类 P2 100% 覆盖
+- [x] index 计数与报告分类台账一一对应；升级候选清单完整且冻结可重放
+- [x] 独立 closure audit PASS 并留痕（先于 roadmap 翻 done）
+- [x] roadmap 6.9 回填 `done`；log 收口记录已写
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 不存在被静默降级的 in-scope 项
+
+## Deferred But Adjudicated
+
+（无）
+
+## Non-Blocking Follow-ups
+
+（升级候选的裁决与后续修复归 R1.0/R1.x；watch-only 档案为终态归档，无后续义务。）
+
+## Closure
+
+Status Note: 工作项 6.9 收口——check P2/P3 宇宙 694 条三分类账平闭合（①148+②315+③231；694=400+294 分合精确），抽验真实率 94.3%（33/35）、三分类边界抽验 100%（33/33）、承接锚回读零虚假承接（19/19），升级候选定稿冻结 130 行（维持 109+降级留痕 17+新增 4）上报 R1.0 裁决通道。**check 系列四层（P0/P1/P2/P3）全部收口**。独立 closure audit（agent_9bccf11e）**一次 PASS 六项全过**，4 Minor 不阻塞（sample.py 缺载体→补落后重放逐字节一致；哈希笔误 5f301a139b 勘正；91 vs 90 口径注记；勾选补齐）。
+Completed: 2026-10-08
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: agent_9bccf11e-083b-40cc-b65c-e48af772a654（独立子 agent，fresh session，只读）
+- Evidence:
+  - 核验 A 证据完整性 PASS：报告六节+附录齐备；证据链 8 件在盘互相印证
+  - 核验 B 计数对应 PASS（Python csv 精确解析亲手重算）：universe 694 行三分类账平；escalation-final 130=109+17+4；SHA-256 四件套逐字节重放一致；抽验覆盖率 ②11.1%/①19/②③P2 281 精确账平；130 构成逐单元与报告 §三 吻合
+  - 核验 C 引用路径真实性 PASS：三分类 6 条抽验全中；4 条新增候选亲读（V1 回退态 git show 对照+N1 空 TODO+N2 stage 吞异常+N3 三 app 密钥面）；F1–F4 与事实一致（505/40 处置块亲数命中）
+  - 核验 D 分类与升级通道正确性 PASS：三原则两处一致；无越权登记（index 6.9 行四列全 0）；#:192 双立标记三处在案且与 6.1 行 P2-6.1-001 在池互证
+  - 核验 E 抽验结论一致性 PASS：94.3%/100%/19/19/126→130 与产物逐一相符
+  - 核验 F 流程状态 PASS：roadmap 翻 done 前 todo 前置正确；doc-links exit 0 实测
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2356-full-code-review-6.9-check-p2p3-watchonly.md --strict` 退出码 0
+  - `scan-hollow-implementations.mjs` 豁免：只读审计工作项，无新增产品代码
+  - Deferred 项分类检查：无 deferred 项；升级候选走 R1.0 裁决通道（roadmap 6.9 Details 明文通道，非静默降级）；watch-only 231 条为规则 #3 终态归档
+
+Follow-up:
+
+- 升级候选 130 行 → R1.0 裁决（含 #:192/P2-6.1-001 合并裁定、N3 全仓默认配置密钥面统一裁定、V1 回归性复发修复）；watch-only 归档无后续义务——无本 plan 自有剩余工作

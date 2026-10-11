@@ -4,6 +4,7 @@
 
     <actions>
         <mutation name="approve" displayName="通过">
+            <auth roles="admin"/>
             <arg name="id" type="String" mandatory="true"/>
             <arg name="svcCtx" kind="ServiceContext"/>
             <return>
@@ -11,7 +12,12 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：本地覆盖动作同步 base 的活跃审批流 gate（引擎回调放行）
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, true);
                     entity.approveStatus = 'APPROVED';
                     entity.state = 'Confirmed';
                     entity.approvedBy = svcCtx.getUserId();
@@ -22,6 +28,7 @@
         </mutation>
 
         <mutation name="reject" displayName="驳回">
+            <auth roles="admin"/>
             <arg name="id" type="String" mandatory="true"/>
             <arg name="svcCtx" kind="ServiceContext"/>
             <return>
@@ -29,7 +36,12 @@
             </return>
             <source>
                 <c:script><![CDATA[
+                    import io.nop.wf.core.support.ApprovalFlowHelper;
+
                     const entity = thisObj.invoke("requireEntity", {id}, null, svcCtx);
+                    // P1-3.1-001（plan 2379）：本地覆盖动作同步 base 的活跃审批流 gate（引擎回调放行）
+                    ApprovalFlowHelper.checkApprovalFlowLocked(inject('nopWorkflowManager'), thisObj.objMeta['wf:wfName'],
+                        entity, svcCtx, true);
                     entity.approveStatus = 'REJECTED';
                     entity.approvedBy = svcCtx.getUserId();
                     entity.approvedAt = now();

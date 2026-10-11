@@ -35,7 +35,7 @@
         </prop>
         <prop name="status" displayName="状态" propId="4" i18n-en:displayName="Status" mandatory="true" queryable="true"
               sortable="true" insertable="true" updatable="true">
-            <schema type="java.lang.String" dict="meta/quality-result-status"/>
+            <schema type="java.lang.String" precision="20" dict="meta/quality-result-status"/>
         </prop>
         <prop name="actualValue" displayName="实际值" propId="5" i18n-en:displayName="Actual Value" queryable="true"
               sortable="true" insertable="true" updatable="true">

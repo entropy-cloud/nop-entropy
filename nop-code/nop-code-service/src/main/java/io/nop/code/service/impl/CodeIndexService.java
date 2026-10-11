@@ -361,7 +361,8 @@ public class CodeIndexService implements ICodeIndexService {
                         // Delete existing records for the files being re-indexed so a retry over the
                         // same directory is idempotent. Symbols/relational rows have non-deterministic
                         // IDs and must be cleared before re-saving; the file row is also cleared and
-                        // re-inserted. Mirrors triggerIncrementalIndex's delete-before-reindex pattern.
+                        // re-inserted. Mirrors triggerIncrementalIndex's replace-before-save
+                        // pattern (which now analyzes first, then deletes successful files only).
                         for (CodeFileAnalysisResult fr : finalResult.getFileResults()) {
                             deleteFileRecords(indexId, Collections.singletonList(fr.getFilePath()));
                         }
@@ -397,7 +398,7 @@ public class CodeIndexService implements ICodeIndexService {
                                 Collections.singleton(generateFileId(indexId, filePath)));
                         // Delete existing records for this file so a retry is idempotent: symbols and
                         // other relational rows carry non-deterministic IDs, so they must be cleared
-                        // before re-saving (mirrors triggerIncrementalIndex's delete-before-reindex).
+                        // before re-saving (mirrors triggerIncrementalIndex's analyze-then-delete-then-save).
                         deleteFileRecords(indexId, Collections.singletonList(filePath));
                         // Content change invalidates materialized global metrics; deleteByIndex
                         // contains session.clear() so it must run before the persist below.
@@ -1101,42 +1102,34 @@ public class CodeIndexService implements ICodeIndexService {
                         changedFiles, deletedFiles);
                 incrementalAffectedFilesMap.put(indexId, affectedFiles);
 
-                // N3.1-s: snapshot the dependent call edges BEFORE deleteFileRecords destroys
-                // them, so they can be re-targeted onto the re-analyzed symbols afterwards.
-                Map<String, String> oldQnBySymbolId = snapshotSymbolQualifiedNames(indexId, changedFiles);
-                Set<String> excludeFileIds = new HashSet<>();
-                for (String path : changedFiles) {
-                    excludeFileIds.add(generateFileId(indexId, path));
-                }
-                for (String path : deletedFiles) {
-                    excludeFileIds.add(generateFileId(indexId, path));
-                }
-                List<CallSnapshot> dependentCalls = snapshotDependentCalls(indexId,
-                        oldQnBySymbolId.keySet(), excludeFileIds);
-
-                deleteFileRecords(indexId, deletedFiles);
-                deleteFileRecords(indexId, changedFiles);
-
                 Map<String, IResource> resourceByPath = new HashMap<>();
                 for (IResource res : currentResources) {
                     resourceByPath.put(pathMapper.apply(res.getPath()), res);
                 }
 
-                // N3.1-s: two-stage structure — analyze ALL changed files first, resolve their
-                // call references, and only then persist. Per-file analyze+persist interleaving
-                // would lose changed→changed edges: at a file's persist time its callees' new
-                // symbols are neither in memory nor in the DB (old rows already deleted).
+                // P1-6.7-010: analyze ALL changed files BEFORE deleting anything.
+                // The old delete-before-analyze order destroyed a failed file's
+                // existing records with no way to restore them. Files that cannot
+                // be analyzed (no analyzer / missing resource / analyzer exception
+                // / analyzer null result) are collected in failedFiles, keep their
+                // old records + fingerprint, and are retried by the next run.
                 List<CodeFileAnalysisResult> changedResults = new ArrayList<>(changedFiles.size());
                 SymbolTable reanalyzedSymbols = new SymbolTable();
+                Set<String> failedFiles = new LinkedHashSet<>();
                 for (String changedFile : changedFiles) {
                     try {
                         String relativePath = pathMapper.apply(changedFile);
                         ICodeFileAnalyzer fileAnalyzer = registry.getAnalyzer(relativePath);
-                        if (fileAnalyzer == null) continue;
+                        if (fileAnalyzer == null) {
+                            failedFiles.add(changedFile);
+                            LOG.warn("No analyzer registered for changed file {}; keeping previous index records and fingerprint", relativePath);
+                            continue;
+                        }
 
                         IResource resource = resourceByPath.get(changedFile);
                         if (resource == null) {
-                            LOG.warn("Resource not found for path: {}", relativePath);
+                            failedFiles.add(changedFile);
+                            LOG.warn("Resource not found for path {}; keeping previous index records and fingerprint", relativePath);
                             continue;
                         }
                         String sourceCode = resource.readText();
@@ -1149,13 +1142,44 @@ public class CodeIndexService implements ICodeIndexService {
                                     reanalyzedSymbols.add(symbol);
                                 }
                             }
+                        } else {
+                            failedFiles.add(changedFile);
+                            LOG.warn("Analyzer returned null for {}; keeping previous index records and fingerprint", relativePath);
                         }
                     } catch (Exception e) {
-                        LOG.warn("Failed to re-analyze file: {}", changedFile, e);
+                        failedFiles.add(changedFile);
+                        LOG.warn("Failed to re-analyze file {}; keeping previous index records and fingerprint", changedFile, e);
                     }
                 }
 
-                Set<String> excludeFilePaths = new HashSet<>(changedFiles);
+                // Only successfully analyzed files have their old records replaced;
+                // failed files stay untouched (records + fingerprint retained).
+                List<String> successfulChangedFiles = new ArrayList<>(changedFiles.size());
+                for (String changedFile : changedFiles) {
+                    if (!failedFiles.contains(changedFile)) {
+                        successfulChangedFiles.add(changedFile);
+                    }
+                }
+
+                // N3.1-s: snapshot the dependent call edges BEFORE deleteFileRecords destroys
+                // them, so they can be re-targeted onto the re-analyzed symbols afterwards.
+                // Scoped to the files actually being replaced (failed files keep their rows,
+                // so their edges must not enter the rebuild set).
+                Map<String, String> oldQnBySymbolId = snapshotSymbolQualifiedNames(indexId, successfulChangedFiles);
+                Set<String> excludeFileIds = new HashSet<>();
+                for (String path : successfulChangedFiles) {
+                    excludeFileIds.add(generateFileId(indexId, path));
+                }
+                for (String path : deletedFiles) {
+                    excludeFileIds.add(generateFileId(indexId, path));
+                }
+                List<CallSnapshot> dependentCalls = snapshotDependentCalls(indexId,
+                        oldQnBySymbolId.keySet(), excludeFileIds);
+
+                deleteFileRecords(indexId, deletedFiles);
+                deleteFileRecords(indexId, successfulChangedFiles);
+
+                Set<String> excludeFilePaths = new HashSet<>(successfulChangedFiles);
                 excludeFilePaths.addAll(deletedFiles);
                 resolveReanalyzedCalls(indexId, changedResults, reanalyzedSymbols, excludeFilePaths);
 
@@ -1175,6 +1199,14 @@ public class CodeIndexService implements ICodeIndexService {
                 restoreDependentCalls(indexId, session, dependentCalls, oldQnBySymbolId, reanalyzedSymbols);
 
                 List<FileFingerprint> newFingerprints = detector.computeResourceFingerprints(mappedResources);
+                if (!failedFiles.isEmpty()) {
+                    // Do NOT mark failed files as synced: drop their new fingerprints so the
+                    // persisted NopCodeFile row (old hash/mtime) survives and the next
+                    // incremental re-detects them as modified/added and retries.
+                    newFingerprints.removeIf(fp -> failedFiles.contains(fp.getFilePath()));
+                    LOG.info("Incremental index for {}: {} file(s) failed analysis and kept their previous fingerprints: {}",
+                            indexId, failedFiles.size(), failedFiles);
+                }
                 updateIndexStats(indexId);
 
                 store.saveFingerprints(indexId, newFingerprints);
@@ -1185,7 +1217,9 @@ public class CodeIndexService implements ICodeIndexService {
                 // (harmless rebuild); missing invalidation after commit would be the harmful case.
                 invalidateAnalysisCache(indexId);
 
-                return changedFiles.size();
+                // P1-6.7-010: report files actually re-persisted; failed files are retried next
+                // run and must not be counted as successfully indexed.
+                return changedResults.size();
             } catch (IOException e) {
                 throw new NopException(ERR_INCREMENTAL_FAILED).param(ARG_INDEX_ID, indexId).cause(e);
             }
@@ -2290,9 +2324,9 @@ public class CodeIndexService implements ICodeIndexService {
         }
 
         // File-level propagation over nop_code_dependency (import graph): a changed file
-        // affects files that import it (reverse deps), 2 hops out. Symbol-level call edges
-        // are unsuitable here because cross-file calleeId is only resolved by the full-index
-        // flow (Deferred successor: incremental callee resolution).
+        // affects files that import it AND files it imports (bidirectional), 2 hops out.
+        // Symbol-level call edges are unsuitable here because cross-file calleeId is only
+        // resolved by the full-index flow (Deferred successor: incremental callee resolution).
         Set<String> affectedFiles = DependencyPropagator.propagate(seedFiles,
                 ids -> {
                     Set<String> neighbours = new java.util.LinkedHashSet<>();
@@ -2363,7 +2397,13 @@ public class CodeIndexService implements ICodeIndexService {
             deleteEntitiesByFilter(NopCodeCall.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeSymbol.class, "fileId", fileId);
             deleteEntitiesByFilter(NopCodeUsage.class, "fileId", fileId);
-            deleteEntitiesByFilter(NopCodeDependency.class, "sourceFilePath", filePath);
+            // P1-6.7-011: scope by indexId as well — two indexes may cover the same
+            // repository/files; an unscoped delete silently removes the other index's
+            // dependency edges. (file rows/call/symbol/usage are already index-scoped
+            // via generateFileId(indexId, path).)
+            deleteEntitiesByFilters(NopCodeDependency.class,
+                    FilterBeans.and(FilterBeans.eq("sourceFilePath", filePath),
+                            FilterBeans.eq("indexId", indexId)));
             deleteRelationalBySymbolIds(NopCodeAnnotationUsage.class, "annotatedSymbolId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeInheritance.class, "subTypeId", symbolIds);
             deleteRelationalBySymbolIds(NopCodeSemanticEdge.class, "sourceSymbolId", symbolIds);
@@ -2458,11 +2498,16 @@ public class CodeIndexService implements ICodeIndexService {
     }
 
     private <T extends IDaoEntity> void deleteEntitiesByFilter(Class<T> entityClass, String field, String value) {
+        deleteEntitiesByFilters(entityClass, FilterBeans.eq(field, value));
+    }
+
+    private <T extends IDaoEntity> void deleteEntitiesByFilters(Class<T> entityClass,
+                                                                io.nop.api.core.beans.ITreeBean filter) {
         IEntityDao<T> dao = daoProvider.daoFor(entityClass);
         // Paginated delete to exhaust all matching rows
         while (true) {
             QueryBean q = new QueryBean();
-            q.addFilter(FilterBeans.eq(field, value));
+            q.addFilter(filter);
             q.setLimit(DELETE_BATCH_SIZE);
             List<T> entities = dao.findAllByQuery(q);
             if (entities.isEmpty()) break;
@@ -2606,7 +2651,10 @@ public class CodeIndexService implements ICodeIndexService {
         IEntityDao<NopCodeIndex> indexDao = daoProvider.daoFor(NopCodeIndex.class);
         NopCodeIndex indexEntity = indexDao.getEntityById(indexId);
         if (indexEntity != null) {
-            workingDirectory = indexEntity.getRootPath();
+            // P1-6.7-009: rootPath is persisted in vfs form ("file:/abs/path").
+            // The git process needs a local filesystem directory; without this
+            // normalization every analyzeChanges call fails silently (empty diff).
+            workingDirectory = toLocalWorkingDirectory(indexEntity.getRootPath());
         }
 
         return analyzer.analyzeChanges(indexId, baselineCommitish, targetCommitish, symbolTable, callGraph, workingDirectory);
@@ -2936,6 +2984,26 @@ public class CodeIndexService implements ICodeIndexService {
         } catch (IOException e) {
             throw new NopException(ERR_CODE_INVALID_PATH).param(ARG_PATH, path).cause(e);
         }
+    }
+
+    /**
+     * P1-6.7-009: converts a persisted vfs-form rootPath ("file:/abs/path",
+     * or "/C:/..." on Windows) into a local filesystem directory path usable as
+     * a git working directory. Plain paths and "/" are returned unchanged
+     * (idempotent no-op) so indexFile-created indices keep working.
+     */
+    static String toLocalWorkingDirectory(String rootPath) {
+        if (rootPath == null || rootPath.isEmpty()) {
+            return null;
+        }
+        String path = rootPath;
+        if (path.startsWith("file:")) {
+            path = path.substring("file:".length());
+        }
+        if (path.length() >= 3 && path.charAt(0) == '/' && path.charAt(2) == ':') {
+            path = path.substring(1);
+        }
+        return path;
     }
 
     private String resolveVfsPath(String path) {

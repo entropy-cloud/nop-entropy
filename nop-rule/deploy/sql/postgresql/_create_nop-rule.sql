@@ -24,7 +24,7 @@ CREATE TABLE nop_rule_node(
   label VARCHAR(200) NOT NULL ,
   sort_no INT4 NOT NULL ,
   predicate VARCHAR(4000) NOT NULL ,
-  outputs VARCHAR(50)  ,
+  outputs VARCHAR(4000)  ,
   parent_id VARCHAR(32)  ,
   is_leaf BOOLEAN NOT NULL ,
   version INT4 NOT NULL ,

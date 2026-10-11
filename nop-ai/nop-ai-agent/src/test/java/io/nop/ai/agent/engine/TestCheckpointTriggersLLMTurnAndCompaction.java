@@ -636,7 +636,7 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
         // length, so compaction shows a real token reduction.
         io.nop.ai.agent.model.AgentModel model = agentModel("forced-stop-test");
         io.nop.ai.core.model.ChatOptionsModel opts = new io.nop.ai.core.model.ChatOptionsModel();
-        opts.setMaxTokens(1000);
+        opts.setContextLength(1000);
         model.setChatOptions(opts);
 
         RecordingChatService chat = new RecordingChatService(List.of(

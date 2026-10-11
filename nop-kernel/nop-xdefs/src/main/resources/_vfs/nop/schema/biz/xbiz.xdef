@@ -82,6 +82,8 @@
     <loaders xdef:body-type="list" xdef:key-attr="name">
         <loader name="!string" xdef:name="BizLoaderModel" disabled="!boolean=false" autoCreateField="!boolean=false"
                 argsNormalizer="bean-name">
+            <auth xdef:ref="../schema/auth.xdef"/>
+
             <!--
               是否缓存action调用结果
              -->

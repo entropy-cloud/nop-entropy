@@ -147,6 +147,11 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
             throw new NopException(ERR_GRAPHQL_DUPLICATED_LOADER).param(ARG_LOADER_NAME, loaderName);
     }
 
+    /**
+     * P1-2.6-004：dispatchAll由GraphQLExecutor在调度点统一调用（发起时点名+游走回合出口
+     * 泵+批次完成递归，见GraphQLExecutor.dispatchAll）。快照并清空loader注册表后逐个
+     * dispatch，返回各批完成的聚合promise；注册表为空返回null（本轮调度链终止）。
+     */
     @Override
     public synchronized CompletionStage<Void> dispatchAll() {
         if (loaders.isEmpty())

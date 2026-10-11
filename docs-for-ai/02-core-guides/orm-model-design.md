@@ -1075,12 +1075,14 @@ javadoc 明确写"保存一些**临时**属性，实现类似缓存的作用"，
 真正会"改了集合但无 SQL"的形态只有一个：`<to-many>` 的 `<join>` 为空集（既无 `leftProp` 也无 `rightProp`），此时无从确定写入哪个外键列，框架不做任何事且不报错。这类结构必须补全 `<join>`，或建模为显式连接实体自己管理写入。
 
 以上裁定为框架设计层面的确定性决策，变更需先修改设计决策本身，不可按 JPA 直觉直接引入。
+## 唯一约束与索引的 DDL 物化规则（R1.9 / 平台工单-2.5）
 
-## 相关文档
-
-- `code-style.md` — ORM 命名规范（表名、列名、实体名格式）
-- `model-first-development.md` — 模型优先开发流程、代码生成链路、VARCHAR precision 自动选择
-- `../03-runbooks/create-new-entity.md` — 新建实体 runbook
-- `../03-runbooks/add-field-and-validation.md` — 新增字段 runbook
-- `../03-runbooks/add-dict-and-constants.md` — 新增字典 runbook
-- `./api-and-graphql.md` §字典字段的自动 _label 字段 — 字典字段的 _label 在 GraphQL/REST 响应中的格式与 selection 写法
+1. **unique-key 必须显式声明 `constraint` 属性**：`<unique-key name="UK_X" columns="..." constraint="UK_X"/>`。
+   无 `constraint` 属性的 unique-key 在任何 DDL 路径（deploy 生成 / 运行时自动建表）都**不会物化**——
+   这是全仓 16 个 UK 零物化缺陷（P1-2.5-002/003/004）的根因。
+2. **`<index>`（含 `unique="true"`）自 R1.9 起在两条路径物化**：deploy `createTables` 模板
+   （`ddl.xlib` CreateTable 后逐 index 输出 `create [unique] index`）与运行时
+   `DataBaseSchemaInitializer` 自动建表。此前 index 块一概丢失。
+3. **字段 precision 声明**：显式列级 `precision` 会静默覆盖 `domain` 声明（syncDomains 列优先）——
+   列级 precision 与 domain 声明必须一致；状态/枚举类 VARCHAR 列必须带 precision（参照 =20 惯例），
+   否则三方言物化为 LONGTEXT/CLOB/TEXT。

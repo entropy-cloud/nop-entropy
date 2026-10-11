@@ -14,6 +14,12 @@
                     <c:if test="${!table.tableView and !table.containsTag('not-gen')}">
                         <thisLib:CreateTable table="${table}" dialect="${dialect}" allNullable="${allNullable}"/>
                         <c:unit>;&#10;&#10;</c:unit>
+                        <!-- R1.9 / 平台工单-2.5：物化 model 中的 &lt;index&gt;（含 unique=true）。
+                             此前 create 路径只输出 CreateTable，index 块一概丢失。 -->
+                        <c:for var="index" items="${table.indexes}">
+                            <thisLib:AddIndex index="${index}" table="${table}" dialect="${dialect}"/>
+                            <c:unit>;&#10;</c:unit>
+                        </c:for>
                     </c:if>
                 </c:for>
 

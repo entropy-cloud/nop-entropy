@@ -327,6 +327,7 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChildren(node.getColumns());         
                     this.visitChild(node.getSelect());
                     this.visitChild(node.getValues());
+                    this.visitChildren(node.getReturnProjections());         
             }
         
             public void visitSqlValues(SqlValues node){
@@ -360,6 +361,7 @@ public class EqlASTVisitor extends AbstractVisitor<EqlASTNode>{
                     this.visitChild(node.getTableName());
                     this.visitChild(node.getAlias());
                     this.visitChild(node.getWhere());
+                    this.visitChildren(node.getReturnProjections());         
             }
         
             public void visitSqlWhere(SqlWhere node){

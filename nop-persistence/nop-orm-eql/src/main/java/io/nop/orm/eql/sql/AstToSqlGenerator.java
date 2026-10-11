@@ -19,6 +19,8 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
 import io.nop.core.lang.sql.SyntaxMarker;
 import io.nop.dao.dialect.IDialect;
+import io.nop.dao.jdbc.UpsertStatements;
+import io.nop.dao.jdbc.UpsertStyle;
 import io.nop.dao.dialect.SQLDataType;
 import io.nop.dao.dialect.function.ISQLFunction;
 import io.nop.orm.eql.ast.EqlASTKind;
@@ -50,6 +52,7 @@ import io.nop.orm.eql.ast.SqlTableName;
 import io.nop.orm.eql.ast.SqlTableSource;
 import io.nop.orm.eql.ast.SqlTypeExpr;
 import io.nop.orm.eql.ast.SqlUnionSelect;
+import io.nop.orm.eql.ast.SqlUpsert;
 import io.nop.orm.eql.ast.SqlWindowDecl;
 import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
@@ -83,6 +86,7 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CROSS_JOIN_NOT_ALLOW_CONDITION
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_CTE_COLUMN_NAME_UNRESOLVED;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FUNC_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_FEATURE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_UPSERT;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NOT_SUPPORT_ILIKE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_NULLS_ORDER_NOT_SUPPORTED;
@@ -926,10 +930,97 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
         return null;
     }
 
+    /**
+     * Plan 2380：{@code upsert} 的方言 lowering。
+     *
+     * <p>形态分支<b>直接复用</b> {@code UpsertStatements.resolveUpsertStyle} 的结论
+     * （{@code nop-orm-eql} 已依赖 {@code nop-dao}），不在本类另建第二张按方言名前缀匹配的表——
+     * 两处独立匹配必然漂移。能力位 {@code supportUpsert} 与形态解析的一致性由
+     * {@code TestDialectUpsertAndReturningFlags} 逐方言钉死。
+     *
+     * <p>三种方言形态（{@code nop-dao} 的 {@code buildNativeUpsertSqlText} 同款认知）：
+     * <ul>
+     *   <li>PG 族：{@code insert into T (cols) values (...) on conflict (k) do update set ...}</li>
+     *   <li>MySQL 族：{@code insert into T (cols) values (...) on duplicate key update ...}
+     *       ——<b>冲突键列表被丢弃</b>（MySQL 查表上任意唯一键）；编译期冲突键校验
+     *       （transform 期）正是为了保证这个丢弃是安全的；</li>
+     *   <li>H2 族：{@code merge into T (cols) key (k) values (...)}
+     *       ——无更新子句，固定按列清单整列更新；transform 期已施加两条必要条件门。</li>
+     * </ul>
+     */
+    @Override
+    public void visitSqlUpsert(SqlUpsert node) {
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
+        UpsertStyle style = UpsertStatements.resolveUpsertStyle(dialect);
+        if (style == null) {
+            // transform 期已用 supportUpsert 门拦过；走到这里说明能力位与形态解析器不一致
+            // （两条独立配置源漂移），响亮失败而不是静默产出错误 SQL。
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_UPSERT);
+        }
+
+        switch (style) {
+            case H2: {
+                print("merge\ninto ");
+                visitSqlTableName(node.getTableName());
+                beginBraceBlock();
+                printList(node.getColumns(), ",");
+                endBraceBlock();
+                print(" key ");
+                beginBraceBlock();
+                printList(node.getConflictColumns(), ",");
+                endBraceBlock();
+                visitSqlValues(node.getValues());
+                break;
+            }
+            case MYSQL: {
+                printInsertKeyword();
+                print("into ");
+                visitSqlTableName(node.getTableName());
+                beginBraceBlock();
+                printList(node.getColumns(), ",");
+                endBraceBlock();
+                visitSqlValues(node.getValues());
+                println();
+                print("on duplicate key update ");
+                beginBlock();
+                printList(node.getAssignments(), ",");
+                endBlock();
+                break;
+            }
+            case POSTGRESQL:
+            default: {
+                printInsertKeyword();
+                print("into ");
+                visitSqlTableName(node.getTableName());
+                beginBraceBlock();
+                printList(node.getColumns(), ",");
+                endBraceBlock();
+                visitSqlValues(node.getValues());
+                println();
+                print("on conflict ");
+                beginBraceBlock();
+                printList(node.getConflictColumns(), ",");
+                endBraceBlock();
+                println();
+                print("do update set ");
+                beginBlock();
+                printList(node.getAssignments(), ",");
+                endBlock();
+                break;
+            }
+        }
+        println();
+    }
+
     private EqlASTNode findDmlStatement(EqlASTNode node) {
         for (EqlASTNode n = node; n != null; n = n.getASTParent()) {
             EqlASTKind kind = n.getASTKind();
-            if (kind == EqlASTKind.SqlUpdate || kind == EqlASTKind.SqlDelete || kind == EqlASTKind.SqlInsert)
+            if (kind == EqlASTKind.SqlUpdate || kind == EqlASTKind.SqlDelete
+                    || kind == EqlASTKind.SqlInsert || kind == EqlASTKind.SqlUpsert)
                 return n;
         }
         return null;
@@ -945,6 +1036,7 @@ public class AstToSqlGenerator extends AstToEqlGenerator {
                 case SqlUpdate:
                 case SqlDelete:
                 case SqlInsert:
+                case SqlUpsert:
                     return false;
                 default:
                     break;

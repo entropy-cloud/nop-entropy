@@ -19,6 +19,11 @@ public class ChatOptionsHelper {
             options.setTopP(model.getTopP());
         if (model.getMaxTokens() != null)
             options.setMaxTokens(model.getMaxTokens());
+        // P1-6.7-006: the model-declared context window maps to the
+        // independent maxContextTokens field (never to maxTokens, which is
+        // the generation cap).
+        if (model.getContextLength() != null)
+            options.setMaxContextTokens(model.getContextLength());
         return options;
     }
 }

@@ -20,13 +20,18 @@ import io.nop.orm.eql.OrmEqlConstants;
 import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
+import io.nop.dao.jdbc.UpsertStatements;
+import io.nop.dao.jdbc.UpsertStyle;
 import io.nop.orm.eql.ast.SqlAlias;
+import io.nop.orm.eql.ast.SqlAssignment;
 import io.nop.orm.eql.ast.SqlAllProjection;
 import io.nop.orm.eql.ast.SqlAndExpr;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlColumnName;
 import io.nop.orm.eql.ast.SqlCteStatement;
 import io.nop.orm.eql.ast.SqlDecorator;
+import io.nop.orm.eql.ast.ISqlReturningSupport;
+import io.nop.orm.eql.ast.SqlUpsert;
 import io.nop.orm.eql.ast.SqlDelete;
 import io.nop.orm.eql.ast.SqlWindowDecl;
 import io.nop.orm.eql.ast.SqlWindowExpr;
@@ -60,6 +65,7 @@ import io.nop.orm.eql.ast.SqlTumbleTableSource;
 import io.nop.orm.eql.ast.SqlUnionSelect;
 import io.nop.orm.eql.ast.SqlUpdate;
 import io.nop.orm.eql.ast.SqlWhere;
+import io.nop.orm.eql.enums.SqlCollectionOperator;
 import io.nop.orm.eql.enums.SqlJoinType;
 import io.nop.orm.eql.enums.SqlOperator;
 import io.nop.orm.eql.compile.CollectionOperatorTransformer;
@@ -98,13 +104,20 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_UPDATE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_INSERT;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RETURNING_FOR_DELETE;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_UPSERT;
+import static io.nop.orm.eql.OrmEqlConstants.FEATURE_UPSERT_PARTIAL_UPDATE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_FULL_JOIN;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_RIGHT_JOIN;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_ROW_VALUE_CONSTRUCTOR;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_CONFLICT_COLUMNS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_CONFLICT_COLUMNS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
+import static io.nop.orm.eql.OrmEqlErrors.ARG_OPERATOR;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_COUNT;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ARG_INDEX;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_COL_NAME;
@@ -133,6 +146,8 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_COUNT_IS_NOT_EXP
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DECORATOR_ARG_TYPE_IS_NOT_EXPECTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_IN_LIST_TOO_LARGE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_WINDOW_NAME;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FIELD_NOT_IN_SUBQUERY;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_FUNC_ONLY_ALLOW_IN_WINDOW_EXPR;
@@ -157,6 +172,9 @@ import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_FUNCTION;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_UNKNOWN_QUERY_SPACE;
 
 public class EqlTransformVisitor extends EqlASTVisitor {
+
+    /** R1.6a：当前正在 transform 的 update/delete 目标表 source；非 DML 语句为 null。 */
+    private SqlSingleTableSource dmlTargetSource;
 
     private final ISqlCompileContext context;
     // WI2: 当前查询链上已声明的命名窗口名（每个 SqlQuerySelect 入栈一层）
@@ -204,7 +222,7 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         this.context = context;
         this.stmtName = stmtName;
         this.aliasGenerator = context.getAliasGenerator();
-        this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator);
+        this.collectionOperatorTransformer = new CollectionOperatorTransformer(aliasGenerator, assignedAliases);
     }
 
     public List<String> getReadEntityModels() {
@@ -451,39 +469,6 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                 consumer.accept(expr);
             }
         }
-    }
-
-    /**
-     * 为 update/delete 语句的 where 子句补齐缺省租户过滤条件。
-     *
-     * select 语句的缺省过滤由 {@link #addTableFilter} 注入，但 update/delete 走
-     * {@link #visitSqlUpdate} 与 {@link #visitSqlDelete}，此前只设置 useTenantModel
-     * 这个「查询计划缓存标记」，并不生成 SQL 条件，导致
-     * `delete from X where id = ?` / `update X set ... where ...` 完全绕过租户隔离
-     * （GenSqlHelper 只覆盖按主键与 example 的入口，EQL 写语句不经由它）。
-     *
-     * 注入时机与 select 对齐：都在访问 where 之前追加，使新条件与用户书写的条件
-     * 一起经过后续的 SqlParamTypeResolver 参数解析。
-     *
-     * 只补租户条件，不补逻辑删除条件。给 update/delete 注入逻辑删除条件会改变
-     * 「硬删除一条已逻辑删除的行」的既有语义，属独立决策，不在本次修复范围内。
-     *
-     * @param where        语句当前的 where，可能为 null
-     * @param source       目标实体的表源，用于生成带别名的列名
-     * @param tableMeta    目标实体的元数据
-     * @param whereSetter  where 为 null 时用于回填新建的 SqlWhere
-     */
-    void addWriteTenantFilter(SqlWhere where, SqlSingleTableSource source, ISqlTableMeta tableMeta,
-            Consumer<SqlWhere> whereSetter) {
-        if (!tableMeta.getEntityModel().isUseTenant())
-            return;
-
-        SqlWhere target = where;
-        if (target == null) {
-            target = new SqlWhere();
-            whereSetter.accept(target);
-        }
-        target.appendFilter(newTenantExpr(source, tableMeta));
     }
 
     SqlBinaryExpr newTenantExpr(SqlSingleTableSource table, ISqlTableMeta tableMeta) {
@@ -1019,6 +1004,15 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                                 .param(ARG_PROP_PATH, propPath)
                                 .param(ARG_PROP_NAME, propPath.getName()).param(ARG_ENTITY_NAME, tableMeta.getEntityName());
 
+                    // R1.6a / P1-2.2-001·002·004: 集合操作符段只在 select 语句 where 中被
+                    // CollectionOperatorTransformer 前置改写；到达此分支即说明当前位置
+                    // （update/delete where、order by、having、投影、group by 等）不受支持，
+                    // 继续处理会把操作符当作 keyProp 键值生成非法或语义错误 SQL
+                    if (SqlCollectionOperator.fromText(propPath.getNext().getName()) != null) {
+                        throw new NopException(ERR_EQL_COLLECTION_OPERATOR_NOT_ALLOWED_HERE)
+                                .source(source).param(ARG_OPERATOR, propPath.getNext().getName());
+                    }
+
                     String propJoinName = propPath.getName() + '.' + propPath.getNext().getName();
                     join = source.getPropJoin(propJoinName);
                     propPath = propPath.getNext();
@@ -1385,6 +1379,9 @@ public class EqlTransformVisitor extends EqlASTVisitor {
                     alias = new SqlAlias();
                     alias.setGenerated(true);
                     alias.setAlias(newName);
+                    // R1.6b / P1-2.2-006：回登记，使 FROM/join 自动生成别名对后续
+                    // CollectionOperatorTransformer 的别名分配可见（闭合残余碰撞面）
+                    assignedAliases.add(newName);
                     return alias;
                 }
             } while (true);
@@ -1504,16 +1501,30 @@ public class EqlTransformVisitor extends EqlASTVisitor {
     @Override
     public void visitSqlExprProjection(SqlExprProjection node) {
         if (node.getAlias() == null) {
-            // update returning语句不需要设置alias
-            if (!isSqlUpdate(node.getASTParent())) {
+            // returning 投影不需要生成 alias（update / insert / delete 三者同款）
+            if (!isWriteStatementReturning(node.getASTParent())) {
                 node.setAlias(newColumnAlias());
             }
         }
         visit(node.getExpr());
     }
 
-    private boolean isSqlUpdate(EqlASTNode node) {
-        return node.getASTKind() == EqlASTKind.SqlUpdate;
+    /**
+     * Plan 2380：判断一个 AST 节点是否为"带 returning 子句的写语句"。
+     *
+     * <p><b>只能逐个列举三种写语句</b>，禁止改成 {@code instanceof SqlDmlStatement}——
+     * {@code SqlSelect} 同样继承 {@code SqlDmlStatement}，那样会把普通 SELECT 投影的
+     * 生成别名一并打掉（且既有断言多为子串匹配，不会转红）。
+     *
+     * <p>按父节点种类判定与"是否在 returning 位置"等价：写语句的直接子节点里，
+     * 只有 returning 投影列表会容纳 {@code SqlExprProjection}（赋值走 SqlAssignment、
+     * 条件走 SqlWhere、{@code insert ... select} 的投影父节点是 SqlQuerySelect）。
+     */
+    private boolean isWriteStatementReturning(EqlASTNode node) {
+        EqlASTKind kind = node.getASTKind();
+        return kind == EqlASTKind.SqlUpdate
+                || kind == EqlASTKind.SqlInsert
+                || kind == EqlASTKind.SqlDelete;
     }
 
     @Override
@@ -1533,6 +1544,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             }
         } else {
             SqlPropJoin join = resolvePropPath(currentScope, node.getLocation(), node.getOwner().toPropPath());
+            // R1.6a / P1-2.2-008·005·010: update/delete 目标表不渲染 propJoin，起自目标表的
+            // 多段属性路径会产出未声明别名的非法 SQL——编译期响亮失败（单段 owner 走上方
+            // 分支由渲染层物理表名回退合法处理；子查询自身作用域路径 left≠目标 source 不受影响）
+            if (dmlTargetSource != null && join.getLeft() == dmlTargetSource) {
+                throw new NopException(ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED)
+                        .source(node).param(ARG_PROP_PATH, node.getOwner().toPropPath().toString());
+            }
             source = join.getRight();
         }
         resolveColName(source, node);
@@ -1727,7 +1745,268 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             visit(node.getValues());
         }
 
+        // Plan 2380：insert ... returning
+        resolveReturning(node, source, FEATURE_SUPPORT_RETURNING_FOR_INSERT);
+
         currentScope = currentScope.getParent();
+    }
+
+    /**
+     * Plan 2380：写语句 returning 子句的公共处理路径，被 update / insert / delete 三者共用。
+     *
+     * <p>三条语句的 returning 语义完全同构（同名同型的 {@code returnAll} / {@code returnProjections}），
+     * 因此门控、{@code *} 展开、投影类型解析只有这一份实现——不复制第二份，否则三者会各自漂移。
+     * UPDATE 路径经此重构后行为逐字节不变（BC 锚：{@code TestEqlUpdateReturningDialectGate}）。
+     *
+     * @param feature 能力门上报用的 feature 名：update / insert / delete 各用自己的，
+     *                这样用户从错误信息就能知道是哪个子句不被支持
+     */
+    private void resolveReturning(ISqlReturningSupport node, SqlSingleTableSource source, String feature) {
+        boolean present = node.getReturnAll()
+                || (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty());
+        if (!present) {
+            return;
+        }
+
+        if (!isReturningSupportedByDialect(feature)) {
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, feature);
+        }
+
+        if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()) {
+            // select *
+            if (node.getReturnAll()) {
+                node.setReturnProjections(buildReturningStarItems(source));
+            }// ELSE 没有 Returning 语句
+        }
+        visitChildren(node.getReturnProjections());
+
+        // returning 投影可能是函数等非列表达式，与 select 语句的 resolveSelectFields 一致地推导
+        // 表达式类型，避免 SQL 生成阶段因 resolvedExprMeta 为 null 而出现 NPE
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            ExprTypeResolver typeResolver = new ExprTypeResolver(dialect);
+            for (SqlProjection projection : node.getReturnProjections()) {
+                SqlExprProjection proj = (SqlExprProjection) projection;
+                typeResolver.resolveExprMeta(proj.getExpr());
+            }
+        }
+    }
+
+    /**
+     * {@code returning *} 的列展开。
+     *
+     * <p>与 {@link #buildSelectItems} 的唯一差别：INSERT 的目标表源<b>没有别名</b>
+     * （`sqlInsert` 文法无别名，与 UPDATE/DELETE 的自动别名不同）。`buildSelectItems` 产出的
+     * 列名带 owner，owner 的名字取自 {@code source.getAliasName()}——为 null 时后续作用域
+     * 解析会报 {@code nop.err.eql.unknown-alias}。因此无别名时走不带 owner 的展开路径。
+     */
+    private List<SqlProjection> buildReturningStarItems(SqlSingleTableSource source) {
+        if (source.getAliasName() != null) {
+            return buildSelectItems(source, true, false);
+        }
+
+        ISqlSelectionMeta tableMeta = source.getResolvedTableMeta();
+        Map<String, ISqlExprMeta> fieldMetas = tableMeta.getFieldExprMetas();
+        List<SqlProjection> ret = new ArrayList<>(fieldMetas.size());
+        for (Map.Entry<String, ISqlExprMeta> entry : fieldMetas.entrySet()) {
+            ISqlExprMeta exprMeta = entry.getValue();
+            if (!exprMeta.getOrmDataType().getKind().isColumn()) {
+                continue;
+            }
+            SqlExprProjection proj = new SqlExprProjection();
+            SqlColumnName col = new SqlColumnName();
+            col.setTableSource(source);
+            col.setName(entry.getKey());
+            col.setResolvedExprMeta(exprMeta);
+            proj.setExpr(col);
+            ret.add(proj);
+        }
+        return ret;
+    }
+
+    private boolean isReturningSupportedByDialect(String feature) {
+        if (FEATURE_SUPPORT_RETURNING_FOR_UPDATE.equals(feature)) {
+            return dialect.isSupportReturningForUpdate();
+        }
+        if (FEATURE_SUPPORT_RETURNING_FOR_INSERT.equals(feature)) {
+            return dialect.isSupportReturningForInsert();
+        }
+        if (FEATURE_SUPPORT_RETURNING_FOR_DELETE.equals(feature)) {
+            return dialect.isSupportReturningForDelete();
+        }
+        throw new IllegalArgumentException("unknown returning feature: " + feature);
+    }
+
+    /**
+     * Plan 2380：{@code upsert} 语句的语义分析。
+     *
+     * <p>结构与 {@link #visitSqlInsert} 同款（目标表实体解析 + 表源登记 + 列/值遍历 +
+     * 租户标志），额外承担三道<b>编译期</b>硬校验——它们存在的唯一目的是把跨库行为分叉
+     * 从运行期的静默错误提前成响亮失败（设计 §3.5 / §3.6）：
+     * <ol>
+     *   <li>方言能力门 {@code supportUpsert}（不支持则报 feature=upsert）；</li>
+     *   <li>冲突键①：必须落在写入列清单内；</li>
+     *   <li>冲突键②：必须等于实体声明的某个唯一键列集或主键列集；</li>
+     *   <li>H2 形态约束两条必要条件（设计 §3.6）。</li>
+     * </ol>
+     */
+    @Override
+    public void visitSqlUpsert(SqlUpsert node) {
+        SqlTableName table = node.getTableName();
+
+        currentScope = new SqlTableScope(node, currentScope);
+        // resolveEntity 内部经 addResolvedEntity 按 querySpace 解析出 dialect（解析不到即抛
+        // nop.err.eql.unknown-query-space），因此方言能力门必须排在它之后。
+        ISqlTableMeta tableMeta = resolveEntity(table);
+
+        // ①方言能力门先于 upsert 自身的结构校验：方言不认识 upsert 时，先给"方言不支持"的
+        // 诊断，而不是让用户去修一个只在其它方言上才成立的写法。
+        if (!dialect.isSupportUpsert()) {
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_UPSERT);
+        }
+
+        SqlSingleTableSource source = newSingleTableSource(table, null);
+        node.setResolvedTableSource(source);
+
+        writeEntityModel = tableMeta.getEntityName();
+        if (tableMeta.getEntityModel().isTenantModel())
+            this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
+
+        visitChildren(node.getColumns());
+        visit(node.getValues());
+        visitChildren(node.getConflictColumns());
+        visitChildren(node.getAssignments());
+
+        validateUpsertConflictColumns(node, tableMeta);
+        validateUpsertH2Form(node);
+
+        currentScope = currentScope.getParent();
+    }
+
+    /**
+     * 冲突键的两道编译期校验（设计 §3.5）。
+     *
+     * <p>存在的理由：MySQL 族的 {@code ON DUPLICATE KEY UPDATE} <b>完全忽略</b>冲突键列表，
+     * 改为查表上任意唯一键。若用户写的冲突键在表上并非唯一键，MySQL 会静默退化成普通插入
+     * （不报错、语义与意图不符）；PG 则在运行期报"约束不存在"。编译期用 ORM 模型已声明的
+     * 唯一键做一致性校验，是把这类跨库不一致提前成响亮失败。
+     *
+     * <p>比较域一律是 <b>prop 名</b>：列清单 / 冲突键解析出的是 {@code IColumnModel.getName()}，
+     * 唯一键 {@code getUniqueKeyPropNames()} 与主键 {@code getPkColumnNames()} 也是 prop 名。
+     */
+    private void validateUpsertConflictColumns(SqlUpsert node, ISqlTableMeta tableMeta) {
+        List<String> conflictColumns = resolvePropNames(node.getConflictColumns());
+        List<String> insertColumns = resolvePropNames(node.getColumns());
+
+        // ①冲突键必须落在写入列清单内。
+        // H2 的 MERGE ... KEY(kcols) 要求键列在 VALUES 列清单内，而 PG / MySQL 不要求
+        // ——不统一就是跨库行为分叉，必须在编译期统一为"必须 ⊆"。
+        for (String conflictColumn : conflictColumns) {
+            if (!insertColumns.contains(conflictColumn)) {
+                throw new NopException(ERR_EQL_INVALID_CONFLICT_COLUMNS)
+                        .source(node)
+                        .param(ARG_CONFLICT_COLUMNS, String.join(",", conflictColumns))
+                        .param(ARG_ENTITY_NAME, tableMeta.getEntityName());
+            }
+        }
+
+        // ②冲突键必须等于某个已声明的唯一键列集或主键列集。
+        IEntityModel entityModel = tableMeta.getEntityModel();
+        if (entityModel.isNoPrimaryKey() && entityModel.getUniqueKeyPropNames().isEmpty()) {
+            throw new NopException(ERR_EQL_INVALID_CONFLICT_COLUMNS)
+                    .source(node)
+                    .param(ARG_CONFLICT_COLUMNS, String.join(",", conflictColumns))
+                    .param(ARG_ENTITY_NAME, tableMeta.getEntityName());
+        }
+
+        List<String> pkColumns = entityModel.getPkColumnNames();
+        if (!pkColumns.isEmpty() && isSameColumnSet(conflictColumns, pkColumns)) {
+            return;
+        }
+
+        for (List<String> uniqueKey : entityModel.getUniqueKeyPropNames()) {
+            if (isSameColumnSet(conflictColumns, uniqueKey))
+                return;
+        }
+
+        throw new NopException(ERR_EQL_INVALID_CONFLICT_COLUMNS)
+                .source(node)
+                .param(ARG_CONFLICT_COLUMNS, String.join(",", conflictColumns))
+                .param(ARG_ENTITY_NAME, tableMeta.getEntityName());
+    }
+
+    /**
+     * H2 形态约束的两条必要条件（设计 §3.6）。
+     *
+     * <p>H2 的 {@code MERGE INTO t(cols) KEY(kcols) VALUES(...)} <b>没有更新子句</b>，
+     * 固定按 VALUES 列清单整列更新，而 PG / MySQL 按 {@code DO UPDATE SET} 列出的更新集更新。
+     * 因此在 H2 上：
+     * <ul>
+     *   <li>更新集 ⊊ 列清单 ⇒ H2 会把未列出的列一并覆盖为新值（静默语义分歧，禁）；</li>
+     *   <li>更新集 ⊋ 列清单 ⇒ H2 无法表达该赋值（PG / MySQL 可以）；</li>
+     *   <li>右值引用列（如 {@code do update set b = b + 1}）⇒ H2 的 VALUES 行内无法引用
+     *       被更新行的旧值（PG / MySQL 都可以）。<b>这条单靠前两条拦不住</b>——
+     *       更新集与列清单完全相同时仍会通过，必须独立成条件。</li>
+     * </ul>
+     * 条件 1 允许更新集额外包含冲突键列（写入值与原值相同，是 no-op）。
+     */
+    private void validateUpsertH2Form(SqlUpsert node) {
+        UpsertStyle style = UpsertStatements.resolveUpsertStyle(dialect);
+        if (style != UpsertStyle.H2) {
+            return;
+        }
+
+        List<String> insertColumns = resolvePropNames(node.getColumns());
+        List<String> updateColumns = node.getAssignments().stream()
+                .map(assignment -> assignment.getColumnName().getName())
+                .collect(Collectors.toList());
+
+        boolean coversAll = insertColumns.stream().allMatch(updateColumns::contains);
+        boolean introducesExtra = updateColumns.stream().anyMatch(col -> !insertColumns.contains(col));
+
+        if (!coversAll || introducesExtra || hasColumnReferenceInUpdateRhs(node)) {
+            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
+                    .source(node)
+                    .param(ARG_DIALECT, dialect.getName())
+                    .param(ARG_FEATURE, FEATURE_UPSERT_PARTIAL_UPDATE);
+        }
+    }
+
+    /** 右值子树中是否含列引用（参数与字面量函数调用不计）。 */
+    private boolean hasColumnReferenceInUpdateRhs(SqlUpsert node) {
+        for (SqlAssignment assignment : node.getAssignments()) {
+            if (containsColumnRef(assignment.getExpr())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean containsColumnRef(EqlASTNode node) {
+        if (node instanceof SqlColumnName) {
+            return true;
+        }
+        boolean[] found = new boolean[1];
+        node.forEachChild(child -> {
+            if (!found[0] && containsColumnRef(child)) {
+                found[0] = true;
+            }
+        });
+        return found[0];
+    }
+
+    /** 列名 → prop 名。列清单/冲突键在 transform 后已解析，直接取 name 即 prop 名。 */
+    private List<String> resolvePropNames(List<SqlColumnName> columns) {
+        return columns.stream().map(SqlColumnName::getName).collect(Collectors.toList());
+    }
+
+    private static boolean isSameColumnSet(List<String> a, List<String> b) {
+        return a.size() == b.size() && a.containsAll(b) && b.containsAll(a);
     }
 
     ISqlTableMeta resolveEntity(SqlTableName table) {
@@ -1760,37 +2039,25 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         if (tableMeta.getEntityModel().isTenantModel())
             this.useTenantModel = tableMeta.getEntityModel().isTenantModel();
 
-        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
+        this.dmlTargetSource = source;
+        // R1.6c / P1-2.2-009：与 SELECT 通道对齐——目标表注入缺省实体过滤
+        // （逻辑删除 + 租户 + 实体 filter），关闭手写 EQL DML 的跨租户写面
+        SqlWhere dmlWhere = node.getWhere();
+        if (dmlWhere == null) {
+            dmlWhere = new SqlWhere();
+            node.setWhere(dmlWhere);
+        }
+        source.setFilterAlreadyAdded(true);
+        collectDefaultEntityFilter(source, dmlWhere::appendFilter);
 
         this.visitChildren(node.getAssignments());
         this.visitChild(node.getWhere());
+        this.dmlTargetSource = null;
 
         // 分析所有的projection，并且确保每一列都有一个别名
         // returning * 与显式投影一样依赖方言的returning支持，必须在展开前统一校验
-        if ((node.getReturnAll() || (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()))
-                && !dialect.isSupportReturningForUpdate()) {
-            throw new NopException(ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE)
-                    .param(ARG_DIALECT, dialect.getName())
-                    .param(ARG_FEATURE, FEATURE_SUPPORT_RETURNING_FOR_UPDATE);
-        }
-        if (node.getReturnProjections() == null || node.getReturnProjections().isEmpty()) {
-            // select *
-            if (node.getReturnAll()) {
-                List<SqlProjection> items = buildSelectItems(source, true, false);
-                node.setReturnProjections(items);
-            }// ELSE 没有Returning语句
-        }
-        visitChildren(node.getReturnProjections());
+        resolveReturning(node, source, FEATURE_SUPPORT_RETURNING_FOR_UPDATE);
 
-        // returning投影可能是函数等非列表达式，与select语句的resolveSelectFields一致地推导表达式类型，
-        // 避免SQL生成阶段因resolvedExprMeta为null而出现NPE
-        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
-            ExprTypeResolver typeResolver = new ExprTypeResolver(dialect);
-            for (SqlProjection projection : node.getReturnProjections()) {
-                SqlExprProjection proj = (SqlExprProjection) projection;
-                typeResolver.resolveExprMeta(proj.getExpr());
-            }
-        }
         currentScope = currentScope.getParent();
     }
 
@@ -1821,9 +2088,21 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         SqlSingleTableSource source = newSingleTableSource(table, node.getAlias());
         node.setResolvedTableSource(source);
 
-        addWriteTenantFilter(node.getWhere(), source, tableMeta, node::setWhere);
+        this.dmlTargetSource = source;
+        // R1.6c / P1-2.2-009：同 update——缺省实体过滤注入
+        SqlWhere dmlWhere = node.getWhere();
+        if (dmlWhere == null) {
+            dmlWhere = new SqlWhere();
+            node.setWhere(dmlWhere);
+        }
+        source.setFilterAlreadyAdded(true);
+        collectDefaultEntityFilter(source, dmlWhere::appendFilter);
 
         this.visitChild(node.getWhere());
+        this.dmlTargetSource = null;
+
+        // Plan 2380：delete ... returning
+        resolveReturning(node, source, FEATURE_SUPPORT_RETURNING_FOR_DELETE);
 
         currentScope = currentScope.getParent();
     }

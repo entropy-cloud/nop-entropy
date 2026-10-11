@@ -116,6 +116,9 @@ public class BizModelToGraphQLDefinition {
         IDataFetcher fetcher = buildFetcher(thisObjName, loaderModel, typeRegistry);
         field.setFetcher(fetcher);
         field.setAutoCreate(loaderModel.isAutoCreateField());
+        // P1-2.6-007：loader 路径 auth 装配（与 toOperationDefinition 的 action 路径对齐）。
+        // 无 <auth> 声明时保持 null——loader 不补缺省权限（缺省回填过严，收敛裁定见 plan 2378）。
+        field.setAuth(loaderModel.getAuth());
 
         if (!StringHelper.isEmpty(loaderModel.getArgsNormalizer()))
             field.setArgsNormalizer(new LazyGraphQLArgsNormalizer(loaderModel.getArgsNormalizer()));

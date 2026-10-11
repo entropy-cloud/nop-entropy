@@ -50,9 +50,11 @@ CREATE TABLE nop_batch_task(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  constraint UK_NOP_BATCH_TASK_NAME_KEY unique (task_name,task_key),
   constraint PK_nop_batch_task primary key (sid)
 );
 
+create index IX_NOP_BATCH_TASK_STATUS on nop_batch_task (task_status) ;
 CREATE TABLE nop_batch_task_var(
   batch_task_id VARCHAR(32) NOT NULL ,
   field_name VARCHAR(100) NOT NULL ,

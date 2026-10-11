@@ -118,6 +118,8 @@ CREATE TABLE nop_auth_mfa_challenge(
   constraint PK_nop_auth_mfa_challenge primary key (challenge_token)
 );
 
+create index IX_NOP_AUTH_MFA_CHALLENGE_USER on nop_auth_mfa_challenge (user_id) ;
+create index IX_NOP_AUTH_MFA_CHALLENGE_EXPIRE on nop_auth_mfa_challenge (expire_at) ;
 CREATE TABLE nop_auth_sms_code(
   code_key VARCHAR(100) NOT NULL ,
   phone VARCHAR(50)  ,
@@ -131,6 +133,7 @@ CREATE TABLE nop_auth_sms_code(
   constraint PK_nop_auth_sms_code primary key (code_key)
 );
 
+create index IX_NOP_AUTH_SMS_CODE_EXPIRE on nop_auth_sms_code (expire_at) ;
 CREATE TABLE nop_auth_rate_limit_counter(
   counter_key VARCHAR(150) NOT NULL ,
   counter_count INT8 default 0   ,
@@ -142,6 +145,7 @@ CREATE TABLE nop_auth_rate_limit_counter(
   constraint PK_nop_auth_rate_limit_counter primary key (counter_key)
 );
 
+create index IX_NOP_AUTH_RATE_LIMIT_EXPIRE on nop_auth_rate_limit_counter (expire_at) ;
 CREATE TABLE nop_auth_login_attempt(
   attempt_key VARCHAR(150) NOT NULL ,
   expire_at INT8  ,
@@ -153,6 +157,7 @@ CREATE TABLE nop_auth_login_attempt(
   constraint PK_nop_auth_login_attempt primary key (attempt_key)
 );
 
+create index IX_NOP_AUTH_LOGIN_ATTEMPT_EXPIRE on nop_auth_login_attempt (expire_at) ;
 CREATE TABLE nop_auth_role_mfa_policy(
   role_id VARCHAR(50) NOT NULL ,
   min_mfa_level INT4 NOT NULL ,
@@ -181,6 +186,7 @@ CREATE TABLE nop_auth_email_code(
   constraint PK_nop_auth_email_code primary key (code_key)
 );
 
+create index IX_NOP_AUTH_EMAIL_CODE_EXPIRE on nop_auth_email_code (expire_at) ;
 CREATE TABLE nop_auth_mfa_trusted_device(
   sid VARCHAR(32) NOT NULL ,
   user_id VARCHAR(50) NOT NULL ,
@@ -402,6 +408,7 @@ CREATE TABLE nop_auth_mfa_credential(
   constraint PK_nop_auth_mfa_credential primary key (sid)
 );
 
+create index IX_NOP_AUTH_MFA_CREDENTIAL_USER on nop_auth_mfa_credential (user_id) ;
 CREATE TABLE nop_auth_role_resource(
   sid VARCHAR(32) NOT NULL ,
   role_id VARCHAR(50) NOT NULL ,

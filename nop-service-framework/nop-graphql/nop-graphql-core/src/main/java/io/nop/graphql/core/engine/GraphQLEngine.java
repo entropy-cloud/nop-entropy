@@ -16,6 +16,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.SourceLocation;
@@ -86,6 +87,8 @@ import static io.nop.graphql.core.GraphQLErrors.ARG_TYPE_NAME;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_DOC_OPERATION_SIZE_NOT_ONE;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_EXCEED_MAX_DIRECTIVE_PER_REQUEST;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_INTROSPECTION_NOT_ENABLED;
+import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_NO_ACTION_AUTH_CHECKER;
+import static io.nop.graphql.core.GraphQLErrors.ARG_ENABLE_ACTION_AUTH;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_EXCEED_MAX_OPERATION_COUNT;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_QUERY_NO_OPERATION;
 import static io.nop.graphql.core.GraphQLErrors.ERR_GRAPHQL_UNEXPECTED_OPERATION_TYPE;
@@ -374,9 +377,15 @@ public class GraphQLEngine implements IGraphQLEngine {
 
         if (enableActionAuth) {
             if (context.getActionAuthChecker() == null) {
-                // F-API2-1：启用 action-auth 却无 checker bean = 静默 fail-open。
-                // 每次上下文创建时告警一次（懒告警覆盖注入顺序早于 enableActionAuth 的装配）
                 if (actionAuthChecker == null) {
+                    // P1-2.6 fail-open 收敛（plan 2378 Phase 3）：require-auth-checker=true 时，
+                    // 启用 action-auth 却无 checker 是部署不一致，必须 fail-closed 而非告警后跳过
+                    if (ApiConfigs.CFG_AUTH_REQUIRE_AUTH_CHECKER.get()) {
+                        throw new NopException(ERR_GRAPHQL_NO_ACTION_AUTH_CHECKER)
+                                .param(ARG_ENABLE_ACTION_AUTH, true);
+                    }
+                    // F-API2-1：启用 action-auth 却无 checker bean = 静默 fail-open。
+                    // 每次上下文创建时告警一次（懒告警覆盖注入顺序早于 enableActionAuth 的装配）
                     LOG.warn("nop.graphql.action-auth-enabled-but-no-checker:"
                             + "nop.auth.enable-action-auth=true but no IActionAuthChecker bean;"
                             + " operation permission checks SKIPPED (fail-open)");

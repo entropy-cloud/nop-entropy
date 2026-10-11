@@ -78,6 +78,8 @@ CREATE TABLE nop_ai_channel_session(
   constraint PK_nop_ai_channel_session primary key (ID)
 );
 
+create unique index uk_nop_ai_channel_session_channel on nop_ai_channel_session (CHANNEL_TYPE,CHANNEL_ID) ;
+create index ix_nop_ai_channel_session_engine on nop_ai_channel_session (SESSION_ID) ;
 CREATE TABLE nop_ai_project_config(
   ID VARCHAR2(36) NOT NULL ,
   PROJECT_ID VARCHAR2(36) NOT NULL ,
@@ -140,6 +142,7 @@ CREATE TABLE nop_ai_session(
   constraint PK_nop_ai_session primary key (ID)
 );
 
+create index ix_nop_ai_session_project on nop_ai_session (PROJECT_ID,STATUS,CREATE_TIME) ;
 CREATE TABLE nop_ai_project_rule(
   ID VARCHAR2(36) NOT NULL ,
   PROJECT_ID VARCHAR2(36) NOT NULL ,
@@ -217,6 +220,8 @@ CREATE TABLE nop_ai_session_message(
   constraint PK_nop_ai_session_message primary key (ID)
 );
 
+create unique index uk_nop_ai_session_msg_seq on nop_ai_session_message (SESSION_ID,SEQ) ;
+create index ix_nop_ai_session_msg_role on nop_ai_session_message (SESSION_ID,ROLE) ;
 CREATE TABLE nop_ai_session_input(
   ID VARCHAR2(36) NOT NULL ,
   SESSION_ID VARCHAR2(36) NOT NULL ,
@@ -232,6 +237,7 @@ CREATE TABLE nop_ai_session_input(
   constraint PK_nop_ai_session_input primary key (ID)
 );
 
+create index ix_nop_ai_session_input_seq on nop_ai_session_input (SESSION_ID,ADMITTED_SEQ) ;
 CREATE TABLE nop_ai_session_context(
   ID VARCHAR2(36) NOT NULL ,
   SESSION_ID VARCHAR2(36) NOT NULL ,
@@ -247,6 +253,7 @@ CREATE TABLE nop_ai_session_context(
   constraint PK_nop_ai_session_context primary key (ID)
 );
 
+create index ix_nop_ai_session_ctx_sid on nop_ai_session_context (SESSION_ID) ;
 CREATE TABLE nop_ai_todo(
   ID VARCHAR2(36) NOT NULL ,
   SESSION_ID VARCHAR2(36) NOT NULL ,
@@ -264,6 +271,8 @@ CREATE TABLE nop_ai_todo(
   constraint PK_nop_ai_todo primary key (ID)
 );
 
+create unique index uk_nop_ai_todo_pos on nop_ai_todo (SESSION_ID,POSITION) ;
+create index ix_nop_ai_todo_status on nop_ai_todo (SESSION_ID,STATUS) ;
 CREATE TABLE nop_ai_event(
   ID VARCHAR2(36) NOT NULL ,
   SESSION_ID VARCHAR2(36) NOT NULL ,
@@ -275,6 +284,8 @@ CREATE TABLE nop_ai_event(
   constraint PK_nop_ai_event primary key (ID)
 );
 
+create unique index uk_nop_ai_event_seq on nop_ai_event (SESSION_ID,SEQ) ;
+create index ix_nop_ai_event_time on nop_ai_event (SESSION_ID,CREATE_TIME) ;
 CREATE TABLE nop_ai_chat_response(
   ID VARCHAR2(36) NOT NULL ,
   REQUEST_ID VARCHAR2(36) NOT NULL ,

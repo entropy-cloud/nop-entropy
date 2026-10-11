@@ -157,6 +157,26 @@ public class TestJdbcTemplate extends JdbcTestCase {
         assertEquals("42", ret);
     }
 
+    /**
+     * R1.7 / P1-2.3-001：带参 callable 的 IN 参数自 JDBC 位置 2 起绑定（位置 1 为 OUT 返回）。
+     * 修复前首 IN 错绑到 OUT 槽位，H2 报 Parameter "#2" is not set。
+     */
+    @Test
+    public void testCallFuncWithParams() {
+        jdbc().executeUpdate(new SQL(
+                "CREATE ALIAS T_CALL_FUNC_P AS 'String tCallFuncP(Integer p) { return String.valueOf(p * 2); }'"));
+        Object ret = jdbc().callFunc(SQL.begin().callFunc("T_CALL_FUNC_P", 3).end());
+        assertEquals("6", ret);
+    }
+
+    @Test
+    public void testCallFuncWithMultiParams() {
+        jdbc().executeUpdate(new SQL(
+                "CREATE ALIAS T_CALL_FUNC_P2 AS 'String tCallFuncP2(Integer a, Integer b) { return String.valueOf(a + b); }'"));
+        Object ret = jdbc().callFunc(SQL.begin().callFunc("T_CALL_FUNC_P2", 3, 4).end());
+        assertEquals("7", ret);
+    }
+
     static class SimpleCacheProvider implements ICacheProvider {
         @Override
         public <K, V> ICache<K, V> getCache(String name) {

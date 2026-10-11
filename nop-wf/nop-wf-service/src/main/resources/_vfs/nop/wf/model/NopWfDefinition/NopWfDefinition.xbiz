@@ -7,8 +7,12 @@
     </x:config>
 
     <actions>
-        <mutation name="publish" bo:triggerStateChange="true"/>
-        <mutation name="unpublish" bo:triggerStateChange="true"/>
+        <mutation name="publish" bo:triggerStateChange="true">
+            <auth roles="admin" permissions="NopWfDefinition:publish"/>
+        </mutation>
+        <mutation name="unpublish" bo:triggerStateChange="true">
+            <auth roles="admin" permissions="NopWfDefinition:unpublish"/>
+        </mutation>
     </actions>
 
     <state-machine initial="unpublished" stateProp="status">

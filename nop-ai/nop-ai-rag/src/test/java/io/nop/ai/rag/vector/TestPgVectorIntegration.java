@@ -54,6 +54,13 @@ class TestPgVectorIntegration {
         List<VectorData> hits = store.search(query, options);
         assertEquals(1, hits.size());
 
+        // P1-7.1-002（plan 2398）：search 必须回读 content/metadata 列——
+        // 此前仅回读 embedding，hits 的 content/id 恒 null（静默错误结果）
+        assertEquals("a", hits.get(0).getMetadata("id"),
+                "metadata column must be read back into hits (P1-7.1-002)");
+        assertEquals("content-of-a", hits.get(0).getMetadata("content"),
+                "content column must be read back into hits (P1-7.1-002)");
+
         store.delete(List.of("a", "b"), options);
         assertTrue(store.search(query, options).isEmpty());
     }
@@ -64,6 +71,7 @@ final class VectorDataHelper {
         VectorData data = new VectorData();
         data.setVector(values);
         data.addMetadata("id", id);
+        data.addMetadata("content", "content-of-" + id);
         return data;
     }
 }

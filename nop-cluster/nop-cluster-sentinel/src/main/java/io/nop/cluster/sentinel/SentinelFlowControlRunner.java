@@ -90,9 +90,12 @@ public class SentinelFlowControlRunner implements IFlowControlRunner {
                 if (serviceEntry != null) {
                     serviceEntry.exit(1, args);
                 }
-                // 如果当前curEntry不为null, 实际上不会真的退出
-                ContextUtil.exit();
             }
+            // P1-4.4-C3（plan 2395）：ContextUtil.enter/exit 必须无条件配对——成功路径
+            // proceedCalled=true 时此前的有条件 exit 永不执行，发起线程 context 栈持续
+            // 增长（泄漏）。entry 的 exit 已在 whenComplete（成功）或上方（失败）配对；
+            // context 属发起线程，须在本方法同步段内退出（对齐同步版 run() 的 finally 形态）。
+            ContextUtil.exit();
         }
     }
 

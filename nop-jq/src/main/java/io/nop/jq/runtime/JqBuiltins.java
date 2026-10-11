@@ -652,7 +652,7 @@ final class JqBuiltins {
                     JqValue result = arr.get(0);
                     for (int i = 1; i < arr.size(); i++) {
                         result = executor.evalMathOpPublic(
-                                io.nop.jq.ast.MathOpNode.Op.ADD, result, arr.get(i));
+                                io.nop.jq.ast.MathOpNode.Op.ADD, result, arr.get(i), env);
                     }
                     outputs.add(result);
                 }
@@ -1114,7 +1114,7 @@ case "abs" -> {
                     }
                 }
             }
-            case "env" -> outputs.add(executor.environmentObject());
+            case "env" -> outputs.add(env.environmentObject());
             case "now" -> outputs.add(JqNumber.of(System.currentTimeMillis() / 1000.0));
             case "debug" -> {
                 executor.debug(input);
@@ -1385,7 +1385,7 @@ case "abs" -> {
             }
             case "combinations" -> {
                 if (input instanceof JqArray arr) {
-                    combinations(arr, 0, new ArrayList<>(), outputs);
+                    combinations(arr, 0, new ArrayList<>(), outputs, env);
                 }
             }
             case "modulemeta" -> outputs.add(new JqObject(Map.of()));
@@ -1821,15 +1821,16 @@ case "abs" -> {
     }
 
     private static void combinations(JqArray arr, int index, List<JqValue> current,
-                                     List<JqValue> outputs) {
+                                     List<JqValue> outputs, JqEnvironment env) {
         if (index == arr.size()) {
+            env.checkOutputLimit();
             outputs.add(new JqArray(new ArrayList<>(current)));
             return;
         }
         if (arr.get(index) instanceof JqArray options) {
             for (JqValue option : options.items()) {
                 current.add(option);
-                combinations(arr, index + 1, current, outputs);
+                combinations(arr, index + 1, current, outputs, env);
                 current.remove(current.size() - 1);
             }
         }

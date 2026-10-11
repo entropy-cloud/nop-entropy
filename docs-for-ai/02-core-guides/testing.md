@@ -14,6 +14,14 @@
 6. `@Inject` 字段不能是 `private`。
 7. 外部依赖优先使用测试专用 bean、stub 或 fake，而不是默认从 HTTP E2E 开始。
 
+## 测试必须触及 SUT（反模式）
+
+历史上 `TestStringHelper` 中混入过两类「名义测试」：断言 JDK 而非 SUT（如断言 `Character.isWhitespace`、`String.split`、`MessageFormat`），以及只有打印零断言。这类测试在 SUT 行为改变时仍绿，属无效覆盖。规则：
+
+1. 每个测试方法的断言目标必须是**本模块 SUT**（如 `StringHelper.*`），不是等价的 JDK API。
+2. 测试方法若无断言（仅打印/仅构造对象），必须补断言或删除；打印不是验证。
+3. 若 SUT 与某 JDK API 存在**刻意的语义分歧**，用 pinning 测试锚定分歧点并在注释写明「勿改为代理 JDK」，例如 `StringHelper.isWhitespace` 采用 XML 6 字符集 `{' ','\n','\r','\t','\f','\b'}`：认 `\b`、拒 VT `\u000B` 与 `\u001C-\u001F`（`Character.isWhitespace` 恰好相反，双向分歧）。锚定见 `TestStringHelper.testWhitespace`（plan 2407 / P2-4.2-009）。
+
 ## 何时选哪种基类
 
 | 场景 | 默认基类 |
@@ -525,6 +533,16 @@ nop-metadata 模块现在包含以下测试基础设施：
 - **MockHttpClient 实例级状态**：mock 客户端使用实例字段而非 static 字段，支持并行执行（`-DforkCount=2`）无串扰。
 - **所有 BizModel 测试使用 `I*Biz` 接口注入**：通过 `@Inject INopMetaEntityBiz` / `INopMetaLineageEdgeBiz` 等接口，搭配 `ServiceContextImpl` 传入上下文。
 
+## 双实现 HTTP 适配层契约测试（plan 2406，P1-4.2-001/002）
+
+同一接口的多个部署形态实现（如 `IHttpServerContext` 的 servlet/vertx 两份适配）应各有一份**直接行为测试**，且用例集按方法逐一镜像：
+
+- **零新增依赖**：被适配的容器类型（`HttpServletRequest/Response`、`RoutingContext`/`HttpServerRequest/Response`、`MultiMap`、`SocketAddress`、websocket `Session`/`EndpointConfig`）都是接口，用 JDK 动态代理 stub 即可（先例 `TestServletHttpServerContextRemoveCookie`）；不要为测试引入 mock 框架。
+- **逐实现期望，而非共享期望**：两实现在 `getHost`/`getRequestUrl`/`getRequestPath`/query 语义/同名头冲突策略/`setResponseHeader(null)`/charset 追加时机/`addCookie` 上**故意分歧**；每份测试必须按各自在场行为断言，并在类 javadoc 与「分歧清单」中显式登记，避免统一的错误期望掩盖真实行为。
+- **全局单例要保存/还原**：适配层可能经 `BeanContainer.instance()` 取 bean（无 provider 时抛 `ERR_IOC_BEAN_CONTAINER_NOT_INITIALIZED`）。测试用 `@BeforeEach` 注册 stub、`@AfterEach` 通过反射保存/还原 `BeanContainer._provider`，不要只 `registerInstance(null)`（会留下非空 provider，跨类污染）。
+- **请求链判据（Rule #22）**：至少一条用例走 entry→output 全链（如 proxy 请求 → filter 分支 → 捕获 forward/响应头），而非只测单个方法。
+- **可判别性**：用 mutation 腿证明测试有效——临时改坏被测方法（返回错值/去掉归一化/短路分支）须使对应用例 FAIL，随后核对 `git diff --stat -- '*/src/main/**'` 确认已还原。
+
 ## 相关文档
 
 - `../05-examples/test-examples.java`（示例代码，先看这个）
@@ -533,3 +551,17 @@ nop-metadata 模块现在包含以下测试基础设施：
 - `../03-runbooks/write-integration-test-with-noptestconfig.md`
 - `../03-runbooks/add-test-mock-bean.md`
 - `e2e-testing.md`（E2E 测试模式）
+
+## 测试数据目录契约（P1-6.8-003/005/006，plan 2393）
+
+录制/回放的测试数据目录遵循单一定义：表产物落 `<caseDir>/input|output/tables/<table>.csv`（TestCaseJsonDataSplitter 产物与 AutoTestCaseData 消费契约对齐）；variant（@EnableVariants）路径统一为 `variants/<variant>/…`（列表访问器与单文件访问器、Saver 写入面、ResultChecker 校验面一致）；`input/tables/` 下的 default 基础表是手写维护资产，录制流程不会自动删除（仅删除 variant 局部表文件）。
+
+## 评测测试口径：真实链路优先（plan 2402，P1-7.4-002）
+
+评测类测试（搜索质量 MRR、影响分析 F1 等）的指标必须来自**生产代码链路**，否则只能标注为 smoke，不得作为质量证据：
+
+- **搜索质量评测**：经生产 `ISearchEngine`（Lucene）`addDocs`/`refreshBlocking`/`search` 建索引与检索，MRR 由真实 `SearchHit.getId()` 计算——不要在测试内自实现 token 评分器（`SearchQualityEvalTest` 现按此口径）。
+- **影响分析评测**：经 `ICodeIndexService.indexDirectory` + `triggerIncrementalIndex` + `getLastIncrementalAffectedFiles` 读取生产 `computeAffectedFiles` 的实际受影响集，再与 ground-truth 算 F1——不要在测试内自实现传播 BFS（`ImpactAnalysisF1EvalTest` 现按此口径）。
+- **方向敏感断言**：影响分析评测需含能区分传播方向的场景（例如 change 根节点时期望其 import 依赖链；反向-only 实现会给出空集/F1=0），否则评测对方向回归失明。
+- **配置隔离**：覆盖 `nop.search.index-dir` 等非 System 属性后，按本文「测试配置隔离」节规则跑**全模块**测试确认无跨类泄漏。
+- **边界如实标注**：测试注释须写明语料规模、edge 方向由测试提供等局限，避免把 smoke 评测读成全量质量结论。

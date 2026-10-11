@@ -175,6 +175,14 @@ public class JdbcQueryExecutor implements IQueryExecutor {
                         daoListener.onSave(entityModel);
                         break;
                     }
+                    // Plan 2380：upsert 与 insert 同属"写一行/更新一行"语义，
+                    // 按保存事件上报。⚠️ 这一 case 必须存在——新增 SqlStatementKind 枚举项而
+                    // 漏掉分派 ⇒ 监听器静默不上报（最小规则 #24）。
+                    case UPSERT: {
+                        daoListener.onSave(entityModel);
+                        break;
+                    }
+                    // 其余语句种类（DDL / COMMIT / ROLLBACK）无监听语义，保持不处理。
                 }
             }
         }

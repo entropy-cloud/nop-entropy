@@ -67,6 +67,19 @@ public class ChatOptions {
     private Integer maxTokens;
 
     /**
+     * P1-6.7-006: 模型上下文窗口 token 上限，用于压缩触发 / forced-stop 判定。
+     * <p>
+     * 与 {@link #maxTokens}（最大<b>生成</b> token 数，仅约束输出）语义正交：
+     * 早期实现误把 {@code maxTokens} 当作上下文窗口，导致常见配置（如 4096）
+     * 第一轮即被判定为上下文耗尽。未设置（null 或 &lt;=0）时由引擎回落到
+     * {@code ReActAgentExecutor.DEFAULT_MAX_CONTEXT_TOKENS}（128000）。
+     * <p>
+     * 声明来源：agent 模型层 {@code ChatOptionsModel.contextLength} 经
+     * {@code ChatOptionsHelper.toChatOptions} 映射到此字段。
+     */
+    private Integer maxContextTokens;
+
+    /**
      * 频率惩罚（-2.0到2.0）
      */
     private Float frequencyPenalty;
@@ -194,6 +207,15 @@ public class ChatOptions {
 
     public void setMaxTokens(Integer maxTokens) {
         this.maxTokens = maxTokens;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Integer getMaxContextTokens() {
+        return maxContextTokens;
+    }
+
+    public void setMaxContextTokens(Integer maxContextTokens) {
+        this.maxContextTokens = maxContextTokens;
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -374,6 +396,7 @@ public class ChatOptions {
         copy.topP = this.topP;
         copy.topK = this.topK;
         copy.maxTokens = this.maxTokens;
+        copy.maxContextTokens = this.maxContextTokens;
         copy.frequencyPenalty = this.frequencyPenalty;
         copy.presencePenalty = this.presencePenalty;
         copy.requestTimeout = this.requestTimeout;
@@ -428,6 +451,7 @@ public class ChatOptions {
         if (other.topP != null) merged.topP = other.topP;
         if (other.topK != null) merged.topK = other.topK;
         if (other.maxTokens != null) merged.maxTokens = other.maxTokens;
+        if (other.maxContextTokens != null) merged.maxContextTokens = other.maxContextTokens;
         if (other.frequencyPenalty != null) merged.frequencyPenalty = other.frequencyPenalty;
         if (other.presencePenalty != null) merged.presencePenalty = other.presencePenalty;
         // 列表字段覆盖语义（与 javadoc 一致）：other 非 null 时整体替换，不 append
@@ -501,6 +525,11 @@ public class ChatOptions {
 
         public Builder maxTokens(Integer maxTokens) {
             options.setMaxTokens(maxTokens);
+            return this;
+        }
+
+        public Builder maxContextTokens(Integer maxContextTokens) {
+            options.setMaxContextTokens(maxContextTokens);
             return this;
         }
 

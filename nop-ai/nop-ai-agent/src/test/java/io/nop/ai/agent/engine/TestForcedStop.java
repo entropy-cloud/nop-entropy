@@ -70,7 +70,7 @@ public class TestForcedStop {
         agentModel.setName("test-agent");
         agentModel.setTools(Set.of("test-tool"));
         ChatOptionsModel opts = new ChatOptionsModel();
-        opts.setMaxTokens(MAX_CONTEXT_TOKENS);
+        opts.setContextLength(MAX_CONTEXT_TOKENS);
         agentModel.setChatOptions(opts);
     }
 
@@ -286,7 +286,7 @@ public class TestForcedStop {
         // issuing a summarization call — this scenario asserts the callable
         // branch.
         ChatOptionsModel opts = new ChatOptionsModel();
-        opts.setMaxTokens(10000);
+        opts.setContextLength(10000);
         agentModel.setChatOptions(opts);
 
         DefaultAgentEventPublisher publisher = new DefaultAgentEventPublisher();

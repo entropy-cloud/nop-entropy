@@ -9,6 +9,9 @@ package io.nop.nosql.lettuce;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.nosql.core.INosqlCounter;
+import io.nop.nosql.core.INosqlRateLimiter;
+import io.nop.nosql.core.RateLimiterConfig;
+import io.nop.nosql.core.RateLimitResult;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlLock;
 import io.nop.nosql.core.INosqlQueue;
@@ -152,6 +155,24 @@ public class TestLettuceClusterService {
         if (network != null) {
             network.close();
         }
+    }
+
+    /**
+     * R1.8 / P1-2.4-001：rate_limit.lua 双 key（tokens/timestamp）须同槽。
+     * 修复前无 hash tag，Redis Cluster 下 tryAcquire 必 CROSSSLOT；
+     * 修复后 {key}:tokens 与 {key}:timestamp 同槽，Lua 多 key 操作可执行。
+     */
+    @Test
+    @Order(5)
+    void testClusterRateLimiterNoCrossSlot() {
+        INosqlRateLimiter limiter = service.rateLimiter("cluster:rate:a",
+                new RateLimiterConfig(10, 20));
+        io.nop.nosql.core.RateLimitResult result = limiter.tryAcquire(1);
+        assertTrue(result.isAllowed(), "first acquire must pass on cluster (no CROSSSLOT)");
+        assertTrue(result.getRemainingTokens() >= 0);
+
+        io.nop.nosql.core.RateLimitResult exhausted = limiter.tryAcquire(100);
+        assertFalse(exhausted.isAllowed(), "over-capacity acquire must be rejected");
     }
 
     private void cleanupKeys(String... keys) {

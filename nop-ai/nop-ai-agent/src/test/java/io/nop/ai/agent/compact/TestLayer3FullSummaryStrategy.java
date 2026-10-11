@@ -55,13 +55,13 @@ public class TestLayer3FullSummaryStrategy {
     }
 
     private CompactionContext ctxWith(List<ChatMessage> messages, IChatService chatService,
-                                      ITokenEstimator estimator, int maxTokens) {
+                                      ITokenEstimator estimator, int maxContextTokens) {
         AgentModel m = new AgentModel();
         m.setName("test-agent");
         AgentExecutionContext execCtx = new AgentExecutionContext(m);
-        if (maxTokens > 0) {
+        if (maxContextTokens > 0) {
             ChatOptions chatOptions = new ChatOptions();
-            chatOptions.setMaxTokens(maxTokens);
+            chatOptions.setMaxContextTokens(maxContextTokens);
             execCtx.setChatOptions(chatOptions);
         }
         return new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx, estimator);
@@ -568,7 +568,7 @@ public class TestLayer3FullSummaryStrategy {
         m.setName("test-agent");
         AgentExecutionContext execCtx = new AgentExecutionContext(m);
         ChatOptions chatOptions = new ChatOptions();
-        chatOptions.setMaxTokens(1000);
+        chatOptions.setMaxContextTokens(1000);
         execCtx.setChatOptions(chatOptions);
         CompactionContext ctx = new CompactionContext(messages, config(0.15, 5), "s1", "agent1", execCtx,
                 fixedPerMessageEstimator(10));

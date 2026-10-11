@@ -223,4 +223,53 @@ public class TestProcessingTimeServiceDriver {
         org.junit.jupiter.api.Assertions.assertThrows(StreamException.class,
                 () -> new ProcessingTimeServiceDriver(null, new TaskProcessingTimeService(), null, 10));
     }
+
+    /**
+     * P1-6.7-007（plan 2387）：TimerServiceManager 的定时器失败经 driver 的 mail action
+     * 传播到 mailbox drain——driver 不二次吞（与 processingTimeService.fireDueTimers 直接
+     * 路径同语义，任务 fail-fast 而非静默丢发射）。
+     */
+    @Test
+    void testManagerTimerFailurePropagatesThroughMailboxDrain() throws Exception {
+        TaskMailbox mailbox = new TaskMailbox();
+        TaskProcessingTimeService pts = new TaskProcessingTimeService();
+        io.nop.stream.core.operators.TimerServiceManager tsm =
+                new io.nop.stream.core.operators.TimerServiceManager();
+        ProcessingTimeServiceDriver driver =
+                new ProcessingTimeServiceDriver(mailbox, pts, tsm, 10);
+
+        Triggerable<String, String> triggerable = new Triggerable<String, String>() {
+            @Override
+            public void onProcessingTime(InternalTimer<String, String> timer) {
+                throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL)
+                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL, "manager timer boom");
+            }
+
+            @Override
+            public void onEventTime(InternalTimer<String, String> timer) {
+            }
+        };
+        HeapInternalTimerService<String, String> service = new HeapInternalTimerService<>(triggerable);
+        tsm.registerTimerService(service);
+        service.registerProcessingTimeTimer("ns", System.currentTimeMillis() + 20);
+
+        StreamException propagated = null;
+        driver.start();
+        try {
+            long deadline = System.currentTimeMillis() + 5000;
+            while (System.currentTimeMillis() < deadline) {
+                try {
+                    mailbox.drainAndRun();
+                } catch (StreamException e) {
+                    propagated = e;
+                    break;
+                }
+                Thread.sleep(10);
+            }
+        } finally {
+            driver.shutdown();
+        }
+        assertTrue(propagated != null,
+                "manager timer failure must propagate through the driver's mail action (fail-fast, P1-6.7-007)");
+    }
 }

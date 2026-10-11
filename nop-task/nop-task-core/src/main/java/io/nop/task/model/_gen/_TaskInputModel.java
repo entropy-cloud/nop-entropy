@@ -98,6 +98,14 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: secret
+     * 标记为敏感的属性在任务状态持久化序列化时被排除（DaoTaskStateStore 落库过滤，
+     * plan 2380 R1.14 脱敏契约）。注意：secret 属性不会持久化，中断恢复时该属性不可用
+     */
+    private boolean _secret  = false;
+    
+    /**
+     *  
      * xml name: source
      * 
      */
@@ -331,6 +339,26 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: secret
+     *  标记为敏感的属性在任务状态持久化序列化时被排除（DaoTaskStateStore 落库过滤，
+     * plan 2380 R1.14 脱敏契约）。注意：secret 属性不会持久化，中断恢复时该属性不可用
+     */
+    
+    public boolean isSecret(){
+      return _secret;
+    }
+
+    
+    public void setSecret(boolean value){
+        checkAllowChange();
+        
+        this._secret = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: source
      *  
      */
@@ -414,6 +442,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         out.putNotNull("persist",this.isPersist());
         out.putNotNull("role",this.getRole());
         out.putNotNull("schema",this.getSchema());
+        out.putNotNull("secret",this.isSecret());
         out.putNotNull("source",this.getSource());
         out.putNotNull("type",this.getType());
         out.putNotNull("value",this.getValue());
@@ -439,6 +468,7 @@ public abstract class _TaskInputModel extends io.nop.core.resource.component.Abs
         instance.setPersist(this.isPersist());
         instance.setRole(this.getRole());
         instance.setSchema(this.getSchema());
+        instance.setSecret(this.isSecret());
         instance.setSource(this.getSource());
         instance.setType(this.getType());
         instance.setValue(this.getValue());

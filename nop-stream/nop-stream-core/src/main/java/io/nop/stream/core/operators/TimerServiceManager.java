@@ -42,24 +42,52 @@ public class TimerServiceManager {
         return timerServices.size();
     }
 
+    /**
+     * Advances all registered timer services to the given watermark. Fail-fast: if any
+     * service fails, the first exception is rethrown after all services have been
+     * attempted (subsequent failures are attached via {@code addSuppressed}) — a failing
+     * event-time trigger must surface to the task instead of silently dropping
+     * window firings while the watermark keeps advancing. Per-service logging here is
+     * diagnostic only.
+     */
     public void advanceWatermark(Watermark mark) throws Exception {
+        Exception first = null;
         for (HeapInternalTimerService<?, ?> service : timerServices) {
             try {
                 advanceWatermarkUnchecked(service, mark.getTimestamp());
             } catch (Exception e) {
                 LOG.error("Failed to advance watermark for timer service: {}", service, e);
+                if (first == null)
+                    first = e;
+                else
+                    first.addSuppressed(e);
             }
         }
+        if (first != null)
+            throw first;
     }
 
+    /**
+     * Fires all due processing-time timers. Fail-fast under the same contract as
+     * {@link #advanceWatermark(Watermark)}: first exception rethrown after all services
+     * have been attempted, subsequent failures suppressed — a failing timer callback must
+     * not be silently swallowed while timers are marked fired.
+     */
     public void fireProcessingTimeTimers(long timestamp) throws Exception {
+        Exception first = null;
         for (HeapInternalTimerService<?, ?> service : timerServices) {
             try {
                 fireProcessingTimeTimersUnchecked(service, timestamp);
             } catch (Exception e) {
                 LOG.error("Failed to fire processing time timers for service: {}", service, e);
+                if (first == null)
+                    first = e;
+                else
+                    first.addSuppressed(e);
             }
         }
+        if (first != null)
+            throw first;
     }
 
     /**

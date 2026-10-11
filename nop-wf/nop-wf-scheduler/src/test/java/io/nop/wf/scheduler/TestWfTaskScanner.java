@@ -102,6 +102,10 @@ public class TestWfTaskScanner extends BaseTestCase {
         assertEquals("step-1", requestRef.get().getStepId());
         assertEquals("approve", requestRef.get().getActionName());
         assertEquals("wf-scheduler", contextRef.get().getContext().getUserId());
+        // P1-3.1-002（plan 2379 Phase 1）：scheduler context 必须携带系统触发标记，
+        // 引擎 allowCallByUser 据此放行 dueAction 步骤动作调用
+        assertEquals(Boolean.TRUE, contextRef.get().getContext()
+                .getAttribute(NopWfCoreConstants.ATTR_WF_SYSTEM_ACTION_TRIGGER));
     }
 
     @Test

@@ -115,12 +115,29 @@ public class RedisMfaChallengeStore implements MfaChallengeStore {
         // 显式赋值（含清 null）：peek 对同一对象的重复调用幂等，不残留旧票状态。
         // 对调用方不变式：peek().verifiedAt 非空 ⇒ 票在窗口内（三实现一致）
         Object ticket = nosql.get(ticketKey(challengeToken));
+        // R1.8 / P1-check2-nosql-67：PrefixEncodeHelper 对 Number 编码为裸十进制文本、
+        // 解码恒返回 String——instanceof Number 恒 false 使票据验证功能性失效。
+        // 修复方向 a（审计确认最小改）：数字形态 String 在消费点解析回 long；
+        // 非数字=损坏数据，保持 null 语义（fail-closed 不变）。
         if (ticket instanceof Number) {
             c.setVerifiedAt(((Number) ticket).longValue());
+        } else if (ticket instanceof String) {
+            Long parsed = parseTimestampText((String) ticket);
+            c.setVerifiedAt(parsed);
         } else {
             c.setVerifiedAt(null);
         }
         return c;
+    }
+
+    private Long parseTimestampText(String text) {
+        if (text == null || text.isEmpty())
+            return null;
+        try {
+            return Long.parseLong(text.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     @Override

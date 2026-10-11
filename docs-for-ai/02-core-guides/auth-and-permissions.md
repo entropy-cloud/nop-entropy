@@ -246,10 +246,28 @@ codegen 生成的 `_*.action-auth.xml` 会带一个测试用的 TOPM 根（id �
 | 配置项 | 默认值 | 说明 |
 |--------|--------|------|
 | `nop.auth.enable-action-auth` | `false` | 启用后菜单和操作权限检查生效 |
+| `nop.auth.require-auth-checker` | `false` | 严格模式：enable-action-auth=true 但 `IActionAuthChecker` bean 缺席时，请求入口直接失败（`ERR_GRAPHQL_NO_ACTION_AUTH_CHECKER`），已声明权限的字段/动作按 fail-closed 拒绝，而非告警后跳过检查。开启前置：部署环境必须保证 checker bean 在位（部署 nop-auth-service 或注册 checker bean） |
+| `nop.auth.strict-action-auth` | `false` | 严格模式：未声明 auth 的动作/字段按 deny 处理（缺省 allow = 显式声明模型）。开启前置见下方「严格模式（fail-closed 收敛）」章节 |
 | `nop.auth.skip-check-for-admin` | `false` | admin/nop-admin 角色跳过操作权限检查。默认关闭（DR-1e），管理员同样接受权限检查。该默认值由 `IConfigReference` 单一来源决定 |
 | `nop.auth.site-map.static-config-path` | `/nop/main/auth/app.action-auth.xml` | site-map 加载的唯一 action-auth 文件。**改了菜单没生效，头号排查点**：确认改的是这个配置指向的文件。各 app 在 `application.yaml` 改写为 `/{moduleId}/auth/app.action-auth.xml`。 |
 | `nop.auth.site-map.cache-timeout` | `10m` | site-map 合并结果缓存时长。调试时可调小（如 `1s`）以便频繁看到变更。 |
 | `nop.auth.site-map.support-debug` | `false` | 仅写入返回给前端的 `SiteMapBean.supportDebug` 字段，控制前端调试行为。**与 `_dump` 输出无关**——dump 只看 `nop.debug=true`。 |
+
+### 严格模式（fail-closed 收敛）
+
+平台的显式声明模型存在三处 fail-open 判定点（`GraphQLActionAuthChecker`）+ 一处同族点（`ObjMetaBasedValidator`），`require-auth-checker` / `strict-action-auth` 两个 opt-in 配置键（P1-2.6 修复族，plan 2378）对其逐点收敛。默认全部 `false`，默认部署行为零变化：
+
+| 判定点 | 默认行为（fail-open） | require-auth-checker=true | strict-action-auth=true |
+|--------|----------------------|--------------------------|------------------------|
+| 引擎入口：enable-action-auth=true 但 checker bean 缺席 | WARN 后跳过权限检查 | 抛 `ERR_GRAPHQL_NO_ACTION_AUTH_CHECKER`（请求入口 fail-fast） | 不适用（该点由 require 收敛） |
+| `isAllowAccess`：auth==null（未声明权限） | 放行 | 不变（显式声明模型保持） | deny（按 `ERR_AUTH_NO_PERMISSION`/字段级错误拒绝，错误参数 null 安全） |
+| `isAllowAccess`：auth!=null（已声明权限）但 checker==null | 放行 | deny → `ERR_AUTH_NO_PERMISSION`（封堵 `DefaultBizAuthChecker.checkAuth` 旁路形态） | 不适用（该点由 require 收敛） |
+| `ObjMetaBasedValidator.doCheckAuth`：字段写权限已声明但 checker==null | 跳过检查 | 抛 `ERR_AUTH_NO_PERMISSION_FOR_FIELD` | 不变（auth==null 半支保持显式声明模型） |
+
+**开启前置**：
+
+- `require-auth-checker=true` 的部署要求：目标部署必须装配 `IActionAuthChecker` bean（nop-auth-service 的 `nopActionAuthChecker`）——否则所有经过 enable-action-auth 引擎的请求都会失败。
+- `strict-action-auth=true` 的开启前置 = 公开面 auth 声明盘点完成（P1-2.6-005/006 已收口：approval-support 五 mutation、NopWfDefinition/NopDynModule publish/unpublish、NopAuthUser/NopDynModule active_findPage、NopMetaDataContract/NopMetaTagLabel approve/reject、NopRuleDefinition.getOutputFieldsEditSchema）**且**无声明 loader 群体已登记——loader 不补缺省权限（见 `./service-layer.md` 的 loader auth 章节），当前已知无 @Auth 生产 loader：`NopAuthRoleBizModel.roleUsers`/`roleResourceIds`、`NopDynEntityMetaBizModel.allProps`、`NopRuleNodeBizModel.predicateLabel`（demo 模块 2 个不计）。开启 strict 后这些字段将按 deny 处理，需要逐个补声明或确认可拒绝。
 
 ### site-map 加载时机与调试 dump
 

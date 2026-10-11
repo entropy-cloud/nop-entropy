@@ -2,12 +2,16 @@
 
 **日期**：2026-09-22
 **范围**：nop-sys（锁存储与 guard 实现）/ nop-biz（guard 调用点）/ nop-job（过期扫描）
-**状态**：active
+**状态**：draft（目标架构，未落地）
 **上游**：`01-architecture-baseline.md` §2/§4/§6；`02-snapshot-nested-data.md` §3
+
+> **〔目标架构·未落地〕**：本文描述的 guard 统一装饰点、lockKey 唯一索引互斥、approve tx1/tx2 双事务、nop-job TTL 扫描等机制**均未实现**——live 现状为 maker 侧骨架（`io.nop.biz.makerchecker`、GraphQL tryAction、`nop_sys_checker_record` 表；ORM 无 lockKey/expireTime 锁列，无 `IMakerCheckerPendingGuard`，decorator 目录仅 Transaction/Cache 两对，nop-job 无 CheckerRecord 扫描）。本文以目标态口吻保留设计结论；实现落地后按 `../nop-sys/sys-event-architecture.md` 演进注记模式回写「已落地」。
 
 ---
 
 ## 一、设计结论
+
+〔目标架构·未落地〕
 
 1. **互斥载体 = 记录行上的 lockKey 唯一索引**，不引入独立锁表、不做分布式锁：`{tenantId}:{bizObjName}:{bizObjId}` 在 PENDING 期间非空，终态置空；唯一索引（tenantId, lockKey）保证一对象至多一条待审。NULL 不参与唯一性冲突（主流数据库语义），create 型（无 bizObjId）天然不加对象锁。
 2. **防修改 = 变更管道统一前置 guard**：guard 是动作执行前的服务端检查，不依赖前端；重复提交与修改/删除被拒共用同一检查。
@@ -15,6 +19,7 @@
 
 ## 二、Guard 契约与拦截位置
 
+〔目标架构·未落地〕
 ```
 onMutation(action, input, ctx):
     if not makerCheckerParticipates(bizObj): pass        # 未参与机制的对象零开销
@@ -30,6 +35,7 @@ onMutation(action, input, ctx):
 
 ## 三、关键并发场景逐一裁定
 
+〔目标架构·未落地〕
 | 场景 | 结局 | 保证机制 |
 |------|------|---------|
 | 两 maker 同时提交同对象 | 后者被拒（提示待审记录编号与 maker） | lockKey 唯一索引（提交事务内 check-then-insert，竞态由索引兜底） |
@@ -46,6 +52,7 @@ onMutation(action, input, ctx):
 
 ## 四、approve 执行语义（事务边界）
 
+〔目标架构·未落地〕
 ```
 approve(recordId, comment, ctx):
     tx1:
@@ -68,11 +75,13 @@ approve(recordId, comment, ctx):
 
 ## 五、撤回 / 过期 / 失败出口
 
+〔目标架构·未落地〕
 - **withdraw**：仅 maker 本人或 checker-super-user；仅 PENDING 态；触发 cancelMethod（释放 try 预留）+ 释放锁 + WITHDRAW 审计。
 - **过期**：`expireTime` 由提交时按配置 TTL 写入；nop-job 周期扫描 `status=PENDING AND expireTime < now` → EXPIRED + cancelMethod + 释放锁 + EXPIRE 审计 + 通知 maker。扫描与 approve 的并发由条件更新裁定。
 - **EXECUTE_FAILED 双出口**：`retryExecute`（重放）与 `forceCancel`（checker-super-user，强审计 + 通知 maker），保证锁不永久死锁（硬约束 4）。
 
 ## 六、可观测性
 
+〔目标架构·未落地〕
 - 指标：提交数、待审积压数（按 bizObjName 分维度）、平均待审时长、STALE 率、EXECUTE_FAILED 率、bypass 次数。
 - `pending-lock` 拒绝计数按业务对象维度暴露——高频拒绝说明该对象的复核人配置或流程设计有问题。

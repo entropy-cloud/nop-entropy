@@ -9,9 +9,11 @@
             <attr name="wfRt" implicit="true"/>
 
             <description>
-                wf 结束事件中回调业务实体的 approve/reject action。
-                审批通过/驳回经此标签回调 IApprovableBiz 的 approve/reject action。
-                serviceContext 从 wfRt 获取，无需外部传入。
+                [DEPRECATED] 死标签——全仓无消费方（真实引擎回调为各 xwf 的内联 *end listener，
+                经 ATTR_WF_ENGINE_CALLBACK 标记窗口〔set→invoke→finally remove〕落点，
+                plan 2379 P1-3.1-001）。保留仅为兼容 TestUseApprovalComponents 的结构断言；
+                新流程不得使用本标签，应在 listener 脚本中以内联 try/finally 标记窗口
+                包裹 entityBizObj.invoke（写法见 workflow-configuration.md 审批落点契约）。
             </description>
 
             <source>

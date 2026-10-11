@@ -542,7 +542,7 @@ public class TestDispatchPathPostDenialGuard {
         model.setName("test-react-agent");
         model.setMode("react");
         io.nop.ai.core.model.ChatOptionsModel opts = new io.nop.ai.core.model.ChatOptionsModel();
-        opts.setMaxTokens(32000);
+        opts.setContextLength(32000);
         model.setChatOptions(opts);
         return model;
     }

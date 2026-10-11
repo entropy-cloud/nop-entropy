@@ -38,7 +38,9 @@ public interface IJdbcTemplate extends ISqlExecutor, IDialectProvider {
 
     /**
      * 调用数据库函数。sql必须为 {? = call func(...)} 形式的callable语句，
-     * 返回第一个OUT参数的值（由框架自动注册），而不是更新计数
+     * 返回第一个OUT参数的值（由框架自动注册），而不是更新计数。
+     * OUT参数以VARCHAR类型注册；IN参数marker自动自JDBC位置2起绑定（位置1为OUT返回），
+     * 带参与零参形态均无需手工偏移。
      */
     Object callFunc(@Nonnull SQL sql);
 

@@ -8,8 +8,9 @@
 - **文件输入/输出**：支持 CSV/Excel 文件作为数据源或输出
 - **ORM/JDBC 读写**：内建 `orm-reader`/`orm-writer`、`jdbc-reader`/`jdbc-writer`
 - **断点续传**：通过 `completedIndex` 记录进度，中断后可恢复；语义为 at-least-once（失败 chunk 的行会重新投递，业务方需自带幂等）
-- **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
+- **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`，mandatory 三列 retryCount=0/batchSize=filtered.size()/handleStatus=0 由 saveProcessed 显式赋值——P1-3.4-002），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
 - **重试/跳过**：`retryPolicy` + `skipPolicy` 内建支持
+- **`snapshotBuilder="orm-entity"` 用法（P1-3.4-001，plan 2382）**：映射到 `OrmBatchRecordSnapshotBuilder`（魔法治具值经 `BatchConstants.SNAPSHOT_BUILDER_ORM_ENTITY`；也可 `snapshotBuilder="beanName"` 指向自定义 `IBatchRecordSnapshotBuilder`）。语义：ORM 实体在 processor 链前后做快照/恢复——`restore` 返回**恢复后的完整记录列表**并回写 retry 集；未配置时 retry 消费方拿不到恢复记录（失败 chunk 记录会静默丢弃），使用 ORM 实体 + 重试语义的任务应配置它。
 - **并发处理**：`concurrency` + `executor` 线程池
 - **分区处理**：`dispatcher` + `partitionIndexField` 按字段分区并行
 - **生命周期 Listener**：12 种回调（onTaskBegin/End, onChunkBegin/End 等）
@@ -143,7 +144,7 @@ processor name="queryData":
 
 ### orm-reader 的传参
 
-orm-reader 支持两种查询方式：
+orm-reader 仅支持 `<query>` 结构化查询模型（P1-3.3-001 修复后；历史 `<eql>` 节点已移除，见下方查询模型说明）：
 
 **方式 1：query 查询模型（推荐简单场景）**
 
@@ -157,19 +158,16 @@ orm-reader entityName="ErpMdMaterial":
             field(name="code")
 ```
 
-**方式 2：eql 原始 EQL（复杂查询）**
-
-```
-orm-reader entityName="ErpMdMaterial":
-    eql: select o from ErpMdMaterial o where o.status = ${status} and o.stockQty > ${minStock}
-```
-
-> **关键区别**：`dao:FindFirst` 等标签的 body 直接是 EQL 文本；`orm-reader` 的 `<eql>` 也是 EQL 文本，但 `<query>` 是结构化的查询模型（filter/orderBy）。
+> **查询模型说明（P1-3.3-001，plan 2381）**：`orm-reader` 仅支持 `<query>` 结构化查询模型
+> （filter/orderBy）。历史版本的 `<eql>` 节点因引擎从未接线（声明后被静默丢弃→全表扫描）已从
+> DSL 移除；`dao:FindFirst` 等标签的 body 直接是 EQL 文本，与此处无关。orm-reader 未声明
+> `<query>` 时会全表加载（运行时打 `nop.batch.orm-reader-no-query` WARN）。
 
 **关键点**：
 - `inject('beanName')` 可获取任何 IoC Bean，包括 `I*Biz` 接口
 - `dao:SaveEntity` / `dao:FindFirst` 等标签来自 `/nop/orm/xlib/dao.xlib`
 - processor 中可调用多次 `consume(item)` 输出多个结果
+- 多个 processor 按 `order` 属性升序执行（P1-3.3-002 接线，plan 2381；此前声明序即执行序、order 无效）
 - consumer 中通过 `filter` 匹配不同的输出
 
 ## 常用 loader 类型
@@ -177,7 +175,7 @@ orm-reader entityName="ErpMdMaterial":
 | loader 类型 | 用途 | 关键配置 |
 |-------------|------|----------|
 | `file-reader` | CSV/Excel 文件读取 | `filePath`、`fileModelPath`、`headers` |
-| `orm-reader` | ORM 查询读取 | `entityName` + `<query>`（结构化查询模型）或 `<eql>`（原始 EQL） |
+| `orm-reader` | ORM 查询读取 | `entityName` + `<query>`（结构化查询模型；`<eql>` 已移除，P1-3.3-001） |
 | `jdbc-reader` | 原生 SQL 读取 | `sqlName` + `<sql>`（原生 SQL）或 `<query>`（结构化查询模型） |
 | `provider` | 自定义加载器 | 返回 `IBatchLoader` 或 `List` |
 

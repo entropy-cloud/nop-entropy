@@ -71,8 +71,14 @@ public class BeanMethodBatchFetcher implements IDataFetcher {
                 loader = DataLoaderFactory.newDataLoader(batchLoader);
                 context.registerDataLoader(key, loader);
             }
+            // load 必须与 check-then-register 同锁：dispatch 由 GraphQLExecutor 在游走回合
+            // 出口统一驱动（dispatchAll 快照并清空注册表，见 GraphQLExecutor.dispatchAll）。
+            // 若 load 在锁外，并发回合的 dispatchAll 可能「快照+清空+dispatch 完成」后本线程
+            // 的 load 才入队——key 滞留在已移出注册表的实例上，无人再 dispatch（P1-2.6-004
+            // 实测的丢 key 竞态）。同锁后 key 要么进当前批，要么新注册实例、由后续回合
+            // 出口泵或批次完成递归承接。
+            return loader.load(env.getSource());
         }
-        return loader.load(env.getSource());
     }
 
     /**
