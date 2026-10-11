@@ -100,6 +100,15 @@
 4. **反向污染风险声明（硬约束）**：两驱动面语义在收敛中被反向污染（把已验证侧语义错改为未充分验证侧变体或反之）时，单侧回归不可见。因此 WI10/WI11 的完成标准是**双驱动面差分归零**，任何单侧回归通过不构成完成证据；差分不归零的分叉项只能走 §4.3 的登记路径，不得在重构中顺手统一。
 5. **CC-06/CC-17 边界**：coordinator monitor 内阻塞 RPC fan-out（CC-06）与无界队列/终态 RPC 同步发送（CC-17）为 r5-successors 既有登记项，属 WI10 落地时的顺带修正（差分绿后独立提交），不在本档重复设计。
 
+## 四.5 WI10 落地回写（2026-10-11，plan 2426）
+
+- **SavepointMaterializer 下沉落地**：SAVEPOINT 触发/等待/归属戳/落盘序列下沉 `runtime.checkpoint.core.SavepointMaterializer`，本地面委托（字节级等价，savepoint 测试族 + 差分 harness 复跑绿）；屏障扇出与 KeyGroup 归属保持面级机制回调。§4.1「EXPORT 接入」维持 WI11 评估。
+- **1c 概念统一落地**：`CheckpointConfig.terminationCheckpointTimeoutMs` nullable 旋钮（默认 null→回退 checkpointTimeout，字节级零行为变更）；触发预算与 await 预算语义显式分离。**默认值归属仍留 WI11 差分语料**（§4.3 1c 裁定不变）。
+- **6a 归一落地**：`JobCoordinator` failover 重建 manifest-first 校验门（manifest 读取→指纹 fail-closed〔无源=不可证明〕→counter 越 manifest epoch 封堵 shadow window）+ raw restore 保留为视图填充。编排适用子集 = manifest/指纹/counter 三步（enumerator stash 与 task 状态重建不适用 coordinator 级，回写 §4.1 切分）。差分 harness + fixture + 三模块基线全绿放行（§4.4 门）。
+- **abort 机制下沉裁弃**（§4.1 bullet 4 修订）：本地 abort handler 为 legacy 单参签名（无 reason 输入）、分布式判定点为单句前缀判断——共享契约即「1 常量 + 1 前缀判断」伪抽象且 DIV-02 owner 裁决未决；机制下沉 defer 至 DIV-02 裁决后随 r5-successors 处置，DIV-02 冻结语义维持。
+- **JC 启动路径残留**（JobCoordinatorMain raw restore + counter 推进）未在本 WI 对齐，如实残留——归 WI11 评估。
+- **新增实测事实（修正测绘）**：本地 face pipelineId 实为 `pipeline-0`（与分布式同约定，修正 §三加载链旁注）；终态 COMPLETED_POINT_TYPE epoch 仅写 manifest 无数据行，restore 点=最新数据 checkpoint——恢复点定时漂移属引擎语义，差分断言按边界无关不变量钉。
+
 ## 五、拒绝了什么
 
 - **方案 (b) 统一单一驱动面引擎**：见 §4.1 三条理由。核心拒绝理由：合并即消灭差分参照面，反向污染敞口最大化；且内核已共享，(b) 的收益（一个面）不解决病根（面间语义分叉）。
