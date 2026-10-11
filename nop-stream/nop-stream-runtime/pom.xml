@@ -86,13 +86,44 @@
             <scope>test</scope>
         </dependency>
 
-        <!-- Item 19 (connector SPI registry): the aggregate registration discovery test
-             assembles all four connector modules' factory beans into one registry
-             container. ALL FOUR (connector, connector-jdbc, debezium, batch) are
-             test-scope deps (jars on classpath only — the surefire init cap keeps their
-             initializers inert). The F-26 note in the multi-audit F table flagged the
-             earlier "already main deps" wording as contradicting these test scopes;
-             this comment is the corrected form. -->
+        <!-- AR-2 test-scope exception register (WI5 plan 2415 — authoritative record;
+             the per-dependency inline comments below are historical pointers).
+             The engine main sources depend on NO connector (AR-2 intent, connector
+             pom :13-30, holds on the compile face). The TEST face reintroduces the
+             full connector family on purpose: engine-level E2E (checkpoint restore,
+             backfill, kill-recover, 2PC) must be driven through real connector
+             source/sinks, so this fan-in is inherent to E2E coverage. Adjudication
+             (plan 2415): registered exception, minimal set = all six test deps kept.
+             Dropped/门控 alternatives were rejected on evidence:
+             - connector-debezium has NO direct import consumer, but the aggregate
+               registry discovery acceptance record (P-REQ-28,
+               TestStreamConnectorRegistryDiscovery) hard-asserts the full set:
+               connector-debezium.beans.xml in discovered files, debezium-cdc in
+               source types, exactly 10 connectors total. Removing or gating the dep
+               would break/weaken that acceptance out of the default verification face.
+             - rocksdb has 9 real consumer files (8 direct imports + 1 inline FQN).
+             The surefire init cap (nop.core.initialize.max-initialize-level, see
+             build section below) keeps the connectors' initializers inert while
+             their jars are on the test classpath. F-26 correction record: the
+             earlier "already main deps" wording was wrong — these are test scopes.
+
+             Direct consumer census (WI5 plan 2415; 9 files with imports + 1 FQN):
+             - connector-jdbc  ← TestE2EJdbcTwoPhaseCommitSink,
+               TestCheckpointInheritedTwoPhaseCommitRestore, TestRecalculateBackfillE2E
+             - connector-batch ← TestBatchLoaderSourceE2E, TestRecalculateBackfillE2E
+               (+ TestWi19BoundedReplayDeclarationE2E references
+               BatchLoaderSourceFunction by FQN)
+             - connector (file sink) ← TestFileSourceE2E, TestSourceApiRestoreE2E
+             - connector (root: message) ← TestMessageSourceE2E, TestRateLimitValidationFace
+             - connector-kafka ← TestKafkaConnectorExactlyOnceE2E (gated real broker)
+             - connector-debezium ← no direct import; P-REQ-28 discovery assertions above
+             - rocksdb ← 9 files (8 direct imports + 1 inline FQN):
+               TestE2EWindowAggregateRestore, TestCheckpointCoordinatorIncrementalIntegration,
+               TestCheckpointCoordinatorJdbcRetainedManifests, TestStateMigrationEndToEnd,
+               TestCheckpointCoordinatorIncrementalPersistRollback,
+               TestCheckpointInheritedSegmentRefCount, TestKeyGroupRoutingE2E,
+               TestRocksDBStateBackendE2E (+ inline FQN in TestE2EWindowAggregateRestore)
+        -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-stream-connector-debezium</artifactId>
