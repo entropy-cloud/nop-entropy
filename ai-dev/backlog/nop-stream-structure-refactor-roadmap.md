@@ -27,7 +27,7 @@
 
 ## Work Item Status
 
-- WI1 nop-bom 悬空条目清理与依赖版本收口: `todo`
+- WI1 nop-bom 悬空条目清理与依赖版本收口: `done`（plan 2410，2026-10-11）
 - WI2 quickstart 生成器跨平台修复与模板版本对齐: `todo`
 - WI3 架构基线与 owner docs 回写: `todo`
 - WI4 connector-jdbc provided+optional 依赖硬化: `todo`

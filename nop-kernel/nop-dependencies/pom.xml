@@ -63,6 +63,10 @@
              （quarkus-bom 传递管理的既有解析版本，实测基线）；升版须同步核对
              AvroWireFormat wire/演进测试。 -->
         <avro.version>1.12.1</avro.version>
+        <!-- WI1 plan 2410：nop-stream-rocksdb 的 rocksdbjni 单点版本。pin = 9.11.2
+             （模块 pom 既有硬编码值的原样迁移，非升版）；升版须同步核对
+             nop-stream-rocksdb 的 Windows ARM64 skip-tests profile 与状态后端测试。 -->
+        <rocksdb.version>9.11.2</rocksdb.version>
 
         <!--        <lettuce.version>6.1.4.RELEASE</lettuce.version>-->
 
@@ -320,6 +324,12 @@
                 <groupId>org.apache.avro</groupId>
                 <artifactId>avro</artifactId>
                 <version>${avro.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.rocksdb</groupId>
+                <artifactId>rocksdbjni</artifactId>
+                <version>${rocksdb.version}</version>
             </dependency>
 
             <dependency>
