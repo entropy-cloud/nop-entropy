@@ -74,7 +74,7 @@ Human-owned choices; execution plans must not re-litigate them:
 ### B — CI to JDK 25
 
 - WI3 GitHub Actions → JDK 25 + unblock nop-cli lint gate: `done`
-- WI4 Delete legacy `.workflow/*` pipelines + fix docs JDK references: `todo`
+- WI4 Delete legacy `.workflow/*` pipelines + fix docs JDK references: `done`
 
 ### C — Quarkus 4 adoption
 

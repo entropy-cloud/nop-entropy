@@ -12,7 +12,7 @@
 
 | 项 | 要求 |
 |---|---|
-| JDK | 17+（推荐 21，与 CI 一致） |
+| JDK | 25+（与 CI 一致，plan 2428 WI3 起） |
 | Maven | 项目自带 `./mvnw`（wrapper 4.0.0-rc-5），无需全局 Maven |
 | `nop-entropy` | 必须**先在本地 `mvn install`**，因为外部应用 parent 指向它 |
 | 数据库 | 开发期默认 H2（零配置）；生产用 MySQL/Oracle/PostgreSQL |
