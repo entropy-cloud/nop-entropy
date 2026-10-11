@@ -35,7 +35,7 @@ audit-rounds: 0
 
 - WI1 废弃 chat 栈迁移收口（AiCommand 链迁移 + 25 废弃类删除）: `done`
 - WI2 工具 SPI 归一裁定与落地: `done`
-- WI4 RAG SPI 归位 nop-ai-rag: `todo`
+- WI4 RAG SPI 归位 nop-ai-rag: `done`
 - WI5 模型选路 routing 归位 gateway: `todo`
 - WI6 编码代理关注点归位裁定（core file/response）: `todo`
 - WI7 mock 设施收敛下沉: `todo`
@@ -85,7 +85,7 @@ audit-rounds: 0
 
 ### WI4 RAG SPI 归位 nop-ai-rag
 
-- 迁移 `core/api/vectorstore/`（IVectorStore 等 4 文件）、`core/api/embedding/`（IEmbeddingModel 等 4 文件，含 CosineSimilarity/RelevanceScore 纯数学工具）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/search/AiModelTextEmbedding.java` 到 `nop-ai-rag`；rag 对 core 的依赖面随之收敛（round 1 实测 vectorstore/embedding 代码消费者仅 rag 自身 5 main + 5 test，`nop-search-lucene/LuceneSearchEngine.java:152` 仅 javadoc 提及无代码依赖——N4.2 桥接注释在该文件，非 nop-search-api；另 `nop-code/nop-code-service` TestCodeSearchHybridVector.java:84 为 javadoc 提及，plan 期普查勿误报——round 2 补记）。
+- 迁移 `core/api/vectorstore/`（IVectorStore 等 4 文件）、`core/api/embedding/`（IEmbeddingModel 等 4 文件，含 CosineSimilarity/RelevanceScore 纯数学工具）、nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/search/AiModelTextEmbedding.java 到 nop-ai-rag（WI4 执行：已迁移）；rag 对 core 的依赖面随之收敛（round 1 实测 vectorstore/embedding 代码消费者仅 rag 自身 5 main + 5 test，`nop-search-lucene/LuceneSearchEngine.java:152` 仅 javadoc 提及无代码依赖——N4.2 桥接注释在该文件，非 nop-search-api；另 `nop-code/nop-code-service` TestCodeSearchHybridVector.java:84 为 javadoc 提及，plan 期普查勿误报——round 2 补记）。
 - 同 plan 期裁定 rag 仍依赖的 core 面归属：`core/commons/splitter`（SimpleTextSplitter/IAiTextSplitter）、`core/api/document.AiDocument`、`core/api/support.VectorData`（round 1 补充实测）——随迁 rag 或保留 core 并登记理由，避免"SPI 走了、配套留下"的半迁移。
 - SPI 属公共 API 面，按 Protected Areas 走 plan-first + owner doc + 迁移说明。
 - 验证：`./mvnw test -pl nop-ai/nop-ai-rag -am` 全绿（含既有 PgVector E2E）。Item Type: Fix。deps: WI1。

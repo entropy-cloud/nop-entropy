@@ -54,7 +54,7 @@ ORDER BY embedding <=> ?::vector LIMIT ?;
 ## 四、InMemory 定位
 
 - 消费方：K3 管线测试、本计划测试、无 pgvector 环境开发。
-- 复用 nop-ai-core `CosineSimilarity`（其 reserved 解除登记于 §八），前置零向量守卫 fail-loud（比 utility 的 EPSILON 归零更严）。
+- 复用 `CosineSimilarity`（随 plan 2421/WI4 迁入本模块 nop-ai-rag，包名保留 io.nop.ai.core.api.embedding；其 reserved 解除登记于 §八），前置零向量守卫 fail-loud（比 utility 的 EPSILON 归零更严）。
 - collectionName 必填（每次调用 fail-loud，与 PgVector 的构造期默认 collection 不同——差异登记于此）。
 
 ## 五、拒绝的替代方案

@@ -9,4 +9,12 @@
     <bean id="io.nop.ai.rag.biz.NopAiRagBizModel"
           class="io.nop.ai.rag.biz.NopAiRagBizModel" ioc:default="true"
           ioc:type="io.nop.ai.rag.biz.NopAiRagBizModel"/>
+    <!-- N4.2（plan nop-code/23）：ITextEmbedding 桥接（nop-search SPI → IEmbeddingModel）。
+         经 @Inject+@Nullable by-type 注入 LuceneSearchEngine（nop-search-lucene）；
+         无本 bean 的部署引擎回退 hash 模拟（仅测试语义）。bean 随类自 nop-ai-core
+         迁入本模块（plan 2421，WI4）——纯 core+search-lucene 部署将回退 hash 模拟。 -->
+    <bean id="nopAiTextEmbedding" class="io.nop.ai.core.search.AiModelTextEmbedding" ioc:default="true"
+          ioc:type="io.nop.search.api.ITextEmbedding">
+        <constructor-arg index="0" ref="nopAiEmbeddingModel"/>
+    </bean>
 </beans>
