@@ -5,30 +5,32 @@ import io.nop.ai.core.file.IFileOperator;
 import io.nop.ai.core.file.LocalFileOperator;
 import io.nop.commons.path.AntPathMatcher;
 import io.nop.commons.util.FileHelper;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.git.GitIgnoreFile;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.impl.FileResource;
 import io.nop.core.resource.path.PathTreeNode;
 import io.nop.core.resource.path.ResourceToPathTreeBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import picocli.CommandLine;
 
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
 @CommandLine.Command(
     name = "file",
     mixinStandardHelpOptions = true,
-    description = "File operations: read, write, path-tree, plain-path-tree, find",
+    description = "File operations: read, write, path-tree, plain-path-tree",
     subcommands = {CommandLine.HelpCommand.class}
 )
 public class CliFileCommand implements Callable<Integer> {
 
+    static final Logger LOG = LoggerFactory.getLogger(CliFileCommand.class);
+
     @CommandLine.Parameters(
         index = "0",
-        description = "Operation type: read|write|path-tree|plain-path-tree|find",
+        description = "Operation type: read|write|path-tree|plain-path-tree",
         arity = "1"
     )
     String operation;
@@ -44,7 +46,7 @@ public class CliFileCommand implements Callable<Integer> {
 
     @CommandLine.Option(
         names = {"-r", "--regex"},
-        description = "Regex match pattern, used by find and path-tree operations"
+        description = "Regex match pattern, used by path-tree operation"
     )
     String regex;
 
@@ -117,14 +119,12 @@ public class CliFileCommand implements Callable<Integer> {
                 case "path-tree":
                 case "plain-path-tree":
                     return handlePathTree("plain-path-tree".equalsIgnoreCase(operation));
-                case "find":
-                    return handleFind();
                 default:
                     System.err.println("Error: Unknown operation. Must be 'read' or 'write'");
                     return 1;
             }
         } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            LOG.error("Fail to execute file operation: {}", operation, e);
             return 2;
         }
     }
@@ -220,43 +220,6 @@ public class CliFileCommand implements Callable<Integer> {
             File outputFile = new File(outputPath);
             FileHelper.writeText(outputFile, text, null);
             System.out.println("Path Tree saved to: " + outputPath);
-        } else {
-            System.out.println(text);
-        }
-
-        return 0;
-    }
-
-    private Integer handleFind() {
-        Pattern regexPattern = regex == null ? null : Pattern.compile(regex);
-        AntPathMatcher pathMatcher = new AntPathMatcher();
-
-        GitIgnoreFile ignoreFile = getGitIgnoreFile();
-
-        List<String> paths = fileOperator.findFilesByFilter(searchDir, path -> {
-            IResource res = fileOperator.getResource(path);
-
-            if (isNopIgnoredFile(path))
-                return false;
-
-            if (!ignoreFile.isEmpty() && ignoreFile.test(res))
-                return false;
-
-            if (regexPattern != null)
-                return regexPattern.matcher(path).find();
-
-            if (pattern != null) {
-                return pathMatcher.match(pattern, path);
-            }
-            return true;
-        },0);
-
-        String text = StringHelper.join(paths, "\n");
-
-        if (!outputPath.isEmpty()) {
-            File outputFile = new File(outputPath);
-            FileHelper.writeText(outputFile, text, null);
-            System.out.println("Paths saved to: " + outputPath);
         } else {
             System.out.println(text);
         }

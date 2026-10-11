@@ -68,7 +68,7 @@ io.nop.rg.cli                   CLI 入口
 
 **当前消费者**：
 - `io.nop.ai.code_analyzer.project.GitProject` — 项目级 gitignore 过滤
-- `io.nop.cli.commands.CliFileCommand` — `nop file path-tree` 和 `nop file find` 命令
+- `io.nop.cli.commands.CliFileCommand` — `nop file path-tree` 命令（`nop file find` 已删除，模糊文件查找归 nop-find）
 
 **符号链接契约（plan 2273）**：`loadSubdirectoryRules` 不跟随符号链接目录（目录环会导致规则加载无限递归；对齐 git 不进入符号链接目录的行为）。该行为收窄对上述两个下游消费者同为防崩溃方向（不改签名，编译面无影响）。
 
