@@ -848,6 +848,8 @@ Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction�
 5. 作业结束，不保证输出完整
 ```
 
+> **偏差注记（2026-10-11，WI9 测绘）**：本地驱动面（`GraphModelCheckpointExecutor.handleJobTermination`）现行实现在 CANCEL 时**无条件触发 `COMPLETED_POINT_TYPE` final checkpoint**（比本节「不保证输出完整」更强，专测锁定）；分布式面（`JobCoordinator.terminateCancel`）与本节一致——立即停止、无终态 epoch。两侧语义分叉与裁决输入见 `checkpoint-engine-convergence.md` §4.3 DIV-05。
+
 **DRAIN**：
 
 ```
@@ -885,7 +887,7 @@ Barrier N 之后的数据必须写入 epoch N+1 或更高 epoch 的 transaction�
 | `SAVEPOINT` | 手动 savepoint |
 | `TERMINAL_SAVEPOINT` | DRAIN/SUSPEND 模式的 terminal savepoint |
 | `EXPORTED_SAVEPOINT` | EXPORT_SAVEPOINT 模式的 savepoint |
-| `COMPLETED_POINT_TYPE` | bounded source 的最终 checkpoint |
+| `COMPLETED_POINT_TYPE` | bounded source 的最终 checkpoint（**WI9 偏差注记**：本地 CANCEL 路径现无条件使用该类型触发 final checkpoint，超出「bounded source」定义域——见 §7.2 偏差注记与 `checkpoint-engine-convergence.md` DIV-05） |
 
 ### 7.4 JobTerminationContext
 
@@ -1331,7 +1333,7 @@ reshard migration 与 schema migration（§8.4.1 `StateMigrationFunction`）**�
 - (b) 不走 `cancel()` 直接 `interrupt()`——绕过 `SubtaskTask` 状态机，破坏正常取消流程。
 - (c) 靠 `CheckpointListener.notifyCheckpointAborted` 抛异常传播——`notifyCheckpointAborted` 的调用方 catch-and-log，异常无法传播。
 
-**distributed 路径（Stage 39 Phase 3 已落地；2026-09-03 roadmap item 27 补 fencing）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。**cancelTask 携带协调器当前 fencing epoch**（签名 `cancelTask(jobId, vertexId, subtaskIndex, fencingEpoch)`）：TM 侧对 stale epoch typed 拒绝（`ERR_STREAM_FENCING_TOKEN_MISMATCH`，expected/actual 参数）——stale 协调器（旧 leader / 旧恢复代）不能取消 active 代任务；拒绝可观测性 = 抛出点 WARN 日志 + one-way RPC 服务端分发层错误日志（与 triggerCheckpoint 同构），不上报 FAILED TaskStatusReport（被拒时任务在 active 代下健康，上报会诱发虚假恢复）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
+**distributed 路径（Stage 39 Phase 3 已落地；2026-09-03 roadmap item 27 补 fencing）**：`JobCoordinator.registerDistributedAbortHandler()` 在 `CheckpointCoordinator.setAbortHandler` 上注册一个 handler，checkpoint 超时/abort 时对所有已分配的远程 task 经 `IStreamTaskRpcService.cancelTask` RPC 触发取消 **WI9 偏差注记（2026-10-11）**：现行代码对 reason 以「Timeout」开头的 abort **只弃 epoch、不扇出 cancelTask**（任务继续运行等下一周期 trigger；`JobCoordinator` :2563-2573，注释自述 routine back-pressure event；专测 `TestDistributedAbortPath` 锁定）——与本节「job 明确进入失败态」「超时经 cancelTask 取消」的设计意图冲突，属偏离已记录意图的后续演进。两种语义的裁决输入与处置见 `checkpoint-engine-convergence.md` §4.3 DIV-02（重构期两侧策略冻结）。（`cancelTask` 已由 Stage 28 加入接口与 `TaskManager` 实现，Phase 3 只接通 coordinator 调用点）。**cancelTask 携带协调器当前 fencing epoch**（签名 `cancelTask(jobId, vertexId, subtaskIndex, fencingEpoch)`）：TM 侧对 stale epoch typed 拒绝（`ERR_STREAM_FENCING_TOKEN_MISMATCH`，expected/actual 参数）——stale 协调器（旧 leader / 旧恢复代）不能取消 active 代任务；拒绝可观测性 = 抛出点 WARN 日志 + one-way RPC 服务端分发层错误日志（与 triggerCheckpoint 同构），不上报 FAILED TaskStatusReport（被拒时任务在 active 代下健康，上报会诱发虚假恢复）。`cancelTask` 是 abort 信号独立于数据流的控制通道（§13.2 line 1116 硬契约），远程 `TaskManager.cancelTask` → `RunningTask.cancel()`（mailbox `signalCancel` + `future.cancel(true)` 中断）解除阻塞的对齐读（§13.2 line 1113）。与 local 路径（`GraphModelCheckpointExecutor.registerLocalAbortHandler`，embedded fast-path）共存：RPC-distributed 形态（`RpcDistributedExecutor`）注册 distributed handler，embedded 形态注册 local handler。RPC 失败经 per-node 日志显式传播（非静默吞），下一轮 `globalRecovery` 的 epoch 轮转仍 fence 未取消的 task。
 
 ## 9. 存储与 Manifest 发布
 

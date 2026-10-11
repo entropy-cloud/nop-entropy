@@ -41,6 +41,17 @@
 - **RD-13**（关联）Stage-NN 考古注释家族全量清理（main 273 处/117 文件）。
 - **TE-07**（关联）toString/hashCode/equals 镜像测试家族 16 处批量处置。
 
+## checkpoint 驱动面分叉专项（WI9）
+
+> 测绘与裁定详见 `ai-dev/design/nop-stream/checkpoint-engine-convergence.md`（双向互指）。重构期一律不动这些分叉，处置须走差分门放行或 owner 裁决。
+
+- **DIV-01**（2c 快照失败传播）分布式 per-task 快照失败只 LOG（`RemoteTaskDeploySupport#remoteAbortListener` 注释自认「waiting for coordinator-side timeout abort」），拖满 checkpointTimeout 才 abort；本地侧即时传播有专测。目标语义=即时传播；补 per-task 失败 RPC 或等价通道由 WI11 或 successor 立项。
+- **DIV-02**（5b timeout abort 终局相反）本地：任务取消+作业失败态；分布式：只弃 epoch 任务继续（「routine back-pressure」，专测 TestDistributedAbortPath 锁定）。**checkpoint-design.md §8.7 设计意图（超时→job 失败态→恢复，distributed 经 cancelTask）与现行分布式代码冲突**——属偏离已记录意图的后续演进，非不可判定；E3 前提不适用，升格 owner 裁决（输入=§8.7 意图 vs 代码演进+测试）。重构期 policy hook 隔离，不得顺手统一；§8.7 已补偏差注记双向互指。
+- **DIV-03**（6a 恢复深度）分布式 coordinator 级 failover 重建只认 raw checkpoint（不读 manifest、不做指纹校验）；source enumerator stash（GMCE :1081/:1124-1148）全仓唯一调用方在本地，分布式无等价物——源枚举器状态恢复缺口待证（潜在 exactly-once 风险点）。coordinator 级入口向 manifest-first 对齐已列入 WI10/WI11 下沉范围。
+- **DIV-04**（4c savepoint 恢复能力）「从显式 savepoint 路径启动」仅本地驱动面存在，分布式无对等入口；是否补齐属产品裁定（与 DIV-03 合并审议）。
+- **DIV-05**（7 CANCEL 终态语义相反）本地 CANCEL 无条件触发 COMPLETED_POINT_TYPE 终态 checkpoint（超出 checkpoint-design.md §7.3「bounded source 最终 checkpoint」定义域）；分布式立即取消无终态 epoch，**与 §7.2 CANCEL 流程（不保证输出完整、无终态步骤）一致**。本地为超出已记录契约的有意强化（专测锁定）。升格 owner 裁决（输入=§7 契约 vs 本地强化）；重构期两侧冻结；§7.2/§7.3 已补偏差注记双向互指。
+- **DIV-06**（相邻：状态后端）分布式部署恢复侧固定 MemoryStateBackend（`RemoteTaskDeploySupport` 注释自认与 LOCAL 可配后端分叉、待裁决）。
+
 ## checkpoint 保留策略专项
 
 - **ST-16** retention 双平面界限不一致（checkpoint 平面按 jobId 全局、manifest 平面按 (jobId, pipelineId)）。
