@@ -48,7 +48,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <version>3.5.14</version>
                 <configuration>
                     <!--                    <classifier>${repackage.classifier}</classifier>-->
                     <!--                    <image>-->

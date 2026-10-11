@@ -62,7 +62,7 @@
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
+            <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
     </dependencies>
 
@@ -71,8 +71,8 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <!-- plan 2427 WI2:3.2.0 ASM 读不了 release=25 class v69,对齐 nop-dependencies SB 3.5.14 线(WI1 simple-demo 同源修复) -->
-                <version>3.5.14</version>
+                <!-- 独立 pom(无 parent,root pluginManagement 不可达):显式对齐 nop-dependencies 管理的 SB 4.1.1 线(WI6 plan 2437;plan 2427 曾修 3.2.0 ASM v69 同点位) -->
+                <version>4.1.1</version>
                 <configuration>
                     <!--                    <classifier>${repackage.classifier}</classifier>-->
                     <!--                    <image>-->
