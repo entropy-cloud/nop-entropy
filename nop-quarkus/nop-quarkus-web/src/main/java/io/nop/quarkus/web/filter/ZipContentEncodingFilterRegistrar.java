@@ -16,7 +16,7 @@ import io.nop.web.page.IndexHtmlProvider;
 import io.quarkus.arc.properties.IfBuildProperty;
 import io.quarkus.vertx.http.runtime.filters.Filters;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.impl.MimeMapping;
+import io.vertx.core.http.MimeMapping;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Observes;
 
@@ -70,7 +70,7 @@ public class ZipContentEncodingFilterRegistrar {
                 String fileName = StringHelper.removeTail(StringHelper.fileFullName(path), ".gz");
                 rc.response().putHeader(HttpHeaders.CONTENT_ENCODING, "gzip");
                 // guess content type
-                String contentType = MimeMapping.getMimeTypeForFilename(fileName);
+                String contentType = MimeMapping.mimeTypeForFilename(fileName);
                 if (contentType != null) {
                     if (contentType.startsWith("text")) {
                         rc.response().putHeader(HttpHeaders.CONTENT_TYPE, contentType + ";charset=UTF-8");

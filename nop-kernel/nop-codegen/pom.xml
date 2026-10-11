@@ -43,7 +43,7 @@
         <!--        <dependency>-->
         <!--            <groupId>org.javassist</groupId>-->
         <!--            <artifactId>javassist</artifactId>-->
-        <!--            <version>3.29.2-GA</version>-->
+        <!-- (plan 2431 WI5: 注释态旧版本行已清——版本统一后无意义) -->
         <!--        </dependency>-->
 
         <dependency>
