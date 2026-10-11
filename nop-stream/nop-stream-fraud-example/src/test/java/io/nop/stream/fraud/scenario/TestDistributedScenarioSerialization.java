@@ -20,7 +20,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.launch.ClusterLaunchConfig;
 import io.nop.stream.runtime.launch.ClusterPipelineFactory;
-import io.nop.stream.runtime.rpc.RemotePipelineSpec;
+import io.nop.stream.runtime.protocol.RemotePipelineSpec;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
