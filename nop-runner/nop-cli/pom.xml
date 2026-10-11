@@ -52,10 +52,10 @@
     </distributionManagement>
 
     <properties>
-        <maven.compiler.source>22</maven.compiler.source>
-        <maven.compiler.target>22</maven.compiler.target>
-        <maven.compiler.release>22</maven.compiler.release>
-        <java.version>22</java.version>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
+        <maven.compiler.release>25</maven.compiler.release>
+        <java.version>25</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <compiler-plugin.version>3.11.0</compiler-plugin.version>

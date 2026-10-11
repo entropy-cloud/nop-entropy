@@ -68,7 +68,7 @@ Human-owned choices; execution plans must not re-litigate them:
 ### A — Baseline & JDK 25 foundation
 
 - WI0 Upgrade baseline analysis (migration facts + dependency matrix + pin inventory): `done`
-- WI1 JDK 25 build-chain pins (root/kernel/deps + nop-quarkus + nop-cli + nop-ai): `todo`
+- WI1 JDK 25 build-chain pins (root/kernel/deps + nop-quarkus + nop-cli + nop-ai): `done`
 - WI2 JDK 25 JDK22 FFM cluster + leaf pins (nop-find/nop-rg + 9 `java.version=11` + quickstart template): `todo`
 
 ### B — CI to JDK 25
