@@ -1,6 +1,6 @@
 # 2432 WI11 分布式路径切统一内核——对齐收尾 + 双跑归零 + 拆分评估裁定
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-11
 > Source: ai-dev/backlog/nop-stream-structure-refactor-roadmap.md Phase D WI11；WI9 §4.1/§4.3/§4.4；WI10 Deferred 承接（终态预算默认值/EXPORT 接入/启动路径门）
 > Related: plan 2426（WI10）；plan 2423（WI9）；CC-06/CC-17 承接 plan 同波次（独立编号）
@@ -74,7 +74,7 @@ Targets: 设计档 §四.5 续
 
 - [x] **EXPORT 接入评估结论 = defer（4 契约缺口记录）**：①materialize 硬编码 SAVEPOINT vs 矩阵钉 EXPORTED_SAVEPOINT（type 参数化属共享内核契约变更）；②预算源冲突（materialize 读 config resolve=10s vs JC 自有字段 60s，矩阵 setTerminationCheckpointTimeoutMs(200) 会被静默忽略）；③分布式面无 GraphExecutionPlan，KeyGroup 归属戳机制不存在（WI9 4a 本就裁定 EXPORT 无归属戳——接入须显式 skip）；④storage 实例不可达（JC 仅持路径字符串，coordinator 无 getter）；附注：materialize 末次 storeCheckPoint 为幂等覆写、EXPORT 丢弃路径返回语义正确（持久性由 coordinator 完成路径先行保证）。接入需 materialize 契约参数化设计 → 归 successor（r5-successors 或 WI12 后续）。
 - [x] **终态预算默认值归一 = defer（钉子测试 + 证据面裁定）**：TestCheckpointTerminationBudget.nullFallsBackToCheckpointTimeout 钉住 null→checkpointTimeout（WI10 零变更契约的组成部分），改 60s 回退必然转红且属断言级；被点名的 TriggerBoundedRetry（显式传预算）/ReproC2（不走 resolve）实际不敏感——无差分语料能仲裁默认值边界；E3 方向（60s）记录为 successor 指引。
-- [x] 设计档 §四.5 续写两条裁定（EXPORT 四缺口 + 预算 defer 依据，successor→r5-successors）——唯一写入点
+- [x] 设计档两条裁定写入（实际落点 **§四.6 WI11 落地回写**，指针勘误；successor→r5-successors）——唯一写入点
 
 Exit Criteria:
 
@@ -88,7 +88,7 @@ Targets: 设计档 §四.6
 - Item Types: `Decision`
 
 - [x] 差异归零记录：三项已知差异（恢复点漂移/指纹非对称/终态 epoch 写面）逐项标结构性保留 + 依据，入设计档 §四.6 前置台账——无未解释差异
-- [ ] 设计档回写核验：Phase 1b 两裁定已入 §四.5 续（Phase 1b 为唯一写入者，本条为核验）
+- [x] 设计档回写核验：Phase 1b 两裁定已入 §四.6（指针勘误：审计发现实落 §四.6 非 §四.5 续）
 - [x] execution 包拆分评估裁定 = **暂不拆**（§四.7：checkpoint 大头已迁出；剩余扇出源自 GMCE/JC 两巨型类——包拆不对症，RD-05 类级拆分才是对症项；复核触发条件已记录）；实际拆分按 roadmap 另立
 
 Exit Criteria:
@@ -98,35 +98,44 @@ Exit Criteria:
 
 ### Phase 3 - gated S1/S2 + 基线 + 收口
 
-Status: planned
+Status: completed
 Targets: fraud-example gated 场景、roadmap、daily log
 
 - Item Types: `Proof`
 
-- [ ] gated 运行（runbook §5 命令形；**前置修复已落**：fraud-example 3 测试文件的 `runtime.rpc.RemotePipelineSpec` 旧 FQN（WI6 搬迁遗留——gated 套件不进默认编译故未暴露）改 `runtime.protocol`；**red 处置纪律：复跑一次排除环境抖动，仍红则按 runbook 归因分类〔hang 先核验 item 28 归属〕并留档，不静默跳过**）：`TestS1MultiJvmE2E#s1MultiJvmBaselineDeploysFullSemanticsWithCheckpoints`、`TestS2MultiJvmE2E#s2MultiJvmBaselineBaseAndDeltaProduceExactlyOnceOutput`、`TestS1MultiJvmE2E#s1MultiJvmKillRecoverFencingExactlyOnce`、`TestS2MultiJvmE2E#s2MultiJvmKillRecoverFencingExactlyOnce`——全绿留档（结果摘要入本 plan）
-- [ ] `./mvnw -o test -pl nop-stream/nop-stream-runtime -am` 绿；三模块基线不下降
-- [ ] roadmap WI11 `todo`→`done`（解析器合规；done 注记携带 EXPORT/预算两条 defer→r5-successors 指针——2426 先例）+ 复跑 12 条目；daily log；doc-links
-- [ ] C2 收口提交（docs + 本 plan Closure）
+- [x] gated 运行（runbook §5 命令形；**前置修复已落**：fraud-example 3 测试文件的 `runtime.rpc.RemotePipelineSpec` 旧 FQN（WI6 搬迁遗留——gated 套件不进默认编译故未暴露）改 `runtime.protocol`；**red 处置纪律：复跑一次排除环境抖动，仍红则按 runbook 归因分类〔hang 先核验 item 28 归属〕并留档，不静默跳过**）：`TestS1MultiJvmE2E#s1MultiJvmBaselineDeploysFullSemanticsWithCheckpoints`、`TestS2MultiJvmE2E#s2MultiJvmBaselineBaseAndDeltaProduceExactlyOnceOutput`、`TestS1MultiJvmE2E#s1MultiJvmKillRecoverFencingExactlyOnce`、`TestS2MultiJvmE2E#s2MultiJvmKillRecoverFencingExactlyOnce`——全绿留档（结果摘要入本 plan）
+- [x] **runtime `-am` 显式裁定（scope change）**：全 reactor 被并发 jdk25 会话的 test-fork 污染阻断（nop-stream-connector-debezium NoClassDefFound JsonTool 仅 -am 上下文复现、单模块独立运行绿实证；该会话 plan 2430 正在承接）——本 WI 记录归因 + 模块级验证完整（三模块直接运行全绿），**-am 全绿复核移交 WI12**（其全量 install 阶段将在 2430 落地后复核）；三模块基线不下降（core 1967/0/1、runtime 1203/0/11、flow 315/0/0）
+- [x] roadmap WI11 `todo`→`done`（done 注记携带两条 defer→r5-successors 指针——2426 先例）+ 复跑 12 条目 11 done；daily log；doc-links 0 errors
+- [x] C2 收口提交（docs + plan Closure——经一次污染事故〔amend 无 pathspec 卷入并发暂存〕reset+pathspec 净化重建，事故已登记 daily log）
 
 Exit Criteria:
 
-- [ ] 四 gated 方法全绿且摘要留档；exactly-once 断言零弱化（跑测试不改断言）
-- [ ] runtime -am 绿；三模块基线不下降
-- [ ] roadmap-check 12 条目、WI11 done；daily log；doc-links 0 新增断链
+- [x] 四 gated 方法全绿且摘要留档（S1 2/2 19.35s、S2 2/2 34.01s）；exactly-once 断言零弱化（只跑不改）
+- [x] runtime `-am`：见上方显式裁定（并发污染阻断，单模块绿，复核归 WI12）；三模块基线不下降
+- [x] roadmap-check 12 条目 11 done、WI11 done；daily log；doc-links 0 errors（audit D12）
 
-## Closure Gates
+## Closure
 
-- [x] 对齐两项落地（工厂迁移 + 启动门）且每步双门绿；EXPORT/预算两项评估裁定 defer 入台账（Phase 1b）
-- [ ] 差异归零记录 + 拆分评估裁定落设计档
-- [ ] gated S1/S2 四方法全绿留档；exactly-once 不弱化
-- [ ] 三模块基线不下降 + runtime -am 绿
-- [ ] 独立 closure audit（fresh session）证据入 Closure 段
-- [x] **Anti-Hollow Check**：audit 验证 `RestoreGates.applyManifestGate` 在 JCM 启动路径与 JC failover 两个调用点运行时真实执行（调用链读码非仅 import）、gated S1/S2 场景真实多 JVM（MiniStreamCluster 进程树非 in-process 退化）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2432-wi11-distributed-path-unified-kernel.md --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` exit 0
-- [ ] 路径限定提交，不卷入其他会话改动
+Status Note: WI11 三 Phase + 1b 裁定全部完成：CheckpointStorages 工厂收敛六处直构（单 choke-point）+ RestoreGates 共享恢复门（JC failover 与 JCM 启动两调用点，fail-closed=launch 失败语义）+ EXPORT/预算两项评估裁定 defer→r5-successors + execution 拆分裁定暂不拆（§四.7）+ 差异台账三项结构性保留。gated S1/S2 多 JVM 四方法全绿（19.35s/34.01s）留档；三模块基线全绿（core 1967/0/1、runtime 1203/0/11、flow 315/0/0）。runtime `-am` 全 reactor 被并发会话 test-fork 污染阻断——显式裁定为 scope change：单模块独立绿已足、全绿复核移交 WI12（audit E14 唯一子项，已按规则 16 记录 scope change + successor）。独立 closure audit 13 项实质全 PASS + 机械收口已落。顺带修复 fraud-example 3 文件 WI6 遗留 FQN。
+Completed: 2026-10-11
 
-## Deferred But Adjudicated
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理（general-purpose，fresh session，agent_19eaa315-e42a-4cb9-9a97-5c99c825b801）
+- Audit Session: agent_19eaa315-e42a-4cb9-9a97-5c99c825b801（内容质量门为 agent_ced1de8c-111a-4162-9e99-7534a444cc7d，两轮）
+- Evidence:
+  - A 组（对齐项 live code）A1-A3 全 PASS：工厂三入口 + src/main 收敛 grep 实证；RestoreGates 语义 + 两调用点 + JCM 抛出语义；audit 亲跑 TestRestoreGate 4/4 + FailoverRestore 11/11（15 tests 0F0E）。
+  - B 组（裁定与文档）B4-B7 全 PASS：§四.5 续→§四.6 两条裁定 + §四.6 台账 + §四.7 裁定；roadmap WI11 done 注记带 defer 指针 + 解析 12 条目 11 done；daily log 含提交事故登记。
+  - C 组（gated 证据）C8-C9 全 PASS：S1/S2 两日志亲读（2/2 + exit 0）；首跑红归因（FQN 编译断）留档非掩盖；FQN 修复 grep=0。
+  - D 组（门禁亲跑）D10-D13 全 PASS：inventory exit 0；hollow 扫描 0（790 文件）；doc-links 0 errors；基线日志三模块实测 + 工作树无未提交 nop-stream 代码。
+  - E 组（计划一致性）E14 PARTIAL→已收口：唯一实质项 = runtime `-am` 显式裁定入 plan（scope change + successor WI12）；其余为勾选滞后 + §四.5/§四.6 指针勘误——全部落地。E15 PASS：HEAD 提交恰 7 文件无并发卷入。
+  - Anti-Hollow 抽查 PASS（audit A2/B 组）：RestoreGates 两调用点运行时执行、gated 真实多 JVM、工厂唯一构造点。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2432-wi11-distributed-path-unified-kernel.md --strict` 关闭前终跑 exit 0。
+
+Follow-up:
+
+- CC-06/CC-17 承接 plan（差分绿后独立 commit，同波次）。
+- WI12 承接：runtime `-am` 全绿复核（2430 落地后）、DIV-01～06 与 EXPORT/预算 defer 的 r5-successors 处置、全量收口。## Deferred But Adjudicated
 
 ### JC EXPORT 接入 SavepointMaterializer
 
