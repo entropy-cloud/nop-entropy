@@ -4,7 +4,7 @@ import io.nop.ai.core.api.support.VectorData;
 import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.Test;
 
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
+import static io.nop.ai.rag.NopAiRagErrors.ERR_AI_VECTOR_LENGTH_MISMATCH;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;

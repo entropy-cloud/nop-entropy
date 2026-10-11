@@ -21,7 +21,6 @@ public interface NopAiCoreErrors {
 
 
     String ARG_NAME = "name";
-    String ARG_VALUE = "value";
 
     String ARG_EXPECTED = "expected";
     String ARG_CONTENT = "content";
@@ -58,9 +57,20 @@ public interface NopAiCoreErrors {
      * Migrated verbatim from {@code io.nop.ai.agent.NopAiAgentErrors}
      * (W2 reliability sink-down, plan 2026-08-15-0604-2). The error code ID
      * {@code nop.err.ai.agent.invalid-arg} is deliberately preserved: it is a
-     * persisted/logged error-code ID, renaming it would change behavior. Only
-     * the holder class moves to nop-ai-core; the remaining agent-specific
-     * codes stay in {@code NopAiAgentErrors}.
+     * persisted/logged error-code ID, renaming it would change behavior.
+     *
+     * <p><b>WI9 re-adjudication (plan 2438, 2026-10-11)</b>: the holder stays
+     * in nop-ai-core. Consumers span three modules (core reliability +
+     * LlmConfigHelper, gateway routing/failover, agent), and nop-ai-core
+     * cannot depend on nop-ai-agent (that would invert the agent→core layering),
+     * so the roadmap's literal "return to NopAiAgentErrors" is not reachable.
+     * The code is therefore classified as core-owned with a historical
+     * agent-prefixed ID (the owner classes — the reliability set — live in
+     * core). Restart condition: if the reliability classes ever move back to
+     * nop-ai-agent, this code moves back to {@code NopAiAgentErrors} with
+     * them. See also docs-for-ai/02-core-guides/error-handling.md (the
+     * cross-module {@code nop.err.ai.agent.*} namespace is adjudicated as
+     * intentional there).
      */
     String ARG_MSG = "msg";
 
@@ -113,38 +123,6 @@ public interface NopAiCoreErrors {
                     "The result returned by the LLM does not match the expected pattern, missing content: {expected}",
                     ARG_EXPECTED);
 
-    ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT =
-            define("nop.err.ai.tools.invalid-thought", "Invalid thought request: {value}", ARG_VALUE);
-
-    /**
-     * Converted from bare {@code IllegalArgumentException} throws (plan
-     * 2026-08-01-0936-3): English descriptions preserve the historical
-     * message semantics verbatim (AGENTS.md English error-message
-     * convention for newly added codes).
-     */
-    ErrorCode ERR_AI_TOOLS_INVALID_PROJECT_NAME =
-            define("nop.err.ai.tools.invalid-project-name",
-                    "projectName must be valid file directory name:{value}", ARG_VALUE);
-
-    ErrorCode ERR_AI_TOOLS_THOUGHT_EMPTY =
-            define("nop.err.ai.tools.thought-empty", "Thought cannot be empty");
-
-    ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER =
-            define("nop.err.ai.tools.invalid-thought-number", "Thought number must be positive");
-
-    ErrorCode ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS =
-            define("nop.err.ai.tools.invalid-total-thoughts", "Total thoughts must be positive");
-
-    ErrorCode ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER =
-            define("nop.err.ai.tools.total-thoughts-less-than-number",
-                    "Total thoughts must be >= thought number");
-
-    ErrorCode ERR_AI_TOOLS_INVALID_STAGE =
-            define("nop.err.ai.tools.invalid-stage", "Invalid ThoughtStage: {value}", ARG_VALUE);
-
-    ErrorCode ERR_AI_TOOLS_INVALID_MAX_RESULTS =
-            define("nop.err.ai.tools.invalid-max-results", "maxResults must be positive");
-
     ErrorCode ERR_AI_INVALID_RESPONSE =
             define("nop.err.ai.service.invalid-response", "The response returned by the LLM is invalid");
 
@@ -182,9 +160,6 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_UNSUPPORTED_PARSE_FROM_RESPONSE =
             define("nop.err.ai.prompt-unsupported-parse-from-response", "unsupported parseFromResponse: {parseModel}", ARG_PARSE_MODEL);
 
-    ErrorCode ERR_AI_VECTOR_LENGTH_MISMATCH =
-            define("nop.err.ai.vector-length-mismatch", "Length of vector a  must be equal to the length of vector b");
-
     ErrorCode ERR_AI_SESSION_ID_IS_EMPTY =
             define("nop.err.ai.session-id-empty", "sessionId must not be null or empty (path-traversal guard)");
 
@@ -192,33 +167,6 @@ public interface NopAiCoreErrors {
             define("nop.err.ai.session-id-invalid",
                     "sessionId contains invalid characters; only [A-Za-z0-9_-] are allowed (path-traversal guard): sessionId={sessionId}",
                     ARG_SESSION_ID);
-
-    /**
-     * ThoughtStorage export/import path-containment guard (plan
-     * 2026-09-14-1937-1 Phase 1): the caller-supplied filePath is used
-     * verbatim for read/write, so it must resolve inside the configured
-     * storage directory. English description by plan adjudication (fail-fast
-     * guard, mirrors {@link #ERR_AI_SESSION_ID_INVALID}).
-     */
-    ErrorCode ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID =
-            define("nop.err.ai.tools.session-file-path-invalid",
-                    "filePath must be located inside the thought-storage directory (path-traversal guard): filePath={filePath}",
-                    ARG_FILE_PATH);
-
-    /**
-     * Model-class routing pool saturation (plan 2026-08-15-0849-2, design §3.3
-     * Q8/Q10 adjudication, Phase 1): thrown by {@code ModelClassRouter} when no
-     * candidate in the current model class is available. The saturation
-     * semantic covers BOTH concurrency saturation (every candidate has reached
-     * its concurrency limit) and health saturation (every candidate's circuit
-     * is OPEN / otherwise unavailable) — one code, semantic = "no available
-     * candidate", with the triggering model class carried as a parameter.
-     * English description by plan adjudication (cross-module consumed by
-     * W6/W7 orchestration; not subject to i18n rewriting).
-     */
-    ErrorCode ERR_AI_MODEL_CLASS_SATURATED =
-            define("nop.err.ai.model-class.saturated",
-                    "No candidate is currently available for model class: {modelClass}", ARG_MODEL_CLASS);
 
     String ARG_API_STYLE = "apiStyle";
 

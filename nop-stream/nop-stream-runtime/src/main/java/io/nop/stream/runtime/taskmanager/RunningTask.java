@@ -190,11 +190,7 @@ public class RunningTask implements Runnable {
             // coordinator itself, no need to echo back). #24 — failure to
             // report is logged (no silent swallow).
             if (!canceled) {
-                // CC-17 (plan 2435): off the dying task's thread — a slow/hung
-                // coordinator RPC must not block task-thread wind-down. The TM's
-                // terminal-report executor delivers; its always-inline rejection
-                // handler keeps the report from ever being dropped.
-                owner.submitTerminalReport(() -> reportTerminalStatus(success));
+                reportTerminalStatus(success);
             }
         }
     }

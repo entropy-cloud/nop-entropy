@@ -18,7 +18,11 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  * <p><b>W2 reliability sink-down (plan 2026-08-15-0604-2)</b>:
  * {@code ERR_AI_AGENT_INVALID_ARG} + {@code ARG_MSG} migrated to
  * {@link io.nop.ai.core.NopAiCoreErrors} (error code ID preserved); the
- * remaining codes stay here as agent-specific codes.
+ * remaining codes stay here as agent-specific codes. WI9 (plan 2438,
+ * 2026-10-11) re-adjudicated and confirmed the stay: consumers span core,
+ * gateway and agent, and nop-ai-core cannot depend on nop-ai-agent, so
+ * moving the holder back here is not reachable; restart condition is the
+ * reliability classes returning to agent.
  */
 public interface NopAiAgentErrors {
     String ARG_DETAIL = "detail";

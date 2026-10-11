@@ -5,11 +5,11 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.stream.ChatStreamChunk;
-import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.CircuitState;
 import io.nop.ai.core.reliability.LlmErrorClassifier;
 import io.nop.ai.core.reliability.ThresholdBreaker;
 import io.nop.ai.gateway.routing.ConcurrencyRegistry;
+import io.nop.ai.gateway.routing.NopAiRoutingErrors;
 import io.nop.ai.gateway.routing.ISelectionStrategy;
 import io.nop.ai.core.model.ModelClassCandidate;
 import io.nop.ai.core.service.ChatServiceImpl;
@@ -245,7 +245,7 @@ class TestChatServiceFailoverAdapterStreaming {
         sub.await();
         assertNotNull(sub.error, "health-saturated pool must fail loud on the stream path");
         assertTrue(sub.error instanceof NopException);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(),
                 ((NopException) sub.error).getErrorCode());
         assertEquals(0, fake.streamCallCount(), "no fetch when the pool is health-saturated");
         assertEquals(0, registry.currentCount("gw-sat", null));
@@ -412,7 +412,7 @@ class TestChatServiceFailoverAdapterStreaming {
         sub.await();
         assertNotNull(sub.error, "full-pool saturation must fail loud on the stream path");
         assertTrue(sub.error instanceof NopException);
-        assertEquals(NopAiCoreErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(),
+        assertEquals(NopAiRoutingErrors.ERR_AI_MODEL_CLASS_SATURATED.getErrorCode(),
                 ((NopException) sub.error).getErrorCode());
         assertEquals(0, fake.streamCallCount(), "no fetch when the pool is saturated");
         assertEquals(CircuitState.CLOSED, breaker.getState("gw-sat:gw-sat-model"),

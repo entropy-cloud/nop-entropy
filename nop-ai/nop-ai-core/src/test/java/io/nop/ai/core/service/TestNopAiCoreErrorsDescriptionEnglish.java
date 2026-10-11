@@ -27,7 +27,6 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_HTTP_ERROR;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_BASE_URL;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_NO_DEFAULT_LLMS;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_PROMPT_EXPR_PREFIX;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -66,7 +65,6 @@ public class TestNopAiCoreErrorsDescriptionEnglish {
             new CodeSpec(ERR_AI_RATE_LIMITED, "nop.err.ai.service.rate-limited", "{llmName}"),
             new CodeSpec(ERR_AI_RESULT_IS_EMPTY, "nop.err.ai.service.result-is-empty"),
             new CodeSpec(ERR_AI_RESULT_NO_EXPECTED_PART, "nop.err.ai.service.result-no-expected-part", "{expected}"),
-            new CodeSpec(ERR_AI_TOOLS_INVALID_THOUGHT, "nop.err.ai.tools.invalid-thought", "{value}"),
             new CodeSpec(ERR_AI_INVALID_RESPONSE, "nop.err.ai.service.invalid-response"),
             new CodeSpec(ERR_AI_MANDATORY_INPUT_IS_EMPTY, "nop.err.ai.mandatory-input-is-empty", "{inputName}"),
             new CodeSpec(ERR_AI_MANDATORY_OUTPUT_IS_EMPTY, "nop.err.ai.mandatory-output-is-empty", "{outputName}"),
@@ -81,8 +79,8 @@ public class TestNopAiCoreErrorsDescriptionEnglish {
 
     @Test
     public void testRound4CodesDescriptionIsEnglishAndContractStable() {
-        assertEquals(18, ROUND4_CODES.size(),
-                "round-4 scope must stay 18 codes (WI1 retired 6, WI2 retired unknown-tool-call; drift is caught)");
+        assertEquals(17, ROUND4_CODES.size(),
+                "round-4 scope must stay 17 codes (WI1 retired 6, WI2 retired unknown-tool-call, WI9/plan 2438 moved nop.err.ai.tools.invalid-thought to NopAiToolsErrors; drift is caught)");
         for (CodeSpec spec : ROUND4_CODES) {
             ErrorCode code = spec.code();
             assertEquals(spec.expectedId(), code.getErrorCode(),

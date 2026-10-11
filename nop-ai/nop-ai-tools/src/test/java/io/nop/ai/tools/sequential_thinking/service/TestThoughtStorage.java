@@ -1,6 +1,7 @@
 package io.nop.ai.tools.sequential_thinking.service;
 
 import io.nop.ai.core.NopAiCoreErrors;
+import io.nop.ai.tools.NopAiToolsErrors;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtData;
 import io.nop.ai.tools.sequential_thinking.model.ThoughtStage;
 import io.nop.api.core.exceptions.NopException;
@@ -208,17 +209,17 @@ public class TestThoughtStorage {
                 NopException ex = assertThrows(NopException.class,
                         () -> storage.exportSession("src", bad),
                         "exportSession must reject path outside storage dir: " + bad);
-                assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
+                assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
                         ex.getErrorCode(), "export rejection must use the path error code: " + bad);
-                assertEquals(bad, ex.getParam(NopAiCoreErrors.ARG_FILE_PATH),
+                assertEquals(bad, ex.getParam(NopAiToolsErrors.ARG_FILE_PATH),
                         "export rejection must carry the offending path: " + bad);
 
                 NopException exImport = assertThrows(NopException.class,
                         () -> storage.importSession("dst", bad),
                         "importSession must reject path outside storage dir: " + bad);
-                assertEquals(NopAiCoreErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
+                assertEquals(NopAiToolsErrors.ERR_AI_TOOLS_SESSION_FILE_PATH_INVALID.getErrorCode(),
                         exImport.getErrorCode(), "import rejection must use the path error code: " + bad);
-                assertEquals(bad, exImport.getParam(NopAiCoreErrors.ARG_FILE_PATH),
+                assertEquals(bad, exImport.getParam(NopAiToolsErrors.ARG_FILE_PATH),
                         "import rejection must carry the offending path: " + bad);
             }
 

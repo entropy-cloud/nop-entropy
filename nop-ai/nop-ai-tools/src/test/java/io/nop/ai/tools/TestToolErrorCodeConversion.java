@@ -10,14 +10,14 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 import java.util.List;
 
-import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_MAX_RESULTS;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_STAGE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_THOUGHT_EMPTY;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER;
+import static io.nop.ai.tools.NopAiToolsErrors.ARG_VALUE;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_MAX_RESULTS;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_STAGE;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_THOUGHT_EMPTY;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Focused value-level tests for the error codes introduced by plan
  * 2026-08-01-0936-3: the 7 bare {@code IllegalArgumentException} throws in
- * nop-ai-tools converted to {@code NopException + NopAiCoreErrors} codes.
+ * nop-ai-tools converted to {@code NopException + NopAiToolsErrors} codes.
  */
 public class TestToolErrorCodeConversion {
 

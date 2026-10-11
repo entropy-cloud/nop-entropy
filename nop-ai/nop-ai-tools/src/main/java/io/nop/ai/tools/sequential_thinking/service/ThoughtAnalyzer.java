@@ -24,7 +24,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_MAX_RESULTS;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_MAX_RESULTS;
 
 public class ThoughtAnalyzer {
 

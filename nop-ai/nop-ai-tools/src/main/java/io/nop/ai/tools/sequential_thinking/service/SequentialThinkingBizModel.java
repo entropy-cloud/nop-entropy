@@ -18,8 +18,8 @@ import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Objects;
 
-import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT;
+import static io.nop.ai.tools.NopAiToolsErrors.ARG_VALUE;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_THOUGHT;
 
 @BizModel("SequentialThinking")
 public class SequentialThinkingBizModel {

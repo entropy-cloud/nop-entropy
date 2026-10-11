@@ -23,8 +23,8 @@ import java.io.File;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static io.nop.ai.core.NopAiCoreErrors.ARG_VALUE;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
+import static io.nop.ai.tools.NopAiToolsErrors.ARG_VALUE;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_PROJECT_NAME;
 
 /**
  * File tool operations. Uses {@link io.nop.ai.core.file.IFileOperator} (deprecated, forRemoval).

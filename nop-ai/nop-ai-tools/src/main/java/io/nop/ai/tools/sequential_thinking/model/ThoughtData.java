@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_THOUGHT_EMPTY;
-import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_THOUGHT_NUMBER;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_INVALID_TOTAL_THOUGHTS;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_THOUGHT_EMPTY;
+import static io.nop.ai.tools.NopAiToolsErrors.ERR_AI_TOOLS_TOTAL_THOUGHTS_LESS_THAN_NUMBER;
 
 @DataBean
 public class ThoughtData {
