@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.typeutils.TypeSerializer;
@@ -12,7 +12,7 @@ import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.EventTimeTrigger;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.Test;
 

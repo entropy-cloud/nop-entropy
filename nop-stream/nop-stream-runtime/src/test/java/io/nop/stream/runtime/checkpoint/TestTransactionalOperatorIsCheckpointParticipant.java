@@ -17,8 +17,8 @@ import io.nop.stream.core.operators.AbstractUdfStreamOperator;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.core.jobgraph.Invokable;
 import io.nop.stream.core.operators.join.EquiJoinOperator;
-import io.nop.stream.runtime.operators.windowing.OverWindowOperator;
-import io.nop.stream.runtime.operators.windowing.WindowOperator;
+import io.nop.stream.core.operators.windowing.OverWindowOperator;
+import io.nop.stream.core.operators.windowing.WindowOperator;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;

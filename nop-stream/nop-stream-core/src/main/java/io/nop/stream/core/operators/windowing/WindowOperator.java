@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,7 +105,7 @@ import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
 import io.nop.stream.core.windowing.windows.Window;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 /**
  * An operator that implements the logic for windowing based on a {@link WindowAssigner} and {@link
@@ -323,6 +323,15 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
     // ------------------------------------------------------------------------
 
     protected transient HeapInternalTimerService<K, W> internalTimerService;
+
+    /**
+     * Test-visible probe (cross-package E2E, WI7 plan 2417): pending processing-time
+     * timer count, mirroring the codebase's hasPendingRestoredBuffer pattern for
+     * white-box assertions that must reach across module test trees.
+     */
+    public int numPendingProcessingTimeTimers() {
+        return internalTimerService == null ? 0 : internalTimerService.numProcessingTimeTimers();
+    }
 
     /**
      * Timer snapshot captured by {@link #restoreState} when the timer service is not yet

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing.functions;
+package io.nop.stream.core.operators.windowing.functions;
 
 import io.nop.stream.core.util.Collector;
 import io.nop.stream.core.windowing.windows.Window;

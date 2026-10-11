@@ -5,7 +5,7 @@
  * Gitee:   https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
@@ -156,7 +156,7 @@ class TestWindowOperatorMapStateFallbackWriteBack {
                         (KeySelector<Integer, String>) v -> "key1",
                         new WindowingTestSupport.SimpleStringSerializer(),
                         String.class,
-                        (io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction) windowFunction(),
+                        (io.nop.stream.core.operators.windowing.functions.InternalWindowFunction) windowFunction(),
                         EventTimeTrigger.create(),
                         0L,
                         null,
@@ -207,8 +207,8 @@ class TestWindowOperatorMapStateFallbackWriteBack {
         }
     }
 
-    private static io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction<Integer, String, String, TimeWindow> windowFunction() {
-        return new io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction<>(
+    private static io.nop.stream.core.operators.windowing.functions.InternalIterableProcessWindowFunction<Integer, String, String, TimeWindow> windowFunction() {
+        return new io.nop.stream.core.operators.windowing.functions.InternalIterableProcessWindowFunction<>(
                 new ProcessWindowFunction<Integer, String, String, TimeWindow>() {
                     @Override
                     public void process(String key, TimeWindow window, Iterable<Integer> input,

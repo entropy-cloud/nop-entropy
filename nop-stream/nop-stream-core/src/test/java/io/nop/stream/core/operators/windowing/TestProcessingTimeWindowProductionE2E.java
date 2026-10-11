@@ -5,7 +5,7 @@
  * Gitee:  https://gitee.com/canonical-entropy/nop-entropy
  * Github: https://github.com/entropy-cloud/nop-entropy
  */
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -273,20 +273,20 @@ public class TestProcessingTimeWindowProductionE2E {
     }
 
     private static class ObjectToStringWindowFunction
-            implements io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction<
+            implements io.nop.stream.core.operators.windowing.functions.InternalWindowFunction<
             Object, String, String, TimeWindow> {
         private static final long serialVersionUID = 1L;
 
         @Override
         public void process(String key, TimeWindow window,
-                            io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction.InternalWindowContext context,
+                            io.nop.stream.core.operators.windowing.functions.InternalWindowFunction.InternalWindowContext context,
                             Object input, io.nop.stream.core.util.Collector<String> out) {
             out.collect(String.valueOf(input));
         }
 
         @Override
         public void clear(TimeWindow window,
-                          io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction.InternalWindowContext context) {
+                          io.nop.stream.core.operators.windowing.functions.InternalWindowFunction.InternalWindowContext context) {
         }
     }
 

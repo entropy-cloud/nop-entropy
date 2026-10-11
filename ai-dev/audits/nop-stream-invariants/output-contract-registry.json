@@ -60,7 +60,7 @@
       "disposition": "in-task chained path (E2E covered by TestSideOutputChainingE2E)"
     },
     {
-      "file": "nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java",
+      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java",
       "line": 1327,
       "operator": "WindowOperator",
       "scenario": "late-data sideOutput(lateDataOutputTag) emission",
@@ -69,7 +69,7 @@
       "note": "re-pinned WI22 2026-10-03 (line drift from WI12/WI13 keyed-state rework; sideOutput lateDataOutputTag emission)"
     },
     {
-      "file": "nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/operators/windowing/WindowOperator.java",
+      "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java",
       "line": 1926,
       "operator": "WindowOperator",
       "scenario": "ProcessWindowFunction ctx.output emission",

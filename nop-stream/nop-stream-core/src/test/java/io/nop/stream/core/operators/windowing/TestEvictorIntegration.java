@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.state.ListStateDescriptor;
@@ -17,8 +17,8 @@ import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.triggers.TriggerResult;
 import io.nop.stream.core.windowing.utils.TimestampedValue;
 import io.nop.stream.core.windowing.windows.TimeWindow;
-import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalIterableProcessWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

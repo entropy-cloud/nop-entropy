@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing.functions;
+package io.nop.stream.core.operators.windowing.functions;
 
 import io.nop.stream.core.common.functions.StreamFunction;
 import io.nop.stream.core.common.state.KeyedStateStore;

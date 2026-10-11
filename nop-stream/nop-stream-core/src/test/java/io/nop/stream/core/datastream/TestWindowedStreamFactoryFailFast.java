@@ -25,7 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies the call-site fail-fast behavior of {@link WindowedStreamImpl} when no
- * {@code IWindowOperatorFactory} is available (i.e. nop-stream-runtime not on classpath).
+ * {@code IWindowOperatorFactory} is available. Since WI7 (plan 2417) the window
+ * operator family lives in core and the default factory is constructed directly —
+ * the only reachable null-factory path is a caller-supplied empty StreamComponents.
  *
  * <p>G64: the reflective {@code getFactory()} no longer has an empty catch block (it logs the
  * missing-runtime condition), but {@code defaultFactory} stays null so that every window
@@ -47,7 +49,7 @@ public class TestWindowedStreamFactoryFailFast {
     }
 
     private static void assertFailFast(StreamException ex, String op) {
-        assertTrue(ex.getMessage().contains("nop-stream-runtime on classpath"),
+        assertTrue(ex.getMessage().contains("requires an IWindowOperatorFactory"),
                 () -> op + ": expected fail-fast StreamException, got: " + ex.getMessage());
     }
 

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package io.nop.stream.runtime.operators.windowing;
+package io.nop.stream.core.operators.windowing;
 
 import java.util.function.BiFunction;
 
@@ -38,10 +38,10 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.evictors.Evictor;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.Window;
-import io.nop.stream.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
-import io.nop.stream.runtime.operators.windowing.functions.InternalIterableWindowFunction;
-import io.nop.stream.runtime.operators.windowing.functions.InternalSingleValueWindowFunction;
-import io.nop.stream.runtime.operators.windowing.functions.InternalWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalIterableProcessWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalIterableWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalSingleValueWindowFunction;
+import io.nop.stream.core.operators.windowing.functions.InternalWindowFunction;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;

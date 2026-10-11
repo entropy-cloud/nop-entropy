@@ -1,4 +1,4 @@
-package io.nop.stream.runtime.operators.windowing.functions;
+package io.nop.stream.core.operators.windowing.functions;
 
 import io.nop.stream.core.common.functions.ProcessWindowFunction;
 import io.nop.stream.core.common.functions.WindowFunction;
