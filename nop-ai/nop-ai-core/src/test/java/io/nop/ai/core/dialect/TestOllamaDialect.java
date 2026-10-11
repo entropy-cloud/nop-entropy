@@ -57,6 +57,20 @@ public class TestOllamaDialect extends JunitBaseTestCase {
     }
 
     @Test
+    public void testBuildBodyEmptyOptionsOmitsOptionsKey() {
+        // plan 2435/WI8 absent-key 回归钉：空 ChatOptions 时不得生成空 options 子 map
+        // （声明式绑定 applier 的「空则不挂载」语义；线上请求字节级契约）。
+        OllamaDialect dialect = new OllamaDialect();
+        ChatRequest request = new ChatRequest();
+        request.addMessage(new ChatUserMessage("Hello"));
+        request.setOptions(new ChatOptions());
+
+        Map<String, Object> body = dialect.buildBody(request, newConfig(), null, "qwen3", false);
+
+        assertFalse(body.containsKey("options"), "empty ChatOptions must not emit an empty options sub-map");
+    }
+
+    @Test
     public void testParseResponse() {
         OllamaDialect dialect = new OllamaDialect();
         String responseJson = "{\"model\":\"llama2\",\"message\":{\"role\":\"assistant\",\"content\":\"Hello\"}," +

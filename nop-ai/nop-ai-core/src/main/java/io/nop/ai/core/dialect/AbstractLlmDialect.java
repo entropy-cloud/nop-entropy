@@ -30,6 +30,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.regex.Pattern;
 
@@ -440,6 +442,55 @@ public abstract class AbstractLlmDialect {
     /**
      * 添加非空选项到 body
      */
+    /**
+     * plan 2435/WI8 声明式选项绑定：binding 形如 "bodyPath" 或 "subMap.bodyPath"。
+     * 子 map 前缀（如 "generationConfig." / "options."）填充共享子 map；
+     * 【空则不挂载】语义逐字保留（Ollama/Gemini 原行为）：仅当子 map 至少有一个
+     * 字段被填充时才挂到 body——禁止惰性生成空子 map（会改变线上请求字节）。
+     *
+     * @param options  请求选项（可为 null——与原 addOptionIfNotNull 调用点的
+     *                 options!=null 外层守卫等价，applier 内部再判一次以自洽）
+     * @param bindings 有序绑定表：bodyPath -> 值供给器（值已解析，如
+     *                 resolveMaxTokens 的结果由调用方先算）
+     */
+    protected void applyOptionBindings(Map<String, Object> body, ChatOptions options,
+                                       LinkedHashMap<String, java.util.function.Supplier<Object>> bindings) {
+        if (options == null)
+            return;
+        Map<String, Object> pendingSub = new LinkedHashMap<>();
+        String pendingPrefix = null;
+        for (Map.Entry<String, java.util.function.Supplier<Object>> en : bindings.entrySet()) {
+            String path = en.getKey();
+            Object value = en.getValue().get();
+            if (value == null)
+                continue;
+            int dot = path.indexOf('.');
+            if (dot < 0) {
+                addOptionIfNotNull(body, path, value);
+            } else {
+                String prefix = path.substring(0, dot);
+                String key = path.substring(dot + 1);
+                if (!prefix.equals(pendingPrefix)) {
+                    flushSubMap(body, pendingSub, pendingPrefix);
+                    pendingSub = new LinkedHashMap<>();
+                    pendingPrefix = prefix;
+                }
+                if (key.contains(".")) {
+                    // 暂不支持二级嵌套前缀；出现时 fail-loud 以免静默错挂
+                    throw new IllegalStateException("unsupported nested option path: " + path);
+                }
+                addOptionIfNotNull(pendingSub, key, value);
+            }
+        }
+        flushSubMap(body, pendingSub, pendingPrefix);
+    }
+
+    private void flushSubMap(Map<String, Object> body, Map<String, Object> sub, String prefix) {
+        if (prefix != null && !sub.isEmpty()) {
+            body.put(prefix, sub);
+        }
+    }
+
     protected void addOptionIfNotNull(Map<String, Object> body, String key, Object value) {
         if (value != null) {
             body.put(key, value);
@@ -449,6 +500,69 @@ public abstract class AbstractLlmDialect {
     /**
      * 从 Map 中按路径获取字符串值
      */
+    /**
+     * plan 2435/WI8 下沉：三份 dialect 私有 toInt 的共享实现。
+     */
+    protected static Integer toInt(Object value) {
+        if (value instanceof Number)
+            return ((Number) value).intValue();
+        return null;
+    }
+
+    /**
+     * 函数接口：子类 convertMessage 三参签名的 方法引用 形态。
+     */
+    @FunctionalInterface
+    protected interface TriConvertMessage {
+        Map<String, Object> convert(ChatMessage message, LlmModelModel modelConfig, ChatOptions options);
+    }
+
+    /**
+     * plan 2435/WI8：OpenAi/Ollama 两份私有 buildMessages 的合并实现。
+     *
+     * @param convertMessage 消息转换函数（由子类以 {@code this::convertMessage}
+     *                       传入——基类不实现 ILlmDialect，避免迫使只 extends
+     *                       的测试探针子类实现全部接口方法）
+     * @param skipSystemMessage Ollama 语义：跳过 ChatSystemMessage（系统提示经
+     *                          独立字段传递）；OpenAi 传 false
+     */
+    protected List<Map<String, Object>> buildMessages(ChatRequest request, LlmModelModel modelConfig,
+                                                      TriConvertMessage convertMessage,
+                                                      boolean skipSystemMessage) {
+        List<Map<String, Object>> messages = new ArrayList<>();
+        if (request.getMessages() == null) {
+            return messages;
+        }
+
+        ChatMessage lastMessage = request.getLastMessage();
+        ChatOptions options = request.getOptions();
+
+        for (ChatMessage msg : request.getMessages()) {
+            if (skipSystemMessage && msg instanceof io.nop.ai.api.chat.messages.ChatSystemMessage) {
+                continue;
+            }
+            Map<String, Object> msgMap = convertMessage.convert(msg, modelConfig, options);
+            if (msg == lastMessage && modelConfig != null) {
+                msgMap.put("content", applyThinkingPrompt((String) msgMap.get("content"), modelConfig, options));
+            }
+            messages.add(msgMap);
+        }
+
+        return messages;
+    }
+
+    /**
+     * plan 2435/WI8 表驱动 finishReason 反查（Anthropic/Gemini/Responses 三份
+     * 同构 switch 的合并实现）。语义逐字保留：表外值原样透传；null 入参返回
+     * null（原 switch 对 null 抛 NPE——调用点传 getFinishReason() 恒非空，
+     * 显式声明以消除歧义）。
+     */
+    protected String reverseFinishReasonByTable(String reason, Map<String, String> table) {
+        if (reason == null)
+            return null;
+        return table.getOrDefault(reason, reason);
+    }
+
     protected String getStringByPath(Map<String, Object> map, String path) {
         if (path == null || map == null) {
             return null;

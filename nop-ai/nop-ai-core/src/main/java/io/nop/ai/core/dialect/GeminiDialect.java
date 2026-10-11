@@ -310,14 +310,16 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
             body.put("contents", contents);
         }
 
-        // generationConfig
+        // generationConfig（plan 2435/WI8 声明式绑定；空则不挂载语义由 applier 保留）
         Map<String, Object> generationConfig = new LinkedHashMap<>();
         if (options != null) {
-            addOptionIfNotNull(generationConfig, "temperature", options.getTemperature());
-            addOptionIfNotNull(generationConfig, "maxOutputTokens", resolveMaxTokens(options, modelConfig));
-            addOptionIfNotNull(generationConfig, "topP", options.getTopP());
-            addOptionIfNotNull(generationConfig, "topK", options.getTopK());
-            addOptionIfNotNull(generationConfig, "stopSequences", options.getStop());
+            applyOptionBindings(generationConfig, options, new LinkedHashMap<String, java.util.function.Supplier<Object>>() {{
+                put("temperature", () -> options.getTemperature());
+                put("maxOutputTokens", () -> resolveMaxTokens(options, modelConfig));
+                put("topP", () -> options.getTopP());
+                put("topK", () -> options.getTopK());
+                put("stopSequences", () -> options.getStop());
+            }});
 
             // 工具定义（Gemini 使用 functionDeclarations）
             if (options.getTools() != null && !options.getTools().isEmpty()) {
@@ -445,13 +447,13 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         ChatStreamChunk chunk = new ChatStreamChunk();
 
         // 解析模型信息
-        chunk.setModel(getString(dataMap, "model"));
+        chunk.setModel(getStringByPath(dataMap, "model"));
         if (chunk.getModel() == null) {
-            chunk.setModel(getString(dataMap, "modelVersion"));
+            chunk.setModel(getStringByPath(dataMap, "modelVersion"));
         }
 
         // 解析结束原因
-        String finishReason = normalizeFinishReason(getString(dataMap, "candidates.0.finishReason"));
+        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "candidates.0.finishReason"));
         if (finishReason != null) {
             chunk.setPhase(StreamItemPhase.DONE);
             chunk.setFinishReason(finishReason);
@@ -699,18 +701,20 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
      * 归一化 finish_reason → Gemini 原生 finishReason（normalizeFinishReason 的逆映射）。
      * 归一化有损点 (a) 裁定：roundtrip 样本仅使用归一化目标值；未知值原样透传。
      */
+    private static final Map<String, String> REVERSE_FINISH_REASON = buildReverse_finish_reason();
+
+    private static Map<String, String> buildReverse_finish_reason() {
+        Map<String, String> table = new java.util.HashMap<>();
+        table.put("stop", "STOP");
+        table.put("tool_calls", "STOP");
+        table.put("length", "MAX_TOKENS");
+        table.put("content_filter", "SAFETY");
+        return java.util.Collections.unmodifiableMap(table);
+    }
+
     private String reverseFinishReason(String reason) {
-        switch (reason) {
-            case "stop":
-            case "tool_calls":
-                return "STOP";
-            case "length":
-                return "MAX_TOKENS";
-            case "content_filter":
-                return "SAFETY";
-            default:
-                return reason;
-        }
+        // plan 2435/WI8 表驱动化：default 透传语义逐字保留（roundtrip 样本钉）
+        return reverseFinishReasonByTable(reason, REVERSE_FINISH_REASON);
     }
 
     @Override
@@ -778,7 +782,4 @@ public class GeminiDialect extends AbstractLlmDialect implements ILlmDialect {
         return list;
     }
 
-    private String getString(Map<String, Object> map, String path) {
-        return getStringByPath(map, path);
-    }
 }

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import io.nop.core.reflect.bean.BeanTool;
 
 /**
  * OpenAI Responses API 方言实现（plan 330）。
@@ -205,9 +206,11 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
         body.put("input", inputItems);
 
         if (options != null) {
-            addOptionIfNotNull(body, "temperature", options.getTemperature());
-            addOptionIfNotNull(body, "top_p", options.getTopP());
-            addOptionIfNotNull(body, "max_output_tokens", resolveMaxTokens(options, modelConfig));
+            applyOptionBindings(body, options, new LinkedHashMap<String, java.util.function.Supplier<Object>>() {{
+                put("temperature", () -> options.getTemperature());
+                put("top_p", () -> options.getTopP());
+                put("max_output_tokens", () -> resolveMaxTokens(options, modelConfig));
+            }});
 
             // responseFormat → text.format（design §3.4）
             ResponseFormat rf = options.getResponseFormatConfig();
@@ -475,21 +478,11 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
         // the cached-token count under input_tokens_details; the usage map
         // itself is the raw audit view (shared by the non-stream and stream
         // paths via this parser)
-        usage.setCacheHitTokens(toInt(getByPath(usageMap, "input_tokens_details.cached_tokens")));
+        usage.setCacheHitTokens(toInt(BeanTool.tryGetComplexProperty(usageMap, "input_tokens_details.cached_tokens")));
         usage.setRawUsage(usageMap);
         return usage;
     }
 
-    private Object getByPath(Map<String, Object> map, String path) {
-        Object current = map;
-        for (String segment : path.split("\\.")) {
-            if (!(current instanceof Map)) {
-                return null;
-            }
-            current = ((Map<?, ?>) current).get(segment);
-        }
-        return current;
-    }
 
     // ==================== parseStreamChunk（流式方向） ====================
 
@@ -656,18 +649,20 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
      * 归一化 finish_reason → Responses 原生 status（parseResponse 中 normalizeFinishReason(status) 的逆映射）。
      * 归一化有损点 (a) 裁定：roundtrip 样本仅使用归一化目标值；未知值原样透传。
      */
+    private static final Map<String, String> REVERSE_STATUS = buildReverse_status();
+
+    private static Map<String, String> buildReverse_status() {
+        Map<String, String> table = new java.util.HashMap<>();
+        table.put("stop", "completed");
+        table.put("tool_calls", "completed");
+        table.put("length", "incomplete");
+        table.put("content_filter", "failed");
+        return java.util.Collections.unmodifiableMap(table);
+    }
+
     private String reverseStatus(String reason) {
-        switch (reason) {
-            case "stop":
-            case "tool_calls":
-                return "completed";
-            case "length":
-                return "incomplete";
-            case "content_filter":
-                return "failed";
-            default:
-                return reason;
-        }
+        // plan 2435/WI8 表驱动化：default 透传语义逐字保留（roundtrip 样本钉）
+        return reverseFinishReasonByTable(reason, REVERSE_STATUS);
     }
 
     @Override
@@ -761,10 +756,4 @@ public class ResponsesDialect extends AbstractLlmDialect implements ILlmDialect 
         return result;
     }
 
-    private Integer toInt(Object value) {
-        if (value instanceof Number) {
-            return ((Number) value).intValue();
-        }
-        return null;
-    }
 }
