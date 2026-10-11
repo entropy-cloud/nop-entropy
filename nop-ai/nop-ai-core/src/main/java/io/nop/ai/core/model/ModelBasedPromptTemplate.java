@@ -1,8 +1,8 @@
 package io.nop.ai.core.model;
 
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.core.AiCoreConstants;
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.ai.core.prompt.ChatExchange;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.node.IPromptSyntaxNode;
 import io.nop.ai.core.prompt.node.PromptSyntaxParser;
@@ -149,7 +149,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
     }
 
     @Override
-    public void applyChatOptions(AiChatOptions chatOptions) {
+    public void applyChatOptions(ChatOptions chatOptions) {
         ChatOptionsModel optionsModel = promptModel.getDefaultChatOptions();
         if (optionsModel != null) {
             if (chatOptions.getModel() == null)
@@ -164,20 +164,16 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
             if (chatOptions.getTopK() == null)
                 chatOptions.setTopK(optionsModel.getTopK());
 
-            if (chatOptions.getContextLength() == null)
-                chatOptions.setContextLength(optionsModel.getContextLength());
-
             if (chatOptions.getStop() == null)
                 chatOptions.setStop(optionsModel.getStop());
 
-            if (chatOptions.getSeed() == null)
-                chatOptions.setSeed(optionsModel.getSeed());
-
+            // contextLength/seed 在新栈 ChatOptions 上无落点（dialect 不消费），
+            // 模板声明的默认值跳过。见 plan 2414 Deferred。
         }
     }
 
     @Override
-    public void processChatResponse(AiChatExchange chatResponse, IEvalScope scope) {
+    public void processChatResponse(ChatExchange chatResponse, IEvalScope scope) {
         parseOutputs(chatResponse, false, scope);
 
         IEvalFunction fn = promptModel.getPostProcess();
@@ -187,7 +183,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         parseOutputs(chatResponse, true, scope);
     }
 
-    void parseOutputs(AiChatExchange chatResponse, boolean afterPostProcess, IEvalScope scope) {
+    void parseOutputs(ChatExchange chatResponse, boolean afterPostProcess, IEvalScope scope) {
         if (getOutputs() != null) {
             for (PromptOutputModel output : getOutputs()) {
                 if (output.isParseAfterPostProcess() == afterPostProcess) {
@@ -205,7 +201,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         }
     }
 
-    protected boolean isAllowParse(AiChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
+    protected boolean isAllowParse(ChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
         if (chatResponse.isInvalid() && output.isSkipWhenResponseInvalid())
             return false;
         if (output.getWhen() != null) {
@@ -215,7 +211,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         return true;
     }
 
-    protected Object parseOutput(AiChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
+    protected Object parseOutput(ChatExchange chatResponse, PromptOutputModel output, IEvalScope scope) {
         Object value;
         if (output.getFormat() == PromptOutputFormat.xml) {
             value = chatResponse.parseXmlContent();
@@ -253,7 +249,7 @@ public class ModelBasedPromptTemplate implements IPromptTemplate {
         return validateValue(chatResponse, output, value, scope);
     }
 
-    protected Object validateValue(AiChatExchange chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
+    protected Object validateValue(ChatExchange chatResponse, PromptOutputModel output, Object value, IEvalScope scope) {
         try {
             if (output.getValueNormalizer() != null) {
                 value = output.getValueNormalizer().call2(null, value, chatResponse, scope);

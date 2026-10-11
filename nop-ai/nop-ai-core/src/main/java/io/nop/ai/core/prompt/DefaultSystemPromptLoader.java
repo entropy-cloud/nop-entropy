@@ -1,7 +1,6 @@
 package io.nop.ai.core.prompt;
 
 import io.nop.ai.api.secure.SecureDefault;
-import io.nop.ai.core.api.chat.AiChatOptions;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
@@ -18,27 +17,27 @@ public class DefaultSystemPromptLoader {
         return _instance;
     }
 
-    public String loadSystemPrompt(AiChatOptions chatOptions) {
-        String workMode = chatOptions.getWorkMode();
+    public String loadSystemPrompt(String workMode, Boolean enableCognitivePrompt, Boolean enableMetaPrompt,
+                                   Boolean enableSystemPrompt) {
         if (StringHelper.isEmpty(workMode))
             return "";
 
         StringBuilder sb = new StringBuilder();
-        if (isEnabled(chatOptions.getEnableCognitivePrompt())) {
+        if (isEnabled(enableCognitivePrompt)) {
             sb.append("[COGNITIVE ARCHITECTURE - " + workMode.toUpperCase() + "]\n");
             String path = buildPromptPath(workMode, "cognitive");
             sb.append(promptCache.get(path));
             sb.append("\n\n");
         }
 
-        if (isEnabled(chatOptions.getEnableMetaPrompt())) {
+        if (isEnabled(enableMetaPrompt)) {
             sb.append("[META-PROMPT - " + workMode.toUpperCase() + "]\n");
             String path = buildPromptPath(workMode, "meta");
             sb.append(promptCache.get(path));
             sb.append("\n\n");
         }
 
-        if (isEnabled(chatOptions.getEnableSystemPrompt())) {
+        if (isEnabled(enableSystemPrompt)) {
             sb.append("[SYSTEM PROMPT - " + workMode.toUpperCase() + "]\n");
             String path = buildPromptPath(workMode, "system");
             sb.append(promptCache.get(path));

@@ -1,7 +1,6 @@
 package io.nop.ai.core.prompt;
 
-import io.nop.ai.core.api.chat.AiChatOptions;
-import io.nop.ai.core.api.messages.AiChatExchange;
+import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.core.model.PromptInputModel;
 import io.nop.ai.core.model.PromptOutputModel;
 import io.nop.api.core.util.Guard;
@@ -64,7 +63,7 @@ public class SimplePromptTemplate implements IPromptTemplate {
     }
 
     @Override
-    public void applyChatOptions(AiChatOptions chatOptions) {
+    public void applyChatOptions(ChatOptions chatOptions) {
     }
 
     @Override
@@ -80,7 +79,7 @@ public class SimplePromptTemplate implements IPromptTemplate {
     }
 
     @Override
-    public void processChatResponse(AiChatExchange chatResponse, IEvalScope scope) {
+    public void processChatResponse(ChatExchange chatResponse, IEvalScope scope) {
 
     }
 

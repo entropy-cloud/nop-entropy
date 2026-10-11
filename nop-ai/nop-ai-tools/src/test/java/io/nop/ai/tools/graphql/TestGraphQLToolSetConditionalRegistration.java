@@ -1,6 +1,6 @@
 package io.nop.ai.tools.graphql;
 
-import io.nop.ai.core.api.tool.IAiChatToolSet;
+import io.nop.ai.core.command.IAiToolInvoker;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.autotest.junit.JunitBaseTestCase;
 import io.nop.core.resource.ResourceHelper;
@@ -97,7 +97,7 @@ public class TestGraphQLToolSetConditionalRegistration extends JunitBaseTestCase
         // 有 nopGraphQLEngine（biz-defaults 注册）→ 条件满足 → bean 注册且可注入
         assertNotNull(engine);
         assertNotNull(toolSet);
-        assertTrue(toolSet.getToolNames().isEmpty(),
+        assertTrue(((GraphQLToolProvider) toolSet).configuredToolNames().isEmpty(),
                 "default graphql-tool-names is empty so the tool set has no functions");
     }
 
@@ -122,7 +122,7 @@ public class TestGraphQLToolSetConditionalRegistration extends JunitBaseTestCase
 
     @Inject
     @Named("nopGraphQLToolSet")
-    IAiChatToolSet toolSet;
+    IAiToolInvoker toolSet;
 
     @Inject
     IGraphQLEngine engine;

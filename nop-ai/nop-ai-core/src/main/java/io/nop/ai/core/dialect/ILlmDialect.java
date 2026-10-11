@@ -237,7 +237,7 @@ public interface ILlmDialect {
      * calibration. The "≤ 4×" error bound is a property of the <b>calibrated</b>
      * estimator only (EMA clamp cap {@code MAX_FACTOR=4.0} after convergence),
      * never of this uncalibrated baseline. Integrators replacing this default
-     * (e.g. {@code ITokenCountEstimator}, an SPI extension point by MV ruling
+     * (an SPI extension point by MV ruling
      * P1-MA5-003) should declare their own error bounds.
      */
     static long estimateTokensDefault(List<ChatMessage> messages) {

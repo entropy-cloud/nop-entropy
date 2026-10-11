@@ -33,7 +33,7 @@ audit-rounds: 0
 
 > 唯一动态状态块。`done` = 独立 closure audit 通过（见 Cross-Cutting）。WI 编号全文件唯一递增；文档顺序即执行顺序，AI 不重排。无 deps 关系的 WI 允许并行，但同模块 WI 建议串行以避免冲突。**WI3 编号已退役**（round 1 证伪撤销，见 Authoring Review Record），编号不复用、后续 WI 编号不受影响。
 
-- WI1 废弃 chat 栈迁移收口（AiCommand 链迁移 + 25 废弃类删除）: `todo`
+- WI1 废弃 chat 栈迁移收口（AiCommand 链迁移 + 25 废弃类删除）: `done`
 - WI2 工具 SPI 归一裁定与落地: `todo`
 - WI4 RAG SPI 归位 nop-ai-rag: `todo`
 - WI5 模型选路 routing 归位 gateway: `todo`
@@ -68,8 +68,8 @@ audit-rounds: 0
 
 > 全 roadmap 杠杆最高的一步：迁移面经 grep 验证很小，是低垂果实。round 1 裁定迁移与删除同 WI 执行（不拆分——分拆会复刻"迁移完、删除拖 8 个月"的既成失败模式）。Item Type: Fix。
 
-- 迁移 `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/command/AiCommand.java`（496 行，未标废弃的锚点类）及其下游到 IChatService 栈：prompt 构造改 `ChatRequest`、工具面接 toolkit `IToolManager`、持久化改 api 消息模型；下游含 `nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/graphql/GraphQLToolProvider.java` 与 `GraphQLToolSetFactoryBean.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/commons/aggregator/IAiTextAggregator.java`、`core/persist/`（5 文件，绑定废弃 AiChatExchange）。
-- 迁移完成后整体删除废弃面（删除清单 25 文件 = 24 个 @Deprecated + 未标废弃的 MockAiChatService；core main @Deprecated 计 25 文件，含移交 WI6 的 IFileOperator；标记自 2026-02-15 至今 8 个月）：`core/api/chat/`（IAiChatService/IAiChatSession/IAiChatProgressListener/AiChatOptions）、`core/api/messages/`（AiMessage 族 13 文件，目录含 package-info 共 14 文件）、`core/api/tool/`（IAiChatFunctionTool 族 6 文件）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/DefaultAiChatService.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/MockAiChatService.java`；`NopAiCoreErrors` 中仅废弃栈使用的错误码同步清理。**`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/file/IFileOperator.java` 不在本 WI 删除**（round 1 发现其实现类 LocalFileOperator 与消费面 FileToolBizModel/CliFileCommand 的联动未声明会留下验证面之外的破裂模块）——file 域整体（IFileOperator 废弃面 + LocalFileOperator + FileDiff 族）归 WI6 随归位一并处置。
+- 迁移 `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/command/AiCommand.java`（496 行，未标废弃的锚点类）及其下游到 IChatService 栈：prompt 构造改 `ChatRequest`、工具面接 toolkit `IToolManager`、持久化改 api 消息模型；下游含 `nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/graphql/GraphQLToolProvider.java` 与 `GraphQLToolSetFactoryBean.java`、nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/commons/aggregator/IAiTextAggregator.java（WI1 已删除）、`core/persist/`（5 文件，绑定废弃 AiChatExchange）。
+- 迁移完成后整体删除废弃面（删除清单 25 文件 = 24 个 @Deprecated + 未标废弃的 MockAiChatService；core main @Deprecated 计 25 文件，含移交 WI6 的 IFileOperator；标记自 2026-02-15 至今 8 个月）：`core/api/chat/`（IAiChatService/IAiChatSession/IAiChatProgressListener/AiChatOptions）、`core/api/messages/`（AiMessage 族 13 文件，目录含 package-info 共 14 文件）、`core/api/tool/`（IAiChatFunctionTool 族 6 文件）、nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/DefaultAiChatService.java、nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/MockAiChatService.java（WI1 已删除）；`NopAiCoreErrors` 中仅废弃栈使用的错误码同步清理。**`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/file/IFileOperator.java` 不在本 WI 删除**（round 1 发现其实现类 LocalFileOperator 与消费面 FileToolBizModel/CliFileCommand 的联动未声明会留下验证面之外的破裂模块）——file 域整体（IFileOperator 废弃面 + LocalFileOperator + FileDiff 族）归 WI6 随归位一并处置。
 - 已知 test scope 残留（基线实测各 1 个文件）：nop-ai-deepwiki 与 nop-ai-coder 的测试——随迁移一并改写或登记保留理由。
 - plan 期必须核查：api 包外消费面以执行时 HEAD 复核为准（round 1 复核外部残留仅上述 2 个 test 文件）；删除属公共 API 变更，按 Protected Areas 走 plan-first + owner doc + 迁移说明。
 - 验证：`./mvnw test -pl nop-ai/nop-ai-core,nop-ai/nop-ai-tools,nop-ai/nop-ai-gateway -am` 全绿 + Cross-Cutting 全量 install 一次；全仓 grep `IAiChatService|AiChatExchange|AiMessage|IAiChatFunctionTool|IAiChatToolSet` main scope 零命中（javadoc 历史注释除外，逐处清理或改写）。

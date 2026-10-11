@@ -92,14 +92,10 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.team.DefaultMemberSpawner",
             "io.nop.ai.agent.team.DefaultTeamAclChecker",
             "io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry",
-            "io.nop.ai.core.api.tool.DefaultAiChatFunctionTool",
-            "io.nop.ai.core.api.tool.DefaultAiChatToolSet",
-            "io.nop.ai.core.persist.DefaultAiChatExchangePersister",
             "io.nop.ai.core.persist.DefaultAiChatResponseCache",
+            "io.nop.ai.core.persist.DefaultChatExchangePersister",
             "io.nop.ai.core.prompt.DefaultSystemPromptLoader",
             "io.nop.ai.core.routing.DefaultSelectionStrategy",
-            "io.nop.ai.core.service.DefaultAiChatService",
-            "io.nop.ai.core.service.DefaultAiChatSession",
             "io.nop.ai.core.service.DefaultChatLogger",
             "io.nop.ai.toolkit.executor.DefaultToolExecutorProvider"
     );

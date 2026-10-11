@@ -1,5 +1,0 @@
-id: demo/missing-message
-language: Java
-severity: warning
-rule:
-  pattern: "System.out.println($arg)"

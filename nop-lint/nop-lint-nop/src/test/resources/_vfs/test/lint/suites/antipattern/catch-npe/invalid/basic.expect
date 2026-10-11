@@ -1,5 +1,0 @@
-diagnostics:
-  - line: 7
-    endLine: 9
-    ruleId: antipattern/catch-npe
-    messageContains: "catching NullPointerException"

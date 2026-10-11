@@ -1,7 +1,0 @@
-diagnostics:
-  - line: 2
-    ruleId: quality/no-native-method
-    messageContains: "native"
-  - line: 4
-    ruleId: quality/no-native-method
-    messageContains: "native"

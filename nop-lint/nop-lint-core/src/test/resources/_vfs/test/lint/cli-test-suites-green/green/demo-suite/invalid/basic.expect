@@ -1,4 +1,0 @@
-diagnostics:
-  - line: 3
-    ruleId: demo/no-print
-    messageContains: "System.out.println"

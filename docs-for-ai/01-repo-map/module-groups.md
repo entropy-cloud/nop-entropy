@@ -14,7 +14,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 服务框架 | `nop-service-framework/` | BizModel、GraphQL、Gateway |
 | 典型业务模块 | `nop-auth/`、`nop-job/`、`nop-task/`、`nop-wf/` | 最标准的业务骨架样板 |
 | 可复用业务模块 | `nop-sys/`、`nop-report/`、`nop-rule/`、`nop-batch/`、`nop-dyn/`、`nop-file/`、`nop-credential/`、`nop-retry/`、`nop-tcc/`、`nop-metadata/` | 系统管理、报表、规则、批处理、动态表单、文件、凭证、重试、分布式事务、联邦式元数据。详见 `03-modules/` |
-| AI 子系统 | `nop-ai/` | AI 相关的 model/codegen/dao/meta/service/web/app 以及 agent、skills、toolkit、tools。分层：`nop-ai-api`（公开 API 契约，`IChatService`/`ChatOptions` 等）、`nop-ai-core`（LLM 调用 + `ILlmDialect` Provider 适配）、`nop-ai-agent`（执行引擎）、`nop-ai-toolkit`（工具执行层：抽象契约 + 具体执行器）、`nop-ai-tools`（具体工具实现）。其余模块：`nop-ai-coder`（AI 编程助手）、`nop-ai-maven`（VFS 集成）、`nop-ai-dsl-orm`（ORM DSL 集成）、`nop-ai-rag`、`nop-ai-shell`、`nop-ai-gateway`、`nop-ai-codegen`。废弃 chat API（`IAiChatService` 等，nop-ai-core）已标 `@Deprecated(forRemoval=true)`，迁移目标为 `IChatService`（nop-ai-api，bean `nopChatService`）。`nop-ai-agent` 的 `nop-dao`/`nop-message-core` 为 test scope（仅测试需要，不泄漏给下游消费者）；MCP 集成模块（`nop-ai-mcp-server`、`nop-spring-mcp-server*`）独立发布周期 |
+| AI 子系统 | `nop-ai/` | AI 相关的 model/codegen/dao/meta/service/web/app 以及 agent、skills、toolkit、tools。分层：`nop-ai-api`（公开 API 契约，`IChatService`/`ChatOptions` 等）、`nop-ai-core`（LLM 调用 + `ILlmDialect` Provider 适配）、`nop-ai-agent`（执行引擎）、`nop-ai-toolkit`（工具执行层：抽象契约 + 具体执行器）、`nop-ai-tools`（具体工具实现）。其余模块：`nop-ai-coder`（AI 编程助手）、`nop-ai-maven`（VFS 集成）、`nop-ai-dsl-orm`（ORM DSL 集成）、`nop-ai-rag`、`nop-ai-shell`、`nop-ai-gateway`、`nop-ai-codegen`。旧 chat API（`IAiChatService` 等，nop-ai-core）已随 plan 2414（roadmap WI1，2026-10-11）整体删除，`IChatService`（nop-ai-api，bean `nopChatService`）是唯一 chat API；AiCommand/AI 任务（xlib `ai:Execute`）已迁移至 `IChatService` + `ChatRequest`/`ChatResponse` 栈。`nop-ai-agent` 的 `nop-dao`/`nop-message-core` 为 test scope（仅测试需要，不泄漏给下游消费者）；MCP 集成模块（`nop-ai-mcp-server`、`nop-spring-mcp-server*`）独立发布周期 |
 | Runner / CLI | `nop-runner/`、`scripts/` | CLI、runner、命令入口 |
 | 集成与运行时外围 | `nop-spring/`、`nop-quarkus/`、`nop-network/`、`nop-integration/` | 宿主集成与运行环境支持 |
 | 测试与示例 | `nop-autotest/`、`nop-demo/`、`demo/` | 测试基建、demo、模板 |
@@ -89,7 +89,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 模块 | 职责 |
 |------|------|
 | `nop-ai-api` | 公开 API 契约：`IChatService`、`ChatOptions`、`ChatMessage`（Agent Engine 直接消费的类型） |
-| `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、token 估算基线、错误码。**废弃 chat API（`IAiChatService` 等）保留于此，勿在新代码使用** |
+| `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、错误码。旧 chat API（`IAiChatService` 等）已删除（plan 2414），勿再引用 |
 | `nop-ai-agent` | Agent DSL + 执行引擎（`DefaultAgentEngine`/`ReActAgentExecutor`）。经 `IChatService` 调 LLM，经 `ITokenEstimator` bridge 消费 token 估算；可靠性机制直接复用 `io.nop.ai.core.reliability` 包（`ThresholdBreaker`/`LlmErrorClassifier`/`ProviderFailoverChain`/`StandardRetryPolicy` 等），并直接使用 core 的 `model`/`agent`/`dialect` 公共模型类型（2026-09-14 按 live import 修正） |
 | `nop-ai-toolkit` | 工具执行层：19 个具体 `*Executor`（ReadFile/Bash/Http/GraphqlQuery/ApplyDelta/Patch/Skill 等，`io.nop.ai.toolkit.tools`）+ `LocalToolFileSystem` + `ToolManagerImpl`/`DefaultToolExecutorProvider`；抽象面为 `IToolExecutor`/`IToolManager` 与工具 DSL（tool.xdef） |
 | `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎。DSL 文档工具契约与实现（`IDslTool`/`DslToolImpl`，`io.nop.ai.tools.xdsl`）在模块内部（M5-P1 裁定 A：自 nop-ai-coder 下沉，解除 tools→coder 分层倒置；DSL 转换经 nop-converter，不连带 coder 重量依赖链） |

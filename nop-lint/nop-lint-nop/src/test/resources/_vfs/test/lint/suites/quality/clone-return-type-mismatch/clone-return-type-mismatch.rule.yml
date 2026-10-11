@@ -1,1 +1,0 @@
-x:extends: /nop/lint/rules/quality/clone-return-type-mismatch.rule.yml

@@ -142,7 +142,7 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | `nop.ai.service.log-message` | `false` | LLM 引擎执行时是否自动打印全部请求/响应消息。全局默认关闭（安全）；生效条件为「全局开启 且 单模型未显式关闭」——单模型可在 llm 配置中经 `logMessage="false"`（`setLogMessage`）覆盖关闭。凭据脱敏由 `DefaultChatLogger` 保证 |
 | `nop.ai.service.rate-limit-acquire-timeout` | `1000` | LLM 调用本地限流（llm.xml 配 `rateLimit` 时）的许可获取超时（毫秒）。超时未获许可抛 `ERR_AI_RATE_LIMITED`（携带 `httpStatus=429`，`LlmErrorClassifier` 判为 RATE_LIMITED 可重试）——替代旧的无限阻塞 `acquire()`，消除挂起风险（MA6.3-AR-6）。`0`=立即失败（fail-fast） |
 
-**限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。`DefaultAiChatService`（废弃类）同款限时 tryAcquire 处理已对齐。
+**限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。旧 `DefaultAiChatService`（已随 plan 2414 删除）的同款限时 tryAcquire 对齐约定随之失效。
 
 ## Embedding 客户端（nop-ai-core，K1）
 
@@ -186,6 +186,21 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 nop-ai 为框架模块组：44 个 xbiz 文件全部继承 CRUD 声明式 action（自定义 action 面为 0），**声明式 CRUD 权限归属调用方应用层**（与 nop-code/nop-auth 的 DataAuth 应用层配置模式一致），框架基线不声明 `rights=`/`roles=`（裁定 2026-07-31，P2-MA3-026 路线 B）。自定义方法面基线：MR2 已在自定义 BizModel 落 `@Auth(permissions="<BizObjName>:<action>")`（如 `NopAiChatResponse:query`）。应用层如需收紧 CRUD 权限，可在自己的 Delta xbiz 中声明 `rights`。
 
 > xbiz 计数 44（2026-09-14 复核：`find nop-ai -path '*/src/main/resources/_vfs*' -name '*.xbiz' | wc -l` = 44，22 实体 × 基+保留）。
+
+## 废弃 chat 栈删除迁移说明（plan 2414，roadmap WI1，2026-10-11）
+
+nop-ai-core 的旧 chat API 已整体删除，公共 API 变更如下（Protected Areas 迁移说明）：
+
+| 已删除 | 替代 |
+|--------|------|
+| `IAiChatService`/`IAiChatSession`/`IAiChatProgressListener`/`AiChatOptions`（`core/api/chat/`） | `IChatService`/`ChatRequest`/`ChatResponse`/`ChatOptions`（nop-ai-api，bean `nopChatService`） |
+| `core/api/messages/` 全部（`AiChatExchange`/`Prompt`/`AiMessage` 族 14 文件） | `ChatRequest`/`ChatResponse` + `io.nop.ai.core.prompt.ChatExchange`（脚本门面：outputs/validate/resultValue） |
+| `core/api/tool/`（`IAiChatToolSet`/`IAiChatFunctionTool`/`ToolSpecification` 族） | `IAiToolInvoker`（nop-ai-core 过渡接缝，WI2 归一至 toolkit）+ `ChatToolDefinition` |
+| `DefaultAiChatService`/`MockAiChatService`/`DefaultAiChatSession` 族 | `ChatServiceImpl`（bean `nopChatService`）/`MockChatService`（`core/mock`，新栈） |
+| persist 族 `IAiChatExchangePersister`/`DefaultAiChatExchangePersister` | `IChatExchangePersister`/`DefaultChatExchangePersister`（JSON 序列化 + AES；**旧 `/nop/ai/cache` 磁盘条目一次性失效**） |
+| 错误码 8 个（result-invalid-end-line/result-invalid-number/get-session-deprecated/unknown-role/command.not-found/command.empty-tools-node/command.tools-node-parse-failed/command.file-path-empty） | —（随废弃栈退役） |
+
+行为登记：①旧磁盘缓存条目格式失效（TTL 默认 0 时残留无害，读取走 load-fail→miss）；②`disableCache`/`streamListener`/`seed`/`contextLength` options 键不再有落点（`contextLength` task-xml attr 仍可解析但被忽略——新栈 dialect 本就不消费）；③`ai:toolSet` 死属性已从 deepwiki task-xml 移除；④`nopGraphQLToolSet` bean 契约改为 `IAiToolInvoker`（条件注册语义不变）。
 
 ## 相关文档
 

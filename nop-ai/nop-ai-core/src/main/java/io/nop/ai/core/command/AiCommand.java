@@ -1,21 +1,18 @@
 package io.nop.ai.core.command;
 
-import io.nop.ai.core.api.chat.AiChatOptions;
+import io.nop.ai.api.chat.ChatOptions;
+import io.nop.ai.api.chat.ChatRequest;
+import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatLogger;
-import io.nop.ai.core.api.chat.IAiChatService;
-import io.nop.ai.core.api.messages.AiAssistantMessage;
-import io.nop.ai.core.api.messages.AiChatExchange;
-import io.nop.ai.core.api.messages.AiMessage;
-import io.nop.ai.core.api.messages.AiMessageAttachment;
-import io.nop.ai.core.api.messages.AiUserMessage;
-import io.nop.ai.core.api.messages.Prompt;
-import io.nop.ai.core.api.messages.ToolCall;
-import io.nop.ai.core.api.messages.AiToolResponseMessage;
-import io.nop.ai.core.api.tool.IAiChatFunctionTool;
-import io.nop.ai.core.api.tool.IAiChatToolSet;
-import io.nop.ai.core.api.tool.ToolSpecification;
-import io.nop.ai.core.commons.processor.IAiChatResponseProcessor;
+import io.nop.ai.api.chat.IChatService;
+import io.nop.ai.api.chat.ResponseFormat;
+import io.nop.ai.api.chat.messages.ChatAttachment;
+import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.ai.api.chat.messages.ChatToolCall;
+import io.nop.ai.api.chat.messages.ChatToolDefinition;
+import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.persist.IAiChatResponseCache;
+import io.nop.ai.core.prompt.ChatExchange;
 import io.nop.ai.core.prompt.DefaultSystemPromptLoader;
 import io.nop.ai.core.prompt.IPromptTemplate;
 import io.nop.ai.core.prompt.IPromptTemplateManager;
@@ -31,7 +28,6 @@ import io.nop.commons.util.retry.RetryHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.eval.IEvalScope;
-import io.nop.core.lang.json.JsonTool;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,35 +43,42 @@ import static io.nop.ai.core.NopAiCoreErrors.ARG_TOOL_NAME;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_RESULT_IS_EMPTY;
 import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_UNKNOWN_TOOL_CALL;
 
+/**
+ * Executes a prompt template against the {@code IChatService} stack: renders the
+ * prompt, applies chat options, calls the LLM (with an optional tool invocation
+ * loop), parses declared outputs into a {@link ChatExchange} and persists
+ * responses through the response cache. This is the runtime behind the
+ * {@code ai:Execute} xlib tag (task XML {@code ai:TaskStep} steps).
+ */
 public class AiCommand {
     static final Logger LOG = LoggerFactory.getLogger(AiCommand.class);
 
-    private final IAiChatService chatService;
+    private final IChatService chatService;
     private final IPromptTemplateManager promptTemplateManager;
 
     private IPromptTemplate systemPromptTemplate;
     private IPromptTemplate promptTemplate;
-    private List<AiMessage> prevMessages;
-    private IAiChatResponseProcessor chatResponseProcessor;
+    private List<ChatMessage> prevMessages;
     private int retryTimesPerRequest = 3;
-    private AiChatOptions chatOptions;
+    private ChatOptions chatOptions;
     private IAiChatResponseCache chatCache;
     private boolean returnExceptionAsResponse = true;
     private IChatLogger chatLogger;
 
     private int maxSteps;
-    private List<AiMessageAttachment> attachments;
+    private List<ChatAttachment> attachments;
+    private String workMode;
+    private Set<String> enabledTools;
+    private IAiToolInvoker toolInvoker;
 
-    private IAiChatToolSet toolSet;
-
-    public AiCommand(IAiChatService chatService, IPromptTemplateManager promptTemplateManager) {
+    public AiCommand(IChatService chatService, IPromptTemplateManager promptTemplateManager) {
         this.chatService = chatService;
         this.promptTemplateManager = promptTemplateManager;
     }
 
     public static AiCommand create() {
         return new AiCommand(
-                BeanContainer.getBeanByType(IAiChatService.class),
+                BeanContainer.getBeanByType(IChatService.class),
                 BeanContainer.getBeanByType(IPromptTemplateManager.class));
     }
 
@@ -92,20 +95,20 @@ public class AiCommand {
         return this;
     }
 
-    public IAiChatToolSet getToolSet() {
-        return toolSet;
+    public IAiToolInvoker getToolInvoker() {
+        return toolInvoker;
     }
 
-    public void setToolSet(IAiChatToolSet toolSet) {
-        this.toolSet = toolSet;
+    public void setToolInvoker(IAiToolInvoker toolInvoker) {
+        this.toolInvoker = toolInvoker;
     }
 
-    public AiCommand toolSet(IAiChatToolSet toolProvider) {
-        this.toolSet = toolProvider;
+    public AiCommand toolInvoker(IAiToolInvoker toolInvoker) {
+        this.toolInvoker = toolInvoker;
         return this;
     }
 
-    public IAiChatService getChatService() {
+    public IChatService getChatService() {
         return chatService;
     }
 
@@ -115,14 +118,6 @@ public class AiCommand {
 
     public void setPromptTemplate(IPromptTemplate promptTemplate) {
         this.promptTemplate = promptTemplate;
-    }
-
-    public IAiChatResponseProcessor getChatResponseProcessor() {
-        return chatResponseProcessor;
-    }
-
-    public void setChatResponseProcessor(IAiChatResponseProcessor chatResponseProcessor) {
-        this.chatResponseProcessor = chatResponseProcessor;
     }
 
     public void setChatResponseCache(IAiChatResponseCache chatCache) {
@@ -137,49 +132,99 @@ public class AiCommand {
         this.retryTimesPerRequest = retryTimesPerRequest;
     }
 
-    public List<AiMessage> getPrevMessages() {
+    public List<ChatMessage> getPrevMessages() {
         return prevMessages;
     }
 
-    public void setPrevMessages(List<AiMessage> prevMessages) {
+    public void setPrevMessages(List<ChatMessage> prevMessages) {
         this.prevMessages = prevMessages;
     }
 
     public Set<String> getEnabledTools() {
-        return chatOptions == null ? null : chatOptions.getEnabledTools();
+        return enabledTools;
     }
 
     public void setEnabledTools(Set<String> tools) {
-        this.makeChatOptions().setEnabledTools(tools);
+        this.enabledTools = tools;
     }
 
     public AiCommand enableTools(Set<String> tools) {
-        this.makeChatOptions().addEnabledTools(tools);
+        if (this.enabledTools == null)
+            this.enabledTools = new java.util.LinkedHashSet<>();
+        this.enabledTools.addAll(tools);
         return this;
     }
 
     public AiCommand enableTool(String toolName) {
-        this.makeChatOptions().addEnabledTool(toolName);
+        if (this.enabledTools == null)
+            this.enabledTools = new java.util.LinkedHashSet<>();
+        this.enabledTools.add(toolName);
         return this;
     }
 
-    public AiChatOptions getChatOptions() {
+    public ChatOptions getChatOptions() {
         return chatOptions;
     }
 
-    public AiChatOptions makeChatOptions() {
+    public ChatOptions makeChatOptions() {
         if (chatOptions == null)
-            chatOptions = new AiChatOptions();
+            chatOptions = new ChatOptions();
         return chatOptions;
     }
 
-    public void setChatOptions(AiChatOptions chatOptions) {
+    public void setChatOptions(ChatOptions chatOptions) {
         this.chatOptions = chatOptions;
     }
 
-    public AiCommand chatOptions(AiChatOptions chatOptions) {
-        setChatOptions(Guard.notNull(chatOptions, "chatOptions"));
+    /**
+     * Accepts a {@link ChatOptions} or a script-supplied {@link Map} of option
+     * keys. Only keys supported by {@link ChatOptions} are mapped; unknown
+     * legacy keys (seed/contextLength/workMode/streamListener/...) are ignored
+     * with a debug log — they have no counterpart on the new stack.
+     */
+    public AiCommand chatOptions(Object options) {
+        if (options == null)
+            return this;
+        if (options instanceof ChatOptions) {
+            setChatOptions(Guard.notNull((ChatOptions) options, "chatOptions"));
+            return this;
+        }
+        Map<?, ?> map = (Map<?, ?>) options;
+        ChatOptions opts = makeChatOptions();
+        assign(map, "provider", opts::setProvider);
+        assign(map, "model", opts::setModel);
+        assign(map, "sessionId", opts::setSessionId);
+        assign(map, "temperature", opts::setTemperature);
+        assign(map, "topP", opts::setTopP);
+        assign(map, "topK", opts::setTopK);
+        assign(map, "maxTokens", opts::setMaxTokens);
+        assign(map, "contextLength", opts::setMaxContextTokens);
+        assign(map, "frequencyPenalty", opts::setFrequencyPenalty);
+        assign(map, "presencePenalty", opts::setPresencePenalty);
+        assign(map, "stop", opts::setStop);
+        assign(map, "requestTimeout", opts::setRequestTimeout);
+        assign(map, "stream", opts::setStream);
+        assign(map, "enableThinking", opts::setEnableThinking);
+        assign(map, "toolChoice", opts::setToolChoice);
+        Object responseFormat = map.get("responseFormat");
+        if (responseFormat != null) {
+            if (ResponseFormat.TYPE_JSON_OBJECT.equals(responseFormat)) {
+                opts.setResponseFormatConfig(ResponseFormat.jsonObject());
+            } else {
+                LOG.debug("nop.ai.unsupported-chat-option:key=responseFormat,value={}", responseFormat);
+            }
+        }
+        for (Object key : new Object[]{"seed", "workMode", "streamListener", "disableCache", "enabledTools"}) {
+            if (map.get(key) != null)
+                LOG.debug("nop.ai.unsupported-chat-option:key={}", key);
+        }
         return this;
+    }
+
+    private <T> void assign(Map<?, ?> map, String key, java.util.function.Consumer<T> setter) {
+        Object value = map.get(key);
+        if (value != null)
+            setter.accept((T) value);
     }
 
     public AiCommand provider(String provider) {
@@ -211,7 +256,7 @@ public class AiCommand {
     }
 
     public AiCommand workMode(String workMode) {
-        makeChatOptions().setWorkMode(workMode);
+        this.workMode = workMode;
         return this;
     }
 
@@ -242,12 +287,12 @@ public class AiCommand {
         return this;
     }
 
-    public AiCommand attachments(List<AiMessageAttachment> attachments) {
+    public AiCommand attachments(List<ChatAttachment> attachments) {
         this.attachments = attachments;
         return this;
     }
 
-    public List<AiMessageAttachment> getAttachments() {
+    public List<ChatAttachment> getAttachments() {
         return attachments;
     }
 
@@ -269,15 +314,15 @@ public class AiCommand {
         this.returnExceptionAsResponse = returnExceptionAsResponse;
     }
 
-    public AiChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken) {
+    public ChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken) {
         return execute(vars, cancelToken, null);
     }
 
-    public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
+    public CompletionStage<ChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken) {
         return executeAsync(vars, cancelToken, null);
     }
 
-    public AiChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+    public ChatExchange execute(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         return FutureHelper.syncGet(executeAsync(vars, cancelToken, ctx));
     }
 
@@ -287,38 +332,36 @@ public class AiCommand {
         return chatLogger;
     }
 
-    public CompletionStage<AiChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
+    public CompletionStage<ChatExchange> executeAsync(Map<String, Object> vars, ICancelToken cancelToken, IEvalContext ctx) {
         IEvalScope scope = prepareInputs(vars, ctx);
-        Prompt prompt = newPrompt(scope);
-        AiChatOptions options = this.chatOptions.cloneInstance();
+        ChatRequest request = newRequest(scope);
+        ChatOptions options = this.chatOptions == null ? new ChatOptions() : this.chatOptions.copy();
         promptTemplate.applyChatOptions(options);
+        request.setOptions(options);
+        String promptName = promptTemplate.getName();
 
-        if (chatCache != null && !Boolean.TRUE.equals(options.getDisableCache())) {
+        if (chatCache != null) {
             try {
-                AiChatExchange exchange = chatCache.loadCachedResponse(prompt, options);
-                if (exchange != null) {
-                    promptTemplate.processChatResponse(exchange, scope);
-                    CompletionStage<AiChatExchange> future = FutureHelper.success(exchange);
-                    if (chatResponseProcessor != null)
-                        future = future.thenCompose(ret -> chatResponseProcessor.processAsync(ret));
-
-                    return future.thenApply(this::postProcess);
+                ChatExchange cached = chatCache.loadCachedResponse(request, options, promptName);
+                if (cached != null) {
+                    promptTemplate.processChatResponse(cached, scope);
+                    return FutureHelper.<ChatExchange>success(cached).thenApply(this::postProcess);
                 }
             } catch (Exception e) {
-                LOG.info("nop.ai.load-cache-fail:promptName={},requestHash={}", prompt.getName(), prompt.getRequestHash());
+                LOG.info("nop.ai.load-cache-fail:promptName={}", promptName);
             }
         }
 
-        CompletionStage<AiChatExchange> promise = RetryHelper.retryNTimes((index) -> {
+        CompletionStage<ChatExchange> promise = RetryHelper.retryNTimes((index) -> {
                     adjustTemperature(options, index);
-                    return executeOnceAsync(prompt, options, scope, cancelToken);
+                    return executeOnceAsync(request.copy(), options, scope, cancelToken);
                 },
-                AiChatExchange::isValid, retryTimesPerRequest);
+                ChatExchange::isValid, retryTimesPerRequest);
 
         if (chatCache != null) {
             return promise.thenApply(res -> {
                 if (res.isValid()) {
-                    chatCache.saveCachedResponse(res);
+                    chatCache.saveCachedResponse(res, promptName);
                 }
                 return res;
             });
@@ -331,7 +374,7 @@ public class AiCommand {
         return promptTemplate.prepareInputs(vars, ctx);
     }
 
-    protected void adjustTemperature(AiChatOptions options, int index) {
+    protected void adjustTemperature(ChatOptions options, int index) {
         if (index == 1) {
             options.setTemperature(0f);
         } else if (index > 0) {
@@ -339,9 +382,9 @@ public class AiCommand {
         }
     }
 
-    public CompletionStage<AiChatExchange> executeOnceAsync(Prompt prompt, AiChatOptions chatOptions,
-                                                            IEvalScope scope, ICancelToken cancelToken) {
-        CompletionStage<AiChatExchange> future = executeWithTools(0, prompt, chatOptions, scope, cancelToken);
+    public CompletionStage<ChatExchange> executeOnceAsync(ChatRequest request, ChatOptions chatOptions,
+                                                          IEvalScope scope, ICancelToken cancelToken) {
+        CompletionStage<ChatExchange> future = executeWithTools(0, request, scope, cancelToken);
         if (FutureHelper.isError(future))
             return future;
 
@@ -350,14 +393,10 @@ public class AiCommand {
             return ret;
         });
 
-        if (chatResponseProcessor != null)
-            future = future.thenCompose(ret -> chatResponseProcessor.processAsync(ret));
-
         future = FutureHelper.thenCompleteAsync(future.thenApply(this::postProcess), (r, err) -> {
             if (err != null) {
                 if (returnExceptionAsResponse) {
-                    AiChatExchange response = new AiChatExchange();
-                    response.setPrompt(prompt);
+                    ChatExchange response = new ChatExchange(request, null);
                     response.setInvalid(true);
                     response.setInvalidReason(ErrorMessageManager.instance()
                             .buildErrorMessage(null, err, false, false, true));
@@ -374,56 +413,47 @@ public class AiCommand {
         return future;
     }
 
-    protected CompletionStage<AiChatExchange> executeWithTools(int stepIndex, Prompt prompt, AiChatOptions options,
-                                                               IEvalScope scope, ICancelToken cancelToken) {
+    protected CompletionStage<ChatExchange> executeWithTools(int stepIndex, ChatRequest request,
+                                                             IEvalScope scope, ICancelToken cancelToken) {
         if (cancelToken != null && cancelToken.isCancelled()) {
             LOG.info("nop.ai.cancel-call-ai");
             return FutureHelper.reject(new CancellationException("cancel-call-ai"));
         }
 
-        CompletionStage<AiChatExchange> future = chatService.sendChatAsync(prompt, chatOptions, cancelToken);
-        return future.thenCompose(exchange -> {
+        CompletionStage<ChatResponse> future = chatService.callAsync(request, cancelToken);
+        return future.thenCompose(response -> {
             int maxSteps = getMaxSteps();
             if (maxSteps == 0)
                 maxSteps = 3;
             if (stepIndex >= maxSteps)
-                return FutureHelper.success(exchange);
+                return FutureHelper.success(new ChatExchange(request, response));
 
-            AiAssistantMessage result = exchange.getResponse();
-            if (result.getToolCalls() == null || result.getToolCalls().isEmpty()) {
-                return FutureHelper.success(exchange);
+            List<ChatToolCall> toolCalls = response.outputToolCalls();
+            if (toolCalls == null || toolCalls.isEmpty()) {
+                return FutureHelper.success(new ChatExchange(request, response));
             }
 
-            prompt.addMessage(exchange.getResponse());
-            prompt.setRequestHash(null);
-
-            return executeTools(stepIndex + 1, result.getToolCalls(), prompt, options, scope, cancelToken);
+            return executeTools(stepIndex + 1, toolCalls, request, scope, cancelToken);
         });
     }
 
-    protected CompletionStage<AiChatExchange> executeTools(int stepIndex, List<ToolCall> toolCalls,
-                                                           Prompt prompt, AiChatOptions options,
-                                                           IEvalScope scope, ICancelToken cancelToken) {
+    protected CompletionStage<ChatExchange> executeTools(int stepIndex, List<ChatToolCall> toolCalls,
+                                                         ChatRequest request, IEvalScope scope, ICancelToken cancelToken) {
         List<CompletionStage<Object>> toolResults = new ArrayList<>(toolCalls.size());
-        for (ToolCall toolCall : toolCalls) {
-            IAiChatFunctionTool toolSpec = toolSet.getFunctionTool(toolCall.getName());
-            if (toolSpec == null)
+        for (ChatToolCall toolCall : toolCalls) {
+            if (toolInvoker == null || toolInvoker.findTool(toolCall.getName()) == null)
                 throw new NopException(ERR_AI_UNKNOWN_TOOL_CALL).param(ARG_TOOL_NAME, toolCall.getName());
 
-            toolResults.add(toolSpec.callToolAsync(toolCall.getArguments()));
+            toolResults.add(toolInvoker.callTool(toolCall.getName(), toolCall.getArguments()));
         }
 
         return FutureHelper.waitAll(toolResults).thenCompose(ret -> {
             for (int i = 0; i < toolResults.size(); i++) {
-                ToolCall toolCall = toolCalls.get(i);
+                ChatToolCall toolCall = toolCalls.get(i);
                 Object result = FutureHelper.syncGet(toolResults.get(i));
-                AiToolResponseMessage message = new AiToolResponseMessage();
-                message.setName(toolCall.getName());
-                message.setToolCallId(toolCall.getId());
-                message.setContent(toString(result));
-                prompt.getMessages().add(message);
+                request.addToolResponse(toolCall.getId(), toolCall.getName(), toString(result));
             }
-            return executeWithTools(stepIndex, prompt, options, scope, cancelToken);
+            return executeWithTools(stepIndex, request, scope, cancelToken);
         });
     }
 
@@ -432,66 +462,60 @@ public class AiCommand {
             return "";
         if (result instanceof String)
             return result.toString();
-        return JsonTool.stringify(result);
+        return io.nop.core.lang.json.JsonTool.stringify(result);
     }
 
-    protected AiChatExchange postProcess(AiChatExchange ret) {
+    protected ChatExchange postProcess(ChatExchange ret) {
         return ret;
     }
 
-    protected Prompt newPrompt(IEvalScope scope) {
+    protected ChatRequest newRequest(IEvalScope scope) {
         String promptText = promptTemplate.generatePrompt(scope);
         Guard.notEmpty(promptText, "promptText");
-        Prompt prompt = new Prompt();
+        ChatRequest request = new ChatRequest();
         if (prevMessages != null) {
-            prompt.addMessages(prevMessages);
+            request.setMessages(new ArrayList<>(prevMessages));
         } else {
-            addSystemPrompt(prompt, scope);
+            addSystemPrompt(request, scope);
         }
 
-        AiUserMessage message = prompt.addUserMessage(promptText);
-        message.setAttachments(attachments);
-        prompt.setName(promptTemplate.getName());
+        ChatUserMessage message = new ChatUserMessage(promptText);
+        if (attachments != null && !attachments.isEmpty())
+            message.setAttachments(new ArrayList<>(attachments));
+        request.addMessage(message);
 
-        addTools(prompt);
-        return prompt;
+        addTools(request);
+        return request;
     }
 
-    protected void addTools(Prompt prompt) {
-        if (getToolSet() == null)
+    protected void addTools(ChatRequest request) {
+        if (getToolInvoker() == null)
             return;
 
         if (this.getEnabledTools() != null && !this.getEnabledTools().isEmpty()) {
-            List<ToolSpecification> tools = new ArrayList<>();
+            List<ChatToolDefinition> tools = new ArrayList<>();
             for (String toolName : this.getEnabledTools()) {
-                IAiChatFunctionTool tool = getToolSet().getFunctionTool(toolName);
+                ChatToolDefinition tool = getToolInvoker().findTool(toolName);
                 if (tool == null) {
                     LOG.error("nop.ai.unknown-tool:toolName={}", toolName);
                     continue;
                 }
-                tools.add(tool.toSpec());
+                tools.add(tool);
             }
             if (!tools.isEmpty()) {
-                prompt.setTools(tools);
+                request.setTools(tools);
             }
         }
     }
 
-    protected void addSystemPrompt(Prompt prompt, IEvalScope scope) {
+    protected void addSystemPrompt(ChatRequest request, IEvalScope scope) {
+        String systemPrompt = null;
         if (systemPromptTemplate != null) {
-            String systemPrompt = systemPromptTemplate.generatePrompt(scope);
-            if (!StringHelper.isEmpty(systemPrompt))
-                prompt.addSystemMessage(systemPrompt);
-        } else {
-            if (!CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT.get())
-                return;
-
-            if (StringHelper.isEmpty(chatOptions.getWorkMode()))
-                return;
-
-            String systemPrompt = DefaultSystemPromptLoader.instance().loadSystemPrompt(chatOptions);
-            if (!StringHelper.isEmpty(systemPrompt))
-                prompt.addSystemMessage(systemPrompt);
+            systemPrompt = systemPromptTemplate.generatePrompt(scope);
+        } else if (CFG_AI_SERVICE_ENABLE_WORK_MODE_SYSTEM_PROMPT.get() && !StringHelper.isEmpty(workMode)) {
+            systemPrompt = DefaultSystemPromptLoader.instance().loadSystemPrompt(workMode, null, null, null);
         }
+        if (!StringHelper.isEmpty(systemPrompt))
+            request.setSystemPrompt(systemPrompt);
     }
 }

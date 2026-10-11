@@ -1,5 +1,0 @@
-diagnostics:
-  - line: 8
-    endLine: 8
-    ruleId: nop-xdsl-edge-partition
-    messageContains: "keyExpr"

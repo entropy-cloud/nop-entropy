@@ -19,12 +19,11 @@ public interface NopAiCoreErrors {
 
     String ARG_PROP_PATH = "propPath";
 
-    String ARG_EXPECTED = "expected";
-    String ARG_LINE = "line";
 
     String ARG_NAME = "name";
     String ARG_VALUE = "value";
 
+    String ARG_EXPECTED = "expected";
     String ARG_CONTENT = "content";
 
     String ARG_INPUT_NAME = "inputName";
@@ -46,8 +45,6 @@ public interface NopAiCoreErrors {
 
     String ARG_TOOL_NAME = "toolName";
 
-    String ARG_COMMAND = "command";
-    String ARG_NODE_NAME = "nodeName";
     String ARG_FILE_PATH = "filePath";
 
     String ARG_PARSE_MODEL = "parseModel";
@@ -112,18 +109,10 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_RESULT_IS_EMPTY =
             define("nop.err.ai.service.result-is-empty", "The result returned by the LLM is empty");
 
-    ErrorCode ERR_AI_RESULT_INVALID_END_LINE =
-            define("nop.err.ai.service.result-invalid-end-line",
-                    "The result line returned by the LLM does not match the expected pattern", ARG_EXPECTED, ARG_LINE);
-
     ErrorCode ERR_AI_RESULT_NO_EXPECTED_PART =
             define("nop.err.ai.service.result-no-expected-part",
                     "The result returned by the LLM does not match the expected pattern, missing content: {expected}",
                     ARG_EXPECTED);
-
-    ErrorCode ERR_AI_RESULT_INVALID_NUMBER =
-            define("nop.err.ai.service.result-invalid-number",
-                    "The result returned by the LLM is not a number: name={name},value={value}", ARG_NAME, ARG_VALUE);
 
     ErrorCode ERR_AI_TOOLS_INVALID_THOUGHT =
             define("nop.err.ai.tools.invalid-thought", "Invalid thought request: {value}", ARG_VALUE);
@@ -191,28 +180,6 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_FILE_CONTENT_NO_PATH = define("nop.err.ai.file-content.no-path",
             "The file object has no path attribute specified");
 
-    ErrorCode ERR_AI_COMMAND_NOT_FOUND =
-            define("nop.err.ai.command.not-found", "Command not found: {command}", ARG_COMMAND);
-
-    ErrorCode ERR_AI_EMPTY_TOOLS_NODE =
-            define("nop.err.ai.command.empty-tools-node", "The call-tools node is empty");
-
-    ErrorCode ERR_AI_TOOLS_NODE_PARSE_FAILED =
-            define("nop.err.ai.command.tools-node-parse-failed", "Failed to parse the call-tools node");
-
-    ErrorCode ERR_AI_FILE_PATH_IS_EMPTY =
-            define("nop.err.ai.command.file-path-empty", "File path must not be empty", ARG_NODE_NAME);
-
-    /**
-     * Deprecated {@code IAiChatService.getSession} entry point (plan
-     * 2026-07-31-2248-2 scan-hollow baseline clearance): the method is
-     * deprecated in favour of {@code IChatService}; the English description
-     * preserves the historical UOE message semantics (AGENTS.md English
-     * error-message convention for newly added codes).
-     */
-    ErrorCode ERR_AI_CHAT_GET_SESSION_DEPRECATED =
-            define("nop.err.ai.service.get-session-deprecated", "Deprecated: use IChatService instead");
-
     /**
      * Converted from bare {@code IllegalArgumentException} throws (plan
      * 2026-08-01-0936-2): English descriptions preserve the historical
@@ -227,9 +194,6 @@ public interface NopAiCoreErrors {
 
     ErrorCode ERR_AI_UNSUPPORTED_PARSE_FROM_RESPONSE =
             define("nop.err.ai.prompt-unsupported-parse-from-response", "unsupported parseFromResponse: {parseModel}", ARG_PARSE_MODEL);
-
-    ErrorCode ERR_AI_UNKNOWN_ROLE =
-            define("nop.err.ai.unknown-role", "unknown role:{role}", ARG_ROLE);
 
     ErrorCode ERR_AI_VECTOR_LENGTH_MISMATCH =
             define("nop.err.ai.vector-length-mismatch", "Length of vector a  must be equal to the length of vector b");

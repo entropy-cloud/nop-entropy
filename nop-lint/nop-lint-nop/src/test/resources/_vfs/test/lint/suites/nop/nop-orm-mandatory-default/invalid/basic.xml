@@ -1,9 +1,0 @@
-<orm xmlns:x="/nop/schema/xdsl.xdef">
-    <entities>
-        <entity name="app.Order" tableName="app_order">
-            <columns>
-                <column name="ownerId" mandatory="true" stdSqlType="VARCHAR"/>
-            </columns>
-        </entity>
-    </entities>
-</orm>

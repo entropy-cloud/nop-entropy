@@ -39,7 +39,7 @@ import static io.nop.ai.gateway.failover.FailoverConstants.HTTP_TOO_MANY_REQUEST
 /**
  * 本地形态透明账号 failover 适配器（plan 2026-08-15-1116-2，设计 §3.1/§3.2/§3.3/§4.4）。
  *
- * <p>实现 {@link IChatService}（nop-ai-api，非已废弃 {@code IAiChatService}），包装
+ * <p>实现 {@link IChatService}（nop-ai-api），包装
  * {@code ChatServiceImpl}（bean {@code nopChatService}）：账号切换经
  * {@code ChatOptions.accountKey/accountBaseUrl/model/provider} 四字段下沉（W5
  * {@code ModelClassRouter.toChatOptions}），不重建管线。
