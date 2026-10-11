@@ -31,7 +31,7 @@
 - WI2 quickstart 生成器跨平台修复与模板版本对齐: `done`（plan 2411，2026-10-11；实测订正：平台 junit-jupiter 解析版本 6.0.3，经 quarkus.platform 3.35.1 import 链传递管理，模板钉版本与之一致无漂移，本节原文「5.x 线漂移」前提不成立；模板三版本点经实测全部维持现状）
 - WI3 架构基线与 owner docs 回写: `done`（plan 2412，2026-10-11；STRM-018/019 已登记 WI7/WI8 变更预告，最终改写归后续 WI）
 - WI4 connector-jdbc provided+optional 依赖硬化: `done`（plan 2413，2026-10-11；裁定方案 b 窄接口隔离——a 方案 compile 化实测边际 65 构件约 33.6MB 触发 roadmap 预设的不可接受阈值；防回归门禁为 surefire 独立 execution insert-no-debezium 持久自动化）
-- WI5 runtime 测试侧 connector 反向 fan-in 收敛: `todo`
+- WI5 runtime 测试侧 connector 反向 fan-in 收敛: `done`（plan 2415，2026-10-11；裁定方案 b 显式登记例外、最小集=现有 6 个 test 依赖——debezium 被 P-REQ-28 discovery 断言硬性要求、rocksdb 有 9 个真实消费文件、门控分支同样削弱验收面；pom 注释重写为逐依赖消费者普查表；runtime 测试基线重钉：surefire 1377 run/0 failed/10 skipped——Docker 不可用环境、Docker 可用时 skipped=8——加测试树 361 java 文件、320 个 Test* 类，WI6/WI7/WI10 以此值为不得下降基线）
 - WI6 runtime 包级环打破与 wire DTO 叶子包提取: `todo`
 - WI7 窗口算子实现包归位 core: `todo`
 - WI8 IWindowOperatorFactory 收敛为 WindowSpec 单一契约: `todo`
