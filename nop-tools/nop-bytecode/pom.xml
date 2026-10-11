@@ -29,7 +29,6 @@
     </description>
 
     <properties>
-        <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <!-- Pinned per Wave 0 substrate ADR: 9.7.x supports class file v65 (Java 21) and v61 corpus -->
         <asm.version>9.7.1</asm.version>

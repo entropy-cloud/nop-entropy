@@ -15,7 +15,6 @@
     <artifactId>nop-biz-auth-api</artifactId>
 
     <properties>
-        <java.version>11</java.version>
     </properties>
 
     <dependencies>
