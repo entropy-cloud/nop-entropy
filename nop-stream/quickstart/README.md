@@ -47,6 +47,15 @@ nop-stream/quickstart/verify.sh
 # 任何步骤失败非零退出
 ```
 
+**关于构件跳过启发式**：verify.sh 检测到本地仓库已有 `nop-stream-flow-*` jar 时会跳过
+`install -pl nop-stream -am`（省 1—2 分钟）。该「存在即跳过」判定只看存在性、不看新旧：
+本仓库模板、nop-stream 依赖或生成器逻辑刚变更过时，陈旧 jar 会掩盖问题、使验证结果失真
+（AR-28/AR-1）。此类场景用以下方式强制重建：
+
+```bash
+FORCE_REBUILD=1 nop-stream/quickstart/verify.sh
+```
+
 ## 生成的工程长什么样
 
 ```

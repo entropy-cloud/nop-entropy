@@ -28,7 +28,7 @@
 ## Work Item Status
 
 - WI1 nop-bom 悬空条目清理与依赖版本收口: `done`（plan 2410，2026-10-11）
-- WI2 quickstart 生成器跨平台修复与模板版本对齐: `todo`
+- WI2 quickstart 生成器跨平台修复与模板版本对齐: `done`（plan 2411，2026-10-11；实测订正：平台 junit-jupiter 解析版本 6.0.3，经 quarkus.platform 3.35.1 import 链传递管理，模板钉版本与之一致无漂移，本节原文「5.x 线漂移」前提不成立；模板三版本点经实测全部维持现状）
 - WI3 架构基线与 owner docs 回写: `todo`
 - WI4 connector-jdbc provided+optional 依赖硬化: `todo`
 - WI5 runtime 测试侧 connector 反向 fan-in 收敛: `todo`
