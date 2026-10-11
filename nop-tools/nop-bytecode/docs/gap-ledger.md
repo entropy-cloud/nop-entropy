@@ -4,7 +4,7 @@
 > 状态: active
 > 定位: 字节码通道行级缺口状态的**唯一动态载体**。[roadmap](ai-dev/backlog/nop-bytecode-analysis-roadmap.md) 只跟踪 wave 进度与底座终裁（其 Hard constraint 7 的账本分工），本文档滚动更新每个缺口面的归属裁定与执行状态，两处禁止双写。
 > 准入依据: [00-overview.md](ai-dev/design/nop-bytecode/00-overview.md) §1/§2（缺口面定位、高信号准入、范围锚）
-> 执行输入锚点: 姊妹 roadmap [nop-lint-tool-replacement-roadmap.md](ai-dev/backlog/nop-lint-tool-replacement-roadmap.md) Current baseline 第 3 条；[plan 23](ai-dev/plans/nop-lint/23-resource-leak-v1.md) Deferred But Adjudicated（Option A）；[plan 24](ai-dev/plans/nop-lint/24-null-flow-adjudication.md) 空指针行三段归因；统一账本 [tool-replacement-ledger.md](nop-lint/docs/tool-replacement-ledger.md) Sonar 行
+> 执行输入锚点: 姊妹 roadmap [nop-lint-tool-replacement-roadmap.md](ai-dev/backlog/nop-lint-tool-replacement-roadmap.md) Current baseline 第 3 条；[plan 23](ai-dev/plans/nop-lint/23-resource-leak-v1.md) Deferred But Adjudicated（Option A）；[plan 24](ai-dev/plans/nop-lint/24-null-flow-adjudication.md) 空指针行三段归因；统一账本 [tool-replacement-ledger.md](../../nop-lint/docs/tool-replacement-ledger.md) Sonar 行
 > 迁移记录: 2026-09-29 自 ai-dev/design/nop-bytecode/ 迁入本模块 docs 目录（roadmap item 3 / plan 02）；内部链接已统一为仓库根相对形式。
 > 注: 本文件位于模块 docs 目录，`check-doc-links.mjs` 扫描域不含模块 docs——引用完整性由 plan 02 的人工核验项覆盖。
 
@@ -22,7 +22,7 @@
 ### G1 空指针解引用路径（null-flow，方法内路径敏感）
 
 - 归属裁定: **承接**（Wave 2）
-- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md；对照记录: [nullflow-comparison.md](../../../nop-bytecode/docs/nullflow-comparison.md)——SpotBugs 同语料空集基线 + plan 24 案例集 5 条裁定 + 分层抽检）
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/05-null-flow-v1.md；对照记录: [nullflow-comparison.md](nullflow-comparison.md)——SpotBugs 同语料空集基线 + plan 24 案例集 5 条裁定 + 分层抽检）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 24（null-flow Deferred）
 - 理由/机制面证据: 源码 lane L3 数据流为方法内 def-use + 常量传播，无路径敏感 nullness 传播能力（plan 24 归因原文）；其 pattern 面 5 条规则（throw-null / equals-null / no-throw-npe / catch-npe / no-return-null）只覆盖**模式可表达子面**，解引用前判空的路径敏感面显式 Deferred。字节码层方法内 CFG 显式化 + 抽象解释（SpotBugs NullDerefAnalysis 同形态）是该面的成熟工程形态——本通道 Wave 1 内核（CFG + nullness lattice）直接承接。
 - 误报控制面（已细化，2026-09-29 item 6 落地）: 豁免面 = assert（$assertionsDisabled 习语按断言恒启用建模）/ `Objects.requireNonNull` 系语义门控 / 平台 `NopException` 前置检查形态（IFNULL+ATHROW 同构）/ ACMP-null 侧精化；已知 FP 方向 = 字段与静态字段载荷保守 MAYNULL（无构造器非空推导）、varargs 参数、catch-NPE 控制流未建模豁免、参数保守 MAYNULL——逐条 source-line 定性见对照记录 §三。
@@ -31,7 +31,7 @@
 ### G2 资源泄漏 acquire/release 跨路径配对
 
 - 归属裁定: **承接**（Wave 3）
-- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md；对照记录: [resource-comparison.md](../../../nop-bytecode/docs/resource-comparison.md)——SpotBugs fixture 腿零 diff + 全语料空集 + plan 23 归属）
+- 执行状态: `closed`（2026-09-29，plan: ai-dev/plans/nop-bytecode/06-resource-leak-v1.md；对照记录: [resource-comparison.md](resource-comparison.md)——SpotBugs fixture 腿零 diff + 全语料空集 + plan 23 归属）
 - 来源锚点: 姊妹 roadmap Current baseline 第 3 条 + plan 23 Deferred But Adjudicated（Option A）
 - 理由/机制面证据: plan 23 归因——路径敏感 acquire/release 配对需"路径敏感资源追踪 + 跨分支 release 状态合并"，超出源码 lane L3 通道；v1 Option B 保守面（closeable-not-closed，判据四条件交集）已落地，其误报数据是本面重估输入。方法内资源配对在字节码层有成熟参考形态（SpotBugs ObligationAnalysis / ResourceValueAnalysis / FindOpenStream 三件，机制本体量级约 1.5k 行——roadmap 底座候选表与 Wave 3 描述在案），属方法内路径敏感分析，本通道内核可承载。
 - 误报控制面（已细化，2026-09-29 item 7 落地）: 豁免面 = TWR（声明式 + existing-var）/ finally-close（含守卫式——DEF 丢边）/ 所有权转移（ARETURN/字段/白名单包装器）/ 别名 close 全帧扫描；已知 FP 方向 = 普通方法实参逃逸；已知 FN 面 = 隐式异常传播、非名单 acquire、store-over 等——交付两类注册表（Closeable NEW + JDBC 工厂；锁归 follow-up），逐形态对照见 resource-comparison.md §一。

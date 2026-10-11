@@ -98,6 +98,6 @@ List<FindMatch> matches = coordinator.find(
 ## 验证命令
 
 ```bash
-./mvnw test -pl nop-tools/nop-tools/nop-find/nop-find-core
-./mvnw test -pl nop-tools/nop-tools/nop-find/nop-find-cli
+./mvnw test -pl nop-tools/nop-find/nop-find-core
+./mvnw test -pl nop-tools/nop-find/nop-find-cli
 ```
