@@ -161,7 +161,6 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | 配置键 | 默认值 | 语义 |
 |--------|--------|------|
 | `nop.ai.sequential-thinking-tool.storage-dir-path` | `./_tmp/ai/sequential-thinking/store` | SequentialThinking 会话 thought 的 JSON 文件存储目录。默认值相对 JVM 工作目录解析（`FileHelper.resolveFile`：`/` 开头为绝对路径，其余相对 `user.dir`）；配置为空回退 `~/.mcp_sequential_thinking`。裁定（P3-MA1-013）：保持文件持久化（会话级工具），多实例部署需配置共享路径或迁移 ORM |
-| `nop.ai.tools.graphql-tool-names` | （空） | `nopGraphQLToolSet` 暴露的 GraphQL 操作名集合（csv）。为空时 tool set 无函数。`nopGraphQLToolSet` bean 仅在存在 `nopGraphQLEngine` bean 时注册（`<ioc:condition><on-bean>`，P3-MA1-016） |
 
 ### bash 工具 sandbox 接线（nop-ai-toolkit）
 
@@ -195,12 +194,12 @@ nop-ai-core 的旧 chat API 已整体删除，公共 API 变更如下（Protecte
 |--------|------|
 | `IAiChatService`/`IAiChatSession`/`IAiChatProgressListener`/`AiChatOptions`（`core/api/chat/`） | `IChatService`/`ChatRequest`/`ChatResponse`/`ChatOptions`（nop-ai-api，bean `nopChatService`） |
 | `core/api/messages/` 全部（`AiChatExchange`/`Prompt`/`AiMessage` 族 14 文件） | `ChatRequest`/`ChatResponse` + `io.nop.ai.core.prompt.ChatExchange`（脚本门面：outputs/validate/resultValue） |
-| `core/api/tool/`（`IAiChatToolSet`/`IAiChatFunctionTool`/`ToolSpecification` 族） | `IAiToolInvoker`（nop-ai-core 过渡接缝，WI2 归一至 toolkit）+ `ChatToolDefinition` |
+| `core/api/tool/`（`IAiChatToolSet`/`IAiChatFunctionTool`/`ToolSpecification` 族） | 无——工具调用不在 AiCommand 命令路径（plan 2419 退役）；agent 引擎 toolkit 运行时是唯一工具执行面 |
 | `DefaultAiChatService`/`MockAiChatService`/`DefaultAiChatSession` 族 | `ChatServiceImpl`（bean `nopChatService`）/`MockChatService`（`core/mock`，新栈） |
 | persist 族 `IAiChatExchangePersister`/`DefaultAiChatExchangePersister` | `IChatExchangePersister`/`DefaultChatExchangePersister`（JSON 序列化 + AES；**旧 `/nop/ai/cache` 磁盘条目一次性失效**） |
 | 错误码 8 个（result-invalid-end-line/result-invalid-number/get-session-deprecated/unknown-role/command.not-found/command.empty-tools-node/command.tools-node-parse-failed/command.file-path-empty） | —（随废弃栈退役） |
 
-行为登记：①旧磁盘缓存条目格式失效（TTL 默认 0 时残留无害，读取走 load-fail→miss）；②`disableCache`/`streamListener`/`seed`/`contextLength` options 键不再有落点（`contextLength` task-xml attr 仍可解析但被忽略——新栈 dialect 本就不消费）；③`ai:toolSet` 死属性已从 deepwiki task-xml 移除；④`nopGraphQLToolSet` bean 契约改为 `IAiToolInvoker`（条件注册语义不变）。
+行为登记：①旧磁盘缓存条目格式失效（TTL 默认 0 时残留无害，读取走 load-fail→miss）；②`disableCache`/`streamListener`/`seed`/`contextLength` options 键不再有落点（`contextLength` task-xml attr 仍可解析但被忽略——新栈 dialect 本就不消费）；③`ai:toolSet` 死属性已从 deepwiki task-xml 移除；④`nopGraphQLToolSet` bean 已随 plan 2415（WI2 双路线裁定）退役——AiCommand 工具循环生产链不存在，`nop.err.ai.unknown-tool-call` 错误码同步删除。
 
 ## 相关文档
 

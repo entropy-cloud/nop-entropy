@@ -26,7 +26,7 @@ agent.xdef 中的 <tools> 声明工具名列表
 
 > **本节是 AI/读者消歧节**。"按 tool name 加载 `.tool.xml`" 这一行容易让读者脑补成"注解反射扫描"——**事实并非如此**。本节固化 nop-ai-toolkit 的实际工具发现机制。
 
-工具定义位于 VFS（Virtual File System）路径 `/nop/ai/tools/<name>.tool.xml`（由 `nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/` 提供）。发现与执行链路：
+工具定义位于 VFS（Virtual File System）路径 `/nop/ai/tools/<name>.tool.xml`。**源码声明目录全集（WI2 裁定登记，2026-10-11）**：`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/tools/`（25 个）、`nop-ai/nop-ai-agent/src/main/resources/_vfs/nop/ai/tools/`（9 个）、`nop-datav/nop-datav-service/src/main/resources/_vfs/nop/ai/tools/`（6 个）——三处源码分立、运行时单一命名空间（`ToolManagerImpl.listTools` 扫 VFS 全局合并；文件名与 name attr 必须全局唯一）。executor 同样全局收集（`nopToolExecutorProvider` collect-beans by-type：toolkit 20 + agent 14 + datav 6）。发现与执行链路：
 
 ```
 ToolManagerImpl.listTools()                           // io.nop.ai.toolkit.manager
@@ -138,7 +138,18 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 
 ## WI1 过渡接缝 IAiToolInvoker（plan 2414，2026-10-11）
 
-旧 chat 栈删除时，AiCommand（core）的工具面引入 `io.nop.ai.core.command.IAiToolInvoker` 过渡接缝（findTool 规格类型 `ChatToolDefinition` + callTool 异步返回）。约束：nop-ai-core 不依赖 nop-ai-toolkit，接缝只能落在 core；`GraphQLToolProvider`/`GraphQLToolSetFactoryBean`（nop-ai-tools）已迁到该接缝，bean id `nopGraphQLToolSet` 与条件注册语义不变。**该接缝是过渡态**：WI2（工具 SPI 归一）裁定时须将其与 toolkit `IToolManager`/`IToolExecutor` 合并或收编，并顺带处置 nop-ai-tools 的 13 个 `*.tool.json` 惰性资源（其唯一 loader `ToolSpecificationLoader` 已随 WI1 删除）。
+旧 chat 栈删除时，AiCommand（core）的工具面引入 `io.nop.ai.core.command.IAiToolInvoker` 过渡接缝（findTool 规格类型 `ChatToolDefinition` + callTool 异步返回）。约束：nop-ai-core 不依赖 nop-ai-toolkit，接缝只能落在 core；`GraphQLToolProvider`/`GraphQLToolSetFactoryBean`（nop-ai-tools）已迁到该接缝，bean id `nopGraphQLToolSet` 与条件注册语义不变。**该接缝是过渡态，已由 WI2 裁定退役**（见下节）：接缝与 AiCommand 工具循环、GraphQL 工具面（bean `nopGraphQLToolSet`）已删除；14 个 `*.tool.json` 惰性资源（唯一 loader `ToolSpecificationLoader` 已随 WI1 删除）一并删除。
+
+## WI2 工具 SPI 归一裁定（plan 2419，2026-10-11）
+
+**裁定：双路线正式共存**，不做单运行时收编，也不新增适配层。
+
+- **路线 A——IToolExecutor 运行时**（agent 引擎内部工具循环）：40 个 `*.tool.xml`（toolkit 25 / agent 9 / datav 6）+ 40 个 executor bean（toolkit 20 / agent 14 / datav 6），单一 fan-out chokepoint `AgentToolDispatcher.callTool`。
+- **路线 B——BizModel 外部工具面**（GraphQL/MCP 调用方）：`FileToolBizModel`（`FileTool__*` 13 个 GraphQL op）与 `AiFileTool`（`AiTool` biz 对象 3 个 op，经 `GraphQLToolCallbackProvider` 作为 MCP 出口）。
+- **共存依据**：两路线消费者不相交（A 服务 agent 引擎会话内循环，B 服务外部 GraphQL/MCP 调用），全仓零适配代码，无真实互通需求。
+- **重启条件**：①出现「外部工具需进 agent 循环」或「agent 工具需经 GraphQL/MCP 暴露」的真实需求时，另立适配 plan（公共 API 变更走 Protected Areas 迁移说明）；②目录项专属——出现 tool.xml 文件名/name attr 冲突或新增第四处声明源码目录时，重开目录统一裁定。
+- **文件工具四份实现归属映射**（闭合 roadmap WI2「收敛文件工具四份实现」）：toolkit fs + executors 保留；FileToolBizModel/AiFileTool 维持 BizModel 外部面；core file 域（IFileOperator 废弃面）随 roadmap WI6 处置；nop-ai-mcp-server 对 coder 的 Simplifier 依赖随 WI15 解除。
+- **WI1 遗留项收口**：core 过渡接缝与 AiCommand 工具循环退役（其生产链本就不存在——ai.xlib Execute 从不注入工具面，`ai:toolSet` 是死属性）；GraphQL 工具面（`GraphQLToolProvider`/`GraphQLToolSetFactoryBean`/`nopGraphQLToolSet`，唯一活消费者是测试）随栈退役；14 个 `.tool.json` 惰性资源删除（其结构与 tool.xdef 语义不兼容，恢复需重走 plan-first）。`nop.err.ai.unknown-tool-call` 错误码随最后消费者删除。
 
 ## 与其他文档的关系
 
