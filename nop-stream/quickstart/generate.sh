@@ -85,13 +85,22 @@ for tree in src/main/java src/test/java; do
 done
 
 # 替换文件内容中的占位符
+# 可移植写法：逐文件临时文件替换（BSD sed 的 `-i ''` 后缀语义与 GNU sed 不兼容，
+# GNU 会把独立词 '' 当文件操作数；sed 无 -i 的用法两平台一致）。
+# 注意 -e 顺序：@packagePath@ 必须先于 @package@ 替换（前者含后者字面前缀，反序会碾碎占位符）。
+# fail-fast：`sed && mv` 中 sed 的失败不触发 set -e（AND-OR 列表非末命令的失败被忽略），
+# 必须用 `|| { rm -f; exit 1; }` 显式传播——探针实测：缺此子句时循环跑完全部文件并残留 .tmp。
 find "$TARGET_DIR" -type f \( -name '*.java' -o -name '*.xml' \) -print0 |
-    xargs -0 sed -i '' \
-        -e "s|@packagePath@|$PACKAGE_PATH|g" \
-        -e "s|@package@|$PACKAGE|g" \
-        -e "s|@groupId@|$GROUP_ID|g" \
-        -e "s|@artifactId@|$ARTIFACT_ID|g" \
-        -e "s|@nop-stream.version@|$NOP_STREAM_VERSION|g"
+    while IFS= read -r -d '' f; do
+        sed \
+            -e "s|@packagePath@|$PACKAGE_PATH|g" \
+            -e "s|@package@|$PACKAGE|g" \
+            -e "s|@groupId@|$GROUP_ID|g" \
+            -e "s|@artifactId@|$ARTIFACT_ID|g" \
+            -e "s|@nop-stream.version@|$NOP_STREAM_VERSION|g" \
+            "$f" > "$f.tmp" || { rm -f "$f.tmp"; exit 1; }
+        mv "$f.tmp" "$f"
+    done
 
 # 无残留占位符校验（任何失败非零退出）
 if grep -rqE '@(package|packagePath|groupId|artifactId|nop-stream\.version)@' "$TARGET_DIR"; then
