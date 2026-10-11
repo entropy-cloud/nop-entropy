@@ -76,5 +76,11 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
         CoreInitialization.destroy();
         CoreMetrics.registerClock(CoreMetrics.defaultClock());
         BaseTestCase.endTest();
+
+        // 恢复配置环境：本测试类通过 @NopTestProperty / setTestConfig / assignConfigValue
+        // 注入的值不应泄漏到同 fork 中后续不经过本 Extension 的代码
+        // （plain JUnit 测试、静态初始化器等）。下一个受管类 beforeAll 的 reset()
+        // 仍然保留，作为兜底。
+        AppConfig.getConfigProvider().reset();
     }
 }
