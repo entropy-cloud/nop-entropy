@@ -34,14 +34,14 @@ public class NopJunitExtension implements BeforeAllCallback, AfterAllCallback {
         BaseTestCase.beginTest();
         processTestConfig(context);
 
-        // 仅在前序测试类动态修改过配置（assignConfigValue / setTestConfig / @NopTestProperty）
-        // 时清空模型缓存。xlib/xdef 编译时会按当时的配置求值 feature:on 等条件；
-        // 若不清缓存，后续类会复用前序类污染过的编译产物（典型症状：TenantSupport
-        // 等条件节点被错误保留导致 ORM 模型 useTenant=true）。
-        // 没有配置修改时跳过，避免无谓清空所有缓存。
-        if (AppConfig.getConfigProvider().isDirty()) {
-            ResourceComponentManager.instance().clearAllCache();
-        }
+        // 每个测试类开始前清空模型缓存。xlib/xdef 编译时会按当时的配置求值
+        // feature:on 等条件；缓存若跨类复用，会复用前序类配置下编译的产物
+        //（典型症状：TenantSupport 等条件节点被错误保留导致 ORM 模型
+        // useTenant=true）。
+        // 注：此处不能用 isDirty() 门控——下方 processTestConfig 会无条件 assign
+        // 两个内置测试配置（container startMode / graphql ignoreMillis），dirty
+        // 恒为 true，门控从未生效过；每类清缓存是配置条件编译产物的安全网。
+        ResourceComponentManager.instance().clearAllCache();
 
         CoreInitialization.initialize();
     }

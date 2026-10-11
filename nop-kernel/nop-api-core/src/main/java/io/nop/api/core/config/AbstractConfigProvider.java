@@ -53,10 +53,23 @@ public abstract class AbstractConfigProvider implements IConfigProvider {
         return ref;
     }
 
+    /**
+     * 重置所有动态修改过的配置值。
+     *
+     * <p>恢复基线不是首次访问时登记的 {@code staticValues} 快照，而是按当前
+     * {@link System#getProperty(String)} 重新采样并回写快照。write-once 快照会把
+     * fork 存活期内被 {@code System.setProperty} 污染后又 {@code clearProperty}
+     * 的值永久固化为"基线"（测试框架 afterAll 清理依赖 reset 洗净该污染），
+     * 重采样保证清理系统属性之后的 reset 能恢复到干净值（无系统属性时落到
+     * 各 ref 的声明缺省值）。
+     */
     @Override
     public void reset() {
         dirty = false;
         usedRefs.keySet().retainAll(staticValues.keySet());
+        for (Map.Entry<String, StaticValue<?>> entry : staticValues.entrySet()) {
+            entry.setValue(StaticValue.valueOf(System.getProperty(entry.getKey())));
+        }
         for (DefaultConfigReference ref : usedRefs.values()) {
             StaticValue<?> value = staticValues.get(ref.getName());
             if (value != null) {

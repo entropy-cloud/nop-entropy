@@ -504,9 +504,9 @@ public void testMultiStep() {
 
 `NopJunitExtension` 在 `beforeAll` 开头与 `afterAll` 末尾各执行一次 `AppConfig.getConfigProvider().reset()`：`@NopTestProperty`/`setTestConfig` 注入的内存值在**受管测试类**（继承 `JunitBaseTestCase` 或显式挂该 Extension）结束后即被清理，不残留到下一个类。
 
-仍会跨类持久的通道（`AbstractConfigProvider.reset()` 的恢复基线是首次静态访问时采样的 `System.getProperty` 快照）：
+仍会跨类持久的通道（`AbstractConfigProvider.reset()` 按**当前** `System.getProperty` 重采样并回写快照，故 `clearProperty` 后的下一次 reset 可恢复干净基线；但未清理的 sysprop 污染在 fork 存活期内无法洗净）：
 
-1. **JVM system property 污染**：`System.setProperty` 写入的值会进入每次 `CoreInitialization.initialize()` 的 config source 与 `staticValues` 快照，fork 存活期内 `reset()` 只会"恢复"到该污染值。用 `System.setProperty` 的测试必须在 `@AfterAll` 里 `System.clearProperty`；
+1. **JVM system property 污染**：`System.setProperty` 写入的值会进入每次 `CoreInitialization.initialize()` 的 config source 与 `staticValues` 快照。`reset()` 每次重采样当前系统属性，因此 `@AfterAll` 里 `System.clearProperty` 之后配置可恢复干净基线；**漏写 clearProperty 的污染在 fork 存活期内无法洗净**（下一次 initialize 仍会从 sysprop 装载）；
 2. **不走 `NopJunitExtension` 的 plain 测试类**（直接继承 `BaseTestCase`、自己 initialize/destroy）：既不触发 reset，其自身注入也无人清理，同 fork 内全局泄漏。
 
 影响 ORM 模型解析期的全局 flag（如 `nop.orm.enable-tenant-by-default`、`feature:on` 类在解析期求值）在 plain 测试里全局切换，会污染后续类的模型解析。

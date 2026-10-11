@@ -89,16 +89,21 @@ public class TestNopCli extends BaseTestCase {
         CoreInitialization.destroy();
         File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
-        String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml", "-i", "{totalCount:2000,taskKey:'abc'}"};
-        NopCliApplication app = new NopCliApplication();
-        app.setFactory(factory);
-        int ret = app.run(args);
-        assertEquals(0, ret);
-        System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+        // nop.* 系统属性会被后续每次 CoreInitialization.initialize 装载，清理必须
+        // 在 finally 中，断言失败也不能泄漏到同 fork 的后续测试
+        try {
+            String[] args = new String[]{"run-task", "v:/batch/batch-gen-demo.task.xml", "-i", "{totalCount:2000,taskKey:'abc'}"};
+            NopCliApplication app = new NopCliApplication();
+            app.setFactory(factory);
+            int ret = app.run(args);
+            assertEquals(0, ret);
 
-        // 2000 * (0.3 * (1/3 + 1/3 + 2/3) + 0.7) * 10 = 2200 * 10
-        String text = FileHelper.readText(getTargetFile("txn-abc.dat"), null);
-        assertTrue(text.contains("totalCount=22000 "));
+            // 2000 * (0.3 * (1/3 + 1/3 + 2/3) + 0.7) * 10 = 2200 * 10
+            String text = FileHelper.readText(getTargetFile("txn-abc.dat"), null);
+            assertTrue(text.contains("totalCount=22000 "));
+        } finally {
+            System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+        }
     }
 
     @Disabled
@@ -107,6 +112,8 @@ public class TestNopCli extends BaseTestCase {
         CoreInitialization.destroy();
         File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
         File devDir = new File(getModuleDir(), "../nop-cli/demo/");
+        // 本测试与所属类均为 @Disabled，当前不可达；set 后的对称清理仍需保留，
+        // 防止重新启用时向同 fork 泄漏 nop.dev.root-path
         System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
         String[] args = new String[]{"run-task", "v:/batch/batch-demo.task.xml", "-i", "{bizDate:'2024-12-08'}"};
@@ -115,6 +122,7 @@ public class TestNopCli extends BaseTestCase {
         int ret = app.run(args);
         assertEquals(0, ret);
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+        System.getProperties().remove(CoreConfigs.CFG_DEV_ROOT_PATH.getName());
     }
 
     @Disabled
@@ -123,6 +131,8 @@ public class TestNopCli extends BaseTestCase {
         CoreInitialization.destroy();
         File file = new File(getModuleDir(), "../nop-cli/demo/_vfs");
         File devDir = new File(getModuleDir(), "../nop-cli/demo/");
+        // 本测试与所属类均为 @Disabled，当前不可达；set 后的对称清理仍需保留，
+        // 防止重新启用时向同 fork 泄漏 nop.dev.root-path
         System.setProperty(CoreConfigs.CFG_DEV_ROOT_PATH.getName(), devDir.getAbsolutePath());
         System.setProperty(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName(), file.getAbsolutePath());
         String[] args = new String[]{"run-task", "v:/batch/import-action-auth-jdbc.batch.xml", "-PxdslPath=../../nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/auth/nop-auth.action-auth.xml"};
@@ -131,6 +141,7 @@ public class TestNopCli extends BaseTestCase {
         int ret = app.run(args);
         assertEquals(0, ret);
         System.getProperties().remove(CoreConfigs.CFG_RESOURCE_DIR_OVERRIDE_VFS.getName());
+        System.getProperties().remove(CoreConfigs.CFG_DEV_ROOT_PATH.getName());
     }
 
     @Test

@@ -75,6 +75,12 @@ public class TestAutoTestShardTableInit {
 
     @AfterAll
     public static void destroy() {
+        // 清理 @BeforeAll 注入的占位 datasource 配置，避免残留到同 fork 的
+        // 后续测试（SysPropertyConfigSourceLoader 每次 initialize 都会装载）
+        System.clearProperty("nop.datasource.driver-class-name");
+        System.clearProperty("nop.datasource.jdbc-url");
+        System.clearProperty("nop.datasource.username");
+        System.clearProperty("nop.datasource.password");
         if (dataSource != null)
             dataSource.close();
         CoreInitialization.destroy();
