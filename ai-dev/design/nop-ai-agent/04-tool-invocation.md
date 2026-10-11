@@ -148,7 +148,7 @@ AI HTTP 工具（`http-request`/`graphql-query`）的 SSRF 防护为**两阶段*
 - **路线 B——BizModel 外部工具面**（GraphQL/MCP 调用方）：`FileToolBizModel`（`FileTool__*` 13 个 GraphQL op）与 `AiFileTool`（`AiTool` biz 对象 3 个 op，经 `GraphQLToolCallbackProvider` 作为 MCP 出口）。
 - **共存依据**：两路线消费者不相交（A 服务 agent 引擎会话内循环，B 服务外部 GraphQL/MCP 调用），全仓零适配代码，无真实互通需求。
 - **重启条件**：①出现「外部工具需进 agent 循环」或「agent 工具需经 GraphQL/MCP 暴露」的真实需求时，另立适配 plan（公共 API 变更走 Protected Areas 迁移说明）；②目录项专属——出现 tool.xml 文件名/name attr 冲突或新增第四处声明源码目录时，重开目录统一裁定。
-- **文件工具四份实现归属映射**（闭合 roadmap WI2「收敛文件工具四份实现」）：toolkit fs + executors 保留；FileToolBizModel/AiFileTool 维持 BizModel 外部面；core file 域（IFileOperator 废弃面）随 roadmap WI6 处置；nop-ai-mcp-server 对 coder 的 Simplifier 依赖随 WI15 解除。
+- **文件工具四份实现归属映射**（闭合 roadmap WI2「收敛文件工具四份实现」）：toolkit fs + executors 保留；FileToolBizModel/AiFileTool 维持 BizModel 外部面；core file 域随 roadmap WI6 处置（plan 2429 已裁：死面 FileDiff 族/FileContentParser 删除、DslToolImpl 去 IFileOperator 依赖；IFileOperator→IToolFileSystem 全面收口立 successor——前置条件 = 契约文档三条件 + CliFileCommand 补测试；response 留守 core 裁定）；nop-ai-mcp-server 对 coder 的 Simplifier 依赖随 WI15 解除。
 - **WI1 遗留项收口**：core 过渡接缝与 AiCommand 工具循环退役（其生产链本就不存在——ai.xlib Execute 从不注入工具面，`ai:toolSet` 是死属性）；GraphQL 工具面（`GraphQLToolProvider`/`GraphQLToolSetFactoryBean`/`nopGraphQLToolSet`，唯一活消费者是测试）随栈退役；14 个 `.tool.json` 惰性资源删除（其结构与 tool.xdef 语义不兼容，恢复需重走 plan-first）。`nop.err.ai.unknown-tool-call` 错误码随最后消费者删除。
 
 ## 与其他文档的关系

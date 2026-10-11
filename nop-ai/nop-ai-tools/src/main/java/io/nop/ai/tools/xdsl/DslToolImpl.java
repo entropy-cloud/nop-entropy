@@ -1,7 +1,7 @@
 package io.nop.ai.tools.xdsl;
 
-import io.nop.ai.core.file.IFileOperator;
-import io.nop.ai.core.file.LocalFileOperator;
+import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.converter.DocumentConvertOptions;
 import io.nop.converter.DocumentConverterManager;
@@ -9,34 +9,38 @@ import io.nop.converter.IDocumentObject;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.core.resource.VirtualFileSystem;
+import io.nop.core.resource.impl.FileResource;
 
 import java.io.File;
+import java.io.IOException;
+
+import static io.nop.commons.CommonErrors.ERR_FILE_INVALID_PATH;
 
 /**
- * DSL schema tool backed by the legacy {@link IFileOperator}.
+ * DSL schema tool scoped to a base directory (project dir).
  *
  * <p>Sunk down from nop-ai-coder (M5-P1 round-1 audit finding 3, decision A):
  * implementation moved to nop-ai-tools together with {@link IDslTool} so the
  * concrete tool module no longer depends on the nop-ai-coder heavyweight
- * chain; see the interface javadoc for the rationale.
- * <p>
- * <b>P2-MA1-012 ruling (2026-07-31) — retained with documentation:</b>
- * the two file-system abstractions are kept side by side
- * (IFileOperator = base-dir scoped resource ops; IToolFileSystem =
- * sandboxed executor FS). Migration preconditions and the boundary
- * contract are documented in
- * {@code ai-dev/design/nop-ai/01-file-operator-abstraction-contract.md}.
- * Retained intentionally, do not "fix" by inlining.
+ * chain.
+ *
+ * <p><b>plan 2429/WI6:</b> the legacy {@code IFileOperator} dependency was
+ * removed. Path resolution replicates the sandbox semantics of
+ * {@code LocalFileOperator.getResource}: paths resolve against the base dir
+ * (including "/..." forms, which {@link File#File(File, String)} treats as
+ * absolute children), {@code ..}/{@code :} and canonical containment outside
+ * the base dir fail loud with {@code ERR_FILE_INVALID_PATH}; a missing
+ * absolute path falls back to the virtual filesystem (pre-existing behavior).
  */
 public class DslToolImpl implements IDslTool {
-    private final IFileOperator fileOperator;
+    private final File baseDir;
 
-    public DslToolImpl(IFileOperator fileOperator) {
-        this.fileOperator = fileOperator;
+    public DslToolImpl(File baseDir) {
+        this.baseDir = FileHelper.getAbsoluteFile(baseDir);
     }
 
     public static DslToolImpl createForDir(File dir) {
-        return new DslToolImpl(new LocalFileOperator(dir));
+        return new DslToolImpl(dir);
     }
 
     @Override
@@ -78,12 +82,32 @@ public class DslToolImpl implements IDslTool {
     }
 
     protected IResource getResource(String filePath) {
-        IResource resource = fileOperator.getResource(filePath);
+        IResource resource = new FileResource(resolveFile(filePath));
         if (!resource.exists()) {
             if (filePath.startsWith("/")) {
                 resource = VirtualFileSystem.instance().getResource(filePath);
             }
         }
         return resource;
+    }
+
+    private File resolveFile(String path) {
+        if (path.contains("..") || path.contains(":")) {
+            throw new NopException(ERR_FILE_INVALID_PATH)
+                    .param("path", path);
+        }
+        File resolved = path.isEmpty() ? baseDir : new File(baseDir, path);
+        try {
+            String resolvedCanonical = resolved.getCanonicalPath();
+            String baseCanonical = baseDir.getCanonicalPath();
+            if (!resolvedCanonical.startsWith(baseCanonical)) {
+                throw new NopException(ERR_FILE_INVALID_PATH)
+                        .param("path", path);
+            }
+        } catch (IOException e) {
+            throw new NopException(ERR_FILE_INVALID_PATH, e)
+                    .param("path", path);
+        }
+        return resolved;
     }
 }

@@ -98,7 +98,8 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 模块 | 职责 |
 |------|------|
 | `nop-ai-api` | 公开 API 契约：`IChatService`、`ChatOptions`、`ChatMessage`（Agent Engine 直接消费的类型） |
-| `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、错误码。旧 chat API（`IAiChatService` 等）已删除（plan 2414），勿再引用 |
+| `nop-ai-core` | LLM 调用实现（`ChatServiceImpl` + `ILlmDialect` Provider 适配）、错误码。旧 chat API（`IAiChatService` 等）已删除（plan 2414），勿再引用 ；`core/file` = 文件操作契约域（P2-MA1-012 双抽象收口中，plan 2429 死面已删、IFileOperator→IToolFileSystem 收口立 successor）、`core/response` = LLM 输出结构化解析平台能力（plan 2429 留守裁定：prompt 求值引擎内在能力 + dsl-orm→dyn-service 生成链消费） |
+
 | `nop-ai-agent` | Agent DSL + 执行引擎（`DefaultAgentEngine`/`ReActAgentExecutor`）。经 `IChatService` 调 LLM，经 `ITokenEstimator` bridge 消费 token 估算；可靠性机制直接复用 `io.nop.ai.core.reliability` 包（`ThresholdBreaker`/`LlmErrorClassifier`/`ProviderFailoverChain`/`StandardRetryPolicy` 等），并直接使用 core 的 `model`/`agent`/`dialect` 公共模型类型（2026-09-14 按 live import 修正） |
 | `nop-ai-toolkit` | 工具执行层：19 个具体 `*Executor`（ReadFile/Bash/Http/GraphqlQuery/ApplyDelta/Patch/Skill 等，`io.nop.ai.toolkit.tools`）+ `LocalToolFileSystem` + `ToolManagerImpl`/`DefaultToolExecutorProvider`；抽象面为 `IToolExecutor`/`IToolManager` 与工具 DSL（tool.xdef） |
 | `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎。DSL 文档工具契约与实现（`IDslTool`/`DslToolImpl`，`io.nop.ai.tools.xdsl`）在模块内部（M5-P1 裁定 A：自 nop-ai-coder 下沉，解除 tools→coder 分层倒置；DSL 转换经 nop-converter，不连带 coder 重量依赖链） |
