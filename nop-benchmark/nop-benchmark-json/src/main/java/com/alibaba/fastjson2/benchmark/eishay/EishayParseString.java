@@ -9,7 +9,7 @@ package com.alibaba.fastjson2.benchmark.eishay;
 
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.benchmark.eishay.vo.MediaContent;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.json.JsonTool;
@@ -26,7 +26,7 @@ import java.util.concurrent.TimeUnit;
 
 public class EishayParseString {
     static String str;
-    static ObjectMapper mapper = new ObjectMapper();
+    static JsonMapper mapper = JsonMapper.builder().build();
 
     static {
         try {

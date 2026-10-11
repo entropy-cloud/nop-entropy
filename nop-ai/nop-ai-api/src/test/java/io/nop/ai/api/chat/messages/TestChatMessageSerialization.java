@@ -1,7 +1,7 @@
 package io.nop.ai.api.chat.messages;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -23,8 +23,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestChatMessageSerialization {
 
-    private final ObjectMapper mapper = new ObjectMapper()
-            .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+    private final JsonMapper mapper = JsonMapper.builder()
+            .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES).build();
 
     @Test
     void userMessageRoundTrip() throws Exception {

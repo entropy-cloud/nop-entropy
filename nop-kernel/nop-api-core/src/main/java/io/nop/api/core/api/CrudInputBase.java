@@ -10,6 +10,7 @@ package io.nop.api.core.api;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.nop.api.core.annotations.data.DataBean;
 
 import java.io.Serializable;
@@ -23,10 +24,13 @@ public abstract class CrudInputBase implements Serializable {
 
     private Map<String, Object> _extAttrs;
 
+    // Jackson 3 不再自动探测下划线前缀访问器（Jackson 2 隐式映射为 _chgType）——显式钉住 JSON 契约名（WI7 plan 2439）
+    @JsonProperty("_chgType")
     public String get_chgType() {
         return _chgType;
     }
 
+    @JsonProperty("_chgType")
     public void set_chgType(String _chgType) {
         this._chgType = _chgType;
     }

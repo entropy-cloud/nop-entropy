@@ -83,7 +83,7 @@ Human-owned choices; execution plans must not re-litigate them:
 ### D — Spring Boot 4 adoption
 
 - WI6 Spring Boot 4.1.1 + Cloud 2025.1.x + AI 2.0.x BOM bump + sub-pom realign: `done`
-- WI7 Jackson 3 migration (8 real databind sites + SB4/Q4 config/annotation surface): `todo`
+- WI7 Jackson 3 migration (8 real databind sites + SB4/Q4 config/annotation surface): `done`
 
 ### E — GraalVM, containers & dependency governance
 

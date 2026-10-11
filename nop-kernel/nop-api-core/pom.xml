@@ -14,9 +14,6 @@
     <artifactId>nop-api-core</artifactId>
 
     <properties>
-        <!-- 2.10.2与 最新版 idea plugin不兼容 -->
-        <jackson.version>2.15.2</jackson.version>
-
         <jakarta.rs.version>3.1.0</jakarta.rs.version>
         <jakarta.annotation.version>2.1.1</jakarta.annotation.version>
         <jakarta.inject.version2>2.0.1</jakarta.inject.version2>
@@ -38,16 +35,15 @@
             <version>${jakarta.rs.version}</version>
         </dependency>
 
+        <!-- WI7(plan 2439):撤销本地 2.15.2 钉——Jackson 3 databind 运行时需要 annotations 2.17+ 的 JsonSerializeAs,回落 BOM 管理(2.22.2,导入序 Q4 胜出) -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-annotations</artifactId>
-            <version>${jackson.version}</version>
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
 
