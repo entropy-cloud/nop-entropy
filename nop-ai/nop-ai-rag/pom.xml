@@ -35,9 +35,28 @@
             <scope>test</scope>
             <optional>true</optional>
         </dependency>
+                <!-- compile：AiModelTextEmbedding（main）implements ITextEmbedding；
+             不声明 scope 即 compile——test scope 会把 core 传递来的 compile
+             依赖降级并破坏 main 编译（plan 2421 执行期修正） -->
         <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-search-lucene</artifactId>
+            <scope>test</scope>
+        </dependency>
+<dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- test：迁移进来的 wiring/e2e 测试需要 IoC 容器初始化器（IocCoreInitializer
+             经 autotest-junit 传递引入，plan 2421） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-autotest-junit</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

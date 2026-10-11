@@ -19,6 +19,12 @@ public class TestPgVectorSearchRowMapping {
 
     @BeforeAll
     static void init() {
+        // plan 2421：本测试只需 VFS/模型注册表，不需要 IoC 容器。nop-autotest-junit
+        // 引入 IocCoreInitializer 后全量容器装配会因缺 datasource/HTTP client 失败，
+        // 显式关闭 IoC 层恢复本测试的原有语义。
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.auto-config.enabled", "false");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.app-beans-file.enabled", "false");
+        io.nop.api.core.config.AppConfig.getConfigProvider().assignConfigValue("nop.ioc.merged-beans-file.enabled", "false");
         CoreInitialization.initialize();
     }
 
