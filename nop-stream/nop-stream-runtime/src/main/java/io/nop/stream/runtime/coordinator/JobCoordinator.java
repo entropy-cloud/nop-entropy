@@ -53,6 +53,7 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.util.NopStreamThreadFactory;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
+import io.nop.stream.runtime.checkpoint.core.RestoreGates;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.NodeInfo;
@@ -2027,47 +2028,18 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // the field is already alive in the same JVM.
             CompletedCheckpoint inMemory = checkpointCoordinator.getLatestCheckpoint();
             if (inMemory == null) {
-                // WI10 (plan 2426, 6a): manifest-first validation gate — the failover
-                // rebuild must not silently inherit a topology-incompatible or
-                // shadow-window state that the raw checkpoint row cannot see. Sequence:
-                // (1) read the latest durable epoch manifest (missing → nothing to
-                // validate, raw path proceeds unchanged); (2) fail fast when the
-                // manifest carries a model fingerprint that this coordinator cannot
-                // prove compatible (no fingerprint source counts as unprovable —
-                // fail-closed per the fingerprint policy); (3) advance the epoch
-                // counter past the MANIFEST epoch (monotonic-only, idempotent —
-                // coexists with the raw path's own data-epoch advance below and
-                // closes the shadow window where manifest epoch > latest data epoch).
-                // The raw restoreFromCheckpoint() still runs afterwards to populate
-                // the latestCompletedCheckpoint view (self-consumed below).
+                // WI10 (plan 2426, 6a) + WI11 (plan 2432): manifest-first
+                // validation gate via the shared checkpoint.core helper —
+                // fingerprint fail-closed + counter past the manifest epoch
+                // (shadow-window). The raw restoreFromCheckpoint() below still
+                // populates the latestCompletedCheckpoint view (self-consumed).
                 try {
-                    EpochManifest gateManifest =
-                            checkpointCoordinator.restoreLatestEpochManifest();
-                    if (gateManifest != null) {
-                        StreamModelFingerprint carried =
-                                gateManifest.getStreamModelFingerprint();
-                        if (carried != null) {
-                            StreamModelFingerprint current =
-                                    checkpointCoordinator.getCurrentFingerprint();
-                            if (current == null || !carried.isCompatibleWith(current)) {
-                                throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
-                                        "Failover rebuild rejected: durable epoch manifest "
-                                                + gateManifest.getEpochId() + " for job " + jobId
-                                                + " carries a stream-model fingerprint that this "
-                                                + "coordinator cannot prove compatible (carried="
-                                                + carried + ", current=" + current
-                                                + "). Restore via a fingerprint-capable entry "
-                                                + "or regenerate the job.");
-                            }
-                        }
-                        checkpointCoordinator.advanceCheckpointIdCounterAfterRestore(
-                                gateManifest.getEpochId());
-                        LOG.info("Manifest-first gate passed for job {}: validated epoch {}, "
-                                + "counter advanced past manifest epoch before raw rebuild",
-                                jobId, gateManifest.getEpochId());
-                    }
-                } catch (StreamException se) {
-                    throw se;
+                    io.nop.stream.runtime.checkpoint.core.RestoreGates.applyManifestGate(
+                            checkpointCoordinator, jobId);
+                } catch (StreamException gateRejection) {
+                    // fail-closed ruling: an unprovable/incompatible durable state
+                    // must fail the leadership activation loud (guide #24)
+                    throw gateRejection;
                 } catch (Exception gateEx) {
                     throw new StreamException(ERR_STREAM_INVALID_STATE, gateEx).param(ARG_DETAIL,
                             "Manifest-first gate failed during leadership activation for job "
