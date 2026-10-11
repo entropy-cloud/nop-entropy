@@ -34,10 +34,21 @@
         </dependency>
 
         <!--
-            cdc-design.md §3.5: dmlMode UPSERT/UPSERT_DELETE consumes the nop ChangeEvent
-            envelope (operation c/u/d/r + key + after) natively. provided+optional: jobs
-            that feed ChangeEvent records already carry this module at runtime; pure
-            INSERT-mode sinks never touch these types.
+            cdc-design.md §3.5: dmlMode UPSERT/UPSERT_DELETE consume the nop ChangeEvent
+            envelope (operation c/u/d/r + key + after) natively; INSERT consumes plain
+            record rows. provided+optional: jobs that feed ChangeEvent records already
+            carry this module at runtime.
+
+            WI4 plan 2413: the sink gates all four CDC branches behind a classpath
+            capability probe (JdbcTwoPhaseCommitSink.CDC_PRESENT → CdcEventOps), so a
+            pure INSERT deployment that does NOT carry this jar runs zero-linked —
+            guarded by the surefire execution insert-no-debezium (regression pin:
+            TestJdbcTwoPhaseCommitSinkInsertNoDebezium). Earlier comment claimed INSERT
+            "never touches these types" via direct instanceof: that was false — JVM
+            instanceof resolves the referenced class, first INSERT record hit
+            NoClassDefFoundError. Renaming/moving ChangeEvent silently disables the
+            envelope paths: keep the probe string, CdcEventOps and this dependency in
+            sync.
         -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -64,4 +75,33 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <!-- WI4 plan 2413 防回归门禁：INSERT 全路径在无 nop-message-debezium
+                             的运行时 classpath 下必须可用。includes 限定单测试类——无 includes
+                             时本 execution 会套默认 include 跑全部测试类，TestJdbcTwoPhaseCommitSinkDml
+                             构造 ChangeEvent 必红（防回归配置误伤）。default-test 照常先行运行。 -->
+                        <id>insert-no-debezium</id>
+                        <goals>
+                            <goal>test</goal>
+                        </goals>
+                        <configuration>
+                            <classpathDependencyExcludes>
+                                <classpathDependencyExclude>io.github.entropy-cloud:nop-message-debezium</classpathDependencyExclude>
+                            </classpathDependencyExcludes>
+                            <includes>
+                                <include>TestJdbcTwoPhaseCommitSinkInsertNoDebezium</include>
+                            </includes>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+    </build>
 </project>

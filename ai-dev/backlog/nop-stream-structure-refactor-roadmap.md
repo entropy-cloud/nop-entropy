@@ -30,7 +30,7 @@
 - WI1 nop-bom 悬空条目清理与依赖版本收口: `done`（plan 2410，2026-10-11）
 - WI2 quickstart 生成器跨平台修复与模板版本对齐: `done`（plan 2411，2026-10-11；实测订正：平台 junit-jupiter 解析版本 6.0.3，经 quarkus.platform 3.35.1 import 链传递管理，模板钉版本与之一致无漂移，本节原文「5.x 线漂移」前提不成立；模板三版本点经实测全部维持现状）
 - WI3 架构基线与 owner docs 回写: `done`（plan 2412，2026-10-11；STRM-018/019 已登记 WI7/WI8 变更预告，最终改写归后续 WI）
-- WI4 connector-jdbc provided+optional 依赖硬化: `todo`
+- WI4 connector-jdbc provided+optional 依赖硬化: `done`（plan 2413，2026-10-11；裁定方案 b 窄接口隔离——a 方案 compile 化实测边际 65 构件约 33.6MB 触发 roadmap 预设的不可接受阈值；防回归门禁为 surefire 独立 execution insert-no-debezium 持久自动化）
 - WI5 runtime 测试侧 connector 反向 fan-in 收敛: `todo`
 - WI6 runtime 包级环打破与 wire DTO 叶子包提取: `todo`
 - WI7 窗口算子实现包归位 core: `todo`
