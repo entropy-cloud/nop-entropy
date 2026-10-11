@@ -15,8 +15,8 @@ import java.util.Objects;
  * (id + description + opaque cursor), e.g. {@code FileSplit} (path + byte offset).
  *
  * <p>Stage 49 D6: this is the renamed/rehoused successor of the old concrete
- * {@code io.nop.stream.runtime.source.SourceSplit} class. The concrete is gone; this is
- * the only default split impl in the new contract.
+ * runtime-side SourceSplit class, which was removed when the split contract
+ * moved into core. This is the only default split impl in the new contract.
  */
 public final class SimpleSourceSplit implements SourceSplit {
 

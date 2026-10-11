@@ -50,8 +50,8 @@ public class CheckpointBarrierTracker {
     /**
      * Error channel invoked when an operator snapshot reports
      * {@link OperatorSnapshotResult#hasError()}. Receives the checkpointId and the
-     * cause so the coordinator can abort the matching {@link
-     * io.nop.stream.runtime.checkpoint.PendingCheckpoint}. When set, the tracker
+     * cause so the coordinator can abort the matching runtime-side pending
+     * checkpoint (runtime.checkpoint.PendingCheckpoint). When set, the tracker
      * forwards the error to this callback instead of treating the failed ACK as a
      * successful snapshot. Nullable for back-compat with test constructors
      * that do not inject an abort sink.

@@ -13,6 +13,8 @@
 | `nop-stream-cep` | CEP 模式匹配 |
 | `nop-stream-rocksdb` | RocksDB 状态后端 |
 | `nop-stream-connector{,-batch,-jdbc,-debezium}` | 连接器族 |
+| `nop-stream-connector-kafka` | Kafka 原生连接器（KafkaSourceFunction + KafkaTwoPhaseCommitSink exactly-once sink） |
+| `nop-stream-format-avro` | Avro/Schema Registry payload 格式层（Confluent wire format，当前主要消费面 = Kafka 连接器） |
 | `nop-stream-flow` | XDSL 流程集成 |
 | `nop-stream-sql` | 声明式 SQL 窄范围接口（`.stream.xml` 顶层 `<sql>` 元素编译宿主；使用文档 `03-modules/nop-stream-sql.md`） |
 | `nop-stream-fraud-example` | 复合场景示例（S1/S2 + 分布式演练） |
