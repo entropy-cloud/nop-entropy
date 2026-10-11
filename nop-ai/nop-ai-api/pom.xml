@@ -13,10 +13,6 @@
 
     <artifactId>nop-ai-api</artifactId>
 
-    <properties>
-        <jackson.version>2.15.2</jackson.version>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
@@ -30,9 +26,8 @@
         </dependency>
 
         <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
+            <groupId>tools.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
-            <version>${jackson.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

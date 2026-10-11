@@ -1,6 +1,6 @@
 package io.nop.api.core.api;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -33,7 +33,7 @@ public class TestCrudInputBase {
         }
     }
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final JsonMapper mapper = JsonMapper.builder().build();
 
     @Test
     public void testChgTypeField() {

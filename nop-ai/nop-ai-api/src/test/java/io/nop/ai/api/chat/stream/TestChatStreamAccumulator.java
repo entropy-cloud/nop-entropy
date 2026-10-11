@@ -1,6 +1,6 @@
 package io.nop.ai.api.chat.stream;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import io.nop.ai.api.chat.messages.ChatToolCall;
 import io.nop.ai.api.exceptions.NopAiException;
 import io.nop.api.core.json.JSON;
@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  */
 public class TestChatStreamAccumulator {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private static final JsonMapper MAPPER = JsonMapper.builder().build();
 
     @BeforeAll
     static void registerJsonProvider() {
