@@ -1,0 +1,106 @@
+# Faithful landing of the deferred silent-swallow invariant (roadmap item 23;
+# deferred by plan 2026-09-21-2137-3 "Deferred But Adjudicated", absorbed from
+# ai-dev/tools/check-silent-swallow.mjs INV-SILENT-SWALLOW).
+#
+# Semantics (design 01 §3.3 / 04 §5): a catch clause is a HIT iff its body
+# block (field: body — the mjs gate scans the brace span only) contains NONE
+# of the seven good signals. The mjs text-contains signals become AST shapes:
+#   "throw"                  -> `throw $$$`
+#   "NopMetadataException("  -> the constructor shape
+#   ".errorCode("            -> any qualified errorCode call
+#   "ErrorCode." / "Errors." -> the family's method-invocation shape plus its
+#                               field reads; field reads use the CONTEXTUAL
+#                               pattern form (design 01 §1) because a bare
+#                               `A.B` snippet parses as a TYPE reference
+#                               (scoped_type_identifier) while the same shape
+#                               in expression position is a field_access —
+#                               context pins the expression reading. The
+#                               exact-identifier shapes are enumerated per
+#                               family (Errors / NopMetadataErrors /
+#                               ErrorCode), matching the mjs gate's fixed
+#                               GOOD_SIGNALS list.
+#   "BizException"           -> the constructor shape (a bare reference or
+#                               instanceof/type position is an adjudicated
+#                               delta: nop-lint stays silent there, mjs
+#                               counts it — recorded in the plan comparison
+#                               table)
+#   "Biz.fatal("             -> the call shape
+# Comment/string isolation is natural at tree level (identifier/call shapes
+# cannot match comment or string_literal nodes; design 01 §3.3 increment) —
+# the mjs maskCommentsAndStrings concern does not exist here.
+#
+# Adjudicated deltas vs the mjs gate (recorded in the plan 0544-2 comparison
+# table): signals inside string literals no longer count (AST node semantics,
+# strictly fewer false passes); other *Errors.* families beyond the
+# enumerated three are not signals (exact identifiers, not substrings); a
+# bare BizException mention is not a signal outside the constructor shape.
+id: nop/silent-swallow
+language: Java
+severity: error
+message: "Catch block silently swallows the exception; rethrow it or propagate an ErrorCode-bearing exception (none of: throw / NopMetadataException / .errorCode( / ErrorCode. / Errors. / BizException / Biz.fatal()"
+rule:
+  all:
+    - kind: catch_clause
+    - not:
+        has:
+          pattern: "throw $$$"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "new NopMetadataException($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "$OBJ.errorCode($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "ErrorCode.$M($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          context: "use(ErrorCode.$FIELD)"
+          selector: field_access
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "Errors.$M($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          context: "use(Errors.$FIELD)"
+          selector: field_access
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "NopMetadataErrors.$M($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          context: "use(NopMetadataErrors.$FIELD)"
+          selector: field_access
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "new BizException($$$ARGS)"
+          stopBy: end
+          field: body
+    - not:
+        has:
+          pattern: "Biz.fatal($$$ARGS)"
+          stopBy: end
+          field: body
+metadata:
+  category: exception-handling
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-silent-swallow.mjs"

@@ -1,0 +1,8 @@
+id: demo/any-empty-branch
+language: Java
+severity: warning
+message: Any matcher with a branch that declares no matcher must fail
+rule:
+  any:
+    - pattern: "$obj.invoke($name)"
+    - {}

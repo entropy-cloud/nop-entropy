@@ -1,0 +1,81 @@
+================================================================================
+Struct with a type parameter struct constraint
+================================================================================
+
+public struct F<T> where T:struct {}
+
+public struct F<T> where T: new() {}
+
+readonly public struct A : ISomething { }
+
+private struct F<T1,T2> where T1 : I1, I2, new() where T2 : I2 { }
+
+ref struct Test { }
+
+struct NoBody;
+
+private struct NoBodyWithPrimary(int g);
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (struct_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint))
+    body: (declaration_list))
+  (struct_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        (constructor_constraint)))
+    body: (declaration_list))
+  (struct_declaration
+    (modifier)
+    (modifier)
+    name: (identifier)
+    (base_list
+      (identifier))
+    body: (declaration_list))
+  (struct_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier))
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        (constructor_constraint)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier)))
+    body: (declaration_list))
+  (struct_declaration
+    name: (identifier)
+    body: (declaration_list))
+  (struct_declaration
+    name: (identifier))
+  (struct_declaration
+    (modifier)
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))))

@@ -1,0 +1,21 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #2, ESLint port):
+# no-self-compare — comparing a value to itself is always true (==) or
+# always false (!=) and almost always a typo for a real comparison. The
+# same-name metavariable ($X twice) is the matcher's same-node binding
+# consistency (item 4), so `$X == $X` matches only literally identical
+# operand expressions. Head-note adjudication: the shadowed-field corner
+# where a variable compares to a same-named field is vanishingly rare and
+# reads as a defect anyway; no valid-fixture exception is carved out.
+id: quality/no-self-compare
+language: Java
+severity: warning
+message: "自比较：表达式与自身比较恒为常量 (self-compare; the operands are identical)"
+rule:
+  any:
+    - pattern: "$X == $X"
+    - pattern: "$X != $X"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #2 (ESLint no-self-compare)"

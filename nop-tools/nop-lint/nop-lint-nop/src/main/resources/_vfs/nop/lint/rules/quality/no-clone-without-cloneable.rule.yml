@@ -1,0 +1,67 @@
+# tool-replacement roadmap item 4a (plan nop-lint/19): PMD
+# CloneMethodMustImplementCloneable successor. PMD 7.26 alignment: clone
+# detection is name + arity 0 + non-static (no public requirement); a body
+# of exactly one `throw CloneNotSupportedException` is exempt; only classes
+# (not enum/record/interface) are checked; the violation anchors on the
+# clone() method. Recorded v1 delta: PMD resolves Cloneable over the FULL
+# supertype closure (interfaces extending Cloneable, super classes) while
+# this face reads the direct implements clause — classes inheriting
+# Cloneable from a parent are false positives here, adjudicated per corpus
+# in the §4.3 comparison.
+id: quality/no-clone-without-cloneable
+language: Java
+severity: warning
+message: "覆写 clone() 须实现 Cloneable，否则拷贝语义不成立 (clone() without Cloneable breaks the copy contract)"
+rule:
+  kind: method_declaration
+xscript: |
+  if (node.child('name').text() != 'clone') {
+    return;
+  }
+  if (node.child('parameters').children('formal_parameter').size() != 0) {
+    return;
+  }
+  for (let m of node.children('modifiers')) {
+    if (m.text().contains('static')) {
+      return;
+    }
+  }
+  let body = node.child('body');
+  if (body != null) {
+    let stmtCount = 0;
+    let only = null;
+    for (let c of body.children()) {
+      stmtCount = stmtCount + 1;
+      only = c;
+    }
+    if (stmtCount == 1 && only != null && only.kind() == 'throw_statement'
+      && only.text().contains('CloneNotSupportedException')) {
+      return;
+    }
+  }
+  let cls = node.ancestor('class_declaration');
+  if (cls == null) {
+    return;
+  }
+  let hasCloneable = false;
+  // spike note: this grammar names the clause chain super_interfaces ->
+  // type_list -> type_identifier (no superinterfaces kind)
+  for (let si of cls.children('super_interfaces')) {
+    for (let tl of si.children('type_list')) {
+      for (let t of tl.children('type_identifier')) {
+        let n = t.text();
+        if (n == 'Cloneable' || n == 'java.lang.Cloneable') {
+          hasCloneable = true;
+        }
+      }
+    }
+  }
+  if (!hasCloneable) {
+    // report anchors on the method-name identifier for PMD beginline parity
+    report({ node: node.child('name'), message: 'clone() 覆写但类未实现 Cloneable（拷贝契约依赖 Object.clone 的类型检查）(clone() overridden without Cloneable)' });
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "pmd-ruleset.xml CloneMethodMustImplementCloneable (tool-replacement roadmap item 4a)"

@@ -1,0 +1,194 @@
+================================================================================
+Basic record declaration
+================================================================================
+
+record F {
+  int Age { get; init; }
+}
+
+record struct F {
+  int Age { get; init; }
+}
+
+record class F {
+  int Age { get; init; }
+}
+
+public record F<T> where T:struct {}
+
+public record F<T> where T: new() {}
+
+public record A : ISomething { }
+
+[Test]
+private record F<T1,T2> where T1 : I1, I2, new() where T2 : I2 { }
+
+record Person(string FirstName, string LastName);
+
+record Teacher(string FirstName, string LastName, string Subject) : Person(FirstName, LastName);
+
+record Teacher(string FirstName, string LastName, string Subject) : Person(FirstName, LastName), Ns.I1, I2;
+
+record Teacher() : Entity<Person>(), I1;
+
+public record Person { };
+
+public record struct Person2 { };
+
+record NoBody;
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (record_declaration
+    name: (identifier)
+    body: (declaration_list
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))))
+  (record_declaration
+    name: (identifier)
+    body: (declaration_list
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))))
+  (record_declaration
+    name: (identifier)
+    body: (declaration_list
+      (property_declaration
+        type: (predefined_type)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration)
+          (accessor_declaration)))))
+  (record_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint))
+    body: (declaration_list))
+  (record_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        (constructor_constraint)))
+    body: (declaration_list))
+  (record_declaration
+    (modifier)
+    name: (identifier)
+    (base_list
+      (identifier))
+    body: (declaration_list))
+  (record_declaration
+    (attribute_list
+      (attribute
+        name: (identifier)))
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier))
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        (constructor_constraint)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier)))
+    body: (declaration_list))
+  (record_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier))))
+  (record_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+    (base_list
+      (primary_constructor_base_type
+        type: (identifier)
+        (argument_list
+          (argument
+            (identifier))
+          (argument
+            (identifier))))))
+  (record_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+    (base_list
+      (primary_constructor_base_type
+        type: (identifier)
+        (argument_list
+          (argument
+            (identifier))
+          (argument
+            (identifier))))
+      (qualified_name
+        qualifier: (identifier)
+        name: (identifier))
+      (identifier)))
+  (record_declaration
+    name: (identifier)
+    (parameter_list)
+    (base_list
+      (primary_constructor_base_type
+        type: (generic_name
+          (identifier)
+          (type_argument_list
+            (identifier)))
+        (argument_list))
+      (identifier)))
+  (record_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list))
+  (record_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list))
+  (record_declaration
+    name: (identifier)))

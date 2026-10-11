@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 8
+    endLine: 8
+    ruleId: security/no-md5-digest
+    messageContains: "MD5 is broken"
+  - line: 12
+    endLine: 12
+    ruleId: security/no-md5-digest
+    messageContains: "MD5 is broken"

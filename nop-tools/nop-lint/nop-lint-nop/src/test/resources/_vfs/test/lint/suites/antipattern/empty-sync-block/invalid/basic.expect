@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 8
+    endLine: 9
+    ruleId: antipattern/empty-sync-block
+    messageContains: "empty synchronized body"

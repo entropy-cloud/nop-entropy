@@ -1,0 +1,17 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #7, manifest credit
+# EP:ThrowNull): `throw null` starts unwinding with a null reference and
+# dies with an NPE at the first catch — never the intended error surface.
+# The pattern form parses standalone (no-raw-exception statement-shape
+# precedent); the spike confirmed throw_statement + null_literal in the
+# grammar blob.
+id: exception/throw-null
+language: Java
+severity: warning
+message: "禁止 throw null，会以 NPE 收场 (throw null immediately fails with a NullPointerException)"
+rule:
+  pattern: "throw null"
+metadata:
+  category: exception
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #7 (EP:ThrowNull)"

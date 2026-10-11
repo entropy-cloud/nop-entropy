@@ -1,0 +1,15 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #19, manifest tier2 迁移吸收):
+# reflective class loading with Class.forName breaks under modular
+# classloaders (the Nop VFS/classloader layer included) and is a classic
+# injection sink for attacker-controlled names.
+id: security/no-class-forname
+language: Java
+severity: warning
+message: "禁止 Class.forName 反射加载 (Do not load classes reflectively with Class.forName)"
+rule:
+  pattern: "Class.forName($$$ARGS)"
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #19 (manifest 12 迁移吸收)"

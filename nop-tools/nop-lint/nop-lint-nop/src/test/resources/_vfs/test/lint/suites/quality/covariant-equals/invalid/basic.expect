@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 4
+    endLine: 6
+    ruleId: quality/covariant-equals
+    messageContains: "covariant equals overload"
+  - line: 12
+    endLine: 14
+    ruleId: quality/covariant-equals
+    messageContains: "covariant equals overload"

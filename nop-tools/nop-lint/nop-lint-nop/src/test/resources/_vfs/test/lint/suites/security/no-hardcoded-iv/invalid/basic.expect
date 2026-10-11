@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 5
+    ruleId: security/no-hardcoded-iv
+    messageContains: "hardcoded"
+  - line: 9
+    ruleId: security/no-hardcoded-iv
+    messageContains: "hardcoded"

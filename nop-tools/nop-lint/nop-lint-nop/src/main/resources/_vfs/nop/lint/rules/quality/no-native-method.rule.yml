@@ -1,0 +1,27 @@
+# tool-replacement roadmap item 3a (plan nop-lint/17): checkstyle
+# IllegalToken(tokens=LITERAL_NATIVE) successor — native methods escape the
+# pure-Java platform contract (platform-specific crashes, separate ABI, no
+# Nop classloading). The token ban is a platform invariant. Landed form:
+# modifiers text word-match (case-sensitive, so the @Native annotation is
+# not a false positive).
+id: quality/no-native-method
+language: Java
+severity: warning
+message: "禁止声明 native 方法，平台保持纯 Java (Do not declare native methods; the platform stays pure Java)"
+rule:
+  kind: method_declaration
+xscript: |
+  let mods = node.children('modifiers');
+  if (mods.size() == 0) {
+    return;
+  }
+  // contains() on space-padded text: word match without relying on
+  // matches() full-match semantics; case-sensitive so @Native is not a hit
+  if ((' ' + mods.get(0).text() + ' ').contains(' native ')) {
+    report({ message: 'native 方法 ' + node.child('name').text() + ' 破坏纯 Java 平台契约 (native method breaks the pure-Java platform contract)' });
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "checkstyle.xml IllegalToken LITERAL_NATIVE (tool-replacement roadmap item 3a)"

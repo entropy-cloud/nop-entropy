@@ -1,0 +1,6 @@
+id: demo/broken-line
+language: Java
+severity: warning
+message: Broken fixture rule for shifted line expectation (meta-test)
+rule:
+  pattern: "System.out.println($$$ARGS)"

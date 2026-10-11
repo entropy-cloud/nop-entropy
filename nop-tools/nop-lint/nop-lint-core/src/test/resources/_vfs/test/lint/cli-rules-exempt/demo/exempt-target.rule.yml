@@ -1,0 +1,13 @@
+# The standalone counterpart of the exemption fixture: the exempted rule id
+# lives here, proving ruleset exemptions may reference standalone rules.
+id: demo/exempt-target
+language: Java
+severity: error
+message: "Do not use System.out.println for logging"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

@@ -1,0 +1,9 @@
+id: demo/xml-no-legacy-driver
+language: XML
+severity: warning
+message: "legacy JDBC driver class is forbidden"
+metadata:
+  category: demo
+  version: "1.0"
+rule:
+  pattern: <driver>com.mysql.jdbc.Driver</driver>

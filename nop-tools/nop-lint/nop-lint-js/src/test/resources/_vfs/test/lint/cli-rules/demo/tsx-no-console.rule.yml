@@ -1,0 +1,15 @@
+# nop-lint check CLI test rule (plan 2026-09-22-1045-1): the tsx counterpart.
+# Rules are grouped by exact language id, so a .tsx target only takes rules
+# declared language: TSX — this fixture pins that grouping through the
+# case-insensitive resolution chain.
+id: demo/tsx-no-console
+language: TSX
+severity: warning
+message: "Do not use console.log for logging"
+rule:
+  pattern: "console.log($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "test-fixture"

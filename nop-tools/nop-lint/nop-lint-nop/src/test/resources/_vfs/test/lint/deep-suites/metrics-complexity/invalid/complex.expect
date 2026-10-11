@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 14
+    ruleId: demo/metrics-complexity
+    messageContains: "cyclomatic=4"

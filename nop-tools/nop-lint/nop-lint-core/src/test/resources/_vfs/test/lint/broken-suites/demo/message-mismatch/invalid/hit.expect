@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: demo/broken-message
+    messageContains: "absent-fragment-xyz"

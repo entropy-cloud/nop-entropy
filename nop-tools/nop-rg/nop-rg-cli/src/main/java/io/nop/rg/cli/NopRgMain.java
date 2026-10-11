@@ -1,0 +1,147 @@
+package io.nop.rg.cli;
+
+import io.nop.api.core.exceptions.NopException;
+import io.nop.core.initialize.CoreInitialization;
+import io.nop.rg.core.coordinator.FileMatches;
+import io.nop.rg.core.coordinator.LineMatch;
+import io.nop.rg.core.coordinator.SearchCommand;
+import io.nop.rg.core.coordinator.SearchCoordinator;
+import picocli.CommandLine;
+
+import java.io.BufferedOutputStream;
+import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
+
+/**
+ * nop-rg 命令行入口（plan 2264 CLI-01..03）。
+ *
+ * <p>用法：{@code nop-rg PATTERN [PATH] [-g glob]... [-i] [-c] [-l] [--json] [--no-ignore] [--threads N]
+ * [--jfr <file>]
+ *
+ * <p>退出码对齐 rg：命中 0 / 未命中 1 / 错误 2。
+ */
+@CommandLine.Command(
+        name = "nop-rg",
+        mixinStandardHelpOptions = true,
+        version = "nop-rg 0.1.0",
+        description = "Pure-JVM file search tool (ripgrep-compatible subset).")
+public class NopRgMain implements Callable<Integer> {
+
+    private static final int OUTPUT_BUFFER_BYTES = 64 * 1024;
+
+    @CommandLine.Parameters(index = "0", description = "Search pattern (literal or regex with --regex)")
+    private String pattern;
+
+    @CommandLine.Parameters(index = "1", defaultValue = ".", description = "Root directory to search")
+    private String path;
+
+    @CommandLine.Option(names = {"-g", "--glob"}, description = "Include/exclude glob (repeatable, '!' prefix excludes)")
+    private List<String> globs = new ArrayList<>();
+
+    @CommandLine.Option(names = {"-i", "--ignore-case"}, description = "Case-insensitive (ASCII folding)")
+    private boolean ignoreCase;
+
+    @CommandLine.Option(names = {"-c", "--count"}, description = "Print matching line count per file")
+    private boolean count;
+
+    @CommandLine.Option(names = {"-l", "--files-with-matches"}, description = "Print matching file paths only")
+    private boolean filesWithMatches;
+
+    @CommandLine.Option(names = "--json", description = "Output rg --json compatible messages")
+    private boolean json;
+
+    @CommandLine.Option(names = "--no-ignore", description = "Disable .gitignore filtering (hidden files stay hidden)")
+    private boolean noIgnore;
+
+    @CommandLine.Option(names = "--threads", defaultValue = "0", description = "Worker thread count (0 = CPU cores)")
+    private int threads;
+
+    @CommandLine.Option(names = {"-r", "--regex"}, description = "Treat pattern as regular expression")
+    private boolean regex;
+
+    @CommandLine.Option(names = "--vector", description = "Use Vector API (SIMD) search when available; requires nop-rg-vector"
+            + " on classpath and --add-modules jdk.incubator.vector (falls back to scalar with a stderr warning"
+            + " if module present but incubator module missing; errors out if module absent)")
+    private boolean vector;
+
+    @CommandLine.Option(names = "--jfr", arity = "1",
+            description = "Record JFR events (CPU/alloc/lock) to the given .jfr file during the search")
+    private String jfrOutput;
+
+    public static void main(String[] args) {
+        int code = new CommandLine(new NopRgMain()).execute(args);
+        System.exit(code);
+    }
+
+    @Override
+    public Integer call() {
+        try {
+            Path root = Path.of(path).toAbsolutePath().normalize();
+            if (!Files.isDirectory(root)) {
+                System.err.println("nop-rg: not a directory: " + path);
+                return 2;
+            }
+
+            if (!noIgnore) {
+                CoreInitialization.initialize();
+            }
+            try {
+                // 录制启动失败（--jfr 路径非法等）同样经外层 finally 销毁初始化（plan 2273 A2 对称清理）
+                AutoCloseable recording = jfrOutput == null ? null : JfrSupport.startRecording(Path.of(jfrOutput));
+                try {
+                    Map<String, FileMatches> results = search(root);
+                    // plan 2273 R1：64KB 缓冲 + 收尾一次性 flush，替代 autoflush 逐行 flush（字节序列不变）
+                    PrintWriter out = new PrintWriter(
+                            new BufferedOutputStream(System.out, OUTPUT_BUFFER_BYTES), false);
+                    ResultPrinter.print(out, results, ResultPrinter.resolveMode(json, filesWithMatches, count));
+                    out.flush();
+                    return results.isEmpty() ? 1 : 0;
+                } finally {
+                    if (recording != null) {
+                        try {
+                            recording.close();
+                        } catch (Exception e) {
+                            System.err.println("nop-rg: warning: JFR dump failed: " + e);
+                        }
+                    }
+                }
+            } finally {
+                if (!noIgnore) {
+                    CoreInitialization.destroy();
+                }
+            }
+        } catch (NopException | IllegalArgumentException e) {
+            // NopException 覆盖 NopRgException 与 CoreInitialization/VFS/GitIgnoreFile 资源层异常——
+            // 全部归位错误退出码 2（plan 2276 G2），不落入 picocli 默认处理的 exit 1（与未命中混淆）
+            System.err.println("nop-rg: " + e);
+            return 2;
+        }
+    }
+
+    /**
+     * 组装搜索命令并执行（plan 2268 Phase 3：自 call() 提取的搜索编排段，逻辑不变）。
+     * 包私有供测试覆写（plan 2276 G2：裸 NopException → exit 2 契约）。
+     */
+    Map<String, FileMatches> search(Path root) {
+        SearchCoordinator coordinator = new SearchCoordinator(
+                threads > 0 ? threads : Runtime.getRuntime().availableProcessors(),
+                !noIgnore, false);
+        // count 模式不需要行文本（rg -c 等价口径，优化迭代 Round 4/5：纯行计数快速路径）；
+        // --json 需要 LineMatch 构建 match 消息，数据完整性优先于 count 快速路径（plan 2275 G1）
+        boolean includeLineText = !count || json;
+        // 纯文本输出不消费命中文本（plan 2273 R5）；--json 的 submatch.text 需要全量解码
+        boolean includeSubmatchText = json;
+        // --regex 优先于 --vector（vector 仅加速字面量）
+        SearchCoordinator.Strategy strategy = regex ? SearchCoordinator.Strategy.REGEX
+                : vector ? SearchCoordinator.Strategy.VECTOR
+                : SearchCoordinator.Strategy.LITERAL;
+        SearchCommand command = new SearchCommand(root, pattern, strategy,
+                ignoreCase, globs, 0, includeLineText, includeSubmatchText);
+        return coordinator.search(command);
+    }
+}

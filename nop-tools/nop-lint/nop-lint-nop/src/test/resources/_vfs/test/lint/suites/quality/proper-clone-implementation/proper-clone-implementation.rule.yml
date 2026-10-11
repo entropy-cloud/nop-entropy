@@ -1,0 +1,1 @@
+x:extends: /nop/lint/rules/quality/proper-clone-implementation.rule.yml

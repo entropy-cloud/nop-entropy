@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: quality/self-assigned-local
+    messageContains: "(self-assignment has no effect): x"

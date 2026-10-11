@@ -1,0 +1,15 @@
+# The Java L2 e2e rule (roadmap item 26, plan 2026-09-24-0500-1): requires
+# the L2 capability and judges the receiver type through the typeOf
+# constraint — resolvable JDK types answer, unresolvable project types
+# degrade the rule (never a faked answer).
+id: demo/l2-string-only
+language: Java
+severity: warning
+requires: [L2]
+message: "Redundant toString on a String receiver"
+rule:
+  pattern: "$OBJ.toString()"
+constraints:
+  - typeOf:
+      capture: OBJ
+      is: String

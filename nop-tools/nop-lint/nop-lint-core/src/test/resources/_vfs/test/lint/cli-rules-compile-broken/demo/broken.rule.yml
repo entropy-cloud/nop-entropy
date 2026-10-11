@@ -1,0 +1,10 @@
+id: demo/compile-broken
+language: Java
+severity: warning
+message: "references a kind no grammar defines"
+rule:
+  kind: no_such_kind
+metadata:
+  category: demo
+  autoFixable: false
+  version: "1.0"

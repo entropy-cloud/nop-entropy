@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: security/no-sensitive-literal
+    messageContains: "JDBC"
+  - line: 4
+    endLine: 4
+    ruleId: security/no-sensitive-literal
+    messageContains: "JDBC"

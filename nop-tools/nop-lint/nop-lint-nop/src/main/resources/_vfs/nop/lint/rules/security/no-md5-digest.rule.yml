@@ -1,0 +1,21 @@
+# roadmap item 35 (plan 2026-09-24-1400-1 enum #20, manifest tier2 迁移吸收):
+# MD5 is broken for any security purpose. The inList constraint pins the
+# QUOTED literal forms — the capture text includes the quotes (the
+# no-sensitive-literal head-note precedent), so a variable named MD5 or a
+# constant reference never matches; only the hardcoded algorithm choice is
+# flagged.
+id: security/no-md5-digest
+language: Java
+severity: warning
+message: "禁止 MD5 摘要算法 (MD5 is broken for security purposes; use SHA-256 or stronger)"
+rule:
+  pattern: "MessageDigest.getInstance($ALG)"
+constraints:
+  - inList:
+      capture: ALG
+      values: ['"MD5"', '"md5"']
+metadata:
+  category: security
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1400-1-rule-library-48.md enum #20 (manifest 12 迁移吸收)"

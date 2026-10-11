@@ -1,0 +1,16 @@
+# Item 22 fixture: regex — full match of the capture's source text against
+# the declared regex (compiled fail-closed at rule compile time).
+id: demo/regex-capture
+language: Java
+severity: warning
+message: lowercase int name (constraint demo)
+rule:
+  pattern: "int $NAME = $VAL;"
+constraints:
+  - regex:
+      capture: "$NAME"
+      pattern: "^[a-z]+$"
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

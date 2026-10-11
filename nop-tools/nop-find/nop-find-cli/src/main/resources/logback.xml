@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    nop-find 独立 CLI 的日志配置。
+
+    stdout 是数据通道（默认 "SCORE<TAB>RELATIVE_PATH"，json 开关打开时为 JSON 文档），
+    nop 核心初始化（VFS / ClassPathScanner / ModuleManager）的 INFO/DEBUG 日志若落到 stdout
+    会破坏管道契约，故 root 级别压到 ERROR，且所有日志一律走 stderr。
+
+    生效范围：仅 classpath 上存在 logback-classic 的运行路径（独立 nop-find 进程，
+    logback 经 nop-core 传递引入）。嵌入 nop-cli 的场景使用 slf4j-jboss-logmanager 绑定，
+    不读本文件，因此不会改变 nop-cli 的日志行为。
+
+    注意：本文件由 XML 解析器加载，注释内不得出现连续的连字符（"-x"）。
+-->
+<configuration>
+    <statusListener class="ch.qos.logback.core.status.NopStatusListener"/>
+
+    <appender name="STDERR" class="ch.qos.logback.core.ConsoleAppender">
+        <target>System.err</target>
+        <encoder>
+            <pattern>%d{HH:mm:ss.SSS} %-5level %logger{36} - %msg%n</pattern>
+        </encoder>
+    </appender>
+
+    <root level="error">
+        <appender-ref ref="STDERR"/>
+    </root>
+</configuration>

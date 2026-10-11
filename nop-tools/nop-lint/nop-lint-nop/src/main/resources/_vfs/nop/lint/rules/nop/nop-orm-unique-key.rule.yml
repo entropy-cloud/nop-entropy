@@ -1,0 +1,26 @@
+# design 02 §1 first-20 batch (roadmap item 29), semantics anchored to
+# check-orm-unique-key-constraint.mjs (INV-UK): an ORM <unique-key> without
+# a non-empty constraint= and columns= attribute is silently dropped from
+# the DDL. Landed form (round-2 review N1 adjudication): the XML pattern
+# path cannot express attribute ABSENCE (any-branches are flat, attr grammar
+# has no absence spec), so the rule rides the xscript channel — an
+# open-world pattern matches every unique-key element and the script judges
+# the two attributes null-or-blank through NodeWrapper.attrValue (present
+# but empty returns "", so one null-or-blank test covers both anchor cases).
+id: nop-orm-unique-key
+language: XML
+severity: error
+message: "ORM unique-key 缺少 constraint 或 columns 属性（DDL 将静默跳过唯一约束）(ORM unique-key is missing a non-empty constraint or columns attribute; the DDL silently skips the unique constraint)"
+rule:
+  pattern: "<unique-key/>"
+xscript: |
+  let constraint = node.attrValue('constraint');
+  let columns = node.attrValue('columns');
+  if (constraint == null || constraint == '' || columns == null || columns == '') {
+    report({ message: 'ORM unique-key 缺少 constraint 或 columns 属性（DDL 将静默跳过唯一约束）' });
+  }
+metadata:
+  category: nop
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/tools/check-orm-unique-key-constraint.mjs (INV-UK)"

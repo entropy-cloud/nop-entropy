@@ -1,0 +1,10 @@
+diagnostics:
+  - line: 7
+    ruleId: quality/biginteger-instantiation
+    messageContains: "valueOf"
+  - line: 8
+    ruleId: quality/biginteger-instantiation
+    messageContains: "valueOf"
+  - line: 9
+    ruleId: quality/biginteger-instantiation
+    messageContains: "valueOf"

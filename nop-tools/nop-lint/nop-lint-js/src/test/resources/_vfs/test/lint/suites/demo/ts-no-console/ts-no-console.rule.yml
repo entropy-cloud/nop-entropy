@@ -1,0 +1,11 @@
+id: demo/ts-no-console
+language: TypeScript
+severity: warning
+message: Do not use console.log for logging
+rule:
+  pattern: "console.log($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "demo-fixture"

@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 2
+    endLine: 4
+    ruleId: api/no-proxy-hostile-method
+    messageContains: "(proxy-hostile public method): greet"

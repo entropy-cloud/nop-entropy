@@ -1,0 +1,15 @@
+# Item 22 fixture: differentText — holds exactly when the captured texts are
+# not all equal (the complement of sameText, design 01 §3.2).
+id: demo/different-text
+language: Java
+severity: warning
+message: operands must differ (constraint demo)
+rule:
+  pattern: "$A == $B"
+constraints:
+  - differentText:
+      captures: ["$A", "$B"]
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

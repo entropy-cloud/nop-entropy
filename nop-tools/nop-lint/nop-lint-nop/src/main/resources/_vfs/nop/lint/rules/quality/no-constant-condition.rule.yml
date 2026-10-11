@@ -1,0 +1,42 @@
+# roadmap item 36 (plan 2026-09-24-2300-1 enum #1, ESLint port):
+# no-constant-condition — a branch guarded by a literal true/false does not
+# depend on runtime state; it reads as leftover debug or dead code. Landed
+# form is the kind+xscript condition-text judgment. Grammar spike findings
+# (recorded per plan Phase 1): (a) if_statement's consequence is a REQUIRED
+# field, so the literal pattern `if (true)` / capture form `if ($COND)`
+# rests on error-recovery placeholders and can never match — the kind root
+# with the condition field read is the exact shape; (b) this blob's
+# condition field keeps the parenthesized wrapper, so the text is compared
+# after peeling the parens (trim handled for whitespace variants). v1 face
+# is the ESLint-default literal form; the constant-propagated-variable
+# channel (final locals, item 30 dataflow) is an ENHANCEMENT beyond the
+# ported semantics and stays a follow-up — ESLint itself does not flag
+# `final boolean f = false; if (f)` by default. do-while and
+# parenthesized embeddings (`if ((true))`) stay out of the v1 face (the
+# peel loop is single-level; a nested parens text like `((true))` does not
+# equal the literals).
+id: quality/no-constant-condition
+language: Java
+severity: warning
+message: "恒定条件：分支不依赖运行时状态 (constant condition; the branch never varies)"
+rule:
+  any:
+    - kind: if_statement
+    - kind: while_statement
+xscript: |
+  let c = node.child('condition');
+  if (c == null) {
+    return;
+  }
+  let t = c.text();
+  if (t.startsWith('(') && t.endsWith(')')) {
+    t = t.substring(1, t.length() - 1);
+  }
+  if (t.trim() == 'true' || t.trim() == 'false') {
+    report({ message: '恒定条件：分支不依赖运行时状态 (constant condition)' });
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-2300-1-pmd-ep-p0p1-batch.md enum #1 (ESLint no-constant-condition)"

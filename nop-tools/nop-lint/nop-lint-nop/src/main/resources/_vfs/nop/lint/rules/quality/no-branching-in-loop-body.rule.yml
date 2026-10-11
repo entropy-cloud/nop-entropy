@@ -1,0 +1,35 @@
+# tool-replacement roadmap item 4a (plan nop-lint/19): PMD
+# AvoidBranchingStatementAsLastInLoop successor, aligned to PMD 7.26.0
+# semantics (bytecode/source verified): break/continue/return directly held
+# by a for/foreach/while/do body (one block unwrap) are flagged regardless
+# of position — the rule name's "last" is historical. foreach folds into the
+# FOR face (ASTForeachStatement joins the FOR branch; checkReturnLoopTypes
+# defaults include FOR, so a direct return in an enhanced-for body reports).
+# The try-finally unwrap face is a recorded v1 delta; non-block bodies are a
+# rare form and equally out of the v1 face.
+id: quality/no-branching-in-loop-body
+language: Java
+severity: warning
+message: "循环体内直达的 break/continue/return 常是残余逻辑缺失信号 (a break/continue/return held directly by a loop body usually marks missing logic)"
+rule:
+  any:
+    - kind: for_statement
+    - kind: enhanced_for_statement
+    - kind: while_statement
+    - kind: do_statement
+xscript: |
+  let body = node.child('body');
+  if (body == null || body.kind() != 'block') {
+    return;
+  }
+  for (let st of body.children()) {
+    let k = st.kind();
+    if (k == 'break_statement' || k == 'continue_statement' || k == 'return_statement') {
+      report({ node: st, message: '循环体直达 ' + k + '：确认无残余逻辑缺失 (a direct ' + k + ' in the loop body — check for missing logic)' });
+    }
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "pmd-ruleset.xml AvoidBranchingStatementAsLastInLoop (tool-replacement roadmap item 4a)"

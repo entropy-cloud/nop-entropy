@@ -1,0 +1,8 @@
+<xbiz entity="app.ExportTask" xmlns:x="/nop/schema/xdsl.xdef">
+    <actions>
+        <mutation name="purgeFinished">
+            <source>svc.purge()</source>
+            <auth roles="op"/>
+        </mutation>
+    </actions>
+</xbiz>

@@ -1,0 +1,18 @@
+# Item 22 fixture: notExists — per-match subtree scope (design 01 §3.2
+# Decision): the constraint holds when the inner pattern matches nowhere in
+# the match node's subtree (match node included). The message field is the
+# documented v1 reserved field — stored, never emitted by the filter.
+id: demo/not-exists
+language: Java
+severity: warning
+message: if-return without null (constraint demo)
+rule:
+  pattern: "if ($COND) return $VAL;"
+constraints:
+  - notExists:
+      pattern: "return null;"
+      message: "reserved: no null returns below the match"
+metadata:
+  category: test
+  version: "1.0"
+  source: "plan 2026-09-22-1045-3"

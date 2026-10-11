@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 7
+    endLine: 9
+    ruleId: antipattern/throw-in-finally
+    messageContains: "Do not throw inside finally"

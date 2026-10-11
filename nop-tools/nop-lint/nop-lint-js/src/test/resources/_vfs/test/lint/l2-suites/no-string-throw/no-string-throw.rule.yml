@@ -1,0 +1,16 @@
+id: nop-lint/no-string-throw
+language: TypeScript
+severity: warning
+message: Throw an Error object instead of a string
+rule:
+  pattern: "throw $ERR;"
+requires: "L2"
+constraints:
+  - typeOf:
+      capture: "$ERR"
+      is: string
+metadata:
+  category: style
+  autoFixable: false
+  version: "1.0"
+  source: "tsc-bridge-demo"

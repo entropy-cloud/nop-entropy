@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 7
+    endLine: 7
+    ruleId: quality/replace-hashtable
+    messageContains: "Replace legacy Hashtable"

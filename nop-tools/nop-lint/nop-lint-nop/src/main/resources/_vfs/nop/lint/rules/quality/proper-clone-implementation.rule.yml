@@ -1,0 +1,64 @@
+# tool-replacement roadmap item 4a (plan nop-lint/19): PMD
+# ProperCloneImplementation successor, aligned to PMD 7.26 semantics: a
+# non-static, non-abstract clone() held by a NON-FINAL class that constructs
+# the enclosing class inside its body (7.x does NOT check super.clone()).
+# The allocation-type check is a syntactic proxy (new <EnclosingSimpleName>)
+# with the type-resolution delta recorded; the violation anchors on the
+# clone() method (PMD addViolation(method)). MetaVarEnv (public final class
+# with new MetaVarEnv() in clone()) is the corpus proof of the final
+# exemption.
+id: quality/proper-clone-implementation
+language: Java
+severity: warning
+message: "clone() 应调用 super.clone() 而非构造自身实例 (clone() should call super.clone() instead of constructing the class)"
+rule:
+  kind: method_declaration
+xscript: |
+  if (node.child('name').text() != 'clone') {
+    return;
+  }
+  if (node.child('parameters').children('formal_parameter').size() != 0) {
+    return;
+  }
+  for (let m of node.children('modifiers')) {
+    let mt = m.text();
+    if (mt.contains('static') || mt.contains('abstract')) {
+      return;
+    }
+  }
+  let cls = node.ancestor('class_declaration');
+  if (cls == null) {
+    return;
+  }
+  for (let m of cls.children('modifiers')) {
+    if (m.text().contains('final')) {
+      return;
+    }
+  }
+  let clsName = cls.child('name').text();
+  let body = node.child('body');
+  if (body == null) {
+    return;
+  }
+  // descendant() yields the first match (single node) — the report is
+  // once-per-method, so first-match is sufficient here
+  let ne = body.descendant('object_creation_expression');
+  if (ne != null) {
+    let t = ne.child('type');
+    // diamond form `new LastValue<>()` carries the generic angle in the
+    // type text — compare on the raw name prefix (corpus: LastValue:52)
+    let tn = t == null ? '' : t.text();
+    let lt = tn.indexOf('<');
+    if (lt > 0) {
+      tn = tn.substring(0, lt);
+    }
+    if (tn == clsName) {
+      // report anchors on the method-name identifier for PMD beginline parity
+      report({ node: node.child('name'), message: 'clone() 内构造 ' + clsName + ' 破坏拷贝语义，请调用 super.clone() (clone() constructs ' + clsName + ' instead of calling super.clone())' });
+    }
+  }
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "pmd-ruleset.xml ProperCloneImplementation (tool-replacement roadmap item 4a)"

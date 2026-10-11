@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 99
+    ruleId: demo/broken-line
+    messageContains: "System.out.println"

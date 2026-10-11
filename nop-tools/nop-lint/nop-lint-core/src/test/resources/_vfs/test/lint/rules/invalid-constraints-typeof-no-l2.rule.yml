@@ -1,0 +1,13 @@
+# Item 22 negative fixture: typeOf without the mandatory requires: "L2"
+# declaration must fail closed at load time (typeOf × L2 gate, design 01 §3.2
+# Decision) — the rule must never evaluate typeOf with L1 information.
+id: demo/constraints-typeof-no-l2
+language: Java
+severity: warning
+message: typeOf without L2 declaration must fail
+rule:
+  pattern: "$X.foo()"
+constraints:
+  - typeOf:
+      capture: "$X"
+      is: String

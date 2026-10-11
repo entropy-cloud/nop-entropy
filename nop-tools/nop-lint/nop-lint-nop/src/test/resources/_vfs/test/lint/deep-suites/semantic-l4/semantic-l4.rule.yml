@@ -1,0 +1,20 @@
+# roadmap item 34 demo suite (plan 2026-09-24-1300-1): the deep-profile L4
+# semantic binding end to end — a requires: L4 rule queries
+# semantic.isOverridable(node) through the JavaSemanticResolver ServiceLoader
+# provider. Suite-local demo rule; the production L4 rules land with
+# roadmap item 36.
+id: demo/semantic-l4
+language: Java
+severity: warning
+message: "L4 语义判定命中 (L4 semantic hit)"
+requires: L4
+rule:
+  kind: method_declaration
+xscript: |
+  if (semantic.isOverridable(node)) {
+    report({ message: 'overridable', severity: 'warning' });
+  }
+metadata:
+  category: deep
+  autoFixable: false
+  version: "1.0"

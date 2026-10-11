@@ -1,0 +1,11 @@
+# The standalone transform fixture (nop-refactor WI3): the exempted rewrite
+# rule id lives here, proving ruleset exemptions gate transform edits the
+# same way they gate fixes (plan 04 adjudication 4).
+id: demo/rewrite-target
+language: Java
+message: "Rewrite legacy println to the logger"
+rule:
+  pattern: "System.out.println($$$ARGS)"
+transform:
+  description: "Rewrite println to logger.log"
+  template: "logger.log($$$ARGS)"

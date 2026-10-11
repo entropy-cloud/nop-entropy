@@ -1,0 +1,101 @@
+================================================================================
+Class event declarations
+================================================================================
+
+class A {
+  public event EventHandler<T> SomeEvent { add { } remove { } }
+}
+
+struct A {
+  public event EventHandler<T> SomeEvent { add { } remove { } }
+}
+
+class A {
+  public event EventHandler SomeEvent { add => addSomething(); remove => removeSomething(); }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (event_declaration
+        (modifier)
+        type: (generic_name
+          (identifier)
+          (type_argument_list
+            (identifier)))
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block))
+          (accessor_declaration
+            body: (block))))))
+  (struct_declaration
+    name: (identifier)
+    body: (declaration_list
+      (event_declaration
+        (modifier)
+        type: (generic_name
+          (identifier)
+          (type_argument_list
+            (identifier)))
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block))
+          (accessor_declaration
+            body: (block))))))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (event_declaration
+        (modifier)
+        type: (identifier)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (arrow_expression_clause
+              (invocation_expression
+                function: (identifier)
+                arguments: (argument_list))))
+          (accessor_declaration
+            body: (arrow_expression_clause
+              (invocation_expression
+                function: (identifier)
+                arguments: (argument_list)))))))))
+
+================================================================================
+Partial event declarations (C# 14)
+================================================================================
+
+partial class C {
+  public partial event EventHandler SomeEvent;
+  public partial event EventHandler SomeEvent { add { } remove { } }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list
+      (event_field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (identifier)
+          (variable_declarator
+            name: (identifier))))
+      (event_declaration
+        (modifier)
+        (modifier)
+        type: (identifier)
+        name: (identifier)
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block))
+          (accessor_declaration
+            body: (block)))))))

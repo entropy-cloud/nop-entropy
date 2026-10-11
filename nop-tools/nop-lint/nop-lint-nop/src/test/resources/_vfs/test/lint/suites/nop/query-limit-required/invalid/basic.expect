@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 8
+    endLine: 8
+    ruleId: nop/query-limit-required
+    messageContains: "query without a result cap"
+  - line: 16
+    endLine: 16
+    ruleId: nop/query-limit-required
+    messageContains: "query without a result cap"

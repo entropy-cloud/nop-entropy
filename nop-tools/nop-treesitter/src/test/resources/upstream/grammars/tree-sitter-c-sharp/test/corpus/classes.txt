@@ -1,0 +1,647 @@
+================================================================================
+Class Definitions
+================================================================================
+
+public class F {}
+
+public class F : object, IAlpha, IOmega { }
+
+public partial class F<T> {}
+
+internal class F<in T1, out T2> {}
+
+public class F<T> where T:struct {}
+
+public class F<T> where T:unmanaged {}
+
+public class F<T> where T:class?, notnull, Mine? {}
+
+public class F<T> where T: new() {}
+
+public class F<T> where T: I, new() {}
+
+private class F<T1,T2> where T1 : I1, I2, new() where T2 : I2 { }
+
+class Foo {
+  public Foo() {}
+
+  // expression bodied constructor
+  public Foo(string name) => Name = name;
+
+  // static constructor
+  static Foo() {}
+  static extern Foo() {}
+  extern static Foo() {}
+
+  // extern destructor
+  extern ~Foo() {}
+
+  // expression bodied destructor
+  ~Foo() => DoSomething();
+
+  // constants
+  private const int a = 1;
+  const string b = $"hello";
+
+  // indexer
+  public bool this[int index] {
+    get { return a; }
+    set { a = value; }
+  }
+
+  // expression bodied indexer
+  public bool this[int index] => a[index];
+
+  public string this[int index]
+  {
+    get => a[index];
+    set => a[index] = value;
+  }
+
+  public int this[params string[] arguments] {
+    get { return 1; }
+  }
+
+  B.C d() {
+    return null;
+  }
+}
+
+class Bar(int a, int b) {
+  int add() {
+    return a + b;
+  }
+}
+
+// unicode class name
+class Ωµ {
+  B.C d() {
+    return null;
+  }
+}
+
+// file scoped class
+file class A {}
+
+class Baz(int a, int b) : Bar(a, b) { }
+
+public class NoBody;
+
+private class NoBodyPrimary(int a, int b);
+
+public class NoBodyPrimaryWithBase(int x) : Base(x);
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (base_list
+      (predefined_type)
+      (identifier)
+      (identifier))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier))
+      (type_parameter
+        name: (identifier)))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint)
+      (type_parameter_constraint)
+      (type_parameter_constraint
+        type: (nullable_type
+          type: (identifier))))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        (constructor_constraint)))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        (constructor_constraint)))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (type_parameter_list
+      (type_parameter
+        name: (identifier))
+      (type_parameter
+        name: (identifier)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        type: (identifier))
+      (type_parameter_constraint
+        (constructor_constraint)))
+    (type_parameter_constraints_clause
+      (identifier)
+      (type_parameter_constraint
+        type: (identifier)))
+    body: (declaration_list))
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (constructor_declaration
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block))
+      (comment)
+      (constructor_declaration
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (arrow_expression_clause
+          (assignment_expression
+            left: (identifier)
+            right: (identifier))))
+      (comment)
+      (constructor_declaration
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block))
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block))
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block))
+      (comment)
+      (destructor_declaration
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block))
+      (comment)
+      (destructor_declaration
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (arrow_expression_clause
+          (invocation_expression
+            function: (identifier)
+            arguments: (argument_list))))
+      (comment)
+      (field_declaration
+        (modifier)
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier)
+            (integer_literal))))
+      (field_declaration
+        (modifier)
+        (variable_declaration
+          type: (predefined_type)
+          (variable_declarator
+            name: (identifier)
+            (interpolated_string_expression
+              (interpolation_start)
+              (string_content)))))
+      (comment)
+      (indexer_declaration
+        (modifier)
+        type: (predefined_type)
+        parameters: (bracketed_parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block
+              (return_statement
+                (identifier))))
+          (accessor_declaration
+            body: (block
+              (expression_statement
+                (assignment_expression
+                  left: (identifier)
+                  right: (identifier)))))))
+      (comment)
+      (indexer_declaration
+        (modifier)
+        type: (predefined_type)
+        parameters: (bracketed_parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        value: (arrow_expression_clause
+          (element_access_expression
+            expression: (identifier)
+            subscript: (bracketed_argument_list
+              (argument
+                (identifier))))))
+      (indexer_declaration
+        (modifier)
+        type: (predefined_type)
+        parameters: (bracketed_parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (arrow_expression_clause
+              (element_access_expression
+                expression: (identifier)
+                subscript: (bracketed_argument_list
+                  (argument
+                    (identifier))))))
+          (accessor_declaration
+            body: (arrow_expression_clause
+              (assignment_expression
+                left: (element_access_expression
+                  expression: (identifier)
+                  subscript: (bracketed_argument_list
+                    (argument
+                      (identifier))))
+                right: (identifier))))))
+      (indexer_declaration
+        (modifier)
+        type: (predefined_type)
+        parameters: (bracketed_parameter_list
+          type: (array_type
+            type: (predefined_type)
+            rank: (array_rank_specifier))
+          name: (identifier))
+        accessors: (accessor_list
+          (accessor_declaration
+            body: (block
+              (return_statement
+                (integer_literal))))))
+      (method_declaration
+        returns: (qualified_name
+          qualifier: (identifier)
+          name: (identifier))
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (null_literal))))))
+  (class_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+    body: (declaration_list
+      (method_declaration
+        returns: (predefined_type)
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (binary_expression
+              left: (identifier)
+              right: (identifier)))))))
+  (comment)
+  (class_declaration
+    name: (identifier)
+    body: (declaration_list
+      (method_declaration
+        returns: (qualified_name
+          qualifier: (identifier)
+          name: (identifier))
+        name: (identifier)
+        parameters: (parameter_list)
+        body: (block
+          (return_statement
+            (null_literal))))))
+  (comment)
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list))
+  (class_declaration
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+    (base_list
+      (identifier)
+      (argument_list
+        (argument
+          (identifier))
+        (argument
+          (identifier))))
+    body: (declaration_list))
+  (class_declaration
+    (modifier)
+    name: (identifier)
+  )
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier))
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+  )
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    (parameter_list
+      (parameter
+        type: (predefined_type)
+        name: (identifier)))
+    (base_list
+      (identifier)
+      (argument_list
+        (argument
+          (identifier))))))
+
+================================================================================
+Partial constructor declarations (C# 14)
+================================================================================
+
+partial class C {
+  public partial C(int x);
+  public partial C(int x) { this.x = x; }
+  public partial C(int x) : base(x);
+  public partial C(int x) : base(x) { }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (modifier)
+    name: (identifier)
+    body: (declaration_list
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier))))
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        body: (block
+          (expression_statement
+            (assignment_expression
+              left: (member_access_expression
+                name: (identifier))
+              right: (identifier)))))
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        (constructor_initializer
+          (argument_list
+            (argument
+              (identifier)))))
+      (constructor_declaration
+        (modifier)
+        (modifier)
+        name: (identifier)
+        parameters: (parameter_list
+          (parameter
+            type: (predefined_type)
+            name: (identifier)))
+        (constructor_initializer
+          (argument_list
+            (argument
+              (identifier))))
+        body: (block)))))
+
+================================================================================
+Extension declarations (C# 14)
+================================================================================
+
+public static class E
+{
+    extension(IEnumerable source)
+    {
+        public bool IsEmpty => !source.Any();
+    }
+
+    extension<T>(IEnumerable<T> source)
+    {
+        public IEnumerable<T> Where(Func<T, bool> p) => null;
+    }
+
+    extension<T>(IEnumerable<T>)
+        where T : INumber<T>
+    {
+        public static IEnumerable<T> operator +(IEnumerable<T> a, IEnumerable<T> b) => null;
+        public static IEnumerable<T> Identity => null;
+    }
+
+    extension<T>(ref readonly T source)
+    {
+        public T Echo() => source;
+    }
+}
+
+--------------------------------------------------------------------------------
+
+(compilation_unit
+  (class_declaration
+    (modifier)
+    (modifier)
+    name: (identifier)
+    body: (declaration_list
+      (extension_declaration
+        (receiver_parameter
+          type: (identifier)
+          name: (identifier))
+        (extension_body
+          (property_declaration
+            (modifier)
+            type: (predefined_type)
+            name: (identifier)
+            value: (arrow_expression_clause
+              (prefix_unary_expression
+                (invocation_expression
+                  function: (member_access_expression
+                    expression: (identifier)
+                    name: (identifier))
+                  arguments: (argument_list)))))))
+      (extension_declaration
+        (type_parameter_list
+          (type_parameter
+            name: (identifier)))
+        (receiver_parameter
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (identifier)))
+          name: (identifier))
+        (extension_body
+          (method_declaration
+            (modifier)
+            returns: (generic_name
+              (identifier)
+              (type_argument_list
+                (identifier)))
+            name: (identifier)
+            parameters: (parameter_list
+              (parameter
+                type: (generic_name
+                  (identifier)
+                  (type_argument_list
+                    (identifier)
+                    (predefined_type)))
+                name: (identifier)))
+            body: (arrow_expression_clause
+              (null_literal)))))
+      (extension_declaration
+        (type_parameter_list
+          (type_parameter
+            name: (identifier)))
+        (receiver_parameter
+          type: (generic_name
+            (identifier)
+            (type_argument_list
+              (identifier))))
+        (type_parameter_constraints_clause
+          (identifier)
+          (type_parameter_constraint
+            type: (generic_name
+              (identifier)
+              (type_argument_list
+                (identifier)))))
+        (extension_body
+          (operator_declaration
+            (modifier)
+            (modifier)
+            type: (generic_name
+              (identifier)
+              (type_argument_list
+                (identifier)))
+            parameters: (parameter_list
+              (parameter
+                type: (generic_name
+                  (identifier)
+                  (type_argument_list
+                    (identifier)))
+                name: (identifier))
+              (parameter
+                type: (generic_name
+                  (identifier)
+                  (type_argument_list
+                    (identifier)))
+                name: (identifier)))
+            body: (arrow_expression_clause
+              (null_literal)))
+          (property_declaration
+            (modifier)
+            (modifier)
+            type: (generic_name
+              (identifier)
+              (type_argument_list
+                (identifier)))
+            name: (identifier)
+            value: (arrow_expression_clause
+              (null_literal)))))
+      (extension_declaration
+        (type_parameter_list
+          (type_parameter
+            name: (identifier)))
+        (receiver_parameter
+          (modifier)
+          (modifier)
+          type: (identifier)
+          name: (identifier))
+        (extension_body
+          (method_declaration
+            (modifier)
+            returns: (identifier)
+            name: (identifier)
+            parameters: (parameter_list)
+            body: (arrow_expression_clause
+              (identifier))))))))

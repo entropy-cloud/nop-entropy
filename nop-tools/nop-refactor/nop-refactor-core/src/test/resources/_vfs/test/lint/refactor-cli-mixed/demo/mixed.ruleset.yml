@@ -1,0 +1,20 @@
+# The mixed-ruleset load-gate fixture (nop-refactor WI7): a reporting rule
+# rides the same prefix as a transform rule — the CLI load gate must reject
+# the whole load (a report finding would be silently dropped on the rewrite
+# face).
+id: demo/mixed-ruleset
+rules:
+  - id: demo/mixed-report
+    language: Java
+    severity: warning
+    message: "reporting rule"
+    rule:
+      pattern: "foo($$$A)"
+  - id: demo/mixed-transform
+    language: Java
+    message: "transform rule"
+    rule:
+      pattern: "inlineCall($$$A)"
+    transform:
+      description: "rewrite"
+      template: "directCall($$$A)"

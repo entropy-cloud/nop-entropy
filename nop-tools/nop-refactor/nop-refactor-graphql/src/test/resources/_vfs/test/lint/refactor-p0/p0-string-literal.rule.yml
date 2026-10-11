@@ -1,0 +1,13 @@
+# WI8 demo rule (c): the redundant String copy to the literal itself.
+# Fixture-domain rule (plan 08 R1 Minor-2): the reserved $! literal-marker
+# is unimplemented, so the pattern cannot structurally pin a string-literal
+# argument — the demo fixtures always pass a literal, and the rule stays in
+# the fixture domain only (never the production library).
+id: p0/string-literal-copy
+language: Java
+message: "Drop the redundant String copy"
+rule:
+  pattern: "new String($LIT)"
+transform:
+  description: "Rewrite new String literal to the literal itself"
+  template: "$LIT"

@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: demo/other-rule
+    messageContains: "System.out.println"

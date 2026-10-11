@@ -1,0 +1,5 @@
+diagnostics:
+  - line: 5
+    endLine: 6
+    ruleId: antipattern/empty-if-block
+    messageContains: "empty if consequence block"

@@ -1,0 +1,4 @@
+diagnostics:
+  - line: 5
+    ruleId: exception/equals-null
+    messageContains: "equals(null)"

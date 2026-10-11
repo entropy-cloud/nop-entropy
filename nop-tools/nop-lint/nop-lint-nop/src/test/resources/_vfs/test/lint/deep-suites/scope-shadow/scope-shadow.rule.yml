@@ -1,0 +1,19 @@
+# roadmap item 33 demo suite (plan 2026-09-24-1130-1): the deep-profile
+# scope binding end to end — a requires: SCOPE rule queries
+# scope.shadows(node) through the JavaScopeResolver ServiceLoader provider
+# and reports shadowing declarations. Suite-local demo rule.
+id: demo/scope-shadow
+language: Java
+severity: warning
+message: "变量遮蔽了外层声明 (variable shadows an outer declaration)"
+requires: SCOPE
+rule:
+  kind: variable_declarator
+xscript: |
+  if (scope.shadows(node)) {
+    report({ message: 'shadow: ' + node.text().split('=')[0].trim(), severity: 'warning' });
+  }
+metadata:
+  category: deep
+  autoFixable: false
+  version: "1.0"

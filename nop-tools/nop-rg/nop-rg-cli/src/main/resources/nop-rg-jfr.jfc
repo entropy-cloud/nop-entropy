@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  nop-rg JFR 配置（plan 2265 JFR-01）。
+  事件集面向搜索工作负载诊断：CPU 热点、内存分配、锁竞争、GC 行为。
+  已知事实（审查实测）：jdk.FileRead 只钩 read API，对 mmap 路径恒无事件——保留仅作占位。注意 JDK 17+ 事件名为 jdk.ObjectAllocationInNewTLAB/OutsideTLAB（旧名 AllocationInNewTLAB 已废）。
+-->
+<configuration version="2.0" label="nop-rg JFR" description="nop-rg search workload diagnostics" provider="nop-rg">
+    <event name="jdk.ExecutionSample">
+        <setting name="enabled">true</setting>
+        <setting name="period">10 ms</setting>
+    </event>
+    <event name="jdk.ObjectAllocationInNewTLAB">
+        <setting name="enabled">true</setting>
+        <setting name="stackTrace">true</setting>
+    </event>
+    <event name="jdk.ObjectAllocationOutsideTLAB">
+        <setting name="enabled">true</setting>
+        <setting name="stackTrace">true</setting>
+    </event>
+    <event name="jdk.JavaMonitorWait">
+        <setting name="enabled">true</setting>
+        <setting name="stackTrace">true</setting>
+        <setting name="threshold">10 ms</setting>
+    </event>
+    <event name="jdk.JavaMonitorEnter">
+        <setting name="enabled">true</setting>
+        <setting name="stackTrace">true</setting>
+        <setting name="threshold">10 ms</setting>
+    </event>
+    <event name="jdk.FileRead">
+        <setting name="enabled">true</setting>
+        <setting name="stackTrace">true</setting>
+        <setting name="threshold">20 ms</setting>
+    </event>
+    <event name="jdk.GCHeapStatistics">
+        <setting name="enabled">true</setting>
+        <setting name="period">everyChunk</setting>
+    </event>
+    <event name="jdk.CPULoad">
+        <setting name="enabled">true</setting>
+        <setting name="period">100 ms</setting>
+    </event>
+</configuration>

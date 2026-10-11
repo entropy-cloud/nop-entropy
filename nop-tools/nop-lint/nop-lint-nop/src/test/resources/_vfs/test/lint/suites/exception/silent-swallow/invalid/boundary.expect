@@ -1,0 +1,21 @@
+diagnostics:
+  - line: 16
+    endLine: 19
+    ruleId: nop/silent-swallow
+    messageContains: "silently swallows"
+  - line: 26
+    endLine: 29
+    ruleId: nop/silent-swallow
+    messageContains: "silently swallows"
+  - line: 37
+    endLine: 39
+    ruleId: nop/silent-swallow
+    messageContains: "silently swallows"
+  - line: 47
+    endLine: 49
+    ruleId: nop/silent-swallow
+    messageContains: "silently swallows"
+  - line: 56
+    endLine: 57
+    ruleId: nop/silent-swallow
+    messageContains: "silently swallows"

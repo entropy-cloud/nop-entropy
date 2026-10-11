@@ -1,0 +1,4 @@
+# RuleTester suite entry: loads the canonical main-resource rule through
+# the XDSL delta pipeline (x:extends, no overrides), so the fixtures below
+# exercise exactly the shipped rule.
+x:extends: /nop/lint/rules/quality/empty-while-body.rule.yml

@@ -1,0 +1,18 @@
+# nop-lint check --fix e2e rule (roadmap item 25): the second pass of the
+# multipass scenario — it consumes what fix-no-print produces (log calls)
+# and rewrites them onward, so convergence needs a strictly decreasing
+# candidate count across passes.
+id: demo/fix-chain-log
+language: Java
+severity: warning
+message: "Bare log calls must use the logger"
+rule:
+  pattern: "log($$$ARGS)"
+fix:
+  description: "Rewrite to the logger"
+  template: "logger.info($$$ARGS)"
+metadata:
+  category: style
+  autoFixable: true
+  version: "1.0"
+  source: "test-fixture"

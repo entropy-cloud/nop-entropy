@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 4
+    endLine: 4
+    ruleId: api/no-nonslf4j-logger-call
+    messageContains: "payload.error"
+  - line: 5
+    endLine: 5
+    ruleId: api/no-nonslf4j-logger-call
+    messageContains: "sink.log"

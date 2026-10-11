@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Ruleset DSL metamodel (roadmap item 27, design 10 §3 Phase 2 sketch landed).
+  A ruleset bundles inline rules (each carrying the FULL lint-rule surface via
+  xdef:ref, the same cross-file-ref + key-attr mechanism table-validator.xdef
+  uses) and run-level exemptions (design 09 §4).
+
+  Landed deltas vs the design 10 §3 sketch (recorded per its §2 decisions):
+  - xdef:name="LintRuleset" — the sketch's "lint-ruleset" value is not a legal
+    var name and fails at load (design 10 §2 var-name ruling).
+  - exemption files/ranges are csv-set ATTRIBUTES, not repeated sub-elements:
+    the YAML surface maps list values onto csv attributes per design 10 §2
+    (duplicate sub-tags crash in the DslModelParser).
+
+  The runtime authority for semantic validation (reason mandatory, unknown
+  exemption rule ids, duplicate rule ids across the ruleset/file coexistence)
+  is io.nop.lint.core.rule.RuleSetModel / RuleSetLoader — fail-closed, never a
+  silent skip.
+-->
+<lint-ruleset x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+              xmlns:xdef="/nop/schema/xdef.xdef"
+              xdef:name="LintRuleset"
+              xdef:parser-class="io.nop.lint.core.rule.RuleSetModel"
+              id="!string">
+
+    <!-- inline rules: each entry is a complete lint-rule model -->
+    <rules xdef:body-type="list" xdef:key-attr="id">
+        <rule id="!string" xdef:ref="/nop/lint/schema/lint-rule.xdef"/>
+    </rules>
+
+    <!-- run-level exemptions (design 09 §4): rule + reason mandatory; files
+         = glob list as csv-set (v1 matching surface); ranges parsed and kept
+         but NOT matched by the engine in v1 (rule-defined semantic keys). -->
+    <exemptions xdef:body-type="list">
+        <exemption rule="!string" reason="!string" files="csv-set" ranges="csv-set"/>
+    </exemptions>
+</lint-ruleset>

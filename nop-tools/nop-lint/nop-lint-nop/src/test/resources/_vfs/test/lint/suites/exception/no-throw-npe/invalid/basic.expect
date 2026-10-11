@@ -1,0 +1,7 @@
+diagnostics:
+  - line: 6
+    ruleId: exception/no-throw-npe
+    messageContains: "NullPointerException"
+  - line: 8
+    ruleId: exception/no-throw-npe
+    messageContains: "NullPointerException"

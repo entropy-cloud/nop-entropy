@@ -1,0 +1,9 @@
+# The WI8 p0 demo ruleset (plan nop-refactor/08): an exemption-only ruleset
+# over the three standalone p0 rules in this prefix — (a) is exempted for
+# the legacy tree, which must surface as NonApply(OUT_OF_SCOPE) in the
+# payload, never a silent drop.
+id: p0/p0-demo
+exemptions:
+  - rule: p0/println-to-loginfo
+    files: "**/legacy/**"
+    reason: "legacy module, rewrite planned"

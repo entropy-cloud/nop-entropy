@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<beans x:schema="/nop/schema/beans.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:ioc="ioc"
+       xmlns="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
+        http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+    <bean id="io.nop.refactor.graphql.NopRefactorBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <!-- the rename face's language adapter (plan 12 adjudication 3): the
+         SPI interface field on the biz model wires to this bean by type -->
+    <bean id="io.nop.refactor.java.JavaSymbolResolverAdapter"
+          class="io.nop.refactor.java.JavaSymbolResolverAdapter" ioc:default="true"/>
+</beans>

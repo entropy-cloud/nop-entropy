@@ -1,0 +1,4 @@
+<orm>
+    <unique-key name="uk_b" columns="col_a"/>
+    <unique-key name="uk_c" constraint="" columns="col_b"/>
+</orm>

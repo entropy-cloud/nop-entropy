@@ -1,0 +1,9 @@
+id: demo/broken-no-fixtures-for-language
+language: XML
+severity: warning
+message: "Broken fixture: an XML rule whose only fixture carries a foreign extension"
+metadata:
+  category: demo
+  version: "1.0"
+rule:
+  pattern: <driver>com.mysql.jdbc.Driver</driver>

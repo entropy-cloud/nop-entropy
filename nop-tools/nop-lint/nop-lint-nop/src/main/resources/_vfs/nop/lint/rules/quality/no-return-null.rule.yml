@@ -1,0 +1,15 @@
+# design 02 §1 first-20 batch (roadmap item 29): bare `return null;` v1
+# scope per the plan's adjudication — only the literal-null return statement;
+# null-valued variables, ternaries and constant-folded forms are out of the
+# v1 face (ReturnNull 分析器面归 Phase 3+).
+id: quality/no-return-null
+language: Java
+severity: warning
+message: "禁止裸 return null（Bare `return null` returned; return an Optional/empty value or document the nullability)"
+rule:
+  pattern: "return null"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/design/nop-lint/02-rule-library.md §1"

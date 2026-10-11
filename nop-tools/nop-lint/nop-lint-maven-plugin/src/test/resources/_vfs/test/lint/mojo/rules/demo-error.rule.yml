@@ -1,0 +1,15 @@
+# The CheckMojo test fixture (roadmap item 37): one error-severity rule with
+# the proven System.exit pattern shape — the mojo tests point rulesPrefix at
+# this directory instead of the production library so the failure-mapping
+# matrix stays self-contained.
+id: demo/mojo-error
+language: Java
+severity: error
+message: "mojo fixture：禁止 System.exit (do not call System.exit)"
+rule:
+  pattern: "System.exit($$$)"
+metadata:
+  category: demo
+  autoFixable: false
+  version: "1.0"
+  source: "ai-dev/plans/nop-lint/2026-09-24-1500-1-maven-plugin.md Phase 1"

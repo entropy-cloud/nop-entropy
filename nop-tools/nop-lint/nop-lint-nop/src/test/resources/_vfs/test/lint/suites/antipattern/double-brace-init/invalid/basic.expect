@@ -1,0 +1,9 @@
+diagnostics:
+  - line: 10
+    endLine: 14
+    ruleId: antipattern/double-brace-init
+    messageContains: "double-brace initialization on HashMap"
+  - line: 18
+    endLine: 22
+    ruleId: antipattern/double-brace-init
+    messageContains: "double-brace initialization on ArrayList"
