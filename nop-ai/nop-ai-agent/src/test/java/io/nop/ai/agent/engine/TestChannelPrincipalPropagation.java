@@ -150,7 +150,7 @@ public class TestChannelPrincipalPropagation {
         final AtomicReference<AgentExecutionContext> captured = new AtomicReference<>();
 
         CapturingEngine(IChatService chatService, IToolManager toolManager) {
-            super(chatService, toolManager);
+            super(chatService, toolManager, new io.nop.ai.agent.session.InMemorySessionStore());
         }
 
         @Override

@@ -23,7 +23,7 @@ import java.util.Optional;
  * {@code DefaultAgentEngine.teamManager}), so integrators see zero
  * behaviour regression unless they explicitly wire a functional manager
  * (e.g. {@link InMemoryTeamManager}) via
- * {@code DefaultAgentEngine.setTeamManager(...)}.
+ * {@code engine.config().setTeamManager(...)}.
  *
  * <p>See plan 223 (L4-8-team-manager) and Minimum Rules #24.
  */
@@ -41,7 +41,7 @@ public final class NoOpTeamManager implements ITeamManager {
     private static UnsupportedOperationException notEnabled() {
         return new UnsupportedOperationException(
                 "NoOpTeamManager: team management is not enabled "
-                        + "(wire InMemoryTeamManager via DefaultAgentEngine.setTeamManager to enable)");
+                        + "(wire InMemoryTeamManager via engine.config().setTeamManager to enable)");
     }
 
     @Override

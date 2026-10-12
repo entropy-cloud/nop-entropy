@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.memory.AiMemoryItem;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
@@ -146,9 +153,9 @@ public class TestBudgetedMemoryInjection {
      */
     private List<ChatMessage> captureAllMessages(InMemoryMemoryStoreProvider provider, int budget) {
         CapturingChatService chat = new CapturingChatService();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, noToolManager());
-        engine.setMemoryStoreProvider(provider);
-        engine.setMemoryInjectionBudgetTokens(budget);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, noToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setMemoryStoreProvider(provider);
+        engine.config().setMemoryInjectionBudgetTokens(budget);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "hello", "s1", Collections.emptyMap());
@@ -342,8 +349,8 @@ public class TestBudgetedMemoryInjection {
     @Test
     void nullProviderSkipsInjectionWithoutException() {
         CapturingChatService chat = new CapturingChatService();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, noToolManager());
-        engine.setMemoryStoreProvider(null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, noToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setMemoryStoreProvider(null);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "hello", "s1", Collections.emptyMap());
@@ -393,9 +400,9 @@ public class TestBudgetedMemoryInjection {
 
     @Test
     void shippedDefaultsAreSensible() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(new CapturingChatService(), noToolManager());
-        assertNotNull(engine.getMemoryStoreProvider(), "Shipped provider must be non-null");
-        assertTrue(engine.getMemoryInjectionBudgetTokens() > 0,
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new CapturingChatService(), noToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        assertNotNull(engine.config().getMemoryStoreProvider(), "Shipped provider must be non-null");
+        assertTrue(engine.config().getMemoryInjectionBudgetTokens() > 0,
                 "Shipped budget must be > 0 so memory injection is enabled by default");
     }
 }

@@ -1,5 +1,12 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -99,7 +106,7 @@ public class TestActorRuntimeEndToEnd {
 
         IChatService chatService = mockChatEmittingSendMessageThenComplete();
         IToolManager toolManager = toolManagerWithSendMessage();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         engine.setMailboxFactory(sid -> new DeferredAckMailbox());
 
@@ -153,7 +160,7 @@ public class TestActorRuntimeEndToEnd {
                 return inner.destroyAll();
             }
         };
-        engine.setActorRuntime(capturingRuntime);
+        engine.config().setActorRuntime(capturingRuntime);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "send a message to self", SESSION_ID, null);
@@ -234,7 +241,7 @@ public class TestActorRuntimeEndToEnd {
             }
         };
         IToolManager toolManager = toolManagerWithSendMessage();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         engine.setMailboxFactory(sid -> new DeferredAckMailbox());
         // actorRuntime NOT set → default NoOpActorRuntime (isEnabled()==false)
@@ -244,9 +251,9 @@ public class TestActorRuntimeEndToEnd {
                 .get(60, TimeUnit.SECONDS);
 
         // No Actor created — default NoOp, zero regression
-        assertFalse(engine.getActorRuntime().isEnabled());
-        assertTrue(engine.getActorRuntime().getActiveActors().isEmpty());
-        assertFalse(engine.getActorRuntime().getActorBySession(sid).isPresent());
+        assertFalse(engine.config().getActorRuntime().isEnabled());
+        assertTrue(engine.config().getActorRuntime().getActiveActors().isEmpty());
+        assertFalse(engine.config().getActorRuntime().getActorBySession(sid).isPresent());
 
         // The engine still works (mailbox created, message could be offered)
         assertNotNull(engine.getSessionMailbox(sid));

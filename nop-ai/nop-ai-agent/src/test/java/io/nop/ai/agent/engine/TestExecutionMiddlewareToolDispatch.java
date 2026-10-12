@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 
 /**
  * W3-1 (Phase 3): tests for execution-level (per-tool-call) middleware inside

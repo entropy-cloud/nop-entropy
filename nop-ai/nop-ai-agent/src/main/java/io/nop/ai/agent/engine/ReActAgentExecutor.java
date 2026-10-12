@@ -208,52 +208,57 @@ public class ReActAgentExecutor implements IAgentExecutor {
     // package-private so the extracted ReActAgentExecutorBuilder can invoke it
     // (MA4.2-05 split; access relaxation whitelist).
     ReActAgentExecutor(
+            DefaultAgentEngineConfig config,
             IChatService chatService, IToolManager toolManager,
-                               IAgentEventPublisher eventPublisher,
-                               IPermissionProvider permissionProvider,
-                               IToolAccessChecker toolAccessChecker,
-                               IPathAccessChecker pathAccessChecker,
-                               IAuditLogger auditLogger,
-                               IHookRegistry hookRegistry,
-                               IToolCallRepairer toolCallRepairer,
-                               IContextCompactor contextCompactor,
-                               IContentGuardrail contentGuardrail,
-                               IModelRouter modelRouter,
-                               ITokenEstimator tokenEstimator,
-                               ICompletionJudge completionJudge,
-                               List<ITalent> talents,
-                               ISkillProvider skillProvider,
-                               IAgentEngine engine,
-                               IAgentMessenger messenger,
-                                ISecurityLevelResolver securityLevelResolver,
-                                IPermissionMatrix permissionMatrix,
-                                IApprovalGate approvalGate,
-                                  IDenialLedger denialLedger,
-                                  IPostDenialGuard postDenialGuard,
-                                    ICheckpointManager checkpointManager,
-                                    ISessionStore sessionStore,
-                                      IMemoryStoreProvider memoryStoreProvider,
-                                      IUsageRecorder usageRecorder,
-                                       IModelSwitchedMessageWriter modelSwitchedMessageWriter,
-                                       IBudgetProvider budgetProvider,
-                                       IRetryPolicy retryPolicy,
-                                         ICircuitBreaker circuitBreaker,
-                                         IGoalTracker goalTracker,
-                                         ISustainer sustainer,
-                                           IConflictStrategy conflictStrategy,
-                                           IWriteIntentRegistry writeIntentRegistry,
-                                           IContributionRegistry contributionRegistry,
-                                           io.nop.ai.agent.security.ISandboxBackend sandboxBackend,
-                                           ITeamManager teamManager,
-                                           ITeamTaskStore teamTaskStore,
-                                           ITeamAclChecker teamAclChecker,
-                                            long llmTimeoutMs,
-                                            long toolTimeoutMs,
-                                            long heartBeatIntervalMs,
-                                            java.util.Map<String, Long> toolTimeoutPolicy,
-                                            io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker,
-                                            Executor timeoutExecutor,
-                                            IWaitCoordinator waitCoordinator) {
+            IAgentEventPublisher eventPublisher,
+            IAgentEngine engine,
+            IAgentMessenger messenger,
+            IHookRegistry hookRegistry,
+            ISessionStore sessionStore,
+            ICompletionJudge completionJudge,
+            Executor timeoutExecutor) {
+        // WI11/plan 2443 (A3): config is the single carrier for the
+        // former config-backed parameters; locals below preserve the
+        // original parameter names so the body (incl. null-defaulting)
+        // is unchanged.
+        IPermissionProvider permissionProvider = config.getPermissionProvider();
+        IToolAccessChecker toolAccessChecker = config.getToolAccessChecker();
+        IPathAccessChecker pathAccessChecker = config.getPathAccessChecker();
+        IAuditLogger auditLogger = config.getAuditLogger();
+        IToolCallRepairer toolCallRepairer = config.getToolCallRepairer();
+        IContextCompactor contextCompactor = config.getContextCompactor();
+        IContentGuardrail contentGuardrail = config.getContentGuardrail();
+        IModelRouter modelRouter = config.getModelRouter();
+        ITokenEstimator tokenEstimator = config.getTokenEstimator();
+        List<ITalent> talents = config.getTalents();
+        ISkillProvider skillProvider = config.getSkillProvider();
+        ISecurityLevelResolver securityLevelResolver = config.getSecurityLevelResolver();
+        IPermissionMatrix permissionMatrix = config.getPermissionMatrix();
+        IApprovalGate approvalGate = config.getApprovalGate();
+        IDenialLedger denialLedger = config.getDenialLedger();
+        IPostDenialGuard postDenialGuard = config.getPostDenialGuard();
+        ICheckpointManager checkpointManager = config.getCheckpointManager();
+        IMemoryStoreProvider memoryStoreProvider = config.getMemoryStoreProvider();
+        IUsageRecorder usageRecorder = config.getUsageRecorder();
+        IModelSwitchedMessageWriter modelSwitchedMessageWriter = config.getModelSwitchedMessageWriter();
+        IBudgetProvider budgetProvider = config.getBudgetProvider();
+        IRetryPolicy retryPolicy = config.getRetryPolicy();
+        ICircuitBreaker circuitBreaker = config.getCircuitBreaker();
+        IGoalTracker goalTracker = config.getGoalTracker();
+        ISustainer sustainer = config.getSustainer();
+        IConflictStrategy conflictStrategy = config.getConflictStrategy();
+        IWriteIntentRegistry writeIntentRegistry = config.getWriteIntentRegistry();
+        IContributionRegistry contributionRegistry = config.getContributionRegistry();
+        io.nop.ai.agent.security.ISandboxBackend sandboxBackend = config.getSandboxBackend();
+        ITeamManager teamManager = config.getTeamManager();
+        ITeamTaskStore teamTaskStore = config.getTeamTaskStore();
+        ITeamAclChecker teamAclChecker = config.getTeamAclChecker();
+        long llmTimeoutMs = config.getLlmTimeoutMs();
+        long toolTimeoutMs = config.getToolTimeoutMs();
+        long heartBeatIntervalMs = config.getHeartBeatIntervalMs();
+        java.util.Map<String, Long> toolTimeoutPolicy = config.getToolTimeoutPolicy();
+        io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker = config.getToolProgressTracker();
+        IWaitCoordinator waitCoordinator = config.getWaitCoordinator();
         this.tokenEstimator = tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator();
         this.completionJudge = completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp();
         this.goalTracker = goalTracker != null ? goalTracker : NoOpGoalTracker.noOp();

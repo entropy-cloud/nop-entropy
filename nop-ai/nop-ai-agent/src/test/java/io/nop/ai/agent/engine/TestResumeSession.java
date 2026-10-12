@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ChannelKind;
@@ -249,12 +254,14 @@ public class TestResumeSession {
      * (so any resumed re-execution completes), and an allow-all tool checker.
      */
     private static DefaultAgentEngine newEngine(IDenialLedger ledger, InMemorySessionStore store) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("done"))),
-                stubToolManager(),
-                store,
-                new AllowAllPermissionProvider());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("done"))), stubToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         return engine;
     }
 

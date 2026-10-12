@@ -14,6 +14,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 
 /**
  * Phase 1 unit tests for the sub-agent path-permission inheritance

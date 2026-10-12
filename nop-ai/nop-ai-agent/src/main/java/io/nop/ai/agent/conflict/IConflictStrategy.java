@@ -13,7 +13,7 @@ import java.util.Set;
  * conflict is denied (fail-fast). Alternative strategies (e.g. a future
  * {@code CoordinationBusStrategy} that broadcasts coordination messages to
  * let an LLM adjudicate) can be plugged in via
- * {@code DefaultAgentEngine.setConflictStrategy(...)}.
+ * {@code engine.config().setConflictStrategy(...)}.
  *
  * <p>Semantics contract:
  * <ul>

@@ -1,5 +1,9 @@
 package io.nop.ai.agent.team.scheduler;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -48,6 +52,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Plan 237 Phase 2 end-to-end unattended auto-spawn tests for
@@ -446,10 +452,12 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
     void daemonWiredIntoDefaultEngineSpawnerInjectedViaSetter() {
         // Construct a DefaultAgentEngine (minimal — we only test the wiring
         // shape, not its execution path).
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                null, null, new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ITeamManager mgr = new InMemoryTeamManager();
         ITeamTaskStore store = new InMemoryTeamTaskStore();
@@ -467,8 +475,8 @@ public class TestTeamTaskSchedulerDaemonMemberSpawnEndToEnd {
 
         // The engine exposes the daemon but NOT a spawner (engine is unaware
         // of the spawner extension point — it is a daemon-only concern).
-        engine.setTeamTaskSchedulerDaemon(daemon);
-        assertEquals(daemon, engine.getTeamTaskSchedulerDaemon(),
+        engine.config().setTeamTaskSchedulerDaemon(daemon);
+        assertEquals(daemon, engine.config().getTeamTaskSchedulerDaemon(),
                 "daemon wired into engine (engine still owns the daemon lifecycle)");
 
         // Reconfigure: clear the spawner (null-safe → NoOp).

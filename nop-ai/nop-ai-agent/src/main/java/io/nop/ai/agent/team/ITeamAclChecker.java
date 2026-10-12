@@ -38,7 +38,7 @@ package io.nop.ai.agent.team;
  *   <li>{@link NoOpTeamAclChecker} — always returns {@code allow(null)}.
  *       This is the engine default so integrators see zero behaviour
  *       regression unless a functional checker is explicitly wired via
- *       {@code DefaultAgentEngine.setTeamAclChecker}. The NoOp is "ACL not
+ *       {@code engine.config().setTeamAclChecker}. The NoOp is "ACL not
  *       enabled = no extra restriction", not "ACL not enabled = deny all"
  *       (裁定 4).</li>
  *   <li>{@link DefaultTeamAclChecker} — functional implementation. Holds

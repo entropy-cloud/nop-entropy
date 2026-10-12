@@ -8,7 +8,7 @@ package io.nop.ai.agent.runtime.lock;
  * {@code runningExecutions.putIfAbsent} guard (plan 197), so engine
  * behaviour is unchanged. Integrators opt into cross-process protection
  * by wiring a functional lock (e.g. {@link DbSessionTakeoverLock}) via
- * {@code DefaultAgentEngine.setSessionTakeoverLock}.
+ * {@code engine.config().setSessionTakeoverLock}.
  *
  * <p>This is an explicit "no cross-process lock needed" semantic, not a
  * silent no-op (Minimum Rules #24):

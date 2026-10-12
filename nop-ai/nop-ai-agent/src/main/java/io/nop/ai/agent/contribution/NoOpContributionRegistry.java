@@ -12,7 +12,7 @@ import java.util.Set;
  * engine uses this default out-of-the-box, so integrators see zero behaviour
  * regression unless they explicitly wire a functional registry (e.g.
  * {@link InMemoryContributionRegistry}) via
- * {@code DefaultAgentEngine.setContributionRegistry(...)}.
+ * {@code engine.config().setContributionRegistry(...)}.
  */
 public final class NoOpContributionRegistry implements IContributionRegistry {
 

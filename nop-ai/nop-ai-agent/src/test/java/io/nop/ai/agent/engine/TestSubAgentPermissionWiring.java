@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.IToolAccessChecker;
@@ -229,8 +235,14 @@ public class TestSubAgentPermissionWiring {
      */
     @Test
     void engineWrapsCheckerWhenConstraintPresent() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         IToolAccessChecker engineChecker = engine.getToolAccessCheckerForTest();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
@@ -251,8 +263,14 @@ public class TestSubAgentPermissionWiring {
 
     @Test
     void engineDoesNotWrapWhenConstraintAbsent() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // No metadata at all
         AgentMessageRequest request1 = new AgentMessageRequest("sub-agent", "input", null, null);
@@ -274,8 +292,14 @@ public class TestSubAgentPermissionWiring {
      */
     @Test
     void engineFailsFastOnMalformedConstraint() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(ParentPermissionConstraint.METADATA_KEY, "not-a-constraint");
@@ -295,8 +319,14 @@ public class TestSubAgentPermissionWiring {
      */
     @Test
     void resolveExecutorPassesEffectiveCheckerToExecutor() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), "parent-agent", "parent-sess");
@@ -321,8 +351,14 @@ public class TestSubAgentPermissionWiring {
      */
     @Test
     void fullWiringConstraintDeniesForbiddenTool() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file", "call-agent"), "parent-agent", "parent-sess");

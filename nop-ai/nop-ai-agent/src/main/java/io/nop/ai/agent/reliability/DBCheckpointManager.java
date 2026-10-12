@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>This is the DB-backed successor referenced in the Javadoc of
  * {@link ICheckpointManager}, {@link Checkpoint}, and
  * {@link ToolExecutionCheckpoint}. It is registered explicitly via
- * {@code DefaultAgentEngine.setCheckpointManager(new DBCheckpointManager(dataSource))};
+ * {@code engine.config().setCheckpointManager(new DBCheckpointManager(dataSource))};
  * the shipped default remains {@link NoOpCheckpoint}.
  *
  * <p><b>Persistence scheme</b>: raw JDBC ({@link DataSource} +

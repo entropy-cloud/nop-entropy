@@ -1,5 +1,9 @@
 package io.nop.ai.agent.budget;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -88,8 +92,8 @@ public class TestBudgetProviderWiring {
 
     @Test
     void engineDefaultsToNoOpBudgetProvider() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        IBudgetProvider provider = engine.getBudgetProvider();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IBudgetProvider provider = engine.config().getBudgetProvider();
         assertNotNull(provider, "Engine must default to a non-null budget provider");
         assertTrue(provider instanceof NoOpBudgetProvider,
                 "Shipped default must be the NoOpBudgetProvider pass-through");
@@ -97,18 +101,18 @@ public class TestBudgetProviderWiring {
 
     @Test
     void setBudgetProviderOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         InMemoryBudgetProvider custom = new InMemoryBudgetProvider(new BigDecimal("5.00"));
-        engine.setBudgetProvider(custom);
-        assertTrue(engine.getBudgetProvider() == custom,
+        engine.config().setBudgetProvider(custom);
+        assertTrue(engine.config().getBudgetProvider() == custom,
                 "getBudgetProvider must return the exact instance set via setBudgetProvider");
     }
 
     @Test
     void setBudgetProviderNullFallsBackToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setBudgetProvider(null);
-        IBudgetProvider provider = engine.getBudgetProvider();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setBudgetProvider(null);
+        IBudgetProvider provider = engine.config().getBudgetProvider();
         assertNotNull(provider, "null setter must fall back to a non-null NoOp default");
         assertTrue(provider instanceof NoOpBudgetProvider);
     }
@@ -228,14 +232,10 @@ public class TestBudgetProviderWiring {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, toolManager, new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp(),
-                router);
-        engine.setBudgetProvider(budgetProvider);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(router)
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setBudgetProvider(budgetProvider);
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "Compute something");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);

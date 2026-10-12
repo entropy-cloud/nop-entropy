@@ -27,7 +27,7 @@ package io.nop.ai.agent.security;
  * fallback — it is the Layer 1 designable baseline (design §7.1 "Noop |
  * 无隔离（默认）") that runs directly on the host by definition; an
  * integrator that wants isolation explicitly wires a functional backend
- * via {@code DefaultAgentEngine.setSandboxBackend(...)}.
+ * via {@code engine.config().setSandboxBackend(...)}.
  *
  * <p><b>Package decision</b> (plan 219 Phase 1): the sandbox contract
  * lives in {@code io.nop.ai.agent.security} alongside the other
@@ -52,7 +52,7 @@ package io.nop.ai.agent.security;
  * semantic payloads — they are NOT reused across modules.
  *
  * <p><b>setSandboxBackend vs warnIfInsecureDefaults</b> (plan 219 Phase 1
- * Decision): the {@code DefaultAgentEngine.setSandboxBackend} setter does
+ * Decision): the {@code engine.config().setSandboxBackend} setter does
  * NOT call {@code warnIfInsecureDefaults}. {@link NoOpSandboxBackend} has
  * never been superseded by a more-secure shipped alternative — it is the
  * Layer 1 designable baseline (no isolation is the starting state, design

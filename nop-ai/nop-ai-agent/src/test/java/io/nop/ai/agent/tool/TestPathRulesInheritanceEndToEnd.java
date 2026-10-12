@@ -1,5 +1,12 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.engine.AgentEventType;
 import io.nop.ai.agent.engine.AgentExecutionResult;
@@ -193,7 +200,7 @@ public class TestPathRulesInheritanceEndToEnd {
         };
 
         IToolManager toolManager = createToolManagerWithCallAgent();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);
@@ -294,7 +301,7 @@ public class TestPathRulesInheritanceEndToEnd {
         };
 
         IToolManager toolManager = createToolManagerWithCallAgent();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);

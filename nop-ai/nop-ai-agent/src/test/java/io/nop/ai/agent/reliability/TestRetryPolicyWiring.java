@@ -1,5 +1,9 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -81,8 +85,8 @@ public class TestRetryPolicyWiring {
 
     @Test
     void engineDefaultsToStandardRetryPolicy() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        IRetryPolicy policy = engine.getRetryPolicy();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IRetryPolicy policy = engine.config().getRetryPolicy();
         assertNotNull(policy, "Engine must default to a non-null retry policy");
         assertTrue(policy instanceof StandardRetryPolicy,
                 "Shipped default must be the StandardRetryPolicy with functional defaults");
@@ -90,18 +94,18 @@ public class TestRetryPolicyWiring {
 
     @Test
     void setRetryPolicyOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         IRetryPolicy custom = ctx -> RetryOutcome.stop();
-        engine.setRetryPolicy(custom);
-        assertSame(custom, engine.getRetryPolicy(),
+        engine.config().setRetryPolicy(custom);
+        assertSame(custom, engine.config().getRetryPolicy(),
                 "getRetryPolicy must return the exact instance set via setRetryPolicy");
     }
 
     @Test
     void setRetryPolicyNullFallsBackToDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setRetryPolicy(null);
-        IRetryPolicy policy = engine.getRetryPolicy();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setRetryPolicy(null);
+        IRetryPolicy policy = engine.config().getRetryPolicy();
         assertNotNull(policy, "null setter must fall back to a non-null default");
     }
 
@@ -153,7 +157,7 @@ public class TestRetryPolicyWiring {
         // is wired in this plan (Non-Goal), so the retry loop must fail loud
         // (NopAiAgentException mentioning FALLBACK) rather than silently
         // continuing (Minimum Rules #24: no silent skip).
-        engine.setRetryPolicy(ctx -> RetryOutcome.fallback());
+        engine.config().setRetryPolicy(ctx -> RetryOutcome.fallback());
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -178,12 +182,10 @@ public class TestRetryPolicyWiring {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     /**

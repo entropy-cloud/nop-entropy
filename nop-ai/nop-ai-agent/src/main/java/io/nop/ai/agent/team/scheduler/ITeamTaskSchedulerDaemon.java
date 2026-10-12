@@ -61,7 +61,7 @@ package io.nop.ai.agent.team.scheduler;
  * {@link io.nop.ai.agent.runtime.recovery.IRecoveryManager} contract, the
  * engine does <em>not</em> call {@code start()}/{@code stop()} on the daemon.
  * Integrators wire it (e.g. via
- * {@code DefaultAgentEngine.setTeamTaskSchedulerDaemon}) and call
+ * {@code engine.config().setTeamTaskSchedulerDaemon}) and call
  * {@code start()}/{@code stop()} from the deployment layer.
  *
  * <h2>Thread safety</h2>

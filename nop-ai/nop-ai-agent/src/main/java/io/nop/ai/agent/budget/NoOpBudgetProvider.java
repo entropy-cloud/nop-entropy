@@ -20,7 +20,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
  * Combined with the shipped {@code PassThroughModelRouter} (which never changes
  * the model), the shipped default behaviour is zero-change. A functional
  * provider is registered explicitly via
- * {@code DefaultAgentEngine.setBudgetProvider}. This mirrors the
+ * {@code engine.config().setBudgetProvider}. This mirrors the
  * {@code NoOpUsageRecorder} / {@code NoOpCheckpoint} / {@code NoOpContextCompactor}
  * sibling pass-through pattern.
  *

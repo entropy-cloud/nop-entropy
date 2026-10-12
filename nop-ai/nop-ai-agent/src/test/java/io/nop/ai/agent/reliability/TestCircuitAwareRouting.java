@@ -1,5 +1,6 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -693,14 +694,10 @@ public class TestCircuitAwareRouting {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp(),
-                router);
-        engine.setCircuitBreaker(breaker);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(router)
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCircuitBreaker(breaker);
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hello");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);

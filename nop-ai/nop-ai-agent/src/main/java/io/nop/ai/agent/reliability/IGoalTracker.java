@@ -50,7 +50,7 @@ import io.nop.ai.core.reliability.ICircuitBreaker;
  * {@link #recordIteration} as an explicit no-op. This preserves the engine's
  * pre-plan-211 behaviour verbatim, so wiring the tracker is a zero-regression
  * change. A functional tracker ({@code SessionGoalTracker}) is registered
- * explicitly via {@code DefaultAgentEngine.setGoalTracker}.
+ * explicitly via {@code engine.config().setGoalTracker}.
  *
  * <p><b>Contract for implementations</b>: {@link #assessGoal} must never
  * return {@code null}. Implementations must be safe to call from the ReAct

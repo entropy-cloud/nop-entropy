@@ -727,11 +727,13 @@ public class TestHeartbeatWaitPhase {
         chat.enqueue(ChatResponseFixtures.assistantText("final via engine"), null);
 
         io.nop.ai.agent.session.InMemorySessionStore store = new io.nop.ai.agent.session.InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools, store);
-        engine.setHeartBeatIntervalMs(50L);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools)
+                .sessionStore(store)
+                .build();
+        engine.config().setHeartBeatIntervalMs(50L);
         // engine config setter enforces positive timeouts (no disable) —
         // a large cap serves as the mechanical fallback here
-        engine.setToolTimeoutMs(600_000L);
+        engine.config().setToolTimeoutMs(600_000L);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-react-agent", "run the build", "s-hb-engine", null);

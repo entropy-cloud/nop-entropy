@@ -1,5 +1,12 @@
 package io.nop.ai.agent.skill;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -111,7 +118,7 @@ public class TestSkillCuratorIntegration {
     @Test
     void noOpDefaultReturnsEmptySuccessWithoutLlmCall() {
         // Engine with defaults: NoOpSkillProvider + NoOpSkillCurator
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         SkillCurationResult result = engine.curateSkills();
 
@@ -126,7 +133,7 @@ public class TestSkillCuratorIntegration {
         // Verify that constructing an engine without setting a curator leaves
         // curateSkills() working and returning the no-op result. This proves
         // the new field/setter don't break existing engine usage.
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // curateSkills should not throw
         SkillCurationResult result = engine.curateSkills();
@@ -150,9 +157,9 @@ public class TestSkillCuratorIntegration {
                 + "],\"coverageGaps\":[\"no formatting skill\"],\"redundancies\":[]}";
         TestChatService chatService = TestChatService.returning(json);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        engine.setSkillProvider(new FileSystemSkillProvider("/skills"));
-        engine.setSkillCurator(LLMCurator.llm(chatService));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSkillProvider(new FileSystemSkillProvider("/skills"));
+        engine.config().setSkillCurator(LLMCurator.llm(chatService));
 
         SkillCurationResult result = engine.curateSkills();
 
@@ -183,9 +190,9 @@ public class TestSkillCuratorIntegration {
         TestChatService chatService = TestChatService.returning(
                 "{\"assessments\":[],\"coverageGaps\":[],\"redundancies\":[]}");
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         // Default skillProvider is NoOpSkillProvider (empty registry)
-        engine.setSkillCurator(LLMCurator.llm(chatService));
+        engine.config().setSkillCurator(LLMCurator.llm(chatService));
 
         SkillCurationResult result = engine.curateSkills();
 
@@ -202,9 +209,9 @@ public class TestSkillCuratorIntegration {
         TestChatService chatService = TestChatService.throwing(
                 new RuntimeException("LLM service unavailable"));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        engine.setSkillProvider(new FileSystemSkillProvider("/skills"));
-        engine.setSkillCurator(LLMCurator.llm(chatService));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSkillProvider(new FileSystemSkillProvider("/skills"));
+        engine.config().setSkillCurator(LLMCurator.llm(chatService));
 
         SkillCurationResult result = engine.curateSkills();
 
@@ -220,8 +227,8 @@ public class TestSkillCuratorIntegration {
 
     @Test
     void setCuratorNullDefaultsToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        engine.setSkillCurator(null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSkillCurator(null);
 
         SkillCurationResult result = engine.curateSkills();
 
@@ -239,8 +246,8 @@ public class TestSkillCuratorIntegration {
         TestChatService curatorChatService = TestChatService.returning(
                 "{\"assessments\":[],\"coverageGaps\":[],\"redundancies\":[]}");
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        engine.setSkillCurator(LLMCurator.llm(curatorChatService));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSkillCurator(LLMCurator.llm(curatorChatService));
 
         // Don't call curateSkills() — the curator's chatService must not be touched
         assertEquals(0, curatorChatService.callCount.get(),

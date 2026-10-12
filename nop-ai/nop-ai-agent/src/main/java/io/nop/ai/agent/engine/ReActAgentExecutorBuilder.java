@@ -89,51 +89,23 @@ import java.util.concurrent.Executor;
         private IChatService chatService;
         private IToolManager toolManager;
         private IAgentEventPublisher eventPublisher;
-        private IPermissionProvider permissionProvider;
-        private IToolAccessChecker toolAccessChecker;
-        private IPathAccessChecker pathAccessChecker;
-        private IAuditLogger auditLogger;
+        // WI11/plan 2443 (A3): single config carrier replacing the 38 mirrored
+        // fields. Parity init restores the former builder-field defaults for
+        // the primitive timeouts (0 = disabled — Config setters accept 0 since
+        // the A3b validation relaxation); heartbeat 60s matches both.
+        private final DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
+        {
+            config.setLlmTimeoutMs(0L);
+            config.setToolTimeoutMs(0L);
+            config.setHeartBeatIntervalMs(60_000L);
+        }
         private IHookRegistry hookRegistry;
-        private IToolCallRepairer toolCallRepairer;
-        private IContextCompactor contextCompactor;
-        private IContentGuardrail contentGuardrail;
-        private IModelRouter modelRouter;
-        private ITokenEstimator tokenEstimator;
         private ICompletionJudge completionJudge;
-        private List<ITalent> talents;
-        private ISkillProvider skillProvider;
         private IAgentEngine engine;
         private IAgentMessenger messenger;
-        private ISecurityLevelResolver securityLevelResolver;
-        private IPermissionMatrix permissionMatrix;
-        private IApprovalGate approvalGate;
-        private IDenialLedger denialLedger;
-        private IPostDenialGuard postDenialGuard;
-        private ICheckpointManager checkpointManager;
         private ISessionStore sessionStore;
-        private IMemoryStoreProvider memoryStoreProvider;
-        private IUsageRecorder usageRecorder;
-        private IModelSwitchedMessageWriter modelSwitchedMessageWriter;
-        private IBudgetProvider budgetProvider;
-        private IRetryPolicy retryPolicy;
-        private ICircuitBreaker circuitBreaker;
-        private IGoalTracker goalTracker;
-        private ISustainer sustainer;
-        private IConflictStrategy conflictStrategy;
-        private IWriteIntentRegistry writeIntentRegistry;
-        private IContributionRegistry contributionRegistry;
-        private io.nop.ai.agent.security.ISandboxBackend sandboxBackend;
-        private ITeamManager teamManager;
-        private ITeamTaskStore teamTaskStore;
-        private ITeamAclChecker teamAclChecker;
         // the executor used to wrap the synchronous chatService.call.
-        private long llmTimeoutMs;
-        private long toolTimeoutMs;
-        private long heartBeatIntervalMs = 60_000L;
-        private java.util.Map<String, Long> toolTimeoutPolicy = java.util.Collections.emptyMap();
-        private io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
         private Executor timeoutExecutor;
-        private IWaitCoordinator waitCoordinator;
 
         public ReActAgentExecutorBuilder chatService(IChatService chatService) {
             this.chatService = chatService;
@@ -151,22 +123,22 @@ import java.util.concurrent.Executor;
         }
 
         public ReActAgentExecutorBuilder permissionProvider(IPermissionProvider permissionProvider) {
-            this.permissionProvider = permissionProvider;
+            config.setPermissionProvider(permissionProvider);
             return this;
         }
 
         public ReActAgentExecutorBuilder toolAccessChecker(IToolAccessChecker toolAccessChecker) {
-            this.toolAccessChecker = toolAccessChecker;
+            config.setToolAccessChecker(toolAccessChecker);
             return this;
         }
 
         public ReActAgentExecutorBuilder pathAccessChecker(IPathAccessChecker pathAccessChecker) {
-            this.pathAccessChecker = pathAccessChecker;
+            config.setPathAccessChecker(pathAccessChecker);
             return this;
         }
 
         public ReActAgentExecutorBuilder auditLogger(IAuditLogger auditLogger) {
-            this.auditLogger = auditLogger;
+            config.setAuditLogger(auditLogger);
             return this;
         }
 
@@ -176,7 +148,7 @@ import java.util.concurrent.Executor;
         }
 
         public ReActAgentExecutorBuilder toolCallRepairer(IToolCallRepairer toolCallRepairer) {
-            this.toolCallRepairer = toolCallRepairer;
+            config.setToolCallRepairer(toolCallRepairer);
             return this;
         }
 
@@ -190,27 +162,27 @@ import java.util.concurrent.Executor;
             if (toolManager == null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolManager must be set before enabling ChainRepairer");
             }
-            this.toolCallRepairer = ChainRepairer.withDefaults(toolManager);
+            config.setToolCallRepairer(ChainRepairer.withDefaults(toolManager));
             return this;
         }
 
         public ReActAgentExecutorBuilder contextCompactor(IContextCompactor contextCompactor) {
-            this.contextCompactor = contextCompactor;
+            config.setContextCompactor(contextCompactor);
             return this;
         }
 
         public ReActAgentExecutorBuilder contentGuardrail(IContentGuardrail contentGuardrail) {
-            this.contentGuardrail = contentGuardrail;
+            config.setContentGuardrail(contentGuardrail);
             return this;
         }
 
         public ReActAgentExecutorBuilder modelRouter(IModelRouter modelRouter) {
-            this.modelRouter = modelRouter;
+            config.setModelRouter(modelRouter);
             return this;
         }
 
         public ReActAgentExecutorBuilder tokenEstimator(ITokenEstimator tokenEstimator) {
-            this.tokenEstimator = tokenEstimator;
+            config.setTokenEstimator(tokenEstimator);
             return this;
         }
 
@@ -220,12 +192,12 @@ import java.util.concurrent.Executor;
         }
 
         public ReActAgentExecutorBuilder talents(List<ITalent> talents) {
-            this.talents = talents;
+            config.setTalents(talents);
             return this;
         }
 
         public ReActAgentExecutorBuilder skillProvider(ISkillProvider skillProvider) {
-            this.skillProvider = skillProvider;
+            config.setSkillProvider(skillProvider);
             return this;
         }
 
@@ -257,7 +229,7 @@ import java.util.concurrent.Executor;
          * {@link DefaultSecurityLevelResolver} (trusted-by-default variant).
          */
         public ReActAgentExecutorBuilder securityLevelResolver(ISecurityLevelResolver securityLevelResolver) {
-            this.securityLevelResolver = securityLevelResolver;
+            config.setSecurityLevelResolver(securityLevelResolver);
             return this;
         }
 
@@ -268,7 +240,7 @@ import java.util.concurrent.Executor;
          * usability-safe null channel).
          */
         public ReActAgentExecutorBuilder permissionMatrix(IPermissionMatrix permissionMatrix) {
-            this.permissionMatrix = permissionMatrix;
+            config.setPermissionMatrix(permissionMatrix);
             return this;
         }
 
@@ -280,7 +252,7 @@ import java.util.concurrent.Executor;
          * RESTRICTED defense-in-depth denied — plan 199).
          */
         public ReActAgentExecutorBuilder approvalGate(IApprovalGate approvalGate) {
-            this.approvalGate = approvalGate;
+            config.setApprovalGate(approvalGate);
             return this;
         }
 
@@ -291,7 +263,7 @@ import java.util.concurrent.Executor;
          * threshold-based counting, threshold = 3).
          */
         public ReActAgentExecutorBuilder denialLedger(IDenialLedger denialLedger) {
-            this.denialLedger = denialLedger;
+            config.setDenialLedger(denialLedger);
             return this;
         }
 
@@ -303,7 +275,7 @@ import java.util.concurrent.Executor;
          * {@link DefaultPostDenialGuard} (fingerprint-based blind-retry blocking).
          */
         public ReActAgentExecutorBuilder postDenialGuard(IPostDenialGuard postDenialGuard) {
-            this.postDenialGuard = postDenialGuard;
+            config.setPostDenialGuard(postDenialGuard);
             return this;
         }
 
@@ -316,7 +288,7 @@ import java.util.concurrent.Executor;
          * recorded — backward compatible).
          */
         public ReActAgentExecutorBuilder checkpointManager(ICheckpointManager checkpointManager) {
-            this.checkpointManager = checkpointManager;
+            config.setCheckpointManager(checkpointManager);
             return this;
         }
 
@@ -356,7 +328,7 @@ import java.util.concurrent.Executor;
          * instance, so working-memory tools work out-of-the-box.
          */
         public ReActAgentExecutorBuilder memoryStoreProvider(IMemoryStoreProvider memoryStoreProvider) {
-            this.memoryStoreProvider = memoryStoreProvider;
+            config.setMemoryStoreProvider(memoryStoreProvider);
             return this;
         }
 
@@ -368,7 +340,7 @@ import java.util.concurrent.Executor;
          * pass-through, backward compatible).
          */
         public ReActAgentExecutorBuilder usageRecorder(IUsageRecorder usageRecorder) {
-            this.usageRecorder = usageRecorder;
+            config.setUsageRecorder(usageRecorder);
             return this;
         }
 
@@ -383,7 +355,7 @@ import java.util.concurrent.Executor;
          * compatible).
          */
         public ReActAgentExecutorBuilder modelSwitchedMessageWriter(IModelSwitchedMessageWriter modelSwitchedMessageWriter) {
-            this.modelSwitchedMessageWriter = modelSwitchedMessageWriter;
+            config.setModelSwitchedMessageWriter(modelSwitchedMessageWriter);
             return this;
         }
 
@@ -398,7 +370,7 @@ import java.util.concurrent.Executor;
          * compatible).
          */
         public ReActAgentExecutorBuilder budgetProvider(IBudgetProvider budgetProvider) {
-            this.budgetProvider = budgetProvider;
+            config.setBudgetProvider(budgetProvider);
             return this;
         }
 
@@ -412,7 +384,7 @@ import java.util.concurrent.Executor;
          * compatible, zero-regression).
          */
         public ReActAgentExecutorBuilder retryPolicy(IRetryPolicy retryPolicy) {
-            this.retryPolicy = retryPolicy;
+            config.setRetryPolicy(retryPolicy);
             return this;
         }
 
@@ -429,7 +401,7 @@ import java.util.concurrent.Executor;
          * backward compatible, zero-regression).
          */
         public ReActAgentExecutorBuilder circuitBreaker(ICircuitBreaker circuitBreaker) {
-            this.circuitBreaker = circuitBreaker;
+            config.setCircuitBreaker(circuitBreaker);
             return this;
         }
 
@@ -445,7 +417,7 @@ import java.util.concurrent.Executor;
          * recording — backward compatible, zero-regression).
          */
         public ReActAgentExecutorBuilder goalTracker(IGoalTracker goalTracker) {
-            this.goalTracker = goalTracker;
+            config.setGoalTracker(goalTracker);
             return this;
         }
 
@@ -461,7 +433,7 @@ import java.util.concurrent.Executor;
          * compatible, zero-regression).
          */
         public ReActAgentExecutorBuilder sustainer(ISustainer sustainer) {
-            this.sustainer = sustainer;
+            config.setSustainer(sustainer);
             return this;
         }
 
@@ -477,7 +449,7 @@ import java.util.concurrent.Executor;
          * zero-regression for single-session executions).
          */
         public ReActAgentExecutorBuilder conflictStrategy(IConflictStrategy conflictStrategy) {
-            this.conflictStrategy = conflictStrategy;
+            config.setConflictStrategy(conflictStrategy);
             return this;
         }
 
@@ -490,7 +462,7 @@ import java.util.concurrent.Executor;
          * registry — backward compatible).
          */
         public ReActAgentExecutorBuilder writeIntentRegistry(IWriteIntentRegistry writeIntentRegistry) {
-            this.writeIntentRegistry = writeIntentRegistry;
+            config.setWriteIntentRegistry(writeIntentRegistry);
             return this;
         }
 
@@ -507,7 +479,7 @@ import java.util.concurrent.Executor;
          * regression).
          */
         public ReActAgentExecutorBuilder contributionRegistry(IContributionRegistry contributionRegistry) {
-            this.contributionRegistry = contributionRegistry;
+            config.setContributionRegistry(contributionRegistry);
             return this;
         }
 
@@ -524,7 +496,7 @@ import java.util.concurrent.Executor;
          * §7.1).
          */
         public ReActAgentExecutorBuilder sandboxBackend(io.nop.ai.agent.security.ISandboxBackend sandboxBackend) {
-            this.sandboxBackend = sandboxBackend;
+            config.setSandboxBackend(sandboxBackend);
             return this;
         }
 
@@ -538,7 +510,7 @@ import java.util.concurrent.Executor;
          * that the operation was not executed (backward compatible).
          */
         public ReActAgentExecutorBuilder teamManager(ITeamManager teamManager) {
-            this.teamManager = teamManager;
+            config.setTeamManager(teamManager);
             return this;
         }
 
@@ -551,7 +523,7 @@ import java.util.concurrent.Executor;
          * (backward compatible).
          */
         public ReActAgentExecutorBuilder teamTaskStore(ITeamTaskStore teamTaskStore) {
-            this.teamTaskStore = teamTaskStore;
+            config.setTeamTaskStore(teamTaskStore);
             return this;
         }
 
@@ -567,7 +539,7 @@ import java.util.concurrent.Executor;
          * (allow(null) — zero behaviour regression).
          */
         public ReActAgentExecutorBuilder teamAclChecker(ITeamAclChecker teamAclChecker) {
-            this.teamAclChecker = teamAclChecker;
+            config.setTeamAclChecker(teamAclChecker);
             return this;
         }
 
@@ -578,7 +550,7 @@ import java.util.concurrent.Executor;
          * default (120s) via {@code DefaultAgentEngine.resolveExecutor}.
          */
         public ReActAgentExecutorBuilder llmTimeoutMs(long llmTimeoutMs) {
-            this.llmTimeoutMs = llmTimeoutMs;
+            config.setLlmTimeoutMs(llmTimeoutMs);
             return this;
         }
 
@@ -589,22 +561,22 @@ import java.util.concurrent.Executor;
          * default (300s) via {@code DefaultAgentEngine.resolveExecutor}.
          */
         public ReActAgentExecutorBuilder heartBeatIntervalMs(long heartBeatIntervalMs) {
-            this.heartBeatIntervalMs = heartBeatIntervalMs;
+            config.setHeartBeatIntervalMs(heartBeatIntervalMs);
             return this;
         }
 
         public ReActAgentExecutorBuilder toolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) {
-            this.toolTimeoutPolicy = toolTimeoutPolicy != null ? toolTimeoutPolicy : java.util.Collections.emptyMap();
+            config.setToolTimeoutPolicy(toolTimeoutPolicy != null ? toolTimeoutPolicy : java.util.Collections.emptyMap());
             return this;
         }
 
         public ReActAgentExecutorBuilder toolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker) {
-            this.toolProgressTracker = toolProgressTracker;
+            config.setToolProgressTracker(toolProgressTracker);
             return this;
         }
 
         public ReActAgentExecutorBuilder toolTimeoutMs(long toolTimeoutMs) {
-            this.toolTimeoutMs = toolTimeoutMs;
+            config.setToolTimeoutMs(toolTimeoutMs);
             return this;
         }
 
@@ -630,7 +602,7 @@ import java.util.concurrent.Executor;
          * NONE — no wait ever registered, backward compatible, zero-regression).
          */
         public ReActAgentExecutorBuilder waitCoordinator(IWaitCoordinator waitCoordinator) {
-            this.waitCoordinator = waitCoordinator;
+            config.setWaitCoordinator(waitCoordinator);
             return this;
         }
 
@@ -641,60 +613,47 @@ import java.util.concurrent.Executor;
             if (toolManager == null) {
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolManager must not be null");
             }
+            // WI11/plan 2443 (A3): config is the single carrier for the former
+            // 38 config-backed parameters (builder-set values included).
+            // The former build()-level per-parameter defaulting layer is
+            // preserved verbatim below — the executor ctor null-defaults only
+            // cover part of the surface; without these prefill defaults,
+            // direct-builder callers would wire null checkers (behavior
+            // regression caught by the In-ReAct-Loop test family).
+            if (config.getPermissionProvider() == null) config.setPermissionProvider(new AllowAllPermissionProvider());
+            if (config.getToolAccessChecker() == null) config.setToolAccessChecker(new DefaultToolAccessChecker());
+            if (config.getPathAccessChecker() == null) config.setPathAccessChecker(new DefaultPathAccessChecker());
+            if (config.getAuditLogger() == null) config.setAuditLogger(new Slf4jAuditLogger());
+            if (config.getToolCallRepairer() == null) config.setToolCallRepairer(NoOpToolCallRepairer.INSTANCE);
+            if (config.getContextCompactor() == null) config.setContextCompactor(NoOpContextCompactor.INSTANCE);
+            if (config.getContentGuardrail() == null) config.setContentGuardrail(NoOpContentGuardrail.noOp());
+            if (config.getModelRouter() == null) config.setModelRouter(PassThroughModelRouter.passThrough());
+            if (config.getTokenEstimator() == null) config.setTokenEstimator(TokenEstimators.defaultEstimator());
+            if (config.getUsageRecorder() == null) config.setUsageRecorder(NoOpUsageRecorder.noOp());
+            if (config.getModelSwitchedMessageWriter() == null) config.setModelSwitchedMessageWriter(NoOpModelSwitchedMessageWriter.noOp());
+            if (config.getBudgetProvider() == null) config.setBudgetProvider(NoOpBudgetProvider.noOp());
+            if (config.getRetryPolicy() == null) config.setRetryPolicy(new StandardRetryPolicy());
+            if (config.getCircuitBreaker() == null) config.setCircuitBreaker(new ThresholdBreaker());
+            if (config.getGoalTracker() == null) config.setGoalTracker(NoOpGoalTracker.noOp());
+            if (config.getSustainer() == null) config.setSustainer(NoOpSustainer.noOp());
+            if (config.getConflictStrategy() == null) config.setConflictStrategy(FailFastStrategy.failFast());
+            if (config.getWriteIntentRegistry() == null) config.setWriteIntentRegistry(new InMemoryWriteIntentRegistry());
+            if (config.getContributionRegistry() == null) config.setContributionRegistry(NoOpContributionRegistry.noOp());
+            if (config.getSandboxBackend() == null)
+                config.setSandboxBackend(io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE);
+            if (config.getToolProgressTracker() == null)
+                config.setToolProgressTracker(io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp());
+            if (config.getWaitCoordinator() == null) config.setWaitCoordinator(NoOpWaitCoordinator.noOp());
             return new ReActAgentExecutor(
+                    config,
                     chatService,
                     toolManager,
                     eventPublisher,
-                    permissionProvider != null ? permissionProvider : new AllowAllPermissionProvider(),
-                    toolAccessChecker != null ? toolAccessChecker : new DefaultToolAccessChecker(),
-                    pathAccessChecker != null ? pathAccessChecker : new DefaultPathAccessChecker(),
-                    auditLogger != null ? auditLogger : new Slf4jAuditLogger(),
-                    hookRegistry != null ? hookRegistry : NoOpHookRegistry.INSTANCE,
-                    toolCallRepairer != null ? toolCallRepairer : NoOpToolCallRepairer.INSTANCE,
-                    contextCompactor != null ? contextCompactor : NoOpContextCompactor.INSTANCE,
-                    contentGuardrail != null ? contentGuardrail : NoOpContentGuardrail.noOp(),
-                    modelRouter != null ? modelRouter : PassThroughModelRouter.passThrough(),
-                    tokenEstimator != null ? tokenEstimator : TokenEstimators.defaultEstimator(),
-                    completionJudge != null ? completionJudge : NoOpCompletionJudge.noOp(),
-                    talents,
-                    skillProvider,
                     engine,
                     messenger,
-                    securityLevelResolver,
-                    permissionMatrix,
-                    approvalGate,
-                    denialLedger,
-                    postDenialGuard,
-                    checkpointManager,
+                    hookRegistry,
                     sessionStore,
-                    memoryStoreProvider,
-                    usageRecorder != null ? usageRecorder : NoOpUsageRecorder.noOp(),
-                    modelSwitchedMessageWriter != null
-                            ? modelSwitchedMessageWriter
-                            : NoOpModelSwitchedMessageWriter.noOp(),
-                    budgetProvider != null ? budgetProvider : NoOpBudgetProvider.noOp(),
-                    retryPolicy != null ? retryPolicy : new StandardRetryPolicy(),
-                    circuitBreaker != null ? circuitBreaker : new ThresholdBreaker(),
-                    goalTracker != null ? goalTracker : NoOpGoalTracker.noOp(),
-                    sustainer != null ? sustainer : NoOpSustainer.noOp(),
-                    conflictStrategy != null ? conflictStrategy : FailFastStrategy.failFast(),
-                    writeIntentRegistry != null ? writeIntentRegistry : new InMemoryWriteIntentRegistry(),
-                    contributionRegistry != null ? contributionRegistry : NoOpContributionRegistry.noOp(),
-                    sandboxBackend != null
-                            ? sandboxBackend
-                            : io.nop.ai.agent.security.NoOpSandboxBackend.INSTANCE,
-                    teamManager,
-                    teamTaskStore,
-                    teamAclChecker,
-                    llmTimeoutMs,
-                    toolTimeoutMs,
-                    heartBeatIntervalMs,
-                    toolTimeoutPolicy,
-                    toolProgressTracker != null
-                            ? toolProgressTracker
-                            : io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp(),
-                    timeoutExecutor,
-                    waitCoordinator != null ? waitCoordinator : NoOpWaitCoordinator.noOp()
-            );
+                    completionJudge,
+                    timeoutExecutor);
         }
     }

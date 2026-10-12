@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 
 /**
  * Plan 205 (L2-21) Phase 2 focused tests covering the five required scenarios

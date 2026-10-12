@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.DefaultDenialLedger;
@@ -47,6 +52,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 2 end-to-end tests: verifies the Layer 3 denial-ledger dispatch-path
@@ -292,11 +299,13 @@ public class TestDispatchPathDenialLedger {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -364,11 +373,13 @@ public class TestDispatchPathDenialLedger {
                 assistantWithToolCalls(toolCall("call_b3", "shell.exec"))
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -460,11 +471,13 @@ public class TestDispatchPathDenialLedger {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -492,22 +505,22 @@ public class TestDispatchPathDenialLedger {
      */
     @Test
     void defaultNoOpDenialLedgerProducesNoSpuriousPauses() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_bc1", "shell.exec")),
                         assistantWithToolCalls(toolCall("call_bc2", "shell.exec")),
                         assistantWithToolCalls(toolCall("call_bc3", "shell.exec")),
                         finalAssistant("done")
-                )),
-                stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
+                )), stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Test needs insecure default: opt into NoOpDenialLedger to verify
         // backward-compat (no counting, no pausing).
-        engine.setDenialLedger(NoOpDenialLedger.noOp());
+        engine.config().setDenialLedger(NoOpDenialLedger.noOp());
 
-        assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
+        assertTrue(engine.config().getDenialLedger() instanceof NoOpDenialLedger,
                 "Default denial ledger must be NoOpDenialLedger");
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -557,21 +570,27 @@ public class TestDispatchPathDenialLedger {
 
     @Test
     void engineSetGetDenialLedgerAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("done"))),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("done"))), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger,
+        assertTrue(engine.config().getDenialLedger() instanceof DefaultDenialLedger,
                 "Engine default denial ledger must be DefaultDenialLedger");
 
         CountingLedger custom = new CountingLedger(3);
-        engine.setDenialLedger(custom);
-        assertTrue(engine.getDenialLedger() == custom,
+        engine.config().setDenialLedger(custom);
+        assertTrue(engine.config().getDenialLedger() == custom,
                 "setDenialLedger must wire the exact instance");
 
         // Null setter must fall back to the default, not silently store null.
-        engine.setDenialLedger(null);
-        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger,
+        engine.config().setDenialLedger(null);
+        assertTrue(engine.config().getDenialLedger() instanceof DefaultDenialLedger,
                 "setDenialLedger(null) must fall back to DefaultDenialLedger default");
     }
 

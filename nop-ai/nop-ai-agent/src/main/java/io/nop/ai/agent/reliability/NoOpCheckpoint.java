@@ -12,7 +12,7 @@ package io.nop.ai.agent.reliability;
  * default): the shipped default does not impose checkpoint recording, so
  * unattended Layer 1 automation is unaffected. A functional manager
  * (recording checkpoints in-memory or to a persistent store) is registered
- * explicitly via {@code DefaultAgentEngine.setCheckpointManager}.
+ * explicitly via {@code engine.config().setCheckpointManager}.
  *
  * <p>This implementation is stateless and therefore inherently thread-safe.
  */

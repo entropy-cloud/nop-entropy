@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
@@ -181,10 +187,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_sessionInActiveMemory_throwsNopAiAgentException() {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("active-mem"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Simulate a session in active execution by putting a handle directly
         AgentSession session = store.getOrCreate("active-1", "test-react-agent");
@@ -209,10 +219,14 @@ public class TestRestoreSession {
     void restoreSession_noPersistentState_throwsNopAiAgentException() {
         // InMemorySessionStore has no persistence — restoreSession cannot load
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("no-state"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.restoreSession("never-persisted", "operator", "test"));
@@ -223,10 +237,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_terminalStatus_throwsNopAiAgentException() {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("terminal"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Persist a session with terminal status
         AgentSession session = AgentSession.create("completed-1", "test-react-agent");
@@ -243,10 +261,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_cancelledStatus_throwsNopAiAgentException() {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("cancelled"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentSession session = AgentSession.create("cancelled-1", "test-react-agent");
         session.setStatus(AgentExecStatus.cancelled);
@@ -259,10 +281,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_failedStatus_throwsNopAiAgentException() {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("failed"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentSession session = AgentSession.create("failed-1", "test-react-agent");
         session.setStatus(AgentExecStatus.failed);
@@ -279,10 +305,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_nullSessionId_throwsNopAiAgentException() {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("null-id"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         assertThrows(NopAiAgentException.class,
                 () -> engine.restoreSession(null, "operator", "test"));
@@ -297,10 +327,14 @@ public class TestRestoreSession {
     @Test
     void resumeSession_inMemoryPaused_canBeResumed() throws Exception {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentSession session = store.getOrCreate("paused-1", "test-react-agent");
         session.appendMessages(List.of(new ChatUserMessage("hi")));
@@ -317,10 +351,14 @@ public class TestRestoreSession {
         // InMemorySessionStore.get returns null for unknown sessions —
         // restoreSession must fail fast.
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Put a session in the in-memory store
         AgentSession session = store.getOrCreate("in-mem-1", "test-react-agent");
@@ -355,11 +393,15 @@ public class TestRestoreSession {
         FileBackedSessionStore store = new FileBackedSessionStore(sessionRoot);
         FileBackedCheckpointManager ckptMgr = new FileBackedCheckpointManager(ckptRoot);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("restored-done"))),
-                toolManagerReturning("ok"),
-                store);
-        engine.setCheckpointManager(ckptMgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("restored-done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckptMgr);
 
         // Persist a session with a checkpoint
         AgentSession session = AgentSession.create("event-1", "test-react-agent");
@@ -410,9 +452,15 @@ public class TestRestoreSession {
                 toolCallResponse("call-e2e-1", "test-calculator", Map.of("expr", "2+2")),
                 finalResponse("The result is 4.")));
 
-        DefaultAgentEngine engine1 = new DefaultAgentEngine(
-                chatService1, toolManagerReturning("tool-result-e2e"), store1);
-        engine1.setCheckpointManager(ckptMgr1);
+        DefaultAgentEngine engine1 = new DefaultAgentEngine.Builder(chatService1, toolManagerReturning("tool-result-e2e")).sessionStore(store1)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine1.config().setCheckpointManager(ckptMgr1);
 
         // Phase 1: execute — completes normally (tool call + final message)
         CompletableFuture<AgentExecutionResult> future1 = engine1.execute(
@@ -443,9 +491,15 @@ public class TestRestoreSession {
         ScriptedChatService chatService2 = new ScriptedChatService(List.of(
                 finalResponse("Resumed after crash: the answer is still 4.")));
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                chatService2, toolManagerReturning("ok"), store2);
-        engine2.setCheckpointManager(ckptMgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chatService2, toolManagerReturning("ok")).sessionStore(store2)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckptMgr2);
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         ((DefaultAgentEventPublisher) engine2.getEventPublisher()).addSubscriber(events::add);
@@ -504,11 +558,15 @@ public class TestRestoreSession {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
-        engine.setCheckpointManager(countingMgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(countingMgr);
 
         // Persist a session + checkpoint
         AgentSession session = AgentSession.create("ckpt-1", "test-react-agent");
@@ -540,11 +598,15 @@ public class TestRestoreSession {
         FileBackedSessionStore store = new FileBackedSessionStore(sessionRoot);
         FileBackedCheckpointManager ckptMgr = new FileBackedCheckpointManager(ckptRoot);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
-        engine.setCheckpointManager(ckptMgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckptMgr);
 
         // Persist a session with 1 message
         AgentSession session = AgentSession.create("cons-1", "test-react-agent");
@@ -570,10 +632,14 @@ public class TestRestoreSession {
     @Test
     void restoreSession_withInMemoryStoreAndNoOpCheckpoint_completesForKnownSession() throws Exception {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Default checkpointManager is NoOpCheckpoint
 
         // Put a session in the in-memory store with running status
@@ -643,9 +709,15 @@ public class TestRestoreSession {
                 toolCallResponse("call-mid-1", "test-calculator", Map.of("expr", "5+5")),
                 finalResponse("10")));
 
-        DefaultAgentEngine engine1 = new DefaultAgentEngine(
-                chatService1, toolManagerReturning("mid-crash-tool-result"), store1);
-        engine1.setCheckpointManager(ckptMgr1);
+        DefaultAgentEngine engine1 = new DefaultAgentEngine.Builder(chatService1, toolManagerReturning("mid-crash-tool-result")).sessionStore(store1)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine1.config().setCheckpointManager(ckptMgr1);
 
         // Execute — the tool call completes (intra-execution save writes
         // the session file), then the final message completes the execution.
@@ -684,9 +756,15 @@ public class TestRestoreSession {
         // Restore with a new engine
         ScriptedChatService chatService2 = new ScriptedChatService(List.of(
                 finalResponse("After restore: the answer was 10.")));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                chatService2, toolManagerReturning("ok"), store2);
-        engine2.setCheckpointManager(ckptMgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chatService2, toolManagerReturning("ok")).sessionStore(store2)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckptMgr2);
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         ((DefaultAgentEventPublisher) engine2.getEventPublisher()).addSubscriber(events::add);

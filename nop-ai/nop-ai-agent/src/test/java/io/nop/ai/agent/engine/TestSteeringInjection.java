@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -481,7 +488,7 @@ public class TestSteeringInjection {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, delayedToolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, delayedToolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         engine.setMailboxFactory(sid -> new DeferredAckMailbox());
 
@@ -490,7 +497,7 @@ public class TestSteeringInjection {
         io.nop.ai.agent.runtime.InMemoryActorRuntime rt =
                 new io.nop.ai.agent.runtime.InMemoryActorRuntime(
                         engine::getSessionMailbox, FAST_POLL_MS, FAST_SHUTDOWN_MS);
-        engine.setActorRuntime(rt);
+        engine.config().setActorRuntime(rt);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "send a message to self", sessionId, null);
@@ -558,7 +565,7 @@ public class TestSteeringInjection {
         };
 
         IToolManager toolManager = noopToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         // actorRuntime NOT set → default NoOpActorRuntime (isEnabled()==false)
         // No messenger, no mailboxFactory → no Actor path
 

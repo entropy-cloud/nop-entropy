@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -73,7 +75,7 @@ public class TestLlmCallCoordinatorErrorResponse {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // StandardRetryPolicy default = 3 max attempts.
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         AgentExecutionResult result = engine.execute(request).get(30, TimeUnit.SECONDS);
@@ -99,7 +101,7 @@ public class TestLlmCallCoordinatorErrorResponse {
                         "server_error", "unavailable", null));
 
         DefaultAgentEngine engine = newEngine(chatService);
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         AgentExecutionResult result = engine.execute(request).get(30, TimeUnit.SECONDS);
@@ -120,7 +122,7 @@ public class TestLlmCallCoordinatorErrorResponse {
                         "insufficient_quota", "no money", null));
 
         DefaultAgentEngine engine = newEngine(chatService);
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 10L, 1000L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         AgentExecutionResult result = engine.execute(request).get(30, TimeUnit.SECONDS);
@@ -131,12 +133,10 @@ public class TestLlmCallCoordinatorErrorResponse {
     }
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     /**

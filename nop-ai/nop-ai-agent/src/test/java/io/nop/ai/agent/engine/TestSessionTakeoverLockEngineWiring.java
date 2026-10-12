@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
@@ -52,7 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Plan 221 Phase 2 engine-wiring tests: verifies that a
  * {@link DbSessionTakeoverLock} wired via
- * {@code DefaultAgentEngine.setSessionTakeoverLock(...)} is actually
+ * {@code engine.config().setSessionTakeoverLock(...)} is actually
  * called by the three execution entry points ({@code doExecute} /
  * {@code resumeSession} / {@code restoreSession}) — not just that the
  * field is set.
@@ -126,11 +132,15 @@ public class TestSessionTakeoverLockEngineWiring {
         DBSessionStore store = new DBSessionStore(dataSource);
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("exec-done"))),
-                noOpToolManager(),
-                store);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("exec-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSessionTakeoverLock(lock);
 
         // Before execution: no lock row.
         assertEquals(0, countLockRows("exec-1"),
@@ -161,12 +171,16 @@ public class TestSessionTakeoverLockEngineWiring {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("restore-ckpt"));
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("initial"))),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("initial"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
 
         // Initial execution completes.
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "restore-1", null))
@@ -181,9 +195,9 @@ public class TestSessionTakeoverLockEngineWiring {
         // Restore re-execution with a fresh chat service.
         ScriptedChatService restoreChat = new ScriptedChatService(
                 List.of(finalResponse("restored-done")));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(restoreChat, noOpToolManager(), store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(restoreChat, noOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine2.restoreSession("restore-1", "operator", "crash")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -210,12 +224,16 @@ public class TestSessionTakeoverLockEngineWiring {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("resume-ckpt"));
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("initial"))),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("initial"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "resume-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -226,12 +244,16 @@ public class TestSessionTakeoverLockEngineWiring {
         paused.setStatus(AgentExecStatus.paused);
         store.save(paused);
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("resume-done"))),
-                noOpToolManager(),
-                store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("resume-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine2.resumeSession("resume-1", "operator", "resume")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -253,12 +275,16 @@ public class TestSessionTakeoverLockEngineWiring {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("ff-ckpt"));
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("initial"))),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("initial"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "ff-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -273,12 +299,16 @@ public class TestSessionTakeoverLockEngineWiring {
         assertTrue(lock.tryAcquire("ff-1", "engine-B-simulated", 60_000L),
                 "Pre-acquire the lock as if another instance holds it");
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("never-runs"))),
-                noOpToolManager(),
-                store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("never-runs"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(lock);
 
         // restoreSession must fail-fast with NopAiAgentException.
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
@@ -324,12 +354,12 @@ public class TestSessionTakeoverLockEngineWiring {
         BlockingScriptedChatService chat = new BlockingScriptedChatService(
                 List.of(finalResponse("winner-done")), firstEntered, firstProceed);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, noOpToolManager(), store);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, noOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSessionTakeoverLock(lock);
         // Short lease + fast renewal so the test can observe the renewal
         // keeping the winner's lease alive while the winner is blocked.
-        engine.setLockLeaseMs(1_500L);
-        engine.setLockRenewIntervalMs(300L);
+        engine.config().setLockLeaseMs(1_500L);
+        engine.config().setLockRenewIntervalMs(300L);
 
         String sessionId = "dup-submit-lease";
         CompletableFuture<AgentExecutionResult> winner = engine.execute(
@@ -387,12 +417,16 @@ public class TestSessionTakeoverLockEngineWiring {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("skip-ckpt"));
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
 
         // Persist a session, then revert to running.
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "skip-1", null))
@@ -404,12 +438,16 @@ public class TestSessionTakeoverLockEngineWiring {
         // Pre-acquire the lock as another instance.
         assertTrue(lock.tryAcquire("skip-1", "engine-B-simulated", 60_000L));
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("never-runs"))),
-                noOpToolManager(),
-                store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("never-runs"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(lock);
 
         SessionRestoreSummary summary = engine2.restorePendingSessions("operator", "crash");
 
@@ -448,10 +486,14 @@ public class TestSessionTakeoverLockEngineWiring {
         new DbSessionTakeoverLock(dataSource);
 
         DBSessionStore store = new DBSessionStore(dataSource);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("noop-done"))),
-                noOpToolManager(),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("noop-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // NoOpSessionTakeoverLock is the shipped default — no setSessionTakeoverLock call.
 
         AgentExecutionResult result = engine.execute(

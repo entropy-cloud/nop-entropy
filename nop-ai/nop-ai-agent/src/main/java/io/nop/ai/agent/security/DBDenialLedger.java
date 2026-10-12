@@ -25,7 +25,7 @@ import java.util.Objects;
  *
  * <p>This is the functional successor to the {@link NoOpDenialLedger} default
  * (design §6.2 {@code persistence = DB}). It is registered explicitly via
- * {@code DefaultAgentEngine.setDenialLedger(new DBDenialLedger(dataSource))};
+ * {@code engine.config().setDenialLedger(new DBDenialLedger(dataSource))};
  * the shipped default remains {@link NoOpDenialLedger}.
  *
  * <p><b>Persistence scheme</b>: raw JDBC ({@link DataSource} +

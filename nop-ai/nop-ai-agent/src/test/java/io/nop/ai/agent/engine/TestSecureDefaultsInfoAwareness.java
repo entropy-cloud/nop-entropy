@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -153,7 +159,7 @@ public class TestSecureDefaultsInfoAwareness {
         IChatService chat = dummyChatService();
         IToolManager tools = dummyToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         assertTrue(countWarnsMentioning("NoOpContentGuardrail") >= 1,
                 "Default construction must emit a WARN message about NoOpContentGuardrail. Messages: "
@@ -165,7 +171,7 @@ public class TestSecureDefaultsInfoAwareness {
         IChatService chat = dummyChatService();
         IToolManager tools = dummyToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         assertTrue(countInfosMentioning("NoOpBudgetProvider") >= 1,
                 "Default construction must emit an INFO message about NoOpBudgetProvider. Messages: "
@@ -177,7 +183,7 @@ public class TestSecureDefaultsInfoAwareness {
         IChatService chat = dummyChatService();
         IToolManager tools = dummyToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // NoOpSessionTakeoverLock should NOT trigger any check message
         assertEquals(0, countInfosMentioning("NoOpSessionTakeoverLock"),

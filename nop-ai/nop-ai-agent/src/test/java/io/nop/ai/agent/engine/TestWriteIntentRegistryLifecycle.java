@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.Principal;
@@ -31,6 +37,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 
 /**
  * Plan 214 Phase 2 lifecycle test: verifies that a normal single-session
@@ -123,11 +130,17 @@ public class TestWriteIntentRegistryLifecycle {
     void registryIsEmptyAfterSingleSessionExecute() {
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "lc_1",
-                        Map.of("path", "/tmp/lifecycle-target.txt")),
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "lc_1",
+                        Map.of("path", "/tmp/lifecycle-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "write a file", null, null,
@@ -159,11 +172,17 @@ public class TestWriteIntentRegistryLifecycle {
                 "external-session", "ext-agent", targetPath, "edit-file",
                 System.currentTimeMillis()));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "lc_2",
-                        Map.of("path", "/tmp/lifecycle-deny.txt")),
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "lc_2",
+                        Map.of("path", "/tmp/lifecycle-deny.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "write a file", null, null,

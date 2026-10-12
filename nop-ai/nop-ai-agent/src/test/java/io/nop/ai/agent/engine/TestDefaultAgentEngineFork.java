@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
@@ -107,7 +113,7 @@ public class TestDefaultAgentEngineFork {
                 new ChatUserMessage("hello"),
                 new ChatUserMessage("world")));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         AgentMessageRequest forkRequest = new AgentMessageRequest(
                 "test-agent", "", "parent-e2e-1", null);
 
@@ -130,7 +136,7 @@ public class TestDefaultAgentEngineFork {
         AgentSession parent = store.getOrCreate("parent-e2e-2", "test-agent");
         parent.appendMessages(List.of(new ChatUserMessage("hello")));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         AgentMessageRequest forkRequest = new AgentMessageRequest(
                 "test-agent", "", "parent-e2e-2", null);
 
@@ -144,8 +150,14 @@ public class TestDefaultAgentEngineFork {
     @Test
     void forkSessionThenExecuteChildDoesNotAffectParent() throws Exception {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createTextChatService("reply from LLM"), createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createTextChatService("reply from LLM"), createNoOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         engine.execute(new AgentMessageRequest("test-agent", "hello", "parent-exec-1", null))
                 .get(30, TimeUnit.SECONDS);
@@ -178,7 +190,7 @@ public class TestDefaultAgentEngineFork {
         InMemorySessionStore store = new InMemorySessionStore();
         store.getOrCreate("parent-e2e-event", "test-agent");
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);
 
@@ -204,7 +216,7 @@ public class TestDefaultAgentEngineFork {
     @Test
     void forkSessionThrowsForNonExistentParent() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest forkRequest = new AgentMessageRequest(
                 "test-agent", "", "ghost-parent", null);
@@ -218,7 +230,7 @@ public class TestDefaultAgentEngineFork {
     @Test
     void forkSessionThrowsForNullSessionId() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest forkRequest = new AgentMessageRequest("test-agent", "hello");
 
@@ -233,7 +245,7 @@ public class TestDefaultAgentEngineFork {
         InMemorySessionStore store = new InMemorySessionStore();
         store.getOrCreate("parent-meta", "test-agent");
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         Map<String, Object> metadata = Map.of("source", "fork-request", "priority", 3);
         AgentMessageRequest forkRequest = new AgentMessageRequest(
                 "child-agent", "", "parent-meta", metadata);

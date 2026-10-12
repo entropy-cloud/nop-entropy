@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
@@ -325,12 +332,12 @@ public class TestLayer23SecureDefaults {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
-        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+        assertTrue(engine.config().getApprovalGate() instanceof DefaultApprovalGate,
                 "Short constructor must install DefaultApprovalGate, got: "
-                        + engine.getApprovalGate().getClass().getName());
-        assertFalse(engine.getApprovalGate() instanceof AutoApproveGate,
+                        + engine.config().getApprovalGate().getClass().getName());
+        assertFalse(engine.config().getApprovalGate() instanceof AutoApproveGate,
                 "Short constructor must NOT install AutoApproveGate (plan 199 changed the default)");
     }
 
@@ -420,7 +427,7 @@ public class TestLayer23SecureDefaults {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // The 4 unchanged-insecure-default components must NOT trigger WARN
         // at construction time (noise control — their defaults are
@@ -446,14 +453,14 @@ public class TestLayer23SecureDefaults {
     void functionalSettersDoNotTriggerWarn() {
         IChatService chatService = chatServiceEmittingThenFinal(toolCall("x", "echo", Map.of()));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Functional implementations must NOT trigger WARN
-        engine.setSecurityLevelResolver(new StandardResolver());
-        engine.setPermissionMatrix(FUNCTIONAL_MATRIX);
-        engine.setDenialLedger(FUNCTIONAL_LEDGER);
-        engine.setPostDenialGuard(FUNCTIONAL_GUARD);
-        engine.setApprovalGate(new DefaultApprovalGate());
+        engine.config().setSecurityLevelResolver(new StandardResolver());
+        engine.config().setPermissionMatrix(FUNCTIONAL_MATRIX);
+        engine.config().setDenialLedger(FUNCTIONAL_LEDGER);
+        engine.config().setPostDenialGuard(FUNCTIONAL_GUARD);
+        engine.config().setApprovalGate(new DefaultApprovalGate());
 
         assertEquals(0, countWarnsMentioning("NoOpSecurityLevelResolver"),
                 "Functional resolver must NOT trigger WARN");
@@ -488,16 +495,16 @@ public class TestLayer23SecureDefaults {
         AtomicBoolean toolInvoked = new AtomicBoolean(false);
         IToolManager toolManager = recordingToolManager(toolInvoked);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         // Inject a functional resolver that returns RESTRICTED for network.fetch.
         // DefaultApprovalGate (engine default) denies RESTRICTED.
         // Use PassThroughPermissionMatrix to isolate the Layer 3 approval gate
         // (DefaultPermissionMatrix would deny RESTRICTED at Layer 2 first for
         // null channel — this test specifically verifies the Layer 3 path).
-        engine.setSecurityLevelResolver(new RestrictedResolver());
-        engine.setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
+        engine.config().setSecurityLevelResolver(new RestrictedResolver());
+        engine.config().setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
 
-        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+        assertTrue(engine.config().getApprovalGate() instanceof DefaultApprovalGate,
                 "Engine must use DefaultApprovalGate by default");
 
         AgentExecutionResult result = engine.execute(request).toCompletableFuture()
@@ -535,11 +542,11 @@ public class TestLayer23SecureDefaults {
                 toolCall("call-audit", "network.fetch", Map.of("url", "http://example.com")));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
-        engine.setSecurityLevelResolver(new RestrictedResolver());
-        engine.setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSecurityLevelResolver(new RestrictedResolver());
+        engine.config().setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
         CollectingAuditLogger audit = new CollectingAuditLogger();
-        engine.setAuditLogger(audit);
+        engine.config().setAuditLogger(audit);
 
         engine.execute(request).toCompletableFuture().get(30, TimeUnit.SECONDS);
 

@@ -1,5 +1,11 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -63,7 +69,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *     <li>REQUEST/RESPONSE payload data-object immutability + contract</li>
  *     <li>{@link AgentMessageTopics#callAgentTopic()} helper + single-source
  *         literal</li>
- *     <li>{@code DefaultAgentEngine.setMessenger} idempotent handler
+ *     <li>{@code engine.setMessenger} idempotent handler
  *         registration (functional registers, NoOp does not, double-set does
  *         not break, NoOp cancels)</li>
  *     <li>Handler try/catch returns failure RESPONSE (does not propagate)</li>
@@ -452,7 +458,7 @@ public class TestCallAgentAsyncMailbox {
     }
 
     private DefaultAgentEngine newEngineWithMockChat(String reply) {
-        return new DefaultAgentEngine(mockChatService(reply), noOpToolManager(), new InMemorySessionStore());
+        return new DefaultAgentEngine.Builder(mockChatService(reply), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 
     /**
@@ -464,7 +470,8 @@ public class TestCallAgentAsyncMailbox {
     private DefaultAgentEngine wrapAsDefaultEngine(IAgentEngine delegate) {
         // The handler is registered on the DefaultAgentEngine instance and calls
         // this.execute() internally. To inject a failing execute, subclass.
-        return new DefaultAgentEngine(mockChatService("unused"), noOpToolManager(), new InMemorySessionStore()) {
+        return new DefaultAgentEngine(mockChatService("unused"), noOpToolManager(),
+                new io.nop.ai.agent.session.InMemorySessionStore()) {
             @Override
             public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) {
                 return delegate.execute(request);

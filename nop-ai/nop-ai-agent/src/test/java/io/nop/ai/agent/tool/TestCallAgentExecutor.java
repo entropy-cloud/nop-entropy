@@ -1,5 +1,11 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -121,10 +127,14 @@ public class TestCallAgentExecutor {
     }
 
     private DefaultAgentEngine createEngine(String llmResponse) {
-        return new DefaultAgentEngine(
-                createMockChatService(llmResponse),
-                createNoOpToolManager(),
-                new InMemorySessionStore());
+        return new DefaultAgentEngine.Builder(createMockChatService(llmResponse), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     private AgentToolExecuteContext createContext(IAgentEngine engine, String sessionId, String agentName) {
@@ -182,8 +192,14 @@ public class TestCallAgentExecutor {
         AgentSession parent = store.getOrCreate("parent-sess-2", "test-agent");
         parent.appendMessages(List.of(new ChatUserMessage("parent history")));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("self-reply"), createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("self-reply"), createNoOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentToolExecuteContext ctx = createContext(engine, "parent-sess-2", "test-agent");
 
         AiToolCall call = createCall("self", "do something", null, false);
@@ -209,8 +225,14 @@ public class TestCallAgentExecutor {
                 new ChatUserMessage("inherited message 1"),
                 new ChatUserMessage("inherited message 2")));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("forked-reply"), createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("forked-reply"), createNoOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentToolExecuteContext ctx = createContext(engine, "parent-sess-3", "test-agent");
 
         AiToolCall call = createCall("self", "continue work", null, true);
@@ -235,8 +257,14 @@ public class TestCallAgentExecutor {
         InMemorySessionStore store = new InMemorySessionStore();
         store.getOrCreate("existing-sess-1", "test-agent");
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("continuation-reply"), createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("continuation-reply"), createNoOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentToolExecuteContext ctx = createContext(engine, "parent-sess-4", "parent-agent");
 
         AiToolCall call = createCall("test-agent", "follow up", "existing-sess-1", null);

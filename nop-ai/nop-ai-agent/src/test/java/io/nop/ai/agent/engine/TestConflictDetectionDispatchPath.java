@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.conflict.FailFastStrategy;
 import io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry;
 import io.nop.ai.agent.conflict.WriteIntent;
@@ -42,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 
 /**
  * Plan 214 Phase 2 end-to-end test: verifies the dispatch-path conflict
@@ -204,12 +211,18 @@ public class TestConflictDetectionDispatchPath {
                 "other-session", "other-agent", targetPath, "edit-file",
                 System.currentTimeMillis()));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "cc_1",
-                        Map.of("path", "/tmp/conflict-target.txt")),
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
-        engine.setAuditLogger(audit);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "cc_1",
+                        Map.of("path", "/tmp/conflict-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
+        engine.config().setAuditLogger(audit);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "write a file", null, null,
@@ -234,12 +247,18 @@ public class TestConflictDetectionDispatchPath {
         CollectingAuditLogger audit = new CollectingAuditLogger();
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "ss_1",
-                        Map.of("path", "/tmp/same-session-target.txt")),
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
-        engine.setAuditLogger(audit);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "ss_1",
+                        Map.of("path", "/tmp/same-session-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
+        engine.config().setAuditLogger(audit);
 
         // First execution: registers an intent on the path, completes, then
         // releaseSession cleans up the session's intents. To simulate a
@@ -270,12 +289,19 @@ public class TestConflictDetectionDispatchPath {
         CollectingAuditLogger audit = new CollectingAuditLogger();
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("noop-tool", "np_1",
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("noop-tool", "np_1",
                         Map.of("command", "echo hi")), // no ToolPathArgKeys hit
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
-        engine.setAuditLogger(audit);
+                stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
+        engine.config().setAuditLogger(audit);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "noop", null, null,
@@ -302,11 +328,17 @@ public class TestConflictDetectionDispatchPath {
     void sessionReleaseClearsIntents() {
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "sr_1",
-                        Map.of("path", "/tmp/release-target.txt")),
-                stubToolManager());
-        engine.setWriteIntentRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "sr_1",
+                        Map.of("path", "/tmp/release-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setWriteIntentRegistry(registry);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "write a file", null, null,
@@ -331,12 +363,18 @@ public class TestConflictDetectionDispatchPath {
         // resets (the previous engine's counter is exhausted after the first
         // execute()). The registry is shared so the pre-populated intent is
         // visible to the new engine.
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "sr_2",
-                        Map.of("path", "/tmp/release-target.txt")),
-                stubToolManager());
-        engine2.setWriteIntentRegistry(registry);
-        engine2.setAuditLogger(audit);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "sr_2",
+                        Map.of("path", "/tmp/release-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setWriteIntentRegistry(registry);
+        engine2.config().setAuditLogger(audit);
 
         AgentExecutionResult result2 = engine2.execute(req).toCompletableFuture().join();
         assertTrue(containsMessage(result2, "Conflict denied"),

@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
@@ -104,8 +110,14 @@ public class TestEngineLifecycleAndCheckpointBounded {
         ExecutorService externalAgentExec = Executors.newCachedThreadPool();
         ScheduledExecutorService externalLockRenew = Executors.newSingleThreadScheduledExecutor();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                singleTurnChat("done"), stubTools(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(singleTurnChat("done"), stubTools()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         engine.setAgentExecutor(externalAgentExec);
         engine.setLockRenewExecutor(externalLockRenew);
 
@@ -150,7 +162,7 @@ public class TestEngineLifecycleAndCheckpointBounded {
     void completedSession_triggersCheckpointRemove() throws Exception {
         TrackingCheckpointManager trackingMgr = new TrackingCheckpointManager();
         DefaultAgentEngine engine = newEngine(new InMemorySessionStore());
-        engine.setCheckpointManager(trackingMgr);
+        engine.config().setCheckpointManager(trackingMgr);
 
         String sessionId = "ar10-completed-sess";
         AgentMessageRequest req = new AgentMessageRequest("test-react-agent", "hi", sessionId, null);
@@ -180,7 +192,7 @@ public class TestEngineLifecycleAndCheckpointBounded {
         // Try to resume — it will re-execute and complete (the mock chat
         // returns a final response immediately).
         DefaultAgentEngine engine = newEngine(store);
-        engine.setCheckpointManager(trackingMgr);
+        engine.config().setCheckpointManager(trackingMgr);
 
         AgentExecutionResult result = engine.resumeSession(sessionId, "op", "test")
                 .toCompletableFuture().join();
@@ -274,7 +286,7 @@ public class TestEngineLifecycleAndCheckpointBounded {
         store.getOrCreate(sessionId, "test-react-agent");
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setCheckpointManager(trackingMgr);
+        engine.config().setCheckpointManager(trackingMgr);
 
         engine.cancelSession(sessionId, "test cancel", false).toCompletableFuture().join();
 
@@ -293,7 +305,7 @@ public class TestEngineLifecycleAndCheckpointBounded {
     void multiSession_byWatermarkDoesNotGrowUnbounded() throws Exception {
         ToolExecutionCheckpoint mgr = new ToolExecutionCheckpoint();
         DefaultAgentEngine engine = newEngine(new InMemorySessionStore());
-        engine.setCheckpointManager(mgr);
+        engine.config().setCheckpointManager(mgr);
 
         // Execute 5 sessions.
         for (int i = 0; i < 5; i++) {
@@ -355,7 +367,7 @@ public class TestEngineLifecycleAndCheckpointBounded {
     // ========================================================================
 
     private DefaultAgentEngine newEngine(InMemorySessionStore store) {
-        return new DefaultAgentEngine(singleTurnChat("done"), stubTools(), store);
+        return new DefaultAgentEngine.Builder(singleTurnChat("done"), stubTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 
     private static IChatService singleTurnChat(String content) {

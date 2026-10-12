@@ -69,7 +69,7 @@ import io.nop.ai.core.reliability.ICircuitBreaker;
  * pre-plan-212 zero-sustain behaviour verbatim, so wiring the sustainer is a
  * zero-regression change. A functional sustainer ({@code SisypheanSustainer})
  * is registered explicitly via
- * {@code DefaultAgentEngine.setSustainer}.
+ * {@code engine.config().setSustainer}.
  *
  * <p><b>Mutual exclusivity with {@link ICircuitBreaker}</b> (design §5.1a /
  * §11a): the breaker and the sustainer represent opposite elasticity

@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
@@ -240,11 +246,15 @@ public class TestRestoreSessionIdempotencyDivergence {
         Path ckptRoot = tempDir.resolve(subdir + "-ckpt");
         FileBackedSessionStore store = new FileBackedSessionStore(sessionRoot);
         FileBackedCheckpointManager ckptMgr = new FileBackedCheckpointManager(ckptRoot);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(Collections.emptyList()),
-                toolManagerReturning("ok"),
-                store);
-        engine.setCheckpointManager(ckptMgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(Collections.emptyList()), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckptMgr);
         return new Harness(engine, store, ckptMgr);
     }
 

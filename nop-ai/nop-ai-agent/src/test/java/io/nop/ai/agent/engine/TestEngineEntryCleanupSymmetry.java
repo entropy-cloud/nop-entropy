@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.runtime.AgentActor;
@@ -88,8 +94,8 @@ public class TestEngineEntryCleanupSymmetry {
         TrackingTakeoverLock lock = new TrackingTakeoverLock();
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         DefaultAgentEngine engine = newEngine(mgr, new InMemorySessionStore());
-        engine.setActorRuntime(actorRuntime);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setActorRuntime(actorRuntime);
+        engine.config().setSessionTakeoverLock(lock);
 
         String sessionId = "ar04-doexecute-sess";
         AgentMessageRequest req = new AgentMessageRequest(
@@ -149,8 +155,8 @@ public class TestEngineEntryCleanupSymmetry {
         TrackingTakeoverLock lock = new TrackingTakeoverLock();
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         DefaultAgentEngine engine = newEngine(mgr, new InMemorySessionStore());
-        engine.setActorRuntime(actorRuntime);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setActorRuntime(actorRuntime);
+        engine.config().setSessionTakeoverLock(lock);
 
         String sessionId = "ar04-createactor-sess";
         AgentMessageRequest req = new AgentMessageRequest(
@@ -197,7 +203,7 @@ public class TestEngineEntryCleanupSymmetry {
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         InMemorySessionStore store = new InMemorySessionStore();
         DefaultAgentEngine engine = newEngine(mgr, store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         // Manually create a paused session for a member agent that will fail
         // autoBindTeam on resume (no ACTIVE team exists for it).
@@ -239,7 +245,7 @@ public class TestEngineEntryCleanupSymmetry {
         FileBackedSessionStore store = new FileBackedSessionStore(storeDir);
 
         DefaultAgentEngine engine = newEngine(mgr, store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         // Persist a member session in a non-terminal state.
         String sessionId = "ar04-restore-sess";
@@ -273,8 +279,8 @@ public class TestEngineEntryCleanupSymmetry {
     }
 
     private DefaultAgentEngine newEngine(InMemoryTeamManager mgr, ISessionStore store) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(singleTurnChat("done"), stubTools(), store);
-        engine.setTeamManager(mgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(singleTurnChat("done"), stubTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setTeamManager(mgr);
         return engine;
     }
 

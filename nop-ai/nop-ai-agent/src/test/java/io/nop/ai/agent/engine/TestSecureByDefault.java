@@ -1,5 +1,8 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -52,6 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Plan 193 focused verification of secure-by-default Layer 1 wiring. Verifies
@@ -198,7 +203,7 @@ public class TestSecureByDefault {
         IToolManager toolManager = recordingToolManager(toolInvoked);
 
         // Default engine: short constructor → Default* checkers (plan 193)
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Field-level assertion: short constructor installs Default*
         assertTrue(engine.getToolAccessCheckerForTest() instanceof DefaultToolAccessChecker,
@@ -242,7 +247,7 @@ public class TestSecureByDefault {
         AtomicBoolean toolInvoked = new AtomicBoolean(false);
         IToolManager toolManager = recordingToolManager(toolInvoked);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Field-level assertion: short constructor installs Default*
         assertTrue(engine.getPathAccessCheckerForTest() instanceof DefaultPathAccessChecker,
@@ -279,7 +284,7 @@ public class TestSecureByDefault {
         AtomicBoolean toolInvoked = new AtomicBoolean(false);
         IToolManager toolManager = recordingToolManager(toolInvoked);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentExecutionResult result = engine.execute(request).toCompletableFuture()
                 .get(30, TimeUnit.SECONDS);
@@ -363,7 +368,7 @@ public class TestSecureByDefault {
 
         // Short constructor → Default* installed internally — no WARN
         @SuppressWarnings("resource")
-        DefaultAgentEngine engineShort = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engineShort = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         List<ILoggingEvent> warnsAfterShort = warnEvents();
         // Allow the NoOpContentGuardrail WARN (which is expected, not a security downgrade)
@@ -378,11 +383,11 @@ public class TestSecureByDefault {
 
         // Explicit Default* via 6-arg constructor — also no WARN
         @SuppressWarnings("resource")
-        DefaultAgentEngine engineExplicit = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DefaultToolAccessChecker(),
-                new DefaultPathAccessChecker());
+        DefaultAgentEngine engineExplicit = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         List<ILoggingEvent> warnsAfterExplicit = warnEvents();
         List<ILoggingEvent> nonGuardrailWarnsExplicit = warnsAfterExplicit.stream()

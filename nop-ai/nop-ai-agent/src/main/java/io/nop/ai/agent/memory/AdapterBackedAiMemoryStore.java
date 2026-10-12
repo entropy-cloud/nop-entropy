@@ -53,7 +53,7 @@ import java.util.stream.Collectors;
  * <p>Shipped default is NOT this class — {@link InMemoryMemoryStoreProvider}
  * remains the engine default (设计裁定 4, zero behavioural regression). This
  * store is opt-in via {@link AdapterBackedMemoryStoreProvider} wired through
- * {@code DefaultAgentEngine.setMemoryStoreProvider}.
+ * {@code engine.config().setMemoryStoreProvider}.
  */
 public class AdapterBackedAiMemoryStore implements IAiMemoryStore {
 

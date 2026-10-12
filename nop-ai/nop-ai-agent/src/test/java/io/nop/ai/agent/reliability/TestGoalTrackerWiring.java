@@ -1,5 +1,9 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -78,8 +82,8 @@ public class TestGoalTrackerWiring {
 
     @Test
     void engineDefaultsToNoOpGoalTracker() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        IGoalTracker tracker = engine.getGoalTracker();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IGoalTracker tracker = engine.config().getGoalTracker();
         assertNotNull(tracker, "Engine must default to a non-null goal tracker");
         assertTrue(tracker instanceof NoOpGoalTracker,
                 "Shipped default must be the NoOpGoalTracker pass-through");
@@ -87,18 +91,18 @@ public class TestGoalTrackerWiring {
 
     @Test
     void setGoalTrackerOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         IGoalTracker custom = new RecordingGoalTracker();
-        engine.setGoalTracker(custom);
-        assertSame(custom, engine.getGoalTracker(),
+        engine.config().setGoalTracker(custom);
+        assertSame(custom, engine.config().getGoalTracker(),
                 "getGoalTracker must return the exact instance set via setGoalTracker");
     }
 
     @Test
     void setGoalTrackerNullFallsBackToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setGoalTracker(null);
-        IGoalTracker tracker = engine.getGoalTracker();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setGoalTracker(null);
+        IGoalTracker tracker = engine.config().getGoalTracker();
         assertNotNull(tracker, "null setter must fall back to a non-null NoOpGoalTracker default");
         assertTrue(tracker instanceof NoOpGoalTracker);
     }
@@ -151,7 +155,7 @@ public class TestGoalTrackerWiring {
 
         DefaultAgentEngine engine = newEngine(chatService);
         RecordingGoalTracker tracker = new RecordingGoalTracker();
-        engine.setGoalTracker(tracker);
+        engine.config().setGoalTracker(tracker);
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -178,12 +182,10 @@ public class TestGoalTrackerWiring {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     private static final class CountingSuccessChatService implements IChatService {

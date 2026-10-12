@@ -1,5 +1,9 @@
 package io.nop.ai.agent.team.scheduler;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -43,6 +47,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Plan 236 Phase 2 end-to-end unattended tests for
@@ -65,7 +71,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>{@link #stopAfterStartNewTasksNotAutoDispatched_e2e} — 生命周期端到端：
  *       stop 后新建 CREATED 就绪任务不被派发</li>
  *   <li>{@link #daemonWiredIntoDefaultAgentEngine} — 接线验证 #23：
- *       {@code DefaultAgentEngine.setTeamTaskSchedulerDaemon} 真实注入 +
+ *       {@code engine.config().setTeamTaskSchedulerDaemon} 真实注入 +
  *       getter 返回 functional daemon（非 NoOp 默认）</li>
  *   <li>{@link #noOpDaemonOnEngineByDefault_zeroRegression} — shipped 默认 NoOp
  *       零回归（未 set 时为 NoOp 实例）</li>
@@ -329,13 +335,15 @@ public class TestTeamTaskSchedulerDaemonEndToEnd {
     void daemonWiredIntoDefaultAgentEngine() {
         // Construct a DefaultAgentEngine (minimal — we only test the daemon
         // wiring, not its execution path).
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                null, null, new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Shipped default is NoOp.
-        assertTrue(engine.getTeamTaskSchedulerDaemon() instanceof NoOpTeamTaskSchedulerDaemon,
+        assertTrue(engine.config().getTeamTaskSchedulerDaemon() instanceof NoOpTeamTaskSchedulerDaemon,
                 "shipped default daemon is NoOp (zero regression)");
 
         // Wire a functional daemon — the setter must accept and store it.
@@ -343,26 +351,28 @@ public class TestTeamTaskSchedulerDaemonEndToEnd {
         ITeamTaskStore store = new InMemoryTeamTaskStore();
         TeamTaskSchedulerDaemon functional = new TeamTaskSchedulerDaemon(
                 engine, store, mgr, new RecordingScheduler());
-        engine.setTeamTaskSchedulerDaemon(functional);
+        engine.config().setTeamTaskSchedulerDaemon(functional);
 
-        assertSame(functional, engine.getTeamTaskSchedulerDaemon(),
+        assertSame(functional, engine.config().getTeamTaskSchedulerDaemon(),
                 "functional daemon wired and returned by getter (not NoOp)");
 
         // null falls back to NoOp (null-safe setter, consistent with
         // setRecoveryManager / setTeamManager adjudication).
-        engine.setTeamTaskSchedulerDaemon(null);
-        assertTrue(engine.getTeamTaskSchedulerDaemon() instanceof NoOpTeamTaskSchedulerDaemon,
+        engine.config().setTeamTaskSchedulerDaemon(null);
+        assertTrue(engine.config().getTeamTaskSchedulerDaemon() instanceof NoOpTeamTaskSchedulerDaemon,
                 "null setter falls back to NoOp");
     }
 
     @Test
     void noOpDaemonOnEngineByDefault_zeroRegression() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                null, null, new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        ITeamTaskSchedulerDaemon daemon = engine.getTeamTaskSchedulerDaemon();
+        ITeamTaskSchedulerDaemon daemon = engine.config().getTeamTaskSchedulerDaemon();
         // NoOp lifecycle: start/stop are no-ops (must not throw, no scheduler).
         daemon.start();
         daemon.stop();
@@ -393,7 +403,7 @@ public class TestTeamTaskSchedulerDaemonEndToEnd {
         String a = createTask(store, teamId, "A", Collections.emptyList());
 
         // The daemon consumes memberEngine as its IAgentEngine — this is the
-        // exact wiring DefaultAgentEngine.setTeamTaskSchedulerDaemon +
+        // exact wiring engine.config().setTeamTaskSchedulerDaemon +
         // TeamTaskSchedulerDaemon(agentEngine=this, ...) would use.
         TeamTaskSchedulerDaemon daemon = new TeamTaskSchedulerDaemon(
                 memberEngine, store, mgr, new RecordingScheduler());

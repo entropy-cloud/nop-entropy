@@ -1,5 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
@@ -300,15 +304,17 @@ public class TestStickyPauseRecovery {
                 finalAssistant("done after resume")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                checker);
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(checker)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         // Test isolates ledger/resume behavior: opt into PassThroughPostDenialGuard
         // so the resumed tool call is not blocked as a blind retry by the
         // DefaultPostDenialGuard default (this test is not about guard behavior).
-        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
+        engine.config().setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -385,11 +391,13 @@ public class TestStickyPauseRecovery {
                 finalAssistant("should not be reached")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                checker);
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(checker)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -448,15 +456,17 @@ public class TestStickyPauseRecovery {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new ToggleableChecker()); // deny=true, but NoOp ledger never pauses
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new ToggleableChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build(); // deny=true, but NoOp ledger never pauses
         // Test needs insecure default: opt into NoOpDenialLedger to verify
         // the opt-in backward-compat path (no counting, no pausing).
-        engine.setDenialLedger(NoOpDenialLedger.noOp());
+        engine.config().setDenialLedger(NoOpDenialLedger.noOp());
 
-        assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
+        assertTrue(engine.config().getDenialLedger() instanceof NoOpDenialLedger,
                 "opted-in denial ledger must be NoOpDenialLedger");
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -498,11 +508,13 @@ public class TestStickyPauseRecovery {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                checker);
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(checker)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
         AgentMessageRequest req = new AgentMessageRequest(

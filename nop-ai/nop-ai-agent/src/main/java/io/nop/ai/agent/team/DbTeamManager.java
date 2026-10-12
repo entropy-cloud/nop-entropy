@@ -46,7 +46,7 @@ import java.util.concurrent.ConcurrentMap;
  *
  * <p><b>Drop-in opt-in</b>: integrators construct
  * {@code new DbTeamManager(dataSource)} and inject it via
- * {@code DefaultAgentEngine.setTeamManager(...)}. No engine/context code
+ * {@code engine.config().setTeamManager(...)}. No engine/context code
  * change is required — {@code DbTeamManager implements ITeamManager} is
  * transparent to {@link DefaultTeamAclChecker} and the team tools
  * (design 裁定 7). The shipped default remains {@link NoOpTeamManager}

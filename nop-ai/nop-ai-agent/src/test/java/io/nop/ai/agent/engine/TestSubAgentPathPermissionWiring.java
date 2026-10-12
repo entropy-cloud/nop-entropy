@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.DefaultPathAccessChecker;
@@ -301,8 +306,14 @@ public class TestSubAgentPathPermissionWiring {
 
     @Test
     void engineWrapsPathCheckerWhenPathRootsPresent() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         IPathAccessChecker engineChecker = engine.getPathAccessCheckerForTest();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
@@ -324,8 +335,14 @@ public class TestSubAgentPathPermissionWiring {
 
     @Test
     void engineDoesNotWrapPathCheckerWhenPathRootsAbsent() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // No metadata
         AgentMessageRequest request1 = new AgentMessageRequest("sub-agent", "input", null, null);
@@ -344,8 +361,14 @@ public class TestSubAgentPathPermissionWiring {
 
     @Test
     void engineFailsFastOnMalformedPathConstraint() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         Map<String, Object> metadata = new HashMap<>();
         metadata.put(ParentPermissionConstraint.METADATA_KEY, "not-a-constraint");
@@ -358,8 +381,14 @@ public class TestSubAgentPathPermissionWiring {
 
     @Test
     void resolveExecutorPassesEffectivePathChecker() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), Set.of("/workspace/a"),
@@ -376,8 +405,14 @@ public class TestSubAgentPathPermissionWiring {
 
     @Test
     void fullWiringPathConstraintDeniesOutOfScopePath() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), Set.of("/workspace/project-a"),
@@ -408,8 +443,14 @@ public class TestSubAgentPathPermissionWiring {
     @Test
     void backwardCompatibilityPlan169ToolCheckerUnchanged() {
         // Plan 169 tool-checker wiring must still work when path roots are ABSENT
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                createMockChatService("ok"), createNoOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(createMockChatService("ok"), createNoOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ParentPermissionConstraint constraint = new ParentPermissionConstraint(
                 Set.of("read-file"), "parent-agent", "parent-sess");

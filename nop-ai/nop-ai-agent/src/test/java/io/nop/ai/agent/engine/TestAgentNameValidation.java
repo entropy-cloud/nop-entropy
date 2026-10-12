@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.api.chat.ChatRequest;
@@ -274,8 +280,14 @@ public class TestAgentNameValidation {
     @Test
     void executeRejectsTraversalAgentNameBeforeVfsResourceLoad() {
         ThrowingChatService chat = new ThrowingChatService();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chat, stubToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "../../etc/passwd", "run", null, null);
@@ -338,8 +350,14 @@ public class TestAgentNameValidation {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chat, stubToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-agent", "hi", null, null);

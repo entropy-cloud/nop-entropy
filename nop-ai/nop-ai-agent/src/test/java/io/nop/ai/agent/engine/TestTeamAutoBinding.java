@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.runtime.AgentActor;
@@ -213,7 +220,7 @@ public class TestTeamAutoBinding {
         // execute() itself throws rather than failing the future.
         DefaultAgentEngine engine = newEngine(NoOpTeamManager.noOp());
         // The engine keeps NoOp when null/noOp is set.
-        assertEquals(NoOpTeamManager.noOp().getClass(), engine.getTeamManager().getClass());
+        assertEquals(NoOpTeamManager.noOp().getClass(), engine.config().getTeamManager().getClass());
 
         NopAiAgentException ex = assertThrows(NopAiAgentException.class, () ->
                 engine.execute(new AgentMessageRequest("test-team-lead", "noop", "noop-lead-sess", null)));
@@ -244,7 +251,7 @@ public class TestTeamAutoBinding {
         // actorId must equal the sessionId.
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         DefaultAgentEngine engine = newEngine(mgr);
-        assertTrue(engine.getActorRuntime() instanceof NoOpActorRuntime,
+        assertTrue(engine.config().getActorRuntime() instanceof NoOpActorRuntime,
                 "precondition: default actorRuntime is NoOp");
 
         String leadSession = "actorid-sessionid-sess";
@@ -262,7 +269,7 @@ public class TestTeamAutoBinding {
         DefaultAgentEngine engine = newEngine(mgr);
         // Wire a minimal functional actorRuntime so createActor produces an
         // Actor whose UUID actorId is used for binding.
-        engine.setActorRuntime(new SimpleFunctionalActorRuntime());
+        engine.config().setActorRuntime(new SimpleFunctionalActorRuntime());
 
         String leadSession = "actorid-actor-sess";
         engine.execute(new AgentMessageRequest("test-team-lead", "lead", leadSession, null))
@@ -339,8 +346,8 @@ public class TestTeamAutoBinding {
                 return model;
             }
         };
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
-        engine.setTeamManager(mgr);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setTeamManager(mgr);
         return engine;
     }
 

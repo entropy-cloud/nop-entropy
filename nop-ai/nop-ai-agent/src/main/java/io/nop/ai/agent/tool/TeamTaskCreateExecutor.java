@@ -89,13 +89,13 @@ public class TeamTaskCreateExecutor implements IToolExecutor {
             LOG.debug("team-task-create: team functionality not enabled (NoOp/null teamManager)");
             return honestNotEnabled(call.getId(),
                     "Team functionality is not enabled — task not created. "
-                            + "Wire InMemoryTeamManager via DefaultAgentEngine.setTeamManager to enable.");
+                            + "Wire InMemoryTeamManager via engine.config().setTeamManager to enable.");
         }
         if (taskStore == null || taskStore instanceof NoOpTeamTaskStore) {
             LOG.debug("team-task-create: team task store not enabled (NoOp/null taskStore)");
             return honestNotEnabled(call.getId(),
                     "Team task store is not enabled — task not created. "
-                            + "Wire InMemoryTeamTaskStore via DefaultAgentEngine.setTeamTaskStore to enable.");
+                            + "Wire InMemoryTeamTaskStore via engine.config().setTeamTaskStore to enable.");
         }
 
         String callerSessionId = agentCtx.getSessionId();

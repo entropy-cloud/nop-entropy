@@ -37,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
 
 /**
  * Integration tests for the compaction snapshot archive & two-dimension

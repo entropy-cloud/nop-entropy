@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -154,7 +160,7 @@ public class TestInjectionSemanticsTrichotomy {
         chat.enqueue(ChatResponseFixtures.assistantText("first done"));
         chat.enqueue(ChatResponseFixtures.assistantText("second done"));
         chat.enqueue(ChatResponseFixtures.assistantText("post-inject done"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, new NoTools(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, new NoTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // execution 1
         engine.execute(new AgentMessageRequest("test-react-agent", "first",
@@ -198,7 +204,7 @@ public class TestInjectionSemanticsTrichotomy {
                 // via the engine — a real caller could do this concurrently
             }
         });
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, new NoTools(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, new NoTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // enqueue a FOLLOWUP right after the execute future is returned —
         // the async execution may still be in its final round

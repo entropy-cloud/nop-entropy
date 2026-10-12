@@ -31,7 +31,7 @@ package io.nop.ai.core.reliability;
  * pass-through, not a hidden gap: it preserves the engine's pre-plan-207
  * zero-retry behaviour verbatim, so wiring the retry loop is a zero-regression
  * change. A functional policy ({@code StandardRetryPolicy}) is registered
- * explicitly via {@code DefaultAgentEngine.setRetryPolicy}.
+ * explicitly via {@code engine.config().setRetryPolicy}.
  *
  * <p><b>Contract for implementations</b>: {@link #shouldRetry} must never
  * return {@code null}. A policy that decides not to retry must return

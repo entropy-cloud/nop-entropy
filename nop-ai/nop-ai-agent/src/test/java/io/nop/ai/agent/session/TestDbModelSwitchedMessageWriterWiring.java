@@ -1,5 +1,7 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -48,6 +50,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Plan 205 (L2-21) Phase 2 end-to-end wiring test (Minimum Rules #22
@@ -184,14 +191,10 @@ public class TestDbModelSwitchedMessageWriterWiring {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.DefaultToolAccessChecker(),
-                new io.nop.ai.agent.security.DefaultPathAccessChecker(),
-                io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp(),
-                switchingRouter);
-        engine.setModelSwitchedMessageWriter(new DbModelSwitchedMessageWriter(dataSource));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.DefaultToolAccessChecker()).pathAccessChecker(new io.nop.ai.agent.security.DefaultPathAccessChecker()).contentGuardrail(io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp()).modelRouter(switchingRouter)
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setModelSwitchedMessageWriter(new DbModelSwitchedMessageWriter(dataSource));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "What is 2+2?");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -296,8 +299,8 @@ public class TestDbModelSwitchedMessageWriterWiring {
         };
 
         // PassThrough router (engine default) — no model switch
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
-        engine.setModelSwitchedMessageWriter(new DbModelSwitchedMessageWriter(dataSource));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setModelSwitchedMessageWriter(new DbModelSwitchedMessageWriter(dataSource));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "What is 3+3?");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);

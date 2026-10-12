@@ -9,7 +9,7 @@ package io.nop.ai.agent.team.scheduler;
  * {@link io.nop.ai.agent.team.flow.TeamTaskFlowOrchestrator}, so engine
  * behaviour is unchanged. Integrators opt into unattended auto-scheduling by
  * wiring a functional daemon (e.g. {@link TeamTaskSchedulerDaemon}) via
- * {@code DefaultAgentEngine.setTeamTaskSchedulerDaemon} and calling
+ * {@code engine.config().setTeamTaskSchedulerDaemon} and calling
  * {@code start()} from the deployment layer.
  *
  * <p>This is an explicit "no auto-scheduling" semantic, not a silent no-op

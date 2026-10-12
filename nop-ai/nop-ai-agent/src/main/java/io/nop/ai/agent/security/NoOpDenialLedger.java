@@ -11,7 +11,7 @@ package io.nop.ai.agent.security;
  * default): the shipped default does not impose denial counting or threshold
  * pausing, so unattended Layer 1 automation is unaffected. A functional
  * ledger (counting denials and pausing on threshold) is registered
- * explicitly via {@code DefaultAgentEngine.setDenialLedger}.
+ * explicitly via {@code engine.config().setDenialLedger}.
  *
  * <p>This implementation is stateless and therefore inherently thread-safe.
  */

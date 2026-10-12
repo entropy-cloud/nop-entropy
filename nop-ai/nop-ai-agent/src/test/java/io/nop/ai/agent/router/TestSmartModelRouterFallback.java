@@ -1,5 +1,7 @@
 package io.nop.ai.agent.router;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -380,14 +382,10 @@ public class TestSmartModelRouterFallback {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp(),
-                router);
-        engine.setRetryPolicy(alwaysFallback());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(router)
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setRetryPolicy(alwaysFallback());
 
         io.nop.ai.agent.engine.AgentMessageRequest request =
                 new io.nop.ai.agent.engine.AgentMessageRequest("test-react-agent", "hello");

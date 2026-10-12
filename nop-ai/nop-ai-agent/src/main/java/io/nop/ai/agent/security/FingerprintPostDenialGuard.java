@@ -9,7 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * a per-session set of denied action fingerprints and blocks blind retries
  * via exact-fingerprint matching. This is the shipped functional default
  * (pure in-memory, no external dependencies); register it via
- * {@code DefaultAgentEngine.setPostDenialGuard} to enable blind-retry
+ * {@code engine.config().setPostDenialGuard} to enable blind-retry
  * blocking.
  *
  * <p><b>Detection strategy</b>: exact-fingerprint matching. Two actions with

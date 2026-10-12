@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.security.ISandboxBackend;
 import io.nop.ai.agent.security.NoOpSandboxBackend;
 import io.nop.ai.agent.security.SandboxConfig;
@@ -103,10 +110,10 @@ public class TestSandboxWiring {
 
     @Test
     void shippedDefaultExecutorHoldsNoOpSandboxBackend() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(unusedChatService(), unusedToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(unusedChatService(), unusedToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Engine-level getter: confirms the field default is in place.
-        ISandboxBackend engineLevel = engine.getSandboxBackend();
+        ISandboxBackend engineLevel = engine.config().getSandboxBackend();
         assertNotNull(engineLevel, "engine must always hold a non-null sandboxBackend");
         assertTrue(engineLevel instanceof NoOpSandboxBackend,
                 "shipped default must be NoOpSandboxBackend; got " + engineLevel.getClass().getName());
@@ -145,11 +152,11 @@ public class TestSandboxWiring {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(unusedChatService(), unusedToolManager());
-        engine.setSandboxBackend(sentinel);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(unusedChatService(), unusedToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSandboxBackend(sentinel);
 
         // Engine-level getter returns the exact injected instance.
-        assertSame(sentinel, engine.getSandboxBackend(),
+        assertSame(sentinel, engine.config().getSandboxBackend(),
                 "engine getter must return the exact instance injected via setSandboxBackend");
 
         // The executor built by resolveExecutor must receive the same
@@ -162,9 +169,9 @@ public class TestSandboxWiring {
 
     @Test
     void setSandboxBackendNullFallsBackToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(unusedChatService(), unusedToolManager());
-        engine.setSandboxBackend(null);
-        assertTrue(engine.getSandboxBackend() instanceof NoOpSandboxBackend,
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(unusedChatService(), unusedToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSandboxBackend(null);
+        assertTrue(engine.config().getSandboxBackend() instanceof NoOpSandboxBackend,
                 "setSandboxBackend(null) must fall back to NoOpSandboxBackend (plan 219)");
     }
 
@@ -180,8 +187,8 @@ public class TestSandboxWiring {
         // SandboxResult, proving the contract surface is not a hollow
         // reference. We use the shipped NoOpSandboxBackend because the
         // smoke test must run on every platform without Docker.
-        DefaultAgentEngine engine = new DefaultAgentEngine(unusedChatService(), unusedToolManager());
-        ISandboxBackend backend = engine.getSandboxBackend();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(unusedChatService(), unusedToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        ISandboxBackend backend = engine.config().getSandboxBackend();
 
         SandboxRequest req = SandboxRequest.of(
                 List.of("sh", "-c", "echo smoke-test-payload"),

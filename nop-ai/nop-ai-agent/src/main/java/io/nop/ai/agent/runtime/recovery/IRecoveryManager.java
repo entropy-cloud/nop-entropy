@@ -35,7 +35,7 @@ package io.nop.ai.agent.runtime.recovery;
  * RecoveryManager. {@code IAgentEngine}'s design contract states that
  * lifecycle management is a deployment-layer decision, not an
  * engine-layer contract. Integrators wire the RecoveryManager via
- * {@code DefaultAgentEngine.setRecoveryManager} and then call
+ * {@code engine.config().setRecoveryManager} and then call
  * {@code start()} (e.g. after app startup) and {@code stop()} (e.g.
  * before app shutdown) from the deployment layer.
  *

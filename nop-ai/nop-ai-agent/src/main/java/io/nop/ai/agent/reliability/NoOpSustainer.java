@@ -20,7 +20,7 @@ import io.nop.ai.core.reliability.NoRetryPolicy;
  * (interactive / cost-sensitive paths, or environments where the iteration
  * budget is a hard contract), and the shipped default makes that the safe
  * baseline. A functional sustainer ({@code SisypheanSustainer}) is registered
- * explicitly via {@code DefaultAgentEngine.setSustainer}. This mirrors the
+ * explicitly via {@code engine.config().setSustainer}. This mirrors the
  * {@link AlwaysClosed} / {@link NoOpGoalTracker} / {@link NoRetryPolicy} /
  * {@link NoOpCheckpoint} sibling pass-through pattern.
  *

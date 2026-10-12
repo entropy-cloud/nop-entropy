@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.compact.CompactionContext;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
@@ -53,6 +58,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
 
 /**
  * Plan 188 — compaction-aware checkpoint truncation tests.
@@ -398,8 +404,8 @@ public class TestCompactionAwareCheckpointTruncation {
         persistedSession.setStatus(AgentExecStatus.running);
         store2.save(persistedSession);
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(chat2, stubToolManager(), store2);
-        engine2.setCheckpointManager(mgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chat2, stubToolManager()).sessionStore(store2).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine2.config().setCheckpointManager(mgr2);
 
         AgentExecutionResult restoreResult = engine2.restoreSession(sessionId, "operator", "crash recovery")
                 .toCompletableFuture().join();
@@ -548,8 +554,8 @@ public class TestCompactionAwareCheckpointTruncation {
         RecordingChatService chat2 = new RecordingChatService(List.of(
                 finalAssistant("bc-restored-done")));
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(chat2, stubToolManager(), store2);
-        engine2.setCheckpointManager(mgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chat2, stubToolManager()).sessionStore(store2).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine2.config().setCheckpointManager(mgr2);
 
         AgentExecutionResult result = engine2.restoreSession(sessionId, "operator", "test")
                 .toCompletableFuture().join();

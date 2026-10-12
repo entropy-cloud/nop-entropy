@@ -8,6 +8,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
 
 public class TestNoOpContentGuardrail {
 

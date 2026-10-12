@@ -133,6 +133,10 @@ public class TestInvariantGate2OrchestrationTimeout {
             // background task registry — no async wait surface, same
             // not-applicable class as getSessionStatus
             new Entry("IAgentEngine.getBackgroundTaskRegistry", null, null, "not-applicable"),
+            // Plan 2443 (WI11): synchronous config-tuning accessor — no async
+            // wait surface, same not-applicable class as
+            // getBackgroundTaskRegistry/getSessionStatus
+            new Entry("IAgentEngine.config", null, null, "not-applicable"),
             new Entry("ReActAgentExecutor.execute", "engine/ReActAgentExecutor.java",
                     "llmTimeoutMs", "declared"),
             new Entry("SingleTurnExecutor.execute", "engine/SingleTurnExecutor.java",

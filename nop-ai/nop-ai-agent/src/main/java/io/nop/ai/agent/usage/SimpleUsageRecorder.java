@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
  *
  * <p>Wiring: register via
  * {@code DefaultAgentEngine.Builder#usageRecorder(IUsageRecorder)} /
- * {@code DefaultAgentEngine.setUsageRecorder(IUsageRecorder)}. Unlike the
+ * {@code engine.config().setUsageRecorder(IUsageRecorder)}. Unlike the
  * pass-through {@link NoOpUsageRecorder} default, this recorder makes token
  * metering visible in the application log; a production recorder (e.g.
  * {@code DbUsageRecorder} writing {@code NopAiChatResponse}, L2-18) persists

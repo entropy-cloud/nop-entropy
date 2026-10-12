@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.spi.ILoggingEvent;
@@ -250,12 +257,12 @@ public class TestAuditLoggerDefault {
         AtomicBoolean toolInvoked = new AtomicBoolean(false);
         IToolManager toolManager = recordingToolManager(toolInvoked);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Field-level assertion: short constructor installs Slf4jAuditLogger
-        assertTrue(engine.getAuditLogger() instanceof Slf4jAuditLogger,
+        assertTrue(engine.config().getAuditLogger() instanceof Slf4jAuditLogger,
                 "Short constructor must install Slf4jAuditLogger, got: "
-                        + engine.getAuditLogger().getClass().getName());
+                        + engine.config().getAuditLogger().getClass().getName());
 
         AgentExecutionResult result = engine.execute(request).toCompletableFuture()
                 .get(30, TimeUnit.SECONDS);
@@ -298,11 +305,11 @@ public class TestAuditLoggerDefault {
                 toolCall("call-2", "bash", Map.of("cmd", "echo hi")));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         CollectingAuditLogger custom = new CollectingAuditLogger();
-        engine.setAuditLogger(custom);
+        engine.config().setAuditLogger(custom);
 
-        assertTrue(engine.getAuditLogger() == custom,
+        assertTrue(engine.config().getAuditLogger() == custom,
                 "setAuditLogger must replace the default — getAuditLogger() must return the custom instance");
 
         engine.execute(request).toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -388,7 +395,7 @@ public class TestAuditLoggerDefault {
         assertEquals(0, engineWarns().size(), "Baseline: no WARN before construction");
 
         // Short constructor → default Slf4jAuditLogger → no NoOp WARN
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         long warnsAfterDefault = engineWarns().stream()
                 .filter(e -> e.getFormattedMessage() != null
                         && e.getFormattedMessage().contains("NoOpAuditLogger"))
@@ -397,7 +404,7 @@ public class TestAuditLoggerDefault {
                 "Default construction (Slf4jAuditLogger) must NOT emit a NoOpAuditLogger WARN");
 
         // Explicit Slf4jAuditLogger via setter → still no NoOp WARN
-        engine.setAuditLogger(new Slf4jAuditLogger());
+        engine.config().setAuditLogger(new Slf4jAuditLogger());
         long warnsAfterExplicit = engineWarns().stream()
                 .filter(e -> e.getFormattedMessage() != null
                         && e.getFormattedMessage().contains("NoOpAuditLogger"))
@@ -429,9 +436,9 @@ public class TestAuditLoggerDefault {
                 toolCall("call-e2e", "bash", Map.of("cmd", "rm -rf /")));
         IToolManager toolManager = recordingToolManager(new AtomicBoolean());
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         CollectingAuditLogger audit = new CollectingAuditLogger();
-        engine.setAuditLogger(audit);
+        engine.config().setAuditLogger(audit);
 
         AgentExecutionResult result = engine.execute(request).toCompletableFuture()
                 .get(30, TimeUnit.SECONDS);

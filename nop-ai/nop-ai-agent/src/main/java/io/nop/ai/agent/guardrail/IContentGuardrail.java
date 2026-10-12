@@ -7,14 +7,14 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
  * implementation ({@link NoOpContentGuardrail}) for backwards compatibility.
  * A production-grade implementation ({@link PromptInjectionGuardrail}) is
  * shipped and can be wired via
- * {@code DefaultAgentEngine.setContentGuardrail()}. Constructing an engine
+ * {@code engine.config().setContentGuardrail()}. Constructing an engine
  * with the NoOp default emits a WARN (a production alternative exists).
  *
  * @apiNote The shipped default is {@link NoOpContentGuardrail} (content safety
  *          not enforced). A production-grade implementation
  *          ({@link PromptInjectionGuardrail}) is available and should be wired
  *          for production deployments via
- *          {@code DefaultAgentEngine.setContentGuardrail()}.
+ *          {@code engine.config().setContentGuardrail()}.
  */
 public interface IContentGuardrail {
 

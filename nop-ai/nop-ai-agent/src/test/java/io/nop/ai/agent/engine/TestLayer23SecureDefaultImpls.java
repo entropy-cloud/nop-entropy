@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
@@ -54,6 +59,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Plan 200 end-to-end + wiring verification (Minimum Rules #22, #23):
@@ -179,17 +186,23 @@ public class TestLayer23SecureDefaultImpls {
 
     @Test
     void defaultEngineUsesAllFourDefaultSecureImpls() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(List.of()),
-                recordingToolManager(null));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(List.of()), recordingToolManager(null))
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getSecurityLevelResolver() instanceof DefaultSecurityLevelResolver,
+        assertTrue(engine.config().getSecurityLevelResolver() instanceof DefaultSecurityLevelResolver,
                 "default resolver must be DefaultSecurityLevelResolver");
-        assertTrue(engine.getPermissionMatrix() instanceof DefaultPermissionMatrix,
+        assertTrue(engine.config().getPermissionMatrix() instanceof DefaultPermissionMatrix,
                 "default matrix must be DefaultPermissionMatrix");
-        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger,
+        assertTrue(engine.config().getDenialLedger() instanceof DefaultDenialLedger,
                 "default ledger must be DefaultDenialLedger");
-        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard,
+        assertTrue(engine.config().getPostDenialGuard() instanceof DefaultPostDenialGuard,
                 "default guard must be DefaultPostDenialGuard");
     }
 
@@ -207,11 +220,17 @@ public class TestLayer23SecureDefaultImpls {
     @Test
     void endToEndRestrictedDeniedByDefaultMatrixAtLayer2() throws Exception {
         // Use a custom resolver to force RESTRICTED (simulating untrusted source)
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))),
-                recordingToolManager(new AtomicBoolean()));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))), recordingToolManager(new AtomicBoolean()))
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Resolver that returns RESTRICTED (simulating untrusted high-impact)
-        engine.setSecurityLevelResolver(new ISecurityLevelResolver() {
+        engine.config().setSecurityLevelResolver(new ISecurityLevelResolver() {
             @Override
             public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
                                       AgentExecutionContext ctx) {
@@ -249,9 +268,15 @@ public class TestLayer23SecureDefaultImpls {
     @Test
     void endToEndTrustedStandardActionAllowed() {
         AtomicBoolean toolInvoked = new AtomicBoolean(false);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(List.of(toolCall("c1", "echo", Map.of()))),
-                recordingToolManager(toolInvoked));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(List.of(toolCall("c1", "echo", Map.of()))), recordingToolManager(toolInvoked))
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest req = new AgentMessageRequest("test-agent", "run echo");
         AgentExecutionResult result = engine.execute(req).toCompletableFuture().join();
@@ -279,21 +304,21 @@ public class TestLayer23SecureDefaultImpls {
                         return io.nop.ai.agent.security.ToolAccessResult.deny("test deny-all");
                     }
                 };
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(
                         List.of(toolCall("d1", "test-tool", Map.of())),
                         List.of(toolCall("d2", "test-tool", Map.of())),
                         List.of(toolCall("d3", "test-tool", Map.of()))
-                ),
-                recordingToolManager(null),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                denyAll);
+                ), recordingToolManager(null)).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(denyAll)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Isolate ledger behavior: prevent guard from blocking retries so all
         // 3 denials reach Layer 1 and the ledger counts them.
-        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
+        engine.config().setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
 
-        assertTrue(engine.getDenialLedger() instanceof DefaultDenialLedger);
+        assertTrue(engine.config().getDenialLedger() instanceof DefaultDenialLedger);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "pause-test", null, ChannelKind.WEBUI, Principal.user());
@@ -316,26 +341,26 @@ public class TestLayer23SecureDefaultImpls {
     @Test
     void endToEndBlindRetryBlockedByDefaultGuard() {
         AtomicInteger checkCount = new AtomicInteger(0);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(
                         List.of(
                                 toolCall("r1", "test-tool", Map.of("arg", "v")),
                                 toolCall("r2", "test-tool", Map.of("arg", "v"))),
                         List.of()
-                ),
-                recordingToolManager(null),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.IToolAccessChecker() {
+                ), recordingToolManager(null)).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.IToolAccessChecker() {
                     @Override
                     public io.nop.ai.agent.security.ToolAccessResult checkAccess(
                             String toolName, AgentExecutionContext ctx) {
                         checkCount.incrementAndGet();
                         return io.nop.ai.agent.security.ToolAccessResult.deny("test deny-all");
                     }
-                });
+                })
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard);
+        assertTrue(engine.config().getPostDenialGuard() instanceof DefaultPostDenialGuard);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "guard-test", null, ChannelKind.WEBUI, Principal.user());
@@ -362,10 +387,16 @@ public class TestLayer23SecureDefaultImpls {
 
     @Test
     void endToEndLayer2DenialRecordsAuditEvent() throws Exception {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))),
-                recordingToolManager(null));
-        engine.setSecurityLevelResolver(new ISecurityLevelResolver() {
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceWithTurns(List.of(toolCall("c1", "shell.exec", Map.of("cmd", "ls")))), recordingToolManager(null))
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(new ISecurityLevelResolver() {
             @Override
             public LevelHints produce(String toolName, Map<String, Object> arguments, File workDir,
                                       AgentExecutionContext ctx) {
@@ -378,7 +409,7 @@ public class TestLayer23SecureDefaultImpls {
             }
         });
         CollectingAuditLogger audit = new CollectingAuditLogger();
-        engine.setAuditLogger(audit);
+        engine.config().setAuditLogger(audit);
 
         AgentMessageRequest req = new AgentMessageRequest("test-agent", "run");
         engine.execute(req).toCompletableFuture().get(30, TimeUnit.SECONDS);

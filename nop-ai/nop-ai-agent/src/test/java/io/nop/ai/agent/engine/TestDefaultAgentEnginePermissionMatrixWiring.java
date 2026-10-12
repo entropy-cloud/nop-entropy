@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.DefaultPermissionMatrix;
 import io.nop.ai.agent.security.IPermissionMatrix;
@@ -27,17 +34,17 @@ public class TestDefaultAgentEnginePermissionMatrixWiring {
         DefaultAgentEngine engine = newEngineStub();
         IPermissionMatrix custom = (channel, principal, level) -> MatrixDecision.allow();
 
-        engine.setPermissionMatrix(custom);
+        engine.config().setPermissionMatrix(custom);
 
-        assertSame(custom, engine.getPermissionMatrix(),
+        assertSame(custom, engine.config().getPermissionMatrix(),
                 "matrix retrieved from engine must be the same instance set via setPermissionMatrix");
     }
 
     @Test
     void setPermissionMatrixNullFallsBackToDefaultPermissionMatrix() {
         DefaultAgentEngine engine = newEngineStub();
-        engine.setPermissionMatrix(null);
-        IPermissionMatrix retrieved = engine.getPermissionMatrix();
+        engine.config().setPermissionMatrix(null);
+        IPermissionMatrix retrieved = engine.config().getPermissionMatrix();
         assertTrue(retrieved instanceof DefaultPermissionMatrix,
                 "setPermissionMatrix(null) must fall back to DefaultPermissionMatrix, got: " + retrieved.getClass());
     }
@@ -45,7 +52,7 @@ public class TestDefaultAgentEnginePermissionMatrixWiring {
     @Test
     void defaultMatrixIsDefaultPermissionMatrixWhenNeverSet() {
         DefaultAgentEngine engine = newEngineStub();
-        IPermissionMatrix matrix = engine.getPermissionMatrix();
+        IPermissionMatrix matrix = engine.config().getPermissionMatrix();
         assertTrue(matrix instanceof DefaultPermissionMatrix,
                 "engine constructed without setPermissionMatrix must default to DefaultPermissionMatrix, got: "
                         + (matrix == null ? "null" : matrix.getClass()));
@@ -54,7 +61,7 @@ public class TestDefaultAgentEnginePermissionMatrixWiring {
     @Test
     void defaultPermissionMatrixEnforcesChannelLevelRestrictions() {
         DefaultAgentEngine engine = newEngineStub();
-        IPermissionMatrix matrix = engine.getPermissionMatrix();
+        IPermissionMatrix matrix = engine.config().getPermissionMatrix();
         // STANDARD is allowed on all channels
         for (ChannelKind channel : ChannelKind.values()) {
             MatrixDecision d = matrix.check(channel, Principal.user(), SecurityLevel.STANDARD);
@@ -74,12 +81,12 @@ public class TestDefaultAgentEnginePermissionMatrixWiring {
 
     @Test
     void existingEngineConstructionPathsAreUnchanged() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        IPermissionMatrix matrix = engine.getPermissionMatrix();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IPermissionMatrix matrix = engine.config().getPermissionMatrix();
         assertTrue(matrix instanceof DefaultPermissionMatrix);
     }
 
     private DefaultAgentEngine newEngineStub() {
-        return new DefaultAgentEngine(null, null);
+        return new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 }

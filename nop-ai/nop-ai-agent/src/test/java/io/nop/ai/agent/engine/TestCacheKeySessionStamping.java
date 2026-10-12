@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.ChatResponse;
@@ -71,7 +77,7 @@ public class TestCacheKeySessionStamping {
         InMemorySessionStore store = new InMemorySessionStore();
         RecordingChatService chat = new RecordingChatService();
         chat.enqueue(ChatResponseFixtures.assistantText("done one"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, newTestToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, newTestToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         engine.execute(new AgentMessageRequest("test-react-agent", "first",
                 SESSION_ID, java.util.Collections.emptyMap())).get(30, java.util.concurrent.TimeUnit.SECONDS);

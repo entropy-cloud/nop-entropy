@@ -22,7 +22,7 @@ import java.util.Optional;
  * {@code DefaultAgentEngine.teamTaskStore}), so integrators see zero
  * behaviour regression unless they explicitly wire a functional store
  * (e.g. {@link InMemoryTeamTaskStore}) via
- * {@code DefaultAgentEngine.setTeamTaskStore(...)}.
+ * {@code engine.config().setTeamTaskStore(...)}.
  *
  * <p>See plan 225 (L4-8-team-tools) and Minimum Rules #24.
  */
@@ -40,7 +40,7 @@ public final class NoOpTeamTaskStore implements ITeamTaskStore {
     private static UnsupportedOperationException notEnabled() {
         return new UnsupportedOperationException(
                 "NoOpTeamTaskStore: team task store is not enabled "
-                        + "(wire InMemoryTeamTaskStore via DefaultAgentEngine.setTeamTaskStore to enable)");
+                        + "(wire InMemoryTeamTaskStore via engine.config().setTeamTaskStore to enable)");
     }
 
     @Override

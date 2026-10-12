@@ -173,13 +173,13 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
             LOG.debug("team-execute-flow: team functionality not enabled (NoOp/null teamManager)");
             return honestNotEnabled(call.getId(),
                     "Team functionality is not enabled — flow not executed. "
-                            + "Wire InMemoryTeamManager via DefaultAgentEngine.setTeamManager to enable.");
+                            + "Wire InMemoryTeamManager via engine.config().setTeamManager to enable.");
         }
         if (taskStore == null || taskStore instanceof NoOpTeamTaskStore) {
             LOG.debug("team-execute-flow: team task store not enabled (NoOp/null taskStore)");
             return honestNotEnabled(call.getId(),
                     "Team task store is not enabled — flow not executed. "
-                            + "Wire InMemoryTeamTaskStore via DefaultAgentEngine.setTeamTaskStore to enable.");
+                            + "Wire InMemoryTeamTaskStore via engine.config().setTeamTaskStore to enable.");
         }
 
         String callerSessionId = agentCtx.getSessionId();
@@ -228,7 +228,7 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
         // (DefaultAgentEngineConfig.memberExecTimeoutMs) — same knob as the
         // daemon path, never an independently invented default.
         long memberExecTimeoutMs = engine instanceof io.nop.ai.agent.engine.DefaultAgentEngine
-                ? ((io.nop.ai.agent.engine.DefaultAgentEngine) engine).getMemberExecTimeoutMs()
+                ? ((io.nop.ai.agent.engine.DefaultAgentEngine) engine).config().getMemberExecTimeoutMs()
                 : io.nop.ai.agent.engine.DefaultAgentEngineConfig.DEFAULT_MEMBER_EXEC_TIMEOUT_MS;
 
         TeamTaskFlowOrchestrator orchestrator = new TeamTaskFlowOrchestrator(

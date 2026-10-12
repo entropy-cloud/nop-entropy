@@ -1,5 +1,7 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.compact.IContextCompactor;
 import io.nop.ai.agent.compact.MicroCompressionCompactor;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
@@ -52,6 +54,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 
 /**
  * Plan 187 tests for the two new checkpoint trigger points:
@@ -688,19 +693,11 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
 
         MicroCompressionCompactor realCompactor = new MicroCompressionCompactor();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call-e2e-187", "echo")),
-                        finalAssistant("e2e-done"))),
-                stubToolManager(),
-                new InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker(),
-                new io.nop.ai.agent.security.AllowAllPathAccessChecker(),
-                io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp(),
-                io.nop.ai.agent.router.PassThroughModelRouter.passThrough(),
-                realCompactor);
-        engine.setCheckpointManager(mgr);
+                        finalAssistant("e2e-done"))), stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker()).pathAccessChecker(new io.nop.ai.agent.security.AllowAllPathAccessChecker()).contentGuardrail(io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp()).modelRouter(io.nop.ai.agent.router.PassThroughModelRouter.passThrough()).contextCompactor(realCompactor)
+                .build();
+        engine.config().setCheckpointManager(mgr);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "e2e-187-session", null, ChannelKind.WEBUI, Principal.user());
@@ -730,13 +727,19 @@ public class TestCheckpointTriggersLLMTurnAndCompaction {
     @Test
     void backwardCompatNoOpDefaultsAllExistingTestsPass() {
         // NoOpCheckpoint (default) + NoOpContextCompactor (default) → 0 side effects.
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call-bc-187", "echo")),
-                        finalAssistant("bc-done"))),
-                stubToolManager());
+                        finalAssistant("bc-done"))), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "Default checkpoint manager must be NoOpCheckpoint");
 
         AgentMessageRequest req = new AgentMessageRequest(

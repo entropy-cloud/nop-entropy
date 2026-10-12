@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.Principal;
 import io.nop.ai.agent.security.PrincipalRole;
@@ -98,10 +104,14 @@ public class TestDefaultAgentEngineMultiTenantIsolation {
     @Test
     void engineExecuteIsolatesSessionByTenant() throws Exception {
         DBSessionStore store = new DBSessionStore(dataSource, ThreadLocalTenantResolver.INSTANCE);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("tenant-A done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("tenant-A done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         String sessionId = "mt-engine-1";
         Principal principalA = new Principal(PrincipalRole.USER, null, "tenant-A");
@@ -147,12 +157,22 @@ public class TestDefaultAgentEngineMultiTenantIsolation {
         Principal principalA = new Principal(PrincipalRole.USER, null, "tenant-A");
         Principal principalB = new Principal(PrincipalRole.USER, null, "tenant-B");
 
-        DefaultAgentEngine engineA = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("A"))),
-                toolManagerReturning("ok"), store);
-        DefaultAgentEngine engineB = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("B"))),
-                toolManagerReturning("ok"), store);
+        DefaultAgentEngine engineA = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("A"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        DefaultAgentEngine engineB = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("B"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         engineA.execute(new AgentMessageRequest("test-react-agent", "hi", "sess-A", null, null, principalA))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -179,9 +199,14 @@ public class TestDefaultAgentEngineMultiTenantIsolation {
     @Test
     void nullPrincipalWritesNullTenantId() throws Exception {
         DBSessionStore store = new DBSessionStore(dataSource);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("done"))),
-                toolManagerReturning("ok"), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         String sessionId = "mt-null-principal";
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", sessionId, null))

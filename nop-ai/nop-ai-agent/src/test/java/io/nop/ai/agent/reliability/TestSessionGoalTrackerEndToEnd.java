@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -199,7 +201,7 @@ public class TestSessionGoalTrackerEndToEnd {
     @Test
     void engineWiringAbortsAsEscalatedViaDefaultAgentEngine() throws Exception {
         // Verify the end-to-end path also works when the tracker is wired
-        // through DefaultAgentEngine.setGoalTracker (the production wiring).
+        // through engine.config().setGoalTracker (the production wiring).
         ResourceComponentManager_loadTestAgent();
 
         AtomicInteger chatCallCount = new AtomicInteger(0);
@@ -221,13 +223,11 @@ public class TestSessionGoalTrackerEndToEnd {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, new StubToolManager() {}, new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
-        engine.setGoalTracker(new SessionGoalTracker(5, 3));
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, new StubToolManager() {}).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setGoalTracker(new SessionGoalTracker(5, 3));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         AgentExecutionResult result = engine.execute(request).get(30, TimeUnit.SECONDS);

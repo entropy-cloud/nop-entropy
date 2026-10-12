@@ -11,7 +11,7 @@ package io.nop.ai.agent.usage;
  * so the system runs correctly with no recorder — it simply does not persist
  * per-call usage data. A functional recorder (e.g. {@code DbUsageRecorder}
  * writing {@code NopAiChatResponse}, L2-18) is registered explicitly via
- * {@code DefaultAgentEngine.setUsageRecorder}. This mirrors the
+ * {@code engine.config().setUsageRecorder}. This mirrors the
  * {@code NoOpCheckpoint} / {@code NoOpContextCompactor} sibling pass-through
  * pattern.
  *
