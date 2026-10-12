@@ -3,7 +3,7 @@ package io.nop.ai.agent.team.scheduler;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.team.flow.ITaskMemberRouter;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.flow.MemberDispatchPlan;

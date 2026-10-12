@@ -7,7 +7,7 @@ import java.util.Objects;
  * (plan 234, vision §5.2). Carries the allow/deny verdict plus the
  * dimension/scope/limit/projectedCount context that produced it, so an
  * enforcement point can include a precise English reason when it fail-fast
- * throws {@link io.nop.ai.agent.engine.NopAiAgentException} on denial.
+ * throws {@link io.nop.ai.agent.NopAiAgentException} on denial.
  *
  * <h2>Invariants</h2>
  * <ul>

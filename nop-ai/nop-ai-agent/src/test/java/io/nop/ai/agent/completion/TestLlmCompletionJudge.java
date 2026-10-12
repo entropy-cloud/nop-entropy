@@ -1,7 +1,7 @@
 package io.nop.ai.agent.completion;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.plan.model.AgentPlan;

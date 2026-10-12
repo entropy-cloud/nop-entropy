@@ -10,7 +10,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentHookInvoker;
 import io.nop.ai.agent.engine.AgentSecurityConsultation;
 import io.nop.ai.agent.engine.AgentToolPlanResolver;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;

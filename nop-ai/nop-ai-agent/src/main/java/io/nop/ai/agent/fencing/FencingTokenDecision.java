@@ -7,7 +7,7 @@ package io.nop.ai.agent.fencing;
  * enforcement point (a successor consumer such as scope_claim coordination,
  * Compaction, or ResourceGuard fencing integration) can include a precise
  * English reason when it fail-fast throws
- * {@link io.nop.ai.agent.engine.NopAiAgentException} or broadcasts a
+ * {@link io.nop.ai.agent.NopAiAgentException} or broadcasts a
  * {@code conflict_alert} on a stale result.
  *
  * <h2>Semantics (vision §5.1 rules 2-3)</h2>

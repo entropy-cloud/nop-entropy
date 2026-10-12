@@ -1,7 +1,7 @@
 package io.nop.ai.agent.guardrail.test;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.ai.agent.guardrail.GuardrailResult;
 import io.nop.ai.agent.guardrail.IContentGuardrail;

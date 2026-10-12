@@ -1,6 +1,6 @@
 package io.nop.ai.agent.message;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;

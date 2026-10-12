@@ -1,6 +1,6 @@
 package io.nop.ai.agent.session;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import org.junit.jupiter.api.Test;

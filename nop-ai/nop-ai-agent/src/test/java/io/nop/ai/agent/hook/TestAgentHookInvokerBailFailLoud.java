@@ -2,7 +2,7 @@ package io.nop.ai.agent.hook;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentHookInvoker;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;

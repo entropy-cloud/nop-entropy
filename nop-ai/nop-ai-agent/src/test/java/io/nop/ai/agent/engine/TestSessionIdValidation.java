@@ -1,5 +1,7 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
+import io.nop.ai.agent.SessionIds;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 

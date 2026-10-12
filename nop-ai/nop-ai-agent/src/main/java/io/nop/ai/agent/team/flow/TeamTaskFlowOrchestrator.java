@@ -4,7 +4,7 @@ import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.team.IMemberSpawner;
 import io.nop.ai.agent.team.ITeamManager;

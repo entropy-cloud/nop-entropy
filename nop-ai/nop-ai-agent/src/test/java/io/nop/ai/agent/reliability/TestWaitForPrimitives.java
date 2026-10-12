@@ -1,6 +1,6 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
@@ -81,7 +81,7 @@ public class TestWaitForPrimitives {
 
     @Test
     void fromJsonThrowsOnUnknownType() {
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> WaitCondition.fromJson("{\"type\":\"UNKNOWN\"}"));
     }
 

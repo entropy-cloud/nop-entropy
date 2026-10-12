@@ -2,7 +2,7 @@ package io.nop.ai.agent.router;
 
 import io.nop.ai.agent.budget.BudgetSnapshot;
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.messages.ChatMessage;

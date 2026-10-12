@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
 import io.nop.ai.agent.runtime.lock.ISessionTakeoverLock;
@@ -408,7 +409,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         @Override
         public void save(AgentSession session) {
             if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
-                throw new io.nop.ai.agent.engine.NopAiAgentException(
+                throw new io.nop.ai.agent.NopAiAgentException(
                         "simulated save failure (disk full): terminal state not persisted");
             }
             delegate.save(session);

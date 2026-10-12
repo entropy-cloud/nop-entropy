@@ -6,7 +6,7 @@ import io.nop.api.core.exceptions.NopException;
 /**
  * Module-level exception for nop-ai-core (W2 reliability sink-down,
  * plan 2026-08-15-0604-2): the nop-ai-core equivalent of
- * {@code io.nop.ai.agent.engine.NopAiAgentException}. Constructors mirror the
+ * {@code io.nop.ai.agent.NopAiAgentException}. Constructors mirror the
  * NopAiAgentException four-piece set so migrated reliability classes can be
  * rethrown unchanged. Error codes are carried via {@link NopAiCoreErrors}.
  */

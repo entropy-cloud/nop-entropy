@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentHookInvoker;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.DefaultHookRegistry;

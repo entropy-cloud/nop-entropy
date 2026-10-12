@@ -1,6 +1,6 @@
 package io.nop.ai.agent.team.flow;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.team.InMemoryTeamManager;
 import io.nop.ai.agent.team.InMemoryTeamTaskStore;
 import io.nop.ai.agent.team.ITeamTaskStore;

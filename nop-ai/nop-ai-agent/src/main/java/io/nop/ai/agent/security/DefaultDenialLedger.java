@@ -1,6 +1,6 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.api.secure.SecureDefault;
 import io.nop.ai.core.NopAiCoreErrors;
 

@@ -1,6 +1,6 @@
 package io.nop.ai.agent.team;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.TeamMemberModel;
 import io.nop.ai.agent.model.TeamModel;
 import org.junit.jupiter.api.Test;

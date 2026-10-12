@@ -1,6 +1,6 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;

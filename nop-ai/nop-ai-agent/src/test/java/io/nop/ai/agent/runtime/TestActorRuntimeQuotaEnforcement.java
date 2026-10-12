@@ -1,6 +1,6 @@
 package io.nop.ai.agent.runtime;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.quota.CountingResourceGuard;
 import io.nop.ai.agent.quota.DefaultResourceGuard;

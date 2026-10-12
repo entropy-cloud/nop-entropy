@@ -6,7 +6,7 @@ import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.team.IMemberSpawner;

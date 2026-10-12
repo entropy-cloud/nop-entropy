@@ -2,7 +2,7 @@ package io.nop.ai.agent.recipe;
 
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.engine.AgentNames;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentHookModel;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentRecipeRefModel;

@@ -1,6 +1,6 @@
 package io.nop.ai.agent.guardrail.rule;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import org.junit.jupiter.api.Test;
 

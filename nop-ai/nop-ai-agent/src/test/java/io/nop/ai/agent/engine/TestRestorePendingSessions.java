@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.NopAiAgentErrors;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
@@ -375,7 +376,7 @@ public class TestRestorePendingSessions {
         assertEquals(0, summary.getSkippedCount());
         // The corrupt session was filtered out at discovery (not discovered).
         // A later get(iso-corrupt) still fails fast — the corruption surfaces.
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> store2.get("iso-corrupt"),
                 "get() on the corrupt session must fail fast (corruption surfaced, not hidden)");
     }

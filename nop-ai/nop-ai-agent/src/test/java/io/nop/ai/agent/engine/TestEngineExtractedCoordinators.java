@@ -1,6 +1,6 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.compact.NoOpContextCompactor;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.engine.AgentEventType;

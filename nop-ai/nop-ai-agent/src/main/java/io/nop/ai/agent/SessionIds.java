@@ -1,6 +1,5 @@
-package io.nop.ai.agent.engine;
+package io.nop.ai.agent;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.nio.file.Path;
@@ -37,10 +36,10 @@ import java.util.regex.Pattern;
  *       {@code resolveSessionId}).</li>
  * </ol>
  *
- * <p>Placed in the {@code engine} package (alongside
- * {@link NopAiAgentException}) so the {@code session} and {@code reliability}
- * packages can reach it via the same dependency direction they already use for
- * {@link NopAiAgentException} — no new circular dependency is introduced.
+ * <p>Placed in the agent root package (alongside {@link NopAiAgentException})
+ * so the {@code session} and {@code reliability} packages can reach both via a
+ * single dependency edge to the dependency-free root package (WI10/plan 2441
+ * package-cycle break: reliability→engine imports went to zero).
  */
 public final class SessionIds {
 

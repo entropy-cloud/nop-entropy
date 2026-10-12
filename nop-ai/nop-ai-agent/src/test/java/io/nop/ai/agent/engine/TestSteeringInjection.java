@@ -4,7 +4,7 @@ import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.DeferredAckMailbox;

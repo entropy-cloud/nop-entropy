@@ -5,7 +5,7 @@ import java.util.Map;
 import java.util.function.Predicate;
 
 import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
 public interface ISessionStore {
@@ -59,7 +59,7 @@ public interface ISessionStore {
      * (Minimum Rules #24 No Silent No-Op). A store that does not provide
      * discovery must surface this explicitly; the auto-restore orchestrator
      * treats the exception as "store does not support discovery" and
-     * propagates it as a {@link io.nop.ai.agent.engine.NopAiAgentException}
+     * propagates it as a {@link io.nop.ai.agent.NopAiAgentException}
      * rather than silently returning an empty restore result.
      *
      * @return all sessions known to this store (cache + persisted-but-uncached);

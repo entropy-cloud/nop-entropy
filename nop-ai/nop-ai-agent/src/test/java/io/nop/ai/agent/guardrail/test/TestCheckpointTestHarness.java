@@ -116,16 +116,16 @@ public class TestCheckpointTestHarness {
 
     @Test
     void runCaseRejectsNullCase() {
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> harness.runCase(null),
                 "null case must fail loud, not silently skip");
     }
 
     @Test
     void buildDefaultConsultationRejectsNullDeps() {
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> harness.buildDefaultConsultation(null, new CollectingAuditLogger()));
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> harness.buildDefaultConsultation(
                         new io.nop.ai.agent.conflict.InMemoryWriteIntentRegistry(), null));
     }

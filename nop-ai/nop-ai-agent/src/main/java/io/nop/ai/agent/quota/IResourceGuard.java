@@ -11,7 +11,7 @@ package io.nop.ai.agent.quota;
  * the projected post-operation count, and an optional per-scope override
  * limit. The guard returns an immutable {@link QuotaDecision}; the
  * enforcement point fail-fast throws
- * {@link io.nop.ai.agent.engine.NopAiAgentException} on a denial (Design
+ * {@link io.nop.ai.agent.NopAiAgentException} on a denial (Design
  * Decision §6 — no silent skip).
  *
  * <h2>Limit resolution (Design Decision §3)</h2>

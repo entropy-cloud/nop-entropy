@@ -6,7 +6,7 @@ import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.AgentMessageTopics;

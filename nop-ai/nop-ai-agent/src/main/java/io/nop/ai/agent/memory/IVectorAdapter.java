@@ -28,7 +28,7 @@ import java.util.List;
  * </ul>
  *
  * <p>The NoOp default ({@link NoOpVectorAdapter}) fails fast on every method
- * (throws {@link io.nop.ai.agent.engine.NopAiAgentException}). There is no
+ * (throws {@link io.nop.ai.agent.NopAiAgentException}). There is no
  * keyword-style graceful-degradation fallback for the vector adapter: when an
  * integrator functionalizes the embedding adapter they MUST also functionalize
  * the vector adapter, otherwise the composite store's vector-search path

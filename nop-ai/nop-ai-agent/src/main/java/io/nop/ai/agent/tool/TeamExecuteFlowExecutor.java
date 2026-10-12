@@ -82,7 +82,7 @@ import java.util.concurrent.CompletionStage;
  *       read the {@code success:false} body and decide to retry / give up;
  *       the body is honest, not a silent success.</li>
  *   <li>Structural fast-failure (empty task set / unknown team / cyclic
- *       {@code blockedBy} — {@link io.nop.ai.agent.engine.NopAiAgentException}
+ *       {@code blockedBy} — {@link io.nop.ai.agent.NopAiAgentException}
  *       thrown by the orchestrator) → {@link AiToolCallResult#errorResult}
  *       (technical fault, not a DAG outcome).</li>
  * </ul>
@@ -247,7 +247,7 @@ public class TeamExecuteFlowExecutor implements IToolExecutor {
         CompletableFuture<TeamTaskFlowResult> flowFuture;
         try {
             flowFuture = orchestrator.executeAsync(team.getTeamId());
-        } catch (io.nop.ai.agent.engine.NopAiAgentException structural) {
+        } catch (io.nop.ai.agent.NopAiAgentException structural) {
             LOG.debug("team-execute-flow structural failure for teamId={}",
                     team.getTeamId(), structural);
             return fail(call.getId(),

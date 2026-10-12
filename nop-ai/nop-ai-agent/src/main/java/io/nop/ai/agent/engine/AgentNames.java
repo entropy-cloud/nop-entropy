@@ -1,6 +1,6 @@
 package io.nop.ai.agent.engine;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.regex.Pattern;
@@ -20,7 +20,7 @@ import java.util.regex.Pattern;
  * drives the VFS loader to an arbitrary resource path (P2 path-injection
  * finding [13-16]).
  *
- * <p>This helper is the sibling of {@link SessionIds}: same attack class
+ * <p>This helper is the sibling of {@link io.nop.ai.agent.SessionIds}: same attack class
  * (traversal / injection into a path-shaped string), distinct surface
  * (VFS resource load vs. filesystem session directory). Both enforce the
  * strict allow-list regex {@code ^[A-Za-z0-9_-]+$} with fail-closed

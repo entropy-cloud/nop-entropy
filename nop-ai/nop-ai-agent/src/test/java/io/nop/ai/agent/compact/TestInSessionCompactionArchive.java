@@ -1,6 +1,6 @@
 package io.nop.ai.agent.compact;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.toolkit.api.ICompactionArchive;
 import io.nop.ai.toolkit.compact.ShortRefHasher;
 import org.junit.jupiter.api.Test;

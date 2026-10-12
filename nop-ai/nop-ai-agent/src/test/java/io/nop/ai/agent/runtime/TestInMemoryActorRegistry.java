@@ -1,6 +1,6 @@
 package io.nop.ai.agent.runtime;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collection;

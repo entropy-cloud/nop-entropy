@@ -11,7 +11,7 @@ import io.nop.ai.agent.team.TeamTaskStatus;
 import io.nop.ai.agent.team.scheduler.SpawnMemberRequest;
 import io.nop.ai.agent.team.scheduler.SpawnMemberResult;
 import io.nop.ai.agent.engine.AgentExecutionResult;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;

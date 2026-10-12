@@ -1,7 +1,7 @@
 package io.nop.ai.agent.team.scheduler;
 
 import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamMemberSpec;
 import io.nop.ai.agent.team.TeamTask;

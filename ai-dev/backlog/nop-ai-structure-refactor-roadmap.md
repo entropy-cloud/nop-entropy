@@ -41,7 +41,7 @@ audit-rounds: 0
 - WI7 mock 设施收敛下沉: `done`（plan 2434：mock 族 4 移 2 删——FileSystemResponseProvider record/replay 死能力按 0 使用三重实证改判删除，余 4 文件下沉 core test scope）
 - WI8 dialect 家族结构消重: `done`（plan 2435：目标重校准净 +73 行结构统一——私有副本清零 + 表驱动 + 声明式绑定；800-1200 原目标按事件词表排除条款不可达已登记）
 - WI9 错误码归位（NopAiCoreErrors 代管项归还各模块）: `done`（plan 2438：11 码归位——tools 9 码迁新建 NopAiToolsErrors、model-class 码迁新建 NopAiRoutingErrors、vector-length 码迁既有 NopAiRagErrors，后两个为 WI4/WI5 遗留孤儿码执行期纳入；ERR_AI_AGENT_INVALID_ARG 经重裁定留守 core——消费属地跨 core/gateway/agent、core 不可依赖 agent，重启条件 = reliability 类迁回则随迁；ID/描述零变化；nop-cli yaml 生成清单已补新 holder）
-- WI10 NopAiAgentException 上移断包环: `todo`
+- WI10 NopAiAgentException 上移断包环: `done`（plan 2441：NopAiAgentException + SessionIds 上移 agent 根包——reliability→engine 16 条清零消 engine⇄reliability 环、security→engine 30→16 条降至 AgentExecutionContext 单类型显式登记最小集——整体上移会造 root⇄security 与 root→plan.runtime→engine 新环故裁定留守；7 个跨模块契约点同步含 TaskExceptionRegistry 反射串；全仓旧 FQN 零残留；全量 install 18 个 nop-ai 模块 SUCCESS）
 - WI11 agent 引擎装配面收敛: `todo`
 - WI12 扩展点微包收敛与 NoOp 审计: `todo`
 - WI13 guardrail/test harness 移出 main: `todo`
@@ -129,7 +129,7 @@ audit-rounds: 0
 
 ### WI10 NopAiAgentException 上移断包环
 
-- `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/NopAiAgentException.java` 上移到 agent 根包（或独立 api 包，plan 期裁定），连带评估 `AgentExecutionContext`、`SessionIds` 中被跨包依赖的部分同批上移；包内引用机械更新（可用 `ai-dev/backlog/nop-refactor-roadmap.md` 已交付的 rename/codemod 能力执行——round 1 确认其 13/13 done 且第二档 rename 覆盖模块内符号域 + import/FQN 同步）。
+- `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/NopAiAgentException.java`（WI10 执行：已自 engine/ 上移根包，plan 2441）上移到 agent 根包（或独立 api 包，plan 期裁定），连带评估 `AgentExecutionContext`、`SessionIds` 中被跨包依赖的部分同批上移；包内引用机械更新（可用 `ai-dev/backlog/nop-refactor-roadmap.md` 已交付的 rename/codemod 能力执行——round 1 确认其 13/13 done 且第二档 rename 覆盖模块内符号域 + import/FQN 同步）。
 - **跨模块契约必须同步**（round 1 补充锚点）：①`nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/channel/feishu/FeishuConnector.java` 4 处 FQN 硬编码（:346、:382、:383、:539）；②`nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/TaskExceptionRegistry.java:69` 以**反射字符串** `"io.nop.ai.agent.engine.NopAiAgentException"` 注册（跨模块反射契约，javadoc 自述部署缺类回退——模块内 codemod 不会更新它，漏改即静默运行时降级）。FQN 变更属公共 API 变更，按 Protected Areas 出迁移说明。
 - 基线计量（round 1 修正）：main scope security→engine 共 **30 条** import（14 处 `NopAiAgentException` + 16 处 `AgentExecutionContext`，27 个文件）——上移两类即该方向 import 清零；engine→security 144 处为主向编排依赖，保留。目标：engine⇄security、engine⇄reliability（main 53/16）两个包级环消除或降至显式登记的最小集。
 - 协同：与 `ai-dev/backlog/nop-ai-agent-autonomous-execution-improvement-roadmap.md`（在途）涉及同文件的在途项执行时互查，后动者复核。

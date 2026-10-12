@@ -2,7 +2,7 @@ package io.nop.ai.agent.session;
 
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
 import java.util.Collection;

@@ -1,7 +1,7 @@
 package io.nop.ai.agent.repair;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.engine.ReActAgentExecutor;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.api.chat.messages.ChatToolCall;

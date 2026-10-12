@@ -1,7 +1,7 @@
 package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;

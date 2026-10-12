@@ -85,7 +85,7 @@ public interface ITeamManager {
      *
      * @param teamId the UUID team identity
      * @return the final {@link Team} state
-     * @throws io.nop.ai.agent.engine.NopAiAgentException if no team with this
+     * @throws io.nop.ai.agent.NopAiAgentException if no team with this
      *         id is registered
      */
     Team disbandTeam(String teamId);
@@ -103,7 +103,7 @@ public interface ITeamManager {
      * @param teamId     the UUID team identity
      * @param memberSpec the member specification (non-null)
      * @return the created {@link TeamMember} (unbound)
-     * @throws io.nop.ai.agent.engine.NopAiAgentException if the team does not
+     * @throws io.nop.ai.agent.NopAiAgentException if the team does not
      *         exist, is disbanded, or already has a member with the same
      *         {@code memberName}
      */

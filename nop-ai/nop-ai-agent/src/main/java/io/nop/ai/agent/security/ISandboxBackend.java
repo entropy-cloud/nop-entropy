@@ -35,7 +35,7 @@ package io.nop.ai.agent.security;
  * {@code io.nop.ai.agent.sandbox} package. Rationale: (1) ISandboxBackend
  * is the chain's final link and shares the same package-private collaborators;
  * (2) the security package is already home to the parallel Layer 1-3
- * chain; (3) SandboxException extends {@code io.nop.ai.agent.engine.NopAiAgentException}
+ * chain; (3) SandboxException extends {@code io.nop.ai.agent.NopAiAgentException}
  * (cross-package import) regardless, so a separate sandbox package gains
  * no decoupling.
  *

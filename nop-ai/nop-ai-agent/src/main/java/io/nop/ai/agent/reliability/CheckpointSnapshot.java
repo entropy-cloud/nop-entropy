@@ -4,7 +4,7 @@ import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.time.Instant;
 import java.util.Objects;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 
 /**
  * The recovery-critical aggregate state captured by a {@code snapshot.json}

@@ -6,7 +6,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.AgentEventPayloads;
 import io.nop.ai.agent.engine.InjectionEntry;
 import io.nop.ai.agent.engine.InjectionSemantics;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxEntry;
 import io.nop.ai.agent.quota.IResourceGuard;

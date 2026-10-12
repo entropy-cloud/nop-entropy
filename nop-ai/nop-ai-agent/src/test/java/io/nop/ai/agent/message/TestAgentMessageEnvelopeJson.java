@@ -1,6 +1,6 @@
 package io.nop.ai.agent.message;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.api.core.annotations.data.DataBean;
 import org.junit.jupiter.api.Test;
 

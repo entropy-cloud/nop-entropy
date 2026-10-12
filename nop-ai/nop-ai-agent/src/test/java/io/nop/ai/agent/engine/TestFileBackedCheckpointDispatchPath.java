@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;

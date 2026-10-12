@@ -343,7 +343,7 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
         CompletableFuture<AgentExecutionResult> future;
         try {
             future = context.getAgentEngine().execute(request);
-        } catch (io.nop.ai.agent.engine.NopAiAgentException e) {
+        } catch (io.nop.ai.agent.NopAiAgentException e) {
             if (isDuplicateInputError(e)) {
                 // Plan 2288 (WI7): duplicate input is benign — log and ignore
                 // (no error reply to the user)
@@ -379,8 +379,8 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
             if (error != null) {
                 // Plan 2288 (WI7): duplicate input future-completes exceptionally
                 // — benign, silently ignored (no error reply to the user)
-                if (error instanceof io.nop.ai.agent.engine.NopAiAgentException
-                        && isDuplicateInputError((io.nop.ai.agent.engine.NopAiAgentException) error)) {
+                if (error instanceof io.nop.ai.agent.NopAiAgentException
+                        && isDuplicateInputError((io.nop.ai.agent.NopAiAgentException) error)) {
                     LOG.info("feishu-connector duplicate input ignored (chat={})", chatId);
                     return;
                 }
@@ -536,7 +536,7 @@ public class FeishuConnector implements IChannelConnector, IMessageHandler {
      * Plan 2288 (WI7): true when the exception is the engine's duplicate-input
      * contract error (NopException.getErrorCode() returns the String code).
      */
-    static boolean isDuplicateInputError(io.nop.ai.agent.engine.NopAiAgentException e) {
+    static boolean isDuplicateInputError(io.nop.ai.agent.NopAiAgentException e) {
         return e.getErrorCode() != null
                 && "nop.err.ai.agent.duplicate-input".equals(e.getErrorCode());
     }

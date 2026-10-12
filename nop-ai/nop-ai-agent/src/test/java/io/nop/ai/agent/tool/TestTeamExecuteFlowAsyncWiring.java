@@ -5,7 +5,7 @@ import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.team.DefaultTeamAclChecker;
 import io.nop.ai.agent.team.IMemberSpawner;

@@ -1,6 +1,6 @@
 package io.nop.ai.agent.skill;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
