@@ -12,7 +12,7 @@ verify: [test]
 
 - 来源：deep-audit round 2 的 P2 Follow-up Backlog（roadmap 第 10/11/12/13/18 项），全部经 live 复核（HEAD `4582e780dad4`）：
   1. **ThresholdBreaker HALF_OPEN 探测位可永久卡死**（`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java`）：:3-4 重复 static import `ERR_AI_CORE_INVALID_STATE`；HALF_OPEN 的 `probeInFlight`（:128/:135-136）仅由 `recordSuccess`（:176）与 `recordFailure`（:212）清除——探针调用永不回报（取消/hang/线程终止）时熔断器永久 HALF_OPEN 拒绝全部后续调用，无超时逃生门。
-  2. **ConcurrencyRegistry.release 下溢补偿非原子 + 计数表永不收缩**（`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ConcurrencyRegistry.java:52-64`）：`decrementAndGet` 后 `incrementAndGet` 恢复与并发 `acquire` 竞争会永久 +1 幽灵计数（自诱导下溢）；`counts` map 按 (provider, accountKey) 只增不删，长跑网关缓慢内存泄漏。
+  2. **ConcurrencyRegistry.release 下溢补偿非原子 + 计数表永不收缩**（`nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/routing/ConcurrencyRegistry.java:52-64`）：`decrementAndGet` 后 `incrementAndGet` 恢复与并发 `acquire` 竞争会永久 +1 幽灵计数（自诱导下溢）；`counts` map 按 (provider, accountKey) 只增不删，长跑网关缓慢内存泄漏。
   3. **CFG_AI_SERVICE_CONNECT_TIMEOUT 死配置**（`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/AiCoreConfigs.java:30-32`）：全仓零消费（`grep -rn CFG_AI_SERVICE_CONNECT_TIMEOUT --include=*.java nop-ai/` 仅定义处）；`ChatServiceImpl.buildHttpRequest`（:253-272）只 `httpRequest.setTimeout(CFG_AI_SERVICE_READ_TIMEOUT.get())`；`HttpRequest`（`nop-network/nop-http/nop-http-api/.../HttpRequest.java:28`）只有单一 `timeout` 字段、无独立 connect timeout → 声明的 30s 连接超时静默失效，连接挂起可远超预期阻塞。
   4. **RetryDecision/IRetryPolicy/LlmErrorClassifier javadoc 过期**：`RetryDecision.java:14-18` 称 FALLBACK = fail-loud STOP、"no fallback chain wired"；与 `StandardRetryPolicy.java:126-129`（QUOTA_EXCEEDED/AUTH_INVALID → `RetryOutcome.fallback()`）及 `LlmCallCoordinator` 账号链/provider 链实际路由矛盾。`LlmErrorClassifier` javadoc 称 ChatServiceImpl 抛 NopException，与 `ChatServiceImpl.java:146-152` 归一化为错误 ChatResponse 的实际不符。
   5. **LlmCallCoordinator FALLBACK 循环无总步数上限**（`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/LlmCallCoordinator.java`，872 行）：每次 FALLBACK 切换 `st.attempt = 0` 重置（:341/:350/:362/:410），护栏仅 execution-veto cap 3 与 circuit scan 64 → 自定义 `IModelRouter`（A→B→A）可 `while(true)` 无限发真实 LLM 调用 + backoff 睡眠，与同文件其他显式 cap 风格不一致。
@@ -59,7 +59,7 @@ Exit Criteria:
 
 ## Phase 2 — ConcurrencyRegistry 下溢补偿竞态与计数表收缩
 
-Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ConcurrencyRegistry.java`、对应测试
+Targets: `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/routing/ConcurrencyRegistry.java`、对应测试
 
 - Item Types: `Fix | Proof`
 
