@@ -21,7 +21,7 @@ import java.util.Optional;
  * <p>The engine uses this default out-of-the-box, so integrators see zero
  * behaviour regression unless they explicitly wire a functional runtime
  * (e.g. {@link InMemoryActorRuntime}) via
- * {@code DefaultAgentEngine.setActorRuntime(...)}.
+ * {@code engine.config().setActorRuntime(...)}.
  *
  * <p>See plan 218 (L4-8) and Minimum Rules #24 (No Silent No-Op).
  */
@@ -45,7 +45,7 @@ public final class NoOpActorRuntime implements IActorRuntime {
     public AgentActor createActor(String sessionId, String agentName) {
         throw new UnsupportedOperationException(
                 "NoOpActorRuntime.createActor: actor runtime is not enabled "
-                        + "(wire InMemoryActorRuntime via DefaultAgentEngine.setActorRuntime to enable)");
+                        + "(wire InMemoryActorRuntime via engine.config().setActorRuntime to enable)");
     }
 
     @Override

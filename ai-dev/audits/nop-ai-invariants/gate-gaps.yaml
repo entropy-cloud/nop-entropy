@@ -36,6 +36,11 @@ gate-1-default-secure: []
 # （红/绿对照记录于 plan daily log）。本 family 状态不变：4 条 not-applicable，无新增 missing-declaration
 # （`SpawnMemberAgentTaskStep` timeout 契约由 spawner 层承载，裁定 not-applicable——catalog §3.2 登记）。
 gate-2-orchestration-timeout:
+  - instance: IAgentEngine.config
+    reason: 不适用：同步 config 调优访问器（WI11/plan 2443 A1），无异步等待面（timeout 契约不适用；同 getSessionStatus/getBackgroundTaskRegistry 类）
+    reason-type: not-applicable
+    date: 2026-10-12
+    owner: WI11-plan-2443
   - instance: IAgentEngine.forkSession
     reason: 不适用：fork 仅注册子会话（sessionStore.forkSession），不启动 agent 执行路径、无异步等待面（timeout 契约不适用；I3 裁决输入）
     reason-type: not-applicable

@@ -85,7 +85,7 @@ public class TeamSendMessageExecutor implements IToolExecutor {
             LOG.debug("team-send-message: team functionality not enabled (NoOp/null teamManager)");
             return honestNotEnabled(call.getId(),
                     "Team functionality is not enabled — message not sent. "
-                            + "Wire InMemoryTeamManager via DefaultAgentEngine.setTeamManager to enable.");
+                            + "Wire InMemoryTeamManager via engine.config().setTeamManager to enable.");
         }
 
         String callerSessionId = agentCtx.getSessionId();

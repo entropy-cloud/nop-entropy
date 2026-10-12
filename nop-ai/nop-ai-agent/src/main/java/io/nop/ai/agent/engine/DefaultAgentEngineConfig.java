@@ -126,6 +126,15 @@ public class DefaultAgentEngineConfig {
     private IMemoryStoreProvider memoryStoreProvider = new InMemoryMemoryStoreProvider();
     private IUsageRecorder usageRecorder = NoOpUsageRecorder.noOp();
     private volatile boolean usageRecorderNoOpWarned;
+
+    /** WI11/plan 2443 (A2b): single source of truth for the one-shot NoOp-recorder warning flag. */
+    public boolean isUsageRecorderNoOpWarned() {
+        return usageRecorderNoOpWarned;
+    }
+
+    public void markUsageRecorderNoOpWarned() {
+        this.usageRecorderNoOpWarned = true;
+    }
     private IModelSwitchedMessageWriter modelSwitchedMessageWriter = NoOpModelSwitchedMessageWriter.noOp();
     private IBudgetProvider budgetProvider = NoOpBudgetProvider.noOp();
     private IRetryPolicy retryPolicy = new StandardRetryPolicy();
@@ -975,15 +984,20 @@ public class DefaultAgentEngineConfig {
     }
     public long getLlmTimeoutMs() { return llmTimeoutMs; }
     public void setLlmTimeoutMs(long llmTimeoutMs) {
-        if (llmTimeoutMs <= 0) {
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "llmTimeoutMs must be positive, got: " + llmTimeoutMs);
+        // WI11/plan 2443 (A3b): 0 = explicitly disabled (matches the executor
+        // contract: llmTimeoutMs <= 0 skips the timeout wrap); negatives are
+        // still rejected as misconfiguration.
+        if (llmTimeoutMs < 0) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "llmTimeoutMs must be >= 0 (0 = disabled), got: " + llmTimeoutMs);
         }
         this.llmTimeoutMs = llmTimeoutMs;
     }
     public long getToolTimeoutMs() { return toolTimeoutMs; }
     public void setToolTimeoutMs(long toolTimeoutMs) {
-        if (toolTimeoutMs <= 0) {
-            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolTimeoutMs must be positive, got: " + toolTimeoutMs);
+        // WI11/plan 2443 (A3b): 0 = explicitly disabled (dispatcher: <= 0
+        // skips orTimeout wrap); negatives are still rejected.
+        if (toolTimeoutMs < 0) {
+            throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "toolTimeoutMs must be >= 0 (0 = disabled), got: " + toolTimeoutMs);
         }
         this.toolTimeoutMs = toolTimeoutMs;
     }

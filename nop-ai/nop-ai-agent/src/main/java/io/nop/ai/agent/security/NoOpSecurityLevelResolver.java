@@ -16,7 +16,7 @@ import java.util.Map;
  * default): the shipped default does not impose security-level classification.
  * A functional rule-table resolver (encoding the design §5.1 deterministic
  * upgrade table) is registered explicitly via
- * {@code DefaultAgentEngine.setSecurityLevelResolver}.
+ * {@code engine.config().setSecurityLevelResolver}.
  */
 public final class NoOpSecurityLevelResolver implements ISecurityLevelResolver {
 

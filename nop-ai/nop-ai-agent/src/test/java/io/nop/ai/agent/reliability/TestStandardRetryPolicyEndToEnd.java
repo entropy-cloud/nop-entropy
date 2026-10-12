@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -121,7 +123,7 @@ public class TestStandardRetryPolicyEndToEnd {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // maxAttempts=3, baseDelay=1ms (test speed), maxDelay=10ms.
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -170,7 +172,7 @@ public class TestStandardRetryPolicyEndToEnd {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // maxAttempts=2 → 2 total calls then STOP.
-        engine.setRetryPolicy(new StandardRetryPolicy(2, 1L, 10L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(2, 1L, 10L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -224,7 +226,7 @@ public class TestStandardRetryPolicyEndToEnd {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // maxAttempts=3, but NON_TRANSIENT must fail fast (1 call only).
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -285,7 +287,7 @@ public class TestStandardRetryPolicyEndToEnd {
         };
 
         DefaultAgentEngine engine = newEngine(chatService);
-        engine.setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
+        engine.config().setRetryPolicy(new StandardRetryPolicy(3, 1L, 10L));
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -304,12 +306,10 @@ public class TestStandardRetryPolicyEndToEnd {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     private static IToolManager noOpToolManager() {

@@ -1,5 +1,11 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -83,7 +89,7 @@ public class TestCallAgentDelegationDepthGuard {
 
         CallAgentExecutor callAgentExecutor = new CallAgentExecutor();
         IToolManager toolManager = toolManagerWithCallAgent(callAgentExecutor);
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, toolManager, new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-recursive-a", "start recursion", "self-ref-root", null);
@@ -127,7 +133,7 @@ public class TestCallAgentDelegationDepthGuard {
         callAgentExecutor.setMaxDelegationDepth(1);
 
         IToolManager toolManager = toolManagerWithCallAgent(callAgentExecutor);
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, toolManager, new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-recursive-a", "start", "depth-err-root", null);
@@ -172,7 +178,7 @@ public class TestCallAgentDelegationDepthGuard {
 
         CallAgentExecutor callAgentExecutor = new CallAgentExecutor();
         IToolManager toolManager = toolManagerWithCallAgent(callAgentExecutor);
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, toolManager, new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-recursive-a", "start mutual recursion", "mutual-ref-root", null);
@@ -211,9 +217,14 @@ public class TestCallAgentDelegationDepthGuard {
         AtomicInteger chatCountMax1 = new AtomicInteger();
         CallAgentExecutor execMax1 = new CallAgentExecutor();
         execMax1.setMaxDelegationDepth(1);
-        DefaultAgentEngine engineMax1 = new DefaultAgentEngine(
-                new SmartRecursionChat("self", null, chatCountMax1),
-                toolManagerWithCallAgent(execMax1), storeMax1);
+        DefaultAgentEngine engineMax1 = new DefaultAgentEngine.Builder(new SmartRecursionChat("self", null, chatCountMax1), toolManagerWithCallAgent(execMax1)).sessionStore(storeMax1)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult resultMax1 = engineMax1.execute(
                 new AgentMessageRequest("test-recursive-a", "start", "cfg-max1-root", null))
                 .get(120, TimeUnit.SECONDS);
@@ -225,9 +236,14 @@ public class TestCallAgentDelegationDepthGuard {
         AtomicInteger chatCountMax3 = new AtomicInteger();
         CallAgentExecutor execMax3 = new CallAgentExecutor();
         execMax3.setMaxDelegationDepth(3);
-        DefaultAgentEngine engineMax3 = new DefaultAgentEngine(
-                new SmartRecursionChat("self", null, chatCountMax3),
-                toolManagerWithCallAgent(execMax3), storeMax3);
+        DefaultAgentEngine engineMax3 = new DefaultAgentEngine.Builder(new SmartRecursionChat("self", null, chatCountMax3), toolManagerWithCallAgent(execMax3)).sessionStore(storeMax3)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult resultMax3 = engineMax3.execute(
                 new AgentMessageRequest("test-recursive-a", "start", "cfg-max3-root", null))
                 .get(120, TimeUnit.SECONDS);
@@ -265,7 +281,7 @@ public class TestCallAgentDelegationDepthGuard {
 
         IToolManager toolManager = toolManagerWithCallAgent(callAgentExecutor);
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, toolManager, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, toolManager).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         String rootSessionId = "no-orphan-root";
         AgentMessageRequest request = new AgentMessageRequest(

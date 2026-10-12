@@ -442,7 +442,7 @@ public class AgentToolExecuteContext implements IToolExecuteContext {
      * team-status / team-task-create / team-task-update). Always non-null —
      * the shipped default is {@link NoOpTeamAclChecker} (allow(null)), and
      * the engine guarantees a non-null value via
-     * {@code DefaultAgentEngine.setTeamAclChecker} null-safe fallback.
+     * {@code engine.config().setTeamAclChecker} null-safe fallback.
      *
      * @return the team ACL checker (never null; NoOp allow by default)
      */

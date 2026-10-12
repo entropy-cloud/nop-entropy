@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
@@ -126,7 +133,7 @@ public class TestDefaultAgentEngine {
         IChatService chatService = createDelayedMockChatService(
                 buildSuccessResponse("Hello!"), 2000L);
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello");
         AgentMessageAck ack = engine.sendMessage(request);
@@ -141,7 +148,7 @@ public class TestDefaultAgentEngine {
     void testExecuteReturnsResult() throws Exception {
         IChatService chatService = createMockChatService(buildSuccessResponse("Hello!"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -156,7 +163,7 @@ public class TestDefaultAgentEngine {
     void testNewSessionGeneration() throws Exception {
         IChatService chatService = createMockChatService(buildSuccessResponse("Hi"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello", null, null);
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -170,7 +177,7 @@ public class TestDefaultAgentEngine {
     void testExistingSessionReuse() throws Exception {
         IChatService chatService = createMockChatService(buildSuccessResponse("Hi"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello", "my-session", null);
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -183,7 +190,7 @@ public class TestDefaultAgentEngine {
     void testAgentModelLoadingFromDsl() throws Exception {
         IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -200,7 +207,7 @@ public class TestDefaultAgentEngine {
     void testAgentModelNotFound() {
         IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("non-existent-agent", "hello");
 
@@ -235,7 +242,7 @@ public class TestDefaultAgentEngine {
         };
 
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "hello");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -251,21 +258,21 @@ public class TestDefaultAgentEngine {
         IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
         IToolManager toolManager = createNoOpToolManager();
 
-        DefaultAgentEngine constructorEngine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine constructorEngine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         DefaultAgentEngine builderEngine = DefaultAgentEngine.builder(chatService, toolManager).build();
 
-        assertEquals(constructorEngine.getCallAgentTimeoutMs(), builderEngine.getCallAgentTimeoutMs(),
+        assertEquals(constructorEngine.config().getCallAgentTimeoutMs(), builderEngine.config().getCallAgentTimeoutMs(),
                 "constructor-chain and Builder construction paths must agree on callAgentTimeoutMs (MA4.5-004)");
-        assertEquals(120_000L, constructorEngine.getCallAgentTimeoutMs());
+        assertEquals(120_000L, constructorEngine.config().getCallAgentTimeoutMs());
     }
 
     @Test
     void testCallAgentTimeoutMsRejectsNonPositive() {
         IChatService chatService = createMockChatService(buildSuccessResponse("Response"));
         IToolManager toolManager = createNoOpToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
-        assertThrows(Exception.class, () -> engine.setCallAgentTimeoutMs(0));
-        assertThrows(Exception.class, () -> engine.setCallAgentTimeoutMs(-1));
+        assertThrows(Exception.class, () -> engine.config().setCallAgentTimeoutMs(0));
+        assertThrows(Exception.class, () -> engine.config().setCallAgentTimeoutMs(-1));
     }
 }

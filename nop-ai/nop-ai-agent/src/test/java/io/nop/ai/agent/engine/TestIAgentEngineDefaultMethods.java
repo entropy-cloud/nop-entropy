@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.InMemorySessionStore;
@@ -15,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestIAgentEngineDefaultMethods {
 
-    private final IAgentEngine engine = new DefaultAgentEngine(null, null);
+    private final IAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
     @Test
     void getSessionStatusThrowsForUnknownSession() {
@@ -28,7 +34,7 @@ public class TestIAgentEngineDefaultMethods {
     @Test
     void getSessionStatusReturnsStatusForExistingSession() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engineWithStore = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engineWithStore = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         store.getOrCreate("s1", "test-agent");
 
         assertEquals(AgentExecStatus.pending, engineWithStore.getSessionStatus("s1"),
@@ -38,7 +44,7 @@ public class TestIAgentEngineDefaultMethods {
     @Test
     void cancelSessionNoLongerThrowsUOE() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engineWithStore = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engineWithStore = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         store.getOrCreate("s1", "test-agent");
 
         CompletableFuture<Void> future = assertDoesNotThrow(
@@ -57,7 +63,7 @@ public class TestIAgentEngineDefaultMethods {
     @Test
     void cancelSessionOnIdleSessionSetsCancelled() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engineWithStore = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engineWithStore = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         store.getOrCreate("idle-session", "test-agent");
 
         engineWithStore.cancelSession("idle-session", "user-cancel", false);

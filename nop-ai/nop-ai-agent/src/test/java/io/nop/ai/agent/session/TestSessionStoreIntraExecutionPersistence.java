@@ -1,5 +1,11 @@
 package io.nop.ai.agent.session;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.engine.AgentExecutionResult;
@@ -163,7 +169,7 @@ public class TestSessionStoreIntraExecutionPersistence {
         };
 
         FileBackedSessionStore store = new FileBackedSessionStore(root);
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         CompletableFuture<AgentExecutionResult> future = engine.execute(
                 new AgentMessageRequest("test-react-agent", "What is 2+2?", "session-intra", null));
@@ -249,7 +255,7 @@ public class TestSessionStoreIntraExecutionPersistence {
         };
 
         FileBackedSessionStore store = new FileBackedSessionStore(root);
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         engine.execute(new AgentMessageRequest("test-react-agent", "calc 1+1", "session-dup", null))
                 .get(30, TimeUnit.SECONDS);

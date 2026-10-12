@@ -1,5 +1,12 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
 import io.nop.ai.agent.message.NoOpAgentMessenger;
@@ -50,8 +57,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Verifies the full runtime call chain:
  * <pre>
- *   DefaultAgentEngine.setTeamManager(DbTeamManager)
- *     → engine.getTeamManager() holds the SAME DbTeamManager instance
+ *   engine.config().setTeamManager(DbTeamManager)
+ *     → engine.config().getTeamManager() holds the SAME DbTeamManager instance
  *     → AgentToolExecuteContext.getTeamManager() exposes it to tools
  *     → TeamStatusExecutor.executeAsync() resolves the team via DB
  *     → DefaultTeamAclChecker.checkAccess() resolves the role via DB
@@ -111,19 +118,19 @@ public class TestDbTeamManagerWiring {
     void engineHoldsInjectedDbTeamManagerInstance() {
         DefaultAgentEngine engine = newEngine();
         DbTeamManager dbMgr = new DbTeamManager(sharedDataSource);
-        engine.setTeamManager(dbMgr);
+        engine.config().setTeamManager(dbMgr);
 
         // The exact instance injected via setTeamManager must be the one the
         // engine exposes — proving drop-in wiring (design 裁定 7).
-        assertSame(dbMgr, engine.getTeamManager(),
-                "DefaultAgentEngine.getTeamManager() must return the injected DbTeamManager");
+        assertSame(dbMgr, engine.config().getTeamManager(),
+                "engine.config().getTeamManager() must return the injected DbTeamManager");
     }
 
     @Test
     void setTeamManagerWithNullFallsBackToNoOp() {
         DefaultAgentEngine engine = newEngine();
-        engine.setTeamManager(null);
-        assertTrue(engine.getTeamManager() instanceof NoOpTeamManager,
+        engine.config().setTeamManager(null);
+        assertTrue(engine.config().getTeamManager() instanceof NoOpTeamManager,
                 "null setTeamManager must fall back to NoOp (zero regression)");
     }
 
@@ -135,8 +142,8 @@ public class TestDbTeamManagerWiring {
     void defaultTeamAclCheckerResolvesRoleViaDbTeamManager() {
         DbTeamManager dbMgr = new DbTeamManager(sharedDataSource);
         DefaultAgentEngine engine = newEngine();
-        engine.setTeamManager(dbMgr);
-        DefaultTeamAclChecker checker = new DefaultTeamAclChecker(engine.getTeamManager());
+        engine.config().setTeamManager(dbMgr);
+        DefaultTeamAclChecker checker = new DefaultTeamAclChecker(engine.config().getTeamManager());
 
         TeamSpec spec = new TeamSpec("WiringTeam", "acl drop-in", "lead",
                 Arrays.asList(
@@ -175,7 +182,7 @@ public class TestDbTeamManagerWiring {
     void teamStatusExecutorResolvesTeamViaContextDbTeamManager() throws Exception {
         DefaultAgentEngine engine = newEngine();
         DbTeamManager dbMgr = new DbTeamManager(sharedDataSource);
-        engine.setTeamManager(dbMgr);
+        engine.config().setTeamManager(dbMgr);
         // Wire a task store too so taskCount is meaningful.
         InMemoryTeamTaskStore taskStore = new InMemoryTeamTaskStore();
 
@@ -196,8 +203,8 @@ public class TestDbTeamManagerWiring {
                 new File("."), Collections.emptyMap(), 0L, null, null, null,
                 engine, NoOpAgentMessenger.noOp(), "lead-sess", "test-agent",
                 null, null, null, null,
-                engine.getTeamManager(), taskStore,
-                new DefaultTeamAclChecker(engine.getTeamManager()));
+                engine.config().getTeamManager(), taskStore,
+                new DefaultTeamAclChecker(engine.config().getTeamManager()));
 
         TeamStatusExecutor executor = new TeamStatusExecutor();
         AiToolCall call = new AiToolCall();
@@ -232,11 +239,11 @@ public class TestDbTeamManagerWiring {
         // the SAME shared H2 DB (simulating two processes).
         DefaultAgentEngine engineA = newEngine();
         DbTeamManager mgrA = new DbTeamManager(sharedDataSource);
-        engineA.setTeamManager(mgrA);
+        engineA.config().setTeamManager(mgrA);
 
         DefaultAgentEngine engineB = newEngine();
         DbTeamManager mgrB = new DbTeamManager(sharedDataSource);
-        engineB.setTeamManager(mgrB);
+        engineB.config().setTeamManager(mgrB);
 
         // Engine A creates a team + binds a session (writes go to the shared DB).
         TeamSpec spec = new TeamSpec("SharedTeam", "cross-engine", "lead",
@@ -254,8 +261,8 @@ public class TestDbTeamManagerWiring {
                 new File("."), Collections.emptyMap(), 0L, null, null, null,
                 engineB, NoOpAgentMessenger.noOp(), "lead-sess", "test-agent",
                 null, null, null, null,
-                engineB.getTeamManager(), new InMemoryTeamTaskStore(),
-                new DefaultTeamAclChecker(engineB.getTeamManager()));
+                engineB.config().getTeamManager(), new InMemoryTeamTaskStore(),
+                new DefaultTeamAclChecker(engineB.config().getTeamManager()));
 
         TeamStatusExecutor executor = new TeamStatusExecutor();
         AiToolCall call = new AiToolCall();
@@ -337,6 +344,6 @@ public class TestDbTeamManagerWiring {
                 return model;
             }
         };
-        return new DefaultAgentEngine(chat, tools);
+        return new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 }

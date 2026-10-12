@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.AgentSession;
@@ -189,7 +195,7 @@ public class TestDefaultAgentEngineConcurrencyGuard {
         BlockingScriptedChatService chatService = new BlockingScriptedChatService(
                 List.of(finalResponse("first-done")), firstEntered, firstProceed);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         // Start the first execution — it will block inside the chat service.
         CompletableFuture<AgentExecutionResult> firstFuture = engine.execute(
@@ -229,8 +235,14 @@ public class TestDefaultAgentEngineConcurrencyGuard {
     @Test
     void finallyDoesNotMisremoveHandle() throws Exception {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                immediateChat(List.of(finalResponse("done"))), noOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(immediateChat(List.of(finalResponse("done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // First execution completes and removes its own handle.
         AgentExecutionResult r1 = engine.execute(
@@ -276,7 +288,7 @@ public class TestDefaultAgentEngineConcurrencyGuard {
                 List.of(toolCallResponse("call_w", "test-calculator", Map.of("expr", "1+1"))),
                 entered, proceed);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         CompletableFuture<AgentExecutionResult> future = engine.execute(
                 new AgentMessageRequest("test-react-agent", "compute", "cancel-window-sess", null));
@@ -316,8 +328,14 @@ public class TestDefaultAgentEngineConcurrencyGuard {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("restore-guard"));
 
         // First, persist a session by executing and completing.
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                immediateChat(List.of(finalResponse("done"))), noOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(immediateChat(List.of(finalResponse("done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "init", "restore-guard-sess", null))
                 .get(60, TimeUnit.SECONDS);
@@ -335,7 +353,7 @@ public class TestDefaultAgentEngineConcurrencyGuard {
         CountDownLatch blockProceed = new CountDownLatch(1);
         BlockingScriptedChatService blockingChat = new BlockingScriptedChatService(
                 List.of(finalResponse("blocking-done")), blockEntered, blockProceed);
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(blockingChat, noOpToolManager(), store);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(blockingChat, noOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         CompletableFuture<AgentExecutionResult> blockingFuture = engine2.execute(
                 new AgentMessageRequest("test-react-agent", "blocking", "restore-guard-sess", null));
 
@@ -368,8 +386,14 @@ public class TestDefaultAgentEngineConcurrencyGuard {
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("normal-path"));
 
         // Normal execute completes.
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                immediateChat(List.of(finalResponse("normal-done"))), noOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(immediateChat(List.of(finalResponse("normal-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hello", "normal-sess", null))
                 .get(60, TimeUnit.SECONDS);
@@ -379,8 +403,14 @@ public class TestDefaultAgentEngineConcurrencyGuard {
                 "Session status should be completed after normal execute");
 
         // A second sequential execute on the same session must succeed.
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                immediateChat(List.of(finalResponse("second-done"))), noOpToolManager(), store);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(immediateChat(List.of(finalResponse("second-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult result2 = engine2.execute(
                 new AgentMessageRequest("test-react-agent", "again", "normal-sess", null))
                 .get(60, TimeUnit.SECONDS);
@@ -392,8 +422,14 @@ public class TestDefaultAgentEngineConcurrencyGuard {
         session.setStatus(AgentExecStatus.pending);
         store.save(session);
 
-        DefaultAgentEngine engine3 = new DefaultAgentEngine(
-                immediateChat(List.of(finalResponse("restored-done"))), noOpToolManager(), store);
+        DefaultAgentEngine engine3 = new DefaultAgentEngine.Builder(immediateChat(List.of(finalResponse("restored-done"))), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult restoreResult = engine3.restoreSession("normal-sess", "op", "test")
                 .get(60, TimeUnit.SECONDS);
         assertEquals(AgentExecStatus.completed, restoreResult.getStatus(),

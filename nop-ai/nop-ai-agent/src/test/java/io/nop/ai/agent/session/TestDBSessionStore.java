@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 2 functional tests for {@link DBSessionStore}: verifies the core

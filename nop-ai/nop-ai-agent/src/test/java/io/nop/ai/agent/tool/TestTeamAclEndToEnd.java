@@ -1,5 +1,12 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -158,11 +165,11 @@ public class TestTeamAclEndToEnd {
                                                   InMemoryTeamManager teamManager,
                                                   InMemoryTeamTaskStore taskStore,
                                                   io.nop.ai.agent.team.ITeamAclChecker checker) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, createTeamToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
-        engine.setTeamManager(teamManager);
-        engine.setTeamTaskStore(taskStore);
-        engine.setTeamAclChecker(checker);
+        engine.config().setTeamManager(teamManager);
+        engine.config().setTeamTaskStore(taskStore);
+        engine.config().setTeamAclChecker(checker);
         return engine;
     }
 
@@ -420,12 +427,12 @@ public class TestTeamAclEndToEnd {
                 makeToolCall("noop-1", "team-task-create",
                         args("subject", "noOp task")),
                 null);
-        DefaultAgentEngine engine = new DefaultAgentEngine(memberChat, createTeamToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(memberChat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
-        engine.setTeamManager(teamManager);
-        engine.setTeamTaskStore(taskStore);
+        engine.config().setTeamManager(teamManager);
+        engine.config().setTeamTaskStore(taskStore);
         // Deliberately NOT calling setTeamAclChecker — NoOp is the shipped default.
-        assertEquals(NoOpTeamAclChecker.noOp(), engine.getTeamAclChecker(),
+        assertEquals(NoOpTeamAclChecker.noOp(), engine.config().getTeamAclChecker(),
                 "Wiring #23: engine must default teamAclChecker to NoOp singleton");
 
         AgentExecutionResult createResult = engine.execute(new AgentMessageRequest(
@@ -439,10 +446,10 @@ public class TestTeamAclEndToEnd {
                 makeToolCall("noop-2", "team-task-update",
                         args("taskId", task.getTaskId(), "action", "abandon")),
                 null);
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(memberAbandonChat, createTeamToolManager());
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(memberAbandonChat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine2.setMessenger(messenger);
-        engine2.setTeamManager(teamManager);
-        engine2.setTeamTaskStore(taskStore);
+        engine2.config().setTeamManager(teamManager);
+        engine2.config().setTeamTaskStore(taskStore);
         // Again no setTeamAclChecker — relies on NoOp default.
         AgentExecutionResult abandonResult = engine2.execute(new AgentMessageRequest(
                 "test-agent", "abandon task", MEMBER_SESSION, null)).get(60, TimeUnit.SECONDS);

@@ -1,5 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -32,6 +36,8 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Focused tests for the MA4.2-05 DefaultAgentEngine extraction classes:
@@ -119,13 +125,15 @@ public class TestEngineConfigAndHelpers {
 
     // AR-7 (plan 2026-08-12-2311-1): all four timeout setters must reject
     // non-positive values uniformly (contract declared in catalog INV-2).
+    // WI11/plan 2443 (A3b): llmTimeoutMs/toolTimeoutMs now accept 0 = explicitly
+    // disabled (executor contract: <= 0 skips the timeout wrap) — only negatives
+    // are rejected for those two; callAgentTimeoutMs/memberExecTimeoutMs keep
+    // the strict positive invariant.
     @ParameterizedTest
     @CsvSource({
             "callAgentTimeoutMs, 0",
             "callAgentTimeoutMs, -1",
-            "llmTimeoutMs, 0",
             "llmTimeoutMs, -1",
-            "toolTimeoutMs, 0",
             "toolTimeoutMs, -1",
             "memberExecTimeoutMs, 0",
             "memberExecTimeoutMs, -1"
@@ -191,7 +199,9 @@ public class TestEngineConfigAndHelpers {
         // must not throw; log emission verified by engine-level tests
         warnings.warnIfInsecureDefaults(config);
         warnings.warnIfNoOpUsageRecorder(config);
-        warnings.resetUsageRecorderNoOpWarned();
+        // WI11/plan 2443 (A2b): the one-shot flag now lives in Config; any
+        // Config.setUsageRecorder call resets it.
+        config.setUsageRecorder(config.getUsageRecorder());
     }
 
     @Test
@@ -199,7 +209,8 @@ public class TestEngineConfigAndHelpers {
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
         AgentStartupWarnings warnings = new AgentStartupWarnings();
         warnings.warnIfNoOpUsageRecorder(config);
-        warnings.resetUsageRecorderNoOpWarned();
+        // WI11/plan 2443 (A2b): reset now goes through Config.setUsageRecorder.
+        config.setUsageRecorder(config.getUsageRecorder());
         warnings.warnIfNoOpUsageRecorder(config);
     }
 
@@ -208,7 +219,7 @@ public class TestEngineConfigAndHelpers {
     @Test
     void resolverWrapsToolCheckerWithParentConstraint() {
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
-        DefaultAgentEngine engine = new DefaultAgentEngine(new StubChatService(), new StubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new StubChatService(), new StubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         AgentCallDelegate callDelegate = new AgentCallDelegate(engine);
         AgentStartupWarnings warnings = new AgentStartupWarnings();
         AgentExecutorResolver resolver = new AgentExecutorResolver(
@@ -233,7 +244,7 @@ public class TestEngineConfigAndHelpers {
     void resolverBuildsReActExecutorForReactMode() {
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
         StubToolManager tm = new StubToolManager();
-        DefaultAgentEngine engine = new DefaultAgentEngine(new StubChatService(), tm);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new StubChatService(), tm).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         AgentExecutorResolver resolver = new AgentExecutorResolver(
                 config, new StubChatService(), tm, new io.nop.ai.agent.session.InMemorySessionStore(),
                 new DefaultAgentEventPublisher(), engine, new AgentCallDelegate(engine),
@@ -268,7 +279,7 @@ public class TestEngineConfigAndHelpers {
 
     @Test
     void callDelegateNoOpMessengerRegistersNothing() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(new StubChatService(), new StubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new StubChatService(), new StubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         AgentCallDelegate delegate = new AgentCallDelegate(engine);
         delegate.setMessenger(null);
         assertTrue(delegate.getMessenger() instanceof io.nop.ai.agent.message.NoOpAgentMessenger);
@@ -311,7 +322,7 @@ public class TestEngineConfigAndHelpers {
 
     @Test
     void lifecycleReleaseLockQuietlyToleratesNullLock() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(new StubChatService(), new StubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new StubChatService(), new StubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
         config.setSessionTakeoverLock(null);
         java.util.concurrent.ConcurrentHashMap<String, AgentSessionLifecycle.CancelHandle> running =

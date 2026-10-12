@@ -1,5 +1,9 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -86,8 +90,8 @@ public class TestSustainerWiring {
 
     @Test
     void engineDefaultsToNoOpSustainer() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        ISustainer sustainer = engine.getSustainer();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        ISustainer sustainer = engine.config().getSustainer();
         assertNotNull(sustainer, "Engine must default to a non-null sustainer");
         assertTrue(sustainer instanceof NoOpSustainer,
                 "Shipped default must be the NoOpSustainer pass-through");
@@ -95,18 +99,18 @@ public class TestSustainerWiring {
 
     @Test
     void setSustainerOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         ISustainer custom = new RecordingSustainer();
-        engine.setSustainer(custom);
-        assertSame(custom, engine.getSustainer(),
+        engine.config().setSustainer(custom);
+        assertSame(custom, engine.config().getSustainer(),
                 "getSustainer must return the exact instance set via setSustainer");
     }
 
     @Test
     void setSustainerNullFallsBackToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setSustainer(null);
-        ISustainer sustainer = engine.getSustainer();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSustainer(null);
+        ISustainer sustainer = engine.config().getSustainer();
         assertNotNull(sustainer, "null setter must fall back to a non-null NoOpSustainer default");
         assertTrue(sustainer instanceof NoOpSustainer);
     }
@@ -244,12 +248,10 @@ public class TestSustainerWiring {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     private static IChatService noOpChatService() {

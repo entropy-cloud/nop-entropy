@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.team.InMemoryTeamManager;
 import io.nop.ai.agent.team.ITeamManager;
 import io.nop.ai.agent.team.NoOpTeamManager;
@@ -61,7 +68,7 @@ public class TestTeamManagerEngineWiring {
         // NoOpTeamManager instance — the engine does not manage teams by
         // default (zero behaviour regression).
         DefaultAgentEngine engine = newEngine();
-        ITeamManager mgr = engine.getTeamManager();
+        ITeamManager mgr = engine.config().getTeamManager();
         assertTrue(mgr instanceof NoOpTeamManager,
                 "shipped default teamManager must be a NoOpTeamManager instance");
         assertSame(NoOpTeamManager.noOp(), mgr,
@@ -73,9 +80,9 @@ public class TestTeamManagerEngineWiring {
         DefaultAgentEngine engine = newEngine();
         InMemoryTeamManager functional = new InMemoryTeamManager();
 
-        engine.setTeamManager(functional);
+        engine.config().setTeamManager(functional);
 
-        assertSame(functional, engine.getTeamManager(),
+        assertSame(functional, engine.config().getTeamManager(),
                 "setTeamManager must assign the functional manager");
     }
 
@@ -84,9 +91,9 @@ public class TestTeamManagerEngineWiring {
         DefaultAgentEngine engine = newEngine();
         // null must fall back to the NoOp default (consistent with the
         // setActorRuntime / setMessenger null-safe pattern).
-        engine.setTeamManager(null);
+        engine.config().setTeamManager(null);
 
-        ITeamManager mgr = engine.getTeamManager();
+        ITeamManager mgr = engine.config().getTeamManager();
         assertTrue(mgr instanceof NoOpTeamManager,
                 "setTeamManager(null) must fall back to NoOpTeamManager");
     }
@@ -136,6 +143,6 @@ public class TestTeamManagerEngineWiring {
             }
         };
         // 2-arg constructor uses an InMemorySessionStore by default.
-        return new DefaultAgentEngine(chat, tools);
+        return new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 }

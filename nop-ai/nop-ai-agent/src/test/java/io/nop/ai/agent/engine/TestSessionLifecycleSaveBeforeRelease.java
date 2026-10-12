@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
@@ -94,7 +99,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         SequenceTrackingLock lock = new SequenceTrackingLock(seq);
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "order-doexecute", null))
@@ -118,7 +123,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         session.setStatus(AgentExecStatus.paused);
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine.resumeSession("order-resume", "operator-1", "test")
                 .toCompletableFuture().join();
@@ -140,7 +145,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         session.setStatus(AgentExecStatus.waiting);
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine.wakeSession("order-wake").toCompletableFuture().join();
 
@@ -162,7 +167,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
 
         // Seed a crashed (running) session via a first engine.
         DefaultAgentEngine seedEngine = newEngine(store);
-        seedEngine.setCheckpointManager(ckpt);
+        seedEngine.config().setCheckpointManager(ckpt);
         seedEngine.execute(new AgentMessageRequest("test-react-agent", "hi", "order-restore", null))
                 .toCompletableFuture().join();
         AgentSession crashed = store.get("order-restore");
@@ -171,8 +176,8 @@ public class TestSessionLifecycleSaveBeforeRelease {
 
         // Restore with a fresh engine — the recording store/lock are shared.
         DefaultAgentEngine engine2 = newEngine(store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(lock);
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(lock);
 
         AgentExecutionResult result = engine2.restoreSession("order-restore", "operator-1", "crash")
                 .toCompletableFuture().join();
@@ -196,7 +201,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         TrackingReleaseLock lock = new TrackingReleaseLock();
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         CompletionException ce = assertThrows(CompletionException.class,
                 () -> engine.execute(new AgentMessageRequest("test-react-agent", "hi", "fail-save", null))
@@ -227,7 +232,7 @@ public class TestSessionLifecycleSaveBeforeRelease {
         session.setStatus(AgentExecStatus.paused);
 
         DefaultAgentEngine engine = newEngine(store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
 
         CompletionException ce = assertThrows(CompletionException.class,
                 () -> engine.resumeSession("fail-save-resume", "operator-1", "test")
@@ -263,12 +268,14 @@ public class TestSessionLifecycleSaveBeforeRelease {
     }
 
     private DefaultAgentEngine newEngine(ISessionStore store) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                singleTurnChat("done"),
-                stubTools(),
-                store,
-                new AllowAllPermissionProvider());
-        engine.setDenialLedger(new NoPauseLedger());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(singleTurnChat("done"), stubTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(new NoPauseLedger());
         return engine;
     }
 

@@ -35,6 +35,7 @@ import java.util.concurrent.Flow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * MA6.5-AR-8: forkSession message filter hook. Verifies that a

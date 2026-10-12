@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * <p><b>Persistence</b>: in-memory only. The count does not survive
  * ledger-instance reconstruction. Integrators who need cross-process /
  * crash-recovery persistence should register {@link DBDenialLedger} via
- * {@code DefaultAgentEngine.setDenialLedger(new DBDenialLedger(dataSource))}.
+ * {@code engine.config().setDenialLedger(new DBDenialLedger(dataSource))}.
  *
  * <p>{@link NoOpDenialLedger} is retained as a public opt-in for integrators
  * who need the "no counting, no pausing" behavior.

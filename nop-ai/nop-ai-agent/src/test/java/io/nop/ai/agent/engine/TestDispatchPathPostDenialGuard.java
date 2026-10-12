@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.DefaultPostDenialGuard;
@@ -44,6 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 2 end-to-end tests: verifies the Layer 3 post-denial-guard
@@ -246,11 +253,13 @@ public class TestDispatchPathPostDenialGuard {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                tools);
-        engine.setPostDenialGuard(guard);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(tools)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setPostDenialGuard(guard);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -305,11 +314,13 @@ public class TestDispatchPathPostDenialGuard {
                 assistantWithToolCalls(toolCall("call_b3", "shell.exec", args))
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                tools);
-        engine.setPostDenialGuard(guard);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(tools)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setPostDenialGuard(guard);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -359,11 +370,13 @@ public class TestDispatchPathPostDenialGuard {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                tools);
-        engine.setPostDenialGuard(guard);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(tools)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setPostDenialGuard(guard);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -405,13 +418,15 @@ public class TestDispatchPathPostDenialGuard {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                tools);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(tools)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Deliberately opt into PassThroughPostDenialGuard to verify the
         // backward-compat behavior (default is now DefaultPostDenialGuard).
-        engine.setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
+        engine.config().setPostDenialGuard(PassThroughPostDenialGuard.passThrough());
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -441,24 +456,30 @@ public class TestDispatchPathPostDenialGuard {
      */
     @Test
     void engineSetterGetterAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("done"))),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("done"))), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Default is DefaultPostDenialGuard.
-        assertNotNull(engine.getPostDenialGuard(), "engine must expose a default post-denial guard");
-        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard,
+        assertNotNull(engine.config().getPostDenialGuard(), "engine must expose a default post-denial guard");
+        assertTrue(engine.config().getPostDenialGuard() instanceof DefaultPostDenialGuard,
                 "Default post-denial guard must be DefaultPostDenialGuard");
 
         // Setter registers a functional guard.
         FingerprintPostDenialGuard functional = new FingerprintPostDenialGuard();
-        engine.setPostDenialGuard(functional);
-        assertSame(functional, engine.getPostDenialGuard(),
+        engine.config().setPostDenialGuard(functional);
+        assertSame(functional, engine.config().getPostDenialGuard(),
                 "getPostDenialGuard must return the registered functional guard");
 
         // Setter with null falls back to the default (not null, not silently ignored).
-        engine.setPostDenialGuard(null);
-        assertTrue(engine.getPostDenialGuard() instanceof DefaultPostDenialGuard,
+        engine.config().setPostDenialGuard(null);
+        assertTrue(engine.config().getPostDenialGuard() instanceof DefaultPostDenialGuard,
                 "setPostDenialGuard(null) must fall back to DefaultPostDenialGuard, not null");
     }
 

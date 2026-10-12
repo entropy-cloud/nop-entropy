@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.memory.IMemoryStoreProvider;
 import io.nop.ai.agent.memory.InMemoryAiMemoryStore;
@@ -104,8 +111,8 @@ public class TestMemoryStoreProviderWiring {
 
     @Test
     void engineDefaultsToInMemoryMemoryStoreProvider() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        IMemoryStoreProvider provider = engine.getMemoryStoreProvider();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IMemoryStoreProvider provider = engine.config().getMemoryStoreProvider();
         assertNotNull(provider, "Engine must default to a non-null memory store provider");
         // The default provider is functional: returns a real store
         IAiMemoryStore store = provider.getOrCreate("test-session");
@@ -114,11 +121,11 @@ public class TestMemoryStoreProviderWiring {
 
     @Test
     void engineSetMemoryStoreProviderOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         InMemoryMemoryStoreProvider custom = new InMemoryMemoryStoreProvider();
-        engine.setMemoryStoreProvider(custom);
+        engine.config().setMemoryStoreProvider(custom);
 
-        assertSame(custom, engine.getMemoryStoreProvider());
+        assertSame(custom, engine.config().getMemoryStoreProvider());
     }
 
     private static IChatService noOpChatService() {

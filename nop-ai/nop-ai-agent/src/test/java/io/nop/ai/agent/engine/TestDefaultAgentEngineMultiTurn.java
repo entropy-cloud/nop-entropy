@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
@@ -116,7 +122,7 @@ public class TestDefaultAgentEngineMultiTurn {
                 buildTextResponse("You said hello")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createNoOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         CompletableFuture<AgentExecutionResult> r1 = engine.execute(
                 new AgentMessageRequest("test-agent", "hello", "session-1", null));
@@ -186,7 +192,7 @@ public class TestDefaultAgentEngineMultiTurn {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createNoOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         CompletableFuture<AgentExecutionResult> r1 = engine.execute(
                 new AgentMessageRequest("test-react-agent", "What is 2+2?", "session-tools", null));
@@ -223,7 +229,7 @@ public class TestDefaultAgentEngineMultiTurn {
                 buildTextResponse("Second response for A")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createNoOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         engine.execute(new AgentMessageRequest("test-agent", "hello A", "session-A", null))
                 .get(10, TimeUnit.SECONDS);
@@ -260,7 +266,7 @@ public class TestDefaultAgentEngineMultiTurn {
                 buildTextResponse("Second response")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createNoOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);
 
@@ -292,7 +298,7 @@ public class TestDefaultAgentEngineMultiTurn {
                 buildTextResponse("Response 2")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createNoOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createNoOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         engine.execute(new AgentMessageRequest("test-agent", "first", "session-stats", null))
                 .get(10, TimeUnit.SECONDS);

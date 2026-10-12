@@ -41,11 +41,6 @@ import org.slf4j.LoggerFactory;
  */
 public class AgentStartupWarnings {
     private static final Logger LOG = LoggerFactory.getLogger(AgentStartupWarnings.class);
-    private boolean usageRecorderNoOpWarned;
-
-    public void resetUsageRecorderNoOpWarned() {
-        this.usageRecorderNoOpWarned = false;
-    }
 
     // ---- moved verbatim from DefaultAgentEngine (MA4.2-05 split) ----
     public static IContextCompactor defaultPipelineCompactor(IChatService chatService) {
@@ -136,8 +131,8 @@ public class AgentStartupWarnings {
         }
     }
     public void warnIfNoOpUsageRecorder(DefaultAgentEngineConfig config) {
-        if (!usageRecorderNoOpWarned && config.getUsageRecorder() instanceof NoOpUsageRecorder) {
-            usageRecorderNoOpWarned = true;
+        if (!config.isUsageRecorderNoOpWarned() && config.getUsageRecorder() instanceof NoOpUsageRecorder) {
+            config.markUsageRecorderNoOpWarned();
             LOG.warn("DefaultAgentEngine wired with NoOpUsageRecorder: per-LLM-call usage data "
                     + "(token metering) is being discarded — usage is not observable. "
                     + "To make usage observable, wire a functional recorder via setUsageRecorder() "

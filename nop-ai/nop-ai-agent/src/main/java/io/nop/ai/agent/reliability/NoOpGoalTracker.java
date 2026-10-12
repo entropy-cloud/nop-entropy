@@ -20,7 +20,7 @@ import io.nop.ai.core.reliability.NoRetryPolicy;
  * tracker is to never interfere with the loop, because no functional
  * stuck-detection strategy is configured out of the box. A functional tracker
  * ({@code SessionGoalTracker}) is registered explicitly via
- * {@code DefaultAgentEngine.setGoalTracker}. This mirrors the
+ * {@code engine.config().setGoalTracker}. This mirrors the
  * {@code AlwaysClosed} / {@code NoRetryPolicy} / {@code NoOpCheckpoint} /
  * {@code NoOpBudgetProvider} sibling pass-through pattern.
  *

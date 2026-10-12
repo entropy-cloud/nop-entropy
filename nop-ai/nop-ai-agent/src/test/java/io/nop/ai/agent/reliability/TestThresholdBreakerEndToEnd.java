@@ -1,5 +1,7 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -112,9 +114,9 @@ public class TestThresholdBreakerEndToEnd {
         DefaultAgentEngine engine = newEngine(chatService);
         // threshold=2: after 2 consecutive failures the breaker trips to OPEN.
         ThresholdBreaker breaker = new ThresholdBreaker(2, 60_000L);
-        engine.setCircuitBreaker(breaker);
+        engine.config().setCircuitBreaker(breaker);
         // Use NoRetryPolicy to isolate circuit breaker behavior from retry behavior
-        engine.setRetryPolicy(NoRetryPolicy.noRetry());
+        engine.config().setRetryPolicy(NoRetryPolicy.noRetry());
 
         // Execute() #1: one LLM call → throws → recordFailure (failures=1,
         // still CLOSED) → execute fails with the LLM error (not circuit).
@@ -177,7 +179,7 @@ public class TestThresholdBreakerEndToEnd {
 
         DefaultAgentEngine engine = newEngine(chatService);
         ThresholdBreaker breaker = new ThresholdBreaker(1, 60_000L);
-        engine.setCircuitBreaker(breaker);
+        engine.config().setCircuitBreaker(breaker);
         // Pre-trip the breaker on the exact key the engine will route to.
         breaker.recordFailure(EXPECTED_MODEL_KEY); // threshold=1 → OPEN
         assertEquals(CircuitState.OPEN, breaker.getState(EXPECTED_MODEL_KEY));
@@ -210,7 +212,7 @@ public class TestThresholdBreakerEndToEnd {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // Shipped default (ThresholdBreaker with 3 failures threshold).
-        assertTrue(engine.getCircuitBreaker() instanceof ThresholdBreaker);
+        assertTrue(engine.config().getCircuitBreaker() instanceof ThresholdBreaker);
 
         // First 3 execute() calls fail with LLM error (not circuit rejection).
         for (int i = 0; i < 3; i++) {
@@ -231,12 +233,10 @@ public class TestThresholdBreakerEndToEnd {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     private static final class CountingThrowingChatService implements IChatService {

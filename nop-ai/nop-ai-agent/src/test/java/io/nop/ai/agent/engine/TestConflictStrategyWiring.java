@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.conflict.ConflictDecision;
 import io.nop.ai.agent.conflict.ConflictResult;
 import io.nop.ai.agent.conflict.IConflictStrategy;
@@ -172,12 +179,18 @@ public class TestConflictStrategyWiring {
         RecordingStrategy strategy = new RecordingStrategy();
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "wc_1",
-                        Map.of("path", "/tmp/wiring-target.txt")),
-                stubToolManager());
-        engine.setConflictStrategy(strategy);
-        engine.setWriteIntentRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "wc_1",
+                        Map.of("path", "/tmp/wiring-target.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setConflictStrategy(strategy);
+        engine.config().setWriteIntentRegistry(registry);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "write a file", null, null,
@@ -209,12 +222,18 @@ public class TestConflictStrategyWiring {
         RecordingStrategy strategy = new RecordingStrategy();
         InMemoryWriteIntentRegistry registry = new InMemoryWriteIntentRegistry();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("noop-tool", "np_1",
-                        Map.of("command", "echo hi")),
-                stubToolManager());
-        engine.setConflictStrategy(strategy);
-        engine.setWriteIntentRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("noop-tool", "np_1",
+                        Map.of("command", "echo hi")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setConflictStrategy(strategy);
+        engine.config().setWriteIntentRegistry(registry);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "noop", null, null,
@@ -235,48 +254,66 @@ public class TestConflictStrategyWiring {
 
     @Test
     void engineDefaultsAreFailFastAndInMemory() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "df_1",
-                        Map.of("path", "/tmp/df.txt")),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "df_1",
+                        Map.of("path", "/tmp/df.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getConflictStrategy() instanceof io.nop.ai.agent.conflict.FailFastStrategy,
+        assertTrue(engine.config().getConflictStrategy() instanceof io.nop.ai.agent.conflict.FailFastStrategy,
                 "default conflict strategy must be FailFastStrategy (plan 214)");
-        assertTrue(engine.getWriteIntentRegistry() instanceof InMemoryWriteIntentRegistry,
+        assertTrue(engine.config().getWriteIntentRegistry() instanceof InMemoryWriteIntentRegistry,
                 "default write-intent registry must be InMemoryWriteIntentRegistry (plan 214)");
     }
 
     @Test
     void engineSetGetConflictStrategyAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "sg_1",
-                        Map.of("path", "/tmp/sg.txt")),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "sg_1",
+                        Map.of("path", "/tmp/sg.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         RecordingStrategy custom = new RecordingStrategy();
-        engine.setConflictStrategy(custom);
-        assertTrue(engine.getConflictStrategy() == custom,
+        engine.config().setConflictStrategy(custom);
+        assertTrue(engine.config().getConflictStrategy() == custom,
                 "setConflictStrategy must wire the exact instance");
 
-        engine.setConflictStrategy(null);
-        assertTrue(engine.getConflictStrategy() instanceof io.nop.ai.agent.conflict.FailFastStrategy,
+        engine.config().setConflictStrategy(null);
+        assertTrue(engine.config().getConflictStrategy() instanceof io.nop.ai.agent.conflict.FailFastStrategy,
                 "setConflictStrategy(null) must fall back to FailFastStrategy (plan 214)");
     }
 
     @Test
     void engineSetGetWriteIntentRegistryAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("edit-file", "sg_2",
-                        Map.of("path", "/tmp/sg2.txt")),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("edit-file", "sg_2",
+                        Map.of("path", "/tmp/sg2.txt")), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         InMemoryWriteIntentRegistry custom = new InMemoryWriteIntentRegistry();
-        engine.setWriteIntentRegistry(custom);
-        assertTrue(engine.getWriteIntentRegistry() == custom,
+        engine.config().setWriteIntentRegistry(custom);
+        assertTrue(engine.config().getWriteIntentRegistry() == custom,
                 "setWriteIntentRegistry must wire the exact instance");
 
-        engine.setWriteIntentRegistry(null);
-        assertTrue(engine.getWriteIntentRegistry() instanceof InMemoryWriteIntentRegistry,
+        engine.config().setWriteIntentRegistry(null);
+        assertTrue(engine.config().getWriteIntentRegistry() instanceof InMemoryWriteIntentRegistry,
                 "setWriteIntentRegistry(null) must fall back to InMemoryWriteIntentRegistry (plan 214)");
     }
 }

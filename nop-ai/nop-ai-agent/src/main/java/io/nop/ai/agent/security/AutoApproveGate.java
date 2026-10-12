@@ -11,7 +11,7 @@ package io.nop.ai.agent.security;
  * {@code DefaultAgentEngine} shipped default is now
  * {@link DefaultApprovalGate}, which defense-in-depth denies RESTRICTED
  * operations. To opt back into unconditional auto-approval, explicitly call
- * {@code DefaultAgentEngine.setApprovalGate(AutoApproveGate.autoApprove())}.
+ * {@code engine.config().setApprovalGate(AutoApproveGate.autoApprove())}.
  *
  * <p>This implementation does not differentiate between {@link SecurityLevel}
  * values: STANDARD, ELEVATED, and RESTRICTED are all approved. Functional

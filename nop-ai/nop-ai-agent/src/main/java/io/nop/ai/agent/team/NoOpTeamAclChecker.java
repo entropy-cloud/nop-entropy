@@ -10,7 +10,7 @@ package io.nop.ai.agent.team;
  * that previously went through with no ACL now still goes through, with no
  * extra authorisation overhead. The functional ACL matrix is only enforced
  * when an integrator explicitly wires a {@link DefaultTeamAclChecker} via
- * {@code DefaultAgentEngine.setTeamAclChecker(...)}.
+ * {@code engine.config().setTeamAclChecker(...)}.
  *
  * <p><b>Why allow and not deny?</b> Unlike {@link NoOpTeamManager} /
  * {@link NoOpTeamTaskStore} — whose write operations throw

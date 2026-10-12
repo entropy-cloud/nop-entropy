@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
@@ -225,14 +232,20 @@ public class TestFileBackedCheckpointDispatchPath {
         Path checkpointRoot = tempDir.resolve("e2e");
 
         // Phase 1: engine.execute → saveCheckpoint → journal.md written
-        DefaultAgentEngine engine1 = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine1 = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_e2e_file", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         FileBackedCheckpointManager mgr1 = new FileBackedCheckpointManager(checkpointRoot);
-        engine1.setCheckpointManager(mgr1);
+        engine1.config().setCheckpointManager(mgr1);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -283,13 +296,19 @@ public class TestFileBackedCheckpointDispatchPath {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_bc_mem", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
-        engine.setCheckpointManager(mgr);
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(mgr);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "bc-mem-session", null, ChannelKind.WEBUI, Principal.user());
@@ -309,14 +328,20 @@ public class TestFileBackedCheckpointDispatchPath {
      */
     @Test
     void noOpDefaultProducesNoSideEffectsAndRunsNormally() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_bc_noop", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "Default must remain NoOpCheckpoint");
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -372,10 +397,14 @@ public class TestFileBackedCheckpointDispatchPath {
         Path sessionRoot = tempDir.resolve("e2e-traversal");
         FileBackedSessionStore store = new FileBackedSessionStore(sessionRoot);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("should-never-reach"))),
-                stubToolManager(),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("should-never-reach"))), stubToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "../../../etc/cron.d/exploit", null,
@@ -417,12 +446,18 @@ public class TestFileBackedCheckpointDispatchPath {
      */
     @Test
     void executeAcceptsValidSessionIdAfterGuard() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_guard_ok", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", "valid-session-1", null,

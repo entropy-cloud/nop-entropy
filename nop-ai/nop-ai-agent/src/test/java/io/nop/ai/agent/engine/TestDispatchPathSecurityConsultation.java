@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.security.ChannelKind;
 import io.nop.ai.agent.security.IPermissionMatrix;
@@ -187,10 +194,17 @@ public class TestDispatchPathSecurityConsultation {
         CountingResolver resolver = new CountingResolver();
         CountingMatrix matrix = new CountingMatrix();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningShellExecThenFinal(), stubToolManager());
-        engine.setSecurityLevelResolver(resolver);
-        engine.setPermissionMatrix(matrix);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningShellExecThenFinal(), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(resolver);
+        engine.config().setPermissionMatrix(matrix);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run ls", null, null, ChannelKind.GROUP, Principal.user());
@@ -232,10 +246,17 @@ public class TestDispatchPathSecurityConsultation {
         CountingResolver resolver = new CountingResolver();
         CountingMatrix matrix = new CountingMatrix();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningShellExecThenFinal(), stubToolManager());
-        engine.setSecurityLevelResolver(resolver);
-        engine.setPermissionMatrix(matrix);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningShellExecThenFinal(), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(resolver);
+        engine.config().setPermissionMatrix(matrix);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run ls", null, null, ChannelKind.WEBUI, Principal.user());
@@ -274,13 +295,20 @@ public class TestDispatchPathSecurityConsultation {
         // the opt-in backward-compat path (no classification, no channel
         // restrictions). Default is now Default* which classifies shell.exec
         // as ELEVATED and would deny it on GROUP channel.
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningShellExecThenFinal(), stubToolManager());
-        engine.setSecurityLevelResolver(NoOpSecurityLevelResolver.noOp());
-        engine.setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningShellExecThenFinal(), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(NoOpSecurityLevelResolver.noOp());
+        engine.config().setPermissionMatrix(PassThroughPermissionMatrix.passThrough());
 
-        assertTrue(engine.getSecurityLevelResolver() instanceof NoOpSecurityLevelResolver);
-        assertTrue(engine.getPermissionMatrix() instanceof PassThroughPermissionMatrix);
+        assertTrue(engine.config().getSecurityLevelResolver() instanceof NoOpSecurityLevelResolver);
+        assertTrue(engine.config().getPermissionMatrix() instanceof PassThroughPermissionMatrix);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run ls", null, null, ChannelKind.GROUP, Principal.user());
@@ -359,9 +387,9 @@ public class TestDispatchPathSecurityConsultation {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager());
-        engine.setSecurityLevelResolver(resolver);
-        engine.setPermissionMatrix(matrix);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setSecurityLevelResolver(resolver);
+        engine.config().setPermissionMatrix(matrix);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "read", null, null, ChannelKind.GROUP, Principal.user());

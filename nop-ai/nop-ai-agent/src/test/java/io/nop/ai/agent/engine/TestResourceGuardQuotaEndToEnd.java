@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.quota.CountingResourceGuard;
@@ -239,9 +246,9 @@ public class TestResourceGuardQuotaEndToEnd {
                 return model;
             }
         };
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
-        engine.setTeamManager(mgr);
-        engine.setTeamTaskStore(taskStore);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setTeamManager(mgr);
+        engine.config().setTeamTaskStore(taskStore);
         return engine;
     }
 }

@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.AgentMessageTopics;
@@ -171,7 +178,7 @@ public class TestDefaultAgentEngineMessengerWiring {
     void existingEngineConstructionPathsAreUnchanged() {
         // Engine constructed via the simplest constructor (chatService, toolManager)
         // must still work and default to NoOp messenger — no new required args.
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         IAgentMessenger messenger = engine.getMessenger();
         assertTrue(messenger instanceof NoOpAgentMessenger);
     }
@@ -186,6 +193,6 @@ public class TestDefaultAgentEngineMessengerWiring {
      * chatService/toolManager is fine because we never invoke execute().
      */
     private DefaultAgentEngine newEngineStub() {
-        return new DefaultAgentEngine(null, null);
+        return new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 }

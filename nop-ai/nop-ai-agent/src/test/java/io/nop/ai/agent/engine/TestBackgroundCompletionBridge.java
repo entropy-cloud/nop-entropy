@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -56,7 +62,7 @@ public class TestBackgroundCompletionBridge {
     @Test
     void terminalTaskBridgesIntoSessionPendingInjections() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(new NoCallChatService(), null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new NoCallChatService(), null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.initBackgroundSupport(null, null);
         IBackgroundTaskRegistry registry = engine.getBackgroundTaskRegistry();
         assertNotNull(registry, "engine must own a background task registry after wiring");
@@ -96,7 +102,7 @@ public class TestBackgroundCompletionBridge {
                 super.save(session);
             }
         };
-        DefaultAgentEngine engine = new DefaultAgentEngine(new NoCallChatService(), null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new NoCallChatService(), null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.initBackgroundSupport(null, null);
         IBackgroundTaskRegistry registry = engine.getBackgroundTaskRegistry();
         String sessionId = "s-bg-fail";

@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.security.ApprovalDecision;
 import io.nop.ai.agent.security.AuditDecision;
 import io.nop.ai.agent.security.AuditEvent;
@@ -228,10 +235,17 @@ public class TestDispatchPathApprovalGate {
     void elevatedActionIsBlockedByApprovalGate() {
         CountingGate gate = new CountingGate();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("shell.exec", "call_shell_1"), stubToolManager());
-        engine.setSecurityLevelResolver(new TestResolver());
-        engine.setApprovalGate(gate);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("shell.exec", "call_shell_1"), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(new TestResolver());
+        engine.config().setApprovalGate(gate);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run ls", null, null, ChannelKind.WEBUI, Principal.user());
@@ -257,10 +271,17 @@ public class TestDispatchPathApprovalGate {
     void restrictedActionIsBlockedByApprovalGate() {
         CountingGate gate = new CountingGate();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("network.fetch", "call_net_1"), stubToolManager());
-        engine.setSecurityLevelResolver(new TestResolver());
-        engine.setApprovalGate(gate);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("network.fetch", "call_net_1"), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(new TestResolver());
+        engine.config().setApprovalGate(gate);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "fetch", null, null, ChannelKind.WEBUI, Principal.user());
@@ -281,10 +302,17 @@ public class TestDispatchPathApprovalGate {
     void standardActionIsApprovedByGate() {
         CountingGate gate = new CountingGate();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("fs.read", "call_read_1"), stubToolManager());
-        engine.setSecurityLevelResolver(new TestResolver());
-        engine.setApprovalGate(gate);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("fs.read", "call_read_1"), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(new TestResolver());
+        engine.config().setApprovalGate(gate);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "read", null, null, ChannelKind.WEBUI, Principal.user());
@@ -348,11 +376,18 @@ public class TestDispatchPathApprovalGate {
         // (no spurious denial), even for an ELEVATED-level action.
         // DefaultApprovalGate approves STANDARD and ELEVATED (only RESTRICTED
         // is defense-in-depth denied — plan 199).
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("shell.exec", "call_shell_1"), stubToolManager());
-        engine.setSecurityLevelResolver(new TestResolver());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("shell.exec", "call_shell_1"), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSecurityLevelResolver(new TestResolver());
 
-        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+        assertTrue(engine.config().getApprovalGate() instanceof DefaultApprovalGate,
                 "Default approval gate must be DefaultApprovalGate (plan 199)");
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -394,20 +429,27 @@ public class TestDispatchPathApprovalGate {
 
     @Test
     void engineSetGetApprovalGateAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatServiceReturningToolThenFinal("fs.read", "call_sg_1"), stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatServiceReturningToolThenFinal("fs.read", "call_sg_1"), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+        assertTrue(engine.config().getApprovalGate() instanceof DefaultApprovalGate,
                 "Engine default approval gate must be DefaultApprovalGate (plan 199)");
 
         CountingGate custom = new CountingGate();
-        engine.setApprovalGate(custom);
-        assertTrue(engine.getApprovalGate() == custom,
+        engine.config().setApprovalGate(custom);
+        assertTrue(engine.config().getApprovalGate() == custom,
                 "setApprovalGate must wire the exact instance");
 
         // Null setter must fall back to the default, not silently store null.
-        engine.setApprovalGate(null);
-        assertTrue(engine.getApprovalGate() instanceof DefaultApprovalGate,
+        engine.config().setApprovalGate(null);
+        assertTrue(engine.config().getApprovalGate() instanceof DefaultApprovalGate,
                 "setApprovalGate(null) must fall back to DefaultApprovalGate default (plan 199)");
     }
 }

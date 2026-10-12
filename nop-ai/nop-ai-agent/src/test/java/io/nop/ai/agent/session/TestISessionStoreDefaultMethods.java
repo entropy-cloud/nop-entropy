@@ -8,6 +8,7 @@ import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 public class TestISessionStoreDefaultMethods {
 

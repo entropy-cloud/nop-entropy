@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
@@ -122,13 +128,17 @@ public class TestTakeoverLockHeartbeatRenewal {
         DBSessionStore store = new DBSessionStore(dataSource);
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("exec-done")), 150L),
-                noOpToolManager(),
-                store);
-        engine.setSessionTakeoverLock(lock);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("exec-done")), 150L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSessionTakeoverLock(lock);
         // Short interval so multiple renewals fire during the 150ms execution.
-        engine.setLockRenewIntervalMs(20L);
+        engine.config().setLockRenewIntervalMs(20L);
 
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "renew-exec-1", null))
@@ -160,13 +170,17 @@ public class TestTakeoverLockHeartbeatRenewal {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("resume-renew-ckpt"));
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("initial")), 50L),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
-        engine.setLockRenewIntervalMs(20L);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("initial")), 50L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setLockRenewIntervalMs(20L);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "renew-resume-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -179,13 +193,17 @@ public class TestTakeoverLockHeartbeatRenewal {
 
         // Fresh counting lock for the resume phase (isolate the count).
         CountingTakeoverLock resumeLock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("resume-done")), 150L),
-                noOpToolManager(),
-                store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(resumeLock);
-        engine2.setLockRenewIntervalMs(20L);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("resume-done")), 150L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(resumeLock);
+        engine2.config().setLockRenewIntervalMs(20L);
 
         AgentExecutionResult result = engine2.resumeSession("renew-resume-1", "operator", "resume")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -212,13 +230,17 @@ public class TestTakeoverLockHeartbeatRenewal {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("restore-renew-ckpt"));
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("initial")), 50L),
-                noOpToolManager(),
-                store);
-        engine.setCheckpointManager(ckpt);
-        engine.setSessionTakeoverLock(lock);
-        engine.setLockRenewIntervalMs(20L);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("initial")), 50L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckpt);
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setLockRenewIntervalMs(20L);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "renew-restore-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -230,13 +252,17 @@ public class TestTakeoverLockHeartbeatRenewal {
         store.save(crashed);
 
         CountingTakeoverLock restoreLock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("restored-done")), 150L),
-                noOpToolManager(),
-                store);
-        engine2.setCheckpointManager(ckpt);
-        engine2.setSessionTakeoverLock(restoreLock);
-        engine2.setLockRenewIntervalMs(20L);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("restored-done")), 150L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setCheckpointManager(ckpt);
+        engine2.config().setSessionTakeoverLock(restoreLock);
+        engine2.config().setLockRenewIntervalMs(20L);
 
         AgentExecutionResult result = engine2.restoreSession("renew-restore-1", "operator", "crash")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -263,12 +289,16 @@ public class TestTakeoverLockHeartbeatRenewal {
         DBSessionStore store = new DBSessionStore(dataSource);
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new SlowChatService(List.of(finalResponse("exec-done")), 80L),
-                noOpToolManager(),
-                store);
-        engine.setSessionTakeoverLock(lock);
-        engine.setLockRenewIntervalMs(0L); // disabled
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("exec-done")), 80L), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setLockRenewIntervalMs(0L); // disabled
 
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "renew-disabled-1", null))
@@ -348,12 +378,16 @@ public class TestTakeoverLockHeartbeatRenewal {
         LeaseLosingLock lock = new LeaseLosingLock(new DbSessionTakeoverLock(dataSource));
 
         CountDownLatch chatEntered = new CountDownLatch(1);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new BlockingInterruptibleChatService(finalResponse("never-completes"), chatEntered),
-                noOpToolManager(),
-                store);
-        engine.setSessionTakeoverLock(lock);
-        engine.setLockRenewIntervalMs(500L); // first renewal at ~500ms → lease-lost (must be large enough for the worker thread to enter the blocking LLM call under CI load)
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new BlockingInterruptibleChatService(finalResponse("never-completes"), chatEntered), noOpToolManager()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setLockRenewIntervalMs(500L); // first renewal at ~500ms → lease-lost (must be large enough for the worker thread to enter the blocking LLM call under CI load)
 
         long startNs = System.nanoTime();
         CompletableFuture<AgentExecutionResult> future = engine.execute(

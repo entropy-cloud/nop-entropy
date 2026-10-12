@@ -35,6 +35,9 @@ import java.util.concurrent.Flow;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 
 /**
  * Focused tests for the MA4.2-05 extracted classes {@link AgentSecurityConsultation},

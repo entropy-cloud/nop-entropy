@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.engine.DefaultAgentEngineConfig;
 import io.nop.ai.agent.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
@@ -263,5 +264,17 @@ public interface IAgentEngine extends AutoCloseable {
      */
     default IBackgroundTaskRegistry getBackgroundTaskRegistry() {
         return null;
+    }
+
+    /**
+     * WI11/plan 2443 (A1): post-construction, pre-execute configuration
+     * tuning channel, replacing the deleted one-line config delegates on the
+     * engine. Writes take effect at the next execution read. Default impl
+     * fails loud: only engines that own a {@link DefaultAgentEngineConfig}
+     * (currently DefaultAgentEngine) support tuning.
+     */
+    default DefaultAgentEngineConfig config() {
+        throw new UnsupportedOperationException(
+                "config() not supported by this engine implementation");
     }
 }

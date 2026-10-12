@@ -1,5 +1,12 @@
 package io.nop.ai.agent.usage;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.AgentStartupWarnings;
@@ -86,8 +93,8 @@ public class TestUsageRecorderWiring {
 
     @Test
     void engineDefaultsToNoOpUsageRecorder() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        IUsageRecorder recorder = engine.getUsageRecorder();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        IUsageRecorder recorder = engine.config().getUsageRecorder();
         assertNotNull(recorder, "Engine must default to a non-null usage recorder");
         assertTrue(recorder instanceof NoOpUsageRecorder,
                 "Shipped default must be the NoOpUsageRecorder pass-through");
@@ -95,17 +102,17 @@ public class TestUsageRecorderWiring {
 
     @Test
     void setUsageRecorderOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         RecordingUsageRecorder custom = new RecordingUsageRecorder();
-        engine.setUsageRecorder(custom);
-        assertSameRecorder(custom, engine.getUsageRecorder());
+        engine.config().setUsageRecorder(custom);
+        assertSameRecorder(custom, engine.config().getUsageRecorder());
     }
 
     @Test
     void setUsageRecorderNullFallsBackToNoOp() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setUsageRecorder(null);
-        IUsageRecorder recorder = engine.getUsageRecorder();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setUsageRecorder(null);
+        IUsageRecorder recorder = engine.config().getUsageRecorder();
         assertNotNull(recorder, "null setter must fall back to a non-null NoOp default");
         assertTrue(recorder instanceof NoOpUsageRecorder);
     }
@@ -123,9 +130,16 @@ public class TestUsageRecorderWiring {
         appender.start();
         engineLogger.addAppender(appender);
         try {
-            DefaultAgentEngine engine = new DefaultAgentEngine(
-                    singleTurnChatService("hello"), noOpToolManager());
-            assertTrue(engine.getUsageRecorder() instanceof NoOpUsageRecorder,
+            DefaultAgentEngine engine = new DefaultAgentEngine.Builder(singleTurnChatService("hello"), noOpToolManager())
+                    .sessionStore(new InMemorySessionStore())
+                    .permissionProvider(new AllowAllPermissionProvider())
+                    .toolAccessChecker(new DefaultToolAccessChecker())
+                    .pathAccessChecker(new DefaultPathAccessChecker())
+                    .contentGuardrail(NoOpContentGuardrail.noOp())
+                    .modelRouter(PassThroughModelRouter.passThrough())
+                    .contextCompactor(new MicroCompressionCompactor())
+                    .build();
+            assertTrue(engine.config().getUsageRecorder() instanceof NoOpUsageRecorder,
                     "Shipped default must be the NoOp pass-through");
 
             AgentMessageRequest request = new AgentMessageRequest("test-agent", "hi");
@@ -319,9 +333,9 @@ public class TestUsageRecorderWiring {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         RecordingUsageRecorder recorder = new RecordingUsageRecorder();
-        engine.setUsageRecorder(recorder);
+        engine.config().setUsageRecorder(recorder);
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "What is 2+2?");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);

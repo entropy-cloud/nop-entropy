@@ -18,7 +18,7 @@ package io.nop.ai.core.reliability;
  * environments where every model failure must surface immediately to the
  * operator), and the shipped default makes that the safe baseline. A
  * functional breaker ({@code ThresholdBreaker}) is registered explicitly via
- * {@code DefaultAgentEngine.setCircuitBreaker}. This mirrors the
+ * {@code engine.config().setCircuitBreaker}. This mirrors the
  * {@code NoRetryPolicy} / {@code NoOpCheckpoint} /
  * {@code NoOpBudgetProvider} sibling pass-through pattern.
  *

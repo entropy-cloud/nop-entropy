@@ -40,7 +40,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
  *          ({@link NoOpBudgetProvider}) — no production-grade implementation
  *          exists in this version. Execution budget is unlimited with the
  *          shipped default. Production deployments should provide a custom
- *          implementation via {@code DefaultAgentEngine.setBudgetProvider()}.
+ *          implementation via {@code engine.config().setBudgetProvider()}.
  */
 public interface IBudgetProvider {
 

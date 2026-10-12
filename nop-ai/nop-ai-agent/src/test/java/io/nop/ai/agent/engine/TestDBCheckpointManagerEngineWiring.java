@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.AiAgentCheckpointTable;
 import io.nop.ai.agent.reliability.Checkpoint;
@@ -57,7 +63,7 @@ import io.nop.ai.agent.support.ChatResponseFixtures;
  *
  * <p>These tests prove the full wiring chain is connected: a
  * {@link DBCheckpointManager} registered via
- * {@code DefaultAgentEngine.setCheckpointManager} receives dispatch-path
+ * {@code engine.config().setCheckpointManager} receives dispatch-path
  * {@code saveCheckpoint} calls and checkpoints are <b>actually persisted to the
  * {@code ai_agent_checkpoint} DB table</b> (verified by direct SQL, not just by
  * the manager object receiving a call). Also covers the core value
@@ -180,13 +186,17 @@ public class TestDBCheckpointManagerEngineWiring {
         DBSessionStore store = new DBSessionStore(dataSource);
         DBCheckpointManager ckptMgr = new DBCheckpointManager(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(
                         toolCallResponse("call-db-ckpt", "test-tool", Map.of("x", "y")),
-                        finalResponse("done-ckpt"))),
-                toolManagerReturning("tool-output"),
-                store);
-        engine.setCheckpointManager(ckptMgr);
+                        finalResponse("done-ckpt"))), toolManagerReturning("tool-output")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(ckptMgr);
 
         AgentExecutionResult result = engine.execute(
                         new AgentMessageRequest("test-react-agent", "run", "db-ckpt-session", null))
@@ -242,8 +252,8 @@ public class TestDBCheckpointManagerEngineWiring {
                 toolCallResponse("call-restore-ckpt", "test-calculator", Map.of("expr", "2+2")),
                 finalResponse("The result is 4.")));
 
-        DefaultAgentEngine engine1 = new DefaultAgentEngine(chat1, toolManagerReturning("4"), store1);
-        engine1.setCheckpointManager(ckptMgr1);
+        DefaultAgentEngine engine1 = new DefaultAgentEngine.Builder(chat1, toolManagerReturning("4")).sessionStore(store1).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine1.config().setCheckpointManager(ckptMgr1);
 
         engine1.execute(new AgentMessageRequest("test-react-agent", "What is 2+2?", sessionId, null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -278,8 +288,8 @@ public class TestDBCheckpointManagerEngineWiring {
         ScriptedChatService chat2 = new ScriptedChatService(List.of(
                 finalResponse("Resumed after crash: the answer is still 4.")));
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(chat2, toolManagerReturning("ok"), store2);
-        engine2.setCheckpointManager(ckptMgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chat2, toolManagerReturning("ok")).sessionStore(store2).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine2.config().setCheckpointManager(ckptMgr2);
 
         AgentExecutionResult result2 = engine2.restoreSession(sessionId, "operator", "crash recovery")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -302,14 +312,18 @@ public class TestDBCheckpointManagerEngineWiring {
         // Initialize both schemas so the tables exist for verification queries
         new DBCheckpointManager(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(
                         toolCallResponse("call-noop-ckpt", "echo", Map.of("x", "y")),
-                        finalResponse("noop-done"))),
-                toolManagerReturning("ok"),
-                new InMemorySessionStore());
+                        finalResponse("noop-done"))), toolManagerReturning("ok")).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "Default must remain NoOpCheckpoint");
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "noop-ckpt-session", null))
@@ -329,13 +343,17 @@ public class TestDBCheckpointManagerEngineWiring {
         new DBCheckpointManager(dataSource);
 
         FileBackedCheckpointManager fileMgr = new FileBackedCheckpointManager(tempDir.resolve("fb-ckpt"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(
                         toolCallResponse("call-fb-ckpt", "echo", Map.of("x", "y")),
-                        finalResponse("fb-done"))),
-                toolManagerReturning("ok"),
-                new InMemorySessionStore());
-        engine.setCheckpointManager(fileMgr);
+                        finalResponse("fb-done"))), toolManagerReturning("ok")).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(fileMgr);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "fb-ckpt-session", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);

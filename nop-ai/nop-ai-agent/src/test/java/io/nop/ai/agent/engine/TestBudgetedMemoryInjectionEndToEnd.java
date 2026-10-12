@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.memory.AiMemoryItem;
 import io.nop.ai.agent.memory.IAiMemoryStore;
 import io.nop.ai.agent.memory.InMemoryMemoryStoreProvider;
@@ -225,9 +230,14 @@ public class TestBudgetedMemoryInjectionEndToEnd {
         InMemoryMemoryStoreProvider provider = new InMemoryMemoryStoreProvider();
         InMemorySessionStore sessionStore = new InMemorySessionStore();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                firstChatService, toolManagerWithMemoryTools(), sessionStore, new AllowAllPermissionProvider());
-        engine.setMemoryStoreProvider(provider);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(firstChatService, toolManagerWithMemoryTools()).sessionStore(sessionStore).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setMemoryStoreProvider(provider);
 
         // Turn 1: write memory.
         AgentMessageRequest request1 = new AgentMessageRequest(
@@ -280,9 +290,14 @@ public class TestBudgetedMemoryInjectionEndToEnd {
         };
 
         // Rebuild engine with the second chat service but SAME sessionStore + provider.
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(
-                secondChatService, toolManagerWithMemoryTools(), sessionStore, new AllowAllPermissionProvider());
-        engine2.setMemoryStoreProvider(provider);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(secondChatService, toolManagerWithMemoryTools()).sessionStore(sessionStore).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine2.config().setMemoryStoreProvider(provider);
 
         AgentMessageRequest request2 = new AgentMessageRequest(
                 "test-agent", "next turn", sessionId, Collections.emptyMap());
@@ -351,10 +366,15 @@ public class TestBudgetedMemoryInjectionEndToEnd {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, toolManagerWithMemoryTools(), store, new AllowAllPermissionProvider());
-        engine.setMemoryStoreProvider(provider);
-        engine.setDenialLedger(new ResetOnlyDenialLedger());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManagerWithMemoryTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setMemoryStoreProvider(provider);
+        engine.config().setDenialLedger(new ResetOnlyDenialLedger());
 
         AgentExecutionResult result = engine.resumeSession(sessionId, "operator", "test")
                 .toCompletableFuture().get(60, TimeUnit.SECONDS);
@@ -409,7 +429,7 @@ public class TestBudgetedMemoryInjectionEndToEnd {
         };
 
         // Default provider (empty store for this session).
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManagerWithMemoryTools());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManagerWithMemoryTools()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "hello", "no-memory-1", Collections.emptyMap());
@@ -472,11 +492,11 @@ public class TestBudgetedMemoryInjectionEndToEnd {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManagerWithMemoryTools());
-        engine.setMemoryStoreProvider(provider);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManagerWithMemoryTools()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setMemoryStoreProvider(provider);
         // budget = 8 tokens. Each item is ~3 tokens (chars/4). pinned(3) + high(4) = 7 ≤ 8.
         // low would push to 7+4=11 > 8 → excluded.
-        engine.setMemoryInjectionBudgetTokens(8);
+        engine.config().setMemoryInjectionBudgetTokens(8);
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-agent", "hello", sessionId, Collections.emptyMap());

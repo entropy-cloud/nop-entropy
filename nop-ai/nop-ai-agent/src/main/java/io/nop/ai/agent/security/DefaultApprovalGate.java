@@ -37,7 +37,7 @@ public final class DefaultApprovalGate implements IApprovalGate {
     /** The denial reason recorded on RESTRICTED defense-in-depth denials. */
     public static final String RESTRICTED_DENY_REASON =
             "RESTRICTED operations require a functional approval gate (defense-in-depth default deny). "
-                    + "Register a functional IApprovalGate via DefaultAgentEngine.setApprovalGate, "
+                    + "Register a functional IApprovalGate via engine.config().setApprovalGate, "
                     + "or explicitly opt into unconditional auto-approval via AutoApproveGate.";
 
     @Override

@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.session.InMemorySessionStore;
@@ -172,7 +178,7 @@ public class TestDefaultAgentEngineCancel {
 
     @Test
     void getSessionStatusThrowsForNonExistentSession() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.getSessionStatus("does-not-exist"));
         assertTrue(ex.getMessage().contains("session not found"),
@@ -182,7 +188,7 @@ public class TestDefaultAgentEngineCancel {
     @Test
     void getSessionStatusReturnsPendingForNewlyCreatedSession() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         store.getOrCreate("new-session", "test-agent");
 
         assertEquals(AgentExecStatus.pending, engine.getSessionStatus("new-session"),
@@ -198,7 +204,7 @@ public class TestDefaultAgentEngineCancel {
         CountDownLatch proceedWithTool = new CountDownLatch(1);
         IToolManager toolManager = createBlockingToolManager(toolEntered, proceedWithTool);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-react-agent", "compute", "lifecycle-e2e", null);
@@ -222,7 +228,7 @@ public class TestDefaultAgentEngineCancel {
 
     @Test
     void cancelGracefulOnNonExistentSessionThrows() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
                 () -> engine.cancelSession("ghost", "no-target", false));
         assertTrue(ex.getMessage().contains("session not found"),
@@ -232,7 +238,7 @@ public class TestDefaultAgentEngineCancel {
     @Test
     void cancelGracefulOnIdleSessionSetsCancelled() {
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null, store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         store.getOrCreate("idle", "test-agent");
 
         java.util.List<AgentEvent> events = Collections.synchronizedList(new java.util.ArrayList<>());
@@ -255,7 +261,7 @@ public class TestDefaultAgentEngineCancel {
         CountDownLatch proceedWithTool = new CountDownLatch(1);
         IToolManager toolManager = createBlockingToolManager(toolEntered, proceedWithTool);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-react-agent", "compute", "graceful-e2e", null);
@@ -281,7 +287,7 @@ public class TestDefaultAgentEngineCancel {
         IChatService chatService = createBlockingChatService(toolCallResponse, llmEntered);
         IToolManager toolManager = createNoOpToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest(
                 "test-react-agent", "compute", "forced-e2e", null);
@@ -312,7 +318,7 @@ public class TestDefaultAgentEngineCancel {
         CountDownLatch proceedWithTool = new CountDownLatch(1);
         IToolManager toolManager = createBlockingToolManager(toolEntered, proceedWithTool);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         java.util.List<AgentEvent> events = Collections.synchronizedList(new java.util.ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);
 

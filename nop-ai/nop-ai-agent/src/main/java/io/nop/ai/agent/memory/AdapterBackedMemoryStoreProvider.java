@@ -32,7 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * <p>Shipped default is NOT this provider — {@link InMemoryMemoryStoreProvider}
  * remains the engine default (设计裁定 4). This provider is opt-in via
- * {@code DefaultAgentEngine.setMemoryStoreProvider(...)}.
+ * {@code engine.config().setMemoryStoreProvider(...)}.
  */
 public class AdapterBackedMemoryStoreProvider implements IMemoryStoreProvider {
 

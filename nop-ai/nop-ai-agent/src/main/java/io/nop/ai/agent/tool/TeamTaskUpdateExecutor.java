@@ -95,13 +95,13 @@ public class TeamTaskUpdateExecutor implements IToolExecutor {
             LOG.debug("team-task-update: team functionality not enabled (NoOp/null teamManager)");
             return honestNotEnabled(call.getId(),
                     "Team functionality is not enabled — task not updated. "
-                            + "Wire InMemoryTeamManager via DefaultAgentEngine.setTeamManager to enable.");
+                            + "Wire InMemoryTeamManager via engine.config().setTeamManager to enable.");
         }
         if (taskStore == null || taskStore instanceof NoOpTeamTaskStore) {
             LOG.debug("team-task-update: team task store not enabled (NoOp/null taskStore)");
             return honestNotEnabled(call.getId(),
                     "Team task store is not enabled — task not updated. "
-                            + "Wire InMemoryTeamTaskStore via DefaultAgentEngine.setTeamTaskStore to enable.");
+                            + "Wire InMemoryTeamTaskStore via engine.config().setTeamTaskStore to enable.");
         }
 
         String callerSessionId = agentCtx.getSessionId();

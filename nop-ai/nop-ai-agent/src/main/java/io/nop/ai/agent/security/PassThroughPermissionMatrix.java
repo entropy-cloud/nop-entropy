@@ -10,7 +10,7 @@ package io.nop.ai.agent.security;
  * default): the shipped default does not impose channel-based restrictions.
  * Restrictive matrix implementations (e.g. one encoding the design §5.3
  * channel × level table) are registered explicitly via
- * {@code DefaultAgentEngine.setPermissionMatrix}.
+ * {@code engine.config().setPermissionMatrix}.
  */
 public final class PassThroughPermissionMatrix implements IPermissionMatrix {
 

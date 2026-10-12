@@ -40,6 +40,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 public class TestCompactionIntegration {
 
@@ -170,14 +174,8 @@ public class TestCompactionIntegration {
 
         IToolManager toolManager = simpleToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker(),
-                new io.nop.ai.agent.security.AllowAllPathAccessChecker(),
-                io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp(),
-                io.nop.ai.agent.router.PassThroughModelRouter.passThrough(),
-                trackingCompactor);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker()).pathAccessChecker(new io.nop.ai.agent.security.AllowAllPathAccessChecker()).contentGuardrail(io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp()).modelRouter(io.nop.ai.agent.router.PassThroughModelRouter.passThrough()).contextCompactor(trackingCompactor)
+                .build();
 
         IAgentExecutor executor = engine.resolveExecutor(agentModel);
         assertNotNull(executor);
@@ -216,14 +214,8 @@ public class TestCompactionIntegration {
 
         IToolManager toolManager = simpleToolManager();
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new io.nop.ai.agent.security.AllowAllToolAccessChecker(),
-                new io.nop.ai.agent.security.AllowAllPathAccessChecker(),
-                io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp(),
-                io.nop.ai.agent.router.PassThroughModelRouter.passThrough(),
-                NoOpContextCompactor.INSTANCE);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new io.nop.ai.agent.security.AllowAllToolAccessChecker()).pathAccessChecker(new io.nop.ai.agent.security.AllowAllPathAccessChecker()).contentGuardrail(io.nop.ai.agent.guardrail.NoOpContentGuardrail.noOp()).modelRouter(io.nop.ai.agent.router.PassThroughModelRouter.passThrough()).contextCompactor(NoOpContextCompactor.INSTANCE)
+                .build();
 
         IAgentExecutor executor = engine.resolveExecutor(agentModel);
         assertNotNull(executor);

@@ -1,5 +1,12 @@
 package io.nop.ai.agent.team;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -80,7 +87,7 @@ public class TestTeamManagerEndToEnd {
     void teamLifecycleWithLiveEngineExecution() throws Exception {
         DefaultAgentEngine engine = newEngine();
         InMemoryTeamManager teamManager = new InMemoryTeamManager();
-        engine.setTeamManager(teamManager);
+        engine.config().setTeamManager(teamManager);
 
         // Wire an Actor Runtime too, so we can verify the Actor created by
         // the engine is the one bound to the team member. Use a capturing
@@ -126,7 +133,7 @@ public class TestTeamManagerEndToEnd {
                 return inner.destroyAll();
             }
         };
-        engine.setActorRuntime(capturing);
+        engine.config().setActorRuntime(capturing);
 
         // --- Step 1: programmatically create a team ---
         TeamSpec spec = new TeamSpec("e2e-team", "desc", "lead",
@@ -242,6 +249,6 @@ public class TestTeamManagerEndToEnd {
                 return model;
             }
         };
-        return new DefaultAgentEngine(chat, tools);
+        return new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 }

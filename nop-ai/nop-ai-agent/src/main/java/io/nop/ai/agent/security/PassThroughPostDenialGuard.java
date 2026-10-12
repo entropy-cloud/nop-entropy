@@ -16,7 +16,7 @@ import java.util.Map;
  * checks regardless of whether an identical action was denied earlier. A
  * functional guard (tracking fingerprints and blocking blind retries) is
  * registered explicitly via
- * {@code DefaultAgentEngine.setPostDenialGuard}.
+ * {@code engine.config().setPostDenialGuard}.
  *
  * <p>This implementation is stateless and therefore inherently thread-safe.
  */

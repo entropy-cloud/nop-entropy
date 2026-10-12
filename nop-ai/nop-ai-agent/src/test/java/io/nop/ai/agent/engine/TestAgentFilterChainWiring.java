@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
@@ -46,6 +52,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * W3-2 Phase 2 integration tests: declarative {@code <filter-chain>} assembly
@@ -150,7 +157,7 @@ public class TestAgentFilterChainWiring {
 
     private AgentExecutorResolver resolverWith(IChatService chat, IToolManager tools) {
         DefaultAgentEngineConfig config = new DefaultAgentEngineConfig();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, tools);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         return new AgentExecutorResolver(
                 config, chat, tools, new io.nop.ai.agent.session.InMemorySessionStore(),
                 new DefaultAgentEventPublisher(), engine, new AgentCallDelegate(engine),

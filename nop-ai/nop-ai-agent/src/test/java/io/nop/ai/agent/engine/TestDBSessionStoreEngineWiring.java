@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.FileBackedCheckpointManager;
 import io.nop.ai.agent.session.AgentSession;
@@ -175,8 +181,8 @@ public class TestDBSessionStoreEngineWiring {
                 toolCallResponse("call-db-r1", "test-calculator", Map.of("expr", "2+2")),
                 finalResponse("The result is 4.")));
 
-        DefaultAgentEngine engine1 = new DefaultAgentEngine(chat1, toolManagerReturning("tool-out"), store1);
-        engine1.setCheckpointManager(ckptMgr1);
+        DefaultAgentEngine engine1 = new DefaultAgentEngine.Builder(chat1, toolManagerReturning("tool-out")).sessionStore(store1).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine1.config().setCheckpointManager(ckptMgr1);
 
         engine1.execute(new AgentMessageRequest("test-react-agent", "What is 2+2?", sessionId, null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -202,8 +208,8 @@ public class TestDBSessionStoreEngineWiring {
         ScriptedChatService chat2 = new ScriptedChatService(List.of(
                 finalResponse("Resumed after crash: the answer is still 4.")));
 
-        DefaultAgentEngine engine2 = new DefaultAgentEngine(chat2, toolManagerReturning("ok"), store2);
-        engine2.setCheckpointManager(ckptMgr2);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(chat2, toolManagerReturning("ok")).sessionStore(store2).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine2.config().setCheckpointManager(ckptMgr2);
 
         AgentExecutionResult result2 = engine2.restoreSession(sessionId, "operator", "crash recovery")
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -241,8 +247,8 @@ public class TestDBSessionStoreEngineWiring {
                 toolCallResponse("call-pend-1", "test-calculator", Map.of("expr", "1+1")),
                 finalResponse("pending-1-done")));
 
-        DefaultAgentEngine engineA1 = new DefaultAgentEngine(chatA1, toolManagerReturning("out"), storeA);
-        engineA1.setCheckpointManager(ckptA);
+        DefaultAgentEngine engineA1 = new DefaultAgentEngine.Builder(chatA1, toolManagerReturning("out")).sessionStore(storeA).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engineA1.config().setCheckpointManager(ckptA);
         engineA1.execute(new AgentMessageRequest("test-react-agent", "What is 1+1?", "pending-1", null))
                 .get(30, TimeUnit.SECONDS);
 
@@ -255,8 +261,8 @@ public class TestDBSessionStoreEngineWiring {
                 toolCallResponse("call-pend-2", "test-calculator", Map.of("expr", "2+2")),
                 finalResponse("pending-2-done")));
 
-        DefaultAgentEngine engineA2 = new DefaultAgentEngine(chatA2, toolManagerReturning("out"), storeA);
-        engineA2.setCheckpointManager(ckptA);
+        DefaultAgentEngine engineA2 = new DefaultAgentEngine.Builder(chatA2, toolManagerReturning("out")).sessionStore(storeA).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engineA2.config().setCheckpointManager(ckptA);
         engineA2.execute(new AgentMessageRequest("test-react-agent", "What is 2+2?", "pending-2", null))
                 .get(30, TimeUnit.SECONDS);
 
@@ -277,8 +283,8 @@ public class TestDBSessionStoreEngineWiring {
                 finalResponse("pending-1-restored"),
                 finalResponse("pending-2-restored")));
 
-        DefaultAgentEngine engineB = new DefaultAgentEngine(chatB, toolManagerReturning("ok"), storeB);
-        engineB.setCheckpointManager(ckptB);
+        DefaultAgentEngine engineB = new DefaultAgentEngine.Builder(chatB, toolManagerReturning("ok")).sessionStore(storeB).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engineB.config().setCheckpointManager(ckptB);
 
         SessionRestoreSummary summary = engineB.restorePendingSessions("operator", "crash recovery");
 
@@ -309,10 +315,14 @@ public class TestDBSessionStoreEngineWiring {
         // engine below uses an InMemorySessionStore.
         new DBSessionStore(dataSource);
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("im-done"))),
-                toolManagerReturning("ok"),
-                new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("im-done"))), toolManagerReturning("ok")).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "im-session", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -331,10 +341,14 @@ public class TestDBSessionStoreEngineWiring {
         new DBSessionStore(dataSource);
 
         FileBackedSessionStore store = new FileBackedSessionStore(tempDir.resolve("fb-compat"));
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("fb-done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("fb-done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "fb-session", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -356,10 +370,14 @@ public class TestDBSessionStoreEngineWiring {
     @Test
     void dbBackedEngineExecutionPersistsSessionToTable() throws Exception {
         DBSessionStore store = new DBSessionStore(dataSource);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new ScriptedChatService(List.of(finalResponse("db-exec-done"))),
-                toolManagerReturning("ok"),
-                store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new ScriptedChatService(List.of(finalResponse("db-exec-done"))), toolManagerReturning("ok")).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "db-exec-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);

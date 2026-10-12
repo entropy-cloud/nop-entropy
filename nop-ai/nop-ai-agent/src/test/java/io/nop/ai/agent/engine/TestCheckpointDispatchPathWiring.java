@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.reliability.Checkpoint;
 import io.nop.ai.agent.reliability.CheckpointType;
 import io.nop.ai.agent.reliability.ICheckpointManager;
@@ -315,13 +322,19 @@ public class TestCheckpointDispatchPathWiring {
             }
         };
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_e2e", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
-        engine.setCheckpointManager(mgr);
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setCheckpointManager(mgr);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", null, null, ChannelKind.WEBUI, Principal.user());
@@ -366,14 +379,20 @@ public class TestCheckpointDispatchPathWiring {
      */
     @Test
     void defaultNoOpCheckpointProducesNoSideEffects() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_bc", "echo")),
                         finalAssistant("done")
-                )),
-                stubToolManager());
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "Default checkpoint manager must be NoOpCheckpoint");
 
         AgentMessageRequest req = new AgentMessageRequest(
@@ -416,21 +435,27 @@ public class TestCheckpointDispatchPathWiring {
 
     @Test
     void engineSetGetCheckpointManagerAndNullFallback() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("done"))),
-                stubToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("done"))), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "Engine default checkpoint manager must be NoOpCheckpoint");
 
         ToolExecutionCheckpoint custom = new ToolExecutionCheckpoint();
-        engine.setCheckpointManager(custom);
-        assertTrue(engine.getCheckpointManager() == custom,
+        engine.config().setCheckpointManager(custom);
+        assertTrue(engine.config().getCheckpointManager() == custom,
                 "setCheckpointManager must wire the exact instance");
 
         // Null setter must fall back to the default, not silently store null.
-        engine.setCheckpointManager(null);
-        assertTrue(engine.getCheckpointManager() instanceof NoOpCheckpoint,
+        engine.config().setCheckpointManager(null);
+        assertTrue(engine.config().getCheckpointManager() instanceof NoOpCheckpoint,
                 "setCheckpointManager(null) must fall back to NoOpCheckpoint default");
     }
 
@@ -455,26 +480,38 @@ public class TestCheckpointDispatchPathWiring {
         };
 
         // Run session A with an explicit sessionId.
-        DefaultAgentEngine engineA = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engineA = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_iso_a", "echo")),
                         finalAssistant("done-a")
-                )),
-                stubToolManager());
-        engineA.setCheckpointManager(mgr);
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engineA.config().setCheckpointManager(mgr);
 
         AgentMessageRequest reqA = new AgentMessageRequest(
                 "test-react-agent", "run", "iso-session-a", null, ChannelKind.WEBUI, Principal.user());
         engineA.execute(reqA).toCompletableFuture().join();
 
         // Run session B with a different sessionId.
-        DefaultAgentEngine engineB = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engineB = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("call_iso_b", "ls")),
                         finalAssistant("done-b")
-                )),
-                stubToolManager());
-        engineB.setCheckpointManager(mgr);
+                )), stubToolManager())
+                .sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engineB.config().setCheckpointManager(mgr);
 
         AgentMessageRequest reqB = new AgentMessageRequest(
                 "test-react-agent", "run", "iso-session-b", null, ChannelKind.WEBUI, Principal.user());

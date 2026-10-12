@@ -244,51 +244,52 @@ public class DefaultAgentEngine implements IAgentEngine {
         public Builder waitCoordinator(IWaitCoordinator val) { this.waitCoordinator = val; return this; }
 
         public DefaultAgentEngine build() {
-            DefaultAgentEngine engine = new DefaultAgentEngine(
-                    chatService, toolManager, sessionStore,
-                    permissionProvider, toolAccessChecker, pathAccessChecker,
-                    contentGuardrail, modelRouter, contextCompactor);
+            // WI11/plan 2443: direct private-ctor assembly — never route
+            // through Builder.build() here (that would recurse).
+            DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager, sessionStore,
+                    permissionProvider, toolAccessChecker, pathAccessChecker, contentGuardrail,
+                    modelRouter, contextCompactor);
             applyTo(engine);
             engine.startupWarnings.warnIfInsecureDefaults(engine.config);
             return engine;
         }
 
         private void applyTo(DefaultAgentEngine engine) {
-            if (talents != null) engine.setTalents(talents);
-            if (forkMessageFilter != null) engine.setForkMessageFilter(forkMessageFilter);
-            if (skillProvider != null) engine.setSkillProvider(skillProvider);
-            if (skillCurator != null) engine.setSkillCurator(skillCurator);
-            if (toolCallRepairer != null) engine.setToolCallRepairer(toolCallRepairer);
+            if (talents != null) engine.config.setTalents(talents);
+            if (forkMessageFilter != null) engine.config.setForkMessageFilter(forkMessageFilter);
+            if (skillProvider != null) engine.config.setSkillProvider(skillProvider);
+            if (skillCurator != null) engine.config.setSkillCurator(skillCurator);
+            if (toolCallRepairer != null) engine.config.setToolCallRepairer(toolCallRepairer);
             if (messenger != null) engine.setMessenger(messenger);
             if (mailboxFactory != null) engine.setMailboxFactory(mailboxFactory);
-            if (permissionMatrix != null) engine.setPermissionMatrix(permissionMatrix);
-            if (securityLevelResolver != null) engine.setSecurityLevelResolver(securityLevelResolver);
-            if (approvalGate != null) engine.setApprovalGate(approvalGate);
-            if (denialLedger != null) engine.setDenialLedger(denialLedger);
-            if (postDenialGuard != null) engine.setPostDenialGuard(postDenialGuard);
-            if (auditLogger != null) engine.setAuditLogger(auditLogger);
-            if (checkpointManager != null) engine.setCheckpointManager(checkpointManager);
-            if (memoryStoreProvider != null) engine.setMemoryStoreProvider(memoryStoreProvider);
-            if (usageRecorder != null) engine.setUsageRecorder(usageRecorder);
-            if (modelSwitchedMessageWriter != null) engine.setModelSwitchedMessageWriter(modelSwitchedMessageWriter);
-            if (budgetProvider != null) engine.setBudgetProvider(budgetProvider);
-            if (retryPolicy != null) engine.setRetryPolicy(retryPolicy);
-            if (circuitBreaker != null) engine.setCircuitBreaker(circuitBreaker);
-            if (goalTracker != null) engine.setGoalTracker(goalTracker);
-            if (sustainer != null) engine.setSustainer(sustainer);
-            if (conflictStrategy != null) engine.setConflictStrategy(conflictStrategy);
-            if (writeIntentRegistry != null) engine.setWriteIntentRegistry(writeIntentRegistry);
-            if (contributionRegistry != null) engine.setContributionRegistry(contributionRegistry);
-            if (sandboxBackend != null) engine.setSandboxBackend(sandboxBackend);
-            if (teamManager != null) engine.setTeamManager(teamManager);
-            if (teamTaskStore != null) engine.setTeamTaskStore(teamTaskStore);
-            if (teamAclChecker != null) engine.setTeamAclChecker(teamAclChecker);
-            engine.setMemoryInjectionBudgetTokens(memoryInjectionBudgetTokens);
+            if (permissionMatrix != null) engine.config.setPermissionMatrix(permissionMatrix);
+            if (securityLevelResolver != null) engine.config.setSecurityLevelResolver(securityLevelResolver);
+            if (approvalGate != null) engine.config.setApprovalGate(approvalGate);
+            if (denialLedger != null) engine.config.setDenialLedger(denialLedger);
+            if (postDenialGuard != null) engine.config.setPostDenialGuard(postDenialGuard);
+            if (auditLogger != null) engine.config.setAuditLogger(auditLogger);
+            if (checkpointManager != null) engine.config.setCheckpointManager(checkpointManager);
+            if (memoryStoreProvider != null) engine.config.setMemoryStoreProvider(memoryStoreProvider);
+            if (usageRecorder != null) engine.config.setUsageRecorder(usageRecorder);
+            if (modelSwitchedMessageWriter != null) engine.config.setModelSwitchedMessageWriter(modelSwitchedMessageWriter);
+            if (budgetProvider != null) engine.config.setBudgetProvider(budgetProvider);
+            if (retryPolicy != null) engine.config.setRetryPolicy(retryPolicy);
+            if (circuitBreaker != null) engine.config.setCircuitBreaker(circuitBreaker);
+            if (goalTracker != null) engine.config.setGoalTracker(goalTracker);
+            if (sustainer != null) engine.config.setSustainer(sustainer);
+            if (conflictStrategy != null) engine.config.setConflictStrategy(conflictStrategy);
+            if (writeIntentRegistry != null) engine.config.setWriteIntentRegistry(writeIntentRegistry);
+            if (contributionRegistry != null) engine.config.setContributionRegistry(contributionRegistry);
+            if (sandboxBackend != null) engine.config.setSandboxBackend(sandboxBackend);
+            if (teamManager != null) engine.config.setTeamManager(teamManager);
+            if (teamTaskStore != null) engine.config.setTeamTaskStore(teamTaskStore);
+            if (teamAclChecker != null) engine.config.setTeamAclChecker(teamAclChecker);
+            engine.config.setMemoryInjectionBudgetTokens(memoryInjectionBudgetTokens);
             if (agentExecutor != null) engine.setAgentExecutor(agentExecutor);
-            engine.setCallAgentTimeoutMs(callAgentTimeoutMs);
-            engine.setLlmTimeoutMs(llmTimeoutMs);
-            engine.setToolTimeoutMs(toolTimeoutMs);
-            if (waitCoordinator != null) engine.setWaitCoordinator(waitCoordinator);
+            engine.config.setCallAgentTimeoutMs(callAgentTimeoutMs);
+            engine.config.setLlmTimeoutMs(llmTimeoutMs);
+            engine.config.setToolTimeoutMs(toolTimeoutMs);
+            if (waitCoordinator != null) engine.config.setWaitCoordinator(waitCoordinator);
             engine.initBackgroundSupport(backgroundTaskRegistry, backgroundExecutor);
         }
     }
@@ -300,55 +301,13 @@ public class DefaultAgentEngine implements IAgentEngine {
         return new Builder(chatService, toolManager);
     }
 
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager) {
-        this(chatService, toolManager, new InMemorySessionStore());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                              ISessionStore sessionStore) {
-        this(chatService, toolManager, sessionStore, new AllowAllPermissionProvider());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                               ISessionStore sessionStore, IPermissionProvider permissionProvider) {
-        this(chatService, toolManager, sessionStore, permissionProvider, new DefaultToolAccessChecker());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
-                               IToolAccessChecker toolAccessChecker) {
-        this(chatService, toolManager, sessionStore, permissionProvider,
-                toolAccessChecker, new DefaultPathAccessChecker());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                               ISessionStore sessionStore,
-                               IPermissionProvider permissionProvider,
-                               IToolAccessChecker toolAccessChecker,
-                               IPathAccessChecker pathAccessChecker) {
-        this(chatService, toolManager, sessionStore, permissionProvider,
-                toolAccessChecker, pathAccessChecker, NoOpContentGuardrail.noOp());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
-                               IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
-                               IContentGuardrail contentGuardrail) {
-        this(chatService, toolManager, sessionStore, permissionProvider,
-                toolAccessChecker, pathAccessChecker, contentGuardrail,
-                PassThroughModelRouter.passThrough());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
-                               ISessionStore sessionStore, IPermissionProvider permissionProvider,
-                               IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
-                               IContentGuardrail contentGuardrail, IModelRouter modelRouter) {
-        this(chatService, toolManager, sessionStore, permissionProvider,
-                toolAccessChecker, pathAccessChecker, contentGuardrail,
-                modelRouter, new MicroCompressionCompactor());
-    }
-
-    public DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
+    /**
+     * WI11/plan 2443 (A4): the single remaining constructor (package-private —
+     * the Builder and same-package test spies assemble here; all other callers
+     * go through {@link Builder}). Callers must reproduce the former
+     * telescoping chain defaults explicitly for positions they pass as null.
+     */
+    DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
                                ISessionStore sessionStore, IPermissionProvider permissionProvider,
                                IToolAccessChecker toolAccessChecker, IPathAccessChecker pathAccessChecker,
                                IContentGuardrail contentGuardrail, IModelRouter modelRouter,
@@ -381,170 +340,112 @@ public class DefaultAgentEngine implements IAgentEngine {
         this.startupWarnings.warnIfInsecureDefaults(this.config);
     }
 
-    public void setTalents(List<ITalent> talents) { config.setTalents(talents); }
 
-    public void setSkillProvider(ISkillProvider skillProvider) { config.setSkillProvider(skillProvider); }
-
-    public void setSkillCurator(ISkillCurator skillCurator) { config.setSkillCurator(skillCurator); }
-
-    public void setToolCallRepairer(IToolCallRepairer toolCallRepairer) { config.setToolCallRepairer(toolCallRepairer); }
-
-    public void setForkMessageFilter(Predicate<ChatMessage> forkMessageFilter) { config.setForkMessageFilter(forkMessageFilter); }
-
-    public void setPermissionMatrix(IPermissionMatrix permissionMatrix) { config.setPermissionMatrix(permissionMatrix); }
-
-    public IPermissionMatrix getPermissionMatrix() { return config.getPermissionMatrix(); }
-
-    public void setSecurityLevelResolver(ISecurityLevelResolver securityLevelResolver) { config.setSecurityLevelResolver(securityLevelResolver); }
-
-    public ISecurityLevelResolver getSecurityLevelResolver() { return config.getSecurityLevelResolver(); }
-
-    public void setApprovalGate(IApprovalGate approvalGate) { config.setApprovalGate(approvalGate); }
-
-    public IApprovalGate getApprovalGate() { return config.getApprovalGate(); }
-
-    public void setDenialLedger(IDenialLedger denialLedger) { config.setDenialLedger(denialLedger); }
-
-    public IDenialLedger getDenialLedger() { return config.getDenialLedger(); }
-
-    public void setPostDenialGuard(IPostDenialGuard postDenialGuard) { config.setPostDenialGuard(postDenialGuard); }
-
-    public IPostDenialGuard getPostDenialGuard() { return config.getPostDenialGuard(); }
-
-    public void setAuditLogger(IAuditLogger auditLogger) { config.setAuditLogger(auditLogger); }
-
-    public IAuditLogger getAuditLogger() { return config.getAuditLogger(); }
-
-    public void setCheckpointManager(ICheckpointManager checkpointManager) { config.setCheckpointManager(checkpointManager); }
-
-    public ICheckpointManager getCheckpointManager() { return config.getCheckpointManager(); }
-
-    public void setMemoryStoreProvider(IMemoryStoreProvider memoryStoreProvider) { config.setMemoryStoreProvider(memoryStoreProvider); }
-
-    public IMemoryStoreProvider getMemoryStoreProvider() { return config.getMemoryStoreProvider(); }
-
-    public void setModelSwitchedMessageWriter(IModelSwitchedMessageWriter modelSwitchedMessageWriter) { config.setModelSwitchedMessageWriter(modelSwitchedMessageWriter); }
-
-    public IModelSwitchedMessageWriter getModelSwitchedMessageWriter() { return config.getModelSwitchedMessageWriter(); }
-
-    public void setBudgetProvider(IBudgetProvider budgetProvider) { config.setBudgetProvider(budgetProvider); }
-
-    public IBudgetProvider getBudgetProvider() { return config.getBudgetProvider(); }
-
-    public void setRetryPolicy(IRetryPolicy retryPolicy) { config.setRetryPolicy(retryPolicy); }
-
-    public IRetryPolicy getRetryPolicy() { return config.getRetryPolicy(); }
-
-    public void setCircuitBreaker(ICircuitBreaker circuitBreaker) { config.setCircuitBreaker(circuitBreaker); }
-
-    public ICircuitBreaker getCircuitBreaker() { return config.getCircuitBreaker(); }
-
-    public void setGoalTracker(IGoalTracker goalTracker) { config.setGoalTracker(goalTracker); }
-
-    public IGoalTracker getGoalTracker() { return config.getGoalTracker(); }
-
-    public void setSustainer(ISustainer sustainer) { config.setSustainer(sustainer); }
-
-    public ISustainer getSustainer() { return config.getSustainer(); }
-
-    public void setWaitCoordinator(IWaitCoordinator waitCoordinator) { config.setWaitCoordinator(waitCoordinator); }
-
-    public IWaitCoordinator getWaitCoordinator() { return config.getWaitCoordinator(); }
-
-    public void setConflictStrategy(IConflictStrategy conflictStrategy) { config.setConflictStrategy(conflictStrategy); }
-
-    public IConflictStrategy getConflictStrategy() { return config.getConflictStrategy(); }
-
-    public void setWriteIntentRegistry(IWriteIntentRegistry writeIntentRegistry) { config.setWriteIntentRegistry(writeIntentRegistry); }
-
-    public IWriteIntentRegistry getWriteIntentRegistry() { return config.getWriteIntentRegistry(); }
-
-    public void setContributionRegistry(IContributionRegistry contributionRegistry) { config.setContributionRegistry(contributionRegistry); }
-
-    public IContributionRegistry getContributionRegistry() { return config.getContributionRegistry(); }
-
-    public void setActorRuntime(IActorRuntime actorRuntime) { config.setActorRuntime(actorRuntime); }
-
-    public IActorRuntime getActorRuntime() { return config.getActorRuntime(); }
-
-    public void setTeamManager(ITeamManager teamManager) { config.setTeamManager(teamManager); }
-
-    public ITeamManager getTeamManager() { return config.getTeamManager(); }
-
-    public void setTeamTaskStore(ITeamTaskStore teamTaskStore) { config.setTeamTaskStore(teamTaskStore); }
-
-    public ITeamTaskStore getTeamTaskStore() { return config.getTeamTaskStore(); }
-
-    public void setTeamAclChecker(ITeamAclChecker teamAclChecker) { config.setTeamAclChecker(teamAclChecker); }
-
-    public ITeamAclChecker getTeamAclChecker() { return config.getTeamAclChecker(); }
-
-    public void setSandboxBackend(io.nop.ai.agent.security.ISandboxBackend sandboxBackend) { config.setSandboxBackend(sandboxBackend); }
-
-    public io.nop.ai.agent.security.ISandboxBackend getSandboxBackend() { return config.getSandboxBackend(); }
-
-    public void setSessionTakeoverLock(ISessionTakeoverLock sessionTakeoverLock) { config.setSessionTakeoverLock(sessionTakeoverLock); }
-
-    public ISessionTakeoverLock getSessionTakeoverLock() { return config.getSessionTakeoverLock(); }
-
-    public void setLockLeaseMs(long lockLeaseMs) { config.setLockLeaseMs(lockLeaseMs); }
-
-    public long getLockLeaseMs() { return config.getLockLeaseMs(); }
-
-    public void setLockRenewIntervalMs(long lockRenewIntervalMs) { config.setLockRenewIntervalMs(lockRenewIntervalMs); }
-
-    public long getLockRenewIntervalMs() { return config.getLockRenewIntervalMs(); }
-
-    public void setRecoveryManager(IRecoveryManager recoveryManager) { config.setRecoveryManager(recoveryManager); }
-
-    public IRecoveryManager getRecoveryManager() { return config.getRecoveryManager(); }
-
-    public void setTeamTaskSchedulerDaemon(ITeamTaskSchedulerDaemon teamTaskSchedulerDaemon) { config.setTeamTaskSchedulerDaemon(teamTaskSchedulerDaemon); }
-
-    public ITeamTaskSchedulerDaemon getTeamTaskSchedulerDaemon() { return config.getTeamTaskSchedulerDaemon(); }
-
-    public void setMemoryInjectionBudgetTokens(int memoryInjectionBudgetTokens) { config.setMemoryInjectionBudgetTokens(memoryInjectionBudgetTokens); }
-
-    public int getMemoryInjectionBudgetTokens() { return config.getMemoryInjectionBudgetTokens(); }
-
-    public void setCallAgentTimeoutMs(long callAgentTimeoutMs) { config.setCallAgentTimeoutMs(callAgentTimeoutMs); }
-
-    public long getCallAgentTimeoutMs() { return config.getCallAgentTimeoutMs(); }
-
-    public void setLlmTimeoutMs(long llmTimeoutMs) { config.setLlmTimeoutMs(llmTimeoutMs); }
-
-    public long getLlmTimeoutMs() { return config.getLlmTimeoutMs(); }
-
-    public void setToolTimeoutMs(long toolTimeoutMs) { config.setToolTimeoutMs(toolTimeoutMs); }
-
-    public long getToolTimeoutMs() { return config.getToolTimeoutMs(); }
-
-    /** Plan 2285 (WI4): heartbeat slice interval for the tool wait phase. */
-    public void setHeartBeatIntervalMs(long heartBeatIntervalMs) { config.setHeartBeatIntervalMs(heartBeatIntervalMs); }
-
-    public long getHeartBeatIntervalMs() { return config.getHeartBeatIntervalMs(); }
-
-    /** Plan 2285 (WI4): per-tool mechanical-timeout cap policy (design §三.5 layer 2). */
-    public void setToolTimeoutPolicy(java.util.Map<String, Long> toolTimeoutPolicy) { config.setToolTimeoutPolicy(toolTimeoutPolicy); }
-
-    public java.util.Map<String, Long> getToolTimeoutPolicy() { return config.getToolTimeoutPolicy(); }
-
-    /** Plan 2285 (WI4): tool execution progress/cancel seam (default NoOp). */
-    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker tracker) { config.setToolProgressTracker(tracker); }
-
-    public io.nop.ai.agent.tool.IToolProgressTracker getToolProgressTracker() { return config.getToolProgressTracker(); }
-
-    /** I3 R-2-3: team-flow member-execution deadline (ms), single config source. */
-    public void setMemberExecTimeoutMs(long memberExecTimeoutMs) { config.setMemberExecTimeoutMs(memberExecTimeoutMs); }
-
-    public long getMemberExecTimeoutMs() { return config.getMemberExecTimeoutMs(); }
-
-    public void setUsageRecorder(IUsageRecorder usageRecorder) {
-        config.setUsageRecorder(usageRecorder);
-        startupWarnings.resetUsageRecorderNoOpWarned();
+    /**
+     * WI11/plan 2443 (A4): test-spy subclassing seam for cross-package tests
+     * that override execution hooks — reproduces the former 2-arg telescoping
+     * defaults verbatim (InMemorySessionStore + chain defaults up to
+     * MicroCompressionCompactor). Not part of the Builder assembly path.
+     */
+    protected DefaultAgentEngine(IChatService chatService, IToolManager toolManager,
+                                 ISessionStore sessionStore) {
+        this(chatService, toolManager, sessionStore, null, null, null,
+                null, null, new MicroCompressionCompactor());
     }
 
-    public IUsageRecorder getUsageRecorder() { return config.getUsageRecorder(); }
+    /**
+     * WI11/plan 2443: post-construction, pre-execute configuration tuning
+     * channel. Replaces the deleted one-line config delegate getters/setters;
+     * same semantics — writes take effect at the next execution read. No
+     * cross-thread visibility guarantee beyond what the original delegates
+     * had.
+     */
+    public DefaultAgentEngineConfig config() {
+        return config;
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    /** Plan 2285 (WI4): heartbeat slice interval for the tool wait phase. */
+
+
+    /** Plan 2285 (WI4): per-tool mechanical-timeout cap policy (design §三.5 layer 2). */
+
+
+    /** Plan 2285 (WI4): tool execution progress/cancel seam (default NoOp). */
+
+
+    /** I3 R-2-3: team-flow member-execution deadline (ms), single config source. */
+
+
+
 
     public void setMessenger(IAgentMessenger messenger) { callDelegate.setMessenger(messenger); }
 

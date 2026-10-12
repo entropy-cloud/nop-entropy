@@ -1,5 +1,9 @@
 package io.nop.ai.agent.reliability;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -80,8 +84,8 @@ public class TestCircuitBreakerWiring {
 
     @Test
     void engineDefaultsToThresholdBreaker() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        ICircuitBreaker breaker = engine.getCircuitBreaker();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        ICircuitBreaker breaker = engine.config().getCircuitBreaker();
         assertNotNull(breaker, "Engine must default to a non-null circuit breaker");
         assertTrue(breaker instanceof ThresholdBreaker,
                 "Shipped default must be ThresholdBreaker with functional defaults");
@@ -89,18 +93,18 @@ public class TestCircuitBreakerWiring {
 
     @Test
     void setCircuitBreakerOverridesDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         ICircuitBreaker custom = new RecordingCircuitBreaker();
-        engine.setCircuitBreaker(custom);
-        assertSame(custom, engine.getCircuitBreaker(),
+        engine.config().setCircuitBreaker(custom);
+        assertSame(custom, engine.config().getCircuitBreaker(),
                 "getCircuitBreaker must return the exact instance set via setCircuitBreaker");
     }
 
     @Test
     void setCircuitBreakerNullFallsBackToDefault() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(noOpChatService(), noOpToolManager());
-        engine.setCircuitBreaker(null);
-        ICircuitBreaker breaker = engine.getCircuitBreaker();
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(noOpChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setCircuitBreaker(null);
+        ICircuitBreaker breaker = engine.config().getCircuitBreaker();
         assertNotNull(breaker, "null setter must fall back to a non-null default");
     }
 
@@ -182,7 +186,7 @@ public class TestCircuitBreakerWiring {
 
         DefaultAgentEngine engine = newEngine(chatService);
         // A breaker that unconditionally rejects (reports OPEN, allowCall=false).
-        engine.setCircuitBreaker(new AlwaysOpenCircuitBreaker());
+        engine.config().setCircuitBreaker(new AlwaysOpenCircuitBreaker());
 
         AgentMessageRequest request = new AgentMessageRequest("test-react-agent", "hi");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -208,12 +212,10 @@ public class TestCircuitBreakerWiring {
     // ========================================================================
 
     private static DefaultAgentEngine newEngine(IChatService chatService) {
-        return new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker(),
-                NoOpContentGuardrail.noOp());
+        return new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
     }
 
     /**

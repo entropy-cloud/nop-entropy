@@ -8,7 +8,7 @@ package io.nop.ai.agent.runtime.recovery;
  * one-shot {@code restorePendingSessions}, so engine behaviour is
  * unchanged. Integrators opt into continuous sweeping by wiring a
  * functional manager (e.g. {@code ScheduledRecoveryManager}) via
- * {@code DefaultAgentEngine.setRecoveryManager} and calling
+ * {@code engine.config().setRecoveryManager} and calling
  * {@code start()} from the deployment layer.
  *
  * <p>This is an explicit "no recovery scanning needed" semantic, not a

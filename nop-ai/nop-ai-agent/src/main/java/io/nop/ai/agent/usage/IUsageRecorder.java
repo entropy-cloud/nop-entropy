@@ -10,7 +10,7 @@ package io.nop.ai.agent.usage;
  * {@link NoOpUsageRecorder} (records nothing); production wiring registers a
  * functional recorder (e.g. {@code DbUsageRecorder} writing
  * {@code NopAiChatResponse} — L2-18) via
- * {@code DefaultAgentEngine.setUsageRecorder}.
+ * {@code engine.config().setUsageRecorder}.
  *
  * <p><b>Pass-through semantics of the default</b>: {@link NoOpUsageRecorder}
  * is an <i>explicit</i> pass-through, not a hidden gap. Usage tracking is not a

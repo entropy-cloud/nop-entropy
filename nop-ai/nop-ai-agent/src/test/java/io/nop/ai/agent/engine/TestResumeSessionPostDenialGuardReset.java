@@ -1,5 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.security.ChannelKind;
@@ -108,11 +112,13 @@ public class TestResumeSessionPostDenialGuardReset {
                 finalAssistant("done after resume")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new InMemorySessionStore(),
-                new AllowAllPermissionProvider(),
-                checker);
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(checker)
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         // IMPORTANT: do NOT override postDenialGuard — use the engine's shipped
         // DefaultPostDenialGuard so the guard actually records fingerprints.
         // The pre-AR-02 bug only manifests with a functional guard.
@@ -130,7 +136,7 @@ public class TestResumeSessionPostDenialGuardReset {
         // After 3 denials of the same tool call, the guard's checkBeforeDispatch
         // for the same fingerprint should return non-null (a blind-retry deny).
         Map<String, Object> args = Map.of("command", "ls");
-        IPostDenialGuard guard = engine.getPostDenialGuard();
+        IPostDenialGuard guard = engine.config().getPostDenialGuard();
         assertFalse(guard instanceof io.nop.ai.agent.security.PassThroughPostDenialGuard,
                 "precondition: engine must use DefaultPostDenialGuard (not PassThrough)");
         // The guard MUST have the fingerprint recorded at this point.

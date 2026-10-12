@@ -1,5 +1,12 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
@@ -189,10 +196,10 @@ public class TestTeamTaskUpdateEndToEnd {
                                 "description", "claim then complete")),
                 // round 1: final text
                 null);
-        DefaultAgentEngine engine = new DefaultAgentEngine(leadChat, createTeamToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(leadChat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
-        engine.setTeamManager(teamManager);
-        engine.setTeamTaskStore(taskStore);
+        engine.config().setTeamManager(teamManager);
+        engine.config().setTeamTaskStore(taskStore);
 
         AgentMessageRequest leadReq = new AgentMessageRequest("test-agent",
                 "create a team task", LEAD_SESSION, null);
@@ -218,10 +225,10 @@ public class TestTeamTaskUpdateEndToEnd {
                         args("taskId", taskId, "action", "complete")),
                 // round 2: final text
                 null);
-        DefaultAgentEngine memberEngine = new DefaultAgentEngine(memberChat, createTeamToolManager());
+        DefaultAgentEngine memberEngine = new DefaultAgentEngine.Builder(memberChat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         memberEngine.setMessenger(messenger);
-        memberEngine.setTeamManager(teamManager);
-        memberEngine.setTeamTaskStore(taskStore);
+        memberEngine.config().setTeamManager(teamManager);
+        memberEngine.config().setTeamTaskStore(taskStore);
 
         AgentMessageRequest memberReq = new AgentMessageRequest("test-agent",
                 "claim and complete the task", MEMBER_SESSION, null);
@@ -240,10 +247,10 @@ public class TestTeamTaskUpdateEndToEnd {
         IChatService leadStatusChat = scriptedChat(
                 makeToolCall("e2e-status", "team-status", new HashMap<>()),
                 null);
-        DefaultAgentEngine leadStatusEngine = new DefaultAgentEngine(leadStatusChat, createTeamToolManager());
+        DefaultAgentEngine leadStatusEngine = new DefaultAgentEngine.Builder(leadStatusChat, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         leadStatusEngine.setMessenger(messenger);
-        leadStatusEngine.setTeamManager(teamManager);
-        leadStatusEngine.setTeamTaskStore(taskStore);
+        leadStatusEngine.config().setTeamManager(teamManager);
+        leadStatusEngine.config().setTeamTaskStore(taskStore);
 
         AgentMessageRequest statusReq = new AgentMessageRequest("test-agent",
                 "check team status", LEAD_SESSION, null);
@@ -362,7 +369,7 @@ public class TestTeamTaskUpdateEndToEnd {
                         args("taskId", "any", "action", "claim")),
                 null);
         // Engine with ALL defaults — no setTeamManager / setTeamTaskStore.
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, createTeamToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, createTeamToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-agent", "use team tools");
         AgentExecutionResult result = engine.execute(request).get(60, TimeUnit.SECONDS);

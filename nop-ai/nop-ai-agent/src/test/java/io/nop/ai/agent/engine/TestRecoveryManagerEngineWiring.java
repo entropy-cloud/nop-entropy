@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.runtime.recovery.IRecoveryManager;
 import io.nop.ai.agent.runtime.recovery.NoOpRecoveryManager;
 import io.nop.ai.agent.runtime.recovery.RecoveryScanResult;
@@ -115,7 +122,7 @@ public class TestRecoveryManagerEngineWiring {
         // NoOpRecoveryManager instance — the engine does not start a daemon
         // by default (zero behaviour regression).
         DefaultAgentEngine engine = newEngine();
-        IRecoveryManager mgr = engine.getRecoveryManager();
+        IRecoveryManager mgr = engine.config().getRecoveryManager();
         assertTrue(mgr instanceof NoOpRecoveryManager,
                 "shipped default recoveryManager must be a NoOpRecoveryManager instance");
         assertSame(NoOpRecoveryManager.noOp(), mgr,
@@ -128,9 +135,9 @@ public class TestRecoveryManagerEngineWiring {
         ScheduledRecoveryManager functional =
                 new ScheduledRecoveryManager(dataSource, new NoOpScheduler());
 
-        engine.setRecoveryManager(functional);
+        engine.config().setRecoveryManager(functional);
 
-        assertSame(functional, engine.getRecoveryManager(),
+        assertSame(functional, engine.config().getRecoveryManager(),
                 "setRecoveryManager must assign the functional manager");
     }
 
@@ -139,9 +146,9 @@ public class TestRecoveryManagerEngineWiring {
         DefaultAgentEngine engine = newEngine();
         // null must fall back to the NoOp default (consistent with the
         // setSessionTakeoverLock / setAuditLogger null-safe pattern).
-        engine.setRecoveryManager(null);
+        engine.config().setRecoveryManager(null);
 
-        IRecoveryManager mgr = engine.getRecoveryManager();
+        IRecoveryManager mgr = engine.config().getRecoveryManager();
         assertTrue(mgr instanceof NoOpRecoveryManager,
                 "setRecoveryManager(null) must fall back to NoOpRecoveryManager");
     }
@@ -151,7 +158,7 @@ public class TestRecoveryManagerEngineWiring {
         // The shipped NoOp default's scanOnce must return an explicit
         // all-zero result (not null/placeholder) — Minimum Rules #24.
         DefaultAgentEngine engine = newEngine();
-        RecoveryScanResult result = engine.getRecoveryManager().scanOnce();
+        RecoveryScanResult result = engine.config().getRecoveryManager().scanOnce();
         assertEquals(0, result.getStaleLocksCleaned());
         assertEquals(0, result.getOrphanSessionsDetected());
         assertTrue(result.getOrphanSessionIds().isEmpty());
@@ -204,7 +211,7 @@ public class TestRecoveryManagerEngineWiring {
             }
         };
         // 2-arg constructor uses an InMemorySessionStore by default.
-        return new DefaultAgentEngine(chat, tools);
+        return new DefaultAgentEngine.Builder(chat, tools).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 
     /**

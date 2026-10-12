@@ -1,5 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.AiAgentDenialTable;
 import io.nop.ai.agent.security.ChannelKind;
@@ -47,13 +51,15 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 3 end-to-end engine-wiring tests for {@link DBDenialLedger}.
  *
  * <p>These tests prove the full wiring chain is connected: a
  * {@link DBDenialLedger} registered via
- * {@code DefaultAgentEngine.setDenialLedger(...)} receives dispatch-path
+ * {@code engine.config().setDenialLedger(...)} receives dispatch-path
  * {@code recordDenial(...)} calls and the denials are <b>actually persisted to
  * the {@code ai_agent_denial} DB table</b> (verified by direct SQL, not just
  * by the ledger object receiving a call). Also covers the backward-compat
@@ -132,11 +138,13 @@ public class TestDBDenialLedgerEngineWiring {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", sessionId, null, ChannelKind.WEBUI, Principal.user());
@@ -173,11 +181,13 @@ public class TestDBDenialLedgerEngineWiring {
                 finalAssistant("done")
         ));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine(chat, stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
 
         AgentMessageRequest req = new AgentMessageRequest(
                 "test-react-agent", "run", sessionId, null, ChannelKind.WEBUI, Principal.user());
@@ -209,20 +219,20 @@ public class TestDBDenialLedgerEngineWiring {
     void defaultNoOpLedgerProducesNoSpuriousPausesAndWritesNoDbRows() {
         // Test needs insecure default: opt into NoOpDenialLedger to verify
         // the opt-in backward-compat path (no counting, no pausing).
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(
                         assistantWithToolCalls(toolCall("bc1", "shell.exec")),
                         assistantWithToolCalls(toolCall("bc2", "shell.exec")),
                         assistantWithToolCalls(toolCall("bc3", "shell.exec")),
                         finalAssistant("done")
-                )),
-                stubToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new DenyAllTools());
-        engine.setDenialLedger(NoOpDenialLedger.noOp());
+                )), stubToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new DenyAllTools())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(NoOpDenialLedger.noOp());
 
-        assertTrue(engine.getDenialLedger() instanceof NoOpDenialLedger,
+        assertTrue(engine.config().getDenialLedger() instanceof NoOpDenialLedger,
                 "opted-in denial ledger must be NoOpDenialLedger");
 
         AgentMessageRequest req = new AgentMessageRequest(

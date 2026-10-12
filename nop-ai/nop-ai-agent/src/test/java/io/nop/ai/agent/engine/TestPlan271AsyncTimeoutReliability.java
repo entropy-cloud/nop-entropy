@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageAck;
 import io.nop.ai.agent.engine.AgentMessageRequest;
@@ -359,8 +365,14 @@ public class TestPlan271AsyncTimeoutReliability {
 
     @Test
     void engineUsesDedicatedExecutorNotCommonPool() throws Exception {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new HangingChatService(), noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new HangingChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         ExecutorService agentExecutor = engine.getAgentExecutor();
         assertNotNull(agentExecutor, "Engine must provide a dedicated agent executor");
@@ -376,11 +388,11 @@ public class TestPlan271AsyncTimeoutReliability {
         assertTrue(threadName.startsWith("nop-ai-agent-exec"),
                 "Agent executor threads must be named 'nop-ai-agent-exec-*', got: " + threadName
                         + " (commonPool threads are named 'ForkJoinPool.commonPool-worker-*')");
-        assertNotEquals(0, engine.getCallAgentTimeoutMs(),
+        assertNotEquals(0, engine.config().getCallAgentTimeoutMs(),
                 "callAgentTimeoutMs default must be non-zero");
-        assertNotEquals(0, engine.getLlmTimeoutMs(),
+        assertNotEquals(0, engine.config().getLlmTimeoutMs(),
                 "llmTimeoutMs default must be non-zero");
-        assertNotEquals(0, engine.getToolTimeoutMs(),
+        assertNotEquals(0, engine.config().getToolTimeoutMs(),
                 "toolTimeoutMs default must be non-zero");
     }
 
@@ -394,8 +406,14 @@ public class TestPlan271AsyncTimeoutReliability {
     @Test
     void executionRunsOnDedicatedAgentThread() throws Exception {
         ThreadCapturingChatService chatService = new ThreadCapturingChatService("done");
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                chatService, noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "dedicated-thread-sess", null))
@@ -417,14 +435,20 @@ public class TestPlan271AsyncTimeoutReliability {
      */
     @Test
     void engineTimeoutConfigDefaultsAreNonZero() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new HangingChatService(), noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new HangingChatService(), noOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
-        assertTrue(engine.getCallAgentTimeoutMs() > 0,
-                "Default callAgentTimeoutMs must be positive (got " + engine.getCallAgentTimeoutMs() + ")");
-        assertTrue(engine.getLlmTimeoutMs() > 0,
-                "Default llmTimeoutMs must be positive (got " + engine.getLlmTimeoutMs() + ")");
-        assertTrue(engine.getToolTimeoutMs() > 0,
-                "Default toolTimeoutMs must be positive (got " + engine.getToolTimeoutMs() + ")");
+        assertTrue(engine.config().getCallAgentTimeoutMs() > 0,
+                "Default callAgentTimeoutMs must be positive (got " + engine.config().getCallAgentTimeoutMs() + ")");
+        assertTrue(engine.config().getLlmTimeoutMs() > 0,
+                "Default llmTimeoutMs must be positive (got " + engine.config().getLlmTimeoutMs() + ")");
+        assertTrue(engine.config().getToolTimeoutMs() > 0,
+                "Default toolTimeoutMs must be positive (got " + engine.config().getToolTimeoutMs() + ")");
     }
 }

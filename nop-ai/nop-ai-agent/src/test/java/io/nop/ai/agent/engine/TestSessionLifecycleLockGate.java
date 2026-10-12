@@ -1,5 +1,10 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.reliability.DefaultWaitCoordinator;
@@ -109,7 +114,7 @@ public class TestSessionLifecycleLockGate {
                 "precondition: session must be paused before the locked resume attempt");
 
         DefaultAgentEngine engine = newEngine(ledger, store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
         assertTrue(lock.tryAcquire("paused-locked", "other-instance", 60_000L),
                 "precondition: another instance holds the takeover lock");
 
@@ -168,7 +173,7 @@ public class TestSessionLifecycleLockGate {
         recordDenials(ledger, "fb-paused-locked", 2);
 
         DefaultAgentEngine engine = newEngine(ledger, store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
         assertTrue(lock.tryAcquire("fb-paused-locked", "other-instance", 60_000L));
 
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
@@ -208,7 +213,7 @@ public class TestSessionLifecycleLockGate {
         recordDenials(ledger, "event-locked", 2);
 
         DefaultAgentEngine engine = newEngine(ledger, store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
         CollectingSubscriber subscriber = new CollectingSubscriber();
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
@@ -250,8 +255,8 @@ public class TestSessionLifecycleLockGate {
                 "precondition: the wait condition must be registered and unsatisfied");
 
         DefaultAgentEngine engine = newEngine(new CountingLedger(10), store);
-        engine.setSessionTakeoverLock(lock);
-        engine.setWaitCoordinator(coordinator);
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setWaitCoordinator(coordinator);
         assertTrue(lock.tryAcquire("wait-locked", "other-instance", 60_000L));
 
         NopAiAgentException ex = assertThrows(NopAiAgentException.class,
@@ -292,7 +297,7 @@ public class TestSessionLifecycleLockGate {
         session.setStatus(AgentExecStatus.waiting);
 
         DefaultAgentEngine engine = newEngine(new CountingLedger(10), store);
-        engine.setSessionTakeoverLock(lock);
+        engine.config().setSessionTakeoverLock(lock);
         CollectingSubscriber subscriber = new CollectingSubscriber();
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
@@ -331,8 +336,8 @@ public class TestSessionLifecycleLockGate {
         session.setStatus(AgentExecStatus.waiting);
 
         DefaultAgentEngine engine = newEngine(new CountingLedger(10), store);
-        engine.setSessionTakeoverLock(lock);
-        engine.setWaitCoordinator(coordinator);
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setWaitCoordinator(coordinator);
         TenantCapturingSubscriber subscriber = new TenantCapturingSubscriber();
         ((DefaultAgentEventPublisher) engine.getEventPublisher()).addSubscriber(subscriber);
 
@@ -366,8 +371,8 @@ public class TestSessionLifecycleLockGate {
         session.setStatus(AgentExecStatus.waiting);
 
         DefaultAgentEngine engine = newEngine(new CountingLedger(10), store);
-        engine.setSessionTakeoverLock(lock);
-        engine.setWaitCoordinator(coordinator);
+        engine.config().setSessionTakeoverLock(lock);
+        engine.config().setWaitCoordinator(coordinator);
 
         ThreadLocalTenantResolver.set("caller-tenant");
         try {
@@ -550,12 +555,14 @@ public class TestSessionLifecycleLockGate {
     }
 
     private static DefaultAgentEngine newEngine(IDenialLedger ledger, ISessionStore store) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                new RecordingChatService(List.of(finalAssistant("done"))),
-                stubToolManager(),
-                store,
-                new AllowAllPermissionProvider());
-        engine.setDenialLedger(ledger);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new RecordingChatService(List.of(finalAssistant("done"))), stubToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
+        engine.config().setDenialLedger(ledger);
         return engine;
     }
 

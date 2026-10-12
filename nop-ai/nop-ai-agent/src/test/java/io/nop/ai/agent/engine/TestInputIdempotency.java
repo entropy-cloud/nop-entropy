@@ -1,5 +1,11 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
@@ -43,7 +49,7 @@ public class TestInputIdempotency {
     }
 
     private DefaultAgentEngine engine(InMemorySessionStore store) {
-        return new DefaultAgentEngine(new StaticChatService(), new NoOpToolMgr(), store);
+        return new DefaultAgentEngine.Builder(new StaticChatService(), new NoOpToolMgr()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
     }
 
     static class StaticChatService implements io.nop.ai.api.chat.IChatService {
@@ -173,8 +179,14 @@ public class TestInputIdempotency {
         // poisoned and the redelivery silently swallowed as a ghost duplicate).
         java.util.concurrent.CountDownLatch releaseA = new java.util.concurrent.CountDownLatch(1);
         InMemorySessionStore store = new InMemorySessionStore();
-        DefaultAgentEngine gatedEngine = new DefaultAgentEngine(
-                new GatedChatService(releaseA), new NoOpToolMgr(), store);
+        DefaultAgentEngine gatedEngine = new DefaultAgentEngine.Builder(new GatedChatService(releaseA), new NoOpToolMgr()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // A: gated in the LLM call (holds the execution slot)
         java.util.concurrent.CompletableFuture<AgentExecutionResult> fa =
@@ -209,8 +221,14 @@ public class TestInputIdempotency {
         fa.join();
 
         // after A completes, key-B redelivered must EXECUTE
-        DefaultAgentEngine freshEngine = new DefaultAgentEngine(
-                new StaticChatService(), new NoOpToolMgr(), store);
+        DefaultAgentEngine freshEngine = new DefaultAgentEngine.Builder(new StaticChatService(), new NoOpToolMgr()).sessionStore(store)
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         AgentExecutionResult redelivery =
                 freshEngine.execute(request("s-idem-5", "key-B")).join();
         assertEquals(AgentExecStatus.completed, redelivery.getStatus(),

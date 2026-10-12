@@ -1,5 +1,10 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.engine.AgentEventType;
 import io.nop.ai.agent.engine.AgentExecutionResult;
@@ -45,6 +50,8 @@ import java.util.stream.Collectors;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 3 end-to-end tests for sub-agent permission inheritance enforcement
@@ -216,7 +223,7 @@ public class TestSubAgentPermissionEndToEnd {
         };
 
         IToolManager toolManager = createToolManagerWithCallAgent();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);
@@ -344,11 +351,11 @@ public class TestSubAgentPermissionEndToEnd {
         // plan 193), which would deny "write-file" — but this test verifies
         // that the parent-constraint wiring does not produce SPURIOUS denials
         // in single-agent mode, so AllowAll* isolates that concern.
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, noOpToolManager,
-                new io.nop.ai.agent.session.InMemorySessionStore(),
-                new io.nop.ai.agent.security.AllowAllPermissionProvider(),
-                new AllowAllToolAccessChecker(),
-                new AllowAllPathAccessChecker());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, noOpToolManager).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore()).permissionProvider(new io.nop.ai.agent.security.AllowAllPermissionProvider()).toolAccessChecker(new AllowAllToolAccessChecker()).pathAccessChecker(new AllowAllPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentMessageRequest request = new AgentMessageRequest("test-parent-agent", "do work");
         CompletableFuture<AgentExecutionResult> future = engine.execute(request);
@@ -443,7 +450,7 @@ public class TestSubAgentPermissionEndToEnd {
         };
 
         IToolManager toolManager = createToolManagerWithCallAgent();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
         List<AgentEvent> events = Collections.synchronizedList(new ArrayList<>());
         engine.getEventPublisher().addSubscriber(events::add);

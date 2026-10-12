@@ -1,5 +1,11 @@
 package io.nop.ai.agent.tool;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
 import io.nop.ai.agent.engine.AgentEvent;
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentEventType;
@@ -148,7 +154,7 @@ public class TestCallAgentAsyncEndToEnd {
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
         IToolManager toolManager = toolManagerWithCallAgent();
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, toolManager, new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         assertTrue(engine.getMessenger() instanceof LocalAgentMessenger,
                 "Engine must be wired with the functional messenger so CallAgentExecutor takes the async pathway");
@@ -308,8 +314,14 @@ public class TestCallAgentAsyncEndToEnd {
 
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                throwingChat, noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(throwingChat, noOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         engine.setMessenger(messenger);
         AgentToolExecuteContext ctx = asyncContext(engine, "fail-parent", "parent-agent");
 
@@ -378,7 +390,7 @@ public class TestCallAgentAsyncEndToEnd {
 
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
-        DefaultAgentEngine engine = new DefaultAgentEngine(slowChat, noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(slowChat, noOpToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         AgentToolExecuteContext ctx = asyncContext(engine, "timeout-parent", "parent-agent");
 
@@ -416,8 +428,14 @@ public class TestCallAgentAsyncEndToEnd {
      */
     @Test
     void noOpMessengerFallbackIsForkExecZeroRegression() throws Exception {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                mockChat("fallback-reply"), noOpToolManager(), new InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(mockChat("fallback-reply"), noOpToolManager()).sessionStore(new InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
         // Never call setMessenger → default NoOp → fork+exec pathway.
         assertTrue(engine.getMessenger() instanceof NoOpAgentMessenger);
         AgentToolExecuteContext ctx = asyncContext(engine, "fallback-parent", "parent-agent");
@@ -438,7 +456,7 @@ public class TestCallAgentAsyncEndToEnd {
     private DefaultAgentEngine engineWithMessenger(String reply, InMemorySessionStore store) {
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
-        DefaultAgentEngine engine = new DefaultAgentEngine(mockChat(reply), noOpToolManager(), store);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(mockChat(reply), noOpToolManager()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
         return engine;
     }

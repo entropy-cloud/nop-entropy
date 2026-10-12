@@ -1,5 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultPathAccessChecker;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
+import io.nop.ai.agent.security.AllowAllPermissionProvider;
+import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.agent.contribution.Contribution;
 import io.nop.ai.agent.contribution.ContributionType;
 import io.nop.ai.agent.contribution.InMemoryContributionRegistry;
@@ -46,7 +53,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Plan 217 (L4-6): end-to-end + focused tests for contribution assembly-time
  * resolution. Covers the HOOK and PROMPT resolution paths from
- * {@code engine.setContributionRegistry(...)} + {@code registry.register(...)}
+ * {@code engine.config().setContributionRegistry(...)} + {@code registry.register(...)}
  * through engine {@code resolveExecutor} assembly (HOOK → hookRegistry) into
  * the executor's runtime consultation (PROMPT → system prompt), all the way
  * to observable behaviour (hook fired at the ReAct lifecycle point, prompt
@@ -155,8 +162,8 @@ public class TestContributionResolution {
      * performs HOOK contribution assembly) with a wired contribution registry.
      */
     private ReActAgentExecutor executorViaEngine(IChatService chatService, IContributionRegistry registry) {
-        DefaultAgentEngine engine = new DefaultAgentEngine(chatService, simpleToolManager());
-        engine.setContributionRegistry(registry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, simpleToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        engine.config().setContributionRegistry(registry);
         return (ReActAgentExecutor) engine.resolveExecutor(agentModel);
     }
 
@@ -343,15 +350,15 @@ public class TestContributionResolution {
 
     @Test
     void engineGetContributionRegistryReturnsWiredInstance() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(null, null);
-        assertTrue(engine.getContributionRegistry() instanceof NoOpContributionRegistry);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(null, null).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
+        assertTrue(engine.config().getContributionRegistry() instanceof NoOpContributionRegistry);
 
         InMemoryContributionRegistry functional = new InMemoryContributionRegistry();
-        engine.setContributionRegistry(functional);
-        assertEquals(functional, engine.getContributionRegistry());
+        engine.config().setContributionRegistry(functional);
+        assertEquals(functional, engine.config().getContributionRegistry());
 
-        engine.setContributionRegistry(null);
-        assertTrue(engine.getContributionRegistry() instanceof NoOpContributionRegistry);
+        engine.config().setContributionRegistry(null);
+        assertTrue(engine.config().getContributionRegistry() instanceof NoOpContributionRegistry);
     }
 
     // =========================================================================
@@ -444,7 +451,7 @@ public class TestContributionResolution {
         // Construct engine without calling setContributionRegistry. The
         // resolveExecutor must use NoOp internally — the executor builds
         // and runs identically to the pre-plan-217 executor.
-        DefaultAgentEngine engine = new DefaultAgentEngine(successChatService("done"), simpleToolManager());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(successChatService("done"), simpleToolManager()).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         ReActAgentExecutor executor = (ReActAgentExecutor) engine.resolveExecutor(agentModel);
         AgentExecutionResult result = executor.execute(buildContext()).toCompletableFuture().join();
         assertEquals(AgentExecStatus.completed, result.getStatus());

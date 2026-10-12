@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 
 /**
  * Plan 209 Phase 1 focused tests for {@link SmartModelRouter} (Minimum Rules

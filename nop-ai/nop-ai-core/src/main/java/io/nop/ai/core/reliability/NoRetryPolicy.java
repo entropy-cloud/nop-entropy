@@ -14,7 +14,7 @@ package io.nop.ai.core.reliability;
  * required behaviour. Some call sites (deterministic, latency-sensitive
  * idempotent reads) deliberately want zero retry, and the shipped default
  * makes that the safe baseline. A functional policy is registered explicitly
- * via {@code DefaultAgentEngine.setRetryPolicy}. This mirrors the
+ * via {@code engine.config().setRetryPolicy}. This mirrors the
  * {@code NoOpBudgetProvider} / {@code NoOpCheckpoint} / {@code NoOpContextCompactor}
  * sibling pass-through pattern.
  *

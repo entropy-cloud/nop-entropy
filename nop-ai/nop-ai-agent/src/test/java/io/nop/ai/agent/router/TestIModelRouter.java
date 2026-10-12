@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import io.nop.ai.agent.router.PassThroughModelRouter;
 
 public class TestIModelRouter {
 

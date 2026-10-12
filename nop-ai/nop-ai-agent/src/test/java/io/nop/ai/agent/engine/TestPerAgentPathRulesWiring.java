@@ -1,5 +1,9 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.compact.MicroCompressionCompactor;
+import io.nop.ai.agent.router.PassThroughModelRouter;
+import io.nop.ai.agent.guardrail.NoOpContentGuardrail;
+import io.nop.ai.agent.security.DefaultToolAccessChecker;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.PathRuleModel;
@@ -46,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import io.nop.ai.agent.support.ChatResponseFixtures;
+import io.nop.ai.agent.session.InMemorySessionStore;
 
 /**
  * Phase 2 integration tests verifying per-agent glob path-rule enforcement in
@@ -166,9 +171,14 @@ public class TestPerAgentPathRulesWiring {
 
     @Test
     void resolvePerAgentPathCheckerReturnsRuleBasedWhenRulesDeclared() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                dummyChatService(), dummyToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(dummyChatService(), dummyToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentModel model = new AgentModel();
         model.setPathRules(List.of(rule("/**/secrets/**", "deny")));
@@ -181,9 +191,14 @@ public class TestPerAgentPathRulesWiring {
 
     @Test
     void resolvePerAgentPathCheckerReturnsGlobalWhenNoRulesDeclared() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                dummyChatService(), dummyToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(dummyChatService(), dummyToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         AgentModel model = new AgentModel();
         IPathAccessChecker perAgent = engine.resolvePerAgentPathChecker(model);
@@ -359,9 +374,14 @@ public class TestPerAgentPathRulesWiring {
 
     @Test
     void perAgentCheckerComposesWithParentConstraint() {
-        DefaultAgentEngine engine = new DefaultAgentEngine(
-                dummyChatService(), dummyToolManager(),
-                new io.nop.ai.agent.session.InMemorySessionStore());
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(dummyChatService(), dummyToolManager()).sessionStore(new io.nop.ai.agent.session.InMemorySessionStore())
+                .permissionProvider(new AllowAllPermissionProvider())
+                .toolAccessChecker(new DefaultToolAccessChecker())
+                .pathAccessChecker(new DefaultPathAccessChecker())
+                .contentGuardrail(NoOpContentGuardrail.noOp())
+                .modelRouter(PassThroughModelRouter.passThrough())
+                .contextCompactor(new MicroCompressionCompactor())
+                .build();
 
         // Per-agent base: rule-based checker
         AgentModel model = new AgentModel();

@@ -39,7 +39,7 @@ package io.nop.ai.core.reliability;
  * pre-plan-210 zero-circuit-breaking behaviour verbatim, so wiring the
  * breaker is a zero-regression change. A functional breaker
  * ({@code ThresholdBreaker}) is registered explicitly via
- * {@code DefaultAgentEngine.setCircuitBreaker}.
+ * {@code engine.config().setCircuitBreaker}.
  *
  * <p><b>Contract for implementations</b>: all methods must accept a non-null
  * {@code modelKey} (callers always pass the composite key built by
