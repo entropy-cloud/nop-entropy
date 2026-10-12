@@ -100,7 +100,7 @@ Human-owned choices; execution plans must not re-litigate them:
 - WI13 benchmark JPA stack upgrade (incl. `javax.persistence`→`jakarta`): `done`（plan 2447：hibernate-core 改 org.hibernate.orm 7.4.5 GA 钉+jakarta.persistence-api 3.2.0 GA 钉+spring-data-jpa 4.1.1+mybatis-plus 3.5.7+beetlsql 3.34+weed3 停更保留+proc/full、mybatis-spring、nop-log-core 三编译缺陷修复+4 文件 javax→jakarta；standalone test-compile SUCCESS）
 - WI14 JSR-107 cache replacement → Ehcache jakarta (nop-commons `JavaxCache` + hazelcast): `done`（plan 2448：EhcacheCache 替代 JavaxCache（ehcache jakarta optional+exclusion）、HazelcastCache 迁原生 IMap、cache-contract/INDEX owner doc 同步、行为测试 6/6 绿）
 - ★ **Milestone: JDK25 + SB4 + Q4 + GraalVM25 baseline live on master** (WI1-14 done): `done`（2026-10-12 达成：WI0-WI14 全部 done（WI6-WI14 各有 plan+独立 closure audit APPROVE）；master 最新全量 Gate = 398 SUCCESS + 恰 4 chronic gen-aop 家族失败（先于本 roadmap 存在，forked-compile 预案另案跟踪）；WI16 按 PARKED 待 Q4 GA）
-- WI15 Quarkus runtime default alignment (OTel/Micrometer): `todo`
+- WI15 Quarkus runtime default alignment (OTel/Micrometer): `done`（plan 2449 零改动验证型交付：OTel 零消费方+零 pin-back 实测（Q4 默认天然生效；OTel 实际引入 = WI16 后需求驱动，非 WI16 交付面）；Micrometer v1 三暴露面 1.17.1 实测就位；政策成文 docs-for-ai/02-core-guides/observability-defaults.md + INDEX 路由）
 - WI16 Quarkus 4.0 GA re-pin + full regression (post-GA; PARKED until GA): `todo`
 
 ## Status values

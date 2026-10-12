@@ -63,6 +63,7 @@
 | **E2E 测试排障** | **`02-core-guides/e2e-testing-troubleshooting.md`**（常见失败模式与根因） |
 | 获取项目当前状态快照 | `00-start-here/project-context.md` |
 | **获取平台全局心智模型（是什么/分层/请求流/Delta）** | **`00-start-here/platform-overview.md`** |
+| 可观测默认（Micrometer Prometheus v1 / OTel 不回钉政策） | `02-core-guides/observability-defaults.md` |
 | 在外部 Nop 应用项目中工作 | `00-start-here/application-project-defaults.md` |
 | **后端开发教训速查（nop-app-erp 实战返工，ORM/权限/模块/服务测试前必读）** | **`00-start-here/application-project-pitfalls-backend.md`** |
 | **前端页面教训速查（nop-app-erp 实战返工，页面/E2E 前必读）** | **`00-start-here/application-project-pitfalls-frontend.md`** |
