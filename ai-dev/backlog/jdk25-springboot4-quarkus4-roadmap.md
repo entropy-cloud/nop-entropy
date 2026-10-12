@@ -97,7 +97,7 @@ Human-owned choices; execution plans must not re-litigate them:
 ### F — Deprecation, benchmark & cache
 
 - WI12 Delete obsolete demos (`nop-jdk17-demo`, `nop-spring-demo2`): `done`（plan 2446：git rm 两目录（含 git-ignored 残留清理）+ nop-demo/pom.xml 两行注销；docs-for-ai 零引用实证，遗留 docs/ 与 ai-dev 历史记录不回写）
-- WI13 benchmark JPA stack upgrade (incl. `javax.persistence`→`jakarta`): `todo`
+- WI13 benchmark JPA stack upgrade (incl. `javax.persistence`→`jakarta`): `done`（plan 2447：hibernate-core 改 org.hibernate.orm 7.4.5 GA 钉+jakarta.persistence-api 3.2.0 GA 钉+spring-data-jpa 4.1.1+mybatis-plus 3.5.7+beetlsql 3.34+weed3 停更保留+proc/full、mybatis-spring、nop-log-core 三编译缺陷修复+4 文件 javax→jakarta；standalone test-compile SUCCESS）
 - WI14 JSR-107 cache replacement → Ehcache jakarta (nop-commons `JavaxCache` + hazelcast): `todo`
 - ★ **Milestone: JDK25 + SB4 + Q4 + GraalVM25 baseline live on master** (WI1-14 done): `todo`
 - WI15 Quarkus runtime default alignment (OTel/Micrometer): `todo`
