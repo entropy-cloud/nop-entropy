@@ -117,6 +117,15 @@ public class TaskManager implements IStreamTaskRpcService {
     final Semaphore capacitySemaphore;
 
     private final ExecutorService taskExecutor;
+    /**
+     * CC-17 (R5, plan 2435): single-thread notifier for per-task terminal-state
+     * reports. Rejection handler runs the report INLINE even after shutdown —
+     * a dying task's terminal report must never be silently dropped (guide #24);
+     * stop() closes this executor LAST (after taskExecutor termination and the
+     * cancel sweep) so the normal path never hits the handler. Non-final only
+     * for {@link #terminalReportExecutorForTest(Runnable)}.
+     */
+    private ExecutorService terminalReportExecutor;
     private final ScheduledExecutorService heartbeatExecutor;
     private final ThreadPoolExecutor commitExecutor;
     /** Wait-queue capacity of {@link #commitExecutor} (R5-CC-10 upper bound). */
@@ -225,8 +234,29 @@ public class TaskManager implements IStreamTaskRpcService {
         this.controlTopic = controlTopic;
         this.ackSender = new CheckpointAckSender(this);
         this.capacitySemaphore = new Semaphore(Math.max(1, capacity));
-        this.taskExecutor = Executors.newFixedThreadPool(Math.max(1, capacity),
-                NopStreamThreadFactory.named("tm-task-" + nodeId));
+        // CC-17 (R5, plan 2435): bounded queue + AbortPolicy. Normal operation
+        // cannot reach saturation (capacitySemaphore pins accepted tasks to
+        // capacity == pool size); the bound exists so a shutdown race or a
+        // misconfigured capacity>queue degrades LOUD (rejection is converted to
+        // a typed rejectDeploy/reportAssignmentFailure at both submit sites).
+        this.taskExecutor = new java.util.concurrent.ThreadPoolExecutor(
+                Math.max(1, capacity), Math.max(1, capacity),
+                60_000L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                new java.util.concurrent.LinkedBlockingQueue<>(1000),
+                NopStreamThreadFactory.named("tm-task-" + nodeId),
+                new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
+        // CC-17 (plan 2435): single-thread terminal-report notifier; rejection
+        // handler runs the report INLINE even after shutdown (a dying task's
+        // terminal report is never dropped — guide #24). Closed LAST in stop().
+        this.terminalReportExecutor = new java.util.concurrent.ThreadPoolExecutor(
+                1, 1, 60_000L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                new java.util.concurrent.LinkedBlockingQueue<>(64),
+                NopStreamThreadFactory.named("tm-terminal-report-" + nodeId),
+                // CC-17: ALWAYS inline on rejection — including after shutdown
+                // (CallerRunsPolicy would silently drop once isShutdown()). A
+                // terminal report is never lost; worst case it runs on the
+                // dying task's own thread, exactly like the pre-CC-17 behavior.
+                (java.util.concurrent.RejectedExecutionHandler) (r, executor) -> r.run());
         this.heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(
                 NopStreamThreadFactory.named("tm-heartbeat-" + nodeId));
         // Dedicated single-thread executor for 2PC checkpoint
@@ -350,6 +380,31 @@ public class TaskManager implements IStreamTaskRpcService {
         }
         runningTasks.clear();
         completedTasks.clear();
+
+        // CC-17 (plan 2435): terminal-report executor closes LAST — after the
+        // task threads are cancelled — so dying tasks' terminal reports still
+        // enqueue; the always-inline rejection handler covers any straggler
+        // that submits after this point.
+        //
+        // Plan 2436 (WI12 兜底): shutdown() alone is NOT enough — it lets the
+        // queue drain ASYNCHRONOUSLY, racing the shutdown hook's datasource
+        // close. A queued terminal-FAILED report that loses that race is lost
+        // (the INSERT fails into a closed pool; the per-task catch only logs),
+        // and with it the coordinator's fast failover trigger: without the
+        // FAILED report the 15s lease must lapse, which a fast-restarting node
+        // masks by re-registering — no recovery, no fencing rotation
+        // (TestS1MultiJvmE2E kill-recover regression, plan 2435 wave). Drain
+        // the notifier BEFORE the hook proceeds past stop().
+        terminalReportExecutor.shutdown();
+        try {
+            if (!terminalReportExecutor.awaitTermination(5, TimeUnit.SECONDS)) {
+                LOG.warn("Terminal-report executor did not drain within 5 seconds for node {}", nodeId);
+                terminalReportExecutor.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            terminalReportExecutor.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
 
         // Release this node's meters and running-gauge so a
         // restarted node re-registers a fresh gauge and a dead node pins nothing.
@@ -534,7 +589,18 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         nodeMetrics.taskDeployed();
-        Future<?> future = taskExecutor.submit(runningTask);
+        Future<?> future;
+        try {
+            future = taskExecutor.submit(runningTask);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // CC-17 (plan 2435): shutdown race — report assignment failure loud
+            // (one-way RPC: bare throw is invisible), mirroring the capacity path.
+            reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
+                    new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
+                            "Task executor rejected assignment for " + assignment.getVertexId()
+                                    + "/" + assignment.getSubtaskIndex() + " (executor shutdown race)"));
+            return;
+        }
         runningTask.setFuture(future);
 
         LOG.info("TaskManager {} accepted assignment for {}/{} (attempt={})",
@@ -709,7 +775,18 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         }
         nodeMetrics.taskDeployed();
-        Future<?> future = taskExecutor.submit(runningTask);
+        Future<?> future;
+        try {
+            future = taskExecutor.submit(runningTask);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // CC-17 (plan 2435): submit-after-shutdown race — degrade LOUD and
+            // through the rejectDeploy→FAILED channel (one-way RPC contract:
+            // a bare throw is invisible to the coordinator), not silently.
+            throw rejectDeploy(descriptor, descriptor.getFencingEpoch(),
+                    new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
+                            "Task executor rejected deployment for " + descriptor.getVertexId()
+                                    + "/" + descriptor.getSubtaskIndex() + " (executor shutdown race)"));
+        }
         runningTask.setFuture(future);
 
         // Build the invokable locally from the descriptor. SubtaskPlanBuilder
@@ -1026,7 +1103,75 @@ public class TaskManager implements IStreamTaskRpcService {
      * detectors ({@code EmbeddedDistributedExecutor} et al.) rely on this count
      * reaching zero when every task finished.
      */
-    public int getRunningTaskCount() {
+    /** CC-17 (plan 2435): submits a terminal report off the dying task's thread. */
+    void submitTerminalReport(Runnable report) {
+        try {
+            terminalReportExecutor.execute(report);
+        } catch (java.util.concurrent.RejectedExecutionException e) {
+            // always-inline handler covers shutdown; belt-and-braces
+            report.run();
+        }
+    }
+
+    /**
+     * CC-17 (plan 2435; running flag added by plan 2436): test hook — simulates
+     * the stop() shutdown race: the node is UP ({@code running}, as if
+     * {@link #start()} had completed) but its task executor is already
+     * terminated, so the next deploy hits the
+     * submit→{@code RejectedExecutionException} window. Without the running
+     * flag the state guard rejects first and the race branch is unreachable.
+     */
+    void forceTaskExecutorShutdownForTest() {
+        this.running = true;
+        taskExecutor.shutdownNow();
+    }
+
+    /**
+     * CC-17 (plan 2435) test hook, restored by plan 2436 after the accessor was
+     * lost between plan 2435's C1 and C2 commits (the committed test never
+     * compiled): swaps the terminal-report notifier for a stub whose every
+     * submission runs {@code probe} asynchronously in place of the report
+     * body — the probe stands in for the slow coordinator RPC
+     * (TestCc17TerminalReportAsync).
+     */
+    void terminalReportExecutorForTest(Runnable probe) {
+        ExecutorService real = Executors
+                .newSingleThreadExecutor(NopStreamThreadFactory.named("tm-terminal-report-test"));
+        this.terminalReportExecutor = new java.util.concurrent.AbstractExecutorService() {
+            @Override
+            public void execute(Runnable command) {
+                real.execute(probe);
+            }
+
+            @Override
+            public void shutdown() {
+                real.shutdown();
+            }
+
+            @Override
+            public List<Runnable> shutdownNow() {
+                return real.shutdownNow();
+            }
+
+            @Override
+            public boolean isShutdown() {
+                return real.isShutdown();
+            }
+
+            @Override
+            public boolean isTerminated() {
+                return real.isTerminated();
+            }
+
+            @Override
+            public boolean awaitTermination(long timeout, java.util.concurrent.TimeUnit unit)
+                    throws InterruptedException {
+                return real.awaitTermination(timeout, unit);
+            }
+        };
+    }
+
+public int getRunningTaskCount() {
         int count = 0;
         for (RunningTask task : runningTasks.values()) {
             if (!task.isFinished()) {

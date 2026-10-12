@@ -38,8 +38,8 @@ nop-stream/
 
 | 模块 | 职责 | 依赖方向 |
 |------|------|----------|
-| **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包） | 无 |
-| **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与存储实现（`runtime.checkpoint` 包；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定） | → core |
+| **nop-stream-core** | StreamModel + StreamComponents、StreamGraph/JobGraph、PartitionedPlan/DeploymentPlan、优化和校验、StreamRequirement 校验、Checkpoint 类型定义（`core.checkpoint` 包）、窗口算子族与工厂（`core.operators.windowing` + `IWindowOperatorFactory`——WI7 自 runtime 归位；WI8 后工厂为 `WindowSpec` 单一契约） | 无 |
+| **nop-stream-runtime** | 本地/分布式 task 执行、transport backend、fencing、node lifecycle、EdgeConfig flow control、Checkpoint 协调器与共享内核/存储（`runtime.checkpoint` + `checkpoint.core`〔RestoreGates/SavepointMaterializer，双驱动面共用〕 + `checkpoint.storage`〔实现 + `CheckpointStorages` 工厂 choke-point〕）、跨 JVM wire DTO 叶子（`runtime.protocol`，零出边）、内置 replayable source 基线（`runtime.source`）；运行时实例视图职能由 `ClusterRegistry`/`RuntimeNode`/liveness 承担——原 RuntimeTopology 概念已退役，2026-09-01 D-GAP 裁定 | → core |
 | **nop-stream-connector** | Replayable source（`Source`/`SourceSplit` 契约）、transactional/idempotent sink（CheckpointParticipant）、split/offset 协议适配、file exactly-once sink 与 message 源/汇 | → core |
 | **nop-stream-connector-batch** | nop-batch 桥接连接器（`batch-loader` source / `batch-consumer` sink） | → core |
 | **nop-stream-connector-jdbc** | JDBC 两阶段提交 exactly-once sink（`jdbc-2pc`，epoch 台账 `IJdbcTemplate`） | → core |
@@ -66,6 +66,11 @@ runtime / connector(+ connector-* 子模块) / rocksdb / cep / flow  →  core
 | cep 不依赖 runtime checkpoint 实现 | CEP operator 通过标准 state/timer 接口接入 |
 | runtime → flow（可辩护例外） | 编译期边但仅 `runtime.maintain` 3 个文件（StreamConfValidateCommand / StreamSampleCommand / StreamLintCommand）消费，服务维护工具链；runtime pom 注释自述动机——maintenance tooling 编译面 + TM 部署路径经 SPI（RemotePipelineResolver）与 flow 的 XDSL 声明语法解耦 |
 | runtime 测试侧 connector fan-in（已登记，WI5 处置） | runtime pom 以 test 作用域依赖全部 5 个 connector（debezium/batch/kafka/connector/connector-jdbc）——违反 connector pom AR-2 注释「引擎不依赖具体 connector」的意图（该意图在编译面成立、测试面被 reintroduce）；收敛处置归结构重构 roadmap WI5 |
+| runtime.protocol 零出边叶子 | transport / rpc / taskmanager / coordinator 的跨 JVM wire DTO（TaskDeploymentDescriptor / CheckpointAckMessage / TaskProgress / TaskStatusReport / JobStatusResponse 等）一律放 `runtime.protocol`；四包彼此不得成环（WI6 消环 + `check-nop-stream-structure.mjs` CI 门禁固化，WI12 plan 2436） |
+| core 不含 io.nop.stream.runtime 字样 | main/test/注释全 face 零命中（WI3 注释收敛 + WI7 反射删除 + 窗口算子族归位 `core.operators.windowing`）；`check-nop-stream-structure.mjs` gate 1 固化为 CI 检查 |
+| runtime.source = 内置 replayable source 基线（WI12 裁定，plan 2436） | `CollectionReplayableSource` / `TimeRangeReplayableSource` 留守 runtime 不迁 core：core 侧引用仅 `{@code}` 纯文本契约提及（SUSPEND data policy / skip-gap 语义），无编译依赖；搬迁无行为收益（E2 不为覆盖率而重构）。二者是 runtime 提供的内置 REPLAYABLE source 基线实现 |
+| checkpoint 存储构造单 choke-point | 一切 `ICheckpointStorage` 构造经 `checkpoint.storage.CheckpointStorages` 工厂（WI11 plan 2432；GMCE.createStorage 委托保留签名）；散落直构已收敛 |
+| 双驱动面共用 checkpoint 内核 | 分布式面（JobCoordinator→CheckpointCoordinator）与本地/savepoint 面（GraphModelCheckpointExecutor 内嵌同一 CheckpointCoordinator）共享 `checkpoint.core` 的 RestoreGates / SavepointMaterializer；跨驱动面行为由 TestCheckpointDualRunDifferential 差分钉约束（WI10/WI11） |
 
 ## 三、分层设计
 

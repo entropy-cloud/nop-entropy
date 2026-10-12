@@ -219,6 +219,29 @@ public class TestOutputContractInvariant {
                 assertEquals("v", inner.sideReceived.get(0).getValue());
                 break;
             }
+            case "io.nop.stream.core.execution.task.StreamTaskInvokable$EdgeWriterOutput": {
+                // plan 2332 tag-edge routing (registry backfill plan 2436): the tagged
+                // record rides the matching tag edge only — an edge keyed to a different
+                // tag id drops the record (a tap vertex main edge carries no tagged records).
+                ResultPartition partition = new ResultPartition();
+                RecordWriter<Object> writer = new RecordWriter<>(partition);
+                Object matching = newEdgeWriterOutput(writer, "pin-tag", true);
+                invokeCollectOutputTag(matching, fqcn, new StreamRecord<>("v", 10));
+                assertEquals(1, partition.size(),
+                        "EdgeWriterOutput.collect(OutputTag) must emit on the matching tag edge");
+                StreamElement element = partition.read();
+                assertTrue(element.isSideOutput(),
+                        "routed element must be a SideOutputElement (cross-task wire protocol)");
+                assertEquals("pin-tag", element.asSideOutput().getOutputTagId());
+                assertEquals("v", element.asSideOutput().getRecord().getValue());
+
+                ResultPartition mismatchPartition = new ResultPartition();
+                Object mismatched = newEdgeWriterOutput(new RecordWriter<>(mismatchPartition), "other-tag", true);
+                invokeCollectOutputTag(mismatched, fqcn, new StreamRecord<>("v", 10));
+                assertEquals(0, mismatchPartition.size(),
+                        "EdgeWriterOutput must drop tagged records on a non-matching tag edge");
+                break;
+            }
             default:
                 fail("no forward-behavior harness for " + fqcn
                         + "; a new forward-classified implementation class needs a harness here (no silent skip)");
@@ -282,6 +305,21 @@ public class TestOutputContractInvariant {
         } catch (InvocationTargetException e) {
             throw new IllegalStateException("failed to instantiate " + fqcn, e.getCause());
         }
+    }
+
+    /**
+     * plan 2436: reflectively builds {@code StreamTaskInvokable$EdgeWriterOutput}
+     * (4-arg ctor: writer / edge tag id / vertex-has-tag-edges / metrics handle).
+     */
+    static Object newEdgeWriterOutput(RecordWriter<Object> writer, String edgeTagId,
+                                      boolean vertexHasTagEdges) throws Exception {
+        String fqcn = "io.nop.stream.core.execution.task.StreamTaskInvokable$EdgeWriterOutput";
+        Class<?> clazz = Class.forName(fqcn);
+        Constructor<?> ctor = clazz.getDeclaredConstructor(RecordWriter.class, String.class,
+                boolean.class, io.nop.stream.core.metrics.TaskMetricsHandle.class);
+        ctor.setAccessible(true);
+        return ctor.newInstance(writer, edgeTagId, vertexHasTagEdges,
+                new io.nop.stream.core.metrics.TaskMetricsHandle());
     }
 
     static void invokeCollectOutputTag(Object instance, String fqcn, StreamRecord<?> record) throws Exception {

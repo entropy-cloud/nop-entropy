@@ -63,6 +63,20 @@ class TestJobCoordinator {
     private MockClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
     private CoordinatorTestSupport.RecordingTaskRpcService mockRpcService;
+
+    /**
+     * CC-06 (plan 2435): barrier fan-out dispatches off the trigger thread via
+     * per-node executors — wait (bounded) for the barrier to cross the mocked
+     * RPC before asserting on it. Restored by plan 2436 after the wave's
+     * deferred Maven re-run surfaced these timing gaps.
+     */
+    private void awaitBarrierCrossed() throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (mockRpcService.lastBarrier.get() == null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+    }
+
     private Map<String, IStreamTaskRpcService> taskRpcServices;
     private DeploymentPlan deploymentPlan;
 
@@ -161,7 +175,7 @@ class TestJobCoordinator {
     }
 
     @Test
-    void testTriggerCheckpointSendsBarrier() {
+    void testTriggerCheckpointSendsBarrier() throws Exception {
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         coordinator.start();
         coordinator.assignTasks();
@@ -170,6 +184,7 @@ class TestJobCoordinator {
         assertNotNull(pending);
 
         // Check that barrier was sent via RPC
+        awaitBarrierCrossed();
         assertNotNull(mockRpcService.lastBarrier.get());
     }
 
@@ -296,6 +311,7 @@ class TestJobCoordinator {
         PendingCheckpoint pending = coordinator.triggerCheckpoint();
         assertNotNull(pending);
 
+        awaitBarrierCrossed();
         assertNotNull(mockRpcService.lastBarrier.get());
         assertEquals(pending.getCheckpointId(), mockRpcService.lastBarrier.get().getId());
         assertEquals(coordinator.getFencingEpoch(), mockRpcService.lastFencingEpoch.get());
@@ -310,7 +326,7 @@ class TestJobCoordinator {
     // ==================== Termination Tests (16-03) ====================
 
     @Test
-    void testTerminateDrainTriggersTerminalCheckpoint() {
+    void testTerminateDrainTriggersTerminalCheckpoint() throws Exception {
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         coordinator.start();
         coordinator.assignTasks();
@@ -334,6 +350,7 @@ class TestJobCoordinator {
 
         // The mock RPC service should have received the terminal barrier.
         // For DRAIN, the barrier type should be TERMINAL_SAVEPOINT.
+        awaitBarrierCrossed();
         assertNotNull(mockRpcService.lastBarrier.get());
         assertEquals(CheckpointType.TERMINAL_SAVEPOINT,
                 mockRpcService.lastBarrier.get().getCheckpointType());
@@ -394,7 +411,7 @@ class TestJobCoordinator {
     }
 
     @Test
-    void testTerminateExportSavepointContinuesRunning() {
+    void testTerminateExportSavepointContinuesRunning() throws Exception {
         clusterRegistry.registerNode("node-1", "localhost:9090", 4);
         coordinator.start();
         coordinator.assignTasks();
@@ -406,6 +423,7 @@ class TestJobCoordinator {
         assertTrue(coordinator.isRunning(),
                 "Job should continue running after EXPORT_SAVEPOINT");
 
+        awaitBarrierCrossed();
         assertNotNull(mockRpcService.lastBarrier.get(),
                 "A savepoint barrier should have been sent to task managers");
         assertEquals(CheckpointType.EXPORTED_SAVEPOINT,
@@ -414,7 +432,7 @@ class TestJobCoordinator {
     }
 
     @Test
-    void testTriggerCheckpointSendsToAllAssignedNodes() {
+    void testTriggerCheckpointSendsToAllAssignedNodes() throws Exception {
         // Item 14 (composite-scenario distributed) contract update: the barrier
         // RPC fans out to EVERY node hosting an assigned subtask, not only the
         // nodes hosting source vertices. Reason: the receiving TaskManager
@@ -447,12 +465,23 @@ class TestJobCoordinator {
         CoordinatorTestSupport.RecordingTaskRpcService sourceRpc = sourceNode.equals("node-1") ? node1Rpc : node2Rpc;
         CoordinatorTestSupport.RecordingTaskRpcService sinkRpc = sinkNode.equals("node-1") ? node1Rpc : node2Rpc;
 
-        assertNotNull(sourceRpc.lastBarrier.get(),
-                "Source node should receive checkpoint barrier");
-        assertNotNull(sinkRpc.lastBarrier.get(),
-                "Non-source (sink) node must also receive the trigger RPC — its tasks "
-                        + "register the in-flight epoch (registration, not injection; the "
-                        + "tracker injects barriers only at source-operator heads)");
+        // CC-06 (plan 2435): per-node async fan-out — await delivery on BOTH
+        // node mocks (the shared awaitBarrierCrossed helper watches the
+        // coordinator-wide mock; this test uses its own two mocks).
+        awaitMockBarrier(sourceRpc, "Source node should receive checkpoint barrier");
+        awaitMockBarrier(sinkRpc, "Non-source (sink) node must also receive the trigger RPC — its tasks "
+                + "register the in-flight epoch (registration, not injection; the "
+                + "tracker injects barriers only at source-operator heads)");
+    }
+
+    /** CC-06: bounded wait for one mock RPC service's barrier delivery. */
+    private static void awaitMockBarrier(CoordinatorTestSupport.RecordingTaskRpcService rpc,
+                                         String message) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (rpc.lastBarrier.get() == null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+        assertNotNull(rpc.lastBarrier.get(), message);
     }
 
     // ==================== Mocks ====================

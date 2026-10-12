@@ -42,12 +42,22 @@ class TestCc17TerminalReportAsync {
         // White-box: close the task executor FIRST (stop() shutdown race).
         tm.forceTaskExecutorShutdownForTest();
 
+        // fencingEpoch=0: a fresh TaskManager's currentFencingEpoch is 0 and the
+        // hook does not rotate it — any other value stops at the fencing guard
+        // before the executor-submit race window this test targets.
         TaskDeploymentDescriptor descriptor = new TaskDeploymentDescriptor(
-                "cc17-job", "vertex-a", 0, "tm-cc17", "attempt", 1, 1L, null, null, "/tmp/cc17");
+                "cc17-job", "vertex-a", 0, "tm-cc17", "attempt", 1, 0L, null, null, "/tmp/cc17");
+        // Carry a declaration spec so the descriptor passes the
+        // "neither JobGraph nor pipeline spec" guard and the deploy genuinely
+        // reaches the taskExecutor.submit race window (plan 2436 fix-up: the
+        // committed test never compiled and, once compiled, stopped at the
+        // not-running / empty-descriptor guards instead of the race branch).
+        descriptor.setPipelineSpec(
+                new io.nop.stream.runtime.protocol.RemotePipelineSpec("/vfs/cc17-test.stream.xml", java.util.Map.of()));
 
         StreamExceptionHolder holder = new StreamExceptionHolder();
         try {
-            tm.deployTask(descriptor, 1L);
+            tm.deployTask(descriptor, 0L);
         } catch (io.nop.stream.core.exceptions.StreamException e) {
             holder.value = e;
         }
