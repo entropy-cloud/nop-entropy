@@ -14,7 +14,7 @@
 
 - `nop-kernel/nop-dependencies/pom.xml:27-29`：`spring-boot.version=3.5.14`、`spring-cloud.version=2025.0.2`、`spring-ai.version=1.1.5`；`:139-175` 依次 import spring-ai-bom / spring-cloud-dependencies / spring-boot-dependencies（quarkus-bom 在其前）。
 - Maven Central 已核实（2026-10-11）：`spring-boot-starter-webmvc:4.1.1` 存在且依赖树与 `-web` 等价（jackson/tomcat/http-converter/webmvc）；`spring-boot-starter-web:4.1.1` 描述自述 "deprecated in favor of spring-boot-starter-webmvc"；`-security`/`-webflux`/`-websocket`/`-actuator`/`-batch`/`-jdbc`/`-logging`/`-test` 在 4.1.1 **无**废弃标记；`spring-cloud-dependencies:2025.1.3`、`spring-ai-bom:2.0.1`、`spring-ai-starter-mcp-server-webmvc:2.0.1`、`mybatis-spring-boot-starter:4.1.0`（mybatis 4.x = SB4 线）均存在。
-- `spring-boot-starter-web` 消费方 5 处：`nop-spring/nop-spring-file/pom.xml:32`、`nop-spring/nop-spring-web-starter/pom.xml:62`、`nop-demo/nop-spring-report-demo/pom.xml:65`、`nop-demo/nop-rpc-server-demo/pom.xml:47`、`nop-demo/nop-spring-demo2/pom.xml:81`（**死模块**——已注释出 reactor，`nop-demo/pom.xml:25`）。
+- `spring-boot-starter-web` 消费方 5 处：`nop-spring/nop-spring-file/pom.xml:32`、`nop-spring/nop-spring-web-starter/pom.xml:62`、`nop-demo/nop-spring-report-demo/pom.xml:65`、`nop-demo/nop-rpc-server-demo/pom.xml:47`、`nop-spring-demo2/pom.xml:81`（**死模块**——已注释出 reactor，`nop-demo/pom.xml:25`）。
 - `spring-boot-maven-plugin` 硬编码版本 6 处，按 parent 结构分两类（2026-10-11 审查实证）：
   - **独立 pom（无 `<parent>`，聚合≠继承，root pluginManagement 物理不可达）3 处**：`nop-demo/nop-spring-demo/pom.xml:196`(3.4.5)、`nop-demo/nop-spring-gateway/pom.xml:131`(3.4.5)、`nop-demo/nop-spring-report-demo/pom.xml:75`(3.5.14)——仅经 dependencyManagement import nop-bom；此类只能保留显式版本字面量（BOM import 不合并 pluginManagement；删 version 会被 Maven 静默解析到 latest=4.2.0-M2 milestone，实证见审查记录）。
   - **parent 链模块 3 处**：`nop-ai/nop-spring-mcp-server/pom.xml:50`(3.5.14)、`nop-demo/nop-spring-gateway-demo-service/pom.xml:91`(3.4.5)、`nop-demo/nop-spring-simple-demo/pom.xml:50`(3.5.14)——可继承 root pluginManagement，删本地 version。
@@ -54,7 +54,7 @@
 
 ### Out Of Scope
 
-- `nop-demo/nop-spring-demo2`（死模块，不在 reactor；其 3.2.0 覆盖随 WI12 删除消灭——本轮裁定不动死文件）。
+- `nop-spring-demo2`（死模块，不在 reactor；其 3.2.0 覆盖随 WI12 删除消灭——本轮裁定不动死文件）。
 - `nop-benchmark-orm` 的 spring/spring-data-jpa 面（WI13）。
 - SCA（spring-cloud-alibaba）训练线换代。
 - Quarkus 侧任何改动。

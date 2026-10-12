@@ -36,7 +36,7 @@ verify: [test]
 
 Status: planned
 
-Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/routing/ConcurrencyRegistry.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java`、对应测试类
+Targets: `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/routing/ConcurrencyRegistry.java`、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/reliability/ThresholdBreaker.java`、对应测试类
 
 - Item Types: `Fix | Proof`
 

@@ -43,7 +43,7 @@ Human-owned choices; execution plans must not re-litigate them:
   (no pin-back).
 - **`.workflow/{master,pr,branch}-pipeline.yml`: delete all three** (JDK 11/8/8, Maven
   3.6.3/3.3.9, superseded by `.github/workflows/`; CI entry point consolidated).
-- **`nop-demo/nop-spring-demo2`: delete** (SB 3.2.0 sample superseded by nop-spring-demo /
+- **nop-spring-demo2**: delete (SB 3.2.0 sample superseded by nop-spring-demo /
   nop-spring-simple-demo).
 - **`nop-benchmark-orm` JPA comparison: upgrade** (keep the comparison surface, do not
   drop it) onto the versions the new BOMs actually provide.
@@ -96,7 +96,7 @@ Human-owned choices; execution plans must not re-litigate them:
 
 ### F — Deprecation, benchmark & cache
 
-- WI12 Delete obsolete demos (`nop-jdk17-demo`, `nop-spring-demo2`): `todo`
+- WI12 Delete obsolete demos (`nop-jdk17-demo`, `nop-spring-demo2`): `done`（plan 2446：git rm 两目录（含 git-ignored 残留清理）+ nop-demo/pom.xml 两行注销；docs-for-ai 零引用实证，遗留 docs/ 与 ai-dev 历史记录不回写）
 - WI13 benchmark JPA stack upgrade (incl. `javax.persistence`→`jakarta`): `todo`
 - WI14 JSR-107 cache replacement → Ehcache jakarta (nop-commons `JavaxCache` + hazelcast): `todo`
 - ★ **Milestone: JDK25 + SB4 + Q4 + GraalVM25 baseline live on master** (WI1-14 done): `todo`
@@ -136,7 +136,7 @@ Human-owned choices; execution plans must not re-litigate them:
 
 **Main gaps (blocking the upgrade):**
 - Split JDK baseline: root `release=17`; `nop-quarkus/pom.xml` `java.version=17`; a **JDK 22 cluster** (FFM-based `nop-find` core/cli, `nop-rg` core/vector/cli/benchmark); `nop-ai-rag`/`nop-ai-skills` `=21`; **9** `java.version=11` leaf modules (nop-file-api, nop-dyn-api, nop-auth-api, nop-oauth-api, nop-ai-api, nop-task-api, nop-biz-auth-api, nop-credential-api, demo-ddd-api). Known defect: `nop-cli --release 22` cannot build under CI's JDK 21 (`docs-for-ai/03-runbooks/nop-cli-and-lint-gate.md`).
-- Split framework baseline: `spring-boot.version=3.5.14`; `quarkus.platform.version=3.35.1` with **divergent** pins — `nop-kernel/pom.xml` `3.29.2`, `nop-spring/nop-all-for-spring` `3.21.4` (`nop-report-for-spring` carries a commented-out `3.21.4`); `nop-demo/nop-spring-demo2` hard-pins `spring-boot 3.2.0`.
+- Split framework baseline: `spring-boot.version=3.5.14`; `quarkus.platform.version=3.35.1` with **divergent** pins — `nop-kernel/pom.xml` `3.29.2`, `nop-spring/nop-all-for-spring` `3.21.4` (`nop-report-for-spring` carries a commented-out `3.21.4`); nop-spring-demo2 hard-pins `spring-boot 3.2.0`.
 - Spring ecosystem trails SB4: `spring-cloud=2025.0.x` (3.5 line), `spring-ai=1.1.5`; SB4.1 needs Cloud `2025.1.2+` / AI `2.0.x`.
 - Stale GraalVM: `graalvm.version=23.1.2`; `org.graalvm.js:js` is only a commented-out block (dead) while the active JS dep `org.graalvm.polyglot:js-community` is pinned to 23.1.2.
 - Redundant/harmful pins in `nop-dependencies`: `jakarta.mail.version=1.6.8` (a javax-namespaced artifact), plus BOM-managed artifacts pinned locally (`commons-lang3`, `kafka-clients`, `avro`, `antlr4*`, `geolatte-geom`, `javaparser-core`, `json-smart`, `json-path`, `logback`, `slf4j-api`, Spring-side `pulsar-*`, `janino`). Also a **comment to re-verify** at `nop-dependencies/pom.xml:292-296` (WI33 ruling: quarkus-bom manages the pulsar stack to 4.0.9 — true for Q3, but Q4 moves quarkus-managed `pulsar-client-original`/`-messagecrypto-bc` to 4.2.1, which can recreate a mixed-stack `NoSuchMethodError`).
@@ -145,7 +145,7 @@ Human-owned choices; execution plans must not re-litigate them:
 - Jackson 3 surface is small: `jackson-databind`/`ObjectMapper` used in only **8 files** (4 in `nop-benchmark-json`/eishay, 3 in `nop-ai-api` tests, 1 in `nop-api-core` test) — **zero** in `nop-spring`/`nop-quarkus`. No `jackson-databind` in any nop-spring/nop-quarkus pom.
 - CI on JDK 21 everywhere; legacy `.workflow/*` pipelines on JDK 11 (master) / 8 (pr, branch).
 - Dead container bases (87 tracked Dockerfiles): `ubi8/openjdk-17` ×41, `ubi8/ubi-minimal:8.8` ×21, `quarkus-micro-image:2.0` ×21, `ubi8/openjdk-21:1.21` ×2, `ubi8/ubi-minimal:8.5` ×1, `quarkus-micro-image:1.0` ×1. 4 of the 87 are **codegen templates** (`nop-codegen/.../*.xgen`, a Protected Area).
-- Obsolete modules: `nop-demo/nop-jdk17-demo`; `nop-demo/nop-spring-demo2` (SB 3.2.0); benchmark JPA surface on Hibernate 5.4.20 / spring-data-jpa 2.3.3 (`javax.persistence`) — incompatible with the new stack.
+- Obsolete modules: nop-jdk17-demo; nop-spring-demo2 (SB 3.2.0); benchmark JPA surface on Hibernate 5.4.20 / spring-data-jpa 2.3.3 (`javax.persistence`) — incompatible with the new stack.
 
 ## Stages
 
@@ -392,7 +392,7 @@ explicitly resolved, not accidental.
 **Goal:** JDK17/SB3.2-era demos removed.
 
 **Deliverables:**
-- Delete `nop-demo/nop-jdk17-demo` and `nop-demo/nop-spring-demo2`; unregister from `nop-demo/pom.xml` and any aggregate/e2e references.
+- Delete the nop-demo modules nop-jdk17-demo and nop-spring-demo2; unregister from `nop-demo/pom.xml` and any aggregate/e2e references.
 - Keep `nop-spring-demo` / `nop-spring-simple-demo` as the SB references.
 
 **Out of scope:** other demos; base images (WI9a/WI9b/WI9c).
