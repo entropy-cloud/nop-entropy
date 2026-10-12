@@ -1,6 +1,6 @@
 # 2450 gen-aop 代理编译 classpath 修复（根治 chronic 家族）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-13
 > Source: 用户质询"gen-aop 怎么会有问题，仔细研究一下执行原理"触发的在位探针实证（2026-10-13，本 plan Current Baseline）
 > Related: jdk25-springboot4-quarkus4-roadmap.md 的 chronic gen-aop 家族登记（WI10-WI14 各 Gate 容忍面）
@@ -67,35 +67,35 @@ Exit Criteria:
 
 ### Phase 2 - 全量门与收口
 
-Status: planned
+Status: completed
 Targets: 全仓构建、log
 
 - Item Types: `Proof`
 
-- [ ] Gate A：`./mvnw clean install -DskipTests -T 1C -fae` 全 SUCCESS（**无 gen-aop 容忍面**——本计划的验收标准就是容忍面清零；下游 service/app 模块首次完整编译）
-- [ ] **Gate A 暴露面修复（执行期新增）**：nop-metadata-app 首次真正编译暴露自身配置缺陷（classpath 同存 h2+mysql JDBC 扩展未设 `quarkus.datasource.db-kind`）——application.yaml 补 `db-kind: h2`（与活跃 h2 配置一致；mysql 为注释的生产切换项）
-- [ ] 白名单提交（nop-javac 主类+新测试、log、plan）
-- [ ] 独立子 agent closure audit
-- [ ] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-javac --severity high / check-doc-links --strict
-- [ ] 文本一致性核对后置 `Plan Status: completed`
+- [x] Gate A：`./mvnw clean install -DskipTests -T 1C -fae` 全 SUCCESS（**无 gen-aop 容忍面**——本计划的验收标准就是容忍面清零；下游 service/app 模块首次完整编译）
+- [x] **Gate A 暴露面修复（执行期新增）**：nop-metadata-app 首次真正编译暴露自身配置缺陷（classpath 同存 h2+mysql JDBC 扩展未设 `quarkus.datasource.db-kind`）——application.yaml 补 `db-kind: h2`（与活跃 h2 配置一致；mysql 为注释的生产切换项）
+- [x] 白名单提交（nop-javac 主类+新测试、log、plan）
+- [x] 独立子 agent closure audit
+- [x] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-javac --severity high / check-doc-links --strict
+- [x] 文本一致性核对后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] Gate A 全 SUCCESS；commit hash 记录 Closure；审计证据写入；三门留痕
+- [x] Gate A 全 SUCCESS；commit hash 记录 Closure；审计证据写入；三门留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（chronic gen-aop 家族 = 本 plan defect 面）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（javac classpath = 执行环境真实 classpath）
-- [ ] 行为/契约结果已达成：四模块 clean 构建代理产出 + Gate A 全 SUCCESS
-- [ ] 必要 focused verification 已完成（Phase 1 验证）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：修复在真实失败现场验证（四模块 clean 构建），非单测假绿
-- [ ] Gate A 全 SUCCESS（容忍面清零）
-- [ ] Gate B：nop-javac 测试面全绿
-- [ ] 代码规范：注释风格与仓内惯例一致
+- [x] 所有 in-scope confirmed live defects 已修复（chronic gen-aop 家族 = 本 plan defect 面）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（javac classpath = 执行环境真实 classpath）
+- [x] 行为/契约结果已达成：四模块 clean 构建代理产出 + Gate A 全 SUCCESS
+- [x] 必要 focused verification 已完成（Phase 1 验证）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：修复在真实失败现场验证（四模块 clean 构建），非单测假绿
+- [x] Gate A 全 SUCCESS（容忍面清零）
+- [x] Gate B：nop-javac 测试面全绿
+- [x] 代码规范：注释风格与仓内惯例一致
 
 ## Deferred But Adjudicated
 
@@ -107,13 +107,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: chronic gen-aop 家族根治并经独立 closure audit APPROVE（9 项验证 8 PASS + 1 Major 已修复）：javac classpath = TCCL realm 实测贯通、四模块 clean 构建代理 class 首次产出（8 个 ）、全量 Gate A **459 SUCCESS · 0 FAILURE** 平台首次全绿、forked-compile 预案作废。审计抓到并修复：提交意外混入并行 nop-ai 会话的 R100 改名（半成品快照不可编译）——amend 剔除归还该会话（工作树污染事故，与 10-13 已登记 WI9 卷入同型）。
+Completed: 2026-10-13
+Commit: 78cfc7cadd
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_96c67d15-9532-4d62-a030-8836c47982d（fresh session）
+- Evidence:
+  - 9 项验证 8 PASS（修复面逐条吻合 Rulings / b8157644a6 注释重写 / 探针零残留 / 新测试 2 用例 + 77/77 全绿 / 五模块 clean install 复跑 8 个代理 class 产出 / Gate A build1→build2 对比 / metadata-app db-kind / Anti-Hollow 现场验证 / Deferred 诚实性）
+  - 1 Major（提交混入并行会话改名）已按审计指定方式修复：amend 剔除、归还 nop-ai 会话未提交态，amended = 恰 5 文件
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2450-gen-aop-classpath-fix.md --strict` 退出码 0（回填后复跑）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-javac --severity high` 退出码 0（20 文件 0 发现）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - Anti-Hollow：真实失败现场（clean 构建）验证 8 个代理 class 产出，非单测假绿
+  - Deferred 项分类检查：forked-compile 预案作废（roadmap 闭环注记已补）——无 in-scope live defect 被降级
 
 Follow-up:
 
