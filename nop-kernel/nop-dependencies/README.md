@@ -6,34 +6,44 @@ The nop-dependencies module serves as a centralized dependency management hub fo
 
 This module functions as a Maven BOM (Bill of Materials), providing a single source of truth for dependency versions across the entire Nop Platform ecosystem. It ensures that all modules use consistent versions of libraries, preventing version conflicts and ensuring compatibility.
 
-## Core Features
+## Version Governance Policy
 
-- **Version Centralization**: All third-party library versions are defined in one place
-- **BOM Support**: Maven Bill of Materials for easy dependency management
-- **Framework Integration**: Compatible with major frameworks like Quarkus and Spring Boot
-- **Plugin Management**: Centralized management of Maven plugin versions
+> Established by WI10 (plan 2444, 2026-10-12) of `ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md`.
+
+Two upstream BOMs are imported into this BOM: **quarkus-bom** (4.0.0.Beta1) and **spring-boot-dependencies** (4.1.1), plus spring-ai-bom, spring-cloud-dependencies and testcontainers-bom. The governance rules:
+
+1. **Import order + precedence is the divergence ruling mechanism.** The two base BOMs manage ~90 common coordinates, of which 31 have divergent versions (measured 2026-10-12, direct-entry basis). The first-imported BOM wins every divergence. Final import order (deliberate, do not reorder):
+
+   `quarkus-bom` → `testcontainers-bom` → `spring-ai-bom` → `spring-cloud-dependencies` → `spring-boot-dependencies`
+
+   Measured precedence on Maven wrapper 4.0.0-rc-5 (WI10 plan 2444): **local direct entries beat every import; nested imports of a later-imported BOM beat this BOM's own top-level imports regardless of position.** spring-boot-dependencies internally imports its own testcontainers-bom (2.0.5, a major-version line this platform has not adopted), whose entries therefore outrank our top-level testcontainers-bom 1.21.4 import — which is why `org.testcontainers:testcontainers` core (the only legacy-name artifact both lines manage) carries an explicit local pin (see rule 2b).
+
+2. **Local pins are allowed only for two reasons:**
+   - (a) the artifact is managed by **neither** base BOM (nacos, sentinel, tablesaw, duckdb, lucene, commonmark, protostuff, jsch, keycloak-common, pdfbox, jts-core, h2gis, semver4j, openpdf, aws-java-sdk-s3 v1, java-dataloader, rocksdbjni, etc.) — each pin carries a "why not BOM-managed" comment;
+   - (b) the divergence winner is **harmful** and an explicit pin overrides it. Current examples:
+     - `kafka-clients` 4.3.1 — both BOMs agree on 4.2.1, but the Debezium 3.7 embed (nop-message-debezium) builds against kafka 4.3.1; a client older than the engine's build version hits `NoSuchFieldError` at startup;
+     - `pulsar.*` family 4.0.14 — dropping the family pin yields a 4.2.1 (Q4, client-original) / 4.2.4 (SB4 pulsar-bom, rest of family) mixed stack, the exact shape that caused the WI33 `NoSuchMethodError`;
+     - `org.testcontainers:testcontainers` 1.21.4 — SB4's nested 2.0.5 line would otherwise capture core and recreate a mixed stack (core 2.0.5 + legacy modules 1.21.4, observed on nop-orm between WI6 and WI10);
+     - `javaparser-symbol-solver-core` 3.28.2 — managed by neither BOM; must stay version-locked to the quarkus-bom-managed javaparser-core (3.28.2).
+
+   **Never add a version-less placeholder entry** for a BOM-managed artifact: on Maven 4 rc a local entry — even without a version — shadows the imported BOM's managed version and breaks downstream resolution with "version is missing" (observed with ojdbc11). Either no entry (let the import chain rule) or a fully pinned entry.
+
+3. **Before dropping any pin**, verify against BOTH base BOM poms (not just one) that the artifact is consistently managed, and let the focused build/tests confirm the resulting version bump. Pins that duplicate a BOM-managed version were removed in WI10: janino, json-path, json-smart, antlr4/antlr4-runtime (quarkus-bom manages 4.13.2; nop-antlr4's `antlr.plugin.version` must stay in lockstep), avro, javaparser-core, geolatte-geom.
+
+4. **Oracle JDBC uses the correct coordinates**: `com.oracle.database.jdbc:ojdbc11` (the legacy `com.oracle.ojdbc:ojdbc8` groupId is a deprecated namespace). Both BOMs manage it at 23.26.3.0.0, so no local pin.
 
 ## Key Framework Versions
 
-### Core Platforms
-- **Quarkus Platform**: ${quarkus.platform.version}
-- **Spring Boot**: ${spring-boot.version}
-- **Spring Cloud**: ${spring-cloud.version}
-- **Spring AI**: ${spring-ai.version}
+- **Quarkus Platform**: 4.0.0.Beta1
+- **Spring Boot**: 4.1.1
+- **Spring Cloud**: 2025.1.3
+- **Spring AI**: 2.0.1
+- **Testcontainers BOM**: 1.21.4 (explicit line; SB4's own import offers 2.0.5 — not adopted)
+- **Pulsar**: 4.0.14 (family pin, WI33 ruling)
+- **Kafka clients**: 4.3.1 (Debezium 3.7 floor)
+- **JDK**: 25
 
-### Language Processing
-- **Antlr4**: ${antlr.version}
-- **Janino**: ${janino.version}
-- **JavaParser**: ${javaparser.version}
-
-### Database & Data
-- **Tablesaw**: ${tablesaw.version}
-- **Apache Lucene**: ${lucene.version}
-- **Apache Pulsar**: ${pulsar.version}
-- **Nacos**: ${nacos.version}
-
-### GraalVM
-- **GraalVM**: ${graalvm.version}
+Other notable resolved versions (all BOM-managed): antlr4 4.13.2, avro 1.12.2, javaparser 3.28.2, geolatte-geom 1.12, janino 3.1.12, json-path 2.10.0, json-smart 2.6.0, ojdbc11 23.26.3.0.0.
 
 ## Usage
 
@@ -61,65 +71,34 @@ Then you can add dependencies without specifying versions:
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-runtime</artifactId>
     </dependency>
-    
+
     <dependency>
         <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-web</artifactId>
+        <artifactId>spring-boot-starter-webmvc</artifactId>
     </dependency>
 </dependencies>
 ```
 
-## Major Dependencies
+## Major Dependency Families
 
-### Core Frameworks
-- Quarkus Platform
-- Spring Boot
-- Spring Cloud
-- Spring AI
-
-### Language & Parser
-- Antlr4
-- JavaParser
-- Janino
-
-### Database & Storage
-- H2
-- MySQL
-- PostgreSQL
-- Apache Pulsar
-- Nacos
-
-### Data Processing
-- Tablesaw
-- Apache Lucene
-- Jackson
-
-### Cloud & Messaging
-- AWS SDK
-- Apache Pulsar
-- Redis/Lettuce
-
-### Security
-- JWT (JSON Web Token)
-- Keycloak
-- Sentinel
-
-### Document Processing
-- OpenPDF
-- Apache PDFBox
-
-### Testing
-- JUnit Jupiter
-- TestContainers
+- **Core Frameworks**: Quarkus Platform, Spring Boot, Spring Cloud, Spring AI
+- **Language & Parser**: Antlr4, JavaParser, Janino
+- **Database & Storage**: Oracle (ojdbc11), H2GIS, DuckDB, RocksDB
+- **Data Processing**: Tablesaw, Apache Lucene
+- **Cloud & Messaging**: Apache Pulsar, Apache Kafka, Nacos, AWS SDK (v1, S3)
+- **Security**: JJWT, Keycloak, Sentinel
+- **Document Processing**: OpenPDF, Apache PDFBox
+- **Testing**: JUnit Jupiter, Testcontainers
 
 ## Build & Plugin Management
 
 This module also manages versions for common Maven plugins:
 
-- **Antlr4 Maven Plugin**: ${antlr.version}
-- **Compiler Plugin**: ${compiler-plugin.version}
-- **Surefire Plugin**: ${surefire-plugin.version}
 - **Quarkus Maven Plugin**: ${quarkus.platform.version}
+- **Site Plugin**: 4.0.0-M2
+- **Project Info Reports Plugin**: 3.3.0
+
+(The antlr4 Maven plugin version is owned by `nop-kernel/nop-antlr4` via its `antlr.plugin.version` property and must match the antlr4/antlr4-runtime versions resolved above.)
 
 ## Directory Structure
 
@@ -127,5 +106,3 @@ This module also manages versions for common Maven plugins:
 nop-dependencies/
 └── pom.xml  # Main BOM file containing all dependency versions
 ```
-
-
