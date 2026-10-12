@@ -1,6 +1,6 @@
 # 2448 WI14 JSR-107 cache replacement → Ehcache 3 jakarta
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-12
 > Source: ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md WI14 + Decisions（"JCache replacement = Ehcache 3 with the jakarta classifier"，human-owned 已裁决项）
 > Related: 2444（BOM 政策）、2445-2447（同 roadmap 前序 WI）
@@ -34,7 +34,7 @@
 ## Rulings
 
 1. **EhcacheCache 语义面（审查 jar 级实证修正）**：org.ehcache.Cache 3.12.0 方法集 = get/put/containsKey/remove/remove(k,v)/getAll/putAll/removeAll/clear/putIfAbsent(**返回前值 V 非 boolean**)/replace×2/Iterable——**无 getAndPut、无原子 computeIfAbsent**。故：(a) putIfAbsent 映射 `cache.putIfAbsent(k,v)==null`；(b) getAndSet 继承 ICache 竞态 default（get+put 非原子）——**已裁定语义损失**：现生产代码 ICache.getAndSet 零调用方，风险可控；(c) computeIfAbsent 继承 ICache 锁化 default；(d) refresh 按先例映射 remove。原 JavaxCache 的 getAndPut 单胜者覆写随 JSR-107 消亡。
-1b. **HazelcastCache 语义面（IMap 实测映射）**：13 个 sync 抽象逐个实现——getIfPresent(get)、getAllPresent(getAll)、put、putAll、remove、removeAll(keys)（IMap 无 removeAll(Collection)，逐 key remove）、clear、refresh(remove)、forEachEntry(IMap Iterable/entrySet)、getName(ctor cacheName)、estimatedSize(size)、getConfig(null)、removeIfMatch(remove(k,v))、refreshConfig(no-op)；default 覆写 3 个 = containsKey（IMap 廉价实现）、getAndSet（**IMap.put 返回旧值**，原子）、computeIfAbsent（**IMap.computeIfAbsent 服务端原子**）。async 真异步覆写仅 5 个：getAsync、putAsync(+thenApply→null)、putAllAsync、getAndSetAsync(**→putAsync**，同返回旧值)、removeAsync(+thenApply→null)；putIfAbsentAsync/removeIfMatchAsync/clearAsync **走 sync default（显式裁决的异步能力降级**——IMap 无对应异步方法）；computeIfAbsentAsync 覆写 IMap.computeIfAbsentAsync（服务端原子，优于 default）。
+1b. **HazelcastCache 语义面（IMap 实测映射）**：13 个 sync 抽象逐个实现——getIfPresent(get)、getAllPresent(getAll)、put、putAll、remove、removeAll(keys)（IMap 无 removeAll(Collection)，逐 key remove）、clear、refresh(remove)、forEachEntry(IMap Iterable/entrySet)、getName(ctor cacheName)、estimatedSize(size)、getConfig(null)、removeIfMatch(remove(k,v))、refreshConfig(no-op)；default 覆写 3 个 = containsKey（IMap 廉价实现）、getAndSet（**IMap.put 返回旧值**，原子）、computeIfAbsent（**IMap.computeIfAbsent 服务端原子**）。async 真异步覆写仅 5 个：getAsync、putAsync(+thenApply→null)、putAllAsync、getAndSetAsync(**→putAsync**，同返回旧值)、removeAsync(+thenApply→null)；putIfAbsentAsync/removeIfMatchAsync/clearAsync **走 sync default（显式裁决的异步能力降级**——IMap 无对应异步方法）；computeIfAbsentAsync 不覆写（ISyncCache sync 包装 default——IMap 无该方法，经覆写后的 sync computeIfAbsent 路由服务端原子）。
 2. **HazelcastCache 目标 API 选 IMap 而非 Ehcache**：hazelcast 模块的分布式缓存本就由 Hazelcast 集群承载，IMap 是其原生标准面（JCache 是非标准包装）；roadmap Decisions 的 Ehcache 3 指的是替换 nop-commons 的 JCache 适配层（供非 hazelcast 场景使用），不是要求 hazelcast 换后端。
 3. **classifier jakarta + 依赖收敛（审查 dependency:tree 实证）**：ehcache jakarta classifier 与主构件共享主 pom，传递 javax.cache:cache-api（compile）+ jaxb-runtime 家族（runtime）——与"脱离 JSR-107"目标相悖。处置：nop-commons 的 ehcache 声明 `<optional>true</optional>`（EhcacheCache 现零生产调用方，不向下游铺开 +8 jar；本模块 test classpath 仍可用）+ `<exclusions>` 掉 javax.cache:cache-api（已实证安全：ehcache 核心 1423 个非 jsr107 类对 javax/jakarta.cache 零引用，编程式路径不触碰 jsr107 包）。使用者需 EhcacheCache 时自行声明 ehcache 依赖（写入 owner doc）。
 4. **close 语义**：EhcacheCache.close() no-op（org.ehcache.Cache 无 close；生命周期归 CacheManager 持有者），注释声明；JavaxCache 的 close 语义不保留。
@@ -64,36 +64,36 @@ Exit Criteria:
 
 ### Phase 2 - 验证门与收口
 
-Status: planned
+Status: completed
 Targets: 全仓构建、roadmap、plan
 
 - Item Types: `Proof`
 
-- [ ] Gate A：`./mvnw clean install -DskipTests -T 1C -fae`（容忍面 = chronic gen-aop 家族签名归因）；ehcache jakarta classifier 首次解析需网络
-- [ ] Gate B：`./mvnw test -pl nop-kernel/nop-commons -am -Dtest='TestICache*'`（缓存面回归）
-- [ ] roadmap WI14 `todo` → `done`
-- [ ] 白名单提交（nop-commons pom+2 java+1 test、nop-hazelcast-cache pom+1 java、docs-for-ai/03-modules/nop-commons-cache-contract.md、docs-for-ai/INDEX.md、plan 2448、log、roadmap）
-- [ ] 独立子 agent closure audit
-- [ ] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-commons --severity high / check-doc-links --strict
-- [ ] 文本一致性核对后置 `Plan Status: completed`
+- [x] Gate A：`./mvnw clean install -DskipTests -T 1C -fae`（容忍面 = chronic gen-aop 家族签名归因）；ehcache jakarta classifier 首次解析需网络
+- [x] Gate B：`./mvnw test -pl nop-kernel/nop-commons -am -Dtest='TestICache*'`（缓存面回归）
+- [x] roadmap WI14 `todo` → `done`
+- [x] 白名单提交（nop-commons pom+2 java+1 test、nop-hazelcast-cache pom+1 java、docs-for-ai/03-modules/nop-commons-cache-contract.md、docs-for-ai/INDEX.md、plan 2448、log、roadmap）
+- [x] 独立子 agent closure audit
+- [x] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-commons --severity high / check-doc-links --strict
+- [x] 文本一致性核对后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] Gate A/B 通过且证据可追溯；commit hash 记录 Closure；审计证据写入；三门留痕
+- [x] Gate A/B 通过且证据可追溯；commit hash 记录 Closure；审计证据写入；三门留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（死 JSR-107 依赖 = 本 WI defect 面，已移除）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（ICache 公共面不变、实现面无 javax.cache）
-- [ ] 行为/契约结果已达成：EhcacheCache 行为测试绿 + HazelcastCache IMap 面编译通过
-- [ ] 必要 focused verification 已完成（Gate B）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（docs-for-ai cache-contract 实现矩阵 + INDEX.md 路由行已更新，见 Phase 1 Exit Criteria）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：EhcacheCache 真实构造并跑通行为测试（非空壳），HazelcastCache 非 stub
-- [ ] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（chronic 容忍面内）
-- [ ] Gate B focused tests 全绿
-- [ ] 代码规范：import 分组、注释密度与仓内惯例一致
+- [x] 所有 in-scope confirmed live defects 已修复（死 JSR-107 依赖 = 本 WI defect 面，已移除）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（ICache 公共面不变、实现面无 javax.cache）
+- [x] 行为/契约结果已达成：EhcacheCache 行为测试绿 + HazelcastCache IMap 面编译通过
+- [x] 必要 focused verification 已完成（Gate B）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（docs-for-ai cache-contract 实现矩阵 + INDEX.md 路由行已更新，见 Phase 1 Exit Criteria）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：EhcacheCache 真实构造并跑通行为测试（非空壳），HazelcastCache 非 stub
+- [x] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（chronic 容忍面内）
+- [x] Gate B focused tests 全绿
+- [x] 代码规范：import 分组、注释密度与仓内惯例一致
 
 ## Deferred But Adjudicated
 
@@ -105,13 +105,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: WI14 交付面全部落地并经独立 closure audit APPROVE（9/9 实质面 PASS，0 Blocker）。EhcacheCache（optional + exclusion 死标准）替代删除 JavaxCache、HazelcastCache 迁原生 IMap（javap 5.5.0 实证 5 真异步 + 3 显式降级）、行为测试 6/6 绿、owner doc（cache-contract + INDEX）同步。执行期一处接口面修复（AutoCloseable 显式声明）与两处 Ruling 文本修正（R2 虚构 API 清洗）均经审计确认。
+Completed: 2026-10-12
+Commit: e82c9c4817
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_31cc8490-6a89-49d3-b057-e7819861674d（fresh session）
+- Evidence:
+  - 9 项验证全 PASS（源码活引用零 + EhcacheCache 逐点一致 / HazelcastCache javap 复证 5+3+AutoCloseable+Ruling 5 stats / pom 三项 / 审计独立复跑 TestICache 6 绿 + dependency:tree 恰一行 ehcache optional 且 cache-api 零 / Gate 证据（hazelcast-tc 截断已由审计补证 _tmp/wi14-audit-hazelcast-tc.log）/ owner doc 抽查与 live 代码一致 / 文本一致性 / Deferred 诚实性（getAndSet 竞态裁决生产零调用方 grep 实证）/ 提交恰 10 文件零混入）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2448-wi14-jsr107-cache-to-ehcache.md --strict` 退出码 0（回填后复跑）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-commons --severity high` 退出码 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - Anti-Hollow：真实 CacheManager 行为测试 6/6 绿（非空壳）
+  - Deferred 项分类检查：hazelcast-cache 无测试目录（follow-up 显式）、getAndSet 竞态（显式裁决）——无 in-scope live defect 被降级
 
 Follow-up:
 
