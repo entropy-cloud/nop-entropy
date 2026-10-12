@@ -12,10 +12,10 @@
     <artifactId>nop-benchmark-orm</artifactId>
 
     <properties>
-        <beetlsql.version>3.14.2-RELEASE</beetlsql.version>
-        <spring.version>5.2.8.RELEASE</spring.version>
-        <spring.data.jpa.version>2.3.3.RELEASE</spring.data.jpa.version>
-        <hibernate.version>5.4.20.Final</hibernate.version>
+        <!-- WI13 plan 2447：保守钉（编译兼容逐 API 实证），非最新线（latest mybatis-plus 3.5.17 /
+             beetlsql 3.40.2-RELEASE 未验证不追） -->
+        <beetlsql.version>3.34-RELEASE</beetlsql.version>
+        <hibernate.version>7.4.5.Final</hibernate.version>
     </properties>
 
     <!-- Add typical dependencies for a web application -->
@@ -24,6 +24,13 @@
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-orm</artifactId>
+        </dependency>
+
+        <!-- WI13 plan 2447：NopBoot 的 LoggerConfigurator 需要；不在 nop-orm 传递路径，
+             nop-bom 已管理故无版本 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-log-core</artifactId>
         </dependency>
 
 <!--        <dependency>-->
@@ -63,24 +70,39 @@
             <artifactId>spring-data-jpa</artifactId>
         </dependency>
 
-        <!-- JPA Implementation (Hibernate)-->
+        <!-- JPA Implementation (Hibernate)：现代坐标 org.hibernate.orm（旧 org.hibernate 组
+             无任何 BOM 管理）；7.4.5.Final 模块内钉 = WI13 plan 2447 GA 稳定裁决——BOM 链胜者
+             Q4 8.0.0.Beta3 为 beta，roadmap WI13 明文 SB4 线 7.4.5（no Hibernate 8 GA） -->
         <dependency>
-            <groupId>org.hibernate</groupId>
+            <groupId>org.hibernate.orm</groupId>
             <artifactId>hibernate-core</artifactId>
+            <version>${hibernate.version}</version>
         </dependency>
 
+        <!-- WI13 plan 2447：BOM 链胜者 Q4 jakarta.persistence-api 4.0.0-M7 是 milestone，
+             与 GA 稳定栈裁决矛盾；钉 3.2.0（GA）与 hibernate-core 7.4.5 自声明依赖对齐 -->
         <dependency>
-            <groupId>org.hibernate</groupId>
-            <artifactId>hibernate-entitymanager</artifactId>
-            <version>${hibernate.version}</version>
+            <groupId>jakarta.persistence</groupId>
+            <artifactId>jakarta.persistence-api</artifactId>
+            <version>3.2.0</version>
+        </dependency>
+
+        <!-- WI13 plan 2447：mybatis-plus 3.5.7 将 mybatis-spring 声明为 optional，
+             MapperScannerConfigurer 编译面需显式声明（3.3.2 时代传递可见） -->
+        <dependency>
+            <groupId>org.mybatis</groupId>
+            <artifactId>mybatis-spring</artifactId>
+            <version>2.1.2</version>
         </dependency>
 
         <dependency>
             <groupId>com.baomidou</groupId>
             <artifactId>mybatis-plus</artifactId>
-            <version>3.3.2</version>
+            <version>3.5.7</version>
         </dependency>
 
+        <!-- WI13 plan 2447：weed3 上游 2022-11 停更于 3.4.33，无可升级目标（roadmap 字面
+             要求升级的显式偏离裁定），保留 3.4.25（Java 8 字节码，JDK25 编译无障碍） -->
         <dependency>
             <groupId>org.noear</groupId>
             <artifactId>weed3</artifactId>
@@ -96,5 +118,20 @@
 
     </dependencies>
 
+
+
+    <build>
+        <plugins>
+            <!-- JMH 注解处理器 + Lombok：JDK 23+ 默认禁用 classpath 隐式注解处理，
+                 必须显式 proc=full（对齐 nop-benchmark-json/stream 先例，WI13 plan 2447） -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <configuration>
+                    <proc>full</proc>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
 </project>
