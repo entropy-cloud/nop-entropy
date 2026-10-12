@@ -49,6 +49,9 @@ quarkus:
     enabled: false
 
   datasource:
+    # classpath 上同时存在 quarkus-jdbc-h2 与 quarkus-jdbc-mysql（mysql 为生产可切换项），
+    # Quarkus 要求显式声明 db-kind 才能构建默认 datasource（plan 2450 Gate A 首次编译暴露）
+    db-kind: h2
     devservices:
       enabled: false
 
