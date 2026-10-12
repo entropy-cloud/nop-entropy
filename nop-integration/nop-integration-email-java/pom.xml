@@ -17,9 +17,10 @@
             <artifactId>nop-integration-api</artifactId>
         </dependency>
 
+        <!-- WI11 plan 2445：BOM 管理的 jakarta 命名空间实现（jakarta.mail-api 经传递供给） -->
         <dependency>
-            <groupId>com.sun.mail</groupId>
-            <artifactId>jakarta.mail</artifactId>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
         </dependency>
 
         <!-- W16-impl-ext: 测试基建（模块此前零 test 依赖，参照 sms-tencent/feishu 先例） -->

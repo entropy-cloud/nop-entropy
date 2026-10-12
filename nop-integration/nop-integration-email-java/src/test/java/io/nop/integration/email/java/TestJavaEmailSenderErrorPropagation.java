@@ -11,10 +11,10 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.integration.api.email.EmailMessage;
 import org.junit.jupiter.api.Test;
 
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.Transport;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import java.util.List;
 import java.util.Properties;
 
@@ -47,7 +47,7 @@ public class TestJavaEmailSenderErrorPropagation {
         }
 
         @Override
-        public void sendMessage(Message msg, javax.mail.Address[] addresses) throws MessagingException {
+        public void sendMessage(Message msg, jakarta.mail.Address[] addresses) throws MessagingException {
             sendMessageCount++;
             if (sendError != null) {
                 throw sendError;

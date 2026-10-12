@@ -15,9 +15,9 @@ import io.nop.credential.api.TestResult;
 import io.nop.integration.api.email.EmailMessage;
 import org.junit.jupiter.api.Test;
 
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Transport;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -111,7 +111,7 @@ public class TestJavaEmailSenderCredential {
         }
 
         @Override
-        public void sendMessage(Message msg, javax.mail.Address[] addresses) {
+        public void sendMessage(Message msg, jakarta.mail.Address[] addresses) {
             sendMessageCount++;
         }
     }

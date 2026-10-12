@@ -59,9 +59,9 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Transport;
+import jakarta.mail.Message;
+import jakarta.mail.Session;
+import jakarta.mail.Transport;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -166,7 +166,7 @@ class TestJavaEmailSenderMfaE2E {
         }
 
         @Override
-        public void sendMessage(Message msg, javax.mail.Address[] addresses) {
+        public void sendMessage(Message msg, jakarta.mail.Address[] addresses) {
             sentMessages.add(msg);
         }
     }

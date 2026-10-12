@@ -78,9 +78,6 @@
         <!-- Versions for dependencies with hardcoded versions -->
         <!-- java-dataloader：两 BOM 均不管理（WI10 plan 2444 实测） -->
         <java-dataloader.version>3.2.2</java-dataloader.version>
-        <!-- com.sun.mail:jakarta.mail 为 javax 命名空间的 1.6.8 重发布件，两 BOM 均不管；
-             angus-mail 迁移归 roadmap WI11（plan 2445 起编），此处原样保留（WI10 plan 2444） -->
-        <jakarta.mail.version>1.6.8</jakarta.mail.version>
         <!-- semver4j：两 BOM 均不管理（WI10 plan 2444） -->
         <semver4j.version>3.1.0</semver4j.version>
         <!-- commons-csv：两 BOM 均不管理（WI10 plan 2444 实测，SB4 的 1.8 时代 pin 已移除管理） -->
@@ -205,11 +202,10 @@
                 <scope>import</scope>
             </dependency>
 
-            <dependency>
-                <groupId>com.sun.mail</groupId>
-                <artifactId>jakarta.mail</artifactId>
-                <version>${jakarta.mail.version}</version>
-            </dependency>
+            <!-- WI11 plan 2445：com.sun.mail:jakarta.mail（javax 命名空间 1.6.8 重发布件）
+                 条目已删除，邮件栈迁 org.eclipse.angus:angus-mail 2.0.5 +
+                 jakarta.mail:jakarta.mail-api 2.1.5（quarkus-bom 先 import 管理，
+                 消费方无版本声明、经 import 链直接生效，不设本地条目——2444 占位条目禁令） -->
 
             <dependency>
                 <groupId>com.vdurmont</groupId>
