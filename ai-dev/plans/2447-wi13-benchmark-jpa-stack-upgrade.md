@@ -1,6 +1,6 @@
 # 2447 WI13 benchmark JPA stack upgrade
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-12
 > Source: ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md WI13；plan 2444（BOM 分歧裁决政策）
 > Related: 2444/2445/2446（同 roadmap 前序 WI）
@@ -62,34 +62,34 @@ Exit Criteria:
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap、plan、log
 
 - Item Types: `Proof`
 
-- [ ] roadmap WI13 `todo` → `done`
-- [ ] 白名单提交（nop-benchmark-orm pom+4 java、plan 2447、log、roadmap）
-- [ ] 独立子 agent closure audit
-- [ ] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-benchmark --severity high / check-doc-links --strict
-- [ ] 文本一致性核对后置 `Plan Status: completed`
+- [x] roadmap WI13 `todo` → `done`
+- [x] 白名单提交（nop-benchmark-orm pom+4 java、plan 2447、log、roadmap）
+- [x] 独立子 agent closure audit
+- [x] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-benchmark --severity high / check-doc-links --strict
+- [x] 文本一致性核对后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] roadmap done；commit hash 记录 Closure；审计证据写入；三门留痕
+- [x] roadmap done；commit hash 记录 Closure；审计证据写入；三门留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（broken-in-place 旧栈 = 本 WI defect 面，已迁移）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（源码 namespace = 依赖栈 = BOM 基线一致）
-- [ ] 行为/契约结果已达成：模块 standalone test-compile SUCCESS 于 Hibernate 7.4.5 + spring-data-jpa 4 栈
-- [ ] 必要 focused verification 已完成（standalone test-compile 即本 WI 验证面）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：迁移真实生效（grep 零 javax.persistence + 实跑 test-compile），非注释式假迁移
-- [ ] 构建门：standalone test-compile SUCCESS（Gate A 全量构建不适用——模块不在 reactor；最近一次全量 Gate A = WI12 的 398 SUCCESS 可作平台基线引用）
-- [ ] Gate B：不适用（模块零测试，test-compile 即验证面）
-- [ ] 代码规范：import 分组符合仓内惯例
+- [x] 所有 in-scope confirmed live defects 已修复（broken-in-place 旧栈 = 本 WI defect 面，已迁移）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（源码 namespace = 依赖栈 = BOM 基线一致）
+- [x] 行为/契约结果已达成：模块 standalone test-compile SUCCESS 于 Hibernate 7.4.5 + spring-data-jpa 4 栈
+- [x] 必要 focused verification 已完成（standalone test-compile 即本 WI 验证面）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：迁移真实生效（grep 零 javax.persistence + 实跑 test-compile），非注释式假迁移
+- [x] 构建门：standalone test-compile SUCCESS（Gate A 全量构建不适用——模块不在 reactor；最近一次全量 Gate A = WI12 的 398 SUCCESS 可作平台基线引用）
+- [x] Gate B：不适用（模块零测试，test-compile 即验证面）
+- [x] 代码规范：import 分组符合仓内惯例
 
 ## Deferred But Adjudicated
 
@@ -101,13 +101,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: WI13 交付面全部落地并经独立 closure audit APPROVE（8/8 PASS，0 Blocker/0 Major）。hibernate-core 现代坐标 7.4.5 GA 钉 + jakarta.persistence-api 3.2.0 GA 钉（压 Q4 beta/milestone 胜者，政策依据 WI10）+ spring-data-jpa 4.1.1 随 BOM 链 + mybatis-plus 3.5.7 / beetlsql 3.34 保守钉 + 三编译缺陷修复 + 4 文件 javax→jakarta。审计 fresh 复跑 clean test-compile BUILD SUCCESS（40 源文件）+ dependency:tree 逐字核对裁决版本。
+Completed: 2026-10-12
+Commit: ad265ab3f0
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_dc7012cc-74eb-4d49-91b6-c285028537d0（fresh session）
+- Evidence:
+  - 8 项验证全 PASS（源码 grep 零 javax.persistence 且 javax.sql 保留正确 / pom 八项逐一 diff 实证 / clean test-compile fresh 复跑 SUCCESS / Gate 证据文件时序自洽 / Anti-Hollow 实跑验证 / 文本一致性 / Deferred-NonGoals 诚实性含 weed3 偏离裁定 / 白名单恰 8 文件零混入）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2447-wi13-benchmark-jpa-stack-upgrade.md --strict` 退出码 0（回填后复跑）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-benchmark --severity high` 退出码 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - Anti-Hollow：clean 全量编译在真实解析栈（hibernate 7.4.5 + JPA 3.2.0）上验证三缺陷修复均在实跑链路
+  - Deferred 项分类检查：weed3（上游停更偏离裁定）、reactor 状态（roadmap 未要求）、不跑 JMH（roadmap 交付面原文不含）——无 in-scope live defect 被降级
 
 Follow-up:
 
