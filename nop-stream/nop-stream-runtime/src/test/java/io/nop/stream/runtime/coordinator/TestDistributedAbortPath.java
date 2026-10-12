@@ -80,7 +80,7 @@ class TestDistributedAbortPath {
     }
 
     @Test
-    void checkpointAbortFiresCancelTaskRpcAtAllRemoteTasks() {
+    void checkpointAbortFiresCancelTaskRpcAtAllRemoteTasks() throws Exception {
         // RPC topology: a recording IStreamTaskRpcService exposed over RPC on node-1.
         serverImpl = new CoordinatorTestSupport.RecordingTaskRpcService();
         String topic = StreamControlRpcTopics.taskTopic("node-1");
@@ -131,6 +131,7 @@ class TestDistributedAbortPath {
             // Trigger a pending checkpoint (barrier crosses RPC; pending is created).
             PendingCheckpoint pending = coordinator.triggerCheckpoint();
             assertNotNull(pending, "a pending checkpoint must be triggerable");
+            awaitBarrierTriggered();
             assertEquals(1, serverImpl.triggerCount.get(),
                     "triggerCheckpoint barrier must cross RPC to the server impl");
 
@@ -148,6 +149,18 @@ class TestDistributedAbortPath {
             }
         } finally {
             coordinator.stop();
+        }
+    }
+
+    /**
+     * CC-06 (plan 2435): the triggerCheckpoint barrier crosses RPC via the
+     * per-node fan-out executors — wait (bounded) for the server impl to see
+     * it. plan 2436 fix-up after the wave's deferred Maven re-run.
+     */
+    private void awaitBarrierTriggered() throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (serverImpl.triggerCount.get() < 1 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
         }
     }
 

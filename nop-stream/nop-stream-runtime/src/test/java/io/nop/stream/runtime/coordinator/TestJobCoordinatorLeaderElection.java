@@ -55,6 +55,17 @@ class TestJobCoordinatorLeaderElection {
     private MockClusterRegistry clusterRegistry;
     private CheckpointCoordinator checkpointCoordinator;
     private CoordinatorTestSupport.RecordingTaskRpcService mockRpcService;
+
+    /**
+     * CC-06 (plan 2435): barrier fan-out dispatches off the trigger thread —
+     * wait (bounded) for delivery before asserting. plan 2436 fix-up.
+     */
+    private void awaitBarrierCrossed() throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        while (mockRpcService.lastBarrier.get() == null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(10);
+        }
+    }
     private Map<String, IStreamTaskRpcService> taskRpcServices;
     private DeploymentPlan deploymentPlan;
     private JobCoordinator coordinator;
@@ -199,7 +210,7 @@ class TestJobCoordinatorLeaderElection {
     }
 
     @Test
-    void testStandbyRejectsTriggerCheckpointExplicitly() {
+    void testStandbyRejectsTriggerCheckpointExplicitly() throws Exception {
         coordinator.start();
         // Standby: triggerCheckpoint must return null (rejected), not fire a barrier.
         PendingCheckpoint pending = coordinator.triggerCheckpoint();
@@ -211,6 +222,7 @@ class TestJobCoordinatorLeaderElection {
         elector.grantLeadership(1L);
         PendingCheckpoint active = coordinator.triggerCheckpoint();
         assertNotNull(active, "active leader must be able to trigger checkpoints");
+        awaitBarrierCrossed();
         assertNotNull(mockRpcService.lastBarrier.get());
     }
 
