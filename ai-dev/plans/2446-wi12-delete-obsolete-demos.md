@@ -49,7 +49,7 @@ Exit Criteria:
 
 ### Phase 2 - 验证与收口
 
-Status: planned
+Status: completed
 Targets: 全仓构建、roadmap、plan
 
 - Item Types: `Proof`
@@ -91,12 +91,17 @@ Exit Criteria:
 
 Status Note: 两废弃 demo 目录已删（含 git-ignored 残留清理）、聚合 pom 两行注销、Gate A 398 SUCCESS（399−1 恰为删去的 jdk17-demo）+ 恰 4 chronic 家族；删除引发的 markdown 路径引用失效已按 Rule 20 修复（9 处改模块名引用 + 2 处 nop-ai 历史文档旧类路径指向 gateway 现址），doc-links --strict exit 0。
 Completed: 2026-10-12
-Commit: （本次收口提交）
+Commit: 54910b9881
 
 Closure Audit Evidence:
 
 - Reviewer / Agent: 独立子 agent（fresh session）
-- Evidence: （审计后回填）
+- Evidence:
+  - 审计 agent：agent_beb27e95-022e-4032-a254-2aacf7a63ec4（fresh session）。9 项验证 8 PASS + 1 Major（Phase 2 Status 字符串未同步，本回填修复）→ APPROVE。
+  - 两目录不存在含 git-ignored 残留；git ls-files 零命中；pom 恰删 2 行其余 14 module 行完好；xml/java grep 零命中、docs-for-ai 零引用。
+  - Gate A = 402 reactor = 398 SUCCESS + 4 FAILURE（恰 chronic 家族 gen-aop 归因）；doc-links --strict exit 0（0 errors 0 warnings）；scan-hollow nop-demo exit 0；check-plan-checklist exit 0。
+  - 引用修复：roadmap 4 处 + plan 2437 实修 2 处（:17 与 :57，过修记录在案）+ 本 plan 2 处 + nop-ai 历史文档 2 处（ConcurrencyRegistry gateway 现址实存）。
+  - HEAD 54910b9881 恰 21 files 无混入；Deferred/Follow-up 无藏匿。
 
 Follow-up:
 
