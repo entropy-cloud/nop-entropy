@@ -261,6 +261,9 @@ public class TreeTableDataParser {
                 if (!StringHelper.isEmpty(fieldName))
                     return fields.getFieldModel(fieldName);
             }
+            // 列表模式也支持 unknownField 兜底，与 parseField 行为对齐：
+            // 模板未定义 unknownField 时仍为 null（保留原有抛错行为），定义后未知列路由到该字段
+            field = fields.getUnknownField();
         }
         return field;
     }
