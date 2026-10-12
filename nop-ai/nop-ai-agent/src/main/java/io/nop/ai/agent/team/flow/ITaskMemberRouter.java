@@ -26,7 +26,7 @@ import io.nop.ai.agent.team.TeamTask;
  * </ul>
  *
  * <h2>Shipped default</h2>
- * <p>{@link NoOpTaskMemberRouter} (alias {@link SingleTaskMemberRouter})
+ * <p>{@link DefaultTaskMemberRouter} (alias {@link SingleTaskMemberRouter})
  * reproduces the pre-244 single-member behaviour exactly: for a team with
  * a bound member it returns a singleton BOUND plan (the existing
  * {@code resolveMember} result wrapped as a one-element list); for a team

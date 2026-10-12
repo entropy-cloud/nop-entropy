@@ -11,7 +11,7 @@ import io.nop.ai.agent.team.flow.ITaskMemberRouter;
 import io.nop.ai.agent.team.flow.MemberDispatchOutcome;
 import io.nop.ai.agent.team.flow.MemberDispatchPlan;
 import io.nop.ai.agent.team.flow.MemberFanOutDispatcher;
-import io.nop.ai.agent.team.flow.NoOpTaskMemberRouter;
+import io.nop.ai.agent.team.flow.DefaultTaskMemberRouter;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -71,7 +71,7 @@ public class TaskDispatchCoordinator {
         this.taskStore = taskStore;
         this.daemonSessionId = daemonSessionId;
         this.memberExecTimeoutMs = memberExecTimeoutMs;
-        this.taskMemberRouter = NoOpTaskMemberRouter.noOp();
+        this.taskMemberRouter = DefaultTaskMemberRouter.noOp();
         this.memberSpawner = NoOpMemberSpawner.noOp();
     }
 
@@ -80,7 +80,7 @@ public class TaskDispatchCoordinator {
     }
 
     public void setTaskMemberRouter(ITaskMemberRouter taskMemberRouter) {
-        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
+        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : DefaultTaskMemberRouter.noOp();
     }
 
     public IMemberSpawner getMemberSpawner() {

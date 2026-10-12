@@ -76,6 +76,10 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.engine.DefaultAgentEventPublisher",
             "io.nop.ai.agent.fencing.DefaultFencingTokenService",
             "io.nop.ai.agent.hook.DefaultHookRegistry",
+            // WI12/plan 2444 (A4): renamed from the former NoOp-prefixed name — it is
+            // the functional default routing algorithm (bound > spawn > empty),
+            // not a no-op; not a security-surface class.
+            "io.nop.ai.agent.team.flow.DefaultTaskMemberRouter",
             "io.nop.ai.agent.quota.DefaultResourceGuard",
             "io.nop.ai.agent.reliability.DefaultWaitCoordinator",
             "io.nop.ai.agent.runtime.recovery.DefaultOrphanRecoveryHandler",
@@ -93,6 +97,7 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.security.DefaultToolAccessChecker",
             "io.nop.ai.agent.team.DefaultMemberSpawner",
             "io.nop.ai.agent.team.DefaultTeamAclChecker",
+            "io.nop.ai.agent.team.flow.DefaultTaskMemberRouter",
             "io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry",
             "io.nop.ai.core.persist.DefaultAiChatResponseCache",
             "io.nop.ai.core.persist.DefaultChatExchangePersister",
@@ -103,8 +108,8 @@ public class TestInvariantGate1SecureDefault {
 
     /**
      * The nop-ai-agent module's own Default* classes (I0 table §3.1 rows
-     * 1-23; 23 = 22 original + DefaultBackgroundTaskRegistry added by plan
-     * 2301/WI25 per the Loop Rule). Used for table-completeness against this
+     * 1-24; 24 = 22 original + DefaultBackgroundTaskRegistry (plan 2301/WI25)
+     * + DefaultTaskMemberRouter (WI12/plan 2444) per the Loop Rule). Used for table-completeness against this
      * module's source tree; the declaration check uses {@link #TABLE} (agent
      * +core+toolkit, all visible on this test classpath).
      */
@@ -131,6 +136,7 @@ public class TestInvariantGate1SecureDefault {
             "io.nop.ai.agent.security.DefaultToolAccessChecker",
             "io.nop.ai.agent.team.DefaultMemberSpawner",
             "io.nop.ai.agent.team.DefaultTeamAclChecker",
+            "io.nop.ai.agent.team.flow.DefaultTaskMemberRouter",
             "io.nop.ai.agent.tool.DefaultBackgroundTaskRegistry"
     );
 

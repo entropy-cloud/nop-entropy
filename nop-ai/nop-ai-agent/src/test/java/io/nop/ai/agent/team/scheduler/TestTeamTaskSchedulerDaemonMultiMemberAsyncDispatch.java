@@ -346,7 +346,7 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
                 engine, store, mgr, new RecordingScheduler());
         // No router wired → NoOp shipped default (singleton single-member plan).
         assertNotNull(daemon.getTaskMemberRouter());
-        assertTrue(daemon.getTaskMemberRouter() instanceof io.nop.ai.agent.team.flow.NoOpTaskMemberRouter,
+        assertTrue(daemon.getTaskMemberRouter() instanceof io.nop.ai.agent.team.flow.DefaultTaskMemberRouter,
                 "shipped default router = NoOp (single-member plan, zero regression)");
 
         SchedulerScanResult r = daemon.scanOnce();

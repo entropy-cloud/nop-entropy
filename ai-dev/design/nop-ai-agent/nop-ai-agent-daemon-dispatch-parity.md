@@ -131,7 +131,7 @@ keeps the `ITeamTaskStore` state machine unchanged.
 
 ### 5. The NoOp shipped router default reproduces the pre-245 single-member behavior
 
-`NoOpTaskMemberRouter` (the shipped default, wired null-safe into the
+`DefaultTaskMemberRouter` (the shipped default since WI12/plan 2444 rename, wired null-safe into the
 daemon) produces a singleton plan: bound priority + spawn fallback, the
 same member the pre-245 daemon's `resolveBoundMember` /
 `DefaultMemberSpawner.resolveSpawnTarget` pair would have selected. A

@@ -51,7 +51,7 @@ half) — doubles wiring complexity for no benefit. **Rejected**: changing
 `resolveMember` / `resolveSpawnTarget` to return Lists — breaks the bound-
 priority single-member regression invariant (plans 233/238 tests assert the
 single-member resolution path line-for-line). The shipped
-`NoOpTaskMemberRouter` default reproduces the pre-244 single-member
+`DefaultTaskMemberRouter` default (renamed from the NoOp-prefixed name in WI12/plan 2444) reproduces the pre-244 single-member
 resolution exactly (bound priority + spawn fallback), wrapped as a
 singleton plan, so single-member teams behave identically to plans
 233/238/241/243.

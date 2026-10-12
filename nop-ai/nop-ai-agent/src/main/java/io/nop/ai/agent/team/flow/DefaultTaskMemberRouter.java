@@ -68,14 +68,14 @@ import java.util.Map;
  *
  * <p>See plan 244 (L4-multi-member-per-task-routing), design 裁定 2.
  */
-public final class NoOpTaskMemberRouter implements ITaskMemberRouter {
+public final class DefaultTaskMemberRouter implements ITaskMemberRouter {
 
-    private static final NoOpTaskMemberRouter INSTANCE = new NoOpTaskMemberRouter();
+    private static final DefaultTaskMemberRouter INSTANCE = new DefaultTaskMemberRouter();
 
     /**
      * @return the singleton shipped-default single-member router.
      */
-    public static NoOpTaskMemberRouter noOp() {
+    public static DefaultTaskMemberRouter noOp() {
         return INSTANCE;
     }
 
@@ -85,11 +85,11 @@ public final class NoOpTaskMemberRouter implements ITaskMemberRouter {
      *
      * @return the singleton shipped-default single-member router.
      */
-    public static NoOpTaskMemberRouter single() {
+    public static DefaultTaskMemberRouter single() {
         return INSTANCE;
     }
 
-    private NoOpTaskMemberRouter() {
+    private DefaultTaskMemberRouter() {
     }
 
     @Override
