@@ -15,7 +15,7 @@
 | ops server scrape | `nop-stream/nop-stream-runtime`（`StreamOpsHttpServer`） | 直接 import `io.micrometer.prometheusmetrics.PrometheusMeterRegistry`；wire 名规范（`.`→`_`、counter `_total`、TextFormat 0.0.4/OpenMetrics 协商）见 `03-modules/nop-stream.md` |
 | `/actuator/prometheus` | `nop-demo/nop-spring-simple-demo` | `micrometer-registry-prometheus`（无版本，SB4 BOM 管理）+ `spring-boot-starter-actuator` |
 
-- 平台库 `nop-kernel/nop-commons` 也声明 micrometer-registry-prometheus + micrometer-core（BOM 管理v1），`GlobalMeterRegistry` 默认 SimpleMeterRegistry（无 Prometheus registerInstance 调用方）。
+- 平台库 `nop-kernel/nop-commons` 也声明 micrometer-registry-prometheus + micrometer-core（BOM 管理 v1），`GlobalMeterRegistry` 静态默认 SimpleMeterRegistry；Quarkus 集成路径（`nop-quarkus-core-starter` 的 `QuarkusIntegration`）在启动时注入容器 MeterRegistry——含 prometheus 扩展的应用运行期即为 Prometheus-backed（`GlobalMeterRegistry` 自身无 scrape 端点）。
 - 旧 simpleclient 线（`micrometer-registry-prometheus-simpleclient` / `io.micrometer.prometheus.<legacy>` 包）**全仓零引用**——不得重新引入。
 - 指标命名规则与 stream 面实测 wire 名见 `03-modules/nop-stream.md`。
 
