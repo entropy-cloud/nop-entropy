@@ -43,7 +43,7 @@ audit-rounds: 0
 - WI9 错误码归位（NopAiCoreErrors 代管项归还各模块）: `done`（plan 2438：11 码归位——tools 9 码迁新建 NopAiToolsErrors、model-class 码迁新建 NopAiRoutingErrors、vector-length 码迁既有 NopAiRagErrors，后两个为 WI4/WI5 遗留孤儿码执行期纳入；ERR_AI_AGENT_INVALID_ARG 经重裁定留守 core——消费属地跨 core/gateway/agent、core 不可依赖 agent，重启条件 = reliability 类迁回则随迁；ID/描述零变化；nop-cli yaml 生成清单已补新 holder）
 - WI10 NopAiAgentException 上移断包环: `done`（plan 2441：NopAiAgentException + SessionIds 上移 agent 根包——reliability→engine 16 条清零消 engine⇄reliability 环、security→engine 30→16 条降至 AgentExecutionContext 单类型显式登记最小集——整体上移会造 root⇄security 与 root→plan.runtime→engine 新环故裁定留守；7 个跨模块契约点同步含 TaskExceptionRegistry 反射串；全仓旧 FQN 零残留；全量 install 18 个 nop-ai 模块 SUCCESS）
 - WI11 agent 引擎装配面收敛: `done`（plan 2443：8 telescoping 构造删除——唯一保留 = 包私有 9 参装配构造 + protected 3 参测试 spy 缝；79 个纯 config 委托删除，config 访问通道即 IAgentEngine default fail-loud 方法替代，401 处实际使用；ReActAgentExecutor 47→10 参 Config 单一承载 + Builder 38 镜像字段删除 + 默认层 verbatim 保留；行为零变化 3536 测试全绿；净删偏差：src/main 净 -111、全 diff 净 +1200 因测试侧 Builder 链展开——roadmap 约 800 行目标按 WI8 先例登记不可达；A2b 双标志归一 + A3b 超时 0=disabled 合法化 + gate-2 目录登记为显式契约更新）
-- WI12 扩展点微包收敛与 NoOp 审计: `todo`
+- WI12 扩展点微包收敛与 NoOp 审计: `done`（plan 2444：41 个 NoOp 逐个审计全部裁定 keep——38 有 main 生产实现者 + 3 例外各有定位——NoOpBudgetProvider 用户侧 SPI、NoOpTalent final null-object、NoOpTaskMemberRouter 功能性默认正名改名 DefaultTaskMemberRouter；台账落 plan 附录 + extension-matrix 注记；微包按 roadmap 原 300-800 行口径 live 重测 5 包全部 keep；P3 命名两项评估维持现状；NoOp 文件数 41→40 因 1 个正名 Default*；契约更新 = gate-1 表 + gate-gaps.yaml 登记）
 - WI13 guardrail/test harness 移出 main: `todo`
 - WI14 nop-ai-api 瘦身（应用实体契约迁出）: `todo`
 - WI15 MCP 三模块整合与 servrer 更名: `todo`

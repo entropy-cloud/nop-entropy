@@ -11,7 +11,7 @@
 ## 一、设计结论
 
 1. 本篇是 vision §4「渐进式增强」的**反向审计工具**——用一张表回答"每个扩展点当前是否闭合"
-2. 全模块共 **72 个顶层 public interface**（`io.nop.ai.agent` 主源码，排除 `_gen`；另有 1 个嵌套接口 `StoreFactory`，共 73 个声明，2026-09-14 live 复核），按角色四分：核心契约 4 / 真正扩展点 57 / 回调契约 4 / NoOp-only 2 / 预留原语 1 / 矩阵外接口 4（错误码容器 `NopAiAgentErrors` + 3 个 guardrail 测试 SPI，不参与闭合分析）
+2. 全模块共 **72 个顶层 public interface**（`io.nop.ai.agent` 主源码，排除 `_gen`；另有 1 个嵌套接口 `StoreFactory`，共 73 个声明，2026-09-14 live 复核），按角色四分：核心契约 4 / 真正扩展点 57 / 回调契约 4 / NoOp-only 1（WI12/plan 2444 后：ITaskMemberRouter 随 DefaultTaskMemberRouter 正名退出该类）/ 预留原语 1 / 矩阵外接口 4（错误码容器 `NopAiAgentErrors` + 3 个 guardrail 测试 SPI，不参与闭合分析）
 3. 当前 **2 处半闭合** + **1 处未闭合** + **5 处命名异味** + **3 处接线缺口/死代码** 是 vision §4 落实的主要缺口
 4. 本篇与 `glossary.md`（术语层）、`nop-ai-agent-roadmap.md`（状态层）互补——glossary 列概念，roadmap 列阶段，本篇**列闭合度**
 
@@ -45,7 +45,7 @@
 | **核心契约** | 框架骨架，不可替换（即使有 default 实现也是单源） | 4 | ❌ 列在 §4.0 但不参与闭合分析 |
 | **真正扩展点** | 消费者在框架内、实现可被集成商替换 | 57 | ✅ 主体 |
 | **回调契约** | 框架只声明签名，由下游/插件实现 | 4 | ❌ 列在 §4.0 |
-| **NoOp-only 扩展点** | 消费者已接通，但唯一实现是 NoOp（半闭合） | 2 | ✅ 主体（红色高亮） |
+| **NoOp-only 扩展点** | 消费者已接通，但唯一实现是 NoOp（半闭合） | 1（WI12 后） | ✅ 主体（红色高亮） |
 | **预留原语** | 接口 + NoOp + 功能实现均已落地，但零消费者 | 1 | ✅ 主体（红色高亮） |
 | **矩阵外接口** | 错误码容器 / 测试 SPI，非扩展点 | 4 | ❌ 不进入矩阵 |
 
@@ -160,7 +160,7 @@
 | `ITeamManager` | team | `NoOpTeamManager` | 无 | `InMemoryTeamManager` / `DbTeamManager` | DAE, RAE, ATEC, TTFO, TTSD | ✅ |
 | `ITeamTaskStore` | team | `NoOpTeamTaskStore` | 无 | `InMemoryTeamTaskStore` / `DbTeamTaskStore` | DAE, RAE, ATEC, TTFO, TTSD, steps | ✅ |
 | `IReductionStrategy` | team/flow | 无（`AllMustSucceedReduction` 即默认） | `AllMustSucceedReduction` | 无 | MemberFanOutDispatcher, fan-out steps | ✅ |
-| `ITaskMemberRouter` | team/flow | `NoOpTaskMemberRouter`（**命名误导**，实为功能默认） | 无 | 无 | TTFO, TTSD | ✅ |
+| `ITaskMemberRouter` | team/flow | `DefaultTaskMemberRouter`（WI12/plan 2444 正名，原名 NoOpTaskMemberRouter 曾为命名误导） | 无 | 无 | TTFO, TTSD | ✅ |
 | `ITeamTaskSchedulerDaemon` | team/scheduler | `NoOpTeamTaskSchedulerDaemon` | `TeamTaskSchedulerDaemon` | 无 | DAE (held) | ✅ |
 | `IAgentMessenger` | message | `NoOpAgentMessenger` | `LocalAgentMessenger` | （`DBMessageService` 实现 `IMessageService`） | DAE, RAE, ATEC, tools | ✅ |
 | `IMailbox` | message | `NoOpMailbox` | `DeferredAckMailbox` | 无 | AgentActor, MailboxMessageHandler, IAR | ✅ |
@@ -242,10 +242,15 @@
 
 | 接口 | 命名 | 实际语义 | 问题 |
 |---|---|---|---|
-| `ITaskMemberRouter` | `NoOpTaskMemberRouter` | **功能性默认**——按 bound > spawn > empty 算法做单成员路由 | NoOp 命名暗示"什么都不做"，但实际是默认算法实现 |
+| `ITaskMemberRouter` | `DefaultTaskMemberRouter`（WI12 正名） | **功能性默认**——按 bound > spawn > empty 算法做单成员路由 | ~~NoOp 命名误导~~ 已消除（WI12/plan 2444 落地改名建议） |
 | `ITenantResolver` | `NullTenantResolver` | **空实现**（null tenant = 全部可见） | 横切依赖命名偏离 NoOp 范式 |
 
-**评估**：`NoOpTaskMemberRouter` 是本矩阵最严重的命名误导——读者可能误以为它是 no-op 而跳过算法理解。**建议**：考虑重命名为 `DefaultTaskMemberRouter` 或 `SingleMemberRouter`。
+**评估**：~~`NoOpTaskMemberRouter` 是本矩阵最严重的命名误导~~ **已解决（WI12/plan 2444）**：已按本节建议改名为 `DefaultTaskMemberRouter`。
+
+### 5.2a WI12 NoOp 全量审计注记（plan 2444，2026-10-12）
+
+- 41 个顶层 NoOp 类逐个审计（台账 = plan 2444 附录 A）：**38/41 有 main 生产实现者**；3 例外各有定位——`NoOpBudgetProvider`（用户侧 SPI，successor=预算策略接入）、`NoOpTalent`（final null-object 默认，扩展=实现 ITalent）、`DefaultTaskMemberRouter`（功能性默认算法，本轮正名）。**41/41 裁定 keep**（null-object 装配默认 + 可选扩展点文档化默认），零删除、零 default-method 化（与 `NopAiAgentErrors` 的 not-supported default-method 模式语义不同，不混用）。
+- 微包裁定（roadmap 300-800 行口径 live 重测 5 包）：talent / budget / recipe / runtime/lock / runtime/coordination **全部 keep**（概念内聚 + 有生产实现者/用户侧 SPI）。P3 命名两项（agent/reliability vs core/reliability、compaction 三包分层）评估结论 = 维持现状。
 
 ### 6.3 接线缺口（3 处）
 

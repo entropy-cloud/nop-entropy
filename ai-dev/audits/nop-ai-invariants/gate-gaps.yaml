@@ -18,7 +18,12 @@
 # 行为语义验证不属门禁①（归 I2）。实例 = FQCN（目标集 = invariant-catalog §3.1）。
 # I4 修复（2026-08-12）：33/33 类已补 @SecureDefault 注解 → 清单条目全部移除，
 # 门禁恢复实判（有注解 → 绿；棘轮反例验证：临时去注解 → 红 → 恢复 → 绿）。
-gate-1-default-secure: []
+gate-1-default-secure:
+  - instance: io.nop.ai.agent.team.flow.DefaultTaskMemberRouter
+    reason: 非安全面类——WI12/plan 2444 (A4) 由 NoOpTaskMemberRouter 正名改名（功能性默认路由算法 bound>spawn>empty，非 no-op）；无安全默认声明需求
+    reason-type: not-applicable
+    date: 2026-10-12
+    owner: WI12-plan-2444
 
 # 门禁②：编排入口 timeout 声明。首跑实判：9/14 已声明（配置/机制标记），4 个 not-applicable
 # （forkSession/cancelSession/close 无异步执行等待面 + getSessionStatus 同步查询入口——I1 表完备性

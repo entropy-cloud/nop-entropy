@@ -50,10 +50,10 @@ public class TestMultiMemberFanOutRouting extends AbstractMultiMemberFanOutTest 
     void noOpRouterSingleMemberZeroRegression() {
         // NoOp router is the shipped default; constructing an orchestrator
         // without an explicit router must use it.
-        assertEquals(NoOpTaskMemberRouter.noOp().getClass(),
+        assertEquals(DefaultTaskMemberRouter.noOp().getClass(),
                 new TeamTaskFlowOrchestrator(null, new InMemoryTeamTaskStore(),
                         new InMemoryTeamManager()).getTaskMemberRouter().getClass(),
-                "shipped default router is NoOpTaskMemberRouter");
+                "shipped default router is DefaultTaskMemberRouter");
 
         // NoOp + single bound member → singleton BOUND plan via the existing
         // MemberAgentTaskStep (zero regression).

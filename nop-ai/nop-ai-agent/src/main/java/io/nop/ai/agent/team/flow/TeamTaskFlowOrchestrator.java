@@ -112,7 +112,7 @@ import java.util.stream.Collectors;
  * As of plan 244 ({@code L4-multi-member-per-task-routing}), the orchestrator
  * consults a pluggable {@link ITaskMemberRouter} at <b>graph build time</b>
  * to decide which member targets each node fans out to. The shipped
- * {@link NoOpTaskMemberRouter} default produces a singleton plan (bound
+ * {@link DefaultTaskMemberRouter} default produces a singleton plan (bound
  * priority + spawn fallback), so a single-member team behaves line-for-line
  * identically to plans 233/238/241/243 (zero regression). A multi-member
  * router produces an N-target plan, and the orchestrator builds a fan-out
@@ -174,7 +174,7 @@ public class TeamTaskFlowOrchestrator {
      * build time</b> for each team task to decide which member targets the
      * node fans out to (bound +/or spawn) and which reduction strategy
      * combines their futures. Shipped default is
-     * {@link NoOpTaskMemberRouter} (singleton single-member plan — bound
+     * {@link DefaultTaskMemberRouter} (singleton single-member plan — bound
      * priority + spawn fallback, line-for-line identical to plans 233/238/
      * 241/243 single-member behaviour). Integrators opt into multi-member
      * fan-out via the router-aware constructor or
@@ -184,7 +184,7 @@ public class TeamTaskFlowOrchestrator {
      * {@link #setMemberSpawner} and the other Layer 4 extension-point
      * setter patterns). Reads go through the field directly.
      */
-    private ITaskMemberRouter taskMemberRouter = NoOpTaskMemberRouter.noOp();
+    private ITaskMemberRouter taskMemberRouter = DefaultTaskMemberRouter.noOp();
 
     /**
      * Dedicated executor for {@link SpawnMemberAgentTaskStep}'s supplyAsync
@@ -268,7 +268,7 @@ public class TeamTaskFlowOrchestrator {
      * the spawner).
      *
      * <p>When {@code taskMemberRouter} is {@code null}, the orchestrator uses
-     * the shipped {@link NoOpTaskMemberRouter} default (single-member plan —
+     * the shipped {@link DefaultTaskMemberRouter} default (single-member plan —
      * bound priority + spawn fallback, line-for-line identical to plans
      * 233/238/241/243). When a multi-member router is supplied, the
      * orchestrator fans each task node out to the router's N targets under
@@ -279,7 +279,7 @@ public class TeamTaskFlowOrchestrator {
      *                         the shipped {@link NoOpMemberSpawner} default
      * @param taskMemberRouter optional per-task member router consulted at graph
      *                         build time to decide the node's fan-out; {@code null}
-     *                         falls back to the shipped {@link NoOpTaskMemberRouter}
+     *                         falls back to the shipped {@link DefaultTaskMemberRouter}
      *                         single-member default
      */
     public TeamTaskFlowOrchestrator(IAgentEngine agentEngine, ITeamTaskStore taskStore,
@@ -302,7 +302,7 @@ public class TeamTaskFlowOrchestrator {
      *                         the shipped {@link NoOpMemberSpawner} default
      * @param taskMemberRouter optional per-task member router consulted at graph
      *                         build time to decide the node's fan-out; {@code null}
-     *                         falls back to the shipped {@link NoOpTaskMemberRouter}
+     *                         falls back to the shipped {@link DefaultTaskMemberRouter}
      *                         single-member default
      * @param memberExecTimeoutMs the per-member execution deadline (ms) applied
      *                         by the fan-out and the {@link #executeAsync}
@@ -319,7 +319,7 @@ public class TeamTaskFlowOrchestrator {
         this.taskFlowManager = taskFlowManager != null ? taskFlowManager : new TaskFlowManagerImpl();
         this.graphBuilder = new TeamTaskGraphBuilder();
         this.memberSpawner = memberSpawner != null ? memberSpawner : NoOpMemberSpawner.noOp();
-        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
+        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : DefaultTaskMemberRouter.noOp();
         if (memberExecTimeoutMs <= 0) {
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "nop.ai.team.flow.invalid-member-timeout: memberExecTimeoutMs must be positive, got: "
                             + memberExecTimeoutMs);
@@ -361,7 +361,7 @@ public class TeamTaskFlowOrchestrator {
     /**
      * @return the per-task member router wired into this orchestrator (plan 244).
      *         Never {@code null}: an orchestrator constructed without an explicit
-     *         router returns the shipped {@link NoOpTaskMemberRouter} singleton.
+     *         router returns the shipped {@link DefaultTaskMemberRouter} singleton.
      */
     public ITaskMemberRouter getTaskMemberRouter() {
         return taskMemberRouter;
@@ -373,7 +373,7 @@ public class TeamTaskFlowOrchestrator {
      * at graph build time for each team task to decide which member targets the
      * node fans out to (bound +/or spawn) and which reduction strategy combines
      * their futures. Passing {@code null} resets to the shipped
-     * {@link NoOpTaskMemberRouter} single-member default (line-for-line
+     * {@link DefaultTaskMemberRouter} single-member default (line-for-line
      * identical to plans 233/238/241/243 — zero regression). Passing a
      * multi-member router opts the orchestrator into N-target fan-out per node.
      *
@@ -383,10 +383,10 @@ public class TeamTaskFlowOrchestrator {
      * loop, so the orchestrator owns its injection (not the engine).
      *
      * @param taskMemberRouter the router to wire; {@code null} falls back to
-     *                         {@link NoOpTaskMemberRouter#noOp()}
+     *                         {@link DefaultTaskMemberRouter#noOp()}
      */
     public void setTaskMemberRouter(ITaskMemberRouter taskMemberRouter) {
-        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : NoOpTaskMemberRouter.noOp();
+        this.taskMemberRouter = taskMemberRouter != null ? taskMemberRouter : DefaultTaskMemberRouter.noOp();
     }
 
     /**

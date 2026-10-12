@@ -7,7 +7,7 @@ import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.team.flow.ITaskMemberRouter;
 import io.nop.ai.agent.team.ITeamTaskStore;
 import io.nop.ai.agent.team.flow.MemberDispatchPlan;
-import io.nop.ai.agent.team.flow.NoOpTaskMemberRouter;
+import io.nop.ai.agent.team.flow.DefaultTaskMemberRouter;
 import io.nop.ai.agent.team.Team;
 import io.nop.ai.agent.team.TeamTask;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
@@ -93,11 +93,11 @@ public class TestTaskDispatchCoordinator {
     void coordinatorDefaultsToNoOpRouter() {
         TaskDispatchCoordinator coordinator = new TaskDispatchCoordinator(
                 new StubEngine(), new StubTaskStore(), "daemon");
-        assertTrue(coordinator.getTaskMemberRouter() instanceof NoOpTaskMemberRouter);
+        assertTrue(coordinator.getTaskMemberRouter() instanceof DefaultTaskMemberRouter);
         assertNotNull(coordinator.getMemberSpawner());
         coordinator.setTaskMemberRouter(null);
         coordinator.setMemberSpawner(null);
-        assertTrue(coordinator.getTaskMemberRouter() instanceof NoOpTaskMemberRouter);
+        assertTrue(coordinator.getTaskMemberRouter() instanceof DefaultTaskMemberRouter);
     }
 
     @Test
