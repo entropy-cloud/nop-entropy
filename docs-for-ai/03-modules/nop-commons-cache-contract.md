@@ -20,10 +20,12 @@
 | `LocalCache` | 覆写：Caffeine `asMap().putIfAbsent`（原子） | 覆写：Caffeine `get(key, fn)`（mapping 恰执行一次） | 返回真实 `CacheConfig` | 真重建 Caffeine；支持配置热刷新 | 有界 + metrics + W-TinyLFU |
 | `MapCache` | 覆写：`ConcurrentHashMap` | 覆写：`map.computeIfAbsent` | — | — | session 级常用 |
 | `NosqlCache` | 覆写：委托 Redis `ops` | 覆写：委托 Redis `ops`（服务端原子） | — | — | |
-| `JavaxCache` | 覆写：JCache `cache.putIfAbsent`（原子） | 覆写：JCache `getAndPut`（原子，单一胜者） | **恒返回 `null`** | **有明确语义的空实现**（见下） | 包装外部 JCache |
-| `HazelcastCache` | 继承 `JavaxCache` | 继承 `JavaxCache` | 冗余覆写返回 `null` | 继承 | 分布式 |
+| `EhcacheCache`（WI14 起替代 `JavaxCache`） | 覆写：Ehcache `cache.putIfAbsent` 返回前值 `==null` 判定（原子） | 不覆写：走 `ICache` 锁化 default（Ehcache 无原子 computeIfAbsent） | **恒返回 `null`** | **有明确语义的空实现**（见下） | 包装外部 Ehcache 3 Cache（依赖 optional，使用者自行声明 `org.ehcache:ehcache:jakarta`） |
+| `HazelcastCache` | 覆写：IMap `putIfAbsent`（原子） | 覆写：`IMap.computeIfAbsent`（**服务端原子**） | **恒返回 `null`** | **有明确语义的空实现** | 包装 Hazelcast 原生 `IMap`（WI14 起脱离 JCache 面；stats 无 missCount——LocalMapStats 无 misses 统计） |
 
-**`JavaxCache.refreshConfig()` 的空体是有意设计**：其配置由底层 JCache 实现（Hazelcast/Ehcache）自管，nop 侧 `CacheConfig` 不适用。**调用方应以 `getConfig() == null` 判断该实现是否支持 nop 侧配置**，不要假定 `refreshConfig()` 一定有效果。
+**`EhcacheCache.getAndSet` 的语义裁定（WI14 plan 2448）**：Ehcache 3 无原子 `getAndPut`，`getAndSet` 走 `ICache` 竞态 default（get+put 非原子）——并发场景不保证单一胜者；需要原子 getAndSet 时使用 HazelcastCache（`IMap.put` 原子返回旧值）或 LocalCache。
+
+**`EhcacheCache.refreshConfig()` / `HazelcastCache.refreshConfig()` 的空体是有意设计**：其配置由底层实现（Ehcache CacheManager / Hazelcast 集群配置）自管，nop 侧 `CacheConfig` 不适用。**调用方应以 `getConfig() == null` 判断该实现是否支持 nop 侧配置**，不要假定 `refreshConfig()` 一定有效果。
 
 ## 容量/过期配置能力
 

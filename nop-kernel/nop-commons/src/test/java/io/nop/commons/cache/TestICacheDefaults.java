@@ -230,192 +230,57 @@ public class TestICacheDefaults {
         }
     }
 
-    @Test
-    public void testJavaxCacheComputeIfAbsentSingleWinner() {
-        // 用可插拔的原子Map模拟javax.cache语义：putIfAbsent/getAndPut原子
-        AtomicFakeJavaxCache<String, String> inner = new AtomicFakeJavaxCache<>();
-        JavaxCache<String, String> cache = new JavaxCache<>(inner);
-
-        assertTrue(cache.putIfAbsent("a", "1"));
-        assertFalse(cache.putIfAbsent("a", "2"));
-        assertEquals("1", cache.getIfPresent("a"));
-
-        AtomicInteger calls = new AtomicInteger();
-        assertEquals("1", cache.computeIfAbsent("a", k -> {
-            calls.incrementAndGet();
-            return "other";
-        }));
-        assertEquals(0, calls.get());
-
-        assertEquals("b1", cache.computeIfAbsent("b", k -> "b1"));
-        assertEquals("b1", cache.computeIfAbsent("b", k -> "b2"));
-
-        assertNull(cache.computeIfAbsent("c", k -> null));
-        assertFalse(cache.containsKey("c"));
-    }
-
     /**
-     * 最小的原子fake，仅实现JavaxCache用到的方法，putIfAbsent/getAndPut用ConcurrentHashMap原子语义
+     * WI14 plan 2448：EhcacheCache 真实行为测试（真实 CacheManager + on-heap cache）。
+     * 语义点：putIfAbsent 原子（返回 boolean）；computeIfAbsent 走 ICache 锁化 default
+     * （putIfAbsent 兜底，与 2448 Ruling 1 裁定一致）；getAndSet 为 get+put 顺序语义
+     * （Ehcache 无原子 getAndPut——继承 default 是显式裁决的语义损失）。
      */
-    static class AtomicFakeJavaxCache<K, V> implements javax.cache.Cache<K, V> {
-        final java.util.concurrent.ConcurrentHashMap<K, V> map = new java.util.concurrent.ConcurrentHashMap<>();
+    @Test
+    public void testEhcacheCacheBehavior() {
+        org.ehcache.CacheManager manager = org.ehcache.config.builders.CacheManagerBuilder
+                .newCacheManagerBuilder()
+                .withCache("test-icache", org.ehcache.config.builders.CacheConfigurationBuilder
+                        .newCacheConfigurationBuilder(String.class, String.class,
+                                org.ehcache.config.builders.ResourcePoolsBuilder.heap(100)))
+                .build(true);
+        try {
+            org.ehcache.Cache<String, String> inner = manager.getCache("test-icache", String.class, String.class);
+            EhcacheCache<String, String> cache = new EhcacheCache<>("test-icache", inner);
 
-        @Override
-        public V get(K key) {
-            return map.get(key);
-        }
+            assertTrue(cache.putIfAbsent("a", "1"));
+            assertFalse(cache.putIfAbsent("a", "2"));
+            assertEquals("1", cache.getIfPresent("a"));
 
-        @Override
-        public Map<K, V> getAll(Set<? extends K> keys) {
-            Map<K, V> ret = new HashMap<>();
-            keys.forEach(k -> {
-                V v = map.get(k);
-                if (v != null)
-                    ret.put(k, v);
-            });
-            return ret;
-        }
+            // 已有值时 mapping 不执行（default 的 get 短路路径）
+            AtomicInteger calls = new AtomicInteger();
+            assertEquals("1", cache.computeIfAbsent("a", k -> {
+                calls.incrementAndGet();
+                return "other";
+            }));
+            assertEquals(0, calls.get());
 
-        @Override
-        public boolean containsKey(K key) {
-            return map.containsKey(key);
-        }
+            // getAndSet 顺序语义：返回前值
+            assertEquals("1", cache.getAndSet("a", "3"));
+            assertEquals("3", cache.getIfPresent("a"));
 
-        @Override
-        public void put(K key, V value) {
-            map.put(key, value);
-        }
+            assertEquals("b1", cache.computeIfAbsent("b", k -> "b1"));
+            assertEquals("b1", cache.computeIfAbsent("b", k -> "b2"));
 
-        @Override
-        public V getAndPut(K key, V value) {
-            return map.put(key, value);
-        }
+            // null mapping 不落缓存
+            assertNull(cache.computeIfAbsent("c", k -> null));
+            assertFalse(cache.containsKey("c"));
 
-        @Override
-        public void putAll(Map<? extends K, ? extends V> map) {
-            this.map.putAll(map);
-        }
+            // forEachEntry 遍历真实条目
+            Map<String, String> seen = new LinkedHashMap<>();
+            cache.forEachEntry(seen::put);
+            assertEquals("3", seen.get("a"));
+            assertEquals("b1", seen.get("b"));
 
-        @Override
-        public boolean putIfAbsent(K key, V value) {
-            return map.putIfAbsent(key, value) == null;
-        }
-
-        @Override
-        public boolean remove(K key) {
-            return map.remove(key) != null;
-        }
-
-        @Override
-        public boolean remove(K key, V oldValue) {
-            return map.remove(key, oldValue);
-        }
-
-        @Override
-        public V getAndRemove(K key) {
-            return map.remove(key);
-        }
-
-        @Override
-        public boolean replace(K key, V value) {
-            return map.replace(key, value) != null;
-        }
-
-        @Override
-        public boolean replace(K key, V oldValue, V newValue) {
-            return map.replace(key, oldValue, newValue);
-        }
-
-        @Override
-        public V getAndReplace(K key, V value) {
-            return map.replace(key, value);
-        }
-
-        @Override
-        public void removeAll(Set<? extends K> keys) {
-            keys.forEach(map::remove);
-        }
-
-        @Override
-        public void removeAll() {
-            map.clear();
-        }
-
-        @Override
-        public void clear() {
-            map.clear();
-        }
-
-        @Override
-        public <C extends javax.cache.configuration.Configuration<K, V>> C getConfiguration(Class<C> clazz) {
-            throw new UnsupportedOperationException("not needed for test");
-        }
-
-        @Override
-        public <T> T invoke(K key, javax.cache.processor.EntryProcessor<K, V, T> entryProcessor, Object... arguments) {
-            throw new UnsupportedOperationException("not needed for test");
-        }
-
-        @Override
-        public <T> Map<K, javax.cache.processor.EntryProcessorResult<T>> invokeAll(Set<? extends K> keys, javax.cache.processor.EntryProcessor<K, V, T> entryProcessor, Object... arguments) {
-            throw new UnsupportedOperationException("not needed for test");
-        }
-
-        @Override
-        public void loadAll(Set<? extends K> keys, boolean replaceExistingValues, javax.cache.integration.CompletionListener completionListener) {
-            completionListener.onCompletion();
-        }
-
-        @Override
-        public String getName() {
-            return "fake";
-        }
-
-        @Override
-        public javax.cache.CacheManager getCacheManager() {
-            throw new UnsupportedOperationException("not needed for test");
-        }
-
-        @Override
-        public void close() {
-        }
-
-        @Override
-        public boolean isClosed() {
-            return false;
-        }
-
-        @Override
-        public <T> T unwrap(Class<T> clazz) {
-            throw new UnsupportedOperationException("not needed for test");
-        }
-
-        @Override
-        public void registerCacheEntryListener(javax.cache.configuration.CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration) {
-        }
-
-        @Override
-        public void deregisterCacheEntryListener(javax.cache.configuration.CacheEntryListenerConfiguration<K, V> cacheEntryListenerConfiguration) {
-        }
-
-        @Override
-        public java.util.Iterator<javax.cache.Cache.Entry<K, V>> iterator() {
-            return map.entrySet().stream().<javax.cache.Cache.Entry<K, V>>map(e -> new javax.cache.Cache.Entry<K, V>() {
-                @Override
-                public K getKey() {
-                    return e.getKey();
-                }
-
-                @Override
-                public V getValue() {
-                    return e.getValue();
-                }
-
-                @Override
-                public <T> T unwrap(Class<T> clazz) {
-                    throw new UnsupportedOperationException("not needed for test");
-                }
-            }).iterator();
+            cache.remove("a");
+            assertFalse(cache.containsKey("a"));
+        } finally {
+            manager.close();
         }
     }
 

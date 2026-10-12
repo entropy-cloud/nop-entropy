@@ -61,9 +61,22 @@
             <artifactId>caffeine</artifactId>
         </dependency>
 
+        <!-- WI14 plan 2448：JSR-107 cache-api 已死标准，替换为 Ehcache 3 jakarta 构件
+             （SB4 BOM 管理 3.12.0）。optional=true：EhcacheCache 现零生产调用方，
+             不向下游 classpath 铺开 ehcache 及其传递（jaxb 家族）；exclusion 掉
+             ehcache 主 pom 传递的 javax.cache:cache-api（编程式配置路径实测零引用）。
+             使用者需 EhcacheCache 时自行声明 org.ehcache:ehcache:jakarta 依赖 -->
         <dependency>
-            <groupId>javax.cache</groupId>
-            <artifactId>cache-api</artifactId>
+            <groupId>org.ehcache</groupId>
+            <artifactId>ehcache</artifactId>
+            <classifier>jakarta</classifier>
+            <optional>true</optional>
+            <exclusions>
+                <exclusion>
+                    <groupId>javax.cache</groupId>
+                    <artifactId>cache-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <dependency>
