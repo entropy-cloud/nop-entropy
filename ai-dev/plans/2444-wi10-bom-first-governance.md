@@ -1,6 +1,6 @@
 # 2444 WI10 BOM-first version governance + divergence policy
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-12
 > Source: ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md WI10；ai-dev/analysis/2026-10/2026-10-11-jdk25-sb4-q4-upgrade-baseline.md（风险旗 G1–G5 见该档 §4 风险旗区）
 > Related: 2437（WI6 SB4 bump，testcontainers-bom why-note 先例）、2431（WI33 pulsar 族钉裁定）、2410（WI1 avro 单点钉）
@@ -160,34 +160,34 @@ Exit Criteria:
 
 ### Phase 5 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap、plan、log
 
-- [ ] roadmap WI10 状态 `todo` → `done`
-- [ ] 白名单提交（nop-dependencies pom+README、3 个消费方 pom、nop-antlr4 pom、plan 2444、log 10-12、roadmap；**严禁**混入 plan 2380 EQL 文件集）
-- [ ] 独立子 agent closure audit（对照本 plan Exit Criteria + Closure Gates 逐条回看 live repo）
-- [ ] 三门全过：`check-plan-checklist.mjs ai-dev/plans/2444-wi10-bom-first-governance.md --strict`、`scan-hollow-implementations.mjs --module nop-dependencies --severity high`、`check-doc-links.mjs --strict` 均 exit 0
-- [ ] 文本一致性核对（Plan Status / Phase Status / Exit Criteria / Closure Gates / log 互证）后置 `Plan Status: completed`
+- [x] roadmap WI10 状态 `todo` → `done`
+- [x] 白名单提交（nop-dependencies pom+README、3 个消费方 pom、nop-antlr4 pom、plan 2444、log 10-12、roadmap；**严禁**混入 plan 2380 EQL 文件集）
+- [x] 独立子 agent closure audit（对照本 plan Exit Criteria + Closure Gates 逐条回看 live repo）
+- [x] 三门全过：`check-plan-checklist.mjs ai-dev/plans/2444-wi10-bom-first-governance.md --strict`、`scan-hollow-implementations.mjs --module nop-dependencies --severity high`、`check-doc-links.mjs --strict` 均 exit 0
+- [x] 文本一致性核对（Plan Status / Phase Status / Exit Criteria / Closure Gates / log 互证）后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] roadmap WI10 行显示 done；提交哈希记录于本 plan Closure 段
-- [ ] Closure Audit Evidence 写入本 plan（独立 agent 标识 + 逐条验证结果）
-- [ ] 三门命令退出码 0 留痕
+- [x] roadmap WI10 行显示 done；提交哈希记录于本 plan Closure 段
+- [x] Closure Audit Evidence 写入本 plan（独立 agent 标识 + 逐条验证结果）
+- [x] 三门命令退出码 0 留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（死钉/死属性/错误 groupId 坐标）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（pom 注释口径 = README 政策 = 实际 import 顺序三者一致）
-- [ ] 行为/契约结果已达成：drop 钉后解析版本 = BOM 管理版本（Gate C 证据）
-- [ ] 必要 focused verification 已完成（Gate B 全绿）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步到 live baseline（README 重写即 owner-doc 收口；docs-for-ai 无需更新已裁定）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证 pom 编辑真实生效（drop 条目 grep 不存在、新坐标解析成功），无注释式假清理
-- [ ] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（Gate A）
-- [ ] Gate B focused tests 全绿
-- [ ] 代码规范：新增注释遵循仓内 why-note 惯例（中文、带 plan 引用）；无 Java 代码变更故无 checkstyle 新面
+- [x] 所有 in-scope confirmed live defects 已修复（死钉/死属性/错误 groupId 坐标）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（pom 注释口径 = README 政策 = 实际 import 顺序三者一致）
+- [x] 行为/契约结果已达成：drop 钉后解析版本 = BOM 管理版本（Gate C 证据）
+- [x] 必要 focused verification 已完成（Gate B 全绿）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步到 live baseline（README 重写即 owner-doc 收口；docs-for-ai 无需更新已裁定）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证 pom 编辑真实生效（drop 条目 grep 不存在、新坐标解析成功），无注释式假清理
+- [x] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（Gate A）
+- [x] Gate B focused tests 全绿
+- [x] 代码规范：新增注释遵循仓内 why-note 惯例（中文、带 plan 引用）；无 Java 代码变更故无 checkstyle 新面
 
 ## Deferred But Adjudicated
 
@@ -201,14 +201,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: WI10 交付面全部落地并经独立 closure audit APPROVE（0 Blocker / 0 Major / 2 Minor，均为收口流程步骤本身）。drop 9 冗余钉、ojdbc11 迁移（不设条目 + Maven 4 占位条目压制教训入注释）、testcontainers 混栈收口（core 显式钉 1.21.4，审计实测 dependency:tree 全家 1.21.4 复核）、31 条分歧裁决政策 pom+README 双落、死属性 7 清理且 root pom 未误伤。Gate A 399 SUCCESS + 恰 4 chronic 家族签名归因；Gate B 11 绿 + cli-core pre-existing red 经 HEAD worktree 基线复现裁定非 WI10 引入（登记 follow-up 移交 nop-ai 栈）。执行期两项实测修正（ojdbc 占位条目压制、嵌套 import 胜顶层）已回写 Rulings 4/5 与 pom/README 口径。
+Completed: 2026-10-12
+Commit: e6d46a2d46
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_68317192-0ead-4c0f-a367-404fbaac9e8d（fresh session，非实现 session）
+- Evidence:
+  - 12 项验证全部 PASS（Drop 钉 grep 零存在 / ojdbc 三消费方坐标+零占位条目 / testcontainers core 钉+注释口径 / 死属性零命中且 root pom 不在 diff / 政策注释+README 口径一致无僵尸引用 / antlr 族三方同版 4.13.2 / dependency:tree 实测重跑 org.testcontainers 全家 1.21.4 / Gate 证据文件 4 份在账（399 SUCCESS+4 chronic、gateb2 10 模块、gateb3 38 tests 绿、baseline 30 处同错误码）/ Anti-Hollow 以 live 文件系统+实跑验证非 diff 采信 / 文本一致性 / Deferred 诚实性 / 提交白名单恰 9 文件零 2380 EQL 混入）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2444-wi10-bom-first-governance.md --strict` 退出码 0（勾选完成后复跑确认）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-dependencies --severity high` 退出码 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（No errors found）
+  - Anti-Hollow：pom 编辑经审计员 live grep + dependency:tree 实跑验证真实生效，非注释式假清理
+  - Deferred 项分类检查：cli-core red（out-of-scope，基线复现有据）、testcontainers 2.x 迁移（Non-Goals 开局排除）、WI16 pulsar（watch-only）——无 in-scope live defect 被降级
 
 Follow-up:
 
-- 见 Non-Blocking Follow-ups
+- 见 Non-Blocking Follow-ups（cli-core IChatService 双候选 pre-existing red 移交 nop-ai 栈；testcontainers 全平台 2.x 合线迁移另行立项；WI16 pulsar 真实 client 运行时回归）
