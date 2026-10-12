@@ -153,7 +153,7 @@ public class TestCheckpointDecisionEndToEnd {
         try {
             r.run();
             throw new AssertionError("expected NopAiAgentException: " + message);
-        } catch (io.nop.ai.agent.engine.NopAiAgentException expected) {
+        } catch (io.nop.ai.agent.NopAiAgentException expected) {
             // expected
         }
     }

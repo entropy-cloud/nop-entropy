@@ -267,7 +267,7 @@ public class TestTeamTaskRecoveryDaemonIntegration {
     @Test
     void setterRejectsNullHandler() {
         ScheduledRecoveryManager mgr = new ScheduledRecoveryManager(dataSource, new InlineScheduler());
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> mgr.setTeamTaskRecoveryHandler(null),
                 "setTeamTaskRecoveryHandler(null) must be rejected (no silent fallback to default)");
     }

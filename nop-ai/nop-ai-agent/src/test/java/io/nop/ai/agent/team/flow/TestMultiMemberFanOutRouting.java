@@ -1,7 +1,7 @@
 package io.nop.ai.agent.team.flow;
 
 import io.nop.ai.agent.engine.AgentExecutionResult;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
 import io.nop.ai.agent.team.IMemberSpawner;

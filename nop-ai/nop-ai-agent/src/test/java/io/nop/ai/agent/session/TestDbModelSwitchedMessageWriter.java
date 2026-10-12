@@ -2,7 +2,7 @@ package io.nop.ai.agent.session;
 
 import io.nop.ai.core.agent.IModelSwitchedMessageWriter;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;

@@ -2,7 +2,7 @@ package io.nop.ai.agent.engine;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.budget.BudgetSnapshot;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentConstraintsModel;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.model.AgentModel;

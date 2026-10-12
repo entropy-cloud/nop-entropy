@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 import io.nop.ai.agent.middleware.MiddlewareChain;
 import io.nop.ai.agent.model.AgentExecStatus;

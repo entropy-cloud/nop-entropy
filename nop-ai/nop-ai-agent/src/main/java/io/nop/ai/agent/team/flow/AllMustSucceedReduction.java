@@ -51,7 +51,7 @@ public final class AllMustSucceedReduction implements IReductionStrategy {
         // (Minimum Rules #24).
         if (outcomes.isEmpty()) {
             CompletableFuture<Boolean> failed = new CompletableFuture<>();
-            failed.completeExceptionally(new io.nop.ai.agent.engine.NopAiAgentException(
+            failed.completeExceptionally(new io.nop.ai.agent.NopAiAgentException(
                     "nop.ai.team.flow.fanout-empty-plan: dispatch plan produced zero outcomes for taskId="
                             + context.getTaskId() + " (no member to dispatch to)"));
             return failed;

@@ -1,6 +1,6 @@
 package io.nop.ai.agent.plan.runtime;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INVALID_ARGUMENT;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 

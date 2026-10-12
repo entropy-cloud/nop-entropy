@@ -221,7 +221,7 @@ sequenceDiagram
 
 ## 异常落库与重建：TaskExceptionRegistry
 
-跨重启恢复时，`errorBeanData` 里的 `ErrorBean` JSON 需要还原成异常对象。`TaskExceptionRegistry` 是 dao 模块内的 FQCN→工厂注册表：编译期注册 `NopTaskFailException`、`NopTaskCancelledException`（来自 nop-task-core）；反射注册 `io.nop.ai.agent.engine.NopAiAgentException`、`io.nop.ai.api.exceptions.NopAiException`——dao 不依赖 nop-ai 模块，缺类时该 FQCN 安全回退：
+跨重启恢复时，`errorBeanData` 里的 `ErrorBean` JSON 需要还原成异常对象。`TaskExceptionRegistry` 是 dao 模块内的 FQCN→工厂注册表：编译期注册 `NopTaskFailException`、`NopTaskCancelledException`（来自 nop-task-core）；反射注册 `io.nop.ai.agent.NopAiAgentException`、`io.nop.ai.api.exceptions.NopAiException`——dao 不依赖 nop-ai 模块，缺类时该 FQCN 安全回退：
 
 `nop-task/nop-task-dao/src/main/java/io/nop/task/dao/store/TaskExceptionRegistry.java:55-71`
 
@@ -240,7 +240,7 @@ sequenceDiagram
 
         // === reflective 注册（nop-ai 子类，部署可能缺类，lazy 反射解析）===
 
-        registerReflective("io.nop.ai.agent.engine.NopAiAgentException");
+        registerReflective("io.nop.ai.agent.NopAiAgentException");
         registerReflective("io.nop.ai.api.exceptions.NopAiException");
     }
 ```

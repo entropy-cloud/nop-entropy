@@ -1,7 +1,7 @@
 package io.nop.ai.agent.memory;
 
 import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 
 import java.util.List;
 import java.util.Map;

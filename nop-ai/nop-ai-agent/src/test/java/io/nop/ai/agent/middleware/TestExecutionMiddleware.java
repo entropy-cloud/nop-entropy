@@ -195,7 +195,7 @@ public class TestExecutionMiddleware {
         // registerExecutionMiddleware throws (fail-fast, no silent no-op).
         assertTrue(NoOpHookRegistry.INSTANCE
                 .getExecutionMiddlewares(ExecutionPoint.PRE_TOOL_ATTEMPT, "agent").isEmpty());
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class, () ->
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class, () ->
                 NoOpHookRegistry.INSTANCE.registerExecutionMiddleware(
                         ExecutionPoint.PRE_TOOL_ATTEMPT, (c, n) -> n.proceed(c)));
     }

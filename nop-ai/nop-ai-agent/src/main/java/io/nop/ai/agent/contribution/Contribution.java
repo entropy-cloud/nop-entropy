@@ -1,6 +1,6 @@
 package io.nop.ai.agent.contribution;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.hook.AgentLifecyclePoint;
 import io.nop.ai.agent.hook.IAgentLifecycleHook;
 import io.nop.ai.core.NopAiCoreErrors;

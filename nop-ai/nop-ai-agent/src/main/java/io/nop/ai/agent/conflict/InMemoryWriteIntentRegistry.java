@@ -1,6 +1,6 @@
 package io.nop.ai.agent.conflict;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.ArrayList;

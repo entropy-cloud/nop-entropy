@@ -18,7 +18,7 @@ package io.nop.ai.agent.fencing;
  * {@link #validate} before mutating shared state, supplying the token the actor
  * attached to the operation. The service returns an immutable
  * {@link FencingTokenDecision}; the enforcement point fail-fast throws
- * {@link io.nop.ai.agent.engine.NopAiAgentException} / broadcasts a
+ * {@link io.nop.ai.agent.NopAiAgentException} / broadcasts a
  * {@code conflict_alert} on a stale result (Design Decision §6 — reaction is a
  * consumer responsibility; the primitive returns a decision, not an exception).
  *

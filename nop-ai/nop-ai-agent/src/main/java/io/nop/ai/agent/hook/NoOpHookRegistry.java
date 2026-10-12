@@ -1,7 +1,7 @@
 package io.nop.ai.agent.hook;
 
 import io.nop.ai.agent.NopAiAgentErrors;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.middleware.ExecutionPoint;
 import io.nop.ai.agent.middleware.IAgentMiddleware;
 

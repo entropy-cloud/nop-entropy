@@ -1,6 +1,6 @@
 package io.nop.ai.agent.hook;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 
 import io.nop.ai.agent.model.AgentHookModel;
 import io.nop.ai.agent.model.AgentModel;

@@ -10,7 +10,7 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
  * <p>Created by plan 2026-07-31-2248-2 (scan-hollow baseline clearance):
  * interface default methods and NoOp/pass-through classes that historically
  * failed fast with {@code UnsupportedOperationException} now fail fast with
- * {@link io.nop.ai.agent.engine.NopAiAgentException} carrying these codes.
+ * {@link io.nop.ai.agent.NopAiAgentException} carrying these codes.
  * All descriptions are English (AGENTS.md error-message convention; the
  * historical UOE messages were English, so {@code getMessage()} semantics are
  * unchanged).

@@ -40,7 +40,7 @@ public class TestTaskExceptionRegistry {
     public void registeredFqcns_containsAllKnownSubclasses() {
         assertTrue(registry.getRegisteredFqcns().contains(NopTaskFailException.class.getName()),
                 "registry must register NopTaskFailException (nop-task-core compile-time)");
-        assertTrue(registry.getRegisteredFqcns().contains("io.nop.ai.agent.engine.NopAiAgentException"),
+        assertTrue(registry.getRegisteredFqcns().contains("io.nop.ai.agent.NopAiAgentException"),
                 "registry must register NopAiAgentException (nop-ai-agent reflective)");
         assertTrue(registry.getRegisteredFqcns().contains("io.nop.ai.api.exceptions.NopAiException"),
                 "registry must register NopAiException (nop-ai-api reflective)");
@@ -110,7 +110,7 @@ public class TestTaskExceptionRegistry {
     @Test
     public void create_reflectiveMissingClass_returnsNull() {
         // NopAiAgentException 在 nop-task-ext test classpath 不可用（nop-task-ext 不依赖 nop-ai-agent）
-        NopException exp = registry.create("io.nop.ai.agent.engine.NopAiAgentException",
+        NopException exp = registry.create("io.nop.ai.agent.NopAiAgentException",
                 ERR_TEST.getErrorCode(), null);
         assertNull(exp, "registry must return null for class-not-found (deployment without nop-ai-agent), enabling generic fallback");
     }
@@ -140,7 +140,7 @@ public class TestTaskExceptionRegistry {
      */
     @Test
     public void create_missingClassCached_subsequentLookupReturnsNullWithoutReflection() {
-        String fqcn = "io.nop.ai.agent.engine.NopAiAgentException";
+        String fqcn = "io.nop.ai.agent.NopAiAgentException";
         assertNull(registry.create(fqcn, ERR_TEST.getErrorCode(), null), "first lookup: class not found");
         // 第二次：应命中缓存直接返回 null（不重复 Class.forName）
         assertNull(registry.create(fqcn, ERR_TEST.getErrorCode(), null), "second lookup: cached as missing");

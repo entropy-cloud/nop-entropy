@@ -1,6 +1,6 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.reliability.StandardRetryPolicy;
 import io.nop.ai.core.reliability.ThresholdBreaker;

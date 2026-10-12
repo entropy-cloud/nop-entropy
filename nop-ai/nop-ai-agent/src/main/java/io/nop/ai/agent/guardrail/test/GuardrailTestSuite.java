@@ -3,7 +3,7 @@ package io.nop.ai.agent.guardrail.test;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailResult;
 import io.nop.ai.agent.guardrail.IContentGuardrail;
 

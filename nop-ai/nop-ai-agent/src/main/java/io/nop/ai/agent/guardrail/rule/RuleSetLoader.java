@@ -2,7 +2,7 @@ package io.nop.ai.agent.guardrail.rule;
 
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.guardrail.GuardrailDirection;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;

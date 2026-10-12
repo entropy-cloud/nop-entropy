@@ -3,7 +3,7 @@ package io.nop.ai.agent.memory;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import java.util.concurrent.ConcurrentHashMap;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 
 /**
  * Default in-memory {@link IMemoryStoreProvider} implementation. Maintains a

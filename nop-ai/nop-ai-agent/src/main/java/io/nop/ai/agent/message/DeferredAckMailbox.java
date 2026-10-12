@@ -1,7 +1,7 @@
 package io.nop.ai.agent.message;
 
 import io.nop.api.core.time.CoreMetrics;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.core.NopAiCoreErrors;
 
 import java.util.ArrayDeque;

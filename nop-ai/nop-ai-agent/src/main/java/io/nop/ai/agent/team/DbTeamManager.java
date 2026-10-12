@@ -3,7 +3,7 @@ package io.nop.ai.agent.team;
 import static io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_INTERNAL_DETAIL;
 import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.quota.IResourceGuard;
 import io.nop.ai.agent.quota.NoOpResourceGuard;
 import io.nop.ai.agent.quota.QuotaDecision;

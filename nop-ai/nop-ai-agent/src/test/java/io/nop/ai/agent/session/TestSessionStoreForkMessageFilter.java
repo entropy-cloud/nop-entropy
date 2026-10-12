@@ -2,7 +2,7 @@ package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.engine.AgentMessageRequest;
 import io.nop.ai.agent.engine.DefaultAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;

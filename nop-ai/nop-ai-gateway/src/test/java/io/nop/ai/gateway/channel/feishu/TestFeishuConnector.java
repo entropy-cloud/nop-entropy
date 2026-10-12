@@ -135,7 +135,7 @@ class TestFeishuConnector {
     void duplicateInputIsSilentlyIgnoredNoErrorReply() {
         connector.start(ctx());
         // engine.execute throws the duplicate-input error synchronously
-        engine.executeException = new io.nop.ai.agent.engine.NopAiAgentException(
+        engine.executeException = new io.nop.ai.agent.NopAiAgentException(
                 io.nop.ai.agent.NopAiAgentErrors.ERR_AGENT_DUPLICATE_INPUT)
                 .param(io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL, "idempotencyKey=om_dup");
         connector.onMessage(dmMessage("oc_dup", "ou_s", "你好", "om_dup"));

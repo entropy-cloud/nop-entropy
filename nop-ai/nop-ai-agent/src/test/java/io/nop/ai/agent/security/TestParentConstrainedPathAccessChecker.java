@@ -1,7 +1,7 @@
 package io.nop.ai.agent.security;
 
 import io.nop.ai.agent.engine.AgentExecutionContext;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentModel;
 import org.junit.jupiter.api.Test;
 

@@ -279,8 +279,8 @@ public class TestCheckpointIdempotencyKey {
                 dup.getIdempotencyKey(),
                 "Sanity: same fingerprint yields the same key");
 
-        io.nop.ai.agent.engine.NopAiAgentException ex = org.junit.jupiter.api.Assertions.assertThrows(
-                io.nop.ai.agent.engine.NopAiAgentException.class,
+        io.nop.ai.agent.NopAiAgentException ex = org.junit.jupiter.api.Assertions.assertThrows(
+                io.nop.ai.agent.NopAiAgentException.class,
                 () -> mgr.saveCheckpoint(dup),
                 "Duplicate idempotency key must be rejected by the unique index");
         assertTrue(ex.getMessage().contains("wm-uq-2"),

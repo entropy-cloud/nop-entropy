@@ -66,7 +66,7 @@ public final class TaskExceptionRegistry {
 
         // === reflective 注册（nop-ai 子类，部署可能缺类，lazy 反射解析）===
 
-        registerReflective("io.nop.ai.agent.engine.NopAiAgentException");
+        registerReflective("io.nop.ai.agent.NopAiAgentException");
         registerReflective("io.nop.ai.api.exceptions.NopAiException");
     }
 

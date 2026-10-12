@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.api.chat.ChatRequest;

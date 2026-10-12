@@ -161,7 +161,7 @@ public class AgentPromptAssembly {
      * </ul>
      *
      * <p>A missing {@code requiredSkill} propagates the resolver's
-     * {@link NopAiAgentException} fail-fast before any LLM call. With the
+     * {@link io.nop.ai.agent.NopAiAgentException} fail-fast before any LLM call. With the
      * default {@link NoOpSkillProvider} (or no skills declared), this method
      * resolves an empty assembly and injects nothing — backward compatible.
      */

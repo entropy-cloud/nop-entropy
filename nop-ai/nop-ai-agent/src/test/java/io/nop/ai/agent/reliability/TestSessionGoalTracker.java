@@ -1,6 +1,6 @@
 package io.nop.ai.agent.reliability;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;

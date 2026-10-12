@@ -2,7 +2,7 @@ package io.nop.ai.agent.runtime.recovery;
 
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.agent.engine.IAgentEngine;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.runtime.lock.AiAgentSessionLockTable;
 import io.nop.ai.agent.security.ITenantResolver;

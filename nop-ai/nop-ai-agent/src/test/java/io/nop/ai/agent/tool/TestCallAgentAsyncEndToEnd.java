@@ -1,7 +1,7 @@
 package io.nop.ai.agent.tool;
 
 import io.nop.ai.agent.engine.AgentEvent;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.engine.AgentEventType;
 import io.nop.ai.agent.engine.AgentExecutionResult;
 import io.nop.ai.agent.engine.AgentMessageRequest;

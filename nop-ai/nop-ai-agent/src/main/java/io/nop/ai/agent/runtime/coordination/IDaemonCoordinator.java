@@ -88,7 +88,7 @@ package io.nop.ai.agent.runtime.coordination;
  *       silent skip — the daemon records it in
  *       {@code skippedCoordinatedTeams}.</li>
  *   <li>Any SQLException / DB error is wrapped in
- *       {@link io.nop.ai.agent.engine.NopAiAgentException} — never
+ *       {@link io.nop.ai.agent.NopAiAgentException} — never
  *       swallowed.</li>
  *   <li>{@link NoOpDaemonCoordinator} unconditionally returns {@code true}
  *       on acquire — an explicit "no coordination" semantic, not a silent
@@ -114,7 +114,7 @@ public interface IDaemonCoordinator {
      * should skip the team (recording it as
      * {@code skippedCoordinatedTeams}), <em>not</em> treat it as an error.
      * DB-level errors, by contrast, propagate as
-     * {@link io.nop.ai.agent.engine.NopAiAgentException}.
+     * {@link io.nop.ai.agent.NopAiAgentException}.
      *
      * @param teamId  the team whose scan lease to acquire; never null
      * @param ownerId the acquiring daemon instance identity (the daemon's

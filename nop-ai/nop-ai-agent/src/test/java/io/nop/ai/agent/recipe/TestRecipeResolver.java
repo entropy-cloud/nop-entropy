@@ -1,7 +1,7 @@
 package io.nop.ai.agent.recipe;
 
 import io.nop.ai.agent.engine.AgentSessionSupport;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentHookModel;
 import io.nop.ai.agent.model.AgentModel;
 import io.nop.ai.agent.model.AgentRecipeRefModel;

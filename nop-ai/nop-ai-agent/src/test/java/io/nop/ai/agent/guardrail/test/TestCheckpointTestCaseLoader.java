@@ -125,7 +125,7 @@ public class TestCheckpointTestCaseLoader {
         IResource bad = VirtualFileSystem.instance().getResource(
                 "/nop/ai/agent/checkpoint-test-fixtures/malformed-nonlist.yaml");
         assertTrue(bad.exists(), "malformed fixture must be on the test classpath");
-        assertThrows(io.nop.ai.agent.engine.NopAiAgentException.class,
+        assertThrows(io.nop.ai.agent.NopAiAgentException.class,
                 () -> CheckpointTestCaseLoader.load(bad));
     }
 

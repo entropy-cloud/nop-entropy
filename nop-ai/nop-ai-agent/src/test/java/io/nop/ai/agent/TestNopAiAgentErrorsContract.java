@@ -1,6 +1,6 @@
 package io.nop.ai.agent;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.guardrail.rule.GuardrailRule;
 import io.nop.ai.agent.router.SmartModelRouter;
 import io.nop.ai.agent.security.SecurityCheckpointChain;

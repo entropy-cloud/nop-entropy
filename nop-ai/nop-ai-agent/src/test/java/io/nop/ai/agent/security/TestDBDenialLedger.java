@@ -1,6 +1,6 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

@@ -32,7 +32,7 @@ import java.util.List;
  * </ul>
  *
  * <p>No-op / unsupported implementations MUST fail fast (throw
- * {@link io.nop.ai.agent.engine.NopAiAgentException}) rather than silently
+ * {@link io.nop.ai.agent.NopAiAgentException}) rather than silently
  * returning empty/null as if the operation succeeded (Minimum Rules #24). The
  * composite adapter-backed store delegates CRUD directly to this adapter and
  * has no keyword-fallback path for storage, so a NoOp storage adapter is an

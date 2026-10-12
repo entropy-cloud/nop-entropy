@@ -1,5 +1,6 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.model.AgentExecStatus;
 import io.nop.ai.agent.quota.CountingResourceGuard;
 import io.nop.ai.agent.quota.DefaultResourceGuard;

@@ -1,6 +1,6 @@
 package io.nop.ai.agent.runtime.recovery;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.security.ITenantResolver;
 import io.nop.ai.agent.team.AiAgentTeamTaskTable;
 import io.nop.ai.agent.team.DbTeamTaskStore;

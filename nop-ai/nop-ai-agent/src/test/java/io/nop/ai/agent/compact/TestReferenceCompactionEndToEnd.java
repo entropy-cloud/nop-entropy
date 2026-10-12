@@ -5,7 +5,7 @@ import io.nop.ai.agent.engine.AgentExecutionContext;
 import io.nop.ai.agent.engine.AgentHookInvoker;
 import io.nop.ai.agent.engine.AgentToolExecuteContext;
 import io.nop.ai.agent.engine.ITokenEstimator;
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.engine.TokenEstimators;
 import io.nop.ai.agent.hook.DefaultHookRegistry;
 import io.nop.ai.agent.model.AgentModel;

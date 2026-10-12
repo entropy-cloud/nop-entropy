@@ -1,4 +1,4 @@
-package io.nop.ai.agent.engine;
+package io.nop.ai.agent;
 
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;

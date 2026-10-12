@@ -1,6 +1,6 @@
 package io.nop.ai.agent.security;
 
-import io.nop.ai.agent.engine.NopAiAgentException;
+import io.nop.ai.agent.NopAiAgentException;
 
 /**
  * Fail-closed exception raised by {@link ISandboxBackend} when the sandbox
