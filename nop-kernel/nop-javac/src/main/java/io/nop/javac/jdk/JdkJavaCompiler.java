@@ -28,10 +28,13 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URI;
+import java.net.URL;
+import java.net.URLClassLoader;
 import java.security.SecureClassLoader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -47,12 +50,46 @@ public class JdkJavaCompiler {
     static final Logger LOG = LoggerFactory.getLogger(JdkJavaCompiler.class);
 
     /**
-     * JDK 9+ 的应用类加载器永不是 URLClassLoader，该分支在本仓 JDK 21/26 下恒为 false，
-     * 实测始终走 java.class.path 回退路径，故删除（保留它会让人误以为 classpath 来自 getURLs()）。
+     * 进程内内存编译（GenAopProxy 经 exec:java 调用）的默认 classpath：遍历 TCCL 父链收集
+     * URLClassLoader 的 URL（plexus ClassRealm 是其子类），转解码后的文件路径并去重。
+     *
+     * <p>为什么不能只读 java.class.path：exec:java 在 Maven JVM 内运行时该属性仅含
+     * maven-wrapper.jar 一个文件（plan 2450 实测），用它做 -classpath 会使代理编译报
+     * "找不到符号"——chronic gen-aop-proxy-fail 家族的根因。surefire/IDE 场景 TCCL 为
+     * AppClassLoader（JDK 9+ 非 URLClassLoader 子类），收集结果为空，回退
+     * java.class.path（即完整测试 classpath），行为与旧实现一致。
+     *
+     * <p>历史：b8157644a6（plan 2349）曾删除同类分支，其"实测恒走回退"仅在 surefire
+     * 上下文成立；plan 2450 推翻该裁定。与旧实现的差别：本实现走 TCCL 全父链（含
+     * target/classes 等 output URL，旧实现只查定义类加载器），并返回解码后的文件路径
+     * 而非原始 url 字符串。
      */
     public static List<String> getDefaultClassPaths() {
+        LinkedHashSet<String> paths = new LinkedHashSet<>();
+
+        ClassLoader loader = Thread.currentThread().getContextClassLoader();
+        while (loader != null) {
+            if (loader instanceof URLClassLoader urlLoader) {
+                for (URL url : urlLoader.getURLs()) {
+                    try {
+                        File file = new File(url.toURI());
+                        if (file.exists())
+                            paths.add(file.getAbsolutePath());
+                    } catch (Exception e) {
+                        LOG.warn("nop.javac.classpath-url-skip:url={}", url, e);
+                    }
+                }
+            }
+            loader = loader.getParent();
+        }
+
+        // 回退/兜底：TCCL 链上无可收集 URL 时保持旧行为（surefire 等场景）；
+        // 非空时拼接无妨（exec:java 下混入 wrapper.jar 无害）
         String classPath = System.getProperty("java.class.path");
-        return StringHelper.split(classPath, File.pathSeparatorChar);
+        if (classPath != null && !classPath.isEmpty())
+            paths.addAll(StringHelper.split(classPath, File.pathSeparatorChar));
+
+        return new ArrayList<>(paths);
     }
 
     public JavaCompileResult compile(String className, String code, List<String> classPaths) {
