@@ -1,6 +1,6 @@
 # 2449 WI15 Quarkus runtime default alignment (OTel/Micrometer)
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-12
 > Source: ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md WI15 + Decisions（OTel http/protobuf:4318 + 10% sampling no pin-back）
 > Related: 2444-2448（同 roadmap 前序 WI）
@@ -59,34 +59,34 @@ Exit Criteria:
 
 ### Phase 2 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap、plan
 
 - Item Types: `Proof`
 
-- [ ] roadmap WI15 `todo` → `done`（附 plan 2449 注记：零改动验证型交付 + OTel 引入 = WI16 后需求驱动非 WI16 交付）
-- [ ] 白名单提交（observability-defaults.md、INDEX.md、plan 2449、log、roadmap）
-- [ ] 独立子 agent closure audit
-- [ ] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-stream（纯文档+零代码 plan 无本计划 affected module，选 metrics 暴露面所在模块作例行抽查面，裁定记录在案）/ check-doc-links --strict
-- [ ] 文本一致性核对后置 `Plan Status: completed`
+- [x] roadmap WI15 `todo` → `done`（附 plan 2449 注记：零改动验证型交付 + OTel 引入 = WI16 后需求驱动非 WI16 交付）
+- [x] 白名单提交（observability-defaults.md、INDEX.md、plan 2449、log、roadmap）
+- [x] 独立子 agent closure audit
+- [x] 三门：check-plan-checklist --strict / scan-hollow-implementations --module nop-kernel/nop-stream（纯文档+零代码 plan 无本计划 affected module，选 metrics 暴露面所在模块作例行抽查面，裁定记录在案）/ check-doc-links --strict
+- [x] 文本一致性核对后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] roadmap done；commit hash 记录 Closure；审计证据写入；三门留痕
+- [x] roadmap done；commit hash 记录 Closure；审计证据写入；三门留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（无——实测零 pin-back、零 legacy 引用）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（暴露面版本解析 = v1 实测一致）
-- [ ] 行为/契约结果已达成：默认采纳状态有权威记录且可追溯
-- [ ] 必要 focused verification 已完成（dependency:tree + grep 证据在 plan/log）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（新 doc + INDEX 路由即本 WI 交付）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：doc 断言与 live repo 逐条对照（版本号/路径/零引用声明）
-- [ ] 构建门：不适用（零代码/pom 变更；纯文档 plan 按 guide 免构建验证），最近平台基线 = WI14 Gate A 398 SUCCESS 在案
-- [ ] Gate B：不适用（同上）
-- [ ] 代码规范：doc 语言/链接风格与 docs-for-ai 惯例一致
+- [x] 所有 in-scope confirmed live defects 已修复（无——实测零 pin-back、零 legacy 引用）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（暴露面版本解析 = v1 实测一致）
+- [x] 行为/契约结果已达成：默认采纳状态有权威记录且可追溯
+- [x] 必要 focused verification 已完成（dependency:tree + grep 证据在 plan/log）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（新 doc + INDEX 路由即本 WI 交付）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：doc 断言与 live repo 逐条对照（版本号/路径/零引用声明）
+- [x] 构建门：不适用（零代码/pom 变更；纯文档 plan 按 guide 免构建验证），最近平台基线 = WI14 Gate A 398 SUCCESS 在案
+- [x] Gate B：不适用（同上）
+- [x] 代码规范：doc 语言/链接风格与 docs-for-ai 惯例一致
 
 ## Deferred But Adjudicated
 
@@ -98,13 +98,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: WI15 零改动验证型交付落地并经独立 closure audit APPROVE（7/7 PASS，0 Blocker/0 Major）：零 OTel 依赖/零 pin-back/零 legacy 引用独立复现，三暴露面 v1 1.17.1 dependency:tree 复跑确认，政策成文 observability-defaults.md + INDEX 路由。审计 Minor-1（GlobalMeterRegistry 静态断言精度）已按建议修正 doc（QuarkusIntegration 注入路径补记）。
+Completed: 2026-10-12
+Commit: 5a01623cb9
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_6a7e1070-eba5-480c-b2a0-13693f38171a（fresh session）
+- Evidence:
+  - 7 项验证全 PASS（核心事实复现 / 新 doc 断言逐条可追溯 / INDEX 路由 / 文本一致性 / 提交恰 5 文件零混入 / Deferred-NonGoals 诚实性 / doc-links exit 0）；审计产物 _tmp/wi15-audit-*
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2449-wi15-quarkus-runtime-defaults.md --strict` 退出码 0（回填后复跑）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel/nop-stream --severity high` 退出码 0（选面裁定：纯文档 plan 无 affected module，取 metrics 暴露面模块例行抽查）
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - Anti-Hollow：doc 断言逐条对照 live repo（版本/路径/零引用声明）
+  - Deferred 项分类检查：OTel 引入（Non-Goals 显式排除，非 deferred）——无 in-scope live defect 被降级
 
 Follow-up:
 
