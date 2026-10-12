@@ -1,29 +1,45 @@
 package io.nop.commons.cache;
 
 import io.nop.commons.util.CollectionHelper;
+import org.ehcache.Cache;
 
-import javax.cache.Cache;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
+/**
+ * 基于 Ehcache 3（jakarta classifier 构件）的 ISyncCache 适配器，替代已死的 JSR-107
+ * JavaxCache 适配器（WI14 plan 2448）。
+ *
+ * <p>依赖声明为 optional：本适配器当前零生产调用方，使用者引入时需自行声明
+ * org.ehcache:ehcache:jakarta 依赖（版本由 SB BOM 管理）。
+ *
+ * <p>语义裁定（plan 2448 Ruling 1，org.ehcache.Cache 3.12 方法面实测）：
+ * putIfAbsent 映射 cache.putIfAbsent（返回前值，==null 即成功）；getAndSet 与
+ * computeIfAbsent 继承 ICache 锁化 default（Ehcache 无原子 getAndPut/computeIfAbsent）；
+ * refresh 按先例映射 remove。
+ */
+public class EhcacheCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
+    private final String name;
     private final Cache<K, V> cache;
 
-    public JavaxCache(Cache<K, V> cache) {
+    public EhcacheCache(String name, Cache<K, V> cache) {
+        this.name = name;
         this.cache = cache;
     }
 
     @Override
     public String getName() {
-        return cache.getName();
+        return name;
     }
 
+    /**
+     * org.ehcache.Cache 自身无 close；缓存生命周期归持有 CacheManager 的一方管理。
+     */
     @Override
-    public void close() throws Exception {
-        cache.close();
+    public void close() {
+
     }
 
     @Override
@@ -43,8 +59,7 @@ public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
 
     @Override
     public Map<K, V> getAllPresent(Collection<? extends K> keys) {
-        Set<? extends K> set = CollectionHelper.toSet(keys);
-        return cache.getAll(set);
+        return cache.getAll(CollectionHelper.toSet(keys));
     }
 
     @Override
@@ -89,32 +104,8 @@ public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
 
     @Override
     public boolean putIfAbsent(K key, V value) {
-        return cache.putIfAbsent(key, value);
-    }
-
-    /**
-     * 委托javax.cache原子的getAndPut保证单一胜者语义：并发竞争时所有线程
-     * 最终都返回先写入者的值。mappingFunction返回null时不写入并返回null。
-     * 不覆写时会落入ICache的synchronized默认实现，在JCache分布式缓存上
-     * 以本地锁串行化，语义仍正确但粒度更粗。
-     */
-    @Override
-    public V computeIfAbsent(K key, Function<? super K, ? extends V> mappingFunction) {
-        V v = cache.get(key);
-        if (v != null)
-            return v;
-
-        V newValue = mappingFunction.apply(key);
-        if (newValue == null)
-            return null;
-
-        V prev = cache.getAndPut(key, newValue);
-        return prev != null ? prev : newValue;
-    }
-
-    @Override
-    public V getAndSet(K key, V value) {
-        return cache.getAndPut(key, value);
+        // org.ehcache.Cache.putIfAbsent 返回前值（无前值即成功）
+        return cache.putIfAbsent(key, value) == null;
     }
 
     @Override
@@ -123,10 +114,9 @@ public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
     }
 
     /**
-     * 本实现的缓存配置由底层JCache实现（Hazelcast/Ehcache等）自行管理，
-     * nop侧的CacheConfig不适用（getConfig()恒返回null），因此没有可刷新的配置项。
-     * 这是有明确语义的能力声明，不是遗漏：调用方应通过getConfig()==null判断
-     * 该实现是否支持nop侧配置。
+     * 本实现的缓存配置由 Ehcache CacheManager 配置自管，nop 侧 CacheConfig 不适用
+     * （getConfig() 恒返回 null）：调用方应以 getConfig()==null 判断该实现是否支持
+     * nop 侧配置（与 cache-contract 契约一致）。
      */
     @Override
     public void refreshConfig() {
@@ -137,5 +127,4 @@ public class JavaxCache<K, V> implements ISyncCache<K, V>, AutoCloseable {
     public boolean removeIfMatch(K key, V object) {
         return cache.remove(key, object);
     }
-
 }
