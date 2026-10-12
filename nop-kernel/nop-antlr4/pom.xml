@@ -13,7 +13,9 @@
     <packaging>pom</packaging>
 
     <properties>
-        <antlr.plugin.version>4.13.0</antlr.plugin.version>
+        <!-- WI10 plan 2444：与 quarkus-bom 管理的 antlr4/antlr4-runtime（4.13.2）族内对齐，
+             nop-dependencies 的本地钉已 drop，tool/runtime/plugin 三方必须同版 -->
+        <antlr.plugin.version>4.13.2</antlr.plugin.version>
     </properties>
 
     <dependencies>
