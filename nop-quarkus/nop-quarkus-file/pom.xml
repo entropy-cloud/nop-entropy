@@ -30,17 +30,13 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-resteasy-multipart</artifactId>
-            <exclusions>
-                <exclusion>
-                    <artifactId>angus-mail</artifactId>
-                    <groupId>org.eclipse.angus</groupId>
-                </exclusion>
-            </exclusions>
         </dependency>
 
+        <!-- WI11 plan 2445：exclusion 解除 + com.sun.mail:jakarta.mail → BOM 管理的
+             angus-mail（QuarkusFix 编译期需要 impl 内部类 LineInputStream） -->
         <dependency>
-            <groupId>com.sun.mail</groupId>
-            <artifactId>jakarta.mail</artifactId>
+            <groupId>org.eclipse.angus</groupId>
+            <artifactId>angus-mail</artifactId>
         </dependency>
 
     </dependencies>

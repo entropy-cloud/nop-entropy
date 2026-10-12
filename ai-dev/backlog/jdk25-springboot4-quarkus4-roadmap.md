@@ -92,7 +92,7 @@ Human-owned choices; execution plans must not re-litigate them:
 - WI9b Container bases → UBI 10 (native + micro-image Dockerfiles): `done`
 - WI9c Codegen Docker templates → UBI 10 (4 `.xgen`, nop-codegen is plan-first): `done`
 - WI10 BOM-first version governance (drop BOM-managed pins; codify divergence policy): `done`（plan 2444：drop 9 冗余钉 + ojdbc11 迁移不设条目 + testcontainers 混栈收口（core 显式钉 1.21.4，SB4 嵌套 import 压顶层的实测修正）+ kafka 4.3.1/pulsar 族 4.0.14 分歧有害保留钉 + 31 条分歧裁决政策成文 pom+README）
-- WI11 angus-mail migration (drop `com.sun.mail`, switch `javax.mail`→`jakarta.mail`): `todo`
+- WI11 angus-mail migration (drop `com.sun.mail`, switch `javax.mail`→`jakarta.mail`): `done`（plan 2445：com.sun.mail:jakarta.mail 条目删除不设新条目、2 消费方 pom 换 angus-mail 无版本、5 文件 javax→jakarta、QuarkusFix 桩类迁 angus 命名空间、exclusion 解除）
 
 ### F — Deprecation, benchmark & cache
 

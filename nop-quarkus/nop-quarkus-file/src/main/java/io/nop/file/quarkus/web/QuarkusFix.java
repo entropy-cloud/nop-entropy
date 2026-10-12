@@ -7,7 +7,7 @@
  */
 package io.nop.file.quarkus.web;
 
-import com.sun.mail.util.LineInputStream;
+import org.eclipse.angus.mail.util.LineInputStream;
 
 import java.io.ByteArrayInputStream;
 
