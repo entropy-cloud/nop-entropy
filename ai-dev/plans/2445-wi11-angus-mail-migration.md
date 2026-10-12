@@ -1,6 +1,6 @@
 # 2445 WI11 angus-mail migration
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-12
 > Source: ai-dev/backlog/jdk25-springboot4-quarkus4-roadmap.md WI11；plan 2444 实测教训（无版本占位条目禁令）
 > Related: 2444（WI10 BOM-first 治理，政策先例）
@@ -94,34 +94,34 @@ Exit Criteria:
 
 ### Phase 3 - 收口
 
-Status: planned
+Status: completed
 Targets: roadmap、plan、log
 
 - Item Types: `Proof`（审计与门禁）、`Follow-up`（无——本 Phase 无遗留项）
 
-- [ ] roadmap WI11 `todo` → `done`
-- [ ] 白名单提交（3 pom + 5 java + plan 2445 + log 10-12 + roadmap；严禁混入 plan 2380 EQL 文件集与并行 session 未提交内容）
-- [ ] 独立子 agent closure audit
-- [ ] 三门全过：check-plan-checklist --strict / scan-hollow-implementations --module nop-integration/nop-integration-email-java --severity high / check-doc-links --strict
-- [ ] 文本一致性核对后置 `Plan Status: completed`
+- [x] roadmap WI11 `todo` → `done`
+- [x] 白名单提交（3 pom + 5 java + plan 2445 + log 10-12 + roadmap；严禁混入 plan 2380 EQL 文件集与并行 session 未提交内容）
+- [x] 独立子 agent closure audit
+- [x] 三门全过：check-plan-checklist --strict / scan-hollow-implementations --module nop-integration/nop-integration-email-java --severity high / check-doc-links --strict
+- [x] 文本一致性核对后置 `Plan Status: completed`
 
 Exit Criteria:
 
-- [ ] roadmap WI11 行 done；commit hash 记录 Closure 段；审计证据写入；三门留痕
+- [x] roadmap WI11 行 done；commit hash 记录 Closure 段；审计证据写入；三门留痕
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live defects 已修复（javax/com.sun.mail 命名空间漂移 = 本 WI 的 contract drift）
-- [ ] 所有 in-scope confirmed contract drifts 已收敛（代码 namespace = 依赖 artifact namespace = BOM 管理版本三者一致）
-- [ ] 行为/契约结果已达成：API 命名空间迁移 + stub 出口发送链行为不变（Gate B 既有测试绿）；SMTP wire 层无既有覆盖属接受风险（已如实声明）
-- [ ] 必要 focused verification 已完成（Gate B）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）或已更新
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：迁移真实生效（grep 源码零 javax.mail / dependency:tree 真实解析 angus），非注释式假迁移
-- [ ] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（chronic 家族容忍面内）
-- [ ] Gate B focused tests 全绿
-- [ ] 代码规范：无新增注释违例；import 分组符合仓内惯例
+- [x] 所有 in-scope confirmed live defects 已修复（javax/com.sun.mail 命名空间漂移 = 本 WI 的 contract drift）
+- [x] 所有 in-scope confirmed contract drifts 已收敛（代码 namespace = 依赖 artifact namespace = BOM 管理版本三者一致）
+- [x] 行为/契约结果已达成：API 命名空间迁移 + stub 出口发送链行为不变（Gate B 既有测试绿）；SMTP wire 层无既有覆盖属接受风险（已如实声明）
+- [x] 必要 focused verification 已完成（Gate B）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响的 owner docs 已同步（No owner-doc update required 已裁定）或已更新
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：迁移真实生效（grep 源码零 javax.mail / dependency:tree 真实解析 angus），非注释式假迁移
+- [x] `./mvnw clean install -DskipTests -T 1C -fae` 全绿（chronic 家族容忍面内）
+- [x] Gate B focused tests 全绿
+- [x] 代码规范：无新增注释违例；import 分组符合仓内惯例
 
 ## Deferred But Adjudicated
 
@@ -133,13 +133,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: WI11 交付面全部落地并经独立 closure audit APPROVE（10/10 PASS，0 Blocker / 0 Major）。com.sun.mail:jakarta.mail 条目删除且不设新条目（BOM 管理经 import 链）、2 消费方 pom 换 angus-mail 无版本、5 文件 javax→jakarta、QuarkusFix 桩类迁 angus 命名空间、exclusion 解除。Gate C 双模块解析证据（angus 2.0.5 + mail-api 2.1.5 + com.sun.mail 零命中，审计实跑复核）；Gate B email-java 20/20 绿；Gate A 399 SUCCESS + 恰 4 chronic 家族。MFA E2E 环境阻塞（chronic gen-aop，基线在案，测试改写与已绿文件机械同型）已诚实裁定。
+Completed: 2026-10-12
+Commit: 795fccad1f
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立子 agent agent_123d049c-1570-4459-90ed-ae0d4b0f3339（fresh session）
+- Evidence:
+  - 10 项验证全部 PASS（pom 条目/属性零存在且无新增条目 / 2 消费方 angus-mail 无版本+exclusion 删除 / 全仓 java 层 javax.mail 与 com.sun.mail 零命中 / dependency:tree 审计现场实跑 angus 2.0.5+mail-api 2.1.5 / 三份 Gate 证据文件在账且时序自洽 / Anti-Hollow live 验证 / 文本一致性 / Deferred 诚实性（3 文件 diff 逐行抽查机械同型）/ 白名单恰 11 文件零混入 / 遗留文档裁定在案）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2445-wi11-angus-mail-migration.md --strict` 退出码 0（勾选完成后复跑）
+  - `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-integration/nop-integration-email-java --severity high` 退出码 0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（No errors found）
+  - Anti-Hollow：live grep + dependency:tree 实跑验证迁移真实生效
+  - Deferred 项分类检查：MFA E2E（chronic gen-aop 环境阻塞，归 chronic 修复后可运行面）、QuarkusFix 桩类去留（out-of-scope）——无 in-scope live defect 被降级
 
 Follow-up:
 
