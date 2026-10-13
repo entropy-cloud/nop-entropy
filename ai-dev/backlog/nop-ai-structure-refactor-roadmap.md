@@ -45,7 +45,7 @@ audit-rounds: 0
 - WI11 agent 引擎装配面收敛: `done`（plan 2443：8 telescoping 构造删除——唯一保留 = 包私有 9 参装配构造 + protected 3 参测试 spy 缝；79 个纯 config 委托删除，config 访问通道即 IAgentEngine default fail-loud 方法替代，401 处实际使用；ReActAgentExecutor 47→10 参 Config 单一承载 + Builder 38 镜像字段删除 + 默认层 verbatim 保留；行为零变化 3536 测试全绿；净删偏差：src/main 净 -111、全 diff 净 +1200 因测试侧 Builder 链展开——roadmap 约 800 行目标按 WI8 先例登记不可达；A2b 双标志归一 + A3b 超时 0=disabled 合法化 + gate-2 目录登记为显式契约更新）
 - WI12 扩展点微包收敛与 NoOp 审计: `done`（plan 2444：41 个 NoOp 逐个审计全部裁定 keep——38 有 main 生产实现者 + 3 例外各有定位——NoOpBudgetProvider 用户侧 SPI、NoOpTalent final null-object、NoOpTaskMemberRouter 功能性默认正名改名 DefaultTaskMemberRouter；台账落 plan 附录 + extension-matrix 注记；微包按 roadmap 原 300-800 行口径 live 重测 5 包全部 keep；P3 命名两项评估维持现状；NoOp 文件数 41→40 因 1 个正名 Default*；契约更新 = gate-1 表 + gate-gaps.yaml 登记）
 - WI13 guardrail/test harness 移出 main: `done`（plan 2445：裁定 src/test 同包源根迁移——包名不变、24 文件 2393 行 + guardrail-test/checkpoint-test 两个 corpus 目录随迁 test resources——VFS 路径常量零改动；落点依据 = 全仓包外零消费者实证，guardrail-contract 裁定 A 的 main 放置理由未实现，修订为模块内验收测试资产 + eval 产品化重启条件；gate-1 verify-only 零改动——路径扫描自动收敛；基线 engine 14 条 import 已为 0——漂移登记；src/main 零 `package io.nop.ai.agent.guardrail.test`）
-- WI14 nop-ai-api 瘦身（应用实体契约迁出）: `todo`
+- WI14 nop-ai-api 瘦身（应用实体契约迁出）: `done`（plan 2446：裁定推翻 2026-09-15 保留裁定——66 文件五形态普查零消费者确证死代码，删除 api/beans 44 + api/crud 22；生成面处置 = 22 实体 xmeta 打 tagSet=no-api——gen-crud-api.xgen 保留空转为再启用开关，nop-ai-meta 构建触发生成器实证零复活；api 95→29 文件回归纯能力契约 jar；下游 8 消费者编译门 0 错误 + roadmap 验证命令 api+toolkit -am 268 测试绿；文档三处同步）
 - WI15 MCP 三模块整合与 servrer 更名: `todo`
 - WI16 孤儿模块处置裁定（shell / maven / dsl-orm）: `todo`
 - WI17 nop-ai-skills 拉平: `todo`
