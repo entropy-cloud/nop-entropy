@@ -1,7 +1,7 @@
-package io.nop.ai.maven.examples;
+package io.nop.ai.toolkit.mavenvfs.examples;
 
-import io.nop.ai.maven.cli.VfsMavenCli;
-import io.nop.ai.maven.vfs.DeltaVirtualFileSystem;
+import io.nop.ai.toolkit.mavenvfs.cli.VfsMavenCli;
+import io.nop.ai.toolkit.mavenvfs.vfs.DeltaVirtualFileSystem;
 
 import java.io.File;
 import java.io.InputStream;
@@ -13,8 +13,8 @@ import java.nio.file.Path;
  * Manual usage example (main()-only) demonstrating {@link DeltaVirtualFileSystem} and {@link VfsMavenCli}.
  * <p>
  * NOT a JUnit test — it has no assertions and is intentionally not picked up by surefire.
- * Automated coverage of these classes lives in {@code io.nop.ai.maven.vfs.DeltaVirtualFileSystemTest}
- * and {@code io.nop.ai.maven.cli.TestVfsMavenCli}.
+ * Automated coverage of these classes lives in {@code io.nop.ai.toolkit.mavenvfs.vfs.DeltaVirtualFileSystemTest}
+ * and {@code io.nop.ai.toolkit.mavenvfs.cli.TestVfsMavenCli}.
  *
  * @author Nop AI
  */

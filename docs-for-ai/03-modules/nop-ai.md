@@ -58,7 +58,8 @@
 | `nop-ai-toolkit` | 工具包 |
 | `nop-ai-coder` | AI 辅助编码 |
 | `nop-ai-shell` | 命令行交互 |
-| `` | WI15/plan 2452 解散/并入：`nop-ai-mcp-server` 的 AiFileTool 迁入 nop-ai-tools（`io.nop.ai.tools.mcp` + VFS bean），Simplifier 迁 nop-ai-core；support 并入 nop-spring-mcp-server |
+| `nop-ai-mcp-server` / `nop-spring-mcp-server-support` | WI15/plan 2452 解散/并入：`nop-ai-mcp-server` 的 AiFileTool 迁入 nop-ai-tools（`io.nop.ai.tools.mcp` + VFS bean），Simplifier 迁 nop-ai-core；support 并入 nop-spring-mcp-server |
+| `nop-ai-maven` | WI16/plan 2453 解散：mavenvfs 能力（DeltaVirtualFileSystem/VfsMavenCli 等 6 文件）迁入 nop-ai-toolkit `io.nop.ai.toolkit.mavenvfs`，模块删除 |
 | `nop-ai-dao` | ORM 实体与 DAO |
 | `nop-ai-service` | 业务逻辑 |
 | `nop-ai-web` | Web 层与 AMIS 页面 |

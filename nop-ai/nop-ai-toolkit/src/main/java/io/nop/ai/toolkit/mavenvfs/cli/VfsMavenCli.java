@@ -1,7 +1,7 @@
-package io.nop.ai.maven.cli;
+package io.nop.ai.toolkit.mavenvfs.cli;
 
-import io.nop.ai.maven.config.DeltaWorkspaceReaderConfigurator;
-import io.nop.ai.maven.vfs.DeltaVirtualFileSystem;
+import io.nop.ai.toolkit.mavenvfs.config.DeltaWorkspaceReaderConfigurator;
+import io.nop.ai.toolkit.mavenvfs.vfs.DeltaVirtualFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

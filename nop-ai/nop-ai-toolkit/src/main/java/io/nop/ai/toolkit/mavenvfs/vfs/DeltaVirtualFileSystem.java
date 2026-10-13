@@ -1,6 +1,6 @@
-package io.nop.ai.maven.vfs;
+package io.nop.ai.toolkit.mavenvfs.vfs;
 
-import io.nop.ai.maven.NopAiMavenErrors;
+import io.nop.ai.toolkit.mavenvfs.NopAiMavenErrors;
 import io.nop.api.core.exceptions.NopException;
 
 import java.io.File;

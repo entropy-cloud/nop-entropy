@@ -1,11 +1,11 @@
-package io.nop.ai.maven.config;
+package io.nop.ai.toolkit.mavenvfs.config;
 
 import java.io.File;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import io.nop.ai.maven.vfs.DeltaWorkspaceReader;
+import io.nop.ai.toolkit.mavenvfs.vfs.DeltaWorkspaceReader;
 
 /**
  * Delta Workspace Reader 配置工厂

@@ -47,7 +47,7 @@ audit-rounds: 0
 - WI13 guardrail/test harness 移出 main: `done`（plan 2445：裁定 src/test 同包源根迁移——包名不变、24 文件 2393 行 + guardrail-test/checkpoint-test 两个 corpus 目录随迁 test resources——VFS 路径常量零改动；落点依据 = 全仓包外零消费者实证，guardrail-contract 裁定 A 的 main 放置理由未实现，修订为模块内验收测试资产 + eval 产品化重启条件；gate-1 verify-only 零改动——路径扫描自动收敛；基线 engine 14 条 import 已为 0——漂移登记；src/main 零 `package io.nop.ai.agent.guardrail.test`）
 - WI14 nop-ai-api 瘦身（应用实体契约迁出）: `done`（plan 2446：裁定推翻 2026-09-15 保留裁定——66 文件五形态普查零消费者确证死代码，删除 api/beans 44 + api/crud 22；生成面处置 = 22 实体 xmeta 打 tagSet=no-api——gen-crud-api.xgen 保留空转为再启用开关，nop-ai-meta 构建触发生成器实证零复活；api 95→29 文件回归纯能力契约 jar；下游 8 消费者编译门 0 错误 + roadmap 验证命令 api+toolkit -am 268 测试绿；文档三处同步）
 - WI15 MCP 三模块整合与 servrer 更名: `done`（plan 2452：AiFileTool+McpServerErrors+VFS bean 注册迁入 nop-ai-tools——io.nop.ai.tools.mcp，包名/FQN 同步+ Rule #23 注册断言测试；Simplifier 2 类+常量+2 测试迁 nop-ai-core simplifier 包——coder main 消费者实为 0；nop-ai-mcp-server 解散、support 并入 spring-mcp-server——spring-ai starter 依赖显式加入、servrer→server 更名；MCP 模块 3→1；3536 级全绿含注册测试 2/2）
-- WI16 孤儿模块处置裁定（shell / maven / dsl-orm）: `todo`
+- WI16 孤儿模块处置裁定（shell / maven / dsl-orm）: `done`（plan 2453：maven 二选一取并入——10 文件迁 nop-ai-toolkit mavenvfs 包、模块解散、退役分支因已发布 artifact 否决；shell 维持现状登记——CST roadmap active + WI25 桥接修复后为活跃演进面、test scope 隔离已正确、复评须 CST owner/用户确认；dsl-orm 维持现状登记——唯一消费者 nop-dyn-service 在位、退役被 roadmap 排除、合并 successor 联动依赖迁移；nop-ai 子模块 -1）
 - WI17 nop-ai-skills 拉平: `todo`
 - WI18 nop-ai-dao 双限界上下文裁定: `todo`
 - WI19 nop-ai-gateway 能力承载边界裁定: `todo`
