@@ -25,14 +25,14 @@
         <spring-boot.version>4.1.1</spring-boot.version>
         <spring-cloud.version>2025.1.3</spring-cloud.version>
         <spring-ai.version>2.0.1</spring-ai.version>
-        <!-- why not BOM-managed 直取（WI10 plan 2444 分歧裁决）：SB4 4.1.1 经其 import 的
-             testcontainers-bom 管理 2.0.5 大版本线，quarkus-bom 不管理；2.0.5 胜者有害——
-             2.x 大版本改版（模块改名、API 面变化）未经平台裁定，且 WI6 前基线即 SB3.5 线
-             的 1.21.4。本属性供下方 testcontainers-bom import + testcontainers core
-             显式钉共同压回 legacy 名消费线 1.21.4 一致。WI33 已在 5 个 message/stream
-             模块 pom 内单点 import 2.0.5（2.x 改名 artifact 消费方），子 pom import
-             优先于父链，不受影响。全平台 1.x→2.x 合并迁移另行裁定。 -->
-        <testcontainers.version>1.21.4</testcontainers.version>
+        <!-- WI plan 2451（2026-10-13）：全平台合线 2.0.5。版本权威链如实记载：quarkus-bom
+             4.0.0.Beta1 管理 62 条 testcontainers 条目（含平台所需全部工件 @2.0.5）且先
+             import 者胜，本 BOM 的 tc-bom import 与 SB4 嵌套 import 恰巧同为 2.0.5——
+             三源数值一致，未来单 bump 本属性对 quarkus-bom 管的工件静默不生效。
+             历史：WI6-WI10 期间曾钉 1.21.4 线（当时 SB4 嵌套 import 的 2.0.5 对 legacy
+             消费线有害，core 需显式钉防混栈）；plan 2451 裁定整体升级后分歧消失，
+             core 显式钉与 5 个 message/stream 模块的模块级 import 一并撤除。 -->
+        <testcontainers.version>2.0.5</testcontainers.version>
 
         <!-- plan 36（2026-10-06）：对齐 Pulsar 4.0 LTS 线最新补丁（active support 至
              2026-10-21，security support 至 2027-10-21；非 LTS 的 4.1/4.2 不取）。
@@ -152,15 +152,6 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- WI10 plan 2444：core 是 1.21.4 与 2.0.5 两线唯一共管的 legacy 名 artifact，
-                 SB4 嵌套 import 的 2.0.5 会压过上面的 1.21.4 import（嵌套 import 优先，
-                 与位次无关，实测），故显式本地钉压回 1.21.4，消除 nop-orm 的
-                 core 2.0.5 + legacy 模块 1.21.4 混栈 -->
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers</artifactId>
-                <version>${testcontainers.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>org.springframework.ai</groupId>

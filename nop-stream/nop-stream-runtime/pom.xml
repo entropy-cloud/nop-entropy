@@ -15,13 +15,7 @@
         <dependencies>
             <!-- WI3 (plan 2335): real-broker kafka E2E (gated assume-skip), versions via
                  the testcontainers-bom single point — same precedent as connector-debezium -->
-            <dependency>
-                <groupId>org.testcontainers</groupId>
-                <artifactId>testcontainers-bom</artifactId>
-                <version>2.0.5</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
+        <!-- WI plan 2451：tc-bom 模块级 import 已撤——全平台经 nop-dependencies 统一 2.0.5 单线 -->
         </dependencies>
     </dependencyManagement>
 
