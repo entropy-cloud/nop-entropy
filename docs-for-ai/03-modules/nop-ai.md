@@ -53,7 +53,7 @@
 | `nop-ai-agent` | Agent 框架 |
 | `nop-ai-rag` | RAG 实现落点模块（K2 起非空）：`IVectorStore` 双实现（`PgVectorStore` pgvector JDBC 驱动 + `InMemoryVectorStore` 内存参考实现，均不注册 default bean）；`IVectorStore` 为 nop-ai-core SPI 契约（P1-MA5-003），生产实现落点在本模块（04-rag-module-position §四/§八） |
 | `nop-ai-gateway` | AI 网关（三块能力）：LLM failover（路由格式转换 + 透明账号切换——两种形态 + 流式重订阅 + 并发限流 + 模型类路由 + 选择策略 + 指标）+ channel 消息网关（渠道 ↔ agent 桥接 + 业务消息层 + 会话映射）+ 扫码登录编排。**使用文档见 `nop-ai-gateway.md`** |
-| `nop-ai-skills` | AI 技能 |
+| ~~`nop-ai-skills`~~ | WI17/plan 2454 解散：code-analyzer 升 nop-ai 直属；deepwiki/translate prompt 资源迁 nop-ai-core VFS（`_vfs/nop/ai/prompts/{deepwiki,translate,...}`） |
 | `nop-ai-tools` | AI 工具 |
 | `nop-ai-toolkit` | 工具包 |
 | `nop-ai-coder` | AI 辅助编码 |
