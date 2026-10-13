@@ -50,7 +50,7 @@ audit-rounds: 0
 - WI16 孤儿模块处置裁定（shell / maven / dsl-orm）: `done`（plan 2453：maven 二选一取并入——10 文件迁 nop-ai-toolkit mavenvfs 包、模块解散、退役分支因已发布 artifact 否决；shell 维持现状登记——CST roadmap active + WI25 桥接修复后为活跃演进面、test scope 隔离已正确、复评须 CST owner/用户确认；dsl-orm 维持现状登记——唯一消费者 nop-dyn-service 在位、退役被 roadmap 排除、合并 successor 联动依赖迁移；nop-ai 子模块 -1）
 - WI17 nop-ai-skills 拉平: `todo`
 - WI18 nop-ai-dao 双限界上下文裁定: `done`（plan 2455：裁定维持现状——双域消费者完全重叠——同为 nop-ai-service BizModel + web CRUD、coder 零消费 dao、拆分零功能收益且成本为 DDL 三方言 + codegen 链路复验 + 回归；重启条件 = 按域独立部署/独立数据生命周期/域间消费者分化任一触发即立 successor；live 复测与 roadmap 基线一致）
-- WI19 nop-ai-gateway 能力承载边界裁定: `todo`
+- WI19 nop-ai-gateway 能力承载边界裁定: `done`（plan 2456：裁定维持单模块——failover 轻依赖面——api/core/rule-core/ channel+login 重依赖面——agent/dao/feishu/auth-api分层实测与 roadmap 诊断一致，但零单一能力消费者使拆分无现实对价；channel 面已做 auth-api 轻接口减配；重启条件 = failover-only 下游出现 / channel 独立发布节奏或更重依赖 / LLM 网关产品化）
 - WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `todo`
 - WI22 nop-ai-app 产品组装闭环裁定: `todo`
 - WI21 全量收口与分层速查回写校对: `todo`
