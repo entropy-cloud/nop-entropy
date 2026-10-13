@@ -226,6 +226,10 @@ public class TestJobStoreImpl extends JunitBaseTestCase {
         daoProvider.daoFor(NopJobFire.class).saveEntityDirectly(active2);
 
         NopJobFire manual = newFire("fire-p31-m", schedule);
+        // R1.9 同型防护：newFire 的 scheduledFireTime 缺省取当前毫秒，与 active1 同毫秒时
+        // 撞 UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE（满载下语句间隔拉长反而更易同毫秒），
+        // 显式错开使 UK 不再依赖语句执行速度
+        manual.setScheduledFireTime(new Timestamp(System.currentTimeMillis() + 2000));
         boolean inserted = scheduleStore.insertManualFire(schedule, manual);
         assertTrue(inserted);
 
