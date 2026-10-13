@@ -53,12 +53,12 @@ audit-rounds: 0
 - WI19 nop-ai-gateway 能力承载边界裁定: `done`（plan 2456：裁定维持单模块——failover 轻依赖面——api/core/rule-core/ channel+login 重依赖面——agent/dao/feishu/auth-api分层实测与 roadmap 诊断一致，但零单一能力消费者使拆分无现实对价；channel 面已做 auth-api 轻接口减配；重启条件 = failover-only 下游出现 / channel 独立发布节奏或更重依赖 / LLM 网关产品化）
 - WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `done`（plan 2457：chat-history 14 笔记迁 ai-dev/discussions/nop-ai-chat-history/——git mv 保历史、ORM 设计模型保留原位、gitignore 覆盖实测有效、4 个解散模块 gitignored 磁盘壳清理；roadmap 正文归位注记已更新）
 - WI22 nop-ai-app 产品组装闭环裁定: `done`（plan 2458：裁定定位②——nop-ai 显式登记为库集合、宿主由下游应用承担；app 保持轻量 Quarkus 参考宿主不背 agent/gateway 重依赖面；重启条件 = 产品要求 AI 管理后台默认内置 agent 对话能力时立 successor 补装；module-groups 定位声明增补）
-- WI21 全量收口与分层速查回写校对: `todo`
+- WI21 全量收口与分层速查回写校对: `done`（plan 2459：分层速查/module-groups/nop-ai.md/source-anchors 全量回写核对；结构门禁固化 ai-dev/tools/check-nop-ai-structure.mjs——10 grep 断言 + 包环计数 + 解散模块表，全 PASS；全量 clean install 453 SUCCESS 0 FAILURE—— chronic gen-aop 家族经并发 plan 2450 根治；nop-ai 四模块测试绿——唯一 flake = TestChannelMessageService 并发 dedup 竞态，impl 自 WI9 零 diff、rerun 即绿，属 channel-integration/invariant-loop 在录面非本 roadmap 引入，已登记；独立子代理交叉校对通过）
 
 - ★ **里程碑：M1 双轨合一**（WI1 + WI2 全部 done——废弃栈 25 类删除、工具 SPI 单一）：`done`
 - ★ **里程碑：M2 core 瘦身归位**（WI4—WI9 全部 done——core 仅剩 LLM 内核关注点，rag/gateway/coder/testkit 各归其位，dialect 净省约 1,000 行）：`done`
-- ★ **里程碑：M3 装配面收敛**（WI10—WI13 全部 done——包级环消除、装配路径单一、净删约 800 行转发代码）：`todo`
-- ★ **里程碑：M4 模块整合收口**（WI14—WI22 全部 done——api 回归纯能力契约、孤儿与碎片模块按裁定处置、结构门禁固化于 WI21）：`todo`
+- ★ **里程碑：M3 装配面收敛**（WI10—WI13 全部 done——包级环消除、装配路径单一、净删约 800 行转发代码）：`done`（净删目标按 plan 2443 登记偏差：src/main 净 -111 行，全 diff 因测试侧 Builder 链展开为正——roadmap 行按 WI8 先例登记）
+- ★ **里程碑：M4 模块整合收口**（WI14—WI22 全部 done——api 回归纯能力契约、孤儿与碎片模块按裁定处置、结构门禁固化于 WI21）：`done`
 
 > 注：各 Phase 标题中的「完成门」指该 Phase 全部 WI done 时应达成的里程碑；执行顺序按 Phase 字母序与 WI 编号序（WI22 在 WI20 之后、WI21 之前执行）。M1 是 M2 各 WI 的事实前置（同模块冲突避让），不设硬 deps。
 

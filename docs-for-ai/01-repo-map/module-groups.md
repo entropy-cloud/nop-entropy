@@ -102,7 +102,7 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 
 | `nop-ai-agent` | Agent DSL + 执行引擎（`DefaultAgentEngine`/`ReActAgentExecutor`）。经 `IChatService` 调 LLM，经 `ITokenEstimator` bridge 消费 token 估算；可靠性机制直接复用 `io.nop.ai.core.reliability` 包（`ThresholdBreaker`/`LlmErrorClassifier`/`ProviderFailoverChain`/`StandardRetryPolicy` 等），并直接使用 core 的 `model`/`agent`/`dialect` 公共模型类型（2026-09-14 按 live import 修正） |
 | `nop-ai-toolkit` | 工具执行层：19 个具体 `*Executor`（ReadFile/Bash/Http/GraphqlQuery/ApplyDelta/Patch/Skill 等，`io.nop.ai.toolkit.tools`）+ `LocalToolFileSystem` + `ToolManagerImpl`/`DefaultToolExecutorProvider`；抽象面为 `IToolExecutor`/`IToolManager` 与工具 DSL（tool.xdef） |
-| `nop-ai-tools` / `nop-ai-skills` | 具体工具实现 / skill 引擎。DSL 文档工具契约与实现（`IDslTool`/`DslToolImpl`，`io.nop.ai.tools.xdsl`）在模块内部（M5-P1 裁定 A：自 nop-ai-coder 下沉，解除 tools→coder 分层倒置；DSL 转换经 nop-converter，不连带 coder 重量依赖链） |
+| `nop-ai-tools` | 具体工具实现 + DSL 文档工具契约与实现（`IDslTool`/`DslToolImpl`，`io.nop.ai.tools.xdsl`——M5-P1 裁定 A：自 nop-ai-coder 下沉；DSL 转换经 nop-converter）+ MCP 工具适配（`io.nop.ai.tools.mcp.AiFileTool`，WI15/plan 2452 自解散的 nop-ai-mcp-server 迁入，VFS bean 注册随迁）。原 `nop-ai-skills` 聚合已解散（WI17/plan 2454：code-analyzer 升 nop-ai 直属，deepwiki/translate prompt 资源迁 nop-ai-core VFS） |
 | `nop-ai-gateway` | AI 网关，承载三块能力：LLM failover（多 Provider 路由/转换 + 透明账号切换）+ channel 消息网关（`IChannelConnector`/`FeishuConnector`/`ChannelMessageServiceImpl`/`ChannelSessionStoreImpl`）+ 扫码登录编排（`ChannelLoginApiBizModel`/`ChannelLoginScanProcessor`）。依赖边：gateway → `nop-ai-agent`/`nop-ai-dao`/`nop-integration-api`/`nop-integration-feishu`（channel）+ `nop-biz-auth-core`/`nop-auth-api`（login）；`nop-auth-service` 与消息总线为部署侧可选装配（详见 `docs-for-ai/03-modules/nop-ai-gateway.md`） |
 | `nop-ai-rag` | RAG 检索增强 |
 | `nop-ai-shell` | Shell 沙箱执行环境 |
