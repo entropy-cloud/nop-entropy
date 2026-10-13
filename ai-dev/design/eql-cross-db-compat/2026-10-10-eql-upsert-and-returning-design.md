@@ -12,7 +12,7 @@
 ## 一、设计结论
 
 1. **新增中立语法的 `upsert` 语句**，取 PG 家族习惯的 `on conflict ... do update set ...` 形态；方言差异全部下沉到 SQL 生成层，由**方言能力位**门控，取值范围限定为 **PostgreSQL 族 / MySQL·MariaDB 族 / H2 族**，其余方言**编译期响亮报错**，不做静默降级。
-2. **`upsert` v1 不引入 `excluded` 伪表**。`do update set` 的右值是自足表达式；PG 上惯用的 `EXCLUDED.c` 在 EQL 里写成重复同一参数（`set name = :name`）。这是 v1 最主要的表达力取舍，理由见 §4.1。
+2. **`upsert` v1 不引入 `excluded` 伪表**。`do update set` 的右值是自足表达式；PG 上惯用的 `EXCLUDED.c` 在 EQL 里写成重复同一参数（`values (…, ?) … do update set name = ?`）。这是 v1 最主要的表达力取舍，理由见 §4.1。
 3. **`INSERT ... RETURNING` 与 `DELETE ... RETURNING` 补齐**，与既有的 `UPDATE ... RETURNING` 并列；新增两个**独立能力位**，既有 `supportReturningForUpdate` **零改动**（保持 BC 与既有方言取值）。
 4. **方言能力位新增 3 个、且仅 3 个**（`supportUpsert` / `supportReturningForInsert` / `supportReturningForDelete`），全部走 `nop-dao` 的**手写 retention 类**，零 codegen。
 5. **EQL 语法层 upsert 与 `nop-dao` 批量 upsert 原语并存，互不替代**：前者服务于 sql-lib / BizModel 的声明式写路径并进入统一缓存与分片/监听链路；后者服务于绕过 ORM 的批量 JDBC 直写路径。两者共享同一套方言形态认知，但**不共享代码**（详见 §3.9）。
@@ -257,7 +257,7 @@ EQL 的 AST 模型由 `nop-persistence/nop-orm-eql/model/ast/io/nop/orm/eql/ast/
 
 ### 4.1 为 `do update set` 引入 `excluded` 伪表
 
-**这是 v1 最实质的取舍**。PG 上 `ON CONFLICT ... DO UPDATE SET c = EXCLUDED.c` 是事实标准写法，不提供它意味着 EQL 用户要写 `set c = :c`——同一个参数在 `values` 与 `set` 中各出现一次。
+**这是 v1 最实质的取舍**。PG 上 `ON CONFLICT ... DO UPDATE SET c = EXCLUDED.c` 是事实标准写法，不提供它意味着 EQL 用户要写 `set c = ?`——同一个参数在 `values` 与 `set` 中各出现一次。
 
 **仍然拒绝的理由**：`excluded` 需要注册一个合成表源进列解析作用域、每个列引用要携带"指向插入值表达式"的额外信息、且 **MySQL 族必须 lower 成 `VALUES(c)`、H2 族根本无法表达**（H2 的 `MERGE ... VALUES` 不能在更新子句里引用被插入的值）⇒ 引入它会把 H2 分支从"受限但可用"降级为"一律不可用"，代价大于收益。
 
