@@ -42,6 +42,19 @@
 - 该窗口同时是产品隐患：abort 路径的门控 `if (!failedCommitParticipants.containsKey(...)) checkpointSuccessMap.remove(...)` 在窗口内会把仍在重试的 epoch 误判为无失败者，提前删除终端标记——重放将默认 success=true，正是标记要防止的语义。
 - 修复（产品）：else 分支改为对 ConcurrentSkipListMap 原位 `put`（替换 value，不先 remove），消除瞬时不可见窗口。
 
+## 后续清扫轮次（sweep3–5）暴露的同类面
+
+清扫收敛轨迹：sweep1 失败 6 模块 → sweep2 4 → sweep3 1 → sweep4 1 → sweep5 1 → sweep6 全绿（454 SUCCESS · 0 失败）。每轮失败点均不同，逐个隔离验证修复：
+
+- **7. stream-runtime "完成信号后立即断言 commit"（时序竞争，4 处）**：checkpoint commit 骑在 fan-out 执行器上、晚于完成 future/latch，满载下测试线程先醒。TestCheckpointEndToEnd / TestCheckpointParticipantIntegration / TestE2ETwoPhaseCommitSink / TestDistributedExactlyOnce 统一按 TestAwait 惯例补有界等待。
+- **8. TestStreamConnectorRegistryE2E 2PC 末 epoch 落盘窗口（时序竞争）**：`execute()` 返回与最后一个 epoch 落盘之间存在窗口，满载下读文件缺尾部——有界等待内容收敛后再断言。
+- **9. nop-ai-gateway `ensureBridgeSubscribed` check-then-act（并发缺陷，产品修复）**：64 并发首派发注册 5 个桥订阅。`LocalMessageService.subscribe` 是无条件 add、**不按消费者身份去重**（原 javadoc 前提错误）——同实例首订阅用 synchronized 串行化，保持"先订阅后登记"顺序。此前 A/B 证明"稳定红"的已登记缺陷随之闭环（gateway 243/243）。
+- **10. nop-job-dao manual fire 同毫秒撞 UK（时序竞争）**：`newFire` 缺省 `scheduledFireTime=now`，与 active1 同毫秒即撞 UK_NOP_JOB_FIRE_SCHEDULE_TIME_SOURCE（R1.9 已知同型，注释自认 incidental 碰撞；满载下语句间隔拉长更易同毫秒）——manual fire 显式错开 +2s。
+- **11. nop-retry-engine 后台扫描器污染计数（时序竞争）**：扫描器默认 5s 一扫，会把类内此前用例遗留的 PENDING 记录重新执行、推高 `rpcInvoker.getInvocationCount()`（隔离跑 2-10s 躲过、满载 24s 必中）——测试类静态块把 `nop.retry.scanner.scan-interval-ms` 调至 1h；扫描语义覆盖走 `executeRetryFromScanner` 直调。
+- **12. surefire fork 退出超时（环境，构建配置）**：满载下 debezium 内嵌引擎 JVM 退出超 30s 默认值，报"timeout in the fork"假失败（测试 70/70 绿）——根 pom `forkedProcessExitTimeoutInSeconds` 30→120。
+- **13. TestMessageSource push/poll 顺序假设（时序竞争）**：push("ok") 与后台泵线程并发，泵滞后时 pollNext 直接以 pendingError 失败（fast-fail 同样合法）——先排空 "ok" 再投毒，钉住 P1-9 的"失败类型化浮现"本意。
+- **e2e 环境坑（非缺陷）**：本机 8081/8083 被无关进程（llama-server、Python）占用，Playwright `reuseExistingServer` 复用错误进程——code-e2e 的 404 即打到 llama-server；需 `PORT`+`BASE_URL` 覆盖（web-e2e 的 spec 硬编码 fallback 8083，仅传 PORT 无效）。
+
 ## Tests
 
 - `nop-code/nop-code-web/src/test/java/io/nop/code/web/NopCodeWebPagesTest.java` — 1/1
