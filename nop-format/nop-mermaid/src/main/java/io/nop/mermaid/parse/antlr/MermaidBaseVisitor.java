@@ -1,4 +1,4 @@
-// Nop Generated from Mermaid.g4 by ANTLR 4.13.0
+// Nop Generated from Mermaid.g4 by ANTLR 4.13.2
 package io.nop.mermaid.parse.antlr;
 import org.antlr.v4.runtime.tree.AbstractParseTreeVisitor;
 

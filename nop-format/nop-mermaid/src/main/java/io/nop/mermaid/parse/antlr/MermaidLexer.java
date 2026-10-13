@@ -1,4 +1,4 @@
-// Nop Generated from Mermaid.g4 by ANTLR 4.13.0
+// Nop Generated from Mermaid.g4 by ANTLR 4.13.2
 package io.nop.mermaid.parse.antlr;
 import org.antlr.v4.runtime.Lexer; //NOPMD - suppressed UnusedImports - Auto Gen Code
 import org.antlr.v4.runtime.CharStream;
@@ -9,10 +9,10 @@ import org.antlr.v4.runtime.atn.*;
 import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.*; //NOPMD - suppressed UnusedImports - Auto Gen Code
 
-@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue"})
+@SuppressWarnings({"all", "warnings", "unchecked", "unused", "cast", "CheckReturnValue", "this-escape"})
 // tell cpd to start ignoring code - CPD-OFF
 public class MermaidLexer extends io.nop.antlr4.common.AbstractAntlrLexer {
-	static { RuntimeMetaData.checkVersion("4.13.0", RuntimeMetaData.VERSION); }
+	static { RuntimeMetaData.checkVersion("4.13.2", RuntimeMetaData.VERSION); }
 
 	protected static final DFA[] _decisionToDFA;
 	protected static final PredictionContextCache _sharedContextCache =
