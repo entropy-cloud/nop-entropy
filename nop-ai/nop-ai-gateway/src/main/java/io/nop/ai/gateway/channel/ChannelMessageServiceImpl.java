@@ -478,8 +478,16 @@ public class ChannelMessageServiceImpl implements IChannelMessageService {
         if (subscribedTopics.contains(topic)) {
             return;
         }
-        messageService.subscribe(topic, bridgeConsumer);
-        subscribedTopics.add(topic);
+        // 串行化同实例的首订阅：check-then-act 在并发首派发下会把同一个桥消费者注册
+        // N 次（本地广播总线不按消费者身份去重，每次 subscribe 都是无条件 add），
+        // 订阅先于登记的顺序在锁内保持不变
+        synchronized (this) {
+            if (subscribedTopics.contains(topic)) {
+                return;
+            }
+            messageService.subscribe(topic, bridgeConsumer);
+            subscribedTopics.add(topic);
+        }
     }
 
     /**
