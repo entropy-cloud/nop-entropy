@@ -51,7 +51,7 @@ audit-rounds: 0
 - WI17 nop-ai-skills 拉平: `todo`
 - WI18 nop-ai-dao 双限界上下文裁定: `done`（plan 2455：裁定维持现状——双域消费者完全重叠——同为 nop-ai-service BizModel + web CRUD、coder 零消费 dao、拆分零功能收益且成本为 DDL 三方言 + codegen 链路复验 + 回归；重启条件 = 按域独立部署/独立数据生命周期/域间消费者分化任一触发即立 successor；live 复测与 roadmap 基线一致）
 - WI19 nop-ai-gateway 能力承载边界裁定: `done`（plan 2456：裁定维持单模块——failover 轻依赖面——api/core/rule-core/ channel+login 重依赖面——agent/dao/feishu/auth-api分层实测与 roadmap 诊断一致，但零单一能力消费者使拆分无现实对价；channel 面已做 auth-api 轻接口减配；重启条件 = failover-only 下游出现 / channel 独立发布节奏或更重依赖 / LLM 网关产品化）
-- WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `todo`
+- WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `done`（plan 2457：chat-history 14 笔记迁 ai-dev/discussions/nop-ai-chat-history/——git mv 保历史、ORM 设计模型保留原位、gitignore 覆盖实测有效、4 个解散模块 gitignored 磁盘壳清理；roadmap 正文归位注记已更新）
 - WI22 nop-ai-app 产品组装闭环裁定: `todo`
 - WI21 全量收口与分层速查回写校对: `todo`
 
@@ -203,7 +203,7 @@ audit-rounds: 0
 > round 1 重写：v1 的"Eclipse 工程文件出库（git rm --cached）"前提不实——`git ls-files` 实测全仓 0 个 `.project`/`.classpath`/`.settings` 被跟踪（根 .gitignore:10-12 与 nop-ai/.gitignore 均已忽略，磁盘文件为未跟踪忽略态），无出库对象。
 
 - 清理本地工作树中未跟踪的 `.settings/`/`.project`/`.classpath` 文件（可选，仅磁盘卫生）；确认根 `.gitignore` 与 `nop-ai/.gitignore` 的忽略规则持续覆盖（若有模块目录新增遗漏则补规则）。
-- 根级 `nop-ai/model/chat-history/`（14 个产品分析笔记，非构建资产）迁到 `ai-dev/`（analysis 归档或 discussions）；`nop-ai/model/nop-ai.orm.xlsx` + design.md 保留（ORM 设计模型属构建资产）。
+- 根级 `ai-dev/discussions/nop-ai-chat-history/`（14 个产品分析笔记，非构建资产；WI20/plan 2457 自原 nop-ai/model/chat-history/ 目录迁入）；`nop-ai/model/nop-ai.orm.xlsx` + design.md 保留（ORM 设计模型属构建资产）。
 - 验证：`git status` 干净 + `node ai-dev/tools/check-doc-links.mjs --strict` 0 error + `./mvnw clean install -DskipTests -T 1C` 一次确认无构建期引用残留。Item Type: Fix。deps: 无（XS 级，可随时插入）。
 
 ### WI22 nop-ai-app 产品组装闭环裁定
@@ -228,7 +228,7 @@ audit-rounds: 0
 - **gateway 双消息模型事实（round 1 修正）**：gateway main 对 `io.nop.ai.core.api.messages` 零 import；`AiDialectBackendMessageConverter` 是前端 wire-format ↔ ChatRequest 协议转换器（implements `io.nop.gateway.conversion.IBackendMessageConverter`）；`failover/ChatServiceFailoverAdapter` implements 新栈 `IChatService`（javadoc :42 明示非废弃栈）。全仓唯一双模型转换点是 core 测试类 TestChatLogHelper。双模型的现存代价是 core 自留废弃面与删除阻力，非运行时桥接。
 - **跨模块 FQN/反射契约（round 1 新增）**：`FeishuConnector.java` 4 处 FQN 硬编码 `io.nop.ai.agent.engine.NopAiAgentException`（:346/:382/:383/:539）；`nop-task/nop-task-dao/.../TaskExceptionRegistry.java:69` 反射字符串注册同 FQN（+ nop-task-ext `TestTaskExceptionRegistry.java` 3 处 FQN 字面量 :43/:113/:143，round 2 修正口径）；`LlmConfigHelper.java:12` import `io.nop.ai.core.routing.ModelClassCandidate`；`nop-dyn/nop-dyn-service/pom.xml:86` + `GptCodeGen.java`（:11/:18）消费 nop-ai-dsl-orm。
 - **包环计量（round 1 修正）**：engine→security 144 / security→engine 30（14 NopAiAgentException + 16 AgentExecutionContext，27 文件）；engine→reliability 53 / reliability→engine 16（main scope）；`NopAiAgentException` 位于 engine 包，main scope engine 包外 130 个文件 import 它。
-- **仓库卫生事实（round 1 修正）**：`.project`/`.classpath`/`.settings` 被 git 跟踪数为 **0**（根 `.gitignore`:10-12 与 `nop-ai/.gitignore`:10-12 均已忽略，磁盘存在未跟踪副本）；`nop-ai/model/chat-history/` 为 14 个 .md 产品分析笔记。
+- **仓库卫生事实（round 1 修正）**：`.project`/`.classpath`/`.settings` 被 git 跟踪数为 **0**（根 `.gitignore`:10-12 与 `nop-ai/.gitignore`:10-12 均已忽略，磁盘存在未跟踪副本）；`ai-dev/discussions/nop-ai-chat-history/` 为 14 个 .md 产品分析笔记（WI20/plan 2457 自原 nop-ai/model/chat-history/ 目录迁入）。
 - **消费面普查（round 2 修正口径）**：core/file 消费者 = nop-ai-tools（FileToolBizModel/DslToolImpl）+ nop-cli-core（CliFileCommand）；core/response 消费者 = nop-dyn-service（GptCodeGen :11 import XmlResponseParser、:18 import 并调用 GptOrmModelParser）+ nop-ai-tools；vectorstore/embedding 消费者 = 仅 rag（5 main + 5 test，另 `nop-code/nop-code-service` TestCodeSearchHybridVector.java:84 有 javadoc 提及无代码依赖）；core mock 直接消费者 = 仅 core 1 个测试类（datav 4 个测试类用各自私有本地 mock）；api.chat.messages 外部消费面（import 语句口径、排除 nop-ai-api/nop-ai-core 自身）= main scope 77 文件 200 条 import，含 test 289 文件 829 条（round 2 勘误 v2"252 个 main 文件 669 条"口径标签错误）。
 - **既有 roadmap 收敛状态（round 1 复核）**：安全/可靠性四轮审计全收口；执行模型 roadmap 25 项全收口（2026-10-03）；gateway-failover W1-W8 已完成；harness-evolution/channel-integration/invariant-loop done；autonomous roadmap 在途 19 项（其 WI7 SmartModelRouter 位于 agent/router，与 WI5 无交集）；shell-cst roadmap active 12 项待办。本 roadmap 不重复上述已修复/在途面。
 - **依赖图事实**（compile scope POM 实证）：api→仅 nop-api-core；core→api（0 反向 import）；全组无 compile 循环、无分层倒置；nop-rule-core 经 core/routing 传递给全部 core 下游；nop-ai-app 不依赖 agent/gateway。
