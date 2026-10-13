@@ -11,11 +11,11 @@ verify: [test]
 ## Current Baseline
 
 - 来源：deep-audit round 3 的 P2 Follow-up Backlog（roadmap `## Follow-up Backlog` 文档顺序前 10 项，未勾选），全部经 live repo 复核（HEAD `a993ea9f43`，2026-09-15）：
-  1. **AiFileTool 命名三方不一致**：`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/mcp/McpConstants.java` `BIZ_OBJ_AI_TOOL = "AiTool"`；`nop-ai/nop-ai-mcp-server/src/main/java/io/nop/ai/mcp/server/AiFileTool.java:45` `@BizModel(McpConstants.BIZ_OBJ_AI_TOOL)`（wire 上操作名 `AiTool__*`，`GraphQLToolCallbackProvider` 也经 `McpConstants.BIZ_OBJ_AI_TOOL` 查 BizObject）；但 `AiFileTool.java:59/:71/:121` `@Auth(permissions = "AiFileTool:read"/"AiFileTool:write")` 按类名；`docs-for-ai/02-core-guides/service-layer.md:203` 权限命名表 BizObjName 列写 `AiFileTool`——违反 `<BizObjName>:<action>` 约定，权限检查面与 wire 操作名面脱节。
+  1. **AiFileTool 命名三方不一致**：`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/mcp/McpConstants.java` `BIZ_OBJ_AI_TOOL = "AiTool"`；`nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/mcp/AiFileTool.java:45` `@BizModel(McpConstants.BIZ_OBJ_AI_TOOL)`（wire 上操作名 `AiTool__*`，`GraphQLToolCallbackProvider` 也经 `McpConstants.BIZ_OBJ_AI_TOOL` 查 BizObject）；但 `AiFileTool.java:59/:71/:121` `@Auth(permissions = "AiFileTool:read"/"AiFileTool:write")` 按类名；`docs-for-ai/02-core-guides/service-layer.md:203` 权限命名表 BizObjName 列写 `AiFileTool`——违反 `<BizObjName>:<action>` 约定，权限检查面与 wire 操作名面脱节。
   2. **FileTool 工具描述文件命名与加载约定不符**：`nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/tools/` 下的 grepFiles 描述文件原为单下划线 `FileTool_grepFiles.tool.json`，对应操作名 `FileTool__grepFiles`（双下划线，`IFileToolBiz.java:75`/`FileToolBizModel.java:183`）；`ToolSpecificationLoader.loadSpecification`（`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/api/tool/ToolSpecificationLoader.java:16`，`@Deprecated`）拼 `/nop/ai/tools/{toolName}.tool.json` 永不命中 → `GraphQLToolProvider.loadToolSpec`（`nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/graphql/GraphQLToolProvider.java:88-99`）静默回退 schema 派生描述；另有 4 个 `.task.json`（`FileTool__loadDslSchema`/`FileTool__loadDslSchemaForFileType`/`FileTool__saveDslFile`/`FileTool__loadDslFile`）全仓无任何 loader，纯死资源。
   3. **`ChatStreamAccumulator`（nop-ai-api 公共类）全仓无生产消费**：`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/chat/stream/ChatStreamAccumulator.java`（plan 328 Phase 3 产物，按 itemType 累积 text/reasoning/tool_call）在 nop-ai-core/nop-ai-agent/nop-ai-tools main 代码零引用；各 dialect（OpenAiDialect/ResponsesDialect 等）各自实现 chunk 累积逻辑——api 公共面与实际使用面不一致。
   4. **`ChatUserMessage.parts` 多模态无生产消费**：`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/chat/messages/ChatUserMessage.java` 的 `parts`（image/audio 多模态 `ContentPart`）与 `attachments` 在 6 个 dialect 请求构建中只读 `getContent()` 文本视图；image/audio part 序列化时静默丢弃（纯图片消息 content=null）；plan 326 声明的多模态 API 表面未接线。
-  5. **nop-ai-mcp-server 未用依赖**：`nop-ai/nop-ai-mcp-server/pom.xml:21` 声明 `nop-graphql-core` compile 依赖但全模块零引用（GraphQL 版 MCP 2023 遗留；BizModel 运行时由消费方 nop-biz 提供）。
+  5. **nop-ai-mcp-server 未用依赖**：`nop-ai/nop-ai-tools/pom.xml:21` 声明 `nop-graphql-core` compile 依赖但全模块零引用（GraphQL 版 MCP 2023 遗留；BizModel 运行时由消费方 nop-biz 提供）。
   6. **nop-ai-coder 未用依赖**：`nop-ai/nop-ai-coder/pom.xml:22/:62` 声明 `nop-ai-api` 与 `nop-ui` compile 依赖但全模块零引用（coder 主代码只 import nop-ai-core/coder 包；nop-ui 为前端框架模块与 coder 职责无交集）。
   7. **nop-ai-shell 未用依赖**：`nop-ai/nop-ai-shell/pom.xml:35` 声明 `jline-reader`（optional）但全模块零引用（jline 代码移植到模块内重写后依赖未清理）。
   8. **nop-ai-agent 未用依赖**：`nop-ai/nop-ai-agent/pom.xml:44` 声明 `nop-autotest-junit`（test scope）但 agent 测试零使用（测试全为纯 JUnit5 自组装引擎/存储）。
@@ -43,7 +43,7 @@ verify: [test]
 
 Status: planned
 
-Targets: `nop-ai/nop-ai-mcp-server/src/main/java/io/nop/ai/mcp/server/AiFileTool.java`、`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/mcp/McpConstants.java`、`docs-for-ai/02-core-guides/service-layer.md`、`nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/tools/`、`GraphQLToolProvider` 相关测试
+Targets: `nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/mcp/AiFileTool.java`、`nop-ai/nop-ai-api/src/main/java/io/nop/ai/api/mcp/McpConstants.java`、`docs-for-ai/02-core-guides/service-layer.md`、`nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/tools/`、`GraphQLToolProvider` 相关测试
 
 - Item Types: `Decision | Fix | Proof`
 
@@ -92,7 +92,7 @@ Exit Criteria:
 
 Status: planned
 
-Targets: `nop-ai/nop-ai-mcp-server/pom.xml`、`nop-ai/nop-ai-coder/pom.xml`、`nop-ai/nop-ai-shell/pom.xml`、`nop-ai/nop-ai-agent/pom.xml`
+Targets: `nop-ai/nop-ai-tools/pom.xml`、`nop-ai/nop-ai-coder/pom.xml`、`nop-ai/nop-ai-shell/pom.xml`、`nop-ai/nop-ai-agent/pom.xml`
 
 - Item Types: `Fix | Proof`
 
@@ -116,7 +116,7 @@ Exit Criteria:
 
 Status: planned
 
-Targets: `docs-for-ai/01-repo-map/module-groups.md:86-87`、`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/beans/ai-toolkit-defaults.beans.xml`、`nop-ai/nop-ai-mcp-server/src/main/resources/_vfs/nop/ai/beans/ai-mcp-server-defaults.beans.xml`、`ai-dev/design/nop-ai-agent/`（如有 toolkit/tools 设计文档）
+Targets: `docs-for-ai/01-repo-map/module-groups.md:86-87`、`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/beans/ai-toolkit-defaults.beans.xml`、`nop-ai/nop-ai-tools/src/main/resources/_vfs/nop/ai/beans/ai-mcp-server-defaults.beans.xml`、`ai-dev/design/nop-ai-agent/`（如有 toolkit/tools 设计文档）
 
 - Item Types: `Fix | Proof`
 

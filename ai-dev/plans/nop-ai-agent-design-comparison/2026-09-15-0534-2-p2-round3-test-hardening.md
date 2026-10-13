@@ -11,7 +11,7 @@ verify: [test]
 ## Current Baseline
 
 - 来源：deep-audit round 3 登记 P2/P3 Follow-up Backlog 中 8 项未勾选的测试反模式/弱断言项（roadmap `## Follow-up Backlog` 文档顺序），全部经 live repo 复核（HEAD `51544255b8`，2026-09-15）：
-  1. **TestAiFileTool 沙箱包含性缺"同前缀兄弟目录 + 符号链接"负例**（`nop-ai/nop-ai-mcp-server/src/test/java/io/nop/ai/mcp/server/TestAiFileTool.java`）：现有 15 例逃逸形态单一（绝对路径/`../`，:90-153），`AiFileTool.isInsideBaseDir`（`AiFileTool.java:200-204`）用 `startsWith(basePath + File.separator)`；若退化为 `startsWith(basePath)`（同前缀兄弟目录穿透）或引入 symlink 逃逸，现有全绿回归不报警。
+  1. **TestAiFileTool 沙箱包含性缺"同前缀兄弟目录 + 符号链接"负例**（`nop-ai/nop-ai-tools/src/test/java/io/nop/ai/tools/mcp/TestAiFileTool.java`）：现有 15 例逃逸形态单一（绝对路径/`../`，:90-153），`AiFileTool.isInsideBaseDir`（`AiFileTool.java:200-204`）用 `startsWith(basePath + File.separator)`；若退化为 `startsWith(basePath)`（同前缀兄弟目录穿透）或引入 symlink 逃逸，现有全绿回归不报警。
   2. **TestAiFileTool merge 正例无法区分 merge 分支与普通覆写分支**（TestAiFileTool.java:68-77）：`testSaveNopFileMergeSupportedWritesFile` 传入内容与预置文件完全相同（`"{\"a\":1}"`），`assertTrue(exists && length>0)` 几乎恒真；merge 静默退化为覆写（plan 350 曾修复的条件反转）此处不报警。
   3. **ShellCommandExecutorTest.testInputRedirectFromFile 只断言退出码不验证重定向内容**（`nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/executor/ShellCommandExecutorTest.java:208-221`）：`echo < test_input.txt` 若输入重定向实现损坏仍返回 0，测试全绿。
   4. **TestThoughtStorage 两处路径解析断言近似同义反复**（`nop-ai/nop-ai-tools/src/test/java/io/nop/ai/tools/sequential_thinking/service/TestThoughtStorage.java:72-95`）：`new File(workDir, "_tmp/...")` 的 `startsWith` 恒真、`new ThoughtStorage(null)` 的 `assertNotNull` 恒真、`~/.mcp_sequential_thinking` 的 `startsWith` 恒真——未锚定 storageDir 实际解析值。
@@ -41,7 +41,7 @@ verify: [test]
 
 Status: planned
 
-Targets: `nop-ai/nop-ai-mcp-server/src/test/java/io/nop/ai/mcp/server/TestAiFileTool.java`
+Targets: `nop-ai/nop-ai-tools/src/test/java/io/nop/ai/tools/mcp/TestAiFileTool.java`
 
 - Item Types: `Fix | Proof`
 
