@@ -199,9 +199,12 @@ public class TestMessageSource {
         awaitSubscribed(service);
 
         service.push("ok");
+        // 先排空 "ok" 再投毒：push 与后台泵线程是并发的，若在泵转移前注入类型错误，
+        // pollNext 直接以 pendingError 失败（fast-fail 同样合法），"ok 先返回"就不是
+        // 可依赖的顺序——本测试钉的是 P1-9 的"失败必须类型化浮现"，不是泵的时序
+        assertEquals(Optional.of("ok"), reader.pollNext());
         service.push(42); // payload type mismatch — P1-9 capture-and-rethrow
 
-        assertEquals(Optional.of("ok"), reader.pollNext());
         // the runner died with the captured type mismatch; the next poll fails typed
         StreamException ex = assertThrows(StreamException.class, () -> reader.pollNext(),
                 "a dead subscription must fail the task, never masquerade as EOS");
