@@ -46,8 +46,6 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
-                <!-- WI1(plan 2425):3.2.0 的 ASM 读不了 release=25 的 class v69(Unsupported class file major version 69),对齐 nop-dependencies 管理的 SB 3.5.14 线;WI6 子 pom 归一 -->
-                <version>3.5.14</version>
                 <configuration>
                     <!--                    <classifier>${repackage.classifier}</classifier>-->
                     <!--                    <image>-->
