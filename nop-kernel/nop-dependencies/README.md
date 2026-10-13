@@ -16,14 +16,13 @@ Two upstream BOMs are imported into this BOM: **quarkus-bom** (4.0.0.Beta1) and 
 
    `quarkus-bom` → `testcontainers-bom` → `spring-ai-bom` → `spring-cloud-dependencies` → `spring-boot-dependencies`
 
-   Measured precedence on Maven wrapper 4.0.0-rc-5 (WI10 plan 2444): **local direct entries beat every import; nested imports of a later-imported BOM beat this BOM's own top-level imports regardless of position.** spring-boot-dependencies internally imports its own testcontainers-bom (2.0.5, a major-version line this platform has not adopted), whose entries therefore outrank our top-level testcontainers-bom 1.21.4 import — which is why `org.testcontainers:testcontainers` core (the only legacy-name artifact both lines manage) carries an explicit local pin (see rule 2b).
+   Measured precedence on Maven wrapper 4.0.0-rc-5 (WI10 plan 2444): **local direct entries beat every import; nested imports of a later-imported BOM beat this BOM's own top-level imports regardless of position.** For testcontainers specifically, the version authority is actually **quarkus-bom** (62 managed entries incl. every artifact this platform uses @2.0.5, imported first); the tc-bom import and SB4's nested import happen to agree at 2.0.5 since plan 2451 unified the platform (history: WI6–WI10 pinned 1.21.4 against SB4's nested 2.0.5 line — that divergence no longer exists and the former core pin is gone).
 
 2. **Local pins are allowed only for two reasons:**
    - (a) the artifact is managed by **neither** base BOM (nacos, sentinel, tablesaw, duckdb, lucene, commonmark, protostuff, jsch, keycloak-common, pdfbox, jts-core, h2gis, semver4j, openpdf, aws-java-sdk-s3 v1, java-dataloader, rocksdbjni, etc.) — each pin carries a "why not BOM-managed" comment;
    - (b) the divergence winner is **harmful** and an explicit pin overrides it. Current examples:
      - `kafka-clients` 4.3.1 — both BOMs agree on 4.2.1, but the Debezium 3.7 embed (nop-message-debezium) builds against kafka 4.3.1; a client older than the engine's build version hits `NoSuchFieldError` at startup;
      - `pulsar.*` family 4.0.14 — dropping the family pin yields a 4.2.1 (Q4, client-original) / 4.2.4 (SB4 pulsar-bom, rest of family) mixed stack, the exact shape that caused the WI33 `NoSuchMethodError`;
-     - `org.testcontainers:testcontainers` 1.21.4 — SB4's nested 2.0.5 line would otherwise capture core and recreate a mixed stack (core 2.0.5 + legacy modules 1.21.4, observed on nop-orm between WI6 and WI10);
      - `javaparser-symbol-solver-core` 3.28.2 — managed by neither BOM; must stay version-locked to the quarkus-bom-managed javaparser-core (3.28.2).
 
    **Never add a version-less placeholder entry** for a BOM-managed artifact: on Maven 4 rc a local entry — even without a version — shadows the imported BOM's managed version and breaks downstream resolution with "version is missing" (observed with ojdbc11). Either no entry (let the import chain rule) or a fully pinned entry.
@@ -38,12 +37,12 @@ Two upstream BOMs are imported into this BOM: **quarkus-bom** (4.0.0.Beta1) and 
 - **Spring Boot**: 4.1.1
 - **Spring Cloud**: 2025.1.3
 - **Spring AI**: 2.0.1
-- **Testcontainers BOM**: 1.21.4 (explicit line; SB4's own import offers 2.0.5 — not adopted)
+- **Testcontainers**: 2.0.5 (platform-unified line, plan 2451; artifacts use the 2.x `testcontainers-*` names)
 - **Pulsar**: 4.0.14 (family pin, WI33 ruling)
 - **Kafka clients**: 4.3.1 (Debezium 3.7 floor)
 - **JDK**: 25
 
-Other notable resolved versions (all BOM-managed): antlr4 4.13.2, avro 1.12.2, javaparser 3.28.2, geolatte-geom 1.12, janino 3.1.12, json-path 2.10.0, json-smart 2.6.0, ojdbc11 23.26.3.0.0.
+Other notable resolved versions (all BOM-managed): antlr4 4.13.2, avro 1.12.2, javaparser 3.28.2, geolatte-geom 1.12, janino 3.1.12, json-path 2.10.0, json-smart 2.6.0, ojdbc11 23.26.3.0.0, testcontainers 2.0.5 (platform-unified, plan 2451).
 
 ## Usage
 
