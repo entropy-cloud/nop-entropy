@@ -188,6 +188,10 @@
                     <!--                    <reuseForks>true</reuseForks>-->
                     <!--                    <forkedProcessExitTimeoutInSeconds>60</forkedProcessExitTimeoutInSeconds>-->
 
+                    <!-- 满载 -T 1C 下嵌重型引擎的测试 JVM（如 debezium 内嵌引擎）退出可超
+                         30s 默认值，触发 surefire "timeout in the fork" 假失败；放宽到 120s -->
+                    <forkedProcessExitTimeoutInSeconds>120</forkedProcessExitTimeoutInSeconds>
+
                     <!--
                        forkCount: 这是关键！它定义了要启动多少个JVM进程来运行测试。
                        你可以使用一个固定的数字，比如 '4'。
