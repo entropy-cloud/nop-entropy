@@ -24,6 +24,7 @@ import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.source.Source;
 import io.nop.stream.core.source.SourceSplit;
+import io.nop.stream.runtime.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -154,13 +155,13 @@ public class TestStreamConnectorRegistryE2E {
                 .sink(sink);
         env.execute("registry-e2e-2pc-file-sink");
 
+        // 最后一个 epoch 的 2PC commit 骑在完成路径的执行器上，execute() 返回与
+        // 落盘之间存在窗口；满载下测试线程会先醒——有界等待内容收敛后再断言
+        TestAwait.until("committed epoch files converge to the full input",
+                () -> readCommittedLines(outputDir).equals(lines));
+
         // committed epoch files hold every line exactly once
-        List<String> committed = new ArrayList<>();
-        try (Stream<Path> files = Files.list(outputDir)) {
-            for (Path epochFile : files.filter(p -> p.getFileName().toString().startsWith("epoch-")).sorted().toList()) {
-                committed.addAll(Files.readAllLines(epochFile));
-            }
-        }
+        List<String> committed = readCommittedLines(outputDir);
         assertEquals(lines, committed,
                 "committed epoch files must hold every line exactly once (2PC commit through real checkpoints)");
 
@@ -232,6 +233,19 @@ public class TestStreamConnectorRegistryE2E {
     private static void writeLines(Path dir, String fileName, List<String> lines) throws IOException {
         Files.createDirectories(dir);
         Files.write(dir.resolve(fileName), lines, StandardCharsets.UTF_8);
+    }
+
+    private static List<String> readCommittedLines(Path outputDir) {
+        List<String> committed = new ArrayList<>();
+        try (Stream<Path> files = Files.list(outputDir)) {
+            for (Path epochFile : files.filter(p -> p.getFileName().toString().startsWith("epoch-")).sorted().toList()) {
+                committed.addAll(Files.readAllLines(epochFile));
+            }
+        } catch (IOException e) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    "failed to read committed epoch files under " + outputDir, e);
+        }
+        return committed;
     }
 
     /** Slows the pipeline so the periodic checkpoint scheduler commits several epochs. */
