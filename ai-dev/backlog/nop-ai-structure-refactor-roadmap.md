@@ -49,7 +49,7 @@ audit-rounds: 0
 - WI15 MCP 三模块整合与 servrer 更名: `done`（plan 2452：AiFileTool+McpServerErrors+VFS bean 注册迁入 nop-ai-tools——io.nop.ai.tools.mcp，包名/FQN 同步+ Rule #23 注册断言测试；Simplifier 2 类+常量+2 测试迁 nop-ai-core simplifier 包——coder main 消费者实为 0；nop-ai-mcp-server 解散、support 并入 spring-mcp-server——spring-ai starter 依赖显式加入、servrer→server 更名；MCP 模块 3→1；3536 级全绿含注册测试 2/2）
 - WI16 孤儿模块处置裁定（shell / maven / dsl-orm）: `done`（plan 2453：maven 二选一取并入——10 文件迁 nop-ai-toolkit mavenvfs 包、模块解散、退役分支因已发布 artifact 否决；shell 维持现状登记——CST roadmap active + WI25 桥接修复后为活跃演进面、test scope 隔离已正确、复评须 CST owner/用户确认；dsl-orm 维持现状登记——唯一消费者 nop-dyn-service 在位、退役被 roadmap 排除、合并 successor 联动依赖迁移；nop-ai 子模块 -1）
 - WI17 nop-ai-skills 拉平: `todo`
-- WI18 nop-ai-dao 双限界上下文裁定: `todo`
+- WI18 nop-ai-dao 双限界上下文裁定: `done`（plan 2455：裁定维持现状——双域消费者完全重叠——同为 nop-ai-service BizModel + web CRUD、coder 零消费 dao、拆分零功能收益且成本为 DDL 三方言 + codegen 链路复验 + 回归；重启条件 = 按域独立部署/独立数据生命周期/域间消费者分化任一触发即立 successor；live 复测与 roadmap 基线一致）
 - WI19 nop-ai-gateway 能力承载边界裁定: `todo`
 - WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `todo`
 - WI22 nop-ai-app 产品组装闭环裁定: `todo`
