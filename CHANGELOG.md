@@ -1,5 +1,18 @@
 # 更新日志
 
+## 特性 2026-10-13
+* EQL 新增中立语法 `upsert` 语句与 `INSERT/DELETE ... RETURNING`，方言差异下沉 SQL 生成层（plan 2380）(commits: 14527e2da0, b9358d66f6)
+  - `upsert into T (…) values (…) on conflict (…) do update set …`：取 PG 家族习惯形态；方言能力位 `supportUpsert` 门控，取值限定 PostgreSQL 族 / MySQL·MariaDB 族 / H2 族，其余方言编译期响亮报错，不做静默降级
+  - `INSERT/DELETE ... RETURNING` 补齐（与既有 `UPDATE ... RETURNING` 并列），新增独立能力位 `supportReturningForInsert`/`supportReturningForDelete`，既有 `supportReturningForUpdate` 零改动；`returning *` 编译期展开为实体全部列投影
+  - **v1 边界**：不提供 `excluded` 伪表——PG 惯用 `DO UPDATE SET c = EXCLUDED.c` 在 EQL 里写成"同一新值再写一次"（参数为位置标记 `?`、按出现次数独立绑定，values 与 do update set 各占一个）；`upsert … select …` 与 `insert … select … returning` 不支持，编译期报 `nop.err.eql.*`（含新错误码 `insert-select-returning-not-supported`）
+  - 各方言参数位数不同：PG/MySQL = `values` 位 + `do update set` 位；H2 仅 `values` 位（`MERGE … KEY … VALUES` 无更新子句）。详见 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` upsert/returning 小节
+
+## 修复 2026-10-13
+* 修复 nop-quarkus-web 无 Host 头请求（HTTP/1.0 客户端）`getHost()` NPE (commit: 5ad84f7f82)
+  - 根因：Quarkus 4/Vert.x 5 迁移（plan 2431 WI5）把 `getHost()` 从 `request().host()` 改为 `request().authority().host()`，但 Vert.x 5 的 `authority()` 在请求无 Host 头时返回 null（合法状态），直接解引用抛 NPE；该适配器服务所有 Quarkus 入口的 `IHttpServerContext` 消费方
+  - 修复：`VertxHttpServerContext.getHost()` 对 `authority()` 判空，返回 null（语义：host 未知，非失败）；唯一生产调用方 `AuthHttpServerFilter` 经 `StringHelper.replace` null 安全
+  - 兼容性：仅消除异常路径，有 Host 头的正常请求返回值不变（Host 头原串去端口后的 authority host）
+
 ## 变更 2026-09-20
 * **行为变更**: nop-biz `CrudBizModel` 批量与 by-query 变更入口增加资源上限，消除静默截断（plan 2269）
   - `deleteByQuery`/`updateByQuery`（@BizMutation）前置计数检查：命中数超过有效 limit（显式 limit 与 maxPageSize 归一化的较小者）时抛 `nop.err.biz.by-query-exceeds-limit`，且在任何变更发生之前失败（旧行为：命中 maxPageSize 封顶后仅 LOG.warn、部分执行并返回误导性的已处理数）
