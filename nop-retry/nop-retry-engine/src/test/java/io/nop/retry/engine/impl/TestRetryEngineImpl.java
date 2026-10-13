@@ -59,6 +59,14 @@ import static org.junit.jupiter.api.Assertions.*;
 )
 public class TestRetryEngineImpl extends JunitAutoTestCase {
 
+    static {
+        // 后台重试扫描器默认 5s 一扫，会把本类此前用例遗留的 PENDING 记录重新执行，
+        // 污染 rpcInvoker 计数断言（模块满载下运行 20s+ 必被扫描窗口命中，隔离运行
+        // 只是躲过）。本类对扫描语义的覆盖走 executeRetryFromScanner 直调（见
+        // testExecuteRetryFromScanner*），不需要后台扫描参与
+        System.setProperty("nop.retry.scanner.scan-interval-ms", String.valueOf(3600_000L));
+    }
+
     @Inject
     RetryEngineImpl retryEngine;
 
