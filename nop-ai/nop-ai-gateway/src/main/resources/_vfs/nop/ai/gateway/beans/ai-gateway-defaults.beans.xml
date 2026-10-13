@@ -211,9 +211,16 @@
         </ioc:condition>
     </bean>
 
+    <!-- 2026-10-13 诊断（plan 2438 引入 cli-core test 依赖后暴露）：适配器设计为按名
+         opt-in（W8："deployments switch by wiring their injection target"），不得成为
+         IChatService 的按类型候选——其类本身 implements IChatService，仅去掉 ioc:type
+         不足以改变候选资格（类型可由 class 层级推导），必须 autowire-candidate=false。
+         否则它与 $DEFAULT$nopChatService 双候选（ioc:default 的 missing-bean 条件按
+         bean id 匹配，拦不住不同名的装饰器），全容器按类型注入处（如 nop-ai-rag
+         NopAiRagBizModel 构造器）触发 multiple-bean 冲突。 -->
     <bean id="nopChatServiceFailoverAdapter"
           class="io.nop.ai.gateway.failover.ChatServiceFailoverAdapter"
-          ioc:type="io.nop.ai.api.chat.IChatService">
+          autowire-candidate="false">
         <property name="delegate">
             <ref bean="nopChatService"/>
         </property>
