@@ -8,7 +8,8 @@ import io.nop.web.page.PageProvider;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
-@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE)
+@NopTestConfig(localDb = true, initDatabaseSchema = OptionalBoolean.TRUE,
+        testBeansFile = "/nop/code/beans/test-mock.beans.xml")
 public class NopCodeWebPagesTest extends JunitBaseTestCase {
 
     @Inject
