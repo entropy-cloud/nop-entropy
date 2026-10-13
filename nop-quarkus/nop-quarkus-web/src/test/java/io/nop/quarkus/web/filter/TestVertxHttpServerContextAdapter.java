@@ -5,6 +5,7 @@ import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.net.HostAndPort;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.Test;
@@ -34,7 +35,9 @@ public class TestVertxHttpServerContextAdapter {
     static class Stub {
         String normalizedPath = "/app/graphql";
         String absoluteURI = "http://host:8080/app/graphql?query=%7Bme%7D";
-        String host = "host:8080";
+        String authorityHost = "host";
+        int authorityPort = 8080;
+        boolean authorityAbsent;
         String remoteAddress = "10.0.0.1";
         int remotePort = 12345;
         final Map<String, List<String>> queryParams = new LinkedHashMap<>();
@@ -119,14 +122,26 @@ public class TestVertxHttpServerContextAdapter {
                     });
         }
 
+        Object newHostAndPort() {
+            return Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class[]{HostAndPort.class}, (p2, m2, a2) -> {
+                        if (m2.getName().equals("host"))
+                            return authorityHost;
+                        if (m2.getName().equals("port"))
+                            return authorityPort;
+                        return defaultFor(m2.getReturnType());
+                    });
+        }
+
         HttpServerRequest newRequest() {
             return (HttpServerRequest) Proxy.newProxyInstance(getClass().getClassLoader(),
                     new Class[]{HttpServerRequest.class}, (proxy, method, args) -> {
                         switch (method.getName()) {
                             case "method":
                                 return HttpMethod.POST;
-                            case "host":
-                                return host;
+                            case "authority":
+                                // Vert.x 5: null when the request has no Host header (HTTP/1.0)
+                                return authorityAbsent ? null : newHostAndPort();
                             case "absoluteURI":
                                 return absoluteURI;
                             case "remoteAddress":
@@ -210,9 +225,20 @@ public class TestVertxHttpServerContextAdapter {
         assertEquals("POST", ctx.getMethod());
         assertEquals("10.0.0.1", ctx.getRemoteAddr());
         assertEquals(12345, ctx.getRemotePort());
-        assertEquals("host:8080", ctx.getHost(), "vertx getHost uses the Host header (request().host())");
+        assertEquals("host", ctx.getHost(), "vertx getHost uses the request authority host (Host header without port)");
         assertEquals("/app/graphql", ctx.getRequestPath(), "vertx getRequestPath uses normalizedPath()");
         assertEquals("http://host:8080/app/graphql?query=%7Bme%7D", ctx.getRequestUrl());
+    }
+
+    @Test
+    public void missingHostHeaderYieldsNullHost() {
+        // HTTP/1.0 clients send no Host header: Vert.x 5 reports a null
+        // authority and getHost must surface "unknown host", not an NPE
+        Stub stub = new Stub();
+        stub.authorityAbsent = true;
+        VertxHttpServerContext ctx = stub.newServerContext();
+
+        assertNull(ctx.getHost(), "null authority -> null host, never an NPE");
     }
 
     @Test

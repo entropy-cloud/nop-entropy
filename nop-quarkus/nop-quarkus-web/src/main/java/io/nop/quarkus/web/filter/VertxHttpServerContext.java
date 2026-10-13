@@ -24,6 +24,7 @@ import io.vertx.core.http.CookieSameSite;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.http.impl.CookieImpl;
+import io.vertx.core.net.HostAndPort;
 import io.vertx.ext.web.RoutingContext;
 
 import java.io.IOException;
@@ -59,7 +60,10 @@ public class VertxHttpServerContext implements IHttpServerContext {
 
     @Override
     public String getHost() {
-        return routingContext.request().authority().host();
+        // Vert.x 5: authority() is null when the request carries no Host
+        // header (HTTP/1.0 clients); the host is then unknown, not a failure
+        HostAndPort authority = routingContext.request().authority();
+        return authority == null ? null : authority.host();
     }
 
     @Override
