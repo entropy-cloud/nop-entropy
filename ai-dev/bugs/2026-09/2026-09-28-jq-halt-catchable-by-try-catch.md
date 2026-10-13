@@ -28,16 +28,16 @@
 
 ## Tests
 
-- `nop-jq/src/test/java/io/nop/jq/TestJqHaltSemantics.java`（6 用例，语义逐项对照 /usr/bin/jq）：halt 不被 try/catch 捕获、不被 `?` 吞掉、数组构造内不可捕获、`halt_error(3)` 可捕获且 catch 收到输入值、未捕获 halt_error 携带 exitCode、`|=` 路径求值恢复不拦截 halt。
+- `../../../nop-tools/nop-jq/src/test/java/io/nop/jq/TestJqHaltSemantics.java`（6 用例，语义逐项对照 /usr/bin/jq）：halt 不被 try/catch 捕获、不被 `?` 吞掉、数组构造内不可捕获、`halt_error(3)` 可捕获且 catch 收到输入值、未捕获 halt_error 携带 exitCode、`|=` 路径求值恢复不拦截 halt。
 
 ## Affected Files
 
-- `nop-jq/src/main/java/io/nop/jq/runtime/JqHaltException.java`
-- `nop-jq/src/main/java/io/nop/jq/runtime/JqHaltErrorException.java`（新增）
-- `nop-jq/src/main/java/io/nop/jq/runtime/JqBuiltins.java`
-- `nop-jq/src/main/java/io/nop/jq/runtime/JqExecutor.java`（ISE 消息）
+- `../../../nop-tools/nop-jq/src/main/java/io/nop/jq/runtime/JqHaltException.java`
+- `../../../nop-tools/nop-jq/src/main/java/io/nop/jq/runtime/JqHaltErrorException.java`（新增）
+- `../../../nop-tools/nop-jq/src/main/java/io/nop/jq/runtime/JqBuiltins.java`
+- `../../../nop-tools/nop-jq/src/main/java/io/nop/jq/runtime/JqExecutor.java`（ISE 消息）
 - `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/JqToolExecutor.java`
-- `nop-jq/src/test/java/io/nop/jq/TestJqHaltSemantics.java`（新增）
+- `../../../nop-tools/nop-jq/src/test/java/io/nop/jq/TestJqHaltSemantics.java`（新增）
 
 ## Notes For Future Refactors
 
