@@ -122,12 +122,11 @@
                     管理条目口径），一律由先 import 者胜出——当前裁决 = quarkus-bom 优先。
                  2. 实测（WI10 plan 2444，Maven wrapper 4.0.0-rc-5）：跨 import 的版本
                     胜负规则不是简单的文档序先到先得——嵌套 import（如 SB4 内部 import 的
-                    testcontainers-bom 2.0.5，深度 2）会压过本 BOM 顶层直接 import 的
-                    testcontainers-bom 1.21.4（深度 1），且与位次无关；本地直接条目则
+                    testcontainers-bom，深度 2）会压过本 BOM 顶层直接 import 的
+                    testcontainers-bom（深度 1），且与位次无关；本地直接条目则
                     压过一切 import（无版本占位条目也会压制，见 ojdbc11 教训）。
-                    故 org.testcontainers:testcontainers core（唯一双线共管的 legacy 名
-                    artifact）必须显式本地钉 1.21.4；其余 legacy 名模块（jdbc/mysql 等）
-                    2.x BOM 已不管理，由本 BOM 的 testcontainers-bom import 独家供给。
+                    plan 2451 全平台合线 2.0.5 后三源数值一致，此规则保留作历史与
+                    未来 bump 时的行为依据。
                  3. 本 BOM 的本地钉只允许两类：(a) 两基础 BOM 均不管理的库；(b) 分歧胜者
                     有害、显式压制的库（现例：kafka-clients、pulsar 族、testcontainers
                     core、javaparser-symbol-solver-core 同版对齐）。drop 任何钉前必须核对
@@ -141,9 +140,8 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- WI10 plan 2444：legacy 名 org.testcontainers 模块线（见上方政策 2）；
-                 SB4 内部 import 的 testcontainers-bom 2.0.5 走 2.x 大版本改名线
-                 （testcontainers-kafka 等），1.x→2.x 全平台合线迁移另行裁定 -->
+            <!-- WI10 plan 2444 引入、plan 2451 全平台合线 2.0.5（权威链见上方政策 2）；
+                 平台工件统一使用 2.x testcontainers-* 改名 -->
             <dependency>
                 <groupId>org.testcontainers</groupId>
                 <artifactId>testcontainers-bom</artifactId>
