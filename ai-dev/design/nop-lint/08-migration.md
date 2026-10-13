@@ -8,7 +8,7 @@
 | 决策 | 结论 | 理由 |
 |------|------|------|
 | **Pattern 引擎** | 新建 `SourcePatternCompiler`：用 TSParser 把 pattern 代码片段解析成目标语言 CST，再做 meta-var 树匹配。**不是**基于 TSQuery（TSQuery 是 S-expression 查询语言，不支持 `$`/`$$$`） | TSQueryParser 明确拒绝量词，无 meta-var 概念 |
-| **类型推导** | Phase 1: 仅声明类型提取（轻量）；Phase 2: 复用 `nop-utils/nop-java-parser`（JavaParseTool + symbol-solver）和 `nop-ai/nop-ai-skills/nop-ai-code-analyzer`（JavaParserBuilder 的 CombinedTypeSolver + MavenModule jar 加载、MavenProject） | 这些模块已存在，勿重复造轮子 |
+| **类型推导** | Phase 1: 仅声明类型提取（轻量）；Phase 2: 复用 `nop-utils/nop-java-parser`（JavaParseTool + symbol-solver）和 `nop-ai/nop-ai-code-analyzer（WI17 迁出 skills）`（JavaParserBuilder 的 CombinedTypeSolver + MavenModule jar 加载、MavenProject） | 这些模块已存在，勿重复造轮子 |
 | **XML 规则** | 不引入 tree-sitter XML grammar（当前只有 json/java/js/python/ts/tsx）。XML 规则走 Nop 自有 XNode 解析器，Pattern DSL 对 XNode 树做结构匹配（语义契约见 01 §3.5） | 发挥 Nop 平台优势，避免 grammar 维护成本 |
 | **语言范围** | 源码语言只做 Java + TypeScript/TSX；XML 模型规则走 XNode 引擎（language 枚举含 XML，但解析层不是 tree-sitter）。Python 移出计划（backlog） | 需求明确只有这些 |
 | **TS 优先级** | TypeScript 提前到 Phase 2（与 Java 类型推导同期），tsc bridge 需处理 program 缓存与降级 | TS 是核心需求，不能压到末尾 |

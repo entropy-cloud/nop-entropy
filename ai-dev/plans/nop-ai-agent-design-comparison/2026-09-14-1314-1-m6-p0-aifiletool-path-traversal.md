@@ -34,7 +34,7 @@ verify: [test]
 
 ## Phase 1 — getResource 路径包含性校验（fail-closed）
 
-Targets: `nop-ai/nop-ai-mcp-server/src/main/java/io/nop/ai/mcp/server/AiFileTool.java`、`McpServerErrors.java`、`TestAiFileTool.java`
+Targets: `nop-ai/nop-ai-tools/src/main/java/io/nop/ai/tools/mcp/AiFileTool.java（WI15/plan 2452 迁入）`、`McpServerErrors.java`、`TestAiFileTool.java`
 
 - Item Types: `Fix | Proof`
 

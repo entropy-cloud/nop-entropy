@@ -1,0 +1,15 @@
+template: >
+  {{include: generate-mindmap.prompt.md}}
+
+inputs:
+  - name: repositoryUrl
+  - name: branchName
+  - name: fileTree
+  - name: maxDepth
+    defaultExpr: '5'
+  - name: maxNodes
+    defaultExpr: '50'
+
+outputs:
+  - name: RESULT
+    type: json
