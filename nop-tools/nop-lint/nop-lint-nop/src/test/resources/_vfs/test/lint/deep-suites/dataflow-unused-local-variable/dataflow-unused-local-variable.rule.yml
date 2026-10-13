@@ -9,6 +9,9 @@ message: "未使用的局部变量 (unused local variable)"
 requires: L3
 rule:
   kind: variable_declarator
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   if (node.ancestor('method_declaration') == null) {
     return;

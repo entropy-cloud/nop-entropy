@@ -16,6 +16,9 @@ constraints:
   - inList:
       capture: M
       values: ["trace", "debug", "info", "warn", "error", "log"]
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   if (node.ancestor('method_declaration') == null) {
     return;

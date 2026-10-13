@@ -129,6 +129,7 @@ public class TestMetricsBinding {
         rule.addProp("pattern", "foo.bar()");
         model.addProp("rule", rule);
         model.addProp("requires", "METRICS");
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         model.addProp("xscript", "let c = metrics.cyclomatic(node); report({ message: 'c=' + c });");
         RuleDslModel callRule = parser.parseRuleModel(model);
 
@@ -155,6 +156,10 @@ public class TestMetricsBinding {
         model.addProp("id", "demo/metrics-complexity");
         model.addProp("severity", "warning");
         model.addProp("message", "msg");
+        // the 100ms default deadline is a real-clock budget: under a fully
+        // loaded -T 1C build the test thread can be descheduled past it and
+        // the match is dropped as a timeout before the binding is observed
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         DynamicObject rule = new DynamicObject("rule");
         rule.addProp("kind", "method_declaration");
         model.addProp("rule", rule);

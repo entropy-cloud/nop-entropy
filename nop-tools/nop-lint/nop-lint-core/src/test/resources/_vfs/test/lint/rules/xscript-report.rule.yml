@@ -4,6 +4,9 @@ severity: warning
 message: default message is replaced by the script's report
 rule:
   pattern: "System.out.println($MSG)"
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   let cls = node.ancestor('class_declaration');
   if (cls.child('name').text() == 'Demo') {

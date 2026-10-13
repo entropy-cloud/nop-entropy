@@ -8,6 +8,9 @@ message: "方法认知复杂度过高 (method cognitive complexity exceeds 15)"
 requires: METRICS
 rule:
   kind: method_declaration
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   let c = metrics.cognitive(node);
   if (c > 15) {

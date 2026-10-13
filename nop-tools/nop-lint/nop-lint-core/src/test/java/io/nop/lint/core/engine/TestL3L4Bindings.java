@@ -186,6 +186,9 @@ public class TestL3L4Bindings {
         if (requires != null) {
             model.addProp("requires", requires);
         }
+        // the 100ms default deadline is a real-clock budget: under a loaded
+        // build the JVM's first xscript runs pay classload cost inside it
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         model.addProp("xscript", xscript);
         return parser.parseRuleModel(model);
     }

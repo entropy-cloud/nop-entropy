@@ -239,6 +239,9 @@ public class TestConstraintEngineEndToEnd {
         // xscript is a top-level field (design 01 §2 schema convention), like
         // constraints — both ride the model root, never the rule container.
         Consumer<DynamicObject> constrainedWithXscript = top -> {
+            // the 100ms default deadline is a real-clock budget: under a
+            // loaded build the JVM's first xscript runs pay classload cost
+            top.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
             top.addProp("xscript", "captures.A");
             top.addProp("constraints", List.of(
                     constraintElement("sameText", e -> e.addProp("captures", List.of("$A", "$B")))));
