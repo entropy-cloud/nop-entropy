@@ -34,7 +34,6 @@
         <module>nop-ai-rag</module>
         <module>nop-ai-shell</module>
         <module>nop-spring-mcp-server</module>
-        <module>nop-ai-maven</module>
         <module>nop-ai-gateway</module>
     </modules>
 </project>

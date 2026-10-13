@@ -109,5 +109,5 @@ agent 场景的 git 调用统一走系统 git CLI（branch-affinity §5.8b），
 - `nop-ai-agent-actor-runtime-vision.md` §5 / Phase 5 — ResourceGuard 配额契约；`BUILD_CONCURRENCY_PER_NODE` 为其新增维度
 - `nop-ai-agent-remote-service-platform.md` — 构建并发作为平台一等配额的定位出处；§3.5 的 git 环境清洗与其 L2 密钥边界联动
 - `nop-ai-agent-security-and-permissions.md` §7.1 — 沙箱分级与 fail-closed 约束的出处
-- `nop-ai/nop-ai-maven/README.md` — DeltaVFS 仓库原语的模块级说明
+- `nop-ai-toolkit mavenvfs（WI16/plan 2453 迁入 toolkit）` — DeltaVFS 仓库原语的模块级说明
 - `docs-for-ai/03-modules/nop-ai.md` — nop-ai 模块组使用侧文档

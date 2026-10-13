@@ -1,11 +1,11 @@
-package io.nop.ai.maven;
+package io.nop.ai.toolkit.mavenvfs;
 
 import io.nop.api.core.exceptions.ErrorCode;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
 /**
- * Error codes for the nop-ai-maven module.
+ * Error codes for the maven VFS support in nop-ai-toolkit (relocated from nop-ai-maven by WI16/plan 2453).
  * <p>
  * P2-MA3-2: all bare {@code IllegalArgumentException}/{@code RuntimeException}
  * throws in this module were converted to {@code NopException} with these codes
