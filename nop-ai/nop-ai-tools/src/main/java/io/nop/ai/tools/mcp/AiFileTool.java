@@ -1,8 +1,8 @@
-package io.nop.ai.mcp.server;
+package io.nop.ai.tools.mcp;
 
 import io.nop.ai.api.mcp.McpConstants;
-import io.nop.ai.coder.simplifier.JsonSimplifier;
-import io.nop.ai.coder.simplifier.XNodeSimplifier;
+import io.nop.ai.core.simplifier.JsonSimplifier;
+import io.nop.ai.core.simplifier.XNodeSimplifier;
 import io.nop.ai.core.api.xdef.AiXDefHelper;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
@@ -36,11 +36,11 @@ import io.nop.xlang.xmeta.SchemaLoader;
 import java.io.File;
 import java.io.IOException;
 
-import static io.nop.ai.mcp.server.McpServerErrors.ARG_FILE_TYPE;
-import static io.nop.ai.mcp.server.McpServerErrors.ARG_PATH;
-import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_MERGE_NOT_SUPPORTED;
-import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_NO_XDEF_FOR_FILE_TYPE;
-import static io.nop.ai.mcp.server.McpServerErrors.ERR_MCP_PATH_ESCAPE;
+import static io.nop.ai.tools.mcp.McpServerErrors.ARG_FILE_TYPE;
+import static io.nop.ai.tools.mcp.McpServerErrors.ARG_PATH;
+import static io.nop.ai.tools.mcp.McpServerErrors.ERR_MCP_MERGE_NOT_SUPPORTED;
+import static io.nop.ai.tools.mcp.McpServerErrors.ERR_MCP_NO_XDEF_FOR_FILE_TYPE;
+import static io.nop.ai.tools.mcp.McpServerErrors.ERR_MCP_PATH_ESCAPE;
 
 @BizModel(McpConstants.BIZ_OBJ_AI_TOOL)
 public class AiFileTool {

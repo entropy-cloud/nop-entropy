@@ -1,6 +1,5 @@
-package io.nop.ai.coder.simplifier;
+package io.nop.ai.core.simplifier;
 
-import io.nop.ai.coder.AiCoderConstants;
 import io.nop.commons.util.CollectionHelper;
 
 import java.util.Collections;
@@ -25,7 +24,7 @@ public class JsonSimplifier {
     }
 
     public JsonSimplifier(Set<String> keysToKeep) {
-        this(keysToKeep, AiCoderConstants.DEFAULT_POSITIONING_KEYS);
+        this(keysToKeep, SimplifierConstants.DEFAULT_POSITIONING_KEYS);
     }
 
     /**

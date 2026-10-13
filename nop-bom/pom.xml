@@ -928,11 +928,6 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-spring-mcp-server-support</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
@@ -1421,11 +1416,6 @@
                 <version>${nop-entropy.version}</version>
             </dependency>
 
-            <dependency>
-                <groupId>io.github.entropy-cloud</groupId>
-                <artifactId>nop-ai-mcp-server</artifactId>
-                <version>${nop-entropy.version}</version>
-            </dependency>
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>

@@ -1,4 +1,4 @@
-package io.nop.ai.coder.simplifier;
+package io.nop.ai.core.simplifier;
 
 import org.junit.jupiter.api.Test;
 import java.util.Arrays;

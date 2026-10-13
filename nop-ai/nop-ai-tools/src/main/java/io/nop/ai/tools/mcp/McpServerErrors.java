@@ -1,4 +1,4 @@
-package io.nop.ai.mcp.server;
+package io.nop.ai.tools.mcp;
 
 import io.nop.api.core.exceptions.ErrorCode;
 

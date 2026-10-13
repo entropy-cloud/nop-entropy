@@ -1,4 +1,4 @@
-package io.nop.spring.mcp.servrer;
+package io.nop.spring.mcp.server;
 
 import io.nop.core.initialize.CoreInitialization;
 import org.springframework.boot.SpringApplication;

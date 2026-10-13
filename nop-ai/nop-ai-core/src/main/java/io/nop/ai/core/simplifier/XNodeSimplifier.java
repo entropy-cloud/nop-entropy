@@ -1,6 +1,5 @@
-package io.nop.ai.coder.simplifier;
+package io.nop.ai.core.simplifier;
 
-import io.nop.ai.coder.AiCoderConstants;
 import io.nop.core.lang.xml.XNode;
 
 import java.util.Collections;
@@ -24,7 +23,7 @@ public class XNodeSimplifier {
     }
 
     public XNodeSimplifier(Set<String> keysToKeep) {
-        this(keysToKeep, AiCoderConstants.DEFAULT_POSITIONING_KEYS);
+        this(keysToKeep, SimplifierConstants.DEFAULT_POSITIONING_KEYS);
     }
 
     /**
