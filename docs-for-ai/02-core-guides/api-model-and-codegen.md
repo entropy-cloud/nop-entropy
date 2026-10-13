@@ -327,7 +327,7 @@ CRUD typed API 生成面（`{apiPackage}/crud/{EntityName}Api.java` + `{apiPacka
 
 - 生成面定位 = 强类型**客户端契约**（给"将来/外部"的强类型 Java 调用方使用），运行时消费走
   GraphQL / BizModel（`CrudBizModel<T>`）面，二者 wire 名逐一对齐（`@BizModel` 同名）即算契约成立。
-- 逐模块登记：nop-ai-api 66 个生成物（22 Api + 44 Bean）2026-09-15 已裁定"保留为生成面 + 显式登记"
+- 逐模块登记：nop-ai-api 66 个生成物（22 Api + 44 Bean）2026-09-15 曾裁定"保留为生成面 + 显式登记"；**WI14/plan 2446（2026-10-12）推翻该裁定并删除**——零消费者五形态普查确证死代码，22 实体 xmeta 已打 `tagSet="no-api"`（gen-crud-api.xgen 保留但空转；客户端契约需求重现时移除标签重新生成即可）
   （见 `docs-for-ai/03-modules/nop-ai.md` 子模块表）；nop-auth-api / nop-sys-api 等模块的同类生成面
   同为 codegen 产物，不要求仓库内消费。
 - 删除前置：生成面删除需修改 codegen 模板/生成管线（`gen-crud-api.xgen` 触发点 + 实体级

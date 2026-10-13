@@ -48,7 +48,7 @@
 
 | 子模块 | 职责 |
 |--------|------|
-| `nop-ai-api` | 公开 API 契约（`IChatService`/`ChatOptions` 等，新 AI API）+ 实体 CRUD 强类型生成面（`io.nop.ai.api.crud/` 22 个 `NopAiXxxApi` 接口 + `io.nop.ai.api.beans/` 44 个 Input/Output Bean，全部 `//__XGEN_FORCE_OVERRIDE__` codegen 产物）。**生成面语义（P2 round-4 裁定，2026-09-15）**：CRUD 生成面 = 平台 `crud-api` 模板的标准客户端契约产物（见 `api-model-and-codegen.md` §CRUD API 代码生成），wire 名与 nop-ai-service 22 个 `NopAiXxxBizModel`（`CrudBizModel<T>`）逐一对齐（`@BizModel` 同名）；全仓 main/test 零直接 import 属预期——消费者经 GraphQL/BizModel 或 nop-biz 运行面访问，生成面仅作为强类型客户端契约存在，不构成"已接线 CRUD API"承诺；codegen 模板为标准平台模板，无 nop-ai 定制缺口 |
+| `nop-ai-api` | 公开 API 契约（`IChatService`/`ChatOptions` 等，新 AI API）。**WI14/plan 2446（2026-10-12）推翻 P2 round-4 保留裁定并删除实体 CRUD 生成面**：`io.nop.ai.api.crud/` 22 接口 + `io.nop.ai.api.beans/` 44 Bean 全仓零消费者（五形态普查：import/FQN/反射/短形态/类名字符串）确证为死代码，66 文件删除 + 22 实体 xmeta 打 `tagSet="no-api"`（gen-crud-api.xgen 空转保留为再启用开关）。wire 名对齐的 `NopAiXxxBizModel`（nop-ai-service）不受影响；客户端强类型契约需求经 git 历史（本提交）或重开 no-api 标签再生成满足 |
 | `nop-ai-core` | AI 核心接口（含 LLM 集成） |
 | `nop-ai-agent` | Agent 框架 |
 | `nop-ai-rag` | RAG 实现落点模块（K2 起非空）：`IVectorStore` 双实现（`PgVectorStore` pgvector JDBC 驱动 + `InMemoryVectorStore` 内存参考实现，均不注册 default bean）；`IVectorStore` 为 nop-ai-core SPI 契约（P1-MA5-003），生产实现落点在本模块（04-rag-module-position §四/§八） |
