@@ -84,6 +84,29 @@
     "fields": [],
     "methods": [
       {
+        "name": "maybeDecrypt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
+        "name": "maybeEncrypt",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      }
+    ],
+    "name": "io.nop.ai.core.persist.DefaultChatExchangePersister"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
         "name": "normalizePromptPath",
         "parameterTypes": [
           "java.lang.String"
@@ -427,6 +450,16 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.api.core.annotations.txn.Transactional"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.ActionAuthMeta"
   },
   {
     "allDeclaredConstructors": true,
@@ -4102,6 +4135,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.decorator.TransactionActionDecoratorCollector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -7509,6 +7552,12 @@
     "fields": [],
     "methods": [
       {
+        "name": "checkAttachPermission",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
+        ]
+      },
+      {
         "name": "checkMaxSize",
         "parameterTypes": [
           "long",
@@ -10110,6 +10159,13 @@
           "org.apache.lucene.document.Document",
           "java.lang.String",
           "org.apache.lucene.search.highlight.Highlighter"
+        ]
+      },
+      {
+        "name": "rollback",
+        "parameterTypes": [
+          "java.lang.String",
+          "org.apache.lucene.index.IndexWriter"
         ]
       },
       {
