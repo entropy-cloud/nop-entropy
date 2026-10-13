@@ -161,8 +161,46 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
         // 使用Visitor遍历AST提取符号
         IndexVisitor visitor = new IndexVisitor(result, methodCallFilter, enableSymbolResolution);
         visitor.visit(cu, null);
+        resolveImplicitSameClassCalls(visitor, result);
 
         return result;
+    }
+
+    /**
+     * 同类隐式调用兜底：反射求解器看不到被索引模块自身的类型时，resolve() 对无 scope
+     * 的调用抛异常，calleeQualifiedName 保持 null，按限定名链接的调用边整层丢失。
+     * 访问结束后补一轮归属：无 scope 且 enclosing 类型（caller 方法所在类型）声明了
+     * 同名方法的调用归属该类型——本文件 symbolMap 在访问结束后是完整的，不受
+     * 声明顺序影响；静态导入与继承方法因不在其中而不会被误归属。
+     */
+    private void resolveImplicitSameClassCalls(IndexVisitor visitor, CodeFileAnalysisResult result) {
+        if (result.getCalls() == null || result.getCalls().isEmpty()) {
+            return;
+        }
+        Map<String, CodeSymbol> symbolMap = visitor.getSymbolMap();
+        Map<String, CodeSymbol> symbolById = new HashMap<>();
+        for (CodeSymbol symbol : result.getSymbols()) {
+            symbolById.put(symbol.getId(), symbol);
+        }
+        for (CodeMethodCall call : result.getCalls()) {
+            if (call.getCalleeQualifiedName() != null || call.getContext() != null
+                    || call.getCallerId() == null) {
+                continue;
+            }
+            CodeSymbol callerMethod = symbolById.get(call.getCallerId());
+            if (callerMethod == null || callerMethod.getQualifiedName() == null) {
+                continue;
+            }
+            String callerQn = callerMethod.getQualifiedName();
+            int dot = callerQn.lastIndexOf('.');
+            if (dot <= 0) {
+                continue;
+            }
+            String candidate = callerQn.substring(0, dot) + "." + call.getMethodName();
+            if (symbolMap.containsKey(candidate)) {
+                call.setCalleeQualifiedName(candidate);
+            }
+        }
     }
 
     private class IndexVisitor extends VoidVisitorAdapter<Void> {
@@ -177,6 +215,10 @@ public class JavaFileAnalyzer implements ICodeFileAnalyzer {
             this.result = result;
             this.methodCallFilter = methodCallFilter;
             this.enableSymbolResolution = enableSymbolResolution;
+        }
+
+        Map<String, CodeSymbol> getSymbolMap() {
+            return symbolMap;
         }
 
         private CodeInheritance createInheritance(String subTypeId, String superTypeName, CodeRelationType relationType) {
