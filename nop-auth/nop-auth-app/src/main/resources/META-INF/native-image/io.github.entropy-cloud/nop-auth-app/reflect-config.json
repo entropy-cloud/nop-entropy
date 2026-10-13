@@ -757,6 +757,16 @@
     "allPublicFields": true,
     "allPublicMethods": true,
     "fields": [],
+    "methods": [],
+    "name": "io.nop.api.core.auth.ActionAuthMeta"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
     "methods": [
       {
         "name": "getEvalScope",
@@ -15076,6 +15086,16 @@
     "allPublicConstructors": true,
     "allPublicFields": true,
     "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.biz.decorator.TransactionActionDecoratorCollector"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
     "fields": [
       {
         "allowWrite": true,
@@ -27762,6 +27782,12 @@
           "java.lang.String",
           "java.lang.String",
           "java.lang.String"
+        ]
+      },
+      {
+        "name": "checkAttachPermission",
+        "parameterTypes": [
+          "io.nop.file.dao.entity.NopFileRecord"
         ]
       },
       {
