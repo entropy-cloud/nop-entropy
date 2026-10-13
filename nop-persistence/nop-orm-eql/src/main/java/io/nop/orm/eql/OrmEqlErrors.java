@@ -242,6 +242,15 @@ public interface OrmEqlErrors {
     ErrorCode ERR_EQL_FIELD_NOT_PROP =
             define("nop.err.eql.field-not-prop", "字段不是实体上的属性:{fieldName}", ARG_FIELD_NAME);
 
+    // Plan 2380：`insert … select … returning` 组合 v1 不支持（设计 §3.2 边界）。
+    // 文法层保持宽松（RETURNING 子句与 select 源同在一个备选里），因此在 transform 期拒绝——
+    // 与 upsert 侧的 select 源一样是响亮失败，不是静默产出一个未论证的支持面。
+    ErrorCode ERR_EQL_INSERT_SELECT_RETURNING_NOT_SUPPORTED =
+            define("nop.err.eql.insert-select-returning-not-supported",
+                    "insert ... select ... returning is not supported yet; "
+                            + "use the values form with returning, or drop the returning clause",
+                    ARG_ENTITY_NAME);
+
     // Plan 2380：upsert 冲突键的结构性校验失败。与"方言能力不足"（ERR_EQL_DIALECT_NOT_SUPPORT_FEATURE）
     // 是不同诊断类别——复用后者会让用户朝错误方向排查。
     // 触发场景：①冲突键列集未落在写入列清单内；②冲突键列集既不匹配任何已声明的唯一键也不匹配主键；

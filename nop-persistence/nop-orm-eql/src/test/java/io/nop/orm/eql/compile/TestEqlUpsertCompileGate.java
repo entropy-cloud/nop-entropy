@@ -252,6 +252,30 @@ public class TestEqlUpsertCompileGate {
         assertTrue(norm(sql).contains("do update set"), sql);
     }
 
+    /**
+     * 参数绑定取证：EQL 的参数是<b>位置标记 {@code ?}</b>，<b>按出现次数独立绑定</b>。
+     *
+     * <p>这条必须被钉住：v1 不提供 {@code excluded} 伪表，PG 上惯用的
+     * {@code DO UPDATE SET c = EXCLUDED.c} 在 EQL 里只能写成"把同一个新值再写一次"
+     * （{@code do update set name = ?}），此时该值在 {@code values} 与 {@code do update set}
+     * 中各占一个 {@code ?}，调用方需提供<b>两次</b>实参。若将来参数绑定改成按名复用，
+     * 本断言会转红并提醒同步 owner doc。
+     */
+    @Test
+    public void testUpdateSetParameterIsBoundPerOccurrence() {
+        String sql = sqlOf("postgresql", List.of("name"),
+                "upsert into AppUser (id, name, age) values (?, ?, ?) on conflict (id) "
+                        + "do update set name = ?");
+        int markers = 0;
+        for (int i = 0; i < sql.length(); i++) {
+            if (sql.charAt(i) == '?') {
+                markers++;
+            }
+        }
+        assertEquals(4, markers,
+                "values(3) + do update set(1) => four independent positional markers: " + sql);
+    }
+
     // ---- statement kind ----
 
     @Test

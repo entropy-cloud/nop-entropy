@@ -115,6 +115,7 @@ import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_GROUPS
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_RANGE;
 import static io.nop.orm.eql.OrmEqlConstants.FEATURE_SUPPORT_WINDOW_FRAME_ROWS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_CONFLICT_COLUMNS;
+import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INSERT_SELECT_RETURNING_NOT_SUPPORTED;
 import static io.nop.orm.eql.OrmEqlErrors.ERR_EQL_INVALID_CONFLICT_COLUMNS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_ALIAS;
 import static io.nop.orm.eql.OrmEqlErrors.ARG_OPERATOR;
@@ -1746,6 +1747,13 @@ public class EqlTransformVisitor extends EqlASTVisitor {
         }
 
         // Plan 2380：insert ... returning
+        if (node.getSelect() != null && hasReturning(node)) {
+            // v1 显式边界（设计 §3.2）：select 源 + returning 的组合不交付，
+            // 响亮失败而不是产出一个未论证的支持面
+            throw new NopException(ERR_EQL_INSERT_SELECT_RETURNING_NOT_SUPPORTED)
+                    .source(node)
+                    .param(ARG_ENTITY_NAME, tableMeta.getEntityName());
+        }
         resolveReturning(node, source, FEATURE_SUPPORT_RETURNING_FOR_INSERT);
 
         currentScope = currentScope.getParent();
@@ -1824,6 +1832,11 @@ public class EqlTransformVisitor extends EqlASTVisitor {
             ret.add(proj);
         }
         return ret;
+    }
+
+    private boolean hasReturning(ISqlReturningSupport node) {
+        return node.getReturnAll()
+                || (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty());
     }
 
     private boolean isReturningSupportedByDialect(String feature) {

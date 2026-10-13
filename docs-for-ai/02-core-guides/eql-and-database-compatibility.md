@@ -1025,9 +1025,24 @@ upsert into AppUser (id, name, age) values (?, ?, ?)
 参数不参与绑定。因为编译期已强制更新集 == 列清单且右值无列引用，H2 按列清单从 `VALUES` 行整列更新，
 语义与用户书写的更新集等价。
 
-**v1 边界**：只支持 `VALUES` 源（`upsert into T (…) select …` 未支持）；**不提供 `excluded` 伪表**
-（PG 上惯用的 `ON CONFLICT … DO UPDATE SET c = EXCLUDED.c` 在 EQL 里写成 `set c = ?`）——
-引入 `excluded` 会把 H2 分支从"受限可用"降级为"一律不可用"。
+**v1 边界**：只支持 `VALUES` 源（`upsert into T (…) select …` 解析失败）；**不提供 `excluded` 伪表**
+——PG 上惯用的 `ON CONFLICT … DO UPDATE SET c = EXCLUDED.c` 在 EQL 里只能写成"把同一个新值再写一次"
+（`values (?, ?, ?) … do update set name = ?`），引入 `excluded` 会把 H2 分支从"受限可用"降级为"一律不可用"。
+
+**参数绑定契约（实测钉住）**：EQL 的参数是**位置标记 `?`**（不是 `:name` 具名参数——EQL 文法里
+不存在 `:name` 语法），且**按出现次数独立绑定**。因此把新值同时写进 `values` 与 `do update set`
+时，同一个值会占**两个** `?`，调用方需提供**两次**实参：
+
+```sql
+-- 两个 ? 都是同一个新值：id=1, name='x', age=2
+upsert into AppUser (id, name, age) values (?, ?, ?)
+    on conflict (id) do update set name = ?
+```
+
+各方言生成的参数位数因此不同：PG / MySQL = `values` 的位数 + `do update set` 的位数；
+**H2 = 只有 `values` 的位数**（`MERGE … KEY … VALUES` 无更新子句，更新集不进入 SQL）。
+钉码载体：`TestEqlUpsertCompileGate#testUpdateSetParameterIsBoundPerOccurrence`（PG 侧 4 个标记）、
+`TestH2UpsertCompileEndToEnd#testH2BindsOnlyValueParameters`（H2 侧 3 个标记）。
 
 `upsert` 与 `conflict` 是 **unreserved 关键字**（`nop-persistence/nop-orm-eql/model/antlr/Keyword.g4` 定义 + `nop-persistence/nop-orm-eql/model/antlr/BaseRule.g4` 的 `unreservedWord_` 登记），
 在列名 / 表名 / 别名位置仍可解析；语句起始无歧义（与 `delete`/`insert` 首 token 不同）。
@@ -1050,6 +1065,9 @@ insert into AppUser (id, name) values (?, ?) returning *
 - 值现状：postgresql / postgis / duckdb 三新位 `true`；其余方言未配置 = 保守 false（编译期报错，
   `feature` 参数分别为 `supportReturningForInsert` / `supportReturningForDelete`）。
 - `returning *` 在编译期展开为实体全部列投影；投影可含函数等非列表达式（走与 select 一致的类型解析）。
+- **v1 边界**：`insert … select … returning` 组合**不支持**，编译期报
+  `nop.err.eql.insert-select-returning-not-supported`（文法层对二者是同备选的可选项，故在 transform 期守）；
+  不带 `returning` 的 `insert … select …` 不受影响。
 - **returning 投影不带生成别名**（普通 SELECT 投影仍带 ` as c1` 形式的生成别名）。该判定的实现**只能按
   三种写语句节点逐一列举**，**禁止**写成 `instanceof SqlDmlStatement`——`SqlSelect` 同继承该基类，
   那样会静默打掉所有 SELECT 投影别名且既有断言不会转红。

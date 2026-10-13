@@ -154,6 +154,32 @@ public class TestEqlInsertDeleteReturning {
                 "supportReturningForUpdate");
     }
 
+    /**
+     * v1 显式边界：`insert … select … returning` 不交付，必须响亮失败。
+     *
+     * <p>文法层对 `RETURNING` 子句与 `select` 源是同一个备选（两者独立可选），因此这条边界
+     * 只能在 transform 期守。若不守，就会开出一个设计从未论证、文档从未登记的支持面
+     * —— 那正是排序原则第 1 条「静默错误 &gt; 响亮失败」要消灭的形态。
+     */
+    @Test
+    public void testInsertSelectReturningFailsFast() {
+        for (String dialect : List.of("postgresql", "duckdb")) {
+            NopException e = assertThrows(NopException.class,
+                    () -> sqlOf(dialect,
+                            "insert into AppUser (id, name) select 1, 'x' returning id"),
+                    () -> dialect + " must reject insert..select..returning (design 3.2)");
+            assertEquals("nop.err.eql.insert-select-returning-not-supported", e.getErrorCode(), dialect);
+        }
+    }
+
+    /** 没有 returning 的 `insert … select …` 不受影响。 */
+    @Test
+    public void testInsertSelectWithoutReturningStillWorks() {
+        String sql = norm(sqlOf("postgresql", "insert into AppUser (id, name) select 1, 'x'"));
+        assertTrue(sql.contains("insert into app_user"), sql);
+        assertTrue(sql.contains("select"), sql);
+    }
+
     // ---- 别名抑制：正反两面 ----
 
     /**
