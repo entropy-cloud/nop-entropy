@@ -52,7 +52,7 @@ audit-rounds: 0
 - WI18 nop-ai-dao 双限界上下文裁定: `done`（plan 2455：裁定维持现状——双域消费者完全重叠——同为 nop-ai-service BizModel + web CRUD、coder 零消费 dao、拆分零功能收益且成本为 DDL 三方言 + codegen 链路复验 + 回归；重启条件 = 按域独立部署/独立数据生命周期/域间消费者分化任一触发即立 successor；live 复测与 roadmap 基线一致）
 - WI19 nop-ai-gateway 能力承载边界裁定: `done`（plan 2456：裁定维持单模块——failover 轻依赖面——api/core/rule-core/ channel+login 重依赖面——agent/dao/feishu/auth-api分层实测与 roadmap 诊断一致，但零单一能力消费者使拆分无现实对价；channel 面已做 auth-api 轻接口减配；重启条件 = failover-only 下游出现 / channel 独立发布节奏或更重依赖 / LLM 网关产品化）
 - WI20 仓库卫生（本地未跟踪文件清理 + 工作笔记归位）: `done`（plan 2457：chat-history 14 笔记迁 ai-dev/discussions/nop-ai-chat-history/——git mv 保历史、ORM 设计模型保留原位、gitignore 覆盖实测有效、4 个解散模块 gitignored 磁盘壳清理；roadmap 正文归位注记已更新）
-- WI22 nop-ai-app 产品组装闭环裁定: `todo`
+- WI22 nop-ai-app 产品组装闭环裁定: `done`（plan 2458：裁定定位②——nop-ai 显式登记为库集合、宿主由下游应用承担；app 保持轻量 Quarkus 参考宿主不背 agent/gateway 重依赖面；重启条件 = 产品要求 AI 管理后台默认内置 agent 对话能力时立 successor 补装；module-groups 定位声明增补）
 - WI21 全量收口与分层速查回写校对: `todo`
 
 - ★ **里程碑：M1 双轨合一**（WI1 + WI2 全部 done——废弃栈 25 类删除、工具 SPI 单一）：`done`
