@@ -1,4 +1,4 @@
-package io.nop.ai.coder.simplifier;
+package io.nop.ai.core.simplifier;
 
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.xml.XNode;
