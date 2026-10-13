@@ -21,6 +21,10 @@ ai-dev/audits/
 - `{module}`: 被审计的模块名（如 `nop-stream`、`nop-job`）
 - `HHMM`: 24 小时制时分（如 `0930`、`1430`），用于区分同一天内的多次执行。历史记录可能只有 `YYYY-MM-DD`（无时分），新记录一律带 `HHMM`。
 
+## Campaign 索引（cra-index）
+
+多工作项滚动审计 campaign（如 `ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md`）在 `ai-dev/audits/cra-index.md` 维护统一台账：报告清单 + P0 即时通道追踪 + P1 批量修复台账 + P2 裁决台账。纪律：报告产出即更新索引；索引是对账（roadmap 终局验证）的输入；finding ID 全局唯一（`{单元标识}-C{N}-{序号}`）。
+
 ## 证据产物目录（evidence/）
 
 `ai-dev/audits/evidence/{plan-id}/` 按 plan/milestone 归档修复证据产物（语义对比脚本与输出、baseline 快照、白名单等），与 audit 记录分离——audit 记录描述"发现了什么"，evidence 记录"修复如何被验证"。约定：

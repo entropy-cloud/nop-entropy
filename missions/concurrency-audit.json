@@ -1,0 +1,25 @@
+{
+  "name": "concurrency-audit",
+  "description": "并发·异步·资源专项审计与修复 — 全 Maven 模块组滚动（C1–C10 十维度，32 审计工作项 + 合并裁定 + 分批修复）。P0 即时通道 + P1 批量修复 + P2 逐项裁决。",
+  "roadmapPath": "ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md",
+  "plansDir": "ai-dev/plans",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits",
+  "sourceDir": ".",
+  "model": "opencode-go/deepseek-v4-flash",
+  "variant": "max",
+  "commands": {
+    "test": "./mvnw test -T 1C",
+    "build": "./mvnw clean install -T 1C",
+    "lint": "./mvnw checkstyle:check -q 2>/dev/null || echo 'lint not configured'",
+    "typecheck": "./mvnw compile -q 2>/dev/null || echo 'typecheck not configured'"
+  },
+  "prompts": {
+    "multiAuditPrompt": "ai-dev/skills/deep-audit-prompts.md",
+    "concurrencyAuditPrompt": "ai-dev/skills/concurrency-resource-audit-prompt.md",
+    "roadmapAuthoringPrompt": "ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md",
+    "planClosureAudit": "ai-dev/skills/plan-closure-audit-prompt.md",
+    "openAuditPrompt": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commitFormat": "fix: <description>"
+}
