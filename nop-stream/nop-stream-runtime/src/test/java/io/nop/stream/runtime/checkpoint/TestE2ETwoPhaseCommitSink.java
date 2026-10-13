@@ -25,6 +25,7 @@ import io.nop.stream.core.operators.StreamOperator;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -176,6 +177,9 @@ class TestE2ETwoPhaseCommitSink {
         assertTrue(actions.contains("invoke:b"), "invoke:b should have been called. Actions: " + actions);
         assertTrue(actions.contains("invoke:c"), "invoke:c should have been called. Actions: " + actions);
         assertTrue(actions.contains("preCommit:" + cpId), "preCommit should have been called. Actions: " + actions);
+        // commit rides the fan-out executor after the completion latch — await it
+        // instead of racing the executor under load
+        TestAwait.until("commit action recorded", () -> commitCount.get() > 0);
         assertTrue(commitCount.get() > 0, "commit should have been called. Actions: " + actions);
 
         int beginIndex = actions.indexOf("begin");

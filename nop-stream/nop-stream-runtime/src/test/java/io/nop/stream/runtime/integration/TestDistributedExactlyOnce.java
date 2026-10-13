@@ -35,6 +35,7 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.runtime.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -783,7 +784,12 @@ class TestDistributedExactlyOnce {
         CompletedCheckpoint completed2 = cp2.getCompletableFuture().get(5, TimeUnit.SECONDS);
         assertNotNull(completed2);
 
-        // Both checkpoints should have been committed
+        // Both checkpoints should have been committed — checkpoint/commit actions ride
+        // the fan-out executor after the completion future resolves; await both
+        // counters instead of racing the executor under load
+        TestAwait.until("both checkpoints committed",
+                () -> committedCheckpointIds.size() >= 2
+                        && committedTransactions.size() >= 2);
         assertTrue(committedCheckpointIds.size() >= 2,
                 "At least 2 checkpoints should be committed, got: " + committedCheckpointIds);
         assertTrue(committedCheckpointIds.contains(cp1.getCheckpointId()));

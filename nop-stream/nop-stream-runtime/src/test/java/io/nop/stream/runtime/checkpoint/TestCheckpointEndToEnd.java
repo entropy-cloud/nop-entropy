@@ -21,6 +21,7 @@ import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
+import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.StreamMap;
@@ -295,7 +296,11 @@ public class TestCheckpointEndToEnd {
         // Verify preCommit was called during barrier processing
         assertTrue(actions.contains("preCommit:" + cpId), "preCommit should have been called. Actions: " + actions);
 
-        // Verify commit was called after checkpoint completion
+        // commit rides the fan-out executor AFTER the completion future resolves;
+        // under load the test thread can resume first — await the action, don't
+        // race it (same bounded-await convention as the barrier tests)
+        TestAwait.until("commit action recorded",
+                () -> actions.contains("commit:" + cpId));
         assertTrue(commitCount.get() > 0, "commit should have been called. Actions: " + actions);
         assertTrue(actions.contains("commit:" + cpId), "commit should have been called. Actions: " + actions);
 

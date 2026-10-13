@@ -1556,7 +1556,9 @@ public class CheckpointCoordinator {
                 it.remove();
                 checkpointSuccessMap.remove(failedEpoch);
             } else {
-                it.remove();
+                // 原位替换，不经 remove：remove 与 put 之间存在条目暂时消失的窗口，
+                // 并发的 abort 门控（containsKey）会把仍在重试的 epoch 误判为无失败者，
+                // 提前删掉 success 终端标记，使重放默认 success=true
                 failedCommitParticipants.put(failedEpoch, stillFailing);
             }
         }

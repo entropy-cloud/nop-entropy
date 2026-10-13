@@ -371,6 +371,9 @@ class TestCheckpointParticipantIntegration {
         assertTrue(actions.contains("invoke:a"), "invoke:a should have been called. Actions: " + actions);
         assertTrue(actions.contains("invoke:b"), "invoke:b should have been called. Actions: " + actions);
         assertTrue(actions.contains("preCommit:" + cpId), "preCommit should have been called. Actions: " + actions);
+        // commit rides the fan-out executor after the completion latch — await it
+        // instead of racing the executor under load
+        TestAwait.until("commit action recorded", () -> actions.contains("commit:" + cpId));
         assertTrue(actions.contains("commit:" + cpId), "commit should have been called. Actions: " + actions);
 
         // Verify ordering: begin < preCommit < commit
