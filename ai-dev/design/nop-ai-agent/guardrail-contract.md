@@ -148,13 +148,13 @@ guardrail-test（测试时组件，非运行时；不调用真实 LLM / 真实 a
 > `TemplateRenderer` 在 nop-ai 中不存在；首版按裁定 C 采用结构化确定性判定，
 > rubric 模板留 successor。
 
-#### 裁定 A — 组件归属与模块边界
+#### 裁定 A — 组件归属与模块边界（WI13/plan 2445 修订为最终态）
 
-`GuardrailTestSuite` 放在 **`nop-ai-agent` main source 的 `io.nop.ai.agent.guardrail.test` 包**（非独立模块、非 src/test 层级）。理由：
+`guardrail.test` 验收框架位于 **`nop-ai-agent` 的 `src/test` 源根、原包名 `io.nop.ai.agent.guardrail.test` 不变**（模块内验收测试资产；攻击语料 `_vfs/nop/ai/agent/{guardrail-test,checkpoint-test}/corpus` 同迁 `src/test/resources`，VFS 路径常量不变）。
 
-- 它是测试时库，需被消费方（含下游模块的测试）引用——main source 中的测试时库是既定惯例（类 JUnit support lib）；放在 src/test 层级则不能跨模块引用（test 类不进入发布产物）。
-- 不污染运行时类路径语义：运行时执行路径（`AgentPromptAssembly` 的 INPUT/OUTPUT 调用点）只调 `IContentGuardrail.check()`，从不引用 `guardrail.test` 包；该包是纯验收工具。
-- 与 `nop-ai-agent-eval-design.md`（草案）正交：eval 走真实 agent session + LLM-judge 测 ReAct 行为；本套件对 `IContentGuardrail.check()` 做纯函数式拦截验收（无 LLM、无 session）。两者目标不同、共存不冲突。
+- 原 main 放置理由（"需被消费方（含下游模块的测试）引用"）**经实证未成立**：WI13 普查全仓包外零消费者（含下游模块），框架为纯验收工具、零运行时引用——main 放置使生产 jar 携带 2,393 行死重与攻击语料，且 test 命名在 main 源码中误导。
+- 运行时隔离保持：运行时执行路径（`AgentPromptAssembly` 的 INPUT/OUTPUT 调用点）只调 `IContentGuardrail.check()`，从不引用本包。
+- 与 `nop-ai-agent-eval-design.md`（草案）正交关系不变：eval 走真实 agent session + LLM-judge；本套件为纯函数式拦截验收。**重启条件**：eval 产品化立项时将本框架升级为独立 eval 模块（届时按 Protected Areas 走模块新增流程）。
 
 #### 裁定 B — AttackPlugin 契约形态（声明式语料提供者）
 

@@ -17,7 +17,7 @@ import java.util.Map;
  * Loads declarative YAML rule-set files into validated
  * {@link GuardrailRuleSet}s (design {@code guardrail-contract.md} §增量 2,
  * Decision A / Decision F). Uses nop's existing {@link ResourceHelper} +
- * {@link JsonTool#parseYaml} — the same pipeline as {@code CorpusLoader} and
+ * {@link JsonTool#parseYaml} — the same pipeline as the corpus loader (relocated to test sources by WI13/plan 2445) and
  * {@code FileSystemSkillProvider}.
  *
  * <p>YAML format (root is a mapping with {@code id} and a {@code rules} list):

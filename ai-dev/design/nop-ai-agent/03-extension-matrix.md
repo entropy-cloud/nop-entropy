@@ -11,7 +11,7 @@
 ## 一、设计结论
 
 1. 本篇是 vision §4「渐进式增强」的**反向审计工具**——用一张表回答"每个扩展点当前是否闭合"
-2. 全模块共 **72 个顶层 public interface**（`io.nop.ai.agent` 主源码，排除 `_gen`；另有 1 个嵌套接口 `StoreFactory`，共 73 个声明，2026-09-14 live 复核），按角色四分：核心契约 4 / 真正扩展点 57 / 回调契约 4 / NoOp-only 1（WI12/plan 2444 后：ITaskMemberRouter 随 DefaultTaskMemberRouter 正名退出该类）/ 预留原语 1 / 矩阵外接口 4（错误码容器 `NopAiAgentErrors` + 3 个 guardrail 测试 SPI，不参与闭合分析）
+2. 全模块共 **69 个顶层 public interface**（`io.nop.ai.agent` 主源码，排除 `_gen`；另有 1 个嵌套接口 `StoreFactory`，共 70 个声明，WI13/plan 2445 后 live 复核），按角色四分：核心契约 4 / 真正扩展点 57 / 回调契约 4 / NoOp-only 1（WI12 后：ITaskMemberRouter 随 DefaultTaskMemberRouter 正名退出）/ 预留原语 1 / 矩阵外接口 1（WI13/plan 2445 后：仅错误码容器 `NopAiAgentErrors`——guardrail/test 包 3 个测试 SPI 已随包迁入 test 源根，退出矩阵口径）
 3. 当前 **2 处半闭合** + **1 处未闭合** + **5 处命名异味** + **3 处接线缺口/死代码** 是 vision §4 落实的主要缺口
 4. 本篇与 `glossary.md`（术语层）、`nop-ai-agent-roadmap.md`（状态层）互补——glossary 列概念，roadmap 列阶段，本篇**列闭合度**
 
@@ -47,9 +47,9 @@
 | **回调契约** | 框架只声明签名，由下游/插件实现 | 4 | ❌ 列在 §4.0 |
 | **NoOp-only 扩展点** | 消费者已接通，但唯一实现是 NoOp（半闭合） | 1（WI12 后） | ✅ 主体（红色高亮） |
 | **预留原语** | 接口 + NoOp + 功能实现均已落地，但零消费者 | 1 | ✅ 主体（红色高亮） |
-| **矩阵外接口** | 错误码容器 / 测试 SPI，非扩展点 | 4 | ❌ 不进入矩阵 |
+| **矩阵外接口** | 错误码容器（测试 SPI 已随 WI13 迁出） | 1 | ❌ 不进入矩阵 |
 
-> 分类合计 68 = 4 + 57 + 4 + 2 + 1；另有 4 个矩阵外接口（`NopAiAgentErrors` 错误码容器 + `guardrail/test` 包 3 个测试 SPI：`AttackPlugin` / `AttackTransform` / `GuardrailGrader`）。模块顶层 public interface 总数 72 = 68 + 4（2026-09-14 live 复核）。
+> 分类合计 68 = 4 + 57 + 4 + 2 + 1；另有 1 个矩阵外接口（`NopAiAgentErrors` 错误码容器；WI13/plan 2445 后 guardrail/test 包 3 个测试 SPI 已随包迁入 test 源根，退出矩阵口径）。模块顶层 public interface 总数 69 = 68 + 1（WI13/plan 2445 后 live 复核：guardrail/test 3 SPI 迁 test 源根）。
 
 ## 四、扩展点矩阵主体
 
@@ -194,7 +194,7 @@
 | 🔴 未闭合 | 1 | 1.5% | **零消费者**（纯原语预留） |
 | ⚪ 回调契约 | 4 | 5.9% | 下游/插件实现，不参与闭合分析 |
 
-> 合计 68 = 模块 72 个顶层 public interface − 4 个矩阵外接口（2026-09-14 修订后重算）。
+> 合计 68 = 模块 69 个顶层 public interface − 1 个矩阵外接口（WI13/plan 2445 后重算）。
 
 ### 5.2 🟡 半闭合清单（vision §4 的主要落实缺口）
 
