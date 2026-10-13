@@ -8,6 +8,15 @@
   - 各方言参数位数不同：PG/MySQL = `values` 位 + `do update set` 位；H2 仅 `values` 位（`MERGE … KEY … VALUES` 无更新子句）。详见 `docs-for-ai/02-core-guides/eql-and-database-compatibility.md` upsert/returning 小节
 
 ## 修复 2026-10-13
+* 修复 nop-stream-runtime checkpoint 重试账本 remove-then-put 瞬时窗口，abort 门控可能提前删除终端标记 (commit: 9c72018af9)
+  - `CheckpointCoordinator.retryFailedCommits` 的 else 分支先 `remove` 再 `put`，两步之间仍在重试的 epoch 从账本瞬时消失；abort 路径的 `containsKey` 门控在该窗口内会把有失败者误判为无失败者、提前删除终端标记——恢复重放将默认 success=true，破坏 exactly-once 语义
+  - 修复：改为 `ConcurrentSkipListMap` 原位 `put`（替换 value 不摘条目），窗口消除；行为面无其他变化
+* 修复 nop-ai-gateway 并发首派发下桥消费者重复订阅导致消息重复消费 (commit: 3db616f46d)
+  - `ChannelMessageServiceImpl` 的订阅检查与注册非原子（check-then-act），本地广播总线不按消费者身份去重，并发首派发下同一桥消费者可被注册 N 次
+  - 修复：实例级 synchronized + 双检串行化首订阅；单线程行为不变
+* 修复 nop-code Java 调用图按限定名整层丢失——被索引模块自身类型解析失败无兜底 (commit: 76db42b33f)
+  - `JavaFileAnalyzer` 的 TypeSolver 只含反射求解器，被索引项目自身的类型 `resolve()` 全部失败，`calleeQualifiedName` 恒为 null 而下游调用图只认该字段—— outgoing 调用边整层丢失
+  - 修复：分析结束后新增同类隐式调用后置归属（无 scope 且 caller 所在类型声明同名方法时归属 enclosing 类型）；静态导入/继承方法不误归属
 * 修复 nop-quarkus-web 无 Host 头请求（HTTP/1.0 客户端）`getHost()` NPE (commit: 5ad84f7f82)
   - 根因：Quarkus 4/Vert.x 5 迁移（plan 2431 WI5）把 `getHost()` 从 `request().host()` 改为 `request().authority().host()`，但 Vert.x 5 的 `authority()` 在请求无 Host 头时返回 null（合法状态），直接解引用抛 NPE；该适配器服务所有 Quarkus 入口的 `IHttpServerContext` 消费方
   - 修复：`VertxHttpServerContext.getHost()` 对 `authority()` 判空，返回 null（语义：host 未知，非失败）；唯一生产调用方 `AuthHttpServerFilter` 经 `StringHelper.replace` null 安全
