@@ -10,6 +10,9 @@ message: "public 方法不可被覆写，代理无法拦截 (public proxy-hostil
 requires: L4
 rule:
   kind: method_declaration
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   let mods = null;
   let modList = node.children('modifiers');

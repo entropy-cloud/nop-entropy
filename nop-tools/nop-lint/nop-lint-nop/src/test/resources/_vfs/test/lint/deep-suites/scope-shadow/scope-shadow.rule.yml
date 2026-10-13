@@ -9,6 +9,9 @@ message: "变量遮蔽了外层声明 (variable shadows an outer declaration)"
 requires: SCOPE
 rule:
   kind: variable_declarator
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   if (scope.shadows(node)) {
     report({ message: 'shadow: ' + node.text().split('=')[0].trim(), severity: 'warning' });

@@ -230,11 +230,14 @@ public class TestNopLintBizModel {
 
     @Test
     public void vfsPathReadsThroughTheVirtualFileSystem() throws Exception {
-        // a real VFS resource: the module's own beans file
+        // a real VFS resource: the module's own beans file. An .xml path
+        // selects the production XML rule library, so the rule whitelist
+        // narrows the selection to pin THIS test's face — the path grammar
+        // resolving and reading through the VFS — instead of the whole
+        // library's script semantics (pinned by the nop-bean-naming suite
+        // in nop-lint-nop with explicit expect fixtures)
         LintCheckResult result = service.checkFile(
-                "/nop/lint/beans/app-lint.beans.xml", null, null);
-        // XML rules are not loaded by the Java binding — the grammar is
-        // bound, so the run completes with zero Java diagnostics
+                "/nop/lint/beans/app-lint.beans.xml", List.of("nop/no-raw-exception"), null);
         assertEquals(0, result.total(), String.valueOf(result));
     }
 

@@ -122,6 +122,9 @@ public class TestScopeBinding {
         rule.addProp("pattern", "return $V");
         model.addProp("rule", rule);
         model.addProp("requires", "SCOPE");
+        // the 100ms default deadline is a real-clock budget: under a loaded
+        // build the JVM's first xscript runs pay classload cost inside it
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         model.addProp("xscript", """
                 let def = scope.definition(captures.V);
                 if (def != null) {
@@ -154,6 +157,7 @@ public class TestScopeBinding {
         rule.addProp("kind", "variable_declarator");
         model.addProp("rule", rule);
         model.addProp("requires", "SCOPE");
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         model.addProp("xscript",
                 "if (scope.shadows(node)) { report({ message: 'shadows!' }); }");
         return parser.parseRuleModel(model);

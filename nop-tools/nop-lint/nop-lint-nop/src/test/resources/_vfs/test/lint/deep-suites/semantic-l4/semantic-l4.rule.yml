@@ -10,6 +10,9 @@ message: "L4 语义判定命中 (L4 semantic hit)"
 requires: L4
 rule:
   kind: method_declaration
+# the 100ms default deadline is a real-clock budget: a loaded CI machine can
+# stall a match past it and drop the report; declare the parser maximum instead
+xscriptTimeoutMs: 1000
 xscript: |
   if (semantic.isOverridable(node)) {
     report({ message: 'overridable', severity: 'warning' });

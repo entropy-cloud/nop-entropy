@@ -226,6 +226,9 @@ public class TestXScriptRules {
         DynamicObject rule = new DynamicObject("rule");
         rule.addProp("pattern", pattern);
         model.addProp("rule", rule);
+        // the 100ms default deadline is a real-clock budget: under a loaded
+        // build the JVM's first xscript runs pay classload cost inside it
+        model.addProp("xscriptTimeoutMs", RuleDslParser.MAX_XSCRIPT_TIMEOUT_MS);
         model.addProp("xscript", script);
         return model;
     }
