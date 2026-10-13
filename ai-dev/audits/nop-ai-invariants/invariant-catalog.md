@@ -108,6 +108,7 @@
   ```
   （输出 35 行，与本表行数一致）
 - **边缘类裁定**：`nop-ai-agent/src/main/java/io/nop/ai/agent/guardrail/test/DefaultGuardrailGrader.java` 位于 `src/main` 但包路径含 `/test/` 段，被复现命令排除（`-not -path "*/test/*"`）。**裁定：排除**（理由：该 class 是 guardrail 测试辅助 grader（`GuardrailGrader` 实现，对 AttackCase 打分），非引擎/安全组件 Default* 类，不承担 secure-default 语义；若后续升级为生产组件，由 I2/I5 按 Loop Rule 复触发重新裁定）。本裁定使「命令输出 == 表行数」成立（35 行，不含 DefaultGuardrailGrader）。
+> WI13/plan 2445 状态注（2026-10-13）：guardrail-test grader 已随包整体迁出 src/main（现居 test 源根），本行的 `-path` 排除条件自然成立、无需变更。
 
 | # | 模块 | 类（`包路径/文件`） | IoC 注入候选标注 |
 |---|------|---------------------|------------------|

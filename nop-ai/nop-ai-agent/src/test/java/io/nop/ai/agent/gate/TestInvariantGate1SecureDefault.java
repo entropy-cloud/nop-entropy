@@ -188,8 +188,9 @@ public class TestInvariantGate1SecureDefault {
      * Source-tree mechanical re-query of the I0 reproduction command: every
      * {@code Default*.java} under this module's {@code src/main/java}, with
      * the I0 exclusion rules ({@code /test/}, {@code /_gen/}, {@code /target/}
-     * path segments — note this excludes the guardrail-test grader whose
-     * package path contains a {@code test} segment, per I0 edge ruling).
+     * path segments — note the former guardrail-test grader left src/main
+     * entirely in WI13/plan 2445 (harness moved to test sources), so this
+     * filter no longer needs to exclude it).
      */
     static Set<String> scanSourceTree() throws IOException {
         return scanSourceTree(moduleRoot().resolve("src/main/java"));
