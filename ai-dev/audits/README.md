@@ -37,6 +37,7 @@ ai-dev/audits/
 | Prompt | 审计类型 |
 |--------|---------|
 | `skills/deep-audit-prompts.md` | 多维度深度审计 |
+| `skills/concurrency-resource-audit-prompt.md` | 并发·异步·资源专项审计（并发正确性/异步链路/线程池治理/内存有界性/资源泄漏/长时运行稳定性/背压过载/热路径性能/测试保护力，C1–C10 十维度，逐模块滚动执行） |
 | `skills/open-ended-adversarial-review-prompt.md` | 开放式对抗审查 |
 | `skills/plan-closure-audit-prompt.md` | 计划结项审计 |
 | `skills/plan-reviewer-prompt.md` | 计划实施前审计 |
