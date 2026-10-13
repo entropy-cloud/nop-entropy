@@ -152,10 +152,13 @@ class TestKafkaMessageServiceSend {
                     return null;
                 });
 
+        // start before sendAsync: the orTimeout timer is attached inside
+        // sendAsync, so the timer's full age is always >= this elapsed, and
+        // the lower bound stays valid even when dispatch is descheduled
+        long start = System.nanoTime();
         CompletionStage<Void> stage = service.sendAsync("t-timeout", "m", options);
         // ensure the send was dispatched first, then wait for the timeout to fire
         result.get(2, TimeUnit.SECONDS);
-        long start = System.nanoTime();
         ExecutionException e = assertThrows(ExecutionException.class,
                 () -> stage.toCompletableFuture().get(5, TimeUnit.SECONDS));
         long elapsedMs = (System.nanoTime() - start) / 1_000_000L;
