@@ -550,7 +550,7 @@ public class DeclTypeResolver {
 
 > **L2（Phase 2）— 复用已有 JavaParser 资产**，不自建类型层次数据库：
 > - `nop-utils/nop-java-parser`：已依赖 javaparser-core + **javaparser-symbol-solver-core**，`JavaParseTool` 已配置 symbol solver
-> - `nop-ai/nop-ai-skills/nop-ai-code-analyzer`：`JavaParserBuilder` 已实现 `CombinedTypeSolver` + `addModuleJars(MavenModule)`（从 Maven 仓库加载依赖 jar）；`MavenProject` 提供 pom 解析、依赖树、`findJavaFileByClassName`
+> - `nop-ai/nop-ai-code-analyzer（WI17 迁出 skills）`：`JavaParserBuilder` 已实现 `CombinedTypeSolver` + `addModuleJars(MavenModule)`（从 Maven 仓库加载依赖 jar）；`MavenProject` 提供 pom 解析、依赖树、`findJavaFileByClassName`
 
 ```java
 // L2: 基于 nop-ai-code-analyzer 的 JavaParserBuilder 构建项目级 solver
@@ -683,7 +683,7 @@ TypeScript 类型系统复杂得多，**不应该自己实现类型推导**，�
 
 ## 6. JavaParser 集成方案（基于已有模块）
 
-> 本节不是"引入 JavaParser"，而是**复用** `nop-utils/nop-java-parser`（JavaParseTool，已含 symbol-solver）与 `nop-ai/nop-ai-skills/nop-ai-code-analyzer`（JavaParserBuilder、MavenProject）。§5.2 的 L1 声明类型提取（纯 tree-sitter AST）与本节的 L2 symbol solver 是互补关系：L1 覆盖轻量规则，L2 覆盖需要继承链/方法签名解析的规则。
+> 本节不是"引入 JavaParser"，而是**复用** `nop-utils/nop-java-parser`（JavaParseTool，已含 symbol-solver）与 `nop-ai/nop-ai-code-analyzer（WI17 迁出 skills）`（JavaParserBuilder、MavenProject）。§5.2 的 L1 声明类型提取（纯 tree-sitter AST）与本节的 L2 symbol solver 是互补关系：L1 覆盖轻量规则，L2 覆盖需要继承链/方法签名解析的规则。
 
 ### 6.1 两种 AST 的对比
 

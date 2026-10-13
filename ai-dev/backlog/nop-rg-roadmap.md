@@ -69,7 +69,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ## Current baseline
 
 **Already shipped:**
-- `GitIgnoreFile.java` at `nop-ai/nop-ai-skills/nop-ai-code-analyzer/.../git/GitIgnoreFile.java` — complete gitignore parser (417 lines, hand-rolled, no JGit dependency)
+- `GitIgnoreFile.java` at `nop-ai/nop-ai-code-analyzer/.../git/GitIgnoreFile.java` — complete gitignore parser (417 lines, hand-rolled, no JGit dependency)
 - `AntPathMatcher` at `nop-kernel/nop-commons/.../path/AntPathMatcher.java` — Ant-style path matching
 - `nop-utils/nop-commons-java21` — higher-JDK module gated by JDK-activation profile (`nop-utils` POM `java21-modules`, JDK ≥ 21) — the precedent nop-rg follows for its JDK 22 gating
 
@@ -121,7 +121,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 **Protected area:** 涉及 `nop-core`（AGENTS.md Protected Area：框架核心引擎），执行计划需按 plan-first 流程审核。
 
-**Module / area:** `nop-kernel/nop-core/`, `nop-ai/nop-ai-skills/nop-ai-code-analyzer/`, `nop-runner/nop-cli-core/`
+**Module / area:** `nop-kernel/nop-core/`, `nop-ai/nop-ai-code-analyzer/`, `nop-runner/nop-cli-core/`
 
 ### 2. nop-rg project skeleton
 

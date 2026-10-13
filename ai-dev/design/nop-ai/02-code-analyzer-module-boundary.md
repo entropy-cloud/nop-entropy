@@ -1,7 +1,7 @@
 # nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定）
 
 **日期**：2026-08-01
-**范围**：`nop-ai/nop-ai-skills/nop-ai-code-analyzer`（5 个包：code / git / maven / project / stats）
+**范围**：`nop-ai/nop-ai-code-analyzer（WI17/plan 2454 升直属）`（5 个包：code / git / maven / project / stats）
 **状态**：active（裁定已落地）
 **相关裁定**：P3-MA1-014（MA1.3 审计，第九批承接）、`ai-dev/plans/2026-08-01-0206-1-arm-p2-skills-code-analyzer-structure.md` Phase 3
 

@@ -122,7 +122,7 @@ state block**.
 | Parsing / incremental / query | `nop-treesitter` (M4 done) | TSParser.parseIncremental(language, oldTree, edits, byte[]); TSQuery for auxiliary S-expr queries only |
 | YAML rule loading / xdef / x:extends | XDSL (`DslJsonResourceLoader` via register-model, `DslNodeLoader`, `XDslExtender`) | Requires `lint.register-model.xml` for fileType `rule.yml` (design 10 §4); platform check-mutex validation inspects attribute-form props only — element-form matcher uniqueness is enforced by `RuleDslParser` fail-closed |
 | xscript execution | XLang (`ScriptEvalAction`, `IExpressionExecutor`, `EvalExprProvider.registerGlobalExecutor`) | Lambda is `=>`; no existing timeout facility — deadline via route A wrapper (design 07) |
-| L2 Java typing | `nop-utils/nop-java-parser` + `nop-ai/nop-ai-skills/nop-ai-code-analyzer` | JavaParserBuilder CombinedTypeSolver + MavenProject; do not build a resolver |
+| L2 Java typing | `nop-utils/nop-java-parser` + `nop-ai/nop-ai-code-analyzer` | JavaParserBuilder CombinedTypeSolver + MavenProject; do not build a resolver |
 | Logging / test / build | slf4j, JUnit 5, Maven wrapper | Same as nop-treesitter |
 | NopIoC / GraphQL | `io.nop.core.ioc`, nop-graphql | Wave 6 only |
 
