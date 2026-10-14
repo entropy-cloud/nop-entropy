@@ -103,15 +103,6 @@
       ]
     },
     {
-      "id": "amis-preview",
-      "title": "Amis Preview",
-      "path": "/amis/preview",
-      "icon": "workflow",
-      "pageType": "amis",
-      "schemaPath": "/data/amis-preview.json",
-      "sort": 6
-    },
-    {
       "id": "flux-demo",
       "title": "Flux Demo",
       "path": "/flux-demo",
@@ -211,13 +202,22 @@
       "sort": 10
     },
     {
-      "id": "amis-tabs-test",
-      "title": "AMIS Tabs Test",
-      "path": "/amis-tabs-test",
-      "pageType": "amis",
-      "schemaPath": "/data/amis-tabs-test.json",
-      "icon": "list",
-      "sort": 999
+      "id": "flux-nop-auth-user",
+      "title": "Flux 实页:用户管理",
+      "path": "/flux-nop-auth-user",
+      "icon": "users",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-nop-auth-user.json",
+      "sort": 10
+    },
+    {
+      "id": "flux-dashboard-view",
+      "title": "Flux 实页:运营总览",
+      "path": "/flux-dashboard-view",
+      "icon": "layout-dashboard",
+      "pageType": "flux",
+      "schemaPath": "/data/flux-dashboard-view.json",
+      "sort": 10
     }
   ]
 }

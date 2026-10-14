@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-8BhlS34s.js";function t(e){let t=null;return()=>(t||=e().catch(e=>{throw t=null,e}),t)}function n(){return(n=e((()=>{})))()}export{n,t};

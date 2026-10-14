@@ -1,0 +1,1205 @@
+{
+ "type": "page",
+ "name": "flux-dashboard-view",
+ "body": [
+  {
+   "type": "flex",
+   "direction": "column",
+   "gap": "8px",
+   "body": [
+    {
+     "type": "text",
+     "text": "总览",
+     "className": "fdv-eyebrow"
+    },
+    {
+     "type": "flex",
+     "direction": "row",
+     "align": "center",
+     "gap": "12px",
+     "body": [
+      {
+       "type": "text",
+       "text": "运营总览",
+       "tag": "h1",
+       "className": "fdv-page-title"
+      },
+      {
+       "type": "text",
+       "text": "实时",
+       "className": "fdv-badge"
+      }
+     ]
+    },
+    {
+     "type": "text",
+     "text": "围绕时间范围、趋势观察、复杂分析和插件扩展的实时运营总览。（Flux JSON 动态加载实现，与内置仪表盘同一份 mock 数据）",
+     "className": "fdv-desc"
+    }
+   ]
+  },
+  {
+   "type": "grid",
+   "columns": 4,
+   "gap": 16,
+   "responsiveColumns": {
+    "sm": 2
+   },
+   "items": [
+    {
+     "body": [
+      {
+       "type": "card",
+       "body": [
+        {
+         "type": "flex",
+         "direction": "row",
+         "justify": "between",
+         "align": "start",
+         "body": [
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "8px",
+           "body": [
+            {
+             "type": "text",
+             "text": "今日总请求数",
+             "className": "fdv-metric-label"
+            },
+            {
+             "type": "text",
+             "text": "31.2K",
+             "className": "fdv-metric-value"
+            }
+           ]
+          },
+          {
+           "type": "icon",
+           "icon": "activity",
+           "size": 20,
+           "className": "fdv-metric-icon"
+          }
+         ]
+        },
+        {
+         "type": "flex",
+         "direction": "row",
+         "align": "center",
+         "gap": "6px",
+         "body": [
+          {
+           "type": "text",
+           "text": "↗ 19.4%",
+           "className": "fdv-trend-up"
+          },
+          {
+           "type": "text",
+           "text": "较上一周期请求规模",
+           "className": "fdv-metric-compare"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "body": [
+        {
+         "type": "flex",
+         "direction": "row",
+         "justify": "between",
+         "align": "start",
+         "body": [
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "8px",
+           "body": [
+            {
+             "type": "text",
+             "text": "最近 24 小时成功率",
+             "className": "fdv-metric-label"
+            },
+            {
+             "type": "text",
+             "text": "96.9%",
+             "className": "fdv-metric-value"
+            }
+           ]
+          },
+          {
+           "type": "icon",
+           "icon": "shield-check",
+           "size": 20,
+           "className": "fdv-metric-icon"
+          }
+         ]
+        },
+        {
+         "type": "flex",
+         "direction": "row",
+         "align": "center",
+         "gap": "6px",
+         "body": [
+          {
+           "type": "text",
+           "text": "↗ 0.4%",
+           "className": "fdv-trend-up"
+          },
+          {
+           "type": "text",
+           "text": "较上一周期成功率",
+           "className": "fdv-metric-compare"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "body": [
+        {
+         "type": "flex",
+         "direction": "row",
+         "justify": "between",
+         "align": "start",
+         "body": [
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "8px",
+           "body": [
+            {
+             "type": "text",
+             "text": "平均响应时间",
+             "className": "fdv-metric-label"
+            },
+            {
+             "type": "text",
+             "text": "174ms",
+             "className": "fdv-metric-value"
+            }
+           ]
+          },
+          {
+           "type": "icon",
+           "icon": "clock",
+           "size": 20,
+           "className": "fdv-metric-icon"
+          }
+         ]
+        },
+        {
+         "type": "flex",
+         "direction": "row",
+         "align": "center",
+         "gap": "6px",
+         "body": [
+          {
+           "type": "text",
+           "text": "↗ 10ms",
+           "className": "fdv-trend-up"
+          },
+          {
+           "type": "text",
+           "text": "较上一周期延迟",
+           "className": "fdv-metric-compare"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "body": [
+        {
+         "type": "flex",
+         "direction": "row",
+         "justify": "between",
+         "align": "start",
+         "body": [
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "8px",
+           "body": [
+            {
+             "type": "text",
+             "text": "活跃会话数",
+             "className": "fdv-metric-label"
+            },
+            {
+             "type": "text",
+             "text": "546",
+             "className": "fdv-metric-value"
+            }
+           ]
+          },
+          {
+           "type": "icon",
+           "icon": "users",
+           "size": 20,
+           "className": "fdv-metric-icon"
+          }
+         ]
+        },
+        {
+         "type": "flex",
+         "direction": "row",
+         "align": "center",
+         "gap": "6px",
+         "body": [
+          {
+           "type": "text",
+           "text": "↗ 12.8%",
+           "className": "fdv-trend-up"
+          },
+          {
+           "type": "text",
+           "text": "较上一周期活跃度",
+           "className": "fdv-metric-compare"
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "grid",
+   "columns": "1.4fr 0.8fr",
+   "gap": 16,
+   "items": [
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "请求 / 成功 / 错误趋势",
+       "body": [
+        {
+         "type": "echarts",
+         "height": 340,
+         "option": {
+          "tooltip": {
+           "trigger": "axis"
+          },
+          "legend": {
+           "bottom": 0,
+           "icon": "circle",
+           "itemWidth": 8,
+           "itemHeight": 8
+          },
+          "grid": {
+           "left": 8,
+           "right": 16,
+           "top": 24,
+           "bottom": 40,
+           "containLabel": true
+          },
+          "xAxis": {
+           "type": "category",
+           "boundaryGap": false,
+           "data": [
+            "03-24",
+            "03-25",
+            "03-26",
+            "03-27",
+            "03-28",
+            "03-29",
+            "03-30"
+           ]
+          },
+          "yAxis": {
+           "type": "value",
+           "splitLine": {
+            "lineStyle": {
+             "opacity": 0.5
+            }
+           }
+          },
+          "series": [
+           {
+            "name": "请求量",
+            "type": "line",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 3,
+             "color": "#4d8df5"
+            },
+            "areaStyle": {
+             "color": {
+              "type": "linear",
+              "x": 0,
+              "y": 0,
+              "x2": 0,
+              "y2": 1,
+              "colorStops": [
+               {
+                "offset": 0,
+                "color": "rgba(77,141,245,0.5)"
+               },
+               {
+                "offset": 1,
+                "color": "rgba(77,141,245,0.05)"
+               }
+              ]
+             }
+            },
+            "data": [
+             4180,
+             4255,
+             4340,
+             4465,
+             4524,
+             4688,
+             4790
+            ],
+            "color": "#4d8df5",
+            "itemStyle": {
+             "color": "#4d8df5"
+            }
+           },
+           {
+            "name": "成功量",
+            "type": "line",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 2,
+             "color": "#22c08a"
+            },
+            "data": [
+             4064,
+             4110,
+             4202,
+             4320,
+             4392,
+             4549,
+             4644
+            ],
+            "color": "#22c08a",
+            "itemStyle": {
+             "color": "#22c08a"
+            }
+           },
+           {
+            "name": "错误量",
+            "type": "line",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 2,
+             "color": "#e5484d"
+            },
+            "data": [
+             116,
+             145,
+             138,
+             145,
+             132,
+             139,
+             146
+            ],
+            "color": "#e5484d",
+            "itemStyle": {
+             "color": "#e5484d"
+            }
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "重要事件列表",
+       "body": [
+        {
+         "type": "flex",
+         "direction": "column",
+         "gap": "10px",
+         "body": [
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-0",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-30 10:22"
+              },
+              {
+               "type": "text",
+               "text": "error",
+               "className": "fdv-tag fdv-tag-error"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "模型网关出现间歇性超时，自动切换至备用池。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "AI 推理集群"
+              },
+              {
+               "type": "text",
+               "text": "处理中"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-1",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-30 09:48"
+              },
+              {
+               "type": "text",
+               "text": "warning",
+               "className": "fdv-tag fdv-tag-warning"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "插件 Demo 上报频率提升，接近预警阈值。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "插件容器 / 报表模块"
+              },
+              {
+               "type": "text",
+               "text": "观察中"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-2",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-30 09:30"
+              },
+              {
+               "type": "text",
+               "text": "success",
+               "className": "fdv-tag fdv-tag-success"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "订单工作流 v2.1 已发布并同步至生产影子环境。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "Flow Editor"
+              },
+              {
+               "type": "text",
+               "text": "已完成"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-3",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-29 18:05"
+              },
+              {
+               "type": "text",
+               "text": "success",
+               "className": "fdv-tag fdv-tag-success"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "主子表批量导出任务完成，共生成 124 个文件。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "数据管理"
+              },
+              {
+               "type": "text",
+               "text": "已完成"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-4",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-29 16:12"
+              },
+              {
+               "type": "text",
+               "text": "warning",
+               "className": "fdv-tag fdv-tag-warning"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "华东区物流接口出现 3 次重试。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "物流服务"
+              },
+              {
+               "type": "text",
+               "text": "已恢复"
+              }
+             ]
+            }
+           ]
+          },
+          {
+           "type": "flex",
+           "direction": "column",
+           "gap": "6px",
+           "className": "fdv-event",
+           "name": "event-5",
+           "body": [
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "align": "center",
+             "body": [
+              {
+               "type": "text",
+               "text": "2026-03-29 14:36"
+              },
+              {
+               "type": "text",
+               "text": "error",
+               "className": "fdv-tag fdv-tag-error"
+              }
+             ]
+            },
+            {
+             "type": "text",
+             "text": "地址表单校验规则与后端版本不一致。",
+             "className": "fdv-event-desc"
+            },
+            {
+             "type": "flex",
+             "direction": "row",
+             "justify": "between",
+             "body": [
+              {
+               "type": "text",
+               "text": "订单详情 / 地址子表"
+              },
+              {
+               "type": "text",
+               "text": "待确认"
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "grid",
+   "columns": "2fr 1fr",
+   "gap": 16,
+   "items": [
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "请求量与成功率组合图",
+       "body": [
+        {
+         "type": "text",
+         "text": "已启用 Tooltip / legend / 数据高亮",
+         "className": "fdv-desc"
+        },
+        {
+         "type": "echarts",
+         "height": 300,
+         "option": {
+          "tooltip": {
+           "trigger": "axis"
+          },
+          "legend": {
+           "bottom": 0,
+           "icon": "circle",
+           "itemWidth": 8,
+           "itemHeight": 8
+          },
+          "grid": {
+           "left": 8,
+           "right": 16,
+           "top": 24,
+           "bottom": 40,
+           "containLabel": true
+          },
+          "xAxis": {
+           "type": "category",
+           "data": [
+            "03-24",
+            "03-25",
+            "03-26",
+            "03-27",
+            "03-28",
+            "03-29",
+            "03-30"
+           ]
+          },
+          "yAxis": [
+           {
+            "type": "value",
+            "splitLine": {
+             "lineStyle": {
+              "opacity": 0.5
+             }
+            }
+           },
+           {
+            "type": "value",
+            "min": 90,
+            "max": 100,
+            "splitLine": {
+             "show": false
+            },
+            "axisLabel": {
+             "formatter": "{value}%"
+            }
+           }
+          ],
+          "series": [
+           {
+            "name": "请求量",
+            "type": "bar",
+            "barWidth": 18,
+            "itemStyle": {
+             "color": "#4d8df5",
+             "borderRadius": [
+              4,
+              4,
+              0,
+              0
+             ]
+            },
+            "data": [
+             4180,
+             4255,
+             4340,
+             4465,
+             4524,
+             4688,
+             4790
+            ]
+           },
+           {
+            "name": "成功率",
+            "type": "line",
+            "yAxisIndex": 1,
+            "smooth": true,
+            "symbol": "circle",
+            "symbolSize": 6,
+            "lineStyle": {
+             "width": 3,
+             "color": "#22c08a"
+            },
+            "itemStyle": {
+             "color": "#22c08a"
+            },
+            "data": [
+             97.2,
+             96.6,
+             96.8,
+             96.8,
+             97.1,
+             97.0,
+             97.0
+            ]
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "错误类型占比",
+       "body": [
+        {
+         "type": "echarts",
+         "height": 300,
+         "option": {
+          "tooltip": {
+           "trigger": "item"
+          },
+          "legend": {
+           "bottom": 0,
+           "icon": "circle",
+           "itemWidth": 8,
+           "itemHeight": 8
+          },
+          "series": [
+           {
+            "name": "错误类型",
+            "type": "pie",
+            "radius": [
+             "52%",
+             "76%"
+            ],
+            "center": [
+             "50%",
+             "46%"
+            ],
+            "itemStyle": {
+             "borderRadius": 4,
+             "borderWidth": 2,
+             "borderColor": "hsl(var(--card))"
+            },
+            "label": {
+             "show": false
+            },
+            "data": [
+             {
+              "name": "接口超时",
+              "value": 327,
+              "itemStyle": {
+               "color": "#4d8df5"
+              }
+             },
+             {
+              "name": "参数校验",
+              "value": 211,
+              "itemStyle": {
+               "color": "#22c08a"
+              }
+             },
+             {
+              "name": "权限拒绝",
+              "value": 173,
+              "itemStyle": {
+               "color": "#e8a83e"
+              }
+             },
+             {
+              "name": "依赖异常",
+              "value": 154,
+              "itemStyle": {
+               "color": "#8b7cf0"
+              }
+             },
+             {
+              "name": "其他",
+              "value": 96,
+              "itemStyle": {
+               "color": "#e5484d"
+              }
+             }
+            ]
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "type": "grid",
+   "columns": "1.05fr 0.95fr",
+   "gap": 16,
+   "items": [
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "渠道贡献堆叠图",
+       "body": [
+        {
+         "type": "echarts",
+         "height": 300,
+         "option": {
+          "tooltip": {
+           "trigger": "axis"
+          },
+          "legend": {
+           "bottom": 0,
+           "icon": "circle",
+           "itemWidth": 8,
+           "itemHeight": 8
+          },
+          "grid": {
+           "left": 8,
+           "right": 16,
+           "top": 24,
+           "bottom": 40,
+           "containLabel": true
+          },
+          "xAxis": {
+           "type": "category",
+           "data": [
+            "03-24",
+            "03-25",
+            "03-26",
+            "03-27",
+            "03-28",
+            "03-29",
+            "03-30"
+           ]
+          },
+          "yAxis": {
+           "type": "value",
+           "splitLine": {
+            "lineStyle": {
+             "opacity": 0.5
+            }
+           }
+          },
+          "series": [
+           {
+            "name": "API 网关",
+            "type": "line",
+            "stack": "total",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 0
+            },
+            "areaStyle": {
+             "opacity": 0.85
+            },
+            "color": "#4d8df5",
+            "data": [
+             1839,
+             1787,
+             1866,
+             1965,
+             1900,
+             2016,
+             2108
+            ]
+           },
+           {
+            "name": "调度",
+            "type": "line",
+            "stack": "total",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 0
+            },
+            "areaStyle": {
+             "opacity": 0.85
+            },
+            "color": "#22c08a",
+            "data": [
+             978,
+             894,
+             946,
+             1009,
+             1059,
+             984,
+             1044
+            ]
+           },
+           {
+            "name": "门户",
+            "type": "line",
+            "stack": "total",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 0
+            },
+            "areaStyle": {
+             "opacity": 0.85
+            },
+            "color": "#e8a83e",
+            "data": [
+             1045,
+             1021,
+             1085,
+             1072,
+             1131,
+             1125,
+             1198
+            ]
+           },
+           {
+            "name": "插件",
+            "type": "line",
+            "stack": "total",
+            "smooth": true,
+            "symbol": "none",
+            "lineStyle": {
+             "width": 0
+            },
+            "areaStyle": {
+             "opacity": 0.85
+            },
+            "color": "#8b7cf0",
+            "data": [
+             535,
+             570,
+             477,
+             518,
+             552,
+             600,
+             642
+            ]
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "body": [
+      {
+       "type": "card",
+       "title": "业务能力雷达图",
+       "body": [
+        {
+         "type": "echarts",
+         "height": 300,
+         "option": {
+          "tooltip": {},
+          "legend": {
+           "bottom": 0,
+           "icon": "circle",
+           "itemWidth": 8,
+           "itemHeight": 8
+          },
+          "radar": {
+           "indicator": [
+            {
+             "name": "稳定性",
+             "max": 100
+            },
+            {
+             "name": "吞吐能力",
+             "max": 100
+            },
+            {
+             "name": "自动化覆盖",
+             "max": 100
+            },
+            {
+             "name": "插件活跃",
+             "max": 100
+            },
+            {
+             "name": "数据质量",
+             "max": 100
+            },
+            {
+             "name": "恢复速度",
+             "max": 100
+            }
+           ],
+           "radius": "62%",
+           "splitLine": {
+            "lineStyle": {
+             "opacity": 0.5
+            }
+           },
+           "axisLine": {
+            "lineStyle": {
+             "opacity": 0.5
+            }
+           }
+          },
+          "series": [
+           {
+            "type": "radar",
+            "symbol": "circle",
+            "symbolSize": 4,
+            "data": [
+             {
+              "name": "基准线",
+              "value": [
+               74,
+               80,
+               66,
+               60,
+               76,
+               69
+              ],
+              "lineStyle": {
+               "width": 2,
+               "color": "#8b7cf0"
+              },
+              "itemStyle": {
+               "color": "#8b7cf0"
+              },
+              "areaStyle": {
+               "color": "#8b7cf0",
+               "opacity": 0.12
+              }
+             },
+             {
+              "name": "当前表现",
+              "value": [
+               86,
+               91,
+               78,
+               72,
+               88,
+               83
+              ],
+              "lineStyle": {
+               "width": 3,
+               "color": "#4d8df5"
+              },
+              "itemStyle": {
+               "color": "#4d8df5"
+              },
+              "areaStyle": {
+               "color": "#4d8df5",
+               "opacity": 0.18
+              }
+             }
+            ]
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1504 @@
+{
+  "type": "page",
+  "name": "main",
+  "aside": [
+    {
+      "type": "form",
+      "target": "crud-grid",
+      "name": "aside",
+      "submitOnChange": true,
+      "className": " erp-form",
+      "mode": "horizontal",
+      "body": [
+        {
+          "type": "fieldset",
+          "id": "dept",
+          "collapsable": false,
+          "collapsed": false,
+          "title": "部门",
+          "body": {
+            "type": "flex",
+            "id": "row-deptId",
+            "className": "gap-sm items-stretch erp-form-row",
+            "body": {
+              "name": "filter_deptId",
+              "placeholder": "所属部门",
+              "label": "",
+              "hiddenFieldPolicy": {
+                "clearValueWhenHidden": false
+              },
+              "submitOnChange": true,
+              "type": "input-tree",
+              "source": "@query:NopAuthDept__findList/value:id,label:deptName,children%20@TreeChildren(max:5)?filter_parentId=__null"
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "body": {
+    "type": "crud",
+    "name": "crud-grid",
+    "id": "crud-grid",
+    "selection": {
+      "type": "checkbox"
+    },
+    "className": "erp-crud",
+    "headerClassName": "erp-crud-header",
+    "bodyClassName": "erp-crud-body p-none",
+    "toolbar": [
+      {
+        "type": "button",
+        "id": "add-button",
+        "icon": "fa fa-plus pull-left",
+        "label": "新增",
+        "onClick": {
+          "action": "openDialog",
+          "args": {
+            "type": "page",
+            "name": "add",
+            "size": "lg",
+            "title": "新增-用户",
+            "body": {
+              "type": "form",
+              "name": "add",
+              "id": "add",
+              "submitScope": "surface",
+              "className": " erp-form",
+              "submitAction": {
+                "action": "ajax",
+                "args": {
+                  "url": "@mutation:NopAuthUser__save/id",
+                  "method": "post",
+                  "includeScope": "*"
+                }
+              },
+              "onSubmitSuccess": [
+                {
+                  "type": "action",
+                  "action": "refreshNearest"
+                }
+              ],
+              "body": [
+                {
+                  "type": "tabs",
+                  "id": "add-tabs",
+                  "items": [
+                    {
+                      "title": "基本信息",
+                      "name": "baseInfo",
+                      "key": "baseInfo",
+                      "body": [
+                        {
+                          "type": "flex",
+                          "id": "row-userName-status",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "userName",
+                              "label": "用户名",
+                              "required": true,
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 50
+                            },
+                            {
+                              "name": "status",
+                              "label": "用户状态",
+                              "required": true,
+                              "type": "select",
+                              "searchable": true,
+                              "clearable": true,
+                              "multiple": false,
+                              "dict": "auth/user-status"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-nickName-deptId",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "nickName",
+                              "label": "昵称",
+                              "required": true,
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 50
+                            },
+                            {
+                              "name": "deptId",
+                              "label": "所属部门",
+                              "type": "tree-select",
+                              "clearable": true,
+                              "source": {
+                                "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-avatar",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "avatar",
+                            "label": "头像",
+                            "type": "input-file",
+                            "accept": "image/*",
+                            "receiver": "/f/upload?bizObjName=NopAuthUser&fieldName=avatar",
+                            "useChunk": false
+                          }
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-userType-gender",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "userType",
+                              "label": "用户类型",
+                              "required": true,
+                              "type": "select",
+                              "searchable": true,
+                              "clearable": true,
+                              "multiple": false,
+                              "dict": "auth/user-type"
+                            },
+                            {
+                              "name": "gender",
+                              "label": "性别",
+                              "required": true,
+                              "type": "select",
+                              "searchable": true,
+                              "clearable": true,
+                              "multiple": false,
+                              "dict": "auth/gender"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-password-__password2",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "password",
+                              "label": "密码",
+                              "required": true,
+                              "type": "input-password",
+                              "showRevealToggle": true
+                            },
+                            {
+                              "name": "__password2",
+                              "label": "重复密码",
+                              "required": true,
+                              "hiddenFieldPolicy": {
+                                "clearValueWhenHidden": false
+                              },
+                              "type": "input-password"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-email-phone",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "email",
+                              "label": "邮件",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 100,
+                              "format": "email"
+                            },
+                            {
+                              "name": "phone",
+                              "label": "电话",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 50
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-expireAt-changePwdAtLogin",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "expireAt",
+                              "label": "用户过期时间",
+                              "type": "input-datetime",
+                              "format": "YYYY-MM-DD HH:mm:ss"
+                            },
+                            {
+                              "name": "changePwdAtLogin",
+                              "label": "登陆后立刻修改密码",
+                              "type": "switch",
+                              "trueValue": 1,
+                              "falseValue": 0,
+                              "value": "0"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-tenantId",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "tenantId",
+                            "label": "租户ID",
+                            "hiddenFieldPolicy": {
+                              "clearValueWhenHidden": false
+                            },
+                            "type": "select",
+                            "searchable": true,
+                            "clearable": true,
+                            "multiple": false,
+                            "dict": "obj/NopAuthTenant"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "title": "扩展信息",
+                      "name": "extInfo",
+                      "key": "extInfo",
+                      "body": [
+                        {
+                          "type": "flex",
+                          "id": "row-idType-idNbr",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "idType",
+                              "label": "证件类型",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 10
+                            },
+                            {
+                              "name": "idNbr",
+                              "label": "证件号",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 100
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-birthday-workNo",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "birthday",
+                              "label": "生日",
+                              "type": "input-date",
+                              "format": "YYYY-MM-DD"
+                            },
+                            {
+                              "name": "workNo",
+                              "label": "工号",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 100
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-positionId-telephone",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "type": "picker",
+                              "valueField": "positionId",
+                              "labelField": "name",
+                              "pickerPopup": {
+                                "type": "dialog",
+                                "size": "lg"
+                              },
+                              "pickerSchema": {
+                                "name": "crud-grid",
+                                "id": "crud-grid",
+                                "className": "erp-crud",
+                                "headerClassName": "erp-crud-header",
+                                "bodyClassName": "erp-crud-body p-none",
+                                "type": "crud",
+                                "rowKey": "id",
+                                "selectionOwnership": "scope",
+                                "selectionStatePath": "$_picker.selection",
+                                "dataStatePath": "$_picker.rows",
+                                "autoClearSelectionOnRefresh": false,
+                                "toolbar": [],
+                                "footerToolbar": [],
+                                "loadAction": {
+                                  "action": "ajax",
+                                  "args": {
+                                    "includeScope": "*",
+                                    "url": "@query:NopAuthPosition__findPage",
+                                    "gql:selection": "{@pageSelection}",
+                                    "selection": "total,page,items{ id,positionId,name,createdBy,remark }"
+                                  },
+                                  "dependsOn": [
+                                    "__crud_load__"
+                                  ]
+                                },
+                                "columns": [
+                                  {
+                                    "type": "index",
+                                    "name": "index",
+                                    "label": "序号",
+                                    "width": "50",
+                                    "fixed": "left",
+                                    "align": "center",
+                                    "toggled": "false"
+                                  },
+                                  {
+                                    "name": "name",
+                                    "label": "名称",
+                                    "sortable": true,
+                                    "toggled": true,
+                                    "fixed": "left",
+                                    "type": "text"
+                                  },
+                                  {
+                                    "name": "createdBy",
+                                    "label": "创建人",
+                                    "sortable": true,
+                                    "toggled": true,
+                                    "type": "text"
+                                  },
+                                  {
+                                    "name": "remark",
+                                    "label": "备注",
+                                    "sortable": true,
+                                    "toggled": true,
+                                    "type": "text"
+                                  }
+                                ]
+                              },
+                              "name": "positionId",
+                              "label": "职务",
+                              "source": {
+                                "valueField": "positionId",
+                                "labelField": "name"
+                              },
+                              "joinValues": false,
+                              "extractValue": true,
+                              "multiple": false
+                            },
+                            {
+                              "name": "telephone",
+                              "label": "座机",
+                              "type": "input-text",
+                              "clearable": true,
+                              "maxLength": 50
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-remark",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "remark",
+                            "label": "备注",
+                            "type": "textarea",
+                            "minRows": 3
+                          }
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            "actions": [
+              {
+                "type": "button",
+                "id": "_default_cancel",
+                "label": "取消",
+                "onClick": {
+                  "action": "closeSurface"
+                }
+              },
+              {
+                "type": "button",
+                "id": "_default_submit",
+                "label": "确定",
+                "onClick": {
+                  "action": "submitForm"
+                },
+                "variant": "primary"
+              }
+            ],
+            "closeOnSubmit": true,
+            "onSubmitSuccess": [
+              {
+                "action": "refreshNearest"
+              }
+            ]
+          }
+        },
+        "variant": "primary"
+      },
+      {
+        "type": "button",
+        "id": "batch-delete-button",
+        "batch": true,
+        "label": "批量删除",
+        "onClick": {
+          "action": "ajax",
+          "args": {
+            "url": "@mutation:NopAuthUser__batchDelete?ids=${ids}",
+            "includeScope": "*"
+          },
+          "confirmText": "确认删除选中的记录吗？",
+          "then": [
+            {
+              "action": "refreshNearest"
+            }
+          ]
+        },
+        "variant": "destructive"
+      }
+    ],
+    "footerToolbar": [],
+    "loadAction": {
+      "action": "ajax",
+      "args": {
+        "includeScope": "*",
+        "url": "@query:NopAuthUser__findPage",
+        "gql:selection": "{@pageSelection}",
+        "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
+      },
+      "dependsOn": [
+        "__crud_load__"
+      ]
+    },
+    "queryForm": {
+      "id": "crud-grid-query-form",
+      "mode": "horizontal",
+      "labelWidth": 80,
+      "wrapClassName": "m-b-nm",
+      "actionsClassName": "m-t-xs flex justify-end gap-sm",
+      "title": "搜索",
+      "submitAction": {
+        "action": "component:querySubmit",
+        "componentId": "crud-grid"
+      },
+      "body": [
+        {
+          "type": "flex",
+          "id": "row-userName-gender-status",
+          "className": "gap-sm items-stretch erp-form-row",
+          "body": [
+            {
+              "name": "filter_userName__contains",
+              "label": "用户名",
+              "type": "input-text",
+              "clearable": true
+            },
+            {
+              "name": "filter_gender",
+              "label": "性别",
+              "type": "select",
+              "searchable": true,
+              "clearable": true,
+              "multiple": false,
+              "dict": "auth/gender"
+            },
+            {
+              "name": "filter_status",
+              "label": "用户状态",
+              "type": "select",
+              "searchable": true,
+              "clearable": true,
+              "multiple": false,
+              "dict": "auth/user-status"
+            }
+          ]
+        },
+        {
+          "type": "flex",
+          "id": "row-nickName-phone",
+          "className": "gap-sm items-stretch erp-form-row",
+          "body": [
+            {
+              "name": "filter_nickName",
+              "label": "昵称",
+              "type": "input-text",
+              "clearable": true
+            },
+            {
+              "name": "filter_phone",
+              "label": "电话",
+              "type": "input-text",
+              "clearable": true
+            }
+          ]
+        }
+      ]
+    },
+    "columns": [
+      {
+        "type": "index",
+        "name": "index",
+        "label": "序号",
+        "width": "50",
+        "fixed": "left",
+        "align": "center",
+        "toggled": "false"
+      },
+      {
+        "name": "userName",
+        "label": "用户名",
+        "sortable": true,
+        "toggled": true,
+        "fixed": "left",
+        "searchable": {
+          "name": "filter_userName__contains",
+          "label": "用户名",
+          "type": "input-text",
+          "clearable": true
+        },
+        "type": "text"
+      },
+      {
+        "name": "nickName",
+        "label": "昵称",
+        "sortable": true,
+        "toggled": true,
+        "searchable": {
+          "name": "filter_nickName",
+          "label": "昵称",
+          "type": "input-text",
+          "clearable": true
+        },
+        "type": "text"
+      },
+      {
+        "name": "dept.deptName",
+        "label": "所属部门",
+        "sortable": true,
+        "toggled": true,
+        "type": "text"
+      },
+      {
+        "name": "gender_label",
+        "label": "性别",
+        "sortable": true,
+        "toggled": true,
+        "searchable": {
+          "name": "filter_gender",
+          "label": "性别",
+          "type": "select",
+          "searchable": true,
+          "clearable": true,
+          "multiple": false,
+          "dict": "auth/gender",
+          "value": null
+        },
+        "type": "text"
+      },
+      {
+        "name": "phone",
+        "label": "电话",
+        "sortable": true,
+        "toggled": true,
+        "searchable": {
+          "name": "filter_phone",
+          "label": "电话",
+          "type": "input-text",
+          "clearable": true
+        },
+        "type": "text"
+      },
+      {
+        "name": "userType_label",
+        "label": "用户类型",
+        "sortable": true,
+        "toggled": true,
+        "type": "text"
+      },
+      {
+        "name": "status_label",
+        "label": "用户状态",
+        "sortable": true,
+        "toggled": true,
+        "searchable": {
+          "name": "filter_status",
+          "label": "用户状态",
+          "type": "select",
+          "searchable": true,
+          "clearable": true,
+          "multiple": false,
+          "dict": "auth/user-status",
+          "value": null
+        },
+        "type": "text"
+      },
+      {
+        "type": "operation",
+        "label": "操作",
+        "name": "operation",
+        "width": 180,
+        "fixed": "right",
+        "labelClassName": "text-center",
+        "headerClassName": "text-center",
+        "buttons": [
+          {
+            "type": "button",
+            "id": "row-view-button",
+            "label": "查看",
+            "onClick": {
+              "action": "openDialog",
+              "args": {
+                "type": "page",
+                "size": "lg",
+                "title": "查看-用户",
+                "body": {
+                  "type": "form",
+                  "name": "view",
+                  "id": "view",
+                  "submitScope": "surface",
+                  "className": " erp-form",
+                  "loadAction": {
+                    "action": "ajax",
+                    "args": {
+                      "url": "@query:NopAuthUser__get?id=${id}",
+                      "method": "post",
+                      "includeScope": "*",
+                      "selection": "id,userId,userName,status,status_label,nickName,dept{deptName},deptId,avatar,avatarComponentFileStatus{externalPath,fileId,fileSize,lastModified,name,permissions,previewPath,size},userType,userType_label,gender,gender_label,email,phone,openId,expireAt,changePwdAtLogin,tenantId,tenantId_label,idType,idNbr,birthday,workNo,position{name},positionId,telephone,remark,createdBy,createTime,updatedBy,updateTime"
+                    }
+                  },
+                  "body": [
+                    {
+                      "type": "fieldset",
+                      "id": "baseInfo",
+                      "collapsable": true,
+                      "collapsed": false,
+                      "title": "基本信息",
+                      "body": [
+                        {
+                          "type": "flex",
+                          "id": "row-userName-status",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "userName",
+                              "label": "用户名",
+                              "required": true,
+                              "type": "text"
+                            },
+                            {
+                              "name": "status_label",
+                              "label": "用户状态",
+                              "required": true,
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-nickName-deptId",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "nickName",
+                              "label": "昵称",
+                              "required": true,
+                              "type": "text"
+                            },
+                            {
+                              "name": "dept.deptName",
+                              "label": "所属部门",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-avatar",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "avatar",
+                            "label": "头像",
+                            "type": "image",
+                            "enlargeAble": true
+                          }
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-userType-gender",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "userType_label",
+                              "label": "用户类型",
+                              "required": true,
+                              "type": "text"
+                            },
+                            {
+                              "name": "gender_label",
+                              "label": "性别",
+                              "required": true,
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-email-phone",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "email",
+                              "label": "邮件",
+                              "type": "text"
+                            },
+                            {
+                              "name": "phone",
+                              "label": "电话",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-openId",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "openId",
+                            "label": "用户外部标识",
+                            "required": true,
+                            "type": "text"
+                          }
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-expireAt-changePwdAtLogin",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "expireAt",
+                              "label": "用户过期时间",
+                              "type": "text"
+                            },
+                            {
+                              "name": "changePwdAtLogin",
+                              "label": "登陆后立刻修改密码",
+                              "type": "mapping",
+                              "map": {
+                                "1": "<span class='label label-success'>是</span>",
+                                "0": "<span class='label label-warning'>否</span>",
+                                "true": "<span class='label label-success'>是</span>",
+                                "false": "<span class='label label-warning'>否</span>",
+                                "": ""
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-tenantId",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "tenantId_label",
+                            "label": "租户ID",
+                            "required": true,
+                            "type": "text"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "type": "fieldset",
+                      "id": "extInfo",
+                      "collapsable": true,
+                      "collapsed": false,
+                      "title": "扩展信息",
+                      "body": [
+                        {
+                          "type": "flex",
+                          "id": "row-idType-idNbr",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "idType",
+                              "label": "证件类型",
+                              "type": "text"
+                            },
+                            {
+                              "name": "idNbr",
+                              "label": "证件号",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-birthday-workNo",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "birthday",
+                              "label": "生日",
+                              "type": "text"
+                            },
+                            {
+                              "name": "workNo",
+                              "label": "工号",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-positionId-telephone",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "position.name",
+                              "label": "职务",
+                              "type": "text"
+                            },
+                            {
+                              "name": "telephone",
+                              "label": "座机",
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-remark",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "remark",
+                            "label": "备注",
+                            "type": "text"
+                          }
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-createdBy-createTime",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "createdBy",
+                              "label": "创建人",
+                              "required": true,
+                              "type": "text"
+                            },
+                            {
+                              "name": "createTime",
+                              "label": "创建时间",
+                              "required": true,
+                              "type": "text"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-updatedBy-updateTime",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": [
+                            {
+                              "name": "updatedBy",
+                              "label": "修改人",
+                              "required": true,
+                              "type": "text"
+                            },
+                            {
+                              "name": "updateTime",
+                              "label": "修改时间",
+                              "required": true,
+                              "type": "text"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                },
+                "actions": [
+                  {
+                    "type": "button",
+                    "id": "_default_cancel",
+                    "label": "取消",
+                    "onClick": {
+                      "action": "closeSurface"
+                    }
+                  },
+                  {
+                    "type": "button",
+                    "id": "_default_submit",
+                    "label": "确定",
+                    "onClick": {
+                      "action": "closeSurface"
+                    },
+                    "variant": "primary"
+                  }
+                ],
+                "closeOnSubmit": true,
+                "onSubmitSuccess": [
+                  {
+                    "action": "refreshNearest"
+                  }
+                ]
+              }
+            },
+            "variant": "primary"
+          },
+          {
+            "type": "dropdown-button",
+            "id": "row-more-button",
+            "label": "更多",
+            "variant": "primary",
+            "items": [
+              {
+                "id": "row-update-button",
+                "label": "编辑",
+                "onClick": {
+                  "action": "openDialog",
+                  "args": {
+                    "type": "page",
+                    "size": "md",
+                    "title": "编辑-用户",
+                    "body": {
+                      "type": "form",
+                      "name": "edit",
+                      "id": "edit",
+                      "submitScope": "surface",
+                      "className": " erp-form",
+                      "loadAction": {
+                        "action": "ajax",
+                        "args": {
+                          "url": "@query:NopAuthUser__get?id=${id}",
+                          "method": "post",
+                          "includeScope": "*",
+                          "selection": "id,userId,userName,status,status_label,nickName,dept{deptName},deptId,avatar,avatarComponentFileStatus{externalPath,fileId,fileSize,lastModified,name,permissions,previewPath,size},userType,userType_label,gender,gender_label,email,phone,expireAt,changePwdAtLogin,idType,idNbr,birthday,workNo,position{name},positionId,telephone,remark"
+                        }
+                      },
+                      "submitAction": {
+                        "action": "ajax",
+                        "args": {
+                          "url": "@mutation:NopAuthUser__update/id?id=${id}",
+                          "method": "post",
+                          "data": {
+                            "userName": "${userName}",
+                            "status": "${status}",
+                            "nickName": "${nickName}",
+                            "deptId": "${deptId}",
+                            "avatar": "${avatar}",
+                            "userType": "${userType}",
+                            "gender": "${gender}",
+                            "email": "${email}",
+                            "phone": "${phone}",
+                            "expireAt": "${expireAt}",
+                            "changePwdAtLogin": "${changePwdAtLogin}",
+                            "idType": "${idType}",
+                            "idNbr": "${idNbr}",
+                            "birthday": "${birthday}",
+                            "workNo": "${workNo}",
+                            "positionId": "${positionId}",
+                            "telephone": "${telephone}",
+                            "remark": "${remark}"
+                          }
+                        }
+                      },
+                      "onSubmitSuccess": [
+                        {
+                          "type": "action",
+                          "action": "refreshNearest"
+                        }
+                      ],
+                      "body": [
+                        {
+                          "type": "tabs",
+                          "id": "edit-tabs",
+                          "items": [
+                            {
+                              "title": "基本信息",
+                              "name": "baseInfo",
+                              "key": "baseInfo",
+                              "body": [
+                                {
+                                  "type": "flex",
+                                  "id": "row-userName-status",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "userName",
+                                      "label": "用户名",
+                                      "required": true,
+                                      "readOnly": true,
+                                      "type": "text"
+                                    },
+                                    {
+                                      "name": "status",
+                                      "label": "用户状态",
+                                      "required": true,
+                                      "type": "select",
+                                      "searchable": true,
+                                      "clearable": true,
+                                      "multiple": false,
+                                      "dict": "auth/user-status"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-nickName-deptId",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "nickName",
+                                      "label": "昵称",
+                                      "required": true,
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 50
+                                    },
+                                    {
+                                      "name": "deptId",
+                                      "label": "所属部门",
+                                      "type": "tree-select",
+                                      "clearable": true,
+                                      "source": {
+                                        "url": "@query:NopAuthDept__findList/value:id,label:deptName,%0A%20children%20@TreeChildren(max:5)?filter_parentId=__null"
+                                      }
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-avatar",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": {
+                                    "name": "avatar",
+                                    "label": "头像",
+                                    "type": "input-file",
+                                    "accept": "image/*",
+                                    "receiver": "/f/upload?bizObjName=NopAuthUser&fieldName=avatar",
+                                    "useChunk": false
+                                  }
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-userType-gender",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "userType",
+                                      "label": "用户类型",
+                                      "required": true,
+                                      "type": "select",
+                                      "searchable": true,
+                                      "clearable": true,
+                                      "multiple": false,
+                                      "dict": "auth/user-type"
+                                    },
+                                    {
+                                      "name": "gender",
+                                      "label": "性别",
+                                      "required": true,
+                                      "type": "select",
+                                      "searchable": true,
+                                      "clearable": true,
+                                      "multiple": false,
+                                      "dict": "auth/gender"
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-email-phone",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "email",
+                                      "label": "邮件",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 100,
+                                      "format": "email"
+                                    },
+                                    {
+                                      "name": "phone",
+                                      "label": "电话",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 50
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-expireAt-changePwdAtLogin",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "expireAt",
+                                      "label": "用户过期时间",
+                                      "type": "input-datetime",
+                                      "format": "YYYY-MM-DD HH:mm:ss"
+                                    },
+                                    {
+                                      "name": "changePwdAtLogin",
+                                      "label": "登陆后立刻修改密码",
+                                      "type": "switch",
+                                      "trueValue": 1,
+                                      "falseValue": 0
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "title": "扩展信息",
+                              "name": "extInfo",
+                              "key": "extInfo",
+                              "body": [
+                                {
+                                  "type": "flex",
+                                  "id": "row-idType-idNbr",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "idType",
+                                      "label": "证件类型",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 10
+                                    },
+                                    {
+                                      "name": "idNbr",
+                                      "label": "证件号",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 100
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-birthday-workNo",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "name": "birthday",
+                                      "label": "生日",
+                                      "type": "input-date",
+                                      "format": "YYYY-MM-DD"
+                                    },
+                                    {
+                                      "name": "workNo",
+                                      "label": "工号",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 100
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-positionId-telephone",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": [
+                                    {
+                                      "type": "picker",
+                                      "valueField": "positionId",
+                                      "labelField": "name",
+                                      "pickerPopup": {
+                                        "type": "dialog",
+                                        "size": "lg"
+                                      },
+                                      "pickerSchema": {
+                                        "name": "crud-grid",
+                                        "id": "crud-grid",
+                                        "className": "erp-crud",
+                                        "headerClassName": "erp-crud-header",
+                                        "bodyClassName": "erp-crud-body p-none",
+                                        "type": "crud",
+                                        "rowKey": "id",
+                                        "selectionOwnership": "scope",
+                                        "selectionStatePath": "$_picker.selection",
+                                        "dataStatePath": "$_picker.rows",
+                                        "autoClearSelectionOnRefresh": false,
+                                        "toolbar": [],
+                                        "footerToolbar": [],
+                                        "loadAction": {
+                                          "action": "ajax",
+                                          "args": {
+                                            "includeScope": "*",
+                                            "url": "@query:NopAuthPosition__findPage",
+                                            "gql:selection": "{@pageSelection}",
+                                            "selection": "total,page,items{ id,positionId,name,createdBy,remark }"
+                                          },
+                                          "dependsOn": [
+                                            "__crud_load__"
+                                          ]
+                                        },
+                                        "columns": [
+                                          {
+                                            "type": "index",
+                                            "name": "index",
+                                            "label": "序号",
+                                            "width": "50",
+                                            "fixed": "left",
+                                            "align": "center",
+                                            "toggled": "false"
+                                          },
+                                          {
+                                            "name": "name",
+                                            "label": "名称",
+                                            "sortable": true,
+                                            "toggled": true,
+                                            "fixed": "left",
+                                            "type": "text"
+                                          },
+                                          {
+                                            "name": "createdBy",
+                                            "label": "创建人",
+                                            "sortable": true,
+                                            "toggled": true,
+                                            "type": "text"
+                                          },
+                                          {
+                                            "name": "remark",
+                                            "label": "备注",
+                                            "sortable": true,
+                                            "toggled": true,
+                                            "type": "text"
+                                          }
+                                        ]
+                                      },
+                                      "name": "positionId",
+                                      "label": "职务",
+                                      "source": {
+                                        "valueField": "positionId",
+                                        "labelField": "name"
+                                      },
+                                      "joinValues": false,
+                                      "extractValue": true,
+                                      "multiple": false
+                                    },
+                                    {
+                                      "name": "telephone",
+                                      "label": "座机",
+                                      "type": "input-text",
+                                      "clearable": true,
+                                      "maxLength": 50
+                                    }
+                                  ]
+                                },
+                                {
+                                  "type": "flex",
+                                  "id": "row-remark",
+                                  "className": "gap-sm items-stretch erp-form-row",
+                                  "body": {
+                                    "name": "remark",
+                                    "label": "备注",
+                                    "type": "textarea",
+                                    "minRows": 3
+                                  }
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "type": "button",
+                        "id": "_default_cancel",
+                        "label": "取消",
+                        "onClick": {
+                          "action": "closeSurface"
+                        }
+                      },
+                      {
+                        "type": "button",
+                        "id": "_default_submit",
+                        "label": "确定",
+                        "onClick": {
+                          "action": "submitForm"
+                        },
+                        "variant": "primary"
+                      }
+                    ],
+                    "closeOnSubmit": true,
+                    "onSubmitSuccess": [
+                      {
+                        "action": "refreshNearest"
+                      }
+                    ]
+                  }
+                },
+                "type": "button"
+              },
+              {
+                "id": "row-delete-button",
+                "label": "删除",
+                "onClick": {
+                  "action": "ajax",
+                  "args": {
+                    "url": "@mutation:NopAuthUser__delete?id=${id}",
+                    "includeScope": "*"
+                  },
+                  "confirmText": "确认删除吗？",
+                  "then": [
+                    {
+                      "action": "refreshNearest"
+                    }
+                  ]
+                },
+                "type": "button"
+              },
+              {
+                "id": "reset-password-button",
+                "label": "重置密码",
+                "onClick": {
+                  "action": "openDialog",
+                  "args": {
+                    "type": "page",
+                    "size": "md",
+                    "title": "重置密码",
+                    "body": {
+                      "type": "form",
+                      "name": "resetUserPassword",
+                      "id": "resetUserPassword",
+                      "submitScope": "surface",
+                      "className": " erp-form",
+                      "submitAction": {
+                        "action": "ajax",
+                        "args": {
+                          "url": "@mutation:NopAuthUser__resetUserPassword?userId=${id}",
+                          "method": "post",
+                          "data": {
+                            "password": "${password}"
+                          }
+                        }
+                      },
+                      "onSubmitSuccess": [
+                        {
+                          "type": "action",
+                          "action": "refreshNearest"
+                        }
+                      ],
+                      "body": [
+                        {
+                          "type": "flex",
+                          "id": "row-userName",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "userName",
+                            "label": "用户名",
+                            "required": true,
+                            "readOnly": true,
+                            "type": "text"
+                          }
+                        },
+                        {
+                          "type": "flex",
+                          "id": "row-password",
+                          "className": "gap-sm items-stretch erp-form-row",
+                          "body": {
+                            "name": "password",
+                            "label": "密码",
+                            "required": true,
+                            "hiddenFieldPolicy": {
+                              "clearValueWhenHidden": false
+                            },
+                            "type": "input-password",
+                            "showRevealToggle": true
+                          }
+                        }
+                      ]
+                    },
+                    "actions": [
+                      {
+                        "type": "button",
+                        "id": "_default_cancel",
+                        "label": "取消",
+                        "onClick": {
+                          "action": "closeSurface"
+                        }
+                      },
+                      {
+                        "type": "button",
+                        "id": "_default_submit",
+                        "label": "确定",
+                        "onClick": {
+                          "action": "submitForm"
+                        },
+                        "variant": "primary"
+                      }
+                    ],
+                    "closeOnSubmit": true,
+                    "onSubmitSuccess": [
+                      {
+                        "action": "refreshNearest"
+                      }
+                    ]
+                  }
+                },
+                "type": "button"
+              },
+              {
+                "id": "disable-user-button",
+                "label": "禁用用户",
+                "onClick": {
+                  "action": "ajax",
+                  "args": {
+                    "url": "@mutation:NopAuthUser__disableUser",
+                    "data": {
+                      "userId": "${id}"
+                    }
+                  },
+                  "confirmText": "确认禁用用户吗？",
+                  "then": [
+                    {
+                      "action": "refreshNearest"
+                    }
+                  ]
+                },
+                "visible": "${status == 1}",
+                "type": "button"
+              },
+              {
+                "id": "enable-user-button",
+                "label": "启用用户",
+                "onClick": {
+                  "action": "ajax",
+                  "args": {
+                    "url": "@mutation:NopAuthUser__enableUser",
+                    "data": {
+                      "userId": "${id}"
+                    }
+                  },
+                  "confirmText": "确认启用用户吗？",
+                  "then": [
+                    {
+                      "action": "refreshNearest"
+                    }
+                  ]
+                },
+                "visible": "${status == 0}",
+                "type": "button"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

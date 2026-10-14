@@ -1,0 +1,1 @@
+import{n as e}from"./rolldown-runtime-8BhlS34s.js";function t(e){if(!e||typeof e!=`object`)return;let t=e;if(t[r]===!0&&`value`in t)return t.value}function n(e){return e===!0||e===`true`||e===1||t(e)===!0}var r;function i(){return(i=e((()=>{r=`__nopPreserveLiteral`})))()}export{n,t as r,i as t};

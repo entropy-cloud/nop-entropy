@@ -120,6 +120,23 @@
     "guide": "使用指南"
   },
   "flux": {
+    "breadcrumb": {
+      "more": "更多"
+    },
+    "carousel": {
+      "label": "轮播图",
+      "previous": "上一张",
+      "next": "下一张"
+    },
+    "combobox": {
+      "clear": "清除选择",
+      "toggleDropdown": "展开/收起下拉",
+      "removeChip": "移除该项"
+    },
+    "command": {
+      "title": "命令面板",
+      "searchPlaceholder": "搜索要运行的命令…"
+    },
     "common": {
       "loading": "加载中",
       "copy": "复制",
@@ -127,7 +144,26 @@
       "paste": "粘贴",
       "clear": "清空",
       "undo": "撤销",
-      "redo": "重做"
+      "redo": "重做",
+      "close": "关闭"
+    },
+    "dialog": {
+      "close": "关闭",
+      "moveDialog": "移动对话框",
+      "dragHandleRoleDescription": "对话框拖动把手",
+      "moveDialogInstructions": "使用方向键移动对话框。按住 Shift 可进行更大步长移动。按 Home 可重置对话框位置。",
+      "unsavedChangesTitle": "放弃更改？",
+      "unsavedChangesBody": "你的编辑尚未保存，关闭后将丢失这些更改。",
+      "unsavedChangesKeep": "继续编辑",
+      "unsavedChangesDiscard": "放弃更改"
+    },
+    "drawer": {
+      "close": "关闭",
+      "resize": "调整大小"
+    },
+    "page": {
+      "title": "Flux 页面",
+      "loadFailed": "无法加载 Flux schema。"
     },
     "pagination": {
       "label": "分页",
@@ -135,13 +171,19 @@
       "next": "下一页",
       "goToPrevious": "转到上一页",
       "goToNext": "转到下一页",
-      "morePages": "更多页"
+      "morePages": "更多页",
+      "first": "首页",
+      "last": "末页"
     },
-    "page": {
-      "title": "Flux 页面",
-      "loadFailed": "无法加载 Flux schema。"
+    "schemaPath": "当前 Flux schemaPath: {{path}}",
+    "sheet": {
+      "close": "关闭"
     },
-    "schemaPath": "当前 Flux schemaPath: {{path}}"
+    "sidebar": {
+      "title": "侧边栏",
+      "description": "显示移动端侧边栏。",
+      "toggle": "切换侧边栏"
+    }
   },
   "layout": {
     "expandSidebar": "展开侧栏",

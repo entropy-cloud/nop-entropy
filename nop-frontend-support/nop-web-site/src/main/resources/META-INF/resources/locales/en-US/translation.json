@@ -120,6 +120,23 @@
     "guide": "Guide"
   },
   "flux": {
+    "breadcrumb": {
+      "more": "More"
+    },
+    "carousel": {
+      "label": "Carousel",
+      "previous": "Previous slide",
+      "next": "Next slide"
+    },
+    "combobox": {
+      "clear": "Clear selection",
+      "toggleDropdown": "Toggle dropdown",
+      "removeChip": "Remove entry"
+    },
+    "command": {
+      "title": "Command Palette",
+      "searchPlaceholder": "Search for a command to run..."
+    },
     "common": {
       "loading": "Loading",
       "copy": "Copy",
@@ -127,7 +144,26 @@
       "paste": "Paste",
       "clear": "Clear",
       "undo": "Undo",
-      "redo": "Redo"
+      "redo": "Redo",
+      "close": "Close"
+    },
+    "dialog": {
+      "close": "Close",
+      "moveDialog": "Move dialog",
+      "dragHandleRoleDescription": "dialog drag handle",
+      "moveDialogInstructions": "Use the arrow keys to move the dialog. Hold Shift for larger steps. Press Home to reset the dialog position.",
+      "unsavedChangesTitle": "Discard changes?",
+      "unsavedChangesBody": "Your edits have not been saved. Closing now will discard them.",
+      "unsavedChangesKeep": "Keep editing",
+      "unsavedChangesDiscard": "Discard changes"
+    },
+    "drawer": {
+      "close": "Close",
+      "resize": "Resize"
+    },
+    "page": {
+      "title": "Flux Page",
+      "loadFailed": "Unable to load Flux schema."
     },
     "pagination": {
       "label": "Pagination",
@@ -135,13 +171,19 @@
       "next": "Next",
       "goToPrevious": "Go to previous page",
       "goToNext": "Go to next page",
-      "morePages": "More pages"
+      "morePages": "More pages",
+      "first": "First page",
+      "last": "Last page"
     },
-    "page": {
-      "title": "Flux Page",
-      "loadFailed": "Unable to load Flux schema."
+    "schemaPath": "Current Flux schemaPath: {{path}}",
+    "sheet": {
+      "close": "Close"
     },
-    "schemaPath": "Current Flux schemaPath: {{path}}"
+    "sidebar": {
+      "title": "Sidebar",
+      "description": "Displays the mobile sidebar.",
+      "toggle": "Toggle Sidebar"
+    }
   },
   "layout": {
     "expandSidebar": "Expand sidebar",
