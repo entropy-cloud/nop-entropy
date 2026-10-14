@@ -13,9 +13,17 @@ nop-entropy-e2e/
     nop-auth-e2e/     # Auth service tests (port 8080)
     nop-code-e2e/     # Code service tests (port 8081)
     nop-job-e2e/      # Job service tests (port 8082)
+    nop-web-e2e/      # Host + Extension contract tests (port 8083)
 ```
 
-Each test package auto-starts its own Quarkus backend via Playwright's `webServer` config. The backend runs in `dev` profile (H2 database, no MySQL required).
+Each test package auto-starts its own Quarkus backend via Playwright's `webServer` config. The backend runs in `dev` profile (H2 database, no MySQL required) and always in **flux render mode** (`-Dnop.web.render-mode=flux`).
+
+> **必须串行跑**：根目录 `pnpm test` 使用 `--workspace-concurrency=1`。四个 `mvn quarkus:dev`
+> 并行启动会争抢固定的 JDWP 调试端口，导致 `bind failed: Address already in use`。
+
+> **端口占用**：默认端口 8080/8081/8082/8083。机器上已有服务占用时用 `PORT=xxxx` 覆盖
+> （单包执行：`PORT=8181 pnpm --filter nop-code-e2e test`）。端口被占时 Playwright 会
+> `reuseExistingServer` 复用别人的进程，表现为 404 `File Not Found`。
 
 ### Backend Services
 
@@ -24,6 +32,7 @@ Each test package auto-starts its own Quarkus backend via Playwright's `webServe
 | nop-auth-e2e | nop-auth/nop-auth-app | 8080 | H2 |
 | nop-code-e2e | nop-code/nop-code-app | 8081 | H2 |
 | nop-job-e2e | nop-job/nop-job-app | 8082 | H2 |
+| nop-web-e2e | nop-demo/nop-quarkus-demo | 8083 | H2 |
 
 ## Prerequisites
 
@@ -45,7 +54,7 @@ pnpm --filter nop-auth-e2e exec playwright install --with-deps chromium
 
 ## Running Tests
 
-### All tests (starts all 3 backends)
+### All tests (starts all 4 backends sequentially)
 
 ```bash
 cd nop-entropy-e2e
@@ -58,6 +67,7 @@ pnpm test
 pnpm test:auth    # Auth tests only
 pnpm test:code    # Code tests only
 pnpm test:job     # Job tests only
+pnpm test:web     # Host + Extension contract tests only
 ```
 
 ### Custom port
@@ -94,42 +104,104 @@ Both types can be mixed in a single spec file. RPC is often used in `beforeAll`/
 
 ## Writing New E2E Tests
 
+### 测试代码只写业务意图
+
+**硬约束**：`*.spec.ts` 里不得出现 DOM 选择器、控件类型、引擎分支。业务一律以
+`fieldName` 和业务方法名表达；所有定位、表单填充、等待、重试都收口在页面对象里。
+
+```typescript
+// ❌ 反例：spec 里漏出技术控件概念
+await page.locator('tr').filter({ hasText: roleId }).first().toBeVisible();
+await expect(engine.table(page)).toBeVisible();
+const dialog = await rolePO.clickAdd();
+await dialog.setField('roleId', id);
+
+// ✅ 正例：只表达业务意图
+await rolePO.createRole({ roleId, roleName });
+await rolePO.assertRoleExists(roleId);
+await rolePO.readViewField('roleName');
+```
+
 ### 1. Create a Page Object
 
-Page objects live in `tests/page-objects/` and extend shared base classes.
+Page objects live in `tests/page-objects/` and extend the shared base classes
+(`BasePage` / `CrudListPage`) from `@nop-entropy/e2e-shared`.
 
-**Simple page (navigate to a URL):**
+**Simple page (navigate + assert ready):**
 
 ```typescript
 // tests/page-objects/my-feature.po.ts
-import { BasePage } from '@nop-entropy/e2e-shared';
 import type { Page } from '@playwright/test';
+import { BasePage, expect } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
 export class MyFeaturePO extends BasePage {
-  override get entityName(): string {
-    return 'MyEntity';  // navigates to /#/MyEntity-main
+  constructor(page: Page, engine: EngineAdapter) {
+    super(page, engine);
+  }
+
+  async open(): Promise<void> {
+    await this.goto('MyEntity-main');       // 确定性 hash 导航
+    await this.assertOpened();
+  }
+
+  async assertOpened(): Promise<void> {
+    await expect(this.fieldInput('keyword')).toBeVisible({ timeout: 20_000 });
   }
 }
 ```
 
-**CRUD page (with add/edit/delete/view helpers):**
+**CRUD page (business operations over a generic base):**
 
 ```typescript
 // tests/page-objects/user.po.ts
-import { AmisCrudPage, fillModalField, readModalField } from '@nop-entropy/e2e-shared';
 import type { Page } from '@playwright/test';
+import { CrudListPage } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter, FormData } from '@nop-entropy/e2e-shared';
 
-export class UserPO extends AmisCrudPage {
-  override get entityName(): string { return 'NopAuthUser'; }
+export type UserFormData = FormData;   // { fieldName: 业务值 }
 
-  async fillAddForm(data: { userName: string; nickName: string }) {
-    await fillModalField(this.page, 'userName', data.userName);
-    await fillModalField(this.page, 'nickName', data.nickName);
+export class UserPO extends CrudListPage {
+  constructor(page: Page, engine: EngineAdapter) {
+    super(page, engine, {
+      entityRoute: 'NopAuthUser-main',
+      entityName: 'NopAuthUser',
+      columnHeaders: ['', 'userName', 'nickName', 'deptId', 'gender', 'phone'],
+    });
+  }
+
+  async goto(): Promise<void> {
+    await super.goto('NopAuthUser-main');
+    await this.waitForListWithReload();
+  }
+
+  /** 按用户名检索——spec 只知道 userName 这个字段名 */
+  async searchUser(userName: string): Promise<void> {
+    await this.search('userName', userName);
+  }
+
+  async createUser(data: UserFormData): Promise<void> {
+    await this.goto();
+    await this.clickAdd();
+    await this.fillDialog(data);
+    await this.clickSave();
   }
 }
 ```
 
-`AmisCrudPage` provides: `search()`, `clickAdd()`, `clickSave()`, `clickView()`, `clickEdit()`, `clickDelete()`.
+### 2. `CrudListPage` 提供的业务语义 API
+
+| 分类 | 方法 |
+|------|------|
+| 导航/就绪 | `goto(route)`、`tryGoto(route)`、`navigate()`、`waitForList()`、`waitForListWithReload()`、`assertListVisible()` |
+| 检索 | `search(fieldName, value)`、`findRowDeep(text, sortHeader?)`、`findRowDeepOrFail(...)` |
+| 表单 | `clickAdd(): FormDialog`、`fillDialog({fieldName: value})`、`readDialogField(fieldName)`、`selectDialogOption(fieldName, option)`、`clickSave()` |
+| 行操作 | `clickView(row)`、`clickViewDeep(row)`、`clickEdit(row)`、`clickDelete(row)`、`runRowAction(row, action)`、`confirmRowAction(row, action)`、`openRowPanel(row, action, panel)` |
+| 断言 | `assertEntityExists(text)`、`assertEntityNotExists(text)`、`readTableField(row, columnFieldName)`、`readViewField(fieldName)`、`assertViewFieldPresent(fieldName)`、`waitForRow(text)` |
+| 状态 | `getTableRowCount()`、`deleteEntityViaApi(entityName, id)`、`graphQL` |
+
+`columnHeaders` 是 `readTableField` / `readViewField` 的列名→表头映射兜底；优先读单元格
+自身的 `data-field`，只有渲染层未渲染该属性时才回退到索引映射。
 
 ### 2. Write RPC Tests
 
@@ -187,45 +259,46 @@ test.describe('My Entity - RPC', () => {
 
 ### 3. Write Browser Tests
 
-Browser tests automate real UI interactions. Always login first.
+浏览器测试只调用业务页面对象的方法。
 
 ```typescript
-import { test, expect } from '@playwright/test';
-import { loginRpc, rpc } from '@nop-entropy/e2e-shared';
-import { LoginPO } from './page-objects/login.po.js';
+import { test, expect } from '@nop-entropy/e2e-shared';
+import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
 import { UserPO } from './page-objects/user.po.js';
 
-test.describe('User Management - Browser', () => {
-  // Setup test data via RPC
-  let testUserId: string;
-  test.beforeAll(async ({ request }) => {
+/** 已登录的业务页面——spec 不接触引擎与 DOM */
+async function openUserAdmin(page, engine) {
+  await login(page, { username: 'nop', password: '123' });
+  const userPO = new UserPO(page, engine);
+  await userPO.goto();
+  return userPO;
+}
+
+test.describe('用户管理 - 浏览器', () => {
+  test('创建新用户', async ({ request, page, engine }) => {
     await loginRpc(request);
-    const resp = await rpc(request, 'NopAuthUser__save', {
-      data: { userName: 'e2e_test', nickName: 'Test', password: 'Test@123', status: 1, userType: 1, gender: 1 },
-    });
-    testUserId = resp.data.id;
+    const data = makeUserData('uicreate');
+    const saveResp = await rpc(request, 'NopAuthUser__save', { data });
+
+    const userPO = await openUserAdmin(page, engine);
+    await userPO.createUser(data);
+
+    await userPO.searchUser(data.userName);
+    await userPO.assertUserExists(data.userName);
   });
 
-  test.afterAll(async ({ request }) => {
-    await rpc(request, 'NopAuthUser__delete', { id: testUserId }).catch(() => {});
-  });
-
-  test('search user in browser', async ({ page }) => {
-    // Login
-    const loginPO = new LoginPO(page);
-    await loginPO.goto();
-    await loginPO.login('nop', '123');
-
-    // Navigate and search
-    const userPO = new UserPO(page);
-    await userPO.goto();
-    await userPO.searchUser('e2e_test');
-
-    // Verify
-    await userPO.assertUserExists('e2e_test');
+  test('编辑用户', async ({ request, page, engine }) => {
+    const userPO = await openUserAdmin(page, engine);
+    await userPO.searchUser(userName);
+    await userPO.editUser(userName, { nickName: '新昵称' });
+    await userPO.searchUser(userName);
+    expect(await userPO.readTableField(userName, 'nickName')).toBe('新昵称');
   });
 });
 ```
+
+`test` 从 `@nop-entropy/e2e-shared` 导入（而非 `@playwright/test`），它额外注入了
+`engine` fixture 与 flux 调试记录器。
 
 ### 4. Test Data Cleanup Pattern
 
@@ -282,7 +355,7 @@ Authenticate via the Nop RPC API. Caches the access token for subsequent `rpc()`
 
 Returns the access token. Must be called before `rpc()`.
 
-#### `rpc<T>(request, operation, params?): Promise<RpcResponse<T>>`
+#### `rpc<T>(request, operation, params?, timeoutMs?): Promise<RpcResponse<T>>`
 
 Send an authenticated RPC request to `POST /r/{operation}`.
 
@@ -291,6 +364,7 @@ Send an authenticated RPC request to `POST /r/{operation}`.
 | request | `APIRequestContext` | Playwright request fixture |
 | operation | `string` | Operation name, e.g. `'NopAuthUser__findPage'` |
 | params | `Record<string, unknown>` | Request body parameters |
+| timeoutMs | `number` | 显式超时。长耗时同步操作（如 `NopCodeIndex__triggerFullIndex`）必须传，Playwright `apiRequestContext` 缺省只有 10s |
 
 Returns `RpcResponse<T>`:
 
@@ -306,94 +380,60 @@ interface RpcResponse<T> {
 
 Clear cached access token. Useful for switching users.
 
-### Page Objects
+### 页面对象
 
 #### `LoginPage`
 
-Login page at `/`. Methods:
+登录页页面对象——spec 用它表达"登录 / 断言仍在登录页"，不接触输入框与按钮。
 
-| Method | Description |
-|--------|-------------|
-| `goto()` | Navigate to `/` and wait for load |
-| `login(username?, password?)` | Fill credentials and submit. Waits for redirect away from login. |
-| `assertLoggedIn()` | Assert URL does not contain `#/login` |
+| 方法 | 说明 |
+|------|------|
+| `open(baseUrl?)` | 打开应用入口 |
+| `waitForForm(timeoutMs?)` | 等登录表单渲染完成 |
+| `submitCredentials({username, password})` | 填写凭据并提交，**不**断言结果 |
+| `assertSignedIn()` / `assertStillOnLogin()` | 断言登录成功 / 仍停留在登录路由 |
 
-#### `BasePage` (abstract)
+#### `BasePage`（抽象）
 
-Base class for entity pages. Subclasses must implement `entityName`.
+所有页面对象的基类。
 
-| Method | Description |
-|--------|-------------|
-| `entityName` (abstract getter) | Entity name for URL construction |
-| `goto()` | Navigate to `/#/{entityName}-main` and wait for table |
+| 方法 | 说明 |
+|------|------|
+| `goto(route)` | 确定性 hash 导航（赋值 + 生效校验 + 防回弹重试） |
+| `tryGoto(route)` | 同上，导航被登录守卫弹回时返回 `false` 而不抛错 |
+| `fieldInput(fieldName)` / `fillField(fieldName, value)` | 按 fieldName 定位/填写字段输入控件（`protected`，供子类 PO 使用） |
 
-#### `AmisCrudPage` (extends BasePage)
+#### `CrudListPage`（继承 `BasePage`）
 
-Full CRUD page object with AMIS UI helpers.
+CRUD 列表页页面对象。业务语义 API 见上文
+[「`CrudListPage` 提供的业务语义 API」](#2-crudlistpage-提供的业务语义-api)。
 
-| Method | Description |
-|--------|-------------|
-| `search(fieldName, value)` | Fill filter field + click search + wait for table |
-| `clickAdd()` | Click "新增" button + wait for modal |
-| `clickSave()` | Click "确认" button + wait for modal close + table refresh |
-| `clickView(rowId)` | Click "查看" row action + wait for modal |
-| `clickEdit(rowId)` | Click "编辑" row action + wait for modal |
-| `clickDelete(rowId)` | Click "删除" row action + confirm dialog + wait for table |
+构造参数 `CrudPageConfig`：
 
-### Helper Functions
+| 字段 | 说明 |
+|------|------|
+| `entityRoute` | 页面路由（实体名），`navigate()` 拼接 `-main` |
+| `entityName` | 业务对象名 |
+| `columnHeaders` | 列 fieldName 顺序（首项为 `''` 表示无选择列），`readTableField` / `readViewField` 的兜底映射 |
 
-#### Form Helpers
+#### `FormDialog`
 
-| Function | Description |
-|----------|-------------|
-| `fillField(page, fieldName, value, options?)` | Fill a form input. Set `options.inFilter: true` for query/filter fields (adds `filter_` prefix). |
-| `readField(page, fieldName)` | Read input value from a form field |
-| `selectOption(page, fieldName, optionLabel)` | Select a dropdown option by label text |
+弹窗表单封装，由 `clickAdd()` 返回。提供 `setField(fieldName, value)`、
+`getField(fieldName)`、`selectOption(fieldNames, options)`、`submit()`、
+`switchToTab(label)`、`subForm(fieldName)`。
 
-#### Modal/Drawer Helpers
+#### `EngineAdapter`（flux 单引擎）
 
-| Function | Description |
-|----------|-------------|
-| `waitForModal(page)` | Wait for AMIS modal to appear |
-| `waitForDrawer(page)` | Wait for AMIS drawer to appear |
-| `fillModalField(page, fieldName, value)` | Fill an input inside the topmost modal/drawer |
-| `readModalField(page, fieldName)` | Read a field value from the topmost modal/drawer. Handles both editable inputs and static display fields. |
+`getEngine()` 返回 `FluxAdapter`。DOM 契约集中在适配层，spec 与业务 PO 不感知：
 
-#### Table Helpers
-
-| Function | Description |
-|----------|-------------|
-| `waitForTableLoad(page)` | Wait for spinner to disappear and table rows to render |
-| `navigateToEntity(page, entityName)` | Navigate to `/#/{entityName}-main` |
-| `readTableCell(page, rowIdentifier, columnName)` | Read a cell value by row text and column name (uses `FIELD_TO_HEADER` mapping) |
-| `getTableRowCount(page)` | Count data rows in the current table |
-
-#### Button Helpers
-
-| Function | Description |
-|----------|-------------|
-| `clickByLabel(page, label)` | Click a button by label. Falls back to expanding "更多" dropdown if button is hidden. |
-| `clickInRow(page, rowText, label)` | Click a button inside a specific table row. Falls back to "更多" dropdown. |
-| `confirmDialog(page)` | Click the confirm button in an AMIS dialog |
-| ~~`clickButton(page, label)`~~ | Deprecated. Use `clickByLabel`. |
-| ~~`clickRowAction(page, cellValue, actionLabel)`~~ | Deprecated. Use `clickInRow`. |
-
-### AMIS CSS Selectors
-
-Available as `AMIS` constant:
-
-```typescript
-import { AMIS } from '@nop-entropy/e2e-shared';
-
-AMIS.MODAL            // '.cxd-Modal'
-AMIS.DRAWER           // '.cxd-Drawer'
-AMIS.TABLE            // '.cxd-Table'
-AMIS.CRUD             // '.cxd-Crud'
-AMIS.BUTTON           // '.cxd-Button'
-AMIS.SPINNER          // '.cxd-Spinner'
-AMIS.FORM_ITEM        // '.cxd-Form-item'
-AMIS.CONFIRM_BTN      // '.cxd-Modal--confirm .cxd-Button--primary'
-```
+| 契约 | 选择器 |
+|------|--------|
+| CRUD 容器 / 表格 | `.nop-crud` / `.nop-table` |
+| 表格行 | `[data-slot="table-body"] tr[data-slot="table-row"]` |
+| 单元格 | `td[data-field="<fieldName>"]` |
+| 字段根 | `[data-field="<fieldName>"][data-renderer="<renderer>"]` |
+| 弹窗 / 抽屉 | `[data-slot="dialog-surface"]` / `[data-slot="drawer-surface"]` |
+| 下拉选项 | `[data-slot="combobox-item"][data-value="<value>"]`（只看 `:visible`） |
 
 ---
 
@@ -536,7 +576,8 @@ export default defineConfig({
   webServer: process.env.SKIP_WEBSERVER
     ? undefined
     : {
-        command: `./mvnw quarkus:dev -Dquarkus.http.port=${port} -Dquarkus.profile=dev`,
+        // render-mode 固定 flux——测试与前端站点资源都是 flux 单引擎
+        command: `./mvnw quarkus:dev -Dquarkus.http.port=${port} -Dquarkus.profile=dev -Dnop.web.render-mode=flux`,
         cwd: '../../../../../nop-wf/nop-wf-app',
         port,
         timeout: 120_000,
@@ -558,8 +599,10 @@ Copy from an existing package and adjust `outDir`.
 5. **Add root script** in `nop-entropy-e2e/package.json`:
 
 ```json
-"test:wf": "pnpm --filter nop-wf-e2e test"
+"test:wf": "NOP_WEB_RENDER__MODE=flux pnpm --filter nop-wf-e2e test"
 ```
+
+根 `test` 脚本已带 `--workspace-concurrency=1`，新包会被自动纳入串行执行。
 
 6. **Ensure the backend app** has H2 configured in its `application.yaml` under the `%dev` profile and a unique `quarkus.http.port`.
 

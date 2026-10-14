@@ -51,9 +51,9 @@ Playwright 超时、页面空白、列表不出现都是**症状**，根因几�
 
 ### 1. SiteMapApi 返回 `children: null` 导致侧边栏崩溃
 
-**症状**：登录后浏览器控制台报渲染错误，所有 AMIS 页面均显示「500 模块渲染失败」。侧边栏 DOM 存在但渲染中断。
+**症状**：登录后浏览器控制台报渲染错误，所有页面均显示「500 模块渲染失败」。侧边栏 DOM 存在但渲染中断。
 
-**根因**：`SiteMapApi__getSiteMap` 返回的 TOPM（顶级菜单）资源如果无子节点，`children` 字段为 `null` 而非空数组 `[]`。React SPA 的菜单渲染器遍历 `children` 时遇到 `null` 崩溃，导致整个侧边栏渲染失败，所有 AMIS 页面均无法加载。
+**根因**：`SiteMapApi__getSiteMap` 返回的 TOPM（顶级菜单）资源如果无子节点，`children` 字段为 `null` 而非空数组 `[]`。React SPA 的菜单渲染器遍历 `children` 时遇到 `null` 崩溃，导致整个侧边栏渲染失败，所有页面均无法加载。
 
 **排查**：
 
@@ -102,27 +102,30 @@ check(data.get('data',{}), 'root')
 2. **确认 `ensureDefaultSite` 没有静默失败**
    `beforeEach` 中调 `NopAuthSite__save({data: {siteId:'main', ...}})`。首次调用成功（INSERT），后续调用因 `siteId: 'main'` 已存在而报 `duplicate-key` 错误，被 `.catch(() => {})` 吞掉。**这不影响页面渲染**（站点记录仍存在），但如果 site 不存在则会影响到菜单加载。
 
-### 2. AMIS CRUD 不可见
+### 2. CRUD 列表不可见（flux 单引擎）
 
-**症状**：`waitForList` 超时，`.cxd-Crud` / `.cxd-Table` 未渲染。
+**症状**：`waitForList` 超时，`.nop-crud` / `.nop-table` 未渲染。
+
+> **渲染引擎已收敛为 flux 单引擎**：`nop-entropy-e2e` 不再有 amis 分支，`E2E_ENGINE`
+> 环境变量与 `test:amis` 脚本已删除，`playwright.config.ts` 恒定传
+> `-Dnop.web.render-mode=flux`。前端站点资源（`nop-frontend-support/nop-web-site`）
+> 同样只含 flux 产物。
 
 **排查顺序**：
 
-1. **检查 `waitForMenuLoaded` 的引擎选择器**
-   - `getEngineType()` 读 `E2E_ENGINE` 环境变量，默认返回 `'amis'`
-   - AMIS 引擎等待 `.cxd-Page, #main-content, main` — 这需要当前页面有一个 AMIS 页面渲染
-   - Flux/chaos 引擎等待 `nav button[class*="flex-1"]` — React SPA 侧边栏按钮
-   - 如果引擎类型配错，`waitForMenuLoaded` 会超时或过早返回
+1. **检查后端 render-mode**
+   - 经 Playwright webServer 启动时 `playwright.config.ts` 已自动传 `-Dnop.web.render-mode=flux`
+   - 手动 `mvn quarkus:dev` 时必须自行补上，否则页面模型按 amis 渲染、flux 适配器全部落空
+   - 前后端渲染模式不匹配时页面渲染为空或组件无法被适配器识别
 
-2. **检查后端 render-mode 是否匹配**
-   - 设置 `E2E_ENGINE=flux` 时，`playwright.config.ts` 自动传递 `-Dnop.web.render-mode=flux` 到 `mvn quarkus:dev`
-   - 如果直接运行 `mvn quarkus:dev` 而没有经过 Playwright webServer，需手动设置 `-Dnop.web.render-mode=flux`
-   - 前后端渲染模式不匹配时，页面可能渲染为空或组件无法被适配器识别
+2. **检查前端站点资源是否为最新 flux 构建**
+   - `nop-web-site` jar 里的静态资源决定了被测前端；换过前端后必须重装：
+     `./mvnw install -pl nop-frontend-support/nop-web-site -DskipTests`
 
-3. **检查 `page.goto('#/...')` 格式**
-   - `page.goto('/#/NopAuthResource-main')` — 完整 URL 导航（触发 React SPA 全量加载）
-   - `page.goto('#/NopAuthResource-main')` — 仅 hash 变更（不触发后端头发请求，但可能不被 SPA 识别）
-   - 页面对象中统一用 `page.goto('#/{route}')` 是当前做法。如果页面异常，先检查 hash 导航前后的 URL
+3. **不要用 `page.goto('#/...')` 做导航**
+   - SPA 已加载时 `page.goto('#/route')` 会被壳层自身导航（登录后重定向）踩掉或静默忽略
+   - 统一走页面对象的 `goto(route)` / `navigateTo(page, route)`：赋值 `location.hash`
+     + 生效校验 + 防回弹重试（`@nop-entropy/e2e-shared` 的 `hashRoute` 模块）
 
 4. **检查共享 context 中的 cookie 冲突**
    - `request.post('/r/LoginApi__login', {data: {principalId, principalSecret, loginType: 1}})` 使用 `APIRequestContext`，不设 cookie
@@ -132,9 +135,9 @@ check(data.get('data',{}), 'root')
 5. **RPC 创建的资源在 CRUD 表中不可见**
    Playwright 的 `APIRequestContext`（`loginRpc` + `rpc` 调用）和浏览器页面会话隔离。通过 RPC 创建的 `NopAuthResource` 不会出现在后续 `page.goto` 加载的 CRUD 表格中。
 
-   **根因**：不同会话上下文 + AMIS 页面只在首次渲染时查询一次数据，不自动拉取后续 RPC 创建的数据。
+   **根因**：不同会话上下文 + CRUD 列表只在首次渲染/查询时取数，不自动拉取后续 RPC 创建的数据。
 
-   **正确做法**：在浏览器测试中，通过 UI 表单（`clickAdd()` → `fillForm()` → `dialog.submit()`）创建资源，而非 RPC：
+   **正确做法**：在浏览器测试中，通过业务页面对象用 UI 表单创建资源，而非 RPC：
 
    ```typescript
    // ❌ 不推荐：RPC 创建，CRUD 表看不到
@@ -142,9 +145,7 @@ check(data.get('data',{}), 'root')
    await resourcePO.goto(); // 表为空
 
    // ✅ 推荐：UI 表单创建，CRUD 表自动刷新
-   const dialog = await resourcePO.clickAdd();
-   await resourcePO.fillForm({ resourceId: '...', displayName: '...' });
-   await dialog.submit();
+   await resourcePO.createResource({ resourceId: '...', displayName: '...' });
    await resourcePO.waitForList(); // 资源已出现在表中
    ```
 
@@ -154,13 +155,16 @@ check(data.get('data',{}), 'root')
 
 **常见原因**：
 
-| 参数格式 | 适用场景 | 示例 |
-|----------|----------|------|
-| `{principalId, principalSecret, loginType}` | `APIRequestContext.post()`（Playwright fixture） | `{principalId: 'nop', principalSecret: '123', loginType: 1}` |
-| `{username, password}` | 裸 `fetch()` 调用（`RpcClient.ts` 中的 `RpcRequest` 路径） | `{username: 'nop', password: '123'}` |
+两条路径（`APIRequestContext.post()` 与 `RpcClient.ts` 的裸 `fetch`）参数格式已统一为
+`{principalId, principalSecret, loginType}`：
 
-- 如果 `loginRpc({url: baseUrl}, ...)` 失败，检查是否走了 `RpcRequest` 路径（非 Playwright request），该路径发送 `{username, password}`，参数名与 `APIRequestContext` 路径不同
-- 用 `APIRequestContext` 时不要省略 `loginType: 1`，否则参数验证可能失败
+```typescript
+{ principalId: 'nop', principalSecret: '123', loginType: 1 }
+```
+
+- 不要省略 `loginType: 1`，否则参数验证失败
+- 裸 `fetch` 路径的 `url` 必须是**绝对 origin**（`new URL(page.url()).origin`）；
+  传相对路径 `'/'` 会拼出非法 URL
 
 ### 2. ensureDefaultSite 报 duplicate-key
 
