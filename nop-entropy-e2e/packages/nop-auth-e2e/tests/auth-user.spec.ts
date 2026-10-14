@@ -1,6 +1,7 @@
 import { test } from '@nop-entropy/e2e-shared';
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 import { UserPO } from './page-objects/user.po.js';
 
 const TEST_ID = `e2e_${Date.now()}`;
@@ -32,23 +33,21 @@ interface FindPageResult {
 
 const createdUserIds: string[] = [];
 
-async function cleanupTestUsers(request: import('@playwright/test').APIRequestContext): Promise<void> {
+async function cleanupTestUsers(request: APIRequestContext): Promise<void> {
   const resp = await rpc<{ items: { id: string; userName: string }[] }>(request, 'NopAuthUser__findPage', {
     query: { offset: 0, limit: 200 },
   });
   if (!resp.ok) return;
   for (const item of resp.data.items) {
     if (item.userName.startsWith('e2e_')) {
-      const del = await rpc(request, 'NopAuthUser__delete', { id: item.id });
-      if (!del.ok) console.warn(`cleanup delete user ${item.id}: status=${del.status}`);
+      await rpc(request, 'NopAuthUser__delete', { id: item.id }).catch(() => {});
     }
   }
 }
 
 function makeUserData(suffix: string, overrides?: Partial<UserSaveInput>): UserSaveInput {
-  const userName = `${TEST_ID}_${suffix}`;
   return {
-    userName,
+    userName: `${TEST_ID}_${suffix}`,
     nickName: `E2E_${suffix}`,
     password: 'Test@1234',
     status: 1,
@@ -56,6 +55,14 @@ function makeUserData(suffix: string, overrides?: Partial<UserSaveInput>): UserS
     gender: 1,
     ...overrides,
   };
+}
+
+/** 已登录的用户管理页面——spec 只拿业务页面对象，不接触引擎与 DOM。 */
+async function openUserAdmin(page: Page, engine: EngineAdapter): Promise<UserPO> {
+  await login(page, { username: 'nop', password: '123' });
+  const userPO = new UserPO(page, engine);
+  await userPO.goto();
+  return userPO;
 }
 
 test.describe('用户管理 - RPC', () => {
@@ -66,8 +73,7 @@ test.describe('用户管理 - RPC', () => {
 
   test.afterAll(async ({ request }) => {
     for (const id of createdUserIds) {
-      const del = await rpc(request, 'NopAuthUser__delete', { id });
-      if (!del.ok) console.warn(`RPC afterAll delete ${id}: status=${del.status}`);
+      await rpc(request, 'NopAuthUser__delete', { id }).catch(() => {});
     }
     createdUserIds.length = 0;
   });
@@ -75,11 +81,7 @@ test.describe('用户管理 - RPC', () => {
   test('RPC: 创建用户', async ({ request }) => {
     const data = makeUserData('create');
 
-    const resp = await rpc<UserDetail>(
-      request,
-      'NopAuthUser__save',
-      { data },
-    );
+    const resp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
 
     expect(resp.ok).toBeTruthy();
     expect(resp.data.userName).toBe(data.userName);
@@ -94,23 +96,13 @@ test.describe('用户管理 - RPC', () => {
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
-    const resp = await rpc<FindPageResult>(
-      request,
-      'NopAuthUser__findPage',
-      {
-        query: {
-          filter: { $type: 'eq', name: 'userName', value: data.userName },
-        },
-      },
-    );
+    const resp = await rpc<FindPageResult>(request, 'NopAuthUser__findPage', {
+      query: { filter: { $type: 'eq', name: 'userName', value: data.userName } },
+    });
 
     expect(resp.ok).toBeTruthy();
     expect(resp.data.total).toBeGreaterThanOrEqual(1);
-
-    const found = resp.data.items.some(
-      (item) => item.userName === data.userName,
-    );
-    expect(found).toBeTruthy();
+    expect(resp.data.items.some((item) => item.userName === data.userName)).toBeTruthy();
   });
 
   test('RPC: 读取用户详情', async ({ request }) => {
@@ -119,11 +111,7 @@ test.describe('用户管理 - RPC', () => {
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
-    const resp = await rpc<UserDetail>(
-      request,
-      'NopAuthUser__get',
-      { id: saveResp.data.id },
-    );
+    const resp = await rpc<UserDetail>(request, 'NopAuthUser__get', { id: saveResp.data.id });
 
     expect(resp.ok).toBeTruthy();
     expect(resp.data.userName).toBe(data.userName);
@@ -136,24 +124,12 @@ test.describe('用户管理 - RPC', () => {
     createdUserIds.push(saveResp.data.id);
 
     const updatedNickName = `E2E已更新_${TEST_ID}`;
-    const resp = await rpc<UserDetail>(
-      request,
-      'NopAuthUser__update',
-      {
-        data: {
-          id: saveResp.data.id,
-          nickName: updatedNickName,
-        },
-      },
-    );
-
+    const resp = await rpc<UserDetail>(request, 'NopAuthUser__update', {
+      data: { id: saveResp.data.id, nickName: updatedNickName },
+    });
     expect(resp.ok).toBeTruthy();
 
-    const verify = await rpc<UserDetail>(
-      request,
-      'NopAuthUser__get',
-      { id: saveResp.data.id },
-    );
+    const verify = await rpc<UserDetail>(request, 'NopAuthUser__get', { id: saveResp.data.id });
     expect(verify.data.nickName).toBe(updatedNickName);
   });
 
@@ -161,18 +137,9 @@ test.describe('用户管理 - RPC', () => {
     const data = makeUserData('delete');
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
 
-    const delResp = await rpc(
-      request,
-      'NopAuthUser__delete',
-      { id: saveResp.data.id },
-    );
-    expect(delResp.ok).toBeTruthy();
+    expect((await rpc(request, 'NopAuthUser__delete', { id: saveResp.data.id })).ok).toBeTruthy();
 
-    const verify = await rpc<UserDetail>(
-      request,
-      'NopAuthUser__get',
-      { id: saveResp.data.id },
-    );
+    const verify = await rpc<UserDetail>(request, 'NopAuthUser__get', { id: saveResp.data.id });
     expect(verify.ok).toBeFalsy();
   });
 });
@@ -185,28 +152,21 @@ test.describe('用户管理 - 浏览器', () => {
   test.afterEach(async ({ request }) => {
     await loginRpc(request).catch(() => {});
     for (const id of createdUserIds) {
-      const del = await rpc(request, 'NopAuthUser__delete', { id });
-      if (!del.ok) console.warn(`afterEach delete user ${id}: status=${del.status}`);
+      await rpc(request, 'NopAuthUser__delete', { id }).catch(() => {});
     }
     createdUserIds.length = 0;
   });
 
   test('浏览器: 导航到用户管理页面', async ({ page, engine }) => {
-    await login(page, { username: 'nop', password: '123' });
-
-    const userPO = new UserPO(page, engine);
-    await userPO.goto();
+    const userPO = await openUserAdmin(page, engine);
 
     await expect(page).toHaveURL(/NopAuthUser-main/);
-    const rowCount = await userPO.getTableRowCount();
-    expect(rowCount).toBeGreaterThanOrEqual(0);
+    await userPO.assertListVisible();
   });
 
   test('浏览器: 创建新用户', async ({ page, engine }) => {
-    await login(page, { username: 'nop', password: '123' });
-
     const data = makeUserData('uicreate');
-    const userPO = new UserPO(page, engine);
+    const userPO = await openUserAdmin(page, engine);
 
     await userPO.createUser(data);
 
@@ -221,20 +181,14 @@ test.describe('用户管理 - 浏览器', () => {
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
-    await login(page, { username: 'nop', password: '123' });
-
-    const userPO = new UserPO(page, engine);
-    await userPO.goto();
+    const userPO = await openUserAdmin(page, engine);
     await userPO.searchUser(data.userName);
     await userPO.assertUserExists(data.userName);
 
-    await userPO.clickView(data.userName);
+    await userPO.viewUser(data.userName);
 
-    const userName = await userPO.readViewField('userName');
-    expect(userName).toBe(data.userName);
-
-    const nickName = await userPO.readViewField('nickName');
-    expect(nickName).toBe(data.nickName);
+    expect(await userPO.readViewField('userName')).toBe(data.userName);
+    expect(await userPO.readViewField('nickName')).toBe(data.nickName);
   });
 
   test('浏览器: 编辑用户', async ({ request, page, engine }) => {
@@ -243,22 +197,15 @@ test.describe('用户管理 - 浏览器', () => {
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
-    await login(page, { username: 'nop', password: '123' });
-
-    const userPO = new UserPO(page, engine);
-    await userPO.goto();
+    const userPO = await openUserAdmin(page, engine);
     await userPO.searchUser(data.userName);
     await userPO.assertUserExists(data.userName);
 
     const updatedNickName = `E2E编辑后_${TEST_ID}`;
-    await userPO.clickEdit(data.userName);
-    await userPO.fillEditForm({ nickName: updatedNickName });
-    await userPO.clickSave();
+    await userPO.editUser(data.userName, { nickName: updatedNickName });
 
     await userPO.searchUser(data.userName);
-
-    const tableNickName = await userPO.readTableField(data.userName, 'nickName');
-    expect(tableNickName).toBe(updatedNickName);
+    expect(await userPO.readTableField(data.userName, 'nickName')).toBe(updatedNickName);
   });
 
   test('浏览器: 删除用户', async ({ request, page, engine }) => {
@@ -267,14 +214,11 @@ test.describe('用户管理 - 浏览器', () => {
     const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
     createdUserIds.push(saveResp.data.id);
 
-    await login(page, { username: 'nop', password: '123' });
-
-    const userPO = new UserPO(page, engine);
-    await userPO.goto();
+    const userPO = await openUserAdmin(page, engine);
     await userPO.searchUser(data.userName);
     await userPO.assertUserExists(data.userName);
 
-    await userPO.clickDelete(data.userName);
+    await userPO.deleteUser(data.userName);
 
     await userPO.searchUser(data.userName);
     await userPO.assertUserNotExists(data.userName);
@@ -283,7 +227,7 @@ test.describe('用户管理 - 浏览器', () => {
     if (idx >= 0) createdUserIds.splice(idx, 1);
   });
 
-  test('浏览器: 搜索用户', async ({ request, page, engine }) => {
+  test('浏览器: 按用户名检索用户', async ({ request, page, engine }) => {
     await loginRpc(request);
     const dataA = makeUserData('searchA');
     const dataB = makeUserData('searchB');
@@ -291,10 +235,7 @@ test.describe('用户管理 - 浏览器', () => {
     const saveB = await rpc<UserDetail>(request, 'NopAuthUser__save', { data: dataB });
     createdUserIds.push(saveA.data.id, saveB.data.id);
 
-    await login(page, { username: 'nop', password: '123' });
-
-    const userPO = new UserPO(page, engine);
-    await userPO.goto();
+    const userPO = await openUserAdmin(page, engine);
 
     await userPO.searchUser(dataA.userName);
     await userPO.assertUserExists(dataA.userName);

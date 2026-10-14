@@ -49,7 +49,6 @@ function makeReport(overrides: Partial<DiagnosticReport> = {}): DiagnosticReport
       tables: [{ identifiedBy: 'caption:User List', rowCount: 5, columnHeaders: ['Name', 'Email'] }],
       dialogs: [{ identifiedBy: 'title:Create User', role: 'dialog', title: 'Create User' }],
       buttons: [{ text: 'Add', identifiedBy: 'aria-label:add', visible: true }],
-      cxdClassCount: 42,
       fluxSlotCount: 0,
       has404: false,
       bodyHTMLLength: 50000,
@@ -75,7 +74,7 @@ describe('formatReport', () => {
     expect(out).toContain('source: backend');
     expect(out).toContain('User Management → /NopAuthUser-main');
     expect(out).toContain('--- Page Structure ---');
-    expect(out).toContain('engines: cxd=42  data-slot=0');
+    expect(out).toContain('data-slot count: 0');
     expect(out).toContain('caption:User List rows=5 cols=Name|Email');
     expect(out).toContain('title:Create User role=dialog');
   });

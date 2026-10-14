@@ -107,7 +107,6 @@ export interface PageStructureDump {
   dialogs: PageDialogInfo[];
   /** Visible toolbar/section buttons (not row-action buttons). */
   buttons: PageButtonInfo[];
-  cxdClassCount: number;
   fluxSlotCount: number;
   /** "Page not found" / 404 markers in body text. */
   has404: boolean;
@@ -416,9 +415,6 @@ export async function dumpPageStructure(page: Page): Promise<PageStructureDump> 
     const dialogSelectors = [
       '[role="dialog"]',
       '[role="alertdialog"]',
-      '.cxd-Modal',
-      '.cxd-Dialog',
-      '.cxd-Drawer',
       '[data-slot="dialog-surface"]',
       '[data-slot="drawer-surface"]',
     ];
@@ -430,7 +426,7 @@ export async function dumpPageStructure(page: Page): Promise<PageStructureDump> 
         seenDialogs.add(el);
         const title =
           el.getAttribute('aria-label') ||
-          el.querySelector('[role="title"], .cxd-Modal-title, [data-slot="dialog-title"]')
+          el.querySelector('[role="title"], [data-slot="dialog-title"]')
             ?.textContent?.trim() ||
           undefined;
         dialogs.push({
@@ -464,8 +460,7 @@ export async function dumpPageStructure(page: Page): Promise<PageStructureDump> 
       }))
       .filter((b) => b.text.length > 0);
 
-    // Engine markers
-    const cxdClassCount = document.querySelectorAll('[class*="cxd-"]').length;
+    // Engine marker
     const fluxSlotCount = document.querySelectorAll('[data-slot]').length;
 
     const bodyText = document.body.innerText;
@@ -476,7 +471,6 @@ export async function dumpPageStructure(page: Page): Promise<PageStructureDump> 
       tables,
       dialogs,
       buttons,
-      cxdClassCount,
       fluxSlotCount,
       has404: bodyText.includes('Page not found') || bodyText.includes('404'),
       bodyHTMLLength: document.body.innerHTML.length,
@@ -582,7 +576,7 @@ export function formatReport(report: DiagnosticReport): string {
     const ps = report.pageStructure;
     lines.push('\n--- Page Structure ---');
     lines.push(`title: ${ps.title}  404: ${ps.has404}  bodyHTML: ${ps.bodyHTMLLength}b`);
-    lines.push(`engines: cxd=${ps.cxdClassCount}  data-slot=${ps.fluxSlotCount}`);
+    lines.push(`data-slot count: ${ps.fluxSlotCount}`);
     lines.push(`forms: ${ps.forms.length}`);
     for (const f of ps.forms) {
       lines.push(`  form name=${f.name ?? '(none)'} fields=${f.fields.map((x) => x.name).join(',')}`);

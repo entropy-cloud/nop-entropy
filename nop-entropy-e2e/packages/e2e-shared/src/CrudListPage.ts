@@ -5,6 +5,17 @@ import { BasePage } from './Page';
 import { FormDialog } from './FormDialog';
 import { GraphQLClient } from './GraphQlClient';
 
+/** 表单业务数据：`fieldName -> 业务值`。字段控件类型由渲染引擎适配层决定。 */
+export type FormData = Record<string, string | number | boolean>;
+
+/**
+ * CRUD 列表页页面对象基类。
+ *
+ * 对外只暴露**业务语义**方法（search / clickAdd / clickSave / clickView /
+ * clickEdit / clickDelete / assertRowExists / readViewField ...），业务一律以
+ * `fieldName` 表达；DOM 契约、控件类型、分页排序等全部封装在引擎适配层内，
+ * spec 代码不应出现 locator、CSS 选择器或控件概念。
+ */
 export class CrudListPage extends BasePage {
   protected config: CrudPageConfig;
   protected _graphQL: GraphQLClient;
@@ -45,8 +56,8 @@ export class CrudListPage extends BasePage {
     for (let i = 0; i < count && i < effective.length; i++) {
       const cell = cells.nth(i);
       const val = ((await cell.textContent()) ?? '').trim();
-      // 优先读单元格自身 data-field（flux/amis 行均渲染）——索引映射在
-      // 行首存在选择列/序号列时会整体错位，只能对无 data-field 的行兜底
+      // 优先读单元格自身 data-field——索引映射在行首存在选择列/序号列时会整体错位，
+      // 只能对无 data-field 的行兜底
       const ownField = await cell.getAttribute('data-field');
       if (ownField) this._lastViewRowData[ownField] = val;
       if (effective[i]) this._lastViewRowData[effective[i]] = val;
@@ -60,7 +71,7 @@ export class CrudListPage extends BasePage {
     await this.waitForList();
   }
 
-  // 60s：flux/amis 渲染管线下，页面模型首次编译（per-page 冷缓存）可能超过 30s，
+  // 90s：flux 渲染管线下，页面模型首次编译（per-page 冷缓存）可能超过 30s，
   // 编译结果有缓存，同页后续导航不再耗时
   async waitForList(timeoutMs = 90_000): Promise<void> {
     await this.engine.crudContainer(this.page).waitFor({ state: 'visible', timeout: timeoutMs });
@@ -107,7 +118,7 @@ export class CrudListPage extends BasePage {
 
   async search(fieldName: string, value: string): Promise<void> {
     await this.page
-      .locator('[data-slot="alert-dialog-overlay"], .cxd-Modal-overlay')
+      .locator('[data-slot="alert-dialog-overlay"]')
       .waitFor({ state: 'hidden', timeout: 5_000 })
       .catch(() => {});
     await this.page.waitForTimeout(300);
@@ -136,6 +147,28 @@ export class CrudListPage extends BasePage {
     await this.page.waitForLoadState('networkidle').catch(() => {});
   }
 
+  // ── 表单（按 fieldName 表达业务数据，不暴露控件类型） ──
+
+  /** 用 `{ fieldName: value }` 业务数据填充当前打开的对话框。 */
+  async fillDialog(data: FormData): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    for (const [fieldName, value] of Object.entries(data)) {
+      await dialog.setField(fieldName, value);
+    }
+  }
+
+  /** 读取当前对话框中某字段的业务值。 */
+  async readDialogField(fieldName: string): Promise<string> {
+    const dialog = new FormDialog(this.page, this.engine);
+    return dialog.getField(fieldName);
+  }
+
+  /** 在当前对话框中为某 fieldName 的下拉字段选择选项（选项值或选项文案）。 */
+  async selectDialogOption(fieldName: string, option: string | number | boolean): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.selectOption([fieldName], [String(option)]);
+  }
+
   // ── 行操作（通用） ──
 
   async editRow(row: Locator): Promise<FormDialog> {
@@ -146,33 +179,27 @@ export class CrudListPage extends BasePage {
   }
 
   /**
-   * 点击行操作确认框的确认按钮（通用）：flux 壳层 alert-dialog（data-slot 结构，
-   * 历史 portal 残留 DOM 取最新）与 amis 自绘确认框（role=alertdialog 文本匹配）
-   * 双兼容。确认框未出现返回 false；点击后未关闭抛错——残留 overlay 会拦截
-   * 后续所有行操作，宁可显式失败。
+   * 点击行操作确认框的确认按钮（通用）。flux 壳层 alert-dialog 走 data-slot 契约
+   * （历史 portal 残留 DOM 取最新挂载的一个）。确认框未出现返回 false；点击后未关闭
+   * 抛错——残留 overlay 会拦截后续所有行操作，宁可显式失败。
    */
   async tryClickConfirm(): Promise<boolean> {
-    // flux 壳层：portal 内可见且文本恰为 确认/确定 的按钮，取最新挂载的
-    const fluxBtn = this.page
+    const btn = this.page
       .locator('[data-slot="alert-dialog-portal"] button:visible')
-      .filter({ hasText: /^(确认|确定)$/ })
-      .last();
-    // amis：role=alertdialog 内的确认按钮
-    const amisBtn = this.page
-      .locator('[role="alertdialog"] button:visible')
-      .filter({ hasText: /^(确认|确定|删除)$/ })
+      .filter({ hasText: /^(确认|确定|OK)$/ })
       .last();
 
-    const fluxAppeared = await fluxBtn.waitFor({ state: 'visible', timeout: 4_000 })
-      .then(() => true).catch(() => false);
-    const btn = fluxAppeared ? fluxBtn : (await amisBtn.isVisible().catch(() => false) ? amisBtn : null);
-    if (!btn) return false;
+    const appeared = await btn
+      .waitFor({ state: 'visible', timeout: 4_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (!appeared) return false;
 
     // 首次点击可能落在渲染器重渲染窗口期被吞掉——点击后验证框已消失，未消失则重试
     for (let attempt = 0; attempt < 3; attempt++) {
       await btn.click();
       const closed = await this.page
-        .locator('[data-slot="alert-dialog-portal"] button:visible, [role="alertdialog"] button:visible')
+        .locator('[data-slot="alert-dialog-portal"] button:visible')
         .first()
         .waitFor({ state: 'hidden', timeout: 5_000 })
         .then(() => true)
@@ -204,6 +231,40 @@ export class CrudListPage extends BasePage {
     throw new Error('行操作未能触发确认框: ' + actionNamePattern);
   }
 
+  /** 在指定行上执行一个操作（如"启用调度"），不等待确认框。 */
+  async runRowAction(rowIdentifier: string, actionNamePattern: RegExp): Promise<void> {
+    const row = await this.findRowByText(rowIdentifier);
+    if (!row) {
+      throw new Error('未找到行: ' + rowIdentifier);
+    }
+    await this.engine.rowAction(row, actionNamePattern);
+  }
+
+  /**
+   * 打开某行的业务面板（弹窗或抽屉），如"分配用户"/"分配权限"。
+   * `panel: 'dialog' | 'drawer' | 'either'` 声明该业务动作的承载形态，
+   * spec 与业务 PO 不需要知道渲染层用的是哪一种。
+   */
+  async openRowPanel(
+    rowIdentifier: string,
+    actionNamePattern: RegExp,
+    panel: 'dialog' | 'drawer' | 'either' = 'either',
+  ): Promise<void> {
+    await this.runRowAction(rowIdentifier, actionNamePattern);
+    const target =
+      panel === 'dialog'
+        ? this.engine.dialog(this.page)
+        : panel === 'drawer'
+          ? this.engine.drawer(this.page)
+          : this.engine.dialog(this.page).or(this.engine.drawer(this.page));
+    await target.waitFor({ state: 'visible' });
+  }
+
+  /** 在指定行上执行一个操作并确认（如"触发"、"启用"），操作后等待列表就绪。 */
+  async confirmRowAction(rowIdentifier: string, actionNamePattern: RegExp): Promise<void> {
+    await this.rowActionWithConfirm(rowIdentifier, actionNamePattern);
+  }
+
   async deleteRow(row: Locator): Promise<void> {
     await this.engine.rowAction(row, /删除|Delete/);
     await this.engine.confirmDialogAction(this.page);
@@ -216,6 +277,22 @@ export class CrudListPage extends BasePage {
       await this.captureRowData(rowIdentifier);
       await this.engine.rowAction(row, /查看/);
     }
+    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  }
+
+  /**
+   * 跨页定位后打开查看面板。默认升序分页下新建记录常在末页，
+   * 直接 findRowByText 找不到时先翻页/排序再打开。
+   */
+  async clickViewDeep(rowIdentifier: string, sortHeaderText?: string): Promise<void> {
+    const row =
+      (await this.findRowByText(rowIdentifier)) ??
+      (await this.findRowDeep(rowIdentifier, sortHeaderText));
+    if (!row) {
+      throw new Error(`未找到业务记录: ${rowIdentifier}`);
+    }
+    await this.captureRowData(rowIdentifier);
+    await this.engine.rowAction(row, /查看/);
     await this.engine.dialog(this.page).waitFor({ state: 'visible' });
   }
 
@@ -233,23 +310,18 @@ export class CrudListPage extends BasePage {
     // 提交旧值的真实根因——jsdom 单测复现不了，仅真实浏览器暴露此时序）。
     // 1) 等 loadAction ajax 完成（networkidle）；
     await this.page.waitForLoadState('networkidle').catch(() => {});
-    // 2) 轮询直到表单出现带值的输入框，且值稳定（连续两次读取一致），
-    //    确认 setValues() 已完成、不再覆盖。
+    // 2) 轮询直到表单出现带值的输入框，确认 setValues() 已完成、不再覆盖。
     await this.page
       .waitForFunction(
         () => {
           const inputs = document.querySelectorAll(
             '[data-slot="dialog-surface"] input, [data-slot="dialog-content"] input',
           );
-          let anyFilled = false;
           for (const el of inputs) {
             const v = (el as HTMLInputElement).value;
-            if (v && v.trim() !== '') {
-              anyFilled = true;
-              break;
-            }
+            if (v && v.trim() !== '') return true;
           }
-          return anyFilled;
+          return false;
         },
         undefined,
         { timeout: 15_000 },
@@ -287,6 +359,18 @@ export class CrudListPage extends BasePage {
     return '';
   }
 
+  /**
+   * 断言查看面板渲染了指定业务字段且取值非空（按 fieldName，不依赖 label 文案与布局）。
+   *
+   * 只读查看表单把字段渲染为静态文本、没有 `data-field` 字段根，因此这里走
+   * `readViewField`：先按字段定位，取不到时回落到打开面板时缓存的行数据。
+   */
+  async assertViewFieldPresent(fieldName: string): Promise<void> {
+    const { expect } = await import('@playwright/test');
+    const value = await this.readViewField(fieldName);
+    expect(value, `查看面板未渲染字段 ${fieldName}`).not.toBe('');
+  }
+
   // ── 断言 ──
 
   async assertEntityExists(text: string): Promise<void> {
@@ -299,6 +383,12 @@ export class CrudListPage extends BasePage {
     const { expect } = await import('@playwright/test');
     const row = await this.findRowByText(text);
     expect(row).toBeNull();
+  }
+
+  /** 断言列表页已就绪（CRUD 容器与表格均可见）。 */
+  async assertListVisible(): Promise<void> {
+    const { expect } = await import('@playwright/test');
+    await expect(this.engine.table(this.page)).toBeVisible({ timeout: 15_000 });
   }
 
   /**
@@ -338,7 +428,7 @@ export class CrudListPage extends BasePage {
 
   /**
    * 跨页定位目标行（引擎驱动）：刷新强制重查 → 每页条数调最大 → （可选）点击排序
-   * 表头切换升降序 → 逐页向后翻。amis/flux 的分页与排序 DOM 差异由引擎适配层封装。
+   * 表头切换升降序 → 逐页向后翻。分页与排序 DOM 差异由引擎适配层封装。
    * 找不到返回 null（由调用方决定报错或重试）。
    */
   async findRowDeep(text: string, sortHeaderText?: string): Promise<Locator | null> {
@@ -381,6 +471,27 @@ export class CrudListPage extends BasePage {
       if (rowText.includes(text)) return row;
     }
     return null;
+  }
+
+  /**
+   * 跨页定位目标行，找不到时抛错——用于"检索到某条记录"这类业务前置断言，
+   * 失败信息直接给出缺失的业务标识，而不是让调用方各自拼。
+   */
+  async findRowDeepOrFail(text: string, sortHeaderText?: string): Promise<Locator> {
+    const row = await this.findRowDeep(text, sortHeaderText);
+    if (!row) {
+      throw new Error(`未找到业务记录: ${text}`);
+    }
+    return row;
+  }
+
+  /** 等待包含指定业务标识的行出现。 */
+  async waitForRow(rowIdentifier: string, timeoutMs = 15_000): Promise<void> {
+    const { expect } = await import('@playwright/test');
+    const row = await this.findRowByText(rowIdentifier);
+    if (row) {
+      await expect(row).toBeVisible({ timeout: timeoutMs });
+    }
   }
 
   async getCellText(rowIndex: number, fieldName: string): Promise<string> {

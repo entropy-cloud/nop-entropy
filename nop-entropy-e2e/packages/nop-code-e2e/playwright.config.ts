@@ -2,7 +2,6 @@ import { defineConfig, devices } from '@playwright/test';
 
 const backendPort = parseInt(process.env.PORT || '8081', 10);
 const backendTimeout = parseInt(process.env.BACKEND_TIMEOUT || '120000', 10);
-const engineType = process.env.E2E_ENGINE || 'flux';
 const frontendDevMode = process.env.FRONTEND_DEV_MODE === 'true';
 const frontendPort = parseInt(process.env.FRONTEND_PORT || '4173', 10);
 const nopChaosNextDir = process.env.NOP_CHAOS_NEXT_DIR || '../../../nop-chaos-next';
@@ -21,9 +20,9 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   workers: 1,
   reporter: [['list'], ['html', { open: 'never' }]],
-  timeout: 120_000,
-  // beforeAll 里自举全量索引（冷启动实测 >120s）：hook 预算须覆盖 150s 轮询
-  hookTimeout: 240_000,
+  timeout: 300_000,
+  // beforeAll 里自举全量索引（冷启动实测 >120s）——本包未锁定到支持 hookTimeout 的
+  // Playwright 版本，hook 预算继承 timeout，故这里整体放宽
   expect: { timeout: 15_000 },
 
   use: {
@@ -46,7 +45,7 @@ export default defineConfig({
 
     if (!process.env.SKIP_WEBSERVER) {
       servers.push({
-        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev${engineType === 'flux' ? ' -Dnop.web.render-mode=flux' : ''}`,
+        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev -Dnop.web.render-mode=flux`,
         cwd: '../../../nop-code/nop-code-app',
         port: backendPort,
         timeout: backendTimeout,

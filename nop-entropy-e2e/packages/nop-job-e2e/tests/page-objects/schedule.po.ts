@@ -1,11 +1,19 @@
 import { type Page } from '@playwright/test';
-import { CrudListPage, FormDialog } from '@nop-entropy/e2e-shared';
+import { CrudListPage } from '@nop-entropy/e2e-shared';
 import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
 // NopJobSchedule 按 executorKind（dict job/executor-kind：test/rpc/rpcPoll）解析 invoker
 // （nopJobInvoker_test 等），模型上没有 executorRef 属性
 export const E2E_EXECUTOR_KIND = 'test';
 export const E2E_JOB_PREFIX = 'e2e_job_';
+
+/** 调度状态（模型 fieldName 语义）。 */
+export const SCHEDULE_STATUS = {
+  DISABLED: 0,
+  ENABLED: 10,
+  PAUSED: 20,
+  ARCHIVED: 40,
+} as const;
 
 export interface ScheduleFormData {
   jobName: string;
@@ -31,125 +39,90 @@ export class SchedulePO extends CrudListPage {
 
   async goto(): Promise<void> {
     await super.goto('NopJobSchedule-main');
-    await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }
 
   async clickSave(): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    await dialog.submit();
-    await this.waitForList();
+    await super.clickSave();
   }
 
-  async clickView(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /查看/);
-    }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
+  /** 新建调度。 */
+  async createSchedule(data: ScheduleFormData): Promise<void> {
+    await this.clickAdd();
+    await this.fillAddForm(data);
+    await this.clickSave();
   }
 
-  async clickEdit(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.engine.rowAction(row, /编辑/);
-    }
-    await this.engine.dialog(this.page).waitFor({ state: 'visible' });
-  }
-
-  async clickDelete(rowId: string): Promise<void> {
-    const row = await this.findRowByText(rowId);
-    if (row) {
-      await this.deleteRow(row);
-    }
-    await this.waitForList();
-  }
-
+  /** 跨页定位调度（刷新 → 每页条数调最大 → 排序 → 逐页翻）。 */
   async searchSchedule(jobName: string): Promise<void> {
-    const row = await this.findRowDeep(jobName, '作业名');
-    if (!row) {
-      throw new Error('搜索后未找到行: ' + jobName);
-    }
+    await this.findRowDeepOrFail(jobName, '作业名');
   }
 
-  async fillAddForm(data: ScheduleFormData): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    await dialog.setField('jobName', data.jobName);
-    await dialog.setField('displayName', data.displayName);
-    if (data.executorKind !== undefined) {
-      await dialog.selectOption(['executorKind'], [data.executorKind]);
-    }
-    if (data.triggerType !== undefined) {
-      await dialog.selectOption(['triggerType'], [String(data.triggerType)]);
-    }
-    if (data.cronExpr) {
-      await dialog.setField('cronExpr', data.cronExpr);
-    }
-    if (data.scheduleStatus !== undefined) {
-      await dialog.selectOption(['scheduleStatus'], [String(data.scheduleStatus)]);
-    }
-    if (data.blockStrategy !== undefined) {
-      await dialog.selectOption(['blockStrategy'], [String(data.blockStrategy)]);
-    }
-    if (data.timeoutSeconds !== undefined) {
-      await dialog.setField('timeoutSeconds', String(data.timeoutSeconds));
-    }
-    if (data.partitionIndex !== undefined) {
-      // 分区索引是必填项，不填会被 amis 校验挡住、对话框无法提交
-      await dialog.setField('partitionIndex', String(data.partitionIndex));
-    }
-    if (data.retryPolicyId) {
-      await dialog.setField('retryPolicyId', data.retryPolicyId);
-    }
-    if (data.namespaceId) {
-      await dialog.setField('namespaceId', data.namespaceId);
-    }
-    if (data.groupId) {
-      await dialog.setField('groupId', data.groupId);
-    }
-    if (data.remark) {
-      await dialog.setField('remark', data.remark);
-    }
+  async triggerNow(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /立即触发/);
   }
 
-  async readField(fieldName: string): Promise<string> {
-    const dialog = new FormDialog(this.page, this.engine);
-    return dialog.getField(fieldName);
+  async enableSchedule(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /启用调度/);
   }
 
-
-  async triggerNow(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /立即触发/);
+  async disableSchedule(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /禁用调度/);
   }
 
-  async enableSchedule(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /启用调度/);
+  async pauseSchedule(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /暂停调度/);
   }
 
-  async disableSchedule(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /禁用调度/);
+  async resumeSchedule(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /恢复调度/);
   }
 
-  async pauseSchedule(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /暂停调度/);
-  }
-
-  async resumeSchedule(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /恢复调度/);
-  }
-
-  async archiveSchedule(rowIdentifier: string): Promise<void> {
-    await this.rowActionWithConfirm(rowIdentifier, /归档调度/);
+  async archiveSchedule(jobName: string): Promise<void> {
+    await this.confirmRowAction(jobName, /归档调度/);
   }
 
   async getRowCount(): Promise<number> {
-    return this.engine.rows(this.page).count();
+    return this.getTableRowCount();
   }
 
   async waitForRow(rowIdentifier: string): Promise<void> {
-    const row = await this.findRowByText(rowIdentifier);
-    if (row) {
-      await row.waitFor({ state: 'visible', timeout: 15_000 });
+    await super.waitForRow(rowIdentifier);
+  }
+
+  /**
+   * 新增/编辑调度表单的字段填写。分区索引是必填项，不填会被校验挡住、
+   * 对话框无法提交，因此默认值由 PO 兜底。
+   */
+  async fillAddForm(data: ScheduleFormData): Promise<void> {
+    await this.fillDialog({
+      jobName: data.jobName,
+      displayName: data.displayName,
+      partitionIndex: data.partitionIndex ?? 0,
+    });
+
+    if (data.executorKind !== undefined) {
+      await this.selectDialogOption('executorKind', data.executorKind);
     }
+    if (data.triggerType !== undefined) {
+      await this.selectDialogOption('triggerType', String(data.triggerType));
+    }
+    if (data.cronExpr) await this.fillDialog({ cronExpr: data.cronExpr });
+    if (data.scheduleStatus !== undefined) {
+      await this.selectDialogOption('scheduleStatus', String(data.scheduleStatus));
+    }
+    if (data.blockStrategy !== undefined) {
+      await this.selectDialogOption('blockStrategy', String(data.blockStrategy));
+    }
+
+    await this.fillDialog({
+      ...(data.timeoutSeconds !== undefined ? { timeoutSeconds: String(data.timeoutSeconds) } : {}),
+      ...(data.retryPolicyId ? { retryPolicyId: data.retryPolicyId } : {}),
+      ...(data.namespaceId ? { namespaceId: data.namespaceId } : {}),
+      ...(data.groupId ? { groupId: data.groupId } : {}),
+      ...(data.remark ? { remark: data.remark } : {}),
+    });
   }
 }
+
+export { SchedulePO as default };

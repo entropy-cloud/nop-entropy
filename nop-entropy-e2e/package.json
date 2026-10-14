@@ -4,16 +4,11 @@
   "type": "module",
   "scripts": {
     "build": "pnpm -r build",
-    "test": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm -r --no-bail test",
-    "test:amis": "E2E_ENGINE=amis pnpm -r test",
-    "test:auth": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm --filter nop-auth-e2e test",
-    "test:auth:amis": "E2E_ENGINE=amis pnpm --filter nop-auth-e2e test",
-    "test:code": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm --filter nop-code-e2e test",
-    "test:code:amis": "E2E_ENGINE=amis pnpm --filter nop-code-e2e test",
-    "test:job": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm --filter nop-job-e2e test",
-    "test:job:amis": "E2E_ENGINE=amis pnpm --filter nop-job-e2e test",
+    "test": "NOP_WEB_RENDER__MODE=flux pnpm -r --no-bail --workspace-concurrency=1 test",
+    "test:auth": "NOP_WEB_RENDER__MODE=flux pnpm --filter nop-auth-e2e test",
+    "test:code": "NOP_WEB_RENDER__MODE=flux pnpm --filter nop-code-e2e test",
+    "test:job": "NOP_WEB_RENDER__MODE=flux pnpm --filter nop-job-e2e test",
     "test:web": "pnpm --filter nop-web-e2e test",
-    "test:flux": "NOP_WEB_RENDER__MODE=flux E2E_ENGINE=flux pnpm -r test",
     "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {

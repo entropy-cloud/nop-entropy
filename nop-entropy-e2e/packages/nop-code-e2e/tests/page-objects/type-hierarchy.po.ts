@@ -1,5 +1,5 @@
-import { expect, type Page } from '@playwright/test';
-import { BasePage } from '@nop-entropy/e2e-shared';
+import type { Page } from '@playwright/test';
+import { BasePage, expect } from '@nop-entropy/e2e-shared';
 import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
 export interface TypeHierarchyFormInput {
@@ -15,18 +15,23 @@ export class TypeHierarchyPO extends BasePage {
   }
 
   async open(): Promise<void> {
-    await this.page.goto('/#/type-hierarchy-main');
-    await this.page.waitForLoadState('networkidle');
-    await expect(this.page.locator('text=类型层级').first()).toBeVisible({ timeout: 10_000 });
+    await this.goto('type-hierarchy-main');
+    await this.assertOpened();
   }
 
+  /** 页面已就绪（层级查询表单渲染完成）。 */
+  async assertOpened(): Promise<void> {
+    await expect(this.fieldInput('qualifiedName')).toBeVisible({ timeout: 20_000 });
+  }
+
+  /** 按 fieldName 填写查询条件。 */
   async fillForm(input: TypeHierarchyFormInput): Promise<void> {
-    await this.page.locator('input[name="indexId"]').fill(input.indexId);
-    await this.page.locator('input[name="qualifiedName"]').fill(input.qualifiedName);
-    await this.page.locator('input[name="direction"]').fill(input.direction);
-    await this.page.locator('input[name="maxDepth"]').fill(input.maxDepth);
+    for (const [fieldName, value] of Object.entries(input)) {
+      await this.fillField(fieldName, value);
+    }
   }
 
+  /** 提交查询并等待层级接口返回。 */
   async submitAndWait(): Promise<void> {
     const responsePromise = this.page.waitForResponse(
       (resp) => resp.url().includes('/graphql') && !!resp.request().postData()?.includes('NopCodeSymbol'),
@@ -35,3 +40,5 @@ export class TypeHierarchyPO extends BasePage {
     await responsePromise;
   }
 }
+
+export { TypeHierarchyPO as default };

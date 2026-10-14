@@ -1,41 +1,31 @@
-import type { Page as PlaywrightPage } from '@playwright/test';
+import type { Locator, Page as PlaywrightPage } from '@playwright/test';
 import type { EngineAdapter } from './types';
+import { gotoHash, tryGotoHash } from './hashRoute';
 
+/** 所有页面对象的基类：持有 page 与渲染引擎适配器，并提供确定性 hash 导航与字段定位。 */
 export abstract class BasePage {
   constructor(
     protected page: PlaywrightPage,
     protected engine: EngineAdapter,
   ) {}
 
+  /** 导航到 hash 路由（传不含前导 `#/` 的路径，如 `NopAuthUser-main`）。 */
   async goto(hashRoute: string): Promise<void> {
-    // 不用 page.goto(hash)：SPA 已加载时对同页 hash 的 goto 会被壳层自身的导航
-    // （如登录后重定向）踩掉或静默忽略——直接赋值 location.hash 触发 hashchange，
-    // 并校验 hash 生效，未生效重试（壳层登录后重定向与菜单路由注册存在竞态）
-    const target = `#/${hashRoute}`;
-    for (let i = 0; i < 3; i++) {
-      await this.page.evaluate((h) => {
-        window.location.hash = h;
-      }, target);
-      const applied = await this.page
-        .waitForFunction((h) => window.location.hash === h, target, { timeout: 3_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (!applied) {
-        await this.page.waitForTimeout(600);
-        continue;
-      }
-      // 防回弹：壳层登录重定向链（/auth/login → / → homePath）未走完时赋 hash
-      // 会被 catch-all 路由弹回 homePath——静置后复读一次，被弹回则重试
-      await this.page.waitForTimeout(800);
-      const stillThere = await this.page.evaluate(
-        (h) => window.location.hash === h,
-        target,
-      );
-      if (stillThere) {
-        await this.page.waitForLoadState('networkidle').catch(() => {});
-        return;
-      }
-    }
-    throw new Error(`hash 导航未生效: ${target}（当前 ${this.page.url()}）`);
+    await gotoHash(this.page, hashRoute);
+  }
+
+  /** 尽力导航到 hash 路由；被登录守卫弹回时返回 false（预期导航失败的用例）。 */
+  async tryGoto(hashRoute: string): Promise<boolean> {
+    return tryGotoHash(this.page, hashRoute);
+  }
+
+  /** 按 fieldName 定位页面内的字段输入控件（不限 CRUD 查询表单）。 */
+  protected fieldInput(fieldName: string): Locator {
+    return this.engine.fieldInput(this.page, fieldName);
+  }
+
+  /** 按 fieldName 填写页面内的字段输入控件。 */
+  protected async fillField(fieldName: string, value: string): Promise<void> {
+    await this.fieldInput(fieldName).fill(value);
   }
 }

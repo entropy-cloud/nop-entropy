@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type APIRequestContext } from '@playwright/test';
 import { loginRpc, rpc } from '@nop-entropy/e2e-shared';
 
 const E2E_JOB_PREFIX = 'e2e_fault_';
@@ -221,7 +221,7 @@ test.describe('Plan 18 容错改进集成测试', () => {
 // 轮询到 fire 进入终态（>= SUCCESS：30/40/50/60）。"非 0 即返回"是错的——
 // RUNNING(20) 阶段 invoker 已返回但完成处理器要等下个扫描周期才落终态（dev 环境 ~15-20s）
 async function pollUntilFireTerminal(
-  request: import('@playwright/test').APIRequestContext,
+  request: APIRequestContext,
   jobScheduleId: string,
   maxAttempts = 30,
   intervalMs = 1500,
@@ -243,7 +243,7 @@ async function pollUntilFireTerminal(
 }
 
 async function cleanupTestSchedules(
-  request: import('@playwright/test').APIRequestContext,
+  request: APIRequestContext,
 ): Promise<void> {
   const resp = await rpc<FindPageResult<{ id: string; jobName: string }>>(
     request, 'NopJobSchedule__findPage', { query: { offset: 0, limit: 200 } },

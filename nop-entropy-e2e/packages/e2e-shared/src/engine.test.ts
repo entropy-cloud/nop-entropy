@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { getEngineType, createEngine, getEngine, resetEngine } from './engine';
-import { AmisAdapter } from './AmisAdapter';
 import { FluxAdapter } from './FluxAdapter';
 
 const originalEnv = process.env.E2E_ENGINE;
@@ -20,43 +19,20 @@ describe('getEngineType', () => {
     expect(getEngineType()).toBe('flux');
   });
 
-  it('returns "amis" when E2E_ENGINE is "amis"', () => {
-    process.env.E2E_ENGINE = 'amis';
-    expect(getEngineType()).toBe('amis');
-  });
-
-  it('returns "flux" when E2E_ENGINE is "flux"', () => {
+  it('returns "flux" regardless of E2E_ENGINE value (flux-only host)', () => {
     process.env.E2E_ENGINE = 'flux';
-    expect(getEngineType()).toBe('flux');
-  });
-
-  it('returns "flux" for unknown engine values', () => {
-    process.env.E2E_ENGINE = 'unknown';
     expect(getEngineType()).toBe('flux');
   });
 });
 
 describe('createEngine', () => {
-  it('returns AmisAdapter instance for "amis"', () => {
-    const engine = createEngine('amis');
-    expect(engine).toBeInstanceOf(AmisAdapter);
-    expect(engine.engineName).toBe('amis');
-  });
-
-  it('returns FluxAdapter instance for "flux"', () => {
+  it('returns FluxAdapter instance', () => {
     const engine = createEngine('flux');
     expect(engine).toBeInstanceOf(FluxAdapter);
     expect(engine.engineName).toBe('flux');
   });
 
-  it('defaults to AmisAdapter when no type given', () => {
-    delete process.env.E2E_ENGINE;
-    const engine = createEngine();
-    expect(engine).toBeInstanceOf(AmisAdapter);
-  });
-
-  it('defaults to env var when no type argument given', () => {
-    process.env.E2E_ENGINE = 'flux';
+  it('returns FluxAdapter regardless of type argument (flux-only host)', () => {
     const engine = createEngine();
     expect(engine).toBeInstanceOf(FluxAdapter);
   });
@@ -66,7 +42,7 @@ describe('getEngine', () => {
   it('returns an EngineAdapter instance', () => {
     delete process.env.E2E_ENGINE;
     const engine = getEngine();
-    expect(engine).toBeInstanceOf(AmisAdapter);
+    expect(engine).toBeInstanceOf(FluxAdapter);
   });
 
   it('returns the same cached instance on subsequent calls', () => {
@@ -74,12 +50,6 @@ describe('getEngine', () => {
     const a = getEngine();
     const b = getEngine();
     expect(a).toBe(b);
-  });
-
-  it('respects E2E_ENGINE env var', () => {
-    process.env.E2E_ENGINE = 'flux';
-    const engine = getEngine();
-    expect(engine).toBeInstanceOf(FluxAdapter);
   });
 });
 

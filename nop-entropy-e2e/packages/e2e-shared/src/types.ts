@@ -4,7 +4,8 @@ export const DEFAULT_LIST_TIMEOUT = 15_000;
 export const DEFAULT_DIALOG_TIMEOUT = 15_000;
 export const DEFAULT_NAV_TIMEOUT = 30_000;
 
-export type EngineType = 'amis' | 'flux';
+/** host 为 flux 单引擎；类型保留仅为下游兼容，恒为 'flux'。 */
+export type EngineType = 'flux';
 
 export interface EngineAdapter {
   engineName: string;
@@ -23,7 +24,13 @@ export interface EngineAdapter {
   searchButton(page: Page): Locator;
   refreshButton(page: Page): Locator;
 
-  /** 把每页条数设为指定值（amis 下拉 / flux 原生 select 由引擎实现分派） */
+  /**
+   * 按 fieldName 定位任意作用域内的字段输入控件（不限 CRUD 查询表单）——
+   * 独立表单页（queryForm 等）与弹窗表单共用同一字段定位契约。
+   */
+  fieldInput(scope: Page | Locator, fieldName: string): Locator;
+
+  /** 把每页条数设为指定值（flux 原生 select） */
   setPageSize(page: Page, size: number): Promise<void>;
   /** 点击列头排序触发器（每次点击切换升/降序） */
   sortByColumn(page: Page, headerText: string): Promise<void>;
@@ -68,4 +75,4 @@ export interface CrudPageConfig {
   columnHeaders?: string[];
 }
 
-export const ENGINE_TYPES: EngineType[] = ['amis', 'flux'];
+export const ENGINE_TYPES: EngineType[] = ['flux'];

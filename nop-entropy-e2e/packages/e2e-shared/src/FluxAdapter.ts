@@ -1,244 +1,548 @@
 import type { Locator, Page } from '@playwright/test';
-import { AmisAdapter } from './AmisAdapter';
+import type { EngineAdapter } from './types';
 
-/**
- * flux 引擎适配器（双模）：flux 渲染管线与 amis 渲染管线可能在同一个被测应用里
- * 按页面粒度混用（render-mode=flux 下，meta 驱动页面与 GenPage 页面的输出不同），
- * 因此每个定位器都是 "flux data-slot 契约优先、amis cxd 结构兜底" 的联合选择器，
- * 与具体页面用哪种渲染器无关。交互动作（确认框、排序、分页）优先走 flux 契约，
- * flux 结构不存在时回落 super 的 amis 实现。
- */
-export class FluxAdapter extends AmisAdapter {
+export class FluxAdapter implements EngineAdapter {
   engineName = 'flux';
 
+  // ── CRUD 容器 ──
+
   crudContainer(page: Page): Locator {
-    return page.locator('.nop-crud, .cxd-Crud').first();
+    return page.locator('.nop-crud').first();
   }
 
   table(page: Page): Locator {
-    return page.locator('.nop-table, .cxd-Crud, .cxd-Table').first();
+    return page.locator('.nop-table').first();
   }
 
   rows(page: Page): Locator {
-    return page.locator(
-      '[data-slot="table-body"] tr[data-slot="table-row"], .cxd-Table tbody tr',
-    );
+    return page.locator('[data-slot="table-body"] tr[data-slot="table-row"]');
+  }
+
+  async cellValue(row: Locator, fieldName: string, _columnHeaders: string[]): Promise<string> {
+    // 契约（flux-guide 13-testing.md "字段定位契约"）：表格单元格 td[data-field="colName"]。
+    // 按列名直读，替代 td:nth-child(N) + 占位空表头的列索引偏移修正。
+    const cell = row.locator(`td[data-field="${fieldName}"]`).first();
+    if (await cell.count().then((c) => c > 0)) {
+      return ((await cell.textContent()) ?? '').trim();
+    }
+    return '';
   }
 
   addButton(page: Page): Locator {
     return page
+      .locator('[data-slot="crud-toolbar-main"] button')
+      .filter({ hasText: /新增|Add|添加/ })
+      .first();
+  }
+
+  queryButton(page: Page): Locator {
+    return page
+      .locator('[data-slot="crud-query"] button')
+      .filter({ hasText: /查询|搜索|Search/ })
+      .first();
+  }
+
+  async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
+    const page = row.page();
+    const actionContainer = row.locator('[data-slot="table-actions"]').first();
+    const button = actionContainer.getByRole('button').filter({ hasText: actionNamePattern }).first();
+    if (await button.count().then((c) => c > 0)) {
+      await button.click();
+      return;
+    }
+
+    // 操作在"更多"下拉菜单中 → 展开 dropdown，点击菜单项
+    const moreButton = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
+    if (await moreButton.count().then((c) => c > 0)) {
+      await moreButton.click();
+      await page.waitForTimeout(300);
+      const menuItem = page
+        .locator('[data-slot="dropdown-menu-item"], [role="menuitem"]')
+        .filter({ hasText: actionNamePattern })
+        .first();
+      if (await menuItem.count().then((c) => c > 0)) {
+        await menuItem.click();
+        return;
+      }
+    }
+
+    const fallback = row.getByRole('button').filter({ hasText: actionNamePattern }).first();
+    await fallback.click();
+  }
+
+  // ── CRUD 搜索 ──
+
+  searchField(page: Page, fieldName: string): Locator {
+    // 契约：查询表单字段也是 wrap 字段，带 data-field；回退旧结构
+    return page
+      .locator('[data-slot="crud-query"]')
       .locator(
-        '[data-slot="crud-toolbar-main"] button:has-text("新增"), button:has-text("新增"), button:has(.fa-plus)',
+        `[data-field="${fieldName}"] input, [data-field="${fieldName}"] textarea, input[name="${fieldName}"], #${fieldName}-control`,
       )
+      .first();
+  }
+
+  searchButton(page: Page): Locator {
+    return page
+      .locator('[data-slot="crud-query"] button[type="submit"]')
+      .or(page.locator('[data-slot="crud-query"] button').filter({ hasText: /搜索|查询|Search/ }))
       .first();
   }
 
   refreshButton(page: Page): Locator {
     return page
-      .locator('[data-slot="crud-toolbar-main"] button:has-text("刷新"), [class*="fa-sync"]')
+      .locator('[data-slot="crud-toolbar-main"] button')
+      .filter({ hasText: /刷新|Refresh/ })
       .first();
   }
 
-  dialog(page: Page): Locator {
-    return page
-      .locator('[data-slot="dialog-surface"], [data-slot="dialog-content"], .cxd-Modal, .cxd-Dialog')
-      .first();
-  }
-
-  drawer(page: Page): Locator {
-    return page
-      .locator('[data-slot="drawer-surface"], [data-slot="drawer-content"], .cxd-Drawer')
-      .first();
-  }
-
-  formField(dialog: Locator, fieldName: string): Locator {
-    // 必须落到真实输入控件：字段根本身是 label[data-field]，fill/inputValue 对 label
-    // 无效；先找字段根内的 input/textarea，再按 name 兜底
-    return dialog
+  fieldInput(scope: Page | Locator, fieldName: string): Locator {
+    const s = scope as Locator;
+    // 契约：字段根 [data-field] 内的交互控件；非 wrap 字段回退 name / id
+    return s
       .locator(
-        `[data-field="${fieldName}"] input, [data-field="${fieldName}"] textarea, input[name="${fieldName}"], textarea[name="${fieldName}"]`,
+        `[data-field="${fieldName}"] input, [data-field="${fieldName}"] textarea, input[name="${fieldName}"], textarea[name="${fieldName}"], #${fieldName}-control`,
       )
       .first();
   }
 
-  // ── flux 组合框契约（探针实证）：字段根 label.nop-field[data-field][data-renderer]，
-  // 触发器 [data-slot="input-group"]，选项 [data-slot="combobox-item"] ──
-
-  private fluxFieldRoot(dialog: Locator, fieldName: string): Locator {
-    return dialog.locator(`[data-field="${fieldName}"]`).first();
-  }
-
-  /** 在字段根上执行 flux 组合框选择；字段不存在或非组合框结构时返回 false */
-  private async fluxComboboxSelect(root: Locator, optionText: string): Promise<boolean> {
-    if (!(await root.count().then((c) => c > 0))) return false;
-    const trigger = root.locator('[data-slot="input-group"]').first();
-    if (!(await trigger.count().then((c) => c > 0))) return false;
-
-    const page = root.page();
-    // 已关闭字段的弹层 DOM 会残留（不可见但仍在文档中）——必须限定可见弹层内的选项，
-    // 否则 first() 命中前一个字段的隐藏选项，点击静默失败（字段留空、提交时必填校验报错）
-    const visibleItems = page.locator('[data-slot="combobox-item"]:visible');
-    const esc = optionText.replace(/"/g, '\\"');
-    const displayInput = root.locator('input').first();
-
-    for (let attempt = 0; attempt < 2; attempt++) {
-      await trigger.click();
-      // 等待弹层真正打开：连续填多个组合框时，前一弹层的关闭清理可能吞掉首次 toggle
-      const opened = await visibleItems
-        .first()
-        .waitFor({ state: 'visible', timeout: 3_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (!opened) continue;
-
-      const byValue = page
-        .locator(`[data-slot="combobox-item"][data-value="${esc}"]:visible`)
-        .first();
-      const item = (await byValue.isVisible().catch(() => false))
-        ? byValue
-        : visibleItems.filter({ hasText: optionText }).first();
-      try {
-        await item.click({ timeout: 3_000 });
-      } catch {
-        await page.keyboard.press('Escape').catch(() => {});
-        continue;
-      }
-      // 校验选中已登记（显示输入框出现值），未登记视为本次点击被吞，重试
-      const registered = await displayInput
-        .evaluate((el) => !!(el as HTMLInputElement).value)
-        .catch(() => false);
-      if (registered) return true;
-    }
-    await page.keyboard.press('Escape').catch(() => {});
-    return false;
-  }
-
-  override async selectOption(dialog: Locator, fieldLabels: string[], optionTexts: string[]): Promise<void> {
-    for (let i = 0; i < fieldLabels.length; i++) {
-      const key = fieldLabels[i];
-      const optionText = optionTexts[i] ?? optionTexts[optionTexts.length - 1];
-      if (await this.fluxComboboxSelect(this.fluxFieldRoot(dialog, key), optionText)) continue;
-      await super.selectOption(dialog, [key], [optionText]);
-    }
-  }
-
-  override async setFieldValue(dialog: Locator, fieldName: string, value: string | boolean | number): Promise<void> {
-    const root = this.fluxFieldRoot(dialog, fieldName);
-    const renderer = await root.getAttribute('data-renderer').catch(() => null);
-    if (renderer === 'select' || renderer === 'combobox') {
-      // 带 data-renderer 根的字段是 flux 渲染——组合框选择失败时不能回落 amis 的
-      // input fill（会把裸值写进显示框产生脏表单状态），显式失败
-      const ok = await this.fluxComboboxSelect(root, String(value));
-      if (!ok) {
-        throw new Error(`flux 组合框选择失败: ${fieldName}="${value}"（弹层未打开或选项未命中）`);
-      }
-      return;
-    }
-    await super.setFieldValue(dialog, fieldName, value);
-  }
+  // ── 分页 / 排序 ──
 
   async setPageSize(page: Page, size: number): Promise<void> {
-    // flux：原生 select；amis：下拉自绘。联合探测，哪种存在用哪种
     const native = page.locator('[data-slot="table-pagination"] select').first();
     if (await native.isVisible().catch(() => false)) {
       await native.selectOption(String(size));
       await page.waitForLoadState('networkidle').catch(() => {});
       return;
     }
-    await super.setPageSize(page, size);
+    // 分页控件未渲染（无分页或单页放得下）——按调用方语义视为已生效
   }
 
   async sortByColumn(page: Page, headerText: string): Promise<void> {
-    const fluxTh = page.locator('th[data-slot="table-head"]').filter({ hasText: headerText }).first();
-    if (await fluxTh.isVisible().catch(() => false)) {
-      const trigger = fluxTh.locator('[data-slot="table-sort"], button, [class*="sort"]').first();
-      if (await trigger.count().then((c) => c > 0)) {
-        await trigger.click();
-      } else {
-        await fluxTh.click();
-      }
-      await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(600);
-      return;
+    const th = page.locator('th[data-slot="table-head"]').filter({ hasText: headerText }).first();
+    if (!(await th.isVisible().catch(() => false))) return;
+    const trigger = th.locator('[data-slot="table-sort"], button, [class*="sort"]').first();
+    if (await trigger.count().then((c) => c > 0)) {
+      await trigger.click();
+    } else {
+      await th.click();
     }
-    await super.sortByColumn(page, headerText);
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(600);
   }
 
   async goToPage(page: Page, n: number): Promise<boolean> {
-    const fluxLink = page.locator('[data-slot="pagination"] [data-slot="pagination-link"]')
-      .filter({ hasText: new RegExp(`^${n}$`) }).first();
-    if (await fluxLink.isVisible().catch(() => false)) {
-      const cls = (await fluxLink.getAttribute('class')) ?? '';
-      if (/active|disabled|selected/.test(cls)) return false;
-      await fluxLink.click();
-      await page.waitForLoadState('networkidle').catch(() => {});
-      await page.waitForTimeout(500);
-      return true;
-    }
-    return super.goToPage(page, n);
+    const link = page
+      .locator('[data-slot="pagination"] [data-slot="pagination-link"]')
+      .filter({ hasText: new RegExp(`^${n}$`) })
+      .first();
+    if (!(await link.isVisible().catch(() => false))) return false;
+    const cls = (await link.getAttribute('class')) ?? '';
+    if (/active|disabled|selected/.test(cls)) return false;
+    await link.click();
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(500);
+    return true;
   }
 
-  async rowAction(row: Locator, actionNamePattern: RegExp): Promise<void> {
-    const page = row.page();
-    // 上一行操作遗留的 amis PopOver 遮罩会拦截后续所有行点击——点击遮罩本身
-    // 即 amis 的 outside-click 关闭机制，先清理再继续
-    const popoverOverlay = page.locator('.cxd-PopOver-overlay').first();
-    const dismissPopovers = async () => {
-      if (await popoverOverlay.isVisible().catch(() => false)) {
-        await popoverOverlay.click({ force: true }).catch(() => {});
-        await popoverOverlay.waitFor({ state: 'hidden', timeout: 2_000 }).catch(() => {});
-      }
-    };
-    await dismissPopovers();
+  // ── 对话框 ──
 
-    // 行内直接按钮（无需下拉）
-    const directButton = row.locator('button').filter({ hasText: actionNamePattern }).first();
-    if ((await directButton.count().then((c) => c > 0)) && (await directButton.isVisible().catch(() => false))) {
-      await directButton.click();
+  dialog(page: Page): Locator {
+    return page.locator('[data-slot="dialog-surface"], [data-slot="dialog-content"]').first();
+  }
+
+  drawer(page: Page): Locator {
+    return page.locator('[data-slot="drawer-surface"], [data-slot="drawer-content"]').first();
+  }
+
+  formField(dialog: Locator, fieldName: string): Locator {
+    // 契约（flux-guide 13-testing.md）：字段根 .nop-field[data-field="name"]，
+    // 含 checkbox/switch（它们的 ${name}-control id 不在 interactive 元素上）。
+    return dialog.locator(`[data-field="${fieldName}"]`).first();
+  }
+
+  /** 按字段根 data-renderer 读取控件类型（契约属性，确定性分派）。 */
+  private async fieldRendererType(field: Locator): Promise<string | undefined> {
+    if (await field.count().then((c) => c === 0)) return undefined;
+    const type = await field.getAttribute('data-renderer').catch(() => undefined);
+    return type ?? undefined;
+  }
+
+  async setFieldValue(
+    dialog: Locator,
+    fieldName: string,
+    value: string | boolean | number,
+  ): Promise<void> {
+    const page = dialog.page();
+    const strValue = String(value);
+
+    // ── 主路径：字段根 [data-field] + data-renderer 分派（契约） ──
+    const field = this.formField(dialog, fieldName);
+    const rendererType = await this.fieldRendererType(field);
+
+    if (rendererType !== undefined) {
+      if (typeof value === 'boolean') {
+        // checkbox / switch：点击 interactive 元素切换 aria-checked
+        const toggle = field
+          .locator('[data-slot="checkbox"], [data-slot="switch"]')
+          .first();
+        if (await toggle.count().then((c) => c > 0)) {
+          const checked = await toggle.getAttribute('aria-checked');
+          if ((checked === 'true') !== value) {
+            await toggle.click();
+            await page.waitForTimeout(300);
+          }
+          return;
+        }
+      }
+
+      if (rendererType === 'select') {
+        // select：点击 trigger 展开，按 data-value 精确选择选项
+        await this.clickSelectOption(page, field, strValue);
+        return;
+      }
+
+      // 其余 input 类控件（input-text / textarea / input-number / ...）：
+      // fill 触发 React onChange → form store 更新
+      const input = field.locator('input:not([type="checkbox"]):not([type="radio"]), textarea').first();
+      if (await input.count().then((c) => c > 0)) {
+        await input.fill(strValue);
+        return;
+      }
+
+      // 无 input/textarea（如只读视图）→ 尝试 textContent 写入
+      await field.click().catch(() => {});
       return;
     }
 
-    // 更多下拉：只点一次「更多」，菜单项用 flux + amis 联合选择器匹配——
-    // 先点开后回落 super 再点一次「更多」会把下拉 toggle 关闭并遗留遮罩
-    const more = row.getByRole('button').filter({ hasText: /更多|More/ }).first();
-    if (await more.count().then((c) => c > 0)) {
-      await more.click();
-      const menuItem = page
-        .locator(
-          '[data-slot="dropdown-menu-item"], [role="menuitem"], .cxd-DropDown-menuItem, .cxd-DropDown-menu > li',
-        )
-        .filter({ hasText: actionNamePattern })
+    // ── 回退路径：无 data-field（旧 bundle / 非 wrap 字段） ──
+    await this.setFieldValueLegacy(dialog, fieldName, value);
+  }
+
+  /** 旧 DOM 结构回退（data-slot / ${name}-control / combobox label 匹配）。 */
+  private async setFieldValueLegacy(
+    dialog: Locator,
+    fieldName: string,
+    value: string | boolean | number,
+  ): Promise<void> {
+    const page = dialog.page();
+    const strValue = String(value);
+
+    if (typeof value === 'boolean') {
+      const checkbox = dialog
+        .locator(`#${fieldName}-control-label [data-slot="checkbox"][role="checkbox"]`)
         .first();
-      try {
-        await menuItem.waitFor({ state: 'visible', timeout: 4_000 });
-        await menuItem.click();
+      if (await checkbox.count().then((c) => c > 0)) {
+        const ariaChecked = await checkbox.getAttribute('aria-checked');
+        if ((ariaChecked === 'true') !== value) await checkbox.click();
         return;
-      } catch {
-        // amis 弹层不响应 Escape——用遮罩 outside-click 关闭，避免拦截后续操作
-        await page.keyboard.press('Escape').catch(() => {});
-        await dismissPopovers();
+      }
+      const switchEl = dialog
+        .locator(`#${fieldName}-control-label [data-slot="switch"][role="switch"]`)
+        .first();
+      if (await switchEl.count().then((c) => c > 0)) {
+        const ariaChecked = await switchEl.getAttribute('aria-checked');
+        if ((ariaChecked === 'true') !== value) {
+          await switchEl.click();
+          await page.waitForTimeout(300);
+        }
+        return;
       }
     }
-    await super.rowAction(row, actionNamePattern);
+
+    const nativeField = dialog
+      .locator(`input[name="${fieldName}"], textarea[name="${fieldName}"], #${fieldName}-control`)
+      .first();
+    if (await nativeField.count().then((c) => c > 0)) {
+      const tagName = await nativeField.evaluate((el: Element) => el.tagName);
+      const inputType = await nativeField
+        .evaluate((el: Element) => (el as HTMLInputElement).type)
+        .catch(() => '');
+      const isInsideCombobox = await nativeField
+        .evaluate((el: Element) => !!el.closest('[role="combobox"]'))
+        .catch(() => false);
+      if (tagName === 'INPUT' && inputType !== 'checkbox' && inputType !== 'radio' && !isInsideCombobox) {
+        await nativeField.fill(strValue);
+        return;
+      }
+      if (tagName === 'TEXTAREA') {
+        await nativeField.fill(strValue);
+        return;
+      }
+      if (tagName === 'SELECT') {
+        await nativeField.selectOption({ label: strValue });
+        return;
+      }
+    }
+
+    const comboTrigger = dialog.locator(`#${fieldName}-control`).first();
+    if (await comboTrigger.count().then((c) => c > 0)) {
+      await comboTrigger.click();
+      await page.waitForTimeout(400);
+      if (await this.clickVisibleComboboxItem(page, strValue)) {
+        await page.waitForTimeout(300);
+        return;
+      }
+      await comboTrigger.click();
+      await page.waitForTimeout(400);
+      if (await this.clickVisibleComboboxItem(page, strValue)) {
+        await page.waitForTimeout(300);
+        return;
+      }
+    }
+
+    const labelField = dialog.getByLabel(fieldName);
+    if (await labelField.count().then((c) => c > 0)) {
+      await labelField.fill(strValue).catch(() => {});
+    }
   }
 
   /**
-   * 确认框点击：flux 壳层 alert-dialog 用 data-slot 结构渲染，优先按契约定位；
-   * 壳层未命中（amis 自绘确认框）时回退 super 的 role=alertdialog 文本匹配。
+   * 契约：select 的选项是 `[data-slot="combobox-item"][data-value="<value>"]`。
+   *
+   * 三个坑（都实测踩过，改动前请先读）：
+   *
+   * 1. **原生 `el.click()` 是有效的**——Base UI `ComboboxItem` 的 `onClick` 直接接到
+   *    `commitSelection`，不需要 pointerdown/mousedown 事件链。用原生 click 还能绕开
+   *    Playwright 在 Base UI 上的 actionability 超时（弹层动画期间尤其明显）。
+   * 2. **"已打开"的唯一正确判据是 `[data-slot="combobox-content"][data-open]`**——
+   *    关闭的弹层 DOM 不卸载（退出动画需要）。三种错法都实测踩过：
+   *    `.first()` 会取到别的字段已关闭弹层的隐藏项，把"已开"误判成"未开"；
+   *    `:not([data-closed])` 更糟——**从未打开过**的弹层既无 `data-closed` 也无
+   *    `data-open`，会被误判成"已打开"；
+   *    `:visible` 结果正确但依赖几何与动画时序，`data-open` 是语义判据，更稳。
+   * 3. **触发器是 `[data-slot="input-group"]`**，本渲染路径没有 `combobox-trigger`
+   *    （下拉按钮是 `input-group-button`，输入框带 `role="combobox"`）。候选按序探测。
    */
-  override async confirmDialogAction(page: Page): Promise<void> {
-    const slotBtn = page
-      .locator('[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"], [data-slot="alert-dialog-portal"] button:visible')
-      .filter({ hasText: /^(确认|确定|OK|删除)$/ })
-      .last();
-    if (await slotBtn.isVisible().catch(() => false)) {
-      await slotBtn.click();
-      return;
+  private async clickSelectOption(page: Page, field: Locator, value: string): Promise<void> {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      if (!(await this.openCombobox(field))) continue;
+      if (!(await this.clickVisibleComboboxItem(page, value))) continue;
+
+      // 校验选中已登记（显示框出现值），未登记视为本次点击被吞掉，重开重试
+      const registered = await field
+        .locator('input')
+        .first()
+        .evaluate((el) => !!(el as HTMLInputElement).value)
+        .catch(() => true);
+      if (registered) {
+        await page.waitForTimeout(300);
+        return;
+      }
     }
-    await super.confirmDialogAction(page);
+    throw new Error(
+      `flux 组合框选择失败: "${value}"（弹层未打开或选项未命中）\n${await this.describeCombobox(field)}`,
+    );
   }
 
-  /** 日期选择 helper（Flux 特有，不在 EngineAdapter 接口中，供 PO 直接调用）。 */
+  /** 失败诊断：字段根 DOM + 全部选项的可见性/取值快照，快速定位契约漂移。 */
+  private async describeCombobox(field: Locator): Promise<string> {
+    const page = field.page();
+    const html = await field
+      .first()
+      .evaluate((el) => el.outerHTML.slice(0, 600))
+      .catch(() => '(field html unavailable)');
+    const items = await page
+      .evaluate(() =>
+        Array.from(document.querySelectorAll('[data-slot="combobox-item"]')).map((it) => {
+          const r = it.getBoundingClientRect();
+          return {
+            visible: r.width > 0 && r.height > 0,
+            value: it.getAttribute('data-value'),
+            text: (it.textContent || '').trim().slice(0, 24),
+          };
+        }),
+      )
+      .catch(() => []);
+    return `field=${html}\nitems=${JSON.stringify(items).slice(0, 800)}`;
+  }
+
+  /**
+   * 确保字段内的组合框弹层处于展开态。
+   *
+   * "已展开"判据 = 存在带 `data-open` 的弹层（见 `clickSelectOption` 坑 2）。已展开时直接
+   * 返回，避免再点一次触发器把刚打开的弹层 toggle 关掉。
+   */
+  private async openCombobox(field: Locator): Promise<boolean> {
+    const page = field.page();
+    const openPopup = page.locator('[data-slot="combobox-content"][data-open]');
+    if (await openPopup.count().then((c) => c > 0)) return true;
+
+    for (const sel of [
+      '[data-slot="input-group"]',
+      '[data-slot="combobox-trigger"]',
+      '[role="combobox"]',
+    ]) {
+      const trigger = field.locator(sel).first();
+      if (!(await trigger.count().then((c) => c > 0))) continue;
+      await trigger.click().catch(() => {});
+      // 连续填多个组合框时，前一弹层的关闭清理可能吞掉首次 toggle
+      const opened = await openPopup
+        .first()
+        .waitFor({ state: 'attached', timeout: 2_000 })
+        .then(() => true)
+        .catch(() => false);
+      if (opened) return true;
+    }
+    return false;
+  }
+
+  /**
+   * 在当前打开的弹层内点选一个选项（原生 click）。
+   *
+   * 先按 `data-open` 把作用域收敛到当前弹层（关闭弹层的残留选项不参与），再按几何尺寸
+   * 过滤，最后先按 `data-value` 精确命中、未命中回退按选项文案匹配——字典选项文本常为
+   * `value-label` 格式（如 "1-男"），前缀锚定避免 "1" 误命中 "10-..."。
+   */
+  private async clickVisibleComboboxItem(page: Page, value: string): Promise<boolean> {
+    return page.evaluate((val: string) => {
+      const openPopup = document.querySelector('[data-slot="combobox-content"][data-open]');
+      const scope: ParentNode = openPopup ?? document;
+      const live = Array.from(scope.querySelectorAll('[data-slot="combobox-item"]')).filter((it) => {
+        const r = it.getBoundingClientRect();
+        return r.width > 0 && r.height > 0;
+      });
+
+      const byValue = live.find((it) => it.getAttribute('data-value') === val);
+      if (byValue) {
+        (byValue as HTMLElement).click();
+        return true;
+      }
+      const byText = live.find((it) => {
+        const text = (it.textContent || '').trim();
+        return text === val || text.startsWith(`${val}-`);
+      });
+      if (byText) {
+        (byText as HTMLElement).click();
+        return true;
+      }
+      return false;
+    }, value);
+  }
+
+  submitButton(dialog: Locator): Locator {
+    return dialog.locator('button').filter({ hasText: /确定|确认|保存|Submit|Save|提交/ }).first();
+  }
+
+  async selectOption(
+    dialog: Locator,
+    fieldLabels: string[],
+    optionTexts: string[],
+  ): Promise<void> {
+    const page = dialog.page();
+
+    for (let i = 0; i < fieldLabels.length; i++) {
+      const field = this.formField(dialog, fieldLabels[i]);
+      const optionText = optionTexts[i] ?? optionTexts[optionTexts.length - 1];
+
+      await this.clickSelectOption(page, field, optionText);
+
+      if (i < fieldLabels.length - 1) {
+        await page.waitForTimeout(500);
+      }
+    }
+  }
+
+  dateInputByLabel(page: Page, labelText: string): Locator {
+    return page.locator(`[aria-label="${labelText}"]`).first();
+  }
+
+  // ── 只读字段 ──
+
+  async staticFieldValue(dialog: Locator, fieldName: string): Promise<string> {
+    // 契约：字段根 [data-field]，只读视图字段渲染为静态文本
+    const field = dialog.locator(`[data-field="${fieldName}"]`).first();
+    if (await field.count().then((c) => c > 0)) {
+      return ((await field.textContent()) ?? '').trim();
+    }
+    const legacy = dialog.locator(`#${fieldName}-control`).first();
+    if (await legacy.count().then((c) => c > 0)) {
+      return ((await legacy.textContent()) ?? '').trim();
+    }
+    return '';
+  }
+
+  // ── Tab 支持 ──
+
+  async switchToTab(scope: Page | Locator, tabLabel: string): Promise<Locator> {
+    const s = scope as Locator;
+    const page = 'url' in scope ? (scope as Page) : s.page();
+    const tabBtn = s.locator('[data-slot="tabs-trigger"]').filter({ hasText: tabLabel }).first();
+    await tabBtn.click();
+    await page.waitForTimeout(300);
+    // Base UI uses `hidden` attribute (not `data-active`) on inactive panels
+    return s.locator('[data-slot="tabs-content"]:not([hidden])').first();
+  }
+
+  activeTabPanel(scope: Page | Locator): Locator {
+    const s = scope as Locator;
+    return s.locator('[data-slot="tabs-content"]:not([hidden])').first();
+  }
+
+  // ── Sub-Form 支持 ──
+
+  subForm(scope: Page | Locator, fieldName: string): Locator {
+    const s = scope as Locator;
+    // Flux object-field: find by child label text (case-insensitive)
+    return s
+      .locator('[data-slot="field-control"].nop-object-field')
+      .filter({ has: s.locator('[data-slot="field-label"]').filter({ hasText: new RegExp(fieldName, 'i') }) })
+      .first();
+  }
+
+  subFormItem(scope: Page | Locator, fieldName: string, index: number): Locator {
+    const s = scope as Locator;
+    // Flux array-field: find by label, then locate nth array-field-item
+    const container = s
+      .locator('[data-slot="field-control"].nop-array-field')
+      .filter({ has: s.locator('[data-slot="field-label"]').filter({ hasText: new RegExp(fieldName, 'i') }) })
+      .first();
+    return container.locator('[data-slot="array-field-item"]').nth(index);
+  }
+
+  // ── Sub-Table / 嵌套 CRUD ──
+
+  subTable(scope: Page | Locator, index = 0): Locator {
+    const s = scope as Locator;
+    // Flux nested CRUD: div.nop-crud inside the scope
+    return s.locator('div.nop-crud').nth(index);
+  }
+
+  // ── 确认对话框 ──
+
+  async confirmDialogAction(page: Page): Promise<void> {
+    const alertDialog = page.locator('[data-slot="alert-dialog-content"]').first();
+    const dialogSurface = page.locator('[data-slot="dialog-surface"]').first();
+
+    let confirmBtn: Locator;
+    if (await alertDialog.isVisible().catch(() => false)) {
+      confirmBtn = alertDialog.locator('[data-slot="alert-dialog-action"]').first();
+    } else if (await dialogSurface.isVisible().catch(() => false)) {
+      confirmBtn = dialogSurface.locator('[data-slot="surface-confirm-submit"]').first();
+    } else {
+      await page
+        .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
+      confirmBtn = page
+        .locator(
+          '[data-slot="alert-dialog-action"], [data-slot="surface-confirm-submit"]',
+        )
+        .first();
+    }
+
+    await confirmBtn.click();
+
+    await page
+      .locator('[data-slot="alert-dialog-content"], [data-slot="dialog-surface"]')
+      .first()
+      .waitFor({ state: 'hidden', timeout: 10_000 })
+      .catch(() => {});
+    await page.waitForLoadState('networkidle').catch(() => {});
+  }
+
+  // ── Flux 特有方法（不在 EngineAdapter 接口中，供 PO 直接调用） ──
+
   async datePickerSelect(page: Page, labelText: string, dateStr: string): Promise<void> {
     const field = page.getByLabel(labelText);
     await field.click();
@@ -304,7 +608,6 @@ export class FluxAdapter extends AmisAdapter {
     await finalCell.click();
   }
 
-  /** shell alert-dialog 的确认点击 helper（Flux 特有）。 */
   async alertDialog(page: Page): Promise<void> {
     const dialog = page.locator('[data-slot="alert-dialog-content"]').first();
     await dialog.waitFor({ state: 'visible', timeout: 3000 });

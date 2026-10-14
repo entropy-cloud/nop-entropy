@@ -44,7 +44,7 @@ export default defineConfig({
 
     if (!process.env.SKIP_WEBSERVER) {
       servers.push({
-        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev -Dnop.web.index-extension-names=${extensionNames}`,
+        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev -Dnop.web.render-mode=flux -Dnop.web.index-extension-names=${extensionNames}`,
         cwd: '../../../nop-demo/nop-quarkus-demo',
         port: backendPort,
         timeout: backendTimeout,

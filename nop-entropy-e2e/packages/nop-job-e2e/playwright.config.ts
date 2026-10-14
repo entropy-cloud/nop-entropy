@@ -2,7 +2,6 @@ import { defineConfig, devices } from '@playwright/test';
 
 const backendPort = parseInt(process.env.PORT || '8082', 10);
 const backendTimeout = parseInt(process.env.BACKEND_TIMEOUT || '120000', 10);
-const engineType = process.env.E2E_ENGINE || 'flux';
 const frontendDevMode = process.env.FRONTEND_DEV_MODE === 'true';
 const frontendPort = parseInt(process.env.FRONTEND_PORT || '4173', 10);
 const nopChaosNextDir = process.env.NOP_CHAOS_NEXT_DIR || '../../../nop-chaos-next';
@@ -44,7 +43,7 @@ export default defineConfig({
 
     if (!process.env.SKIP_WEBSERVER) {
       servers.push({
-        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev${engineType === 'flux' ? ' -Dnop.web.render-mode=flux' : ''}`,
+        command: `mvn quarkus:dev -Dquarkus.http.port=${backendPort} -Dquarkus.profile=dev -Dnop.web.render-mode=flux`,
         cwd: '../../../nop-job/nop-job-app',
         port: backendPort,
         timeout: backendTimeout,

@@ -1,22 +1,30 @@
 import { test } from '@nop-entropy/e2e-shared';
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 import { RolePO } from './page-objects/role.po.js';
 
 const TEST_ID = `e2e_role_${Date.now()}`;
 const createdRoleIds: string[] = [];
 
-async function cleanupTestRoles(request: import('@playwright/test').APIRequestContext): Promise<void> {
+async function cleanupTestRoles(request: APIRequestContext): Promise<void> {
   const resp = await rpc<{ items: { roleId: string }[] }>(request, 'NopAuthRole__findPage', {
     query: { offset: 0, limit: 200 },
   });
   if (!resp.ok) return;
   for (const item of resp.data.items) {
     if (item.roleId.startsWith('e2e_role_')) {
-      const del = await rpc(request, 'NopAuthRole__delete', { id: item.roleId });
-      if (!del.ok) console.warn(`cleanup delete role ${item.roleId}: status=${del.status}`);
+      await rpc(request, 'NopAuthRole__delete', { id: item.roleId }).catch(() => {});
     }
   }
+}
+
+/** 已登录的角色管理页面——spec 只拿业务页面对象，不接触引擎与 DOM。 */
+async function openRoleAdmin(page: Page, engine: EngineAdapter): Promise<RolePO> {
+  await login(page, { username: 'nop', password: '123' });
+  const rolePO = new RolePO(page, engine);
+  await rolePO.goto();
+  return rolePO;
 }
 
 test.describe('角色管理 - RPC', () => {
@@ -27,18 +35,16 @@ test.describe('角色管理 - RPC', () => {
 
   test.afterAll(async ({ request }) => {
     for (const id of createdRoleIds) {
-      const del = await rpc(request, 'NopAuthRole__delete', { id });
-      if (!del.ok) console.warn(`RPC afterAll delete ${id}: status=${del.status}`);
+      await rpc(request, 'NopAuthRole__delete', { id }).catch(() => {});
     }
     createdRoleIds.length = 0;
   });
 
   test('RPC: 创建角色', async ({ request }) => {
     const roleId = `${TEST_ID}_create`;
-    const roleName = `E2E创建_${TEST_ID}`;
 
     const resp = await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0, remark: 'e2e auto-created' },
+      data: { roleId, roleName: `E2E创建_${TEST_ID}`, isPrimary: 0, remark: 'e2e auto-created' },
     });
 
     expect(resp.ok).toBe(true);
@@ -48,19 +54,14 @@ test.describe('角色管理 - RPC', () => {
 
   test('RPC: 查询角色列表', async ({ request }) => {
     const roleId = `${TEST_ID}_list`;
-    const roleName = `E2E列表_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E列表_${TEST_ID}`, isPrimary: 0 },
     });
     createdRoleIds.push(roleId);
 
     const resp = await rpc<{ total: number }>(request, 'NopAuthRole__findPage', {
-      query: {
-        offset: 0,
-        limit: 10,
-        filter: { $type: 'eq', name: 'roleId', value: roleId },
-      },
+      query: { offset: 0, limit: 10, filter: { $type: 'eq', name: 'roleId', value: roleId } },
     });
 
     expect(resp.ok).toBe(true);
@@ -69,10 +70,9 @@ test.describe('角色管理 - RPC', () => {
 
   test('RPC: 读取角色详情', async ({ request }) => {
     const roleId = `${TEST_ID}_get`;
-    const roleName = `E2E详情_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0, remark: 'detail test' },
+      data: { roleId, roleName: `E2E详情_${TEST_ID}`, isPrimary: 0, remark: 'detail test' },
     });
     createdRoleIds.push(roleId);
 
@@ -84,20 +84,19 @@ test.describe('角色管理 - RPC', () => {
 
     expect(resp.ok).toBe(true);
     expect(resp.data.roleId).toBe(roleId);
-    expect(resp.data.roleName).toBe(roleName);
+    expect(resp.data.roleName).toBe(`E2E详情_${TEST_ID}`);
     expect(resp.data.remark).toBe('detail test');
   });
 
   test('RPC: 更新角色', async ({ request }) => {
     const roleId = `${TEST_ID}_update`;
-    const roleName = `E2E更新_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E更新_${TEST_ID}`, isPrimary: 0 },
     });
     createdRoleIds.push(roleId);
 
-    const updatedName = `${roleName}_done`;
+    const updatedName = `E2E更新_${TEST_ID}_done`;
     await rpc(request, 'NopAuthRole__update', {
       data: { id: roleId, roleName: updatedName, remark: 'updated via rpc' },
     });
@@ -114,17 +113,13 @@ test.describe('角色管理 - RPC', () => {
 
   test('RPC: 删除角色', async ({ request }) => {
     const roleId = `${TEST_ID}_delete`;
-    const roleName = `E2E删除_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E删除_${TEST_ID}`, isPrimary: 0 },
     });
 
-    const resp = await rpc(request, 'NopAuthRole__delete', { id: roleId });
-    expect(resp.ok).toBe(true);
-
-    const getResp = await rpc(request, 'NopAuthRole__get', { id: roleId });
-    expect(getResp.ok).toBe(false);
+    expect((await rpc(request, 'NopAuthRole__delete', { id: roleId })).ok).toBe(true);
+    expect((await rpc(request, 'NopAuthRole__get', { id: roleId })).ok).toBe(false);
   });
 });
 
@@ -136,41 +131,33 @@ test.describe('角色管理 - 浏览器', () => {
   test.afterEach(async ({ request }) => {
     await loginRpc(request);
     for (const id of createdRoleIds) {
-      const del = await rpc(request, 'NopAuthRole__delete', { id });
-      if (!del.ok) console.warn(`afterEach delete role ${id}: status=${del.status}`);
+      await rpc(request, 'NopAuthRole__delete', { id }).catch(() => {});
     }
     createdRoleIds.length = 0;
   });
 
-  async function browserLogin(page: import('@playwright/test').Page, engine: import('@nop-entropy/e2e-shared').EngineAdapter): Promise<RolePO> {
-    await login(page, { username: 'nop', password: '123' });
-    return new RolePO(page, engine);
-  }
-
   test('浏览器: 导航到角色管理页面', async ({ page, engine }) => {
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
+    const rolePO = await openRoleAdmin(page, engine);
+
     await expect(page).toHaveURL(/NopAuthRole-main/);
-    await expect(engine.table(page)).toBeVisible({ timeout: 15_000 });
+    await rolePO.assertListVisible();
   });
 
   test('浏览器: 创建新角色', async ({ page, engine }) => {
-    const rolePO = await browserLogin(page, engine);
     const roleId = `${TEST_ID}_ui_create`;
-    const roleName = `E2E_UI创建_${TEST_ID}`;
+    const rolePO = await openRoleAdmin(page, engine);
 
-    await rolePO.goto();
-    await rolePO.clickAdd();
-    await rolePO.fillForm({ roleId, roleName, remark: 'created via UI' });
-    await rolePO.clickSave();
+    await rolePO.createRole({
+      roleId,
+      roleName: `E2E_UI创建_${TEST_ID}`,
+      remark: 'created via UI',
+    });
     createdRoleIds.push(roleId);
 
-    await rolePO.goto();
-    await expect(page.locator('tr').filter({ hasText: roleId }).first())
-      .toBeVisible({ timeout: 10_000 });
+    await rolePO.assertRoleExists(roleId);
   });
 
-  test('浏览器: 查看角色详情', async ({ page, request, engine }) => {
+  test('浏览器: 查看角色详情', async ({ request, page, engine }) => {
     const roleId = `${TEST_ID}_ui_view`;
     const roleName = `E2E_UI查看_${TEST_ID}`;
 
@@ -178,18 +165,15 @@ test.describe('角色管理 - 浏览器', () => {
       data: { roleId, roleName, isPrimary: 0, remark: 'view test' },
     });
     expect(saveResp.ok).toBe(true);
-    expect(saveResp.data).toBeTruthy();
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await rolePO.clickView(roleId);
+    const rolePO = await openRoleAdmin(page, engine);
+    await rolePO.viewRole(roleId);
 
-    const viewName = await rolePO.readViewField('roleName');
-    expect(viewName).toBe(roleName);
+    expect(await rolePO.readViewField('roleName')).toBe(roleName);
   });
 
-  test('浏览器: 编辑角色', async ({ page, request, engine }) => {
+  test('浏览器: 编辑角色', async ({ request, page, engine }) => {
     const roleId = `${TEST_ID}_ui_edit`;
     const roleName = `E2E_UI编辑_${TEST_ID}`;
 
@@ -198,37 +182,29 @@ test.describe('角色管理 - 浏览器', () => {
     });
     createdRoleIds.push(roleId);
 
+    const rolePO = await openRoleAdmin(page, engine);
     const updatedName = `${roleName}_done`;
-
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await rolePO.clickEdit(roleId);
-    await rolePO.fillForm({ roleName: updatedName });
-    await rolePO.clickSave();
+    await rolePO.editRole(roleId, { roleName: updatedName });
 
     // 真实验证 UI 编辑持久化：读表格 roleName 列应为更新后的值
     await rolePO.searchRole(roleId);
-    const tableRoleName = await rolePO.readTableField(roleId, 'roleName');
-    expect(tableRoleName).toBe(updatedName);
+    expect(await rolePO.readTableField(roleId, 'roleName')).toBe(updatedName);
   });
 
-  test('浏览器: 删除角色', async ({ page, request, engine }) => {
+  test('浏览器: 删除角色', async ({ request, page, engine }) => {
     const roleId = `${TEST_ID}_ui_delete`;
-    const roleName = `E2E_UI删除_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E_UI删除_${TEST_ID}`, isPrimary: 0 },
     });
 
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await rolePO.clickDelete(roleId);
+    const rolePO = await openRoleAdmin(page, engine);
+    await rolePO.deleteRole(roleId);
 
-    await expect(page.locator('tr').filter({ hasText: roleId }).first())
-      .not.toBeVisible({ timeout: 5_000 }).catch(() => {});
+    await rolePO.assertRoleNotExists(roleId);
   });
 
-  test('浏览器: 搜索角色', async ({ page, request, engine }) => {
+  test('浏览器: 按名称检索角色', async ({ request, page, engine }) => {
     const roleA = `${TEST_ID}_search_a`;
     const roleB = `${TEST_ID}_search_b`;
 
@@ -240,43 +216,37 @@ test.describe('角色管理 - 浏览器', () => {
     });
     createdRoleIds.push(roleA, roleB);
 
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await expect(page.locator('tr').filter({ hasText: roleA }).first())
-      .toBeVisible({ timeout: 10_000 });
-    await expect(page.locator('tr').filter({ hasText: roleB }).first())
-      .toBeVisible({ timeout: 5_000 });
+    const rolePO = await openRoleAdmin(page, engine);
+
+    await rolePO.assertRoleExists(roleA);
+    await rolePO.assertRoleExists(roleB);
   });
 
-  test('浏览器: 打开角色用户分配', async ({ page, request, engine }) => {
+  test('浏览器: 打开角色用户分配', async ({ request, page, engine }) => {
     const roleId = `${TEST_ID}_ui_users`;
-    const roleName = `E2E_角色用户_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E_角色用户_${TEST_ID}`, isPrimary: 0 },
     });
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await rolePO.clickRoleUsers(roleId);
+    const rolePO = await openRoleAdmin(page, engine);
+    await rolePO.assignUsers(roleId);
 
-    await rolePO.assertDrawerVisible();
+    await rolePO.assertPanelVisible();
   });
 
-  test('浏览器: 打开角色授权页面', async ({ page, request, engine }) => {
+  test('浏览器: 打开角色授权页面', async ({ request, page, engine }) => {
     const roleId = `${TEST_ID}_ui_auth`;
-    const roleName = `E2E_角色授权_${TEST_ID}`;
 
     await rpc(request, 'NopAuthRole__save', {
-      data: { roleId, roleName, isPrimary: 0 },
+      data: { roleId, roleName: `E2E_角色授权_${TEST_ID}`, isPrimary: 0 },
     });
     createdRoleIds.push(roleId);
 
-    const rolePO = await browserLogin(page, engine);
-    await rolePO.goto();
-    await rolePO.clickAssignAuth(roleId);
+    const rolePO = await openRoleAdmin(page, engine);
+    await rolePO.assignPermissions(roleId);
 
-    await rolePO.assertDrawerVisible();
+    await rolePO.assertPanelVisible();
   });
 });

@@ -1,5 +1,6 @@
 import type { Page as PlaywrightPage } from '@playwright/test';
 import { loginRpc } from './RpcClient';
+import { gotoHash } from './hashRoute';
 
 const LOCALE_KEY = 'nop-language:v1';
 
@@ -16,7 +17,8 @@ export interface LoginOptions {
  *    （与 playwright.config 的 baseURL 解析一致，保证与测试 baseURL 同 origin，
  *      避免 localhost/127.0.0.1 差异导致 sessionStorage 认证状态隔离丢失）
  * 3. Default fallback '/' —— 相对路径按 playwright.config 的 use.baseURL 解析
- *    （FRONTEND_DEV_MODE=true 时是 vite 4173，默认部署形态是后端托管的 SPA 静态资源）
+ *    （前端 dev 模式下是 vite 端口，默认部署形态是后端托管的 SPA 静态资源，
+ *      两者的 baseURL 都由各自的 playwright.config 给出，不在此处硬编码端口）
  */
 function resolveBaseUrl(_page: PlaywrightPage, explicit?: string): string {
   if (explicit) return explicit;
@@ -78,38 +80,38 @@ export async function login(
   if (!formVisible) {
     throw new Error(`登录表单未渲染（当前 ${page.url()}）——应用引导未完成或登录路由异常`);
   }
-  {
-    // 提交按钮必须与输入框同表单：页面可能存在多套（移动端/桌面端）登录表单，
-    // 裸 first() 会填 A 表单点 B 表单，B 的空值校验直接报错
-    const loginForm = page
-      .locator('form:has(input[name="username"]), form:has(input[type="password"])')
-      .first();
-    const submitBtn = loginForm
-      .locator('button[type="submit"], button:has-text("登录")')
-      .first();
 
-    // 表单可能在水合完成前被填写（受控组件重渲染会清空值）——填后校验、整体重试
-    for (let attempt = 0; attempt < 3; attempt++) {
-      await usernameInput.fill(username);
-      await passwordInput.fill(password);
-      const filled =
-        (await usernameInput.inputValue()) === username &&
-        (await passwordInput.inputValue()) === password;
-      if (!filled) {
-        await page.waitForTimeout(800);
-        continue;
-      }
-      await submitBtn.click();
-      const ok = await waitForAuthenticated(page, 15_000).then(() => true).catch(() => false);
-      if (ok) {
-        await waitForMenuLoaded(page);
-        return;
-      }
+  // 提交按钮必须与输入框同表单：页面可能存在多套（移动端/桌面端）登录表单，
+  // 裸 first() 会填 A 表单点 B 表单，B 的空值校验直接报错
+  const loginForm = page
+    .locator('form:has(input[name="username"]), form:has(input[type="password"])')
+    .first();
+  const submitBtn = loginForm
+    .locator('button[type="submit"], button:has-text("登录")')
+    .first();
+
+  // 表单可能在水合完成前被填写（受控组件重渲染会清空值）——填后校验、整体重试
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await usernameInput.fill(username);
+    await passwordInput.fill(password);
+    const filled =
+      (await usernameInput.inputValue()) === username &&
+      (await passwordInput.inputValue()) === password;
+    if (!filled) {
       await page.waitForTimeout(800);
+      continue;
     }
-    await waitForAuthenticated(page);
-    await waitForMenuLoaded(page);
+    await submitBtn.click();
+    const ok = await waitForAuthenticated(page, 15_000).then(() => true).catch(() => false);
+    if (ok) {
+      await waitForMenuLoaded(page);
+      return;
+    }
+    await page.waitForTimeout(800);
   }
+
+  await waitForAuthenticated(page);
+  await waitForMenuLoaded(page);
 }
 
 /**
@@ -150,19 +152,7 @@ async function waitForMenuLoaded(page: PlaywrightPage, timeoutMs = 15_000): Prom
 }
 
 export async function navigateTo(page: PlaywrightPage, hashRoute: string): Promise<void> {
-  // location.hash 赋值 + 生效校验（同 Page.goto：page.goto(hash) 会被壳层自身导航踩掉）
-  for (let i = 0; i < 3; i++) {
-    await page.evaluate((h) => {
-      window.location.hash = `/${h}`;
-    }, hashRoute);
-    const applied = await page
-      .waitForFunction((h) => window.location.hash === `/${h}`, hashRoute, { timeout: 3_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (applied) break;
-    await page.waitForTimeout(600);
-  }
-  await page.waitForLoadState('networkidle').catch(() => {});
+  await gotoHash(page, hashRoute.replace(/^\/?/, ''));
 }
 
 /**

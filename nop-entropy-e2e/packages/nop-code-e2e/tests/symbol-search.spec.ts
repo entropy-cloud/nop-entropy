@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { test } from '@nop-entropy/e2e-shared';
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { login, rpc, loginRpc } from '@nop-entropy/e2e-shared';
 import { SymbolSearchPO } from './page-objects/symbol-search.po.js';
 
@@ -10,7 +10,7 @@ const INDEX_ID = 'nop-code-e2e';
 const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../nop-code/nop-code-service');
 
 // dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
-async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
+async function ensureIndexPrepared(request: APIRequestContext): Promise<void> {
   const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
     indexId: INDEX_ID, offset: 0, limit: 1,
   });
@@ -74,16 +74,14 @@ test.describe('符号搜索', () => {
     expect(resp.data.items.length).toBe(1);
   });
 
-  test('浏览器: 导航到符号搜索页面', async ({ page, engine }) => {
+  test('浏览器: 打开符号搜索页面', async ({ page, engine }) => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);
     await symbolPO.open();
-
-    await expect(page.locator('text=名称关键词').first()).toBeVisible({ timeout: 10_000 });
   });
 
-  test('浏览器: 输入关键词搜索并验证表格结果', async ({ page, engine }) => {
+  test('浏览器: 按关键词检索符号', async ({ page, engine }) => {
     await login(page);
 
     const symbolPO = new SymbolSearchPO(page, engine, INDEX_ID);

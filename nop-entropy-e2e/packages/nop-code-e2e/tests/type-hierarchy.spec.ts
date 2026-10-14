@@ -1,6 +1,6 @@
 import path from 'node:path';
 import { test } from '@nop-entropy/e2e-shared';
-import { expect } from '@playwright/test';
+import { expect, type APIRequestContext } from '@playwright/test';
 import { login, rpc, loginRpc } from '@nop-entropy/e2e-shared';
 import { TypeHierarchyPO } from './page-objects/type-hierarchy.po.js';
 
@@ -10,7 +10,7 @@ const INDEX_ID = 'nop-code-e2e';
 const TEST_PROJECT_DIR = path.resolve(import.meta.dirname, '../../../../nop-code/nop-code-service');
 
 // dev 后端用内存 H2，每次启动都是空库——索引必须在测试内自举，而不是要求外部预建
-async function ensureIndexPrepared(request: import('@playwright/test').APIRequestContext): Promise<void> {
+async function ensureIndexPrepared(request: APIRequestContext): Promise<void> {
   const existing = await rpc<{ total: number }>(request, 'NopCodeSymbol__searchSymbols', {
     indexId: INDEX_ID, offset: 0, limit: 1,
   });
@@ -88,7 +88,7 @@ test.describe('类型层级查询', () => {
     expect(resp.ok).toBeTruthy();
   });
 
-  test('浏览器: 登录后导航到类型层级页面', async ({ page, engine }) => {
+  test('浏览器: 打开类型层级页面', async ({ page, engine }) => {
     await login(page);
 
     const hierarchyPO = new TypeHierarchyPO(page, engine);

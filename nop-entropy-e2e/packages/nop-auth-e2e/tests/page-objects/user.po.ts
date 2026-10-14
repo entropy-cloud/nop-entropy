@@ -1,11 +1,11 @@
 import type { Page } from '@playwright/test';
-import { CrudListPage, FormDialog } from '@nop-entropy/e2e-shared';
-import type { EngineAdapter } from '@nop-entropy/e2e-shared';
+import { CrudListPage } from '@nop-entropy/e2e-shared';
+import type { EngineAdapter, FormData } from '@nop-entropy/e2e-shared';
 
 export interface UserFormData {
   userId?: string;
-  userName: string;
-  nickName: string;
+  userName?: string;
+  nickName?: string;
   password?: string;
   deptId?: string;
   openId?: string;
@@ -29,62 +29,37 @@ export class UserPO extends CrudListPage {
 
   async goto(): Promise<void> {
     await super.goto('NopAuthUser-main');
-    await this.page.waitForLoadState('networkidle');
     await this.waitForListWithReload();
   }
 
+  /** 按用户名检索用户。 */
   async searchUser(userName: string): Promise<void> {
     await this.search('userName', userName);
   }
 
-  async fillAddForm(data: UserFormData): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    if (data.userId) await dialog.setField('userId', data.userId);
-    await dialog.setField('userName', data.userName);
-    await dialog.setField('nickName', data.nickName);
-    if (data.password) {
-      await dialog.setField('password', data.password);
-      await dialog.setField('__password2', data.password);
-    }
-    if (data.deptId) await dialog.setField('deptId', data.deptId);
-    if (data.openId) await dialog.setField('openId', data.openId);
-    if (data.gender !== undefined) await dialog.setField('gender', String(data.gender));
-    if (data.email) await dialog.setField('email', data.email);
-    if (data.phone) await dialog.setField('phone', data.phone);
-    if (data.userType !== undefined) await dialog.setField('userType', String(data.userType));
-    if (data.status !== undefined) await dialog.setField('status', String(data.status));
-    if (data.tenantId) await dialog.setField('tenantId', data.tenantId);
-    if (data.remark) await dialog.setField('remark', data.remark);
+  /** 新增用户（密码确认字段由 PO 内部维护，spec 不需要知道）。 */
+  async createUser(data: UserFormData): Promise<void> {
+    await this.goto();
+    await this.clickAdd();
+    await this.fillDialog(withPasswordConfirmation(data));
+    await this.clickSave();
   }
 
-  async fillEditForm(data: Partial<UserFormData>): Promise<void> {
-    const dialog = new FormDialog(this.page, this.engine);
-    if (data.userName !== undefined) await dialog.setField('userName', data.userName);
-    if (data.nickName !== undefined) await dialog.setField('nickName', data.nickName);
-    if (data.deptId !== undefined) await dialog.setField('deptId', data.deptId);
-    if (data.openId !== undefined) await dialog.setField('openId', data.openId);
-    if (data.gender !== undefined) await dialog.setField('gender', String(data.gender));
-    if (data.email !== undefined) await dialog.setField('email', data.email);
-    if (data.phone !== undefined) await dialog.setField('phone', data.phone);
-    if (data.userType !== undefined) await dialog.setField('userType', String(data.userType));
-    if (data.status !== undefined) await dialog.setField('status', String(data.status));
-    if (data.tenantId !== undefined) await dialog.setField('tenantId', data.tenantId);
-    if (data.remark !== undefined) await dialog.setField('remark', data.remark);
+  /** 修改用户资料。 */
+  async editUser(rowIdentifier: string, changes: UserFormData): Promise<void> {
+    await this.clickEdit(rowIdentifier);
+    await this.fillDialog(definedFields(changes));
+    await this.clickSave();
   }
 
-  async readTableField(rowIdentifier: string, columnName: string): Promise<string> {
-    const row = await this.findRowByText(rowIdentifier);
-    if (!row) return '';
-    const allRows = this.engine.rows(this.page);
-    const count = await allRows.count();
-    for (let i = 0; i < count; i++) {
-      const r = allRows.nth(i);
-      const text = (await r.textContent()) ?? '';
-      if (text.includes(rowIdentifier)) {
-        return this.engine.cellValue(r, columnName, this.config.columnHeaders ?? []);
-      }
-    }
-    return '';
+  /** 查看用户详情（打开查看面板）。 */
+  async viewUser(rowIdentifier: string): Promise<void> {
+    await this.clickView(rowIdentifier);
+  }
+
+  /** 删除用户。 */
+  async deleteUser(rowIdentifier: string): Promise<void> {
+    await this.clickDelete(rowIdentifier);
   }
 
   async assertUserExists(rowIdentifier: string): Promise<void> {
@@ -94,14 +69,22 @@ export class UserPO extends CrudListPage {
   async assertUserNotExists(rowIdentifier: string): Promise<void> {
     await this.assertEntityNotExists(rowIdentifier);
   }
+}
 
-  async createUser(data: UserFormData): Promise<void> {
-    await this.goto();
-    await this.clickAdd();
-    await this.fillAddForm(data);
-    await this.clickSave();
-    await this.waitForList();
+/** 新增表单有独立的"确认密码"输入，spec 不需要知道它——由 PO 补齐。 */
+function withPasswordConfirmation(data: UserFormData): FormData {
+  const fields = definedFields(data);
+  if (fields.password) fields.__password2 = fields.password;
+  return fields;
+}
+
+/** 只保留业务上显式给出的字段（跳过 undefined）。 */
+function definedFields(data: UserFormData): FormData {
+  const fields: FormData = {};
+  for (const [fieldName, value] of Object.entries(data)) {
+    if (value !== undefined) fields[fieldName] = value;
   }
+  return fields;
 }
 
 export { UserPO as default };

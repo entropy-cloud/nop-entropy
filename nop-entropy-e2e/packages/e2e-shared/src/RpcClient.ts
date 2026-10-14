@@ -64,7 +64,8 @@ export async function loginRpc(
       'Content-Type': 'application/json',
       ...(request.headers ?? {}),
     },
-    // 与上方 Playwright request 分支同构：LoginApi__login 的参数是 principalId/principalSecret/loginType
+    // 与上方 Playwright request 分支同构：LoginApi__login 的参数是
+    // principalId/principalSecret/loginType
     body: JSON.stringify({ principalId: user, principalSecret: pass, loginType: 1 }),
   });
 
