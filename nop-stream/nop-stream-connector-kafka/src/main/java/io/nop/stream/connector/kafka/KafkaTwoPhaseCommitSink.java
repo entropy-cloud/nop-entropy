@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.kafka;
 
+import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
@@ -74,10 +75,17 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERR
  * stable across restarts of the same subtask so {@code initTransactions()} fences zombie
  * producer generations of the SAME sink. Two different jobs must not share a prefix.
  */
-public class KafkaTwoPhaseCommitSink<T> extends TwoPhaseCommitSinkFunction<T> implements ConnectivityCheckable {
+public class KafkaTwoPhaseCommitSink<T> extends TwoPhaseCommitSinkFunction<T>
+        implements ConnectivityCheckable, AutoCloseable {
 
     private static final long serialVersionUID = 1L;
     private static final Logger LOG = LoggerFactory.getLogger(KafkaTwoPhaseCommitSink.class);
+
+    /**
+     * Bounded producer shutdown: {@code close()} with no timeout waits on in-flight
+     * sends indefinitely, which would trade the resource leak for a shutdown hang.
+     */
+    private static final Duration PRODUCER_CLOSE_TIMEOUT = Duration.ofSeconds(30);
 
     private final String bootstrapServers;
     private final String topic;
@@ -309,6 +317,43 @@ public class KafkaTwoPhaseCommitSink<T> extends TwoPhaseCommitSinkFunction<T> im
             probe.beginTransaction();
             probe.abortTransaction();
         }
+    }
+
+    /**
+     * Releases the transactional producer on every task termination path. The runtime
+     * teardown chain ({@code StreamSinkOperator.close} → {@code AutoCloseable}
+     * userFunction) is the only caller contract; without this hook the producer — one
+     * daemon network thread, its broker connection and the buffer pool — leaked on
+     * every task stop, including the normal DRAIN path.
+     *
+     * <p>An open epoch transaction is aborted: after a DRAIN barrier this is the empty
+     * next-epoch transaction opened by {@link #saveState(long)} (all real records are
+     * already committed-and-visible); on any earlier stop the open transaction's records
+     * are invisible anyway and the next {@code initTransactions()} aborts the dangling
+     * transaction broker-side. Failure to abort is logged, never allowed to skip
+     * {@code producer.close}. Idempotent: a second close is a no-op, and a later
+     * {@code beginTransaction()} transparently rebuilds a fresh producer generation.
+     */
+    @Override
+    public void close() throws Exception {
+        Producer<String, byte[]> p = this.producer;
+        boolean open = this.transactionOpen;
+        this.producer = null;
+        this.transactionOpen = false;
+        this.initDone = false;
+        if (p == null) {
+            return;
+        }
+        if (open) {
+            try {
+                p.abortTransaction();
+            } catch (Exception e) {
+                LOG.warn("kafka-2pc: abort on close failed for {} — records stay invisible, the broker"
+                        + " aborts the dangling transaction on the next initTransactions()",
+                        transactionalId, e);
+            }
+        }
+        p.close(PRODUCER_CLOSE_TIMEOUT);
     }
 
     /** Test/ops visibility. */
