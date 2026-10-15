@@ -37,7 +37,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 6. D5 前端架构设计 + 语法方案 spike（扩展点、包结构、Lezer 构建链评估、grammar 三来源 POC 裁定）: `done`
 - 7. D6 在线 eval REPL 与安全边界详设（沙箱、取消机制三选一、权限、审计日志）: `done`
 
-★ **Milestone: 设计收口**（unlocks when 1-7 done）: `todo`
+★ **Milestone: 设计收口**（unlocks when 1-7 done）: `done`
 
 ### Wave 1: 后端引擎会话化（nop-entropy）
 

@@ -90,7 +90,7 @@ executeDestroyed(expr, rt):              # 会话销毁分支（D3 修订后，i
 | --- | --- | --- | --- |
 | compile（编译诊断） | `nop/xlang/debug/ReplCompile` | 401 | 403 |
 | execute（执行） | `nop/xlang/debug/ReplExecute` | 401 | 403 |
-| 会话/断点/单步（WS 通道） | `nop/xlang/debug/DebugSession` | 4401（D1） | 会话创建拒绝（`session.open` 报 errorCode） |
+| 会话/断点/单步（WS 通道） | `nop/xlang/debug/DebugSession` | 4401（D1） | 会话创建拒绝（errorCode 名归 item 12 按 D1 additive 规则登记，如 `ERR_XLANG_DEBUGGER_PERMISSION_DENIED`） |
 
 限制表（与 D1 §3.1 衔接：`expr ≤ 8KB` 等既有约束引用不重定义）：
 
