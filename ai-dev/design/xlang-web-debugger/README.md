@@ -18,7 +18,7 @@
 | [04-execution-backend-link.md](04-execution-backend-link.md) | 子域详设（D4） | 调试模式与执行后端联动：三个静态绑定直通落点的运行期降级（单谓词多落点，debugger.enabled 直读）、递归终止性论证、四开关联动矩阵、运行期切换作用域限定、性能评估 | active |
 | [05-frontend-architecture.md](05-frontend-architecture.md) | 子域详设（D5） | flux 前端架构：两新包（flux-xlang-lang/flux-xlang-debug）职责边界 + editor registry 开放化（三分发点收敛、半开放类型裁定、替换语义）+ 构建链（generated/ 落点与 check:src-artifacts/oversized 等门禁豁免清单、.d.ts shim、打包面）+ 诊断桥注入式工厂（编译端点 owner 归 item 14/D6）+ zustand 双向状态桥（多线程挂起 schema 对齐 D1）+ 跨仓交付影响登记 | active |
 | [06-grammar-spike.md](06-grammar-spike.md) | spike 记录（D5 附） | Lezer grammar 三来源裁定（新写采纳/treesitter 拒绝/ANTLR 转译降为 token 语义对照）、POC 全绿证据（0 错误节点 + 12 项结构断言 + 假绿纠偏记录）、一期范围与 6 项 follow-up（含后缀 ++）、11 条工程坑清单、item 15 实现输入 | active |
-| 07-repl-security | 子域详设（D6） | REPL 安全：取消机制裁定、沙箱规则、权限矩阵、审计日志 | 待立项（roadmap item 7） |
+| [07-repl-security.md](07-repl-security.md) | 子域详设（D6） | REPL 安全：装饰器层 per-entry 取消（LintDeadlineExecutor 先例复用 + Error 系取消异常裁定 + 残余兜底诚实声明）、沙箱纵深防御规则表（白名单默认拒绝 + 危险构造一期无运行时拦截声明）、权限矩阵/审计事件/限制表、compile 端点 schema（兑现 05 open question）、D3 plainExecute 语义修订 | active |
 
 ## 约束锚点
 

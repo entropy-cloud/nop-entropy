@@ -35,7 +35,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 4. D3 调试器会话化详设（方案 A/B 裁定、会话标识透传、多线程单步目标策略、IDEA 兼容）: `done`
 - 5. D4 调试模式与执行后端联动详设（两条绕过路径的消除策略、配置联动矩阵）: `done`
 - 6. D5 前端架构设计 + 语法方案 spike（扩展点、包结构、Lezer 构建链评估、grammar 三来源 POC 裁定）: `done`
-- 7. D6 在线 eval REPL 与安全边界详设（沙箱、取消机制三选一、权限、审计日志）: `todo`
+- 7. D6 在线 eval REPL 与安全边界详设（沙箱、取消机制三选一、权限、审计日志）: `done`
 
 ★ **Milestone: 设计收口**（unlocks when 1-7 done）: `todo`
 
@@ -141,7 +141,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 4 | D3 会话化详设 | plans/2463-xdbg-d3-sessionization | after 1 | **Yes** | EvalExprProvider |
 | 5 | D4 执行后端联动详设 | plans/2464-xdbg-d4-backend-link | after 1 | No | EvalBackendRouter |
 | 6 | D5 前端架构 + 语法 spike | plans/2465-xdbg-d5-frontend-grammar | after 1 | **Yes** | flux-code-editor、XLangLexer.g4 |
-| 7 | D6 REPL 与安全详设 | （plan 待起草） | after 1 | No | nop-biz 鉴权 |
+| 7 | D6 REPL 与安全详设 | plans/2466-xdbg-d6-repl-security | after 1 | No | nop-biz 鉴权 |
 | ★ | 设计收口 (milestone) | — | 1-7 done | — | — |
 | 8 | 会话标识注入 + executor 路由 | plan-08-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
 | 9 | 每会话实例生命周期 + IDEA 兼容 | plan-09-session-lifecycle | after 8 | **Yes** | XLangDebugger |

@@ -69,6 +69,8 @@ route(expr, rt):
 
 **双层分工钉死**：路由层 `destroyed` 位在 Destroying→Destroyed 迁移**末端**置位，只管"已销毁后的迟到执行"；**Destroying 进行中窗口**的断点命中由会话实例 `checkBreakpoint` **最前部**的授予判定①承接（销毁中/已销毁 → 不挂起直接继续，归属 item 10 的引擎实现，D2 §3.1①）。两层叠加以覆盖置位时序的任意交错，不要求路由层感知 Destroying 中间态。
 
+**`plainExecute` 语义修订（D6 §一.10，随 07-repl-security 生效）**：destroyed 分支的"直通执行"指**跳过会话调试钩点**（checkBreakpoint），但**保留取消保护**——由独立取消检查执行器承接（每入口 deadline/取消旗标检查后委托默认执行器；融合执行器形态见 D6 §3.2）；否则 REPL 执行中途会话销毁会同时失去取消保护。实现落点归 item 8（路由外壳的 destroyed 分支接入取消检查执行器）。
+
 | 情形 | 行为 | 依据 |
 | --- | --- | --- |
 | `enabled=false` | 外壳不存在，`DefaultExpressionExecutor` 原样（零改动） | D0 §3.3 矩阵行 1 |
