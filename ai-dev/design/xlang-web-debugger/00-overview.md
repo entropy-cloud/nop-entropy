@@ -144,7 +144,7 @@ sequenceDiagram
 | `nop.xlang.debugger.enabled` | web 调试开关（`nop.xlang.debug-web.enabled`，默认 false；实现注册归 item 12） | 行为 |
 | --- | --- | --- |
 | false | 任意 | 全部不激活；执行路径零改动（现状默认态） |
-| true | false | 仅 IDEA 通道：SimpleRpcServer + 默认会话，注入现状形态 executor（等价现状行为，回归基线） |
+| true | false | 仅 IDEA 通道：SimpleRpcServer + 默认会话，注入现状形态 executor；解释器路径行为与改造前一致，绑定单元执行按 D4 降级为解释器（断点可命中——有意缺陷修复，非回归破损；见 04-execution-backend-link §3.4） |
 | true | true | IDEA 通道 + Web 通道并存：默认会话服务 IDEA；Web 会话各自独立实例；executor 按会话分发，无 web 会话标识走默认会话兜底 |
 
 共存规则：
@@ -218,7 +218,7 @@ sequenceDiagram
 **M2 会话化调试引擎**（items 8-11）
 
 - [ ] 双会话并发调试回归测试绿：两会话各自断点/挂起/单步互不干扰
-- [ ] IDEA 全链路回归绿：SimpleRpcServer + `IDebuggerAsync` 客户端路径行为与改造前一致（单线程常规路径；D3 §3.6/§3.7 声明的两处显式行为变更——stepX 无目标报错、多线程定向释放——按 D3 新语义断言）；`enabled=true` 且 web 未激活时注入的 executor 行为与改造前一致
+- [ ] IDEA 全链路回归绿：SimpleRpcServer + `IDebuggerAsync` 客户端路径行为与改造前一致（单线程常规路径；D3 §3.6/§3.7 声明的两处显式行为变更——stepX 无目标报错、多线程定向释放——按 D3 新语义断言）；`enabled=true` 且 web 未激活时注入的 executor 行为与改造前一致（绑定单元执行按 D4 §3.4 降级为解释器属有意缺陷修复，按可断点断言）
 - [ ] 无 web 会话标识的执行走默认会话兜底（§3.3 规则 3 语义），`enabled=false` 路径零改动；会话分发开销有性能基准对比（相对基线无可测回归）
 - [ ] 租约时序测试绿：续期成功 / 停止续期到期放行且脚本执行完 / close 与租约并发
 - [ ] 调试会话内静态绑定路径与 xlib 标签路径断点可命中（或按 D4 裁定降级），非调试路径无性能回归
