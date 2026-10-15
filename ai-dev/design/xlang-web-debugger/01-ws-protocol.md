@@ -188,7 +188,7 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | errorCode | 状态 | JSON-RPC code | 触发 |
 | --- | --- | --- | --- |
 | `ERR_XLANG_DEBUGGER_ALREADY_CLOSED` | 既有 | -32000 | close 语义命中已销毁会话/挂起等待被中止 |
-| `ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED` | 新增 | -32000 | 对未挂起线程求值/取栈/取变量 |
+| `ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED` | 新增 | -32000 | 对未挂起线程求值/取栈/取变量；stepX 无挂起目标（触发面扩展归 D3 §3.6，D3 为语义权威） |
 | `ERR_XLANG_DEBUGGER_TOO_MANY_BPS` | 新增 | -32000 | 断点数超 §3.1 上限 |
 | `ERR_XLANG_DEBUGGER_RESULT_TOO_LARGE` | 新增 | -32000 | 出站结果超 §3.1 上限且不可截断 |
 | `ERR_XLANG_DEBUGGER_NO_SESSION` | 新增 | -32000 | 未 session.open 调用调试 method |

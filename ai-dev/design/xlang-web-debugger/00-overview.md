@@ -218,7 +218,7 @@ sequenceDiagram
 **M2 会话化调试引擎**（items 8-11）
 
 - [ ] 双会话并发调试回归测试绿：两会话各自断点/挂起/单步互不干扰
-- [ ] IDEA 全链路回归绿：SimpleRpcServer + `IDebuggerAsync` 客户端路径行为与改造前一致；`enabled=true` 且 web 未激活时注入的 executor 行为与改造前一致
+- [ ] IDEA 全链路回归绿：SimpleRpcServer + `IDebuggerAsync` 客户端路径行为与改造前一致（单线程常规路径；D3 §3.6/§3.7 声明的两处显式行为变更——stepX 无目标报错、多线程定向释放——按 D3 新语义断言）；`enabled=true` 且 web 未激活时注入的 executor 行为与改造前一致
 - [ ] 无 web 会话标识的执行走默认会话兜底（§3.3 规则 3 语义），`enabled=false` 路径零改动；会话分发开销有性能基准对比（相对基线无可测回归）
 - [ ] 租约时序测试绿：续期成功 / 停止续期到期放行且脚本执行完 / close 与租约并发
 - [ ] 调试会话内静态绑定路径与 xlib 标签路径断点可命中（或按 D4 裁定降级），非调试路径无性能回归
