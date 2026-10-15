@@ -70,6 +70,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 | `nop-javac/` | nop-javac 编译能力（文件式编译 / 结构化诊断 / 编译开关矩阵） | [README](nop-javac/README.md) | active — 编译能力归属裁定（落位本模块，反转 `nop-incremental-build` §12.1 的"自建薄驱动"）+ 成功判据契约（`call()` 单独不足以判定成功，解码级失败绕开 javac 两个结构化通道，须 `getTask` 前置自校验）+ 开关行为矩阵（实测 JDK 26.0.1） |
 | `nop-deepwiki/` | DeepWiki 生成 skill（`.opencode/skills/nop-deepwiki/`） | [README](nop-deepwiki/README.md) | active — 00-overview（Vision + Architecture Baseline 双职：五阶段管线/质量门禁/增量模型）+ 01-toolchain-absorption-design（外部工具链机制盘点 → P0 采纳 / P1 立项 / P2 登记 / 拒绝清单，2026-09-30） |
 | `eql-cross-db-compat/` | EQL 跨数据库兼容性治理（roadmap 前置决策门裁决） | [README](eql-cross-db-compat/README.md) | active — WI0 四门书面裁决（`2026-10-03-wi0-gate-adjudications.md`）：G-1 最低支持版本（采纳承诺基线 + unverified 纪律）/ G-2 维持 open（不阻塞任何 WI）/ G-3 接受类型别名进 WI9a（全仓 orm.xml 实证零既有命中）/ G-4 批准 WI3 按表逐项纠错；roadmap Gate 表已同步回写 |
+| `xlang-web-debugger/` | XLang 在线开发调试编辑器（WS 网关 + 会话化引擎 + flux 调试前端） | [README](xlang-web-debugger/README.md) | active — 00-overview（Vision + Architecture Baseline 双职）：JSON-RPC over WS 传输容器裁定（拒绝 GraphQL subscription）、网关落 nop-dev-tools 新子模块、每会话独立 debugger 实例 + 租约续期、IDEA 默认会话共存、范围裁定（集群转发/协同/热发布 out of scope）、里程碑验收标准 M1-M6；D1-D6 子域详设待立项 |
 
 ## Precedence Model
 
