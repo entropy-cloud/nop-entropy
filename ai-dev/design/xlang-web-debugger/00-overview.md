@@ -129,7 +129,7 @@ sequenceDiagram
     alt 连接仍存活（仅停止续期）
         GW-->>FE: 立即推送"租约过期已放行"
     else 连接已断
-        GW-->>FE: 重连后补推（重连会话恢复语义归 D2，item 17 消费）
+        GW-->>FE: 重连后经 session.rebind 状态快照感知放行结果（事件不重放；补推/补齐语义归 D2，item 17 消费）
     end
 ```
 
