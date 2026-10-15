@@ -167,7 +167,7 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | `evt.resumed` | `{threadIds: long[], cause: "user"}` | engine-ext（item 10） | 与 `evt.leaseExpired` **互斥发射**：用户 resume → 仅 `evt.resumed`；租约到期放行 → 仅 `evt.leaseExpired`（其语义已含"线程已放行"，不再补发 resumed，防 UI 双跳变）。`cause` 一期常量为 `"user"`，若 D2 引入其他放行原因在此登记扩展 |
 | `evt.leaseExpired` | `{threadIds: long[]}` | engine-ext（item 10） | D0 裁定的"租约过期已放行"事件载体；唯一租约到期通知 |
 | `evt.completed` | `{ok: boolean, result?: string, error?: {message,errorCode?}}` | gateway（item 12/14：REPL 执行或被调试脚本执行完成） | 新增产生源 |
-| `evt.sessionClosed` | `{reason: userClosed\|serverShutdown\|protocolError}` | gateway | 会话销毁终态通知 |
+| `evt.sessionClosed` | `{reason: userClosed\|graceExpired\|serverShutdown\|protocolError}` | gateway | 会话销毁终态通知（`graceExpired` = 断连宽限期满销毁，语义归 D2 §3.3/§3.6） |
 
 事件可靠性约定：事件为 best-effort 推送，不重排不重放；断连窗口内的事件经 `session.rebind` 的状态快照补齐（哪些状态可补齐归 D2 裁定）。
 

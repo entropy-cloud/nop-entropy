@@ -31,7 +31,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 1. D0 总体架构与协议总纲（组件/时序、与 SimpleRpcServer/IDEA 共存、WS 传输容器裁定、集群转发与多人协作范围裁定）: `done`
 - 2. D1 WebSocket 调试协议详设（JSON envelope、消息集、版本化、鉴权握手、受控扩展事件登记）: `done`
-- 3. D2 租约续期与生命周期详设（TTL/renew/断连宽限/多标签页归属、release 双语义状态机）: `todo`
+- 3. D2 租约续期与生命周期详设（TTL/renew/断连宽限/多标签页归属、release 双语义状态机）: `done`
 - 4. D3 调试器会话化详设（方案 A/B 裁定、会话标识透传、多线程单步目标策略、IDEA 兼容）: `todo`
 - 5. D4 调试模式与执行后端联动详设（两条绕过路径的消除策略、配置联动矩阵）: `todo`
 - 6. D5 前端架构设计 + 语法方案 spike（扩展点、包结构、Lezer 构建链评估、grammar 三来源 POC 裁定）: `todo`
@@ -137,7 +137,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | --- | --- | --- | --- | --- | --- |
 | 1 | D0 总体架构与协议总纲 | plans/2460-xdbg-d0-design-overview | — | **Yes** | analysis §6 裁定、WS 基座 |
 | 2 | D1 WS 协议详设 | plans/2461-xdbg-d1-ws-protocol | after 1 | **Yes** | nop-api-debugger、IUserContextExtractor |
-| 3 | D2 租约续期详设 | （plan 待起草） | after 1 | **Yes** | monitorWait 底座 |
+| 3 | D2 租约续期详设 | plans/2462-xdbg-d2-lease-lifecycle | after 1 | **Yes** | monitorWait 底座 |
 | 4 | D3 会话化详设 | （plan 待起草） | after 1 | **Yes** | EvalExprProvider |
 | 5 | D4 执行后端联动详设 | （plan 待起草） | after 1 | No | EvalBackendRouter |
 | 6 | D5 前端架构 + 语法 spike | （plan 待起草） | after 1 | **Yes** | flux-code-editor、XLangLexer.g4 |

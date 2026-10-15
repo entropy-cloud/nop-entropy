@@ -13,7 +13,7 @@
 | --- | --- | --- | --- |
 | `00-overview.md` | Vision + Architecture Baseline 双职 | 总纲：组件/时序/共存/传输容器/范围裁定/里程碑判据；协议分层声明（容器层归 D0 锁定） | active |
 | [01-ws-protocol.md](01-ws-protocol.md) | 子域详设（D1） | WS 协议详设：envelope schema、消息集与 `IDebugger` 映射表（24 方法逐一登记）、版本化、鉴权方案（查询参数裁定）、扩展事件登记、关闭码映射、CSV 对照 | active |
-| 02-lease-lifecycle | 子域详设（D2） | 租约续期与生命周期：TTL/renew/宽限/多标签页归属、resume 与 close 双语义状态机 | 待立项（roadmap item 3） |
+| [02-lease-lifecycle.md](02-lease-lifecycle.md) | 子域详设（D2） | 租约续期与生命周期：per-session 时钟 + per-thread 判定、TTL 30s/续期 10s/宽限 15s、租约到期（放行不销毁）与宽限期满（放行+销毁）双路径、close 语义仅会话销毁、多标签页共享租约、边界时序（断网/休眠/杀页签/beforeunload） | active |
 | 03-sessionization | 子域详设（D3） | 会话化：方案 A/B 裁定、会话标识透传、每会话实例生命周期、单步目标策略、IDEA 兼容 | 待立项（roadmap item 4） |
 | 04-execution-backend-link | 子域详设（D4） | 调试模式与执行后端联动：两条静态绑定绕过路径的消除策略、配置联动矩阵 | 待立项（roadmap item 5） |
 | 05-frontend-architecture | 子域详设（D5） | flux 前端架构：包结构、扩展点、语言注册开放化 | 待立项（roadmap item 6） |
