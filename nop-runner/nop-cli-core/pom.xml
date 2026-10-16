@@ -148,11 +148,10 @@
             <artifactId>nop-converter</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>io.github.entropy-cloud</groupId>
-            <artifactId>nop-ai-translate</artifactId>
-        </dependency>
-
+        <!-- nop-ai-translate was dissolved by 5567495220 (its _vfs prompts
+             moved to nop-ai-core); the leftover dependency kept its pre-migration
+             jar on the classpath and collided with the migrated resources
+             (nop.err.core.resource.duplicate-vfs-resource). -->
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ai-core</artifactId>
