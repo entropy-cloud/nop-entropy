@@ -4,13 +4,17 @@ type: page
 body:
   # data-source 自身不渲染，结果以 name 发布给兄弟节点消费；when 只挂在 data-source
   # 上，查询条件未填时不发请求（见 flux-guide/design-patterns/data-source.md）。
+  # 参数显式写在 data 里（后端签名为 renderHtml(@Name("reportName") String,
+  # @Optional @Name("data") Map)，故 title 放在 data.data）。
   - type: data-source
     name: reportService
     action: ajax
     args:
-      url: "@query:ReportDemo__renderHtml?reportName=${reportName}"
-      method: get
+      # 不要写 method: get —— 宿主 http.ts 以页面上的 method 覆盖 resolver 强制的
+      # POST；GET 不带 body，会丢掉 reportName/data，后端报 field-null-arg。
+      url: "@query:ReportDemo__renderHtml"
       data:
+        reportName: "${reportName}"
         data:
           title: "${title}"
     when: "${title}"

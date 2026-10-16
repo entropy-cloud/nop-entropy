@@ -1,5 +1,5 @@
 # Flux 版本：asideResizor → asideResizable；toolbar 的 amis actionType download/reload → onClick ajax(blob)/refreshSource；
-# service → data-source；tpl → text。
+# service → data-source；tpl → html。
 type: page
 aside:
   - type: input-tree
@@ -47,13 +47,15 @@ toolbar:
 body:
   # data-source 自身不渲染，结果以 name 发布给兄弟节点消费；when 只挂在 data-source
   # 上，未选报表时不发请求（见 flux-guide/design-patterns/data-source.md）。
+  # 参数显式写在 data 里；不要写 method: get —— 宿主 http.ts 以页面上的 method 覆盖
+  # resolver 强制的 POST，GET 不带 body，会把 reportName 丢掉（后端报 field-null-arg）。
   - type: data-source
     name: reportService
     action: ajax
     args:
-      url: "@query:ReportDemo__renderHtml?reportName=${tree}"
-      method: get
-      data: {}
+      url: "@query:ReportDemo__renderHtml"
+      data:
+        reportName: "${tree}"
     when: "${tree}"
   # amis 的 tpl:'${reportHtml|raw}' 在 flux 对应 html 渲染器（报告站内 HTML 属可信内容）
   - type: html
