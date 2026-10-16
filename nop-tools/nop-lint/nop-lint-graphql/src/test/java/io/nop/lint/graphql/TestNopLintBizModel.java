@@ -48,7 +48,17 @@ public class TestNopLintBizModel {
 
     @Test
     public void checkSourceLintsThroughTheRealLibrary() {
-        LintCheckResult result = service.checkSource(VIOLATING_SOURCE, "java", null, null);
+        // the selection is pinned to one production rule instead of left
+        // unfiltered: an unfiltered run matches the whole 59-rule java
+        // library, and the fast profile's 20ms per-file soft budget trips
+        // the pattern-stage circuit breaker (design 11 §5) on a loaded box —
+        // the breaker aborts the remaining rules in load order, so whether
+        // `nop/no-raw-exception` (exception/ in the sorted rule path) still
+        // runs is a load race, not an invariant. One selected rule keeps the
+        // positive claim deterministic while exercising the same real
+        // library, engine and diagnostic views
+        LintCheckResult result = service.checkSource(VIOLATING_SOURCE, "java",
+                List.of("nop/no-raw-exception"), null);
 
         assertTrue(result.total() >= 1, String.valueOf(result));
         assertEquals(result.diagnostics().size(), result.total());
@@ -86,14 +96,22 @@ public class TestNopLintBizModel {
 
     @Test
     public void ruleWhitelistNarrowsTheDiagnostics() {
-        LintCheckResult all = service.checkSource(VIOLATING_SOURCE, "java", null, null);
+        // both ends of the narrowing claim are pinned selections: an
+        // unfiltered baseline would race the fast profile's pattern-stage
+        // breaker (design 11 §5) and could report zero diagnostics on a
+        // loaded box, making "narrowed" vacuously true. The two selections
+        // differ only in which rule they name — the whitelist is the sole
+        // variable, and both runs are a single rule's matching work, far
+        // inside the budget
         LintCheckResult narrowed = service.checkSource(VIOLATING_SOURCE, "java",
                 List.of("nop/no-empty-catch"), null);
+        LintCheckResult baseline = service.checkSource(VIOLATING_SOURCE, "java",
+                List.of("nop/no-raw-exception"), null);
 
         // the empty-catch rule is orthogonal to the bare throw: a selection
         // holding only it must zero the diagnostics of this fixture
         assertEquals(0, narrowed.total(), String.valueOf(narrowed));
-        assertTrue(all.total() > 0);
+        assertTrue(baseline.total() > 0, String.valueOf(baseline));
     }
 
     @Test
