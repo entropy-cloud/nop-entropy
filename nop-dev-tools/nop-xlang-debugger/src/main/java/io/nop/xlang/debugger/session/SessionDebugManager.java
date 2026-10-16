@@ -55,8 +55,10 @@ public final class SessionDebugManager {
         this.shutdown = false;
         this.defaultHandle = new DebugSessionHandle("default",
                 new DebugExpressionExecutor(defaultDebugger), defaultDebugger);
+        // destroyed 哨兵挂共享取消通道（D6 §3.2 executeDestroyed：销毁不解除取消保护）
         this.destroyedHandle = new DebugSessionHandle("__destroyed__",
-                new DestroyedSessionExecutor(DefaultExpressionExecutor.INSTANCE));
+                new DestroyedSessionExecutor(DefaultExpressionExecutor.INSTANCE,
+                        ThreadLocalReplDeadlineChannel.instance()));
         this.sessions.clear();
         this.sessions.put("default", defaultHandle);
     }
@@ -131,8 +133,10 @@ public final class SessionDebugManager {
         Objects.requireNonNull(debugger, "debugger");
         if (sessions.containsKey(sessionId))
             throw new IllegalArgumentException("nop.xlang.debugger.session-already-exists:" + sessionId);
+        // web 会话执行器挂共享取消通道（plan 2473 融合执行器：每入口 deadline 检查）
         DebugSessionHandle handle = new DebugSessionHandle(sessionId,
-                new DebugExpressionExecutor(debugger), debugger);
+                new DebugExpressionExecutor(debugger, ThreadLocalReplDeadlineChannel.instance()),
+                debugger);
         sessions.put(sessionId, handle);
         SessionListener cb = listener;
         if (cb != null)

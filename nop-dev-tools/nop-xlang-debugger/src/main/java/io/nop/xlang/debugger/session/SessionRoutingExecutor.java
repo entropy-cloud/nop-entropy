@@ -76,6 +76,9 @@ public final class SessionRoutingExecutor implements IExpressionExecutor {
     }
 
     private void notifyException(DebugSessionHandle handle, Throwable t) {
+        // plan 2473 审计 F6：REPL 取消/超时是服务契约内结果，不推 evt.exception 噪声
+        if (t instanceof ReplCancelledError)
+            return;
         try {
             XLangDebugger debugger = handle == null ? null : handle.getDebugger();
             IDebugNotifier notifier = debugger == null ? null : debugger.getNotifier();

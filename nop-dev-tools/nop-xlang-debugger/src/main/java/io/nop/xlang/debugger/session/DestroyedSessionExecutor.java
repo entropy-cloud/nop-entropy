@@ -22,6 +22,7 @@ import java.util.Objects;
  * 取消检查通道实现归 item 14，一期为 null（纯委托直通）。
  */
 public final class DestroyedSessionExecutor implements IExpressionExecutor {
+    // plan 2473 起不再作为执行委托（自线程化）；保留构造兼容
     private final IExpressionExecutor delegate;
     private final ReplDeadlineChannel deadlineChannel;
 
@@ -38,6 +39,10 @@ public final class DestroyedSessionExecutor implements IExpressionExecutor {
     public Object execute(IExecutableExpression expr, EvalRuntime rt) {
         if (deadlineChannel != null)
             deadlineChannel.checkDeadline(rt);
-        return expr.execute(delegate, rt);
+        // 自线程化（plan 2473 修正）：委托 default 会让嵌套入口（while 回边等）绕过
+        // 本执行器直通 delegate——每入口取消检查退化为仅根入口一次（D6 §3.2 明示
+        // 的不可两全陷阱）。自线程化后嵌套入口重入本执行器，取消保护 per-entry 成立；
+        // channel 为 null 时与原委托形态行为等价
+        return expr.execute(this, rt);
     }
 }

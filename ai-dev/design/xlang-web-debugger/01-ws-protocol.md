@@ -196,6 +196,8 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | `ERR_XLANG_DEBUGGER_SESSION_BOUND_ELSEWHERE` | 新增 | -32000 | rebind 属主不符或归属裁定拒绝（不区分不存在/他属） |
 | `ERR_XLANG_DEBUGGER_PROTOCOL_VERSION_UNSUPPORTED` | 新增 | -32000 | protoVersion 主版本不支持（随后 4400） |
 | `ERR_XLANG_DEBUGGER_RATE_LIMITED` | 新增 | -32000 | lease.renew 高频限流（阈值归 D2/item 12） |
+| `ERR_XLANG_DEBUGGER_REPL_CANCELLED` | 新增（item 14） | ——（REPL 走 HTTP 同步响应 error.errorCode，不经 WS） | REPL 执行被取消（管理/测试面旗标；D6 §3.2 转派登记） |
+| `ERR_XLANG_DEBUGGER_REPL_TIMEOUT` | 新增（item 14） | ——（同上） | REPL 执行超过 deadline（绝对时钟，D6 §3.4） |
 
 ### 3.8 关闭码映射表
 

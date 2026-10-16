@@ -1050,6 +1050,12 @@ public interface XLangErrors {
     ErrorCode ERR_XLANG_DEBUGGER_RATE_LIMITED = define("nop.err.xlang.debugger.rate-limited",
             "请求频率超过限制");
 
+    ErrorCode ERR_XLANG_DEBUGGER_REPL_CANCELLED = define("nop.err.xlang.debugger.repl-cancelled",
+            "REPL执行已取消");
+
+    ErrorCode ERR_XLANG_DEBUGGER_REPL_TIMEOUT = define("nop.err.xlang.debugger.repl-timeout",
+            "REPL执行超时");
+
     ErrorCode ERR_XLIB_TAG_NO_SOURCE_DEFINED = define("nop.err.xpl.xlib.tag-no-source-defined",
             "标签库没有定义内嵌的source实现，也没有外部关联的[{resourceName}]实现文件", ARG_RESOURCE_NAME);
 

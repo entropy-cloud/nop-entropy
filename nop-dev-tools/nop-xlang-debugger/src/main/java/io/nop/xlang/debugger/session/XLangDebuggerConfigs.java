@@ -46,4 +46,24 @@ public interface XLangDebuggerConfigs {
     @Description("调试日志攒批flush间隔（毫秒）。未达条数阈值的缓冲日志按该间隔定时flush；0=禁用定时flush（仅条数阈值与销毁flush）")
     IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LOG_FLUSH_INTERVAL = varRef(s_loc,
             "nop.xlang.debug-web.log.flush-interval-ms", Integer.class, 300);
+
+    @Description("REPL执行超时（毫秒）。请求timeoutMs与其取小；上限120000；绝对时钟，断点挂起时间计入（D6 §3.4 一期限制）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_REPL_EXECUTE_TIMEOUT = varRef(s_loc,
+            "nop.xlang.debug-web.repl.execute-timeout-ms", Integer.class, 30000);
+
+    @Description("REPL编译超时（毫秒）。编译期常量/宏求值会执行代码，超时非纯防御值（D6 §3.4）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_REPL_COMPILE_TIMEOUT = varRef(s_loc,
+            "nop.xlang.debug-web.repl.compile-timeout-ms", Integer.class, 10000);
+
+    @Description("REPL source最大字节数。超限按413语义拒绝（D6 §3.4 限制表）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_REPL_MAX_SOURCE_BYTES = varRef(s_loc,
+            "nop.xlang.debug-web.repl.max-source-bytes", Integer.class, 262144);
+
+    @Description("REPL全局并发执行数上限。超限按限流错误响应（不关闭通道）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_REPL_MAX_CONCURRENT = varRef(s_loc,
+            "nop.xlang.debug-web.repl.max-concurrent", Integer.class, 4);
+
+    @Description("REPL允许import的白名单（逗号分隔的Java类FQN/xlib命名空间）。空=拒绝一切import（D6 §3.3 默认拒绝）")
+    IConfigReference<String> CFG_XLANG_DEBUG_WEB_REPL_IMPORT_WHITELIST = varRef(s_loc,
+            "nop.xlang.debug-web.repl.import-whitelist", String.class, "");
 }
