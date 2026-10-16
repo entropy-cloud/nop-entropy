@@ -17,8 +17,13 @@
 | `2026-10/2026-10-14-2230-deep-audit-nop-job-concurrency` | 1.4 | nop-job | C1 C2 C4 C5 C7 + C10 | 0 | 2 | 23+9（含 C10 缺保护登记） | 9 | done（closure audit PASS，plan 2464） |
 | `2026-10/2026-10-15-0930-deep-audit-nop-wf-nop-task-concurrency` | 1.5 | nop-wf-nop-task | C1–C5 C7 C8 + C10 | 0 | 7 | 29+14（含 C10 缺保护登记） | 18 | done（closure audit PASS，plan 2465） |
 | `2026-10/2026-10-15-1400-deep-audit-nop-retry-nop-tcc-concurrency` | 1.6 | nop-retry-nop-tcc | C1 C3 C6 C7 C8 + C10（C2/C4/C5/C9 线索 overlay） | 0 | 14 | 22+10（含 C10 缺保护登记） | 14 | done（closure audit PASS，plan 2466） |
+| `2026-10/2026-10-16-1258-deep-audit-nop-batch-concurrency` | 1.7 | nop-batch | C1 C5 C6 C7 C8 + C10（C2/C3/C4/C9 线索 overlay） | 0 | 8 | 26+12（含 C10 缺保护登记） | 17 | done（closure audit PASS，plan 2467） |
+
+> 1.5 计数口径：合并裁定后 54 个工作项（23 缺陷族 MA-01~23 + 31 独立）；P0=0（即时通道显式空执行）；C10 缺保护 14 条单列；与 WI 1.1–1.4 台账零重复立项，跨单元关联 3 处单列（nop-job-C7-006、2026-09 P2-3.1-001、AU-10 同案对齐）。
 
 > 1.6 计数口径：合并裁定后 50 条（14 并组吸收 24 条 + 独立条目；P1 19→14、P2 38→22、P3 17→14）；P0=0（即时通道显式空执行）；C10 缺保护 10 条单列；维度集外线索 CL-001~007 全部确认（见「维度集外线索关联」节，不计入 74）；与 WI 1.1–1.5 台账零重复立项，跨单元关联 2 处单列（C8-001↔nop-job C4-003、CL-006 留 rpc/资源单元）。
+
+> 1.7 计数口径：合并裁定后 51 条（53 保留全含 1 降级；并入 2 条 C5-005→C8-001、C7-002→C6-001/C6-002；P1×8/P2×26/P3×17）；P0=0（即时通道显式空执行）；C10 缺保护 12 条单列；CL 编号 39 条、驳回 4（CL-007/009/015/038）、确认台账 35 条（见「维度集外线索关联」节 nop-batch 小节，不计入 51）；关键事实修正：C8-001 ORM 子面「LIMIT 0 静默空任务」证伪→全表加载挂死（挂死面扩大）；与 WI 1.1–1.6 台账零重复立项，跨单元关联 5 处单列（三表零保留族/扫描守卫停摆族/平台池占用族/零生产装配对照/CL-006 留 rpc 单元）。
 
 > 1.4 计数口径：合并裁定后 34 项（7 缺陷族 MA-01~07 + 27 独立）；P0=0（即时通道显式空执行）；C10 缺保护 9 条单列；与 WI 1.1–1.3 台账零重复立项，跨单元关联 3 条单列。
 
@@ -31,7 +36,7 @@
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
-| （1.1/1.3/1.4/1.5/1.6 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -86,6 +91,14 @@
 | C7-005 | 1.6 | nop-retry-nop-tcc | tcc 账本清理 API 零生产调用方 + 耗尽行双重永久排除 + 全表零索引 | 待 7.1 | open |
 | C7-012 | 1.6 | nop-retry-nop-tcc | 扫描器只服务单一 namespace：非 default 记录永久 PENDING、零日志零接管（条件面：default-only 部署不触发） | 待 7.1 | open |
 | C8-001（←C7-004/C6-014） | 1.6 | nop-retry-nop-tcc | 扫描循环被拒/Error 即（近）静默永久停摆：无自防御、无观测、无重臂（跨单元关联 nop-job C4-003，修复须平台级统一） | 待 7.1 | open |
+| C8-001（←C5-005） | 1.7 | nop-batch | dispatch 容量全链零护栏：loadBatchSize≤0 → orm-reader 全表加载 Semaphore(0) 永久挂死 / jdbc-file 族静默空任务丢数（参数护栏矩阵三层完整者 0；修复先于 C8-009） | 待 7.1 | open |
+| C8-002（←CL-008） | 1.7 | nop-batch | ExportDbTool 缺省 batchSize=0 静默钳位 1 每行一 chunk：日志/状态文件写放大磁盘耗尽（与 Import `>0` 守卫 F3 不对称；biz 链 batchSize=0 穿透同批 C8-010） | 待 7.1 | open |
+| C5-001 | 1.7 | nop-batch | excel-reader beforeRead 全 sheet 物化 List：50 万行 1.5–3GB，maxCountExpr 接线禁用且先物化后截断无兜底（C10-011 补回归钉义务） | 待 7.1 | open |
+| C5-002（←CL-038 事实） | 1.7 | nop-batch | jdbc-reader fetchSize 死配置：门条件恒 false + 非 MySQL dialect 无 streamingFetchSize + autocommit 未关 → GB 级全量缓冲（修复须同步改写测试 N2） | 待 7.1 | open |
+| C6-001（←C7-002B/CL-026/CL-024 验证断言） | 1.7 | nop-batch | executeChunkLoop 仅 catch Exception：Error 逃逸 future 永不完成 → 资源永不关闭+任务行永久 RUNNING+调用方挂死（修复必须与 C6-010 同 diff：try 上移+catch Throwable） | 待 7.1 | open |
+| C6-002（←C7-002A） | 1.7 | nop-batch | executor.execute REE 裸逃逸：句柄泄漏+永久 RUNNING（注入有界池饱和/停机竞态；默认装配不可达已裁定） | 待 7.1 | open |
+| C7-001 | 1.7 | nop-batch | 任务行永久 RUNNING 死区：tryMarkTaskRunning 无 stale 判定无 fencing 无专用运维端点，cron 每 5s 错误风暴（跨单元关联 WI 1.5 C7-001/WI 1.6 C8-001 平台级 fencing 对齐；修复前须参数化改写测试 N1） | 待 7.1 | open |
+| C7-003 | 1.7 | nop-batch | 三张账本表零保留：清理代码完全不存在（非零装配），UUID taskKey 每触发 +1 行单调增长（跨单元关联 WI 1.6 C7-001 账本保留族，Phase 8 批次对齐） | 待 7.1 | open |
 
 ## 维度集外线索关联（CL 台账，不计入各单元发现数）
 
@@ -102,6 +115,14 @@
 | nop-retry-nop-tcc-CL-007 | 1.6 | 功能覆盖/协调方 | retryFromDeadLetter 死信重放入口零生产装配，与 C3-015 修复同批 | C3-015 | confirmed |
 
 （WI 1.1/1.2/1.3/1.5 单元无确认线索登记；WI 1.4 CL 处置见 plan 2464 维度集外线索处置裁定节。）
+
+### WI 1.7 nop-batch（CL-001~039：编号 39、驳回 4、确认台账 35；全表见 merge-adjudication.md §四）
+
+**并入发现条目（随主条目处置，不独立立案）**：CL-008→C8-002（P1）、CL-026→C6-001（P1）、CL-024→C6-001 修复族验证断言、CL-022→C5-007、CL-016=CL-012、CL-017=CL-013、CL-027→CL-006、CL-021→CL-009 不立案口径。
+
+**独立行动项（27 条，归属/严重度/一句话见审计目录 merge-adjudication.md §四）**：CL-001（C2/P2 DaoBatchStateStore 全局锁内 DB I/O——锁内 I/O 族族首 CL-012/016/020/036）、CL-002（C2/P3 computeIfAbsent 锁内 setup）、CL-003（C3/P3 GraphQL loader 阻塞折叠）、CL-004（C5/C4/P2 exp 线程池无界队列+cachedThreadPool 切换）、CL-005（C3/F9/P3 fireChunkEnd 吞异常不对称）、CL-006（C9/P3 六站点 synchronized(state) 串行点）、CL-010（C6/P2 jdbc 连接关闭唯一出口挂 afterComplete）、CL-011（C9/P3 removeAll O(n×m)+OFFSET O(n²)）、CL-012（C2/P2 候选 =CL-016 全局锁 DB I/O）、CL-013（C6/P2 候选 =CL-017 幽灵 async processor，自 P1 候选降档）、CL-014（C6/P2 候选 cancel 与 future 解耦）、CL-018（C6/P3 导出临时文件 timer 孤儿）、CL-019（C7/P3 EtlTaskStateStore rename 无 fsync——声明模型 kill 内成立）、CL-020（C7/P3 loader 锁内 DB I/O 设计权衡）、CL-023（C9/P3 dispatch 模式 synchronized(state) 串行化）、CL-025（C3/P3 takeBatch 环不查 cancelled）、CL-028（C5/P3 Export 非 MySQL fetchSize 残余）、CL-029（C7/P3 全键拼接日志放大）、CL-030（C9/P3 removeAll 第三处同族）、CL-031（C2/C8/P2~P3 DSL tag 无匹配静默丢数——归属留协调方）、CL-032（C9/P3 每 chunk 全量 JSON 序列化）、CL-033（C8/P2 候选 load 侧部分读失败重试丢行——at-least-once 张力）、CL-034（C6/P3 fireLoadEnd 双触发）、CL-035（C6/P3 fireTaskBegin 半初始化）、CL-036（C7/P3 锁内 INFO 日志）、CL-037（C9/P3 SplitBatchConsumer 快路径过锁）、CL-039（C5/C9/P3 partitionFn=random 顺序承诺失效+32767 队列）。
+
+**驳回/不立案（4）**：CL-007（live 已闭合，commit 7defae0e69）、CL-009（低危不立案）、CL-015（误读控制流）、CL-038（与 C5-002 同点重复，事实并入备注）。
 
 ## P2 裁决台账（7.1 逐项裁决）
 
