@@ -58,7 +58,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 3: 前端编辑器与调试 UI（nop-chaos-flux）
 
-- 15. xlang CodeMirror 语言包（按 D5：Lezer grammar 构建链、高亮/折叠、诊断对接、语言注册开放化）: `todo`
+- 15. xlang CodeMirror 语言包（按 D5：Lezer grammar 构建链、高亮/折叠、诊断对接、语言注册开放化）: `done`
 - 16. 调试编辑器扩展（断点 gutter、挂起行/异常波浪线装饰、断点增删交互）: `todo`
 - 17. WS 调试客户端与租约续期（连接/重连/鉴权、续期心跳、断连放行、会话恢复）: `todo`
 - 18. 调试面板（变量树懒展开、调用栈/frame 切换、表达式求值、控制按钮、日志面板）: `todo`
