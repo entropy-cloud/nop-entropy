@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * REPL 服务端测试（plan 2473 Phase 2，D6 §3.1/§3.3/§3.4/§3.5）：门控序（401/403/
@@ -210,7 +209,6 @@ public class TestReplService extends AbstractDebugGatewayTest {
                 null, headers(TOK_U1));
         assertEquals(Boolean.TRUE, response.get("ok"));
         String result = (String) response.get("result");
-        System.out.println("[PROBE] keys=" + response.keySet() + " len=" + (result == null ? -1 : result.length()) + " head=" + (result == null ? "null" : result.substring(0, Math.min(40, result.length()))));
         assertTrue(result.getBytes(java.nio.charset.StandardCharsets.UTF_8).length <= ReplService.MAX_RESULT_BYTES + 4);
         assertEquals(Boolean.TRUE, response.get("truncated"));
     }

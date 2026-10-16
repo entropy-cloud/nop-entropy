@@ -14,7 +14,6 @@ import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.exceptions.NopLoginException;
 
 import java.util.Map;
-import java.util.UUID;
 
 /**
  * REPL 访问门（D6 §3.4 权限矩阵）：登录态（extractor，null/异常 → 401）+ 权限码
@@ -68,7 +67,4 @@ public class ReplAccessGuard {
         }
     }
 
-    public static String newTraceId() {
-        return UUID.randomUUID().toString();
-    }
 }

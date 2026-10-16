@@ -109,22 +109,22 @@ Exit Criteria:
 
 ### Phase 3 - 独立审计与收口（含保护区 audit）
 
-Status: planned
+Status: completed
 Targets: 全部、roadmap、M3 里程碑
 
 - Item Types: `Proof`
 
-- [ ] 独立子代理 closure audit：D6 逐节对账（§3.1 契约/§3.2 取消机制三选一与融合形态/§3.3 沙箱规则表/§3.4 权限矩阵与限制表/§3.5 审计字段）+ 保护区 XLangErrors 两码 additive 核对 + 变异探针（deadline 检查/权限门禁/沙箱拒绝）+ 并发（信号量/同会话串行）+ Anti-Hollow + 残余风险清单与 D6 §3.3 一致性
-- [ ] 修复审计发现
-- [ ] roadmap item 14 → `done`；**Milestone 后端调试服务 MVP 翻转 done**（items 8-14 全 done）
-- [ ] `ai-dev/logs/` 收口记录
+- [x] 独立子代理 closure audit：D6 逐节对账（§3.1 契约/§3.2 取消机制三选一与融合形态/§3.3 沙箱规则表/§3.4 权限矩阵与限制表/§3.5 审计字段）+ 保护区 XLangErrors 两码 additive 核对 + 变异探针（deadline 检查/权限门禁/沙箱拒绝）+ 并发（信号量/同会话串行）+ Anti-Hollow + 残余风险清单与 D6 §3.3 一致性——10 维度 9 PASS + 1 PARTIAL（F2 clamp 缺口已修），结论 GO 条件性（agent_e5d2fbe0，证据见 Closure 段）
+- [x] 修复审计发现（F1 日志条目缺失补写[硬阻塞]；F2 execute 配置默认路径 clamp；F3 enabled 拒绝改登记码 ERR_XLANG_DEBUGGER_EXECUTION_DISABLED + D1 表第三行；F4 探针输出/死代码/未用 import 清理；F5/F6/F7 登记 Non-Blocking/item 25）
+- [x] roadmap item 14 → `done`；**Milestone 后端调试服务 MVP 翻转 done**（items 8-14 全 done）
+- [x] `ai-dev/logs/` 收口记录（含 Phase 1/Phase 2 补写条目——审计 F1）
 
 Exit Criteria:
 
-- [ ] audit 发现全修复
-- [ ] 测试门全绿（两域）
-- [ ] roadmap item 14 `done` 且 MVP milestone 翻转 `done`
-- [ ] `ai-dev/logs/` 收口记录
+- [x] audit 发现全修复
+- [x] 测试门全绿（两域：debug-web 46/46 + debugger 68/68）
+- [x] roadmap item 14 `done` 且 MVP milestone 翻转 `done`
+- [x] `ai-dev/logs/` 收口记录
 
 ## Closure Gates
 
@@ -159,10 +159,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口后填写）
-Completed: （待填写）
+Status Note: REPL 服务端全量落地（Phase 1 引擎取消机制 + Phase 2 服务/门控/沙箱/审计/宿主壳 + Phase 3 独立审计收口）。D6 §3.1-§3.5 十维度审计 GO 条件性——F1（日志缺失，硬阻塞）补写、F2-F4 已修、F5-F7 登记；3 变异探针全红→md5 恢复→复绿；保护区 XLangErrors 三码（REPL 两码 + execution-disabled）与 D1 §3.7 表三行逐字段对齐。测试门：debug-web 46/46 + debugger 68/68。
+Completed: 2026-10-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子代理 agent_e5d2fbe0-b39d-432c-ba81-932be6f96319（fresh session，非实现会话）
+- Audit Session: agent_e5d2fbe0-b39d-432c-ba81-932be6f96319
+- Evidence:
+  - D6 §3.1 契约 PASS（compile/execute schema；属主同码防探测 testGateOrder；fireCompleted 零 REPL 调用点 grep 实证）
+  - D6 §3.2 取消机制 PASS（融合执行器入口序逐行对应；共享旗标爆炸半径收口经探针②反向证实；Error 系穿透 testCancelErrorPiercesScriptCatch；destroyed 自线程化）
+  - D6 §3.3 沙箱 PASS（白名单全拒绝默认；Promise 禁用；残余五项 + F7 词法空白变体具体化登记 item 25）
+  - D6 §3.4 PARTIAL→修后 PASS（F2：execute 配置默认路径 clamp 120s 已补；权限码/413/1MB 截断/429 双层限流/enabled 运行期复查探针③证实）
+  - D6 §3.5 审计 PASS（八字段/双 action/专用 logger + 注入面）
+  - 保护区 PASS（XLangErrors 三码 additive——REPL_CANCELLED/REPL_TIMEOUT/EXECUTION_DISABLED——与 D1 §3.7 表三行逐字段对齐；git 提交面核对仅声明文件）
+  - 变异探针 3/3 实测：isSessionOwner 门注释→testGateOrder 红；cancelled 分支注释→testCrossThreadCancelInterrupts 红；enabledPredicate 注释→testRuntimeEnabledGate 红；均 md5 恢复复绿，git status 零残留
+  - Anti-Hollow PASS（hollow 扫描 --severity high 0 发现；五配置键消费点逐一 grep；HTTP 链 testExecuteDeadlineInterruptsInfiniteLoop 端到端——真 while(true){} 300ms deadline <10s 打断回 cancelled:true）
+  - 测试真实性抽查 4/11 PASS（超时三重断言/429 真挂起中触发/审计逐字段/沙箱真 400）
+  - 测试门：debug-web 46/46 + debugger 68/68；check-plan-checklist --strict exit 0；check-doc-links --strict exit 0；scan-hollow exit 0
+  - Deferred 项分类检查：F5 白名单快照（Info，D6 未要求动态）/F6 permit 理论窗口（Info，防御性登记）/F7 词法空白变体（Info，D6 §3.3 已声明残余的具体化）——均 Non-Blocking 登记，无 in-scope live defect 降级
+
+Follow-up:
+
+- F5 import 白名单运行期刷新（构造时一次性快照）
+- F6 permit 获取与 try/finally 之间 timeout 计算的理论泄漏窗口（try 块前移即可，防御性）
+- F7 import 词法扫描空白变体假阴（`import foo . Bar;`）——item 25 复核清单点名
+- 多错误编译诊断收集/挂起感知 deadline/servlet async 超时/独立审计表/运行时沙箱强制/JsPromise Error 重抛（→ item 25/follow-up，见 Deferred But Adjudicated）
