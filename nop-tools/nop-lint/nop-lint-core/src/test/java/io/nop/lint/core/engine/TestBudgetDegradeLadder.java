@@ -201,11 +201,14 @@ public class TestBudgetDegradeLadder {
         long ms = TimeUnit.MILLISECONDS.toNanos(1);
         // FAST budget reads: start consumes 2 (deadline + slice deadline);
         // per executed rule: boundary + matchStart + matchEnd; per match:
-        // sliceExpired + remaining (skip path reads sliceExpired only)
+        // sliceExpired + remaining — the budget clamp reads the slice too,
+        // so match 1 must see the whole slice (a 9ms reading would clamp
+        // its script to a 1ms real-clock deadline, an accident the test
+        // never intended); the skip path reads sliceExpired only
         ProgrammedClock clock = new ProgrammedClock(
                 t0, t0,                                // budget start
                 t0, t0, t0,                            // rule boundary + match timing
-                t0 + 9 * ms, t0 + 9 * ms,              // match 1: 9ms of slice left
+                t0, t0,                                // match 1: the whole 10ms slice left
                 t0 + 9 * ms + ms / 2,                  // match 2 sliceExpired: 0.5ms < 1ms
                 t0 + 9 * ms + ms / 2                   // (no further reads on the skip path)
         );
@@ -214,19 +217,31 @@ public class TestBudgetDegradeLadder {
         LintResult result = engine.lint(List.of(xscriptRule("demo/slice-rule")), JAVA, "demo/S.java", SOURCE);
 
         LintStats stats = result.stats();
-        assertEquals(1, stats.getXscriptMatchesExecuted(), "match 1 still ran its script");
+        assertEquals(1, stats.getXscriptMatchesExecuted(), "match 1 reached its script");
         assertEquals(1, stats.getXscriptBudgetExceededMatches(), "match 2 skipped at the slice");
         assertEquals(List.of("demo/slice-rule"), stats.getXscriptBudgetExceededRuleIds());
+        assertEquals(2, stats.getXscriptMatchesExecuted() + stats.getXscriptBudgetExceededMatches(),
+                "the rule's two matches split across the executed and the skipped path");
 
-        List<Diagnostic> diagnostics = result.diagnostics();
-        assertEquals(2, diagnostics.size(),
-                "the skipped match still reports its pattern-layer result (design 11 §5)");
-        Diagnostic scripted = diagnostics.get(0);
-        Diagnostic patternLayer = diagnostics.get(1);
-        assertTrue(patternLayer.range().startByte() > scripted.range().startByte(),
+        // the skipped match still reports its pattern-layer result (design
+        // 11 §5). It is located by its message, not by index: the executed
+        // match's script is the one face still on the real clock (plan R2
+        // Minor C — the in-script deadline always reads System.nanoTime),
+        // and under the fast profile's 10ms slice clamp it can time out on
+        // a loaded box and drop its own diagnostic. The skip path's report
+        // is unconditional, so that is the half this test pins
+        String patternLayerMessage = "msg demo/slice-rule";
+        List<Diagnostic> patternLayer = result.diagnostics().stream()
+                .filter(d -> patternLayerMessage.equals(d.message()))
+                .toList();
+        assertEquals(1, patternLayer.size(),
+                "exactly the skipped match reports the rule's static message: "
+                        + result.diagnostics());
+        Diagnostic patternLayerResult = patternLayer.get(0);
+        assertNull(patternLayerResult.fix(), "the fast profile never opens fix generation");
+        assertEquals(SOURCE.indexOf("System.out.println(\"b\")"),
+                patternLayerResult.range().startByte(),
                 "the pattern-layer diagnostic sits on the second (skipped) match node");
-        assertEquals("msg demo/slice-rule", patternLayer.message(),
-                "the pattern-layer result carries the rule's static message");
     }
 
     @Test
