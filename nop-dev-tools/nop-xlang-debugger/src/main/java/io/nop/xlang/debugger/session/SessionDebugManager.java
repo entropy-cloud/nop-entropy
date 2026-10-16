@@ -11,19 +11,27 @@ import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.xlang.debugger.DebugExpressionExecutor;
 import io.nop.xlang.debugger.XLangDebugger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 会话注册表与默认会话供给（D3 §3.8）：每会话一个 {@link io.nop.xlang.debugger.XLangDebugger}
- * 实例的句柄登记；默认会话（IDEA 通道）是预置实例，路由对它无特判。
+ * 会话注册表与默认会话供给（D3 §3.5/§3.8）：每会话一个 {@link XLangDebugger} 实例的句柄登记；
+ * 默认会话（IDEA 通道）是预置实例并注册进会话表（键 "default"）。
  *
- * <p>静态单例符合 nop-dev-tools 无 IoC 的 ServiceLoader/ICoreInitializer 手工装配惯例；
- * 销毁顺序按 D3 §3.5：先注销会话表、后置 destroyed 位。
+ * <p>并发纪律：init/createSession/destroySession/shutdownAll 同 manager 监视器锁
+ * （防停机清扫与网关开新会话竞态）；SessionListener 回调在锁外触发且异常隔离
+ * （catch+log，不中断创建/销毁链）。静态单例符合 nop-dev-tools 的
+ * ServiceLoader/ICoreInitializer 手工装配惯例。
  */
 public final class SessionDebugManager {
+    private static final Logger LOG = LoggerFactory.getLogger(SessionDebugManager.class);
+
     private static final SessionDebugManager INSTANCE = new SessionDebugManager();
 
     public static SessionDebugManager instance() {
@@ -33,6 +41,8 @@ public final class SessionDebugManager {
     private final Map<String, DebugSessionHandle> sessions = new ConcurrentHashMap<>();
     private volatile DebugSessionHandle defaultHandle;
     private volatile DebugSessionHandle destroyedHandle;
+    private volatile SessionListener listener;
+    private volatile boolean shutdown;
 
     private SessionDebugManager() {
     }
@@ -42,10 +52,13 @@ public final class SessionDebugManager {
      */
     public synchronized void init(XLangDebugger defaultDebugger) {
         Objects.requireNonNull(defaultDebugger, "defaultDebugger");
-        this.defaultHandle = new DebugSessionHandle("default", new DebugExpressionExecutor(defaultDebugger));
+        this.shutdown = false;
+        this.defaultHandle = new DebugSessionHandle("default",
+                new DebugExpressionExecutor(defaultDebugger), defaultDebugger);
         this.destroyedHandle = new DebugSessionHandle("__destroyed__",
                 new DestroyedSessionExecutor(DefaultExpressionExecutor.INSTANCE));
         this.sessions.clear();
+        this.sessions.put("default", defaultHandle);
     }
 
     /**
@@ -68,16 +81,65 @@ public final class SessionDebugManager {
         return handle;
     }
 
+    public void setSessionListener(SessionListener listener) {
+        this.listener = listener;
+    }
+
     /**
-     * 注册 web 会话（session.open 时由网关调用）。sessionId 冲突抛错。
+     * 注册 web 会话（session.open 时由网关调用），内部创建新调试器实例。
+     * sessionId 冲突或 manager 已 shutdown 抛错。
      */
-    public synchronized DebugSessionHandle createSession(String sessionId, XLangDebugger debugger) {
+    public DebugSessionHandle createSession(String sessionId) {
+        Runnable notify;
+        DebugSessionHandle handle;
+        synchronized (this) {
+            ensureNotShutdown();
+            handle = doCreate(sessionId, new XLangDebugger());
+        }
+        notify = pendingCreated;
+        pendingCreated = null;
+        if (notify != null)
+            notify.run();
+        return handle;
+    }
+
+    /**
+     * 注册 web 会话（外部实例形态：测试 recording 桩/特殊装配使用）。
+     */
+    public DebugSessionHandle createSession(String sessionId, XLangDebugger debugger) {
+        Runnable notify;
+        DebugSessionHandle handle;
+        synchronized (this) {
+            ensureNotShutdown();
+            handle = doCreate(sessionId, debugger);
+        }
+        notify = pendingCreated;
+        pendingCreated = null;
+        if (notify != null)
+            notify.run();
+        return handle;
+    }
+
+    // 必须在 manager 锁内调用；onCreated 回调经 pendingCreated 带出锁外触发
+    private Runnable pendingCreated;
+
+    private DebugSessionHandle doCreate(String sessionId, XLangDebugger debugger) {
         Objects.requireNonNull(sessionId, "sessionId");
         Objects.requireNonNull(debugger, "debugger");
         if (sessions.containsKey(sessionId))
             throw new IllegalArgumentException("nop.xlang.debugger.session-already-exists:" + sessionId);
-        DebugSessionHandle handle = new DebugSessionHandle(sessionId, new DebugExpressionExecutor(debugger));
+        DebugSessionHandle handle = new DebugSessionHandle(sessionId,
+                new DebugExpressionExecutor(debugger), debugger);
         sessions.put(sessionId, handle);
+        SessionListener cb = listener;
+        if (cb != null)
+            pendingCreated = () -> {
+                try {
+                    cb.onCreated(handle, debugger);
+                } catch (Exception e) {
+                    LOG.error("nop.xlang.debugger.session-listener-fail", e);
+                }
+            };
         return handle;
     }
 
@@ -91,21 +153,85 @@ public final class SessionDebugManager {
     }
 
     /**
-     * 销毁会话：先注销、后置 destroyed 位（D3 §3.5 顺序）。
+     * 销毁会话（abort 收尾链，D3 §3.5 DestroyingByClose）：close 中止挂起线程 →
+     * 注销会话表 → 置 destroyed 位 → listener.onDestroy 回调（锁外、异常隔离）。
      */
     public void destroySession(DebugSessionHandle handle) {
         Objects.requireNonNull(handle, "handle");
-        sessions.remove(handle.getSessionId(), handle);
-        handle.markDestroyed();
+        Runnable notify;
+        synchronized (this) {
+            XLangDebugger debugger = handle.getDebugger();
+            if (debugger != null)
+                debugger.close();
+            sessions.remove(handle.getSessionId(), handle);
+            handle.markDestroyed();
+            SessionListener cb = listener;
+            notify = (cb != null && debugger != null)
+                    ? () -> {
+                        try {
+                            cb.onDestroyed(handle, debugger);
+                        } catch (Exception e) {
+                            LOG.error("nop.xlang.debugger.session-listener-fail", e);
+                        }
+                    }
+                    : null;
+        }
+        if (notify != null)
+            notify.run();
     }
 
     /**
-     * 复位全部状态（destroy 清扫与测试卫生）。
+     * 停机清扫（D6 serverShutdown，等效 close 语义）：与 init/createSession 同监视器锁，
+     * 逐实例 close + 全量清扫；shutdown 后 createSession 拒绝。listener 回调锁外触发。
+     */
+    public void shutdownAll() {
+        List<Runnable> notifies = new ArrayList<>();
+        synchronized (this) {
+            this.shutdown = true;
+            for (Map.Entry<String, DebugSessionHandle> entry : sessions.entrySet()) {
+                DebugSessionHandle handle = entry.getValue();
+                XLangDebugger debugger = handle.getDebugger();
+                if (debugger != null) {
+                    try {
+                        debugger.close();
+                    } catch (Exception e) {
+                        LOG.error("nop.xlang.debugger.session-close-fail", e);
+                    }
+                }
+                handle.markDestroyed();
+                SessionListener cb = listener;
+                if (cb != null && debugger != null) {
+                    notifies.add(() -> {
+                        try {
+                            cb.onDestroyed(handle, debugger);
+                        } catch (Exception e) {
+                            LOG.error("nop.xlang.debugger.session-listener-fail", e);
+                        }
+                    });
+                }
+            }
+            sessions.clear();
+            defaultHandle = null;
+        }
+        // 回调在锁外触发（SessionListener 契约）
+        for (Runnable notify : notifies) {
+            notify.run();
+        }
+    }
+
+    private void ensureNotShutdown() {
+        if (shutdown)
+            throw new IllegalStateException("nop.xlang.debugger.session-manager-shutdown");
+    }
+
+    /**
+     * 复位全部状态（测试卫生；生产停机走 shutdownAll）。
      */
     public synchronized void reset() {
         sessions.values().forEach(DebugSessionHandle::markDestroyed);
         sessions.clear();
         defaultHandle = null;
         destroyedHandle = null;
+        shutdown = false;
     }
 }

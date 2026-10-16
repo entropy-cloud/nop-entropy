@@ -184,7 +184,9 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
     public void destroy() {
         EvalExprProvider.registerGlobalExecutor(DefaultExpressionExecutor.INSTANCE);
         if (sessionManager != null) {
-            sessionManager.reset();
+            // web 会话实例清扫（D6 serverShutdown：等效 close 语义）；默认实例 close
+            // 由下方既有逻辑承担（sessionManager==null 分支不可回退——防挂起线程泄漏回归）
+            sessionManager.shutdownAll();
             sessionManager = null;
         }
         if (server != null) {

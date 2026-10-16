@@ -67,7 +67,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private final Condition resumeCondition = monitorLock.newCondition();
     private final Condition suspendedCondition = monitorLock.newCondition();
 
-    private IDebugNotifier notifier;
+    private volatile IDebugNotifier notifier;
 
     private ScheduledExecutorService cleanupThread = Executors
             .newSingleThreadScheduledExecutor(NamedThreadFactory.newThreadFactory("xlang-debugger-cleanup", true));
@@ -116,6 +116,14 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
     public void setNotifier(IDebugNotifier notifier) {
         this.notifier = notifier;
+    }
+
+    /**
+     * 调试器是否已关闭（close 语义后为 true）。会话生命周期（item 9）与
+     * 停机清扫断言使用。
+     */
+    public boolean isClosed() {
+        return closed;
     }
 
     @Override

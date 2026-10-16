@@ -8,6 +8,7 @@
 package io.nop.xlang.debugger.session;
 
 import io.nop.core.lang.eval.IExpressionExecutor;
+import io.nop.xlang.debugger.XLangDebugger;
 
 import java.util.Objects;
 
@@ -22,11 +23,17 @@ import java.util.Objects;
 public final class DebugSessionHandle {
     private final String sessionId;
     private final IExpressionExecutor debugExecutor;
+    private final XLangDebugger debugger;
     private volatile boolean destroyed;
 
     DebugSessionHandle(String sessionId, IExpressionExecutor debugExecutor) {
+        this(sessionId, debugExecutor, null);
+    }
+
+    DebugSessionHandle(String sessionId, IExpressionExecutor debugExecutor, XLangDebugger debugger) {
         this.sessionId = Objects.requireNonNull(sessionId, "sessionId");
         this.debugExecutor = Objects.requireNonNull(debugExecutor, "debugExecutor");
+        this.debugger = debugger;
     }
 
     public String getSessionId() {
@@ -46,5 +53,13 @@ public final class DebugSessionHandle {
 
     void markDestroyed() {
         this.destroyed = true;
+    }
+
+    /**
+     * 会话的调试器实例（destroySession 的 close 与 SessionListener 回调使用）；
+     * 测试桩/哨兵句柄可为 null。
+     */
+    XLangDebugger getDebugger() {
+        return debugger;
     }
 }

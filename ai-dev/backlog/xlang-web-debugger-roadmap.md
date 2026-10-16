@@ -42,7 +42,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Wave 1: 后端引擎会话化（nop-entropy）
 
 - 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `done`
-- 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `todo`
+- 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `done`
 - 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `todo`
 - 11. 调试模式执行后端联动（按 D4：两条绕过路径消除或降级，含回归）: `todo`
 
@@ -144,7 +144,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 7 | D6 REPL 与安全详设 | plans/2466-xdbg-d6-repl-security | after 1 | No | nop-biz 鉴权 |
 | ★ | 设计收口 (milestone) | — | 1-7 done | — | — |
 | 8 | 会话标识注入 + executor 路由 | plans/2467-xdbg-item8-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
-| 9 | 每会话实例生命周期 + IDEA 兼容 | plan-09-session-lifecycle | after 8 | **Yes** | XLangDebugger |
+| 9 | 每会话实例生命周期 + IDEA 兼容 | plans/2468-xdbg-item9-session-lifecycle | after 8 | **Yes** | XLangDebugger |
 | 10 | 租约续期机制 | plan-10-lease-renewal | after ★, 3, 9 | **Yes** | monitorWait 底座 |
 | 11 | 执行后端联动 | plan-11-backend-link | after 8, 5 | No | EvalBackendRouter |
 | ★ | 会话化调试引擎 (milestone) | — | 8-11 done | — | — |
@@ -269,7 +269,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 按 D3 裁定实施下半部分：每会话 `XLangDebugger` 实例（含各自 BreakpointManagerImpl/suspendedThreads/租约状态）的创建/销毁；IDEA 插件与 SimpleRpcServer 通道映射到"默认会话"保持兼容；多线程单步目标策略落地。
+**Goal:** 按 D3 裁定实施下半部分：每会话 `XLangDebugger` 实例（含各自 BreakpointManagerImpl/suspendedThreads/租约状态）的创建/销毁；IDEA 插件与 SimpleRpcServer 通道映射到"默认会话"保持兼容；多线程单步目标策略落地。**（2026-10-16 修订：多线程单步目标策略的语义重建依赖 item 10 的谓词局部化（D2 §3.3），移归 item 10 承接——item 9 交付生命周期/隔离面，跨会话单步互扰由 item 8 每会话实例消除；D3 §3.8 职责行同步。）**
 
 **Deliverables:**
 - XDBG-09-01: 实例生命周期 + 默认会话兼容实现
@@ -281,7 +281,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 按 D2 实施：SuspendedThread 级 per-thread TTL（现无 TTL 字段，在 monitorWait 轮询循环内按 deadline 退出——注意 `resume()` 全局放行语义不可直接挪用）、renew/release 双语义 API（到期放行 = resume 语义继续执行完；close 语义仅用于会话销毁中止）、lease-expired/异常事件回调（`IDebugNotifier` 受控扩展）。
+**Goal:** 按 D2 实施：SuspendedThread 级 per-thread TTL（现无 TTL 字段，在 monitorWait 轮询循环内按 deadline 退出——注意 `resume()` 全局放行语义不可直接挪用）、renew/release 双语义 API（到期放行 = resume 语义继续执行完；close 语义仅用于会话销毁中止）、lease-expired/异常事件回调（`IDebugNotifier` 受控扩展）。**（2026-10-16 增补：承接自 item 9 的多线程单步目标策略语义重建——per-thread 谓词局部化 + 定向唤醒原语 + stepX 定向释放，消费 D3 §3.6 契约。）**
 
 **Deliverables:**
 - XDBG-10-01: 租约实现 + 引擎层 API + 事件扩展
