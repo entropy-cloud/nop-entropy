@@ -309,6 +309,18 @@ public class DebugSessionBinder {
         return sessionOwners.size();
     }
 
+    /**
+     * REPL execute 属主校验面（plan 2473，D1 §3.4 红线）：会话存在、未销毁且属主匹配
+     * 才返回 true——不区分不存在/他属的语义由调用方统一报错承接（防会话探测）。
+     */
+    public boolean isSessionOwner(String sessionId, String userId) {
+        if (sessionId == null || userId == null)
+            return false;
+        String owner = sessionOwners.get(sessionId);
+        return owner != null && owner.equals(userId)
+                && sessionConnections.containsKey(sessionId);
+    }
+
     // ===== SessionListener 回调（经 XLangDebuggerSessionListener 委派；manager 锁外触发） =====
 
     void onSessionCreated(DebugSessionHandle handle, XLangDebugger debugger) {

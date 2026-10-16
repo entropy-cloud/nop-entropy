@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.core.initialize.ICoreInitializer;
@@ -58,6 +59,13 @@ public class DebugWebServerConfig implements ICoreInitializer {
         }
         runtime = new DebugGatewayRuntime(sessionManager, extractor);
         runtime.getBinder().install();
+        // REPL 服务装配（plan 2473）：checker 缺失时传 null——guard 对缺失 checker 拒绝（403），
+        // "无鉴权不开放"红线
+        runtime.setReplService(new ReplService(runtime,
+                new ReplAccessGuard(extractor,
+                        BeanContainer.isInitialized()
+                                ? BeanContainer.instance().tryGetBeanByType(IActionAuthChecker.class)
+                                : null)));
         DebugGatewayRuntime.installSingleton(runtime);
         LOG.info("nop.xlang.debug-web.initialized:leaseTtl={},renewInterval={},grace={}",
                 runtime.leaseTtlMillis(), runtime.renewIntervalMillis(), runtime.graceMillis());

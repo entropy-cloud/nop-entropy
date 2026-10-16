@@ -52,8 +52,10 @@ public class DebugGatewayRuntime {
     private volatile long keepaliveIntervalMillis = KEEPALIVE_INTERVAL_MILLIS;
     private volatile int logBatchSize;
     private volatile long logFlushIntervalMillis;
+    private volatile String importWhitelist = XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_IMPORT_WHITELIST.get();
     private final ScheduledExecutorService timer;
     private final AtomicLong connectionSeq = new AtomicLong();
+    private volatile ReplService replService;
 
     public DebugGatewayRuntime(SessionDebugManager sessionManager, IUserContextExtractor extractor) {
         this(sessionManager, extractor, defaultTimer());
@@ -135,6 +137,15 @@ public class DebugGatewayRuntime {
         return logBatchSize;
     }
 
+    /** REPL import 白名单（生产读配置；测试注入 setter）。 */
+    public String importWhitelist() {
+        return importWhitelist;
+    }
+
+    public void setImportWhitelist(String whitelist) {
+        this.importWhitelist = whitelist;
+    }
+
     public long logFlushIntervalMillis() {
         return logFlushIntervalMillis;
     }
@@ -157,6 +168,15 @@ public class DebugGatewayRuntime {
 
     public DebugSessionBinder getBinder() {
         return binder;
+    }
+
+    /** REPL 服务（DebugWebServerConfig 装配；未装配为 null——端点按禁用语义拒绝）。 */
+    public ReplService getReplService() {
+        return replService;
+    }
+
+    public void setReplService(ReplService replService) {
+        this.replService = replService;
     }
 
     public long leaseTtlMillis() {

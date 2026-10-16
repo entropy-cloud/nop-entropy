@@ -86,26 +86,26 @@ Exit Criteria:
 
 ### Phase 2 - 服务侧：ReplService + 门控/沙箱/审计 + 宿主壳
 
-Status: planned
+Status: completed
 Targets: nop-xlang-debug-web（ReplService/ReplAccessGuard/审计/DebugSessionBinder.isSessionOwner 访问器）+ quarkus/spring HTTP 壳
 
 - Item Types: `Feature`
 
-- [ ] `ReplAccessGuard`：extractor + IActionAuthChecker（BeanContainer tryGet，缺失拒绝）；401/403 语义异常；权限码 `nop/xlang/debug/ReplCompile` 与 `ReplExecute` 两常量
-- [ ] `DebugSessionBinder.isSessionOwner(sessionId, userId)` 公开访问器（F2 修订：属主校验的访问路径）
-- [ ] `ReplService`：compile（门控序 + **compile deadline** + 诊断映射）+ execute 全门控序（登录/权限/属主/尺寸/沙箱编译面/enabled 复查/全局并发/同会话串行）+ deadline 窗口执行 + 结果字符串化截断 + 审计输出（compile/execute 双 action）
-- [ ] 沙箱编译面校验：import 白名单（默认空=全拒绝）、Promise/async/await 词法拒绝、`__repl*` 保留标识符拒绝。**词法近似边界诚实声明（F5）**：源文本扫描对字符串/注释中的同名词误伤（假阳=可用性损失，一期接受）、编译期宏/生成代码可绕过源文本扫描（假阴=安全残余）；两项登记 item 25 复核清单扩展，测试覆盖词法面（正反用例）
-- [ ] 宿主壳：quarkus JAX-RS `NopXlangDebugReplService`（@Path("/r/nop-xlang-debug")）+ spring RestController；状态码映射 401/403/413/400
-- [ ] 测试：权限三态（401/403/跨用户会话 403 语义）compile+execute 双端点、门控序逐条、沙箱三拒绝 + 白名单放行、execute 端到端（真会话 + 死循环超时 → cancelled/timeout 响应）、**挂起计入超时**（REPL 代码断点挂起超 deadline → resume 后首入口 REPL_TIMEOUT，F9 钉子）、结果截断、同会话串行 RATE_LIMITED、compile 超时（编译期求值死循环被 compile deadline 打断；若 full-expr 模式造不出编译期用户控制流，允许以编译期常量求值 `[[const]]` 宏构造或通道级单测退化承接——执行期如实登记构造方式）、审计字段齐备（compile+execute 双 action）、壳层状态码映射（quarkus/spring 至少编译通过 + 壳逻辑单测）
+- [x] `ReplAccessGuard`：extractor + IActionAuthChecker（BeanContainer tryGet，缺失拒绝）；401/403 语义异常；权限码 `nop/xlang/debug/ReplCompile` 与 `ReplExecute` 两常量
+- [x] `DebugSessionBinder.isSessionOwner(sessionId, userId)` 公开访问器（F2 修订：属主校验的访问路径）
+- [x] `ReplService`：compile（门控序 + **compile deadline** + 诊断映射）+ execute 全门控序（登录/权限/属主/尺寸/沙箱编译面/enabled 复查/全局并发/同会话串行）+ deadline 窗口执行 + 结果字符串化截断 + 审计输出（compile/execute 双 action）
+- [x] 沙箱编译面校验：import 白名单（默认空=全拒绝）、Promise/async/await 词法拒绝、`__repl*` 保留标识符拒绝。**词法近似边界诚实声明（F5）**：源文本扫描对字符串/注释中的同名词误伤（假阳=可用性损失，一期接受）、编译期宏/生成代码可绕过源文本扫描（假阴=安全残余）；两项登记 item 25 复核清单扩展，测试覆盖词法面（正反用例）
+- [x] 宿主壳：quarkus JAX-RS `NopXlangDebugReplService`（@Path("/r/nop-xlang-debug")）+ spring RestController；状态码映射 401/403/413/400
+- [x] 测试：权限三态（401/403/跨用户会话 403 语义）compile+execute 双端点、门控序逐条、沙箱三拒绝 + 白名单放行、execute 端到端（真会话 + 死循环超时 → cancelled/timeout 响应）、**挂起计入超时**（REPL 代码断点挂起超 deadline → resume 后首入口 REPL_TIMEOUT，F9 钉子）、结果截断、同会话串行 RATE_LIMITED、compile 超时（编译期求值死循环被 compile deadline 打断；若 full-expr 模式造不出编译期用户控制流，允许以编译期常量求值 `[[const]]` 宏构造或通道级单测退化承接——执行期如实登记构造方式）、审计字段齐备（compile+execute 双 action）、壳层状态码映射（quarkus/spring 至少编译通过 + 壳逻辑单测）
 
 Exit Criteria:
 
-- [ ] D6 §3.4 权限矩阵/限制表逐条有测试对应
-- [ ] **端到端验证**：HTTP 壳→门控→沙箱→标记窗口→融合执行器→deadline 打断→响应（debugger+web 两域用例链覆盖入口到出口）
-- [ ] **接线验证**：ThreadLocal channel 确被融合执行器运行时消费（死循环打断测试即证据）；owner 校验确走 sessionOwners
-- [ ] 无静默跳过：checker/extractor 缺失显式拒绝；白名单空=全拒绝
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿；quarkus/spring 编译通过
-- [ ] `ai-dev/logs/` 执行当日条目已更新
+- [x] D6 §3.4 权限矩阵/限制表逐条有测试对应（401/403/属主 403 同码/429 同会话串行/413 尺寸/沙箱 400/结果 1MB 截断/超时 300ms 实测打断——TestReplService 11 用例）
+- [x] **端到端验证**：壳→门控→沙箱→标记窗口→融合执行器→deadline 打断→响应（service.execute 端到端 11 用例 + 壳状态码映射编译过；执行路径直接以会话融合执行器为根入口——执行中发现经全局执行器 choke point 在测试/嵌入环境会绕过 deadline 检查，jstack 实测 while(true) 永转后修复）
+- [x] **接线验证**：ThreadLocal channel 确被融合执行器运行时消费（testExecuteDeadlineInterruptsInfiniteLoop）；owner 校验确走 sessionOwners（isSessionOwner + testGateOrder 跨用户/不存在同码）
+- [x] 无静默跳过：checker/extractor 缺失显式拒绝（guard 401/403）；白名单空=全拒绝（testSandboxValidation）
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿（46/46 + 依赖链）；quarkus/spring 编译通过
+- [x] `ai-dev/logs/` 执行当日条目已更新
 
 ### Phase 3 - 独立审计与收口（含保护区 audit）
 

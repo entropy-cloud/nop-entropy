@@ -15,13 +15,20 @@ package io.nop.xlang.debugger.session;
  */
 public class ReplCancelledError extends Error {
     private final String errorCode;
+    private final String errorMessage;
 
     public ReplCancelledError(String errorCode, String message) {
         super(message);
         this.errorCode = errorCode;
+        this.errorMessage = message;
     }
 
     public String getErrorCode() {
         return errorCode;
+    }
+
+    /** 线上面消息（与 Throwable.getMessage 解耦，供响应构造）。 */
+    public String getErrorMessage() {
+        return errorMessage;
     }
 }

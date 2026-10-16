@@ -61,11 +61,15 @@ public class ThreadLocalReplDeadlineChannel implements ReplDeadlineChannel {
 
     @Override
     public void checkDeadline(EvalRuntime rt) {
+        // 仅作用于处于 REPL deadline 窗口内的执行线程——窗口外（IDEA/普通业务执行）
+        // 即使 cancelled 被翻也不受影响（共享旗标爆炸半径收口）
+        Long deadline = deadlineMillis.get();
+        if (deadline == null)
+            return;
         if (cancelled.get())
             throw new ReplCancelledError(ERR_XLANG_DEBUGGER_REPL_CANCELLED.getErrorCode(),
                     "repl execution cancelled");
-        Long deadline = deadlineMillis.get();
-        if (deadline != null && System.currentTimeMillis() >= deadline)
+        if (System.currentTimeMillis() >= deadline)
             throw new ReplCancelledError(ERR_XLANG_DEBUGGER_REPL_TIMEOUT.getErrorCode(),
                     "repl execution timeout");
     }

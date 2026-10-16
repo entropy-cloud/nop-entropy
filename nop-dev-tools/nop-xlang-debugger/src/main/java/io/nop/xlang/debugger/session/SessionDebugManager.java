@@ -53,8 +53,11 @@ public final class SessionDebugManager {
     public synchronized void init(XLangDebugger defaultDebugger) {
         Objects.requireNonNull(defaultDebugger, "defaultDebugger");
         this.shutdown = false;
+        // default 会话执行器同样挂共享通道（plan 2473：REPL compile 无会话标记，
+        // 编译期求值路由 default——deadline ThreadLocal 未设时检查为零影响 no-op）
         this.defaultHandle = new DebugSessionHandle("default",
-                new DebugExpressionExecutor(defaultDebugger), defaultDebugger);
+                new DebugExpressionExecutor(defaultDebugger, ThreadLocalReplDeadlineChannel.instance()),
+                defaultDebugger);
         // destroyed 哨兵挂共享取消通道（D6 §3.2 executeDestroyed：销毁不解除取消保护）
         this.destroyedHandle = new DebugSessionHandle("__destroyed__",
                 new DestroyedSessionExecutor(DefaultExpressionExecutor.INSTANCE,
