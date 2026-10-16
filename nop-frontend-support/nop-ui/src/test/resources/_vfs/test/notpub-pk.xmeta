@@ -1,0 +1,12 @@
+<meta x:schema="/test/test.xdef">
+    <props>
+        <prop name="codeKey" displayName="验证码Key" published="false" internal="true">
+            <schema type="java.lang.String"/>
+        </prop>
+        <prop name="phone" displayName="手机号">
+            <schema type="java.lang.String"/>
+        </prop>
+    </props>
+    <primaryKey>codeKey</primaryKey>
+    <forms/>
+</meta>

@@ -181,6 +181,13 @@ public class XuiViewAnalyzer {
             // 总是选择主键
             selection.addField(XuiConstants.PROP_ID);
             for (String pk : objMeta.getPrimaryKey()) {
+                // 主键列同样受发布控制：如验证码/限流表以 codeKey 等 not-pub 列为主键
+                // （xmeta published="false" internal="true"），把它拼进 selection 会让服务端
+                // 报 undefined-field。行标识由 PROP_ID 承担，未发布的 PK 不再加入。
+                IObjPropMeta pkMeta = objMeta.getProp(pk);
+                if (pkMeta != null && !pkMeta.isPublished())
+                    continue;
+
                 selection.addField(pk);
             }
         }
