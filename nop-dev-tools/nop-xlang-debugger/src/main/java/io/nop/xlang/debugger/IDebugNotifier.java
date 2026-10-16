@@ -24,4 +24,18 @@ public interface IDebugNotifier {
     void notifyStepOut(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
 
     void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt);
+
+    /**
+     * 租约到期自动放行事件（受控扩展，D1 §3.5 evt.leaseExpired 产生源）。
+     * 默认空实现——非破坏扩展（item 10）。
+     */
+    default void notifyLeaseExpired(java.util.List<Long> threadIds) {
+    }
+
+    /**
+     * 用户 resume 放行事件（受控扩展，D1 §3.5 evt.resumed 产生源；与 leaseExpired 互斥）。
+     * 默认空实现——非破坏扩展（item 10）。
+     */
+    default void notifyResumed(java.util.List<Long> threadIds, String cause) {
+    }
 }

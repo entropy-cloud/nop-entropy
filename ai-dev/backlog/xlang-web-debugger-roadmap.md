@@ -43,7 +43,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 - 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `done`
 - 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `done`
-- 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `todo`
+- 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `done`
 - 11. 调试模式执行后端联动（按 D4：两条绕过路径消除或降级，含回归）: `todo`
 
 ★ **Milestone: 会话化调试引擎**（unlocks when 8-11 done）: `todo`
@@ -145,7 +145,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | ★ | 设计收口 (milestone) | — | 1-7 done | — | — |
 | 8 | 会话标识注入 + executor 路由 | plans/2467-xdbg-item8-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
 | 9 | 每会话实例生命周期 + IDEA 兼容 | plans/2468-xdbg-item9-session-lifecycle | after 8 | **Yes** | XLangDebugger |
-| 10 | 租约续期机制 | plan-10-lease-renewal | after ★, 3, 9 | **Yes** | monitorWait 底座 |
+| 10 | 租约续期机制 | plans/2469-xdbg-item10-lease | after ★, 3, 9 | **Yes** | monitorWait 底座 |
 | 11 | 执行后端联动 | plan-11-backend-link | after 8, 5 | No | EvalBackendRouter |
 | ★ | 会话化调试引擎 (milestone) | — | 8-11 done | — | — |
 | 12 | WebSocket 调试网关 | plan-12-ws-gateway | after engine ★, 2, 3 | **Yes** | JsonRpcWebSocketHandler 模式 |

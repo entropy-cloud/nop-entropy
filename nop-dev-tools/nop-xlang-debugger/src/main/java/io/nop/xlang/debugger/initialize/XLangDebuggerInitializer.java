@@ -178,6 +178,16 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
             sendStack(thread, "breakAt");
         }
+
+        @Override
+        public void notifyLeaseExpired(java.util.List<Long> threadIds) {
+            LOG.info("nop.debugger.lease-expired:threadIds={}", threadIds);
+        }
+
+        @Override
+        public void notifyResumed(java.util.List<Long> threadIds, String cause) {
+            LOG.info("nop.debugger.resumed:threadIds={},cause={}", threadIds, cause);
+        }
     }
 
     @Override

@@ -66,6 +66,24 @@ public class TestSessionIsolation {
         }
     }
 
+    /**
+     * 轮询等待 debugger 完成 step 落点重挂起（确定性等待）：挂起态短暂消失（step 释放
+     * 返回后重挂起前的瞬态）期间继续等待，直到重新挂起且持续到下一次轮询仍挂起。
+     */
+    private static void awaitResuspendedAfterStep(XLangDebugger debugger) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 5000;
+        boolean sawTransientRelease = false;
+        while (System.currentTimeMillis() < deadline) {
+            if (!debugger.isSuspended()) {
+                sawTransientRelease = true;
+            } else if (sawTransientRelease) {
+                return; // 释放后重新挂起 = step 落点已到达
+            }
+            Thread.sleep(20);
+        }
+        throw new AssertionError("step 后未在 5s 内重新挂起");
+    }
+
     @Test
     public void testDualSessionIsolation() throws Exception {
         XLangDebugger debuggerA = new XLangDebugger();
@@ -127,38 +145,42 @@ public class TestSessionIsolation {
     @Test
     public void testDefaultSessionFullDebugChain() throws Exception {
         // IDEA 默认会话全链路（EC2）：manager 默认会话实例上的
-        // addBreakpoint → 挂起 → stepInto → 再挂起 → resume 全链路（TestXLangDebugger 模式）
+        // addBreakpoint → 挂起 → stepInto → 再挂起 → resume 全链路。
+        // CollectNotifier 的 BlockingQueue 提供确定性编排（stepInto 事件在重挂起前同步发出）。
         DebugSessionHandle defaultHandle = manager.getSession("default");
         assertNotNull(defaultHandle);
         XLangDebugger defaultDebugger = defaultHandle.getDebugger();
         defaultDebugger.setUseExternalPath(false);
-        defaultDebugger.addBreakpoint(Breakpoint.build("a", 1));
+        io.nop.xlang.debugger.CollectNotifier notifier = new io.nop.xlang.debugger.CollectNotifier();
+        defaultDebugger.setNotifier(notifier);
+        defaultDebugger.addBreakpoint(io.nop.api.debugger.Breakpoint.build("a", 1));
 
         AtomicReference<Throwable> error = new AtomicReference<>();
         Thread thread = new Thread(() -> {
             try {
-                // 挂起于 line1（断点）→ stepInto 释放后 line2 再挂起（step 模式）→ resume 后走完
                 defaultDebugger.checkBreakpoint(fromLine("a", 1), newRt());
                 defaultDebugger.checkBreakpoint(fromLine("a", 2), newRt());
                 defaultDebugger.checkBreakpoint(fromLine("a", 3), newRt());
             } catch (Throwable t) {
                 error.set(t);
+            } finally {
+                notifier.getMessages().add("end");
             }
         });
         thread.start();
-        awaitSuspended(defaultDebugger);
+
+        java.util.concurrent.BlockingQueue<String> messages = notifier.getMessages();
+        assertEquals("break:[1:0:0:0]a", messages.take());
         assertTrue(defaultDebugger.isSuspended());
 
         defaultDebugger.stepInto();
-        awaitSuspended(defaultDebugger);
-        // stepInto 后挂起于 line2（step 模式逐行停）
-        assertFalse(defaultDebugger.getSuspendedThreads().isEmpty());
+        assertEquals("stepInto:[2:0:0:0]a", messages.take());
+        assertTrue(defaultDebugger.isSuspended());
 
         defaultDebugger.resume();
-        thread.join(5000);
-        assertFalse(thread.isAlive());
-        assertEquals(null, error.get());
+        assertEquals("end", messages.take());
         assertFalse(defaultDebugger.isSuspended());
+        assertEquals(null, error.get());
     }
 
     @Test
