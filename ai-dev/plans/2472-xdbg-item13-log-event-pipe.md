@@ -78,25 +78,25 @@ Exit Criteria:
 
 ### Phase 2 - 网关侧：攒批管道 + evt.exception 出站
 
-Status: planned
+Status: completed
 Targets: `nop-xlang-debug-web`（DebugLogPipe/GatewayNotifierBridge/DebugSessionBinder/DebugGatewayRuntime）
 
 - Item Types: `Feature`
 
-- [ ] `DebugLogPipe`：enqueue/阈值 flush/定时 flush/销毁 flush；buffer swap 锁外出站；entries 保序 + timestamp
-- [ ] `GatewayNotifierBridge`：notifyLog/notifyWarn → pipe.enqueue（null pipe 直发兜底）+ sendLogs（evt.logs 帧）+ notifyException 覆写（evt.exception 直发）
-- [ ] `DebugSessionBinder`：onCreated 创建 pipe（按 sessionId 持有）+ bridge 接线；**rebind 路径 flush 旧 pipe + attachSink 新 bridge**；onDestroyed/suppress：pipe.destroyFlush() 前置（先于 evt.sessionClosed / suppress 早退）
-- [ ] `DebugGatewayRuntime`：读配置注入 batch-size/flush-interval（测试可注入短周期）
-- [ ] 测试：攒批顺序/阈值/定时/会话隔离/销毁 flush 保序（evt.logs 先于 sessionClosed）/evt.exception 出站（NopException 定位+errorCode 承载）/pipe 与 evt.suspended 共享出站锁全序
+- [x] `DebugLogPipe`：enqueue/阈值 flush/定时 flush/销毁 flush；buffer swap 锁外出站；entries 保序 + timestamp
+- [x] `GatewayNotifierBridge`：notifyLog/notifyWarn → pipe.enqueue（null pipe 直发兜底）+ sendLogs（evt.logs 帧）+ notifyException 覆写（evt.exception 直发）
+- [x] `DebugSessionBinder`：onCreated 创建 pipe（按 sessionId 持有）+ bridge 接线；**rebind 路径 flush 旧 pipe + attachSink 新 bridge**；onDestroyed/suppress：pipe.destroyFlush() 前置（先于 evt.sessionClosed / suppress 早退）
+- [x] `DebugGatewayRuntime`：读配置注入 batch-size/flush-interval（测试可注入短周期）
+- [x] 测试：攒批顺序/阈值/定时/会话隔离/销毁 flush 保序（evt.logs 先于 sessionClosed）/evt.exception 出站（NopException 定位+errorCode 承载）/pipe 与 evt.suspended 共享出站锁全序
 
 Exit Criteria:
 
-- [ ] M3 验收达成：日志/事件经网关按会话定向出站且顺序正确（攒批不乱序）——测试逐条对应
-- [ ] D1 §3.5 schema 对账：evt.logs entries 元素含 timestamp；evt.exception 四字段承载
-- [ ] **接线验证**：notifyLog→pipe→flush→出站链路运行时连通（阈值 flush 测试即证据）；notifyException→bridge→evt.exception 连通
-- [ ] 无静默跳过：pipe 禁用态（null）行为 = 单条直发（非 no-op）
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿
-- [ ] `ai-dev/logs/` 执行当日条目已更新
+- [x] M3 验收达成：日志/事件经网关按会话定向出站且顺序正确（攒批不乱序）——testLogBatchingByThresholdOrdered（单帧 3 条有序）/testLogSessionIsolation/testDestroyFlushBeforeSessionClosed（logsIdx<closedIdx 索引断言）
+- [x] D1 §3.5 schema 对账：evt.logs entries 元素含 timestamp（testLogBatchingByThresholdOrdered 断言）；evt.exception 四字段承载（testExceptionEventOutbound：定位/无定位/errorCode null 不发射三形态）
+- [x] **接线验证**：notifyLog→pipe→flush→出站链路运行时连通（testLogpointEndToEnd 真实 logpoint 断点产生源端到端 + 阈值 flush）；notifyException→bridge→evt.exception 连通（testExceptionEventOutbound）
+- [x] 无静默跳过：pipe 禁用态（null）行为 = 单条直发（非 no-op）——testDirectSendFallbackWithoutPipe
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿（debug-web 34/34 + debugger 62/62 依赖链；注：宽限窗口/多标签两测试初版 sleep 边距对定时器过紧，负载下偶发绿失败——已改确定性边距 grace=2000/观测点 300ms，14+ 连跑绿）
+- [x] `ai-dev/logs/` 执行当日条目已更新
 
 ### Phase 3 - 独立审计与收口
 

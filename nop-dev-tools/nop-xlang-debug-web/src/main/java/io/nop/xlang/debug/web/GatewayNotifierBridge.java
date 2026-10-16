@@ -32,9 +32,16 @@ import java.util.Map;
  */
 public class GatewayNotifierBridge implements IDebugNotifier {
     private final IWebSocketSession session;
+    /** 会话日志攒批管道（binder 按 sessionId 接线；null = 直发单条 evt.log 兜底）。 */
+    private volatile DebugLogPipe logPipe;
 
     public GatewayNotifierBridge(IWebSocketSession session) {
         this.session = session;
+    }
+
+    /** 接线日志攒批管道（binder onCreated / rebind 重接时调用）。 */
+    public void attachLogPipe(DebugLogPipe pipe) {
+        this.logPipe = pipe;
     }
 
     /** D1 §3.5：suspend/stepInto/stepOver/stepOut/breakAt 5 回调合一 + reason 字段。 */
@@ -79,28 +86,63 @@ public class GatewayNotifierBridge implements IDebugNotifier {
         fireSuspended("breakAt", thread, loc);
     }
 
-    /** D1 §3.5：直通单条 evt.log（攒批管道归 item 13）。 */
+    /** D1 §3.5：组装 evt.log entry（item 13 补 timestamp）→ 攒批管道；无 pipe 时直发单条。 */
     @Override
     public void notifyLog(SuspendedThread thread, String sourcePath, int line, String message) {
-        Map<String, Object> params = new LinkedHashMap<>();
-        params.put("level", "info");
-        params.put("message", message);
+        Map<String, Object> entry = buildLogEntry("info", message, sourcePath, line,
+                thread == null ? null : thread.getThreadId());
+        routeLog(entry);
+    }
+
+    /** notifyWarn 归并为 level=warn 的 evt.log entry（D1 §3.5 归并裁定）。 */
+    @Override
+    public void notifyWarn(String message, Object... args) {
+        routeLog(buildLogEntry("warn", message, null, 0, null));
+    }
+
+    private Map<String, Object> buildLogEntry(String level, String message, String sourcePath,
+                                              int line, Long threadId) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("level", level);
+        entry.put("message", message);
+        // D1 §3.5 evt.log schema：timestamp 必带（item 13 补齐）
+        entry.put("timestamp", System.currentTimeMillis());
         if (sourcePath != null) {
+            entry.put("sourcePath", sourcePath);
+            entry.put("line", line);
+        }
+        if (threadId != null)
+            entry.put("threadId", threadId);
+        return entry;
+    }
+
+    private void routeLog(Map<String, Object> entry) {
+        DebugLogPipe pipe = logPipe;
+        if (pipe != null)
+            pipe.enqueue(entry);
+        else
+            sendNotification("evt.log", entry);
+    }
+
+    /** evt.logs 攒批出站（pipe flush 调用；synchronized(session) 与其他事件共享全序）。 */
+    public void sendLogs(List<Map<String, Object>> entries) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("entries", entries);
+        sendNotification("evt.logs", params);
+    }
+
+    /** D1 §3.5 evt.exception（item 13 受控扩展产生源）：低频高价值直发不攒批。 */
+    @Override
+    public void notifyException(String sourcePath, int line, String message, String errorCode) {
+        Map<String, Object> params = new LinkedHashMap<>();
+        params.put("message", message == null ? "" : message);
+        if (errorCode != null)
+            params.put("errorCode", errorCode);
+        if (sourcePath != null && line > 0) {
             params.put("sourcePath", sourcePath);
             params.put("line", line);
         }
-        if (thread != null)
-            params.put("threadId", thread.getThreadId());
-        sendNotification("evt.log", params);
-    }
-
-    /** notifyWarn 归并为 level=warn 的 evt.log（D1 §3.5 归并裁定）。 */
-    @Override
-    public void notifyWarn(String message, Object... args) {
-        Map<String, Object> params = new LinkedHashMap<>();
-        params.put("level", "warn");
-        params.put("message", message);
-        sendNotification("evt.log", params);
+        sendNotification("evt.exception", params);
     }
 
     @Override

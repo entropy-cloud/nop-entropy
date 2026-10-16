@@ -74,6 +74,8 @@ public class DebugSessionBinder {
     private final Set<String> suppressClosedEvents = ConcurrentHashMap.newKeySet();
     private final Map<String, ScheduledFuture<?>> graceTasks = new ConcurrentHashMap<>();
     private final Map<String, GatewayNotifierBridge> bridges = new ConcurrentHashMap<>();
+    /** sessionId → 会话日志攒批管道（plan 2472：binder 按 sessionId 持有，不随 bridge 生命周期）。 */
+    private final Map<String, DebugLogPipe> logPipes = new ConcurrentHashMap<>();
 
     /**
      * 会话创建线程局部暂存：manager.createSession 的 onCreated 回调在同一调用线程
@@ -132,7 +134,20 @@ public class DebugSessionBinder {
         sessionOwners.put(sessionId, userId);
         sessionConnections.computeIfAbsent(sessionId, k -> ConcurrentHashMap.newKeySet()).add(connectionId);
         bridges.put(sessionId, wire.bridge);
+        attachLogPipe(sessionId, wire.bridge);
         return binding;
+    }
+
+    /** 创建并接线会话日志攒批管道（plan 2472；open 与 rebind 后的新 bridge 共用入口）。 */
+    private void attachLogPipe(String sessionId, GatewayNotifierBridge bridge) {
+        DebugLogPipe pipe = logPipes.get(sessionId);
+        if (pipe == null) {
+            pipe = new DebugLogPipe(bridge, runtime.logBatchSize(), runtime.logFlushIntervalMillis(),
+                    runtime.timer());
+            logPipes.put(sessionId, pipe);
+        }
+        pipe.attachSink(bridge);
+        bridge.attachLogPipe(pipe);
     }
 
     /**
@@ -171,6 +186,9 @@ public class DebugSessionBinder {
             bindings.put(connectionId, binding);
         }
         bridges.put(targetSessionId, bridge);
+        // plan 2472 审计 F2：rebind 绕过 onCreated——目标会话既有 pipe 显式重接新 bridge
+        // （旧 sink 残余经过渡会话 destroyFlush 尽力送达，此处只换出站落点）
+        attachLogPipe(targetSessionId, bridge);
         sessionConnections.computeIfAbsent(targetSessionId, k -> ConcurrentHashMap.newKeySet())
                 .add(connectionId);
         cancelGraceTask(targetSessionId);
@@ -275,6 +293,7 @@ public class DebugSessionBinder {
         bindings.clear();
         sessionConnections.clear();
         bridges.clear();
+        logPipes.clear();
     }
 
     public synchronized Binding getBinding(String connectionId) {
@@ -306,6 +325,11 @@ public class DebugSessionBinder {
         GatewayNotifierBridge bridge = bridges.get(sessionId);
         bridges.remove(sessionId, bridge);
         cancelGraceTask(sessionId);
+        // plan 2472：销毁 flush 前置于 suppress 早退与 sessionClosed——evt.logs 保序
+        // 先于终态事件到达（过渡会话残余随旧 bridge 尽力送达）
+        DebugLogPipe pipe = logPipes.remove(sessionId);
+        if (pipe != null)
+            pipe.destroyFlush();
         // plan 2471 审计 F3：suppress（rebind 过渡会话静默注销）路径同样要清理
         // owners/connections 登记面，否则每次带过渡会话的 rebind 泄漏两条 map 条目
         cleanupSession(sessionId);

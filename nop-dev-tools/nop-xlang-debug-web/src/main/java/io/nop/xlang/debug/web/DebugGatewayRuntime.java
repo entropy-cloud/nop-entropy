@@ -50,6 +50,8 @@ public class DebugGatewayRuntime {
     private volatile long graceMillis;
     /** keepalive ping 周期（D1 §3.3：10s 基线）；0 = 禁用（测试确定性序列断言）。 */
     private volatile long keepaliveIntervalMillis = KEEPALIVE_INTERVAL_MILLIS;
+    private volatile int logBatchSize;
+    private volatile long logFlushIntervalMillis;
     private final ScheduledExecutorService timer;
     private final AtomicLong connectionSeq = new AtomicLong();
 
@@ -64,6 +66,8 @@ public class DebugGatewayRuntime {
         this.leaseTtlMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LEASE_TTL);
         this.renewIntervalMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LEASE_RENEW_INTERVAL);
         this.graceMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LEASE_GRACE);
+        this.logBatchSize = (int) read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LOG_BATCH_SIZE);
+        this.logFlushIntervalMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LOG_FLUSH_INTERVAL);
         this.timer = timer == null ? defaultTimer() : timer;
         this.binder = new DebugSessionBinder(this);
     }
@@ -115,6 +119,24 @@ public class DebugGatewayRuntime {
     /** 测试注入点：缩短断连宽限（生产读 nop.xlang.debug-web.lease.grace-ms）。 */
     public void setGraceMillis(long millis) {
         this.graceMillis = millis;
+    }
+
+    /** 测试注入点：日志攒批条数阈值（生产读 nop.xlang.debug-web.log.batch-size）。 */
+    public void setLogBatchSize(int size) {
+        this.logBatchSize = size;
+    }
+
+    /** 测试注入点：日志定时 flush 间隔（生产读 nop.xlang.debug-web.log.flush-interval-ms）。 */
+    public void setLogFlushIntervalMillis(long millis) {
+        this.logFlushIntervalMillis = millis;
+    }
+
+    public int logBatchSize() {
+        return logBatchSize;
+    }
+
+    public long logFlushIntervalMillis() {
+        return logFlushIntervalMillis;
     }
 
     String nextConnectionId() {

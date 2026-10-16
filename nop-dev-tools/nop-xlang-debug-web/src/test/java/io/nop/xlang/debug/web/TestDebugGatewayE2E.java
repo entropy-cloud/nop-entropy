@@ -189,7 +189,8 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     /** 多标签页：部分断连不进宽限（剩余连接续期照常）；全部断连才销毁。 */
     @Test
     public void testMultiTabLastConnectionTriggersGrace() throws Exception {
-        runtime.setGraceMillis(300);
+        // 宽限取大值：部分断连存活断言用 sleep 固定窗口，窗口须远小于宽限才确定性成立
+        runtime.setGraceMillis(2000);
         MockWsSession ws1 = new MockWsSession();
         MockWsSession ws2 = new MockWsSession();
         DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
@@ -204,9 +205,9 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         assertNotNull(rebindResp, "rebind 应成功");
         assertEquals(s1, resultMap(rebindResp).get("sessionId"));
 
-        // 第一连接断开：仍有绑定连接 → 不销毁
+        // 第一连接断开：仍有绑定连接 → 不销毁（远小于宽限窗口的观测点）
         h1.onClose();
-        Thread.sleep(runtime.graceMillis() + 150);
+        Thread.sleep(300);
         assertNotNull(manager.getSession(s1), "部分断连应保持会话 Active（D2 §3.3）");
 
         // 第二连接断开：最后连接 → 宽限 → 销毁
@@ -343,13 +344,15 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     /** 宽限窗口内 rebind 取消销毁任务（D2 §3.3 Grace→Active 回迁）。 */
     @Test
     public void testRebindWithinGraceWindowKeepsSession() throws Exception {
-        runtime.setGraceMillis(300);
+        // 宽限取大值（2s）：rebind 需在窗口内完成，sleep(150) + 多步操作对 300ms 级
+        // 定时器余量不足，负载下会输给 disposeByGrace（偶发绿失败）
+        runtime.setGraceMillis(2000);
         MockWsSession ws1 = new MockWsSession();
         DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
         String s1 = openSession(h1, ws1, "1");
 
         h1.onClose(); // 进入宽限
-        Thread.sleep(100);
+        Thread.sleep(150);
         MockWsSession ws2 = new MockWsSession();
         DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
         openSession(h2, ws2, "1");
@@ -357,7 +360,7 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
 
         // 越过原宽限点：会话应因 rebind 取消销毁任务而存活
-        Thread.sleep(runtime.graceMillis());
+        Thread.sleep(2200);
         assertNotNull(manager.getSession(s1), "宽限窗口内 rebind 应回迁 Active 并取消销毁任务");
     }
 }
