@@ -1,5 +1,5 @@
 import type { APIRequestContext, Page } from '@playwright/test';
-import { expect, login } from '@nop-entropy/e2e-shared';
+import { expect, loginRpc } from '@nop-entropy/e2e-shared';
 
 /** Extension 在服务端注入的宿主契约。 */
 export interface ExtensionManifest {
@@ -23,9 +23,47 @@ export class ExtensionHostPO {
     private request: APIRequestContext,
   ) {}
 
-  /** 登录宿主应用（baseUrl 走 playwright.config 的 use.baseURL，不在此处硬编码端口）。 */
+  /**
+   * 建立已认证的宿主会话。
+   *
+   * 本 demo 扩展会覆盖系统登录页（nop-chaos-next `examples/extension-demo`
+   * 的 `ExtensionLoginPage`）：该页只有用户名、没有密码字段，提交的是**演示用
+   * 假 token**，真实后端在 `LoginApi__getLoginUserInfo` 会以 401 拒绝它，
+   * 会话随即被清空。真实后端的测试因此不能走该表单，这里直接用真实登录拿到
+   * token，再按宿主 zustand persist（key `auth:v2`，默认落在 sessionStorage）
+   * 的形状写入持久化状态，复现宿主登录流程产出的结果。
+   */
   async signIn(username = 'nop', password = '123'): Promise<void> {
-    await login(this.page, { username, password });
+    await this.page.goto('/');
+
+    const token = await loginRpc(this.request, username, password);
+    await this.page.evaluate(
+      ({ accessToken, principalId }) => {
+        const persisted = JSON.stringify({
+          state: {
+            user: { id: principalId, username: principalId, nickname: principalId, roles: [] },
+            isAuthenticated: true,
+            token: accessToken,
+            tokens: { accessToken },
+          },
+          version: 0,
+        });
+        // 活跃存储由 auth config 决定（默认 sessionStorage），与扩展的登录页一样
+        // 两个都写，避免配置差异导致会话丢失
+        sessionStorage.setItem('auth:v2', persisted);
+        localStorage.setItem('auth:v2', persisted);
+      },
+      { accessToken: token, principalId: username },
+    );
+
+    await this.page.reload();
+    await this.page.waitForLoadState('networkidle');
+    // 引导完成后应离开登录路由
+    await this.page.waitForFunction(
+      () => !window.location.hash.startsWith('#/auth/login'),
+      undefined,
+      { timeout: 20_000 },
+    );
   }
 
   /** 服务端定制 index.html 已发生（占位符被 extension 脚本/样式替换）。 */
