@@ -53,6 +53,11 @@ public class DebugSessionBinder {
     public static final String REASON_USER_CLOSED = "userClosed";
     public static final String REASON_GRACE_EXPIRED = "graceExpired";
     public static final String REASON_SERVER_SHUTDOWN = "serverShutdown";
+    /**
+     * D1 §3.5 枚举登记值，一期无发射路径预留（协议违规的处置 = 断连 → 宽限销毁，
+     * reason 走 graceExpired；D1 §3.8 4400 关闭连接不销毁会话）。供后续协议级
+     * 会话拆除场景（D1 additive 演进）使用。
+     */
     public static final String REASON_PROTOCOL_ERROR = "protocolError";
 
     private final DebugGatewayRuntime runtime;
@@ -161,6 +166,9 @@ public class DebugSessionBinder {
             binding.handle = target;
             binding.bridge = bridge;
             binding.renewExempt = true;
+            // destroyTransitional 触发的 onSessionDestroyed 同步清理会把指向过渡会话的
+            // binding 移出注册表（审计 F3 修复面）；字段重定向后必须重新登记
+            bindings.put(connectionId, binding);
         }
         bridges.put(targetSessionId, bridge);
         sessionConnections.computeIfAbsent(targetSessionId, k -> ConcurrentHashMap.newKeySet())
@@ -277,6 +285,11 @@ public class DebugSessionBinder {
         return bridges.get(sessionId);
     }
 
+    /** 测试观测面：登记中的会话身份条目数（审计 F3 泄漏回归断言用）。 */
+    synchronized int trackedSessionCount() {
+        return sessionOwners.size();
+    }
+
     // ===== SessionListener 回调（经 XLangDebuggerSessionListener 委派；manager 锁外触发） =====
 
     void onSessionCreated(DebugSessionHandle handle, XLangDebugger debugger) {
@@ -291,18 +304,18 @@ public class DebugSessionBinder {
     void onSessionDestroyed(DebugSessionHandle handle, XLangDebugger debugger) {
         String sessionId = handle.getSessionId();
         GatewayNotifierBridge bridge = bridges.get(sessionId);
-        if (suppressClosedEvents.remove(sessionId)) {
-            bridges.remove(sessionId, bridge);
+        bridges.remove(sessionId, bridge);
+        cancelGraceTask(sessionId);
+        // plan 2471 审计 F3：suppress（rebind 过渡会话静默注销）路径同样要清理
+        // owners/connections 登记面，否则每次带过渡会话的 rebind 泄漏两条 map 条目
+        cleanupSession(sessionId);
+        if (suppressClosedEvents.remove(sessionId))
             return;
-        }
         String reason = destroyReasons.remove(sessionId);
         if (reason == null)
             reason = REASON_USER_CLOSED;
         if (bridge != null)
             bridge.fireSessionClosed(reason);
-        bridges.remove(sessionId, bridge);
-        cancelGraceTask(sessionId);
-        cleanupSession(sessionId);
     }
 
     // ===== 内部 =====

@@ -15,11 +15,9 @@ import io.nop.graphql.core.ws.IWebSocketSession;
 import io.nop.xlang.debugger.IDebugNotifier;
 import io.nop.xlang.debugger.SuspendedThread;
 
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 每会话事件出站桥（D1 §3.5 8 条中 5 条出站 + completed 预留入口；evt.logs/evt.exception
@@ -34,7 +32,6 @@ import java.util.concurrent.CopyOnWriteArrayList;
  */
 public class GatewayNotifierBridge implements IDebugNotifier {
     private final IWebSocketSession session;
-    private final List<Long> suspendedThreadIds = new CopyOnWriteArrayList<>();
 
     public GatewayNotifierBridge(IWebSocketSession session) {
         this.session = session;
@@ -46,7 +43,6 @@ public class GatewayNotifierBridge implements IDebugNotifier {
         params.put("reason", reason);
         long threadId = thread == null ? 0L : thread.getThreadId();
         params.put("threadId", threadId);
-        suspendedThreadIds.add(threadId);
         StackInfo stackInfo = thread == null ? null : thread.getStackInfo();
         params.put("stackInfo", stackInfo);
         if (loc != null) {
@@ -143,10 +139,6 @@ public class GatewayNotifierBridge implements IDebugNotifier {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("reason", reason);
         sendNotification("evt.sessionClosed", params);
-    }
-
-    public List<Long> getSuspendedThreadIds() {
-        return suspendedThreadIds;
     }
 
     private void sendNotification(String method, Map<String, Object> params) {

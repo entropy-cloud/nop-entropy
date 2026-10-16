@@ -14,6 +14,13 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -121,6 +128,47 @@ public class TestSessionLifecycleCallbacks {
         @Override
         public void onDestroyed(DebugSessionHandle handle, XLangDebugger debugger) {
             events.add("destroyed:" + handle.getSessionId());
+        }
+    }
+
+    /** plan 2471 审计 F5 回归：并发 createSession 时 onCreated 回调与返回句柄一一对应（不交叉投递）。 */
+    @Test
+    public void testConcurrentCreateSessionCallbacksNotCrossed() throws Exception {
+        Map<String, String> callbackBySession = new ConcurrentHashMap<>();
+        manager.setSessionListener(new SessionListener() {
+            @Override
+            public void onCreated(DebugSessionHandle handle, XLangDebugger debugger) {
+                callbackBySession.put(handle.getSessionId(), Thread.currentThread().getName());
+            }
+
+            @Override
+            public void onDestroyed(DebugSessionHandle handle, XLangDebugger debugger) {
+            }
+        });
+
+        int n = 16;
+        CyclicBarrier barrier = new CyclicBarrier(n);
+        ExecutorService pool = Executors.newFixedThreadPool(n);
+        try {
+            List<Future<DebugSessionHandle>> futures = new ArrayList<>();
+            for (int i = 0; i < n; i++) {
+                final String sessionId = "conc-" + i;
+                futures.add(pool.submit(() -> {
+                    barrier.await(5, TimeUnit.SECONDS);
+                    return manager.createSession(sessionId);
+                }));
+            }
+            for (int i = 0; i < n; i++) {
+                DebugSessionHandle handle = futures.get(i).get(10, TimeUnit.SECONDS);
+                assertNotNull(handle);
+                // 每个会话的 onCreated 必须被其创建线程消费（不交叉：旧单槽机制会把
+                // A 线程的回调投递给 B 线程——回调缺失即交叉证据）
+                assertNotNull(callbackBySession.get(handle.getSessionId()),
+                        "会话 " + handle.getSessionId() + " 的 onCreated 回调缺失（被交叉投递）");
+            }
+            assertEquals(n, callbackBySession.size());
+        } finally {
+            pool.shutdownNow();
         }
     }
 }

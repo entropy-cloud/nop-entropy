@@ -305,7 +305,8 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
         sendResult(id, result);
     }
 
-    /** D1 §3.3：IDebugger 22 方法 + IBreakpointManager 6 方法机械映射。 */
+    /** D1 §3.3：IDebugger 16 个自有方法 + IBreakpointManager 6 方法机械映射
+     * （D1 表登记 24 = 22 暴露 + waitSuspended/close 2 个不暴露）。 */
     private void handleDebuggerMethod(String name, String id, Object params) {
         DebugSessionBinder.Binding binding = binder.getBinding(connectionId);
         if (binding == null || binding.getHandle().isDestroyed())

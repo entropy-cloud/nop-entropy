@@ -111,22 +111,22 @@ Exit Criteria:
 
 ### Phase 3 - 独立审计与收口
 
-Status: planned
+Status: completed
 Targets: 全部、roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子代理 closure audit：**D1 §3.1-§3.9 逐节对账**（含 §3.1 约束、§3.2 鉴权、§3.3 映射 24 条、§3.4 会话租约 schema、§3.5 事件、§3.6 版本化、§3.7 错误码、§3.8 关闭码、§3.9 时序）+ 变异探针（鉴权门禁/限流计数/宽限路径）+ Anti-Hollow + 线程安全审查（三写者出站锁）
-- [ ] 修复审计发现
-- [ ] roadmap item 12 → `done`
-- [ ] `ai-dev/logs/` 收口记录
+- [x] 独立子代理 closure audit：**D1 §3.1-§3.9 逐节对账**（含 §3.1 约束、§3.2 鉴权、§3.3 映射 24 条、§3.4 会话租约 schema、§3.5 事件、§3.6 版本化、§3.7 错误码、§3.8 关闭码、§3.9 时序）+ 变异探针（鉴权门禁/限流计数/宽限路径）+ Anti-Hollow + 线程安全审查（三写者出站锁）——13 维度全 PASS，结论 GO（agent_cd8b473c，证据见 Closure 段）
+- [x] 修复审计发现（F1-F6 全修复：javadoc 计数口径/authenticate null userId/过渡会话登记面泄漏清理+re-put/PROTOCOL_ERROR 预留注释/pendingCreated ThreadLocal 化+并发回归测试/bridge 死簿记删除）
+- [x] roadmap item 12 → `done`
+- [x] `ai-dev/logs/` 收口记录
 
 Exit Criteria:
 
-- [ ] audit 发现全修复
-- [ ] 测试门全绿
-- [ ] roadmap item 12 `done` 且 MVP milestone 未翻转（依赖 13/14）
-- [ ] `ai-dev/logs/` 收口记录
+- [x] audit 发现全修复（F1-F6；F3/F5 附回归测试 testRebindTransitionalNoRegistryLeak / testConcurrentCreateSessionCallbacksNotCrossed）
+- [x] 测试门全绿（debug-web 26/26 + debugger 58/58 + `-am` 依赖链）
+- [x] roadmap item 12 `done` 且 MVP milestone 未翻转（依赖 13/14）
+- [x] `ai-dev/logs/` 收口记录
 
 ## Closure Gates
 
@@ -156,10 +156,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口后填写）
-Completed: （待填写）
+Status Note: WS 调试网关全量落地（Phase 1 引擎配套 + Phase 2 网关核心/端点薄壳 + Phase 3 独立审计收口）。D1 §3.1-§3.9 十三维度逐节对账全 PASS；4 个变异探针实测（鉴权/限流/宽限/事件接线）全部先红后绿；审计发现 F1-F6 全修复并附回归测试。测试门：debug-web 26/26、debugger 58/58、`-am` 依赖链全绿、quarkus/spring 编译通过。
+Completed: 2026-10-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子代理 agent_cd8b473c-611d-49d8-81dd-b65ecb6131a2（fresh session，非实现会话）
+- Audit Session: agent_cd8b473c-611d-49d8-81dd-b65ecb6131a2
+- Evidence:
+  - D1 §3.3 方法映射 24 条逐条对账 PASS（16 自有 + 6 断点暴露；waitSuspended/close 不暴露落 -32601；保留集 ping/pong/tokenRefresh 语义；unsubscribe→-32601）
+  - D1 §3.1 五桶逐条 PASS（测试：testOversizeInboundFrame/testExpandKeysLimit/testTooManyBreakpoints/testResultTooLarge/testVariableListTruncation）
+  - D1 §3.2 鉴权链 PASS（两薄壳抽参核实；4401/4403 三态测试）；§3.4 会话租约 schema PASS（重复 open 先响应后 4409；NO_SESSION 豁免面；rebind 属主红线不断连）；§3.5 事件 PASS（5合1/互斥实证/四值 reason/completed 预留入口）；§3.6 版本化 PASS；§3.7 九码表与 XLangErrors 逐条一致（点分码↔常量名一一对应，八码全部在网关路径实际使用）；§3.8 关闭码处置强度 PASS
+  - D2 §3.1/§3.3 租约语义 PASS（授予/限流 0.8 容差+豁免/gracefulDispose 不置 closed/close 语义中止/expireLease 先于 releaseAll 顺序与出口判定闭环核实）
+  - 线程安全 PASS（三写者 synchronized(session)；锁序 binder→manager→monitorLock→session 无环——releaseAll/monitorWait 均在 monitorLock 释放后回调 notifier；pendingWire ThreadLocal 封闭性经 SessionDebugManager pendingCreated 机制证实）
+  - 变异探针 4/4 实测：鉴权 4401 门禁（testAuthFailures4401 红→md5 恢复→复绿）、限流 throw（testRenewRateLimit 红→复绿）、gracefulDispose 调用（2 测试红→复绿）、pendingWire.set（testFullDebugFlowSequence -32603→复绿）；探针后 git status 干净零残留
+  - Anti-Hollow PASS：testFullDebugFlowSequence 端到端（帧→分发→真实 debugger 实例→真实挂起线程→事件出站→顺序断言）；8 个 main 文件无空方法体/静默跳过；装配连通（单例安装/取用两侧 + services 注册 + 四点依赖）
+  - `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web` 26/26 绿；`./mvnw test -pl nop-dev-tools/nop-xlang-debugger` 58/58 绿；quarkus/spring compile 通过
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2471-xdbg-item12-ws-gateway.md --strict` 退出码 0（见收口日志）
+  - Deferred 项分类检查：一次性调试票据（out-of-scope，successor=item 25）/容器级集成测试/evt.log 攒批（item 13）均 non-blocking，无 in-scope live defect 降级

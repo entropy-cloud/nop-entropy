@@ -90,16 +90,12 @@ public final class SessionDebugManager {
      * sessionId 冲突或 manager 已 shutdown 抛错。
      */
     public DebugSessionHandle createSession(String sessionId) {
-        Runnable notify;
         DebugSessionHandle handle;
         synchronized (this) {
             ensureNotShutdown();
             handle = doCreate(sessionId, new XLangDebugger());
         }
-        notify = pendingCreated;
-        pendingCreated = null;
-        if (notify != null)
-            notify.run();
+        runPendingCreated();
         return handle;
     }
 
@@ -107,22 +103,29 @@ public final class SessionDebugManager {
      * 注册 web 会话（外部实例形态：测试 recording 桩/特殊装配使用）。
      */
     public DebugSessionHandle createSession(String sessionId, XLangDebugger debugger) {
-        Runnable notify;
         DebugSessionHandle handle;
         synchronized (this) {
             ensureNotShutdown();
             handle = doCreate(sessionId, debugger);
         }
-        notify = pendingCreated;
-        pendingCreated = null;
-        if (notify != null)
-            notify.run();
+        runPendingCreated();
         return handle;
     }
 
-    // 必须在 manager 锁内调用；onCreated 回调经 pendingCreated 带出锁外触发
-    private Runnable pendingCreated;
+    // onCreated 回调经 pendingCreated 带出 manager 锁外、在调用线程触发；
+    // ThreadLocal 隔离并发 createSession 调用方（plan 2471 审计 F5：共享单槽会把
+    // A 线程的回调投递给 B 线程——回调句柄与返回句柄交叉）
+    private final ThreadLocal<Runnable> pendingCreated = new ThreadLocal<>();
 
+    private void runPendingCreated() {
+        Runnable notify = pendingCreated.get();
+        if (notify != null) {
+            pendingCreated.remove();
+            notify.run();
+        }
+    }
+
+    // 必须在 manager 锁内调用
     private DebugSessionHandle doCreate(String sessionId, XLangDebugger debugger) {
         Objects.requireNonNull(sessionId, "sessionId");
         Objects.requireNonNull(debugger, "debugger");
@@ -133,13 +136,13 @@ public final class SessionDebugManager {
         sessions.put(sessionId, handle);
         SessionListener cb = listener;
         if (cb != null)
-            pendingCreated = () -> {
+            pendingCreated.set(() -> {
                 try {
                     cb.onCreated(handle, debugger);
                 } catch (Exception e) {
                     LOG.error("nop.xlang.debugger.session-listener-fail", e);
                 }
-            };
+            });
         return handle;
     }
 

@@ -164,6 +164,28 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         assertNull(manager.getSession(sessionId), "会话应已注销");
     }
 
+    /** 审计 F3 回归：rebind 销毁过渡会话后登记面无泄漏（owners/connections 清理）。 */
+    @Test
+    public void testRebindTransitionalNoRegistryLeak() {
+        MockWsSession ws1 = new MockWsSession();
+        DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
+        String s1 = openSession(h1, ws1, "1");
+        assertEquals(1, runtime.getBinder().trackedSessionCount());
+
+        MockWsSession ws2 = new MockWsSession();
+        DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
+        openSession(h2, ws2, "1"); // 过渡会话
+        assertEquals(2, runtime.getBinder().trackedSessionCount());
+
+        h2.onMessage(req("2", "session.rebind", "{\"sessionId\":\"" + s1 + "\"}"));
+        assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
+        assertEquals(1, runtime.getBinder().trackedSessionCount(), "过渡会话注销后登记面应清理（无泄漏）");
+
+        // rebind 后绑定仍然有效（re-put 回归面）
+        h2.onMessage(req("3", "lease.renew", "{}"));
+        assertNull(errorCodeOf(findResponse(ws2.snapshot(), "3")));
+    }
+
     /** 多标签页：部分断连不进宽限（剩余连接续期照常）；全部断连才销毁。 */
     @Test
     public void testMultiTabLastConnectionTriggersGrace() throws Exception {
