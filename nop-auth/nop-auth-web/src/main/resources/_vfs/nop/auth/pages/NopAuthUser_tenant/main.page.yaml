@@ -1,0 +1,3 @@
+
+x:gen-extends: |
+    <web:GenPage view="NopAuthUser_tenant.view.xml" page="main" xpl:lib="/nop/web/xlib/web.xlib" />
