@@ -305,7 +305,9 @@ if (auth.getPermissions() != null && !auth.getPermissions().isEmpty()) {
 或者在java中实现
 
 ```
-public PageBean<MyObject> findPage_self(@Name("query")QueryBean query, FieldSelectonBean selection, IServiceContext context){
+// 命名约定：在标准操作名上加限定前缀，即 <qualifier>_findPage
+// （平台自身如 CrudBizModel.deleted_findPage、NopAuthUser.xbiz 的 active_findPage）
+public PageBean<MyObject> self_findPage(@Name("query")QueryBean query, FieldSelectonBean selection, IServiceContext context){
   return doFindPage(query, (q,ctx)->{
      q.addFilter(FilterBeans.eq("ownerId", ctx.getUserId());
   }, selection, context);
@@ -388,7 +390,7 @@ authObjName对应不同的业务场景，一个业务场景下会存在多个操
 
 ## 常见问题
 1. 如何区分两个不同的查询
-`NopAuthUser:query`表示允许针对用户的所有查询，而`NopAuthUser:findPage_active`则只对应于`findPage_active`这一个方法。可以在action上通过Auth注解使得方法名对应于指定的permission。否则每个方法名都缺省对应于一个permission名。
+`NopAuthUser:query`表示允许针对用户的所有查询，而`NopAuthUser:active_findPage`则只对应于`active_findPage`这一个方法（限定词在前，见 `NopAuthUser.xbiz` 的 `<query name="active_findPage" x:prototype="findPage">`）。可以在action上通过Auth注解使得方法名对应于指定的permission。否则每个方法名都缺省对应于一个permission名。
 
 2. 如何获取到userId, userName, role等信息
 `IUserContext.get()`可以获取到当前用户上下文。后台服务函数中一般会传递 IServiceContext上下文对象，通过`svcCtx.getUserContext()`也可以获取到用户上下文

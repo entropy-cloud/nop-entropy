@@ -87,7 +87,8 @@ query{
 class MyEntityBizModel extends CrudBizModel<MyEntity>{
     @BizQuery
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
-    public PageBean<T> findPage_ext(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
+    // 命名约定：限定词在前，即 <qualifier>_findPage（对照平台自带的 deleted_findPage/active_findPage）
+    public PageBean<T> ext_findPage(@Name("query") @Description("@i18n:biz.query|查询条件") QueryBean query,
                                 FieldSelectionBean selection, IServiceContext context) {
         if (query != null)
             query.setDisableLogicalDelete(false);
@@ -111,7 +112,7 @@ class MyEntityBizModel extends CrudBizModel<MyEntity>{
           return {
                 "x:extends":"xxx.page.yaml",
                 initApi: {
-                   url: "@query:MyEntity__findPage_ext/{@gridSelection}"
+                   url: "@query:MyEntity__ext_findPage/{@gridSelection}"
                 }
             }
        </gen-control>
