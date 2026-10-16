@@ -226,4 +226,32 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         Map<String, Object> params = (Map<String, Object>) eventFrame.get("params");
         return params;
     }
+
+    /** 审计 F3：evt.logs 与 evt.suspended 共享 session 出站锁全序（结构性保证的断言面）。 */
+    @Test
+    public void testLogsAndSuspendedShareOutboundOrder() {
+        setupShortFlush(1, 60_000);
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+
+        GatewayNotifierBridge bridge = runtime.getBinder().getBridge(sessionId);
+        assertNotNull(bridge);
+        // 同线程顺序触发：log（batch=1 同步 flush）→ suspend 事件
+        bridge.notifyLog(null, "a.xpl", 1, "ordered-log");
+        bridge.notifySuspend(null, fromLine("a.xpl", 2), null);
+
+        List<String> frames = ws.snapshot();
+        int logsIdx = -1;
+        int suspendedIdx = -1;
+        for (int i = 0; i < frames.size(); i++) {
+            String method = (String) parse(frames.get(i)).get("method");
+            if ("evt.logs".equals(method) && logsIdx < 0)
+                logsIdx = i;
+            if ("evt.suspended".equals(method) && suspendedIdx < 0)
+                suspendedIdx = i;
+        }
+        assertTrue(logsIdx >= 0 && suspendedIdx >= 0);
+        assertTrue(logsIdx < suspendedIdx, "同线程触发序应等于出站帧序（共享出站锁全序）");
+    }
 }

@@ -51,7 +51,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Wave 2: 后端通道与服务（nop-entropy）
 
 - 12. WebSocket 调试网关（复用平台 WS 基座，按 D1/D2 实施协议映射、鉴权、会话生命周期绑定连接）: `done`
-- 13. 日志流与事件管道（log appender 攒批定向推送、断点/异常/租约过期事件统一出站）: `todo`
+- 13. 日志流与事件管道（log appender 攒批定向推送、断点/异常/租约过期事件统一出站）: `done`
 - 14. 在线 eval REPL 服务端（按 D6：compile+execute、取消机制、沙箱与权限、审计日志）: `todo`
 
 ★ **Milestone: 后端调试服务 MVP**（unlocks when 8-14 done）: `todo`

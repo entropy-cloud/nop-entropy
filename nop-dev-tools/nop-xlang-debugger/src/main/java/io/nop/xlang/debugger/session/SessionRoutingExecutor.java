@@ -51,8 +51,8 @@ public final class SessionRoutingExecutor implements IExpressionExecutor {
     public Object execute(IExecutableExpression expr, EvalRuntime rt) {
         DebugSessionHandle handle = DebugSessionScope.currentHandle();
         if (handle == null)
-            // default 分支触达：default 会话在 init 时注册（键 "default"）；未 init/停机后
-            // 为 null——此时无 notifier 可达，直接执行不上报
+            // default 分支触达：default 会话在 init 时注册（键 "default"）；未 init 时
+            // defaultExecutor() fail-fast（item 11 既有形态），非静默直通
             return executeWithReporting(manager.getSession("default"),
                     manager.defaultExecutor(), expr, rt);
         if (handle.isDestroyed())

@@ -62,7 +62,7 @@ Targets: `nop-xlang-debugger`（IDebugNotifier/SessionRoutingExecutor/XLangDebug
 
 - Item Types: `Feature`
 
-- [ ] `IDebugNotifier.notifyException(sourcePath, line, message, errorCode)` 新增；`XLangDebuggerInitializer.DebugNotifier` 实现（LOG 记录，对齐 notifyLeaseExpired 形态）
+- [x] `IDebugNotifier.notifyException(sourcePath, line, message, errorCode)` 新增；`XLangDebuggerInitializer.DebugNotifier` 实现（LOG 记录，对齐 notifyLeaseExpired 形态）
 - [x] `CollectNotifier`（测试基座）补默认实现；既有测试记录器按需补齐
 - [x] `SessionRoutingExecutor.execute` 异常捕获外壳：ThreadLocal depth 守卫（只报最外层）+ try/catch-log-rethrow；NopException 提取 errorLocation→sourcePath/line、getErrorCode、description；三分支路由（default/存活/destroyed）统一包裹
 - [x] `XLangDebuggerConfigs` 增 `CFG_XLANG_DEBUG_WEB_LOG_BATCH_SIZE`（64）/`CFG_XLANG_DEBUG_WEB_LOG_FLUSH_INTERVAL`（300ms）
@@ -105,17 +105,17 @@ Targets: 全部、roadmap
 
 - Item Types: `Proof`
 
-- [ ] 独立子代理 closure audit：D1 §3.5 evt.logs/evt.exception schema 对账、攒批顺序/并发（三方 flush 竞态：入队/定时/销毁）、异常捕获外壳的传播不变性（变异探针：depth 守卫/rethrow）、会话隔离、M3 验收逐条对账、Anti-Hollow
-- [ ] 修复审计发现
-- [ ] roadmap item 13 → `done`（MVP milestone 仍依赖 item 14 不翻转）
-- [ ] `ai-dev/logs/` 收口记录
+- [x] 独立子代理 closure audit：D1 §3.5 evt.logs/evt.exception schema 对账、攒批顺序/并发（三方 flush 竞态：入队/定时/销毁）、异常捕获外壳的传播不变性（变异探针：depth 守卫/rethrow）、会话隔离、M3 验收逐条对账、Anti-Hollow——9 维度全 PASS 结论 GO（agent_6423ae4a，证据见 Closure 段）
+- [x] 修复审计发现（F2 补勾 Phase 1 复选框；F3 补 evt.logs/evt.suspended 全序测试；F4 修正停机分支注释；F5 配置描述补 0=禁用语义；F1 跨批全序竞态登记 Non-Blocking 边界）
+- [x] roadmap item 13 → `done`（MVP milestone 仍依赖 item 14 不翻转）
+- [x] `ai-dev/logs/` 收口记录
 
 Exit Criteria:
 
-- [ ] audit 发现全修复
-- [ ] 测试门全绿（两域）
-- [ ] roadmap item 13 `done` 且 MVP milestone 未翻转
-- [ ] `ai-dev/logs/` 收口记录
+- [x] audit 发现全修复
+- [x] 测试门全绿（两域：debug-web 35/35 + debugger 62/62）
+- [x] roadmap item 13 `done` 且 MVP milestone 未翻转
+- [x] `ai-dev/logs/` 收口记录
 
 ## Closure Gates
 
@@ -137,10 +137,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口后填写）
-Completed: （待填写）
+Status Note: 日志流与事件管道全量落地（Phase 1 引擎异常事件源 + Phase 2 攒批管道/异常出站 + Phase 3 独立审计收口）。D1 §3.5 schema 对账、攒批顺序/会话隔离/rebind 重接、异常捕获外壳、并发安全、配置注入九维度全 PASS；3 个变异探针（阈值判断/depth 守卫/destroyFlush）全部先红后绿 md5 恢复；M3 验收"日志/事件经网关按会话定向出站且顺序正确（攒批不乱序）"实证达成。
+Completed: 2026-10-16
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填写）
-- Evidence: （待填写）
+- Reviewer / Agent: 独立子代理 agent_6423ae4a-1266-4cac-9fdc-2f51992d3da2（fresh session，非实现会话）
+- Audit Session: agent_6423ae4a-1266-4cac-9fdc-2f51992d3da2
+- Evidence:
+  - D1 §3.5 schema 对账 PASS（evt.log entry level/message/timestamp 恒发射 + sourcePath/line/threadId 条件发射；evt.logs {entries}；evt.exception message 必带/errorCode 可选/line≤0 或 loc null 不发射——buildLogEntry:103-117/sendLogs:128-132/notifyException:136-146）
+  - 攒批语义与顺序 PASS（阈值 enqueue:73/定时 75-76/销毁 destroyFlush:97-108 前置于 suppress 早退与 sessionClosed；buffer ArrayList 追加序=出站序；sendLogs 与全部 evt.* 共用 synchronized(session) 全序）
+  - 会话隔离与 rebind 重接 PASS（logPipes 按 sessionId 持有；rebind:191 attachLogPipe 重接——审计 F2 修复面核实；testRebindRewiresPipeSink 正反双断言）
+  - 异常捕获外壳 PASS（三分支统一包报；depth 守卫 finally remove；precise rethrow 原异常引用透传；NopException line>0 门槛；三级 null 守卫；default 会话 getSession("default") 触达实证）
+  - 并发安全 PASS（pipe 锁内 swap/锁外出站；锁序 binder→pipe→session 单向无环；swap 后入队归下一代 buffer；阈值/销毁统一经 swapBufferLocked 取消排程，在途任务空 swap no-op）
+  - 配置注入 PASS（两键读取+setter 注入生效经探针①传递性实证，非死常量）
+  - 变异探针 3/3 实测：阈值 `>=`→`>`（3 测试同红→md5 恢复→绿）；depth 守卫 set 注释（上报 2 次→恢复→绿）；destroyFlush 注释（销毁 flush 失达→恢复→绿）；工作树 md5+git status 双确认零残留
+  - Anti-Hollow PASS（testLogpointEndToEnd 真实 logpoint 产生源端到端；hollow 扫描 --severity high 退出码 0；null-pipe 兜底为单条直发非 no-op——testDirectSendFallbackWithoutPipe）
+  - 测试真实性抽查 4/8 PASS（索引级顺序断言/反向隔离断言/字段级异常断言/parse 后 method 严格相等定位）
+  - 测试门：debug-web 35/35（+1 审计 F3 全序测试）+ debugger 62/62
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+  - Deferred 项分类检查：F1 跨批全序竞态（LOW，D1 §3.5 事件 best-effort 不重排口径下非协议违规）登记 Non-Blocking Follow-ups；SLF4J appender 源/logger 字段为 Non-Goals 登记——无 in-scope live defect 降级
+
+Follow-up:
+
+- F1 跨 flush 批次间顺序竞态（LOW）：两线程各自阈值 swap 后锁外出站，批内保序确定、跨批理论乱序；D1 §3.5"事件 best-effort 不重排"口径下可接受；若未来要求跨批严格全序，引入序号交接或单 drain 线程
+- SLF4J appender 源、evt.log logger 字段来源（Non-Goals，item 25 后按需评估）

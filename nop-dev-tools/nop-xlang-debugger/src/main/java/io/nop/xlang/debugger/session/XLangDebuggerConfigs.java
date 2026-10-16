@@ -43,7 +43,7 @@ public interface XLangDebuggerConfigs {
     IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LOG_BATCH_SIZE = varRef(s_loc,
             "nop.xlang.debug-web.log.batch-size", Integer.class, 64);
 
-    @Description("调试日志攒批flush间隔（毫秒）。未达条数阈值的缓冲日志按该间隔定时flush")
+    @Description("调试日志攒批flush间隔（毫秒）。未达条数阈值的缓冲日志按该间隔定时flush；0=禁用定时flush（仅条数阈值与销毁flush）")
     IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LOG_FLUSH_INTERVAL = varRef(s_loc,
             "nop.xlang.debug-web.log.flush-interval-ms", Integer.class, 300);
 }
