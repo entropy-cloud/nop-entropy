@@ -1,7 +1,6 @@
 entity:
   label:
     NopReportDataset: Dataset
-    NopReportDatasetAuth: Dataset Auth
     NopReportDatasetRef: Dataset Ref
     NopReportDatasource: Report DataSource
     NopReportDatasourceAuth: Datasource Auth
@@ -33,16 +32,6 @@ prop:
       dsTextComponent: null
       dsMetaComponent: null
       dsConfigComponent: null
-    NopReportDatasetAuth:
-      dsId: Dataset ID
-      roleId: Role Id
-      permissions: Permissions
-      version: Version
-      createdBy: Created By
-      createTime: Create Time
-      updatedBy: Updated By
-      updateTime: Update Time
-      remark: Remark
     NopReportDatasetRef:
       rptId: Report ID
       dsId: Dataset ID
