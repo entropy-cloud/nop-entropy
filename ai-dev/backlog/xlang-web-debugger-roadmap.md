@@ -50,7 +50,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 2: 后端通道与服务（nop-entropy）
 
-- 12. WebSocket 调试网关（复用平台 WS 基座，按 D1/D2 实施协议映射、鉴权、会话生命周期绑定连接）: `todo`
+- 12. WebSocket 调试网关（复用平台 WS 基座，按 D1/D2 实施协议映射、鉴权、会话生命周期绑定连接）: `planned`
 - 13. 日志流与事件管道（log appender 攒批定向推送、断点/异常/租约过期事件统一出站）: `todo`
 - 14. 在线 eval REPL 服务端（按 D6：compile+execute、取消机制、沙箱与权限、审计日志）: `todo`
 
@@ -148,7 +148,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 10 | 租约续期机制 | plans/2469-xdbg-item10-lease | after ★, 3, 9 | **Yes** | monitorWait 底座 |
 | 11 | 执行后端联动 | plans/2470-xdbg-item11-backend-link | after 8, 5 | No | EvalBackendRouter |
 | ★ | 会话化调试引擎 (milestone) | — | 8-11 done | — | — |
-| 12 | WebSocket 调试网关 | plan-12-ws-gateway | after engine ★, 2, 3 | **Yes** | JsonRpcWebSocketHandler 模式 |
+| 12 | WebSocket 调试网关 | plans/2471-xdbg-item12-ws-gateway | after engine ★, 2, 3 | **Yes** | JsonRpcWebSocketHandler 模式 |
 | 13 | 日志流与事件管道 | plan-13-log-event-pipe | after 12 | No | magic-api 模式 |
 | 14 | REPL 服务端 | plan-14-repl-server | after 12, 7 | No | XLang compile |
 | ★ | 后端调试服务 MVP (milestone) | — | 8-14 done | — | — |

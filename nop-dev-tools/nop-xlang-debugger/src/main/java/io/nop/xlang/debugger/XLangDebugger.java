@@ -77,11 +77,10 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private final AtomicBoolean suspendOnce = new AtomicBoolean(false);
 
     /**
-     * 模块内错误码（item 10）：stepX 无挂起目标。登记落点归 item 12 additive 批次迁入
-     * XLangErrors（D1 §3.7 表已登记该码与触发面）。
+     * stepX 无挂起目标错误码（已迁入 XLangErrors——plan 2471 additive 批次，D1 §3.7 表）。
+     * 保留同名字段作为兼容引用。
      */
-    public static final ErrorCode ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED = ErrorCode.define(
-            "nop.err.xlang.debugger.thread-not-suspended", "调试器无挂起线程");
+    public static final ErrorCode ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED = io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED;
 
     private int monitorWaitInterval = 200;
     private final ReentrantLock monitorLock = new ReentrantLock();

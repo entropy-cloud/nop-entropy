@@ -26,4 +26,16 @@ public interface XLangDebuggerConfigs {
     @Description("是否启用XLang调试Web通道。仅在nop.xlang.debugger.enabled=true时可用；启用后全局executor切换为会话路由形态")
     IConfigReference<Boolean> CFG_XLANG_DEBUG_WEB_ENABLED = varRef(s_loc, "nop.xlang.debug-web.enabled", Boolean.class,
             false);
+
+    @Description("调试会话租约TTL（毫秒）。挂起线程超过TTL未续期将自动放行（resume语义）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LEASE_TTL = varRef(s_loc, "nop.xlang.debug-web.lease.ttl-ms",
+            Integer.class, 30000);
+
+    @Description("租约续期间隔（毫秒）。网关按此限流lease.renew请求")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LEASE_RENEW_INTERVAL = varRef(s_loc,
+            "nop.xlang.debug-web.lease.renew-interval-ms", Integer.class, 10000);
+
+    @Description("断连宽限期（毫秒）。连接断开且宽限期内未rebind则销毁会话")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LEASE_GRACE = varRef(s_loc,
+            "nop.xlang.debug-web.lease.grace-ms", Integer.class, 15000);
 }

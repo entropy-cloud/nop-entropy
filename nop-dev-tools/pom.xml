@@ -21,6 +21,7 @@
         <module>nop-api-debugger</module>
         <module>nop-maven-shaded-plugin</module>
         <module>nop-xlang-debugger</module>
+        <module>nop-xlang-debug-web</module>
     </modules>
 
 </project>

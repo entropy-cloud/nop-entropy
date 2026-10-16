@@ -184,6 +184,35 @@ public final class SessionDebugManager {
      * 停机清扫（D6 serverShutdown，等效 close 语义）：与 init/createSession 同监视器锁，
      * 逐实例 close + 全量清扫；shutdown 后 createSession 拒绝。listener 回调锁外触发。
      */
+    // shutdownAll 见下
+
+    /**
+     * 宽限销毁（D2 §3.3 DestroyingByGrace，plan 2471 新增）：releaseAll（resume 语义放行，
+     * 引擎侧聚合发 leaseExpired）→ 注销 → destroyed 位 → onDestroyed 回调。
+     * **不调 close 不置 closed 不抛错**（挂起线程正常返回脚本执行完——D2 红线）；
+     * Destroying 窗口的新命中由实例内授予判定①承接（D2 §3.1①）。
+     */
+    public void gracefulDispose(DebugSessionHandle handle) {
+        Objects.requireNonNull(handle, "handle");
+        Runnable notify;
+        synchronized (this) {
+            XLangDebugger debugger = handle.getDebugger();
+            if (debugger != null)
+                debugger.releaseAll();
+            sessions.remove(handle.getSessionId(), handle);
+            handle.markDestroyed();
+            notify = (listener != null && debugger != null)
+                    ? () -> safeNotifyDestroyed(handle, debugger)
+                    : null;
+        }
+        if (notify != null)
+            notify.run();
+    }
+
+    /**
+     * 停机清扫（D6 serverShutdown，等效 close 语义）：与 init/createSession 同监视器锁，
+     * 逐实例 close + 全量清扫；shutdown 后 createSession 拒绝。listener 回调锁外触发。
+     */
     public void shutdownAll() {
         List<Runnable> notifies = new ArrayList<>();
         synchronized (this) {
@@ -216,6 +245,16 @@ public final class SessionDebugManager {
         // 回调在锁外触发（SessionListener 契约）
         for (Runnable notify : notifies) {
             notify.run();
+        }
+    }
+
+    private void safeNotifyDestroyed(DebugSessionHandle handle, XLangDebugger debugger) {
+        try {
+            SessionListener cb = listener;
+            if (cb != null)
+                cb.onDestroyed(handle, debugger);
+        } catch (Exception e) {
+            LOG.error("nop.xlang.debugger.session-listener-fail", e);
         }
     }
 

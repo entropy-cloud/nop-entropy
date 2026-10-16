@@ -56,10 +56,10 @@ public final class DebugSessionHandle {
     }
 
     /**
-     * 会话的调试器实例（destroySession 的 close 与 SessionListener 回调使用）；
-     * 测试桩/哨兵句柄可为 null。
+     * 会话的调试器实例（destroySession 的 close、SessionListener 回调与网关消费使用，
+     * item 12 提权为 public）；测试桩/哨兵句柄可为 null。
      */
-    XLangDebugger getDebugger() {
+    public XLangDebugger getDebugger() {
         return debugger;
     }
 }
