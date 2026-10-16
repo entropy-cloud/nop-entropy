@@ -8,6 +8,7 @@
 package io.nop.xlang.backend;
 
 import io.nop.api.core.util.SourceLocation;
+import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
@@ -58,6 +59,12 @@ public class EvalStaticBoundExecutable implements IExecutableExpression {
 
     @Override
     public Object execute(IExpressionExecutor executor, EvalRuntime rt) {
+        // 调试态降级（D4 §3.2 落点②）：经全局执行器执行 sourceTree（断点可达）。
+        // 递归终止不变式：sourceTree 必为非包装原树（绑定点只包新鲜编译产物，
+        // LazyCompiledFunction.compile 一次性）——嵌套调用按树深有界终止。
+        if (EvalBackendRouter.instance().isDebugDegradeActive()) {
+            return EvalExprProvider.getGlobalExecutor().execute(sourceTree, rt);
+        }
         return binding.execute(rt);
     }
 
