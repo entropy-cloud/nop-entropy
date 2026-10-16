@@ -231,9 +231,13 @@ public class TestLocalJobScheduler {
             sched.addJob(spec, false);
 
             // fixedDelay 的 PeriodicTrigger 首次触发在 now+1ms，addJob 会立刻自动触发一次。
-            // 先等它落地到稳定状态，再以当前 count 作为基线，避免竞态导致的断言不稳定。
+            // awaitIdle 只看 running==null：首次触发刚被调度、还没进入执行时它就直接返回，
+            // 基线会在自动触发落地前被采样，满载时那次迟到的触发让断言多出一次调用。
+            // 先按触发次数等自动触发真正结束，再取基线。
+            assertTrue(sched.awaitFireCount("test-fireNow", 1, 2, TimeUnit.SECONDS));
             assertTrue(sched.awaitIdle("test-fireNow", 2, TimeUnit.SECONDS));
             int baseline = count.get();
+            assertEquals(1, baseline, "addJob 的自动触发是 fireNow 之前唯一的一次调用");
 
             sched.suspendJob("test-fireNow");
             assertEquals(JobState.SUSPENDED, sched.getJobState("test-fireNow"));
