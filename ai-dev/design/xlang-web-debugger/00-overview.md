@@ -141,7 +141,7 @@ sequenceDiagram
 
 目标态开关矩阵：
 
-| `nop.xlang.debugger.enabled` | web 调试开关（`nop.xlang.debug-web.enabled`，默认 false；实现注册归 item 12） | 行为 |
+| `nop.xlang.debugger.enabled` | web 调试开关（`nop.xlang.debug-web.enabled`，默认 false；配置常量已在 item 8 提前注册于调试器模块） | 行为 |
 | --- | --- | --- |
 | false | 任意 | 全部不激活；执行路径零改动（现状默认态） |
 | true | false | 仅 IDEA 通道：SimpleRpcServer + 默认会话，注入现状形态 executor；解释器路径行为与改造前一致，绑定单元执行按 D4 降级为解释器（断点可命中——有意缺陷修复，非回归破损；见 04-execution-backend-link §3.4） |

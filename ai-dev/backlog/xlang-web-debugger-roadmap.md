@@ -41,7 +41,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 1: 后端引擎会话化（nop-entropy）
 
-- 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `todo`
+- 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `done`
 - 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `todo`
 - 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `todo`
 - 11. 调试模式执行后端联动（按 D4：两条绕过路径消除或降级，含回归）: `todo`
@@ -143,7 +143,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 | 6 | D5 前端架构 + 语法 spike | plans/2465-xdbg-d5-frontend-grammar | after 1 | **Yes** | flux-code-editor、XLangLexer.g4 |
 | 7 | D6 REPL 与安全详设 | plans/2466-xdbg-d6-repl-security | after 1 | No | nop-biz 鉴权 |
 | ★ | 设计收口 (milestone) | — | 1-7 done | — | — |
-| 8 | 会话标识注入 + executor 路由 | plan-08-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
+| 8 | 会话标识注入 + executor 路由 | plans/2467-xdbg-item8-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
 | 9 | 每会话实例生命周期 + IDEA 兼容 | plan-09-session-lifecycle | after 8 | **Yes** | XLangDebugger |
 | 10 | 租约续期机制 | plan-10-lease-renewal | after ★, 3, 9 | **Yes** | monitorWait 底座 |
 | 11 | 执行后端联动 | plan-11-backend-link | after 8, 5 | No | EvalBackendRouter |

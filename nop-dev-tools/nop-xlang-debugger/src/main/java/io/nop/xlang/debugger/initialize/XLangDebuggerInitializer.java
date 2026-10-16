@@ -17,6 +17,7 @@ import io.nop.core.initialize.ICoreInitializer;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.EvalExprProvider;
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.core.lang.eval.IExpressionExecutor;
 import io.nop.rpc.core.RpcConstants;
 import io.nop.rpc.simple.SimpleRpcServer;
 import io.nop.socket.ServerConfig;
@@ -24,6 +25,10 @@ import io.nop.xlang.debugger.DebugExpressionExecutor;
 import io.nop.xlang.debugger.IDebugNotifier;
 import io.nop.xlang.debugger.SuspendedThread;
 import io.nop.xlang.debugger.XLangDebugger;
+import io.nop.xlang.debugger.session.SessionDebugManager;
+import io.nop.xlang.debugger.session.SessionRoutingExecutor;
+
+import static io.nop.xlang.debugger.session.XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_ENABLED;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,12 +39,14 @@ import static io.nop.xlang.XLangConfigs.CFG_XLANG_DEBUGGER_ENABLED;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_DEBUGGER_MAX_DATA_LEN;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_DEBUGGER_PORT;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_DEBUGGER_WAIT_CONNECTION_SECONDS;
+import static io.nop.xlang.debugger.session.XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_ENABLED;
 
 public class XLangDebuggerInitializer implements ICoreInitializer {
     static final Logger LOG = LoggerFactory.getLogger(XLangDebuggerInitializer.class);
 
     private SimpleRpcServer server;
     private XLangDebugger debugger;
+    private SessionDebugManager sessionManager;
 
     @Override
     public boolean isEnabled() {
@@ -74,7 +81,8 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
                 server.waitConnected(waitSeconds * 1000L);
             }
             LOG.info("nop.debugger.register-debug-executor");
-            EvalExprProvider.registerGlobalExecutor(new DebugExpressionExecutor(debugger));
+            EvalExprProvider.registerGlobalExecutor(
+                    buildGlobalExecutor(CFG_XLANG_DEBUGGER_ENABLED.get(), CFG_XLANG_DEBUG_WEB_ENABLED.get(), debugger));
         } catch (Exception e) {
             LOG.error("nop.debugger.init-fail", e);
         }
@@ -82,6 +90,27 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
 
     protected XLangDebugger createDebugger() {
         return new XLangDebugger();
+    }
+
+    /**
+     * 选择全局 executor 形态（D0 §3.3 开关矩阵）：web 关 → 现状形态（绑定默认会话唯一实例，
+     * 行为与改造前一致，回归基线）；web 开 → 会话路由外壳（无标记执行走默认会话兜底，
+     * D3 §3.4）。web=true 蕴含 enabled=true（本方法仅在 initialize 的 enabled 门内被调）。
+     * 提取为独立方法以支持接线形态的运行时验证（Wiring Verification）。
+     */
+    protected IExpressionExecutor buildGlobalExecutor(boolean debuggerEnabled, boolean webEnabled,
+                                                      XLangDebugger defaultDebugger) {
+        // D6 §一.5 蕴含推论的 fail-fast：web 通道开启必须以调试子系统开启为前提
+        if (webEnabled && !debuggerEnabled)
+            throw new IllegalStateException(
+                    "nop.xlang.debug-web.enabled=true requires nop.xlang.debugger.enabled=true");
+
+        if (!webEnabled)
+            return new DebugExpressionExecutor(defaultDebugger);
+
+        sessionManager = SessionDebugManager.instance();
+        sessionManager.init(defaultDebugger);
+        return new SessionRoutingExecutor(sessionManager);
     }
 
     // 通知调试器客户端当前正在处理的断点情况
@@ -154,6 +183,10 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
     @Override
     public void destroy() {
         EvalExprProvider.registerGlobalExecutor(DefaultExpressionExecutor.INSTANCE);
+        if (sessionManager != null) {
+            sessionManager.reset();
+            sessionManager = null;
+        }
         if (server != null) {
             server.stop();
             // 仅停RPC server不close debugger：挂起线程永久阻塞（closed永不为true），
