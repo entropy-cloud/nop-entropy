@@ -1478,9 +1478,14 @@ public abstract class CrudBizModel<T extends IOrmEntity>
         if (StringHelper.isEmpty(deleteFlagProp))
             throw new NopException(ERR_BIZ_ENTITY_NOT_SUPPORT_LOGICAL_DELETE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
-        query.addFilter(FilterBeans.gt(deleteFlagProp, 0));
-
-        return doFindPage(query, this::invokeDefaultPrepareQuery, selection, context);
+        // 该条件由平台注入而非前端提交，不应参与 objMeta 的 filterOp 校验：
+        // prepareFindPageQuery 只在入口对入参 query 调一次 checkAllowQuery，而 delFlag 是
+        // internal 字段，其 allowFilterOp 只含 eq/in/...，gt 会被 ERR_BIZ_PROP_NOT_SUPPORT_FILTER_OP
+        // 拒绝。放到 prepareQuery 回调（校验之后拼接）。
+        return doFindPage(query, (q, ctx) -> {
+            q.addFilter(FilterBeans.gt(deleteFlagProp, 0));
+            invokeDefaultPrepareQuery(q, ctx);
+        }, selection, context);
     }
 
     @Description("@i18n:biz.recoverDeleted|恢复已删除记录")

@@ -4,6 +4,9 @@ import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.auth.IDataAuthChecker;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.FieldSelectionBean;
+import io.nop.api.core.beans.FilterBeans;
+import io.nop.api.core.beans.PageBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
@@ -48,7 +51,9 @@ import java.util.Map;
 import java.util.Set;
 
 import static io.nop.biz.BizErrors.ERR_BIZ_NOT_ALLOW_GET_DELETED;
+import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_SUPPORT_FILTER_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -147,6 +152,40 @@ public class TestCrudBizModelCrudFlow {
         assertEquals(io.nop.biz.BizErrors.ERR_BIZ_NO_OBJ_META.getErrorCode(), ex.getErrorCode());
     }
 
+    // ==================== deleted_findPage 注入条件不参与 meta filterOp 校验 ====================
+
+    @Test
+    public void testDeletedFindPageInjectedFilterSkipsMetaFilterOpCheck() {
+        Fixture f = new Fixture();
+        f.objMeta.addProp(queryableDelFlagProp());
+
+        // delFlag 缺省 allowFilterOp 只含 eq/in/dateBetween/dateTimeBetween；平台注入的 gt 若在
+        // 入参校验阶段被检查会抛 ERR_BIZ_PROP_NOT_SUPPORT_FILTER_OP。修复后该过滤条件放到
+        // prepareQuery（checkAllowQuery 之后）拼接。
+        QueryBean query = new QueryBean();
+        query.setLimit(10);
+        PageBean<IOrmEntity> page = f.model.deleted_findPage(query, null, f.context());
+
+        assertNotNull(page);
+        assertEquals(1, f.dao.findPageQueries.size());
+        TreeBean filter = (TreeBean) f.dao.findPageQueries.get(0).getFilter();
+        assertNotNull(filter, "平台注入的 delFlag 过滤条件应已拼入下发的 query");
+        assertEquals("gt", filter.getTagName());
+    }
+
+    @Test
+    public void testInboundFilterOnInternalPropStillRejected() {
+        Fixture f = new Fixture();
+        f.objMeta.addProp(queryableDelFlagProp());
+
+        // 前端提交的同类条件仍必须经过 meta 校验（delFlag 只允许 eq/in/...）
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.gt("delFlag", 0));
+        NopException ex = assertThrows(NopException.class,
+                () -> f.model.deleted_findPage(query, null, f.context()));
+        assertEquals(ERR_BIZ_PROP_NOT_SUPPORT_FILTER_OP.getErrorCode(), ex.getErrorCode());
+    }
+
     // ==================== fixture ====================
 
     static class Fixture {
@@ -188,6 +227,12 @@ public class TestCrudBizModelCrudFlow {
     @BizModel("TestObj")
     static class TestCrudBizModel extends CrudBizModel<IOrmEntity> {
         RecordingTool recordingTool;
+
+        @Override
+        protected boolean isAllowGetDeleted() {
+            // 测试里用 objMeta 的有无代替 xmeta 的 biz:allowGetDeleted 开关
+            return getThisObj().getObjMeta() != null;
+        }
 
         @Override
         public int getMaxPageSize() {
@@ -245,6 +290,13 @@ public class TestCrudBizModelCrudFlow {
                                   io.nop.api.core.auth.ISecurityContext context) {
             return null;
         }
+    }
+
+    static ObjPropMetaImpl queryableDelFlagProp() {
+        // delFlag 在 xmeta 里 queryable=true 且未显式声明 filterOp，走 DEFAULT_ALLOW_FILTER_OP
+        ObjPropMetaImpl prop = plainProp("delFlag");
+        prop.setQueryable(true);
+        return prop;
     }
 
     static ObjPropMetaImpl plainProp(String name) {
@@ -514,6 +566,7 @@ public class TestCrudBizModelCrudFlow {
     static class FakeEntityDao {
         final Map<Object, FakeOrmEntity> entities = new LinkedHashMap<>();
         final List<IOrmEntity> savedEntities = new ArrayList<>();
+        final List<QueryBean> findPageQueries = new ArrayList<>();
 
         IEntityDao<IOrmEntity> asDao() {
             return (IEntityDao<IOrmEntity>) Proxy.newProxyInstance(
@@ -551,6 +604,11 @@ public class TestCrudBizModelCrudFlow {
                     return new FakeOrmEntity(null).asOrmEntity();
                 case "isUseLogicalDelete":
                     return true;
+                case "getDeleteFlagProp":
+                    return "delFlag";
+                case "findPageByQuery":
+                    findPageQueries.add((QueryBean) args[0]);
+                    return Collections.emptyList();
                 case "resetToDefaultValues":
                 case "deleteEntity":
                 case "batchLoadSelection":
