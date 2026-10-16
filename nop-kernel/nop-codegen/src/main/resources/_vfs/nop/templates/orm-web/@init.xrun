@@ -6,7 +6,13 @@
         let moduleMetaPath = "/"+moduleId+"/model/module-meta.json";
         let moduleMeta = loadDeltaJson(moduleMetaPath);
         let metaResources = VirtualFileSystem.instance().getAllResources("/"+moduleId+"/model",".xmeta");
-        metaResources = metaResources.filter(r=>!r.name.startsWith('_') and !SchemaLoader.loadXMeta(r.path).containsAnyTag(['no-web','not-pub']));
+        // 本模板目录只负责 orm 模型对象（api 模型对象由 api-web 模板处理）：
+        // 页面/视图目录用 ${metaInfo.objName}，与生成的菜单 url /{moduleId}/pages/${objName}/main.page.yaml 对齐。
+        // 派生对象（如 NopAuthUser_tenant）的 objName 与 baseObjName 不同，必须各自独立目录，
+        // 否则 main.page.yaml 与基础对象同名而互相覆盖（具体见 orm-web/pages/{metaInfo.objName}/）。
+        metaResources = metaResources.filter(r=>!r.name.startsWith('_')
+            and !SchemaLoader.loadXMeta(r.path).containsAnyTag(['no-web','not-pub'])
+            and SchemaLoader.loadXMeta(r.path)['ext:model'] == 'orm');
 
         assign("metaResources",metaResources);
 
