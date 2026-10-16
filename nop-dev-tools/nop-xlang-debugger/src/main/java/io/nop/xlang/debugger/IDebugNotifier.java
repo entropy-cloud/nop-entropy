@@ -38,4 +38,13 @@ public interface IDebugNotifier {
      */
     default void notifyResumed(java.util.List<Long> threadIds, String cause) {
     }
+
+    /**
+     * 被调试执行单元的未捕获异常事件（受控扩展，D1 §3.5 evt.exception 产生源，item 13）：
+     * web 激活时由 SessionRoutingExecutor 最外层入口上报（嵌套重入只报最外层）；
+     * sourcePath/line 为异常定位（无定位时 null / 负值，D1 schema 可选字段）。
+     * 默认空实现——非破坏扩展。
+     */
+    default void notifyException(String sourcePath, int line, String message, String errorCode) {
+    }
 }

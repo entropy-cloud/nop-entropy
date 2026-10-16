@@ -188,6 +188,12 @@ public class XLangDebuggerInitializer implements ICoreInitializer {
         public void notifyResumed(java.util.List<Long> threadIds, String cause) {
             LOG.info("nop.debugger.resumed:threadIds={},cause={}", threadIds, cause);
         }
+
+        @Override
+        public void notifyException(String sourcePath, int line, String message, String errorCode) {
+            LOG.info("nop.debugger.exception:message={},sourcePath={},line={},errorCode={}",
+                    message, sourcePath, line, errorCode);
+        }
     }
 
     @Override

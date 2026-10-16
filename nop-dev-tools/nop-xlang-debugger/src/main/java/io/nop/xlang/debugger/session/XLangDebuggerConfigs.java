@@ -38,4 +38,12 @@ public interface XLangDebuggerConfigs {
     @Description("断连宽限期（毫秒）。连接断开且宽限期内未rebind则销毁会话")
     IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LEASE_GRACE = varRef(s_loc,
             "nop.xlang.debug-web.lease.grace-ms", Integer.class, 15000);
+
+    @Description("调试日志攒批条数阈值。会话日志管道缓冲达到该条数立即flush（evt.logs出站）")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LOG_BATCH_SIZE = varRef(s_loc,
+            "nop.xlang.debug-web.log.batch-size", Integer.class, 64);
+
+    @Description("调试日志攒批flush间隔（毫秒）。未达条数阈值的缓冲日志按该间隔定时flush")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_LOG_FLUSH_INTERVAL = varRef(s_loc,
+            "nop.xlang.debug-web.log.flush-interval-ms", Integer.class, 300);
 }

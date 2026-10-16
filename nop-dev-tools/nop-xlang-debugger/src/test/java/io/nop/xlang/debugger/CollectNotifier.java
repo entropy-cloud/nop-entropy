@@ -54,4 +54,9 @@ public class CollectNotifier implements IDebugNotifier {
     public void notifyBreakAt(SuspendedThread thread, SourceLocation loc, EvalRuntime rt) {
         messages.add("break:" + loc);
     }
+
+    @Override
+    public void notifyException(String sourcePath, int line, String message, String errorCode) {
+        messages.add("exception:" + message + ":" + errorCode);
+    }
 }
