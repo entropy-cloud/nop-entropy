@@ -1,6 +1,6 @@
 # 并发·异步·资源专项审计与修复 Roadmap（全模块滚动）
 
-> Last updated: 2026-10-13
+> Last updated: 2026-10-16
 > Sources: `ai-dev/skills/concurrency-resource-audit-prompt.md`（审计方法论：C1–C10 十维度、F1–F11 缺陷族、归档与发现格式）,
 > `ai-dev/skills/deep-audit-prompts.md`（「调度架构」「发现条目完整性守则」两节，审计调度沿用）,
 > `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`（P0 即时通道、R\*.0 展开器、closure audit 立项机制）,
@@ -70,7 +70,7 @@
 | 1.3 | nop-stream 编排薄层（`nop-stream-flow` + `nop-stream-sql` + `fraud-example`，维度裁剪） | done | `docs-for-ai/03-modules/nop-stream-user-guide.md`、`nop-stream-sql.md` | 0.3 | 同上（C1 C3 C6 + 抽查） |
 | 1.4 | nop-job（定时调度引擎） | done | `docs-for-ai/03-modules/nop-job.md` | 0.3 | 同上（C1 C2 C4 C5 C7 + C10） |
 | 1.5 | nop-wf + nop-task（工作流 / 任务引擎） | done | `docs-for-ai/03-modules/nop-wf.md`、`nop-task.md` | 0.3 | 同上（C1–C5 C7 C8 + C10） |
-| 1.6 | nop-retry + nop-tcc（分布式重试 / TCC 事务协调） | todo | `docs-for-ai/03-modules/nop-retry.md`、`nop-tcc.md` | 0.3 | 同上（C1 C3 C6 C7 C8 + C10） |
+| 1.6 | nop-retry + nop-tcc（分布式重试 / TCC 事务协调） | done | `docs-for-ai/03-modules/nop-retry.md`、`nop-tcc.md` | 0.3 | 同上（C1 C3 C6 C7 C8 + C10） |
 | 1.7 | nop-batch（chunk 批处理、断点续传） | todo | `docs-for-ai/03-modules/nop-batch.md` | 0.3 | 同上（C1 C5 C6 C7 C8 + C10） |
 
 ### Phase 2 — 审计 Wave 2：热路径基础设施
