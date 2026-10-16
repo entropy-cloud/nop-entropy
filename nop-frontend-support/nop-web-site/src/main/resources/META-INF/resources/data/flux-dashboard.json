@@ -13,10 +13,34 @@
     {
       "type": "crud",
       "source": [
-        { "id": "1", "metric": "Total Users", "value": "1,280", "change": "+12%", "period": "This Month" },
-        { "id": "2", "metric": "Total Orders", "value": "456", "change": "+8%", "period": "This Month" },
-        { "id": "3", "metric": "Revenue", "value": "¥128,000", "change": "+15%", "period": "This Month" },
-        { "id": "4", "metric": "Conversion", "value": "3.2%", "change": "+0.5%", "period": "This Month" }
+        {
+          "id": "1",
+          "metric": "Total Users",
+          "value": "1,280",
+          "change": "+12%",
+          "period": "This Month"
+        },
+        {
+          "id": "2",
+          "metric": "Total Orders",
+          "value": "456",
+          "change": "+8%",
+          "period": "This Month"
+        },
+        {
+          "id": "3",
+          "metric": "Revenue",
+          "value": "¥128,000",
+          "change": "+15%",
+          "period": "This Month"
+        },
+        {
+          "id": "4",
+          "metric": "Conversion",
+          "value": "3.2%",
+          "change": "+0.5%",
+          "period": "This Month"
+        }
       ],
       "columns": [
         { "name": "metric", "label": "Metric" },

@@ -344,9 +344,7 @@
                                     "gql:selection": "{@pageSelection}",
                                     "selection": "total,page,items{ id,positionId,name,createdBy,remark }"
                                   },
-                                  "dependsOn": [
-                                    "__crud_load__"
-                                  ]
+                                  "dependsOn": ["__crud_load__"]
                                 },
                                 "columns": [
                                   {
@@ -477,9 +475,7 @@
         "gql:selection": "{@pageSelection}",
         "selection": "total,page,items{ id,userId,userName,nickName,dept{deptName},deptId,gender,gender_label,phone,userType,userType_label,status,status_label }"
       },
-      "dependsOn": [
-        "__crud_load__"
-      ]
+      "dependsOn": ["__crud_load__"]
     },
     "queryForm": {
       "id": "crud-grid-query-form",
@@ -1242,9 +1238,7 @@
                                             "gql:selection": "{@pageSelection}",
                                             "selection": "total,page,items{ id,positionId,name,createdBy,remark }"
                                           },
-                                          "dependsOn": [
-                                            "__crud_load__"
-                                          ]
+                                          "dependsOn": ["__crud_load__"]
                                         },
                                         "columns": [
                                           {

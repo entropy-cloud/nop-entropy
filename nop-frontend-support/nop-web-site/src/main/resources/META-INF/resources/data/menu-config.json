@@ -75,34 +75,6 @@
       ]
     },
     {
-      "id": "plugins",
-      "titleKey": "menu.plugins",
-      "path": "/plugins",
-      "icon": "puzzle",
-      "pageType": "builtin",
-      "componentId": "plugins-overview",
-      "sort": 5,
-      "children": [
-        {
-          "id": "plugins-management",
-          "titleKey": "menu.pluginsManagement",
-          "path": "/plugins/management",
-          "icon": "plug-zap",
-          "pageType": "builtin",
-          "componentId": "plugins-management"
-        },
-        {
-          "id": "plugins-demo",
-          "titleKey": "menu.pluginsDemo",
-          "path": "/plugins/demo",
-          "icon": "blocks",
-          "pageType": "plugin",
-          "componentId": "plugins-demo",
-          "pluginUrl": "/plugins/plugin-demo.system.js"
-        }
-      ]
-    },
-    {
       "id": "flux-demo",
       "title": "Flux Demo",
       "path": "/flux-demo",
