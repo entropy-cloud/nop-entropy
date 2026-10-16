@@ -7,9 +7,9 @@
  */
 package io.nop.xlang.debug.web;
 
-import io.nop.api.core.config.IConfigReference;
-import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.auth.IUserContextExtractor;
+import io.nop.api.core.config.IConfigReference;
 import io.nop.xlang.debugger.session.SessionDebugManager;
 import io.nop.xlang.debugger.session.XLangDebuggerConfigs;
 
@@ -18,10 +18,13 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 网关运行时装配（plan 2471 Phase 1/2）：会话管理器、鉴权器、租约/宽限配置、
- * 定时器（可注入——测试缩短周期或用同步执行）。
+ * 网关运行时装配（plan 2471 Phase 2）：会话管理器、鉴权器、绑定器、租约/宽限/keepalive
+ * 配置、定时器（可注入——测试用同步或短周期执行器）。静态单例由 {@link DebugWebServerConfig}
+ * 安装、端点适配器（quarkus/spring）经 {@link #singleton()} 取用（Nop IoC 无注解扫描，
+ * 照 JsonRpc 端点 BeanContainer 取依赖惯例改为网关静态装配点）。
  */
 public class DebugGatewayRuntime {
     static final ThreadFactory TIMER_FACTORY = new ThreadFactory() {
@@ -35,12 +38,20 @@ public class DebugGatewayRuntime {
         }
     };
 
+    public static final long KEEPALIVE_INTERVAL_MILLIS = 10_000L;
+
+    private static volatile DebugGatewayRuntime singleton;
+
     private final SessionDebugManager sessionManager;
     private final DebugAuthenticator authenticator;
-    private final long leaseTtlMillis;
-    private final long renewIntervalMillis;
-    private final long graceMillis;
+    private final DebugSessionBinder binder;
+    private volatile long leaseTtlMillis;
+    private volatile long renewIntervalMillis;
+    private volatile long graceMillis;
+    /** keepalive ping 周期（D1 §3.3：10s 基线）；0 = 禁用（测试确定性序列断言）。 */
+    private volatile long keepaliveIntervalMillis = KEEPALIVE_INTERVAL_MILLIS;
     private final ScheduledExecutorService timer;
+    private final AtomicLong connectionSeq = new AtomicLong();
 
     public DebugGatewayRuntime(SessionDebugManager sessionManager, IUserContextExtractor extractor) {
         this(sessionManager, extractor, defaultTimer());
@@ -54,6 +65,7 @@ public class DebugGatewayRuntime {
         this.renewIntervalMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LEASE_RENEW_INTERVAL);
         this.graceMillis = read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_LEASE_GRACE);
         this.timer = timer == null ? defaultTimer() : timer;
+        this.binder = new DebugSessionBinder(this);
     }
 
     private static ScheduledExecutorService defaultTimer() {
@@ -65,12 +77,64 @@ public class DebugGatewayRuntime {
         return v == null ? 0L : v;
     }
 
+    /** 端点适配器取用点（DebugWebServerConfig 安装；未启用返回 null——端点关闭连接）。 */
+    public static DebugGatewayRuntime singleton() {
+        return singleton;
+    }
+
+    public static void installSingleton(DebugGatewayRuntime runtime) {
+        singleton = runtime;
+    }
+
+    /** 创建 handler（端点适配器唯一入口）；握手鉴权失败时 handler 自行 4401 关闭。 */
+    public DebugWebSocketHandler createHandler(io.nop.graphql.core.ws.IWebSocketSession session,
+                                               String debugToken) {
+        return new DebugWebSocketHandler(this, session, debugToken);
+    }
+
+    /** 停机关闭定时器（DebugWebServerConfig.destroy；测试结束清理防线程泄漏）。 */
+    public void shutdownTimer() {
+        timer.shutdownNow();
+    }
+
+    /** 测试注入点：禁用（0）或缩短 keepalive 周期（生产常量 10s，D1 §3.3）。 */
+    public void setKeepaliveIntervalMillis(long millis) {
+        this.keepaliveIntervalMillis = millis;
+    }
+
+    /** 测试注入点：缩短租约 TTL（生产读 nop.xlang.debug-web.lease.ttl-ms）。 */
+    public void setLeaseTtlMillis(long millis) {
+        this.leaseTtlMillis = millis;
+    }
+
+    /** 测试注入点：缩短续期间隔（生产读 nop.xlang.debug-web.lease.renew-interval-ms）。 */
+    public void setRenewIntervalMillis(long millis) {
+        this.renewIntervalMillis = millis;
+    }
+
+    /** 测试注入点：缩短断连宽限（生产读 nop.xlang.debug-web.lease.grace-ms）。 */
+    public void setGraceMillis(long millis) {
+        this.graceMillis = millis;
+    }
+
+    String nextConnectionId() {
+        return "conn-" + connectionSeq.incrementAndGet();
+    }
+
+    DebugSessionBinder binder() {
+        return binder;
+    }
+
     public SessionDebugManager sessionManager() {
         return sessionManager;
     }
 
     public DebugAuthenticator authenticator() {
         return authenticator;
+    }
+
+    public DebugSessionBinder getBinder() {
+        return binder;
     }
 
     public long leaseTtlMillis() {
@@ -83,6 +147,10 @@ public class DebugGatewayRuntime {
 
     public long graceMillis() {
         return graceMillis;
+    }
+
+    public long keepaliveIntervalMillis() {
+        return keepaliveIntervalMillis;
     }
 
     public ScheduledExecutorService timer() {

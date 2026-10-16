@@ -52,12 +52,13 @@
 
 - item 13/14 功能面；nop-graphql-core/nop-api-core 改动；前端；容器级集成测试。
 
-## Continuation Note（2026-10-16 会话切换点）
+## Continuation Note（2026-10-16 会话切换点，Phase 2 已完成）
 
-Phase 1 已实现并测试绿（57/57）。Phase 2 网关核心进度：
-- 已编译通过：`DebugAuthenticator`（nopDebugToken→Bearer→extractFromHeaders）、`GatewayNotifierBridge`（evt.* 出站桥，synchronized(session) 出站锁）、模块 pom（deps: debugger+graphql-core）、nop-dev-tools/pom 注册
-- 待实现：`DebugSessionBinder`（连接↔会话绑定/SessionListener 桥/宽限定时器/renew 限流——上轮评审 M1 指出 getDebugger 提权后 binder 可直接持有 handle.getDebugger()，**会话创建键 = "userId:connectionId"** 供属主校验）、`DebugWebSocketHandler`（envelope 编解码+方法分发 22 条+关闭码+D1 §3.1 五桶约束+keepalive 可注入 scheduler）、`DebugWebServerConfig`（ICoreInitializer）、端点薄壳（quarkus/spring）、全部测试
-- 注意：nop-xlang 已 install 到本地仓（XLangErrors 八码含 THREAD_NOT_SUSPENDED），debug-web 可直接编译引用；跨模块类变更需 install 或 -am
+Phase 2 全部落地（25/25 测试绿 + debugger 模块 57/57 回归绿 + quarkus/spring 编译通过）：
+- `DebugWebSocketHandler`（envelope 编解码、24 方法分发、关闭码、D1 §3.1 五桶约束、keepalive 可注入）、`DebugSessionBinder`（绑定/rebind 属主校验/宽限定时器/renew 限流 0.8 容差 + rebind 首豁免/销毁 reason 四值）、`DebugGatewayRuntime`（静态单例 + 连接 id + 配置注入点）、`DebugWebServerConfig`（ICoreInitializer，含 BeanContainer 未初始化防御 + 无 extractor 拒绝型兜底）、quarkus/spring 端点薄壳（宿主模块 + pom + nop-bom 登记）
+- **执行中新增（Phase 2 范围内）**：`XLangDebugger.expireLease()` + `gracefulDispose` 先 expireLease 后 releaseAll——测试探针发现 releaseAll→expireLease 顺序存在竞态窗口（被放行线程抢跑嵌套命中二次挂起，200ms 后 deadline 退出多发一次 leaseExpired）；翻转顺序后销毁窗口新命中由授予判定②承接（D2 §3.1①②），出口判定局部放行优先保证事件恰好一次
+- **D1 §3.7 线上承载裁定**：error.errorCode = 平台点分码（`NopException.getErrorCode()`，与 ErrorBean.errorCode 同构）；D1 表中 ERR_XLANG_DEBUGGER_* 为 Java 常量名一一对应（handler javadoc 已声明，Phase 3 审计对账点）
+- requireSuspended 预检：getStackInfo/getExprValue/expandExprValue/getScopeVariables/getFrameVariables 对未挂起线程以挂起集合预检承接 THREAD_NOT_SUSPENDED（引擎对不存在线程返回 null/空，无法区分空结果）
 
 ## Execution Plan
 
@@ -85,28 +86,28 @@ Exit Criteria:
 
 ### Phase 2 - 网关核心与端点适配器
 
-Status: in progress
+Status: completed
 Targets: `nop-xlang-debug-web` + 端点薄壳
 
 - Item Types: `Feature`
 
-- [ ] 模块骨架 + `DebugWebServerConfig`（ICoreInitializer：web 开关门 + listener 注册 + lease/grace 配置装载；destroy=shutdownAll）+ META-INF/services 注册
-- [ ] `DebugWebSocketHandler`：envelope 编解码（平台 JSON 工具）、方法分发（保留集 ping/pong/tokenRefresh + session.* + lease.renew + debugger.* 22 条 + 未实现 -32601）、出站每连接锁、入站无 id -32600+计数、D1 §3.1 约束五条、protoVersion 校验、关闭码（4401 鉴权/4403 刷新用户不一致/4400 解析与违规超阈/4409 同连接重复绑定/1000 正常）
-- [ ] `DebugSessionBinder`：绑定/rebind（属主校验 ERR_XLANG_DEBUGGER_SESSION_BOUND_ELSEWHERE + 过渡会话销毁）/解绑；宽限定时器→gracefulDispose + reason=graceExpired；renew 限流（0.8 容差 + rebind 首豁免）→ RATE_LIMITED；LeasePolicy 授予（open 时 renewLease(ttl)）与 LeaseState 返回
-- [ ] `GatewayNotifierBridge`：事件出站（**§3.5 8 条中 5 条**：suspended/log/resumed/leaseExpired/sessionClosed；`evt.completed` 预留发射入口接口供 item 14/21 调用；`evt.logs`/`evt.exception` 归 item 13 不在本桥）+ evt.sessionClosed reason 映射（userClosed/graceExpired/serverShutdown/protocolError 四值）+ keepalive ping 10s 出站定时器（scheduler 可注入，测试禁用/缩短周期）
-- [ ] `DebugAuthenticator`：nopDebugToken → Authorization 映射 → IUserContextExtractor.extractFromHeaders；tokenRefresh 同映射
-- [ ] 端点薄壳：`nop-quarkus-web` XLangDebugWebSocketEndpoint（jakarta `@ServerEndpoint("/ws/xlang-debugger")`，**从 handshake query 参数抽 nopDebugToken 传入核心**，BeanContainer 取依赖）+ `nop-spring-web-starter` 同构（jakarta @ServerEndpoint + 既有 ServerEndpointExporter 机制，`@ConditionalOnProperty` 挂 debug-web 开关门——照 jsonrpc 先例换键名）；两模块 pom 增 debug-web 依赖；**禁用态语义**：开关关时端点不注册（spring）或 onOpen 直接 close（quarkus 容器扫描态）——两形态都写明；**装配**：DebugAuthenticator/依赖经 BeanContainer/静态单例惯例进容器（照端点先例，Nop IoC 无注解扫描）
-- [ ] 测试（内存 WS 桩）：全链路顺序断言（D1 §3.9）、鉴权 4401、重复 open 错误响应+4409、rebind 属主/跨用户、限流+豁免、宽限 gracefulDispose+reason=graceExpired、入站无 id、帧超限、方法映射抽样（getStackInfo/getExprValue/updateBreakpoints/TOO_MANY_BPS）、keepalive ping、close 响应先于 sessionClosed
+- [x] 模块骨架 + `DebugWebServerConfig`（ICoreInitializer：web 开关门 + listener 注册 + lease/grace 配置装载；destroy=shutdownAll）+ META-INF/services 注册
+- [x] `DebugWebSocketHandler`：envelope 编解码（平台 JSON 工具）、方法分发（保留集 ping/pong/tokenRefresh + session.* + lease.renew + debugger.* 22 条 + 未实现 -32601）、出站每连接锁、入站无 id -32600+计数、D1 §3.1 约束五条、protoVersion 校验、关闭码（4401 鉴权/4403 刷新用户不一致/4400 解析与违规超阈/4409 同连接重复绑定/1000 正常）
+- [x] `DebugSessionBinder`：绑定/rebind（属主校验 ERR_XLANG_DEBUGGER_SESSION_BOUND_ELSEWHERE + 过渡会话销毁）/解绑；宽限定时器→gracefulDispose + reason=graceExpired；renew 限流（0.8 容差 + rebind 首豁免）→ RATE_LIMITED；LeasePolicy 授予（open 时 renewLease(ttl)）与 LeaseState 返回
+- [x] `GatewayNotifierBridge`：事件出站（**§3.5 8 条中 5 条**：suspended/log/resumed/leaseExpired/sessionClosed；`evt.completed` 预留发射入口接口供 item 14/21 调用；`evt.logs`/`evt.exception` 归 item 13 不在本桥）+ evt.sessionClosed reason 映射（userClosed/graceExpired/serverShutdown/protocolError 四值）+ keepalive ping 10s 出站定时器（scheduler 可注入，测试禁用/缩短周期）
+- [x] `DebugAuthenticator`：nopDebugToken → Authorization 映射 → IUserContextExtractor.extractFromHeaders；tokenRefresh 同映射
+- [x] 端点薄壳：`nop-quarkus-web` XLangDebugWebSocketEndpoint（jakarta `@ServerEndpoint("/ws/xlang-debugger")`，**从 handshake query 参数抽 nopDebugToken 传入核心**，BeanContainer 取依赖）+ `nop-spring-web-starter` 同构（jakarta @ServerEndpoint + 既有 ServerEndpointExporter 机制，`@ConditionalOnProperty` 挂 debug-web 开关门——照 jsonrpc 先例换键名）；两模块 pom 增 debug-web 依赖；**禁用态语义**：开关关时端点不注册（spring）或 onOpen 直接 close（quarkus 容器扫描态）——两形态都写明；**装配**：DebugAuthenticator/依赖经 BeanContainer/静态单例惯例进容器（照端点先例，Nop IoC 无注解扫描）
+- [x] 测试（内存 WS 桩）：全链路顺序断言（D1 §3.9）、鉴权 4401、重复 open 错误响应+4409、rebind 属主/跨用户、限流+豁免、宽限 gracefulDispose+reason=graceExpired、入站无 id、帧超限、方法映射抽样（getStackInfo/getExprValue/updateBreakpoints/TOO_MANY_BPS）、keepalive ping、close 响应先于 sessionClosed
 
 Exit Criteria:
 
-- [ ] 全链路集成测试绿（事件顺序 D1 §3.5/§3.9 一致；close 响应先于 sessionClosed）
-- [ ] D1 §3.1 约束逐条有断言（五桶对应表行：①入站 256KB ②expr 8KB ③断点 500 ④keys 50 ⑤出站 1MB+1000 条截断；懒展开行为在执行器侧非网关强制点；renew 频率走限流条目）
-- [ ] 版本化/protoVersion 不支持（ERR_PROTOCOL_VERSION_UNSUPPORTED+4400）、4403 tokenRefresh 用户不一致、NO_SESSION、RESULT_TOO_LARGE 断言补齐
-- [ ] 关闭码/错误码/限流/属主校验逐条有断言
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿；quarkus/spring 模块编译通过
-- [ ] 无静默跳过（未实现 method -32601；bridge 全方法有行为）
-- [ ] `ai-dev/logs/` 执行当日条目已更新
+- [x] 全链路集成测试绿（事件顺序 D1 §3.5/§3.9 一致；close 响应先于 sessionClosed）——TestDebugGatewayE2E.testFullDebugFlowSequence
+- [x] D1 §3.1 约束逐条有断言（五桶对应表行：①入站 256KB=testOversizeInboundFrame ②expr 8KB=testExpandKeysLimit ③断点 500=testTooManyBreakpoints ④keys 50=testExpandKeysLimit ⑤出站 1MB=testResultTooLarge+1000 条截断=testVariableListTruncation；懒展开行为在执行器侧非网关强制点；renew 频率走限流条目=testRenewRateLimitAndRebindExemption）
+- [x] 版本化/protoVersion 不支持（ERR_PROTOCOL_VERSION_UNSUPPORTED+4400）、4403 tokenRefresh 用户不一致、NO_SESSION、RESULT_TOO_LARGE 断言补齐（testProtoVersionNegotiation/testTokenRefreshUserMismatch4403/testNoSessionError/testResultTooLarge）
+- [x] 关闭码/错误码/限流/属主校验逐条有断言（4401/4409/4400/4403/限流/rebind 红线各自独立用例）
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 全绿（25/25 + 依赖链 864/864）；quarkus/spring 模块编译通过
+- [x] 无静默跳过（未实现 method -32601=testUnknownMethods；bridge 全方法有行为）
+- [x] `ai-dev/logs/` 执行当日条目已更新
 
 ### Phase 3 - 独立审计与收口
 

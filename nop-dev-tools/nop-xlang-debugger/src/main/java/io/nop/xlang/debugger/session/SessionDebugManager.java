@@ -187,18 +187,23 @@ public final class SessionDebugManager {
     // shutdownAll 见下
 
     /**
-     * 宽限销毁（D2 §3.3 DestroyingByGrace，plan 2471 新增）：releaseAll（resume 语义放行，
-     * 引擎侧聚合发 leaseExpired）→ 注销 → destroyed 位 → onDestroyed 回调。
-     * **不调 close 不置 closed 不抛错**（挂起线程正常返回脚本执行完——D2 红线）；
-     * Destroying 窗口的新命中由实例内授予判定①承接（D2 §3.1①）。
+     * 宽限销毁（D2 §3.3 DestroyingByGrace，plan 2471 新增）：租约过期戳 → releaseAll
+     * （resume 语义放行，引擎侧聚合发 leaseExpired）→ 注销 → destroyed 位 → onDestroyed
+     * 回调。**不调 close 不置 closed 不抛错**（挂起线程正常返回脚本执行完——D2 红线）。
+     * expireLease **必须先于** releaseAll：销毁窗口内的新命中（含被放行线程抢跑的嵌套
+     * 命中）由授予判定②"租约已过期不挂起"承接（D2 §3.1①②），且放行出口判定
+     * 局部放行优先于租约到期，先过期戳不会改变已挂起线程的出口路径（局部放行正常返回，
+     * 事件恰好一次——聚合或 per-thread 二选一）。
      */
     public void gracefulDispose(DebugSessionHandle handle) {
         Objects.requireNonNull(handle, "handle");
         Runnable notify;
         synchronized (this) {
             XLangDebugger debugger = handle.getDebugger();
-            if (debugger != null)
+            if (debugger != null) {
+                debugger.expireLease();
                 debugger.releaseAll();
+            }
             sessions.remove(handle.getSessionId(), handle);
             handle.markDestroyed();
             notify = (listener != null && debugger != null)

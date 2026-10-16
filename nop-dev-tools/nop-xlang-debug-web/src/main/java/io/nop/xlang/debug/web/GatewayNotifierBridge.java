@@ -150,6 +150,8 @@ public class GatewayNotifierBridge implements IDebugNotifier {
     }
 
     private void sendNotification(String method, Map<String, Object> params) {
+        if (session == null)
+            return; // 测试桩/特殊装配形态（rebind 无过渡会话）：无出站落点，事件丢弃
         Map<String, Object> frame = new LinkedHashMap<>();
         frame.put("jsonrpc", "2.0");
         frame.put("method", method);

@@ -305,6 +305,16 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         this.leaseDeadlineMillis = System.currentTimeMillis() + ttlMillis;
     }
 
+    /**
+     * 租约过期戳（宽限销毁收尾，D2 §3.1①②）：置 leaseDeadline=now，此后新命中断点
+     * 走授予判定②"租约已过期不挂起"直接继续执行。不改变挂起态、不发事件
+     * （放行事件由 releaseAll 聚合发）——补 releaseAll 不覆盖的嵌套命中面：
+     * 宽限销毁后仍在执行中的脚本线程继续命中断点不得再挂起（无观察者）。
+     */
+    public void expireLease() {
+        this.leaseDeadlineMillis = System.currentTimeMillis();
+    }
+
     public long getLeaseDeadlineMillis() {
         return leaseDeadlineMillis;
     }
