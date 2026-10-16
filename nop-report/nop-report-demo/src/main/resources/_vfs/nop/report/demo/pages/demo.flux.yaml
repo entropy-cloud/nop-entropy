@@ -45,6 +45,8 @@ toolbar:
       action: refreshSource
       targetId: reportService
 body:
+  # data-source 自身不渲染，结果以 name 发布给兄弟节点消费；when 只挂在 data-source
+  # 上，未选报表时不发请求（见 flux-guide/design-patterns/data-source.md）。
   - type: data-source
     name: reportService
     action: ajax
@@ -53,6 +55,7 @@ body:
       method: get
       data: {}
     when: "${tree}"
-  - type: text
-    name: html
-    text: "${reportService|raw}"
+  # amis 的 tpl:'${reportHtml|raw}' 在 flux 对应 html 渲染器（报告站内 HTML 属可信内容）
+  - type: html
+    content: "${reportService}"
+    sanitize: false
