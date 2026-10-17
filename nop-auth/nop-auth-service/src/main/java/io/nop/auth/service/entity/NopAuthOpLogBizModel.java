@@ -16,5 +16,6 @@ import io.nop.auth.biz.INopAuthOpLogBiz;
 public class NopAuthOpLogBizModel extends CrudBizModel<NopAuthOpLog> implements INopAuthOpLogBiz {
     public NopAuthOpLogBizModel() {
         setEntityName(NopAuthOpLog.class.getName());
+        // readOnly 由 ORM 实体 tagSet=read-only 经 codegen 注入 bean 属性，见 _service.beans.xml
     }
 }

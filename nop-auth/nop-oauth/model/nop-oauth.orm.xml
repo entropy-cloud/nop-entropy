@@ -6,7 +6,7 @@
 
     <entities>
         <entity className="io.nop.oauth.dao.entity.NopOauthAuthorization" displayName="Oauth认证记录" i18n-en:displayName="OAuth Authorization"
-                name="io.nop.oauth.dao.entity.NopOauthAuthorization" tableName="nop_oauth_authorization"
+                name="io.nop.oauth.dao.entity.NopOauthAuthorization" tableName="nop_oauth_authorization" tagSet="no-service"
                 ext:icon="shield">
             <columns>
                 <column code="SID" displayName="Id" mandatory="true" name="sid" precision="100" primary="true"
@@ -99,7 +99,7 @@
             </columns>
         </entity>
         <entity className="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" displayName="Oauth许可" i18n-en:displayName="OAuth Authorization Consent"
-                name="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" tableName="nop_oauth_authorization_consent"
+                name="io.nop.oauth.dao.entity.NopOauthAuthorizationConsent" tableName="nop_oauth_authorization_consent" tagSet="no-service"
                 ext:icon="badge-check">
             <columns>
                 <column code="REGISTERED_CLIENT_ID" displayName="注册客户端ID" mandatory="true" name="registeredClientId"

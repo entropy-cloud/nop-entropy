@@ -81,20 +81,6 @@
         }
 
 
-        private String _credential;
-
-    
-        @PropMeta(propId=5)
-    
-        public String getCredential(){
-            return _credential;
-        }
-
-        public void setCredential(String value){
-            this._credential = value;
-        }
-
-
         private Boolean _verified;
 
     

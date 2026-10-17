@@ -2,7 +2,7 @@
 <meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:i18n-en="i18n-en" xmlns:ext="ext"
       xmlns:xpl="xpl" ext:model="orm" ext:icon="shield-off" ext:web-renderer="" xmlns:c="c" xmlns:graphql="graphql"
       xmlns:meta-gen="meta-gen" xmlns:biz="biz" displayName="登录失败计数" i18n-en:displayName="Login Attempt"
-      tagSet="no-tenant" xmlns:ui="ui" xmlns:orm="orm">
+      tagSet="no-tenant,no-service" xmlns:ui="ui" xmlns:orm="orm">
 
     <entityName>io.nop.auth.dao.entity.NopAuthLoginAttempt</entityName>
 

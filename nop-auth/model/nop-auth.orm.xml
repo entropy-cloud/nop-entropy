@@ -193,7 +193,7 @@
                         precision="50" propId="4" stdDataType="string" stdSqlType="VARCHAR"
                         i18n-en:displayName="External ID"/>
                 <column code="CREDENTIAL" displayName="登录密码" name="credential" precision="50" propId="5"
-                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Credential"/>
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="not-pub" i18n-en:displayName="Credential"/>
                 <column code="VERIFIED" displayName="是否已验证" mandatory="true" name="verified" propId="6"
                         stdDataType="boolean" stdSqlType="BOOLEAN" i18n-en:displayName="Verified"/>
                 <column code="LAST_LOGIN_TIME" displayName="上次登录时间" name="lastLoginTime" propId="7"
@@ -706,7 +706,7 @@
         </entity>
         <entity className="io.nop.auth.dao.entity.NopAuthOpLog" displayName="操作日志"
                 name="io.nop.auth.dao.entity.NopAuthOpLog" registerShortName="true" tableName="nop_auth_op_log"
-                tagSet="log,no-tenant" ext:icon="list" i18n-en:displayName="Operation Log">
+                tagSet="log,no-tenant,read-only" ext:icon="list" i18n-en:displayName="Operation Log">
             <columns>
                 <column code="LOG_ID" displayName="主键" mandatory="true" name="logId" precision="32" primary="true"
                         propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq" i18n-en:displayName="LOG_ID"/>
@@ -1299,7 +1299,7 @@
          </entity>
 <entity className="io.nop.auth.dao.entity.NopAuthRateLimitCounter" createTimeProp="createTime"
                 createrProp="createdBy" displayName="发码限流计数" name="io.nop.auth.dao.entity.NopAuthRateLimitCounter"
-                registerShortName="true" tableName="nop_auth_rate_limit_counter" tagSet="no-tenant"
+                registerShortName="true" tableName="nop_auth_rate_limit_counter" tagSet="no-tenant,no-service"
                 updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="gauge"
                 i18n-en:displayName="Send Code Rate Limit Counter">
             <columns>
@@ -1334,7 +1334,7 @@
          </entity>
 <entity className="io.nop.auth.dao.entity.NopAuthLoginAttempt" createTimeProp="createTime"
                 createrProp="createdBy" displayName="登录失败计数" name="io.nop.auth.dao.entity.NopAuthLoginAttempt"
-                registerShortName="true" tableName="nop_auth_login_attempt" tagSet="no-tenant"
+                registerShortName="true" tableName="nop_auth_login_attempt" tagSet="no-tenant,no-service"
                 updateTimeProp="updateTime" updaterProp="updatedBy" ext:icon="shield-off"
                 i18n-en:displayName="Login Attempt">
             <columns>
