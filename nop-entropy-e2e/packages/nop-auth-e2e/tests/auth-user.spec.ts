@@ -309,6 +309,12 @@ test.describe('用户管理 - 浏览器', () => {
     await userPO.assertUserExists(data.userName);
     await userPO.selectPosition(data.userName, positionName);
 
+    // 编辑时已选项应显示 dispProp（岗位名），而非原始 id（labelResolveAction）
+    await userPO.searchUser(data.userName);
+    await userPO.clickEdit(data.userName);
+    await userPO.switchDialogTab('扩展信息');
+    await expect(page.locator('[data-field="positionId"]').first()).toContainText(positionName);
+
     await loginRpc(request);
     const verify = await rpc<{ positionId?: string }>(request, 'NopAuthUser__get', {
       id: saveResp.data.id,
@@ -316,5 +322,27 @@ test.describe('用户管理 - 浏览器', () => {
     expect(verify.data.positionId).toBe(positionId);
 
     await rpc(request, 'NopAuthPosition__delete', { id: positionId }).catch(() => {});
+  });
+
+  test('浏览器: 恢复已删除用户', async ({ request, page, engine }) => {
+    await loginRpc(request);
+    const data = makeUserData('uirecover');
+    const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
+    createdUserIds.push(saveResp.data.id);
+    await rpc(request, 'NopAuthUser__delete', { id: saveResp.data.id });
+
+    const userPO = await openUserAdmin(page, engine);
+    await page.goto('/#/pages/NopAuthUser/deleted', { waitUntil: 'domcontentloaded' });
+    await userPO.waitForList();
+
+    const row = await userPO.findRowByText(data.userName);
+    expect(row).not.toBeNull();
+    await engine.rowAction(row!, /恢复|Recover/);
+    await engine.confirmDialogAction(page);
+    await page.waitForTimeout(1500);
+
+    await loginRpc(request);
+    const verify = await rpc(request, 'NopAuthUser__get', { id: saveResp.data.id });
+    expect(verify.ok).toBeTruthy();
   });
 });

@@ -1,6 +1,10 @@
 import type { Locator, Page } from '@playwright/test';
 import type { EngineAdapter } from './types';
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export class FluxAdapter implements EngineAdapter {
   engineName = 'flux';
 
@@ -196,9 +200,11 @@ export class FluxAdapter implements EngineAdapter {
         }
       }
 
-      if (rendererType === 'select') {
-        // select：点击 trigger 展开，按 data-value 精确选择选项
-        await this.clickSelectOption(page, field, strValue);
+      if (rendererType === 'select' || rendererType === 'tree-select') {
+        // select / tree-select：点击 trigger 展开，按 data-value 精确选择选项
+        await (rendererType === 'tree-select'
+          ? this.selectTreeOption(page, field, strValue)
+          : this.clickSelectOption(page, field, strValue));
         return;
       }
 
@@ -435,12 +441,46 @@ export class FluxAdapter implements EngineAdapter {
       const field = this.formField(dialog, fieldLabels[i]);
       const optionText = optionTexts[i] ?? optionTexts[optionTexts.length - 1];
 
-      await this.clickSelectOption(page, field, optionText);
+      const rendererType = await this.fieldRendererType(field);
+      if (rendererType === 'tree-select') {
+        await this.selectTreeOption(page, field, optionText);
+      } else {
+        await this.clickSelectOption(page, field, optionText);
+      }
 
       if (i < fieldLabels.length - 1) {
         await page.waitForTimeout(500);
       }
     }
+  }
+
+  /**
+   * 契约（flux-renderers-form-advanced/tree-controls.tsx + tree-option-list.tsx）：
+   * `tree-select` 字段根内 trigger 为 `[data-slot="tree-select-control"]`/`tree-select-trigger-row` 的
+   * button；弹层为 `[data-slot="tree-select-popover-options"]`，选项为 `[role="treeitem"]`（按文本命中）。
+   */
+  async selectTreeOption(page: Page, field: Locator, value: string): Promise<void> {
+    const trigger = field
+      .locator(
+        '[data-slot="tree-select-control"] button, [data-slot="tree-select-trigger-row"] button, button',
+      )
+      .first();
+    await trigger.click();
+
+    const popup = page.locator('[data-slot="tree-select-popover-options"]').first();
+    await popup.waitFor({ state: 'visible', timeout: 8_000 });
+
+    const items = popup.locator('[role="treeitem"]');
+    await items.first().waitFor({ state: 'visible', timeout: 8_000 });
+    // 精确文本优先，未命中回退包含匹配
+    const exact = items.filter({ hasText: new RegExp(`^\\s*${escapeRegExp(value)}\\s*$`) }).first();
+    const item = (await exact.count().then((c) => c > 0))
+      ? exact
+      : items.filter({ hasText: value }).first();
+    if (item) {
+      await item.click();
+    }
+    await page.waitForTimeout(300);
   }
 
   dateInputByLabel(page: Page, labelText: string): Locator {
