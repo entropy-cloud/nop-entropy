@@ -71,3 +71,27 @@
 4. **recoverDeleted 参数名错** — `fixed`：`NopAuthUser.view.xml` 6 个自定义 `@mutation:` 动作改 `/r/` 直发（recoverDeleted/enableUser/disableUser/resetUserPassword/add/removeRoleUsers）；RPC 实测 `/r/` 成功、旧 `{data}` 报「没有定义参数[data]」；e2e「恢复已删除用户」。
 5. **部门标签页交互异常** — `verified`：实跑确认标签切换、新建部门、选择父部门（tree-select 显示名称）均正常；新增 `auth-dept.spec.ts`（2 用例）+ 截图 `ai-dev/testing/2026-10/w5-dept-screenshots/`。
 6. **表单 label 布局** — `fixed`：新增/修改表单缺省 `mode=vertical`、查询 `horizontal`（`container_simple.xpl`/`page_simple.xpl`）；golden 刷新；浏览器实测查询 label 在左、编辑 label 在上。
+
+## 追加发现（2026-10-17，tree / IME / 敏感表）
+
+### 7. 树形 CRUD（NopAuthDept/tabsView 等）没有行展开/收起按钮 `fixed`
+
+- **现象**：`#/pages/NopAuthDept/tabsView` 的 tree 视图只平铺显示，无展开三角。
+- **根因**：flux 表格仅在 schema 显式给出 `rowChildrenField` 时才进入 tree 模式（nop-chaos-flux `packages/flux-renderers-data/src/table-renderer/use-table-tree.ts:129`），而 flux 页面生成模板 `nop-frontend-support/.../flux-web/grid_crud.xpl` 从未输出该属性（amis 自动识别 `children`，flux 不识别）——flux 迁移回归；视图定义本身正确（`tree-list` 已声明 `children @TreeChildren(max:5)`）。
+- **修复**：生成器按 `objMeta.tree.childrenProp` 是否出现在 grid selection 中推导 `rowChildrenField`；非树 grid 不输出。回归 `TestFluxWebCrudPage#testTreeCrudDeclaresRowChildrenField` + 非树负例；`TestFlux*`/`TestWebPage*` 67 全绿。
+- **复测**：需重新 `mvn install` `nop-frontend-support/nop-web` 后在浏览器确认展开箭头（未做）。
+
+### 8. 表单中文输入法按 Enter 上屏候选误触发表单提交 `fixed（跨仓 nop-chaos-flux）`
+
+- **现象**：部门新建等表单输入中文，按 Enter 确认候选词即提交。
+- **根因**：`form.tsx` section 级 keydown 未过滤 IME 组合输入状态。
+- **修复**：nop-chaos-flux `packages/flux-renderers-form/src/renderers/form.tsx` 增加 `isComposing || keyCode === 229` 守卫；缺省 Enter 提交策略不变（AMIS parity，逐表单可 `preventEnterSubmit: true`）。
+- **验证**：新增两条判别测试；flux-renderers-form 全量 1127 通过。
+
+### 9. Email Code / Login Attempt 等页面只有序号+操作列；敏感表 web 暴露 `open`
+
+- **现象**：Email Code、Login Attempt 等管理页仅有 index 与 operation 两列。
+- **根因**：ORM/xmeta 将字段标为 `ui:show="X"`/`internal`，生成 `<cols>` 为空；Email Code 的提交生成物 `nop-auth/nop-auth-web/src/main/resources/_vfs/nop/auth/pages/NopAuthEmailCode/_gen/_NopAuthEmailCode.view.xml` 还陈旧地把 `email` 列标为 abstract（与当前 xmeta 不一致，按源模型重生成应显示 email）。
+- **安全面**：`NopAuthEmailCodeBizModel` 已继承 `MfaSensitiveTableBizModel`（mutation 全拒）；`NopAuthLoginAttemptBizModel` 仍是裸 `CrudBizModel`，页面保留 add/edit/delete，可删除失败计数行绕过限流。菜单仍在 `_nop-auth.action-auth.xml` 暴露。
+- **结论**：ORM `not-pub` 仅做字段级 GraphQL 输出剔除，`no-web` 仅影响页面/菜单生成，均**不能**禁用实体的 `findPage/get`/`/r/` 端点。
+- **状态**：open，待决策（移除菜单 / 只读收口 / 暴露安全列）。

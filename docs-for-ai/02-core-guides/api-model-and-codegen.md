@@ -280,7 +280,7 @@ codeGenerator.withTplDir('/nop/templates/crud-api')
 
 ### 字段过滤规则
 
-- **实体级发布控制**：带 `no-api` 标签的实体不生成 CRUD API Bean / 接口；`no-web` 只影响页面生成，`not-pub` / `published=false` 表示字段在 API / GraphQL 视角下不存在
+- **实体级发布控制**：带 `no-api` 标签的实体不生成 CRUD API Bean / 接口；`no-web` 只影响页面生成；`not-pub` / `published=false` 表示字段在 API / GraphQL 视角下不存在；`no-service` 不发布 GraphQL/RPC/gRPC 服务方法（读 xmeta root tagSet，ORM 实体 tagSet 自动传播），但保留类型字段与内部可编程调用。详见 `model-first-development.md` 的「实体级发布标签」。
 - **服务端发布边界**：`no-api` 只影响 CRUD typed API 客户端契约生成，不影响 BizModel 注册，也不直接改变 GraphQL / `/r/{bizObj}__{method}` 的服务端发布链
 - **InputBean 字段**：xmeta props 中 `insertable == true || updatable == true` 的字段
 - **OutputBean 字段**：xmeta props 中 `published != false` 的字段；`published=false` 的字段不进入对外 API 类型

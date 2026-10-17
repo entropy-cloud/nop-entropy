@@ -394,6 +394,30 @@ H2 等 embedded 数据库没有中间类型，超过 VARCHAR 上限直接映射�
 
 **设计建议**：按实际数据大小设置 precision，框架会自动选类型。不要为了避免截断而设置过大的值——过大会导致 MySQL 用 TEXT/MEDIUMTEXT 而非 VARCHAR，影响索引和查询性能。
 
+### 实体级发布标签（no-web / no-api / no-service）
+
+在 ORM 实体（`<entity tagSet="...">`）上声明，经 codegen 传播到生成的 `_*.xmeta`（root tagSet）或 `_*.xbiz`，用于控制该实体对外暴露面：
+
+| tag | 作用层 | 效果 |
+|-----|--------|------|
+| `no-web` | 页面生成（`templates/orm-web/@init.xrun`） | 不生成管理页面/菜单；不影响 GraphQL/RPC 方法 |
+| `no-api` | CRUD typed API 生成（`templates/crud-api/@init.xrun`） | 不生成 `*Api`/InputBean/OutputBean；不影响运行时 GraphQL/RPC 方法 |
+| `not-pub` | 页面 + 字段 + 方法（`orm-web` + `BizObjectBuilder` + `BizObjectImpl`） | 页面不生成、类型字段清空、GraphQL/RPC 方法不发布 |
+| `no-service` | 服务方法发布（`BizObjectImpl` 读 xmeta root tagSet） | 不发布 GraphQL query/mutation/subscription、`/r/` RPC 与 gRPC 方法；**保留**类型字段与内部可编程调用 |
+
+`no-service` 的生效通道是 xmeta root tagSet：ORM 实体 tagSet 会自动进入生成的 xmeta，因此通常只需在 ORM 实体上标注即可；只写 xbiz 而 xmeta 无该 tag 时运行时无效。需要完全隐藏某实体（页面+字段+方法）时用 `not-pub`，只想隐藏服务方法时用 `no-service`。
+
+**安全表服务面收口策略（选择依据）**：敏感表不要一律套 `no-service`——`no-service` 会隐藏**全部**动作（含合法专用动作与只读监控），并会把“可见但拒绝”的契约变成“未知操作”。
+
+| 场景 | 推荐做法 |
+|------|----------|
+| 已有专用 BizModel（含专用读写动作，如凭证 `saveCredential`、归属/掩码过滤） | 保留发布，用**字段级 `not-pub`** 隐藏密文；不要 `no-service` |
+| 内部瞬态表，mutation 需“可见但显式拒绝”（既有 `MfaSensitiveTableBizModel` 契约） | 保持 mutation 收口基类；不要 `no-service`（会破坏该契约） |
+| 裸 `CrudBizModel` 且无合法写/管理需求（限流计数、登录失败计数、OAuth token/同意记录） | `no-service` |
+| 只读监控（审计日志等，管理员需查、禁止改删） | ORM 实体 `tagSet="read-only"` → 生成 xmeta 携带该 tag，`CrudBizModel.isReadOnly()` 据此判定；全部继承写动作显式拒绝、读动作保留（也可 `setReadOnly(true)` 显式覆盖） |
+
+判定字段是否已受保护：xmeta 中 `published="false"`（`not-pub` 生成）表示不进 GraphQL 输出；仅 `internal`/`ui:show` 只挡 UI、不挡 API。
+
 ### stdDomain="json" 自动生成 JsonOrmComponent
 
 #### 触发条件

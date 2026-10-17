@@ -44,6 +44,7 @@
 | 新增模块或修改包结构 | `docs-for-ai/01-repo-map/module-groups.md` | `docs-for-ai/01-repo-map/domain-module-pattern.md` |
 | Draft, execute, or audit a plan under `ai-dev/plans/` | `ai-dev/plans/00-plan-authoring-and-execution-guide.md` | `ai-dev/logs/00-log-writing-guide.md` |
 | Write or update daily dev log | `ai-dev/logs/00-log-writing-guide.md` | — |
+| 记录人工测试发现 / 手工验收结论 | `ai-dev/testing/README.md` | `ai-dev/bugs/00-bug-fix-note-writing-guide.md`（根因明确后升级为 bug 笔记） |
 | Write a bug fix note | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` | — |
 | Write an analysis | `ai-dev/analysis/00-analysis-writing-guide.md` | — |
 | Write a design doc | `ai-dev/design/00-design-writing-guide.md` | `ai-dev/design/README.md` |
@@ -112,6 +113,7 @@ After completing any significant **CODE CHANGE**, you MUST:
 | `analysis/` | AI 单方面调研、对比、评估 | 对比多个技术方案、评估代码质量时 | `ai-dev/analysis/00-analysis-writing-guide.md` |
 | `discussions/` | 人与 AI 多轮对话，澄清模糊需求 | 需求不明确时 | `ai-dev/discussions/00-discussion-writing-guide.md` |
 | `bugs/` | 复杂 bug 的修复记录 | 根因不明显、跨模块的 bug | `ai-dev/bugs/00-bug-fix-note-writing-guide.md` |
+| `testing/` | 手工测试发现的现象、复现步骤、预期/实际、验收结论（问题发现阶段，可能尚未定位根因） | 人工/探索性测试过程中随时记录 | `ai-dev/testing/README.md` |
 | `audits/` | 代码和设计审计记录 | 执行代码审计时 | `ai-dev/audits/README.md` |
 | `lessons/` | 经验教训索引 | 踩坑后总结 | `ai-dev/lessons/README.md` |
 | `skills/` | 可复用的 AI 审计/review prompt 模板（含 `invariant-loop-audit-prompt.md` 不变式闭环审计方法论） | 需要标准化审计流程时；同族缺陷反复复发时用 invariant-loop | `ai-dev/audits/README.md` 中的 prompt 对照表 |
