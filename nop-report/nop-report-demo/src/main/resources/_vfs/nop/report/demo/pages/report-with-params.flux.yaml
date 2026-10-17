@@ -1,9 +1,11 @@
 # Flux 版本：amis service → data-source（结果以 data-source name 发布，兄弟节点消费）；
-# form target 机制 → 按钮 onClick refreshSource；tpl → text。
+# amis form target 机制 → 按钮 onClick refreshSource；tpl → text。
 type: page
 body:
   # data-source 自身不渲染，结果以 name 发布给兄弟节点消费；when 只挂在 data-source
   # 上，查询条件未填时不发请求（见 flux-guide/design-patterns/data-source.md）。
+  # 表单值默认不发布到页面作用域——表单配 valuesPath: queryForm 后才可被兄弟节点读取
+  # （否则 ${title} 在页面作用域恒为空，点查询无任何请求发出）。
   # 参数显式写在 data 里（后端签名为 renderHtml(@Name("reportName") String,
   # @Optional @Name("data") Map)，故 title 放在 data.data）。
   - type: data-source
@@ -14,13 +16,15 @@ body:
       # POST；GET 不带 body，会丢掉 reportName/data，后端报 field-null-arg。
       url: "@query:ReportDemo__renderHtml"
       data:
-        reportName: "${reportName}"
+        reportName: "${queryForm?.reportName}"
         data:
-          title: "${title}"
-    when: "${title}"
+          title: "${queryForm?.title}"
+    when: "${queryForm?.title}"
 
   - type: form
     id: queryForm
+    # 把表单值发布到页面作用域 queryForm，供兄弟 data-source / html 消费
+    valuesPath: queryForm
     title: 查询条件
     mode: horizontal
     body:
