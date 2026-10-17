@@ -273,6 +273,7 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 | action | args | 说明 |
 |--------|------|------|
 | `ajax` | `{ url, method, data, includeScope, headers }` | HTTP 请求 |
+| `download` | `{ api: { url, method, responseType: 'blob' } }` 或 `{ url }` | 下载文件（`api` 形经请求信封取 Blob，按 `content-disposition` 命名保存）。对应 AMIS `actionType: download` |
 | `confirm` | `{ message, title }` | 确认弹窗，通过 `then` 链后续动作 |
 | `showToast` | `{ level, message }` | 提示消息 |
 | `alert` | `{ message, title }` | 提示弹窗 |
@@ -314,7 +315,15 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 
 **layout `*` 必填修饰符、`@` 只读、`!` 隐藏标签、cell 的 `requiredOn`/`readonlyOn`/`clearValueOnHidden`、查询必填 `*` 在 Flux 中完全支持**。上表中的 AMIS → Flux 映射是**具体属性的具体命名差异**，不存在统一规律（`visibleOn` 删除 On 后缀、`clearValueOnHidden` 结构重组为嵌套对象、`asideResizor` 改为形容词形式）。
 
-> **双引擎能力面不同——改页面必须双引擎验证**。Flux 是 AMIS 的**子集/异集**，以下能力 Flux 未实现：`button-toolbar` 渲染器、`actionType: download`、`NOW()` 函数（相对日期用裸关键字 `today`）、`dataType: raw` 手写 GraphQL 串（裸 `$var` 会被模板解析替换，改用 `@query:` 机制）。页面在这些能力上的改动，必须在目标渲染引擎（amis 或 flux）实测验证，不能只在单一引擎绿就收口。
+> **双引擎能力面不同——改页面必须双引擎验证**。Flux 是 AMIS 的**子集/异集**，以下能力 Flux 未实现：`button-toolbar` 渲染器、`actionType: download`（改用原生 `download` 动作）、`NOW()` 函数（相对日期用裸关键字 `today`）、`dataType: raw` 手写 GraphQL 串（裸 `$var` 会被模板解析替换，改用 `@query:` 机制）。页面在这些能力上的改动，必须在目标渲染引擎（amis 或 flux）实测验证，不能只在单一引擎绿就收口。
+>
+> 手写 `*.flux.yaml` 时另有两个高发陷阱（flux 运行时对未知类型/键**静默丢弃**，不报错）：
+> - **`button-toolbar` 不存在** → 用 `flex` + `button`（或 `button-group` + `items`）承载按钮行；
+> - **页面级 `toolbar` 不是 flux region** → 页面动作按钮放 `header` 槽位（渲染进 `data-slot="page-toolbar"`）。
+>
+> 这两个陷阱可由平台侧静态检查器提前捕获（面向平台开发者的 CI 工具，不在本使用文档展开）。
+
+> 说明：静态检查不替代浏览器实测。服务端 `PageProvider.validateAllPages()`（`nop.web.validate-page-model`）只做"能否加载不抛错"的冒烟，不检测 flux 渲染器缺失；flux 前端编译器（nop-chaos-flux `schema-compiler`）能给出最权威的诊断，但仅存在于前端构建期，本仓当前未接入。
 
 ### Flux data-source 发布时序与公式护栏
 
