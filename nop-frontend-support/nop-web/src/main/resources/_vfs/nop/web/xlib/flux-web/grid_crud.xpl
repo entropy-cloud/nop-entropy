@@ -29,20 +29,33 @@
             ? {type:'checkbox', keepOnPageChange:true, toggleOnRowClick:true}
             : (gridModel.selectable !== false ? {type:'checkbox'} : null);
 
+        // 树形表格：flux table 仅在 schema 显式给出 rowChildrenField 时才进入 tree 模式并渲染
+        // 展开/收起按钮（amis 会自动识别 children，flux 不会）。tree-list 这类 grid 在
+        // `<selection>` 中声明 `<childrenProp> @TreeChildren`，据此推导。
+        const childrenProp = objMeta == null ? null : objMeta.tree == null ? null : objMeta.tree.childrenProp;
+        const rowChildrenField = childrenProp != null
+            && gridModel.selection != null
+            && gridModel.selection.getField(childrenProp) != null
+            ? childrenProp : null;
+        const gridAttrs = xpl('thisLib:FluxGridDefaultAttrs', gridModel);
+        if (rowChildrenField != null) {
+            gridAttrs.rowChildrenField = rowChildrenField;
+        }
+
         // picker 模式（v3 契约）：pickerPopup 弹层 + pickerSchema 内容子树。
         // 内容选择发布走 CRUD 自身的 scope-publish 配置，由转换器指向 picker 的固定
         // 约定名 $_picker.selection / $_picker.rows（v3.3 单一 scope 发布协议：
         // picker confirm 只读固定变量，不感知内容类型；实例隔离由弹层局域 scope 提供）。
         const pickerPopupAttrs = isPicker ? { type: 'dialog', size: pageModel.size || 'lg' } : null;
         const crudAttrs = isPicker ? {
-            ...xpl('thisLib:FluxGridDefaultAttrs', gridModel),
+            ...gridAttrs,
             type: 'crud',
             rowKey: 'id',
             selectionOwnership: 'scope',
             selectionStatePath: '$_picker.selection',
             dataStatePath: '$_picker.rows',
             autoClearSelectionOnRefresh: false,
-        } : xpl('thisLib:FluxGridDefaultAttrs', gridModel);
+        } : gridAttrs;
     ]]></c:script>
 
     <pickerPopup xpl:if="isPicker" xpl:attrs="pickerPopupAttrs"/>

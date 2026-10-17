@@ -44,6 +44,9 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
         assertEquals(Map.of("type", "checkbox"), crud.get("selection"),
                 "crud should default to checkbox selection");
 
+        // 非树 grid 不得输出 rowChildrenField（否则普通列表会被误判为 tree 模式）
+        assertNull(crud.get("rowChildrenField"), "non-tree crud must not declare rowChildrenField");
+
         // 序号列：固定左侧、宽度 50、居中
         Map<String, Object> firstCol = (Map<String, Object>) columns.get(0);
         assertEquals("index", firstCol.get("type"), "first column should be index column");
@@ -247,6 +250,18 @@ public class TestFluxWebCrudPage extends JunitBaseTestCase {
 
         assertFalse(json.contains("\"visibleOn\""), "Flux JSON should not contain visibleOn");
         assertFalse(json.contains("\"staticOn\""), "Flux JSON should not contain staticOn");
+    }
+
+    @Test
+    public void testTreeCrudDeclaresRowChildrenField() {
+        String path = "/nop/test/pages/test-flux-tree.page.yaml";
+        Map<String, Object> page = pageProvider.getPage(path, "");
+        Map<String, Object> crud = getCrud(page);
+
+        // flux table 仅在显式给出 rowChildrenField 时才进入 tree 模式并渲染展开箭头；
+        // 缺少该属性正是 NopAuthDept 等 tree 视图没有展开按钮的根因。
+        assertEquals("children", crud.get("rowChildrenField"),
+                "tree crud must declare rowChildrenField so flux renders the expand toggle");
     }
 
     @Test
