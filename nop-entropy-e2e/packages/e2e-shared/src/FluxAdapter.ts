@@ -527,26 +527,17 @@ export class FluxAdapter implements EngineAdapter {
       .locator('[data-slot="table-body"] tr[data-slot="table-row"]')
       .filter({ hasText: rowText })
       .first();
-    if (await row.count().then((c) => c > 0)) {
-      await row.waitFor({ state: 'visible', timeout: 10_000 });
-    } else {
-      // 部分生成的 picker 表格当前只渲染序号列、数据列为空（已知显示缺陷），此时按序号
-      // 定位会失败；退化为选择首个数据行，至少覆盖"弹窗选择"的数据流。
-      await surface
-        .locator('[data-slot="table-body"] tr[data-slot="table-row"]')
-        .first()
-        .waitFor({ state: 'visible', timeout: 10_000 });
-    }
-    const targetRow = (await row.count().then((c) => c > 0))
-      ? row
-      : surface.locator('[data-slot="table-body"] tr[data-slot="table-row"]').first();
-    const checkbox = targetRow
-      .locator('[data-slot="row-selection-checkbox"], input[type="checkbox"]')
+    await row.waitFor({ state: 'visible', timeout: 10_000 });
+    // flux CRUD 行选区：可见控件是 [data-slot="checkbox"] 的 span（原生 input 被 sr-only 隐藏）。
+    const checkbox = row
+      .locator(
+        '[data-slot="row-selection-checkbox"], [data-slot="checkbox"], [role="checkbox"], input[type="checkbox"]',
+      )
       .first();
     if (await checkbox.count().then((c) => c > 0)) {
-      await checkbox.click();
+      await checkbox.click({ force: true });
     } else {
-      await targetRow.click();
+      await row.click();
     }
 
     await surface.locator('[data-slot="picker-confirm"]').first().click();
