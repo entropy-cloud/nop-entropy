@@ -39,14 +39,14 @@ flowchart LR
     XL -->|"registerLanguage('xlang')"| CE
     XL --> CE
     XD --> CE
+    XD -->|"装配组件组合语言+linter（XD→XL 生产依赖边，item 19 落地修订）"| XL
     XD --> FC
     XL -.->|"linter 工厂经宿主注入"| FC
-    HOST --> XL
     HOST --> XD
     HOST -->|"compile 服务 / openSocket"| FC
 ```
 
-依赖红线：`flux-xlang-lang`/`flux-xlang-debug` 都不得依赖后端仓；后端交互只经 `flux-core` 的 `env` 抽象（`env.fetcher`/`env.openSocket`）。两新包互不依赖（调试扩展对"当前语言是否 xlang"不敏感——gutter 对任何语言可用；装配层（item 19）把它们组合）。
+依赖红线：`flux-xlang-lang`/`flux-xlang-debug` 都不得依赖后端仓；后端交互只经 `flux-core` 的 `env` 抽象（`env.fetcher`/`env.openSocket`）。依赖方向单向：XL 不依赖 XD；XD 生产依赖 XL——**装配组件归 XD**（item 19 落地裁定，修订起草期"两新包互不依赖"：renderer definition 须可被生产宿主 import，装配放 playground 会 app 私有化、另立第三包过度设计；调试扩展本体（gutter/装饰）仍对"当前语言是否 xlang"不敏感）。
 
 ### 3.2 语言注册开放化（flux-code-editor 改造面）
 
@@ -76,9 +76,11 @@ flowchart LR
 - client 模块（debug client）：`env.openSocket` 连接管理（握手/鉴权/renew 心跳/重连 rebind）——item 17 按 [01-ws-protocol.md](01-ws-protocol.md) + [02-lease-lifecycle.md](02-lease-lifecycle.md) 实现，本包只定它消费 store 契约。
 - panel 模块：变量树/调用栈/求值/控制按钮面板（item 18），交互先例 `@nop-chaos/nop-debugger` 面板体系。
 
-### 3.5 装配与集成（item 19 消费）
+### 3.5 装配与集成（item 19，已落地）
 
-装配组件 `XlangDebugEditor` = flux-code-editor（language='xlang' + extensions 注入调试扩展与 linter）+ 调试面板 + 连接管理，经 `codeEditorRendererDefinition` 同款形态注册 renderer；playground 演示页照 `code-editor-page.tsx`（6 语言演示页）模式扩展 xlang 演示槽位。宿主差异（playground vs 生产 admin 页）归 item 20 裁定。
+装配组件 `XlangDebugEditor` 落 `@nop-chaos/flux-xlang-debug` `src/assembly/`：flux-code-editor（`createBaseExtensions({language:'xlang'})` + extensions 注入 createBreakpointGutter/suspendedLinesField/exceptionLinesField/sourcePathFacet/createXlangLinter，**useMemo 且 key 含 sourcePath**——617 结论 compartment 对 extensions 身份全量替换，StateField 存活依赖 memo 稳定；sync 桥不是 Extension，经 effect 在 view 就绪后接线、cleanup dispose）+ DebugPanel + createDebugClient 连接管理（openSocket/getToken 注入）。renderer definition（`xlang-debug-editor` type + sourcePath/serverUrl/initialSource field rules）同包 `src/assembly/renderer.tsx`，`registerXlangDebugEditorRenderers(registry)` 注册；compile 诊断服务经宿主 `env.fetcher` 具象化（POST `/r/nop-xlang-debug/compile`，envelope `status!==0` 判错取 `data.diagnostics`）。
+
+playground 演示页（`xlang-debug-page.tsx`）走 schema→registry→SchemaRenderer 路径（schema type `'xlang-debug-editor'` 命中 renderer definition——唯一提供 RuntimeContext 的路径）；registry 需 `registerBasicRenderers`（'page' 容器）+ `registerXlangDebugEditorRenderers`；路由经 React.lazy 惰性加载（lezer 产物不进主 chunk），home 家族归 `diagnostics`。token/后端地址为演示态手工注入（playground 无登录流）；真实后端联调归 item 21/22，生产 admin 页宿主裁定归 item 20。
 
 ## 四、拒绝了什么
 

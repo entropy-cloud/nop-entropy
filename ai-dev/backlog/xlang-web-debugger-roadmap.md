@@ -62,9 +62,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 16. 调试编辑器扩展（断点 gutter、挂起行/异常波浪线装饰、断点增删交互）: `done`
 - 17. WS 调试客户端与租约续期（连接/重连/鉴权、续期心跳、断连放行、会话恢复）: `done`
 - 18. 调试面板（变量树懒展开、调用栈/frame 切换、表达式求值、控制按钮、日志面板）: `done`
-- 19. 在线 REPL 面板 + 编辑器装配（语言包 + 调试扩展 + 面板组装为 xlang 在线调试编辑器组件）: `todo`
+- 19. 在线 REPL 面板 + 编辑器装配（语言包 + 调试扩展 + 面板组装为 xlang 在线调试编辑器组件）: `done`
 
-★ **Milestone: 端到端断点调试 demo**（unlocks when 8-19 done）: `todo`
+★ **Milestone: 端到端断点调试 demo**（unlocks when 8-19 done）: `done`
 
 ### Wave 4: 跨仓交付、集成与文档
 
