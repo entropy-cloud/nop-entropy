@@ -7,7 +7,7 @@
  */
 package io.nop.integration.oss;
 
-import com.amazonaws.auth.AWSCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
@@ -90,7 +90,7 @@ public class TestOssFileServiceClientFactoryCredential {
         String lastSecretKey;
 
         @Override
-        protected AWSCredentials createAwsCredentials(String accessKey, String secretKey) {
+        protected AwsCredentials createAwsCredentials(String accessKey, String secretKey) {
             this.lastAccessKey = accessKey;
             this.lastSecretKey = secretKey;
             return super.createAwsCredentials(accessKey, secretKey);

@@ -22,11 +22,18 @@
     <!-- CEP and connector integration is planned for future releases.
          Currently runtime depends on nop-stream-core plus nop-stream-flow. -->
     <dependencies>
-        <!-- WI13 (plan 2339): S3-compatible checkpoint storage backend (storageType=s3);
-             version single-point in nop-dependencies, same as nop-integration-oss -->
+        <!-- WI13 (plan 2339): S3-compatible checkpoint storage backend (storageType=s3).
+             2026-10: v1 SDK (aws-java-sdk-s3, EOL) migrated to v2; apache-client is the
+             runtime HTTP client v2 requires. Version single-point in nop-dependencies,
+             same as nop-integration-oss -->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+            <scope>runtime</scope>
         </dependency>
 
         <dependency>

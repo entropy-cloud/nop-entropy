@@ -7,14 +7,6 @@
  */
 package io.nop.integration.oss;
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.AWSCredentialsProvider;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
 import io.nop.integration.api.credential.CredentialResolutionSupport;
@@ -26,7 +18,16 @@ import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.AwsCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
 
+import java.net.URI;
 import java.util.Set;
 
 /**
@@ -43,7 +44,7 @@ public class OssFileServiceClientFactory implements IFileServiceClientFactory {
 
     private OssConfig ossConfig;
 
-    private AmazonS3 client;
+    private S3Client client;
 
     /**
      * 凭证消费 SPI（可选装配，{@code @Nullable} → NopIoC optional）：部署不含 nop-credential 时
@@ -69,9 +70,7 @@ public class OssFileServiceClientFactory implements IFileServiceClientFactory {
     @PostConstruct
     public void init() {
         registerUsageQuietly();
-        ClientConfiguration clientConfiguration = new ClientConfiguration();
-        AwsClientBuilder.EndpointConfiguration endpointConfiguration = new AwsClientBuilder.EndpointConfiguration(
-                ossConfig.getEndpoint(), ossConfig.getRegion());
+        S3ClientBuilder builder = newClientBuilder();
 
         // 构造期凭证组（W16-impl-ext，设计 §4.1 结论 6 客户端缓存家族）：credentialId 空/空白 →
         // OssConfig 静态值；非空 → 解析 oss-s3 字段集整组覆盖（accessKey/secretKey 必填，同名静态值
@@ -86,11 +85,25 @@ public class OssFileServiceClientFactory implements IFileServiceClientFactory {
             accessKey = CredentialResolutionSupport.requireString(data, credentialId, "accessKey");
             secretKey = CredentialResolutionSupport.requireString(data, credentialId, "secretKey");
         }
-        AWSCredentials awsCredentials = createAwsCredentials(accessKey, secretKey);
-        AWSCredentialsProvider awsCredentialsProvider = new AWSStaticCredentialsProvider(awsCredentials);
-        this.client = AmazonS3Client.builder().withEndpointConfiguration(endpointConfiguration)
-                .withClientConfiguration(clientConfiguration).withCredentials(awsCredentialsProvider)
-                .disableChunkedEncoding().withPathStyleAccessEnabled(ossConfig.getPathStyleAccess()).build();
+        AwsCredentials awsCredentials = createAwsCredentials(accessKey, secretKey);
+        String region = ossConfig.getRegion();
+        this.client = builder
+                // v1 的 disableChunkedEncoding() 在 v2 的对应面：默认不附加 CRC32 校验和与分块
+                // 传输编码，保持对阿里云 OSS、腾讯云 COS、旧版 MinIO 等 S3 兼容存储的最大兼容
+                .requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED)
+                .responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED)
+                .endpointOverride(URI.create(ossConfig.getEndpoint()))
+                .region(Region.of(region == null || region.isEmpty() ? "us-east-1" : region))
+                .credentialsProvider(StaticCredentialsProvider.create(awsCredentials))
+                .forcePathStyle(Boolean.TRUE.equals(ossConfig.getPathStyleAccess()))
+                .build();
+    }
+
+    /**
+     * v2 客户端 builder 构造点（protected seam 供测试扩展）。
+     */
+    protected S3ClientBuilder newClientBuilder() {
+        return S3Client.builder();
     }
 
     void registerUsageQuietly() {
@@ -110,14 +123,14 @@ public class OssFileServiceClientFactory implements IFileServiceClientFactory {
      * AWS 凭证构造点（protected seam 供测试替换）：credentialId 路径下使用解析后的凭证组
      * （同首批 {@code createSender} 先例）。
      */
-    protected AWSCredentials createAwsCredentials(String accessKey, String secretKey) {
-        return new BasicAWSCredentials(accessKey, secretKey); //NOSONAR
+    protected AwsCredentials createAwsCredentials(String accessKey, String secretKey) {
+        return AwsBasicCredentials.create(accessKey, secretKey); //NOSONAR
     }
 
     @PreDestroy
     public void destroy() {
         if (client != null) {
-            client.shutdown();
+            client.close();
         }
     }
 

@@ -23,8 +23,9 @@
             <version>2.0.0-SNAPSHOT</version>
         </dependency>
 
+        <!-- mwiede fork：com.jcraft:jsch 停更后的社区维护版，包名不变（版本单点 nop-dependencies） -->
         <dependency>
-            <groupId>com.jcraft</groupId>
+            <groupId>com.github.mwiede</groupId>
             <artifactId>jsch</artifactId>
         </dependency>
         <!-- W16-impl-ext: 测试基建（模块此前零 test 依赖，参照 sms-tencent/feishu 先例） -->

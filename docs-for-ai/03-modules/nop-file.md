@@ -57,7 +57,7 @@ nop:
       default-bucket-name: my-app-files
 ```
 
-`nop-integration-oss` 基于 `aws-java-sdk-s3`，兼容阿里云 OSS、腾讯云 COS、MinIO 等所有 S3 协议存储。
+`nop-integration-oss` 基于 AWS SDK v2（`software.amazon.awssdk:s3`，2026-10 由已 EOL 的 v1 `aws-java-sdk-s3` 迁移，运行时需 `apache-client` HTTP 客户端），兼容阿里云 OSS、腾讯云 COS、MinIO 等所有 S3 协议存储。
 
 ### REST API
 

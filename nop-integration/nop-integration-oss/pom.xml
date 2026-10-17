@@ -27,9 +27,16 @@
             <artifactId>nop-core</artifactId>
         </dependency>
 
+        <!-- aws-sdk-java v2（v1 已 EOL，2026-10 迁移；版本单点 nop-dependencies，同 nop-stream-runtime）。
+             apache-client 为 v2 必需的运行时 HTTP 客户端 -->
         <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-s3</artifactId>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>s3</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>software.amazon.awssdk</groupId>
+            <artifactId>apache-client</artifactId>
+            <scope>runtime</scope>
         </dependency>
         <!-- W16-impl-ext: 测试基建（模块此前零 test 依赖，参照 sms-tencent/feishu 先例） -->
         <dependency>

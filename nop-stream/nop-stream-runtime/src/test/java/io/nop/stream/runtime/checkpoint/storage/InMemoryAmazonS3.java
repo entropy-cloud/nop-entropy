@@ -3,16 +3,23 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import com.amazonaws.services.s3.AbstractAmazonS3;
-import com.amazonaws.services.s3.model.GetObjectRequest;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
+import software.amazon.awssdk.services.s3.model.CreateBucketResponse;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectResponse;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.HeadObjectResponse;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectResponse;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 import java.io.ByteArrayInputStream;
 import java.util.ArrayList;
@@ -23,13 +30,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * WI13 (plan 2339): in-memory S3 fake for offline storage behavior tests. Extends the
- * SDK's {@link AbstractAmazonS3} (everything unimplemented throws) and overrides only
- * the surface {@link S3CheckpointStorage} uses. The bucket is implicitly "present"
- * (ConcurrentHashMap) — MinIO's create-bucket requirement is covered by the gated
- * container E2E instead.
+ * WI13 (plan 2339): in-memory S3 fake for offline storage behavior tests. Implements
+ * the SDK v2 {@link S3Client} interface — everything left on the interface default
+ * (unsupported operation) throws, so only the surface {@link S3CheckpointStorage}
+ * uses is overridden (the v1-era {@code AbstractAmazonS3} pattern). The bucket is
+ * implicitly "present" (ConcurrentHashMap) — MinIO's create-bucket requirement is
+ * covered by the gated container E2E instead.
  */
-public class InMemoryAmazonS3 extends AbstractAmazonS3 {
+public class InMemoryAmazonS3 implements S3Client {
 
     /** bucket → (key → bytes) */
     private final Map<String, Map<String, byte[]>> buckets = new ConcurrentHashMap<>();
@@ -51,29 +59,21 @@ public class InMemoryAmazonS3 extends AbstractAmazonS3 {
     }
 
     @Override
-    public com.amazonaws.services.s3.model.Bucket createBucket(String bucket) {
-        createBucketStore(bucket);
-        return new com.amazonaws.services.s3.model.Bucket(bucket);
+    public CreateBucketResponse createBucket(CreateBucketRequest request) {
+        createBucketStore(request.bucket());
+        return CreateBucketResponse.builder().build();
     }
 
     @Override
-    public PutObjectResult putObject(PutObjectRequest request) {
+    public PutObjectResponse putObject(PutObjectRequest request, RequestBody body) {
         byte[] bytes;
-        if (request.getFile() != null) {
-            try {
-                bytes = java.nio.file.Files.readAllBytes(request.getFile().toPath());
-            } catch (java.io.IOException e) {
-                throw new IllegalStateException("failed to read file body", e);
-            }
-        } else {
-            try {
-                bytes = readStream(request.getInputStream());
-            } catch (java.io.IOException e) {
-                throw new IllegalStateException("failed to read stream body", e);
-            }
+        try {
+            bytes = readStream(body.contentStreamProvider().newStream());
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException("failed to read stream body", e);
         }
-        bucket(request.getBucketName()).put(request.getKey(), bytes);
-        return new PutObjectResult();
+        bucket(request.bucket()).put(request.key(), bytes);
+        return PutObjectResponse.builder().build();
     }
 
     private static byte[] readStream(java.io.InputStream in) throws java.io.IOException {
@@ -87,62 +87,71 @@ public class InMemoryAmazonS3 extends AbstractAmazonS3 {
     }
 
     @Override
-    public S3Object getObject(GetObjectRequest request) {
-        byte[] bytes = bucket(request.getBucketName()).get(request.getKey());
+    public ResponseInputStream<GetObjectResponse> getObject(GetObjectRequest request) {
+        byte[] bytes = bucket(request.bucket()).get(request.key());
         if (bytes == null) {
-            throw new com.amazonaws.services.s3.model.AmazonS3Exception(
-                    "NoSuchKey: " + request.getKey());
+            throw NoSuchKeyException.builder()
+                    .message("NoSuchKey: " + request.key()).statusCode(404).build();
         }
-        S3Object obj = new S3Object();
-        obj.setBucketName(request.getBucketName());
-        obj.setKey(request.getKey());
-        ObjectMetadata meta = new ObjectMetadata();
-        meta.setContentLength(bytes.length);
-        obj.setObjectContent(new S3ObjectInputStream(
-                new ByteArrayInputStream(bytes), null, false));
-        obj.setObjectMetadata(meta);
-        return obj;
+        GetObjectResponse resp = GetObjectResponse.builder()
+                .contentLength((long) bytes.length).build();
+        return new ResponseInputStream<>(resp, new ByteArrayInputStream(bytes));
     }
 
     @Override
-    public void deleteObject(String bucket, String key) {
-        bucket(bucket).remove(key);
+    public HeadObjectResponse headObject(HeadObjectRequest request) {
+        byte[] bytes = bucket(request.bucket()).get(request.key());
+        if (bytes == null) {
+            throw NoSuchKeyException.builder()
+                    .message("NoSuchKey: " + request.key()).statusCode(404).build();
+        }
+        return HeadObjectResponse.builder().contentLength((long) bytes.length).build();
     }
 
     @Override
-    public boolean doesObjectExist(String bucket, String key) {
-        return bucket(bucket).containsKey(key);
+    public DeleteObjectResponse deleteObject(DeleteObjectRequest request) {
+        bucket(request.bucket()).remove(request.key());
+        return DeleteObjectResponse.builder().build();
     }
 
     @Override
-    public ListObjectsV2Result listObjectsV2(ListObjectsV2Request request) {
-        Map<String, byte[]> objects = bucket(request.getBucketName());
-        List<S3ObjectSummary> matched = new ArrayList<>();
+    public ListObjectsV2Response listObjectsV2(ListObjectsV2Request request) {
+        Map<String, byte[]> objects = bucket(request.bucket());
+        List<S3Object> matched = new ArrayList<>();
         List<String> sorted = new ArrayList<>(objects.keySet());
         java.util.Collections.sort(sorted);
         for (String key : sorted) {
-            if (request.getPrefix() == null || key.startsWith(request.getPrefix())) {
-                S3ObjectSummary sum = new S3ObjectSummary();
-                sum.setBucketName(request.getBucketName());
-                sum.setKey(key);
-                sum.setSize(objects.get(key).length);
-                matched.add(sum);
+            if (request.prefix() == null || key.startsWith(request.prefix())) {
+                matched.add(S3Object.builder()
+                        .key(key)
+                        .size((long) objects.get(key).length)
+                        .build());
             }
         }
-        ListObjectsV2Result result = new ListObjectsV2Result();
+        ListObjectsV2Response.Builder result = ListObjectsV2Response.builder();
         int from = 0;
-        String token = request.getContinuationToken();
+        String token = request.continuationToken();
         if (token != null && !token.isEmpty()) {
             from = Integer.parseInt(token);
         }
         int to = Math.min(from + pageSize, matched.size());
-        result.getObjectSummaries().addAll(matched.subList(from, to));
+        result.contents(matched.subList(from, to));
         boolean truncated = to < matched.size();
         lastListTruncated = truncated;
         if (truncated) {
-            result.setNextContinuationToken(String.valueOf(to));
+            result.nextContinuationToken(String.valueOf(to));
         }
-        result.setTruncated(truncated);
-        return result;
+        result.isTruncated(truncated);
+        return result.build();
+    }
+
+    @Override
+    public String serviceName() {
+        return SERVICE_NAME;
+    }
+
+    @Override
+    public void close() {
+        // no underlying resources in the fake
     }
 }

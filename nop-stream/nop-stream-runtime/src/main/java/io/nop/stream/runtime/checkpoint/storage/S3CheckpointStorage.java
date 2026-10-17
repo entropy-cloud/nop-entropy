@@ -3,16 +3,6 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ListObjectsV2Request;
-import com.amazonaws.services.s3.model.ListObjectsV2Result;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.services.s3.model.S3Object;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +14,27 @@ import io.nop.stream.core.checkpoint.SavepointMetadata;
 import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.exceptions.StreamException;
 
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.core.ResponseInputStream;
+import software.amazon.awssdk.core.checksums.RequestChecksumCalculation;
+import software.amazon.awssdk.core.checksums.ResponseChecksumValidation;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.S3ClientBuilder;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.GetObjectResponse;
+import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Response;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
+
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -56,7 +66,10 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_S
  *
  * <p><strong>Writes</strong>: a single putObject per object is the atomic publish
  * point (S3 same-key overwrite semantics) — no tmp-then-rename staging is needed.
- * getObject results are always closed (the S3Object holds an HTTP stream).
+ * getObject results are always closed (the ResponseInputStream holds an HTTP
+ * stream). Built on the AWS SDK v2 sync client (2026-10 migration from the EOL v1
+ * SDK); checksums/chunked transfer stay off unless required for maximal
+ * compatibility with S3-compatible stores.
  *
  * <p><strong>Config (storageType=s3, via {@link #fromConfig})</strong>:
  * {@code s3.endpoint} (required), {@code s3.bucket} (required — also the
@@ -72,11 +85,11 @@ public class S3CheckpointStorage implements ICheckpointStorage {
 
     private static final Pattern ID_PATTERN = Pattern.compile("[a-zA-Z0-9_-]+");
 
-    private final AmazonS3 s3;
+    private final S3Client s3;
     private final String bucket;
     private final String basePrefix;
 
-    public S3CheckpointStorage(AmazonS3 s3, String bucket, String basePrefix) {
+    public S3CheckpointStorage(S3Client s3, String bucket, String basePrefix) {
         if (s3 == null) {
             throw new StreamException(ERR_STREAM_INVALID_ARG).param("argName", (Object) "s3Client");
         }
@@ -103,21 +116,23 @@ public class S3CheckpointStorage implements ICheckpointStorage {
         String pathStyle = config.getStorageProperty("s3.pathStyleAccess");
         String basePrefix = config.getStorageProperty("s3.basePrefix");
 
-        com.amazonaws.services.s3.AmazonS3ClientBuilder builder =
-                com.amazonaws.services.s3.AmazonS3ClientBuilder.standard();
+        S3ClientBuilder builder = S3Client.builder();
         boolean pathStyleEnabled = pathStyle == null || Boolean.parseBoolean(pathStyle);
-        builder.withPathStyleAccessEnabled(pathStyleEnabled);
-        builder.withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint,
-                region == null || region.isEmpty() ? "us-east-1" : region));
+        builder.forcePathStyle(pathStyleEnabled);
+        builder.endpointOverride(URI.create(endpoint));
+        builder.region(Region.of(region == null || region.isEmpty() ? "us-east-1" : region));
+        // 默认不附加 CRC32 校验和与分块传输编码，保持对旧版 MinIO 等 S3 兼容实现的最大兼容
+        builder.requestChecksumCalculation(RequestChecksumCalculation.WHEN_REQUIRED);
+        builder.responseChecksumValidation(ResponseChecksumValidation.WHEN_REQUIRED);
         if (accessKey != null && !accessKey.isEmpty()) {
             if (secretKey == null || secretKey.isEmpty()) {
                 throw new StreamException(ERR_STREAM_INVALID_ARG)
                         .param(ARG_DETAIL, "s3.accessKey configured without s3.secretKey");
             }
-            builder.withCredentials(new AWSStaticCredentialsProvider(
-                    new BasicAWSCredentials(accessKey, secretKey)));
+            builder.credentialsProvider(StaticCredentialsProvider.create(
+                    AwsBasicCredentials.create(accessKey, secretKey)));
         }
-        AmazonS3 client = builder.build();
+        S3Client client = builder.build();
         return new S3CheckpointStorage(client, bucket, basePrefix);
     }
 
@@ -161,15 +176,16 @@ public class S3CheckpointStorage implements ICheckpointStorage {
     }
 
     private void putBytes(String key, byte[] bytes) {
-        ObjectMetadata meta = new ObjectMetadata();
-        meta.setContentLength(bytes.length);
-        s3.putObject(new PutObjectRequest(bucket, key, new ByteArrayInputStream(bytes), meta));
+        s3.putObject(PutObjectRequest.builder().bucket(bucket).key(key)
+                        .contentLength((long) bytes.length).build(),
+                RequestBody.fromBytes(bytes));
     }
 
     private byte[] getBytes(String key) {
-        // S3Object holds an HTTP stream — always closed
-        try (S3Object obj = s3.getObject(bucket, key)) {
-            return readAll(obj.getObjectContent());
+        // ResponseInputStream holds an HTTP stream — always closed
+        try (ResponseInputStream<GetObjectResponse> obj = s3.getObject(GetObjectRequest.builder()
+                .bucket(bucket).key(key).build())) {
+            return readAll(obj);
         } catch (java.io.IOException e) {
             throw new StreamException(ERR_STREAM_INVALID_STATE)
                     .param(ARG_DETAIL, "failed to read object " + key + ": " + e.getMessage());
@@ -188,13 +204,13 @@ public class S3CheckpointStorage implements ICheckpointStorage {
 
     private List<String> listKeys(String prefix, String suffix) {
         List<String> keys = new ArrayList<>();
-        ListObjectsV2Request request = new ListObjectsV2Request()
-                .withBucketName(bucket).withPrefix(prefix);
-        ListObjectsV2Result result;
+        ListObjectsV2Request.Builder request = ListObjectsV2Request.builder()
+                .bucket(bucket).prefix(prefix);
+        ListObjectsV2Response result;
         do {
-            result = s3.listObjectsV2(request);
-            result.getObjectSummaries().forEach(sum -> {
-                String key = sum.getKey();
+            result = s3.listObjectsV2(request.build());
+            result.contents().forEach(sum -> {
+                String key = sum.key();
                 if (key.endsWith(suffix)) {
                     keys.add(key);
                 }
@@ -203,7 +219,7 @@ public class S3CheckpointStorage implements ICheckpointStorage {
                 // first version keeps single-page reads; truncation must be visible
                 LOG.warn("S3CheckpointStorage list under {} is truncated; increase retention "
                         + "hygiene or page the scan", prefix);
-                request.setContinuationToken(result.getNextContinuationToken());
+                request.continuationToken(result.nextContinuationToken());
             }
         } while (result.isTruncated());
         return keys;
@@ -269,17 +285,18 @@ public class S3CheckpointStorage implements ICheckpointStorage {
 
     @Override
     public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) {
-        s3.deleteObject(bucket, checkpointKey(jobId, pipelineId, checkpointId));
+        s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket)
+                .key(checkpointKey(jobId, pipelineId, checkpointId)).build());
     }
 
     @Override
     public void deleteAllCheckpoints(String jobId) {
         // both planes, mirroring the JDBC backend's delete-all
         for (String key : listKeys(jobPrefix(jobId), ".checkpoint")) {
-            s3.deleteObject(bucket, key);
+            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
         }
         for (String key : listKeys(jobPrefix(jobId), ".epoch")) {
-            s3.deleteObject(bucket, key);
+            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(key).build());
         }
     }
 
@@ -290,7 +307,18 @@ public class S3CheckpointStorage implements ICheckpointStorage {
 
     @Override
     public boolean exists(String jobId, String pipelineId, long checkpointId) {
-        return s3.doesObjectExist(bucket, checkpointKey(jobId, pipelineId, checkpointId));
+        try {
+            s3.headObject(HeadObjectRequest.builder().bucket(bucket)
+                    .key(checkpointKey(jobId, pipelineId, checkpointId)).build());
+            return true;
+        } catch (NoSuchKeyException e) {
+            return false;
+        } catch (S3Exception e) {
+            // 部分 S3 兼容实现（含某些代理网关）对 HEAD 404 不返回 NoSuchKey 结构体
+            if (e.statusCode() == 404)
+                return false;
+            throw e;
+        }
     }
 
     @Override
@@ -412,7 +440,7 @@ public class S3CheckpointStorage implements ICheckpointStorage {
         keys.sort(Comparator.comparingLong(S3CheckpointStorage::epochIdOfKey).reversed());
         List<Long> pruned = new ArrayList<>();
         for (int i = maxRetained; i < keys.size(); i++) {
-            s3.deleteObject(bucket, keys.get(i));
+            s3.deleteObject(DeleteObjectRequest.builder().bucket(bucket).key(keys.get(i)).build());
             pruned.add(epochIdOfKey(keys.get(i)));
         }
         return pruned;

@@ -3,8 +3,6 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import com.amazonaws.services.s3.model.S3Object;
-
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.CompletedCheckpoint;
 import io.nop.stream.core.checkpoint.EpochManifest;

@@ -3,11 +3,11 @@
  */
 package io.nop.stream.runtime.checkpoint.storage;
 
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.client.builder.AwsClientBuilder;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
+import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
+import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CreateBucketRequest;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -113,13 +113,14 @@ class TestS3CheckpointStorageMinioE2E {
 
         CheckpointConfig config = s3Config(endpoint);
         // bucket must be created explicitly (MinIO does not auto-create)
-        AmazonS3 admin = AmazonS3ClientBuilder.standard()
-                .withEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration(endpoint, "us-east-1"))
-                .withCredentials(new AWSStaticCredentialsProvider(
-                        new BasicAWSCredentials("minioadmin", "minioadmin")))
-                .withPathStyleAccessEnabled(true)
+        S3Client admin = S3Client.builder()
+                .endpointOverride(java.net.URI.create(endpoint))
+                .region(Region.US_EAST_1)
+                .credentialsProvider(StaticCredentialsProvider.create(
+                        AwsBasicCredentials.create("minioadmin", "minioadmin")))
+                .forcePathStyle(true)
                 .build();
-        admin.createBucket("wi13-e2e");
+        admin.createBucket(CreateBucketRequest.builder().bucket("wi13-e2e").build());
 
         // the recovery-intent gate must recognize the s3 bucket marker
         assertTrue(GraphModelCheckpointExecutorHolder.hasExplicitStoragePath(config));
@@ -155,7 +156,7 @@ class TestS3CheckpointStorageMinioE2E {
         assertNotNull(snap);
         assertEquals("data-2", snap.getOperatorState("state1"));
         coordinator.shutdown();
-        admin.shutdown();
+        admin.close();
     }
 
     /** Indirection holders so the test body stays free of runtime-internal imports. */
