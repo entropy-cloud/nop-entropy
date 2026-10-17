@@ -169,6 +169,30 @@ export class CrudListPage extends BasePage {
     await dialog.selectOption([fieldName], [String(option)]);
   }
 
+  /** 在当前对话框中为某 input-file / input-image 字段上传文件。 */
+  async uploadDialogFile(fieldName: string, filePaths: string[]): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.uploadFile(fieldName, filePaths);
+  }
+
+  /** 在当前对话框中为某 icon-picker 字段选择图标。 */
+  async selectDialogIcon(fieldName: string, iconName: string): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.selectIcon(fieldName, iconName);
+  }
+
+  /** 在当前对话框中为某 picker 弹窗字段点选匹配行。 */
+  async selectDialogPickerRow(fieldName: string, rowText: string): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.selectPicker(fieldName, rowText);
+  }
+
+  /** 切换到当前对话框内的指定标签页（layoutControl="tabs" 的表单字段常藏在非首个 tab）。 */
+  async switchDialogTab(tabLabel: string): Promise<void> {
+    const dialog = new FormDialog(this.page, this.engine);
+    await dialog.switchToTab(tabLabel);
+  }
+
   // ── 行操作（通用） ──
 
   async editRow(row: Locator): Promise<FormDialog> {

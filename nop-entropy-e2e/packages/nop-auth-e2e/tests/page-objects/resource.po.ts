@@ -53,6 +53,13 @@ export class ResourcePO extends CrudListPage {
     await this.clickView(rowIdentifier);
   }
 
+  /** 编辑资源并通过 icon-picker 选择图标。 */
+  async selectResourceIcon(rowIdentifier: string, iconName: string): Promise<void> {
+    await this.clickEdit(rowIdentifier);
+    await this.selectDialogIcon('icon', iconName);
+    await this.clickSave();
+  }
+
   async deleteResource(rowIdentifier: string): Promise<void> {
     await this.clickDelete(rowIdentifier);
   }

@@ -42,6 +42,15 @@ export interface EngineAdapter {
   drawer(page: Page): Locator;
   formField(dialog: Locator, fieldName: string): Locator;
   setFieldValue(dialog: Locator, fieldName: string, value: string | boolean | number): Promise<void>;
+  /**
+   * 上传文件到 `input-file` / `input-image` 字段（按 fieldName 定位隐藏的
+   * `input[type="file"]`，用 setInputFiles 注入，不触发原生文件对话框）。
+   */
+  setFieldFiles(dialog: Locator, fieldName: string, filePaths: string[]): Promise<void>;
+  /** 在 `icon-picker` 字段中选择图标（先按搜索框过滤，再点 `[role="option"][aria-label]`）。 */
+  selectIcon(dialog: Locator, fieldName: string, iconName: string): Promise<void>;
+  /** 在 `picker` 弹窗字段（CRUD 内嵌弹层）中点选匹配行并确认。 */
+  selectPickerRow(dialog: Locator, fieldName: string, rowText: string): Promise<void>;
   submitButton(dialog: Locator): Locator;
   selectOption(dialog: Locator, fieldLabels: string[], optionText: string[]): Promise<void>;
   dateInputByLabel(page: Page, labelText: string): Locator;

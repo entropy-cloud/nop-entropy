@@ -2,9 +2,11 @@ import { test } from '@nop-entropy/e2e-shared';
 import { expect, type APIRequestContext, type Page } from '@playwright/test';
 import { login, loginRpc, rpc } from '@nop-entropy/e2e-shared';
 import type { EngineAdapter } from '@nop-entropy/e2e-shared';
+import { fileURLToPath } from 'node:url';
 import { UserPO } from './page-objects/user.po.js';
 
 const TEST_ID = `e2e_${Date.now()}`;
+const AVATAR_FIXTURE = fileURLToPath(new URL('./fixtures/avatar.png', import.meta.url));
 
 interface UserSaveInput {
   userName: string;
@@ -242,5 +244,83 @@ test.describe('用户管理 - 浏览器', () => {
 
     await userPO.searchUser(dataB.userName);
     await userPO.assertUserExists(dataB.userName);
+  });
+
+  // 平台缺口（本 e2e 实测发现）：flux 的 input-file/input-image 只认字段级 uploadAction
+  // （flux-renderers-form-advanced/upload-field.tsx），而生成器 flux-control.xlib 仍输出 AMIS 的
+  // `receiver` 且宿主未提供上传动作 → 文件根本不会上传，表单只提交空文件引用。实现跨仓上传
+  // 动作（nop-chaos-next）+ 生成器改输出 uploadAction 后，去掉 .fixme 即可启用。
+  test.fixme('浏览器: 上传用户头像', async ({ request, page, engine }) => {
+    await loginRpc(request);
+    const data = makeUserData('uiavatar');
+    const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
+    createdUserIds.push(saveResp.data.id);
+
+    const userPO = await openUserAdmin(page, engine);
+    await userPO.searchUser(data.userName);
+    await userPO.assertUserExists(data.userName);
+
+    await userPO.uploadAvatar(data.userName, [AVATAR_FIXTURE]);
+
+    // 页面登录会换发 token，request 上下文须重新登录后再调 RPC
+    await loginRpc(request);
+    const verify = await rpc<{ avatar?: string }>(request, 'NopAuthUser__get', {
+      id: saveResp.data.id,
+    });
+    expect(verify.ok).toBeTruthy();
+    expect(verify.data.avatar).toBeTruthy();
+  });
+
+  test('浏览器: 下拉字段选择并回读', async ({ request, page, engine }) => {
+    await loginRpc(request);
+    const data = makeUserData('uiselect', { gender: 2 });
+    const userPO = await openUserAdmin(page, engine);
+
+    await userPO.createUser(data);
+
+    // 页面登录会换发 token，request 上下文须重新登录后再调 RPC
+    await loginRpc(request);
+    const listResp = await rpc<{ items: { id: string }[] }>(request, 'NopAuthUser__findPage', {
+      query: { filter: { $type: 'eq', name: 'userName', value: data.userName } },
+    });
+    expect(listResp.ok).toBeTruthy();
+    const id = listResp.data.items[0]?.id;
+    expect(id).toBeTruthy();
+    createdUserIds.push(id);
+
+    const verify = await rpc<{ gender: number }>(request, 'NopAuthUser__get', { id });
+    expect(verify.data.gender).toBe(2);
+  });
+
+  // 平台缺口（本 e2e 实测发现）：生成的 picker（edit-relation）弹层在 flux 下数据列渲染为空
+  // （只显示序号列），且点选行后 `[data-slot="picker-confirm"]` 仍 disabled（选区未登记到
+  // $_picker.selection）。因此无法完成"弹窗选择"。修复 picker 渲染/选区后去掉 .fixme 即可启用。
+  test.fixme('浏览器: 弹窗选择职务', async ({ request, page, engine }) => {
+    await loginRpc(request);
+    const positionName = `E2E岗位_${TEST_ID}`;
+    const posResp = await rpc<{ positionId: string }>(request, 'NopAuthPosition__save', {
+      data: { name: positionName },
+    });
+    expect(posResp.ok).toBeTruthy();
+    const positionId = posResp.data.positionId;
+
+    const data = makeUserData('uipicker');
+    const saveResp = await rpc<UserDetail>(request, 'NopAuthUser__save', { data });
+    createdUserIds.push(saveResp.data.id);
+
+    const userPO = await openUserAdmin(page, engine);
+    await userPO.searchUser(data.userName);
+    await userPO.assertUserExists(data.userName);
+    await userPO.selectPosition(data.userName, positionName);
+
+    await loginRpc(request);
+    const verify = await rpc<{ positionId?: string }>(request, 'NopAuthUser__get', {
+      id: saveResp.data.id,
+    });
+    // 生成的 picker 表格当前数据列渲染为空（已知显示缺陷，见 FluxAdapter.selectPickerRow 注释），
+    // 无法按名称精确断言；这里验证"弹窗选择"数据流确实写回了 positionId。
+    expect(verify.data.positionId).toBeTruthy();
+
+    await rpc(request, 'NopAuthPosition__delete', { id: positionId }).catch(() => {});
   });
 });

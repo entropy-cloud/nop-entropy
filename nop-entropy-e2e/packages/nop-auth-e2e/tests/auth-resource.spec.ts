@@ -200,6 +200,21 @@ test.describe('资源管理 - 浏览器', () => {
     expect(resp.data.displayName).toBe(updatedName);
   });
 
+  test('浏览器: 选择资源图标', async ({ request, page, engine }) => {
+    const resourceId = `${TEST_ID}_ui_icon`;
+    const resourcePO = await openResourceAdmin(page, engine);
+
+    await resourcePO.createResource(resourceFormData(resourceId, `E2E_UI图标_${TEST_ID}`));
+    createdResourceIds.push(resourceId);
+
+    await resourcePO.selectResourceIcon(resourceId, 'settings');
+
+    await loginRpc(request);
+    const resp = await rpc<{ icon?: string }>(request, 'NopAuthResource__get', { id: resourceId });
+    expect(resp.ok).toBe(true);
+    expect(resp.data.icon).toBe('settings');
+  });
+
   test('浏览器: 删除资源', async ({ page, engine }) => {
     const resourceId = `${TEST_ID}_ui_delete`;
     const resourcePO = await openResourceAdmin(page, engine);

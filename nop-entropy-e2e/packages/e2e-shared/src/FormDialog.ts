@@ -66,6 +66,21 @@ export class FormDialog {
     await this.engine.selectOption(this.dialog, fieldLabels, optionTexts);
   }
 
+  /** 上传文件到 input-file / input-image 字段。 */
+  async uploadFile(fieldName: string, filePaths: string[]): Promise<void> {
+    await this.engine.setFieldFiles(this.dialog, fieldName, filePaths);
+  }
+
+  /** 在 icon-picker 字段中选择图标。 */
+  async selectIcon(fieldName: string, iconName: string): Promise<void> {
+    await this.engine.selectIcon(this.dialog, fieldName, iconName);
+  }
+
+  /** 在 picker 弹窗字段中点选匹配行并确认。 */
+  async selectPicker(fieldName: string, rowText: string): Promise<void> {
+    await this.engine.selectPickerRow(this.dialog, fieldName, rowText);
+  }
+
   async submit(): Promise<void> {
     await this.engine.submitButton(this.dialog).click();
     await this.waitForHidden();

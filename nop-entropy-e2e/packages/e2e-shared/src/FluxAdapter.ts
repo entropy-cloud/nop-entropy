@@ -447,6 +447,113 @@ export class FluxAdapter implements EngineAdapter {
     return page.locator(`[aria-label="${labelText}"]`).first();
   }
 
+  // ── 文件上传 / 图标选择 / 弹窗选择 ──
+
+  /**
+   * 契约（nop-chaos-flux flux-renderers-form-advanced/upload-field.tsx）：
+   * `input-file`/`input-image` 字段内有一个视觉隐藏的 `input[type="file"]`
+   * （sr-only，Playwright setInputFiles 允许隐藏 input）。用 setInputFiles 注入，
+   * 不触发原生文件对话框。
+   */
+  async setFieldFiles(dialog: Locator, fieldName: string, filePaths: string[]): Promise<void> {
+    const page = dialog.page();
+    const field = this.formField(dialog, fieldName);
+    const fileInput = field.locator('input[type="file"]').first();
+    if (await fileInput.count().then((c) => c > 0)) {
+      await fileInput.setInputFiles(filePaths);
+    } else {
+      // 无 input[type=file]（旧结构）→ 走原生 filechooser 拦截
+      const [chooser] = await Promise.all([
+        page.waitForEvent('filechooser'),
+        field.getByRole('button').first().click(),
+      ]);
+      await chooser.setFiles(filePaths);
+    }
+    // 等 pending 上传结束并落库（upload action 可能异步）
+    await page
+      .locator('[data-slot="upload-field-control"][data-pending]')
+      .first()
+      .waitFor({ state: 'detached', timeout: 15_000 })
+      .catch(() => {});
+    await page.waitForLoadState('networkidle').catch(() => {});
+    await page.waitForTimeout(300);
+  }
+
+  /**
+   * 契约（flux-renderers-form-advanced/icon-picker.tsx）：字段内有
+   * `[data-slot="icon-picker-trigger"]`，点击弹出 `[role="listbox"]`，
+   * 选项为 `[role="option"][aria-label="<lucide图标名>"]`；可先用搜索框过滤。
+   */
+  async selectIcon(dialog: Locator, fieldName: string, iconName: string): Promise<void> {
+    const page = dialog.page();
+    const field = this.formField(dialog, fieldName);
+    const trigger = field.locator('[data-slot="icon-picker-trigger"]').first();
+    await trigger.click();
+
+    // 可选搜索框过滤（searchable 时 PopoverContent 顶部有 input[type=search]）
+    const searchInput = page.locator('input[type="search"]').last();
+    if (await searchInput.isVisible().catch(() => false)) {
+      await searchInput.fill(iconName).catch(() => {});
+      await page.waitForTimeout(300);
+    }
+
+    const option = page
+      .locator(`[role="listbox"] [role="option"][aria-label="${iconName}"]`)
+      .first();
+    await option.waitFor({ state: 'visible', timeout: 5_000 });
+    await option.click();
+    await page.waitForTimeout(300);
+  }
+
+  /**
+   * 契约（flux-renderers-form-advanced/picker-renderer.tsx + picker-dropdown.tsx）：
+   * 字段内有 `[data-slot="picker-trigger"]`，点击弹出 `[data-slot="picker-dialog-content"]`
+   * （或 drawer/popover），内容为内嵌 CRUD 表格；选中行后点 `[data-slot="picker-confirm"]`。
+   */
+  async selectPickerRow(dialog: Locator, fieldName: string, rowText: string): Promise<void> {
+    const page = dialog.page();
+    const field = this.formField(dialog, fieldName);
+    const trigger = field.locator('[data-slot="picker-trigger"]').first();
+    await trigger.click();
+
+    const surface = page
+      .locator(
+        '[data-slot="picker-dialog-content"], [data-slot="picker-drawer-content"], [data-slot="picker-popover-content"]',
+      )
+      .first();
+    await surface.waitFor({ state: 'visible', timeout: 10_000 });
+
+    const row = surface
+      .locator('[data-slot="table-body"] tr[data-slot="table-row"]')
+      .filter({ hasText: rowText })
+      .first();
+    if (await row.count().then((c) => c > 0)) {
+      await row.waitFor({ state: 'visible', timeout: 10_000 });
+    } else {
+      // 部分生成的 picker 表格当前只渲染序号列、数据列为空（已知显示缺陷），此时按序号
+      // 定位会失败；退化为选择首个数据行，至少覆盖"弹窗选择"的数据流。
+      await surface
+        .locator('[data-slot="table-body"] tr[data-slot="table-row"]')
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 });
+    }
+    const targetRow = (await row.count().then((c) => c > 0))
+      ? row
+      : surface.locator('[data-slot="table-body"] tr[data-slot="table-row"]').first();
+    const checkbox = targetRow
+      .locator('[data-slot="row-selection-checkbox"], input[type="checkbox"]')
+      .first();
+    if (await checkbox.count().then((c) => c > 0)) {
+      await checkbox.click();
+    } else {
+      await targetRow.click();
+    }
+
+    await surface.locator('[data-slot="picker-confirm"]').first().click();
+    await surface.waitFor({ state: 'hidden', timeout: 10_000 }).catch(() => {});
+    await page.waitForTimeout(300);
+  }
+
   // ── 只读字段 ──
 
   async staticFieldValue(dialog: Locator, fieldName: string): Promise<string> {

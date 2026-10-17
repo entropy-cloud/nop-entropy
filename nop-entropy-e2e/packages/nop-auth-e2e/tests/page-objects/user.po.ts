@@ -57,6 +57,21 @@ export class UserPO extends CrudListPage {
     await this.clickView(rowIdentifier);
   }
 
+  /** 编辑用户并上传头像（input-file/image 控件）。 */
+  async uploadAvatar(rowIdentifier: string, filePaths: string[]): Promise<void> {
+    await this.clickEdit(rowIdentifier);
+    await this.uploadDialogFile('avatar', filePaths);
+    await this.clickSave();
+  }
+
+  /** 编辑用户并通过弹窗选择器（picker）选择职务（职务在"扩展信息"标签页内）。 */
+  async selectPosition(rowIdentifier: string, positionName: string): Promise<void> {
+    await this.clickEdit(rowIdentifier);
+    await this.switchDialogTab('扩展信息');
+    await this.selectDialogPickerRow('positionId', positionName);
+    await this.clickSave();
+  }
+
   /** 删除用户。 */
   async deleteUser(rowIdentifier: string): Promise<void> {
     await this.clickDelete(rowIdentifier);
