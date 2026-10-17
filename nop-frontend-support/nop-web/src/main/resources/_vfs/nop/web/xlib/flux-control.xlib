@@ -865,11 +865,28 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                 import io.nop.xui.utils.XuiHelper;
                 const relProp = XuiHelper.getRelationProp(propMeta,objMeta);
 
+                const valueField = relProp['ext:joinRightProp'];
+                const labelField = relProp['ext:joinRightDisplayProp'] || relProp['ext:joinRightProp'];
+                const refBizObjName = relProp ? XuiHelper.getRefBizObjName(relProp) : null;
+                // 编辑/查看时表单只有关联 id，picker 需据此解析出 label（dispProp，如名称），
+                // 否则已选项显示原始 id。labelResolveAction 接收 evaluationBindings.value（当前选中 id），
+                // 按关联实体 PK 过滤取回 {valueField,labelField}。
+                const labelResolveAction = refBizObjName ? {
+                    action: 'ajax',
+                    args: _.filterNull({
+                        url: '@query:' + refBizObjName + '__findList',
+                        method: 'get',
+                        data: _.filterNull({ ['filter_' + valueField]: '${value}' }),
+                        selection: valueField + ',' + labelField
+                    })
+                } : null;
+
                 return _.filterNull({
                     type: 'picker',
                     'x:extends': XuiHelper.getRelationPickerUrl(dispMeta,propMeta,objMeta),
-                    valueField: relProp['ext:joinRightProp'],
-                    labelField: relProp['ext:joinRightDisplayProp'] || relProp['ext:joinRightProp'],
+                    valueField: valueField,
+                    labelField: labelField,
+                    labelResolveAction: labelResolveAction,
                     source: _.filterNull({
                        valueField: relProp['ext:joinRightProp'],
                        labelField: relProp['ext:joinRightDisplayProp'] || relProp['ext:joinRightProp']
