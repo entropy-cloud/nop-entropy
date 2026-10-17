@@ -110,10 +110,13 @@ public class GraphQLResponseHelper {
                     headerSet.accept(ApiConstants.HEADER_CONTENT_TYPE, addEncoding(contentType));
 
                     if (StringHelper.isNotBlank(fileName)) {
+                        // RFC 6266 / RFC 5987：普通 filename 只承载 latin-1，中文名必须用
+                        // filename*=UTF-8''<pct-encoded>（带 * 号续行）表达；否则前端拿到的是
+                        // 未解码的百分号串，下载文件名显示为乱码。同时保留 filename= 兼容旧客户端。
                         String encoded = StringHelper.encodeURL(fileName);
 
                         headerSet.accept("content-disposition",
-                                "attachment; filename=" + encoded);
+                                "attachment; filename=" + encoded + "; filename*=UTF-8''" + encoded);
                         headerSet.accept("Access-Control-Expose-Headers", "content-disposition");
                     }
                 }, //
