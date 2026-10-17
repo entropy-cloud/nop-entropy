@@ -90,6 +90,12 @@ public interface BizConstants {
     String OBJ_DICT_PREFIX = "obj/";
     String TAG_DICT = "dict";
 
+    /**
+     * 实体级只读标记：xmeta/ORM tagSet 含 read-only 时，CrudBizModel 视该对象为只读，
+     * 全部继承的写动作显式拒绝，读动作保留。由 ORM 实体 tagSet 传播到生成 xmeta。
+     */
+    String TAG_READ_ONLY = "read-only";
+
     String EXT_MAX_PAGE_SIZE = "ext:maxPageSize";
     String EXT_MAX_BATCH_SIZE = "ext:maxBatchSize";
     String EXT_RELATION = "ext:relation";

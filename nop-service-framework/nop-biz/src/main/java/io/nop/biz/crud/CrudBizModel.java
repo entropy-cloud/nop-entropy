@@ -151,6 +151,7 @@ import static io.nop.biz.BizErrors.ERR_BIZ_NO_MANDATORY_PARAM;
 import static io.nop.biz.BizErrors.ERR_BIZ_NO_STATE_MACHINE;
 import static io.nop.biz.BizErrors.ERR_BIZ_OBJ_NO_DICT_TAG;
 import static io.nop.biz.BizErrors.ERR_BIZ_PROP_NOT_MANY_TO_MANY_REF;
+import static io.nop.biz.BizErrors.ERR_BIZ_READ_ONLY_OBJECT;
 import static io.nop.biz.BizErrors.ERR_BIZ_TOO_MANY_LEFT_JOIN_PROPS_IN_QUERY;
 import static io.nop.graphql.core.GraphQLConfigs.CFG_GRAPHQL_MAX_PAGE_SIZE;
 import static io.nop.orm.utils.OrmQueryHelper.resolveRef;
@@ -163,6 +164,13 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     private IDaoProvider daoProvider;
     private String entityName;
     private String bizObjName;
+
+    /**
+     * 只读对象：为 true 时所有继承的写动作（@BizMutation）显式拒绝，读动作不受影响。
+     * <p>缺省（null）时由 objMeta 的 {@code read-only} tag 推导（ORM 实体 tagSet 经 codegen 进入 xmeta）；
+     * 也可通过 {@link #setReadOnly(boolean)} 显式覆盖。
+     */
+    private Boolean readOnly;
 
     private IBizObjectManager bizObjectManager;
 
@@ -256,6 +264,29 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     public String getEntityName() {
         return entityName;
+    }
+
+    /**
+     * @return 只读对象返回 true：显式设置优先；未显式设置时由 objMeta 的 {@code read-only} tag 推导。
+     */
+    public boolean isReadOnly() {
+        if (readOnly != null)
+            return readOnly;
+        IObjMeta objMeta = getObjMeta();
+        return objMeta != null && objMeta.containsTag(BizConstants.TAG_READ_ONLY);
+    }
+
+    public void setReadOnly(boolean readOnly) {
+        this.readOnly = readOnly;
+    }
+
+    /**
+     * 只读对象的写动作统一守卫：{@link #isReadOnly()} 为 true 时抛出 {@code nop.err.biz.read-only-object}。
+     */
+    protected void checkReadOnly(String action) {
+        if (isReadOnly())
+            throw new NopException(ERR_BIZ_READ_ONLY_OBJECT).param(ARG_BIZ_OBJ_NAME, getBizObjName())
+                    .param(ARG_ACTION_NAME, action);
     }
 
     public ITransactionTemplate txn() {
@@ -550,6 +581,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T save(@Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("save");
         return doSave(data, null, this::invokeDefaultPrepareSave, context);
     }
 
@@ -861,6 +893,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("update");
         return doUpdate(data, null, this::invokeDefaultPrepareUpdate, context);
     }
 
@@ -1104,6 +1137,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("@i18n:biz.delete|根据主键删除指定对象")
     @BizMutation
     public boolean delete(@Name("id") @Description("@i18n:biz.id|对象的主键标识") String id, IServiceContext context) {
+        checkReadOnly("delete");
         return doDelete(id, this.getDefaultRefNamesToCheckExists(), this::invokeDefaultPrepareDelete, context);
     }
 
@@ -1349,6 +1383,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public void batchUpdate(@Name("ids") Set<String> ids, @Name("data") Map<String, Object> data,
                             @Optional @Name("ignoreUnknown") boolean ignoreUnknown,
                             IServiceContext context) {
+        checkReadOnly("batchUpdate");
         if (CollectionHelper.isEmpty(ids) || CollectionHelper.isEmptyMap(data))
             return;
         checkMaxBatchSize("ids", ids);
@@ -1371,6 +1406,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("@i18n:biz.batchDelete|根据主键批量删除对象")
     @BizMutation
     public Set<String> batchDelete(@Name("ids") Set<String> ids, IServiceContext context) {
+        checkReadOnly("batchDelete");
         if (CollectionHelper.isEmpty(ids))
             return Collections.emptySet();
         checkMaxBatchSize("ids", ids);
@@ -1403,6 +1439,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                             @Optional @Name("common") Map<String, Object> common,
                             @Optional @Name("delIds") @Description("@i18n:biz.delIds|待删除的实体主键列表") Set<String> delIds,
                             IServiceContext context) {
+        checkReadOnly("batchModify");
         checkMaxBatchSize("data", data);
         checkMaxBatchSize("delIds", delIds);
         if (data != null) {
@@ -1439,6 +1476,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("@i18n:biz.saveOrUpdate|如果没有主键就新增记录，否则就修改记录")
     @BizMutation
     public T saveOrUpdate(@Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("saveOrUpdate");
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_UPDATE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
@@ -1458,6 +1496,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizMutation
     @Deprecated
     public T save_update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("save_update");
         return saveOrUpdate(data, context);
     }
 
@@ -1492,6 +1531,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T recoverDeleted(@Name("id") String id, IServiceContext context) {
+        checkReadOnly("recoverDeleted");
         if (!isAllowGetDeleted())
             throw new NopException(ERR_BIZ_NOT_ALLOW_GET_DELETED).param(ARG_BIZ_OBJ_NAME, getBizObjName());
 
@@ -1516,6 +1556,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("根据查询条件获取一批实体数据，然后对每个实体更新指定属性。返回查询得到的实体个数")
     @BizMutation
     public int updateByQuery(@Name("query") QueryBean query, @Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("updateByQuery");
         if (query != null)
             query.setDisableLogicalDelete(false);
         // 与doUpdateByQuery的no-op语义保持一致：空data不产生任何变更，无需计数检查
@@ -1579,6 +1620,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @Description("根据查询条件获取一批实体数据，然后删除这些实体")
     @BizMutation
     public int deleteByQuery(@Name("query") QueryBean query, IServiceContext context) {
+        checkReadOnly("deleteByQuery");
         if (query != null)
             query.setDisableLogicalDelete(false);
         checkByQueryNotExceedLimit(query, context);
@@ -1728,6 +1770,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                        @Name("relValues") Collection<String> relValues,
                                        @Optional @Name("filter") TreeBean filter,
                                        IServiceContext context) {
+        checkReadOnly("addManyToManyRelations");
         checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         // 增删中间表记录属于变更操作，需要校验update行级数据权限，避免仅有读权限的用户篡改关联
@@ -1746,6 +1789,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter,
                                           IServiceContext context) {
+        checkReadOnly("removeManyToManyRelations");
         checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
@@ -1761,6 +1805,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     public void updateManyToManyRelations(@Name("id") String id, @Name("propName") String propName,
                                           @Name("relValues") Collection<String> relValues,
                                           @Optional @Name("filter") TreeBean filter, IServiceContext context) {
+        checkReadOnly("updateManyToManyRelations");
         checkMaxBatchSize("relValues", relValues);
         T entity = get(id, false, context);
         checkDataAuth(BizConstants.METHOD_UPDATE, entity, context);
@@ -1805,6 +1850,7 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     @BizMutation
     @GraphQLReturn(bizObjName = BIZ_OBJ_NAME_THIS_OBJ)
     public T copyForNew(@Name("data") Map<String, Object> data, IServiceContext context) {
+        checkReadOnly("copyForNew");
         if (CollectionHelper.isEmptyMap(data))
             throw new NopException(ERR_BIZ_EMPTY_DATA_FOR_SAVE).param(ARG_BIZ_OBJ_NAME, getBizObjName());
         return doCopyForNew(data, BizConstants.SELECTION_COPY_FOR_NEW, this::invokeDefaultPrepareCopyForNew, context);

@@ -259,4 +259,9 @@ public interface BizErrors {
             define("nop.err.biz.dict-options-exceeds-limit",
                     "对象[{bizObjName}]作为字典的记录数为{count}，超过分页上限{maxCount}，已拒绝返回不完整的字典选项，请由对象的维护方调整数据范围或配置",
                     ARG_BIZ_OBJ_NAME, ARG_COUNT, ARG_MAX_COUNT);
+
+    ErrorCode ERR_BIZ_READ_ONLY_OBJECT =
+            define("nop.err.biz.read-only-object",
+                    "对象[{bizObjName}]为只读对象，不允许执行写操作[{action}]；如需变更请使用专用业务流程",
+                    ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
 }
