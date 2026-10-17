@@ -20,6 +20,10 @@ public class XuiCoreInitializer implements ICoreInitializer {
             StdDomainRegistry.instance().unregisterStdDomainHandler(VueNodeStdDomainHandler.INSTANCE);
         });
 
+        StdDomainRegistry.instance().registerStdDomainHandler(IconStdDomainHandler.INSTANCE);
+        cancellable.appendOnCancelTask(() -> {
+            StdDomainRegistry.instance().unregisterStdDomainHandler(IconStdDomainHandler.INSTANCE);
+        });
     }
 
     @Override
