@@ -44,6 +44,7 @@ common:
   oldPassword: 旧密码
   newPassword: 新密码
   repeatPassword: 重复密码
+  passwordNotMatch: 两次输入的密码不一致
   changePassword: 修改密码
   publish: 发布
   unpublish: 取消发布

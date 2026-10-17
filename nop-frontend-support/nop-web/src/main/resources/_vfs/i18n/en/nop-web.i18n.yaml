@@ -44,6 +44,7 @@ common:
   oldPassword: Old Password
   newPassword: New Password
   repeatPassword: Repeat Password
+  passwordNotMatch: The two passwords do not match
   changePassword: Change Password
   publish: Publish
   unpublish: Unpublish

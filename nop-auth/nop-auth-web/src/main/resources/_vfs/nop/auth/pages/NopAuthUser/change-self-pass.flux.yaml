@@ -24,6 +24,12 @@ body:
     args:
       level: error
       message: "@i18n:common.executeFailed"
+  # flux 没有 amis 的字段级 validations 映射，跨字段校验必须写表单级 rules。
+  rules:
+    - rule: equalsField
+      field: newPassword
+      target: __password2
+      message: "@i18n:common.passwordNotMatch"
   body:
     - type: input-password
       name: oldPassword
@@ -39,8 +45,6 @@ body:
       name: __password2
       required: true
       label: "@i18n:common.repeatPassword"
-      validations:
-        equalsField: newPassword
 
     - type: button
       label: "@i18n:common.submit"
