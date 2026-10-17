@@ -148,7 +148,7 @@
                     </action>
                     <action id="disable-user-button" label="@i18n:common.disableUser" >
                         <confirmText>@i18n:common.confirmDisableUser</confirmText>
-                        <api url="@mutation:NopAuthUser__disableUser">
+                        <api url="/r/NopAuthUser__disableUser">
                             <data>
                                 <userId>${id}</userId>
                             </data>
@@ -157,7 +157,7 @@
                     </action>
                     <action id="enable-user-button" label="@i18n:common.enableUser" >
                         <confirmText>@i18n:common.confirmEnableUser</confirmText>
-                        <api url="@mutation:NopAuthUser__enableUser">
+                        <api url="/r/NopAuthUser__enableUser">
                             <data>
                                 <userId>${id}</userId>
                             </data>
@@ -181,7 +181,7 @@
 
             <rowActions>
                 <action id="recover-deleted-button" label="@i18n:common.recoverDeleted" >
-                    <api url="@mutation:NopAuthUser__recoverDeleted/id">
+                    <api url="/r/NopAuthUser__recoverDeleted">
                         <data>
                             <id>${id}</id>
                         </data>
@@ -192,7 +192,7 @@
         </crud>
 
         <simple name="resetUserPassword" form="resetUserPassword">
-            <api url="@mutation:NopAuthUser__resetUserPassword?userId=${id}">
+            <api url="/r/NopAuthUser__resetUserPassword?userId=${id}">
                 <data>
                     <password>${password}</password>
                 </data>
@@ -212,7 +212,7 @@
                 </action>
 
                 <action id="batch-delete-button" label="@i18n:common.batchDelete" batch="true">
-                    <api url="@mutation:NopAuthRole__removeRoleUsers">
+                    <api url="/r/NopAuthRole__removeRoleUsers">
                         <data>
                             <roleId>${roleId}</roleId>
                             <userIds>${ids}</userIds>
@@ -231,7 +231,7 @@
             <listActions>
                 <action id="batch-add-user-button" label="@i18n:common.submit" level="primary"
                         batch="true" close="select-role-users" reload="role-users-grid">
-                    <api url="@mutation:NopAuthRole__addRoleUsers">
+                    <api url="/r/NopAuthRole__addRoleUsers">
                         <data>
                             <roleId>${roleId}</roleId>
                             <userIds>${ids}</userIds>
