@@ -565,6 +565,22 @@ gen-control 是否只返回 { type:'picker', source, joinValues, extractValue, .
        onEvent 等业务逻辑原样保留。
 ```
 
+### picker 内容 CRUD 必须配置 `selection`（否则 confirm 恒 disabled）
+
+picker 弹层内容 CRUD（`pickerSchema`）必须带 `selection`（如 `{ type: 'checkbox', keepOnPageChange: true, toggleOnRowClick: true }`）并经 `selectionOwnership: 'scope'` + `selectionStatePath: '$_picker.selection'` 发布选区。**缺少 `selection` 时点选行不会登记选区，picker 的 `[data-slot="picker-confirm"]` 永远 disabled**——表现为"弹窗能打开、行也显示、但确定键点不动"。生成侧由 `flux-web/grid_crud.xpl` 的 picker 模式产出（`selection` 必须在最终 `<crud>` 上生效，不能被同名的显式属性覆盖为 null）。
+
+## 文件上传（flux）
+
+flux 的 `input-file`/`input-image` **没有 AMIS 的 `receiver`**，实际上传靠字段级 `uploadAction`（一个 ActionSchema，通常 `{ action:'ajax', args:{ url:'/f/upload?bizObjName=..&fieldName=..', method:'post' } }`）。生成侧 `flux-control.xlib` 的 `edit-file`/`edit-file-list`/`edit-image` 已输出 `uploadAction`。
+
+运行时契约（nop-chaos-flux `upload-field.tsx` 与宿主）：
+
+1. 选中文件后，上传控件把文件放进 action scope 的 `__uploadFileRef`（File 对象）与 `__uploadFile`（name/size/type 元数据），并 dispatch `uploadAction`；
+2. 宿主 `env.fetcher` 检测到 `__uploadFileRef` 时，以 multipart 把文件 POST 到 `args.url`（Nop 宿主的实现位于 nop-chaos-next 仓的 flux 适配层）；
+3. 后端 `/f/upload` 返回 `{ value: <下载链接>, filename }`；宿主归一化为 flux 的 `UploadResultItem` `{ url: value, name: filename }`——字段值（默认 valueMode='url'）即写入该下载链接，`OrmFileComponent` 据链接解码 fileId。
+
+> 本地文件存储需要可写目录：`nop.file.store-dir`（缺省 `/nop/file` 是文件系统根路径，dev/测试下不可写）。示例应用可在 `application.yaml` 配 `nop.file.store-dir: ./target/file-store`。
+
 ## 相关文件
 
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（28 个标签，含共享容器分派 `GenContainerModel`）
@@ -572,6 +588,8 @@ gen-control 是否只返回 { type:'picker', source, joinValues, extractValue, .
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/page_tabs.xpl` / `page_wizard.xpl` / `page_group.xpl` / `page_complex.xpl` / `page_embed.xpl` — 页面级容器/引用模板（包 `page` 外壳或直接输出嵌入页）
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/container_tabs.xpl` / `container_wizard.xpl` / `container_group.xpl` / `container_crud.xpl` / `container_simple.xpl` — 容器级模板（不包外壳，页面级与 body 级共用）
 - `nop-frontend-support/nop-web/src/main/java/io/nop/web/page/WebPageHelper.java`（`applyViewOverride` / `internalLoadPage` / `toFluxPagePath`） — embed 加载 + override 合并入口
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web/grid_crud.xpl` — CRUD/picker 生成模板（picker 模式的 `selection` + `$_picker.*` 发布）
+- `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-control.xlib` — 控件映射（`edit-file`/`edit-image` 输出 `uploadAction`）
 
 ## 相关文档
 
