@@ -69,6 +69,12 @@ public interface OrmModelConstants {
 
     String TAG_NOT_PUB = "not-pub";
 
+    /**
+     * 实体级标签：不在外部发布该实体的服务方法（GraphQL/RPC/gRPC）。仅隐藏操作，不清空类型字段。
+     * 经 ORM 实体 tagSet 传播到生成 xmeta 的 root tagSet，运行时由 BizObjectImpl 读取。
+     */
+    String TAG_NO_SERVICE = "no-service";
+
     String TAG_LAZY = "lazy";
 
     String TAG_EAGER = "eager";

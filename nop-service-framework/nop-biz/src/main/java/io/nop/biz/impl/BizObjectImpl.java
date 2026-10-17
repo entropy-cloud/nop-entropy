@@ -194,7 +194,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     @Override
     public GraphQLFieldDefinition getOperationDefinition(GraphQLOperationType opType, String name) {
         // 不对外暴露为GraphQL服务
-        if (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB))
+        if (isServiceNotPublished())
             return null;
 
         GraphQLFieldDefinition operation = operations.get(name);
@@ -210,7 +210,7 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
     @Override
     public Collection<GraphQLFieldDefinition> getOperationDefinitions(GraphQLOperationType opType) {
         // 不对外暴露为GraphQL服务
-        if (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB))
+        if (isServiceNotPublished())
             return Collections.emptyList();
 
         List<GraphQLFieldDefinition> ret = new ArrayList<>();
@@ -224,7 +224,19 @@ public class BizObjectImpl implements IBizObject, IMethodMissingHook {
 
     @Override
     public Map<String, GraphQLFieldDefinition> getOperationDefinitions() {
+        // no-service：实体级不发布服务方法（含 gRPC 走的无参入口）。
+        // 注意：not-pub 在此无参入口保持既有行为不变。
+        if (isNoService())
+            return Collections.emptyMap();
         return operations;
+    }
+
+    private boolean isServiceNotPublished() {
+        return (bizModel != null && bizModel.containsTag(OrmModelConstants.TAG_NOT_PUB)) || isNoService();
+    }
+
+    private boolean isNoService() {
+        return objMeta != null && objMeta.containsTag(OrmModelConstants.TAG_NO_SERVICE);
     }
 
     @Override

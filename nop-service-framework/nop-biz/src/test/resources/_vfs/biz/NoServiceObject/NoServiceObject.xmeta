@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<meta x:schema="/nop/schema/xmeta.xdef" xmlns:x="/nop/schema/xdsl.xdef"
+      displayName="No Service Object" tagSet="no-service">
+    <props>
+        <prop name="name" displayName="Name">
+            <schema type="java.lang.String"/>
+        </prop>
+    </props>
+</meta>
