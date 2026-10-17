@@ -36,7 +36,6 @@
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
-            <version>3.0.3</version> <!-- 可根据最新版本调整 -->
         </dependency>
     </dependencies>
 </project>
