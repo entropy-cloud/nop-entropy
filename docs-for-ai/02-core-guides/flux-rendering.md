@@ -581,6 +581,30 @@ flux 的 `input-file`/`input-image` **没有 AMIS 的 `receiver`**，实际上�
 
 > 本地文件存储需要可写目录：`nop.file.store-dir`（缺省 `/nop/file` 是文件系统根路径，dev/测试下不可写）。示例应用可在 `application.yaml` 配 `nop.file.store-dir: ./target/file-store`。
 
+## 页面生成约定（手工测试收口）
+
+以下约定由一轮 flux 手工测试缺陷修复固化：
+
+### 关联 picker 的已选项显示（`labelResolveAction`）
+
+编辑/查看时表单只有关联 **id**，picker 必须通过 `labelResolveAction` 解析 label（`dispProp`，如名称），否则已选项显示原始 id。生成侧 `flux-control.xlib:edit-relation` 已输出 `labelResolveAction`：按关联实体 PK 过滤 `findList` 取回 `{valueField,labelField}`。契约：picker dispatch 时以 `evaluationBindings` 提供 `value`（单值）/`values`（多值），action 参数用 `${value}` 引用。
+
+### 行操作列名保留 `__operation`
+
+行操作按钮列的 `name` 固定为保留名 `__operation`（`flux-web/grid_crud.xpl`）。flux 表格按列 `name` 合并/键控；若实体本身有名为 `operation` 的数据列（如 `NopAuthOpLog` 的业务操作），同名会导致表头/列渲染异常（表现为"操作列出现多个"）。
+
+### 表单 label 布局
+
+新增/修改表单缺省 `mode=vertical`（label 上置，便于长 label 对齐）；查询表单缺省 `mode=horizontal`（label 左侧）。生成侧见 `flux-web/container_simple.xpl`、`flux-web/page_simple.xpl`（`editMode==='query'` 时回退 horizontal）、`flux-web/grid_crud.xpl` 与 `flux-web.xlib:FluxFormDefaultAttrs`；view.xml 可用 `layoutMode` 覆盖。
+
+### 下载文件名编码（RFC 5987）
+
+后端 `Content-Disposition` 对非 ASCII 文件名必须用 RFC 5987 `filename*=UTF-8''<pct-encoded>` 表达（`nop-graphql-core` 的 `GraphQLResponseHelper` 生成，同时保留 `filename=` 兼容旧客户端）；否则前端拿到未解码的百分号串，下载文件名乱码。
+
+### 自定义后端方法用 `/r/` 直发
+
+`@mutation:<Op>` 对**未注册**操作（非标准 CRUD 尾缀，如 `recoverDeleted`/`enableUser`/`resetUserPassword`/`addRoleUsers`）会把请求体包成 `{data:...}`，与后端按名参数不匹配（报"没有定义参数[data]，允许的参数为:[...]"）。自定义方法应直接写 `/r/<Op>`（业务参数按名直传），见上文「CRUD 参数整形」的页面作者规则。
+
 ## 相关文件
 
 - `nop-frontend-support/nop-web/src/main/resources/_vfs/nop/web/xlib/flux-web.xlib` — Flux 页面生成库（28 个标签，含共享容器分派 `GenContainerModel`）
