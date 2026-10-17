@@ -398,8 +398,13 @@
           },
           "type": "input-file",
           "accept": "image/*",
-          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=image",
-          "useChunk": false
+          "uploadAction": {
+            "action": "ajax",
+            "args": {
+              "url": "/f/upload?bizObjName=NopAuthDept&fieldName=image",
+              "method": "post"
+            }
+          }
         }
       },
       {
@@ -413,8 +418,13 @@
             "clearValueWhenHidden": false
           },
           "type": "input-file",
-          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file",
-          "useChunk": false
+          "uploadAction": {
+            "action": "ajax",
+            "args": {
+              "url": "/f/upload?bizObjName=NopAuthDept&fieldName=file",
+              "method": "post"
+            }
+          }
         }
       },
       {
@@ -429,8 +439,13 @@
           },
           "type": "input-file",
           "multiple": true,
-          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=file-list",
-          "useChunk": false
+          "uploadAction": {
+            "action": "ajax",
+            "args": {
+              "url": "/f/upload?bizObjName=NopAuthDept&fieldName=file-list",
+              "method": "post"
+            }
+          }
         }
       },
       {
@@ -445,8 +460,13 @@
           },
           "type": "input-file",
           "multiple": true,
-          "receiver": "/f/upload?bizObjName=NopAuthDept&fieldName=images",
-          "useChunk": false
+          "uploadAction": {
+            "action": "ajax",
+            "args": {
+              "url": "/f/upload?bizObjName=NopAuthDept&fieldName=images",
+              "method": "post"
+            }
+          }
         }
       },
       {
@@ -555,6 +575,11 @@
           "pickerSchema": {
             "name": "crud-grid",
             "id": "crud-grid",
+            "selection": {
+              "type": "checkbox",
+              "keepOnPageChange": true,
+              "toggleOnRowClick": true
+            },
             "className": "erp-crud",
             "headerClassName": "erp-crud-header",
             "bodyClassName": "erp-crud-body p-none",
@@ -686,6 +711,11 @@
           "pickerSchema": {
             "name": "crud-grid",
             "id": "crud-grid",
+            "selection": {
+              "type": "checkbox",
+              "keepOnPageChange": true,
+              "toggleOnRowClick": true
+            },
             "className": "erp-crud",
             "headerClassName": "erp-crud-header",
             "bodyClassName": "erp-crud-body p-none",

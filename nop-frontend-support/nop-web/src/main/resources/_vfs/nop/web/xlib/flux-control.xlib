@@ -501,6 +501,9 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                   || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName.$encodeURL()+'&fieldName='+name.$encodeURL())
               const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? false
               accept = propMeta?.['ui:uploadAccept'] || dispMeta?.['ui:uploadAccept'] || accept
+              // flux input-file/image 无 receiver（AMIS 语义），实际上传靠字段级 uploadAction：
+              // 宿主 fetcher 从 action scope 的 __uploadFileRef 读取文件并发 multipart。
+              const uploadAction = { action:'ajax', args:{ url: uploadUrl, method:'post' } }
 
               if(supportFileLink){
               return {
@@ -523,8 +526,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                             "maxSize":maxSize,
                             "visible": '${!__switch_' + name + '}',
                             "accept":accept,
-                            "receiver": uploadUrl,
-                            "useChunk":false
+                            "uploadAction": uploadAction
                           }
                         ]
                       }
@@ -533,8 +535,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                             "type": "input-file",
                             "maxSize":maxSize,
                             "accept":accept,
-                            "receiver": uploadUrl,
-                            "useChunk":false
+                            "uploadAction": uploadAction
                           }
               }
             ]]></source>
@@ -555,6 +556,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                   || ($config.var('nop.file.upload-url','/f/upload') + '?bizObjName='+bizObjName.$encodeURL()+'&fieldName='+name.$encodeURL())
               const supportFileLink = dispMeta?.['ui:supportFileLink'] ?? propMeta?.['ui:supportFileLink'] ?? false
               accept = propMeta?.['ui:uploadAccept'] || dispMeta?.['ui:uploadAccept'] || accept
+              const uploadAction = { action:'ajax', args:{ url: uploadUrl, method:'post' } }
 
               if(supportFileLink){
               return {
@@ -577,8 +579,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                             "maxSize":maxSize,
                             "visible": '${!__switch_' + name + '}',
                             "accept":accept,
-                            "receiver": uploadUrl,
-                            "useChunk":false
+                            "uploadAction": uploadAction
                           }
                         ]
                       }
@@ -588,8 +589,7 @@ Flux 控件映射库。控件名格式为 {mode}-{type}，与 control.xlib 保�
                             "maxSize":maxSize,
                             "accept":accept,
                             "multiple":true,
-                            "receiver": uploadUrl,
-                            "useChunk":false
+                            "uploadAction": uploadAction
                           }
               }
             ]]></source>

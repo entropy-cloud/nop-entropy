@@ -21,10 +21,13 @@
         const loadAction = _loadApiNorm != null ? {action:'ajax', args: _loadApiNorm, dependsOn: ['__crud_load__']} : null;
         const crudName = pageModel.table.name || 'crud-grid';
 
-        // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式由 pickerCrudAttrs 提供选择配置）。
+        // 默认多选 checkbox（selectable 显式 false 时关闭；picker 模式内容 CRUD 需选择配置
+        // 才会登记选区到 $_picker.selection，否则 picker confirm 恒 disabled）。
         // 序号列固定左侧，首个数据列由 GenGridCol 固定左侧（colIndex==0 → left）。
         const isPicker = pageModel.type == 'picker';
-        const selection = !isPicker && gridModel.selectable !== false ? {type:'checkbox'} : null;
+        const selection = isPicker
+            ? {type:'checkbox', keepOnPageChange:true, toggleOnRowClick:true}
+            : (gridModel.selectable !== false ? {type:'checkbox'} : null);
 
         // picker 模式（v3 契约）：pickerPopup 弹层 + pickerSchema 内容子树。
         // 内容选择发布走 CRUD 自身的 scope-publish 配置，由转换器指向 picker 的固定
@@ -35,7 +38,6 @@
             ...xpl('thisLib:FluxGridDefaultAttrs', gridModel),
             type: 'crud',
             rowKey: 'id',
-            selection: { type: 'checkbox', keepOnPageChange: true, toggleOnRowClick: true },
             selectionOwnership: 'scope',
             selectionStatePath: '$_picker.selection',
             dataStatePath: '$_picker.rows',
