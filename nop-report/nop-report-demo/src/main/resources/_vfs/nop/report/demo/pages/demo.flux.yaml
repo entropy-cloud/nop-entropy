@@ -1,4 +1,5 @@
-# Flux 版本：asideResizor → asideResizable；toolbar 的 amis actionType download/reload → onClick ajax(blob)/refreshSource；
+# Flux 版本：asideResizor → asideResizable；amis 页面级 toolbar → flux page 的 header 槽位
+# （flux 无 toolbar region）；actionType download → flux 原生 download 动作；reload → refreshSource；
 # service → data-source；tpl → html。
 type: page
 aside:
@@ -19,25 +20,27 @@ aside:
     childrenField: children
 asideResizable: true
 asideClassName: w-64
-toolbar:
+header:
   - type: button
     variant: primary
     label: 下载报表模型
     onClick:
-      action: ajax
+      action: download
       args:
-        url: "/p/ReportDemo__downloadModel?reportName=${tree}"
-        method: get
-        responseType: blob
+        api:
+          url: "/p/ReportDemo__downloadModel?reportName=${tree}"
+          method: get
+          responseType: blob
   - type: button
     variant: primary
     label: 导出Excel
     onClick:
-      action: ajax
+      action: download
       args:
-        url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
-        method: get
-        responseType: blob
+        api:
+          url: "/p/ReportDemo__download?reportName=${tree}&renderType=xlsx"
+          method: get
+          responseType: blob
   - type: button
     variant: primary
     label: 更新显示
