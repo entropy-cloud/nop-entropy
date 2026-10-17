@@ -78,9 +78,11 @@ flowchart LR
 
 ### 3.5 装配与集成（item 19，已落地）
 
-装配组件 `XlangDebugEditor` 落 `@nop-chaos/flux-xlang-debug` `src/assembly/`：flux-code-editor（`createBaseExtensions({language:'xlang'})` + extensions 注入 createBreakpointGutter/suspendedLinesField/exceptionLinesField/sourcePathFacet/createXlangLinter，**useMemo 且 key 含 sourcePath**——617 结论 compartment 对 extensions 身份全量替换，StateField 存活依赖 memo 稳定；sync 桥不是 Extension，经 effect 在 view 就绪后接线、cleanup dispose）+ DebugPanel + createDebugClient 连接管理（openSocket/getToken 注入）。renderer definition（`xlang-debug-editor` type + sourcePath/serverUrl/initialSource field rules）同包 `src/assembly/renderer.tsx`，`registerXlangDebugEditorRenderers(registry)` 注册；compile 诊断服务经宿主 `env.fetcher` 具象化（POST `/r/nop-xlang-debug/compile`，envelope `status!==0` 判错取 `data.diagnostics`）。
+装配组件 `XlangDebugEditor` 落 `@nop-chaos/flux-xlang-debug` `src/assembly/`：flux-code-editor（`createBaseExtensions({language:'xlang'})` + extensions 注入 createBreakpointGutter/suspendedLinesField/exceptionLinesField/sourcePathFacet/createXlangLinter，**useMemo 且 key 含 sourcePath**——617 结论 compartment 对 extensions 身份全量替换，StateField 存活依赖 memo 稳定；sync 桥不是 Extension，经 effect 在 view 就绪后接线、cleanup dispose）+ DebugPanel + createDebugClient 连接管理（openSocket/getToken 注入）。renderer definition（`xlang-debug-editor` type + sourcePath/serverUrl/initialSource field rules）在包内轻注册面模块中（item 20 起即 `/definitions` 子路径，组件经 createLazyRendererComponent 动态装载），`registerXlangDebugEditorRenderers(registry)` 注册；compile 诊断服务经宿主 `env.fetcher` 具象化（POST `/r/nop-xlang-debug/compile`，envelope `status!==0` 判错取 `data.diagnostics`）。
 
-playground 演示页（`xlang-debug-page.tsx`）走 schema→registry→SchemaRenderer 路径（schema type `'xlang-debug-editor'` 命中 renderer definition——唯一提供 RuntimeContext 的路径）；registry 需 `registerBasicRenderers`（'page' 容器）+ `registerXlangDebugEditorRenderers`；路由经 React.lazy 惰性加载（lezer 产物不进主 chunk），home 家族归 `diagnostics`。token/后端地址为演示态手工注入（playground 无登录流）；真实后端联调归 item 21/22，生产 admin 页宿主裁定归 item 20。
+playground 演示页（`xlang-debug-page.tsx`）走 schema→registry→SchemaRenderer 路径（schema type `'xlang-debug-editor'` 命中 renderer definition——唯一提供 RuntimeContext 的路径）；registry 需 `registerBasicRenderers`（'page' 容器）+ `registerXlangDebugEditorRenderers`；路由经 React.lazy 惰性加载（lezer 产物不进主 chunk），home 家族归 `diagnostics`。token/后端地址为演示态手工注入（playground 无登录流）；真实后端联调归 item 21/22。
+
+**交付链裁定（item 20，plan 2474 已落地）**：①demo 宿主 = playground；生产 admin 页 out of scope，registry 能力就绪待宿主自助接入。②bundle 纳入形态 = **`/definitions` 轻子路径注册面**（form 先例）：`@nop-chaos/flux-xlang-debug/definitions`（renderer.ts + compile-service.ts）承载 definition/field rules/register，bundle 门面只 import 该子路径并随默认栈注册；实现组件经 `createLazyRendererComponent` 动态装载（three-canvas 同型边界），CE/lezer 落 `xlang-debug-editor-*` 异步 chunk；`check-flux-bundle-pack` 以"tgz 含该 chunk + 主 chunk 静态头部无 `./xlang-debug-editor-` 相对引用"双断言守卫（CM/lezer 被内联、specifier 扫描对它们无判别力）。③flux-bundle devDependencies 仅声明 flux-xlang-debug（其余经 alias 传递解析）。④HOST_API_VERSION 不变更（@nop-chaos/shared 公共面零改动，0.2.0 维持）。包 index.ts 的重实现 re-export 现状保留（bundle 链不消费），收敛归 renderer-lazy-loading.md 约定治理。
 
 ## 四、拒绝了什么
 
@@ -96,4 +98,4 @@ playground 演示页（`xlang-debug-page.tsx`）走 schema→registry→SchemaRe
 - [00-overview.md](00-overview.md) §一.7/§3.1：前端基座裁定的架构落位；组件图前端侧的包级展开。
 - [06-grammar-spike.md](06-grammar-spike.md)：本档 §3.3 语言包的 grammar 来源与生产输入。
 - [01-ws-protocol.md](01-ws-protocol.md)/[02-lease-lifecycle.md](02-lease-lifecycle.md)：调试 store/WS 客户端的协议与租约语义权威。
-- 交付链：`pack-flux-bundle.mjs`/`check-flux-bundle-pack.mjs` 与宿主 registry（`__NOP_SHARED__`/`HOST_API_VERSION`）的现状是 item 20 的输入；本档仅登记"bundle 现不含 editor"的影响。
+- 交付链：item 20（plan 2474）已落地——见 §3.5 交付链裁定；`check-flux-bundle-pack.mjs` 双断言守卫懒边界，宿主 registry 机制与 HOST_API_VERSION（0.2.0）未变。
