@@ -6,7 +6,7 @@
     "type": "form",
     "name": "editControls",
     "id": "editControls",
-    "mode": "horizontal",
+    "mode": "vertical",
     "submitScope": "surface",
     "submitText": "",
     "className": " erp-form",

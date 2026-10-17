@@ -69,7 +69,8 @@
         <title>${ ('@i18n:'+i18nRoot+'.forms.'+formModel.id+'.$title').$i18n(formModel.title)}</title>
 
         <body>
-            <form name="${formModel.id}" id="${formModel.id}" mode="${formModel.layoutMode || 'horizontal'}"
+            <!-- 新增/修改简单页表单缺省 label 上置（vertical）；查询表单仍为水平。layoutMode 可覆盖。 -->
+            <form name="${formModel.id}" id="${formModel.id}" mode="${formModel.layoutMode || (formModel.editMode === 'query' ? 'horizontal' : 'vertical')}"
                   panelClassName="${pageModel.panelClassName || formModel.panelClassName}"
                   redirect="${pageModel.redirect || formModel.redirect}"
                   resetAfterSubmit="${pageModel.resetAfterSubmit ?? pageModel.resetAfterSubmit}"

@@ -36,7 +36,9 @@
         }
     ]]></c:script>
 
-    <form name="${formModel.id}" id="${formModel.id}" mode="${formModel.layoutMode || 'horizontal'}"
+    <!-- 新增/修改表单缺省 label 上置（vertical）：业务系统 label 常很长，左对齐困难。
+         查询表单仍为水平（见 grid_crud.xpl 与 FluxFormDefaultAttrs）。view.xml 可用 layoutMode 覆盖。 -->
+    <form name="${formModel.id}" id="${formModel.id}" mode="${formModel.layoutMode || (formModel.editMode === 'query' ? 'horizontal' : 'vertical')}"
           panelClassName="${containerModel.panelClassName || formModel.panelClassName}"
           redirect="${containerModel.redirect || formModel.redirect}"
           resetAfterSubmit="${containerModel.resetAfterSubmit ?? formModel.resetAfterSubmit}"
