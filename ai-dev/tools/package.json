@@ -12,6 +12,7 @@
     "check:import-order:module": "node check-import-order.mjs --module",
     "check:oversized": "node check-oversized-files.mjs",
     "check:garbled": "node check-docs-garbled.mjs",
+    "check:flux-pages": "node check-flux-pages.mjs",
     "stats": "node code-stats.mjs",
     "check:plan": "node check-plan-checklist.mjs",
     "check:plan:strict": "node check-plan-checklist.mjs --strict",

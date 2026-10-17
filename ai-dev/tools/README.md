@@ -30,6 +30,7 @@ pnpm check         # run all checks
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
 | `run-java-lint.sh` | Java lint gate via `nop-cli lint` (empty catches, getMessage-only, bare RuntimeException) | `pnpm lint:java` |
 | `check-nop-stream-invariants.mjs` | nop-stream invariant gate scanner (inventory / sync / scan-iterations / scan-output-contract / scan-wiring / self-test / init / all) | `node ai-dev/tools/check-nop-stream-invariants.mjs all` |
+| `check-flux-pages.mjs` | Static checker for `*.flux.yaml` (and `_dump` pages): flags AMIS-only component types/keys (e.g. `button-toolbar`, page-level `toolbar`, `actionType`, `validations`) that flux silently drops | `pnpm check:flux-pages` |
 
 ## 非脚本使用方（Node 依赖）
 
@@ -219,6 +220,23 @@ This rule is **not** expressible in ast-grep (its `has`/`inside` predicates can'
 ```
 
 Exit code 1 if any violation; 0 otherwise.
+
+### check-flux-pages.mjs
+
+Static checker for hand-written `*.flux.yaml` pages (and optionally resolved pages under `_dump/`). The flux runtime **silently drops** unknown component types/keys, so an AMIS→flux migration can lose whole toolbars/buttons with no error. This tool reports high-confidence AMIS-only constructs before runtime:
+
+- AMIS-only component types: `button-toolbar`, `service`, `static`, `static-mapping`, `static-image`, `input-rich-text`, …
+- AMIS-only keys on schema nodes: `actionType`, `visibleOn`/`hiddenOn`/`disabledOn`, `validations`, `asideResizor`, `initApi`/`initFetch`/`initFetchOn`
+- page-level `toolbar` key (flux pages use the `header` region instead)
+
+```bash
+pnpm check:flux-pages                                  # all *.flux.yaml in the repo
+node ai-dev/tools/check-flux-pages.mjs <file...>       # specific files
+node ai-dev/tools/check-flux-pages.mjs --include-dump  # also scan _dump (flux-mode build output)
+node ai-dev/tools/check-flux-pages.mjs --type-check    # best-effort "unknown flux type" warnings
+```
+
+Exit code 1 on any error (0 with only warnings, unless `--strict`). This is a **static** check and does not replace browser testing; the authoritative diagnostic is the flux schema compiler in nop-chaos-flux, which runs at frontend build time and is not yet wired into this repo.
 
 ## Adding New Tools
 
