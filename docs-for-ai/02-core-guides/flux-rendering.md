@@ -387,6 +387,8 @@ Flux `PageSchema` **完全支持** aside 相关属性（与 AMIS 命名差异：
 }
 ```
 
+> **切换标签重新加载（`mountOnEnter`/`unmountOnExit`）**：`TabsSchema` 支持**容器级与 item 级** `mountOnEnter`/`unmountOnExit`（item 级优先，解析为 `item.X ?? schema.X`）。容器级为 true 时对未单独声明的 item 生效：非激活标签内容**卸载**、再次激活**重新挂载**（从而重新加载数据）。对应 amis 标签容器的同名属性；view.xml 的 `<tabs mountOnEnter="true" unmountOnExit="true">` 生成侧输出在 `tabs` 节点上，消费侧已支持。
+
 - **`items` 数组**（Flux `TabsSchema` 字段）——不是 AMIS 的 `tabs` 字段；输出 `tabs` 字段在 Flux 下为 silent no-op。
 - `items[].key` ← tab 的 `name`（Flux 用 key/value 定位激活 tab）；`title`/`icon` 等属性沿用 `FluxTabDefaultAttrs` 透传。
 - `items[].body`：`page` 属性 → `LoadPage` 结果包数组；`body` 属性 → 容器分派 JSON 数组。
