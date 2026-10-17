@@ -39,6 +39,9 @@ nop:
 "%dev":
   nop:
     debug: true
+    # e2e/演示：文件上传落盘目录（缺省 /nop/file 为文件系统根路径，不可写）
+    file:
+      store-dir: ./target/file-store
     auth:
       login:
         allow-create-default-user: true # 如果用户表为空，则自动创建缺省账户nop, 密码123
