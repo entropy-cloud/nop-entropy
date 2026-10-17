@@ -87,8 +87,10 @@
             <thisLib:GenGridCols gridModel="${gridModel}" objMeta="${objMeta}" ignoreCols="${genScope.ignoreCols}"
                                  filterForm="${pageModel.autoGenerateFilter ? filterForm:null}"/>
             <!-- 操作列：默认 180 宽度（之前 140 过窄，多操作按钮挤在一列），可通过 view.xml table.operationSize 覆盖。
-                 labelClassName/headerClassName 居中让操作区视觉对齐；超过 4 个按钮自动转入 actionGroup。-->
-            <column type="operation" label="@i18n:common.operation" name="operation"
+                 labelClassName/headerClassName 居中让操作区视觉对齐；超过 4 个按钮自动转入 actionGroup。
+                 name 用保留名 __operation：若实体本身有名为 operation 的数据列，两者同名会导致 flux 表格
+                 按 name 合并/覆盖列（表头都显示成操作列标签，出现"多个操作列"）——见 NopAuthOpLog。-->
+            <column type="operation" label="@i18n:common.operation" name="__operation"
                     width="${pageModel.table?.operationSize || 180}" fixed="right"
                     labelClassName="text-center" headerClassName="text-center"
                     xpl:if="!pageModel.table?.noOperations">
