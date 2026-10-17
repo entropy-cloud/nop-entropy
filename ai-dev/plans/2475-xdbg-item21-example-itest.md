@@ -1,6 +1,6 @@
 # 2475 xdbg item 21 示例接入 + 后端集成测试（真实 XDSL task 全链调试）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-18
 > Source: roadmap item 21（ai-dev/backlog/xlang-web-debugger-roadmap.md）；场景先例 = nop-demo/nop-quarkus-demo `_vfs/nop/task/test/DemoTask/v1.task.xml`；测试基座 = nop-xlang-debug-web AbstractDebugGatewayTest/TestDebugGatewayE2E
 > Related: plans/2471（item 12 WS 网关）、plans/2473（item 14 REPL）、2474（item 20 交付链）
@@ -68,20 +68,20 @@ Targets: `nop-dev-tools/nop-xlang-debug-web/src/test/`
 
 Exit Criteria:
 
-- [ ] 全链测试绿且判别（移除 setBreakpoints 或位置错位即红）
-- [ ] 端到端验证（Minimum Rule 22）：从 WS 帧（握手）到任务结果输出完整路径已验证
-- [ ] 接线验证（Minimum Rule 23）：task step 编译链在运行时确实经全局执行器路由到会话 debugger（evt.suspended 事件即证据）
-- [ ] No owner-doc update required（场景蓝本登记归 item 23 文档注册；本 plan 无 live baseline 变更——仅 test 树）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全链测试绿且判别（断点清空变异探针：awaitSuspended 红（10s）→ 恢复零残留 → 绿；审计 F 亲测 1/1 绿）
+- [x] 端到端验证（Minimum Rule 22）：从 WS 帧（握手）到任务结果输出完整路径已验证（业务线程 syncGetOutputs sum==7 + sessionClosed 事件锚定）
+- [x] 接线验证（Minimum Rule 23）：task step 编译链在运行时确实经全局执行器路由到会话 debugger——审计维度 B 静态全链追踪（XLang.execute choke point → SessionRoutingExecutor → DebugSessionScope → DebugExpressionExecutor.checkBreakpoint）+ evt.suspended 真实虚拟路径运行时证据
+- [x] No owner-doc update required（场景蓝本登记归 item 23 文档注册；本 plan 无 live baseline 变更——仅 test 树）
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-10-18 item 21 条目，7c78625e65 入库）
 
 ## Closure Gates
 
-- [ ] 所有 in-scope 行为实现且有测试（本 plan 交付物即测试）
-- [ ] Anti-Hollow：全链从 WS 帧入口到任务结果出口完整连通（evt.suspended 为 task→debugger 接线的运行时证据）
-- [ ] No owner-doc update required（如实裁定：test 树变更，场景蓝本归 item 23 登记时一并入 docs-for-ai）
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿（-am 连带 nop-task 全链测试，耗时可接受）
-- [ ] check-plan-checklist --strict exit 0
+- [x] 所有 in-scope 行为实现且有测试（本 plan 交付物即测试；审计维度 A 判别力 PASS）
+- [x] Anti-Hollow：全链从 WS 帧入口到任务结果出口完整连通（审计维度 B 静态追踪 + evt.suspended 运行时证据 PASS）
+- [x] No owner-doc update required（如实裁定：test 树变更，场景蓝本归 item 23 登记时一并入 docs-for-ai）
+- [x] 独立子 agent closure-audit 完成并记录证据（agent_71cecb8b，**approved**，0B/0M/5m）
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿（nop-task-core 163/163 + debug-web 47/47，BUILD SUCCESS——审计 F 亲测）；另有单 JVM forkCount=1 最坏顺序探测 47/47
+- [x] check-plan-checklist --strict exit 0；scan-hollow --module nop-dev-tools/nop-xlang-debug-web 0 发现（审计 F）
 
 ## Deferred But Adjudicated
 
@@ -105,13 +105,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （待收口后填写）
-Completed: （待收口后填写）
+Status Note: item 21（示例接入 + 后端集成测试）收口——双 xpl step 示例任务 + 真实 XDSL task 全链集成测试（真实资源位置断点→挂起→求值→step 边界单步→放行→任务完成），即 task 编译链接线调试 choke point 的首个 live 证明；为 item 22 e2e 提供场景蓝本。closure audit approved（0B/0M/5m，五 minor 均为文案/加固级，m2 加固已随收口提交落位）。
+Completed: 2026-10-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待填）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子代理 agent_71cecb8b（fresh session）
+- Audit Session: agent_71cecb8b-e042-46b6-9981-eeb8185425b8
+- Evidence:
+  - A 判别力（PASS）：真实位置/求值/stepInto reason+异行/输出值/事件序锚定，无恒真；变异探针记录合规（含首版假绿被 R5 纪律抓出的实录）
+  - B Anti-Hollow（PASS）：EvalTaskStep→ExprEvalAction.invoke→XLang.execute→SessionRoutingExecutor→DebugSessionScope→DebugExpressionExecutor.checkBreakpoint 全静态追踪 + 真实路径 evt.suspended 运行时证据
+  - C R1 五发现全落地（PASS，含 M5 注释在位）
+  - D 测试卫生（PASS，对抗性）：try/finally 全链覆盖、失败路径经 binder.shutdown→debugger.close 抛 ALREADY_CLOSED 正常释放；**单 JVM forkCount=1 最坏顺序探测 47/47**
+  - E Deferred 诚实（PASS）：语句级单步为已验证 watch-only（BuildExecutableProcessor→CallFuncExecutable setAllowBreakpoint(false) 代码级佐证；RESULT==4 通过即强制证明语句级不可达），未隐藏 in-scope 缺陷
+  - F 门禁亲测（PASS）：focused 1/1、模块 47/47、-am BUILD SUCCESS、doc-links --strict 0、scan-hollow 0、checklist --strict 0
+  - minor 处置：m2 字面量锚定断言已落码复测绿；m1/m3 勾选时按执行中修订风格注记；m4 归因勘正（编译形态在 nop-xlang xpl std-domain，非 nop-task-core）→ Deferred 条目同步；m5 已接受残差（单 JVM 探测缓解）
+  - Deferred 分类检查：三条（语句级单步/示例页面/nop-rule）均分类诚实——无 in-scope live defect 被降级
+
+Follow-up:
+
+- 语句级单步粒度（item 24 深审复核；编译形态在 nop-xlang xpl std-domain 管道）
+- 示例页面半边与 nop-rule 场景（out-of-scope 裁定维持）
 
 ## Draft Review Record
 

@@ -96,6 +96,8 @@ public class TestXdslTaskDebugFullChain extends AbstractDebugGatewayTest {
         }
         assertFalse(recorder.statementLocs.isEmpty(),
                 "task xpl step 必须经过调试 choke point（接线验证：checkBreakpoint 携真实资源位置）");
+        // closure audit m2：字面量锚定——防 record 与事件两处一致性地漂移成同错互证
+        assertEquals("/nop/task/DebugDemoTask/v1.task.xml", recorder.statementLocs.get(0).getPath());
         return recorder.statementLocs;
     }
 

@@ -69,7 +69,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 ### Wave 4: 跨仓交付、集成与文档
 
 - 20. 跨仓交付与版本配套（flux-bundle 打包清单、宿主 registry/版本契约、nop-web-site 产物刷新、demo 宿主裁定）: `done`
-- 21. 示例接入 + 后端集成测试（选定 XDSL 场景，nop-entropy 侧集成测试）: `todo`
+- 21. 示例接入 + 后端集成测试（选定 XDSL 场景，nop-entropy 侧集成测试）: `done`
 - 22. 前后端 Playwright e2e（flux 侧：断点→续期→单步→求值→放行→完成全链路）: `todo`
 - 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `todo`
 
