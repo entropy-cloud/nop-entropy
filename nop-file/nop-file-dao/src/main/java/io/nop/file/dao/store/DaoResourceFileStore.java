@@ -411,10 +411,16 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
             return;
         if (userContext.isUserInRole("admin"))
             return;
-        if (!java.util.Objects.equals(record.getCreatedBy(), userContext.getUserId()))
+        // createdBy 由 ORM 审计写入 userRefNo：缺省 userRefNo 回退为 userName（登录名），
+        // 开启 nop.auth.use-user-id-for-audit-fields 时才是 userId。归属校验必须与审计口径
+        // 一致，否则同一用户上传后 attach 会因 createdBy(登录名) != userId(主键) 被误拒。
+        String createdBy = record.getCreatedBy();
+        boolean isCreator = java.util.Objects.equals(createdBy, userContext.getUserName())
+                || java.util.Objects.equals(createdBy, userContext.getUserId());
+        if (!isCreator)
             throw new NopException(io.nop.file.core.FileErrors.ERR_FILE_NO_ATTACH_PERMISSION)
                     .param(ARG_FILE_ID, record.getFileId())
-                    .param("createdBy", record.getCreatedBy())
+                    .param("createdBy", createdBy)
                     .param("userId", userContext.getUserId());
     }
 
