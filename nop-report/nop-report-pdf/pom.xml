@@ -35,6 +35,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- WI1: 测试接入 nop-pdf io.nop.pdf.verify 视觉验收工具（仅测试scope，生产依赖图不变） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-pdf</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

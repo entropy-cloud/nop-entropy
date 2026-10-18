@@ -29,6 +29,9 @@ import org.apache.pdfbox.util.Matrix;
 import java.io.IOException;
 import java.util.List;
 
+import static io.nop.report.pdf.ReportPdfErrors.ARG_PRINT_TITLE_RANGE;
+import static io.nop.report.pdf.ReportPdfErrors.ERR_PDF_UNSUPPORTED_PRINT_TITLES;
+
 public class PdfSheetRenderer {
     private final PdfRenderer renderer;
     private final IExcelStyleProvider styleProvider;
@@ -39,12 +42,18 @@ public class PdfSheetRenderer {
     }
 
     public void renderSheet(IExcelSheet sheet) {
+        // 入口处一次性解析重复标题声明（模型优先，非前缀形态显式报错），
+        // 拆分预留与续页/侧页/角块渲染全部使用同一解析结果
+        int[] repeat = resolveRepeatTitles(sheet);
+        int repeatRows = repeat[0];
+        int repeatCols = repeat[1];
+
         ExcelPageSetup pageSetup = sheet.getPageSetup();
         SizeBean pagerSize = ExcelPrintHelper.getPaperSize(pageSetup);
         RectangleBean printArea = ExcelPrintHelper.calculatePrintArea(pagerSize, sheet.getPageMargins());
 
         if (pageSetup != null && pageSetup.isFitToWidthAndHeight()) {
-            renderSheet(sheet, pagerSize, printArea, null);
+            renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols);
             return;
         }
 
@@ -57,13 +66,11 @@ public class PdfSheetRenderer {
                 printArea.getWidth(), printArea.getHeight(),
                 sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging);
         if (tableRegions.size() <= 1) {
-            renderSheet(sheet, pagerSize, printArea, null);
+            renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols);
             return;
         }
 
         // 需要分页：为续页的重复标题块预留空间后重新拆分，避免页尾内容溢出
-        int repeatRows = repeatHeaderRows(sheet);
-        int repeatCols = repeatKeyColumns(sheet);
         double repeatHeight = repeatRows > 0 ? table.getRangeHeight(0, repeatRows - 1, sheet.defaultRowHeight()) : 0;
         double repeatWidth = repeatCols > 0 ? table.getRangeWidth(0, repeatCols - 1, sheet.defaultColumnWidth()) : 0;
         if (repeatHeight > 0 || repeatWidth > 0) {
@@ -74,31 +81,53 @@ public class PdfSheetRenderer {
         }
 
         for (CellRange region : tableRegions) {
-            renderSheet(sheet, pagerSize, printArea, region);
+            renderSheet(sheet, pagerSize, printArea, region, repeatRows, repeatCols);
         }
     }
 
-    private double repeatRowsHeight(IExcelSheet sheet, CellRange region) {
-        int k = Math.min(repeatHeaderRows(sheet), region.getFirstRowIndex());
+    /**
+     * 解析重复标题声明：pageSetup 的 repeatTitleRows/repeatTitleCols（来自模板 Print_Titles）优先，
+     * 缺失时回退全局配置缺省。模型声明必须为前缀形态（从首行/首列开始），否则显式报错——
+     * 非前缀是模板级不支持形态，与是否实际分页无关。
+     */
+    private int[] resolveRepeatTitles(IExcelSheet sheet) {
+        ExcelPageSetup pageSetup = sheet.getPageSetup();
+        return new int[]{
+                resolveTitleCount(pageSetup == null ? null : pageSetup.getRepeatTitleRows(),
+                        ReportPdfConfigs.CFG_PDF_REPEAT_HEADER_ROWS.get(), sheet.getTable().getRowCount()),
+                resolveTitleCount(pageSetup == null ? null : pageSetup.getRepeatTitleCols(),
+                        ReportPdfConfigs.CFG_PDF_REPEAT_KEY_COLUMNS.get(), sheet.getTable().getColCount())
+        };
+    }
+
+    private int resolveTitleCount(String range, int configDefault, int totalCount) {
+        if (StringHelper.isEmpty(range)) {
+            int n = Math.max(0, configDefault);
+            return Math.min(n, Math.max(0, totalCount - 1));
+        }
+        int[] r = ExcelPrintHelper.parseTitleRange(range);
+        if (!ExcelPrintHelper.isPrefixRange(r))
+            throw new NopException(ERR_PDF_UNSUPPORTED_PRINT_TITLES).param(ARG_PRINT_TITLE_RANGE, range);
+        return Math.min(r[1], Math.max(0, totalCount - 1));
+    }
+
+    private double repeatRowsHeight(IExcelSheet sheet, CellRange region, int repeatRows) {
+        int k = Math.min(repeatRows, region.getFirstRowIndex());
         return k > 0 ? sheet.getTable().getRangeHeight(0, k - 1, sheet.defaultRowHeight()) : 0;
     }
 
-    private double repeatColsWidth(IExcelSheet sheet, CellRange region) {
-        int m = Math.min(repeatKeyColumns(sheet), region.getFirstColIndex());
+    private double repeatColsWidth(IExcelSheet sheet, CellRange region, int repeatCols) {
+        int m = Math.min(repeatCols, region.getFirstColIndex());
         return m > 0 ? sheet.getTable().getRangeWidth(0, m - 1, sheet.defaultColumnWidth()) : 0;
     }
 
-    private int repeatHeaderRows(IExcelSheet sheet) {
-        int n = Math.max(0, ReportPdfConfigs.CFG_PDF_REPEAT_HEADER_ROWS.get());
-        return Math.min(n, Math.max(0, sheet.getTable().getRowCount() - 1));
-    }
-
-    private int repeatKeyColumns(IExcelSheet sheet) {
-        int n = Math.max(0, ReportPdfConfigs.CFG_PDF_REPEAT_KEY_COLUMNS.get());
-        return Math.min(n, Math.max(0, sheet.getTable().getColCount() - 1));
-    }
-
     public void renderSheet(IExcelSheet sheet, SizeBean paperSize, RectangleBean printArea, CellRange region) {
+        int[] repeat = resolveRepeatTitles(sheet);
+        renderSheet(sheet, paperSize, printArea, region, repeat[0], repeat[1]);
+    }
+
+    private void renderSheet(IExcelSheet sheet, SizeBean paperSize, RectangleBean printArea, CellRange region,
+                             int repeatRows, int repeatCols) {
         ITableView table;
         if (region == null) {
             table = sheet.getTable();
@@ -112,8 +141,6 @@ public class PdfSheetRenderer {
         ITableView repeatColsTable = null;
         ITableView cornerTable = null;
         if (region != null) {
-            int repeatRows = repeatHeaderRows(sheet);
-            int repeatCols = repeatKeyColumns(sheet);
             boolean rowRepeat = repeatRows > 0 && region.getFirstRowIndex() > 0;
             boolean colRepeat = repeatCols > 0 && region.getFirstColIndex() > 0;
             if (rowRepeat) {
@@ -148,8 +175,8 @@ public class PdfSheetRenderer {
             }
 
             // 重复块占位尺寸需先于applyPageSetup计算，fit缩放/居中要把dx/dy计入
-            double dx = repeatColsTable != null ? repeatColsWidth(sheet, region) : 0;
-            double dy = repeatRowsTable != null ? repeatRowsHeight(sheet, region) : 0;
+            double dx = repeatColsTable != null ? repeatColsWidth(sheet, region, repeatCols) : 0;
+            double dy = repeatRowsTable != null ? repeatRowsHeight(sheet, region, repeatRows) : 0;
 
             // 应用页面设置，并取得设备页矩形在当前用户空间的裁剪矩形（供图片裁剪）
             java.awt.Rectangle pageClipRect = applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight, dx, dy);

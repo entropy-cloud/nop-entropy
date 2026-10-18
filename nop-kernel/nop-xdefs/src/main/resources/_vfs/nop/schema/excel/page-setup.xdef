@@ -2,6 +2,8 @@
             @scale 放大百分比
             @paperSize 为ooxml中定义的标准页面大小。如果设置了paperWidth和paperHeight时，以这两个值为准
             @paperWidth 单位为pt
+            @repeatTitleRows 重复标题行范围（1-based 闭区间，如 "1:2"），来自 Print_Titles definedNames
+            @repeatTitleCols 重复标题列范围（1-based 闭区间，如 "A:B"），来自 Print_Titles definedNames
             -->
 <pageSetup x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
            xdef:name="ExcelPageSetup" xdef:bean-package="io.nop.excel.model"
@@ -9,7 +11,8 @@
            horizontalCentered="boolean" verticalCentered="boolean"
            paperSize="int" paperWidth="float" paperHeight="float" scale="int"
            fitToHeight="boolean" fitToWidth="boolean" gridLines="boolean"
-           firstPageNumber="int" blackAndWhite="boolean">
+           firstPageNumber="int" blackAndWhite="boolean"
+           repeatTitleRows="string" repeatTitleCols="string">
     <header xdef:name="ExcelHeaderFooter">
         <left>string</left>
         <center>string</center>

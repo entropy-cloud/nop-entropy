@@ -102,6 +102,20 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: repeatTitleCols
+     * 重复标题列范围（1-based 闭区间，如 "A:B"），来自 Print_Titles definedNames
+     */
+    private java.lang.String _repeatTitleCols ;
+    
+    /**
+     *  
+     * xml name: repeatTitleRows
+     * 重复标题行范围（1-based 闭区间，如 "1:2"），来自 Print_Titles definedNames
+     */
+    private java.lang.String _repeatTitleRows ;
+    
+    /**
+     *  
      * xml name: scale
      * 放大百分比
      */
@@ -344,6 +358,44 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: repeatTitleCols
+     *  重复标题列范围（1-based 闭区间，如 "A:B"），来自 Print_Titles definedNames
+     */
+    
+    public java.lang.String getRepeatTitleCols(){
+      return _repeatTitleCols;
+    }
+
+    
+    public void setRepeatTitleCols(java.lang.String value){
+        checkAllowChange();
+        
+        this._repeatTitleCols = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: repeatTitleRows
+     *  重复标题行范围（1-based 闭区间，如 "1:2"），来自 Print_Titles definedNames
+     */
+    
+    public java.lang.String getRepeatTitleRows(){
+      return _repeatTitleRows;
+    }
+
+    
+    public void setRepeatTitleRows(java.lang.String value){
+        checkAllowChange();
+        
+        this._repeatTitleRows = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: scale
      *  放大百分比
      */
@@ -411,6 +463,8 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         out.putNotNull("paperHeight",this.getPaperHeight());
         out.putNotNull("paperSize",this.getPaperSize());
         out.putNotNull("paperWidth",this.getPaperWidth());
+        out.putNotNull("repeatTitleCols",this.getRepeatTitleCols());
+        out.putNotNull("repeatTitleRows",this.getRepeatTitleRows());
         out.putNotNull("scale",this.getScale());
         out.putNotNull("verticalCentered",this.getVerticalCentered());
     }
@@ -436,6 +490,8 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         instance.setPaperHeight(this.getPaperHeight());
         instance.setPaperSize(this.getPaperSize());
         instance.setPaperWidth(this.getPaperWidth());
+        instance.setRepeatTitleCols(this.getRepeatTitleCols());
+        instance.setRepeatTitleRows(this.getRepeatTitleRows());
         instance.setScale(this.getScale());
         instance.setVerticalCentered(this.getVerticalCentered());
     }

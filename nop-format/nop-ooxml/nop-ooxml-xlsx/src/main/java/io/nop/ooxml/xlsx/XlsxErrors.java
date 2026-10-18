@@ -21,6 +21,7 @@ public interface XlsxErrors {
     String ARG_ELEMENT_NAME = "elementName";
     String ARG_PARSER_NAME = "parserName";
     String ARG_CELL_REF = "cellRef";
+    String ARG_PRINT_TITLES = "printTitles";
 
     ErrorCode ERR_XLSX_NULL_REL_PART = define("nop.err.xlsx.null-rel-part", "没有关联文件:type={type},relId={relId}", ARG_TYPE,
             ARG_REL_ID);
@@ -33,6 +34,12 @@ public interface XlsxErrors {
 
     ErrorCode ERR_XLSX_NULL_PACKAGE = define("nop.err.xlsx.null-package",
             "ExcelOfficePackage不能为null");
+
+    ErrorCode ERR_XLSX_INVALID_PRINT_TITLES = define("nop.err.xlsx.invalid-print-titles",
+            "无效的Print_Titles定义:printTitles={printTitles}", ARG_PRINT_TITLES);
+
+    ErrorCode ERR_XLSX_DUP_PRINT_TITLES = define("nop.err.xlsx.dup-print-titles",
+            "重复的Print_Titles定义:printTitles={printTitles}", ARG_PRINT_TITLES);
 
     // 图表样式相关错误码
     ErrorCode ERR_XLSX_CHART_STYLE_PARSE_FAIL = define("nop.err.xlsx.chart-style-parse-fail",
