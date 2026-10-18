@@ -71,13 +71,13 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 20. 跨仓交付与版本配套（flux-bundle 打包清单、宿主 registry/版本契约、nop-web-site 产物刷新、demo 宿主裁定）: `done`
 - 21. 示例接入 + 后端集成测试（选定 XDSL 场景，nop-entropy 侧集成测试）: `done`
 - 22. 前后端 Playwright e2e（flux 侧：断点→续期→单步→求值→放行→完成全链路）: `todo`
-- 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `todo`
+- 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `done`
 
-★ **Milestone: 功能完备**（unlocks when 20-23 done）: `done`
+★ **Milestone: 功能完备**（unlocks when 20-23 done）: `todo`
 
 ### Wave 5: 深度审计与修复收口
 
-- 24. 并发与会话隔离深度审计（多会话竞态、租约/断连时序、线程泄漏、死锁、单步目标错乱；不变式闭环核对）: `todo`
+- 24. 并发与会话隔离深度审计（多会话竞态、租约/断连时序、线程泄漏、死锁、单步目标错乱；不变式闭环核对）: `done`
 - 25. 安全深度审计（REPL 沙箱逃逸、WS 鉴权、越权调试/会话访问、DoS 面、审计日志完备性）: `done`
 - 26. 前端集成审计（扩展生命周期泄漏、重连恢复正确性、前后端协议一致性双向核对）: `done`
 - 27. 审计修复收口（消化 24-26 产生的 remediation plans；超限时按审计域拆分，本 item 随最后一份 plan 收口翻转）: `todo`
