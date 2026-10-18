@@ -39,7 +39,7 @@
 
 ### M0 — 基础设施：参考实现与视觉验收工具链
 
-- [ ] WI0 参考实现获取 + PDF 视觉验收工具链：**PDFBox 引擎基线升级到最新 3.0.8（2026-10-17 已完成：`nop-dependencies` 属性 3.0.3→3.0.8 + 去掉 `nop-pdf` 模块显式 pin，nop-pdf/nop-report-pdf 解析一致、测试全绿）**；下载 apache/pdfbox（引擎与 examples）、LibrePDF/OpenPDF、dromara/x-easypdf、TIBCOSoftware/jasperreports 到 ~/sources（已用重试脚本启动；`~/sources/print/` 8 个设计器作版式对版参考）；新建 **PDF→PNG 渲染 + golden 快照 + 图像 diff** 工具（渲染 DPI 口径、抗锯齿归一化、SSIM/像素容差、指定区域线宽/颜色采样），落到 nop-format/nop-pdf 测试支撑包（或 nop-autotest 扩展；仓库现无像素 diff 工具）；产出"工具使用与验收口径"说明落 ai-dev/analysis 当月目录（Deliverable: 参考仓库就位 + 视觉验收工具 + 口径裁定；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 参考实现获取 + PDF 视觉验收工具链：**PDFBox 引擎基线升级到最新 3.0.8（2026-10-17 已完成：`nop-dependencies` 属性 3.0.3→3.0.8 + 去掉 `nop-pdf` 模块显式 pin，nop-pdf/nop-report-pdf 解析一致、测试全绿）**；下载 apache/pdfbox（引擎与 examples）、LibrePDF/OpenPDF、dromara/x-easypdf、TIBCOSoftware/jasperreports 到 ~/sources（已用重试脚本启动；`~/sources/print/` 8 个设计器作版式对版参考）；新建 **PDF→PNG 渲染 + golden 快照 + 图像 diff** 工具（渲染 DPI 口径、抗锯齿归一化、SSIM/像素容差、指定区域线宽/颜色采样），落到 nop-format/nop-pdf 测试支撑包（或 nop-autotest 扩展；仓库现无像素 diff 工具）；产出"工具使用与验收口径"说明落 ai-dev/analysis 当月目录（Deliverable: 参考仓库就位 + 视觉验收工具 + 口径裁定；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 分页打印（pagination）
 
@@ -83,7 +83,7 @@
 
 - [ ] WI18 全链路验收与文档收口：**export 侧**——现有 20 个 demo 模板 + 新增分页/页眉页脚/图片/图表/样式/装配 fixture，全链路渲染逐张转 PNG，对 golden 做线宽/颜色/布局 diff 断言 + 人工截图抽查；失败项回灌对应 WI。**抽取侧**——以 card-kb 样本 PDF 验证 outline/目录/页锚/图片普查抽取结果与 `analyzed/**/outline.yaml` 及 image-registry 对版（结构语义一致）。更新 owner doc（PDF 能力矩阵：导出/装配/抽取三面、配置面、已知限制）与 `docs-for-ai/INDEX.md` 路由、`01-repo-map/module-groups.md` 模块登记、`04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI17 完成或显式裁定；Item Type: Proof）
 
-- ★ **Milestone: 视觉验收工具链就绪**（WI0 完成后勾选）
+- [x] ★ **Milestone: 视觉验收工具链就绪**（WI0 完成后勾选；2026-10-19 plan 2463）
 - ★ **Milestone: 分页打印生产可用**（WI1–WI3 完成后勾选）
 - ★ **Milestone: 页眉页脚可用**（WI4–WI5 完成后勾选）
 - ★ **Milestone: 图片与图表嵌入可用**（WI6–WI7 完成后勾选）
