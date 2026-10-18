@@ -29,60 +29,60 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 ### Wave 0: 设计细化（设计文档全部落 nop-entropy ai-dev/design/xlang-web-debugger/，D5 的 spike POC 代码可在 flux 侧）
 
-- 1. D0 总体架构与协议总纲（组件/时序、与 SimpleRpcServer/IDEA 共存、WS 传输容器裁定、集群转发与多人协作范围裁定）: `todo`
-- 2. D1 WebSocket 调试协议详设（JSON envelope、消息集、版本化、鉴权握手、受控扩展事件登记）: `todo`
-- 3. D2 租约续期与生命周期详设（TTL/renew/断连宽限/多标签页归属、release 双语义状态机）: `todo`
-- 4. D3 调试器会话化详设（方案 A/B 裁定、会话标识透传、多线程单步目标策略、IDEA 兼容）: `todo`
-- 5. D4 调试模式与执行后端联动详设（两条绕过路径的消除策略、配置联动矩阵）: `todo`
-- 6. D5 前端架构设计 + 语法方案 spike（扩展点、包结构、Lezer 构建链评估、grammar 三来源 POC 裁定）: `todo`
-- 7. D6 在线 eval REPL 与安全边界详设（沙箱、取消机制三选一、权限、审计日志）: `todo`
+- 1. D0 总体架构与协议总纲（组件/时序、与 SimpleRpcServer/IDEA 共存、WS 传输容器裁定、集群转发与多人协作范围裁定）: `done`
+- 2. D1 WebSocket 调试协议详设（JSON envelope、消息集、版本化、鉴权握手、受控扩展事件登记）: `done`
+- 3. D2 租约续期与生命周期详设（TTL/renew/断连宽限/多标签页归属、release 双语义状态机）: `done`
+- 4. D3 调试器会话化详设（方案 A/B 裁定、会话标识透传、多线程单步目标策略、IDEA 兼容）: `done`
+- 5. D4 调试模式与执行后端联动详设（两条绕过路径的消除策略、配置联动矩阵）: `done`
+- 6. D5 前端架构设计 + 语法方案 spike（扩展点、包结构、Lezer 构建链评估、grammar 三来源 POC 裁定）: `done`
+- 7. D6 在线 eval REPL 与安全边界详设（沙箱、取消机制三选一、权限、审计日志）: `done`
 
-★ **Milestone: 设计收口**（unlocks when 1-7 done）: `todo`
+★ **Milestone: 设计收口**（unlocks when 1-7 done）: `done`
 
 ### Wave 1: 后端引擎会话化（nop-entropy）
 
-- 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `todo`
-- 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `todo`
-- 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `todo`
-- 11. 调试模式执行后端联动（按 D4：两条绕过路径消除或降级，含回归）: `todo`
+- 8. 会话标识注入 + executor 会话路由（按 D3 裁定落地）: `done`
+- 9. 每会话 debugger 实例生命周期 + IDEA 默认会话兼容 + 并发回归: `done`
+- 10. 租约续期机制（per-thread TTL、release 双语义、到期/异常事件扩展，含时序测试）: `done`
+- 11. 调试模式执行后端联动（按 D4：两条绕过路径消除或降级，含回归）: `done`
 
-★ **Milestone: 会话化调试引擎**（unlocks when 8-11 done）: `todo`
+★ **Milestone: 会话化调试引擎**（unlocks when 8-11 done）: `done`
 
 ### Wave 2: 后端通道与服务（nop-entropy）
 
-- 12. WebSocket 调试网关（复用平台 WS 基座，按 D1/D2 实施协议映射、鉴权、会话生命周期绑定连接）: `todo`
-- 13. 日志流与事件管道（log appender 攒批定向推送、断点/异常/租约过期事件统一出站）: `todo`
-- 14. 在线 eval REPL 服务端（按 D6：compile+execute、取消机制、沙箱与权限、审计日志）: `todo`
+- 12. WebSocket 调试网关（复用平台 WS 基座，按 D1/D2 实施协议映射、鉴权、会话生命周期绑定连接）: `done`
+- 13. 日志流与事件管道（log appender 攒批定向推送、断点/异常/租约过期事件统一出站）: `done`
+- 14. 在线 eval REPL 服务端（按 D6：compile+execute、取消机制、沙箱与权限、审计日志）: `done`
 
-★ **Milestone: 后端调试服务 MVP**（unlocks when 8-14 done）: `todo`
+★ **Milestone: 后端调试服务 MVP**（unlocks when 8-14 done）: `done`
 
 ### Wave 3: 前端编辑器与调试 UI（nop-chaos-flux）
 
-- 15. xlang CodeMirror 语言包（按 D5：Lezer grammar 构建链、高亮/折叠、诊断对接、语言注册开放化）: `todo`
-- 16. 调试编辑器扩展（断点 gutter、挂起行/异常波浪线装饰、断点增删交互）: `todo`
-- 17. WS 调试客户端与租约续期（连接/重连/鉴权、续期心跳、断连放行、会话恢复）: `todo`
-- 18. 调试面板（变量树懒展开、调用栈/frame 切换、表达式求值、控制按钮、日志面板）: `todo`
-- 19. 在线 REPL 面板 + 编辑器装配（语言包 + 调试扩展 + 面板组装为 xlang 在线调试编辑器组件）: `todo`
+- 15. xlang CodeMirror 语言包（按 D5：Lezer grammar 构建链、高亮/折叠、诊断对接、语言注册开放化）: `done`
+- 16. 调试编辑器扩展（断点 gutter、挂起行/异常波浪线装饰、断点增删交互）: `done`
+- 17. WS 调试客户端与租约续期（连接/重连/鉴权、续期心跳、断连放行、会话恢复）: `done`
+- 18. 调试面板（变量树懒展开、调用栈/frame 切换、表达式求值、控制按钮、日志面板）: `done`
+- 19. 在线 REPL 面板 + 编辑器装配（语言包 + 调试扩展 + 面板组装为 xlang 在线调试编辑器组件）: `done`
 
-★ **Milestone: 端到端断点调试 demo**（unlocks when 8-19 done）: `todo`
+★ **Milestone: 端到端断点调试 demo**（unlocks when 8-19 done）: `done`
 
 ### Wave 4: 跨仓交付、集成与文档
 
-- 20. 跨仓交付与版本配套（flux-bundle 打包清单、宿主 registry/版本契约、nop-web-site 产物刷新、demo 宿主裁定）: `todo`
-- 21. 示例接入 + 后端集成测试（选定 XDSL 场景，nop-entropy 侧集成测试）: `todo`
-- 22. 前后端 Playwright e2e（flux 侧：断点→续期→单步→求值→放行→完成全链路）: `todo`
-- 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `todo`
+- 20. 跨仓交付与版本配套（flux-bundle 打包清单、宿主 registry/版本契约、nop-web-site 产物刷新、demo 宿主裁定）: `done`
+- 21. 示例接入 + 后端集成测试（选定 XDSL 场景，nop-entropy 侧集成测试）: `done`
+- 22. 前后端 Playwright e2e（flux 侧：断点→续期→单步→求值→放行→完成全链路）: `done`
+- 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `done`
 
-★ **Milestone: 功能完备**（unlocks when 20-23 done）: `todo`
+★ **Milestone: 功能完备**（unlocks when 20-23 done）: `done`
 
 ### Wave 5: 深度审计与修复收口
 
-- 24. 并发与会话隔离深度审计（多会话竞态、租约/断连时序、线程泄漏、死锁、单步目标错乱；不变式闭环核对）: `todo`
-- 25. 安全深度审计（REPL 沙箱逃逸、WS 鉴权、越权调试/会话访问、DoS 面、审计日志完备性）: `todo`
-- 26. 前端集成审计（扩展生命周期泄漏、重连恢复正确性、前后端协议一致性双向核对）: `todo`
-- 27. 审计修复收口（消化 24-26 产生的 remediation plans；超限时按审计域拆分，本 item 随最后一份 plan 收口翻转）: `todo`
+- 24. 并发与会话隔离深度审计（多会话竞态、租约/断连时序、线程泄漏、死锁、单步目标错乱；不变式闭环核对）: `done`
+- 25. 安全深度审计（REPL 沙箱逃逸、WS 鉴权、越权调试/会话访问、DoS 面、审计日志完备性）: `done`
+- 26. 前端集成审计（扩展生命周期泄漏、重连恢复正确性、前后端协议一致性双向核对）: `done`
+- 27. 审计修复收口（消化 24-26 产生的 remediation plans；超限时按审计域拆分，本 item 随最后一份 plan 收口翻转）: `done`
 
-★ **Milestone: 审计收口**（unlocks when 24-27 done）: `todo`
+★ **Milestone: 审计收口**（unlocks when 24-27 done）: `done`
 
 ## Status values
 
@@ -135,20 +135,20 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 | # | Stage | Owner plan | Deps | Critical path | Reuse |
 | --- | --- | --- | --- | --- | --- |
-| 1 | D0 总体架构与协议总纲 | plan-01-design-overview | — | **Yes** | analysis §6 裁定、WS 基座 |
-| 2 | D1 WS 协议详设 | plan-02-design-protocol | after 1 | **Yes** | nop-api-debugger、IUserContextExtractor |
-| 3 | D2 租约续期详设 | plan-03-design-lease | after 1 | **Yes** | monitorWait 底座 |
-| 4 | D3 会话化详设 | plan-04-design-session | after 1 | **Yes** | EvalExprProvider |
-| 5 | D4 执行后端联动详设 | plan-05-design-backend-link | after 1 | No | EvalBackendRouter |
-| 6 | D5 前端架构 + 语法 spike | plan-06-design-frontend | after 1 | **Yes** | flux-code-editor、XLangLexer.g4 |
-| 7 | D6 REPL 与安全详设 | plan-07-design-repl-security | after 1 | No | nop-biz 鉴权 |
+| 1 | D0 总体架构与协议总纲 | plans/2460-xdbg-d0-design-overview | — | **Yes** | analysis §6 裁定、WS 基座 |
+| 2 | D1 WS 协议详设 | plans/2461-xdbg-d1-ws-protocol | after 1 | **Yes** | nop-api-debugger、IUserContextExtractor |
+| 3 | D2 租约续期详设 | plans/2462-xdbg-d2-lease-lifecycle | after 1 | **Yes** | monitorWait 底座 |
+| 4 | D3 会话化详设 | plans/2463-xdbg-d3-sessionization | after 1 | **Yes** | EvalExprProvider |
+| 5 | D4 执行后端联动详设 | plans/2464-xdbg-d4-backend-link | after 1 | No | EvalBackendRouter |
+| 6 | D5 前端架构 + 语法 spike | plans/2465-xdbg-d5-frontend-grammar | after 1 | **Yes** | flux-code-editor、XLangLexer.g4 |
+| 7 | D6 REPL 与安全详设 | plans/2466-xdbg-d6-repl-security | after 1 | No | nop-biz 鉴权 |
 | ★ | 设计收口 (milestone) | — | 1-7 done | — | — |
-| 8 | 会话标识注入 + executor 路由 | plan-08-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
-| 9 | 每会话实例生命周期 + IDEA 兼容 | plan-09-session-lifecycle | after 8 | **Yes** | XLangDebugger |
-| 10 | 租约续期机制 | plan-10-lease-renewal | after ★, 3, 9 | **Yes** | monitorWait 底座 |
-| 11 | 执行后端联动 | plan-11-backend-link | after 8, 5 | No | EvalBackendRouter |
+| 8 | 会话标识注入 + executor 路由 | plans/2467-xdbg-item8-session-routing | after ★, 4 | **Yes** | EvalExprProvider |
+| 9 | 每会话实例生命周期 + IDEA 兼容 | plans/2468-xdbg-item9-session-lifecycle | after 8 | **Yes** | XLangDebugger |
+| 10 | 租约续期机制 | plans/2469-xdbg-item10-lease | after ★, 3, 9 | **Yes** | monitorWait 底座 |
+| 11 | 执行后端联动 | plans/2470-xdbg-item11-backend-link | after 8, 5 | No | EvalBackendRouter |
 | ★ | 会话化调试引擎 (milestone) | — | 8-11 done | — | — |
-| 12 | WebSocket 调试网关 | plan-12-ws-gateway | after engine ★, 2, 3 | **Yes** | JsonRpcWebSocketHandler 模式 |
+| 12 | WebSocket 调试网关 | plans/2471-xdbg-item12-ws-gateway | after engine ★, 2, 3 | **Yes** | JsonRpcWebSocketHandler 模式 |
 | 13 | 日志流与事件管道 | plan-13-log-event-pipe | after 12 | No | magic-api 模式 |
 | 14 | REPL 服务端 | plan-14-repl-server | after 12, 7 | No | XLang compile |
 | ★ | 后端调试服务 MVP (milestone) | — | 8-14 done | — | — |
@@ -257,7 +257,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 按 D3 裁定实施上半部分：会话标识进入 `EvalRuntime` 并可靠透传；executor 路由外壳——按会话标识路由到对应 debugger 实例，无标识执行走空实现（零开销路径）。
+**Goal:** 按 D3 裁定实施上半部分：会话标识注入与可靠透传；按会话标识路由到对应 debugger 实例；无 web 会话标识的执行走**默认会话兜底**（D0 §3.3 规则 3 语义——IDEA 全局断点语义不变，分发机制归 D3）；`nop.xlang.debugger.enabled=false` 路径零改动。
 
 **Deliverables:**
 - XDBG-08-01: 会话标识注入 + 路由实现
@@ -269,7 +269,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 按 D3 裁定实施下半部分：每会话 `XLangDebugger` 实例（含各自 BreakpointManagerImpl/suspendedThreads/租约状态）的创建/销毁；IDEA 插件与 SimpleRpcServer 通道映射到"默认会话"保持兼容；多线程单步目标策略落地。
+**Goal:** 按 D3 裁定实施下半部分：每会话 `XLangDebugger` 实例（含各自 BreakpointManagerImpl/suspendedThreads/租约状态）的创建/销毁；IDEA 插件与 SimpleRpcServer 通道映射到"默认会话"保持兼容；多线程单步目标策略落地。**（2026-10-16 修订：多线程单步目标策略的语义重建依赖 item 10 的谓词局部化（D2 §3.3），移归 item 10 承接——item 9 交付生命周期/隔离面，跨会话单步互扰由 item 8 每会话实例消除；D3 §3.8 职责行同步。）**
 
 **Deliverables:**
 - XDBG-09-01: 实例生命周期 + 默认会话兼容实现
@@ -281,7 +281,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 
 > Status: see Work Items above
 
-**Goal:** 按 D2 实施：SuspendedThread 级 per-thread TTL（现无 TTL 字段，在 monitorWait 轮询循环内按 deadline 退出——注意 `resume()` 全局放行语义不可直接挪用）、renew/release 双语义 API（到期放行 = resume 语义继续执行完；close 语义仅用于会话销毁中止）、lease-expired/异常事件回调（`IDebugNotifier` 受控扩展）。
+**Goal:** 按 D2 实施：SuspendedThread 级 per-thread TTL（现无 TTL 字段，在 monitorWait 轮询循环内按 deadline 退出——注意 `resume()` 全局放行语义不可直接挪用）、renew/release 双语义 API（到期放行 = resume 语义继续执行完；close 语义仅用于会话销毁中止）、lease-expired/异常事件回调（`IDebugNotifier` 受控扩展）。**（2026-10-16 增补：承接自 item 9 的多线程单步目标策略语义重建——per-thread 谓词局部化 + 定向唤醒原语 + stepX 定向释放，消费 D3 §3.6 契约。）**
 
 **Deliverables:**
 - XDBG-10-01: 租约实现 + 引擎层 API + 事件扩展

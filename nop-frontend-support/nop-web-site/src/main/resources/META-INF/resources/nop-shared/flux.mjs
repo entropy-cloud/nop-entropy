@@ -12,3 +12,4 @@ export const createFluxRendererRegistry = moduleRef["createFluxRendererRegistry"
 export const createFluxSchemaRenderer = moduleRef["createFluxSchemaRenderer"];
 export const createFluxSchemaRendererWithRegistry = moduleRef["createFluxSchemaRendererWithRegistry"];
 export const registerDefaultFluxRenderers = moduleRef["registerDefaultFluxRenderers"];
+export const registerXlangDebugEditorRenderers = moduleRef["registerXlangDebugEditorRenderers"];

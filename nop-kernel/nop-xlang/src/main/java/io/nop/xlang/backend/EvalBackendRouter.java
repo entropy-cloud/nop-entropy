@@ -21,6 +21,7 @@ import java.util.Collections;
 import java.util.Deque;
 import java.util.List;
 
+import static io.nop.xlang.XLangConfigs.CFG_XLANG_DEBUGGER_ENABLED;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_EXECUTION_DEPLOYMENT_FORM;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_EXECUTION_FORCE_INTERPRETER;
 import static io.nop.xlang.XLangConfigs.CFG_XLANG_EXECUTION_JAVA_BACKEND_ENABLED;
@@ -29,9 +30,11 @@ import static io.nop.xlang.XLangConfigs.CFG_XLANG_EXECUTION_TRUFFLE_BACKEND_ENAB
 /**
  * 统一后端选择决策树（全仓唯一，设计 xlang-execution 01 §三伪代码的行为规格落地）。
  *
- * <p>判定输入四项：(1) 产生时机 = 扫描清单成员资格（经静态后端 SPI 查询，清单产物归构建集成）；
+ * <p>判定输入五项：(1) 产生时机 = 扫描清单成员资格（经静态后端 SPI 查询，清单产物归构建集成）；
  * (2) 后端可用性 = 注册表查询；(3) 部署形态 = 配置式标记（native-image 下 truffle 结构性不适用，
- * 无 GraalVM import）；(4) 配置开关 = {@code nop.xlang.execution.*}。
+ * 无 GraalVM import）；(4) 配置开关 = {@code nop.xlang.execution.*}；
+ * (5) 调试模式 = {@code nop.xlang.debugger.enabled}（调试态全路由短路到解释器，静默不记降级
+ * 观测，先于其余输入——设计 xlang-web-debugger 04 §3.2/§3.4）。
  *
  * <p>降级链单跳：java→解释器、truffle→解释器，无跨跳（静态分支永不咨询动态后端）。
  * 每次降级记 WARN + 指标（{@link EvalBackendObservation} 命名契约）；force-interpreter 诊断模式
@@ -172,6 +175,16 @@ public class EvalBackendRouter {
     }
 
     private Object executeBoundUnit(EvalStaticBoundExecutable bound, EvalRuntime rt) {
+        // 调试态降级（D4 §3.2 落点①）：经全局执行器执行 sourceTree（断点可达），不抛错
+        // 不置 closed；记 interpreter 决策（比照 executeDegradedUnit 形态），非降级分支保持 boundUnit
+        if (isDebugDegradeActive()) {
+            Object degradedResult = EvalExprProvider.getGlobalExecutor().execute(bound.getSourceTree(), rt);
+            EvalBackendDecision degradedDecision = EvalBackendDecision.interpreter("debugger-enabled", false);
+            degradedDecision.setArtifact(bound.getSourceTree());
+            degradedDecision.setSourceKey(sourceKeyOf(resourcePathOf(bound), bound));
+            recordDecision(degradedDecision);
+            return degradedResult;
+        }
         Object result = bound.getBinding().execute(rt);
         EvalBackendDecision decision = EvalBackendDecision.boundUnit(bound.getBackendId(), bound.getBinding());
         decision.setArtifact(bound.getBinding().getBindingArtifact());
@@ -232,6 +245,11 @@ public class EvalBackendRouter {
      * 纯裁决（不执行）：决策树四输入 → 裁决结果。供测试与静态路径 java 绑定集成消费。
      */
     public EvalBackendDecision decide(String resourcePath, IExecutableExpression tree) {
+        // 输入5：调试模式（先于 force-interpreter——插入顺序即 reason 优先级，D4 §3.2）：
+        // 全路由短路到解释器，静默（显式隔离意图，不记降级事件）
+        if (isDebugDegradeActive())
+            return EvalBackendDecision.interpreter("debugger-enabled", false);
+
         // 输入4：强制解释器诊断模式——全路由短路，静默（显式隔离意图，不记降级事件）
         if (isForceInterpreter())
             return EvalBackendDecision.interpreter("force-interpreter", false);
@@ -303,6 +321,10 @@ public class EvalBackendRouter {
         recentDecisions.addFirst(decision);
         while (recentDecisions.size() > DECISION_RING_MAX)
             recentDecisions.removeLast();
+    }
+
+    public boolean isDebugDegradeActive() {
+        return CFG_XLANG_DEBUGGER_ENABLED.get();
     }
 
     private boolean isForceInterpreter() {

@@ -20,6 +20,8 @@ import io.nop.commons.util.objects.PropPath;
 import io.nop.orm.model._gen._OrmEntityModel;
 import io.nop.orm.model.init.OrmEntityModelInitializer;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,6 +37,34 @@ import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_COLUMN_PROP_ID;
 import static io.nop.orm.model.OrmModelErrors.ERR_ORM_UNKNOWN_PROP;
 
 public class OrmEntityModel extends _OrmEntityModel implements IEntityModel, INeedInit {
+
+    /**
+     * Plan 2380：把继承自 {@code _OrmEntityModel} 的 {@code getUniqueKeys()} 归一为接口契约的
+     * {@link List<List<String>>} 形态（每个唯一键一组 prop 名）。
+     *
+     * <p>{@code getColumns()} 返回的是 prop 名（由 {@code OrmEntityModelInitializer} 归一），
+     * 与 {@link #getPkColumnNames()} 同域。刻意<b>不</b>使用 {@code getColumnModels()}：它是手写类上的
+     * 瞬态字段，<b>不在 {@code _OrmUniqueKeyModel.copyTo()} 的复制集内</b>，因此
+     * clone / JSON 反序列化 / 缓存装载路径上恒为 null —— 用它会让这些路径上的唯一键校验静默失效。
+     * {@code getColumns()} 为 null（声明了 {@code <unique-key>} 却未给 {@code <columns>}）时跳过该键。
+     */
+    @Override
+    public List<List<String>> getUniqueKeyPropNames() {
+        List<OrmUniqueKeyModel> keys = getUniqueKeys();
+        if (keys == null || keys.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        List<List<String>> ret = new ArrayList<>(keys.size());
+        for (OrmUniqueKeyModel key : keys) {
+            List<String> columns = key.getColumns();
+            if (columns == null || columns.isEmpty()) {
+                continue;
+            }
+            ret.add(Collections.unmodifiableList(new ArrayList<>(columns)));
+        }
+        return ret;
+    }
     private ImmutableIntArray eagerLoadProps;
     private ImmutableIntArray allPropIds;
     private ImmutableIntArray minLazyLoadProps;

@@ -23,6 +23,10 @@ import Symbol, Keyword, SQL92Keyword, Literals, BaseRule;
 sqlInsert
     : decorators=sqlDecorators_? INSERT INTO tableName=sqlTableName LP_ <indent> columns=columnNames_ <br> RP_
         ( values=sqlValues | select=sqlSelect)
+        // Plan 2380：投影列表形式（无 INTO 宿主变量）的 returning 子句，形态与 sqlUpdate 现有
+        // 子句完全一致；能力门见 supportReturningForInsert。v1 只支持 VALUES 源
+        // （select 源 + returning 的组合留给 successor）。
+        (RETURNING (returnAll=ASTERISK_ | returnProjections=sqlProjections_))?
     ;
 
 // Plan 2380：upsert —— 中立语法的"按冲突键幂等写"。方言差异全部下沉到 SQL 生成层
@@ -72,6 +76,8 @@ sqlValues_
 
 sqlDelete
     : decorators=sqlDecorators_? DELETE FROM tableName=sqlTableName AS? alias=sqlAlias? (<br> where=sqlWhere)?
+        // Plan 2380：投影列表形式的 returning 子句（能力门 supportReturningForDelete）
+        (RETURNING (returnAll=ASTERISK_ | returnProjections=sqlProjections_))?
     ;
 
 //singleTableClause

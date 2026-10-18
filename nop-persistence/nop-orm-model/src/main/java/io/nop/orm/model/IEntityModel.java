@@ -117,6 +117,30 @@ public interface IEntityModel extends IPdmElement, IOrmDataType {
 
     List<String> getPkColumnNames();
 
+    /**
+     * Plan 2380（Protected Area ①，需 owner doc + 兼容性说明）：返回实体已声明的唯一键列组。
+     *
+     * <p>契约：
+     * <ul>
+     *   <li><b>只含唯一键，不含主键</b>——主键走 {@link #getPkColumnNames()}；</li>
+     *   <li>元素是 <b>prop 名</b>（不是物理列名/code）：与 {@link #getPkColumnNames()} 同域，
+     *       便于调用方直接比对；</li>
+     *   <li><b>不含</b>隐式追加的租户列（那是查询期语义，不是 DDL 声明）；</li>
+     *   <li>内层列表不可变；</li>
+     *   <li>声明了 {@code <unique-key>} 却未给 {@code <columns>} 的键被<b>跳过</b>，不得抛异常。</li>
+     * </ul>
+     *
+     * <p>用 {@code default} 方法而非抽象方法，是为了不给既有实现方（视图模型、动态模型等）
+     * 带来破坏性变更：未声明唯一键的实现返回空列表即可——调用方据此判定"本实体只允许主键作冲突键"，
+     * 这是一条响亮拒绝，不是静默放行。
+     *
+     * <p>使用方：EQL {@code upsert} 语句的编译期冲突键校验
+     * （{@code ai-dev/design/eql-cross-db-compat/2026-10-10-eql-upsert-and-returning-design.md} §3.5）。
+     */
+    default List<List<String>> getUniqueKeyPropNames() {
+        return java.util.Collections.emptyList();
+    }
+
     default List<String> getPkColumnCodes() {
         List<? extends IColumnModel> cols = getPkColumns();
         if (cols == null)

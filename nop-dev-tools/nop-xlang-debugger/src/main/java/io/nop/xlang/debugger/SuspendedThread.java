@@ -56,6 +56,29 @@ public class SuspendedThread {
         return thread.isAlive();
     }
 
+    private volatile boolean localReleased;
+    private volatile XLangDebugger.DebugStepMode threadStepMode = XLangDebugger.DebugStepMode.RESUME;
+
+    public boolean isLocalReleased() {
+        return localReleased;
+    }
+
+    public void setLocalReleased(boolean localReleased) {
+        this.localReleased = localReleased;
+    }
+
+    public XLangDebugger.DebugStepMode getThreadStepMode() {
+        return threadStepMode;
+    }
+
+    public void setThreadStepMode(XLangDebugger.DebugStepMode threadStepMode) {
+        this.threadStepMode = threadStepMode;
+    }
+
+    public long getThreadId() {
+        return threadId;
+    }
+
     public SourceLocation getLastBreakLocation() {
         return lastBreakLocation;
     }

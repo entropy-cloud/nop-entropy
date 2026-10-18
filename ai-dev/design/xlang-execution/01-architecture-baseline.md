@@ -39,12 +39,13 @@ SPI 契约放在 `nop-xlang` 而非 `nop-core` 的理由：选择机制的判定
 
 ## 三、后端选择机制
 
-### 判定输入（四个）
+### 判定输入（五个）
 
 1. **资源产生时机**：构建期静态资源（`_vfs` 内可扫描的 xpl / xlib 等，见下"构建期扫描清单"）vs 运行时动态源（字符串表达式、规则配置产物、经 RCM 动态注册/加载的资源）。
 2. **后端可用性**：classpath 是否含后端模块、后端初始化是否成功（truffle 的 `Engine` 创建可能失败）、生成类是否已注册且校验通过。
 3. **部署形态**：native image 内 truffle 后端不启用（该模块可不进镜像）；java 后端生成类作为普通类直编进镜像。
 4. **配置开关**：按后端启用开关（java / truffle 各自 enable）、强制解释器模式（诊断用）。不设"全局默认后端"取值——默认语义固定为 auto（按判据自动裁决）：可配置的"默认后端=truffle"会与"判据互斥、单跳降级"的决策树冲突（静态资源被配置改道 truffle 后，降级语义不再可预测），故拒绝。
+5. **调试模式**（2026-10-16，设计 xlang-web-debugger 04 §3.2/§3.4）：`nop.xlang.debugger.enabled=true` 时全路由短路到解释器（reason=`debugger-enabled`，静默不记降级观测），**先于**其余输入；绑定单元/标签体的生成类直调路径同样降级经全局执行器执行 sourceTree（断点可达）。详见 `ai-dev/design/xlang-web-debugger/04-execution-backend-link.md`。
 
 ### 判定时机（三个）
 

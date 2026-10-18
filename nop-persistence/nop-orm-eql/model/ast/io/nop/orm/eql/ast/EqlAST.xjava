@@ -83,6 +83,12 @@ class EqlAST {
 
         SqlSelect select;
         SqlValues values;
+
+        // Plan 2380：returning 子句。与 SqlUpdate 上同名同型的两个 prop——三条语句的
+        // returning 语义在 AST 层面完全同构，下游（门控 / * 展开 / 类型解析 / 打印）共用一条路径。
+        boolean returnAll;
+
+        List<SqlProjection> returnProjections;
     }
 
     class SqlValues {
@@ -124,6 +130,11 @@ class EqlAST {
         SqlAlias alias;
 
         SqlWhere where;
+
+        // Plan 2380：returning 子句（同 SqlInsert / SqlUpdate 的同名同型字段）
+        boolean returnAll;
+
+        List<SqlProjection> returnProjections;
     }
 
     class SqlWhere {

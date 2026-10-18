@@ -50,6 +50,8 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 
 **明确不做的事**（继承调研报告 Part 5）：不把方言私有语法（`SELECT TOP`、`LIMIT off,lim`、`DISTINCT ON`、`NATURAL JOIN`、`USING`、`OVERLAY`、`JSON_TABLE`、`a || b` 等）收进 EQL；不把 DDL 收回 EQL；不把 UPSERT 做进语法层（改走 DAO 原语）。
 
+<!-- ⚠️ 2026-10-10 plan 2380 successor 注记（原地注记，不删原文）：上行第三条“不把 UPSERT 做进语法层”已按 **successor 路径**部分修订——EQL 语法层新增了**无条件 upsert**（`upsert into T(cols) values(...) on conflict(k) do update set ...`）+ `insert`/`delete ... returning`。修订边界严格限定在上文 ledger `MERGE` 行约定的 successor 触发条件之下：**条件 upsert / `WHEN MATCHED THEN DELETE` / `BY SOURCE` / 完整 `MERGE` 仍未实现**，故 WI11 的“显式移出”终裁对这三类语义继续有效。落地方言 = PostgreSQL 族 / MySQL·MariaDB 族 / H2 族，其余方言编译期响亮失败（`feature=upsert`）。owner doc = `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`“EQL `upsert` 语句与 `insert`/`delete ... returning`”小节；设计 = `ai-dev/design/eql-cross-db-compat/2026-10-10-eql-upsert-and-returning-design.md`。 -->
+
 ## 排序原则
 
 - **P1 静默错误 > 响亮失败**。静默产出错误 SQL 的缺陷排在解析失败之前 —— 后者至少给了用户信号。
@@ -145,6 +147,8 @@ EQL（Entity Query Language）是 Nop ORM 面向业务的查询语言，定位�
 | G9 JSON 标量函数（`json_extract`/`json_value`/`json_unquote`） | 函数名与路径语法（`->`/`->>` vs `$.a` vs `json_query`）三方分叉，无法无损归一；需先单独调研 | 与 `JSON_TABLE` 否决一并复议 | 单独调研后再立项 |
 | `MERGE`/`UPDATE..FROM` | Oracle **有** `WHEN MATCHED THEN DELETE`（`merge_update_clause` 的 `DELETE where_clause`，19/21/23 三版文档确认；⚠️ 调研报告说"无"是错的，见覆盖 ③）；真正的分歧只有 PG 15 的 `MERGE` 无 `BY SOURCE`（需 17）与 MSSQL 需终止 `;`；`postgresql.dialect.xml` 无版本门 | G-1 裁决后 | 进 DAO 层（WI11 已在 prose 中评估，EC 见 WI11 ⑤b） |
 <!-- ⚠️ 2026-10-05 WI11 收口注记（原地注记，不删原文；裁定正文 = ai-dev/design/eql-cross-db-compat/2026-10-05-wi11-phase0-adjudications.md §8）：上行已由 WI11 裁定 = **显式移出**。`MERGE`：EQL 语法层不做（roadmap「明确不做的事」UPSERT 不进语法层的同批裁定；跨库 upsert 语义由 WI11 落地的 nop-dao 批量 upsert 原语承载——IJdbcTemplate.upsertBatch + UpsertStatements，JDBC 语句文本生成而非 EQL 文法，二者不矛盾）。Successor = 未来 EQL `MERGE` 语法 WI（plan-first：`.g4` 生成管线）；触发条件 = 出现 EQL 层 `MERGE` 语义（条件 upsert / WHEN MATCHED THEN DELETE / BY SOURCE）的真实产品需求 + G-1 目标方言版本门裁决（已知分叉：PG 15 无 `BY SOURCE` 需 17 / MSSQL 强制终止 `;` error 10713 / oracle `WHEN MATCHED THEN DELETE` 三版文档确认存在——上行 v6 更正继续有效）。`UPDATE..FROM` 半行：维持 WI10b 改档终裁（EQL 文法无此语法 = 解析响亮失败 + 契约登记，见 2026-10-04-wi10b-phase0-adjudications.md §1-§3 与 owner doc「死标志台账」`supportUpdateFromJoin` 行），不重开。owner doc = eql-and-database-compatibility.md「DAO 批量 upsert 原语」与「MERGE/UPDATE..FROM：显式移出」两小节。 -->
+
+<!-- ⚠️ 2026-10-10 plan 2380 successor 已开工（原地注记，不删原文）：本行约定的 successor“未来 EQL `MERGE` 语法 WI”已由 plan 2380 启动，但**只覆盖 successor 的最小充分集**——无条件 upsert（单语句 + 冲突键 + 覆盖式更新集）与 `insert`/`delete ... returning`。上方列出的三个未实现语义（条件 upsert / `WHEN MATCHED THEN DELETE` / `BY SOURCE`）**仍然是本行的 successor 触发条件，未被 2380 消耗**。另：`excluded` 伪表、`upsert … select` 源形态、增量式更新（`set c = c + 1`——PG/MySQL 可表达但 H2 不能，故 H2 上右值含列引用一律编译期拒绝）均为 2380 的显式 Non-Goal。 -->
 | `SAVEPOINT`/`ROLLBACK TO`（EQL 语法层） | 调研矩阵 10 库全支持——但裁定焦点不在 DB 支持，而在 EQL 层归属：现状响亮失败（P1 不触发）；事务 owner 是 JDBC Connection API/Nop 事务管理器；`supportSavePoint` WI10b 软弃用「勿新增消费依赖」；既有 COMMIT/ROLLBACK 打印 no-op（`EqlASTVisitor` 结构封闭）上扩展 = 新 hollow 面；`TRUNCATE` 永久否决同族 | 出现「在 sql-lib 声明事务语句」的真实产品需求 | 单独 roadmap 立项（须同时解决 `SqlCommit`/`SqlRollback` 文本打印 + `supportSavePoint` 恢复接线裁定 + 事务管理器集成；裁定正文 = `ai-dev/design/eql-cross-db-compat/2026-10-05-wi12-phase0-adjudications.md` §3，WI12 交付 3 原地注记） |
 
 ## Phase Details

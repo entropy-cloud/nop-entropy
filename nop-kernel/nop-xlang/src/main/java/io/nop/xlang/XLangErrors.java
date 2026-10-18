@@ -1024,6 +1024,41 @@ public interface XLangErrors {
 
     ErrorCode ERR_XLANG_DEBUGGER_ALREADY_CLOSED = define("nop.err.xlang.debugger-already-closed", "调试器已关闭");
 
+    // ---- WebSocket 调试网关错误码（D1 §3.7 登记表，plan 2471 additive 批次）----
+
+    ErrorCode ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED = define("nop.err.xlang.debugger.thread-not-suspended",
+            "调试器无挂起线程");
+
+    ErrorCode ERR_XLANG_DEBUGGER_TOO_MANY_BPS = define("nop.err.xlang.debugger.too-many-bps",
+            "断点数量超过上限", "max");
+
+    ErrorCode ERR_XLANG_DEBUGGER_RESULT_TOO_LARGE = define("nop.err.xlang.debugger.result-too-large",
+            "调试结果超过出站大小上限");
+
+    ErrorCode ERR_XLANG_DEBUGGER_NO_SESSION = define("nop.err.xlang.debugger.no-session",
+            "调试会话未建立");
+
+    ErrorCode ERR_XLANG_DEBUGGER_SESSION_ALREADY_OPEN = define("nop.err.xlang.debugger.session-already-open",
+            "调试会话已建立");
+
+    ErrorCode ERR_XLANG_DEBUGGER_SESSION_BOUND_ELSEWHERE = define("nop.err.xlang.debugger.session-bound-elsewhere",
+            "调试会话不存在或属主不符");
+
+    ErrorCode ERR_XLANG_DEBUGGER_PROTOCOL_VERSION_UNSUPPORTED = define(
+            "nop.err.xlang.debugger.protocol-version-unsupported", "调试协议版本不支持", "version");
+
+    ErrorCode ERR_XLANG_DEBUGGER_RATE_LIMITED = define("nop.err.xlang.debugger.rate-limited",
+            "请求频率超过限制");
+
+    ErrorCode ERR_XLANG_DEBUGGER_REPL_CANCELLED = define("nop.err.xlang.debugger.repl-cancelled",
+            "REPL执行已取消");
+
+    ErrorCode ERR_XLANG_DEBUGGER_REPL_TIMEOUT = define("nop.err.xlang.debugger.repl-timeout",
+            "REPL执行超时");
+
+    ErrorCode ERR_XLANG_DEBUGGER_PERMISSION_DENIED = define("nop.err.xlang.debugger.permission-denied",
+            "无调试会话权限（plan 2478 SEC-05：D6 §3.4 权限矩阵 WS 行落地）");
+
     ErrorCode ERR_XLIB_TAG_NO_SOURCE_DEFINED = define("nop.err.xpl.xlib.tag-no-source-defined",
             "标签库没有定义内嵌的source实现，也没有外部关联的[{resourceName}]实现文件", ARG_RESOURCE_NAME);
 

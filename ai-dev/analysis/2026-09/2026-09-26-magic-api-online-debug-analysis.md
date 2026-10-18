@@ -267,16 +267,18 @@ Nop 侧事实（已核验，路径均相对仓库根）：
 
 ## Open Questions
 
+> 2026-10-16 更新：以下问题已全部随 D0 设计收口（`ai-dev/design/xlang-web-debugger/00-overview.md` §五 处置表）——端点/容器裁定、GraphQL subscription 拒绝、协同编辑 out of scope 在该文档裁定；续期帧归 D2、方案 A/B 与单步目标归 D3、静态绑定策略归 D4、grammar 来源归 D5、REPL 安全归 D6、多标签页租约归属归 D2、鉴权具体方案归 D1。
+
 - [x] ~~前端基座选型~~ → 已裁定：nop-chaos-flux `flux-code-editor`（CodeMirror 6）上改进（§6 裁定 1）。
 - [x] ~~挂起超时策略~~ → 已裁定：租约续期 + 到期自动放行（§6 裁定 2）。
 - [x] ~~多用户并发模型~~ → 已裁定：每用户独立 debugger 实例（§6 裁定 3）。
-- [ ] Web 传输与续期通道：WebSocket 端点挂哪（独立端点 vs 复用 `/r/` RPC 面）？续期帧与心跳是否合帧？GraphQL subscription 是否有额外收益？
-- [ ] `XLangDebugger` 会话化的最小改动面：方案 A（会话路由 executor）vs 方案 B（runtime 级注入）的取舍；会话标识如何在 `EvalRuntime` 中传递（嵌套 action/函数调用是否可靠透传）。
-- [ ] `EvalStaticBoundExecutable` 绕过 executor：调试会话内是否强制 interpreter，还是按单元粒度降级？运行期切换是否可行？
-- [ ] 在线 eval REPL 的安全边界（沙箱、权限、禁写 Delta）与 `nop-biz` 权限模型对接。
-- [ ] XLang 的 CodeMirror Lezer grammar 从哪来：参照 `nop-idea-plugin` 语法规则新写、复用 `nop-treesitter` 的 grammar 资产、还是 XText/ANTLR 定义转译？
-- [ ] 多标签页打开同一调试会话时的租约归属与单步目标选择（最后写者胜 or 共享租约）。
-- [ ] 多人协作（magic-api 有 INTO_FILE_ID/USER_LOGIN 协同消息）是否纳入一期？
+- [x] ~~Web 传输与续期通道~~ → 端点/容器已裁定（D0 §3.4/§3.5）；续期帧合帧转 D2。
+- [x] ~~`XLangDebugger` 会话化最小改动面~~ → 转派 D3（方案 A/B 裁定 + 透传机制）。
+- [x] ~~`EvalStaticBoundExecutable` 绕过 executor~~ → 转派 D4（消除/降级策略 + 联动矩阵）。
+- [x] ~~在线 eval REPL 安全边界~~ → 转派 D6。
+- [x] ~~XLang 的 CodeMirror Lezer grammar 来源~~ → 转派 D5（三来源 POC）。
+- [x] ~~多标签页租约归属与单步目标选择~~ → 拆分：租约归属转 D2，单步目标转 D3。
+- [x] ~~多人协作是否纳入一期~~ → 已裁定 out of scope（D0 §3.6）。
 
 ## References
 

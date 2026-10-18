@@ -80,6 +80,14 @@
 | `DBG-003` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/dev/DevToolBizModel.java` | DevTool 提供刷新 VFS 与清理缓存能力 |
 | `DBG-004` | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DumpNamespaceHandler.java` | `_dump/{appName}/...` 是最终合并结果的重要调试出口 |
 | `DBG-005` | `nop-service-framework/nop-biz/src/main/java/io/nop/biz/impl/BizObjectManager.java`（`dumpGraphQLSchema`） | `nop.debug=true` 时启动自动 dump GraphQL schema 到 `_dump/{appName}/nop/main/graphql/schema.graphql` |
+| `DBG-006` | `nop-dev-tools/nop-xlang-debug-web/src/main/java/io/nop/xlang/debug/web/DebugWebSocketHandler.java` | 在线调试 WS 网关帧分发（D1 协议：session.open/setBreakpoints/step*/resume/getExprValue 等；启用门 `nop.xlang.debug-web.enabled`） |
+| `DBG-007` | `nop-dev-tools/nop-xlang-debug-web/src/main/java/io/nop/xlang/debug/web/DebugWebServerConfig.java` | 调试 WS 网关初始化门（ICoreInitializer，`nop.xlang.debug-web.enabled` 开关） |
+| `DBG-008` | `nop-dev-tools/nop-xlang-debugger/src/main/java/io/nop/xlang/debugger/session/SessionDebugManager.java` | 会话管理器单例：web 会话/默认会话（IDEA 兼容）创建与路由 |
+| `DBG-009` | `nop-dev-tools/nop-xlang-debugger/src/main/java/io/nop/xlang/debugger/session/SessionRoutingExecutor.java` | 全局执行器路由外壳：按 DebugSessionScope 线程标记路由到会话调试执行器 |
+| `DBG-010` | `nop-dev-tools/nop-xlang-debug-web/src/main/java/io/nop/xlang/debug/web/ReplService.java` | 在线 REPL compile+execute 服务（属主校验/沙箱/审计/超时门控序） |
+| `DBG-011` | `nop-dev-tools/nop-xlang-debug-web/src/main/java/io/nop/xlang/debug/web/ReplAccessGuard.java` | REPL 鉴权守卫（IUserContextExtractor + IActionAuthChecker，无鉴权不开放） |
+| `DBG-012` | `nop-dev-tools/nop-xlang-debug-web/src/main/java/io/nop/xlang/debug/web/DebugLogPipe.java` | 每会话日志攒批管道（阈值/定时/销毁 flush） |
+| `DBG-013` | `nop-quarkus-web` 与 `nop-spring-web-starter` 的 `XLangDebugWebSocketEndpoint`（quarkus 包 io.nop.quarkus.web.ws / spring 包 io.nop.spring.web.ws） | WS 端点适配器 twin（quarkus/spring；`/ws/xlang-debugger` 绑定；REPL HTTP twin 为各自 service 包的 `NopXlangDebugReplWebService`） |
 | `GQL-001` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/GraphQLConstants.java` + `nop-service-framework/nop-graphql/nop-graphql-orm/src/main/java/io/nop/graphql/orm/OrmFetcherBuilder.java` + `nop-service-framework/nop-graphql/nop-graphql-orm/src/main/java/io/nop/graphql/orm/fetcher/OrmEntityPropConnectionFetcher.java` | relation 字段可通过 `graphql:filter` / `graphql:orderBy` 补默认查询元数据。OrmFetcherBuilder 还处理 `graphql:queryMethod`/`graphql:connectionProp`/`graphql:maxFetchSize`/`graphql:disableLogicalDelete`/`graphql:authObjName` |
 | `GQL-002` | `nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/schema/obj-schema.xdef` (prop 定义行 61-130) + `schema.xdef` | `graphql:*` 属性的 schema 定义完整集合：filter/orderBy/selection/inputType/transFilter 子元素 + 属性 |
 | `GQL-003` | `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/utils/GraphQLObjMetaHelper.java` | 读取 `graphql:queryMethod`/`graphql:type`/`graphql:authObjName` 做 GraphQL 类型映射 |

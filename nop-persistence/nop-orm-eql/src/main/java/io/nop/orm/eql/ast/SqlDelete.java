@@ -10,7 +10,7 @@ package io.nop.orm.eql.ast;
 import io.nop.orm.eql.ast._gen._SqlDelete;
 import io.nop.orm.eql.compile.ISqlTableSourceSupport;
 
-public class SqlDelete extends _SqlDelete implements ISqlTableSourceSupport {
+public class SqlDelete extends _SqlDelete implements ISqlTableSourceSupport, ISqlReturningSupport {
     private SqlSingleTableSource resolvedTableSource;
 
     @Override

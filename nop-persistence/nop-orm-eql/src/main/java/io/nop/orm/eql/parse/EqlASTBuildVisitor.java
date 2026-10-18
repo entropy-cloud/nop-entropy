@@ -89,6 +89,20 @@ public class EqlASTBuildVisitor extends _EqlASTBuildVisitor {
     }
 
     /**
+     * Plan 2380：SqlInsert 的 returning 子句（同名同型的 prop 解析钩子，与 SqlUpdate 同款）。
+     */
+    public boolean SqlInsert_returnAll(Token token) {
+        return isToken(token, EqlParser.ASTERISK_);
+    }
+
+    /**
+     * Plan 2380：SqlDelete 的 returning 子句。
+     */
+    public boolean SqlDelete_returnAll(Token token) {
+        return isToken(token, EqlParser.ASTERISK_);
+    }
+
+    /**
      * rules: SqlBetweenExpr
      */
     public boolean SqlBetweenExpr_not(org.antlr.v4.runtime.Token token) {

@@ -8,6 +8,7 @@
 package io.nop.xlang.debugger;
 
 import io.nop.api.core.convert.ConvertHelper;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.SourceLocation;
@@ -23,6 +24,7 @@ import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.xlang.debugger.session.ThreadLocalReplDeadlineChannel;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.Expression;
@@ -40,6 +42,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static io.nop.commons.cache.CacheConfig.newConfig;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_ALREADY_CLOSED;
@@ -62,12 +65,30 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private volatile boolean suspended;
     private volatile boolean closed;
 
+    /**
+     * 会话租约截止时间（epoch ms）；0 = 租约禁用（默认会话/IDEA 场景，永不过期）。
+     * 时钟所有权：网关（item 12）经 renewLease 推进（D2 §3.7 职责分界）。
+     */
+    private volatile long leaseDeadlineMillis;
+
+    /**
+     * suspend() 的会话级一次生效旗标（D3 §3.6 suspendOnce）：下一检查点挂起该线程并清除。
+     * CAS 清除保证两线程同到检查点仅挂起一个。
+     */
+    private final AtomicBoolean suspendOnce = new AtomicBoolean(false);
+
+    /**
+     * stepX 无挂起目标错误码（已迁入 XLangErrors——plan 2471 additive 批次，D1 §3.7 表）。
+     * 保留同名字段作为兼容引用。
+     */
+    public static final ErrorCode ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED = io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED;
+
     private int monitorWaitInterval = 200;
     private final ReentrantLock monitorLock = new ReentrantLock();
     private final Condition resumeCondition = monitorLock.newCondition();
     private final Condition suspendedCondition = monitorLock.newCondition();
 
-    private IDebugNotifier notifier;
+    private volatile IDebugNotifier notifier;
 
     private ScheduledExecutorService cleanupThread = Executors
             .newSingleThreadScheduledExecutor(NamedThreadFactory.newThreadFactory("xlang-debugger-cleanup", true));
@@ -80,12 +101,29 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         cleanupThread.schedule(this::cleanup, 30, TimeUnit.SECONDS);
     }
 
+    /**
+     * 会话销毁收尾（plan 2479 C-2，item 24 审计）：释放调度线程但**不置 closed、不改
+     * 租约/挂起语义**（D2 §3.3 红线：graceful 收尾 = resume 语义，区别于 close 的
+     * abort 语义）。幂等（shutdownNow 可重入）；cleanup 为一次性 30s 任务，dispose 后
+     * 残留 SuspendedThread 条目随实例 GC，无泄漏。
+     */
+    public void dispose() {
+        cleanupThread.shutdownNow();
+    }
+
     @Override
     public void close() {
         closed = true;
         cleanupThread.shutdown();
         tempBreakpoint = null;
-        monitorNotify(DebugStepMode.RESUME);
+        // close 语义（abort）：signal 唤醒挂起线程 → 谓词见 closed 且无局部放行 → 抛
+        // ALREADY_CLOSED（出口判定顺序见 monitorWait）。不置局部放行。
+        monitorLock.lock();
+        try {
+            resumeCondition.signalAll();
+        } finally {
+            monitorLock.unlock();
+        }
         synchronized (suspendedThreads) {
             suspendedThreads.clear();
         }
@@ -118,6 +156,14 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         this.notifier = notifier;
     }
 
+    /**
+     * 调试器是否已关闭（close 语义后为 true）。会话生命周期（item 9）与
+     * 停机清扫断言使用。
+     */
+    public boolean isClosed() {
+        return closed;
+    }
+
     @Override
     public boolean isSuspended() {
         return suspended;
@@ -145,40 +191,54 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
     }
 
+    /**
+     * stepX 定向重建（D3 §3.6）：目标 = 处理时刻快照的 lastSuspendThread；仅置目标线程
+     * 局部 step 模式与放行标志（monitorLock 内，与挂起入口复位同锁串行化）；signalAll 后
+     * 目标线程谓词满足退出，其余挂起线程重查自身谓词继续等待。stepX 全程零事件
+     * （D2 §3.3：释放-再挂起由 evt.suspended 承载，防 UI 双跳变）。
+     */
+    private void releaseTarget(DebugStepMode stepMode) {
+        monitorLock.lock();
+        try {
+            // 处理时刻快照判定（D3 §3.6.5）：无已挂起目标即报错（含"已释放未再挂起"瞬态
+            // 窗口）。plan 2479 C-4：快照读与 isSuspended 复核同移 monitorLock 内（对齐
+            // releaseThread/releaseAllThreads 锁内形态）——消除快照-加锁窗口的 stepX 静默
+            // 丢失/陈旧 step 模式施用（item 24 审计 C-4 交错 A/B）
+            SuspendedThread target = this.lastSuspendThread;
+            if (target == null || !target.isSuspended()) {
+                LOG.info("nop.debugger.step-no-suspended-thread");
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
+            }
+            target.setThreadStepMode(stepMode);
+            target.setLocalReleased(true);
+            resumeCondition.signalAll();
+        } finally {
+            monitorLock.unlock();
+        }
+    }
+
     @Override
     public void stepInto() {
-        SuspendedThread thread = this.lastSuspendThread;
-        if (thread == null) {
-            LOG.info("nop.debugger.step-into-no-suspended-thread");
-            return;
-        }
-        monitorNotify(DebugStepMode.STEP_INTO);
+        releaseTarget(DebugStepMode.STEP_INTO);
     }
 
     @Override
     public void stepOver() {
-        SuspendedThread thread = this.lastSuspendThread;
-        if (thread == null) {
-            LOG.info("nop.debugger.step-over-no-suspended-thread");
-            return;
-        }
-        monitorNotify(DebugStepMode.STEP_OVER);
+        releaseTarget(DebugStepMode.STEP_OVER);
     }
 
     @Override
     public void stepOut() {
-        SuspendedThread thread = this.lastSuspendThread;
-        if (thread == null) {
-            LOG.info("nop.debugger.step-out-no-suspended-thread");
-            return;
-        }
-        monitorNotify(DebugStepMode.STEP_OUT);
+        releaseTarget(DebugStepMode.STEP_OUT);
     }
 
+    /**
+     * suspend() 重建（D3 §3.6.7）：会话级 suspendOnce 旗标，任一下一检查点挂起该线程并
+     * 清除（一次生效，CAS 原子）。
+     */
     @Override
     public void suspend() {
-        this.stepMode = DebugStepMode.SUSPEND;
-        this.suspended = true;
+        suspendOnce.set(true);
         monitorLock.lock();
         try {
             suspendedCondition.signalAll();
@@ -187,20 +247,106 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
     }
 
+    /**
+     * 用户 resume（D1 evt.resumed cause=user）：全部挂起线程局部放行 + 清局部 step 状态；
+     * 不置 closed 不抛错。与 evt.leaseExpired 互斥（D1 §3.5）。
+     */
     @Override
     public void resume() {
-        monitorNotify(DebugStepMode.RESUME);
+        List<Long> released = releaseAllThreads();
+        if (!released.isEmpty()) {
+            IDebugNotifier cb = notifier;
+            if (cb != null)
+                cb.notifyResumed(released, "user");
+        }
     }
 
-    private void monitorNotify(DebugStepMode stepMode) {
-        this.stepMode = stepMode;
-        this.suspended = false;
+    /**
+     * releaseAll（D2 §3.3 宽限路径原语）：resume 语义全量放行——置局部放行、清局部 step
+     * 状态、signalAll；不置 closed 不抛错。聚合发 notifyLeaseExpired（D2 §3.6：宽限路径
+     * 载体，调用方 item 12 网关不再重复发）。
+     */
+    public void releaseAll() {
+        List<Long> released = releaseAllThreads();
+        if (!released.isEmpty()) {
+            IDebugNotifier cb = notifier;
+            if (cb != null)
+                cb.notifyLeaseExpired(released);
+        }
+    }
+
+    private List<Long> releaseAllThreads() {
+        List<Long> released = new ArrayList<>();
         monitorLock.lock();
         try {
+            synchronized (suspendedThreads) {
+                for (SuspendedThread thread : suspendedThreads.values()) {
+                    if (thread.isSuspended()) {
+                        thread.setLocalReleased(true);
+                        thread.setThreadStepMode(DebugStepMode.RESUME);
+                        released.add(thread.getThreadId());
+                    }
+                }
+            }
             resumeCondition.signalAll();
         } finally {
             monitorLock.unlock();
         }
+        return released;
+    }
+
+    /**
+     * 定向唤醒原语（D3 §3.6.3 行为契约）：置目标线程局部放行标志 → signalAll → 目标线程
+     * 谓词满足退出挂起；其余挂起线程重查自身谓词继续等待；对不存在/未挂起的 threadId
+     * no-op（幂等）。不发任何事件（stepX 消费）。
+     */
+    public void releaseThread(long threadId) {
+        monitorLock.lock();
+        try {
+            SuspendedThread thread = getSuspendedThread(threadId);
+            if (thread != null && thread.isSuspended())
+                thread.setLocalReleased(true);
+            resumeCondition.signalAll();
+        } finally {
+            monitorLock.unlock();
+        }
+    }
+
+    /**
+     * 租约续期（D2 §3.7）：推进会话租约截止时间（now + ttl）。仅推进，不改变挂起态。
+     */
+    public void renewLease(long ttlMillis) {
+        this.leaseDeadlineMillis = System.currentTimeMillis() + ttlMillis;
+    }
+
+    /**
+     * 租约过期戳（宽限销毁收尾，D2 §3.1①②）：置 leaseDeadline=now，此后新命中断点
+     * 走授予判定②"租约已过期不挂起"直接继续执行。不改变挂起态、不发事件
+     * （放行事件由 releaseAll 聚合发）——补 releaseAll 不覆盖的嵌套命中面：
+     * 宽限销毁后仍在执行中的脚本线程继续命中断点不得再挂起（无观察者）。
+     */
+    public void expireLease() {
+        this.leaseDeadlineMillis = System.currentTimeMillis();
+    }
+
+    public long getLeaseDeadlineMillis() {
+        return leaseDeadlineMillis;
+    }
+
+    public List<Long> getSuspendedThreadIds() {
+        synchronized (suspendedThreads) {
+            List<Long> ids = new ArrayList<>(suspendedThreads.size());
+            for (SuspendedThread thread : suspendedThreads.values()) {
+                if (thread.isSuspended())
+                    ids.add(thread.getThreadId());
+            }
+            return ids;
+        }
+    }
+
+    private boolean leaseExpired() {
+        long deadline = leaseDeadlineMillis;
+        return deadline > 0 && System.currentTimeMillis() >= deadline;
     }
 
     @Override
@@ -279,7 +425,16 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return null;
 
         synchronized (thread) {
+            // plan 2479 C-5：放行瞬态窗口（条目仍在 map、isSuspended=false）拒绝读——
+            // 引擎兜底取代网关"良性竞态"注释性豁免（item 24 审计 C-5）
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             EvalRuntime rt = thread.getEvalRuntime();
+            // plan 2478 SEC-07：watch 求值入口消费 REPL deadline 通道（无窗口线程
+            // checkDeadline 早退不误伤；窗口内超时/取消抛 ReplCancelledError——Error 系，
+            // 由网关 evalWithDeadline 显式捕获映射错误响应）。打断双层 = 本入口检查 +
+            // 表达式内函数调用边界经全局执行器的 per-entry 检查
+            ThreadLocalReplDeadlineChannel.instance().checkDeadline(rt);
             return exec.execute(DefaultExpressionExecutor.INSTANCE, rt.getRuntimeForFrame(frameIndex));
         }
     }
@@ -299,6 +454,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (thread == null)
             return null;
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             return thread.getStackInfo();
         }
     }
@@ -309,6 +466,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (thread == null)
             return Collections.emptyList();
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             return thread.getScopeVariables(thread.getEvalRuntime());
         }
     }
@@ -320,6 +479,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             // 接口契约未声明@Nullable，客户端按非null消费（线程已恢复等场景返回空列表）
             return Collections.emptyList();
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             if (frameIndex == 0) {
                 List<DebugVariable> vars = thread.getScopeVariables(thread.getEvalRuntime());
                 List<DebugVariable> frameVars = thread.getFrameVariables(thread.getEvalRuntime(), frameIndex);
@@ -332,10 +493,25 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
     @Override
     public void checkBreakpoint(SourceLocation loc, EvalRuntime rt) {
+        // 授予判定①（D2 §3.1①）：closed/销毁中 → 不挂起直接继续（不抛错——抛错保留给
+        // "挂起中被 close 中止"路径；此处跳过挂起保证脚本执行完）
+        if (closed)
+            return;
+        // 授予判定②（D2 §3.1②）：租约已过期 → 无观察者，不挂起直接继续
+        if (leaseExpired()) {
+            LOG.warn("nop.debugger.lease-expired-skip-breakpoint:loc={}", loc);
+            return;
+        }
+        // suspendOnce（D3 §3.6.7）：一次生效，CAS 原子清除（两线程同到仅挂起一个）
+        if (suspendOnce.compareAndSet(true, false)) {
+            checkSuspend(loc, rt);
+            return;
+        }
         if (loc == null || breakpointsMuted)
             return;
 
         if (!checkTempBreakpoint(loc, rt)) {
+            DebugStepMode stepMode = currentThreadStepMode();
             switch (stepMode) {
                 case SUSPEND: {
                     checkSuspend(loc, rt);
@@ -363,9 +539,18 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
     }
 
+    /**
+     * 当前线程的 step 判定模式（per-thread 局部化，D2 §3.3）：非挂起线程（map 无条目）
+     * 视为 RESUME。
+     */
+    private DebugStepMode currentThreadStepMode() {
+        SuspendedThread thread = getSuspendedThread(Thread.currentThread().getId());
+        return thread == null ? DebugStepMode.RESUME : thread.getThreadStepMode();
+    }
+
     private void checkStepInto(SourceLocation loc, EvalRuntime rt) {
-        stepMode = DebugStepMode.RESUME;
         SuspendedThread thread = makeSuspendedThread(rt);
+        thread.setThreadStepMode(DebugStepMode.RESUME);
         thread.update(loc, rt);
 
         if (notifier != null) {
@@ -377,8 +562,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private boolean checkTempBreakpoint(SourceLocation loc, EvalRuntime rt) {
         if (!matchTempBreakpoint(loc, rt))
             return false;
-        stepMode = DebugStepMode.RESUME;
         SuspendedThread thread = makeSuspendedThread(rt);
+        thread.setThreadStepMode(DebugStepMode.RESUME);
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifyBreakAt(thread, loc, rt);
@@ -388,8 +573,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     }
 
     private void checkSuspend(SourceLocation loc, EvalRuntime rt) {
-        stepMode = DebugStepMode.RESUME;
         SuspendedThread thread = makeSuspendedThread(rt);
+        thread.setThreadStepMode(DebugStepMode.RESUME);
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifySuspend(thread, loc, rt);
@@ -410,7 +595,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         SourceLocation lastLoc = thread.getLastBreakLocation();
         if (lastLoc == null || !lastLoc.isSameLine(loc)) {
             if (currentFrame <= lastFrame) {
-                stepMode = DebugStepMode.RESUME;
+                thread.setThreadStepMode(DebugStepMode.RESUME);
                 thread.update(loc, rt);
                 if (notifier != null) {
                     notifier.notifyStepOver(thread, loc, rt);
@@ -430,7 +615,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         int lastFrame = thread.getLastBreakFrameIndex();
         int currentFrame = thread.getCurrentMaxFrameIndex();
         if (lastFrame > currentFrame) {
-            stepMode = DebugStepMode.RESUME;
+            thread.setThreadStepMode(DebugStepMode.RESUME);
 
             thread.update(loc, rt);
             if (notifier != null) {
@@ -460,7 +645,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (logBreakpoint(bp, rt))
             return false;
 
-        stepMode = DebugStepMode.RESUME;
+        thread.setThreadStepMode(DebugStepMode.RESUME);
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifyBreakAt(thread, loc, rt);
@@ -470,13 +655,10 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     }
 
     private void doSuspend(SuspendedThread thread) {
-        // Mark the per-thread suspended flag BEFORE publishing the volatile global flag,
-        // so that any observer that sees suspended==true is guaranteed to also see this
-        // thread as suspended (the volatile write establishes a happens-before barrier).
-        // Without this ordering, getSuspendedThreads() could observe suspended==true but
-        // an empty thread list, since thread.setSuspended(true) previously lagged behind.
-        thread.setSuspended(true);
-        suspended = true;
+        // per-thread 发布并入 monitorWait 锁内临界区（item 10 审计 F4）：放行原语以
+        // isSuspended() 为闸门，闸门翻转与 localReleased 复位必须同锁串行化——否则
+        // 锁外窗口内到达的放行会被入口复位抹掉（放行已上报但线程继续挂起）。
+        // notifier 事件已在调用方（check* 方法）于锁外发出。
         lastSuspendThread = thread;
         monitorWait(thread);
     }
@@ -531,27 +713,62 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         return false;
     }
 
+    /**
+     * 挂起等待（D2 §3.3 谓词局部化）：循环谓词为 per-thread 组合
+     * `!closed && !localReleased && !leaseExpired()`；signalAll 唤醒后各线程重查自身谓词。
+     * 出口判定顺序（钉死，消 flaky）：局部放行/租约到期优先正常返回；仅 closed 且无局部
+     * 放行 → 抛 ALREADY_CLOSED（close 语义）。
+     * <p>标志生命周期（M2）：localReleased 在本方法入口于 monitorLock 内复位（与
+     * releaseAll/releaseThread/stepX 同锁串行化，防"放行后被入口复位抹掉"竞态）。
+     */
     private void monitorWait(SuspendedThread thread) {
-        if (suspended) {
-            monitorLock.lock();
-            try {
-                thread.setSuspended(true);
-                suspendedCondition.signalAll();
-                while (suspended && !closed) {
-                    if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
-                        LOG.trace("nop.debugger.monitor-await-timeout");
-                    }
+        boolean leaseExpiredExit = false;
+        monitorLock.lock();
+        try {
+            // 挂起入口复位放行标志 + per-thread 发布（同锁临界区——M2/F4 时序点）
+            thread.setLocalReleased(false);
+            // plan 2479 C-4 加固：新挂起 = 上一次 step 模式已消费——复位防陈旧 step 模式
+            // 经线程 ID 回收/旧 map 条目跨执行污染（漏断点/幽灵挂起，item 24 审计 C-4 交错 B）
+            thread.setThreadStepMode(DebugStepMode.RESUME);
+            thread.setSuspended(true);
+            suspended = true;
+            suspendedCondition.signalAll();
+            while (!closed && !thread.isLocalReleased() && !leaseExpired()) {
+                if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
+                    LOG.trace("nop.debugger.monitor-await-timeout");
                 }
-            } catch (InterruptedException e) {
-                // ignore
-                Thread.currentThread().interrupt();
-            } finally {
-                thread.setSuspended(false);
-                monitorLock.unlock();
             }
+            leaseExpiredExit = !thread.isLocalReleased() && leaseExpired();
+        } catch (InterruptedException e) {
+            // ignore
+            Thread.currentThread().interrupt();
+        } finally {
+            thread.setSuspended(false);
+            if (!hasSuspendedThreads())
+                suspended = false;
+            monitorLock.unlock();
         }
-        if (closed) {
+        // 出口判定顺序：局部放行/租约到期优先正常返回（即使 closed 并存——宽限 releaseAll
+        // 与 close 的竞态按放行处理）；仅 closed 且无局部放行 → close 语义中止
+        if (closed && !thread.isLocalReleased() && !leaseExpiredExit) {
             throw new NopEvalException(ERR_XLANG_DEBUGGER_ALREADY_CLOSED);
+        }
+        if (leaseExpiredExit) {
+            // 租约到期自退出：per-thread 单元素事件（D1 evt.leaseExpired 载体；宽限聚合
+            // 路径由 releaseAll 聚合发，互不重复——本线程经谓词到期退出不经 localReleased）
+            IDebugNotifier cb = notifier;
+            if (cb != null)
+                cb.notifyLeaseExpired(java.util.List.of(thread.getThreadId()));
+        }
+    }
+
+    private boolean hasSuspendedThreads() {
+        synchronized (suspendedThreads) {
+            for (SuspendedThread thread : suspendedThreads.values()) {
+                if (thread.isSuspended())
+                    return true;
+            }
+            return false;
         }
     }
 

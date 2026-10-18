@@ -16,6 +16,7 @@ import io.nop.orm.eql.ast.EqlASTKind;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAggregateFunction;
+import io.nop.orm.eql.ast.ISqlReturningSupport;
 import io.nop.orm.eql.ast.SqlAlias;
 import io.nop.orm.eql.ast.SqlAllProjection;
 import io.nop.orm.eql.ast.SqlAndExpr;
@@ -79,6 +80,7 @@ import io.nop.orm.eql.ast.SqlWindowExpr;
 import io.nop.orm.eql.ast.SqlWindowFrame;
 import io.nop.orm.eql.ast.SqlWindowFrameBound;
 import io.nop.orm.eql.ast.SqlUpdate;
+import io.nop.orm.eql.ast.SqlUpsert;
 import io.nop.orm.eql.ast.SqlValues;
 import io.nop.orm.eql.ast.SqlWhere;
 import io.nop.orm.eql.ast.SqlWindowExpr;
@@ -317,10 +319,56 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         } else {
             visitSqlValues(node.getValues());
         }
+        printReturning(node);
+    }
+
+    /**
+     * Plan 2380：写语句 returning 子句的共享打印路径（update / insert / delete 共用）。
+     * {@code *} 已在 transform 期展开为投影列表，因此这里只有"有投影才打印"一种形态。
+     */
+    protected void printReturning(ISqlReturningSupport node) {
+        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
+            print(" returning ");
+            printList(node.getReturnProjections(), ",");
+        } else if (node.getReturnAll()) {
+            print(" returning *");
+        }
     }
 
     protected void printInsertKeyword() {
         print("insert ");
+    }
+
+    /**
+     * Plan 2380：{@code upsert} 的<b>回显</b>打印（方言无关的中立形态）。
+     *
+     * <p>方言形态差异由 {@link AstToSqlGenerator} 覆写本方法处理——本实现只负责
+     * {@code toSqlString()} 通道把用户写下的结构原样还原，不做任何方言分支。
+     */
+    @Override
+    public void visitSqlUpsert(SqlUpsert node) {
+        assertNoPropJoins(node, node.getResolvedTableSource());
+
+        print("upsert\ninto ");
+        visitSqlTableName(node.getTableName());
+        beginBraceBlock();
+        printList(node.getColumns(), ",");
+        endBraceBlock();
+
+        visitSqlValues(node.getValues());
+
+        println();
+        print("on conflict ");
+        beginBraceBlock();
+        printList(node.getConflictColumns(), ",");
+        endBraceBlock();
+
+        println();
+        print("do update set ");
+        beginBlock();
+        printList(node.getAssignments(), ",");
+        endBlock();
+        println();
     }
 
     @Override
@@ -354,12 +402,7 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         endBlock();
         printWhere(node.getWhere());
 
-        if (node.getReturnProjections() != null && !node.getReturnProjections().isEmpty()) {
-            print(" returning ");
-            printList(node.getReturnProjections(), ",");
-        } else if (node.getReturnAll()) {
-            print(" returning *");
-        }
+        printReturning(node);
     }
 
     protected void printUpdateKeyword() {
@@ -390,9 +433,12 @@ public class AstToEqlGenerator extends EqlASTVisitor {
         visitSqlTableName(node.getTableName());
         endBlock();
         printWhere(node.getWhere());
+        // Plan 2380：delete ... returning
+        printReturning(node);
     }
 
-    private void assertNoPropJoins(Object node, SqlSingleTableSource source) {
+    /** Plan 2380：改为 protected——AstToSqlGenerator 的 upsert 覆写需要复用同一道 prop-join 渲染兜底。 */
+    protected void assertNoPropJoins(Object node, SqlSingleTableSource source) {
         if (source != null && source.getPropJoins() != null && !source.getPropJoins().isEmpty()) {
             throw new NopException(ERR_EQL_DML_PROP_JOIN_NOT_SUPPORTED)
                     .param(ARG_PROP_PATH, String.valueOf(node));
