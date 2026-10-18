@@ -26,6 +26,9 @@
 > 1.7 计数口径：合并裁定后 51 条（53 保留全含 1 降级；并入 2 条 C5-005→C8-001、C7-002→C6-001/C6-002；P1×8/P2×26/P3×17）；P0=0（即时通道显式空执行）；C10 缺保护 12 条单列；CL 编号 39 条、驳回 4（CL-007/009/015/038）、确认台账 35 条（见「维度集外线索关联」节 nop-batch 小节，不计入 51）；关键事实修正：C8-001 ORM 子面「LIMIT 0 静默空任务」证伪→全表加载挂死（挂死面扩大）；与 WI 1.1–1.6 台账零重复立项，跨单元关联 5 处单列（三表零保留族/扫描守卫停摆族/平台池占用族/零生产装配对照/CL-006 留 rpc 单元）。
 | `2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency` | 2.1 | nop-kernel-concurrency | C1–C7 C9 + C10（C8 线索 overlay） | 0 | 5 | 63+14（含 C10 缺保护登记） | 28 | done（closure audit PASS，plan 2468） |
 | `2026-10/2026-10-17-1725-deep-audit-nop-core-framework-concurrency` | 2.2 | nop-core-framework | C1 C2 C4 C6 + C10（C3/C5/C7/C8/C9 线索 overlay） | 0 | 11 | 21+18（含 C10 缺保护登记） | 13 | done（closure audit PASS，plan 2469） |
+| `2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency` | 2.3 | nop-service-framework-hotpath | C1 C2 C3 C4 C8 C9 + C10（C5/C6/C7 线索 overlay） | 0 | 7 | 39+17（含 C10 缺保护登记） | 12 | done（closure audit PASS，plan 2470） |
+
+> 2.3 计数口径：合并裁定后 59 条（64 初审+深挖 → 63 复核保留全含降级 9（P1×6 + P2→P3×3）+ 1 撤案（C2-006 转正面样例）→ 并入 4 条 + 跨单元并入 1（C9-002→2.1 C9-010）；P1 存量 12（初审 10 + 深挖 2）−6 降级（C1-001/C2-004/C3-001/005/013/C4-003 全有实测或部署面证据）+1 升格（C9-012）→ 7；P1×7/P2×39/P3×12 + 量化记录 1；本单元承担修复 58）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 编号段 25 实占 24（CL-021 空号勘误）：升格 3（CL-003→C8-005、CL-010→C9-005、CL-015→C9-012）、并入 5、驳回 1（CL-011）、纯移交（CL-016/017/022/023/025）；跨单元映射：C9-012 移交功能正确性维度（接收轨落名）、C9-002→2.1 C9-010 同链第三面、C1-010 Dao flush 修复归 nop-auth-service 单元、CL-018→nop-kernel（ContextTaskQueue 承重原语）、CL-025 平台原语前置（C3-010/C4-003 修复先决）。
 
 > 2.2 计数口径：合并裁定后 45 条（63 初审+深挖 → 59 复核保留 + 4 驳回 → 并入 14 条；P1×11/P2×21/P3×13）；P0=0（即时通道显式空执行）；C10 缺保护 18 条单列；CL 编号 21 条（升格 1→C1-021、落格 2、同位点并入设施 2、零立案 1、关联保留 8、纯移交 7；见「维度集外线索关联」节 2.2 小节）；跨单元映射表 11 行（C1-007 族案↔2.1 C1-001 刷新链上下游、C1-021 吸收进 2.1 C3-001 平台方案、CL-008/020 同位点主处置在 2.1、C6-010 三重登记设施归 2.1、Jdk21CommonsCoreInitializer 注册链为 2.1 C6-002 可达性终审输入）；C2-001 与历史 check 审计 P2-6 同源（本轮 P1 裁定留档）。
 
@@ -42,7 +45,7 @@
 | Finding ID | 报告 | 描述 | 修复路径 | 修复状态 |
 |-----------|------|------|---------|---------|
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
-| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -121,6 +124,13 @@
 | nop-core-framework-C6-002 | 2.2 | nop-core-framework | 插件状态机永久卡死 DEACTIVATING/ACTIVATING 无恢复 API | 待 7.1 | open |
 | nop-core-framework-C6-003 | 2.2 | nop-core-framework | config source 先调度后加载：初始失败泄漏永久 globalTimer 刷新任务（启动期降档不适用论证成立） | 待 7.1 | open |
 | nop-core-framework-C6-004 | 2.2 | nop-core-framework | ShellRunner 非 timeout 异常不销毁子进程+stderr 线程 pin（←C6-014；修复须外层 try finally） | 待 7.1 | open |
+| nop-service-framework-hotpath-C3-002 | 2.3 | nop-service-framework-hotpath | invokeOperation 出口泵缺 thenOnContext：OrmBatchLoader 在 future 完成线程 requireSession→NOT_IN_SESSION/错 ORM 会话 | 待 7.1 | open |
+| nop-service-framework-hotpath-C3-003 | 2.3 | nop-service-framework-hotpath | BufferedStreamingPublisher 背压断裂：映射链自驱动 request(1) 越窗后元素进无界 ArrayDeque，慢客户端长流内存失控（AI 路由默认形态） | 待 7.1 | open |
+| nop-service-framework-hotpath-C3-007 | 2.3 | nop-service-framework-hotpath | BizActionService.callActionAsync 裸 executor.execute：调用方 IContext 不传播，租户/用户跨任务残留（全单元唯一站点，10 形态 grep） | 待 7.1 | open |
+| nop-service-framework-hotpath-C4-007 | 2.3 | nop-service-framework-hotpath | SSO 半衰期 token 刷新在认证过滤器载体线程无超时阻塞 IdP HTTP：brownout 确定性服务级停摆（修复面：ILoginService 异步化+timeout API+thenCompose 领先 next.get） | 待 7.1 | open |
+| nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | 待 7.1 | open |
+| nop-service-framework-hotpath-C8-002 | 2.3 | nop-service-framework-hotpath | Gateway 429 重试放大 ×7（加法）无准入上界：在途×90s 挂起确定性 OOM 轨迹（与 C4-003 降级事由独立） | 待 7.1 | open |
+| nop-service-framework-hotpath-C9-012 | 2.3 | nop-service-framework-hotpath | LocalDateTimeFieldMarshaller computeSize=20 vs 纳秒实写 23-29 字节 protobuf 越界（双模式硬失效实测；**移交功能正确性维度**） | 待 7.1 | open（接收轨落名） |
 
 ## 维度集外线索关联（CL 台账，不计入各单元发现数）
 
@@ -155,6 +165,10 @@
 **移交包**：api-core 5 项（C2-016、C2-CL-019、C3-016/C3-007/C3-005 各自的 api-core 半边——Protected Area 另行裁定，协同点 FutureHelper.bindCancel 单点改造）；nop-graph 1（CL-031）；nop-stream 2（CL-021/023）；nop-cluster 1（CL-024）。
 
 **驳回/不立案（1）**：C1-CL-001（OverflowBlockingQueue 容量 0 自旋证伪——ArrayBlockingQueue 构造期 IAE fail-fast；四参失配构造残余面并入 CL-008）。
+
+### WI 2.3 nop-service-framework-hotpath（CL 编号段 25 实占 24（CL-021 空号勘误）；升格 3、并入 5、驳回 1；全表见 merge-adjudication.md §CL 台账）
+
+**升格立案**：CL-003→C8-005（令牌桶墙钟回填深化）、CL-010→C9-005（SSE 每元素双重转换深化）、CL-015→C9-012（线格式越界 P1 移交功能线）。**并入**：CL-008→C8-001、CL-002→C1-003（归并维持）、CL-005→C1-003/C2-005 工单、CL-007→C4-005/C3-CL-006 三方同一修复单元、CL-019→C2-001 工单。**驳回/不成立**：CL-011（DefaultFlowControlRunner 阻塞式限流——maxWaitMillis 默认 0 无生产配置点，非阻塞；另立 C8-008）。**纯移交**：CL-016→C4（refreshToken syncGet 在 runOnContext 队列线程——终裁并入 C4-007）、CL-017→C4/C5（putAsync("sys",null) NPE 面）、CL-022→nop-ai/nop-message（JDK Delayer orTimeout 11 站点共享面）、CL-023→认证/安全线（LoginApi__refreshToken 语义背离——修复不得当刷新通道）、CL-025→平台原语前置（IHttpResponse 断连观测缺失——C3-010/C4-003 修复先决）。**关联保留**：CL-001/004/006/009/012/013/014/020——归属见审计目录 merge-adjudication.md。**编号勘误**：CL-021 空号（dispatch-log 曾误记「CL-021→安全线」系与 WI 2.2 同号混写——本单元无安全线移交案）。
 
 ### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入 2、零立案 1、关联保留 8、纯移交 7；全表见 merge-adjudication.md §CL 台账）
 
