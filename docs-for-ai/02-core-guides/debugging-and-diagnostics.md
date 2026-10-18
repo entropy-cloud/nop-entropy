@@ -433,6 +433,28 @@ private LitemallCart findByProduct(String userId, String productId, IServiceCont
 }
 ```
 
+## XLang 在线调试（WebSocket 网关 + REPL）
+
+浏览器端在线调试 XLang 脚本的能力由 `nop-dev-tools/` 模块组承载（xlang-web-debugger roadmap items 1-23，2026-10-18 全部完成）。设计权威：ai-dev/design/xlang-web-debugger/ 设计目录（00-overview 总纲 ~ 07-repl-security REPL 安全详设，平台内部文档——按 docs-for-ai 边界规则不直接链接）。
+
+**启用开关**（均默认关闭）：
+
+- `nop.xlang.debugger.enabled`——调试引擎（会话路由执行器）。
+- `nop.xlang.debug-web.enabled`——WS 网关 + REPL 服务（`DebugWebServerConfig` 初始化门）。
+
+租约/日志/REPL 参数族（lease ttl/renew/grace、log batch/flush、repl timeout/bytes/concurrent/whitelist 等 10 键）见上述设计目录 00-overview 的 §3.3。
+
+**端点**（由宿主 web 适配器绑定，quarkus 与 spring 双 twin）：
+
+- WS `/ws/xlang-debugger`——D1 JSON-RPC 协议（握手鉴权经 `nopDebugToken` 查询参数；浏览器原生 WS 无自定义头）。
+- HTTP `/r/nop-xlang-debug/compile`、`/r/nop-xlang-debug/execute`——在线 REPL（编译诊断 / 受控执行：属主校验、沙箱白名单、审计日志、超时与并发门控；未鉴权不开放）。
+
+**前端消费**：flux 前端 `@nop-chaos/flux-xlang-debug` 包提供装配组件（schema type `xlang-debug-editor`，经 `registerXlangDebugEditorRenderers` 注册；bundle 交付形态为懒加载异步 chunk）。使用说明见 flux 仓 flux-bundle 包 README 的「XLang online debug editor」小节与 flux 仓 renderer-lazy-loading 架构文档（nop-chaos-flux 仓内文档，本仓不做跨仓链接）；演示页 = flux playground `#/xlang-debug`。
+
+**后端场景蓝本**：`nop-dev-tools/nop-xlang-debug-web` 测试树 `DebugDemoTask`（双 xpl step 任务资源）+ `TestXdslTaskDebugFullChain`（WS 网关全链集成测试：断点→挂起→求值→单步→放行→完成），是业务 XDSL 资源接入在线调试的参考形态。
+
+**关键源码锚点**：`04-reference/source-anchors.md` DBG-006 ~ DBG-013（网关帧分发/初始化门/会话管理/执行器路由/REPL 服务与守卫/日志管道/端点适配器）。
+
 ## 相关文档
 
 - `../03-runbooks/debug-codegen-and-generated-files.md`
