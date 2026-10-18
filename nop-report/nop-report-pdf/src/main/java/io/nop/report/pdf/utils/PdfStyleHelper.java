@@ -234,10 +234,21 @@ public class PdfStyleHelper {
                 .replace('\u00A0', ' ').replace('\u202F', ' ').replace('\u2007', ' ');
     }
 
+    /**
+     * 缺省字号（pt）定版口径：字号缺失或 <=0 时回退 10。扫描与渲染必须同源使用。
+     */
+    public static final float DEFAULT_FONT_SIZE = 10;
+
     // 获取字体大小
     public static float getFontSize(io.nop.excel.model.ExcelFont excelFont) {
-        Float fontSize = excelFont != null ? excelFont.getFontSize() : null;
-        return fontSize != null && fontSize > 0 ? fontSize : 10;
+        return normalizeFontSize(excelFont != null ? excelFont.getFontSize() : null);
+    }
+
+    /**
+     * 字号口径唯一定版：null 或 <=0 回退 {@link #DEFAULT_FONT_SIZE}。
+     */
+    public static float normalizeFontSize(Float fontSize) {
+        return fontSize != null && fontSize > 0 ? fontSize : DEFAULT_FONT_SIZE;
     }
 
     // 绘制边框（修正版）

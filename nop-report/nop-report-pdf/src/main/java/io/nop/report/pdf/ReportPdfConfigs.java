@@ -25,4 +25,7 @@ public interface ReportPdfConfigs {
 
     @Description("多页PDF未配置页脚时自动绘制默认页码（第x页/共y页）")
     IConfigReference<Boolean> CFG_PDF_DEFAULT_PAGE_FOOTER = varRef(s_loc, "nop.report.pdf.default-page-footer", Boolean.class, true);
+
+    @Description("fit/scale缩放后单元格最小可读字号（pt）。缩放导致字号低于该阈值时告警并收敛缩放比例，0表示不限制")
+    IConfigReference<Float> CFG_PDF_MIN_FONT_SIZE = varRef(s_loc, "nop.report.pdf.min-font-size-pt", Float.class, 6f);
 }

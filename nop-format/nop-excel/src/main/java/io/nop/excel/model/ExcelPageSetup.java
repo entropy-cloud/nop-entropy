@@ -22,6 +22,17 @@ public class ExcelPageSetup extends _ExcelPageSetup {
     }
 
     public boolean isFitToWidthAndHeight() {
-        return Boolean.TRUE.equals(getFitToWidth()) && Boolean.TRUE.equals(getFitToHeight());
+        return isPositive(getFitToWidth()) && isPositive(getFitToHeight());
+    }
+
+    /**
+     * fit 模式判定：任一维声明了目标页数（>0）即启用 fit 缩放（fit 优先于 scale 百分比）。
+     */
+    public boolean isFitMode() {
+        return isPositive(getFitToWidth()) || isPositive(getFitToHeight());
+    }
+
+    private static boolean isPositive(Integer value) {
+        return value != null && value > 0;
     }
 }

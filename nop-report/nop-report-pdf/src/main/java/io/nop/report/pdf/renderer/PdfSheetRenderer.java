@@ -7,6 +7,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.model.table.CellRange;
+import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.utils.TableSplitHelper;
 import io.nop.excel.model.ExcelFont;
@@ -16,12 +17,15 @@ import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.IExcelStyleProvider;
+
 import io.nop.excel.print.ExcelPrintHelper;
 import io.nop.report.pdf.ReportPdfConfigs;
 import io.nop.report.pdf.utils.PdfImageHelper;
 import io.nop.report.pdf.utils.PdfPrintHelper;
 import io.nop.report.pdf.utils.PdfStyleHelper;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.util.Matrix;
@@ -33,6 +37,8 @@ import static io.nop.report.pdf.ReportPdfErrors.ARG_PRINT_TITLE_RANGE;
 import static io.nop.report.pdf.ReportPdfErrors.ERR_PDF_UNSUPPORTED_PRINT_TITLES;
 
 public class PdfSheetRenderer {
+    static final Logger LOG = LoggerFactory.getLogger(PdfSheetRenderer.class);
+
     private final PdfRenderer renderer;
     private final IExcelStyleProvider styleProvider;
 
@@ -52,37 +58,133 @@ public class PdfSheetRenderer {
         SizeBean pagerSize = ExcelPrintHelper.getPaperSize(pageSetup);
         RectangleBean printArea = ExcelPrintHelper.calculatePrintArea(pagerSize, sheet.getPageMargins());
 
-        if (pageSetup != null && pageSetup.isFitToWidthAndHeight()) {
-            renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols);
-            return;
-        }
-
-        boolean enableColumnPaging = pageSetup == null || !Boolean.FALSE.equals(pageSetup.getFitToWidth());
+        // 列分页语义裁定（WI2）：fitToWidth 为目标页数 int（0/缺省=宽度不约束）。宽度不约束与
+        // N 页宽目标都需要列分页（后者正是达成目标的机制），故恒启用。
+        boolean enableColumnPaging = true;
 
         ITableView table = sheet.getTable();
 
-        // 第一遍：按完整打印区拆分。单页能放下则不做任何重复
+        // 重复块占位（页容量扣减与 fit 目标公式共用）
+        double repeatWidth = repeatCols > 0 ? table.getRangeWidth(0, repeatCols - 1, sheet.defaultColumnWidth()) : 0;
+        double repeatHeight = repeatRows > 0 ? table.getRangeHeight(0, repeatRows - 1, sheet.defaultRowHeight()) : 0;
+
+        // WI2 统一缩放管线：入口一次计算 effective scale（fit 目标优先于 scale 百分比），
+        // 分页几何按缩放后容量 printArea/scale 计算，绘制侧共用同一 scale
+        double scale = resolveScale(sheet, pageSetup, printArea, repeatWidth, repeatHeight);
+        scale = clampByMinFontSize(sheet, scale);
+
+        // 第一遍：按缩放后完整页容量拆分。单页能放下则不做任何重复
         List<CellRange> tableRegions = TableSplitHelper.splitTable(table,
-                printArea.getWidth(), printArea.getHeight(),
+                Math.max(50, printArea.getWidth() / scale),
+                Math.max(50, printArea.getHeight() / scale),
                 sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging);
         if (tableRegions.size() <= 1) {
-            renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols);
+            renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols, scale);
             return;
         }
 
         // 需要分页：为续页的重复标题块预留空间后重新拆分，避免页尾内容溢出
-        double repeatHeight = repeatRows > 0 ? table.getRangeHeight(0, repeatRows - 1, sheet.defaultRowHeight()) : 0;
-        double repeatWidth = repeatCols > 0 ? table.getRangeWidth(0, repeatCols - 1, sheet.defaultColumnWidth()) : 0;
         if (repeatHeight > 0 || repeatWidth > 0) {
             tableRegions = TableSplitHelper.splitTable(table,
-                    Math.max(50, printArea.getWidth() - repeatWidth),
-                    Math.max(50, printArea.getHeight() - repeatHeight),
+                    Math.max(50, (printArea.getWidth() - repeatWidth) / scale),
+                    Math.max(50, (printArea.getHeight() - repeatHeight) / scale),
                     sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging);
         }
 
         for (CellRange region : tableRegions) {
-            renderSheet(sheet, pagerSize, printArea, region, repeatRows, repeatCols);
+            renderSheet(sheet, pagerSize, printArea, region, repeatRows, repeatCols, scale);
         }
+    }
+
+    /**
+     * fit 目标页数的浮点容差：scale 由 tableW 反推，容量恰为 tableW/N 时浮点误差会把恰好填满的
+     * 第 N 段误判为溢出，多裂出一页。1e-9 相对容差让容量略大于内容，消除边界抖动且不改变可感知语义。
+     */
+    private static final double FIT_EPSILON = 1e-9;
+
+    /**
+     * 解析 effective scale：{@code scale} 百分比为基础值；fit 模式（任一维目标页数 >0）覆盖。
+     * 容量口径与两遍拆分一致：分页时每页内容容量为 {@code (print - repeat)/scale}
+     * （重复标题块在所有页预留），故目标 N 页的约束为 {@code scale <= N*(print-repeat)/table}。
+     * fit 只缩小不放大（Excel 语义，小表不会被放大到填满页面）；空表（宽或高为 0）不缩放。
+     */
+    private double resolveScale(IExcelSheet sheet, ExcelPageSetup pageSetup, RectangleBean printArea,
+                                double repeatWidth, double repeatHeight) {
+        double scale = 1.0;
+        if (pageSetup != null && pageSetup.getScale() != null)
+            scale = pageSetup.getScale() / 100.0;
+
+        if (pageSetup == null || !pageSetup.isFitMode())
+            return scale;
+
+        ITableView table = sheet.getTable();
+        double tableWidth = table.getTableWidth(sheet.defaultColumnWidth());
+        double tableHeight = table.getTableHeight(sheet.defaultRowHeight());
+        if (tableWidth <= 0 || tableHeight <= 0)
+            return 1.0;
+
+        double fitScale = Double.MAX_VALUE;
+        Integer fitW = pageSetup.getFitToWidth();
+        Integer fitH = pageSetup.getFitToHeight();
+        if (fitW != null && fitW > 0) {
+            double capW = pageCapacity(printArea.getWidth(), repeatWidth);
+            fitScale = Math.min(fitScale, fitW * capW / tableWidth);
+        }
+        if (fitH != null && fitH > 0) {
+            double capH = pageCapacity(printArea.getHeight(), repeatHeight);
+            fitScale = Math.min(fitScale, fitH * capH / tableHeight);
+        }
+        return Math.min(1.0, fitScale * (1 - FIT_EPSILON));
+    }
+
+    /** 单页内容容量（扣重复块预留）；重复块大于页内容区时退化为不扣（渲染已属退化场景）。 */
+    private double pageCapacity(double printSize, double repeatSize) {
+        double cap = printSize - repeatSize;
+        return cap > 0 ? cap : printSize;
+    }
+
+    /**
+     * 最小可读字号收敛：缩放导致表格最小字号低于 {@code nop.report.pdf.min-font-size-pt} 阈值时，
+     * WARN 告警并把 scale 收敛到 threshold/minFont（目标页数让位于可读性）。scale>=1（放大/原大）不限制。
+     */
+    private double clampByMinFontSize(IExcelSheet sheet, double scale) {
+        float threshold = ReportPdfConfigs.CFG_PDF_MIN_FONT_SIZE.get();
+        if (threshold <= 0 || scale >= 1.0)
+            return scale;
+
+        float minFont = scanMinFontSize(sheet);
+        double effective = minFont * scale;
+        if (effective < threshold) {
+            LOG.warn("nop.report.pdf.min-font-size-clamped:minFont={},scale={},effective={},threshold={} "
+                    + "-- fit/scale target relaxed to keep readability", minFont, scale, effective, threshold);
+            return threshold / minFont;
+        }
+        return scale;
+    }
+
+    /**
+     * 扫描表格全部单元格样式的最小字号（口径与渲染同源：{@link PdfStyleHelper#normalizeFontSize}）。
+     */
+    private float scanMinFontSize(IExcelSheet sheet) {
+        float min = Float.MAX_VALUE;
+        IExcelStyleProvider styleProvider = this.styleProvider;
+        ITableView table = sheet.getTable();
+        int rowCount = table.getRowCount();
+        int colCount = table.getColCount();
+        for (int i = 0; i < rowCount; i++) {
+            for (int j = 0; j < colCount; j++) {
+                ICellView cell = table.getCell(i, j);
+                if (cell == null)
+                    continue;
+                ExcelStyle style = styleProvider == null ? null : styleProvider.getStyle(cell.getStyleId());
+                io.nop.excel.model.ExcelFont font = style != null ? style.getFont() : null;
+                if (font == null && styleProvider != null)
+                    font = styleProvider.getDefaultFont();
+                min = Math.min(min, PdfStyleHelper.normalizeFontSize(font != null ? font.getFontSize() : null));
+            }
+        }
+        // 空表/无样式单元格：回退缺省字号
+        return min == Float.MAX_VALUE ? PdfStyleHelper.DEFAULT_FONT_SIZE : min;
     }
 
     /**
@@ -123,11 +225,15 @@ public class PdfSheetRenderer {
 
     public void renderSheet(IExcelSheet sheet, SizeBean paperSize, RectangleBean printArea, CellRange region) {
         int[] repeat = resolveRepeatTitles(sheet);
-        renderSheet(sheet, paperSize, printArea, region, repeat[0], repeat[1]);
+        double scale = resolveScale(sheet, sheet.getPageSetup(), printArea,
+                repeat[1] > 0 ? sheet.getTable().getRangeWidth(0, repeat[1] - 1, sheet.defaultColumnWidth()) : 0,
+                repeat[0] > 0 ? sheet.getTable().getRangeHeight(0, repeat[0] - 1, sheet.defaultRowHeight()) : 0);
+        scale = clampByMinFontSize(sheet, scale);
+        renderSheet(sheet, paperSize, printArea, region, repeat[0], repeat[1], scale);
     }
 
     private void renderSheet(IExcelSheet sheet, SizeBean paperSize, RectangleBean printArea, CellRange region,
-                             int repeatRows, int repeatCols) {
+                             int repeatRows, int repeatCols, double scale) {
         ITableView table;
         if (region == null) {
             table = sheet.getTable();
@@ -179,7 +285,7 @@ public class PdfSheetRenderer {
             double dy = repeatRowsTable != null ? repeatRowsHeight(sheet, region, repeatRows) : 0;
 
             // 应用页面设置，并取得设备页矩形在当前用户空间的裁剪矩形（供图片裁剪）
-            java.awt.Rectangle pageClipRect = applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight, dx, dy);
+            java.awt.Rectangle pageClipRect = applyPageSetup(pageRenderer, sheet, table, printArea, pageHeight, dx, dy, scale);
 
             // 四块网格布局：角块(表头×关键列)在原点，表头行块在x=dx，关键列块在y=-dy，
             // 内容在(dx,-dy)。重复块用save/restore包裹避免CTM残留，内容块的累积平移
@@ -261,7 +367,7 @@ public class PdfSheetRenderer {
 
     private java.awt.Rectangle applyPageSetup(PdfPageRenderer pageRenderer, IExcelSheet sheet, ITableView table,
                                               RectangleBean printArea, float pageHeight,
-                                              double repeatDx, double repeatDy) throws IOException {
+                                              double repeatDx, double repeatDy, double scale) throws IOException {
 
         PDPageContentStream contentStream = pageRenderer.getContentStream();
         // 初始变换：将原点移动到打印区域的左上角。printArea.y是距页顶的距离，需换算为PDF自页底起的坐标
@@ -279,32 +385,9 @@ public class PdfSheetRenderer {
             return new java.awt.Rectangle((int) Math.floor(clipX), (int) Math.floor(clipY),
                     (int) Math.ceil(clipW), (int) Math.ceil(clipH));
 
-        // fit缩放/居中的计算需把重复标题块的占位计入（内容绘制在(dx,-dy)偏移之后）
-        double tableWidth = repeatDx + table.getTableWidth(sheet.defaultColumnWidth());
-        double tableHeight = repeatDy + table.getTableHeight(sheet.defaultRowHeight());
-
-        // 计算缩放比例
-        double scale = 1.0f;
-        if (pageSetup.getScale() != null) {
-            scale = pageSetup.getScale() / 100.0f;
-        }
-
-        // 处理fitToWidth/fitToHeight
-        if (Boolean.TRUE.equals(pageSetup.getFitToWidth()) || Boolean.TRUE.equals(pageSetup.getFitToHeight())) {
-            double widthRatio = printArea.getWidth() / tableWidth;
-            double heightRatio = printArea.getHeight() / tableHeight;
-
-            if (Boolean.TRUE.equals(pageSetup.getFitToWidth()) && Boolean.TRUE.equals(pageSetup.getFitToHeight())) {
-                scale = Math.min(widthRatio, heightRatio);
-            } else if (Boolean.TRUE.equals(pageSetup.getFitToWidth())) {
-                scale = widthRatio;
-            } else {
-                scale = heightRatio;
-            }
-        }
-
-        // 应用缩放
-        if (scale != 1.0f) {
+        // 缩放比例由 renderSheet 入口统一解析（fit 目标优先于 scale 百分比，含最小字号收敛），
+        // 分页几何与绘制共用同一 scale，避免页容量与绘制口径分叉
+        if (scale != 1.0) {
             contentStream.transform(Matrix.getScaleInstance((float) scale, (float) scale));
         }
 

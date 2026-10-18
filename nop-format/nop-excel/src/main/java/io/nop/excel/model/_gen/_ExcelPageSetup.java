@@ -33,16 +33,16 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     /**
      *  
      * xml name: fitToHeight
-     * 
+     * 缩放到 M 页高（目标页数，0或缺省=该维不约束）
      */
-    private java.lang.Boolean _fitToHeight ;
+    private java.lang.Integer _fitToHeight ;
     
     /**
      *  
      * xml name: fitToWidth
-     * 
+     * 缩放到 N 页宽（目标页数，0或缺省=该维不约束）
      */
-    private java.lang.Boolean _fitToWidth ;
+    private java.lang.Integer _fitToWidth ;
     
     /**
      *  
@@ -169,15 +169,15 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: fitToHeight
-     *  
+     *  缩放到 M 页高（目标页数，0或缺省=该维不约束）
      */
     
-    public java.lang.Boolean getFitToHeight(){
+    public java.lang.Integer getFitToHeight(){
       return _fitToHeight;
     }
 
     
-    public void setFitToHeight(java.lang.Boolean value){
+    public void setFitToHeight(java.lang.Integer value){
         checkAllowChange();
         
         this._fitToHeight = value;
@@ -188,15 +188,15 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     /**
      * 
      * xml name: fitToWidth
-     *  
+     *  缩放到 N 页宽（目标页数，0或缺省=该维不约束）
      */
     
-    public java.lang.Boolean getFitToWidth(){
+    public java.lang.Integer getFitToWidth(){
       return _fitToWidth;
     }
 
     
-    public void setFitToWidth(java.lang.Boolean value){
+    public void setFitToWidth(java.lang.Integer value){
         checkAllowChange();
         
         this._fitToWidth = value;

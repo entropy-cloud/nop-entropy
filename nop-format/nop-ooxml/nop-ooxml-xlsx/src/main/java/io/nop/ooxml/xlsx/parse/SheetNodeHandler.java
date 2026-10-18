@@ -108,6 +108,12 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
     private List<ExcelColumnConfig> cols;
 
+    /**
+     * sheetPr>pageSetUpPr@fitToPage 状态：OOXML 中 fitToWidth/fitToHeight 仅在 fitToPage=1 时生效
+     * （SAX 文档序 sheetPr 先于 pageSetup 出现）
+     */
+    private boolean pageSetUpPrFitToPage;
+
     private ExcelDataValidation dataValidation;
     private final StringBuilder validationFormula = new StringBuilder(64);
     private boolean vfOpen = false;
@@ -311,14 +317,24 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String rId = getAttr(attrs, "r:id");
             if (ref != null)
                 output.link(ref, location, rId);
+        } else if ("pageSetUpPr".equals(localName)) {
+            // <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+            pageSetUpPrFitToPage = getAttrBoolean(attrs, "fitToPage", false);
         } else if ("pageSetup".equals(localName)) {
-            // <pageSetup paperSize="0" orientation="portrait" horizontalDpi="0" verticalDpi="0" copies="0"/>
+            // <pageSetup paperSize="0" orientation="portrait" scale="100" fitToWidth="1" fitToHeight="1" .../>
             int paperSize = getAttrInt(attrs, "paperSize", 0);
             boolean horizontal = "landscape".equals(getAttr(attrs, "orientation"));
 
             ExcelPageSetup pageSetup = new ExcelPageSetup();
             pageSetup.setPaperSize(paperSize);
             pageSetup.setOrientationHorizontal(horizontal);
+            if (attrs.containsKey("scale"))
+                pageSetup.setScale(getAttrInt(attrs, "scale", 100));
+            // OOXML 语义：fitToWidth/fitToHeight 为目标页数（缺省 1），仅 fitToPage=1 时生效
+            if (pageSetUpPrFitToPage) {
+                pageSetup.setFitToWidth(getAttrInt(attrs, "fitToWidth", 1));
+                pageSetup.setFitToHeight(getAttrInt(attrs, "fitToHeight", 1));
+            }
             output.pageSetup(pageSetup);
         } else if ("dataValidation".equals(localName)) {
             String type = getAttr(attrs, "type");

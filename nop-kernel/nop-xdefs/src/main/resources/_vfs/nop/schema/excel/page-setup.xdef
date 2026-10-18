@@ -4,13 +4,15 @@
             @paperWidth 单位为pt
             @repeatTitleRows 重复标题行范围（1-based 闭区间，如 "1:2"），来自 Print_Titles definedNames
             @repeatTitleCols 重复标题列范围（1-based 闭区间，如 "A:B"），来自 Print_Titles definedNames
+            @fitToWidth 缩放到 N 页宽（目标页数，0或缺省=该维不约束）
+            @fitToHeight 缩放到 M 页高（目标页数，0或缺省=该维不约束）
             -->
 <pageSetup x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
            xdef:name="ExcelPageSetup" xdef:bean-package="io.nop.excel.model"
            orientationHorizontal="boolean"
            horizontalCentered="boolean" verticalCentered="boolean"
            paperSize="int" paperWidth="float" paperHeight="float" scale="int"
-           fitToHeight="boolean" fitToWidth="boolean" gridLines="boolean"
+           fitToHeight="int" fitToWidth="int" gridLines="boolean"
            firstPageNumber="int" blackAndWhite="boolean"
            repeatTitleRows="string" repeatTitleCols="string">
     <header xdef:name="ExcelHeaderFooter">
