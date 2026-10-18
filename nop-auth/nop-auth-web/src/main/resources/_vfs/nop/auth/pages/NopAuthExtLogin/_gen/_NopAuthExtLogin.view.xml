@@ -24,9 +24,6 @@
                 <!--登录标识-->
                 <col id="extId" mandatory="true" sortable="true"/>
 
-                <!--登录密码-->
-                <col id="credential" sortable="true"/>
-
                 <!--是否已验证-->
                 <col id="verified" mandatory="true" sortable="true"/>
 
@@ -59,11 +56,11 @@
         <form id="view" editMode="view" title="查看-扩展登录方式" i18n-en:title="View Ext Login">
             <layout>
  loginType[登录类型] extId[登录标识]
- credential[登录密码] verified[是否已验证]
- lastLoginTime[上次登录时间] lastLoginIp[上次登录IP]
- createdBy[创建人] createTime[创建时间]
- updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ verified[是否已验证] lastLoginTime[上次登录时间]
+ lastLoginIp[上次登录IP] createdBy[创建人]
+ createTime[创建时间] updatedBy[修改人]
+ updateTime[修改时间] 
+                remark[备注]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-扩展登录方式" i18n-en:title="Add Ext Login" x:prototype="edit"/>
@@ -71,7 +68,6 @@
             <layout>
  loginType[登录类型]
  extId[登录标识]
- credential[登录密码]
  verified[是否已验证]
  lastLoginTime[上次登录时间]
  lastLoginIp[上次登录IP]

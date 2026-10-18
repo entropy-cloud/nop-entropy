@@ -3762,6 +3762,12 @@
         ]
       },
       {
+        "name": "checkReadOnly",
+        "parameterTypes": [
+          "java.lang.String"
+        ]
+      },
+      {
         "name": "checkUniqueForSave",
         "parameterTypes": [
           "io.nop.biz.crud.EntityData"
