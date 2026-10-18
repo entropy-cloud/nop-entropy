@@ -1,5 +1,16 @@
 # 更新日志
 
+## 修复 2026-10-18
+* 修复 MDX 查询（`io.nop.orm.mdx`）主子表维度对齐的静默失效与结果污染 (commit: c58753ea78)
+  - **行为变更**：显式 JOIN 未声明 `dimFields` 时不再抛 `nop.err.orm.dim-fields-mismatch`；主/子表字段 label 冲突、`expression`/`formula`/`aggregates` 由静默忽略改为抛异常（`nop.err.orm.query-duplicate-field-label` / `nop.err.orm.query-unsupported-field-attr`）；`distinct` 恢复生效后，依赖 `SELECT DISTINCT` 的查询结果行数会变化（去重正确）
+  - **显式 JOIN 全废**：`getSubQuery` 算出的 `dimFields` 从不回写 bean，`dimFieldsMatch` 拿 `null` 比对主表维度必抛 mismatch；同时 `QuerySourceBean.conditions` 全仓零消费者，`leftJoin/rightJoin/innerJoin` 声明的关联键被整体丢弃——现按主表维度顺序取配对 `rightField`
+  - **主查询语义被静默削弱**：`getMainQuery` 只复制 14 个属性中的 7 个，`distinct`/`leftJoinProps`/`disableLogicalDelete`/`name` 全丢。`SELECT DISTINCT o.deptName … left join o.parent` 退化为 `SELECT o.deptName,o.deptId`；`SysDaoNamingService.getServices()` 因此返回重复服务名
+  - **子表数据静默丢失**（多列关联）：关联属性子表维度沿用 `rel.getJoin()` 顺序（目标实体主键序），与主表（本实体主键序）不一致时位置键对不上，仅打日志不抛异常；现按主表下标逐位定位
+  - **结果污染**：主/子表字段写入同一 `Map` 而 `QueryFieldBean.getLabel()` 不含 owner，同名字段由子表值静默覆盖主表值——现直接报错（给任一侧加 `alias` 即可消歧）
+  - **重复维度被吞**：主表不加 `GROUP BY` 时多行可共享同一维度键，`dimIndex.put()` 覆盖导致子表值只回填最后一行；改为多值映射回填所有匹配行
+  - **NULL 维度污染 SQL**：维度键曾把 NULL 归一为空串并塞进 `IN`（数值列报 `invalid input syntax`），而复合维度的 `eq(col,"")` 又被改写成 `is null`，同一语义两条分支行为相反；现保留 `null` 并统一用 `isNull`，`IN` 列表按 `nop.core.sql.in-list-max-size` 分片
+  - **调用方对象被改写**：拆分不再共享 `groupBy` 列表、不回写 `sourceName`、`findFirst` 先 `cloneInstance()` 再设 limit；`query.fields` 为 null 时不再 NPE
+
 ## 特性 2026-10-13
 * EQL 新增中立语法 `upsert` 语句与 `INSERT/DELETE ... RETURNING`，方言差异下沉 SQL 生成层（plan 2380）(commits: 14527e2da0, b9358d66f6)
   - `upsert into T (…) values (…) on conflict (…) do update set …`：取 PG 家族习惯形态；方言能力位 `supportUpsert` 门控，取值限定 PostgreSQL 族 / MySQL·MariaDB 族 / H2 族，其余方言编译期响亮报错，不做静默降级
