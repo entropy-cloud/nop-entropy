@@ -49,7 +49,7 @@
 
 ### M2 — 页眉页脚（headers/footers）
 
-- [ ] WI4 页眉页脚占位符与作用域：求值 Excel 占位符（`&P` 当前页/`&N` 总页/`&D` 日期/`&T` 时间/`&A` 工作表名/`&F` 文件名/`&Z` 路径等）；区分**每工作表页码 vs 全局页码**（配置 `nop.report.pdf.page-number-scope`）；首页不同 / 奇偶页不同（oddHeader/evenHeader/firstHeader 语义）；页眉页脚字体样式保真。含占位符求值单测 + 多页渲染断言（Deliverable: 占位符引擎 + 作用域/奇偶首页 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI4 页眉页脚占位符与作用域：求值 Excel 占位符（`&P` 当前页/`&N` 总页/`&D` 日期/`&T` 时间/`&A` 工作表名/`&F` 文件名/`&Z` 路径等）；区分**每工作表页码 vs 全局页码**（配置 `nop.report.pdf.page-number-scope`）；首页不同 / 奇偶页不同（oddHeader/evenHeader/firstHeader 语义）；页眉页脚字体样式保真。含占位符求值单测 + 多页渲染断言（Deliverable: 占位符引擎 + 作用域/奇偶首页 + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI5 页眉页脚富文本与图片：左/中/右分区内的多字体混排、logo 图片嵌入（复用图片嵌入路径）、分区对齐与越界裁剪保真。含图片页眉 golden（Deliverable: 富文本 + 图片页眉页脚 + 测试；deps: WI4、WI6；Item Type: Feature）
 
 ### M3 — 图片嵌入（image embedding）

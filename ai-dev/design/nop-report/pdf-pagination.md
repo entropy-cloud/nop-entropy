@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1 Print_Titles）；plan 2465（WI2 fit 缩放）；plan 2466（WI3 分页边界）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4 页眉页脚）
 
 ## 决策
 
@@ -44,6 +44,16 @@
 - **重复块边界**：拆分点落在重复前缀内部时按既有 `k=min(repeatRows, firstRowIndex)` clamp，不产生内容丢失。
 - **防御**：`TableSplitHelper` 对 0 行/0 列表直接返回空（0 列表在列分页分支曾死循环——startCol 永不推进，回归钉 `testZeroColumnTableTerminates`）。
 
+### D7 页眉页脚占位符与作用域（WI4）
+
+- **模型**：`ExcelPageSetup` 六段（header/footer + firstHeader/firstFooter/evenHeader/evenFooter，均 ExcelHeaderFooter）+ `differentFirst`/`differentOddEven` 开关（OOXML headerFooter 元素属性的模型级映射，SAX 解析不经 xdef）。模型 left/center/right String **保留原始 &-代码不剥离**（保真无损；WI5 再评估结构化）。
+- **解析归属**：&-语法解析器 `ExcelHeaderFooterCodes` 在 nop-ooxml-xlsx（OOXML 语法知识）；负责 &L/&C/&R 位置分段（缺省段 center）、`&&` 转义、字体 `&"name"`/字号 `&nn`（1-2 位数字）识别。`SimpleSheetContentsHandler.headerFooter` 覆写把六元素装入模型——**修复 xlsx 模板 headerFooter 在主解析路径被整段丢弃的缺陷**（回归钉：test-pdf.xpt.xlsx oddFooter）。
+- **渲染分流**：段文本含任何 &-代码（含仅字体代码）→ 延迟求值绘制（否则 & 代码字面打印）；纯字面文本 → 即时绘制（原路径）。
+- **延迟绘制机制**：`PdfRenderer` 维护延迟任务列表（页号/L-C-R/原始段/矩形/样式/sheet 名），`PdfReportRenderer` 在内容渲染完成后、默认页码前调用 `drawDeferredHeaderFooters`（此时 &N 可得）；显式页脚（含延迟）的页照常抑制默认页码。字体段渲染：段内代码切分为 run（`HeaderFooterRuns`），逐 run 求值占位符后按 L/C/R 定位顺序绘制；同段多字体代码取首个（WI5 精修多段混排）。
+- **页码作用域**：`nop.report.pdf.page-number-scope`（global 缺省/sheet；非法值 fail-loud `nop.err.report.pdf.invalid-page-number-scope`）。global：&P/&N=全文档序号/总页数；sheet：各 sheet 内序号/页数（`PdfRenderer` 记录 sheet 页区间）。&D/&T/&A/&F/&Z 不受作用域影响。
+- **变体回退**：differentFirst 首页用 first*（缺失回退 odd）；differentOddEven 偶数页用 even*（缺失回退 odd）；odd 缺失 → 该页无页眉/脚（默认页码抑制语义与 Excel 空白页脚一致）。
+- **&D/&T 格式**：yyyy/M/d 与 HH:mm:ss（固定格式，D7 定版）。&F/&Z 取模板资源路径（workbook location；无则空串）。&G 图片段解析保留、渲染属 WI5。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。
@@ -55,10 +65,9 @@
 
 ## 已知限制（后续增强方向）
 
-- 每工作表独立页码（当前为全局页码）。
-- 页眉页脚占位符（`&P/&N/&D/&A`）求值——当前页脚为字面文本。
+- 页眉页脚多字体混排精修与 &G 图片（&-语法已解析，渲染仅单段字体切换——WI5）。
 - 非前缀 Print_Titles 的渲染（见 D1 渲染限制）。
-- Print_Titles 写回 xlsx 输出（见 D1）。
+- pageBreaks/Print_Titles/pageSetup fit 写回 xlsx 输出（见 D1/D6）。
 
 ## 涉及实现
 
@@ -68,6 +77,8 @@
 - `nop-excel` 模型：`ExcelPageSetup.repeatTitleRows/repeatTitleCols`、`fitToWidth/fitToHeight`（page-setup.xdef）；`ExcelPageBreaks`（workbook.xdef，既有字段启用）
 - `nop-report-pdf/.../renderer/PdfSheetRenderer.java`（两遍拆分、模型优先解析、重复块渲染、手动分页符接入、空白尾裁剪、页脚标记）
 - `nop-core/.../utils/TableSplitHelper.java`（break 感知拆分重载 + 0 行/0 列防御）
+- `nop-ooxml-xlsx/.../parse/ExcelHeaderFooterCodes.java`（&-语法解析）、`SimpleSheetContentsHandler`（headerFooter 装模，修复丢弃缺陷）
+- `nop-report-pdf/.../utils/HeaderFooterRuns.java`/`HeaderFooterEvaluator.java`（run 切分 + 占位符求值）、`PdfRenderer`（延迟绘制 + sheet 页区间）、配置 `nop.report.pdf.page-number-scope`
 - `nop-report-pdf/.../renderer/PdfRenderer.java`（页面跟踪、`drawDefaultPageNumbers`）
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
 - `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪）
@@ -83,6 +94,8 @@
 - `TestSheetNodeHandlerPageBreaks`：rowBreaks/colBreaks 解析
 - `TestTableSplitHelperBreaks`：break 拆分（行/列/越界/末位/容量叠加/行-only/0 列防御）
 - `TestPdfPageBoundaries`：手动分页符精确分页、fit×breaks、超页行、合并单元格跨页、空白裁剪、style-only 不裁、重复块边界、golden
+- `TestExcelHeaderFooterCodes`：&-语法分段/转义/字体段/占位符判定；`TestTemplateHeaderFooterParse`：模板 headerFooter 装模回归
+- `TestPdfHeaderFooterRender`：&P/&N 全局与 sheet 作用域（双 sheet）、首页/奇偶变体、&A/&D/&T、字体代码不字面、无效 scope fail-loud、golden
 - `TestPdfRenderDefects`：F3（列拆分关键列重复）、F4（续页表头重复）红转绿；F6 回归钉（重复表头按需多次绘制，其余行只绘制一次）
 - `TestPdfSheetRenderFixes`：单页小表不受影响（无重复、打印区平移不变）
 - `TestPdfExportAudit`：20 模板批量导出复检

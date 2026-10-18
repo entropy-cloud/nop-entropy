@@ -1112,6 +1112,8 @@ nop.err.record.zlib-decode-fail: zlib数据解压失败:length={length}
 nop.err.record.zlib-output-too-large: zlib解压输出超过上限:maxLength={maxLength}
 nop.err.report.pdf.fallback-font-not-found: 未找到可用的CJK回退字体，无法渲染包含中文字符的文本[{textSample}]。请在VFS的/fonts/default.ttf、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供CJK字体文件
 nop.err.report.pdf.font-missing-glyph: 字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件
+nop.err.report.pdf.invalid-page-number-scope: 无效的页码作用域配置(仅支持global/sheet):scope={scope}
+nop.err.report.pdf.unsupported-print-titles: PDF导出仅支持从首行/首列开始的前缀Print_Titles声明(如1:2或A:B):printTitleRange={printTitleRange}
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空
@@ -1533,6 +1535,8 @@ nop.err.xlsx.chart-color-resolve-fail: 解析图表颜色失败:colorName={color
 nop.err.xlsx.chart-parse-fail: 解析图表失败:chartId={chartId},partName={partName}
 nop.err.xlsx.chart-style-parse-fail: 解析图表样式失败:parserName={parserName},elementName={elementName}
 nop.err.xlsx.chart-theme-load-fail: 加载图表主题失败:partName={partName}
+nop.err.xlsx.dup-print-titles: 重复的Print_Titles定义:printTitles={printTitles}
+nop.err.xlsx.invalid-print-titles: 无效的Print_Titles定义:printTitles={printTitles}
 nop.err.xlsx.null-package: ExcelOfficePackage不能为null
 nop.err.xlsx.null-rel-part: 没有关联文件:type={type},relId={relId}
 nop.err.xlsx.unknown-sheet-name: 找不到sheet名称为:{sheetName}
