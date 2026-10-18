@@ -32,7 +32,7 @@
         // 树形表格：flux table 仅在 schema 显式给出 rowChildrenField 时才进入 tree 模式并渲染
         // 展开/收起按钮（amis 会自动识别 children，flux 不会）。tree-list 这类 grid 在
         // `<selection>` 中声明 `<childrenProp> @TreeChildren`，据此推导。
-        const childrenProp = objMeta == null ? null : objMeta.tree == null ? null : objMeta.tree.childrenProp;
+        const childrenProp = objMeta?.tree?.childrenProp ?? null;
         const rowChildrenField = childrenProp != null
             && gridModel.selection != null
             && gridModel.selection.getField(childrenProp) != null
