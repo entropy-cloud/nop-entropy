@@ -1,0 +1,22 @@
+{
+  "name": "nop-stream-design-goal-closure",
+  "description": "Close the remaining nop-stream design-goal gaps: state encoding/restore redesign (Lockable removal, codec/rebuild/v3 format), distributed exactly-once closure (enumerator/state-backend/snapshot-failure/savepoint), capability model and XDSL declaration, resource/perf hardening, CI verification gates, and final independent closure audit",
+  "agent": "build",
+  "roadmapPath": "ai-dev/backlog/nop-stream-design-goal-closure-roadmap.md",
+  "plansDir": "ai-dev/plans/nop-stream-design-goal-closure",
+  "planGuide": "ai-dev/plans/00-plan-authoring-and-execution-guide.md",
+  "auditsDir": "ai-dev/audits/nop-stream-design-goal-closure",
+  "contextDir": "docs-for-ai/00-start-here",
+  "moduleDir": "nop-stream",
+  "prompts": {
+    "multiAudit": "ai-dev/skills/deep-audit-prompts.md",
+    "openAudit": "ai-dev/skills/open-ended-adversarial-review-prompt.md"
+  },
+  "commands": {
+    "test": "./mvnw test -pl nop-stream -am -T 1C",
+    "build": "./mvnw clean install -pl nop-stream -am -T 1C -DskipTests",
+    "lint": "node ai-dev/tools/check-doc-links.mjs --strict",
+    "typecheck": "echo 'typecheck not configured'"
+  },
+  "commitFormat": "feat(nop-stream): <description>"
+}
