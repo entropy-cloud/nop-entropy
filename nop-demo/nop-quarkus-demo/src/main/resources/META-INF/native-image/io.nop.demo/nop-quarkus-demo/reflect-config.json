@@ -5918,6 +5918,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.commons.lang.impl.Cancellable"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.commons.service.ILifeCycle"
   },
   {
@@ -6031,6 +6041,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.core.context.ExecutionContextImpl"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.core.context.IEvalContext"
   },
   {
@@ -6052,6 +6072,21 @@
     "fields": [],
     "methods": [],
     "name": "io.nop.core.context.IServiceContext"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [
+      {
+        "name": "newServiceContextImpl",
+        "parameterTypes": []
+      }
+    ],
+    "name": "io.nop.core.context.ServiceContextImpl"
   },
   {
     "allDeclaredConstructors": true,
