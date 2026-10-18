@@ -18,7 +18,7 @@
 | 顺序 | 文档 | 层级 | 职责 |
 |---|---|---|---|
 | 1 | [`00-vision.md`](00-vision.md) | Vision | 产品定位、使用场景、成功标准、不可违反约束、Non-goals、需人工裁定的决策点、收敛路径 |
-| 2 | [`01-architecture-baseline.md`](01-architecture-baseline.md) | Architecture Baseline | 分层与依赖方向、核心对象职责契约、关键决策 D1—D7、单一事实源、兼容性约束 |
+| 2 | [`01-architecture-baseline.md`](01-architecture-baseline.md) | Architecture Baseline | 分层与依赖方向、核心对象职责契约、关键决策 D1—D8、单一事实源、兼容性约束 |
 | 3 | [`02-frontend-dialect-and-editor-contract.md`](02-frontend-dialect-and-editor-contract.md) | 前端契约 | Dialect Profile、EntitySchema、entity-path 补全、格式化、校验、执行与结果协议、页面级结果区 |
 | 4 | [`03-eql-console-api-and-security.md`](03-eql-console-api-and-security.md) | 后端契约 | `nop-eql-console` 模块分层、BizModel API、诊断与错误模型、安全门控矩阵、配置项、权限点 |
 | 5 | [`04-workbench-page-and-delivery.md`](04-workbench-page-and-delivery.md) | 交付契约 | 工作台页面结构、页面/菜单资源、数据流、三仓交付链路与验收契约 |

@@ -12,6 +12,7 @@
 > - `ai-dev/analysis/2026-10/eql-online-editor-survey/2026-10-18-nop-entropy-eql-backend-capability-survey.md`（后端能力底账）
 > - `ai-dev/analysis/2026-10/eql-online-editor-survey/2026-10-18-{cloudbeaver,dbgate,chat2db,sqlpad,beekeeper-studio,querybook,hue}-analysis.md`（7 份外部项目深度调研）
 > - `ai-dev/analysis/2026-10/eql-online-editor-survey/2026-10-18-online-sql-editor-architecture-comparison.md`（横向对比与取舍）
+> - `ai-dev/analysis/2026-10/2026-10-18-eql-named-params-and-comment-hints-analysis.md`（命名参数与注释 hint 调研，WI-29/30/31 的证据底账）
 > - `docs-for-ai/02-core-guides/eql-and-database-compatibility.md`、`docs-for-ai/02-core-guides/api-and-graphql.md`、`docs-for-ai/02-core-guides/service-layer.md`
 > - `docs-for-ai/04-reference/source-anchors.md`（EQL / DevDoc 锚点）
 
@@ -111,6 +112,7 @@
 | D5 执行/校验契约 | executeAction 必填、validation.action、onResult；删除硬编码端点 | design 01 §3 / design 02 §5-§6 | WI-08、WI-09 |
 | D6 安全模型 | 部署开关 + 权限点 + 只读默认 + 执行护栏 | design 01 §3 / design 03 §5 | WI-12、WI-15 |
 | D7 交付链路 | 三仓同步是唯一交付路径 | design 01 §3 / design 04 §4 | WI-23 |
+| D8 参数与 Hint | 位置参数 + 结构化 decorator；注释无语义；白名单/未知拒绝 | design 01 §3 / design 03 §3/§5 | WI-29、WI-30、WI-31 |
 
 ## 外部调研对架构的直接影响
 
@@ -127,6 +129,7 @@
 | 历史/保存查询应记录「执行快照」而非只存文本 | Querybook、Hue、DbGate | 历史项记录 EQL/编译 SQL/参数（脱敏）/耗时/行数/错误码；v1 本地、v2 可持久化 | WI-17 |
 | EXPLAIN/编译校验是多数开源工具的空白，恰是 EQL 的差异化 | Chat2DB、SQLPad、Beekeeper、DbGate | 把 `validate` + 编译 SQL 预览作为 P0；EXPLAIN 作为可选 P1 | WI-14、WI-18 |
 | License 与安全模型不可照搬 | Chat2DB、DbGate、Beekeeper、SQLPad | 只借鉴架构不复制源码；EQL 工具不托管凭据、不做多租户 DB 客户端；安全按 D6 四层门控 | D6、Risks |
+| 参数与 hint 需要结构化/可校验 | 平台既有 decorator 机制 + EQL 现状 | 语言层 v1 不增命名参数；控制台用命名映射；控制/Hint 用 decorator 且白名单/未知拒绝；注释不承载语义 | D8、WI-29、WI-30、WI-31 |
 
 ## 目标架构与契约索引
 
@@ -142,9 +145,9 @@
 
 Vision 阶段与里程碑**不是一一映射**：
 
-- V1 能力分布在 M0—M3：Dialect Profile/补全/格式化（WI-04—WI-11）、后端 API（WI-12—WI-16）、页面骨架与只读执行（WI-19—WI-21）；写模式随 V1 交付但默认关闭。
-- V1.5 能力穿插在 M1—M4：历史/收藏（WI-17）、结果分页与复制导出（WI-21）、多标签/错误跳转/写开关确认（WI-22）、联调（WI-24）。
-- V2 能力集中在 M5：EXPLAIN（WI-18，v2 预留）、多 querySpace/服务端历史/异步/文件导出/NL2EQL（WI-28 裁定）。
+- V1 能力分布在 M0—M3：Dialect Profile/补全/格式化（WI-04—WI-11）、后端 API（WI-12—WI-16，含 WI-30 装饰器白名单门控）、页面骨架与只读执行（WI-19—WI-21）；写模式随 V1 交付但默认关闭。
+- V1.5 能力穿插在 M1—M4：历史/收藏（WI-17）、结果分页与复制导出（WI-21）、多标签/错误跳转/写开关确认（WI-22）、参数面板/命名参数映射（WI-29）、联调（WI-24）。
+- V2 能力集中在 M5：EXPLAIN（WI-18，v2 预留）、语言级命名参数与 DB hint 透传评估（WI-31）、多 querySpace/服务端历史/异步/文件导出/NL2EQL（WI-28 裁定）。
 
 ## Milestones
 
@@ -152,7 +155,7 @@ Vision 阶段与里程碑**不是一一映射**：
 |---|---|---|
 | **M0 基线与协议冻结** | 调研闭环、设计定稿、测试基线 | 7 份外部调研 + 1 份对比 + 1 份现状差距 + 1 份后端能力底账落地；`ai-dev/design/eql-online-editor/`（README + 5 份设计正文）经独立子 agent 多轮审查达成共识；协议 DTO/类型有前端 fixture 与后端 DTO 的单一来源 |
 | **M1 前端方言化** | flux 支持可注册 Dialect Profile 与 EQL 全套编辑能力 | `flux-code-editor` 单包 test/typecheck 全绿；EQL profile 可仅靠 schema 配置启用（关键字/补全/格式化/校验/执行）；现有 5 方言与 13 语言行为零回归 |
-| **M2 后端 API** | EQL 控制台 API 可用且有安全护栏 | `loadMeta/validate/execute` 在 H2 demo 上 curl 通过；错误场景返回结构化 diagnostics；`nop.debug=false` 时 Bean 不注册；无权限断言响应体 `status/code`（非 HTTP 403） |
+| **M2 后端 API** | EQL 控制台 API 可用且有安全护栏 | `loadMeta/validate/execute` 在 H2 demo 上 curl 通过；错误场景返回结构化 diagnostics；`nop.debug=false` 时 Bean 不注册；无权限断言响应体 `status/code`（非 HTTP 403）；装饰器白名单/未知拒绝/注释无语义有测试 |
 | **M3 工作台页面** | 页面可用（树/编辑器/结果/工具栏） | `main.flux.yaml` 在 demo 应用渲染；实体树可点选插入；执行结果可见；校验错误能定位到行列 |
 | **M4 三仓联调与 E2E** | 同步链路 + 真实浏览器 E2E | flux→next→entropy 同步后，`nop-web-e2e` 新 spec 全绿（打开页面→选实体→补全→执行→结果→错误→只读校验）；sync 日志与 tgz 版本记录在案 |
 | **M5 收口与可选增强** | 独立审计、文档、后续增强裁定 | closure audit 通过；owner doc 更新；roadmap 状态与日志一致；可选增强（历史持久化/多 querySpace/EXPLAIN 可视化）显式标记 deferred 或拆新 roadmap |
@@ -187,6 +190,9 @@ Vision 阶段与里程碑**不是一一映射**：
 - WI-26 文档与日志: `todo`
 - WI-27 独立 closure audit: `todo`
 - WI-28 可选增强裁定: `todo`
+- WI-29 参数面板与命名参数映射: `todo`
+- WI-30 decorator 白名单与 hint/注释策略: `todo`
+- WI-31 语言级命名参数与 DB hint 透传评估: `todo`
 
 ## Work Item 详情
 
@@ -277,6 +283,11 @@ Vision 阶段与里程碑**不是一一映射**：
 - 验收：`./mvnw test -pl nop-eql-console/nop-eql-console-service -am` 通过；测试不依赖外部数据库（H2 dev profile）。
 - 依赖：WI-12—WI-15。
 
+**WI-30 decorator 白名单与 hint/注释策略**
+- 内容：按 design 01 D8 / design 03 §3/§5 实现编译前装饰器白名单与语义——允许 `@enableFilter`（true）、`@querySpace`（一致性校验）；拒绝 `@dump` 与未知装饰器（`nop.err.eql-console.decorator-not-allowed`）；注释明确不承载语义、不进入 SQL；补负向测试（未知/拼写错误装饰器、@dump、@querySpace 不一致）。
+- 验收：design 03 §4.3 新增诊断行有测试；`@dump`/未知装饰器在编译前被拒；注释样本不影响编译结果且不出现在 compiledSql；文档写明「Hint 用 decorator，不用注释」。
+- 依赖：WI-14、WI-15。
+
 **WI-17 历史与收藏**
 - 内容：v1 前端 localStorage（按 querySpace/实体隔离，容量/清理策略、隐私）；历史项记录执行快照：EQL 文本、编译后 SQL（可选）、参数（默认脱敏）、statementKind、耗时、行数、错误码、时间；后端接口仅预留（`loadHistory/saveHistory` 不实现或返回空）；v2（deferred）若需团队共享，新增 ORM 模型走 plan-first。
 - 验收：前端历史/收藏单测；刷新页面后恢复；不写入敏感信息（参数值脱敏开关）。
@@ -304,6 +315,11 @@ Vision 阶段与里程碑**不是一一映射**：
 - 内容：多标签状态保持、历史/收藏面板、执行中取消（前端停止等待，服务端可能继续）、只读/写模式提示、错误行点击跳转、快捷键帮助、空态与加载态、i18n（中/英）。
 - 验收：E2E 覆盖关键路径；无 console error；a11y 基本检查（按钮 aria/title）。
 - 依赖：WI-20、WI-21。
+
+**WI-29 参数面板与命名参数映射**
+- 内容（V1.5）：参数面板从 EQL 文本提取 `?` 位置，允许为每个位置配置展示名（`paramNames`），生成 `params` 映射与 `paramOrder`（顺序）并注入执行请求；数量不符时前端/后端均报明确诊断；历史项保存参数名与脱敏值。
+- 验收：2-3 个参数样本顺序绑定正确；数量不符有诊断；命名仅存在于配置/历史，EQL 文本不被改写；历史回放可复现。
+- 依赖：WI-09、WI-15。
 
 ### M4 联调与 E2E
 
@@ -341,6 +357,11 @@ Vision 阶段与里程碑**不是一一映射**：
 - 验收：零 Blocker/零 Major；roadmap `Work Item Status`、Milestones、`ai-dev/logs/` 三处状态一致。
 - 依赖：WI-26。
 
+**WI-31 语言级命名参数与 DB hint 透传评估**
+- 内容（v2/plan-first）：评估两条独立能力——(a) EQL 文法/AST/`ICompiledSql` 的命名参数（`:name` + Map 绑定）是否值得做，量化对生成管线与公共 API 的影响；(b) DB optimizer hint 透传采用 `@dbHint('...')`（decorator 输出 `/*+ ... */`）还是限定 `/*+ */` 注释形式，需覆盖方言位置/转义/白名单。
+- 验收：产出设计裁定（采纳/拒绝 + 影响面 + 迁移）或明确转 backlog；未获 owner 裁定前不得动 grammar/公共 API。
+- 依赖：WI-15、WI-30。
+
 **WI-28 可选增强裁定**
 - 内容：EXPLAIN 可视化、保存查询持久化/共享、多 querySpace 切换、NL2EQL、结果可视化；逐项给出「进 backlog / 新 roadmap / 明确拒绝」裁定。
 - 验收：裁定记录在 roadmap 末尾与 `ai-dev/backlog/`。
@@ -352,10 +373,13 @@ Vision 阶段与里程碑**不是一一映射**：
 WI-01 → WI-02 → WI-03
 WI-02 → WI-04 → {WI-05, WI-06, WI-07, WI-08, WI-09} → WI-10 → WI-11
 WI-02 → WI-12 → WI-13 → WI-14 → WI-15 → WI-16
+WI-14, WI-15 → WI-30
+WI-09, WI-15 → WI-29
 WI-09, WI-15 → WI-17
 WI-15 → WI-18
+WI-15, WI-30 → WI-31
 WI-11, WI-12 → WI-19 → WI-20 → WI-21 → WI-22
-WI-11, WI-19..WI-22 → WI-23 → WI-24 → WI-25 → WI-26 → WI-27 → WI-28
+WI-11, WI-19..WI-22, WI-29 → WI-23 → WI-24 → WI-25 → WI-26 → WI-27 → {WI-28, WI-31}
 ```
 
 ## Verification Plan
@@ -426,6 +450,8 @@ node ai-dev/tools/check-doc-links.mjs --strict
 | 写操作安全 | 生产误开导致数据损坏 | 四层门控（`nop.debug`+`@Auth`+只读默认+`allow-write`）+ E2E 负面用例 |
 | 行级数据权限被绕过 | 越权看到未授权数据 | 后端强制 `SQL.enableFilter(true)`；WI-15 用带数据权限的测试用户做负面用例 |
 | 新模块发布面扩大 | 根 pom/demo 依赖/构建链变更引入回归 | WI-12 只加最小依赖；`./mvnw install -pl ... -am -DskipTests` 与 demo 启动作为门槛；不进生产 app 默认依赖 |
+| 未知装饰器静默 no-op | 用户拼写错误/安全装饰器被绕过 | WI-30 白名单 + 未知拒绝 + 编译前扫描；测试钉死 |
+| 命名参数被误认为 EQL 语法 | 用户写 `:name` 解析失败 | 设计/文档明确 v1 仅控制台命名映射；UI 参数面板引导；WI-29 验收覆盖 |
 | `code-editor` 结果区仍是组件内 feature state | 工作台分页/导出体验受限 | WI-09 `onResult` 发布 + WI-21 页面级结果区；保留 v1 内置结果作为回退 |
 | sql-formatter 自定义方言与 EQL 关键字差异 | 格式化错行/破坏语句 | WI-07 用幂等样例回归；无法保证时降级为「不格式化」并提示 |
 | flux 单包改动影响 13 语言/5 方言 | 回归面大 | WI-11 全量单测与集成测试；profile 默认值保持原行为 |
@@ -439,6 +465,7 @@ node ai-dev/tools/check-doc-links.mjs --strict
 - [ ] 执行取消的端到端能力：现有 `ICancelToken`/JDBC cancel 是否可用于 Web 请求中断，需在 WI-15 实测；不可用则显式降级为「前端取消 + 后端查询超时」。
 - [ ] 历史/收藏是否需要在 v1 就做后端持久化（团队共享），还是保持 localStorage 到 M5 再裁定。
 - [ ] EQL 函数补全：v1 已明确不做（无权威注册表）；v2 若做需先由 owner 裁定权威数据源。
+- [ ] 语言级命名参数与 DB hint 透传是否进入正式 scope：由 owner 在 WI-31 评估后裁定（v1 不阻塞）。
 
 ## References
 

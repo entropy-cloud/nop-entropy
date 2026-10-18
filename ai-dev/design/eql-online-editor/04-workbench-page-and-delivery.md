@@ -25,7 +25,7 @@
 
 - 实体树：展示 `loadMeta` 的 querySpace/实体/属性；点击实体插入 `SELECT ... FROM Entity e` 模板，点击属性插入属性路径。
 - 标签页：每个标签独立保存 EQL 文本、选中数据源、结果快照；切换不丢状态；标签状态存页面 scope（刷新可恢复为缺省单标签）。
-- 编辑器：`code-editor` + `language: 'sql'` + 内联 EQL profile；不新增 renderer type。
+- 编辑器：`code-editor` + `language: 'sql'` + 内联 EQL profile；不新增 renderer type。编辑器允许注释语法，但注释不承载语义；控制/Hint 使用 decorator。
 - 结果区：页面级结果区（`publishResult` + `table` + 分页 + 复制为 CSV/JSON + 消息/SQL 预览）；不使用文件下载作为 v1 验收（文件导出属 V2）。
 - 工具栏：只读默认；写开关仅在 `config.allowWrite=true` 时展示，且每次切换需二次确认。
 

@@ -144,8 +144,9 @@
 | `executeUpdateAction` | 受控写执行动作（后端 `executeUpdate`） | 可选；仅当 `loadMeta.config.allowWrite=true` 且页面提供时显示写模式 |
 | `writeMode` | 写模式交互：`toggle`（默认，工具栏切换+二次确认）或 `always`（仅对可信环境） | 可选 |
 | `resultPath` | 响应中结果数据的路径 | 可选；缺省按标准信封解析 |
-| `params` | scope → 请求参数的映射（键 → scope 路径） | 可选 |
+| `params` | scope → 请求参数的映射（键 → scope 路径），作为“命名参数”的配置形态 | 可选 |
 | `paramOrder` | `params` 映射键到 EQL `?` 顺序的排列 | 配置了 `params` 时**必填**；缺失直接报配置错误，不得按字典序静默绑定 |
+| `paramNames` | 参数展示名（与 `paramOrder` 对齐），用于参数面板/历史展示 | 可选；仅展示，不参与绑定 |
 | `publishResult` | 是否发布 `onResult` 事件 | 可选，缺省 false |
 | `limit` / `offset` | 请求参数缺省值 | 可选；页面可覆盖 |
 | `readOnly` | 仅前端提示，不构成安全边界 | 可选 |
@@ -191,6 +192,7 @@
 
 ## 7. 其他契约
 
+- **参数与注释（v1 边界）**：EQL 文本只支持 `?` 位置参数；命名参数仅存在于控制台配置（`params`+`paramOrder`），请求发送有序数组。注释（`--`/`/* */`）只被解析器容忍，**不承载语义、不进入生成 SQL**；控制信息用 decorator，不用注释。
 - **兼容范围（明确例外）**：未配置任何新字段时，现有行为不变；以下为破坏性变更，发布说明必须标注：(1) 删除历史硬编码执行端点 `/api/report/execSql`，依赖 fallback 的页面必须显式配置 `execution.executeAction`；(2) 执行请求字段由 `sql` 改为 `eql`、`params` 由对象改为有序数组，页面与 bundle 必须同快照发布。
 
 - 快捷键：`Ctrl/Cmd+Enter` 执行整段；`Ctrl/Cmd+Shift+Enter` 执行选区（选区为空时整段）。不得与搜索/缩进快捷键冲突。

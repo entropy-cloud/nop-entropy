@@ -33,7 +33,7 @@ BizModel 名：`EqlConsole`。REST 形态：`POST /r/EqlConsole__{method}`；Gra
 命名与语义约束：
 
 - `eql` 为单条语句；多语句在编译期被拒绝，API 不承担语句切分。**分页由控制台统一负责**：预解析阶段拒绝 EQL 文本自带的 `LIMIT`/`OFFSET`（避免与 `LongRangeBean` 外层分页叠加成非法 SQL），需要分页时使用 API 的 `limit`/`offset`。
-- `params` 为**有序数组**，按 EQL 文本中 `?` 出现的顺序绑定（EQL 文法只接受位置参数 `?`，不支持命名参数）；数量必须与 `?` 数量一致，不一致返回参数诊断。禁止把参数拼进 EQL 文本。
+- `params` 为**有序数组**，按 EQL 文本中 `?` 出现的顺序绑定（EQL 文法只接受位置参数 `?`，v1 不支持语言级命名参数）；数量必须与 `?` 数量一致，不一致返回参数诊断。控制台的“命名参数”只是页面配置映射（`params`+`paramOrder`），不进入 EQL 文本。禁止把参数拼进 EQL 文本。
 - `querySpace` 的执行值**始终取自编译产物**（`ICompiledSql.getQuerySpace()`）；入参 `querySpace` 只做一致性校验（与编译值不一致时报错），不得用它替换执行数据源。EQL 文本中的 `@querySpace` 装饰器仅在入参显式提供 `querySpace` 且两者一致时允许，否则拒绝（防止用装饰器静默切换数据源）。
 - `limit` 缺省 1000、上限 10000；`offset` 缺省 0。逐查询 `timeoutSeconds` 属 v2 预留，v1 不暴露该入参；v1 超时来自配置 `nop.eql-console.timeout-seconds`（见 §3/§6）。
 - `loadMeta` 的 `entities` 在 v1 按 querySpace 过滤，**不做**实体级权限裁剪：持有 `EqlConsole:read` 即可见全部实体/属性名（不含数据内容）。实体级可见性裁剪属 owner 决策点（见 `00-vision.md` §6 #3），实现前不得声称已按实体鉴权。
@@ -104,7 +104,8 @@ execute(eql, params, ...):
 - 编译必须开启 `enableFilter`，否则行级数据权限不会生效；租户与逻辑删除过滤始终生效，不提供关闭开关。
 - 参数值必须是**原始值**；执行的参数构造（含租户参数追加）由 ORM 执行器内部完成，禁止在入口二次构造。
 - 编译预览 SQL 可能不含数据权限条件文本（以 marker 注入、执行期展开）；API 需在文档/前端提示「预览 SQL 与实际执行 SQL 可能不同」。
-- **编译前 AST gate**：拒绝 `@dump`；`@querySpace` 规则见 §2；对 `UPDATE`/`DELETE` 检查 AST 是否存在 `WHERE`，无 `WHERE` 直接拒绝（不依赖 `ICompiledSql`，它不暴露 WHERE）；`@enableFilter` 只允许 true 语义。
+- **编译前 AST gate**：装饰器白名单——允许 `@enableFilter`（仅 true 语义）、`@querySpace`（一致性规则见 §2）；拒绝 `@dump` 与**未知装饰器**（避免静默 no-op）；对 `UPDATE`/`DELETE` 检查 AST 是否存在 `WHERE`，无 `WHERE` 直接拒绝（不依赖 `ICompiledSql`，它不暴露 WHERE）。
+- **注释策略**：注释只做语法容忍（lexer HIDDEN），不承载任何语义；控制/Hint 不使用注释，统一用 decorator；v1 不做数据库 hint 透传。
 - **超时**：v1 通过请求上下文设置 `IContext.setCallExpireTime(now + timeoutMillis)`（执行前保存、finally 恢复）；JDBC 层 `JdbcHelper.getQueryTimeout` 会取「SQL 超时」与「上下文剩余时间」的较小值并换算为秒。**不修改** QueryPlanCache 共享的编译产物。单位换算固定：配置 `nop.eql-console.timeout-seconds` 为**秒**，注入上下文前乘 1000；`nop.dao.max-query-timeout` 为**毫秒**。超时生效与并发不串超时为必过测试（不得以「显式降级」收口）。
 - **取消**：`executeQuery` 无 `ICancelToken`。v1 `capabilities.cancel=false`：前端「取消」只停止等待并恢复 UI，服务端可能继续执行；v2 再评估 `executeStatement`/`ICancelToken` 路径。
 
@@ -144,6 +145,7 @@ execute(eql, params, ...):
 | commit/rollback | `nop.err.eql.not-support-transaction-statement` | 有则精确，无则 1/1 + `no-location` |
 | 重复列名（控制台约束） | `nop.err.eql-console.duplicate-column` | 1/1 + `no-location` |
 | 自带 LIMIT/OFFSET（控制台约束） | `nop.err.eql-console.inline-pagination-not-allowed` | 1/1 + `no-location` |
+| 未知/禁止装饰器 | `nop.err.eql-console.decorator-not-allowed` | 1/1 + `no-location` |
 | 写操作未开启 | `nop.err.eql-console.write-not-allowed` | 整条语句 |
 | 无 WHERE 写操作 | `nop.err.eql-console.unsafe-write-not-allowed` | 整条语句 |
 
@@ -169,7 +171,7 @@ execute(eql, params, ...):
 | 权限链路前置 | **fail-closed**：控制台入口统一检查 `nop.auth.enable-action-auth=true`，为 false 时直接拒绝并返回 `nop.err.eql-console.action-auth-disabled`；同时断言 `IActionAuthChecker` bean 存在（框架在 enable=true 但无 checker 时会 SKIP 权限检查，属 fail-open）；启动时若 `allow-write=true` 且上述任一条件不满足，则 fail-fast（拒绝注册控制台 Bean）；dev/E2E profile 必须显式开启（见 04 §5.2） | 入口拒绝 + 启动失败 + 错误码 |
 | 语句面 | `execute` 只允许 SELECT；DML 仅 `executeUpdate` 且 `allow-write=true` | `statement-not-allowed` / `write-not-allowed` |
 | 数据权限 | 编译 `enableFilter=true`；租户/逻辑删除始终开启 | 行级越权（必须由测试钉死） |
-| 危险构造 | 拒绝 `SELECT ... FOR UPDATE`、`@dump`；`@querySpace` 必须与请求一致；不允许关闭租户/逻辑删除过滤；`executeUpdate` 的 UPDATE/DELETE 必须含 WHERE（无 WHERE 直接拒绝） | `statement-not-allowed` / `unsafe-write-not-allowed` |
+| 危险构造 | 拒绝 `SELECT ... FOR UPDATE`、`@dump`、未知装饰器；`@querySpace` 必须与请求一致；不允许关闭租户/逻辑删除过滤；`executeUpdate` 的 UPDATE/DELETE 必须含 WHERE（无 WHERE 直接拒绝） | `statement-not-allowed` / `unsafe-write-not-allowed` |
 | 结果规模 | `limit` 默认 1000、上限 10000；`truncated` 显式返回 | 超限截断 |
 | 超时 | 默认 30s，上限 `nop.dao.max-query-timeout`（毫秒配置换算为秒）；慢查询必须可终止/超时 | 超时报错 |
 | 元数据暴露 | 白名单 DTO：实体名/展示名/属性名/类型/关联/querySpace；不含物理表名、Java 类名、SQL 片段、内部路径 | 由 DTO 投影保证 |

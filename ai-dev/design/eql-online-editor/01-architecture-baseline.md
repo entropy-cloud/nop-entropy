@@ -82,12 +82,18 @@ flowchart LR
 - 理由：`nop-web-site` 是构建产物；现存同步脚本已包含生产构建防呆与 gzip 处理。
 - 拒绝：直接把 flux 源码复制进 entropy（双份源码漂移）；在 entropy 内维护第二套前端构建。
 
+### D8 参数与 Hint 策略：位置参数 + 结构化装饰器，不做注释语义
+
+- 结论：EQL 语言层 v1 只支持 `?` 位置参数；控制台用「命名参数映射 + 顺序」提供命名 UX（请求仍为有序数组）。注释只做语法容忍、不承载语义；控制/Hint 一律用结构化 `@decorator`，控制台对装饰器执行白名单（允许 `@enableFilter`、`@querySpace` 一致性校验；拒绝 `@dump` 与未知装饰器）。
+- 理由：EQL 参数编译按出现顺序编号、执行按索引取值，语言级命名参数需改文法/AST/公共 API 与生成管线（plan-first，成本高且与平台 `${}`/`:param` 概念重叠）；注释在 lexer 被送入 HIDDEN channel，AST/生成器不保留，按注释解析 hint 必须改文法且难以校验；装饰器已结构化、可扫描、可门控。
+- 拒绝：v1 语言级命名参数（`:name` + Map 绑定）；把普通注释当语义；宽松忽略未知装饰器（会静默 no-op 并绕过安全门控）。语言级命名参数与数据库 hint 透传（`@dbHint` 或限定 `/*+ */`）列入 v2 评估，见 roadmap WI-31。
+
 ## 4. 单一事实源（SSOT）
 
 | 事实 | 唯一 owner | 其他位置只允许 |
 |---|---|---|
 | 产品定位/成功标准/Non-goals | `00-vision.md` | 摘要 + 链接 |
-| 分层/依赖方向/决策 D1—D7 | `01-architecture-baseline.md` | 链接 |
+| 分层/依赖方向/决策 D1—D8 | `01-architecture-baseline.md` | 链接 |
 | 前端协议字段与语义（profile/EntitySchema/诊断/执行/结果） | `02-frontend-dialect-and-editor-contract.md` | 链接 |
 | 后端 API、安全矩阵、配置键、权限点、错误模型 | `03-eql-console-api-and-security.md` | 链接 |
 | 页面/菜单/交付与验收 | `04-workbench-page-and-delivery.md` | 链接 |
