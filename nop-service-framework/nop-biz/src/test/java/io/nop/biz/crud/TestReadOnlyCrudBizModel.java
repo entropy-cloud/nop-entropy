@@ -66,6 +66,13 @@ public class TestReadOnlyCrudBizModel {
         }
     }
 
+    @BizModel("PlainWritable")
+    static class PlainModel extends CrudBizModel<IOrmEntity> {
+        PlainModel() {
+            setEntityName("test.PlainEntity");
+        }
+    }
+
     private void assertReadOnly(CrudBizModel<?> model, String action, Runnable call) {
         NopException e = assertThrows(NopException.class, call::run);
         assertEquals("nop.err.biz.read-only-object", e.getErrorCode());
@@ -116,5 +123,14 @@ public class TestReadOnlyCrudBizModel {
         MetaWritableModel writable = new MetaWritableModel();
         writable.setReadOnly(true);
         assertTrue(writable.isReadOnly());
+    }
+
+    @Test
+    public void testNoContainerIsWritableAndEmptyDataStillFallsToBaseError() {
+        PlainModel model = new PlainModel();
+        assertFalse(model.isReadOnly(), "no bizObjectManager injected: objMeta is unresolvable, must not NPE");
+
+        NopException e = assertThrows(NopException.class, () -> model.save(null, null));
+        assertEquals("nop.err.biz.empty-data-for-save", e.getErrorCode());
     }
 }

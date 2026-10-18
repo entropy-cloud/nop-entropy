@@ -225,7 +225,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
 
     @Override
     public IObjMeta getObjMeta() {
-        return getThisObj().getObjMeta();
+        IBizObject thisObj = getThisObj();
+        return thisObj != null ? thisObj.getObjMeta() : null;
     }
 
     public String getAuthObjName(String action) {
@@ -240,6 +241,8 @@ public abstract class CrudBizModel<T extends IOrmEntity>
     }
 
     public IBizObject getThisObj() {
+        if (bizObjectManager == null)
+            return null;
         return bizObjectManager.getBizObject(getBizObjName());
     }
 
