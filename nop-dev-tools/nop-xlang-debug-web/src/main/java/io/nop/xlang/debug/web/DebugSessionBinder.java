@@ -223,6 +223,12 @@ public class DebugSessionBinder {
                 throw new DebugProtocolException(-32000, ERR_XLANG_DEBUGGER_RATE_LIMITED.getErrorCode(),
                         "lease.renew too frequent", null, (short) 0);
         }
+        // plan 2479 C-8：destroyed 位为一切租约变异的权威闸门（item 24 审计 C-8——
+        // 直连 API dispose 与 WS renew 交错的 zombie 复活残窗；shipped 装配锁串行下
+        // 不可达，直连 API 面防御缺口）
+        if (binding.getHandle().isDestroyed())
+            throw new DebugProtocolException(-32000, ERR_XLANG_DEBUGGER_NO_SESSION.getErrorCode(),
+                    "session destroyed", null, (short) 0);
         binding.renewExempt = false;
         binding.lastRenewMillis = now;
         XLangDebugger debugger = requireDebugger(binding);
@@ -240,6 +246,9 @@ public class DebugSessionBinder {
      */
     public synchronized void closeSession(String connectionId) {
         Binding binding = requireBinding(connectionId);
+        // plan 2479 C-8：同 renew——destroyed 复核（防御直连 API 交错）
+        if (binding.getHandle().isDestroyed())
+            return;
         destroyReasons.put(binding.sessionId, REASON_USER_CLOSED);
         sessionManager.destroySession(binding.handle);
         cleanupBinding(binding);

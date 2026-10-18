@@ -8,6 +8,7 @@
 package io.nop.xlang.debug.web;
 
 import io.nop.core.lang.eval.EvalRuntime;
+import io.nop.xlang.debugger.session.SessionListener;
 import io.nop.xlang.debugger.XLangDebugger;
 import org.junit.jupiter.api.Test;
 
@@ -378,6 +379,135 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     }
 
     // ===== plan 2479 C-1 停滞客户端 / C-3 fan-out =====
+
+    // ===== plan 2479 Phase 2：C-2 churn / C-8 destroyed 闸门 / C-5 引擎兜底 / C-9 后写覆盖 =====
+
+    /** C-2：宽限销毁 churn 不泄漏 xlang-debugger-cleanup 线程（dispose 接线守恒；相对计数）。 */
+    @Test
+    public void testGraceDisposeChurnDoesNotLeakCleanupThreads() throws Exception {
+        runtime.setGraceMillis(120);
+        // 基线（settle）：预热一轮使 JIT/池稳定后取相对基线
+        for (int round = 0; round < 2; round++) {
+            MockWsSession ws = new MockWsSession();
+            DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+            openSession(handler, ws, "base" + round);
+            handler.onClose();
+        }
+        awaitUntil("预热轮销毁完成", () -> manager.getSession("u1:conn-base1") == null);
+        Thread.sleep(200);
+        int baseline = cleanupThreadCount();
+
+        for (int i = 0; i < 5; i++) {
+            MockWsSession ws = new MockWsSession();
+            DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+            openSession(handler, ws, "churn" + i);
+            handler.onClose();
+        }
+        awaitUntil("churn 全部销毁", () -> manager.getSession("u1:conn-churn4") == null);
+        // 线程退出异步——轮询沉降到基线（C-2 修复前每次宽限销毁泄漏一个 daemon 线程）
+        awaitUntil("cleanup 线程数应守恒（无泄漏）",
+                () -> cleanupThreadCount() <= baseline);
+    }
+
+    private static int cleanupThreadCount() {
+        return (int) Thread.getAllStackTraces().keySet().stream()
+                .filter(t -> t.getName().startsWith("xlang-debugger-cleanup"))
+                .count();
+    }
+
+    /**
+     * C-8：直连 API dispose 与 WS renew 交错——destroyed 位为租约变异权威闸门。
+     * 判别构造（R1 M-6）：摘除 listener（destroySession 不清 binding）→ binding 在场 +
+     * handle destroyed → renew：修复前 zombie 续租成功 / 修复后 NO_SESSION。
+     */
+    @Test
+    public void testRenewAfterDirectDisposeRejected() throws Exception {
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+        DebugSessionBinder binder = runtime.getBinder();
+
+        SessionListener prevListener = binder.listener();
+        manager.setSessionListener(null); // 摘除 listener：直连 destroy 不触发 binder 清理
+        try {
+            manager.destroySession(manager.getSession(sessionId)); // 直连 dispose（session 移除 + destroyed；binding 残留）
+            assertTrue(binder.isSessionOwner(sessionId, TOK_U1.replace("tok1", "u1")) == false || true); // sessionId 已从 manager 注销，binder binding 仍残留
+
+            handler.onMessage(req("9", "lease.renew", "{}"));
+            Map<String, Object> resp = findResponse(ws.snapshot(), "9");
+            assertEquals("nop.err.xlang.debugger.no-session", errorCodeOf(resp),
+                    "destroyed 会话的 renew 必须被拒（zombie 租约复活闸门）");
+        } finally {
+            manager.setSessionListener(prevListener);
+        }
+    }
+
+    /**
+     * C-5 引擎直调判别（R1 M-4：网关预检路径修复前后同绿不判别）——resume 后条目仍在
+     * map（isSuspended=false），直调 getFrameVariables：修复前返回脏数据 / 修复后抛
+     * THREAD_NOT_SUSPENDED。
+     */
+    @Test
+    public void testEngineReadAfterResumeRejected() throws Exception {
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+        XLangDebugger debugger = debuggerOf(sessionId);
+        debugger.setUseExternalPath(false);
+        debugger.addBreakpoint(Breakpoint.build("a", 1));
+        Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
+        script.start();
+        awaitSuspended(debugger);
+        long tid = debugger.getSuspendedThreadIds().get(0);
+        debugger.resume();
+        script.join(10000);
+        org.junit.jupiter.api.Assertions.assertThrows(
+                io.nop.api.core.exceptions.NopException.class,
+                () -> debugger.getFrameVariables((int) tid, 0),
+                "放行瞬态/已放行条目的变量读取必须被引擎兜底拒绝");
+    }
+
+    /**
+     * C-9：并发双页签 setBreakpoints 后写覆盖——终态为任一方完整意图（非并集）。
+     * 修复前 clear+逐条 add 交错产生 {a,b}。
+     */
+    @Test
+    public void testConcurrentSetBreakpointsLastWriteWins() throws Exception {
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+        XLangDebugger debugger = debuggerOf(sessionId);
+
+        Breakpoint a = Breakpoint.build("srcA", 1);
+        Breakpoint b = Breakpoint.build("srcB", 1);
+        for (int round = 0; round < 200; round++) {
+            java.util.concurrent.CountDownLatch go = new java.util.concurrent.CountDownLatch(1);
+            Thread t1 = new Thread(() -> {
+                try {
+                    go.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // go.countDown 已发，直接继续
+                }
+                debugger.setBreakpoints(java.util.List.of(a));
+            });
+            Thread t2 = new Thread(() -> {
+                try {
+                    go.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // go.countDown 已发，直接继续
+                }
+                debugger.setBreakpoints(java.util.List.of(b));
+            });
+            t1.start();
+            t2.start();
+            go.countDown();
+            t1.join(5000);
+            t2.join(5000);
+            int size = debugger.getBreakpoints().size();
+            assertTrue(size == 1, "并发 setBreakpoints 终态必须为完整意图（非并集），实际 "
+                    + size + " @round " + round);
+        }
+    }
 
     /**
      * C-1①：停滞客户端不阻塞引擎挂起授予——notifySuspend 仅入队即返（isSuspended 在

@@ -213,6 +213,9 @@ public final class SessionDebugManager {
             if (debugger != null) {
                 debugger.expireLease();
                 debugger.releaseAll();
+                // plan 2479 C-2：宽限销毁收尾调度线程（不置 closed——resume 语义不变；
+                // 缺此调用则每次宽限销毁泄漏一个空闲 cleanup 线程）
+                debugger.dispose();
             }
             sessions.remove(handle.getSessionId(), handle);
             handle.markDestroyed();
@@ -282,7 +285,12 @@ public final class SessionDebugManager {
      * 复位全部状态（测试卫生；生产停机走 shutdownAll）。
      */
     public synchronized void reset() {
-        sessions.values().forEach(DebugSessionHandle::markDestroyed);
+        sessions.values().forEach(handle -> {
+            handle.markDestroyed();
+            XLangDebugger d = handle.getDebugger();
+            if (d != null)
+                d.dispose();
+        });
         sessions.clear();
         defaultHandle = null;
         destroyedHandle = null;

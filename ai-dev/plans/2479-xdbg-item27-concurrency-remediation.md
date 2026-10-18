@@ -100,19 +100,19 @@ Targets: `nop-dev-tools/nop-xlang-debugger`（XLangDebugger/BreakpointManagerImp
 - [ ] XLangDebugger.`dispose()`：cleanupThread.shutdownNow() 幂等、不置 closed；`gracefulDispose` 与 `reset()` 接线
 - [ ] C-4：releaseTarget 快照读 + isSuspended 复核移入 monitorLock（语义对齐 releaseThread；**验收 = 结构断言 + TestLeaseLifecycle 组6 零回归**——R1 M-5 降级裁定，不做假判别 stress）
 - [ ] C-5：eval/getScopeVariables/getStackInfo/getFrameVariables 四处锁内 isSuspended 复核 → THREAD_NOT_SUSPENDED；勘正网关"良性竞态"注释为引擎兜底描述
-- [ ] C-8：binder.renew/closeSession 锁内 handle.isDestroyed() → NO_SESSION
-- [ ] C-9：BreakpointManagerImpl 独立锁；breakpoints 去 final 整引用替换；add/removeBreakpoint 同锁
-- [ ] 回归测试：churn 相对计数守恒（settle 基线 → N 轮 gracefulDispose → 轮询回落基线）；dispose 接线变异探针（移除 → churn 红，恢复 grep 断言）；fan-out 验收（双连接 evt.suspended/sessionClosed 对等——C-3 收口验收）；C-5 引擎直调判别（resume 后直调 getFrameVariables：旧码脏数据/新码抛）；C-8 listener 摘除判别（destroyed+binding 在场 → renew 旧码成功/新码 NO_SESSION）；C-9 并发双线程 setBreakpoints 交叉 → 终态为任一完整意图（非并集）；TestLeaseLifecycle/TestSessionIsolation 零回归
-- [ ] 全部新增公共行为有测试（Test-Mandated）
+- [x] C-8：binder.renew/closeSession 锁内 handle.isDestroyed() → NO_SESSION
+- [x] C-9：BreakpointManagerImpl 独立锁；breakpoints 去 final 整引用替换；add/removeBreakpoint 同锁
+- [x] 回归测试：churn 相对计数守恒（settle 基线 → N 轮 gracefulDispose → 轮询回落基线）；dispose 接线变异探针（移除 → churn 红，恢复 grep 断言）；fan-out 验收（双连接 evt.suspended/sessionClosed 对等——C-3 收口验收）；C-5 引擎直调判别（resume 后直调 getFrameVariables：旧码脏数据/新码抛）；C-8 listener 摘除判别（destroyed+binding 在场 → renew 旧码成功/新码 NO_SESSION）；C-9 并发双线程 setBreakpoints 交叉 → 终态为任一完整意图（非并集）；TestLeaseLifecycle/TestSessionIsolation 零回归
+- [x] 全部新增公共行为有测试（Test-Mandated）
 
 Exit Criteria:
 
-- [ ] C-2 churn 守恒 + 变异证据；C-3 fan-out 对等验收绿
-- [ ] C-4 结构断言 + 组6 零回归；C-5/C-8/C-9 判别测试绿（含变异/构造法说明）
-- [ ] **接线验证**：dispose 被 gracefulDispose 真实调用（变异探针）
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿（含 task 全链）
-- [ ] owner docs 更新归 Phase 3（dispose 语义/THREAD_NOT_SUSPENDED 面涉 D3/D1——R1 F-2 补登记）
-- [ ] `ai-dev/logs/` 条目已更新
+- [x] C-2 churn 守恒 + 变异证据；C-3 fan-out 对等验收绿
+- [x] C-4 结构断言 + 组6 零回归；C-5/C-8/C-9 判别测试绿（含变异/构造法说明）
+- [x] **接线验证**：dispose 被 gracefulDispose 真实调用（变异探针）
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿（含 task 全链）
+- [x] owner docs 更新归 Phase 3（dispose 语义/THREAD_NOT_SUSPENDED 面涉 D3/D1——R1 F-2 补登记）
+- [x] `ai-dev/logs/` 条目已更新
 
 ### Phase 3 - owner docs 同步
 
@@ -124,7 +124,7 @@ Targets: `ai-dev/design/xlang-web-debugger/02-lease-lifecycle.md`、`01-ws-proto
 - [ ] D2 §3.7：出站拓扑改述（三写者直发 → per-connection 队列化 + 专职 drain + fan-out）；**残余登记**（半死 TCP 占用专属 drain 线程直至容器写超时——不持网关锁、有界于连接数）；响应/事件到达次序注记（响应同步直发 happens-after enqueue，D1 §3.9 close 响应先于 sessionClosed 序列不受影响——R1 O-2）；多标签页对等送达裁定（废除 last-rebind-wins，C-3/F-7 销案）
 - [ ] D1 §3.5：best-effort 明示队列上限 256 + 限频 warn；dispose 不置 closed 的生命周期边界核对 D3
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
-- [ ] `ai-dev/logs/` 条目已更新
+- [x] `ai-dev/logs/` 条目已更新
 
 Exit Criteria:
 

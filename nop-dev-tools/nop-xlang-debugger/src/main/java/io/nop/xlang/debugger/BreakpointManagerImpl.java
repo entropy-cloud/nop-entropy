@@ -34,7 +34,11 @@ public class BreakpointManagerImpl implements IBreakpointManager {
     private static final Logger LOG = LoggerFactory.getLogger(BreakpointManagerImpl.class);
 
     // key为externalPath而不是SourceLocation.getPath()。因为外部编辑器增加断点的时候可能只知道文件本身的绝对路径，而不是在虚拟文件系统中的虚拟路径
-    private final Map<String, IntHashMap<Breakpoint>> breakpoints = new ConcurrentHashMap<>();
+    // plan 2479 C-9（item 24 审计）：表引用 volatile + 独立锁整表原子替换——并发
+    // setBreakpoints 后写覆盖（旧形态 clear+逐条 add 产生并集）；读侧单引用一致快照，
+    // getBreakpointAt 引擎热路径无锁（替换后见旧表或新表，均为完整意图）
+    private volatile Map<String, IntHashMap<Breakpoint>> breakpoints = new ConcurrentHashMap<>();
+    private final Object bpLock = new Object();
 
     private boolean useExternalPath = true;
 
@@ -44,47 +48,64 @@ public class BreakpointManagerImpl implements IBreakpointManager {
 
     @Override
     public void setBreakpoints(List<Breakpoint> bps) {
-        clearBreakpoints();
+        Map<String, IntHashMap<Breakpoint>> fresh = new ConcurrentHashMap<>();
         if (bps != null) {
             for (Breakpoint bp : bps) {
-                addBreakpoint(bp);
+                IntHashMap<Breakpoint> map =
+                        fresh.computeIfAbsent(bp.getSourcePath(), path -> new IntHashMap<>());
+                synchronized (map) {
+                    map.put(bp.getLine(), bp);
+                }
             }
         }
+        synchronized (bpLock) {
+            this.breakpoints = fresh;
+        }
+        LOG.info("nop.debugger.set-breakpoints:count={}", bps == null ? 0 : bps.size());
     }
 
     @Override
     public void addBreakpoint(Breakpoint bp) {
         LOG.info("nop.debugger.add-breakpoint:bp={}", bp);
-        IntHashMap<Breakpoint> map = breakpoints.computeIfAbsent(bp.getSourcePath(), path -> new IntHashMap<>());
-        synchronized (map) {
-            map.put(bp.getLine(), bp);
+        synchronized (bpLock) {
+            IntHashMap<Breakpoint> map =
+                    breakpoints.computeIfAbsent(bp.getSourcePath(), path -> new IntHashMap<>());
+            synchronized (map) {
+                map.put(bp.getLine(), bp);
+            }
         }
     }
 
     @Override
     public void removeBreakpoint(Breakpoint bp) {
         LOG.info("nop.debugger.remove-breakpoint:bp={}", bp);
-        IntHashMap<Breakpoint> map = breakpoints.get(bp.getSourcePath());
-        if (map != null) {
-            synchronized (map) {
-                map.remove(bp.getLine());
+        synchronized (bpLock) {
+            IntHashMap<Breakpoint> map = breakpoints.get(bp.getSourcePath());
+            if (map != null) {
+                synchronized (map) {
+                    map.remove(bp.getLine());
+                }
             }
         }
     }
 
     @Override
     public List<Breakpoint> getBreakpoints() {
-        return breakpoints.values().stream().flatMap(map -> {
-            synchronized (map) { //NOSONAR
-                return map.values().toArray().stream();
-            }
-        }).collect(Collectors.toList());
+        synchronized (bpLock) {
+            return breakpoints.values().stream().flatMap(map -> {
+                synchronized (map) { //NOSONAR
+                    return map.values().toArray().stream();
+                }
+            }).collect(Collectors.toList());
+        }
     }
 
     @Override
     public void clearBreakpoints() {
         LOG.info("nop.debugger.clear-breakpoints");
-        breakpoints.clear();
+        synchronized (bpLock) {
+            this.breakpoints = new ConcurrentHashMap<>();
+        }
     }
 
     @Override

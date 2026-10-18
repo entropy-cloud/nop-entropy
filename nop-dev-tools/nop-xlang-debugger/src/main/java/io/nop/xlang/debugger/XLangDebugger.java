@@ -101,6 +101,16 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         cleanupThread.schedule(this::cleanup, 30, TimeUnit.SECONDS);
     }
 
+    /**
+     * 会话销毁收尾（plan 2479 C-2，item 24 审计）：释放调度线程但**不置 closed、不改
+     * 租约/挂起语义**（D2 §3.3 红线：graceful 收尾 = resume 语义，区别于 close 的
+     * abort 语义）。幂等（shutdownNow 可重入）；cleanup 为一次性 30s 任务，dispose 后
+     * 残留 SuspendedThread 条目随实例 GC，无泄漏。
+     */
+    public void dispose() {
+        cleanupThread.shutdownNow();
+    }
+
     @Override
     public void close() {
         closed = true;
@@ -415,6 +425,10 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return null;
 
         synchronized (thread) {
+            // plan 2479 C-5：放行瞬态窗口（条目仍在 map、isSuspended=false）拒绝读——
+            // 引擎兜底取代网关"良性竞态"注释性豁免（item 24 审计 C-5）
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             EvalRuntime rt = thread.getEvalRuntime();
             // plan 2478 SEC-07：watch 求值入口消费 REPL deadline 通道（无窗口线程
             // checkDeadline 早退不误伤；窗口内超时/取消抛 ReplCancelledError——Error 系，
@@ -440,6 +454,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (thread == null)
             return null;
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             return thread.getStackInfo();
         }
     }
@@ -450,6 +466,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (thread == null)
             return Collections.emptyList();
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             return thread.getScopeVariables(thread.getEvalRuntime());
         }
     }
@@ -461,6 +479,8 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             // 接口契约未声明@Nullable，客户端按非null消费（线程已恢复等场景返回空列表）
             return Collections.emptyList();
         synchronized (thread) {
+            if (!thread.isSuspended())
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
             if (frameIndex == 0) {
                 List<DebugVariable> vars = thread.getScopeVariables(thread.getEvalRuntime());
                 List<DebugVariable> frameVars = thread.getFrameVariables(thread.getEvalRuntime(), frameIndex);
