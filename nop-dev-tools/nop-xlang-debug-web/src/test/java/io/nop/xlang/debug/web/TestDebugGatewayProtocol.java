@@ -60,6 +60,41 @@ public class TestDebugGatewayProtocol extends AbstractDebugGatewayTest {
         assertEquals(4409, ws.getCloseCode());
     }
 
+    /**
+     * plan 2478 SEC-05：session.open 权限码校验（D6 §3.4 矩阵 WS 行落地）。
+     * 无权限 → -32000 permission-denied + 4403 关闭；checker 缺失 → fail-closed 同款拒绝。
+     */
+    @Test
+    public void testSessionOpenPermissionDenied() {
+        // 有 checker 无权限
+        runtime.setAuthChecker((perm, ctx) -> false);
+        try {
+            MockWsSession ws = new MockWsSession();
+            DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+            handler.onMessage(req("1", "session.open", "{\"protoVersion\":\"1.0\"}"));
+            Map<String, Object> resp = findResponse(ws.snapshot(), "1");
+            assertNotNull(resp, "无权限应有错误响应");
+            assertEquals("nop.err.xlang.debugger.permission-denied", errorCodeOf(resp));
+            assertTrue(ws.isClosed(), "权限拒绝应关闭连接");
+            assertEquals(4403, ws.getCloseCode());
+        } finally {
+            runtime.setAuthChecker((perm, ctx) -> true);
+        }
+
+        // checker 缺失 = fail-closed（"无鉴权不开放"红线；禁止以放软语义保测试绿）
+        runtime.setAuthChecker(null);
+        try {
+            MockWsSession ws2 = new MockWsSession();
+            DebugWebSocketHandler handler2 = newHandler(ws2, TOK_U1);
+            handler2.onMessage(req("1", "session.open", "{\"protoVersion\":\"1.0\"}"));
+            Map<String, Object> resp2 = findResponse(ws2.snapshot(), "1");
+            assertEquals("nop.err.xlang.debugger.permission-denied", errorCodeOf(resp2));
+            assertEquals(4403, ws2.getCloseCode());
+        } finally {
+            runtime.setAuthChecker((perm, ctx) -> true);
+        }
+    }
+
     /** D1 §3.7：入站无 id → id:null -32600 + 违规计数超阈值 4400；pong 豁免不计违规。 */
     @Test
     public void testNoIdViolationCountingAndPongExempt() {

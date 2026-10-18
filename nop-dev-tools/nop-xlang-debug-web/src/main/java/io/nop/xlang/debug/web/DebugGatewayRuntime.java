@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.config.IConfigReference;
@@ -52,10 +53,14 @@ public class DebugGatewayRuntime {
     private volatile long keepaliveIntervalMillis = KEEPALIVE_INTERVAL_MILLIS;
     private volatile int logBatchSize;
     private volatile long logFlushIntervalMillis;
-    private volatile String importWhitelist = XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_IMPORT_WHITELIST.get();
+    private volatile boolean whitelistOverridden;
+    private volatile String importWhitelistOverride;
     private final ScheduledExecutorService timer;
     private final AtomicLong connectionSeq = new AtomicLong();
     private volatile ReplService replService;
+    /** WS 会话创建权限校验器（plan 2478 SEC-05；null = fail-closed 拒绝）。 */
+    private volatile IActionAuthChecker authChecker;
+    private volatile long watchEvalTimeoutOverride = -1;
 
     public DebugGatewayRuntime(SessionDebugManager sessionManager, IUserContextExtractor extractor) {
         this(sessionManager, extractor, defaultTimer());
@@ -137,13 +142,43 @@ public class DebugGatewayRuntime {
         return logBatchSize;
     }
 
-    /** REPL import 白名单（生产读配置；测试注入 setter）。 */
+    /**
+     * REPL import 白名单（plan 2478 SEC-10）：显式测试 override（setImportWhitelist，
+     * null=清除 override、""=显式空白名单）优先，否则每调用读配置引用——运行期配置
+     * 变更即时生效（构造时快照缺陷 remediation）。
+     */
     public String importWhitelist() {
-        return importWhitelist;
+        if (whitelistOverridden)
+            return importWhitelistOverride;
+        String csv = XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_IMPORT_WHITELIST.get();
+        return csv == null ? "" : csv;
     }
 
     public void setImportWhitelist(String whitelist) {
-        this.importWhitelist = whitelist;
+        this.whitelistOverridden = whitelist != null;
+        this.importWhitelistOverride = whitelist;
+    }
+
+    /** WS 会话创建权限校验器（DebugWebServerConfig 装配；null = session.open 一律拒绝——fail-closed）。 */
+    public IActionAuthChecker authChecker() {
+        return authChecker;
+    }
+
+    public void setAuthChecker(IActionAuthChecker authChecker) {
+        this.authChecker = authChecker;
+    }
+
+    /** watch 求值 deadline 窗口时长（plan 2478 SEC-07；显式 override 优先，否则每调用读配置，默认 5000ms）。 */
+    public long watchEvalTimeoutMillis() {
+        if (watchEvalTimeoutOverride >= 0)
+            return watchEvalTimeoutOverride;
+        Integer v = XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_WATCH_EVAL_TIMEOUT.get();
+        return v == null || v <= 0 ? 5000L : v.longValue();
+    }
+
+    /** 测试注入点：缩短 watch 求值超时（生产读 nop.xlang.debug-web.watch.eval-timeout-ms）。 */
+    public void setWatchEvalTimeoutMillis(long millis) {
+        this.watchEvalTimeoutOverride = millis;
     }
 
     public long logFlushIntervalMillis() {

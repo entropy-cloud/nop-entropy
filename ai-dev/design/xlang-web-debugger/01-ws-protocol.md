@@ -68,6 +68,7 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | --- | --- | --- |
 | 入站单帧最大 | 256 KB | error -32600（过大）并计数，超阈值 4400 |
 | 求值表达式长度（`expr`） | ≤ 8 KB | error -32602（invalid params） |
+| watch 求值超时 | `getExprValue`/`expandExprValue` 求值包 deadline 窗口（`nop.xlang.debug-web.watch.eval-timeout-ms` 默认 5000ms，plan 2478 SEC-07） | 超时 `-32000 repl-timeout` 错误响应；表达式违禁（完整沙箱校验，与 REPL 同清单）按 -32602 拒绝 |
 | 每会话断点数 | ≤ 500 | error `ERR_XLANG_DEBUGGER_TOO_MANY_BPS` |
 | `expandExprValue.keys` 数组长度 | ≤ 50 | error -32602 |
 | 出站单响应帧最大 | 1 MB | 响应型列表类结果按下行截断规则先行控制；其余超限情形报 -32000 `ERR_XLANG_DEBUGGER_RESULT_TOO_LARGE` |
@@ -199,6 +200,7 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | `ERR_XLANG_DEBUGGER_REPL_CANCELLED` | 新增（item 14） | ——（REPL 走 HTTP 同步响应 error.errorCode，不经 WS） | REPL 执行被取消（管理/测试面旗标；D6 §3.2 转派登记） |
 | `ERR_XLANG_DEBUGGER_REPL_TIMEOUT` | 新增（item 14） | ——（同上） | REPL 执行超过 deadline（绝对时钟，D6 §3.4） |
 | `ERR_XLANG_DEBUGGER_EXECUTION_DISABLED` | 新增（item 14） | ——（HTTP 403，body error.errorCode） | debugger.enabled 运行期复查为 false（D6 §一.5 运行层门控） |
+| `ERR_XLANG_DEBUGGER_PERMISSION_DENIED` | 新增（**plan 2478 SEC-05，additive 登记**） | -32000 | session.open 持有者无 `nop/xlang/debug/DebugSession` 权限码（D6 §3.4 矩阵 WS 行落地）；随后 4403 关闭。watch 表达式违禁为 -32602 invalidParams 不用本码 |
 
 ### 3.8 关闭码映射表
 
@@ -206,7 +208,7 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 | --- | --- | --- |
 | 4400 | 帧解析失败、protoVersion 不支持、协议违规超阈值 | 关闭连接 |
 | 4401 | 握手无凭证 / token 校验失败 / tokenRefresh 无效 | 关闭连接（D0 红线） |
-| 4403 | tokenRefresh 用户不一致 | 关闭连接 |
+| 4403 | tokenRefresh 用户不一致；**session.open 无调试权限（plan 2478 SEC-05 additive：`permission-denied` 错误响应后关闭——鉴权通过但未授权的终态，前端既有 4403 终态分支天然兼容）** | 关闭连接 |
 | 4409 | **仅协议级会话冲突**：同连接重复绑定、或 D2 裁定为不允许共享时的绑定冲突终态 | 会话绑定冲突默认**拒绝新绑定**（`session.rebind` 返回 `errorCode=ERR_XLANG_DEBUGGER_SESSION_BOUND_ELSEWHERE`），不断开既有连接；4409 是冲突升级的终态而非默认处置 |
 | 1000 / 1001 | 正常关闭 / 服务端下线 | —— |
 

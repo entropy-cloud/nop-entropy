@@ -58,6 +58,11 @@ public class DebugWebServerConfig implements ICoreInitializer {
             LOG.warn("nop.xlang.debug-web.no-user-context-extractor");
         }
         runtime = new DebugGatewayRuntime(sessionManager, extractor);
+        // plan 2478 SEC-05：WS 会话创建权限校验器（checker 缺失 = session.open fail-closed 拒绝，
+        // 与 ReplAccessGuard 同款"无鉴权不开放"红线）
+        runtime.setAuthChecker(BeanContainer.isInitialized()
+                ? BeanContainer.instance().tryGetBeanByType(IActionAuthChecker.class)
+                : null);
         runtime.getBinder().install();
         // REPL 服务装配（plan 2473）：checker 缺失时传 null——guard 对缺失 checker 拒绝（403），
         // "无鉴权不开放"红线

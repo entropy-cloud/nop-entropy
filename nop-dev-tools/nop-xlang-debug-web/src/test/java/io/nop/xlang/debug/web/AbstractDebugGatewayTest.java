@@ -68,6 +68,11 @@ public abstract class AbstractDebugGatewayTest {
         manager = SessionDebugManager.instance();
         manager.init(new XLangDebugger());
         runtime = new DebugGatewayRuntime(manager, new StubExtractor());
+        // plan 2478 SEC-05：基座注入 permissive checker（全部权限放行）——生产装配
+        // （DebugWebServerConfig）checker 缺失时 fail-closed 拒绝；该分支由专项测试
+        // （TestDebugGatewayProtocol 权限用例）以无 checker runtime 显式覆盖，
+        // 禁止以放软生产 fail-closed 语义为代价保测试绿
+        runtime.setAuthChecker((perm, ctx) -> true);
         // 确定性序列断言：keepalive 禁用（专项测试自行开启短周期）
         runtime.setKeepaliveIntervalMillis(0);
         runtime.setRenewIntervalMillis(10000);

@@ -24,6 +24,7 @@ import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.core.lang.eval.DefaultExpressionExecutor;
 import io.nop.core.lang.eval.EvalRuntime;
 import io.nop.core.lang.eval.IExecutableExpression;
+import io.nop.xlang.debugger.session.ThreadLocalReplDeadlineChannel;
 import io.nop.xlang.api.IXLangCompileScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.ast.Expression;
@@ -412,6 +413,11 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
         synchronized (thread) {
             EvalRuntime rt = thread.getEvalRuntime();
+            // plan 2478 SEC-07：watch 求值入口消费 REPL deadline 通道（无窗口线程
+            // checkDeadline 早退不误伤；窗口内超时/取消抛 ReplCancelledError——Error 系，
+            // 由网关 evalWithDeadline 显式捕获映射错误响应）。打断双层 = 本入口检查 +
+            // 表达式内函数调用边界经全局执行器的 per-entry 检查
+            ThreadLocalReplDeadlineChannel.instance().checkDeadline(rt);
             return exec.execute(DefaultExpressionExecutor.INSTANCE, rt.getRuntimeForFrame(frameIndex));
         }
     }

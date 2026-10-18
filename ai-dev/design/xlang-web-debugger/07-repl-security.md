@@ -90,7 +90,7 @@ executeDestroyed(expr, rt):              # 会话销毁分支（D3 修订后，i
 | --- | --- | --- | --- |
 | compile（编译诊断） | `nop/xlang/debug/ReplCompile` | 401 | 403 |
 | execute（执行） | `nop/xlang/debug/ReplExecute` | 401 | 403 |
-| 会话/断点/单步（WS 通道） | `nop/xlang/debug/DebugSession` | 4401（D1） | 会话创建拒绝（errorCode 名归 item 12 按 D1 additive 规则登记，如 `ERR_XLANG_DEBUGGER_PERMISSION_DENIED`） |
+| 会话/断点/单步（WS 通道） | `nop/xlang/debug/DebugSession` | 4401（D1） | **已落地（plan 2478 SEC-05）**：session.open 拒绝 `-32000 nop.err.xlang.debugger.permission-denied` + 4403 关闭；checker 缺失 fail-closed 同款拒绝 |
 
 限制表（与 D1 §3.1 衔接：`expr ≤ 8KB` 等既有约束引用不重定义）：
 
@@ -100,7 +100,8 @@ executeDestroyed(expr, rt):              # 会话销毁分支（D3 修订后，i
 | compile 超时 | 10000 ms | 30000 ms | 同上（编译期常量/宏求值会执行代码，超时非纯防御值） |
 | source 大小 | ≤ 256 KB | 同左 | 413 语义错误响应 |
 | 结果大小 | ≤ 1 MB | 同左 | 截断 + `truncated` 标记（对齐 D1 §3.1 出站约束） |
-| 并发 | 同会话 execute 串行（=1）；全局并发数配置化 | 配置上限 | 限流错误（不关闭通道，对齐 D1 RATE_LIMITED 语义） |
+| 并发 | 同会话 execute 串行（=1）；全局并发数配置化（compile/execute 共享信号量——plan 2478 SEC-08 对齐） | 配置上限 | 限流错误（不关闭通道，对齐 D1 RATE_LIMITED 语义） |
+| watch 求值超时 | `nop.xlang.debug-web.watch.eval-timeout-ms` 默认 5000 ms（plan 2478 SEC-07） | 同左 | getExprValue/expandExprValue 包 deadline 窗口，超时经取消通道打断 → `-32000 repl-timeout` 错误响应；watch 表达式经完整沙箱校验（违例 -32602） |
 
 ### 3.5 审计事件
 
@@ -112,7 +113,7 @@ executeDestroyed(expr, rt):              # 会话销毁分支（D3 修订后，i
 | action | `compile` / `execute`（取消/超时经 result 体现，无独立端点故无独立 action） |
 | sourceDigest | source 的 SHA-256 摘要（可关联不泄漏） |
 | sourcePreview | source 前 200 字符截断（人工排查用） |
-| result | `ok` / `error` / `cancelled` / `timeout` |
+| result | `ok` / `error` / `cancelled` / `timeout` / `denied`（**plan 2478 SEC-09 增补**：全部门控拒绝路径——401/403/413/400 沙箱/429——统一写 denied 事件；401 actor 为空、403 携 guard 提取身份；Error 终止路径（OOM/SOE）写 error 后重抛不吞） |
 | durationMs | 执行耗时 |
 
 存储通道裁定：一期以专用 logger（`nop.xlang.debug.audit`）输出结构化审计日志（接入平台日志采集），不做独立审计表（表存储按运营需要 follow-up）。审计不可被脚本行为影响（执行侧无法写审计通道）。

@@ -99,27 +99,27 @@ Targets: `nop-dev-tools/nop-xlang-debug-web`（DebugWebSocketHandler/DebugGatewa
 
 - Item Types: `Fix`（SEC-05/07 已确认深度防御缺口；SEC-08/09/10 加固）
 
-- [ ] XLangDebuggerConfigs 增 watch 求值超时配置键（`nop.xlang.debug-web.watch.eval-timeout-ms`，默认 5000，命名对齐既有 `<area>.<name>` 惯例）
-- [ ] DebugWebSocketHandler `getExprValue/expandExprValue`：求值前对 expr 跑**完整共享校验器**（与 REPL 同一禁用清单——防 `inject` 等经 watch 通道绕过；违例 -32602 invalidParams）；求值包 deadline 窗口（begin/finally end）；**ReplCancelledError 显式 catch 映射 -32000 错误响应**（Error 系，既有 catch 链接不住——R1 核实）；窗口超时产生可观测错误响应而非挂死
-- [ ] XLangDebugger.eval 求值入口接入 deadline 通道检查（`checkDeadline` 无窗口时早退不误伤既有调用方；不引入断点挂起语义——watch 观察器语义不变）；打断机制 = 入口单次检查 + 函数调用边界经全局执行器 per-entry 检查双层
-- [ ] DebugGatewayRuntime 增加 authChecker 装配位（DebugWebServerConfig 注入 IActionAuthChecker，缺失 fail-closed 拒绝）；session.open 经 checker 校验 `nop/xlang/debug/DebugSession`，拒绝路径回 `-32000` + `nop.err.xlang.debugger.permission-denied` 并以 4403 关闭连接（DebugProtocolException 携 closeCode 既有模式）
-- [ ] XLangErrors 追加 `ERR_XLANG_DEBUGGER_PERMISSION_DENIED`（nop.err.xlang.debugger.permission-denied）
-- [ ] **测试基座改造**：AbstractDebugGatewayTest 注入 permissive checker（默认放行），守住既有 openSession 全链测试；新增 checker 有/无两态用例（无 checker → fail-closed 4403；有 checker 无权限 → permission-denied + 4403）——**禁止以放软 fail-closed 为代价保测试绿**
-- [ ] ReplService.compile 接入 globalPermits 并发门（tryAcquire 失败 429）+ enabledPredicate 复查（false → 403），与 execute 门控序对齐
-- [ ] 审计盲区消除（SEC-09）：ReplAccessException 携带 IUserContext（或拆分 checkAccess，二选一以最小 diff 为准）→ compile/execute 门控拒绝路径统一写 `result=denied` 审计事件（401 actor 为空照写）；execute 增 `catch (Throwable)` 兜底——写审计后重抛 Error（不吞）
-- [ ] DebugGatewayRuntime.importWhitelist() 改为：显式测试 override（setImportWhitelist）优先，否则每调用读 CFG；`setImportWhitelist(null)`=清除 override、`setImportWhitelist("")`=显式空白名单 override（语义钉死并登记）（SEC-10 运行期生效；既有 testSandboxValidation 注入路径保持有效）
-- [ ] 回归测试：session.open 权限拒绝全链（checker 有/无两态 + 4403）；watch deadline 打断——**死循环探针须为 lambda IIFE/函数调用后的循环**（表达式语法无 while），测试显式安装 SessionRoutingExecutor（照 TestXdslTaskDebugFullChain.registerRoutingExecutor 模式，**finally 必须 restoreExecutor 恢复全局执行器**，防 JVM 级槽位污染产生测试序依赖），断言在 watch 窗口内取消并得 -32000 错误响应；**修复前红探针用辅助线程 + 超时闩设计**（同步等待将挂死构建而非红）；watch expr 携 import/regex/`inject` 被拒；compile 并发门 429 + enabled=false 403；拒绝路径 denied 审计 + Error 路径审计断言
-- [ ] 全部新增公共行为有测试（Test-Mandated）
+- [x] XLangDebuggerConfigs 增 watch 求值超时配置键（`nop.xlang.debug-web.watch.eval-timeout-ms`，默认 5000，命名对齐既有 `<area>.<name>` 惯例）
+- [x] DebugWebSocketHandler `getExprValue/expandExprValue`：求值前对 expr 跑**完整共享校验器**（与 REPL 同一禁用清单——防 `inject` 等经 watch 通道绕过；违例 -32602 invalidParams）；求值包 deadline 窗口（begin/finally end）；**ReplCancelledError 显式 catch 映射 -32000 错误响应**（Error 系，既有 catch 链接不住——R1 核实）；窗口超时产生可观测错误响应而非挂死
+- [x] XLangDebugger.eval 求值入口接入 deadline 通道检查（`checkDeadline` 无窗口时早退不误伤既有调用方；不引入断点挂起语义——watch 观察器语义不变）；打断机制 = 入口单次检查 + 函数调用边界经全局执行器 per-entry 检查双层
+- [x] DebugGatewayRuntime 增加 authChecker 装配位（DebugWebServerConfig 注入 IActionAuthChecker，缺失 fail-closed 拒绝）；session.open 经 checker 校验 `nop/xlang/debug/DebugSession`，拒绝路径回 `-32000` + `nop.err.xlang.debugger.permission-denied` 并以 4403 关闭连接（DebugProtocolException 携 closeCode 既有模式）
+- [x] XLangErrors 追加 `ERR_XLANG_DEBUGGER_PERMISSION_DENIED`（nop.err.xlang.debugger.permission-denied）
+- [x] **测试基座改造**：AbstractDebugGatewayTest 注入 permissive checker（默认放行），守住既有 openSession 全链测试；新增 checker 有/无两态用例（无 checker → fail-closed 4403；有 checker 无权限 → permission-denied + 4403）——**禁止以放软 fail-closed 为代价保测试绿**
+- [x] ReplService.compile 接入 globalPermits 并发门（tryAcquire 失败 429）+ enabledPredicate 复查（false → 403），与 execute 门控序对齐
+- [x] 审计盲区消除（SEC-09）：ReplAccessException 携带 IUserContext（或拆分 checkAccess，二选一以最小 diff 为准）→ compile/execute 门控拒绝路径统一写 `result=denied` 审计事件（401 actor 为空照写）；execute 增 `catch (Throwable)` 兜底——写审计后重抛 Error（不吞）
+- [x] DebugGatewayRuntime.importWhitelist() 改为：显式测试 override（setImportWhitelist）优先，否则每调用读 CFG；`setImportWhitelist(null)`=清除 override、`setImportWhitelist("")`=显式空白名单 override（语义钉死并登记）（SEC-10 运行期生效；既有 testSandboxValidation 注入路径保持有效）
+- [x] 回归测试：session.open 权限拒绝全链（checker 有/无两态 + 4403）；watch deadline 打断——**死循环探针须为 lambda IIFE/函数调用后的循环**（表达式语法无 while），测试显式安装 SessionRoutingExecutor（照 TestXdslTaskDebugFullChain.registerRoutingExecutor 模式，**finally 必须 restoreExecutor 恢复全局执行器**，防 JVM 级槽位污染产生测试序依赖），断言在 watch 窗口内取消并得 -32000 错误响应；**修复前红探针用辅助线程 + 超时闩设计**（同步等待将挂死构建而非红）；watch expr 携 import/regex/`inject` 被拒；compile 并发门 429 + enabled=false 403；拒绝路径 denied 审计 + Error 路径审计断言
+- [x] 全部新增公共行为有测试（Test-Mandated）
 
 Exit Criteria:
 
-- [ ] session.open 权限拒绝全链测试绿（checker 有/无两态 + fail-closed 分支）；AbstractDebugGatewayTest 改造后全部既有 WS/REPL/task 测试零回归
-- [ ] watch deadline 取消测试绿（修复前红证据入档——红态为超时闩触发而非构建挂死）
-- [ ] SEC-08/09/10 用例绿；既有 TestReplService/TestDebugGatewayProtocol/TestDebugGatewayE2E/TestXdslTaskDebugFullChain 全绿
-- [ ] **端到端验证**：watch 取消链路从 WS 请求 → handler 校验/窗口 → 引擎 eval 入口 → 调用边界执行器 → ReplCancelledError → -32000 响应全链贯通（非组件级拼装）
-- [ ] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿
-- [ ] **无静默跳过**：checker 缺失=拒绝而非放行；deadline 打断=错误响应而非挂死或静默吞 Error
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] session.open 权限拒绝全链测试绿（checker 有/无两态 + fail-closed 分支）；AbstractDebugGatewayTest 改造后全部既有 WS/REPL/task 测试零回归
+- [x] watch deadline 取消测试绿（修复前红证据入档——红态为超时闩触发而非构建挂死）
+- [x] SEC-08/09/10 用例绿；既有 TestReplService/TestDebugGatewayProtocol/TestDebugGatewayE2E/TestXdslTaskDebugFullChain 全绿
+- [x] **端到端验证**：watch 取消链路从 WS 请求 → handler 校验/窗口 → 引擎 eval 入口 → 调用边界执行器 → ReplCancelledError → -32000 响应全链贯通（非组件级拼装）
+- [x] `./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` 绿
+- [x] **无静默跳过**：checker 缺失=拒绝而非放行；deadline 打断=错误响应而非挂死或静默吞 Error
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 设计文档与 owner docs 同步
 
@@ -128,26 +128,26 @@ Targets: `ai-dev/design/xlang-web-debugger/07-repl-security.md`、`01-ws-protoco
 
 - Item Types: `Fix`（owner-doc 与 live baseline 对齐）
 
-- [ ] D6 §3.3：校验机制改述为"parse-only AST 遍历（ImportAsDeclaration 两态统一白名单）+ 正则字面量 token 级精确判别"；禁用清单补 RegExp/正则字面量/inject/loadDslModel/loadDeltaJson + watch 表达式同一校验；watch 表达式经 parseFullExpr 校验的已知行为变化落档——顶层对象字面量（如 `{a:1}`）在 statement 文法下语法错→-32602（原 parseExpr 接受），属显式登记的假阳收窄；残余清单勾销（词法近似边界声明由 AST/token 落地取代）并保留内存放大/字符串方法回溯残余② + worker 隔离 successor 登记
-- [ ] D6 §3.5：result 枚举增补 `denied`
-- [ ] D1 §3.1 约束表 + §3.7/§3.8：session.open 权限拒绝语义（-32000 + permission-denied + 4403 关闭复用裁定，additive 登记）、watch 表达式校验与 eval-timeout 语义
-- [ ] docs-for-ai 在线调试节：权限码要求 + watch 超时配置键登记（对齐既有描述）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
+- [x] D6 §3.3：校验机制改述为"parse-only AST 遍历（ImportAsDeclaration 两态统一白名单）+ 正则字面量 token 级精确判别"；禁用清单补 RegExp/正则字面量/inject/loadDslModel/loadDeltaJson + watch 表达式同一校验；watch 表达式经 parseFullExpr 校验的已知行为变化落档——顶层对象字面量（如 `{a:1}`）在 statement 文法下语法错→-32602（原 parseExpr 接受），属显式登记的假阳收窄；残余清单勾销（词法近似边界声明由 AST/token 落地取代）并保留内存放大/字符串方法回溯残余② + worker 隔离 successor 登记
+- [x] D6 §3.5：result 枚举增补 `denied`
+- [x] D1 §3.1 约束表 + §3.7/§3.8：session.open 权限拒绝语义（-32000 + permission-denied + 4403 关闭复用裁定，additive 登记）、watch 表达式校验与 eval-timeout 语义
+- [x] docs-for-ai 在线调试节：权限码要求 + watch 超时配置键登记（对齐既有描述）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
 
 Exit Criteria:
 
-- [ ] 三处文档与 live code 行为一致（抽查：错误码字面量、配置键名、权限码字符串逐字一致）
-- [ ] doc-links --strict exit 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 三处文档与 live code 行为一致（抽查：错误码字面量、配置键名、权限码字符串逐字一致）
+- [x] doc-links --strict exit 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] 审计 SEC-01/02/03（P0）三探针修复前红/修复后绿，变异探针（接线移除转红）证据入档
-- [ ] 审计 SEC-04/05/06/07（P1）全部落地且有判别性测试
-- [ ] SEC-08/09/10（P2）落地且有测试
-- [ ] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（连带 nop-xlang 依赖链与 task 全链）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect（OOM/字符串回溯残余与 SEC-11~14 均按 Deferred But Adjudicated 分类登记并给出 successor/理由）
-- [ ] owner docs（D6/D1/docs-for-ai）同步且 doc-links --strict 0 errors
+- [x] 审计 SEC-01/02/03（P0）三探针修复前红/修复后绿，变异探针（接线移除转红）证据入档
+- [x] 审计 SEC-04/05/06/07（P1）全部落地且有判别性测试
+- [x] SEC-08/09/10（P2）落地且有测试
+- [x] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（连带 nop-xlang 依赖链与 task 全链）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（OOM/字符串回溯残余与 SEC-11~14 均按 Deferred But Adjudicated 分类登记并给出 successor/理由）
+- [x] owner docs（D6/D1/docs-for-ai）同步且 doc-links --strict 0 errors
 - [ ] 独立子 agent closure-audit 完成并记录证据（含 Anti-Hollow：校验器真实接入 compile/execute/watch 三条调用链，非孤立类）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
 - [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang-debug-web --severity high` exit 0

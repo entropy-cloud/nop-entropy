@@ -1056,6 +1056,9 @@ public interface XLangErrors {
     ErrorCode ERR_XLANG_DEBUGGER_REPL_TIMEOUT = define("nop.err.xlang.debugger.repl-timeout",
             "REPL执行超时");
 
+    ErrorCode ERR_XLANG_DEBUGGER_PERMISSION_DENIED = define("nop.err.xlang.debugger.permission-denied",
+            "无调试会话权限（plan 2478 SEC-05：D6 §3.4 权限矩阵 WS 行落地）");
+
     ErrorCode ERR_XLIB_TAG_NO_SOURCE_DEFINED = define("nop.err.xpl.xlib.tag-no-source-defined",
             "标签库没有定义内嵌的source实现，也没有外部关联的[{resourceName}]实现文件", ARG_RESOURCE_NAME);
 

@@ -45,7 +45,8 @@ public class ReplAccessGuard {
         if (ctx == null)
             throw new ReplAccessException(401, "Authentication required");
         if (authChecker == null || !authChecker.isPermitted(permission, new Context(ctx)))
-            throw new ReplAccessException(403, "Permission denied: " + permission);
+            // plan 2478 SEC-09：附已提取身份供 denied 审计记录 actor
+            throw new ReplAccessException(403, "Permission denied: " + permission).withUserContext(ctx);
         return ctx;
     }
 

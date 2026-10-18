@@ -87,13 +87,46 @@ public class ReplService {
 
     // ===== compile =====
 
-    /** D6 §3.1 compile 端点：门控序（登录/权限/尺寸/沙箱）→ compile deadline → 诊断映射。 */
+    /** D6 §3.1 compile 端点：门控序（登录/权限/尺寸/enabled/并发/沙箱）→ compile deadline → 诊断映射。 */
     public Map<String, Object> compile(String sourcePath, String source, Map<String, Object> headers) {
         long start = System.currentTimeMillis();
-        IUserContext ctx = guard.checkAccess(headers, ReplAccessGuard.PERM_COMPILE);
-        checkSourceSize(source);
+        String actor;
+        try {
+            actor = guard.checkAccess(headers, ReplAccessGuard.PERM_COMPILE).getUserId();
+        } catch (ReplAccessException e) {
+            // SEC-09：拒绝路径审计（401 无身份照写；403 携 guard 提取的身份）——跨用户探测可观测
+            audit(actorOf(e), null, "compile", source, "denied", System.currentTimeMillis() - start);
+            throw e;
+        }
+        try {
+            return doCompile(sourcePath, source, actor, start);
+        } catch (ReplAccessException e) {
+            audit(actor, null, "compile", source, "denied", System.currentTimeMillis() - start);
+            throw e;
+        } catch (Throwable t) {
+            // SEC-09：Error 终止路径（如大源码解析 OOM）审计后重抛，不吞
+            audit(actor, null, "compile", source, "error", System.currentTimeMillis() - start);
+            throw t;
+        }
+    }
 
-        String actor = ctx.getUserId();
+    private Map<String, Object> doCompile(String sourcePath, String source, String actor, long start) {
+        checkSourceSize(source);
+        // SEC-08：compile 门控与 execute 对齐（enabled 运行期谓词 + 全局并发门，
+        // tryAcquire 非阻塞、与 execute 共享信号量、无锁序交叉）
+        if (!enabledPredicate.getAsBoolean())
+            throw new ReplAccessException(403, "xlang debugger execution disabled");
+        if (!globalPermits.tryAcquire())
+            throw new ReplAccessException(429, "nop.err.xlang.debugger.rate-limited",
+                    "repl global concurrency limit reached");
+        try {
+            return compileWithinDeadline(sourcePath, source, actor, start);
+        } finally {
+            globalPermits.release();
+        }
+    }
+
+    private Map<String, Object> compileWithinDeadline(String sourcePath, String source, String actor, long start) {
         long deadline = System.currentTimeMillis()
                 + Math.min(read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_COMPILE_TIMEOUT),
                         MAX_COMPILE_TIMEOUT_MS);
@@ -149,9 +182,28 @@ public class ReplService {
     public Map<String, Object> execute(String sessionId, String source, Integer timeoutMs,
                                        Map<String, Object> headers) {
         long start = System.currentTimeMillis();
-        IUserContext ctx = guard.checkAccess(headers, ReplAccessGuard.PERM_EXECUTE);
-        String actor = ctx.getUserId();
+        String actor;
+        try {
+            actor = guard.checkAccess(headers, ReplAccessGuard.PERM_EXECUTE).getUserId();
+        } catch (ReplAccessException e) {
+            // SEC-09：拒绝路径审计（401 无身份照写；403 携 guard 提取的身份）——跨用户 sessionId 探测可观测
+            audit(actorOf(e), sessionId, "execute", source, "denied", System.currentTimeMillis() - start);
+            throw e;
+        }
+        try {
+            return doExecute(sessionId, source, timeoutMs, actor, start);
+        } catch (ReplAccessException e) {
+            audit(actor, sessionId, "execute", source, "denied", System.currentTimeMillis() - start);
+            throw e;
+        } catch (Throwable t) {
+            // SEC-09：OOM/SOE 等 Error 终止路径审计后重抛，不吞 Error
+            audit(actor, sessionId, "execute", source, "error", System.currentTimeMillis() - start);
+            throw t;
+        }
+    }
 
+    private Map<String, Object> doExecute(String sessionId, String source, Integer timeoutMs,
+                                          String actor, long start) {
         // 会话存在 + 属主校验（D1 §3.4 红线：不区分不存在/他属，防探测）
         if (!runtime.getBinder().isSessionOwner(sessionId, actor))
             throw new ReplAccessException(403, "nop.err.xlang.debugger.session-bound-elsewhere",
@@ -225,6 +277,10 @@ public class ReplService {
     }
 
     // ===== 内部 =====
+
+    private static String actorOf(ReplAccessException e) {
+        return e.getUserContext() == null ? null : e.getUserContext().getUserId();
+    }
 
     private Map<String, Object> successResponse(Object value) {
         Map<String, Object> response = new LinkedHashMap<>();

@@ -442,12 +442,12 @@ private LitemallCart findByProduct(String userId, String productId, IServiceCont
 - `nop.xlang.debugger.enabled`——调试引擎（会话路由执行器）。
 - `nop.xlang.debug-web.enabled`——WS 网关 + REPL 服务（`DebugWebServerConfig` 初始化门）。
 
-租约/日志/REPL 参数族（lease ttl/renew/grace、log batch/flush、repl timeout/bytes/concurrent/whitelist 等 10 键）以 `XLangDebuggerConfigs` 为准；开关矩阵见上述设计目录 00-overview 的 §3.3（租约参数表见 02-lease-lifecycle、REPL 限制见 07-repl-security）。
+租约/日志/REPL 参数族（lease ttl/renew/grace、log batch/flush、repl timeout/bytes/concurrent/whitelist、watch eval-timeout 等 11 键）以 `XLangDebuggerConfigs` 为准；开关矩阵见上述设计目录 00-overview 的 §3.3（租约参数表见 02-lease-lifecycle、REPL 限制见 07-repl-security）。
 
 **端点**（由宿主 web 适配器绑定，quarkus 与 spring 双 twin）：
 
-- WS `/ws/xlang-debugger`——D1 JSON-RPC 协议（握手鉴权经 `nopDebugToken` 查询参数；浏览器原生 WS 无自定义头）。
-- HTTP `/r/nop-xlang-debug/compile`、`/r/nop-xlang-debug/execute`——在线 REPL（编译诊断 / 受控执行：属主校验、沙箱白名单、审计日志、超时与并发门控；未鉴权不开放）。
+- WS `/ws/xlang-debugger`——D1 JSON-RPC 协议（握手鉴权经 `nopDebugToken` 查询参数；浏览器原生 WS 无自定义头；`session.open` 需权限码 `nop/xlang/debug/DebugSession`，无权限拒绝并以 4403 关闭——权限校验器缺失时 fail-closed 同款拒绝）。
+- HTTP `/r/nop-xlang-debug/compile`、`/r/nop-xlang-debug/execute`——在线 REPL（编译诊断 / 受控执行：属主校验、AST 级 import 白名单默认拒绝（`nop.xlang.debug-web.repl.import-whitelist`，空=拒绝一切 import）、编译面禁用清单（RegExp/正则字面量/inject/loadDslModel/loadDeltaJson/Promise）、审计日志（含 denied 拒绝路径）、超时与并发门控；未鉴权不开放）。watch 求值（getExprValue/expandExprValue）同一沙箱校验 + deadline 窗口（`nop.xlang.debug-web.watch.eval-timeout-ms` 默认 5000）。
 
 **前端消费**：flux 前端 `@nop-chaos/flux-xlang-debug` 包提供装配组件（schema type `xlang-debug-editor`，经 `registerXlangDebugEditorRenderers` 注册；bundle 交付形态为懒加载异步 chunk）。使用说明见 flux 仓 flux-bundle 包 README 的「XLang online debug editor」小节与 flux 仓 renderer-lazy-loading 架构文档（nop-chaos-flux 仓内文档，本仓不做跨仓链接）；演示页 = flux playground `#/xlang-debug`。
 

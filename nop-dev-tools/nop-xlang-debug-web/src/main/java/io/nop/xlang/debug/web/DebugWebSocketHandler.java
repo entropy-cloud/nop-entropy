@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
@@ -20,6 +21,8 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.graphql.core.ws.IWebSocketHandler;
 import io.nop.graphql.core.ws.IWebSocketSession;
 import io.nop.xlang.debugger.XLangDebugger;
+import io.nop.xlang.debugger.session.ReplCancelledError;
+import io.nop.xlang.debugger.session.ThreadLocalReplDeadlineChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,8 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_NO_SESSION;
+import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_PERMISSION_DENIED;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_PROTOCOL_VERSION_UNSUPPORTED;
 import static io.nop.xlang.XLangErrors.ERR_XLANG_DEBUGGER_RESULT_TOO_LARGE;
@@ -72,6 +77,8 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
     static final String SESSION_NS = "session.";
     static final String LEASE_NS = "lease.";
     static final String DEBUGGER_NS = "debugger.";
+    /** D6 §3.4 权限矩阵 WS 行：会话创建权限码（plan 2478 SEC-05 落地）。 */
+    static final String DEBUG_SESSION_PERMISSION = "nop/xlang/debug/DebugSession";
     static final String METHOD_PING = "ping";
     static final String METHOD_PONG = "pong";
     static final String METHOD_TOKEN_REFRESH = "tokenRefresh";
@@ -265,6 +272,15 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
                     ERR_XLANG_DEBUGGER_PROTOCOL_VERSION_UNSUPPORTED.getErrorCode(),
                     "unsupported protoVersion: " + protoVersion, protoVersion, (short) 4400);
         }
+        // D6 §3.4 权限矩阵 WS 行（plan 2478 SEC-05）：会话创建须持调试权限码；
+        // checker 缺失 = fail-closed 拒绝。拒绝语义：-32000 错误响应 + 4403 关闭
+        //（前端既有 onclose 4403 终态分支天然兼容，D1 additive 登记见 01-ws-protocol.md）
+        IActionAuthChecker checker = runtime.authChecker();
+        if (checker == null || !checker.isPermitted(DEBUG_SESSION_PERMISSION, null)) {
+            throw new DebugProtocolException(-32000,
+                    ERR_XLANG_DEBUGGER_PERMISSION_DENIED.getErrorCode(),
+                    "debug session permission denied", null, (short) 4403);
+        }
         DebugSessionBinder.Binding binding = binder.open(connectionId, boundUserId, protoVersion, session);
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("sessionId", binding.getSessionId());
@@ -425,8 +441,11 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
                 String expr = exprParam(p);
                 long threadId = longParam(p, "threadId");
                 requireSuspended(debugger, threadId);
-                DebugVariable v = debugger.getExprValue(threadId,
-                        intParam(p, "frameIndex"), expr);
+                // plan 2478 SEC-07：watch 求值经完整沙箱校验（与 REPL 同一禁用清单——防
+                // inject/import 等经 watch 通道绕过）+ deadline 窗口（超时经取消通道打断）
+                validateWatchExpr(expr);
+                DebugVariable v = evalWithDeadline(debugger,
+                        () -> debugger.getExprValue(threadId, intParam(p, "frameIndex"), expr));
                 Map<String, Object> result = new LinkedHashMap<>();
                 result.put("v", v);
                 sendResult(id, result);
@@ -447,8 +466,9 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
                     keys.add((DebugValueKey) JsonTool.jsonObjectToBean(key, DebugValueKey.class));
                 long expandThreadId = longParam(p, "threadId");
                 requireSuspended(debugger, expandThreadId);
-                List<DebugVariable> vars = debugger.expandExprValue(expandThreadId,
-                        intParam(p, "frameIndex"), expr, keys);
+                validateWatchExpr(expr);
+                List<DebugVariable> vars = evalWithDeadline(debugger,
+                        () -> debugger.expandExprValue(expandThreadId, intParam(p, "frameIndex"), expr, keys));
                 sendResult(id, varsResult(vars));
                 return;
             }
@@ -578,6 +598,45 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
         if (!debugger.getSuspendedThreadIds().contains(threadId))
             throw new DebugProtocolException(-32000, ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED.getErrorCode(),
                     "no suspended thread " + threadId, null, (short) 0);
+    }
+
+    /**
+     * watch 求值表达式沙箱校验（plan 2478 SEC-07）：与 REPL 同一校验器/同一禁用清单
+     * （防 inject/loadDslModel/import/正则字面量等经 watch 通道绕过 REPL 编译面禁用）。
+     * 违例按 -32602 invalidParams 拒绝（表达式本身非法）。
+     */
+    private void validateWatchExpr(String expr) {
+        try {
+            new ReplSourceValidator().validate(expr, SourceLocation.fromLine("watch.xpl", 1),
+                    whitelistForWatch());
+        } catch (ReplAccessException e) {
+            throw DebugProtocolException.invalidParams("watch expression rejected: " + e.getResponseMessage());
+        }
+    }
+
+    private java.util.Set<String> whitelistForWatch() {
+        String csv = runtime.importWhitelist();
+        if (csv == null || csv.isEmpty())
+            return java.util.Set.of();
+        return java.util.Set.of(csv.trim().split("\\s*,\\s*"));
+    }
+
+    /**
+     * watch 求值 deadline 窗口（plan 2478 SEC-07）：begin/finally end 包住求值；
+     * {@link ReplCancelledError} 是 Error 系（dispatch 的 catch(Exception) 链接不住），
+     * 必须在此显式捕获映射 -32000 错误响应，否则超时会穿透 onMessage。打断机制 =
+     * 引擎 eval 入口检查 + 函数调用边界经全局执行器 per-entry 检查双层。
+     */
+    private <T> T evalWithDeadline(XLangDebugger debugger, Supplier<T> eval) {
+        ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
+        channel.begin(System.currentTimeMillis() + runtime.watchEvalTimeoutMillis());
+        try {
+            return eval.get();
+        } catch (ReplCancelledError e) {
+            throw new DebugProtocolException(-32000, e.getErrorCode(), e.getErrorMessage(), null, (short) 0);
+        } finally {
+            channel.end();
+        }
     }
 
     /** D1 §3.1：出站 DebugVariable 列表截断至 1000 条 + truncated 标记。 */

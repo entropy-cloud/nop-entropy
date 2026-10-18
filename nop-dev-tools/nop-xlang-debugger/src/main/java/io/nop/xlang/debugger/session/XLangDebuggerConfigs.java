@@ -66,4 +66,8 @@ public interface XLangDebuggerConfigs {
     @Description("REPL允许import的白名单（逗号分隔的Java类FQN/xlib命名空间）。空=拒绝一切import（D6 §3.3 默认拒绝）")
     IConfigReference<String> CFG_XLANG_DEBUG_WEB_REPL_IMPORT_WHITELIST = varRef(s_loc,
             "nop.xlang.debug-web.repl.import-whitelist", String.class, "");
+
+    @Description("watch 求值（debugger.getExprValue/expandExprValue）deadline 窗口时长（plan 2478 SEC-07）。超时经取消通道打断并返回错误响应")
+    IConfigReference<Integer> CFG_XLANG_DEBUG_WEB_WATCH_EVAL_TIMEOUT = varRef(s_loc,
+            "nop.xlang.debug-web.watch.eval-timeout-ms", Integer.class, 5000);
 }
