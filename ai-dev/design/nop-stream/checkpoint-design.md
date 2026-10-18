@@ -220,10 +220,11 @@ Manifest 必须先于 `notifyCheckpointComplete` 持久化完成。Sink commit �
 
 **`stateFormatVersion` 与 `checksum`（Stage 51 落地，D-DRIFT-2 收敛）**：两字段落地为代码（roadmap item 25 / P-REQ-20 go）。字段宿主 `EpochManifest`（core）；写入与校验发生在唯一序列化咽喉 `CheckpointSerDe`（runtime），双存储（LocalFile / JDBC）经此咽喉自动覆盖。落地语义：
 
-1. **单一版本真值**：core `io.nop.stream.core.checkpoint.CheckpointFormatVersions` 持有 canonical 常量（`CURRENT_FORMAT_VERSION = 2`、`LEGACY_FORMAT_VERSION = 1`）；runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` / `LEGACY_FORMAT_VERSION` 为其引用别名（依赖方向 runtime → core 合规，禁止两处独立数字）。序列化时 `stateFormatVersion` 恒在咽喉期 stamp 为 CURRENT（`EpochManifest` 字段承载读回值，int + 0 哨兵表示「未设置/legacy」，版本号从 1 起无碰撞）。信封 `formatVersion` 键不 bump：新增可选字段 + legacy 缺字段容忍 = 非破坏增量。
+1. **单一版本真值**：core `io.nop.stream.core.checkpoint.CheckpointFormatVersions` 持有 canonical 常量（v2 时代 `CURRENT_FORMAT_VERSION = 2`、`LEGACY_FORMAT_VERSION = 1`；v3 起 `CURRENT_FORMAT_VERSION = 3`，见 §2.6 末段）；runtime `CheckpointSerDe.CURRENT_FORMAT_VERSION` / `LEGACY_FORMAT_VERSION` 为其引用别名（依赖方向 runtime → core 合规，禁止两处独立数字）。序列化时 `stateFormatVersion` 恒在咽喉期 stamp 为 CURRENT（`EpochManifest` 字段承载读回值，int + 0 哨兵表示「未设置/legacy」，版本号从 1 起无碰撞）。v2 时代信封 `formatVersion` 键不 bump（新增可选字段 + legacy 缺字段容忍 = 非破坏增量）；v3 起信封 `formatVersion` 与 `stateFormatVersion` 同步升为 3（见本节末段）。
 2. **checksum canonical 形态**：canonical map = manifest 按固定字段序组装、不含 `checksum` 键（信封 `formatVersion` 键**在**覆盖面内）。哈希 = 对 canonical map 做一次 JSON 文本往返归一化（`serialize → parseMap → serialize`，UTF-8 字节）后取 SHA-256 hex（复用 core `SstFileChecksum`）。归一化钉定数字文本不动点：整数（int/long 十进制文本，平台 TextScanner 快路径）天然稳定；小数/浮点（keyedStates 原样透传 / accumulator `localValue` 可为任意 Number 子类型）经一次往返收敛到 `Double.toString` 不动点（如 `BigDecimal "0.100"` → `0.1`）——store 侧与 load 侧（原始解析 map 去 checksum 键后按同固定字段序重组，不经 bean 往返）同经此归一化，**写入哈希 = 加载复算哈希按构造成立**。
 3. **计算位置**：`CheckpointSerDe.serializeEpochManifest` 咽喉期计算 + 注入（checksum 键追加为最后一个键）。async 默认模式下该路径运行于 persist executor（段 2，不持 coordinator monitor）；拒绝 `buildEpochManifest` 构造期计算（非增量路径 build 在段 1 monitor 持锁段内，会把序列化 + SHA-256 CPU 移入锁内，与 §2.2 段 1/段 2 分工冲突）。`EpochManifest.checksum` 字段仅在反序列化读回时填充（不可变 bean 在段 1 构造，序列化形态在段 2 才确定；再序列化时恒重算、不复制旧值）。**sync-fallback 残余（显式裁定接受）**：`asyncSnapshotEnabled=false` 时段 2 序列化本就在 ACK 线程 monitor 内 inline，checksum 增量 = 同一锁内的第二次序列化（归一化往返）+ SHA-256——与「sync-fallback 保留改造前同步行为」语义一致（改造前序列化同样在锁内），非默认模式不优化。
-4. **restore 读侧语义**：`checksum` 存在即校验，不匹配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`（jobId / epochId / expected / actual 定位参数）；字段缺失（legacy manifest）→ 跳过校验（显式设计裁定，debug 日志，与信封 legacy 容忍路径对齐）。`stateFormatVersion` 缺失（legacy）→ 容忍（0 哨兵）；存在时必须等于信封 `formatVersion` 且 ≤ CURRENT，否则 typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`（携带两版本面与 current 值）——**双版本面不一致（如信封=2、字段=3）fail-fast**，消除 `detectFormatVersion` 静默接受高版本的原缺口（信封 > CURRENT 同码 fail-fast，`deserializeCheckpoint` 与 `deserializeEpochManifest` 两读路径同步收口）。拒绝的替代方案：容忍降级（高版本格式含义未知，继续解析必然静默损坏，违反 no-silent-no-op）；仅信封单版本面（信封是传输层细节，manifest 自描述字段才是恢复语义入口，双面互校防篡改）。
+4. **v3 起（目标契约）**：`CURRENT_FORMAT_VERSION` 升为 3；信封 `formatVersion` 与 `stateFormatVersion` 同步为 3；keyed state 的 v3 写入携带 `codecId`/`schemaVersion`，读取按 `codecId` 分派。读取分派先看 manifest `stateFormatVersion`：v2 再按 stateName/family 选择 legacy 或 JSON reader（`__java_bytes__` 仅 legacy reader 内部格式校验），不以 payload 内容触发 Java 反序列化；v3 按 per-state `codecId` 分派。旧引擎读 v3 必须 typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`，不承诺降级。状态编码与 codec 契约见 `state-encoding-and-restore-design.md`，实施归 roadmap WI8。
+5. **restore 读侧语义**：`checksum` 存在即校验，不匹配 → typed `ERR_STREAM_CHECKPOINT_CHECKSUM_MISMATCH`（jobId / epochId / expected / actual 定位参数）；字段缺失（legacy manifest）→ 跳过校验（显式设计裁定，debug 日志，与信封 legacy 容忍路径对齐）。`stateFormatVersion` 缺失（legacy）→ 容忍（0 哨兵）；存在时必须等于信封 `formatVersion` 且 ≤ CURRENT，否则 typed `ERR_STREAM_CHECKPOINT_FORMAT_VERSION_UNSUPPORTED`（携带两版本面与 current 值）——**双版本面不一致（如信封=2、字段=3）fail-fast**，消除 `detectFormatVersion` 静默接受高版本的原缺口（信封 > CURRENT 同码 fail-fast，`deserializeCheckpoint` 与 `deserializeEpochManifest` 两读路径同步收口）。拒绝的替代方案：容忍降级（高版本格式含义未知，继续解析必然静默损坏，违反 no-silent-no-op）；仅信封单版本面（信封是传输层细节，manifest 自描述字段才是恢复语义入口，双面互校防篡改）。
 
 ### 2.7 Commit 与 Subsuming
 
@@ -1110,20 +1111,23 @@ Savepoint 可以支持显式迁移，但迁移必须通过模型级 action 描�
 ```java
 class SerializerFingerprint {
     String stateName;           // 状态名
+    String codecId;             // 状态编码器标识（v3 起；v2/legacy 为空）
     int schemaVersion;          // store 内部自动管理（schema 变更时自动递增）
-    String schemaChecksum;      // JSON schema 结构 checksum（store 内部自动生成）
+    String schemaChecksum;      // 逻辑 schema 结构 checksum（store 内部自动生成）
 }
 ```
 
-nop-stream **不暴露序列化接口**，`SerializerFingerprint` 不是序列化器指纹，而是 checkpoint manifest 内部记录的 **JSON schema 结构指纹**。它是 storage 实现的内部元数据，算子和用户不直接接触。序列化实现固定为 `JsonTool`（见 `state-management-design.md` §6）。内存 store 不经过任何序列化。具体 schema 描述技术（如平台 `record-object.xdef` 对象描述机制）是 storage 实现的内部决策，不在接口上暴露。
+nop-stream **不向算子暴露序列化接口**，`SerializerFingerprint` 不是序列化器实例上的指纹，而是 checkpoint manifest 内部记录的 **逻辑 schema 结构指纹**。它是 storage 实现的内部元数据，算子和用户不直接接触。
+
+**v3 起**：指纹的编码维度为 `codecId + schemaVersion + schemaChecksum`。默认 codec 仍是 JSON（`JsonStateCodec`）；引擎内部状态可使用专用 codec（如 CEP 逻辑 schema），二进制 codec 为显式 opt-in。checkpoint 快照阶段经 codec 编码（内存 store 亦如此）。状态三层分类、codec 契约、恢复五阶段与 v3 兼容策略见 `state-encoding-and-restore-design.md`；迁移函数按逻辑值级执行，生产路径必须注入 `StateMigrationRegistry`（见 roadmap WI8）。
 
 **生成规则**：
 
 | 状态类型 | schemaVersion | schemaChecksum |
 |---------|---------------|----------------|
-| ValueState\<T> | store 自动管理 | T 的 JSON schema checksum（自动生成） |
-| ListState\<T> | store 自动管理 | 元素 T 的 JSON schema checksum（自动生成） |
-| MapState\<K,V> | store 自动管理 | K + V 的联合 JSON schema checksum（自动生成） |
+| ValueState\<T> | store 自动管理 | T 的逻辑 schema checksum（v3 由 codec 提供；v2 为 JSON schema checksum） |
+| ListState\<T> | store 自动管理 | 元素 T 的逻辑 schema checksum（同上） |
+| MapState\<K,V> | store 自动管理 | K + V 的联合逻辑 schema checksum（同上） |
 | Timer State | store 自动管理 | Timer 结构 checksum（自动生成） |
 | Source Split State | store 自动管理 | Connector 结构 checksum（自动生成） |
 
@@ -1155,12 +1159,13 @@ OperatorSnapshot {
     
     if manifestFingerprint == currentFingerprint:
         → 兼容，直接恢复
-    if manifestFingerprint.version == currentFingerprint.version 
-       && manifestFingerprint.configChecksum != currentFingerprint.configChecksum:
+    if manifestFingerprint.getSchemaVersion() == currentFingerprint.getSchemaVersion()
+       && !manifestFingerprint.getSchemaChecksum().equals(currentFingerprint.getSchemaChecksum()):
         → 不兼容，拒绝恢复（配置变化，如字段类型从 Integer 变为 Long）
-    if manifestFingerprint.version < currentFingerprint.version:
+    // 注：以上为 v2 语义；v3 起匹配键扩展为 codecId + schemaVersion + schemaChecksum
+    if manifestFingerprint.getSchemaVersion() < currentFingerprint.getSchemaVersion():
         → 要求显式 migration action（提供 StateMigrationFunction）
-    if manifestFingerprint.version > currentFingerprint.version:
+    if manifestFingerprint.getSchemaVersion() > currentFingerprint.getSchemaVersion():
         → 不兼容，拒绝恢复（代码降级不支持）
 ```
 
@@ -1187,12 +1192,12 @@ interface StateMigrationFunction<Old, New> {
 **Stage 33 落地的最终状态**：
 
 - **注册载体**：`StreamComponents`（`io.nop.stream.core.model.StreamComponents` 实现 `StateMigrationRegistry`）。`StreamComponents.registerStateMigrationFunction(stateName, fn)` 按 stateName 注册，同一 state 允许多个迁移函数（不同 source→target pair）。
-- **匹配规则**：恢复时 state backend 调用 `StateSchemaResolver.findMigration(registry, stateName, restoredFp, currentFp)`，匹配 = `fn.sourceFingerprint().schemaChecksum == restoredFp.schemaChecksum && fn.targetFingerprint().schemaChecksum == currentFp.schemaChecksum`。匹配命中即执行迁移，未命中返回 `null` 让调用方 fail-fast（**无静默默认**）。
-- **执行点**：state backend 的 `getState()`（`MemoryKeyedStateBackend.verifySchemaCompatibility` / `RocksDBKeyedStateBackend.verifySchemaCompatibility`），**不是设计原文描述的 Coordinator**。该偏差与 Stage 29「比对时机下沉到 getState()」一致——Stage 29 把 fail-fast 比对从 storage 层移到 backend `getState()`，Stage 33 在同一执行点先查迁移函数再 fail-fast，使首次 getState() 即触发迁移并更新该 state 持有的 descriptor。
+- **匹配规则**：恢复时 state backend 调用 `StateSchemaResolver.findMigration(registry, stateName, restoredFp, currentFp)`。v2 时代匹配 = source/target 的 `schemaChecksum` 相等；v3 起匹配 = `codecId + schemaVersion + schemaChecksum` 三元组相等（由 state family 的 `StateSchema` 提供）；未命中返回 `null` 让调用方 fail-fast（**无静默默认**）。
+- **执行点（v2 现状；v3 目标）**：v2 在 state backend 的 `getState()`（`MemoryKeyedStateBackend.verifySchemaCompatibility` / `RocksDBKeyedStateBackend.verifySchemaCompatibility`）懒触发；v3 起改为 **eager**：恢复阶段在 descriptor/schema 注册之后、rebuild 之前统一执行迁移（见 `state-encoding-and-restore-design.md` §3.3），不再依赖首次 `getState()`；实施归 roadmap WI8。
 - **全量扫描语义**：命中迁移函数后，遍历该 state 的所有 entry（memory: `Map<TypedNamespaceAndKey, value>`；rocksdb: column-family iterator），读旧值→`migrate`→写回新值；迁移完成后更新该 state 对象的 descriptor 为新 schema（使下次 getState() 校验时 checksum 已匹配，幂等）。
-- **迁移时机**：算子 `initializeState` 阶段首次 `getState()` 同步执行（处理任何 element 之前）。**不支持** element 处理中途懒触发 getState() 的迁移——会与 element 处理交错，违反 all-or-nothing 语义。
+- **迁移时机（v2 现状；v3 目标）**：v2 为算子 `initializeState` 阶段首次 `getState()` 同步执行；v3 起为恢复阶段 eager 执行（见上）。两种形态都要求在任何 element 处理之前完成，不允许 element 处理中途触发迁移。
 - **崩溃恢复**：迁移中途崩溃 → checkpoint 不可用，从上一个成功 checkpoint 重跑（迁移全量扫描前不持久化"迁移中"标记；nop-stream 无迁移事务日志）。
-- **schemaVersion 四分支**：`schemaVersion` 当前恒为 1（`SerializerFingerprint.DEFAULT_SCHEMA_VERSION`），故 §8.4.1 伪代码中 version<current→migrate / version>current→reject 分支无真实触发条件；version-based branching 作为框架预留，待 schemaVersion 获得递增来源时激活。
+- **schemaVersion 四分支**：v2 时代 `schemaVersion` 恒为 1（`SerializerFingerprint.DEFAULT_SCHEMA_VERSION`），四分支无真实触发条件；v3 起由 state family 的 `StateSchema` 提供递增来源，version<current→migrate / version>current→reject 分支激活（实施归 roadmap WI8）。
 - **accumulator 迁移风险**：`verifySchemaCompatibility` 对 Reducing/Aggregating/InternalAppending 等类型的迁移路径同样接线，但存储值是 opaque ACC（`SimpleAccumulator`/用户 ACC 类型），迁移正确性由用户 `StateMigrationFunction` + `AggregateFunction`/`ReduceFunction` 契约决定——错误迁移产出**静默 corrupt**（非 no-op）。本平台不验证 accumulator 迁移语义，仅 surface 该风险。
 - **验证 demo**：Integer→Long ValueState 迁移（`TestStateMigration` core 单测 + `TestRocksDBStateMigration` rocksdb 单测 + `TestStateMigrationEndToEnd` 经 `CheckpointSerDe` + `LocalFileCheckpointStorage` 全链路 E2E，memory + rocksdb 两后端各跑一次）覆盖完整链路：`getState(Integer)` 产 checkpoint → 改 `Long` + 注册迁移 → restore → `getState` 返回正确 Long 值；对照测试（未注册迁移）确认 fail-fast（非静默降级）。
 
@@ -1201,7 +1206,7 @@ interface StateMigrationFunction<Old, New> {
 - **checksum 嵌入位置**：伪代码把 fingerprint 描述为存在 `OperatorSnapshot.stateFingerprints` 这种外层 wrapper 中。实际实现把 `schemaChecksum` + `schemaVersion` 直接嵌入 `MemoryStateSerDe` 写出的 per-state JSON info map（与 `stateType` / `valueType` 同层），随 `StateSnapshot.stateData` 透传到 `CheckpointSerDe` → JSON。**不引入** `OperatorSnapshot` wrapper 类，避免对 `TaskStateSnapshot` / `StateSnapshot` / `CheckpointSerDe` 的数据结构改动。
 - **比对时机**：伪代码描述比对发生在 storage 层的 manifest 恢复时。实际实现把比对移到 `MemoryKeyedStateBackend.getState()` 时 —— 即算子真正消费恢复出的 state 的入口点。这样 fail-fast 时机更精确（首次 `getState()` 调用），且复用了恢复出的 descriptor（`MemoryStateSerDe.restoreState` 时已从持久化的 type 字符串重建 descriptor 对象）。
 - **比对数据源**：不比较"持久化的 checksum 字段"与"当前 descriptor 的 checksum"，而是比较"恢复出的 state 对象上的 descriptor 算出的 checksum"与"当前算子 `getState(descriptor)` 入参 descriptor 算出的 checksum"。两边都从代码侧 type 信息独立计算 checksum，因此旧 checkpoint（无 `schemaChecksum` 字段）也能做检查 —— 持久化的 checksum 字段仅用于人工 inspect 和 Stage 33 的 migration 决策。
-- **schemaVersion 恒为 1**：Stage 29 不激活 version-based branching（lower→migrate / higher→reject 的四分支逻辑）。仅当 checksum 不同即 fail-fast。`schemaVersion=1` 作为前向兼容元数据持久化，version-based 分支需要 Stage 33 的 `StateMigrationFunction` 基础设施。
+- **schemaVersion 在 v2 恒为 1**：Stage 29 不激活 version-based branching（lower→migrate / higher→reject 的四分支逻辑）；v3 起由 `StateSchema` 提供递增来源并激活（实施归 roadmap WI8）。
 - **checksum 算法**：type-signature 级 SHA-256（`stateType` + class FQN），不采用 deep POJO field-level introspection。具体 canonical 字符串格式见 `StateSchemaResolver.java`。
 
 ### 8.5 Rescale 与状态重分配

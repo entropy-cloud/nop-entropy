@@ -411,6 +411,13 @@ JobCoordinator / CheckpointCoordinator
   - 状态后端（IStateBackend → IKeyedStateBackend → IInternalStateBackend）
   - 序列化策略、State Segment、Timer State、内存预算
 
+- `state-encoding-and-restore-design.md`
+  - 状态三层分类：durable logical / derived rebuildable / ephemeral external；只有第一类进入 checkpoint
+  - `StateSchema` + `IStateCodec` + `IStateKeyCodec` + `IStateRebuildUnit` 编码契约；默认 JSON codec，二进制/自定义 codec 为显式 opt-in
+  - 恢复五阶段：load → migrate → rebuild → validate → activate；派生状态重建（`Lockable` refCounter、LRU 缓存、索引）的幂等性与有界性约束
+  - CEP durable schema（live 名称：events / entries / events-count / NFA computation states / event queue / timers / watermark）与 `Lockable`/NFAState 旧 Java 序列化面的消除规则；边/节点引用计数按 lockNode 等价的 lockEvents 多重集公式重建
+  - 用户类型白名单可配置、后端编码能力声明、v3 格式与 v2 legacy 只读兼容、迁移与回滚策略
+
 - `window-design.md`
   - 窗口四要素（WindowAssigner + Trigger + Evictor + WindowFunction）
   - WindowingStrategy（可序列化模型）
@@ -446,6 +453,7 @@ JobCoordinator / CheckpointCoordinator
   - SharedBuffer（引用计数 + Dewey 编号）
   - CepOperator、匹配后策略
   - 声明式模型（XMeta）
+  - CEP 状态持久化目标模型（§5.3.1）：live 物理 stateName、逻辑事件/节点/边 schema、event queue、引用计数重建规则
 
 - `stream-dsl-design.md`
   - XDSL 声明式流处理模型（stream.xdef / cep.xdef）
@@ -517,6 +525,7 @@ JobCoordinator / CheckpointCoordinator
 5b. `failover-design.md` — targeted failover NO-GO 裁定 + Stage 44 successor 落地注记
 5c. `checkpoint-engine-convergence.md` — 双 checkpoint 驱动面测绘与收敛裁定（WI9：七维对照〔4 一致/5 等价/10 分叉〕/ 双加载链 / 路线 (a) 下沉共享内核 / DIV-01～06 分叉裁决 / 双跑差分门；草案待 owner 确认，WI10/WI11 执行输入）
 6. `state-management-design.md` — 状态后端、StateShard、序列化
+6b. `state-encoding-and-restore-design.md` — 状态编码与恢复目标模型（三层分类 / codec / rebuild / v3 格式）
 7. `window-design.md` — 窗口机制、Trigger、Evictor
 8. `time-model-design.md` — Watermark、时间戳分配
 9. `connector-design.md` — 连接器适配 + SPI 注册与能力矩阵（item 19）

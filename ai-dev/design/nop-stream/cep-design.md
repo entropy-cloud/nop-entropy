@@ -274,6 +274,29 @@ SharedBuffer 需要通过 `KeyedStateStore` 进行状态持久化：
 - 所有 CEP 状态（`computationStates` ValueState、`elementQueueState` MapState、SharedBuffer 引用）落到 `IKeyedStateBackend`，参与 checkpoint/restore。
 - 平台 `SimpleKeyedStateStore` 仍存在但**不再被 `CepOperator` 使用**——它是 nop-stream-core 内部的简易实现（`common/state/simple/`），仅作测试或无算子后端场景的占位；生产 CEP 走 `IKeyedStateBackend` 统一路径（G18/G19/G20 已闭环，见 `nop-stream-production-roadmap.md` Current baseline）。
 
+#### 5.3.1 持久化模型：逻辑状态 + 重建（v3 目标模型）
+
+v3 目标模型持久化 CEP 的**逻辑 schema**，不持久化运行时对象图（`Lockable` 引用计数、Guava 缓存、`PriorityQueue`/comparator 实例不进入 durable 面）。物理 stateName 沿用 live 名称，避免 v2→v3 静默空状态：
+
+| stateName | durable 内容 | 恢复动作 |
+|---|---|---|
+| `sharedBuffer-events` | `EventId → EventPayload`（timestamp 在 EventId 内，EventPayload 只存用户事件值） | 解码后构造 `Lockable` 包装，refCounter 由引用重建 |
+| `sharedBuffer-entries-with-lockable-edges` | `NodeId → 有序边列表（targetNodeId, deweyNumber）` | 解码后重建节点与边；边引用计数由引用重建，不置 0 |
+| `nfaStateName` | partial/completed computation states 的扁平记录（当前状态名、Dewey 版本、start/previous 时间戳、previousBufferEntry、startEventId） | 重建 `PriorityQueue` 与 comparator（由代码提供）；stateChanged/isNewStartPartialMatch 恢复为 false |
+| `eventQueuesStateName` | `MapState<Long, List<EventPayload>>`（尚未进入 NFA 的缓冲事件） | 直接解码；PT 排水依赖它，不能从 events 表推导 |
+| `sharedBuffer-events-count` | per-timestamp next-EventId 分配器 | 直接解码 |
+| `cep-current-watermark` / `cep-event-time-timers` / `cep-key-class` / `cep-event-class` | operator state | 直接解码；event class 用于 payload codec 类型来源 |
+
+**重建规则**（逐 key、逐 namespace，与 live `lockNode`/`releaseNode` 语义一致）：
+
+- 对每条边 `M → N`：向 `N` 贡献一次与 live `lockNode(N, edge.dewey)` 等价的计数（N ref++，并对 N 的兼容边各 ++），版本为 `edge.dewey`。
+- 对每个 partial/completed computation state：向 `previousBufferEntry` 贡献一次同等的 `lockNode(previousEntry, state.version)` 计数。
+- `nodeRef(N) = |lockEvents(N)|`；`edgeRef(N.e) = |{ v ∈ lockEvents(N) : v.isCompatibleWith(N.e.dewey) }|`；`eventRef(Ev) = |{ N | N.eventId = Ev }|`。
+- 边上的引用计数是跨记录存活的持久引用计数，**不能统一置 0**；否则共享前缀的边会在恢复后被提前 detach，导致匹配路径截断/静默丢匹配。
+- 恢复后执行 `load → migrate → rebuild → validate → activate`；validate 校验悬挂边、缺失 target、计数守恒与 eventRef 一致，失败即 fail-fast。
+
+规范设计见 `state-encoding-and-restore-design.md` §3.5；实施与 CEP×RocksDB 能力开启归 `ai-dev/backlog/nop-stream-design-goal-closure-roadmap.md` WI5/WI9。
+
 ## 6. CepOperator
 
 ### 6.1 作为算子
@@ -331,7 +354,7 @@ OneInputStreamOperator<IN, OUT>
 
 **已知限制**：
 - 事件时间超时未生效（`currentWatermark()` 返回 `Long.MIN_VALUE`）
-- SharedBuffer 传入 `null` serializer，不支持持久化
+- **Legacy（v2 格式）持久化面**：`NFAState` 与 `SharedBuffer` 依赖 Java 原生序列化（`__java_bytes__`），`Lockable` 引用计数与运行时包装被一并持久化；`CepOperator` 当前按后端类名包含 `RocksDB` 做 typed 拒绝（未配置 backend 时回落 Memory 并 WARN）。v3 目标模型以逻辑 schema + 重建替代（见 §5.3.1），关闭后该限制消失
 - `CepOperator.open()` 未配置 state backend 时 fallback 到 `MemoryKeyedStateBackend` + WARN（checkpoint 一致性不保证）；正确用法是显式配置 `IStateBackend`（如 `MemoryStateBackend`）使 CEP 走 `IKeyedStateBackend` 统一 checkpoint 路径
 
 ## 9. 恢复键类与 timer 台账（AR-10/AR-11 — Plan 2026-09-04-1326-1 Phase 4 D4）

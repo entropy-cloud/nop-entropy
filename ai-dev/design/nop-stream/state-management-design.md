@@ -212,6 +212,8 @@ MemoryKeyedStateBackend<K>
 
 ## 6. 序列化策略
 
+> **目标模型指针（2026-10-18）**：本节描述默认 codec 的当前落地形态。状态持久化的**目标模型**——三层状态分类（durable logical / derived rebuildable / ephemeral external）、`IStateCodec` 编码契约、恢复五阶段、CEP `Lockable` 重建与 v3 格式——以 `state-encoding-and-restore-design.md` 为准；本节与其冲突处待 WI2 owner 裁定后按该档收敛。v3 实施项见 `ai-dev/backlog/nop-stream-design-goal-closure-roadmap.md` WI4—WI9。
+
 ### 6.1 核心原则：序列化是内部实现细节
 
 nop-stream 的序列化设计遵循一个铁律：**Store 接口只存取对象，序列化是否发生完全是 Store 的内部实现细节，对算子和用户不可见。**
@@ -221,20 +223,20 @@ nop-stream 的序列化设计遵循一个铁律：**Store 接口只存取对象�
 | 算子层 | `putState(name, object)` / `getState(name, type)` | **不感知** |
 | Backend 层 | `snapshotState() → StateSnapshot` / `restoreState(snapshot)` | **不感知** |
 | Storage 层 | `storeCheckpoint(CompletedCheckpoint)` / `getCheckpoint(id)` | **不感知** |
-| Store 实现层（内部） | Memory store：直接对象引用，**零序列化**；持久化 store：内部 `JsonTool` | 内部 |
+| Store 实现层（内部） | Memory store：读路径直接对象引用，**零序列化**；checkpoint 快照经 codec 编码（默认 JSON）；持久化 store：内部 codec | 内部 |
 
 **关键含义：**
 
-1. **内存 Store 零序列化**：`MemoryKeyedStateBackend` 直接存储对象引用（`HashMap`），checkpoint 快照也是对象引用传递。从算子到 store 到快照，**没有任何序列化/反序列化开销**。只有当 checkpoint 需要持久化到外部（文件、数据库）时，才在 storage 实现内部使用 `JsonTool`。
+1. **内存 Store 直接读写零序列化**：`MemoryKeyedStateBackend` 直接存储对象引用（`HashMap`）。但 checkpoint 快照阶段并非零序列化：`MemoryStateSerDe` 会把状态值经 codec（默认 JSON）编码为快照树，再随 `CheckpointSerDe` 持久化。详见 `state-encoding-and-restore-design.md` §2.1。
 
 2. **默认零序列化接口暴露**：算子代码只调用 `getState()` / `putState()`，默认不接触任何序列化 API。`StateDescriptor` 默认持有 `JsonToolSerializer`（`TypeSerializer<T>` 类型字段，见 §2.2），算子无感知。
 
-   **可选 escape hatch（显式 opt-in）**：`StateDescriptor` 提供 `getSerializer()` / `setSerializer(TypeSerializer<T>)`。当用户注入一个实现了 `IStreamSerializer`（`TypeSerializer` 的子接口，提供 `serialize(T)→byte[]` / `deserialize(byte[], Class)→T`）的 serializer 时，`MemoryStateSerDe` 持久化路径会按 `instanceof IStreamSerializer` 分支调用其 `serialize`/`deserialize`，绕过默认 JSON 路径。这是一个**显式 opt-in 的性能 escape hatch**（如用户自带二进制 serializer），不影响默认 JSON 路径、不污染算子代码。普通的 `TypeSerializer`（非 `IStreamSerializer`）实例不会被 SerDe 路径识别。`schemaChecksum` 不读 serializer 实例，故替换 serializer 不破坏 checkpoint 兼容性。
+   **可选 escape hatch（显式 opt-in）**：`StateDescriptor` 提供 `getSerializer()` / `setSerializer(TypeSerializer<T>)`。当用户注入一个实现了 `IStreamSerializer`（`TypeSerializer` 的子接口，提供 `serialize(T)→byte[]` / `deserialize(byte[], Class)→T`）的 serializer 时，`MemoryStateSerDe` 持久化路径会按 `instanceof IStreamSerializer` 分支调用其 `serialize`/`deserialize`，绕过默认 JSON 路径。这是一个**显式 opt-in 的性能 escape hatch**（如用户自带二进制 serializer），不影响默认 JSON 路径、不污染算子代码。普通的 `TypeSerializer`（非 `IStreamSerializer`）实例不会被 SerDe 路径识别。v3 起 `codecId` 参与 `SerializerFingerprint`：替换 serializer/codec 会改变指纹，必须走 `StateMigrationFunction` 或显式 fail-fast，不能视为兼容。
 
 3. **不采用 Flink Type-based 二进制序列化**：Flink 根据 `TypeInformation` 为每种类型生成专用 `TypeSerializer`，导致大量业务代码被序列化逻辑污染（每个 `StateDescriptor` 必须绑定 serializer、每种数据结构需要配套的 serializer 工厂、schema 演进需要 `TypeSerializerSnapshot` 全套机制）。nop-stream 明确拒绝此路径：
    - JSON 序列化通过类型反射工作，**对象上不需要任何特殊支持**（无 `@Serializable`、无 serializer 工厂、无 `TypeInfo` 注解）
    - 业务对象保持 POJO 纯净性，不被序列化代码污染
-   - 唯一的序列化实现是 `JsonTool`，没有第二个实现，也不需要 SPI 扩展点
+   - **实现约束**：`JavaStreamSerializer`（`__java_bytes__`）只作为 v2 legacy 读路径保留；新写路径使用 `IStateCodec`（默认 `JsonStateCodec`），引擎内部状态不得以 Java 原生序列化作为持久化格式。见 `state-encoding-and-restore-design.md` §3.2/§3.8
 
 4. **Flink 序列化体系的反面教训**：Flink 的 `TypeSerializer` 体系为了性能引入了极高的复杂度——`TypeSerializerSnapshot`、`TypeSerializerConfigSnapshot`、schema 兼容性四态解析、每种容器类型的专用 serializer（`ListSerializer`、`MapSerializer`、`RowSerializer`...）。这些代码渗透到 Flink 几乎每个模块。nop-stream 用 JSON 反射 + `JsonTool` 一行代码替代这套体系，代价是序列化性能略低（适合几十 GB 级状态），换来的是**业务代码零污染**。
 
@@ -274,18 +276,18 @@ schema 演进兼容性检查是 **checkpoint storage 的内部实现细节**，�
 - **比对时机**：在 `MemoryKeyedStateBackend.getState()` 时比对 —— 拿当前算子传入的 descriptor 算出的 checksum 与恢复出来的 state 对象上保存的 descriptor 算出的 checksum 比较。两次比较来自两个独立来源（live code vs checkpoint），不是 tautology。design 原文描述的"恢复时由 storage 层比对"在实现上向下游移到 state backend 层 —— 因为恢复出的 descriptor 在 `MemoryStateSerDe.restoreState` 时才重建，而 `getState()` 是算子真正消费恢复 state 的入口点，在那里 fail-fast 最自然。
 - **不兼容即 fail-fast**：checksum 不匹配时抛 `ERR_STREAM_STATE_SCHEMA_MISMATCH`。Stage 33 已在此路径之前查询已注册的 `StateMigrationFunction`，注册了则迁移、未注册才 fail-fast。
 - **Stage 33 迁移机制已落地**（`StateMigrationFunction` 接口 + `StateMigrationRegistry`（由 `StreamComponents` 实现）+ 两个 backend 的 `verifySchemaCompatibility` 接线）：
-  - **注册点**：`StreamComponents.registerStateMigrationFunction(stateName, fn)`（按 stateName 索引，同一 state 允许多个 source→target 迁移函数）。backend 通过 `setMigrationRegistry(StreamComponents)` 在 `initializeState` 前注入。
+  - **注册点**：`StreamComponents.registerStateMigrationFunction(stateName, fn)`（按 stateName 索引，同一 state 允许多个 source→target 迁移函数）。backend 通过 `setMigrationRegistry(StreamComponents)` 在 `initializeState` 前注入。**契约要求**：生产 restore 路径必须完成该注入；当前实现尚未接线，归 roadmap WI8 收口。
   - **触发时机**：算子 `initializeState` 阶段首次 `getState()` 同步执行（处理任何 element 之前）。**不支持** element 处理中途懒触发 `getState()` 的迁移——会与 element 处理交错，违反 all-or-nothing 语义。
   - **全量扫描语义**：命中迁移函数后，遍历该 state 的所有 entry（memory: `Map<TypedNamespaceAndKey, value>`；rocksdb: column-family iterator），读旧值→`migrate`→写回新值；迁移完成后更新该 state 对象的 descriptor 为新 schema（使下次 `getState()` 校验时 checksum 已匹配，幂等）。
   - **执行点 = state backend `getState()`**（`MemoryKeyedStateBackend.verifySchemaCompatibility` / `RocksDBKeyedStateBackend.verifySchemaCompatibility`），**非**设计原文描述的 Coordinator——与 Stage 29「比对时机下沉到 getState()」一致。
   - **崩溃恢复**：迁移中途崩溃 → checkpoint 不可用，从上一个成功 checkpoint 重跑（迁移全量扫描前不持久化"迁移中"标记；nop-stream 无迁移事务日志）。
   - **accumulator 迁移风险**：Reducing/Aggregating/InternalAppending 等类型的迁移路径同样接线，但存储值是 opaque ACC，迁移正确性由用户 `StateMigrationFunction` 决定——错误迁移产出**静默 corrupt**（非 no-op）。平台仅 surface 该风险，不验证 accumulator 迁移语义。
-- **schemaVersion 当前恒为 1**：Stage 29 不激活 version-based branching（design `checkpoint-design.md` 中 lower→migrate / higher→reject 的逻辑）。`schemaVersion=1` 仅作为前向兼容元数据持久化。version-based 分支需要 Stage 33 的迁移基础设施才有意义。
+- **schemaVersion**：v2 时代恒为 1；v3 起由 state family 的 `StateSchema` 提供递增来源，`schemaVersion` 与 `codecId` 一起参与迁移分派（见 `state-encoding-and-restore-design.md` §3.8）。
 - **向后兼容**：旧 checkpoint 不含 `schemaChecksum`/`schemaVersion` 字段也能恢复 —— 因为 `getState()` 检查比较的是恢复出的 descriptor 与当前 descriptor，两者都从代码侧的 type 信息重建，不会引用持久化的 checksum 字段。持久化字段仅用于人工 inspect 和 Stage 33 未来用途。
 
-### 6.4 JSON 约束
+### 6.4 编码约束
 
-所有通过 checkpoint 持久化的内部结构（包括 Window 子类、状态 key/value）必须满足 `JsonTool` round-trip 要求。新增 Window 子类或状态类型时，这是强制前置约束。
+checkpoint 持久化的内部结构必须能满足其声明 codec 的 round-trip 要求。默认 `JsonStateCodec` 要求 JSON 可 round-trip（含用户类型白名单，见 `state-encoding-and-restore-design.md` §3.6）；显式注册二进制/自定义 codec 的状态不受此约束，但必须声明 schema、版本与重建规则。新增 Window 子类或状态类型时，这是强制前置约束。
 
 **恢复路径坏数据防御（item 24，2026-09-03 落地）**：restore 侧对损坏快照的坏数据路径全部 fail-fast 为 typed `StreamException`（`ERR_STREAM_STATE_ERROR` + 定位参数），不再裸抛 NPE/CCE/IAE——三守卫落在收敛后的单一咽喉点：① TimeWindow namespace 字段校验（state 名 + 坏内容定位）；② MapState `mapValue` 逐对校验（state 名 + pair 下标定位）；③ `TaskEpochSnapshot.getKeyGroupRange` start/end 一致性校验（双侧数值定位）。memory 与 rocksdb 两侧全量 JSON restore 路径对等执行（见 §5 rocksdb 段）。
 
