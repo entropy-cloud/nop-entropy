@@ -1,7 +1,6 @@
 # Analysis Writing Guide
 
 > Status: active workflow guide
-> Last Reviewed: 2026-04-14
 > Source: adapted from `nop-chaos-flux/docs/analysis/` conventions
 
 ## Purpose

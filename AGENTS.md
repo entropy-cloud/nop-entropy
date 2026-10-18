@@ -49,6 +49,7 @@
 | Write an analysis | `ai-dev/analysis/00-analysis-writing-guide.md` | — |
 | Write a design doc | `ai-dev/design/00-design-writing-guide.md` | `ai-dev/design/README.md` |
 | Write or update skills | Check existing skills under `.opencode/skills/` first | — |
+| 写跨 2 个以上文档的设计/roadmap/审计回复 | `ai-dev/lessons/19-doc-ssot-and-evidence-first.md` | `docs-for-ai/00-start-here/truth-and-precedence.md` |
 
 ### By Code Location
 
@@ -119,6 +120,33 @@ After completing any significant **CODE CHANGE**, you MUST:
 | `skills/` | 可复用的 AI 审计/review prompt 模板（含 `invariant-loop-audit-prompt.md` 不变式闭环审计方法论） | 需要标准化审计流程时；同族缺陷反复复发时用 invariant-loop | `ai-dev/audits/README.md` 中的 prompt 对照表 |
 
 **所有 AI 开发计划必须写在 `ai-dev/plans/` 下，禁止写入 `docs/plans/`。**
+
+---
+
+## Document Authority (SSOT)
+
+**每个事实只有一个 canonical owner。** 权威归属矩阵与冲突处理以 `docs-for-ai/00-start-here/truth-and-precedence.md` 的 **Content Ownership Matrix** 为准，本节不复制矩阵，只列硬规则：
+
+1. **Link, don't copy**：其他文档只能链接 owner 或写 ≤3 行摘要（摘要后加「以 `<owner>` 为准」），不得复制完整模块表、能力/限制表、配置默认值表、指标名表、状态块。
+2. **状态只住状态块**：roadmap/plan 的 `done/planned/todo` 只允许出现在其 `## Work Item Status` / `## 阶段状态` 块或 plan checklist；其他文档引用时写“当前状态见 `<roadmap>`”，不复制状态。
+3. **Reconcile-on-touch**：修改一个事实时，必须同时更新其 canonical owner，并把其他位置的副本改为链接/摘要；同任务内修复，不留给下次审计。
+4. **派生文档必须可辨**：INDEX、模块总表、subsystem README 等导航/派生视图应标注「派生视图，以 X 为准」或可由脚本重建；不得成为第二事实源。
+5. **新增长文档前先查重**：先 grep 现有 owner；若已有 owner，只补链接，不新建平行文档。新增内容若必须暂存，放 `ai-dev/analysis/` 并标 `Status: open`，结论确认后收敛进 owner。
+6. **规范性 vs 时效性分离**：`docs-for-ai/**`、`ai-dev/design/**`、`AGENTS.md`、各 `00-*-guide.md`、subsystem README/owner doc 属规范性（无时间演化、不写创建/更新日期、不写 Stage/plan/WI/审计轮次、不记录变更历史；只写当前结论与情境化理由，变化时原地更新为最新）；analysis/logs/plans/audits/bugs/testing/backlog/discussions 属时效性（必须带日期/时间戳与 Status，可过时，只作证据）。历史由 git 与时效性文档承担。
+
+清理路线图与门禁：`ai-dev/backlog/doc-system-ssot-roadmap.md`。
+
+## Large Design / Review Tasks
+
+跨 2 个以上文档、或需要多轮独立审查的设计/roadmap/审计任务，强制按以下顺序执行（详细教训见 `ai-dev/lessons/19-doc-ssot-and-evidence-first.md`）：
+
+1. **先建证据/裁定底账**：10–15 条载荷事实 + 已有裁定，每条带 `file:line`；底账未闭合前不写完整设计。
+2. **分层交付**：先骨架（目录 + 核心决策 + 风险）→ 1 轮独立架构审查 → 再补细节；禁止先写全文再整篇重写。
+3. **单一事实源**：每个 canonical claim（公式/分派/名称/状态）只写一处；每次编辑后对全部相关文档跑 grep 一致性检查。
+4. **审查预算**：最多 2 轮；每轮 reviewer 只返回 `[Blocker|Major]` + 证据 + 修复（≤100 行）；只剩 Minor 即停并登记 watch-only。
+5. **子 agent 复用规则**：同一问题不得同时开 background 与 foreground reviewer；用 background 必须先确保能回收结果，未回收前不开第二个；禁止 sleep 轮询。
+6. **编辑纪律**：同一文件批量修改；每次 edit/write 前重新 read；跨文件改名用脚本；不反复单点改同一文件。
+7. **时间盒**：文档类任务超过 2–3 小时即冻结剩余项为 follow-up，不靠加轮次收尾。
 
 ---
 

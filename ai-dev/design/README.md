@@ -14,6 +14,8 @@ This subtree does not carry execution history, migration diaries, rejected alter
 
 Design docs must explain why the current design exists, what constraints it preserves, and what nearby misreadings it rejects. The rule is not "conclusion only". The rule is "current-design rationale only".
 
+**Normative vs time-sensitive**: every document in this subtree is normative — it describes the current design only, with no creation/update dates, changelog, Stage/plan/WI/audit-round history, or evolution narrative. Time-sensitive records (experiments, audits, plans, logs, old adjudications) live in `ai-dev/analysis/`, `plans/`, `logs/`, `audits/`, `bugs/`, `testing/`, `backlog/`. Git and those records carry the change history.
+
 ## Hierarchy
 
 ### 1. Writing Guide

@@ -71,7 +71,7 @@
 | **在平台仓库里安装/使用 nop-cli，或配置 Java lint 门禁（注册全局命令、已知问题）** | **`03-runbooks/nop-cli-and-lint-gate.md`** |
 | **已有应用工程内新增业务域模块（ORM→骨架→action-auth 菜单→页面→i18n→冒烟→聚合）** | **`03-runbooks/bootstrap-new-domain-module.md`** |
 | 理解业务应用的完整开发闭环 | `02-core-guides/application-development-workflow.md` |
-| 理解文档冲突优先级和 stale 处理 | `00-start-here/truth-and-precedence.md` |
+| 理解文档冲突优先级、内容归属（SSOT）、stale 处理 | `00-start-here/truth-and-precedence.md` |
 | 理解整体仓库结构 | `01-repo-map/module-groups.md` |
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
