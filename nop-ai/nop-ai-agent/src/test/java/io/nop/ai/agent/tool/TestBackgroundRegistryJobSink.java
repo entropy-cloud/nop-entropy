@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -46,11 +47,19 @@ public class TestBackgroundRegistryJobSink {
             registry.setBackgroundExecutor(forkPool);
             BackgroundRegistryJobSink sink = new BackgroundRegistryJobSink(registry, "s-sink");
 
-            Callable<ExecutionResult> body = () -> new ExecutionResult(0, "job output\n", "");
+            CountDownLatch release = new CountDownLatch(1);
+            Callable<ExecutionResult> body = () -> {
+                release.await();
+                return new ExecutionResult(0, "job output\n", "");
+            };
             String taskId = sink.submit("echo job output", body);
 
-            assertTrue(taskId.startsWith("bg-"), "taskId must be registry-addressable: " + taskId);
-            assertEquals(IBackgroundTaskRegistry.STATUS_RUNNING, registry.snapshot(taskId).getStatus());
+            try {
+                assertTrue(taskId.startsWith("bg-"), "taskId must be registry-addressable: " + taskId);
+                assertEquals(IBackgroundTaskRegistry.STATUS_RUNNING, registry.snapshot(taskId).getStatus());
+            } finally {
+                release.countDown();
+            }
 
             long deadline = System.currentTimeMillis() + 10_000;
             while (System.currentTimeMillis() < deadline

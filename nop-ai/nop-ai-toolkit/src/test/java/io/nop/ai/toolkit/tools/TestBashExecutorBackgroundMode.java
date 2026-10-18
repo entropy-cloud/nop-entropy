@@ -60,6 +60,7 @@ public class TestBashExecutorBackgroundMode {
         final Map<String, String> outputs = new java.util.concurrent.ConcurrentHashMap<>();
         final Map<String, java.util.concurrent.CountDownLatch> dones = new java.util.concurrent.ConcurrentHashMap<>();
         final ExecutorService pool;
+        CountDownLatch startGate;
         BiConsumer<String, String> onTerminal = (id, status) -> {
         };
         long ids = 0;
@@ -81,6 +82,8 @@ public class TestBashExecutorBackgroundMode {
         public void run(String taskId, Runnable body) {
             pool.submit(() -> {
                 try {
+                    if (startGate != null)
+                        startGate.await();
                     body.run();
                 } catch (Exception e) {
                     complete(taskId, STATUS_FAILED, "body failed: " + e);
@@ -152,6 +155,8 @@ public class TestBashExecutorBackgroundMode {
     @Test
     void backgroundSubmissionReturnsConfirmationAndCompletesWithOutput() throws Exception {
         StubRegistry registry = new StubRegistry(forkPool);
+        CountDownLatch startGate = new CountDownLatch(1);
+        registry.startGate = startGate;
         BashExecutor executor = new BashExecutor(newHostSandbox(15));
 
         AtomicReference<String> notifiedStatus = new AtomicReference<>();
@@ -167,8 +172,12 @@ public class TestBashExecutorBackgroundMode {
         assertTrue(body.contains("backgroundTaskTimeoutMs=3600000"), "default 1h budget in the confirmation");
         String taskId = body.substring(body.indexOf("taskId=") + 7, body.indexOf(' ', body.indexOf("taskId=")));
 
-        assertEquals(IBackgroundTaskRegistry.STATUS_RUNNING, registry.snapshot(taskId).getStatus(),
-                "task must be RUNNING right after submission (off-pool fork)");
+        try {
+            assertEquals(IBackgroundTaskRegistry.STATUS_RUNNING, registry.snapshot(taskId).getStatus(),
+                    "task must be RUNNING right after submission (off-pool fork)");
+        } finally {
+            startGate.countDown();
+        }
 
         assertTrue(registry.awaitTerminal(taskId, 15_000), "task must complete");
         assertEquals(IBackgroundTaskRegistry.STATUS_COMPLETED, notifiedStatus.get());
