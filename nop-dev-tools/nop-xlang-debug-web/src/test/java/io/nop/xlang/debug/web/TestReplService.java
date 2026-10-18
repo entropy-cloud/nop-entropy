@@ -452,6 +452,25 @@ public class TestReplService extends AbstractDebugGatewayTest {
         assertEquals("error", events.get(events.size() - 1).get("result"), "Error 终止路径必须写审计");
     }
 
+    /** plan 2478 SEC-10：setImportWhitelist(null) 清除 override——回落 CFG（默认空白名单），import 被拒。 */
+    @Test
+    public void testWhitelistOverrideClear() {
+        ReplService service = newService((perm, ctx) -> true);
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+
+        runtime.setImportWhitelist("java.lang.String");
+        assertEquals(Boolean.TRUE, service.execute(sessionId,
+                "import java.lang.String; return 1;", null, headers(TOK_U1)).get("ok"));
+        // 清除 override → 回落 CFG（默认 ""）→ 默认拒绝恢复
+        runtime.setImportWhitelist(null);
+        assertEquals("", runtime.importWhitelist());
+        ReplAccessException e = org.junit.jupiter.api.Assertions.assertThrows(ReplAccessException.class,
+                () -> service.execute(sessionId, "import java.lang.String; return 1;", null, headers(TOK_U1)));
+        assertEquals(400, e.getHttpStatus());
+    }
+
     /** D6 §3.4：结果 1MB 截断 + truncated 标记。 */
     @Test
     public void testResultTruncation() {

@@ -68,17 +68,31 @@ executeDestroyed(expr, rt):              # 会话销毁分支（D3 修订后，i
 
 ### 3.3 沙箱规则表
 
+> **校验机制（plan 2478 修订，item 25 审计 SEC-01/02/03 remediation）**：import 校验与
+> 禁用清单由"纯正则词法近似"迁至 **parse-only AST 遍历 + 正则字面量 token 级精确判别**
+> （`ReplSourceValidator`，nop-xlang-debug-web）——`parseFullExpr` 仅解析不触发编译期
+> 求值（xlib 加载/宏执行发生在 compile 阶段），枚举 Program 全部 `ImportAsDeclaration`
+> （QualifiedName=类 FQN 与 Literal=xlib 路径两态）统一对照白名单，默认拒绝。该机制闭合
+> item 25 审计三探针：ASI 无分号 import、同行多 import、字面量 xlib import。REPL
+> compile/execute 与 WS watch 求值（getExprValue/expandExprValue）共用同一校验器与禁用
+> 清单。已知行为变化：watch 表达式经完整 Program 文法（parseFullExpr）解析，顶层对象
+> 字面量（如 `{a:1}`）为语法错误 → NopException 逃逸 watch 校验的 catch(ReplAccessException)
+> 由 dispatch 映射 `-32000`（校验违例才是 -32602）——原 SimpleExprParser 接受该形态，
+> 属显式登记的假阳收窄。
+
 | 构造/能力 | 处置 | 机制 |
 | --- | --- | --- |
-| import 平台标准 xlib/system 库（白名单清单，item 14 落地时枚举） | 允许 | 编译期 import 校验；白名单外 **默认拒绝**（编译诊断报错，不进入执行） |
-| **import Java 类（`import <fqn>`）** | 白名单内允许，白名单外拒绝 | 类导入可达其静态字段/方法（静态污染面）与构造器（任意对象创建）——白名单枚举范围必须**同时覆盖 xlib/system 资源与 Java 类 FQN**，不只 xlib |
-| Promise/async 构造 | **一期编译面禁用**（REPL 编译包装的禁用全局校验） | `JsPromise` 4 处 `catch (Throwable)` 会吞 Error 系取消异常（§3.2 已知反例）；解除禁用须先做 JsPromise Error 重抛（保护区，item 25 评估） |
+| import 平台标准 xlib/system 库（白名单清单） | 允许 | **AST 级** import 校验（类 FQN/xlib 路径两态统一白名单）；白名单外 **默认拒绝**（400，不进入任何编译/执行） |
+| **import Java 类（`import <fqn>`，含无分号 ASI / 同行多 import 形态）** | 白名单内允许，白名单外拒绝 | 类导入可达其静态字段/方法（静态污染面）与构造器（任意对象创建）——白名单枚举范围必须**同时覆盖 xlib/system 资源与 Java 类 FQN**，不只 xlib |
+| Promise/async 构造 | **一期编译面禁用** | `JsPromise` 4 处 `catch (Throwable)` 会吞 Error 系取消异常（§3.2 已知反例）；解除禁用须先做 JsPromise Error 重抛（保护区，item 25 评估） |
+| `RegExp` 标识符 / 正则字面量 | **一期编译面禁用**（plan 2478 SEC-06） | 正则字面量经 token 级精确判别（`RegularExpressionLiteral` token 类型——AST 层为普通字符串 Literal 不可识别）；ReDoS 无界 CPU 面收窄（残余见下③） |
+| `inject` / `loadDslModel` / `loadDeltaJson` 标识符 | **一期编译面禁用**（plan 2478 SEC-04） | 零 import 能力面收口（IoC 全容器/任意 VFS 读不经白名单即可达——编译期拒绝）；watch 表达式同一清单 |
 | `__repl*` 保留标识符 | 编译期拒绝 | REPL 编译包装校验（防 scope 注入纵深，§3.2） |
 | Delta 写 / VFS 写 / 线程创建 / 反射类危险构造 | **一期无运行时拦截**（诚实声明） | 纵深防御：白名单 import（含类导入）限制可达面 + 权限码 + 超时/取消时间窗 + 审计事后追溯；运行时强制交 item 25 评估立项 |
 | 非白名单 scope 键读写 | 保留键走 ThreadLocal 通道（脚本不可见）；脚本自有 scope 键不限制 | §3.2 取消通道裁定 |
 | 输出/结果超限 | 截断/拒绝 | §3.4 限制表 |
 
-**残余风险登记（item 25 复核清单）**：①入口内阻塞调用（网络/IO/sleep 类 xlib 或导入类方法）期间 deadline 无法触发——取消延迟无上界（per-entry 机制固有窗口）；②内存无预算——时间窗内紧循环可分配远超结果上限的中间堆（OOM DoS 面）；③深递归 → `StackOverflowError`（Error 系）穿透行为未专项定义；④降级态（Error 被拦截场景）吞异常 livelock 且线程放弃不可回收自旋（§一.4）；⑤静态字段污染（白名单内类的静态可变状态跨请求残留）。
+**残余风险登记（item 25 审计后更新，plan 2478 Deferred 承接）**：①入口内阻塞调用（网络/IO/sleep 类 xlib 或导入类方法）期间 deadline 无法触发——取消延迟无上界（per-entry 机制固有窗口）；②内存无预算——`String.repeat`/`JSON.parse` 类放大与深递归 SOE 无预算（并发门+权限码之后的有界 DoS 残余，根治需引擎级预算或进程隔离）；③**字符串方法正则回溯**（`.matches()/.split()/.replaceAll()`，零 import 零正则字面量可达）——SEC-06 收窄后残余，同②归"进程隔离/worker 池重评"follow-up（审计 §八.4 中期裁定项）；④静态字段污染（白名单内类的静态可变状态跨请求残留）。原"④降级态吞异常 livelock"已勾销（Promise 禁用后无 catch(Throwable) 面，item 25 审计 REFUTE）。
 
 沙箱定位声明：一期**不做 JVM 级隔离**（安全沙箱自 Java 18 起废弃、进程隔离成本见 §3.2），REPL 的安全等式 = 白名单可达面 × 权限资格 × 时间窗（超时）× 事后可追溯（审计）；四要素由权限体系与 item 25 审计持续复核。
 

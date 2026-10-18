@@ -1,6 +1,6 @@
 # 2478 xdbg item 27 安全域 remediation（item 25 审计 SEC-01~10 消化）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-18
 > Source: roadmap item 27（ai-dev/backlog/xlang-web-debugger-roadmap.md）；审计报告 ai-dev/audits/xlang-web-debugger/2026-10-18-item25-security-deep-audit.md；设计契约 ai-dev/design/xlang-web-debugger/07-repl-security.md（D6）/01-ws-protocol.md（D1）
 > Related: plans/2473（item 14 REPL 服务端）、2477（item 23 文档）；flux 侧前端 remediation plan（另立，消费本 plan 的 D1 additive 登记）
@@ -94,7 +94,7 @@ Exit Criteria:
 
 ### Phase 2 - watch 求值 deadline + WS 权限码 + 门控/审计补齐（SEC-07/05/08/09/10）
 
-Status: planned
+Status: completed
 Targets: `nop-dev-tools/nop-xlang-debug-web`（DebugWebSocketHandler/DebugGatewayRuntime/DebugWebServerConfig/ReplService/ReplAccessGuard）、`nop-dev-tools/nop-xlang-debugger`（XLangDebuggerConfigs/XLangDebugger）、`nop-kernel/nop-xlang`（XLangErrors）
 
 - Item Types: `Fix`（SEC-05/07 已确认深度防御缺口；SEC-08/09/10 加固）
@@ -123,12 +123,12 @@ Exit Criteria:
 
 ### Phase 3 - 设计文档与 owner docs 同步
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/xlang-web-debugger/07-repl-security.md`、`01-ws-protocol.md`、`docs-for-ai/02-core-guides/debugging-and-diagnostics.md`
 
 - Item Types: `Fix`（owner-doc 与 live baseline 对齐）
 
-- [x] D6 §3.3：校验机制改述为"parse-only AST 遍历（ImportAsDeclaration 两态统一白名单）+ 正则字面量 token 级精确判别"；禁用清单补 RegExp/正则字面量/inject/loadDslModel/loadDeltaJson + watch 表达式同一校验；watch 表达式经 parseFullExpr 校验的已知行为变化落档——顶层对象字面量（如 `{a:1}`）在 statement 文法下语法错→-32602（原 parseExpr 接受），属显式登记的假阳收窄；残余清单勾销（词法近似边界声明由 AST/token 落地取代）并保留内存放大/字符串方法回溯残余② + worker 隔离 successor 登记
+- [x] D6 §3.3：校验机制改述为"parse-only AST 遍历（ImportAsDeclaration 两态统一白名单）+ 正则字面量 token 级精确判别"；禁用清单补 RegExp/正则字面量/inject/loadDslModel/loadDeltaJson + watch 表达式同一校验；watch 表达式经 parseFullExpr 校验的已知行为变化按实况落档（closure audit M6 勘正）——顶层对象字面量（如 `{a:1}`）为语法错误，NopException 逃逸 watch 校验的 catch(ReplAccessException) 由 dispatch 映射 **-32000**（校验违例才 -32602），属显式登记的假阳收窄；残余清单勾销/更新 + worker 隔离 successor 登记
 - [x] D6 §3.5：result 枚举增补 `denied`
 - [x] D1 §3.1 约束表 + §3.7/§3.8：session.open 权限拒绝语义（-32000 + permission-denied + 4403 关闭复用裁定，additive 登记）、watch 表达式校验与 eval-timeout 语义
 - [x] docs-for-ai 在线调试节：权限码要求 + watch 超时配置键登记（对齐既有描述）
@@ -148,9 +148,9 @@ Exit Criteria:
 - [x] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（连带 nop-xlang 依赖链与 task 全链）
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect（OOM/字符串回溯残余与 SEC-11~14 均按 Deferred But Adjudicated 分类登记并给出 successor/理由）
 - [x] owner docs（D6/D1/docs-for-ai）同步且 doc-links --strict 0 errors
-- [ ] 独立子 agent closure-audit 完成并记录证据（含 Anti-Hollow：校验器真实接入 compile/execute/watch 三条调用链，非孤立类）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-xlang-debug-web --severity high` exit 0
+- [x] 独立子 agent closure-audit 完成并记录证据（含 Anti-Hollow：校验器真实接入 compile/execute/watch 三条调用链，非孤立类）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` exit 0（0 findings；初稿模块名漏 dev-tools 前缀已勘正——closure audit M3）
 
 ## Deferred But Adjudicated
 
@@ -179,3 +179,25 @@ Exit Criteria:
 
 - watch 求值帧快照物化（挂起期间读快照，C-5 彻底解法，归并发域）
 - 前端 flux 侧对 permission-denied 错误码的细粒度文案（当前 4403 终态分支已兼容，属体验优化）
+
+## Closure
+
+Status Note: plan 2478 收口——item 25 安全审计 SEC-01/02/03（P0，import 白名单三形态绕过→RCE 级）经 parse-only AST 遍历 + 正则字面量 token 级精确判别闭合；SEC-04/05/06/07（P1）与 SEC-08/09/10（P2）全部落地且有判别性测试；残余面（内存放大/字符串方法回溯/SEC-11~14/进程隔离重评）均按 Deferred But Adjudicated 分类登记 successor。closure audit R1（agent_9278dd0f）判"实现质量达标、文档/文本层 2 Major 阻塞"→ 修复后 approved。
+
+Completed: 2026-10-18
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_9278dd0f-c5f5-4356-a6d8-df2e6ca07f64（fresh session，只读审计）
+- R1 结论：需修复（0 Blocker / 2 Major / 4 Minor）——M1 D6 §3.3 实际未同步（替换脚本静默 no-op 但 checkbox 已勾，勾选与 live 不符）；M2 Phase 2/3 Status 未翻转；m3 hollow-scan 模块名漏前缀；m4 探针形态 plan 文本未回写；m5 log 行失实（随 M1 落地转真）；m6 SEC-10 null-override 无专项测试 + watch 顶层对象字面量实映射 -32000 非 -32602
+- 修复（本提交）：D6 §3.3 补齐同步（**带 assert 的精确替换**——机制改述/禁用清单/行为变化按实况 -32000/残余清单勾销更新）；Phase 2/3 Status → completed；gate 模块路径勘正；探针形态勘正回写执行项；新增 testWhitelistOverrideClear（SEC-10 null 语义，绿）
+- 逐条 Exit Criteria / Closure Gate 核验：R1 报告全部 PASS（除上述 M1/M2 文本层，已修复）——三探针测试 + 接线位置（validateSandbox 先于 compileFullExpr，ReplService.java:144/:242）live 核验；Anti-Hollow 三条调用链（compile/execute/watch）读码追踪全部真实可达 + 违例路径全部显式抛错 + scan-hollow 0 findings；变异判别力静态推理确认（删窗口/删入口检查/删 catch 三路径均必红）；Deferred 三条分类诚实（SEC-06 残余真实可达性经 testResultTruncation 自证）
+- 测试面亲测：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am` BUILD SUCCESS **54/54**（Protocol 17 / E2E 10 / LogPipe 9 / Repl 18（含新增 override-clear）/ TaskFullChain 1）；`check-doc-links.mjs --strict` 4075 文件 0 errors
+- `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2478-xdbg-item27-security-remediation.md --strict` 退出码 0
+- Deferred 项分类检查：无 in-scope live defect 被降级（SEC-06 残余/SEC-11~14/中期裁定均 watch-only/out-of-scope + successor 登记）
+
+Follow-up:
+
+- 进程隔离/worker 池重评（审计 §八.4 中期裁定项；与并发域 plan 2479 follow-up 合并跟踪）
+- SEC-11~14 P3 运营加固项（sessionId 不透明化/access log/tokenRefresh 关闭码/错误详情透传）
+- watch 求值帧快照物化（归并发域 C-5 彻底解法）
