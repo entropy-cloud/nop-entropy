@@ -165,32 +165,57 @@ QueryBean (含 owner 字段)
         → 子表按 dimValue 匹配后，字段值合并到主表行
 ```
 
+### 主查询属性透传
+
+`MdxQuerySplitter.getMainQuery` 把 `QueryBean` 复制成一个新 bean（子查询不共享原查询状态），因此**只有显式复制的属性才会到达 SQL**。`DaoQueryHelper.queryToSelectFieldsSql` 会消费 `distinct`、`leftJoinProps`、`disableLogicalDelete`、`name`；任何一个漏抄都会让主表查询语义静默丢失（例如 `distinct` 漏抄会退化成普通 `SELECT`，结果出现重复行）。新增 `QueryBean` 属性时必须同步补进 `getMainQuery`。
+
+透传清单：`name`、`sourceName`、`filter`、`cursor`、`groupBy`、`orderBy`、`limit`、`offset`、`distinct`、`leftJoinProps`、`disableLogicalDelete`。
+
+`groupBy` 是**复制**而非透传：`QueryBean.addGroupField` 会就地追加到列表上，直接透传引用会改写调用方的集合。
+
+### 结果字段名必须唯一
+
+主表和子表字段最终写入**同一个** `Map<String, Object>`，而 `QueryFieldBean.getLabel()` 不含 owner 信息：
+
+| 情况 | label |
+|------|-------|
+| `mainField("deptName")` / `subField("d", "deptName")` | 都是 `deptName` |
+| `mainField("x").count()` / `subField("d", "x").count()` | 都是 `count(x)` |
+| 任一侧带 `alias(...)` | 以 alias 为准，不冲突 |
+
+label 冲突会静默互相覆盖（旧实现里子表值覆盖主表值）。`MdxQuerySplitter` 现在直接抛 `nop.err.orm.query-duplicate-field-label`，**给其中一个字段设置 `alias` 即可**。
+
+### 不支持的字段属性
+
+`QueryFieldBean.expression` / `QueryFieldBean.formula` / `QueryBean.aggregates` 在 MDX 通道没有任何消费方，生成的 SQL 里也不会出现。设置其中任意一个会抛 `nop.err.orm.query-unsupported-field-attr`，避免调用方误以为做了字段级计算。
+
 ### 分页优化
 
-主表先分页，子表仅查询当前页的维度值（`IN` 过滤），避免子表扫描全量数据：
+主表先分页，子表仅查询当前页的维度值，避免子表扫描全量数据。该过滤**只影响扫描范围**，能否合并完全由 `dimIndex.get(dimValue)` 的精确匹配决定，因此允许生成偏宽的 SQL，但不允许偏窄。
 
-```java
-// MdxQueryExecutor.java:164-180
-if (filterSub) {
-    if (query.getDimFields().size() == 1) {
-        query.addFilter(FilterBeans.in(query.getDimFields().get(0), dimIndex.keySet()));
-    } else {
-        // 复合维度用 OR (AND ...) 拼装
-    }
-}
-```
+维度过滤由 `MdxQueryExecutor.buildDimFilter` 生成，三个约束：
+
+- **SQL NULL 保留为 `null`**。维度键不做 `NULL → ""` 归一，否则 NULL 会与真正的空字符串共享同一个键，且空字符串被写进 `IN` 列表时数值列会直接报错。NULL 用 `isNull` 表达，单维度与复合维度两条分支行为一致。
+- **`IN` 列表分片**。`nop.core.sql.in-list-max-size`（默认 1000）由 `SQL.spreadParams` 全局拦截，超出即抛 `nop.err.sql.in-list-too-large`；主表行数不受分页约束，必须按上限切片后 `OR` 合并。
+- **主表结果为空时跳过全部子查询**，不发无意义的 SQL。
 
 ### 维度字段自动推断
 
 - 主表无显式 `dimFields` 且无聚合 → 以主键为维度字段
 - 主表有 `GROUP BY` → 以 `GROUP BY` 字段为维度字段
-- 子表维度字段从 `dimFields` + ORM 关联配置自动推导
+- 关联属性子表：从 ORM 关联配置的 JOIN 条件推导（见下节「关联属性子表」）
+- 显式 JOIN 子表：按 `子表 dimFields → join conditions → 非聚合字段` 顺序回退（见下节「显式 JOIN 声明」）
 
 ---
 
 ## 显式 JOIN 声明
 
-对于非 ORM 模型关联的表，用 `QuerySourceBean` 显式声明 JOIN：
+对于非 ORM 模型关联的表，用 `QuerySourceBean` 显式声明 JOIN。
+
+`QueryBean` 没有 `addJoin(QuerySourceBean)` 重载，声明方式二选一：
+
+- `query.leftJoin(sourceName, alias, leftJoinFields, rightJoinFields)` — 走 `QueryBean.addJoin`，关联键以 `conditions` 形式生成
+- `query.setJoins(List.of(join))` — 直接构造 `QuerySourceBean`，自行设置 `dimFields` / `conditions`
 
 ```java
 QueryBean query = new QueryBean();
@@ -205,8 +230,48 @@ join.setAlias("deptAlias");
 join.setSourceName("SimsDepartment");
 join.setDimFields(Arrays.asList("collegeId"));
 join.setFilter(FilterBeans.eq("status", 1));
-query.addJoin(join);
+query.setJoins(List.of(join));
 ```
+
+### 显式 JOIN 子表的维度字段来源
+
+`MdxQuerySplitter.resolveSubDimFields` 按优先级依次尝试：
+
+| 优先级 | 来源 | 说明 |
+|--------|------|------|
+| 1 | `join.dimFields` | 调用方显式指定子表维度列 |
+| 2 | `join.conditions` | `leftJoin`/`rightJoin`/`innerJoin` 生成的 `leftField → rightField` 配对 |
+| 3 | 子表非聚合字段 | 全部字段都是聚合字段时为空 |
+
+三条约束：
+
+- **conditions 分支按主表维度顺序重排**，不是照抄声明顺序。`mainQuery.dimFields[i]` 对应到 `conditions` 中 `leftField == dimFields[i]` 的那条的 `rightField`，保证 `MdxQueryExecutor.buildDimValue` 构造的位置键在主子表两侧一一对应。
+- **conditions 必须覆盖全部主表维度字段**。有维度字段找不到配对时无法按位置对齐，返回 `null`，由 `split()` 抛出 `nop.err.orm.dim-fields-mismatch`。
+- **子表字段全是聚合字段且未声明维度列时**没有可推导的维度，抛 `nop.err.orm.query-no-dim-fields`，而不是产出错位结果。此时必须显式设置 `join.dimFields`，或改用 `leftJoin(...)` 走 conditions 分支。
+
+### 关联属性子表的维度对齐
+
+关联属性子表（`owner` 是一对多属性名）从 ORM 关联配置推导维度列，同样按**主表维度顺序**定位：
+
+1. 遍历 `rel.getJoin()`，命中的 `join.leftProp` 按它在 `mainQuery.dimFields` 中的下标写入子表维度列。
+2. 关联条件没有覆盖的维度字段，退化为 `<refPropName>.<dimField>` 属性路径。
+
+第 2 步的属性路径是**合法**的：`DaoQueryHelper` 产出 `o.group.name` 这类文本后，EQL 编译器会把它展开成真实的 join：
+
+```sql
+-- 产出：select count(o.deptId), o.group.name from NopAuthGroupDept o group by o.group.name
+-- 实际执行：
+select count(o.DEPT_ID) as c1, t1.NAME as c2
+from NOP_AUTH_GROUP_DEPT as o
+  join NOP_AUTH_GROUP as t1 on (o.GROUP_ID = t1.GROUP_ID) and (t1.DEL_FLAG = 0)
+group by t1.NAME
+```
+
+按主表下标定位（而不是照抄 `rel.getJoin()` 顺序）是必要的：`rel.getJoin()` 会被重排为**关联目标实体**的主键顺序，主表维度默认是**本实体**的主键顺序，两者不一致时位置键对不上，子表数据会全部静默丢失。
+
+### 重复维度值的处理
+
+主表不做聚合时 `getMainQuery` 不加 `GROUP BY`，因此用户指定的 `dimFields` 若不唯一，主表结果里会出现多行共享同一个维度键。`dimIndex` 是 `Map<维度值, List<行>>`，子表数据会回填到**所有**匹配行，而不是只保留最后一行。
 
 等价于 sql-lib.xml：
 
