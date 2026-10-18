@@ -884,6 +884,8 @@ nop.err.orm.prop-id-is-reserved: "The property name of object model [{entityName
 nop.err.orm.query-invalid-join: "Unsupported join type"
 nop.err.orm.query-no-dim-fields: "The query object has no dimFields property specified"
 nop.err.orm.query-not-allow-group-by: "Group by is not supported when the query list contains fields from associated sub-tables"
+nop.err.orm.query-duplicate-field-label: "Duplicate result field name [{label}] (main-table and sub-table fields are written into the same result map), please set an alias on one of them"
+nop.err.orm.query-unsupported-field-attr: "MDX queries do not support the field attribute [{attr}], it will be silently ignored"
 nop.err.orm.query-timeout: "Query execution timed out"
 nop.err.orm.read-only-session-not-allow-update: "Read-only session does not support modification operations"
 nop.err.orm.save-entity-not-transient: "The current entity state is [{status}], saving is not allowed. Only entities in the TRANSIENT state can be saved"

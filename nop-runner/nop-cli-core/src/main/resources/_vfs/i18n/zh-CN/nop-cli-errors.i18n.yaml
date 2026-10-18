@@ -1033,10 +1033,12 @@ nop.err.orm.not-support-multiple-query-space-in-one-sql: 一条SQL语句只允�
 nop.err.orm.null-binder-for-column: 对象[{entityName}]的列[{colName}]的类型为[{sqlType}],没有找到对应的数据绑定接口
 nop.err.orm.nulls-order-not-supported: 当前方言无法表达请求的排序空序
 nop.err.orm.prop-id-is-reserved: 对象模型[{entityName}]的属性名不能为id，id为系统保留名称
+nop.err.orm.query-duplicate-field-label: 查询结果中字段名[{label}]重复（主表和子表字段会写入同一个结果map），请为其中一个字段设置alias
 nop.err.orm.query-invalid-join: 不支持的join类型
 nop.err.orm.query-no-dim-fields: 查询对象没有指定dimFields属性
 nop.err.orm.query-not-allow-group-by: 查询列表中包含关联子表字段时不支持group by
 nop.err.orm.query-timeout: 执行查询超时
+nop.err.orm.query-unsupported-field-attr: MDX查询不支持字段属性[{attr}]，该属性会被静默忽略
 nop.err.orm.read-only-session-not-allow-update: 只读的session不支持修改操作
 nop.err.orm.save-entity-not-transient: 当前实体状态为[{status}]，不允许保存。只有处于TRANSIENT状态的实体才允许保存
 nop.err.orm.save-entity-replace-existing-entity: session中已经存在类型为[{entityName}]，主键为[{entityId}]的实体，不允许插入主键相同的实体
