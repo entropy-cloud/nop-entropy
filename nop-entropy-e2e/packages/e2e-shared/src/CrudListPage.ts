@@ -509,12 +509,23 @@ export class CrudListPage extends BasePage {
     return row;
   }
 
-  /** 等待包含指定业务标识的行出现。 */
+  /**
+   * 等待包含指定业务标识的行出现。行是 CRUD mount 后异步查询的结果，
+   * 表格可见不等于数据已到——必须轮询到行真正 attach，超时未出现即抛错。
+   */
   async waitForRow(rowIdentifier: string, timeoutMs = 15_000): Promise<void> {
     const { expect } = await import('@playwright/test');
-    const row = await this.findRowByText(rowIdentifier);
-    if (row) {
-      await expect(row).toBeVisible({ timeout: timeoutMs });
+    const deadline = Date.now() + timeoutMs;
+    for (;;) {
+      const row = await this.findRowByText(rowIdentifier);
+      if (row) {
+        await expect(row).toBeVisible({ timeout: Math.max(1_000, deadline - Date.now()) });
+        return;
+      }
+      if (Date.now() >= deadline) {
+        throw new Error(`未找到业务记录: ${rowIdentifier}`);
+      }
+      await this.page.waitForTimeout(300);
     }
   }
 

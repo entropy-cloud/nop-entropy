@@ -368,11 +368,24 @@ export class FluxAdapter implements EngineAdapter {
    *
    * "已展开"判据 = 存在带 `data-open` 的弹层（见 `clickSelectOption` 坑 2）。已展开时直接
    * 返回，避免再点一次触发器把刚打开的弹层 toggle 关掉。
+   *
+   * 但该判据是**页面级**的：连续填多个组合框时，上一字段的弹层可能仍处于关闭动画
+   * （`data-open` 未摘除），此时会把别人的弹层误判成本字段已打开，随后点选落到隐藏的
+   * 旧弹层里——实测同一表单连选 4 个下拉时第 4 个必挂（选项全部 visible:false）。
+   * 因此先按 Escape 关掉任何残留弹层，确认全局无弹层打开后再点本字段触发器。
    */
   private async openCombobox(field: Locator): Promise<boolean> {
     const page = field.page();
     const openPopup = page.locator('[data-slot="combobox-content"][data-open]');
-    if (await openPopup.count().then((c) => c > 0)) return true;
+
+    if (await openPopup.count().then((c) => c > 0)) {
+      await page.keyboard.press('Escape').catch(() => {});
+      await openPopup
+        .first()
+        .waitFor({ state: 'hidden', timeout: 1_500 })
+        .catch(() => {});
+      if (await openPopup.count().then((c) => c > 0)) return false;
+    }
 
     for (const sel of [
       '[data-slot="input-group"]',

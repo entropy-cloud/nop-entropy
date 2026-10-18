@@ -335,6 +335,7 @@ test.describe('用户管理 - 浏览器', () => {
     await page.goto('/#/pages/NopAuthUser/deleted', { waitUntil: 'domcontentloaded' });
     await userPO.waitForList();
 
+    await userPO.waitForRow(data.userName);
     const row = await userPO.findRowByText(data.userName);
     expect(row).not.toBeNull();
     await engine.rowAction(row!, /恢复|Recover/);
