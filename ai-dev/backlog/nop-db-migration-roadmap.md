@@ -2,7 +2,7 @@
 
 > **来源调研**：`ai-dev/analysis/2026-10/2026-10-12-flyway-liquibase-vs-nop-db-migration-source-analysis.md`（flyway 13.10.0 / liquibase ≈5.0.x 源码级三方对比 + 12 维度缺口矩阵）
 > **来源审计**：`ai-dev/audits/check/db-migration.md`（2026-08-19）+ **`ai-dev/audits/check2/db-migration.md`（2026-08-23，16 条）**
-> **Last updated**：2026-10-12
+> **Last updated**：2026-10-18（v6 增补 WI14 fake 迁移标记：`migrate --fake` / `rollback --fake`；adoption 增强，不入 M1/M2 分母）
 > **审查方式**：多轮独立子 agent 交叉审查（Round 1 三路：A 代码事实 / B 结构可执行性 / C 复用真实性与覆盖完整性；Round 2 三路：D/E/F 同角度分维；Round 3 两路：G 修复验收 + H 盲审；Round 4 终局确认 J），逐轮收敛后修订至 **v4**；Round 4 提出的 8 处措辞级订正已在 **v5** 落地，Round 5 终局确认判 `consensus-reached`。
 >
 > **v2 修订摘要（Round 1 → v2，6 项 BLOCKER 全部处置）**：
@@ -76,6 +76,7 @@
 - **WI12b** WI12a 的 CLI 子命令 + 端到端接线（模型→生成→执行→再 diff 为空）（`nop-db-migration` / `nop-cli-core` 侧）: `todo`
 - **WI13a** 多库测试矩阵（主先例：`nop-dao` dialect testcontainers 矩阵）+ CI 门禁（⚠️ 阻塞门 G-4）: `todo`
 - **WI13b** 测试 fixture 清理（14 个零引用文件 + `<custom>` 契约漂移）+ owner doc 对账与 `docs/db-migration/*` 误导源更正: `todo`
+- **WI14** fake 迁移标记：`migrate --fake` / `rollback --fake`（只写/删历史记录、不执行 change SQL；显式 flag + 审计标记；与 checksum/baseline/validate 的交互契约）: `todo`
 - ★ **里程碑：M1 安全可用**（WI1a + WI1b + WI2 + WI3 + WI4 + WI5a + WI5b + WI6 + WI7 全部 done）: `todo`
 - ★ **里程碑：M2 可推广**（M1 + WI8 + WI9 + WI10 + WI11 + WI13a + WI13b 全部 done）: `todo`
 
@@ -115,7 +116,7 @@
 | 并发锁 | **0** 锁代码（Flyway 三层锁 / Liquibase 锁表均无对应物） |
 | 事务 | **0** 事务代码 |
 | ✅ **已由 `fb3f860729`（2026-08-24）落地** | xdef 解析 CCE（19 个 `_gen` 类重生成）· **checksum 覆盖变更内容 + `migrate()` 内比对 + `isValidateChecksum` 默认 true（`MigrationEngine.java:164-185`、`MigrationContext.java:27`）** · **`R__` 按 checksum 变化重跑** · **5 个 precondition checker 接入并在执行前评估（`:101-107`/`:245`）** · `ignore`/`failOnError`/`contexts`/`labels`/`runOn==NEVER` 接线 · 未知 change type 响亮 `ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE` · `recordMigration` UPDATE-or-INSERT · `DbMigrationErrors` 12 常量规范形态 · `DdlSyntax` 族助手（AUTO_INCREMENT 三形态 / 内联 COMMENT vs `COMMENT ON` / `ALTER COLUMN` 分族）· DEFAULT 裸拼接补校验 |
-| **余量（本路线图范围）** | 无 dry-run / baseline / repair / clearChecksums / out-of-order / `info()` 输出 · 无锁无事务无入口 · **3 个 checker 仍查 `INFORMATION_SCHEMA`**（`TableExistsChecker:40`、`ColumnExistsChecker:41`、`ForeignKeyExistsChecker:41`；`IndexExistsChecker` 已改 `DatabaseMetaData`）· **未知 precondition 仍静默 `continue`**（`MigrationEngine.java:281-283`）· **`DEFAULT` 4 处裸拼待字面量化**（`CreateTableExecutor:100-101`、`AddColumnExecutor:103-104`、`AlterColumnExecutor:114`/`:138`；**校验缺口 0**——四处均由 `DdlSyntax.checkDefaultValue` 覆盖，`AlterColumnExecutor:80` 为统一入口；缺的是 `IDialect.getBooleanValueLiteral`/`getDateTimeLiteral` 字面量化）· `DdlSyntax` 按 `getName().toLowerCase()` 硬编码 6 族而非查 `DialectModel.features`（`:49-71`）· `dialect.xdef`↔`_gen` 漂移 7 个能力位 · **`executeMark`（xdef:438）无执行器且 `type=null` 走静默 `return`（`MigrationEngine.java:294-297`）** · 历史表双定义（手写 8 列 `version` PK vs `app.orm.xml` `id` PK 含 `error_message`）· 扫描单层 + 单后缀 · 仅 H2、无 CI job |
+| **余量（本路线图范围）** | 无 dry-run / baseline / fake / repair / clearChecksums / out-of-order / `info()` 输出 · 无锁无事务无入口 · **3 个 checker 仍查 `INFORMATION_SCHEMA`**（`TableExistsChecker:40`、`ColumnExistsChecker:41`、`ForeignKeyExistsChecker:41`；`IndexExistsChecker` 已改 `DatabaseMetaData`）· **未知 precondition 仍静默 `continue`**（`MigrationEngine.java:281-283`）· **`DEFAULT` 4 处裸拼待字面量化**（`CreateTableExecutor:100-101`、`AddColumnExecutor:103-104`、`AlterColumnExecutor:114`/`:138`；**校验缺口 0**——四处均由 `DdlSyntax.checkDefaultValue` 覆盖，`AlterColumnExecutor:80` 为统一入口；缺的是 `IDialect.getBooleanValueLiteral`/`getDateTimeLiteral` 字面量化）· `DdlSyntax` 按 `getName().toLowerCase()` 硬编码 6 族而非查 `DialectModel.features`（`:49-71`）· `dialect.xdef`↔`_gen` 漂移 7 个能力位 · **`executeMark`（xdef:438）无执行器且 `type=null` 走静默 `return`（`MigrationEngine.java:294-297`）** · 历史表双定义（手写 8 列 `version` PK vs `app.orm.xml` `id` PK 含 `error_message`）· 扫描单层 + 单后缀 · 仅 H2、无 CI job |
 | 审计遗留计数（v2 更正） | 2026-08-19 审计：P0×1（已修）/ P1×8 / P2×11 / P3×2。其中明确"暂缓/需立项"= **P1 3 项**（xdef 契约接线、dbtool 无并发互斥、DDL 方言余项）+ **P2 3 项**（历史表双定义、checksum 弱校验、全库发现 N+1）+ 1 项部分暂缓（DEFAULT 字面量化）。**2026-08-23 check2 的 16 条已于 `fb3f860729` 全部修复**（`ai-dev/audits/check2/db-migration.md`） |
 | 差异化能力状态 | `OrmDbDiffer` diff 已能产出 DDL（供 `DataBaseUpgrader` 直接执行），但**没有"落成版本化变更文件"的通路** → WI12a/WI12b |
 
@@ -135,7 +136,7 @@
 |---|---|---|---|---|
 | **G-1 并发互斥方案** | (a) 复用 `SysDaoResourceLockManager`（DB 级、带 lease 自愈、平台现成）；(b) Flyway 式历史表哨兵行（零额外依赖、要自写重试与过期）；(c) 仅进程内 `LocalResourceLockManager`（多副本无效） | WI2 | 鸡生蛋：`nop_sys_lock` 可能还没建，且 db-migration → nop-sys-dao 的模块依赖方向未定（当前 `nop-db-migration` 只依赖 nop-core/nop-xlang/nop-dao/nop-orm）；(a) 不可用则必须回退 (b)，实现形态完全不同 | 平台负责人 |
 | **G-2 历史表结构收敛方向** | (a) 收敛到 `app.orm.xml` ORM 实体 + dao（结构单一、自动建表、天然带 `error_message`）；(b) 保留手写 DDL 并补 `error_message` 列，处置 `app.orm.xml` | WI3 | (a) 触发 **ORM 模型结构变更 = plan-first 保护区域**，必须先有 plan；(b) 需设计已有历史表数据的兼容迁移 | 平台负责人 |
-| **G-3 接入入口、开关与失败策略** | 谁调用？开关用哪个 `if-property` 名？失败是否**阻断启动**（`failFast`）？迁移文件默认目录？（该命名约定供 WI11 参考，**WI11 本身不由本门阻塞**）用 `ioc:after` 排在谁后面？ | WI2、WI8、WI9、WI12b | **产品可见行为**变更（默认开 = 所有 Nop 应用启动行为改变）；载体已由 v2 修订摘要第 3 条定死为条件装配，本门裁决具体参数 | 产品负责人 |
+| **G-3 接入入口、开关与失败策略** | 谁调用？开关用哪个 `if-property` 名？失败是否**阻断启动**（`failFast`）？迁移文件默认目录？（该命名约定供 WI11 参考，**WI11 本身不由本门阻塞**）用 `ioc:after` 排在谁后面？ | WI2、WI8、WI9、WI12b、WI14 | **产品可见行为**变更（默认开 = 所有 Nop 应用启动行为改变）；载体已由 v2 修订摘要第 3 条定死为条件装配，本门裁决具体参数 | 产品负责人 |
 | **G-4 多库测试矩阵** | 扩到哪几个库？真库来源（**主选 `nop-dao` dialect testcontainers 矩阵** / 辅 nop-stream 惯例 / CI service / 仅本地 docker）？哪些结论允许只标 `[未实测]`？**证据分两档：M1 档（WI6/WI7 出口所需的最小集，如 H2 + 1 个真库）与 M2 档（全矩阵 + CI，WI13a）**？ | WI6、WI7、WI13a | 没有矩阵就无法判定 DDL 方言改造是否真修好；引入 testcontainers 会改 CI 形态（`.github/workflows/*` 需评估） | 平台负责人 |
 | **G-5 三条 schema 演进路径的共存优先级** ⭐ v2 新增 | db-migration（版本化） / dbtool `auto-upgrade-database`（模型驱动 ALTER） / orm `init-database-schema`（只 CREATE）三者的**执行顺序、primacy、互斥**——以谁为准？同一列如何避免被 ALTER 两次？默认各自开还是互斥？ | WI2、WI12a、WI12b | dbtool auto-upgrade 是**生产可触达路径**；三者可作用于**同一批业务表**（ORM 模型表 ∩ 迁移文件目标表），同一库、同一启动期，无序共存会产生不确定 schema。这是来源调研报告 Open Question 3，v1 无声吞掉 | 产品负责人 / 平台负责人 |
 | **G-6 `R__` 语义、checksum 序列化格式与未完成契约** ⭐ v2 新增，v3 扩围 | `R__` 命名约定与"内容变即重跑、历史 update 不 insert"已实现，但**产品可见的命名/版本契约**未正式确认；checksum 序列化格式（现为 `JsonTool.stringify(change)` + md5）跨版本稳定性与兼容策略；**`executeMark`（`migration.xdef:438` 有声明无执行器）是"实现执行器"还是"删除声明"** | WI4、WI5b、WI11 | 属"产品可见行为 + 无历史数据包袱期的唯一窗口"；格式一旦有历史记录就难改；executeMark 是**平台公共契约**的二选一，AI 不得自行假设（AGENTS.md「AI Must Ask Before」第 1 条） | 产品负责人 |
@@ -166,6 +167,7 @@
 | WI12b | `generate` 子命令（**挂 WI8 壳**）+ 模型→生成→执行→再 diff 为空的端到端 | WI12a、WI8 | G-3、G-5 | 否（新增 CLI 命令） |
 | WI13a | 多库 testcontainers 矩阵（主先例：`nop-dao` dialect 矩阵）+ CI job（矩阵至少覆盖 migrate/validate/dry-run） | WI0、WI8 | **G-4** | 否 |
 | WI13b | 测试 fixture 清理（`V1.0.0~V1.0.13` 14 个零引用文件 + `V1.0.8` 的 `<custom>` 契约漂移）+ owner doc / `docs/db-migration/*` 对账更正 | WI0 | — | 否 |
+| WI14 | `migrate --fake` 只写历史记录不执行 SQL；`rollback --fake` 只删记录不执行 down；CLI 挂 WI8 壳；显式 flag + 审计标记；与 checksum/baseline/validate 的交互契约 | WI3、WI8、WI9、WI10 | **G-3** | ⚠️ 条件式：新增历史表 fake 标记列 → `app.orm.xml`/历史表结构变更 → plan-first；复用现有列则否 |
 | ★ M1 | = WI1a + **WI1b** + WI2 + WI3 + WI4 + WI5a + WI5b + WI6 + WI7 全部 done（**WI1b 纳入 M1**，避免"新错误常量的 i18n 键在 M1 缺席"的丢键中间态；**证据口径=G-4 M1 档最小集**，全矩阵在 WI13a） | 各自 | G-1..G-6 全部裁决完毕 | — |
 | ★ M2 | = M1 + WI8 + WI9 + WI10 + WI11 + WI13a + WI13b 全部 done | M1 | 同上 | — |
 
@@ -273,6 +275,14 @@
 - 删除 `src/test/resources/_vfs/nop/db-migration/migrations/` 下 14 个零引用的 `V1.0.0~V1.0.13` 文件；修正 `V1.0.8__custom_change.migration.xml` 的 `<custom>` → xdef 契约 `customChange`；`docs-for-ai/` 与 `docs/db-migration/*` 对账（后者标注"非权威来源"）。
 - 出口：fixture 目录与 xdef 契约一致；owner doc 覆盖本模块全部公开机制。
 
+### WI14 — fake 迁移标记
+
+- **`migrate --fake`**：把待执行迁移标记为已应用，只写历史记录，不执行 change SQL；**`rollback --fake`**：只删除历史记录，不执行 down SQL（语义对齐 TypeORM `--fake`）。
+- 必须显式 flag；历史记录保留操作者与 fake 标记（复用现有列，或新增列——新增列走 plan-first）。
+- 与 checksum/baseline/validate 的交互：fake 记录带迁移文件 checksum，`validate` 不视为 pending；已 applied 再 fake、fake 不存在版本、fake 与 baseline 冲突均显式失败。
+- 出口：H2 E2E——fake 后物理表未创建但历史记录存在、validate 通过、非 fake 路径零变更；fake rollback 后记录消失；危险操作有显式保护与审计日志。
+- 注：WI14 是 adoption 增强（存量库/手工执行过迁移的场景），刻意不纳入 M1/M2 分母；是否纳入里程碑由后续裁定。
+
 ## 依赖图（Mermaid）
 
 > 与「依赖与门控矩阵」**逐条对应**（任一改动需两处同步）。Gate 用菱形表示，是"阻塞"而非"产出"依赖。
@@ -319,6 +329,11 @@ flowchart TD
     WI12a --> WI12b[WI12b CLI+端到端]
     WI8 --> WI12b
     WI8 --> WI13a
+    WI3 --> WI14[WI14 fake 迁移标记]
+    WI8 --> WI14
+    WI9 --> WI14
+    WI10 --> WI14
+    G3 --> WI14
 
     G1 --> WI2
     G3 --> WI2
