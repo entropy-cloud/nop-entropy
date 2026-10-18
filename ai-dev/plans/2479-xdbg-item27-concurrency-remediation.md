@@ -97,9 +97,9 @@ Targets: `nop-dev-tools/nop-xlang-debugger`（XLangDebugger/BreakpointManagerImp
 
 - Item Types: `Fix`（C-2/C-3 P1 live defect 收口；C-4/5/8/9 P2 加固）
 
-- [ ] XLangDebugger.`dispose()`：cleanupThread.shutdownNow() 幂等、不置 closed；`gracefulDispose` 与 `reset()` 接线
-- [ ] C-4：releaseTarget 快照读 + isSuspended 复核移入 monitorLock（语义对齐 releaseThread；**验收 = 结构断言 + TestLeaseLifecycle 组6 零回归**——R1 M-5 降级裁定，不做假判别 stress）
-- [ ] C-5：eval/getScopeVariables/getStackInfo/getFrameVariables 四处锁内 isSuspended 复核 → THREAD_NOT_SUSPENDED；勘正网关"良性竞态"注释为引擎兜底描述
+- [x] XLangDebugger.`dispose()`：cleanupThread.shutdownNow() 幂等、不置 closed；`gracefulDispose` 与 `reset()` 接线
+- [x] C-4：releaseTarget 快照读 + isSuspended 复核移入 monitorLock（语义对齐 releaseThread；**验收 = 结构断言 + TestLeaseLifecycle 组6 零回归**——R1 M-5 降级裁定，不做假判别 stress）
+- [x] C-5：eval/getScopeVariables/getStackInfo/getFrameVariables 四处锁内 isSuspended 复核 → THREAD_NOT_SUSPENDED；勘正网关"良性竞态"注释为引擎兜底描述
 - [x] C-8：binder.renew/closeSession 锁内 handle.isDestroyed() → NO_SESSION
 - [x] C-9：BreakpointManagerImpl 独立锁；breakpoints 去 final 整引用替换；add/removeBreakpoint 同锁
 - [x] 回归测试：churn 相对计数守恒（settle 基线 → N 轮 gracefulDispose → 轮询回落基线）；dispose 接线变异探针（移除 → churn 红，恢复 grep 断言）；fan-out 验收（双连接 evt.suspended/sessionClosed 对等——C-3 收口验收）；C-5 引擎直调判别（resume 后直调 getFrameVariables：旧码脏数据/新码抛）；C-8 listener 摘除判别（destroyed+binding 在场 → renew 旧码成功/新码 NO_SESSION）；C-9 并发双线程 setBreakpoints 交叉 → 终态为任一完整意图（非并集）；TestLeaseLifecycle/TestSessionIsolation 零回归

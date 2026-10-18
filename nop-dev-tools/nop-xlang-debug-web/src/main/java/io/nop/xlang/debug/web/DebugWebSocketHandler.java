@@ -595,7 +595,9 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
     /**
      * D1 §3.7：对未挂起线程取栈/求值/取变量 → THREAD_NOT_SUSPENDED。引擎对不存在线程
      * 返回 null/空表（无法区分"空结果"），网关侧以挂起集合预检承接该错误语义；
-     * 预检与调用间线程恢复的良性竞态由引擎空结果兜底。
+     * 预检与调用间线程恢复的竞态由引擎兜底（plan 2479 C-5：引擎侧锁内 isSuspended
+     * 复核——放行瞬态/已放行条目读取抛 THREAD_NOT_SUSPENDED，取代本注释原"良性竞态
+     * 空结果"豁免）。
      */
     private void requireSuspended(XLangDebugger debugger, long threadId) {
         if (!debugger.getSuspendedThreadIds().contains(threadId))
