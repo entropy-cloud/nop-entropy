@@ -1,6 +1,6 @@
 # 2479 xdbg item 27 并发域 remediation（item 24 审计 C-1~C-9 消化）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-18
 > Source: roadmap item 27（ai-dev/backlog/xlang-web-debugger-roadmap.md）；审计报告 ai-dev/audits/xlang-web-debugger/2026-10-18-item24-concurrency-deep-audit.md；设计契约 02-lease-lifecycle.md（D2）/03-sessionization.md（D3）/01-ws-protocol.md（D1）
 > Related: plans/2471（item 12 WS 网关）、2472（item 13 日志管道）、2478（安全域 remediation，已完成 0ef850c1da）；flux 前端 remediation plan（另立）
@@ -139,9 +139,9 @@ Exit Criteria:
 - [x] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（含 task 全链）
 - [x] 不存在被静默降级到 deferred 的 in-scope live defect（C-6/C-7/C-10/N-11/12 按 Deferred But Adjudicated 登记 successor）
 - [x] owner docs（D2/D1/D3）同步且 doc-links --strict 0 errors
-- [ ] 独立子 agent closure-audit 完成并记录证据（含 Anti-Hollow：AsyncOutbound 真实被 bridge/keepalive 接线、dispose 真实被 gracefulDispose 接线、drain 线程上无网关锁获取）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` exit 0
+- [x] 独立子 agent closure-audit 完成并记录证据（R1 抓出 C-1 变异误提交 Blocker → 修复 → R2 approved，见 Closure）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` exit 0
 
 ## Deferred But Adjudicated
 
@@ -178,3 +178,25 @@ Exit Criteria:
 - socket 级发送超时（需 debug 专属适配器或共享适配器裁定变更——若未来 GraphQL 侧接受超时语义可重启）
 - 队列容量/drain 空闲超时配置化（当前设计常量，裁决登记于 D2/D1）
 - 事件聚合（N-11 单元素 leaseExpired 合帧）随观测性 backlog
+
+## Closure
+
+Status Note: plan 2479 收口——item 24 并发审计 C-1（P0 出站活性）/C-2/C-3（P1）/C-4/C-5/C-8/C-9（P2）全部落地且有判别性测试；残余（C-6/C-7/C-10/N-11/12）按 Deferred But Adjudicated 登记 successor。closure audit R1 抓出 C-1 变异误提交 Blocker（open 路径 sink=null 直发形态入主分支，62/62 绿表像掩盖 P0 未落地——Hollow Implementation 活案例），修复 + 判别阈值收紧后 R2 approved-for-completed。
+
+Completed: 2026-10-18
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立子代理 agent_6912481d（R1 需修复 1B/2M/2m → 修复 → R2 approved-for-completed，同 agent 复核）
+- R1 发现（全部消解）：B-1 C-1 open 路径变异（sink=null 直发）被误提交进 2431e9fab2——修复 commit e361a05498（接线恢复 + grep 断言两处 `runtime::enqueueOutbound` 在位）；M-1 Phase 2 状态行未翻转——已翻转；M-2 判别力失效（限时 latch + 阈值 8s 对变异不设防）——阈值收紧 2000ms 双态干净分离
+- 判别双态证据（R2 独立复核确认）：恢复态绿（单测 0.28s，elapsed 毫秒级）；变异态红（elapsed 5038ms > 2000 → FAILURE）；R2 时间指纹：三停滞测试 R1 变异态 10.02s/10.03s/15.22s → R2 接线态 0.013s/0.014s/0.225s
+- 逐条 Closure Gate：C-1 三场景+变异证据 PASS；C-2/C-3 守恒+对等 PASS；C-4 结构断言（证据载体 = R2 逐行读码：releaseTarget 快照+闸门均在 monitorLock 块内、monitorWait 入口复位 stepMode）PASS；C-5 四处复核+引擎直调判别 PASS；C-8 listener 摘除判别 PASS；C-9 200 轮并发判别 PASS；门禁 `-am` 62/62（E2E 17/Protocol 17/LogPipe 9/Repl 18/TaskFullChain 1 + nop-task 163/163 + 引擎侧全绿）PASS；Deferred 四条诚实 PASS；owner docs（D2 §3.8/D1 §3.5/D3 §3.5）与 live 一致 + doc-links 0 PASS
+- Anti-Hollow 三条（R2 逐点读码确认）：AsyncOutbound 被 open/rebind/keepalive 三处真实接线；dispose 被 gracefulDispose/reset 真实接线；drain 路径仅 synchronized(session) 无网关锁
+- 工具：`check-plan-checklist.mjs --strict` exit 0；`scan-hollow-implementations.mjs --severity high` 0 findings exit 0；`check-doc-links.mjs --strict` exit 0
+- Deferred 项分类检查：无 in-scope live defect 被降级（C-6 无生产 cancel 调用方/C-7 会话化不放大/C-10 窄场景前置，均 successor 登记）
+- 披露项：m-2 sessionClosed 双连接对等无独立测试（与其他事件共用同一 targets 循环，低风险）；m-1 C-4 结构断言无自动化钉（防回退靠 review + closure 逐行核验）；注释/plan 的直发态读数微差（5013/5038ms，两次探针各自读数）
+
+Follow-up:
+
+- socket 级发送超时（共享适配器裁定变更时重启）；队列容量/drain 空闲超时配置化
+- C-6 per-execution 取消句柄 / C-7 条件求值重入守卫 / C-10 默认会话兜底（REPL 演进批 follow-up）
