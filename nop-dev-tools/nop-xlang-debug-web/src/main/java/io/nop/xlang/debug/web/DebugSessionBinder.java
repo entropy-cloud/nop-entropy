@@ -348,7 +348,7 @@ public class DebugSessionBinder {
         if (wire != null) {
             // plan 2479 C-1：出站经每连接 AsyncOutbound 队列（引擎回调/持锁路径零 WS IO）
             GatewayNotifierBridge bridge = new GatewayNotifierBridge(wire.wsSession,
-                    null); // MUTATION
+                    runtime::enqueueOutbound);
             debugger.setNotifier(bridge);
             wire.bridge = bridge;
         }

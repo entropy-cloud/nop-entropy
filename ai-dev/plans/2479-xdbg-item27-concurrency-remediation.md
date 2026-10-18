@@ -82,7 +82,7 @@ Targets: `nop-dev-tools/nop-xlang-debug-web`（AsyncOutbound/runtime/bridge/hand
 
 Exit Criteria:
 
-**Phase 1 执行证据（2026-10-18）**：E2E **13/13 绿**（10 既有 + 3 新增：testStalledClientDoesNotBlockEngineSuspend / testStalledClientGraceDisposeDoesNotFreezeGateway / testStalledClientDoesNotFreezeSharedSessionOutbound——后两者同时承载 C-3 fan-out 对等验收）；LogPipe 9/9（含 rebind 断言反转）；debug-web 全套 **58/58 绿**（`-pl` 门禁）。**执行勘误补两则**：④停滞桩改限时 5s（无界 latch 令停滞 drain 线程长期持有 session 监视器，全量套件下产生跨测试 JVM 级楔死——native sample 实证 java main 卡 monitorenter；限时后楔死消除且判别力保持）；⑤停滞判别阈值 5000→8000（并发 fork 负载下 isSuspended 实测滞后 ~5.0s=latch 上界，判别语义为"有界 vs 修复前 10s 超时无界"不受影响）。**C-4 结构修复提前落地**（原 Phase 2 项）：releaseTarget 快照读+闸门复核移入 monitorLock + monitorWait 挂起入口复位 threadStepMode（审计 C-4 交错 A/B 加固项）——随本轮 wedge 排查一并落地，全绿后保留；Phase 2 仅承载其验收测试。**变异探针红态（如实记录）**：open 路径接线移除（bridge 直发形态）→ testStalledClientDoesNotBlockEngineSuspend 无法完成——停滞 drain 线程持有 mock 监视器致 fork 卡死（mut_run2/mut_run3 两次运行一致：卡死于 Results 前，对照绿态 10.64s 完成），即"修复前该场景挂死"的实证形态；恢复后 grep 断言两处接线（open+rebind `runtime::enqueueOutbound`）在位并全绿。执行勘误三则：①unbind 不摘目标（初稿按 R1 建议在 unbind removeTarget——pinned 宽限事件不可达转红，回退为 B-1 裁定的"目标随会话销毁终止"，removeTarget 保留无生产调用方）；②停滞桩必须在全部请求/响应交换之后设置（响应帧同步直发，先阻塞会卡死主线程——已修正三处并 daemon 化脚本线程防失败路径 JVM 悬挂）；③AsyncOutbound.close 语义 = 拒新帧 + drain 尽发余帧（sessionClosed 先入队后 close 必须可达）。
+**Phase 1 执行证据（2026-10-18）**：E2E **13/13 绿**（10 既有 + 3 新增：testStalledClientDoesNotBlockEngineSuspend / testStalledClientGraceDisposeDoesNotFreezeGateway / testStalledClientDoesNotFreezeSharedSessionOutbound——后两者同时承载 C-3 fan-out 对等验收）；LogPipe 9/9（含 rebind 断言反转）；debug-web 全套 **58/58 绿**（`-pl` 门禁）。**执行勘误补两则**：④停滞桩改限时 5s（无界 latch 令停滞 drain 线程长期持有 session 监视器，全量套件下产生跨测试 JVM 级楔死——native sample 实证 java main 卡 monitorenter；限时后楔死消除且判别力保持）；⑤停滞判别阈值 5000→8000（并发 fork 负载下 isSuspended 实测滞后 ~5.0s=latch 上界，判别语义为"有界 vs 修复前 10s 超时无界"不受影响）。**closure audit R1（agent_6912481d）Blocker 勘正与修复（2026-10-18）**：①Phase 1 的变异恢复脚本失败但未察觉，open 路径 `sink=null` 直发形态被误提交——C-1 在生产主路径 no-op，停滞测试在限时 latch（5s）+ 阈值 8s 下对变异不设防（直发态 10.0s/10.0s/15.2s 仍绿，恰为审计定性的 P0 本体耗时）。②修复：open 接线恢复（grep 断言两处 `runtime::enqueueOutbound` 在位）；判别阈值收紧 **2000ms**（队列态毫秒级绿 0.28s / 直发态变异红 5038ms——干净分离，双态证据本节入档）；门禁复跑 62/62 绿。③m-2 登记记：sessionClosed 双连接对等无独立测试（与其他事件共用同一 targets 循环，风险低，closure evidence 披露）。**C-4 结构修复提前落地**（原 Phase 2 项）：releaseTarget 快照读+闸门复核移入 monitorLock + monitorWait 挂起入口复位 threadStepMode（审计 C-4 交错 A/B 加固项）——随本轮 wedge 排查一并落地，全绿后保留；Phase 2 仅承载其验收测试。**变异探针红态（如实记录）**：open 路径接线移除（bridge 直发形态）→ testStalledClientDoesNotBlockEngineSuspend 无法完成——停滞 drain 线程持有 mock 监视器致 fork 卡死（mut_run2/mut_run3 两次运行一致：卡死于 Results 前，对照绿态 10.64s 完成），即"修复前该场景挂死"的实证形态；~~恢复后 grep 断言两处接线在位并全绿~~（**closure audit R1 勘误：该轮恢复断言脚本实际未执行成功且变异被误提交进 2431e9fab2——open 路径 sink=null 直发形态带病入主分支，62/62 绿表像掩盖了 P0 未落地；详见 Phase 1 证据段补记**）。执行勘误三则：①unbind 不摘目标（初稿按 R1 建议在 unbind removeTarget——pinned 宽限事件不可达转红，回退为 B-1 裁定的"目标随会话销毁终止"，removeTarget 保留无生产调用方）；②停滞桩必须在全部请求/响应交换之后设置（响应帧同步直发，先阻塞会卡死主线程——已修正三处并 daemon 化脚本线程防失败路径 JVM 悬挂）；③AsyncOutbound.close 语义 = 拒新帧 + drain 尽发余帧（sessionClosed 先入队后 close 必须可达）。
 
 - [x] 停滞客户端三场景测试绿 + 变异探针红→绿证据入档
 - [x] **端到端验证**：断点命中 → evt.suspended 经队列 → 双 MockWsSession 收帧（含断连后 grace 事件可达——pinned 序列保持）
@@ -92,7 +92,7 @@ Exit Criteria:
 
 ### Phase 2 - C-2 dispose + 闸门复核（C-4/C-5/C-8/C-9）
 
-Status: planned
+Status: completed
 Targets: `nop-dev-tools/nop-xlang-debugger`（XLangDebugger/BreakpointManagerImpl/SessionDebugManager）、`nop-dev-tools/nop-xlang-debug-web`（DebugSessionBinder）
 
 - Item Types: `Fix`（C-2/C-3 P1 live defect 收口；C-4/5/8/9 P2 加固）

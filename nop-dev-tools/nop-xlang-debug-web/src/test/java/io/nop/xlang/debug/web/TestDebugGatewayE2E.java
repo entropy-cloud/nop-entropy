@@ -533,11 +533,11 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         script.start();
         awaitSuspended(debugger);
         long elapsed = System.currentTimeMillis() - start;
-        // 判别语义：修复前同步直发 → 脚本线程阻塞在 WS 发送、永远到不了 monitorWait →
-        // awaitSuspended 10s 超时红（无界）；修复后 notifySuspend 入队即返 → isSuspended
-        // 至多滞后停滞桩时长（latch 5s 上界——并发 fork 负载下实测 ~5.0s，监控带 8s）。
-        // 有界 vs 无界的判别力不受阈值影响（修复前红态 = 10s 超时挂起失败）
-        assertTrue(elapsed < 8000, "挂起授予不得被停滞客户端无界阻塞，实际 " + elapsed + "ms");
+        // 判别语义（closure audit B-1 勘正收紧）：事件帧经 AsyncOutbound 队列异步出站，
+        // notifySuspend 入队即返 → isSuspended 毫秒级；接线移除（直发形态）→ 事件发送
+        // 阻塞在停滞桩（限时 latch 5s）→ isSuspended 滞后 ~5s。阈值 2s 干净分离两态：
+        // 队列态 <2s 绿 / 直发态 ~5s 红（2479 closure audit 实测直发态 5013ms）
+        assertTrue(elapsed < 2000, "挂起授予不得被停滞客户端阻塞（出站须队列化），实际 " + elapsed + "ms");
         debugger.resume();
         script.join(10000);
         stall.countDown();
