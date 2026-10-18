@@ -25,6 +25,48 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: differentFirst
+     * 首页使用不同的页眉页脚（OOXML headerFooter@differentFirst 的模型级映射）
+     */
+    private java.lang.Boolean _differentFirst ;
+    
+    /**
+     *  
+     * xml name: differentOddEven
+     * 奇偶页使用不同的页眉页脚（OOXML headerFooter@differentOddEven 的模型级映射）
+     */
+    private java.lang.Boolean _differentOddEven ;
+    
+    /**
+     *  
+     * xml name: evenFooter
+     * 
+     */
+    private io.nop.excel.model.ExcelHeaderFooter _evenFooter ;
+    
+    /**
+     *  
+     * xml name: evenHeader
+     * 
+     */
+    private io.nop.excel.model.ExcelHeaderFooter _evenHeader ;
+    
+    /**
+     *  
+     * xml name: firstFooter
+     * 
+     */
+    private io.nop.excel.model.ExcelHeaderFooter _firstFooter ;
+    
+    /**
+     *  
+     * xml name: firstHeader
+     * 
+     */
+    private io.nop.excel.model.ExcelHeaderFooter _firstHeader ;
+    
+    /**
+     *  
      * xml name: firstPageNumber
      * 
      */
@@ -143,6 +185,120 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._blackAndWhite = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: differentFirst
+     *  首页使用不同的页眉页脚（OOXML headerFooter@differentFirst 的模型级映射）
+     */
+    
+    public java.lang.Boolean getDifferentFirst(){
+      return _differentFirst;
+    }
+
+    
+    public void setDifferentFirst(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._differentFirst = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: differentOddEven
+     *  奇偶页使用不同的页眉页脚（OOXML headerFooter@differentOddEven 的模型级映射）
+     */
+    
+    public java.lang.Boolean getDifferentOddEven(){
+      return _differentOddEven;
+    }
+
+    
+    public void setDifferentOddEven(java.lang.Boolean value){
+        checkAllowChange();
+        
+        this._differentOddEven = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: evenFooter
+     *  
+     */
+    
+    public io.nop.excel.model.ExcelHeaderFooter getEvenFooter(){
+      return _evenFooter;
+    }
+
+    
+    public void setEvenFooter(io.nop.excel.model.ExcelHeaderFooter value){
+        checkAllowChange();
+        
+        this._evenFooter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: evenHeader
+     *  
+     */
+    
+    public io.nop.excel.model.ExcelHeaderFooter getEvenHeader(){
+      return _evenHeader;
+    }
+
+    
+    public void setEvenHeader(io.nop.excel.model.ExcelHeaderFooter value){
+        checkAllowChange();
+        
+        this._evenHeader = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: firstFooter
+     *  
+     */
+    
+    public io.nop.excel.model.ExcelHeaderFooter getFirstFooter(){
+      return _firstFooter;
+    }
+
+    
+    public void setFirstFooter(io.nop.excel.model.ExcelHeaderFooter value){
+        checkAllowChange();
+        
+        this._firstFooter = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: firstHeader
+     *  
+     */
+    
+    public io.nop.excel.model.ExcelHeaderFooter getFirstHeader(){
+      return _firstHeader;
+    }
+
+    
+    public void setFirstHeader(io.nop.excel.model.ExcelHeaderFooter value){
+        checkAllowChange();
+        
+        this._firstHeader = value;
            
     }
 
@@ -440,6 +596,14 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._evenFooter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._evenFooter);
+            
+           this._evenHeader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._evenHeader);
+            
+           this._firstFooter = io.nop.api.core.util.FreezeHelper.deepFreeze(this._firstFooter);
+            
+           this._firstHeader = io.nop.api.core.util.FreezeHelper.deepFreeze(this._firstHeader);
+            
            this._footer = io.nop.api.core.util.FreezeHelper.deepFreeze(this._footer);
             
            this._header = io.nop.api.core.util.FreezeHelper.deepFreeze(this._header);
@@ -452,6 +616,12 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("blackAndWhite",this.getBlackAndWhite());
+        out.putNotNull("differentFirst",this.getDifferentFirst());
+        out.putNotNull("differentOddEven",this.getDifferentOddEven());
+        out.putNotNull("evenFooter",this.getEvenFooter());
+        out.putNotNull("evenHeader",this.getEvenHeader());
+        out.putNotNull("firstFooter",this.getFirstFooter());
+        out.putNotNull("firstHeader",this.getFirstHeader());
         out.putNotNull("firstPageNumber",this.getFirstPageNumber());
         out.putNotNull("fitToHeight",this.getFitToHeight());
         out.putNotNull("fitToWidth",this.getFitToWidth());
@@ -479,6 +649,12 @@ public abstract class _ExcelPageSetup extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setBlackAndWhite(this.getBlackAndWhite());
+        instance.setDifferentFirst(this.getDifferentFirst());
+        instance.setDifferentOddEven(this.getDifferentOddEven());
+        instance.setEvenFooter(this.getEvenFooter());
+        instance.setEvenHeader(this.getEvenHeader());
+        instance.setFirstFooter(this.getFirstFooter());
+        instance.setFirstHeader(this.getFirstHeader());
         instance.setFirstPageNumber(this.getFirstPageNumber());
         instance.setFitToHeight(this.getFitToHeight());
         instance.setFitToWidth(this.getFitToWidth());

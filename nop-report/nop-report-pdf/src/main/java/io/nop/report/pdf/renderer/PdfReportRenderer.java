@@ -12,6 +12,7 @@ import io.nop.commons.util.IoHelper;
 import io.nop.core.context.IEvalContext;
 import io.nop.core.resource.tpl.IBinaryTemplateOutput;
 import io.nop.excel.model.ExcelWorkbook;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.renderer.IExcelSheetGenerator;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -42,13 +43,24 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
         LOG.debug("nop.report.begin-generate-pdf");
 
         try {
+            renderer.setSourcePath(model.getLocation() == null ? null : model.getLocation().getPath());
+            // 页区间标记在 renderSheet 内部配对（WI4 审计 Major-1：generator 分支会展开多 sheet，
+            // 区间必须按 sheet 粒度记录，scope=sheet 的 &P/&N 与奇偶变体才正确）
             if (sheetGenerator != null) {
-                sheetGenerator.generate(context, this::renderSheet);
-            } else {
-                model.getSheets().forEach(sheet -> {
-                    renderSheet(sheet, context);
+                sheetGenerator.generate(context, (sheet, ctx) -> {
+                    try {
+                        renderSheet(sheet, ctx);
+                    } catch (IOException e) {
+                        throw NopException.adapt(e);
+                    }
                 });
+            } else {
+                for (IExcelSheet sheet : model.getSheets()) {
+                    renderSheet(sheet, context);
+                }
             }
+            // 延迟页眉页脚（含 &-占位符）需要在全部页面渲染完成后求值绘制（&N 可得）
+            renderer.drawDeferredHeaderFooters();
             // 默认页码需要在全部页面渲染完成后（知道总页数）统一绘制
             renderer.drawDefaultPageNumbers();
             renderer.saveToStream(os);
@@ -61,7 +73,12 @@ public class PdfReportRenderer implements IBinaryTemplateOutput {
     }
 
 
-    private void renderSheet(IExcelSheet sheet, IEvalContext context) {
-        new PdfSheetRenderer(renderer, model).renderSheet(sheet);
+    private void renderSheet(IExcelSheet sheet, IEvalContext context) throws IOException {
+        renderer.markSheetRangeStart();
+        try {
+            new PdfSheetRenderer(renderer, model).renderSheet(sheet);
+        } finally {
+            renderer.markSheetRangeEnd();
+        }
     }
 }

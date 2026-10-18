@@ -28,4 +28,7 @@ public interface ReportPdfConfigs {
 
     @Description("fit/scale缩放后单元格最小可读字号（pt）。缩放导致字号低于该阈值时告警并收敛缩放比例，0表示不限制")
     IConfigReference<Float> CFG_PDF_MIN_FONT_SIZE = varRef(s_loc, "nop.report.pdf.min-font-size-pt", Float.class, 6f);
+
+    @Description("页眉页脚&P/&N页码作用域：global=全文档序号/总页数（缺省），sheet=各工作表内序号/页数")
+    IConfigReference<String> CFG_PDF_PAGE_NUMBER_SCOPE = varRef(s_loc, "nop.report.pdf.page-number-scope", String.class, "global");
 }

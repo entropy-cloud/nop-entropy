@@ -4,7 +4,11 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.excel.model.ExcelFont;
+import io.nop.excel.model.ExcelStyle;
 import io.nop.report.pdf.ReportPdfConfigs;
+import io.nop.report.pdf.utils.HeaderFooterEvaluator;
+import io.nop.report.pdf.utils.HeaderFooterRuns;
+import io.nop.report.pdf.utils.PdfStyleHelper;
 import io.nop.report.pdf.ReportPdfErrors;
 import io.nop.report.pdf.font.FontManager;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -27,7 +31,9 @@ import java.util.Set;
 
 import static io.nop.report.pdf.ReportPdfErrors.ARG_FAILED_CHAR;
 import static io.nop.report.pdf.ReportPdfErrors.ARG_FONT_NAME;
+import static io.nop.report.pdf.ReportPdfErrors.ARG_SCOPE;
 import static io.nop.report.pdf.ReportPdfErrors.ARG_TEXT_SAMPLE;
+import static io.nop.report.pdf.ReportPdfErrors.ERR_PDF_INVALID_PAGE_NUMBER_SCOPE;
 
 public class PdfRenderer {
     static final Logger LOG = LoggerFactory.getLogger(PdfRenderer.class);
@@ -40,6 +46,12 @@ public class PdfRenderer {
     private final Map<ByteString, PDImageXObject> imageCache = new HashMap<>();
     private final List<PDPage> pages = new ArrayList<>();
     private final Set<Integer> pagesWithFooter = new HashSet<>();
+
+    // WI4：延迟页眉页脚（含 &-占位符的 HF 需全部页渲染完成后求值绘制，&N 才可得）
+    private final List<DeferredHeaderFooter> deferredHeaderFooters = new ArrayList<>();
+    // WI4：每个 sheet 的页区间 [startInclusive, endInclusive]（scope=sheet 时 &P/&N 用）
+    private final List<int[]> sheetPageRanges = new ArrayList<>();
+    private String sourcePath;
 
     public PdfRenderer(PDDocument document) {
         this.document = document;
@@ -134,11 +146,188 @@ public class PdfRenderer {
     }
 
     /**
+     * 模板来源路径（&F/&Z 求值来源），null 表示无（求值为空串）
+     */
+    public void setSourcePath(String sourcePath) {
+        this.sourcePath = sourcePath;
+    }
+
+    public String getSourcePath() {
+        return sourcePath;
+    }
+
+    /**
+     * WI4：标记一个 sheet 的页区间开始（PdfReportRenderer 每个 sheet 渲染前后配对调用）
+     */
+    public void markSheetRangeStart() {
+        sheetPageRanges.add(new int[]{pages.size(), -1});
+    }
+
+    public void markSheetRangeEnd() {
+        if (!sheetPageRanges.isEmpty()) {
+            int[] range = sheetPageRanges.get(sheetPageRanges.size() - 1);
+            range[1] = pages.size() - 1;
+        }
+    }
+
+    /**
+     * 当前文档页的 0-based 序号（最后一页）
+     */
+    public int currentPageIndex() {
+        return pages.size() - 1;
+    }
+
+    /**
+     * 当前页在所属 sheet 内的 0-based 序号（scope=sheet 时 &P 用）
+     */
+    public int currentSheetPageIndex() {
+        int pageIndex = pages.size() - 1;
+        if (sheetPageRanges.isEmpty())
+            return pageIndex;
+        int[] range = sheetPageRanges.get(sheetPageRanges.size() - 1);
+        return pageIndex - range[0];
+    }
+
+    /**
+     * sheet 页数（scope=sheet 时 &N 用）；无区间记录时回退全文档页数
+     */
+    public int currentSheetPageCount() {
+        if (sheetPageRanges.isEmpty())
+            return pages.size();
+        int[] range = sheetPageRanges.get(sheetPageRanges.size() - 1);
+        return range[1] - range[0] + 1;
+    }
+
+    public void addDeferredHeaderFooter(DeferredHeaderFooter task) {
+        deferredHeaderFooters.add(task);
+    }
+
+    /**
      * 模板已显式配置页脚的页面不再叠加默认页码
      */
     public void markFooterDrawn() {
         if (!pages.isEmpty())
             pagesWithFooter.add(pages.size() - 1);
+    }
+
+    /**
+     * 延迟页眉页脚任务（WI4）：含 &-代码的 HF 段在全部页渲染完成后求值绘制（&N 才可得）。
+     */
+    public static final class DeferredHeaderFooter {
+        private final int pageIndex;
+        private final String position;
+        private final String rawText;
+        private final PDRectangle rect;
+        private final ExcelStyle style;
+        private final String sheetName;
+
+        public DeferredHeaderFooter(int pageIndex, String position, String rawText,
+                                    PDRectangle rect, ExcelStyle style, String sheetName) {
+            this.pageIndex = pageIndex;
+            this.position = position;
+            this.rawText = rawText;
+            this.rect = rect;
+            this.style = style;
+            this.sheetName = sheetName;
+        }
+    }
+
+    /**
+     * 统一求值并绘制延迟页眉页脚；在 drawDefaultPageNumbers 之前调用（所有页已渲染，&N 可得）。
+     */
+    public void drawDeferredHeaderFooters() throws IOException {
+        if (deferredHeaderFooters.isEmpty())
+            return;
+
+        String scope = ReportPdfConfigs.CFG_PDF_PAGE_NUMBER_SCOPE.get();
+        if (!"global".equals(scope) && !"sheet".equals(scope))
+            throw new NopException(ERR_PDF_INVALID_PAGE_NUMBER_SCOPE).param(ARG_SCOPE, scope);
+
+        for (DeferredHeaderFooter task : deferredHeaderFooters) {
+            int page;
+            int total;
+            if ("sheet".equals(scope)) {
+                int[] range = findSheetRange(task.pageIndex);
+                page = task.pageIndex - range[0] + 1;
+                total = range[1] - range[0] + 1;
+            } else {
+                page = task.pageIndex + 1;
+                total = pages.size();
+            }
+            String sourcePath = getSourcePath();
+            String fileName = sourcePath == null ? "" : fileNameOf(sourcePath);
+            HeaderFooterEvaluator.Context ctx = new HeaderFooterEvaluator.Context(
+                    page, total, task.sheetName, fileName, sourcePath == null ? "" : sourcePath);
+
+            List<HeaderFooterRuns.Run> runs = HeaderFooterRuns.split(task.rawText);
+            // 先求值并计算总宽（L/C/R 定位需要）
+            int n = runs.size();
+            String[] texts = new String[n];
+            PDFont[] fonts = new PDFont[n];
+            float[] sizes = new float[n];
+            float[] widths = new float[n];
+            float totalWidth = 0;
+            for (int i = 0; i < n; i++) {
+                HeaderFooterRuns.Run run = runs.get(i);
+                texts[i] = HeaderFooterEvaluator.evaluate(run.getText(), ctx);
+                ExcelFont styleFont = task.style != null ? task.style.getFont() : null;
+                fonts[i] = run.getFontName() != null
+                        ? getFont(run.getFontName(), styleFont != null && styleFont.isBold(),
+                                styleFont != null && styleFont.isItalic())
+                        : getFont(styleFont);
+                sizes[i] = run.getFontSize() > 0 ? run.getFontSize()
+                        : PdfStyleHelper.getFontSize(styleFont);
+                texts[i] = sanitizeForFont(fonts[i], texts[i]);
+                widths[i] = fonts[i].getStringWidth(texts[i]) / 1000 * sizes[i];
+                totalWidth += widths[i];
+            }
+
+            float rectWidth = task.rect.getWidth();
+            float x = task.rect.getLowerLeftX();
+            if ("C".equals(task.position))
+                x += (rectWidth - totalWidth) / 2;
+            else if ("R".equals(task.position))
+                x += rectWidth - totalWidth;
+
+            try (PDPageContentStream cs = getContentStreamFor(task.pageIndex)) {
+                for (int i = 0; i < n; i++) {
+                    if (texts[i].isEmpty())
+                        continue;
+                    PDRectangle runRect = new PDRectangle(x, task.rect.getLowerLeftY(),
+                            Math.max(widths[i], 1), task.rect.getHeight());
+                    PdfStyleHelper.drawUnwrappedText(cs, texts[i], fonts[i], sizes[i], runRect, task.style);
+                    x += widths[i];
+                }
+            }
+        }
+        deferredHeaderFooters.clear();
+    }
+
+    private int[] findSheetRange(int pageIndex) {
+        for (int[] range : sheetPageRanges) {
+            if (pageIndex >= range[0] && pageIndex <= range[1])
+                return range;
+        }
+        return new int[]{0, Math.max(0, pages.size() - 1)};
+    }
+
+    private PDPageContentStream getContentStreamFor(int pageIndex) throws IOException {
+        PDPage page = pages.get(pageIndex);
+        return new PDPageContentStream(document, page, PDPageContentStream.AppendMode.APPEND, true, true);
+    }
+
+    private static String fileNameOf(String path) {
+        int pos = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        return pos >= 0 ? path.substring(pos + 1) : path;
+    }
+
+    private String sanitizeForFont(PDFont font, String text) {
+        try {
+            font.encode(text);
+            return text;
+        } catch (Exception e) {
+            return PdfStyleHelper.sanitizeTextForFont(text, font);
+        }
     }
 
     /**

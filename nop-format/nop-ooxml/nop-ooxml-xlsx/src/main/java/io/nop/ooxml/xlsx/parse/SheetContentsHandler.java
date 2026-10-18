@@ -95,6 +95,12 @@ public interface SheetContentsHandler {
     }
 
     /**
+     * headerFooter 容器属性（WI4）：OOXML differentFirst/differentOddEven 的模型级映射
+     */
+    default void headerFooterFlags(boolean differentFirst, boolean differentOddEven) {
+    }
+
+    /**
      * Signal that the end of a sheet was been reached
      */
     default void endSheet() {

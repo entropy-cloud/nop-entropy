@@ -6,6 +6,8 @@
             @repeatTitleCols 重复标题列范围（1-based 闭区间，如 "A:B"），来自 Print_Titles definedNames
             @fitToWidth 缩放到 N 页宽（目标页数，0或缺省=该维不约束）
             @fitToHeight 缩放到 M 页高（目标页数，0或缺省=该维不约束）
+            @differentFirst 首页使用不同的页眉页脚（OOXML headerFooter@differentFirst 的模型级映射）
+            @differentOddEven 奇偶页使用不同的页眉页脚（OOXML headerFooter@differentOddEven 的模型级映射）
             -->
 <pageSetup x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
            xdef:name="ExcelPageSetup" xdef:bean-package="io.nop.excel.model"
@@ -14,7 +16,8 @@
            paperSize="int" paperWidth="float" paperHeight="float" scale="int"
            fitToHeight="int" fitToWidth="int" gridLines="boolean"
            firstPageNumber="int" blackAndWhite="boolean"
-           repeatTitleRows="string" repeatTitleCols="string">
+           repeatTitleRows="string" repeatTitleCols="string"
+           differentFirst="boolean" differentOddEven="boolean">
     <header xdef:name="ExcelHeaderFooter">
         <left>string</left>
         <center>string</center>
@@ -26,4 +29,9 @@
     </header>
 
     <footer xdef:ref="ExcelHeaderFooter"/>
+
+    <firstHeader xdef:ref="ExcelHeaderFooter"/>
+    <firstFooter xdef:ref="ExcelHeaderFooter"/>
+    <evenHeader xdef:ref="ExcelHeaderFooter"/>
+    <evenFooter xdef:ref="ExcelHeaderFooter"/>
 </pageSetup>

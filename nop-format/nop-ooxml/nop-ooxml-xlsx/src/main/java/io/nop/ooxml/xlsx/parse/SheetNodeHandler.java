@@ -322,6 +322,11 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String rId = getAttr(attrs, "r:id");
             if (ref != null)
                 output.link(ref, location, rId);
+        } else if ("headerFooter".equals(localName)) {
+            // WI4：differentFirst/differentOddEven 是 headerFooter 容器属性（OOXML），
+            // 经 headerFooterFlags 回调映射到 pageSetup 模型
+            output.headerFooterFlags(getAttrBoolean(attrs, "differentFirst", false),
+                    getAttrBoolean(attrs, "differentOddEven", false));
         } else if ("rowBreaks".equals(localName)) {
             inRowBreaks = true;
         } else if ("colBreaks".equals(localName)) {

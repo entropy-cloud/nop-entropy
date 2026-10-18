@@ -20,7 +20,9 @@ import io.nop.excel.model.IExcelSheet;
 import io.nop.excel.model.IExcelStyleProvider;
 
 import io.nop.excel.print.ExcelPrintHelper;
+import io.nop.ooxml.xlsx.parse.ExcelHeaderFooterCodes;
 import io.nop.report.pdf.ReportPdfConfigs;
+import io.nop.report.pdf.renderer.PdfRenderer.DeferredHeaderFooter;
 import io.nop.report.pdf.utils.PdfImageHelper;
 import io.nop.report.pdf.utils.PdfPrintHelper;
 import io.nop.report.pdf.utils.PdfStyleHelper;
@@ -334,13 +336,8 @@ public class PdfSheetRenderer {
             pageRenderer = renderer.addPage(PdfPrintHelper.toRectangle(paperSize));
             float pageHeight = (float) paperSize.getHeight();
 
-            // 渲染页眉页脚
+            // 渲染页眉页脚（含变体选择与 &-代码延迟分流）；页脚存在即标记，抑制默认页码
             renderHeaderFooter(pageRenderer, sheet, printArea, pageHeight);
-            // 页脚已由模板显式配置时无需默认页码
-            ExcelPageSetup pageSetup = sheet.getPageSetup();
-            if (pageSetup != null && pageSetup.getFooter() != null) {
-                renderer.markFooterDrawn();
-            }
 
             // 重复块占位尺寸需先于applyPageSetup计算，fit缩放/居中要把dx/dy计入
             double dx = repeatColsTable != null ? repeatColsWidth(sheet, region, repeatCols) : 0;
@@ -481,48 +478,79 @@ public class PdfSheetRenderer {
                 (int) Math.ceil(clipW), (int) Math.ceil(clipH));
     }
 
+    /**
+     * WI4 变体选择：differentFirst → 首页用 first*（缺省回退 odd）；differentOddEven →
+     * 偶数页（1-based 第 2/4...页）用 even*（缺省回退 odd）；odd 也缺失 → null（该页无页眉/脚）。
+     */
+    private ExcelHeaderFooter selectHeaderFooter(ExcelPageSetup pageSetup, boolean header, int sheetPageIndex) {
+        boolean first = Boolean.TRUE.equals(pageSetup.getDifferentFirst()) && sheetPageIndex == 0;
+        boolean even = Boolean.TRUE.equals(pageSetup.getDifferentOddEven()) && sheetPageIndex % 2 == 1;
+
+        ExcelHeaderFooter variant;
+        if (first) {
+            variant = header ? pageSetup.getFirstHeader() : pageSetup.getFirstFooter();
+            if (variant != null)
+                return variant;
+        } else if (even) {
+            variant = header ? pageSetup.getEvenHeader() : pageSetup.getEvenFooter();
+            if (variant != null)
+                return variant;
+        }
+        return header ? pageSetup.getHeader() : pageSetup.getFooter();
+    }
+
     private void renderHeaderFooter(PdfPageRenderer pageRenderer, IExcelSheet sheet,
                                     RectangleBean printArea, float pageHeight) throws IOException {
         ExcelPageSetup pageSetup = sheet.getPageSetup();
         if (pageSetup == null)
             return;
 
+        int sheetPageIndex = renderer.currentSheetPageIndex();
+        ExcelHeaderFooter header = selectHeaderFooter(pageSetup, true, sheetPageIndex);
+        ExcelHeaderFooter footer = selectHeaderFooter(pageSetup, false, sheetPageIndex);
+
         // 页眉位置（在打印区域上方）。printArea.y为距页顶距离，printArea.y-header是页眉区顶部，换算为PDF坐标即页眉区的底边
-        if (pageSetup.getHeader() != null) {
+        if (header != null) {
             double height = ExcelPrintHelper.getHeaderHeight(sheet.getPageMargins());
             float headerY = (float) (pageHeight - printArea.getY());
-            renderHeaderFooterContent(pageRenderer, pageSetup.getHeader(),
+            renderHeaderFooterContent(pageRenderer, sheet, header, sheetPageIndex,
                     headerY,
                     (float) printArea.getWidth(), (float) height);
         }
 
         // 页脚位置（在打印区域下方）
-        if (pageSetup.getFooter() != null) {
+        if (footer != null) {
             double height = ExcelPrintHelper.getFooterHeight(sheet.getPageMargins());
             float footerY = (float) (pageHeight - printArea.getY() - printArea.getHeight() - height);
 
-            renderHeaderFooterContent(pageRenderer, pageSetup.getFooter(),
+            renderHeaderFooterContent(pageRenderer, sheet, footer, sheetPageIndex,
                     footerY, (float) printArea.getWidth(), (float) height);
+            // 页脚已由模板显式配置（含延迟绘制）时无需默认页码
+            renderer.markFooterDrawn();
         }
     }
 
+    private void renderHeaderFooterContent(PdfPageRenderer pageRenderer, IExcelSheet sheet, ExcelHeaderFooter hf,
+                                           int sheetPageIndex, float y, float width, float height) throws IOException {
+        int pageIndex = renderer.currentPageIndex();
+        String sheetName = sheet.getName();
 
-    private void renderHeaderFooterContent(PdfPageRenderer pageRenderer, ExcelHeaderFooter hf,
-                                           float y, float width, float height) throws IOException {
-        // 渲染左中右三部分内容
-        if (StringHelper.isNotEmpty(hf.getLeft())) {
-            String left = hf.getLeft();
-            renderText(pageRenderer, left, 0, y, width / 3, height, hf.getStyle());
-        }
+        // 渲染左中右三部分内容；含 &-代码的段延迟求值绘制（避免 & 代码字面打印、&N 需总页数）
+        renderHFSection(pageRenderer, hf.getLeft(), "L", 0, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+        renderHFSection(pageRenderer, hf.getCenter(), "C", width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+        renderHFSection(pageRenderer, hf.getRight(), "R", 2 * width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+    }
 
-        if (StringHelper.isNotEmpty(hf.getCenter())) {
-            String center = hf.getCenter();
-            renderText(pageRenderer, center, width / 3, y, width / 3, height, hf.getStyle());
-        }
-
-        if (StringHelper.isNotEmpty(hf.getRight())) {
-            String right = hf.getRight();
-            renderText(pageRenderer, right, 2 * width / 3, y, width / 3, height, hf.getStyle());
+    private void renderHFSection(PdfPageRenderer pageRenderer, String text, String position, float x, float y,
+                                 float width, float height, ExcelHeaderFooter hf, int pageIndex, String sheetName,
+                                 int sheetPageIndex) throws IOException {
+        if (StringHelper.isEmpty(text))
+            return;
+        if (ExcelHeaderFooterCodes.hasAnyCode(text)) {
+            renderer.addDeferredHeaderFooter(new DeferredHeaderFooter(pageIndex, position, text,
+                    new PDRectangle(x, y, width, height), hf.getStyle(), sheetName));
+        } else {
+            renderText(pageRenderer, text, x, y, width, height, hf.getStyle());
         }
     }
 

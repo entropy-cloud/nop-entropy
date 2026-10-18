@@ -68,6 +68,64 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
     }
 
     @Override
+    public void headerFooterFlags(boolean differentFirst, boolean differentOddEven) {
+        ensurePageSetup().setDifferentFirst(differentFirst);
+        ensurePageSetup().setDifferentOddEven(differentOddEven);
+    }
+
+    /**
+     * WI4：把 Excel &-语法的 headerFooter 文本按 &L/&C/&R 分段装入模型六段。
+     * tagName = oddHeader/oddFooter/evenHeader/evenFooter/firstHeader/firstFooter。
+     */
+    @Override
+    public void headerFooter(String text, boolean isHeader, String tagName) {
+        io.nop.excel.model.ExcelHeaderFooter hf = new io.nop.excel.model.ExcelHeaderFooter();
+        for (ExcelHeaderFooterCodes.Section section : ExcelHeaderFooterCodes.parseSections(text)) {
+            String value = section.getText();
+            switch (section.getPosition()) {
+                case "L":
+                    hf.setLeft(value);
+                    break;
+                case "C":
+                    hf.setCenter(value);
+                    break;
+                case "R":
+                    hf.setRight(value);
+                    break;
+                default:
+            }
+        }
+
+        io.nop.excel.model.ExcelPageSetup pageSetup = ensurePageSetup();
+        boolean odd = tagName.startsWith("odd");
+        boolean even = tagName.startsWith("even");
+        if (isHeader) {
+            if (odd)
+                pageSetup.setHeader(hf);
+            else if (even)
+                pageSetup.setEvenHeader(hf);
+            else
+                pageSetup.setFirstHeader(hf);
+        } else {
+            if (odd)
+                pageSetup.setFooter(hf);
+            else if (even)
+                pageSetup.setEvenFooter(hf);
+            else
+                pageSetup.setFirstFooter(hf);
+        }
+    }
+
+    private io.nop.excel.model.ExcelPageSetup ensurePageSetup() {
+        io.nop.excel.model.ExcelPageSetup pageSetup = sheet.getPageSetup();
+        if (pageSetup == null) {
+            pageSetup = new io.nop.excel.model.ExcelPageSetup();
+            sheet.setPageSetup(pageSetup);
+        }
+        return pageSetup;
+    }
+
+    @Override
     public void pageBreak(boolean rowBreak, int id) {
         ExcelPageBreaks breaks = sheet.getPageBreaks();
         if (breaks == null) {
