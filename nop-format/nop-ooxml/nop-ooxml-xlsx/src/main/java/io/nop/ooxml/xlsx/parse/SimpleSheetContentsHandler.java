@@ -10,6 +10,7 @@ import io.nop.excel.format.ExcelDateHelper;
 import io.nop.excel.model.ExcelCell;
 import io.nop.excel.model.ExcelColumnConfig;
 import io.nop.excel.model.ExcelDataValidation;
+import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelPageMargins;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelRow;
@@ -64,6 +65,24 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
     @Override
     public void pageSetup(ExcelPageSetup pageSetup) {
         sheet.setPageSetup(pageSetup);
+    }
+
+    @Override
+    public void pageBreak(boolean rowBreak, int id) {
+        ExcelPageBreaks breaks = sheet.getPageBreaks();
+        if (breaks == null) {
+            breaks = new ExcelPageBreaks();
+            sheet.setPageBreaks(breaks);
+        }
+        if (rowBreak) {
+            if (breaks.getRows() == null)
+                breaks.setRows(new java.util.ArrayList<>());
+            breaks.getRows().add(id);
+        } else {
+            if (breaks.getCols() == null)
+                breaks.setCols(new java.util.ArrayList<>());
+            breaks.getCols().add(id);
+        }
     }
 
     @Override

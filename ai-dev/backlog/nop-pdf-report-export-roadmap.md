@@ -45,7 +45,7 @@
 
 - [x] WI1 模板级分页声明（Print_Titles）：nop-ooxml-xlsx 解析器读取 definedNames 中的 print titles → ExcelSheet/ExcelPageSetup 模型承载 repeatRowRange/repeatColRange → PdfSheetRenderer 消费（优先于 `nop.report.pdf.repeat-header-rows`/`repeat-key-columns` 全局缺省），使模板声明与 Excel 打印语义一致。含解析单测 + PDF 续页/侧页断言（Deliverable: 解析器 + 模型字段 + 渲染消费 + 测试；deps: WI0；Item Type: Feature）
 - [x] WI2 fit 缩放语义与页幅约束：`fitToWidth`×`fitToHeight` 支持"缩放到 N 页宽 × M 页高"目标语义（当前仅布尔比例，与 Excel 语义有差）；自动缩小到目标页数并设**最小可读字号阈值**（低于阈值告警而非无限缩小）；缩放与重复块占位的交互复验。含缩放用例 golden（Deliverable: 缩放策略 + 测试；deps: WI1；Item Type: Feature）
-- [ ] WI3 分页边界健壮性：超页行（单行高于打印区）、跨拆分边界的合并单元格重建/裁剪策略、手动分页符（rowBreaks/colBreaks）、空白尾行尾列裁剪、重复块的边界一致性。含边界用例 golden（Deliverable: 边界处理 + 测试；deps: WI2；Item Type: Feature）
+- [x] WI3 分页边界健壮性：超页行（单行高于打印区）、跨拆分边界的合并单元格重建/裁剪策略、手动分页符（rowBreaks/colBreaks）、空白尾行尾列裁剪、重复块的边界一致性。含边界用例 golden（Deliverable: 边界处理 + 测试；deps: WI2；Item Type: Feature）
 
 ### M2 — 页眉页脚（headers/footers）
 

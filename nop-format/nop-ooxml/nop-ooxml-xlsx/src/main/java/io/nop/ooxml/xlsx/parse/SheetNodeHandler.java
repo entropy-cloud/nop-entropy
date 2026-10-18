@@ -114,6 +114,11 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
      */
     private boolean pageSetUpPrFitToPage;
 
+    /**
+     * rowBreaks/colBreaks 容器状态：brk 叶子在 beginNode 解析时需要知道归属（WI3）
+     */
+    private boolean inRowBreaks;
+
     private ExcelDataValidation dataValidation;
     private final StringBuilder validationFormula = new StringBuilder(64);
     private boolean vfOpen = false;
@@ -317,6 +322,15 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             String rId = getAttr(attrs, "r:id");
             if (ref != null)
                 output.link(ref, location, rId);
+        } else if ("rowBreaks".equals(localName)) {
+            inRowBreaks = true;
+        } else if ("colBreaks".equals(localName)) {
+            inRowBreaks = false;
+        } else if ("brk".equals(localName)) {
+            // <brk id="10" max="16383" man="1"/>：0-based，break 发生在该行/列之后
+            int id = getAttrInt(attrs, "id", -1);
+            if (id >= 0)
+                output.pageBreak(inRowBreaks, id);
         } else if ("pageSetUpPr".equals(localName)) {
             // <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
             pageSetUpPrFitToPage = getAttrBoolean(attrs, "fitToPage", false);
@@ -408,6 +422,8 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
     @Override
     public void endNode(String localName) {
+        if ("rowBreaks".equals(localName) || "colBreaks".equals(localName))
+            inRowBreaks = false;
         if ("c".equals(localName)) {
             outputCell();
             value.setLength(0);

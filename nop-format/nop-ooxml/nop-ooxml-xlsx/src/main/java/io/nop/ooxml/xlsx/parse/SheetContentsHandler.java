@@ -45,6 +45,14 @@ public interface SheetContentsHandler {
 
     }
 
+    /**
+     * 手动分页符（WI3）：rowBreak 为 true 时 id 为行索引，否则为列索引（0-based，
+     * break 发生在该行/列之后）。
+     */
+    default void pageBreak(boolean rowBreak, int id) {
+
+    }
+
     void sheetFormat(Double defaultRowHeight);
 
     /**

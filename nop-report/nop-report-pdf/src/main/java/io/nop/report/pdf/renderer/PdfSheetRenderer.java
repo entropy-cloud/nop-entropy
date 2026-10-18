@@ -12,6 +12,7 @@ import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.utils.TableSplitHelper;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelHeaderFooter;
+import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
@@ -32,6 +33,8 @@ import org.apache.pdfbox.util.Matrix;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import static io.nop.report.pdf.ReportPdfErrors.ARG_PRINT_TITLE_RANGE;
 import static io.nop.report.pdf.ReportPdfErrors.ERR_PDF_UNSUPPORTED_PRINT_TITLES;
@@ -62,7 +65,7 @@ public class PdfSheetRenderer {
         // N 页宽目标都需要列分页（后者正是达成目标的机制），故恒启用。
         boolean enableColumnPaging = true;
 
-        ITableView table = sheet.getTable();
+        ITableView table = trimTrailingBlank(sheet.getTable());
 
         // 重复块占位（页容量扣减与 fit 目标公式共用）
         double repeatWidth = repeatCols > 0 ? table.getRangeWidth(0, repeatCols - 1, sheet.defaultColumnWidth()) : 0;
@@ -73,11 +76,17 @@ public class PdfSheetRenderer {
         double scale = resolveScale(sheet, pageSetup, printArea, repeatWidth, repeatHeight);
         scale = clampByMinFontSize(sheet, scale);
 
+        // 手动分页符（WI3）：模型 pageBreaks（0-based break-after），fit scale 与 breaks 无关，
+        // 手动 break 优先强制提前分页——实际页数可超过 fit 目标页数
+        Set<Integer> rowBreaks = extractBreaks(sheet, table, true);
+        Set<Integer> colBreaks = extractBreaks(sheet, table, false);
+
         // 第一遍：按缩放后完整页容量拆分。单页能放下则不做任何重复
         List<CellRange> tableRegions = TableSplitHelper.splitTable(table,
                 Math.max(50, printArea.getWidth() / scale),
                 Math.max(50, printArea.getHeight() / scale),
-                sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging);
+                sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging,
+                rowBreaks, colBreaks);
         if (tableRegions.size() <= 1) {
             renderSheet(sheet, pagerSize, printArea, null, repeatRows, repeatCols, scale);
             return;
@@ -88,7 +97,8 @@ public class PdfSheetRenderer {
             tableRegions = TableSplitHelper.splitTable(table,
                     Math.max(50, (printArea.getWidth() - repeatWidth) / scale),
                     Math.max(50, (printArea.getHeight() - repeatHeight) / scale),
-                    sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging);
+                    sheet.defaultColumnWidth(), sheet.defaultRowHeight(), enableColumnPaging,
+                    rowBreaks, colBreaks);
         }
 
         for (CellRange region : tableRegions) {
@@ -185,6 +195,58 @@ public class PdfSheetRenderer {
         }
         // 空表/无样式单元格：回退缺省字号
         return min == Float.MAX_VALUE ? PdfStyleHelper.DEFAULT_FONT_SIZE : min;
+    }
+
+    /**
+     * 空白尾行尾列裁剪（WI3）：尾部连续"无值且无样式"的行/列不参与分页（Excel used-range 语义；
+     * style-only 行保留——模板尾部边框行属内容）。仅尾部截断不改变保留行/列下标，区域坐标与
+     * renderImages 的全表锚点坐标基不变。全空表回退原表。
+     */
+    private ITableView trimTrailingBlank(ITableView table) {
+        int lastRow = -1;
+        int lastCol = -1;
+        for (int i = 0, rowCount = table.getRowCount(); i < rowCount; i++) {
+            for (int j = 0, colCount = table.getColCount(); j < colCount; j++) {
+                ICellView cell = table.getCell(i, j);
+                if (cell != null && hasContent(cell)) {
+                    if (i > lastRow)
+                        lastRow = i;
+                    if (j > lastCol)
+                        lastCol = j;
+                }
+            }
+        }
+        if (lastRow < 0 || lastCol < 0)
+            return table;
+        if (lastRow == table.getRowCount() - 1 && lastCol == table.getColCount() - 1)
+            return table;
+        return table.getSubTable(0, 0, lastRow, lastCol).clip();
+    }
+
+    private boolean hasContent(ICellView cell) {
+        Object value = cell.getValue();
+        if (value instanceof String ? !StringHelper.isEmpty((String) value) : value != null)
+            return true;
+        return !StringHelper.isEmpty(cell.getStyleId());
+    }
+
+    /**
+     * 提取手动分页符（0-based break-after）：去重排序、过滤越界与末位 no-op（末行/列后 break 会产生空页）。
+     */
+    private Set<Integer> extractBreaks(IExcelSheet sheet, ITableView table, boolean rowBreaks) {
+        ExcelPageBreaks breaks = sheet.getPageBreaks();
+        if (breaks == null)
+            return null;
+        List<Integer> ids = rowBreaks ? breaks.getRows() : breaks.getCols();
+        if (ids == null || ids.isEmpty())
+            return null;
+        int limit = rowBreaks ? table.getRowCount() : table.getColCount();
+        Set<Integer> ret = new TreeSet<>();
+        for (Integer id : ids) {
+            if (id != null && id >= 0 && id < limit - 1)
+                ret.add(id);
+        }
+        return ret.isEmpty() ? null : ret;
     }
 
     /**

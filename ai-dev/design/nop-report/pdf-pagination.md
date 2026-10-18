@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1 Print_Titles）；plan 2465（WI2 fit 缩放）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1 Print_Titles）；plan 2465（WI2 fit 缩放）；plan 2466（WI3 分页边界）
 
 ## 决策
 
@@ -34,6 +34,16 @@
 - **列分页**：fitToWidth 语义下恒启用列分页（N 页宽目标正是靠列分页达成；宽度不约束时同样需要），旧的 `fitToWidth=false` 禁用分支随 boolean 语义废弃。
 - fit×重复块：fit 缩放分页下续页/侧页仍按 D1/D2 重复标题块（`TestPdfFitScaleRender` 复验）。
 
+### D6 分页边界语义（WI3）
+
+- **手动分页符**：复用既有 `ExcelSheet.pageBreaks`（`ExcelPageBreaks.rows/cols` int-list，此前为无解析无消费的死字段）作为唯一表示（SSOT），语义定为 **0-based 索引、break 发生在该行/列之后**（该行/列为页内最后一行/列，对齐 OOXML brk@id）。`SheetNodeHandler` 解析 `<rowBreaks>/<colBreaks>/<brk>`（brk 无 id 忽略）写入该字段；`TableSplitHelper` 新增 break 感知重载（旧签名委托空集，行为零变化）；渲染器过滤越界与末位 no-op 后传入两遍拆分。
+- **fit×breaks**：fit scale 按无 break 的表尺寸计算（与 breaks 无关），手动 break 优先强制提前分页——实际页数可超过 fit 目标 N。这是与真实 Excel（fit 模式忽略手动 break）的有意分歧：break 是用户显式意图，优先于 fit 估算。
+- **超页行**（单行高于页内容区）：独立成页，页外内容靠 PDF MediaBox 裁切（页边距区域可见渗漏——表格绘制无显式 clip，clip rect 仅用于图片）；前后行不丢（`row > startRow` 守卫 + startRow 正确推进）。与 Excel 打印行为一致，不做行内拆分。
+- **合并单元格跨拆分边界**：D2 的裁剪视觉裁定扩展到行拆分方向——`getSubTable(region).clip()` 裁剪跨边界 span，锚点内容落在锚点所在页，无异常不丢行。
+- **空白尾行尾列裁剪**：渲染入口截断尾部连续"无值且无样式"的行/列（style-only 行保留——模板尾部边框行属内容）；仅尾部截断不改变保留行/列下标，区域坐标与图片全表锚点坐标基不变；全空表回退原表。
+- **重复块边界**：拆分点落在重复前缀内部时按既有 `k=min(repeatRows, firstRowIndex)` clamp，不产生内容丢失。
+- **防御**：`TableSplitHelper` 对 0 行/0 列表直接返回空（0 列表在列分页分支曾死循环——startCol 永不推进，回归钉 `testZeroColumnTableTerminates`）。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。
@@ -53,10 +63,11 @@
 ## 涉及实现
 
 - `nop-ooxml-xlsx/.../parse/ExcelWorkbookParser.java`（Print_Titles definedNames 解析归一化）
-- `nop-ooxml-xlsx/.../parse/SheetNodeHandler.java`（pageSetup scale/fit 属性 + pageSetUpPr fitToPage 门控）
+- `nop-ooxml-xlsx/.../parse/SheetNodeHandler.java`（pageSetup scale/fit 属性 + pageSetUpPr fitToPage 门控 + rowBreaks/colBreaks/brk 解析）
 - `nop-excel/.../print/ExcelPrintHelper.java`（title range 解析/前缀判定）
-- `nop-excel` 模型：`ExcelPageSetup.repeatTitleRows/repeatTitleCols`、`fitToWidth/fitToHeight`（page-setup.xdef）
-- `nop-report-pdf/.../renderer/PdfSheetRenderer.java`（两遍拆分、模型优先解析、重复块渲染、页脚标记）
+- `nop-excel` 模型：`ExcelPageSetup.repeatTitleRows/repeatTitleCols`、`fitToWidth/fitToHeight`（page-setup.xdef）；`ExcelPageBreaks`（workbook.xdef，既有字段启用）
+- `nop-report-pdf/.../renderer/PdfSheetRenderer.java`（两遍拆分、模型优先解析、重复块渲染、手动分页符接入、空白尾裁剪、页脚标记）
+- `nop-core/.../utils/TableSplitHelper.java`（break 感知拆分重载 + 0 行/0 列防御）
 - `nop-report-pdf/.../renderer/PdfRenderer.java`（页面跟踪、`drawDefaultPageNumbers`）
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
 - `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪）
@@ -69,6 +80,9 @@
 - `TestPdfPrintTitlesRender`：续页标题重复与数据完整性、模型优先于配置缺省、非前缀 fail-loud、golden+区域采样视觉验收
 - `TestPdfFitScaleRender`：fit 2×1 目标页数（恰 2 页+关键列重复）、scale 页容量修正（scale=50 页数减半）、最小字号收敛（页数超目标）、fit×重复块、golden
 - `TestSheetNodeHandlerPageSetup`：fitToPage 门控四形态
+- `TestSheetNodeHandlerPageBreaks`：rowBreaks/colBreaks 解析
+- `TestTableSplitHelperBreaks`：break 拆分（行/列/越界/末位/容量叠加/行-only/0 列防御）
+- `TestPdfPageBoundaries`：手动分页符精确分页、fit×breaks、超页行、合并单元格跨页、空白裁剪、style-only 不裁、重复块边界、golden
 - `TestPdfRenderDefects`：F3（列拆分关键列重复）、F4（续页表头重复）红转绿；F6 回归钉（重复表头按需多次绘制，其余行只绘制一次）
 - `TestPdfSheetRenderFixes`：单页小表不受影响（无重复、打印区平移不变）
 - `TestPdfExportAudit`：20 模板批量导出复检
