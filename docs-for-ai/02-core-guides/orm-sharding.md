@@ -47,6 +47,8 @@ Nop 的分片是 **ORM 执行层的分片路由**：实体声明 `useShard` + `s
 
 **读路径**（plan 2320）：EQL/QueryBean 编译时定位 shardProp **等值条件**（参数或字面量形态），将参数序号/字面量作为静态信息写入 TABLE marker；执行期 `GenSqlTransformer` 从当次 paramValues 取值路由，改写表名后缀并切换 querySpace。与查询计划缓存兼容：编译产物静态、路由动态（N 分片 → N 个 PreparedStatement 缓存条目）。
 
+租户作为分片键（database-per-tenant / schema-per-tenant）的用法见 `tenant-model.md` 的「库/模式级租户」；本页只描述路由机制。
+
 条件定位范围（v1 边界）：语句顶层 WHERE 与显式 JOIN 的 ON 条件中 **AND 连通**的等值条件；两分片列等值（`o.shard = s.shard`）触发同值传播（绑定表语义：同策略两实体落同一 querySpace + 同名后缀）。OR/NOT 分支与子查询内部不下探——无法推出语句级单分片值，交由 missing-shard-policy 裁决。一条 SQL 内所有 useShard 实体解析出的 querySpace 必须一致，否则 `ERR_ORM_NOT_SUPPORT_MULTIPLE_QUERY_SPACE_IN_ONE_SQL`（既有约束）。
 
 ## 缺分片键策略

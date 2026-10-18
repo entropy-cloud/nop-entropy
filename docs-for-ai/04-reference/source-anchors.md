@@ -244,6 +244,23 @@
 | `ORM-DYN-003` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/persister/EntityPersisterImpl.java` | `init()` 中 **eager** 调用 `getEntityConstructor`，故未查询的实体类缺失也会让 SessionFactory 初始化失败 |
 | `ORM-DYN-004` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/support/OrmEntity.java` | `_t` 字段仅为临时/缓存属性（`orm_unload()` 清空），**不是**扩展字段存储 |
 
+## nop-orm 分片/可观测/事件/逆向锚点
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `ORM-SHARD-001` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/shard/ShardSelection.java` | `(querySpace, shardName)` 二元组：库分片 + 表分片的统一表达 |
+| `ORM-SHARD-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/shard/ShardStrategy.java` | `query-space-pattern` / `table-pattern` / `missing-shard-policy` / 实体绑定 |
+| `ORM-SHARD-003` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/sql/GenSqlTransformer.java` | 执行期按 `ShardSelection` 改表名并切 querySpace；一条 SQL 禁止多 querySpace |
+| `ORM-OBS-001` | `nop-kernel/nop-core/src/main/java/io/nop/core/stat/GlobalStatManager.java` | JVM 级 SQL/RPC 统计；`JdbcSqlStat` per-SQL 耗时/错误/批次/直方图 |
+| `ORM-OBS-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/metrics/DaoMetricsImpl.java` | Micrometer + GlobalStatManager 双写；`IDaoMetrics` 实现 |
+| `ORM-OBS-003` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/metrics/IOrmMetrics.java` | ORM session/实体 load/save/update/delete 计数 |
+| `ORM-OBS-004` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/metrics/IDaoMetrics.java` | 连接/查询/更新/批处理计时与计数 |
+| `ORM-EVT-001` | `nop-persistence/nop-orm/src/main/java/io/nop/orm/IOrmInterceptor.java` | pre/postSave/Update/Delete、pre/postFlush；配合 `orm_dirtyOldValues/NewValues` |
+| `ORM-EVT-002` | `nop-persistence/nop-dao/src/main/java/io/nop/dao/txn/ITransactionTemplate.java` | `afterCommit(txnGroup, Runnable)`：提交后动作/领域事件发布入口 |
+| `ORM-REV-001` | `nop-persistence/nop-dbtool/nop-dbtool-core/src/main/java/io/nop/dbtool/core/discovery/jdbc/JdbcMetaDiscovery.java` | 数据库逆向：JDBC 元数据 → `DataBaseMeta`/`OrmModel` |
+| `ORM-REV-002` | `nop-runner/nop-cli-core/src/main/java/io/nop/cli/commands/CliReverseDbCommand.java` | `reverse-db` CLI：逆向生成 orm.xml / Excel |
+| `ORM-REV-003` | `nop-persistence/nop-dbtool/nop-dbtool-core/src/main/java/io/nop/dbtool/core/diff/OrmDbDiffer.java` | 模型-活库 diff（与迁移执行器分离） |
+
 ## nop-stream 锚点
 
 | 规则 ID | 锚点 | 说明 |

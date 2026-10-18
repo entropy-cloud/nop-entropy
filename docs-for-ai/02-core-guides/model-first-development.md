@@ -320,6 +320,13 @@ NopAuthUser (平台模块实体)
 6. 若 `NopAuthUserEx.java`（保留层）还不存在，手写一个继承 `_NopAuthUserEx` 的空类
 7. `mvn install` 编译
 
+## 从现有数据库反向生成模型（reverse-db）
+
+- **入口**：`nop-cli` 的 `reverse-db` 命令（`CliReverseDbCommand`）；核心实现 `JdbcMetaDiscovery`（`nop-dbtool-core`），产出 `DataBaseMeta` → `OrmModel`，可保存为 `orm.xml` 或 Excel。
+- **用途**：存量库接入、遗留系统建模。生成后仍以 `model/*.orm.xml` 为源，后续 codegen 流程不变。
+- **与迁移的区别**：`OrmDbDiffer`/`DataBaseUpgrader` 负责「模型 ↔ 活库」diff（默认只加不 drop）；版本化迁移由 `nop-db-migration` 负责，二者不要混用。
+- **命名说明**：当前 master 没有名为 `DbDiscovery` 的类；等价能力入口是 `JdbcMetaDiscovery` + `reverse-db`（若你指的是其他分支的新类，以该分支为准）。
+
 ## AI 的默认修改顺序
 
 | 目标 | 默认修改位置 |

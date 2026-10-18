@@ -118,6 +118,16 @@ dao().executeUpdate("delete from MyEntity o where o.id = ?", id);
 
 两者是互补关系：租户过滤是**硬隔离**（ORM 层强制），数据权限是**软过滤**（BizModel 层追加）。租户过滤始终在数据权限之前执行。
 
+## 库/模式级租户（ShardSelector）
+
+`useTenant` 是**行级**隔离；需要 database-per-tenant / schema-per-tenant 时用 ShardSelector 的 querySpace 切换表达，不需要新增多租户策略：
+
+- 实体声明 `useShard="true" shardProp="tenantId"`（租户值必须进入 SQL 条件，或由 `missing-shard-policy` 显式回落）；
+- `nop.orm.shard` 策略的 `query-space-pattern` 按租户/分片名映射 querySpace（如 `ds_{shard}`）；每个 querySpace 的 DataSource 指向目标库或目标 schema；
+- 表级租户用 `table-pattern`（`{table}_{shard}`）。
+
+边界：`ShardSelection(querySpace, shardName)` 一条 SQL 内只能有一个 querySpace；L1 身份键仍是 `(entityName,id)`，跨租户共用 session 时要求 id 全局唯一；DDL N 表展开只针对表分片，库/模式级租户按 querySpace 分别建库/建 schema。完整配置见 `orm-sharding.md`。
+
 ## 临时切换租户
 
 ### 在指定租户上下文中运行
@@ -206,3 +216,4 @@ VFS 路径解析的第一个步骤是检查 `/_tenant/{tenantId}/...`（见 `vfs
 - `auth-and-permissions.md` — 数据权限（软过滤）与租户隔离的配合
 - `vfs-and-resource-resolution.md` — VFS Tenant 层解析
 - `safe-api-reference.md` — 安全 API 速查
+- `orm-sharding.md` — 库/表分片路由（库/模式级租户的 querySpace 切换）

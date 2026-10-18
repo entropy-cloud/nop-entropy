@@ -265,6 +265,12 @@ view.xml 到 JSON 的翻译由 `nop-web` 模块的 xpl 模板完成：
 - 无需改动任何应用配置属性；如需临时排查，也可以在线上通过日志管理接口动态调整该 logger 级别。
 - 对应实现：`JdbcHelper.SQL_LOG`（nop-dao），测试参见 `TestSqlLogSwitch`。
 
+### 指标与统计（GlobalStatManager / ORM-DAO metrics）
+
+- `GlobalStatManager`（JVM 级单例，`nop-core`）：按 SQL 文本聚合 `JdbcSqlStat`（执行次数/成功/失败、平均/最大耗时、并发、batch、fetch/update 行数、直方图、`lastSlowParameters`）；`getAllJdbcSqlStat(orderByAvgTime)` / `clear()`；容量 `nop.core.stat.sql-cache-max-size`（默认 1000）。
+- `DaoMetricsImpl`：同时写 Micrometer（`GlobalMeterRegistry`）与 `GlobalStatManager`；`IOrmMetrics` 提供 session/load/save/update/delete 计数；`ITransactionMetrics` 提供事务 open/success/failure。
+- **现状边界**：`lastSlowParameters` 无生产 setter，慢查询捕获尚未接线；无 N+1 检测、SQL 审计、OTel tracing（全仓无 OTel 依赖）。这些缺口与补全方向见 `observability-defaults.md`。
+
 ## 启动与调试 Quarkus 应用
 
 Nop 平台的 `*-app` 模块基于 Quarkus。以 `nop-code-app` 为例：

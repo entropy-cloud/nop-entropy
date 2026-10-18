@@ -25,6 +25,14 @@
 - **采纳的默认（Decisions 已裁决，no pin-back）**：Q4 的 OTLP exporter `http/protobuf` / port **4318** 默认与 **10%** trace sampling 默认。未来引入 `quarkus-opentelemetry` 时（WI16 GA 后按需求驱动引入，非 WI16 交付面），**不得**配置回 grpc/4317 或调整 sampling 以"还原旧行为"。
 - 若某环境确需覆盖 endpoint，只允许覆盖 `quarkus.otel.exporter.otlp.*` 的 endpoint 值本身，协议与端口默认不动。
 
+## ORM/DAO 观测现状与缺口
+
+- **指标**：`IOrmMetrics`（`nop.orm.sessions.*` / `nop.orm.entities.*`）、`IDaoMetrics`（连接/查询/更新/批处理）、`ITransactionMetrics`（事务 open/success/failure）、`GlobalStatManager` 的 `JdbcSqlStat`（JVM 级 per-SQL 统计：耗时/并发/直方图/行数）。
+- **日志**：SQL logger `io.nop.dao.sql`（`nop.jdbc.run:usedTime=...`）。
+- **其他统计面（各自 owner，不并入 ORM 指标）**：`IWithStats<T>`（`nop-commons` 通用 stats 接口）、`CacheStats`、`ThreadPoolStats`、`PoolStats`、`TaskQueueStats`（`nop-core`）、task-flow 的 `resetGlobalStats`（限流器/信号量统计重置，`nop-task`）。
+- **缺口（未实现、无默认）**：N+1 检测、慢查询捕获（`JdbcSqlStat.lastSlowParameters` 无生产 setter）、SQL 审计、OTel tracing（全仓无 `opentelemetry` 依赖）。
+- **补全约束**：不得新建第二套统计——优先扩展 `GlobalStatManager` / `IOrmMetrics` / `IDaoMetrics`，并复用 `GlobalMeterRegistry`；OTel 引入须遵守上文 Q4 默认（http/protobuf 4318、10% sampling）。
+
 ## 变更纪律
 
 1. 改动本 doc 记录的任何默认 = 改变运行时行为，须走 roadmap/plan 流程并在本 doc 留痕。

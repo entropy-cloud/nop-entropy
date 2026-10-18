@@ -332,6 +332,13 @@ protected Integer processSingleItem(String itemId) {
 
 `JobCompletionProcessorImpl.scanBatch()` → `completeSingleFire(String fireId)`
 
+## 提交后动作与领域事件
+
+- **变更捕获**：`IOrmInterceptor` 的 `pre/postSave/Update/Delete`，配合 `IOrmEntity.orm_dirtyOldValues()` / `orm_dirtyNewValues()` 取得字段级前后值；实体也可实现 `IOrmEntityLifecycle`；`IOrmDaoListener` 覆盖每次 DB 访问（含 EQL，即使返回空集也触发）。
+- **提交后发布**：用 `ITransactionTemplate.afterCommit(txnGroup, Runnable)`（`nop-datav` 已有使用）；不要在 `postSave` 中直接发布未提交事件。
+- **outbox**：在同一 session 中保存普通事件实体，与业务写同事务落库；不需要新增 ORM API。
+- 实体→领域事件的映射、去重与重试放在应用/集成层，ORM 只提供实体变更事实。
+
 ## 关键 API
 
 | API | 用途 |
@@ -346,3 +353,4 @@ protected Integer processSingleItem(String itemId) {
 | `dao.requireEntityById(id)` | 按 ID 查询，不存在则抛异常 |
 | `entity.orm_unload()` | 将实体重置为 proxy 状态，同时清除 dirty/readonly；下次读取时从 DB 重新加载（见模式四） |
 | `session.refresh(entity)` | 显式从 DB 刷新实体字段（内部调用 `orm_unload()` + `internalLoad()`）|
+| `transactionTemplate.afterCommit(txnGroup, action)` | 事务提交后执行动作（领域事件/outbox 发布入口）|
