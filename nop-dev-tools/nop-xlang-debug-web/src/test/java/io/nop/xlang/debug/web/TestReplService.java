@@ -196,6 +196,70 @@ public class TestReplService extends AbstractDebugGatewayTest {
         }
     }
 
+    /**
+     * plan 2478 SEC-01/02/03 三探针（item 25 审计）：词法 IMPORT_PATTERN 的三形态绕过
+     * 必须被 parse-only AST 白名单校验拒绝。探针为良性形态（仅 import+return 常量，
+     * 不含危险调用）——修复前红 = 请求成功无 400。
+     */
+    @Test
+    public void testAstImportBypassProbes() {
+        ReplService service = newService((perm, ctx) -> true);
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+
+        // SEC-01：无分号 ASI import（词法 ^\s*import\s+[\w.]+\s*; 强制分号——零匹配）
+        // SEC-03：字面量 xlib import（[\w.]+ 无法匹配带引号路径）
+        String[] probes = {
+                "import io.nop.core.CoreConstants\nreturn 1;",
+                "import \"/nop/core/xlib/test.xlib\" as T;\nreturn 1;"};
+        for (String bad : probes) {
+            ReplAccessException e = org.junit.jupiter.api.Assertions.assertThrows(
+                    ReplAccessException.class,
+                    () -> service.execute(sessionId, bad, null, headers(TOK_U1)));
+            assertEquals(400, e.getHttpStatus(), "AST 白名单拒绝: " + bad);
+        }
+
+        // SEC-02：同行双 import——首项在白名单、次项白名单外，次项必须被拒
+        //（词法层首 match 后同行 ^ 锚定失效，对次项零校验）
+        runtime.setImportWhitelist("java.lang.String");
+        try {
+            ReplAccessException e = org.junit.jupiter.api.Assertions.assertThrows(
+                    ReplAccessException.class,
+                    () -> service.execute(sessionId,
+                            "import java.lang.String; import io.nop.core.CoreConstants; return 1;",
+                            null, headers(TOK_U1)));
+            assertEquals(400, e.getHttpStatus(), "SEC-02 同行第二 import 须被拒绝");
+            Map<String, Object> ok = service.execute(sessionId,
+                    "import java.lang.String; return 1;", null, headers(TOK_U1));
+            assertEquals(Boolean.TRUE, ok.get("ok"));
+        } finally {
+            runtime.setImportWhitelist("");
+        }
+    }
+
+    /** plan 2478 SEC-04/06：REPL 编译面禁用零 import 能力面函数（inject/loadDslModel/loadDeltaJson）与正则构造（RegExp/正则字面量）。 */
+    @Test
+    public void testBannedConstructs() {
+        ReplService service = newService((perm, ctx) -> true);
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+
+        String[] banned = {
+                "return inject('nopDao');",
+                "return loadDslModel('/nop/demo/orm/app.orm.xml');",
+                "return loadDeltaJson('/nop/demo/x.json');",
+                "return new RegExp('(a+)+$').test('aaa');",
+                "return /(a+)+$/.test('aaab');"};
+        for (String bad : banned) {
+            ReplAccessException e = org.junit.jupiter.api.Assertions.assertThrows(
+                    ReplAccessException.class,
+                    () -> service.execute(sessionId, bad, null, headers(TOK_U1)));
+            assertEquals(400, e.getHttpStatus(), "禁用构造拒绝: " + bad);
+        }
+    }
+
     /** D6 §3.4：结果 1MB 截断 + truncated 标记。 */
     @Test
     public void testResultTruncation() {

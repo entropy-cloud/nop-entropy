@@ -33,8 +33,6 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Semaphore;
 import java.util.function.Consumer;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static io.nop.xlang.debugger.session.XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_COMPILE_TIMEOUT;
 import static io.nop.xlang.debugger.session.XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_EXECUTE_TIMEOUT;
@@ -61,12 +59,9 @@ public class ReplService {
     public static final int MAX_RESULT_BYTES = 1024 * 1024;
     private static final int SOURCE_PREVIEW_LEN = 200;
 
-    private static final Pattern IMPORT_PATTERN = Pattern.compile("(?m)^\\s*import\\s+([\\w.]+)\\s*;");
-    private static final Pattern ASYNC_PATTERN = Pattern.compile("\\b(Promise|async|await)\\b");
-    private static final Pattern RESERVED_ID_PATTERN = Pattern.compile("\\b__repl");
-
     private final DebugGatewayRuntime runtime;
     private final ReplAccessGuard guard;
+    private final ReplSourceValidator sandboxValidator = new ReplSourceValidator();
     private final Semaphore globalPermits;
     private final Set<String> inFlightSessions = ConcurrentHashMap.newKeySet();
     /** 审计事件消费口（生产 = 结构化日志；测试注入捕获）。 */
@@ -97,7 +92,6 @@ public class ReplService {
         long start = System.currentTimeMillis();
         IUserContext ctx = guard.checkAccess(headers, ReplAccessGuard.PERM_COMPILE);
         checkSourceSize(source);
-        validateSandbox(source);
 
         String actor = ctx.getUserId();
         long deadline = System.currentTimeMillis()
@@ -110,8 +104,14 @@ public class ReplService {
         try {
             List<Map<String, Object>> diagnostics = new ArrayList<>();
             try {
+                // 沙箱校验先于 compileFullExpr（xlib import 的编译期宏执行发生在 compile
+                // 阶段）；语法错误落诊断、白名单违规以 400 抛出（卫语句防被下方
+                // catch(Exception) 吞成诊断——plan 2478 Phase 1 放置约束）
                 SourceLocation loc = sourcePath == null ? null : SourceLocation.fromLine(sourcePath, 1);
+                validateSandbox(source, loc);
                 XLang.newCompileTool().compileFullExpr(loc, source);
+            } catch (ReplAccessException e) {
+                throw e;
             } catch (NopException e) {
                 Map<String, Object> diagnostic = new LinkedHashMap<>();
                 SourceLocation errLoc = e.getErrorLocation();
@@ -157,7 +157,6 @@ public class ReplService {
             throw new ReplAccessException(403, "nop.err.xlang.debugger.session-bound-elsewhere",
                     "session not repl-eligible: " + sessionId);
         checkSourceSize(source);
-        validateSandbox(source);
         // debugger.enabled 执行期谓词复查（D6 §一.5 运行层门控：运行期翻 false 即拒绝）
         if (!enabledPredicate.getAsBoolean())
             throw new ReplAccessException(403, "xlang debugger execution disabled");
@@ -184,6 +183,11 @@ public class ReplService {
         String auditResult;
         try {
             channel.begin(deadline);
+            // 沙箱校验先于 compileFullExpr（plan 2478）；语法错误 NopException 由下方
+            // catch 映射 ok:false 响应（不可逃逸到壳——壳对非 ReplAccessException 映射 500），
+            // 白名单/禁用构造违规以 400 卫语句抛出
+            SourceLocation replLoc = SourceLocation.fromLine("repl.xpl", 1);
+            validateSandbox(source, replLoc);
             // 直接以会话融合执行器为根入口（不依赖环境注册的全局执行器——测试/嵌入
             // 场景全局链可能是裸 default，嵌套入口将绕过 deadline 检查）；自线程化保证
             // while 回边等嵌套入口 per-entry 检查。标记窗口仍保留：编译期求值路由会话
@@ -196,6 +200,8 @@ public class ReplService {
             });
             response = successResponse(value);
             auditResult = "ok";
+        } catch (ReplAccessException e) {
+            throw e;
         } catch (ReplCancelledError e) {
             boolean isTimeout = "nop.err.xlang.debugger.repl-timeout".equals(e.getErrorCode());
             response = errorResponse(e.getErrorCode(), e.getErrorMessage(), true);
@@ -265,20 +271,12 @@ public class ReplService {
             throw new ReplAccessException(413, "source exceeds " + max + " bytes");
     }
 
-    /** D6 §3.3 编译面校验（词法近似边界——假阳/假阴声明见 plan；运行时强制归 item 25）。 */
-    void validateSandbox(String source) {
-        Set<String> whitelist = importWhitelist();
-        Matcher matcher = IMPORT_PATTERN.matcher(source == null ? "" : source);
-        while (matcher.find()) {
-            String target = matcher.group(1);
-            if (!whitelist.contains(target))
-                throw new ReplAccessException(400, "import not allowed by REPL whitelist: " + target);
-        }
-        if (source != null && ASYNC_PATTERN.matcher(source).find())
-            throw new ReplAccessException(400,
-                    "Promise/async constructs are disabled in REPL (cancellation unsafety)");
-        if (source != null && RESERVED_ID_PATTERN.matcher(source).find())
-            throw new ReplAccessException(400, "reserved identifier __repl* is not allowed");
+    /**
+     * D6 §3.3 编译面校验（plan 2478 修订：parse-only AST 遍历 + 正则字面量 token 判别，
+     * 机制与残余面见 {@link ReplSourceValidator}）。
+     */
+    void validateSandbox(String source, SourceLocation loc) {
+        sandboxValidator.validate(source, loc, importWhitelist());
     }
 
     private Set<String> importWhitelist() {

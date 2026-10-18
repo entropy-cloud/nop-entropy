@@ -65,30 +65,32 @@
 
 ### Phase 1 - AST/token 沙箱校验器 + REPL 编译面禁用清单（SEC-01/02/03/04/06）
 
-Status: planned
+Status: completed
 Targets: `nop-dev-tools/nop-xlang-debug-web`（新增共享校验器 + ReplService 接线）
 
 - Item Types: `Fix`（SEC-01/02/03 为已确认 live defect；SEC-04/06 为已确认深度防御缺口）
 
-- [ ] 新增共享沙箱校验器（nop-xlang-debug-web 内，如 `ReplSourceValidator`），两级机制：
+- [x] 新增共享沙箱校验器（nop-xlang-debug-web 内，如 `ReplSourceValidator`），两级机制：
   - parse-only AST 遍历：`XLang.newCompileTool().parseFullExpr` 得 `Program`，枚举 body 全部 `ImportAsDeclaration`——`isImportClass()` 取 `getImportClassName()`、`isImportLib()` 取 `getImportLibPath()`，统一对照白名单（默认拒绝）；同时按标识符拒绝 `RegExp`/`inject`/`loadDslModel`/`loadDeltaJson`（词层 `__repl*`、Promise/async 既有检查保留）
   - token 级预扫描：`XLangLexer` token 流按 `RegularExpressionLiteral` 类型精确判别正则字面量（AST 层不可识别——经 R1 核实为普通字符串 Literal）
   - 语法错误原样抛 NopException（交调用方按诊断/拒绝语义处理），不静默放行
-- [ ] ReplService.compile/execute 接线：validateSandbox 改为"词法快检 + 校验器（AST+token）"两段，校验先于任何 compileFullExpr 调用；**放置约束**：compile() 中校验器的 NopException 须落在既有 `catch (NopException)` → diagnostics 的 try 块内（语法错误→诊断返回），校验违规的 ReplAccessException 在其外（→400）；两异常无法从同一次调用自然分流（既有 `catch (Exception)` 会吞 ReplAccessException 成诊断）——用 rethrow 卫语句（catch 内 instanceof ReplAccessException 先 rethrow）或拆 parse/违规两段调用
-- [ ] token 预扫描实现注意：过滤 hidden channel（空白/注释）token；lexer 错误 token（UnexpectedCharacter）交由后续 AST 解析显式报错（不静默放行）
-- [ ] 回归测试（TestReplService 扩展，**红探针安全形态**：探针 payload 仅"import + return 常量"，修复前红 = 请求成功无 400，不真实执行危险调用）：
+- [x] ReplService.compile/execute 接线：validateSandbox 改为"词法快检 + 校验器（AST+token）"两段，校验先于任何 compileFullExpr 调用；**放置约束**：compile() 中校验器的 NopException 须落在既有 `catch (NopException)` → diagnostics 的 try 块内（语法错误→诊断返回），校验违规的 ReplAccessException 在其外（→400）；两异常无法从同一次调用自然分流（既有 `catch (Exception)` 会吞 ReplAccessException 成诊断）——用 rethrow 卫语句（catch 内 instanceof ReplAccessException 先 rethrow）或拆 parse/违规两段调用
+- [x] token 预扫描实现注意：过滤 hidden channel（空白/注释）token；lexer 错误 token（UnexpectedCharacter）交由后续 AST 解析显式报错（不静默放行）
+- [x] 回归测试（TestReplService 扩展，**红探针安全形态**：探针 payload 仅"import + return 常量"，修复前红 = 请求成功无 400，不真实执行危险调用）：
   - 无分号 import（SEC-01）、同行双 import 且首项在白名单（SEC-02）、字面量 xlib import（SEC-03）全部 400 拒绝
   - `new RegExp`/正则字面量/`inject(...)`/`loadDslModel(...)`/`loadDeltaJson(...)` 400 拒绝
   - 白名单内 FQN 合法放行（既有 testSandboxValidation 用例不回归）
-- [ ] **判别力探针**：对 validateSandbox 词法正则做删除变异，确认 AST/token 层独立拦截（不依赖词法层）；修复前红/修复后绿的探针证据记入本 plan
+- [x] **判别力探针**：对 validateSandbox 词法正则做删除变异，确认 AST/token 层独立拦截（不依赖词法层）；修复前红/修复后绿的探针证据记入本 plan
 
 Exit Criteria:
 
-- [ ] 三探针 + 禁用清单用例修复前红、修复后绿（证据入档；红探针为良性形态——无危险调用真实执行）
-- [ ] **接线验证**：校验器在 compile 与 execute 两条门控序中均被调用（变异探针：移除接线 → 三探针转红）
-- [ ] 既有 TestReplService 全绿（白名单内合法 import 用例零回归）
-- [ ] **无静默跳过**：校验器对无法解析的形态显式抛错，不静默放行
-- [ ] `ai-dev/logs/` 对应日期条目已更新；owner docs 更新归 Phase 3 统一落档
+**Phase 1 执行证据（2026-10-18）**：红态 = stash 仅还原 ReplService 接线（validator 在场但未接线，同时覆盖"修复前"与"接线移除变异"两重判别）——testAstImportBypassProbes + testBannedConstructs 双红（"Expected ReplAccessException to be thrown, but nothing was thrown"，旧词法层对 SEC-01 ASI/SEC-02 同行第二项/SEC-03 字面量 xlib/RegExp/正则字面量/inject/loadDslModel/loadDeltaJson 零拦截）；恢复接线后 debug-web 全套 49/49 绿（TestReplService 13 含 2 新用例）。
+
+- [x] 三探针 + 禁用清单用例修复前红、修复后绿（证据入档；红探针为良性形态——无危险调用真实执行）
+- [x] **接线验证**：校验器在 compile 与 execute 两条门控序中均被调用（变异探针：移除接线 → 三探针转红）
+- [x] 既有 TestReplService 全绿（白名单内合法 import 用例零回归）
+- [x] **无静默跳过**：校验器对无法解析的形态显式抛错，不静默放行
+- [x] `ai-dev/logs/` 对应日期条目已更新；owner docs 更新归 Phase 3 统一落档
 
 ### Phase 2 - watch 求值 deadline + WS 权限码 + 门控/审计补齐（SEC-07/05/08/09/10）
 
