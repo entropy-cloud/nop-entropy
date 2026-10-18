@@ -116,29 +116,29 @@ Exit Criteria:
 
 ### Phase 3 - owner docs 同步
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/xlang-web-debugger/02-lease-lifecycle.md`、`01-ws-protocol.md`、`03-sessionization.md`
 
 - Item Types: `Fix`（owner-doc 与 live baseline 对齐）
 
-- [ ] D2 §3.7：出站拓扑改述（三写者直发 → per-connection 队列化 + 专职 drain + fan-out）；**残余登记**（半死 TCP 占用专属 drain 线程直至容器写超时——不持网关锁、有界于连接数）；响应/事件到达次序注记（响应同步直发 happens-after enqueue，D1 §3.9 close 响应先于 sessionClosed 序列不受影响——R1 O-2）；多标签页对等送达裁定（废除 last-rebind-wins，C-3/F-7 销案）
-- [ ] D1 §3.5：best-effort 明示队列上限 256 + 限频 warn；dispose 不置 closed 的生命周期边界核对 D3
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
+- [x] D2 §3.7：出站拓扑改述（三写者直发 → per-connection 队列化 + 专职 drain + fan-out）；**残余登记**（半死 TCP 占用专属 drain 线程直至容器写超时——不持网关锁、有界于连接数）；响应/事件到达次序注记（响应同步直发 happens-after enqueue，D1 §3.9 close 响应先于 sessionClosed 序列不受影响——R1 O-2）；多标签页对等送达裁定（废除 last-rebind-wins，C-3/F-7 销案）
+- [x] D1 §3.5：best-effort 明示队列上限 256 + 限频 warn；dispose 不置 closed 的生命周期边界核对 D3
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 0 errors
 - [x] `ai-dev/logs/` 条目已更新
 
 Exit Criteria:
 
-- [ ] 文档与 live 一致（fan-out/队列上限/残余逐字核对）
-- [ ] doc-links --strict exit 0
+- [x] 文档与 live 一致（fan-out/队列上限/残余逐字核对）
+- [x] doc-links --strict exit 0
 
 ## Closure Gates
 
-- [ ] C-1（P0）停滞客户端三场景 + 变异判别证据入档
-- [ ] C-2/C-3（P1）落地且有守恒/对等测试
-- [ ] C-4/5/8/9（P2）落地且验收形态如实（结构断言/直调/listener 摘除法）
-- [ ] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（含 task 全链）
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect（C-6/C-7/C-10/N-11/12 按 Deferred But Adjudicated 登记 successor）
-- [ ] owner docs（D2/D1/D3）同步且 doc-links --strict 0 errors
+- [x] C-1（P0）停滞客户端三场景 + 变异判别证据入档
+- [x] C-2/C-3（P1）落地且有守恒/对等测试
+- [x] C-4/5/8/9（P2）落地且验收形态如实（结构断言/直调/listener 摘除法）
+- [x] 既有测试面全绿：`./mvnw test -pl nop-dev-tools/nop-xlang-debug-web -am`（含 task 全链）
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect（C-6/C-7/C-10/N-11/12 按 Deferred But Adjudicated 登记 successor）
+- [x] owner docs（D2/D1/D3）同步且 doc-links --strict 0 errors
 - [ ] 独立子 agent closure-audit 完成并记录证据（含 Anti-Hollow：AsyncOutbound 真实被 bridge/keepalive 接线、dispose 真实被 gracefulDispose 接线、drain 线程上无网关锁获取）
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` exit 0
 - [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` exit 0

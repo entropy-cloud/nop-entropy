@@ -169,6 +169,17 @@ sequenceDiagram
 | item 12（网关） | 会话租约时钟与 renew 处理（含限流）；断连检测与宽限计时器；宽限期满销毁流程（放行+销毁）；`session.close` 的 close 语义触发 |
 | item 17（前端） | renew 心跳（`renewIntervalMs` 排程）与页面可见性感知；beforeunload best-effort close；断连重连 + rebind 流程；`evt.leaseExpired` 的 UI 呈现（挂起行标注清除、"已放行"提示） |
 
+### 3.8 出站通道拓扑（plan 2479 修订，item 24 审计 C-1/C-3 remediation）
+
+事件出站（`evt.*`）**不得在任何网关锁（binder/manager 监视器锁、引擎 monitorLock、pipe 锁）或引擎/定时器线程上直接执行 WS IO**。落地铁律：
+
+1. **每连接队列化**：出站帧经 `AsyncOutbound`（每连接有界队列 256 + 专职 daemon drain 线程，惰性启动/空闲自退出）——引擎回调线程、keepalive 定时器、持 B/M 锁路径只做非阻塞入队；停滞客户端只阻塞其专属 drain 线程，不持任何网关锁、不影响其他连接。
+2. **丢弃语义**：队列满丢帧 + 按连接限频 warn（每 5s 窗口至多 1 条）；session 已 closed 的帧在 drain 时丢弃（best-effort 不重放，D1 §3.5）。
+3. **生命周期**：`onClose` 不摘通道——断连后宽限路径事件（leaseExpired/logs/sessionClosed）仍可入队（drain 按 isClosed 丢弃死连接帧）；通道在 `onSessionDestroyed`（终态帧发出后）移除。
+4. **多标签页 fan-out**：bridge 目标集合化（Set 去重），rebind 复用既有 bridge 追加目标——**废除 last-rebind-wins 单落点**，全部绑定连接对等接收事件（含 sessionClosed 广播）。前端审计 F-7 一并销案。
+5. **已知残余（如实登记）**：drain 线程对半死 TCP 的 send 无 socket 级超时（共享 WS 适配器为 GraphQL 订阅通道共用，不可为调试通道单独改语义）——停滞连接占用其专属 daemon 线程直至容器写超时/连接消亡；有界于连接数、不持网关锁、无跨连接影响。
+6. **到达次序注记**：请求/响应帧保持同步直发（happens-before 于事件帧入队）；同连接队列 FIFO 保事件帧全序；`close 响应先于 evt.sessionClosed`（D1 §3.9）不受队列化影响。
+
 ## 四、拒绝了什么
 
 - **服务端单方固定超时（magic-api 式 60s 静默放行）**：无续期、无事件、用户切屏回来断点已飞；本档以租约续期 + 到期事件替代（D0 用户裁定 2）。

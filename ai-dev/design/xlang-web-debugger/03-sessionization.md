@@ -98,6 +98,7 @@ stateDiagram-v2
   - **graceful 收尾**（宽限路径）：`releaseAll`（resume 语义放行）后**不得调用 `close()`**——`closed` 置位会让"已被放行但尚未重新获得锁"的线程在出口误抛错、脚本中途死亡，违反 D2 resume 语义红线。宽限路径使用**不置 closed 的 dispose 收尾**：signalAll 唤醒 → 已放行线程凭局部放行标志正常返回继续执行 → 从会话表注销、句柄置 destroyed、notifier 拆线、释放资源。新命中按 §3.4 双层分工由授予判定①兜住。
   - **出口判定顺序（钉死，消 flaky）**：挂起等待出口先判局部放行/租约到期（正常返回、继续执行），仅当 `closed` 置位且无局部放行时才抛 `ERR_XLANG_DEBUGGER_ALREADY_CLOSED`——双标志并存的窗口（用户 resume 与 close 竞态）一律按正常放行处理（脚本执行完；close 语义只中止**当时仍在挂起等待**的线程，已在执行中的线程不可杀也不杀）。
 - **服务端停机**：`XLangDebuggerInitializer.destroy()` 在关闭默认会话实例后，逐个销毁全部 web 会话实例（等效 close 语义，D2 §3.5 serverShutdown）——初始化器持有会话管理器引用完成清扫。
+- **实例资源收尾（plan 2479 C-2 补记）**：引擎 `dispose()` 原语 = 调度线程释放（幂等），**不置 closed、不改租约/挂起语义**——gracefulDispose（宽限销毁）与 manager.reset() 在 markDestroyed 后调用，消除宽限销毁 churn 的调度线程泄漏；close（abort 语义）保持既有 shutdown 路径不变。
 
 ### 3.6 单步目标策略（现状全局释放的重建）
 

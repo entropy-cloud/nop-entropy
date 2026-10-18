@@ -157,6 +157,10 @@ D0 已裁定传输容器（JSON-RPC over WS + 双端点适配器模式）与分�
 
 ### 3.5 受控扩展事件登记（服务端 notification，无 id）
 
+> **plan 2479 补记**：事件出站经每连接 `AsyncOutbound` 队列（容量 256）——队列满丢帧 +
+> 按连接限频 warn（每 5s 窗口 1 条）；语义仍为 best-effort 不重放。事件经队列异步到达，
+> 消费方按"最终可达"而非"调用同步返回即达"编程。
+
 统一 method = `evt.*`；`params.type` 语义由事件名承载。**来源标注**：`engine-notifier` = 现有 `IDebugNotifier` 回调；`engine-ext` = 引擎层新增回调（item 10/13 落地）；`gateway` = 网关/会话层产生。
 
 | 事件 method | params schema | 来源 | 合一/拆分裁定 |
