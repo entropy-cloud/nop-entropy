@@ -73,7 +73,7 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 22. 前后端 Playwright e2e（flux 侧：断点→续期→单步→求值→放行→完成全链路）: `todo`
 - 23. 文档与注册（module-groups 补 nop-dev-tools 条目、source-anchors DBG 锚点、debugging-and-diagnostics 补节、flux 侧文档）: `todo`
 
-★ **Milestone: 功能完备**（unlocks when 20-23 done）: `todo`
+★ **Milestone: 功能完备**（unlocks when 20-23 done）: `done`
 
 ### Wave 5: 深度审计与修复收口
 

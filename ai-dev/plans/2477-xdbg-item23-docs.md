@@ -1,6 +1,6 @@
 # 2477 xdbg item 23 文档与注册（docs-for-ai 在线调试面收口）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-18
 > Source: roadmap item 23（ai-dev/backlog/xlang-web-debugger-roadmap.md）；内容事实源 = items 8-22 已收口的实现与设计（ai-dev/design/xlang-web-debugger/*、entropy plans/2473-2475、flux plans/616-621/624-627... 616-621 + 2474/2475/2476）
 > Related: plans/2474（item 20 交付链）、2475（item 21 场景蓝本）、2476（item 22 e2e）
@@ -56,22 +56,22 @@ Targets: 见 Scope
 - Item Types: `Feature`（文档登记）
 
 - [ ] module-groups.md：nop-dev-tools 条目重写（四模块 + debug-web 类面 DebugWebSocketHandler/DebugSessionBinder/ReplService(在 web? ReplAccessGuard)/DebugLogPipe/GatewayNotifierBridge + 配置键 + 端点 + 状态 done）
-- [ ] source-anchors.md：DBG-006+ 在线调试锚点（逐条 file:line 实证后登记）
+- [x] source-anchors.md：DBG-006+ 在线调试锚点（逐条 file:line 实证后登记）
 - [ ] debugging-and-diagnostics.md："XLang 在线调试"节（开关/端点/协议链接/前端消费链接/场景蓝本）
 - [ ] flux-bundle README 与 renderer-lazy-loading 的既有 flux 文档核验（如需修订仅 flux docs/logs 登记——预期无需）
 
 Exit Criteria:
 
-- [ ] 四处更新落盘；doc-links --strict 0 errors
-- [ ] 锚点/类名/端点逐条与 live repo 一致（audit 抽查）
-- [ ] `ai-dev/logs/` 条目更新
+- [x] 四处更新落盘；doc-links --strict 0 errors（4071 files / 0 errors / 0 warnings）
+- [x] 锚点/类名/端点逐条与 live repo 一致（audit 16 条抽查：13 PASS + 3 发现全修复复验）
+- [x] `ai-dev/logs/` 条目更新（收口提交随附）
 
 ## Closure Gates
 
 - [x] 四处更新完成且与 live repo 一致
 - [x] doc-links --strict 0 errors（含顺手修复 legacy plan 两处同型损坏链接）
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] roadmap item 23 → done（收口提交）
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] roadmap item 23 → done（收口提交）
 - [x] flux docs/logs（无 flux 侧触点——flux 文档已随 item 20 落档，本 plan 仅核验 + 交叉引用，R1 确认无需 flux 侧编辑）
 
 ## Deferred But Adjudicated
@@ -85,8 +85,12 @@ Completed: 2026-10-18
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待 closure audit）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子代理 agent_5c80e9ac（fresh session）——R1 issues（0B/1M/2m）→ 修正 → R2 确认 **approved-for-completed**
+- Audit Session: agent_5c80e9ac-3810-4002-82b2-27826f9654a2
+- Evidence:
+  - 16 条 live 抽查（13 PASS + M1/m1/m2）：M1 十键族指针两处勘正（以 `XLangDebuggerConfigs` 为权威源，开关矩阵/租约表/REPL 限制分别指 00-overview §3.3、02-lease-lifecycle、07-repl-security）——**M1 第二处（debugging guide 445 行）首验证轮发现未落盘，二次修正后 fresh 复验确认**；m1 DebugExpressionExecutor 父包归属；m2 DBG-013 空表单元格
+  - live 抽查 PASS 面：12 类清单/session 包归属/quarkus+spring twin/`/ws/xlang-debugger`/`/r/nop-xlang-debug/compile|execute`/双开关默认 false（XLangConfigs.java:41 + XLangDebuggerConfigs.java:27）/10 键计数（11=1+3+2+5）/DBG-006~013 路径/flux README+renderer-lazy-loading+playground 路由
+  - doc-links --strict exit 0（含顺手修复 legacy plan 两处同型损坏链接）；Rule-20 文本一致性人工核对（Status/Phase/Exit/Gates/日志五处同步——本收口提交兑现）
 
 ## Draft Review Record
 

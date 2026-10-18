@@ -442,7 +442,7 @@ private LitemallCart findByProduct(String userId, String productId, IServiceCont
 - `nop.xlang.debugger.enabled`——调试引擎（会话路由执行器）。
 - `nop.xlang.debug-web.enabled`——WS 网关 + REPL 服务（`DebugWebServerConfig` 初始化门）。
 
-租约/日志/REPL 参数族（lease ttl/renew/grace、log batch/flush、repl timeout/bytes/concurrent/whitelist 等 10 键）见上述设计目录 00-overview 的 §3.3。
+租约/日志/REPL 参数族（lease ttl/renew/grace、log batch/flush、repl timeout/bytes/concurrent/whitelist 等 10 键）以 `XLangDebuggerConfigs` 为准；开关矩阵见上述设计目录 00-overview 的 §3.3（租约参数表见 02-lease-lifecycle、REPL 限制见 07-repl-security）。
 
 **端点**（由宿主 web 适配器绑定，quarkus 与 spring 双 twin）：
 
