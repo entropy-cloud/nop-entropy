@@ -80,9 +80,9 @@ Does not contain implementation details. Each `planned` stage is owned by its ex
 - 24. 并发与会话隔离深度审计（多会话竞态、租约/断连时序、线程泄漏、死锁、单步目标错乱；不变式闭环核对）: `done`
 - 25. 安全深度审计（REPL 沙箱逃逸、WS 鉴权、越权调试/会话访问、DoS 面、审计日志完备性）: `done`
 - 26. 前端集成审计（扩展生命周期泄漏、重连恢复正确性、前后端协议一致性双向核对）: `done`
-- 27. 审计修复收口（消化 24-26 产生的 remediation plans；超限时按审计域拆分，本 item 随最后一份 plan 收口翻转）: `todo`
+- 27. 审计修复收口（消化 24-26 产生的 remediation plans；超限时按审计域拆分，本 item 随最后一份 plan 收口翻转）: `done`
 
-★ **Milestone: 审计收口**（unlocks when 24-27 done）: `todo`
+★ **Milestone: 审计收口**（unlocks when 24-27 done）: `done`
 
 ## Status values
 
