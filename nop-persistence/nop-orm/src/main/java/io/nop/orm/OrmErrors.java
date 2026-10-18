@@ -137,6 +137,9 @@ public interface OrmErrors {
     String ARG_SOURCE_NAME = "sourceName";
     String ARG_SUB_SOURCE_NAME = "subSourceName";
 
+    String ARG_LABEL = "label";
+    String ARG_ATTR = "attr";
+
     String ARG_NAME = "name";
 
     String ARG_PROP_CLASS = "propClass";
@@ -424,6 +427,13 @@ public interface OrmErrors {
             ARG_SOURCE_NAME);
 
     ErrorCode ERR_ORM_QUERY_INVALID_JOIN = define("nop.err.orm.query-invalid-join", "不支持的join类型");
+
+    ErrorCode ERR_ORM_QUERY_DUPLICATE_FIELD_LABEL = define("nop.err.orm.query-duplicate-field-label",
+            "查询结果中字段名[{label}]重复（主表和子表字段会写入同一个结果map），请为其中一个字段设置alias",
+            ARG_LABEL);
+
+    ErrorCode ERR_ORM_QUERY_UNSUPPORTED_FIELD_ATTR = define("nop.err.orm.query-unsupported-field-attr",
+            "MDX查询不支持字段属性[{attr}]，该属性会被静默忽略", ARG_ATTR);
 
     ErrorCode ERR_ORM_QUERY_TIMEOUT = define("nop.err.orm.query-timeout", "执行查询超时");
 
