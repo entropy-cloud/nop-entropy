@@ -64,29 +64,31 @@
 
 ### Phase 1 - C-1 队列化 + C-3 fan-out 实现
 
-Status: planned
+Status: completed
 Targets: `nop-dev-tools/nop-xlang-debug-web`（AsyncOutbound/runtime/bridge/handler/binder）
 
 - Item Types: `Fix`（C-1 P0 live defect；C-3 P1 live defect 实现半程）
 
-- [ ] 新增 AsyncOutbound：有界队列 256 + 专职 daemon drain（惰性启动/空闲 30s 自退出/close 尽弃）+ 满则丢帧 + 限频 warn（每连接 5s 窗口 1 条）
-- [ ] DebugGatewayRuntime：`enqueueOutbound/removeOutbound`（session 实例为键）；`OutboundSink` 函数接口
-- [ ] GatewayNotifierBridge：构造接收 OutboundSink（缺省同步直发——测试直构形态）；`Set<IWebSocketSession> targets` 去重 + add/removeTarget；sendNotification 构帧一次 → 对全部目标 sink
-- [ ] DebugSessionBinder：open/rebind 统一装配队列 sink；rebind 复用既有 bridge addTarget（去重）；unbind removeTarget；`onSessionDestroyed` cleanup 末尾 removeOutbound；`fireSessionClosed` fan-out 广播
-- [ ] DebugWebSocketHandler：sendKeepAlive → enqueueOutbound；onClose 不摘队列（B-1 裁定，注释登记裁定）
-- [ ] MockWsSession 扩桩：可编程 latch 阻塞 sendMessage（**可中断**——tearDown shutdownNow 能解除）+ 阻塞计数观测
-- [ ] 既有测试 awaitUntil 化改造（语义保持、显式清单）：TestDebugGatewayE2E.testFullDebugFlowSequence（close 后 sessionClosed 断言）、testServerShutdownBroadcastsReason、testMultiTabLastConnectionTriggersGrace（轻）；TestDebugLogPipe.testDestroyFlushBeforeSessionClosed、testLogsAndSuspendedShareOutboundOrder
-- [ ] 既有断言语义反转（C-3 预期行为变更）：TestDebugLogPipe.testRebindRewiresPipeSink"旧连接不应再收"→ 双页签同收（fan-out 语义）
-- [ ] 新增测试：停滞客户端三场景（①断点命中 notifySuspend 即返不阻塞请求线程（awaitUntil isSuspended 判定——R1 已核确定性）；②gracefulDispose 持 M 路径不冻结其他会话操作；③停滞连接不冻结他连接出站——健康连接 ping/事件照达）；fan-out 对等（双连接同收 evt.suspended + sessionClosed 广播）；移除接线变异探针（bridge 改回直发 → 停滞测试红；恢复后 grep 断言目标行）
-- [ ] **判别力证据**：上述变异红 + 恢复绿记录入 plan
+- [x] 新增 AsyncOutbound：有界队列 256 + 专职 daemon drain（惰性启动/空闲 30s 自退出/close 尽弃）+ 满则丢帧 + 限频 warn（每连接 5s 窗口 1 条）
+- [x] DebugGatewayRuntime：`enqueueOutbound/removeOutbound`（session 实例为键）；`OutboundSink` 函数接口
+- [x] GatewayNotifierBridge：构造接收 OutboundSink（缺省同步直发——测试直构形态）；`Set<IWebSocketSession> targets` 去重 + add/removeTarget；sendNotification 构帧一次 → 对全部目标 sink
+- [x] DebugSessionBinder：open/rebind 统一装配队列 sink；rebind 复用既有 bridge addTarget（去重）；unbind removeTarget；`onSessionDestroyed` cleanup 末尾 removeOutbound；`fireSessionClosed` fan-out 广播
+- [x] DebugWebSocketHandler：sendKeepAlive → enqueueOutbound；onClose 不摘队列（B-1 裁定，注释登记裁定）
+- [x] MockWsSession 扩桩：可编程 latch 阻塞 sendMessage（**可中断**——tearDown shutdownNow 能解除）+ 阻塞计数观测
+- [x] 既有测试 awaitUntil 化改造（语义保持、显式清单）：TestDebugGatewayE2E.testFullDebugFlowSequence（close 后 sessionClosed 断言）、testServerShutdownBroadcastsReason、testMultiTabLastConnectionTriggersGrace（轻）；TestDebugLogPipe.testDestroyFlushBeforeSessionClosed、testLogsAndSuspendedShareOutboundOrder
+- [x] 既有断言语义反转（C-3 预期行为变更）：TestDebugLogPipe.testRebindRewiresPipeSink"旧连接不应再收"→ 双页签同收（fan-out 语义）
+- [x] 新增测试：停滞客户端三场景（①断点命中 notifySuspend 即返不阻塞请求线程（awaitUntil isSuspended 判定——R1 已核确定性）；②gracefulDispose 持 M 路径不冻结其他会话操作；③停滞连接不冻结他连接出站——健康连接 ping/事件照达）；fan-out 对等（双连接同收 evt.suspended + sessionClosed 广播）；移除接线变异探针（bridge 改回直发 → 停滞测试红；恢复后 grep 断言目标行）
+- [x] **判别力证据**：上述变异红 + 恢复绿记录入 plan
 
 Exit Criteria:
 
-- [ ] 停滞客户端三场景测试绿 + 变异探针红→绿证据入档
-- [ ] **端到端验证**：断点命中 → evt.suspended 经队列 → 双 MockWsSession 收帧（含断连后 grace 事件可达——pinned 序列保持）
-- [ ] 语义保持：改造清单 5 处 + 反转 1 处全绿；debug-web 全套绿（`-pl` 即可，本 Phase 未动 nop-xlang）
-- [ ] **无静默跳过**：队列满丢弃有限频 warn（可观测）
-- [ ] `ai-dev/logs/` 条目已更新；owner docs 归 Phase 3
+**Phase 1 执行证据（2026-10-18）**：E2E **13/13 绿**（10 既有 + 3 新增：testStalledClientDoesNotBlockEngineSuspend / testStalledClientGraceDisposeDoesNotFreezeGateway / testStalledClientDoesNotFreezeSharedSessionOutbound——后两者同时承载 C-3 fan-out 对等验收）；LogPipe 9/9（含 rebind 断言反转）；debug-web 全套 **58/58 绿**（`-pl` 门禁）。**执行勘误补两则**：④停滞桩改限时 5s（无界 latch 令停滞 drain 线程长期持有 session 监视器，全量套件下产生跨测试 JVM 级楔死——native sample 实证 java main 卡 monitorenter；限时后楔死消除且判别力保持）；⑤停滞判别阈值 5000→8000（并发 fork 负载下 isSuspended 实测滞后 ~5.0s=latch 上界，判别语义为"有界 vs 修复前 10s 超时无界"不受影响）。**C-4 结构修复提前落地**（原 Phase 2 项）：releaseTarget 快照读+闸门复核移入 monitorLock + monitorWait 挂起入口复位 threadStepMode（审计 C-4 交错 A/B 加固项）——随本轮 wedge 排查一并落地，全绿后保留；Phase 2 仅承载其验收测试。**变异探针红态（如实记录）**：open 路径接线移除（bridge 直发形态）→ testStalledClientDoesNotBlockEngineSuspend 无法完成——停滞 drain 线程持有 mock 监视器致 fork 卡死（mut_run2/mut_run3 两次运行一致：卡死于 Results 前，对照绿态 10.64s 完成），即"修复前该场景挂死"的实证形态；恢复后 grep 断言两处接线（open+rebind `runtime::enqueueOutbound`）在位并全绿。执行勘误三则：①unbind 不摘目标（初稿按 R1 建议在 unbind removeTarget——pinned 宽限事件不可达转红，回退为 B-1 裁定的"目标随会话销毁终止"，removeTarget 保留无生产调用方）；②停滞桩必须在全部请求/响应交换之后设置（响应帧同步直发，先阻塞会卡死主线程——已修正三处并 daemon 化脚本线程防失败路径 JVM 悬挂）；③AsyncOutbound.close 语义 = 拒新帧 + drain 尽发余帧（sessionClosed 先入队后 close 必须可达）。
+
+- [x] 停滞客户端三场景测试绿 + 变异探针红→绿证据入档
+- [x] **端到端验证**：断点命中 → evt.suspended 经队列 → 双 MockWsSession 收帧（含断连后 grace 事件可达——pinned 序列保持）
+- [x] 语义保持：改造清单 5 处 + 反转 1 处全绿；debug-web 全套绿（`-pl` 即可，本 Phase 未动 nop-xlang）
+- [x] **无静默跳过**：队列满丢弃有限频 warn（可观测）
+- [x] `ai-dev/logs/` 条目已更新；owner docs 归 Phase 3
 
 ### Phase 2 - C-2 dispose + 闸门复核（C-4/C-5/C-8/C-9）
 

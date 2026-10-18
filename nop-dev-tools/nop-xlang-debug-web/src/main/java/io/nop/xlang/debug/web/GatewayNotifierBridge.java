@@ -18,25 +18,61 @@ import io.nop.xlang.debugger.SuspendedThread;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * 每会话事件出站桥（D1 §3.5 8 条中 5 条出站 + completed 预留入口；evt.logs/evt.exception
  * 归 item 13 不在本桥）：实现每会话 {@link IDebugNotifier}，把引擎回调转换为
- * {@code evt.*} 无 id notification 经 WS 会话出站。
+ * {@code evt.*} 无 id notification 出站。
  *
  * <p>notifyLog/notifyWarn 直通单条 evt.log（攒批管道归 item 13）。evt.completed 不由引擎
  * 产生——预留 {@link #fireCompleted} 发射入口供 item 14/21 调用。
  *
- * <p>线程安全：send 对 session 加锁（JSR-356 basic remote 非并发安全——引擎回调线程、
- * WS 容器线程响应、keepalive 定时器三写者共用同一会话，D2 §3.7 出站锁）。
+ * <p>线程安全（plan 2479 修订，item 24 审计 C-1/C-3 remediation）：出站经
+ * {@link OutboundSink}——生产装配 = runtime 队列化入队（每连接
+ * {@link AsyncOutbound}，引擎回调线程 / keepalive 定时器 / 持 B·M 锁路径
+ * 零 WS IO）；目标集合化（Set 去重）支持多标签页 fan-out：rebind 复用既有 bridge
+ * 追加目标，废除 last-rebind-wins 单落点（C-3 / 前端审计 F-7 销案，D2 §3.7 登记）。
+ * 测试直构形态（单目标 + 缺省同步直发 sink）保持既有语义。
  */
 public class GatewayNotifierBridge implements IDebugNotifier {
-    private final IWebSocketSession session;
+    /** 出站落点：生产 = runtime 队列化入队；缺省 = 同步直发（测试直构形态）。 */
+    public interface OutboundSink {
+        void send(IWebSocketSession target, String json);
+    }
+
+    private final Set<IWebSocketSession> targets = new CopyOnWriteArraySet<>();
+    private final OutboundSink sink;
     /** 会话日志攒批管道（binder 按 sessionId 接线；null = 直发单条 evt.log 兜底）。 */
     private volatile DebugLogPipe logPipe;
 
+    /** 测试直构形态：单目标 + 同步直发。 */
     public GatewayNotifierBridge(IWebSocketSession session) {
-        this.session = session;
+        this(session, null);
+    }
+
+    public GatewayNotifierBridge(IWebSocketSession session, OutboundSink sink) {
+        if (session != null)
+            this.targets.add(session);
+        this.sink = sink == null ? new DirectOutboundSink() : sink;
+    }
+
+    /** 追加出站目标（binder rebind 复用 bridge 时调用；Set 去重——自 rebind 不双发）。 */
+    public void addTarget(IWebSocketSession session) {
+        if (session != null)
+            targets.add(session);
+    }
+
+    /** 摘除出站目标（binder unbind/cleanup 时调用）。 */
+    public void removeTarget(IWebSocketSession session) {
+        if (session != null)
+            targets.remove(session);
+    }
+
+    /** 当前出站目标快照（binder onSessionDestroyed 移除出站通道时遍历用）。 */
+    public Set<IWebSocketSession> getTargets() {
+        return targets;
     }
 
     /** 接线日志攒批管道（binder onCreated / rebind 重接时调用）。 */
@@ -124,7 +160,7 @@ public class GatewayNotifierBridge implements IDebugNotifier {
             sendNotification("evt.log", entry);
     }
 
-    /** evt.logs 攒批出站（pipe flush 调用；synchronized(session) 与其他事件共享全序）。 */
+    /** evt.logs 攒批出站（pipe flush 调用；单帧全序与事件帧经每连接队列保序）。 */
     public void sendLogs(List<Map<String, Object>> entries) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("entries", entries);
@@ -176,7 +212,7 @@ public class GatewayNotifierBridge implements IDebugNotifier {
         sendNotification("evt.completed", params);
     }
 
-    /** 会话销毁终态通知（D2 §3.6：graceExpired 等四值 reason）。 */
+    /** 会话销毁终态通知（D2 §3.6：graceExpired 等四值 reason）。fan-out 广播到全部目标。 */
     public void fireSessionClosed(String reason) {
         Map<String, Object> params = new LinkedHashMap<>();
         params.put("reason", reason);
@@ -184,20 +220,32 @@ public class GatewayNotifierBridge implements IDebugNotifier {
     }
 
     private void sendNotification(String method, Map<String, Object> params) {
-        if (session == null)
+        if (targets.isEmpty())
             return; // 测试桩/特殊装配形态（rebind 无过渡会话）：无出站落点，事件丢弃
         Map<String, Object> frame = new LinkedHashMap<>();
         frame.put("jsonrpc", "2.0");
         frame.put("method", method);
         frame.put("params", params);
         String json = JsonTool.stringify(frame);
-        synchronized (session) {
-            if (session.isClosed())
-                return;
-            try {
-                session.sendMessage(json);
-            } catch (Exception e) {
-                // 发送失败：连接已死，静默（关闭码由容器 onClose 处理）
+        for (IWebSocketSession target : targets) {
+            // 引擎回调/定时器/持锁路径零 WS IO：生产 sink（队列化入队）非阻塞；
+            // 同步直发 sink（测试直构）仍带锁——行为与旧单目标形态一致
+            sink.send(target, json);
+        }
+    }
+
+    /** 缺省同步直发（测试直构形态；持锁语义与旧版 sendNotification 一致）。 */
+    static final class DirectOutboundSink implements OutboundSink {
+        @Override
+        public void send(IWebSocketSession target, String json) {
+            synchronized (target) {
+                if (target.isClosed())
+                    return;
+                try {
+                    target.sendMessage(json);
+                } catch (Exception e) {
+                    // 发送失败：连接已死，静默（关闭码由容器 onClose 处理）
+                }
             }
         }
     }

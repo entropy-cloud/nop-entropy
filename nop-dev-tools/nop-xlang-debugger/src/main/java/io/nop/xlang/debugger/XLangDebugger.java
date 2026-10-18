@@ -188,14 +188,17 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
      * （D2 §3.3：释放-再挂起由 evt.suspended 承载，防 UI 双跳变）。
      */
     private void releaseTarget(DebugStepMode stepMode) {
-        SuspendedThread target = this.lastSuspendThread;
-        // 处理时刻快照判定（D3 §3.6.5）：无已挂起目标即报错（含"已释放未再挂起"瞬态窗口）
-        if (target == null || !target.isSuspended()) {
-            LOG.info("nop.debugger.step-no-suspended-thread");
-            throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
-        }
         monitorLock.lock();
         try {
+            // 处理时刻快照判定（D3 §3.6.5）：无已挂起目标即报错（含"已释放未再挂起"瞬态
+            // 窗口）。plan 2479 C-4：快照读与 isSuspended 复核同移 monitorLock 内（对齐
+            // releaseThread/releaseAllThreads 锁内形态）——消除快照-加锁窗口的 stepX 静默
+            // 丢失/陈旧 step 模式施用（item 24 审计 C-4 交错 A/B）
+            SuspendedThread target = this.lastSuspendThread;
+            if (target == null || !target.isSuspended()) {
+                LOG.info("nop.debugger.step-no-suspended-thread");
+                throw new NopException(ERR_XLANG_DEBUGGER_THREAD_NOT_SUSPENDED);
+            }
             target.setThreadStepMode(stepMode);
             target.setLocalReleased(true);
             resumeCondition.signalAll();
@@ -704,6 +707,9 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         try {
             // 挂起入口复位放行标志 + per-thread 发布（同锁临界区——M2/F4 时序点）
             thread.setLocalReleased(false);
+            // plan 2479 C-4 加固：新挂起 = 上一次 step 模式已消费——复位防陈旧 step 模式
+            // 经线程 ID 回收/旧 map 条目跨执行污染（漏断点/幽灵挂起，item 24 审计 C-4 交错 B）
+            thread.setThreadStepMode(DebugStepMode.RESUME);
             thread.setSuspended(true);
             suspended = true;
             suspendedCondition.signalAll();

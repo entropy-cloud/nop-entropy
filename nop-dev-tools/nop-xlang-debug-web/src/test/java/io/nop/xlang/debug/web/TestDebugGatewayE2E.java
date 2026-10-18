@@ -13,8 +13,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.nop.api.debugger.Breakpoint;
 import static io.nop.api.core.util.SourceLocation.fromLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -102,6 +104,15 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
                 closedEvtIdx = i;
         }
         assertTrue(closeIdx >= 0, "close 响应应存在");
+        // plan 2479 C-1：事件帧经每连接队列异步到达——先轮询等待，再断言次序
+        //（D1 §3.9 序列语义保持：close 响应同步直发 happens-before 事件 enqueue）
+        awaitUntil("evt.sessionClosed 应出站", () -> hasEvent(ws.snapshot(), "evt.sessionClosed"));
+        frames = ws.snapshot();
+        closedEvtIdx = -1;
+        for (int i = 0; i < frames.size(); i++) {
+            if ("evt.sessionClosed".equals(parse(frames.get(i)).get("method")))
+                closedEvtIdx = i;
+        }
         assertTrue(closedEvtIdx >= 0, "evt.sessionClosed 应存在");
         assertTrue(closeIdx < closedEvtIdx, "close 响应必须先于 evt.sessionClosed");
         Map<String, Object> closedEvt = findEvent(frames, "evt.sessionClosed");
@@ -323,6 +334,8 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
 
         runtime.getBinder().shutdown();
         assertNull(manager.getSession(sessionId));
+        // plan 2479 C-1：终态事件经队列异步到达——轮询等待
+        awaitUntil("evt.sessionClosed 应出站", () -> hasEvent(ws.snapshot(), "evt.sessionClosed"));
         Map<String, Object> closedEvt = findEvent(ws.snapshot(), "evt.sessionClosed");
         assertNotNull(closedEvt);
         @SuppressWarnings("unchecked")
@@ -362,5 +375,118 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         // 越过原宽限点：会话应因 rebind 取消销毁任务而存活
         Thread.sleep(2200);
         assertNotNull(manager.getSession(s1), "宽限窗口内 rebind 应回迁 Active 并取消销毁任务");
+    }
+
+    // ===== plan 2479 C-1 停滞客户端 / C-3 fan-out =====
+
+    /**
+     * C-1①：停滞客户端不阻塞引擎挂起授予——notifySuspend 仅入队即返（isSuspended 在
+     * notifySuspend 返回并进入 monitorWait 后才为 true，awaitSuspended 快速通过即证明
+     * 引擎线程未被 WS IO 阻塞；修复前同步直发会在此挂死至 TCP 写超时）。
+     */
+    @Test
+    public void testStalledClientDoesNotBlockEngineSuspend() throws Exception {
+        CountDownLatch stall = new CountDownLatch(1);
+        MockWsSession ws = new MockWsSession();
+        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+        String sessionId = openSession(handler, ws, "1");
+        XLangDebugger debugger = debuggerOf(sessionId);
+        debugger.setUseExternalPath(false);
+        debugger.addBreakpoint(Breakpoint.build("a", 1));
+        // 停滞桩在全部请求/响应交换之后设置（响应帧仍走同步直发——plan 2479 范围仅
+        // 事件出站队列化；此处模拟"连接事件接收停滞"）
+        ws.setBlocked(stall);
+
+        Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
+        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+        long start = System.currentTimeMillis();
+        script.start();
+        awaitSuspended(debugger);
+        long elapsed = System.currentTimeMillis() - start;
+        // 判别语义：修复前同步直发 → 脚本线程阻塞在 WS 发送、永远到不了 monitorWait →
+        // awaitSuspended 10s 超时红（无界）；修复后 notifySuspend 入队即返 → isSuspended
+        // 至多滞后停滞桩时长（latch 5s 上界——并发 fork 负载下实测 ~5.0s，监控带 8s）。
+        // 有界 vs 无界的判别力不受阈值影响（修复前红态 = 10s 超时挂起失败）
+        assertTrue(elapsed < 8000, "挂起授予不得被停滞客户端无界阻塞，实际 " + elapsed + "ms");
+        debugger.resume();
+        script.join(10000);
+        stall.countDown();
+    }
+
+    /**
+     * C-1②：停滞客户端的宽限销毁（持 M 路径含 leaseExpired/sessionClosed 出站）不冻结
+     * 网关——grace 到期后 gracefulDispose 完成（会话注销），同时段其他会话操作照常。
+     */
+    @Test
+    public void testStalledClientGraceDisposeDoesNotFreezeGateway() throws Exception {
+        runtime.setGraceMillis(200);
+        CountDownLatch stall = new CountDownLatch(1);
+        MockWsSession ws1 = new MockWsSession();
+        DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
+        String s1 = openSession(h1, ws1, "1");
+        // 会话挂起在断点（宽限销毁时需 releaseAll → leaseExpired 出站）
+        XLangDebugger debugger1 = debuggerOf(s1);
+        debugger1.setUseExternalPath(false);
+        debugger1.addBreakpoint(Breakpoint.build("a", 1));
+        // 停滞桩后置（响应帧同步直发，不可先阻塞）
+        ws1.setBlocked(stall);
+        Thread script = new Thread(() -> debugger1.checkBreakpoint(fromLine("a", 1), newRt()));
+        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+        script.start();
+        awaitSuspended(debugger1);
+
+        // 健康会话（对照面）
+        MockWsSession ws2 = new MockWsSession();
+        DebugWebSocketHandler h2 = newHandler(ws2, TOK_U2);
+        String s2 = openSession(h2, ws2, "1");
+
+        h1.onClose(); // 断连 → 宽限计时（onClose 不摘出站目标——B-1 裁定）
+        awaitUntil("宽限销毁应完成（不冻结）", () -> manager.getSession(s1) == null);
+
+        // 同期健康会话操作照常：renew 成功、出站正常
+        h2.onMessage(req("2", "lease.renew", "{}"));
+        assertNull(errorCodeOf(findResponse(ws2.snapshot(), "2")));
+        assertTrue(ws2.sentCount() > 0, "健康连接出站应不受停滞连接影响");
+        script.join(10000);
+        assertFalse(script.isAlive(), "挂起脚本应被宽限放行");
+        stall.countDown();
+    }
+
+    /**
+     * C-1③ + C-3 fan-out 对等：停滞连接只阻塞其专属 drain 线程，共享会话的健康
+     * 连接事件照达（修复前：共享 bridge 单槽 + 同步直发，停滞连接持有 session 监视器
+     * 会冻结健康连接全部出站；旧单槽语义下健康连接还可能整体失联——C-3）。
+     */
+    @Test
+    public void testStalledClientDoesNotFreezeSharedSessionOutbound() throws Exception {
+        CountDownLatch stall = new CountDownLatch(1);
+        MockWsSession ws1 = new MockWsSession();
+        DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
+        String s1 = openSession(h1, ws1, "1");
+
+        MockWsSession ws2 = new MockWsSession();
+        DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
+        h2.onMessage(req("1", "session.open", "{\"protoVersion\":\"1.0\"}"));
+        h2.onMessage(req("2", "session.rebind", "{\"sessionId\":\"" + s1 + "\"}"));
+        assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
+
+        XLangDebugger debugger = debuggerOf(s1);
+        debugger.setUseExternalPath(false);
+        debugger.addBreakpoint(Breakpoint.build("a", 1));
+        // 停滞桩后置（rebind 响应同步直发，不可先阻塞）；模拟 ws1 事件接收停滞
+        ws1.setBlocked(stall);
+        Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
+        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+        script.start();
+
+        // 健康连接 fan-out 对等收帧（停滞连接的 drain 线程阻塞不影响 ws2 通道）
+        awaitUntil("健康连接应收到 evt.suspended（fan-out 对等 + 通道隔离）",
+                () -> hasEvent(ws2.snapshot(), "evt.suspended"));
+        int w2Count = ws2.sentCount();
+        assertTrue(w2Count > 0);
+        debugger.resume();
+        awaitUntil("健康连接应收到 evt.resumed", () -> hasEvent(ws2.snapshot(), "evt.resumed"));
+        script.join(10000);
+        stall.countDown();
     }
 }

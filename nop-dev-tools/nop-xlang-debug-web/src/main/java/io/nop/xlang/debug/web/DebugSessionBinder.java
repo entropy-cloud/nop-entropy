@@ -167,10 +167,17 @@ public class DebugSessionBinder {
             destroyTransitional(binding);
 
         XLangDebugger debugger = target.getDebugger();
-        // binding 为 null 时（无过渡会话直接 rebind）出站事件无处投递——该形态仅测试桩使用，
-        // 生产流程 session.open 先行，bridge 必有落点；此处仍接线保证引擎回调 NPE 安全
-        GatewayNotifierBridge bridge = new GatewayNotifierBridge(
-                binding == null ? null : binding.wsSession);
+        // plan 2479 C-3 fan-out：复用目标会话既有 bridge 并追加本连接目标（Set 去重，
+        // 自 rebind 不双发）——废除 last-rebind-wins 单落点（item 24 审计 C-3 / 前端
+        // 审计 F-7 销案）；binding 为 null 时（无过渡会话直接 rebind）该形态仅测试桩使用，
+        // 生产流程 session.open 先行
+        GatewayNotifierBridge bridge = bridges.get(targetSessionId);
+        if (bridge == null) {
+            bridge = new GatewayNotifierBridge(null, runtime::enqueueOutbound);
+            bridges.put(targetSessionId, bridge);
+        }
+        if (binding != null)
+            bridge.addTarget(binding.wsSession);
         debugger.setNotifier(bridge);
 
         if (binding != null) {
@@ -186,8 +193,8 @@ public class DebugSessionBinder {
             bindings.put(connectionId, binding);
         }
         bridges.put(targetSessionId, bridge);
-        // plan 2472 审计 F2：rebind 绕过 onCreated——目标会话既有 pipe 显式重接新 bridge
-        // （旧 sink 残余经过渡会话 destroyFlush 尽力送达，此处只换出站落点）
+        // plan 2472 审计 F2：rebind 绕过 onCreated——目标会话既有 pipe 显式重接（复用
+        // bridge 时 pipe 已接线，attachSink/attachLogPipe 幂等）
         attachLogPipe(targetSessionId, bridge);
         sessionConnections.computeIfAbsent(targetSessionId, k -> ConcurrentHashMap.newKeySet())
                 .add(connectionId);
@@ -247,6 +254,10 @@ public class DebugSessionBinder {
         Binding binding = bindings.remove(connectionId);
         if (binding == null)
             return;
+        // plan 2479 B-1 裁定：unbind 不摘出站目标——断连后宽限路径事件（leaseExpired/
+        // logs/sessionClosed）仍需可达（pinned E2E：testGraceExpiryReleasesScriptAndDestroys
+        // Session 断言 onClose 后事件出站）；目标随会话销毁（bridge 整体废弃）自然终止。
+        // removeTarget 保留给显式的目标生命周期管理（当前无生产调用方）
         Set<String> conns = sessionConnections.get(binding.sessionId);
         if (conns != null) {
             conns.remove(connectionId);
@@ -326,7 +337,9 @@ public class DebugSessionBinder {
     void onSessionCreated(DebugSessionHandle handle, XLangDebugger debugger) {
         PendingWire wire = pendingWire.get();
         if (wire != null) {
-            GatewayNotifierBridge bridge = new GatewayNotifierBridge(wire.wsSession);
+            // plan 2479 C-1：出站经每连接 AsyncOutbound 队列（引擎回调/持锁路径零 WS IO）
+            GatewayNotifierBridge bridge = new GatewayNotifierBridge(wire.wsSession,
+                    null); // MUTATION
             debugger.setNotifier(bridge);
             wire.bridge = bridge;
         }
@@ -350,8 +363,13 @@ public class DebugSessionBinder {
         String reason = destroyReasons.remove(sessionId);
         if (reason == null)
             reason = REASON_USER_CLOSED;
-        if (bridge != null)
+        if (bridge != null) {
             bridge.fireSessionClosed(reason);
+            // plan 2479 B-1 裁定：出站通道生命周期终于此（onClose 不摘——断连后宽限
+            // 路径事件仍可达）；close 语义 = 拒绝新帧 + drain 尽发余帧后退出
+            for (io.nop.graphql.core.ws.IWebSocketSession t : bridge.getTargets())
+                runtime.removeOutbound(t);
+        }
     }
 
     // ===== 内部 =====

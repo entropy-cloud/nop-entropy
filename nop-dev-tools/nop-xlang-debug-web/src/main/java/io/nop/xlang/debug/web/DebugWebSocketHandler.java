@@ -198,6 +198,9 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
         if (keepaliveTask != null)
             keepaliveTask.cancel(false);
         closed = true;
+        // plan 2479 B-1 裁定：此处不摘出站通道——断连后宽限路径事件（leaseExpired/
+        // logs/sessionClosed）仍需可达（D2 §3.6 序列证据）；通道生命周期终于
+        // binder.onSessionDestroyed 的 removeOutbound（drain 时按 isClosed 丢弃死连接帧）
         try {
             binder.unbind(connectionId);
         } catch (Exception e) {
@@ -744,7 +747,9 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
         Map<String, Object> frame = new LinkedHashMap<>();
         frame.put("jsonrpc", JSONRPC_VERSION);
         frame.put("method", METHOD_PING);
-        sendText(JsonTool.stringify(frame));
+        // plan 2479 C-1：keepalive 经每连接队列出站——共享 timer 上零 WS IO（停滞客户端
+        // 只阻塞其专属 drain 线程，不冻结其他连接的 ping/宽限销毁/日志 flush）
+        runtime.enqueueOutbound(session, JsonTool.stringify(frame));
     }
 
     private void close(short code, String reason) {

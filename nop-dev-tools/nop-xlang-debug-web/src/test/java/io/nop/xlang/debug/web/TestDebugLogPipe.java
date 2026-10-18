@@ -111,6 +111,10 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         assertTrue(ws.snapshot().stream().noneMatch(f -> f.contains("evt.logs")), "残余应留 buffer");
 
         handler.onMessage(req("2", "session.close", "{}"));
+        // plan 2479 C-1：事件经队列异步到达——轮询等待后断言次序（保序语义：同连接
+        // 队列 FIFO，destroyFlush 先于 sessionClosed 入队）
+        awaitUntil("销毁 flush 应送达残余日志", () -> hasEvent(ws.snapshot(), "evt.logs"));
+        awaitUntil("evt.sessionClosed 应出站", () -> hasEvent(ws.snapshot(), "evt.sessionClosed"));
         List<String> frames = ws.snapshot();
         int logsIdx = -1;
         int closedIdx = -1;
@@ -143,8 +147,9 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         runtime.getBinder().getBridge(s1).notifyLog(null, null, 0, "after-rebind-2");
         awaitUntil("rebind 后 evt.logs 应出站到新连接", () -> hasEvent(ws2.snapshot(), "evt.logs"));
         assertTrue(ws2.snapshot().stream().anyMatch(f -> f.contains("after-rebind-2")));
-        assertFalse(ws1.snapshot().stream().anyMatch(f -> f.contains("after-rebind")),
-                "旧连接不应再接收该会话日志");
+        // plan 2479 C-3 fan-out 语义反转：rebind 复用 bridge 追加目标，旧连接保持
+        // 对等接收（废除 last-rebind-wins——item 24 审计 C-3 / 前端审计 F-7 销案）
+        awaitUntil("旧连接 fan-out 对等接收", () -> ws1.snapshot().stream().anyMatch(f -> f.contains("after-rebind")));
     }
 
     /** evt.exception 出站：四字段承载 + 无定位（line<=0）形态不发射 sourcePath/line。 */
@@ -241,6 +246,9 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         bridge.notifyLog(null, "a.xpl", 1, "ordered-log");
         bridge.notifySuspend(null, fromLine("a.xpl", 2), null);
 
+        // plan 2479 C-1：suspend 事件经每连接队列异步到达——轮询等待后断言次序
+        //（保序语义：pipe flush 与事件帧同一连接队列 FIFO）
+        awaitUntil("evt.suspended 应出站", () -> hasEvent(ws.snapshot(), "evt.suspended"));
         List<String> frames = ws.snapshot();
         int logsIdx = -1;
         int suspendedIdx = -1;

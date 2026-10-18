@@ -11,10 +11,13 @@ import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.config.IConfigReference;
+import io.nop.graphql.core.ws.IWebSocketSession;
 import io.nop.xlang.debugger.session.SessionDebugManager;
 import io.nop.xlang.debugger.session.XLangDebuggerConfigs;
 
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadFactory;
@@ -61,6 +64,8 @@ public class DebugGatewayRuntime {
     /** WS 会话创建权限校验器（plan 2478 SEC-05；null = fail-closed 拒绝）。 */
     private volatile IActionAuthChecker authChecker;
     private volatile long watchEvalTimeoutOverride = -1;
+    /** 每连接异步出站通道（plan 2479 C-1；键 = session 实例——R1 O-5）。 */
+    private final Map<IWebSocketSession, AsyncOutbound> outboundChannels = new ConcurrentHashMap<>();
 
     public DebugGatewayRuntime(SessionDebugManager sessionManager, IUserContextExtractor extractor) {
         this(sessionManager, extractor, defaultTimer());
@@ -232,6 +237,25 @@ public class DebugGatewayRuntime {
 
     public ScheduledExecutorService timer() {
         return timer;
+    }
+
+    /**
+     * 每连接异步出站入队（plan 2479 C-1）：引擎回调/定时器/持锁路径专用——非阻塞，
+     * 满则丢帧限频 warn。键 = session 实例；closed 通道静默丢弃。
+     */
+    public void enqueueOutbound(IWebSocketSession session, String json) {
+        if (session == null)
+            return;
+        outboundChannels.computeIfAbsent(session, AsyncOutbound::new).offer(json);
+    }
+
+    /** 移除并关闭出站通道（binder.onSessionDestroyed 移除时调用；onClose 不摘——B-1 裁定）。 */
+    public void removeOutbound(IWebSocketSession session) {
+        if (session == null)
+            return;
+        AsyncOutbound channel = outboundChannels.remove(session);
+        if (channel != null)
+            channel.close();
     }
 
     /** 认证便捷方法：返回 userId 或 null（未登录）。NopLoginException 由调用方捕获映射 4401。 */
