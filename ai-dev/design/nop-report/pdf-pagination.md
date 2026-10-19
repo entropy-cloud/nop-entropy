@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5）；plan 2470（WI7 图表接线）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5）；plan 2470（WI7）；plan 2471（WI8 边框）
 
 ## 决策
 
@@ -74,6 +74,13 @@
 - **完成判定**：本 WI 勾选代表 PDF 侧管线打通（桩验证）；图表与真实渲染的逐图视觉对版延后至 echarts provider 交付。
 - **已知疑点**：多页（region≠null）图片/图表的 y 定位与"锚点行×行高"推算存在约 40pt 级偏移疑点（重复行+预留几何推导未完，图片路径同样存在）——登记 follow-up，锚点页存在性已测试钉住。
 
+### D10 边框线宽/线型（WI8）
+
+- **线宽来源**：`OfficeBorderStyle.weight` 优先（xlsx 解析期自 OfficeLineStyle 规范 WEIGHT 表写入：thin=1/medium=2/thick=3pt，medium 变体虚线=2）；程序化样式 weight=0 → 回退类型规范 weight；type 为 null → 1（顺带修复旧 switch 的 null NPE）。**替换旧硬编码映射**（HAIR 0.5/SINGLE 1/MEDIUM 1.5/THICK 2/DOUBLE 1.5——MEDIUM/THICK 与 Excel 语义不符）。
+- **HAIR**：模型权重 1（int 表），渲染 1pt；Excel 0.25pt 视觉校准留后续（Follow-up）。
+- **虚线节距**：随线宽比例化（DASHED {3w}、DOTTED/HAIR {w}、DASH_DOT {3w,w,w,w}、DASH_DOT_DOT 类推，w=max(0.5, lineWidth)）；DOUBLE 双线偏移 ±lineWidth（随宽度比例化）。
+- **缩放**：PDF lineWidth 为 user space 值，随 CTM 等比缩放（ISO 32000-1 §8.4.3.2）——WI2 缩放管线无需补偿，测试钉住（user space w 不变 + 设备像素宽随 scale 减小）。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。
@@ -103,6 +110,7 @@
 - `nop-report-pdf/.../renderer/PdfRenderer.java`（页面跟踪、`drawDefaultPageNumbers`）
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
 - `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪、rotateDegree 旋转、占位统一）
+- `nop-report-pdf/.../utils/PdfStyleHelper.java`（weight 驱动边框线宽、虚线节距比例化 WI8）
 - `nop-report-pdf/.../utils/IChartImageProvider.java`/`ChartImageProviders.java`、`PdfSheetRenderer.renderCharts`（图表接线 WI7）
 - 配置：`nop.report.pdf.repeat-header-rows`、`repeat-key-columns`、`default-page-footer`、`min-font-size-pt`
 
@@ -120,6 +128,7 @@
 - `TestPdfHeaderFooterRender`：&P/&N 全局与 sheet 作用域（双 sheet）、首页/奇偶变体、&A/&D/&T、字体代码不字面、无效 scope fail-loud、golden
 - `TestPdfImageRender`：锚点几何、rotateDegree 四象限、alpha、缺图/损坏占位、print=false、越界裁剪、缓存复用、多图回归、golden
 - `TestPdfChartRender`：provider 接线探测、锚点几何、region 过滤、null 跳过、默认桩、golden
+- `TestPdfBorderFidelity`：w 操作符精确线宽（1/2/3pt）、类型权重回退、像素严格序、DOUBLE 外扩、虚线节距比例、缩放 CTM、golden
 - `TestPdfRenderDefects`：F3（列拆分关键列重复）、F4（续页表头重复）红转绿；F6 回归钉（重复表头按需多次绘制，其余行只绘制一次）
 - `TestPdfSheetRenderFixes`：单页小表不受影响（无重复、打印区平移不变）
 - `TestPdfExportAudit`：20 模板批量导出复检

@@ -304,18 +304,21 @@ public class PdfStyleHelper {
         contentStream.setStrokingColor(color);
         contentStream.setLineWidth(lineWidth);
 
+        // WI8：虚线节距随线宽比例化（单位=线宽 w），下限 0.5 避免 hair 线糊死
+        float dw = Math.max(0.5f, lineWidth);
         switch (borderStyle.getType()) {
             case DASHED:
-                contentStream.setLineDashPattern(new float[]{3}, 0);
+                contentStream.setLineDashPattern(new float[]{3 * dw}, 0);
                 break;
             case DOTTED:
-                contentStream.setLineDashPattern(new float[]{1}, 0);
+            case HAIR:
+                contentStream.setLineDashPattern(new float[]{dw}, 0);
                 break;
             case DASH_DOT:
-                contentStream.setLineDashPattern(new float[]{3, 1, 1, 1}, 0);
+                contentStream.setLineDashPattern(new float[]{3 * dw, dw, dw, dw}, 0);
                 break;
             case DASH_DOT_DOT:
-                contentStream.setLineDashPattern(new float[]{3, 1, 1, 1, 1, 1}, 0);
+                contentStream.setLineDashPattern(new float[]{3 * dw, dw, dw, dw, dw, dw}, 0);
                 break;
             case DOUBLE:
                 contentStream.setLineDashPattern(new float[]{}, 0);
@@ -392,13 +395,13 @@ public class PdfStyleHelper {
     }
 
     private static float getLineWidth(OfficeBorderStyle borderStyle) {
-        switch (borderStyle.getType()) {
-            case HAIR: return 0.5f;
-            case SINGLE: return 1f;
-            case MEDIUM: return 1.5f;
-            case THICK: return 2f;
-            case DOUBLE: return 1.5f;
-            default: return 1f;
-        }
+        // WI8：模型真实权重优先（解析期自 OfficeLineStyle 规范表写入，Excel 语义 thin=1/medium=2/thick=3）；
+        // 程序化样式 weight=0 时回退类型规范权重；HAIR 权重 1（Excel 0.25pt 校准留后续）。
+        if (borderStyle.getWeight() > 0)
+            return borderStyle.getWeight();
+        OfficeLineStyle type = borderStyle.getType();
+        if (type == null)
+            return 1f;
+        return Math.max(1, type.getWeight());
     }
 }
