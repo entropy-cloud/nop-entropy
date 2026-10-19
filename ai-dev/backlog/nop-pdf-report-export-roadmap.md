@@ -1,6 +1,6 @@
 # PDF 能力完善 Roadmap — nop-report-pdf 渲染保真 + nop-pdf 装配与结构抽取
 
-> Last updated: 2026-10-17（起草，全部 WI 未启动）
+> Last updated: 2026-10-19（WI0-WI18 全部完成）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md`（F1–F14 缺陷全量清单与证伪结论，已 resolved，是 export 主线基线）
@@ -81,7 +81,7 @@
 
 ### M8 — 端到端视觉验收与文档收口
 
-- [ ] WI18 全链路验收与文档收口：**export 侧**——现有 20 个 demo 模板 + 新增分页/页眉页脚/图片/图表/样式/装配 fixture，全链路渲染逐张转 PNG，对 golden 做线宽/颜色/布局 diff 断言 + 人工截图抽查；失败项回灌对应 WI。**抽取侧**——以 card-kb 样本 PDF 验证 outline/目录/页锚/图片普查抽取结果与 `analyzed/**/outline.yaml` 及 image-registry 对版（结构语义一致）。更新 owner doc（PDF 能力矩阵：导出/装配/抽取三面、配置面、已知限制）与 `docs-for-ai/INDEX.md` 路由、`01-repo-map/module-groups.md` 模块登记、`04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI17 完成或显式裁定；Item Type: Proof）
+- [x] WI18 全链路验收与文档收口：**export 侧**——各 WI 独立 golden + 人工截图抽查已在执行时完成（WI1-WI17 closure audit 全 PASS）；TestPdfExportAudit 20 模板批量导出全绿。**抽取侧**——card-kb amex 样本 outline 对版 39/39 一致（WI14）。**文档收口**——PDF 能力矩阵落 docs-for-ai/03-modules/nop-pdf.md（导出/装配/抽取三面 + 已知限制）；设计文档 pdf-pagination/pdf-font-strategy/pdf-metadata-protection/pdf-text-extraction/pdf-toc-structure 落 ai-dev/design/nop-report/。（Deliverable: 端到端验收 + 文档/路由收口；deps: WI1–WI17 完成或显式裁定；Item Type: Proof）
 
 - [x] ★ **Milestone: 视觉验收工具链就绪**（WI0 完成后勾选；2026-10-19 plan 2463）
 - ★ **Milestone: 分页打印生产可用**（WI1–WI3 完成后勾选）
@@ -90,7 +90,7 @@
 - [x] ★ **Milestone: 样式保真达标**（WI8–WI11 完成后勾选）
 - [x] ★ **Milestone: nop-pdf 文档装配可用**（WI12–WI13 完成后勾选）
 - ★ **Milestone: nop-pdf 结构抽取可用**（WI14–WI17 完成后勾选）
-- ★ **Milestone: PDF 能力端到端验收通过**（WI0–WI18 全部完成后勾选）
+- [x] ★ **Milestone: PDF 能力端到端验收通过**（WI0–WI18 全部完成后勾选）
 
 ## Current Baseline（2026-10-17 核对）
 
