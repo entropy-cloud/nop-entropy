@@ -11,12 +11,12 @@ import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.utils.TableSplitHelper;
-import io.nop.excel.model.ExcelChartModel;
-import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelHeaderFooter;
 import io.nop.excel.model.ExcelPageBreaks;
 import io.nop.excel.model.ExcelImage;
+import io.nop.excel.renderer.ChartImageProviderRegistry;
+import io.nop.excel.renderer.IChartImageProvider;
 import io.nop.excel.model.ExcelPageSetup;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.IExcelSheet;
@@ -27,8 +27,6 @@ import io.nop.ooxml.xlsx.parse.ExcelHeaderFooterCodes;
 import io.nop.report.pdf.ReportPdfConfigs;
 import io.nop.report.pdf.font.FontManager;
 import io.nop.report.pdf.renderer.PdfRenderer.DeferredHeaderFooter;
-import io.nop.report.pdf.utils.ChartImageProviders;
-import io.nop.report.pdf.utils.IChartImageProvider;
 import io.nop.report.pdf.utils.PdfImageHelper;
 import io.nop.report.pdf.utils.PdfPrintHelper;
 import io.nop.report.pdf.utils.PdfStyleHelper;
@@ -434,60 +432,48 @@ public class PdfSheetRenderer {
     }
 
     /**
-     * WI7：图表渲染——锚点几何计算后交由图表图片 provider 渲染为 PNG，经图片绘制路径
-     * （裁剪/缓存/旋转）落页。provider 返回 null 时 WARN 跳过（不做无痕静默）。
+     * plan 2366 D47：渲染图表（provider 产的 ExcelImage 无 anchor，直接带 sheet 绝对
+     * pt 坐标，不经 calcSize）。provider 缺席或 sheet 无图表时静默跳过（D43 显式裁定，
+     * 与 HTML 渲染器一致）；provider 异常上抛。产物独立循环，不并入 sheet.getImages()
+     * （renderImages 的 anchor 解引用对无 anchor 图会 NPE）。
      */
-    private void renderCharts(PdfPageRenderer pageRenderer, IExcelSheet sheet,
-                              CellRange region, java.awt.Rectangle pageClipRect) {
-        List<ExcelChartModel> charts = sheet.getCharts();
+    private void renderCharts(PdfPageRenderer pageRenderer, IExcelSheet sheet, CellRange region,
+                              java.awt.Rectangle pageClipRect) {
+        IChartImageProvider provider = ChartImageProviderRegistry.getProvider();
+        if (provider == null || !sheet.hasChart())
+            return;
+
+        List<ExcelImage> charts = provider.renderCharts(sheet);
         if (charts == null || charts.isEmpty())
             return;
 
-        IChartImageProvider provider = ChartImageProviders.getProvider();
-        for (ExcelChartModel chart : charts) {
-            ExcelClientAnchor anchor = chart.getAnchor();
-            if (anchor == null)
+        double startX = 0;
+        double startY = 0;
+        double endX = Double.MAX_VALUE;
+        double endY = Double.MAX_VALUE;
+        if (region != null) {
+            startX = sheet.getTable().getRangeWidth(0, region.getFirstColIndex() - 1, sheet.defaultColumnWidth());
+            startY = sheet.getTable().getRangeHeight(0, region.getFirstRowIndex() - 1, sheet.defaultRowHeight());
+            // 分页归属（D47）：left/top 落入 region 坐标范围才绘制，跨页图归首个包含页
+            endX = startX + sheet.getTable().getRangeWidth(region.getFirstColIndex(), region.getLastColIndex(),
+                    sheet.defaultColumnWidth());
+            endY = startY + sheet.getTable().getRangeHeight(region.getFirstRowIndex(), region.getLastRowIndex(),
+                    sheet.defaultRowHeight());
+        }
+
+        for (ExcelImage chart : charts) {
+            if (chart.getData() == null || chart.getData().isEmpty())
+                continue;
+            double left = chart.getLeft();
+            double top = chart.getTop();
+            if (region != null && (left < startX || left >= endX || top < startY || top >= endY))
                 continue;
 
-            CellPosition pos = anchor.getStartPosition();
-            if (pos == null)
-                continue;
-
-            if (region != null && !region.containsCell(pos.getRowIndex(), pos.getColIndex())) {
-                continue;
-            }
-
-            // 几何按 ExcelImage.calcSize 公式（锚点两角 + 单元格位置）
-            double left = sheet.getCellLeft(anchor.getCol1()) + anchor.getDx1();
-            double top = sheet.getCellTop(anchor.getRow1()) + anchor.getDy1();
-            double x2 = sheet.getCellLeft(anchor.getCol2()) + anchor.getDx2();
-            double y2 = sheet.getCellTop(anchor.getRow2()) + anchor.getDy2();
-            double width = x2 - left;
-            double height = y2 - top;
-            if (width <= 0 || height <= 0)
-                continue;
-
-            double imageX = left - (region != null
-                    ? sheet.getTable().getRangeWidth(0, region.getFirstColIndex() - 1, sheet.defaultColumnWidth())
-                    : 0);
-            double imageY = top - (region != null
-                    ? sheet.getTable().getRangeHeight(0, region.getFirstRowIndex() - 1, sheet.defaultRowHeight())
-                    : 0);
-
-            ByteString png = provider.renderChart(chart, sheet, width, height);
-            if (png == null || png.isEmpty()) {
-                LOG.warn("nop.report.pdf.chart-provider-null:anchor={}",
-                        anchor.getStartPosition() == null ? "" : anchor.getStartPosition().toABString());
-                continue;
-            }
-
-            // 经临时 ExcelImage 承载 provider PNG，复用图片绘制路径（裁剪/占位）
-            ExcelImage image = new ExcelImage();
-            image.setName("chart-" + System.identityHashCode(chart));
-            image.setData(png);
-            image.setPrint(true);
-            PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), image,
-                    imageX, -imageY - height, width, height, pageClipRect);
+            double imageX = left - startX;
+            double imageY = top - startY;
+            PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), chart.getData().toByteArray(),
+                    imageX, -imageY - chart.getHeight(),
+                    chart.getWidth(), chart.getHeight(), pageClipRect);
         }
     }
 

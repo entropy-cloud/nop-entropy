@@ -1,20 +1,25 @@
 package io.nop.chart.export;
 
 /**
- * Chart export options configuration
+ * Chart export options configuration.
+ *
+ * <p>Plan 2364 D28 adjudication of the audited dead configs: every retained field
+ * has a real consumption point in {@link ChartExporter}; dpi/quality/antiAlias and
+ * the overlapping timeoutMs were removed (no implementable ECharts semantics --
+ * rendering is vector-consistent and anti-aliased by the engine). This is a
+ * deliberate contract change with zero production callers (verified 2026-10-10).</p>
  */
 public class ChartExportOptions {
+    /** Export format: "png" (default) or "svg". */
     private String format = "png";
-    private int width = 800;           // 默认宽度
-    private int height = 600;          // 默认高度
-    private int dpi = 96;              // 默认DPI
-    private float quality = 0.9f;      // 图片质量 (0.0-1.0)
-    private boolean antiAlias = true;
-    private int timeoutSeconds = 30; // 默认30秒超时  // 抗锯齿
-    private String backgroundColor;     // 背景色
-    private long timeoutMs = 30000;    // 超时时间(毫秒)
-    private int maxDataSize = 10000;   // 最大数据量
-    private IProgressCallback progressCallback; // 进度回调
+    private int width = 800;
+    private int height = 600;
+    /** Optional chart background color (CSS color); absent = transparent PNG. */
+    private String backgroundColor;
+    private int timeoutSeconds = 30;
+    /** Maximum data points per series before ERR_DATA_VOLUME_EXCEEDED. */
+    private int maxDataSize = 10000;
+    private IProgressCallback progressCallback;
 
     public ChartExportOptions() {
     }
@@ -31,7 +36,6 @@ public class ChartExportOptions {
         this.format = format;
     }
 
-    // Getters and Setters
     public int getWidth() {
         return width;
     }
@@ -48,38 +52,6 @@ public class ChartExportOptions {
         this.height = height;
     }
 
-    public int getDpi() {
-        return dpi;
-    }
-
-    public void setDpi(int dpi) {
-        this.dpi = dpi;
-    }
-
-    public float getQuality() {
-        return quality;
-    }
-
-    public void setQuality(float quality) {
-        this.quality = quality;
-    }
-
-    public boolean isAntiAlias() {
-        return antiAlias;
-    }
-
-    public void setAntiAlias(boolean antiAlias) {
-        this.antiAlias = antiAlias;
-    }
-
-    public int getTimeoutSeconds() {
-        return timeoutSeconds;
-    }
-
-    public void setTimeoutSeconds(int timeoutSeconds) {
-        this.timeoutSeconds = timeoutSeconds;
-    }
-
     public String getBackgroundColor() {
         return backgroundColor;
     }
@@ -88,12 +60,12 @@ public class ChartExportOptions {
         this.backgroundColor = backgroundColor;
     }
 
-    public long getTimeoutMs() {
-        return timeoutMs;
+    public int getTimeoutSeconds() {
+        return timeoutSeconds;
     }
 
-    public void setTimeoutMs(long timeoutMs) {
-        this.timeoutMs = timeoutMs;
+    public void setTimeoutSeconds(int timeoutSeconds) {
+        this.timeoutSeconds = timeoutSeconds;
     }
 
     public int getMaxDataSize() {

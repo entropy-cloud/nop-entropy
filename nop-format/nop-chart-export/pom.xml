@@ -23,8 +23,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.jfree</groupId>
-            <artifactId>jfreechart</artifactId>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-chart-echarts</artifactId>
         </dependency>
 
         <dependency>

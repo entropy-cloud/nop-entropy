@@ -33,6 +33,9 @@
              消费线有害，core 需显式钉防混栈）；plan 2451 裁定整体升级后分歧消失，
              core 显式钉与 5 个 message/stream 模块的模块级 import 一并撤除。 -->
         <testcontainers.version>2.0.5</testcontainers.version>
+        <!-- GraalJS polyglot 线：与 nop-kernel/nop-xlang-truffle 钉定的 truffle.version 保持同线（plan 2358 WI0 裁定） -->
+        <graal-polyglot.version>25.2.4</graal-polyglot.version>
+        <mvnpm-echarts.version>6.1.0</mvnpm-echarts.version>
 
         <!-- plan 36（2026-10-06）：对齐 Pulsar 4.0 LTS 线最新补丁（active support 至
              2026-10-21，security support 至 2027-10-21；非 LTS 的 4.1/4.2 不取）。
@@ -111,8 +114,6 @@
         <protostuff-runtime.version>1.8.0</protostuff-runtime.version>
         <!-- zxing javase：两 BOM 均不管理（WI10 plan 2444） -->
         <javase.version>3.5.3</javase.version>
-        <!-- jfreechart：两 BOM 均不管理（WI10 plan 2444） -->
-        <jfreechart.version>1.5.6</jfreechart.version>
         <maven-site-plugin.version>4.0.0-M2</maven-site-plugin.version>
         <maven-project-info-reports-plugin.version>3.3.0</maven-project-info-reports-plugin.version>
     </properties>
@@ -499,9 +500,20 @@
             </dependency>
 
             <dependency>
-                <groupId>org.jfree</groupId>
-                <artifactId>jfreechart</artifactId>
-                <version>${jfreechart.version}</version>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>polyglot</artifactId>
+                <version>${graal-polyglot.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.graalvm.polyglot</groupId>
+                <artifactId>js</artifactId>
+                <version>${graal-polyglot.version}</version>
+                <type>pom</type>
+            </dependency>
+            <dependency>
+                <groupId>org.mvnpm</groupId>
+                <artifactId>echarts</artifactId>
+                <version>${mvnpm-echarts.version}</version>
             </dependency>
 
         </dependencies>

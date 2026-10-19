@@ -29,5 +29,6 @@
         <module>nop-report-meta</module>
         <module>nop-report-ext</module>
         <module>nop-report-docx</module>
+        <module>nop-chart-report</module>
     </modules>
 </project>

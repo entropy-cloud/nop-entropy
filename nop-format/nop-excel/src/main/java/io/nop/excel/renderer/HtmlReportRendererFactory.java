@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Stream;
 
 public class HtmlReportRendererFactory implements IReportRendererFactory {
     static final Logger LOG = LoggerFactory.getLogger(HtmlTemplate.class);
@@ -131,9 +130,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
                 out.write("\" data-sheet-name=\"");
                 out.write(StringHelper.escapeXmlAttr(sheet.getName()));
                 out.write("\">\n");
-                if (sheet.getImages() != null && !sheet.getImages().isEmpty()) {
-                    renderImages(sheet, sheetId, out);
-                }
+                HtmlSheetVisualRenderer.renderVisualOverlays(sheet, sheetId, out);
                 HtmlTableOutput output = new HtmlTableOutput(sheet.getTable(), ExcelConstants.CSS_PREFIX_XPT);
                 output.setDefaultHeight(sheet.getDefaultRowHeight());
                 output.setDefaultWidth(sheet.getDefaultColumnWidth());
@@ -146,76 +143,8 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
         }
 
         protected void renderImages(IExcelSheet sheet, String sheetId, Writer out) throws IOException {
-            out.write("<style>\n");
-            out.write("#");
-            out.write(sheetId);
-            out.write("{\n");
-
-            double minHeight = 0;
-            double minWidth = 0;
-
-            boolean notPrint = false;
-            for (ExcelImage image : sheet.getImages()) {
-                if (image.getData() == null)
-                    continue;
-                if (!image.isPrint()) {
-                    notPrint = true;
-                }
-
-                minHeight = Math.max(minHeight, image.getTop() + image.getHeight());
-                minWidth = Math.max(minWidth, image.getLeft() + image.getWidth());
-            }
-            out.write("min-height:" + minHeight + "pt;\n");
-            out.write("min-width:" + minWidth + "pt;\n");
-            outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null), out);
-            out.write("}\n");
-
-            // 有不打印的图片
-            if (notPrint) {
-                out.write("@media print {\n");
-                out.write("#");
-                out.write(sheetId);
-                out.write("{\n");
-                outputBackground(sheet.getImages().stream().filter(image -> image.getData() != null && image.isPrint()), out);
-                out.write("}\n");
-                out.write("}\n");
-            }
-
-            out.write("</style>\n");
-        }
-
-
-        protected void outputBackground(Stream<ExcelImage> images, Writer out) throws IOException {
-            List<String> urls = new ArrayList<>();
-            List<String> sizes = new ArrayList<>();
-            List<String> posList = new ArrayList<>();
-            List<String> repeats = new ArrayList<>();
-
-            images.forEach(image -> {
-                String url = image.getData().toDataUrl(image.getMimeType());
-                urls.add("url(" + url + ")");
-                sizes.add(image.getWidth() + "pt " + image.getHeight() + "pt");
-                posList.add(image.getLeft() + "pt " + image.getTop() + "pt");
-                repeats.add("no-repeat");
-            });
-
-            out.write("background-image:");
-            if (urls.isEmpty()) {
-                out.write("none;\n");
-                return;
-            }
-
-            out.write(StringHelper.join(urls, ","));
-            out.write(";\n");
-            out.write("background-size:");
-            out.write(StringHelper.join(sizes, ","));
-            out.write(";\n");
-            out.write("background-position:");
-            out.write(StringHelper.join(posList, ","));
-            out.write(";\n");
-            out.write("background-repeat:");
-            out.write(StringHelper.join(repeats, ","));
-            out.write(";\n");
+            HtmlSheetVisualRenderer.renderImages(sheetId, out,
+                    sheet.getImages() == null ? new ArrayList<>() : sheet.getImages());
         }
     }
 }

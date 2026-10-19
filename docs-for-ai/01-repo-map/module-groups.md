@@ -66,7 +66,11 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | 模块 | 用途 |
 |------|------|
 | `nop-sys/` | 序列号、数据字典、国际化、Maker-Checker 审批、分布式锁、事件队列 |
-| `nop-report/` | 报表引擎（Excel/PDF/DOCX） |
+| `nop-report/` | 报表引擎（Excel/PDF/DOCX；图表渲染经 `nop-chart-report` opt-in，见 `02-core-guides/chart-static-render.md`） |
+| `nop-format/nop-canvas2d` | 纯 Java2D Canvas2D 语义实现（图表静态渲染的绘图底座） |
+| `nop-format/nop-chart-echarts` | ECharts 静态渲染引擎（GraalJS 执行官方 dist + Java2D shim） |
+| `nop-format/nop-chart-export` | 图表导出壳契约 + ChartModel→ECharts option 适配器（JFreeChart 已退役） |
+| `nop-report/nop-chart-report` | 可选报表图表接线（IChartImageProvider 实现，opt-in；缺席静默跳过） |
 | `nop-rule/` | 规则引擎（决策树/决策矩阵） |
 | `nop-batch/` | 批处理引擎（chunk 处理、断点续传） |
 | `nop-dyn/` | 动态表单/实体（运行时定义） |

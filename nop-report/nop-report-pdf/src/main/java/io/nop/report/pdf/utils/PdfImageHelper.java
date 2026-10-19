@@ -25,15 +25,32 @@ public class PdfImageHelper {
     }
 
     /**
+     * plan 2366 D48：byte[] 形态重载（图表渲染产物直接入参，无需 ExcelImage 包装），
+     * 内部与 ExcelImage 形态共享缓存与失败占位路径。clipRect 为当前用户空间坐标的
+     * 裁剪矩形（调用方已把设备页矩形换算到内容变换空间），越界部分不绘制。
+     */
+    public static void drawImage(PdfRenderer renderer, PDPageContentStream contentStream,
+                                 byte[] imageData, double x, double y, double width, double height,
+                                 java.awt.Rectangle clipRect) {
+        drawImageData(renderer, contentStream, imageData == null ? null : ByteString.of(imageData),
+                x, y, width, height, null, clipRect);
+    }
+
+    /**
      * @param clipRect 当前用户空间坐标的裁剪矩形（调用方已把设备页矩形换算到
      *                 内容变换空间），越界部分不绘制
      */
     public static void drawImage(PdfRenderer renderer, PDPageContentStream contentStream,
                                  ExcelImage picture, double x, double y, double width, double height,
                                  java.awt.Rectangle clipRect) {
+        drawImageData(renderer, contentStream, picture.getData(), x, y, width, height,
+                picture.getRotateDegree(), clipRect);
+    }
+
+    private static void drawImageData(PdfRenderer renderer, PDPageContentStream contentStream,
+                                      ByteString imageData, double x, double y, double width, double height,
+                                      Number rotateDegree, java.awt.Rectangle clipRect) {
         try {
-            // 获取图片数据；缺图（无数据）与损坏图统一绘制占位（WI6：不再静默跳过）
-            ByteString imageData = picture.getData();
             if (imageData == null || imageData.isEmpty()) {
                 LOG.warn("nop.report.pdf.image-missing-placeholder:x={},y={},w={},h={}", x, y, width, height);
                 drawPlaceholder(contentStream, x, y, width, height);
@@ -49,8 +66,7 @@ public class PdfImageHelper {
                 contentStream.clip();
             }
 
-            Number rotateNumber = picture.getRotateDegree();
-            double rotate = rotateNumber == null ? 0 : rotateNumber.doubleValue();
+            double rotate = rotateDegree == null ? 0 : rotateDegree.doubleValue();
             if (Math.abs(rotate) < 1e-9) {
                 contentStream.drawImage(pdImage, (float) x, (float) y, (float) width, (float) height);
             } else {

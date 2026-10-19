@@ -69,7 +69,7 @@
 
 ### D9 图表接线（WI7）
 
-- **SPI**：`IChartImageProvider.renderChart(chart, sheet, widthPt, heightPt) → PNG 字节`（SVG 由 provider 自行栅格化，PDFBox 3 原生不支持 SVG）；`ChartImageProviders` 静态注册器，缺省内置桩（灰底蓝框渐变图案）。真实 echarts provider（echarts-server-render-roadmap 交付）setProvider 即插即用。
+- **SPI**：`io.nop.excel.renderer.IChartImageProvider.renderCharts(sheet) → List<ExcelImage>`（产物自带绝对 pt 坐标；SVG 由 provider 自行栅格化，PDFBox 3 原生不支持 SVG）；`ChartImageProviderRegistry` 查找点（静态注册优先，回落 IoC `tryGetBeanByType`），provider 不在 classpath 时静默跳过（plan 2365 D42/D43）。真实实现 `nop-chart-report.ExcelChartImageProvider`（GraalJS echarts）。合并注记：原 `nop-report-pdf/.../utils/{IChartImageProvider,ChartImageProviders}` 占位桩 SPI（plan 2470）已随 echarts-server-render 合并退役。
 - **renderCharts**：镜像 renderImages——anchor 判空、region 过滤（锚点起点在当前 region 才绘制）、几何按锚点两角计算、provider 返回 null → WARN（`nop.report.pdf.chart-provider-null`）跳过（不做无痕静默）；绘制经临时 ExcelImage 复用 PdfImageHelper（裁剪/占位/缓存）。
 - **完成判定**：本 WI 勾选代表 PDF 侧管线打通（桩验证）；图表与真实渲染的逐图视觉对版延后至 echarts provider 交付。
 - **已知疑点**：多页（region≠null）图片/图表的 y 定位与"锚点行×行高"推算存在约 40pt 级偏移疑点（重复行+预留几何推导未完，图片路径同样存在）——登记 follow-up，锚点页存在性已测试钉住。
@@ -124,7 +124,7 @@
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
 - `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪、rotateDegree 旋转、占位统一）
 - `nop-report-pdf/.../utils/PdfStyleHelper.java`（weight 驱动边框线宽、虚线节距比例化 WI8）
-- `nop-report-pdf/.../utils/IChartImageProvider.java`/`ChartImageProviders.java`、`PdfSheetRenderer.renderCharts`（图表接线 WI7）
+- `nop-excel/.../renderer/IChartImageProvider.java`/`ChartImageProviderRegistry.java`、`nop-chart-report/.../ExcelChartImageProvider.java`、`PdfSheetRenderer.renderCharts`（图表接线 WI7）
 - 配置：`nop.report.pdf.repeat-header-rows`、`repeat-key-columns`、`default-page-footer`、`min-font-size-pt`
 
 ## 验证

@@ -17,11 +17,41 @@
             <artifactId>nop-excel</artifactId>
         </dependency>
 
+        <!-- WI4 引擎桥的 Java 2D 基座（版本经 nop-bom） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-canvas2d</artifactId>
+        </dependency>
+
+        <!-- plan 2362 WI4：GraalJS 引擎生产依赖（版本由 nop-dependencies BOM 管理，WI0 裁定） -->
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>js</artifactId>
+            <type>pom</type>
+        </dependency>
+        <dependency>
+            <groupId>org.mvnpm</groupId>
+            <artifactId>echarts</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.mvnpm</groupId>
+                    <artifactId>tslib</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.mvnpm</groupId>
+                    <artifactId>zrender</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>
-
 </project>

@@ -18,6 +18,7 @@
     </properties>
 
     <modules>
+        <module>nop-canvas2d</module>
         <module>nop-chart-echarts</module>
         <module>nop-chart-export</module>
         <module>nop-converter</module>

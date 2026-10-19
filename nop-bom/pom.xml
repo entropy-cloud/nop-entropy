@@ -455,6 +455,12 @@
 
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-chart-report</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-report-ext</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
@@ -1453,6 +1459,24 @@
             <dependency>
                 <groupId>io.github.entropy-cloud</groupId>
                 <artifactId>nop-ai-deepwiki</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-canvas2d</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-chart-echarts</artifactId>
+                <version>${nop-entropy.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>io.github.entropy-cloud</groupId>
+                <artifactId>nop-chart-export</artifactId>
                 <version>${nop-entropy.version}</version>
             </dependency>
 
