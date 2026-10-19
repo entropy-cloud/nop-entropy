@@ -297,10 +297,20 @@ public class BashSandboxTest {
         }
     }
 
+    /**
+     * Wait-first, then drain: draining before {@link Process#waitFor(long, TimeUnit)}
+     * blocks forever when the docker daemon is half-hung (accepts the connection but
+     * never responds — observed with Docker Desktop leaving a stale socket), because the
+     * child never exits and the pipe never closes, defeating the waitFor timeout.
+     */
     private static boolean isDockerAvailable() {
         try {
             Process p = new ProcessBuilder(List.of("docker", "version", "--format", "{{.Server.Version}}"))
                     .redirectErrorStream(true).start();
+            if (!p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                return false;
+            }
             byte[] buf = new byte[1024];
             //noinspection StatementWithEmptyBody
             try (var in = p.getInputStream()) {
@@ -308,7 +318,7 @@ public class BashSandboxTest {
                     // drain
                 }
             }
-            return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+            return p.exitValue() == 0;
         } catch (Exception e) {
             // docker CLI 缺失或无权启动进程 —— 等价于不可用，让 assumeTrue 跳过
             return false;
@@ -319,6 +329,10 @@ public class BashSandboxTest {
         try {
             Process p = new ProcessBuilder(List.of("docker", "image", "inspect", image))
                     .redirectErrorStream(true).start();
+            if (!p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)) {
+                p.destroyForcibly();
+                return false;
+            }
             byte[] buf = new byte[1024];
             //noinspection StatementWithEmptyBody
             try (var in = p.getInputStream()) {
@@ -326,7 +340,7 @@ public class BashSandboxTest {
                     // drain
                 }
             }
-            return p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0;
+            return p.exitValue() == 0;
         } catch (Exception e) {
             // docker 不可用 —— 让上层 assumeTrue 跳过
             return false;

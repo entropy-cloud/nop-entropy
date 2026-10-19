@@ -26,6 +26,7 @@ Closure Audit Evidence:
   - 装配侧：merge/stamp/watermark/pageNumbers/fromImage 由 15 个测试钉住（WI12）；元数据/加密 5 个（WI13）
   - 文档收口：docs-for-ai/03-modules/nop-pdf.md（能力矩阵）+ 5 篇 design 子文档落 ai-dev/design/nop-report/
   - 构建恢复遍：各 WI Closure 段记录排除清单（均单跑复核绿或预存缺陷已上报）
+  - WI18 终局全量构建（2026-10-20 补录）：首遍 `-T 1C` 恢复遍完成 200/456 模块后在 4 个模块挂死；`jstack` 定位根因为 8 个测试类的无界 Docker 探测（本机 Docker Desktop 半挂死遗留陈旧 socket）——与 PDF roadmap 无关的测试基建缺陷，同族修复 8 处（变体 A testcontainers clinit 无读超时 ×8、变体 B drain-before-wait ×2 方法），6 个受影响模块串行 solo 复核 BUILD SUCCESS（debezium 70/pulsar 73/kafka 98/stream-runtime 1212/ai-toolkit 302/job-local 50，skip 均为 Docker 门控 E2E 设计内可见跳过）。根因分析见 `ai-dev/bugs/2026-10/2026-10-20-testcontainers-detect-docker-blocking-clinit.md`。
 
 ## WI 完成清单
 

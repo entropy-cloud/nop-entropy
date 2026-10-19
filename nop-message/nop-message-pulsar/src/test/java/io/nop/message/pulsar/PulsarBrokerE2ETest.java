@@ -19,6 +19,11 @@ import org.testcontainers.utility.DockerImageName;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
@@ -71,11 +76,34 @@ class PulsarBrokerE2ETest {
 
     private final List<PulsarMessageService> services = new CopyOnWriteArrayList<>();
 
+    /**
+     * Bounded Docker probe: {@link DockerClientFactory#isDockerAvailable()} has no read
+     * timeout and blocks forever on a half-hung docker socket (observed on Docker Desktop
+     * with a stale socket file), which would wedge the whole build from a test-class
+     * static initializer. Run it on a daemon thread and give up after 15s; the
+     * shutdownNow() interrupt breaks the NIO blocking read.
+     */
     static boolean detectDocker() {
+        ExecutorService executor = Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "docker-detect");
+            t.setDaemon(true);
+            return t;
+        });
         try {
-            return DockerClientFactory.instance().isDockerAvailable();
-        } catch (Throwable e) {
+            return executor.submit(() -> {
+                try {
+                    return DockerClientFactory.instance().isDockerAvailable();
+                } catch (Throwable e) {
+                    return false;
+                }
+            }).get(15, TimeUnit.SECONDS);
+        } catch (TimeoutException | ExecutionException e) {
             return false;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+        } finally {
+            executor.shutdownNow();
         }
     }
 
