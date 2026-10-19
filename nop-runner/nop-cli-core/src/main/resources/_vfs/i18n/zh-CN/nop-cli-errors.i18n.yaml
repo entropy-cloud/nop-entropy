@@ -1114,6 +1114,12 @@ nop.err.report.pdf.fallback-font-not-found: 未找到可用的CJK回退字体，
 nop.err.report.pdf.font-missing-glyph: 字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件
 nop.err.report.pdf.invalid-page-number-scope: 无效的页码作用域配置(仅支持global/sheet):scope={scope}
 nop.err.report.pdf.unsupported-print-titles: PDF导出仅支持从首行/首列开始的前缀Print_Titles声明(如1:2或A:B):printTitleRange={printTitleRange}
+nop.err.pdf.cjk-requires-font: 文本包含CJK字符且未提供字体文件:failedChar={failedChar},textSample={textSample}。请通过PdfStampOptions.setFontFile提供覆盖该字符的TTF/OTF字体文件
+nop.err.pdf.image-invalid: 无效的图片数据(null/空字节数组或无法解码的图片格式)
+nop.err.pdf.page-out-of-range: 页码越界(有效范围1..{pageCount}):page={page}
+nop.err.pdf.text-not-encodable: 缺省字体无法编码文本中的字符:failedChar={failedChar},textSample={textSample}。请通过PdfStampOptions.setFontFile提供覆盖该字符的字体文件
+nop.err.pdf.scanned-page: 第{page}页无可抽取文本层(疑似扫描件)。请提供含文本层的PDF或先做OCR处理
+nop.err.pdf.garbled-text: 第{page}页乱码字符(U+FFFD)数超过阈值:fffdCount={fffdCount}。PDF可能缺少正确的ToUnicode映射
 nop.err.rpc.cancelled: RPC调用已取消，原因:{reason}
 nop.err.rpc.channel-closed: RPC连接已关闭
 nop.err.rpc.empty-request: 请求对象为空

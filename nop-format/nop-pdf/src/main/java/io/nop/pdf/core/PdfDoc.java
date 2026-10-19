@@ -168,6 +168,15 @@ public class PdfDoc implements Closeable {
         return io.nop.pdf.outline.PdfOutlineExtractor.extract(doc);
     }
 
+    // ========== WI16：版面感知页文本抽取 ==========
+
+    /**
+     * 版面感知页文本抽取（strip/layout 双模式 + 页锚 + 扫描/乱码检测）
+     */
+    public io.nop.pdf.text.PageTextExtractResult extractPageTexts(io.nop.pdf.text.PageTextOptions options) {
+        return io.nop.pdf.text.PageTextExtractor.extract(doc, options);
+    }
+
     /**
      * outline.yaml 输出（契约对齐 card-kb analyzed 目录下的 outline.yaml）
      */
