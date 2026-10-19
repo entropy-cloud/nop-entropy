@@ -32,6 +32,8 @@ public class TestTruffleDependencyIsolation {
 
     private static final String MODULE_POM = "nop-xlang-truffle/pom.xml";
 
+    private static final Pattern DEPENDENCY_MANAGEMENT = Pattern.compile(
+            "<dependencyManagement>.*?</dependencyManagement>", Pattern.DOTALL);
     private static final Pattern DEPENDENCIES_SECTION = Pattern.compile(
             "<dependencies>(.*?)</dependencies>", Pattern.DOTALL);
     private static final Pattern DEPENDENCY_BLOCK = Pattern.compile(
@@ -66,6 +68,9 @@ public class TestTruffleDependencyIsolation {
             throw new IllegalStateException("read pom failed: " + pom, e);
         }
         String relative = relativeToKernel(pom);
+        // 口径见类 javadoc：dependencyManagement 是版本管理（BOM），不是模块依赖，
+        // 内层同样叫 <dependencies> 的标签不得计入扫描，否则 BOM 管理条目会误报。
+        text = DEPENDENCY_MANAGEMENT.matcher(text).replaceAll("");
         Matcher sections = DEPENDENCIES_SECTION.matcher(text);
         while (sections.find()) {
             Matcher deps = DEPENDENCY_BLOCK.matcher(sections.group(1));
