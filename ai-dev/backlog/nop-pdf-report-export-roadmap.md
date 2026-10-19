@@ -54,7 +54,7 @@
 
 ### M3 — 图片嵌入（image embedding）
 
-- [ ] WI6 图片嵌入保真：DPI 与尺寸换算（EMU/像素/点相互换算正确，`noChangeAspect` 等比、显式宽高）；`rotateDegree` 旋转；alpha 透明（PNG 透明通道）；图片缓存与内存（大图/多图不 OOM，保持 per-document 复用）；缺图/损坏图占位（当前灰色块）；页面裁剪与套打 `print=false` 行为回归。含旋转/透明/DPI golden（Deliverable: 图片子系统保真 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI6 图片嵌入保真：DPI 与尺寸换算（EMU/像素/点相互换算正确，`noChangeAspect` 等比、显式宽高）；`rotateDegree` 旋转；alpha 透明（PNG 透明通道）；图片缓存与内存（大图/多图不 OOM，保持 per-document 复用）；缺图/损坏图占位（当前灰色块）；页面裁剪与套打 `print=false` 行为回归。含旋转/透明/DPI golden（Deliverable: 图片子系统保真 + 测试；deps: WI0；Item Type: Feature）
 
 ### M4 — 图表嵌入（chart embedding）
 

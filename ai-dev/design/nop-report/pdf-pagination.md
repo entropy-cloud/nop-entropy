@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4 页眉页脚）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6 图片）
 
 ## 决策
 
@@ -54,6 +54,16 @@
 - **变体回退**：differentFirst 首页用 first*（缺失回退 odd）；differentOddEven 偶数页用 even*（缺失回退 odd）；odd 缺失 → 该页无页眉/脚（默认页码抑制语义与 Excel 空白页脚一致）。
 - **&D/&T 格式**：yyyy/M/d 与 HH:mm:ss（固定格式，D7 定版）。&F/&Z 取模板资源路径（workbook location；无则空串）。&G 图片段解析保留、渲染属 WI5。
 
+### D8 图片嵌入语义（WI6）
+
+- **尺寸换算**：OOXML 锚点偏移 EMU→pt 在 DrawingParser 解析期完成（`UnitsHelper.emuToPoints`）；渲染几何 = 锚点两角 + dx/dy（pt），测试以锚点几何钉住（`testImageAtAnchoredGeometry`）。
+- **rotateDegree**：绕图片中心顺时针旋转（PDF 行向量约定下显式构造合并矩阵：a=w·cosθ、b=w·sinθ、c=-h·sinθ、d=h·cosθ、e/f 含中心平移；θ=Math.toRadians(-rotateDegree)）。rotateDegree=0 走原 drawImage 路径零开销。
+- **noChangeAspect**：为 Excel UI 语义（界面缩放锁定比例），渲染以锚点几何为准——本裁定显式覆盖 roadmap"noChangeAspect 等比"措辞。
+- **alpha 透明**：PDFBox `createFromByteArray` 对 PNG 保留 alpha 通道，原生渲染（测试钉住：透明半区透出底层填充色）。
+- **占位策略**：缺图（data null/empty）与损坏图统一绘制浅灰占位块 + WARN（`nop.report.pdf.image-missing-placeholder`/render error）——不再静默跳过；分页裁剪跳过（region 不含锚点）与套打 `print=false` 保持静默（合法语义）。
+- **缓存**：`PdfRenderer.getImage` 按图片字节 per-document 复用 PDImageXObject（同字节同实例）。
+- **限制**：oneCellAnchor/absoluteAnchor（无 `to` 节点）解析后 col2=row2=0 → calcSize 宽高为负、渲染错位——仓库无此类模板（watch-only，出现需求时解析 `<ext>` 扩展几何）。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。
@@ -81,7 +91,7 @@
 - `nop-report-pdf/.../utils/HeaderFooterRuns.java`/`HeaderFooterEvaluator.java`（run 切分 + 占位符求值）、`PdfRenderer`（延迟绘制 + sheet 页区间）、配置 `nop.report.pdf.page-number-scope`
 - `nop-report-pdf/.../renderer/PdfRenderer.java`（页面跟踪、`drawDefaultPageNumbers`）
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
-- `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪）
+- `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪、rotateDegree 旋转、占位统一）
 - 配置：`nop.report.pdf.repeat-header-rows`、`repeat-key-columns`、`default-page-footer`、`min-font-size-pt`
 
 ## 验证
@@ -96,6 +106,7 @@
 - `TestPdfPageBoundaries`：手动分页符精确分页、fit×breaks、超页行、合并单元格跨页、空白裁剪、style-only 不裁、重复块边界、golden
 - `TestExcelHeaderFooterCodes`：&-语法分段/转义/字体段/占位符判定；`TestTemplateHeaderFooterParse`：模板 headerFooter 装模回归
 - `TestPdfHeaderFooterRender`：&P/&N 全局与 sheet 作用域（双 sheet）、首页/奇偶变体、&A/&D/&T、字体代码不字面、无效 scope fail-loud、golden
+- `TestPdfImageRender`：锚点几何、rotateDegree 四象限、alpha、缺图/损坏占位、print=false、越界裁剪、缓存复用、多图回归、golden
 - `TestPdfRenderDefects`：F3（列拆分关键列重复）、F4（续页表头重复）红转绿；F6 回归钉（重复表头按需多次绘制，其余行只绘制一次）
 - `TestPdfSheetRenderFixes`：单页小表不受影响（无重复、打印区平移不变）
 - `TestPdfExportAudit`：20 模板批量导出复检
