@@ -185,7 +185,19 @@ public class PdfDoc implements Closeable {
         return io.nop.pdf.outline.PdfOutlineYamlWriter.toYaml(outline, target, source, getNumberOfPages());
     }
 
-    // ========== WI15：目录检测/结构源路由/标题回填 ==========
+    // ========== WI17：图片普查/抽取与机械化统计 ==========
+
+    /**
+     * 逐页图片普查（PDResources XObject 遍历 + 跨页重复判重 + 面积阈值 keep/skip）
+     */
+    public io.nop.pdf.census.ImageCensus.Result censusImages(
+            io.nop.pdf.census.ImageCensus.Options opts) throws java.io.IOException {
+        return io.nop.pdf.census.ImageCensus.census(doc, opts);
+    }
+
+    /**
+     * outline.yaml 输出（契约对齐 card-kb analyzed 目录下的 outline.yaml）
+     */
 
     /**
      * 全文档目录行检测（sorted 页文本 + TOC_ENTRY_RE）
