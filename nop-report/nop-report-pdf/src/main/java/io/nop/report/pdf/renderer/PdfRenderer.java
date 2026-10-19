@@ -45,6 +45,9 @@ public class PdfRenderer {
 
     private final PDDocument document;
     private final Map<String, PDFont> fontCache = new HashMap<>();
+
+    // WI10：字体解析结果缓存（font + 合成标志），避免逐单元格重复解析/加载字体
+    private final Map<String, FontManager.FontResolution> fontResolutionCache = new HashMap<>();
     private final Map<ByteString, PDImageXObject> imageCache = new HashMap<>();
     private final List<PDPage> pages = new ArrayList<>();
     private final Set<Integer> pagesWithFooter = new HashSet<>();
@@ -64,23 +67,48 @@ public class PdfRenderer {
     }
 
     public PDFont getFont(ExcelFont font) {
+        return resolveFont(font).getFont();
+    }
+
+    /**
+     * WI10：解析字体 + 合成标志（结果按文档缓存，与 {@link #getFont(String, boolean, boolean)} 同键）。
+     */
+    public FontManager.FontResolution resolveFont(ExcelFont font) {
         if (font == null)
-            return getDefaultFont();
-        return getFont(font.getFontName(), font.isBold(), font.isItalic());
+            return new FontManager.FontResolution(getDefaultFont(), false, false);
+        return resolveFont(font.getFontName(), font.isBold(), font.isItalic());
+    }
+
+    /**
+     * WI10：解析字体 + 合成标志，结果按 fullName 键缓存——避免逐单元格重复加载 TTF。
+     */
+    public FontManager.FontResolution resolveFont(String fontName, boolean bold, boolean italic) {
+        if (fontName == null)
+            return new FontManager.FontResolution(getDefaultFont(), false, false);
+
+        String fontKey = FontManager.instance().getFontFullName(fontName, bold, italic);
+        FontManager.FontResolution res = fontResolutionCache.get(fontKey);
+        if (res == null) {
+            res = FontManager.instance().resolveFont(fontName, bold, italic, document);
+            fontResolutionCache.put(fontKey, res);
+        }
+        return res;
+    }
+
+    /**
+     * WI10：字形回退增强版——回退切换字体后 synthetic 标志按请求维度重置
+     * （回退字体无 bold/italic 变体，被请求的维度必然未被满足）。
+     */
+    public FontManager.FontResolution fontForText(String text, FontManager.FontResolution res,
+                                                  boolean bold, boolean italic) {
+        PDFont font = fontForText(text, res.getFont());
+        if (font == res.getFont())
+            return res;
+        return new FontManager.FontResolution(font, bold, italic);
     }
 
     public PDFont getFont(String fontName, boolean bold, boolean italic) {
-        if (fontName == null)
-            return getDefaultFont();
-
-        String fontKey = FontManager.instance().getFontFullName(fontName, bold, italic);
-        PDFont pdfFont = fontCache.get(fontKey);
-        if (pdfFont != null)
-            return pdfFont;
-
-        pdfFont = FontManager.instance().getFont(fontName, bold, italic, document);
-        fontCache.put(fontKey, pdfFont);
-        return pdfFont;
+        return resolveFont(fontName, bold, italic).getFont();
     }
 
     /**
@@ -272,6 +300,7 @@ public class PdfRenderer {
             int n = runs.size();
             String[] texts = new String[n];
             PDFont[] fonts = new PDFont[n];
+            FontManager.FontResolution[] fontRes = new FontManager.FontResolution[n];
             float[] sizes = new float[n];
             float[] widths = new float[n];
             float totalWidth = 0;
@@ -279,10 +308,13 @@ public class PdfRenderer {
                 HeaderFooterRuns.Run run = runs.get(i);
                 texts[i] = HeaderFooterEvaluator.evaluate(run.getText(), ctx);
                 ExcelFont styleFont = task.style != null ? task.style.getFont() : null;
-                fonts[i] = run.getFontName() != null
-                        ? getFont(run.getFontName(), styleFont != null && styleFont.isBold(),
-                                styleFont != null && styleFont.isItalic())
-                        : getFont(styleFont);
+                if (run.getFontName() != null) {
+                    fontRes[i] = resolveFont(run.getFontName(), styleFont != null && styleFont.isBold(),
+                            styleFont != null && styleFont.isItalic());
+                } else {
+                    fontRes[i] = resolveFont(styleFont);
+                }
+                fonts[i] = fontRes[i].getFont();
                 sizes[i] = run.getFontSize() > 0 ? run.getFontSize()
                         : PdfStyleHelper.getFontSize(styleFont);
                 texts[i] = sanitizeForFont(fonts[i], texts[i]);
@@ -308,7 +340,9 @@ public class PdfRenderer {
                         continue;
                     PDRectangle runRect = new PDRectangle(x, task.rect.getLowerLeftY(),
                             Math.max(widths[i], 1), task.rect.getHeight());
-                    PdfStyleHelper.drawUnwrappedText(cs, texts[i], fonts[i], sizes[i], runRect, task.style);
+                    PdfStyleHelper.drawUnwrappedText(cs, texts[i], fonts[i],
+                            fontRes[i].isSyntheticBold(), fontRes[i].isSyntheticItalic(),
+                            sizes[i], runRect, task.style);
                     x += widths[i];
                 }
                 cs.restoreGraphicsState();

@@ -6,6 +6,7 @@ import io.nop.core.model.table.ITableView;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.IExcelStyleProvider;
+import io.nop.report.pdf.font.FontManager;
 import io.nop.report.pdf.utils.PdfStyleHelper;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
@@ -133,12 +134,15 @@ public class PdfTableRenderer {
             // 控制字符/不换行空格归一化：必须先于字形回退选择，否则
             // 归一化后可编码的文本会因归一化前的不可编码字符误选/误抛
             text = PdfStyleHelper.normalizeControlChars(text);
-            // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体
-            PDFont font = renderer.fontForText(text, getFont(style));
+            // 字形回退：base-14字体无法编码中文等字符时切换CJK回退字体（WI10：合成标志随请求维度透传）
+            ExcelFont cellFont = getStyleFont(style);
+            FontManager.FontResolution fontRes = renderer.resolveFont(cellFont);
+            fontRes = renderer.fontForText(text, fontRes,
+                    cellFont != null && cellFont.isBold(), cellFont != null && cellFont.isItalic());
             float fontSize = getFontSize(style);
 
-            PdfStyleHelper.drawText(contentStream, text,
-                    font, fontSize, cellRect, style);
+            PdfStyleHelper.drawText(contentStream, text, fontRes.getFont(),
+                    fontRes.isSyntheticBold(), fontRes.isSyntheticItalic(), fontSize, cellRect, style);
         }
 
         // 绘制边框
@@ -163,23 +167,6 @@ public class PdfTableRenderer {
         if (style == null)
             style = styleProvider.getDefaultStyle();
         return style;
-    }
-
-    /**
-     * 获取单元格字体
-     */
-    private PDFont getFont(ExcelStyle style) {
-        ExcelFont font = getStyleFont(style);
-        String fontName = null;
-        boolean bold = false;
-        boolean italic = false;
-        if (font != null) {
-            fontName = font.getFontName();
-            bold = font.isBold();
-            italic = font.isItalic();
-        }
-
-        return renderer.getFont(fontName, bold, italic);
     }
 
     protected ExcelFont getStyleFont(ExcelStyle style) {

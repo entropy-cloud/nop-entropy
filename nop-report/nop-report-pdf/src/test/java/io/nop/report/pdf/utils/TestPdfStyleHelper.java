@@ -34,7 +34,7 @@ public class TestPdfStyleHelper {
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 PDFont helvetica = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
                 // 之前这里会抛IllegalArgumentException: U+XXXX is not available in the font's encoding
-                PdfStyleHelper.drawUnwrappedText(cs, "中文abc", helvetica, 10f,
+                PdfStyleHelper.drawUnwrappedText(cs, "中文abc", helvetica, false, false, 10f,
                         new PDRectangle(50, 700, 200, 30), null);
             }
         }
@@ -47,7 +47,7 @@ public class TestPdfStyleHelper {
             doc.addPage(page);
             try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
                 PDFont helvetica = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-                PdfStyleHelper.drawWrappedText(cs, "中文abc def", helvetica, 10f,
+                PdfStyleHelper.drawWrappedText(cs, "中文abc def", helvetica, false, false, 10f,
                         new PDRectangle(50, 700, 100, 60), null);
             }
         }

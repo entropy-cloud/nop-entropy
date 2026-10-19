@@ -13,6 +13,8 @@ import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
 import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
+import org.apache.pdfbox.pdmodel.graphics.state.RenderingMode;
+import org.apache.pdfbox.util.Matrix;
 
 import java.awt.*;
 import java.io.IOException;
@@ -119,12 +121,22 @@ public class PdfStyleHelper {
 
     public static void drawText(PDPageContentStream contentStream, String text, PDFont font,
                                 float fontSize, PDRectangle cellRect, ExcelStyle style) throws IOException {
+        drawText(contentStream, text, font, false, false, fontSize, cellRect, style);
+    }
+
+    /**
+     * WI10：带合成标志的文本绘制——syntheticBold 走 FILL_STROKE 伪粗体（描边色随字体色、
+     * dash 重置），syntheticItalic 走 shear 文本矩阵伪斜体。
+     */
+    public static void drawText(PDPageContentStream contentStream, String text, PDFont font,
+                                boolean syntheticBold, boolean syntheticItalic,
+                                float fontSize, PDRectangle cellRect, ExcelStyle style) throws IOException {
         // 注意：此处不做控制字符归一化——wrapText路径的splitTextIntoLines依赖\n拆分显式换行，
         // 控制字符由两个子方法在各自绘制粒度上归一化（孤立即\r在分段后仍留在行内，需行级处理）
         if (style != null && style.isWrapText()) {
-            drawWrappedText(contentStream, text, font, fontSize, cellRect, style);
+            drawWrappedText(contentStream, text, font, syntheticBold, syntheticItalic, fontSize, cellRect, style);
         } else {
-            drawUnwrappedText(contentStream, text, font, fontSize, cellRect, style);
+            drawUnwrappedText(contentStream, text, font, syntheticBold, syntheticItalic, fontSize, cellRect, style);
         }
     }
 
@@ -159,6 +171,7 @@ public class PdfStyleHelper {
     public static void drawUnwrappedText(PDPageContentStream contentStream,
                                          String text,
                                          PDFont font,
+                                         boolean syntheticBold, boolean syntheticItalic,
                                          float fontSize,
                                          PDRectangle cellRect,
                                          ExcelStyle style) throws IOException {
@@ -188,14 +201,32 @@ public class PdfStyleHelper {
         if (style != null && style.getFont() != null) {
             PDColor textColor = convertColor(style.getFont().getFontColor());
             contentStream.setNonStrokingColor(textColor);
+            // WI10：伪粗体描边色随字体色 + dash 重置（防继承边框虚线/异色）
+            if (syntheticBold) {
+                contentStream.setStrokingColor(textColor);
+                contentStream.setLineDashPattern(new float[]{}, 0);
+                contentStream.setLineWidth(Math.max(0.3f, fontSize / 30));
+                contentStream.setRenderingMode(RenderingMode.FILL_STROKE);
+            }
             // WI9：字体色 alpha（该方法外层已有 save/clip/restore 包裹，gs 作用域随 restore 收口）
             applyAlpha(contentStream, parseAlpha(style.getFont().getFontColor()));
         }
 
         contentStream.beginText();
-        contentStream.newLineAtOffset(position[0], position[1]);
+        if (syntheticItalic) {
+            // WI10：伪斜体 shear（y-up 右倾）
+            contentStream.setTextMatrix(new Matrix(
+                    1, 0, 0.25f, 1, position[0], position[1]));
+        } else {
+            contentStream.newLineAtOffset(position[0], position[1]);
+        }
         contentStream.showText(text);
         contentStream.endText();
+
+        // WI10：伪粗体 renderingMode 还原（防后续绘制继承 FILL_STROKE）
+        if (syntheticBold) {
+            contentStream.setRenderingMode(RenderingMode.FILL);
+        }
 
         contentStream.restoreGraphicsState();
     }
@@ -204,6 +235,7 @@ public class PdfStyleHelper {
     public static void drawWrappedText(PDPageContentStream contentStream,
                                        String text,
                                        PDFont font,
+                                       boolean syntheticBold, boolean syntheticItalic,
                                        float fontSize,
                                        PDRectangle cellRect,
                                        ExcelStyle style) throws IOException {
@@ -243,6 +275,13 @@ public class PdfStyleHelper {
             PDColor textColor = convertColor(style.getFont().getFontColor());
             if (textColor != null) {
                 contentStream.setNonStrokingColor(textColor);
+                // WI10：伪粗体描边色随字体色 + dash 重置（同 unwrapped 路径，防继承边框虚线/异色）
+                if (syntheticBold) {
+                    contentStream.setStrokingColor(textColor);
+                    contentStream.setLineDashPattern(new float[]{}, 0);
+                    contentStream.setLineWidth(Math.max(0.3f, fontSize / 30));
+                    contentStream.setRenderingMode(RenderingMode.FILL_STROKE);
+                }
             }
         }
 
@@ -262,11 +301,22 @@ public class PdfStyleHelper {
             }
 
             contentStream.beginText();
-            contentStream.newLineAtOffset(x, startY - fontSize);
+            if (syntheticItalic) {
+                // WI10：伪斜体 shear（y-up 右倾），逐行设置行矩阵
+                contentStream.setTextMatrix(new Matrix(
+                        1, 0, 0.25f, 1, x, startY - fontSize));
+            } else {
+                contentStream.newLineAtOffset(x, startY - fontSize);
+            }
             contentStream.showText(normalizeControlChars(line));
             contentStream.endText();
 
             startY -= lineHeight;
+        }
+
+        // WI10：伪粗体 renderingMode 还原（防后续绘制继承 FILL_STROKE）
+        if (syntheticBold) {
+            contentStream.setRenderingMode(RenderingMode.FILL);
         }
 
         contentStream.restoreGraphicsState();

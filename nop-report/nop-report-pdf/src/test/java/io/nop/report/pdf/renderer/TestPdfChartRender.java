@@ -89,7 +89,7 @@ public class TestPdfChartRender extends JunitBaseTestCase {
         return workbook;
     }
 
-    private byte[] stubPng(double widthPt, double heightPt) throws Exception {
+    private byte[] stubPng(double widthPt, double heightPt) throws java.io.IOException {
         int w = (int) Math.max(20, Math.round(widthPt * 2));
         int h = (int) Math.max(20, Math.round(heightPt * 2));
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);

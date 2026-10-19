@@ -143,30 +143,112 @@ public class FontManager {
     }
 
     public PDFont getFont(String fontName, boolean bold, boolean italic, PDDocument doc) {
+        return resolveFont(fontName, bold, italic, doc).font;
+    }
+
+    /**
+     * 字体解析结果（WI10）：font 为最终绘制字体；syntheticBold/syntheticItalic 表示
+     * bold/italic 请求未被变体命中（回退 base/默认/回退字体），渲染层据此应用
+     * 伪粗体（FILL_STROKE）/伪斜体（shear）合成。
+     */
+    public static final class FontResolution {
+        private final PDFont font;
+        private final boolean syntheticBold;
+        private final boolean syntheticItalic;
+
+        public FontResolution(PDFont font, boolean syntheticBold, boolean syntheticItalic) {
+            this.font = font;
+            this.syntheticBold = syntheticBold;
+            this.syntheticItalic = syntheticItalic;
+        }
+
+        public PDFont getFont() {
+            return font;
+        }
+
+        public boolean isSyntheticBold() {
+            return syntheticBold;
+        }
+
+        public boolean isSyntheticItalic() {
+            return syntheticItalic;
+        }
+    }
+
+    /**
+     * WI10：解析字体并报告 bold/italic 请求是否需要渲染层合成。
+     * 判定按解析链实际命中分支：变体命中（systemFonts 变体名/getFontResource 变体资源/
+     * discoveredFont 变体键）→ 非 synthetic；回退 base/默认字体 → 请求维度 synthetic=true。
+     */
+    public FontResolution resolveFont(String fontName, boolean bold, boolean italic, PDDocument doc) {
         init();
 
-        // 1. 获取基础字体名称（处理可能为null的情况）
         if (fontName == null)
             fontName = "Helvetica";
 
-        // 2. 解析字体别名
         String alias = fontNameAliases.get(fontName);
         if (alias != null)
             fontName = alias;
 
-        PDFont font = getSystemFont(fontName, bold, italic);
-        if (font != null) {
-            return font;
-        }
+        String fullName = getFontFullName(fontName, bold, italic);
 
-        // 4. 尝试加载字体
+        // 1. 系统字体表：变体名命中 → 请求已满足；base 名命中 → 请求维度未满足（保持 getSystemFont 既有回退语义）
+        PDFont font = systemFonts.get(fullName);
+        if (font != null)
+            return new FontResolution(font, bold && !fullNameHasStyle(fullName, "Bold"),
+                    italic && !fullNameHasStyle(fullName, "Italic"));
+        PDFont baseSystem = systemFonts.get(fontName);
+        if (baseSystem != null)
+            return new FontResolution(baseSystem, bold, italic);
+
+        // 2. VFS 资源：变体资源（fullName/-Oblique 命名）命中 → 满足；base 资源命中 → synthetic
+        if (hasVariantResource(fontName, bold, italic))
+            return new FontResolution(loadFont(fontName, bold, italic, doc), false, false);
+        if (resourceExists("/fonts/" + fontName + ".ttf")
+                || resourceExists("/fonts/" + fontName + ".otf"))
+            return new FontResolution(loadFont(fontName, bold, italic, doc), bold, italic);
+
+        // 3. 目录发现字体：变体键命中 → 满足；base 键（findDiscoveredFont 剥后缀回退）→ synthetic
+        File variantFile = findDiscoveredFont(fullName);
+        File exactFile = discoveredFontFiles().get(normalizeFontKey(fullName));
+        if (variantFile != null && exactFile != null && variantFile.equals(exactFile))
+            return new FontResolution(loadFromFile(variantFile, doc), false, false);
+
+        // 4. loadFont 收尾（defaultFontResource / 发现的 base 字体）与 5. 默认字体：请求维度全部 synthetic
         font = loadFont(fontName, bold, italic, doc);
-        if (font != null) {
-            return font;
-        }
-        // 6. 回退到默认字体
+        if (font != null)
+            return new FontResolution(font, bold, italic);
+
+        // 回退默认字体：请求维度全部 synthetic
         LOG.warn("nop.pdf.font-not-found:fontName={}, using default font", fontName);
-        return getDefaultFont();
+        return new FontResolution(getDefaultFont(), bold, italic);
+    }
+
+    /**
+     * fullName 是否包含样式 token（"Helvetica-BoldItalic" 需同时判中 Bold 与 Italic，
+     * 故按子串而非 "-Italic" 后缀匹配）
+     */
+    private boolean fullNameHasStyle(String fullName, String style) {
+        return fullName.contains(style);
+    }
+
+    /**
+     * WI10：VFS 是否存在请求维度的变体字体资源。候选序与 getFontResource 共用
+     * fontResourceCandidates（closure audit Minor-1 修复：混合扩展名布局下判定
+     * 与实际加载资源保持一致——变体仅以 .otf 形态存在且 base.ttf 在场时不再误判）。
+     */
+    private boolean hasVariantResource(String fontName, boolean bold, boolean italic) {
+        String baseTtf = "/fonts/" + fontName + ".ttf";
+        String baseOtf = "/fonts/" + fontName + ".otf";
+        for (String path : fontResourceCandidates(fontName, bold, italic)) {
+            if (!path.equals(baseTtf) && !path.equals(baseOtf) && resourceExists(path))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean resourceExists(String path) {
+        return VirtualFileSystem.instance().getResource(path).exists();
     }
 
     public PDFont getSystemFont(String fontName, boolean bold, boolean italic) {
@@ -187,6 +269,14 @@ public class FontManager {
             fullName += "-Italic";
         }
         return fullName;
+    }
+
+    /**
+     * WI10：-Oblique 命名候选（部分真实字体用 Oblique 而非 Italic）。
+     */
+    public String getFontObliqueName(String fontName, boolean bold) {
+        String fullName = fontName.replace(' ', '-');
+        return bold ? fullName + "-BoldOblique" : fullName + "-Oblique";
     }
 
     private PDFont loadFont(String fontName, boolean bold, boolean italic, PDDocument doc) {
@@ -540,20 +630,34 @@ public class FontManager {
     }
 
     // 辅助方法
-    protected IResource getFontResource(String fontName, boolean bold, boolean italic) {
+
+    /**
+     * WI10：VFS 字体资源候选路径（变体优先、base 兜底）。getFontResource 与
+     * hasVariantResource 共用，保证 synthetic 标志判定与实际加载资源一致。
+     */
+    private List<String> fontResourceCandidates(String fontName, boolean bold, boolean italic) {
         String fullName = getFontFullName(fontName, bold, italic);
-        IResource resource = VirtualFileSystem.instance().getResource("/fonts/" + fullName + ".ttf");
-        if (!resource.exists()) {
-            resource = VirtualFileSystem.instance().getResource("/fonts/" + fontName + ".ttf");
-            if (!resource.exists()) {
-                resource = VirtualFileSystem.instance().getResource("/fonts/" + fullName + ".otf");
-                if (!resource.exists()) {
-                    resource = VirtualFileSystem.instance().getResource("/fonts/" + fontName + ".otf");
-                    if (!resource.exists())
-                        return null;
-                }
-            }
+        // WI10：italic 变体补 -Oblique 命名探测（bold+italic→-BoldOblique，仅 italic→-Oblique；
+        // bold-only 不探测 -Oblique，避免把 regular oblique 当 bold 变体）
+        String obliqueName = italic ? getFontObliqueName(fontName, bold) : null;
+        List<String> candidates = new ArrayList<>();
+        candidates.add("/fonts/" + fullName + ".ttf");
+        if (obliqueName != null)
+            candidates.add("/fonts/" + obliqueName + ".ttf");
+        candidates.add("/fonts/" + fontName + ".ttf");
+        candidates.add("/fonts/" + fullName + ".otf");
+        if (obliqueName != null)
+            candidates.add("/fonts/" + obliqueName + ".otf");
+        candidates.add("/fonts/" + fontName + ".otf");
+        return candidates;
+    }
+
+    protected IResource getFontResource(String fontName, boolean bold, boolean italic) {
+        for (String path : fontResourceCandidates(fontName, bold, italic)) {
+            IResource resource = VirtualFileSystem.instance().getResource(path);
+            if (resource.exists())
+                return resource;
         }
-        return resource;
+        return null;
     }
 }
