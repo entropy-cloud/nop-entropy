@@ -156,6 +156,24 @@ public class PdfDoc implements Closeable {
         return doc.isEncrypted();
     }
 
+    // ========== WI14：outline（书签）抽取 ==========
+
+    /**
+     * 抽取 PDF 原生 outline 为扁平结构化条目（title/depth/page/page-end + stats），
+     * 语义对齐 card-kb pdfio.mjs（坏 outline 降级空列表；处理顺序：抽取→去重→page-end→stats）。
+     */
+    public io.nop.pdf.outline.PdfOutline extractOutline() {
+        return io.nop.pdf.outline.PdfOutlineExtractor.extract(doc);
+    }
+
+    /**
+     * outline.yaml 输出（契约对齐 card-kb analyzed 目录下的 outline.yaml）
+     */
+    public String extractOutlineYaml(String target, String source) {
+        io.nop.pdf.outline.PdfOutline outline = extractOutline();
+        return io.nop.pdf.outline.PdfOutlineYamlWriter.toYaml(outline, target, source, getNumberOfPages());
+    }
+
     public int getNumberOfPages() {
         return doc.getNumberOfPages();
     }

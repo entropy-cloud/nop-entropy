@@ -31,6 +31,11 @@
             <artifactId>jts-core</artifactId>
             <version>1.20.0</version>
         </dependency>
+        <!-- WI14：outline.yaml 输出（版本走 BOM 管理，经 nop-core 传递已可用；显式声明固化编译期依赖） -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
 
 
         <dependency>
