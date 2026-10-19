@@ -16,6 +16,7 @@ public interface ReportPdfErrors {
     String ARG_TEXT_SAMPLE = "textSample";
     String ARG_FAILED_CHAR = "failedChar";
     String ARG_PRINT_TITLE_RANGE = "printTitleRange";
+    String ARG_SCOPE = "scope";
 
     ErrorCode ERR_PDF_FONT_MISSING_GLYPH = define("nop.err.report.pdf.font-missing-glyph",
             "字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件",
@@ -28,4 +29,7 @@ public interface ReportPdfErrors {
     ErrorCode ERR_PDF_UNSUPPORTED_PRINT_TITLES = define("nop.err.report.pdf.unsupported-print-titles",
             "PDF导出仅支持从首行/首列开始的前缀Print_Titles声明(如1:2或A:B):printTitleRange={printTitleRange}",
             ARG_PRINT_TITLE_RANGE);
+
+    ErrorCode ERR_PDF_INVALID_PAGE_NUMBER_SCOPE = define("nop.err.report.pdf.invalid-page-number-scope",
+            "无效的页码作用域配置(仅支持global/sheet):scope={scope}", ARG_SCOPE);
 }
