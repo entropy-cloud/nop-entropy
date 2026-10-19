@@ -6,11 +6,13 @@ import io.nop.office.model.OfficeBorderStyle;
 import io.nop.office.model.constants.OfficeHorizontalAlignment;
 import io.nop.office.model.constants.OfficeLineStyle;
 import io.nop.office.model.constants.OfficeVerticalAlignment;
+import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.graphics.color.PDColor;
 import org.apache.pdfbox.pdmodel.graphics.color.PDDeviceRGB;
+import org.apache.pdfbox.pdmodel.graphics.state.PDExtendedGraphicsState;
 
 import java.awt.*;
 import java.io.IOException;
@@ -24,6 +26,48 @@ public class PdfStyleHelper {
         return new PDColor(components, PDDeviceRGB.INSTANCE);
     }
 
+    // WI9：当前渲染页（PdfSheetRenderer 每页设置/清理），用于 alpha 时注册 ExtGState 到页面 Resources
+    private static final ThreadLocal<PDPage> CURRENT_PAGE = new ThreadLocal<>();
+
+    public static void setCurrentPage(PDPage page) {
+        CURRENT_PAGE.set(page);
+    }
+
+    public static void clearCurrentPage() {
+        CURRENT_PAGE.remove();
+    }
+
+    /** 解析颜色的 alpha 分量（0-255；解析失败视为不透明 255）。 */
+    private static int parseAlpha(String colorStr) {
+        int[] rgba = ColorHelper.parseRgba(colorStr);
+        return rgba == null ? 255 : rgba[3];
+    }
+
+    /**
+     * WI9：alpha<255 且当前页已知时，注入 ExtGState（ca/CA）到页面 Resources。
+     * 调用方须已在 saveGraphicsState 之后调用本方法，并在绘制后 restoreGraphicsState
+     * 收口 gs 作用域（gs 注入先于 save 会修改当前态导致泄漏）。
+     *
+     * @return true 表示已注入
+     */
+    private static boolean applyAlpha(PDPageContentStream contentStream, int alpha) {
+        if (alpha >= 255)
+            return false;
+        PDPage page = CURRENT_PAGE.get();
+        if (page == null || page.getResources() == null)
+            return false;
+        PDExtendedGraphicsState gs = new PDExtendedGraphicsState();
+        gs.setNonStrokingAlphaConstant(alpha / 255f);
+        gs.setStrokingAlphaConstant(alpha / 255f);
+        page.getResources().add(gs);
+        try {
+            contentStream.setGraphicsStateParameters(gs);
+        } catch (IOException e) {
+            throw new IllegalStateException("Failed to set ExtGState for alpha", e);
+        }
+        return true;
+    }
+
     // 设置单元格背景
     public static void setCellBackground(PDPageContentStream contentStream,
                                          ExcelStyle style,
@@ -32,9 +76,16 @@ public class PdfStyleHelper {
         if (style != null && style.getFillFgColor() != null && !style.getFillFgColor().isEmpty()) {
             // 使用fgColor而不是bgColor
             PDColor fgColor = convertColor(style.getFillFgColor());
+            int alpha = parseAlpha(style.getFillFgColor());
+            boolean alphaApplied = alpha < 255;
+            if (alphaApplied)
+                contentStream.saveGraphicsState();
+            applyAlpha(contentStream, alpha);
             contentStream.setNonStrokingColor(fgColor);
             contentStream.addRect(x, y, width, height);
             contentStream.fill();
+            if (alphaApplied)
+                contentStream.restoreGraphicsState();
         }
     }
 
@@ -137,6 +188,8 @@ public class PdfStyleHelper {
         if (style != null && style.getFont() != null) {
             PDColor textColor = convertColor(style.getFont().getFontColor());
             contentStream.setNonStrokingColor(textColor);
+            // WI9：字体色 alpha（该方法外层已有 save/clip/restore 包裹，gs 作用域随 restore 收口）
+            applyAlpha(contentStream, parseAlpha(style.getFont().getFontColor()));
         }
 
         contentStream.beginText();
@@ -301,6 +354,11 @@ public class PdfStyleHelper {
         }
 
         float lineWidth = getLineWidth(borderStyle);
+        int alpha = parseAlpha(borderStyle.getColor());
+        boolean alphaApplied = alpha < 255;
+        if (alphaApplied)
+            contentStream.saveGraphicsState();
+        applyAlpha(contentStream, alpha);
         contentStream.setStrokingColor(color);
         contentStream.setLineWidth(lineWidth);
 
@@ -323,6 +381,8 @@ public class PdfStyleHelper {
             case DOUBLE:
                 contentStream.setLineDashPattern(new float[]{}, 0);
                 drawDoubleLine(contentStream, x1, y1, x2, y2, lineWidth);
+                if (alphaApplied)
+                    contentStream.restoreGraphicsState();
                 return;
             default:
                 contentStream.setLineDashPattern(new float[]{}, 0);
@@ -331,6 +391,8 @@ public class PdfStyleHelper {
         contentStream.moveTo(x1, y1);
         contentStream.lineTo(x2, y2);
         contentStream.stroke();
+        if (alphaApplied)
+            contentStream.restoreGraphicsState();
     }
 
     private static void drawDoubleLine(PDPageContentStream contentStream,
@@ -353,45 +415,12 @@ public class PdfStyleHelper {
         contentStream.stroke();
     }
 
-    // 将Excel颜色字符串转换为AWT Color
+    // 将Excel颜色字符串转换为AWT Color（WI9：委托 ColorHelper.parseRgba 统一解析，消除双解析器分歧）
     public static Color parseColor(String colorStr) {
-        if (colorStr == null || colorStr.isEmpty()) {
+        int[] rgba = ColorHelper.parseRgba(colorStr);
+        if (rgba == null)
             return null;
-        }
-
-        try {
-            colorStr = colorStr.trim().toLowerCase();
-
-            switch (colorStr) {
-                case "black": return Color.BLACK;
-                case "white": return Color.WHITE;
-                case "red": return Color.RED;
-                case "green": return Color.GREEN;
-                case "blue": return Color.BLUE;
-                case "yellow": return Color.YELLOW;
-                case "gray": return Color.GRAY;
-            }
-
-            if (colorStr.startsWith("#")) {
-                return Color.decode(colorStr);
-            } else if (colorStr.startsWith("rgb(")) {
-                String[] parts = colorStr.substring(4, colorStr.length() - 1).split(",");
-                int r = Integer.parseInt(parts[0].trim());
-                int g = Integer.parseInt(parts[1].trim());
-                int b = Integer.parseInt(parts[2].trim());
-                return new Color(r, g, b);
-            } else if (colorStr.startsWith("rgba(")) {
-                String[] parts = colorStr.substring(5, colorStr.length() - 1).split(",");
-                int r = Integer.parseInt(parts[0].trim());
-                int g = Integer.parseInt(parts[1].trim());
-                int b = Integer.parseInt(parts[2].trim());
-                float a = Float.parseFloat(parts[3].trim());
-                return new Color(r, g, b, (int)(a * 255));
-            }
-        } catch (Exception e) {
-            // 解析失败返回null
-        }
-        return null;
+        return new Color(rgba[0], rgba[1], rgba[2], rgba[3]);
     }
 
     private static float getLineWidth(OfficeBorderStyle borderStyle) {

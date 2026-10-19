@@ -63,7 +63,7 @@
 ### M5 — 样式保真（线宽 / 颜色 / 字体 / 布局）
 
 - [x] WI8 边框线宽/线型保真：以模型真实边框宽度（pt/EMU，来自 Excel 边框定义）驱动 `drawBorderLine`，替换 `OfficeLineStyle` 枚举到 0.5/1/1.5/2pt 的硬编码映射；四边独立宽度、DOUBLE 双线间距、DASHED/DOTTED/DASH_DOT 节距按 Excel 语义；缩放/线宽补偿。含线宽采样 golden（Deliverable: 边框保真 + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI9 颜色保真：扩展颜色解析（8 位 hex `#AARRGGBB`、indexed/theme 调色板、rgba/alpha），填充/字体/边框三路统一走 `ColorHelper`，修正当前 `parseColor` 对命名色/`rgba` 的不完整覆盖；渐变填充（`ExcelStyle` 渐变）调研与裁定。含颜色采样 golden（Deliverable: 颜色保真 + 测试；deps: WI8；Item Type: Feature）
+- [x] WI9 颜色保真：扩展颜色解析（8 位 hex `#AARRGGBB`、indexed/theme 调色板、rgba/alpha），填充/字体/边框三路统一走 `ColorHelper`，修正当前 `parseColor` 对命名色/`rgba` 的不完整覆盖；渐变填充（`ExcelStyle` 渐变）调研与裁定。含颜色采样 golden（Deliverable: 颜色保真 + 测试；deps: WI8；Item Type: Feature）
 - [ ] WI10 字体渲染保真：伪粗体/斜体（TTF/OTF 无 bold/italic 变体时合成），真实变体发现（`<name>-Bold` 等已部分存在，补齐 italic）；字体子集与 ToUnicode 正确性（复制/搜索）。含字体 golden（Deliverable: 字体子系统保真 + 测试；deps: WI4；Item Type: Feature）
 - [ ] WI11 单元格富文本与竖排/数字格式：单元格内富文本 run（同格多字体，需 nop-excel 模型支持）、竖排文本（`rotation`）、数字格式（`formatExpr`/Excel 格式串）渲染。含富文本/竖排 golden（Deliverable: 富文本 run + 竖排 + 数字格式 + 测试；deps: WI10、WI9；Item Type: Feature）
 

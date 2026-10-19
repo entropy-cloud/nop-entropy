@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5）；plan 2470（WI7）；plan 2471（WI8 边框）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464-2472（WI1-WI9 分计划承载）
 
 ## 决策
 
@@ -80,6 +80,13 @@
 - **HAIR**：模型权重 1（int 表），渲染 1pt；Excel 0.25pt 视觉校准留后续（Follow-up）。
 - **虚线节距**：随线宽比例化（DASHED {3w}、DOTTED/HAIR {w}、DASH_DOT {3w,w,w,w}、DASH_DOT_DOT 类推，w=max(0.5, lineWidth)）；DOUBLE 双线偏移 ±lineWidth（随宽度比例化）。
 - **缩放**：PDF lineWidth 为 user space 值，随 CTM 等比缩放（ISO 32000-1 §8.4.3.2）——WI2 缩放管线无需补偿，测试钉住（user space w 不变 + 设备像素宽随 scale 减小）。
+
+### D11 颜色统一解析与 alpha（WI9）
+
+- **统一解析**：`ColorHelper.parseRgba(String) → int[4]{r,g,b,a}` 为规范入口（覆盖命名色 AWT 精确值/`#RRGGBB`/`#AARRGGBB`（首字节 alpha 提取）/`0x` 前缀/裸 hex/1-2 位补零/`rgb()`/`rgba()`；非法返回 null 不抛）。`toNormalizedRgb` 基于其实现（修复 rgba() 填充抛 IllegalArgumentException 的崩溃）且**返回 fresh 数组**（调用方 ColorModificationHelper 原地 mutate）。`PdfStyleHelper.parseColor` 委托 parseRgba（消除双解析器分歧——边框此前不支持 0x/裸 hex）。
+- **indexed/theme**：xlsx 解析期已转 rgb 字符串（`StylesPartParser._parseColor` → PredefinedColors/themes），渲染端不见原始形态——无需渲染端处理。
+- **alpha 渲染**：alpha<255 时经 PDExtendedGraphicsState（ca/CA）注入，**saveGraphicsState 先于 gs 注入、restoreGraphicsState 收口**（gs 注入在 save 之后会修改当前态导致泄漏）；gs 经页面 Resources 注册（每次注入新建实例——alpha 单元格稀有，去重缓存非必要）。alpha=255 不注入。填充/字体/边框三路均生效。
+- **渐变填充**：defer（ExcelStyle 无渐变字段、xlsx 渐变解析不存在、仓库零消费者——出现需求时立项解析+PDShading）。
 
 ### D3 默认页码
 

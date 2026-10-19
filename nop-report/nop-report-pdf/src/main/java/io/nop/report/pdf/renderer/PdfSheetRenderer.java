@@ -339,6 +339,7 @@ public class PdfSheetRenderer {
         PdfPageRenderer pageRenderer = null;
         try {
             pageRenderer = renderer.addPage(PdfPrintHelper.toRectangle(paperSize));
+            io.nop.report.pdf.utils.PdfStyleHelper.setCurrentPage(pageRenderer.getPage());
             float pageHeight = (float) paperSize.getHeight();
 
             // 渲染页眉页脚（含变体选择与 &-代码延迟分流）；页脚存在即标记，抑制默认页码
@@ -387,6 +388,7 @@ public class PdfSheetRenderer {
         } catch (IOException e) {
             throw NopException.wrap(e);
         } finally {
+            io.nop.report.pdf.utils.PdfStyleHelper.clearCurrentPage();
             IoHelper.safeClose(pageRenderer);
         }
     }
