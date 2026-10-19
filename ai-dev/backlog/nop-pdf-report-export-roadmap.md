@@ -70,7 +70,7 @@
 ### M6 — nop-pdf 文档装配与后处理
 
 - [x] WI12 nop-pdf 生成/装配 API：合并（多 PDF → 一）、拆分导出增强、盖章/覆盖层（overlay/stamp 已有 PDF 指定页指定位置）、水印（文字/图片，可倾斜/透明度）、给已有 PDF **追加页眉页脚/页码**；图片（PNG/JPEG）→PDF 入口。复用 PdfDoc/PdfBoxHelper，接口按仓库两档错误处理惯例。含单测 + 装配 golden（Deliverable: 装配 API + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI13 nop-pdf 文档属性与保护：文档元数据（Title/Author/Subject/Keywords/Creator/Producer）、加密与权限（owner/user password、打印/复制权限）、PDF/A 合规校验调研（参考 veraPDF，仅裁定不急实施）。含元数据/权限单测（Deliverable: 元数据 + 加密 + PDF/A 裁定；deps: WI12；Item Type: Feature + Decision）（planned：ai-dev/plans/2482-wi13-pdf-metadata-protection.md）
+- [x] WI13 nop-pdf 文档属性与保护：文档元数据（Title/Author/Subject/Keywords/Creator/Producer）、加密与权限（owner/user password、打印/复制权限）、PDF/A 合规校验调研（参考 veraPDF，仅裁定不急实施）。含元数据/权限单测（Deliverable: 元数据 + 加密 + PDF/A 裁定；deps: WI12；Item Type: Feature + Decision）
 
 ### M7 — nop-pdf 文档结构抽取与分析（card-knowledge-base 需求）
 
@@ -88,7 +88,7 @@
 - ★ **Milestone: 页眉页脚可用**（WI4–WI5 完成后勾选）
 - ★ **Milestone: 图片与图表嵌入可用**（WI6–WI7 完成后勾选）
 - [x] ★ **Milestone: 样式保真达标**（WI8–WI11 完成后勾选）
-- ★ **Milestone: nop-pdf 文档装配可用**（WI12–WI13 完成后勾选）
+- [x] ★ **Milestone: nop-pdf 文档装配可用**（WI12–WI13 完成后勾选）
 - ★ **Milestone: nop-pdf 结构抽取可用**（WI14–WI17 完成后勾选）
 - ★ **Milestone: PDF 能力端到端验收通过**（WI0–WI18 全部完成后勾选）
 

@@ -14,9 +14,12 @@ import io.nop.pdf.tabula.extractors.SpreadsheetExtractionAlgorithm;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.multipdf.PDFMergerUtility;
 import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDDocumentInformation;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.pdfbox.pdmodel.font.PDFont;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
@@ -68,6 +71,89 @@ public class PdfDoc implements Closeable {
         } catch (IOException e) {
             throw NopException.adapt(e);
         }
+    }
+
+    /**
+     * WI13：加载密码保护的 PDF（错密码 InvalidPasswordException → NopException.adapt，
+     * 不新增错误码——plan 2482 R1-Major-3 裁定：密码错误是环境输入错误而非契约违约）。
+     */
+    public static PdfDoc loadFromFile(File file, String password) {
+        try {
+            return new PdfDoc(Loader.loadPDF(file, password));
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    // ========== WI13：文档元数据与保护 ==========
+
+    /**
+     * 读取 Document Information Dictionary（字段缺失为 null）
+     */
+    public PdfDocInfo getInfo() {
+        PDDocumentInformation info = documentInformation();
+        PdfDocInfo ret = new PdfDocInfo();
+        ret.setTitle(info.getTitle());
+        ret.setAuthor(info.getAuthor());
+        ret.setSubject(info.getSubject());
+        ret.setKeywords(info.getKeywords());
+        ret.setCreator(info.getCreator());
+        ret.setProducer(info.getProducer());
+        return ret;
+    }
+
+    /**
+     * 写入 Document Information Dictionary（null 字段不覆盖）
+     */
+    public void setInfo(PdfDocInfo info) {
+        Guard.notNull(info, "info");
+        PDDocumentInformation di = documentInformation();
+        if (info.getTitle() != null)
+            di.setTitle(info.getTitle());
+        if (info.getAuthor() != null)
+            di.setAuthor(info.getAuthor());
+        if (info.getSubject() != null)
+            di.setSubject(info.getSubject());
+        if (info.getKeywords() != null)
+            di.setKeywords(info.getKeywords());
+        if (info.getCreator() != null)
+            di.setCreator(info.getCreator());
+        if (info.getProducer() != null)
+            di.setProducer(info.getProducer());
+    }
+
+    private PDDocumentInformation documentInformation() {
+        return doc.getDocumentInformation();
+    }
+
+    /**
+     * WI13：加密文档（须在 save 之前调用；加密只影响写出，不影响内存操作）。
+     * 算法定版 AES-256（setEncryptionKeyLength(256) + setPreferAES(true)——3.0.8 缺省
+     * RC4-40 弱加密，plan 2482 R1-Major-2）。ownerPassword 拥有全部权限；userPassword
+     * 受 accessPermission 限制（空 userPassword=合法的无密码受限打开；空 ownerPassword
+     * 不安全，由调用方自担）。
+     */
+    public void encrypt(String ownerPassword, String userPassword,
+                        boolean allowPrinting, boolean allowCopying) {
+        AccessPermission permission = new AccessPermission();
+        permission.setCanPrint(allowPrinting);
+        permission.setCanExtractContent(allowCopying);
+        StandardProtectionPolicy policy = new StandardProtectionPolicy(ownerPassword, userPassword, permission);
+        policy.setEncryptionKeyLength(256);
+        policy.setPreferAES(true);
+        try {
+            doc.protect(policy);
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * 文档是否已加密（仅反映加载态：load 加密文档为 true；对新建文档 encrypt 后
+     * 仍为 false——protect 只在 save 时写出加密字典，加密态以 reload 后断言为准）
+     */
+    public boolean isEncrypted() {
+        return doc.isEncrypted();
     }
 
     public int getNumberOfPages() {
