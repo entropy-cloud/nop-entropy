@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6 图片）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5 富文本图片）
 
 ## 决策
 
@@ -53,6 +53,9 @@
 - **页码作用域**：`nop.report.pdf.page-number-scope`（global 缺省/sheet；非法值 fail-loud `nop.err.report.pdf.invalid-page-number-scope`）。global：&P/&N=全文档序号/总页数；sheet：各 sheet 内序号/页数（`PdfRenderer` 记录 sheet 页区间）。&D/&T/&A/&F/&Z 不受作用域影响。
 - **变体回退**：differentFirst 首页用 first*（缺失回退 odd）；differentOddEven 偶数页用 even*（缺失回退 odd）；odd 缺失 → 该页无页眉/脚（默认页码抑制语义与 Excel 空白页脚一致）。
 - **&D/&T 格式**：yyyy/M/d 与 HH:mm:ss（固定格式，D7 定版）。&F/&Z 取模板资源路径（workbook location；无则空串）。&G 图片段解析保留、渲染属 WI5。
+- **&G 图片（WI5）**：`ExcelHeaderFooter.imageName` 引用 `sheet/images` 具名图片（缺省第一张）；HF 素材图应 `print=false`（避免同时作为 sheet 定位图片渲染）；fit 双轴 `scale=min(高比, 宽比)` 居中；名字找不到或无图 WARN（`nop.report.pdf.header-image-missing`，log marker 非 ErrorCode）跳过。
+- **分区裁剪（WI5）**：延迟路径 run 序列绘制裁剪到分区矩形（save/clip/restore，与 run 矩形、图片内部裁剪交集语义安全）——长文本溢出不越界相邻分区；&G 图片绘制在 restore 之后（不受分区 clip 约束），几何包含由 fit 双轴缩放保证（rotateDegree≠0 的 logo 无 clip 约束，当前无消费者）。
+- **多字体取字**：同段多字体代码取首个字体；`&"name,style"` 的 style 装饰被丢弃（firstToken），粗斜体变体属 WI10。
 
 ### D8 图片嵌入语义（WI6）
 
@@ -75,9 +78,10 @@
 
 ## 已知限制（后续增强方向）
 
-- 页眉页脚多字体混排精修与 &G 图片（&-语法已解析，渲染仅单段字体切换——WI5）。
+- &B/&I 粗斜体变体渲染（代码已解析剥离，样式属 WI10 字体保真）。
+- OOXML VML 头部图片（legacyDrawing）解析——当前 &G 经模型 imageName 引用（见 D7）。
 - 非前缀 Print_Titles 的渲染（见 D1 渲染限制）。
-- pageBreaks/Print_Titles/pageSetup fit 写回 xlsx 输出（见 D1/D6）。
+- pageBreaks/Print_Titles/pageSetup fit/headerFooter 写回 xlsx 输出（见 D1/D6）。
 
 ## 涉及实现
 

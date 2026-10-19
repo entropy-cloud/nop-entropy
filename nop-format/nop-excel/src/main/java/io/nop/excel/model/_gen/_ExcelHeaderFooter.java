@@ -32,6 +32,13 @@ public abstract class _ExcelHeaderFooter extends io.nop.core.resource.component.
     
     /**
      *  
+     * xml name: imageName
+     * 
+     */
+    private java.lang.String _imageName ;
+    
+    /**
+     *  
      * xml name: left
      * 
      */
@@ -99,6 +106,25 @@ public abstract class _ExcelHeaderFooter extends io.nop.core.resource.component.
         checkAllowChange();
         
         this._centerExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: imageName
+     *  
+     */
+    
+    public java.lang.String getImageName(){
+      return _imageName;
+    }
+
+    
+    public void setImageName(java.lang.String value){
+        checkAllowChange();
+        
+        this._imageName = value;
            
     }
 
@@ -217,6 +243,7 @@ public abstract class _ExcelHeaderFooter extends io.nop.core.resource.component.
         
         out.putNotNull("center",this.getCenter());
         out.putNotNull("centerExpr",this.getCenterExpr());
+        out.putNotNull("imageName",this.getImageName());
         out.putNotNull("left",this.getLeft());
         out.putNotNull("leftExpr",this.getLeftExpr());
         out.putNotNull("right",this.getRight());
@@ -235,6 +262,7 @@ public abstract class _ExcelHeaderFooter extends io.nop.core.resource.component.
         
         instance.setCenter(this.getCenter());
         instance.setCenterExpr(this.getCenterExpr());
+        instance.setImageName(this.getImageName());
         instance.setLeft(this.getLeft());
         instance.setLeftExpr(this.getLeftExpr());
         instance.setRight(this.getRight());

@@ -4,10 +4,12 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.util.StringHelper;
 import io.nop.excel.model.ExcelFont;
+import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.report.pdf.ReportPdfConfigs;
 import io.nop.report.pdf.utils.HeaderFooterEvaluator;
 import io.nop.report.pdf.utils.HeaderFooterRuns;
+import io.nop.report.pdf.utils.PdfImageHelper;
 import io.nop.report.pdf.utils.PdfStyleHelper;
 import io.nop.report.pdf.ReportPdfErrors;
 import io.nop.report.pdf.font.FontManager;
@@ -220,15 +222,21 @@ public class PdfRenderer {
         private final PDRectangle rect;
         private final ExcelStyle style;
         private final String sheetName;
+        // WI5：&G 图片引用（hf.imageName）与来源 sheet 图片快照
+        private final String imageName;
+        private final List<ExcelImage> sheetImages;
 
         public DeferredHeaderFooter(int pageIndex, String position, String rawText,
-                                    PDRectangle rect, ExcelStyle style, String sheetName) {
+                                    PDRectangle rect, ExcelStyle style, String sheetName,
+                                    String imageName, List<ExcelImage> sheetImages) {
             this.pageIndex = pageIndex;
             this.position = position;
             this.rawText = rawText;
             this.rect = rect;
             this.style = style;
             this.sheetName = sheetName;
+            this.imageName = imageName;
+            this.sheetImages = sheetImages;
         }
     }
 
@@ -290,6 +298,11 @@ public class PdfRenderer {
                 x += rectWidth - totalWidth;
 
             try (PDPageContentStream cs = getContentStreamFor(task.pageIndex)) {
+                // WI5：run 序列裁剪到分区矩形（越界不越界绘制到相邻分区）
+                cs.saveGraphicsState();
+                cs.addRect(task.rect.getLowerLeftX(), task.rect.getLowerLeftY(),
+                        task.rect.getWidth(), task.rect.getHeight());
+                cs.clip();
                 for (int i = 0; i < n; i++) {
                     if (texts[i].isEmpty())
                         continue;
@@ -298,9 +311,54 @@ public class PdfRenderer {
                     PdfStyleHelper.drawUnwrappedText(cs, texts[i], fonts[i], sizes[i], runRect, task.style);
                     x += widths[i];
                 }
+                cs.restoreGraphicsState();
+
+                // WI5：&G 图片（logo）——分区文本绘制后叠加渲染
+                if (task.rawText.indexOf('G') >= 0 && hasGCode(task.rawText)) {
+                    ExcelImage logo = findLogo(task.imageName, task.sheetImages);
+                    if (logo == null) {
+                        LOG.warn("nop.report.pdf.header-image-missing:imageName={},sheet={}",
+                                task.imageName, task.sheetName);
+                    } else {
+                        PDImageXObject pdImage = getImage(logo.getData());
+                        double imgH = pdImage.getHeight();
+                        double imgW = pdImage.getWidth();
+                        double fit = Math.min(task.rect.getHeight() / imgH, task.rect.getWidth() / imgW);
+                        double drawH = imgH * fit;
+                        double drawW = imgW * fit;
+                        double ix = task.rect.getLowerLeftX() + (task.rect.getWidth() - drawW) / 2;
+                        double iy = task.rect.getLowerLeftY() + (task.rect.getHeight() - drawH) / 2;
+                        PdfImageHelper.drawImage(this, cs, logo, ix, iy, drawW, drawH, null);
+                    }
+                }
             }
         }
         deferredHeaderFooters.clear();
+    }
+
+    private static boolean hasGCode(String rawText) {
+        for (int i = 0; i < rawText.length() - 1; i++) {
+            if (rawText.charAt(i) == '&') {
+                char code = rawText.charAt(i + 1);
+                if (code == 'G')
+                    return true;
+                if (code == '&')
+                    i++;
+            }
+        }
+        return false;
+    }
+
+    private static ExcelImage findLogo(String imageName, List<ExcelImage> sheetImages) {
+        if (sheetImages == null || sheetImages.isEmpty())
+            return null;
+        if (StringHelper.isEmpty(imageName))
+            return sheetImages.get(0);
+        for (ExcelImage image : sheetImages) {
+            if (imageName.equals(image.getName()))
+                return image;
+        }
+        return null;
     }
 
     private int[] findSheetRange(int pageIndex) {

@@ -536,19 +536,20 @@ public class PdfSheetRenderer {
         String sheetName = sheet.getName();
 
         // 渲染左中右三部分内容；含 &-代码的段延迟求值绘制（避免 & 代码字面打印、&N 需总页数）
-        renderHFSection(pageRenderer, hf.getLeft(), "L", 0, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
-        renderHFSection(pageRenderer, hf.getCenter(), "C", width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
-        renderHFSection(pageRenderer, hf.getRight(), "R", 2 * width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+        renderHFSection(pageRenderer, sheet, hf.getLeft(), "L", 0, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+        renderHFSection(pageRenderer, sheet, hf.getCenter(), "C", width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
+        renderHFSection(pageRenderer, sheet, hf.getRight(), "R", 2 * width / 3, y, width / 3, height, hf, pageIndex, sheetName, sheetPageIndex);
     }
 
-    private void renderHFSection(PdfPageRenderer pageRenderer, String text, String position, float x, float y,
-                                 float width, float height, ExcelHeaderFooter hf, int pageIndex, String sheetName,
-                                 int sheetPageIndex) throws IOException {
+    private void renderHFSection(PdfPageRenderer pageRenderer, IExcelSheet sheet, String text, String position,
+                                 float x, float y, float width, float height, ExcelHeaderFooter hf,
+                                 int pageIndex, String sheetName, int sheetPageIndex) throws IOException {
         if (StringHelper.isEmpty(text))
             return;
         if (ExcelHeaderFooterCodes.hasAnyCode(text)) {
             renderer.addDeferredHeaderFooter(new DeferredHeaderFooter(pageIndex, position, text,
-                    new PDRectangle(x, y, width, height), hf.getStyle(), sheetName));
+                    new PDRectangle(x, y, width, height), hf.getStyle(), sheetName,
+                    hf.getImageName(), sheet.getImages()));
         } else {
             renderText(pageRenderer, text, x, y, width, height, hf.getStyle());
         }

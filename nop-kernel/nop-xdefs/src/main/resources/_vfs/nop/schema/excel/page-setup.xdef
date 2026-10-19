@@ -18,7 +18,10 @@
            firstPageNumber="int" blackAndWhite="boolean"
            repeatTitleRows="string" repeatTitleCols="string"
            differentFirst="boolean" differentOddEven="boolean">
-    <header xdef:name="ExcelHeaderFooter">
+    <header xdef:name="ExcelHeaderFooter" imageName="string">
+        <!--
+        @imageName &G 图片（logo）引用的 sheet 具名图片（sheet/images/name）；空缺省取第一张
+        -->
         <left>string</left>
         <center>string</center>
         <right>string</right>
