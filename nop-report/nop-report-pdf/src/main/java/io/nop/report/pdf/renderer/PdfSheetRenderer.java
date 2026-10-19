@@ -1,6 +1,7 @@
 package io.nop.report.pdf.renderer;
 
 import io.nop.api.core.beans.geometry.RectangleBean;
+import io.nop.commons.bytes.ByteString;
 import io.nop.api.core.beans.geometry.SizeBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.IoHelper;
@@ -10,6 +11,8 @@ import io.nop.core.model.table.CellRange;
 import io.nop.core.model.table.ICellView;
 import io.nop.core.model.table.ITableView;
 import io.nop.core.model.table.utils.TableSplitHelper;
+import io.nop.excel.model.ExcelChartModel;
+import io.nop.excel.model.ExcelClientAnchor;
 import io.nop.excel.model.ExcelFont;
 import io.nop.excel.model.ExcelHeaderFooter;
 import io.nop.excel.model.ExcelPageBreaks;
@@ -23,6 +26,8 @@ import io.nop.excel.print.ExcelPrintHelper;
 import io.nop.ooxml.xlsx.parse.ExcelHeaderFooterCodes;
 import io.nop.report.pdf.ReportPdfConfigs;
 import io.nop.report.pdf.renderer.PdfRenderer.DeferredHeaderFooter;
+import io.nop.report.pdf.utils.ChartImageProviders;
+import io.nop.report.pdf.utils.IChartImageProvider;
 import io.nop.report.pdf.utils.PdfImageHelper;
 import io.nop.report.pdf.utils.PdfPrintHelper;
 import io.nop.report.pdf.utils.PdfStyleHelper;
@@ -377,6 +382,7 @@ public class PdfSheetRenderer {
             renderTable(pageRenderer, sheet, table);
 
             renderImages(pageRenderer, sheet, printArea, region, pageClipRect, pageHeight);
+            renderCharts(pageRenderer, sheet, region, pageClipRect);
 
         } catch (IOException e) {
             throw NopException.wrap(e);
@@ -421,6 +427,64 @@ public class PdfSheetRenderer {
             PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), image,
                     imageX, -imageY - image.getHeight(),
                     image.getWidth(), image.getHeight(), pageClipRect);
+        }
+    }
+
+    /**
+     * WI7：图表渲染——锚点几何计算后交由图表图片 provider 渲染为 PNG，经图片绘制路径
+     * （裁剪/缓存/旋转）落页。provider 返回 null 时 WARN 跳过（不做无痕静默）。
+     */
+    private void renderCharts(PdfPageRenderer pageRenderer, IExcelSheet sheet,
+                              CellRange region, java.awt.Rectangle pageClipRect) {
+        List<ExcelChartModel> charts = sheet.getCharts();
+        if (charts == null || charts.isEmpty())
+            return;
+
+        IChartImageProvider provider = ChartImageProviders.getProvider();
+        for (ExcelChartModel chart : charts) {
+            ExcelClientAnchor anchor = chart.getAnchor();
+            if (anchor == null)
+                continue;
+
+            CellPosition pos = anchor.getStartPosition();
+            if (pos == null)
+                continue;
+
+            if (region != null && !region.containsCell(pos.getRowIndex(), pos.getColIndex())) {
+                continue;
+            }
+
+            // 几何按 ExcelImage.calcSize 公式（锚点两角 + 单元格位置）
+            double left = sheet.getCellLeft(anchor.getCol1()) + anchor.getDx1();
+            double top = sheet.getCellTop(anchor.getRow1()) + anchor.getDy1();
+            double x2 = sheet.getCellLeft(anchor.getCol2()) + anchor.getDx2();
+            double y2 = sheet.getCellTop(anchor.getRow2()) + anchor.getDy2();
+            double width = x2 - left;
+            double height = y2 - top;
+            if (width <= 0 || height <= 0)
+                continue;
+
+            double imageX = left - (region != null
+                    ? sheet.getTable().getRangeWidth(0, region.getFirstColIndex() - 1, sheet.defaultColumnWidth())
+                    : 0);
+            double imageY = top - (region != null
+                    ? sheet.getTable().getRangeHeight(0, region.getFirstRowIndex() - 1, sheet.defaultRowHeight())
+                    : 0);
+
+            ByteString png = provider.renderChart(chart, sheet, width, height);
+            if (png == null || png.isEmpty()) {
+                LOG.warn("nop.report.pdf.chart-provider-null:anchor={}",
+                        anchor.getStartPosition() == null ? "" : anchor.getStartPosition().toABString());
+                continue;
+            }
+
+            // 经临时 ExcelImage 承载 provider PNG，复用图片绘制路径（裁剪/占位）
+            ExcelImage image = new ExcelImage();
+            image.setName("chart-" + System.identityHashCode(chart));
+            image.setData(png);
+            image.setPrint(true);
+            PdfImageHelper.drawImage(renderer, pageRenderer.getContentStream(), image,
+                    imageX, -imageY - height, width, height, pageClipRect);
         }
     }
 

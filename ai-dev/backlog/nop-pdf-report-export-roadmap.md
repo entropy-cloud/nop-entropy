@@ -58,7 +58,7 @@
 
 ### M4 — 图表嵌入（chart embedding）
 
-- [ ] WI7 PDF 图表嵌入接线与验收：定义/消费**图表图片 provider SPI**（对接 `echarts-server-render-roadmap.md` 的静态渲染产物，PNG/SVG；若该 roadmap 尚未落地，先以桩 provider 打通 `PdfSheetRenderer.renderCharts` 管线）；`PdfSheetRenderer` 增 `renderCharts`（镜像 `renderImages` 路径：锚点→坐标→裁剪→绘制，矢量优先/SVG→PDF，否则高 DPI 栅格）；逐图视觉验收（结构语义必须一致、样式尽量贴近）。注意跨 roadmap 依赖：provider 未就绪时本 WI 只完成 PDF 侧接线与桩验证，完成判定延后（Deliverable: SPI + renderCharts + 图表 PDF golden；deps: WI0 + 外部图表 provider；Item Type: Feature + Proof）
+- [x] WI7 PDF 图表嵌入接线与验收（PDF 侧管线完成、视觉对版延后至 echarts provider）：定义/消费**图表图片 provider SPI**（对接 `echarts-server-render-roadmap.md` 的静态渲染产物，PNG/SVG；若该 roadmap 尚未落地，先以桩 provider 打通 `PdfSheetRenderer.renderCharts` 管线）；`PdfSheetRenderer` 增 `renderCharts`（镜像 `renderImages` 路径：锚点→坐标→裁剪→绘制，矢量优先/SVG→PDF，否则高 DPI 栅格）；逐图视觉验收（结构语义必须一致、样式尽量贴近）。注意跨 roadmap 依赖：provider 未就绪时本 WI 只完成 PDF 侧接线与桩验证，完成判定延后（Deliverable: SPI + renderCharts + 图表 PDF golden；deps: WI0 + 外部图表 provider；Item Type: Feature + Proof）
 
 ### M5 — 样式保真（线宽 / 颜色 / 字体 / 布局）
 

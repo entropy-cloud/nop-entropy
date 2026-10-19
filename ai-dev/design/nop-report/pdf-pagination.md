@@ -2,7 +2,7 @@
 
 > Status: active
 > Last Reviewed: 2026-10-19
-> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5 富文本图片）
+> Source: plan 2260 Phase 4（来源分析 `ai-dev/analysis/2026-09/2026-09-05-nop-report-pdf-visual-audit.md` F3/F4/F11/F13）；plan 2464（WI1）；plan 2465（WI2）；plan 2466（WI3）；plan 2467（WI4）；plan 2468（WI6）；plan 2469（WI5）；plan 2470（WI7 图表接线）
 
 ## 决策
 
@@ -67,6 +67,13 @@
 - **缓存**：`PdfRenderer.getImage` 按图片字节 per-document 复用 PDImageXObject（同字节同实例）。
 - **限制**：oneCellAnchor/absoluteAnchor（无 `to` 节点）解析后 col2=row2=0 → calcSize 宽高为负、渲染错位——仓库无此类模板（watch-only，出现需求时解析 `<ext>` 扩展几何）。
 
+### D9 图表接线（WI7）
+
+- **SPI**：`IChartImageProvider.renderChart(chart, sheet, widthPt, heightPt) → PNG 字节`（SVG 由 provider 自行栅格化，PDFBox 3 原生不支持 SVG）；`ChartImageProviders` 静态注册器，缺省内置桩（灰底蓝框渐变图案）。真实 echarts provider（echarts-server-render-roadmap 交付）setProvider 即插即用。
+- **renderCharts**：镜像 renderImages——anchor 判空、region 过滤（锚点起点在当前 region 才绘制）、几何按锚点两角计算、provider 返回 null → WARN（`nop.report.pdf.chart-provider-null`）跳过（不做无痕静默）；绘制经临时 ExcelImage 复用 PdfImageHelper（裁剪/占位/缓存）。
+- **完成判定**：本 WI 勾选代表 PDF 侧管线打通（桩验证）；图表与真实渲染的逐图视觉对版延后至 echarts provider 交付。
+- **已知疑点**：多页（region≠null）图片/图表的 y 定位与"锚点行×行高"推算存在约 40pt 级偏移疑点（重复行+预留几何推导未完，图片路径同样存在）——登记 follow-up，锚点页存在性已测试钉住。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。
@@ -96,6 +103,7 @@
 - `nop-report-pdf/.../renderer/PdfRenderer.java`（页面跟踪、`drawDefaultPageNumbers`）
 - `nop-report-pdf/.../renderer/PdfReportRenderer.java`（保存前绘制页码）
 - `nop-report-pdf/.../utils/PdfImageHelper.java`（图片页面裁剪、rotateDegree 旋转、占位统一）
+- `nop-report-pdf/.../utils/IChartImageProvider.java`/`ChartImageProviders.java`、`PdfSheetRenderer.renderCharts`（图表接线 WI7）
 - 配置：`nop.report.pdf.repeat-header-rows`、`repeat-key-columns`、`default-page-footer`、`min-font-size-pt`
 
 ## 验证
@@ -111,6 +119,7 @@
 - `TestExcelHeaderFooterCodes`：&-语法分段/转义/字体段/占位符判定；`TestTemplateHeaderFooterParse`：模板 headerFooter 装模回归
 - `TestPdfHeaderFooterRender`：&P/&N 全局与 sheet 作用域（双 sheet）、首页/奇偶变体、&A/&D/&T、字体代码不字面、无效 scope fail-loud、golden
 - `TestPdfImageRender`：锚点几何、rotateDegree 四象限、alpha、缺图/损坏占位、print=false、越界裁剪、缓存复用、多图回归、golden
+- `TestPdfChartRender`：provider 接线探测、锚点几何、region 过滤、null 跳过、默认桩、golden
 - `TestPdfRenderDefects`：F3（列拆分关键列重复）、F4（续页表头重复）红转绿；F6 回归钉（重复表头按需多次绘制，其余行只绘制一次）
 - `TestPdfSheetRenderFixes`：单页小表不受影响（无重复、打印区平移不变）
 - `TestPdfExportAudit`：20 模板批量导出复检
