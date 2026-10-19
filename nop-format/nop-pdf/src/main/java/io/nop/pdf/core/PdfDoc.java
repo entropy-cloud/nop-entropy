@@ -34,7 +34,9 @@ import org.apache.pdfbox.text.PDFTextStripper;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import static io.nop.pdf.core.PdfErrors.ARG_FAILED_CHAR;
@@ -172,6 +174,42 @@ public class PdfDoc implements Closeable {
     public String extractOutlineYaml(String target, String source) {
         io.nop.pdf.outline.PdfOutline outline = extractOutline();
         return io.nop.pdf.outline.PdfOutlineYamlWriter.toYaml(outline, target, source, getNumberOfPages());
+    }
+
+    // ========== WI15：目录检测/结构源路由/标题回填 ==========
+
+    /**
+     * 全文档目录行检测（sorted 页文本 + TOC_ENTRY_RE）
+     */
+    public java.util.List<io.nop.pdf.toc.TocLine> detectTocLines() {
+        List<String> allLines = new ArrayList<>();
+        io.nop.pdf.toc.SortedPageTexts.extract(doc)
+                .forEach((page, text) -> allLines.addAll(java.util.Arrays.asList(text.split("\r?\n", -1))));
+        return io.nop.pdf.toc.TocLineDetector.detectAll(allLines);
+    }
+
+    /**
+     * 结构源路由（确定性决策表 + 守卫 + corrections 审计 + crosscheck）
+     */
+    public io.nop.pdf.toc.RoutingDecision routeStructureSource(
+            io.nop.pdf.toc.ReconstructHook hook, String explicitSource) {
+        io.nop.pdf.outline.PdfOutline outline = extractOutline();
+        Map<Integer, String> texts = io.nop.pdf.toc.SortedPageTexts.extract(doc);
+        return io.nop.pdf.toc.StructureSourceRouter.route(doc, outline.getEntries(), texts, hook, explicitSource);
+    }
+
+    /**
+     * v2 outline 驱动回填（headingizeFromOutline 直译）
+     */
+    public String backfillByOutline(String md, List<io.nop.pdf.outline.PdfOutlineEntry> entries) {
+        return io.nop.pdf.toc.OutlineBackfiller.backfill(md, entries).getMd();
+    }
+
+    /**
+     * v1 toc 驱动回填（headingize 全机制直译）
+     */
+    public io.nop.pdf.toc.TocBackfiller.Result backfillByToc(String md, io.nop.pdf.toc.BackfillOptions opts) {
+        return io.nop.pdf.toc.TocBackfiller.backfill(md, opts);
     }
 
     public int getNumberOfPages() {
