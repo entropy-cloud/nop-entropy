@@ -111,6 +111,13 @@ public class OrmMigrationOrchestrator {
     }
 
     /**
+     * 注入增量链管理器（宿主共享装配或测试观测用；缺省由 {@link #incrementalManager()} 惰性构造）。
+     */
+    public void setIncrementalManager(IncrementalJobManager incrementalManager) {
+        this.incrementalManager = incrementalManager;
+    }
+
+    /**
      * 宿主批断点存储 SPI（避免对本模块未见的 nop-batch-dao 编译依赖）。
      */
     public interface IBatchStateStoreProvider {
@@ -270,6 +277,9 @@ public class OrmMigrationOrchestrator {
         // 配置翻转（单一配置点，原子生效）：nop.orm.shard 整体替换 / relocate 翻 querySpace 指向
         flipShardConfig(state);
         rebuildRouting(state);
+        // SWITCH 收敛（翻转+路由重建完成）即停止增量链：此后源事件重放落入已晋级的线上
+        // 目标表属于幽灵写（IncrementalJobManager.stopAll 契约：ABORT/SWITCH 收敛后由编排器调用）
+        stopIncrementalChains(jobId);
         LOG.info("nop.orm.migration.switch-flipped:jobId={},routeRebuild={}", jobId, state.getRouteRebuild());
     }
 
@@ -282,6 +292,8 @@ public class OrmMigrationOrchestrator {
             throw gateFailed(jobId, MigrationPhase.DONE, "SWITCH phase required (current="
                     + state.getPhase() + ")");
         }
+        // 开门前兜底停链（幂等）：覆盖中断重启后直接从 SWITCH 收敛到 DONE 的路径
+        stopIncrementalChains(jobId);
         OrmMigrationWriteGate.setClosed(false);
         state.setPhase(MigrationPhase.DONE);
         store().update(state);
@@ -358,6 +370,21 @@ public class OrmMigrationOrchestrator {
         String sourceQuerySpace = config.getSourceQuerySpaces().isEmpty()
                 ? "" : config.getSourceQuerySpaces().get(0);
         return pinner.pin(jdbcTemplate, sourceQuerySpace, connectorType);
+    }
+
+    /**
+     * 停止增量链作业（成功收敛路径）。只停本进程已启动的链——直接读字段而非
+     * {@link #incrementalManager()} 惰性构造：编排器重启后字段为空即链已随进程消亡，
+     * 无须（也不得）为停止而新建管理器。
+     */
+    private void stopIncrementalChains(String jobId) {
+        if (!config.isIncrementalEnabled())
+            return;
+        IncrementalJobManager manager = this.incrementalManager;
+        if (manager == null)
+            return;
+        manager.stopAll();
+        LOG.info("nop.orm.migration.incremental-stopped:jobId={}", jobId);
     }
 
     private void ensureTargetTablesReady(String jobId) {
