@@ -242,6 +242,49 @@ public class TestPdfHeaderFooterRender extends JunitBaseTestCase {
     }
 
     /**
+     * 回归（2026-10-20 视觉审计发现）：&N 求值的末位数字右半被裁——HF runRect 宽恰为
+     * 测量 advance 时，drawUnwrappedText 默认左对齐的 2pt 起笔内缩把末字形右侧墨迹推出
+     * clip。以第 3 页页脚 "3 / 3" 为样本：首末同为 "3" 字形，末位墨迹簇不得比首位移位窄。
+     */
+    @Test
+    public void testTrailingPageNumberGlyphNotClipped() throws Exception {
+        byte[] pdf = render(newWorkbook(1, 90, "&P / &N"));
+        java.awt.image.BufferedImage img;
+        try (PDDocument doc = Loader.loadPDF(pdf)) {
+            img = io.nop.pdf.verify.PdfImageRenderer.renderAll(doc,
+                    io.nop.pdf.verify.PdfImageRenderer.DEFAULT_DPI).get(2);
+        }
+        int w = img.getWidth(), h = img.getHeight();
+        int bandTop = h - Math.max(20, h / 12);
+        // 页脚带内墨迹列聚类：列内有深色像素记一列，列间空隙 >2px 视为字形分隔
+        java.util.List<Integer> clusters = new java.util.ArrayList<>();
+        int run = 0, gap = 0;
+        for (int x = 0; x < w; x++) {
+            boolean hasInk = false;
+            for (int y = bandTop; y < h; y++) {
+                int rgb = img.getRGB(x, y);
+                if (((rgb >> 16) & 255) < 128 && ((rgb >> 8) & 255) < 128 && (rgb & 255) < 128) {
+                    hasInk = true;
+                    break;
+                }
+            }
+            if (hasInk) {
+                run++;
+                gap = 0;
+            } else if (run > 0 && ++gap > 2) {
+                clusters.add(run);
+                run = 0;
+                gap = 0;
+            }
+        }
+        if (run > 0)
+            clusters.add(run);
+        assertEquals(3, clusters.size(), "footer glyph clusters of '3 / 3': " + clusters);
+        assertTrue(clusters.get(2) >= clusters.get(0),
+                "trailing '3' ink narrower than leading '3' — glyph clipped: " + clusters);
+    }
+
+    /**
      * golden：&P/&N 页脚 + 首页不同。
      */
     @Test

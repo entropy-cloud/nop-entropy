@@ -25,7 +25,7 @@
 
 ## watch-only（不计 fail）
 
-- wi4 page-numbers 三页页脚 "N / 3" 的总页数字符右缘轻微裁切（后续可在 HF 绘制宽度上复核）。
+- ~~wi4 page-numbers 三页页脚 "N / 3" 的总页数字符右缘轻微裁切~~ → **已升格确认并修复**：像素测量证实末位 "3" 墨迹 5px vs 首位 8px（右 1/3 被裁）；根因与修复见 `ai-dev/bugs/2026-10/2026-10-20-hf-footer-trailing-glyph-clip.md`，回归测试 `TestPdfHeaderFooterRender.testTrailingPageNumberGlyphNotClipped`，模块 109 测试全绿。状态：fixed。
 
 ## 程序化证据对照（load-bearing）
 

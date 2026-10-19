@@ -338,8 +338,11 @@ public class PdfRenderer {
                 for (int i = 0; i < n; i++) {
                     if (texts[i].isEmpty())
                         continue;
+                    // 宽度 +2pt：drawUnwrappedText 默认左对齐带 2pt 起笔内缩，runRect 宽若恰为
+                    // 测量 advance，末字形右侧墨迹会落在 clip 外（wi4 页脚 &N 数字右缘被裁）。
+                    // 扩出的 2pt 落在 run 间空白，外层分区 clip 仍兜底不越界语义。
                     PDRectangle runRect = new PDRectangle(x, task.rect.getLowerLeftY(),
-                            Math.max(widths[i], 1), task.rect.getHeight());
+                            Math.max(widths[i], 1) + 2, task.rect.getHeight());
                     PdfStyleHelper.drawUnwrappedText(cs, texts[i], fonts[i],
                             fontRes[i].isSyntheticBold(), fontRes[i].isSyntheticItalic(),
                             sizes[i], runRect, task.style);
