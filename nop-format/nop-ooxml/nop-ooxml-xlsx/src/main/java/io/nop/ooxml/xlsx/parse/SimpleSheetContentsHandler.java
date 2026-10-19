@@ -178,6 +178,16 @@ public class SimpleSheetContentsHandler implements SheetContentsHandler {
         table.setCell(cellRef.getRowIndex(), cellRef.getColIndex(), cell);
     }
 
+    /**
+     * WI11：富文本 run 结构挂到刚输出的单元格（cell 回调后立即触发）
+     */
+    @Override
+    public void richText(CellPosition cellRef, io.nop.excel.model.ExcelRichText richText) {
+        ICell cell = table.getCell(cellRef.getRowIndex(), cellRef.getColIndex());
+        if (cell instanceof ExcelCell)
+            ((ExcelCell) cell).setRichText(richText);
+    }
+
     @Override
     public void mergeCell(CellRange range) {
         ExcelCell ec = (ExcelCell) table.getCell(range.getFirstRowIndex(), range.getFirstColIndex());

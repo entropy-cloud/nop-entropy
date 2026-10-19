@@ -18,12 +18,18 @@ package io.nop.excel.format;
 
 import io.nop.commons.text.formatter.FastIntegerFormatter;
 
+import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.FieldPosition;
 import java.text.Format;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -104,6 +110,63 @@ public class ExcelFormatHelper {
         } catch (Exception e) {
             return null;
         }
+    }
+
+    /**
+     * WI11：style.numberFormat 可应用的值类型（Number/Date/Temporal）。
+     * 报表展开（ExpandedSheetEvaluator）与 PDF 直接导出路径共用同一判定。
+     */
+    public static boolean isFormattableValue(Object value) {
+        return value instanceof Number || value instanceof Date || value instanceof java.time.temporal.Temporal;
+    }
+
+    /**
+     * WI11：按 Excel 数字格式串格式化任意单元格值，统一类型分派。
+     *
+     * <p>事实依据：createDateFormat 返回 SimpleDateFormat——DateFormat.format(Object) 只接受
+     * Date/Number，且把 Number 按 epoch 毫秒解释（真实 xlsx 的"数值+内置日期格式"是 Excel
+     * 串行日期，必须经 getJavaDate 转换）；传 Temporal 直接抛 IllegalArgumentException。
+     * 因此分派规则：
+     * <ul>
+     * <li>DateFormat 分支：Date 直接格式化；Number 经 {@link ExcelDateHelper#getJavaDate(double)}
+     * 转串行日期（无效串行值返回 null）；LocalDate/LocalDateTime/LocalTime 转 Date（系统默认时区）；
+     * 其余类型返回 null。</li>
+     * <li>其余 Format（DecimalFormat 及 SSN/Zip/Phone 等特判 Format）：仅接受 Number，其余返回 null。</li>
+     * </ul>
+     * 不可转换组合一律返回 null（显式类型判断，不抛不吞异常），调用方回退原样显示。
+     */
+    public static String formatValue(Object value, String formatStr) {
+        if (value == null || formatStr == null)
+            return null;
+        Format format = getFormat(formatStr);
+        if (format == null)
+            return null;
+
+        if (format instanceof DateFormat) {
+            Date date = asDate(value);
+            if (date == null)
+                return null;
+            return format.format(date);
+        }
+
+        if (!(value instanceof Number))
+            return null;
+        return format.format(value);
+    }
+
+    private static Date asDate(Object value) {
+        if (value instanceof Date)
+            return (Date) value;
+        if (value instanceof Number)
+            return ExcelDateHelper.getJavaDate(((Number) value).doubleValue());
+        ZoneId zone = ZoneId.systemDefault();
+        if (value instanceof LocalDate)
+            return Date.from(((LocalDate) value).atStartOfDay(zone).toInstant());
+        if (value instanceof LocalDateTime)
+            return Date.from(((LocalDateTime) value).atZone(zone).toInstant());
+        if (value instanceof LocalTime)
+            return Date.from(((LocalTime) value).atDate(LocalDate.of(1970, 1, 1)).atZone(zone).toInstant());
+        return null;
     }
 
     private static Format createFormat(String sFormat) {

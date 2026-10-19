@@ -35,7 +35,6 @@ import io.nop.report.core.model.ExpandedTable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.text.Format;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -170,12 +169,16 @@ public class ExpandedSheetEvaluator {
             } else if (cellModel.getDict() != null) {
                 String label = xptRt.getLabelByValue(cellModel.getDict(), cell.getValue());
                 cell.setFormattedValue(label);
-            } else if (cell.getStyleId() != null && workbook != null && cell.getValue() instanceof Number) {
+            } else if (cell.getStyleId() != null && workbook != null
+                    && ExcelFormatHelper.isFormattableValue(cell.getValue())) {
                 ExcelStyle style = workbook.getStyle(cell.getStyleId());
                 if (style != null && style.getNumberFormat() != null) {
-                    Format format = ExcelFormatHelper.getFormat(style.getNumberFormat());
-                    if (format != null) {
-                        cell.setFormattedValue(format.format(cell.getValue()));
+                    // WI11：formatValue 统一类型分派——Number+日期格式按 Excel 串行日期语义
+                    // （修复 DateFormat 按 epoch 毫秒解释的缺陷），并扩 Date/Temporal 支持
+                    String formatted = ExcelFormatHelper.formatValue(cell.getValue(),
+                            style.getNumberFormat());
+                    if (formatted != null) {
+                        cell.setFormattedValue(formatted);
                     }
                 }
             }
@@ -288,8 +291,7 @@ public class ExpandedSheetEvaluator {
         return ret;
     }
 
-    private static ExcelImage newExcelImage(ExpandedCell cell, ExcelImage model, MutableInt index) {
-        ExcelImage ret = new ExcelImage();
+    private static ExcelImage newExcelImage(ExpandedCell cell, ExcelImage model, MutableInt index) {        ExcelImage ret = new ExcelImage();
         ret.setName(model.getName() + '-' + index);
         ret.setDescription(model.getDescription());
         ret.setImgType(model.getImgType());

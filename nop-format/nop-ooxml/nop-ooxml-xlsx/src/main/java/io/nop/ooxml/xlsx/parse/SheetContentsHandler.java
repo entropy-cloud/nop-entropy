@@ -74,6 +74,13 @@ public interface SheetContentsHandler {
      */
     void cell(CellPosition cellRef, Object value, String formulaStr, int styleId);
 
+    /**
+     * WI11：单元格富文本 run 结构（紧随对应 cell 回调之后触发；仅 si/is 含 <r> run 时回调）。
+     * 拍平文本仍经 {@link #cell} 的 value 传递，本回调只承载 run 结构。
+     */
+    default void richText(CellPosition cellRef, io.nop.excel.model.ExcelRichText richText) {
+    }
+
     void mergeCell(CellRange range);
 
     void drawing(String id);

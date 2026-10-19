@@ -203,10 +203,7 @@ public class PdfStyleHelper {
             contentStream.setNonStrokingColor(textColor);
             // WI10：伪粗体描边色随字体色 + dash 重置（防继承边框虚线/异色）
             if (syntheticBold) {
-                contentStream.setStrokingColor(textColor);
-                contentStream.setLineDashPattern(new float[]{}, 0);
-                contentStream.setLineWidth(Math.max(0.3f, fontSize / 30));
-                contentStream.setRenderingMode(RenderingMode.FILL_STROKE);
+                beginSyntheticBold(contentStream, textColor, fontSize);
             }
             // WI9：字体色 alpha（该方法外层已有 save/clip/restore 包裹，gs 作用域随 restore 收口）
             applyAlpha(contentStream, parseAlpha(style.getFont().getFontColor()));
@@ -225,10 +222,26 @@ public class PdfStyleHelper {
 
         // WI10：伪粗体 renderingMode 还原（防后续绘制继承 FILL_STROKE）
         if (syntheticBold) {
-            contentStream.setRenderingMode(RenderingMode.FILL);
+            endSyntheticBold(contentStream);
         }
 
         contentStream.restoreGraphicsState();
+    }
+
+    /**
+     * WI10：伪粗体描边设置——描边色随字体色 + dash 重置 + 描边宽度。须在 save 作用域内
+     * 调用（drawBorderLine 在 alpha=255 时不 save/restore，不重置会继承前格边框的红色虚线）。
+     */
+    static void beginSyntheticBold(PDPageContentStream contentStream, PDColor textColor,
+                                   float fontSize) throws IOException {
+        contentStream.setStrokingColor(textColor);
+        contentStream.setLineDashPattern(new float[]{}, 0);
+        contentStream.setLineWidth(Math.max(0.3f, fontSize / 30));
+        contentStream.setRenderingMode(RenderingMode.FILL_STROKE);
+    }
+
+    static void endSyntheticBold(PDPageContentStream contentStream) throws IOException {
+        contentStream.setRenderingMode(RenderingMode.FILL);
     }
 
     // 绘制自动折行的文本（修正版）
@@ -277,10 +290,7 @@ public class PdfStyleHelper {
                 contentStream.setNonStrokingColor(textColor);
                 // WI10：伪粗体描边色随字体色 + dash 重置（同 unwrapped 路径，防继承边框虚线/异色）
                 if (syntheticBold) {
-                    contentStream.setStrokingColor(textColor);
-                    contentStream.setLineDashPattern(new float[]{}, 0);
-                    contentStream.setLineWidth(Math.max(0.3f, fontSize / 30));
-                    contentStream.setRenderingMode(RenderingMode.FILL_STROKE);
+                    beginSyntheticBold(contentStream, textColor, fontSize);
                 }
             }
         }
@@ -316,9 +326,210 @@ public class PdfStyleHelper {
 
         // WI10：伪粗体 renderingMode 还原（防后续绘制继承 FILL_STROKE）
         if (syntheticBold) {
-            contentStream.setRenderingMode(RenderingMode.FILL);
+            endSyntheticBold(contentStream);
         }
 
+        contentStream.restoreGraphicsState();
+    }
+
+    /**
+     * WI11：xlsx textRotation 的竖排语义值（ECMA-376：255 = vertical text）
+     */
+    public static final int TEXT_ROTATION_VERTICAL = 255;
+
+    /**
+     * WI11：富文本 run 的已解析渲染记录（renderer 侧构建——字体解析走 PdfRenderer
+     * 的 FontResolution 缓存；颜色 null 时回退单元格样式字体色）。
+     */
+    public static final class RichRun {
+        private final String text;
+        private final PDFont font;
+        private final boolean syntheticBold;
+        private final boolean syntheticItalic;
+        private final PDColor color;
+        private final float fontSize;
+
+        public RichRun(String text, PDFont font, boolean syntheticBold, boolean syntheticItalic,
+                       PDColor color, float fontSize) {
+            this.text = text;
+            this.font = font;
+            this.syntheticBold = syntheticBold;
+            this.syntheticItalic = syntheticItalic;
+            this.color = color;
+            this.fontSize = fontSize;
+        }
+
+        public String getText() {
+            return text;
+        }
+
+        public PDFont getFont() {
+            return font;
+        }
+
+        public boolean isSyntheticBold() {
+            return syntheticBold;
+        }
+
+        public boolean isSyntheticItalic() {
+            return syntheticItalic;
+        }
+
+        public PDColor getColor() {
+            return color;
+        }
+
+        public float getFontSize() {
+            return fontSize;
+        }
+    }
+
+    /**
+     * WI11：富文本 run 序列绘制（同格多字体/字号/颜色）。总宽合计后按水平对齐定位，
+     * 基线取最大字号的单行位置；裁剪沿用单元格矩形。wrapText 不参与（超宽单行裁剪，
+     * D12 限制）。
+     */
+    public static void drawRichText(PDPageContentStream contentStream, List<RichRun> runs,
+                                    PDRectangle cellRect, ExcelStyle style) throws IOException {
+        if (runs == null || runs.isEmpty())
+            return;
+
+        int n = runs.size();
+        String[] texts = new String[n];
+        float[] widths = new float[n];
+        float totalWidth = 0;
+        float maxFontSize = 0;
+        for (int i = 0; i < n; i++) {
+            RichRun run = runs.get(i);
+            String t = sanitizeTextForFont(run.getText(), run.getFont());
+            texts[i] = normalizeControlChars(t);
+            widths[i] = run.getFont().getStringWidth(texts[i]) / 1000 * run.getFontSize();
+            totalWidth += widths[i];
+            maxFontSize = Math.max(maxFontSize, run.getFontSize());
+        }
+
+        OfficeHorizontalAlignment hAlign = style != null ? style.getHorizontalAlign() : null;
+        OfficeVerticalAlignment vAlign = style != null ? style.getVerticalAlign() : null;
+        float x = cellRect.getLowerLeftX() + 2;
+        if (hAlign == OfficeHorizontalAlignment.CENTER)
+            x = cellRect.getLowerLeftX() + (cellRect.getWidth() - totalWidth) / 2;
+        else if (hAlign == OfficeHorizontalAlignment.RIGHT)
+            x = cellRect.getLowerLeftX() + cellRect.getWidth() - totalWidth - 2;
+
+        // 单行基线与 drawUnwrappedText 同源（textHeight 用最大字号，跨字号混排为近似定位）
+        float textHeight = 0;
+        try {
+            textHeight = runs.get(0).getFont().getFontDescriptor().getCapHeight() / 1000 * maxFontSize;
+        } catch (Exception e) {
+            textHeight = 0;
+        }
+        float baseline = cellRect.getLowerLeftY() + cellRect.getHeight() - textHeight - 2;
+        if (vAlign == OfficeVerticalAlignment.CENTER)
+            baseline = cellRect.getLowerLeftY() + (cellRect.getHeight() - textHeight) / 2;
+        else if (vAlign == OfficeVerticalAlignment.BOTTOM)
+            baseline = cellRect.getLowerLeftY() + textHeight + 2;
+
+        contentStream.saveGraphicsState();
+        contentStream.addRect(cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight());
+        contentStream.clip();
+
+        for (int i = 0; i < n; i++) {
+            RichRun run = runs.get(i);
+            if (texts[i].isEmpty()) {
+                continue;
+            }
+            contentStream.setFont(run.getFont(), run.getFontSize());
+            PDColor color = run.getColor();
+            contentStream.setNonStrokingColor(color);
+            if (run.isSyntheticBold()) {
+                beginSyntheticBold(contentStream, color, run.getFontSize());
+            }
+            contentStream.beginText();
+            if (run.isSyntheticItalic()) {
+                contentStream.setTextMatrix(new Matrix(1, 0, 0.25f, 1, x, baseline));
+            } else {
+                contentStream.newLineAtOffset(x, baseline);
+            }
+            contentStream.showText(texts[i]);
+            contentStream.endText();
+            if (run.isSyntheticBold()) {
+                endSyntheticBold(contentStream);
+            }
+            x += widths[i];
+        }
+
+        contentStream.restoreGraphicsState();
+    }
+
+    /**
+     * WI11：旋转/竖排文本（xlsx textRotation ECMA-376 语义）。rotate=255 竖排（逐字符
+     * 独立文本块，水平居中、自上而下堆叠）；1–90 逆时针 value 度；91–180 顺时针
+     * (value-90) 度。单行绘制（wrapText 忽略），以单元格中心为锚点，超宽由本方法的
+     * clip 裁剪。
+     */
+    public static void drawRotatedText(PDPageContentStream contentStream, String text, PDFont font,
+                                       boolean syntheticBold, boolean syntheticItalic,
+                                       float fontSize, PDRectangle cellRect, ExcelStyle style,
+                                       int rotate) throws IOException {
+        if (text == null || text.isEmpty())
+            return;
+        text = normalizeControlChars(sanitizeTextForFont(text, font));
+        PDColor textColor = style != null && style.getFont() != null
+                ? convertColor(style.getFont().getFontColor())
+                : convertColor(null);
+
+        contentStream.saveGraphicsState();
+        contentStream.addRect(cellRect.getLowerLeftX(), cellRect.getLowerLeftY(),
+                cellRect.getWidth(), cellRect.getHeight());
+        contentStream.clip();
+
+        contentStream.setFont(font, fontSize);
+        contentStream.setNonStrokingColor(textColor);
+        if (syntheticBold) {
+            beginSyntheticBold(contentStream, textColor, fontSize);
+        }
+
+        if (rotate == TEXT_ROTATION_VERTICAL) {
+            // 竖排：逐字符独立文本块，自上而下堆叠，行距 1.2×fontSize
+            float lineHeight = fontSize * 1.2f;
+            float y = cellRect.getLowerLeftY() + cellRect.getHeight() - 2 - fontSize;
+            float cx = cellRect.getLowerLeftX() + cellRect.getWidth() / 2;
+            for (int i = 0; i < text.length(); i++) {
+                String ch = String.valueOf(text.charAt(i));
+                float w = font.getStringWidth(ch) / 1000 * fontSize;
+                contentStream.beginText();
+                contentStream.newLineAtOffset(cx - w / 2, y);
+                contentStream.showText(ch);
+                contentStream.endText();
+                y -= lineHeight;
+            }
+        } else {
+            float ccwDeg = rotate <= 90 ? rotate : -(rotate - 90);
+            double rad = Math.toRadians(ccwDeg);
+            float cos = (float) Math.cos(rad);
+            float sin = (float) Math.sin(rad);
+            float textWidth = font.getStringWidth(text) / 1000 * fontSize;
+            float cx = cellRect.getLowerLeftX() + cellRect.getWidth() / 2;
+            float cy = cellRect.getLowerLeftY() + cellRect.getHeight() / 2;
+            // 锚点=单元格中心，文本沿旋转方向自中心展开（水平居中语义的旋转推广）
+            float tx = cx - textWidth / 2 * cos;
+            float ty = cy - textWidth / 2 * sin;
+            Matrix rotation = new Matrix(cos, sin, -sin, cos, tx, ty);
+            contentStream.beginText();
+            if (syntheticItalic) {
+                // 伪斜体 shear 在文本空间先施加，再旋转（行向量约定 p·S·R）
+                contentStream.setTextMatrix(new Matrix(1, 0, 0.25f, 1, 0, 0).multiply(rotation));
+            } else {
+                contentStream.setTextMatrix(rotation);
+            }
+            contentStream.showText(text);
+            contentStream.endText();
+        }
+
+        if (syntheticBold) {
+            endSyntheticBold(contentStream);
+        }
         contentStream.restoreGraphicsState();
     }
 

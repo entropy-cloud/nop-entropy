@@ -8,6 +8,7 @@
 package io.nop.ooxml.xlsx.model;
 
 import io.nop.core.resource.IResource;
+import io.nop.excel.model.ExcelRichText;
 import io.nop.ooxml.xlsx.parse.SharedStringsTableParser;
 
 import java.util.List;
@@ -58,6 +59,12 @@ public class SharedStringsPart {
     private int uniqueCount;
     private List<String> items;
 
+    /**
+     * WI11：与 items 平行的富文本 run 结构（仅含 <r> run 的 si 对应位非 null）。
+     * 拍平语义（items）保持不变，消费方零破坏。
+     */
+    private List<ExcelRichText> richItems;
+
     public int getCount() {
         return count;
     }
@@ -82,6 +89,14 @@ public class SharedStringsPart {
         this.items = items;
     }
 
+    public List<ExcelRichText> getRichItems() {
+        return richItems;
+    }
+
+    public void setRichItems(List<ExcelRichText> richItems) {
+        this.richItems = richItems;
+    }
+
     public static SharedStringsPart parse(IResource resource) {
         SharedStringsTableParser parser = new SharedStringsTableParser(true);
         return parser.parseFromResource(resource);
@@ -91,5 +106,14 @@ public class SharedStringsPart {
         if (index < 0 || index >= items.size())
             return null;
         return items.get(index);
+    }
+
+    /**
+     * WI11：index 处 si 的富文本结构；无 run 或越界返回 null
+     */
+    public ExcelRichText getRichItemAt(int index) {
+        if (richItems == null || index < 0 || index >= richItems.size())
+            return null;
+        return richItems.get(index);
     }
 }

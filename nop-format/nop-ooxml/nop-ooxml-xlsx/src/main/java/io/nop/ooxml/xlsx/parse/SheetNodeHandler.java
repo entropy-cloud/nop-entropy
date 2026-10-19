@@ -39,6 +39,10 @@ import io.nop.excel.model.constants.ExcelDataValidationType;
 import io.nop.excel.util.UnitsHelper;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
+import io.nop.excel.model.ExcelFont;
+import io.nop.excel.model.ExcelRichText;
+import io.nop.excel.model.ExcelRichTextPart;
+
 import static io.nop.ooxml.xlsx.XlsxErrors.ARG_CELL_REF;
 import static io.nop.ooxml.xlsx.XlsxErrors.ERR_XLSX_CELL_REF_OUT_OF_RANGE;
 
@@ -104,6 +108,14 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
     private final StringBuilder formula = new StringBuilder(64);
     private final StringBuilder headerFooter = new StringBuilder(64);
 
+    // WI11：inline <is> 富文本 run 捕获（独立缓冲，value 拍平语义不动）
+    private boolean isInRun;
+    private boolean isInRPr;
+    private boolean isRunPh;
+    private ExcelRichText pendingRichText;
+    private ExcelRichTextPart currentRunPart;
+    private final StringBuilder runText = new StringBuilder(64);
+
 //    private Queue<CellPosition> commentCellRefs;
 
     private List<ExcelColumnConfig> cols;
@@ -160,9 +172,28 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             if (!isIsOpen) {
                 value.setLength(0);
             }
+            if (isInRun) {
+                runText.setLength(0);
+            }
         } else if ("is".equals(localName)) {
             // Inline string outer tag
             isIsOpen = true;
+        } else if (isIsOpen && "r".equals(localName)) {
+            // WI11：inline run 边界（value 拍平缓冲不受影响；run 缓冲同步 reset，
+            // 防 <r> 缺 <t> 的畸形输入复制上一 run 残留文本——closure audit Minor-3）
+            isInRun = true;
+            isInRPr = false;
+            runText.setLength(0);
+            currentRunPart = new ExcelRichTextPart();
+        } else if (isInRun && "rPr".equals(localName)) {
+            isInRPr = true;
+            if (currentRunPart != null && currentRunPart.getFont() == null)
+                currentRunPart.setFont(new ExcelFont());
+        } else if (isInRPr && currentRunPart != null && currentRunPart.getFont() != null) {
+            RichTextFontMapper.applyTo(currentRunPart.getFont(), localName, attrs);
+        } else if (isIsOpen && "rPh".equals(localName)) {
+            // phonetic 段：拍平文本沿既有行为，run 捕获跳过
+            isRunPh = true;
         } else if ("f".equals(localName)) {
             // Clear contents cache
             formula.setLength(0);
@@ -437,6 +468,23 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
             vIsOpen = false;
         } else if ("f".equals(localName)) {
             fIsOpen = false;
+        } else if (isInRun && "r".equals(localName)) {
+            // WI11：run 收尾（文本独立缓冲 → part；value 拍平不动）
+            if (currentRunPart != null) {
+                currentRunPart.setText(runText.toString());
+                if (pendingRichText == null) {
+                    pendingRichText = new ExcelRichText();
+                    pendingRichText.setParts(new ArrayList<>());
+                }
+                pendingRichText.getParts().add(currentRunPart);
+            }
+            currentRunPart = null;
+            isInRun = false;
+            isInRPr = false;
+        } else if (isInRPr && "rPr".equals(localName)) {
+            isInRPr = false;
+        } else if (isRunPh && "rPh".equals(localName)) {
+            isRunPh = false;
         } else if ("is".equals(localName)) {
             isIsOpen = false;
         } else if ("row".equals(localName)) {
@@ -478,6 +526,10 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
     public void text(SourceLocation loc, String text) {
         if (vIsOpen) {
             value.append(text);
+        }
+        // WI11：run 文本独立捕获（rPh 段跳过；value 拍平行为不变）
+        if (isInRun && vIsOpen && !isRunPh) {
+            runText.append(text);
         }
         if (fIsOpen) {
             formula.append(text);
@@ -531,6 +583,8 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
                 if (!sstIndex.isEmpty()) {
                     int idx = ConvertHelper.toPrimitiveInt(sstIndex, 0, NopException::new);
                     thisStr = sharedStringsTable.getItemAt(idx);
+                    // WI11：共享字符串含 <r> run 时随 cell 回调附带富文本结构
+                    pendingRichText = sharedStringsTable.getRichItemAt(idx);
                 }
                 break;
 
@@ -551,5 +605,10 @@ public class SheetNodeHandler extends XNodeHandlerAdapter {
 
         // Output
         output.cell(cellPos, thisStr, formulaStr, styleId);
+        // WI11：富文本结构紧随 cell 回调（SimpleSheetContentsHandler 按坐标回挂）
+        if (pendingRichText != null) {
+            output.richText(cellPos, pendingRichText);
+            pendingRichText = null;
+        }
     }
 }

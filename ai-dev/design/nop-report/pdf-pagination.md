@@ -88,6 +88,12 @@
 - **alpha 渲染**：alpha<255 时经 PDExtendedGraphicsState（ca/CA）注入，**saveGraphicsState 先于 gs 注入、restoreGraphicsState 收口**（gs 注入在 save 之后会修改当前态导致泄漏）；gs 经页面 Resources 注册（每次注入新建实例——alpha 单元格稀有，去重缓存非必要）。alpha=255 不注入。填充/字体/边框三路均生效。
 - **渐变填充**：defer（ExcelStyle 无渐变字段、xlsx 渐变解析不存在、仓库零消费者——出现需求时立项解析+PDShading）。
 
+### D12 富文本 run / 竖排旋转 / 数字格式（WI11）
+
+- **富文本 run**：xlsx 共享字符串与内联字符串的 `<r>` run 结构解析进 `ExcelCell.richText`（SpreadsheetML rPr→ExcelFont：`<b>/<i>` 空元素、`<sz val>` 为 pt、`<rFont val>`、`<color rgb>`；**`<color theme>` 不映射**回退单元格样式字体色；`<rPh>` phonetic 段不进 runs；拍平文本语义不变）。PDF 渲染逐 run 字体/字号/颜色/伪变体（run 缺 font 回退单元格样式字体；run 色缺省回退单元格样式色），总宽合计 + 水平对齐 + 单元格裁剪。**限制**：xpt 报表流（ExpandedCell/XptCellModel）不承载 richText；富文本与 wrapText 组合按单行裁剪（不逐 run 折行）；富文本与 rotate 同格时富文本优先、忽略 rotate（Excel 实际会旋转整个富文本——组合需求出现时再实现）。
+- **竖排/旋转**：`style.rotate` 按 ECMA-376 textRotation 语义渲染（style.xdef 注释已修正为同源）：255=竖排（逐字符独立文本块、水平居中、自上而下、行距 1.2×字号）；1–90=逆时针 value 度；91–180=顺时针 (value-90) 度（内部 CCW 角 = value≤90 ? value : -(value-90)）。单行绘制、wrapText 忽略，单元格中心为锚点、超宽裁剪。伪斜体 shear 在文本空间先施加再旋转（p·S·R）。
+- **数字格式**：`ExcelFormatHelper.formatValue(value, formatStr)` 为规范入口（报表展开 ExpandedSheetEvaluator 与 PDF 直接导出路径共用）：getFormat 为 null（General/@/解析失败）→null 回退原样；DateFormat 分支 Date 直用、Number 经 getJavaDate 转 Excel 串行日期（修复 DateFormat 把 Number 按 epoch 毫秒解释的缺陷）、LocalDate/LocalDateTime/LocalTime 转 Date（**系统默认时区**）；DecimalFormat/特判 Format（SSN/Zip/Phone）仅接受 Number。不可转换组合显式 null 回退（类型判断，不吞异常）。`isFormattableValue`（Number/Date/Temporal）为两路共用的适用判定。
+
 ### D3 默认页码
 
 - `nop.report.pdf.default-page-footer`（默认 true）：文档页数 >1 且页面未显式配置页脚时，页底居中绘制"第 x / y 页"（全局页码）。

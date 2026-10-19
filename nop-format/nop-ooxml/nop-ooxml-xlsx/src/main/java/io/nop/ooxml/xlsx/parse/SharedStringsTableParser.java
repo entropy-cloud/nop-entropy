@@ -23,6 +23,9 @@ import io.nop.commons.util.objects.ValueWithLocation;
 import io.nop.core.lang.xml.handler.XNodeHandlerAdapter;
 import io.nop.core.lang.xml.parse.XNodeParser;
 import io.nop.core.resource.IResource;
+import io.nop.excel.model.ExcelFont;
+import io.nop.excel.model.ExcelRichText;
+import io.nop.excel.model.ExcelRichTextPart;
 import io.nop.ooxml.common.IOfficePackagePart;
 import io.nop.ooxml.xlsx.model.SharedStringsPart;
 
@@ -46,6 +49,7 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
         table.setCount(count);
         table.setUniqueCount(uniqueCount);
         table.setItems(strings);
+        table.setRichItems(richStrings);
         return table;
     }
 
@@ -57,6 +61,14 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
     private StringBuilder characters;
     private boolean tIsOpen;
     private boolean inRPh;
+
+    // WI11：富文本 run 捕获（与 characters 拍平缓冲并行，互不影响）
+    private List<ExcelRichText> richStrings;
+    private ExcelRichText currentRich;
+    private ExcelRichTextPart currentPart;
+    private boolean inRun;
+    private boolean inRPr;
+    private final StringBuilder runCharacters = new StringBuilder(64);
 
     private int count;
     private int uniqueCount;
@@ -81,14 +93,29 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
             if (strings == null)
                 strings = new ArrayList<>();
             characters.setLength(0);
+            currentRich = null;
+        } else if ("r".equals(localName)) {
+            // WI11：run 边界（拍平缓冲 characters 逻辑不变；run 缓冲同步 reset，
+            // 防 <r> 缺 <t> 的畸形输入复制上一 run 残留文本——closure audit Minor-3）
+            inRun = true;
+            runCharacters.setLength(0);
+            currentPart = new ExcelRichTextPart();
+        } else if ("rPr".equals(localName)) {
+            inRPr = true;
+            if (currentPart != null && currentPart.getFont() == null)
+                currentPart.setFont(new ExcelFont());
         } else if ("t".equals(localName)) {
             tIsOpen = true;
+            if (inRun)
+                runCharacters.setLength(0);
         } else if ("rPh".equals(localName)) {
             inRPh = true;
             // append space...this assumes that rPh always comes after regular <t>
             if (includePhoneticRuns && characters.length() > 0) {
                 characters.append(" ");
             }
+        } else if (inRPr && currentPart != null && currentPart.getFont() != null) {
+            RichTextFontMapper.applyTo(currentPart.getFont(), localName, attrs);
         }
     }
 
@@ -96,6 +123,34 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
     public void endNode(String localName) {
         if ("si".equals(localName)) {
             strings.add(characters.toString());
+            if (currentRich != null) {
+                if (richStrings == null) {
+                    // richItems 与 items 同长对齐：先补齐前面无 run 的 null 位
+                    richStrings = new ArrayList<>();
+                    for (int i = 0; i < strings.size() - 1; i++)
+                        richStrings.add(null);
+                }
+                richStrings.add(currentRich);
+            } else if (richStrings != null) {
+                richStrings.add(null);
+            }
+            currentRich = null;
+            currentPart = null;
+            inRun = false;
+            inRPr = false;
+        } else if ("r".equals(localName)) {
+            if (currentPart != null) {
+                currentPart.setText(runCharacters.toString());
+                if (currentRich == null) {
+                    currentRich = new ExcelRichText();
+                    currentRich.setParts(new ArrayList<>());
+                }
+                currentRich.getParts().add(currentPart);
+            }
+            currentPart = null;
+            inRun = false;
+        } else if ("rPr".equals(localName)) {
+            inRPr = false;
         } else if ("t".equals(localName)) {
             tIsOpen = false;
         } else if ("rPh".equals(localName)) {
@@ -110,6 +165,8 @@ public class SharedStringsTableParser extends XNodeHandlerAdapter {
                 characters.append(text);
             } else if (!inRPh) {
                 characters.append(text);
+                if (inRun)
+                    runCharacters.append(text);
             }
         }
     }

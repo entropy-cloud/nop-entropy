@@ -131,7 +131,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     /**
      *  
      * xml name: rotate
-     * 旋转角度（0-180）或者特殊值（255）。 90表示顺时针旋转90度（即文本从上到下），180表示颠倒，而255表示垂直文本（每个字母正常方向，但文本行垂直排列）。
+     * 文本旋转角度（ECMA-376 textRotation 语义）：1-90 表示逆时针旋转 value 度（90=自下而上）；91-180 表示顺时针旋转 (value-90) 度（180=自上而下）；255 表示垂直文本（每个字母正常方向，文本行垂直排列）。渲染裁定见 ai-dev/design/nop-report/pdf-pagination.md D12。
      */
     private java.lang.Integer _rotate ;
     
@@ -470,7 +470,7 @@ public abstract class _ExcelStyle extends io.nop.core.resource.component.Abstrac
     /**
      * 
      * xml name: rotate
-     *  旋转角度（0-180）或者特殊值（255）。 90表示顺时针旋转90度（即文本从上到下），180表示颠倒，而255表示垂直文本（每个字母正常方向，但文本行垂直排列）。
+     *  文本旋转角度（ECMA-376 textRotation 语义）：1-90 表示逆时针旋转 value 度（90=自下而上）；91-180 表示顺时针旋转 (value-90) 度（180=自上而下）；255 表示垂直文本（每个字母正常方向，文本行垂直排列）。渲染裁定见 ai-dev/design/nop-report/pdf-pagination.md D12。
      */
     
     public java.lang.Integer getRotate(){
