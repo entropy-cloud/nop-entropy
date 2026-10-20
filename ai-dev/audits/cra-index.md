@@ -33,6 +33,7 @@
 | `2026-10/2026-10-20-0829-deep-audit-nop-ai-toolkit-tools-shell-concurrency` | 3.2 | nop-ai-toolkit-tools-shell | C1 C4 C6 C8 + C10（C2/C3/C5/C7/C9 线索 overlay） | 0 | 5 | 19+23（含 C10 缺保护登记） | 1 | done（closure audit PASS，plan 2474） |
 | `2026-10/2026-10-20-1302-deep-audit-nop-ai-gateway-concurrency` | 3.3 | nop-ai-gateway | C1 C2 C3 C4 C6 C7 C8 + C10（C5/C9 线索 overlay） | 0 | 4 | 14+18（含 C10 缺保护登记） | 16 | done（closure audit PASS，plan 2475） |
 | `2026-10/2026-10-20-1908-deep-audit-nop-ai-rest-concurrency` | 3.4 | nop-ai-rest | C1 C6 + rag C3 + C10（C2/C4/C5/C7/C8/C9 线索 overlay） | 0 | 4 | 6+8（含 C10 缺保护登记） | 5 | done（closure audit PASS，plan 2476） |
+| `2026-10/2026-10-20-2210-deep-audit-nop-message-concurrency` | 4.1 | nop-message | C1 C3 C5 C6 C8 + C10（C2/C4/C7/C9 线索 overlay） | 0 | 3 | 15+12（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2477） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -45,6 +46,8 @@
 > 3.3 计数口径：合并裁定后 34 张工单（48 初审+深挖 → 48 复核保留全含 23 降档（**渠道栈休眠条件化潮**：startAll/stopAll/dispatchInbound 全仓非测试零调用、beans.xml 无 init/destroy——C4 全部 P1 条件化挂起、C6-004 链主 P1→P2 等，13 张条件化工单携激活回升条款回升 P1×6/P2×7）→ 7 缺陷族 MA-01~07 覆盖 21 + 27 独立 + watch 0；P0×0 显式空执行/**P1×4**（全部为 FailoverStreamFlow 流式 live 面：C1-001 窗口清理竞态/C2-001 并发计数泄漏族/C3-001 终态冲刷截断/C8-001 越窗无界缓冲）/P2×14/P3×16）；C10 缺保护 18 条单列（矩阵会红 0/假保护 2/无测试 46——demand==0 分支全树零执行，FailoverTestSupport 恒 request(MAX)）；CL 23 条全落位（并入工单 10/独立线索 10/驳回 1/重复关闭 1[CL-023↔WI 2.3 C3-003]/纯移交 1[CL-009→2.1 CL-021]）；**结构性发现：FailoverStreamFlow 是 BufferedStreamingPublisher 双实现分叉中未被测试钉住的那一半（pendingComplete 正确先例在同仓）、渠道栈结构性休眠**；跨单元零同站点重复，orTimeout 站点→WI 2.3 CL-022 Delayer 移交轮。
 
 > 3.4 计数口径：合并裁定后 15 张工单 + watch 1（19 初审+深挖 → 19 复核保留全含 1 升格（C3-005 synthesize 静默折叠错误响应 P2→P1——错误以成功交付族三步可达性闭合）+ 吸收 2（PgVectorStore.schemaReady 三登记 C1-002/C3-004→C6-001 主登记）→ 2 缺陷族 MA-01~02 覆盖 5 + 13 独立 + watch 1（C3-002）；P0×0 显式空执行/**P1×4**/P2×6/P3×5；4 张条件化 P2 裁决留 7.1）；C10 缺保护 8 条单列（矩阵会红 0/假保护 1/无测试 16；反向钉死 intern assertSame——修复 C1-008 必红）；CL 16 条全落位（并入工单 4/重复合并 3/独立移交 9/驳回 0）；**结构性发现：nop-ai 四单元会红=0 系统性形态（测试基建立即排除缺陷触发条件——fresh-instance×单集合×恒成功 stub 三联）、code-analyzer 零外部消费者（parallelStream 面内生于方法体不适用单线程降档）**； Protected Area：nop-ai-api 入圈（plan-first）但 0 张工单触碰；跨单元零同站点重复，错误以成功交付族/取消契约族家族关联单列。**R1 教训：rag 异步前提失真（零 CompletableFuture、async 委托零调用方）——起草预注必须 grep 实测，不得按 owner doc 语义推断**。
+
+> 4.1 计数口径：合并裁定后 28 张工单（44 初审+深挖 → 44 复核保留全含 2 降档（C1-001 与 WI 1.2 C3-006 同案双轨 P1→P2——FAILURE_LISTENERS 使用面/本体面互补；C8-001 P1→P2 并入 C3-001）→ 10 缺陷族 MA-01~10 吸收 26 + 18 独立 + watch 0 显式空；P0×0 显式空执行/**P1×3**（MA-02 Debezium 屏障两极性同 diff 配对/MA-05 幽灵订阅/C8-002 Local 失败断链——后两类生产主路径结构性免疫标注、嵌入方受损面判级分歧登记 7.1）/P2×15/P3×10）；C10 缺保护 12 条单列（矩阵会红 0/假保护 23/无测试 21；反向钉死 5 处修复 diff 须先改测试；「会红」口径文件内重定义为回退方向已登记注记）；CL 27 条全落位（并入工单 18/独立线索 4/移交 5/驳回 0）；**结构性发现：保护力与缺陷分布倒挂（DebeziumMessageSource 零测试压着 3 条 P1）、REGISTRY 三面分层 + WI 2.5 消费面双轨互斥无重复、判级三案嵌入方口径留 7.1**；跨单元关联 8 处零同站点重复（含 WI 2.3 CL-022 落点闭环、WI 1.2 debezium 同族双轨）。
 
 > 2.3 计数口径：合并裁定后 59 条（64 初审+深挖 → 63 复核保留全含降级 9（P1×6 + P2→P3×3）+ 1 撤案（C2-006 转正面样例）→ 并入 4 条 + 跨单元并入 1（C9-002→2.1 C9-010）；P1 存量 12（初审 10 + 深挖 2）−6 降级（C1-001/C2-004/C3-001/005/013/C4-003 全有实测或部署面证据）+1 升格（C9-012）→ 7；P1×7/P2×39/P3×12 + 量化记录 1；本单元承担修复 58）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 编号段 25 实占 24（CL-021 空号勘误）：升格 3（CL-003→C8-005、CL-010→C9-005、CL-015→C9-012）、并入 5、驳回 1（CL-011）、纯移交（CL-016/017/022/023/025）；跨单元映射：C9-012 移交功能正确性维度（接收轨落名）、C9-002→2.1 C9-010 同链第三面、C1-010 Dao flush 修复归 nop-auth-service 单元、CL-018→nop-kernel（ContextTaskQueue 承重原语）、CL-025 平台原语前置（C3-010/C4-003 修复先决）。
 
@@ -64,7 +67,7 @@
 |-----------|------|------|---------|---------|
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
 | nop-persistence-peri-C6-002（MA-03 主登记，成员 C3-003） | 2.5 | 搬迁成功路径（VERIFY/SWITCH/DONE）从不调用 stopAll（全模块唯一调用点在 abort，与 IncrementalJobManager javadoc 矛盾）——DONE 后链线程/binlog 连接/engine/offset store/checkpoint 执行器永久滞留；写门仅拦本 JVM ORM DML，源库域外写入经存活链 keyed upsert 持续回写已晋级目标表 | plan 2472 Phase 7 就地修复：OrmMigrationOrchestrator 新增 stopIncrementalChains（字段直读不惰性建管理器）——confirmSwitch 收敛点停链 + completeSwitch 开门前兜底幂等停链；新增 setIncrementalManager 注入 seam；回归测试 TestMigrationSwitchStopsChains 2 例（收敛停链断言回退必红 + 非 incremental 配置不动管理器）；模块套件 52 测试全绿；scan-hollow --severity high 退出码 0；owner doc data-migration.md SWITCH 节已同步 | 已修复（本轮提交） |
-| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/3.4 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/3.4/4.1 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -202,6 +205,9 @@
 | nop-ai-rest-C1-001 | 3.4 | nop-ai-rest | JavaSourceFileFinder.getAllJavaSourceFiles parallelStream 向普通 ArrayList 并发 add——多模块仓静默丢文件或 AIOOBE（并行面内生于方法体；零外部消费者条件化保留 P1） | 待 7.1 | open |
 | nop-ai-rest-C1-003 | 3.4 | nop-ai-rest | InMemoryVectorStore removeIf+add 复合 upsert 非原子——并发同 docId 摄取重复条目（与 javadoc「线程安全」相悖；PgVectorStore ON CONFLICT 正确范式反证；触发需显式同 id 并发 upsert） | 待 7.1 | open |
 | nop-ai-rest-C3-005 | 3.4 | nop-ai-rest | RagSynthesizeService 不检查 ChatResponse.isSuccess——LLM 错误响应静默折叠为空串 200 返回（错误以成功交付族，与 WI 3.1 C7-002/WI 3.3 C3-001 家族关联；升格：可达性三步闭合） | 待 7.1 | open |
+| nop-message-C3-002+C8-004（MA-02 同 diff 配对） | 4.1 | nop-message | Debezium 事件回调无异常屏障：畸形事件逃逸进 engine.run() 使 CDC 流终态死亡（isStarted 永久 true 静默断流）+ dispatchEvent 吞订阅者异常推进 offset 事件永久丢失——屏障存活/投递两极性，生产主路径免疫、直接嵌入方受损面（判级分歧留 7.1） | 待 7.1 | open |
+| nop-message-C6-002（MA-05 主） | 4.1 | nop-message | DebeziumMessageSource.subscribe 先 put 后启动引擎：启动失败幽灵订阅残留 + 调用方拿不到 ICancellable 永不可注销——后续成功启动后事件持续投递给「被告知失败」的消费者（长生命周期嵌入方双投递） | 待 7.1 | open |
+| nop-message-C8-002 | 4.1 | nop-message | LocalMessageService 消费失败静默丢弃且从不派发 onConsumeFailure——三层失败架构在 Local 整体断链（Local 为生产路径 nop_sys_event 通道，无已声明边界可援引） | 待 7.1 | open |
 
 ## 维度集外线索关联（CL 台账，不计入各单元发现数）
 
@@ -277,6 +283,10 @@
 ### WI 3.4 nop-ai-rest（CL-001~016：编号 16、并入工单 4、重复合并 3、独立线索移交 9、驳回 0；全表见 merge-adjudication.md §八）
 
 **并入工单（4）**：CL-003→C1-008、CL-008→C1-003、CL-010→C1-001、CL-014→C1-007。**重复合并（3）**：CL-002→CL-013（PgVectorStore 无事务批量写）、CL-004→CL-012（InMemoryVectorStore 只增不删——CL-012 主）、CL-007→CL-006（ingest F2 族）。**独立线索移交（9）**：C2×1（InMemoryVectorStore 复合操作理论风险）、C5×1（遍历面整文件读无上限）、C7×2（mvn 零超时挂死/装配元数据死配置）、C9×3（cosine 维度不匹配静默 0 分/ingest UUID 半个成功/重复摄取不替换）、owner 批次×1、豁免枚举×1。
+
+### WI 4.1 nop-message（CL-001~027：编号 27、并入工单 18、独立线索台账 4、移交 5、驳回 0；**逐条归属以 merge-adjudication.md §八 权威表为准**——closure audit 发现本小节示例级描述与 §八 条目级矛盾后按最简方案删示例仅留计数与链接）
+
+**移交（5）**：CL-003/006/010/018↔WI 1.2 MA-06 globalWorker 同面、CL-024 IContext 专题→7.1（与 §八 逐条吻合）。其余 22 条（并入工单 18 + 独立线索 4）见 §八。
 
 ### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入 2、零立案 1、关联保留 8、纯移交 7；全表见 merge-adjudication.md §CL 台账）
 
