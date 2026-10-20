@@ -89,7 +89,7 @@
 |---|-----------|--------|-----------|------|-------|
 | 3.1 | nop-ai-core + nop-ai-agent（LLM 异步调用链、Provider failover、agent 执行引擎） | done（closure audit PASS，plan 2473） | `docs-for-ai/03-modules/nop-ai.md` | 0.3 | 同上（C1 C3 C4 C5 C7 + C10） |
 | 3.2 | nop-ai-toolkit + nop-ai-tools + nop-ai-shell（工具执行、进程/沙箱生命周期、mavenvfs） | done（closure audit PASS，plan 2474） | `docs-for-ai/03-modules/nop-ai.md` | 0.3 | 同上（C1 C4 C6 C8 + C10） |
-| 3.3 | nop-ai-gateway（channel 长连接、会话存储、failover 路由、扫码登录） | todo | `docs-for-ai/03-modules/nop-ai-gateway.md` | 0.3 | 同上（C1–C4 C6 C7 C8 + C10） |
+| 3.3 | nop-ai-gateway（channel 长连接、会话存储、failover 路由、扫码登录） | done（closure audit PASS，plan 2475） | `docs-for-ai/03-modules/nop-ai-gateway.md` | 0.3 | 同上（C1–C4 C6 C7 C8 + C10） |
 | 3.4 | nop-ai 其余（api/coder/dsl-orm/rag/codegen/dao/meta/service/web/app，裁剪 C1+C6；rag 补 C3 异步检索链） | todo | `docs-for-ai/03-modules/nop-ai.md` | 0.3 | 同上（裁剪） |
 
 ### Phase 4 — 审计 Wave 4：消息、集群与宿主集成
