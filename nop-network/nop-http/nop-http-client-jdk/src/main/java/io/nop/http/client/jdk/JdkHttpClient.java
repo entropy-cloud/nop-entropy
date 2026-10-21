@@ -462,6 +462,9 @@ public class JdkHttpClient implements IHttpClient {
             throw new NopException(HttpApiErrors.ERR_HTTP_DOWNLOAD_NO_CHECKSUM);
 
         sink.verifyAndRename(expected);
+        // CRA WI 4.3 C6-001（P0）：成功路径必须关闭 sink 持有的文件句柄——否则 resume=true（缺省）下
+        // 每次成功下载泄漏一个 fd；Windows 上 Files.move 因句柄占用确定性失败（审计复核四子项核验）
+        sink.close();
         return ret;
     }
 

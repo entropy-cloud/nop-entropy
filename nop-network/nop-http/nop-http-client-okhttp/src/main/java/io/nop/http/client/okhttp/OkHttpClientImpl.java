@@ -219,6 +219,8 @@ public class OkHttpClientImpl implements IHttpClient {
                         throw new NopException(HttpApiErrors.ERR_HTTP_DOWNLOAD_NO_CHECKSUM);
 
                     sink.verifyAndRename(expected);
+                    // CRA WI 4.3 C6-001（P0）：成功路径必须关闭 sink 持有的文件句柄（与 JdkHttpClient 同批修复）
+                    sink.close();
                     promise.complete(ret);
                 } catch (Exception e) {
                     sink.close();
