@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!--
+    BIGINT + stdDataType=string（orm-model-design.md 方案 B）过滤参数绑定专用测试模型。
+
+    独立文件、不进入缺省合并模型装载（缺省装载只取各模块 orm/app.orm.xml）：
+    本文件声明的实体只在显式装载本文件的测试（AbstractBigIntStringFilterCase 及其子类）
+    的会话工厂中出现。id/refId 按方案 B 声明：DB 层 BIGINT、Java 层 String。
+-->
+<orm x:schema="/nop/schema/orm/orm.xdef"
+     xmlns:x="/nop/schema/xdsl.xdef">
+
+    <entities>
+        <entity name="test.entity.TestBigIntStringEntity" tableName="TEST_BIGINT_STRING"
+                className="io.nop.orm.support.DynamicOrmEntity" useTenant="false"
+                useLogicalDelete="false">
+            <columns>
+                <column name="id" code="ID" primary="true" mandatory="true" propId="1"
+                        stdSqlType="BIGINT" stdDataType="string" tagSet="seq-default"/>
+                <column name="refId" code="REF_ID" propId="2"
+                        stdSqlType="BIGINT" stdDataType="string"/>
+                <column name="name" code="NAME" propId="3" stdSqlType="VARCHAR" precision="100"/>
+            </columns>
+        </entity>
+    </entities>
+</orm>

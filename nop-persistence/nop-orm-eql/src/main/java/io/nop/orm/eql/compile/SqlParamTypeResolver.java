@@ -7,6 +7,7 @@
  */
 package io.nop.orm.eql.compile;
 
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dataset.binder.DataParameterBinders;
@@ -14,8 +15,10 @@ import io.nop.dataset.binder.IDataParameterBinder;
 import io.nop.orm.eql.ast.EqlASTNode;
 import io.nop.orm.eql.ast.EqlASTVisitor;
 import io.nop.orm.eql.ast.SqlAssignment;
+import io.nop.orm.eql.ast.SqlBetweenExpr;
 import io.nop.orm.eql.ast.SqlBinaryExpr;
 import io.nop.orm.eql.ast.SqlExpr;
+import io.nop.orm.eql.ast.SqlInValuesExpr;
 import io.nop.orm.eql.ast.SqlParameterMarker;
 import io.nop.orm.eql.ast.SqlSingleTableSource;
 import io.nop.orm.eql.ast.SqlTableSource;
@@ -75,12 +78,32 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
 
         EqlASTNode parent = node.getASTParent();
         ISqlExprMeta resolvedMeta = null;
+        // IN/BETWEEN 的对照列元数据只用于确定绑定类型，不写入参数节点的 resolvedExprMeta
+        // （保持 ANY 语义，避免改变 EntityPropParamBuilder / SqlExpr.getStdSqlType 的下游行为）
+        ISqlExprMeta bindMeta = null;
+        // 仅比较谓词与 UPDATE SET 允许把 String 参数按对照列的 SQL 类型转换；LIKE 必须保持 String
+        boolean coerceToSqlType = false;
 
         switch (parent.getASTKind()) {
             case SqlAssignment: {
                 SqlAssignment assign = (SqlAssignment) parent;
                 resolvedMeta = assign.getColumnName().getResolvedExprMeta();
                 node.setMasked(assign.getColumnName().isMasked());
+                coerceToSqlType = true;
+                break;
+            }
+            case SqlInValuesExpr: {
+                SqlInValuesExpr in = (SqlInValuesExpr) parent;
+                bindMeta = in.getExpr().getResolvedExprMeta();
+                resolvedMeta = new SingleColumnExprMeta("?", DataParameterBinders.ANY,
+                        ExprOrmDataType.fromSqlType(StdSqlType.ANY));
+                break;
+            }
+            case SqlBetweenExpr: {
+                SqlBetweenExpr between = (SqlBetweenExpr) parent;
+                bindMeta = between.getTest().getResolvedExprMeta();
+                resolvedMeta = new SingleColumnExprMeta("?", DataParameterBinders.ANY,
+                        ExprOrmDataType.fromSqlType(StdSqlType.ANY));
                 break;
             }
             case SqlBinaryExpr: {
@@ -108,6 +131,7 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
                         binder = DataParameterBinders.ANY;
                     resolvedMeta = new SingleColumnExprMeta("?", binder, ExprOrmDataType.fromSqlType(sqlType));
                 }
+                coerceToSqlType = binaryExpr.getOperator().isCompareOp();
                 break;
             }
             default: {
@@ -121,11 +145,47 @@ public class SqlParamTypeResolver extends EqlASTVisitor {
         IOrmDataType dataType = resolvedMeta.getOrmDataType();
         if (dataType.getKind() == OrmDataTypeKind.COMPONENT || dataType.getKind() == OrmDataTypeKind.TO_ONE_RELATION) {
             params.add(new EntityPropParamBuilder(node.getParamIndex(), resolvedMeta));
-        } else if (dataType.getKind() == OrmDataTypeKind.COLUMN || dataType.getKind() == OrmDataTypeKind.EXPR) {
-            params.add(new SimpleParamBuilder(dataType.getStdDataType(), node.getParamIndex()));
         } else {
-            // 这里暂时简化处理，不进行类型判断
-            params.add(new SimpleParamBuilder(dataType.getStdDataType(), node.getParamIndex()));
+            StdDataType bindType;
+            if (bindMeta != null && (bindMeta.getOrmDataType().getKind() == OrmDataTypeKind.COLUMN
+                    || bindMeta.getOrmDataType().getKind() == OrmDataTypeKind.EXPR)) {
+                bindType = resolveInBetweenBindType(bindMeta.getOrmDataType());
+            } else {
+                bindType = resolveBindType(dataType, coerceToSqlType);
+            }
+            params.add(new SimpleParamBuilder(bindType, node.getParamIndex()));
         }
+    }
+
+    /**
+     * 比较谓词/UPDATE SET：当列声明的 Java 类型为 STRING 而 SQL 类型为数值时（orm-model-design.md
+     * 方案 B：BIGINT 列 + stdDataType=string），按列的 SQL 类型转换绑定参数。与列 binder 的
+     * AutoConvertDataParameterBinder 语义对齐：PostgreSQL 等不提供 bigint = varchar 隐式算子的
+     * 数据库上，String 绑定会报 42883（operator does not exist）。
+     *
+     * <p>LIKE 等字符串谓词传入 coerceToSqlType=false，保持 String，避免 %foo% 被转成数字。</p>
+     */
+    static StdDataType resolveBindType(IOrmDataType dataType, boolean coerceToSqlType) {
+        StdDataType stdType = dataType.getStdDataType();
+        if (!coerceToSqlType)
+            return stdType;
+        StdSqlType sqlType = dataType.getStdSqlType();
+        if (stdType == StdDataType.STRING && sqlType != null && sqlType.getStdDataType().isNumericType()) {
+            return sqlType.getStdDataType();
+        }
+        return stdType;
+    }
+
+    /**
+     * IN/BETWEEN：仅当对照列为「数值 SQL 类型 + STRING Java 类型」时按列类型转换；
+     * 其余情况回退 ANY（保持原透传语义，不因本修复改变非目标场景的绑定行为）。
+     */
+    static StdDataType resolveInBetweenBindType(IOrmDataType dataType) {
+        StdDataType stdType = dataType.getStdDataType();
+        StdSqlType sqlType = dataType.getStdSqlType();
+        if (stdType == StdDataType.STRING && sqlType != null && sqlType.getStdDataType().isNumericType()) {
+            return sqlType.getStdDataType();
+        }
+        return StdDataType.ANY;
     }
 }
