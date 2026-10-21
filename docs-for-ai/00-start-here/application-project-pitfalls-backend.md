@@ -10,7 +10,7 @@ Nop 的模型驱动架构下，**缺标注→平台猜默认值、缺注册→�
 
 1. **`_` 前缀 / `_gen/` / `__XGEN_FORCE_OVERRIDE__` 产物永不手改**——改模型源或保留层 Delta。手改会被下次生成静默还原，两案各花 3 轮审计才定位。
 2. **新实体建模即补 tagSet 五件套**：`disp`（FK 显示列）/ `clock`（业务日期）/ `var`（编码列）/ 主键 seq 策略显式声明 / `parent`（树结构）。缺省代价：826 处 @BizLoader 拆除、230+179 列补标、全域重生成。
-3. **主键/命名选型前先通读平台 `orm-model-design.md` 强制规则**（如主键必须 `stdDataType="string"`，BIGINT 在 JS 侧静默截断精度）。选错的二次返工：1605 列 + E2E 880 处。
+3. **主键/命名选型前先通读平台 `orm-model-design.md` 强制规则**（如主键必须 `stdDataType="string"`，BIGINT 在 JS 侧静默截断精度；方案 B 的过滤参数绑定需在 PostgreSQL 上验证——平台曾有 42883 缺陷，已由 `SqlParamTypeResolver` 修复）。选错的二次返工：1605 列 + E2E 880 处。
 4. **权限按 enforcement=ON 假设工作**：xbiz `<mutation>` 首子元素 `<auth permissions>`、FNPT 权限点、菜单 `roles`（**只认逗号分隔**）、角色种子——四层当场补齐。缺声明零信号，enforcement 翻转窗口集中爆雷（117 处补齐）。
 5. **跨层字段/契约删除前，生产侧和消费侧必须都 grep**——静默降级零信号就是最大信号（picker 五步误判链，6 文件还原）。
 6. **VFS delta 覆盖平台 beans 必带 `x:extends="super"`**，单 bean 覆盖点用 `x:override="replace"`——缺 super 是整文件替换，平台 bean 静默丢失（五域潜伏）。

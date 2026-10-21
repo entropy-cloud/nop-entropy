@@ -230,9 +230,11 @@ ORM 初始化时 `OrmModelInitializer.syncDomains()` 按以下规则把 domain �
 > 显式 `stdDataType="string"` 后 Java 属性、GraphQL 类型、前端值全程为 String，且不影响任何平台机制：
 > - 主键生成：`OrmEntityIdGenerator.genSeq` 按 **DB 类型**（`stdSqlType` 的 stdDataType）决定生成方式，BIGINT 仍走 `generateLong` 序列号引擎；
 > - 类型转换：生成的 Entity setter 自动把 Long 序列值 `ConvertHelper.toString` 转为 String；
-> - 关联 join、读写、查询均以 DB 层 bigint 语义执行，与 Java 类型无关。
+> - 关联 join、读写以 DB 层 bigint 语义执行；过滤/查询参数由 EQL 编译期 `SqlParamTypeResolver` 按列的 SQL 类型绑定（数值 SQL 类型 + String Java 类型 → 按数值绑定），与 Java 声明类型无关。
 >
-> **落地实证注记（2026-08-23）**：方案 B 已在 nop-app-erp 参考应用 **19 个业务域全量落地**——全部主键/外键共 1662 列按本方案声明（Java 层 String / DB 层 BIGINT 保持，`tagSet="seq-default"` 序列生成不变），前端/GraphQL 全程 String 无精度截断。迁移工程证据链见 nop-app-erp 仓 `nop-app-erp/docs/backlog/id-string-migration-roadmap.md`（id-string-migration mission，M1-M4 全 done）。
+> **注意（PostgreSQL）**：更早版本的过滤参数只按 Java 类型绑定，PostgreSQL 上 BIGINT 列的 QueryBean/EQL 过滤会报 42883（`bigint = character varying` 无算子）；平台已在 `SqlParamTypeResolver` 修复（比较谓词 / IN / BETWEEN / UPDATE SET），回归见 `nop-orm` 的 `TestBigIntStringFilter*`。数值列上的 LIKE 等字符串谓词仍按 String 绑定，不支持。
+>
+> **落地实证注记（2026-08-23）**：方案 B 已在 nop-app-erp 参考应用 **19 个业务域全量落地**——全部主键/外键共 1662 列按本方案声明（Java 层 String / DB 层 BIGINT 保持，`tagSet="seq-default"` 序列生成不变），前端/GraphQL 全程 String 无精度截断。迁移工程证据链见 nop-app-erp 仓 `nop-app-erp/docs/backlog/id-string-migration-roadmap.md`（id-string-migration mission，M1-M4 全 done）。过滤参数绑定缺陷的 PostgreSQL 修复与三库回归见上文「注意」及 `nop-orm` 的 `TestBigIntStringFilter*`。
 
 ### 选择建议
 
