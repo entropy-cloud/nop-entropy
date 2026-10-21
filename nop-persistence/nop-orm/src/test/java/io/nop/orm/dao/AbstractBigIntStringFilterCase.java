@@ -110,6 +110,22 @@ public class AbstractBigIntStringFilterCase extends AbstractOrmTestCase {
         saveRow("4", null, "delta");
     }
 
+    /**
+     * 基类 /init.sql 是 H2 方言建表脚本，MySQL/PostgreSQL 子类上会因语法差异失败。
+     * 本用例只依赖 ORM 模型建出的 TEST_BIGINT_STRING，不需要那批共享表。
+     */
+    @Override
+    protected void executeSqlFile(String sqlFile) {
+    }
+
+    /** TC_DAEMON 复用同一容器时，跨用例 setUp 需先落表再重建（表名与 DdlSqlCreator 产物同为小写） */
+    @Override
+    protected void createTables() {
+        jdbcTemplate.executeUpdate(io.nop.core.lang.sql.SQL.begin()
+                .sql("drop table if exists test_bigint_string").end());
+        super.createTables();
+    }
+
     @Override
     protected void prepareDataInTenant(String tenantId) {
     }
