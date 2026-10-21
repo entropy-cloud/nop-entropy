@@ -1,5 +1,5 @@
 import { type Page } from '@playwright/test';
-import { CrudListPage } from '@nop-entropy/e2e-shared';
+import { CrudListPage, FormDialog } from '@nop-entropy/e2e-shared';
 import type { EngineAdapter } from '@nop-entropy/e2e-shared';
 
 // NopJobSchedule 按 executorKind（dict job/executor-kind：test/rpc/rpcPoll）解析 invoker
@@ -46,11 +46,33 @@ export class SchedulePO extends CrudListPage {
     await super.clickSave();
   }
 
-  /** 新建调度。 */
+  /**
+   * 新建调度。
+   *
+   * 字典选项偶发「加载选项失败」（dict effect abort 竞态，见
+   * ai-dev/bugs/2026-10/2026-10-18-readonly-guard-npe-and-flux-crud-guard-e2e-flakes.md C）
+   * 时字段上的 errorMessage 不会自愈——关窗重开让表单重挂载再拉一次。
+   */
   async createSchedule(data: ScheduleFormData): Promise<void> {
-    await this.clickAdd();
-    await this.fillAddForm(data);
-    await this.clickSave();
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await this.clickAdd();
+        await this.fillAddForm(data);
+        await this.clickSave();
+        return;
+      } catch (e) {
+        lastError = e;
+        const msg = e instanceof Error ? e.message : String(e);
+        // 仅对「选项没进表单」类失败重开重试；业务校验等其它错误直接抛出
+        if (!/组合框选择失败|加载选项失败/.test(msg)) throw e;
+        await new FormDialog(this.page, this.engine)
+          .cancel()
+          .catch(() => {});
+        await this.page.waitForTimeout(500);
+      }
+    }
+    throw lastError;
   }
 
   /** 跨页定位调度（刷新 → 每页条数调最大 → 排序 → 逐页翻）。 */

@@ -321,9 +321,22 @@ export class FluxAdapter implements EngineAdapter {
    *    （下拉按钮是 `input-group-button`，输入框带 `role="combobox"`）。候选按序探测。
    */
   private async clickSelectOption(page: Page, field: Locator, value: string): Promise<void> {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      if (!(await this.openCombobox(field))) continue;
-      if (!(await this.clickVisibleComboboxItem(page, value))) continue;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      if (!(await this.openCombobox(field))) {
+        await page.waitForTimeout(400);
+        continue;
+      }
+      // 弹层可先于字典异步到达而打开：先等本弹层出现可见选项再点。
+      // 在途加载未完成时轮询等待；字典请求失败则关层重开（新一轮 effect 重拉）。
+      if (!(await this.waitForOpenComboboxItems(page, 4_000))) {
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.waitForTimeout(400);
+        continue;
+      }
+      if (!(await this.clickVisibleComboboxItem(page, value))) {
+        await page.waitForTimeout(300);
+        continue;
+      }
 
       // 校验选中已登记（显示框出现值），未登记视为本次点击被吞掉，重开重试
       const registered = await field
@@ -339,6 +352,30 @@ export class FluxAdapter implements EngineAdapter {
     throw new Error(
       `flux 组合框选择失败: "${value}"（弹层未打开或选项未命中）\n${await this.describeCombobox(field)}`,
     );
+  }
+
+  /**
+   * 轮询等待**当前打开**的弹层内出现几何可见的选项。
+   *
+   * 字典 hook（Qv）在 effect 内异步拉取 options，弹层的 data-open 与选项挂载之间存在窗口；
+   * 拉取失败时 errorMessage 置位、选项恒空——由调用方关层重开恢复（重开不重跑 dict effect，
+   * 仅当 effect 仍在途时有效；彻底失败需上层关闭重开对话框让字段重挂载）。
+   */
+  private async waitForOpenComboboxItems(page: Page, timeout: number): Promise<boolean> {
+    const deadline = Date.now() + timeout;
+    while (Date.now() < deadline) {
+      const count = await page.evaluate(() => {
+        const open = document.querySelector('[data-slot="combobox-content"][data-open]');
+        if (!open) return 0;
+        return Array.from(open.querySelectorAll('[data-slot="combobox-item"]')).filter((it) => {
+          const r = it.getBoundingClientRect();
+          return r.width > 0 && r.height > 0;
+        }).length;
+      });
+      if (count > 0) return true;
+      await page.waitForTimeout(150);
+    }
+    return false;
   }
 
   /** 失败诊断：字段根 DOM + 全部选项的可见性/取值快照，快速定位契约漂移。 */
@@ -441,6 +478,10 @@ export class FluxAdapter implements EngineAdapter {
 
   submitButton(dialog: Locator): Locator {
     return dialog.locator('button').filter({ hasText: /确定|确认|保存|Submit|Save|提交/ }).first();
+  }
+
+  cancelButton(dialog: Locator): Locator {
+    return dialog.locator('button').filter({ hasText: /取消|关闭|Cancel|Close/ }).first();
   }
 
   async selectOption(

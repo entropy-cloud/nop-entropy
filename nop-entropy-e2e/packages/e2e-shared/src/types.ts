@@ -52,6 +52,8 @@ export interface EngineAdapter {
   /** 在 `picker` 弹窗字段（CRUD 内嵌弹层）中点选匹配行并确认。 */
   selectPickerRow(dialog: Locator, fieldName: string, rowText: string): Promise<void>;
   submitButton(dialog: Locator): Locator;
+  /** 对话框取消/关闭按钮（字典加载失败等场景需要关窗重开让字段重挂载）。 */
+  cancelButton(dialog: Locator): Locator;
   selectOption(dialog: Locator, fieldLabels: string[], optionText: string[]): Promise<void>;
   dateInputByLabel(page: Page, labelText: string): Locator;
   staticFieldValue(dialog: Locator, fieldName: string): Promise<string>;

@@ -85,4 +85,23 @@ export class FormDialog {
     await this.engine.submitButton(this.dialog).click();
     await this.waitForHidden();
   }
+
+  /**
+   * 取消并关闭当前对话框。
+   *
+   * 用途：字典选项加载失败（errorMessage 置位、effect 不再重跑）时，
+   * 只有让表单字段走完整卸载/重挂载才能触发新的 dict 拉取。
+   */
+  async cancel(): Promise<void> {
+    // 先收掉可能残留的组合框弹层，避免 Escape 误关弹层而非对话框
+    await this.page.keyboard.press('Escape').catch(() => {});
+    await this.page.waitForTimeout(200);
+    const btn = this.engine.cancelButton(this.dialog);
+    if (await btn.isVisible().catch(() => false)) {
+      await btn.click();
+    } else {
+      await this.page.keyboard.press('Escape');
+    }
+    await this.waitForHidden();
+  }
 }
