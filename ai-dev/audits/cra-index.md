@@ -36,6 +36,8 @@
 | `2026-10/2026-10-20-2210-deep-audit-nop-message-concurrency` | 4.1 | nop-message | C1 C3 C5 C6 C8 + C10（C2/C4/C7/C9 线索 overlay） | 0 | 3 | 15+12（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2477） |
 | `2026-10/2026-10-21-0240-deep-audit-nop-cluster-concurrency` | 4.2 | nop-cluster | C1 C2 C3 C4 C8 + C10（C5/C6/C7/C9 线索 overlay） | 0 | 4 | 13+14（含 C10 缺保护登记，复核并入执行后） | 5 | done（closure audit PASS，plan 2478） |
 | `2026-10/2026-10-21-0610-deep-audit-nop-network-integration-concurrency` | 4.3 | nop-network-integration | C1 C3 C6 + C10（C2/C4/C5/C7/C8/C9 线索 overlay） | 1 | 15 | 32+15（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2479） |
+| `2026-10/2026-10-21-1223-deep-audit-nop-host-concurrency` | 4.4 | nop-host | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 4 | 10+19（含 C10 缺保护登记） | 2 | done（closure audit PASS，plan 2480） |
+| `2026-10/2026-10-21-1444-deep-audit-nop-search-runner-autotest-concurrency` | 4.5 | nop-search-runner-autotest | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 1 | 6+9（含 C10 缺保护登记） | 7 | done（closure audit PASS，plan 2481） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -57,6 +59,8 @@
 
 > 4.4 计数口径：合并裁定后 16 张工单 + watch 1（19 初审+深挖 → 19 复核保留全含 1 降档（C1-002 ContextTaskQueue 无池）+ 1 升格（C1-006 P2→P1 双宿主空链固化复核补全变体 B）→ 5 缺陷族 MA-01~05 覆盖 7 + 11 独立 + watch 1（C1-005 搭车 C6-004）；P0×0 显式空执行/**P1×4**（MA-01 启动窗口门禁族 C1-006 主——双宿主认证旁路不可自愈/C6-007 future 族第 5 例/C6-001 上传流校验失败 fd 泄漏/C1-001 SpringWebProxy 凭据撕裂）/P2×10/P3×2）；C10 缺保护 19 条单列（矩阵会红 0/假保护 1/部分 2/无测试 16；反向钉死 4 处——1 钉死型+3 掩蔽型）；CL 8 条全落位（并入工单 3/独立线索 5/watch 1 拆分/驳回 0）；**结构性发现：原始并发面极薄（6 文件 26 行）但测试面与发现面倒挂第三次同型确认、唯一集成级保护同时是掩蔽者与暴露者、测试替身宽于真实契约**；Protected Area：C6-009 触碰 nop-http-api 申报 plan-first；跨单元关联 8 处零同站点重复（future 族第 5 例/错误交付族传输层成员/上下文传播族宿主面）。
 
+> 4.5 计数口径：合并裁定后 15 张工单 + watch 1（24 初审+深挖 → 24 复核保留全含 0 降档 0 驳回 → 5 缺陷族 MA-01~05 吸收 14 + 9 独立 + watch 1（C4-005）；P0×0 显式空执行/**P1×1**（C4-001 CliRunCommand scheduleWithFixedDelay Future 丢弃——周期任务异常静默停摆）/P2×6/P3×7）；C10 缺保护 9 条单列（矩阵会红 0/假保护 12/无测试 12——**全域会红=0 第四次同型确认**；反向钉死 0 硬钉 + 1 正向修复约束）；CL 12 条全落位（并入工单 2/独立线索 1/关闭确认 1/移交 8/驳回 0）；**结构性发现：全域会红=0 第四次同型确认（测试栈结构性单线程化）、测试性弃权明文化（注释明文回避 watch 主功能）、假保护双向形态**；dbtool 零主源码显式登记；Protected Area 零触碰；跨单元零同站点重复，周期停摆族/destroy-vs-rebuild 族/F4 无界账本族家族关联单列。
+
 > 2.3 计数口径：合并裁定后 59 条（64 初审+深挖 → 63 复核保留全含降级 9（P1×6 + P2→P3×3）+ 1 撤案（C2-006 转正面样例）→ 并入 4 条 + 跨单元并入 1（C9-002→2.1 C9-010）；P1 存量 12（初审 10 + 深挖 2）−6 降级（C1-001/C2-004/C3-001/005/013/C4-003 全有实测或部署面证据）+1 升格（C9-012）→ 7；P1×7/P2×39/P3×12 + 量化记录 1；本单元承担修复 58）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 编号段 25 实占 24（CL-021 空号勘误）：升格 3（CL-003→C8-005、CL-010→C9-005、CL-015→C9-012）、并入 5、驳回 1（CL-011）、纯移交（CL-016/017/022/023/025）；跨单元映射：C9-012 移交功能正确性维度（接收轨落名）、C9-002→2.1 C9-010 同链第三面、C1-010 Dao flush 修复归 nop-auth-service 单元、CL-018→nop-kernel（ContextTaskQueue 承重原语）、CL-025 平台原语前置（C3-010/C4-003 修复先决）。
 
 > 2.2 计数口径：合并裁定后 45 条（63 初审+深挖 → 59 复核保留 + 4 驳回 → 并入 14 条；P1×11/P2×21/P3×13）；P0=0（即时通道显式空执行）；C10 缺保护 18 条单列；CL 编号 21 条（升格 1→C1-021、落格 2、同位点并入设施 2、零立案 1、关联保留 8、纯移交 7；见「维度集外线索关联」节 2.2 小节）；跨单元映射表 11 行（C1-007 族案↔2.1 C1-001 刷新链上下游、C1-021 吸收进 2.1 C3-001 平台方案、CL-008/020 同位点主处置在 2.1、C6-010 三重登记设施归 2.1、Jdk21CommonsCoreInitializer 注册链为 2.1 C6-002 可达性终审输入）；C2-001 与历史 check 审计 P2-6 同源（本轮 P1 裁定留档）。
@@ -76,7 +80,7 @@
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
 | nop-network-integration-C6-001 | 4.3 | JDK/OkHttp 下载成功路径从不调用 FileDownloadSink.close()（仅 catch 分支关）——resume 默认 true 下每次成功下载泄漏文件句柄（Windows Files.move 确定性失败/Unix 静默 fd 泄漏）；Apache HC5 兜底闭合跨实现分歧 | plan 2479 Phase 7 就地修复：JdkHttpClient.processDownloadResponse + OkHttpClientImpl onResponse 成功路径 verifyAndRename 后补 sink.close()；回归测试 TestFileDownloadSinkClose（fd 计数 40 次下载增量断言，回退实测必红）；两模块套件 33 测试全绿；scan-hollow --severity high 退出码 0；证伪 3.9 前案「文件模式主路径确认关闭」注记随 cra-index 4.3 计数口径 | 已修复（本轮提交） |
 | nop-persistence-peri-C6-002（MA-03 主登记，成员 C3-003） | 2.5 | 搬迁成功路径（VERIFY/SWITCH/DONE）从不调用 stopAll（全模块唯一调用点在 abort，与 IncrementalJobManager javadoc 矛盾）——DONE 后链线程/binlog 连接/engine/offset store/checkpoint 执行器永久滞留；写门仅拦本 JVM ORM DML，源库域外写入经存活链 keyed upsert 持续回写已晋级目标表 | plan 2472 Phase 7 就地修复：OrmMigrationOrchestrator 新增 stopIncrementalChains（字段直读不惰性建管理器）——confirmSwitch 收敛点停链 + completeSwitch 开门前兜底幂等停链；新增 setIncrementalManager 注入 seam；回归测试 TestMigrationSwitchStopsChains 2 例（收敛停链断言回退必红 + 非 incremental 配置不动管理器）；模块套件 52 测试全绿；scan-hollow --severity high 退出码 0；owner doc data-migration.md SWITCH 节已同步 | 已修复（本轮提交） |
-| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/4.1/4.2/4.4 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/4.1/4.2/4.4/4.5 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -232,6 +236,7 @@
 | nop-host-C6-007（MA-02） | 4.4 | nop-host | ContextTaskQueue 吞同步异常 future 永不完成——Quarkus 认证请求永久悬挂（/px/ 畸形 JSON 用户可触发；future 族第 5 例，平台根因绝缘层移交 WI 2.3 CL-018+WI 2.1 C3-001） | 待 7.1 | open |
 | nop-host-C6-001 | 4.4 | nop-host | 上传流「先校验后消费」失败路径永不关闭——每被拒上传泄漏 1 个 fd，外部可稳定触发（C6-008 判级维持 P2 随族留 7.1） | 待 7.1 | open |
 | nop-host-C1-001 | 4.4 | nop-host | SpringWebProxy 凭据对（authorization/cookie）由 Reactor 线程写、请求线程读无 volatile——陈旧 token 重发 + 撕裂凭据对 | 待 7.1 | open |
+| nop-search-runner-autotest-C4-001 | 4.5 | nop-search-runner-autotest | CliRunCommand scheduleWithFixedDelay 返回 Future 丢弃——周期任务任一次脚本异常即静默停摆且进程挂在 stdin（F9 定向命中；watch 模式按实际触达面判级） | 待 7.1 | open |
 | nop-network-integration-C3-001 | 4.3 | nop-network-integration | OkHttp onResponse 异常吞没：body().string() 断连 IOException 被吞 future 永不完成——同步调用方永久阻塞（future 永不完成族第 4 例；同文件 doDownloadAsync 已有保护 F3 漏修） | 待 7.1 | open |
 | nop-network-integration-C3-005 | 4.3 | nop-network-integration | 无校验源跳过 verifyAndRename——默认配置下载报成功但目标文件永不产生（.part 滞留）（错误以成功交付族第 4 例；与 C6-001 P0 同批设计；Apache 无条件 move 跨实现分歧实证） | 待 7.1 | open |
 | nop-network-integration-C3-024 | 4.3 | nop-network-integration | SftpClient 全链路无超时（jsch 默认 0=无限，SftpConfig 无 timeout 配置面）——网络故障下业务线程与 SSH 会话无限挂起（FileServiceResource 请求路径可达证实） | 待 7.1 | open |
@@ -245,8 +250,12 @@
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
 
 **并入工单（3）**：CL-004→C1-001（宿主过滤器异步流阻塞族）、CL-005b→C6-004（redelivery/心跳面协同）、CL-007→C4-002（同站点治理）。**独立线索台账（5）**：CL-001/002/003/006/008（CL-008 isResponseSent 语义两宿主不对称）。**watch（1）**：CL-005a（redelivery 队列无界/failureAttempts cap=0）。
+### WI 4.5 nop-search-runner-autotest（CL-001~012：编号 12、并入工单 2、独立线索 1、关闭确认 1、移交 8、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
 
-### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入 2、零立案 1、关联保留 8、纯移交 7；全表见 merge-adjudication.md §CL 台账）
+**并入工单（2）**：CL-007→I-C1-008（async 命名同步语义，同一 SPI javadoc 义务单 diff）、CL-010→MA-01（随 C6-002 治理收敛）。**独立线索台账（1）**：CL-002（BuildIndexTool 全文件读入，C5 面）。**关闭确认（1）**：CL-004（dbtool 零主源码核对）。**移交（8）**：CL-001/003/005/006/008/009/011/012。
+
+### WI 2.2 nop-core-framework（CL-001~021：
+
 
 **升格立案**：CL-001→C1-021（P1）。**落格**：CL-002→C2-005（同站点 computeIfAbsent bin 锁内 HTTP 下载/类加载/start）、CL-018→C4-010（BeanScopeImpl 哈希序销毁同站点）。**同位点并入设施**：CL-008→WI 2.1 C6-011、CL-020→WI 2.1 C6-003。**零立案**：CL-009（PluginManager syncGet 调用线程内联终判）。**纯移交（7）**：CL-013/CL-019→nop-kernel（CL-013 为 2.1 未登记新面 registerCleanup）、CL-021→安全线（OsUserHelper 明文口令入进程参数）、CL-016→api-core 功能缺陷轨（PlaceholderConfigReference 未替换占位符返回）、CL-010→插件功能线（子容器不经 PluginClassLoader 加载——热卸载隔离失效）、CL-011→C5 面（DefaultShellOutputCollector 无界收集）、CL-012→C7 面（ChangeSubscriptions 空条目不摘）。**关联保留（8）**：CL-003/005/007/014/015/017 及其余——一句话归属见审计目录 merge-adjudication.md。
 
