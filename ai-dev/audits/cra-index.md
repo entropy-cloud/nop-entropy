@@ -55,6 +55,8 @@
 
 > 4.3 计数口径：合并裁定后 58 张工单（81 初审+深挖 → 74 复核保留全含 1 降档（C6-003 对齐 09 前案 P1→P2）+ 1 升格（C6-024 P2→P1）+ 同案并入 7 全缺陷本体成立零证伪驳回 → 17 缺陷族 MA-01~17 覆盖 32 保留成员 + 7 并入登记 + 41 独立 + watch 1（C1-020）；§六权威表脚本程序化校验 81=74+7 零缺漏；P0×1/**P1×15**/P2×32/P3×10）；C10 缺保护 15 条单列（矩阵会红 0/假保护 20/无测试 54；反向钉死 5 处——2 断言级 MQTT assertThrows 同案 + Windows 门控排除 P0 唯一确定性症状；先行失败测试 16 处）；CL 34 条全落位（并入工单 7/重复合并 10/独立线索 12/移交 5/驳回 0）；**结构性发现：测试栈结构性单线程化（仅 1 真线程测试——缺陷非漏测而是测试基建不可表达）、断言只到功能结果从未到资源与线程（P0 全绿下存活必然）、行为等价矩阵只钉死正确的一半（F3 在测试层原样复发）、证伪 3.9 前案「文件模式主路径确认关闭」误结论**；Protected Area：nop-http-api/nop-rpc-api/nop-integration-api 三叶 plan-first——0 张工单触碰 api 叶（P0 修复仅限 impl 叶）；跨单元关联 10 处零同站点重复（两大族第 4 例/消费面回写两侧同批/3.9 并轨）。
 
+> 4.4 计数口径：合并裁定后 16 张工单 + watch 1（19 初审+深挖 → 19 复核保留全含 1 降档（C1-002 ContextTaskQueue 无池）+ 1 升格（C1-006 P2→P1 双宿主空链固化复核补全变体 B）→ 5 缺陷族 MA-01~05 覆盖 7 + 11 独立 + watch 1（C1-005 搭车 C6-004）；P0×0 显式空执行/**P1×4**（MA-01 启动窗口门禁族 C1-006 主——双宿主认证旁路不可自愈/C6-007 future 族第 5 例/C6-001 上传流校验失败 fd 泄漏/C1-001 SpringWebProxy 凭据撕裂）/P2×10/P3×2）；C10 缺保护 19 条单列（矩阵会红 0/假保护 1/部分 2/无测试 16；反向钉死 4 处——1 钉死型+3 掩蔽型）；CL 8 条全落位（并入工单 3/独立线索 5/watch 1 拆分/驳回 0）；**结构性发现：原始并发面极薄（6 文件 26 行）但测试面与发现面倒挂第三次同型确认、唯一集成级保护同时是掩蔽者与暴露者、测试替身宽于真实契约**；Protected Area：C6-009 触碰 nop-http-api 申报 plan-first；跨单元关联 8 处零同站点重复（future 族第 5 例/错误交付族传输层成员/上下文传播族宿主面）。
+
 > 2.3 计数口径：合并裁定后 59 条（64 初审+深挖 → 63 复核保留全含降级 9（P1×6 + P2→P3×3）+ 1 撤案（C2-006 转正面样例）→ 并入 4 条 + 跨单元并入 1（C9-002→2.1 C9-010）；P1 存量 12（初审 10 + 深挖 2）−6 降级（C1-001/C2-004/C3-001/005/013/C4-003 全有实测或部署面证据）+1 升格（C9-012）→ 7；P1×7/P2×39/P3×12 + 量化记录 1；本单元承担修复 58）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 编号段 25 实占 24（CL-021 空号勘误）：升格 3（CL-003→C8-005、CL-010→C9-005、CL-015→C9-012）、并入 5、驳回 1（CL-011）、纯移交（CL-016/017/022/023/025）；跨单元映射：C9-012 移交功能正确性维度（接收轨落名）、C9-002→2.1 C9-010 同链第三面、C1-010 Dao flush 修复归 nop-auth-service 单元、CL-018→nop-kernel（ContextTaskQueue 承重原语）、CL-025 平台原语前置（C3-010/C4-003 修复先决）。
 
 > 2.2 计数口径：合并裁定后 45 条（63 初审+深挖 → 59 复核保留 + 4 驳回 → 并入 14 条；P1×11/P2×21/P3×13）；P0=0（即时通道显式空执行）；C10 缺保护 18 条单列；CL 编号 21 条（升格 1→C1-021、落格 2、同位点并入设施 2、零立案 1、关联保留 8、纯移交 7；见「维度集外线索关联」节 2.2 小节）；跨单元映射表 11 行（C1-007 族案↔2.1 C1-001 刷新链上下游、C1-021 吸收进 2.1 C3-001 平台方案、CL-008/020 同位点主处置在 2.1、C6-010 三重登记设施归 2.1、Jdk21CommonsCoreInitializer 注册链为 2.1 C6-002 可达性终审输入）；C2-001 与历史 check 审计 P2-6 同源（本轮 P1 裁定留档）。
@@ -74,7 +76,7 @@
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
 | nop-network-integration-C6-001 | 4.3 | JDK/OkHttp 下载成功路径从不调用 FileDownloadSink.close()（仅 catch 分支关）——resume 默认 true 下每次成功下载泄漏文件句柄（Windows Files.move 确定性失败/Unix 静默 fd 泄漏）；Apache HC5 兜底闭合跨实现分歧 | plan 2479 Phase 7 就地修复：JdkHttpClient.processDownloadResponse + OkHttpClientImpl onResponse 成功路径 verifyAndRename 后补 sink.close()；回归测试 TestFileDownloadSinkClose（fd 计数 40 次下载增量断言，回退实测必红）；两模块套件 33 测试全绿；scan-hollow --severity high 退出码 0；证伪 3.9 前案「文件模式主路径确认关闭」注记随 cra-index 4.3 计数口径 | 已修复（本轮提交） |
 | nop-persistence-peri-C6-002（MA-03 主登记，成员 C3-003） | 2.5 | 搬迁成功路径（VERIFY/SWITCH/DONE）从不调用 stopAll（全模块唯一调用点在 abort，与 IncrementalJobManager javadoc 矛盾）——DONE 后链线程/binlog 连接/engine/offset store/checkpoint 执行器永久滞留；写门仅拦本 JVM ORM DML，源库域外写入经存活链 keyed upsert 持续回写已晋级目标表 | plan 2472 Phase 7 就地修复：OrmMigrationOrchestrator 新增 stopIncrementalChains（字段直读不惰性建管理器）——confirmSwitch 收敛点停链 + completeSwitch 开门前兜底幂等停链；新增 setIncrementalManager 注入 seam；回归测试 TestMigrationSwitchStopsChains 2 例（收敛停链断言回退必红 + 非 incremental 配置不动管理器）；模块套件 52 测试全绿；scan-hollow --severity high 退出码 0；owner doc data-migration.md SWITCH 节已同步 | 已修复（本轮提交） |
-| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/3.4/4.1/4.2 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/4.1/4.2/4.4 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -226,6 +228,10 @@
 | nop-network-integration-C1-009（MA-05 主） | 4.3 | nop-network-integration | FeishuClient 重连无单飞/世代守卫：onClose/onError 双入口双调度 + started 跨代复用 + stop→start 重启窗口陈旧回调——双活/三活 WS（成员 C3-017；判级留 7.1） | 待 7.1 | open |
 | nop-network-integration-C6-021（MA-06 主） | 4.3 | nop-network-integration | FeishuClient.stop() 与在途 attemptReconnect 竞态（检查后无世代复核、listener 被重武装）——stop 后新建 WS 孤儿连接（成员 C3-016；判级留 7.1；同构竞态 NettyTcpClient C6-022 另立 P2） | 待 7.1 | open |
 | nop-network-integration-C1-001（MA-07 主） | 4.3 | nop-network-integration | SimpleRpcClientFactory.init 挂在 newInstance 非幂等——logBody 拦截器列表无界累积 + timer/executor 检查-创建竞态单线程定时器泄漏（WI 2.1 CL-024 原始站点实审；成员 C6-014） | 待 7.1 | open |
+| nop-host-C1-006（MA-01 主） | 4.4 | nop-host | 双宿主启动窗口空链固化：IocCoreInitializer registerInstance 覆盖 BeanContainer facade 窗口内 filter 全落 Spring/CDI 桥空链——认证旁路不可自愈（←C4-003 启动窗口无就绪门禁） | 待 7.1 | open |
+| nop-host-C6-007（MA-02） | 4.4 | nop-host | ContextTaskQueue 吞同步异常 future 永不完成——Quarkus 认证请求永久悬挂（/px/ 畸形 JSON 用户可触发；future 族第 5 例，平台根因绝缘层移交 WI 2.3 CL-018+WI 2.1 C3-001） | 待 7.1 | open |
+| nop-host-C6-001 | 4.4 | nop-host | 上传流「先校验后消费」失败路径永不关闭——每被拒上传泄漏 1 个 fd，外部可稳定触发（C6-008 判级维持 P2 随族留 7.1） | 待 7.1 | open |
+| nop-host-C1-001 | 4.4 | nop-host | SpringWebProxy 凭据对（authorization/cookie）由 Reactor 线程写、请求线程读无 volatile——陈旧 token 重发 + 撕裂凭据对 | 待 7.1 | open |
 | nop-network-integration-C3-001 | 4.3 | nop-network-integration | OkHttp onResponse 异常吞没：body().string() 断连 IOException 被吞 future 永不完成——同步调用方永久阻塞（future 永不完成族第 4 例；同文件 doDownloadAsync 已有保护 F3 漏修） | 待 7.1 | open |
 | nop-network-integration-C3-005 | 4.3 | nop-network-integration | 无校验源跳过 verifyAndRename——默认配置下载报成功但目标文件永不产生（.part 滞留）（错误以成功交付族第 4 例；与 C6-001 P0 同批设计；Apache 无条件 move 跨实现分歧实证） | 待 7.1 | open |
 | nop-network-integration-C3-024 | 4.3 | nop-network-integration | SftpClient 全链路无超时（jsch 默认 0=无限，SftpConfig 无 timeout 配置面）——网络故障下业务线程与 SSH 会话无限挂起（FileServiceResource 请求路径可达证实） | 待 7.1 | open |
@@ -235,6 +241,10 @@
 | nop-network-integration-C6-018 | 4.3 | nop-network-integration | SftpClient 构造期「session 已连、channel 未开」失败——SSH 会话无人回收（与 C3-024 同文件同批） | 待 7.1 | open |
 | nop-network-integration-C6-019 | 4.3 | nop-network-integration | TencentEmailSender 每次 sendEmail 新建 SesClient 从不 shutdown——连接池随发送次数无界累积（同模块 YunpianSmsSender 有 finally close；保护面 C10-004/C10-013） | 待 7.1 | open |
 
+
+### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
+
+**并入工单（3）**：CL-004→C1-001（宿主过滤器异步流阻塞族）、CL-005b→C6-004（redelivery/心跳面协同）、CL-007→C4-002（同站点治理）。**独立线索台账（5）**：CL-001/002/003/006/008（CL-008 isResponseSent 语义两宿主不对称）。**watch（1）**：CL-005a（redelivery 队列无界/failureAttempts cap=0）。
 
 ### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入 2、零立案 1、关联保留 8、纯移交 7；全表见 merge-adjudication.md §CL 台账）
 
