@@ -39,6 +39,9 @@
 | `2026-10/2026-10-21-1223-deep-audit-nop-host-concurrency` | 4.4 | nop-host | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 4 | 10+19（含 C10 缺保护登记） | 2 | done（closure audit PASS，plan 2480） |
 | `2026-10/2026-10-21-1444-deep-audit-nop-search-runner-autotest-concurrency` | 4.5 | nop-search-runner-autotest | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 1 | 6+9（含 C10 缺保护登记） | 7 | done（closure audit PASS，plan 2481） |
 | `2026-10/2026-10-21-1925-deep-audit-nop-auth-credential-concurrency` | 5.1 | nop-auth-credential | C1 C2 C6 + C10（C3/C4/C5/C7/C8/C9 线索 overlay） | 0 | 2 | 5+7（含 C10 缺保护登记） | 7 | done（closure audit PASS，plan 2482） |
+| `2026-10/2026-10-21-2148-deep-audit-nop-sys-dyn-concurrency` | 5.2 | nop-sys-dyn | C1 C2 C6 C8 + C10（C3/C4/C5/C7/C9 线索 overlay） | 0 | 3 | 8+6（含 C10 缺保护登记） | 6 | done（closure audit PASS，plan 2483） |
+| `2026-10/2026-10-21-1227-deep-audit-nop-file-datav-concurrency` | 5.3 | nop-file-datav | C1 C5 C6 + C10（C2/C3/C4/C7/C8/C9 线索 overlay） | 0 | 2 | 13+5（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2484） |
+| `2026-10/2026-10-21-1326-deep-audit-nop-report-format-concurrency` | 5.4 | nop-report-format | C1 C5 C6 C9 + C10（C2/C3/C4/C7/C8 线索 overlay） | 0 | 1 | 9+25（含 C10 缺保护登记） | 15 | 报告落盘 2026-10-22（closure audit 见 plan 2485） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -63,6 +66,10 @@
 > 4.5 计数口径：合并裁定后 15 张工单 + watch 1（24 初审+深挖 → 24 复核保留全含 0 降档 0 驳回 → 5 缺陷族 MA-01~05 吸收 14 + 9 独立 + watch 1（C4-005）；P0×0 显式空执行/**P1×1**（C4-001 CliRunCommand scheduleWithFixedDelay Future 丢弃——周期任务异常静默停摆）/P2×6/P3×7）；C10 缺保护 9 条单列（矩阵会红 0/假保护 12/无测试 12——**全域会红=0 第四次同型确认**；反向钉死 0 硬钉 + 1 正向修复约束）；CL 12 条全落位（并入工单 2/独立线索 1/关闭确认 1/移交 8/驳回 0）；**结构性发现：全域会红=0 第四次同型确认（测试栈结构性单线程化）、测试性弃权明文化（注释明文回避 watch 主功能）、假保护双向形态**；dbtool 零主源码显式登记；Protected Area 零触碰；跨单元零同站点重复，周期停摆族/destroy-vs-rebuild 族/F4 无界账本族家族关联单列。
 
 > 5.1 计数口径：合并裁定后 14 张工单 + watch 4（21 初审+深挖 → 19 复核保留全含 0 降档 0 驳回 → 8 缺陷族 MA-01~08 吸收 8 + 6 独立 + watch 4；P0×0 显式空执行+ask-first/**P1×2**（MA-01 六族 DB 清理配对族/MA-02 Redis TTL 附着族）/P2×5/P3×7）；C10 缺保护 7 条单列（矩阵会红 0/反向钉死 1/无测试 13——会红=0 第 5 例）；CL 17 条全落位（并入 3/独立 6/移交 8/驳回 0）；**Protected Area ask-first**（nop-auth P0 修复须先询问用户）；**结构性发现：并发面极稀疏（2 文件原语命中）但 DB 行回收配对为零（六族）**；跨单元关联 5 处零同站点重复。
+
+> 5.2 计数口径：合并裁定后 P0×0 显式空执行/**P1×3**（MA-01 DB 行协调原语 fencing 纪律族——过期锁行删除缺 holderId 互斥校验 + 事件认领一次性租约不续期+完成写无 fencing，P1 站点×2；I-01 已发布 mergedStore 并发结构修改 TreeMap 撕裂读；I-02 订阅 cancel×subscribe 孤儿化→消息置 PROCESSED 静默丢弃）/P2×8/P3×6；C10 缺保护 15 条单列（矩阵 16 行会红=0——第 6 例 campaign 同型确认；反向钉死 1 处）；CL 编号实占 0（R1 预注周期任务族候选确认但 Error 绝缘已自备）；Protected Area：nop-sys-api/nop-dyn-api plan-first——0 张工单触碰 api 叶；跨单元家族关联 11 处零同站点重复（cra-index 台账 159 条时点）。
+
+> 5.4 计数口径：27 编号实体（初审 20 + R2 深挖 6 + 复核补写 1[C1-006]）→ 25 复核保留（维持 25/跨维度调整 0/移交 1=C5-001 归 7.1）+ 驳回 2（C6-R2-002 use-after-close 前提证伪/C9-004 readBytesTerm 零生产调用方）+ 降级 2（C5-002/003 零生产调用方 P2→P3）；**未组族**——25 条逐条维持为独立工单，两组同站点互补对（C1-002↔C9-002、C1-003↔C9-001）附「单设计联合闭合」约束；P0×0 显式空执行/**P1×1**（C5-001 record 反序列化数据驱动长度无界物化——分配先于校验+文件/netty 双生产路径可达，同族三处有界保护反衬）/P2×9/P3×15；C10 缺保护 25 条单列（矩阵会红 0/25——会红=0 第 7 例，closure audit 裁定序数：4.5=第4/5.1=第5/5.2=第6/5.3 未记序）；CL 前缀声明零实占（四维零维度集外线索）；**结构性发现：campaign 最大单元（894f/102,861）四维重合零痕迹源码根 4 个（tablesaw/office-model/office-doc-model/record-netty，含 io.nop.record.netty 命名陷阱）+ nop-format 无 owner doc（占 84% 行数）+ 缺陷密度集中于 record 反序列化链（BinaryDataReader 契约面 5 条）**；家族关联 5 处单列（C6-001 泄漏族第 5 例/C9-002 锁内 I/O 族第 4 例/C1-002 全局注册表裸写族/C5-001 无界物化族机制新成员/C5-004=WI 1.7 C5-001 同缺陷第二实例）；跨单元查重 0 同站点重复；执行注记：Phase 2/3 配额中断后按落盘产物接续（逐批 agent 记录以恢复记录替代，覆盖核验由 Phase 4 复核完成）。
 
 > 5.3 计数口径：合并裁定后 8 张修复工单（25 初审+深挖 → 25 复核保留零降级零驳回 → 7 修复工单 W-01~07 + 1 测试保护工单 W-08；P0×0 显式空执行/**P1×2**（W-01 文件去重竞态/W-04 dashboard 行上界）/P2×13/P3×10）；C10 缺保护 5 条单列（矩阵会红 0/假保护 4/部分 1/无测试 13——P1×2 全部无保护；反向钉死 1 处钉死无 fencing 语义）；Protected Area：nop-file-api 3f/492 plan-first——审计只读；跨单元关联 6 组零同站点重复。
 
@@ -252,6 +259,12 @@
 | nop-network-integration-C6-017 | 4.3 | nop-network-integration | NettyTcpServer doStart bind 失败不关 boss/worker 事件循环组——每次启动失败泄漏整组 I/O 线程（对照 C6-014 族正确兄弟写法） | 待 7.1 | open |
 | nop-network-integration-C6-018 | 4.3 | nop-network-integration | SftpClient 构造期「session 已连、channel 未开」失败——SSH 会话无人回收（与 C3-024 同文件同批） | 待 7.1 | open |
 | nop-network-integration-C6-019 | 4.3 | nop-network-integration | TencentEmailSender 每次 sendEmail 新建 SesClient 从不 shutdown——连接池随发送次数无界累积（同模块 YunpianSmsSender 有 finally close；保护面 C10-004/C10-013） | 待 7.1 | open |
+| nop-sys-dyn-MA-01（DB 行协调原语 fencing 纪律族主，P1 站点×2） | 5.2 | nop-sys-dyn | 过期分布式锁行删除缺 holderId 互斥校验（无声破坏互斥）+ 事件认领一次性租约不续期且完成写无 fencing（双节点并发处理同一事件） | 待 7.1 | open |
+| nop-sys-dyn-I-01 | 5.2 | nop-sys-dyn | 已发布 mergedStore 并发结构修改——TreeMap 撕裂读 | 待 7.1 | open |
+| nop-sys-dyn-I-02 | 5.2 | nop-sys-dyn | 订阅 cancel×subscribe 竞态孤儿化 → 消息置 PROCESSED 静默丢弃 | 待 7.1 | open |
+| nop-file-datav-W-01（CL-014） | 5.3 | nop-file-datav | 文件去重竞态：isUniqueRef 判-删窗口 → 悬挂引用 | 待 7.1 | open |
+| nop-file-datav-W-04（CL-009） | 5.3 | nop-file-datav | dashboard 主查询路径 rowLimit=null 全量物化无行上界 | 待 7.1 | open |
+| nop-report-format-C5-001 | 5.4 | nop-report-format | record 反序列化数据驱动长度无界物化：getFieldLength 无上限 + readBytes 先 new byte[n] 后读——文件/netty 双生产路径 OOM 面（同族 CountArray 1M/DynLV 64MB/LV 相对长度三处有界反衬；ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG 可复用） | 待 7.1 | open |
 
 
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
@@ -269,6 +282,8 @@
 ### WI 5.2 nop-sys-dyn（CL 编号实占 0——R1 预注周期任务族候选确认但 Error 绝缘已自备，残余面归 I-05/I-09/MA-07；C3/C5/C9 零命中关闭；C7 并入 I-05）
 
 ### WI 5.3 nop-file-datav（CL-001~025：编号 25、缺保护登记 5 条覆盖 18+7=25 闭合；逐条见 merge-adjudication.md §九）
+
+### WI 5.4 nop-report-format（CL 前缀 `nop-report-format-CL-0NN` 声明零实占——四维初审/深挖未产出维度集外线索，overlay 面 C2/C3/C4/C7/C8 零候选；无 CL 台账行）
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 
