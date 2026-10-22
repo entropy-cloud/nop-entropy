@@ -1,7 +1,7 @@
 # 报表参数模型 设计
 
-**范围**：`nop-format/nop-excel`（XPT 模型层）、`nop-report/nop-report-core`（引擎取值）、`nop-report/nop-report-web`（查询表单）
-**状态**：草案（规范性文档；实施编排见 `ai-dev/backlog/nop-report-capability-roadmap.md`）
+**范围**：`nop-format/nop-excel`（XPT 模型层）、`nop-report/nop-report-core`（引擎取值）、`nop-report/nop-report-service`（查询表单接口）
+**状态**：active（参数模型已落地）
 **灵感来源**：主流报表引擎（FineReport 参数界面、润乾参数模板、JasperReport Parameters）均以声明式参数 + 查询表单为标准能力
 
 > 本档为规范性文档：只描述当前有效设计；变更历史见 git 与 AI 开发记录区的时效性文档。
@@ -34,10 +34,11 @@
 
 ### 运行时契约
 
-- 引擎解析模板时读取参数声明；未通过校验（缺 required、类型不符、options 越界）→ `nop.err.report.*` 参数错误码快速失败，错误消息指明参数名与原因。
-- 校验通过后以 `param` 为根注入求值 scope；模板中 `${param.xxx}` 统一取值，未声明即引用 → 展开期报错（防拼写漂移）。
-- 参数解析/校验/级联候选接口由 `nop-report-web` 以标准 BizModel action 暴露（GraphQL/REST 同源），AMIS 查询表单由参数声明自动生成。
-- 缓存键中的参数以「解析后的规范化值」参与，不携带控件元数据。
+- 引擎解析模板时读取参数声明；未通过校验（缺 required、类型不符）→ `nop.err.report.param.*` 错误码快速失败（missing-required / type-error / unknown），英文消息指明参数名与原因。
+- 校验通过后以 `param` 为根注入求值 scope；模板中 `${param.xxx}` 统一取值。未声明的 `${param.x}` 引用运行时取 null——原契约「未声明即引用 → 展开期报错」**不实现**（裁定：XPL 动态取值无法静态识别引用，静态校验必产生误报）；未声明的输入参数原样保留在 `param` Map 中。
+- 候选集不做枚举闭合校验——原契约「options 越界 → 快速失败」**不实现**（裁定：候选集可动态来自 SQL/字典，输入合法性由控件与下游语义约束）。
+- 参数解析/校验/级联候选接口由 `nop-report-service` 以标准 BizModel action 暴露（GraphQL/REST 同源），AMIS 查询表单由参数声明自动生成。
+- 缓存键中的参数以「解析后的规范化值」参与，不携带控件元数据（缓存接线由 roadmap WI6 消费）。
 
 ### 边界
 

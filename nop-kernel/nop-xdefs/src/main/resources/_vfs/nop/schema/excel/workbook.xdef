@@ -187,5 +187,20 @@ ooxml的文档参考 http://officeopenxml.com/SSstyles.php
         <viewers xdef:body-type="list" xdef:key-attr="id">
             <viewer id="!string" xdef:ref="XptXplModel"/>
         </viewers>
+
+        <!--
+        @param 报表参数声明。引擎在展开前校验/回填默认值并注入 scope 的 param 变量，模板内以 ${param.xxx} 取值
+        -->
+        <params xdef:body-type="list" xdef:key-attr="name">
+            <param name="!string" xdef:name="XptParamModel"
+                   type="!std-data-type" label="string"
+                   required="!boolean=false" defaultValue="string" multiple="!boolean=false"
+                   controlType="string" dependsOn="string" dictName="string" optionsSql="string"
+                   querySpace="string">
+                <options xdef:body-type="list">
+                    <option label="string" value="string"/>
+                </options>
+            </param>
+        </params>
     </model>
 </workbook>

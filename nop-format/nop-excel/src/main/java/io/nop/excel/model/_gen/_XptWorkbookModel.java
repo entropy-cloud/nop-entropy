@@ -95,6 +95,13 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      *  
+     * xml name: params
+     * 
+     */
+    private KeyedList<io.nop.excel.model.XptParamModel> _params = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: removeHiddenCell
      * 
      */
@@ -344,6 +351,51 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
     
     /**
      * 
+     * xml name: params
+     *  
+     */
+    
+    public java.util.List<io.nop.excel.model.XptParamModel> getParams(){
+      return _params;
+    }
+
+    
+    public void setParams(java.util.List<io.nop.excel.model.XptParamModel> value){
+        checkAllowChange();
+        
+        this._params = KeyedList.fromList(value, io.nop.excel.model.XptParamModel::getName);
+           
+    }
+
+    
+    public io.nop.excel.model.XptParamModel getParam(String name){
+        return this._params.getByKey(name);
+    }
+
+    public boolean hasParam(String name){
+        return this._params.containsKey(name);
+    }
+
+    public void addParam(io.nop.excel.model.XptParamModel item) {
+        checkAllowChange();
+        java.util.List<io.nop.excel.model.XptParamModel> list = this.getParams();
+        if (list == null || list.isEmpty()) {
+            list = new KeyedList<>(io.nop.excel.model.XptParamModel::getName);
+            setParams(list);
+        }
+        list.add(item);
+    }
+    
+    public java.util.Set<String> keySet_params(){
+        return this._params.keySet();
+    }
+
+    public boolean hasParams(){
+        return !this._params.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: removeHiddenCell
      *  
      */
@@ -416,6 +468,8 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         
            this._editors = io.nop.api.core.util.FreezeHelper.deepFreeze(this._editors);
             
+           this._params = io.nop.api.core.util.FreezeHelper.deepFreeze(this._params);
+            
            this._viewers = io.nop.api.core.util.FreezeHelper.deepFreeze(this._viewers);
             
         }
@@ -436,6 +490,7 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         out.putNotNull("loopItemsName",this.getLoopItemsName());
         out.putNotNull("loopVarName",this.getLoopVarName());
         out.putNotNull("maxSheetNameLength",this.getMaxSheetNameLength());
+        out.putNotNull("params",this.getParams());
         out.putNotNull("removeHiddenCell",this.isRemoveHiddenCell());
         out.putNotNull("viewers",this.getViewers());
     }
@@ -460,6 +515,7 @@ public abstract class _XptWorkbookModel extends io.nop.core.resource.component.A
         instance.setLoopItemsName(this.getLoopItemsName());
         instance.setLoopVarName(this.getLoopVarName());
         instance.setMaxSheetNameLength(this.getMaxSheetNameLength());
+        instance.setParams(this.getParams());
         instance.setRemoveHiddenCell(this.isRemoveHiddenCell());
         instance.setViewers(this.getViewers());
     }

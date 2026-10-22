@@ -29,6 +29,7 @@ import io.nop.excel.model.XptSheetModel;
 import io.nop.excel.model.XptWorkbookModel;
 import io.nop.excel.renderer.IExcelSheetGenerator;
 import io.nop.report.core.XptConstants;
+import io.nop.report.core.params.ReportParamResolver;
 import io.nop.report.core.engine.expand.TableExpander;
 import io.nop.report.core.expr.ReportFormulaGenerator;
 import io.nop.report.core.model.ExpandedCell;
@@ -70,6 +71,7 @@ public class ExpandedSheetGenerator implements IExcelSheetGenerator {
         XptRuntime xptRt = newXptRuntime(ctx, workbook);
 
         XptWorkbookModel workbookModel = workbook.getModel();
+        ReportParamResolver.resolveAndInject(workbookModel, xptRt.getEvalScope());
         runLoop(workbook.getModel(), XptConstants.WORKBOOK_LOOP_VAR, XptConstants.WORKBOOK_LOOP_INDEX,
                 xptRt, () -> {
                     try {

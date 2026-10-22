@@ -4,4 +4,7 @@
     <bean id="nopReportAuthChecker"
           class="io.nop.report.service.auth.NopReportAuthChecker"/>
 
+    <bean id="nopReportFormBizModel"
+          class="io.nop.report.service.form.NopReportFormBizModel"/>
+
 </beans>

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workbook x:schema="/nop/schema/excel/workbook.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="s1">
+            <table>
+                <rows>
+                    <row>
+                        <cells>
+                            <cell name="A1" type="string">
+                                <value>${param.pname}</value>
+                            </cell>
+                        </cells>
+                    </row>
+                    <row>
+                        <cells>
+                            <cell name="A2" type="string">
+                                <value>${param.count * 2}</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+    <model>
+        <params>
+            <param name="pname" type="string" required="true" label="名称"/>
+            <param name="count" type="int" required="false" defaultValue="3" label="数量"/>
+        </params>
+    </model>
+</workbook>

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workbook x:schema="/nop/schema/excel/workbook.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="s1">
+            <table>
+                <rows>
+                    <row>
+                        <cells>
+                            <cell name="A1" type="string">
+                                <value>${param.pname}</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+    <model>
+        <params>
+            <param name="pname" type="string" required="true" label="名称"/>
+            <param name="dept" type="string" label="静态部门">
+                <options>
+                    <option label="研发" value="rd"/>
+                    <option label="财务" value="fin"/>
+                </options>
+            </param>
+            <param name="status" type="string" label="字典状态" dictName="core/active-status"/>
+            <param name="city" type="string" label="SQL城市" optionsSql="select name as label, code as option_value from param_city" querySpace="securedDs"/>
+            <param name="cityDefault" type="string" label="默认数据源城市" optionsSql="select name as label, code as option_value from param_city"/>
+        </params>
+    </model>
+</workbook>

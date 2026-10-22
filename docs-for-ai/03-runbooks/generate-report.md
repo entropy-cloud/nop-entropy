@@ -170,6 +170,22 @@ ITemplateOutput output = reportEngine.getRendererForXptModel(wb, "xlsx");
 
 `ExcelTemplateToXptModelTransformer` 按 `imp.xml` 的列表区/字段标记自动合成 `expandType=r`/`field`/`valueExpr`/`formatExpr`/`dict` 等指令。便捷导出 Java bean 到 Excel/HTML/PDF 的封装：`ExcelReportHelper.saveXpxObject(reportEngine, impModelPath, resource, entity, renderType, scope)`。
 
+## 报表参数（${param.xxx}）
+
+模板可在工作簿模型里声明参数，引擎展开前统一校验并注入 `param` 变量：
+
+| 声明属性 | 说明 |
+|---------|------|
+| `name` / `type` / `label` | 参数名（`${param.name}` 引用）/ 标准类型（string/int/float/boolean/date/datetime）/ 显示名 |
+| `required` / `defaultValue` | 必填校验；未传时的默认值 |
+| `controlType` / `multiple` | AMIS 控件类型（缺省按 type 推导）/ 多选 |
+| `dependsOn` | 级联依赖的父参数名（联动候选集） |
+| `options`（子节点 `<option label value/>`）/ `dictName` / `optionsSql`(+`querySpace`) | 静态候选 / 字典候选 / SQL 候选 |
+
+- 调用方传参：`scope.setLocalValue(null, "param", Map.of("pname", 值))`；引擎做 required/类型校验、默认值回填后以规范化 Map 注入。
+- 必填缺失或类型不符：抛 `nop.err.report.param.*`（missing-required / type-error / unknown）。
+- 平台接口：`NopReportForm__getReportFormSchema(reportPath)` 生成 AMIS 查询表单 schema；`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)` 取候选 [{label,value}]。两接口均先过报表级授权（WI1）。
+
 ## 报表模板放哪里（VFS 路径）
 
 - 应用项目：`src/main/resources/_vfs/<group>/<module>/.../*.xpt.xlsx`，运行时合并进 VFS。
@@ -181,6 +197,7 @@ ITemplateOutput output = reportEngine.getRendererForXptModel(wb, "xlsx");
 
 - ❌ 自建报表/导出框架——用 `nop-report`。
 - ❌ 直接调 `nop-report-service` 的 CRUD BizModel 当渲染入口——渲染走 `IReportEngine`，CRUD BizModel 只管报表定义/数据集/数据源的增删改查。
+- ❌ 绕过声明直接在模板里引用不存在的参数——`${param.x}` 未声明时运行时取 null（不报错），参数必须在 workbook model 的 `<params>` 中声明才会被校验/回填默认值。
 - ❌ 把 PDF 当"xlsx 转 PDF"实现理解——PDF 是 PDFBox 直接从展开后的工作簿模型渲染，三种输出共享同一展开逻辑。
 - ❌ 套打用前端 HTML 浮层定位——平台 `ExcelImage.print=false` 已支持，且 HTML/PDF/XLSX 三端一致。
 
