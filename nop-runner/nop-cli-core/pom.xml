@@ -286,6 +286,12 @@
             <artifactId>nop-autotest-junit</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-pdf</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!--    <dependency>-->
         <!--      <groupId>io.rest-assured</groupId>-->
         <!--      <artifactId>rest-assured</artifactId>-->

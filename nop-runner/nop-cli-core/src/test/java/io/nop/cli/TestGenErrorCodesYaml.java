@@ -28,6 +28,7 @@ public class TestGenErrorCodesYaml extends BaseTestCase {
                 io.nop.socket.SocketErrors.class,
                 io.nop.orm.model.OrmModelErrors.class,
                 io.nop.report.pdf.ReportPdfErrors.class,
+                io.nop.pdf.core.PdfErrors.class,
                 io.nop.report.core.XptErrors.class,
                 io.nop.http.api.HttpApiErrors.class,
                 io.nop.orm.eql.OrmEqlErrors.class,
