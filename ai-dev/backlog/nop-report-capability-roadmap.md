@@ -85,7 +85,7 @@
 - [ ] WI16 全链路验收与文档收口：参数化报表（WI2）+ 权限（WI1/WI3）+ HTML 分页打印（WI4）+ 缓存（WI6）+ 交互/钻取（WI5/WI9）+ 新导出格式（WI10）端到端验收；更新 owner doc（`docs-for-ai/03-modules/nop-report.md` 能力矩阵、`docs-for-ai/03-runbooks/generate-report.md` 参数/权限用法、已知限制）与 `docs-for-ai/INDEX.md` 路由、`docs-for-ai/01-repo-map/module-groups.md` 模块登记、`docs-for-ai/04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致。（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI15 完成或显式裁定；Item Type: Proof）
 
 - ★ [x] **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
-- ★ **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
+- ★ [x] **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
 - ★ **Milestone: HTML 打印与交互可用**（WI4–WI5 完成后勾选）
 - ★ **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
 - ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
