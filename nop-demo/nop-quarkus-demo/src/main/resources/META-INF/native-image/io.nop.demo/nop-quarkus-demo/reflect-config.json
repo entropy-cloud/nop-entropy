@@ -5579,6 +5579,16 @@
     "allPublicMethods": true,
     "fields": [],
     "methods": [],
+    "name": "io.nop.chart.report.ExcelChartImageProvider"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
     "name": "io.nop.cluster.chooser.LoadBalanceServerChooser"
   },
   {
@@ -16725,6 +16735,16 @@
       }
     ],
     "name": "io.nop.xlang.ast._gen._Program"
+  },
+  {
+    "allDeclaredConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicConstructors": true,
+    "allPublicFields": true,
+    "allPublicMethods": true,
+    "fields": [],
+    "methods": [],
+    "name": "io.nop.xlang.debug.web.DebugWebServerConfig"
   },
   {
     "allDeclaredConstructors": true,
