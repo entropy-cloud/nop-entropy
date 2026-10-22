@@ -40,10 +40,25 @@ public class HtmlTableOutput implements ITextTemplateOutput {
     private Double defaultWidth;
     private boolean disableStyle; // 某些安全限制下不允许设置style，只能使用class
     private boolean[] colHidden;
+    private int rowFrom;
+    private int rowTo = Integer.MAX_VALUE; // 行区间输出（分页装箱用）；缺省全表
+    private boolean writeTfoot = true;
 
     public HtmlTableOutput(ITableView table, String themeCssPrefix) {
         this.table = table;
         this.setThemeCssPrefix(themeCssPrefix);
+    }
+
+    /**
+     * 限定 tbody 输出的行区间 [from, to)（分页装箱用）；不影响 thead/tfoot。缺省全表。
+     */
+    public void setRowRange(int from, int to) {
+        this.rowFrom = from;
+        this.rowTo = to;
+    }
+
+    public void setWriteTfoot(boolean writeTfoot) {
+        this.writeTfoot = writeTfoot;
     }
 
     public void setDisableStyle(boolean disableStyle) {
@@ -217,9 +232,11 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write("\n<tbody>");
         writeTbody(out, context);
         out.write("\n</tbody>");
-        out.write("\n<tfoot>");
-        writeTfoot(out, context);
-        out.write("</tfoot>");
+        if (writeTfoot) {
+            out.write("\n<tfoot>");
+            writeTfoot(out, context);
+            out.write("</tfoot>");
+        }
         out.write("\n</table>\n");
     }
 
@@ -264,7 +281,9 @@ public class HtmlTableOutput implements ITextTemplateOutput {
     }
 
     void writeTbody(Writer out, IEvalContext context) throws IOException {
-        for (int i = table.getHeaderCount(), n = table.getRowCount() - table.getFooterCount(); i < n; i++) {
+        int from = Math.max(table.getHeaderCount(), rowFrom);
+        int to = Math.min(table.getRowCount() - table.getFooterCount(), rowTo);
+        for (int i = from; i < to; i++) {
             IRowView row = table.getRow(i);
             writeRow(out, row, POS_TBODY, context);
         }
