@@ -7,6 +7,7 @@
  */
 package io.nop.report.core.model;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ProcessResult;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.core.model.table.CellPosition;
@@ -19,6 +20,10 @@ import io.nop.excel.model.IExcelCol;
 import io.nop.excel.model.IExcelRow;
 import io.nop.excel.model.IExcelTable;
 import io.nop.excel.model.XptCellModel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import io.nop.report.core.NopReportCoreConfigs;
+import io.nop.report.core.XptErrors;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +36,7 @@ import java.util.Map;
  * Xpt报表的展开算法基本将行与列平等对待，因此使用ExpandedCol来管理每列的数据，与ExpandedRow的作用等价。
  */
 public class ExpandedTable extends SerializableExtensibleObject implements IExcelTable {
+    static final Logger LOG = LoggerFactory.getLogger(ExpandedTable.class);
     private final List<ExpandedRow> rows = new ArrayList<>();
     private final List<ExpandedCol> cols = new ArrayList<>();
     private ExpandedSheet sheet;
@@ -309,6 +315,23 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
         return rows.get(rowIndex).isNewlyCreated();
     }
 
+    /**
+     * 全局展开行数上限（fail-fast 防 OOM；仅计新增插入行，expandInplaceCount 复用行不经过此检查）。
+     * 见 ai-dev/design/nop-report/large-dataset.md。
+     */
+    void checkMaxExpandRows() {
+        int max = NopReportCoreConfigs.CFG_MAX_EXPAND_ROWS.get();
+        if (max <= 0)
+            return;
+        if (rows.size() >= max) {
+            LOG.warn("nop.report.max-expand-rows-exceeded:sheetName={},maxRows={}",
+                    sheet == null ? null : sheet.getName(), max);
+            throw new NopException(XptErrors.ERR_XPT_MAX_EXPAND_ROWS_EXCEEDED)
+                    .param(XptErrors.ARG_SHEET_NAME, sheet == null ? null : sheet.getName())
+                    .param("maxRows", max);
+        }
+    }
+
     public ExpandedRow makeRow(int index) {
         if (index < rows.size()) {
             return rows.get(index);
@@ -337,6 +360,7 @@ public class ExpandedTable extends SerializableExtensibleObject implements IExce
      * 插入一个空行
      */
     public ExpandedRow insertEmptyRow(int index) {
+        checkMaxExpandRows();
         ExpandedRow row = newRow();
         if (index == 0) {
             ExpandedCell cell = row.getFirstCell();

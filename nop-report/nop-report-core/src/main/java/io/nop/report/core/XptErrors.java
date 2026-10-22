@@ -110,6 +110,13 @@ public interface XptErrors {
             define("nop.err.xpt.unknown-report-model", "未知的报表模型：{reportName}", ARG_REPORT_NAME);
 
 
+    String ARG_MAX_ROWS = "maxRows";
+
+    ErrorCode ERR_XPT_MAX_EXPAND_ROWS_EXCEEDED =
+            define("nop.err.xpt.max-expand-rows-exceeded",
+                    "展开行数超过上限[{maxRows}]，为防止内存溢出已中止渲染。可调整模板 expandMaxCount 或配置项 nop.report.max-expand-rows",
+                    ARG_SHEET_NAME, ARG_MAX_ROWS);
+
     ErrorCode ERR_XPT_INVALID_IMAGE_DATA =
             define("nop.err.xpt.invalid-image-data",
                     "图片数据不是字节数组或者IResource对象");
