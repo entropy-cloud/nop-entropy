@@ -7,7 +7,11 @@ public class Clean {
         return DASH.matcher(s).replaceAll("b");
     }
 
-    String split(String s) {
-        return DASH.splitAsStream(s).findFirst().orElse("");
+    String match(String s) {
+        return DASH.matcher(s).matches() ? "ok" : "no";
+    }
+
+    String[] split(String s) {
+        return DASH.split(s);
     }
 }

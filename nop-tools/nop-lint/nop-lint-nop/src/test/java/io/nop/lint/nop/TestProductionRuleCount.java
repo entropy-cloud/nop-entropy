@@ -108,8 +108,8 @@ public class TestProductionRuleCount {
             "nop-orm-icons",
             // item 7 (plan nop-lint/23): resource-leak v1 pilots
             "quality/closeable-not-closed",
-            // repo convention (2026-10-22): precompiled regex templates
-            "quality/no-string-replace-regex",
+            // repo convention (2026-10-22): precompiled regex templates (String regex-method faces)
+            "quality/no-string-regex-methods",
             // xdsl-full-coverage roadmap WI2 (plan 2348): XDSL L1 static rules
             "nop-xdsl-watermark-required",
             "nop-xdsl-credential-plaintext",

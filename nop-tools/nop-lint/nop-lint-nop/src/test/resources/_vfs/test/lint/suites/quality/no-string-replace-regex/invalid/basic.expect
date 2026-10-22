@@ -1,9 +1,0 @@
-diagnostics:
-  - line: 3
-    endLine: 3
-    ruleId: quality/no-string-replace-regex
-    messageContains: "replaceAll"
-  - line: 3
-    endLine: 3
-    ruleId: quality/no-string-replace-regex
-    messageContains: "replaceFirst"

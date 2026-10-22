@@ -1,0 +1,21 @@
+diagnostics:
+  - line: 3
+    endLine: 3
+    ruleId: quality/no-string-regex-methods
+    messageContains: "matches"
+  - line: 4
+    endLine: 4
+    ruleId: quality/no-string-regex-methods
+    messageContains: "replaceAll"
+  - line: 4
+    endLine: 4
+    ruleId: quality/no-string-regex-methods
+    messageContains: "replaceFirst"
+  - line: 4
+    endLine: 4
+    ruleId: quality/no-string-regex-methods
+    messageContains: "split"
+  - line: 6
+    endLine: 6
+    ruleId: quality/no-string-regex-methods
+    messageContains: "split"

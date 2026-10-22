@@ -107,7 +107,7 @@ public class TestNopRuleSuites {
             "quality/closeable-not-closed",
             // repo convention (2026-10-22): direct regex-template
             // replaceAll/replaceFirst calls, test sources excluded via files scope
-            "quality/no-string-replace-regex");
+            "quality/no-string-regex-methods");
     // facet review (tool-replacement roadmap item 2, plan nop-lint/16): the four
     // out-of-purpose removals (loose-coupling-hashset / for-loop-can-be-foreach /
     // negated-equals / simplify-boolean-expression) left EXPECTED_RULE_IDS at 48.

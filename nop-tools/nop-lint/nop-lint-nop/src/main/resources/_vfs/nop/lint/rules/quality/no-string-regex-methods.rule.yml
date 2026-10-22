@@ -1,0 +1,46 @@
+# Direct String regex-method calls recompile the regex pattern on every
+# invocation; the platform convention is a precompiled, cached
+# java.util.regex.Pattern (Pattern.compile to a static final field, then
+# matcher()/split() off it). Covered String faces (the full JDK set of
+# regex-consuming String methods): replaceAll, replaceFirst, matches,
+# split(regex), split(regex, limit). Test code is exempt via the files scope
+# below (src/test/java trees and *Test.java sources), enforced by the engine
+# (CompiledRule.fileScopeAccepts, counted as rulesFileFiltered), not by the
+# pattern.
+#
+# Receiver face (L1-enforceable, no type query): the precompiled idioms are
+# P.matcher(s).replaceAll/matches(...) (receiver IS a .matcher(...) call) and
+# PATTERN.split(s) (receiver is a Pattern constant). The regex constraint
+# flags only receivers that contain no ".matcher(" (case-sensitive, so
+# x.getMatcher() does not false-exempt) AND are not constant-case identifiers
+# (the platform naming convention for precompiled Pattern fields). This is a
+# name-based heuristic, NOT a type check: a String-typed constant receiver
+# would be false-exempt and a lower-case local Pattern variable false-flagged
+# — the L2 typeOf capture would be exact, but the production CLI wires no
+# type resolver (TestL2DegradeLadder's documented state), so a type-gated
+# rule is skippedByProfile in every gate run today. Upgrade the face only
+# alongside a deep-profile resolver wiring decision.
+id: quality/no-string-regex-methods
+language: Java
+severity: warning
+message: "禁止直接调用 String 的 regex 方法（matches/replaceAll/replaceFirst/split），regex 模板须预编译并缓存（Pattern.compile 静态常量）(Do not call the regex methods of String directly; precompile and cache the regex Pattern)"
+rule:
+  any:
+    - pattern: "$R.replaceAll($PATTERN, $REPLACEMENT)"
+    - pattern: "$R.replaceFirst($PATTERN, $REPLACEMENT)"
+    - pattern: "$R.matches($REGEX)"
+    - pattern: "$R.split($REGEX)"
+    - pattern: "$R.split($REGEX, $LIMIT)"
+constraints:
+  - regex:
+      capture: R
+      pattern: '(?s)(?!.*\.matcher\s*\(\s*)(?![A-Z][A-Z0-9_]*\s*).+'
+files:
+  exclude:
+    - "**/src/test/java/**/*.java"
+    - "**/*Test.java"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "repo convention: precompiled regex templates (AGENTS.md lint rule addition, 2026-10-22)"

@@ -1,1 +1,0 @@
-x:extends: /nop/lint/rules/quality/no-string-replace-regex.rule.yml
