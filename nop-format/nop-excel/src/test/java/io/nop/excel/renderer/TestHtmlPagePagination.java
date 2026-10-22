@@ -73,6 +73,23 @@ public class TestHtmlPagePagination {
         return sheet;
     }
 
+    /** 性能基线：-Dnop.test.large-dataset=true 时启用（20k 行 html 分页渲染，预算 60s） */
+    @org.junit.jupiter.api.Test
+    public void testLargeHtmlPaginationBaseline() {
+        org.junit.jupiter.api.Assumptions.assumeTrue(Boolean.getBoolean("nop.test.large-dataset"));
+        ExcelSheet sheet = buildSheet(20_000);
+        ExcelWorkbook wb = new ExcelWorkbook();
+        wb.setSheets(new ArrayList<>(List.of(sheet)));
+        HtmlReportRendererFactory factory = new HtmlReportRendererFactory();
+        ITextTemplateOutput output = factory.buildRenderer(wb, (ctx, consumer) -> consumer.accept(sheet, ctx));
+        long begin = System.currentTimeMillis();
+        String html = output.generateText(newContext());
+        long elapsed = System.currentTimeMillis() - begin;
+        assertTrue(html.contains("第 "), html);
+        assertTrue(elapsed < 60_000, "baseline budget: " + elapsed + "ms");
+        System.out.println("BASELINE html paginated render (20k rows): " + elapsed + "ms");
+    }
+
     @Test
     public void testPackPages() {
         ExcelSheet sheet = buildSheet(60);

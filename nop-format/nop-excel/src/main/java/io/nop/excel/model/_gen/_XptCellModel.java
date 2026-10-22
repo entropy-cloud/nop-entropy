@@ -39,6 +39,15 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: condStyles
+     * 条件格式规则集（有序，首个命中的规则生效并覆盖 styleIdExpr 结果）。
+     * expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
+     * min/max 可单边；闭区间；min>max 视为不命中。
+     */
+    private java.util.List<io.nop.excel.model.XptCondStyleModel> _condStyles = java.util.Collections.emptyList();
+    
+    /**
+     *  
      * xml name: dict
      * 
      */
@@ -255,6 +264,27 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         checkAllowChange();
         
         this._colTestExpr = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: condStyles
+     *  条件格式规则集（有序，首个命中的规则生效并覆盖 styleIdExpr 结果）。
+     * expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
+     * min/max 可单边；闭区间；min>max 视为不命中。
+     */
+    
+    public java.util.List<io.nop.excel.model.XptCondStyleModel> getCondStyles(){
+      return _condStyles;
+    }
+
+    
+    public void setCondStyles(java.util.List<io.nop.excel.model.XptCondStyleModel> value){
+        checkAllowChange();
+        
+        this._condStyles = value;
            
     }
 
@@ -708,6 +738,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
 
         if(cascade){ //NOPMD - suppressed EmptyControlStatement - Auto Gen Code
         
+           this._condStyles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._condStyles);
+            
         }
     }
 
@@ -718,6 +750,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("colExtendForSibling",this.getColExtendForSibling());
         out.putNotNull("colParent",this.getColParent());
         out.putNotNull("colTestExpr",this.getColTestExpr());
+        out.putNotNull("condStyles",this.getCondStyles());
         out.putNotNull("dict",this.getDict());
         out.putNotNull("domain",this.getDomain());
         out.putNotNull("ds",this.getDs());
@@ -755,6 +788,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setColExtendForSibling(this.getColExtendForSibling());
         instance.setColParent(this.getColParent());
         instance.setColTestExpr(this.getColTestExpr());
+        instance.setCondStyles(this.getCondStyles());
         instance.setDict(this.getDict());
         instance.setDomain(this.getDomain());
         instance.setDs(this.getDs());

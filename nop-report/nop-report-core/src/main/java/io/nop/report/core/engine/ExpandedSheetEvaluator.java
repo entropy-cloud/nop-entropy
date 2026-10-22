@@ -14,6 +14,7 @@ import io.nop.commons.bytes.ByteString;
 import io.nop.commons.mutable.MutableInt;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalAction;
+import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.Underscore;
 import io.nop.core.model.table.CellPosition;
 import io.nop.core.resource.IResource;
@@ -24,6 +25,7 @@ import io.nop.excel.model.ExcelImage;
 import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
+import io.nop.excel.model.XptCondStyleModel;
 import io.nop.excel.model.XptRowModel;
 import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
@@ -42,6 +44,7 @@ import java.util.Map;
 
 import static io.nop.core.CoreErrors.ARG_CELL;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
+import static io.nop.report.core.XptErrors.ERR_XPT_COND_STYLE_EXPR_ERROR;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_IMAGE_DATA;
 
@@ -164,6 +167,8 @@ public class ExpandedSheetEvaluator {
                 if (styleId != null)
                     cell.setStyleId(styleId);
             }
+
+            applyCondStyles(cellModel, xptRt, cell);
 
             IEvalAction formatExpr = cellModel.getFormatExpr();
             if (formatExpr != null) {
@@ -311,5 +316,57 @@ public class ExpandedSheetEvaluator {
 
         ret.setData(model.getData());
         return ret;
+    }
+
+    /**
+     * 条件格式规则集（WI8）：有序规则首个命中者覆盖 styleId（styleIdExpr 之后执行）。
+     * expr 谓词上下文注入 cellValue 局部变量（求值后清理）；区间为闭区间，min>max 或非数值不命中；
+     * 谓词异常 fail-loud（NopException + cell/sheet 参数）。
+     */
+    private void applyCondStyles(XptCellModel cellModel, IXptRuntime xptRt, ExpandedCell cell) {
+        List<XptCondStyleModel> rules = cellModel.getCondStyles();
+        if (rules == null || rules.isEmpty())
+            return;
+
+        Object cellValue = cell.getValue();
+        IEvalScope scope = xptRt.getEvalScope();
+        scope.setLocalValue(null, "cellValue", cellValue);
+        try {
+            for (XptCondStyleModel rule : rules) {
+                if (matches(rule, xptRt, cell, cellValue)) {
+                    cell.setStyleId(rule.getStyleId());
+                    return;
+                }
+            }
+        } finally {
+            scope.setLocalValue(null, "cellValue", null);
+        }
+    }
+
+    private boolean matches(XptCondStyleModel rule, IXptRuntime xptRt, ExpandedCell cell, Object cellValue) {
+        if (rule.getExpr() != null) {
+            try {
+                return rule.getExpr().passConditions(xptRt);
+            } catch (NopException e) {
+                throw e.param(ARG_CELL_POS, cell.getName()).param(ARG_SHEET_NAME, cell.getSheet() == null ? null : cell.getSheet().getName());
+            } catch (Exception e) {
+                NopException err = new NopException(ERR_XPT_COND_STYLE_EXPR_ERROR)
+                        .param(ARG_CELL_POS, cell.getName())
+                        .param(ARG_SHEET_NAME, cell.getSheet() == null ? null : cell.getSheet().getName());
+                err.initCause(e);
+                throw err;
+            }
+        }
+        Number num = ConvertHelper.toNumber(cellValue, err -> null);
+        if (num == null)
+            return false;
+        double v = num.doubleValue();
+        if (rule.getMin() != null && v < rule.getMin())
+            return false;
+        if (rule.getMax() != null && v > rule.getMax())
+            return false;
+        if (rule.getMin() == null && rule.getMax() == null)
+            return false;
+        return true;
     }
 }

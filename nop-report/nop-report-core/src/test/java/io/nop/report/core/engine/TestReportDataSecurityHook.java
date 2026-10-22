@@ -78,8 +78,9 @@ public class TestReportDataSecurityHook {
 
     @AfterEach
     public void restore() {
-        if (original != null)
-            BeanContainer.registerInstance(original);
+        // 原容器为 null 时必须注销（否则 fake provider 泄漏到后续测试类，污染 maskValue）
+        BeanContainer.registerInstance(original != null ? original : new EmptyBeanContainer());
+        original = null;
     }
 
     @Test

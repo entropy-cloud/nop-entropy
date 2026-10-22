@@ -89,6 +89,19 @@
                         -->
                         <rowTestExpr>xpl-predicate</rowTestExpr>
                         <colTestExpr>xpl-predicate</colTestExpr>
+
+                        <!--
+                        条件格式规则集（有序，首个命中的规则生效并覆盖 styleIdExpr 结果）。
+                        expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
+                        min/max 可单边；闭区间；min>max 视为不命中。
+                        -->
+                        <condStyles xdef:body-type="list">
+                            <condStyle xdef:name="XptCondStyleModel" styleId="!string">
+                                <expr>xpl-predicate</expr>
+                                <min>double</min>
+                                <max>double</max>
+                            </condStyle>
+                        </condStyles>
                     </model>
                 </cell>
             </cells>

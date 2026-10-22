@@ -112,6 +112,10 @@ public interface XptErrors {
 
     String ARG_MAX_ROWS = "maxRows";
 
+    ErrorCode ERR_XPT_COND_STYLE_EXPR_ERROR =
+            define("nop.err.xpt.cond-style-expr-error",
+                    "表格[{sheetName}]的单元格[{cellPos}]的条件样式规则表达式执行失败", ARG_SHEET_NAME, ARG_CELL_POS);
+
     ErrorCode ERR_XPT_MAX_EXPAND_ROWS_EXCEEDED =
             define("nop.err.xpt.max-expand-rows-exceeded",
                     "展开行数超过上限[{maxRows}]，为防止内存溢出已中止渲染。可调整模板 expandMaxCount 或配置项 nop.report.max-expand-rows",

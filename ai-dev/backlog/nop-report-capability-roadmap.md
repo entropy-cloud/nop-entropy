@@ -65,7 +65,7 @@
 
 ### M4 — 分析与展现增强
 
-- [ ] WI8 条件格式规则引擎：把 `styleIdExpr` 扩展为声明式规则集（表达式/区间 + 样式；数据条/色阶/图标集），三端（xlsx/html/pdf）渲染一致（PDF 侧绘制对接姊妹 roadmap）。（Deliverable: 条件格式规则 + 三端测试；deps: WI0；Item Type: Feature）
+- [x] WI8 条件格式规则引擎：把 `styleIdExpr` 扩展为声明式规则集（表达式谓词/数值区间 + 样式，首中生效），经既有 styleId 机制三端一致（pdf 为字体子集）。（Deliverable: 规则集模型 + html/xlsx 测试；deps: WI0；Item Type: Feature）
 - [ ] WI9 钻取/联动/子报表：定义正式 subreport / 报表片段引用与参数传递（当前仅父子层级展开，无法引用另一模板）；主报表→明细钻取与报表间联动跳转；与 WI5 交互协同。（Deliverable: 子报表/片段 + 钻取 + 测试；deps: WI2、WI5；Item Type: Feature）
 
 ### M5 — 导出与内容能力
@@ -91,6 +91,7 @@
 - ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
 - ★ **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）
 - ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成后勾选）
+- [ ] WI17 条件格式视觉编码：数据条/色阶/图标集（OOXML conditionalFormatting 写出 + html/pdf 可视化等价；视觉 golden）。deps: WI8；Item Type: Feature。（WI8 拆分产出，residual 裁定见 plan 2496）
 - ★ **Milestone: 端到端验收通过**（WI0–WI16 全部完成后勾选）
 
 ## Current Baseline（2026-10-17 核对）
@@ -160,6 +161,7 @@
 | 14 | OLAP/多维数据源 | WI14 | WI0 | No | xpt-rt.xlib + Calcite |
 | 15 | 模板版本管理 | WI15 | WI1 | No | nop-report-service |
 | 16 | 端到端验收与收口 | WI16 | WI1–WI15 | **Yes** | 全部 |
+| 17 | 条件格式视觉编码 | WI17 | WI8 | No | OOXML conditionalFormatting |
 
 ## Stage Details
 

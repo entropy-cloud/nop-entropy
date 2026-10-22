@@ -17,7 +17,7 @@
 **能力现状**：
 
 - ✅ 完整：单元格/交叉展开（含父子层级嵌套）、套打三端一致、PDF 分页与重复表头/关键列（`nop.report.pdf.*` 配置）、xlsx/html/shtml/pdf 四种 renderType、图表动态绑定、公式函数（`ReportFunctions`）、导入模板自动生成、嵌入式 API（`IReportEngine`）
-- 🟡 受限：条件格式（仅 `styleIdExpr`，无规则集/色阶/数据条/图标集）、交互（html 输出已带 linkExpr 超链接/editorId/viewerId 属性/列排序/层级折叠渐进增强——消费契约为文档级解析，innerHTML 注入不执行交互脚本；钻取目标由模板 linkExpr 表达）、子报表（仅父子层级展开，无跨模板引用）、大数据（`JdbcDataSet` 流式取数；全局行数上限 `nop.report.max-expand-rows` fail-fast 防 OOM；迭代式 xlsx 导出 `getRendererForExcelData` 游标分页——完整惰性展开不做，见 AI 开发记录区 large-dataset 契约）、条码（仅 QRCODE）、Word（仅表格路径，未注册 renderType）
+- 🟡 受限：条件格式规则集（✅ 表达式谓词/数值区间 + 样式，首中生效、可覆盖 styleIdExpr；色阶/数据条/图标集 ❌ residual，roadmap WI17 承载）、交互（html 输出已带 linkExpr 超链接/editorId/viewerId 属性/列排序/层级折叠渐进增强——消费契约为文档级解析，innerHTML 注入不执行交互脚本；钻取目标由模板 linkExpr 表达）、子报表（仅父子层级展开，无跨模板引用）、大数据（`JdbcDataSet` 流式取数；全局行数上限 `nop.report.max-expand-rows` fail-fast 防 OOM；迭代式 xlsx 导出 `getRendererForExcelData` 游标分页——完整惰性展开不做，见 AI 开发记录区 large-dataset 契约）、条码（仅 QRCODE）、Word（仅表格路径，未注册 renderType）
 - ❌ 缺失：模板 i18n、Web 设计器、OLAP 数据源、模板版本管理
 
 **参数模型（已生效）**：模板 `XptWorkbookModel` 内嵌 `<params>` 声明（name/type/label/required/defaultValue/controlType/multiple/dependsOn + 候选来源静态 options/`dictName`/`optionsSql`(+`querySpace`)），引擎展开前统一校验（required/类型转换/默认值）并注入 scope 的 `param` 变量，模板内 `${param.xxx}` 取值；错误 `nop.err.report.param.*`。接口：`NopReportForm__getReportFormSchema(reportPath)`（声明 → AMIS form schema）、`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)`（候选 [{label,value}]，均先过报表级授权）。controlType→AMIS 映射（规范性）：string→input-text；int/float→input-number；boolean→switch；date/datetime→input-date/input-datetime；有候选来源→select（multiple 展示 multiple）；dependsOn→表单级联声明。参数以解析后的规范化值参与结果缓存键（WI6 消费）。未声明的 `${param.x}` 引用运行时取 null；候选集动态、不做枚举闭合校验（design 契约裁定）。

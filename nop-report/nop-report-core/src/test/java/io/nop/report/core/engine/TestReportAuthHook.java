@@ -73,8 +73,8 @@ public class TestReportAuthHook {
 
     @AfterEach
     public void restoreContainer() {
-        if (originalContainer != null)
-            BeanContainer.registerInstance(originalContainer);
+        // 原容器为 null 时必须注销（否则 fake 容器泄漏到后续测试类，污染 maskValue/auth 判定）
+        BeanContainer.registerInstance(originalContainer != null ? originalContainer : new EmptyBeanContainer());
         originalContainer = null;
     }
 

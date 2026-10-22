@@ -35,6 +35,8 @@ public class TestMaxExpandRows {
 
     @BeforeAll
     public static void init() {
+        if (CoreInitialization.isInitialized())
+            CoreInitialization.destroy();
         CoreInitialization.initialize();
     }
 
@@ -102,9 +104,10 @@ public class TestMaxExpandRows {
     }
 
     @Test
-    public void testUnderLimitRenders() {
+    public void testUnderLimitRenders() throws Exception {
         AppConfig.getConfigProvider().updateConfigValue(NopReportCoreConfigs.CFG_MAX_EXPAND_ROWS, 100);
         String html = render(6);
+        try (java.io.PrintWriter pw = new java.io.PrintWriter("target/under-limit.html")) { pw.print(html); }
         assertTrue(html.contains("row5"), html);
     }
 
