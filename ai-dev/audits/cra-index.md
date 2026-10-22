@@ -264,6 +264,8 @@
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 
+### WI 5.2 nop-sys-dyn（CL 编号实占 0——R1 预注周期任务族候选确认但 Error 绝缘已自备，残余面归 I-05/I-09/MA-07；C3/C5/C9 零命中关闭；C7 并入 I-05）
+
 ### WI 2.2 nop-core-framework（CL-001~021：
 
 
