@@ -44,6 +44,9 @@ public class TestReportResultCache extends JunitAutoTestCase {
     NopReportResultCache resultCache;
 
     @Inject
+    io.nop.report.service.auth.NopReportAuthChecker authChecker;
+
+    @Inject
     IDaoProvider daoProvider;
 
     @Inject
@@ -193,8 +196,9 @@ public class TestReportResultCache extends JunitAutoTestCase {
         daoProvider.daoFor(NopReportDefinitionAuth.class).saveEntity(auth);
 
         setUserContext("u2", "other");
+        // 入口边界授权：checker 拒绝后缓存服务不会被触达
         NopException ex = assertThrows(NopException.class,
-                () -> resultCache.getOrGenerate(TEMPLATE, "html", Map.of(), null));
+                () -> authChecker.checkReportAccess(TEMPLATE));
         assertEquals(ERR_REPORT_AUTH_REPORT_DENIED.getErrorCode(), ex.getErrorCode());
     }
 

@@ -16,7 +16,6 @@
                     import io.nop.dao.jdbc.impl.JdbcDataSetHelper;
                     import io.nop.dao.dialect.DialectManager;
 
-                    xptRt.checkDataSourceAccess(querySpace);
                     const dataSource = JdbcDataSetHelper.getDataSource(querySpace);
                     const connection = dataSource.connection;
                     const dialect = DialectManager.instance().getDialectForConnection(connection);
@@ -45,7 +44,6 @@
 
             <source>
                 <c:script><![CDATA[
-                    xptRt.checkDataSourceAccess(querySpace);
                     let sql = slot_source().extend().timeout(queryTimeout)
                           .fetchSize(fetchSize).querySpace(querySpace).end();
                     sql = xptRt.applyRowCondition(sql, dsName || 'ds1');

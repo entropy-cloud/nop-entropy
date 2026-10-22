@@ -9,6 +9,7 @@ package io.nop.report.service.form;
 
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizQuery;
+import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.beans.DictBean;
 import io.nop.api.core.beans.DictOptionBean;
@@ -35,7 +36,7 @@ import java.util.Map;
 
 /**
  * 报表参数查询表单接口：从模板内嵌参数声明生成 AMIS form schema 与参数候选项。
- * 两个 action 均经 IReportEngine.getXptModel 加载模板（触发报表级授权）；
+ * 两个 action 均在入口显式执行报表级授权（IReportAuthChecker）；
  * 声明了 querySpace 的 SQL 候选先过数据源授权，未声明走默认数据源（由报表级授权覆盖）。
  */
 @BizModel("NopReportForm")
@@ -47,6 +48,7 @@ public class NopReportFormBizModel {
     @Inject
     IJdbcTemplate jdbcTemplate;
 
+    @SingleSession
     @BizQuery
     public Map<String, Object> getReportFormSchema(@Name("reportPath") String reportPath) {
         List<XptParamModel> params = requireParams(reportPath);
@@ -63,6 +65,7 @@ public class NopReportFormBizModel {
         return schema;
     }
 
+    @SingleSession
     @BizQuery
     public List<Map<String, Object>> getReportParamOptions(@Name("reportPath") String reportPath,
                                                            @Name("paramName") String paramName,
@@ -93,6 +96,11 @@ public class NopReportFormBizModel {
     }
 
     private List<XptParamModel> requireParams(String reportPath) {
+        // 入口边界授权（WI1 语义修订：引擎内部不校验，由对外 action 显式调用）
+        IReportAuthChecker authChecker = IReportAuthChecker.get();
+        if (authChecker != null)
+            authChecker.checkReportAccess(reportPath);
+
         ExcelWorkbook workbook = reportEngine.getXptModel(reportPath);
         XptWorkbookModel model = workbook.getModel();
         if (model == null || model.getParams() == null || model.getParams().isEmpty())

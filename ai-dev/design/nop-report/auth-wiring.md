@@ -32,9 +32,9 @@ flowchart TD
     D -- 通过 --> F[执行数据集 / 渲染输出]
 ```
 
-- **渲染入口**：以「报表路径 → 报表定义 → 角色集合」判定当前用户角色是否可渲染；报表模板路径与 `NopReportDefinition.rptText` 精确匹配（rptText 约定存模板 VFS 全路径），不依赖实体存在——VFS 模板无对应定义时不限制。
+- **入口边界**：以「报表路径 → 报表定义 → 角色集合」判定当前用户角色是否可渲染；报表模板路径与 `NopReportDefinition.rptText` 精确匹配（rptText 约定存模板 VFS 全路径），不依赖实体存在——VFS 模板无对应定义时不限制。数据源授权在入口 action 触发数据源访问时判定（如参数候选项 SQL 的 querySpace）。模板内 querySpace 为可信内部配置，不经入口的引擎内部取数不做数据源授权。
 - **取数标签**：数据集标签执行时以「数据源名 → 数据源权限」判定；ORM/query 数据集无显式数据源名的，落报表级权限覆盖。取数检查独立于渲染入口检查——嵌套/子报表场景下每一层取数都要过自己的数据源权限。
-- **缓存协同**：结果缓存命中前同样过渲染入口授权（授权不过，命中缓存也不返回）；缓存键不含用户身份，授权在键之外独立判定。
+- **缓存协同**：缓存下载入口在命中前先过授权（授权不过，命中缓存也不返回）；缓存键不含用户身份，授权在键之外独立判定。
 
 ### 身份与角色
 
@@ -45,6 +45,11 @@ flowchart TD
 
 - 报表级拒绝与数据源级拒绝使用不同错误码（便于定位配置缺哪一层）；`.param` 携带报表路径/数据源名与所需角色提示。
 - 错误消息为英文，配置指引说明如何配置 `NopReportDefinitionAuth`/`NopReportDatasourceAuth` 或调整角色。
+
+### 权限记录加载方式
+
+- 权限记录经 **ORM 关联加载**（`definition.reportAuths` / `datasource.datasourceAuths`，懒加载在 `ormTemplate.runInSession` 内完成），不单独发查询。
+- 入口 action 建议标注 `@SingleSession`（可能被异步调用时亦如此，同一 session 内完成关联导航）；非 session 上下文（异步回源等）由 checker 内部 runInSession 兜底。
 
 ### 边界
 

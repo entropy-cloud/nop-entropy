@@ -72,7 +72,6 @@ public class NopReportResultCache {
      */
     public NopReportResultFile getOrGenerate(String reportPath, String renderType,
                                              Map<String, Object> params, LocalDate bizDate) {
-        requireAuthorized(reportPath);
         String rptId = requireReportId(reportPath);
 
         if (!cacheEnabled()) {
@@ -99,7 +98,6 @@ public class NopReportResultCache {
      */
     public String generateAsync(String reportPath, String renderType,
                                 Map<String, Object> params, LocalDate bizDate) {
-        requireAuthorized(reportPath);
         if (!cacheEnabled()) {
             // 开关关闭：同步渲染，不落缓存
             NopReportResultFile record = newRecord(requireReportId(reportPath),
@@ -123,14 +121,13 @@ public class NopReportResultCache {
         daoProvider.daoFor(NopReportResultFile.class).saveEntity(record);
 
         GlobalExecutors.globalWorker().execute(() -> {
+            // 异步线程无 ORM session：状态回写走直接 SQL
             try {
                 doGenerate(record, reportPath, renderType, params);
-                record.setStatus(STATUS_DONE);
-                daoProvider.daoFor(NopReportResultFile.class).updateEntityDirectly(record);
+                updateStatusByJdbc(record.getSid(), STATUS_DONE, record.getFilePath(),
+                        record.getFileName(), record.getFileLength(), null);
             } catch (Exception e) {
-                record.setStatus(STATUS_FAILED);
-                record.setDescription(String.valueOf(e));
-                daoProvider.daoFor(NopReportResultFile.class).updateEntityDirectly(record);
+                updateStatusByJdbc(record.getSid(), STATUS_FAILED, null, null, 0L, String.valueOf(e));
             }
         });
         return cacheKey;
@@ -170,18 +167,16 @@ public class NopReportResultCache {
                                  String cacheKey, String normalizedParams, LocalDate bizDate,
                                  Map<String, Object> params) {
         NopReportResultFile record = newRecord(rptId, cacheKey, renderType, normalizedParams, bizDate);
-        record.setStatus(STATUS_GENERATING);
-        daoProvider.daoFor(NopReportResultFile.class).saveEntity(record);
         try {
             doGenerate(record, reportPath, renderType, params);
             record.setStatus(STATUS_DONE);
-            daoProvider.daoFor(NopReportResultFile.class).updateEntityDirectly(record);
         } catch (Exception e) {
             record.setStatus(STATUS_FAILED);
             record.setDescription(String.valueOf(e));
-            daoProvider.daoFor(NopReportResultFile.class).updateEntityDirectly(record);
+            daoProvider.daoFor(NopReportResultFile.class).saveEntity(record);
             throw NopException.adapt(e);
         }
+        daoProvider.daoFor(NopReportResultFile.class).saveEntity(record);
         return record;
     }
 
@@ -260,6 +255,20 @@ public class NopReportResultCache {
         return record;
     }
 
+    private void updateStatusByJdbc(String sid, int status, String filePath, String fileName, long length, String error) {
+        io.nop.core.lang.sql.SQL.SqlBuilder sb = io.nop.core.lang.sql.SQL.begin()
+                .append("update nop_report_result_file set STATUS = ").param(status);
+        if (filePath != null) {
+            sb.append(", FILE_PATH = ").param(filePath)
+                    .append(", FILE_NAME = ").param(fileName)
+                    .append(", FILE_LENGTH = ").param(length);
+        }
+        if (error != null)
+            sb.append(", DESCRIPTION = ").param(error.length() > 1000 ? error.substring(0, 1000) : error);
+        sb.append(" where SID = ").param(sid);
+        jdbcTemplate.executeUpdate(sb.end());
+    }
+
     static String sha256Hex(String text) {
         try {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
@@ -271,13 +280,6 @@ public class NopReportResultCache {
         } catch (java.security.NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    /**
-     * 仅执行报表级授权（WI1，命中不越权）；供 BizModel 各 action 入口调用。
-     */
-    public void requireAuthorized(String reportPath) {
-        reportEngine.getXptModel(reportPath);
     }
 
     private String requireReportId(String reportPath) {

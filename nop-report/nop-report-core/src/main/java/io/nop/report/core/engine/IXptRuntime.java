@@ -84,16 +84,6 @@ public interface IXptRuntime extends IEvalContext {
     }
 
     /**
-     * 校验当前用户可访问指定数据源（xpt-rt 取数标签在取数前调用）。
-     * checker 未注册（嵌入式库使用）时直接放行；未授权抛 nop.err.report.auth.* 错误。
-     */
-    default void checkDataSourceAccess(String querySpace) {
-        IReportAuthChecker authChecker = IReportAuthChecker.get();
-        if (authChecker != null)
-            authChecker.checkDataSourceAccess(querySpace);
-    }
-
-    /**
      * 按 provider 返回的行级条件包装 SQL：select * from ( 原SQL ) _rpt_sec where <条件>，
      * 保留原 SQL 语句级属性；provider 未注册或无条件时原样返回。
      */

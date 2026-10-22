@@ -14,10 +14,12 @@ import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.beans.WebContentBean;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.report.dao.entity.NopReportResultFile;
+import io.nop.api.core.annotations.orm.SingleSession;
 import jakarta.inject.Inject;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.report.service.NopReportConfigs;
+import io.nop.report.service.auth.NopReportAuthChecker;
 
 import java.time.LocalDate;
 import java.util.Map;
@@ -33,19 +35,25 @@ public class NopReportCacheBizModel {
     NopReportResultCache resultCache;
 
     @Inject
+    NopReportAuthChecker authChecker;
+
+    @Inject
     IDaoProvider daoProvider;
 
+    @SingleSession
     @BizQuery
     public WebContentBean download(@Name("reportPath") String reportPath,
                                    @Name("renderType") String renderType,
                                    @Name("params") Map<String, Object> params,
                                    @Name("bizDate") LocalDate bizDate) {
+        reportPathAuth(reportPath);
         NopReportResultFile record = resultCache.getOrGenerate(reportPath, renderType, params, bizDate);
         java.io.File file = new java.io.File(NopReportConfigs.CFG_REPORT_RESULT_CACHE_DIR.get(), record.getFilePath());
         io.nop.core.resource.impl.FileResource resource = new io.nop.core.resource.impl.FileResource(file);
         return new WebContentBean(mimeType(renderType), resource.toFile(), record.getFileName(), false);
     }
 
+    @SingleSession
     @BizQuery
     public NopReportResultFile getResultStatus(@Name("reportPath") String reportPath,
                                                @Name("cacheKey") String cacheKey) {
@@ -60,6 +68,7 @@ public class NopReportCacheBizModel {
         return record;
     }
 
+    @SingleSession
     @BizMutation
     public void invalidate(@Name("reportPath") String reportPath) {
         reportPathAuth(reportPath);
@@ -67,7 +76,8 @@ public class NopReportCacheBizModel {
     }
 
     private void reportPathAuth(String reportPath) {
-        resultCache.requireAuthorized(reportPath);
+        // 入口边界授权（WI1 语义修订：引擎内部不校验，由对外 action 显式调用）
+        authChecker.checkReportAccess(reportPath);
     }
 
     private String requireReportId(String reportPath) {

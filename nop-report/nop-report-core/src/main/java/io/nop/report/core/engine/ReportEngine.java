@@ -56,10 +56,6 @@ public class ReportEngine implements IReportEngine {
 
     @Override
     public ExcelWorkbook getXptModel(String reportPath) {
-        IReportAuthChecker authChecker = IReportAuthChecker.get();
-        if (authChecker != null)
-            authChecker.checkReportAccess(reportPath);
-
         String fileType = StringHelper.fileType(reportPath);
         if (!XptConstants.ALLOWED_XPT_FILE_TYPES.contains(fileType))
             throw new NopException(ERR_XPT_UNSUPPORTED_XPT_FILE_TYPE)

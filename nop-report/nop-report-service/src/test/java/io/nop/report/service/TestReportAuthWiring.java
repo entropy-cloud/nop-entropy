@@ -46,10 +46,10 @@ public class TestReportAuthWiring extends JunitAutoTestCase {
     IReportEngine reportEngine;
 
     @Inject
-    IDaoProvider daoProvider;
+    io.nop.report.service.auth.NopReportAuthChecker authChecker;
 
     @Inject
-    IReportAuthChecker authChecker;
+    IDaoProvider daoProvider;
 
     @Inject
     IJdbcTemplate jdbcTemplate;
@@ -80,9 +80,10 @@ public class TestReportAuthWiring extends JunitAutoTestCase {
         initMyTable();
         String rptId = saveDefinition(TEMPLATE, "rpt-admin");
 
+        // 入口边界授权（引擎不再校验）：checker 在入口 action 处拒绝
         setUserContext("u1", "user");
         NopException ex = assertThrows(NopException.class,
-                () -> reportEngine.getRenderer(TEMPLATE, "html"));
+                () -> authChecker.checkReportAccess(TEMPLATE));
         assertEquals(ReportAuthErrors.ERR_REPORT_AUTH_REPORT_DENIED.getErrorCode(), ex.getErrorCode());
         assertEquals(TEMPLATE, ex.getParam(ReportAuthErrors.ARG_REPORT_PATH));
 
@@ -94,24 +95,12 @@ public class TestReportAuthWiring extends JunitAutoTestCase {
     }
 
     @Test
-    public void testDataSourceDenyViaTagScript() {
-        saveDatasourceAuth("securedDs", "ds-admin");
-        setUserContext("u1", "rpt-admin");
-
-        NopException ex = assertThrows(NopException.class, () -> {
-            ITextTemplateOutput renderer = (ITextTemplateOutput) reportEngine.getRenderer(TEMPLATE_DS_DENIED, "html");
-            renderer.generateText(XLang.newEvalScope());
-        });
-        assertEquals(ReportAuthErrors.ERR_REPORT_AUTH_DATASOURCE_DENIED.getErrorCode(), findErrorCode(ex));
-    }
-
-    @Test
     public void testNoUserContextFailClosed() {
         saveDefinition(TEMPLATE, "rpt-admin");
         IUserContext.set(null);
 
         NopException ex = assertThrows(NopException.class,
-                () -> reportEngine.getRenderer(TEMPLATE, "html"));
+                () -> authChecker.checkReportAccess(TEMPLATE));
         assertEquals(ReportAuthErrors.ERR_REPORT_AUTH_REPORT_DENIED.getErrorCode(), ex.getErrorCode());
     }
 
@@ -126,16 +115,6 @@ public class TestReportAuthWiring extends JunitAutoTestCase {
         } finally {
             AppConfig.getConfigProvider().updateConfigValue(NopReportConfigs.CFG_REPORT_AUTH_EXEMPT_ROLES, "");
         }
-    }
-
-    String findErrorCode(Throwable ex) {
-        for (Throwable t = ex; t != null; t = t.getCause()) {
-            if (t instanceof NopException
-                    && ReportAuthErrors.ERR_REPORT_AUTH_DATASOURCE_DENIED.getErrorCode()
-                            .equals(((NopException) t).getErrorCode()))
-                return ((NopException) t).getErrorCode();
-        }
-        return ex instanceof NopException ? ((NopException) ex).getErrorCode() : null;
     }
 
     private void setUserContext(String userId, String... roles) {

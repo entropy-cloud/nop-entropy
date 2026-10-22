@@ -10,6 +10,7 @@ package io.nop.report.service.auth;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.orm.IOrmTemplate;
 import io.nop.report.core.engine.IReportAuthChecker;
 import io.nop.report.dao.entity.NopReportDatasource;
 import io.nop.report.dao.entity.NopReportDatasourceAuth;
@@ -19,7 +20,6 @@ import io.nop.report.service.NopReportConfigs;
 import jakarta.inject.Inject;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import static io.nop.report.core.ReportAuthErrors.ARG_DS_NAME;
@@ -38,32 +38,44 @@ import static io.nop.report.core.ReportAuthErrors.ERR_REPORT_AUTH_REPORT_DENIED;
  * <li>豁免角色由配置项 nop.report.auth.exempt-roles 指定，默认无豁免</li>
  * <li>报表路径与 NopReportDefinition.rptText 精确匹配（rptText 约定存模板 VFS 全路径）</li>
  * </ul>
+ * <p>
+ * 权限记录经 <b>ORM 关联加载</b>（definition.reportAuths / datasource.datasourceAuths，
+ * 懒加载在 runInSession 内完成），不单独发查询。本检查由<b>系统入口</b>（对外 BizModel action，
+ * 建议标注 {@code @SingleSession}）调用；内部引擎不感知授权。
  */
 public class NopReportAuthChecker implements IReportAuthChecker {
 
     private IDaoProvider daoProvider;
+
+    private IOrmTemplate ormTemplate;
 
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
     }
 
+    @Inject
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
+
     @Override
     public void checkReportAccess(String reportPath) {
-        NopReportDefinition probe = new NopReportDefinition();
-        probe.setRptText(reportPath);
-        NopReportDefinition definition = daoProvider.daoFor(NopReportDefinition.class).findFirstByExample(probe);
-        if (definition == null)
-            return;
+        ormTemplate.runInSession(() -> {
+            NopReportDefinition probe = new NopReportDefinition();
+            probe.setRptText(reportPath);
+            NopReportDefinition definition = daoProvider.daoFor(NopReportDefinition.class).findFirstByExample(probe);
+            if (definition == null)
+                return;
 
-        NopReportDefinitionAuth authProbe = new NopReportDefinitionAuth();
-        authProbe.setRptId(definition.getRptId());
-        List<? extends NopReportDefinitionAuth> auths =
-                daoProvider.daoFor(NopReportDefinitionAuth.class).findAllByExample(authProbe);
-        if (auths.isEmpty())
-            return;
+            Set<String> authRoleIds = new HashSet<>();
+            for (NopReportDefinitionAuth auth : definition.getReportAuths())
+                authRoleIds.add(auth.getRoleId());
+            if (authRoleIds.isEmpty())
+                return;
 
-        checkRoles(allowedRoleIds(auths), reportPath, null);
+            checkRoles(authRoleIds, reportPath, null);
+        });
     }
 
     @Override
@@ -71,31 +83,21 @@ public class NopReportAuthChecker implements IReportAuthChecker {
         if (querySpace == null)
             return;
 
-        NopReportDatasource probe = new NopReportDatasource();
-        probe.setName(querySpace);
-        NopReportDatasource datasource = daoProvider.daoFor(NopReportDatasource.class).findFirstByExample(probe);
-        if (datasource == null)
-            return;
+        ormTemplate.runInSession(() -> {
+            NopReportDatasource probe = new NopReportDatasource();
+            probe.setName(querySpace);
+            NopReportDatasource datasource = daoProvider.daoFor(NopReportDatasource.class).findFirstByExample(probe);
+            if (datasource == null)
+                return;
 
-        NopReportDatasourceAuth authProbe = new NopReportDatasourceAuth();
-        authProbe.setDatasourceId(datasource.getSid());
-        List<? extends NopReportDatasourceAuth> auths =
-                daoProvider.daoFor(NopReportDatasourceAuth.class).findAllByExample(authProbe);
-        if (auths.isEmpty())
-            return;
+            Set<String> authRoleIds = new HashSet<>();
+            for (NopReportDatasourceAuth auth : datasource.getDatasourceAuths())
+                authRoleIds.add(auth.getRoleId());
+            if (authRoleIds.isEmpty())
+                return;
 
-        checkRoles(allowedRoleIds(auths), null, querySpace);
-    }
-
-    private <T> Set<String> allowedRoleIds(List<T> auths) {
-        Set<String> roleIds = new HashSet<>();
-        for (Object auth : auths) {
-            if (auth instanceof NopReportDefinitionAuth)
-                roleIds.add(((NopReportDefinitionAuth) auth).getRoleId());
-            else if (auth instanceof NopReportDatasourceAuth)
-                roleIds.add(((NopReportDatasourceAuth) auth).getRoleId());
-        }
-        return roleIds;
+            checkRoles(authRoleIds, null, querySpace);
+        });
     }
 
     private void checkRoles(Set<String> authRoleIds, String reportPath, String dsName) {

@@ -52,6 +52,9 @@ public class TestE2EAcceptance extends JunitAutoTestCase {
     @Inject
     NopReportCacheBizModel cacheBizModel;
 
+    @Inject
+    io.nop.report.service.auth.NopReportAuthChecker authChecker;
+
     @AfterEach
     public void clearUserContext() {
         IUserContext.set(null);
@@ -115,8 +118,9 @@ public class TestE2EAcceptance extends JunitAutoTestCase {
     public void testUnauthorizedDenied() {
         init();
         setUserContext("mallory", "intruder");
+        // 入口边界授权：对外 action（缓存下载）在调用引擎前拒绝
         NopException ex = assertThrows(NopException.class,
-                () -> reportEngine.getXptModel(TEMPLATE));
+                () -> cacheBizModel.download(TEMPLATE, "html", Map.of(), null));
         assertEquals(ERR_REPORT_AUTH_REPORT_DENIED.getErrorCode(), ex.getErrorCode());
     }
 

@@ -34,13 +34,13 @@
 - 列级脱敏：单元格字段取值时按规则掩码（phone/name/idCard/full）；数据集与聚合不受影响，但**被公式引用的字段不得配置 mask**（公式对掩码文本求值行为未定义）
 - `UseQueryDataSet`（query bean 路径）不在行过滤范围（走平台 ORM 数据权限 `IDataAuthChecker`）
 
-**权限接线（已生效）**：渲染入口（`IReportEngine.getXptModel`）与 JDBC 取数标签（`xpt-rt.xlib` 的 `JdbcDataSet`/`UseJdbcDataSet`）强制授权检查，未授权抛 `nop.err.report.auth.*`：
+**权限接线（已生效，入口边界模式）**：授权在**系统入口**（对外 BizModel action：渲染/下载/表单等）显式调用 `NopReportAuthChecker`（bean `nopReportAuthChecker`），**内部引擎（`IReportEngine`/xpt-rt 标签）不感知授权**，保持可嵌入式复用：
 
-- 消费 `NopReportDefinitionAuth`（按角色）与 `NopReportDatasourceAuth`（按角色），用户角色取自 nop-auth 会话上下文
-- 报表模板路径与 `NopReportDefinition.rptText` 精确匹配——**rptText 约定存模板 VFS 全路径**（该字段原注释「文件路径、SQL语句等」的歧义由此收窄：平台授权语境下 rptText = 模板路径）
+- 消费 `NopReportDefinitionAuth`（按角色）与 `NopReportDatasourceAuth`（按角色，入口触发数据源访问时判定），用户角色取自 nop-auth 会话上下文
+- 报表模板路径与 `NopReportDefinition.rptText` 精确匹配——**rptText 约定存模板 VFS 全路径**
 - 授权语义：定义/数据源未配置 auth 记录 → 不限制；配置了 → 用户角色须命中任一；无用户上下文且配置了记录 → fail-closed 拒绝（调度等系统调用方须显式建立用户上下文）；豁免角色由配置项 `nop.report.auth.exempt-roles`（逗号分隔，默认空）指定
-- `getRendererForXptModel`/`getRendererForExcel` 为程序化内部 API（模型已在内存、无平台报表身份），不做单独检查；公共渲染入口走 `getRenderer(path, renderType)`
-- 引擎作嵌入式库使用（无 `nopReportAuthChecker` bean）时不启用检查
+- 权限记录经 ORM 关联加载（`reportAuths`/`datasourceAuths`）；入口 action 建议标注 `@SingleSession`
+- 引擎作嵌入式库使用（无 checker bean）时不启用检查；子报表由主模板授权覆盖，不逐层重复检查
 
 **已知限制勘误**：
 

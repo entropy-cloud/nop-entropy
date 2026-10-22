@@ -22,7 +22,7 @@
 ## 三、核心设计
 
 - 求值挂点：`ExpandedSheetEvaluator` cell 求值尾部（styleIdExpr/condStyles 之后）；子作用域传参（`param` + 深度计数），不污染父作用域。
-- 安全：子模板加载经 `getXptModel`（WI1 授权拦截）；param 经子模板的 WI2 校验；嵌套深度 fail-fast。
+- 安全：子模板为主模板的内部引用，**授权由主模板入口覆盖，不逐层重复检查**；param 经子模板的 WI2 校验；嵌套深度 fail-fast。
 - 已知限制：`DisabledEvalScope`（HtmlRenderHelper 静态渲染）下 renderType 未标记 → 子报表按文本回退；子报表渲染结果不缓存（同 param 多 cell 重复渲染为 follow-up）。
 
 ## 四、拒绝了什么
