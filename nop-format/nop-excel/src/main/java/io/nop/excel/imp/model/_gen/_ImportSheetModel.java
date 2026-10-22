@@ -187,7 +187,8 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     /**
      *  
      * xml name: unknownField
-     * 
+     * 兜底字段：Excel 中无法匹配到任何已定义字段的列（未知列）会被路由到这里。
+     * 设为 virtual="true" 即可忽略未知列而不报错。对象模式与列表/二维表(list)模式均生效。
      */
     private io.nop.excel.imp.model.ImportFieldModel _unknownField ;
     
@@ -683,7 +684,8 @@ public abstract class _ImportSheetModel extends io.nop.core.resource.component.A
     /**
      * 
      * xml name: unknownField
-     *  
+     *  兜底字段：Excel 中无法匹配到任何已定义字段的列（未知列）会被路由到这里。
+     * 设为 virtual="true" 即可忽略未知列而不报错。对象模式与列表/二维表(list)模式均生效。
      */
     
     public io.nop.excel.imp.model.ImportFieldModel getUnknownField(){
