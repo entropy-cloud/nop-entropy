@@ -10,4 +10,10 @@
     <bean id="nopReportDataSecurityProvider"
           class="io.nop.report.service.security.NopReportDataSecurityProvider"/>
 
+    <bean id="nopReportResultCache"
+          class="io.nop.report.service.cache.NopReportResultCache"/>
+
+    <bean id="nopReportCacheBizModel"
+          class="io.nop.report.service.cache.NopReportCacheBizModel"/>
+
 </beans>

@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0–WI5 完成）
+> Last updated: 2026-10-22（WI0–WI6 完成）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -60,7 +60,7 @@
 
 ### M3 — 缓存与大数据
 
-- [ ] WI6 结果文件缓存端到端：把 `NopReportResultFile` 接入 `IReportEngine.getRenderer`/`generateFromXptModel` 前置缓存（按「报表 + 参数 + 数据版本」键控，含 TTL/手动失效/异步生成 + 轮询下载）；缓存命中不得越权（与 WI1 授权协同）；供 nop-datav D5 调度复用。（Deliverable: 缓存链路 + 失效/越权测试；deps: WI1、WI2；Item Type: Feature）
+- [x] WI6 结果文件缓存端到端：把 `NopReportResultFile` 接入 `IReportEngine.getRenderer`/`generateFromXptModel` 前置缓存（按「报表 + 参数 + 数据版本」键控，含 TTL/手动失效/异步生成 + 轮询下载）；缓存命中不得越权（与 WI1 授权协同）；供 nop-datav D5 调度复用。（Deliverable: 缓存链路 + 失效/越权测试；deps: WI1、WI2；Item Type: Feature）
 - [ ] WI7 大数据集流式渲染：数据集游标/分页 + xlsx/html 渲染侧增量写出；内存上限/背压与超限告警；大报表（长表/宽表）性能基线不回归（PDF 侧流式由姊妹 roadmap 负责）。（Deliverable: 流式数据集 + 增量渲染 + 性能基线；deps: WI0；Item Type: Feature + Proof）
 
 ### M4 — 分析与展现增强
