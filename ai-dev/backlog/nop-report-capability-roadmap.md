@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0 完成：契约草案 + 验收基线 + owner doc 能力面收敛）
+> Last updated: 2026-10-22（WI0、WI1 完成）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -49,7 +49,7 @@
 
 ### M1 — 安全与参数平台化
 
-- [ ] WI1 报表/数据源权限接线：在 `IReportEngine` 渲染入口与数据集取数（`UseJdbcDataSet`/`UseOrmDataSet`/`UseQueryDataSet`/`JdbcDataSet`）统一插入授权检查，消费 `NopReportDefinitionAuth`/`NopReportDatasourceAuth` + nop-auth 角色/资源权限；未授权抛 `nop.err.report.*` 并给配置指引（复用两档错误处理惯例）；覆盖「配置权限表但不接线」现状（P1-3.6-002）。（Deliverable: 授权链路 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI1 报表/数据源权限接线：在 `IReportEngine` 渲染入口与数据集取数（`UseJdbcDataSet`/`UseOrmDataSet`/`UseQueryDataSet`/`JdbcDataSet`）统一插入授权检查，消费 `NopReportDefinitionAuth`/`NopReportDatasourceAuth` + nop-auth 角色/资源权限；未授权抛 `nop.err.report.*` 并给配置指引（复用两档错误处理惯例）；覆盖「配置权限表但不接线」现状（P1-3.6-002）。（Deliverable: 授权链路 + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI2 声明式报表参数模型 + 查询表单：引入 ReportParameterModel（name/type/label/required/default/options 来源（SQL/字典/静态）/控件类型/联动/级联），内嵌 XPT 模型或挂接 report definition；模板 `${param.xxx}` 统一取值；生成 AMIS 查询表单与后端参数校验/默认值/级联接口；参数参与缓存键（WI6）。（Deliverable: 参数模型 + 查询表单 + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI3 数据级安全（行/列权限）：按角色/部门/当前用户注入行级过滤谓词与列级脱敏——在取数前重写 SQL/query（或 ORM 追加条件），与 WI1 授权协同；提供声明式规则（如按 `orgId`/`tenantId` 自动附加）。（Deliverable: 行级过滤 + 列级脱敏 + 测试；deps: WI1；Item Type: Feature）
 

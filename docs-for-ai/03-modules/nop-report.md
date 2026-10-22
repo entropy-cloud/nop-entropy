@@ -18,19 +18,27 @@
 
 - ✅ 完整：单元格/交叉展开（含父子层级嵌套）、套打三端一致、PDF 分页与重复表头/关键列（`nop.report.pdf.*` 配置）、xlsx/html/shtml/pdf 四种 renderType、图表动态绑定、公式函数（`ReportFunctions`）、导入模板自动生成、嵌入式 API（`IReportEngine`）
 - 🟡 受限：条件格式（仅 `styleIdExpr`，无规则集/色阶/数据条/图标集）、交互（`linkExpr`/`editorId`/`viewerId` 仅模型层，渲染层无输出）、子报表（仅父子层级展开，无跨模板引用）、大数据（`JdbcDataSet` 流式取数但渲染侧非增量）、条码（仅 QRCODE）、Word（仅表格路径，未注册 renderType）
-- ❌ 缺失：参数声明与查询表单（只能应用硬塞 `IEvalScope`）、渲染/取数链路权限校验、数据级行/列权限、HTML 分页打印、结果缓存接线、模板 i18n、Web 设计器、OLAP 数据源、模板版本管理
+- ❌ 缺失：参数声明与查询表单（只能应用硬塞 `IEvalScope`）、数据级行/列权限、HTML 分页打印、结果缓存接线、模板 i18n、Web 设计器、OLAP 数据源、模板版本管理
+
+**权限接线（已生效）**：渲染入口（`IReportEngine.getXptModel`）与 JDBC 取数标签（`xpt-rt.xlib` 的 `JdbcDataSet`/`UseJdbcDataSet`）强制授权检查，未授权抛 `nop.err.report.auth.*`：
+
+- 消费 `NopReportDefinitionAuth`（按角色）与 `NopReportDatasourceAuth`（按角色），用户角色取自 nop-auth 会话上下文
+- 报表模板路径与 `NopReportDefinition.rptText` 精确匹配——**rptText 约定存模板 VFS 全路径**（该字段原注释「文件路径、SQL语句等」的歧义由此收窄：平台授权语境下 rptText = 模板路径）
+- 授权语义：定义/数据源未配置 auth 记录 → 不限制；配置了 → 用户角色须命中任一；无用户上下文且配置了记录 → fail-closed 拒绝（调度等系统调用方须显式建立用户上下文）；豁免角色由配置项 `nop.report.auth.exempt-roles`（逗号分隔，默认空）指定
+- `getRendererForXptModel`/`getRendererForExcel` 为程序化内部 API（模型已在内存、无平台报表身份），不做单独检查；公共渲染入口走 `getRenderer(path, renderType)`
+- 引擎作嵌入式库使用（无 `nopReportAuthChecker` bean）时不启用检查
 
 **已知限制勘误**：
 
-- 报表/数据源权限（`NopReportDefinitionAuth`/`NopReportDatasourceAuth`）：表可配置但**引擎渲染与取数链路当前不校验**（P1-3.6-002），勿依赖
 - 报表结果文件缓存（`NopReportResultFile`）：实体存在但**引擎链路当前未接线**，勿依赖
+- ~~报表/数据源权限预留未接线~~（已消除：渲染入口与取数标签现强制授权，见下「权限接线」）
 
 **补强方向与契约**：缺失能力的目标契约已在 AI 开发记录区的设计目录（nop-report 子目录）裁定为草案，落地以报表能力 roadmap 编排为准：
 
 | 契约 | 摘要 |
 |------|------|
 | 参数模型 | 声明内嵌 XPT、`${param.*}` 统一取值、AMIS 查询表单、参与缓存键 |
-| 权限接线 | 渲染入口 + 取数标签双重授权检查、`nop.err.report.*` 快速失败 |
+| 权限接线（已落地） | 渲染入口 + 取数标签双重授权检查、`nop.err.report.auth.*` 快速失败、exempt-roles 豁免 |
 | HTML 分页打印 | 浏览器打印语境的 `@page`/重复表头/页脚占位符，语义对齐 PDF 配置 |
 | HTML 验收基线 | 浏览器截图 golden + DOM 断言的验收口径 |
 
@@ -49,12 +57,12 @@
 | 实体 | 表名 | 用途 |
 |------|------|------|
 | NopReportDefinition | `nop_report_definition` | 报表定义 |
-| NopReportDefinitionAuth | `nop_report_definition_auth` | 报表访问权限（按角色；**预留未接线**——引擎渲染/取数当前不消费，P1-3.6-002） |
+| NopReportDefinitionAuth | `nop_report_definition_auth` | 报表访问权限（按角色；已接线——渲染入口强制校验，见上「权限接线」） |
 | NopReportDataset | `nop_report_dataset` | 数据集定义 |
 | NopReportSubDataset | `nop_report_sub_dataset` | 子数据集关联 |
 | NopReportDatasetRef | `nop_report_dataset_ref` | 报表-数据集引用 |
 | NopReportDatasource | `nop_report_datasource` | 数据源定义 |
-| NopReportDatasourceAuth | `nop_report_datasource_auth` | 数据源权限（按角色；**预留未接线**——同上，P1-3.6-002） |
+| NopReportDatasourceAuth | `nop_report_datasource_auth` | 数据源权限（按角色；已接线——JDBC 取数标签强制校验，见上「权限接线」） |
 | NopReportResultFile | `nop_report_result_file` | 缓存的报表结果文件（**实体存在、引擎链路未接线**） |
 
 ## 子模块

@@ -67,6 +67,16 @@ public interface IXptRuntime extends IEvalContext {
         return getDict(dictName).getLabelByValue(value);
     }
 
+    /**
+     * 校验当前用户可访问指定数据源（xpt-rt 取数标签在取数前调用）。
+     * checker 未注册（嵌入式库使用）时直接放行；未授权抛 nop.err.report.auth.* 错误。
+     */
+    default void checkDataSourceAccess(String querySpace) {
+        IReportAuthChecker authChecker = IReportAuthChecker.get();
+        if (authChecker != null)
+            authChecker.checkDataSourceAccess(querySpace);
+    }
+
     Object evaluateCell(ExpandedCell cell);
 
     Object field(String field);
