@@ -1,6 +1,6 @@
 # nop-report 功能分析与外部报表引擎对照补强建议
 
-> Status: open
+> Status: converged（当前能力面与已知限制的 canonical owner 已移交 `docs-for-ai/03-modules/nop-report.md`「当前能力面与已知限制」节；本文档保留 25 维跨引擎对照矩阵与 P0/P1/P2 建议作为调研证据，矩阵数字不再随实现演进更新）
 > Date: 2026-10-17
 > Scope: `nop-report/*`（core / pdf / docx / ext / service / web / api / dao），对照 `~/sources/report-engines` 下载的商业与开源报表引擎
 > Conclusion: nop-report 的「Excel 单元格 + 展开」模型在中文式网格/套打/多源报表上优于传统 band 模型，工程架构（同一展开逻辑驱动多渲染器、可逆计算）也领先；主要缺口集中在 **参数化查询表单、权限接线、HTML 分页打印保真、交互式分析、导出格式广度、填报/数据回写** 六类。建议按 P0/P1/P2 分级补强，而非改换 band 模型。

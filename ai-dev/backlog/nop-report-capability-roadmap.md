@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-17（起草，全部 WI 未启动）
+> Last updated: 2026-10-22（WI0 完成：契约草案 + 验收基线 + owner doc 能力面收敛）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -45,7 +45,7 @@
 
 ### M0 — 基线与契约固化
 
-- [ ] WI0 能力矩阵与契约固化：把 `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md` 的能力矩阵与 `~/sources/report-engines` 参考索引收敛为 docs-for-ai owner doc 增补（参数/权限/缓存/交互契约、边界、已知限制）；在 ai-dev/design/nop-report 增设「参数模型」「权限接线」「HTML 分页」设计契约草案；建立 HTML 打印/交互的视觉与行为验收基线（复用 nop-pdf roadmap 的 PNG/diff 工具链；浏览器侧用 Playwright 截图）。（Deliverable: owner doc 增补 + 设计契约草案 + 验收基线；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 能力矩阵与契约固化：把 `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md` 的能力矩阵与 `~/sources/report-engines` 参考索引收敛为 docs-for-ai owner doc 增补（参数/权限/缓存/交互契约、边界、已知限制）；在 ai-dev/design/nop-report 增设「参数模型」「权限接线」「HTML 分页」设计契约草案；建立 HTML 打印/交互的视觉与行为验收基线（复用 nop-pdf roadmap 的 PNG/diff 工具链；浏览器侧用 Playwright 截图）。（Deliverable: owner doc 增补 + 设计契约草案 + 验收基线；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 安全与参数平台化
 
@@ -84,7 +84,7 @@
 
 - [ ] WI16 全链路验收与文档收口：参数化报表（WI2）+ 权限（WI1/WI3）+ HTML 分页打印（WI4）+ 缓存（WI6）+ 交互/钻取（WI5/WI9）+ 新导出格式（WI10）端到端验收；更新 owner doc（`docs-for-ai/03-modules/nop-report.md` 能力矩阵、`docs-for-ai/03-runbooks/generate-report.md` 参数/权限用法、已知限制）与 `docs-for-ai/INDEX.md` 路由、`docs-for-ai/01-repo-map/module-groups.md` 模块登记、`docs-for-ai/04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致。（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI15 完成或显式裁定；Item Type: Proof）
 
-- ★ **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
+- ★ [x] **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
 - ★ **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
 - ★ **Milestone: HTML 打印与交互可用**（WI4–WI5 完成后勾选）
 - ★ **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
