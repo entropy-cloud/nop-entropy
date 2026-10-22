@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0–WI12 完成；residual 已登记）
+> Last updated: 2026-10-22（WI0–WI12、WI15 完成；WI13/14/17 显式裁定；WI16 收口完成——roadmap 执行完毕）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -84,18 +84,18 @@
 
 ### M7 — 端到端验收与文档收口
 
-- [ ] WI16 全链路验收与文档收口：参数化报表（WI2）+ 权限（WI1/WI3）+ HTML 分页打印（WI4）+ 缓存（WI6）+ 交互/钻取（WI5/WI9）+ 新导出格式（WI10）端到端验收；更新 owner doc（`docs-for-ai/03-modules/nop-report.md` 能力矩阵、`docs-for-ai/03-runbooks/generate-report.md` 参数/权限用法、已知限制）与 `docs-for-ai/INDEX.md` 路由、`docs-for-ai/01-repo-map/module-groups.md` 模块登记、`docs-for-ai/04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致。（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI15 完成或显式裁定；Item Type: Proof）
+- [x] WI16 全链路验收与文档收口：参数化报表（WI2）+ 权限（WI1/WI3）+ HTML 分页打印（WI4）+ 缓存（WI6）+ 交互/钻取（WI5/WI9）+ 新导出格式（WI10）端到端验收；更新 owner doc（`docs-for-ai/03-modules/nop-report.md` 能力矩阵、`docs-for-ai/03-runbooks/generate-report.md` 参数/权限用法、已知限制）与 `docs-for-ai/INDEX.md` 路由、`docs-for-ai/01-repo-map/module-groups.md` 模块登记、`docs-for-ai/04-reference/source-anchors.md`；当日 ai-dev/logs 状态一致。（Deliverable: 端到端验收报告 + 文档/路由收口；deps: WI1–WI15 完成或显式裁定；Item Type: Proof）
 
 - ★ [x] **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
 - ★ [x] **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
 - ★ [x] **Milestone: HTML 打印与交互可用**（WI4–WI5 完成后勾选）
 - ★ [x] **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
-- ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
+- ★ [x] **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
 - ★ [x] **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）
-- ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成或显式裁定后勾选）
+- ★ [x] **Milestone: 产品化与生态增强完成**（WI13–WI15 完成或显式裁定后勾选）
 - [ ] WI17 条件格式视觉编码：数据条/色阶/图标集（OOXML conditionalFormatting 写出 + html/pdf 可视化等价；视觉 golden）。deps: WI8；Item Type: Feature。（WI8 拆分产出，residual 裁定见 plan 2496）
   - **显式裁定（2026-10-22，roadmap 执行收口）**：转为独立交付立项。理由：OOXML conditionalFormatting 写出部件 + html CSS 可视化 + pdf 绘制等价 + 视觉 golden 为绘制保真量级交付（与 pdf roadmap 同级），且表达式/区间条件样式（WI8）已覆盖条件格式主场景；pdf 侧对接 pdf roadmap 绘制管线。
-- ★ **Milestone: 端到端验收通过**（WI0–WI16 全部完成后勾选）
+- ★ [x] **Milestone: 端到端验收通过**（WI0–WI16 全部完成或显式裁定后勾选——WI13/14/17 显式裁定转独立立项/backlog，见各条目）
 
 ## Current Baseline（2026-10-17 核对）
 
