@@ -78,6 +78,36 @@ public final class JavaNodeIndex {
     }
 
     /**
+     * The OUTERMOST expression whose start byte equals {@code bytePos}: a
+     * capture's start position is the start of the whole captured
+     * expression, so the type query must resolve the full expression
+     * ({@code b.tag().toString()} starting at {@code b}), not the innermost
+     * identifier the byte also falls inside. Null when no expression starts
+     * at the position (the caller falls back to {@link #minimalContaining}).
+     */
+    public Node outermostExpressionStartingAt(int bytePos) {
+        return descendExpression(cu, bytePos);
+    }
+
+    private Node descendExpression(Node node, int bytePos) {
+        int[] range = ranges.get(node);
+        if (range == null || bytePos < range[0] || bytePos >= range[1]) {
+            return null;
+        }
+        if (node instanceof com.github.javaparser.ast.expr.Expression
+                && range[0] == bytePos) {
+            return node;
+        }
+        for (Node child : node.getChildNodes()) {
+            Node deeper = descendExpression(child, bytePos);
+            if (deeper != null) {
+                return deeper;
+            }
+        }
+        return null;
+    }
+
+    /**
      * The exact-range hit for a byte span, or null.
      */
     public Node exactAt(int startByte, int endByte) {

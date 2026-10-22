@@ -31,7 +31,8 @@ import java.util.Locale;
  */
 public record CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
                          BaselineOp baselineOp, String baselineFile, OutputFormat format,
-                         Integer maxWarnings, List<String> rules, String cacheFile) {
+                         Integer maxWarnings, List<String> rules, String cacheFile,
+                         String projectRoot) {
 
     /**
      * The report format (roadmap item 39): console is the human face, the
@@ -65,6 +66,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
 
     private static final String USAGE =
             "usage: nop-lint check <path>... [--profile fast|standard|deep] [--fix|--fix-dry-run]"
+            + " [--project-root <dir>]"
                     + " [--baseline <file>|--baseline-check <file>|--write-baseline <file>]"
                     + " [--format console|sarif|checkstyle-xml|json|junit-xml]"
                     + " [--max-warnings <n>] [--rules <id,id,...>] [--cache <file>]";
@@ -103,7 +105,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
     public CliOptions(List<String> targets, LintProfile profile, FixMode fixMode,
                       BaselineOp baselineOp, String baselineFile) {
         this(targets, profile, fixMode, baselineOp, baselineFile,
-                OutputFormat.CONSOLE, null, List.of(), null);
+                OutputFormat.CONSOLE, null, List.of(), null, null);
     }
 
     /**
@@ -129,6 +131,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
         Integer maxWarnings = null;
         List<String> rules = List.of();
         String cacheFile = null;
+        String projectRoot = null;
         for (int i = 1; i < args.length; i++) {
             String arg = args[i];
             if ("--profile".equals(arg)) {
@@ -141,6 +144,8 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                 rules = parseRules(args, ++i);
             } else if ("--cache".equals(arg)) {
                 cacheFile = parseCacheFile(args, ++i);
+            } else if ("--project-root".equals(arg)) {
+                projectRoot = parseProjectRoot(args, ++i);
             } else if ("--fix".equals(arg)) {
                 fixMode = withFixMode(fixMode, FixMode.APPLY, "--fix");
             } else if ("--fix-dry-run".equals(arg)) {
@@ -161,7 +166,7 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
             } else if (arg.startsWith("-")) {
                 throw new NopLintException(USAGE + " (unknown option '" + arg + "'; supported:"
                         + " --profile fast|standard|deep, --fix|--fix-dry-run, the --baseline family,"
-                        + " --format, --max-warnings, --rules)");
+                        + " --format, --max-warnings, --rules, --cache, --project-root)");
             } else {
                 if (arg.isBlank())
                     throw new NopLintException(USAGE + " (target path must not be blank)");
@@ -186,7 +191,18 @@ public record CliOptions(List<String> targets, LintProfile profile, FixMode fixM
                     + " --fix-dry-run: replayed diagnostics cannot drive a fix multipass)");
 
         return new CliOptions(List.copyOf(targets), profile, fixMode, baselineOp, baselineFile,
-                format, maxWarnings, rules, cacheFile);
+                format, maxWarnings, rules, cacheFile, projectRoot);
+    }
+
+    private static String parseProjectRoot(String[] args, int valueIndex) {
+        if (valueIndex >= args.length)
+            throw new NopLintException(USAGE
+                    + " (--project-root requires the project directory path)");
+        String value = args[valueIndex];
+        if (value.isBlank())
+            throw new NopLintException(USAGE
+                    + " (--project-root requires a non-blank project directory path)");
+        return value;
     }
 
     private static String parseCacheFile(String[] args, int valueIndex) {

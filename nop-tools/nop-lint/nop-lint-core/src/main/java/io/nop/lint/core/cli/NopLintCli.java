@@ -120,7 +120,7 @@ public final class NopLintCli {
             CheckOutcome outcome = new CheckRunner(registry, new RuleSetLoader(), rulesPrefix, ruleFilter)
                     .run(TargetScanner.scan(options.targets(), registry), options.profile(),
                             options.fixMode(), options.baselineOp(), options.baselineFile(),
-                            options.cacheFile());
+                            options.cacheFile(), options.projectRoot());
             reporter(options.format(), out).render(outcome, writerOf(out));
             out.flush(); // the wrapper writer buffers through the PrintStream
 

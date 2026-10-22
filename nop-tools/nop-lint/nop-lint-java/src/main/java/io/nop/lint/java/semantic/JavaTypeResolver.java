@@ -16,12 +16,18 @@ import com.github.javaparser.symbolsolver.resolution.typesolvers.ReflectionTypeS
 import io.nop.lint.core.semantic.TypeResolutionException;
 import io.nop.lint.core.semantic.TypeResolver;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -76,13 +82,123 @@ public final class JavaTypeResolver implements TypeResolver {
         return true;
     }
 
+    /**
+     * The solver chain the per-file parses attach: reflection (JDK types)
+     * plus, in project mode, one {@link JavaParserTypeSolver} per discovered
+     * source root. Swapped atomically by {@link #initProject(Path)}.
+     */
+    private volatile CombinedTypeSolver typeSolvers = new CombinedTypeSolver(
+            new ReflectionTypeSolver());
+
+    /**
+     * Project mode (roadmap item 37/40 production wiring): the project root
+     * is scanned for Java source roots ({@code src/main/java} and
+     * {@code src/test/java} at any depth, hidden and build trees pruned)
+     * and each becomes
+     * a {@link JavaParserTypeSolver} behind the reflection solver —
+     * project-local types resolve through their own compilation units. A
+     * null root resets to the single-file + reflection model. Cache state is
+     * always invalidated: answers bound to the old project must not leak.
+     */
     @Override
     public synchronized void initProject(Path projectRoot) {
-        // v1 single-file model: the binding only invalidates per-file state
-        // (the project-classpath model is the successor surface)
         filesByPath.clear();
         assignableCache.clear();
         typeNameCache.clear();
+        if (projectRoot == null) {
+            typeSolvers = new CombinedTypeSolver(new ReflectionTypeSolver());
+            return;
+        }
+        if (!Files.isDirectory(projectRoot)) {
+            throw new TypeResolutionException("project root '" + projectRoot
+                    + "' is not a directory");
+        }
+        CombinedTypeSolver combined = new CombinedTypeSolver(new ReflectionTypeSolver());
+        int roots = 0;
+        for (Path sourceRoot : discoverSourceRoots(projectRoot)) {
+            combined.add(new com.github.javaparser.symbolsolver.resolution.typesolvers.JavaParserTypeSolver(
+                    sourceRoot));
+            roots++;
+        }
+        if (roots == 0) {
+            throw new TypeResolutionException("project root '" + projectRoot
+                    + "' contains no src/main/java or src/test/java source roots; "
+                    + "project-level resolution cannot bind (fail-closed, never a "
+                    + "reflection-only guess under a declared project)");
+        }
+        typeSolvers = combined;
+    }
+
+    /**
+     * The source roots under {@code projectRoot}: directories named
+     * {@code src/main/java} or {@code src/test/java}. The walk prunes
+     * hidden, build ({@code target}/{@code build}) and dependency
+     * ({@code node_modules}) trees; the count cap is a runaway guard and
+     * fails loudly rather than silently serving a partial project.
+     */
+    private static final int MAX_SOURCE_ROOTS = 4096;
+
+    private static List<Path> discoverSourceRoots(Path projectRoot) {
+        List<Path> roots = new ArrayList<>();
+        try {
+            Files.walkFileTree(projectRoot, new SimpleFileVisitor<>() {
+                @Override
+                public java.nio.file.FileVisitResult preVisitDirectory(Path dir,
+                        BasicFileAttributes attrs) {
+                    String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+                    if (name.startsWith(".") || "target".equals(name) || "build".equals(name)
+                            || "node_modules".equals(name)) {
+                        return FileVisitResult.SKIP_SUBTREE;
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public java.nio.file.FileVisitResult visitFileFailed(Path file,
+                        IOException exc) {
+                    // unreadable subtrees are skipped, not fatal
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public java.nio.file.FileVisitResult postVisitDirectory(Path dir,
+                        IOException exc) {
+                    String name = dir.getFileName() == null ? "" : dir.getFileName().toString();
+                    if ("java".equals(name)) {
+                        Path parent = dir.getParent();
+                        if (parent != null && ("main".equals(
+                                parent.getFileName() == null ? "" : parent.getFileName().toString())
+                                || "test".equals(parent.getFileName() == null ? ""
+                                        : parent.getFileName().toString()))) {
+                            if (roots.size() >= MAX_SOURCE_ROOTS) {
+                                throw new IllegalStateException("more than " + MAX_SOURCE_ROOTS
+                                        + " source roots under '" + projectRoot + "' (runaway guard)");
+                            }
+                            roots.add(dir);
+                        }
+                    }
+                    return FileVisitResult.CONTINUE;
+                }
+
+                /** The last three path segments joined, e.g. {@code src/main/java}. */
+                private String remainder(Path dir) {
+                    Path p = dir;
+                    StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < 3 && p != null; i++) {
+                        sb.insert(0, p.getFileName() == null ? "" : p.getFileName().toString());
+                        if (i < 2) {
+                            sb.insert(0, '/');
+                        }
+                        p = p.getParent();
+                    }
+                    return sb.toString();
+                }
+            });
+        } catch (java.io.IOException e) {
+            throw new TypeResolutionException("failed to scan project root '" + projectRoot
+                    + "' for source roots: " + e.getMessage(), e);
+        }
+        return roots;
     }
 
     @Override
@@ -132,7 +248,14 @@ public final class JavaTypeResolver implements TypeResolver {
     private ResolvedType resolvedTypeAt(ParsedFile file, String filePath, int line, int col) {
         // engine positions are 0-based; JavaParser positions are 1-based
         int bytePos = file.lineCols().byteOf(line + 1, col + 1);
-        Node node = file.index().minimalContaining(bytePos);
+        // the capture start is the WHOLE captured expression's start: prefer
+        // the outermost expression beginning there (b.tag().toString() over
+        // the inner b), and fall back to the innermost containing node for
+        // declaration-form queries
+        Node node = file.index().outermostExpressionStartingAt(bytePos);
+        if (node == null) {
+            node = file.index().minimalContaining(bytePos);
+        }
         if (node == null) {
             throw new TypeResolutionException("position " + line + ":" + col + " in '" + filePath
                     + "' falls outside the parsed compilation unit");
@@ -164,9 +287,21 @@ public final class JavaTypeResolver implements TypeResolver {
      * contract tests parse exactly the way the resolver does.
      */
     static CompilationUnit parseUnit(byte[] source) {
+        return parseUnitWith(new CombinedTypeSolver(new ReflectionTypeSolver()), source);
+    }
+
+    /**
+     * The project-aware form: the run's solver chain (reflection + the
+     * discovered source roots) rides the same parse configuration.
+     */
+    private CompilationUnit parseUnitInstance(byte[] source) {
+        return parseUnitWith(typeSolvers, source);
+    }
+
+    private static CompilationUnit parseUnitWith(com.github.javaparser.resolution.TypeSolver solver,
+                                                byte[] source) {
         ParserConfiguration config = new ParserConfiguration();
-        config.setSymbolResolver(new JavaSymbolSolver(
-                new CombinedTypeSolver(new ReflectionTypeSolver())));
+        config.setSymbolResolver(new JavaSymbolSolver(solver));
         JavaParser parser = new JavaParser(config);
         return parser.parse(new String(source, StandardCharsets.UTF_8))
                 .getResult()
@@ -178,7 +313,7 @@ public final class JavaTypeResolver implements TypeResolver {
         return filesByPath.computeIfAbsent(filePath, path -> {
             try {
                 byte[] source = Files.readAllBytes(Path.of(filePath));
-                CompilationUnit cu = parseUnit(source);
+                CompilationUnit cu = parseUnitInstance(source);
                 LineColBytes lineCols = new LineColBytes(source);
                 JavaNodeIndex index = JavaNodeIndex.build(cu, lineCols);
                 return new ParsedFile(source, lineCols, cu, index);

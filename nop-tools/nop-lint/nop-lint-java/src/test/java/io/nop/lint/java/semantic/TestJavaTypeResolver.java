@@ -180,7 +180,7 @@ public class TestJavaTypeResolver {
 
     @Test
     public void initProjectInvalidatesTheCache() throws IOException {
-        Path file = write("H.java", """
+        Path file = write("src/main/java/H.java", """
                 class H {
                     void m() {
                         String s = "x";

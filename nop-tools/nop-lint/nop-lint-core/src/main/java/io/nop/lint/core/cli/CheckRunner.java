@@ -178,6 +178,29 @@ public final class CheckRunner {
                      CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
                      String baselineFile, String cacheFile,
                      SourceReader sourceReader) {
+        return run(scan, profile, fixMode, baselineOp, baselineFile, cacheFile,
+                sourceReader, null);
+    }
+
+    /**
+     * The {@code --project-root} face (roadmap item 37/40 production
+     * wiring): a non-null root binds the run's L2 {@link TypeResolver} —
+     * discovered through the ServiceLoader path, initialized against the
+     * root, and handed to the engine so {@code requires: [L2]} rules run
+     * instead of degrading. A root without a discovered provider is a
+     * fail-closed option error, never a reflection-only run.
+     */
+    public CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
+                            CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
+                            String baselineFile, String cacheFile, String projectRoot) {
+        return run(scan, profile, fixMode, baselineOp, baselineFile, cacheFile,
+                this::readSource, projectRoot);
+    }
+
+    CheckOutcome run(TargetScanner.ScanResult scan, LintProfile profile,
+                     CliOptions.FixMode fixMode, CliOptions.BaselineOp baselineOp,
+                     String baselineFile, String cacheFile,
+                     SourceReader sourceReader, String projectRoot) {
         RuleSetLoader.LoadedRuleSet loaded = applyRuleFilter(ruleLoader.loadRuleSet(rulesPrefix));
         verifyRuleLanguages(loaded.rulesByLanguage());
         // compile ONCE per run (plan 10): the loop below never recompiles —
@@ -193,7 +216,16 @@ public final class CheckRunner {
                     BaselineFile.load(Path.of(baselineFile)).entries());
         }
 
-        LintEngine engine = new LintEngine(registry, profile, new DeepResolvers(
+        io.nop.lint.core.semantic.TypeResolver typeResolver = null;
+        if (projectRoot != null) {
+            typeResolver = io.nop.lint.core.semantic.TypeResolverDiscovery.discover();
+            if (typeResolver == null)
+                throw new NopLintException("--project-root requires a TypeResolver provider on"
+                        + " the classpath (none discovered; project-level resolution cannot"
+                        + " bind; fail-closed)");
+            typeResolver.initProject(Path.of(projectRoot));
+        }
+        LintEngine engine = new LintEngine(registry, profile, typeResolver, new DeepResolvers(
                 MetricsResolverDiscovery.discover(), ScopeResolverDiscovery.discover(),
                 SemanticResolverDiscovery.discover(), DataflowResolverDiscovery.discover()));
         RunSummary summary = new RunSummary(scan.skipped());
