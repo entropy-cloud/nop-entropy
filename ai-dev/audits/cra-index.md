@@ -43,7 +43,8 @@
 | `2026-10/2026-10-21-1227-deep-audit-nop-file-datav-concurrency` | 5.3 | nop-file-datav | C1 C5 C6 + C10（C2/C3/C4/C7/C8/C9 线索 overlay） | 0 | 2 | 13+5（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2484） |
 | `2026-10/2026-10-21-1326-deep-audit-nop-report-format-concurrency` | 5.4 | nop-report-format | C1 C5 C6 C9 + C10（C2/C3/C4/C7/C8 线索 overlay） | 0 | 1 | 9+25（含 C10 缺保护登记） | 15 | done（closure audit PASS with corrections，plan 2485） |
 | `2026-10/2026-10-22-1201-deep-audit-nop-rule-metadata-concurrency` | 5.5 | nop-rule-metadata | C1 C4 C5 C7 + C10（C2/C3/C6/C8/C9 线索 overlay） | 0 | 3 | 9+38（含 C10 缺保护登记；工单级 P3×17/实体级 P2×13+P3×21 见计数口径） | 17 | done（closure audit PASS with corrections，plan 2486） |
-| `2026-10/2026-10-22-1300-deep-audit-nop-graph-duckdb-concurrency` | 5.6 | nop-graph-duckdb | C1 C6 + 抽查（C2/C3/C4/C5/C7/C8/C9 七形态 CS-sweep） + C10 | 0 | 4 | 4+4+12（含 C10 缺保护登记） | 4 | done（closure audit 见 plan 2487） |
+| `2026-10/2026-10-22-1300-deep-audit-nop-graph-duckdb-concurrency` | 5.6 | nop-graph-duckdb | C1 C6 + 抽查（C2/C3/C4/C5/C7/C8/C9 七形态 CS-sweep） + C10 | 0 | 4 | 4+4+12（含 C10 缺保护登记） | 4 | done（closure audit PASS，plan 2487） |
+| `2026-10/2026-10-22-1400-deep-audit-nop-tools-parallel-concurrency` | 6.1 | nop-tools-parallel | C1 C4 C6 C9 + C10（C2/C3/C5/C7/C8 仅 CL 线索） | 0 | 0 | 4+10（含 C10 缺保护登记；工单级 P3×13） | 13 | done（closure audit PASS with corrections，plan 2488） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -76,6 +77,8 @@
 > 5.5 计数口径：合并裁定后 29 张工单（39 立案 → 38 实体[C5-106 并入] → 7 缺陷族主 + 22 独立，9 条吸收；三态：维持 29/跨维度调整 9/移交 0；P0×0 显式空执行/**P1×3**=3 独立缺陷——W-01 外部 JDBC 无超时族[C7-102 主+C7-001 次+C4-R2-001 跨维关联，判级暂计 P1、C4 侧 P2 分歧登记 7.1]/W-02 append-only 表族[C7-004 主+C7-101]/W-03 规则热更新失效族[C7-R2-001]；P2×9/P3×17 工单级——实体级 P1×4/P2×13/P3×21，降级 4[C1-101/C5-103/C5-105/C7-R3-001]）；C10 缺保护 38 条全量单列（矩阵会红 0/38——**第 8 例且形态升级：本单元有 3 个真并发测试类但保护目标全为历史修复回归面**「测试基建只向后看」；反向钉定 1[C1-002 setLoginTimeout 全局断言]）；CL 26 条全落位（26/26 确认 0 驳回）；**结构性发现：平台 job 调度骨架健壮（9 项盘点 7 项已防护）而缺陷集中外部依赖边界（无超时/无保留/无失效传播）+ 会红=0 形态升级**；Protected Area：nop-rule-api/nop-metadata-api plan-first——0 张工单触碰 api 叶；家族关联 4 组零同站点重复（超时族/F4 账本族/缓存失效传播族/Error 绝缘族）。
 
 > 5.6 计数口径：合并裁定后 12 张工单（19 实体[初审 11+深挖 8] 复核全保留 0 驳回 0 降级 → 吸收 7 → 5 族主+7 独立；维持 12/跨维度调整 7/移交 0；P0×0 显式空执行/**P1×4**——W-01 账本泄漏族[C6-001 吸 C6-R2-001+CS-002+C1-R2-001]/W-02 竞态族[C6-002 吸 C1-002，判级终裁 P1]/W-03 CTAS 必败[C6-R2-002]/W-04 不可中断族[CS-001 吸 CS-R2-001]；P2×4/P3×4）；C10 缺保护 12 项（矩阵会红 0/19——第 9 例；duckdb 测试全顺序形态+graph 测试 0 并发断言）；CL 15/15 确认 0 驳回；**跨单元移交闭环：WI 2.1 C6-CL-031 三态裁定=边界变化并入 CS-001（awaitTermination 属负修复——CWTS 无中断检查点），2.1 台账已回填**；**结构性发现：DuckDB 单写者约束「登记面与锁面互不覆盖」+ 小单元高缺陷密度（2,932 行 P1×4）+ 外部库不可中断×调用面无守卫成族**；Protected Area：nop-graph-api plan-first——W-06（C1-003 Edge.attrs）为唯一触碰 api 叶工单（修复须 plan-first）；家族关联 3 组零同站点重复（F4 账本族/不可中断族/F2+F3 对偶族）；owner doc drift：nop-graph 无 owner doc（占 63% 行数）。
+
+> 6.1 计数口径：**campaign 首个零 P1 单元**——合并裁定后 17 张工单（20 实体[初审 14+深挖 6] 复核全保留 0 驳回 → 吸收 3；维持 17/跨维度调整 3/移交 0；P0×0 显式空执行/**P1×0**/P2×4[W-01 patternBytes 惰性缓存族主 C1-001/W-03 FFM×外部截断 TOCTOU C1-R2-001 同机复现/W-05 invokeAll 首错弃全 C4-002/W-14 bytecode JarFile 重开 C9-002]/P3×13；降级 3[C6-001/C6-002/C9-001]）；取消族并卷 W-06（C4-R2-001 主+C6-002，附嵌入前提回升 P2 条款）；C10 缺保护 10 项（矩阵会红 0/部分 7/不会红 13——第 10 例，「部分保护」特色形态）；CL 9/9 确认 0 驳回；**结构性发现：FFM/Arena 实现质量正面（confined+TWR 主动设计零兜底依赖、SIMD 三层 fallback 一致）而缺陷集中在聚合语义与取消通道**；计数面>立案面口径（benchmark 8f/742 计入不立案）；Protected Area 零 api 叶；家族关联 4 组零同站点重复（F6 落盘族/TOCTOU 相邻族/聚合弃全对偶族/取消通道族）；owner doc drift：nop-rg/nop-find 无 owner doc（占 62% 行数）。
 
 > 5.3 计数口径：合并裁定后 8 张修复工单（25 初审+深挖 → 25 复核保留零降级零驳回 → 7 修复工单 W-01~07 + 1 测试保护工单 W-08；P0×0 显式空执行/**P1×2**（W-01 文件去重竞态/W-04 dashboard 行上界）/P2×13/P3×10）；C10 缺保护 5 条单列（矩阵会红 0/假保护 4/部分 1/无测试 13——P1×2 全部无保护；反向钉死 1 处钉死无 fencing 语义）；Protected Area：nop-file-api 3f/492 plan-first——审计只读；跨单元关联 6 组零同站点重复。
 
@@ -303,6 +306,8 @@
 ### WI 5.5 nop-rule-metadata（CL-001~003/101~102/201~206/301~303/401~404/501~504/601~604 分段编号 26 条：26/26 确认 0 驳回；归并去向——CL-205=CL-501 同点归并、CL-601 与 C1-101/C5-102 同族归 W-13、CL-604 与 C5-R2-001 归 W-23、CL-504 watch-only；逐条见 merge-adjudication.md）
 
 ### WI 5.6 nop-graph-duckdb（CL-001~002/101~103/201~210 分段编号 15 条：15/15 确认 0 驳回；归并去向——CL-001 归并 CS-001 别名、CL-201 并 C6-002 族、CL-203 后果并 C6-003、CL-204 作 CS-004 族根因附注；逐条见 merge-adjudication.md）
+
+### WI 6.1 nop-tools-parallel（CL-001~003/101~102/201~202/301~302 分段编号 9 条：9/9 确认 0 驳回；归并去向——CL-301 并入 C1-001、CL-202 闭环至 C9-002、CL-101 与 C9-001 去重转 C2、CL-102 转 C5；逐条见 merge-adjudication.md）
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 
