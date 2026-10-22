@@ -136,3 +136,4 @@ _tmp/
 nop-task/nop-task-app/db/
 # H2 runtime artifacts from local demo/test runs (test.mv.db / test.trace.db)
 nop-demo/nop-quarkus-demo/db/
+_report-cache/
