@@ -2,8 +2,8 @@
 
 > Status: open
 > Date: 2026-10-18
-> Scope: nop-batch 全模块；Spring Batch 6.1.0-SNAPSHOT（`~/sources/spring-batch` 浅克隆）；JBeret/Jakarta Batch 2.1（`~/sources/jsr352`）；snail-job 2.0.0（`~/sources/snail-job`）；PowerJob 5.1.2（`~/sources/PowerJob`）
-> Conclusion: nop-batch 在 chunk 抽象（批量 Loader + flatMap Processor + Collection Consumer）、事务范围可配置、Provider/Hooks 式扩展、DSL 森林集成四个维度上结构性优于 Spring Batch 与 JSR-352 族（两者均为单条 readItem）；相对 snail-job/PowerJob 的优势在 chunk/记录级断点续传与声明式数据管道，弱项在运维闭环（运行时 kill/暂停、任务级重跑 API、告警）。DB 源行级续传经用户裁定撤回（状态驱动任务重跑即天然过滤）。建议按 P0（运维入口）/P1（metrics 自动接线 + reduce 聚合步骤）/P2（遗留物清理）分级增强，不建议引入 Spring Batch 式 Job/Step 编排或 StepScope。
+> Scope: nop-batch 全模块；Spring Batch 6.1.0-SNAPSHOT（`~/sources/spring-batch` 浅克隆）；JBeret/Jakarta Batch 2.1（`~/sources/jsr352`）；snail-job 2.0.0（`~/sources/snail-job`）；PowerJob 5.1.2（`~/sources/PowerJob`）。P0/P1/P2 建议已收敛为补全路线图：`ai-dev/backlog/nop-etl-platform-completion-roadmap.md`（WI0–WI16，与 ETL 平台对比共用）
+> Conclusion: nop-batch 在 chunk 抽象（批量 Loader + flatMap Processor + Collection Consumer）、事务范围可配置、Provider/Hooks 式扩展、DSL 森林集成四个维度上结构性优于 Spring Batch 与 JSR-352 族（两者均为单条 readItem）；相对 snail-job/PowerJob 的优势在 chunk/记录级断点续传与声明式数据管道，弱项在运维闭环。DB 源行级续传经用户裁定撤回（状态驱动任务重跑即天然过滤）。**运行控制经用户追问后裁定：接入 nop-job 已有控制面（cancelFire/rerunFire/cancelAsync），不自建第二套 API**——反向钩子 `BeanMethodJobInvoker.cancelAsync` 现成，只缺 `BatchTaskRunner.cancel` + 运行中 context 注册表 + 状态关联列。建议按 P0（接线三断点）/P1（metrics 自动接线 + reduce 聚合步骤）/P2（遗留物清理）分级增强，不建议引入 Spring Batch 式 Job/Step 编排或 StepScope。
 
 ## Context
 
@@ -232,10 +232,13 @@ JBeret 证实：**单条 readItem + 1:1 processItem 是 Java 批处理标准层�
 
 ## 八、改进建议（按优先级）
 
-### P0 — 运维闭环（对齐 JobOperator / JSR-352 JobOperator / snail-job batch API）
+### P0 — 运维闭环（集成 nop-job 控制面，不自建第二套）
 
-1. **运行时 kill/暂停 API**：`IBatchTaskManager`/BizModel 增加 `stop(taskId, reason)`：写 KILLED 状态（条件 UPDATE）+ 通知运行中实例 `taskContext.cancel`。当前只有"KILLED 不允许再启动"的被动检查（`DaoBatchStateStore.java:108-109`），管理端无法停掉失控任务。注意：fetch 线程泄漏（缺陷 10）**已修复**（`PartitionDispatchQueue.acquirePermits` 超时轮询），kill 路径的线程退出已有保障；但 `AsyncFetchPartitionDispatchLoaderProvider` 主循环对 `context.isCancelled()` 的响应仍依赖 loader.load 尽快返回——长查询场景建议 load 前检查 cancel。
-2. **失败任务重跑入口**：明确"resume（续跑）"与"rerun（重置重跑）"两个操作的 API 与语义差异（resume 用 stateStore/rerun 清 completedIndex + 依赖 historyStore 幂等），暴露给 AMIS 管理页。对照 Spring Batch/JSR-352 `JobOperator.restart`（JBeret `AbstractJobOperator.java:221-281`）与 snail-job `POST /job/batch/retry/{taskBatchId}`。
+> 2026-10-18 用户追问"批任务运行控制不能集成 nop-job 吗"后复核：**能，且 nop-job 已有全套控制面**——`cancelFire`（级联 task 置 CANCELED + best-effort 通知）、`rerunFire`（RECOVERY fire + sourceFireId）、`pauseSchedule`/`resumeSchedule`、`IJobInvoker.cancelAsync`（`IJobInvoker.java:30`）。batch 已被 job 启动：`*.job.yaml → LocalJobConfigLoader → BeanMethodJobInvoker.invokeAsync → BatchTaskRunner.executeAsync`（`sys-event-batch-consumer.job.yaml:7-12`）。反向取消钩子也是现成的：`BeanMethodJobInvoker.cancelAsync` 按方法名反射调用（默认 `cancel`，`BeanMethodJobInvoker.java:52,89`）。因此原"在 IBatchTaskManager 加 stop"方向**已修订为接线而非新建**。
+
+1. **batch 接入 job 取消链路**（原"运行时 kill API"）：补三处断点——① `BatchTaskRunner` 增加 `cancel(Map params)` 方法（`BeanMethodJobInvoker` 反射调它；当前缺失会被 `:92-95` 吞掉并**静默假成功**返回 TRUE）；② **运行中 batch context 注册表**（`executeAsync` 创建的 `IBatchTaskContext` 即用即弃——`BatchTaskRunner.java:38-50`，现状仅 ThreadLocal `BatchTaskGlobals.java:9-21`），key 需可从 jobParams 定位（taskPath/taskKey 或 jobTaskId）；③ `NopBatchTask` 增加 `jobTaskId` 关联列（**ORM 变更，plan-first Protected Area**）+ 双状态 SSOT 裁定（`nop_job_task.taskStatus` vs `nop_batch_task.taskStatus` 谁是批任务运行状态权威；batch KILLED 永久禁启 `DaoBatchStateStore.java:108-113` 与 job `isRecoverable` 含 CANCELED 的语义冲突需消解）。
+2. **resume/rerun 复用 job `rerunFire`**（原"失败任务重跑入口"）：job 侧已有 `rerunFire`（仅终态可重跑，新建 RECOVERY fire 带 `sourceFireId` 追溯，`NopJobFireBizModel.java:154-173`）+ UI/权限按钮（`NopJobFire.view.xml:69-80`）。batch 侧要补的是语义映射：job rerun → 新 fire → 新 batch 运行时，stateStore 是"同 taskName/taskKey 原地重启"还是"清 completedIndex 重跑"需明确；`allowStartIfComplete`（`DaoBatchStateStore.java:131-137`）已有开关。管理端入口直接复用 `nop-job-web`，无需 `nop-batch-web` 重建。
+3. **补充**：`IJobExecutionContext.getCancelToken()` 默认 null（`IJobExecutionContext.java:22-24`），标准路径无人注入——若要"标记后在下个 chunk 边界停"的软取消（而非 cancelAsync 硬中断），需 scanner/runner 侧注入 token 或 runner 内轮询。长查询场景另需 `load` 前检查 cancel（沿用原建议）。
 
 ### P1 — 数据面能力补齐
 
@@ -260,8 +263,9 @@ JBeret 证实：**单条 readItem + 1:1 processItem 是 Java 批处理标准层�
 
 ## Open Questions
 
-- [ ] kill API 的实现位置：`IBatchTaskManager` 增加方法 vs 独立 `IBatchTaskOperator` SPI？跨进程通知走 DB 状态轮询（stateStore 每 chunk 已写库，可捎带 cancel 检查）还是 nop-job 集群广播？
-- [ ] DB loader 键集续传：是否强制要求 query 带稳定 orderBy？无主键排序键时退化策略？
+- [ ] ~~kill API 的实现位置~~ **已裁定方向**（2026-10-18）：接入 nop-job 控制面（cancelFire → BeanMethodJobInvoker.cancelAsync → BatchTaskRunner.cancel），不自建 IBatchTaskManager.stop。遗留细节：运行中 context 注册表的 key 选型（taskPath/taskKey vs jobTaskId）；本地 `.job.yaml` 路径（LocalJobScheduler，内存态、重启丢失）与分布式 `NopJobSchedule` DB 路径如何统一（`beanMethod` executorKind 不在 dict `test/rpc/rpcPoll` 中）。
+- [ ] 双状态 SSOT：`nop_job_task.taskStatus` 与 `nop_batch_task.taskStatus` 谁是批任务运行状态权威？是否需要对账器（对照 job 侧 `JobScheduleCounterReconciler`）？
+- [ ] DB loader 键集续传：是否强制要求 query 带稳定 orderBy？无主键排序键时退化策略？（已随用户裁定撤回引擎内建，此处仅遗留窄场景）
 - [ ] resume/rerun 双语义是否值得在 DSL 层加 `restartPolicy` 配置，还是保持 API 参数？
 - [ ] `NopBatchTaskState` 是否有未提交的使用场景（如 ETL 变量存储）需要保留？
 
