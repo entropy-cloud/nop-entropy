@@ -87,7 +87,7 @@
 - ★ [x] **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
 - ★ [x] **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
 - ★ [x] **Milestone: HTML 打印与交互可用**（WI4–WI5 完成后勾选）
-- ★ **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
+- ★ [x] **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
 - ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
 - ★ **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）
 - ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成后勾选）
