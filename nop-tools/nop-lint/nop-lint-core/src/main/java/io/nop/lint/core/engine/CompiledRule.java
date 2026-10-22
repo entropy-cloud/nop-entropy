@@ -24,6 +24,10 @@ import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.xscript.XScriptCompiler;
 import io.nop.lint.core.xscript.XScriptEngine;
 
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.PathMatcher;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -92,6 +96,8 @@ public final class CompiledRule {
     private final boolean transformCarrier;
     private final Set<LintCapability> requires;
     private final Set<String> rawRequires;
+    private final List<PathMatcher> fileIncludes;
+    private final List<PathMatcher> fileExcludes;
 
     private CompiledRule(String ruleId, String severity, String message,
                          TreeSet<Integer> targetKindIds, RuleMatcher matcher, XScriptEngine xscriptEngine,
@@ -112,6 +118,27 @@ public final class CompiledRule {
         this.transformCarrier = transformCarrier;
         this.requires = Set.copyOf(requires);
         this.rawRequires = Set.copyOf(rawRequires);
+        this.fileIncludes = List.of();
+        this.fileExcludes = List.of();
+    }
+
+    private CompiledRule(CompiledRule base, List<PathMatcher> fileIncludes, List<PathMatcher> fileExcludes) {
+        this.ruleId = base.ruleId;
+        this.severity = base.severity;
+        this.message = base.message;
+        this.targetKindIds = base.targetKindIds;
+        this.matcher = base.matcher;
+        this.xscriptEngine = base.xscriptEngine;
+        this.xscriptTimeoutMs = base.xscriptTimeoutMs;
+        this.constraints = base.constraints;
+        this.templateFix = base.templateFix;
+        this.fixDescription = base.fixDescription;
+        this.fixSuggestOnly = base.fixSuggestOnly;
+        this.transformCarrier = base.transformCarrier;
+        this.requires = base.requires;
+        this.rawRequires = base.rawRequires;
+        this.fileIncludes = fileIncludes;
+        this.fileExcludes = fileExcludes;
     }
 
     /**
@@ -212,9 +239,73 @@ public final class CompiledRule {
                         + "supported on tree-sitter language rules only (fail-closed, never an "
                         + "unenforced filter)");
             }
-            return external;
+            return applyFileScope(external, model);
         }
-        return compileTreeSitter(model, language);
+        return applyFileScope(compileTreeSitter(model, language), model);
+    }
+
+    /**
+     * Applies the rule's top-level {@code files:} scope (design 01 §2): the
+     * compiled globs gate which files the rule runs against — include globs
+     * whitelist, exclude globs blacklist (exclusion wins). A rule without a
+     * {@code files:} block is returned unchanged and runs against every
+     * file. A glob that does not compile fails the rule load (fail-closed,
+     * mirroring the ruleset exemption glob handling).
+     */
+    private static CompiledRule applyFileScope(CompiledRule rule, RuleDslModel model) {
+        RuleDslModel.Files files = model.getFiles();
+        if (files == null || (files.getInclude().isEmpty() && files.getExclude().isEmpty())) {
+            return rule;
+        }
+        return new CompiledRule(rule, compileGlobs(files.getInclude(), model.getId()),
+                compileGlobs(files.getExclude(), model.getId()));
+    }
+
+    private static List<PathMatcher> compileGlobs(List<String> globs, String ruleId) {
+        if (globs.isEmpty()) {
+            return List.of();
+        }
+        List<PathMatcher> matchers = new ArrayList<>(globs.size());
+        for (String glob : globs) {
+            try {
+                matchers.add(FileSystems.getDefault().getPathMatcher("glob:" + glob));
+            } catch (Exception e) {
+                throw new NopLintException("Rule '" + ruleId + "' declares an invalid files glob '"
+                        + glob + "': " + e.getMessage(), e);
+            }
+        }
+        return List.copyOf(matchers);
+    }
+
+    /**
+     * True when {@code filePath} passes this rule's {@code files:} scope:
+     * not excluded, and matched when include globs are declared. A rule
+     * without a scope accepts every path; a null path (runners without file
+     * context, e.g. the RuleTester harness) is accepted so fixture suites
+     * stay scope-independent.
+     */
+    public boolean fileScopeAccepts(String filePath) {
+        if (fileIncludes.isEmpty() && fileExcludes.isEmpty()) {
+            return true;
+        }
+        if (filePath == null || filePath.isBlank()) {
+            return true;
+        }
+        Path normalized = Paths.get(filePath).normalize();
+        for (PathMatcher matcher : fileExcludes) {
+            if (matcher.matches(normalized)) {
+                return false;
+            }
+        }
+        if (fileIncludes.isEmpty()) {
+            return true;
+        }
+        for (PathMatcher matcher : fileIncludes) {
+            if (matcher.matches(normalized)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

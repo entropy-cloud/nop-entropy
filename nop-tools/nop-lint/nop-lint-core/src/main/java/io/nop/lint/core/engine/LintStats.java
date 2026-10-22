@@ -38,6 +38,7 @@ public final class LintStats {
     private final int rulesSkippedByProfile;
     private final int rulesDegraded;
     private final int rulesKindFiltered;
+    private final int rulesFileFiltered;
     private final int constraintFilteredMatches;
     private final int diagnostics;
     private final int suppressedDiagnostics;
@@ -62,6 +63,7 @@ public final class LintStats {
         this.rulesSkippedByProfile = builder.rulesSkippedByProfile;
         this.rulesDegraded = builder.rulesDegraded;
         this.rulesKindFiltered = builder.rulesKindFiltered;
+        this.rulesFileFiltered = builder.rulesFileFiltered;
         this.constraintFilteredMatches = builder.constraintFilteredMatches;
         this.diagnostics = builder.diagnostics;
         this.suppressedDiagnostics = builder.suppressedDiagnostics;
@@ -108,6 +110,10 @@ public final class LintStats {
      * The number of rules whose target kinds are disjoint from the kinds
      * present in the file; skipped before any match call.
      */
+    public int getRulesFileFiltered() {
+        return rulesFileFiltered;
+    }
+
     public int getRulesKindFiltered() {
         return rulesKindFiltered;
     }
@@ -291,6 +297,7 @@ public final class LintStats {
                 + ", skippedByProfile=" + rulesSkippedByProfile
                 + ", degraded=" + rulesDegraded
                 + ", kindFiltered=" + rulesKindFiltered
+                + ", fileFiltered=" + rulesFileFiltered
                 + ", constraintFilteredMatches=" + constraintFilteredMatches
                 + ", diagnostics=" + diagnostics
                 + ", suppressedDiagnostics=" + suppressedDiagnostics
@@ -324,6 +331,7 @@ public final class LintStats {
         private int rulesSkippedByProfile;
         private int rulesDegraded;
         private int rulesKindFiltered;
+        private int rulesFileFiltered;
         private int constraintFilteredMatches;
         private int diagnostics;
         private int suppressedDiagnostics;
@@ -372,6 +380,11 @@ public final class LintStats {
         public Builder incRulesDegraded(String ruleId) {
             this.rulesDegraded++;
             this.degradedRuleIds.add(Objects.requireNonNull(ruleId, "ruleId must not be null"));
+            return this;
+        }
+
+        public Builder incRulesFileFiltered() {
+            this.rulesFileFiltered++;
             return this;
         }
 

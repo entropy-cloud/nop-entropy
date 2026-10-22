@@ -1,0 +1,24 @@
+# Direct String.replaceAll/replaceFirst calls recompile the regex pattern on
+# every invocation; the platform convention is a precompiled, cached
+# java.util.regex.Pattern (Pattern.compile to a static final field, then
+# matcher()/split()). Test code is exempt: the files scope below excludes
+# src/test trees and *Test.java sources — the scope is enforced by the engine
+# (CompiledRule.fileScopeAccepts, counted as rulesFileFiltered), not by the
+# pattern, so the rule body stays a plain call-shape match.
+id: quality/no-string-replace-regex
+language: Java
+severity: warning
+message: "禁止直接调用 String.replaceAll/replaceFirst，regex 模板须预编译并缓存（Pattern.compile 静态常量）(Do not call String.replaceAll/replaceFirst; precompile and cache the regex Pattern)"
+rule:
+  any:
+    - pattern: "$R.replaceAll($PATTERN, $REPLACEMENT)"
+    - pattern: "$R.replaceFirst($PATTERN, $REPLACEMENT)"
+files:
+  exclude:
+    - "**/src/test/java/**/*.java"
+    - "**/*Test.java"
+metadata:
+  category: quality
+  autoFixable: false
+  version: "1.0"
+  source: "repo convention: precompiled regex templates (AGENTS.md lint rule addition, 2026-10-22)"

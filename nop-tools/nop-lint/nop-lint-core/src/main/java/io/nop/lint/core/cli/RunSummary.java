@@ -42,6 +42,7 @@ public final class RunSummary {
     private long rulesSkippedByProfile;
     private long rulesDegraded;
     private long rulesKindFiltered;
+    private long rulesFileFiltered;
     private long suppressedDiagnostics;
     private long xscriptMatchesExecuted;
     private long xscriptFailedMatches;
@@ -95,6 +96,7 @@ public final class RunSummary {
         rulesSkippedByProfile += stats.getRulesSkippedByProfile();
         rulesDegraded += stats.getRulesDegraded();
         rulesKindFiltered += stats.getRulesKindFiltered();
+        rulesFileFiltered += stats.getRulesFileFiltered();
         suppressedDiagnostics += stats.getSuppressedDiagnostics();
         xscriptMatchesExecuted += stats.getXscriptMatchesExecuted();
         xscriptFailedMatches += stats.getXscriptFailedMatches();
@@ -264,6 +266,10 @@ public final class RunSummary {
     /**
      * Kind-filtered rule executions summed over the per-file runs.
      */
+    public long getRulesFileFiltered() {
+        return rulesFileFiltered;
+    }
+
     public long getRulesKindFiltered() {
         return rulesKindFiltered;
     }

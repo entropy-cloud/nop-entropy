@@ -108,6 +108,8 @@ public class TestProductionRuleCount {
             "nop-orm-icons",
             // item 7 (plan nop-lint/23): resource-leak v1 pilots
             "quality/closeable-not-closed",
+            // repo convention (2026-10-22): precompiled regex templates
+            "quality/no-string-replace-regex",
             // xdsl-full-coverage roadmap WI2 (plan 2348): XDSL L1 static rules
             "nop-xdsl-watermark-required",
             "nop-xdsl-credential-plaintext",
@@ -139,8 +141,9 @@ public class TestProductionRuleCount {
         // (finally-missing-close dropped: xscript DSL lacks multi-descendant
         // enumeration and regex-literal exec — the face is covered by
         // closeable-not-closed which flags any resource without a close call);
-        // xdsl-full-coverage roadmap WI2 (plan 2348): +6 XDSL L1 rules -> 76
-        assertEquals(76, ids.size(), "production rule census size");
+        // xdsl-full-coverage roadmap WI2 (plan 2348): +6 XDSL L1 rules -> 76;
+        // repo convention (2026-10-22): +1 precompiled-regex rule -> 77
+        assertEquals(77, ids.size(), "production rule census size");
         assertEquals(EXPECTED_IDS, ids, "production rule census");
     }
 }

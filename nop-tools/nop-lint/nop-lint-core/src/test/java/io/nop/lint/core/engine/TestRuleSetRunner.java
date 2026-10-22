@@ -89,8 +89,69 @@ public class TestRuleSetRunner {
         assertEquals(expected, diagnostic.range(), "the diagnostic range must be the matched node's range");
     }
 
+    /**
+     * The rule-level {@code files:} scope (design 01 §2, enforced by
+     * {@code CompiledRule.fileScopeAccepts} + the runner gate): a rule whose
+     * scope excludes the linted file is counted as {@code rulesFileFiltered}
+     * and produces no diagnostics — never executed, never silently reported.
+     * A null filePath (RuleTester fixtures) stays scope-independent.
+     */
+    @Test
+    public void fileScopeExcludeFiltersBeforeMatching() {
+        CompiledRule scoped = CompiledRule.compile(fileScopedRule("demo/scoped",
+                List.of(), List.of("**/src/test/**/*.java", "**/*Test.java")), JAVA);
+        LintTree tree = JAVA.parse(PRINT_SRC);
+
+        LintStats.Builder stats = LintStats.builder();
+        List<Diagnostic> diagnostics = RuleSetRunner.run(List.of(scoped), tree, stats,
+                LintProfile.STANDARD, FileBudget.withoutLimits(), DeepResolvers.NONE, false,
+                "nop-demo/src/test/java/DemoTest.java");
+        LintStats result = stats.build();
+
+        assertEquals(0, diagnostics.size(), "an excluded file must stay diagnostic-free");
+        assertEquals(1, result.getRulesFileFiltered(), "the scoped-out rule must be counted");
+        assertEquals(0, result.getRulesExecuted(), "a scoped-out rule must not execute");
+    }
+
+    @Test
+    public void fileScopeIncludeRestrictsAndNullPathAccepts() {
+        CompiledRule scoped = CompiledRule.compile(fileScopedRule("demo/scoped",
+                List.of("src/main/**/*.java"), List.of()), JAVA);
+        LintTree tree = JAVA.parse(PRINT_SRC);
+
+        assertEquals(0, RuleSetRunner.run(List.of(scoped), tree, LintStats.builder(),
+                LintProfile.STANDARD, FileBudget.withoutLimits(), DeepResolvers.NONE, false,
+                "other/Nested.java").size(), "a file outside the include globs is filtered");
+        assertEquals(1, RuleSetRunner.run(List.of(scoped), tree, LintStats.builder(),
+                LintProfile.STANDARD, FileBudget.withoutLimits(), DeepResolvers.NONE, false,
+                "src/main/java/Demo.java").size(), "a file inside the include globs is linted");
+        assertEquals(1, RuleSetRunner.run(List.of(scoped), tree, LintStats.builder(),
+                LintProfile.STANDARD, FileBudget.withoutLimits(), DeepResolvers.NONE, false,
+                null).size(), "a null filePath (fixture runs) is accepted");
+    }
+
     private RuleDslModel patternRule(String id, String pattern) {
         return parser.parseRuleModel(ruleModel(id, b -> b.addProp("pattern", pattern)));
+    }
+
+    private RuleDslModel fileScopedRule(String id, List<String> include, List<String> exclude) {
+        DynamicObject rule = new DynamicObject("rule");
+        rule.addProp("pattern", "System.out.println($$$ARGS)");
+        DynamicObject files = new DynamicObject("files");
+        if (!include.isEmpty()) {
+            files.addProp("include", include);
+        }
+        if (!exclude.isEmpty()) {
+            files.addProp("exclude", exclude);
+        }
+        DynamicObject model = new DynamicObject("lint-rule");
+        model.addProp("id", id);
+        model.addProp("language", "Java");
+        model.addProp("severity", "warning");
+        model.addProp("message", "msg " + id);
+        model.addProp("rule", rule);
+        model.addProp("files", files);
+        return parser.parseRuleModel(model);
     }
 
     private RuleDslModel kindRule(String id, String kind) {

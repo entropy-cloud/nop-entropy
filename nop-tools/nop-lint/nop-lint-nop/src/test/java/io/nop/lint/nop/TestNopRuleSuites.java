@@ -104,7 +104,10 @@ public class TestNopRuleSuites {
             "quality/proper-clone-implementation",
             "security/no-hardcoded-iv",
             // item 7 (plan nop-lint/23): resource-leak v1 pilot
-            "quality/closeable-not-closed");
+            "quality/closeable-not-closed",
+            // repo convention (2026-10-22): direct regex-template
+            // replaceAll/replaceFirst calls, test sources excluded via files scope
+            "quality/no-string-replace-regex");
     // facet review (tool-replacement roadmap item 2, plan nop-lint/16): the four
     // out-of-purpose removals (loose-coupling-hashset / for-loop-can-be-foreach /
     // negated-equals / simplify-boolean-expression) left EXPECTED_RULE_IDS at 48.

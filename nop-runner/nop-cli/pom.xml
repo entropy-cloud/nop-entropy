@@ -123,7 +123,9 @@
 
                         <configuration>
                             <properties>
-                                <quarkus.package.type>uber-jar</quarkus.package.type>
+                                <!-- Quarkus 4 renamed quarkus.package.type -> quarkus.package.jar.type;
+                                     the old key is silently ignored and yields a thin jar -->
+                                <quarkus.package.jar.type>uber-jar</quarkus.package.jar.type>
                                 <quarkus.package.main-class>io.nop.cli.NopCliApplication</quarkus.package.main-class>
                                 <quarkus.package.jar.add-runner-suffix>false</quarkus.package.jar.add-runner-suffix>
                                 <skipTests>true</skipTests>

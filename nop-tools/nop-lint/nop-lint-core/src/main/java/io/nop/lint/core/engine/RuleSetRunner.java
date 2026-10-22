@@ -192,6 +192,10 @@ final class RuleSetRunner {
                         rule.ruleId(), budget.closedCapabilities());
                 continue;
             }
+            if (!rule.fileScopeAccepts(filePath)) {
+                stats.incRulesFileFiltered();
+                continue;
+            }
             if (!rule.canMatchKinds(occurringKinds)) {
                 stats.incRulesKindFiltered();
                 continue;

@@ -146,7 +146,8 @@ public final class ConsoleReporter implements Reporter {
                 + renderIds(summary.getSkippedRuleIds())
                 + ", degraded=" + summary.getRulesDegraded()
                 + renderIds(summary.getDegradedRuleIds())
-                + ", kindFiltered=" + summary.getRulesKindFiltered() + "\n");
+                + ", kindFiltered=" + summary.getRulesKindFiltered()
+                + ", fileFiltered=" + summary.getRulesFileFiltered() + "\n");
         out.write("suppressed diagnostics: " + summary.getSuppressedDiagnostics() + "\n");
         if (summary.getCacheHits() > 0) {
             out.write("cache: " + summary.getCacheHits() + " hit(s)\n");
