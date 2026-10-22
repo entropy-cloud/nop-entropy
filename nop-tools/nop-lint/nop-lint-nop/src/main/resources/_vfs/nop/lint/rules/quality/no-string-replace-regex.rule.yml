@@ -1,10 +1,18 @@
 # Direct String.replaceAll/replaceFirst calls recompile the regex pattern on
 # every invocation; the platform convention is a precompiled, cached
 # java.util.regex.Pattern (Pattern.compile to a static final field, then
-# matcher()/split()). Test code is exempt: the files scope below excludes
-# src/test trees and *Test.java sources — the scope is enforced by the engine
+# matcher().replaceAll(...)). Test code is exempt via the files scope below
+# (src/test/java trees and *Test.java sources), enforced by the engine
 # (CompiledRule.fileScopeAccepts, counted as rulesFileFiltered), not by the
-# pattern, so the rule body stays a plain call-shape match.
+# pattern.
+#
+# Receiver face (L1-enforceable, no type query): the precompiled idiom's
+# receiver IS a .matcher(...) call — Matcher.replaceAll is the correct
+# cached-pattern path and must not be flagged. The regex constraint rejects
+# any receiver whose text contains ".matcher(" (case-sensitive, so
+# x.getMatcher() does not false-exempt). A typeOf capture would be exact but
+# requires L2 and is skippedByProfile in default gate runs; upgrade to a
+# type-gated variant only alongside a deep-profile gate decision.
 id: quality/no-string-replace-regex
 language: Java
 severity: warning
@@ -13,6 +21,10 @@ rule:
   any:
     - pattern: "$R.replaceAll($PATTERN, $REPLACEMENT)"
     - pattern: "$R.replaceFirst($PATTERN, $REPLACEMENT)"
+constraints:
+  - regex:
+      capture: R
+      pattern: '(?s)(?!.*\.matcher\s*\(\s*).+'
 files:
   exclude:
     - "**/src/test/java/**/*.java"
@@ -22,3 +34,4 @@ metadata:
   autoFixable: false
   version: "1.0"
   source: "repo convention: precompiled regex templates (AGENTS.md lint rule addition, 2026-10-22)"
+
