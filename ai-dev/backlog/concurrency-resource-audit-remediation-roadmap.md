@@ -111,7 +111,7 @@
 | 5.3 | nop-file + nop-datav（上传下载去重、数据视图） | done（closure audit PASS，plan 2484） | `docs-for-ai/03-modules/nop-file.md` | 0.3 | 同上（C1 C5 C6 + C10） |
 | 5.4 | nop-report + nop-format（Excel/OOXML/PDF/office-model 大文件流式 vs 物化；chart/converter/mermaid/svg/tablesaw/record 抽查） | done（closure audit PASS with corrections，plan 2485；P0×0/P1×1/P2×9/P3×15，配额中断恢复执行） | `docs-for-ai/03-modules/nop-report.md` | 0.3 | 同上（C1 C5 C6 C9 + C10；S 级按功能裁剪） |
 | 5.5 | nop-rule + nop-metadata（规则引擎决策；元数据 cron 调度、质量检查点、webhook 分发、对账） | done（closure audit PASS with corrections，plan 2486；P0×0/P1×3/P2×9/P3×17 工单级） | `docs-for-ai/03-modules/nop-rule.md`、`nop-metadata.md` | 0.3 | 同上（C1 C4 C5 C7 + C10） |
-| 5.6 | nop-graph + nop-duckdb（图算法库；DuckDB 连接单写者约束、CSV/Parquet 读写面） | todo | `docs-for-ai/03-modules/nop-duckdb.md` | 0.3 | 同上（C1 C6 + 抽查） |
+| 5.6 | nop-graph + nop-duckdb（图算法库；DuckDB 连接单写者约束、CSV/Parquet 读写面） | done（closure audit PASS，plan 2487；P0×0/P1×4/P2×4/P3×4；**Wave 5 收官**，含 WI 2.1 C6-CL-031 移交闭环） | `docs-for-ai/03-modules/nop-duckdb.md` | 0.3 | 同上（C1 C6 + 抽查） |
 
 ### Phase 6 — 审计 Wave 6：工具链与外围支撑
 

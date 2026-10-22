@@ -43,6 +43,7 @@
 | `2026-10/2026-10-21-1227-deep-audit-nop-file-datav-concurrency` | 5.3 | nop-file-datav | C1 C5 C6 + C10（C2/C3/C4/C7/C8/C9 线索 overlay） | 0 | 2 | 13+5（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2484） |
 | `2026-10/2026-10-21-1326-deep-audit-nop-report-format-concurrency` | 5.4 | nop-report-format | C1 C5 C6 C9 + C10（C2/C3/C4/C7/C8 线索 overlay） | 0 | 1 | 9+25（含 C10 缺保护登记） | 15 | done（closure audit PASS with corrections，plan 2485） |
 | `2026-10/2026-10-22-1201-deep-audit-nop-rule-metadata-concurrency` | 5.5 | nop-rule-metadata | C1 C4 C5 C7 + C10（C2/C3/C6/C8/C9 线索 overlay） | 0 | 3 | 9+38（含 C10 缺保护登记；工单级 P3×17/实体级 P2×13+P3×21 见计数口径） | 17 | done（closure audit PASS with corrections，plan 2486） |
+| `2026-10/2026-10-22-1300-deep-audit-nop-graph-duckdb-concurrency` | 5.6 | nop-graph-duckdb | C1 C6 + 抽查（C2/C3/C4/C5/C7/C8/C9 七形态 CS-sweep） + C10 | 0 | 4 | 4+4+12（含 C10 缺保护登记） | 4 | done（closure audit 见 plan 2487） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -74,11 +75,15 @@
 
 > 5.5 计数口径：合并裁定后 29 张工单（39 立案 → 38 实体[C5-106 并入] → 7 缺陷族主 + 22 独立，9 条吸收；三态：维持 29/跨维度调整 9/移交 0；P0×0 显式空执行/**P1×3**=3 独立缺陷——W-01 外部 JDBC 无超时族[C7-102 主+C7-001 次+C4-R2-001 跨维关联，判级暂计 P1、C4 侧 P2 分歧登记 7.1]/W-02 append-only 表族[C7-004 主+C7-101]/W-03 规则热更新失效族[C7-R2-001]；P2×9/P3×17 工单级——实体级 P1×4/P2×13/P3×21，降级 4[C1-101/C5-103/C5-105/C7-R3-001]）；C10 缺保护 38 条全量单列（矩阵会红 0/38——**第 8 例且形态升级：本单元有 3 个真并发测试类但保护目标全为历史修复回归面**「测试基建只向后看」；反向钉定 1[C1-002 setLoginTimeout 全局断言]）；CL 26 条全落位（26/26 确认 0 驳回）；**结构性发现：平台 job 调度骨架健壮（9 项盘点 7 项已防护）而缺陷集中外部依赖边界（无超时/无保留/无失效传播）+ 会红=0 形态升级**；Protected Area：nop-rule-api/nop-metadata-api plan-first——0 张工单触碰 api 叶；家族关联 4 组零同站点重复（超时族/F4 账本族/缓存失效传播族/Error 绝缘族）。
 
+> 5.6 计数口径：合并裁定后 12 张工单（19 实体[初审 11+深挖 8] 复核全保留 0 驳回 0 降级 → 吸收 7 → 5 族主+7 独立；维持 12/跨维度调整 7/移交 0；P0×0 显式空执行/**P1×4**——W-01 账本泄漏族[C6-001 吸 C6-R2-001+CS-002+C1-R2-001]/W-02 竞态族[C6-002 吸 C1-002，判级终裁 P1]/W-03 CTAS 必败[C6-R2-002]/W-04 不可中断族[CS-001 吸 CS-R2-001]；P2×4/P3×4）；C10 缺保护 12 项（矩阵会红 0/19——第 9 例；duckdb 测试全顺序形态+graph 测试 0 并发断言）；CL 15/15 确认 0 驳回；**跨单元移交闭环：WI 2.1 C6-CL-031 三态裁定=边界变化并入 CS-001（awaitTermination 属负修复——CWTS 无中断检查点），2.1 台账已回填**；**结构性发现：DuckDB 单写者约束「登记面与锁面互不覆盖」+ 小单元高缺陷密度（2,932 行 P1×4）+ 外部库不可中断×调用面无守卫成族**；Protected Area：nop-graph-api plan-first——W-06（C1-003 Edge.attrs）为唯一触碰 api 叶工单（修复须 plan-first）；家族关联 3 组零同站点重复（F4 账本族/不可中断族/F2+F3 对偶族）；owner doc drift：nop-graph 无 owner doc（占 63% 行数）。
+
 > 5.3 计数口径：合并裁定后 8 张修复工单（25 初审+深挖 → 25 复核保留零降级零驳回 → 7 修复工单 W-01~07 + 1 测试保护工单 W-08；P0×0 显式空执行/**P1×2**（W-01 文件去重竞态/W-04 dashboard 行上界）/P2×13/P3×10）；C10 缺保护 5 条单列（矩阵会红 0/假保护 4/部分 1/无测试 13——P1×2 全部无保护；反向钉死 1 处钉死无 fencing 语义）；Protected Area：nop-file-api 3f/492 plan-first——审计只读；跨单元关联 6 组零同站点重复。
 
 > 2.3 计数口径：合并裁定后 59 条（64 初审+深挖 → 63 复核保留全含降级 9（P1×6 + P2→P3×3）+ 1 撤案（C2-006 转正面样例）→ 并入 4 条 + 跨单元并入 1（C9-002→2.1 C9-010）；P1 存量 12（初审 10 + 深挖 2）−6 降级（C1-001/C2-004/C3-001/005/013/C4-003 全有实测或部署面证据）+1 升格（C9-012）→ 7；P1×7/P2×39/P3×12 + 量化记录 1；本单元承担修复 58）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 编号段 25 实占 24（CL-021 空号勘误）：升格 3（CL-003→C8-005、CL-010→C9-005、CL-015→C9-012）、并入 5、驳回 1（CL-011）、纯移交（CL-016/017/022/023/025）；跨单元映射：C9-012 移交功能正确性维度（接收轨落名）、C9-002→2.1 C9-010 同链第三面、C1-010 Dao flush 修复归 nop-auth-service 单元、CL-018→nop-kernel（ContextTaskQueue 承重原语）、CL-025 平台原语前置（C3-010/C4-003 修复先决）。
 
 > 2.2 计数口径：合并裁定后 45 条（63 初审+深挖 → 59 复核保留 + 4 驳回 → 并入 14 条；P1×11/P2×21/P3×13）；P0=0（即时通道显式空执行）；C10 缺保护 18 条单列；CL 编号 21 条（升格 1→C1-021、落格 2、同位点并入设施 2、零立案 1、关联保留 8、纯移交 7；见「维度集外线索关联」节 2.2 小节）；跨单元映射表 11 行（C1-007 族案↔2.1 C1-001 刷新链上下游、C1-021 吸收进 2.1 C3-001 平台方案、CL-008/020 同位点主处置在 2.1、C6-010 三重登记设施归 2.1、Jdk21CommonsCoreInitializer 注册链为 2.1 C6-002 可达性终审输入）；C2-001 与历史 check 审计 P2-6 同源（本轮 P1 裁定留档）。
+
+> 2.1 移交闭环回填（2026-10-22）：C6-CL-031「移交 nop-graph 轮次」已在 WI 5.6（plan 2487）闭环——三态裁定=**边界变化**（非 daemon+无 awaitTermination 站点事实仍成立未修复；awaitTermination 属负修复，CWTS networkanalysis 1.3.0 全库零 interrupt 检查点）；并入 nop-graph-duckdb-W-04（CS-001，P1）关闭。
 
 > 2.1 计数口径：合并裁定后 96 条（120 初审+深挖 → 118 复核保留含 7 降级 + 2 驳回 → 并入 22 条；P1 9→5、P2×63、P3×28）；P0=0（即时通道显式空执行）；C10 缺保护 14 条单列；CL 编号 36 条、驳回 1（C1-CL-001）、确认台账 35（含 11 别名归并、4 移交 nop-graph/nop-stream/rpc/api-core；见「维度集外线索关联」节 2.1 小节）；**本单元为唯一设施本体审计**——跨单元映射表 15 行（使用方↔设施两面，非重复立项）见其 merge-adjudication.md §五；1 处跨单元双登记（WI 1.7 C4-003↔2.1 C4-003 同设施同面，处置归 2.1，1.7 侧 cross-ref 关闭）；api-core 移交包 5 项单列（Protected Area 另行裁定）。
 
@@ -271,6 +276,10 @@
 | nop-rule-metadata-W-01（超时族主 C7-102+C7-001+C4-R2-001） | 5.5 | nop-rule-metadata | 外部 JDBC 全链无超时（queryTimeout/networkTimeout 0 配置、SimpleDataSource.setLoginTimeout no-op、DriverManager.setLoginTimeout(5) 仅界建连）——外部源挂起→质量监控静默停摆+checkpoint 永久锁死+调度池控制面锁死（判级暂计 P1，C4 侧 P2 分歧登记 7.1） | 待 7.1 | open |
 | nop-rule-metadata-W-02（retention 族主 C7-004+C7-101） | 5.5 | nop-rule-metadata | 7 张 append-only 时序表零保留路径（QualityResult/QualityScore/Catalog/ProfilingResult/ReconResult/ModelChangedEvent mediumtext 双快照+告警工作流实例）——cron+auto-score 驱动无界增长（F4） | 待 7.1 | open |
 | nop-rule-metadata-W-03（C7-R2-001） | 5.5 | nop-rule-metadata | 规则热更新失效传播缺口：DaoRuleModelLoader traceDepends 只钉定义行，判定树内容在 NopRuleNode 子行且一等 CRUD 可直接改写——节点级编辑不触发缓存失效，陈旧规则无限期服务无日志无告警 | 待 7.1 | open |
+| nop-graph-duckdb-W-01（账本泄漏族主 C6-001 吸 3 载体） | 5.6 | nop-graph-duckdb | OPEN_FILES+connections 账本仅 engine.close() 释放——单例长驻期每任务净增永不回收（F4）+ 过期指纹误拒同路径异配置重开（registry 自述场景 100% 假阳性 bizFatal） | 待 7.1 | open |
+| nop-graph-duckdb-W-02（竞态族主 C6-002 吸 C1-002） | 5.6 | nop-graph-duckdb | open/close 竞态：checkClosed→慢速 connect 窗口内 close() 早退，track 迟到连接进已关闭引擎——native 句柄+单写者文件锁泄漏（IDuckDbEngine L16 契约明文违约） | 待 7.1 | open |
+| nop-graph-duckdb-W-03（C6-R2-002） | 5.6 | nop-graph-duckdb | materialize CTAS 无 table-exists 守卫（对照 readExternal 有）——CTAS 提交后失败留孤儿表，非 bizFatal 可重试→持久 dbPath 重试/恢复重放永久必败（F2 半个成功+F3 守卫漏配） | 待 7.1 | open |
+| nop-graph-duckdb-W-04（不可中断族主 CS-001 吸 CS-R2-001+2.1 C6-CL-031 别名） | 5.6 | nop-graph-duckdb | LeidenDetector runWithTimeout 超时幽灵线程：CWTS 1.3.0 全库零 interrupt 引用 shutdownNow 必然无效，非 daemon 线程不可辨识；5 调用点零规模守卫且 7 个 @BizQuery 请求线程同步触发 | 待 7.1 | open |
 
 
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
@@ -292,6 +301,8 @@
 ### WI 5.4 nop-report-format（CL 前缀 `nop-report-format-CL-0NN` 声明零实占——四维初审/深挖未产出维度集外线索，overlay 面 C2/C3/C4/C7/C8 零候选；无 CL 台账行）
 
 ### WI 5.5 nop-rule-metadata（CL-001~003/101~102/201~206/301~303/401~404/501~504/601~604 分段编号 26 条：26/26 确认 0 驳回；归并去向——CL-205=CL-501 同点归并、CL-601 与 C1-101/C5-102 同族归 W-13、CL-604 与 C5-R2-001 归 W-23、CL-504 watch-only；逐条见 merge-adjudication.md）
+
+### WI 5.6 nop-graph-duckdb（CL-001~002/101~103/201~210 分段编号 15 条：15/15 确认 0 驳回；归并去向——CL-001 归并 CS-001 别名、CL-201 并 C6-002 族、CL-203 后果并 C6-003、CL-204 作 CS-004 族根因附注；逐条见 merge-adjudication.md）
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 
