@@ -24,7 +24,8 @@ public class TestSQLServerDialect extends TestDialect {
         HikariDataSource ds = new HikariDataSource();
         ds.setMetricRegistry(GlobalMeterRegistry.instance());
         ds.setDriverClassName("org.testcontainers.jdbc.ContainerDatabaseDriver");
-        ds.setJdbcUrl("jdbc:tc:sqlserver:///test?TC_DAEMON=true&TC_TMPFS=/testtmpfs:rw");
+        // MSSQL dialect 承诺基线 = SQL Server 2022（见 mssql.dialect.xml trimChars 注释）
+        ds.setJdbcUrl("jdbc:tc:sqlserver:2022-latest:///test?TC_DAEMON=true&TC_TMPFS=/testtmpfs:rw");
         ds.setUsername(AppConfig.var("nop.database.username", "test"));
         ds.setPassword(AppConfig.var("nop.database.password", "test"));
         ds.setMaximumPoolSize(maxPoolSize);
