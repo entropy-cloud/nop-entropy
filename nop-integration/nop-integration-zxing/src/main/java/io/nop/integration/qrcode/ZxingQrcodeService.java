@@ -24,9 +24,15 @@ public class ZxingQrcodeService implements IQrcodeService {
             // 创建二维码内容
             String content = options.getContent();
             // 设置二维码的参数
+            BarcodeFormat format = getFormat(options.getBarcodeFormat());
             Map<EncodeHintType, Object> hints = new HashMap<>();
             hints.put(EncodeHintType.CHARACTER_SET, options.getEncoding());
-            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.forBits(options.getErrorCorrection()));
+            if (BarcodeFormat.PDF_417.equals(format)) {
+                // PDF417Writer 要求 ERROR_CORRECTION 为整数（0-8 级）；QR 等码制用 ErrorCorrectionLevel
+                hints.put(EncodeHintType.ERROR_CORRECTION, options.getErrorCorrection());
+            } else {
+                hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.forBits(options.getErrorCorrection()));
+            }
             if (options.getMargin() >= 0) {
                 hints.put(EncodeHintType.MARGIN, options.getMargin()); // 设置边距
             }
@@ -38,7 +44,6 @@ public class ZxingQrcodeService implements IQrcodeService {
 
             // 生成二维码矩阵
             MultiFormatWriter multiFormatWriter = new MultiFormatWriter();
-            BarcodeFormat format = getFormat(options.getBarcodeFormat());
             BitMatrix bitMatrix = multiFormatWriter.encode(content, format,
                     (int) width, (int) height, hints);
             // 将二维码矩阵转换为图片
