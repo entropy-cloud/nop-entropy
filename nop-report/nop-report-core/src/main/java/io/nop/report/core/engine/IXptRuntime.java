@@ -68,6 +68,22 @@ public interface IXptRuntime extends IEvalContext {
     }
 
     /**
+     * i18n 消息解析（WI11）：当前 locale 下取 key 对应消息，缺失返回 default。
+     */
+    default String i18n(String key, String defaultValue) {
+        return io.nop.core.i18n.I18nMessageManager.instance().getMessage(
+                io.nop.api.core.context.ContextProvider.currentLocale(), key, defaultValue);
+    }
+
+    /**
+     * 平台 @i18n: 约定解析（多 key 逗号回退 + |缺省值），见 I18nMessageManager.resolveI18nVar。
+     */
+    default String i18nVar(String message) {
+        return io.nop.core.i18n.I18nMessageManager.instance().resolveI18nVar(
+                io.nop.api.core.context.ContextProvider.currentLocale(), message);
+    }
+
+    /**
      * 校验当前用户可访问指定数据源（xpt-rt 取数标签在取数前调用）。
      * checker 未注册（嵌入式库使用）时直接放行；未授权抛 nop.err.report.auth.* 错误。
      */

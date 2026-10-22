@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workbook x:schema="/nop/schema/excel/workbook.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="s1">
+            <table>
+                <rows>
+                    <row>
+                        <cells>
+                            <cell name="A1" type="string">
+                                <value>@i18n:test.report.title|默认标题</value>
+                            </cell>
+                            <cell name="B1" type="string">
+                                <value>静态文本</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+</workbook>

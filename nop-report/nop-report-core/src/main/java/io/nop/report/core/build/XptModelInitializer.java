@@ -12,6 +12,7 @@ import io.nop.api.core.util.ProcessResult;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.CollectionHelper;
 import io.nop.commons.util.StringHelper;
+import io.nop.core.CoreConstants;
 import io.nop.core.lang.eval.IEvalAction;
 import io.nop.core.model.graph.DefaultDirectedGraph;
 import io.nop.core.model.graph.DefaultEdge;
@@ -149,6 +150,12 @@ public class XptModelInitializer {
             // 解析 *=^ds!myField 这种形式的单元格表达式
             if (text.startsWith(EXCEL_MODEL_FIELD_PREFIX)) {
                 parseCellExpr(cellModel, cell.getLocation(), text.substring(EXCEL_MODEL_FIELD_PREFIX.length()).trim());
+            } else if (text.startsWith(CoreConstants.I18N_VAR_PREFIX)) {
+                // 模板文本 i18n（WI11）：包装为 xptRt.i18nVar 求值，当前 locale 解析（缺失回退原文本）
+                String source = "xptRt.i18nVar(\"" + text.replace("\"", "\\\"") + "\")";
+                ExprEvalAction valueExpr = TemplateReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
+                        "valueExpr", "${" + source + "}", cp);
+                cellModel.setValueExpr(EvalCode.addSource(valueExpr, "i18n`" + text + "`"));
             } else if (text.contains("${") && text.contains("}")) {
                 // 解析 ${x}这种xpl模板表达式
                 ExprEvalAction valueExpr = TemplateReportExprStdDomainHandler.INSTANCE.parseProp(null, cell.getLocation(),
