@@ -16,6 +16,7 @@ import io.nop.core.lang.eval.IEvalPredicate;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.wf.api.actor.IWfActor;
+import io.nop.wf.api.actor.WfActorAndOwner;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowStep;
 import io.nop.wf.core.NopWfCoreConstants;
@@ -1028,5 +1029,125 @@ public class TestWorkflowEngine extends BaseTestCase {
         invokeAction(step3, "sp", null, null, null, context);
         workflow.runAutoTransitions(context);
         assertTrue(workflow.isEnded());
+    }
+
+    /**
+     * 加签：向 and-group 追加审批人（addActor）后，新成员以 ACTIVATED 加入同一 execGroup，
+     * and-group 的完成条件随之变为"含新加签者在内的全部成员 agree"。
+     */
+    @Test
+    public void testAddActorExtendsAndGroup() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupAnd", 1L);
+        workflow.start(null, context);
+        IWorkflowStep startStep = workflow.getLatestStartStep();
+        invokeAction(startStep, "sh", null, null, null, context);
+
+        assertEquals(3, workflow.getActivatedSteps().size());
+        IWorkflowStep member1 = null;
+        for (IWorkflowStep step : workflow.getActivatedSteps()) {
+            if ("1".equals(step.getRecord().getActorId()))
+                member1 = step;
+        }
+        assertNotNull(member1);
+        String execGroup = member1.getRecord().getExecGroup();
+        assertNotNull(execGroup);
+
+        context.getContext().setUserId("1");
+        WfActorAndOwner addedActor = new WfActorAndOwner();
+        addedActor.setActorType("user");
+        addedActor.setActorId("4");
+        IWorkflowStep addedStep = member1.addActor(addedActor, context);
+        assertNotNull(addedStep);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(4, activeSteps.size());
+        boolean addedActivated = false;
+        for (IWorkflowStep step : activeSteps) {
+            assertEquals(execGroup, step.getRecord().getExecGroup());
+            if ("4".equals(step.getRecord().getActorId())) {
+                addedActivated = true;
+                assertTrue(step.isActivated(), "added actor should be activated");
+            }
+        }
+        assertTrue(addedActivated, "added actor 4 should join execGroup as activated step");
+
+        String[] actors = {"1", "2", "3", "4"};
+        for (int i = 0; i < actors.length; i++) {
+            String actorId = actors[i];
+            IWorkflowStep target = null;
+            for (IWorkflowStep step : workflow.getActivatedSteps()) {
+                if (actorId.equals(step.getRecord().getActorId()))
+                    target = step;
+            }
+            assertNotNull(target, "actor " + actorId + " should have an active step");
+            context.getContext().setUserId(actorId);
+            invokeAction(target, "sp", null, null, null, context);
+            workflow.runAutoTransitions(context);
+            if (i < actors.length - 1) {
+                assertFalse(workflow.isEnded(),
+                        "and-group must wait for all 4 members after " + actorId + " agrees");
+            }
+        }
+        assertTrue(workflow.isEnded());
+    }
+
+    /**
+     * 转办（exitCurrentStep=true）：原步骤以 TRANSFERRED 退出进入历史，新步骤由受让人激活。
+     */
+    @Test
+    public void testTransferToActorExitsCurrentStep() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/reject", 1L);
+        workflow.start(null, context);
+        workflow.getLatestStartStep().invokeAction("sh", null, context);
+
+        context.getContext().setUserId("2");
+        IWorkflowStep ysh = workflow.getLatestStepByName("ysh");
+        assertNotNull(ysh);
+        assertEquals("2", ysh.getRecord().getActorId());
+
+        WfActorAndOwner toUser = new WfActorAndOwner();
+        toUser.setActorType("user");
+        toUser.setActorId("9");
+        IWorkflowStep nextStep = ysh.transferToActor(toUser, true, context);
+        assertNotNull(nextStep);
+
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_TRANSFERRED, ysh.getRecord().getStatus().intValue());
+        assertTrue(ysh.isHistory(), "transferred step should leave active set");
+
+        List<? extends IWorkflowStep> activated = workflow.getActivatedSteps();
+        assertEquals(1, activated.size());
+        assertEquals(nextStep.getStepId(), activated.get(0).getStepId());
+        assertEquals("9", activated.get(0).getRecord().getActorId());
+        assertEquals(ysh.getStepName(), activated.get(0).getStepName());
+    }
+
+    /**
+     * or-group：任一成员 agree 后，其余活跃成员必须被置为 SKIPPED 并进入历史。
+     */
+    @Test
+    public void testExecGroupOrSkipsRemainingMembers() {
+        IServiceContext context = new ServiceContextImpl();
+        IWorkflow workflow = workflowManager.newWorkflow("test/execGroupOr", 1L);
+        workflow.start(null, context);
+        invokeAction(workflow.getLatestStartStep(), "sh", null, null, null, context);
+
+        List<? extends IWorkflowStep> activeSteps = workflow.getActivatedSteps();
+        assertEquals(3, activeSteps.size());
+
+        IWorkflowStep agreeStep = activeSteps.get(0);
+        IWorkflowStep skippedStep1 = activeSteps.get(1);
+        IWorkflowStep skippedStep2 = activeSteps.get(2);
+
+        context.getContext().setUserId(agreeStep.getRecord().getActorId());
+        invokeAction(agreeStep, "sp", null, null, null, context);
+        workflow.runAutoTransitions(context);
+
+        assertTrue(workflow.isEnded());
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_SKIPPED, skippedStep1.getRecord().getStatus().intValue());
+        assertEquals(NopWfCoreConstants.WF_STEP_STATUS_SKIPPED, skippedStep2.getRecord().getStatus().intValue());
+        assertTrue(skippedStep1.isHistory());
+        assertTrue(skippedStep2.isHistory());
     }
 }
