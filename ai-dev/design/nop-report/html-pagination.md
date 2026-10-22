@@ -25,6 +25,7 @@ HTML 是屏幕预览与浏览器打印的载体，当前输出为普通表格流
 - 输出 HTML 内嵌 `<style>`：`@page` 设定页幅/页边距（取模板打印区设置），表格按服务端装箱输出分页节（`.xpt-page`），表头行进每节 `thead`。
 - 打印与屏幕双形态并存：屏幕预览保持连续表格流（现有行为不回归），打印形态经 `@media print` 与分页容器切换；提供分页预览容器（按 `@page` 尺寸分节的视觉预览）。
 - 页眉页脚在每页节内出现；`&P`/`&N`/报表名占位符语义与 PDF 页脚一致。
+- 交互与响应式（渐进增强）：html 输出内嵌幂等脚本（文档级事件委托：th 列排序、展开层级折叠组切换），消费契约为**文档级解析**（file:// / iframe srcdoc / document.write）；innerHTML 注入不执行 script 属已知限制。`ICellView`/`IRowView` 增 additive 交互访问器（editorId/viewerId/expandGroup/expandGroupHeader，缺省 null/false 输出不变）。viewport meta 由调用方页面负责，渲染片段只输出 `overflow-x:auto` 容器与窄屏媒体查询。
 - 套打语义保持：`print=false` 背景图在 `@media print` 中排除（既有行为），与分页形态正交。
 
 ### 边界

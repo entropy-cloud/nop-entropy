@@ -439,6 +439,16 @@ public class ExpandedCell implements IExcelCell {
     }
 
     @JsonIgnore
+    @Override
+    public String getEditorId() {
+        return model == null ? null : model.getEditorId();
+    }
+
+    @Override
+    public String getViewerId() {
+        return model == null ? null : model.getViewerId();
+    }
+
     public XptCellModel getModel() {
         return model;
     }

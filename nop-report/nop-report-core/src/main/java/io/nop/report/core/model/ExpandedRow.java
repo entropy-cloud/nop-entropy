@@ -259,6 +259,31 @@ public class ExpandedRow implements IExcelRow, Iterable<ExpandedCell> {
         this.table = table;
     }
 
+    @Override
+    public String getExpandGroup() {
+        if (firstCell == null)
+            return null;
+        for (ExpandedCell cell = firstCell; cell != null; cell = cell.getRight()) {
+            if (cell.getRowParent() != null)
+                return "row-" + cell.getRowParent().getRow().getRowIndex();
+        }
+        return null;
+    }
+
+    @Override
+    public boolean isExpandGroupHeader() {
+        if (table == null)
+            return false;
+        for (ExpandedRow row : table.getRows()) {
+            if (row == this)
+                continue;
+            String group = row.getExpandGroup();
+            if (group != null && group.equals("row-" + getRowIndex()))
+                return true;
+        }
+        return false;
+    }
+
     public int getRowIndex() {
         if (assignedRowIndex >= 0)
             return assignedRowIndex;

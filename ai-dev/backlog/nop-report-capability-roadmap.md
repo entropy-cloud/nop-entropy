@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0–WI4 完成）
+> Last updated: 2026-10-22（WI0–WI5 完成）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -56,7 +56,7 @@
 ### M2 — HTML 打印与交互
 
 - [x] WI4 HTML 分页打印保真：为 html/shtml 输出增加 `@page`/分页 CSS 与分页预览容器，复用 PDF 既有 `nop.report.pdf.repeat-header-rows`/`repeat-key-columns` 语义（表头/关键列重复），实现页眉页脚占位符的 HTML 等价；`linkExpr` 例外（见 WI5）。含 headless 浏览器分页截图 golden。（Deliverable: HTML 分页打印 + 测试 + golden；deps: WI0；Item Type: Feature + Proof）
-- [ ] WI5 HTML 交互与响应式：`linkExpr` 渲染为超链接、报表钻取跳转、列排序/折叠、条件行/列可见；窄屏/移动响应式容器；`editorId`/`viewerId` 交互钩子落地（当前仅模型层）。（Deliverable: 交互渲染 + 响应式 + 测试；deps: WI0；Item Type: Feature）
+- [x] WI5 HTML 交互与响应式：`linkExpr` 渲染为超链接、报表钻取跳转、列排序/折叠、条件行/列可见；窄屏/移动响应式容器；`editorId`/`viewerId` 交互钩子落地（WI5 已渲染为 `data-editor-id`/`data-viewer-id` 属性）。（Deliverable: 交互渲染 + 响应式 + 测试；deps: WI0；Item Type: Feature）
 
 ### M3 — 缓存与大数据
 
@@ -86,7 +86,7 @@
 
 - ★ [x] **Milestone: 契约与验收基线就绪**（WI0 完成后勾选）
 - ★ [x] **Milestone: 权限与参数平台化可用**（WI1–WI3 完成后勾选）
-- ★ **Milestone: HTML 打印与交互可用**（WI4 完成、WI5 待做）
+- ★ [x] **Milestone: HTML 打印与交互可用**（WI4–WI5 完成后勾选）
 - ★ **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
 - ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
 - ★ **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）

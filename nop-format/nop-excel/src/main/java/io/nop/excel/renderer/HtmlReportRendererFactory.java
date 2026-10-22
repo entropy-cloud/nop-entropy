@@ -131,6 +131,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
                 out.write(StringHelper.escapeXmlAttr(sheet.getName()));
                 out.write("\">\n");
                 HtmlSheetVisualRenderer.renderVisualOverlays(sheet, sheetId, out);
+                renderResponsiveCss(sheetId, out);
                 if (HtmlPagePagination.isPaginated(sheet)) {
                     renderPaginatedSheet(sheet, sheetId, scopedCssPrefix, out, context);
                 } else {
@@ -140,10 +141,58 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
                     output.setScopeCssPrefix(scopedCssPrefix);
                     output.generateToWriter(out, context);
                 }
+                renderInteractiveScript(out);
                 out.write("</div>\n");
             } catch (IOException e) {
                 throw NopException.adapt(e);
             }
+        }
+
+        /**
+         * 响应式容器 CSS（窄屏自适应；viewport meta 由调用方页面负责）。
+         */
+        protected void renderResponsiveCss(String sheetId, Writer out) throws IOException {
+            out.write("<style>\n");
+            out.write("#" + sheetId + "{overflow-x:auto;}\n");
+            out.write("@media (max-width:768px){\n");
+            out.write("#" + sheetId + " .xpt-cell{font-size:12px;padding:1px;}\n");
+            out.write("}\n");
+            out.write("</style>\n");
+        }
+
+        /**
+         * 渐进增强交互脚本：列排序（th 点击，按列文本/数值重排 tbody）+ 折叠组切换。
+         * 消费契约为文档级解析（file:// / iframe srcdoc / document.write）；innerHTML 注入不执行 script（已知限制）。
+         * 幂等安装；无排序头/折叠标记时自然不激活。
+         */
+        protected void renderInteractiveScript(Writer out) throws IOException {
+            out.write("<script>\n");
+            out.write("(function(){\n");
+            out.write("if(window.__xptInteractive) return; window.__xptInteractive=true;\n");
+            out.write("document.addEventListener('click',function(ev){\n");
+            out.write("  var th=ev.target.closest('th');\n");
+            out.write("  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){\n");
+            out.write("    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;\n");
+            out.write("    var idx=th.cellIndex;\n");
+            out.write("    var rows=[].slice.call(tbody.querySelectorAll('tr'));\n");
+            out.write("    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }\n");
+            out.write("    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));\n");
+            out.write("      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }\n");
+            out.write("    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});\n");
+            out.write("    return;\n");
+            out.write("  }\n");
+            out.write("  var toggle=ev.target.closest('tr[data-expand-toggle]');\n");
+            out.write("  if(toggle){\n");
+            out.write("    var group=toggle.getAttribute('data-expand-group');\n");
+            out.write("    var expanded=toggle.getAttribute('aria-expanded')!=='false';\n");
+            out.write("    toggle.setAttribute('aria-expanded', expanded?'false':'true');\n");
+            out.write("    document.querySelectorAll('tr[data-expand-group=\"'+group+'\"]').forEach(function(r){\n");
+            out.write("      if(r!==toggle) r.style.display=expanded?'none':'';\n");
+            out.write("    });\n");
+            out.write("  }\n");
+            out.write("});\n");
+            out.write("})();\n");
+            out.write("</script>\n");
         }
 
         /**
@@ -154,6 +203,7 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
             out.write("<style>\n");
             out.write(HtmlPagePagination.buildPageCss(sheet));
             out.write("#" + sheetId + " .xpt-page-footer{ text-align:center;font-size:10pt;color:#444;}\n");
+            out.write("@media (max-width:768px){#" + sheetId + " .xpt-page-footer{font-size:9pt;}}\n");
             out.write("@media print{\n");
             out.write("#" + sheetId + " .xpt-page{ page-break-after:always;}\n");
             out.write("#" + sheetId + " .xpt-page:last-child{ page-break-after:auto;}\n");

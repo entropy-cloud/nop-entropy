@@ -1,0 +1,48 @@
+<div id="xpt-report">
+    <style>
+        #xpt-report{overflow-x:auto;}
+        @media (max-width:768px){
+            #xpt-report .xpt-cell{font-size:12px;padding:1px;}
+        }
+        #xpt-report .xpt-table{border-collapse:collapse;table-layout:fixed;}
+    </style>
+    <table class="xpt-table">
+        <colgroup><col/><col/><col/></colgroup>
+        <thead>
+        <tr><th>编号</th><th>名称</th><th>金额</th></tr>
+        </thead>
+        <tbody>
+        <tr data-expand-toggle="true" data-expand-group="row-0" aria-expanded="true"><td class="xpt-cell">1</td><td class="xpt-cell">母行</td><td class="xpt-cell">500</td></tr>
+        <tr data-expand-group="row-0"><td class="xpt-cell">2</td><td class="xpt-cell">子行A</td><td class="xpt-cell">20</td></tr>
+        <tr data-expand-group="row-0"><td class="xpt-cell">3</td><td class="xpt-cell">子行B</td><td class="xpt-cell">3</td></tr>
+        <tr><td class="xpt-cell">4</td><td class="xpt-cell">独立行</td><td class="xpt-cell">7</td></tr>
+        </tbody>
+    </table>
+    <script>
+        (function(){
+            if(window.__xptInteractive) return; window.__xptInteractive=true;
+            document.addEventListener('click',function(ev){
+                var th=ev.target.closest('th');
+                if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+                    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+                    var idx=th.cellIndex;
+                    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+                    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+                    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+                        if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+                    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+                    return;
+                }
+                var toggle=ev.target.closest('tr[data-expand-toggle]');
+                if(toggle){
+                    var group=toggle.getAttribute('data-expand-group');
+                    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+                    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+                    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+                        if(r!==toggle) r.style.display=expanded?'none':'';
+                    });
+                }
+            });
+        })();
+    </script>
+</div>

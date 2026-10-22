@@ -139,6 +139,12 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write("<td ");
         writeAttr(out, "id", cell.getId());
 
+        // 交互钩子（editorId/viewerId，见 ai-dev/design/nop-report/html-pagination.md）
+        if (cell.getEditorId() != null)
+            writeAttr(out, "data-editor-id", cell.getEditorId());
+        if (cell.getViewerId() != null)
+            writeAttr(out, "data-viewer-id", cell.getViewerId());
+
         if (!disableStyle)
             writeAttr(out, "class", cellClass(styleClass(cellClass, cell.getStyleId()), cell));
 
@@ -308,6 +314,16 @@ public class HtmlTableOutput implements ITextTemplateOutput {
             height = defaultHeight;
         if (height != null && !disableStyle) {
             out.write(" style=\"height:" + ptValue(height) + "\"");
+        }
+
+        // 交互钩子（展开层级折叠组，见 ai-dev/design/nop-report/html-pagination.md）
+        if (row.getExpandGroup() != null)
+            writeAttr(out, "data-expand-group", row.getExpandGroup());
+        if (row.isExpandGroupHeader()) {
+            writeAttr(out, "data-expand-toggle", "true");
+            int idx = row.getRowIndex();
+            if (idx >= 0)
+                writeAttr(out, "data-expand-group", "row-" + idx);
         }
 
         out.write(">");

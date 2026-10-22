@@ -25,6 +25,21 @@ public interface IRowView extends IExtensibleObject {
 
     String getStyleId();
 
+    /**
+     * 明细行所属折叠组标识（展开层级派生）；缺省 null = 非明细行。
+     */
+    default String getExpandGroup() {
+        return null;
+    }
+
+    /**
+     * 是否折叠组父行（存在引用本行的明细行）；缺省 false。
+     */
+    default boolean isExpandGroupHeader() {
+        return false;
+    }
+
+
     Double getHeight();
 
     boolean isHidden();

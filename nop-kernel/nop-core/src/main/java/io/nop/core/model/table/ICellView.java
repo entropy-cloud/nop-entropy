@@ -18,6 +18,20 @@ import io.nop.commons.util.StringHelper;
  */
 public interface ICellView extends ICloneable {
     /**
+     * 前端编辑器挂接标识（html 渲染为 data-editor-id）；缺省 null。
+     */
+    default String getEditorId() {
+        return null;
+    }
+
+    /**
+     * 前端查看器挂接标识（html 渲染为 data-viewer-id）；缺省 null。
+     */
+    default String getViewerId() {
+        return null;
+    }
+
+    /**
      * 单元格合并时，合并后被屏蔽的单元格位置用代理单元格来占位
      */
     default boolean isProxyCell() {

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workbook x:schema="/nop/schema/excel/workbook.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="s1">
+            <table>
+                <rows>
+                    <row>
+                        <cells>
+                            <cell name="A1" type="string">
+                                <value>明细</value>
+                                <model editorId="edName" viewerId="vwName">
+                                    <linkExpr>'/detail?id=1'</linkExpr>
+                                </model>
+                            </cell>
+                            <cell name="B1" type="string">
+                                <value>100</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+</workbook>
