@@ -343,6 +343,7 @@
 /nop/auth/xlib/auth-gen.xlib
 /nop/autoconfig/nop-auth-core.beans
 /nop/autoconfig/nop-biz.beans
+/nop/autoconfig/nop-chart-report.beans
 /nop/autoconfig/nop-dao.beans
 /nop/autoconfig/nop-gateway.beans
 /nop/autoconfig/nop-http-api.beans
@@ -476,6 +477,7 @@
 /nop/record/xlib/record-mapping-gen.xlib
 /nop/report/_module
 /nop/report/beans/app-report-demo.beans.xml
+/nop/report/beans/report-chart-defaults.beans.xml
 /nop/report/beans/report-defaults.beans.xml
 /nop/report/beans/report-ext.beans.xml
 /nop/report/demo/base/01-档案式报表.xpt.xlsx
