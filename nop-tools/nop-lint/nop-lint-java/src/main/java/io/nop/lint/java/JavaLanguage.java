@@ -59,6 +59,16 @@ public final class JavaLanguage implements LintLanguage {
     }
 
     @Override
+    public boolean supportsLocalTypes() {
+        return true;
+    }
+
+    @Override
+    public io.nop.lint.core.semantic.LocalTypeIndex localTypeIndex(io.nop.lint.core.node.LintTree tree) {
+        return JavaLocalTypeIndex.build(tree);
+    }
+
+    @Override
     public Language treeSitter() {
         return adapter.treeSitter();
     }

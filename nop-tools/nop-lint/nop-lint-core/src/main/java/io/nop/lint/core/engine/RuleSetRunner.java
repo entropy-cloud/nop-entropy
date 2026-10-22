@@ -138,7 +138,7 @@ final class RuleSetRunner {
                                 DeepResolvers deep, boolean l2Open, String filePath,
                                 io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
         return runWithRewrites(rules, tree, stats, profile, budget, deep, l2Open, filePath,
-                typeQueries).diagnostics();
+                typeQueries, null).diagnostics();
     }
 
     /**
@@ -151,7 +151,8 @@ final class RuleSetRunner {
     static RunResult runWithRewrites(List<CompiledRule> rules, LintTree tree, LintStats.Builder stats,
                                      LintProfile profile, FileBudget budget,
                                      DeepResolvers deep, boolean l2Open, String filePath,
-                                     io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
+                                     io.nop.lint.core.semantic.TypeQuerySupport typeQueries,
+                                     io.nop.lint.core.semantic.LocalTypeIndex localTypes) {
         int[] occurringKinds = KindIndex.collect(tree.root());
         List<Diagnostic> diagnostics = new ArrayList<>();
         List<Fix> transformFixes = new ArrayList<>();
@@ -206,7 +207,7 @@ final class RuleSetRunner {
             budget.addPatternNanos(budget.now() - matchStart);
             if (!rule.constraints().isEmpty()) {
                 try {
-                    matches = applyConstraints(rule, matches, stats, typeQueries);
+                    matches = applyConstraints(rule, matches, stats, typeQueries, localTypes);
                 } catch (TypeResolutionException e) {
                     // design 11 §5 degrade: a type query the run cannot
                     // answer degrades exactly this rule — counted, logged,
@@ -328,12 +329,14 @@ final class RuleSetRunner {
      */
     private static List<Match> applyConstraints(CompiledRule rule, List<Match> matches,
                                                  LintStats.Builder stats,
-                                                 io.nop.lint.core.semantic.TypeQuerySupport typeQueries) {
+                                                 io.nop.lint.core.semantic.TypeQuerySupport typeQueries,
+                                                 io.nop.lint.core.semantic.LocalTypeIndex localTypes) {
         List<Constraint> constraints = rule.constraints();
         List<Match> kept = new ArrayList<>(matches.size());
         for (Match match : matches) {
             boolean allHold = true;
-            ConstraintContext ctx = new ConstraintContext(match.node(), match.env(), typeQueries);
+            ConstraintContext ctx = new ConstraintContext(match.node(), match.env(), typeQueries,
+                    localTypes);
             for (Constraint constraint : constraints) {
                 if (!constraint.holds(ctx)) {
                     allHold = false;

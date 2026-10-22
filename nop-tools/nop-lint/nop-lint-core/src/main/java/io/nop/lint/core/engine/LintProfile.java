@@ -46,12 +46,14 @@ public enum LintProfile {
     DEEP;
 
     private static final Set<LintCapability> FAST_CAPABILITIES =
-            Collections.unmodifiableSet(EnumSet.of(LintCapability.L1));
+            Collections.unmodifiableSet(EnumSet.of(LintCapability.L1, LintCapability.LTYPE));
     private static final Set<LintCapability> STANDARD_CAPABILITIES =
-            Collections.unmodifiableSet(EnumSet.of(LintCapability.L1, LintCapability.L2));
+            Collections.unmodifiableSet(EnumSet.of(LintCapability.L1, LintCapability.L2,
+                    LintCapability.LTYPE));
     private static final Set<LintCapability> DEEP_CAPABILITIES = Collections.unmodifiableSet(
             EnumSet.of(LintCapability.L1, LintCapability.L2, LintCapability.L3,
-                    LintCapability.L4, LintCapability.SCOPE, LintCapability.METRICS));
+                    LintCapability.L4, LintCapability.SCOPE, LintCapability.METRICS,
+                    LintCapability.LTYPE));
 
     /**
      * The per-match xscript budget ceiling in the {@link #FAST} profile

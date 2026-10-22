@@ -66,7 +66,18 @@ public enum LintCapability {
      * Complexity metrics (design 01 §6, roadmap item 32). Deep-profile only;
      * same live-probe contract as {@link #L3}.
      */
-    METRICS;
+    METRICS,
+
+    /**
+     * Single-file local type inference (the "in-file quick type marking"
+     * tier): declaration bindings — locals, fields, parameters, same-file
+     * method returns — computed from the tree itself by the language
+     * binding's {@code LocalTypeIndex}. Unlike {@link #L2} it needs no
+     * project-wired resolver, so every profile serves it; the gate degrades
+     * a {@code LTYPE}-requiring rule only when the language binding cannot
+     * build the index (fail-closed, never a name-based guess).
+     */
+    LTYPE;
 
     /**
      * True for the analyzer-backed capabilities that only the {@code deep}
@@ -77,6 +88,15 @@ public enum LintCapability {
      */
     public boolean isDeepAnalyzer() {
         return this == L3 || this == L4 || this == SCOPE || this == METRICS;
+    }
+
+    /**
+     * True for {@link #LTYPE}: not an external analyzer (the index derives
+     * from the tree alone) but the gate must still verify the language
+     * binding actually serves it before running the rule.
+     */
+    public boolean isLocalAnalyzer() {
+        return this == LTYPE;
     }
 
     /**

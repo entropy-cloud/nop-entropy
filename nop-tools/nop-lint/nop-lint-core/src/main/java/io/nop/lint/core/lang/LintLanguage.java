@@ -101,4 +101,25 @@ public interface LintLanguage {
     default SuppressionProvider suppressionProvider() {
         return null;
     }
+
+    /**
+     * Whether this binding serves the {@code LTYPE} capability: a
+     * {@code localTypeIndex} that can actually walk the grammar's
+     * declarations. Default false — the engine's gate degrades LTYPE rules
+     * (counted, logged) on bindings without local type inference instead of
+     * evaluating a null index (fail-closed).
+     */
+    default boolean supportsLocalTypes() {
+        return false;
+    }
+
+    /**
+     * Builds the single-file local type index over one parsed tree, or null
+     * when {@link #supportsLocalTypes()} is false. Called once per lint
+     * call by the engine; the index is per-tree state exactly like the L2
+     * {@code TypeQuerySupport} — never captured at rule-compile time.
+     */
+    default io.nop.lint.core.semantic.LocalTypeIndex localTypeIndex(LintTree tree) {
+        return null;
+    }
 }

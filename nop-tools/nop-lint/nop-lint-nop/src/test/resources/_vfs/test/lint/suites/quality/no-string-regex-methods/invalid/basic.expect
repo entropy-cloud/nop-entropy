@@ -19,3 +19,7 @@ diagnostics:
     endLine: 6
     ruleId: quality/no-string-regex-methods
     messageContains: "split"
+  - line: 10
+    endLine: 10
+    ruleId: quality/no-string-regex-methods
+    messageContains: "split"

@@ -167,7 +167,8 @@ public class TestDeepProfileGate {
     @Test
     public void deepCeilingIsTheCapabilitySuperset() {
         assertEquals(Set.of(LintCapability.L1, LintCapability.L2, LintCapability.L3,
-                LintCapability.L4, LintCapability.SCOPE, LintCapability.METRICS),
+                LintCapability.L4, LintCapability.SCOPE, LintCapability.METRICS,
+                LintCapability.LTYPE),
                 new HashSet<>(LintProfile.DEEP.capabilities()));
         assertFalse(LintProfile.STANDARD.capabilities().contains(LintCapability.L3));
     }

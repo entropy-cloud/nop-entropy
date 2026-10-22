@@ -5,4 +5,16 @@ public class Basic {
         }
         return s.split(",", 2)[0];
     }
+
+    String[] viaReturnType(String s) {
+        return sameFileString().split(",");
+    }
+
+    String sameFileString() {
+        return s2();
+    }
+
+    String s2() {
+        return "x";
+    }
 }

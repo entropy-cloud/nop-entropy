@@ -54,6 +54,28 @@
     <!-- flattened matcher surface: the rule container, a util value, and a
          'not' inner all declare exactly one of these keys (XOR at every
          level is the parser's runtime authority). -->
+    <!-- per-match value constraints: one leaf key per element; the two
+         composite keys (anyOf/allOf) nest the same element shape one level
+         (depth cap is the parser's runtime authority). localTypeOf is the
+         LTYPE face — single-file declaration bindings, requires: [LTYPE]
+         enforced fail-closed by RuleDslParser. -->
+    <xdef:define xdef:name="LintConstraint">
+        <sameText captures="csv-set"/>
+        <differentText captures="csv-set"/>
+        <regex capture="string" pattern="string"/>
+        <inList capture="string" values="csv-set"/>
+        <typeOf capture="string" is="string"/>
+        <notExists pattern="string" message="string"/>
+        <withinDepth max="int"/>
+        <localTypeOf capture="string" is="string"/>
+        <anyOf xdef:body-type="list">
+            <constraint xdef:ref="LintConstraint"/>
+        </anyOf>
+        <allOf xdef:body-type="list">
+            <constraint xdef:ref="LintConstraint"/>
+        </allOf>
+    </xdef:define>
+
     <xdef:define xdef:name="LintMatcherBody">
         <pattern>!string</pattern>
         <kind>!string</kind>
@@ -114,15 +136,7 @@
          every constraint holds; filtered matches are counted
          (constraintFilteredMatches), never dropped silently. -->
     <constraints xdef:body-type="list">
-        <constraint>
-            <sameText captures="csv-set"/>
-            <differentText captures="csv-set"/>
-            <regex capture="string" pattern="string"/>
-            <inList capture="string" values="csv-set"/>
-            <typeOf capture="string" is="string"/>
-            <notExists pattern="string" message="string"/>
-            <withinDepth max="int"/>
-        </constraint>
+        <constraint xdef:ref="LintConstraint"/>
     </constraints>
 
     <!-- xpl fragment text carried verbatim; XPL compilation belongs to RuleCompiler

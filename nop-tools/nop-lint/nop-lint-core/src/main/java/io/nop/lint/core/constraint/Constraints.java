@@ -8,6 +8,7 @@ import io.nop.lint.core.pattern.SourcePatternCompiler;
 import io.nop.lint.core.rule.RuleDslModel;
 import io.nop.lint.core.semantic.TypeQuerySupport;
 
+import java.util.ArrayList;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
@@ -91,10 +92,31 @@ public final class Constraints {
                 return new NotExists(compileInnerPattern(model, ruleId, language));
             case "withinDepth":
                 return new WithinDepth(model.getMax());
+            case "localTypeOf":
+                return new LocalTypeOf(singleCapture(model, ruleId, singleCaptures, multiCaptures),
+                        model.getIs());
+            case "anyOf":
+            case "allOf":
+                return new Composite(kind, compileNested(model, ruleId, language,
+                        singleCaptures, multiCaptures));
             default:
                 throw new NopLintException("Rule '" + ruleId + "' declares unknown constraint kind '"
                         + kind + "' (the parser is the validation authority; fail-closed)");
         }
+    }
+
+    /**
+     * Compiles the nested leaves of a composite constraint. Nested
+     * composites are rejected at parse time, so no recursion guard here.
+     */
+    private static List<Constraint> compileNested(RuleDslModel.Constraint model, String ruleId,
+                                                  LintLanguage language, Set<String> singleCaptures,
+                                                  Set<String> multiCaptures) {
+        List<Constraint> nested = new ArrayList<>();
+        for (RuleDslModel.Constraint leaf : model.getNested()) {
+            nested.add(compile(leaf, ruleId, language, singleCaptures, multiCaptures));
+        }
+        return List.copyOf(nested);
     }
 
     private static List<String> checkCaptures(RuleDslModel.Constraint model, String ruleId,
@@ -251,6 +273,81 @@ public final class Constraints {
                         + "' at evaluation time (the compile-time capture check guarantees declared "
                         + "single captures are bound; invariant broken)");
             return typeQueries.isAssignableTo(node, is);
+        }
+    }
+
+    /**
+     * The single-file local type constraint ({@code localTypeOf}, the
+     * LTYPE face): holds when the index answers for the capture node. The
+     * reserved {@code is: unknown} inverts the face — it holds when the
+     * index cannot answer, letting a rule compose a type-precise branch
+     * with a declared fallback for unresolvable receivers. A null index
+     * (a run whose gate should have kept LTYPE rules out) fails loudly.
+     */
+    static final class LocalTypeOf implements Constraint {
+        private final String capture;
+        private final String is;
+
+        LocalTypeOf(String capture, String is) {
+            this.capture = capture;
+            this.is = is;
+        }
+
+        @Override
+        public boolean holds(ConstraintContext ctx) {
+            io.nop.lint.core.semantic.LocalTypeIndex localTypes = ctx.localTypes();
+            if (localTypes == null)
+                throw new NopLintException("constraint 'localTypeOf' (capture '" + capture
+                        + "', is '" + is + "') evaluated in a run without a local type index; "
+                        + "the rule must have been gated out (degraded on a binding that does "
+                        + "not serve LTYPE) instead of being evaluated");
+            LintNode node = ctx.env().getCapture(capture);
+            if (node == null)
+                throw new NopLintException("constraint 'localTypeOf' cannot resolve capture '"
+                        + capture + "' at evaluation time (the compile-time capture check "
+                        + "guarantees declared single captures are bound; invariant broken)");
+            String resolved = localTypes.typeOf(node);
+            if ("unknown".equals(is))
+                return resolved == null;
+            return resolved != null && typeMatches(resolved, is);
+        }
+
+        /**
+         * Simple-name equivalence: the stored text is whatever the file
+         * declares (simple or qualified); the expected face is written in
+         * the rule. Case-sensitive, suffix match on the last segment.
+         */
+        private static boolean typeMatches(String resolved, String expected) {
+            String a = resolved.substring(resolved.lastIndexOf('.') + 1);
+            String b = expected.substring(expected.lastIndexOf('.') + 1);
+            return a.equals(b);
+        }
+    }
+
+    /**
+     * The composite constraints ({@code anyOf}/{@code allOf}): the only
+     * place constraint-level disjunction exists — the top-level
+     * {@code constraints} list is a conjunction by contract.
+     */
+    static final class Composite implements Constraint {
+        private final boolean any;
+        private final List<Constraint> nested;
+
+        Composite(String kind, List<Constraint> nested) {
+            this.any = "anyOf".equals(kind);
+            this.nested = nested;
+        }
+
+        @Override
+        public boolean holds(ConstraintContext ctx) {
+            for (Constraint constraint : nested) {
+                boolean holds = constraint.holds(ctx);
+                if (any && holds)
+                    return true;
+                if (!any && !holds)
+                    return false;
+            }
+            return !any;
         }
     }
 

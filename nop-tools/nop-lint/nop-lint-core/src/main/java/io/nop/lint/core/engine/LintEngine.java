@@ -252,9 +252,10 @@ public final class LintEngine {
 
         LintStats.Builder stats = LintStats.builder().rulesLoaded(rules.size());
         TypeQuerySupport typeQueries = new TypeQuerySupport(typeResolver, filePath, tree.source());
+        io.nop.lint.core.semantic.LocalTypeIndex localTypes = language.localTypeIndex(tree);
         List<CompiledRule> runnable = new ArrayList<>(rules.size());
         for (CompiledRule rule : rules) {
-            Gate gate = gateFor(rule, filePath);
+            Gate gate = gateFor(rule, language, filePath);
             switch (gate) {
                 case SKIP -> stats.incRulesSkippedByProfile(rule.ruleId());
                 case DEGRADE -> {
@@ -268,7 +269,7 @@ public final class LintEngine {
         FileBudget budget = FileBudget.start(profile, clock);
         LintDeadlineExecutor.install();
         RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(runnable, tree, stats,
-                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+                profile, budget, deep, l2Ready(filePath), filePath, typeQueries, localTypes);
         SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
         // the suppression tail consumes the reportable channel only — the
         // transform rewrite channel never enters it (WI3 adjudication 1/4)
@@ -288,9 +289,10 @@ public final class LintEngine {
 
         LintStats.Builder stats = LintStats.builder().rulesLoaded(rules.size());
         TypeQuerySupport typeQueries = new TypeQuerySupport(typeResolver, filePath, tree.source());
+        io.nop.lint.core.semantic.LocalTypeIndex localTypes = language.localTypeIndex(tree);
         List<CompiledRule> compiled = new ArrayList<>(rules.size());
         for (RuleDslModel rule : rules) {
-            Gate gate = gate(rule, filePath);
+            Gate gate = gate(rule, language, filePath);
             switch (gate) {
                 case SKIP -> stats.incRulesSkippedByProfile(rule.getId());
                 case DEGRADE -> {
@@ -310,7 +312,7 @@ public final class LintEngine {
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
         RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(compiled, tree, stats,
-                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+                profile, budget, deep, l2Ready(filePath), filePath, typeQueries, localTypes);
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
@@ -332,8 +334,8 @@ public final class LintEngine {
      * live provider in {@link DeepResolvers} plus a named file, and a rule
      * whose provider is missing or not live degrades instead of running.
      */
-    private Gate gate(RuleDslModel rule, String filePath) {
-        return gateForTokens(rule.getRequires(), filePath);
+    private Gate gate(RuleDslModel rule, LintLanguage language, String filePath) {
+        return gateForTokens(rule.getRequires(), language, filePath);
     }
 
     /**
@@ -343,11 +345,11 @@ public final class LintEngine {
      * but never from {@code rawRequires()}) — plan 10's observable
      * equivalence requirement.
      */
-    private Gate gateFor(CompiledRule rule, String filePath) {
-        return gateForTokens(rule.rawRequires(), filePath);
+    private Gate gateFor(CompiledRule rule, LintLanguage language, String filePath) {
+        return gateForTokens(rule.rawRequires(), language, filePath);
     }
 
-    private Gate gateForTokens(Set<String> requirements, String filePath) {
+    private Gate gateForTokens(Set<String> requirements, LintLanguage language, String filePath) {
         boolean needsL2 = false;
         for (String requirement : requirements) {
             LintCapability capability = LintCapability.byToken(requirement);
@@ -355,6 +357,9 @@ public final class LintEngine {
                 return Gate.SKIP;
             }
             if (capability.isDeepAnalyzer() && !deepAnalyzerLive(capability, filePath)) {
+                return Gate.DEGRADE;
+            }
+            if (capability == LintCapability.LTYPE && (language == null || !language.supportsLocalTypes())) {
                 return Gate.DEGRADE;
             }
             if (capability == LintCapability.L2) {

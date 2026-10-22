@@ -281,9 +281,11 @@ public final class RuleDslModel {
         private final String is;
         private final String message;
         private final Integer max;
+        private final List<Constraint> nested;
 
         Constraint(String kind, List<String> captures, String capture, String pattern,
-                   List<String> values, String is, String message, Integer max) {
+                   List<String> values, String is, String message, Integer max,
+                   List<Constraint> nested) {
             this.kind = kind;
             this.captures = captures == null ? null : List.copyOf(captures);
             this.capture = capture;
@@ -292,6 +294,15 @@ public final class RuleDslModel {
             this.is = is;
             this.message = message;
             this.max = max;
+            this.nested = nested == null ? null : List.copyOf(nested);
+        }
+
+        /**
+         * The nested constraints of a composite ({@code anyOf}/{@code
+         * allOf}); null on leaf kinds.
+         */
+        public List<Constraint> getNested() {
+            return nested;
         }
 
         /**

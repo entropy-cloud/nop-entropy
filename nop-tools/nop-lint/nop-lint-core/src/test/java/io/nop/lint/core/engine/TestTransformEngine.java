@@ -70,7 +70,7 @@ public class TestTransformEngine {
 
         RuleSetRunner.RunResult result = RuleSetRunner.runWithRewrites(List.of(compiled), tree,
                 LintStats.builder(), LintProfile.STANDARD, FileBudget.withoutLimits(),
-                DeepResolvers.NONE, false, null, null);
+                DeepResolvers.NONE, false, null, null, null);
 
         assertTrue(result.diagnostics().isEmpty(),
                 "a transform match never produces a diagnostic");
@@ -87,7 +87,7 @@ public class TestTransformEngine {
         LintStats.Builder stats = LintStats.builder();
 
         RuleSetRunner.RunResult result = RuleSetRunner.runWithRewrites(List.of(compiled), tree,
-                stats, LintProfile.FAST, FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null);
+                stats, LintProfile.FAST, FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null, null);
 
         assertTrue(result.transformFixes().isEmpty(),
                 "the fast profile never opens the generation surface");
@@ -113,7 +113,7 @@ public class TestTransformEngine {
 
         RuleSetRunner.RunResult result = RuleSetRunner.runWithRewrites(
                 List.of(fixRule, transformRule), tree, stats, LintProfile.STANDARD,
-                FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null);
+                FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null, null);
 
         assertEquals(1, result.diagnostics().size());
         assertEquals(0, result.diagnostics().get(0).fix().order());
@@ -145,7 +145,7 @@ public class TestTransformEngine {
 
         RuleSetRunner.RunResult result = RuleSetRunner.runWithRewrites(
                 List.of(fixRule, transformRule), tree, LintStats.builder(), LintProfile.STANDARD,
-                FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null);
+                FileBudget.withoutLimits(), DeepResolvers.NONE, false, null, null, null);
 
         FixApplier applier = new FixApplier(
                 source -> new LintResult(result.diagnostics(), LintStats.builder().build(),

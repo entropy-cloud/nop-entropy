@@ -3,27 +3,31 @@
 # java.util.regex.Pattern (Pattern.compile to a static final field, then
 # matcher()/split() off it). Covered String faces (the full JDK set of
 # regex-consuming String methods): replaceAll, replaceFirst, matches,
-# split(regex), split(regex, limit). Test code is exempt via the files scope
-# below (src/test/java trees and *Test.java sources), enforced by the engine
-# (CompiledRule.fileScopeAccepts, counted as rulesFileFiltered), not by the
-# pattern.
+# split(regex), split(regex, limit). The files scope below restricts the rule
+# to main sources (src/main/java trees) — test code is out of scope by
+# construction; the scope is enforced by the engine
+# (CompiledRule.fileScopeAccepts, counted as rulesFileFiltered).
 #
-# Receiver face (L1-enforceable, no type query): the precompiled idioms are
-# P.matcher(s).replaceAll/matches(...) (receiver IS a .matcher(...) call) and
-# PATTERN.split(s) (receiver is a Pattern constant). The regex constraint
-# flags only receivers that contain no ".matcher(" (case-sensitive, so
-# x.getMatcher() does not false-exempt) AND are not constant-case identifiers
-# (the platform naming convention for precompiled Pattern fields). This is a
-# name-based heuristic, NOT a type check: a String-typed constant receiver
-# would be false-exempt and a lower-case local Pattern variable false-flagged
-# — the L2 typeOf capture would be exact, but the production CLI wires no
-# type resolver (TestL2DegradeLadder's documented state), so a type-gated
-# rule is skippedByProfile in every gate run today. Upgrade the face only
-# alongside a deep-profile resolver wiring decision.
+# Receiver face: TYPE-AWARE via the LTYPE capability (requires: [LTYPE]) —
+# the rule opted into the engine's single-file local type inference
+# (JavaLocalTypeIndex: locals/fields/parameters/same-file method returns,
+# built from the tree alone, no project resolver). The constraint union:
+#   1. localTypeOf is String — the receiver resolves to String in this file
+#      (including same-file getFoo() return types);
+#   2. the type cannot be resolved in-file AND the receiver text is neither
+#      a .matcher(...) call nor a constant-case identifier (the precompiled
+#      Pattern idioms) — the documented fallback for cross-file receivers.
+# A receiver that resolves to Pattern/Matcher is never flagged. This is
+# single-file inference: receivers resolvable only through other files
+# (inherited fields, other-class static imports) fall to branch 2. Full
+# project-wide resolution stays the L2 typeOf face, which the production CLI
+# cannot serve today (no wired resolver; TestL2DegradeLadder's documented
+# state).
 id: quality/no-string-regex-methods
 language: Java
 severity: warning
 message: "禁止直接调用 String 的 regex 方法（matches/replaceAll/replaceFirst/split），regex 模板须预编译并缓存（Pattern.compile 静态常量）(Do not call the regex methods of String directly; precompile and cache the regex Pattern)"
+requires: [LTYPE]
 rule:
   any:
     - pattern: "$R.replaceAll($PATTERN, $REPLACEMENT)"
@@ -32,9 +36,17 @@ rule:
     - pattern: "$R.split($REGEX)"
     - pattern: "$R.split($REGEX, $LIMIT)"
 constraints:
-  - regex:
-      capture: R
-      pattern: '(?s)(?!.*\.matcher\s*\(\s*)(?![A-Z][A-Z0-9_]*\s*).+'
+  - anyOf:
+      - localTypeOf:
+          capture: R
+          is: String
+      - allOf:
+          - localTypeOf:
+              capture: R
+              is: unknown
+          - regex:
+              capture: R
+              pattern: '(?s)(?!.*\.matcher\s*\(\s*)(?![A-Z][A-Z0-9_]*\s*).+'
 # two forms because JDK PathMatcher's leading **/ does not match zero
 # directories (a bare src/main/java root), and the trailing segment must be
 # ** (a direct child file of src/main/java has no intermediate directory)

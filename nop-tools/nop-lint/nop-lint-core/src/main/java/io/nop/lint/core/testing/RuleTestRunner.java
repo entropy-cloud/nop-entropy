@@ -15,6 +15,7 @@ import io.nop.lint.core.engine.CompiledRule;
 import io.nop.lint.core.engine.LanguageRegistry;
 import io.nop.lint.core.engine.LintEngine;
 import io.nop.lint.core.engine.DeepResolvers;
+import io.nop.lint.core.engine.LintCapability;
 import io.nop.lint.core.engine.LintProfile;
 import io.nop.lint.core.engine.LintResult;
 import io.nop.lint.core.node.LineIndex;
@@ -275,10 +276,12 @@ public final class RuleTestRunner {
         // resolution against the file). Passing it unconditionally would
         // drag file-backed fixtures — which live under src/test/resources
         // — through the rule's files: scope and silently zero out
-        // file-scoped rules' suites; every plain-L1 fixture lints unnamed
-        // (null path), the form the files: scope treats as
-        // scope-independent.
-        if (!rule.requires().isEmpty()) {
+        // file-scoped rules' suites; LTYPE consumes no path (the index
+        // derives from the tree alone), so only deep capabilities earn the
+        // real path and every other fixture lints unnamed (null path), the
+        // form the files: scope treats as scope-independent.
+        boolean needsPath = rule.requires().stream().anyMatch(LintCapability::isDeepAnalyzer);
+        if (needsPath) {
             String filePath = realPathOrNull(fixture);
             if (filePath != null) {
                 return lintEngine.lintCompiled(List.of(rule), languageId, filePath, source);

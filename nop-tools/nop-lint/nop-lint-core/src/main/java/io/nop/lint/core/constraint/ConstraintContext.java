@@ -16,7 +16,8 @@ import io.nop.lint.core.semantic.TypeQuerySupport;
  * captured at rule-compile time, so one compiled rule can serve any number
  * of files. Null in runs whose gate keeps type-consuming rules out.</p>
  */
-public record ConstraintContext(LintNode matchNode, MetaVarEnv env, TypeQuerySupport typeQueries) {
+public record ConstraintContext(LintNode matchNode, MetaVarEnv env, TypeQuerySupport typeQueries,
+                                io.nop.lint.core.semantic.LocalTypeIndex localTypes) {
 
     /**
      * The L2-less form: constraints that never query types evaluate
@@ -24,7 +25,11 @@ public record ConstraintContext(LintNode matchNode, MetaVarEnv env, TypeQuerySup
      * (the guarded-fail contract).
      */
     public ConstraintContext(LintNode matchNode, MetaVarEnv env) {
-        this(matchNode, env, null);
+        this(matchNode, env, null, null);
+    }
+
+    public ConstraintContext(LintNode matchNode, MetaVarEnv env, TypeQuerySupport typeQueries) {
+        this(matchNode, env, typeQueries, null);
     }
 
     public ConstraintContext {

@@ -99,9 +99,11 @@ public final class RuleDslParser {
             {"any", "all", "not", "matches", "inside", "has", "follows", "precedes"};
     private static final String[] UTIL_MATCHERS = RULE_MATCHERS;
     private static final String[] CONSTRAINT_KINDS =
-            {"sameText", "differentText", "regex", "inList", "typeOf", "notExists", "withinDepth"};
+            {"sameText", "differentText", "regex", "inList", "typeOf", "notExists", "withinDepth",
+             "localTypeOf", "anyOf", "allOf"};
     private static final Set<String> STOP_BY_VALUES = Set.of("neighbor", "end", "rule");
     private static final String L2_TOKEN = "L2";
+    private static final String LTYPE_TOKEN = "LTYPE";
 
     /**
      * Loads a rule model from a VFS resource path through the registered
@@ -710,9 +712,47 @@ public final class RuleDslParser {
                         + " (exactly one constraint per element; fail-closed)");
 
             String kind = present.get(0);
-            constraints.add(buildConstraint(id, index, kind, asProps(props.get(kind))));
+            constraints.add(constraintElement(id, index, kind, props.get(kind), 1));
         }
         return constraints;
+    }
+
+    /**
+     * One constraints-list element: a leaf kind builds through
+     * {@link #buildConstraint}; a composite (anyOf/allOf) carries the nested
+     * element list as its value and recurses — one composite inside a
+     * composite is the depth cap (fail-closed beyond).
+     */
+    private RuleDslModel.Constraint constraintElement(String id, int index, String kind,
+                                                      Object value, int depth) {
+        String site = constraintSite(index, kind);
+        if ("anyOf".equals(kind) || "allOf".equals(kind)) {
+            if (depth > 2)
+                throw new NopLintException("Rule '" + id + "' declares a composite (" + kind
+                        + ") deeper than one composite inside a composite (fail-closed)");
+            if (!(value instanceof Collection<?> items) || items.isEmpty())
+                throw new NopLintException("Rule '" + id + "' declares " + site
+                        + " without a non-empty constraint list (each nested element declares "
+                        + "exactly one constraint; fail-closed)");
+            List<RuleDslModel.Constraint> nested = new ArrayList<>(items.size());
+            int nestedIndex = 0;
+            for (Object item : items) {
+                nestedIndex++;
+                Map<String, Object> nestedProps = asProps(item);
+                if (nestedProps == null)
+                    throw new NopLintException("Rule '" + id + "' declares a non-object element #"
+                            + nestedIndex + " inside " + site + " (fail-closed)");
+                List<String> present = presentConstraintKinds(nestedProps);
+                if (present.size() != 1)
+                    throw new NopLintException("Rule '" + id + "' declares " + present.size()
+                            + " constraints in element #" + nestedIndex + " inside " + site
+                            + " (exactly one constraint per element; fail-closed)");
+                nested.add(constraintElement(id, index, present.get(0),
+                        nestedProps.get(present.get(0)), depth + 1));
+            }
+            return new RuleDslModel.Constraint(kind, null, null, null, null, null, null, null, nested);
+        }
+        return buildConstraint(id, index, kind, asProps(value));
     }
 
     private List<String> presentConstraintKinds(Map<String, Object> props) {
@@ -726,6 +766,11 @@ public final class RuleDslParser {
 
     private RuleDslModel.Constraint buildConstraint(String id, int index, String kind,
                                                     Map<String, Object> props) {
+        return buildConstraint(id, index, kind, props, 1);
+    }
+
+    private RuleDslModel.Constraint buildConstraint(String id, int index, String kind,
+                                                    Map<String, Object> props, int depth) {
         String site = constraintSite(index, kind);
         if (props == null)
             throw new NopLintException("Rule '" + id + "' declares " + site
@@ -739,7 +784,7 @@ public final class RuleDslParser {
                     throw new NopLintException("Rule '" + id + "' declares " + site + " with "
                             + captures.size() + " capture(s) (" + kind + " compares at least two "
                             + "captures; fail-closed)");
-                return new RuleDslModel.Constraint(kind, captures, null, null, null, null, null, null);
+                return new RuleDslModel.Constraint(kind, captures, null, null, null, null, null, null, null);
             }
             case "regex": {
                 String capture = singleCaptureRef(id, site, props.get("capture"));
@@ -752,7 +797,7 @@ public final class RuleDslParser {
                     throw new NopLintException("Rule '" + id + "' declares " + site
                             + " with an invalid regex pattern '" + pattern + "': " + e.getMessage());
                 }
-                return new RuleDslModel.Constraint(kind, null, capture, pattern, null, null, null, null);
+                return new RuleDslModel.Constraint(kind, null, capture, pattern, null, null, null, null, null);
             }
             case "inList": {
                 String capture = singleCaptureRef(id, site, props.get("capture"));
@@ -765,21 +810,21 @@ public final class RuleDslParser {
                                 + " with a blank 'values' entry (each value must be non-blank; "
                                 + "fail-closed)");
                 }
-                return new RuleDslModel.Constraint(kind, null, capture, null, values, null, null, null);
+                return new RuleDslModel.Constraint(kind, null, capture, null, values, null, null, null, null);
             }
             case "typeOf": {
                 String capture = singleCaptureRef(id, site, props.get("capture"));
                 String is = text(props.get("is"));
                 if (StringHelper.isEmpty(is))
                     throw missingField(id, site, "is");
-                return new RuleDslModel.Constraint(kind, null, capture, null, null, is, null, null);
+                return new RuleDslModel.Constraint(kind, null, capture, null, null, is, null, null, null);
             }
             case "notExists": {
                 String pattern = text(props.get("pattern"));
                 if (StringHelper.isEmpty(pattern))
                     throw missingField(id, site, "pattern");
                 String message = text(props.get("message"));
-                return new RuleDslModel.Constraint(kind, null, null, pattern, null, null, message, null);
+                return new RuleDslModel.Constraint(kind, null, null, pattern, null, null, message, null, null);
             }
             case "withinDepth": {
                 Object max = props.get("max");
@@ -793,7 +838,44 @@ public final class RuleDslParser {
                     throw new NopLintException("Rule '" + id + "' declares " + site
                             + " with a negative 'max' value: " + maxDepth + " (a depth cap is "
                             + "non-negative; fail-closed)");
-                return new RuleDslModel.Constraint(kind, null, null, null, null, null, null, maxDepth);
+                return new RuleDslModel.Constraint(kind, null, null, null, null, null, null, maxDepth, null);
+            }
+            case "localTypeOf": {
+                String capture = singleCaptureRef(id, site, props.get("capture"));
+                String is = text(props.get("is"));
+                if (StringHelper.isEmpty(is))
+                    throw missingField(id, site, "is");
+                return new RuleDslModel.Constraint(kind, null, capture, null, null, is, null, null, null);
+            }
+            case "anyOf":
+            case "allOf": {
+                if (depth >= 2)
+                    throw new NopLintException("Rule '" + id + "' declares a composite (" + kind
+                            + ") inside " + site + " at composite depth 2 (the maximum is one "
+                            + "composite inside a composite; fail-closed)");
+                Object value = props.get("constraints");
+                if (!(value instanceof Collection<?> items) || items.isEmpty())
+                    throw new NopLintException("Rule '" + id + "' declares " + site
+                            + " without a non-empty 'constraints' sub-list (each nested element "
+                            + "declares exactly one leaf constraint; fail-closed)");
+                List<RuleDslModel.Constraint> nested = new ArrayList<>(items.size());
+                int nestedIndex = 0;
+                for (Object item : items) {
+                    nestedIndex++;
+                    Map<String, Object> nestedProps = asProps(item);
+                    if (nestedProps == null)
+                        throw new NopLintException("Rule '" + id + "' declares a non-object element #"
+                                + nestedIndex + " inside " + site + " (fail-closed)");
+                    List<String> present = presentConstraintKinds(nestedProps);
+                    if (present.size() != 1)
+                        throw new NopLintException("Rule '" + id + "' declares " + present.size()
+                                + " constraints in element #" + nestedIndex + " inside " + site
+                                + " (exactly one leaf constraint per element; fail-closed)");
+                    String nestedKind = present.get(0);
+                    Map<String, Object> leafProps = asProps(nestedProps.get(nestedKind));
+                    nested.add(buildConstraint(id, index, nestedKind, leafProps, depth + 1));
+                }
+                return new RuleDslModel.Constraint(kind, null, null, null, null, null, null, null, nested);
             }
             default:
                 throw new NopLintException("Rule '" + id + "' declares unknown constraint '" + kind
@@ -864,11 +946,20 @@ public final class RuleDslParser {
     private void enforceTypeOfGate(String id, List<RuleDslModel.Constraint> constraints,
                                    Set<String> requires) {
         for (RuleDslModel.Constraint constraint : constraints) {
+            if (constraint.getNested() != null) {
+                enforceTypeOfGate(id, constraint.getNested(), requires);
+                continue;
+            }
             if ("typeOf".equals(constraint.getKind()) && !requires.contains(L2_TOKEN))
                 throw new NopLintException("Rule '" + id + "' uses the 'typeOf' constraint without "
                         + "declaring requires: \"" + L2_TOKEN + "\" (typeOf needs the L2 type "
                         + "hierarchy; declare the dependency so the profile layer can skip the "
                         + "rule instead of evaluating it with L1; fail-closed)");
+            if ("localTypeOf".equals(constraint.getKind()) && !requires.contains(LTYPE_TOKEN))
+                throw new NopLintException("Rule '" + id + "' uses the 'localTypeOf' constraint "
+                        + "without declaring requires: [LTYPE] (local type inference needs the "
+                        + "LTYPE capability so the gate can degrade rules on bindings that do "
+                        + "not serve it; fail-closed)");
         }
     }
 

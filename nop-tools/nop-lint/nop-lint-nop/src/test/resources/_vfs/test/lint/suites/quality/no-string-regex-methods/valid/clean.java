@@ -7,11 +7,12 @@ public class Clean {
         return DASH.matcher(s).replaceAll("b");
     }
 
-    String match(String s) {
-        return DASH.matcher(s).matches() ? "ok" : "no";
+    String[] splitVarPattern(String s) {
+        var p = Pattern.compile("a+");
+        return p.split(s);
     }
 
-    String[] split(String s) {
+    String[] splitPatternField(String s) {
         return DASH.split(s);
     }
 }
