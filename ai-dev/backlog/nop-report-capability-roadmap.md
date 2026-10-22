@@ -77,7 +77,9 @@
 ### M6 — 产品化与生态（可选）
 
 - [ ] WI13 Web 可视化设计器（轻量）：基于 univer/luckysheet 的在线表格 + 单元格属性面板（XptCellModel 指令可视化）+ 参数表单设计器 + 预览/发布；定位「浏览器内轻量编辑」，不改写 Excel 设计工作流（与 nop-docx 在线编辑同构）。（Deliverable: 设计器 + 测试；deps: WI2、WI5；Item Type: Feature）
+  - **显式裁定（2026-10-22，roadmap 执行收口）**：转为独立前端工程立项。理由：①roadmap 定位 M6「产品化与生态（可选）」；②univer/luckysheet 集成+属性面板+参数表单设计器为完整前端工程（前端集成+设计器交互+预览/发布页面），非后端能力补强，无法在以 AutoTest 为验证门的本 roadmap 执行口径内交付；③无后端阻塞——WI2 参数 schema 接口（NopReportForm）已为其提供设计器数据源。前置：前端工程立项（依赖选型 univer/luckysheet 锁版）。
 - [ ] WI14 OLAP/多维数据集数据源：接入 Calcite/Mondrian 类语义层（本地参考 `~/sources/bi/calcite`）为 `xpt-rt.xlib` 增加多维数据集标签/查询改写。（Deliverable: 多维数据源 + 测试；deps: WI0；Item Type: Feature）
+  - **显式裁定（2026-10-22，roadmap 执行收口）**：转为独立 backlog（依赖自建语义层能力）。理由：接入 Calcite/Mondrian 与 `ai-dev/design/self-contained-design.md` 架构支柱禁令直接冲突（外部引擎成为取数能力链的语义层引擎）；自建 OLAP 语义层为独立大型工程（前置：xlang-eql 语义层扩展立项）。数据集侧已有多维分析替代面：ReportDataSet group/sort/sum 聚合 + EQL。
 - [x] WI15 模板版本管理：**裁定由 git 承担**（模板为 repo 内文件，git 即版本管理；rptText 已裁定为 VFS 路径，DB 快照/回滚为无操作且与 git 双头管理漂移——裁定记录 plan 2501）。平台保留：version 乐观锁防并发覆盖、WI6 缓存数据版本键控。（Deliverable: 架构裁定记录；deps: WI1；Item Type: Decision）
 
 ### M7 — 端到端验收与文档收口
@@ -92,6 +94,7 @@
 - ★ [x] **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）
 - ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成或显式裁定后勾选）
 - [ ] WI17 条件格式视觉编码：数据条/色阶/图标集（OOXML conditionalFormatting 写出 + html/pdf 可视化等价；视觉 golden）。deps: WI8；Item Type: Feature。（WI8 拆分产出，residual 裁定见 plan 2496）
+  - **显式裁定（2026-10-22，roadmap 执行收口）**：转为独立交付立项。理由：OOXML conditionalFormatting 写出部件 + html CSS 可视化 + pdf 绘制等价 + 视觉 golden 为绘制保真量级交付（与 pdf roadmap 同级），且表达式/区间条件样式（WI8）已覆盖条件格式主场景；pdf 侧对接 pdf roadmap 绘制管线。
 - ★ **Milestone: 端到端验收通过**（WI0–WI16 全部完成后勾选）
 
 ## Current Baseline（2026-10-17 核对）
