@@ -4,4 +4,6 @@
 
     <bean id="nopReportRenderer_pdf" class="io.nop.report.pdf.renderer.PdfReportRendererFactory"/>
 
+    <bean id="nopReportRenderer_png" class="io.nop.report.pdf.renderer.PngReportRendererFactory"/>
+
 </beans>

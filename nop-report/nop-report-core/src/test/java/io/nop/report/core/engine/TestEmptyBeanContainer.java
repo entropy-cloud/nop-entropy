@@ -34,7 +34,11 @@ public class TestEmptyBeanContainer {
 
     @Test
     public void testEmptyContainerYieldsNullSpiLookup() {
-        prev = BeanContainer.instance();
+        try {
+            prev = BeanContainer.instance();
+        } catch (Exception e) {
+            prev = null;
+        }
         BeanContainer.registerInstance(new EmptyBeanContainer());
         assertNull(IReportAuthChecker.get());
         assertNull(IReportDataSecurityProvider.get());

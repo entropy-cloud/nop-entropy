@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0–WI9 完成；WI7/WI9 口径见条目，residual 已登记）
+> Last updated: 2026-10-22（WI0–WI10 完成；residual 已登记）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -70,7 +70,7 @@
 
 ### M5 — 导出与内容能力
 
-- [ ] WI10 非 PDF 导出格式扩展：新增 CSV、图片（PNG，逐页/整表）、ODS、RTF，以及原生 xlsx 图表/数据透视还原；统一注册为 renderType 走 `IReportEngine`（`XptConstants.RENDER_TYPE_*`）；PDF 高级项（加密/签名/水印/PDF-A）不在本 WI（归姊妹 roadmap）。（Deliverable: 新增 exporter + 测试；deps: WI0；Item Type: Feature）
+- [x] WI10 非 PDF 导出格式扩展：新增 CSV、图片（PNG，逐页/整表）、ODS、RTF，以及原生 xlsx 图表/数据透视还原；统一注册为 renderType 走 `IReportEngine`（`XptConstants.RENDER_TYPE_*`）；PDF 高级项（加密/签名/水印/PDF-A）不在本 WI（归姊妹 roadmap）。（Deliverable: 新增 exporter + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI11 模板 i18n：模板文本/格式/字典按 locale 切换（XPT 模型 + `XptWorkbookModel`/`XptSheetModel` 本地化层），与前端 locale 协同。（Deliverable: 模板本地化 + 测试；deps: WI0；Item Type: Feature）
 - [ ] WI12 条码/二维码码制扩展：在 `ReportExtFunctions.QRCODE` 基础上扩展码制（Code128/EAN-13/PDF417/GS1 等）与尺寸/纠错级配置；xlsx/html/pdf 三端一致。（Deliverable: 码制扩展 + 三端测试；deps: WI0；Item Type: Feature）
 

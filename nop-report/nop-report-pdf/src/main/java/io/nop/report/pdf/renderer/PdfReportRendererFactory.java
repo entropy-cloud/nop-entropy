@@ -18,4 +18,5 @@ public class PdfReportRendererFactory implements IReportRendererFactory {
     public ITemplateOutput buildRenderer(ExcelWorkbook model, IExcelSheetGenerator sheetGenerator) {
         return new PdfReportRenderer(model, sheetGenerator);
     }
+
 }

@@ -15,4 +15,10 @@
 
     <bean id="nopReportRenderer_shtml" class="io.nop.excel.renderer.SimpleHtmlReportRendererFactory"/>
 
+    <bean id="nopReportRenderer_csv" class="io.nop.report.core.engine.renderer.CsvReportRendererFactory"/>
+
+    <bean id="nopReportRenderer_fods" class="io.nop.report.core.engine.renderer.FodsReportRendererFactory"/>
+
+    <bean id="nopReportRenderer_rtf" class="io.nop.report.core.engine.renderer.RtfReportRendererFactory"/>
+
 </beans>

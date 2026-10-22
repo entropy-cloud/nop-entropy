@@ -88,6 +88,14 @@ public class NopReportCacheBizModel {
                 return "text/html";
             case "pdf":
                 return "application/pdf";
+            case "csv":
+                return "text/csv";
+            case "fods":
+                return "application/vnd.oasis.opendocument.spreadsheet";
+            case "rtf":
+                return "application/rtf";
+            case "png":
+                return "application/zip"; // 多页输出为 zip
             default:
                 return "application/octet-stream";
         }

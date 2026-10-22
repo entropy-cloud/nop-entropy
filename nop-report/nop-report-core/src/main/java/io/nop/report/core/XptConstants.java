@@ -76,6 +76,10 @@ public interface XptConstants {
     String RENDER_TYPE_WORD = "word";
     String RENDER_TYPE_XLSX = "xlsx";
     String RENDER_TYPE_PDF = "pdf";
+    String RENDER_TYPE_CSV = "csv";
+    String RENDER_TYPE_FODS = "fods";
+    String RENDER_TYPE_RTF = "rtf";
+    String RENDER_TYPE_PNG = "png";
 
     String CSS_PREFIX_XPT = "xpt-";
     String CSS_PREFIX_SCOPED = "xpt-s-";
