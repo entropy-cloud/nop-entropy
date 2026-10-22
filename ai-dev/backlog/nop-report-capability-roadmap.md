@@ -78,7 +78,7 @@
 
 - [ ] WI13 Web 可视化设计器（轻量）：基于 univer/luckysheet 的在线表格 + 单元格属性面板（XptCellModel 指令可视化）+ 参数表单设计器 + 预览/发布；定位「浏览器内轻量编辑」，不改写 Excel 设计工作流（与 nop-docx 在线编辑同构）。（Deliverable: 设计器 + 测试；deps: WI2、WI5；Item Type: Feature）
 - [ ] WI14 OLAP/多维数据集数据源：接入 Calcite/Mondrian 类语义层（本地参考 `~/sources/bi/calcite`）为 `xpt-rt.xlib` 增加多维数据集标签/查询改写。（Deliverable: 多维数据源 + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI15 模板版本管理：报表定义的版本/发布/差异/回滚（复用 nop-report-service 实体与 nop-sys 审计），与权限（WI1）协同。（Deliverable: 版本管理 + 测试；deps: WI1；Item Type: Feature）
+- [x] WI15 模板版本管理：**裁定由 git 承担**（模板为 repo 内文件，git 即版本管理；rptText 已裁定为 VFS 路径，DB 快照/回滚为无操作且与 git 双头管理漂移——裁定记录 plan 2501）。平台保留：version 乐观锁防并发覆盖、WI6 缓存数据版本键控。（Deliverable: 架构裁定记录；deps: WI1；Item Type: Decision）
 
 ### M7 — 端到端验收与文档收口
 
@@ -90,7 +90,7 @@
 - ★ [x] **Milestone: 缓存与大数据可用**（WI6–WI7 完成后勾选）
 - ★ **Milestone: 分析与展现增强达标**（WI8–WI9 完成后勾选）
 - ★ [x] **Milestone: 导出与内容能力扩展完成**（WI10–WI12 完成后勾选）
-- ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成后勾选）
+- ★ **Milestone: 产品化与生态增强完成**（WI13–WI15 完成或显式裁定后勾选）
 - [ ] WI17 条件格式视觉编码：数据条/色阶/图标集（OOXML conditionalFormatting 写出 + html/pdf 可视化等价；视觉 golden）。deps: WI8；Item Type: Feature。（WI8 拆分产出，residual 裁定见 plan 2496）
 - ★ **Milestone: 端到端验收通过**（WI0–WI16 全部完成后勾选）
 
