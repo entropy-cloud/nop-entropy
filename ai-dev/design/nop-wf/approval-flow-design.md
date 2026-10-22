@@ -225,9 +225,9 @@ CREATED (0)
 - 遍历组内所有成员，累加 `voteWeight`
 - `totalWeight` = 所有成员权值和
 - `completeWeight` = 已成功完成成员的权值和
-- 如果已设置 `passWeight`：`completeWeight >= passWeight` 即为通过
-- 如果未设置 `passWeight` 但设置了 `passPercent`：`completeWeight/totalWeight >= passPercent`
-- 如果两者都未设置：默认要求半数以上（`passPercent = 0.5`）
+- 若设置了 `passWeight` 且 `completeWeight >= passWeight`：即为通过
+- 否则若设置了 `passPercent` 且 `completeWeight/totalWeight >= passPercent`：即为通过（**或语义**：`passWeight` 未达标时继续判 `passPercent`，两者同时设置时任一满足即通过）
+- 若两者都未设置：默认要求半数以上（`passPercent = 0.5`）
 
 **拒绝判定规则（`isVoteGroupReject`）：**
 - `rejectWeight` = 已经被拒绝/取消/跳过的成员的权值和

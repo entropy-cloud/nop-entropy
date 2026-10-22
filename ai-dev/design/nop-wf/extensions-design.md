@@ -4,33 +4,33 @@
 **范围**：nop-wf 的功能扩展机制——AI 审批、调度器、离职转办、票签策略、动态审批模式
 **状态**：草案（已经过 3 轮独立子 agent 源码审计，核心事实错误已修正）
 
-> **审计修正说明**：本设计初稿曾错误地把两个已声明但未接线的"死槽位"（`<check-complete>` / `<check-exec-group-complete>`）当作可用扩展点。经源码核查确认：`isExecGroupComplete` 无调用者，`getCheckComplete` 仅被生成代码的序列化方法调用——引擎执行路径根本不读取它们。本版已据此修正：票签策略改为"先接线死槽位（引擎修复，plan-first）再提供标签库"；AI 异步改为"纯 signal + 新增公共 signal 端点"。详见各章节。
+> **槽位接线现状**：`<check-exec-group-complete>` / `<check-exec-group-reject>` 已在引擎完成/拒绝判定路径接线（`WorkflowEngineImpl.java:1267,1321-1333,1367`），`wf-vote.xlib` 标签库已提供常用策略，测试见 `TestWorkflowEngine` 的 `execGroupVoteSlot` / `execGroupVoteRejectSlot` 用例。`<check-complete>` 仍未接线；AI 异步唤醒采用纯 signal 方案（§四），不依赖该槽位。
 
 ---
 
 ## 一、设计结论
 
-1. **AI 审批**：新建 `nop-wf-ai` 可选模块，通过 `wf-ai.xlib` 标签库封装 AI 决策调用，复用 action `<source>` / `<when>` / signal 扩展点。**不新增 step 类型，不新增步骤状态枚举**。异步 AI 的外部唤醒需在 `WorkflowService` 新增 `signalWf` mutation（跨模块公共 API，plan-first）。
-2. **调度器**：新建 `nop-wf-scheduler` 可选模块，通过 nop-job 的 YAML 任务注册 + `WfTaskScanner` bean 扫描 `dueTime`/`remindTime`，调用 `WorkflowService.invokeAction`。**引擎不内置调度循环**。
-3. **离职转办**：在 `WorkflowService` 新增 `transferActors` mutation，内部逐工作流循环调用已有的 `IWorkflowStep.changeOwnerId`。**非原子**（跨工作流），返回成功/失败清单。
-4. **票签策略**：当前 `<check-exec-group-complete>` 槽位是**死代码**（声明在 wf.xdef 但引擎不调用）。需先在 `WorkflowEngineImpl.doInvokeAction` 接线该槽位 + 新增对称的 `<check-exec-group-reject>` 槽位（框架核心引擎修改，plan-first），再提供 `wf-vote.xlib` 标签库封装常用策略。
+1. **AI 审批**：`nop-wf-ai` 可选模块，通过 `wf-ai.xlib` 标签库封装 AI 决策调用，复用 action `<source>` / `<when>` / signal 扩展点。**不新增 step 类型，不新增步骤状态枚举**。异步 AI 的外部唤醒经 `WorkflowService.signalWf` mutation 完成。
+2. **调度器**：`nop-wf-scheduler` 可选模块，通过 nop-job 的 YAML 任务注册 + `WfTaskScanner` bean 扫描 `dueTime`/`remindTime`，调用 `WorkflowService.invokeAction`。**引擎不内置调度循环**。
+3. **离职转办**：`WorkflowService.transferActors` mutation，内部逐工作流循环调用已有的 `IWorkflowStep.changeOwnerId`。**非原子**（跨工作流），返回成功/失败清单。
+4. **票签策略**：`<check-exec-group-complete>` / `<check-exec-group-reject>` 槽位已在引擎接线（配置了则由槽位决定，否则 fallback `ExecGroupSupport` 的 `passWeight`/`passPercent` 语义），`wf-vote.xlib` 标签库封装常用策略（`passCount`/`passPercent`/`rejectCount`）。
 5. **动态审批**（运行时增减节点）：**不提供原生支持**（explicit non-goal）。用三种等价模式覆盖可参数化的需求——预定义可选步骤 + 条件路由、子流程参数化、`addActor` 加人。运行时组装未知结构的审批链明确不支持。
 
-**关于"是否修改引擎"的诚实说明**：本设计**优先**用扩展点和外置模块实现，不新增引擎分支逻辑。但有两处**引擎修复**工作（接线两个已声明但未接线的死槽位）和一处**公共 API 扩展**（新增 signal 端点），这些属框架核心修改，标记为 plan-first，须独立 plan + 回归测试。这两类工作的边界：**修复已声明契约的接线缺口**（让 schema 里声明的槽位真正生效），**不是**新增引擎能力或改变状态机语义。
+**关于"是否修改引擎"的说明**：本设计优先用扩展点和外置模块实现，不新增引擎分支逻辑。允许的引擎修改仅限**修复已声明契约的接线缺口**（让 schema 里声明的槽位真正生效）——`<check-exec-group-complete>` / `<check-exec-group-reject>` 的接线属此类，**不是**新增引擎能力或改变状态机语义；`<check-complete>` 则明确不接线，改用纯 signal。
 
 ---
 
 ## 二、背景：与开源工作流引擎的能力差距
 
-对比 FlowLong（com.aizuda）和 Warm-Flow（org.dromara）两款开源工作流引擎，发现 nop-wf 在引擎核心能力（节点/路由/会签/驳回/转办/子流程/审批人解析）上**基本等价或更强**，但在以下 5 个维度存在差距。本设计记录如何补齐或如何重新定义这些差距。
+对比 FlowLong（com.aizuda）和 Warm-Flow（org.dromara）两款开源工作流引擎，nop-wf 在引擎核心能力（节点/路由/会签/驳回/转办/子流程/审批人解析）上**基本等价或更强**。下表记录 5 个维度的对照与 nop-wf 的应对：其中 AI 审批、调度器、离职转办、票签槽位已按本设计落地；运行时动态增减节点仍为显式 non-goal。
 
-| 差距点 | FlowLong 的实现 | Warm-Flow 的实现 | nop-wf 现状（经源码核实） |
+| 维度 | FlowLong 的实现 | Warm-Flow 的实现 | nop-wf 现状（经源码核实） |
 |--------|----------------|-----------------|------------|
-| AI 审批 | `FlowAiHandler` SPI + `AiConfig`/`AiResponse` + 置信度阈值 + 降级策略 + 异步回调 + AI 路由决策 | 不支持 | 不支持 |
-| 内置调度器 | `FlowLongScheduler`（cron 默认 `*/5`）+ `JobLock` + `RemindParam`（cron/工作日/工作时间/最大次数）+ 超时自动通过/拒绝 | 不支持 | `dueTime`/`remindTime`/`remindCount` 已持久化（`nop-wf.orm.xml`），`dueAction` 仅是 step 模型属性（非实例列），无内置调度 |
-| 离职转办 | `TaskService.transferTask(flowCreator, assignee)` 批量转交 | 不支持 | 仅有单步 `transferToActor`/`changeOwnerId`，无批量 |
-| 票签策略可插拔 | `voteSign` + `passWeight` | `nodeRatio` 支持 `passCount=N`/`rejectCount=N`/`spel@@...`/`default@@...` | `vote-group` + 固定 `passWeight`/`passPercent` 语义（`ExecGroupSupport`）。**`<check-exec-group-complete>` 槽位虽在 schema 声明但引擎未接线（死代码），当前不可插拔** |
-| 运行时动态增减节点 | `executeAppendNodeModel`/`executeRemoveNodeModel` | 不支持 | 不支持（设计上不允许运行时改模型） |
+| AI 审批 | `FlowAiHandler` SPI + `AiConfig`/`AiResponse` + 置信度阈值 + 降级策略 + 异步回调 + AI 路由决策 | 不支持 | **已支持**：`nop-wf-ai` + `wf-ai.xlib`（置信度阈值、低置信转人工、signal 唤醒，E11） |
+| 调度 | `FlowLongScheduler`（cron 默认 `*/5`）+ `JobLock` + `RemindParam`（cron/工作日/工作时间/最大次数）+ 超时自动通过/拒绝 | 不支持 | `dueTime`/`remindTime`/`remindCount` 已持久化（`nop-wf.orm.xml`），`dueAction` 为 step 模型属性（非实例列）；调度由外置 `nop-wf-scheduler`（`WfTaskScanner` + nop-job YAML）承担，引擎不内置调度循环（设计如此） |
+| 离职转办 | `TaskService.transferTask(flowCreator, assignee)` 批量转交 | 不支持 | **已支持**：`WorkflowService.transferActors`（源模型 `nop-wf/model/nop-wf.api.xml:26`），逐工作流调 `changeOwnerId`，非原子 |
+| 票签策略可插拔 | `voteSign` + `passWeight` | `nodeRatio` 支持 `passCount=N`/`rejectCount=N`/`spel@@...`/`default@@...` | **已支持**：`vote-group` + `passWeight`/`passPercent` 默认语义（`ExecGroupSupport`）；`<check-exec-group-complete>`/`<check-exec-group-reject>` 槽位已接线可覆盖默认判定，`wf-vote.xlib` 封装 `passCount`/`passPercent`/`rejectCount` |
+| 运行时动态增减节点 | `executeAppendNodeModel`/`executeRemoveNodeModel` | 不支持 | 不支持（设计上不允许运行时改模型；可参数化需求用 §一.5 的三种等价模式覆盖） |
 
 nop-wf **领先于** 这两个开源项目的维度（XDSL 可逆计算、DAG 校验、trampoline 执行队列、信号机制、业务实体绑定、错误重试、全局事件订阅、动态汇聚分组）不在本设计范围内。
 
@@ -49,20 +49,19 @@ nop-wf **领先于** 这两个开源项目的维度（XDSL 可逆计算、DAG �
 
 | 扩展点 | schema 位置 | 引擎是否调用 | 适用场景 |
 |--------|------------|------------|---------|
-| step `<source>` XPL | `wf.xdef:236` | ✅ `runSource`（`WorkflowEngineImpl.java:803`，auto-transition 时执行） | 步骤激活时运行自定义逻辑 |
-| action `<source>` XPL | `wf.xdef:138` | ✅ `doInvokeAction` 中 `runSource`（`WorkflowEngineImpl.java:1141`，action 调用时执行） | action 调用时运行（调 AI、外部服务） |
+| step `<source>` XPL | `wf.xdef:236` | ✅ `runSourceWithRetry`（`WorkflowEngineImpl.java:835`，auto-transition 时执行） | 步骤激活时运行自定义逻辑 |
+| action `<source>` XPL | `wf.xdef:138` | ✅ `runXpl(actionModel.getSource())`（`WorkflowEngineImpl.java:1255`，action 调用时执行） | action 调用时运行（调 AI、外部服务） |
 | `<when>` xpl-predicate | `wf.xdef:102,131` | ✅ `doTransition` | 条件路由、分支选择 |
-| `<check-complete>` XPL | `wf.xdef:241` | ❌ **死代码**（`getCheckComplete` 仅被 `_gen` 序列化调用） | 预期用途：异步完成判定。当前不生效 |
-| `<check-exec-group-complete>` xpl-predicate | `wf.xdef:244` | ❌ **死代码**（`isExecGroupComplete` 无调用者） | 预期用途：会签完成判定可插拔。当前不生效，走 `ExecGroupSupport` 硬编码 |
+| `<check-complete>` XPL | `wf.xdef:241` | ❌ 未接线（`getCheckComplete` 仅被 `_gen` 序列化调用）。设计上放弃，AI 异步改用纯 signal | （预留）异步完成判定，当前不生效 |
+| `<check-exec-group-complete>` xpl-predicate | `wf.xdef:244` | ✅ `isExecGroupComplete`（`WorkflowEngineImpl.java:1321-1326`，调用点 `:1267`）；配置了则优先，否则 fallback `ExecGroupSupport` | 会签/投票完成判定可插拔 |
+| `<check-exec-group-reject>` xpl-predicate | `wf.xdef:247` | ✅ `isExecGroupReject`（`WorkflowEngineImpl.java:1328-1333`，调用点 `:1367`） | 会签/投票拒绝判定可插拔 |
 | `<listeners eventPattern>` | `wf.xdef:83` | ✅ `WfRuntime.triggerEvent`（通配符匹配） | 事件钩子（25 个内置事件，`NopWfCoreConstants.java:58-94`） |
-| signal 机制 | — | ✅ `turnSignalOn`（`WorkflowEngineImpl.java:717`）唤醒 WAITING 步骤 | 异步唤醒 |
-| `IWorkflowStep` 运行时 API | `IWorkflowStep.java` | ✅ | changeOwnerId/changeActor/addActor/cancelStep/transferToActor/transitTo |
-| 标签库 `*.xlib` | — | ✅ XPL 内可调用 | `wf-actor.xlib`（11 个动态审批人标签） |
-| 外置模块（app 装配） | — | ✅ | 调度器、批量操作等不属引擎职责的能力 |
+| signal 机制 | — | ✅ `turnSignalOn`（`WorkflowEngineImpl.java:739`）唤醒 WAITING 步骤 | 异步唤醒 |
+| `IWorkflowStep` 运行时 API | `IWorkflowStep.java` | ✅ | changeOwnerId（`:154`）/changeActor/addActor（`:165`）/cancelStep（`:228`）/transferToActor/transitTo（`:236`） |
+| 标签库 `*.xlib` | — | ✅ XPL 内可调用 | `wf-actor.xlib`（11 个动态审批人标签）、`wf-vote.xlib`（票签策略）、`oa.xlib` |
+| 外置模块（app 装配） | — | ✅ | 调度器（`nop-wf-scheduler`）、批量操作等不属引擎职责的能力 |
 
-**本设计涉及的两处引擎修复**（plan-first）：
-1. 接线 `<check-exec-group-complete>` + 新增 `<check-exec-group-reject>` 槽位（见 §七）
-2. 接线 `<check-complete>` 或在 AI 异步方案中明确放弃它（见 §四，本设计选择放弃 check-complete，改用纯 signal）
+**引擎修改边界**：唯一被允许的引擎修改是接线已声明的 `<check-exec-group-complete>` / `<check-exec-group-reject>` 槽位（已完成，见 §七）；`<check-complete>` 明确不接线（§四 AI 异步走纯 signal）。除此之外本设计不引入引擎分支逻辑。
 
 ### P2. 外置模块优先于内置
 
@@ -87,7 +86,7 @@ nop-wf **领先于** 这两个开源项目的维度（XDSL 可逆计算、DAG �
 | 同步审批（AI 返回 PASS/REJECT） | action `<source>` 调 `wf-ai:decide` 标签，按返回设置 `wfRt.currentStep.appState` | action source（`wf.xdef:138`）+ transition 按 appState 流转 |
 | AI 路由（条件分支决策） | step `<source>` 预先调 `wf-ai:route` 写结果到 wfVars，`<when>` 只读 wfVars 不重复调 AI | step source + `<when>` 读 wfVars + splitType=or |
 | AI 异步处理 | step 配 `waitSignals`；外部 AI 完成后调 `WorkflowService.signalWf`（**新增端点**，见 §4.7）置信号为 on，唤醒 WAITING 步骤 | signal（`turnSignalOn` 唤醒） |
-| 低置信度降级转人工 | 标签内判 confidence，低于阈值时不设置 appState，改调 `changeOwnerId`（转给具体用户） | `IWorkflowStep.changeOwnerId`（`IWorkflowStep.java:145`） |
+| 低置信度降级转人工 | 标签内判 confidence，低于阈值时不设置 appState，改调 `changeOwnerId`（转给具体用户） | `IWorkflowStep.changeOwnerId`（`IWorkflowStep.java:154`） |
 | AI 提取业务变量 | 标签内将 AI 返回的 variables 合并到 wfVars | wfVars（`WfRuntime` 绑定的 `IVarSet`） |
 
 ### 4.3 模块设计
@@ -255,11 +254,11 @@ jobs:
 - mutation 返回 `WfTransferResultBean { successCount, failedItems: List<{wfId, stepId, reason}> }`
 - 每个 wf 的转办独立 try-catch，单个失败不影响其他
 
-**实现**：对每个 `ownerId=fromUserId AND status=ACTIVATED` 的 step，在其所属工作流的 `workflowExecutor.execute` 内调 `step.changeOwnerId(toUserId, ctx)`（`IWorkflowStep.java:145`，仅改 record 不建新步骤）。
+**实现**：对每个 `ownerId=fromUserId AND status=ACTIVATED` 的 step，在其所属工作流的 `workflowExecutor.execute` 内调 `step.changeOwnerId(toUserId, ctx)`（`IWorkflowStep.java:154`，仅改 record 不建新步骤）。
 
 ### 6.3 权限
 
-`checkManageAuth`（`WorkflowEngineImpl.java:649`）是**每个工作流定义各自配置的 xpl**。批量转办须**逐个工作流检查**（无法统一检查）。权限失败记入 `failedItems`，不影响其他 wf。
+`checkManageAuth`（`WorkflowEngineImpl.java:663`）是**每个工作流定义各自配置的 xpl**。批量转办须**逐个工作流检查**（无法统一检查）。权限失败记入 `failedItems`，不影响其他 wf。
 
 ### 6.4 审计记录（审计补充）
 
@@ -271,38 +270,29 @@ jobs:
 
 ---
 
-## 七、票签策略（含引擎槽位接线，plan-first）
+## 七、票签策略（含引擎槽位接线）
 
-### 7.1 现状：死槽位
+### 7.1 引擎槽位（已接线）
 
-`<check-exec-group-complete>` 槽位在 `wf.xdef:244` 声明为 xpl-predicate，被解析进 `_WfStepModel._checkExecGroupComplete`。**但**：
-- 唯一读取它的 `isExecGroupComplete`（`WorkflowEngineImpl.java:1207`）是 **private 死代码**，无任何调用者（codegraph 确认）
-- 生产路径 `doInvokeAction`（`WorkflowEngineImpl.java:1152`）直接调 `ExecGroupSupport.shouldExecGroupComplete(step)`——**硬编码权重逻辑**，完全忽略用户写的 xpl
-- 不存在 `<check-exec-group-reject>` 槽位；拒绝判定 `shouldExecGroupReject` 也是硬编码
+`<check-exec-group-complete>`（`wf.xdef:244`）与 `<check-exec-group-reject>`（`wf.xdef:247`）均为 xpl-predicate，解析进 `WfStepModel.checkExecGroupComplete/checkExecGroupReject`。引擎判定路径：
 
-因此当前票签策略**不可插拔**，只有固定的 `passWeight`/`passPercent` 语义。
-
-### 7.2 引擎接线方案（plan-first，框架核心修改）
-
-在 `WorkflowEngineImpl.doInvokeAction` 中接线：
-
-**完成判定**（`WorkflowEngineImpl.java:1152` 附近）：
+**完成判定**（`WorkflowEngineImpl.java:1321-1326`，调用点 `:1267`）：
 ```
 若 stepModel.getCheckExecGroupComplete() != null:
     执行该 xpl-predicate（传入 wfRt），返回值决定组是否完成
 否则:
-    fallback 到 ExecGroupSupport.shouldExecGroupComplete(step)  // 现有硬编码逻辑
+    fallback 到 ExecGroupSupport.shouldExecGroupComplete(step)  // 权重默认语义
 ```
 
-**拒绝判定**（`doReject`，`WorkflowEngineImpl.java:1242` 附近）：
-- 新增 `<check-exec-group-reject>xpl-predicate</check-exec-group-reject>` 槽位到 `wf.xdef`（与 complete 对称）
-- 同样：配置了则执行，否则 fallback 到 `ExecGroupSupport.shouldExecGroupReject`
+**拒绝判定**（`WorkflowEngineImpl.java:1328-1333`，`doReject` 内调用点 `:1367`）：
+- 同样语义：配置了则执行槽位，否则 fallback 到 `ExecGroupSupport.shouldExecGroupReject`
+- 组判定为 reject 时调 `ExecGroupSupport.skipExecGroupMembers` 跳过组内其余未完成成员
 
-**slot 与属性的优先级（审计补充）**：若配置了 `<check-exec-group-complete>`，则忽略 `passWeight`/`passPercent` 属性，完全由 slot 决定。`wf.xdef` 注释中标注此优先级。
+**slot 与属性的优先级**：若配置了 `<check-exec-group-complete>`，则忽略 `passWeight`/`passPercent` 属性，完全由 slot 决定（`wf.xdef:187` 注释标注此优先级）。
 
-### 7.3 标签库契约（`wf-vote.xlib`，接线后才有意义）
+### 7.2 标签库契约（`wf-vote.xlib`）
 
-接线完成后，提供标签库封装常用策略：
+标签库封装常用策略，标签可访问 implicit 变量 `wfRt`（`WfRuntime`，含 `currentStep`）：
 
 | 标签 | 语义 | 等价 Warm-Flow |
 |------|------|---------------|
@@ -324,9 +314,9 @@ jobs:
 </step>
 ```
 
-### 7.4 放置位置
+### 7.3 放置位置
 
-`wf-vote.xlib` 放入 `nop-wf-core` 的 `/nop/wf/xlib/`（与 `wf-actor.xlib` 同级）。仅依赖引擎 execGroup 数据模型，无外部依赖。**注意：接线前此标签库无效果。**
+`wf-vote.xlib` 放入 `nop-wf-core` 的 `/nop/wf/xlib/`（与 `wf-actor.xlib` 同级）。仅依赖引擎 execGroup 数据模型，无外部依赖。槽位已接线，标签库在配置后即生效（测试：`execGroupVoteSlot` / `execGroupVoteRejectSlot`）。
 
 ---
 
@@ -383,9 +373,9 @@ FlowLong 的 `executeAppendNodeModel`/`executeRemoveNodeModel` 允许运行时�
 
 > 加签/减签是 **execGroup 层面的成员增减**，属于引擎已支持的内置能力，与 §8.1-8.4 的"动态审批（节点模型层面）"是不同层级。
 
-**加签**：`IWorkflowStep.addActor(WfActorAndOwner, ctx)`（`IWorkflowStep.java:150`，`WorkflowEngineImpl.java:934`），在 execGroup 内追加 step 实例。
+**加签**：`IWorkflowStep.addActor(WfActorAndOwner, ctx)`（`IWorkflowStep.java:165`，`WorkflowEngineImpl.java:1032`），在 execGroup 内追加 step 实例。
 
-**减签**：对 execGroup 内目标成员 step 调 `cancelStep`（`IWorkflowStep.java:210`，即 `exitStep(CANCELLED)`）。该 step 变历史态后自动从 execGroup 活跃成员退出——`ExecGroupSupport.shouldExecGroupComplete`（`ExecGroupSupport.java:20-31`）对 and-group 检查 `getStepsInSameExecGroup(false,false)` 是否为空（CANCELLED 不再计入）；对 vote-group 走权重计算（`getStepsInSameExecGroup(true,true)`，CANCELLED 不计入 completeWeight）。
+**减签**：对 execGroup 内目标成员 step 调 `cancelStep`（`IWorkflowStep.java:228`，即 `exitStep(CANCELLED)`）。该 step 变历史态后自动从 execGroup 活跃成员退出——`ExecGroupSupport.shouldExecGroupComplete`（`ExecGroupSupport.java:20-31`）对 and-group 检查 `getStepsInSameExecGroup(false,false)` 是否为空（CANCELLED 不再计入）；对 vote-group 走权重计算（`getStepsInSameExecGroup(true,true)`，CANCELLED 不计入 completeWeight）。
 
 **"至少保留 1 人"约束**：引擎不强制（and-group 全 cancel 会直接判定完成）。由调用方在 cancelStep 前检查 `getStepsInSameExecGroup(false,false).size() > 1`。
 
