@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<dialect x:extends="default.dialect.xml,geo-support.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+<dialect x:extends="default.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          keywordQuote="&quot;" defaultNullsFirst="false"
          columnNameCase="lower"
@@ -147,8 +147,7 @@
         <sqlDataType name="SMALLINT" code="INT4" stdSqlType="SMALLINT"/>
         <sqlDataType name="INT4"  stdSqlType="INTEGER"/>
         <sqlDataType name="INT8" stdSqlType="BIGINT"/>
-        <sqlDataType name="VARCHAR" precision="4000" stdSqlType="VARCHAR"/>
-        <sqlDataType name="NVARCHAR" precision="4000" stdSqlType="VARCHAR"/>
+        <sqlDataType name="VARCHAR" precision="4000" stdSqlType="VARCHAR" allowExceedPrecision="true"/>
         <sqlDataType name="TEXT" stdSqlType="CLOB" />
         <sqlDataType name="DATE" stdSqlType="DATE"/>
         <sqlDataType name="DATETIME" code="TIMESTAMP" stdSqlType="DATETIME"/>
@@ -158,9 +157,9 @@
         <sqlDataType name="FLOAT8" stdSqlType="DOUBLE" alias="DOUBLE PRECISION"/>
         <sqlDataType name="NUMERIC" stdSqlType="DECIMAL"/>
         <sqlDataType name="BYTEA" stdSqlType="BLOB"/>
+        <sqlDataType name="VARBINARY" code="BYTEA" stdSqlType="VARBINARY" allowPrecision="false"/>
         <sqlDataType name="BOOLEAN" stdSqlType="BOOLEAN"/>
         <sqlDataType name="JSON" stdSqlType="JSON"/>
-        <sqlDataType name="GEOMETRY" stdSqlType="GEOMETRY"/>
         <!-- WI9a: UUID 原生类型（postgresql.org/docs, 8.17 UUID Type）；postgis 继承本表 -->
         <sqlDataType name="UUID" stdSqlType="UUID"/>
     </sqlDataTypes>
@@ -268,16 +267,22 @@
              scratch 实测通过）。规范单位词表 = pg/duckdb/h2 交集：
              year/quarter/month/week/day/hour/minute/second（pg 另有 decade/century/
              millennium/millisecond 等超集词，不在规范词表）。mysql/oracle/mssql 不落
-             （Phase 0 裁定 §7）——编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮。 -->
+             （Phase 0 裁定 §7）——编译期 ERR_EQL_UNKNOWN_FUNCTION 响亮。
+             testSql 使用 'hour' 单位（'a' 不是合法 date_trunc 单位）。 -->
         <template name="datetrunc" returnType="TIMESTAMP" argTypes="VARCHAR,TIMESTAMP">
             <source>date_trunc({0},{1})</source>
+            <testSql>date_trunc('hour', TIMESTAMP '2002-01-02 04:14:02')</testSql>
         </template>
 
         <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 位掩码多参——[文档] PG 15 文档
              GROUPING ( group_by_expression(s) )，"Bits are assigned with the rightmost
              argument corresponding to the least-significant bit"。上限 64 为配置边界
-             （实参须精确匹配 GROUP BY 列表）。postgis/duckdb 继承。 -->
-        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="64"/>
+             （实参须精确匹配 GROUP BY 列表）。postgis/duckdb 继承。
+             testSql 走 cube 分组形态（裸 GROUPING(常量) 报 "arguments to GROUPING
+             must be grouping expressions"）。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="64" argTypes="ANY">
+            <testSql>grouping(a) from (values (1)) as t(a) group by cube(a)</testSql>
+        </native>
     </functions>
 
 </dialect>

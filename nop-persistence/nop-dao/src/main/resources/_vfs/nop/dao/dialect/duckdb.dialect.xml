@@ -5,7 +5,7 @@
 > - 在线演示 https://shell.duckdb.org/
 -->
 <dialect xmlns:x="/nop/schema/xdsl.xdef"
-         x:extends="postgresql.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+         x:extends="postgresql.dialect.xml,geo-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          keywordQuote="&quot;" defaultNullsFirst="false"
 >
 

@@ -140,6 +140,19 @@
         <dropSequence>drop sequence {sequenceName}</dropSequence>
     </sqls>
 
+    <functions>
+        <!-- geo 能力面校准（真库 mariadb:10.3.6 校准）：
+             1) ST_Transform 在 MariaDB 不存在（ERROR 1305），MySQL 8.0 存在
+                ⇒ 从 mysql 继承的注册面中移除（假能力面按 duckdb 先例 remove）。
+             2) ST_Boundary 在 MariaDB 10.3 存在，但 mysql.dialect.xml 为 MySQL 移除
+                ⇒ 此处回放（child 新增节点，不受 parent 的 remove 影响）。
+             ST_GeomUnion/ST_DWithin/ST_Extent 缺失 ⇒ 继承 mysql 的移除。 -->
+        <native name="st_transform" x:override="remove"/>
+        <native name="st_boundary" returnType="GEOMETRY" argTypes="GEOMETRY">
+            <testSql>ST_Boundary(ST_GeomFromText('POLYGON((0 0,1 0,1 1,0 1,0 0))'))</testSql>
+        </native>
+    </functions>
+
     <sqlDataTypes>
         <!--
         Difference Between VARCHAR and TEXT

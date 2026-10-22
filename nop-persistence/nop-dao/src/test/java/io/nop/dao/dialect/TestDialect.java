@@ -18,6 +18,7 @@ import io.nop.commons.util.objects.Pair;
 import io.nop.core.lang.sql.ISqlExpr;
 import io.nop.core.lang.sql.SQL;
 import io.nop.core.lang.sql.SqlExprList;
+import io.nop.commons.type.StdDataType;
 import io.nop.commons.type.StdSqlType;
 import io.nop.core.lang.sql.StringSqlExpr;
 import io.nop.dao.dialect.function.NativeSQLFunction;
@@ -211,6 +212,19 @@ public class TestDialect extends JdbcTestCase {
             sql = dialect.getSelectFromDualSql(sql);
 
             IDataParameterBinder resultBinder = DataParameterBinders.getDefaultBinder(resultType.getName());
+            if (resultType == StdSqlType.GEOMETRY) {
+                // GEOMETRY 走 dialect 的 geometryTypeHandler 回读（nop-orm-geo 不在
+                // nop-dao 测试 classpath 时 handler 为 null，见 DialectImpl:795）。
+                // handler 缺失时只校验 SQL 可执行且结果非空：GeometryObject 类型回读
+                // 属 nop-orm-geo 模块的测试职责（TestGeometryObjectHelper）。
+                resultBinder = dialect.getDataParameterBinder(StdDataType.GEOMETRY, StdSqlType.GEOMETRY);
+                if (resultBinder == null) {
+                    Object raw = jdbc().findFirst(SQL.begin().sql(sql).end(),
+                            new SingleBinderRowMapper(DataParameterBinders.ANY));
+                    assertNotNull(raw, "geometry function must return non-null value: " + sql);
+                    continue;
+                }
+            }
             if (resultBinder == null)
                 resultBinder = DataParameterBinders.ANY;
             Object value = jdbc().findFirst(SQL.begin().sql(sql).end(), new SingleBinderRowMapper(resultBinder));

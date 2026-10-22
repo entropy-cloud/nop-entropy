@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<dialect x:extends="default.dialect.xml,geo-support.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
+<!-- geo-support 不在 base oracle 的继承面：Oracle 18c（testcontainers gvenzl/oracle-xe:18.4）
+     无 SQL/MM ST_* 函数（几何能力走 SDO_GEOMETRY API，Oracle 23ai 才提供 ST_*），
+     注册 ST_* 会造成"注册了原生不可用"的假能力面。geometryTypeHandler 由本文件自行声明。
+     Oracle+GIS 场景由 oracle 后续 GIS 方言扩展承接（同 postgis 与 postgresql 的关系）。 -->
+<dialect x:extends="default.dialect.xml,window-expr-support.dialect.xml" x:schema="/nop/schema/orm/dialect.xdef"
          xmlns:x="/nop/schema/xdsl.xdef"
          keywordQuote="&quot;" keywordUnderscore="false" defaultNullsFirst="false"
 >
@@ -180,15 +184,17 @@
         <native name="uuid" realName="sys_guid" x:override="merge"/>
         <native name="cot" x:override="remove"/>
 
-        <native name="now" realName="current_timestamp">
+        <native name="now" realName="current_timestamp" hasParenthesis="false">
         </native>
 
         
         <!-- WI12（plan 38 交付⑥）：atTimeZone 模板（{0}=timestamp, {1}=时区字符串）。
              [文档] Oracle 19c SQLRF AT TIME ZONE（timestamp AT TIME ZONE 'zone' 合法，
-             session timezone 缺省语义）。oracle-reverse 继承。 -->
+             session timezone 缺省语义）。oracle-reverse 继承。
+             testSql 使用 UTC 时区（'a' 不是合法时区名）。 -->
         <template name="atTimeZone" returnType="TIMESTAMP" argTypes="TIMESTAMP,VARCHAR">
             <source>{0} AT TIME ZONE {1}</source>
+            <testSql>TIMESTAMP '2026-02-10 12:34:56' AT TIME ZONE 'UTC'</testSql>
         </template>
         <template name="rand" x:override="replace">
             <source>DBMS_RANDOM.VALUE</source>
@@ -198,8 +204,11 @@
             <source>lengthb({0})*8</source>
         </template>
 
+        <!-- ilike 用 regexp_like 实现：REGEXP_LIKE 是 WHERE 谓词，不能直接出现在
+             SELECT 列表（ORA-00904）。testSql 用 CASE WHEN 包装为表达式（真库校准发现）。 -->
         <template name="ilike" argTypes="VARCHAR,VARCHAR" returnType="BOOLEAN">
             <source>regexp_like({0},{1},'i')</source>
+            <testSql>CASE WHEN REGEXP_LIKE('a','a','i') THEN 1 ELSE 0 END</testSql>
         </template>
 
         <native name="octet_length" realName="LENGTHB" x:override="merge"/>
@@ -278,8 +287,12 @@
 
         <!-- WI7b（plan 37，roadmap EC ①）：GROUPING 单参——[文档] Oracle 23ai 文档
              GROUPING(expr)（"The expr ... must match one of the expressions in the GROUP BY
-             clause"），返回 1/0（NUMBER）。oracle-reverse 继承。 -->
-        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1"/>
+             clause"），返回 1/0（NUMBER）。oracle-reverse 继承。
+             testSql 走 cube 分组 + max 收敛单行（裸 GROUPING(常量) 报 ORA-30481，
+             分组集展开多行超出 select-from-dual 单行语义）。 -->
+        <native name="grouping" realName="GROUPING" minArgCount="1" maxArgCount="1" argTypes="ANY">
+            <testSql>(select max(g) from (select grouping(a) as g from (select 1 a from dual) t group by cube(a)))</testSql>
+        </native>
     </functions>
 
     <sqlDataTypes>
@@ -316,7 +329,7 @@
         1表示true, 0表示false。jdbc驱动可以自动转换为boolean
         -->
         <sqlDataType name="BOOLEAN" code="CHAR(1)" stdSqlType="BOOLEAN"/>
-        <sqlDataType name="JSON" stdSqlType="JSON"/>
+        <sqlDataType name="JSON" code="CLOB" stdSqlType="JSON"/>
         <sqlDataType name="TIMESTAMP(6)" stdSqlType="TIMESTAMP"/>
     </sqlDataTypes>
 </dialect>

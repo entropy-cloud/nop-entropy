@@ -169,6 +169,17 @@
         <native name="cosh" x:override="remove"/>
         <native name="sinh" x:override="remove"/>
 
+        <!-- geo-support 中 MySQL 8.0（真库 mysql:8.0.46 校准）原生缺失的函数：
+             ST_Boundary/ST_Extent 不存在（ERROR 1305）；ST_DWithin 不存在。
+             注册了原生不可用 = 假能力面，按 duckdb 先例移除。
+             st_geomunion 不移除：MySQL 同语义函数名为 ST_Union，用 realName 归一。
+             mariadb 继承此配置，另在 mariadb.dialect.xml 移除 ST_Transform（MariaDB 缺失）
+             并回放 ST_Boundary（MariaDB 10.3 存在、被本移除波及）。 -->
+        <native name="st_boundary" x:override="remove"/>
+        <native name="st_dwithin" x:override="remove"/>
+        <native name="st_extent" x:override="remove"/>
+        <native name="st_geomunion" realName="ST_Union" x:override="merge"/>
+
         <!-- WI6 Phase 1: lastDay(d) 归一化（返回 d 所在月份最后一天的日期值）。MySQL 原生
              LAST_DAY（8.0 手册: "Takes a date or datetime value and returns the corresponding
              value for the last day of the month"）；mariadb/mysql5.7 继承。
@@ -213,7 +224,7 @@
         <sqlDataType name="BIGINT" stdSqlType="BIGINT" alias="BIGINT UNSIGNED"/>
         <sqlDataType name="TINYTEXT" precision="255" stdSqlType="VARCHAR" allowPrecision="false" deprecated="true"/>
         <sqlDataType name="VARCHAR" precision="16383" stdSqlType="VARCHAR"/>
-        <sqlDataType name="NVARCHAR" precision="16383" stdSqlType="VARCHAR"/>
+        <sqlDataType name="NVARCHAR" precision="16383" stdSqlType="VARCHAR" deprecated="true"/>
         <sqlDataType name="TEXT" precision="65535" stdSqlType="VARCHAR" allowPrecision="false"/>
         <sqlDataType name="MEDIUMTEXT" precision="16777215" allowPrecision="false" stdSqlType="VARCHAR"/>
         <sqlDataType name="LONGTEXT" stdSqlType="CLOB"/>
