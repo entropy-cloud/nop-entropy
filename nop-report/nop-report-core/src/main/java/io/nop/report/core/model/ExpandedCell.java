@@ -440,6 +440,11 @@ public class ExpandedCell implements IExcelCell {
 
     @JsonIgnore
     @Override
+    public boolean isHtmlContent() {
+        return model != null && model.getSubreportPath() != null;
+    }
+
+    @Override
     public String getEditorId() {
         return model == null ? null : model.getEditorId();
     }

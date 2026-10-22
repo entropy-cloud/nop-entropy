@@ -112,6 +112,20 @@ public interface XptErrors {
 
     String ARG_MAX_ROWS = "maxRows";
 
+    String ARG_MAX_DEPTH = "maxDepth";
+
+    ErrorCode ERR_XPT_SUBREPORT_ENGINE_UNAVAILABLE =
+            define("nop.err.xpt.subreport-engine-unavailable",
+                    "子报表引用需要报表引擎 bean[nopReportEngine]，当前环境未注册", ARG_CELL_POS);
+
+    ErrorCode ERR_XPT_SUBREPORT_DEPTH_EXCEEDED =
+            define("nop.err.xpt.subreport-depth-exceeded",
+                    "子报表嵌套深度超过上限[{maxDepth}]，可能存在循环引用", ARG_CELL_POS, ARG_MAX_DEPTH);
+
+    ErrorCode ERR_XPT_SUBREPORT_PARAMS_ERROR =
+            define("nop.err.xpt.subreport-params-error",
+                    "单元格[{cellPos}]的子报表参数表达式必须返回 Map", ARG_CELL_POS);
+
     ErrorCode ERR_XPT_COND_STYLE_EXPR_ERROR =
             define("nop.err.xpt.cond-style-expr-error",
                     "表格[{sheetName}]的单元格[{cellPos}]的条件样式规则表达式执行失败", ARG_SHEET_NAME, ARG_CELL_POS);

@@ -1,6 +1,6 @@
 # nop-report 能力补强 Roadmap — 从报表库到平台级报表引擎
 
-> Last updated: 2026-10-22（WI0–WI7 完成；WI7 口径=长表防线+迭代导出+基线，宽表/惰性展开 residual）
+> Last updated: 2026-10-22（WI0–WI9 完成；WI7/WI9 口径见条目，residual 已登记）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/analysis/2026-10/2026-10-17-nop-report-feature-gap-vs-report-engines.md`（**主输入**：源码盘点 + 25 维能力矩阵 + P0/P1/P2 补强清单）
@@ -66,7 +66,7 @@
 ### M4 — 分析与展现增强
 
 - [x] WI8 条件格式规则引擎：把 `styleIdExpr` 扩展为声明式规则集（表达式谓词/数值区间 + 样式，首中生效），经既有 styleId 机制三端一致（pdf 为字体子集）。（Deliverable: 规则集模型 + html/xlsx 测试；deps: WI0；Item Type: Feature）
-- [ ] WI9 钻取/联动/子报表：定义正式 subreport / 报表片段引用与参数传递（当前仅父子层级展开，无法引用另一模板）；主报表→明细钻取与报表间联动跳转；与 WI5 交互协同。（Deliverable: 子报表/片段 + 钻取 + 测试；deps: WI2、WI5；Item Type: Feature）
+- [x] WI9 钻取/联动/子报表：定义正式 subreport / 报表片段引用与参数传递（当前仅父子层级展开，无法引用另一模板）；主报表→明细钻取与报表间联动跳转；与 WI5 交互协同。（Deliverable: 子报表/片段 + 钻取 + 测试；deps: WI2、WI5；Item Type: Feature）
 
 ### M5 — 导出与内容能力
 

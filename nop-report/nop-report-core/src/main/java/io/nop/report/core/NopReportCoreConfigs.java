@@ -21,4 +21,8 @@ public interface NopReportCoreConfigs {
     @Description("单个 sheet 允许展开生成的最大行数（fail-fast 防 OOM；0 表示不限制）。模板级 expandMaxCount 语义不受影响")
     IConfigReference<Integer> CFG_MAX_EXPAND_ROWS = varRef(s_loc, "nop.report.max-expand-rows",
             Integer.class, 100_000);
+
+    @Description("子报表嵌套深度上限（fail-fast 防循环引用）")
+    IConfigReference<Integer> CFG_MAX_SUBREPORT_DEPTH = varRef(s_loc, "nop.report.max-subreport-depth",
+            Integer.class, 5);
 }

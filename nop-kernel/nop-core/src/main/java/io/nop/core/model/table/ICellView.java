@@ -32,6 +32,13 @@ public interface ICellView extends ICloneable {
     }
 
     /**
+     * 单元格内容是否为已转义的 raw html（子报表嵌套等场景）；缺省 false=按纯文本转义输出。
+     */
+    default boolean isHtmlContent() {
+        return false;
+    }
+
+    /**
      * 单元格合并时，合并后被屏蔽的单元格位置用代理单元格来占位
      */
     default boolean isProxyCell() {

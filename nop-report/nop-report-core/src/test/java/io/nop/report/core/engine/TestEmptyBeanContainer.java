@@ -9,6 +9,7 @@ package io.nop.report.core.engine;
 
 import io.nop.api.core.ioc.BeanContainer;
 import io.nop.api.core.ioc.IBeanContainer;
+import io.nop.core.initialize.CoreInitialization;
 import jakarta.annotation.Nonnull;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
@@ -37,5 +38,6 @@ public class TestEmptyBeanContainer {
         BeanContainer.registerInstance(new EmptyBeanContainer());
         assertNull(IReportAuthChecker.get());
         assertNull(IReportDataSecurityProvider.get());
+        CoreInitialization.destroy();
     }
 }

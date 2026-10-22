@@ -62,6 +62,16 @@ public interface XptConstants {
     List<String> ALLOWED_XPT_FILE_TYPES = Arrays.asList(FILE_TYPE_XPT_XML, FILE_TYPE_XPT_XLSX);
 
     String RENDER_TYPE_HTML = "html";
+
+    /**
+     * scope 变量：当前渲染类型（各渲染器入口写入，子报表等需要感知渲染类型的机制消费）
+     */
+    String VAR_XPT_RENDER_TYPE = "xptRenderType";
+
+    /**
+     * scope 变量：子报表嵌套深度
+     */
+    String VAR_SUBREPORT_DEPTH = "xptSubreportDepth";
     String RENDER_TYPE_SHTML = "shtml";
     String RENDER_TYPE_WORD = "word";
     String RENDER_TYPE_XLSX = "xlsx";

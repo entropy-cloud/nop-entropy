@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workbook x:schema="/nop/schema/excel/workbook.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <sheets>
+        <sheet name="s1">
+            <table>
+                <rows>
+                    <row>
+                        <cells>
+                            <cell name="A1" type="string">
+                                <value>子报表:${param.city}</value>
+                            </cell>
+                        </cells>
+                    </row>
+                </rows>
+            </table>
+        </sheet>
+    </sheets>
+</workbook>

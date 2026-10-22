@@ -26,6 +26,8 @@ import io.nop.excel.model.ExcelStyle;
 import io.nop.excel.model.ExcelWorkbook;
 import io.nop.excel.model.XptCellModel;
 import io.nop.excel.model.XptCondStyleModel;
+import io.nop.report.core.NopReportCoreConfigs;
+import io.nop.report.core.XptConstants;
 import io.nop.excel.model.XptRowModel;
 import io.nop.report.core.dataset.KeyedReportDataSet;
 import io.nop.report.core.dataset.ReportDataSet;
@@ -45,6 +47,9 @@ import java.util.Map;
 import static io.nop.core.CoreErrors.ARG_CELL;
 import static io.nop.report.core.XptErrors.ARG_CELL_POS;
 import static io.nop.report.core.XptErrors.ERR_XPT_COND_STYLE_EXPR_ERROR;
+import static io.nop.report.core.XptErrors.ERR_XPT_SUBREPORT_DEPTH_EXCEEDED;
+import static io.nop.report.core.XptErrors.ERR_XPT_SUBREPORT_ENGINE_UNAVAILABLE;
+import static io.nop.report.core.XptErrors.ERR_XPT_SUBREPORT_PARAMS_ERROR;
 import static io.nop.report.core.XptErrors.ARG_SHEET_NAME;
 import static io.nop.report.core.XptErrors.ERR_XPT_INVALID_IMAGE_DATA;
 
@@ -169,6 +174,7 @@ public class ExpandedSheetEvaluator {
             }
 
             applyCondStyles(cellModel, xptRt, cell);
+            applySubreport(cellModel, xptRt, cell);
 
             IEvalAction formatExpr = cellModel.getFormatExpr();
             if (formatExpr != null) {
@@ -316,6 +322,71 @@ public class ExpandedSheetEvaluator {
 
         ret.setData(model.getData());
         return ret;
+    }
+
+    /**
+     * 子报表引用（WI9）：引用另一模板并传参渲染。
+     * html 渲染类型：子模板 html 片段作为单元格 raw html 内容；其他渲染类型：取去标签文本。
+     * 引擎 bean 缺失或递归超限 fail-fast（见 ai-dev/design/nop-report/subreport.md）。
+     */
+    private void applySubreport(XptCellModel cellModel, IXptRuntime xptRt, ExpandedCell cell) {
+        String path = cellModel.getSubreportPath();
+        if (StringHelper.isEmpty(path))
+            return;
+
+        IReportEngine engine = io.nop.api.core.ioc.BeanContainer.tryGetBean("nopReportEngine") == null
+                ? null
+                : (IReportEngine) io.nop.api.core.ioc.BeanContainer.tryGetBean("nopReportEngine");
+        if (engine == null)
+            throw new NopException(ERR_XPT_SUBREPORT_ENGINE_UNAVAILABLE)
+                    .param(ARG_CELL_POS, cell.getName());
+
+        int depth = ConvertHelper.toPrimitiveInt(scope_get(xptRt, XptConstants.VAR_SUBREPORT_DEPTH), err -> null);
+        int maxDepth = NopReportCoreConfigs.CFG_MAX_SUBREPORT_DEPTH.get();
+        if (depth >= maxDepth)
+            throw new NopException(ERR_XPT_SUBREPORT_DEPTH_EXCEEDED)
+                    .param(ARG_CELL_POS, cell.getName())
+                    .param("maxDepth", maxDepth);
+
+        Map<String, Object> params = null;
+        if (cellModel.getSubreportParams() != null) {
+            params = ConvertHelper.toMap(cellModel.getSubreportParams().invoke(xptRt),
+                    err -> new NopException(ERR_XPT_SUBREPORT_PARAMS_ERROR)
+                            .param(ARG_CELL_POS, cell.getName()));
+        }
+
+        io.nop.core.lang.eval.IEvalScope parentScope = xptRt.getEvalScope();
+        io.nop.core.lang.eval.IEvalScope childScope = parentScope.newChildScope();
+        childScope.setLocalValue(null, "param", params == null ? Map.of() : params);
+        childScope.setLocalValue(null, XptConstants.VAR_SUBREPORT_DEPTH, depth + 1);
+
+        ExcelWorkbook child = engine.getXptModel(path);
+        io.nop.core.resource.tpl.ITemplateOutput output = engine.getRendererForXptModel(child, "html");
+        String html = ((io.nop.core.resource.tpl.ITextTemplateOutput) output).generateText(childScope);
+        if ("html".equals(getRenderType(xptRt))) {
+            cell.setValue(html);
+        } else {
+            cell.setValue(stripHtmlTags(html));
+        }
+    }
+
+    static String stripHtmlTags(String html) {
+        if (html == null)
+            return null;
+        return html.replaceAll("<style[^>]*>[\\s\\S]*?</style>", " ")
+                .replaceAll("<script[^>]*>[\\s\\S]*?</script>", " ")
+                .replaceAll("<[^>]+>", " ")
+                .replaceAll("&nbsp;", " ")
+                .replaceAll("\\s+", " ").trim();
+    }
+
+    private Object scope_get(IXptRuntime xptRt, String name) {
+        return xptRt.getEvalScope().getValue(name);
+    }
+
+    private String getRenderType(IXptRuntime xptRt) {
+        Object rt = xptRt.getEvalScope().getValue(XptConstants.VAR_XPT_RENDER_TYPE);
+        return rt == null ? null : rt.toString();
     }
 
     /**

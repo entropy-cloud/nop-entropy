@@ -40,9 +40,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      *  
      * xml name: condStyles
-     * 条件格式规则集（有序，首个命中的规则生效并覆盖 styleIdExpr 结果）。
-     * expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
-     * min/max 可单边；闭区间；min>max 视为不命中。
+     * 
      */
     private java.util.List<io.nop.excel.model.XptCondStyleModel> _condStyles = java.util.Collections.emptyList();
     
@@ -199,6 +197,21 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: subreportParams
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _subreportParams ;
+    
+    /**
+     *  
+     * xml name: subreportPath
+     * 子报表引用：引用另一模板并传参渲染。html 渲染类型下子模板 html 嵌套为单元格内容；
+     * xlsx/pdf 取子模板渲染文本。引擎 bean 缺失或递归超限时 fail-fast。
+     */
+    private java.lang.String _subreportPath ;
+    
+    /**
+     *  
      * xml name: valueExpr
      * 在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
      */
@@ -271,9 +284,7 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     /**
      * 
      * xml name: condStyles
-     *  条件格式规则集（有序，首个命中的规则生效并覆盖 styleIdExpr 结果）。
-     * expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
-     * min/max 可单边；闭区间；min>max 视为不命中。
+     *  
      */
     
     public java.util.List<io.nop.excel.model.XptCondStyleModel> getCondStyles(){
@@ -694,6 +705,45 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
     
     /**
      * 
+     * xml name: subreportParams
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getSubreportParams(){
+      return _subreportParams;
+    }
+
+    
+    public void setSubreportParams(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._subreportParams = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: subreportPath
+     *  子报表引用：引用另一模板并传参渲染。html 渲染类型下子模板 html 嵌套为单元格内容；
+     * xlsx/pdf 取子模板渲染文本。引擎 bean 缺失或递归超限时 fail-fast。
+     */
+    
+    public java.lang.String getSubreportPath(){
+      return _subreportPath;
+    }
+
+    
+    public void setSubreportPath(java.lang.String value){
+        checkAllowChange();
+        
+        this._subreportPath = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: valueExpr
      *  在单元格展开之后执行，可以通过层次坐标获取到相关联单元格
      */
@@ -772,6 +822,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         out.putNotNull("rowParent",this.getRowParent());
         out.putNotNull("rowTestExpr",this.getRowTestExpr());
         out.putNotNull("styleIdExpr",this.getStyleIdExpr());
+        out.putNotNull("subreportParams",this.getSubreportParams());
+        out.putNotNull("subreportPath",this.getSubreportPath());
         out.putNotNull("valueExpr",this.getValueExpr());
         out.putNotNull("viewerId",this.getViewerId());
     }
@@ -810,6 +862,8 @@ public abstract class _XptCellModel extends io.nop.core.resource.component.Abstr
         instance.setRowParent(this.getRowParent());
         instance.setRowTestExpr(this.getRowTestExpr());
         instance.setStyleIdExpr(this.getStyleIdExpr());
+        instance.setSubreportParams(this.getSubreportParams());
+        instance.setSubreportPath(this.getSubreportPath());
         instance.setValueExpr(this.getValueExpr());
         instance.setViewerId(this.getViewerId());
     }

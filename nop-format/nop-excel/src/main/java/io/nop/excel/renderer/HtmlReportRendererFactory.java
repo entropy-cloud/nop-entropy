@@ -49,6 +49,9 @@ public class HtmlReportRendererFactory implements IReportRendererFactory {
         public void generateToWriter(Writer out, IEvalContext context) throws IOException {
             long beginTime = CoreMetrics.currentTimeMillis();
             LOG.debug("nop.report.begin-generate-html");
+            // DisabledEvalScope（HtmlRenderHelper 纯静态渲染）不支持写变量，跳过标记
+            if (!(context.getEvalScope() instanceof io.nop.core.lang.eval.DisabledEvalScope))
+                context.getEvalScope().setLocalValue(null, "xptRenderType", "html");
 
             String reportId = getXptReportId(context);
             out.write("<div id=\"");

@@ -159,7 +159,12 @@ public class HtmlTableOutput implements ITextTemplateOutput {
         out.write(">");
 
         String linkUrl = cell.getLinkUrl();
-        if (StringHelper.isEmpty(linkUrl)) {
+        if (cell.isHtmlContent() && StringHelper.isEmpty(linkUrl)) {
+            // raw html 内容（子报表嵌套等；内容生产方负责转义），见 ai-dev/design/nop-report/subreport.md
+            String text = cell.getText();
+            if (text != null)
+                out.write(text);
+        } else if (StringHelper.isEmpty(linkUrl)) {
             String text = cell.getText();
             if (text != null)
                 out.write(StringHelper.escapeHtml(text));

@@ -95,6 +95,13 @@
                         expr（xpl-predicate，上下文注入 cellValue=当前单元格值）与 min/max 数值区间二选一；
                         min/max 可单边；闭区间；min>max 视为不命中。
                         -->
+                        <!--
+                        子报表引用：引用另一模板并传参渲染。html 渲染类型下子模板 html 嵌套为单元格内容；
+                        xlsx/pdf 取子模板渲染文本。引擎 bean 缺失或递归超限时 fail-fast。
+                        -->
+                        <subreportPath>string</subreportPath>
+                        <subreportParams>report-expr</subreportParams>
+
                         <condStyles xdef:body-type="list">
                             <condStyle xdef:name="XptCondStyleModel" styleId="!string">
                                 <expr>xpl-predicate</expr>
