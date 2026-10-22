@@ -77,6 +77,64 @@ public interface IXptRuntime extends IEvalContext {
             authChecker.checkDataSourceAccess(querySpace);
     }
 
+    /**
+     * 按 provider 返回的行级条件包装 SQL：select * from ( 原SQL ) _rpt_sec where <条件>，
+     * 保留原 SQL 语句级属性；provider 未注册或无条件时原样返回。
+     */
+    default io.nop.core.lang.sql.SQL applyRowCondition(io.nop.core.lang.sql.SQL sql, String dsName) {
+        IReportDataSecurityProvider provider = IReportDataSecurityProvider.get();
+        if (provider == null)
+            return sql;
+        IReportDataSecurityProvider.RowCondition condition = provider.getRowCondition(getReportPath(), dsName);
+        if (condition == null)
+            return sql;
+
+        sql = trimTrailingSemicolon(sql);
+        io.nop.core.lang.sql.SQL.SqlBuilder sb = io.nop.core.lang.sql.SQL.begin()
+                .name(sql.getName()).querySpace(sql.getQuerySpace()).fetchSize(sql.getFetchSize())
+                .timeout(sql.getTimeout()).cacheRef(sql.getCacheRef())
+                .disableLogicalDelete(sql.isDisableLogicalDelete()).readOnly(sql.isReadOnly())
+                .append("select * from (")
+                .append(sql)
+                .append(") _rpt_sec where ")
+                .sqlWithParams(condition.getConditionSql(), condition.getParams());
+        return sb.end();
+    }
+
+    /**
+     * 子查询包装要求原 SQL 无尾部分号；仅裁剪文本尾部（';'+空白），已有参数 marker 均位于裁剪区之前，偏移不变。
+     */
+    static io.nop.core.lang.sql.SQL trimTrailingSemicolon(io.nop.core.lang.sql.SQL sql) {
+        String text = sql.getText();
+        int end = text.length();
+        while (end > 0 && (text.charAt(end - 1) == ';' || Character.isWhitespace(text.charAt(end - 1))))
+            end--;
+        if (end == text.length())
+            return sql;
+        return new io.nop.core.lang.sql.SQL(sql.getName(), text.substring(0, end), sql.getMarkers(),
+                sql.getTimeout(), sql.getCacheRef(), sql.getFetchSize(), sql.getQuerySpace(),
+                sql.isDisableLogicalDelete(), sql.isAllowUnderscoreName(), sql.isEnableFilter(),
+                sql.isReadOnly(), sql.getLocation());
+    }
+
+    /**
+     * 展示层列脱敏（ ExpandedSheetEvaluator 字段取值路径调用）；provider 未注册时原样返回。
+     */
+    default Object maskValue(String dsName, String field, Object value) {
+        IReportDataSecurityProvider provider = IReportDataSecurityProvider.get();
+        if (provider == null)
+            return value;
+        return provider.maskValue(dsName, field, value);
+    }
+
+    /**
+     * 当前报表模板路径；无法取得时返回 null（规则按 dsName/字段匹配）。
+     */
+    default String getReportPath() {
+        io.nop.excel.model.ExcelWorkbook workbook = getWorkbook();
+        return workbook == null ? null : workbook.resourcePath();
+    }
+
     Object evaluateCell(ExpandedCell cell);
 
     Object field(String field);

@@ -20,8 +20,9 @@
                     const dataSource = JdbcDataSetHelper.getDataSource(querySpace);
                     const connection = dataSource.connection;
                     const dialect = DialectManager.instance().getDialectForConnection(connection);
-                    const sql = slot_source().extend().timeout(queryTimeout)
+                    let sql = slot_source().extend().timeout(queryTimeout)
                           .fetchSize(fetchSize || streaming ? dialect.streamingFetchSize : null).end();
+                    sql = xptRt.applyRowCondition(sql, 'ds1');
 
                     xptRt.addWorkbookCleanup(()=> connection.close());
                     const ds = JdbcDataSetHelper.newDataSet(connection, sql);
@@ -45,8 +46,9 @@
             <source>
                 <c:script><![CDATA[
                     xptRt.checkDataSourceAccess(querySpace);
-                    const sql = slot_source().extend().timeout(queryTimeout)
+                    let sql = slot_source().extend().timeout(queryTimeout)
                           .fetchSize(fetchSize).querySpace(querySpace).end();
+                    sql = xptRt.applyRowCondition(sql, dsName || 'ds1');
 
                     const jdbcTemplate = inject('nopJdbcTemplate');
                     const data = jdbcTemplate.findAll(sql,jdbcTemplate.getRowMapper(rowType,true));
@@ -67,8 +69,9 @@
 
             <source>
                 <c:script><![CDATA[
-                    const sql = slot_source().extend().timeout(queryTimeout)
+                    let sql = slot_source().extend().timeout(queryTimeout)
                           .fetchSize(fetchSize).disableLogicalDelete(disableLogicalDelete).end();
+                    sql = xptRt.applyRowCondition(sql, dsName || 'ds1');
 
                     const ormTemplate = inject('nopOrmTemplate');
                     const data = ormTemplate.findAll(sql,ormTemplate.getRowMapper(rowType,false));

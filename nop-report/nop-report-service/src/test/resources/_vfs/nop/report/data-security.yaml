@@ -1,0 +1,7 @@
+rules:
+  - reportPathPrefix: /report/auth/sec
+    dsName: ds1
+    rowCondition: "sid = {userId}"
+masks:
+  - field: fldA
+    type: phone

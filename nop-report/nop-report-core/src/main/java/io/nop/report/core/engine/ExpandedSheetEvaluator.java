@@ -138,13 +138,15 @@ public class ExpandedSheetEvaluator {
                     if (expandValue instanceof ReportDataSet) {
                         ReportDataSet ds = (ReportDataSet) expandValue;
                         if (cellModel.getField() != null) {
-                            cell.setValue(ds.field(cellModel.getField()));
+                            cell.setValue(xptRt.maskValue(cellModel.getDs(), cellModel.getField(),
+                                    ds.field(cellModel.getField())));
                         } else {
                             cell.setValue(ds.first());
                         }
                     } else {
                         if (cellModel.getField() != null) {
-                            cell.setValue(Underscore.getFieldValue(expandValue, cellModel.getField()));
+                            cell.setValue(xptRt.maskValue(cellModel.getDs(), cellModel.getField(),
+                                    Underscore.getFieldValue(expandValue, cellModel.getField())));
                         } else {
                             cell.setValue(expandValue);
                         }
@@ -152,7 +154,8 @@ public class ExpandedSheetEvaluator {
                 }
             } else if (cellModel.getField() != null) {
                 // 如果指定了field,则按照坐标条件先查找上下文关联对象，如果未找到，则取全局的变量
-                cell.setValue(xptRt.field(cellModel.getField()));
+                cell.setValue(xptRt.maskValue(cellModel.getDs(), cellModel.getField(),
+                        xptRt.field(cellModel.getField())));
             }
 
             IEvalAction styleExpr = cellModel.getStyleIdExpr();

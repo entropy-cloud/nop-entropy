@@ -7,4 +7,7 @@
     <bean id="nopReportFormBizModel"
           class="io.nop.report.service.form.NopReportFormBizModel"/>
 
+    <bean id="nopReportDataSecurityProvider"
+          class="io.nop.report.service.security.NopReportDataSecurityProvider"/>
+
 </beans>
