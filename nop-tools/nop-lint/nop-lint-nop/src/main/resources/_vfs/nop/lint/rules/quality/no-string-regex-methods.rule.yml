@@ -35,10 +35,13 @@ constraints:
   - regex:
       capture: R
       pattern: '(?s)(?!.*\.matcher\s*\(\s*)(?![A-Z][A-Z0-9_]*\s*).+'
+# two forms because JDK PathMatcher's leading **/ does not match zero
+# directories (a bare src/main/java root), and the trailing segment must be
+# ** (a direct child file of src/main/java has no intermediate directory)
 files:
-  exclude:
-    - "**/src/test/java/**/*.java"
-    - "**/*Test.java"
+  include:
+    - "**/src/main/java/**"
+    - "src/main/java/**"
 metadata:
   category: quality
   autoFixable: false

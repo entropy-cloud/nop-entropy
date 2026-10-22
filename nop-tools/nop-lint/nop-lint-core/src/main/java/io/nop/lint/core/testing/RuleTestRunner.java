@@ -270,9 +270,19 @@ public final class RuleTestRunner {
 
     private LintResult lint(CompiledRule rule, String languageId, String source, IResource fixture) {
         LintEngine lintEngine = engine();
-        String filePath = realPathOrNull(fixture);
-        if (filePath != null) {
-            return lintEngine.lintCompiled(List.of(rule), languageId, filePath, source);
+        // the real path serves deep-analyzer position queries only
+        // (realPathOrNull's contract: L2 type / L3 dataflow / L4 semantic
+        // resolution against the file). Passing it unconditionally would
+        // drag file-backed fixtures — which live under src/test/resources
+        // — through the rule's files: scope and silently zero out
+        // file-scoped rules' suites; every plain-L1 fixture lints unnamed
+        // (null path), the form the files: scope treats as
+        // scope-independent.
+        if (!rule.requires().isEmpty()) {
+            String filePath = realPathOrNull(fixture);
+            if (filePath != null) {
+                return lintEngine.lintCompiled(List.of(rule), languageId, filePath, source);
+            }
         }
         return lintEngine.lintCompiled(List.of(rule), languageId, source);
     }
