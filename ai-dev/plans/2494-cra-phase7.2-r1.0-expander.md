@@ -1,6 +1,6 @@
 # 2494 CRA Phase 7.2 — R1.0 展开器：向 roadmap 追加 Phase 8 修复批次工作项行
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-24
 > Source: roadmap 工作项 7.2；R\*.0 展开机制沿 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`（「R\*.0 的 plan 产物 = 向 roadmap 追加具体修复工作项行」）
 > Related: plan 2493（7.1 done @ 5e589173f9）；消费产物 `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md`（74 批次记录，SSOT）
@@ -54,47 +54,47 @@
 
 ### Phase 1 - 展开与校验
 
-Status: planned
+Status: completed
 Targets: roadmap Phase 8 表
 
 - Item Types: `Feature`
 
-- [ ] 由 batch-proposal.md §二.1–§二.4 + §五 共 74 批次记录按「单元格文法裁定」生成 74 行（8.1=R1-00、8.2–8.9=R1-01~08、8.10–8.30=R2-01~21、8.31–8.40=R3-01~10、8.41–8.73=R4-01~33、8.74=R-G），原子替换占位行「8.1+」
-- [ ] **机械校验脚本（m2，钉死）**：延用 `_tmp/check-batch-coverage.mjs` 模式新写 `check-roadmap-phase8.mjs`（脚本与输出落 `_tmp/`）——核对：行数=74、批号集合=§二.1–4+§五 全集、Deps 三要素（锚点存在/项数=§二 成员数/硬依赖边=§二 该批行跨批项且指向更小编号；正向注记不校验）、Status 全 todo、六列无缺项；输出快照计入 closure evidence
-- [ ] **联动改写（M3，强制）**：①Work Item Status 块注释「Phase 8 修复批次工作项由 7.2 展开器动态追加」→「Phase 8 修复批次工作项已由 7.2 展开器追加（plan 2494，2026-10-24，74 行）」；②roadmap 头部 `Last updated` → 执行日；③Phase 8 标题「### Phase 8 — 分批修复（7.2 后动态生成）」→「### Phase 8 — 分批修复（由 7.2 展开器生成，plan 2494）」
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 由 batch-proposal.md §二.1–§二.4 + §五 共 74 批次记录按「单元格文法裁定」生成 74 行（8.1=R1-00、8.2–8.9=R1-01~08、8.10–8.30=R2-01~21、8.31–8.40=R3-01~10、8.41–8.73=R4-01~33、8.74=R-G），原子替换占位行「8.1+」
+- [x] **机械校验脚本（m2，钉死）**：延用 `_tmp/check-batch-coverage.mjs` 模式新写 `check-roadmap-phase8.mjs`（脚本与输出落 `_tmp/`）——核对：行数=74、批号集合=§二.1–4+§五 全集、Deps 三要素（锚点存在/项数=§二 成员数/硬依赖边=§二 该批行跨批项且指向更小编号；正向注记不校验）、Status 全 todo、六列无缺项；输出快照计入 closure evidence（`_tmp/check-roadmap-phase8-output-2026-10-24.txt`，全项 PASS）
+- [x] **联动改写（M3，强制）**：①Work Item Status 块注释「Phase 8 修复批次工作项由 7.2 展开器动态追加」→「Phase 8 修复批次工作项已由 7.2 展开器追加（plan 2494，2026-10-24，74 行）」；②roadmap 头部 `Last updated` → 执行日；③Phase 8 标题「### Phase 8 — 分批修复（7.2 后动态生成）」→「### Phase 8 — 分批修复（由 7.2 展开器生成，plan 2494）」
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] roadmap Phase 8 表含 74 行 todo 工作项，占位行已替换；抽 5 行按「单元格文法裁定」抽验基准核对一致
-- [ ] 机械校验脚本全项 PASS（输出快照在案）；硬依赖边全部指向更小编号
-- [ ] 三处联动改写完成（状态块注释/Last updated/Phase 8 标题）
-- [ ] No owner-doc update required（roadmap 本身即本工作项产物；batch-proposal 为其 SSOT 输入不变）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] roadmap Phase 8 表含 74 行 todo 工作项，占位行已替换；抽 5 行按「单元格文法裁定」抽验基准核对一致（closure audit 独立解析器全量 74 行核验零违规）
+- [x] 机械校验脚本全项 PASS（输出快照在案）；硬依赖边全部指向更小编号
+- [x] 三处联动改写完成（状态块注释/Last updated/Phase 8 标题）
+- [x] No owner-doc update required（roadmap 本身即本工作项产物；batch-proposal 为其 SSOT 输入不变）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - closure audit 与收口
 
-Status: planned
+Status: completed
 Targets: roadmap、daily log、本 plan
 
 - Item Types: `Proof`
 
-- [ ] 独立子代理 closure audit（行数/批号集合/六列完备性[按单元格文法裁定]/依赖序[仅跨批硬边]/与 batch-proposal 一致性抽验/门禁）
-- [ ] roadmap 7.2 → done；daily log 记录；checklist 全勾 + `check-plan-checklist.mjs --strict` 退出码 0
+- [x] 独立子代理 closure audit（行数/批号集合/六列完备性[按单元格文法裁定]/依赖序[仅跨批硬边]/与 batch-proposal 一致性抽验/门禁）
+- [x] roadmap 7.2 → done；daily log 记录；checklist 全勾 + `check-plan-checklist.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] closure audit PASS 记录在本 plan Closure 段
-- [ ] 两个门禁退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] closure audit PASS 记录在本 plan Closure 段
+- [x] 两个门禁退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] roadmap Phase 8 表 74 行与 batch-proposal §二 一一对应（批号集合相等）
-- [ ] 每行六列齐备、Status 全 `todo`、Deps 引用成立且依赖序正确
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 本计划零产品代码变更（纯文档计划，豁免构建/测试门禁）
+- [x] roadmap Phase 8 表 74 行与 batch-proposal §二 一一对应（批号集合相等）
+- [x] 每行六列齐备、Status 全 `todo`、Deps 引用成立且依赖序正确
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 本计划零产品代码变更（纯文档计划，豁免构建/测试门禁）
 
 ## Deferred But Adjudicated
 
@@ -106,11 +106,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 本计划收口 CRA Phase 7.2 R1.0 展开器：74 批次工作项行（8.1–8.74）按「单元格文法裁定」追加 roadmap Phase 8 表并原子替换占位行，三处联动改写完成；机械校验脚本全项 PASS，独立 closure audit 全量核验零违规。零产品代码变更。roadmap 7.2 → done——**Phase 7 全部完成，Phase 8 分批修复（74 批）就绪**。
+Completed: 2026-10-24
 
 Closure Audit Evidence:
 
+- Reviewer / Agent: agent_e47d1b8a（独立 closure audit 子代理，fresh session）
+- Evidence:
+  - 判定 **PASS with corrections**（2 项收口动作已完成：Major-1 daily log 7.2 条目已补、Minor-1 脚本输出快照已录 `_tmp/check-roadmap-phase8-output-2026-10-24.txt` + 本段引用）
+  - 行数/集合：独立解析器核验 74 行、8.1–8.74 连续、批号集合=§二.1–4+§五 全集相等、占位行已替换
+  - 单元格文法：抽 8 行逐列人工比对+全量 74 行机械核验违规 0；8.74=R-G 行与 m1 模板逐字符一致
+  - 依赖边：审计员人工枚举期望边表（硬 14+软 35）与 roadmap 全量比对一致、全部指向更小 8.N、正向注记零混入
+  - 联动改写：三处在位；git diff 四 hunk（+77/−4）确认依赖图 mermaid 与排序原则注释块未动
+  - `node _tmp/check-roadmap-phase8.mjs` EXIT=0（复跑两次）；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0；`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2494-cra-phase7.2-r1.0-expander.md --strict` EXIT=0（收口后复核）
+  - Deferred 项分类检查：无 deferred 条目
+
 Follow-up:
 
-- <<或者明确写 no remaining plan-owned work>>
+- no remaining plan-owned work（Phase 8 各批修复由各行工作项各自立项，非本 plan 所有）

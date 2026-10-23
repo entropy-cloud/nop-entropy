@@ -1,6 +1,6 @@
 # 并发·异步·资源专项审计与修复 Roadmap（全模块滚动）
 
-> Last updated: 2026-10-16
+> Last updated: 2026-10-24
 > Sources: `ai-dev/skills/concurrency-resource-audit-prompt.md`（审计方法论：C1–C10 十维度、F1–F11 缺陷族、归档与发现格式）,
 > `ai-dev/skills/deep-audit-prompts.md`（「调度架构」「发现条目完整性守则」两节，审计调度沿用）,
 > `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md`（P0 即时通道、R\*.0 展开器、closure audit 立项机制）,
@@ -51,7 +51,7 @@
 ## Work Item Status
 
 > **这是唯一的动态状态块。仅在此处更新状态。**
-> Phase 8 修复批次工作项由 7.2 展开器动态追加。
+> Phase 8 修复批次工作项已由 7.2 展开器追加（plan 2494，2026-10-24，74 行）。
 
 ### Phase 0 — 基线与编排
 
@@ -128,9 +128,9 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | 7.1 | 跨模块合并裁定：同族缺陷按 F1–F11 × 模块聚类；跨报告重复发现消解；历史「已知未修复」并入台账；P2 逐项裁决（修 / deferred + successor）；P3 归档；产出**修复批次划分提案**（批次边界、依赖顺序、每批 exit criteria） | done（closure audit PASS with corrections，plan 2493；P1×179 入批/P2 修 483+deferred 77/74 批次记录+R-G 治理批，B1-04 计数联动 P1 180/P2 559） | ai-dev/audits/ 下 cra-index.md（campaign 台账） | 1.1–6.5 全部 done | `audit-remediation-roadmap-authoring-prompt.md` 步骤 2/5 |
-| 7.2 | R1.0 展开器：依据 7.1 提案在本 roadmap 追加 Phase 8 修复批次工作项行（每行引用 finding ID 清单作为 Deps） | planned（plan 2494，R1 审查通过） | 本文件 | 7.1 | `audit-remediation-roadmap-authoring-prompt.md` R\*.0 机制 |
+| 7.2 | R1.0 展开器：依据 7.1 提案在本 roadmap 追加 Phase 8 修复批次工作项行（每行引用 finding ID 清单作为 Deps） | done（closure audit PASS with corrections，plan 2494；74 行[8.1–8.74]已追加，8.74=R-G 治理批） | 本文件 | 7.1 | `audit-remediation-roadmap-authoring-prompt.md` R\*.0 机制 |
 
-### Phase 8 — 分批修复（7.2 后动态生成）
+### Phase 8 — 分批修复（由 7.2 展开器生成，plan 2494）
 
 > 批次划分由 7.1 提案确定，建议排序原则：
 > R1 = P0 收尾确认 + 跨模块同族 P1（先修基础设施层，下游模块一次受益）→
@@ -140,7 +140,80 @@
 
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
-| 8.1+ | （动态追加）修复批次 R1、R2、…，每行引用 finding ID 清单 | — | 对应模块 owner doc | 7.2 + 前一批 | none（修复 plan） |
+| 8.1 | R1-00 P0 收尾确认批（3 项已修 P0 回归确认） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/03-modules/nop-network.md`；nop-persistence 无 owner doc→缺口声明 | batch-proposal.md §二 R1-00（3 项） | none（修复 plan） |
+| 8.2 | R1-01 周期任务异常绝缘层批（R04 平台批） | todo | `docs-for-ai/03-modules/nop-job.md`；`docs-for-ai/03-modules/nop-batch.md`；`docs-for-ai/04-reference/source-anchors.md`（2.1-C3-001 30 点绝缘状态表锚点） | batch-proposal.md §二 R1-01（14 项） | none（修复 plan） |
+| 8.3 | R1-02 平台池设施面批：globalTimer 死配置 + 池工厂（R13 设施） | todo | `docs-for-ai/04-reference/source-anchors.md`（GlobalExecutors/globalTimer 锚点）；`docs-for-ai/03-modules/nop-job.md`（调度契约） | batch-proposal.md §二 R1-02（5 项） | none（修复 plan） |
+| 8.4 | R1-03 平台池消费方批：隔离/卸载落地（R13 使用方） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R1-03（9 项）；硬依赖 8.3（R1-02） | none（修复 plan） |
+| 8.5 | R1-04 api-core 协同批：bindCancel 单点改造 + 上下文传播（R14+R15） | todo | `docs-for-ai/04-reference/source-anchors.md`（api-core 锚点）；`docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R1-04（14 项） | none（修复 plan） |
+| 8.6 | R1-05 缓存失效传播链批（R24） | todo | `docs-for-ai/04-reference/source-anchors.md`（模型缓存锚点） | batch-proposal.md §二 R1-05（4 项） | none（修复 plan） |
+| 8.7 | R1-06 沙箱/shell 工具执行链批（R09 沙箱清理族 + B1-03/B1-04 回升行） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R1-06（7 项） | none（修复 plan） |
+| 8.8 | R1-07 F4 账本保留统一批（R01 统一批次面，ledger §二#3） | todo | `docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-batch.md`；`docs-for-ai/03-modules/nop-credential.md`；`docs-for-ai/03-modules/nop-rule.md`；`docs-for-ai/03-modules/nop-duckdb.md`；`docs-for-ai/03-modules/nop-sys.md` | batch-proposal.md §二 R1-07（6 项） | none（修复 plan） |
+| 8.9 | R1-08 Debezium 双轨与消息交付语义批（R16/R17/R18 面，B1-05 三案） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/03-modules/nop-message.md`；`docs-for-ai/03-modules/nop-stream-cdc-cookbook.md` | batch-proposal.md §二 R1-08（6 项） | none（修复 plan） |
+| 8.10 | R2-01 2.1 kernel 剩余批：退役代际族 + RCE 死锁族 | todo | `docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/02-core-guides/ioc-and-config.md` | batch-proposal.md §二 R2-01（7 项） | none（修复 plan） |
+| 8.11 | R2-02 流式取消/期限两侧同批（R14 消费面 + R05/R06/R11/R21 相邻） | todo | `docs-for-ai/03-modules/nop-ai.md`；`docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R2-02（5 项）；软依赖 8.5（R1-04） | none（修复 plan） |
+| 8.12 | R2-03 2.2 插件生命周期/配置源/Shell 批 | todo | `docs-for-ai/02-core-guides/ioc-and-config.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-03（6 项） | none（修复 plan） |
+| 8.13 | R2-04 2.2 IoC 启动图/死锁 + 配置发布协议批（R22 刷新链） | todo | `docs-for-ai/02-core-guides/ioc-and-config.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-04（7 项） | none（修复 plan） |
+| 8.14 | R2-05 2.3 服务热路径剩余批（R05 SSO + R25 重试放大） | todo | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R2-05（2 项） | none（修复 plan） |
+| 8.15 | R2-06 流式缓冲批 A（chain25/R02 双实现分叉，3.3 同文件批 A） | todo | `docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/03-modules/nop-ai-gateway.md` | batch-proposal.md §二 R2-06（11 项） | none（修复 plan） |
+| 8.16 | R2-07 1.1 stream-core 批（并发正确性 + 资源包络） | todo | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-user-guide.md` | batch-proposal.md §二 R2-07（10 项） | none（修复 plan） |
+| 8.17 | R2-08 1.2 连接器批 | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R2-08（7 项） | none（修复 plan） |
+| 8.18 | R2-09 1.3 编排薄层批 | todo | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-sql.md` | batch-proposal.md §二 R2-09（4 项） | none（修复 plan） |
+| 8.19 | R2-10 1.4 job 批 | todo | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R2-10（2 项） | none（修复 plan） |
+| 8.20 | R2-11 1.5 task/wf 批 | todo | `docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/03-modules/nop-wf.md` | batch-proposal.md §二 R2-11（6 项） | none（修复 plan） |
+| 8.21 | R2-12 1.6 tcc 批（CAS/守卫 + 补偿/账本卫生） | todo | `docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md` | batch-proposal.md §二 R2-12（13 项） | none（修复 plan） |
+| 8.22 | R2-13 1.7 batch 批 | todo | `docs-for-ai/03-modules/nop-batch.md` | batch-proposal.md §二 R2-13（8 项）；硬依赖 8.2（R1-01） | none（修复 plan） |
+| 8.23 | R2-14 2.4 ORM 并发批（会话/事务互斥 + 模型发布/缓存/异步） | todo | `docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-14（13 项） | none（修复 plan） |
+| 8.24 | R2-15 2.5 peri 批（PubSub 断链 + 链编排 fencing） | todo | `docs-for-ai/02-core-guides/model-first-development.md`（迁移 owner 面）；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-15（11 项） | none（修复 plan） |
+| 8.25 | R2-16 3.1 agent 编排/会话批 | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-16（10 项）；硬依赖 8.5（R1-04）；软依赖 8.3（R1-02）；软依赖 8.4（R1-03）；软依赖 8.7（R1-06） | none（修复 plan） |
+| 8.26 | R2-17 3.4 AI REST 批 | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-17（4 项） | none（修复 plan） |
+| 8.27 | R2-18 4.2 cluster 批（选主/注册中心/重试链） | todo | nop-cluster 无 03-modules owner doc→缺口声明；`docs-for-ai/01-repo-map/module-groups.md` | batch-proposal.md §二 R2-18（4 项） | none（修复 plan） |
+| 8.28 | R2-19 4.3 feishu/文件通道批（B1-07/B1-08 转正 + R05/R11/R08 面） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R2-19（7 项） | none（修复 plan） |
+| 8.29 | R2-20 4.3 连接生命周期批（B1-06 + R26/R08 面） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R2-20（6 项） | none（修复 plan） |
+| 8.30 | R2-21 4.4 host 批 | todo | nop-host 无 03-modules owner doc→缺口声明；`docs-for-ai/01-repo-map/module-groups.md` | batch-proposal.md §二 R2-21（4 项）；软依赖 8.5（R1-04）；软依赖 8.2（R1-01） | none（修复 plan） |
+| 8.31 | R3-01 5.1 auth 凭据批 | todo | `docs-for-ai/03-modules/nop-credential.md`；`docs-for-ai/03-modules/nop-auth.md` | batch-proposal.md §二 R3-01（6 项） | none（修复 plan） |
+| 8.32 | R3-02 5.2 sys-dyn 批 | todo | `docs-for-ai/03-modules/nop-sys.md`；`docs-for-ai/03-modules/nop-dyn.md` | batch-proposal.md §二 R3-02（10 项） | none（修复 plan） |
+| 8.33 | R3-03 5.3 file-datav 批 | todo | nop-datav 无 owner doc→缺口声明（5.3 drift 登记）；`docs-for-ai/03-modules/nop-file.md` | batch-proposal.md §二 R3-03（14 项） | none（修复 plan） |
+| 8.34 | R3-04 5.4 report-format 批 | todo | `docs-for-ai/03-modules/nop-report.md`（nop-format 无 owner doc→缺口声明随 R-G） | batch-proposal.md §二 R3-04（10 项） | none（修复 plan） |
+| 8.35 | R3-05 5.5 rule-metadata 批 | todo | `docs-for-ai/03-modules/nop-rule.md`；`docs-for-ai/03-modules/nop-metadata.md` | batch-proposal.md §二 R3-05（9 项） | none（修复 plan） |
+| 8.36 | R3-06 5.6 graph-duckdb 批 | todo | `docs-for-ai/03-modules/nop-duckdb.md`（nop-graph owner doc drift→缺口声明随 R-G） | batch-proposal.md §二 R3-06（6 项） | none（修复 plan） |
+| 8.37 | R3-07 Leiden 交叉批（6.3↔5.6 两侧同批） | todo | `docs-for-ai/03-modules/nop-code.md`；`docs-for-ai/03-modules/nop-duckdb.md` | batch-proposal.md §二 R3-07（2 项） | none（修复 plan） |
+| 8.38 | R3-08 6.2 tools-parse 批 | todo | `docs-for-ai/03-modules/nop-refactor.md`；`docs-for-ai/03-modules/nop-treesitter.md`（nop-lint/nop-jq owner doc drift→R-G） | batch-proposal.md §二 R3-08（8 项） | none（修复 plan） |
+| 8.39 | R3-09 6.3 code-index 批 | todo | `docs-for-ai/03-modules/nop-code.md` | batch-proposal.md §二 R3-09（2 项）；软依赖 8.37（R3-07） | none（修复 plan） |
+| 8.40 | R3-10 6.5 peripheral 批（CL-301 通道批） | todo | —（nop-dev-tools 无 owner doc→缺口声明（6.5 四模块无 owner doc 整体登记→R-G）） | batch-proposal.md §二 R3-10（6 项） | none（修复 plan） |
+| 8.41 | R4-01 1.1 流核并发正确性束（G01） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-01（15 项）；软依赖 8.16（R2-07） | none（修复 plan） |
+| 8.42 | R4-02 1.1 资源包络 + FAM-2 束（G02+G03） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-02（7 项）；软依赖 8.16（R2-07） | none（修复 plan） |
+| 8.43 | R4-03 1.2 连接器 MA 束 + 包络声明（G05+G09） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R4-03（12 项）；软依赖 8.17（R2-08） | none（修复 plan） |
+| 8.44 | R4-04 1.2 并发正确性 + 失败路径泄漏束（G07+G08） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R4-04（11 项）；软依赖 8.17（R2-08） | none（修复 plan） |
+| 8.45 | R4-05 1.3 Replay/流语义束（G11） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-05（10 项）；软依赖 8.18（R2-09） | none（修复 plan） |
+| 8.46 | R4-06 1.4 调度账本束 a（G13 前半） | todo | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R4-06（10 项）；硬依赖 8.2（R1-01）；硬依赖 8.19（R2-10） | none（修复 plan） |
+| 8.47 | R4-07 1.4 调度账本束 b（G13 后半） | todo | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R4-07（10 项）；软依赖 8.46（R4-06） | none（修复 plan） |
+| 8.48 | R4-08 1.5 闸门/throttle 束（G14） | todo | `docs-for-ai/03-modules/nop-task.md` | batch-proposal.md §二 R4-08（12 项）；软依赖 8.20（R2-11） | none（修复 plan） |
+| 8.49 | R4-09 1.5 图执行/扫描 infra 束（G15，C7-006 拆出至 R4-32） | todo | `docs-for-ai/03-modules/nop-task.md` | batch-proposal.md §二 R4-09（13 项）；软依赖 8.20（R2-11）；软依赖 8.48（R4-08） | none（修复 plan） |
+| 8.50 | R4-10 1.6 补偿/护栏束（G17，C7-011 拆出至 R4-32） | todo | `docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md` | batch-proposal.md §二 R4-10（14 项）；硬依赖 8.21（R2-12）；硬依赖 8.8（R1-07） | none（修复 plan） |
+| 8.51 | R4-11 1.7 generator/生命周期束 a（G23 前半） | todo | `docs-for-ai/03-modules/nop-batch.md` | batch-proposal.md §二 R4-11（11 项）；硬依赖 8.22（R2-13） | none（修复 plan） |
+| 8.52 | R4-12 1.7 读侧/护栏束 b（G23 后半） | todo | `docs-for-ai/03-modules/nop-batch.md` | batch-proposal.md §二 R4-12（11 项）；硬依赖 8.22（R2-13） | none（修复 plan） |
+| 8.53 | R4-13 2.1 锁纪律/调度器/destroy 束 a（G27 前半，C7-004 拆出至 R4-32） | todo | `docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/02-core-guides/ioc-and-config.md` | batch-proposal.md §二 R4-13（18 项）；硬依赖 8.2（R1-01）；硬依赖 8.3（R1-02）；硬依赖 8.10（R2-01） | none（修复 plan） |
+| 8.54 | R4-14 2.1 销毁链/BlockingSource 束 b（G27 后半） | todo | 同 R4-13 | batch-proposal.md §二 R4-14（17 项）；软依赖 8.53（R4-13） | none（修复 plan） |
+| 8.55 | R4-15 2.2 配置刷新/订阅/插件/IoC 启动图/销毁链束（G31） | todo | `docs-for-ai/02-core-guides/ioc-and-config.md` | batch-proposal.md §二 R4-15（17 项） | none（修复 plan） |
+| 8.56 | R4-16 2.3 WS/网关束 a（G36 前半） | todo | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R4-16（12 项）；软依赖 8.5（R1-04）；软依赖 8.14（R2-05）；软依赖 8.15（R2-06） | none（修复 plan） |
+| 8.57 | R4-17 2.3 auth/流缓冲/dispatchAll 束 b（G36 后半） | todo | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R4-17（12 项）；软依赖 8.56（R4-16） | none（修复 plan） |
+| 8.58 | R4-18 2.4 ORM 切片束 a（G45 前半） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-18（15 项）；软依赖 8.23（R2-14） | none（修复 plan） |
+| 8.59 | R4-19 2.4 ORM 切片束 b（G45 后半） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-19（15 项）；软依赖 8.58（R4-18） | none（修复 plan） |
+| 8.60 | R4-20 2.5 链复制/PubSub 关联束（G47，C7-013 拆出至 R4-32） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-20（13 项）；软依赖 8.24（R2-15） | none（修复 plan） |
+| 8.61 | R4-21 3.1 会话/配额/取消束 a（G52 前半，C7-004 拆出至 R4-32） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R4-21（10 项）；硬依赖 8.25（R2-16） | none（修复 plan） |
+| 8.62 | R4-22 3.1 资源卫生束 b（G52 后半） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R4-22（10 项）；软依赖 8.61（R4-21） | none（修复 plan） |
+| 8.63 | R4-23 3.2 工具输出/路径束（G54） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R4-23（10 项）；软依赖 8.7（R1-06） | none（修复 plan） |
+| 8.64 | R4-24 4.1 REGISTRY 生命周期/交付语义束（G62） | todo | `docs-for-ai/03-modules/nop-message.md` | batch-proposal.md §二 R4-24（13 项）；硬依赖 8.9（R1-08） | none（修复 plan） |
+| 8.65 | R4-25 4.2 选主外生命周期/路由/Sentinel 束（G65） | todo | —（nop-cluster 无 owner doc→缺口声明） | batch-proposal.md §二 R4-25（9 项）；软依赖 8.27（R2-18） | none（修复 plan） |
+| 8.66 | R4-26 4.3 交付与生命周期束 a（G67 前半） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R4-26（14 项）；软依赖 8.28（R2-19）；软依赖 8.29（R2-20） | none（修复 plan） |
+| 8.67 | R4-27 4.3 交付与生命周期束 b（G67 后半） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R4-27（14 项）；软依赖 8.66（R4-26） | none（修复 plan） |
+| 8.68 | R4-28 4.4 双宿主/反向钉束（G70） | todo | —（nop-host 无 owner doc→缺口声明） | batch-proposal.md §二 R4-28（10 项）；软依赖 8.30（R2-21） | none（修复 plan） |
+| 8.69 | R4-29 4.5 Lucene/watch/测试基建束（G71） | todo | —（nop-search 无 03-modules owner doc→缺口声明） | batch-proposal.md §二 R4-29（5 项）；软依赖 8.2（R1-01） | none（修复 plan） |
+| 8.70 | R4-30 6.1 搜索/FFM/聚合束（G85） | todo | —（nop-rg/nop-find 无 owner doc→缺口声明（6.1 drift 登记→R-G）） | batch-proposal.md §二 R4-30（4 项） | none（修复 plan） |
+| 8.71 | R4-31 6.3 读路径/C5 族束（G88） | todo | `docs-for-ai/03-modules/nop-code.md` | batch-proposal.md §二 R4-31（14 项）；软依赖 8.39（R3-09）；软依赖 8.37（R3-07） | none（修复 plan） |
+| 8.72 | R4-32 R28 墙钟敏感跨单元批（单调时钟注入） | todo | `docs-for-ai/04-reference/source-anchors.md`（IClock/ClockProvider 锚点）；各单元 owner doc | batch-proposal.md §二 R4-32（7 项）；软依赖 8.3（R1-02） | none（修复 plan） |
+| 8.73 | R4-33 移交接收轨批（2.3-C1-010 → nop-auth-service） | todo | `docs-for-ai/03-modules/nop-auth.md` | batch-proposal.md §二 R4-33（1 项） | none（修复 plan） |
+| 8.74 | R-G 治理批（产出物：触发条款登记册/接线评审 checklist/可观测性补齐/死代码清理/owner doc 补齐/Gradle 通道决定） | todo | 见批 exit criteria（E5 缺口声明） | batch-proposal.md §五（14 项） | none（治理轨，产出物见 Work Item） |
 
 ### Phase 9 — 终局验证与沉淀
 
