@@ -7,7 +7,7 @@
 - 动态实体定义（实体名、表名、属性）
 - 动态属性管理（支持多种 stdDomain）
 - 实体关系定义
-- 动态页面（支持 AMIS/OpenTiny/Formily 三种 schema）
+- 动态页面（支持 AMIS/OpenTiny/Formily 三种 schema；其中 AMIS 为 legacy，已 deprecated）
 - 动态 SQL 定义
 - 模块与应用组合
 - 应用级补丁文件覆盖
@@ -41,7 +41,7 @@
 
 ## 页面 Schema 类型
 
-- `AMIS`：百度 AMIS JSON Schema
+- `AMIS`：百度 AMIS JSON Schema（legacy，已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`）
 - `OpenTiny`：华为 OpenTiny 组件
 - `Formily`：阿里巴巴 Formily 表单方案
 
@@ -52,7 +52,7 @@
 | `nop-dyn-api` | API DTO |
 | `nop-dyn-dao` | ORM 实体与 DAO |
 | `nop-dyn-service` | 业务逻辑 |
-| `nop-dyn-web` | Web 层与 AMIS 页面 |
+| `nop-dyn-web` | Web 层与管理页面 |
 
 ## 源码锚点
 

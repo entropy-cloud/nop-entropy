@@ -19,6 +19,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.List;
+import io.nop.api.core.beans.DictOptionBean;
 import java.util.Map;
 
 import static io.nop.report.core.ReportAuthErrors.ERR_REPORT_AUTH_REPORT_DENIED;
@@ -82,20 +83,20 @@ public class TestReportFormBizModel extends JunitAutoTestCase {
     @Test
     public void testStaticOptions() {
         setUserContext("u1", "user");
-        List<Map<String, Object>> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "dept", new HashMap<>());
+        List<DictOptionBean> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "dept", new HashMap<>());
         assertEquals(2, options.size());
-        assertEquals("研发", options.get(0).get("label"));
-        assertEquals("rd", options.get(0).get("value"));
+        assertEquals("研发", options.get(0).getLabel());
+        assertEquals("rd", options.get(0).getValue());
     }
 
     @Test
     public void testDictOptions() {
         setUserContext("u1", "user");
-        List<Map<String, Object>> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "status", new HashMap<>());
+        List<DictOptionBean> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "status", new HashMap<>());
         assertNotNull(options);
         assertTrue(options.size() >= 2, "active-status dict should have options, got: " + options);
-        assertNotNull(options.get(0).get("label"));
-        assertNotNull(options.get(0).get("value"));
+        assertNotNull(options.get(0).getLabel());
+        assertNotNull(options.get(0).getValue());
     }
 
     @Test
@@ -104,10 +105,10 @@ public class TestReportFormBizModel extends JunitAutoTestCase {
         saveDatasourceAuth("securedDs", "ds-admin");
         setUserContext("u1", "ds-admin");
 
-        List<Map<String, Object>> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "cityDefault", new HashMap<>());
+        List<DictOptionBean> options = formBizModel.getReportParamOptions(TEMPLATE_XML, "cityDefault", new HashMap<>());
         assertEquals(1, options.size());
-        assertEquals("上海", options.get(0).get("label"));
-        assertEquals("sh", options.get(0).get("value"));
+        assertEquals("上海", options.get(0).getLabel());
+        assertEquals("sh", options.get(0).getValue());
     }
 
     @Test

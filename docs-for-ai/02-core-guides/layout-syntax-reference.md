@@ -4,7 +4,7 @@
 
 如果你只需要改字段标签或增删几个字段，看 `view-and-page-customization.md` 的 Form 章节即可。如果你需要**字段分组、折叠、跨列、Tab 布局、查询运算符配置**，本文档是权威参考。
 
-> 本文同时适用于 **AMIS（`web.xlib`）和 Flux（`flux-web.xlib`）** 两种渲染器。所有语法（`*` 必填、`@` 只读、`!` 隐藏标签、跨列、分组、Tab、查询运算符）在两种渲染器下行为一致，除非显式标注 `(AMIS only)` 或 `(Flux only)`。Flux 渲染器特定的属性命名映射（`requiredOn` → `required`、`readonlyOn` → `readOnly`、`clearValueOnHidden` → `hiddenFieldPolicy.clearValueWhenHidden`、`initFetch` → `autoInit`、`asideResizor` → `asideResizable`）和已确认不支持的 form 属性（`silentPolling`/`wrapWithPanel`/`canAccessSuperData`）见 `flux-rendering.md` 的 AMIS vs Flux 差异表。
+> 本文以 **Flux（`flux-web.xlib`，默认且唯一受支持的渲染器）** 为准。所有语法（`*` 必填、`@` 只读、`!` 隐藏标签、跨列、分组、Tab、查询运算符）在 Flux 下均受支持，除非显式标注。legacy amis 渲染器（已 deprecated）的对应属性命名差异（`requiredOn`、`readonlyOn`、`clearValueOnHidden`、`initFetch`、`asideResizor` 等）见 `flux-rendering.md` 的 AMIS vs Flux 差异表。
 
 ## 最小示例
 
@@ -178,7 +178,7 @@ remark(1,2)
 code[单号] status[状态]
 ```
 
-`>` 在组标题前表示该组**可折叠，缺省展开**。渲染为 AMIS `<fieldSet collapsable="true" collapsed="false">`。
+`>` 在组标题前表示该组**可折叠，缺省展开**。Flux 渲染为可折叠 `fieldset` 容器（`collapsed: false`）。
 
 ### 5.3 可折叠分组（缺省收起）
 
@@ -187,7 +187,7 @@ code[单号] status[状态]
 internalNote[内部备注] tags[标签]
 ```
 
-`^` 在组标题前表示该组**可折叠，缺省收起**。渲染为 AMIS `<fieldSet collapsable="true" collapsed="true">`。
+`^` 在组标题前表示该组**可折叠，缺省收起**。Flux 渲染为可折叠 `fieldset` 容器（`collapsed: true`）。
 
 **使用场景**：不常用的字段（审计信息、扩展属性、内部备注等）默认折叠，用户点击展开。避免表单过长。
 
@@ -261,7 +261,7 @@ code[单号] status[状态]
 remark[备注]
 ```
 
-渲染为 AMIS `<divider>`。
+Flux 渲染为 `separator`。
 
 ## 7. Tab 布局
 
@@ -283,15 +283,15 @@ remark[备注]
 </form>
 ```
 
-`layoutControl="tabs"` 将分组渲染为 AMIS `<tabs>`，每个 group 变成一个 Tab 页签。组的 label 成为 Tab 标题。
+`layoutControl="tabs"` 将分组渲染为 Tabs 页签容器（Flux `TabsSchema`），每个 group 变成一个 Tab 页签。组的 label 成为 Tab 标题。
 
-> **注意**：`form.xdef` 中还定义了 `layoutControl="wizard"`（向导布局），但 AMIS 渲染器目前仅实现了 `tabs`。
+> **注意**：`form.xdef` 中还定义了 `layoutControl="wizard"`（向导布局），但 form 级 layoutControl 渲染目前仅实现了 `tabs`。
 
 **Flux 渲染（`layoutControl="tabs"`）**：分组渲染为 `<tabs>`，`items[].body` 为表单行 JSON 数组，`items[].key` ← 分组 id。tab 内容必须写在 `items[].body` 字段（Flux 只提取该字段渲染），其余字段会被编译期过滤成静默空白。详见 `flux-rendering.md` 的「页面级容器」章节。
 
 ## 7.1 页面级容器：tabs / wizard / group（Flux）
 
-`<pages>` 下除 `crud`/`simple` 外，`tabs`/`wizard`/`group` 三种容器页面类型在 Flux（`flux-web.xlib`）下渲染为 `TabsSchema`/`WizardSchema`/`GridSchema`（AMIS 侧暂不消费，见 `flux-rendering.md`）。
+`<pages>` 下除 `crud`/`simple` 外，`tabs`/`wizard`/`group` 三种容器页面类型在 Flux（`flux-web.xlib`）下渲染为 `TabsSchema`/`WizardSchema`/`GridSchema`（legacy amis 侧暂不消费，且已 deprecated，见 `flux-rendering.md`）。
 
 **`tab`/`step` 内容来源优先级：`page` > `body` > `name` 兜底**：
 
@@ -488,4 +488,5 @@ codegen 自动跳过 `internal` 字段，不生成到任何表单的 layout 中�
 - `./page-dsl-pattern-catalog.md` — 复杂页面 DSL 模式
 - `./external-app-examples.md` — 外部应用代码示例
 - `./frontend-rendering-pipeline.md` — 页面生成管线
-- `./amis-rendering.md` — AMIS 渲染细节
+- `./flux-rendering.md` — Flux 渲染细节
+- `../04-reference/amis-legacy-deprecation.md` — AMIS 遗留状态 `(deprecated)`

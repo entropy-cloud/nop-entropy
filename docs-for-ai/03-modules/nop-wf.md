@@ -47,7 +47,7 @@
 | `nop-wf-core` | 工作流核心引擎 |
 | `nop-wf-dao` | ORM 实体与 DAO |
 | `nop-wf-service` | 业务逻辑 |
-| `nop-wf-web` | Web 层与 AMIS 页面 |
+| `nop-wf-web` | Web 层与管理页面 |
 
 ## 依赖
 

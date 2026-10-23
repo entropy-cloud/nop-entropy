@@ -1,6 +1,6 @@
 # Xpl 表达式转义参考
 
-> **核心问题**：Nop 的 Xpl 模板引擎和前端框架（AMIS/Flux）都使用 `${expr}` 语法，前者在服务端求值，后者在浏览器求值。当 Xpl 模板用于**生成**前端代码时，需要正确转义。
+> **核心问题**：Nop 的 Xpl 模板引擎和前端框架（Flux，以及 legacy amis——已 deprecated）都使用 `${expr}` 语法，前者在服务端求值，后者在浏览器求值。当 Xpl 模板用于**生成**前端代码时，需要正确转义。
 
 ## 快速查找
 
@@ -209,8 +209,8 @@ _gen/_Xxx.view.xml (XDSL 模型, 主体非 Xpl, x:gen-extends 内是 Xpl)
 
 在 `.xgen` 中用 `${'$'}{id}`：
 1. **第 1 层（.xgen）**：Xpl 求值 `${'$'}` → `$`，输出 `${id}` 到 `_gen/_Xxx.view.xml`
-2. **第 2 层（_gen/.view.xml 主体）**：`${id}` 是字符串字面量，透传给 AMIS
-3. **AMIS 运行时**：解释 `${id}` 为变量引用
+2. **第 2 层（_gen/.view.xml 主体）**：`${id}` 是字符串字面量，透传给前端
+3. **前端运行时**：解释 `${id}` 为变量引用
 
 如果 `.xgen` 生成的 `_gen/` 文件中包含 `<x:gen-extends>` 块，该块内还会再次经 Xpl 求值，需要两层转义：
 
@@ -219,9 +219,9 @@ _gen/_Xxx.view.xml (XDSL 模型, 主体非 Xpl, x:gen-extends 内是 Xpl)
 <x:gen-extends>
     <web:GenPage view="MyView.view.xml" page="main">
         <data>
-            <!-- 目标：最终 AMIS 收到 ${id} -->
+            <!-- 目标：最终前端收到 ${id} -->
             <!-- 第 1 层（.xgen 编译）：外层 ${'$'} → $，输出 ${'$'}{id} 到 _gen 文件 -->
-            <!-- 第 2 层（_gen 编译）：再求值一次 → 输出 ${id} 给 AMIS -->
+            <!-- 第 2 层（_gen 编译）：再求值一次 → 输出 ${id} 给前端 -->
             <parentId>${'$'}{'$'}{id}</parentId>
         </data>
     </web:GenPage>
@@ -236,20 +236,20 @@ _gen/_Xxx.view.xml (XDSL 模型, 主体非 Xpl, x:gen-extends 内是 Xpl)
 
 ```
 $${xxx}  →  Xpl 解析为: '$' 字面量 + ${xxx} 求值
-         →  输出: $xxx  (AMIS 旧版简写)
+         →  输出: $xxx  (legacy amis 旧版简写；legacy amis 已 deprecated)
          →  ❌ 不是字面量 ${xxx}
 ```
 
 **正确做法**：一律用 `${'$'}{xxx}`。
 
-### 过度转义 `visibleOn`
+### 过度转义 `visible`
 
 ```xml
-<!-- ❌ 错误：visibleOn 不经过 Xpl -->
-<visibleOn>${'$'}{status == 1}</visibleOn>
+<!-- ❌ 错误：visible 不经过 Xpl -->
+<visible>${'$'}{status == 1}</visible>
 
 <!-- ✅ 正确：直接写 -->
-<visibleOn>${status == 1}</visibleOn>
+<visible>${status == 1}</visible>
 ```
 
 ### 在 view.xml 主体中使用 `'$' + '{xxx}'`
@@ -267,15 +267,15 @@ $${xxx}  →  Xpl 解析为: '$' 字面量 + ${xxx} 求值
 | 错误模式 | 写成了... | 现象 |
 |----------|-----------|------|
 | Xpl 上下文中漏转义 | `${id}` | Xpl 求值时 `id` 未定义，报 `NopException: undefined prop` 或返回 null |
-| 非 Xpl 上下文中过度转义 | `${'$'}{status == 1}` | AMIS 收到 `${status == 1}`（带 `$` 前缀），不识别为表达式，做字符串处理 |
-| 使用了 `$$` | `$${id}` | AMIS 收到 `$id`（旧版简写），不支持过滤器/函数 |
+| 非 Xpl 上下文中过度转义 | `${'$'}{status == 1}` | 前端收到 `${status == 1}`（带 `$` 前缀），不识别为表达式，做字符串处理 |
+| 使用了 `$$` | `$${id}` | legacy amis（已 deprecated）收到 `$id`（旧版简写），不支持过滤器/函数 |
 | `gen-control` 文本内容写 `${'$'}{xxx}` | `return { "${'$'}{xxx}": v }` | `gen-control` 文本走 `parseFullExpr`，`${'$'}{xxx}` 不被求值，输出字面量键名 |
 | 在 JSON 表达式中用 `${'$'}{xxx}` | `"${'$'}{xxx}"` | 语法错误，Xpl JSON 模式不支持 `${}` 语法 |
 
 ## 相关文档
 
-- `amis-rendering.md` — AMIS 渲染管线（含 AMIS 专用变量引用规则；其转义部分已由本文档的上下文决策表修正）
 - `flux-rendering.md` — Flux 渲染管线
+- `../04-reference/amis-legacy-deprecation.md` — legacy amis（已 deprecated）的引入方式与文件清单
 - `frontend-rendering-pipeline.md` — 通用前端渲染管线
 - `xlang-and-xpl-basics.md` — Xpl 基础语法
 - `view-and-page-customization.md` — view.xml/page.yaml 定制快速参考

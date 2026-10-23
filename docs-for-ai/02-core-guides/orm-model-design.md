@@ -822,7 +822,7 @@ ext:joinRightDisplayProp="${rel.singleColumnJoin?.rightDisplayPropModel?.name}"
 
 ### 前端自动渲染
 
-有了上述 xmeta 配置，**不需要手动修改 view.xml**。`control.xlib:view-relation` 标签（976-997 行）在 AMIS 页面渲染时自动处理 FK 列：
+有了上述 xmeta 配置，**不需要手动修改 view.xml**。控件库的 `view-relation` 标签（flux 模式下由 `flux-control.xlib` 提供，语义与 legacy amis 的 `control.xlib` 同源同构）在页面渲染时自动处理 FK 列：
 
 ```javascript
 const relProp = XuiHelper.getRelationProp(propMeta, objMeta);
@@ -838,14 +838,14 @@ if(labelProp){
 **完整管线**：
 
 ```
-view.xml 列: id="partnerId"            ← AMIS grid 列定义，无需改为 partnerName
+view.xml 列: id="partnerId"            ← grid 列定义，无需改为 partnerName
     ↓
 control.xlib view-relation 标签        ← 读取 ext:relation → ext:joinRightDisplayProp
     ↓                                   → 将列 name 从 "partnerId" 改为 "partner.name"
-AMIS 列: name="partner.name"           ← 自动映射，显示 "五金件" 而非原始 ID
+框架 JSON 列: name="partner.name"      ← 自动映射，显示 "五金件" 而非原始 ID
 ```
 
-**同时**，`XuiViewAnalyzer.addRelationDispProp`（`XuiViewAnalyzer.java:381-395`）在构建 GraphQL selection 时自动将 `partner.name` 加入请求字段。后端返回 `{"partner.name": "五金件"}`，AMIS 直接渲染。
+**同时**，`XuiViewAnalyzer.addRelationDispProp`（`XuiViewAnalyzer.java:381-395`）在构建 GraphQL selection 时自动将 `partner.name` 加入请求字段。后端返回 `{"partner.name": "五金件"}`，前端直接渲染。
 
 **要点**：view.xml 中 FK 列保持原始列名 `partnerId`，无需改为 `partner.name` 或 `partnerName`。所有转换由 `control.xlib:view-relation` 在页面生成时自动完成。
 

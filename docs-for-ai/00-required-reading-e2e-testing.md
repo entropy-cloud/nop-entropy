@@ -10,7 +10,7 @@
 
 | 文档 | 为什么必读 | 不读会怎样 |
 |------|-----------|-----------|
-| `02-core-guides/e2e-testing.md` | Playwright 模式、Nop RPC 调用模式、AMIS 页面测试要点、标准 CRUD 操作 | **用原生 Playwright 模式而非 Nop RPC 模式→测试脆弱且不可维护**；遗漏 AMIS 字段名映射→定位元素失败 |
+| `02-core-guides/e2e-testing.md` | Playwright 模式、Nop RPC 调用模式、页面测试要点、标准 CRUD 操作 | **用原生 Playwright 模式而非 Nop RPC 模式→测试脆弱且不可维护**；遗漏页面字段名映射→定位元素失败 |
 
 ## 按场景选读
 
@@ -27,11 +27,11 @@
 
 | 文档 | 场景 |
 |------|------|
-| `02-core-guides/e2e-testing.md` → 浏览器 E2E 测试要点 | 登录、页面路由、AMIS 表单交互、字段名映射 |
+| `02-core-guides/e2e-testing.md` → 浏览器 E2E 测试要点 | 登录、页面路由、表单交互、字段名映射 |
 | `02-core-guides/e2e-testing-troubleshooting.md` | 「500 模块渲染失败」、`waitForMenuLoaded` 引擎选择器、`ensureDefaultSite` duplicate-key、测试间状态泄漏、Playwright context 生命周期 |
 
 ### 平台内部参考
 
 | 文档 | 场景 |
 |------|------|
-| `nop-entropy-e2e/README.md` | 平台内部共享库、Page Objects、AMIS selectors（仅平台开发者） |
+| `nop-entropy-e2e/README.md` | 平台内部共享库、Page Objects、Flux selectors（仅平台开发者） |

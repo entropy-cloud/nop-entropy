@@ -38,7 +38,7 @@ TCC（Try-Confirm-Cancel）分布式事务协调器。
 | `nop-tcc-core` | TCC 核心引擎 |
 | `nop-tcc-dao` | ORM 实体与 DAO |
 | `nop-tcc-service` | 业务逻辑 |
-| `nop-tcc-web` | Web 层与 AMIS 页面 |
+| `nop-tcc-web` | Web 层与管理页面 |
 | `nop-tcc-integration` | 集成适配 |
 
 ## 执行表访问权限（P1-3.8-003，plan 2386）

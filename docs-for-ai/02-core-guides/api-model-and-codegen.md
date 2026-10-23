@@ -156,8 +156,8 @@ CompletionStage<ResponseBean> methodAsync(RequestBean request, FieldSelectionBea
 | `auth/_{appName}-api.action-auth.xml` | 强制覆盖 | API 方法的权限配置与菜单 |
 | `pages/{ServiceName}/_{ServiceName}.view.xml` | 强制覆盖 | 生成的视图定义 |
 | `pages/{ServiceName}/{ServiceName}.view.xml` | **保留** | 用户可编辑的视图 |
-| `pages/{ServiceName}/main.page.yaml` | 强制覆盖 | 主页面 AMIS YAML |
-| `pages/{ServiceName}/{methodName}.page.yaml` | 强制覆盖 | 每个方法对应的 AMIS 页面 |
+| `pages/{ServiceName}/main.page.yaml` | 强制覆盖 | 主页面 page YAML |
+| `pages/{ServiceName}/{methodName}.page.yaml` | 强制覆盖 | 每个方法对应的页面 |
 
 ## 覆盖策略规则
 

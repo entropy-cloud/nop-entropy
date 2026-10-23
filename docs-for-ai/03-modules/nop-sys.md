@@ -44,7 +44,7 @@
 |------|--------|------|
 | **业务编码 / 单据编号** | ORM 列加 `tagSet="code"` → autoExpr 自动取号；或 BizModel 注入 `ICodeRuleGenerator` | **`../03-runbooks/generate-business-code.md`**（模式语法 / Sequence 并发模型 / 三种调用方式 / 反模式） |
 | **序列号 / 自增主键** | 注入 `ISequenceGenerator.generateLong(seqName, useDefault)`；主键列用 `tagSet="seq"` / `seq-default` | `../03-runbooks/generate-business-code.md`（Sequence 并发模型节）、`../02-core-guides/orm-model-design.md`（主键策略） |
-| **数据字典** | ORM `<dict>` 标签 + `NopSysDict`/`NopSysDictOption`；AMIS select 自动加载 | `../03-runbooks/add-dict-and-constants.md` |
+| **数据字典** | ORM `<dict>` 标签 + `NopSysDict`/`NopSysDictOption`；前端 select 控件自动加载 | `../03-runbooks/add-dict-and-constants.md` |
 | **分布式锁** | 注入 `IResourceLockManager.getLock/callWithLock`（实现 `SysDaoResourceLockManager`，bean `nopSysDaoResourceLockManager`，`ioc:default=true`） | 见下方"分布式锁" |
 | **扩展字段(EAV)** | 实体 `tagSet="use-ext-field"` + `NopSysExtField` | `../02-core-guides/orm-model-design.md` |
 | **国际化(i18n)** | ORM 列 `i18n-en:displayName` + `NopSysI18n` | `../02-core-guides/orm-model-design.md` |
@@ -118,7 +118,7 @@ nop-sys 内置字段级变更日志（`NopSysChangeLog` + `OrmEntityChangeLogInt
 | `nop-sys-api` | API DTO 与接口定义 |
 | `nop-sys-dao` | ORM 实体、DAO、`SysSequenceGenerator`、`SysCodeRuleGenerator` |
 | `nop-sys-service` | 业务逻辑 |
-| `nop-sys-web` | Web 层与 AMIS 页面 |
+| `nop-sys-web` | Web 层与管理页面 |
 
 ## 依赖
 

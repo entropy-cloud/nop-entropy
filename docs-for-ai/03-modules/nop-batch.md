@@ -50,7 +50,7 @@
 | `nop-batch-biz` | BizModel 集成 |
 | `nop-batch-dao` | ORM 实体与 DAO |
 | `nop-batch-service` | 业务逻辑（nopBatchTaskManager） |
-| `nop-batch-web` | Web 层与 AMIS 页面 |
+| `nop-batch-web` | Web 层与管理页面 |
 
 ## DSL 结构
 

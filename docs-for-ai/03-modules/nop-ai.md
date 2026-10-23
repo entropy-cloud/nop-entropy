@@ -62,7 +62,7 @@
 | `nop-ai-maven` | WI16/plan 2453 解散：mavenvfs 能力（DeltaVirtualFileSystem/VfsMavenCli 等 6 文件）迁入 nop-ai-toolkit `io.nop.ai.toolkit.mavenvfs`，模块删除 |
 | `nop-ai-dao` | ORM 实体与 DAO |
 | `nop-ai-service` | 业务逻辑 |
-| `nop-ai-web` | Web 层与 AMIS 页面 |
+| `nop-ai-web` | Web 层与管理页面 |
 
 ## 源码锚点
 

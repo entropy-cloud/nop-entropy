@@ -5,7 +5,7 @@ nop-job 提供两种调度模式，共享同一套触发器（CRON / 固定频�
 - **本地模式（LocalJobScheduler）**：纯内存调度器，无需数据库，适用于单机嵌入式场景。引入 `nop-job-core` 后手动构造。
 - **分布式模式（Coordinator/Worker）**：数据库驱动的集群调度系统，扫描器自动启动，支持高可用、分片、阻塞策略、超时控制。
 
-> **如何选择**：单实例、作业定义可丢失（重启重建）→ 本地模式（仅引入 `nop-job-core`）。需要持久化、跨实例、可视化管理（AMIS 页面）→ 分布式模式（引入 `nop-job-service`，自动包含 coordinator + worker）。分布式模式退化为单实例（只部署一个节点）也能正常工作。
+> **如何选择**：单实例、作业定义可丢失（重启重建）→ 本地模式（仅引入 `nop-job-core`）。需要持久化、跨实例、可视化管理页面 → 分布式模式（引入 `nop-job-service`，自动包含 coordinator + worker）。分布式模式退化为单实例（只部署一个节点）也能正常工作。
 
 ## 功能概览
 
@@ -451,7 +451,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop-job-worker` | 分布式工作者（扫描任务、解析 invoker、执行） |
 | `nop-job-dao` | ORM 实体与 Store |
 | `nop-job-service` | BizModel、内置 invoker（rpc/test） |
-| `nop-job-web` | XMeta、AMIS 管理页面 |
+| `nop-job-web` | XMeta、管理页面 |
 | `nop-job-app` | 可独立运行的示例应用 |
 | `nop-job-retry-adapter` | 与 nop-retry 集成的适配器（可选） |
 

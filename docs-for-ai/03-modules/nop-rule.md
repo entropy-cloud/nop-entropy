@@ -326,7 +326,7 @@ nop-rule 不是 Drools 等 Rete 推理引擎的替代品，而是 Nop 平台 DSL
 | `nop-rule-api` | API DTO |
 | `nop-rule-dao` | ORM 实体与 DAO |
 | `nop-rule-service` | 业务逻辑（含文件导入） |
-| `nop-rule-web` | Web 层与 AMIS 页面 |
+| `nop-rule-web` | Web 层与管理页面 |
 
 ## 源码锚点
 

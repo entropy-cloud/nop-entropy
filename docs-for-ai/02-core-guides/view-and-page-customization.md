@@ -1,7 +1,7 @@
 # View 与 Page 定制（快速参考）
 
 > **本文档为快速参考**。通用页面生成管线概念见 `./frontend-rendering-pipeline.md`。
-> AMIS 渲染细节见 `./amis-rendering.md`，Flux 渲染细节见 `./flux-rendering.md`。
+> Flux 渲染细节见 `./flux-rendering.md`；AMIS 已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`。
 
 如果你已经知道要改 `view.xml` / `page.yaml`，但需要查"复杂配置应该抄哪一种现成模式"，直接看 `./page-dsl-pattern-catalog.md`。如果你还不确定当前页面任务该走哪条文档路径，先看 `../03-runbooks/admin-page-development-roadmap.md`。
 
@@ -14,7 +14,7 @@
 
 ## 页面生成机制总览
 
-渲染管线概念详见 `./frontend-rendering-pipeline.md`。默认输出 AMIS JSON（`web:GenPage`），可切换为 Flux JSON（`flux-web:GenPage`）。
+渲染管线概念详见 `./frontend-rendering-pipeline.md`。默认输出 Flux JSON：`page.yaml` 在 Flux 模式（`nop.web.render-mode` 默认 `flux`）下经自动切换由 `flux-web:GenPage` 渲染。
 
 ### 三层 Delta 架构
 
@@ -146,10 +146,10 @@ View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要�
 
 ### 无 objMeta 的表单必须配置 domain
 
-当表单没有 `objMeta`（既不在 view 上也不在 form 上配置）时，字段缺少类型信息，控件生成器无法确定 AMIS 控件类型，会回退到 `view-any` → `type: "static"`（只读文本）。
+当表单没有 `objMeta`（既不在 view 上也不在 form 上配置）时，字段缺少类型信息，控件生成器无法确定控件类型，会回退到 `view-any`（`x:prototype="view-labelProp"`，只读文本）。
 
 **必须在 `<cells>` 中为每个字段配置 `domain` 和 `label` 属性**：
-- `domain` — 控件生成器才能匹配到正确的 AMIS 控件（`domain="string"` → `input-text`，`domain="int"` → `input-text` + `isInt` 校验等）
+- `domain` — 控件生成器才能匹配到正确的控件（`domain="string"` → `input-text`，`domain="int"` → `input-text` + `isInt` 校验等）
 - `label` — 没有实体 `propMeta.displayName` 兜底，不配 `label` 则字段无标签
 
 ```xml
@@ -279,7 +279,7 @@ View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要�
 优先改 `page.yaml` 的场景：
 
 1. 页面级 `x:gen-extends` 或手工补充配置。
-2. 需要改 page 级 title、body 包装、少量 AMIS 层参数。
+2. 需要改 page 级 title、body 包装、少量框架层参数。
 3. 需要单独定制某个页面入口，而不是整个 view 模型。
 
 如果需求本质上是列表列、表单字段、按钮结构或 CRUD 页面拼装，通常先改 `view.xml` 更对路。
@@ -323,8 +323,8 @@ Flux 渲染详情已迁移到独立文档，见 `./flux-rendering.md`。
 ## 相关文档
 
 - `./frontend-rendering-pipeline.md` — 框架无关的页面生成管线
-- `./amis-rendering.md` — AMIS 渲染管线 `(AMIS)`
 - `./flux-rendering.md` — Flux 渲染管线 `(Flux)`
+- `../04-reference/amis-legacy-deprecation.md` — AMIS 遗留状态 `(deprecated)`
 - `./page-dsl-pattern-catalog.md` — DSL 模式目录
 - `./external-app-examples.md` — 代码示例
 - `./model-first-development.md`

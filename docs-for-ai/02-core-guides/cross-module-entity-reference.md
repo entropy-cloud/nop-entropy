@@ -186,7 +186,7 @@ nop-entropy 的 `nop/orm/xlib/orm-gen.xlib`（平台 ORM 代码生成库）内�
 │
 ├─ 只在列表显示外部对象的显示名
 │   ├─ 已有 `<to-one>` 关系（同模块或跨模块均可）
-│   │   └─ 【tagSet="disp" + 自动路径属性】被引用实体（或桩）的显示列加 tagSet="disp"，代码生成器自动创建 xmeta 路径属性 + ext:joinRightDisplayProp，control.xlib view-relation 自动映射 AMIS 列（详情见 orm-model-design.md "显示名解析"）
+│   │   └─ 【tagSet="disp" + 自动路径属性】被引用实体（或桩）的显示列加 tagSet="disp"，代码生成器自动创建 xmeta 路径属性 + ext:joinRightDisplayProp，控件库 view-relation 自动映射显示列（详情见 orm-model-design.md "显示名解析"）
 │   │
 │   └─ 无 `<to-one>` 关系（纯外键列）
 │       └─ 【机制 D】 纯外键 + 冗余显示名字段

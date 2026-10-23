@@ -124,16 +124,16 @@ curl -s "http://localhost:8080/p/PageProvider__getPage?path=/nop/code/pages/dash
 - `path` 参数为 `.page.yaml` 的 VFS 路径，不是 `.view.xml`。
 - 只有存在 `.page.yaml` 入口文件的页面才能独立获取。view.xml 中的 `<simple>` 页面如果没有对应的 `.page.yaml`，只能被其他页面内嵌引用，无法独立访问。
 - 返回的 JSON 即前端实际渲染用的页面 schema，可直接对比 view.xml 中的 grid 列、form 字段、action 配置是否正确生成了。
-- **渲染模式相关**：应用以 `-Dnop.web.render-mode=flux` 启动时，同一条路径返回 flux 格式 schema（`toolbar`/`footerToolbar` 数组等）；默认返回 AMIS 格式（`body` 为 amis schema）。`/p/` GET 方式要求 `nop.debug=true` 或开发期配置；**运行时一律可用 `POST /r/PageProvider__getPage`，body 为 `{"path": "..."}`**（参数名是 `path`，不是 bizObjName/pageId）。
+- **渲染模式相关**：应用默认即 Flux 渲染（`nop.web.render-mode=flux`），同一条路径返回 flux 格式 schema（`toolbar`/`footerToolbar` 数组等）；仅当显式配置 `render-mode=amis`（legacy 回退，已 deprecated）时返回 AMIS 格式（`body` 为 amis schema）。`/p/` GET 方式要求 `nop.debug=true` 或开发期配置；**运行时一律可用 `POST /r/PageProvider__getPage`，body 为 `{"path": "..."}`**（参数名是 `path`，不是 bizObjName/pageId）。
 
 ### 页面生成链路与单元测试
 
 view.xml 到 JSON 的翻译由 `nop-web` 模块的 xpl 模板完成：
 
-- **AMIS 实现**：`_vfs/nop/web/xlib/web/*.xpl`（如 `web/grid_crud.xpl`）
+- **legacy AMIS 实现**（deprecated）：`_vfs/nop/web/xlib/web/*.xpl`（如 `web/grid_crud.xpl`）
 - **Flux 实现**：`_vfs/nop/web/xlib/flux-web/*.xpl`（如 `flux-web/grid_crud.xpl`，被 `flux-web.xlib` 按渲染模式选择）
 
-**两个实现同源同构**：`web/` 与 `flux-web/` 目录下同名模板一一对应，AMIS 版是 flux 版的语义基准。**当不清楚 view.xml 中某个配置翻译到 flux JSON 后应该长什么样时，先读 `web/` 下同名模板**——flux 模板有意保持等价语义（如 `web/grid_crud.xpl` 的 `<bulkActions>`+`<itemActions>` 对应 `flux-web/grid_crud.xpl` 的 `<toolbar>` 数组 + batch 标记）。
+**两个实现同源同构**：`web/` 与 `flux-web/` 目录下同名模板一一对应，legacy amis 版是 flux 版的语义基准。**当不清楚 view.xml 中某个配置翻译到 flux JSON 后应该长什么样时，先读 `web/` 下同名模板**——flux 模板有意保持等价语义（如 `web/grid_crud.xpl` 的 `<bulkActions>`+`<itemActions>` 对应 `flux-web/grid_crud.xpl` 的 `<toolbar>` 数组 + batch 标记）。
 
 **怀疑生成代码有 bug 时，在 nop-web 模块写单元测试验证**（先例）：
 
@@ -142,7 +142,7 @@ view.xml 到 JSON 的翻译由 `nop-web` 模块的 xpl 模板完成：
 | `io.nop.web.page.TestFluxNormalizeAction` | 加载 `/nop/web/xlib/flux-web.xlib` 直接调用 `NormalizeAction` tag，序列化断言输出 |
 | `io.nop.web.page.TestFluxControlLib` | flux 控件库的 xpl 展开 |
 | `io.nop.web.page.TestPageProvider` | `PageProvider__getPage` 整页 JSON 展开 |
-| `io.nop.web.page.TestRenderModeSwitch` | 渲染模式切换（AMIS/FLUX）行为 |
+| `io.nop.web.page.TestRenderModeSwitch` | 渲染模式切换（flux/legacy amis）行为 |
 
 测试基类 `JunitBaseTestCase`（autotest）。**修改 `flux-web.xlib`（或其他 xpl 模板）后必须**：写/跑对应单测 → `mvn install -pl nop-frontend-support/nop-web`（及依赖它的模块）重新打包 → 依赖方（如 nop-app-erp）重建生效。
 

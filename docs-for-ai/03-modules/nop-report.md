@@ -20,7 +20,7 @@
 - 🟡 受限：条件格式规则集（✅ 表达式谓词/数值区间 + 样式，首中生效、可覆盖 styleIdExpr；色阶/数据条/图标集 ❌ residual，roadmap WI17 承载）、交互（html 输出已带 linkExpr 超链接/editorId/viewerId 属性/列排序/层级折叠渐进增强——消费契约为文档级解析，innerHTML 注入不执行交互脚本；钻取目标由模板 linkExpr 表达）、子报表（✅ cell 级 `<subreportPath>`/`<subreportParams>` 引用另一模板并传参——html 嵌套渲染、xlsx/pdf 文本回退、深度上限 fail-fast；钻取跳转由 `linkExpr` 参数化承载）、大数据（`JdbcDataSet` 流式取数；全局行数上限 `nop.report.max-expand-rows` fail-fast 防 OOM；迭代式 xlsx 导出 `getRendererForExcelData` 游标分页——完整惰性展开不做，见 AI 开发记录区 large-dataset 契约）、条码/二维码（QRCODE 函数 + `qr:*` ext props：barcodeFormat 支持全部 Zxing 码制——CODE_128/EAN_13/PDF_417 等、errorCorrection 整数 0-3（PDF_417 为 0-8 级）、尺寸/边距/编码；未知码制报错）、Word（仅表格路径，未注册 renderType）
 - ❌ 缺失：导出格式广度进阶（色阶/数据条/透视还原等 residual）、模板文件 locale 变体加载（文本 i18n 已生效）、Web 设计器、OLAP 数据源、模板版本管理
 
-**参数模型（已生效）**：模板 `XptWorkbookModel` 内嵌 `<params>` 声明（name/type/label/required/defaultValue/controlType/multiple/dependsOn + 候选来源静态 options/`dictName`/`optionsSql`(+`querySpace`)），引擎展开前统一校验（required/类型转换/默认值）并注入 scope 的 `param` 变量，模板内 `${param.xxx}` 取值；错误 `nop.err.report.param.*`。接口：`NopReportForm__getReportFormSchema(reportPath)`（声明 → AMIS form schema）、`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)`（候选 [{label,value}]，均先过报表级授权）。controlType→AMIS 映射（规范性）：string→input-text；int/float→input-number；boolean→switch；date/datetime→input-date/input-datetime；有候选来源→select（multiple 展示 multiple）；dependsOn→表单级联声明。参数以解析后的规范化值参与结果缓存键（WI6 消费）。未声明的 `${param.x}` 引用运行时取 null；候选集动态、不做枚举闭合校验（design 契约裁定）。
+**参数模型（已生效）**：模板 `XptWorkbookModel` 内嵌 `<params>` 声明（name/type/label/required/defaultValue/controlType/multiple/dependsOn + 候选来源静态 options/`dictName`/`optionsSql`(+`querySpace`)），引擎展开前统一校验（required/类型转换/默认值）并注入 scope 的 `param` 变量，模板内 `${param.xxx}` 取值；错误 `nop.err.report.param.*`。接口：`NopReportForm__getReportFormSchema(reportPath)`（声明 → AMIS form schema；amis 渲染已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`）、`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)`（候选 `List<DictOptionBean>` label/value，均先过报表级授权）。controlType→AMIS 映射（规范性）：string→input-text；int/float→input-number；boolean→switch；date/datetime→input-date/input-datetime；有候选来源→select（multiple 展示 multiple）；dependsOn→表单级联声明。参数以解析后的规范化值参与结果缓存键（WI6 消费）。未声明的 `${param.x}` 引用运行时取 null；候选集动态、不做枚举闭合校验（design 契约裁定）。
 
 **结果文件缓存（已生效）**：`NopReportCache__download(reportPath, renderType, params, bizDate)` 按「报表+参数摘要+数据版本」键控（`NopReportResultFile`），命中直接返回文件、未命中渲染落盘落库；`generateAsync`/`getResultStatus` 异步生成与轮询、`invalidate(rptId)` 手动失效；TTL/开关/目录配置 `nop.report.result-cache.*`。**授权先行于缓存命中**（未授权不返回缓存）。已知限制：数据版本仅 DATE 型、过期记录不自动清理。设计见 AI 开发记录区 result-cache 契约。
 
@@ -50,7 +50,7 @@
 
 | 契约 | 摘要 |
 |------|------|
-| 参数模型 | 声明内嵌 XPT、`${param.*}` 统一取值、AMIS 查询表单、参与缓存键 |
+| 参数模型 | 声明内嵌 XPT、`${param.*}` 统一取值、查询表单 schema、参与缓存键 |
 | 权限接线（已落地） | 渲染入口 + 取数标签双重授权检查、`nop.err.report.auth.*` 快速失败、exempt-roles 豁免 |
 | HTML 分页打印 | 浏览器打印语境的 `@page`/重复表头/页脚占位符，语义对齐 PDF 配置 |
 | HTML 验收基线 | 浏览器截图 golden + DOM 断言的验收口径 |
@@ -88,7 +88,7 @@
 | `nop-report-api` | API DTO |
 | `nop-report-dao` | ORM 实体与 DAO |
 | `nop-report-service` | 业务逻辑 |
-| `nop-report-web` | Web 层与 AMIS 页面 |
+| `nop-report-web` | Web 层与管理页面 |
 | `nop-report-ext` | 扩展功能 |
 
 ## 源码锚点

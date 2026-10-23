@@ -333,7 +333,7 @@ DSL = Delta x-extends Generator<DSLx>
 `DefaultViewPostExtends` 的实现（`view-gen.xlib:12-26`）：
 
 ```javascript
-let renderMode = $config.var('nop.web.render-mode', 'amis');
+let renderMode = $config.var('nop.web.render-mode', 'flux');
 if (renderMode == 'flux') {
     let child = _dsl_root.childByTag('controlLib');
     if (child != null) {
@@ -444,7 +444,7 @@ if (renderMode == 'flux') {
 | 子节点 `x:extends` 自动 replace | ✅ `XDslExtender.java:125` | ✅ `JsonExtender.java:90-91` |
 | `x:gen-extends` / `x:post-extends` | ✅ 支持 | ❌ 不支持（仅 `x:extends` 与可选的 `x:gen-extends` 字符串形式） |
 | `x:override` 全部算子 | ✅ 支持 | ✅ 支持（merge/replace/remove/bounded-merge/merge-replace） |
-| 典型场景 | orm/view/xbiz/beans/task 等 XDSL 模型 | `i18n.yaml`、amis 页面 JSON 等"无 schema 的 JSON/YAML 差量" |
+| 典型场景 | orm/view/xbiz/beans/task 等 XDSL 模型 | `i18n.yaml`、legacy amis 页面 JSON（已 deprecated）等"无 schema 的 JSON/YAML 差量" |
 
 **为什么会有两条平行链路**：
 
@@ -480,7 +480,7 @@ if (renderMode == 'flux') {
 6. 需要判断一个 XML DSL 文件为什么不符合仓库惯例。
 7. 需要理解 `xdef:bean-body-prop`、`xdef:bean-tag-prop`、`xdef:bean-value-prop` 等属性如何控制 XDSL→Java Bean 的属性映射。
 8. **需要理解"子节点上写 `x:extends` 之后，父继承的同名子节点为什么没生效"**（隐式 replace 语义）。
-9. **需要为没有 xdef 的 JSON/YAML 文件（i18n.yaml、amis 页面等）做差量合并**（`DeltaJsonLoader` 链路）。
+9. **需要为没有 xdef 的 JSON/YAML 文件（i18n.yaml、legacy amis 页面等）做差量合并**（`DeltaJsonLoader` 链路）。
 
 ## 相关文档
 

@@ -96,8 +96,8 @@ quarkus:
 # 定时任务（本地模式）：
 #   nop.job.{jobName}.enabled: true                   # 按需启用 job（默认 false）
 #
-# Flux 渲染（前端，替代 AMIS）：
-#   nop.web.render-mode: flux                         # 或 amis（默认）
+# Flux 渲染（前端，默认）：
+#   nop.web.render-mode: flux                         # 默认值，无需配置；amis 为 legacy 回退（见 04-reference/amis-legacy-deprecation.md）
 #
 # 更多配置项：grep -rn "nop\." nop-entropy/nop-*/src/main/resources/ 查找默认值
 # 配置加载机制：docs-for-ai/02-core-guides/ioc-and-config.md

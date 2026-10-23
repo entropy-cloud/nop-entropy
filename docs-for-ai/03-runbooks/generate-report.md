@@ -178,13 +178,13 @@ ITemplateOutput output = reportEngine.getRendererForXptModel(wb, "xlsx");
 |---------|------|
 | `name` / `type` / `label` | 参数名（`${param.name}` 引用）/ 标准类型（string/int/float/boolean/date/datetime）/ 显示名 |
 | `required` / `defaultValue` | 必填校验；未传时的默认值 |
-| `controlType` / `multiple` | AMIS 控件类型（缺省按 type 推导）/ 多选 |
+| `controlType` / `multiple` | legacy AMIS 控件类型（缺省按 type 推导）/ 多选 |
 | `dependsOn` | 级联依赖的父参数名（联动候选集） |
 | `options`（子节点 `<option label value/>`）/ `dictName` / `optionsSql`(+`querySpace`) | 静态候选 / 字典候选 / SQL 候选 |
 
 - 调用方传参：`scope.setLocalValue(null, "param", Map.of("pname", 值))`；引擎做 required/类型校验、默认值回填后以规范化 Map 注入。
 - 必填缺失或类型不符：抛 `nop.err.report.param.*`（missing-required / type-error / unknown）。
-- 平台接口：`NopReportForm__getReportFormSchema(reportPath)` 生成 AMIS 查询表单 schema；`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)` 取候选 [{label,value}]。两接口均先过报表级授权（WI1）。
+- 平台接口：`NopReportForm__getReportFormSchema(reportPath)` 生成 AMIS 查询表单 schema（amis 渲染已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`）；`NopReportForm__getReportParamOptions(reportPath, paramName, dependsValues)` 取候选 [{label,value}]。两接口均先过报表级授权（WI1）。
 
 ## 报表模板放哪里（VFS 路径）
 

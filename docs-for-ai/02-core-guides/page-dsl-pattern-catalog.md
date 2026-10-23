@@ -1,7 +1,6 @@
 # 页面 DSL 模式目录
 
-> 本文档中的 DSL 模式有些是框架无关（通用）、有些是 AMIS 特有。
-> **标注 `(AMIS)` 的模式**在 AMIS 下线后需确认迁移或删除。
+> 本文档中的 DSL 模式以 Flux（默认渲染框架）为准；view.xml 层面的取数/动作 DSL（如 `@query:`、`initApi`）由 Flux 管线经 NormalizeAction 自动规范化，无需按框架区分书写。
 > 通用页面生成管线概念见 `./frontend-rendering-pipeline.md`。
 
 本页不是再讲一遍 `view.xml` / `page.yaml` 基础，而是给出：
@@ -26,9 +25,9 @@
 | 薄 `page.yaml` wrapper | 通用 | 从已有 view/page 快速生成独立入口页 | 见 `./external-app-examples.md` 第 9 节 |
 | 树形 CRUD + add-child | 通用 | 树表、子节点创建、层级回填 | `nop-auth/nop-auth-web/.../NopAuthResource.view.xml`、见 `./external-app-examples.md` 第 11 节 |
 | `feature:on` 条件布局切换 | 通用 | 同一页面按 feature flag 切两套布局 | 见 `./external-app-examples.md` 第 10 节 |
-| 动作直连 `@query` / `@mutation` | `(AMIS)` | 在表格动作上直接挂业务 API | `nop-job/nop-job-web/.../NopJobSchedule.view.xml` |
+| 动作直连 `@query` / `@mutation` | 通用 | 在表格动作上直接挂业务 API | `nop-job/nop-job-web/.../NopJobSchedule.view.xml` |
 | `gen-control` 自定义控件 | 通用 | 缺省控件不够用时，服务端生成控件 | `nop-auth/nop-auth-web/.../NopAuthResource.view.xml`、见 `./external-app-examples.md` 第 5-6 节 |
-| `initApi` / `api` / `gql:selection` / `withFormData` | `(AMIS)` | 统一 CRUD 页面取数、初始化、提交 wiring | 见 `./external-app-examples.md` 第 12 节 |
+| `initApi` / `api` / `gql:selection` / `withFormData` | 通用 | 统一 CRUD 页面取数、初始化、提交 wiring | 见 `./external-app-examples.md` 第 12 节 |
 | `fixedProps` 关联子表页 | 通用 | 把某个外键固定为上层传入值 | `nop-rule/nop-rule-web/.../ref-ruleDefinition.page.yaml` |
 | 混合生成页 + 大块手写 page | 通用 | 专用设计器、编辑器一类页面 | `nop-wf/nop-wf-web/.../designer.page.yaml` |
 | `custom="true"` 非实体字段 | 通用 | 表单字段不在 objMeta 中时跳过校验 | `nop-auth/.../NopAuthUser.view.xml`（`__password2`）、`nop-rule/.../NopRuleDefinition.view.xml`（`__useImportFile`） |
@@ -231,8 +230,8 @@
 
 - `./frontend-rendering-pipeline.md`
 - `./view-and-page-customization.md`
-- `./amis-rendering.md` `(AMIS)`
 - `./flux-rendering.md` `(Flux)`
+- `../04-reference/amis-legacy-deprecation.md` `(deprecated)`
 - `./external-app-development.md`
 - `./external-app-examples.md`
 - `./api-and-graphql.md`

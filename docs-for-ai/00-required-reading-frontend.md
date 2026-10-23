@@ -58,12 +58,12 @@
 | `03-runbooks/add-bizloader-field.md` | BizLoader 字段 |
 | `03-runbooks/extend-api-with-delta-bizloader.md` | Delta 扩展 API 返回字段 |
 
-### 渲染框架选择
+### 渲染框架
 
 | 文档 | 场景 |
 |------|------|
-| `02-core-guides/amis-rendering.md` | AMIS 渲染管线（默认）`(AMIS)` |
-| `02-core-guides/flux-rendering.md` | Flux 渲染管线（渐进替代）`(Flux)` |
+| `02-core-guides/flux-rendering.md` | Flux 渲染管线（默认且唯一受支持）`(Flux)` |
+| `../04-reference/amis-legacy-deprecation.md` | AMIS 遗留状态与 legacy 引入方式 `(deprecated)` |
 
 ### index.html 扩展
 

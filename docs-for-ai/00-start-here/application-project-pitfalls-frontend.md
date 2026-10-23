@@ -17,7 +17,7 @@
 
 | 教训 | 最终规则 | 检测 |
 |---|---|---|
-| AMIS 手写 GraphQL 的 `$` 被模板引擎吃掉，KPI 恒 0（67 处） | 取数用平台声明式范式；必须手写时 `${'$'}` 转义 + E2E 断言真实请求体 | `rg '\\$[a-zA-Z]' **/*.page.yaml`（排除 `${` 声明）；断言 `request.postData()` 而非仅响应码 |
+| 前端手写 GraphQL 的 `$` 被模板引擎吃掉，KPI 恒 0（67 处） | 取数用平台声明式范式；必须手写时 `${'$'}` 转义 + E2E 断言真实请求体 | `rg '\\$[a-zA-Z]' **/*.page.yaml`（排除 `${` 声明）；断言 `request.postData()` 而非仅响应码 |
 | 范式迁移只改页面不改消费端，5 类次生静默故障（30 spec 全红一天） | 迁移计划附消费端清单逐项勾销；收口跑带 fixtures 守卫的全量套件，禁只跑调试 spec | 迁移前 `rg '<旧范式关键词>' tests/e2e/` 列受影响 spec 清单进 plan |
 | pnpm 多实例：同库两物理实例重复注册，每次 fresh boot 必抛 pageerror | 核心 UI 库根 `pnpm.overrides` 锁单实例；修复验证以 realpath 收敛为准 | `find node_modules -name amis -maxdepth 6 -type l \| xargs realpath \| sort -u` 仅一行；fresh-boot pageerror 冒烟常驻 |
 | view.xml 层损坏服务层测试全绿，Post-Closure 才爆 | 铁律 5；审计对行号/计数做量级交叉核对 | 12 倍于基线行数即量级异常，停下 |

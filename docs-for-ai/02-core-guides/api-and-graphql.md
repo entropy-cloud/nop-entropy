@@ -59,7 +59,7 @@
 
 | 入口 | HTTP 方法 | operationName 格式 | 响应类型 | 适用场景 |
 |------|----------|-------------------|---------|---------|
-| `/graphql` | POST | GraphQL query string 内的 field name | JSON（GraphQL response envelope） | 前端 AMIS 页面默认入口；支持 selection（字段选择）、多操作批量、relation 嵌套查询 |
+| `/graphql` | POST | GraphQL query string 内的 field name | JSON（GraphQL response envelope） | 前端页面默认入口；支持 selection（字段选择）、多操作批量、relation 嵌套查询 |
 | `/r/{opName}` | GET / POST | `{bizObj}__{method}` | JSON（`ApiResponse`） | REST 风格单操作调用；E2E 测试、外部系统集成、curl 调试 |
 | `/p/{opName}[/path]` | GET / POST | `{bizObj}__{method}` + 可选 `/{path}` 后缀 | 内容感知（支持二进制/文件/流/自定义 contentType） | 文件下载、Excel 导出、PDF 生成、图片返回等需要非 JSON 响应的场景 |
 | `/px/{serviceName}/{opName}` | POST | `{serviceName}` = RPC 注册服务名，`{opName}` = `{bizObj}__{method}` | JSON（`ApiResponse`） | 分布式 RPC 服务代理，转发到远程服务 |
@@ -70,7 +70,7 @@
 1. **`/r/` 和 `/p/` 调用同一个 BizModel 方法，区别仅在响应处理。** `/r/` 永远返回 JSON `ApiResponse`；`/p/` 通过 `buildWebContent()` 检测响应数据类型，支持返回 `WebContentBean`（二进制内容、文件流、自定义 contentType）。
 2. **`/p/` 不是"页面专用"端点。** 它可以调用任何 BizModel operation。名称中的 "page" 源自其内部实现 `doPageQuery()`，但其能力远超页面获取——它是对 `/r/` 的内容感知扩展。
 3. **`/p/{query}` 的 `query` 支持路径后缀。** 格式为 `{operationName}/{optionalPath}`，路径部分通过 `PARAM_PATH` 传入 BizModel 方法，常用于下载场景中指定文件路径。
-4. **`/graphql` 是前端 AMIS 的默认入口。** view.xml 中 `@query:` / `@mutation:` 前缀的 URL 由前端组装成 GraphQL query，POST 到 `/graphql`。
+4. **`/graphql` 是前端页面的默认 GraphQL 入口。** view.xml 中 `@query:` / `@mutation:` 前缀的 URL 由前端组装成 GraphQL query，POST 到 `/graphql`。
 5. **前端 `@query:` URL 和后端 `/r/` URL 使用同一个 operationName。** 例如 `@query:NopAuthUser__findPage` 在前端组装成 GraphQL query 发到 `/graphql`，直接用 `/r/NopAuthUser__findPage` 也能调用同一个方法，只是响应封装不同。
 
 ### 三种调用的内在关系
@@ -154,7 +154,7 @@
 典型用法：
 
 ```bash
-# 获取页面 AMIS JSON（PageProvider 是一个 BizModel，getPage 是它的方法）
+# 获取页面框架 JSON（PageProvider 是一个 BizModel，getPage 是它的方法）
 GET /p/PageProvider__getPage?path=/nop/auth/pages/NopAuthUser/main.page.yaml
 
 # Excel 导出（NopAuthUser 是 BizModel，exportExcel 是自定义方法）
@@ -350,13 +350,13 @@ xmeta <prop graphql:*>
 3. `@Inject private`。
 4. 把底层 DAO / infra 的实现方式直接提升为 API 层模板。
 
-## `@query:` AMIS API URL 机制
+## `@query:` API URL 机制
 
 view.xml 中 `<api url="@query:BizObjName__actionName?param=$param"/>` 的处理流程：
 
-> **注意**：`$param` 是旧的 AMIS 模板语法，正逐步被 `${param}` 替代。新代码统一使用 `${expr}` 格式。
+> **注意**：`$param` 是旧的 legacy amis 模板语法（amis 渲染已 deprecated），正逐步被 `${param}` 替代。新代码统一使用 `${expr}` 格式。
 
-1. **后端**（`WebPageHelper.fixPage`）：仅转义空格/换行，`@query:` 原样输出到 AMIS JSON
+1. **后端**（`WebPageHelper.fixPage`）：仅转义空格/换行，`@query:` 原样输出到前端框架 JSON
 2. **前端**（`nop-chaos/packages/nop-core/src/core/graphql.ts`）：
    - 解析 URL，取最后一个 `_` 后的方法名后缀作为 `stdAction`
    - `stdAction` 匹配 `operationRegistry` → 使用预定义参数签名和参数构建器
@@ -429,7 +429,7 @@ query { NopAuthUser__findPage(limit: 20) { items { userId } } }
 
 ### 手写 GraphQL 查询串用 `@query:` 机制，禁裸 `$var`
 
-AMIS api 里手写 GraphQL 查询字符串中的裸 `$var` 会被 AMIS tokenize 当模板变量替换为空（`dataType:raw` 场景实测）。正确做法是用 `@query:` 标准动作机制（见上节），由前端按 `operationRegistry` 组装查询，结构免疫模板解析。
+页面 api 里手写 GraphQL 查询字符串中的裸 `$var` 会被前端模板 tokenize 当模板变量替换为空（`dataType:raw` 场景实测）。正确做法是用 `@query:` 标准动作机制（见上节），由前端按 `operationRegistry` 组装查询，结构免疫模板解析。
 
 ## 相关文档
 

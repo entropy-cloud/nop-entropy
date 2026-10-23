@@ -8,7 +8,7 @@ Nop 平台有三种调用方式，内核统一，但定位不同：
 
 | 层级 | 入口 | 调用方式 | 进程边界 | 适用场景 |
 |------|------|---------|---------|---------|
-| **基本 HTTP** | `/graphql` `/r/` `/p/` | `IGraphQLEngine` → 进程内 BizModel 方法 | 同 JVM | 前端 AMIS、外部 curl/E2E 测试、文件下载 |
+| **基本 HTTP** | `/graphql` `/r/` `/p/` | `IGraphQLEngine` → 进程内 BizModel 方法 | 同 JVM | 前端页面、外部 curl/E2E 测试、文件下载 |
 | **类型化 RPC** | `{ServiceName}.java` 接口 | `IRpcService` 代理（AOP 或 codegen 生成） → 远程 HTTP 调用 | 跨 JVM | 跨模块/跨服务的强类型 Java 调用 |
 | **分布式 RPC 代理** | `/px/{serviceName}/{opName}` | `IRpcServiceInvoker` → 服务发现 → `IRpcService` → 远程 HTTP 调用 | 跨 JVM | HTTP 网关模式，非 Java 客户端经 `/px/` 调用远程服务 |
 
@@ -319,7 +319,7 @@ RPC 调用可以通过请求 header **直接指定目标实例**，用于广播/
 
 | 场景 | 推荐方式 |
 |------|---------|
-| 前端 AMIS 页面调用 | `/graphql`（框架默认入口） |
+| 前端页面调用 | `/graphql`（框架默认入口） |
 | curl / E2E 测试 | `/r/{operationName}` |
 | 文件上传下载 | `/p/{operationName}` |
 | Java 服务 A 调用 Java 服务 B（跨进程） | 类型化 RPC（`*.api.xml` 生成接口） |

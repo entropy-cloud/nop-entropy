@@ -45,7 +45,7 @@
 |----------|---------|---------|
 | **模型设计** | **`00-required-reading-model-design.md`** | `02-core-guides/orm-model-design.md` |
 | **后台开发** | **`00-required-reading-backend.md`** | `02-core-guides/service-layer.md` |
-| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/frontend-rendering-pipeline.md`（通用）、`02-core-guides/amis-rendering.md`（AMIS）、`02-core-guides/flux-rendering.md`（Flux）、`02-core-guides/xpl-escaping-reference.md`（表达式转义） |
+| **前台开发** | **`00-required-reading-frontend.md`** | `02-core-guides/frontend-rendering-pipeline.md`（通用）、`02-core-guides/flux-rendering.md`（Flux，默认）、`02-core-guides/xpl-escaping-reference.md`（表达式转义） |
 | **权限开发** | **`02-core-guides/auth-and-permissions.md`** | 同左（操作权限、数据权限、菜单资源） |
 | **单元/集成测试** | **`00-required-reading-testing.md`** | `02-core-guides/testing.md` |
 | **E2E 测试** | **`00-required-reading-e2e-testing.md`** | `02-core-guides/e2e-testing.md` |
@@ -115,7 +115,8 @@
 | 理解页面生成管线（框架无关） | `02-core-guides/frontend-rendering-pipeline.md` |
 | 定制 view / page 页面（快速参考） | `02-core-guides/view-and-page-customization.md` |
 | **查 form layout DSL 完整语法（分组、折叠、Tab、跨列、查询运算符）** | **`02-core-guides/layout-syntax-reference.md`** |
-| AMIS 渲染细节（含 AMIS 变量引用规则） | `02-core-guides/amis-rendering.md` |
+| Flux 渲染细节（默认且唯一受支持的渲染框架） | `02-core-guides/flux-rendering.md` |
+| **AMIS 遗留状态（deprecated）：amis 相关文件清单、legacy jar 引入方式、`render-mode=amis` 回退** | **`04-reference/amis-legacy-deprecation.md`** |
 | Flux 渲染细节 | `02-core-guides/flux-rendering.md` |
 | **flux.yaml 页面文件（Flux 模式下优先覆盖 page.yaml）** | **`02-core-guides/flux-rendering.md`**（「flux.yaml 页面文件」章节） |
 | **Xpl 表达式转义规则（所有上下文速查）** | **`02-core-guides/xpl-escaping-reference.md`** |
@@ -128,7 +129,7 @@
 | 编写 XDef / XDSL 文件 | `02-core-guides/xdef-and-xdsl.md` |
 | 理解 XDef/XDSL 中 union schema 的 subtype 路由与校验规则 | `02-core-guides/xdef-and-xdsl.md` |
 | **理解子节点 `x:extends` 的隐式 replace 语义（子节点写 `x:extends` 后父继承同名子节点为何不生效）** | **`02-core-guides/xdef-and-xdsl.md`**（「子节点 `x:extends` 的隐式 `replace` 语义」章节） |
-| **为无 xdef 的 JSON/YAML（i18n.yaml、amis 页面等）做差量合并；理解 `DeltaJsonLoader` 与 `XDslExtender` 两条链路的关系** | **`02-core-guides/xdef-and-xdsl.md`**（「无 xdef 的并行 JSON 合并链路」章节） |
+| **为无 xdef 的 JSON/YAML（i18n.yaml、legacy amis 页面等）做差量合并；理解 `DeltaJsonLoader` 与 `XDslExtender` 两条链路的关系** | **`02-core-guides/xdef-and-xdsl.md`**（「无 xdef 的并行 JSON 合并链路」章节） |
 | 理解 XLang / XPL / xrun / xgen 基本写法 + XScript 语法与 `xpl\`...\`` 标签模板 + **xbiz action source 内置变量**（`svcCtx`/`$context`/`thisObj`/全局变量） | `02-core-guides/xlang-and-xpl-basics.md` |
 | **接入 java 生成类后端（构建任务 `XlangJavaGenTask` + 双清单产物 + `_gen/` 落盘 + 漏跑诊断 `require-manifest` + truffle 镜像排除/native 部署）** | **`02-core-guides/xlang-and-xpl-basics.md`**（「构建集成与新模块接入（java 生成类后端）」章节） |
 | 使用 / 修改 `io.nop.xlang.xpath` XPath 选择器或 `io.nop.xlang.xt` XT Transform（xpath 语法与 `$xxx` operator、xt 规则指令、import/inherits、错误码清单） | `02-core-guides/xpath-and-xtransform.md` |

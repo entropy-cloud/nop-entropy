@@ -86,7 +86,7 @@ graph 内 `nextOnError` / `waitErrorSteps` / `STEP_RESULTS.x.error` 数据依赖
 | `nop-task-core` | 任务核心引擎 |
 | `nop-task-dao` | ORM 实体与 DAO |
 | `nop-task-service` | 业务逻辑 |
-| `nop-task-web` | Web 层与 AMIS 页面 |
+| `nop-task-web` | Web 层与管理页面 |
 | `nop-task-queue` | 队列支持 |
 | `nop-task-ext` | 扩展功能（事务/重试/限流/超时等 decorator） |
 

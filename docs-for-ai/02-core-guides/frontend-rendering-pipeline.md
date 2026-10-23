@@ -1,14 +1,16 @@
 # 前端渲染管线（框架无关）
 
 本文档描述 Nop 平台的页面生成管线概念，**与具体前端框架无关**。
-当前有两个渲染实现：`AMIS`（默认）和 `Flux`（渐进替代），分别见 `amis-rendering.md` 和 `flux-rendering.md`。
+当前受支持的渲染实现是 `Flux`（默认，`nop.web.render-mode=flux`），见 `flux-rendering.md`。AMIS 渲染已 deprecated，相关文件清单与 legacy 引入方式见 `../04-reference/amis-legacy-deprecation.md`。
 
 > **如果你已经知道要改 `view.xml` / `page.yaml`**，快速参考见 `view-and-page-customization.md`。
 > **如果你需要 form layout 分组/折叠/Tab/查询运算符等 DSL 语法**，见 `layout-syntax-reference.md`。
 > **如果你需要复杂页面模式**，见 `page-dsl-pattern-catalog.md`。
 > **如果不确定该走哪条文档路径**，先看 `../03-runbooks/admin-page-development-roadmap.md`。
 
-## SPA 路由 → page.yaml 映射
+## SPA 路由 → page.yaml 映射（legacy AMIS SPA 协议）
+
+> 本节描述的是 legacy AMIS 前端站点（`nop-web-site-legacy`）的路由协议。当前默认的 Flux 站点（`nop-web-site`）不消费 `SiteMapApi__getSiteMap` / `pageType` 协议。保留本节仅供存量项目维护参考；AMIS 已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`。
 
 前端 SPA 通过 hash fragment（如 `#/NopAuthResource-main`）确定要加载哪个页面。这个映射由三个环节串联：
 
@@ -26,7 +28,7 @@
 - `id` — 资源唯一标识（如 `NopAuthResource-main`）
 - `routePath` — **可选**，缺省时自动生成为 `/{id}`（如 `/NopAuthResource-main`）
 - `url` — VFS 路径，指向 `.page.yaml` 文件
-- `component` — `AMIS`（默认）或 `FLUX`
+- `component` — legacy AMIS 站点使用的渲染组件标识（如 `AMIS`）；Flux 站点不依赖该值
 - `resourceType` — `TOPM`（顶级菜单）、`SUBM`（子菜单）、`FNPT`（功能点）
 
 ### 2. SiteMapApi 供前端获取路由表
@@ -37,17 +39,17 @@
 |------|------|------|
 | `routePath` | 资源定义的 `routePath` 或 `/{id}` | `/NopAuthResource-main` |
 | `url` | 资源定义中的 `url` | `/nop/auth/pages/NopAuthResource/main.page.yaml` |
-| `component` | 资源定义中的 `component` | `AMIS` |
+| `component` | 资源定义中的 `component` | `AMIS`（legacy 站点标识） |
 | `resourceType` | 资源定义中的 `resourceType` | `SUBM` |
 
-SPA 据此构建路由表：`path = routePath`，`schemaPath = url`（AMIS 类型时），`pageType = "amis"`。
+legacy AMIS SPA 据此构建路由表：`path = routePath`，`schemaPath = url`（AMIS 类型时），`pageType = "amis"`。
 
 ### 3. 页面加载
 
 当用户访问 `#/NopAuthResource-main` 时：
 
 1. react-router 匹配到 `path="/NopAuthResource-main"` 的路由
-2. SPA 根据 `pageType="amis"` 识别为 AMIS 页面，取 `schemaPath` 作为页面地址
+2. legacy AMIS SPA 根据 `pageType="amis"` 识别为 AMIS 页面，取 `schemaPath` 作为页面地址
 3. SPA 调用 `POST /r/PageProvider__getPage`，请求体 `{path: "/nop/auth/pages/NopAuthResource/main.page.yaml"}`
 4. 后端加载 page.yaml → 触发 `x:gen-extends` → 详见下文「运行时渲染」
 
@@ -60,7 +62,7 @@ SPA 据此构建路由表：`path = routePath`，`schemaPath = url`（AMIS 类�
 | 阶段 | 时机 | 输入 | 输出 | 触发点 |
 |------|------|------|------|--------|
 | 构建时 codegen | `mvn install` 的 `precompile` 阶段 | `*.xmeta` | `_gen/_Xxx.view.xml`、`Xxx.view.xml`、`main.page.yaml` | `*-web/precompile/gen-page.xgen` |
-| 运行时渲染 | 前端请求 `PageProvider__getPage` | `view.xml` + `xmeta` | 框架 JSON（AMIS 或 Flux） | `main.page.yaml` 的 `x:gen-extends` → `GenPage` 标签 |
+| 运行时渲染 | 前端请求 `PageProvider__getPage` | `view.xml` + `xmeta` | 框架 JSON（默认 Flux） | `main.page.yaml` 的 `x:gen-extends` → `GenPage` 标签 |
 
 ### 构建时：从 xmeta 生成 view/page 骨架
 
@@ -110,7 +112,7 @@ Xxx.view.xml        (保留层,手写定制)
   ↓ 运行时被 GenPage 读取
 main.page.yaml      (入口 wrapper)
   ↓ x:gen-extends 触发
-框架 JSON           (运行时输出,可缓存,AMIS 或 Flux)
+框架 JSON           (运行时输出,可缓存,默认 Flux)
 ```
 
 ### 关键事实
@@ -118,7 +120,7 @@ main.page.yaml      (入口 wrapper)
 - **手写顺序**：优先改非下划线 `Xxx.view.xml`，**绝不**手改 `_gen/_*` 文件（下次 `mvn install` 会被覆盖）
 - **`page.yaml` 通常不动**：只有在需要 page 级 `x:gen-extends`、自定义 title/body 包装、`fixedProps` 子表关联时才改
 - **复杂页面**（设计器、编辑器）：用 `x:gen-extends` 混合生成 + 大块手写框架 JSON
-- **框架选择**：默认使用 AMIS 渲染管线。切换到 Flux 见 `flux-rendering.md`
+- **框架选择**：默认使用 Flux 渲染管线（`nop.web.render-mode=flux`），详见 `flux-rendering.md`
 - **Flux 专属页面覆盖**：开启 Flux 模式后，可为某个 `*.page.yaml` 提供同目录的 `*.flux.yaml`，加载时会优先使用 `flux.yaml`（顶层与子页面均生效）。详见 `flux-rendering.md` 的「flux.yaml 页面文件」章节
 
 ## XView 的最小理解模型
@@ -319,7 +321,7 @@ View 绑定了 `objMeta` 后，`<layout>` 中出现的每个字段 ID 默认要�
 
 - `view-and-page-customization.md` — 快速参考
 - `page-dsl-pattern-catalog.md` — DSL 模式目录
-- `amis-rendering.md` — AMIS 渲染管线 `(AMIS)`
+- `amis-legacy-deprecation.md`（`../04-reference/`）— AMIS 遗留状态与 legacy 引入方式 `(deprecated)`
 - `flux-rendering.md` — Flux 渲染管线 `(Flux)`
 - `../01-repo-map/where-things-live.md`
 - `../02-core-guides/model-first-development.md`

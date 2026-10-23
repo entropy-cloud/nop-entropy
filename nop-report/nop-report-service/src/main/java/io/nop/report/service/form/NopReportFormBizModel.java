@@ -67,7 +67,7 @@ public class NopReportFormBizModel {
 
     @SingleSession
     @BizQuery
-    public List<Map<String, Object>> getReportParamOptions(@Name("reportPath") String reportPath,
+    public List<DictOptionBean> getReportParamOptions(@Name("reportPath") String reportPath,
                                                            @Name("paramName") String paramName,
                                                            @Name("dependsValues") Map<String, Object> dependsValues) {
         List<XptParamModel> params = requireParams(reportPath);
@@ -156,77 +156,64 @@ public class NopReportFormBizModel {
         }
     }
 
-    private List<Map<String, Object>> staticOptions(XptParamModel param) {
-        List<Map<String, Object>> ret = new ArrayList<>();
+    private List<DictOptionBean> staticOptions(XptParamModel param) {
+        List<DictOptionBean> ret = new ArrayList<>();
         if (param.getOptions() == null)
             return ret;
         for (Object item : param.getOptions()) {
-            Map<String, Object> option = toOptionMap(item);
+            DictOptionBean option = toOptionBean(item);
             if (option != null)
                 ret.add(option);
         }
         return ret;
     }
 
-    private Map<String, Object> toOptionMap(Object item) {
+    private DictOptionBean toOptionBean(Object item) {
         if (item instanceof Map) {
             Map<?, ?> map = (Map<?, ?>) item;
-            Object label = map.get("label");
-            Object value = map.get("value");
-            if (label != null || value != null) {
-                Map<String, Object> ret = new LinkedHashMap<>();
-                ret.put("label", label == null ? String.valueOf(value) : label);
-                ret.put("value", value);
-                return ret;
-            }
+            return optionBean(map.get("label"), map.get("value"));
         }
         if (item instanceof DynamicObject) {
             Map<String, Object> map = ((DynamicObject) item).toMap();
-            return toOptionMap(map);
+            return optionBean(map.get("label"), map.get("value"));
         }
         if (item instanceof XNode) {
             XNode node = (XNode) item;
-            Object label = node.attrText("label");
-            Object value = node.attrText("value");
-            if (label != null || value != null) {
-                Map<String, Object> ret = new LinkedHashMap<>();
-                ret.put("label", label == null ? String.valueOf(value) : label);
-                ret.put("value", value);
-                return ret;
-            }
+            return optionBean(node.attrText("label"), node.attrText("value"));
         }
         return null;
     }
 
-    private List<Map<String, Object>> dictOptions(String dictName) {
-        String locale = ContextProvider.currentLocale();
-        DictBean dict = DictProvider.instance().requireDict(locale, dictName, null, null);
-        List<Map<String, Object>> ret = new ArrayList<>();
-        if (dict == null || dict.getOptions() == null)
-            return ret;
-        for (DictOptionBean option : dict.getOptions()) {
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("label", option.getLabel());
-            item.put("value", option.getValue());
-            ret.add(item);
-        }
+    private DictOptionBean optionBean(Object label, Object value) {
+        if (label == null && value == null)
+            return null;
+        DictOptionBean ret = new DictOptionBean();
+        ret.setLabel(label == null ? String.valueOf(value) : String.valueOf(label));
+        ret.setValue(value);
         return ret;
     }
 
-    private List<Map<String, Object>> sqlOptions(XptParamModel param) {
+    private List<DictOptionBean> dictOptions(String dictName) {
+        String locale = ContextProvider.currentLocale();
+        DictBean dict = DictProvider.instance().requireDict(locale, dictName, null, null);
+        if (dict == null || dict.getOptions() == null)
+            return new ArrayList<>();
+        return dict.getOptions();
+    }
+
+    private List<DictOptionBean> sqlOptions(XptParamModel param) {
         SQL sql = new SQL(param.getOptionsSql());
         if (param.getQuerySpace() != null)
             sql = sql.extend().querySpace(param.getQuerySpace()).end();
         List<Map<String, Object>> rows = jdbcTemplate.findAll(sql);
-
-        List<Map<String, Object>> ret = new ArrayList<>();
+        List<DictOptionBean> ret = new ArrayList<>();
         for (Map<String, Object> row : rows) {
             Object label = firstOf(row, "label", "name", "text");
             Object value = firstOf(row, "value", "option_value", "id", "code");
-            Map<String, Object> item = new LinkedHashMap<>();
-            item.put("label", label == null ? String.valueOf(value) : label);
-            item.put("value", value);
-            ret.add(item);
+            DictOptionBean option = new DictOptionBean();
+            option.setLabel(label == null ? String.valueOf(value) : String.valueOf(label));
+            option.setValue(value);
+            ret.add(option);
         }
         return ret;
     }

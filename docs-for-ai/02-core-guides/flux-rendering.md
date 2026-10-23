@@ -3,7 +3,7 @@
 > **本文档内容专属 Flux 框架**，为 `nop-chaos-flux` 前端框架的渲染管线。
 > 通用页面生成管线概念见 `frontend-rendering-pipeline.md`。
 
-Flux 渲染管线（`flux-web.xlib` + `flux-control.xlib`）与 AMIS 渲染管线消费**完全相同的** `view.xml` 模型，输出 `nop-chaos-flux` 前端框架所需的 Flux JSON Schema。
+Flux 是平台**默认且唯一受支持**的渲染框架（`nop.web.render-mode` 默认 `flux`）。Flux 渲染管线（`flux-web.xlib` + `flux-control.xlib`）消费与 legacy AMIS 管线**完全相同的** `view.xml` 模型，输出 `nop-chaos-flux` 前端框架所需的 Flux JSON Schema；AMIS 渲染已 deprecated（存量 AMIS 形态模型经 NormalizeAction 自动规范化，见下文），legacy 引入方式见 `../04-reference/amis-legacy-deprecation.md`。
 
 ## 使用方式
 
@@ -62,7 +62,7 @@ x:gen-extends: |
 
 ```
 pages/NopAuthUser/
-  ├── main.page.yaml   ← 默认页面（AMIS），或 Flux 模式下自动切换的入口
+  ├── main.page.yaml   ← 默认页面入口，Flux 模式下经自动切换/覆盖加载 Flux 实现
   └── main.flux.yaml   ← 可选：Flux 模式下优先使用
 ```
 
@@ -82,7 +82,7 @@ pages/NopAuthUser/
 | **顶层页面加载** | 前端 `PageProvider__getPage` 请求 `/.../main.page.yaml` | `PageModelLoader.loadObjectFromPath` 在 Flux 模式下检测同名 `flux.yaml`，命中则改加载它 |
 | **子页面加载** | `tabs`/`wizard` 等页面通过 `LoadPage` 引用子 `page` | `flux-web.xlib:LoadPage` 在 Flux 模式下优先查找 `*.flux.yaml`，命中则 `x:extends` 它 |
 
-> 非 Flux 模式（`render-mode=amis`，默认）下，`flux.yaml` **不会被自动使用**，`page.yaml` 按原逻辑渲染为 AMIS JSON。
+> 仅当显式配置 `render-mode=amis`（legacy 回退，见 `../04-reference/amis-legacy-deprecation.md`）时，`flux.yaml` **不会被自动使用**，`page.yaml` 按原逻辑渲染为 AMIS JSON。
 
 ### 如何启用
 
@@ -96,7 +96,7 @@ pages/NopAuthUser/
 |------|------|
 | 只有 `page.yaml`，开启 Flux 模式 | 走「自动切换机制」：同一个 `page.yaml` 在加载期把 `web:GenPage` 替换为 `flux-web:GenPage` |
 | 同时有 `page.yaml` 和 `flux.yaml`，开启 Flux 模式 | **优先加载 `flux.yaml`**（覆盖规则）；`flux.yaml` 可以是完全手写的 Flux 页面，也可以用 `flux-web:GenPage` 生成后再追加 Flux 专属定制 |
-| 同时有两者，但处于 AMIS 模式 | 用 `page.yaml`，忽略 `flux.yaml` |
+| 同时有两者，但处于 legacy AMIS 模式（`render-mode=amis`） | 用 `page.yaml`，忽略 `flux.yaml` |
 
 `flux.yaml` 的价值在于：当一个页面的 Flux 形态与 AMIS 形态差异较大、仅靠「自动切换」难以表达时（例如完全不同的容器结构、原生 `ActionSchema` 编排），可以用 `flux.yaml` 单独承载 Flux 实现，而保持 `page.yaml` 的 AMIS 实现不受影响。
 
@@ -315,7 +315,7 @@ view.xml action 中只写 `api`，不写 `onClick`。NormalizeAction 自动转�
 
 **layout `*` 必填修饰符、`@` 只读、`!` 隐藏标签、cell 的 `requiredOn`/`readonlyOn`/`clearValueOnHidden`、查询必填 `*` 在 Flux 中完全支持**。上表中的 AMIS → Flux 映射是**具体属性的具体命名差异**，不存在统一规律（`visibleOn` 删除 On 后缀、`clearValueOnHidden` 结构重组为嵌套对象、`asideResizor` 改为形容词形式）。
 
-> **双引擎能力面不同——改页面必须双引擎验证**。Flux 是 AMIS 的**子集/异集**，以下能力 Flux 未实现：`button-toolbar` 渲染器、`actionType: download`（改用原生 `download` 动作）、`NOW()` 函数（相对日期用裸关键字 `today`）、`dataType: raw` 手写 GraphQL 串（裸 `$var` 会被模板解析替换，改用 `@query:` 机制）。页面在这些能力上的改动，必须在目标渲染引擎（amis 或 flux）实测验证，不能只在单一引擎绿就收口。
+> **双引擎能力面不同——改页面必须双引擎验证**。Flux 是 AMIS 的**子集/异集**，以下能力 Flux 未实现：`button-toolbar` 渲染器、`actionType: download`（改用原生 `download` 动作）、`NOW()` 函数（相对日期用裸关键字 `today`）、`dataType: raw` 手写 GraphQL 串（裸 `$var` 会被模板解析替换，改用 `@query:` 机制）。页面在这些能力上的改动，必须在目标渲染引擎实测验证（存量 legacy AMIS 项目在 amis 引擎验证，Flux 项目在 flux 引擎验证），不能只在单一引擎绿就收口。
 >
 > 手写 `*.flux.yaml` 时另有两个高发陷阱（flux 运行时对未知类型/键**静默丢弃**，不报错）：
 > - **`button-toolbar` 不存在** → 用 `flex` + `button`（或 `button-group` + `items`）承载按钮行；
@@ -621,5 +621,5 @@ flux 的 `input-file`/`input-image` **没有 AMIS 的 `receiver`**，实际上�
 
 - `frontend-rendering-pipeline.md` — 通用页面生成管线
 - `view-and-page-customization.md` — 快速参考
-- `amis-rendering.md` — AMIS 渲染管线 `(AMIS)`
+- `../04-reference/amis-legacy-deprecation.md` — AMIS 遗留状态与 legacy 引入方式 `(deprecated)`
 - `../04-reference/source-anchors.md`（`EXT-008`、`EXT-009`）

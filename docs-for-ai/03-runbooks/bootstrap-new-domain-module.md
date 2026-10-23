@@ -102,7 +102,7 @@ mvn clean install -DskipTests
 - **格式化在 xmeta 层**按 ORM `domain` 一次配置全域生效（amount `#,##0.00`、百分比 `0.00%`、日期 `YYYY-MM-DD` 等），不要在页面散写。
 - **页面数据访问强制 REST `/r/`**：`POST /r/<BizObj>__<method>` 或 `@query:`/`@mutation:` 前缀——禁止 `/graphql` + 手拼 query 字符串（erp 曾 74 文件迁移）。
 
-详见 `admin-page-development-roadmap.md`、`amis-rendering.md`、`override-platform-page-with-delta.md`。
+详见 `admin-page-development-roadmap.md`、`override-platform-page-with-delta.md`；AMIS 渲染已 deprecated，见 `../04-reference/amis-legacy-deprecation.md`。
 
 ### 第 6 步：i18n 合规
 

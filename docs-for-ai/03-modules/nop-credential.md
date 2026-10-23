@@ -239,7 +239,7 @@ keyId 密文按一期语义 fail-closed（`getKey` 抛错）。
 | `nop-credential-meta` | xmeta 定义（`data` 列 `published=false` 明文边界） |
 | `nop-credential-service` | `ICredentialProvider` 实现（唯一明文出口）+ `NopCredentialBizModel` + 凭证类型注册表 + `CredentialCipher` + OAuth 流程引擎（`service.oauth`：`OAuthFlowService`/`OAuthTokenClient`/`NopCredentialOauthStateStore`/`CredentialOAuthApiBizModel`） |
 | `nop-credential-kms-vault` | 外部 KMS 参照实现（可选部署）：`VaultCredentialKeyProvider`（Vault KV v2 材料交付，compile 依赖仅 api + `nop-http-api`，零 Vault SDK）；运行时需引入 raw HTTP client 模块（如 `nop-http-client-jdk`） |
-| `nop-credential-web` | AMIS 管理页面（动态表单） |
+| `nop-credential-web` | 管理页面（动态表单） |
 
 ## 加密方案
 

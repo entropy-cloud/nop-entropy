@@ -73,7 +73,7 @@
 | `nop-auth-api` | API DTO 与接口定义 |
 | `nop-auth-dao` | ORM 实体与 DAO |
 | `nop-auth-service` | 业务逻辑（登录、权限校验、数据权限） |
-| `nop-auth-web` | Web 层与 AMIS 页面 |
+| `nop-auth-web` | Web 层与管理页面 |
 | `nop-auth-sso` | SSO 集成 |
 | `nop-oauth` | OAuth2 服务端 |
 
