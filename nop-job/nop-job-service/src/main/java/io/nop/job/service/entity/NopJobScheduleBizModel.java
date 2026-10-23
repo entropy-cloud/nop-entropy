@@ -250,10 +250,17 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
         validateTriggerConfig(entityData.getEntity());
     }
 
+    @Override
+    protected void defaultPrepareUpdate(@Name("entityData") EntityData<NopJobSchedule> entityData,
+                                        IServiceContext context) {
+        super.defaultPrepareUpdate(entityData, context);
+        validateTriggerConfig(entityData.getEntity());
+    }
+
     /**
-     * 保存期触发器配置校验（cron 全站落地）：非法 cron 表达式与锚点组合在落库前 fail-fast，
-     * 避免坏配置进入调度器后才在构建期被拒绝。锚点组合语义复用 TriggerBuilder 的构建期校验，
-     * 不在本处重复实现。
+     * 保存/更新期触发器配置校验（cron 全站落地）：非法 cron 表达式、锚点组合与时间窗口组合在落库前
+     * fail-fast，避免坏配置进入调度器后才在构建期被拒绝（planner 逐条吞异常会导致静默不触发）。
+     * 锚点/窗口语义复用 TriggerBuilder 的构建期校验，不在本处重复实现。
      */
     private void validateTriggerConfig(NopJobSchedule schedule) {
         String cronExpr = schedule.getCronExpr();

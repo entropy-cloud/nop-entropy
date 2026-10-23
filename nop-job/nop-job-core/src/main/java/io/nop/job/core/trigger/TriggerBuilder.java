@@ -20,13 +20,18 @@ import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 
 import static io.nop.job.core.JobCoreErrors.ARG_CRON_EXPR;
+import static io.nop.job.core.JobCoreErrors.ARG_MAX_SCHEDULE_TIME;
+import static io.nop.job.core.JobCoreErrors.ARG_MIN_SCHEDULE_TIME;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG;
 
 /**
  * @author canonical_entropy@163.com
  */
 public class TriggerBuilder {
     public static ITrigger buildTrigger(ITriggerSpec spec, ICalendar defaultCalendar) {
+        validateRangeConfig(spec);
+
         ITrigger trigger;
         long onceScheduleTime = 0L;
         if (!StringHelper.isEmpty(spec.getCronExpr())) {
@@ -74,6 +79,20 @@ public class TriggerBuilder {
     private static boolean hasAnchorConfig(ITriggerSpec spec) {
         return spec.getRepeatAnchorEvery() > 0 || !StringHelper.isEmpty(spec.getRepeatAnchorUnit())
                 || !StringHelper.isEmpty(spec.getRepeatAnchorDate());
+    }
+
+    /**
+     * 调度时间窗口组合校验：两端都是正数时 min 不得大于 max，否则 LimitTimeTrigger 永不触发
+     * （静默失效），因此在构建期直接拒绝。
+     */
+    private static void validateRangeConfig(ITriggerSpec spec) {
+        long min = spec.getMinScheduleTime();
+        long max = spec.getMaxScheduleTime();
+        if (min > 0 && max > 0 && min > max) {
+            throw new NopException(ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG)
+                    .param(ARG_MIN_SCHEDULE_TIME, min)
+                    .param(ARG_MAX_SCHEDULE_TIME, max);
+        }
     }
 
     private static void validateAnchorConfig(ITriggerSpec spec) {

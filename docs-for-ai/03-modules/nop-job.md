@@ -354,7 +354,8 @@ public interface IJobInvoker {
 
 - **段数**：6 段（秒 分 时 日 月 周）或 7 段（第 7 段为年，范围 1970-2099）。日/周位同时指定时为 AND 语义，`?` 只允许出现在日/周位。
 - **Quartz 兼容扩展**：日位 `L`/`L-n`/`nW`/`LW`，周位 `d#N`/`dL`/单独 `L`（语义为周六）；不支持 `@daily` 一类别名。
-- **锚点周期**（无法用 cron 表达的「每 N 天/周」）：`repeatAnchorEvery`（>0 启用）+ `repeatAnchorUnit`（`day`/`week`）+ `repeatAnchorDate`（`YYYY-MM-DD`，引擎默认时区的日历日）。过滤规则：触发日 >= 锚点日，且 `day` 单位按整日差 `mod every == 0`、`week` 单位按 `floor(整日差/7) mod every == 0`；仅对 CRON 触发器有效。持久化列为 `nop_job_schedule.repeat_anchor_every/repeat_anchor_unit/repeat_anchor_date`，保存时对 cron 语法与锚点组合做 fail-fast 校验。
+- **锚点周期**（无法用 cron 表达的「每 N 天/周」）：`repeatAnchorEvery`（>0 启用）+ `repeatAnchorUnit`（`day`/`week`）+ `repeatAnchorDate`（`YYYY-MM-DD`，引擎默认时区的日历日）。过滤规则：触发日 >= 锚点日，且 `day` 单位按整日差 `mod every == 0`、`week` 单位按 `floor(整日差/7) mod every == 0`；仅对 CRON 触发器有效。持久化列为 `nop_job_schedule.REPEAT_ANCHOR_EVERY`/`REPEAT_ANCHOR_UNIT`/`REPEAT_ANCHOR_DATE`（生成 DDL 大写；存量库升级需按生成 DDL 增量加列，本仓不提供 ALTER 脚本，由部署侧迁移）。
+- **保存/更新期校验**：CRUD `save` 与 `update` 两条路径都会在落库前 fail-fast——非法 cron 语法、非法锚点组合（unit/date/成对性/仅限 CRON）、非法时间窗口（`minScheduleTime > maxScheduleTime` 且两者均为正）都会被拒绝；直接实体级 `saveEntity`/`updateEntity` 入口不走该校验（平台 CrudBizModel 契约，调用方负责）。
 - **时区**：当前无 `timezone` 字段，统一使用 JVM 默认时区；预演/宿主装配需按同一口径换算。
 - 管理页 `cronExpr` 仍是表达式文本输入；可视化 cron 编辑器是 `nop-chaos-flux` 的 `cron-editor` 组件（值为 `CronScheduleValue` 对象），由宿主页面装配，映射契约见该仓 cron-editor 组件设计文档 §9（跨仓文档，不在本仓 docs-for-ai 内）。
 

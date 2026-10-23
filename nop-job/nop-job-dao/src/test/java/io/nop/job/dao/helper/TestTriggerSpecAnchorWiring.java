@@ -17,12 +17,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.TimeZone;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -136,5 +138,50 @@ public class TestTriggerSpecAnchorWiring {
         NopException error = assertThrows(NopException.class,
                 () -> TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null));
         assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    void anchorEveryWithoutUnit_rejectedViaEntityPath() {
+        NopJobSchedule schedule = newCronSchedule("0 0 9 * * ?");
+        schedule.setRepeatAnchorEvery(2);
+        schedule.setRepeatAnchorDate("2026-01-05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    void anchorEveryWithoutDate_rejectedViaEntityPath() {
+        NopJobSchedule schedule = newCronSchedule("0 0 9 * * ?");
+        schedule.setRepeatAnchorEvery(2);
+        schedule.setRepeatAnchorUnit("day");
+
+        NopException error = assertThrows(NopException.class,
+                () -> TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    void anchorUnitWithZeroEvery_rejectedViaEntityPath() {
+        NopJobSchedule schedule = newCronSchedule("0 0 9 * * ?");
+        schedule.setRepeatAnchorEvery(0);
+        schedule.setRepeatAnchorUnit("day");
+        schedule.setRepeatAnchorDate("2026-01-05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    void invertedScheduleRange_rejectedViaEntityPath() {
+        NopJobSchedule schedule = newCronSchedule("0 0 9 * * ?");
+        schedule.setMinScheduleTime(new Timestamp(midnight("2026-01-10")));
+        schedule.setMaxScheduleTime(new Timestamp(midnight("2026-01-05")));
+
+        NopException error = assertThrows(NopException.class,
+                () -> TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG.getErrorCode(), error.getErrorCode());
     }
 }

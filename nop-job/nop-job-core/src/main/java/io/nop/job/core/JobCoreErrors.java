@@ -42,6 +42,13 @@ public interface JobCoreErrors {
     ErrorCode ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG = define("nop.err.job.trigger.invalid-anchor-config",
             "Invalid repeat anchor config: {reason}, cronExpr={cronExpr}", "reason", ARG_CRON_EXPR);
 
+    String ARG_MIN_SCHEDULE_TIME = "minScheduleTime";
+    String ARG_MAX_SCHEDULE_TIME = "maxScheduleTime";
+
+    ErrorCode ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG = define("nop.err.job.trigger.invalid-range-config",
+            "Invalid schedule time range: minScheduleTime must be <= maxScheduleTime, min={minScheduleTime}, max={maxScheduleTime}",
+            ARG_MIN_SCHEDULE_TIME, ARG_MAX_SCHEDULE_TIME);
+
     // Error codes stored in task/fire errorCode field - status markers, not thrown exceptions.
     // Using the same string values for backward compatibility with stored data and test assertions.
 

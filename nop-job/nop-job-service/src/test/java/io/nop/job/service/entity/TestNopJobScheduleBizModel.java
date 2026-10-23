@@ -22,10 +22,15 @@ import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static io.nop.biz.BizErrors.ERR_BIZ_INVALID_DICT_OPTION;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG;
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
@@ -392,6 +397,121 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         assertEquals(2, loaded.getRepeatAnchorEvery());
         assertEquals("week", loaded.getRepeatAnchorUnit());
         assertEquals("2026-01-05", loaded.getRepeatAnchorDate());
+    }
+
+    @Test
+    public void testUpdateRejectsInvalidCronExpression() {
+        NopJobSchedule saved = saveValidCronSchedule("job-update-bad-cron");
+        Map<String, Object> data = updateData(saved.getJobScheduleId());
+        data.put("cronExpr", "not-a-cron");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.update(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testUpdateRejectsInvalidAnchorDate() {
+        NopJobSchedule saved = saveValidCronSchedule("job-update-bad-anchor");
+        Map<String, Object> data = updateData(saved.getJobScheduleId());
+        data.put("repeatAnchorEvery", 2);
+        data.put("repeatAnchorUnit", "day");
+        data.put("repeatAnchorDate", "2026/01/05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.update(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testUpdatePersistsAnchorConfig() {
+        NopJobSchedule saved = saveValidCronSchedule("job-update-anchor");
+        Map<String, Object> data = updateData(saved.getJobScheduleId());
+        data.put("repeatAnchorEvery", 3);
+        data.put("repeatAnchorUnit", "day");
+        data.put("repeatAnchorDate", "2026-01-05");
+
+        orm.runInSession(session -> scheduleBiz.update(data, newContext()));
+
+        NopJobSchedule loaded = loadSchedule(saved.getJobScheduleId());
+        assertEquals(3, loaded.getRepeatAnchorEvery());
+        assertEquals("day", loaded.getRepeatAnchorUnit());
+        assertEquals("2026-01-05", loaded.getRepeatAnchorDate());
+    }
+
+    @Test
+    public void testSaveRejectsInvalidAnchorUnitByDict() {
+        Map<String, Object> data = newScheduleSaveData("job-invalid-unit");
+        data.put("cronExpr", "0 0 9 * * ?");
+        data.put("repeatAnchorEvery", 2);
+        data.put("repeatAnchorUnit", "month");
+        data.put("repeatAnchorDate", "2026-01-05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.save(data, newContext())));
+        assertEquals(ERR_BIZ_INVALID_DICT_OPTION.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testSaveRejectsInvertedScheduleRange() {
+        Map<String, Object> data = newScheduleSaveData("job-invalid-range");
+        data.put("cronExpr", "0 0 9 * * ?");
+        data.put("minScheduleTime", new Timestamp(midnight("2026-01-10")));
+        data.put("maxScheduleTime", new Timestamp(midnight("2026-01-05")));
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.save(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_RANGE_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testSaveAcceptsFixedRateWithoutCronExpression() {
+        Map<String, Object> data = newScheduleSaveData("job-fixed-rate-ok");
+        data.put("triggerType", TRIGGER_TYPE_FIXED_RATE);
+        data.put("repeatIntervalMs", 1000L);
+
+        NopJobSchedule saved = orm.runInSession(session -> scheduleBiz.save(data, newContext()));
+        assertNotNull(saved.getJobScheduleId());
+        NopJobSchedule loaded = loadSchedule(saved.getJobScheduleId());
+        assertNull(loaded.getCronExpr());
+        assertEquals(1000L, loaded.getRepeatIntervalMs());
+    }
+
+    @Test
+    public void testEnableScheduleNextFireTimeRespectsPersistedAnchor() {
+        Map<String, Object> data = newScheduleSaveData("job-enable-anchor");
+        data.put("cronExpr", "0 0 9 * * ?");
+        data.put("repeatAnchorEvery", 2);
+        data.put("repeatAnchorUnit", "day");
+        data.put("repeatAnchorDate", "2026-01-05");
+
+        NopJobSchedule saved = orm.runInSession(session -> scheduleBiz.save(data, newContext()));
+        scheduleBiz.enableSchedule(saved.getJobScheduleId(), newContext());
+
+        NopJobSchedule loaded = loadSchedule(saved.getJobScheduleId());
+        assertNotNull(loaded.getNextFireTime());
+        LocalDate anchor = LocalDate.parse("2026-01-05");
+        LocalDate nextFireDate = loaded.getNextFireTime().toInstant()
+                .atZone(ZoneId.systemDefault()).toLocalDate();
+        long diff = ChronoUnit.DAYS.between(anchor, nextFireDate);
+        assertEquals(0, diff % 2,
+                "nextFireTime must land on an anchor-aligned day (diff=" + diff + ")");
+    }
+
+    private NopJobSchedule saveValidCronSchedule(String jobName) {
+        Map<String, Object> data = newScheduleSaveData(jobName);
+        data.put("cronExpr", "0 0 9 * * ?");
+        return orm.runInSession(session -> scheduleBiz.save(data, newContext()));
+    }
+
+    private Map<String, Object> updateData(String jobScheduleId) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("jobScheduleId", jobScheduleId);
+        return data;
+    }
+
+    private static long midnight(String date) {
+        return LocalDate.parse(date).atStartOfDay(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
     private Map<String, Object> newScheduleSaveData(String jobName) {
