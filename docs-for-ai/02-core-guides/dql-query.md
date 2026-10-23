@@ -203,8 +203,15 @@ label 冲突会静默互相覆盖（旧实现里子表值覆盖主表值）。`M
 
 - 主表无显式 `dimFields` 且无聚合 → 以主键为维度字段
 - 主表有 `GROUP BY` → 以 `GROUP BY` 字段为维度字段
+- 主表字段**全是聚合字段**且既无 `GROUP BY` 也无显式 `dimFields` → 全局聚合（只产出一行），**不推断维度**。此时不能同时声明子表字段，否则抛 `nop.err.orm.query-no-dim-fields`
 - 关联属性子表：从 ORM 关联配置的 JOIN 条件推导（见下节「关联属性子表」）
 - 显式 JOIN 子表：按 `子表 dimFields → join conditions → 非聚合字段` 顺序回退（见下节「显式 JOIN 声明」）
+
+主表聚合且**显式**指定 `dimFields` 时，缺失的维度列会被补进 `SELECT` 并自动加入 `GROUP BY`。两者必须成对出现：只补 `SELECT` 不补 `GROUP BY` 会生成 `select count(x), t.id from t` 这类非法 SQL（H2/PostgreSQL/MySQL `ONLY_FULL_GROUP_BY` 均直接报错）。
+
+### existsByQuery 只判定主查询
+
+`IOrmTemplate.existsByQuery`（`MdxQueryExecutor.exists`）只执行拆分后的**主查询**。MDX 通道里子表字段是**投影**（补全主表行的列），不是行过滤条件，因此子表的 `filter`/聚合结果不参与「主表是否存在命中行」的判定。需要按子表条件排除主表行时，把条件写进主查询的 `filter`，或改用 `findListByQuery` 后自行判断。
 
 ---
 

@@ -140,12 +140,24 @@ public class MdxQuerySplitter {
         }
 
         if (isEmpty(dimFields)) {
-            if (!bean.hasGroupBy()) {
-                // 如果没有聚合计算，则以主键为dimFields
-                dimFields = entityModel.getPkColumnNames();
-            } else {
+            if (bean.hasGroupBy()) {
                 // 具有group by，但是没有dimFields，则以group by的字段为dimFields
                 dimFields = bean.getGroupBy().stream().map(GroupFieldBean::getName).collect(Collectors.toList());
+            } else if (!agg) {
+                // 没有聚合计算时才回退到主键维度
+                dimFields = entityModel.getPkColumnNames();
+            } else {
+                // 所有字段都是聚合字段且没有 groupBy：这是一个全局聚合（只会产出一行），
+                // 没有可对齐的维度。若回退到主键，addDimFields 会把主键列补进 SELECT 却不进
+                // GROUP BY，生成 select count(x),t.id from t 这种非法 SQL。
+                dimFields = Collections.emptyList();
+            }
+        } else if (agg) {
+            // 显式指定的维度列会被 addDimFields 补进 SELECT，聚合查询里它们同时必须在 GROUP BY 中，
+            // 否则生成的 SQL 非法（H2/PostgreSQL/MySQL ONLY_FULL_GROUP_BY 均直接报错）。
+            for (String dimField : dimFields) {
+                if (!containsGroupField(bean.getGroupBy(), dimField))
+                    bean.addGroupField(dimField);
             }
         }
 
@@ -227,6 +239,16 @@ public class MdxQuerySplitter {
 
         if (field.getFormula() != null)
             throw new NopException(ERR_ORM_QUERY_UNSUPPORTED_FIELD_ATTR).param(ARG_ATTR, "formula");
+    }
+
+    private boolean containsGroupField(List<GroupFieldBean> groupBy, String name) {
+        if (groupBy == null)
+            return false;
+        for (GroupFieldBean field : groupBy) {
+            if (name.equals(field.getName()))
+                return true;
+        }
+        return false;
     }
 
     private boolean containsAggFunc(List<QueryFieldBean> fields) {

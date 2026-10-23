@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -322,6 +323,47 @@ class TestMdxQuerySplitter {
         assertEquals(40L, main.getOffset());
         assertEquals("cur", main.getCursor());
         assertEquals(1, main.getOrderBy().size());
+    }
+
+    // ---------------------------------------------------------------- 聚合与维度
+
+    /**
+     * 聚合查询显式指定 dimFields、但维度列不在 fields 里时，维度列会被补进 SELECT；
+     * 如果不把补出来的维度列同时加入 GROUP BY，就会生成 {@code select count(x), t.id from t}
+     * 这种非法 SQL（H2/PostgreSQL/MySQL ONLY_FULL_GROUP_BY 都直接报错）。
+     */
+    @Test
+    void testExplicitDimFieldsAreAddedToGroupByWhenAggregated() {
+        QueryBean query = new QueryBean();
+        query.setSourceName("DeptEntity");
+        query.setDimFields(List.of("deptId"));
+        query.addField(QueryFieldBean.forField("userName").count());
+
+        MdxQueryBean main = new MdxQuerySplitter().split(query, entityModel("DeptEntity", "deptId")).get(0);
+
+        assertEquals(List.of("deptId"), main.getGroupBy().stream().map(GroupFieldBean::getName).toList());
+        String sql = DaoQueryHelper.queryToSelectFieldsSql(null, main, null).end().toString();
+        assertTrue(sql.toLowerCase().contains("group by"), "聚合查询带维度时必须 GROUP BY，实际SQL: " + sql);
+    }
+
+    /**
+     * 所有字段都是聚合字段、又没有显式 dimFields 时，没有可用的对齐维度：
+     * 这是全局聚合（一个结果行），不能再回退到主键维度——回退会把主键列补进 SELECT
+     * 却不进 GROUP BY，生成非法 SQL。
+     */
+    @Test
+    void testAllAggregateFieldsWithoutDimFieldsProducesGlobalAggregate() {
+        QueryBean query = new QueryBean();
+        query.setSourceName("DeptEntity");
+        query.addField(QueryFieldBean.forField("userName").count());
+
+        MdxQueryBean main = new MdxQuerySplitter().split(query, entityModel("DeptEntity", "deptId")).get(0);
+
+        assertTrue(main.getDimFields().isEmpty(), "全局聚合不应回退出维度字段");
+        assertEquals(1, main.getFields().size(), "不得额外补入主键列");
+        assertNull(main.getGroupBy(), "全局聚合不应有 GROUP BY");
+        String sql = DaoQueryHelper.queryToSelectFieldsSql(null, main, null).end().toString();
+        assertFalse(sql.contains("deptId"), "不得生成未分组的维度列，实际SQL: " + sql);
     }
 
     // ---------------------------------------------------------------- 结果正确性
