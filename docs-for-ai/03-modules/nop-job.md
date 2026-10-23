@@ -9,7 +9,7 @@ nop-job 提供两种调度模式，共享同一套触发器（CRON / 固定频�
 
 ## 功能概览
 
-- **CRON 表达式**：标准 cron 调度
+- **CRON 表达式**：6/7 段 Quartz 兼容方言调度（支持 `L`/`W`/`#`/可选年段与锚点周期）
 - **固定频率**：fixed-rate 固定间隔执行
 - **固定延迟**：fixed-delay 上次结束后延迟执行
 - **一次性触发**：手动触发单次执行
@@ -341,12 +341,22 @@ public interface IJobInvoker {
 
 | TriggerSpec 字段 | 触发类型 | 说明 |
 |------------------|---------|------|
-| `cronExpr` 非空 | CRON | 标准 Unix cron 表达式 |
+| `cronExpr` 非空 | CRON | 6/7 段 Quartz 兼容方言，见 3.3.1 |
 | `repeatInterval > 0` 且 `repeatFixedDelay=false` | FIXED_RATE | 从上次调度时间起固定间隔 |
 | `repeatInterval > 0` 且 `repeatFixedDelay=true` | FIXED_DELAY | 从上次执行结束起固定延迟 |
 | 都未设置 | ONCE | 触发一次 |
 
 通用字段：`maxExecutionCount`（最大执行次数，0=无限）、`minScheduleTime`/`maxScheduleTime`（调度时间窗口）、`misfireThreshold`（misfire 阈值）、`pauseCalendars`（暂停日历）。
+
+### 3.3.1 CRON 表达式方言与锚点周期
+
+语法权威是 `io.nop.job.core.utils.CronExpression`（Java 实现是唯一权威；前端/TS 侧实现必须与之对账）。
+
+- **段数**：6 段（秒 分 时 日 月 周）或 7 段（第 7 段为年，范围 1970-2099）。日/周位同时指定时为 AND 语义，`?` 只允许出现在日/周位。
+- **Quartz 兼容扩展**：日位 `L`/`L-n`/`nW`/`LW`，周位 `d#N`/`dL`/单独 `L`（语义为周六）；不支持 `@daily` 一类别名。
+- **锚点周期**（无法用 cron 表达的「每 N 天/周」）：`repeatAnchorEvery`（>0 启用）+ `repeatAnchorUnit`（`day`/`week`）+ `repeatAnchorDate`（`YYYY-MM-DD`，引擎默认时区的日历日）。过滤规则：触发日 >= 锚点日，且 `day` 单位按整日差 `mod every == 0`、`week` 单位按 `floor(整日差/7) mod every == 0`；仅对 CRON 触发器有效。持久化列为 `nop_job_schedule.repeat_anchor_every/repeat_anchor_unit/repeat_anchor_date`，保存时对 cron 语法与锚点组合做 fail-fast 校验。
+- **时区**：当前无 `timezone` 字段，统一使用 JVM 默认时区；预演/宿主装配需按同一口径换算。
+- 管理页 `cronExpr` 仍是表达式文本输入；可视化 cron 编辑器是 `nop-chaos-flux` 的 `cron-editor` 组件（值为 `CronScheduleValue` 对象），由宿主页面装配，映射契约见该仓 cron-editor 组件设计文档 §9（跨仓文档，不在本仓 docs-for-ai 内）。
 
 ---
 
@@ -358,7 +368,7 @@ public interface IJobInvoker {
 | NopJobFire | `nop_job_fire` | 触发批次（一次触发产生一条） |
 | NopJobTask | `nop_job_task` | 执行任务（一个 fire 可拆分多个 task，支持分片） |
 
-**NopJobSchedule 关键字段**：`triggerType`、`cronExpr`、`repeatIntervalMs`、`executorKind`、`jobParams`、`scheduleStatus`、`blockStrategy`、`timeoutSeconds`、`nextFireTime`、`partitionIndex`。
+**NopJobSchedule 关键字段**：`triggerType`、`cronExpr`、`repeatAnchorEvery`/`repeatAnchorUnit`/`repeatAnchorDate`（cron 锚点周期）、`repeatIntervalMs`、`executorKind`、`jobParams`、`scheduleStatus`、`blockStrategy`、`timeoutSeconds`、`nextFireTime`、`partitionIndex`。
 
 **NopJobFire 关键字段**：`triggerSource`（SCHEDULE/MANUAL/RECOVERY）、`fireStatus`、`durationMs`。
 

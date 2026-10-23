@@ -53,6 +53,10 @@
             <option code="FIXED_DELAY" label="固定延时" value="3"/>
             <option code="ONCE" label="单次执行" value="4"/>
         </dict>
+        <dict label="锚点周期单位" name="job/repeat-anchor-unit" valueType="string" i18n-en:label="Repeat Anchor Unit">
+            <option code="DAY" label="天" value="day" i18n-en:label="Day"/>
+            <option code="WEEK" label="周" value="week" i18n-en:label="Week"/>
+        </dict>
     </dicts>
 
     <domains>
@@ -116,6 +120,17 @@
                         ext:dict="job/trigger-type"/>
                 <column code="CRON_EXPR" displayName="CRON表达式" name="cronExpr" precision="100" propId="11"
                         stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Cron Expr"/>
+                <!-- cron 锚点周期（引擎侧语义见 nop-job-core AnchorRepeatTrigger）：
+                     自锚点日起每 N 个 day/week 触发一次；every=0 表示不启用锚点过滤 -->
+                <column code="REPEAT_ANCHOR_EVERY" defaultValue="0" displayName="锚点周期" name="repeatAnchorEvery"
+                        propId="44" stdDataType="int" stdSqlType="INTEGER"
+                        i18n-en:displayName="Repeat Anchor Every"/>
+                <column code="REPEAT_ANCHOR_UNIT" displayName="锚点周期单位" name="repeatAnchorUnit" precision="10"
+                        propId="45" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Repeat Anchor Unit" ext:dict="job/repeat-anchor-unit"/>
+                <column code="REPEAT_ANCHOR_DATE" displayName="锚点日期" name="repeatAnchorDate" precision="10"
+                        propId="46" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Repeat Anchor Date"/>
                 <column code="REPEAT_INTERVAL_MS" displayName="重复间隔(毫秒)" name="repeatIntervalMs" propId="12"
                         stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Repeat Interval Ms"/>
                 <column code="MAX_EXECUTION_COUNT" displayName="最大执行次数" name="maxExecutionCount" propId="13"

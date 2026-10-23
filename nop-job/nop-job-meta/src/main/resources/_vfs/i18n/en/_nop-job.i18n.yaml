@@ -92,6 +92,10 @@ prop:
       dispatchMode_label: null
       partitionCount: Partition Count
       priority: Priority
+      repeatAnchorEvery: Repeat Anchor Every
+      repeatAnchorUnit: Repeat Anchor Unit
+      repeatAnchorUnit_label: null
+      repeatAnchorDate: Repeat Anchor Date
       jobParamsComponent: null
       pauseCalendarSpecComponent: null
     NopJobTask:
@@ -153,6 +157,7 @@ dict:
     job/executor-kind: Executor Kind
     job/block-strategy: Block Strategy
     job/trigger-type: Trigger Type
+    job/repeat-anchor-unit: Repeat Anchor Unit
 dict.option.label:
   job/task-status:
     '15': Suspicious
@@ -160,3 +165,6 @@ dict.option.label:
     test: Test Executor
     rpc: RPC Executor
     rpcPoll: RPC Poll Executor
+  job/repeat-anchor-unit:
+    day: Day
+    week: Week

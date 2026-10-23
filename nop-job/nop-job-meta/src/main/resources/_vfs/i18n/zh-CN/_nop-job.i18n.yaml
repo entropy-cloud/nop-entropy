@@ -79,6 +79,10 @@ prop:
       pauseCalendarSpecComponent: null
       priority: 优先级
       remark: 备注
+      repeatAnchorDate: 锚点日期
+      repeatAnchorEvery: 锚点周期
+      repeatAnchorUnit: 锚点周期单位
+      repeatAnchorUnit_label: 锚点周期单位
       repeatIntervalMs: 重复间隔(毫秒)
       retryPolicyId: 重试策略ID
       scheduleStatus: 调度状态

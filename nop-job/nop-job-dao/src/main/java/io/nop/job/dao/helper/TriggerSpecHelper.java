@@ -32,6 +32,10 @@ public class TriggerSpecHelper {
         spec.setUseDefaultCalendar(schedule.getUseDefaultCalendar() != null && schedule.getUseDefaultCalendar() == 1);
         spec.setPauseCalendars(parsePauseCalendars(schedule.getPauseCalendarSpec()));
         spec.setMaxFailedCount(0);
+        // cron 锚点周期（C3 语义，plan 537）：实体列 -> TriggerSpec，AnchorRepeatTrigger 消费
+        spec.setRepeatAnchorEvery(defaultInt(schedule.getRepeatAnchorEvery()));
+        spec.setRepeatAnchorUnit(schedule.getRepeatAnchorUnit());
+        spec.setRepeatAnchorDate(schedule.getRepeatAnchorDate());
         return spec;
     }
 

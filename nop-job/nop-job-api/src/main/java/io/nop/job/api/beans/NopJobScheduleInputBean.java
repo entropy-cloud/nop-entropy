@@ -404,4 +404,46 @@
         }
 
 
+        private Integer _repeatAnchorEvery;
+
+    
+        @PropMeta(propId=44)
+    
+        public Integer getRepeatAnchorEvery(){
+            return _repeatAnchorEvery;
+        }
+
+        public void setRepeatAnchorEvery(Integer value){
+            this._repeatAnchorEvery = value;
+        }
+
+
+        private String _repeatAnchorUnit;
+
+    
+        @PropMeta(propId=45)
+    
+        public String getRepeatAnchorUnit(){
+            return _repeatAnchorUnit;
+        }
+
+        public void setRepeatAnchorUnit(String value){
+            this._repeatAnchorUnit = value;
+        }
+
+
+        private String _repeatAnchorDate;
+
+    
+        @PropMeta(propId=46)
+    
+        public String getRepeatAnchorDate(){
+            return _repeatAnchorDate;
+        }
+
+        public void setRepeatAnchorDate(String value){
+            this._repeatAnchorDate = value;
+        }
+
+
     }

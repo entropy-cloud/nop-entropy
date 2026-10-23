@@ -140,6 +140,15 @@
 
                 <!--优先级-->
                 <col id="priority" ui:number="true" sortable="true"/>
+
+                <!--锚点周期-->
+                <col id="repeatAnchorEvery" ui:number="true" sortable="true"/>
+
+                <!--锚点周期单位-->
+                <col id="repeatAnchorUnit" sortable="true"/>
+
+                <!--锚点日期-->
+                <col id="repeatAnchorDate" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -168,7 +177,8 @@
  successFireCount[成功触发次数] failFireCount[失败触发次数]
  taskCostCpu[任务CPU开销(毫核)] taskCostMemory[任务内存开销(MB)]
  dispatchMode[派发模式] partitionCount[分片数量]
- priority[优先级] 
+ priority[优先级] repeatAnchorEvery[锚点周期]
+ repeatAnchorUnit[锚点周期单位] repeatAnchorDate[锚点日期]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-调度定义" i18n-en:title="Add Job Schedule" x:prototype="edit"/>
@@ -187,7 +197,8 @@
  partitionIndex[分区索引] remark[备注]
  taskCostCpu[任务CPU开销(毫核)] taskCostMemory[任务内存开销(MB)]
  dispatchMode[派发模式] partitionCount[分片数量]
- priority[优先级] 
+ priority[优先级] repeatAnchorEvery[锚点周期]
+ repeatAnchorUnit[锚点周期单位] repeatAnchorDate[锚点日期]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>

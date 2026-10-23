@@ -43,6 +43,9 @@ CREATE TABLE nop_job_schedule(
   DISPATCH_MODE VARCHAR(30) default 'single'  NULL    COMMENT '派发模式',
   PARTITION_COUNT INTEGER default 1  NULL    COMMENT '分片数量',
   PRIORITY INTEGER default 0  NULL    COMMENT '优先级',
+  REPEAT_ANCHOR_EVERY INTEGER default 0  NULL    COMMENT '锚点周期',
+  REPEAT_ANCHOR_UNIT VARCHAR(10) NULL    COMMENT '锚点周期单位',
+  REPEAT_ANCHOR_DATE VARCHAR(10) NULL    COMMENT '锚点日期',
   constraint UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME unique (NAMESPACE_ID,GROUP_ID,JOB_NAME),
   constraint PK_nop_job_schedule primary key (JOB_SCHEDULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;

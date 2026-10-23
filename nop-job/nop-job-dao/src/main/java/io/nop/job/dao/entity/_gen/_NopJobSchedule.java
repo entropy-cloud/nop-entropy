@@ -193,8 +193,20 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     public static final String PROP_NAME_priority = "priority";
     public static final int PROP_ID_priority = 43;
     
+    /* 锚点周期: REPEAT_ANCHOR_EVERY INTEGER */
+    public static final String PROP_NAME_repeatAnchorEvery = "repeatAnchorEvery";
+    public static final int PROP_ID_repeatAnchorEvery = 44;
+    
+    /* 锚点周期单位: REPEAT_ANCHOR_UNIT VARCHAR */
+    public static final String PROP_NAME_repeatAnchorUnit = "repeatAnchorUnit";
+    public static final int PROP_ID_repeatAnchorUnit = 45;
+    
+    /* 锚点日期: REPEAT_ANCHOR_DATE VARCHAR */
+    public static final String PROP_NAME_repeatAnchorDate = "repeatAnchorDate";
+    public static final int PROP_ID_repeatAnchorDate = 46;
+    
 
-    private static int _PROP_ID_BOUND = 44;
+    private static int _PROP_ID_BOUND = 47;
 
     
     /* component:  */
@@ -207,7 +219,7 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_jobScheduleId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_jobScheduleId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[44];
+    private static final String[] PROP_ID_TO_NAME = new String[47];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -340,6 +352,15 @@ public class _NopJobSchedule extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_priority] = PROP_NAME_priority;
           PROP_NAME_TO_ID.put(PROP_NAME_priority, PROP_ID_priority);
       
+          PROP_ID_TO_NAME[PROP_ID_repeatAnchorEvery] = PROP_NAME_repeatAnchorEvery;
+          PROP_NAME_TO_ID.put(PROP_NAME_repeatAnchorEvery, PROP_ID_repeatAnchorEvery);
+      
+          PROP_ID_TO_NAME[PROP_ID_repeatAnchorUnit] = PROP_NAME_repeatAnchorUnit;
+          PROP_NAME_TO_ID.put(PROP_NAME_repeatAnchorUnit, PROP_ID_repeatAnchorUnit);
+      
+          PROP_ID_TO_NAME[PROP_ID_repeatAnchorDate] = PROP_NAME_repeatAnchorDate;
+          PROP_NAME_TO_ID.put(PROP_NAME_repeatAnchorDate, PROP_ID_repeatAnchorDate);
+      
     }
 
     
@@ -471,6 +492,15 @@ public class _NopJobSchedule extends DynamicOrmEntity{
     
     /* 优先级: PRIORITY */
     private java.lang.Integer _priority;
+    
+    /* 锚点周期: REPEAT_ANCHOR_EVERY */
+    private java.lang.Integer _repeatAnchorEvery;
+    
+    /* 锚点周期单位: REPEAT_ANCHOR_UNIT */
+    private java.lang.String _repeatAnchorUnit;
+    
+    /* 锚点日期: REPEAT_ANCHOR_DATE */
+    private java.lang.String _repeatAnchorDate;
     
 
     public _NopJobSchedule(){
@@ -674,6 +704,15 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         
             case PROP_ID_priority:
                return getPriority();
+        
+            case PROP_ID_repeatAnchorEvery:
+               return getRepeatAnchorEvery();
+        
+            case PROP_ID_repeatAnchorUnit:
+               return getRepeatAnchorUnit();
+        
+            case PROP_ID_repeatAnchorDate:
+               return getRepeatAnchorDate();
         
            default:
               return super.orm_propValue(propId);
@@ -1116,6 +1155,36 @@ public class _NopJobSchedule extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_repeatAnchorEvery:{
+               java.lang.Integer typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toInteger(value,
+                       err-> newTypeConversionError(PROP_NAME_repeatAnchorEvery));
+               }
+               setRepeatAnchorEvery(typedValue);
+               break;
+            }
+        
+            case PROP_ID_repeatAnchorUnit:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_repeatAnchorUnit));
+               }
+               setRepeatAnchorUnit(typedValue);
+               break;
+            }
+        
+            case PROP_ID_repeatAnchorDate:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_repeatAnchorDate));
+               }
+               setRepeatAnchorDate(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1422,6 +1491,27 @@ public class _NopJobSchedule extends DynamicOrmEntity{
             case PROP_ID_priority:{
                onInitProp(propId);
                this._priority = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_repeatAnchorEvery:{
+               onInitProp(propId);
+               this._repeatAnchorEvery = (java.lang.Integer)value;
+               
+               break;
+            }
+        
+            case PROP_ID_repeatAnchorUnit:{
+               onInitProp(propId);
+               this._repeatAnchorUnit = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_repeatAnchorDate:{
+               onInitProp(propId);
+               this._repeatAnchorDate = (java.lang.String)value;
                
                break;
             }
@@ -2245,6 +2335,63 @@ public class _NopJobSchedule extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_priority,value)){
             this._priority = value;
             internalClearRefs(PROP_ID_priority);
+            
+        }
+    }
+    
+    /**
+     * 锚点周期: REPEAT_ANCHOR_EVERY
+     */
+    public final java.lang.Integer getRepeatAnchorEvery(){
+         onPropGet(PROP_ID_repeatAnchorEvery);
+         return _repeatAnchorEvery;
+    }
+
+    /**
+     * 锚点周期: REPEAT_ANCHOR_EVERY
+     */
+    public final void setRepeatAnchorEvery(java.lang.Integer value){
+        if(onPropSet(PROP_ID_repeatAnchorEvery,value)){
+            this._repeatAnchorEvery = value;
+            internalClearRefs(PROP_ID_repeatAnchorEvery);
+            
+        }
+    }
+    
+    /**
+     * 锚点周期单位: REPEAT_ANCHOR_UNIT
+     */
+    public final java.lang.String getRepeatAnchorUnit(){
+         onPropGet(PROP_ID_repeatAnchorUnit);
+         return _repeatAnchorUnit;
+    }
+
+    /**
+     * 锚点周期单位: REPEAT_ANCHOR_UNIT
+     */
+    public final void setRepeatAnchorUnit(java.lang.String value){
+        if(onPropSet(PROP_ID_repeatAnchorUnit,value)){
+            this._repeatAnchorUnit = value;
+            internalClearRefs(PROP_ID_repeatAnchorUnit);
+            
+        }
+    }
+    
+    /**
+     * 锚点日期: REPEAT_ANCHOR_DATE
+     */
+    public final java.lang.String getRepeatAnchorDate(){
+         onPropGet(PROP_ID_repeatAnchorDate);
+         return _repeatAnchorDate;
+    }
+
+    /**
+     * 锚点日期: REPEAT_ANCHOR_DATE
+     */
+    public final void setRepeatAnchorDate(java.lang.String value){
+        if(onPropSet(PROP_ID_repeatAnchorDate,value)){
+            this._repeatAnchorDate = value;
+            internalClearRefs(PROP_ID_repeatAnchorDate);
             
         }
     }

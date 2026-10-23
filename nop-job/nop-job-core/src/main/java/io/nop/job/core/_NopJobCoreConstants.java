@@ -173,4 +173,14 @@ public interface _NopJobCoreConstants {
      */
     int TRIGGER_TYPE_ONCE = 4;
                     
+    /**
+     * 锚点周期单位: 天 
+     */
+    String REPEAT_ANCHOR_UNIT_DAY = "day";
+                    
+    /**
+     * 锚点周期单位: 周 
+     */
+    String REPEAT_ANCHOR_UNIT_WEEK = "week";
+                    
 }

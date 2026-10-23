@@ -16,13 +16,17 @@ import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.store.IJobScheduleStore;
+import io.nop.orm.IOrmTemplate;
 import io.nop.orm.dao.IOrmEntityDao;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED;
@@ -48,6 +52,9 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
 
     @Inject
     IJobScheduleStore scheduleStore;
+
+    @Inject
+    IOrmTemplate orm;
 
     @Test
     public void testDisablePauseAndArchiveSchedule() {
@@ -332,6 +339,73 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         NopException completedError = assertThrows(NopException.class,
                 () -> scheduleBiz.triggerNow(completed.getJobScheduleId(), null, newContext()));
         assertEquals(ERR_JOB_SCHEDULE_MANUAL_TRIGGER_NOT_ALLOWED.getErrorCode(), completedError.getErrorCode());
+    }
+
+    @Test
+    public void testSaveRejectsInvalidCronExpression() {
+        Map<String, Object> data = newScheduleSaveData("job-invalid-cron");
+        data.put("cronExpr", "not-a-cron");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.save(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testSaveRejectsInvalidAnchorDate() {
+        Map<String, Object> data = newScheduleSaveData("job-invalid-anchor");
+        data.put("cronExpr", "0 0 9 * * ?");
+        data.put("repeatAnchorEvery", 2);
+        data.put("repeatAnchorUnit", "day");
+        data.put("repeatAnchorDate", "2026/01/05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.save(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testSaveRejectsAnchorWithoutCronExpression() {
+        Map<String, Object> data = newScheduleSaveData("job-anchor-no-cron");
+        data.put("repeatAnchorEvery", 1);
+        data.put("repeatAnchorUnit", "day");
+        data.put("repeatAnchorDate", "2026-01-05");
+
+        NopException error = assertThrows(NopException.class,
+                () -> orm.runInSession(session -> scheduleBiz.save(data, newContext())));
+        assertEquals(ERR_JOB_TRIGGER_INVALID_ANCHOR_CONFIG.getErrorCode(), error.getErrorCode());
+    }
+
+    @Test
+    public void testSavePersistsAnchorConfig() {
+        Map<String, Object> data = newScheduleSaveData("job-save-anchor");
+        data.put("cronExpr", "0 0 9 * * ?");
+        data.put("repeatAnchorEvery", 2);
+        data.put("repeatAnchorUnit", "week");
+        data.put("repeatAnchorDate", "2026-01-05");
+
+        NopJobSchedule saved = orm.runInSession(session -> scheduleBiz.save(data, newContext()));
+        assertNotNull(saved.getJobScheduleId());
+
+        NopJobSchedule loaded = loadSchedule(saved.getJobScheduleId());
+        assertEquals("0 0 9 * * ?", loaded.getCronExpr());
+        assertEquals(2, loaded.getRepeatAnchorEvery());
+        assertEquals("week", loaded.getRepeatAnchorUnit());
+        assertEquals("2026-01-05", loaded.getRepeatAnchorDate());
+    }
+
+    private Map<String, Object> newScheduleSaveData(String jobName) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("namespaceId", "default");
+        data.put("groupId", "default");
+        data.put("jobName", jobName);
+        data.put("displayName", jobName);
+        data.put("scheduleStatus", SCHEDULE_STATUS_DISABLED);
+        data.put("executorKind", "test");
+        data.put("triggerType", 1);
+        data.put("partitionIndex", 1);
+        data.put("jobParams", "{\"k\":\"v\"}");
+        return data;
     }
 
     private IServiceContext newContext() {

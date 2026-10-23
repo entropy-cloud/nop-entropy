@@ -198,6 +198,18 @@
               sortable="true" insertable="true" updatable="true" defaultValue="0">
             <schema type="java.lang.Integer"/>
         </prop>
+        <prop name="repeatAnchorEvery" displayName="锚点周期" propId="44" i18n-en:displayName="Repeat Anchor Every"
+              queryable="true" sortable="true" insertable="true" updatable="true" defaultValue="0">
+            <schema type="java.lang.Integer"/>
+        </prop>
+        <prop name="repeatAnchorUnit" displayName="锚点周期单位" propId="45" i18n-en:displayName="Repeat Anchor Unit"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10" dict="job/repeat-anchor-unit"/>
+        </prop>
+        <prop name="repeatAnchorDate" displayName="锚点日期" propId="46" i18n-en:displayName="Repeat Anchor Date"
+              queryable="true" sortable="true" insertable="true" updatable="true">
+            <schema type="java.lang.String" precision="10"/>
+        </prop>
         <prop name="jobParamsComponent" tagSet="json,pub,edit" ext:kind="component" internal="true" insertable="true"
               updatable="true" lazy="true">
             <schema type="io.nop.orm.component.JsonOrmComponent"/>

@@ -8,6 +8,8 @@ import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
+import io.nop.biz.crud.EntityData;
+import io.nop.commons.util.StringHelper;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.job.api.spec.TriggerSpec;
@@ -15,6 +17,8 @@ import io.nop.job.biz.INopJobScheduleBiz;
 import io.nop.job.core.ITriggerEvalContext;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.core.trigger.JobTriggerCalculator;
+import io.nop.job.core.trigger.TriggerBuilder;
+import io.nop.job.core.utils.CronExpression;
 import io.nop.job.dao.entity.NopJobFire;
 import io.nop.job.dao.entity.NopJobSchedule;
 import io.nop.job.dao.helper.JobScheduleStateMachine;
@@ -31,6 +35,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.function.IntPredicate;
 
+import static io.nop.job.core.JobCoreErrors.ARG_CRON_EXPR;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_ALREADY_ARCHIVED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_DELETE_NOT_ALLOWED;
 import static io.nop.job.service.NopJobErrors.ERR_JOB_SCHEDULE_INVALID_STATUS_TRANSITION;
@@ -235,5 +241,25 @@ public class NopJobScheduleBizModel extends CrudBizModel<NopJobSchedule> impleme
 
     private ITriggerEvalContext toEvalContext(NopJobSchedule schedule) {
         return TriggerSpecHelper.toEvalContext(schedule);
+    }
+
+    @Override
+    protected void defaultPrepareSave(@Name("entityData") EntityData<NopJobSchedule> entityData,
+                                      IServiceContext context) {
+        super.defaultPrepareSave(entityData, context);
+        validateTriggerConfig(entityData.getEntity());
+    }
+
+    /**
+     * 保存期触发器配置校验（cron 全站落地）：非法 cron 表达式与锚点组合在落库前 fail-fast，
+     * 避免坏配置进入调度器后才在构建期被拒绝。锚点组合语义复用 TriggerBuilder 的构建期校验，
+     * 不在本处重复实现。
+     */
+    private void validateTriggerConfig(NopJobSchedule schedule) {
+        String cronExpr = schedule.getCronExpr();
+        if (!StringHelper.isEmpty(cronExpr) && !CronExpression.isValidExpression(cronExpr)) {
+            throw new NopException(ERR_JOB_TRIGGER_PARSE_CRON_EXPR_FAIL).param(ARG_CRON_EXPR, cronExpr);
+        }
+        TriggerBuilder.buildTrigger(TriggerSpecHelper.toTriggerSpec(schedule), null);
     }
 }

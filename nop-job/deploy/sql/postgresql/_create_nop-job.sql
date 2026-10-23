@@ -43,6 +43,9 @@ CREATE TABLE nop_job_schedule(
   dispatch_mode VARCHAR(30) default 'single'   ,
   partition_count INT4 default 1   ,
   priority INT4 default 0   ,
+  repeat_anchor_every INT4 default 0   ,
+  repeat_anchor_unit VARCHAR(10)  ,
+  repeat_anchor_date VARCHAR(10)  ,
   constraint UK_NOP_JOB_SCHEDULE_NS_GROUP_NAME unique (namespace_id,group_id,job_name),
   constraint PK_nop_job_schedule primary key (job_schedule_id)
 );
@@ -231,6 +234,12 @@ create index IX_NOP_JOB_TASK_STATUS_WORKER on nop_job_task (task_status,worker_i
       COMMENT ON COLUMN nop_job_schedule.partition_count IS '分片数量';
                     
       COMMENT ON COLUMN nop_job_schedule.priority IS '优先级';
+                    
+      COMMENT ON COLUMN nop_job_schedule.repeat_anchor_every IS '锚点周期';
+                    
+      COMMENT ON COLUMN nop_job_schedule.repeat_anchor_unit IS '锚点周期单位';
+                    
+      COMMENT ON COLUMN nop_job_schedule.repeat_anchor_date IS '锚点日期';
                     
       COMMENT ON TABLE nop_job_task_log IS '执行日志';
                 

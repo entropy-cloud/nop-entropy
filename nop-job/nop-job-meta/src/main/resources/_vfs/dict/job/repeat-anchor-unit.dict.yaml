@@ -1,0 +1,15 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 锚点周期单位
+locale: zh-CN
+valueType: string
+description: 
+options:
+
+  - label: 天
+    value: day
+    description: 
+  
+  - label: 周
+    value: week
+    description: 
+  

@@ -48,6 +48,10 @@
   "dispatchMode_label": "",
   "partitionCount": 0,
   "priority": 0,
+  "repeatAnchorEvery": 0,
+  "repeatAnchorUnit": "",
+  "repeatAnchorUnit_label": "",
+  "repeatAnchorDate": "",
   "jobParamsComponent": null,
   "pauseCalendarSpecComponent": null
 }
