@@ -1,6 +1,6 @@
 <!--
 @onClick 点击事件的响应函数，内容为js代码。上下文中存在props变量
-@link actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定 amis 平台内的页面。可用 ${xxx} 取值。
+@link actionType=link时起作用。用来指定跳转地址，跟 url 不同的是，这是单页跳转方式，不会渲染浏览器，请指定平台内页面地址。可用 ${xxx} 取值。
 @url actionType=url时，url和blank参数起作用，用于浏览器整体跳转
 -->
 <action x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef"
@@ -69,7 +69,7 @@
 
     <feedback xdef:ref="UiDialogModel"/>
 
-    <!-- AMIS框架专用，Flux不使用 -->
+    <!-- Deprecated: AMIS 框架专用（amis 渲染已整体 deprecated，仅 legacy 运行时使用），Flux 不使用。Flux 请使用 onClick。参见 docs-for-ai/04-reference/amis-legacy-deprecation.md -->
     <onEvent>xjson-map</onEvent>
 
     <!-- flux框架使用，不使用onEvent -->
