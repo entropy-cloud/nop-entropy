@@ -477,6 +477,12 @@ public class TestNopJobScheduleBizModel extends JunitBaseTestCase {
         assertEquals(1000L, loaded.getRepeatIntervalMs());
     }
 
+    /**
+     * save → enableSchedule → nextFireTime 的路径接线证据（persisted 实体 → TriggerSpecHelper → TriggerBuilder
+     * → AnchorRepeatTrigger 实际参与下一次触发计算）。锚点过滤语义本身由 dao 层
+     * {@code TestTriggerSpecAnchorWiring} 的确定性序列用例证明；本用例只断言结果落在锚点对齐日，
+     * 不声称能区分「锚点生效」与「日序列恰好满足奇偶」。
+     */
     @Test
     public void testEnableScheduleNextFireTimeRespectsPersistedAnchor() {
         Map<String, Object> data = newScheduleSaveData("job-enable-anchor");

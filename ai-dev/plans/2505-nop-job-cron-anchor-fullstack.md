@@ -1,6 +1,6 @@
 # 2505 nop-job cron 全站落地：锚点持久化 + 实体装配 + 保存/更新校验 + 前端字段出口
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-23
 > Source: 用户需求（2026-10-23「全站落地」）+ cron 轨道 C2/C3/C7 已交付事实（nop-chaos-flux 仓 cron 轨道 roadmap（跨仓文档））
 > Related: 跨仓 cron 轨道（flux plans 535/536/537/542）；`ai-dev/plans/00-plan-authoring-and-execution-guide.md`
@@ -106,7 +106,7 @@ Exit Criteria:
 
 - [x] 新测试红绿证据（变异探针，恢复后均以 grep 断言位点存在）：①移除 `TriggerSpecHelper` 三行映射 → 当时 5 个 dao 用例 5/5 红；②移除 `defaultPrepareUpdate` 的 `validateTriggerConfig` 调用 → 2 个 update 拒绝用例 2/2 红；③移除 `TriggerBuilder` 的 `validateRangeConfig` 调用 → dao 窗口负例 1/1 红。
 - [x] `./mvnw -o test -pl nop-job/nop-job-core,nop-job/nop-job-dao` → core 139/139、dao 98/98 全绿；`./mvnw -o test -pl nop-job/nop-job-service` → 60/60 全绿。
-- [x] **端到端验证**：实体对象（含锚点三字段）→ `TriggerSpecHelper` → `TriggerBuilder` → 触发序列，day（每 2 天 01-05/07/09）与 week（每 2 周 01-05/19、02-02）序列断言通过；service 层 `save(DISABLED + 锚点) → enableSchedule → nextFireTime` 断言 nextFireTime 落在锚点对齐日（`DAYS.between(anchor,nextFire) % 2 == 0`）。
+- [x] **端到端验证**：实体对象（含锚点三字段）→ `TriggerSpecHelper` → `TriggerBuilder` → 触发序列，day（每 2 天 01-05/07/09）与 week（每 2 周 01-05/19、02-02）序列断言通过（锚点过滤的确定性判别证据）；service 层 `save(DISABLED + 锚点) → enableSchedule → nextFireTime` 验证 persisted 实体在真实用户路径上接通锚点计算（路径接线证据；当前日期下奇偶断言不足以单独区分锚点生效，已在测试注释与复审记录中标注）。
 - [x] **无静默跳过**：非法输入抛 `NopException`（`nop.err.job.trigger.parse-cron-expr-fail` / `...invalid-anchor-config` / `...invalid-range-config` / `nop.err.biz.invalid-dict-option`），无 catch 吞异常/空实现。
 - [x] `ai-dev/logs/` 对应日期条目已更新（收口提交时写入）。
 
@@ -130,15 +130,15 @@ Exit Criteria:
 
 ## Closure Gates
 
-- [ ] 所有 in-scope confirmed live gap（实体锚点列缺失、实体→spec 装配缺失、save/update 校验缺失、owner doc drift）已修复。
-- [ ] 三 Phase Exit Criteria 全部勾选。
-- [ ] focused tests 全绿（core/dao/service），并有红绿变异探针证据。
-- [ ] 生成链产物完整性验证（entity/xmeta/view/beans/dict/DDL）。
-- [ ] 不存在被静默降级到 deferred 的 in-scope live defect / contract drift；UI 控件嵌入按 successor 显式裁定。
-- [ ] 独立子 agent closure-audit 完成并记录证据（含首轮 REJECTED 的 M1 修复与复审）。
-- [ ] Anti-Hollow Check：实体→spec→trigger 运行时调用链连通（测试断言锚点实际过滤）；无空方法体/静默跳过；`scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0。
-- [ ] `./mvnw compile`（受影响模块）通过。
-- [ ] `./mvnw test`（受影响模块）通过。
+- [x] 所有 in-scope confirmed live gap（实体锚点列缺失、实体→spec 装配缺失、save/update 校验缺失、owner doc drift）已修复（初版 `49a0e928b3` + 审计修复 `736e880acf`）。
+- [x] 三 Phase Exit Criteria 全部勾选。
+- [x] focused tests 全绿（core 139/139、dao 98/98、service 60/60），并有红绿变异探针证据（映射移除 5/5 红、update hook 移除 2/2 红、窗口校验移除 1/1 红）。
+- [x] 生成链产物完整性验证（entity/xmeta/view/beans/dict/DDL）——model → 各生成物逐字段一致。
+- [x] 不存在被静默降级到 deferred 的 in-scope live defect / contract drift；flux cron-editor 控件嵌入与 timezone 按 successor 显式裁定（首轮审计已确认 deferral 诚实、未隐藏 M1）。
+- [x] 独立子 agent closure-audit 完成并记录证据（首轮 REJECTED：1 Major M1；修复后复审 APPROVED-WITH-MINORS，0 Major）。
+- [x] Anti-Hollow Check：实体→spec→trigger 运行时调用链连通（`save/update → entity → TriggerSpecHelper → TriggerBuilder → AnchorRepeatTrigger` 逐段核对 + dao 序列测试）；无空方法体/静默跳过；`scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0。
+- [x] `./mvnw compile`（受影响模块）通过（`./mvnw -o install -pl nop-job -DskipTests` BUILD SUCCESS）。
+- [x] `./mvnw test`（受影响模块）通过（core 139/139、dao 98/98、service 60/60）。
 
 ## Deferred But Adjudicated
 
@@ -164,5 +164,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 待最终复审后填写
-Completed: -
+Status Note: 完成。首轮独立 closure audit 为 REJECTED（1 Major：save 校验未覆盖管理页 edit 走的 `update` 路径），已按审计修复（`736e880acf`：`defaultPrepareUpdate` 复用校验、`TriggerBuilder` 时间窗口校验、update/负例/端到端补测、baseline 与文档校正）；复审 APPROVED-WITH-MINORS（0 Major；剩余为测试强度注记与 DDL 大小写措辞，均已原地处理/注记）。
+
+Completed: 2026-10-23
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: 独立 closure audit 子 agent（首轮，REJECTED）+ 独立复审子 agent（APPROVED-WITH-MINORS）；均为 fresh session，未复用实现会话。
+- Audit Session: 首轮 `d6e40f9f-ec01-4cd3-ae41-6d21d7825b7a`；复审 session 为最终收口轮 fresh 子 agent，覆盖 HEAD `736e880acf`。
+- Evidence:
+  - M1 修复：`NopJobScheduleBizModel:246-258` 双 hook（save/update）均调 `validateTriggerConfig`；`CrudBizModel.update→doUpdate→invokeDefaultPrepareUpdate` 调用链已核对；update 拒绝/持久化用例走真实 `scheduleBiz.update`（非 `saveEntityDirectly`）。
+  - 窗口校验：`TriggerBuilder.buildTrigger` 首行 `validateRangeConfig`，新错误码 `nop.err.job.trigger.invalid-range-config`；dao+service 各自窗口负例断言。
+  - 测试计数：`./mvnw -o test -pl nop-job/nop-job-core,nop-job/nop-job-dao` → 139/139、98/98；`-pl nop-job/nop-job-service` → 60/60（`TestNopJobScheduleBizModel` 26）。
+  - 红绿探针：移除锚点映射 → 5/5 红；移除 update hook 校验 → 2/2 红；移除窗口校验 → 1/1 红；恢复后全绿（grep 断言位点）。
+  - `node ai-dev/tools/check-doc-links.mjs --strict` exit 0；`scan-hollow-implementations.mjs --module nop-job --severity high` exit 0。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-nop-job-cron-anchor-fullstack.md --strict` → exit 0（status=completed 后复核，0 未勾选/0 结构问题）。
+  - Anti-Hollow：`save/update → entity → TriggerSpecHelper → TriggerBuilder → AnchorRepeatTrigger.nextScheduleTime` 调用链逐段核对；无空方法体/静默 catch/TODO 实现。
+  - Deferred 分类：flux cron-editor 嵌入与 `timezone` 均为 out-of-scope + successor；首轮/复审均确认未隐藏 in-scope defect（M1 未借 deferred 掩盖，已实修）。
+  - 端到端：service 层 `save→enable→nextFireTime` 为路径接线证据；锚点过滤语义由 dao 确定性序列用例（day 01-05/07/09、week 01-05/19、02-02）证明。
+
+Follow-up:
+
+- 无剩余 plan-owned work。跨仓后续：flux cron-editor string valueMode + bundle 升级 + nop-job view 控件接入 + e2e（建议 cron 轨道 C8）；`timezone` 字段（TriggerSpec/引擎/实体同步设计）。
