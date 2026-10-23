@@ -354,11 +354,21 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         stream.subscribe(subscriber);
     }
 
-    private void sendKeepAlive() {
+    /**
+     * Best-effort keepalive round (CRA 30-point table row #2, finding 2.1-C3-015). The old narrow
+     * {@code catch (IOException)} let any serialization RuntimeException escape the periodic task body
+     * on the shared globalTimer and kill the keepalive chain. Per the periodic-task insulation contract
+     * (ai-dev/design/concurrency/periodic-task-insulation.md), a failed round must stay observable and
+     * must never terminate the chain: catch Throwable at site level, log with a structured key, and let
+     * the next scheduled round proceed. The failure is logged, not swallowed silently.
+     */
+    protected void sendKeepAlive() {
         try {
             session.sendMessage(createNotification("ping"));
         } catch (IOException e) {
             LOG.warn("nop.websocket.send-keep-alive-fail", e);
+        } catch (Throwable e) {
+            LOG.error("nop.err.websocket.keep-alive-fail:session={}", session, e);
         }
     }
 

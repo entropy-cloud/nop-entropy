@@ -133,38 +133,47 @@ Exit Criteria:
 
 ### Phase 2 - 30 点绝缘状态表逐点接入（平台载体面 + C3-015 补登站点）
 
-Status: planned
+Status: completed（2026-10-24 实现子代理交付：30/30 行 + F3 补登行三态处置登记落账、#2/#7 站点修复带先红后绿回归、接线验证、双聚合门禁绿；登记文件 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/insulation-30pt-disposition.md`）
 Targets: 30 点表 30 行（`C3-round2.md` §1）；站点文件：`JsonRpcWebSocketHandler.java`（nop-graphql-core）、`RpcMessageHandler.java`（nop-netty）、`LocalResourceLockManager.java`（nop-commons）等平台载体站点
 
 - Item Types: `Fix`（#2 JsonRpcWebSocketHandler catch 宽度、#7 RpcMessageHandler 无 catch、#12 try-外段随 Phase 3 C4-003）、`Proof`（设施级覆盖行的复核登记与状态表落账）
 
-- [ ] 30 行逐行三态处置登记，落本 plan 执行记录（三态判据：**接入** = 该站点在绝缘设施覆盖范围外，需显式包装；**设施级覆盖** = 绝缘层本体改造后自动覆盖，登记即可；**豁免** = 有其他防护或非 Error 逃逸面，写明理由）：
-  - [ ] #1 CliRunCommand → 成员 4.5-C4-001（Phase 3）
-  - [ ] #2 JsonRpcWebSocketHandler：catch IOException → 补宽度（Throwable 级兜底，keepalive 链可观测）
-  - [ ] #3 SysDaoNamingService / #13 SysDaoMessageService×3 / #8 SocketClient / #9 RpcTaskMonitor：catch Exception 已自备 + 设施级覆盖 → 复核登记
-  - [ ] #4 AbstractFileConfigSource：已设防正面样本 + F3 timer 线程回调决策随 Phase 1 设计文档
-  - [ ] #5 JdbcConfigSource → 成员 2.2-C1-021（Phase 3）
-  - [ ] #6 LocalResourceLockManager：设施级覆盖 + 复核登记
-  - [ ] #7 RpcMessageHandler（Netty 载体，设施不覆盖）：补 catch + 超时清扫链可观测
-  - [ ] #10 AutoRegistration / #14 AbstractPollingLeaderElector → 成员 4.2-C4-004（Phase 4）
-  - [ ] #11 RetryScannerImpl → 成员 1.6-C8-001（Phase 3）；#12 AbstractBatchScanner → 成员 1.4-C4-003（Phase 3）
-  - [ ] #23–27（SessionLockRenewal/ScheduledRecoveryManager/TeamTaskSchedulerDaemon/DBMessageService×2）→ 成员 3.1-MA-07 承接（Phase 4），本 Phase 登记为待接入
-  - [ ] #15–22（nop-stream raw 8 处）、#28 FeishuClient raw、#29 mock、#30（C3-017 未入批）→ 豁免登记（见 Deferred）
-  - [ ] F3 补登第 29 处生产站点 RpcPollTaskManager.java:119 → 成员 1.4-MA-05（Phase 3）
-- [ ] 站点行号回读核对：实施前逐行以 live code 定位（Baseline 勘误 5），漂移以 live 为准登记
-- [ ] 30 点绝缘状态表「处置后状态」锚点内容定稿（source-anchors.md 条目正文在 Phase 5 统一写入）
-- [ ] **接线验证**：至少一个平台载体裸站点（如 globalTimer 直挂任务）注入 Throwable 后链存活且可观测（证明设施本体被点表站点运行时消费）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 30 行逐行三态处置登记，落本 plan 执行记录（三态判据：**接入** = 该站点在绝缘设施覆盖范围外，需显式包装；**设施级覆盖** = 绝缘层本体改造后自动覆盖，登记即可；**豁免** = 有其他防护或非 Error 逃逸面，写明理由）——登记落 `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/insulation-30pt-disposition.md` §三（逐行表，每行独立回读 C3-round2 §1 原表 + live 回读复核，含指令映射勘误注 §二）：
+  - [x] #1 CliRunCommand → 成员 4.5-C4-001（Phase 3）
+  - [x] #2 JsonRpcWebSocketHandler：catch IOException → 补宽度（Throwable 级兜底，keepalive 链可观测）
+  - [x] #3 SysDaoNamingService / #13 SysDaoMessageService×3 / #8 SocketClient / #9 RpcTaskMonitor：catch Exception 已自备 + 设施级覆盖 → 复核登记
+  - [x] #4 AbstractFileConfigSource：已设防正面样本 + F3 timer 线程回调决策随 Phase 1 设计文档
+  - [x] #5 JdbcConfigSource → 成员 2.2-C1-021（Phase 3）
+  - [x] #6 LocalResourceLockManager：设施级覆盖 + 复核登记
+  - [x] #7 RpcMessageHandler（Netty 载体，设施不覆盖）：补 catch + 超时清扫链可观测
+  - [x] #10 AutoRegistration / #14 AbstractPollingLeaderElector → 成员 4.2-C4-004（Phase 4）
+  - [x] #11 RetryScannerImpl → 成员 1.6-C8-001（Phase 3）；#12 AbstractBatchScanner → 成员 1.4-C4-003（Phase 3）
+  - [x] #23–27（SessionLockRenewal/ScheduledRecoveryManager/TeamTaskSchedulerDaemon/DBMessageService×2）→ 成员 3.1-MA-07 承接（Phase 4），本 Phase 登记为待接入
+  - [x] #15–22（nop-stream raw 8 处）、#28 FeishuClient raw、#29 mock、#30（C3-017 未入批）→ 豁免登记（见 Deferred）
+  - [x] F3 补登第 29 处生产站点 RpcPollTaskManager.java:119 → 成员 1.4-MA-05（Phase 3）
+- [x] 站点行号回读核对：实施前逐行以 live code 定位（Baseline 勘误 5），漂移以 live 为准登记——全部 in-repo 行 live 回读：#1–14/#23–30/+F3 原表行号零漂移；漂移登记 2 处（#12 try-外段 live :89-92；#15–22 nop-stream 行号普遍漂移 + live 新增 CheckpointCoordinator:321 命中，站点全集刷新归 CL-021）
+- [x] 30 点绝缘状态表「处置后状态」锚点内容定稿（source-anchors.md 条目正文在 Phase 5 统一写入）——定稿形态 = 登记文件 §四（锚点条目正文 + 处置后状态表）
+- [x] **接线验证**：至少一个平台载体裸站点（如 globalTimer 直挂任务）注入 Throwable 后链存活且可观测（证明设施本体被点表站点运行时消费）——TestJsonRpcKeepAliveInsulation.testGlobalTimerDirectScheduleWiringReachesInsulatedPath（nop-graphql-core，#2 站点所属消费方模块）：globalTimer 直挂 scheduleWithFixedDelay（DefaultScheduledExecutor 载体）注入 IllegalStateException → listener 失败回调可达 + 链重臂 + future 失败终态，运行日志出现绝缘核心 `nop.err.periodic-task.fail: task=ws-keepalive-wiring` 实证
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 30/30 行三态处置登记完整，无未处置行
-- [ ] #2/#7 站点修复带回归测试（rule 25：注入 Error/RuntimeException 后清扫/keepalive 链存活或失败可见）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-service-framework -am` 与 `./mvnw test -pl nop-network -am` BUILD SUCCESS
-- [ ] 30 点状态表锚点内容定稿并通过与 C3-round2 §1 原表的一致性核对（只增处置列，不改判定列）
-- [ ] Owner doc 裁定：本 Phase 触 nop-graphql-core（JsonRpcWebSocketHandler）/nop-netty（RpcMessageHandler）站点 → `docs-for-ai/03-modules/nop-network.md` 若行为契约变化则随批更新，否则显式登记 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 30/30 行三态处置登记完整，无未处置行（+F3 补登行；计数核对 12 设施级 + 16 显式接入 + 2 豁免 = 30，见登记文件 §三末）
+- [x] #2/#7 站点修复带回归测试（rule 25：注入 Error/RuntimeException 后清扫/keepalive 链存活或失败可见）——两站点均有先红后绿证据（变异→红、恢复→绿，见登记文件 §六）
+- [x] 接线验证证据登记（消费方模块运行时证据 + 日志实证，见上与登记文件 §六）
+- [x] `./mvnw test -pl nop-service-framework -am` 与 `./mvnw test -pl nop-network -am` BUILD SUCCESS——两者均 BUILD SUCCESS EXIT=0（nop-graphql-core 12 条全绿含新回归 2 条；nop-netty 10 条全绿含新回归 1 条；日志快照 `_tmp/phase2-nop-service-framework-test.log`、`_tmp/phase2-nop-network-test.log`）
+- [x] 30 点状态表锚点内容定稿并通过与 C3-round2 §1 原表的一致性核对（只增处置列，不改判定列）——登记文件载体列逐行照录原表判定列；每行独立回读原表核对（§五漂移记录在案）
+- [x] Owner doc 裁定：本 Phase 触 nop-graphql-core（JsonRpcWebSocketHandler）/nop-netty（RpcMessageHandler）站点 → `docs-for-ai/03-modules/nop-network.md` 若行为契约变化则随批更新，否则显式登记 `No owner-doc update required` + 理由——**No owner-doc update required**：①#7 修复恢复既有隐式契约（过期在飞请求被清扫为超时终态）而非改写契约，清扫链死亡本身即审计确认的缺陷面，`nop.err.netty.rpc-timeout-sweep-fail` 为内部观测日志键；②#2 修复维持 sendKeepAlive 既有「尽力而为心跳：单轮失败告警日志 + 链继续」语义，仅把该语义从 IOException 宽度扩到 Throwable，无对外契约变化；③30 点处置状态锚点的 owner = `docs-for-ai/04-reference/source-anchors.md`（Phase 5 落账）；nop-network.md 现文不涉及 RpcMessageHandler 清扫契约，无 drift
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 2 执行记录（2026-10-24 实现子代理）
+
+- 登记文件：`ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/insulation-30pt-disposition.md`（§二 指令映射勘误 3 处、§三 31 行逐行登记表、§四 source-anchors 锚点定稿、§五 live 回读/漂移记录、§六 验证记录）。抽样：#2（设施级覆盖 + 站点 catch 宽度本 Phase 修复，finding 2.1-C3-015）、#7（接入，Netty EventExecutor 载体设施不覆盖，本 Phase 站点侧守卫修复）、#15–22（接入类 × 批外裁决，CL-021 承接，live 行号漂移登记）。
+- #2 修复：`nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/ws/JsonRpcWebSocketHandler.java`——`sendKeepAlive` 增 `catch (Throwable)` 兜底 + `nop.err.websocket.keep-alive-fail:session={}` 结构化 ERROR（IOException 分支与 warn 级维持原状）；可见性 private → protected（回归接缝 + 成文契约 javadoc）。
+- #7 修复：`nop-network/nop-netty/src/main/java/io/nop/netty/handlers/RpcMessageHandler.java`——调度点改挂 `sweepExpiredFutures` 守卫（catch Throwable + `nop.err.netty.rpc-timeout-sweep-fail:remoteAddr={},localAddr={}` 结构化 ERROR，channel 判空）；`checkTimeout` private → protected（Error 注入接缝，无生产子类）。
+- 测试新增 2 文件 3 条：`nop-network/nop-netty/src/test/java/io/nop/netty/handlers/TestRpcMessageHandlerSweepInsulation.java`（1 条）；`nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/ws/TestJsonRpcKeepAliveInsulation.java`（2 条：站点回归 + rule 23 接线验证）。
+- 规则 25 先红后绿证据：#7 变异（调度点直连 `checkTimeout`）→ 红 `sweep chain must survive the injected Error: expected: <2> but was: <1>`（Netty 周期任务抛 Throwable 后续轮次被抑制的审计结论复现）；#2 变异（移除 Throwable catch）→ 红 `Unexpected exception thrown: IllegalStateException: serialization-boom`；恢复后各自绿。
+- 验证输出摘要：focused `-Dtest=TestRpcMessageHandlerSweepInsulation` / `-Dtest=TestJsonRpcKeepAliveInsulation` 全绿；`./mvnw test -pl nop-network -am` → BUILD SUCCESS EXIT=0（Total 01:02 min）；`./mvnw test -pl nop-service-framework -am` → BUILD SUCCESS EXIT=0；日志快照 `_tmp/phase2-nop-network-test.log` / `_tmp/phase2-nop-service-framework-test.log`。
 
 ### Phase 3 - 下游单元批次 A：nop-job / nop-batch / nop-retry / nop-core-framework / nop-runner
 
