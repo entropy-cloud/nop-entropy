@@ -33,6 +33,7 @@ Each subsystem directory contains architecture decisions and usage contracts for
 
 | Directory | Subsystem | README | Status |
 |-----------|-----------|--------|--------|
+| `concurrency/` | 平台并发设施（周期任务异常绝缘层） | [README](concurrency/README.md) | active — 周期任务异常绝缘层设计（重臂裁定 / 三相容 / 失败治理四件套 / 拒绝路径 / API source-compat / MA-06 看门狗前置裁定 / 30 点表载体覆盖矩阵） |
 | `nop-ai-gateway/` | AI 网关（dialect 转换 + 账号 failover） | [README](nop-ai-gateway/README.md) | 草案 — 01-architecture（dialect 双向转换委托）+ 02-account-failover-requirement（透明账号切换需求规格） |
 | `nop-ai-agent/` | AI Agent DSL + Engine | [README](nop-ai-agent/README.md) | active — 8-layer structure (Vision / Architecture Baseline / Execution Model / DSL / Engine / Semantics / Strategy / Vision) |
 | `nop-ai/` | nop-ai 模块组跨模块契约（文件操作抽象 + code-analyzer 边界） | [README](nop-ai/README.md) | active — IFileOperator vs IToolFileSystem 双抽象边界契约（P2-MA1-012 裁定：保持 + forRemoval=true + 迁移前置条件）；nop-ai-code-analyzer 模块职责边界（P3-MA1-014 裁定：不拆模块 + maven 包内部子域 + git 包公共面） |

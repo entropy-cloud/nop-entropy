@@ -7,7 +7,6 @@
  */
 package io.nop.commons.concurrent.executor;
 
-import io.nop.api.core.util.FutureHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,7 +16,6 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * 具体执行任务时总是调度到某个特定的Executor上执行
@@ -63,56 +61,45 @@ public class BindScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        return timer.scheduleAtFixedRate(() -> {
-            executor.execute(command);
-        }, initialDelay, period, unit);
+        return scheduleAtFixedRate(command, initialDelay, period, unit, timer.getName(), null);
+    }
+
+    @Override
+    public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit,
+                                         String taskName, IPeriodicTaskListener listener) {
+        InsulatedPeriodicChain chain = new InsulatedPeriodicChain();
+        InsulatedPeriodicTask guard = new InsulatedPeriodicTask(taskName, command, listener, chain);
+        // 定时器轮次只负责把任务体投递到 worker 执行；worker 提交拒绝属于设施级拒绝 → 链终态可见
+        // （守卫在 worker 线程内运行，任务体 Throwable 不会逃逸到 timer 的周期机制）
+        Runnable hop = () -> {
+            try {
+                executor.execute(guard);
+            } catch (Throwable e) {
+                guard.rejectChain(e);
+            }
+        };
+        try {
+            Future<?> handle = timer.scheduleAtFixedRate(hop, initialDelay, period, unit);
+            chain.setNativeHandle(handle);
+            PeriodicTaskHelper.watchNativeHandle(chain, handle);
+        } catch (Throwable e) {
+            guard.rejectChain(e);
+        }
+        return chain;
     }
 
     @Override
     public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        AtomicReference<Future<?>> timerHandle = new AtomicReference<>();
-        future.exceptionally(e -> {
-            if (FutureHelper.isCancellationException(e)) {
-                Future<?> f = timerHandle.get();
-                if (f != null) {
-                    f.cancel(false);
-                }
-            }
-            return null;
-        });
-        schedule(command, initialDelay, delay, unit, future, timerHandle);
-        return future;
+        return scheduleWithFixedDelay(command, initialDelay, delay, unit, timer.getName(), null);
     }
 
-    private void schedule(Runnable command, long initialDelay, long delay, TimeUnit unit,
-                          CompletableFuture<Void> future, AtomicReference<Future<?>> timerHandle) {
-        Future<?> f = timer.schedule(() -> {
-            if (future.isDone())
-                return null;
-
-            try {
-                executor.execute(() -> {
-                    if (future.isDone())
-                        return;
-
-                    try {
-                        command.run();
-                    } catch (Throwable e) {
-                        LOG.error("nop.err.thread-pool.execute-fail",e);
-                        future.completeExceptionally(e);
-                        return;
-                    }
-
-                    schedule(command, delay, delay, unit, future, timerHandle);
-                });
-            } catch (Throwable e) {
-                future.completeExceptionally(e);
-            }
-            return null;
-        }, initialDelay, unit);
-
-        timerHandle.set(f);
+    @Override
+    public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit,
+                                            String taskName, IPeriodicTaskListener listener) {
+        // timer 触发 + worker 执行的手工重臂链：任务体失败由守卫观测并按退避节奏重臂，
+        // 链存活至显式 cancel 或设施提交拒绝（不再复现「future 异常完结 → isDone 守卫退出」的杀链语义）
+        return PeriodicTaskHelper.scheduleWithFixedDelay(timer, executor, taskName, command, initialDelay, delay,
+                unit, listener);
     }
 
     @Override

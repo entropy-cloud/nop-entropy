@@ -94,32 +94,41 @@
 
 ### Phase 1 - 设计文档 + nop-kernel 绝缘层本体 + 单元测试（plan-first 前置）
 
-Status: planned
+Status: completed（2026-10-24 实现子代理交付；唯一未勾项「独立 draft review」为 Phase 2 启动前置门禁，按 plan-first 规则由独立子 agent 执行，不属于本实现子代理义务）
 Targets: `ai-dev/design/`（新建：io.nop.commons 周期任务异常绝缘层设计）、`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`、`nop-kernel/nop-commons/src/test/`
 
 - Item Types: `Decision`（设计文档）、`Fix`（2.1-C3-001 设施主体——已确认 live defect P1，不得写成 Feature）、`Proof`（单元测试 + 接线验证）
 
-- [ ] 设计文档落 `ai-dev/design/`（最终状态文档，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码）：①统一语义定稿——捕获边界（Throwable）、completeExceptionally 传播与返回 future 终态语义、重臂 vs kill+alarm 的选型及理由、观测钩子（停摆告警挂接点/whenComplete/带业务标识失败上报——吸收 CL-014 语义）、拒绝（REE/停机竞态）路径语义、**连续失败计数/退避/日志抑制与 kill+alarm 升级阈值（必裁项）**——in-repo 先例 = JdbcConfigSource 的 errorCount<10 分级抑制；载体为 globalTimer 单例 daemon core=4 共享、承载全平台 ~26 条周期任务且无队列隔离，天真重臂会把一次静默停摆换成失败风暴+日志洪泛，故退避/抑制/升级阈值必须随绝缘语义一次定稿；②绝缘语义 × isDone 守卫 × future 终态三者相容性裁定（Baseline 硬约束）；③30 点表载体覆盖矩阵（平台设施覆盖行 vs raw 载体不覆盖声明）；④F3 注记决策——config 变更回调在共享 timer 线程同步执行（AbstractFileConfigSource/JdbcConfigSource）是否随设施改造一并处置（C3-round2 §1 F3「供设施修复时一并决策」义务闭合）；⑤API 形态与 javadoc 契约声明（IScheduledExecutor 周期方法的任务体异常行为成为成文契约）——硬约束：对外部调用方 source-compat，绝缘能力以新增 default 方法/新接口提供，不改 IScheduledExecutor 既有签名；并显式声明与 C3-016（ExecutorHelper bindCancel 误取消面，归 R1-04）的交互边界——绝缘层若采用任务体内 complete 形态，必须给出禁用条件，不得扩大 bindCancel 误取消触发面；⑥MA-06 看门狗语义前置裁定——超时来源（schedule.timeoutSeconds 或新配置 `nop.job.worker.invoke-timeout-ms`）与默认值；默认形态 = **默认无执行超时 + 宽松看门狗仅 ERROR+metric 观测不终结**（与 plan340 契约测试 testLongRunningTaskWithoutTimeoutNotKilled + `JobTimeoutCheckerImpl:497-501` 注释钉死契约一致，禁止在 worker 侧复活「长任务误杀」）；与 checker 链双向不冲突断言纳入设计文档
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后才进入 Phase 2（plan-first 门禁）
-- [ ] nop-kernel 绝缘层本体实现（扩展既有设施，不新建平行调度器）
-- [ ] 本体单元测试（rule 25，显式覆盖）：
-  - [ ] 任务体抛 RuntimeException / Error 后，下一轮仍续排（重臂语义成立）
-  - [ ] 异常经观测钩子可见（日志/告警挂接被触发，非静默吞）
-  - [ ] cancel/stop 语义不回归：调用方 cancel 后在飞轮次自然终止、链正确停止（对齐 C3-round2 §3 对照组语义）
-  - [ ] 关闭竞态：timer destroy/executor 拒绝时 future 有终态、不悬挂、链不复活
-  - [ ] 确定性失败（如任务体恒抛 Error）下重臂可观测且不失控（按裁定形态生效退避/抑制/升级阈值）
-- [ ] **接线验证**（rule 23）：≥1 个跨模块消费方在运行时真实调用绝缘入口（候选：RetryScannerImpl 扫描链或测试内 BindScheduledExecutor 消费方断言绝缘路径被走到）
-- [ ] **无静默跳过**（rule 24）：新增公共方法/分支在未实现时显式失败；catch 观测路径不得是空 catch
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/`（最终状态文档，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码）：①统一语义定稿——捕获边界（Throwable）、completeExceptionally 传播与返回 future 终态语义、重臂 vs kill+alarm 的选型及理由、观测钩子（停摆告警挂接点/whenComplete/带业务标识失败上报——吸收 CL-014 语义）、拒绝（REE/停机竞态）路径语义、**连续失败计数/退避/日志抑制与 kill+alarm 升级阈值（必裁项）**——in-repo 先例 = JdbcConfigSource 的 errorCount<10 分级抑制；载体为 globalTimer 单例 daemon core=4 共享、承载全平台 ~26 条周期任务且无队列隔离，天真重臂会把一次静默停摆换成失败风暴+日志洪泛，故退避/抑制/升级阈值必须随绝缘语义一次定稿；②绝缘语义 × isDone 守卫 × future 终态三者相容性裁定（Baseline 硬约束）；③30 点表载体覆盖矩阵（平台设施覆盖行 vs raw 载体不覆盖声明）；④F3 注记决策——config 变更回调在共享 timer 线程同步执行（AbstractFileConfigSource/JdbcConfigSource）是否随设施改造一并处置（C3-round2 §1 F3「供设施修复时一并决策」义务闭合）；⑤API 形态与 javadoc 契约声明（IScheduledExecutor 周期方法的任务体异常行为成为成文契约）——硬约束：对外部调用方 source-compat，绝缘能力以新增 default 方法/新接口提供，不改 IScheduledExecutor 既有签名；并显式声明与 C3-016（ExecutorHelper bindCancel 误取消面，归 R1-04）的交互边界——绝缘层若采用任务体内 complete 形态，必须给出禁用条件，不得扩大 bindCancel 误取消触发面；⑥MA-06 看门狗语义前置裁定——超时来源（schedule.timeoutSeconds 或新配置 `nop.job.worker.invoke-timeout-ms`）与默认值；默认形态 = **默认无执行超时 + 宽松看门狗仅 ERROR+metric 观测不终结**（与 plan340 契约测试 testLongRunningTaskWithoutTimeoutNotKilled + `JobTimeoutCheckerImpl:497-501` 注释钉死契约一致，禁止在 worker 侧复活「长任务误杀」）；与 checker 链双向不冲突断言纳入设计文档
+  - 产物：`ai-dev/design/concurrency/periodic-task-insulation.md`（§一设计结论 5 条 = 裁定①–⑥ 全覆盖；§3.3 = 30 点覆盖矩阵 13 设施级覆盖 / 14 显式接入 / 2 豁免批外；§四拒绝清单 8 项）+ `ai-dev/design/concurrency/README.md`（子系统索引）
+- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后才进入 Phase 2（plan-first 门禁）——**待执行：Phase 2 启动门禁，实现子代理不得自审自过**
+- [x] nop-kernel 绝缘层本体实现（扩展既有设施，不新建平行调度器）
+  - 产物：新增 `IPeriodicTaskListener`（观测钩子接口，public）/ `InsulatedPeriodicTask`（任务体守卫：catch Throwable + 观测 + 失败计数 + 退避计算 + 拒绝终态）/ `InsulatedPeriodicChain`（返回 future：失败/取消/拒绝终态 + stopRequested 停止标记，cancel 对失败完结链仍生效）/ `PeriodicTaskHelper`（fixedDelay 手工重臂核心 + fixedRate 装配 + native 触发器终结监听，均为包私有）；修改 `IScheduledExecutor`（周期方法 javadoc 成文契约 + 2 个新增 default 方法带 taskName/listener，既有签名零改动）/ `DefaultScheduledExecutor`（fixedRate 直接线材原生周期+守卫；fixedDelay 走 helper；destroy() 对登记链统一拒绝终态）/ `BindScheduledExecutor`（fixedDelay 走 helper(timer,executor)；fixedRate 守卫化 hop；移除杀链的 isDone 守卫私有重排链）
+- [x] 本体单元测试（rule 25，显式覆盖）：
+  - [x] 任务体抛 RuntimeException / Error 后，下一轮仍续排（重臂语义成立）——testChainRearmsAfterErrorTaskBody / testTaskBodyThrowableIsCaughtAndCompletesFutureExceptionally（重臂断言段）
+  - [x] 异常经观测钩子可见（日志/告警挂接被触发，非静默吞）——testObservationHooksFireForSuccessFailureAndRejection（onRunFailure/onRunSuccess/onChainRejected）+ testFailureGovernance...（onFailureStreakExceeded）
+  - [x] cancel/stop 语义不回归：调用方 cancel 后在飞轮次自然终止、链正确停止（对齐 C3-round2 §3 对照组语义）——testCancelStopsChainAfterInFlightRoundFinishes；含失败完结后 cancel 仍停止链的断言（tests 1/2/3 的 isStopped 断言）
+  - [x] 关闭竞态：timer destroy/executor 拒绝时 future 有终态、不悬挂、链不复活——testTimerDestroyGivesTerminalStateWithoutResurrection + testObservationHooks...（destroy → onChainRejected + 终态）
+  - [x] 确定性失败（如任务体恒抛 Error）下重臂可观测且不失控（按裁定形态生效退避/抑制/升级阈值）——testDeterministicFailureRearmsWithBackoffWithoutRunaway（300ms 窗口 ≤2 轮）+ testFailureGovernanceEscalationSuppressionBackoffAndRecovery（25 连败无逃逸、升级=[10,20]、抑制谓词、退避序列 1000→…→60000 封顶、恢复清零）
+- [x] **接线验证**（rule 23）：≥1 个跨模块消费方在运行时真实调用绝缘入口——testGlobalTimerBindWiringReachesInsulatedPath：GlobalExecutors.globalTimer().executeOn(...)（BindScheduledExecutor 载体 = retry scanner/cluster registration 等平台消费方真实拓扑）断言 listener 失败回调可达 + 链经真实设施重臂 + future 失败终态
+- [x] **无静默跳过**（rule 24）：新增公共方法/分支在未实现时显式失败；catch 观测路径不得是空 catch——守卫 catch(Throwable) 路径固定执行「listener 通知 + 日志（按抑制区间）+ metric + 失败计数 + future 失败终态」五动作；拒绝路径执行「ERROR 日志 + listener + 链终态 + native 取消」四动作（首轮实现曾漏接失败→future 终态，被本批测试红出后修复，rule 25 先红后绿证据在案）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
-- [ ] 本体单元测试 ≥5 条（上述五类语义各 ≥1）全绿；每条测试验证的行为在测试名/断言中可辨识
-- [ ] 接线验证证据登记（哪个消费方、哪条断言证明运行时调用）
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS
-- [ ] `No owner-doc update required`（owner doc 更新归 Phase 5 统一落账：source-anchors/nop-job/nop-batch/nop-metadata/nop-message/nop-retry；本 Phase 不改使用方文档）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）——**部分满足**：设计文档已落地（`ai-dev/design/concurrency/periodic-task-insulation.md`，最终状态写法，①–⑥ 全覆盖）；独立 draft review 待独立子 agent 执行（Phase 2 门禁），本项在 review 记录在案后勾选
+- [x] 本体单元测试 ≥5 条（上述五类语义各 ≥1）全绿；每条测试验证的行为在测试名/断言中可辨识——TestPeriodicTaskInsulation 9 条全绿（Tests run: 9, Failures: 0, Errors: 0）
+- [x] 接线验证证据登记（哪个消费方、哪条断言证明运行时调用）——消费方 = GlobalExecutors.globalTimer()（平台共享单例）+ executeOn(Runnable::run)（BindScheduledExecutor 载体）；断言 = listener 失败回调非空 + runs≥2 重臂 + chain isDone/completedExceptionally（TestPeriodicTaskInsulation.testGlobalTimerBindWiringReachesInsulatedPath）
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（聚合实跑：BUILD SUCCESS EXIT=0，12 套件合计 2021 条全绿；focused 通道 `-pl nop-kernel/nop-commons -am` → nop-api-core 165 + nop-commons 381（含新绝缘 9 条）全绿）
+- [x] `No owner-doc update required`（owner doc 更新归 Phase 5 统一落账：source-anchors/nop-job/nop-batch/nop-metadata/nop-message/nop-retry；本 Phase 不改使用方文档）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 1 执行记录（2026-10-24 实现子代理）
+
+- 设计裁定六项一句话：①重臂选型（拒绝 kill+alarm：告警无消费通道时复刻静默停摆；链停止权归调用方 cancel），失败治理四件套=计数+日志抑制（errorCount<10 同形态，首失败+每第 10 次记 ERROR）+指数退避（仅 fixedDelay 手工重臂路径，下限 1s/乘子 2/封顶 60s）+每 10 连败周期性升级（listener+metric，永不杀链），拒绝路径=设施提交失败链终态可见不复活（重排归调用方模块级监督）；②返回 future=失败/取消/拒绝信号（首次失败 completeExceptionally 一次），链存活判定用链终止标记（isCancelled∨rejected∨stopRequested）禁止 isDone 判活，cancel 对失败完结链仍生效；③30 点矩阵 13 设施级覆盖（#1–6/#8–14）/14 显式接入（#7/#15–28）/2 豁免批外（#29/#30）；④F3 闭合=设施边界定在任务体整体，per-callback 隔离归 C1-021 站点内，timer 线程同步回调拓扑维持登记；⑤API=既有签名零改动+2 个 default 方法（taskName+IPeriodicTaskListener）+新接口，C3-016 边界=链 future 禁用 bindCancel 形态接线、任务体内 complete 仅限失败结算且不与任何取消接线共存、逐轮一次性调度行走既有 schedule 面（未扩面）；⑥MA-06=默认无执行超时+nop.job.worker.invoke-timeout-ms（0=disabled）+宽松看门狗仅 ERROR+gauge 不终结，checker 链唯一终结者。
+- 本体文件全集：新增 4（`IPeriodicTaskListener.java`、`InsulatedPeriodicTask.java`、`InsulatedPeriodicChain.java`、`PeriodicTaskHelper.java`）；修改 3（`IScheduledExecutor.java`、`DefaultScheduledExecutor.java`、`BindScheduledExecutor.java`）；测试新增 1（`TestPeriodicTaskInsulation.java`，9 条）。
+- 验证命令输出摘要：`./mvnw test -pl nop-kernel/nop-commons -am -Dsurefire.failIfNoSpecifiedTests=false` → BUILD SUCCESS（Tests run: 165（nop-api-core）+ 381（nop-commons），Failures: 0, Errors: 0）；聚合 `./mvnw test -pl nop-kernel -am -Dsurefire.failIfNoSpecifiedTests=false` → BUILD SUCCESS EXIT=0（12 套件合计 2021 条全绿：165/381/20/77/3/5/39/95/501/599/85/51，日志快照 `_tmp/phase1-nop-kernel-test.log`）；`./mvnw compile -pl nop-kernel/nop-commons -am` → 0 error（source-compat：IScheduledExecutor 既有签名零改动）；`./mvnw compile -pl nop-autotest/nop-autotest-core -am` → 0 error（唯一生产实现方 MockScheduledExecutor 增量兼容证明）；`node ai-dev/tools/check-doc-links.mjs --strict` → 退出码 0（0 error，2 warning 均为无关历史 plan 既有项）。
+- 规则 25 先红后绿证据：首轮实现漏接「失败→future 终态」，TestPeriodicTaskInsulation 5 条红（testTaskBodyThrowableIsCaughtAndCompletesFutureExceptionally 等）→ 补 onFailure 的 completeExceptionally + 链 stopRequested 语义（cancel 对失败完结链生效）+ destroy 统一拒绝路径 → 9 条全绿。
 
 ### Phase 2 - 30 点绝缘状态表逐点接入（平台载体面 + C3-015 补登站点）
 
