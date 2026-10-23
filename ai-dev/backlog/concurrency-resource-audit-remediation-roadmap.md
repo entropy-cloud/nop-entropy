@@ -141,7 +141,7 @@
 | # | Work Item | Status | Owner Doc | Deps | Skill |
 |---|-----------|--------|-----------|------|-------|
 | 8.1 | R1-00 P0 收尾确认批（3 项已修 P0 回归确认） | done（closure audit PASS，plan 2495；三 focused 测试全绿+scan-hollow 0+impl 叶冻结维持） | `docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/03-modules/nop-network.md`；nop-persistence 无 owner doc→缺口声明 | batch-proposal.md §二 R1-00（3 项） | none（修复 plan） |
-| 8.2 | R1-01 周期任务异常绝缘层批（R04 平台批） | todo | `docs-for-ai/03-modules/nop-job.md`；`docs-for-ai/03-modules/nop-batch.md`；`docs-for-ai/04-reference/source-anchors.md`（2.1-C3-001 30 点绝缘状态表锚点） | batch-proposal.md §二 R1-01（14 项） | none（修复 plan） |
+| 8.2 | R1-01 周期任务异常绝缘层批（R04 平台批） | planned（plan 2496，R1 审查通过） | `docs-for-ai/03-modules/nop-job.md`；`docs-for-ai/03-modules/nop-batch.md`；`docs-for-ai/04-reference/source-anchors.md`（2.1-C3-001 30 点绝缘状态表锚点） | batch-proposal.md §二 R1-01（14 项） | none（修复 plan） |
 | 8.3 | R1-02 平台池设施面批：globalTimer 死配置 + 池工厂（R13 设施） | todo | `docs-for-ai/04-reference/source-anchors.md`（GlobalExecutors/globalTimer 锚点）；`docs-for-ai/03-modules/nop-job.md`（调度契约） | batch-proposal.md §二 R1-02（5 项） | none（修复 plan） |
 | 8.4 | R1-03 平台池消费方批：隔离/卸载落地（R13 使用方） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R1-03（9 项）；硬依赖 8.3（R1-02） | none（修复 plan） |
 | 8.5 | R1-04 api-core 协同批：bindCancel 单点改造 + 上下文传播（R14+R15） | todo | `docs-for-ai/04-reference/source-anchors.md`（api-core 锚点）；`docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R1-04（14 项） | none（修复 plan） |
