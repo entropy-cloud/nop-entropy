@@ -1,7 +1,7 @@
 # 周期任务异常绝缘层设计（Periodic Task Insulation）
 
 > Status: active
-> Last Reviewed: 2026-10-24
+> Last Reviewed: 2026-10-24（独立评审 agent_e4f1555a：六项裁定与实现一致性 PASS，§3.3/§3.1/§3.5 修订项已按评审意见落盘）
 > Source: plan 2496（CRA Phase 8.2 R1-01 周期任务异常绝缘层批）Phase 1；发现事实源 = C3-round2 §1 周期任务调用点绝缘状态表（`ai-dev/audits/2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency/C3-round2.md`）
 
 ## 一、设计结论
@@ -33,7 +33,7 @@ runBody():
     onSuccess(): 连续失败计数清零；若清零前计数>0 记恢复日志 + onRunSuccess
     return SUCCESS
   catch Throwable e:            # 含 Error；取消类中断见 3.2
-    if chain.isCancelled():      # 取消引发的在飞中断不算失败
+    if chain.isStopped():        # 链终止标记（isStopped）：链终止引发的在飞中断不算失败
       return STOPPED
     streak = ++consecutiveFailures
     listener.onRunFailure(e, streak)          # 每次失败必达（显式接入方要细粒度事件）
@@ -43,6 +43,7 @@ runBody():
       listener.onFailureStreakExceeded(streak) # 周期性升级：观测升级，不杀链
       metric nop.periodic.task.escalations{task=...} +1
     metric nop.periodic.task.failures{task=...} +1
+    chain.completeExceptionally(e)            # 第 5 动作：失败终态结算（幂等，只结算一次），不携带任何取消语义
     return FAILED
 ```
 
@@ -54,18 +55,18 @@ runBody():
 **拒绝路径语义（拒绝 = 设施级提交失败，与任务体失败严格区分）：**
 
 - 分类依据是**捕获位置**，不是异常类型：只有设施自身的提交调用（`timer.schedule(...)`、`runner.execute(...)`、`executor.scheduleAtFixedRate(...)`）抛出的 Throwable 才归类为拒绝；任务体内部抛出的异常（含任务体自己调用 `execute` 产生的 REE）一律走失败管线。
-- 任何拒绝路径：`LOG.error("nop.err.periodic-task.chain-rejected", taskName, e)` + `listener.onChainRejected(e)` + 返回 future `completeExceptionally(e)`；**链终止且不复活**。不复活是对「关闭竞态」的裁定：timer 已销毁/池已关闭时继续重臂等于对死亡设施无限重试（REE 风暴 + 日志洪泛）。
+- 任何拒绝路径执行四个动作：`LOG.error("nop.err.periodic-task.chain-rejected", taskName, e)` + `listener.onChainRejected(e)` + 返回 future `completeExceptionally(e)` + **取消 pending native 触发器**（主路径 `rejectChain` 内先 reject 后取消，cancel/提交竞态由 `setNativeHandle` 补取消——实现锚 `InsulatedPeriodicTask`/`InsulatedPeriodicChain`）；**链终止且不复活**。不复活是对「关闭竞态」的裁定：timer 已销毁/池已关闭时继续重臂等于对死亡设施无限重试（REE 风暴 + 日志洪泛）。
 - 想在 worker 池拒绝时自愈的调用方（如 cluster C4-004 的断链监督）在模块层挂 `whenComplete` 监听拒绝终态后自行带退避重排——设施保证终态可见，重排策略归调用方。
 
-**失败治理参数（常量语义契约，实现锚 `InsulatedPeriodicTask`）：**
+**失败治理参数（数值与语义为设计契约；对应包私有常量名以实现锚 `InsulatedPeriodicTask` 为准，不入本文档）：**
 
 | 参数 | 默认值 | 语义 |
 |------|--------|------|
-| 日志抑制区间 `LOG_SUPPRESS_INTERVAL` | 10 | 第 1 次连续失败记 ERROR（全栈），此后每第 10 次连续失败记一条 ERROR 汇总（带累计计数），中间抑制。形态同 `JdbcConfigSource` 的 `errorCount<10` 分级抑制 |
-| 升级阈值 `STREAK_ESCALATION_THRESHOLD` | 10 | 连续失败每达到 10 的整数倍触发 `onFailureStreakExceeded` + escalations metric——周期性升级（持续失败持续告警），升级不改写链存活 |
-| 退避乘子 `BACKOFF_MULTIPLIER` | 2 | 连续失败时下一轮重臂延迟按 2 的幂放大 |
-| 失败重臂下限 `MIN_FAILURE_REARM_MILLIS` | 1000 | 一旦进入失败状态，重臂延迟下限 1s——防止 0/极小周期的失败任务在共享 timer 上形成紧失败循环 |
-| 退避上限 `MAX_BACKOFF_MILLIS` | 60000 | 重臂延迟封顶 60s |
+| 日志抑制区间 | 10 | 第 1 次连续失败记 ERROR（全栈），此后每第 10 次连续失败记一条 ERROR 汇总（带累计计数），中间抑制。形态同 `JdbcConfigSource` 的 `errorCount<10` 分级抑制 |
+| 升级阈值 | 10 | 连续失败每达到 10 的整数倍触发 `onFailureStreakExceeded` + escalations metric——周期性升级（持续失败持续告警），升级不改写链存活 |
+| 退避乘子 | 2 | 连续失败时下一轮重臂延迟按 2 的幂放大 |
+| 失败重臂下限（毫秒） | 1000 | 一旦进入失败状态，重臂延迟下限 1s——防止 0/极小周期的失败任务在共享 timer 上形成紧失败循环 |
+| 退避上限（毫秒） | 60000 | 重臂延迟封顶 60s |
 
 - **退避只作用于 fixedDelay 手工重臂路径**（Default/Bind 的 `scheduleWithFixedDelay` 与新增 default 方法）。`scheduleAtFixedRate` 保持 JDK 原生周期语义：失败不改变触发节奏——调用方显式选择了速率契约，设施不静默改写；fixedRate 路径的失败风暴由日志抑制兜底（失败执行体本身很快，4 线程占用有界）。
 - 失败计数在任务体成功一轮后清零并记恢复日志（`nop.info.periodic-task.recover`，带失败轮数）。
@@ -96,8 +97,8 @@ runBody():
 
 | 覆盖归属 | 30 点表行 | 说明 |
 |----------|-----------|------|
-| 设施级覆盖（13 行） | #1–6、#8–14 | globalTimer / IScheduledExecutor 直挂（#1–6、#8、#9）与 BindScheduledExecutor 载体（#10–14）。站点任务体内自备的 `catch(Exception)` 与设施兜底正交：Exception 被站点挡住，Error 由设施兜住。注意设施覆盖只闭合「链存活 + 失败可观测」两面；各成员工单的模块侧义务（如 #12 try-外段状态真实化、#10/#11 scanner 存活指标）仍归各 Phase 修复，不因设施覆盖而豁免 |
-| 显式接入（14 行） | #7（Netty EventExecutor 载体）、#15–22（nop-stream 8 处 raw 载体）、#23–27（nop-ai raw/注入载体，MA-07 六站点）、#28（FeishuClient raw） | 非平台设施载体，平台绝缘核心不覆盖；逐点修复归 Phase 2/3/4 对应工单，修复形态须与本设计的捕获边界、失败管线、拒绝路径语义对齐（catch Throwable + 观测 + 重臂 + 拒绝终态可见） |
+| 设施级覆盖（12 行） | #1–6、#8–13 | globalTimer / IScheduledExecutor 直挂（#1–6、#8、#9）与 BindScheduledExecutor 载体（#10–13）。站点任务体内自备的 `catch(Exception)` 与设施兜底正交：Exception 被站点挡住，Error 由设施兜住。注意设施覆盖只闭合「链存活 + 失败可观测」两面；各成员工单的模块侧义务（如 #12 try-外段状态真实化、#11/#12 scanner 存活指标、#10 告警挂接（whenComplete/CL-014））仍归各 Phase 修复，不因设施覆盖而豁免 |
+| 显式接入（16 行） | #7（Netty EventExecutor 载体）、#14（AbstractPollingLeaderElector 自续链：一次性 `schedule(this::checkElection,...)`（:22/:28），重排在 SysDaoLeaderElector.checkElection 尾部 try 之外且仅 catch Exception）、#15–22（nop-stream 8 处 raw 载体）、#23–27（nop-ai raw/注入载体，5 个站点号/6 处代码站）+ EmbeddingServiceImpl（MA-07 第 6 站，Phase 4 承接）、#28（FeishuClient raw） | 非平台设施载体（#7、#15–28），或平台载体上的一次性自续链（#14）——绝缘层只改写 fixedRate/fixedDelay 两个周期方法，对一次性自续链零自动覆盖；逐点修复归 Phase 2/3/4 对应工单，修复形态须与本设计的捕获边界、失败管线、拒绝路径语义对齐（catch Throwable + 观测 + 重臂 + 拒绝终态可见） |
 | 豁免/批外（2 行） | #29（MockScheduledExecutor，测试设施）、#30（`scheduleWithRandomDelay`，C3-017 批外项） | #29 非生产失效面；#30 的杀链修复独立归 cra-index `2.1-C3-017` 裁定批次，本设计不改其行为（见 §五 边界声明） |
 
 ### 3.4 config 变更回调在共享 timer 线程同步执行（裁定④，C3-round2 §1 F3 义务闭合）
@@ -118,7 +119,7 @@ runBody():
 
 **与 C3-016（ExecutorHelper bindCancel 误取消面，归 R1-04）的边界：**
 
-- 绝缘返回 future（`InsulatedPeriodicChain`）上**禁止**任何「任意完结 → 自动取消 native handle」的接线（`FutureHelper.bindCancel(chain, nativeHandle)` 形态被禁用）。native handle 的取消只有一条路径：调用方显式 `chain.cancel(...)`（override 内委托取消 native handle）。任务体内 `completeExceptionally`（失败结算）不触发任何取消动作——这是「任务体内 complete 形态」的禁用条件：**任务体内允许的 complete 仅限失败结算，且不得与任何 cancel 接线共存**。
+- 绝缘返回 future（`InsulatedPeriodicChain`）上**禁止**任何「任意完结 → 自动取消 native handle」的接线（`FutureHelper.bindCancel(chain, nativeHandle)` 形态被禁用）。任务体失败结算不触发 native 取消；native 取消仅发生于两条路径：调用方显式 `chain.cancel(...)`（override 内委托取消 native handle）与设施拒绝终态（3.1 拒绝路径第 4 动作）。任务体内 `completeExceptionally`（失败结算）不触发任何取消动作——这是「任务体内 complete 形态」的禁用条件：**任务体内允许的 complete 仅限失败结算，且不得与任何 cancel 接线共存**。
 - fixedDelay 逐轮一次性调度经由实现方的 `schedule`（Default 实现为 `ExecutorHelper.schedule`，内含 bindCancel）——该 face 是 Bind 现状逐轮重排已经行走的既有路径，绝缘核心**未新增 bindCancel 接线、未扩大触发面**；C3-016 的修复在 R1-04 于 `ExecutorHelper` 层收口，届时绝缘核心逐轮调度自动受益。
 - C3-016 的兄弟面顺带声明：C3-003（Bind fixedRate 的 executor 拒绝杀链）在设施改造中其守卫位置被顺带覆盖（worker 提交拒绝从「裸逃逸杀 JDK 链」变为「守卫捕获 + 拒绝终态可见 + 链终止」），属共享代码位边界效应，已在本文档显式声明，不默认承接其工单收敛（工单仍归 cra-index 裁定批次）。
 
