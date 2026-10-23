@@ -39,7 +39,7 @@
 | `2026-10/2026-10-21-1223-deep-audit-nop-host-concurrency` | 4.4 | nop-host | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 4 | 10+19（含 C10 缺保护登记） | 2 | done（closure audit PASS，plan 2480） |
 | `2026-10/2026-10-21-1444-deep-audit-nop-search-runner-autotest-concurrency` | 4.5 | nop-search-runner-autotest | C1 C4 C6 + C10（C2/C3/C5/C7/C8/C9 线索 overlay） | 0 | 1 | 6+9（含 C10 缺保护登记） | 7 | done（closure audit PASS，plan 2481） |
 | `2026-10/2026-10-21-1925-deep-audit-nop-auth-credential-concurrency` | 5.1 | nop-auth-credential | C1 C2 C6 + C10（C3/C4/C5/C7/C8/C9 线索 overlay） | 0 | 2 | 5+7（含 C10 缺保护登记） | 7 | done（closure audit PASS，plan 2482） |
-| `2026-10/2026-10-21-2148-deep-audit-nop-sys-dyn-concurrency` | 5.2 | nop-sys-dyn | C1 C2 C6 C8 + C10（C3/C4/C5/C7/C9 线索 overlay） | 0 | 3 | 8+6（含 C10 缺保护登记） | 6 | done（closure audit PASS，plan 2483） |
+| `2026-10/2026-10-21-2148-deep-audit-nop-sys-dyn-concurrency` | 5.2 | nop-sys-dyn | C1 C2 C6 C8 + C10（C3/C4/C5/C7/C9 线索 overlay） | 0 | 3 | 8+15（含 C10 缺保护登记；报告行 C10 回填勘误 6→15，以口径块/裁定 §九 为准） | 6 | done（closure audit PASS，plan 2483） |
 | `2026-10/2026-10-21-1227-deep-audit-nop-file-datav-concurrency` | 5.3 | nop-file-datav | C1 C5 C6 + C10（C2/C3/C4/C7/C8/C9 线索 overlay） | 0 | 2 | 13+5（含 C10 缺保护登记） | 10 | done（closure audit PASS，plan 2484） |
 | `2026-10/2026-10-21-1326-deep-audit-nop-report-format-concurrency` | 5.4 | nop-report-format | C1 C5 C6 C9 + C10（C2/C3/C4/C7/C8 线索 overlay） | 0 | 1 | 9+25（含 C10 缺保护登记） | 15 | done（closure audit PASS with corrections，plan 2485） |
 | `2026-10/2026-10-22-1201-deep-audit-nop-rule-metadata-concurrency` | 5.5 | nop-rule-metadata | C1 C4 C5 C7 + C10（C2/C3/C6/C8/C9 线索 overlay） | 0 | 3 | 9+38（含 C10 缺保护登记；工单级 P3×17/实体级 P2×13+P3×21 见计数口径） | 17 | done（closure audit PASS with corrections，plan 2486） |
@@ -121,7 +121,7 @@
 | nop-stream-state-connectors-C6-001（MA-01，成员 C3-001/C4-001/C7-002） | 1.2 | KafkaTwoPhaseCommitSink transactional producer 全终止路径（DRAIN/CANCEL/FAILED）无 close——每子任务每次作业终止泄漏 producer+网络线程+缓冲池 | plan 2462 Phase 7 就地修复：implements AutoCloseable + 幂等 close()（abort 开启事务 → producer.close(30s)），经 StreamSinkOperator.close:175 钩子全终态触发；回归测试 3 个（TestKafkaTwoPhaseCommitSinkLifecycle）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS | 已修复（commit 8dcfa4cd0c） |
 | nop-network-integration-C6-001 | 4.3 | JDK/OkHttp 下载成功路径从不调用 FileDownloadSink.close()（仅 catch 分支关）——resume 默认 true 下每次成功下载泄漏文件句柄（Windows Files.move 确定性失败/Unix 静默 fd 泄漏）；Apache HC5 兜底闭合跨实现分歧 | plan 2479 Phase 7 就地修复：JdkHttpClient.processDownloadResponse + OkHttpClientImpl onResponse 成功路径 verifyAndRename 后补 sink.close()；回归测试 TestFileDownloadSinkClose（fd 计数 40 次下载增量断言，回退实测必红）；两模块套件 33 测试全绿；scan-hollow --severity high 退出码 0；证伪 3.9 前案「文件模式主路径确认关闭」注记随 cra-index 4.3 计数口径 | 已修复（本轮提交） |
 | nop-persistence-peri-C6-002（MA-03 主登记，成员 C3-003） | 2.5 | 搬迁成功路径（VERIFY/SWITCH/DONE）从不调用 stopAll（全模块唯一调用点在 abort，与 IncrementalJobManager javadoc 矛盾）——DONE 后链线程/binlog 连接/engine/offset store/checkpoint 执行器永久滞留；写门仅拦本 JVM ORM DML，源库域外写入经存活链 keyed upsert 持续回写已晋级目标表 | plan 2472 Phase 7 就地修复：OrmMigrationOrchestrator 新增 stopIncrementalChains（字段直读不惰性建管理器）——confirmSwitch 收敛点停链 + completeSwitch 开门前兜底幂等停链；新增 setIncrementalManager 注入 seam；回归测试 TestMigrationSwitchStopsChains 2 例（收敛停链断言回退必红 + 非 incremental 配置不动管理器）；模块套件 52 测试全绿；scan-hollow --severity high 退出码 0；owner doc data-migration.md SWITCH 节已同步 | 已修复（本轮提交） |
-| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/4.1/4.2/4.4/4.5/5.1 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
+| （1.1/1.3/1.4/1.5/1.6/1.7/2.1/2.2/2.3/2.4/3.1/3.2/3.3/3.4/4.1/4.2/4.4/4.5/5.1/5.2/5.3/5.4/5.5/5.6/6.1/6.2/6.3/6.4/6.5 单元无 P0 发现，已按各 plan Phase 7 显式空执行记录） | | | | |
 
 ## P1 发现汇总（待 Phase 8 批量修复）
 
@@ -310,17 +310,19 @@
 | nop-peripheral-C6-001（W-02） | 6.5 | nop-peripheral | IDEA 插件调试会话 socket 通道从不关闭（proxy_destroy 零调用，工厂不登记已建 client）——每会话泄漏 1 fd，Disconnect 钉死 1 recv 线程（双侧 readTimeout/idleTimeout=0 无空闲回收；修复参照 TestRemoteDebugger.tearDown 配对；C10-002 验收前置；**验证通道=Gradle/harness 非 ./mvnw**[CL-301]） | 待 7.1 | open |
 
 
+## 维度集外线索关联（CL 台账）
+
+> 各单元维度集外线索（CL）的落位台账；1.6/1.7/2.1/2.2 等计数口径块所引「维度集外线索关联」节即本节。WI 1.x–4.3 单元的 CL 逐条归属见各单元审计目录 merge-adjudication.md；WI 4.4 起在本节设小节。
+
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
 
 **并入工单（3）**：CL-004→C1-001（宿主过滤器异步流阻塞族）、CL-005b→C6-004（redelivery/心跳面协同）、CL-007→C4-002（同站点治理）。**独立线索台账（5）**：CL-001/002/003/006/008（CL-008 isResponseSent 语义两宿主不对称）。**watch（1）**：CL-005a（redelivery 队列无界/failureAttempts cap=0）。
 ### WI 4.5 nop-search-runner-autotest（CL-001~012：编号 12、并入工单 2、独立线索 1、关闭确认 1、移交 8、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
 
 **并入工单（2）**：CL-007→I-C1-008（async 命名同步语义，同一 SPI javadoc 义务单 diff）、CL-010→MA-01（随 C6-002 治理收敛）。**独立线索台账（1）**：CL-002（BuildIndexTool 全文件读入，C5 面）。**关闭确认（1）**：CL-004（dbtool 零主源码核对）。**移交（8）**：CL-001/003/005/006/008/009/011/012。
-### WI 5.1 nop-auth-credential（CL-001~017：编号 17、并入工单 3、独立线索 6、移交 8、驳回 0；全表见 merge-adjudication.md §八）
+### WI 5.1 nop-auth-credential（CL-001~017：编号 17、并入工单 10、重复合并 2、升格 1[CL-006→MA-02 主登记升 P1]、watch 4、移交 0、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——7.1 盘点发现本小节正文误贴后按 §八 改写）
 
-**并入工单（3）**：CL-005→MA-02、CL-007→MA-01、CL-012→MA-01。**独立线索台账（6）**：CL-001/002/003/006/014/016。**移交（8）**：CL-008/009/010/011/013/014/015/017。
-
-### WI 2.2 nop-core-framework（CL-001~021：
+**处置分布（按 §八 权威表）**：并入工单 10、重复合并 2、升格 1（CL-006→MA-02 主登记升 P1）、watch 4、移交 0；逐条见 merge-adjudication.md §八。
 
 ### WI 5.2 nop-sys-dyn（CL 编号实占 0——R1 预注周期任务族候选确认但 Error 绝缘已自备，残余面归 I-05/I-09/MA-07；C3/C5/C9 零命中关闭；C7 并入 I-05）
 
@@ -342,8 +344,7 @@
 
 ### WI 6.5 nop-peripheral（CL-001~004/201~205/301 分段编号 10 条：10/10 确认 0 驳回；归并去向——CL-001/002 并 W-01 族成员、CL-201 W-01 伴生、CL-003 归 W-06 同站点别名、CL-204 并 W-05 同 diff、CL-203 移交 WI 2.1 C4-003[F3 成员明列 JavaScriptService.java:40]、CL-004 独立线索域留档 C3/C9、CL-301 独立线索治理轨[idea-plugin Gradle 门禁隔离，附工单验证通道约束]、CL-202 watch-only、CL-205 记录性关闭；逐条见 merge-adjudication.md §五）
 
-### WI 2.2 nop-core-framework（CL-001~021：
-
+### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入设施 2、零立案 1、纯移交 7、关联保留 8、驳回 0；逐条归属如下——7.1 盘点发现小节头截断后补全）
 
 **升格立案**：CL-001→C1-021（P1）。**落格**：CL-002→C2-005（同站点 computeIfAbsent bin 锁内 HTTP 下载/类加载/start）、CL-018→C4-010（BeanScopeImpl 哈希序销毁同站点）。**同位点并入设施**：CL-008→WI 2.1 C6-011、CL-020→WI 2.1 C6-003。**零立案**：CL-009（PluginManager syncGet 调用线程内联终判）。**纯移交（7）**：CL-013/CL-019→nop-kernel（CL-013 为 2.1 未登记新面 registerCleanup）、CL-021→安全线（OsUserHelper 明文口令入进程参数）、CL-016→api-core 功能缺陷轨（PlaceholderConfigReference 未替换占位符返回）、CL-010→插件功能线（子容器不经 PluginClassLoader 加载——热卸载隔离失效）、CL-011→C5 面（DefaultShellOutputCollector 无界收集）、CL-012→C7 面（ChangeSubscriptions 空条目不摘）。**关联保留（8）**：CL-003/005/007/014/015/017 及其余——一句话归属见审计目录 merge-adjudication.md。
 
