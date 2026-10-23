@@ -45,7 +45,8 @@
 | `2026-10/2026-10-22-1201-deep-audit-nop-rule-metadata-concurrency` | 5.5 | nop-rule-metadata | C1 C4 C5 C7 + C10（C2/C3/C6/C8/C9 线索 overlay） | 0 | 3 | 9+38（含 C10 缺保护登记；工单级 P3×17/实体级 P2×13+P3×21 见计数口径） | 17 | done（closure audit PASS with corrections，plan 2486） |
 | `2026-10/2026-10-22-1300-deep-audit-nop-graph-duckdb-concurrency` | 5.6 | nop-graph-duckdb | C1 C6 + 抽查（C2/C3/C4/C5/C7/C8/C9 七形态 CS-sweep） + C10 | 0 | 4 | 4+4+12（含 C10 缺保护登记） | 4 | done（closure audit PASS，plan 2487） |
 | `2026-10/2026-10-22-1400-deep-audit-nop-tools-parallel-concurrency` | 6.1 | nop-tools-parallel | C1 C4 C6 C9 + C10（C2/C3/C5/C7/C8 仅 CL 线索） | 0 | 0 | 4+10（含 C10 缺保护登记；工单级 P3×13） | 13 | done（closure audit PASS with corrections，plan 2488） |
-| `2026-10/2026-10-22-1500-deep-audit-nop-tools-parse-concurrency` | 6.2 | nop-tools-parse | C1 C6 + 抽查（七形态 CS-sweep） + C10 | 0 | 2 | 7+10+19（含 C10 缺保护登记） | 10 | done（closure audit 见 plan 2489） |
+| `2026-10/2026-10-22-1500-deep-audit-nop-tools-parse-concurrency` | 6.2 | nop-tools-parse | C1 C6 + 抽查（七形态 CS-sweep） + C10 | 0 | 2 | 7+10+19（含 C10 缺保护登记） | 10 | done（closure audit PASS with corrections，plan 2489） |
+| `2026-10/2026-10-23-0900-deep-audit-nop-code-index-concurrency` | 6.3 | nop-code-index | C1 C5 C6 C7 + C10（C2/C3/C4/C8/C9 overlay） | 0 | 3 | 16+21+41（含 C10 缺保护登记） | 21 | done（closure audit 见 plan 2490） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -84,6 +85,10 @@
 > 6.2 计数口径：合并裁定后 19 张工单（21 实体[初审 20+深挖 1] 复核全保留 0 驳回 → 转引用 2；维持 19/跨维度调整 2/移交 0；P0×0 显式空执行/**P1×2**——W-01 NodeTscBridge 代际栅栏族[C6-101 主，吸 C1-102/CS-001 转引用+挂 C6-103/104 失效面]/W-02 LintDeadlineExecutor.install 全局槽[C1-101，Route-B 触 nop-core plan-first]；P2×7/P3×10；降级 3[C6-004/C6-102/CS-002]）；**2026-09 G10 承接闭环**：G10-01-02 仍成立→并入 C1-104、G10-01-03 仍成立→并入 CL-204（回填注记见下）；C10 缺保护 19 项（矩阵会红 0/21——第 11 例；**反向保护 4 处 campaign 新高平历史高点**——修复须捆绑测试改写；hang-once-then-ok=时序敏感假保护）；CL 唯一编号 19 条全确认 0 驳回（撞号重编 CL-206）；**结构性发现：外部进程桥五连案（跨进程协作面为薄弱带）+ 全局槽反模式 + nop-jq 四重守卫齐全正面结论**；Protected Area 零 api 叶（W-02 Route-B 触 nop-core plan-first）；owner doc drift：nop-lint/nop-jq 无 owner doc（占 58% 行数）。
 
 > **2026-09 G10 移交闭环回填（2026-10-23）**：2026-09-30 全仓审计 `10-lint-refactor-jq.md` G10-01-02（LanguageRegistry 裸 HashMap，P3）与 G10-01-03（rename/rewrite 每请求 ServiceLoader 重复发现）经 CRA WI 6.2（plan 2489）三态裁定均**仍成立**：G10-01-02 并入 nop-tools-parse-C1-104（P2 超集，补强并发防护与调用面证据）；G10-01-03 并入 CL-204（C9 形态线索）；G10-01-01 非并发维持原轨。
+
+> 6.3 计数口径：合并裁定后 40 张工单（44 实体[初审 35+深挖 9] 复核全保留 0 驳回 0 降级 → 吸收/别名 5，裁定级新增归并 C6-007→C5-007；维持 40/跨维度调整 4/移交 0；P0×0 显式空执行/**P1×3**——W-01 公开图查询三动作全量物化 4 关系表[守卫声称不存在]/W-02 ProjectAnalyzer 死守卫+全仓库 sourceCode 驻留/W-03 读路径自愈物化无单飞→并发 Leiden 重算风暴[与 5.6 W-04 独立+交叉引用]；P2×16/P3×21）；**2026-09 G11-15-02 承接闭环**：仍成立→C1-001 吸并（36 站点×5 读类超集防双计，回填注记见下）；C10 缺保护 41 项（矩阵会红 0/44——第 12 例；TestConcurrentIndexing=真并发执行+冒烟断言「并发执行≠并发验证」形态）；CL 唯一编号 18 条全确认（双登记 2 组）；**结构性发现：公开查询面无界物化族与长驻索引一致性双主战场 + wiring 未接线 3 站点**；Protected Area 零 api 叶；owner doc drift：发现级 1 项（nop-code.md 未声明 LlmEdgeCache 边界）。
+
+> **2026-09 G11 移交闭环回填（2026-10-23）**：2026-09-30 全仓审计 `11-code-graph.md` G11-15-02（SymbolTable 读未同步 × CodeCacheManager 共享缓存数据竞争，P2）经 CRA WI 6.3（plan 2490）三态裁定**仍成立（未修复）**：并入 nop-code-index-C1-001（P2 超集/扩面复活——失效面扩至 36 点读站点×5 读类，FlowDetector BFS 高密度读点与读路径自愈交叠为新增事实）；G11-15-02 关闭为 C1-001 别名，单一修复工单防双计数；G11 其余发现维持 2026-09 报告原轨（非本单元口径）。
 
 > 5.3 计数口径：合并裁定后 8 张修复工单（25 初审+深挖 → 25 复核保留零降级零驳回 → 7 修复工单 W-01~07 + 1 测试保护工单 W-08；P0×0 显式空执行/**P1×2**（W-01 文件去重竞态/W-04 dashboard 行上界）/P2×13/P3×10）；C10 缺保护 5 条单列（矩阵会红 0/假保护 4/部分 1/无测试 13——P1×2 全部无保护；反向钉死 1 处钉死无 fencing 语义）；Protected Area：nop-file-api 3f/492 plan-first——审计只读；跨单元关联 6 组零同站点重复。
 
@@ -290,6 +295,9 @@
 | nop-graph-duckdb-W-04（不可中断族主 CS-001 吸 CS-R2-001+2.1 C6-CL-031 别名） | 5.6 | nop-graph-duckdb | LeidenDetector runWithTimeout 超时幽灵线程：CWTS 1.3.0 全库零 interrupt 引用 shutdownNow 必然无效，非 daemon 线程不可辨识；5 调用点零规模守卫且 7 个 @BizQuery 请求线程同步触发 | 待 7.1 | open |
 | nop-tools-parse-W-01（代际栅栏族主 C6-101 吸 C1-102/CS-001 转引用） | 6.2 | nop-tools-parse | NodeTscBridge 重启无代际栅栏：inbound.clear() 与旧 reader 迟到帧竞态——stale EOF 误判 EXHAUSTED 永久不可用/stale 数据帧杀健康新进程/孤儿进程；挂 C6-103/104 失效面；现有测试时序敏感假保护 | 待 7.1 | open |
 | nop-tools-parse-W-02（C1-101，Route-B 触 nop-core plan-first） | 6.2 | nop-tools-parse | LintDeadlineExecutor.install 每请求写 EvalExprProvider._executor 非 volatile 全局槽且无卸载——与调试器 attach 写者跨 monitor 丢更新，在途 lint 的 deadline/深度护栏静默失效；现有测试反向钉定全局槽设计 | 待 7.1 | open |
+| nop-code-index-W-01（C5-001） | 6.3 | nop-code-index | 公开图查询三动作（surprise/questions/wiki）每请求全量物化 4 关系表（CodeRelationGraphLoader 自述 "Deliberately unbounded"、声称守卫不存在）+ GraphMetricStore.findByMetric 无 LIMIT——并发叠加无护栏 | 待 7.1 | open |
+| nop-code-index-W-02（C5-002） | 6.3 | nop-code-index | ProjectAnalyzer 输入面守卫全部失效：MAX_FILE_SIZE_BYTES/MAX_FILE_COUNT 死常量（全单元零引用）+「流式」BatchQueue 消费端全量累积——全仓库 sourceCode 驻留巨事务（admin-only 触发为 P1 下限注，部署包络配额层可复议） | 待 7.1 | open |
+| nop-code-index-W-03（C7-001，与 5.6 W-04 独立+交叉引用） | 6.3 | nop-code-index | 读路径自愈物化无单飞/无退避——并发首触 Leiden 重算风暴（5.6 W-04 立 detector 本体+调用面守卫不对称，本条立消费侧单飞缺失；6 触发点+4 守卫空洞） | 待 7.1 | open |
 
 
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
@@ -317,6 +325,8 @@
 ### WI 6.1 nop-tools-parallel（CL-001~003/101~102/201~202/301~302 分段编号 9 条：9/9 确认 0 驳回；归并去向——CL-301 并入 C1-001、CL-202 闭环至 C9-002、CL-101 与 C9-001 去重转 C2、CL-102 转 C5；逐条见 merge-adjudication.md）
 
 ### WI 6.2 nop-tools-parse（CL-001/101~102/201~206/401~403/501~507 唯一编号 19 条：19/19 确认 0 驳回；撞号重编——C1-R2 原 CL-201→CL-206；归并去向——CL-401 并 W-02、CL-501 并 C1-104、CL-502 并 C1-103、CL-504 并 W-02 族、CL-403 移交查询引擎 owner；逐条见 merge-adjudication.md）
+
+### WI 6.3 nop-code-index（CL-001~006/101~102/201~207/301~305 双登记归并后唯一编号 18 条：18/18 确认 0 驳回；双登记——CL-201=CL-301、CL-202=CL-303；归并去向——CL-304 并 C1-001、随工单 12 条、域留档 6 条；逐条见 merge-adjudication.md）
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 

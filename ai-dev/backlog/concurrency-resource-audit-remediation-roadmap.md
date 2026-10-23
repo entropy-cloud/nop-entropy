@@ -119,7 +119,7 @@
 |---|-----------|--------|-----------|------|-------|
 | 6.1 | nop-tools 并行面：nop-rg + nop-find（FFM/Arena 并行遍历、SIMD）+ nop-bytecode | done（closure audit PASS with corrections，plan 2488；P0×0/**P1×0**[campaign 首例]/P2×4/P3×13） | `docs-for-ai/03-modules/nop-bytecode.md` | 0.3 | 同上（C1 C4 C6 C9 + C10） |
 | 6.2 | nop-tools 解析面：nop-treesitter + nop-lint + nop-refactor + nop-jq | done（closure audit PASS with corrections，plan 2489；P0×0/P1×2/P2×7/P3×10；2026-09 G10 承接闭环） | `docs-for-ai/03-modules/nop-treesitter.md`、`nop-refactor.md` | 0.3 | 同上（C1 C6 + 抽查） |
-| 6.3 | nop-code 索引面（`nop-code-core` + `nop-code-flow` + `nop-code-service`：长驻索引构建、图分析） | todo | `docs-for-ai/03-modules/nop-code.md` | 0.3 | 同上（C1 C5 C6 C7 + C10；S 级拆分一） |
+| 6.3 | nop-code 索引面（`nop-code-core` + `nop-code-flow` + `nop-code-service`：长驻索引构建、图分析） | done（closure audit PASS with corrections，plan 2490；P0×0/P1×3/P2×16/P3×21；G11-15-02 承接闭环） | `docs-for-ai/03-modules/nop-code.md` | 0.3 | 同上（C1 C5 C6 C7 + C10；S 级拆分一） |
 | 6.4 | nop-code 其余（lang-java/python/typescript/go/rust/csharp + codegen + api/dao/meta/web/app，裁剪） | todo | `docs-for-ai/03-modules/nop-code.md` | 0.3 | 同上（C1 C6 抽查；S 级拆分二） |
 | 6.5 | 外围支撑抽查：nop-demo + demo + nop-frontend-support + nop-dev-tools + nop-entropy-e2e（C1+C6 抽查；nop-benchmark 不审——基准代码按审计 prompt 误报校准不按生产标准，仅当其暴露生产代码缺陷时转记台账） | todo | — | 0.3 | 同上（C1+C6 抽查） |
 
