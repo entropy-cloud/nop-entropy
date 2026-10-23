@@ -48,6 +48,7 @@
 | `2026-10/2026-10-22-1500-deep-audit-nop-tools-parse-concurrency` | 6.2 | nop-tools-parse | C1 C6 + 抽查（七形态 CS-sweep） + C10 | 0 | 2 | 7+10+19（含 C10 缺保护登记） | 10 | done（closure audit PASS with corrections，plan 2489） |
 | `2026-10/2026-10-23-0900-deep-audit-nop-code-index-concurrency` | 6.3 | nop-code-index | C1 C5 C6 C7 + C10（C2/C3/C4/C8/C9 overlay） | 0 | 3 | 16+21+41（含 C10 缺保护登记） | 21 | done（closure audit PASS with corrections，plan 2490） |
 | `2026-10/2026-10-23-1000-deep-audit-nop-code-rest-concurrency` | 6.4 | nop-code-rest | C1 C6 抽查 + C10（零缺陷面盘点形态） | 0 | 0 | 0+0 | 0 | done（closure audit PASS，plan 2491；**campaign 首例零立案单元**） |
+| `2026-10/2026-10-23-1100-deep-audit-nop-peripheral-concurrency` | 6.5 | nop-peripheral | C1 C6 抽查 + C10（其余维度零立案，CL 附记形态） | 0 | 2 | 4+5+6（含 C10 缺保护登记） | 5 | done（closure audit PASS with corrections，plan 2492；**初审审计阶段收官单元 WI 1.1–6.5 全部完成**） |
 
 > 2.4 计数口径：合并裁定后 67 条（71 初审 + 3 深挖 = 74 复核保留全含 1 降级（C2-014）→ 维度内并入 7；P1 台账 17→有效工单 13、P2×31、P3×23）；P0=0（即时通道显式空执行）；C10 缺保护 17 条单列；CL 33 条全部确认（承接 8/收敛 5/独立 10/watch 6/移交 4——CL-700→nop-commons）；**结构性发现：nop-orm/nop-dao 事务设施 JVM 级锁为 0，并发正确性全押 session/事务同 context 单线程契约，平台语义多处破口**；跨单元映射 7 行（X1 与 2.3 C1-010 同号异单元互补、X4 CL-401↔2.2 CL-018 同站点、X7 对 2.1 零重复）；对 WI 2.1 仅误报校准引用。
 
@@ -94,6 +95,8 @@
 > 6.4 计数口径：**campaign 首例零立案单元**（前 30 单元均有立案）——P0/P1/P2/P3 全零、工单 0；复核可信度链闭合（C1 抽样 8+C6 抽样 5+C10 抽样 7=安全判定 0 失败）；结构性成因=并发原语九类全零+「analyzer 每文件新建（8 获取点核验）」+「装配期一次写运行期只读」双契约；CL 5/5 确认（CL-101 watch-only 附缓存化即升 P1 条款、CL-003 与 6.2 CL-205 同站点 cross-ref、CL-001/002/102 域留档 7.1 聚类候选）；C10 零缺陷面盘点形态（不计会红序数）——契约测试缺口（assertNotSame 0 命中）登记 watch；Protected Area：nop-code-api plan-first 零触碰；**跨单元闭环：2026-09 G11-03-01 已修 @df4e4f8fa7**（六语言 adapter 接线，回填注记见下）；与 6.3 零同站点重复，反向约束注记（6.3 W-02 引入缓存须先满足本单元 W-01 测试先置）供 7.1 宣读。
 
 > **2026-09 G11-03-01 闭环回填（2026-10-23）**：2026-09-30 全仓审计 `11-code-graph.md` G11-03-01（Go/C#/Rust 适配器未装配）经 df4e4f8fa7（2282-WS4 六语言 adapter bean 接线+容器装配测试）修复闭环——WI 6.4（plan 2491）复核实测 app-service.beans.xml L11-16 六 import 齐全，六语言 adapter 全装配激活。
+
+> 6.5 计数口径：合并裁定后 11 张工单（12 实体[初审 10+深挖 2] 复核全保留 0 驳回 0 降级 → 同站点归并 1[C6-003→C1-004 别名，ProjectFileHelper 静态缓存]；维持 11/跨维度调整 1/移交 0；实体级 P1×2/P2×5/P3×5，工单级 **P1×2**——W-01 JavaScriptWorker 生命周期族[C1-002 主，吸 CL-001/002，future 族第 6 例]/W-02 IDEA 插件调试 socket 泄漏[C6-001，每会话 1 fd+Disconnect 钉死 recv 线程]；P2×4/P3×5；demo 降口径 P3×2[W-09/W-11]）；P0=0（即时通道显式空执行）；C10 缺保护 6 条单列（矩阵会红 0/假保护 0/无测试 6——**会红=0 第 13 例**，全单元零钉死力零检出通道；C10-003「假保护」经复核变异重放证伪修正为「无测试」）；CL 编号 10 条[CL-001~004/201~205/301]全落位（并入工单 5/移交 1[CL-203→WI 2.1 C4-003]/独立线索 2[CL-004 C3/C9 域、CL-301 治理轨]/watch 1/记录性关闭 1）；**结构性发现：缺陷集中双进程调试协作面与 JS 工作线程面（api-debugger/maven-shaded 面闭合零缺陷）、idea-plugin Gradle 构建隔离=测试门禁盲区[CL-301，4 站点修复验证不得依赖 ./mvnw test]、会红=0 第 13 例且唯一真并发测试只护历史修复、demo 降口径甄别自纠[R2 grep 漏检自我修正]**；Protected Area 零 api 叶（nop-api-debugger 近失裁定非契约叶）；owner doc drift：四模块无 owner doc 整体登记（治理轨）；家族关联 6 组零同站点重复（future 族第 6 例/socket-fd 族/IDE 插件项目泄漏族首例/F4 清理族/C4-003 使用方↔设施两面/停机拒绝语义族）；跨单元移交 1（CL-203 本体归 WI 2.1 C4-003，cross-ref 防双计）
 
 > 5.3 计数口径：合并裁定后 8 张修复工单（25 初审+深挖 → 25 复核保留零降级零驳回 → 7 修复工单 W-01~07 + 1 测试保护工单 W-08；P0×0 显式空执行/**P1×2**（W-01 文件去重竞态/W-04 dashboard 行上界）/P2×13/P3×10）；C10 缺保护 5 条单列（矩阵会红 0/假保护 4/部分 1/无测试 13——P1×2 全部无保护；反向钉死 1 处钉死无 fencing 语义）；Protected Area：nop-file-api 3f/492 plan-first——审计只读；跨单元关联 6 组零同站点重复。
 
@@ -303,6 +306,8 @@
 | nop-code-index-W-01（C5-001） | 6.3 | nop-code-index | 公开图查询三动作（surprise/questions/wiki）每请求全量物化 4 关系表（CodeRelationGraphLoader 自述 "Deliberately unbounded"、声称守卫不存在）+ GraphMetricStore.findByMetric 无 LIMIT——并发叠加无护栏 | 待 7.1 | open |
 | nop-code-index-W-02（C5-002） | 6.3 | nop-code-index | ProjectAnalyzer 输入面守卫全部失效：MAX_FILE_SIZE_BYTES/MAX_FILE_COUNT 死常量（全单元零引用）+「流式」BatchQueue 消费端全量累积——全仓库 sourceCode 驻留巨事务（admin-only 触发为 P1 下限注，部署包络配额层可复议） | 待 7.1 | open |
 | nop-code-index-W-03（C7-001，与 5.6 W-04 独立+交叉引用） | 6.3 | nop-code-index | 读路径自愈物化无单飞/无退避——并发首触 Leiden 重算风暴（5.6 W-04 立 detector 本体+调用面守卫不对称，本条立消费侧单飞缺失；6 触发点+4 守卫空洞） | 待 7.1 | open |
+| nop-peripheral-C1-002（W-01，JavaScriptWorker 生命周期族主，吸 CL-001/CL-002，伴生 CL-201） | 6.5 | nop-peripheral | 关闭/死亡路径无拒绝语义：execute 检查-入队非原子 + worker 死亡无监督路由黑洞 + taskQueue 无界——停机/缩容窗口在途调用 future 永不完成，DynamicJsLoader.syncGet 无超时永久阻塞（future 族第 6 例；工厂校验面本体归 WI 2.1 C4-003；C10-001 验收前置） | 待 7.1 | open |
+| nop-peripheral-C6-001（W-02） | 6.5 | nop-peripheral | IDEA 插件调试会话 socket 通道从不关闭（proxy_destroy 零调用，工厂不登记已建 client）——每会话泄漏 1 fd，Disconnect 钉死 1 recv 线程（双侧 readTimeout/idleTimeout=0 无空闲回收；修复参照 TestRemoteDebugger.tearDown 配对；C10-002 验收前置；**验证通道=Gradle/harness 非 ./mvnw**[CL-301]） | 待 7.1 | open |
 
 
 ### WI 4.4 nop-host（CL-001~008：编号 8、并入工单 3、独立线索 5、watch 1[CL-005 拆分]、驳回 0；逐条归属以 merge-adjudication.md §八 权威表为准——closure audit 发现本小节正文误贴后按 §八 改写）
@@ -334,6 +339,8 @@
 ### WI 6.3 nop-code-index（CL-001~006/101~102/201~207/301~305 双登记归并后唯一编号 18 条：18/18 确认 0 驳回；双登记——CL-201=CL-301、CL-202=CL-303；归并去向——CL-304 并 C1-001、随工单 12 条、域留档 6 条；逐条见 merge-adjudication.md）
 
 ### WI 6.4 nop-code-rest（CL-001~003/101~102 共 5 条：5/5 确认 0 驳回——CL-001/002/102 域留档 7.1 聚类候选、CL-101 watch-only 附升 P1 条款、CL-003 与 6.2 CL-205 同站点 cross-ref 收口；逐条见 merge-adjudication.md）
+
+### WI 6.5 nop-peripheral（CL-001~004/201~205/301 分段编号 10 条：10/10 确认 0 驳回；归并去向——CL-001/002 并 W-01 族成员、CL-201 W-01 伴生、CL-003 归 W-06 同站点别名、CL-204 并 W-05 同 diff、CL-203 移交 WI 2.1 C4-003[F3 成员明列 JavaScriptService.java:40]、CL-004 独立线索域留档 C3/C9、CL-301 独立线索治理轨[idea-plugin Gradle 门禁隔离，附工单验证通道约束]、CL-202 watch-only、CL-205 记录性关闭；逐条见 merge-adjudication.md §五）
 
 ### WI 2.2 nop-core-framework（CL-001~021：
 
