@@ -1,7 +1,7 @@
 # 2493 CRA Phase 7.1 — 跨模块合并裁定与修复批次划分提案（F 族聚类 + P2 逐项裁决 + R1..Rn 提案）
 
-> Plan Status: active
-> Last Reviewed: 2026-10-23
+> Plan Status: completed
+> Last Reviewed: 2026-10-24
 > Source: roadmap 工作项 7.1；方法论 `ai-dev/skills/audit-remediation-roadmap-authoring-prompt.md` 步骤 2（未闭包发现汇聚）/步骤 5（P2 裁决通道）；跨报告合并裁定口径沿 `ai-dev/skills/deep-audit-prompts.md`
 > Related: plan 2461–2492（WI 1.1–6.5 全部 done，32 审计单元）；本工作项 = **初审审计阶段收官后的全 campaign 合并裁定**，产出直接喂给 7.2 R1.0 展开器
 > Draft Review: R1 agent_1648f228（2 Blocker[P1 留 7.1 终裁通道缺失/P2 规模基线失真]+5 Major+9 Minor 全修）；R2 agent_b1e908a0（R1 七问题全部已解决；新增 N1[CL 域留档 7.1 候选无消费通道]/N2[P1 台账裁定批次列无回填]必修 + N3–N8 措辞级全修——本轮全量采纳，判定可 active，无第三轮）
@@ -131,72 +131,72 @@ Exit Criteria:
 
 ### Phase 4 - 历史「已知未修复」并入台账与 P3 归档声明
 
-Status: in progress
+Status: completed
 Targets: `family-clustering.md` 承接节 + `summary.md`
 
 - Item Types: `Proof`
 
 - [x] G 系列承接/移交项全量状态收敛确认（每项：已并入工单 N / 已修 / 维持原轨），汇总表落 family-clustering.md
 - [x] 跨 roadmap（`security-audit-roadmap.md` / `full-code-review-roadmap.md` / `nop-stream-independent-audit-roadmap.md`）重叠登记核对：先完成修复方为准原则确认，cross-reference 清单落档
-- [ ] P3 归档声明：全部 P3 已在各单元审计报告归档、不立项（含 C10 watch-only），声明落 summary.md
+- [x] P3 归档声明：全部 P3 已在各单元审计报告归档、不立项（含 C10 watch-only），声明落 summary.md
 
 Exit Criteria:
 
 - [x] 承接项汇总表零悬空（每项有终态）；跨 roadmap cross-reference 清单完整
-- [ ] P3 归档声明入 summary.md
+- [x] P3 归档声明入 summary.md
 - [x] No owner-doc update required（纯裁定与提案，不改 owner doc 内容）
 
 ### Phase 5 - 修复批次划分提案（batch-proposal）
 
-Status: in progress
+Status: completed
 Targets: 审计目录 `batch-proposal.md`
 
 - Item Types: `Decision`
 
-- [ ] 批次记录 schema 定义（M6，与 roadmap Phase 8 六列映射）：批号/标题（→Work Item 列）/finding ID 清单（→Deps 列，分号分隔）/涉及模块与验证命令（`./mvnw test -pl <模块> -am` 或 idea-plugin Gradle/harness 通道）/Owner Doc 锚点路径（→Owner Doc 列）/Protected Area 授权来源/依赖与可并行标注/Skill 列（none——修复 plan）/exit criteria（全量构建绿 + focused 测试 + 验证通道 + 授权声明 + owner doc 更新清单 + C10 验收前置补测）
-- [ ] 批次划分（roadmap Phase 8 排序原则）：R1 = P0 收尾确认 + 跨模块同族 P1（先修基础设施层：nop-kernel/nop-rpc/nop-commons 设施工单，下游一次受益）→ R2 = 基础设施/平台服务剩余 P1 → R3 = 业务模块 P1 → R4+ = P2 裁决为修的项 + 独立测试保护缺口（覆盖口径第 2 条）；单批规模以「单次 AI 交付可完成」为限（预计 8–15 批，以实际聚类结果为准）；附录「治理批 R-G」承接 deferred 治理项——**R-G 与修复批一同由 7.2 展开器追加为 Phase 8 工作项行（治理轨批次，非修复 plan 形态时在行内声明产出物）**
-- [ ] **P1 台账回填（N2）**：批次分配定案后一次性回填 cra-index P1 台账「裁定批次」列（179 行：批次号 / deferred+successor / 豁免行标 cross-ref 去向），消除「待 7.1」挂起态
-- [ ] Phase 3 的 P2「目标阶段」定案为批次号并回填裁决组行（执行策略声明第 3 条的回填动作）
-- [ ] 覆盖性核对（按「批次覆盖口径定义」五条）：P1 行 − 豁免行 = 批次分配行、每行恰好一批、P2 修项全部入批
-- [ ] 批次约束落位：Phase 1 批次约束清单（Gradle 通道/反向钉死/跨单元顺序约束）写入对应批次 exit criteria
-- [ ] 提案交独立子代理对抗审查（schema 完备性/依赖闭环/验证通道完备性/覆盖口径机械可验），Blocker 修复后定稿
+- [x] 批次记录 schema 定义（M6，与 roadmap Phase 8 六列映射）：批号/标题（→Work Item 列）/finding ID 清单（→Deps 列，分号分隔）/涉及模块与验证命令（`./mvnw test -pl <模块> -am` 或 idea-plugin Gradle/harness 通道）/Owner Doc 锚点路径（→Owner Doc 列）/Protected Area 授权来源/依赖与可并行标注/Skill 列（none——修复 plan）/exit criteria（全量构建绿 + focused 测试 + 验证通道 + 授权声明 + owner doc 更新清单 + C10 验收前置补测）
+- [x] 批次划分（roadmap Phase 8 排序原则）：R1 = P0 收尾确认 + 跨模块同族 P1（先修基础设施层：nop-kernel/nop-rpc/nop-commons 设施工单，下游一次受益）→ R2 = 基础设施/平台服务剩余 P1 → R3 = 业务模块 P1 → R4+ = P2 裁决为修的项 + 独立测试保护缺口（覆盖口径第 2 条）；单批规模以「单次 AI 交付可完成」为限（预计 8–15 批，以实际聚类结果为准）；附录「治理批 R-G」承接 deferred 治理项——**R-G 与修复批一同由 7.2 展开器追加为 Phase 8 工作项行（治理轨批次，非修复 plan 形态时在行内声明产出物）**（实际 74 批次记录，偏差声明见 batch-proposal §一）
+- [x] **P1 台账回填（N2）**：批次分配定案后一次性回填 cra-index P1 台账「裁定批次」列（179 行：批次号 / deferred+successor / 豁免行标 cross-ref 去向），消除「待 7.1」挂起态（台账 180 行含 MA-17 新行；待 7.1 残留=0）
+- [x] Phase 3 的 P2「目标阶段」定案为批次号并回填裁决组行（执行策略声明第 3 条的回填动作；61 行占位/注记全解析，32 对全检一致）
+- [x] 覆盖性核对（按「批次覆盖口径定义」五条）：P1 行 − 豁免行 = 批次分配行、每行恰好一批、P2 修项全部入批（双脚本 PASS + 独立审查成员级复算）
+- [x] 批次约束落位：Phase 1 批次约束清单（Gradle 通道/反向钉死/跨单元顺序约束）写入对应批次 exit criteria
+- [x] 提案交独立子代理对抗审查（schema 完备性/依赖闭环/验证通道完备性/覆盖口径机械可验），Blocker 修复后定稿（审查 8 维全过：1 Major[4.1 P3 搭载钉错落]+3 Minor 已修后定稿；无 Blocker）
 
 Exit Criteria:
 
-- [ ] batch-proposal.md 按 schema 覆盖全部批次分配行（Phase 2/3 终裁结果），每条恰好一批；豁免清单完整
-- [ ] 每批 exit criteria repo-observable 且含验证通道与 Protected Area 声明
-- [ ] 独立审查无 Blocker
-- [ ] No owner-doc update required
+- [x] batch-proposal.md 按 schema 覆盖全部批次分配行（Phase 2/3 终裁结果），每条恰好一批；豁免清单完整
+- [x] 每批 exit criteria repo-observable 且含验证通道与 Protected Area 声明
+- [x] 独立审查无 Blocker
+- [x] No owner-doc update required
 
 ### Phase 6 - summary.md、cra-index 收口与 closure audit
 
-Status: planned
+Status: completed
 Targets: 审计目录 `summary.md`、cra-index、roadmap
 
 - Item Types: `Proof`
 
-- [ ] 主 agent 写 summary.md（数字链：P1×179 → 族聚类 → 批次分配；P2 裁决组分布；留 7.1 终裁汇总；承接/cross-reference 汇总；P3 归档声明）
-- [ ] cra-index 报告清单登记 phase7 目录行；roadmap 7.1 → done（closure audit PASS 后）；daily log 记录
-- [ ] 独立子代理 closure audit（盘点对账、聚类完备性、P2 台账成员清单并集=盘点全集、批次全覆盖无遗漏无重复、豁免清单完整、doc-links/checklist 门禁）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs --strict` 退出码 0
+- [x] 主 agent 写 summary.md（数字链：P1×179 → 族聚类 → 批次分配；P2 裁决组分布；留 7.1 终裁汇总；承接/cross-reference 汇总；P3 归档声明）
+- [x] cra-index 报告清单登记 phase7 目录行；roadmap 7.1 → done（closure audit PASS 后）；daily log 记录
+- [x] 独立子代理 closure audit（盘点对账、聚类完备性、P2 台账成员清单并集=盘点全集、批次全覆盖无遗漏无重复、豁免清单完整、doc-links/checklist 门禁）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`check-plan-checklist.mjs --strict` 退出码 0
 
 Exit Criteria:
 
-- [ ] closure audit PASS 记录在本 plan Closure 段
-- [ ] cra-index P2 台账成员清单并集与 p2-adjudication 映射一致；批次提案全 finding 覆盖
-- [ ] 两个门禁退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] closure audit PASS 记录在本 plan Closure 段
+- [x] cra-index P2 台账成员清单并集与 p2-adjudication 映射一致；批次提案全 finding 覆盖
+- [x] 两个门禁退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ## Closure Gates
 
-- [ ] inventory 对账闭合（P1/P2/C10/CL 数字与 cra-index 一致，差异均在已知差清单内）
-- [ ] F1–F11 聚类矩阵完备，零未决重复；留 7.1 终裁零缺项
-- [ ] 全部 P2 逐项裁决合法（must-fix 零降级、deferred 均带 Why Not Blocking + 合法 successor）
-- [ ] 历史「已知未修复」与跨 roadmap 重叠零悬空
-- [ ] batch-proposal 按 schema 全 finding 覆盖（每条恰好一批）且经独立审查无 Blocker
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] 本计划零产品代码变更（纯文档计划，按 plan guide「纯文档计划」条款豁免构建/测试门禁；owner doc 无内容修订）
+- [x] inventory 对账闭合（P1/P2/C10/CL 数字与 cra-index 一致，差异均在已知差清单内）
+- [x] F1–F11 聚类矩阵完备，零未决重复；留 7.1 终裁零缺项
+- [x] 全部 P2 逐项裁决合法（must-fix 零降级、deferred 均带 Why Not Blocking + 合法 successor）
+- [x] 历史「已知未修复」与跨 roadmap 重叠零悬空
+- [x] batch-proposal 按 schema 全 finding 覆盖（每条恰好一批）且经独立审查无 Blocker
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] 本计划零产品代码变更（纯文档计划，按 plan guide「纯文档计划」条款豁免构建/测试门禁；owner doc 无内容修订）
 
 ## Deferred But Adjudicated
 
@@ -208,11 +208,20 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 本计划收口 CRA Phase 7.1 跨模块合并裁定：32 单元全量台账盘点对账闭合（P1×179/P2×560/C10×505）→ 186 族行聚类+B1 十九项+CL 候选终裁+16 组重复消解 → P2 逐项裁决 90 组（修 483/deferred 77，must-fix 零降级，并集 560/560 PASS）→ 74 批次修复提案（对抗审查定稿）→ P1 台账 180 行回填（待 7.1 残留=0）。零产品代码变更。roadmap 7.1 → done——**Phase 8 修复批次展开（7.2）的前置全部就绪**。
+Completed: 2026-10-24
 
 Closure Audit Evidence:
 
+- Reviewer / Agent: agent_103ef404（独立 closure audit 子代理，fresh session）
+- Evidence:
+  - 判定 **PASS with corrections**（2 Minor 注记级已修：family-clustering R03 行幽灵成员 5.5-MA-05 删除+P2×14→13、CL-415 WI 前缀 6.4→2.4——不影响任何计数/批次/台账并集）
+  - 10 项核验全 PASS：产物完整性（8 文件）、盘点对账（32 单元差 0+5.2 勘误在盘）、聚类完备性（3 单元成员清单抽验全对上）、P2 台账合法性（check-p2-union 复现 560/560，31 deferred 行 100% 带理由+successor、60 修行 100% 带批次）、批次覆盖（check-batch-coverage 179/179+check-p2-batch-map+verify-p2-batch-notes 三脚本 EXIT=0）、B1-04 联动四处落账一致、报告清单 7.1 行数字一致、对抗审查/抽检修正全部在盘、两门禁退出码 0、daily log 完整
+  - `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（2 warnings 为无关旧文件）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2493-cra-phase7-cross-module-adjudication.md --strict` 退出码 0（收口后复核）
+  - Anti-Hollow：纯文档裁定计划，无产品代码组件；机械校验以 4 个可复跑脚本为凭（_tmp/check-p2-union / check-batch-coverage / check-p2-batch-map / verify-p2-batch-notes）
+  - Deferred 项分类检查：Deferred But Adjudicated 无条目；77 条 P2 deferred 全部带 Why Not Blocking+合法 successor（独立抽检 6 项 PASS 在盘）
+
 Follow-up:
 
-- <<或者明确写 no remaining plan-owned work>>
+- no remaining plan-owned work（Phase 8 批次展开归 roadmap 7.2 R1.0 展开器；74 批次记录与 R-G 治理批由其消费）
