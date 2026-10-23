@@ -131,24 +131,24 @@ Exit Criteria:
 
 ### Phase 4 - 历史「已知未修复」并入台账与 P3 归档声明
 
-Status: planned
+Status: in progress
 Targets: `family-clustering.md` 承接节 + `summary.md`
 
 - Item Types: `Proof`
 
-- [ ] G 系列承接/移交项全量状态收敛确认（每项：已并入工单 N / 已修 / 维持原轨），汇总表落 family-clustering.md
-- [ ] 跨 roadmap（`security-audit-roadmap.md` / `full-code-review-roadmap.md` / `nop-stream-independent-audit-roadmap.md`）重叠登记核对：先完成修复方为准原则确认，cross-reference 清单落档
+- [x] G 系列承接/移交项全量状态收敛确认（每项：已并入工单 N / 已修 / 维持原轨），汇总表落 family-clustering.md
+- [x] 跨 roadmap（`security-audit-roadmap.md` / `full-code-review-roadmap.md` / `nop-stream-independent-audit-roadmap.md`）重叠登记核对：先完成修复方为准原则确认，cross-reference 清单落档
 - [ ] P3 归档声明：全部 P3 已在各单元审计报告归档、不立项（含 C10 watch-only），声明落 summary.md
 
 Exit Criteria:
 
-- [ ] 承接项汇总表零悬空（每项有终态）；跨 roadmap cross-reference 清单完整
+- [x] 承接项汇总表零悬空（每项有终态）；跨 roadmap cross-reference 清单完整
 - [ ] P3 归档声明入 summary.md
-- [ ] No owner-doc update required（纯裁定与提案，不改 owner doc 内容）
+- [x] No owner-doc update required（纯裁定与提案，不改 owner doc 内容）
 
 ### Phase 5 - 修复批次划分提案（batch-proposal）
 
-Status: planned
+Status: in progress
 Targets: 审计目录 `batch-proposal.md`
 
 - Item Types: `Decision`

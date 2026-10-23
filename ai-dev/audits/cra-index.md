@@ -29,7 +29,7 @@
 | `2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency` | 2.3 | nop-service-framework-hotpath | C1 C2 C3 C4 C8 C9 + C10（C5/C6/C7 线索 overlay） | 0 | 7 | 39+17（含 C10 缺保护登记） | 12 | done（closure audit PASS，plan 2470） |
 | `2026-10/2026-10-18-1521-deep-audit-nop-persistence-rw-concurrency` | 2.4 | nop-persistence-rw | C1 C2 C3 C4 C5 C6 C9 + C10（C7/C8 线索 overlay） | 0 | 13 | 31+17（含 C10 缺保护登记） | 23 | done（closure audit PASS，plan 2471） |
 | `2026-10/2026-10-19-0624-deep-audit-nop-persistence-peri-concurrency` | 2.5 | nop-persistence-peri | C1 C3 C6 C7 C8 + C10（C2/C4/C5/C9 线索 overlay） | 1 | 13 | 20+39（含 C10 缺保护登记） | 1 | done（closure audit PASS，plan 2472） |
-| `2026-10/2026-10-19-1410-deep-audit-nop-ai-core-nop-ai-agent-concurrency` | 3.1 | nop-ai-core-nop-ai-agent | C1 C3 C4 C5 C7 + C10（C2/C6/C8/C9 线索 overlay） | 0 | 13 | 29+19（含 C10 缺保护登记） | 8 | done（closure audit PASS，plan 2473） |
+| `2026-10/2026-10-19-1410-deep-audit-nop-ai-core-nop-ai-agent-concurrency` | 3.1 | nop-ai-core-nop-ai-agent | C1 C3 C4 C5 C7 + C10（C2/C6/C8/C9 线索 overlay） | 0 | 14 | 28+19（含 C10 缺保护登记；B1-04 计数迁移 P2 29→28） | 8 | done（closure audit PASS，plan 2473） |
 | `2026-10/2026-10-20-0829-deep-audit-nop-ai-toolkit-tools-shell-concurrency` | 3.2 | nop-ai-toolkit-tools-shell | C1 C4 C6 C8 + C10（C2/C3/C5/C7/C9 线索 overlay） | 0 | 5 | 19+23（含 C10 缺保护登记） | 1 | done（closure audit PASS，plan 2474） |
 | `2026-10/2026-10-20-1302-deep-audit-nop-ai-gateway-concurrency` | 3.3 | nop-ai-gateway | C1 C2 C3 C4 C6 C7 C8 + C10（C5/C9 线索 overlay） | 0 | 4 | 14+18（含 C10 缺保护登记） | 16 | done（closure audit PASS，plan 2475） |
 | `2026-10/2026-10-20-1908-deep-audit-nop-ai-rest-concurrency` | 3.4 | nop-ai-rest | C1 C6 + rag C3 + C10（C2/C4/C5/C7/C8/C9 线索 overlay） | 0 | 4 | 6+8（含 C10 缺保护登记） | 5 | done（closure audit PASS，plan 2476） |
@@ -54,7 +54,7 @@
 
 > 2.5 计数口径：合并裁定后 35 张工单（54 复核保留全含 1 降级（C7-005 P1→P2 零生产实例化）→ 12 缺陷族 MA-01~12 吸收 17 条覆盖 29 条 + 23 独立 + watch 1（C8-006）+ 跨单元随案 1（C7-012→WI 1.2 MA-05）；P0×1/P1×13/P2×20/P3×1——MA-02 开放裁定暂计 P1 留 7.1 终裁）；**P0×1 = C6-002 成功路径不停链（本 campaign 第 2 个 P0，即时通道）**；C10 缺保护 39 条单列（矩阵会红 0/假保护 30/无测试 24）；CL 26 条全部落位（并入工单 16/独立线索 10/驳回 0）；nop-cdc 零审计面（空接口占位）与 drivers 三纯 pom 显式登记；结构性发现：nop-orm-migration 运行期多线程流水线对并发零防护（五状态机零自环/零单飞/裸线程），标识符派生键族错位（C3-008/009/010/011/012 五站点同根）；跨单元台账级同案仅 2 处（C7-012 随案、C6-005 双轨）。
 
-> 3.1 计数口径：合并裁定后 50 张工单（129 初审+深挖 → 128 复核保留全含 3 降级（C1-005/C5-022 opt-in 装配面、C7-013 收敛）+ 1 驳回（C5-019 初审 grep 失误证伪——releaseSession 实有 4 出口接线）→ 21 缺陷族 MA-01~21 吸收 97 + 29 独立 + watch 2；P0×0 显式空执行/**P1×13**/P2×29/P3×8）；C10 缺保护 19 条单列（矩阵会红 0/假保护 103/无测试 25；P1×30 = 假保护 23+无测试 7；反向钉死 4 项——gate3 测试字面钉 remove no-op）；CL 77 条全部落位（并入工单 46/独立线索 29/watch 2/驳回 0）；**MA-07（周期任务 Error 逃逸 6 条）单列移交 WI 2.1 C3-001 平台绝缘层**，C3-009/012 为 WI 2.1 CL-021 移交面具体化站点，C7-012↔WI 1.6 fencing 族家族关联——零重复立项；结构性发现：agent 执行链对并发/异步零防护（流式主链五 P1 轴保护力为零、方言流式协议 vs 非流式系统性分叉、超时取消契约 5 路径仅 2 实现、F4 终态清理族 22+ 站点）；C3 R3 口径偏差记录在案（矩阵穷举闭合裁定终止，供 closure audit 裁定）。
+> 3.1 计数口径：合并裁定后 50 张工单（129 初审+深挖 → 128 复核保留全含 3 降级（C1-005/C5-022 opt-in 装配面、C7-013 收敛）+ 1 驳回（C5-019 初审 grep 失误证伪——releaseSession 实有 4 出口接线）→ 21 缺陷族 MA-01~21 吸收 97 + 29 独立 + watch 2；P0×0 显式空执行/**P1×13**/P2×29/P3×8）；C10 缺保护 19 条单列（矩阵会红 0/假保护 103/无测试 25；P1×30 = 假保护 23+无测试 7；反向钉死 4 项——gate3 测试字面钉 remove no-op）；CL 77 条全部落位（并入工单 46/独立线索 29/watch 2/驳回 0）；**MA-07（周期任务 Error 逃逸 6 条）单列移交 WI 2.1 C3-001 平台绝缘层**，C3-009/012 为 WI 2.1 CL-021 移交面具体化站点，C7-012↔WI 1.6 fencing 族家族关联——零重复立项；结构性发现：agent 执行链对并发/异步零防护（流式主链五 P1 轴保护力为零、方言流式协议 vs 非流式系统性分叉、超时取消契约 5 路径仅 2 实现、F4 终态清理族 22+ 站点）；C3 R3 口径偏差记录在案（矩阵穷举闭合裁定终止，供 closure audit 裁定）。**B1-04 回升注记（2026-10-23 Phase 7.1 终裁，plan 2493）**：沙箱族跨单元判级分歧统一 P1——3.1-MA-17 回升 P1 并入沙箱族修复面（与 WI 3.2 MA-02/03 两套实现同病，判据=「装配后生产形态」配置可达），计数联动 **P1×13→14、P2×29→28**（P1 台账增补 MA-17 行 @ R1-06；P2 裁决台账 G50 保留承接行）；零重复立项与修复批次协同、护栏测试共享形态（3.1-C10-011）维持。
 
 > 3.2 计数口径：合并裁定后 25 张工单（39 初审+深挖 → 39 复核保留全含 6 降档（shell 零生产接线族条件化：C1-002/C6-004/005/C8-001/002/003——投产即回升）+ 1 升档（C4-001 并案校准 P2→P1）→ 8 缺陷族 MA-01~08 吸收 22 + 17 独立 + watch 0；P0×0 显式空执行/**P1×5**/P2×19/P3×1——MA-06 判级分歧暂计 P1 留 7.1）；C10 缺保护 23 条单列（矩阵会红 0/假保护 21/无测试 18；**9/9 P1 全部无测试**；反向钉死 ShellIOTest:294-300 队满 close）；CL 20 条全部落位（并入工单 16/独立线索 4/驳回 0）；**结构性发现：工具执行链故障注入维度整体缺失（9/9 P1 零保护的结构性成因）、shell 1024 设计参数在测试树零出现、修实例不修类别 F3 残留（Host killTree 已修 Docker 未修）**；跨单元：与 WI 1.1–3.1 台账零同站点重复立项，沙箱族跨单元判级分歧（3.1 MA-17 P2 vs 本单元 P1 两套实现同病）与 shell 族 P1/P2 分叉移交 7.1。
 
@@ -126,188 +126,191 @@
 ## P1 发现汇总（待 Phase 8 批量修复）
 
 > 7.1 合并裁定后按批次展开；每条 P1 必须在 9.1 对账前变为「已修 / deferred+successor」。
+>
+> **批次回填（2026-10-23，plan 2493 Phase 5）**：「裁定批次」列已按 [batch-proposal.md](2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md) §二 一次性落批次号（R1/R2/R3/R4 轮）；豁免行 2.3-C9-012 标 cross-ref 去向；台账 179→180 行（末 3.1 行后新增 B1-04 回升行 MA-17）。批次约束（Gradle 通道/反向钉死/plan-first·ask-first/顺序协同）与每批 exit criteria 见 batch-proposal §四。
 
 | Finding ID | 报告 | 单元 | 一句话描述 | 裁定批次 | 修复状态 |
 |-----------|------|------|-----------|---------|---------|
-| C1-001 | 1.1 | nop-stream-core-runtime | SplitEnumerator 被任务线程无锁直调，快照撕裂/双份分配（←C2-001、C3-001） | 待 7.1 | open |
-| C1-006 | 1.1 | nop-stream-core-runtime | 任务分配账本只增不删（removeTaskAssignment 零调用方；←C7-002） | 待 7.1 | open |
-| C4-001 | 1.1 | nop-stream-core-runtime | LOCAL 执行固定池=核数+有界输出队列互等死锁（←C8-013） | 待 7.1 | open |
-| C4-002 | 1.1 | nop-stream-core-runtime | CachingTableLookup 刷新池无界+无 in-flight 去重（←C3-002、C8-014） | 待 7.1 | open |
-| C4-009 | 1.1 | nop-stream-core-runtime | OpsJobManager.submit 失败窗口孤儿 coordinator+同 jobId 双活 | 待 7.1 | open |
-| C5-010 | 1.1 | nop-stream-core-runtime | PollingJdbcMessageService 无 LIMIT 全量物化 backlog OOM（←C8-002） | 待 7.1 | open |
-| C7-011 | 1.1 | nop-stream-core-runtime | standby 降级不取消在途 checkpoint persist，僵尸第二写者 | 待 7.1 | open |
-| C8-003 | 1.1 | nop-stream-core-runtime | msg_queue INSERT-only 无界账本+WI6 门控不可达（←C7-003） | 待 7.1 | open |
-| C8-011 | 1.1 | nop-stream-core-runtime | launch 共享 2 线程 poller：数据面积压垄断→控制面饥饿（←C4-004） | 待 7.1 | open |
-| FAM-1 | 1.1 | nop-stream-core-runtime | materialization store 无界+overflow-bypass 背压旁路（C5-001 主←C7-001、C8-001） | 待 7.1 | open |
-| C1-002（MA-02） | 1.2 | nop-stream-state-connectors | RocksDB gauge 锁外取 dbRef→native UAF（SIGSEGV 窗口；←C2-001、C6-004） | 待 7.1 | open |
-| C1-001（MA-03） | 1.2 | nop-stream-state-connectors | CEP copyForSubtask 引用透传共享：NFA 条件图/ctx 槽位/udf 生命周期三面（←C1-005、C1-006；C1-001 已知未修复←r4 R5-CEP-05） | 待 7.1 | open |
-| C2-002（MA-04） | 1.2 | nop-stream-state-connectors | Avro registry 无请求超时 × computeIfAbsent 锁内 HTTP（挂死+锁毒化；←C3-003、C4-003、C6-008、C8-004、C7-006①） | 待 7.1 | open |
-| C3-002（MA-05） | 1.2 | nop-stream-state-connectors | 2PC 持久化登记无保留策略：JDBC 台账只增不删 + file manifest O(E) 放大（←C5-006、C7-001、C8-007、C7-007①） | 待 7.1 | open |
-| C4-004（MA-06） | 1.2 | nop-stream-state-connectors | Debezium 引擎无限阻塞任务常驻平台共享 globalWorker 池（←C3-009） | 待 7.1 | open |
-| C3-014（MA-07） | 1.2 | nop-stream-state-connectors | Debezium 停止/启动契约无终结保证：幽灵引擎/重启交叠/排队窗口三面（←C4-005、C4-006） | 待 7.1 | open |
-| C5-002（MA-08） | 1.2 | nop-stream-state-connectors | RocksDB 默认全量 JSON checkpoint 整库物化进堆（←C8-005） | 待 7.1 | open |
-| C3-004 | 1.2 | nop-stream-state-connectors | Debezium 枚举器恢复双登记→同表双引擎重复消费 | 待 7.1 | open |
-| C8-001 | 1.2 | nop-stream-state-connectors | Debezium reader checkpoint offset 领先已发射→恢复静默丢 ≤256 条/检查点 | 待 7.1 | open |
-| C8-006 | 1.2 | nop-stream-state-connectors | Kafka 2PC 事务存活期与 checkpoint 间隔零裕度→触界失败循环 | 待 7.1 | open |
-| C1-001（MA-01） | 1.3 | nop-stream-orchestration-thin | UDF 注册表非线程安全：逐记录 call() 无锁读 × 公开 register() 任意线程写 + 运行期静默换绑（←C3-002、C2-001；含 sql.md §3a docs bug） | 待 7.1 | open |
-| C3-008 | 1.3 | nop-stream-orchestration-thin | region 重启 Phase-3 流水线下兄弟 initializeState REPLACE 清零已推进游标→恢复重放已反映窗口（编排面关联 runtime） | 待 7.1 | open |
-| C3-009 | 1.3 | nop-stream-orchestration-thin | 共享 UDF × 各子任务 open() 覆写共享 RuntimeContext→并行 ≥2 键控状态收敛单一 backend（根因载体 core ProcessOperator，跨单元关联） | 待 7.1 | open |
-| C6-007 | 1.3 | nop-stream-orchestration-thin | cancelled volatile 跨 run 永不复位→区域重启共享实例零事件静默 EOS 假成功 | 待 7.1 | open |
-| C4-001（MA-01，成员 C5-001/C7-001/C5-005） | 1.4 | nop-job | rpcPoll 条目无终结驱动：注册表/句柄永久泄漏+无退避重试风暴+WARN 放大+零观测（修复须同盖失败预算/deadline 兜底/DB 回传/PollEntry 精简/gauge 五面） | 待 7.1 | open |
-| C2-001 | 1.4 | nop-job | per-job 监视器内调用外部 invoker：管理面/停机无限期阻塞+可构造 ABBA 死锁 | 待 7.1 | open |
-| C1-001（MA-01，成员 C2-001/C7-016） | 1.5 | nop-wf-nop-task | task SUSPENDED 转移游离监视器 × cancel 竞态（kill 静默丢失/KILLED 后复活双向） | 待 7.1 | open |
-| C3-001（MA-02，五站点族） | 1.5 | nop-wf-nop-task | wf 跨请求快照竞态：组迁移丢失/终结滞留/join 双实例/action 双跑/子流回滚 | 待 7.1 | open |
-| C3-002（MA-03，成员 C4-002/C2-010） | 1.5 | nop-wf-nop-task | sync+executor 同池嵌套死锁与无界 sync 等待 | 待 7.1 | open |
-| C4-001（MA-04，成员 C4-008/C3-013） | 1.5 | nop-wf-nop-task | retry/delay 业务体+saveState 簿记恒跑共享 globalTimer（4 线程），全平台定时语义失准 | 待 7.1 | open |
-| C5-001（MA-05，成员 C8-001） | 1.5 | nop-wf-nop-task | 到期/提醒扫描无 LIMIT 全量载入+毒步骤不收敛 | 待 7.1 | open |
-| C5-003（MA-08，成员 C8-004） | 1.5 | nop-wf-nop-task | 全局闸门强引用注册表 × 动态 keyExpr 键空间持久无界（已知未修复 plan 364 之上；owner 表态出口） | 待 7.1 | open |
-| C7-001（MA-23，成员 C1-005） | 1.5 | nop-wf-nop-task | WfTaskScanner 多节点/重叠扫描无 fencing：due 双跑副作用先于守卫+remindCount 丢失更新 | 待 7.1 | open |
-| C8-012（←C6-001/C1-008/C1-003A） | 1.6 | nop-retry-nop-tcc | executeImmediateRetry 返回 future ≠ 回调挂接 future，同步 DB 异常下扫描器 join 永久冻结、零日志（C10-001 覆盖） | 待 7.1 | open |
-| C1-001（←C3-001） | 1.6 | nop-retry-nop-tcc | TCC 全局/分支状态 CAS 失败不阻断补偿 RPC，守卫基于私有过期内存副本 | 待 7.1 | open |
-| C3-002（←C3-016） | 1.6 | nop-retry-nop-tcc | 分支级 CAS 失败（0 行/异常）不回写内存，聚合折叠 SUCCESS→全局误报终态 | 待 7.1 | open |
-| C3-003（←C1-009） | 1.6 | nop-retry-nop-tcc | retry 调用链全程不续租，租约到期扫描器接管在途任务双执行 | 待 7.1 | open |
-| C3-005 | 1.6 | nop-retry-nop-tcc | OVERWRITE 删行不取消在途异步链：幽灵任务与双执行 | 待 7.1 | open |
-| C3-006（←C6-016） | 1.6 | nop-retry-nop-tcc | doExecute 簿记写内联结果回调，簿记异常覆盖业务结果→成功改判失败并重试 | 待 7.1 | open |
-| C3-012 | 1.6 | nop-retry-nop-tcc | 全局首跳 CAS 异常→分支零驱动→聚合折叠 SUCCESS→陈旧 from 直写终态 | 待 7.1 | open |
-| C6-002 | 1.6 | nop-retry-nop-tcc | 崩溃/挂死后 RUNNING attempt 永久残留，UK 碰撞将记录永久砖化 | 待 7.1 | open |
-| C6-003（←C8-006） | 1.6 | nop-retry-nop-tcc | OVERWRITE delete+insert 非原子：半个成功后任务蒸发且无死信 | 待 7.1 | open |
-| C7-001（←C6-004） | 1.6 | nop-retry-nop-tcc | retry 三张账本表零保留机制，成功即沉淀永久行 | 待 7.1 | open |
-| C7-003 | 1.6 | nop-retry-nop-tcc | 解析/同步异常路径产生永不终止僵尸记录 + 每租约周期全栈 ERROR 放大 | 待 7.1 | open |
-| C7-005 | 1.6 | nop-retry-nop-tcc | tcc 账本清理 API 零生产调用方 + 耗尽行双重永久排除 + 全表零索引 | 待 7.1 | open |
-| C7-012 | 1.6 | nop-retry-nop-tcc | 扫描器只服务单一 namespace：非 default 记录永久 PENDING、零日志零接管（条件面：default-only 部署不触发） | 待 7.1 | open |
-| C8-001（←C7-004/C6-014） | 1.6 | nop-retry-nop-tcc | 扫描循环被拒/Error 即（近）静默永久停摆：无自防御、无观测、无重臂（跨单元关联 nop-job C4-003，修复须平台级统一） | 待 7.1 | open |
-| C8-001（←C5-005） | 1.7 | nop-batch | dispatch 容量全链零护栏：loadBatchSize≤0 → orm-reader 全表加载 Semaphore(0) 永久挂死 / jdbc-file 族静默空任务丢数（参数护栏矩阵三层完整者 0；修复先于 C8-009） | 待 7.1 | open |
-| C8-002（←CL-008） | 1.7 | nop-batch | ExportDbTool 缺省 batchSize=0 静默钳位 1 每行一 chunk：日志/状态文件写放大磁盘耗尽（与 Import `>0` 守卫 F3 不对称；biz 链 batchSize=0 穿透同批 C8-010） | 待 7.1 | open |
-| C5-001 | 1.7 | nop-batch | excel-reader beforeRead 全 sheet 物化 List：50 万行 1.5–3GB，maxCountExpr 接线禁用且先物化后截断无兜底（C10-011 补回归钉义务） | 待 7.1 | open |
-| C5-002（←CL-038 事实） | 1.7 | nop-batch | jdbc-reader fetchSize 死配置：门条件恒 false + 非 MySQL dialect 无 streamingFetchSize + autocommit 未关 → GB 级全量缓冲（修复须同步改写测试 N2） | 待 7.1 | open |
-| C6-001（←C7-002B/CL-026/CL-024 验证断言） | 1.7 | nop-batch | executeChunkLoop 仅 catch Exception：Error 逃逸 future 永不完成 → 资源永不关闭+任务行永久 RUNNING+调用方挂死（修复必须与 C6-010 同 diff：try 上移+catch Throwable） | 待 7.1 | open |
-| C6-002（←C7-002A） | 1.7 | nop-batch | executor.execute REE 裸逃逸：句柄泄漏+永久 RUNNING（注入有界池饱和/停机竞态；默认装配不可达已裁定） | 待 7.1 | open |
-| C7-001 | 1.7 | nop-batch | 任务行永久 RUNNING 死区：tryMarkTaskRunning 无 stale 判定无 fencing 无专用运维端点，cron 每 5s 错误风暴（跨单元关联 WI 1.5 C7-001/WI 1.6 C8-001 平台级 fencing 对齐；修复前须参数化改写测试 N1） | 待 7.1 | open |
-| C7-003 | 1.7 | nop-batch | 三张账本表零保留：清理代码完全不存在（非零装配），UUID taskKey 每触发 +1 行单调增长（跨单元关联 WI 1.6 C7-001 账本保留族，Phase 8 批次对齐） | 待 7.1 | open |
-| nop-kernel-concurrency-C1-001 | 2.1 | nop-kernel-concurrency | RoundRobinSupplier.resize 收缩路径锁外关闭旧数组尾段：并发 get 取得已关连接（Lettuce 生产链+IoC 刷新派发链可达；退役代际族吸收 C2-021） | 待 7.1 | open |
-| nop-kernel-concurrency-C2-001 | 2.1 | nop-kernel-concurrency | ResourceCacheEntry 持 entry 监视器加载模型：跨 entry 嵌套监视器循环依赖死锁（C2-017 同变更集绑定；单线程循环 StackOverflow 新面） | 待 7.1 | open |
-| nop-kernel-concurrency-C3-001 | 2.1 | nop-kernel-concurrency | 周期任务设施无统一异常绝缘层：一次 Throwable 静默永久停摆（29 处生产站点；30 点绝缘状态表；与 WI 1.6 C8-001 平台级统一） | 待 7.1 | open |
-| nop-kernel-concurrency-C4-001 | 2.1 | nop-kernel-concurrency | globalTimer 死配置（newScheduledExecutor 副作用改写 maxPoolSize=0）+4 线程全平台共享定时器阻塞放大（28 消费方分类终表；与 WI 1.5 MA-04 隔离方案统一） | 待 7.1 | open |
-| nop-kernel-concurrency-C7-007 | 2.1 | nop-kernel-concurrency | 模型缓存 check-changed 双漏检窗口（旧内容+新 mtime 固化；ResourceTimestampCache 死代码；与 C9-001/C9-010 同链三面绑定单点修复） | 待 7.1 | open |
-| nop-core-framework-C1-007 | 2.2 | nop-core-framework | 配置发布协议三字段裸写裸读+两步写序撕裂（族案含 C1-017；api-core 单一不可变 holder 修复，7 写点×8 读站；WI 2.1 C1-001 刷新链上游） | 待 7.1 | open |
-| nop-core-framework-C1-009 | 2.2 | nop-core-framework | JdbcConfigSource.close 竞态：停机后在途刷新重建永不关闭的连接（←C4-002 同位点并案） | 待 7.1 | open |
-| nop-core-framework-C1-010 | 2.2 | nop-core-framework | 插件 unload×reconcile 交错活容器永久泄漏（含 C1-011/012 并案、←C2-004；lifecycleLock 全迁移统一修复批次） | 待 7.1 | open |
-| nop-core-framework-C1-021 | 2.2 | nop-core-framework | tryTriggerChange 在 try 外：回调异常永久静默杀死 DB 配置热更新全链（CL-001 终裁升格；WI 2.1 C3-001 平台绝缘层吸收） | 待 7.1 | open |
-| nop-core-framework-C2-001 | 2.2 | nop-core-framework | getBean0 锁序环依赖边不可见跨线程永久死锁（←C2-012；allow-cycle 默认 true 附注；历史 check 审计 P2-6 同源回访升 P1） | 待 7.1 | open |
-| nop-core-framework-C2-002 | 2.2 | nop-core-framework | ProducedBeanInstance 跨实例 monitor 等待环 wait 无超时（←C1-002 跨维度并案） | 待 7.1 | open |
-| nop-core-framework-C4-003 | 2.2 | nop-core-framework | concurrent-start 三复合面：无 join 点+失败吞入+死容器 exit-0 伪装/quarkus 三绿假活（←C4-008；与 C4-009/011+CL-019 同 PR 批次；门控 P1/P2 双口径留 7.1 裁） | 待 7.1 | open |
-| nop-core-framework-C6-001 | 2.2 | nop-core-framework | loadPluginFromJar 失败点 try 外：ClassLoader+JAR 句柄线性累积泄漏（与测试 N2 设计冲突须消解） | 待 7.1 | open |
-| nop-core-framework-C6-002 | 2.2 | nop-core-framework | 插件状态机永久卡死 DEACTIVATING/ACTIVATING 无恢复 API | 待 7.1 | open |
-| nop-core-framework-C6-003 | 2.2 | nop-core-framework | config source 先调度后加载：初始失败泄漏永久 globalTimer 刷新任务（启动期降档不适用论证成立） | 待 7.1 | open |
-| nop-core-framework-C6-004 | 2.2 | nop-core-framework | ShellRunner 非 timeout 异常不销毁子进程+stderr 线程 pin（←C6-014；修复须外层 try finally） | 待 7.1 | open |
-| nop-service-framework-hotpath-C3-002 | 2.3 | nop-service-framework-hotpath | invokeOperation 出口泵缺 thenOnContext：OrmBatchLoader 在 future 完成线程 requireSession→NOT_IN_SESSION/错 ORM 会话 | 待 7.1 | open |
-| nop-service-framework-hotpath-C3-003 | 2.3 | nop-service-framework-hotpath | BufferedStreamingPublisher 背压断裂：映射链自驱动 request(1) 越窗后元素进无界 ArrayDeque，慢客户端长流内存失控（AI 路由默认形态） | 待 7.1 | open |
-| nop-service-framework-hotpath-C3-007 | 2.3 | nop-service-framework-hotpath | BizActionService.callActionAsync 裸 executor.execute：调用方 IContext 不传播，租户/用户跨任务残留（全单元唯一站点，10 形态 grep） | 待 7.1 | open |
-| nop-service-framework-hotpath-C4-007 | 2.3 | nop-service-framework-hotpath | SSO 半衰期 token 刷新在认证过滤器载体线程无超时阻塞 IdP HTTP：brownout 确定性服务级停摆（修复面：ILoginService 异步化+timeout API+thenCompose 领先 next.get） | 待 7.1 | open |
-| nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | 待 7.1 | open |
-| nop-service-framework-hotpath-C8-002 | 2.3 | nop-service-framework-hotpath | Gateway 429 重试放大 ×7（加法）无准入上界：在途×90s 挂起确定性 OOM 轨迹（与 C4-003 降级事由独立） | 待 7.1 | open |
-| nop-service-framework-hotpath-C9-012 | 2.3 | nop-service-framework-hotpath | LocalDateTimeFieldMarshaller computeSize=20 vs 纳秒实写 23-29 字节 protobuf 越界（双模式硬失效实测；**移交功能正确性维度**） | 待 7.1 | open（接收轨落名） |
-| nop-persistence-rw-C1-001 | 2.4 | nop-persistence-rw | IContext 会话/事务注册表 get-or-create 竞态：僵尸会话/事务表覆盖/双一级缓存（←C1-023/C2-003；ContextAttrs.getOrCreate 单修复） | 待 7.1 | open |
-| nop-persistence-rw-C1-003 | 2.4 | nop-persistence-rw | ormModel 非 volatile：reload 后旧模型无限期可见+非同步 setOrmInterceptor | 待 7.1 | open |
-| nop-persistence-rw-C1-015 | 2.4 | nop-persistence-rw | OrmComponentModel 先发布引用后填充：getColumnPropIdMap 热路径竞态（无需 JMM 假设） | 待 7.1 | open |
-| nop-persistence-rw-C2-001 | 2.4 | nop-persistence-rw | session 全生命周期零互斥：flush 重入守卫为静默跳过（同上下文并发丢刷写/双刷写） | 待 7.1 | open |
-| nop-persistence-rw-C2-002 | 2.4 | nop-persistence-rw | runInNewSessionAsync 完成线程执行 flush/registry 恢复/close 无同步 | 待 7.1 | open |
-| nop-persistence-rw-C2-004 | 2.4 | nop-persistence-rw | 全局实体缓存 read-repair：迟到 put 覆盖并发 evict，陈旧值无界驻留（实体级 opt-in 启用上可达） | 待 7.1 | open |
-| nop-persistence-rw-C2-005 | 2.4 | nop-persistence-rw | DaoEntityBlockingSource CAS 抢占退化无条件 UPDATE：任务重复投递 | 待 7.1 | open |
-| nop-persistence-rw-C2-013 | 2.4 | nop-persistence-rw | 事务注册协议无原子性：半个成功 ERR_TXN_NOT_REGISTERED（REQUIRED 组语义退化） | 待 7.1 | open |
-| nop-persistence-rw-C2-015 | 2.4 | nop-persistence-rw | subTransactions 裸 LinkedHashMap：组提交丢写无感知（最重后果） | 待 7.1 | open |
-| nop-persistence-rw-C2-017 | 2.4 | nop-persistence-rw | JdbcTransaction 连接生命周期无互斥：双取池连接泄漏+eagerRelease 后僵尸连接丢写（←C1-026） | 待 7.1 | open |
-| nop-persistence-rw-C3-001 | 2.4 | nop-persistence-rw | runInNewSessionAsync 上游永不完成：session 永不关闭+注册表滞留 | 待 7.1 | open |
-| nop-persistence-rw-C3-005 | 2.4 | nop-persistence-rw | flush 先清 dirty 再执行 SQL：非事务路径半个成功残留（←C2-006） | 待 7.1 | open |
-| nop-persistence-rw-C6-001 | 2.4 | nop-persistence-rw | drainTo 事务横跨等待窗口：K≥8 消费者先于生产者即连接池耗尽（←C3-006 单工单） | 待 7.1 | open |
-| nop-persistence-peri-C6-004（MA-01 主） | 2.5 | nop-persistence-peri | PubSub 订阅管理竞态：cancel/suspend/resume 绕过监视器三步变更共享 entry/注册表/通道，订阅静默失效或复活双投递（←C1-011/C3-004；已知未修复 check/nosql-cdc 2026-08-19 前案） | 待 7.1 | open |
-| nop-persistence-peri-C8-001（MA-02 主，开放裁定暂计 P1） | 2.5 | nop-persistence-peri | PubSub 消费回调在共享 Redis IO 线程内联执行：慢消费者队头阻塞→服务端断链→静默丢消息，CompletionStage ack 契约被整体丢弃（←C3-005/C7-010；严重度 7.1 终裁） | 待 7.1 | open |
-| nop-persistence-peri-C6-003（MA-04 主） | 2.5 | nop-persistence-peri | 链停止协议不可验证：thread 字段晚于 start 发布使 join 空转、abort 读 stale-null 跳过 stopAll、stopAll 仅 cancel 不等待（←C1-004/CL-009） | 待 7.1 | open |
-| nop-persistence-peri-C7-003（MA-05 主） | 2.5 | nop-persistence-peri | 状态行全列覆盖无版本谓词 + 7 编排入口零单飞/fencing：abort×confirmSwitch 背离终态、多节点双跑双链（←C1-005/006/009） | 待 7.1 | open |
-| nop-persistence-peri-C7-001（MA-06 主） | 2.5 | nop-persistence-peri | 链死亡不可见：getFailure 全仓零调用方，lag=0 门禁把死链判追平，VERIFY 放行缺数目标（←C3-002/CL-006/CL-018/CL-023；先修 C3-008 键派生） | 待 7.1 | open |
-| nop-persistence-peri-C3-001（MA-10 主） | 2.5 | nop-persistence-peri | startFallbackChains 部分启动无补偿 + jobName 丢 querySpace 句柄 put 覆盖：孤儿链不可停且双写同目标表（←C6-001） | 待 7.1 | open |
-| nop-persistence-peri-C1-003 | 2.5 | nop-persistence-peri | 迁移历史表全守卫非原子 check-then-act：多节点并发启动 DDL 重复执行 + FAILED 脏行覆盖对方 success 行致永久重试循环 | 待 7.1 | open |
-| nop-persistence-peri-C1-007 | 2.5 | nop-persistence-peri | rebuildRouting 非 volatile 热替换 shardSelector：SWITCH 开门后请求线程无限期读旧路由，业务写静默落旧分片（平台侧同案 nop-core-framework-C1-007） | 待 7.1 | open |
-| nop-persistence-peri-C3-008 | 2.5 | nop-persistence-peri | lag 探测 connector 名与链注册名 base-i 错位：rescale 主场景 lag=0 门禁观测量恒空平凡通过（MA-06 修复顺序前置） | 待 7.1 | open |
-| nop-persistence-peri-C3-009 | 2.5 | nop-persistence-peri | relocate 路由 querySpace 硬编码空串：增量链 filter 恒 false 100% 丢事件、FULL upsert 落回源侧 default 表（与 C3-008 非同根双立） | 待 7.1 | open |
-| nop-persistence-peri-C7-002 | 2.5 | nop-persistence-peri | 五状态机 ALLOWED 零自环：javadoc 承诺的 fix-forward 路径自身走不通，一次瞬时故障全量报废（←CL-007/CL-008） | 待 7.1 | open |
-| nop-persistence-peri-C7-004 | 2.5 | nop-persistence-peri | 写门 updateConfigValue 进程内裸写无持久化：多实例拓扑门状态不收敛，VERIFY 资格判定失真 | 待 7.1 | open |
-| nop-persistence-peri-C7-014 | 2.5 | nop-persistence-peri | PubSub 断线自动重连后 Redis 侧订阅全丢且无重订阅无检测：静默失联直至重启（lettuce-core 7.5.2 字节码核验） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C3-001（MA-01 主） | 3.1 | nop-ai-core-nop-ai-agent | 流式主链族：callStream 取消只传上游、publisher 永不关闭、聚合计无界——取消后订阅者永久无终止信号、单请求 OOM（←C3-002/009+C4-001/002+C5-001） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C1-008（MA-02 主） | 3.1 | nop-ai-core-nop-ai-agent | 引擎注入目标登记窗口：resume/wake/restore 零注册 + 暂存分支裸 ArrayList——CME/撕裂持久化/注入丢失（←C3-014） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C5-015（MA-03 族首） | 3.1 | nop-ai-core-nop-ai-agent | F4 引擎终态清理族：session store put-only + checkpoint/账本/注册表无终态释放——历史会话堆内永驻（族 29 站点，remove 已实现纯接线；←C5-009/012/013/020+C1-006/011/014/016/017/018/026+C7-013/017/028/030/031） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C4-010（MA-04 主） | 3.1 | nop-ai-core-nop-ai-agent | spawn 编排池泄漏：per-invocation orchestrator 全仓无 close——每次工具调用泄漏 max(2,NCPU) 固定池常驻线程（←C4-010/C7-032 三重登记统一 P1） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C7-022（MA-05 主） | 3.1 | nop-ai-core-nop-ai-agent | 成员/spawn 超时取消契约 F3 漏修族：5 路径仅 2 实现 cancelSession——挂死成员僵尸化 + RECLAIM 同任务双执行（←C7-023/C3-025/C4-014） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C5-008（MA-06 主） | 3.1 | nop-ai-core-nop-ai-agent | 长会话归档/spill/journal 无界累积 + 恢复全量物化 4× 放大（←C5-010/011） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C3-011（MA-08 主） | 3.1 | nop-ai-core-nop-ai-agent | 超时取消传播断链：机械超时/中断不向底层工具执行传播，进程级 kill 通道仅 heartbeat 一处调用、cancelCall javadoc 契约无实现——幽灵 bash/容器/HTTP 持续运行 | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C3-028（MA-09 主） | 3.1 | nop-ai-core-nop-ai-agent | 方言流式协议族（单修复批）：三站点 tool_call 截断 + 流式 usage 全链失活 + Ollama 空串抢占 + 流式错误通道缺失——缺省 stream=true 主路径确定性丢数据（←C3-030/031/032） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C3-021（MA-11 主） | 3.1 | nop-ai-core-nop-ai-agent | DBMessageService 单线程 poller 内联消费：call-agent join 120s 期间全模块消息冻结 + 毒消息无 DLQ 停摆（←C7-025/C4-CL-040） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C7-012（MA-19 主） | 3.1 | nop-ai-core-nop-ai-agent | 接管锁续期异常无限容忍：SQLException 仅 WARN 无限重试——非对称分区期间永不自 abort，fencing 语义整体失效双执行窗口 | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C4-011 | 3.1 | nop-ai-core-nop-ai-agent | AgentDispatchExecutor 经 runAsync 落 commonPool：阻塞工具体（300s cap）占满 JVM 全局池（与 WI 1.2 C4-004/WI 2.3 C8-001 同族判级一致；←CL-025） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C7-001 | 3.1 | nop-ai-core-nop-ai-agent | 流式聚合无全程期限/静默检测：SSE 中途挂死 future 永不完成且对健康检测不可见（缺省装配挂死链补证） | 待 7.1 | open |
-| nop-ai-core-nop-ai-agent-C7-002 | 3.1 | nop-ai-core-nop-ai-agent | 流式中途干净断连被 onComplete 误判成功：五方言终止信号在聚合端未校验——截断内容以成功响应交付，重试/守卫全部失效 | 待 7.1 | open |
-| nop-ai-toolkit-tools-shell-C1-001（MA-01 主） | 3.2 | nop-ai-toolkit-tools-shell | ToolManagerImpl 路径串行队列：CHM bin 锁内同步执行 + executeNow.get() 同步抛出时 result future 永不完成——排队分支全部静默悬挂（JDK 实测证伪 loud-fail 对照；←C4-005） | 待 7.1 | open |
-| nop-ai-toolkit-tools-shell-C6-001（MA-02 主） | 3.2 | nop-ai-toolkit-tools-shell | 沙箱 reader 泄漏族：孪生后台子进程持 stdout 管道→reader 线程/fd 永久泄漏 + finally 发布活 StringBuilder 终态竞态（←C4-001/C6-008；Host killTree 已修 Docker 未同修的 F3 残留） | 待 7.1 | open |
-| nop-ai-toolkit-tools-shell-C6-002（MA-03 主） | 3.2 | nop-ai-toolkit-tools-shell | docker 清理族：超时路径不 destroyForcibly CLI + killContainer 失败被吞 + 取消句柄已注销——容器/进程/线程无界残留（←C8-009） | 待 7.1 | open |
-| nop-ai-toolkit-tools-shell-C6-003（MA-04） | 3.2 | nop-ai-toolkit-tools-shell | runShortCommand 先无限期 drain 后才 waitFor(5s)：daemon 挂起时清理线程自身永久阻塞，墙钟预算失效 | 待 7.1 | open |
-| nop-ai-toolkit-tools-shell-C4-003（MA-06 主，判级分歧暂计 P1） | 3.2 | nop-ai-toolkit-tools-shell | shell 管道死锁族案：阶段提交 REE 无回滚级联吞线程 + ≥1024 行输出确定性挂死 + 下游死亡上游阻塞 + `0<&1` 自引用（←C8-001/003/011；C4 P1 vs C6/C8 条件化 P2 分叉留 7.1） | 待 7.1 | open |
-| nop-ai-gateway-C2-001（MA-07 主） | 3.3 | nop-ai-gateway | FailoverStreamFlow 取消×重订阅 TOCTOU：新 attempt 的 registry.acquire 无任何 release 路径——per-账号并发计数永久 +1 幽灵，慢相变饱和误判，无 gauge 需重启恢复（←C1-008 一行闭合） | 待 7.1 | open |
-| nop-ai-gateway-C1-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 窗口内失败清理（L438 buffer.clear 脱离 monitor）与 request() 冲刷交错——attempt-1 已缓冲内容泄漏进最终输出或 ArrayDeque 撕裂致 onNext(null)（同文件修复批 A） | 待 7.1 | open |
-| nop-ai-gateway-C3-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 终态冲刷受 demand 约束——缓冲剩余元素静默丢弃后仍发 onComplete，流式响应以成功截断；BufferedStreamingPublisher pendingComplete 为同仓正确先例（同文件修复批 A） | 待 7.1 | open |
-| nop-ai-gateway-C8-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 越窗后零需求缓冲无上界（容量门只写在越窗前分支）+ 上游恒 request(MAX)——下游慢/停滞时整条补全流无界积压（吸收 CL-001/003/005/012/014；与 WI 2.3 C3-003/WI 3.1 C5-001 跨单元同族 P1 对齐，同文件修复批 A） | 待 7.1 | open |
-| nop-ai-rest-C6-001（MA-01 主） | 3.4 | nop-ai-rest | PgVectorStore.schemaReady 实例级旗标 vs per-collection DDL 作用域错配：多 index 部署从第二个起永久确定性 SQL 失败（进程生命周期不可自愈；并发首建 DDL 竞态窗；三登记一处修复闭合） | 待 7.1 | open |
-| nop-ai-rest-C1-001 | 3.4 | nop-ai-rest | JavaSourceFileFinder.getAllJavaSourceFiles parallelStream 向普通 ArrayList 并发 add——多模块仓静默丢文件或 AIOOBE（并行面内生于方法体；零外部消费者条件化保留 P1） | 待 7.1 | open |
-| nop-ai-rest-C1-003 | 3.4 | nop-ai-rest | InMemoryVectorStore removeIf+add 复合 upsert 非原子——并发同 docId 摄取重复条目（与 javadoc「线程安全」相悖；PgVectorStore ON CONFLICT 正确范式反证；触发需显式同 id 并发 upsert） | 待 7.1 | open |
-| nop-ai-rest-C3-005 | 3.4 | nop-ai-rest | RagSynthesizeService 不检查 ChatResponse.isSuccess——LLM 错误响应静默折叠为空串 200 返回（错误以成功交付族，与 WI 3.1 C7-002/WI 3.3 C3-001 家族关联；升格：可达性三步闭合） | 待 7.1 | open |
-| nop-message-C3-002+C8-004（MA-02 同 diff 配对） | 4.1 | nop-message | Debezium 事件回调无异常屏障：畸形事件逃逸进 engine.run() 使 CDC 流终态死亡（isStarted 永久 true 静默断流）+ dispatchEvent 吞订阅者异常推进 offset 事件永久丢失——屏障存活/投递两极性，生产主路径免疫、直接嵌入方受损面（判级分歧留 7.1） | 待 7.1 | open |
-| nop-message-C6-002（MA-05 主） | 4.1 | nop-message | DebeziumMessageSource.subscribe 先 put 后启动引擎：启动失败幽灵订阅残留 + 调用方拿不到 ICancellable 永不可注销——后续成功启动后事件持续投递给「被告知失败」的消费者（长生命周期嵌入方双投递） | 待 7.1 | open |
-| nop-message-C8-002 | 4.1 | nop-message | LocalMessageService 消费失败静默丢弃且从不派发 onConsumeFailure——三层失败架构在 Local 整体断链（Local 为生产路径 nop_sys_event 通道，无已声明边界可援引） | 待 7.1 | open |
-| nop-cluster-C1-004（MA-01 主） | 4.2 | nop-cluster | 选主 doStop 复活竞态：无锁 stop 与 synchronized onElectionCompleted 竞交——stop 后 leaderEpoch/electionPromise 复活为「本节点是 leader」、监听器乱序（allowRestart 默认 true + 生产子类 DB I/O 窗口；←C4-001/C2-003/C3-004/C2-005/C4-002 六条族） | 待 7.1 | open |
-| nop-cluster-C1-001 | 4.2 | nop-cluster | Nacos 事件线程原地改写共享 ServiceInstance（copyFromInstance 全字段非 volatile）——请求线程撕裂读 + _host 惰性缓存固化陈旧端点（12 读者站点失效面） | 待 7.1 | open |
-| nop-cluster-C1-003 | 4.2 | nop-cluster | 订阅初始化旧快照无版本守护——事件 B 落在 getAllInstances 返回与 initInstances 之间即回退新事件态（复核补强：窗口不依赖 SDK 内部乱序） | 待 7.1 | open |
-| nop-cluster-C3-001（MA-07 主） | 4.2 | nop-cluster | ClusterRpcClient.callAsync 重试回调内同步异常被吞（whenComplete 返回值丢弃）——返回 future 永不完成调用方永久挂起 + Sentinel entry 泄漏复合（live 默认装配路径证实；←C3-008/C8-008 同 diff） | 待 7.1 | open |
-| nop-network-integration-C1-008+C3-018+C6-020（MA-01 主） | 4.3 | nop-network-integration | MQTT 会话接管订阅抹除：removeConnection 无属主校验——设备重连后下行路由静默失效（C1-008 失效面①被异步 auth 前提证伪修正；C6-020 独有窗口①成立；三登记一工单） | 待 7.1 | open |
-| nop-network-integration-C3-002（MA-02 主） | 4.3 | nop-network-integration | JDK 取消语义失效：下载 body/SSE readLine 的 cancelToken 只绑 headers 阶段 sendAsync——取消后幽灵下载继续写盘、读取线程按次泄漏（成员 C3-003+C6-002） | 待 7.1 | open |
-| nop-network-integration-C3-004（MA-03 主） | 4.3 | nop-network-integration | sidecar 校验和探测同步 get(30s) 跑 apache I/O reactor 回调线程（HC5 ioThreadCount 缺省即 1）——小部署必现 30s 全连接停摆（成员 C6-006；双判级 apache P1/jdk,okhttp P2 留 7.1） | 待 7.1 | open |
-| nop-network-integration-C3-015（MA-04 主） | 4.3 | nop-network-integration | FeishuClient JdkStreamTransport.send 无界 get() 跑在心跳+重连唯一单线程 scheduler——半开连接静默故障即心跳/重连整体死锁（成员 C6-024 升格 P1；载体 raw 线程属 WI 2.1 CL-021 点名） | 待 7.1 | open |
-| nop-network-integration-C1-009（MA-05 主） | 4.3 | nop-network-integration | FeishuClient 重连无单飞/世代守卫：onClose/onError 双入口双调度 + started 跨代复用 + stop→start 重启窗口陈旧回调——双活/三活 WS（成员 C3-017；判级留 7.1） | 待 7.1 | open |
-| nop-network-integration-C6-021（MA-06 主） | 4.3 | nop-network-integration | FeishuClient.stop() 与在途 attemptReconnect 竞态（检查后无世代复核、listener 被重武装）——stop 后新建 WS 孤儿连接（成员 C3-016；判级留 7.1；同构竞态 NettyTcpClient C6-022 另立 P2） | 待 7.1 | open |
-| nop-network-integration-C1-001（MA-07 主） | 4.3 | nop-network-integration | SimpleRpcClientFactory.init 挂在 newInstance 非幂等——logBody 拦截器列表无界累积 + timer/executor 检查-创建竞态单线程定时器泄漏（WI 2.1 CL-024 原始站点实审；成员 C6-014） | 待 7.1 | open |
-| nop-host-C1-006（MA-01 主） | 4.4 | nop-host | 双宿主启动窗口空链固化：IocCoreInitializer registerInstance 覆盖 BeanContainer facade 窗口内 filter 全落 Spring/CDI 桥空链——认证旁路不可自愈（←C4-003 启动窗口无就绪门禁） | 待 7.1 | open |
-| nop-host-C6-007（MA-02） | 4.4 | nop-host | ContextTaskQueue 吞同步异常 future 永不完成——Quarkus 认证请求永久悬挂（/px/ 畸形 JSON 用户可触发；future 族第 5 例，平台根因绝缘层移交 WI 2.3 CL-018+WI 2.1 C3-001） | 待 7.1 | open |
-| nop-host-C6-001 | 4.4 | nop-host | 上传流「先校验后消费」失败路径永不关闭——每被拒上传泄漏 1 个 fd，外部可稳定触发（C6-008 判级维持 P2 随族留 7.1） | 待 7.1 | open |
-| nop-host-C1-001 | 4.4 | nop-host | SpringWebProxy 凭据对（authorization/cookie）由 Reactor 线程写、请求线程读无 volatile——陈旧 token 重发 + 撕裂凭据对 | 待 7.1 | open |
-| nop-search-runner-autotest-C4-001 | 4.5 | nop-search-runner-autotest | CliRunCommand scheduleWithFixedDelay 返回 Future 丢弃——周期任务任一次脚本异常即静默停摆且进程挂在 stdin（F9 定向命中；watch 模式按实际触达面判级） | 待 7.1 | open |
-| nop-auth-credential-MA-01（六族清理配对族主） | 5.1 | nop-auth-credential | 六族 DB 状态存储惰性删除+零回收：NopAuthSession（含 accessToken/refreshToken 永久驻留）+ MfaChallenge + SmsCode + EmailCode + RateLimitCounter + LoginAttempt——长时运行单调增长（F4） | 待 7.1 | open |
-| nop-auth-credential-MA-02（Redis TTL 附着族主） | 5.1 | nop-auth-credential | Redis 六处 INCR+setTimeoutAsync 非原子——TTL 附着失败致 RedisLoginAttemptStore 永久锁号 | 待 7.1 | open |
-| nop-network-integration-C3-001 | 4.3 | nop-network-integration | OkHttp onResponse 异常吞没：body().string() 断连 IOException 被吞 future 永不完成——同步调用方永久阻塞（future 永不完成族第 4 例；同文件 doDownloadAsync 已有保护 F3 漏修） | 待 7.1 | open |
-| nop-network-integration-C3-005 | 4.3 | nop-network-integration | 无校验源跳过 verifyAndRename——默认配置下载报成功但目标文件永不产生（.part 滞留）（错误以成功交付族第 4 例；与 C6-001 P0 同批设计；Apache 无条件 move 跨实现分歧实证） | 待 7.1 | open |
-| nop-network-integration-C3-024 | 4.3 | nop-network-integration | SftpClient 全链路无超时（jsch 默认 0=无限，SftpConfig 无 timeout 配置面）——网络故障下业务线程与 SSH 会话无限挂起（FileServiceResource 请求路径可达证实） | 待 7.1 | open |
-| nop-network-integration-C6-004 | 4.3 | nop-network-integration | SSE 反压无超时阻塞等待——Apache 形态挂起 I/O reactor 线程（HC5 ioThreadCount 缺省 1 全连接停摆）/JDK readLine 不可中断 cancel 无效（与 WI 3.1 C7-001 本体面两侧同批） | 待 7.1 | open |
-| nop-network-integration-C6-005 | 4.3 | nop-network-integration | BASE64_FORM 上传 IoHelper.readBytes 不关闭输入流——三实现共漏（与 CL-012 OOM 峰值面线索同站点不同本体，修复批协同） | 待 7.1 | open |
-| nop-network-integration-C6-017 | 4.3 | nop-network-integration | NettyTcpServer doStart bind 失败不关 boss/worker 事件循环组——每次启动失败泄漏整组 I/O 线程（对照 C6-014 族正确兄弟写法） | 待 7.1 | open |
-| nop-network-integration-C6-018 | 4.3 | nop-network-integration | SftpClient 构造期「session 已连、channel 未开」失败——SSH 会话无人回收（与 C3-024 同文件同批） | 待 7.1 | open |
-| nop-network-integration-C6-019 | 4.3 | nop-network-integration | TencentEmailSender 每次 sendEmail 新建 SesClient 从不 shutdown——连接池随发送次数无界累积（同模块 YunpianSmsSender 有 finally close；保护面 C10-004/C10-013） | 待 7.1 | open |
-| nop-sys-dyn-MA-01（DB 行协调原语 fencing 纪律族主，P1 站点×2） | 5.2 | nop-sys-dyn | 过期分布式锁行删除缺 holderId 互斥校验（无声破坏互斥）+ 事件认领一次性租约不续期且完成写无 fencing（双节点并发处理同一事件） | 待 7.1 | open |
-| nop-sys-dyn-I-01 | 5.2 | nop-sys-dyn | 已发布 mergedStore 并发结构修改——TreeMap 撕裂读 | 待 7.1 | open |
-| nop-sys-dyn-I-02 | 5.2 | nop-sys-dyn | 订阅 cancel×subscribe 竞态孤儿化 → 消息置 PROCESSED 静默丢弃 | 待 7.1 | open |
-| nop-file-datav-W-01（CL-014） | 5.3 | nop-file-datav | 文件去重竞态：isUniqueRef 判-删窗口 → 悬挂引用 | 待 7.1 | open |
-| nop-file-datav-W-04（CL-009） | 5.3 | nop-file-datav | dashboard 主查询路径 rowLimit=null 全量物化无行上界 | 待 7.1 | open |
-| nop-report-format-C5-001 | 5.4 | nop-report-format | record 反序列化数据驱动长度无界物化：getFieldLength 无上限 + readBytes 先 new byte[n] 后读——文件/netty 双生产路径 OOM 面（同族 CountArray 1M/DynLV 64MB/LV 相对长度三处有界反衬；ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG 可复用） | 待 7.1 | open |
-| nop-rule-metadata-W-01（超时族主 C7-102+C7-001+C4-R2-001） | 5.5 | nop-rule-metadata | 外部 JDBC 全链无超时（queryTimeout/networkTimeout 0 配置、SimpleDataSource.setLoginTimeout no-op、DriverManager.setLoginTimeout(5) 仅界建连）——外部源挂起→质量监控静默停摆+checkpoint 永久锁死+调度池控制面锁死（判级暂计 P1，C4 侧 P2 分歧登记 7.1） | 待 7.1 | open |
-| nop-rule-metadata-W-02（retention 族主 C7-004+C7-101） | 5.5 | nop-rule-metadata | 7 张 append-only 时序表零保留路径（QualityResult/QualityScore/Catalog/ProfilingResult/ReconResult/ModelChangedEvent mediumtext 双快照+告警工作流实例）——cron+auto-score 驱动无界增长（F4） | 待 7.1 | open |
-| nop-rule-metadata-W-03（C7-R2-001） | 5.5 | nop-rule-metadata | 规则热更新失效传播缺口：DaoRuleModelLoader traceDepends 只钉定义行，判定树内容在 NopRuleNode 子行且一等 CRUD 可直接改写——节点级编辑不触发缓存失效，陈旧规则无限期服务无日志无告警 | 待 7.1 | open |
-| nop-graph-duckdb-W-01（账本泄漏族主 C6-001 吸 3 载体） | 5.6 | nop-graph-duckdb | OPEN_FILES+connections 账本仅 engine.close() 释放——单例长驻期每任务净增永不回收（F4）+ 过期指纹误拒同路径异配置重开（registry 自述场景 100% 假阳性 bizFatal） | 待 7.1 | open |
-| nop-graph-duckdb-W-02（竞态族主 C6-002 吸 C1-002） | 5.6 | nop-graph-duckdb | open/close 竞态：checkClosed→慢速 connect 窗口内 close() 早退，track 迟到连接进已关闭引擎——native 句柄+单写者文件锁泄漏（IDuckDbEngine L16 契约明文违约） | 待 7.1 | open |
-| nop-graph-duckdb-W-03（C6-R2-002） | 5.6 | nop-graph-duckdb | materialize CTAS 无 table-exists 守卫（对照 readExternal 有）——CTAS 提交后失败留孤儿表，非 bizFatal 可重试→持久 dbPath 重试/恢复重放永久必败（F2 半个成功+F3 守卫漏配） | 待 7.1 | open |
-| nop-graph-duckdb-W-04（不可中断族主 CS-001 吸 CS-R2-001+2.1 C6-CL-031 别名） | 5.6 | nop-graph-duckdb | LeidenDetector runWithTimeout 超时幽灵线程：CWTS 1.3.0 全库零 interrupt 引用 shutdownNow 必然无效，非 daemon 线程不可辨识；5 调用点零规模守卫且 7 个 @BizQuery 请求线程同步触发 | 待 7.1 | open |
-| nop-tools-parse-W-01（代际栅栏族主 C6-101 吸 C1-102/CS-001 转引用） | 6.2 | nop-tools-parse | NodeTscBridge 重启无代际栅栏：inbound.clear() 与旧 reader 迟到帧竞态——stale EOF 误判 EXHAUSTED 永久不可用/stale 数据帧杀健康新进程/孤儿进程；挂 C6-103/104 失效面；现有测试时序敏感假保护 | 待 7.1 | open |
-| nop-tools-parse-W-02（C1-101，Route-B 触 nop-core plan-first） | 6.2 | nop-tools-parse | LintDeadlineExecutor.install 每请求写 EvalExprProvider._executor 非 volatile 全局槽且无卸载——与调试器 attach 写者跨 monitor 丢更新，在途 lint 的 deadline/深度护栏静默失效；现有测试反向钉定全局槽设计 | 待 7.1 | open |
-| nop-code-index-W-01（C5-001） | 6.3 | nop-code-index | 公开图查询三动作（surprise/questions/wiki）每请求全量物化 4 关系表（CodeRelationGraphLoader 自述 "Deliberately unbounded"、声称守卫不存在）+ GraphMetricStore.findByMetric 无 LIMIT——并发叠加无护栏 | 待 7.1 | open |
-| nop-code-index-W-02（C5-002） | 6.3 | nop-code-index | ProjectAnalyzer 输入面守卫全部失效：MAX_FILE_SIZE_BYTES/MAX_FILE_COUNT 死常量（全单元零引用）+「流式」BatchQueue 消费端全量累积——全仓库 sourceCode 驻留巨事务（admin-only 触发为 P1 下限注，部署包络配额层可复议） | 待 7.1 | open |
-| nop-code-index-W-03（C7-001，与 5.6 W-04 独立+交叉引用） | 6.3 | nop-code-index | 读路径自愈物化无单飞/无退避——并发首触 Leiden 重算风暴（5.6 W-04 立 detector 本体+调用面守卫不对称，本条立消费侧单飞缺失；6 触发点+4 守卫空洞） | 待 7.1 | open |
-| nop-peripheral-C1-002（W-01，JavaScriptWorker 生命周期族主，吸 CL-001/CL-002，伴生 CL-201） | 6.5 | nop-peripheral | 关闭/死亡路径无拒绝语义：execute 检查-入队非原子 + worker 死亡无监督路由黑洞 + taskQueue 无界——停机/缩容窗口在途调用 future 永不完成，DynamicJsLoader.syncGet 无超时永久阻塞（future 族第 6 例；工厂校验面本体归 WI 2.1 C4-003；C10-001 验收前置） | 待 7.1 | open |
-| nop-peripheral-C6-001（W-02） | 6.5 | nop-peripheral | IDEA 插件调试会话 socket 通道从不关闭（proxy_destroy 零调用，工厂不登记已建 client）——每会话泄漏 1 fd，Disconnect 钉死 1 recv 线程（双侧 readTimeout/idleTimeout=0 无空闲回收；修复参照 TestRemoteDebugger.tearDown 配对；C10-002 验收前置；**验证通道=Gradle/harness 非 ./mvnw**[CL-301]） | 待 7.1 | open |
+| C1-001 | 1.1 | nop-stream-core-runtime | SplitEnumerator 被任务线程无锁直调，快照撕裂/双份分配（←C2-001、C3-001） | R2-07 | open |
+| C1-006 | 1.1 | nop-stream-core-runtime | 任务分配账本只增不删（removeTaskAssignment 零调用方；←C7-002） | R2-07 | open |
+| C4-001 | 1.1 | nop-stream-core-runtime | LOCAL 执行固定池=核数+有界输出队列互等死锁（←C8-013） | R2-07 | open |
+| C4-002 | 1.1 | nop-stream-core-runtime | CachingTableLookup 刷新池无界+无 in-flight 去重（←C3-002、C8-014） | R2-07 | open |
+| C4-009 | 1.1 | nop-stream-core-runtime | OpsJobManager.submit 失败窗口孤儿 coordinator+同 jobId 双活 | R2-07 | open |
+| C5-010 | 1.1 | nop-stream-core-runtime | PollingJdbcMessageService 无 LIMIT 全量物化 backlog OOM（←C8-002） | R2-07 | open |
+| C7-011 | 1.1 | nop-stream-core-runtime | standby 降级不取消在途 checkpoint persist，僵尸第二写者 | R2-07 | open |
+| C8-003 | 1.1 | nop-stream-core-runtime | msg_queue INSERT-only 无界账本+WI6 门控不可达（←C7-003） | R2-07 | open |
+| C8-011 | 1.1 | nop-stream-core-runtime | launch 共享 2 线程 poller：数据面积压垄断→控制面饥饿（←C4-004） | R2-07 | open |
+| FAM-1 | 1.1 | nop-stream-core-runtime | materialization store 无界+overflow-bypass 背压旁路（C5-001 主←C7-001、C8-001） | R2-07 | open |
+| C1-002（MA-02） | 1.2 | nop-stream-state-connectors | RocksDB gauge 锁外取 dbRef→native UAF（SIGSEGV 窗口；←C2-001、C6-004） | R2-08 | open |
+| C1-001（MA-03） | 1.2 | nop-stream-state-connectors | CEP copyForSubtask 引用透传共享：NFA 条件图/ctx 槽位/udf 生命周期三面（←C1-005、C1-006；C1-001 已知未修复←r4 R5-CEP-05） | R2-08 | open |
+| C2-002（MA-04） | 1.2 | nop-stream-state-connectors | Avro registry 无请求超时 × computeIfAbsent 锁内 HTTP（挂死+锁毒化；←C3-003、C4-003、C6-008、C8-004、C7-006①） | R2-08 | open |
+| C3-002（MA-05） | 1.2 | nop-stream-state-connectors | 2PC 持久化登记无保留策略：JDBC 台账只增不删 + file manifest O(E) 放大（←C5-006、C7-001、C8-007、C7-007①） | R2-08 | open |
+| C4-004（MA-06） | 1.2 | nop-stream-state-connectors | Debezium 引擎无限阻塞任务常驻平台共享 globalWorker 池（←C3-009） | R1-03 | open |
+| C3-014（MA-07） | 1.2 | nop-stream-state-connectors | Debezium 停止/启动契约无终结保证：幽灵引擎/重启交叠/排队窗口三面（←C4-005、C4-006） | R1-08 | open |
+| C5-002（MA-08） | 1.2 | nop-stream-state-connectors | RocksDB 默认全量 JSON checkpoint 整库物化进堆（←C8-005） | R2-08 | open |
+| C3-004 | 1.2 | nop-stream-state-connectors | Debezium 枚举器恢复双登记→同表双引擎重复消费 | R1-08 | open |
+| C8-001 | 1.2 | nop-stream-state-connectors | Debezium reader checkpoint offset 领先已发射→恢复静默丢 ≤256 条/检查点 | R2-08 | open |
+| C8-006 | 1.2 | nop-stream-state-connectors | Kafka 2PC 事务存活期与 checkpoint 间隔零裕度→触界失败循环 | R2-08 | open |
+| C1-001（MA-01） | 1.3 | nop-stream-orchestration-thin | UDF 注册表非线程安全：逐记录 call() 无锁读 × 公开 register() 任意线程写 + 运行期静默换绑（←C3-002、C2-001；含 sql.md §3a docs bug） | R2-09 | open |
+| C3-008 | 1.3 | nop-stream-orchestration-thin | region 重启 Phase-3 流水线下兄弟 initializeState REPLACE 清零已推进游标→恢复重放已反映窗口（编排面关联 runtime） | R2-09 | open |
+| C3-009 | 1.3 | nop-stream-orchestration-thin | 共享 UDF × 各子任务 open() 覆写共享 RuntimeContext→并行 ≥2 键控状态收敛单一 backend（根因载体 core ProcessOperator，跨单元关联） | R2-09 | open |
+| C6-007 | 1.3 | nop-stream-orchestration-thin | cancelled volatile 跨 run 永不复位→区域重启共享实例零事件静默 EOS 假成功 | R2-09 | open |
+| C4-001（MA-01，成员 C5-001/C7-001/C5-005） | 1.4 | nop-job | rpcPoll 条目无终结驱动：注册表/句柄永久泄漏+无退避重试风暴+WARN 放大+零观测（修复须同盖失败预算/deadline 兜底/DB 回传/PollEntry 精简/gauge 五面） | R2-10 | open |
+| C2-001 | 1.4 | nop-job | per-job 监视器内调用外部 invoker：管理面/停机无限期阻塞+可构造 ABBA 死锁 | R2-10 | open |
+| C1-001（MA-01，成员 C2-001/C7-016） | 1.5 | nop-wf-nop-task | task SUSPENDED 转移游离监视器 × cancel 竞态（kill 静默丢失/KILLED 后复活双向） | R2-11 | open |
+| C3-001（MA-02，五站点族） | 1.5 | nop-wf-nop-task | wf 跨请求快照竞态：组迁移丢失/终结滞留/join 双实例/action 双跑/子流回滚 | R2-11 | open |
+| C3-002（MA-03，成员 C4-002/C2-010） | 1.5 | nop-wf-nop-task | sync+executor 同池嵌套死锁与无界 sync 等待 | R2-11 | open |
+| C4-001（MA-04，成员 C4-008/C3-013） | 1.5 | nop-wf-nop-task | retry/delay 业务体+saveState 簿记恒跑共享 globalTimer（4 线程），全平台定时语义失准 | R1-03 | open |
+| C5-001（MA-05，成员 C8-001） | 1.5 | nop-wf-nop-task | 到期/提醒扫描无 LIMIT 全量载入+毒步骤不收敛 | R2-11 | open |
+| C5-003（MA-08，成员 C8-004） | 1.5 | nop-wf-nop-task | 全局闸门强引用注册表 × 动态 keyExpr 键空间持久无界（已知未修复 plan 364 之上；owner 表态出口） | R2-11 | open |
+| C7-001（MA-23，成员 C1-005） | 1.5 | nop-wf-nop-task | WfTaskScanner 多节点/重叠扫描无 fencing：due 双跑副作用先于守卫+remindCount 丢失更新 | R2-11 | open |
+| C8-012（←C6-001/C1-008/C1-003A） | 1.6 | nop-retry-nop-tcc | executeImmediateRetry 返回 future ≠ 回调挂接 future，同步 DB 异常下扫描器 join 永久冻结、零日志（C10-001 覆盖） | R2-12 | open |
+| C1-001（←C3-001） | 1.6 | nop-retry-nop-tcc | TCC 全局/分支状态 CAS 失败不阻断补偿 RPC，守卫基于私有过期内存副本 | R2-12 | open |
+| C3-002（←C3-016） | 1.6 | nop-retry-nop-tcc | 分支级 CAS 失败（0 行/异常）不回写内存，聚合折叠 SUCCESS→全局误报终态 | R2-12 | open |
+| C3-003（←C1-009） | 1.6 | nop-retry-nop-tcc | retry 调用链全程不续租，租约到期扫描器接管在途任务双执行 | R2-12 | open |
+| C3-005 | 1.6 | nop-retry-nop-tcc | OVERWRITE 删行不取消在途异步链：幽灵任务与双执行 | R2-12 | open |
+| C3-006（←C6-016） | 1.6 | nop-retry-nop-tcc | doExecute 簿记写内联结果回调，簿记异常覆盖业务结果→成功改判失败并重试 | R2-12 | open |
+| C3-012 | 1.6 | nop-retry-nop-tcc | 全局首跳 CAS 异常→分支零驱动→聚合折叠 SUCCESS→陈旧 from 直写终态 | R2-12 | open |
+| C6-002 | 1.6 | nop-retry-nop-tcc | 崩溃/挂死后 RUNNING attempt 永久残留，UK 碰撞将记录永久砖化 | R2-12 | open |
+| C6-003（←C8-006） | 1.6 | nop-retry-nop-tcc | OVERWRITE delete+insert 非原子：半个成功后任务蒸发且无死信 | R2-12 | open |
+| C7-001（←C6-004） | 1.6 | nop-retry-nop-tcc | retry 三张账本表零保留机制，成功即沉淀永久行 | R1-07 | open |
+| C7-003 | 1.6 | nop-retry-nop-tcc | 解析/同步异常路径产生永不终止僵尸记录 + 每租约周期全栈 ERROR 放大 | R2-12 | open |
+| C7-005 | 1.6 | nop-retry-nop-tcc | tcc 账本清理 API 零生产调用方 + 耗尽行双重永久排除 + 全表零索引 | R2-12 | open |
+| C7-012 | 1.6 | nop-retry-nop-tcc | 扫描器只服务单一 namespace：非 default 记录永久 PENDING、零日志零接管（条件面：default-only 部署不触发） | R2-12 | open |
+| C8-001（←C7-004/C6-014） | 1.6 | nop-retry-nop-tcc | 扫描循环被拒/Error 即（近）静默永久停摆：无自防御、无观测、无重臂（跨单元关联 nop-job C4-003，修复须平台级统一） | R1-01 | open |
+| C8-001（←C5-005） | 1.7 | nop-batch | dispatch 容量全链零护栏：loadBatchSize≤0 → orm-reader 全表加载 Semaphore(0) 永久挂死 / jdbc-file 族静默空任务丢数（参数护栏矩阵三层完整者 0；修复先于 C8-009） | R2-13 | open |
+| C8-002（←CL-008） | 1.7 | nop-batch | ExportDbTool 缺省 batchSize=0 静默钳位 1 每行一 chunk：日志/状态文件写放大磁盘耗尽（与 Import `>0` 守卫 F3 不对称；biz 链 batchSize=0 穿透同批 C8-010） | R2-13 | open |
+| C5-001 | 1.7 | nop-batch | excel-reader beforeRead 全 sheet 物化 List：50 万行 1.5–3GB，maxCountExpr 接线禁用且先物化后截断无兜底（C10-011 补回归钉义务） | R2-13 | open |
+| C5-002（←CL-038 事实） | 1.7 | nop-batch | jdbc-reader fetchSize 死配置：门条件恒 false + 非 MySQL dialect 无 streamingFetchSize + autocommit 未关 → GB 级全量缓冲（修复须同步改写测试 N2） | R2-13 | open |
+| C6-001（←C7-002B/CL-026/CL-024 验证断言） | 1.7 | nop-batch | executeChunkLoop 仅 catch Exception：Error 逃逸 future 永不完成 → 资源永不关闭+任务行永久 RUNNING+调用方挂死（修复必须与 C6-010 同 diff：try 上移+catch Throwable） | R1-01 | open |
+| C6-002（←C7-002A） | 1.7 | nop-batch | executor.execute REE 裸逃逸：句柄泄漏+永久 RUNNING（注入有界池饱和/停机竞态；默认装配不可达已裁定） | R2-13 | open |
+| C7-001 | 1.7 | nop-batch | 任务行永久 RUNNING 死区：tryMarkTaskRunning 无 stale 判定无 fencing 无专用运维端点，cron 每 5s 错误风暴（跨单元关联 WI 1.5 C7-001/WI 1.6 C8-001 平台级 fencing 对齐；修复前须参数化改写测试 N1） | R2-13 | open |
+| C7-003 | 1.7 | nop-batch | 三张账本表零保留：清理代码完全不存在（非零装配），UUID taskKey 每触发 +1 行单调增长（跨单元关联 WI 1.6 C7-001 账本保留族，Phase 8 批次对齐） | R1-07 | open |
+| nop-kernel-concurrency-C1-001 | 2.1 | nop-kernel-concurrency | RoundRobinSupplier.resize 收缩路径锁外关闭旧数组尾段：并发 get 取得已关连接（Lettuce 生产链+IoC 刷新派发链可达；退役代际族吸收 C2-021） | R2-01 | open |
+| nop-kernel-concurrency-C2-001 | 2.1 | nop-kernel-concurrency | ResourceCacheEntry 持 entry 监视器加载模型：跨 entry 嵌套监视器循环依赖死锁（C2-017 同变更集绑定；单线程循环 StackOverflow 新面） | R2-01 | open |
+| nop-kernel-concurrency-C3-001 | 2.1 | nop-kernel-concurrency | 周期任务设施无统一异常绝缘层：一次 Throwable 静默永久停摆（29 处生产站点；30 点绝缘状态表；与 WI 1.6 C8-001 平台级统一） | R1-01 | open |
+| nop-kernel-concurrency-C4-001 | 2.1 | nop-kernel-concurrency | globalTimer 死配置（newScheduledExecutor 副作用改写 maxPoolSize=0）+4 线程全平台共享定时器阻塞放大（28 消费方分类终表；与 WI 1.5 MA-04 隔离方案统一） | R1-02 | open |
+| nop-kernel-concurrency-C7-007 | 2.1 | nop-kernel-concurrency | 模型缓存 check-changed 双漏检窗口（旧内容+新 mtime 固化；ResourceTimestampCache 死代码；与 C9-001/C9-010 同链三面绑定单点修复） | R1-05 | open |
+| nop-core-framework-C1-007 | 2.2 | nop-core-framework | 配置发布协议三字段裸写裸读+两步写序撕裂（族案含 C1-017；api-core 单一不可变 holder 修复，7 写点×8 读站；WI 2.1 C1-001 刷新链上游） | R2-04 | open |
+| nop-core-framework-C1-009 | 2.2 | nop-core-framework | JdbcConfigSource.close 竞态：停机后在途刷新重建永不关闭的连接（←C4-002 同位点并案） | R2-03 | open |
+| nop-core-framework-C1-010 | 2.2 | nop-core-framework | 插件 unload×reconcile 交错活容器永久泄漏（含 C1-011/012 并案、←C2-004；lifecycleLock 全迁移统一修复批次） | R2-03 | open |
+| nop-core-framework-C1-021 | 2.2 | nop-core-framework | tryTriggerChange 在 try 外：回调异常永久静默杀死 DB 配置热更新全链（CL-001 终裁升格；WI 2.1 C3-001 平台绝缘层吸收） | R1-01 | open |
+| nop-core-framework-C2-001 | 2.2 | nop-core-framework | getBean0 锁序环依赖边不可见跨线程永久死锁（←C2-012；allow-cycle 默认 true 附注；历史 check 审计 P2-6 同源回访升 P1） | R2-04 | open |
+| nop-core-framework-C2-002 | 2.2 | nop-core-framework | ProducedBeanInstance 跨实例 monitor 等待环 wait 无超时（←C1-002 跨维度并案） | R2-04 | open |
+| nop-core-framework-C4-003 | 2.2 | nop-core-framework | concurrent-start 三复合面：无 join 点+失败吞入+死容器 exit-0 伪装/quarkus 三绿假活（←C4-008；与 C4-009/011+CL-019 同 PR 批次；门控 P1/P2 双口径留 7.1 裁） | R2-04 | open |
+| nop-core-framework-C6-001 | 2.2 | nop-core-framework | loadPluginFromJar 失败点 try 外：ClassLoader+JAR 句柄线性累积泄漏（与测试 N2 设计冲突须消解） | R2-03 | open |
+| nop-core-framework-C6-002 | 2.2 | nop-core-framework | 插件状态机永久卡死 DEACTIVATING/ACTIVATING 无恢复 API | R2-03 | open |
+| nop-core-framework-C6-003 | 2.2 | nop-core-framework | config source 先调度后加载：初始失败泄漏永久 globalTimer 刷新任务（启动期降档不适用论证成立） | R2-03 | open |
+| nop-core-framework-C6-004 | 2.2 | nop-core-framework | ShellRunner 非 timeout 异常不销毁子进程+stderr 线程 pin（←C6-014；修复须外层 try finally） | R2-03 | open |
+| nop-service-framework-hotpath-C3-002 | 2.3 | nop-service-framework-hotpath | invokeOperation 出口泵缺 thenOnContext：OrmBatchLoader 在 future 完成线程 requireSession→NOT_IN_SESSION/错 ORM 会话 | R1-04 | open |
+| nop-service-framework-hotpath-C3-003 | 2.3 | nop-service-framework-hotpath | BufferedStreamingPublisher 背压断裂：映射链自驱动 request(1) 越窗后元素进无界 ArrayDeque，慢客户端长流内存失控（AI 路由默认形态） | R2-06 | open |
+| nop-service-framework-hotpath-C3-007 | 2.3 | nop-service-framework-hotpath | BizActionService.callActionAsync 裸 executor.execute：调用方 IContext 不传播，租户/用户跨任务残留（全单元唯一站点，10 形态 grep） | R1-04 | open |
+| nop-service-framework-hotpath-C4-007 | 2.3 | nop-service-framework-hotpath | SSO 半衰期 token 刷新在认证过滤器载体线程无超时阻塞 IdP HTTP：brownout 确定性服务级停摆（修复面：ILoginService 异步化+timeout API+thenCompose 领先 next.get） | R2-05 | open |
+| nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | R1-03 | open |
+| nop-service-framework-hotpath-C8-002 | 2.3 | nop-service-framework-hotpath | Gateway 429 重试放大 ×7（加法）无准入上界：在途×90s 挂起确定性 OOM 轨迹（与 C4-003 降级事由独立） | R2-05 | open |
+| nop-service-framework-hotpath-C9-012 | 2.3 | nop-service-framework-hotpath | LocalDateTimeFieldMarshaller computeSize=20 vs 纳秒实写 23-29 字节 protobuf 越界（双模式硬失效实测；**移交功能正确性维度**） | cross-ref→功能正确性维度 | open（接收轨落名） |
+| nop-persistence-rw-C1-001 | 2.4 | nop-persistence-rw | IContext 会话/事务注册表 get-or-create 竞态：僵尸会话/事务表覆盖/双一级缓存（←C1-023/C2-003；ContextAttrs.getOrCreate 单修复） | R2-14 | open |
+| nop-persistence-rw-C1-003 | 2.4 | nop-persistence-rw | ormModel 非 volatile：reload 后旧模型无限期可见+非同步 setOrmInterceptor | R2-14 | open |
+| nop-persistence-rw-C1-015 | 2.4 | nop-persistence-rw | OrmComponentModel 先发布引用后填充：getColumnPropIdMap 热路径竞态（无需 JMM 假设） | R2-14 | open |
+| nop-persistence-rw-C2-001 | 2.4 | nop-persistence-rw | session 全生命周期零互斥：flush 重入守卫为静默跳过（同上下文并发丢刷写/双刷写） | R2-14 | open |
+| nop-persistence-rw-C2-002 | 2.4 | nop-persistence-rw | runInNewSessionAsync 完成线程执行 flush/registry 恢复/close 无同步 | R2-14 | open |
+| nop-persistence-rw-C2-004 | 2.4 | nop-persistence-rw | 全局实体缓存 read-repair：迟到 put 覆盖并发 evict，陈旧值无界驻留（实体级 opt-in 启用上可达） | R2-14 | open |
+| nop-persistence-rw-C2-005 | 2.4 | nop-persistence-rw | DaoEntityBlockingSource CAS 抢占退化无条件 UPDATE：任务重复投递 | R2-14 | open |
+| nop-persistence-rw-C2-013 | 2.4 | nop-persistence-rw | 事务注册协议无原子性：半个成功 ERR_TXN_NOT_REGISTERED（REQUIRED 组语义退化） | R2-14 | open |
+| nop-persistence-rw-C2-015 | 2.4 | nop-persistence-rw | subTransactions 裸 LinkedHashMap：组提交丢写无感知（最重后果） | R2-14 | open |
+| nop-persistence-rw-C2-017 | 2.4 | nop-persistence-rw | JdbcTransaction 连接生命周期无互斥：双取池连接泄漏+eagerRelease 后僵尸连接丢写（←C1-026） | R2-14 | open |
+| nop-persistence-rw-C3-001 | 2.4 | nop-persistence-rw | runInNewSessionAsync 上游永不完成：session 永不关闭+注册表滞留 | R2-14 | open |
+| nop-persistence-rw-C3-005 | 2.4 | nop-persistence-rw | flush 先清 dirty 再执行 SQL：非事务路径半个成功残留（←C2-006） | R2-14 | open |
+| nop-persistence-rw-C6-001 | 2.4 | nop-persistence-rw | drainTo 事务横跨等待窗口：K≥8 消费者先于生产者即连接池耗尽（←C3-006 单工单） | R2-14 | open |
+| nop-persistence-peri-C6-004（MA-01 主） | 2.5 | nop-persistence-peri | PubSub 订阅管理竞态：cancel/suspend/resume 绕过监视器三步变更共享 entry/注册表/通道，订阅静默失效或复活双投递（←C1-011/C3-004；已知未修复 check/nosql-cdc 2026-08-19 前案） | R2-15 | open |
+| nop-persistence-peri-C8-001（MA-02 主，开放裁定暂计 P1） | 2.5 | nop-persistence-peri | PubSub 消费回调在共享 Redis IO 线程内联执行：慢消费者队头阻塞→服务端断链→静默丢消息，CompletionStage ack 契约被整体丢弃（←C3-005/C7-010；严重度 7.1 终裁） | R2-15 | open |
+| nop-persistence-peri-C6-003（MA-04 主） | 2.5 | nop-persistence-peri | 链停止协议不可验证：thread 字段晚于 start 发布使 join 空转、abort 读 stale-null 跳过 stopAll、stopAll 仅 cancel 不等待（←C1-004/CL-009） | R2-15 | open |
+| nop-persistence-peri-C7-003（MA-05 主） | 2.5 | nop-persistence-peri | 状态行全列覆盖无版本谓词 + 7 编排入口零单飞/fencing：abort×confirmSwitch 背离终态、多节点双跑双链（←C1-005/006/009） | R2-15 | open |
+| nop-persistence-peri-C7-001（MA-06 主） | 2.5 | nop-persistence-peri | 链死亡不可见：getFailure 全仓零调用方，lag=0 门禁把死链判追平，VERIFY 放行缺数目标（←C3-002/CL-006/CL-018/CL-023；先修 C3-008 键派生） | R2-15 | open |
+| nop-persistence-peri-C3-001（MA-10 主） | 2.5 | nop-persistence-peri | startFallbackChains 部分启动无补偿 + jobName 丢 querySpace 句柄 put 覆盖：孤儿链不可停且双写同目标表（←C6-001） | R2-15 | open |
+| nop-persistence-peri-C1-003 | 2.5 | nop-persistence-peri | 迁移历史表全守卫非原子 check-then-act：多节点并发启动 DDL 重复执行 + FAILED 脏行覆盖对方 success 行致永久重试循环 | R2-15 | open |
+| nop-persistence-peri-C1-007 | 2.5 | nop-persistence-peri | rebuildRouting 非 volatile 热替换 shardSelector：SWITCH 开门后请求线程无限期读旧路由，业务写静默落旧分片（平台侧同案 nop-core-framework-C1-007） | R2-04 | open |
+| nop-persistence-peri-C3-008 | 2.5 | nop-persistence-peri | lag 探测 connector 名与链注册名 base-i 错位：rescale 主场景 lag=0 门禁观测量恒空平凡通过（MA-06 修复顺序前置） | R2-15 | open |
+| nop-persistence-peri-C3-009 | 2.5 | nop-persistence-peri | relocate 路由 querySpace 硬编码空串：增量链 filter 恒 false 100% 丢事件、FULL upsert 落回源侧 default 表（与 C3-008 非同根双立） | R2-15 | open |
+| nop-persistence-peri-C7-002 | 2.5 | nop-persistence-peri | 五状态机 ALLOWED 零自环：javadoc 承诺的 fix-forward 路径自身走不通，一次瞬时故障全量报废（←CL-007/CL-008） | R2-15 | open |
+| nop-persistence-peri-C7-004 | 2.5 | nop-persistence-peri | 写门 updateConfigValue 进程内裸写无持久化：多实例拓扑门状态不收敛，VERIFY 资格判定失真 | R2-04 | open |
+| nop-persistence-peri-C7-014 | 2.5 | nop-persistence-peri | PubSub 断线自动重连后 Redis 侧订阅全丢且无重订阅无检测：静默失联直至重启（lettuce-core 7.5.2 字节码核验） | R2-15 | open |
+| nop-ai-core-nop-ai-agent-C3-001（MA-01 主） | 3.1 | nop-ai-core-nop-ai-agent | 流式主链族：callStream 取消只传上游、publisher 永不关闭、聚合计无界——取消后订阅者永久无终止信号、单请求 OOM（←C3-002/009+C4-001/002+C5-001） | R2-02 | open |
+| nop-ai-core-nop-ai-agent-C1-008（MA-02 主） | 3.1 | nop-ai-core-nop-ai-agent | 引擎注入目标登记窗口：resume/wake/restore 零注册 + 暂存分支裸 ArrayList——CME/撕裂持久化/注入丢失（←C3-014） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C5-015（MA-03 族首） | 3.1 | nop-ai-core-nop-ai-agent | F4 引擎终态清理族：session store put-only + checkpoint/账本/注册表无终态释放——历史会话堆内永驻（族 29 站点，remove 已实现纯接线；←C5-009/012/013/020+C1-006/011/014/016/017/018/026+C7-013/017/028/030/031） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C4-010（MA-04 主） | 3.1 | nop-ai-core-nop-ai-agent | spawn 编排池泄漏：per-invocation orchestrator 全仓无 close——每次工具调用泄漏 max(2,NCPU) 固定池常驻线程（←C4-010/C7-032 三重登记统一 P1） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C7-022（MA-05 主） | 3.1 | nop-ai-core-nop-ai-agent | 成员/spawn 超时取消契约 F3 漏修族：5 路径仅 2 实现 cancelSession——挂死成员僵尸化 + RECLAIM 同任务双执行（←C7-023/C3-025/C4-014） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C5-008（MA-06 主） | 3.1 | nop-ai-core-nop-ai-agent | 长会话归档/spill/journal 无界累积 + 恢复全量物化 4× 放大（←C5-010/011） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C3-011（MA-08 主） | 3.1 | nop-ai-core-nop-ai-agent | 超时取消传播断链：机械超时/中断不向底层工具执行传播，进程级 kill 通道仅 heartbeat 一处调用、cancelCall javadoc 契约无实现——幽灵 bash/容器/HTTP 持续运行 | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C3-028（MA-09 主） | 3.1 | nop-ai-core-nop-ai-agent | 方言流式协议族（单修复批）：三站点 tool_call 截断 + 流式 usage 全链失活 + Ollama 空串抢占 + 流式错误通道缺失——缺省 stream=true 主路径确定性丢数据（←C3-030/031/032） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C3-021（MA-11 主） | 3.1 | nop-ai-core-nop-ai-agent | DBMessageService 单线程 poller 内联消费：call-agent join 120s 期间全模块消息冻结 + 毒消息无 DLQ 停摆（←C7-025/C4-CL-040） | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C7-012（MA-19 主） | 3.1 | nop-ai-core-nop-ai-agent | 接管锁续期异常无限容忍：SQLException 仅 WARN 无限重试——非对称分区期间永不自 abort，fencing 语义整体失效双执行窗口 | R2-16 | open |
+| nop-ai-core-nop-ai-agent-C4-011 | 3.1 | nop-ai-core-nop-ai-agent | AgentDispatchExecutor 经 runAsync 落 commonPool：阻塞工具体（300s cap）占满 JVM 全局池（与 WI 1.2 C4-004/WI 2.3 C8-001 同族判级一致；←CL-025） | R1-03 | open |
+| nop-ai-core-nop-ai-agent-C7-001 | 3.1 | nop-ai-core-nop-ai-agent | 流式聚合无全程期限/静默检测：SSE 中途挂死 future 永不完成且对健康检测不可见（缺省装配挂死链补证） | R2-02 | open |
+| nop-ai-core-nop-ai-agent-C7-002 | 3.1 | nop-ai-core-nop-ai-agent | 流式中途干净断连被 onComplete 误判成功：五方言终止信号在聚合端未校验——截断内容以成功响应交付，重试/守卫全部失效 | R2-02 | open |
+| nop-ai-core-nop-ai-agent-MA-17（沙箱族，B1-04 终裁回升 P1，并入沙箱族修复面；计数迁移：3.1 P1×13→14/P2×29→28） | 3.1 | nop-ai-core-nop-ai-agent | Docker 沙箱后端超时清理失败族：孪生后台子进程持 stdout 管道→进程/reader 线程/fd 永久泄漏、kill 失败滞留（与 WI 3.2 MA-02/03 两套实现同病，判级按「装配后生产形态」统一 P1） | R1-06 | open |
+| nop-ai-toolkit-tools-shell-C1-001（MA-01 主） | 3.2 | nop-ai-toolkit-tools-shell | ToolManagerImpl 路径串行队列：CHM bin 锁内同步执行 + executeNow.get() 同步抛出时 result future 永不完成——排队分支全部静默悬挂（JDK 实测证伪 loud-fail 对照；←C4-005） | R1-06 | open |
+| nop-ai-toolkit-tools-shell-C6-001（MA-02 主） | 3.2 | nop-ai-toolkit-tools-shell | 沙箱 reader 泄漏族：孪生后台子进程持 stdout 管道→reader 线程/fd 永久泄漏 + finally 发布活 StringBuilder 终态竞态（←C4-001/C6-008；Host killTree 已修 Docker 未同修的 F3 残留） | R1-06 | open |
+| nop-ai-toolkit-tools-shell-C6-002（MA-03 主） | 3.2 | nop-ai-toolkit-tools-shell | docker 清理族：超时路径不 destroyForcibly CLI + killContainer 失败被吞 + 取消句柄已注销——容器/进程/线程无界残留（←C8-009） | R1-06 | open |
+| nop-ai-toolkit-tools-shell-C6-003（MA-04） | 3.2 | nop-ai-toolkit-tools-shell | runShortCommand 先无限期 drain 后才 waitFor(5s)：daemon 挂起时清理线程自身永久阻塞，墙钟预算失效 | R1-06 | open |
+| nop-ai-toolkit-tools-shell-C4-003（MA-06 主，判级分歧暂计 P1） | 3.2 | nop-ai-toolkit-tools-shell | shell 管道死锁族案：阶段提交 REE 无回滚级联吞线程 + ≥1024 行输出确定性挂死 + 下游死亡上游阻塞 + `0<&1` 自引用（←C8-001/003/011；C4 P1 vs C6/C8 条件化 P2 分叉留 7.1） | R1-06 | open |
+| nop-ai-gateway-C2-001（MA-07 主） | 3.3 | nop-ai-gateway | FailoverStreamFlow 取消×重订阅 TOCTOU：新 attempt 的 registry.acquire 无任何 release 路径——per-账号并发计数永久 +1 幽灵，慢相变饱和误判，无 gauge 需重启恢复（←C1-008 一行闭合） | R2-06 | open |
+| nop-ai-gateway-C1-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 窗口内失败清理（L438 buffer.clear 脱离 monitor）与 request() 冲刷交错——attempt-1 已缓冲内容泄漏进最终输出或 ArrayDeque 撕裂致 onNext(null)（同文件修复批 A） | R2-06 | open |
+| nop-ai-gateway-C3-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 终态冲刷受 demand 约束——缓冲剩余元素静默丢弃后仍发 onComplete，流式响应以成功截断；BufferedStreamingPublisher pendingComplete 为同仓正确先例（同文件修复批 A） | R2-06 | open |
+| nop-ai-gateway-C8-001 | 3.3 | nop-ai-gateway | FailoverStreamFlow 越窗后零需求缓冲无上界（容量门只写在越窗前分支）+ 上游恒 request(MAX)——下游慢/停滞时整条补全流无界积压（吸收 CL-001/003/005/012/014；与 WI 2.3 C3-003/WI 3.1 C5-001 跨单元同族 P1 对齐，同文件修复批 A） | R2-06 | open |
+| nop-ai-rest-C6-001（MA-01 主） | 3.4 | nop-ai-rest | PgVectorStore.schemaReady 实例级旗标 vs per-collection DDL 作用域错配：多 index 部署从第二个起永久确定性 SQL 失败（进程生命周期不可自愈；并发首建 DDL 竞态窗；三登记一处修复闭合） | R2-17 | open |
+| nop-ai-rest-C1-001 | 3.4 | nop-ai-rest | JavaSourceFileFinder.getAllJavaSourceFiles parallelStream 向普通 ArrayList 并发 add——多模块仓静默丢文件或 AIOOBE（并行面内生于方法体；零外部消费者条件化保留 P1） | R2-17 | open |
+| nop-ai-rest-C1-003 | 3.4 | nop-ai-rest | InMemoryVectorStore removeIf+add 复合 upsert 非原子——并发同 docId 摄取重复条目（与 javadoc「线程安全」相悖；PgVectorStore ON CONFLICT 正确范式反证；触发需显式同 id 并发 upsert） | R2-17 | open |
+| nop-ai-rest-C3-005 | 3.4 | nop-ai-rest | RagSynthesizeService 不检查 ChatResponse.isSuccess——LLM 错误响应静默折叠为空串 200 返回（错误以成功交付族，与 WI 3.1 C7-002/WI 3.3 C3-001 家族关联；升格：可达性三步闭合） | R2-17 | open |
+| nop-message-C3-002+C8-004（MA-02 同 diff 配对） | 4.1 | nop-message | Debezium 事件回调无异常屏障：畸形事件逃逸进 engine.run() 使 CDC 流终态死亡（isStarted 永久 true 静默断流）+ dispatchEvent 吞订阅者异常推进 offset 事件永久丢失——屏障存活/投递两极性，生产主路径免疫、直接嵌入方受损面（判级分歧留 7.1） | R1-08 | open |
+| nop-message-C6-002（MA-05 主） | 4.1 | nop-message | DebeziumMessageSource.subscribe 先 put 后启动引擎：启动失败幽灵订阅残留 + 调用方拿不到 ICancellable 永不可注销——后续成功启动后事件持续投递给「被告知失败」的消费者（长生命周期嵌入方双投递） | R1-08 | open |
+| nop-message-C8-002 | 4.1 | nop-message | LocalMessageService 消费失败静默丢弃且从不派发 onConsumeFailure——三层失败架构在 Local 整体断链（Local 为生产路径 nop_sys_event 通道，无已声明边界可援引） | R1-08 | open |
+| nop-cluster-C1-004（MA-01 主） | 4.2 | nop-cluster | 选主 doStop 复活竞态：无锁 stop 与 synchronized onElectionCompleted 竞交——stop 后 leaderEpoch/electionPromise 复活为「本节点是 leader」、监听器乱序（allowRestart 默认 true + 生产子类 DB I/O 窗口；←C4-001/C2-003/C3-004/C2-005/C4-002 六条族） | R2-18 | open |
+| nop-cluster-C1-001 | 4.2 | nop-cluster | Nacos 事件线程原地改写共享 ServiceInstance（copyFromInstance 全字段非 volatile）——请求线程撕裂读 + _host 惰性缓存固化陈旧端点（12 读者站点失效面） | R2-18 | open |
+| nop-cluster-C1-003 | 4.2 | nop-cluster | 订阅初始化旧快照无版本守护——事件 B 落在 getAllInstances 返回与 initInstances 之间即回退新事件态（复核补强：窗口不依赖 SDK 内部乱序） | R2-18 | open |
+| nop-cluster-C3-001（MA-07 主） | 4.2 | nop-cluster | ClusterRpcClient.callAsync 重试回调内同步异常被吞（whenComplete 返回值丢弃）——返回 future 永不完成调用方永久挂起 + Sentinel entry 泄漏复合（live 默认装配路径证实；←C3-008/C8-008 同 diff） | R2-18 | open |
+| nop-network-integration-C1-008+C3-018+C6-020（MA-01 主） | 4.3 | nop-network-integration | MQTT 会话接管订阅抹除：removeConnection 无属主校验——设备重连后下行路由静默失效（C1-008 失效面①被异步 auth 前提证伪修正；C6-020 独有窗口①成立；三登记一工单） | R2-20 | open |
+| nop-network-integration-C3-002（MA-02 主） | 4.3 | nop-network-integration | JDK 取消语义失效：下载 body/SSE readLine 的 cancelToken 只绑 headers 阶段 sendAsync——取消后幽灵下载继续写盘、读取线程按次泄漏（成员 C3-003+C6-002） | R2-02 | open |
+| nop-network-integration-C3-004（MA-03 主） | 4.3 | nop-network-integration | sidecar 校验和探测同步 get(30s) 跑 apache I/O reactor 回调线程（HC5 ioThreadCount 缺省即 1）——小部署必现 30s 全连接停摆（成员 C6-006；双判级 apache P1/jdk,okhttp P2 留 7.1） | R2-20 | open |
+| nop-network-integration-C3-015（MA-04 主） | 4.3 | nop-network-integration | FeishuClient JdkStreamTransport.send 无界 get() 跑在心跳+重连唯一单线程 scheduler——半开连接静默故障即心跳/重连整体死锁（成员 C6-024 升格 P1；载体 raw 线程属 WI 2.1 CL-021 点名） | R2-19 | open |
+| nop-network-integration-C1-009（MA-05 主） | 4.3 | nop-network-integration | FeishuClient 重连无单飞/世代守卫：onClose/onError 双入口双调度 + started 跨代复用 + stop→start 重启窗口陈旧回调——双活/三活 WS（成员 C3-017；判级留 7.1） | R2-19 | open |
+| nop-network-integration-C6-021（MA-06 主） | 4.3 | nop-network-integration | FeishuClient.stop() 与在途 attemptReconnect 竞态（检查后无世代复核、listener 被重武装）——stop 后新建 WS 孤儿连接（成员 C3-016；判级留 7.1；同构竞态 NettyTcpClient C6-022 另立 P2） | R2-19 | open |
+| nop-network-integration-C1-001（MA-07 主） | 4.3 | nop-network-integration | SimpleRpcClientFactory.init 挂在 newInstance 非幂等——logBody 拦截器列表无界累积 + timer/executor 检查-创建竞态单线程定时器泄漏（WI 2.1 CL-024 原始站点实审；成员 C6-014） | R2-20 | open |
+| nop-host-C1-006（MA-01 主） | 4.4 | nop-host | 双宿主启动窗口空链固化：IocCoreInitializer registerInstance 覆盖 BeanContainer facade 窗口内 filter 全落 Spring/CDI 桥空链——认证旁路不可自愈（←C4-003 启动窗口无就绪门禁） | R2-21 | open |
+| nop-host-C6-007（MA-02） | 4.4 | nop-host | ContextTaskQueue 吞同步异常 future 永不完成——Quarkus 认证请求永久悬挂（/px/ 畸形 JSON 用户可触发；future 族第 5 例，平台根因绝缘层移交 WI 2.3 CL-018+WI 2.1 C3-001） | R2-21 | open |
+| nop-host-C6-001 | 4.4 | nop-host | 上传流「先校验后消费」失败路径永不关闭——每被拒上传泄漏 1 个 fd，外部可稳定触发（C6-008 判级维持 P2 随族留 7.1） | R2-21 | open |
+| nop-host-C1-001 | 4.4 | nop-host | SpringWebProxy 凭据对（authorization/cookie）由 Reactor 线程写、请求线程读无 volatile——陈旧 token 重发 + 撕裂凭据对 | R2-21 | open |
+| nop-search-runner-autotest-C4-001 | 4.5 | nop-search-runner-autotest | CliRunCommand scheduleWithFixedDelay 返回 Future 丢弃——周期任务任一次脚本异常即静默停摆且进程挂在 stdin（F9 定向命中；watch 模式按实际触达面判级） | R1-01 | open |
+| nop-auth-credential-MA-01（六族清理配对族主） | 5.1 | nop-auth-credential | 六族 DB 状态存储惰性删除+零回收：NopAuthSession（含 accessToken/refreshToken 永久驻留）+ MfaChallenge + SmsCode + EmailCode + RateLimitCounter + LoginAttempt——长时运行单调增长（F4） | R1-07 | open |
+| nop-auth-credential-MA-02（Redis TTL 附着族主） | 5.1 | nop-auth-credential | Redis 六处 INCR+setTimeoutAsync 非原子——TTL 附着失败致 RedisLoginAttemptStore 永久锁号 | R3-01 | open |
+| nop-network-integration-C3-001 | 4.3 | nop-network-integration | OkHttp onResponse 异常吞没：body().string() 断连 IOException 被吞 future 永不完成——同步调用方永久阻塞（future 永不完成族第 4 例；同文件 doDownloadAsync 已有保护 F3 漏修） | R2-19 | open |
+| nop-network-integration-C3-005 | 4.3 | nop-network-integration | 无校验源跳过 verifyAndRename——默认配置下载报成功但目标文件永不产生（.part 滞留）（错误以成功交付族第 4 例；与 C6-001 P0 同批设计；Apache 无条件 move 跨实现分歧实证） | R2-19 | open |
+| nop-network-integration-C3-024 | 4.3 | nop-network-integration | SftpClient 全链路无超时（jsch 默认 0=无限，SftpConfig 无 timeout 配置面）——网络故障下业务线程与 SSH 会话无限挂起（FileServiceResource 请求路径可达证实） | R2-19 | open |
+| nop-network-integration-C6-004 | 4.3 | nop-network-integration | SSE 反压无超时阻塞等待——Apache 形态挂起 I/O reactor 线程（HC5 ioThreadCount 缺省 1 全连接停摆）/JDK readLine 不可中断 cancel 无效（与 WI 3.1 C7-001 本体面两侧同批） | R2-02 | open |
+| nop-network-integration-C6-005 | 4.3 | nop-network-integration | BASE64_FORM 上传 IoHelper.readBytes 不关闭输入流——三实现共漏（与 CL-012 OOM 峰值面线索同站点不同本体，修复批协同） | R2-19 | open |
+| nop-network-integration-C6-017 | 4.3 | nop-network-integration | NettyTcpServer doStart bind 失败不关 boss/worker 事件循环组——每次启动失败泄漏整组 I/O 线程（对照 C6-014 族正确兄弟写法） | R2-20 | open |
+| nop-network-integration-C6-018 | 4.3 | nop-network-integration | SftpClient 构造期「session 已连、channel 未开」失败——SSH 会话无人回收（与 C3-024 同文件同批） | R2-20 | open |
+| nop-network-integration-C6-019 | 4.3 | nop-network-integration | TencentEmailSender 每次 sendEmail 新建 SesClient 从不 shutdown——连接池随发送次数无界累积（同模块 YunpianSmsSender 有 finally close；保护面 C10-004/C10-013） | R2-20 | open |
+| nop-sys-dyn-MA-01（DB 行协调原语 fencing 纪律族主，P1 站点×2） | 5.2 | nop-sys-dyn | 过期分布式锁行删除缺 holderId 互斥校验（无声破坏互斥）+ 事件认领一次性租约不续期且完成写无 fencing（双节点并发处理同一事件） | R3-02 | open |
+| nop-sys-dyn-I-01 | 5.2 | nop-sys-dyn | 已发布 mergedStore 并发结构修改——TreeMap 撕裂读 | R3-02 | open |
+| nop-sys-dyn-I-02 | 5.2 | nop-sys-dyn | 订阅 cancel×subscribe 竞态孤儿化 → 消息置 PROCESSED 静默丢弃 | R3-02 | open |
+| nop-file-datav-W-01（CL-014） | 5.3 | nop-file-datav | 文件去重竞态：isUniqueRef 判-删窗口 → 悬挂引用 | R3-03 | open |
+| nop-file-datav-W-04（CL-009） | 5.3 | nop-file-datav | dashboard 主查询路径 rowLimit=null 全量物化无行上界 | R3-03 | open |
+| nop-report-format-C5-001 | 5.4 | nop-report-format | record 反序列化数据驱动长度无界物化：getFieldLength 无上限 + readBytes 先 new byte[n] 后读——文件/netty 双生产路径 OOM 面（同族 CountArray 1M/DynLV 64MB/LV 相对长度三处有界反衬；ERR_RECORD_DECODE_LENGTH_IS_TOO_LONG 可复用） | R3-04 | open |
+| nop-rule-metadata-W-01（超时族主 C7-102+C7-001+C4-R2-001） | 5.5 | nop-rule-metadata | 外部 JDBC 全链无超时（queryTimeout/networkTimeout 0 配置、SimpleDataSource.setLoginTimeout no-op、DriverManager.setLoginTimeout(5) 仅界建连）——外部源挂起→质量监控静默停摆+checkpoint 永久锁死+调度池控制面锁死（判级暂计 P1，C4 侧 P2 分歧登记 7.1） | R3-05 | open |
+| nop-rule-metadata-W-02（retention 族主 C7-004+C7-101） | 5.5 | nop-rule-metadata | 7 张 append-only 时序表零保留路径（QualityResult/QualityScore/Catalog/ProfilingResult/ReconResult/ModelChangedEvent mediumtext 双快照+告警工作流实例）——cron+auto-score 驱动无界增长（F4） | R1-07 | open |
+| nop-rule-metadata-W-03（C7-R2-001） | 5.5 | nop-rule-metadata | 规则热更新失效传播缺口：DaoRuleModelLoader traceDepends 只钉定义行，判定树内容在 NopRuleNode 子行且一等 CRUD 可直接改写——节点级编辑不触发缓存失效，陈旧规则无限期服务无日志无告警 | R3-05 | open |
+| nop-graph-duckdb-W-01（账本泄漏族主 C6-001 吸 3 载体） | 5.6 | nop-graph-duckdb | OPEN_FILES+connections 账本仅 engine.close() 释放——单例长驻期每任务净增永不回收（F4）+ 过期指纹误拒同路径异配置重开（registry 自述场景 100% 假阳性 bizFatal） | R1-07 | open |
+| nop-graph-duckdb-W-02（竞态族主 C6-002 吸 C1-002） | 5.6 | nop-graph-duckdb | open/close 竞态：checkClosed→慢速 connect 窗口内 close() 早退，track 迟到连接进已关闭引擎——native 句柄+单写者文件锁泄漏（IDuckDbEngine L16 契约明文违约） | R3-06 | open |
+| nop-graph-duckdb-W-03（C6-R2-002） | 5.6 | nop-graph-duckdb | materialize CTAS 无 table-exists 守卫（对照 readExternal 有）——CTAS 提交后失败留孤儿表，非 bizFatal 可重试→持久 dbPath 重试/恢复重放永久必败（F2 半个成功+F3 守卫漏配） | R3-06 | open |
+| nop-graph-duckdb-W-04（不可中断族主 CS-001 吸 CS-R2-001+2.1 C6-CL-031 别名） | 5.6 | nop-graph-duckdb | LeidenDetector runWithTimeout 超时幽灵线程：CWTS 1.3.0 全库零 interrupt 引用 shutdownNow 必然无效，非 daemon 线程不可辨识；5 调用点零规模守卫且 7 个 @BizQuery 请求线程同步触发 | R3-07 | open |
+| nop-tools-parse-W-01（代际栅栏族主 C6-101 吸 C1-102/CS-001 转引用） | 6.2 | nop-tools-parse | NodeTscBridge 重启无代际栅栏：inbound.clear() 与旧 reader 迟到帧竞态——stale EOF 误判 EXHAUSTED 永久不可用/stale 数据帧杀健康新进程/孤儿进程；挂 C6-103/104 失效面；现有测试时序敏感假保护 | R3-08 | open |
+| nop-tools-parse-W-02（C1-101，Route-B 触 nop-core plan-first） | 6.2 | nop-tools-parse | LintDeadlineExecutor.install 每请求写 EvalExprProvider._executor 非 volatile 全局槽且无卸载——与调试器 attach 写者跨 monitor 丢更新，在途 lint 的 deadline/深度护栏静默失效；现有测试反向钉定全局槽设计 | R3-08 | open |
+| nop-code-index-W-01（C5-001） | 6.3 | nop-code-index | 公开图查询三动作（surprise/questions/wiki）每请求全量物化 4 关系表（CodeRelationGraphLoader 自述 "Deliberately unbounded"、声称守卫不存在）+ GraphMetricStore.findByMetric 无 LIMIT——并发叠加无护栏 | R3-09 | open |
+| nop-code-index-W-02（C5-002） | 6.3 | nop-code-index | ProjectAnalyzer 输入面守卫全部失效：MAX_FILE_SIZE_BYTES/MAX_FILE_COUNT 死常量（全单元零引用）+「流式」BatchQueue 消费端全量累积——全仓库 sourceCode 驻留巨事务（admin-only 触发为 P1 下限注，部署包络配额层可复议） | R3-09 | open |
+| nop-code-index-W-03（C7-001，与 5.6 W-04 独立+交叉引用） | 6.3 | nop-code-index | 读路径自愈物化无单飞/无退避——并发首触 Leiden 重算风暴（5.6 W-04 立 detector 本体+调用面守卫不对称，本条立消费侧单飞缺失；6 触发点+4 守卫空洞） | R3-07 | open |
+| nop-peripheral-C1-002（W-01，JavaScriptWorker 生命周期族主，吸 CL-001/CL-002，伴生 CL-201） | 6.5 | nop-peripheral | 关闭/死亡路径无拒绝语义：execute 检查-入队非原子 + worker 死亡无监督路由黑洞 + taskQueue 无界——停机/缩容窗口在途调用 future 永不完成，DynamicJsLoader.syncGet 无超时永久阻塞（future 族第 6 例；工厂校验面本体归 WI 2.1 C4-003；C10-001 验收前置） | R3-10 | open |
+| nop-peripheral-C6-001（W-02） | 6.5 | nop-peripheral | IDEA 插件调试会话 socket 通道从不关闭（proxy_destroy 零调用，工厂不登记已建 client）——每会话泄漏 1 fd，Disconnect 钉死 1 recv 线程（双侧 readTimeout/idleTimeout=0 无空闲回收；修复参照 TestRemoteDebugger.tearDown 配对；C10-002 验收前置；**验证通道=Gradle/harness 非 ./mvnw**[CL-301]） | R3-10 | open |
 
 
 ## 维度集外线索关联（CL 台账）
@@ -448,7 +451,7 @@
 | P2-G90（6.5 IDE 插件生命周期束，成员 4 条：6.5-W-03、6.5-W-04、6.5-W-05、6.5-W-06） | nop-peripheral | 6.5 | Project 键静态缓存、挂起交接非原子、全局注册表交叉销毁、suspendedThreads 只进不出 | 修→R4+ | 批次[Phase 5 回填]；W-03=R22 成员（验证通道=Gradle/harness[CL-301]，S5 批次约束三选一写入验收标准）；W-04=R06 cross-ref；W-06=F4 清理族；C10 缺保护 C10-003~006 共 4 条随本体（验收前置） |
 | P2-G91（非 P2 实体——无本体 C10 条目 4 条：1.2-C10-016、1.3-C10-007、1.3-C10-008、1.4-C10-009） | 跨单元 | 1.2、1.3、1.4 | 测试自身缺陷、解耦登记、测试基建缺口、无宿主时序敏感测试——无缺陷本体不占 P2 计数 | deferred | Why Not Blocking：非缺陷本体不独立立项（1.3-C10-007 建议随 C3-008/C6-007 P1 批加固）；successor=治理批 R-G（测试基建/解耦登记加固） |
 
-> 2026-10-23 落账：P2×560 逐项裁决为 90 个裁决组行（修 483 条=提前 44+R4+ 439；deferred 77 条）+1 无本体 C10 条目行（G91，不计 P2）；成员级并集校验 560/560（脚本比对 `inventory-p2-c10.md` §一，见详表 §七）；3.1-MA-17 按 B1-04 终裁回升 P1（本台账保留承接行 G50，cra-index P1/P2 计数收口时联动更新）。
+> 2026-10-23 落账：P2×560 逐项裁决为 90 个裁决组行（修 483 条=提前 44+R4+ 439；deferred 77 条）+1 无本体 C10 条目行（G91，不计 P2）；成员级并集校验 560/560（脚本比对 `inventory-p2-c10.md` §一，见详表 §七）；3.1-MA-17 按 B1-04 终裁回升 P1（本台账保留承接行 G50，cra-index P1/P2 计数收口时联动更新）。**已联动（2026-10-23 Phase 5 回填）**：报告清单 3.1 行 P1 13→14、P2 格 29→28；P1 台账增补 MA-17 行（裁定批次 R1-06）。P2 组行「批次[Phase 5 回填]」占位的批量替换依据 = [batch-proposal.md §二.5 组→批映射表](2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md)。
 
 ## 使用说明
 
