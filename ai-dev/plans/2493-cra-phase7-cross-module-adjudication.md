@@ -112,20 +112,22 @@ Exit Criteria:
 
 ### Phase 3 - P2 逐项裁决
 
-Status: planned
+Status: completed
 Targets: cra-index「P2 裁决台账」（权威）+ 审计目录 `p2-adjudication.md`（依据详表）
 
 - Item Types: `Decision`
 
-- [ ] 按族分组逐项裁决全部 P2 实体（~560 + C10 跟随本体）：**修（in-scope，定目标阶段：R4+ / 按依赖提前）/ deferred（必须带 Why Not Blocking + successor 指针，successor 限于本 plan「successor 合法目标集」四类）**；已确认 live 的 must-fix P2 不得降级 deferred（Minimum Rule #16）；C10 缺保护条目行内标注「验收前置→本体工单」（映射 SSOT=inventory §二，p2-adjudication 仅引用）
-- [ ] 裁决校准口径：demo 降口径条目默认 deferred（successor=治理批 R-G）；watch-only 条目默认 deferred（successor=触发条款/本体工单）；条件化工单按激活条款默认 deferred 并显式登记触发条件；留 7.1 终裁为 P2 的按终裁结果归组
-- [ ] 裁决组行写回 cra-index「P2 裁决台账」（沿用现有表头六列；组行=成员 ID 清单全列；成员级例外单列子行）；p2-adjudication.md 按组记录裁决依据与例外理由
-- [ ] 独立子代理抽检裁决一致性（must-fix 未降级 / deferred 均带合法 successor / 目标阶段与提案一致 / 每 P2 ID 恰好出现一次[例外子行成员已从组行清单移出，不双计]）
+- [x] 按族分组逐项裁决全部 P2 实体（~560 + C10 跟随本体）：**修（in-scope，定目标阶段：R4+ / 按依赖提前）/ deferred（必须带 Why Not Blocking + successor 指针，successor 限于本 plan「successor 合法目标集」四类）**；已确认 live 的 must-fix P2 不得降级 deferred（Minimum Rule #16）；C10 缺保护条目行内标注「验收前置→本体工单」（映射 SSOT=inventory §二，p2-adjudication 仅引用）
+- [x] 裁决校准口径：demo 降口径条目默认 deferred（successor=治理批 R-G）；watch-only 条目默认 deferred（successor=触发条款/本体工单）；条件化工单按激活条款默认 deferred 并显式登记触发条件；留 7.1 终裁为 P2 的按终裁结果归组
+- [x] 裁决组行写回 cra-index「P2 裁决台账」（沿用现有表头六列；组行=成员 ID 清单全列；成员级例外单列子行）；p2-adjudication.md 按组记录裁决依据与例外理由
+- [x] 独立子代理抽检裁决一致性（must-fix 未降级 / deferred 均带合法 successor / 目标阶段与提案一致 / 每 P2 ID 恰好出现一次[例外子行成员已从组行清单移出，不双计]）
 
 Exit Criteria:
 
-- [ ] 全部 P2 实体（Phase 1 盘点数）逐项有裁决且三态合法；cra-index 台账成员清单并集 = P2 盘点全集（恰好一次）
-- [ ] 抽检未发现 must-fix 降级、无理由 deferred 或非法 successor 指针
+- [x] 全部 P2 实体（Phase 1 盘点数）逐项有裁决且三态合法；cra-index 台账成员清单并集 = P2 盘点全集（恰好一次）
+- [x] 抽检未发现 must-fix 降级、无理由 deferred 或非法 successor 指针
+
+> **收口记录（2026-10-23）**：90 组（P2-G01~G90）+ G91 无本体 C10 行；修 483（提前 44[四型] + R4+ 439）/ deferred 77（触发条款 53 + 治理批 R-G 10 + CL/域留档 14 + backlog 0）；并集校验 560/560 PASS（`_tmp/check-p2-union.mjs` 复跑复现）；独立抽检 6 项全 PASS，3 项 Minor（G37 四型索引/C10 尾注 G47+031 与 G48、G63/successor 分类学注记）已修复；watch：3.1-MA-17 计数联动（P1 179→180、P2 560→559）Phase 6 收口落账；悬空指针 5.1-I-06 已按 live 缺陷默认裁修→R4+ 并登记 Phase 5 复核。
 
 ### Phase 4 - 历史「已知未修复」并入台账与 P3 归档声明
 
