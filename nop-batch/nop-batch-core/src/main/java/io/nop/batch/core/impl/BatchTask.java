@@ -226,10 +226,13 @@ public class BatchTask<S> implements IBatchTask {
         executor.execute(() -> {
             LOG.info("nop.batch.run-chunk-loop:threadIndex={},threadName={}", threadIndex, Thread.currentThread().getName());
             ContextProvider.runWithContext(ctx -> {
-                propagateContext(ctx, context);
-
-                BatchTaskGlobals.provideTaskContext(context);
+                // C6-010（plan 2496，与 C6-001 同 diff）：守卫起点上移到 lambda 首行——propagateContext /
+                // provideTaskContext 等守卫生效前的段抛出的异常也必须被结算管线捕获
                 try {
+                    propagateContext(ctx, context);
+
+                    BatchTaskGlobals.provideTaskContext(context);
+
                     do {
                         if (context.isCancelled())
                             throw new BatchCancelException(ERR_BATCH_CANCEL_PROCESS);
@@ -240,7 +243,10 @@ public class BatchTask<S> implements IBatchTask {
                     } while (true);
 
                     future.complete(null);
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    // C6-001（plan 2496）：catch 宽度放宽到 Throwable（含 Error）——Error 逃逸曾使 future
+                    // 永不结算 → allOf 永不触发 → afterComplete 关闭链失守 → reader/writer/连接泄漏 +
+                    // 任务行永久 RUNNING + 调用方挂死。结算管线对任何 Throwable 都必须走通。
                     NopException.logIfNotTraced(LOG, "nop.batch.execute-chunk-loop-fail", e);
                     // P1-3.3-003（plan 2381）：CAS 收集首个非取消异常作为 primaryError
                     //（时序竞态下 allOf 可能交付兄弟线程的 BatchCancelException，掩蔽真根因）
