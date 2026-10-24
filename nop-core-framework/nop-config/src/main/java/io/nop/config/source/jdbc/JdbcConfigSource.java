@@ -57,8 +57,13 @@ public class JdbcConfigSource implements IConfigSource {
 
         if (jdbcConfig.getRefreshInterval() != null) {
             long seconds = jdbcConfig.getRefreshInterval().getSeconds();
-            this.refreshTaskFuture = GlobalExecutors.globalTimer().scheduleWithFixedDelay(this::refreshConfig, seconds,
-                    seconds, TimeUnit.SECONDS);
+            // 2.2-C4-001（plan 2497 Phase 2）：与 AbstractFileConfigSource 两站点同口径（G32，设计
+            // pool-facility-hardening.md §3.1.4）——globalTimer 只承载触发（调度槽），刷新任务体
+            // （JDBC 全量查询 = 阻塞 I/O）经 executeOn hop 到 globalWorker 执行，DB 网络分区/慢查询
+            // 只占用 worker 池并退化为周期性失败重试，不再占死共享 timer 线程。
+            // C1-021（plan 2496）的 per-callback 隔离在任务体内部保持，不因卸载改变（绝缘正交性）。
+            this.refreshTaskFuture = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
+                    .scheduleWithFixedDelay(this::refreshConfig, seconds, seconds, TimeUnit.SECONDS);
         } else {
             this.refreshTaskFuture = null;
         }
@@ -145,6 +150,9 @@ public class JdbcConfigSource implements IConfigSource {
         ResultSet rs = null;
         try {
             stm = connection.createStatement();
+            // 2.2-C4-001 超时面（语句级）：默认有限 queryTimeout，慢查询/DB 分区从「无限期占用执行线程」
+            // 退化为「周期性失败重试」（连接级 connect/socket 超时由 JdbcConfig 连接面承载）
+            jdbcConfig.applyQueryTimeout(stm);
             rs = stm.executeQuery(query);
             while (rs.next()) {
                 String name = rs.getString(1);
