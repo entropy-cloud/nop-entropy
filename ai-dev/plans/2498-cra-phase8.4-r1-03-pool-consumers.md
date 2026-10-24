@@ -1,6 +1,6 @@
 # 2498 CRA Phase 8.4 — R1-03 平台池消费方批（R13 使用方：隔离/卸载落地，9 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_30f87b02（0 Blocker、3 Major[M1 A4 无仓内装配面改写/M2 warn-only 半修出口删除/M3 roadmap 8.61 假事实修正]+5 Minor——修订 agent_eb08b971 全量应用；m5 勘正经三重 live 验证驳回[R1 锚点有误，:204 为正确值]，裁决记录在修订报告）
 > Last Reviewed: 2026-10-24
 > Source: roadmap 工作项 8.4（R1-03，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L146，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-03 行（L64：finding ID 清单 9 项 / PA=无（impl 叶）/ 依赖=硬依赖 R1-02 / exit criteria 增补）；**设计传导基准 = `ai-dev/design/concurrency/pool-facility-hardening.md` §3.1.3（R1-03 消费方同口径传导声明，九工单逐单口径——本批的实现契约）+ §3.1.2 处置矩阵 A4/A5/D3/D4 行（移交承接面）+ §3.1.4 站点侧接入同口径**；成员发现详情 = 各单元审计目录（见 Current Baseline 逐条回读路径）；执行基线 @ `e7388fc9b9`（分支 `concurrency-audit-remediation`，roadmap 8.1/8.2/8.3 已 done，plan 2495/2496/2497 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
@@ -313,8 +313,6 @@ Targets: `nop-cluster/nop-rpc-cluster/src/main/java/io/nop/rpc/cluster/ClusterRp
 
 Exit Criteria:
 
-Exit Criteria:
-
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [x] 4.2-C4-003 两面 landed：轮询体不在 timer 线程执行 + 轮询链整体 deadline 在位，带 ≥1 条 focused 回归测试且测试名可辨识工单
@@ -366,49 +364,49 @@ Exit Criteria:
 
 ### Phase 8 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.4 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「载体替换后任务体真实运行于新载体」（九站点线程归属断言）与「设施/绝缘零回改」
-- [ ] cra-index 台账回填：P1 四行（`C4-004（MA-06）`L149 / `C4-001（MA-04，成员 C4-008/C3-013）`L164 / `nop-service-framework-hotpath-C8-001`L210 / `nop-ai-core-nop-ai-agent-C4-011`L249）+ P2 四组行 R1-03 成分（G22 L388 / G51 L417 / G55 L421 / G66 L432）状态收敛（open → 已修/本批）；附注：1.2-C4-004 行与 1.2-C3-014 行的 R1-08 边界注记（勘误 4）、CL-025 处置注记（随 C4-011）、A4 接收侧闭合注记（设计 §3.1.6；注记载明「无仓内装配面，集成方接线由 javadoc 契约收敛」）
-- [ ] roadmap 8.4 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「载体替换后任务体真实运行于新载体」（九站点线程归属断言）与「设施/绝缘零回改」
+- [x] cra-index 台账回填：P1 四行（`C4-004（MA-06）`L149 / `C4-001（MA-04，成员 C4-008/C3-013）`L164 / `nop-service-framework-hotpath-C8-001`L210 / `nop-ai-core-nop-ai-agent-C4-011`L249）+ P2 四组行 R1-03 成分（G22 L388 / G51 L417 / G55 L421 / G66 L432）状态收敛（open → 已修/本批）；附注：1.2-C4-004 行与 1.2-C3-014 行的 R1-08 边界注记（勘误 4）、CL-025 处置注记（随 C4-011）、A4 接收侧闭合注记（设计 §3.1.6；注记载明「无仓内装配面，集成方接线由 javadoc 契约收敛」）
+- [x] roadmap 8.4 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 9 成员行状态全部收敛 + 移交承接面（A4/A5/D3/D4/SocketServer）处置注记可核验、roadmap 8.4 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 9 成员行状态全部收敛 + 移交承接面（A4/A5/D3/D4/SocketServer）处置注记可核验、roadmap 8.4 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 9 项成员全部修复/评估收敛：1.2-C4-004（引擎专用载体+有界终结）、1.5-C4-001（业务体+簿记卸载，C4-008/C3-013 同 diff）、2.3-C8-001（推送卸载+A5 扇出收敛）、3.1-C4-011（缺省池收敛+cap warn）、3.1-C4-004（调度器生命周期闭合）、3.1-C4-009（缺省点收敛）、3.2-C4-004（shell 池隔离）、4.2-C4-003（executeOn+deadline）、1.7-C8-003（评估结论+护栏+xdef 修正）
-- [ ] 移交承接面全部落账无静默缺处置：A4（ScheduledRecoveryManager 卸载改码）、A5（并入成员 3）、D3/D4（成员 9，两面映射闭合）、SocketServer（评估结论落账）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：九站点线程归属断言 + 护栏 fail-fast + deadline 链终止）
-- [ ] MA-16（R4-21）约束解除声明已落对应批次注记（cra-index G52 行注记承载 + batch-proposal R4-21 行只读核对登记）
-- [ ] 设施面（R1-02 产物）与绝缘层（R1-01 产物）零回改实证：设施文件 diff 零改动、`TestPeriodicTaskInsulation` 与下游绝缘回归全绿
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（七条 `-pl ... -am` 通道）BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：roadmap 8.4 四份逐份核对与更新（或 `No owner-doc update required` 声明）；`nop-batch.md` F3⑥ 落账；缺口声明登记（E5）
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）九站点载体替换运行时真实生效（任务体线程可观测、不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 9 成员行收敛 + roadmap 8.4 → done（E6）
+- [x] 9 项成员全部修复/评估收敛：1.2-C4-004（引擎专用载体+有界终结）、1.5-C4-001（业务体+簿记卸载，C4-008/C3-013 同 diff）、2.3-C8-001（推送卸载+A5 扇出收敛）、3.1-C4-011（缺省池收敛+cap warn）、3.1-C4-004（调度器生命周期闭合）、3.1-C4-009（缺省点收敛）、3.2-C4-004（shell 池隔离）、4.2-C4-003（executeOn+deadline）、1.7-C8-003（评估结论+护栏+xdef 修正）
+- [x] 移交承接面全部落账无静默缺处置：A4（ScheduledRecoveryManager 卸载改码）、A5（并入成员 3）、D3/D4（成员 9，两面映射闭合）、SocketServer（评估结论落账）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：九站点线程归属断言 + 护栏 fail-fast + deadline 链终止）
+- [x] MA-16（R4-21）约束解除声明已落对应批次注记（cra-index G52 行注记承载 + batch-proposal R4-21 行只读核对登记）
+- [x] 设施面（R1-02 产物）与绝缘层（R1-01 产物）零回改实证：设施文件 diff 零改动、`TestPeriodicTaskInsulation` 与下游绝缘回归全绿
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（七条 `-pl ... -am` 通道）BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：roadmap 8.4 四份逐份核对与更新（或 `No owner-doc update required` 声明）；`nop-batch.md` F3⑥ 落账；缺口声明登记（E5）
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）九站点载体替换运行时真实生效（任务体线程可观测、不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 9 成员行收敛 + roadmap 8.4 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -446,21 +444,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 本计划收口 CRA Phase 8.4（R1-03 平台池消费方批）：九项 P1 全修（Debezium 专用载体+有界终结、retry/delay 卸载、WS 推送卸载+O(1) 扇出、AgentDispatchExecutor 模块池、embedding 调度器生命周期、SingleTurnExecutor globalWorker 终态、ScheduledRecoveryManager 卸载、shell 池隔离、rpc-cluster 卸载+deadline）+ 三项移交承接面落账（A4/A5/D3+D4/SocketServer 评估）+ MA-16 约束解除声明。roadmap 8.4 → done。
+Completed: 2026-10-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
+- Reviewer / Agent: agent_df96fbfe（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_df96fbfe-987e-4770-b01d-1e020f7518cb
 - Evidence:
-  - 每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）
-  - 每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）
-  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码为 0
-  - Anti-Hollow 检查结果：<<九站点载体运行时断言追踪>>；`scan-hollow-implementations.mjs` 退出码为 0
-  - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
+  - 判定 **PASS**（9/9 成员实仓抽验全在位+语义对齐 §3.1.3 传导口径；零 Blocker/Major；2 Minor 均随收口处理[Phase 6 重复 Exit Criteria 头已去重、AgentToolDispatcher :560→:582 良性漂移注记]）
+  - 每条 Exit Criterion：九成员测试名与工单标识一一对应全绿（Phase 1–6 各分片门禁快照 + closure audit fresh 实跑 TestDebeziumEngineDedicatedCarrier_C4_004 2/2、TestPollingRpcClientDeadline_C4_003 4/4[实仓定位 nop-rpc-core]、TestClusterRpcPollOffload_C4_003 3/3，均 EXIT=0）
+  - 每条 Closure Gate：PASS（九成员实仓 file:line 抽验、移交承接面四项落账、E2 必红抽 4 份 RED/GREEN 吻合、MA-16 注记在 G52 行、设施/绝缘零回改 diff 实证、E1 453/453+八通道、owner doc 六份在证、零触碰含 _BatchTaskModel 豁免登记、scan-hollow 触达面 high=0、Deferred 四条 successor 清晰）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2498-cra-phase8.4-r1-03-pool-consumers.md --strict` 退出码为 0（收口后复核）
+  - Anti-Hollow 检查结果：九站点载体运行时断言追踪全过（线程名断言=debezium-engine-*/nop-global-worker-*/nop-ai-agent-dispatch-*/nop-ai-shell-pipeline-* 等）；`scan-hollow-implementations.mjs` 8 触达模块 6 个 EXIT=0、2 个批前既有 7 条逐条裁定（涉事文件零触碰）
+  - Deferred 项分类检查：四条均为入批前已裁定批外/相邻面、successor 清晰，确认无 in-scope live defect 被降级
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- Non-Blocking Follow-ups 所列四项均已登记归属（R1-08 协同注记/R-G 治理轨/R2-16/R4-16+17），no remaining plan-owned work

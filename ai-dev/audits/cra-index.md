@@ -146,7 +146,7 @@
 | C1-001（MA-03） | 1.2 | nop-stream-state-connectors | CEP copyForSubtask 引用透传共享：NFA 条件图/ctx 槽位/udf 生命周期三面（←C1-005、C1-006；C1-001 已知未修复←r4 R5-CEP-05） | R2-08 | open |
 | C2-002（MA-04） | 1.2 | nop-stream-state-connectors | Avro registry 无请求超时 × computeIfAbsent 锁内 HTTP（挂死+锁毒化；←C3-003、C4-003、C6-008、C8-004、C7-006①） | R2-08 | open |
 | C3-002（MA-05） | 1.2 | nop-stream-state-connectors | 2PC 持久化登记无保留策略：JDBC 台账只增不删 + file manifest O(E) 放大（←C5-006、C7-001、C8-007、C7-007①） | R2-08 | open |
-| C4-004（MA-06） | 1.2 | nop-stream-state-connectors | Debezium 引擎无限阻塞任务常驻平台共享 globalWorker 池（←C3-009） | R1-03 | open |
+| C4-004（MA-06） | 1.2 | nop-stream-state-connectors | Debezium 引擎无限阻塞任务常驻平台共享 globalWorker 池（←C3-009） | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | C3-014（MA-07） | 1.2 | nop-stream-state-connectors | Debezium 停止/启动契约无终结保证：幽灵引擎/重启交叠/排队窗口三面（←C4-005、C4-006） | R1-08 | open |
 | C5-002（MA-08） | 1.2 | nop-stream-state-connectors | RocksDB 默认全量 JSON checkpoint 整库物化进堆（←C8-005） | R2-08 | open |
 | C3-004 | 1.2 | nop-stream-state-connectors | Debezium 枚举器恢复双登记→同表双引擎重复消费 | R1-08 | open |
@@ -161,7 +161,7 @@
 | C1-001（MA-01，成员 C2-001/C7-016） | 1.5 | nop-wf-nop-task | task SUSPENDED 转移游离监视器 × cancel 竞态（kill 静默丢失/KILLED 后复活双向） | R2-11 | open |
 | C3-001（MA-02，五站点族） | 1.5 | nop-wf-nop-task | wf 跨请求快照竞态：组迁移丢失/终结滞留/join 双实例/action 双跑/子流回滚 | R2-11 | open |
 | C3-002（MA-03，成员 C4-002/C2-010） | 1.5 | nop-wf-nop-task | sync+executor 同池嵌套死锁与无界 sync 等待 | R2-11 | open |
-| C4-001（MA-04，成员 C4-008/C3-013） | 1.5 | nop-wf-nop-task | retry/delay 业务体+saveState 簿记恒跑共享 globalTimer（4 线程），全平台定时语义失准 | R1-03 | open |
+| C4-001（MA-04，成员 C4-008/C3-013） | 1.5 | nop-wf-nop-task | retry/delay 业务体+saveState 簿记恒跑共享 globalTimer（4 线程），全平台定时语义失准 | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | C5-001（MA-05，成员 C8-001） | 1.5 | nop-wf-nop-task | 到期/提醒扫描无 LIMIT 全量载入+毒步骤不收敛 | R2-11 | open |
 | C5-003（MA-08，成员 C8-004） | 1.5 | nop-wf-nop-task | 全局闸门强引用注册表 × 动态 keyExpr 键空间持久无界（已知未修复 plan 364 之上；owner 表态出口） | R2-11 | open |
 | C7-001（MA-23，成员 C1-005） | 1.5 | nop-wf-nop-task | WfTaskScanner 多节点/重叠扫描无 fencing：due 双跑副作用先于守卫+remindCount 丢失更新 | R2-11 | open |
@@ -207,7 +207,7 @@
 | nop-service-framework-hotpath-C3-003 | 2.3 | nop-service-framework-hotpath | BufferedStreamingPublisher 背压断裂：映射链自驱动 request(1) 越窗后元素进无界 ArrayDeque，慢客户端长流内存失控（AI 路由默认形态） | R2-06 | open |
 | nop-service-framework-hotpath-C3-007 | 2.3 | nop-service-framework-hotpath | BizActionService.callActionAsync 裸 executor.execute：调用方 IContext 不传播，租户/用户跨任务残留（全单元唯一站点，10 形态 grep） | R1-04 | open |
 | nop-service-framework-hotpath-C4-007 | 2.3 | nop-service-framework-hotpath | SSO 半衰期 token 刷新在认证过滤器载体线程无超时阻塞 IdP HTTP：brownout 确定性服务级停摆（修复面：ILoginService 异步化+timeout API+thenCompose 领先 next.get） | R2-05 | open |
-| nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | R1-03 | open |
+| nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | nop-service-framework-hotpath-C8-002 | 2.3 | nop-service-framework-hotpath | Gateway 429 重试放大 ×7（加法）无准入上界：在途×90s 挂起确定性 OOM 轨迹（与 C4-003 降级事由独立） | R2-05 | open |
 | nop-service-framework-hotpath-C9-012 | 2.3 | nop-service-framework-hotpath | LocalDateTimeFieldMarshaller computeSize=20 vs 纳秒实写 23-29 字节 protobuf 越界（双模式硬失效实测；**移交功能正确性维度**） | cross-ref→功能正确性维度 | open（接收轨落名） |
 | nop-persistence-rw-C1-001 | 2.4 | nop-persistence-rw | IContext 会话/事务注册表 get-or-create 竞态：僵尸会话/事务表覆盖/双一级缓存（←C1-023/C2-003；ContextAttrs.getOrCreate 单修复） | R2-14 | open |
@@ -246,7 +246,7 @@
 | nop-ai-core-nop-ai-agent-C3-028（MA-09 主） | 3.1 | nop-ai-core-nop-ai-agent | 方言流式协议族（单修复批）：三站点 tool_call 截断 + 流式 usage 全链失活 + Ollama 空串抢占 + 流式错误通道缺失——缺省 stream=true 主路径确定性丢数据（←C3-030/031/032） | R2-16 | open |
 | nop-ai-core-nop-ai-agent-C3-021（MA-11 主） | 3.1 | nop-ai-core-nop-ai-agent | DBMessageService 单线程 poller 内联消费：call-agent join 120s 期间全模块消息冻结 + 毒消息无 DLQ 停摆（←C7-025/C4-CL-040） | R2-16 | open |
 | nop-ai-core-nop-ai-agent-C7-012（MA-19 主） | 3.1 | nop-ai-core-nop-ai-agent | 接管锁续期异常无限容忍：SQLException 仅 WARN 无限重试——非对称分区期间永不自 abort，fencing 语义整体失效双执行窗口 | R2-16 | open |
-| nop-ai-core-nop-ai-agent-C4-011 | 3.1 | nop-ai-core-nop-ai-agent | AgentDispatchExecutor 经 runAsync 落 commonPool：阻塞工具体（300s cap）占满 JVM 全局池（与 WI 1.2 C4-004/WI 2.3 C8-001 同族判级一致；←CL-025） | R1-03 | open |
+| nop-ai-core-nop-ai-agent-C4-011 | 3.1 | nop-ai-core-nop-ai-agent | AgentDispatchExecutor 经 runAsync 落 commonPool：阻塞工具体（300s cap）占满 JVM 全局池（与 WI 1.2 C4-004/WI 2.3 C8-001 同族判级一致；←CL-025） | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | nop-ai-core-nop-ai-agent-C7-001 | 3.1 | nop-ai-core-nop-ai-agent | 流式聚合无全程期限/静默检测：SSE 中途挂死 future 永不完成且对健康检测不可见（缺省装配挂死链补证） | R2-02 | open |
 | nop-ai-core-nop-ai-agent-C7-002 | 3.1 | nop-ai-core-nop-ai-agent | 流式中途干净断连被 onComplete 误判成功：五方言终止信号在聚合端未校验——截断内容以成功响应交付，重试/守卫全部失效 | R2-02 | open |
 | nop-ai-core-nop-ai-agent-MA-17（沙箱族，B1-04 终裁回升 P1，并入沙箱族修复面；计数迁移：3.1 P1×13→14/P2×29→28） | 3.1 | nop-ai-core-nop-ai-agent | Docker 沙箱后端超时清理失败族：孪生后台子进程持 stdout 管道→进程/reader 线程/fd 永久泄漏、kill 失败滞留（与 WI 3.2 MA-02/03 两套实现同病，判级按「装配后生产形态」统一 P1） | R1-06 | open |
@@ -364,6 +364,8 @@
 > **批次收敛注（2026-10-24，plan 2496 closure audit PASS）**：裁决组 **P2-G12/G21/G24/G50/G63/G66/G81**（「修→提前（R1-01）」的全部成员行）已随 R1-01 绝缘层批修复落地（12 模块、24+ 新回归测试、closure audit PASS with corrections）——各组成员「修→R1-01」裁决收敛为已修；deferred 组不受影响。
 
 > **批次收敛注（2026-10-24，plan 2497 closure audit PASS）**：裁决组 **P2-G25**（2.1-C4-003/C4-004/C4-006 池工厂设施束）与 **P2-G32**（2.2-C4-001 globalTimer 两面卸载+JDBC 超时）已随 R1-02 池设施批修复落地（closure audit PASS，11+7 新回归测试，必红四项）；**P2-G22/G66 的 R1-02 设施面成分**（1.7-C8-003 兜底池/4.2-C4-003 globalTimer 族的平台设施前提）已由本批闭合，使用方成分维持 R1-03 批次；设计 §3.1.6 移交注记（ScheduledRecoveryManager→R1-03）按矩阵 A4 行落位。
+
+> **批次收敛注（2026-10-24，plan 2498 closure audit PASS）**：R1-03 九项 P1 全修（1.2-C4-004/1.5-C4-001/2.3-C8-001/3.1-C4-011/C4-004/C4-009/1.7-C8-003 评估/3.2-C4-004/4.2-C4-003）+ 移交承接面落账——**P2-G51**（3.1 三项）/**G55**（3.2-C4-004 本体面）/**G22**（1.7-C8-003 评估面）/**G66**（4.2-C4-003）相应成员收敛为已修（G22/G66 使用方残留成分维持 R1-03 已由本批闭合者一并收敛）；**A4 ScheduledRecoveryManager** 已由 plan 2498 Phase 4 闭合（提交 496b29b659）：start() 对注入载体绑定 executeOn(globalWorker)，scan 体不常驻 timer 线程；无仓内装配面，集成方接线由 javadoc 契约收敛；**CL-025**（3.1-C4-011 ← 无界 runAsync 面）处置结论=无界提交面由有界队列+fail-loud 拒绝替代，随 C4-011 一并闭合（cra-index L249 行注记）；**1.2-C3-014（R1-08）协同注记**：本批 Debezium 专用载体为 R1-08 stop 终结 latch/shutdownNow 形态的载体前提（两行互注防重做防越界）；**MA-16[R4-21]「不得指向 globalTimer」约束解除**（解除条件 R1-03 落地已满足；解除后形态收窄为「阻塞/长任务体不得指向 globalTimer；满足 §3.1.1 豁免判据的轻量直连合法」）。
 | P2-G01（1.1 流核并发正确性与日志卫生，成员 15 条：1.1-C1-003、1.1-C1-004、1.1-C1-005、1.1-C1-007、1.1-C1-008、1.1-C2-003、1.1-C2-004、1.1-C2-005、1.1-C3-009、1.1-C4-005、1.1-C4-006、1.1-C4-012、1.1-C7-005、1.1-C7-007、1.1-C7-012） | nop-stream-core-runtime | 1.1 | 双重提交 TOCTOU、水位裸数组、监视器内快照序列化、barrier 队列静默失效等 live 并发缺陷+日志指标卫生，修复收益明确 | 修→R4+ | 批次=R4-01；C10-010~016、023 共 8 条随本体（验收前置；另承 1.2 单元 C10-006 跨单元锚定 1.1-C3-009） |
 | P2-G02（1.1 资源包络与静默丢数，成员 6 条：1.1-C5-004、1.1-C5-005、1.1-C5-006、1.1-C5-012、1.1-C8-005、1.1-C8-009） | nop-stream-core-runtime | 1.1 | 无上界读、邮箱无界、失败无出口、死配置零执行、poll 静默丢记录，包络修复范式明确 | 修→R4+ | 批次=R4-02；C10-017~019、021 共 4 条随本体（验收前置） |
 | P2-G03（1.1-FAM-2 SideOutputRegistry 作用域/生命周期族，成员 1 条：1.1-FAM-2） | nop-stream-core-runtime | 1.1 | SideOutputRegistry 作用域/生命周期族工单（C1-002+C5-007+C7-006） | 修→R4+ | 批次=R4-02；C10-022 随本体（验收前置） |
