@@ -4,6 +4,7 @@
 **范围**：`nop-kernel/nop-api-core`（FutureHelper/ContextTaskQueue/BaseContext/BaseContextProvider/ICancelToken）、`nop-kernel/nop-commons` executor 家族（ExecutorHelper/BindScheduledExecutor/LimitedExecutor）、nop-service-framework（nop-graphql-core/nop-biz/nop-graphql-grpc/nop-graphql-message/nop-biz-file-core）、nop-network（nop-rpc-api/nop-rpc-core/nop-http-client-jdk/nop-http-client-okhttp）、nop-ai/nop-ai-toolkit；含 nop-quarkus/nop-spring 的 WS 入口站点归属
 **状态**：active
 **来源**：plan 2499（R1-04 api-core 协同批）Phase 1 裁定文档——本文档是六项裁定的唯一权威来源；14 项成员发现的站点/缺陷事实源为该 plan 的 Current Baseline 逐条表
+**Last Reviewed**：2026-10-24 评审修订 agent_397107f3 M-1/N-1~N-4 落盘；增量复核 agent_c11e7756 **通过进入实现**（M-1 四处声明与实证逐点一致，N-1~N-4 全部落盘）
 
 ---
 
@@ -79,7 +80,7 @@ promise.whenComplete((value, ex) -> {
 | `ExecutorHelper.submit(ExecutorService, Callable)` | `ExecutorHelper.java:215` | 包装 future 取消 → 取消底层 FutureTask | 成功路径不再误 cancel/不再注入中断；排队中或运行中的真取消传播保持（cancel(true) 从 timer 队列/运行中任务两面生效） |
 | `ExecutorHelper.submit(ExecutorService, Runnable, T)` | `:239` | 同上 | 同上 |
 | `ExecutorHelper.schedule(STPE, Callable, delay, unit)` | `:264` | 同上（延时任务） | 同上；取消从 STPE 队列移除待触发任务 |
-| `DefaultTaskExecutionQueue`（C3-018，参数反接面） | `DefaultTaskExecutionQueue.java:238` | `bindCancel(future, state.getPromise())`——promise/future 两参反接 | 行为零变化：`state.promise` 由更早注册的 whenComplete 先行完结，bindCancel 回调判定时 `isDone()` 恒真，守卫新旧语义下均不触发；真取消路径语义保持。参数反接本体归 R4-13（C3-018），修复时按本契约复核 |
+| `DefaultTaskExecutionQueue`（C3-018，参数反接面） | `DefaultTaskExecutionQueue.java:238` | `bindCancel(future, state.getPromise())`——promise/future 两参反接 | **行为向好变化（本批自动受益），非「零变化」**。机制事实：CF whenComplete 依赖按 LIFO 触发——:238 后注册的 bindCancel 回调先于 :221 先注册的完结回调执行；对「注册后才完结」的异步 future（生产常态），判定时 `isDone()==false`——「isDone 恒真」仅在注册时已完结的 future 上成立。四处行为声明：(a) 正常完结——旧守卫会误取消调用方 promise（C3-016 类症状，属 C3-018 立案面），新守卫结果正确投递；(b) 异常完结——同 (a) 口径，新守卫异常终态正确传递；(c) 真取消——传播方向不变（反接下实际方向为 future 取消 → promise 取消，`cancel(true)` 语义保持）；(d) 调用方→任务方向接线仍缺，归 R4-13 不变。修正依据：现有 10 条测试（`TestDefaultTaskExecutionQueue`）全部只覆盖「注册时已完结」形态，异步路径被绿灯掩盖；本向好变化波及的断言适配登入 plan Non-Blocking Follow-ups 测试适配通道。参数反接本体归 R4-13（C3-018），修复时按本契约复核 |
 
 委托继承面（`DefaultScheduledExecutor`/`DefaultThreadPoolExecutor` 的 submit/schedule）经上述三处收口自动覆盖，无独立 bindCancel 调用点。
 
@@ -156,7 +157,7 @@ OrmBatchLoader（`nop-graphql-orm/.../fetcher/OrmBatchLoader.java`）不改：�
 | 6 | `DefaultTaskExecutionQueue.State`（extends Cancellable，:38 内部类） | `nop-kernel/nop-core/src/main/java/io/nop/core/execution/DefaultTaskExecutionQueue.java` | 传递成员 |
 | 7 | `RpcMessageSubscriptions.Subscription`（extends Cancellable，:25） | `nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/message/RpcMessageSubscriptions.java` | 传递成员 |
 | 8 | `PulsarMessageService.PulsarMessageSubscription`（extends Cancellable，:583） | `nop-message/nop-message-pulsar/src/main/java/io/nop/message/pulsar/PulsarMessageService.java` | 传递成员 |
-| 9 | `FailoverStreamFlow`（implements ICancelToken） | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/FailoverStreamFlow.java` | 直接实现 |
+| 9 | `FailoverStreamFlow.AttemptCancelToken`（implements ICancelToken，:92 内部类） | `nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/FailoverStreamFlow.java` | 直接实现 |
 | 10 | `DebeziumMessageSource.Subscription`（implements ICancellable，:207） | `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/DebeziumMessageSource.java` | 直接实现 |
 | 11 | `ReplayableCdcSourceFunction.ReplaySubscription`（implements ICancellable，:133） | `nop-stream/nop-stream-fraud-example/src/main/java/io/nop/stream/fraud/scenario/ReplayableCdcSourceFunction.java` | 直接实现 |
 
@@ -164,11 +165,11 @@ OrmBatchLoader（`nop-graphql-orm/.../fetcher/OrmBatchLoader.java`）不改：�
 
 ### 3.6 裁定⑥ C4-008 取消链接线与 ICancelToken 平台契约
 
-**取消链接线（3.2-C4-008，CL-012/CL-017 同 diff 随单）**：`ToolManagerImpl`（`nop-ai/nop-ai-toolkit/.../manager/ToolManagerImpl.java:100-121`）排队分支的取消联动形态——(1) 排队 result 挂取消联动：result 被取消 → 触发链剩余段短路（执行段入口判 result 取消状态即不再派生执行），消除「result.cancel(true) 假确认」；(2) `executeNow.get()` 统一 isCancelled 短路位：所有排队/非排队路径的执行入口统一判取消短路，排队窗口的 cancelToken 盲区随执行入口守卫闭合；(3) CL-012 注册窄窗：`JqToolExecutor` 形态（:48 已含 removeOnCancel）为对齐模板，注册前 `isCancelled()` 补触发一次（已取消 token 立即取消 future），随同 diff 落地；(4) CL-017（fs 族不读 token）为对账面声明：fs 族执行器的取消能力按 C10-014 矩阵逐个登记（可中断/检查点/不可取消三档），不做隐式承诺。
+**取消链接线（3.2-C4-008，CL-012/CL-017 同 diff 随单）**：`ToolManagerImpl`（`nop-ai/nop-ai-toolkit/.../manager/ToolManagerImpl.java:100-121`）排队分支的取消联动形态——(1) 排队 result 挂取消联动：result 被取消 → 触发链剩余段短路（执行段入口判 result 取消状态即不再派生执行），消除「result.cancel(true) 假确认」；(2) `executeNow.get()` 统一 isCancelled 短路位：所有排队/非排队路径的执行入口统一判取消短路，排队窗口的 cancelToken 盲区随执行入口守卫闭合；(3) CL-012 注册窄窗：`JqToolExecutor` 形态（:46 已含 removeOnCancel）为对齐模板，注册前 `isCancelled()` 补触发一次（已取消 token 立即取消 future），随同 diff 落地；(4) CL-017（fs 族不读 token）为对账面声明：fs 族执行器的取消能力按 C10-014 矩阵逐个登记（可中断/检查点/不可取消三档），不做隐式承诺。
 
-**ICancelToken 契约（零签名变更）**：`ICancelToken`（`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancelToken.java`）的成文契约钉死为——`appendOnCancel` **不承诺对已取消 token 补发回调**；注册方必须自检「注册时已取消」窗口（或经平台收敛入口获得补触发）。平台收敛入口 `FutureHelper.bindCancelToken`（:518-535）内置注册前补触发：注册前 `isCancelled()` 为真则立即以 `getCancelReason()` 取消目标 future——全部消费方（4.3 客户端族、toolkit）经该单点获得一致的注册窗口语义。监听器清理契约：注册与 remove 配对（promise 终态反注册），4.3-C3-012 的 jdk×4/okhttp×3/MessageRpcClient/CancellableRpcClient 全部中招站点改经 `bindCancelToken` 收敛，`PollingRpcClient` 手动 remove 形态为执行时回读的对照样本。
+**ICancelToken 契约（零签名变更）**：`ICancelToken`（`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/ICancelToken.java`）的成文契约钉死为——`appendOnCancel` **不承诺对已取消 token 补发回调**；注册方必须自检「注册时已取消」窗口（或经平台收敛入口获得补触发）。平台收敛入口 `FutureHelper.bindCancelToken`（:518-535 两重载）内置注册前补触发：future 方向重载（:518-526）注册前 `isCancelled()` 为真则立即以 `getCancelReason()` 取消目标 future；Consumer cleanup 重载（:528-535）同口径——注册前 `isCancelled()` 为真则立即以 `getCancelReason()` 调 `cleanup.accept(...)`，与 future 方向重载对称。全部消费方（4.3 客户端族、toolkit）经该单点获得一致的注册窗口语义。监听器清理契约：注册与 remove 配对（promise 终态反注册），4.3-C3-012 的 jdk×4/okhttp×3/MessageRpcClient/CancellableRpcClient 全部中招站点改经 `bindCancelToken` 收敛，`PollingRpcClient` 手动 remove 形态为执行时回读的对照样本。
 
-**C10-014 验收边界**：toolkit 全部 IToolExecutor 实现的取消矩阵断言 + wrapper 传播断言（经 ToolManagerImpl 返回 future 的取消可观测地到达执行层或被矩阵显式登记为不可达）。计数口径注记：审计口径 17 executor，live grep `implements IToolExecutor` = 20 工具执行器 + 1 provider；矩阵以 live 重枚举为准并登记口径差，不预设数量。当前唯一 cancelToken 消费者为 JqToolExecutor，其余执行器按矩阵逐个登记处置档位。
+**C10-014 验收边界**：toolkit 全部 IToolExecutor 实现的取消矩阵断言 + wrapper 传播断言（经 ToolManagerImpl 返回 future 的取消可观测地到达执行层或被矩阵显式登记为不可达）。计数口径注记：审计口径 17 executor，live grep `implements IToolExecutor` = 20 工具执行器 + 1 provider（该计数为 nop-ai-toolkit 域口径；全仓 main 口径为 38 工具执行器 + 1 provider，另含 nop-ai-agent/nop-datav）；矩阵以 live 重枚举为准并登记口径差，不预设数量。分发口唯一性：`ToolManagerImpl` 是 nop-ai-toolkit 域 IToolExecutor 的唯一分发口（经 `IToolExecutorProvider.getExecutor` 解析后分发），经该单点的 wrapper 传播断言覆盖全部执行器的取消可观测面，无需逐执行器重复接缝断言。当前唯一 cancelToken 消费者为 JqToolExecutor，其余执行器按矩阵逐个登记处置档位。
 
 ## 四、拒绝了什么
 

@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Draft Review: R1 agent_99133e06（0 Blocker、3 Major[M-1 SPI 回归面假阴性 4 项补全+grep 模式修正/M-2 C3-012 第五入口 nop-spring 补列/M-3 平台根因半边 Phase 归属统一]+Phase 3 子分片纪律+7 Minor——修订 agent_c2dd2e28 全量应用[live 验证后落笔]，active）
+> Design Review: 设计文档 `bindcancel-context-unification.md` 独立评审 agent_c11e7756（M-1 兼容矩阵第 4 行「零变化」证伪+4 Minor → 修订 agent_397107f3 落盘 → 增量复核**通过进入实现**；修订者与评审结论已登记于设计文档头）
 > Last Reviewed: 2026-10-24
 > Plan Review R1: agent_99133e06 @ 2026-10-24——3 Major（M-1 SPI 回归面补 4 漏项+措辞勘正、M-2 C3-012 第五入口 nop-spring、M-3 平台根因半边 Phase 归属统一）+ Phase 3 子分片续作纪律 + 7 Minor 修订已全部入文（live 事实经本仓库重验后落笔）
 > Source: roadmap 工作项 8.5（R1-04，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L147，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-04 行（L65：finding ID 清单 14 项 / PA 授权 / 依赖标注 / exit criteria 增补）+ §四.3 授权落批表（nop-api-core plan-first → R1-04）；家族底表 = family-clustering §三 R14 取消通道族行（L58）/ R15 上下文传播专题行（L59）+ §四 2.1-api-core 移交包行（L171，消费方 1.6/4.3/3.4 列回归面）；成员发现详情 = 各单元审计目录（见 Current Baseline 逐条回读路径）；执行基线 @ `6fd473937f`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.4 已 done，plan 2495/2496/2497/2498 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
