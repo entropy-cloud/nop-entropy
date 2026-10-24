@@ -208,6 +208,9 @@ public class ExecutorHelper {
                 } finally {
                     // 确保ThreadLocal上的IContext被清除
                     ContextProvider.instance().detachContext();
+                    // C3-016：complete之后清除真取消路径注入的残留中断标志，不依赖载体TPE
+                    // getTask吸收中断（shutdownNow窗口内的中断被清除可接受：worker退出由队列排空保证）
+                    Thread.interrupted();
                 }
             }
         });
@@ -232,6 +235,8 @@ public class ExecutorHelper {
                 } finally {
                     // 确保ThreadLocal上的IContext被清除
                     ContextProvider.instance().detachContext();
+                    // C3-016：同上，清除残留中断标志
+                    Thread.interrupted();
                 }
             }
         });
@@ -257,6 +262,8 @@ public class ExecutorHelper {
                 } finally {
                     // 确保ThreadLocal上的IContext被清除
                     ContextProvider.instance().detachContext();
+                    // C3-016：同上，清除残留中断标志
+                    Thread.interrupted();
                 }
             }
         }, delay, timeUnit);
@@ -313,13 +320,15 @@ public class ExecutorHelper {
                 try {
                     task.run();
                     future.complete(null);
-                } catch (Exception e) {
+                } catch (Throwable e) {
+                    // catch宽度为Throwable（C3-005）：任务体抛Error也必须结算future，否则调用方
+                    // syncGet(waitAll)无超时挂死（与submit/schedule的Throwable样本对齐）
                     future.completeExceptionally(e);
                 } finally {
                     semaphore.release();
                 }
             });
-        } catch (Exception e) {
+        } catch (Throwable e) {
             semaphore.release();
             future.completeExceptionally(e);
         }

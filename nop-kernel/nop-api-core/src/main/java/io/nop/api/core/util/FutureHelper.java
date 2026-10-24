@@ -308,11 +308,16 @@ public class FutureHelper {
     /**
      * 当promise被取消的时候，自动取消关联的future。例如当一个在线程池队列中排队的异步任务被取消后，自动将自己从线程池调度队列中删除
      *
+     * <p>守卫契约（CRA R1-04 裁定①，设计权威来源
+     * {@code ai-dev/design/concurrency/bindcancel-context-unification.md} §3.1）：仅当本promise的
+     * 完结原因为取消（异常终态为{@link CancellationException}）且关联future尚未完成时才执行
+     * {@code cancel(true)}——正常/失败完结不触发cancel（修复前任意完结即cancel的误取消缺陷）。
+     *
      * @param promise 异步执行所对应的promise对象
      */
     public static void bindCancel(CompletionStage<?> promise, Future<?> future) {
         promise.whenComplete((value, ex) -> {
-            if (!future.isDone())
+            if (ex instanceof CancellationException && !future.isDone())
                 future.cancel(true);
         });
     }
@@ -326,7 +331,9 @@ public class FutureHelper {
             } else {
                 promise.complete((R) ret);
             }
-        } catch (Exception e2) {
+        } catch (Throwable e2) {
+            // catch宽度为Throwable（C3-005）：任务体抛Error也必须结算promise异常终态，
+            // 否则调用方syncGet无超时挂死（与同文件submit/schedule的Throwable样本对齐）
             promise.completeExceptionally(e2);
         }
     }
@@ -546,11 +553,12 @@ public class FutureHelper {
                 limit.release();
             });
         } catch (InterruptedException e) {
+            // C3-007：进入本分支即未获得许可（仅acquire可抛中断），不补偿release——
+            // 幻影release会使许可数虚增、并发上限被击穿
             Thread.currentThread().interrupt();
-            if (!released.get())
-                limit.release();
             return reject(e);
         } catch (RuntimeException e) {
+            // acquire成功后被拒（task.get()抛出）：补偿release恰一次
             if (!released.get())
                 limit.release();
             throw e;
