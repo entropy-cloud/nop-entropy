@@ -190,7 +190,7 @@
 | nop-kernel-concurrency-C1-001 | 2.1 | nop-kernel-concurrency | RoundRobinSupplier.resize 收缩路径锁外关闭旧数组尾段：并发 get 取得已关连接（Lettuce 生产链+IoC 刷新派发链可达；退役代际族吸收 C2-021） | R2-01 | open |
 | nop-kernel-concurrency-C2-001 | 2.1 | nop-kernel-concurrency | ResourceCacheEntry 持 entry 监视器加载模型：跨 entry 嵌套监视器循环依赖死锁（C2-017 同变更集绑定；单线程循环 StackOverflow 新面） | R2-01 | open |
 | nop-kernel-concurrency-C3-001 | 2.1 | nop-kernel-concurrency | 周期任务设施无统一异常绝缘层：一次 Throwable 静默永久停摆（29 处生产站点；30 点绝缘状态表；与 WI 1.6 C8-001 平台级统一） | 已修（R1-01，plan 2496 closure audit PASS） | fixed |
-| nop-kernel-concurrency-C4-001 | 2.1 | nop-kernel-concurrency | globalTimer 死配置（newScheduledExecutor 副作用改写 maxPoolSize=0）+4 线程全平台共享定时器阻塞放大（28 消费方分类终表；与 WI 1.5 MA-04 隔离方案统一） | R1-02 | open |
+| nop-kernel-concurrency-C4-001 | 2.1 | nop-kernel-concurrency | globalTimer 死配置（newScheduledExecutor 副作用改写 maxPoolSize=0）+4 线程全平台共享定时器阻塞放大（28 消费方分类终表；与 WI 1.5 MA-04 隔离方案统一） | 已修（R1-02，plan 2497 closure audit PASS） | fixed |
 | nop-kernel-concurrency-C7-007 | 2.1 | nop-kernel-concurrency | 模型缓存 check-changed 双漏检窗口（旧内容+新 mtime 固化；ResourceTimestampCache 死代码；与 C9-001/C9-010 同链三面绑定单点修复） | R1-05 | open |
 | nop-core-framework-C1-007 | 2.2 | nop-core-framework | 配置发布协议三字段裸写裸读+两步写序撕裂（族案含 C1-017；api-core 单一不可变 holder 修复，7 写点×8 读站；WI 2.1 C1-001 刷新链上游） | R2-04 | open |
 | nop-core-framework-C1-009 | 2.2 | nop-core-framework | JdbcConfigSource.close 竞态：停机后在途刷新重建永不关闭的连接（←C4-002 同位点并案） | R2-03 | open |
@@ -362,6 +362,8 @@
 |-----------|------|------|-----------|------|----------------------|
 
 > **批次收敛注（2026-10-24，plan 2496 closure audit PASS）**：裁决组 **P2-G12/G21/G24/G50/G63/G66/G81**（「修→提前（R1-01）」的全部成员行）已随 R1-01 绝缘层批修复落地（12 模块、24+ 新回归测试、closure audit PASS with corrections）——各组成员「修→R1-01」裁决收敛为已修；deferred 组不受影响。
+
+> **批次收敛注（2026-10-24，plan 2497 closure audit PASS）**：裁决组 **P2-G25**（2.1-C4-003/C4-004/C4-006 池工厂设施束）与 **P2-G32**（2.2-C4-001 globalTimer 两面卸载+JDBC 超时）已随 R1-02 池设施批修复落地（closure audit PASS，11+7 新回归测试，必红四项）；**P2-G22/G66 的 R1-02 设施面成分**（1.7-C8-003 兜底池/4.2-C4-003 globalTimer 族的平台设施前提）已由本批闭合，使用方成分维持 R1-03 批次；设计 §3.1.6 移交注记（ScheduledRecoveryManager→R1-03）按矩阵 A4 行落位。
 | P2-G01（1.1 流核并发正确性与日志卫生，成员 15 条：1.1-C1-003、1.1-C1-004、1.1-C1-005、1.1-C1-007、1.1-C1-008、1.1-C2-003、1.1-C2-004、1.1-C2-005、1.1-C3-009、1.1-C4-005、1.1-C4-006、1.1-C4-012、1.1-C7-005、1.1-C7-007、1.1-C7-012） | nop-stream-core-runtime | 1.1 | 双重提交 TOCTOU、水位裸数组、监视器内快照序列化、barrier 队列静默失效等 live 并发缺陷+日志指标卫生，修复收益明确 | 修→R4+ | 批次=R4-01；C10-010~016、023 共 8 条随本体（验收前置；另承 1.2 单元 C10-006 跨单元锚定 1.1-C3-009） |
 | P2-G02（1.1 资源包络与静默丢数，成员 6 条：1.1-C5-004、1.1-C5-005、1.1-C5-006、1.1-C5-012、1.1-C8-005、1.1-C8-009） | nop-stream-core-runtime | 1.1 | 无上界读、邮箱无界、失败无出口、死配置零执行、poll 静默丢记录，包络修复范式明确 | 修→R4+ | 批次=R4-02；C10-017~019、021 共 4 条随本体（验收前置） |
 | P2-G03（1.1-FAM-2 SideOutputRegistry 作用域/生命周期族，成员 1 条：1.1-FAM-2） | nop-stream-core-runtime | 1.1 | SideOutputRegistry 作用域/生命周期族工单（C1-002+C5-007+C7-006） | 修→R4+ | 批次=R4-02；C10-022 随本体（验收前置） |
