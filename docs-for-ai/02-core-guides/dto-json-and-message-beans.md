@@ -46,7 +46,7 @@
 1. `@DataBean`
 2. `extends ExtensibleBean`
 3. getter 上使用 `@PropMeta(propId = N)`
-4. 按需加 `@JsonInclude`、`@JsonIgnore`（类或 getter 均可）
+4. 按需加 `@JsonInclude`（可标类或 getter）、`@JsonIgnore`（标字段/getter/setter）
 
 这种风格适合：
 
@@ -64,11 +64,20 @@
 | 注解 | 默认用途 |
 |------|---------|
 | `@PropMeta` | 为 message bean 属性分配稳定序号 |
-| `@JsonInclude` | 控制可选字段何时输出 |
-| `@JsonIgnore` | 排除内部或计算属性 |
-| `@JsonProperty` | 构造函数参数名或特殊 JSON 字段名 |
+| `@JsonInclude` | 控制可选字段何时输出；可标类作为属性默认值 |
+| `@JsonIgnore` | 排除内部或计算属性；可标字段、getter 或 setter，覆写方法继承基类标注 |
+| `@JsonIgnoreProperties` | 类级忽略名单或 `ignoreUnknown=true` |
+| `@JsonIgnoreType` | 类级标记该类型作为属性时不参与 JSON |
+| `@JsonProperty` / `@JsonGetter` / `@JsonSetter` | 特殊 JSON 字段名或非标准命名访问器 |
+| `@JsonAlias` | 反序列化别名（输出仍用主名） |
+| `@JsonRawValue` | String 属性按原始 JSON 片段输出 |
+| `@JsonTypeName` | 子类型名，补充 `@JsonSubTypes` |
 
-默认跟随仓库已有风格。Jackson 注解可放在类或 getter 上，平台反射模型会自动将类级别注解作为属性默认值。
+默认跟随仓库已有风格。平台反射模型的 class 级 Jackson 支持仅限原生 `@Target(TYPE)` 注解（`@JsonIgnoreProperties`、`@JsonIgnoreType`、`@JsonInclude`、`@JsonTypeName` 及既有 `@JsonTypeInfo`/`@JsonSubTypes`）；`@JsonIgnore`、`@JsonProperty`、`@JsonGetter`、`@JsonSetter`、`@JsonAlias`、`@JsonRawValue` 不提供 class 级语义，也不聚合父类上的 class 级注解。
+
+当前不支持 M/L 级 Jackson 注解语义：`@JsonValue`、`@JsonPropertyOrder`、`@JsonFormat`、`@JsonUnwrapped`、`@JsonNaming`、`@JsonSerialize`/`@JsonDeserialize(using=...)`、`@JsonView`、`@JsonFilter`、对象图引用类等仍需使用 Nop 自有机制。
+
+class 级忽略语义作用于通用 `BeanModel`，因此同时影响 `JsonTool`/`JsonSerializer`、`BeanCopier` 与 `TreeBeanBuilder`（XML）；Delta 合并是纯 Map 路径，不受影响。`@JsonIgnore` 在默认读路径跳过，但设置 `BeanCopyOptions.setOnlySerializableTarget(false)` 后可显式读回。
 
 ## JSON / YAML 默认入口
 
