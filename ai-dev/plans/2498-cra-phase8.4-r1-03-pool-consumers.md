@@ -96,80 +96,110 @@
 
 ### Phase 1 - 分片 A：1.2-C4-004 Debezium 引擎移出 globalWorker（nop-message + nop-stream）
 
-Status: planned
+Status: completed
 Targets: `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/DebeziumEngineWrapper.java`（:160 提交点 + stop 路径）、`nop-stream/nop-stream-connector-debezium/src/main/java/io/nop/stream/connector/debezium/`（DebeziumCdcSourceReader/DebeziumCdcSourceFunction 使用链回归面）、两模块测试目录
 
 - Item Types: `Fix`（1.2-C4-004 已确认 live defect，不得写成 Feature）、`Proof`（回归测试）
 
-- [ ] 引擎提交点改专用载体（按设计 §3.1.3 行 1「引擎 = 长任务体，须专用载体」与审计建议形态）：per-engine 专用单线程执行器（平台 `io.nop.commons.concurrent.thread.NamedThreadFactory`，daemon，命名含 connector 名如 `debezium-engine-<name>`）；载体有独立容量预算与关闭归属、不经 globalWorker 执行任务体（§3.1.1 专用载体例外判定标准）
-- [ ] stop 关闭路径有界终结预算：专用载体 `shutdown()` + `awaitTermination(有界上界)`，与既有 close 链（reader close→cancel→stop→engine.close→join(5s)）衔接，不引入无界等待；**不改动 C4-005/C4-006 归属面的 stop 终结 latch 契约/启动守卫**（勘误 4 边界——载体替换不回退既有 close 语义）
-- [ ] 回归测试（rule 25，测试名带 `_C4_004` 标识）：①引擎任务体执行线程断言（startsWith 引擎专用线程名、非 `nop-global-worker`）；②stop 后载体线程有界终结断言；③既有 connector 测试（DebeziumCdcSourceReader/Function 链）零回归
-- [ ] **接线验证**（rule 23）：断言 `wrapper.start()` 后任务体真实运行于专用载体线程（线程名可观测），globalWorker 不再接收引擎任务
-- [ ] **无静默跳过**（rule 24）：载体关闭失败/超时路径显式日志与异常传播，不吞异常
-- [ ] **提交纪律**：nop-message 与 nop-stream 各一提交（或按实际 diff 面单提交并声明关系），commit message 带 `1.2-C4-004` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 引擎提交点改专用载体（按设计 §3.1.3 行 1「引擎 = 长任务体，须专用载体」与审计建议形态）：per-engine 专用单线程执行器（平台 `io.nop.commons.concurrent.thread.NamedThreadFactory`，daemon，命名含 connector 名如 `debezium-engine-<name>`）；载体有独立容量预算与关闭归属、不经 globalWorker 执行任务体（§3.1.1 专用载体例外判定标准）
+- [x] stop 关闭路径有界终结预算：专用载体 `shutdown()` + `awaitTermination(有界上界)`，与既有 close 链（reader close→cancel→stop→engine.close→join(5s)）衔接，不引入无界等待；**不改动 C4-005/C4-006 归属面的 stop 终结 latch 契约/启动守卫**（勘误 4 边界——载体替换不回退既有 close 语义）
+- [x] 回归测试（rule 25，测试名带 `_C4_004` 标识）：①引擎任务体执行线程断言（startsWith 引擎专用线程名、非 `nop-global-worker`）；②stop 后载体线程有界终结断言；③既有 connector 测试（DebeziumCdcSourceReader/Function 链）零回归
+- [x] **接线验证**（rule 23）：断言 `wrapper.start()` 后任务体真实运行于专用载体线程（线程名可观测），globalWorker 不再接收引擎任务
+- [x] **无静默跳过**（rule 24）：载体关闭失败/超时路径显式日志与异常传播，不吞异常
+- [x] **提交纪律**：nop-message 与 nop-stream 各一提交（或按实际 diff 面单提交并声明关系），commit message 带 `1.2-C4-004` 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 1，agent 分片 A @ `a6a59f2035`）：
+
+- **修复面**：`DebeziumEngineWrapper` 新增 per-engine 专用载体字段 `engineExecutor`（`Executors.newSingleThreadExecutor(NamedThreadFactory("debezium-engine-<connector>", true))`，独立容量预算 + 关闭归属，不经 globalWorker/globalTimer 执行任务体 = §3.1.1 专用载体判定标准）；`start()` 提交点（live :160 `GlobalExecutors.globalWorker().execute(...)`）改专用载体；`stop()` 在既有 `engine.close()` 后新增 `carrier.shutdown() + awaitTermination(5s)`（常量 `STOP_TERMINATION_BUDGET_SECONDS = 5`，对齐 reader close 链 join(5s)，无无界等待）；超时路径 WARN、中断路径恢复中断位 + ERROR（rule 24 无静默）；引擎体退出 finally 自关停载体（daemon 线程不空转滞留）。`shutdownNow` 升级与终结 latch 契约未触碰（归 1.2-C3-014/R1-08，勘误 4 边界），close 语义零改写；C4-006 启动守卫未加（同边界）。
+- **测试**：`TestDebeziumEngineDedicatedCarrier_C4_004` 2 条——①`engineBodyRunsOnDedicatedCarrierThreadNotGlobalWorker`（probe 子类捕获 `runEngineWorker` 执行线程名，断言 `debezium-engine-carrier-probe` 前缀、非 `nop-global-worker`）②`stopTerminatesCarrierWithinBoundedBudget`（在跑体 800ms 场景：stop 耗时 ∈ [300ms, 5000ms) 证明有界等待真实发生 + 载体线程 TERMINATED）。测试仅用修复前既有 API 面（probe 覆写 protected `runEngineWorker` + `start/stop`），保证先红可编译。
+- **必红证据（E2）**：修复前基线（stash 产品 diff）2/2 红——线程名 `nop-global-worker-1-1`（共享池钉死签名）、stop 0ms 返回（fire-and-forget 签名）；快照 `_tmp/phase1-c4-004-red-baseline.log` → 修复后 2/2 绿 `_tmp/phase1-c4-004-green-fixed.log`。
+- **接线验证证据**：上列测试 ① 即 rule 23 断言——真实 `wrapper.start()` 构建真实 Debezium 引擎（connector.class=mysql 全链 build）后，任务体线程可观测为专用载体线程。
+- **门禁**：`./mvnw test -pl nop-message -am` BUILD SUCCESS EXIT=0（106 tests 0 失败，快照 `_tmp/phase1-gate-nop-message.log`）；`./mvnw test -pl nop-stream -am` BUILD SUCCESS EXIT=0（使用链 DebeziumCdcSourceReader/Function 回归面零失败，快照 `_tmp/phase1-gate-nop-stream.log`）。nop-stream 产品零 diff（本工单缺陷定位横跨 wrapper 与使用链，修复落 wrapper 本体）——**单提交承载两模块面**（`a6a59f2035`，commit message 声明关系），符合 checklist「按实际 diff 面单提交并声明关系」支路。
+- **Owner doc 裁定去向**：`nop-stream-connectors.md` 引擎线程模型契约（共享池 → 专用载体 + 有界终结）——**归 Phase 7 统一落账**（本 Phase 显式登记去向，随 roadmap 8.4 四份 owner doc 核对一并执行）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 1.2-C4-004 landed：引擎任务体不再运行于 globalWorker（专用载体在位），带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：线程归属断言先红后绿或变异/回退论证留痕（修复前基线断言 `nop-global-worker` 前缀红；快照 `_tmp/phase1-c4-004-*.log` 含 RED 与 GREEN 两段）
-- [ ] 接线验证证据登记（哪条断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-message -am` BUILD SUCCESS；`./mvnw test -pl nop-stream -am` BUILD SUCCESS（使用链回归面）
-- [ ] Owner doc 裁定：`nop-stream-connectors.md` 引擎线程模型契约核对（「引擎 = 共享池」未声明边界的缺陷面随修复收敛为专用载体契约）——受影响面随批更新，或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 1.2-C4-004 landed：引擎任务体不再运行于 globalWorker（专用载体在位），带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：线程归属断言先红后绿或变异/回退论证留痕（修复前基线断言 `nop-global-worker` 前缀红；快照 `_tmp/phase1-c4-004-*.log` 含 RED 与 GREEN 两段）
+- [x] 接线验证证据登记（哪条断言证明运行时生效）
+- [x] `./mvnw test -pl nop-message -am` BUILD SUCCESS；`./mvnw test -pl nop-stream -am` BUILD SUCCESS（使用链回归面）
+- [x] Owner doc 裁定：`nop-stream-connectors.md` 引擎线程模型契约核对（「引擎 = 共享池」未声明边界的缺陷面随修复收敛为专用载体契约）——受影响面随批更新，或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 统一但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 分片 B：1.5-C4-001（MA-04）task retry/delay 业务体卸载（nop-task）
 
-Status: planned
+Status: completed
 Targets: `nop-task/nop-task-core/src/main/java/io/nop/task/utils/TaskStepHelper.java`（:269-270 延迟分支）、`nop-task/nop-task-core/src/main/java/io/nop/task/step/RetryTaskStepWrapper.java`、`nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java`（:77-79 回退面）、`nop-task/nop-task-core/src/test/`
 
 - Item Types: `Fix`（1.5-C4-001 及成员面 C4-008 已确认 live defect）、`Proof`（回归测试）
 
-- [ ] 延迟重试路径改「timer 触发 + 载体提交」等价形态（§3.1.3 行 2 = §3.1.1 强制卸载形态）：`schedule` 仅做定时唤醒，action（步骤体）与完成回调链（含 `saveState` 簿记）经 `GlobalExecutors.globalWorker()` 或步骤显式 executor 执行——executor 隔离配置对延迟路径真实生效（成员面 C4-008 行为钉）；C3-013 同池面随同 diff 收敛
-- [ ] 簿记对照站点核对（S1 `DelayTaskStep.java:39-41` / S2 `TimeoutTaskStepWrapper.java:25`）：确认豁免判据 (a)(d) 成立且未被修复改动破坏（勘误 6），或随同口径对齐——不改码须留核对结论
-- [ ] 回归测试（rule 25，测试名带 `_C4_001` 标识）：①延迟到期后 action 执行线程断言（非 `nop-global-timer` 线程；未配 executor 时为 worker 线程）；②配置显式 executor 时延迟路径在该池线程执行（C4-008 隔离生效钉）；③`saveState` 簿记不落 timer 线程断言；④既有 task 测试零回归
-- [ ] **接线验证**（rule 23）：真实 TaskFlowManagerImpl 回退链（未注入 scheduledExecutor→globalTimer）上断言任务体执行线程为 worker
-- [ ] **提交纪律**：nop-task 一提交，commit message 带 `1.5-C4-001`（MA-04）与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 延迟重试路径改「timer 触发 + 载体提交」等价形态（§3.1.3 行 2 = §3.1.1 强制卸载形态）：`schedule` 仅做定时唤醒，action（步骤体）与完成回调链（含 `saveState` 簿记）经 `GlobalExecutors.globalWorker()` 或步骤显式 executor 执行——executor 隔离配置对延迟路径真实生效（成员面 C4-008 行为钉）；C3-013 同池面随同 diff 收敛
+- [x] 簿记对照站点核对（S1 `DelayTaskStep.java:39-41` / S2 `TimeoutTaskStepWrapper.java:25`）：确认豁免判据 (a)(d) 成立且未被修复改动破坏（勘误 6），或随同口径对齐——不改码须留核对结论
+- [x] 回归测试（rule 25，测试名带 `_C4_001` 标识）：①延迟到期后 action 执行线程断言（非 `nop-global-timer` 线程；未配 executor 时为 worker 线程）；②配置显式 executor 时延迟路径在该池线程执行（C4-008 隔离生效钉）；③`saveState` 簿记不落 timer 线程断言；④既有 task 测试零回归
+- [x] **接线验证**（rule 23）：真实 TaskFlowManagerImpl 回退链（未注入 scheduledExecutor→globalTimer）上断言任务体执行线程为 worker
+- [x] **提交纪律**：nop-task 一提交，commit message 带 `1.5-C4-001`（MA-04）与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 2，agent 分片 B @ `a31a4f03db`）：
+
+- **修复面**：`TaskStepHelper.retry` 新增 5 参重载（4 参保留委托 null），延迟分支 `schedule(action, delay)` 前挂 `.executeOn(resolveRetryCarrier(stepRt, executorBean))`——BindScheduledExecutor 语义下 timer 只触发、action 与完成回调链（`thenCompleteAsync` handler → `doRetry` → `setRetryAttempt` + `saveState`）在载体线程执行；`resolveRetryCarrier` = 步骤显式 executor（`ITaskRuntime.getThreadPoolExecutor(executorBean)` 显式接缝，plan 指定形态；bean 缺失 WARN `nop.task.retry-executor-bean-not-found` + 回退，不静默）否则 `GlobalExecutors.globalWorker()`，无路径落 globalTimer（C4-008 行为钉 + C3-013 同池面收敛）。`RetryTaskStepWrapper` 增 `executorBean` 字段（2 参构造保留，nop-task-ext `RetryTaskStepDecorator` 零改动）；`TaskStepEnhancer.wrap` retry 包装点传入 `stepModel.getExecutor()`（executor 包装在 retry 外层，延迟轮次体经本修复直达隔离池——首次尝试仍经 ExecutorTaskStepWrapper 提交，语义一致）。
+- **不改码裁定（对照站点）**：`TaskFlowManagerImpl:77-79` globalTimer 回退零改动——矩阵 D2 豁免面「任务体在别处执行」经本修复对 retry 路径真实成立（timer 只承载触发）。S1/S2 豁免核对（勘误 6，零改码留结论）：S1 `DelayTaskStep`（schedule 体 `() -> return null` 纯触发，等待经返回 future）与 S2 `TimeoutTaskStepWrapper`→`TaskStepHelper.timeout`（timer 体 = `cancellable.cancel` + `completeExceptionally` 纯内存毫秒级）满足豁免判据 (a)(d)（且 (b) 无阻塞 I/O），`git diff` 证实两站点及 `timeout()` 方法零触碰。
+- **测试**：`TestTaskStepHelperRetryDelayOffload_C4_001` 3 条（仿既有 `FakeTaskStepRuntime` 桩模式）——①`delayedRetryBodyRunsOnWorkerNotTimerThread_C4_001`（4 参 API，fake taskRt `getScheduledExecutor`=真实 globalTimer = 未注入回退链，延迟体线程断言 worker）②`delayedRetryBodyHonorsStepExecutorIsolation_C4_001`（5 参 + `DefaultThreadPoolExecutor.newExecutor("test-retry-pool",1,10,true)` 真实池，延迟体线程钉该池）③`delayedRetrySaveStateBookkeepingNotOnTimerThread_C4_001`（saveState 调用点线程记录，第 2 次[延迟轮次失败后的 doRetry 簿记]断言 worker）。既有 retry 测试（ExecutionCount 2/Suspend 2/SyncReturn 2/PersistOrder 1）零回归。
+- **必红证据（E2）**：测试 ① 仅用修复前既有 API（4 参 retry）可对真基线编译；采用回退论证（E2 允许支路）：`resolveRetryCarrier` 暂时改回缺陷语义（直连 `globalTimer()`）→ 3/3 红（`nop-global-timer-2-2` 前缀，三断言全覆盖），快照 `_tmp/phase2-c4-001-red-defect-baseline.log` → 恢复修复 3/3 绿（含既有 retry 测试共 10 条）`_tmp/phase2-c4-001-green-fixed.log`。
+- **接线验证证据**：测试 ①/③ 的 fake `getScheduledExecutor()` 返回**真实** `GlobalExecutors.globalTimer()`（= `TaskFlowManagerImpl` 未注入 scheduledExecutor 的生产回退链），在此真实链上断言任务体/簿记线程为 `nop-global-worker-*`。
+- **门禁**：`./mvnw test -pl nop-task -am` BUILD SUCCESS EXIT=0（快照 `_tmp/phase2-gate-nop-task.log`；首次运行失败 3 条系同仓未提交的 Phase 3 graphql-core 中间态被 nop-task 反应堆带入——修复适配后复跑全绿，nop-task 本体测试两轮均零失败）。nop-wf 零 diff（plan 预登记「若零 diff 以实际为准登记」）。
+- **Owner doc 裁定去向**：`nop-task.md` 重试体执行位置契约（「延迟重试体在共享定时器线程执行」未声明面收敛为「timer 触发 + 显式 executor/globalWorker 载体」）——**归 Phase 7 统一落账**（本 Phase 显式登记去向）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 1.5-C4-001（含成员面 C4-008/C3-013 同 diff 面）landed：步骤体与 saveState 簿记不再运行于 globalTimer 线程，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：线程归属断言先红后绿或变异/回退论证留痕（修复前基线断言 `nop-global-timer` 前缀红；快照 `_tmp/phase2-c4-001-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-task -am` BUILD SUCCESS（nop-wf 若零 diff 以实际为准登记）
-- [ ] Owner doc 裁定：`nop-task.md` 重试体执行位置契约核对（「重试体在共享定时器线程执行」未声明面随修复收敛）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 1.5-C4-001（含成员面 C4-008/C3-013 同 diff 面）landed：步骤体与 saveState 簿记不再运行于 globalTimer 线程，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：线程归属断言先红后绿或变异/回退论证留痕（修复前基线断言 `nop-global-timer` 前缀红；快照 `_tmp/phase2-c4-001-*.log`）
+- [x] 接线验证证据登记
+- [x] `./mvnw test -pl nop-task -am` BUILD SUCCESS（nop-wf 若零 diff 以实际为准登记）
+- [x] Owner doc 裁定：`nop-task.md` 重试体执行位置契约核对（「重试体在共享定时器线程执行」未声明面随修复收敛）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 分片 C：2.3-C8-001 WS 推送卸载共享池 + A5 keepalive 扇出收敛（nop-service-framework）
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/nop-graphql/nop-graphql-core/src/main/java/io/nop/graphql/core/ws/JsonRpcWebSocketHandler.java`（:82 keepalive、:360-367 sendKeepAlive、:469-478 onNext）、`.../subscription/GraphQLSubscriptionManager.java`（:204-218 pushToClient）、`nop-graphql-core` 测试目录
 
 - Item Types: `Fix`（2.3-C8-001 已确认 live defect；A5 为设计矩阵移交承接行）、`Proof`（回归测试）
 
-- [ ] keepalive 触发与连接生命周期解耦（矩阵 A5 行口径）：消除每连接一条 globalTimer 周期任务的 N 线性扇出——扇出收敛为 O(1) 共享扫描（单条周期任务遍历连接注册表）或模块专用载体，二选一以实现期对齐设计为准绳；阻塞 send 不再占用 timer 线程
-- [ ] 订阅推送路径卸载共享池（§3.1.3 行 3）：`onNext`/`pushToClient`/`sendKeepAlive` 三立案本体的阻塞 send 与 timer 线程解耦——慢客户端 L 不再可钉死 globalTimer（ρ=N·L/40 钉死面消除）；推送形态按审计建议①方向（带界队列 + 溢出策略[平台 `IBlockingQueue`+`QueueOverflowPolicy`，满则断开该会话]）或等效卸载形态，随实现期对齐设计落地
-- [ ] 绝缘覆盖不回退：keepalive 链改造后仍受 R1-01 绝缘覆盖（sendKeepAlive 绝缘语义与失败可见不回退）；适配器层零改动（`JakartaWebSocketSession`/`SpringWebSocketSession` 写超时面归 Deferred）
-- [ ] 回归测试（rule 25，测试名带 `_C8_001` 标识）：①globalTimer 上无每连接周期任务（扇出数量断言：N 连接 → timer 周期任务 O(1)；观测手段不限单一形态——注入探测 executor 计数、`GlobalExecutors.allExecutors()` 统计或反射读取任务注册表均等效，以能钉「N→O(1)」为准，防执行期卡断言手段）；②keepalive/推送路径阻塞 send 执行线程断言（非 timer 线程）；③慢客户端注入场景 timer 健康断言（单慢会话不阻塞其他会话 keepalive/推送）；④既有 graphql-core 测试零回归
-- [ ] **接线验证**（rule 23）：真实 globalTimer 单例上断言连接建立前后 timer 周期任务数量与执行线程（周期任务数量可用注入探测 executor 或 `GlobalExecutors.allExecutors()` 统计等效观测）
-- [ ] **提交纪律**：nop-service-framework 一提交，commit message 带 `2.3-C8-001`（含 A5 合并声明）与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] keepalive 触发与连接生命周期解耦（矩阵 A5 行口径）：消除每连接一条 globalTimer 周期任务的 N 线性扇出——扇出收敛为 O(1) 共享扫描（单条周期任务遍历连接注册表）或模块专用载体，二选一以实现期对齐设计为准绳；阻塞 send 不再占用 timer 线程
+- [x] 订阅推送路径卸载共享池（§3.1.3 行 3）：`onNext`/`pushToClient`/`sendKeepAlive` 三立案本体的阻塞 send 与 timer 线程解耦——慢客户端 L 不再可钉死 globalTimer（ρ=N·L/40 钉死面消除）；推送形态按审计建议①方向（带界队列 + 溢出策略[平台 `IBlockingQueue`+`QueueOverflowPolicy`，满则断开该会话]）或等效卸载形态，随实现期对齐设计落地
+- [x] 绝缘覆盖不回退：keepalive 链改造后仍受 R1-01 绝缘覆盖（sendKeepAlive 绝缘语义与失败可见不回退）；适配器层零改动（`JakartaWebSocketSession`/`SpringWebSocketSession` 写超时面归 Deferred）
+- [x] 回归测试（rule 25，测试名带 `_C8_001` 标识）：①globalTimer 上无每连接周期任务（扇出数量断言：N 连接 → timer 周期任务 O(1)；观测手段不限单一形态——注入探测 executor 计数、`GlobalExecutors.allExecutors()` 统计或反射读取任务注册表均等效，以能钉「N→O(1)」为准，防执行期卡断言手段）；②keepalive/推送路径阻塞 send 执行线程断言（非 timer 线程）；③慢客户端注入场景 timer 健康断言（单慢会话不阻塞其他会话 keepalive/推送）；④既有 graphql-core 测试零回归
+- [x] **接线验证**（rule 23）：真实 globalTimer 单例上断言连接建立前后 timer 周期任务数量与执行线程（周期任务数量可用注入探测 executor 或 `GlobalExecutors.allExecutors()` 统计等效观测）
+- [x] **提交纪律**：nop-service-framework 一提交，commit message 带 `2.3-C8-001`（含 A5 合并声明）与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 3，agent 分片 C @ `77cbfd2f64`）：
+
+- **修复面（A5 扇出收敛，二选一取「O(1) 共享扫描」支路）**：`JsonRpcWebSocketHandler` 每连接 `globalTimer().scheduleWithFixedDelay(...)`（live :82）改为 JVM 单条共享链——静态 `LIVE_HANDLERS`（CHM keySet）注册表 + 首次注册时武装 `globalTimer().executeOn(globalWorker()).scheduleWithFixedDelay(sendKeepAliveToAll, 10, 10, SECONDS)`；扫描体惰性驱逐 closed 会话（close 回调缺失防泄漏）。共享链载体 = BindScheduledExecutor（timer 只触发、扫描体在 worker 执行），扫描体逐会话仅入队不发送——单慢会话不可能拖慢他会话 keepalive。N 连接 → timer 周期任务 O(1)。
+- **修复面（推送卸载，审计建议①形态）**：新增 `WebSocketSendPump`（`OverflowBlockingQueue(128, DROP_NEWEST)` + `SequentialTaskExecutor(globalWorker, queue, -1)` 平台设施组合：会话级有界、FIFO 有序、无每连接线程、漏极任务仅在有待发任务时调度到共享 worker 池）；`onNext`（数据/错误消息）、`onComplete`（complete 消息，与数据共 pump 保序）、`sendKeepAlive`（ping）、`GraphQLSubscriptionManager.pushToClient`（manager 侧 per-session pump 表，序列化留在调用线程、仅阻塞 socket 写卸载）四立案本体全部经 pump 卸载——`session.sendMessage` 不再在 timer/发布/分发线程执行，ρ=N·L/40 钉死面消除；队列满（慢消费者）→ 断开该会话（`close(1011)`）+ 注销订阅，不反压全局。适配器层零改动（写超时族归 R4-16/R4-17 Deferred）。
+- **绝缘覆盖不回退**：`sendKeepAlive` 站点级 `catch (IOException)` + `catch (Throwable)` 绝缘语义与结构化日志键原样保留（外壳改为 pump 入队）；共享链经 executeOn Bind 载体继承 R1-01 绝缘核心（30 点表 #10–13）。`TestJsonRpcKeepAliveInsulation` 2 条共存全绿（投递断言 `awaitUntil` 适配异步 pump 时序，Throwable 不传播/失败轮次不投递/链续投/句柄不取消四项绝缘断言零删减）；`TestPeriodicTaskInsulation`（nop-commons）不在本模块门禁内，plan 2497 已核载体绝缘设施零回改——本批产品 diff 未触碰 `InsulatedPeriodicTask`/`InsulatedPeriodicChain`/`PeriodicTaskHelper`/`DefaultScheduledExecutor`（设施/绝缘零改动由 `git diff` 证实）。
+- **测试**：新增 `TestJsonRpcWsSendOffload_C8_001` 4 条——①`keepAliveFanOutConvergesToConstantOnGlobalTimer_C8_001`（反射读 globalTimer 底层 `DefaultScheduledExecutor.periodicTasks` 登记表计数：5 连接建立前后 delta ≤ 1）②`keepaliveSendRunsOnWorkerNotTimerThread_C8_001` ③`slowSessionDoesNotBlockOtherSessionsKeepalive_C8_001`（阻塞会话 send 在飞时健康会话 ping 照常投递，且阻塞会话 send 未完成）④`subscriptionDataPushOffloadsSendToWorker_C8_001`（真实 onMessage→publisher 链，数据 send 线程=worker、发布线程不发 send）；`TestSubscriptionPushOffload_C8_001` 2 条（manager push 卸载线程断言 + 溢出断连行为钉[200 连发 @ 容量 128 → session closed]）。
+- **必红证据（E2）**：修复前基线（stash handler/manager 产品 diff，pump 类不在修复前引用面）5 断言全红——fanout delta=5（每连接 1 条 timer 任务）、keepalive send 线程=`main`（同步发送）、慢会话串行阻塞（healthy ping 只能在慢 send 结束后投递）、manager push 线程=`main`、无溢出断连；测试 ④ 在真基线上以 StackOverflowError 形态红（发布者 request(1) 同步回环 × 同步 send 无溢出断连保护）。快照 `_tmp/phase3-c8-001-red-baseline.log` → 修复后 6+21+18+2 条全绿 `_tmp/phase3-c8-001-green-fixed.log`。
+- **接线验证证据**：测试 ① 在**真实 globalTimer 单例**上以反射计数周期任务登记表（N 连接前后 delta ≤ 1 = 扇出 O(1) 运行时证明）；测试 ②④ 的 send 线程名 `nop-global-worker-*` = pump 载体真实执行证明。
+- **门禁**：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS EXIT=0（快照 `_tmp/phase3-gate-nop-service-framework.log`）；nop-task 门禁复跑亦含 graphql-core 测试面（reactor 依赖）全绿。
+- **Owner doc 裁定去向**：`service-layer.md` WS 订阅推送契约（同步直推 → 会话级有界 pump 卸载 + O(1) keepalive 扫描）——**归 Phase 7 统一落账**（本 Phase 显式登记去向）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 2.3-C8-001（含 A5 keepalive 合并面）landed：globalTimer 不再承载每连接周期任务、阻塞 send 不在 timer 线程执行，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：扇出/线程归属断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-c8-001-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`service-layer.md` WS 订阅推送契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.3-C8-001（含 A5 keepalive 合并面）landed：globalTimer 不再承载每连接周期任务、阻塞 send 不在 timer 线程执行，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：扇出/线程归属断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-c8-001-*.log`）
+- [x] 接线验证证据登记
+- [x] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS
+- [x] Owner doc 裁定：`service-layer.md` WS 订阅推送契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 分片 D：3.1 三项 + A4 ScheduledRecoveryManager + 3.2-C4-004 shell 池隔离（nop-ai）
 
