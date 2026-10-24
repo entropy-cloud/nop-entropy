@@ -8,9 +8,11 @@
 
     <!-- K1（plan knowledge-rag/01）：IEmbeddingModel 首个平台生产实现。未配置
          nop.ai.embedding.default-llm 时 bean 可创建、首次调用 fail-loud
-         （ERR_AI_EMBEDDING_NO_PROVIDER），消费方 wiring 期 fail-fast 语义可观察。 -->
+         （ERR_AI_EMBEDDING_NO_PROVIDER），消费方 wiring 期 fail-fast 语义可观察。
+         CRA 3.1-C4-004（plan 2498 Phase 4）：destroy-method 注册生命周期销毁钩子，
+         容器关闭时有界终结惰性创建的内部重试调度器，无常驻孤儿线程残留。 -->
     <bean id="nopAiEmbeddingModel" class="io.nop.ai.core.service.EmbeddingServiceImpl" ioc:default="true"
-          ioc:type="io.nop.ai.core.api.embedding.IEmbeddingModel"/>
+          ioc:type="io.nop.ai.core.api.embedding.IEmbeddingModel" destroy-method="stop"/>
 
     <bean id="nopAiChatLogger" class="io.nop.ai.core.service.DefaultChatLogger" ioc:default="true"/>
 

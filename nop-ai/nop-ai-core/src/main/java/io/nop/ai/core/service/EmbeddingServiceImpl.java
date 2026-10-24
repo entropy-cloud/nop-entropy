@@ -23,6 +23,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.ratelimit.DefaultRateLimiter;
 import io.nop.commons.concurrent.ratelimit.IRateLimiter;
+import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.http.api.client.HttpRequest;
@@ -75,10 +76,18 @@ import static io.nop.ai.core.NopAiCoreErrors.ERR_AI_SERVICE_OPTION_NOT_SET;
  * {@link IRetryPolicy} 重试与 {@link AccountChain} 账号链 failover。链耗尽 /
  * 分类 STOP 时 fail-loud，不静默降级。
  */
-public class EmbeddingServiceImpl implements IEmbeddingModel {
+public class EmbeddingServiceImpl implements IEmbeddingModel, IDestroyable {
     private static final Logger LOG = LoggerFactory.getLogger(EmbeddingServiceImpl.class);
 
     private static final int MAX_FALLBACK_STEPS = 16;
+
+    /**
+     * Bounded close budget for the internally-created retry scheduler
+     * (CRA 3.1-C4-004): graceful drain first, then forced stop — never an
+     * unbounded wait on bean teardown / scheduler swap.
+     */
+    static final long SCHEDULER_CLOSE_GRACE_SECONDS = 1;
+    static final long SCHEDULER_CLOSE_FORCED_WAIT_SECONDS = 4;
 
     private IHttpClient httpClient;
 
@@ -87,6 +96,7 @@ public class EmbeddingServiceImpl implements IEmbeddingModel {
     private IRetryPolicy retryPolicy = new StandardRetryPolicy();
 
     private volatile ScheduledExecutorService retryScheduler;
+    private volatile ScheduledThreadPoolExecutor internalRetryScheduler;
     private final Object schedulerLock = new Object();
 
     private final Map<String, IRateLimiter> rateLimiters = new ConcurrentHashMap<>();
@@ -119,9 +129,68 @@ public class EmbeddingServiceImpl implements IEmbeddingModel {
     /**
      * 可注入重试调度器（普通 setter）：默认惰性创建 daemon 单线程调度器；
      * 测试可注入直接执行实现以消除延迟等待。传入 null 恢复默认。
+     *
+     * <p>CRA 3.1-C4-004（plan 2498 Phase 4）：换装时对<b>本服务自建</b>的旧内部池
+     * 执行有界终结（graceful shutdown + 有界等待 + 超时 shutdownNow），旧池不再成为
+     * 常驻孤儿线程；外部注入的调度器非本服务所有，换装/关闭均不触碰。
      */
     public void setRetryScheduler(ScheduledExecutorService retryScheduler) {
-        this.retryScheduler = retryScheduler;
+        synchronized (schedulerLock) {
+            shutdownInternalScheduler("retry-scheduler-swap");
+            this.retryScheduler = retryScheduler;
+        }
+    }
+
+    /**
+     * Bean 生命周期销毁钩子（{@code ai-defaults.beans.xml} 注册
+     * {@code destroy-method="stop"}，另经 {@link IDestroyable} 暴露同语义的
+     * {@link #destroy()}）：有界终结本服务自建的内部重试调度器，无常驻孤儿
+     * 线程残留（CRA 3.1-C4-004）。后续调用会惰性重建新池，服务仍可用。
+     */
+    public void stop() {
+        synchronized (schedulerLock) {
+            shutdownInternalScheduler("stop");
+        }
+    }
+
+    @Override
+    public void destroy() {
+        stop();
+    }
+
+    /**
+     * 有界终结自建内部池（仅 internalRetryScheduler 所指——外部注入的调度器
+     * 不归本服务所有，永不触碰）：graceful {@code shutdown()} 先行，宽限期
+     * {@value #SCHEDULER_CLOSE_GRACE_SECONDS}s 内未终结则 {@code shutdownNow()}
+     * 并再给有界等待；全程有界，不吞中断。
+     */
+    private void shutdownInternalScheduler(String reason) {
+        ScheduledThreadPoolExecutor internal = this.internalRetryScheduler;
+        if (internal == null) {
+            return;
+        }
+        this.internalRetryScheduler = null;
+        if (this.retryScheduler == internal) {
+            this.retryScheduler = null;
+        }
+        internal.shutdown();
+        try {
+            if (!internal.awaitTermination(SCHEDULER_CLOSE_GRACE_SECONDS, TimeUnit.SECONDS)) {
+                LOG.warn("nop.ai.embedding.retry-scheduler-close-forced: internal retry scheduler "
+                        + "did not terminate within the {}s grace period ({}), forcing shutdownNow",
+                        SCHEDULER_CLOSE_GRACE_SECONDS, reason);
+                internal.shutdownNow();
+                if (!internal.awaitTermination(SCHEDULER_CLOSE_FORCED_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                    LOG.error("nop.ai.embedding.retry-scheduler-close-timeout: internal retry scheduler "
+                            + "still alive after forced shutdown ({})", reason);
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            internal.shutdownNow();
+            LOG.warn("nop.ai.embedding.retry-scheduler-close-interrupted: scheduler close interrupted "
+                    + "({}), forced shutdownNow issued", reason);
+        }
     }
 
     private ScheduledExecutorService scheduler() {
@@ -136,6 +205,7 @@ public class EmbeddingServiceImpl implements IEmbeddingModel {
                     return t;
                 });
                 executor.setRemoveOnCancelPolicy(true);
+                this.internalRetryScheduler = executor;
                 this.retryScheduler = executor;
             }
             return this.retryScheduler;
