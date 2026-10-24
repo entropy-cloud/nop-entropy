@@ -83,46 +83,60 @@
 
 ### Phase 1 - 平台族裁决设计文档 + nop-kernel 设施面实现（C4-001/C4-003/C4-004/C4-006）+ 单元测试（plan-first 前置）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/`（新建：全局线程池与定时器设施治理设计——globalTimer 隔离/卸载平台族裁决）、`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（GlobalExecutors/ExecutorHelper/DefaultThreadPoolExecutor/DefaultScheduledExecutor）、`nop-kernel/nop-commons/src/main/java/io/nop/commons/CommonConfigs.java`、`nop-batch/nop-batch-exp/.../ExportDbTool.java`/`ImportDbTool.java`、`nop-frontend-support/nop-js/.../JavaScriptService.java`、`nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/executor/`
 
 - Item Types: `Decision`（设计文档）、`Fix`（2.1-C4-001/003/004/006 全部为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10-010 成员面验收前置）
 
-- [ ] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
-  - [ ] **裁定① globalTimer 隔离/卸载平台族方案（本批核心裁定，R1-03 消费方同口径）**：基于 C4-round2 §① 28 消费方 A/B/C/D 终表定「调度槽 vs 执行体」契约——何种任务体必须卸载（耗时/阻塞 I/O 强制 `executeOn(globalWorker)` 或等价形态）、何种轻量直连可豁免（内存检查/一次性延迟清理/触发转发，写明豁免判据）；A 类直连站点**逐站点处置矩阵**（本批内站点：nop-config 两站点归 Phase 2、`LocalResourceLockManager` 按终裁修正口径裁定迁移或豁免——**两分支落地形态预设，无临场自加执行项空间**：默认**豁免** + owner doc（或处置登记）声明其占用面为内存锁表遍历轻量、不构成 DB 阻塞（终裁修正口径）；仅当设计裁定判**迁移**时，须回补执行项「`LocalResourceLockManager.checkTimeout` 卸载改码（live :104-105/:117）」纳入本 Phase Targets（nop-commons `concurrent/lock/impl` 包）并随设施面提交；批外站点：JsonRpcWebSocketHandler keepalive、SysDaoNamingService cleanup、ScheduledRecoveryManager（recovery scan，`nop-ai/nop-ai-agent/.../ScheduledRecoveryManager.java:361`，生产 IoC 注入 globalTimer——勘误 4 终裁口径下第三个 DB 相关站点；移交 successor 候选 = 3.1 单元批（R2-16）或 R1-03 口径传导，由本裁定定夺）、CLI 族等逐站点显式移交 successor ownership——R1-03/对应单元批/R-G 治理轨，禁止静默不处置）；与 R1-03 全部 9 项消费方工单（含 4.2-C4-003 两面映射、1.7-C8-003 兜底池统一评估）的口径传导声明；与 MA-16「不得指向 globalTimer」约束解除链的关系注记；逐站点移交结论落 cra-index 对应行注记（或 roadmap 行指针），移交载体可独立核验。
-  - [ ] **裁定② 死配置修复取向**：`global-timer.maxPoolSize`（默认 5）真实生效的具体语义（JDK STPE 仅 core 生效——映射到 corePoolSize、或配置语义重定义、或废弃声明+等价新配置，三选一并给出运维迁移含义）+ `ExecutorHelper.newScheduledExecutor` 副作用改写移除（**不得改写调用方持有的 config 对象**——`getConfig().getMaxPoolSize()` 恒 0 与 `refreshConfig` 分支永久失活两面一并闭合）+ 对既有单例（globalTimer）与 `newSingleThreadTimer` 等同工厂消费方的行为影响声明（source-compat：对外 API 零签名变更）。
-  - [ ] **裁定③ 池工厂校验语义（fail-fast）**：poolSize 合法域（>0）；queueSize 显式无界 vs 非法值分界（显式无界是否保留、以何种常量/参数形态表达、是否上界封顶 + warn）；违例异常类型 = NopException + 错误码（错误处理两档，杜绝裸 IAE 与静默 cached 语义）；与既有 11 调用点的兼容矩阵（缺陷面 3 站点随批修复：ExportDbTool:150/ImportDbTool:232 MAX_VALUE、JavaScriptService:40 `-1,-1`；合格 8 站点零改动声明）；`ExecutorHelper.newThreadPoolExecutor` 的 `maxPoolSize<0` 分支与 GlobalExecutors.cachedThreadPool 的关系（裁定④的上界是否改变该分支语义须一并声明）。
-  - [ ] **裁定④ cached 共享池上界与熔断语义**：新配置项名/默认值（审计建议 ~200 量级，最终值随裁决）+ 达界拒绝语义（Abort 明确报错——熔断信号必须在「进程濒死前」可见）+ 按名解析通道（`ModelBasedBatchTaskBuilderFactory.getExecutor`）与 batch 消费方的语义影响声明 + 7 消费方面行为变化核对。
-  - [ ] **裁定⑤ 收缩语义修正与热更面处置**：`updateThreadPool` 缩容方向修正（真缩容先降 core 再降 max）+ 放大分支去预抬（消除线程创建-销毁抖动）+ `refreshConfig` 转类型化异常 + 热更静默忽略面（queueCapacity/allowCoreThreadTimeOut/daemon）补齐或成文声明二选一 + 与裁定② timer 容量语义的热更一致性（DefaultScheduledExecutor 热更路径在死配置修复后的行为）。
-  - [ ] **裁定⑥ 与 R1-01 绝缘层共享代码位边界**：ExecutorHelper/Default*Executor 改动不得回改绝缘语义（重臂/三相容/失败治理参数/拒绝路径维持 periodic-task-insulation.md）；`TestPeriodicTaskInsulation` 9 条 + 下游绝缘回归为回归门禁；`DefaultScheduledExecutor.refreshConfig`/destroy 改动对绝缘链登记表（`periodicTasks`）无影响声明。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，本 Phase 后续实现项与 Phase 2 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] 2.1-C4-001 设施面修复：死配置 + 副作用改写移除（按裁定②实施；`globalTimer()` 消费方零 API 变更）
-- [ ] 2.1-C4-003 设施面修复：`newExecutor`/`newThreadPoolExecutor` 工厂入口校验 fail-fast（按裁定③）+ 缺陷面调用方随批修复（ExportDbTool:150 / ImportDbTool:232 的 `Integer.MAX_VALUE` 处置、JavaScriptService:40 的 `-1,-1` 修正）
-- [ ] 2.1-C4-004 设施面修复：cachedThreadPool 可配置上界 + 达界拒绝语义（按裁定④）
-- [ ] 2.1-C4-006 设施面修复：`updateThreadPool` 缩容方向修正 + 放大分支去预抬 + `refreshConfig` 类型化异常 + 热更面处置（按裁定⑤）
-- [ ] 本体单元测试（rule 25 显式覆盖 + C10-010 成员面验收前置）：
-  - [ ] 表驱动参数校验测试：非法组合（poolSize≤0、非法 queueSize）断言类型化异常（非裸 IAE、非静默 cached 语义）——验证裁定③
-  - [ ] 热更 grow/shrink 双向冒烟：缩容后池仍可执行任务（修复前缩容必炸 IAE 的行为对照）；扩容无线程抖动断言（或按裁定⑤记录不可观测说明）——验证裁定⑤
-  - [ ] globalTimer 容量语义断言：配置值→实际池容量传导成立、config 对象不再被副作用改写（`getConfig()` 语义修复的行为钉）——验证裁定②
-  - [ ] cached 池达界拒绝断言：达到上界后的提交获得明确拒绝信号（熔断可见）——验证裁定④
-  - [ ] 缺陷面调用方回归：ExportDbTool/ImportDbTool/JavaScriptService 以修复后参数构造成功且语义与裁定③一致
-  - [ ] 容量 0/负值跨工厂语义一致性断言：globalTimer 传导 vs `newScheduledExecutor`/`newThreadPoolExecutor` 对容量 0/负值输入的语义以表驱动矩阵统一钉（同一输入跨工厂入口行为可对照，不静默分叉）——C10-010 成员面验收前置项
-- [ ] **接线验证**（rule 23）：≥1 条断言证明修复后的配置/校验路径在真实构造链上生效（如 `GlobalExecutors.globalTimer()` 单例经修复后 config 不再被改写、容量可观测；`newExecutor` 校验在 `DefaultThreadPoolExecutor.init()` 真实链上触发）
-- [ ] **无静默跳过**（rule 24）：校验失败路径显式抛类型化异常；热更不支持的字段按裁定⑤显式处置（补齐或成文声明），不得保留无告示的静默忽略
-- [ ] **提交纪律**：设计文档与实现分离提交（Phase 1 执行顺序 = 设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；nop-kernel 设施面一提交；三缺陷面调用方（nop-batch-exp / nop-js）随批提交并在 commit message 声明与设施提交的 commit 关系；**C10-010 成员面测试与 C4-003/C4-006 本体同一 commit**（E2 同 diff 核验依据）；Phase 2 的 nop-config 站点修复一提交
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
+  - [x] **裁定① globalTimer 隔离/卸载平台族方案（本批核心裁定，R1-03 消费方同口径）**：基于 C4-round2 §① 28 消费方 A/B/C/D 终表定「调度槽 vs 执行体」契约——何种任务体必须卸载（耗时/阻塞 I/O 强制 `executeOn(globalWorker())` 或等价形态）、何种轻量直连可豁免（内存检查/一次性延迟清理/触发转发，写明豁免判据）；A 类直连站点**逐站点处置矩阵**（本批内站点：nop-config 两站点归 Phase 2、`LocalResourceLockManager` 按终裁修正口径裁定迁移或豁免——**两分支落地形态预设，无临场自加执行项空间**：默认**豁免** + owner doc（或处置登记）声明其占用面为内存锁表遍历轻量、不构成 DB 阻塞（终裁修正口径）；仅当设计裁定判**迁移**时，须回补执行项「`LocalResourceLockManager.checkTimeout` 卸载改码（live :104-105/:117）」纳入本 Phase Targets（nop-commons `concurrent/lock/impl` 包）并随设施面提交；批外站点：JsonRpcWebSocketHandler keepalive、SysDaoNamingService cleanup、ScheduledRecoveryManager（recovery scan，`nop-ai/nop-ai-agent/.../ScheduledRecoveryManager.java:361`，生产 IoC 注入 globalTimer——勘误 4 终裁口径下第三个 DB 相关站点；移交 successor 候选 = 3.1 单元批（R2-16）或 R1-03 口径传导，由本裁定定夺）、CLI 族等逐站点显式移交 successor ownership——R1-03/对应单元批/R-G 治理轨，禁止静默不处置）；与 R1-03 全部 9 项消费方工单（含 4.2-C4-003 两面映射、1.7-C8-003 兜底池统一评估）的口径传导声明；与 MA-16「不得指向 globalTimer」约束解除链的关系注记；逐站点移交结论落 cra-index 对应行注记（或 roadmap 行指针），移交载体可独立核验。
+  - [x] **裁定② 死配置修复取向**：`global-timer.maxPoolSize`（默认 5）真实生效的具体语义（JDK STPE 仅 core 生效——映射到 corePoolSize、或配置语义重定义、或废弃声明+等价新配置，三选一并给出运维迁移含义）+ `ExecutorHelper.newScheduledExecutor` 副作用改写移除（**不得改写调用方持有的 config 对象**——`getConfig().getMaxPoolSize()` 恒 0 与 `refreshConfig` 分支永久失活两面一并闭合）+ 对既有单例（globalTimer）与 `newSingleThreadTimer` 等同工厂消费方的行为影响声明（source-compat：对外 API 零签名变更）。
+  - [x] **裁定③ 池工厂校验语义（fail-fast）**：poolSize 合法域（>0）；queueSize 显式无界 vs 非法值分界（显式无界是否保留、以何种常量/参数形态表达、是否上界封顶 + warn）；违例异常类型 = NopException + 错误码（错误处理两档，杜绝裸 IAE 与静默 cached 语义）；与既有 11 调用点的兼容矩阵（缺陷面 3 站点随批修复：ExportDbTool:150/ImportDbTool:232 MAX_VALUE、JavaScriptService:40 `-1,-1`；合格 8 站点零改动声明）；`ExecutorHelper.newThreadPoolExecutor` 的 `maxPoolSize<0` 分支与 GlobalExecutors.cachedThreadPool 的关系（裁定④的上界是否改变该分支语义须一并声明）。
+  - [x] **裁定④ cached 共享池上界与熔断语义**：新配置项名/默认值（审计建议 ~200 量级，最终值随裁决）+ 达界拒绝语义（Abort 明确报错——熔断信号必须在「进程濒死前」可见）+ 按名解析通道（`ModelBasedBatchTaskBuilderFactory.getExecutor`）与 batch 消费方的语义影响声明 + 7 消费方面行为变化核对。
+  - [x] **裁定⑤ 收缩语义修正与热更面处置**：`updateThreadPool` 缩容方向修正（真缩容先降 core 再降 max）+ 放大分支去预抬（消除线程创建-销毁抖动）+ `refreshConfig` 转类型化异常 + 热更静默忽略面（queueCapacity/allowCoreThreadTimeOut/daemon）补齐或成文声明二选一 + 与裁定② timer 容量语义的热更一致性（DefaultScheduledExecutor 热更路径在死配置修复后的行为）。
+  - [x] **裁定⑥ 与 R1-01 绝缘层共享代码位边界**：ExecutorHelper/Default*Executor 改动不得回改绝缘语义（重臂/三相容/失败治理参数/拒绝路径维持 periodic-task-insulation.md）；`TestPeriodicTaskInsulation` 9 条 + 下游绝缘回归为回归门禁；`DefaultScheduledExecutor.refreshConfig`/destroy 改动对绝缘链登记表（`periodicTasks`）无影响声明。
+
+  （六裁定载体 = `ai-dev/design/concurrency/pool-facility-hardening.md` 修订版，评审修订 agent_91cae018 落盘 @ `8331251d38`，增量复核 agent_e8485aca 通过进入实现——见 plan 头部 Design Review 行。）
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，本 Phase 后续实现项与 Phase 2 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] 2.1-C4-001 设施面修复：死配置 + 副作用改写移除（按裁定②实施；`globalTimer()` 消费方零 API 变更）
+- [x] 2.1-C4-003 设施面修复：`newExecutor`/`newThreadPoolExecutor` 工厂入口校验 fail-fast（按裁定③）+ 缺陷面调用方随批修复（ExportDbTool:150 / ImportDbTool:232 的 `Integer.MAX_VALUE` 处置、JavaScriptService:40 的 `-1,-1` 修正）
+- [x] 2.1-C4-004 设施面修复：cachedThreadPool 可配置上界 + 达界拒绝语义（按裁定④）
+- [x] 2.1-C4-006 设施面修复：`updateThreadPool` 缩容方向修正 + 放大分支去预抬 + `refreshConfig` 类型化异常 + 热更面处置（按裁定⑤）
+- [x] 本体单元测试（rule 25 显式覆盖 + C10-010 成员面验收前置）：
+  - [x] 表驱动参数校验测试：非法组合（poolSize≤0、非法 queueSize）断言类型化异常（非裸 IAE、非静默 cached 语义）——验证裁定③（`TestThreadPoolFacilityHardening.testFactoryParamValidationTableDriven_C4_003`，11 违例行全 NopException 同错误码）
+  - [x] 热更 grow/shrink 双向冒烟：缩容后池仍可执行任务（修复前缩容必炸 IAE 的行为对照）；扩容无线程抖动断言（或按裁定⑤记录不可观测说明）——验证裁定⑤（`testShrinkHotUpdateReordersCoreBeforeMax_C4_006` + `testScheduledHotUpdateCoreOnlyWithoutMaxClamp_C4_006`；扩容抖动为 setter 间瞬态、公开 stats 不可观测，按裁定⑤以最终态一致为断言口径并在测试 javadoc 记录）
+  - [x] globalTimer 容量语义断言：配置值→实际池容量传导成立、config 对象不再被副作用改写（`getConfig()` 语义修复的行为钉）——验证裁定②（`testGlobalTimerCorePoolSizeConfigTransmits_C4_001` + `testScheduledExecutorFactoryDoesNotRewriteCallerConfig_C4_001`）
+  - [x] cached 池达界拒绝断言：达到上界后的提交获得明确拒绝信号（熔断可见）——验证裁定④（`testCachedFormBoundedWithSaturationSignal_C4_004`）
+  - [x] 缺陷面调用方回归：ExportDbTool/ImportDbTool/JavaScriptService 以修复后参数构造成功且语义与裁定③一致（`TestDbToolExecutorContract` 2 条 + `TestJavaScriptServiceExecutorContract` 1 条 + `TestJavaScriptService` 5 条真实服务构造链）
+  - [x] 容量 0/负值跨工厂语义一致性断言：globalTimer 传导 vs `newScheduledExecutor`/`newThreadPoolExecutor` 对容量 0/负值输入的语义以表驱动矩阵统一钉（同一输入跨工厂入口行为可对照，不静默分叉）——C10-010 成员面验收前置项（`testCapacityZeroNegativeCrossFactoryConsistencyMatrix_C10_010`）
+- [x] **接线验证**（rule 23）：≥1 条断言证明修复后的配置/校验路径在真实构造链上生效（如 `GlobalExecutors.globalTimer()` 单例经修复后 config 不再被改写、容量可观测；`newExecutor` 校验在 `DefaultThreadPoolExecutor.init()` 真实链上触发）——证据见执行记录 §4
+- [x] **无静默跳过**（rule 24）：校验失败路径显式抛类型化异常；热更不支持的字段按裁定⑤显式处置（补齐或成文声明），不得保留无告示的静默忽略
+- [x] **提交纪律**：设计文档与实现分离提交（Phase 1 执行顺序 = 设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；nop-kernel 设施面一提交；三缺陷面调用方（nop-batch-exp / nop-js）随批提交并在 commit message 声明与设施提交的 commit 关系；**C10-010 成员面测试与 C4-003/C4-006 本体同一 commit**（E2 同 diff 核验依据）；Phase 2 的 nop-config 站点修复一提交（本 Phase 内已达成设计文档先行、设施一提交 `7262812593`、调用方随批 `6309d3a5e0` 且 message 声明 commit 关系、C10-010 测试与本体同 commit；Phase 2 nop-config 提交纪律由 Phase 2 自身 checklist 承载）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
-- [ ] 2.1-C4-001/C4-003/C4-004/C4-006 四项 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10-010 成员面（表驱动校验 + grow/shrink 双向 + 语义一致性）覆盖在案
-- [ ] 必红证据（E2）：至少 C4-006（修复前缩容 IAE 红）、C4-003（修复前非法值静默/深爆红）、C4-001（修复前 config 恒 0 红）、C4-004（cached 上界达界拒绝断言天然可变异红）四项有先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行
-- [ ] 接线验证证据登记（哪条构造链、哪条断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS；nop-batch-exp / nop-js 所属聚合模块 focused 测试 BUILD SUCCESS（以实际触达为准登记）
-- [ ] Owner doc 裁定：设施契约/容量语义锚点内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向，或随批最小更新）；否则显式写 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
+- [x] 2.1-C4-001/C4-003/C4-004/C4-006 四项 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10-010 成员面（表驱动校验 + grow/shrink 双向 + 语义一致性）覆盖在案
+- [x] 必红证据（E2）：至少 C4-006（修复前缩容 IAE 红）、C4-003（修复前非法值静默/深爆红）、C4-001（修复前 config 恒 0 红）、C4-004（cached 上界达界拒绝断言天然可变异红）四项有先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行（四项全变异红→修复绿，快照 `_tmp/phase1b-c4-001-dead-config.log` / `_tmp/phase1b-c4-003-zero-validation.log` / `_tmp/phase1b-c4-004-unbounded.log` / `_tmp/phase1b-c4-006-shrink-iae.log`，各含 RED 与 GREEN 两段）
+- [x] 接线验证证据登记（哪条构造链、哪条断言证明运行时生效）——见执行记录 §4
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS；nop-batch-exp / nop-js 所属聚合模块 focused 测试 BUILD SUCCESS（以实际触达为准登记）——nop-kernel EXIT=0（快照 `_tmp/phase1b-nop-kernel-gate.log`，含 TestThreadPoolFacilityHardening 7 条 + TestPeriodicTaskInsulation 9 条）；nop-batch `-am` EXIT=0（快照 `_tmp/phase1b-nop-batch-gate.log`，含 TestDbToolExecutorContract 2 条 + TestExportDbTool 回归）；nop-js 聚合模块 pom 已注释 nop-js（reactor 外模块），以 `./mvnw test -f nop-frontend-support/nop-js/pom.xml` EXIT=0 登记（快照 `_tmp/phase1b-nop-js-gate.log`，含 TestJavaScriptServiceExecutorContract 1 条 + TestJavaScriptService 5 条）；nop-frontend-support 聚合 `-am` EXIT=0（快照 `_tmp/phase1b-nop-frontend-support-gate.log`）；nop-dbtool 模块在仓内不存在（任务书「若触达」条件不成立），ExportDbTool/ImportDbTool 调用点归属 nop-batch-exp 已随批验证
+- [x] Owner doc 裁定：设施契约/容量语义锚点内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向，或随批最小更新）；否则显式写 `No owner-doc update required` + 理由（登记：GlobalExecutors/globalTimer 新建锚点条目（容量语义/工厂校验契约/cached 上界与熔断/隔离卸载规约/LocalResourceLockManager 豁免声明）+ nop-job.md 调度契约核对，内容源 = 设计文档 §3.1–§3.5，归 Phase 3 统一落账——设计文档 §五 已声明 owner doc 去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 1 执行记录（2026-10-24，实现子代理）
+
+1. **设计评审引用**：设计文档修订版（评审修订 agent_91cae018 落盘 @ `8331251d38`，增量复核 agent_e8485aca 通过）为实现唯一基准；六裁定 ①–⑥ 全按其 §3.1–§3.6 实施，无设计偏差。
+2. **实现面（设施一提交 `7262812593`）**：`CommonConfigs`（新键 `nop.commons.concurrent.global-timer.corePoolSize` 默认 4 + 旧键 @Deprecated 废弃声明 + 新键 `nop.commons.concurrent.cached-pool.maxPoolSize` 默认 200）；`CommonErrors`（`ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM` / `ERR_CONCURRENT_CACHED_POOL_SATURATED` + `ARG_MAX_POOL_SIZE`）；`ExecutorHelper`（newScheduledExecutor 去副作用 + core≥1 校验；newThreadPoolExecutor cached 分支构造期上界 + CachedPoolRejectHandler + Standard 分支五项校验 + MAX_VALUE 队列 WARN；updateThreadPool 收缩重排）；`DefaultThreadPoolExecutor`（三/四参重载校验 + refreshConfig 钳制 WARN + catch IAE 转 NopException）；`DefaultScheduledExecutor`（refreshConfig scheduled 专用路径：core-only 对齐、无 max 钳制、core≤0 类型化异常）；`GlobalExecutors`（globalTimer 新键解析 `resolveGlobalTimerCorePoolSize` + 旧键回读单次 WARN；cachedThreadPool `-1` 标记维持零改动）。错误码消息文案沿 `CommonErrors` 既有 zh-CN 惯例（设计文档 §3.3「消息文案按 CommonErrors 既有惯例，实现期定稿」）。
+3. **调用方随批（`6309d3a5e0`，message 声明与设施 commit 关系）**：ExportDbTool/ImportDbTool MAX_VALUE→10000（有界，与 globalWorker TaskQueue 一致；吞吐调优归 1.7 CL-004 对账）；JavaScriptService `-1,-1`→配置重载显式 cached 形态（core=0/max=-1，保留 0-core cached 实际语义 + 获得熔断上界）。
+4. **接线验证证据（rule 23）**：①`testGlobalTimerCorePoolSizeConfigTransmits_C4_001` 尾段——`GlobalExecutors.globalTimer()` 平台共享单例：`resolveGlobalTimerCorePoolSize()`（AppConfig 原始读→构造）== `getConfig().getCorePoolSize()` == `stats().getCorePoolSize()`，且 `getConfig().getMaxPoolSize()==20`（惰性默认，不再是副作用改写后的 0）；②`testFactoryParamValidationTableDriven_C4_003` 全部 `DefaultThreadPoolExecutor.newExecutor(...)` 三参重载经 `newExecutor(config)→init()→newThreadPoolExecutor` 真实构造链触发校验；③`testCachedFormBoundedWithSaturationSignal_C4_004` cached 分支上界/达界 REE 在真实构造 + 并发提交链上断言；④`TestJavaScriptService`（真实 service.start()→doStart 修复后构造链）5 条全绿。
+5. **必红证据（E2，四项全变异红→修复绿）**：C4-001（`resolveGlobalTimerCorePoolSize` 恒 4 + `setMaxPoolSize(0)` 复置 → 3 失败：expected 7 was 4 / expected 9 was 0 / expected 20 was 0 → 恢复绿）；C4-003（双校验体禁用 → poolSize=0 深爆裸 `IllegalArgumentException` 而非 NopException，2 失败 → 恢复绿）；C4-004（cached 分支复置 `Integer.MAX_VALUE` + 去 handler → expected 3 was 2147483647 → 恢复绿）；C4-006（updateThreadPool 复置基线反置条件 → 缩容 `setMaximumPoolSize` IAE（refreshConfig 转类型化异常捕获留痕）→ 恢复绿）。快照 = Exit Criteria 第三条列出的四份 log。
+6. **绝缘层零回改自证**：`InsulatedPeriodicTask`/`InsulatedPeriodicChain`/`PeriodicTaskHelper`/`IPeriodicTaskListener` 四文件 git diff 零改动；`DefaultScheduledExecutor` diff 仅 refreshConfig 方法体（`periodicTasks` 登记表/`trackPeriodicTask`/`destroy()` 拒绝路径/周期方法接线零触碰，grep diff 验证）；`ExecutorHelper.schedule`/`submit`（bindCancel 面）零改动；`TestPeriodicTaskInsulation` 9 条全绿（nop-kernel 门禁 log）。
+7. **验证与门禁**：`./mvnw test -pl nop-kernel -am` EXIT=0；`./mvnw test -pl nop-batch -am` EXIT=0；`./mvnw test -f nop-frontend-support/nop-js/pom.xml` EXIT=0（nop-js 为 reactor 外模块，聚合 pom 已注释其 module 声明）；`./mvnw test -pl nop-frontend-support -am` EXIT=0；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0；pre-commit Java lint（nop-cli gate）两提交均 0 violations。nop-dbtool 模块不存在，任务书「若触达」不成立。
+8. **零触碰确认**：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物（`git status` 过滤验证）；`nop-ooxml-xlsx/samples/generated-pie-chart/_rels/.rels` 为构建副作用（plan 2496 既有登记同因）已还原。
+9. **执行备注（非缺陷）**：nop-commons testCompile 曾现 plexus `ConcurrentModificationException`，根因 = 测试草稿将 `Runnable` 表达式直接传入 `assertThrows(Class,Executable,String)`（javac 错误恢复路径缺陷，最小复现归档于会话记录）；改为方法引用 `rejection.call()::run` 后消失，纯编译错误路径正常报错不受影响。设施代码无关联。
 
 ### Phase 2 - 2.2-C4-001 nop-config 刷新链隔离/超时站点修复
 
