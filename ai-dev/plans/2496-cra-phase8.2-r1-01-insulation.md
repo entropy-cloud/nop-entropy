@@ -216,27 +216,37 @@ Exit Criteria:
 
 ### Phase 4 - 下游单元批次 B：nop-ai / nop-message / nop-cluster / nop-metadata
 
-Status: planned
+Status: completed（2026-10-24 接续收尾子代理交付：前任实现子代理配额中断后现场甄别接续——四工单全落地、四单元独立提交、必红两项变异红+恢复绿留痕、四模块门禁全绿 EXIT=0；接续中补齐 2 处前任缺口[C7-029 sweep 面回归、C3-009 ⑥ 回调守卫回归]）
 Targets: `nop-ai`（MA-07 六站点）、`nop-message`（C3-009 七屏障）、`nop-cluster`（C4-004+CL-011/014）、`nop-metadata`（W-11）
 
 - Item Types: `Fix`（MA-07/C3-009/C4-004/W-11 已确认 live defect）、`Proof`（各单元回归测试）
 
-- [ ] nop-ai：MA-07 六站点逐点接入平台绝缘语义（ScheduledRecoveryManager / SessionLockRenewal / TeamTaskSchedulerDaemon / DBMessageService×2 面 / EmbeddingServiceImpl 调度与 retry future 面）；**SessionLockRenewal 站点必须有具名回归测试**（会话双执行安全语义面）；EmbeddingServiceImpl 的 scheduleRetry 丢弃 ScheduledFuture 面随单闭合（future 有终态/有观测）
-- [ ] nop-message：七屏障清单随单闭合（①–⑦ 全部，含 ⑥ 回调守卫与 ⑦ bridge/listener 守卫——不允许只修前五个）；Error 分支走失败上报路径（dispatchConsumeFailure / notifyEngineFailure），isActive 不再误报；回归测试注入确定性 Error 形态（StackOverflowError/OOM 或自定义 Error 子类如 LinkageError 派生——确定性 Error 逃逸语义即可）断言订阅非僵尸 + Debezium FAILURE_LISTENERS 收到通知（C10-002/005 验收前置随本体）
-- [ ] nop-cluster：C4-004 两条自续链 pending future 集中观察 + whenComplete 告警（`nop.cluster.leader-elector.loop-broken` 类业务标识=CL-014）+ 退避重臂（CL-011 基类守护）；回归测试=注入 rejection/Error 断言链重臂 + 带业务标识日志/上报可见；不做 C4-002 stop 复活面（Non-Goals）
-- [ ] nop-metadata：W-11 catch(Throwable) 分支处理（Error 记 FATAL 并仍返回错误结果 DTO 保 job 存活）；同文件族 MetaQualityCheckpointExecutor.execute per-rule catch 同根因随单闭合；回归测试注入 Error 断言 job 不被置 FAILED 且下一轮 cron 仍触发
-- [ ] 每单元修复 diff 与审计清单行号回读核对登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] nop-ai：MA-07 六站点逐点接入平台绝缘语义（ScheduledRecoveryManager / SessionLockRenewal / TeamTaskSchedulerDaemon / DBMessageService×2 面 / EmbeddingServiceImpl 调度与 retry future 面）；**SessionLockRenewal 站点必须有具名回归测试**（会话双执行安全语义面）；EmbeddingServiceImpl 的 scheduleRetry 丢弃 ScheduledFuture 面随单闭合（future 有终态/有观测）——**落地**：六成员逐一 catch 收宽 Throwable（C3-020/C4-007/C4-013 站点守卫；C3-027+C7-029 DBMessageService 双面；C4-003[3.1] dispatch 内外层+scheduleRetry 任务体守卫，重试腿死亡 ERROR 观测、拒绝沿 dispatch 收进调用方 future 终态）；具名回归 testLockRenewalChainSurvivesInjectedErrorAndStaysObservable（Error 注入→链续期不断+失败可观测+不误触发 lease-lost 中止）
+- [x] nop-message：七屏障清单随单闭合（①–⑦ 全部，含 ⑥ 回调守卫与 ⑦ bridge/listener 守卫——不允许只修前五个）；Error 分支走失败上报路径（dispatchConsumeFailure / notifyEngineFailure），isActive 不再误报；回归测试注入确定性 Error 形态（StackOverflowError/OOM 或自定义 Error 子类如 LinkageError 派生——确定性 Error 逃逸语义即可）断言订阅非僵尸 + Debezium FAILURE_LISTENERS 收到通知（C10-002/005 验收前置随本体）——**落地**：七屏障全闭合（Kafka/Pulsar 循环屏障 Error 分支=同路失败上报+active=false 诚实退出，Error 以 IllegalStateException 包装上报、nop-api-core 契约零触碰；Debezium worker 体抽取 runEngineWorker+Error 死亡分支 notifyEngineFailure；③⑤⑥⑦ 守卫全 Throwable 宽度）；回归 9 条（LinkageError 注入→订阅非僵尸+FAILURE_LISTENERS 通知+⑥ 专项 2 条）
+- [x] nop-cluster：C4-004 两条自续链 pending future 集中观察 + whenComplete 告警（`nop.cluster.leader-elector.loop-broken` 类业务标识=CL-014）+ 退避重臂（CL-011 基类守护）；回归测试=注入 rejection/Error 断言链重臂 + 带业务标识日志/上报可见；不做 C4-002 stop 复活面（Non-Goals）——**落地**：#14 显式接入=AbstractPollingLeaderElector pending future 保留+whenComplete 告警+CL-011 finally 退避重臂（1s×2 封顶 60s，isStopping 不重臂，子类尾部续排契约不变[per-round 标记防双链]）；#10=AutoRegistration 站点 Throwable 守卫+chain future 拒绝终态业务标识告警（设施已重臂，不二次重排防链分叉）；C4-002 零触碰
+- [x] nop-metadata：W-11 catch(Throwable) 分支处理（Error 记 FATAL 并仍返回错误结果 DTO 保 job 存活）；同文件族 MetaQualityCheckpointExecutor.execute per-rule catch 同根因随单闭合；回归测试注入 Error 断言 job 不被置 FAILED 且下一轮 cron 仍触发——**落地**：executeScheduledCheckpoint catch Throwable 三分支（并发拒绝 WARN/Exception ERROR/Error 记 scheduled-exec-fatal 并返回错误 DTO）；per-rule 隔离 Throwable 宽度；回归 2 条（连续两轮 cron tick 正常返回+FATAL 日志断言+WARN 分支回归保护/per-rule Error 隔离其余规则继续评定）
+- [x] 每单元修复 diff 与审计清单行号回读核对登记——**落地**：全部站点 live 回读（六站点/七屏障/两链/W-11 行号与成员表定位一致或以 live 为准登记：DBMessageService 守卫 live :325/:584、SessionLockRenewal :74、Kafka 循环屏障 live :304、EmbeddingServiceImpl :273/:283/:463 与审计行 257-281/344-354/443-445 对应[344-354 的 onResponseError 解析路径经 :273 守卫路由]），无未登记漂移
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] MA-07 六站点逐点 landed 且有清单核对记录（六成员 ID 对应站点逐一勾销）；SessionLockRenewal 具名回归测试在位
-- [ ] C3-009 七屏障全部闭合（⑦ 清单逐项核对），回归测试覆盖 Error 注入→失败上报路径
-- [ ] C4-004 两条链回归测试在位（重臂 + 带业务标识观测断言）；CL-011/CL-014 随单闭合登记
-- [ ] W-11 回归测试在位（Error 注入后 job 存活断言）
-- [ ] `./mvnw test -pl nop-ai -am`、`./mvnw test -pl nop-message -am`、`./mvnw test -pl nop-cluster -am`、`./mvnw test -pl nop-metadata -am` 全部 BUILD SUCCESS
-- [ ] Owner doc 裁定：`docs-for-ai/03-modules/nop-message.md`（C3-009 失败上报语义）与 `docs-for-ai/03-modules/nop-metadata.md`（W-11 扩展其 checkpoint 调度契约 Error 分支半边）——两 doc 实际存在、非缺口，按行为契约变化随批最小更新，Phase 5 汇总核对；nop-cluster 无 03-modules owner doc → 缺口声明登记（Phase 5 统一）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] MA-07 六站点逐点 landed 且有清单核对记录（六成员 ID 对应站点逐一勾销）；SessionLockRenewal 具名回归测试在位——六成员勾销：C3-020（ScheduledRecoveryManager:393+TestScheduledRecoveryManagerInsulation）/C3-027（DBMessageService:325 poll+TestDBMessageServiceInsulation）/C4-003[3.1]（EmbeddingServiceImpl:273/:283/:463+TestEmbeddingServiceImplErrorInsulation 3 条）/C4-007（SessionLockRenewal:74+具名回归）/C4-013（TeamTaskSchedulerDaemon:274+TestTeamTaskSchedulerDaemonScanInsulation）/C7-029（DBMessageService:584 sweep+同文件第二条回归——接续补齐）；C10-008 护栏义务保留 R2-16 未越界
+- [x] C3-009 七屏障全部闭合（⑦ 清单逐项核对），回归测试覆盖 Error 注入→失败上报路径——①②③④⑤⑥⑦ 逐一闭合（⑥ Kafka/Pulsar 各两站点守卫+专项回归 2 条、⑦ bridge.submit+notifyEngineFailure listener 双守卫+回归 2 条）；9 条回归覆盖 LinkageError 注入→onConsumeFailure/notifyEngineFailure 上报+订阅非僵尸
+- [x] C4-004 两条链回归测试在位（重臂 + 带业务标识观测断言）；CL-011/CL-014 随单闭合登记——TestPollingElectorLoopInsulation 3 条（Error 重臂+loop-broken 业务标识/执行腿拒绝告警重臂/单链不分叉）+TestAutoRegistrationInsulation 2 条（站点 Throwable 包含/链终态告警）；CL-011=基类 Throwable 守卫+finally 退避重臂、CL-014=`nop.err.cluster.leader-elector.loop-broken`+`refresh-registration-chain-broken` 业务标识上报点
+- [x] W-11 回归测试在位（Error 注入后 job 存活断言）——TestMetaQualityCheckpointSchedulerErrorKeepAlive.testErrorInjectionKeepsJobAliveAndObservable（连续两轮 cron tick 正常返回错误 DTO=job 未被置 FAILED+FATAL 日志断言）
+- [x] `./mvnw test -pl nop-ai -am`、`./mvnw test -pl nop-message -am`、`./mvnw test -pl nop-cluster -am`、`./mvnw test -pl nop-metadata -am` 全部 BUILD SUCCESS——四者均 BUILD SUCCESS EXIT=0（`_tmp/phase4-nop-ai-test.log` / `_tmp/phase4-nop-message-test.log` / `_tmp/phase4-nop-cluster-test.log` / `_tmp/phase4-nop-metadata-test.log`；nop-metadata -am 闭包含 nop-ai/nop-message/nop-cluster 全部新回归亦全绿）
+- [x] Owner doc 裁定：`docs-for-ai/03-modules/nop-message.md`（C3-009 失败上报语义）与 `docs-for-ai/03-modules/nop-metadata.md`（W-11 扩展其 checkpoint 调度契约 Error 分支半边）——两 doc 实际存在、非缺口，按行为契约变化随批最小更新，Phase 5 汇总核对；nop-cluster 无 03-modules owner doc → 缺口声明登记（Phase 5 统一）——**落地**：nop-message.md 新增「消费循环异常屏障契约（Throwable 宽度）」节、nop-metadata.md 新增「cron 调度入口失败语义（job 存活契约全半边）」节（均已随单元提交）；nop-cluster 缺口声明在本行登记，Phase 5 统一落账
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 4 执行记录（2026-10-24 接续收尾子代理）
+
+- **配额中断接续说明**：前任实现子代理已落盘四单元修复+13 个测试文件+两份 owner doc 修改但未验证未提交；本子代理接续执行「甄别→逐单元审计→补缺→验证→必红→提交→回填」。甄别结论：nop-format `samples/generated-pie-chart/_rels/.rels` 为**构建副作用非人工误触**（TestPieChartParser 每次构建重新生成样例目录，CRLF 换行差异、内容零变化），已还原并登记；其余全部改动与 Phase 4 工单对应，无越界文件。
+- **逐单元完整性审计结论**：修复面 4/4 工单完整（六站点/七屏障/两链/W-11 全 landed 且与设计文档 3.1 管线对齐：catch Throwable+观测+重臂/诚实退出+拒绝终态可见）；测试面 2 处缺口就地补齐——①C7-029 sweep 面无回归（补 TestDBMessageServiceInsulation.sweepFaceSurvivesInjectedErrorAndKeepsSweeping：DataSource stub 注入 LinkageError+poll 间隔隔离，断言 sweep 连续 ≥2 轮存活可观测）；②C3-009 ⑥ 回调守卫无专项回归（补 Kafka/Pulsar 各 1 条：onConsumeFailure 自身抛 Error 被守围观+循环仍诚实退出）。补缺后 nop-message/nop-metadata 提交含新测试。
+- 提交全集（每单元一提交）：`27c02f85a5` nop-ai（MA-07 六站点+5 测试文件 8 条）、`1925eb2dd5` nop-message（C3-009 七屏障+5 测试文件 9 条+nop-message.md）、`8c1b1505aa` nop-cluster（C4-004+CL-011/014+2 测试文件 5 条）、`bd2ea3cec4` nop-metadata（W-11+1 测试文件 2 条+nop-metadata.md）。pre-commit nop-cli lint gate 三次全过（0 violations）。
+- 验证输出摘要：`./mvnw test -pl nop-ai -am` → BUILD SUCCESS EXIT=0（新回归 TestEmbeddingServiceImplErrorInsulation 3/TestDBMessageServiceInsulation 2/TestScheduledRecoveryManagerInsulation 1/TestTeamTaskSchedulerDaemonScanInsulation 1/TestSessionLockRenewalInsulation 1）；`./mvnw test -pl nop-message -am` → BUILD SUCCESS EXIT=0（新回归 9 条：Kafka 2/Pulsar 2/Debezium 3/core 2）；`./mvnw test -pl nop-cluster -am` → BUILD SUCCESS EXIT=0（TestPollingElectorLoopInsulation 3/TestAutoRegistrationInsulation 2）；`./mvnw test -pl nop-metadata -am` → BUILD SUCCESS EXIT=0（TestMetaQualityCheckpointSchedulerErrorKeepAlive 2；-am 闭包含 nop-ai/nop-message/nop-cluster 新回归全绿复证）；四份快照 `_tmp/phase4-{nop-ai,nop-message,nop-cluster,nop-metadata}-test.log`。
+- 必红证据（E2）快照全集：`_tmp/phase4-nopai-red.log`（MA-07 SessionLockRenewal 站点 catch 收窄变异红：`renewal chain must survive the injected Errors and re-arm: attempts=1`——审计「一次 Error 链死、租约静默过期」结论复现）→ `_tmp/phase4-nopai-green.log`（恢复绿）；`_tmp/phase4-nopmessage-red.log`（C3-009 ① Kafka 循环屏障 catch 收窄变异红：`an Error-killed consume loop must deactivate the subscription (no zombie) expected: <false> but was: <true>`—— isActive 僵尸误报结论复现，⑥ 专项条同红）→ `_tmp/phase4-nopmessage-green.log`（恢复绿，2 条全绿）。
+- 关键裁定注：①Kafka/Pulsar Error 分支语义=「同路失败上报后 active=false 诚实退出」（对齐 plan「Error 分支走失败上报路径+isActive 不再误报」，与 Exception 分支的退避续跑区分——Error 后 JVM 态不可退避恢复）；②nop-cluster #10 AutoRegistration 不做模块级重臂（平台绝缘设施已重臂任务体失败，二次重排有链分叉风险），只做拒绝终态业务标识告警——与设计文档 §3.1「重排归调用方模块级监督」一致且更保守；③nop-metadata `isConcurrentRunRejection`/`buildErrorResult` 参数宽度随捕获宽度放宽，既有调用方 source-compat。
+- 基线既有问题登记（非本 Phase 引入）：`nop-ooxml-xlsx` TestPieChartParser 每次构建重新生成 `samples/generated-pie-chart/` 样例（.rels CRLF 差异入 git status），与本批无关，已还原并在提交前复核零携带。
 
 ### Phase 5 - 全量验证 + owner doc 更新
 
