@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.beans.graphql.CancelRequestBean;
 import io.nop.api.core.util.ApiHeaders;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.Guard;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.util.StringHelper;
@@ -50,27 +51,27 @@ public class CancellableRpcClient implements IRpcService {
         if (done.get())
             return future;
 
-        if (cancelToken != null) {
-            cancelToken.appendOnCancel(reason -> {
-                // 只有当任务尚未结束，才会执行cancelMethod去尝试主动取消
-                if (!done.get()) {
-                    ApiRequest<Object> copy = new ApiRequest<>();
-                    copy.setHeaders(request.copyHeaders());
-                    ApiHeaders.setId(copy, null);
-                    CancelRequestBean bean = new CancelRequestBean();
-                    bean.setReqId(reqId);
-                    bean.setData(request.getData());
-                    copy.setData(bean);
-                    rpcService.callAsync(cancelMethod, copy, null).whenComplete((ret, err) -> {
-                        if (err != null) {
-                            LOG.error("nop.rpc.cancel-request-fail:cancelMethod={},reqId={}", cancelMethod, reqId, err);
-                        } else {
-                            LOG.info("nop.rpc.cancel-request-ok:cancelMethod={},reqId={},cancelResult={}", cancelMethod, reqId, ret);
-                        }
-                    });
-                }
-            });
-        }
+        // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
+        // 按 future 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
+        FutureHelper.bindCancelToken(cancelToken, reason -> {
+            // 只有当任务尚未结束，才会执行cancelMethod去尝试主动取消
+            if (!done.get()) {
+                ApiRequest<Object> copy = new ApiRequest<>();
+                copy.setHeaders(request.copyHeaders());
+                ApiHeaders.setId(copy, null);
+                CancelRequestBean bean = new CancelRequestBean();
+                bean.setReqId(reqId);
+                bean.setData(request.getData());
+                copy.setData(bean);
+                rpcService.callAsync(cancelMethod, copy, null).whenComplete((ret, err) -> {
+                    if (err != null) {
+                        LOG.error("nop.rpc.cancel-request-fail:cancelMethod={},reqId={}", cancelMethod, reqId, err);
+                    } else {
+                        LOG.info("nop.rpc.cancel-request-ok:cancelMethod={},reqId={},cancelResult={}", cancelMethod, reqId, ret);
+                    }
+                });
+            }
+        }, future);
         return future;
     }
 

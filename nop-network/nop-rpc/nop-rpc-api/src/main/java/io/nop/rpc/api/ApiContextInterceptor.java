@@ -26,10 +26,17 @@ public class ApiContextInterceptor implements IRpcServiceInterceptor {
         ApiRequest<?> request = inv.getRequest();
         ContextBinder binder = new ContextBinder(request);
 
-        return inv.proceedAsync().whenComplete(
-                (ret, err) -> {
-                    binder.close();
-                });
+        try {
+            return inv.proceedAsync().whenComplete(
+                    (ret, err) -> {
+                        binder.close();
+                    });
+        } catch (Throwable e) {
+            // C3-006 面同步抛保护（4.3-C3-007 随单）：proceedAsync 同步抛出时 whenComplete
+            // 不会挂上，必须显式关闭 binder 持有的 context，否则新建 context 在线程上泄漏
+            binder.close();
+            throw e;
+        }
     }
 
     @Override

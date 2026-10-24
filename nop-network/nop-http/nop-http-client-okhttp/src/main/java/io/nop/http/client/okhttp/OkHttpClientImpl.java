@@ -9,6 +9,7 @@ package io.nop.http.client.okhttp;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.JSON;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.progress.IProgressListener;
 import io.nop.commons.util.IoHelper;
@@ -60,8 +61,9 @@ public class OkHttpClientImpl implements IHttpClient {
 
         CompletableFuture<IHttpResponse> future = new CompletableFuture<>();
 
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(call::cancel);
+        // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
+        // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
+        FutureHelper.bindCancelToken(cancelToken, reason -> call.cancel(), future);
 
         call.enqueue(new Callback() {
             @Override
@@ -151,10 +153,10 @@ public class OkHttpClientImpl implements IHttpClient {
             request.header("range", "bytes=" + offset + "-");
 
         Call call = newCall(request);
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(call::cancel);
 
         CompletableFuture<IHttpResponse> promise = new CompletableFuture<>();
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> call.cancel(), promise);
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {
@@ -325,10 +327,10 @@ public class OkHttpClientImpl implements IHttpClient {
         requestBuilder.method(method, body);
 
         Call call = client.newCall(requestBuilder.build());
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(call::cancel);
 
         CompletableFuture<IHttpResponse> future = new CompletableFuture<>();
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> call.cancel(), future);
         call.enqueue(new Callback() {
             @Override
             public void onFailure(Call call, IOException e) {

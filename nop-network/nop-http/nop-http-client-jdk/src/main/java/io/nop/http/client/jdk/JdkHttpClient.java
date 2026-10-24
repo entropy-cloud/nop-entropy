@@ -165,12 +165,12 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelTokens != null) {
-            cancelTokens.appendOnCancel(reason -> {
-                future.cancel(false);
-            });
-        }
-        return future.thenApply(this::toHttpResponse);
+
+        CompletionStage<IHttpResponse> promise = future.thenApply(this::toHttpResponse);
+        // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
+        // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
+        FutureHelper.bindCancelToken(cancelTokens, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     protected java.net.http.HttpRequest toJdkHttpRequest(HttpRequest request) {
@@ -377,10 +377,10 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<InputStream>> future =
                 client.sendAsync(toJdkHttpRequest(request), HttpResponse.BodyHandlers.ofInputStream());
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
 
         CompletableFuture<IHttpResponse> promise = new CompletableFuture<>();
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
         future.whenComplete((response, err) -> {
             if (err != null) {
                 promise.completeExceptionally(wrapError0(err));
@@ -541,9 +541,10 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
-        return future.thenApply(res -> toHttpResponse(res, true));
+        CompletionStage<IHttpResponse> promise = future.thenApply(res -> toHttpResponse(res, true));
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     /**
@@ -578,9 +579,10 @@ public class JdkHttpClient implements IHttpClient {
 
         CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(builder.build(),
                 HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
-        if (cancelToken != null)
-            cancelToken.appendOnCancelTask(() -> future.cancel(false));
-        return future.thenApply(res -> toHttpResponse(res, true));
+        CompletionStage<IHttpResponse> promise = future.thenApply(res -> toHttpResponse(res, true));
+        // 4.3-C3-012：取消监听器经平台单点收敛（注册与 remove 按 promise 终态配对）
+        FutureHelper.bindCancelToken(cancelToken, reason -> future.cancel(false), promise);
+        return promise;
     }
 
     private void applyUploadHeaders(java.net.http.HttpRequest.Builder builder, HttpRequest request,
