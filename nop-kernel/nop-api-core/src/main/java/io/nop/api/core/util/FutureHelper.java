@@ -523,22 +523,35 @@ public class FutureHelper {
     }
 
     public static void bindCancelToken(ICancelToken cancelToken, CompletableFuture<?> future) {
-        if (cancelToken != null) {
-            Consumer<String> cancel = reason -> future.cancel(false);
-            cancelToken.appendOnCancel(cancel);
-            future.whenComplete((ret, err) -> {
-                cancelToken.removeOnCancel(cancel);
-            });
+        if (cancelToken == null)
+            return;
+        // CL-012（CRA R1-04 裁定⑥）：注册前补触发——已取消 token 立即取消目标 future。
+        // ICancelToken.appendOnCancel 契约不承诺对已取消 token 补发回调（各实现语义不一），
+        // 平台收敛入口在此自检注册窗口，使全部消费方获得一致的补触发语义。
+        if (cancelToken.isCancelled()) {
+            future.cancel(false);
+            return;
         }
+        Consumer<String> cancel = reason -> future.cancel(false);
+        cancelToken.appendOnCancel(cancel);
+        future.whenComplete((ret, err) -> {
+            cancelToken.removeOnCancel(cancel);
+        });
     }
 
     public static void bindCancelToken(ICancelToken cancelToken, Consumer<String> cleanup, CompletionStage<?> promise) {
-        if (cancelToken != null) {
-            cancelToken.appendOnCancel(cleanup);
-            promise.whenComplete((ret, err) -> {
-                cancelToken.removeOnCancel(cleanup);
-            });
+        if (cancelToken == null)
+            return;
+        // CL-012（CRA R1-04 裁定⑥）：注册前补触发——已取消 token 立即以 getCancelReason()
+        // 调 cleanup，与 future 方向重载对称
+        if (cancelToken.isCancelled()) {
+            cleanup.accept(cancelToken.getCancelReason());
+            return;
         }
+        cancelToken.appendOnCancel(cleanup);
+        promise.whenComplete((ret, err) -> {
+            cancelToken.removeOnCancel(cleanup);
+        });
     }
 
     public static <T> CompletionStage<T> executeWithThrottling(Supplier<CompletionStage<T>> task, Semaphore limit) {

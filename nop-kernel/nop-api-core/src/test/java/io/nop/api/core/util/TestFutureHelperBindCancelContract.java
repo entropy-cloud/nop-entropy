@@ -230,6 +230,43 @@ public class TestFutureHelperBindCancelContract {
     }
 
     /**
+     * CL-012（CRA R1-04 裁定⑥，plan 2499 Phase 3 子分片 C）：注册前补触发对「无补发」token
+     * 生效——ICancelToken.appendOnCancel 契约不承诺对已取消 token 补发回调，bindCancelToken
+     * 平台收敛入口必须自检注册窗口。修复前（无注册前 isCancelled 检查）已取消 token 上的
+     * future 永不被取消（先红）；修复后立即取消（绿）。
+     */
+    @Test
+    public void testBindCancelTokenPreTriggersForTokenWithoutImmediateCompensation() {
+        NoCompensateToken token = new NoCompensateToken();
+        token.cancel("early-cancel");
+
+        CompletableFuture<String> future = new CompletableFuture<>();
+        FutureHelper.bindCancelToken(token, future);
+
+        assertTrue(future.isCancelled(),
+                "bindCancelToken must fire for an already-cancelled token even when appendOnCancel "
+                        + "does not compensate (CL-012 registration blind window)");
+    }
+
+    /**
+     * CL-012 cleanup 重载对称补触发：已取消 token 立即以 getCancelReason() 调 cleanup
+     * （无补发 token 形态）。
+     */
+    @Test
+    public void testBindCancelTokenCleanupOverloadPreTriggersForTokenWithoutImmediateCompensation() {
+        NoCompensateToken token = new NoCompensateToken();
+        token.cancel("cleanup-reason");
+
+        java.util.concurrent.atomic.AtomicReference<String> cleaned = new java.util.concurrent.atomic.AtomicReference<>();
+        CompletableFuture<String> promise = new CompletableFuture<>();
+        FutureHelper.bindCancelToken(token, cleaned::set, promise);
+
+        assertEquals("cleanup-reason", cleaned.get(),
+                "cleanup must fire immediately for an already-cancelled token (symmetric pre-trigger)");
+        assertFalse(promise.isDone(), "cleanup overload must not settle the promise");
+    }
+
+    /**
      * 测试用 ICancelToken 实现（SPI 面：直接实现 ICancelToken 的最小形态，语义与
      * nop-commons Cancellable 基类一致——appendOnCancel 对已取消 token 立即补发）。
      */
@@ -271,6 +308,44 @@ public class TestFutureHelperBindCancelContract {
             }
             for (java.util.function.Consumer<String> listener : new java.util.ArrayList<>(listeners)) {
                 listener.accept(reason);
+            }
+        }
+    }
+
+    /**
+     * CL-012 判别用 token：appendOnCancel 不对已取消状态补发（ICancelToken 契约允许的最小
+     * 语义形态——只登记，仅后续 cancel 调用触发）。
+     */
+    static class NoCompensateToken implements ICancelToken {
+        private final java.util.List<java.util.function.Consumer<String>> listeners = new java.util.ArrayList<>();
+        volatile boolean cancelled;
+        volatile String reason;
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public String getCancelReason() {
+            return reason;
+        }
+
+        @Override
+        public synchronized void appendOnCancel(java.util.function.Consumer<String> task) {
+            listeners.add(task);
+        }
+
+        @Override
+        public synchronized void removeOnCancel(java.util.function.Consumer<String> task) {
+            listeners.remove(task);
+        }
+
+        void cancel(String cancelReason) {
+            this.cancelled = true;
+            this.reason = cancelReason;
+            for (java.util.function.Consumer<String> listener : listeners) {
+                listener.accept(cancelReason);
             }
         }
     }

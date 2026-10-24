@@ -2,6 +2,7 @@ package io.nop.ai.toolkit.manager;
 
 import io.nop.ai.toolkit.api.*;
 import io.nop.ai.toolkit.model.*;
+import io.nop.api.core.util.ICancelToken;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
@@ -80,14 +81,33 @@ public class ToolManagerImpl implements IToolManager {
 
         // The execution itself (not just its callbacks) must be lazy so a
         // queued call does not start until its turn — see the queue below.
-        java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow = () ->
-                executor.executeAsync(call, context)
-                        .thenApply(result -> {
-                            for (IToolCallInterceptor interceptor : interceptors) {
-                                interceptor.afterCall(toolName, call, context, result);
-                            }
-                            return result;
-                        }).toCompletableFuture();
+        // C4-008(3)：在途取消联动需要取消到「源 future」（装饰层 cancel 不向下游池任务传播），
+        // 故执行派生后经 execRef 持有源 future 引用
+        java.util.concurrent.atomic.AtomicReference<CompletableFuture<AiToolCallResult>> execRef =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow = () -> {
+            // 3.2-C4-008(2)：执行入口统一 isCancelled 短路（裁定⑥）——所有排队/非排队路径
+            // 的执行入口先判 context cancelToken 状态，排队窗口内 token 已取消的调用不再派生
+            // 执行（闭合排队窗口 token 盲区）。显式取消终态非静默成功（rule 24）。
+            // context 可为 null（既有调用契约允许无上下文调用）
+            ICancelToken cancelToken = context == null ? null : context.getCancelToken();
+            if (cancelToken != null && cancelToken.isCancelled()) {
+                CompletableFuture<AiToolCallResult> cancelled = new CompletableFuture<>();
+                cancelled.completeExceptionally(new java.util.concurrent.CancellationException(
+                        "tool call cancelled before execution: reason=" + cancelToken.getCancelReason()
+                                + ", tool=" + toolName));
+                return cancelled;
+            }
+            CompletableFuture<AiToolCallResult> source =
+                    executor.executeAsync(call, context).toCompletableFuture();
+            execRef.set(source);
+            return source.thenApply(result -> {
+                for (IToolCallInterceptor interceptor : interceptors) {
+                    interceptor.afterCall(toolName, call, context, result);
+                }
+                return result;
+            }).toCompletableFuture();
+        };
 
         // Plan 2298 (WI17): per-path serialization for concurrency-unsafe
         // tools. This is the process-wide chokepoint — the dispatcher's
@@ -101,20 +121,42 @@ public class ToolManagerImpl implements IToolManager {
         if (!isConcurrencySafe(toolName)) {
             String pathKey = ToolPathAffinity.extract(call);
             if (pathKey != null) {
+                // 3.2-C4-008(1)：排队分支取消联动（裁定⑥）——调用方对 result 的取消传播到
+                // 触发链与在途执行：轮到本调用时先判 result 取消状态即不再派生执行（消除
+                // result.cancel(true) 假确认）；执行已派生则联动取消执行 future
                 CompletableFuture<AiToolCallResult> result = new CompletableFuture<>();
                 pathQueues.compute(pathKey, (k, tail) -> {
                     CompletableFuture<Void> trigger = (tail == null
                             ? CompletableFuture.completedFuture(null)
                             : tail).handle((v, e) -> null);
-                    return trigger.thenCompose(x -> executeNow.get()
-                            .whenComplete((r, err) -> {
-                                if (err != null) {
-                                    result.completeExceptionally(err);
-                                } else {
-                                    result.complete(r);
+                    return trigger.thenCompose(x -> {
+                        if (result.isCancelled()) {
+                            // 排队窗口取消联动：不再派生执行，链剩余段以取消终态短路
+                            CompletableFuture<Void> skipped = new CompletableFuture<>();
+                            skipped.completeExceptionally(new java.util.concurrent.CancellationException(
+                                    "queued tool call cancelled before its turn: tool=" + toolName
+                                            + ", pathKey=" + pathKey));
+                            return skipped;
+                        }
+                        CompletableFuture<AiToolCallResult> exec = executeNow.get();
+                        // 在途取消联动（C4-008(3)）：result 取消传播到「源」执行 future——
+                        // cancel(true) 经池载体中断 worker，任务不再跑满（取消语义不止步于包装层）
+                        result.whenComplete((r2, e2) -> {
+                            if (e2 instanceof java.util.concurrent.CancellationException) {
+                                CompletableFuture<AiToolCallResult> source = execRef.get();
+                                if (source != null) {
+                                    source.cancel(true);
                                 }
-                            })
-                            .thenApply(r -> (Void) null));
+                            }
+                        });
+                        return exec.whenComplete((r, err) -> {
+                            if (err != null) {
+                                result.completeExceptionally(err);
+                            } else {
+                                result.complete(r);
+                            }
+                        }).thenApply(r -> (Void) null);
+                    });
                 });
                 return result;
             }
