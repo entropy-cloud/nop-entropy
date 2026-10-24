@@ -1,6 +1,6 @@
 # 2497 CRA Phase 8.3 — R1-02 平台池设施面批（R13 设施批：globalTimer 死配置 + 池工厂，5 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_077adf2e（0 Blocker、3 Major[M1 LocalResourceLockManager 迁移分支无承载/M2 ScheduledRecoveryManager 移交漏列/M3 提交纪律缺失]+5 Minor——修订子 agent_d12c6b14 全量应用，Major 复核通过后 active）
 > Design Review: 设计文档 `pool-facility-hardening.md` 独立评审 agent_e8485aca（B-1 Blocker+M-1+2m → 修订 agent_91cae018 落盘 @ 工作区 → 增量复核**通过进入实现**；评审结论已登记，实现以修订版设计为唯一基准）
 > Last Reviewed: 2026-10-24
@@ -212,48 +212,48 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.3 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：P1 台账 `nop-kernel-concurrency-C4-001` 行 + P2 裁决台账 G25（C4-003/C4-004/C4-006 三成员）/G32（2.2-C4-001）状态收敛（open → 已修/本批）
-- [ ] roadmap 8.3 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2497-cra-phase8.3-r1-02-pool-facility.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：P1 台账 `nop-kernel-concurrency-C4-001` 行 + P2 裁决台账 G25（C4-003/C4-004/C4-006 三成员）/G32（2.2-C4-001）状态收敛（open → 已修/本批）
+- [x] roadmap 8.3 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2497-cra-phase8.3-r1-02-pool-facility.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 5 成员行状态全部收敛、roadmap 8.3 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 5 成员行状态全部收敛、roadmap 8.3 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 5 项成员全部修复：2.1-C4-001（设施主体：死配置+副作用+容量语义）、2.1-C4-003（工厂 fail-fast+缺陷面调用方）、2.1-C4-004（cached 上界+熔断）、2.1-C4-006（收缩语义）、2.2-C4-001（卸载+JDBC 超时）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：C4-006 缩容 IAE、C4-003 校验缺失、C4-001 config 恒 0、C4-004 达界拒绝、2.2-C4-001 卸载面）
-- [ ] C10-010 成员面验收前置随本体落地（表驱动校验 + 热更 grow/shrink 双向 + 容量语义一致性）；C10-010 其余涉及面（C4-011/C4-012/C1-016/C5-007）确认未越界承接
-- [ ] globalTimer 隔离/卸载平台族裁决成文（Phase 1 设计文档裁定①）且与 R1-01 设计语言（periodic-task-insulation.md）口径一致；R1-03 同口径传导声明在案（含 4.2-C4-003 两面映射闭合、A 类直连站点逐站点处置矩阵无静默缺处置）
-- [ ] 绝缘层零回改实证：R1-01 绝缘语义与 `TestPeriodicTaskInsulation` 回归全绿（共享代码位改动门禁）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：source-anchors.md（GlobalExecutors/globalTimer 新建锚点）、nop-job.md（调度契约核对结论）；缺口声明登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/消费方治理项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）修复后的配置/校验/卸载路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2497-cra-phase8.3-r1-02-pool-facility.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 5 成员行收敛 + roadmap 8.3 → done（E6）
+- [x] 5 项成员全部修复：2.1-C4-001（设施主体：死配置+副作用+容量语义）、2.1-C4-003（工厂 fail-fast+缺陷面调用方）、2.1-C4-004（cached 上界+熔断）、2.1-C4-006（收缩语义）、2.2-C4-001（卸载+JDBC 超时）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：C4-006 缩容 IAE、C4-003 校验缺失、C4-001 config 恒 0、C4-004 达界拒绝、2.2-C4-001 卸载面）
+- [x] C10-010 成员面验收前置随本体落地（表驱动校验 + 热更 grow/shrink 双向 + 容量语义一致性）；C10-010 其余涉及面（C4-011/C4-012/C1-016/C5-007）确认未越界承接
+- [x] globalTimer 隔离/卸载平台族裁决成文（Phase 1 设计文档裁定①）且与 R1-01 设计语言（periodic-task-insulation.md）口径一致；R1-03 同口径传导声明在案（含 4.2-C4-003 两面映射闭合、A 类直连站点逐站点处置矩阵无静默缺处置）
+- [x] 绝缘层零回改实证：R1-01 绝缘语义与 `TestPeriodicTaskInsulation` 回归全绿（共享代码位改动门禁）
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：source-anchors.md（GlobalExecutors/globalTimer 新建锚点）、nop-job.md（调度契约核对结论）；缺口声明登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/消费方治理项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）修复后的配置/校验/卸载路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2497-cra-phase8.3-r1-02-pool-facility.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 5 成员行收敛 + roadmap 8.3 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -285,16 +285,15 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: <<YYYY-MM-DD>>
+Status Note: 本计划收口 CRA Phase 8.3（R1-02 平台池设施面批）：globalTimer 死配置修复（新键+旧键废弃回读）+池工厂 fail-fast 校验+cached 上界熔断（默认 200）+收缩重排修正+2.2-C4-001 两站点 executeOn 卸载与 JDBC 连接级/语句级超时——5 项 P1 全修，14 条新回归测试，必红四项，绝缘层与 C1-021 边界零回改实证。roadmap 8.3 → done——R1-03 池使用方批（9 项）硬依赖解除前置就绪。
+Completed: 2026-10-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence: <<每条 Exit Criterion 与 Closure Gate 的验证结果；check-plan-checklist --strict 退出码；Anti-Hollow 检查结果；Deferred 项分类检查>>
+- Reviewer / Agent: agent_e073c8d8（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_e073c8d8-3635-4ef0-8892-169234874264
+- Evidence: 判定 **PASS**（10 项核验无一 FAIL、零 Blocker/Major/Minor）。①五成员修复在位实仓抽验（GlobalExecutors:64-77 新键+旧键 WARN / ExecutorHelper:67-79 无 setMaxPoolSize(0) / cached 分支 :86-93 上界+CachedPoolRejectHandler:179-193 / updateThreadPool:134-157 重排 / 两站点 executeOn 卸载+JdbcConfig 超时两面+setLoginTimeout 0 命中）；②测试 fresh 实跑 TestThreadPoolFacilityHardening 7 条+TestJdbcConfigTimeout 7 条全绿（快照 `_tmp/audit-rerun-*.log`）；③必红四项在盘（`_tmp/phase1b-*.log` RED+GREEN）；④设计一致性三处抽验+B-1 修正形态实证；⑤绝缘边界零回改（四载体 diff 空+9 条门禁绿）；⑥C1-021 正交性（隔离体零触碰+4 条绿）；⑦处置矩阵 27+1 自洽+EXEC-001~003 落地+ScheduledRecoveryManager→R1-03 可溯；⑧双门禁 EXIT=0（check-doc-links/check-plan-checklist 收口后复核）；⑨scan-hollow 双模块 high=0；⑩Deferred 三条均为入批前已裁定批外/治理项、successor 清晰，无 in-scope live defect 被降级。`check-plan-checklist --strict` 退出码 0（收口后复核）。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- Non-Blocking Follow-ups 所列四项（CL-004 对账、批外 A 类站点移交、LocalResourceLockManager 豁免声明、C10-010 非成员面）均已登记归属（R1-03/R2-16/R-G），no remaining plan-owned work
