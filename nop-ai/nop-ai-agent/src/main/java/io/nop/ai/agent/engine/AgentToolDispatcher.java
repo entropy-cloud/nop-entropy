@@ -495,6 +495,16 @@ public class AgentToolDispatcher {
     }
 
     /**
+     * One-shot guard for the CRA 3.1-C4-011 visibility duty: a resolved
+     * timeout cap {@code <= 0} disables the per-tool mechanical timeout
+     * (backward-compatible escape hatch) — a hung tool body then occupies one
+     * {@code nop-ai-agent-dispatch} pool thread permanently. Warn once per
+     * dispatcher instance; never silently accept the configuration (Minimum
+     * Rules #24).
+     */
+    private volatile boolean zeroTimeoutCapWarned = false;
+
+    /**
      * Per-tool mechanical-timeout cap resolution (plan 2285 / design §三.5
      * layer 2): explicit policy override by exact tool name, then by any tool
      * tag, then the wildcard global cap, then the plain toolTimeoutMs default.
@@ -502,6 +512,18 @@ public class AgentToolDispatcher {
      * resolve to the default.
      */
     long resolveToolTimeoutMs(String toolName) {
+        long capMs = resolveToolTimeoutCapMs(toolName);
+        if (capMs <= 0 && !zeroTimeoutCapWarned) {
+            zeroTimeoutCapWarned = true;
+            LOG.warn("nop.ai.agent.tool.timeout-cap-disabled: resolved tool timeout cap is <= 0 "
+                    + "(tool={}, toolTimeoutMs={}) — the per-tool mechanical timeout is disabled "
+                    + "and a hung tool body will occupy one nop-ai-agent-dispatch pool thread "
+                    + "permanently (CRA 3.1-C4-011 visibility duty)", toolName, toolTimeoutMs);
+        }
+        return capMs;
+    }
+
+    private long resolveToolTimeoutCapMs(String toolName) {
         if (toolTimeoutPolicy != null && !toolTimeoutPolicy.isEmpty()) {
             Long byName = toolTimeoutPolicy.get(toolName);
             if (byName != null && byName > 0) {
