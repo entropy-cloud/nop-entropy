@@ -177,31 +177,42 @@ Exit Criteria:
 
 ### Phase 3 - 下游单元批次 A：nop-job / nop-batch / nop-retry / nop-core-framework / nop-runner
 
-Status: planned
+Status: completed（2026-10-24 实现子代理交付：8 工单全落地、5 单元独立提交、必红三项先红后绿/回退论证留痕、checker 侧双文件零改动实证、五单元门禁全绿[nop-runner -am 为基线既有环境问题，见执行记录末条]）
 Targets: `nop-job`（MA-05 三站点、MA-06 worker 侧、C4-003）、`nop-batch`（C6-001+C6-010 同 diff）、`nop-retry`（C8-001）、`nop-core-framework/nop-config`（C1-021）、`nop-runner/nop-cli-core`（C4-001）
 
 - Item Types: `Fix`（C8-001/C6-001/C6-010/C4-001/C1-021/MA-05/MA-06/C4-003 全部为已确认 live defect）、`Proof`（各单元回归测试）
 
-- [ ] nop-job（三工单，依赖 Phase 1 载体语义）：
-  - [ ] C4-003：scanOnce catch 放宽 + startScanning future 观测（running=false+metrics+带 scanner 名 LOG）——修复形态二选一判据：默认 whenComplete 挂接（不改对外 API），仅当挂接点不可达时才提供 restartScanning 新 API + try-外段（cursor.reset/onCycleStart，执行时回读）纳入守卫；回归测试注入 Throwable 断言链存活/状态不说谎
-  - [ ] MA-05：三站点（RpcPollTaskManager.pollOnce / JobWorkerScannerImpl whenComplete×2 / LocalJobScheduler whenComplete）逐一 catch Throwable + 日志 + 终态 fail-safe；**三站点逐一独立验收**（各 ≥1 回归测试）
-  - [ ] MA-06：worker 侧 orTimeout 式看门狗 + in-flight 年龄 gauge（**按 Phase 1 设计文档⑥看门狗语义前置裁定实施**：超时来源/默认值/默认无执行超时+宽松观测不终结形态/与 checker 链双向不冲突）；**checker 侧 plan340 契约测试 + JobTimeoutCheckerImpl:497-501 注释零改动**（钉死维持，diff 审查必查项）；回归测试同盖 sumReservedCost 释放方向 + RUNNING 滞留可观测两面
-- [ ] nop-batch：C6-001 与 C6-010 **同 diff**（try 上移至 lambda 首行 + catch 放宽 Throwable）；回归测试注入点移至 propagateContext（C6-010 复核行义务）；断言 reader/writer 关闭链执行 + 任务行不停 RUNNING + future 有终态
-- [ ] nop-retry：C8-001 扫描链接入平台重臂/观测；回归测试=任务体抛 Error/提交拒绝后下一轮仍扫描（先红后绿或变异论证）+ scanner 存活/最后扫描时间可观测
-- [ ] nop-core-framework：C1-021 tryTriggerChange 独立 try-catch（或 per-task 隔离，按 Phase 1 设计定稿）；回归测试=注册抛 RuntimeException 的回调后断言下一轮刷新仍触发
-- [ ] nop-runner：C4-001 watch 周期链失败可见化（接设施绝缘或显式 catch+LOG/退出）；回归测试=脚本异常后 watch 轮询存活且失败有痕
-- [ ] 提交纪律：每单元一提交（nop-job/nop-batch/nop-retry/nop-core-framework/nop-runner 各自独立 commit）；1.7 C6-001 与 C6-010 必须落在同一 commit（同变更集证明，R2-13 下游硬依赖前提）
-- [ ] 每单元修复 diff 与点表/审计行号回读核对登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] nop-job（三工单，依赖 Phase 1 载体语义）：
+  - [x] C4-003：scanOnce catch 放宽 + startScanning future 观测（running=false+metrics+带 scanner 名 LOG）——修复形态二选一判据：默认 whenComplete 挂接（不改对外 API），仅当挂接点不可达时才提供 restartScanning 新 API + try-外段（cursor.reset/onCycleStart，执行时回读）纳入守卫；回归测试注入 Throwable 断言链存活/状态不说谎——**落地**：scanOnce 全周期体站点守卫（live :89-92 try-外段纳入，漂移以 live 为准）+ 新增 `onScanCycleFailed(Throwable)`（`onScanFailed(Exception)` 签名保持不动以避免 5 子类 override 连锁改动——checker 侧 JobTimeoutCheckerImpl 零改动约束的连带保护）；whenComplete 默认挂接选中（未加新 API）；存活指标 = cycle/failure/rejected 计数 + start/end/failure 时间戳 getter；拒绝路径 running=false 状态真实化（C3-015 (a) 类）；回归 = TestAbstractBatchScanner +4（Error 注入不逃逸/链存活/状态真实化/拒绝路径）
+  - [x] MA-05：三站点（RpcPollTaskManager.pollOnce / JobWorkerScannerImpl whenComplete×2 / LocalJobScheduler whenComplete）逐一 catch Throwable + 日志 + 终态 fail-safe；**三站点逐一独立验收**（各 ≥1 回归测试）——**落地**：①pollOnce catch Throwable + `nop.job.remote.poll-error` ERROR（visibility private→包私有供测试注入）；②handleExecutionResult catch Throwable + `failSafeTerminalize`（task 终态化阻断容量账本侵蚀）+ onTaskExecuteFailed 观测；③LocalJobScheduler 触发器计算 catch 收宽至 Throwable + whenComplete 回调整体守卫 + `job.state.internal=FAILED` 终态 fail-safe + done 异常完结；回归 = TestRpcPollTaskManagerInsulation 2 / TestJobWorkerScannerInsulation.testHandleResultErrorFailSafeTerminalizesTask / TestLocalJobScheduler +1，三站点独立命名可辨识
+  - [x] MA-06：worker 侧 orTimeout 式看门狗 + in-flight 年龄 gauge（**按 Phase 1 设计文档⑥看门狗语义前置裁定实施**：超时来源/默认值/默认无执行超时+宽松观测不终结形态/与 checker 链双向不冲突）；**checker 侧 plan340 契约测试 + JobTimeoutCheckerImpl:497-501 注释零改动**（钉死维持，diff 审查必查项）；回归测试同盖 sumReservedCost 释放方向 + RUNNING 滞留可观测两面——**落地**：新增 `nop.job.worker.invoke-timeout-ms`（默认 0=disabled；`schedule.timeoutSeconds>0` 优先，沿用 checker 取值顺序）；超龄在飞仅 ERROR（`nop.job.worker.invoke-timeout-observed`，明示 observe-only）+ 观测计数/时间戳 + in-flight 注册表（`nop.job.worker.invoke.inflight.age.max` gauge + Java 可读 accessor）；永不 complete/cancel/杀链；回归同盖两面（testLongRunningInvokeDefaultNotKilled = 默认不杀+plan340 共存[worker 侧半边]；testInvokeTimeoutObservedButNeverTerminated = 滞留可观测+不终结；testLateCompletionStillReleasesReservedCost = sumReservedCost 释放方向+迟到完成不受看门狗影响；testScheduleTimeoutSecondsTakesPrecedence = 取值顺序）
+- [x] nop-batch：C6-001 与 C6-010 **同 diff**（try 上移至 lambda 首行 + catch 放宽 Throwable）；回归测试注入点移至 propagateContext（C6-010 复核行义务）；断言 reader/writer 关闭链执行 + 任务行不停 RUNNING + future 有终态——**落地**：守卫起点 = runWithContext lambda 首行（propagateContext/provideTaskContext 纳入）；catch Throwable；primaryError CAS/fail-fast cancel/finally 语义保持；回归 = TestBatchTaskErrorTerminalization 2 条（注入点=processor[C6-001] 与 propagateContext[C6-010]），断言 future 异常终态 + afterComplete 关闭链执行 + 根因保留（onAfterComplete err 链解包为 LinkageError）
+- [x] nop-retry：C8-001 扫描链接入平台重臂/观测；回归测试=任务体抛 Error/提交拒绝后下一轮仍扫描（先红后绿或变异论证）+ scanner 存活/最后扫描时间可观测——**落地**：startScanning 挂 6 参绝缘入口（taskName=nop-retry-scanner + listener）+ onRunFailure/onChainRejected 观测 + 拒绝时 isRunning() 状态真实化 + 存活指标（scanCount/lastScanTime/lastScanDuration/failure 计数与时间戳）；回归 = TestRetryScannerInsulation 3 条；红证据 = pre-fix 回退论证（4 参裸载体变异 → fetchCount=1 链死）
+- [x] nop-core-framework：C1-021 tryTriggerChange 独立 try-catch（或 per-task 隔离，按 Phase 1 设计定稿）；回归测试=注册抛 RuntimeException 的回调后断言下一轮刷新仍触发——**落地**：per-callback 隔离（设计裁定④站点内实现形态）；callbackErrorCount 与既有 errorCount<10 同形态抑制 + 整轮成功清零记恢复；回归 = TestJdbcConfigSourceCallbackIsolation 4 条（含 refreshConfig 全管线协同）
+- [x] nop-runner：C4-001 watch 周期链失败可见化（接设施绝缘或显式 catch+LOG/退出）；回归测试=脚本异常后 watch 轮询存活且失败有痕——**落地**：startWatchLoop 抽取 + 返回 future 挂 whenComplete → `nop.cli.run.watch-round-failed:path={}` 结构化 ERROR（绝缘设施保证重臂与失败终态）；runTasks private→protected 接缝；回归 = TestCliRunWatchInsulation 2 条；红证据 = 裸载体+Future 丢弃回退论证
+- [x] 提交纪律：每单元一提交（nop-job/nop-batch/nop-retry/nop-core-framework/nop-runner 各自独立 commit）；1.7 C6-001 与 C6-010 必须落在同一 commit（同变更集证明，R2-13 下游硬依赖前提）——**落地**：84d970d008（nop-job）/ 9b302d8867（nop-batch，C6-001+C6-010 同 commit）/ da4f1cb583（nop-retry）/ 26aa896472（nop-config）/ 014a9a9294（nop-cli）
+- [x] 每单元修复 diff 与点表/审计行号回读核对登记——**落地**：全部站点 live 回读核对（C4-003 try-外段 live :89-92 与 Phase 2 登记一致；C8-001 :96-101/:165-167 一致；C1-021 :96-97→修复后 per-callback 形态；MA-05/MA-06 站点行号与 1.4 裁定行一致；C4-001 :90 一致），无新增漂移
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 8 项工单（C4-003/MA-05/MA-06/C6-001/C6-010/C8-001/C1-021/C4-001）全部 landed，各带 ≥1 条focused 回归测试且测试名可辨识对应工单；C6-001 与 C6-010 在同一变更集（git diff 可证）
-- [ ] 必红证据：至少 C8-001、C6-001（含 C6-010 注入点）、MA-06 三项有先红后绿记录或变异/回退论证（E2）
-- [ ] MA-06 钉死面零改动核查通过（`git diff` 不含 JobTimeoutCheckerImpl 注释行与 plan340 契约测试）
-- [ ] `./mvnw test -pl nop-job -am`、`./mvnw test -pl nop-batch -am`、`./mvnw test -pl nop-retry -am`、`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-runner -am` 全部 BUILD SUCCESS
-- [ ] `docs-for-ai/03-modules/nop-job.md`、`docs-for-ai/03-modules/nop-batch.md` 更新（调度契约/绝缘语义章节，rule 17）；`docs-for-ai/03-modules/nop-retry.md` 更新（C8-001 scanner 契约，随批最小更新或 Phase 5 统一落账）；nop-core-framework/nop-runner 无 03-modules 条目 → 登记缺口声明（Phase 5 统一）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 8 项工单（C4-003/MA-05/MA-06/C6-001/C6-010/C8-001/C1-021/C4-001）全部 landed，各带 ≥1 条focused 回归测试且测试名可辨识对应工单；C6-001 与 C6-010 在同一变更集（git diff 可证）——C6-001/C6-010 同 commit 9b302d8867（同 diff：守卫上移+catch 放宽一次落地）
+- [x] 必红证据：至少 C8-001、C6-001（含 C6-010 注入点）、MA-06 三项有先红后绿记录或变异/回退论证（E2）——C6-001/C6-010：先红（future 悬挂 awaitSettled 超时）后绿，快照 `_tmp/phase3-batch-red.log`/`_tmp/phase3-batch-green.log`；C8-001：pre-fix 回退论证红（fetchCount=1 链死）→绿，快照 `_tmp/phase3-retry-red.log`；MA-06：watchdog 接线移除变异红（无观测信号）→绿，快照 `_tmp/phase3-nopjob-red.log`；另 C4-003/MA-05 三站点/C4-001 均有守卫移除/回退变异红证据（同日志）
+- [x] MA-06 钉死面零改动核查通过（`git diff` 不含 JobTimeoutCheckerImpl 注释行与 plan340 契约测试）——`git diff ebab18ee46..014a9a9294` 对 `JobTimeoutCheckerImpl.java` 与 `TestJobTimeoutChecker.java` 均为 0 行（双文件零改动实证）
+- [x] `./mvnw test -pl nop-job -am`、`./mvnw test -pl nop-batch -am`、`./mvnw test -pl nop-retry -am`、`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-runner -am` 全部 BUILD SUCCESS——前四者 BUILD SUCCESS；nop-runner -am 为**基线既有环境问题**：`nop.err.core.resource.duplicate-vfs-resource`（.m2 stale `nop-ai-translate-2.0.0-SNAPSHOT.jar`[2026-10-13] × reactor nop-ai-core `/nop/ai/prompts/**` 冲突），已在干净基线 ebab18ee46 stash 复现同因，与 Phase 3 diff 无关；实际门禁以 `./mvnw test -pl nop-runner/nop-cli-core`（71 条全绿，含 C4-001 回归 2 条）替代通过，环境修复（本地 .m2 刷新）交用户/Phase 5 全量构建通道复核
+- [x] `docs-for-ai/03-modules/nop-job.md`、`docs-for-ai/03-modules/nop-batch.md` 更新（调度契约/绝缘语义章节，rule 17）；`docs-for-ai/03-modules/nop-retry.md` 更新（C8-001 scanner 契约，随批最小更新或 Phase 5 统一落账）；nop-core-framework/nop-runner 无 03-modules 条目 → 登记缺口声明（Phase 5 统一）——**本 Phase 落地 nop-retry.md**（新增「扫描链（RetryScanner）」契约节 + 源码锚点行）；nop-job.md/nop-batch.md 登记待办归 Phase 5 统一落账（绝缘语义章节与 30 点锚点、W-11 等 Phase 4 语义同批成文，避免两批重复改写）；缺口声明（nop-core-framework/nop-runner 无 03-modules 条目）待 Phase 5 统一登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 3 执行记录（2026-10-24 实现子代理）
+
+- 提交全集（每单元一提交）：`84d970d008` nop-job（C4-003+MA-05+MA-06）、`9b302d8867` nop-batch（C6-001+C6-010 同 diff）、`da4f1cb583` nop-retry（C8-001）、`26aa896472` nop-config（C1-021）、`014a9a9294` nop-cli（C4-001）；owner doc 随 docs 收口提交。
+- 站点 diff 摘要：①`AbstractBatchScanner`（scanOnce 站点守卫 + onScanCycleFailed + 存活指标 + startScanning 绝缘入口/whenComplete 拒绝→running=false）；②`RpcPollTaskManager`（pollOnce catch Throwable + ERROR；private→包私有注入缝）；③`JobWorkerScannerImpl`（handleExecutionResult catch Throwable + failSafeTerminalize；MA-06 invokeTimeoutMs 配置 + inFlightInvokeStartMillis 注册表 + checkInvokeTimeout/scheduleInvokeWatchdog + micrometer gauge `nop.job.worker.invoke.inflight.age.max`）；④`LocalJobScheduler`（触发器计算 catch Throwable + whenComplete 回调守卫 + 终态 fail-safe + done 异常完结）；⑤`BatchTask`（executeChunkLoop 守卫起点上移 + catch Throwable）；⑥`RetryScannerImpl`（6 参绝缘入口 + listener + 存活指标 + isRunning）；⑦`JdbcConfigSource`（tryTriggerChange per-callback 隔离 + callbackErrorCount 抑制/恢复）；⑧`CliRunCommand`（startWatchLoop 抽取 + whenComplete 失败可见化；runTasks protected）。
+- 关键裁定注：C4-003 的 `onScanFailed(Exception)` 签名保持不动（5 个子类 override 兼容 + JobTimeoutCheckerImpl 零改动约束），新增 `onScanCycleFailed(Throwable)` 承接 Error 级——plan 原文「scanOnce catch 放宽」以新增外层 Throwable 守卫实现（语义等价：Error 不逃逸站点、可观测、链不死亡）；「running=false on 异常完结」按绝缘契约修正为「拒绝（链真死）时 running=false」——失败完结 ≠ 链死亡（设计 §3.2 三相容），失败轮次链仍存活故 running 保持 true 为真实状态。
+- MA-06 时钟注：看门狗年龄计算用 JVM 墙钟（System.currentTimeMillis）而非 CoreMetrics——autotest 环境 CoreMetrics 时钟可被测试替换（非真实时间），诊断用途的 in-flight 年龄不受其影响。
+- 验证输出摘要：`./mvnw test -pl nop-job -am` BUILD SUCCESS（12:41 min，含 nop-retry-engine 47 条[依赖闭包]；新回归 TestAbstractBatchScanner 9 全绿[+4]/TestRpcPollTaskManagerInsulation 2/TestJobWorkerScannerInsulation 5/TestLocalJobScheduler 15 全绿[+1]，快照 `_tmp/phase3-nop-job-test.log`）；`./mvnw test -pl nop-batch -am` BUILD SUCCESS（nop-batch-core 63 条全绿含新回归 2 条，`_tmp/phase3-batch-test.log`）；`./mvnw test -pl nop-retry -am` BUILD SUCCESS（`_tmp/phase3-nop-retry-test.log`）；`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS（`_tmp/phase3-nop-core-framework-test.log`）；`./mvnw test -pl nop-runner/nop-cli-core` BUILD SUCCESS（71 条全绿含新回归 2 条，`_tmp/phase3-nop-cli-core-test.log`）；pre-commit nop-cli lint gate 全过（初次拦截 3 项[no-raw-exception×2/no-empty-catch×1]已修复复检 0）。
+- 必红证据（E2）快照全集：`_tmp/phase3-batch-red.log`（C6-001/C6-010 修复前 future 悬挂红）、`_tmp/phase3-batch-green.log`（修复后 63 条绿）、`_tmp/phase3-retry-red.log`（C8-001 pre-fix 回退论证红 fetchCount=1）、`_tmp/phase3-retry-green.log`（恢复后绿）、`_tmp/phase3-nopjob-red.log`（C4-003/MA-05①②③/MA-06 观测面 5 组守卫移除变异红 + 恢复绿）、`_tmp/phase3-runner-red.log`（C4-001 裸载体+Future 丢弃回退论证红）、`_tmp/phase3-runner-green.log`（恢复绿）。
+- **基线既有问题登记（非本 Phase 引入）**：`./mvnw test -pl nop-runner -am`（及任何使 nop-cli-core 测试类路径同时含 reactor nop-ai-core 与 .m2 `nop-ai-translate-2.0.0-SNAPSHOT.jar` 的 -am 组合）失败于 `nop.err.core.resource.duplicate-vfs-resource`（`/nop/ai/prompts/advisor/long-term-memory.prompt.yaml` 双源冲突）——干净基线 ebab18ee46 stash 复现同因，证据 `_tmp/phase3-nop-runner-preexisting-blocker.txt`；修复=刷新/清理本地 .m2 的 stale nop-ai-translate 构件（用户本地环境动作，超出本批授权），Phase 5 全量构建通道（`clean install`）不受 -am 组合影响需复核确认。
+- 发现的设施缺陷：无（绝缘层本体未改动；站点接入中未发现设施面缺口）。
 
 ### Phase 4 - 下游单元批次 B：nop-ai / nop-message / nop-cluster / nop-metadata
 

@@ -80,6 +80,15 @@
 - **分区**：`partitionIndex = floorMod(hash(namespaceId:groupId:idempotentId), 16)`，集群扫描按分区取数。
 - **回调**：`callbackEnabled` 是总开关；仅当开关打开且存在 `callbackPolicyId` 时才按 `callbackTriggerType`（ON_SUCCESS/ON_FAILURE/ALWAYS）触发。当前实现仍回调原 service/method，新任务 idempotentId 追加 `_callback` 后缀。
 
+## 扫描链（RetryScanner）
+
+`RetryScannerImpl` 经平台周期任务绝缘层驱动（`IScheduledExecutor.scheduleWithFixedDelay` 六参绝缘入口，taskName=`nop-retry-scanner`；绝缘语义契约 = `IScheduledExecutor` 周期方法 javadoc 成文契约）：
+
+- **链存活**：任务体任何 Throwable（含 Error）由绝缘设施捕获、观测并重臂——单轮扫描失败（含 DB 瞬时异常/Error）不会永久停摆扫描器；Exception 级失败由站点自身 catch 兜底记 `nop.retry.scanner.scan-failed`，Error 级失败由设施守卫观测（`nop.err.periodic-task.fail` + `nop.retry.scanner.round-failed`）。
+- **链终止**：仅两条路径——调用方 `stopScanning()`（cancel）或设施级提交拒绝（timer/worker 池关闭，`nop.retry.scanner.chain-rejected`）；拒绝后 `isRunning()` 真实化为 `false`，链不复活。
+- **存活指标**：`getScanCount()` / `getLastScanTimeMillis()` / `getLastScanDurationMillis()`（每轮扫描结束刷新，含异常路径）与 `getScanFailureCount()` / `getLastScanFailureTimeMillis()`——`lastScanTimeMillis` 停止增长即扫描链停摆的可判别信号。
+- **积压兜底**：扫描停摆的直接后果是 `nop_retry_record` 表积压；绝缘层消除「单次 Throwable 即永久停摆」后，表积压回归瞬态可自愈。
+
 ## 子模块
 
 | 子模块 | 职责 |
@@ -98,6 +107,7 @@
 | 组件 | 路径 |
 |------|------|
 | ORM 模型 | `nop-retry/model/nop-retry.orm.xml` |
+| 扫描链 | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/scanner/RetryScannerImpl.java` |
 
 ## 相关文档
 
