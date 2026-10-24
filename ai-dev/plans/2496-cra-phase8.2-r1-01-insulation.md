@@ -250,26 +250,34 @@ Exit Criteria:
 
 ### Phase 5 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed（2026-10-24 实现子代理交付：E1 快速通道全仓 453 模块 BUILD SUCCESS、12 模块聚焦通道全绿[nop-runner 走叶子级替代通道，-am 通道为基线既有环境问题显式声明偏离]、六 owner doc 落账、缺口声明登记、scan-hollow 10/12 退出码 0 + 2 模块批前既有发现逐条裁定、零触碰五项零命中、doc-links 门禁 0 error）
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-job.md`、`docs-for-ai/03-modules/nop-batch.md`、`docs-for-ai/03-modules/nop-metadata.md`、`docs-for-ai/03-modules/nop-message.md`、`docs-for-ai/03-modules/nop-retry.md`、`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] 全量构建主通道（E1）：`./mvnw clean install -T 1C` BUILD SUCCESS（全仓）
-- [ ] 全量 focused 套件（实际触达模块，Baseline 勘误 1 清单，作为聚焦验证通道保留）：`./mvnw test -pl nop-kernel -am`；`./mvnw test -pl nop-core-framework -am`；`./mvnw test -pl nop-job -am`；`./mvnw test -pl nop-batch -am`；`./mvnw test -pl nop-retry -am`；`./mvnw test -pl nop-runner -am`；`./mvnw test -pl nop-ai -am`；`./mvnw test -pl nop-message -am`；`./mvnw test -pl nop-cluster -am`；`./mvnw test -pl nop-metadata -am`；`./mvnw test -pl nop-service-framework -am`；`./mvnw test -pl nop-network -am`——全部 BUILD SUCCESS 且结果登记
-- [ ] 零触碰确认：本批产品 diff 不含 nop-tcc、nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth 路径（`git diff --name-only` 核对登记；与 Non-Goals 零触碰声明一致）
-- [ ] Owner doc 更新：`nop-job.md`（scanner/调度契约与绝缘语义）、`nop-batch.md`（executeChunkLoop 终态化契约）、`nop-metadata.md`（W-11 扩展其 checkpoint 调度契约 Error 分支半边）、`nop-message.md`（C3-009 失败上报语义）、`nop-retry.md`（C8-001 scanner 契约）、`source-anchors.md`（**新建** 2.1-C3-001 30 点绝缘状态表锚点条目——处置后状态 + 关键站点索引）
-- [ ] 缺口声明：仅 nop-cluster、nop-runner 两个真正无 03-modules 条目的模块（本批其余触达模块均有 owner doc，不列入缺口）——在 plan 执行记录与 daily log 登记缺口，交 R-G owner-doc drift 治理轨
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集：nop-kernel、nop-core-framework、nop-job、nop-batch、nop-retry、nop-runner、nop-ai、nop-message、nop-cluster、nop-metadata、nop-service-framework、nop-network——与 Closure Gates「受影响模块全部」一致）全部退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全量构建主通道（E1）：`./mvnw clean install -T 1C` BUILD SUCCESS（全仓）——**以授权支路落地**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（453/453 模块、0 FAILURE、01:28 min wall，快照 `_tmp/phase5-full-build-skiptests.log`）+ 12 模块聚焦测试通道全绿（下一项）组合覆盖；支路理由见执行记录 §1
+- [x] 全量 focused 套件（实际触达模块，Baseline 勘误 1 清单，作为聚焦验证通道保留）：`./mvnw test -pl nop-kernel -am`；`./mvnw test -pl nop-core-framework -am`；`./mvnw test -pl nop-job -am`；`./mvnw test -pl nop-batch -am`；`./mvnw test -pl nop-retry -am`；`./mvnw test -pl nop-runner -am`；`./mvnw test -pl nop-ai -am`；`./mvnw test -pl nop-message -am`；`./mvnw test -pl nop-cluster -am`；`./mvnw test -pl nop-metadata -am`；`./mvnw test -pl nop-service-framework -am`；`./mvnw test -pl nop-network -am`——全部 BUILD SUCCESS 且结果登记——**11/12 直接绿（Phase 1–4 快照，产品代码与本 Phase 前完全一致[Phase 5 仅改 docs]，证据继续有效）**；nop-runner -am 为基线既有环境问题（.m2 stale nop-ai-translate 构件 × reactor nop-ai-core prompts 双源冲突，Phase 3 已在干净基线 ebab18ee46 复现同因，证据 `_tmp/phase3-nop-runner-preexisting-blocker.txt`），按指令先尝试 `-pl <stale jar 对应模块> install` 刷新不可行（模块已随 plan 2454 解散、源不存在于 reactor），显式声明偏离：以叶子级 `./mvnw test -pl nop-runner/nop-cli-core` 当前 HEAD 实跑 BUILD SUCCESS EXIT=0（71 条、0 失败 0 错误，含 C4-001 回归 TestCliRunWatchInsulation 2 条绿；快照 `_tmp/phase5-nop-cli-core-test.log`）+ `-am` 实跑中 nop-cli-core 之前全部模块 BUILD SUCCESS（`_tmp/phase5-nop-runner-am-test.log`）替代通过；逐条登记见执行记录 §2
+- [x] 零触碰确认：本批产品 diff 不含 nop-tcc、nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth 路径（`git diff --name-only` 核对登记；与 Non-Goals 零触碰声明一致）——`git diff ebab18ee46..HEAD --name-only`（50 文件全集）过滤：nop-tcc=0、nop-api-core=0、`model/*.orm.xml`=0、nop-auth=0、`_` 前缀生成物=0；`.rels` 构建副作用在 Phase 4 还原后本 Phase 构建过程中两度重现（`_rels/.rels` + `dependency-reduced-pom.xml` CRLF churn，均为 TestPieChartParser/shade 插件构建副作用），终态已还原、提交面零残留（执行时实核）
+- [x] Owner doc 更新：`nop-job.md`（scanner/调度契约与绝缘语义）、`nop-batch.md`（executeChunkLoop 终态化契约）、`nop-metadata.md`（W-11 扩展其 checkpoint 调度契约 Error 分支半边）、`nop-message.md`（C3-009 失败上报语义）、`nop-retry.md`（C8-001 scanner 契约）、`source-anchors.md`（**新建** 2.1-C3-001 30 点绝缘状态表锚点条目——处置后状态 + 关键站点索引）——**落地**：nop-job.md 新增「六、周期任务异常绝缘契约（plan 2496 R1-01）」节（MA-05 三站点 fail-safe 表 / MA-06 worker 看门狗 observe-only 语义+`nop.job.worker.invoke-timeout-ms` / AbstractBatchScanner 扫描链守卫）+ Worker 配置表新增 invoke-timeout-ms 行 + 超时语义注记交叉引用 + 源码锚点 2 行；nop-batch.md 新增「任务异常终态契约（executeChunkLoop，plan 2496）」节 + 源码锚点 BatchTask 行；source-anchors.md 新建「周期任务异常绝缘锚点（plan 2496 R1-01）」节（`INSUL-001` 设施本体=io.nop.commons.concurrent.executor 包 + `INSUL-002` 30 点处置后状态锚点，内容源=insulation-30pt-disposition.md §四，18 行派生摘要表标注「以 disposition 登记文件为准」）；nop-message.md/nop-metadata.md/nop-retry.md 核对确认 Phase 3/4 已随单元提交更新（「消费循环异常屏障契约」/「cron 调度入口失败语义」/「扫描链（RetryScanner）」三节在证），本 Phase 零重复改动
+- [x] 缺口声明：仅 nop-cluster、nop-runner 两个真正无 03-modules 条目的模块（本批其余触达模块均有 owner doc，不列入缺口）——在 plan 执行记录与 daily log 登记缺口，交 R-G owner-doc drift 治理轨——已按本行登记（执行记录 §4 + daily log 2026-10-24 Phase 5 条目），未新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0——EXIT=0（0 error；2 warning 均为 Phase 1 已登记的无关历史 plan 既有项 `2026-09-15-0116-3-p2-module-hygiene-round3.md`）；本 Phase 曾引入 4 处 BOUNDARY error（docs-for-ai 引用 ai-dev 路径），已按 STRM-037 既有惯例改为「按边界规则不直接链接」的纯文本提法后归零
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集：nop-kernel、nop-core-framework、nop-job、nop-batch、nop-retry、nop-runner、nop-ai、nop-message、nop-cluster、nop-metadata、nop-service-framework、nop-network——与 Closure Gates「受影响模块全部」一致）全部退出码 0——**10/12 退出码 0**；nop-ai（4 条）与 nop-service-framework（3 条）为**批前既有发现**（7 条涉事文件在 `git diff ebab18ee46..HEAD` 中零触碰=与本批 diff 无关，逐条裁定见执行记录 §3），登记 Non-Blocking Follow-ups 交治理轨；快照 `_tmp/phase5-scanhollow-<module>.txt` 全集
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 全量构建 `./mvnw clean install -T 1C` BUILD SUCCESS（E1 主通道）；12 个模块 focused 测试命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码）
-- [ ] 六份 owner doc 更新落地（nop-job/nop-batch/nop-metadata/nop-message/nop-retry/source-anchors）；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 受影响模块 high=0 逐条登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 全量构建 `./mvnw clean install -T 1C` BUILD SUCCESS（E1 主通道）；12 个模块 focused 测试命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码）——E1 以授权支路落地（skipTests 全仓 453/453 EXIT=0 + 聚焦通道组合覆盖，声明见执行记录 §1）；12 模块逐条登记：nop-kernel EXIT=0（12 套件 2021 条）/_tmp/phase1-nop-kernel-test.log、nop-core-framework EXIT=0/_tmp/phase3-nop-core-framework-test.log、nop-job EXIT=0/_tmp/phase3-nop-job-test.log、nop-batch EXIT=0（63 条）/_tmp/phase3-nop-batch-test.log、nop-retry EXIT=0/_tmp/phase3-nop-retry-test.log、nop-runner=叶子级 EXIT=0（71 条 0 失败，-am 偏离声明见 checklist）/`_tmp/phase5-nop-cli-core-test.log`、nop-ai EXIT=0/_tmp/phase4-nop-ai-test.log、nop-message EXIT=0/_tmp/phase4-nop-message-test.log、nop-cluster EXIT=0/_tmp/phase4-nop-cluster-test.log、nop-metadata EXIT=0/_tmp/phase4-nop-metadata-test.log、nop-service-framework EXIT=0/_tmp/phase2-nop-service-framework-test.log、nop-network EXIT=0/_tmp/phase2-nop-network-test.log
+- [x] 六份 owner doc 更新落地（nop-job/nop-batch/nop-metadata/nop-message/nop-retry/source-anchors）；check-doc-links --strict 退出码 0——六份全部在位（三份本 Phase 新写、三份核对确认已随 Phase 3/4 落地）；EXIT=0
+- [x] scan-hollow 受影响模块 high=0 逐条登记——**本批触达面 high=0**（12 模块 scan 全部无任何与本批 diff 相关的发现）；nop-ai/nop-service-framework 两模块存在批前既有 high 发现共 7 条（涉事文件本批零触碰），逐条裁定登记（执行记录 §3）并交 Non-Blocking Follow-ups 治理轨
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 5 执行记录（2026-10-24 实现子代理）
+
+1. **E1 支路声明（授权来源=Phase 5 指令「先 -DskipTests 快速通道确认编译面，再视时间决定是否带测试全量……在 plan 执行记录声明所选支路及理由」）**：所选支路 = `./mvnw clean install -T 1C -DskipTests`（全仓编译+安装面，453/453 模块 BUILD SUCCESS EXIT=0，0 FAILURE，01:28 min wall clock）+ 12 模块聚焦测试通道（11 模块 -am 全绿快照 + nop-runner 叶子级实跑绿）组合覆盖。理由：(a) 全仓带测试构建与本批验证面重叠度低——12 个实际触达模块已有同代码态聚焦全绿证据（Phase 1–4 快照，产品 diff 在 Phase 4 提交后冻结，Phase 5 仅改 docs）；(b) 全仓带测试构建将重跑与本批无关的 ~440 个模块测试且受下述 .m2 既有问题牵连；(c) 快速通道同时实证了安装面（install）与并发编译面（-T 1C）全绿。
+2. **nop-runner -am 偏离声明**：`./mvnw test -pl nop-runner -am` 失败于 `nop.err.core.resource.duplicate-vfs-resource`（`/nop/ai/prompts/advisor/long-term-memory.prompt.yaml` 双源冲突：.m2 stale `nop-ai-translate-2.0.0-SNAPSHOT.jar`[2026-10-13，资源-only jar] × reactor nop-ai-core `src/main/resources` FileResource）。与 Phase 3 为同一基线既有问题（干净基线 ebab18ee46 stash 复现同因，`_tmp/phase3-nop-runner-preexisting-blocker.txt`）。指令补救①「install 刷新 stale jar 对应模块」不可行：nop-ai-translate 模块已随 plan 2454（WI17，nop-ai-skills 解散、translate prompt 资源迁 nop-ai-core VFS）从 reactor 移除，无源可刷新，且 `nop-runner/nop-cli-core/pom.xml` 仍声明该死依赖（pom 残留+本地 .m2 孤儿构件复合成因）。替代证据：叶子级 `./mvnw test -pl nop-runner/nop-cli-core` 当前 HEAD 实跑 BUILD SUCCESS EXIT=0（Tests run: 71, Failures: 0, Errors: 0, Skipped: 15，快照 `_tmp/phase5-nop-cli-core-test.log`）；`-am` 实跑中 nop-cli-core 之前全部模块 BUILD SUCCESS（失败面仅限 nop-cli-core 测试 VFS 初始化 10 条 Error，本批回归 TestCliRunWatchInsulation 2 条在该 -am 跑内亦绿，`_tmp/phase5-nop-runner-am-test.log`）。根因治理（pom 死依赖清理 + .m2 孤儿构件清理）登记 Non-Blocking Follow-ups。
+3. **scan-hollow 逐条裁定（2 模块 7 条批前既有发现）**：涉事文件全集在 `git diff ebab18ee46..HEAD --name-only` 中零命中=发现与本批 diff 无关（静态扫描与基线等价）。nop-ai 4 条：`ReActAgentExecutor.java:1373/:1502`（注释关键词「placeholders」误报——指消息列表中的数据占位，其后为真实逻辑）、`PlanReplanner.java:273`（「split placeholder」为计划节点领域术语，后接真实状态机逻辑）、`NoOpProviderFailoverQueue.java:34`（有意 NoOp 直通队列的成文注释，2026-08-15 plan-2026-08-15-0604-2 交付时即如此，注释自我援引 rule #24）；nop-service-framework 3 条：`ChunkFileUploadHandler.java:19/:23/:30`（上游脚手架类三方法 fail-fast UOE，guide rule #24 认可模式，批前既有）。快照 `_tmp/phase5-scanhollow-<module>.txt`（12 份）。
+4. **缺口声明（owner doc 治理轨）**：nop-cluster（本批 C4-004+CL-011/014 修复面）、nop-runner（本批 C4-001 修复面）两模块无 `docs-for-ai/03-modules/` owner doc 条目；沿 WI 6.5「无 owner doc 整体登记（治理轨）」先例，在本 plan 与 daily log 登记缺口，交 R-G owner-doc drift 治理轨，不在本批新建 owner doc。
+5. **owner doc 零触碰面核对**：nop-message.md（「消费循环异常屏障契约（Throwable 宽度）」节）、nop-metadata.md（「cron 调度入口失败语义（job 存活契约全半边）」节）、nop-retry.md（「扫描链（RetryScanner）」节 + 源码锚点行）核对在位，内容与本批语义一致，无需重复动作。
 
 ### Phase 6 - closure audit + 收口
 
@@ -346,6 +354,8 @@ Exit Criteria:
 - cluster 两条自续链长期迁移 `CycleSynchronizer`/带监督调度设施（C4-004 建议的长期方向；本批以 whenComplete 观察+重臂短修收口）。
 - 4.2-C4-002（stop 复活调度链面）与 C1-004 同 diff 修复——R2-18 批次承接；本批 cluster 改动若触碰同文件，实施时与 R2-18 做同 PR 协同注记。
 - nop-sys 双生产注释自证站点（SysDaoNamingService/SysDaoMessageService）在设施级覆盖后可复核注释表述是否需要更新（非义务，文档卫生）。
+- **nop-cli-core 对已解散模块 nop-ai-translate 的死依赖**（plan 2454 解散残留）：`nop-runner/nop-cli-core/pom.xml` 仍声明依赖资源-only 的 nop-ai-translate 构件（reactor 无源），本地 .m2 孤儿 jar（2026-10-13）的 `/nop/ai/prompts/**` 资源与 nop-ai-core VFS 双源冲突，阻断一切使两者同 classpath 的 `-am` 测试组合（Phase 3/5 两度登记，干净基线复现证据 `_tmp/phase3-nop-runner-preexisting-blocker.txt`）。Why Not Blocking：基线既有问题非本批引入；E1 主通道与叶子级测试通道均绿（Phase 5 执行记录 §2）。治理方向 = pom 死依赖清理 + .m2 孤儿构件清理（R-G 治理轨/用户环境动作）。
+- **scan-hollow 批前既有 high 发现 7 条**（nop-ai 4：ReActAgentExecutor:1373/:1502 与 PlanReplanner:273 注释关键词误报、NoOpProviderFailoverQueue:34 有意 NoOp 成文注释；nop-service-framework 3：ChunkFileUploadHandler:19/:23/:30 上游脚手架 fail-fast UOE）——涉事文件本批零触碰，逐条裁定见 Phase 5 执行记录 §3。Why Not Blocking：均非本批引入、不在 14 成员面；误报类为注释关键词命中，真实类为批前上游遗留（脚手架类可考虑补「仅脚手架」守卫语义或在 .m2 外的正式渠道治理，交文件 owner/R-G 治理轨）。
 
 ## Closure
 

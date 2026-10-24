@@ -370,7 +370,7 @@ public interface IJobInvoker {
 
 > **capacity 配置语义**（worker `nop.job.capacity.cpu/memory` 配置或 `ServiceInstance.metadata`，两侧一致）：`0` 或未声明 → 视为"未设/无限"（`MAX_VALUE`，退化为 count-based）；负数视为配置错误抛异常（不静默退化为拒绝一切的黑洞 worker）。`nop.job.fetch.enforce-attribution=true` 用于 dedicated worker 池（此时 worker `hostId` 必须已配置，否则拉取 task 抛配置错误，不静默看到全部 task）；single 模式 task 的 `workerInstanceId` 留 NULL（走 competing-consumer IS NULL 分支被任意 worker 认领，含分离部署），认领后被设为认领 worker 的 hostId。
 
-> **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。
+> **超时语义（三层独立，不互相回退）**：`dispatchTimeoutMs`（fire 卡在 DISPATCHING，默认 5min）/ `executionTimeoutMs`（task 执行墙钟，默认 -1 禁用）/ `schedule.timeoutSeconds`（per-schedule 覆盖执行超时）。判定 RUNNING-task 是否超时：`schedule.timeoutSeconds>0` 用之 → 否则 `executionTimeoutMs>0` 用之 → **否则不超时**。未配任何执行超时的长任务**不会**被墙钟超时误杀，由 worker-liveness 链兜底（worker 不存活则 task `CLAIMED/RUNNING → SUSPICIOUS → TIMEOUT`）。若需要默认执行超时，显式配 `executionTimeoutMs`，不要依赖隐式回退。worker 侧另有 observe-only 执行看门狗（`nop.job.worker.invoke-timeout-ms`，只观测不终结任务，见下文「周期任务异常绝缘契约」节）。
 
 > **worker-liveness 链细节**：`JobTimeoutCheckerImpl` 通过 `INamingService.getInstances(AppConfig.appName())` 获取当前健康且启用的实例 id 集合，并把 `task.workerInstanceId` 视为 worker 存活判据。若 `CLAIMED/RUNNING` task 的 `workerInstanceId` 不在 alive 集合中，则首轮扫描先标记 `SUSPICIOUS`，下一轮扫描再转 `TIMEOUT`。`SUSPICIOUS` 是有意保留的中间态：它既阻止旧 worker 的迟到结果覆盖（worker 侧把 `SUSPICIOUS` 视为 concurrently-finalized），也让 fire 聚合在仍有其他 pending task 时保持未完成；当 fire 只剩 `SUSPICIOUS` / terminal task 时，completion 会把 `SUSPICIOUS` 按 `TIMEOUT` 聚合。
 
@@ -429,6 +429,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.worker.lock-timeout-ms` | 60000 | Worker 锁超时 |
 | `nop.job.worker.assigned-partitions` | （空） | 本节点负责的分区 |
 | `nop.job.worker.max-concurrency` | 0 | 最大并发执行数（0=不限） |
+| `nop.job.worker.invoke-timeout-ms` | 0 | worker 执行看门狗阈值（毫秒；`0`=禁用。**observe-only**：超龄 in-flight invoke 只记 ERROR + gauge 观测，永不终结任务，见下文「周期任务异常绝缘契约」节） |
 
 ### 集群（可选）
 
@@ -437,6 +438,32 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.cluster.enable-cluster` | false | 是否启用集群模式 |
 | `nop.job.cluster.service-name` | （空） | 集群服务名 |
 | `nop.job.cluster.stable-window-ms` | 30000 | 分区稳定窗口 |
+
+---
+
+## 六、周期任务异常绝缘契约（plan 2496 R1-01）
+
+nop-job 的全部周期调度链（本地模式触发循环、coordinator 各 scanner、worker scanner）运行在平台周期任务异常绝缘设施之上（设施本体锚点见 `../04-reference/source-anchors.md` 的 `INSUL-001`；语义权威 = 平台设计文档 periodic-task-insulation.md，位于 AI 开发记录区 concurrency 设计集，按边界规则此处不直接链接）：任务体抛出任何 `Throwable`（含 `Error`）由设施边界捕获 → 观测（日志抑制 + 连续失败计数 + listener + metric）→ 重臂续排；链只在调用方显式 cancel 或设施提交拒绝时终止。**返回 future 是失败/取消/拒绝信号，不是链存活指标**（失败完结 ≠ 链死亡）。
+
+### 模块侧 fail-safe 语义（MA-05）
+
+三处周期/回调站点为 Throwable 宽度守卫 + 终态 fail-safe，逐一独立验收：
+
+| 站点 | 守卫 | fail-safe |
+|------|------|-----------|
+| `RpcPollTaskManager.pollOnce`（nop-job-coordinator） | catch Throwable + `nop.job.remote.poll-error` ERROR | 轮询链由设施重臂，单轮异常不停摆 |
+| `JobWorkerScannerImpl` 结果结算（nop-job-worker） | catch Throwable | `failSafeTerminalize`：task 强制终态化，阻断 `sumReservedCost` 容量账本永久侵蚀 |
+| `LocalJobScheduler` 触发器计算/回调（nop-job-local） | catch Throwable | `job.state.internal=FAILED` 终态 + done 异常完结，调度循环存活 |
+
+### worker 执行看门狗（MA-06，observe-only）
+
+- **默认无执行超时**：长任务不会被 worker 侧误杀（与上文「超时语义」三层契约及 plan 340 钉死契约一致）。
+- 配置 `nop.job.worker.invoke-timeout-ms`（默认 `0`=禁用；`schedule.timeoutSeconds>0` 时仍优先，沿用 checker 既有取值顺序）后，in-flight invoke 年龄超阈值只触发**宽松观测**：ERROR 日志 `nop.job.worker.invoke-timeout-observed`（明示 observe-only）+ in-flight 年龄 gauge `nop.job.worker.invoke.inflight.age.max`；**永不 complete/cancel invoke future、永不杀派发链**。
+- 任务终结的唯一仲裁者是 coordinator 侧超时检查器（worker-liveness `SUSPICIOUS→TIMEOUT` 链，见上文）；worker 看门狗是纯观测者，不存在双重终结。
+
+### 扫描链守卫（AbstractBatchScanner，nop-job-core）
+
+nop-job 各 scanner 的公共基类 `AbstractBatchScanner`：`scanOnce` 全周期体（含 try-外段 `cursor.reset()`/`onCycleStart()`）为 Throwable 宽度守卫，异常经 `onScanCycleFailed(Throwable)` 上报（带 scanner 名日志 + cycle/failure 计数与时间戳指标），链由绝缘设施重臂；仅提交拒绝（链真死）时 `running=false` 状态真实化。子类既有 `onScanFailed(Exception)` override 签名保持不变。
 
 ---
 
@@ -467,6 +494,8 @@ Coordinator (协调器)                    Worker (工作者)
 | JobCoordinator | `nop-job/nop-job-coordinator/src/main/java/io/nop/job/coordinator/engine/JobCoordinator.java` |
 | BeanMethodJobInvoker | `nop-job/nop-job-local/src/main/java/io/nop/job/local/executor/BeanMethodJobInvoker.java` |
 | LocalJobConfigLoader | `nop-job/nop-job-local/src/main/java/io/nop/job/local/config/LocalJobConfigLoader.java` |
+| scanner 基类（绝缘守卫） | `nop-job/nop-job-core/src/main/java/io/nop/job/core/AbstractBatchScanner.java` |
+| Worker 扫描器（MA-05/MA-06 站点） | `nop-job/nop-job-worker/src/main/java/io/nop/job/worker/engine/JobWorkerScannerImpl.java` |
 | 本地模式测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java` |
 | 本地配置测试（local） | `nop-job/nop-job-local/src/test/java/io/nop/job/local/` |
 

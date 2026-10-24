@@ -197,6 +197,35 @@
 | `META-005` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityCheckpointScheduler.java` (`init` + `registerCheckpoint` + `executeScheduledCheckpoint`) | cron 调度器：启动 scanner 全量注册 ACTIVE 检查点的 cron job（D4）；运行时增量（save/delete override 调用 register/unregister）；BeanMethodJobInvoker 反射调用 `executeScheduledCheckpoint` 委托 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint`（D3 path b，绕过 BizProxy 事务隔离问题） |
 | `PERSIST-001` | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/lock/SysDaoResourceLockManager.java` (`tryResetLease` / `releaseLock`) + `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/store/DbMfaChallengeStore.java` + `nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java`（`eql.isAllowUnderscoreName()`） | **直接 SQL 使用边界的规范锚点**（plan 2255）：EQL 条件更新/删除规范样例（实体名 + `session.executeUpdate` 返回 affected rows，带 version/holderId 条件）；raw SQL 豁免样例（单语句原子计数/一次性消费/绕过会话缓存读）；`orm()` 执行的文本一律按 EQL 编译（物理表名需 `allowUnderscoreName`，否则 `ERR_EQL_UNKNOWN_ENTITY_NAME`）。判定规则见 `../02-core-guides/model-first-development.md`「直接 SQL 的使用边界」 |
 
+## 周期任务异常绝缘锚点（plan 2496 R1-01）
+
+| 规则 ID | 锚点 | 说明 |
+|---------|------|------|
+| `INSUL-001` | `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` 周期方法 javadoc 成文契约 + 2 个带 `taskName`/`IPeriodicTaskListener` 的 default 方法；`InsulatedPeriodicTask` / `InsulatedPeriodicChain` / `PeriodicTaskHelper` / `IPeriodicTaskListener`） | 周期任务异常绝缘设施本体（2.1-C3-001 设施级修复）：`IScheduledExecutor` 全部周期方法路由绝缘核心——任务体 `Throwable`（含 Error）捕获 + 观测（日志抑制 + 连续失败计数 + listener 四回调 + metric）+ 重臂（fixedDelay 失败退避 1s→60s 封顶；fixedRate 保持速率契约）+ future 失败终态；链存活判定禁止 `isDone()`。选型与语义权威（重臂 vs kill+alarm、三相容、失败治理参数、拒绝路径、C3-016 边界、MA-06 看门狗裁定）= 平台设计文档 periodic-task-insulation.md（AI 开发记录区 concurrency 设计集，按边界规则此处不直接链接）；nop-job 侧消费契约见 `../03-modules/nop-job.md`「周期任务异常绝缘契约」节 |
+| `INSUL-002` | 30 点绝缘状态表（处置后状态）——2.1-C3-001 周期任务调用点绝缘状态表锚点 | 权威原表（载体/绝缘状态判定列，**未被改写**）= 审计报告「C3-round2.md」§1（2026-10-16 nop-kernel 并发深审目录，按边界规则此处不直接链接）；逐行三态处置登记（**唯一权威**）= 登记文件「insulation-30pt-disposition.md」（2026-10-23 CRA Phase 7 跨模块裁定目录，按边界规则此处不直接链接，下表为派生摘要）。处置计数：设施级覆盖 12 行（#1–6、#8–13）/ 显式接入 16 行（#7、#14、#15–22、#23–27、#28）/ 豁免 2 行（#29、#30）+ F3 补登行（`RpcPollTaskManager.java:119`）。设施级覆盖语义：绝缘核心改造后站点自动获得「链存活 + 失败可观测」兜底，站点模块侧义务仍归对应工单 |
+
+30 点表处置后状态派生摘要（以 disposition 登记文件 `##三` 为准，本表不作为第二事实源）：
+
+| 行 | 处置后状态（R1-01 批后） |
+|---|---|
+| #1 | 设施级覆盖（R1-01 Phase 1）；模块义务 4.5-C4-001 → R1-01 Phase 3 |
+| #2 | 设施级覆盖（R1-01 Phase 1）+ 站点 catch 宽度已修（R1-01 Phase 2：catch Throwable 兜底 + `nop.err.websocket.keep-alive-fail`） |
+| #3 / #8 / #9 / #13 | 设施级覆盖（R1-01 Phase 1）；站点自备 catch(Exception) 与设施 Error 兜底正交 |
+| #4 | 设施级覆盖（R1-01 Phase 1）；F3 回调拓扑裁定 = 设施边界任务体整体（design §3.4），per-callback 隔离归 C1-021 |
+| #5 | 设施级覆盖（R1-01 Phase 1）；模块义务 2.2-C1-021 → R1-01 Phase 3 |
+| #6 | 设施级覆盖（R1-01 Phase 1） |
+| #7 | 站点侧接入已修（R1-01 Phase 2：`sweepExpiredFutures` 守卫 + `nop.err.netty.rpc-timeout-sweep-fail`；Netty EventExecutor 载体在平台设施覆盖外） |
+| #10 | 设施级覆盖（R1-01 Phase 1）；模块义务 4.2-C4-004（断链监督，CL-011/014 随单）→ R1-01 Phase 4 |
+| #11 | 设施级覆盖（R1-01 Phase 1）；模块义务 1.6-C8-001 → R1-01 Phase 3 |
+| #12 | 设施级覆盖（R1-01 Phase 1）；模块义务 1.4-C4-003（scanOnce catch 宽度 + future 观测 + try-外段守卫）→ R1-01 Phase 3 |
+| #14 | 显式接入：4.2-C4-004 → R1-01 Phase 4（一次性自续链，设施零自动覆盖） |
+| #15–22 | 显式接入 × 批外：raw 载体平台设施不覆盖 → CL-021 载体碎片化复核（R-G 条款登记册；live 行号漂移已登记，站点全集刷新归 CL-021） |
+| #23–27 | 显式接入：3.1-MA-07 六站点 → R1-01 Phase 4（含非点表第 6 站 EmbeddingServiceImpl；C10-008 护栏保留 3.1 侧 R2-16） |
+| #28 | 显式接入 × 批外：R2-19/R2-20（4.3 单元批次裁决） |
+| #29 | 豁免：测试设施（MockScheduledExecutor），非生产失效面 |
+| #30 | 豁免/批外：C3-017 独立工单（批次归属以 cra-index `2.1-C3-017` 裁定批次列为准） |
+| +F3 | `RpcPollTaskManager.java:119` 设施级覆盖（R1-01 Phase 1）；模块义务 1.4-MA-05 → R1-01 Phase 3 |
+
 ## AI 网关 failover 锚点
 
 | 规则 ID | 锚点 | 说明 |

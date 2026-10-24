@@ -217,6 +217,16 @@ task steps:
 | `transactionScope` | 事务范围 none/chunk/process/consume（builder 默认 consume；配置 historyStore 时 consume 自动提升为 process 包装） |
 | `historyStore` | 记录级处理历史（去重 + 与 consume 同事务写入） |
 
+## 任务异常终态契约（executeChunkLoop，plan 2496）
+
+`BatchTask` 的 chunk 执行循环守卫起点为任务 lambda 首行（`propagateContext`/`provideTaskContext` 上下文传播段纳入守卫），捕获宽度为 **Throwable**（含 Error）。任意任务体 Throwable 的行为契约：
+
+- 返回 future **异常终态**（根因保留，不再悬挂——调用方 `allOf` 接线可感知失败）；
+- `afterComplete` 关闭链（reader/writer/JDBC 连接关闭）在异常路径**保证执行**，资源不泄漏；
+- 任务行**不停留在 RUNNING**：primaryError 记录后走既有失败终态语义（fail-fast cancel 并发分支、finally 语义保持不变）。
+
+回归锚点：`nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/impl/TestBatchTaskErrorTerminalization.java`（注入点分别为 processor 与 propagateContext）。
+
 ## 源码锚点
 
 | 组件 | 路径 |
@@ -224,6 +234,7 @@ task steps:
 | ORM 模型 | `nop-batch/model/nop-batch.orm.xml` |
 | DSL Schema | `nop-kernel/nop-xdefs/.../nop/schema/task/batch.xdef` |
 | 运行时标签库 | `nop-batch/nop-batch-dsl/.../nop/batch/xlib/batch.xlib` |
+| 批处理任务执行体（异常终态守卫） | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java` |
 | 批处理任务文档 | `docs/dev-guide/batch/batch-task.md` |
 | 设计理念 | `docs/theory/why-springbatch-is-bad.md` |
 
