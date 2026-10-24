@@ -134,40 +134,49 @@ Exit Criteria:
 
 ### Phase 2 - api-core 本体 + nop-commons 双层本体实现 + SPI 全实现回归测试
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/FutureHelper.java`、`.../context/ContextTaskQueue.java`、`.../context/BaseContext.java`、`.../context/BaseContextProvider.java`、`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/ExecutorHelper.java`、`.../LimitedExecutor.java`、`.../BindScheduledExecutor.java`、两模块 `src/test/`
 
 - Item Types: `Fix`（2.1-C2-016/C3-004/C3-005/C3-007/C3-016 + 裁定③平台根因半边[4.3-C3-007/4.3-CL-011 承接面]均为已确认 live defect）、`Proof`（单元测试 + SPI 回归测试）
 
-- [ ] 2.1-C3-016 双层修复：bindCancel 守卫按完成原因判别（裁定①）+ ExecutorHelper 包装 Callable 中断残留清除（提交纪律：api-core 半边与 nop-commons 本体**同一提交**，防止中间态「误取消与取消不传播并存」的断裂基线）
-- [ ] 2.1-C3-004：BindScheduledExecutor schedule/submit 接入修复后 bindCancel + executeOn isDone 守卫（**必须后置于 C3-016 修复落地**，裁定②顺序约束）；绝缘链零触碰自证（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/IPeriodicTaskListener diff 零改动）
-- [ ] 2.1-C3-005 双层修复：throttleExecute 双层 catch(Throwable) + completeAfterTask catch 宽度（同批同口径）
-- [ ] 2.1-C3-007 双层修复：LimitedExecutor release 移入 acquire 成功后作用域 + executeWithThrottling 同构修复
-- [ ] 2.1-C2-016：ContextTaskQueue.syncGet 窗口修复（按裁定④选型）；与已修 flush 面语义对称
-- [ ] **裁定③平台根因半边（nop-api-core，R1 归属统一）**：`BaseContextProvider.currentContext` 补 isClosed 守卫（对齐 getOrCreateContext 既有检查的对称守卫）+ `BaseContext.close` 对称 detach（形态按裁定③）+ 断言（isClosed 残留 context 不再经 currentContext 返回、close 后线程残留被清除）——此为 4.3-C3-007/2.3-C3-017 的共享平台根因半边、4.3-CL-011 平台根因移交承接点；Phase 3 的 4.3-C3-007 项收窄为 nop-rpc-api 侧消费此半边
-- [ ] 本体单元测试（rule 25 显式覆盖，测试名可辨识工单）：
-  - [ ] C3-016：submit 成功路径断言底层 future 非 cancelled + worker 无中断残留（修复前红：`isCancelled()==true` 直接复现，审计给出的单测手法）
-  - [ ] C3-004：cancel 返回 future 后底层任务不执行（timer 触发前取消 + executeOn 守卫两面）
-  - [ ] C3-005：任务体抛 Error 后 future 异常终态（调用方 syncGet 可退出）
-  - [ ] C3-007：n=1 + 中断断言许可数不虚增（修复前红：中断后许可 >1）；api-core executeWithThrottling 同构断言
-  - [ ] C2-016：C10-009 锁冻结手法红转绿（drain→await 交错 + flush 唤醒不变式用例）
-  - [ ] bindCancel 兼容矩阵钉：真取消路径传播保持 + 成功路径零取消（调用方行为面断言）
-- [ ] **SPI 回归测试**（PA 义务）：按裁定⑤清单执行——接口零变更时以 BaseContextProvider/BaseContext/DelegateContext 现有行为回归 + nop-api-core 全量测试门禁承载；有接口变更时全部实现类逐个验证登记
-- [ ] **接线验证**（rule 23）：≥1 条断言证明修复后的 bindCancel 在真实构造链生效（ExecutorHelper.submit 全链 + BindScheduledExecutor.schedule 链 + globalTimer 拓扑）
-- [ ] **无静默跳过**（rule 24）：修复不引入空 catch/吞异常；取消判别失败路径显式落日志或异常终态
-- [ ] **提交纪律**：C3-016 api-core 半边与 nop-commons 本体同提交；C3-004 接入提交显式声明与 C3-016 提交的依赖关系；`TestPeriodicTaskInsulation` 9 条 + `TestThreadPoolFacilityHardening` 7 条全绿随提交门禁
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.1-C3-016 双层修复：bindCancel 守卫按完成原因判别（裁定①）+ ExecutorHelper 包装 Callable 中断残留清除（提交纪律：api-core 半边与 nop-commons 本体**同一提交**，防止中间态「误取消与取消不传播并存」的断裂基线）——提交 `3f76e2a5b2`（FutureHelper.bindCancel 三态判别 + ExecutorHelper submit×2/schedule 三处 `Thread.interrupted()` 清除同 diff）
+- [x] 2.1-C3-004：BindScheduledExecutor schedule/submit 接入修复后 bindCancel + executeOn isDone 守卫（**必须后置于 C3-016 修复落地**，裁定②顺序约束）；绝缘链零触碰自证（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/IPeriodicTaskListener diff 零改动）——提交 `c1a1491e99`；零触碰自证 `git diff fe54cea14f..HEAD` 四载体零命中
+- [x] 2.1-C3-005 双层修复：throttleExecute 双层 catch(Throwable) + completeAfterTask catch 宽度（同批同口径）——随 `3f76e2a5b2` 同 diff
+- [x] 2.1-C3-007 双层修复：LimitedExecutor release 移入 acquire 成功后作用域 + executeWithThrottling 同构修复——随 `3f76e2a5b2` 同 diff
+- [x] 2.1-C2-016：ContextTaskQueue.syncGet 窗口修复（按裁定④选型① endProcessIfIdle 复用）；与已修 flush 面共用同一退出原语——提交 `11c1124ee3`
+- [x] **裁定③平台根因半边（nop-api-core，R1 归属统一）**：`BaseContextProvider.currentContext` 补 isClosed 守卫（惰性清除残留并返回 null，与 getOrCreateContext 对称双读点）+ `BaseContext.close` 对称 detach（形态按裁定③=维持条件 detach，javadoc 契约钉死零行为变化）+ 断言（TestBaseContextClosedResidueGuard 4 条：isClosed 残留不可观测/同线程对称清除/getOrCreateContext 替换/close 幂等）——提交 `11c1124ee3`
+- [x] 本体单元测试（rule 25 显式覆盖，测试名可辨识工单）：
+  - [x] C3-016：submit 成功路径断言底层 future 非 cancelled + worker 无中断残留（修复前红：`isCancelled()==true` 直接复现，审计给出的单测手法）——`TestExecutorHelperCancelContract.testSubmitSuccessDoesNotCancelUnderlyingFutureTask`/`testScheduleSuccessDoesNotCancelUnderlyingFutureTask`（submit/schedule 双载体；底层 FutureTask 终态为判别面，worker 残留为绿态断言——TPE 载体 getTask 吸收中断为审计载明事实）
+  - [x] C3-004：cancel 返回 future 后底层任务不执行（timer 触发前取消 + executeOn 守卫两面）——`TestBindScheduledExecutorCancelPropagation.testRealTimerChainCancelBeforeFirePreventsExecution`/`testSubmitCancellationPropagatesToTimerTask`/`testExecuteOnGuardSkipsDispatchForDoneFuture`
+  - [x] C3-005：任务体抛 Error 后 future 异常终态（调用方 syncGet 可退出）——`TestFutureHelperBindCancelContract.testCompleteAfterTaskErrorCompletesPromiseExceptionally` + `TestExecutorHelperCancelContract.testThrottleExecuteTaskBodyErrorCompletesFutureExceptionally`
+  - [x] C3-007：n=1 + 中断断言许可数不虚增（修复前红：中断后许可 >1）；api-core executeWithThrottling 同构断言——`TestLimitedExecutorPermitScope.testInterruptedAcquireDoesNotInflatePermits` + `TestFutureHelperBindCancelContract.testExecuteWithThrottlingInterruptedAcquireDoesNotInflatePermit`
+  - [x] C2-016：C10-009 锁冻结手法红转绿（drain→await 交错 + flush 唤醒不变式用例）——`TestContextTaskQueueSyncGetWindow` 3 条（窗口红转绿 + enqueue 返回 true 唤醒不变式钉 + drain 语义钉）
+  - [x] bindCancel 兼容矩阵钉：真取消路径传播保持 + 成功路径零取消（调用方行为面断言）——`TestFutureHelperBindCancelContract` 成功/失败/真取消/已完成目标四态 + `TestExecutorHelperCancelContract` 真取消中断/排队取消两面
+- [x] **SPI 回归测试**（PA 义务）：裁定⑤零接口签名变更成立——`TestApiCoreSpiSurface` 5 条（IContextProvider/IContext/ICancelToken/ICancellable 方法集逐名钉死 + BaseContextProvider/BaseContext/DelegateContext 生产实现钉）+ 仓级 grep 重枚举登记 `_tmp/phase2-spi-enumeration.log`（×11 生产类 + 7 mock 文件与设计 §3.5 全表一致）+ nop-api-core/nop-commons 全量测试门禁承载行为回归
+- [x] **接线验证**（rule 23）：≥1 条断言证明修复后的 bindCancel 在真实构造链生效（ExecutorHelper.submit 全链 + BindScheduledExecutor.schedule 链 + globalTimer 拓扑）——`testSubmitSuccessDoesNotCancelUnderlyingFutureTask`（ExecutorHelper.submit→FutureHelper.bindCancel 真实链）+ `testRealTimerChainCancelBeforeFirePreventsExecution`/`testRealTimerChainNormalScheduleStillFires`（DefaultScheduledExecutor 载体 BindScheduledExecutor.schedule 全链）
+- [x] **无静默跳过**（rule 24）：修复不引入空 catch/吞异常；取消判别失败路径显式落日志或异常终态——bindCancel 非取消完结不 cancel（语义正确路径非跳过）；executeOn 兜底守卫短路即取消终态已由 future 承载；throttleExecute/completeAfterTask/executeOn 全部异常路径结算异常终态
+- [x] **提交纪律**：C3-016 api-core 半边与 nop-commons 本体同提交；C3-004 接入提交显式声明与 C3-016 提交的依赖关系；`TestPeriodicTaskInsulation` 9 条 + `TestThreadPoolFacilityHardening` 7 条全绿随提交门禁——三提交 `3f76e2a5b2`→`11c1124ee3`→`c1a1491e99`，pre-commit lint 三提交 0 violations
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 2.1 五成员（C2-016/C3-004/C3-005/C3-007/C3-016）landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C3-016 双层同 diff（git 可证）
-- [ ] 提交顺序机械核验（R1）：C3-016 双层修复提交在 git 序列上先于 C3-004 接入提交（`git log` 可证，裁定②顺序约束）
-- [ ] 必红证据（E2）：至少 C3-016（误取消红）、C3-004（取消不传播红）、C2-016（窗口挂死红）、C3-007（许可虚增红）、C3-005（Error 悬挂红）五项有先红后绿或变异/回退论证留痕
-- [ ] SPI 回归面执行登记（零变更声明或全实现验证记录）
-- [ ] 裁定③平台根因半边 landed（R1）：BaseContextProvider.currentContext isClosed 守卫 + BaseContext.close 对称 detach + 断言（nop-api-core diff 与测试可证）
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（含绝缘 9 条 + 池设施 7 条门禁全绿登记）
-- [ ] Owner doc 裁定：api-core 锚点内容定稿归 Phase 4 统一落账（本 Phase 显式登记该去向——本批改变 live baseline，登记去向=Phase 4 为唯一形态）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.1 五成员（C2-016/C3-004/C3-005/C3-007/C3-016）landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C3-016 双层同 diff（git 可证：`3f76e2a5b2` 单提交含 FutureHelper 三半边 + ExecutorHelper/LimitedExecutor 本体）
+- [x] 提交顺序机械核验（R1）：C3-016 双层修复提交在 git 序列上先于 C3-004 接入提交（`git log` 可证：`3f76e2a5b2` → `11c1124ee3` → `c1a1491e99`，裁定②顺序约束）
+- [x] 必红证据（E2）：至少 C3-016（误取消红）、C3-004（取消不传播红）、C2-016（窗口挂死红）、C3-007（许可虚增红）、C3-005（Error 悬挂红）五项有先红后绿或变异/回退论证留痕——红证 `_tmp/phase2-red-c316-c305-c007.log`（isCancelled()==true 复现/许可 1→2/Error 逃逸悬挂）、`_tmp/phase2-red-c2016-root.log`（syncGet 挂死 + 残留可观测红）、`_tmp/phase2-red-c3004.log`（取消后任务照常投递/执行 5 红）；绿证 `_tmp/phase2-green-c316-c305-c007.log`/`_tmp/phase2-green-c2016-root.log`/`_tmp/phase2-green-c3004.log`
+- [x] SPI 回归面执行登记（零变更声明或全实现验证记录）——零接口签名变更成立（git diff 无接口文件），`TestApiCoreSpiSurface` 签名钉 + `_tmp/phase2-spi-enumeration.log` 重枚举登记 + 两模块全量门禁承载
+- [x] 裁定③平台根因半边 landed（R1）：BaseContextProvider.currentContext isClosed 守卫 + BaseContext.close 对称 detach（形态按裁定③=条件 detach 维持，javadoc 钉死）+ 断言（nop-api-core diff `11c1124ee3` 与 TestBaseContextClosedResidueGuard 4 条可证）
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（17 模块全 SUCCESS；绝缘 `TestPeriodicTaskInsulation` 9/9 + 池设施 `TestThreadPoolFacilityHardening` 7/7 门禁全绿登记于 `_tmp/phase2-nop-kernel-gate.log` 与 `_tmp/phase2-gates-insulation-facility.log`）
+- [x] Owner doc 裁定：api-core 锚点内容定稿归 Phase 4 统一落账（本 Phase 显式登记该去向——本批改变 live baseline，登记去向=Phase 4 为唯一形态）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 2 执行记录（2026-10-24，实现子代理）：
+
+1. **提交序列（机械核验可证）**：`3f76e2a5b2`（C3-016 双层同提交：FutureHelper bindCancel 三态判别/completeAfterTask catch(Throwable)/executeWithThrottling 幻影 release 收口 + ExecutorHelper 三处清中断/throttleExecute catch(Throwable) + LimitedExecutor acquire 作用域）→ `11c1124ee3`（C2-016 syncGet endProcessIfIdle 复用 + BaseContextProvider.currentContext isClosed 守卫 + BaseContext.close 契约钉 + SPI 面钉测试）→ `c1a1491e99`（C3-004 BindScheduledExecutor 接入 + executeOn isDone 守卫）。pre-commit lint 三提交 0 violations。
+2. **测试交付**：新增 6 个测试类 35 条——TestFutureHelperBindCancelContract 12 + TestExecutorHelperCancelContract 7 + TestLimitedExecutorPermitScope 3 + TestContextTaskQueueSyncGetWindow 3 + TestBaseContextClosedResidueGuard 4 + TestApiCoreSpiSurface 5 + TestBindScheduledExecutorCancelPropagation 8（含 2 条 rule 23 真实链接线）。先红后绿五工单全覆盖（红证路径见 Exit Criteria 行）。
+3. **执行注记（C3-016 观测面）**：TPE/STPE 载体经 getTask（AQS lockInterruptibly 首检中断）吸收残留中断——审计已载明该载体事实；故判别面取「底层 FutureTask isCancelled 状态」（审计手法），worker 无中断残留为绿态断言；中断残留清除代码路径由 submit/schedule 成功路径零 cancel 注入（无注入即无残留）承载闭合。
+4. **执行注记（close 形态）**：裁定③终裁 close 维持条件 detach（不引入 attach 线程登记），故 close 零行为变化、以 javadoc 钉死契约；「对称 detach」的落地半边 = currentContext isClosed 读点守卫（残留不可观测），断言覆盖同线程对称清除与跨线程残留两形态。
+5. **零触碰**：产品 diff = 6 个文件（FutureHelper/ContextTaskQueue/BaseContext/BaseContextProvider/ExecutorHelper/LimitedExecutor/BindScheduledExecutor 中的 6 改 + 0 新增生产文件）；绝缘四载体与 R1-02 池设施语义面 `git diff fe54cea14f..HEAD` 零命中；无 `_` 生成物、无 orm.xml、无 nop-auth 触碰。
+6. **偏差**：无设计偏差。执行层适配两处（已在上两条注记说明）：C3-016 残留判别面取底层 FutureTask 终态；close 形态按裁定③零改码仅契约钉死。
 
 ### Phase 3 - 消费方站点修复：2.3 六条 + 4.3 两条 + 3.2 一条 + 4.1-CL-024 注记
 
