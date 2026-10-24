@@ -200,7 +200,7 @@ Targets: `nop-service-framework`（nop-graphql-core/nop-graphql-grpc/nop-graphql
 - [x] **端到端验证**（rule 22）：≥1 条从请求入口到 ORM 批量加载的完整链路测试（异步 biz action + 嵌套 ORM 字段组合：入口 context → worker 执行 → 出口泵挂接 → requireSession 正确会话），覆盖 C3-002/C3-007 修复组合；候选宿主模块（R1）：nop-graphql-orm 或 nop-biz 测试树，执行时按既有同类测试选址登记
 - [x] **接线验证**（rule 23）：出口泵挂接在真实 GraphQLExecutor 链上断言（dispatch/load 执行线程可观测为 context 载体线程）
 - [x] 站点行号 live 回读核对登记（勘误 5/9 所列执行时回读项）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新（10-24.md Phase 3 条目在案——Phase 4 执行时补勾，回填纪律偏差已登记于 Phase 3 执行记录 §10）
 
 Exit Criteria:
 
@@ -227,27 +227,59 @@ Phase 3 执行记录（2026-10-24，实现子代理，三子分片交付）：
 
 ### Phase 4 - 消费方回归面全列执行 + 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/02-core-guides/service-layer.md`；触达模块 owner doc 归属核对
 
 - Item Types: `Proof`
 
-- [ ] **消费方回归面全列执行（exit criteria 第一支柱义务，逐条留证）**：1.6 `./mvnw test -pl nop-retry -am`（含 R1-01 交付回归 + bindCancel 修复针对性断言）；4.3 `./mvnw test -pl nop-network -am`；3.4 `./mvnw test -pl nop-ai -am`——三者 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记；实际触达模块（勘误 1 清单中实际产生 diff 者，含 nop-quarkus/nop-spring/nop-frontend-support 若有——nop-spring 触达形态见成员 8 归属裁定）focused 测试逐条登记
-- [ ] 零触碰确认：本批产品 diff 不含 `model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；R1-01 绝缘四载体 + R1-02 池设施语义面零回改复核
-- [ ] Owner doc 更新：`source-anchors.md` **新建** api-core 取消/上下文原语锚点条目（bindCancel 契约、bindCancelToken 单点、thenOnContext/executeWithContext 治理口径、syncGet 语义——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径，沿 INSUL/EXEC 先例）；`service-layer.md`（异步 biz action 上下文传播契约：受管提交形态 + 出口泵 thenOnContext 纪律）
-- [ ] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者按 R-G 治理轨先例登记，不在本批新建 owner doc
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **消费方回归面全列执行（exit criteria 第一支柱义务，逐条留证）**：1.6 `./mvnw test -pl nop-retry -am`（含 R1-01 交付回归 + bindCancel 修复针对性断言）；4.3 `./mvnw test -pl nop-network -am`；3.4 `./mvnw test -pl nop-ai -am`——三者 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记；实际触达模块（勘误 1 清单中实际产生 diff 者，含 nop-quarkus/nop-spring/nop-frontend-support 若有——nop-spring 触达形态见成员 8 归属裁定）focused 测试逐条登记
+- [x] 零触碰确认：本批产品 diff 不含 `model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；R1-01 绝缘四载体 + R1-02 池设施语义面零回改复核
+- [x] Owner doc 更新：`source-anchors.md` **新建** api-core 取消/上下文原语锚点条目（bindCancel 契约、bindCancelToken 单点、thenOnContext/executeWithContext 治理口径、syncGet 语义——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径，沿 INSUL/EXEC 先例）；`service-layer.md`（异步 biz action 上下文传播契约：受管提交形态 + 出口泵 thenOnContext 纪律）
+- [x] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者按 R-G 治理轨先例登记，不在本批新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 消费方回归面（1.6/4.3/3.4）+ 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] source-anchors api-core 锚点落地 + service-layer.md 更新（或 No owner-doc update required 声明）；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 消费方回归面（1.6/4.3/3.4）+ 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] source-anchors api-core 锚点落地 + service-layer.md 更新（或 No owner-doc update required 声明）；check-doc-links --strict 退出码 0
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 4 执行记录（2026-10-25，实现子代理）：
+
+1. **E1 全量构建（授权支路）**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS、退出码 0（406 模块，wall clock 01:04；快照 `_tmp/phase4-e1-full-build-skiptests.log`）。支路理由 = 全量测试覆盖由消费方三面 `-am`（125/32/139 模块全量测试）+ E3 三模块门禁 + SPI focused ×6 组合承载，全仓带测试 install 的增量信息为零；沿本工作区先例 `phase3-full-build-skiptests.log`（前批同形态授权）。E1 同时承担 SPI 面编译验证（406 模块含 ×11 类全部归属模块 compile 通过）。
+2. **消费方回归面留证（三面全绿）**：
+   - 1.6 `./mvnw test -pl nop-retry -am`：run1 exit 1（`_tmp/phase4-gate-retry.log`）——传递依赖 nop-stream-runtime `TestJdbcCheckpointStorage.testConcurrentFirstInitializationDoesNotFail` 1/1210 失败；triage 判定**批前既有 flaky 非本批回归**（该测试 2026-10-04 WI11 `970f45a0ba` 交付、早于本批；本批产品 diff nop-stream 零触碰；`JdbcCheckpointStorage` 对批内共享原语 syncGet/ExecutorHelper/globalTimer/currentContext 消费零命中；HEAD focused 复跑 28/28 绿 `_tmp/phase4-triage-jdbc-ckpt-run1.log`——H2 并发 DDL 竞态、负载敏感）。rerun BUILD SUCCESS、退出码 0（125 模块，11:26；`_tmp/phase4-gate-retry-rerun.log`）；`TestRetryScannerInsulation` 3/3（R1-01 交付回归）绿。bindCancel 修复针对性断言 = Phase 2 交付 `TestBindScheduledExecutorCancelPropagation` 8 条（RetryEngineImpl :404→getExecutor :621-623→`globalTimer().executeOn(globalWorker())` 载体链的本体面），随 E3 kernel 门禁复跑全绿。
+   - 4.3 `./mvnw test -pl nop-network -am`：BUILD SUCCESS、退出码 0（32 模块，01:07；`_tmp/phase4-gate-network.log`）；`TestRpcMessageSubscriptions` 5/5 + `TestRpcClientCancelListenerConvergence_C3_012` 2/2 + `TestMessageRpcClientCancelListenerConvergence_C3_012` 1/1（本批修复面零回退）。
+   - 3.4 `./mvnw test -pl nop-ai -am`：BUILD SUCCESS、退出码 0（139 模块，11:45；`_tmp/phase4-gate-ai.log`）；`TestToolManagerCancelChain_C4_008` 4/4 + gateway failover 流面套件（`TestChatServiceFailoverAdapterStreaming` 20/20 等）全绿（rag/rest 套件含于聚合门禁）。
+3. **E3 批行验证命令（终态 HEAD 复跑）**：`-pl nop-kernel -am` BUILD SUCCESS（19 模块，02:14；`_tmp/phase4-gate-kernel.log`）；`-pl nop-service-framework -am` BUILD SUCCESS（43 模块，01:45；`_tmp/phase4-gate-svcframework.log`——Phase 3 工单测试终态复跑全绿：pump 3/biz 受管提交 3/tcc fail-fast 5/binder 4/fetcher 3）；`-pl nop-network -am`、`-pl nop-ai -am` = 上条消费面同命令复用；增补 `-pl nop-core-framework -am` BUILD SUCCESS（27 模块，56s；`_tmp/phase4-gate-coreframework.log`，协调者指定终态复跑面）。Phase 2/3 门禁快照引用：`_tmp/phase2-nop-kernel-gate.log`/`_tmp/phase3-gate-svcframework.log`/`_tmp/phase3-gate-network.log`/`_tmp/phase3-gate-ai.log`——注记：svcframework/network 快照时点早于子分片 C 的 api-core 变更（FutureHelper bindCancelToken 注册前补触发），故终态以本次复跑为准、快照仅作演进旁证；ai 快照与子分片 C 同步仍独立复跑覆盖。
+4. **实际触达模块 focused 补登**：nop-spring-web-starter `TestSpringWsEntryContextBinding_C3_012` 2/2（`_tmp/phase4-spi-springws.log`，第五入口断言，不在四大 `-am` 聚合内故单独执行）；nop-quarkus 零 diff（裁定③内置统一形态零改码，无验证义务）；nop-web（C3-005 使用面 follow-up）`TestWebPageExporter` 4/4 + `TestPageProviderPermissionsTransform` 5/5（`_tmp/phase4-spi-focused.log`，throttleExecute 修复消费面行为回归）。
+5. **SPI ×11 回归面留证表（设计 §3.5 全表，裁定⑤零签名变更前提下的实现类回归执行）**：
+
+   | # | 实现类 | 归属模块 | 验证方式与命令 | 结果 |
+   |---|---|---|---|---|
+   | 1 | `Cancellable`（基类） | nop-kernel/nop-commons | E3 `-pl nop-kernel -am`：`TestCancellable` 4/4 + `TestExecutorHelperCancelContract` 7/7 + `TestBindScheduledExecutorCancelPropagation` 8/8（基类继承族行为承载） | PASS |
+   | 2 | `ExecutionContextImpl` | nop-kernel/nop-core | E3 kernel 门禁内 `TestExecutionContextImpl` 3/3 | PASS |
+   | 3 | `ServiceContextImpl` | nop-kernel/nop-core | E3 kernel 门禁内 `TestServiceContextImpl` 6/6 | PASS |
+   | 4 | `TaskRuntimeImpl` | nop-task/nop-task-core | focused `-Dtest=TestPhase4TerminalAndConcurrency,TestChildRuntimeCancelPropagation,TestPlan349Fixes` 25/25 + E1 编译（`_tmp/phase4-spi-focused.log`） | PASS |
+   | 5 | `BlockingSourceConsumeTask` | nop-kernel/nop-commons | 编译验证：E1 编译通过 + nop-commons 模块门禁全绿（无直接单测；生产唯一消费方 `AbstractBatchProcessService` 随模块测试覆盖） | PASS（编译验证） |
+   | 6 | `DefaultTaskExecutionQueue.State` | nop-kernel/nop-core | E3 kernel 门禁内 `TestDefaultTaskExecutionQueue` 10/10 | PASS |
+   | 7 | `RpcMessageSubscriptions.Subscription` | nop-network/nop-rpc-core | 4.3 门禁内 `TestRpcMessageSubscriptions` 5/5 | PASS |
+   | 8 | `PulsarMessageService.PulsarMessageSubscription` | nop-message/nop-message-pulsar | focused `TestPulsarConsumeTask` 24/24 + `TestPulsarConsumeTaskErrorBarrier` 2/2（全 mock 无需 broker）+ E1 编译 | PASS |
+   | 9 | `FailoverStreamFlow.AttemptCancelToken` | nop-ai/nop-ai-gateway | 3.4 门禁内 gateway failover 套件全绿（`TestChatServiceFailoverAdapterStreaming` 20/20 等）+ E1 编译（该类无直接单测，模块套件承载） | PASS |
+   | 10 | `DebeziumMessageSource.Subscription` | nop-message/nop-message-debezium | focused `TestDebeziumErrorBarriers` 3/3 + `TestDebeziumEngineWrapperFailureListener` 4/4 + E1 编译 | PASS |
+   | 11 | `ReplayableCdcSourceFunction.ReplaySubscription` | nop-stream/nop-stream-fraud-example | focused `TestXplSourceCancelE2E` 1/1（真实 runtime cancel 面取消语义 E2E）+ E1 编译 | PASS |
+
+   契约面配套（kernel 门禁内全绿）：`TestApiCoreSpiSurface` 5/5（零签名方法集钉）+ `TestFutureHelperBindCancelContract` 14/14 + `TestContextTaskQueueSyncGetWindow` 3/3 + `TestBaseContextClosedResidueGuard` 4/4 + `TestLimitedExecutorPermitScope` 3/3。×11 全表与 Phase 2 重枚举登记 `_tmp/phase2-spi-enumeration.log` 一致，未发现新增实现类。
+6. **owner doc 变更清单**：①`docs-for-ai/04-reference/source-anchors.md` 新建「api-core 取消与上下文原语锚点（plan 2499 R1-04）」节 = `CANCEL-001`（bindCancel 完成原因判别契约 + ExecutorHelper 清中断 + completeAfterTask/executeWithThrottling 收口）/`CANCEL-002`（bindCancelToken 单点：注册前补触发 + 配对反注册 + appendOnCancel 不承诺补发契约）/`CTX-001`（thenOnContext/executeWithContext 治理口径 + 窗口逃逸形态注记 + newRpcContext 内置 binder + currentContext isClosed 守卫）/`CTX-002`（syncGet endProcessIfIdle 语义）——沿 INSUL/EXEC 先例：设计文档为权威源、按边界规则不直接链接 ai-dev 路径；②`docs-for-ai/02-core-guides/service-layer.md` 新建「异步 biz action 的上下文传播契约」节（受管提交 + 出口挂接 + 入口统一 + fail-fast 面，沿 C8-001 节先例）；③`docs-for-ai/03-modules/nop-ai.md` 工具执行语义节增补「返回 future 取消语义」bullet（Phase 3 交接义务：ToolManagerImpl 取消链面 + 取消能力分档 + 测试锚点）；④nop-network.md 零更新（uploadAsync/downloadAsync 外部行为契约不变，监听器收敛为实现细节，平台单点契约由 CANCEL-002 承载）。
+7. **缺口声明**：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-graphql-grpc/nop-graphql-message/nop-biz-file-core/nop-rpc-api/nop-rpc-core/nop-http-client-jdk/nop-http-client-okhttp/nop-message-pulsar/nop-message-debezium/nop-stream-fraud-example/nop-spring-web-starter）按 R-G 治理轨先例登记不新建（与 plan 2498 Phase 4 缺口登记同口径）；nop-ai-gateway.md 既有条目覆盖 failover 面，本批未改其契约。
+8. **scan-hollow ×5（--severity high）**：nop-kernel / nop-network / nop-core-framework exit 0（high=0）；nop-service-framework exit 1 = 3 处 `ChunkFileUploadHandler`（nop-biz-file-core）UOE——批前既有（最后修改 2026-08-27 `299f7765f0`，本批 diff 零触碰）；nop-ai exit 1 = 4 处 P6b 注释模式命中（`ReActAgentExecutor:1373/:1502`、`PlanReplanner:273` 为描述性注释含 "placeholder" 字样的模式误报，`NoOpProviderFailoverQueue:34` 为 Minimum Rules #24 显式占位声明豁免档）——均批前既有、本批零触碰。7 处全部裁定批前既有 watch-only（沿 2496 先例），不构成本批回归面缺陷。快照 `_tmp/phase4-scanhollow-all.log`。
+9. **零触碰确认 + 构建副作用登记**：`git diff 9a4505c54e..HEAD --name-only` 过滤 nop-tcc / `model/*.orm.xml` / nop-auth 零命中；`.rels` 副作用零命中（批内 diff 干净）。本 Phase 验证过程产生两类构建副作用并即时还原：`nop-kernel/nop-kernel-cli/dependency-reduced-pom.xml`（shade plugin 改写）与 `nop-format/nop-ooxml/nop-ooxml-xlsx/samples/generated-pie-chart/_rels/.rels`（focused 测试触发生成样例再生成，CRLF 行尾翻转）——`git checkout --` 还原，提交面不含。本 Phase 产品代码零改码（diff 仅 docs-for-ai 三文件 + 本 plan + daily log）；绝缘四载体/R1-02 设施语义面零回改复核维持（`git diff 9a4505c54e..HEAD` 无绝缘/设施文件）。
+10. **门禁**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors；2 warnings 为 `ai-dev/plans/nop-ai-agent-design-comparison/` 批前既有项，沿 Phase 1/2/3 同口径登记）。checklist 完整性核对：Phase 3 遗留未勾项 1 处（logs 条目）经事实核对补勾（daily log 10-24.md Phase 3 条目在案）。
 
 ### Phase 5 - closure audit + 收口
 

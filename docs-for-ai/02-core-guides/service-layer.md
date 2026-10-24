@@ -340,6 +340,16 @@ loader（GraphQL 字段装载器）的权限声明有两条等价路径（P1-2.6
 - **keepalive 扇出 O(1)**：JVM 单条共享周期扫描链（`globalTimer().executeOn(globalWorker())` 遍历连接注册表），非每连接一条 timer 周期任务。
 - **边界**：WS 适配器层写超时（`getBasicRemote`→`getAsyncRemote` 族）为 Deferred，successor=R4-16/R4-17。测试锚点：`nop-graphql-core` `TestJsonRpcWsSendOffload_C8_001`/`TestSubscriptionPushOffload_C8_001`。
 
+## 异步 biz action 的上下文传播契约（nop-service-framework，C3-002/C3-007 同族，plan 2499）
+
+BizModel 异步 action（`callActionAsync` 及其执行链）的线程上下文契约——**异步续段不允许脱离请求 `IContext` 执行**（tenant/locale/trace/ORM 会话均按线程上下文解析，脱窗即读空或读残留）：
+
+- **受管提交**：异步 action 的任务提交必须经受管入口（携带调用方 context 快照传播 + 任务 finally detachContext），禁止裸 `executor.execute(...)` 绕过平台约定；`BizActionInvocation.proceedAsync` 在无线附着线程发起时 fail-fast（类型化错误，不静默新建附着）。
+- **异步出口挂接**：action 内 `thenCompose`/`thenAccept` 续段（出口泵、批量 loader、fetcher 变换）统一经 `ContextProvider.thenOnContext` 或 `IContext.execute` 执行窗口承载（见 `../04-reference/source-anchors.md` `CTX-001`）；TCC invoker 同口径——无线附着 fail-fast，恢复写回捕获的 context 对象而非完成线程的 `currentContext()`。
+- **入口统一**：非 HTTP 入口（gRPC/WS/消息/文件）经 `IGraphQLEngine.newRpcContext`（内置 ContextBinder 装配）从消息头构造 context，不自行拼装线程附着。
+
+测试锚点：`nop-graphql-core` `TestGraphQLExecutorContextPump_C3_002`/`TestTccContextInvokerFailFast_C3_008`、`nop-biz` `TestBizActionServiceManagedSubmit_C3_007`、`nop-graphql-orm` `TestAsyncBizActionOrmChain_P3_E2E`。
+
 ## 相关文档
 
 - `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则
