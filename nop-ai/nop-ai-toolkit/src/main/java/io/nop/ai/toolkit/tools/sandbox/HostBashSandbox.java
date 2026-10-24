@@ -1,10 +1,14 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.commons.util.IoHelper;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -14,7 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
  *
  * <p>This is <b>not</b> a fallback and <b>not</b> the default — {@code BashExecutor} never
  * constructs it implicitly. An integrator that wants host execution must wire it explicitly
- * (e.g. {@code new BashExecutor(new HostBashSandbox(config))}).
+ * (e.g. {@code new BashExecutor(new HostBashSandbox(config))}.
  *
  * <p><b>What IS enforced</b>: {@link BashSandboxConfig#getWallSeconds()} (via
  * {@code Process#waitFor} + process-tree kill on timeout), {@link BashSandboxConfig#getMaxOutputBytes()}
@@ -25,6 +29,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * {@code networkMode} require an isolator (cgroup/namespace). The host backend records the
  * configured values but does not honour them — a caller that needs these limits MUST wire
  * {@link DockerBashSandbox}.
+ *
+ * <p><b>Declared output boundary (CRA 3.2-C6-001, plan 2501 Phase 2)</b>: a command that
+ * detaches a background twin ({@code cmd &}) leaves the twin holding the stdout pipe. The
+ * reader thread is terminated by closing the pipe (bounded grace + forced EOF), so no thread
+ * or fd leaks from the sandbox; the twin itself keeps running detached and whatever it writes
+ * after the main process exits is discarded and never attributed to the tool result.
  *
  * <p><b>Fail-closed behaviour</b>: the host backend never falls back to anything (there is
  * nothing below it). A launch failure surfaces as {@link BashSandboxException}
@@ -76,6 +86,10 @@ public final class HostBashSandbox implements IBashSandbox {
             pb.environment().putAll(request.getEnvironmentVariables());
         }
         pb.redirectErrorStream(true);
+        // C6-001 (MA-02, plan 2501 Phase 2): the child's stdin used to stay a PIPE
+        // nobody closes — a `cat`-style command could only be reaped by the wall
+        // timeout. Point stdin at the null device so such commands see EOF.
+        pb.redirectInput(nullInput());
 
         Process process;
         try {
@@ -89,8 +103,12 @@ public final class HostBashSandbox implements IBashSandbox {
 
         int maxBytes = config.getMaxOutputBytes();
         AtomicReference<StringBuilder> capturedRef = new AtomicReference<>();
+        // C4-001 member (MA-02): unique reader name — thread dumps must be able to
+        // attribute a (terminating) reader to its command
+        String readerName = "nop-bash-sandbox-reader-"
+                + (request.getCallId() != null ? request.getCallId() : UUID.randomUUID());
         Thread reader = new Thread(() -> drainStream(process.getInputStream(), maxBytes, capturedRef),
-                "nop-bash-sandbox-reader");
+                readerName);
         reader.setDaemon(true);
         reader.start();
 
@@ -122,11 +140,11 @@ public final class HostBashSandbox implements IBashSandbox {
 
         if (timedOut) {
             killTree(process);
-            awaitReader(reader, config.getWallSeconds());
+            awaitReader(process, reader, config.getWallSeconds());
             return new BashSandboxResult(exitCodeOrNegative(process), capturedToString(capturedRef), "", true);
         }
 
-        awaitReader(reader, config.getWallSeconds());
+        awaitReader(process, reader, config.getWallSeconds());
         int exitCode = exitCodeOrNegative(process);
         return new BashSandboxResult(exitCode, capturedToString(capturedRef), "", false);
     }
@@ -176,7 +194,11 @@ public final class HostBashSandbox implements IBashSandbox {
         } catch (IOException ignored) {
             // keep the partial capture
         } finally {
-            capturedRef.set(captured);
+            // C6-008 (MA-02 member): publish an immutable snapshot — never the live
+            // buffer a (possibly still-draining) reader could keep appending to
+            capturedRef.set(new StringBuilder(captured));
+            // C6-001: release the pipe fd as soon as this drain ends
+            IoHelper.safeClose(in);
         }
     }
 
@@ -185,7 +207,16 @@ public final class HostBashSandbox implements IBashSandbox {
         return sb != null ? sb.toString() : "";
     }
 
-    private static void awaitReader(Thread reader, int wallSeconds) {
+    /**
+     * C6-001 (MA-02, plan 2501 Phase 2): bounded wait for the reader thread with
+     * exit compensation. {@code interrupt()} has no effect on a thread blocked in a
+     * native pipe read (a {@code cmd &} twin process keeps the stdout write end
+     * open, so no EOF arrives) — closing the pipe forces the blocked read to abort,
+     * after which the reader publishes its final snapshot and exits. Residual
+     * boundary: the detached twin keeps running and its output is discarded (see
+     * the class javadoc).
+     */
+    private static void awaitReader(Process process, Thread reader, int wallSeconds) {
         long graceMillis = Math.max(500L, Math.min(2_000L, wallSeconds * 500L));
         try {
             reader.join(graceMillis);
@@ -193,8 +224,14 @@ public final class HostBashSandbox implements IBashSandbox {
             Thread.currentThread().interrupt();
         }
         if (reader.isAlive()) {
+            IoHelper.safeClose(process.getInputStream());
             reader.interrupt();
         }
+    }
+
+    private static ProcessBuilder.Redirect nullInput() {
+        File nul = File.separatorChar == '\\' ? new File("NUL") : new File("/dev/null");
+        return ProcessBuilder.Redirect.from(nul);
     }
 
     private static int exitCodeOrNegative(Process process) {

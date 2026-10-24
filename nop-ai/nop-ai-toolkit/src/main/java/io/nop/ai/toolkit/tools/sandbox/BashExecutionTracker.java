@@ -1,5 +1,7 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.commons.util.IoHelper;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
@@ -86,6 +88,11 @@ public final class BashExecutionTracker {
         }
         execution.process.descendants().forEach(ProcessHandle::destroyForcibly);
         execution.process.destroyForcibly();
+        // C6-001 (MA-02, plan 2501 Phase 2): reader-exit compensation on the cancel
+        // path — closing the pipes forces the (interrupt-insensitive) reader thread's
+        // blocking read to abort even when a detached twin process outlives the kill
+        IoHelper.safeClose(execution.process.getInputStream());
+        IoHelper.safeClose(execution.process.getErrorStream());
         if (execution.cancelAction != null) {
             try {
                 execution.cancelAction.run();

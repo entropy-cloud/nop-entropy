@@ -2,6 +2,8 @@ package io.nop.ai.toolkit.tools.sandbox;
 
 import io.nop.api.core.exceptions.NopException;
 import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
+import io.nop.commons.util.IoHelper;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +39,14 @@ import java.util.regex.Pattern;
  *   <li>{@code maxOutputBytes} → enforced by the stdout-drain loop (truncates rather than erroring).</li>
  *   <li>{@code allowedBaseDirs} → working-directory host-path whitelist (validated before launch).</li>
  * </ul>
+ *
+ * <p><b>Declared output boundary (CRA 3.2-C6-001, plan 2501 Phase 2)</b>: the {@code docker run}
+ * CLI proxy can outlive the container command (a detached process inside the container keeps the
+ * CLI's stdio pipe open). The reader thread is terminated by closing the pipe (bounded grace +
+ * forced EOF), so no sandbox thread or fd leaks; output produced after the CLI's main stream
+ * ends is discarded. Container-side cleanup is best-effort with visible failures — see
+ * {@code killContainer} (plan 2501 Phase 2, C6-002: kill/rm failures log WARN with the
+ * container name so an unaddressable residue is observable and ops-cleanable).
  *
  * <p>Stateless after construction — safe for concurrent use.
  */
@@ -92,6 +102,9 @@ public final class DockerBashSandbox implements IBashSandbox {
         List<String> dockerCmd = buildDockerCommand(containerName, dockerImage, request, config);
 
         ProcessBuilder pb = new ProcessBuilder(dockerCmd).redirectErrorStream(true);
+        // C6-001 (MA-02, plan 2501 Phase 2): the CLI's stdin used to stay a PIPE
+        // nobody closes — point it at the null device (no docker command reads it).
+        pb.redirectInput(nullInput());
         Process process;
         try {
             process = pb.start();
@@ -104,8 +117,12 @@ public final class DockerBashSandbox implements IBashSandbox {
 
         int maxBytes = config.getMaxOutputBytes();
         AtomicReference<StringBuilder> capturedRef = new AtomicReference<>();
+        // C4-001 member (MA-02): unique reader name — thread dumps must be able to
+        // attribute a (terminating) reader to its container run
+        String readerName = "nop-bash-sandbox-docker-reader-"
+                + (request.getCallId() != null ? request.getCallId() : UUID.randomUUID());
         Thread reader = new Thread(() -> drainStream(process.getInputStream(), maxBytes, capturedRef),
-                "nop-bash-sandbox-docker-reader");
+                readerName);
         reader.setDaemon(true);
         reader.start();
 
@@ -136,11 +153,11 @@ public final class DockerBashSandbox implements IBashSandbox {
 
         if (timedOut) {
             killContainer(containerName);
-            awaitReader(reader, config.getWallSeconds());
+            awaitReader(process, reader, config.getWallSeconds());
             return new BashSandboxResult(exitCodeOrNegative(process), capturedToString(capturedRef), "", true);
         }
 
-        awaitReader(reader, config.getWallSeconds());
+        awaitReader(process, reader, config.getWallSeconds());
         int exitCode = exitCodeOrNegative(process);
         String stdout = capturedToString(capturedRef);
 
@@ -309,7 +326,11 @@ public final class DockerBashSandbox implements IBashSandbox {
         } catch (IOException ignored) {
             // keep the partial capture
         } finally {
-            capturedRef.set(captured);
+            // C6-008 (MA-02 member): publish an immutable snapshot — never the live
+            // buffer a (possibly still-draining) reader could keep appending to
+            capturedRef.set(new StringBuilder(captured));
+            // C6-001: release the pipe fd as soon as this drain ends
+            IoHelper.safeClose(in);
         }
     }
 
@@ -318,7 +339,14 @@ public final class DockerBashSandbox implements IBashSandbox {
         return sb != null ? sb.toString() : "";
     }
 
-    private static void awaitReader(Thread reader, int wallSeconds) {
+    /**
+     * C6-001 (MA-02, plan 2501 Phase 2): bounded wait for the reader thread with
+     * exit compensation. {@code interrupt()} has no effect on a thread blocked in a
+     * native pipe read (the CLI proxy's stdio stays held open by a detached process
+     * inside the container) — closing the pipe forces the blocked read to abort,
+     * after which the reader publishes its final snapshot and exits.
+     */
+    private static void awaitReader(Process process, Thread reader, int wallSeconds) {
         long graceMillis = Math.max(500L, Math.min(2_000L, wallSeconds * 500L));
         try {
             reader.join(graceMillis);
@@ -326,8 +354,14 @@ public final class DockerBashSandbox implements IBashSandbox {
             Thread.currentThread().interrupt();
         }
         if (reader.isAlive()) {
+            IoHelper.safeClose(process.getInputStream());
             reader.interrupt();
         }
+    }
+
+    private static ProcessBuilder.Redirect nullInput() {
+        File nul = File.separatorChar == '\\' ? new File("NUL") : new File("/dev/null");
+        return ProcessBuilder.Redirect.from(nul);
     }
 
     private static int exitCodeOrNegative(Process process) {
