@@ -432,4 +432,12 @@ public interface GraphQLErrors {
             "操作权限验证已启用(enable-action-auth={enableActionAuth})但IActionAuthChecker bean缺席，"
                     + "require-auth-checker=true时禁止fail-open跳过权限检查",
             ARG_ENABLE_ACTION_AUTH);
+
+    // C3-008：TCC 入口无线附着 fail-fast（语义化错误，非静默 getOrCreateContext 附着）
+    String ARG_TXN_ID = "txnId";
+
+    ErrorCode ERR_GRAPHQL_TCC_NO_BOUND_CONTEXT = define(API_STATUS_FAIL, "nop.err.graphql.tcc-no-bound-context",
+            "异步调用TCC事务函数时当前线程没有绑定IContext，无法附着TCC事务信息"
+                    + "（事务ID[{txnId}]）。TCC调用必须从持有请求context的线程发起",
+            ARG_TXN_ID);
 }

@@ -12,6 +12,8 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.biz.IBizActionService;
 import io.nop.api.core.biz.IBizHashFunction;
+import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.ioc.IBeanContainer;
 import io.nop.api.core.util.FutureHelper;
@@ -71,12 +73,26 @@ public class BizActionService implements IBizActionService {
 
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
-        Runnable task = () -> {
-            IRpcServiceInvocation inv = newInvocation(actor, bizAction, request);
+        // C3-007：受管提交（裁定③快照+executeWithContext 形态）——提交线程快照调用方 IContext，
+        // 任务体内经捕获 context 的 executeWithContext 附着执行（finally 语义恢复原附着，restore
+        // 由原语承载）。调用方 tenant/locale/trace/callExpireTime 传播到 worker 线程；任务体内的
+        // ServiceContextImpl 字段初始化（getOrCreateContext）捕获的是调用方 context 而非新建/残留
+        // context，消除池线程永久附着与跨任务串号。双分支（executeForPartition/execute）同批闭合。
+        IContext callerContext = ContextProvider.currentContext();
 
-            inv.proceedAsync().whenComplete((res, err) -> {
-                FutureHelper.complete(future, res, err);
-            });
+        Runnable task = () -> {
+            try {
+                if (callerContext != null) {
+                    callerContext.executeWithContext(() -> {
+                        proceedInvocation(actor, bizAction, request, future);
+                        return null;
+                    });
+                } else {
+                    proceedInvocation(actor, bizAction, request, future);
+                }
+            } catch (Throwable e) {
+                FutureHelper.complete(future, null, e);
+            }
         };
 
         try {
@@ -94,6 +110,15 @@ public class BizActionService implements IBizActionService {
         }
 
         return future;
+    }
+
+    private void proceedInvocation(IBizObject actor, String bizAction, ApiRequest<?> request,
+                                   CompletableFuture<ApiResponse<?>> future) {
+        IRpcServiceInvocation inv = newInvocation(actor, bizAction, request);
+
+        inv.proceedAsync().whenComplete((res, err) -> {
+            FutureHelper.complete(future, res, err);
+        });
     }
 
     private IRpcServiceInvocation newInvocation(IBizObject bizObj, String bizAction, ApiRequest<?> request) {

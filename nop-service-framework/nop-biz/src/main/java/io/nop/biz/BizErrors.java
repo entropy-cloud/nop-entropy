@@ -259,4 +259,9 @@ public interface BizErrors {
             define("nop.err.biz.dict-options-exceeds-limit",
                     "对象[{bizObjName}]作为字典的记录数为{count}，超过分页上限{maxCount}，已拒绝返回不完整的字典选项，请由对象的维护方调整数据范围或配置",
                     ARG_BIZ_OBJ_NAME, ARG_COUNT, ARG_MAX_COUNT);
+
+    ErrorCode ERR_BIZ_ASYNC_INVOCATION_NO_CONTEXT =
+            define("nop.err.biz.async-invocation-no-context",
+                    "异步调用业务对象[{bizObjName}]的函数[{actionName}]时当前线程没有绑定IContext，无法解析服务上下文。请在提交异步任务时传播调用方上下文",
+                    ARG_BIZ_OBJ_NAME, ARG_ACTION_NAME);
 }

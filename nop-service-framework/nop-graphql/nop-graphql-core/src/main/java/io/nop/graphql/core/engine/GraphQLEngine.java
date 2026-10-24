@@ -16,6 +16,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.ApiConfigs;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.FutureHelper;
@@ -638,7 +639,7 @@ public class GraphQLEngine implements IGraphQLEngine {
             // 与buildRpcResponse的RPC路径对齐：同一NopException沿链路只记录一次完整堆栈，
             // 避免高频业务校验/鉴权失败在多个日志点重复刷ERROR级日志
             NopException.logIfNotTraced(LOG, "nop.graphql.execute-fail", err);
-            String locale = ContextProvider.currentLocale();
+            String locale = resolveResponseLocale(context);
             ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(locale, err, false, true);
             ret = new GraphQLResponseBean();
             ret.addError(errorBean);
@@ -667,7 +668,7 @@ public class GraphQLEngine implements IGraphQLEngine {
         ApiResponse<?> res;
         if (err != null) {
             NopException.logIfNotTraced(LOG, "nop.graphql.rest-execute-fail", err);
-            String locale = ContextProvider.currentLocale();
+            String locale = resolveResponseLocale(context);
             res = ErrorMessageManager.instance().buildResponseForException(locale, err);
         } else if (result instanceof ApiResponse<?>) {
             res = (ApiResponse<?>) result;
@@ -686,6 +687,24 @@ public class GraphQLEngine implements IGraphQLEngine {
             }
         }
         return res;
+    }
+
+    /**
+     * C3-017：locale 读点 context 优先——响应构建可能发生在异步完成线程，线程上下文为空
+     * 或残留（closed 残留已由平台根因 isClosed 守卫不可观测，open 残留仍可能读到其他请求
+     * 的 locale）。错误消息本地化必须优先取请求自身的 context，线程读取仅作降级兜底
+     * （context 缺席或未携带 locale 时维持既有行为）。
+     */
+    private String resolveResponseLocale(IGraphQLExecutionContext context) {
+        if (context != null) {
+            IContext ctx = context.getContext();
+            if (ctx != null) {
+                String locale = ctx.getLocale();
+                if (StringHelper.isNotEmpty(locale))
+                    return locale;
+            }
+        }
+        return ContextProvider.currentLocale();
     }
 
     protected IAsyncFunctionInvoker getExecutionInvoker(IGraphQLExecutionContext context) {
