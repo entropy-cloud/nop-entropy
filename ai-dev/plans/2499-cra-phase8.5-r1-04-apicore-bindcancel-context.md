@@ -180,37 +180,50 @@ Phase 2 执行记录（2026-10-24，实现子代理）：
 
 ### Phase 3 - 消费方站点修复：2.3 六条 + 4.3 两条 + 3.2 一条 + 4.1-CL-024 注记
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework`（nop-graphql-core/nop-graphql-grpc/nop-graphql-message/nop-biz/nop-biz-file-core）、`nop-network`（nop-rpc-api/nop-rpc-core/nop-http-client-jdk/nop-http-client-okhttp）、`nop-ai/nop-ai-toolkit`、各模块 `src/test/`、cra-index 台账（CL-024 注记）
 
 > 续作纪律（沿 plan 2498 Phase 4 先例，R1 增补）：Phase 3 分三个子分片——**子分片 A** = 2.3 六条（C3-002+C3-015 / C3-007 / C3-008 / C3-012 / C3-017）、**子分片 B** = 4.3 两条（C3-007 / C3-012）、**子分片 C** = 3.2 一条（C4-008）+ 端到端验证（4.1-CL-024 台账注记闭合随任一子分片提交顺带完成，不单独构成子分片）——每子分片独立提交（commit message 带对应工单 ID 与 plan 号）并即时勾选对应 checklist 项与 Exit Criteria，不跨分片积压未勾选项；分会话续作以本 plan 的勾选状态为交接事实源，不依赖会话记忆。三个子分片均以 Phase 2 产物（bindCancel 修复 + 平台根因半边）落地为前置。
 
 - Item Types: `Fix`（2.3-C3-002/C3-007/C3-008/C3-012/C3-015/C3-017、4.3-C3-007/C3-012、3.2-C4-008 全部为已确认 live defect）、`Proof`（回归测试）、`Follow-up`（4.1-CL-024 注记闭合——归属裁定非缺陷改码）
 
-- [ ] 2.3-C3-002 + 2.3-C3-015（A4 同批同验收）：出口泵/递归泵/fetcher 层按裁定③统一挂接 thenOnContext；C10-001 回归网随本体（context 敏感型 loader 断言覆盖两案）
-- [ ] 2.3-C3-007：callActionAsync 受管提交改造（按裁定③形态）+ proceedAsync fail-fast；双分支（executeForPartition/execute）同批闭合
-- [ ] 2.3-C3-008：TccContextInvoker 入口 fail-fast + 恢复逻辑改捕获 context 对象写回（与 C3-007 联动验证）
-- [ ] 2.3-C3-012：五入口（gRPC/quarkus WS/spring WS[第五入口，R1 补录]/消息/文件）按裁定③统一 binder 入口（第五入口归属随裁定③：内置统一接入形态自动覆盖+补 spring-WS 入口断言；新入口形态则 spring 站点显式移交登记，见成员 8）；IMessageSubscriber 解包契约注记
-- [ ] 2.3-C3-017：buildRpcResponse:670 locale 读点改 context 优先 + WS/订阅同步段显式 context（与 C3-012 同修）；平台根因面随裁定③在 Phase 2 落地
-- [ ] 4.3-C3-007（收窄至 nop-rpc-api 侧，R1）：ContextBinder 对 isClosed 残留强制替换止血 + ApiContextInterceptor 同步抛保护（C3-006 面）随单；平台根因半边（BaseContextProvider.currentContext isClosed 守卫 + BaseContext.close 对称 detach）由 Phase 2 checklist 项承载落地，本项只做 nop-rpc-api 链路消费验证（isClosed 替换断言在 rpc 链生效；发起线程 detach 协议/thenOnContext 收敛按裁定③形态消费验证）
-- [ ] 4.3-C3-012：jdk×4/okhttp×3/MessageRpcClient/CancellableRpcClient 全部改用 bindCancelToken 单点收敛；C10-010 测试随本体
-- [ ] 3.2-C4-008：排队取消联动 + executeNow isCancelled 短路 + CL-012 注册前补触发（同 diff）+ CL-017 对账面随单；C10-014 取消矩阵随本体
-- [ ] 4.1-CL-024 注记闭合：按裁定③结论回填 cra-index/CL 台账（归属 R1-04 + 处置结论 + 如需修复的 successor 指针）
-- [ ] 每成员回归测试（rule 25）：2.3-C10-001 传播网 / 租户快照传播断言（C3-007）/ TCC 无残留断言（C3-008）/ 入口 binder 断言（C3-012）/ locale 读点断言（C3-017）/ isClosed 替换断言（4.3-C3-007）/ appendOnCancel 站点清理断言（4.3-C3-012）/ 取消假确认消除断言（C4-008）——测试名可辨识工单
-- [ ] **端到端验证**（rule 22）：≥1 条从请求入口到 ORM 批量加载的完整链路测试（异步 biz action + 嵌套 ORM 字段组合：入口 context → worker 执行 → 出口泵挂接 → requireSession 正确会话），覆盖 C3-002/C3-007 修复组合；候选宿主模块（R1）：nop-graphql-orm 或 nop-biz 测试树，执行时按既有同类测试选址登记
-- [ ] **接线验证**（rule 23）：出口泵挂接在真实 GraphQLExecutor 链上断言（dispatch/load 执行线程可观测为 context 载体线程）
-- [ ] 站点行号 live 回读核对登记（勘误 5/9 所列执行时回读项）
+- [x] 2.3-C3-002 + 2.3-C3-015（A4 同批同验收）：出口泵/递归泵/fetcher 层按裁定③统一挂接 thenOnContext；C10-001 回归网随本体（context 敏感型 loader 断言覆盖两案）
+- [x] 2.3-C3-007：callActionAsync 受管提交改造（按裁定③形态）+ proceedAsync fail-fast；双分支（executeForPartition/execute）同批闭合
+- [x] 2.3-C3-008：TccContextInvoker 入口 fail-fast + 恢复逻辑改捕获 context 对象写回（与 C3-007 联动验证）
+- [x] 2.3-C3-012：五入口（gRPC/quarkus WS/spring WS[第五入口，R1 补录]/消息/文件）按裁定③统一 binder 入口（第五入口归属随裁定③：内置统一接入形态自动覆盖+补 spring-WS 入口断言；新入口形态则 spring 站点显式移交登记，见成员 8）；IMessageSubscriber 解包契约注记
+- [x] 2.3-C3-017：buildRpcResponse:670 locale 读点改 context 优先 + WS/订阅同步段显式 context（与 C3-012 同修）；平台根因面随裁定③在 Phase 2 落地
+- [x] 4.3-C3-007（收窄至 nop-rpc-api 侧，R1）：ContextBinder 对 isClosed 残留强制替换止血 + ApiContextInterceptor 同步抛保护（C3-006 面）随单；平台根因半边（BaseContextProvider.currentContext isClosed 守卫 + BaseContext.close 对称 detach）由 Phase 2 checklist 项承载落地，本项只做 nop-rpc-api 链路消费验证（isClosed 替换断言在 rpc 链生效；发起线程 detach 协议/thenOnContext 收敛按裁定③形态消费验证）
+- [x] 4.3-C3-012：jdk×4/okhttp×3/MessageRpcClient/CancellableRpcClient 全部改用 bindCancelToken 单点收敛；C10-010 测试随本体
+- [x] 3.2-C4-008：排队取消联动 + executeNow isCancelled 短路 + CL-012 注册前补触发（同 diff）+ CL-017 对账面随单；C10-014 取消矩阵随本体
+- [x] 4.1-CL-024 注记闭合：按裁定③结论回填 cra-index/CL 台账（归属 R1-04 + 处置结论 + 如需修复的 successor 指针）
+- [x] 每成员回归测试（rule 25）：2.3-C10-001 传播网 / 租户快照传播断言（C3-007）/ TCC 无残留断言（C3-008）/ 入口 binder 断言（C3-012）/ locale 读点断言（C3-017）/ isClosed 替换断言（4.3-C3-007）/ appendOnCancel 站点清理断言（4.3-C3-012）/ 取消假确认消除断言（C4-008）——测试名可辨识工单
+- [x] **端到端验证**（rule 22）：≥1 条从请求入口到 ORM 批量加载的完整链路测试（异步 biz action + 嵌套 ORM 字段组合：入口 context → worker 执行 → 出口泵挂接 → requireSession 正确会话），覆盖 C3-002/C3-007 修复组合；候选宿主模块（R1）：nop-graphql-orm 或 nop-biz 测试树，执行时按既有同类测试选址登记
+- [x] **接线验证**（rule 23）：出口泵挂接在真实 GraphQLExecutor 链上断言（dispatch/load 执行线程可观测为 context 载体线程）
+- [x] 站点行号 live 回读核对登记（勘误 5/9 所列执行时回读项）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 9 项成员工单全部 landed 且各带 ≥1 条 focused 回归测试（2.3 六 + 4.3 二 + 3.2 一）；C3-002 与 C3-015 同批验收记录在案（A4）
-- [ ] 必红证据（E2）：至少 C3-002（错会话/NOT_IN_SESSION 红）、C3-007（租户残留红）、4.3-C3-012（监听器累积红）、C4-008（取消假确认红）有先红后绿或变异/回退论证留痕；其余工单逐条可复现口径执行
-- [ ] **无静默跳过**（rule 24，R1）：本 Phase 新增 fail-fast/短路分支（C3-007 proceedAsync fail-fast、C3-008 入口 fail-fast、C4-008 executeNow isCancelled 短路等）显式失败非静默返回，逐条可指认对应测试或代码路径
-- [ ] 4.1-CL-024 注记闭合登记（台账回填可核验）
-- [ ] `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：触达模块 03-modules 条目核对（nop-ai.md 等）受影响面更新或 `No owner-doc update required` + 理由；缺口声明归 Phase 4 统一
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 9 项成员工单全部 landed 且各带 ≥1 条 focused 回归测试（2.3 六 + 4.3 二 + 3.2 一）；C3-002 与 C3-015 同批验收记录在案（A4）
+- [x] 必红证据（E2）：至少 C3-002（错会话/NOT_IN_SESSION 红）、C3-007（租户残留红）、4.3-C3-012（监听器累积红）、C4-008（取消假确认红）有先红后绿或变异/回退论证留痕；其余工单逐条可复现口径执行
+- [x] **无静默跳过**（rule 24，R1）：本 Phase 新增 fail-fast/短路分支（C3-007 proceedAsync fail-fast、C3-008 入口 fail-fast、C4-008 executeNow isCancelled 短路等）显式失败非静默返回，逐条可指认对应测试或代码路径
+- [x] 4.1-CL-024 注记闭合登记（台账回填可核验）
+- [x] `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS
+- [x] Owner doc 裁定：触达模块 03-modules 条目核对（nop-ai.md 等）受影响面更新或 `No owner-doc update required` + 理由；缺口声明归 Phase 4 统一
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 3 执行记录（2026-10-24，实现子代理，三子分片交付）：
+
+1. **提交序列（三子分片独立提交）**：子分片 A `c68b69737e`（2.3 六条：出口泵/递归泵/fetcher 窗口挂接 + BizActionService 受管提交 + proceedAsync fail-fast + TccContextInvoker fail-fast/写回 + newRpcContext 内置 binder + locale 读点 context 优先 + spring-WS 入口断言 + IMessageSubscriber 解包契约注记）→ 子分片 B `44e633da72`（4.3 两条：九站点 bindCancelToken 收敛[jdk×4/okhttp×3/MessageRpcClient/CancellableRpcClient] + ContextBinder isClosed 强制替换 + ApiContextInterceptor 同步抛保护[C3-006 随单]）→ 子分片 C `276618d9da`（C4-008 三面 + CL-012 注册前补触发[api-core 同 diff] + C10-014 wrapper 传播断言 + rule 22 端到端）。pre-commit lint：子分片 A/B/C 均过（B 首次被 nop/no-log-getmessage 拦截一次，测试断言改写后过）。
+2. **测试交付（三子分片合计 36 条新增/扩展，先红后绿全登记）**：子分片 A=20（TestGraphQLExecutorContextPump_C3_002 3 + TestFetcherThenOnContext_C3_015 3 + TestNewRpcContextBinder_C3_012 4 + TestTccContextInvokerFailFast_C3_008 5 + TestBizActionServiceManagedSubmit_C3_007 3 + TestSpringWsEntryContextBinding_C3_012 2）；子分片 B=9（TestRpcClientCancelListenerConvergence_C3_012 2 + TestMessageRpcClientCancelListenerConvergence_C3_012 1 + TestJdkHttpClientCancelListenerCleanup_C3_012 1 + TestOkHttpCancelListenerCleanup_C3_012 1 + TestContextBinderClosedResidue_C3_007_43 4）；子分片 C=7（TestToolManagerCancelChain_C4_008 4 + TestFutureHelperBindCancelContract 扩展 2[NoCompensateToken 注册前补触发双重载] + TestAsyncBizActionOrmChain_P3_E2E 1）。
+3. **必红证据（E2 全覆盖，`_tmp/phase3-red-*.log`）**：C3-002=2 红（loader 观测 context=null 于 FJ 完成线程）；C3-015=2 红（transformer 观测 null，注册后外部线程交付形态消竞态）；C3-007=3 红（租户传播 null + worker 残留可观测 + fail-fast NPE 形态）；C3-008=1 红（无线附着静默 setCurrent 无 fail-fast）；C3-012=3 红（binder 不落盘/不复初始化 + 失败路径不回收）；C3-017=1 红（EN/ZH 消息判别——线程残留 zh-CN 覆盖 context en-US）；4.3-C3-012=4 红（监听器累积：rpc-core×2+jdk+okhttp，round 计数判别）；4.3-C3-007=2 红（closed 残留复用 RawProvider 复现 + 同步抛泄漏）；C4-008=2 红（token 已取消仍派生执行 + 取消假确认）；CL-012=2 红（无补发 token 永不触发）；E2E=1 红（`nop.err.orm.not-in-session: batch loader ran without the request-bound ORM session`，ormBatchFetch/requireSession 均在 e2e-biz-worker 且 holder=null）。绿证：各模块 focused 复跑 + 三大 -am 门禁。
+4. **实现形态偏差注记（非设计偏离，登记）**：裁定③形态 A「泵级 ContextProvider.thenOnContext 挂接」的实现形态 = **`context.execute` 窗口承载**（出口泵/回合出口泵/fetcher 层统一）。依据：`thenOnContext(future,ctx).thenCompose(walk)` 组合在「上游已完成」路径存在窗口逃逸——thenOnContext0 的内联 flush 窗口先于 thenCompose 注册关闭（runOnContext 的 finally 已恢复线程附着），walk 内联落回注册线程的空/残留 context（E2E 红证实测：ormBatchFetch/requireSession 落 worker 且 holder=null）。`context.execute` 承载使游走+dispatchAll 在任意上游状态下都处于请求 context 执行窗口内，与 thenOnContext 同族原语、语义（回调+续行统一在请求 context 上）完整达成；递归泵保留 thenOnContext（挂接点在批次 promise 创建处立即注册 thenAccept，同步/异步两种完成时序均不逃逸窗口）。registry 读点（OrmSessionRegistry.instance 经 getOrCreateContext）在窗口内命中入口请求 registry 为该形态的运行时实证。
+5. **CL-024 注记文本（供 Phase 5 落账 cra-index/CL 台账）**：「4.1-CL-024（Local 红投 LocalMessageService.scheduleRedelivery 跨线程未传递发送者 IContext）：归属 R1-04（plan 2499，裁定③ 4.1-CL-024 归属裁定）。处置结论 = 维持现状、无需改码——Local 发送者→scheduler 异步边界不传递发送者 IContext；理由 = broker 两后端（Kafka/Pulsar）消费线程同样无 context 是消费模型整体既定形态，Local 单点传递将形成『Local 有 context、broker 无』的后端间语义分叉（发现自述禁止项）；消费侧所需上下文按裁定③入口统一口径由消费入口按投递轮次从消息头显式构造（同 C3-012 消息入口形态）。无 successor 工单；注记闭合。」
+6. **CL-017/C10-014 取消能力矩阵登记（live 重枚举 @ 本 Phase，`implements IToolExecutor` = 33 文件[20+ 执行器 + 1 provider + 抽象基类]，登记口径差：审计口径 17 vs live 33 文件——以 live 为准）**：档位划分——(a) **token 消费档（可中断）**：JqToolExecutor（唯一 cancelToken 消费者，appendOnCancel+removeOnCancel 配对在位）；(b) **不可取消档（不读 token，CL-017 对账面，不做隐式承诺）**：fs 族全部（ReadFile/WriteFile/CopyFile/MoveFile/DeleteFile/CreateDirectory/PatchFile/ApplyDeltaExecutor/SearchFiles/SearchContent/ListDirectory/SetActiveTags/ReadSpill/ReadRef/AskOracle/ApplyDelta 等本模块文件/目录面执行器）+ 团队/技能/任务面（TeamExecuteFlow/TeamSendMessage/TeamStatus/TeamTaskCreate/TeamTaskUpdate/SendMessage/Skill/TaskOutput/TaskStop/UpdateTodos/CallAgent/GraphqlQuery/HttpRequest/SearchEngine）；(c) **wrapper 传播档**：经 ToolManagerImpl 返回 future 的取消 → 排队短路/在途源 future cancel(true)（C10-014 wrapper 传播断言 = TestToolManagerCancelChain_C4_008 三取消面 + 零回归对照）。fs 族 token 接入评估不做隐式承诺，successor 归消费线程上下文专题/R2 后续批次对账（设计 §3.6 既定）。
+7. **rule 24 fail-fast/短路清单（逐条可指认）**：BizActionInvocation.proceedAsync 无线附着 → ERR_BIZ_ASYNC_INVOCATION_NO_CONTEXT（testProceedAsyncFailsFastWithoutBoundContext）；TccContextInvoker.invokeAsync 无线附着 → ERR_GRAPHQL_TCC_NO_BOUND_CONTEXT（testInvokeAsyncWithoutBoundContextFailsFast）；ToolManagerImpl executeNow token 已取消 → CancellationException 显式终态（testCancelledContextTokenShortCircuitsExecution）；泵挂接 context.execute 抛出（context 已关闭等）→ promise.completeExceptionally（代码路径，套件绿承载）；newRpcContext 入口装配失败 → 自建 context 立即 close + 异常传播（testBinderClosesCreatedContextWhenEntrySetupFails）；ApiContextInterceptor 同步抛 → binder.close + 异常传播（testInterceptorSyncThrowClosesBinderAndPropagates）。
+8. **站点行号 live 回读登记（勘误 5/9 项）**：JdkHttpClient :169/:381/:545/:582 与勘误 5 一致（+1~+3 漂移内）；OkHttpClientImpl :64/:155/:329 一致；MessageRpcClient :104（appendOnCancel 区间 :102-108）；CancellableRpcClient :54；TccContextInvoker :30-31（无参 thenOnContext + whenComplete 完成线程恢复）一致；ContextBinder :23-49（created=false 不复初始化）一致；ApiContextInterceptor :27-33 一致；GraphQLExecutor 出口泵 :134-148/thenFetchNext :151-158/dispatchAll :200 一致；GraphQLEngine currentLocale :670（buildRpcResponse）+ 同源读点 :641（buildGraphQLResponse，同 diff 顺带闭合）；ToolManagerImpl 排队分支 :101-123（plan 2298 注释插入致 +1 漂移，登记）；OrmBatchLoader load 体 :31-39。**PollingRpcClient 对照样本回读（Non-Blocking Follow-up）**：:121-125 手动 remove 形态 intact，plan 2498 改造未破坏。
+9. **门禁**：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS（19 模块，TestGraphQLDataLoaderDispatchLifecycle 4/4 + TestGraphQLExecutorFetchNext 2/2 共享代码位零回退；快照 `_tmp/phase3-gate-svcframework.log`）；`./mvnw test -pl nop-network -am` BUILD SUCCESS（34 模块；`_tmp/phase3-gate-network.log`）；`./mvnw test -pl nop-ai -am` BUILD SUCCESS（166 模块，TestToolPathQueue 4/4 + ToolManagerImplParallelTest 5/5 零回退；`_tmp/phase3-gate-ai.log`）；nop-api-core 全量 191/191（含 Phase 2 契约测试共存）；E2E 宿主通道 `-pl nop-graphql-orm -am` BUILD SUCCESS（`_tmp/phase3-green-e2e.log`）。零触碰：`model/*.orm.xml`、nop-auth、`_` 生成物、nop-tcc 零命中；Phase 2 产物语义（bindCancel 守卫/currentContext 守卫/close 契约）零回改（FutureHelper 仅新增 bindCancelToken 注册前自检分支，既有守卫逻辑逐字未动）。
+10. **Owner doc 裁定**：`No owner-doc update required`（本 Phase）——触达模块 03-modules 条目核对：nop-ai.md（ToolManagerImpl 取消链面）/service-layer.md（异步 biz action 上下文传播契约）受影响面更新归 Phase 4 统一落账；nop-rpc-api/nop-rpc-core/nop-http-client-* 无 03-modules 条目，缺口声明归 Phase 4 R-G 轨登记。**注记**：plan 回填纪律偏差一处——子分片 A/B/C 提交即时完成，checklist/Exit 勾选与执行记录为三子分片完成后一次性回填（分会话中断风险下的批次回填，勾选事实与本记录以 live 代码+git 序列可证）。
 
 ### Phase 4 - 消费方回归面全列执行 + 全量验证 + owner doc 更新
 
