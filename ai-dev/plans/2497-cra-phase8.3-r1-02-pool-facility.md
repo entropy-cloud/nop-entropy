@@ -140,28 +140,40 @@ Exit Criteria:
 
 ### Phase 2 - 2.2-C4-001 nop-config 刷新链隔离/超时站点修复
 
-Status: planned
+Status: completed
 Targets: `nop-core-framework/nop-config/src/main/java/io/nop/config/source/file/AbstractFileConfigSource.java`、`.../jdbc/JdbcConfigSource.java`、`.../jdbc/JdbcConfig.java`、`nop-core-framework/nop-config/src/test/...`
 
 - Item Types: `Fix`（2.2-C4-001 已确认 live defect）、`Proof`（回归测试）
 
-- [ ] 刷新体与调度槽解耦：AbstractFileConfigSource 与 JdbcConfigSource 两站点按 Phase 1 裁定①的同一口径实施（`executeOn(globalWorker)` 范式或模块内 `SingleThreadConfigExecutor` SPI 形态——**两站点同口径**，防各走一套）；站点行号以 live 回读为准（勘误 2）
-- [ ] JDBC 超时两面：`JdbcConfig` 查询路径 queryTimeout + 连接路径 connect/login timeout（`DriverManager.setLoginTimeout` 或 URL 参数形态随批最小定夺），使 DB 分区「占死」退化为「周期性失败重试」；连接超时形态须显式声明作用域选择及波及面——全局（`DriverManager.setLoginTimeout`，JVM 全局静态，波及同进程全部 DriverManager 连接）vs 连接级（URL 参数，仅本配置源连接）——二选一并写明选择理由
-- [ ] 与 R1-01 绝缘设施正交性保持：刷新链仍受 30 点表 #4/#5 设施级覆盖（绝缘覆盖不回退）；卸载后任务体在 worker 池的失败/取消语义与绝缘契约对齐声明（设计文档裁定①矩阵内落账）
-- [ ] 回归测试（rule 25）：①卸载后断言刷新任务体不再运行于 timer 线程（或按裁决形态断言经 Bind 载体 hop 到 worker 池）；②JDBC 超时生效断言（超时参数传导到 Statement/连接——stub 或可观测行为）；③既有 `TestJdbcConfigSourceCallbackIsolation`（C1-021 回归 4 条）与文件源测试（TestFileConfigSourceRefresh/TestFileConfigSourceWalk）零回归
-- [ ] **端到端验证**（rule 22，如适用）：构造→注册 globalTimer 载体→刷新轮次→worker 池执行→变更回调 的完整链路测试（或说明以接线验证 + 站点回归组合覆盖的理由）
-- [ ] **接线验证**（rule 23）：卸载链路运行时断言（刷新轮次任务体执行线程可观测为 worker 池线程，非 timer 线程）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 刷新体与调度槽解耦：AbstractFileConfigSource 与 JdbcConfigSource 两站点按 Phase 1 裁定①的同一口径实施（`executeOn(globalWorker)` 范式或模块内 `SingleThreadConfigExecutor` SPI 形态——**两站点同口径**，防各走一套）；站点行号以 live 回读为准（勘误 2）
+- [x] JDBC 超时两面：`JdbcConfig` 查询路径 queryTimeout + 连接路径 connect/login timeout（`DriverManager.setLoginTimeout` 或 URL 参数形态随批最小定夺），使 DB 分区「占死」退化为「周期性失败重试」；连接超时形态须显式声明作用域选择及波及面——全局（`DriverManager.setLoginTimeout`，JVM 全局静态，波及同进程全部 DriverManager 连接）vs 连接级（URL 参数，仅本配置源连接）——二选一并写明选择理由
+- [x] 与 R1-01 绝缘设施正交性保持：刷新链仍受 30 点表 #4/#5 设施级覆盖（绝缘覆盖不回退）；卸载后任务体在 worker 池的失败/取消语义与绝缘契约对齐声明（设计文档裁定①矩阵内落账）
+- [x] 回归测试（rule 25）：①卸载后断言刷新任务体不再运行于 timer 线程（或按裁决形态断言经 Bind 载体 hop 到 worker 池）；②JDBC 超时生效断言（超时参数传导到 Statement/连接——stub 或可观测行为）；③既有 `TestJdbcConfigSourceCallbackIsolation`（C1-021 回归 4 条）与文件源测试（TestFileConfigSourceRefresh/TestFileConfigSourceWalk）零回归
+- [x] **端到端验证**（rule 22，如适用）：构造→注册 globalTimer 载体→刷新轮次→worker 池执行→变更回调 的完整链路测试（或说明以接线验证 + 站点回归组合覆盖的理由）
+- [x] **接线验证**（rule 23）：卸载链路运行时断言（刷新轮次任务体执行线程可观测为 worker 池线程，非 timer 线程）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 2.2-C4-001 两面（卸载 + 超时）landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：卸载面至少一项先红后绿或变异/回退论证留痕
-- [ ] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：nop-config 无独立 03-modules 条目 → 配置源契约归属 doc（`ioc-and-config.md` 等）核对：若有契约变化随批最小更新，否则显式登记 `No owner-doc update required` + 理由；缺口声明归 Phase 3 统一
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.2-C4-001 两面（卸载 + 超时）landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：卸载面至少一项先红后绿或变异/回退论证留痕
+- [x] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS
+- [x] Owner doc 裁定：nop-config 无独立 03-modules 条目 → 配置源契约归属 doc（`ioc-and-config.md` 等）核对：若有契约变化随批最小更新，否则显式登记 `No owner-doc update required` + 理由；缺口声明归 Phase 3 统一
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 2 执行记录（2026-10-24，实现子代理）
+
+1. **卸载面（两站点同口径，`executeOn(globalWorker())`，按设计 §3.1.4 拒绝 SingleThreadConfigExecutor SPI 形态）**：`AbstractFileConfigSource`（构造器调度注册改 `GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker()).scheduleWithFixedDelay(...)`，原 :45-46 直连消除）与 `JdbcConfigSource`（构造器同形态，原 :60-61 直连消除）——globalTimer 只承载触发（调度槽），刷新任务体（Files.walk 目录遍历 / JDBC 全量查询）hop 到 globalWorker 执行。`refreshFuture.cancel(false)`/`refreshTaskFuture.cancel(false)` 关闭语义零改动（InsulatedPeriodicChain cancel 契约：在飞轮次自然执行完毕、后续轮次不再触发）。
+2. **JDBC 超时两面（m5 作用域声明）**：作用域裁定 = **连接级 + 语句级**，只作用于本配置源自身的连接与查询；**拒绝 `DriverManager.setLoginTimeout` 全局静态**——JVM 全局静态波及同进程全部 DriverManager 连接（跨模块副作用），且 login timeout 只覆盖建连、不覆盖 socket 读挂起（审计指认的占死根因 = MySQL 缺省 socketTimeout=0 无限读阻塞）。落地：①连接级 = `JdbcConfig` 新增 `connectTimeout`（默认 10s）/`socketTimeout`（默认 60s）Duration 配置键（`nop.config.jdbc.connect-timeout`/`socket-timeout`），`createConnection` 经 `buildConnectionUrl()` 以 URL 参数（毫秒，MySQL Connector/J/MariaDB 参数名）传导；URL 已带同名参数不重复追加，显式配置 ≤0/null = 停用该面（非 MySQL/MariaDB 驱动参数名不同的逃生通道）；②语句级 = `JdbcConfig.queryTimeout`（默认 60s，`nop.config.jdbc.query-timeout`），`JdbcConfigSource.loadConfig` 经 `applyQueryTimeout(stm)` 传导到 `Statement.setQueryTimeout`（秒粒度，正值不足 1s 向上取整，防亚秒配置静默失效为无超时）。默认有限值使 DB 分区默认（而非运维显式配置才）从「占死」退化为「周期性失败重试」。契约载体 = `JdbcConfig` 类内 javadoc。
+3. **绝缘正交性（C1-021 零回改自证）**：`JdbcConfigSource` diff 仅两处——构造器调度行（卸载）与 `loadConfig` 语句行（超时传导）；`tryTriggerChange`/`callbackErrorCount` per-callback 隔离体零触碰（git diff 核验）。卸载后任务体执行路径 = timer 触发 → BindScheduledExecutor hop → worker 线程执行 `refreshConfig` → `tryTriggerChange` 回调循环，隔离语义（捕获边界 Throwable、callbackErrorCount<10 抑制、整轮成功清零）不因执行线程改变；`TestPeriodicTaskInsulation` 9 条全绿（Bind 载体周期方法路由绝缘核心，30 点表 #10–13 设施级覆盖保持）。
+4. **回归测试（rule 25，全部测试名带工单标识 `_C4_001`）**：`TestFileConfigSourceWorkerOffload`（2 条：调度轮次任务体线程接线断言 + 端到端调度→worker→变更回调链）、`TestJdbcConfigSourceWorkerOffload`（2 条：卸载链端到端 + 坏回调隔离共存的 C1-021 正交性链路；语句级 queryTimeout 接线断言）、`TestJdbcConfigTimeout`（7 条：默认有限值行为钉、URL 参数追加/续接/不重复追加/显式停用、queryTimeout 按秒传导 + 亚秒取整、语句级停用面）。
+5. **端到端与接线验证（rule 22/23）**：两站点各 1 条真实 globalTimer/globalWorker 单例端到端链路测试（构造 → 注册载体 → 调度轮次 → worker 池执行 → 变更快照回写 → 变更回调触发）；接线断言 = 刷新任务体/回调执行线程名 `startsWith("nop-global-worker")` 且非 `nop-global-timer`（线程名可观测）。
+6. **必红证据（E2，先红后绿）**：4 条新测试先对修复前基线跑红（快照 `_tmp/phase2-c4-001-offload-red.log`：文件源任务体线程 `nop-global-timer-1-3`、JDBC 任务体线程 `nop-global-timer-1-2`、queryTimeout 传导 `null`——缺陷签名 = 直连 timer 线程 + 无超时）→ 修复后全绿（`_tmp/phase2-c4-001-offload-green.log`，Tests run: 11, Failures: 0）。
+7. **验证与门禁**：`./mvnw test -pl nop-core-framework -am -Dsurefire.failIfNoSpecifiedTests=false` EXIT=0（快照 `_tmp/phase2-nop-config-gate.log`），含既有回归零失败：`TestJdbcConfigSourceCallbackIsolation` 4 条（C1-021）、`TestFileConfigSourceRefresh` 3 条、`TestFileConfigSourceWalk` 1 条、`TestPeriodicTaskInsulation` 9 条（nop-commons，绝缘门禁）+ 本 Phase 新增 11 条。
+8. **Owner doc 裁定**：`No owner-doc update required`（本 Phase）——`ioc-and-config.md` 现文仅覆盖配置优先级/环境变量映射/`nop.datasource.*` 数据源绑定，不承载配置源刷新链与 `nop.config.jdbc.*` 键契约（grep 全 docs-for-ai 零命中）；卸载契约的 owner doc 归宿 = Phase 3 source-anchors.md 新建 GlobalExecutors/globalTimer 锚点条目（隔离卸载规约行，内容源 = 设计 §3.1），超时契约已随 `JdbcConfig` javadoc 就地成文；nop-config 无 03-modules 条目的缺口声明按 plan 既定归 Phase 3 统一登记。
+9. **零触碰确认**：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物（git status 过滤验证）；Phase 1 设施面（GlobalExecutors/ExecutorHelper/Default*Executor/CommonConfigs/CommonErrors）零改动；R1-01 绝缘载体（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/IPeriodicTaskListener）零改动。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
