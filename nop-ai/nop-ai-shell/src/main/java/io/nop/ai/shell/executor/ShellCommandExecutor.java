@@ -19,7 +19,7 @@ import io.nop.ai.shell.parser.BashSyntaxParser;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.FutureHelper;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.util.IoHelper;
 
 import java.io.Closeable;
@@ -36,11 +36,36 @@ public class ShellCommandExecutor implements Closeable {
 
     static final Logger LOG = LoggerFactory.getLogger(ShellCommandExecutor.class);
 
+    /**
+     * CRA 3.2-C4-004 (plan 2498 Phase 4): name of the dedicated pipeline pool
+     * created when no executor is injected — pipeline stages are identifiable
+     * in thread dumps and isolated from the platform {@code nop-global-worker}
+     * pool and from the foreground bash tool pool.
+     */
+    public static final String DEFAULT_PIPELINE_POOL_NAME = "nop-ai-shell-pipeline";
+
+    /**
+     * Default pipeline pool width. Sized against the deployment envelope
+     * "max concurrent shell sessions x max pipeline stages per pipeline";
+     * threads are created lazily on demand, so this is an upper bound.
+     */
+    static final int DEFAULT_PIPELINE_POOL_SIZE = 32;
+
+    /** Default bounded pipeline stage queue depth (saturation rejects loud). */
+    static final int DEFAULT_PIPELINE_QUEUE_SIZE = 1024;
+
     private final ShellCommandRegistry registry;
     private final Executor executor;
     private final ICommandChecker checker;
     private final ExternalCommandAdapter externalAdapter;
     private final IToolFileSystem fileSystem;
+
+    /**
+     * The pipeline pool created internally by the default-carrier assembly
+     * (null when an executor was injected — an injected executor is not owned
+     * by this instance and is never shut down by {@link #close()}).
+     */
+    private final DefaultThreadPoolExecutor ownedExecutor;
 
     private Map<String, String> exportedEnv = new HashMap<>();
     private String currentWorkingDir = "/";
@@ -55,9 +80,32 @@ public class ShellCommandExecutor implements Closeable {
      */
     private volatile IBackgroundJobSink backgroundJobSink;
 
+    /**
+     * CRA 3.2-C4-004 (plan 2498 Phase 4): a null {@code executor} no longer
+     * falls back to the platform global worker pool — pipeline stages (and
+     * other submitted stage tasks) previously shared {@code nop-global-worker}
+     * with every other platform consumer (core=4/max=30/queue=10000), so
+     * unrelated load amplified pipeline latency and the deep queue masked
+     * saturation. The default assembly now creates a dedicated named bounded
+     * module pool ({@value #DEFAULT_PIPELINE_POOL_NAME}, built through the
+     * R1-02 fail-fast validated factory) isolated from the platform worker
+     * pool and from the foreground bash tool pool; pool parameters target the
+     * "max concurrent sessions x max pipeline stages" envelope. An explicitly
+     * injected executor keeps precedence (embedders can still wire their own
+     * pool); the internally created pool is owned by this instance and is
+     * shut down by {@link #close()}.
+     */
     public ShellCommandExecutor(ShellCommandRegistry registry, Executor executor, ICommandChecker checker, IToolFileSystem fileSystem) {
         this.registry = registry;
-        this.executor = executor != null ? executor : GlobalExecutors.globalWorker();
+        DefaultThreadPoolExecutor owned = null;
+        if (executor != null) {
+            this.executor = executor;
+        } else {
+            owned = DefaultThreadPoolExecutor.newExecutor(DEFAULT_PIPELINE_POOL_NAME,
+                    DEFAULT_PIPELINE_POOL_SIZE, DEFAULT_PIPELINE_QUEUE_SIZE, true);
+            this.executor = owned;
+        }
+        this.ownedExecutor = owned;
         if (checker == null) {
             LOG.warn("ShellCommandExecutor constructed without a command checker: dangerous commands are not filtered");
         }
@@ -638,6 +686,13 @@ public class ShellCommandExecutor implements Closeable {
         // (addressable + cancellable through its taskId channel) — close() no
         // longer tracks or cancels them.
         closed = true;
+        // CRA 3.2-C4-004: an internally-created pipeline pool is owned by this
+        // executor — shut it down on close (graceful; daemon threads cannot
+        // block JVM exit). An injected executor is not owned and is left
+        // untouched.
+        if (ownedExecutor != null) {
+            ownedExecutor.destroy();
+        }
     }
 
     public Map<String, String> getExportedEnv() {
