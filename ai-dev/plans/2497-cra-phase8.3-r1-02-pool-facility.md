@@ -177,28 +177,38 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/03-modules/nop-job.md`；触达模块 owner doc 归属核对
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 且登记；实际触达模块（勘误 1 清单中实际产生 diff 者）focused 测试逐条登记（模块/测试数/退出码/快照路径）
-- [ ] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`source-anchors.md` **新建** GlobalExecutors/globalTimer 锚点条目（容量语义、池工厂校验契约、cached 上界与熔断语义、隔离卸载规约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径）；`nop-job.md` 调度契约核对（`nopRpcPollScheduledExecutor`/`nopJobScheduledExecutor` 专用池 bean 契约、RpcPollTaskManager globalTimer fallback、六、绝缘契约节——受 C4-001 容量语义与 C4-006 热更语义影响面更新，或登记 `No owner-doc update required` + 理由）
-- [ ] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-js/nop-socket/nop-shell 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 且登记；实际触达模块（勘误 1 清单中实际产生 diff 者）focused 测试逐条登记（模块/测试数/退出码/快照路径）
+- [x] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`source-anchors.md` **新建** GlobalExecutors/globalTimer 锚点条目（容量语义、池工厂校验契约、cached 上界与熔断语义、隔离卸载规约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径）；`nop-job.md` 调度契约核对（`nopRpcPollScheduledExecutor`/`nopJobScheduledExecutor` 专用池 bean 契约、RpcPollTaskManager globalTimer fallback、六、绝缘契约节——受 C4-001 容量语义与 C4-006 热更语义影响面更新，或登记 `No owner-doc update required` + 理由）
+- [x] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-js/nop-socket/nop-shell 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] source-anchors 锚点条目落地 + nop-job.md 核对结论登记；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] source-anchors 锚点条目落地 + nop-job.md 核对结论登记；check-doc-links --strict 退出码 0
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+#### Phase 3 执行记录（2026-10-24，实现子代理）
+
+1. **E1 全量构建（授权支路，理由声明）**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（453/453 模块、0 FAILURE、01:00 min wall，快照 `_tmp/phase3-full-build-skiptests.log`）。支路理由：本批全部行为面回归已在 Phase 1/2 按 rule 25 落地并各有必红证据（E2 四项变异红 + Phase 2 先红后绿在案）；聚焦门禁（下条）已承载行为验证，全仓通道在此之上以编译面为增量目标——沿 plan 2496 Phase 5 同支路先例（skipTests 全仓 + 聚焦测试组合覆盖）。
+2. **批行验证命令（E3）逐条登记**：①`./mvnw test -pl nop-kernel -am` BUILD SUCCESS EXIT=0（17 模块全 SUCCESS，02:29 min；nop-api-core 165 条 + nop-commons 388 条零失败，nop-commons 含设施回归 `TestThreadPoolFacilityHardening` 7 条 + 绝缘门禁 `TestPeriodicTaskInsulation` 9 条；快照 `_tmp/phase3-nop-kernel-gate.log`）；②`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS EXIT=0（26 模块全 SUCCESS，57.3s；nop-ioc 72 条 + nop-config 51 条零失败，nop-config 含 Phase 2 新增 11 条 + C1-021 回归 4 条 + 文件源回归 4 条；快照 `_tmp/phase3-nop-core-framework-gate.log`）。实际产生 diff 的消费方模块（nop-batch-exp/nop-js）已在 Phase 1 各自聚合门禁绿（nop-batch `-am` / nop-js `-f` 通道，Phase 1 执行记录 §7 登记）；产品代码自 Phase 2 提交（`b2de7b3bd7`）后冻结，Phase 3 仅改 docs，快照证据继续有效。
+3. **零触碰确认**：`git diff 8ff0cb6d74..HEAD --name-only`（21 文件）过滤 nop-tcc / nop-api-core（io.nop.api.core.*）/ `model/*.orm.xml` / nop-auth / `_` 前缀生成物 = 全部 0 命中；本轮全仓构建副作用 `nop-kernel/nop-kernel-cli/dependency-reduced-pom.xml`（CRLF churn，plan 2496 既有登记同因）已还原，`.rels` 样例副作用本轮未重现；Phase 3 工作面 = 纯 docs 两文件（nop-job.md / source-anchors.md）+ 本 plan 与 daily log。
+4. **Owner doc 落账（两份）**：①source-anchors.md 新建「平台池设施锚点（plan 2497 R1-02）」节——`EXEC-001`（GlobalExecutors/DefaultScheduledExecutor 设施本体 + globalTimer 调度槽契约：阻塞任务体强制 `executeOn(globalWorker())` 卸载 + 五条直连豁免判据 + 容量语义[新权威键 `nop.commons.concurrent.global-timer.corePoolSize` 默认 4 / 旧键 `global-timer.maxPoolSize` 废弃带回读单次 WARN，无静默断档]）、`EXEC-002`（池工厂 fail-fast 校验契约[参数域 + `nop.err.commons.concurrent.invalid-thread-pool-param`] + cached 上界键 `nop.commons.concurrent.cached-pool.maxPoolSize` 默认 200 + 达界熔断 REE[`cached-pool-saturated`] + 热更语义[core≤max 重排/scheduled core-only 专用路径/init-only 声明面]）、`EXEC-003`（LocalResourceLockManager 豁免声明——内存锁表遍历非 DB 阻塞 + `setCleanupTimer` 注入缝可用，裁定①矩阵 A3 行义务闭环）；派生摘要标注以设计文档为准、按边界规则不直接链接 ai-dev 路径（沿 `INSUL-001` 先例）。②nop-job.md 调度契约核对结论 = 既有「六、周期任务异常绝缘契约」节只承载 R1-01 绝缘语义、不覆盖 C4-001 容量与 C4-006 热更影响面 → **最小补注**新增「七、调度载体容量与热更契约」节（两个 `DefaultScheduledExecutor` 专用载体 corePoolSize 唯一旋钮 + scheduled core-only 热更路径 + `RpcPollTaskManager` globalTimer fallback 纯内存豁免面 + executeOn 卸载纪律指针 → EXEC 锚点）。
+5. **缺口声明（沿 R-G 治理轨先例）**：实际 diff 触达模块中无 `docs-for-ai/03-modules/` 条目者 = nop-core-framework（nop-config，Phase 2 已裁定无独立条目）与 nop-frontend-support（nop-js，reactor 外模块）——按 plan 2496 Phase 5 先例在本执行记录 + daily log 登记交 R-G owner-doc drift 治理轨，不在本批新建 owner doc；nop-kernel/nop-commons 为平台设施，owner 归宿即本批新建 source-anchors EXEC 锚点（非缺口）；nop-batch.md 存在但既有文本 grep ExportDbTool/ImportDbTool/cachedThreadPool/globalTimer 零命中（无契约文本涉本批改动面）→ 零改动声明；nop-socket/nop-shell 实际 diff 零触达（SocketServer/ShellRunner 为 Deferred 消费方治理项，未改码）。
+6. **scan-hollow**：`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel --severity high` 与 `--module nop-core-framework --severity high` 均 EXIT=0（high=0 零发现，含批前既有发现 = 0，无登记义务；快照 `_tmp/phase3-scanhollow-nop-kernel.txt` / `_tmp/phase3-scanhollow-nop-core-framework.txt`）。
+7. **门禁**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（owner doc 两份 + plan/daily log 回填后终态复跑在案）。
 
 ### Phase 4 - closure audit + 收口
 

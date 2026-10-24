@@ -465,6 +465,14 @@ nop-job 的全部周期调度链（本地模式触发循环、coordinator 各 sc
 
 nop-job 各 scanner 的公共基类 `AbstractBatchScanner`：`scanOnce` 全周期体（含 try-外段 `cursor.reset()`/`onCycleStart()`）为 Throwable 宽度守卫，异常经 `onScanCycleFailed(Throwable)` 上报（带 scanner 名日志 + cycle/failure 计数与时间戳指标），链由绝缘设施重臂；仅提交拒绝（链真死）时 `running=false` 状态真实化。子类既有 `onScanFailed(Exception)` override 签名保持不变。
 
+## 七、调度载体容量与热更契约（plan 2497 R1-02）
+
+nop-job 的调度载体与平台全局池设施（锚点见 `../04-reference/source-anchors.md`「平台池设施锚点」节 `EXEC-001`/`EXEC-002`）共享同一契约：
+
+- **容量语义（ScheduledThreadPoolExecutor 固有）**：模块两个专用调度载体 `nopJobScheduledExecutor`（nop-job-local，见 1.3 节）与 `nopRpcPollScheduledExecutor`（nop-job-coordinator，见 REST Worker 模式节，大小由 `nop.job.remote.poll-threads` 配置）均为 `DefaultScheduledExecutor`——容量唯一旋钮 = corePoolSize，STPE 的 maxPoolSize 是惰性展示字段。globalTimer fallback 的容量由平台权威键 `nop.commons.concurrent.global-timer.corePoolSize`（默认 4）驱动；旧键 `global-timer.maxPoolSize` 已废弃，仅在旧键显式配置且新键未配置时回读生效并记单次 WARN，不存在「配了不认」的静默断档。
+- **热更语义**：上述 `DefaultScheduledExecutor` bean 的运行期热更走 scheduled 专用路径 = core-only 对齐（无 max 钳制、core ≤ 0 类型化异常）；queueCapacity/daemon 为 init-only，热更不生效。
+- **调度槽使用纪律**：globalTimer（含 `RpcPollTaskManager` 的 globalTimer fallback——任务体 pollOnce 为纯内存 deadline/cancel 检查，属平台处置矩阵豁免面）只承载触发与轻量内存操作；阻塞 I/O 或时长无上界的任务体一律经 `executeOn(globalWorker())` 卸载到 worker 池。周期任务的失败/存活语义（重臂、绝缘）见上文第六节。
+
 ---
 
 ## 子模块
