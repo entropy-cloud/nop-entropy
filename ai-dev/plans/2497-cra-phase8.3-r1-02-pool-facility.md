@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Draft Review: R1 agent_077adf2e（0 Blocker、3 Major[M1 LocalResourceLockManager 迁移分支无承载/M2 ScheduledRecoveryManager 移交漏列/M3 提交纪律缺失]+5 Minor——修订子 agent_d12c6b14 全量应用，Major 复核通过后 active）
+> Design Review: 设计文档 `pool-facility-hardening.md` 独立评审 agent_e8485aca（B-1 Blocker+M-1+2m → 修订 agent_91cae018 落盘 @ 工作区 → 增量复核**通过进入实现**；评审结论已登记，实现以修订版设计为唯一基准）
 > Last Reviewed: 2026-10-24
 > Source: roadmap 工作项 8.3（R1-02，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L145，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-02 行（L63：finding ID 清单 5 项 / PA 授权 / 依赖标注 / exit criteria 增补）；成员发现详情 = 各单元审计目录（见 Current Baseline 逐条回读路径）；执行基线 @ `8ff0cb6d74`（分支 `concurrency-audit-remediation`，roadmap 8.1/8.2 已 done，plan 2495/2496 均 completed；本 Baseline 全部行号为该基线 live 回读值）
 > Related: plan 2496（R1-01 绝缘层批，completed——已落地 `IScheduledExecutor` 绝缘核心与 `INSUL-001/002` 锚点，与本批共享 `io.nop.commons.concurrent.executor` 代码位，交互边界见 Non-Goals 与 Phase 1 裁定⑥）；plan 2495（R1-00 P0 确认批，completed）/ plan 2493/2494（批次划分与 Phase 8 展开）；**下游依赖本批**：R1-03（硬依赖，9 项消费方按本批平台族口径落地；含 4.2-C4-003 两面映射本批设施面闭合）、R4-13（硬依赖 R1-02）、R4-32（软依赖 R1-02）、R2-16（软依赖 R1-02/R1-03，globalTimer 约束解除链）、R4-21（MA-16「不得指向 globalTimer」约束在 R1-03 落地后解除）

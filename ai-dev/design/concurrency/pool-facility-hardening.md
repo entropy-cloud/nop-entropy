@@ -1,16 +1,16 @@
 # 平台池设施加固设计（globalTimer 容量语义与池工厂契约）
 
 > Status: active
-> Last Reviewed: 2026-10-24（plan 2497 Phase 1a 产出，独立 draft review 待批）
+> Last Reviewed: 2026-10-24（plan 2497 Phase 1a 产出；评审修订 agent_91cae018 落盘（B-1/M-1/m-1/m-2）；增量复核 agent_e8485aca 通过进入实现）
 > Source: plan 2497（`ai-dev/plans/2497-cra-phase8.3-r1-02-pool-facility.md`）Phase 1 裁定①–⑥；发现事实源 = C4-round2 §① 28 消费方分类终表 + §② 池参数纪律矩阵（`ai-dev/audits/2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency/C4-round2.md`，引用按 plan Baseline 勘误 4 终裁修正口径）+ plan Current Baseline 五成员 live 回读
 > 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（GlobalExecutors / ExecutorHelper / DefaultThreadPoolExecutor / DefaultScheduledExecutor）+ `nop-kernel/nop-commons/src/main/java/io/nop/commons/CommonConfigs.java`
 
 ## 一、设计结论
 
-1. **裁定①（平台族契约）**：globalTimer 是全平台共享的**调度槽**（scheduling slot），不是执行体池。契约 =「调度槽只承载触发与轻量内存检查；阻塞 I/O / 时长无上界的任务体强制经 `executeOn(globalWorker())` 载体 hop 到 globalWorker 执行」。C4-round2 §① 终表 28 文件命中（消费方 27 文件 + 设施本体）逐一落四类处置矩阵：设施级覆盖 14、站点侧接入（本批 Phase 2）2、移交 R1-03 4、移交 R-G 治理轨 6、豁免+声明义务 1——禁止静默缺处置；R1-03 全部 9 项消费方工单按同一契约口径传导；4.2-C4-003 两面映射在本矩阵内闭合。
+1. **裁定①（平台族契约）**：globalTimer 是全平台共享的**调度槽**（scheduling slot），不是执行体池。契约 =「调度槽只承载触发与轻量内存检查；阻塞 I/O / 时长无上界的任务体强制经 `executeOn(globalWorker())` 载体 hop 到 globalWorker 执行」。C4-round2 §① 终表 28 文件命中（消费方 27 文件 + 设施本体）+ 终表外新增登记 1（D5）逐一落处置矩阵：终表 27 消费方文件按五类处置无缺位——设施级覆盖 14、站点侧接入（本批 Phase 2）2、移交 R1-03 4、移交 R-G 治理轨 6、豁免+声明义务 1；加终表外新增登记 1（D5）＝28 消费方文件全处置——禁止静默缺处置；R1-03 全部 9 项消费方工单按同一契约口径传导；4.2-C4-003 两面映射在本矩阵内闭合。
 2. **裁定②（容量语义）**：globalTimer 容量走**新配置键** `nop.commons.concurrent.global-timer.corePoolSize`（默认 4，= 现行实际生效容量，零行为变化）；旧键 `nop.commons.concurrent.global-timer.maxPoolSize` 废弃、显式配置时回读 + 单次 WARN。`ExecutorHelper.newScheduledExecutor` 移除对调用方 config 对象的 `setMaxPoolSize(0)` 副作用改写；scheduled 形态的容量旋钮唯一为 corePoolSize（JDK ScheduledThreadPoolExecutor 固有），maxPoolSize 为惰性展示字段。对外 API 零签名变更。
 3. **裁定③（池工厂校验）**：两条工厂入口（`DefaultThreadPoolExecutor.newExecutor` 三参/四参重载与 `ExecutorHelper.newThreadPoolExecutor` 配置重载）补 fail-fast 校验：poolSize ≥ 1、queueSize ≥ 1、配置路径 core ≤ max（或显式 cached 形态 max < 0），违例抛 `NopException`（新错误码 `nop.err.commons.concurrent.invalid-thread-pool-param`），杜绝裸 JDK IAE 与静默 cached 语义。`Integer.MAX_VALUE` 队列保留为显式无界形态 + 创建期 WARN。live 12 个工厂路径站点全量兼容核对（3 缺陷面随批修复 + 9 合格零改动/输入硬化声明）。
-4. **裁定④（cached 上界与熔断）**：nop-cached-thread-pool 全局共享池获得可配置上界：新配置键 `nop.commons.concurrent.cached-pool.maxPoolSize`（默认 200，构造期读取）；`newThreadPoolExecutor` 的 `maxPoolSize<0` cached 分支同步改为读取同一上界（无上界 cached 形态自平台废除）。达界提交获得显式拒绝信号（REE，注册错误键 `nop.err.commons.concurrent.cached-pool-saturated`，携带池名与上界）——熔断信号在进程濒死前可见。
+4. **裁定④（cached 上界与熔断）**：nop-cached-thread-pool 全局共享池获得可配置上界：新配置键 `nop.commons.concurrent.cached-pool.maxPoolSize`（默认 200，构造期读取）。`GlobalExecutors.cachedThreadPool` 维持 `maxPoolSize=-1` 作为显式 cached 标记，上界由 `newThreadPoolExecutor` 的 `maxPoolSize<0` cached 分支构造期统一读取该键施加——该分支是平台唯一 cached 表达形，cachedThreadPool 经 `DefaultThreadPoolExecutor.init()` 进入此分支（无上界 cached 形态自平台废除）。达界提交获得显式拒绝信号（REE，注册错误键 `nop.err.commons.concurrent.cached-pool-saturated`，携带池名与上界）——熔断信号在进程濒死前可见。
 5. **裁定⑤（收缩语义与热更面）**：`ExecutorHelper.updateThreadPool` 尺寸变更按「JDK 不变量 core ≤ max 在每次 setter 后成立」重排：真缩容先降 core 再降 max（修复缩容必炸裸 IAE），放大先升 max 再对齐 core（去预抬，消除线程创建-销毁抖动）；`refreshConfig` 捕获剩余 `IllegalArgumentException` 转 `NopException`。热更支持面 = core/max/keepAliveSeconds；queueCapacity 与 daemon 为 init-only 面（成文声明，不补齐——Deferred 节 watch-only 残留随此成立）；allowCoreThreadTimeOut/threadPriority 死旋钮维持零读取（归 C4-011/R4-13，本批不越界承接）。`DefaultScheduledExecutor.refreshConfig` 改为 scheduled 形态专用路径：仅对齐 corePoolSize、不经通用 `updateThreadPool`、无 max 钳制——与裁定②「scheduled 容量 = core」语义一致。
 6. **裁定⑥（与 R1-01 绝缘层共享代码位边界）**：本批设施面改动不触碰绝缘语义载体——`InsulatedPeriodicTask` / `InsulatedPeriodicChain` / `PeriodicTaskHelper` / `IPeriodicTaskListener`、`DefaultScheduledExecutor` 的 `periodicTasks` 登记表与 `destroy()` 拒绝路径、`ExecutorHelper.schedule` 的 bindCancel 面（C3-016/R1-04）零改动；`TestPeriodicTaskInsulation` 9 条 + 下游绝缘回归为共享代码位改动的回归门禁。
 
@@ -36,9 +36,9 @@ R1-01 绝缘层（[periodic-task-insulation.md](periodic-task-insulation.md)）�
 | 豁免判据 | 同时满足四条方可直连：(a) 任务体纯内存、成本有界且毫秒级；(b) 无阻塞 I/O；(c) 非每连接/每租户扇出形态；(d) 一次性延迟任务或周期性内存检查。豁免判据即新代码评审规则（owner doc 锚点归 Phase 3 落 source-anchors） |
 | 绝缘正交 | 本契约闭「占用」面；R1-01 绝缘闭「链存活 + 失败可见」面。executeOn 载体（BindScheduledExecutor）的周期方法已路由绝缘核心（30 点表 #10–13 设施级覆盖），卸载改造不得回退绝缘覆盖 |
 
-#### 3.1.2 消费方处置矩阵（终表 28 命中 → 27 消费方文件逐行，禁止静默缺处置）
+#### 3.1.2 消费方处置矩阵（终表 28 命中 → 27 消费方文件逐行 + 终表外新增登记 1（D5）＝28 消费方文件全处置，禁止静默缺处置）
 
-计数口径：C4-round2 §① 终表 28 文件命中 = 27 个消费方文件 + 设施本体 `GlobalExecutors.java`（grep 命中源，非消费方）。`FileWatcher.java` 为 CLI 族的载体接收方（经构造注入 executor，非 `globalTimer()` 直呼点），并入 CLI 族行。行号为 live 回读值；与审计载值漂移处统一登记于表尾。
+计数口径（终表消费方文件）：C4-round2 §① 终表 28 文件命中 = 27 个消费方文件 + 设施本体 `GlobalExecutors.java`（grep 命中源，非消费方）；D5（`JobWorkerScannerImpl`，plan 2496 看门狗引入）为终表外新增登记站点，计入本矩阵、不占终表 27 文件口径。`FileWatcher.java` 为 CLI 族的载体接收方（经构造注入 executor，非 `globalTimer()` 直呼点），并入 CLI 族行。行号为 live 回读值；与审计载值漂移处统一登记于表尾。
 
 **A 类（直连占线程，长任务能力）**
 
@@ -58,7 +58,7 @@ R1-01 绝缘层（[periodic-task-insulation.md](periodic-task-insulation.md)）�
 
 | # | 站点 | 任务体 | 终裁处置 |
 |---|---|---|---|
-| B1–B6 | `DefaultBizEntityExporter.java:72`、`ExcelReportHelper.java:124`、`ReportDemoBizModel.java:155`、`ReportController.java:133`（demo）、`DownloadHelper.java:39`、`ShellRunner.java:226` | 临时文件删除 / 进程销毁清理（一次性 schedule） | **设施级覆盖**：满足豁免判据 (a)(b)(d)——毫秒级文件删除 + 一次性形态；链存活由 R1-01 绝缘设施级兜底；容量面由裁定②修复后配置真实生效 + 卸载规约控制增量 |
+| B1–B6 | `DefaultBizEntityExporter.java:72`、`ExcelReportHelper.java:124`、`ReportDemoBizModel.java:155`、`ReportController.java:133`（demo）、`DownloadHelper.java:39`、`ShellRunner.java:226` | 临时文件删除 / 进程销毁清理（一次性 schedule） | **设施级覆盖**：豁免依据以 (a) 有界毫秒级 + (d) 一次性为主；(b) 无阻塞 I/O 加「本地常规文件系统」限定方成立——NFS 等网络文件系统挂起场景下删除调用可阻塞，此类部署应改走 executeOn 卸载；链存活由 R1-01 绝缘设施级兜底；容量面由裁定②修复后配置真实生效 + 卸载规约控制增量 |
 
 **C 类（executeOn 自救，合格防线）——设施级覆盖，零改码**
 
@@ -77,7 +77,7 @@ R1-01 绝缘层（[periodic-task-insulation.md](periodic-task-insulation.md)）�
 | D4 | `ClusterRpcProxyFactoryBean.java:43` | 同 D3（同一注入面两行） | **移交 R1-03**：同 D3，同一工单 |
 | D5 | `JobWorkerScannerImpl.java:383`（终表外新增站点，plan 2496 MA-05/MA-06 看门狗引入） | scheduleInvokeWatchdog：一次性延迟的纯内存观测检查（ERROR 日志 + 计数，永不终结任务） | **设施级覆盖**：满足豁免判据 (a)(b)(d)（一次性 + 纯内存）；登记于本矩阵防静默缺处置 |
 
-处置统计：设施级覆盖 14（B1–B6、C1–C6、D1、D2、D5）/ 站点侧接入 2（A1、A2）/ 移交 R1-03 4（A4、A5、D3、D4）/ 移交 R-G 治理轨 6（A6、A7–A9）/ 豁免+声明义务 1（A3）。合计 27 行，无静默缺处置。
+处置统计（终表消费方文件口径）：设施级覆盖 14（B1–B6、C1–C6、D1、D2）/ 站点侧接入 2（A1、A2）/ 移交 R1-03 4（A4、A5、D3、D4）/ 移交 R-G 治理轨 6（A6、A7–A9）/ 豁免+声明义务 1（A3）——终表 27 文件按五类无缺位；另有终表外新增登记 1（D5，见 D 类表）。合计 28 消费方文件全处置，无静默缺处置。
 
 > 行号漂移登记：审计载 → live = AbstractBatchScanner :135→:221、RetryScannerImpl :166→:241、AbstractPollingLeaderElector :19→:74、AutoRegistration :205→:206、CliRunCommand :90→:108、ScheduledRecoveryManager :361→:360-362、JdbcConfigSource :54→:60。成因 = plan 2496（R1-01）同仓改造与常规漂移；矩阵以 live 为准。
 
@@ -115,7 +115,7 @@ R1-03 全部 9 项工单（batch-proposal §二 R1-03 行）按本节契约落�
 
 | cra-index 行 | 追加注记内容 |
 |---|---|
-| P1 台账 `nop-kernel-concurrency-C4-001` 行（L193） | 平台族裁定权威 = 本设计 §3.1；处置矩阵 27 行（设施级覆盖 14 / 站点侧接入 2 / 移交 R1-03 4 / 移交 R-G 6 / 豁免+声明 1）；移交清单：ScheduledRecoveryManager→R1-03、JsonRpcWebSocketHandler→R1-03（2.3-C8-001 合并）、ClusterRpcServiceInvoker/ClusterRpcProxyFactoryBean→R1-03（4.2-C4-003）、SysDaoNamingService→R-G、CLI 族 5 文件（CliRunCommand/CliWatchCommand/FileWatcherFactory/CliWatchZipCommand/ZipFileWatcher）→R-G；4.2-C4-003 两面映射闭合 |
+| P1 台账 `nop-kernel-concurrency-C4-001` 行（L193） | 平台族裁定权威 = 本设计 §3.1；处置矩阵 = 终表 27 消费方文件按五类无缺位（设施级覆盖 14 / 站点侧接入 2 / 移交 R1-03 4 / 移交 R-G 6 / 豁免+声明 1）+ 终表外新增登记 1（D5）＝28 消费方文件全处置；移交清单：ScheduledRecoveryManager→R1-03、JsonRpcWebSocketHandler→R1-03（2.3-C8-001 合并）、ClusterRpcServiceInvoker/ClusterRpcProxyFactoryBean→R1-03（4.2-C4-003）、SysDaoNamingService→R-G、CLI 族 5 文件（CliRunCommand/CliWatchCommand/FileWatcherFactory/CliWatchZipCommand/ZipFileWatcher）→R-G；4.2-C4-003 两面映射闭合 |
 | P2-G22 行（1.7-C8-003，L386） | cached 上界与熔断基线 = 本设计 §3.4；R1-03 在该基线上评估 batch 兜底池形态（与 G25 行互查防重复立项） |
 | P2-G25 行（C4-003/C4-004/C4-006，L389） | 工厂校验契约 = §3.3；缺陷面 3 调用方随 R1-02 修复；C10-010 成员面验收前置随本体 |
 | P2-G32 行（2.2-C4-001，L396） | 卸载口径 = §3.1.4（executeOn(globalWorker)，两站点同口径）；JDBC 超时两面取向 = 连接级 URL 参数 + queryTimeout |
@@ -175,14 +175,14 @@ R-G 治理轨登记条目（A6、A7–A9）：随 Phase 3 缺口声明一并登�
 | 9 | `GrpcServer.java:82` | 配置重载 | 合格；硬化声明：core>max 配置从 init 裸 IAE 变类型化异常（C4-003 F3 扩展面闭合） |
 | 10 | `DefaultTaskExecutionQueue.java:145` | 配置重载 | 合格；同 #9 |
 | 11 | `GlobalExecutors.globalWorker`（直构造 init，`GlobalExecutors.java:85-96`） | 配置（core 默认 4 / max=CFG 30 / queue 默认 10000） | 合格，零改动 |
-| 12 | `GlobalExecutors.cachedThreadPool`（直构造 init，`GlobalExecutors.java:71-83`） | 配置（max=-1） | **本批改码**（裁定④：max → CFG 上界值） |
+| 12 | `GlobalExecutors.cachedThreadPool`（直构造 init，`GlobalExecutors.java:71-83`） | 配置（max=-1） | 合格，零改动：`maxPoolSize=-1` 维持为显式 cached 标记，上界由裁定④ cached 分支构造期统一施加 |
 
-> 计数口径对账：plan Phase 1 义务书「11 调用点（3 缺陷 + 8 合格）」；live 逐站枚举 = 12 站点（3 随批修复 + 9 合格/随批）。差异为计数口径（GlobalExecutors 两个直构造 init 站点按「一个工厂路径口」或「两站点」计），处置无缺位——12 站点全部在矩阵内，禁止静默缺处置原则以此为准。
+> 计数口径对账：plan Phase 1 义务书「11 调用点（3 缺陷 + 8 合格）」；live 逐站枚举 = 12 站点（3 随批修复 + 9 合格零改动/硬化声明）。差异为计数口径（GlobalExecutors 两个直构造 init 站点按「一个工厂路径口」或「两站点」计），处置无缺位——12 站点全部在矩阵内，禁止静默缺处置原则以此为准。
 
 ### 3.4 裁定④：cached 共享池上界与熔断语义
 
-- **配置项**：`nop.commons.concurrent.cached-pool.maxPoolSize`（Integer，**默认 200**——审计建议量级；构造期读取，热更不生效，属裁定⑤ init-only 声明面）。`GlobalExecutors.cachedThreadPool()` 的 config 改设 `maxPoolSize = CFG` 值（不再设 -1）。
-- **分支语义改写**：`ExecutorHelper.newThreadPoolExecutor` 的 `maxPoolSize<0` 分支（`ExecutorHelper.java:81-83`）从「0 / 2³¹-1 / SynchronousQueue」改为同形态**有界** cached（上界 = 上述配置）。该分支与 GlobalExecutors.cachedThreadPool 的关系裁定：**共用同一上界配置**——分支是平台唯一的 cached 表达形，若仅给全局池加界而保留分支的无上界形态，等于保留缺陷形态（C4-004 本体 = 无上界线程突发无信号）；统一后全部 cached 形态池受同一默认上界保护，个体差异以 Standard 形态（有界队列弹性池）表达。
+- **配置项**：`nop.commons.concurrent.cached-pool.maxPoolSize`（Integer，**默认 200**——审计建议量级；构造期读取，热更不生效，属裁定⑤ init-only 声明面）。`GlobalExecutors.cachedThreadPool()` 的 config **维持 `maxPoolSize = -1`** 作为显式 cached 标记，不改设上界值——其经 `DefaultThreadPoolExecutor.init()` → `newThreadPoolExecutor` 进入 cached 分支，上界由分支统一读取该键施加（与 §3.3 兼容矩阵 #12 零改动结论一致）。
+- **分支语义改写**：`ExecutorHelper.newThreadPoolExecutor` 的 `maxPoolSize<0` 分支（`ExecutorHelper.java:81-83`）从「0 / 2³¹-1 / SynchronousQueue」改为同形态**有界** cached（core 0 / SynchronousQueue / keepAlive 60s 不变，maximumPoolSize = 上述配置键构造期读取值）。该分支与 GlobalExecutors.cachedThreadPool 的关系裁定：**cachedThreadPool 经 init() 进入本分支，两者天然共用同一上界配置**——分支是平台唯一的 cached 表达形，若仅给全局池加界而保留分支的无上界形态，等于保留缺陷形态（C4-004 本体 = 无上界线程突发无信号）；统一后全部 cached 形态池受同一默认上界保护，个体差异以 Standard 形态（有界队列弹性池）表达。
 - **达界拒绝语义（熔断信号）**：cached 池注册显式 `RejectedExecutionHandler`（Abort 语义不变——不排队不丢弃），抛 `RejectedExecutionException`，消息 = 注册错误键 `nop.err.commons.concurrent.cached-pool-saturated`（params：池名、上界值；错误码随裁定③一并落 `CommonErrors`）。类型选择理由：`Executor.execute` 契约通道是 REE（JDK 语义 + Standard 族既有先例 `nop.err.thread-pool-executor.queue-full`），抛 NopException 违背 Executor 契约；可辨识性由注册错误键与参数达成。达界信号出现在「第 201 个并发提交」，早于线程创建失败的进程濒死点——熔断可见性目标达成。
 - **7 消费面行为变化核对**（全部零改码，设施级覆盖）：
 
@@ -224,11 +224,11 @@ applyResize(executor, target):
 
 成文载体：javadoc + Phase 3 source-anchors 锚点条目。plan Deferred 节「updateThreadPool 热更面补齐——仅当裁定⑤选择成文声明不补齐时成立」随本裁定成立（watch-only residual，Successor Required = no）。
 
-**DefaultScheduledExecutor 热更一致性（与裁定②联动）**：`DefaultScheduledExecutor.refreshConfig`（`DefaultScheduledExecutor.java:70-78`）改为 scheduled 形态专用路径：仅将 `config.corePoolSize` 对齐到 STPE（≤ 0 输入 → 裁定③错误码类型化异常；`IllegalArgumentException` 同样 catch 转类型化）；**不经通用 `updateThreadPool`、无 max 钳制分支**——否则新键配置的 core 值大于惰性默认 max=20 时会被静默钳回，复刻死配置形态。两个 nop-job IoC bean（`nopRpcPollScheduledExecutor` / `nopJobScheduledExecutor`，C4-006 实证可达面）的热更行为随之 = core-only 对齐。`refreshConfig` 改写不触碰 `periodicTasks` 登记表与 destroy 拒绝路径（见 3.6）。
+**DefaultScheduledExecutor 热更一致性（与裁定②联动）**：`DefaultScheduledExecutor.refreshConfig`（`DefaultScheduledExecutor.java:70-78`）改为 scheduled 形态专用路径：仅将 `config.corePoolSize` 对齐到 STPE（≤ 0 输入 → 裁定③错误码类型化异常；`IllegalArgumentException` 同样 catch 转类型化）。此处与上方 TPE 侧 `core > max` 热更输入的「钳制 + WARN」构成**有意的不对称**，理由：STPE core≤0 无合法钳制目标——core=0 的 STPE 永不执行任务，钳制等于制造静默死配置，故失败前置（热更期类型化异常）优于静默永不执行；而 TPE core>max 存在合法收敛目标（max），钳制 + WARN 不中断热更派发链且满足显式告示义务；**不经通用 `updateThreadPool`、无 max 钳制分支**——否则新键配置的 core 值大于惰性默认 max=20 时会被静默钳回，复刻死配置形态。两个 nop-job IoC bean（`nopRpcPollScheduledExecutor` / `nopJobScheduledExecutor`，C4-006 实证可达面）的热更行为随之 = core-only 对齐。`refreshConfig` 改写不触碰 `periodicTasks` 登记表与 destroy 拒绝路径（见 3.6）。
 
 ### 3.6 裁定⑥：与 R1-01 绝缘层共享代码位边界
 
-**触碰面（本批设施改动）**：`ExecutorHelper` 的 `newScheduledExecutor`（去改写 + 校验）、`newThreadPoolExecutor`（校验 + cached 分支上界 + 拒绝 handler）、`updateThreadPool`（顺序修正）；`DefaultThreadPoolExecutor`（init 校验接线、refreshConfig 类型化）；`DefaultScheduledExecutor.refreshConfig`（专用热更路径）；`GlobalExecutors`（globalTimer/cachedThreadPool 构造语义）；`CommonConfigs`（配置键）；`CommonErrors`（错误码）。
+**触碰面（本批设施改动）**：`ExecutorHelper` 的 `newScheduledExecutor`（去改写 + 校验）、`newThreadPoolExecutor`（校验 + cached 分支上界 + 拒绝 handler）、`updateThreadPool`（顺序修正）；`DefaultThreadPoolExecutor`（init 校验接线、refreshConfig 类型化）；`DefaultScheduledExecutor.refreshConfig`（专用热更路径）；`GlobalExecutors`（globalTimer 构造语义；cachedThreadPool 维持 `maxPoolSize=-1` cached 标记零改动，上界经 cached 分支施加）；`CommonConfigs`（配置键）；`CommonErrors`（错误码）。
 
 **不触碰面（绝缘语义载体，硬边界）**：
 
