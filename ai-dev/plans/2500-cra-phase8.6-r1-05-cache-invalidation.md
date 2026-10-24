@@ -3,7 +3,7 @@
 > Plan Status: active
 > Draft Review: R1 agent_b9afee28（0 Blocker、4 Major[F1 自愈通道覆盖面不对称/F2 单点修复位机械判定缺失/F3 TestXplTask 批外缺陷污染无预案/F4 墙钟敏感点登记+测试缝]+3 Minor——修订 agent_c85f2713 全量应用[live 回读后落笔]，active）
 > Design Review: 设计文档 `cache-invalidation-single-point.md` 独立评审 agent_27b2c138（M-1 宽限重载风暴规范缺口+M-2 触发集/source-compat 缺口+4 Minor → 修订 agent_104312c7 落盘 → 增量复核**通过进入实现**；裁定本体全部维持，12 行编辑点集合零扩张）
-> Last Reviewed: 2026-10-24
+> Last Reviewed: 2026-10-25
 > Source: roadmap 工作项 8.6（R1-05，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L148，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-05 行（L66：finding ID 清单 4 项 / PA 授权 / 依赖标注 / exit criteria 增补）+ §四.3 授权落批表（框架核心引擎 plan-first → R1-05 行）；家族底表 = family-clustering §三 R24 缓存失效传播缺口族行（L68，chain18）+ §四 跨单元重复消解 #4 行（L592，2.3-C9-002 → 2.1-C9-010 同一缺陷别名裁定）；成员发现详情 = WI 2.1 审计目录 `ai-dev/audits/2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency/`（C7-long-running.md C7-007 条目+终裁详记 §三、C9-hot-path.md C9-001 条目、C9-round2.md C9-010 条目[F3 补全 6 使用方]、C10-test-protection.md C10-005 条目+N3）与 WI 2.3 审计目录 `ai-dev/audits/2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency/`（C9-hot-path.md C9-002 条目、merge-adjudication.md A10 跨单元并入裁定）；执行基线 @ `06867400b2`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.5 已 done，plan 2495/2496/2497/2498/2499 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
 > Related: plan 2496（R1-01 绝缘层批，completed——C3-015 已随彼批落地，与本批同族 G24 组行的已收敛成员）；plan 2497（R1-02 池设施批，completed——plan-first 小批范式与 source-anchors 新建锚点先例[EXEC-001~003]）；plan 2498（R1-03 池消费方批，completed）/ plan 2499（R1-04 api-core 批，completed）；plan 2495（R1-00，completed）；plan 2493/2494（批次划分与 Phase 8 展开）；**下游/联动**：R3-05（roadmap 8.35，5.5 rule-metadata 批——5.5-W-03/C7-R2-001 规则热更新失效传播缺口本体修复归彼批；R24 族行裁定「2.1 C7-007 单点修复若涉失效判据须联动 5.5-W-03 验证」，本批 Phase 3 承载联动验证+注记）；R3-02（roadmap 8.32，5.2 sys-dyn 批——R24 族第 5 成员 5.2-I-04 已裁定归彼批「照抄函数级先例」，本批判据形态为其先例输入）；R2-01（2.1 剩余批——同文件相邻面 C2-001[ResourceCacheEntry 锁纪律]/C2-002/C2-017/C1-003/C1-014 彼批落地，同文件改动顺序边界见裁定⑥）；R4-32（R28 墙钟批——`ResourceCacheEntry.isRefreshEnabled`/`lastLoadTime` 的 currentTimeMillis 敏感点归彼批，本批零触碰声明见裁定⑥）
 > Protected Area 授权：本批触碰 **nop-kernel 内部（框架核心引擎）= plan-first Protected Area**。授权来源 = AGENTS.md「Protected Areas」表框架核心引擎行 + batch-proposal §四.3 授权落批表（「框架核心引擎（nop-kernel/nop-core-framework 内部）plan-first（设计文档+回归测试）→ R1-01、R1-02、R1-05、……」行）+ 本 plan Dependencies 声明：**设计文档为本批 Phase 1 产物（`ai-dev/design/`），回归测试为各 Phase 强制义务（rule 25）**。plan-first 前置在 Phase 1 内闭环：设计文档落地并经独立 draft review 后，Phase 1 内实现项与 Phase 2–4 方可推进。**连带声明（nop-auth ask-first 触发评估）**：单点修复纪律下 6 直连使用方（含 nop-auth-service `DefaultDataAuthChecker`）预期**零改码**——修复位在 nop-kernel/nop-core 设施层，使用方经公开协议自动受益；若 Phase 1 裁定④改选逐点修形态且需改 `nop-auth-service` 代码，则触发 AGENTS.md「权限/认证模型（nop-auth）ask-first」，须升级用户询问后方可实施，本 plan 不预设该授权，也不默认选择该分支。本批不触碰 `nop-api-core`（io.nop.api.core.*）、不触碰 `model/*.orm.xml`。
@@ -178,31 +178,44 @@ Phase 2 执行记录（2026-10-25，实现子代理，纯验证零改码）：
 
 ### Phase 3 - 5.5-W-03 联动验证注记（R3-05）+ 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/04-reference/source-anchors.md`；触达模块 owner doc 归属核对；cra-index/日志中的 R3-05 联动注记
 
-- Item Types: `Proof`
+- Item Types: `Proof`（+ `Fix`：E1 门禁揭出本批判据修复引入的真实回归——宽限记录时刻锚致 xpl 组件模型虚假重载破坏编译 scope 实例身份，修复=裁定①载体单点内宽限锚改写入年龄，见执行记录 §1）
 
-- [ ] 5.5-W-03 联动验证（R24 族行义务，默认成立）：按裁定⑥选型执行——nop-rule 规则链 focused 冒烟（规则热更新场景在本批判据下行为正确：定义行变更 → 失效传播不受判据变更遮蔽）或失效链代码审查证明本批判据变更不改变 W-03 缺陷前提（traceDepends 钉定粒度缺口）与 R3-05 修复面；联动注记落 cra-index 对应行/日志，R3-05 执行时可依赖（**不得静默跳过**）
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明，沿 2497/2499 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`（Phase 1 已留证则终态复跑）+ Phase 2 补列命令 BUILD SUCCESS 且登记；实际触达模块 focused 测试逐条登记（模块/测试数/退出码/快照路径）
-- [ ] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth（默认分支）、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
-- [ ] R4-32 注记：本批新增墙钟敏感点清单（按裁定⑥(a)——宽限期/记忆化 TTL/时间戳缓存 TTL 等新增 `CoreMetrics.currentTimeMillis` 消费点；零新增则显式登记「零新增」）落 cra-index/日志注记，声明 R4-32 换源面覆盖新增点
-- [ ] Owner doc 更新：`source-anchors.md` **新建**模型缓存锚点条目（check-changed 判据契约与窗口语义、门语义与直连使用方协议、TTL/兜底语义、ResourceTimestampCache 裁定结果——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径，沿 `INSUL-001`/`EXEC-001` 先例）
-- [ ] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（以实际 diff 为准）按 R-G 治理轨先例登记，不在本批新建 owner doc；nop-core 为平台设施，owner 归宿即本批新建锚点（非缺口）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel --severity high`（+实际触达模块）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 5.5-W-03 联动验证（R24 族行义务，默认成立）：按裁定⑥选型执行——nop-rule 规则链 focused 冒烟（规则热更新场景在本批判据下行为正确：定义行变更 → 失效传播不受判据变更遮蔽）或失效链代码审查证明本批判据变更不改变 W-03 缺陷前提（traceDepends 钉定粒度缺口）与 R3-05 修复面；联动注记落 cra-index 对应行/日志，R3-05 执行时可依赖（**不得静默跳过**）
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明，沿 2497/2499 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-kernel -am`（Phase 1 已留证则终态复跑）+ Phase 2 补列命令 BUILD SUCCESS 且登记；实际触达模块 focused 测试逐条登记（模块/测试数/退出码/快照路径）
+- [x] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth（默认分支）、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
+- [x] R4-32 注记：本批新增墙钟敏感点清单（按裁定⑥(a)——宽限期/记忆化 TTL/时间戳缓存 TTL 等新增 `CoreMetrics.currentTimeMillis` 消费点；零新增则显式登记「零新增」）落 cra-index/日志注记，声明 R4-32 换源面覆盖新增点
+- [x] Owner doc 更新：`source-anchors.md` **新建**模型缓存锚点条目（check-changed 判据契约与窗口语义、门语义与直连使用方协议、TTL/兜底语义、ResourceTimestampCache 裁定结果——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」，按边界规则不直接链接 ai-dev 路径，沿 `INSUL-001`/`EXEC-001` 先例）
+- [x] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（以实际 diff 为准）按 R-G 治理轨先例登记，不在本批新建 owner doc；nop-core 为平台设施，owner 归宿即本批新建锚点（非缺口）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel --severity high`（+实际触达模块）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] W-03 联动验证结论 + R3-05 注记落账（载体可独立核验）；无静默跳过
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] source-anchors 模型缓存锚点条目落地（新建）；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 触达模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] W-03 联动验证结论 + R3-05 注记落账（载体可独立核验）；无静默跳过
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] source-anchors 模型缓存锚点条目落地（新建）；check-doc-links --strict 退出码 0
+- [x] scan-hollow 触达模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 3 执行记录（2026-10-25，实现子代理；含 E1 门禁揭出回归的发现-修复-重验全链）：
+
+1. **E1 门禁揭出本批判据修复引入的真实回归（Blocker 发现与处置）**：E1 首跑 `clean install -T 1C -DskipTests`（404 模块 SUCCESS 后）于 nop-auth-meta precompile 失败：`nop.err.xlang.import-multiple-lib-conflicts`——同一模板编译 scope 内同名 tag 以两个不同 `XplLibTagCompiler` 实例注册（`XLangBlockScope._addTagCompiler` 按实例身份判等 `old != cp` 即抛）。**根因**：Phase 1b 落地的宽限锚按「记录时刻」判定（判据值记录后 G=2s 内一律保守重检）——同一 xlib 在加载后 100ms（refresh-min-interval 记忆化过期）~2s 窗口内的二次 `loadComponentModel` 被虚假重载（零真实文件变更），返回新 `XplTagLibModel` 实例，破坏 XPL 模板编译 scope 的实例身份假设。**三态证据**：确定性探针（`loadComponentModel("/nop/core/xlib/meta-gen.xlib")` 间隔 300ms 两次）修复前 HEAD `same=false`（`_tmp/phase3-probe-head.log`）/ 基线 `1c00e6431e` 反事实 worktree `same=true`（`_tmp/phase3-probe-baseline.log`）/ HEAD+G=0 `same=true`（`_tmp/phase3-probe-head-g0.log`）；基线全量构建（2026-10-14 `_tmp/build-baseline-full.log`）无此错误。**处置**：AskUserQuestion 询问未获回复，按最佳判断执行**裁定①载体单点内修订（方案 A：宽限锚改写入年龄）**——`isChangeRecord` 宽限条件改为 `0 ≤ now - current < G`（仅「文件最近 G 内真实被写过」才保守重检；future-mtime 退化为纯相等比较），写入年龄随墙钟推进自然退出宽限，无需伴随锚簿记；窗口一防护在「文件真被刚写过」场景完整保留（语义上更精确：可疑窗口本就是写入后一个 tick 内）。连带效果：`recordedAt`/3-arg 宽限协议不再有裁决语义整体移除——`IResourceChangeChecker`/`ResourceComponentManager`/`ResourceDependencySet` **回归基线零 diff，编辑点表 12 行收敛为 9 行（集合收缩非扩张）**；设计文档已同步修订（裁定①/§3.1.1/3.1.2/3.1.3 修订注记/§四拒绝表新增记录时刻锚否决行/裁定⑥措辞）。残留：文件真在 G 内被写过时仍可能保守重载（语义即防护本意）——该窄场景下实例身份敏感消费方仍可能受累，登记 watch-only residual，xlang scope 按 lib 路径判重的身份容忍列 plan Non-Blocking Follow-ups（批前既有脆性，非本批新增面）。
+2. **修复后 E2 重验**：MUTATION-A 重验（移除写入年龄裁决 → 纯相等）`testWindowOneSameTickDoubleWriteTriggersReload` 红 `expected: <d2> but was: <d1>` + TenantAware 穿透 2 红（`_tmp/phase3-red-mutation-a.log`，3 红）；还原后同集合 8/8 绿（`_tmp/phase3-restore-verify.log`）。修复回归钉 = nop-xlang 新增 `TestXplLibLoadIdentity#testOldMtimeLibLoadedTwiceKeepsIdentity`（E1 原始失败形态同路径二次加载断言同实例；先红[修复前 HEAD]后绿[修复后]）。
+3. **测试适配（写入年龄语义）**：`TestDefaultResourceChangeChecker` 8 条重写（verdict 直测改 4 参签名+写入年龄注入+future-mtime 钉）；`TestResourceDependencySet` 4 条删除（判据值二元组/宽限锚簿记主体随修订废除，覆盖由 verdict 直测+链路测试承接）；`TestResourceDependsInvalidation` 5 条适配（recordedAt 断言删除、宽限 walk 测试改 dep 写入年龄注入、frozen-copy 改断言 lastModified）；`TestResourceCacheEntryGate` 风暴钉与 `TestTenantAwareCacheDelegation` 双宽限钉改「最近被写过」mtime 注入。nop-core 触达 7 测试类 29 条全绿（`_tmp/phase3-nopcore-focused3.log`）。
+4. **E1 重跑（修复后）**：`./mvnw clean install -T 1C -DskipTests` **BUILD SUCCESS**（`_tmp/phase3-e1-fullbuild2.log`）——E1 门禁阻塞解除；shade plugin `dependency-reduced-pom.xml` 构建副作用即时还原（沿 2499 先例）。
+5. **E3 终态复跑**：`./mvnw test -pl nop-kernel -am` **BUILD SUCCESS**（20 模块，`_tmp/phase3-e3-kernel.log`）；`./mvnw test -pl nop-service-framework -am` **BUILD SUCCESS**（50 模块，`_tmp/phase3-e3-svcfw3.log`）——前两轮 flake triage：run1 nop-commons `TestExecutorHelperCancelContract#testScheduleSuccessDoesNotCancelUnderlyingFutureTask` 计时型 flake（kernel 门禁同套件绿 + solo 重跑 7/7 绿，`_tmp/phase3-flaky-retest1.log`）；run2 nop-core 链路 3 测试 reactor 负载敏感（nop-core 全量 535/535 绿 `_tmp/phase3-nopcore-full.log` + kernel 门禁同套件绿；沿 plan 2499 Phase 4 flake triage 先例裁定非本批回归）。
+6. **5.5-W-03 联动验证（结论，双形态）**：(a) **失效链代码审查**——本批产品 diff 零触碰 nop-rule（git 过滤零命中），`DaoRuleModelLoader:84` `traceDepends` 只钉定义行的缺陷前提原样保留；`ResourceDependsManager` 钉定登记语义（`traceDepends`/`addDependency`）零改动（diff 仅 collectDepends m1/m2 窗口二原子化 + isDependencyChanged 裁决调用改走载体），钉定集语义零变化实证成立。W-03 前提=钉定集粒度缺口（节点行不在钉定集）与本批判据变更**正交**：判据只作用于钉定集内路径，钉定集内检出单调增强（相等 → 相等+写入年龄宽限+TTL 兜底），钉定集外依旧不检出（不修复亦不恶化）→ 本批判据不遮蔽、亦不替代 W-03，R3-05 修复面（钉定集扩展至节点行）不变。(b) **nop-rule 模块冒烟**：`./mvnw test -f nop-rule/pom.xml` **BUILD SUCCESS**（9 模块，`_tmp/phase3-w03-noprule.log`），规则链测试（编译/执行/追踪 36+10 条等）全绿（新判据经依赖注入生效）。传播面不降级：钉定路径变更检出由 nop-core `TestResourceCacheInvalidationChain`（真实 VFS 链）+ `TestXplTask` checkChanged 链等效覆盖。**R3-05 注记已落 cra-index W-03 行**：判据统一后 W-03 失效检出验证口径以新判据为准（写入年龄宽限+双窗口+TTL 兜底），R3-05 扩展钉定集后自动适用。
+7. **R4-32 注记（裁定⑥(a)，非零新增显式登记）**：三类新增 `CoreMetrics.currentTimeMillis` 消费点——(1) 载体写入年龄裁决 `isChangeRecord` 的 `now`；(2) entry verdict 记忆化 TTL 过期判定；(3) entry maxAge 强制重载判定。零新增时钟入口；既有敏感点零改写。已落 cra-index「R4-32 新增墙钟敏感点清单」块注（含修订注记：`ResourceDependencySet.recordedAt` 消费点随写入年龄修订删除）+ plan/daily log。
+8. **Owner doc**：`source-anchors.md` 新建 `CACHE-001` 模型缓存锚点（判据载体+写入年龄宽限契约+双窗口语义+门语义与 6 直连使用方+双路径自愈+配置键组与键移除清单+GraphQLEngine 反例守卫；内容源=设计文档裁定，权威源声明沿 INSUL/EXEC/CANCEL 先例不直链 ai-dev）。缺口声明：nop-core=平台设施无 03-modules 条目，owner 归宿即本批新建锚点（非缺口）；nop-xlang 触达为测试代码（TestXplTask 恢复改造+E1 回归钉），`No owner-doc update required`。
+9. **scan-hollow（--severity high）**：nop-kernel exit 0（2637 文件 0 发现）；nop-service-framework exit 1=3 处 `ChunkFileUploadHandler` UOE（2026-08-27 批前既有，plan 2499 Phase 4 已裁定 watch-only，本批 diff 零触碰）——沿 2497/2499 先例裁定，非本批引入。
+10. **零触碰核对（`git diff 1c00e6431e`）**：产品 diff ⊆ 修订后 9 行编辑点表（8 文件实改：载体/depends-manager/cache-entry/cache-entry-mgmt/timestamp-cache 删除/configs/constants/errors；ResourceLoadingCache 行零触碰预期成立）；nop-tcc/nop-api-core/nop-auth/`model/*.orm.xml`/`_` 前缀生成物/`.rels` 过滤零命中；测试面=nop-core 5 类改+1 类删+nop-xlang TestXplTask 改+E1 回归钉新增。
 
 ### Phase 4 - closure audit + 收口
 
@@ -267,6 +280,7 @@ Exit Criteria:
 
 ## Non-Blocking Follow-ups
 
+- **XPL 编译 scope 实例身份容忍（watch-only residual + 后继路径）**：写入年龄锚下，文件真在宽限期 G 内被写过时保守重载仍会使同一 lib 的两次加载返回不同实例，`XLangBlockScope._addTagCompiler` 按实例身份判等将报 `import-multiple-lib-conflicts`（批前既有脆性——解析期间真热更新同一 lib 亦触发，非本批新增面）。后继 = xlang scope 按 lib 资源路径判重（nop-xlang 框架核心，plan-first 需设计扩权，本批 9 行编辑点表不含）。Why Not Blocking Closure：生产常态（jar 模板/已安装产物 mtime 远旧于 G）触发集为空；触发集收窄为「资源在 G 内真实被写 + 同编译 scope 内两次加载落于（100ms, G）窗口」的窄开发场景。
 - **5.2-I-04 先例对账**（R24 族第 5 成员，归 R3-02「照抄函数级先例」）：R3-02 执行时按本批判据形态对齐失效传播先例；本批在 cra-index 族注记登记归属，不越界承接改码。
 - **C9-001 F3 修正面的受益抽查**：i18n-cache/dict/depends-with-cache 等受累面随单点自动受益；Phase 1/2 门语义一致性断言覆盖代表性站点，全家族逐面断言不设独立义务（受益语义由设计文档裁定①一致性声明承载）。
 - **GraphQLEngine documentCache 反例守卫**：登记防误修；若后续有人对该站点补门或改判据，先核对 deps 恒空前提（零 stat）不被破坏。
