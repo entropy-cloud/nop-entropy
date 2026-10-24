@@ -312,6 +312,14 @@ public class BaseContext implements IContext {
         return taskQueue.syncGet(future);
     }
 
+    /**
+     * 关闭context。detach契约（CRA R1-04 裁定③平台根因统一裁定，设计权威来源
+     * {@code ai-dev/design/concurrency/bindcancel-context-unification.md} §3.3）：
+     * 维持条件detach——仅当当前线程恰好附着本context（holder==this）时同步清除ThreadLocal；
+     * 跨线程close不做远端清理（附着点不集中、跨线程迁移是平台语义，不引入attach线程登记表），
+     * 其余线程的残留由{@link BaseContextProvider#currentContext()}的isClosed读点守卫
+     * 惰性清除——已关闭context对平台读点不可观测。
+     */
     public void close() {
         if (this.closed)
             return;
