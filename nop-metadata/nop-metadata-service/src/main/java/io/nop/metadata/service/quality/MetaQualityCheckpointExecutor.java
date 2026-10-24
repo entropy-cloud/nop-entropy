@@ -152,7 +152,11 @@ public class MetaQualityCheckpointExecutor {
                     skipCount++;
                 }
                 results.add(buildResultEntry(rule, judgment));
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // W-11 同根因随单闭合（plan 2496 Phase 4）：per-rule 失败隔离的捕获宽度从
+                // Exception 放宽到 Throwable——否则单条规则的 Error 逃逸会杀掉整个 checkpoint
+                // 运行（后续规则全部失评），并沿 executeScheduledCheckpoint 的调用链被其
+                // Error 半边守卫兜住后整轮记错。失败隔离语义不变：单规则失败不拖累其余规则。
                 LOG.error("checkpoint execute failed for rule: errorCode={} ruleId={}",
                         NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
                         rule.getQualityRuleId(), e);
@@ -442,7 +446,7 @@ public class MetaQualityCheckpointExecutor {
     }
 
     /** AR-14：异常规则的 ERROR 判定（用于补写 ERROR 结果行 + summary.results 条目）。 */
-    private static QualityRuleJudgment buildErrorJudgment(NopMetaQualityRule rule, Exception e) {
+    private static QualityRuleJudgment buildErrorJudgment(NopMetaQualityRule rule, Throwable e) {
         QualityRuleJudgment j = new QualityRuleJudgment();
         j.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR);
         j.setMessage("checkpoint rule execution failed: " + NopMetadataHelper.toErrorMessage(e));
@@ -452,7 +456,7 @@ public class MetaQualityCheckpointExecutor {
         return j;
     }
 
-    private static Map<String, Object> buildExecutionErrorEntry(NopMetaQualityRule rule, Exception e) {
+    private static Map<String, Object> buildExecutionErrorEntry(NopMetaQualityRule rule, Throwable e) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("source", "execution");
         m.put("qualityRuleId", rule.getQualityRuleId());
