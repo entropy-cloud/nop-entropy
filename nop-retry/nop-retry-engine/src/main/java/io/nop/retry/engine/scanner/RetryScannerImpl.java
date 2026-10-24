@@ -10,9 +10,11 @@ package io.nop.retry.engine.scanner;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
 import io.nop.api.core.beans.IntRangeSet;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.cluster.naming.INamingService;
 import io.nop.cluster.naming.PartitionResolver;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IPeriodicTaskListener;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.retry.dao.entity.NopRetryRecord;
 import io.nop.retry.engine.NopRetryConstants;
@@ -24,6 +26,7 @@ import org.slf4j.LoggerFactory;
 import java.util.List;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public class RetryScannerImpl implements IRetryScanner {
@@ -38,6 +41,13 @@ public class RetryScannerImpl implements IRetryScanner {
 
     private volatile boolean running;
     private Future<?> scanFuture;
+
+    // ========== scanner 存活指标（plan 2496 1.6-C8-001 模块侧义务：存活/最后扫描时间可观测）==========
+    private final AtomicLong scanCount = new AtomicLong();
+    private final AtomicLong scanFailureCount = new AtomicLong();
+    private volatile long lastScanTimeMillis;
+    private volatile long lastScanDurationMillis;
+    private volatile long lastScanFailureTimeMillis;
 
     @Inject
     public void setRecordStore(IRetryRecordStore recordStore) {
@@ -93,11 +103,32 @@ public class RetryScannerImpl implements IRetryScanner {
         }
 
         running = true;
+        // C8-001（plan 2496）：接入平台周期任务绝缘层（带业务标识 + 观测钩子）。任务体任何 Throwable
+        // （含 Error）由设施捕获观测并重臂——原缺陷「被拒/Error 即（近）静默永久停摆、nop_retry_record
+        // 表积压无界」由此闭合；设施级拒绝（提交失败，链真死且不复活）时 running 状态真实化为 false。
         scanFuture = getExecutor().scheduleWithFixedDelay(
                 () -> doScan(processor),
                 0,
                 scanIntervalMs,
-                TimeUnit.MILLISECONDS
+                TimeUnit.MILLISECONDS,
+                "nop-retry-scanner",
+                new IPeriodicTaskListener() {
+                    @Override
+                    public void onRunFailure(Throwable e, long consecutiveFailures) {
+                        lastScanFailureTimeMillis = System.currentTimeMillis();
+                        scanFailureCount.incrementAndGet();
+                        LOG.error("nop.retry.scanner.round-failed:consecutiveFailures={}", consecutiveFailures, e);
+                    }
+
+                    @Override
+                    public void onChainRejected(Throwable e) {
+                        running = false;
+                        lastScanFailureTimeMillis = System.currentTimeMillis();
+                        scanFailureCount.incrementAndGet();
+                        LOG.error("nop.retry.scanner.chain-rejected: scan chain terminated by executor rejection,"
+                                + " will not resurrect", e);
+                    }
+                }
         );
     }
 
@@ -110,12 +141,47 @@ public class RetryScannerImpl implements IRetryScanner {
         }
     }
 
+    // ========== scanner 存活指标读取口 ==========
+
+    /**
+     * 扫描链是否在运行。设施级拒绝（链真死且不复活）后为 false——状态真实化（C8-001 子面：
+     * 原缺陷 running 仍 true 状态说谎）。
+     */
+    public boolean isRunning() {
+        return running;
+    }
+
+    /** 已完成的扫描轮数（每轮 {@link #doScan} 计一次）。 */
+    public long getScanCount() {
+        return scanCount.get();
+    }
+
+    /** 扫描失败轮次数（任务体 Throwable / 设施级拒绝）。 */
+    public long getScanFailureCount() {
+        return scanFailureCount.get();
+    }
+
+    /** 最近一轮扫描完成时间（毫秒；0 = 从未扫描）——存活/最后扫描时间指标。 */
+    public long getLastScanTimeMillis() {
+        return lastScanTimeMillis;
+    }
+
+    /** 最近一轮扫描耗时（毫秒）。 */
+    public long getLastScanDurationMillis() {
+        return lastScanDurationMillis;
+    }
+
+    /** 最近一次扫描失败时间（毫秒；0 = 从未失败）。 */
+    public long getLastScanFailureTimeMillis() {
+        return lastScanFailureTimeMillis;
+    }
+
     @SingleSession
     protected void doScan(Consumer<List<NopRetryRecord>> processor) {
         if (!running) {
             return;
         }
-
+        long begin = CoreMetrics.currentTimeMillis();
         try {
             do {
                 if (!running) {
@@ -150,7 +216,16 @@ public class RetryScannerImpl implements IRetryScanner {
                 }
             } while (running);
         } catch (Exception e) {
+            // Exception 级失败仍由站点自身兜底（既有语义）；Error 级逃逸到平台绝缘设施边界，
+            // 由 onRunFailure 观测计数并重臂（C8-001 原缺陷 = Error/被拒即近静默永久停摆）
+            lastScanFailureTimeMillis = System.currentTimeMillis();
+            scanFailureCount.incrementAndGet();
             LOG.error("nop.retry.scanner.scan-failed", e);
+        } finally {
+            // C8-001 存活指标：每轮扫描结束（含异常路径）都刷新存活时间戳
+            lastScanDurationMillis = CoreMetrics.currentTimeMillis() - begin;
+            lastScanTimeMillis = CoreMetrics.currentTimeMillis();
+            scanCount.incrementAndGet();
         }
     }
 
