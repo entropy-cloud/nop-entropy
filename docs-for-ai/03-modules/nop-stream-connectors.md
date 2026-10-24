@@ -133,6 +133,15 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 | `BatchLoaderSource`（SPI `batch-loader` source，FLIP-27 split；WI2 plan 2343 自 legacy `BatchLoaderSourceFunction` 迁移——offset/seek/单写入者契约原样承接） | source（有界，nop-batch 桥接） | **AT_LEAST_ONCE（恢复=客户端跳过续读，D1 裁定方案 a）**：适配 `IBatchLoaderProvider`；offset 为 next-index 约定（=已发射记录数，对齐 `CollectionReplayableSource`），checkpoint 保存该计数；恢复 `seek(offset)` 后 `run()` 在遍历内**客户端跳过前 offset 条已发记录**再续发——一次恢复=一次续读，无全量重放、offset 不谎报（跳过实现收敛在 `BatchLoaderSourceFunction` 内，不改 `IBatchLoaderProvider`/`IBatchLoader` 平台接口）。**确定性前提（必读）**：客户端跳过仅当 `IBatchLoader` 恢复后重新遍历的前 N 条与崩溃前一致（确定性遍历序，如带 ORDER BY 的查询）才正确；违时（loader 排空仍不足 offset）typed fail-fast（`ERR_STREAM_STATE_ERROR`，skip shortfall）而非静默错位。负 offset typed 拒绝 | **单写入者（R5-CON-05）**：无 per-subtask 分片——`parallelism > 1` 时每副本会全量重复投递，实现 `ParallelismCheckable` 在部署期（execution plan 构建）fail-fast typed 拒绝（`ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH`），只允许 parallelism=1；钉定于 `TestBatchLoaderParallelismGate` | 发射计数 offset 入 operator state（key `source-offset`，`volatile` 可见性 AR-10）；恢复时 `restoreState` 解析并调 `seek(offset)`；seek-续读/负 offset 拒绝/跳空 typed 三路径由 `TestBatchLoaderSourceFunction.testSeekThenRunResumesFromOffsetWithoutFullReplay` / `testSeekNegativeOffsetRejectedTyped` / `testSkipShortfallFailsTypedInsteadOfSilentMisposition` 钉定，算子级 round-trip 由 `testStreamSourceOperatorCheckpointRestoreWithBatchLoader` 钉定 |
 | `BatchConsumerSinkFunction`（SPI `batch-consumer` sink） | sink（nop-batch 桥接） | **IDEMPOTENT（声明）**：缓冲 + 批 flush 到 `IBatchConsumerProvider`；非事务——exactly-once 责任在消费端幂等。flush 失败抛错且**保留缓冲重试**；`close()` flush 失败显式报「data may be lost」 | **单实例（R6-CON-03）**：共享非同步缓冲为单消费者契约——实现 `ParallelismCheckable` 在部署期（execution plan 构建）对 `parallelism > 1` fail-fast typed 拒绝（`ERR_STREAM_CONNECTOR_CAPABILITY_MISMATCH`），只允许 parallelism=1；描述符 `SINGLE_INSTANCE`，钉定于 `TestStreamConnectorRegistryDiscovery` / `TestBatchConnectorFactories` | 无 checkpoint 参与（非 `CheckpointParticipant`）；失败重试靠缓冲保留 |
 
+## Debezium 引擎线程模型与终结预算（1.2-C4-004，plan 2498）
+
+引擎宿主链（`DebeziumCdcSourceReader.launchEngine` → `nop-message-debezium` 的 `DebeziumEngineWrapper`）的引擎任务体**不在平台共享 `nop-global-worker` 池执行**——Debezium 嵌入引擎为长驻阻塞任务体，常驻共享 worker 会按 CDC subtask 数永久钉死共享线程：
+
+- **专用载体**：每引擎实例一台专用单线程执行器（平台 `NamedThreadFactory` daemon 形态，线程名前缀 `debezium-engine-<connector>`——线程 dump 与共享 worker 可辨识）；载体有独立容量预算与关闭归属，不经 globalWorker/globalTimer 执行任务体。
+- **stop 有界终结预算**：`stop()` 在既有 close 链（reader close→cancel→stop→engine.close→join(5s)）之后对专用载体 `shutdown()` + `awaitTermination(5s)`（`STOP_TERMINATION_BUDGET_SECONDS`），无无界等待；超时 WARN、中断路径恢复中断位 + ERROR，不吞异常。
+- **边界**：stop 终结 latch 契约与启动守卫归 R1-08（1.2-C3-014/MA-07）同文件续作——本专用载体即其 `shutdownNow` 形态的载体前提。
+- 测试锚点：`nop-message-debezium` `TestDebeziumEngineDedicatedCarrier_C4_004`（引擎体执行线程 = 专用载体非 `nop-global-worker`；stop 有界终结预算内返回）。
+
 ## 并行 2PC 能力说明（原「硬门禁」节 supersession）
 
 2PC sink（file/jdbc 内建）支持任意有效并行度，exactly-once 在 P=N 成立（CONN-01 successor 已落地，原规划期并行度门禁 `ERR_STREAM_2PC_SINK_PARALLELISM_NOT_SUPPORTED` 已随门禁移除删除）：

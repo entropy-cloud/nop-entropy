@@ -129,6 +129,8 @@
 
 超时发生时执行显式失败（`AgentExecStatus.failed` 或工具错误响应），不静默跳过。接线锚点见 `AIREL-001`。
 
+**工具分发执行器缺省池契约（3.1-C4-011，plan 2498）**：`AgentDispatchExecutor.INSTANCE`（`AgentToolDispatcher` 装配点的缺省工具执行载体）为模块专用有界命名池 `nop-ai-agent-dispatch`（32 线程/队列 1024/daemon，经平台池工厂校验契约构造）——阻塞工具体（shell `waitFor`/阻塞 HTTP/文件 I/O）不再落 `ForkJoinPool.commonPool`；饱和走 fail-loud 拒绝（无界提交面同步收敛）；`toolTimeoutMs<=0`（禁超时逃生舱）配置触发一次性 WARN——cap≤0 时阻塞工具体可永久占线，池宽 32 为占用封顶边界。测试锚点：`TestAgentDispatchExecutor_C4_011`。
+
 ## Agent store 层边界（nop-ai-agent，审计 2026-09-12 AI-2 裁定）
 
 nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运行时持久化（13 个 raw-JDBC 类：会话状态快照/检查点/消息传输/团队任务/锁/账本/用量，自建表如 `ai_agent_session`）保留独立 store 层，不注册 ORM——引擎内部状态非业务数据，不参与业务多租户/逻辑删除管道，生命周期由 runtime 管理（表清单与四项能力复用裁定记录于 agent store 层契约设计文档）。`ai_agent_session`（运行时状态 JSON）与 `NopAiSession`（业务会话记录）为两个概念。
@@ -148,6 +150,8 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 ## Embedding 客户端（nop-ai-core，K1）
 
 `EmbeddingServiceImpl`（bean `nopAiEmbeddingModel`，`io.nop.ai.core.service`）是 `IEmbeddingModel` 的平台生产实现（K1，2026-09-28）：OpenAI 兼容 `/embeddings` 协议，经 `/nop/ai/llm/{provider}.llm.xml` 配置驱动——llm 配置需声明 `<embedUrl>`（如 `/embeddings`）且 `apiStyle="openai"`（其他 apiStyle fail-loud `ERR_AI_EMBEDDING_UNSUPPORTED_API_STYLE`）。provider 路由：`EmbeddingOptions.provider` > 配置 `nop.ai.embedding.default-llm` > fail-loud（`ERR_AI_EMBEDDING_NO_PROVIDER`）。可靠性面与 chat 同构：`rateLimit` 限流、`StandardRetryPolicy` 有界重试、`<accounts>` 账号链 failover（QUOTA/AUTH 分类经 `<errorMappings>` 配置面到达）、`IAiModelCredentialResolver` 可选凭证注入。
+
+**重试调度器生命周期闭合（3.1-C4-004，plan 2498）**：内建重试调度器（`nop-ai-embedding-retry` 线程）有显式生命周期——bean 注册 `destroy-method="stop"`（`ai-defaults.beans.xml`，仅终结自建池、外部注入调度器不触碰）；`setRetryScheduler` 换装/置 null 恢复默认时对旧内部池有界终结（`shutdown` → 1s 宽限 → 超时 `shutdownNow` → 有界再等待，失败路径显式日志不吞异常）。无常驻孤儿线程。测试锚点：`TestEmbeddingRetrySchedulerLifecycle_C4_004`（换装孤儿终结/destroy 钩子/注入不触碰）。
 
 **ITextEmbedding 桥接（N4.2）**：`AiModelTextEmbedding`（bean `nopAiTextEmbedding`，现位于 nop-ai-rag——plan 2421/WI4 随 vectorstore SPI 自 nop-ai-core 迁入，包名保留 `io.nop.ai.core.search`）实现 nop-search 的 `ITextEmbedding` SPI、委托 `nopAiEmbeddingModel`。classpath 含 nop-ai-rag 时经 `LuceneSearchEngine.setTextEmbedding`（`@Inject`+`@Nullable`）自动注入，Lucene 向量字段索引与 VECTOR/HYBRID 查询即用真实嵌入；失败语义为异常上抛（不静默降级）。**纯 core+search-lucene（无 rag）部署回退 hash 模拟**（bean 定义随类迁 rag，plan 2421 行为登记）。`IEmbeddingModel`/`EmbeddingOptions` 留守 nop-ai-core（LLM 内核输出 SPI——`EmbeddingServiceImpl` implements 它且依赖内核，接口外迁即 core→rag 倒置，plan 2421 排除性裁定）。
 
@@ -173,6 +177,10 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 - **DockerBashSandbox**（Docker 隔离，推荐）：资源限制（`--cpus`/`--memory`）、默认 `--network none`、工作目录 jail、wall-time 超时。需 Docker daemon 与镜像（示例用 `alpine:3.19`）。
 
 装配形态：`<property name="sandbox" ref="..."/>` 注入 `BashExecutor`。默认 fail-closed 语义是硬约束——任何接线不得改变"未显式 opt-in 时拒绝调用"的行为；全仓生产装配面无默认静默启用 bash 的路径（`TestBashToolDefaultWiring` 守护该文件）。
+
+### shell 命令执行池与 pipeline 包络（nop-ai-shell，3.2-C4-004，plan 2498）
+
+`ShellCommandExecutor` 缺省装配（未注入 executor）不回落平台 `globalWorker`：构造模块专用有界命名池 `nop-ai-shell-pipeline`（32 线程/队列 1024/daemon，平台池工厂校验契约构造）——pipeline 生产/消费阶段与前台 bash 工具池、平台 worker 三者隔离，阶段任务不与全平台任务共池。**池参数包络** =「最大并发会话 × 最大管道段数」：有效并发行 ≤32、待发段深度 ≤1024。显式注入 executor 保持优先且永不被实例 `close()` 触碰（所有权边界=仅关闭自建池，`close()` 有界关闭）。测试锚点：`TestShellPipelinePoolIsolation_C4_004_3_2`（缺省链隔离钉/注入优先钉/close 终结钉）。
 
 ### 工具执行语义（nop-ai-toolkit，P2 round-4 收口）
 

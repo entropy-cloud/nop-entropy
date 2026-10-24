@@ -326,31 +326,43 @@ Exit Criteria:
 
 ### Phase 7 - 全量验证 + owner doc 更新 + MA-16 解除声明
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-stream-connectors.md`、`docs-for-ai/03-modules/nop-task.md`、`docs-for-ai/02-core-guides/service-layer.md`、`docs-for-ai/03-modules/nop-ai.md`（roadmap 8.4 Owner Doc 列四份）；触达模块 owner doc 归属核对；`ai-dev/audits/cra-index.md`（MA-16 解除注记 + CL-025 处置注记）
 
 - Item Types: `Proof`、`Decision`（MA-16 解除注记）
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
-- [ ] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-stream -am`、`./mvnw test -pl nop-message -am`、`./mvnw test -pl nop-task -am`、`./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-ai -am`、`./mvnw test -pl nop-batch -am`、`./mvnw test -pl nop-cluster -am`（nop-network/nop-wf 若实际产生产品 diff 随批补登记）——每条登记模块/测试数/退出码/快照路径
-- [ ] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；设施面文件（GlobalExecutors/ExecutorHelper/Default*Executor/CommonConfigs/CommonErrors）零改动核对
-- [ ] 绝缘层零回改实证：`InsulatedPeriodicTask`/`InsulatedPeriodicChain`/`PeriodicTaskHelper`/`IPeriodicTaskListener` diff 零改动 + `TestPeriodicTaskInsulation` 9 条全绿（共享载体改动门禁）
-- [ ] Owner doc 更新（E5）：roadmap 8.4 四份逐份核对与更新（内容源 = 各 Phase 修复面：引擎载体契约[connectors]、重试体执行位置契约[task]、WS 推送卸载契约[service-layer]、工具分发/调度器生命周期/shell 池包络[nop-ai]），或逐份显式登记 `No owner-doc update required` + 理由；`nop-batch.md` F3⑥ 若未在 Phase 5 落账则本 Phase 收口
-- [ ] 缺口声明：实际 diff 触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-socket/nop-rpc-core 等，以实际 diff 为准）按 R-G 治理轨先例登记（执行记录 + daily log），不在本批新建 owner doc；nop-message 有 03-modules 条目（`nop-message.md`）→ 核对其 Debezium 引擎线程模型描述受影响面
-- [ ] **MA-16（R4-21）约束解除声明落对应批次注记**（勘误 7）：cra-index P2-G52 行（L418）「MA-16 不得指向 globalTimer 批次约束」追加解除注记（解除条件 = 本批落地；解除后形态收窄为「阻塞/长任务体不得指向 globalTimer；满足 §3.1.1 豁免判据的轻量直连合法」——设计 §3.1.3 尾注口径）；batch-proposal R4-21 行（L136）只读核对登记（核对其既有「约束在 R1-03 落地后解除」注记与本批解除声明一致；不向 roadmap 状态块外写注记——注记由 cra-index P2-G52 行承载，roadmap 8.61 行 live 无 MA-16 注记，勘误 7）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
+- [x] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-stream -am`、`./mvnw test -pl nop-message -am`、`./mvnw test -pl nop-task -am`、`./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-ai -am`、`./mvnw test -pl nop-batch -am`、`./mvnw test -pl nop-cluster -am`（nop-network/nop-wf 若实际产生产品 diff 随批补登记）——每条登记模块/测试数/退出码/快照路径
+- [x] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；设施面文件（GlobalExecutors/ExecutorHelper/Default*Executor/CommonConfigs/CommonErrors）零改动核对
+- [x] 绝缘层零回改实证：`InsulatedPeriodicTask`/`InsulatedPeriodicChain`/`PeriodicTaskHelper`/`IPeriodicTaskListener` diff 零改动 + `TestPeriodicTaskInsulation` 9 条全绿（共享载体改动门禁）
+- [x] Owner doc 更新（E5）：roadmap 8.4 四份逐份核对与更新（内容源 = 各 Phase 修复面：引擎载体契约[connectors]、重试体执行位置契约[task]、WS 推送卸载契约[service-layer]、工具分发/调度器生命周期/shell 池包络[nop-ai]），或逐份显式登记 `No owner-doc update required` + 理由；`nop-batch.md` F3⑥ 若未在 Phase 5 落账则本 Phase 收口
+- [x] 缺口声明：实际 diff 触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-socket/nop-rpc-core 等，以实际 diff 为准）按 R-G 治理轨先例登记（执行记录 + daily log），不在本批新建 owner doc；nop-message 有 03-modules 条目（`nop-message.md`）→ 核对其 Debezium 引擎线程模型描述受影响面
+- [x] **MA-16（R4-21）约束解除声明落对应批次注记**（勘误 7）：cra-index P2-G52 行（L418）「MA-16 不得指向 globalTimer 批次约束」追加解除注记（解除条件 = 本批落地；解除后形态收窄为「阻塞/长任务体不得指向 globalTimer；满足 §3.1.1 豁免判据的轻量直连合法」——设计 §3.1.3 尾注口径）；batch-proposal R4-21 行（L136）只读核对登记（核对其既有「约束在 R1-03 落地后解除」注记与本批解除声明一致；不向 roadmap 状态块外写注记——注记由 cra-index P2-G52 行承载，roadmap 8.61 行 live 无 MA-16 注记，勘误 7）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 7，agent 全量验证+owner doc 子代理 @ HEAD `4bdd94a836` + 本回填提交）：
+
+1. **E1 全量构建（授权支路，理由声明）**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（453/453 模块 SUCCESS、0 FAILURE、01:09 min wall，快照 `_tmp/phase7-e1-full-build-skiptests.log` / `_tmp/phase7-e1-exit.txt`）。支路理由：本批九工单全部行为面回归已在 Phase 1–6 按 rule 25 落地并各有必红/变异/回退论证证据（E2）；八条聚焦门禁（下条）已承载行为验证，全仓通道在此之上以编译/装配面为增量目标——沿 plan 2496/2497 同支路先例（skipTests 全仓 + 聚焦测试组合覆盖）。
+2. **批行验证命令（E3）逐条登记**：七通道 + nop-network 通道全部引用 Phase 1–6 终态快照（gate-then-commit 序：各快照覆盖该模块最终产品提交内容，快照时间戳与模块末次产品提交核对在案），每份快照 BUILD SUCCESS 且全日志失败/错误行 grep 复核 0 命中——①nop-message `_tmp/phase1-gate-nop-message.log`（106 tests，Phase 1 记录在案）②nop-stream `_tmp/phase1-gate-nop-stream.log`（产品零 diff，使用链回归面）③nop-task `_tmp/phase2-gate-nop-task.log`（含 graphql-core 反应堆面，Phase 2 记录在案）④nop-service-framework `_tmp/phase3-gate-nop-service-framework.log`（Phase 3 记录在案）⑤nop-ai `_tmp/phase4-gate-nop-ai.log`（33,508 tests / 0 失败，Phase 4 记录在案）⑥nop-batch `_tmp/phase5-gate-nop-batch.log`（9461 tests / 0 失败，与 Phase 5 记录一致）⑦nop-cluster `_tmp/phase6-gate-nop-cluster.log`（1967 tests / 0 失败，Phase 6 记录在案）⑧nop-network `_tmp/phase6-gate-nop-network.log`（nop-rpc-core 载体面产品 diff 通道，Phase 6 记录在案）。nop-wf 零产品 diff，通道不适用。**终态补强**：codegen 再生产物 `_BatchTaskModel.java` 终态由三重覆盖——快照内 `TestBatchTaskDsl` 2/2 绿（再生成 mtime 20:05:06 先于快照内该测试轮次）+ Phase 7 终态补跑 `./mvnw test -pl nop-batch/nop-batch-dsl -Dtest=TestBatchTaskDsl` 2/2 绿 EXIT=0（快照 `_tmp/phase7-batch-dsl-finalstate.log`）+ E1 全仓编译绿。
+3. **零触碰确认（E4）**：`git diff dce9209787..HEAD --name-only`（50 文件）过滤核对——nop-tcc / nop-api-core（io.nop.api.core.*）/ `model/*.orm.xml` / nop-auth 零命中；设施面（GlobalExecutors/ExecutorHelper/Default*Executor/CommonConfigs/CommonErrors）与绝缘层（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/IPeriodicTaskListener）diff 零命中。`_` 前缀路径命中 3 处逐一裁定：①`nop-ai/nop-ai-core/src/main/resources/_vfs/nop/ai/beans/ai-defaults.beans.xml`——非生成物（手维护 beans 装配文件，`_vfs` 为 VFS 资源根，plan Phase 4 显式 Targets）；②`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef`——源 schema 模型（plan 头部显式声明非生成物）；③`nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/model/_gen/_BatchTaskModel.java`——**获准豁免登记**：batch.xdef `@concurrency` 注释修正（源 schema 变更，提交 `d77bcc8cc9`）触发 nop-batch-dsl codegen 的确定性再生成产物（配套提交 `ab8cb1845b`），按 AGENTS.md「改源模型 → 重新生成」路径豁免（非手编；不修生成物、只改源 xdef 的合规路径正是本产物成因），终态覆盖见上条三重证据。`.rels` 构建副作用：diff 零命中 = 终态还原成立（Phase 4 补齐提交 `8e5b9d6f42` 的还原在最终态保持）。
+4. **绝缘层零回改实证**：四绝缘设施文件 diff 零命中（上条）+ `TestPeriodicTaskInsulation` 9/9 绿——Phase 7 终态补跑 `./mvnw test -pl nop-kernel/nop-commons -Dtest=TestPeriodicTaskInsulation` EXIT=0（快照 `_tmp/phase7-insulation-finalstate.log`）；Phase 5 门禁内同测试全绿（`_tmp/phase5-insulation-retry.log` 隔离复跑 9/9）。
+5. **Owner doc 更新（E5）逐份结论**：①`nop-stream-connectors.md`——新增「Debezium 引擎线程模型与终结预算（1.2-C4-004）」节（专用载体命名形态/stop 有界终结预算/R1-08 边界/测试锚点），Phase 1 预登记去向落账；②`nop-task.md`——新增「延迟重试执行载体（1.5-C4-001/MA-04）」段（timer 只触发 + 显式 executor/globalWorker 载体、executor 隔离对延迟路径真实生效、簿记不在 timer 线程），Phase 2 预登记去向落账；③`service-layer.md`——**最小补注**：新增「GraphQL WS 订阅推送的执行载体（2.3-C8-001）」节（会话级有界泵 + O(1) keepalive 扫描 + 适配器 Deferred 边界）。裁定说明：该文本体只承载 BizModel service 层通用规约、无 WS 机制章节，按任务口径取最小补注入位（不复制模块实现细节，仅运行时契约 + 锚点），Phase 3 预登记去向落账；④`nop-ai.md`——三处受影响面落账：工具分发执行器缺省池契约（`nop-ai-agent-dispatch` 32/1024/daemon + cap≤0 warn + fail-loud 拒绝）、embedding 重试调度器生命周期闭合（destroy-method + 换装有界终结 + 无常驻孤儿）、shell pipeline 池包络声明（`nop-ai-shell-pipeline` 32/1024/daemon，包络=最大并发会话 × 最大管道段数），Phase 4 预登记去向落账；⑤`nop-batch.md` 核对（零改动）：F3⑥ 在位（:14 并发处理 bullet 与 :211 concurrency 配置行均承载修正后兜底池语义 + 装配护栏 + 1.7-C8-003 裁定），Phase 5 已落账核对通过；⑥`nop-message.md` 核对（零改动）：该文无 Debezium 引擎线程模型描述面（仅模块表与 Throwable 屏障契约提及 `runEngineWorker`，屏障语义未被 Phase 1 触碰）——修复不引入 drift，`No owner-doc update required`（核对结论登记）。
+6. **缺口声明（R-G 治理轨）**：实际 diff 触达模块中无 `docs-for-ai/03-modules/` 条目者 = **nop-rpc-cluster、nop-rpc-core**（Phase 6 本体与载体面；`ls docs-for-ai/03-modules/` grep rpc/socket/cluster 零命中核实）——沿 plan 2496/2497 先例在本执行记录 + daily log 登记缺口，不在本批新建 owner doc；nop-socket 零产品 diff（Phase 5 评估面不改码），无需缺口声明。
+7. **MA-16（R4-21）约束解除声明（勘误 7）**：cra-index P2-G52 行（L418）注记已追加——「3.1-MA-16[R4-21]『不得指向 globalTimer』约束已因 R1-03 落地解除（plan 2498 Phase 7；R1-02 设施面 + R1-03 消费方卸载/专用载体就绪，解除条件=R1-03 落地已满足）；解除后形态收窄为『阻塞/长任务体不得指向 globalTimer；满足设计 §3.1.1 豁免判据的轻量直连合法』」。batch-proposal R4-21 行（L136）**只读核对登记**：其 Deps 列既有「MA-16 不得指向 globalTimer（约束在 R1-03 落地后解除）」与本解除声明一致——不改 batch-proposal（历史裁定档案）；未向 roadmap 8.61 行写注记（勘误 7：该行 live 无 MA-16 注记，注记由 cra-index P2-G52 行承载）。
+8. **scan-hollow（8 触达模块 --severity high，与 Closure Gates「受影响模块」一致：nop-message/nop-stream/nop-task/nop-service-framework/nop-ai/nop-batch/nop-cluster/nop-network）**：6 模块退出码 0（nop-message/nop-stream/nop-task/nop-batch/nop-cluster/nop-network）；**nop-service-framework（3 条）与 nop-ai（4 条）共 7 条为批前既有发现**——与 plan 2496 批前基线（`_tmp/phase5-scanhollow-nop-service-framework.txt`/`-nop-ai.txt`）逐条一致，涉事文件（`ChunkFileUploadHandler.java`、`ReActAgentExecutor.java`、`PlanReplanner.java`、`NoOpProviderFailoverQueue.java`）在本批 diff 零命中 = 与本批 diff 无关。沿 2496 先例逐条裁定：ChunkFileUploadHandler 三 UOE = 上游脚手架类 fail-fast 模式（rule #24 认可形态）；ReActAgentExecutor:1373/:1502 与 PlanReplanner:273 = 注释关键词「placeholder」误报（注释描述数据占位/计划节点领域术语，后接真实逻辑）；NoOpProviderFailoverQueue:34 = 有意 NoOp 直通队列的成文注释（交付时即自我援引 rule #24）。**本批触达面 high=0**。快照 `_tmp/phase7-scanhollow-<module>.txt`（8 份）。
+9. **门禁**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 error）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] 四份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；缺口声明登记；check-doc-links --strict 退出码 0
-- [ ] MA-16 解除声明已落 cra-index G52 行注记（batch-proposal R4-21 行 L136 只读核对登记，勘误 7）
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] 四份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；缺口声明登记；check-doc-links --strict 退出码 0
+- [x] MA-16 解除声明已落 cra-index G52 行注记（batch-proposal R4-21 行 L136 只读核对登记，勘误 7）
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 8 - closure audit + 收口
 

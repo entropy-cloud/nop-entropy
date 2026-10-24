@@ -332,6 +332,14 @@ loader（GraphQL 字段装载器）的权限声明有两条等价路径（P1-2.6
 
 仓库里确实存在直接 `dao()`、`updateEntityDirectly()`、`REQUIRES_NEW` 的实现，例如调度 store 层或个别历史 BizModel。它们可以作为“边界场景参考”，但不要当普通业务层模板复制。
 
+## GraphQL WS 订阅推送的执行载体（nop-service-framework，2.3-C8-001，plan 2498）
+
+服务层方法（BizModel action / subscription publisher）向 WS 会话推送时，**阻塞 socket send 不在调用线程或共享定时器线程执行**（单慢客户端 TCP 零窗口曾可钉死全平台 globalTimer，ρ=N·L/40 钉死面已消除）：
+
+- **会话级有界发送泵**：`JsonRpcWebSocketHandler`/`GraphQLSubscriptionManager` 的推送经 `WebSocketSendPump`（容量 128 有界队列、满则 DROP_NEWEST 并断开该会话 `close(1011)`）卸载至平台 `globalWorker` 池——序列化留在调用线程，仅阻塞写卸载；队列满 = 慢消费者会话被断开，不反压全局。
+- **keepalive 扇出 O(1)**：JVM 单条共享周期扫描链（`globalTimer().executeOn(globalWorker())` 遍历连接注册表），非每连接一条 timer 周期任务。
+- **边界**：WS 适配器层写超时（`getBasicRemote`→`getAsyncRemote` 族）为 Deferred，successor=R4-16/R4-17。测试锚点：`nop-graphql-core` `TestJsonRpcWsSendOffload_C8_001`/`TestSubscriptionPushOffload_C8_001`。
+
 ## 相关文档
 
 - `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则

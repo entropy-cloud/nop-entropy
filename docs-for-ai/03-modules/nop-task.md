@@ -157,6 +157,8 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 
 **可靠性属性取值约束（plan 364）**：`timeout` 负值、`retry` 负值（maxRetryCount/retryDelay/maxRetryDelay）、`rate-limit` 节点存在但 `requestPerSecond<=0`，在 first-class 属性与 `<decorator>` 两条路径上均为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` / `ERR_TASK_DECORATOR_INVALID_CONFIG`）；`timeout=0`/缺省在 first-class 路径表示"未配置"。per-step `saveState="false"` 表示该步骤自身状态行不落盘（跳过 ACTIVE/挂起/终态保存，挂起恢复对该步骤退化为重新执行），未配置时行为不变（任务级 `defaultSaveState` 开启即落盘）。
 
+**延迟重试执行载体（1.5-C4-001/MA-04，plan 2498）**：`<retry>` 延迟轮次采用「定时器只触发 + 载体执行」形态——调度器（未注入 scheduledExecutor 时的回退面为平台 globalTimer）仅承载延迟唤醒，重试步骤体与完成回调链（含 `saveState` 簿记）在步骤显式 `executor` 指定的池执行；未配置 executor 时回落平台 `globalWorker` 池。**重试业务体不在共享 globalTimer 定时器线程执行**，且 `executor` 隔离配置对延迟路径真实生效（与首次尝试的 executor 包装同一池语义）。测试锚点：`nop-task-core` `TestTaskStepHelperRetryDelayOffload_C4_001`（延迟体/簿记线程断言 worker 非 timer；显式 executor 池隔离钉）。
+
 | step 类型 | 说明 | 适用 |
 |-----------|------|------|
 | `<simple bean="...">` | 从 BeanContainer 取 `ITaskStep` bean 执行 | 复用的 Java step bean |
