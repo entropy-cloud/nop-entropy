@@ -108,7 +108,11 @@ public class MessageConsumeFailureBridge {
                             failure.getLocation(), resp.getCode());
                 }
             });
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C3-009 ⑦ (plan 2496 Phase 4): the barrier must cover Throwable — the
+            // bridge is declared never-throw (auxiliary operations channel); an Error
+            // from the retry-engine submission path previously escaped to the consume
+            // thread's failure-report call site.
             LOG.error("nop.err.message.bridge.error:location={}", failure.getLocation(), e);
         }
     }

@@ -152,11 +152,19 @@ public class DebeziumMessageSource {
         }
     }
 
-    private void dispatchEvent(ChangeEvent event) {
+    /**
+     * C3-009 ⑤ (plan 2496 Phase 4): the per-subscriber guard must cover Throwable.
+     * Pre-fix an Error thrown by one subscriber escaped the Exception-only catch, killed
+     * {@code engine.run()} on the Debezium worker thread and (before the C3-009 ④ worker
+     * guard) bypassed the terminal-failure notification. Post-fix a failing subscriber
+     * only costs its own event log; the remaining subscribers still receive the event
+     * (visibility widened to protected as the Error-injection test seam).
+     */
+    protected void dispatchEvent(ChangeEvent event) {
         for (Consumer<ChangeEvent> consumer : subscriptions.keySet()) {
             try {
                 consumer.accept(event);
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 LOG.error("Error processing CDC event: {}", event, e);
             }
         }

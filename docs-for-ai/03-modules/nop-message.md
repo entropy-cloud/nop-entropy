@@ -65,6 +65,14 @@ beans.xml + `ioc:default="true"` 同 id 覆盖。例：切换到 Kafka：
 
 三层架构：SPI 失败回调（`onConsumeFailure`）+ 后端原生 DLQ（Pulsar `deadLetterPolicy` / Kafka 应用级重发布）+ nop-retry 桥。SPI 不出现 `deadLetterTopic`/`maxRetries` 字段。
 
+## 消费循环异常屏障契约（Throwable 宽度）
+
+全部消费/引擎异常屏障为 **Throwable 宽度**——Kafka/Pulsar `runTask` 循环、`LocalMessageService.invokeSubscription`、Debezium 引擎 worker 体（`DebeziumEngineWrapper.runEngineWorker`）与 per-subscriber 分发（`DebeziumMessageSource.dispatchEvent`）、`dispatchConsumeFailure`/failure-endpoint 的 `onConsumeFailure` 回调守卫、`MessageConsumeFailureBridge.submit` 与 failure-listener 守卫：
+
+- **Exception 分支**：维持既有语义（退避重试 / 失败上报 / 延迟投递），消费循环继续；
+- **Error 分支**：与 Exception 走同一失败上报路径（`onConsumeFailure` / `notifyEngineFailure`），随后 Kafka/Pulsar 消费任务置 `active=false` 诚实退出——订阅不进入僵尸态，`isActive()` 不再误报存活。`ConsumeFailure` 仅承载 `Exception`（nop-api-core 契约）：非 Exception 的 Throwable 以 `IllegalStateException` 包装上报，原 Error 为 cause；
+- **Debezium 终局通知**：引擎 worker 体在 Error 死亡分支同样触发 `notifyEngineFailure`——注册于 `FAILURE_LISTENERS` 的终局失败通知不因 Error 逃逸被绕过（nop-stream 侧等待 latch 的 task 依赖该通知）。
+
 ## 事务语义（D11 / design 3.7）
 
 `transactional`/`transactionTimeout` 字段已弃用（warn-once 忽略）。at-least-once 基线。

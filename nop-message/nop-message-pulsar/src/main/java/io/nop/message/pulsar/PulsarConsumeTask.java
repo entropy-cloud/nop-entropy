@@ -115,18 +115,32 @@ public class PulsarConsumeTask {
                 if (dispatched) {
                     consecutiveErrors = 0;
                 }
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // C3-009 (plan 2496 Phase 4): the loop barrier must cover Throwable, not
+                // just Exception. Pre-fix an Error (StackOverflowError/OOM/LinkageError
+                // from the user handler) escaped the loop, the consume thread died and
+                // the subscription became a permanent zombie (active stayed true).
+                // The Error branch keeps the Exception-branch failure reporting, then
+                // exits honestly.
                 consecutiveErrors++;
                 LOG.error("nop.err.message.pulsar.consume-fail", e);
                 dispatchConsumeFailure(e);
-                if (active) {
-                    try {
-                        Thread.sleep(computeBackoffMs(consumeErrorBackoffMs,
-                                service.consumeErrorBackoffMaxMs(), consecutiveErrors - 1));
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
+                if (e instanceof Exception) {
+                    if (active) {
+                        try {
+                            Thread.sleep(computeBackoffMs(consumeErrorBackoffMs,
+                                    service.consumeErrorBackoffMaxMs(), consecutiveErrors - 1));
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
                     }
+                } else {
+                    // Error path: not backoff-recoverable — exit with active=false so
+                    // isActive() stops misreporting the dead subscription as alive; the
+                    // failure report above has already reached onConsumeFailure.
+                    active = false;
+                    break;
                 }
             }
         } while (active);
@@ -417,7 +431,10 @@ public class PulsarConsumeTask {
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
                     message.getTopicName(), location, message.getValue(), attempt, e));
-        } catch (Exception callbackError) {
+        } catch (Throwable callbackError) {
+            // C3-009 ⑥: the failure-endpoint callback guard must cover Throwable — an
+            // Error thrown by the user callback must not escape and kill the consume
+            // thread (with the endpoint already consumed the message).
             LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
         }
         failureAttempts.remove(location);
@@ -445,8 +462,10 @@ public class PulsarConsumeTask {
      * WI16: dispatches {@link IMessageConsumer#onConsumeFailure} with the context captured
      * by fail()/batch (framework-level failures get topic=null, attempt=0). Guarded — a
      * throwing user callback must not kill the consume thread.
+     * C3-009 (plan 2496 Phase 4): the guard and the parameter width cover Throwable, so
+     * an Error escaping the loop barrier still reaches the user's failure callback.
      */
-    private void dispatchConsumeFailure(Exception e) {
+    private void dispatchConsumeFailure(Throwable e) {
         // WI21: clear ALL context fields together — a stale topic from a previous record
         // failure must not leak into a framework-level failure report.
         String topic = lastFailureTopic;
@@ -459,10 +478,26 @@ public class PulsarConsumeTask {
         int attempt = peekFailureAttempt(location);
         try {
             config.getConsumer().onConsumeFailure(new io.nop.api.core.message.ConsumeFailure(
-                    topic, location, message, attempt, e));
-        } catch (Exception callbackError) {
+                    topic, location, message, attempt, asReportedException(e)));
+        } catch (Throwable callbackError) {
+            // C3-009 ⑥: the callback guard must cover Throwable — an Error thrown by the
+            // user callback must not escape and kill the consume thread.
             LOG.warn("nop.err.message.pulsar.failure-callback-throw", callbackError);
         }
+    }
+
+    /**
+     * C3-009 (plan 2496 Phase 4): {@link io.nop.api.core.message.ConsumeFailure} carries
+     * an {@link Exception} (nop-api-core contract, zero-touch in this batch) — non-Exception
+     * Throwables (Error escapes) are wrapped so the failure still reaches the callback with
+     * its original cause attached.
+     */
+    private static Exception asReportedException(Throwable e) {
+        if (e instanceof Exception) {
+            return (Exception) e;
+        }
+        return new IllegalStateException(
+                "non-Exception Throwable escaped the consume loop: " + e.getClass().getName(), e);
     }
 
     String getAckTopic(String topic) {

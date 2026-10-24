@@ -229,7 +229,12 @@ public class LocalMessageService implements IMessageService {
             } else {
                 handleMessageResult(ret, subscription.topic, message, context);
             }
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C3-009 ③ (plan 2496 Phase 4): the barrier must cover Throwable. Pre-fix an
+            // Error escaped to the synchronous send chain (sender thread) or, on the
+            // redelivery scheduler thread, killed the delayed task silently (the deferred
+            // message was lost without a WARN). Catching keeps both threads alive and
+            // keeps the failure observable.
             LOG.error("nop.message.consumer-failed:topic={},message={}", subscription.topic, message, e);
         }
     }

@@ -83,8 +83,9 @@ public class DebeziumEngineWrapper {
         }
         try {
             listener.accept(error);
-        } catch (Exception listenerError) {
-            // never let a listener failure kill the engine worker thread
+        } catch (Throwable listenerError) {
+            // C3-009 ⑦ (plan 2496 Phase 4): the listener guard must cover Throwable —
+            // never let a listener failure (incl. Error) kill the engine worker thread.
             LOG.error("Debezium engine failure listener threw for connector {}", connectorName, listenerError);
         }
     }
@@ -156,21 +157,7 @@ public class DebeziumEngineWrapper {
                     .build();
 
             // 使用全局线程池运行引擎
-            GlobalExecutors.globalWorker().execute(() -> {
-                try {
-                    running.set(true);
-                    LOG.info("Starting Debezium engine: {}", config.getName());
-                    engine.run();
-                } catch (Exception e) {
-                    LOG.error("Debezium engine error: {}", config.getName(), e);
-                    // R5-CON-03: a terminal engine death must be observable by the
-                    // owning task, not only in the log.
-                    notifyEngineFailure(config.getName(), e);
-                } finally {
-                    running.set(false);
-                    LOG.info("Debezium engine stopped: {}", config.getName());
-                }
-            });
+            GlobalExecutors.globalWorker().execute(() -> runEngineWorker(engine));
 
         } catch (Exception e) {
             throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_START_FAILED)
@@ -186,6 +173,34 @@ public class DebeziumEngineWrapper {
         ChangeEvent changeEvent = DebeziumEventConverter.convert(event);
         if (changeEvent != null) {
             changeEventConsumer.accept(changeEvent);
+        }
+    }
+
+    /**
+     * 引擎 worker 体（protected 供 C3-009 Error 注入回归测试直接驱动；生产调用点 =
+     * {@code start()} 提交到 globalWorker 的 lambda）。
+     *
+     * <p>C3-009 ④ (plan 2496 Phase 4): the worker guard must cover Throwable — pre-fix
+     * an Error escaping {@code engine.run()} skipped the Exception-only catch and the
+     * terminal-failure notification ({@code notifyEngineFailure}) never fired, so the
+     * registered FAILURE_LISTENERS never learned the CDC stream had died (nop-stream
+     * side tasks waited on the latch forever). Post-fix the Error branch runs the same
+     * notification path as Exception, then resets the running flag.
+     */
+    protected void runEngineWorker(
+            DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef) {
+        try {
+            running.set(true);
+            LOG.info("Starting Debezium engine: {}", config.getName());
+            engineRef.run();
+        } catch (Throwable e) {
+            LOG.error("Debezium engine error: {}", config.getName(), e);
+            // R5-CON-03: a terminal engine death must be observable by the
+            // owning task, not only in the log.
+            notifyEngineFailure(config.getName(), e);
+        } finally {
+            running.set(false);
+            LOG.info("Debezium engine stopped: {}", config.getName());
         }
     }
 
