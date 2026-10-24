@@ -1,6 +1,6 @@
 # 2499 CRA Phase 8.5 — R1-04 api-core 协同批：bindCancel 单点改造 + 上下文传播（R14+R15，14 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_99133e06（0 Blocker、3 Major[M-1 SPI 回归面假阴性 4 项补全+grep 模式修正/M-2 C3-012 第五入口 nop-spring 补列/M-3 平台根因半边 Phase 归属统一]+Phase 3 子分片纪律+7 Minor——修订 agent_c2dd2e28 全量应用[live 验证后落笔]，active）
 > Design Review: 设计文档 `bindcancel-context-unification.md` 独立评审 agent_c11e7756（M-1 兼容矩阵第 4 行「零变化」证伪+4 Minor → 修订 agent_397107f3 落盘 → 增量复核**通过进入实现**；修订者与评审结论已登记于设计文档头）
 > Last Reviewed: 2026-10-24
@@ -108,31 +108,33 @@
 
 ### Phase 1 - 设计文档六裁定 + 独立 draft review（plan-first 前置）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/`（新建：api-core 取消通道与上下文传播统一设计）
 
 - Item Types: `Decision`
 
-- [ ] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
-  - [ ] **裁定① bindCancel 单点改造语义（本批核心裁定）**：`FutureHelper.bindCancel` 守卫从 `!future.isDone()` 改为按完成原因判别（`ex instanceof CancellationException` 才 cancel——审计建议原样承载）的行为语义与 source-compat 声明；ExecutorHelper 包装 Callable 在 complete 后清除残留中断标志的双层修复（消除对载体 TPE getTask 吸收中断的依赖）；**api-core 三半边一次收口**：completeAfterTask catch 宽度（C3-005 半边）、executeWithThrottling 幻影 release（C3-007 半边）；**调用方兼容矩阵**：全库 bindCancel 调用方 grep 全量登记（ExecutorHelper 3 处、Default*Executor 委托面、`DefaultTaskExecutionQueue:238`[C3-018/R4-13 复核注记] 等），逐调用方行为影响声明（修复后：成功路径不再误 cancel、真取消路径传播保持）；`bindCancelToken`（:518-535）与 bindCancel 的关系声明（4.3-C3-012 的平台收敛入口）。
-  - [ ] **裁定② 取消传播统一与 R1-01/R1-02 产物边界衔接**：C3-004 的 bindCancel 接入**必须后置于裁定①修复**（直接接入现状实现将落入 C3-016 陷阱——两裁定落地顺序约束成文）+ executeOn isDone 守卫语义；R1-01 禁用条款衔接验证方案（绝缘链 future 无 bindCancel 接线维持、ExecutorHelper 层修复后绝缘核心逐轮调度自动受益的断言点、`TestPeriodicTaskInsulation` 9 条门禁）；R1-02 零改动面（池工厂校验/热更/容量语义、EXEC-001/002）不被回改的边界声明；RetryEngineImpl 生产暴露点（:404-407）的回归断言形态（1.6 回归面）。
-  - [ ] **裁定③ context 传播原语统一（executeWithContext/thenOnContext 出口泵补齐）**：C3-002 出口泵/递归泵挂接形态二选一（pump 级 thenOnContext vs OrmBatchLoader 显式 context 包装；判据注记[R1]：与既有 thenFetchNext 先例一致性 / 递归泵覆盖面 / 每跳 context 开销）+ C3-015 fetcher 层挂接同口径；C3-012 newRpcContext 统一 binder 入口形态（内置 vs newRpcContextWithBinding 新入口，五入口共用——gRPC/quarkus WS/spring WS[第五入口，R1 补录]/消息/文件）；**平台根因统一裁定**：BaseContext.close 对称 detach 语义（attach 线程登记归还 or close 携带 attach 线程句柄）与 currentContext/ContextBinder isClosed 残留强制替换守卫（4.3-C3-007 止血 + 2.3-C3-017 残留面 + 4.3-CL-011 平台根因移交的承接落账；落地分工[R1]：BaseContextProvider.currentContext 守卫 + BaseContext.close 对称 detach 半边在 Phase 2 落地，nop-rpc-api ContextBinder 替换在 Phase 3 落地）；C3-007 受管提交形态（ExecutorHelper.submit 受管入口 vs 显式快照+binder；受管形态注记[R1]：BizActionService.java:86-91 从 beanContainer 取出的是 `Executor`（非 `ExecutorService`），`ExecutorHelper.submit` 不能直接承载——选该形态须处理 bean 类型问题）；C3-008 fail-fast 语义；`thenOnContext`/`IContext` javadoc 契约成文（线程亲和语义声明）；**4.1-CL-024（Local 红投）归属裁定**：消费线程 IContext 传播专题按本裁定的入口统一口径给出结论（Local 发送者→scheduler 异步边界是否需要传递；broker 后端消费线程既定形态维持的边界声明），结论回填 cra-index/CL 台账注记（exit criteria 第三支柱）；4.4-MA-05（R4-28）口径传导注记。
-  - [ ] **裁定④ C2-016 syncGet 窗口修复选型**：drain 段 `endProcessIfIdle()` 复用（审计建议①，与 flush 同构）vs enqueue signal 谓词放宽（`syncing>0 || processingThread!=null`）二选一及理由；await 谓词是否补 tasks 空判定；C10-009 测试手法采纳（同文件 flush 面内部锁冻结先例，构造「drain 完成后、await 前插入 enqueue+flush」交错 + 「enqueue 返回 true 的等待方必然被后续 flush 唤醒」不变式用例）；与已修 flush 面（commit 5ee798e02e）的对称性声明。
-  - [ ] **裁定⑤ SPI 回归面全列声明（PA 义务）**：接口签名零变更取向确认（bindCancel 等为静态工具语义收口；context 统一以静态入口 + 既有 IContext 方法承载）；若任一裁定需要 IContext/IContextProvider/ICancelToken 接口变更，则 Baseline SPI 回归面清单（BaseContextProvider/BaseContext/DelegateContext；`Cancellable` 基类及其继承族——ExecutionContextImpl/ServiceContextImpl/TaskRuntimeImpl/BlockingSourceConsumeTask/DefaultTaskExecutionQueue.State/RpcMessageSubscriptions.Subscription/PulsarMessageSubscription；直接实现——FailoverStreamFlow/DebeziumMessageSource.Subscription/ReplayableCdcSourceFunction.ReplaySubscription）**全部实现类列为回归面**并逐个登记验证方式（重枚举 grep 模式含 `extends Cancellable`，见 Baseline SPI 回归面清单）；落盘前重跑全仓 grep 重枚举 mock/测试实现并登记最终清单。
-  - [ ] **裁定⑥ C4-008 取消链接线形态与 ICancelToken 平台契约**：排队分支取消联动形态（result 取消传播到触发链）+ executeNow 统一 isCancelled 短路位 + CL-012 注册前补触发语义与裁定①修复后 bindCancelToken 契约的对接；CL-017（fs 族对账面）随单处置声明；17 executor 取消矩阵的验收边界（C10-014：矩阵断言 + wrapper 传播断言）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，Phase 2–5 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
+  - [x] **裁定① bindCancel 单点改造语义（本批核心裁定）**：`FutureHelper.bindCancel` 守卫从 `!future.isDone()` 改为按完成原因判别（`ex instanceof CancellationException` 才 cancel——审计建议原样承载）的行为语义与 source-compat 声明；ExecutorHelper 包装 Callable 在 complete 后清除残留中断标志的双层修复（消除对载体 TPE getTask 吸收中断的依赖）；**api-core 三半边一次收口**：completeAfterTask catch 宽度（C3-005 半边）、executeWithThrottling 幻影 release（C3-007 半边）；**调用方兼容矩阵**：全库 bindCancel 调用方 grep 全量登记（ExecutorHelper 3 处、Default*Executor 委托面、`DefaultTaskExecutionQueue:238`[C3-018/R4-13 复核注记] 等），逐调用方行为影响声明（修复后：成功路径不再误 cancel、真取消路径传播保持）；`bindCancelToken`（:518-535）与 bindCancel 的关系声明（4.3-C3-012 的平台收敛入口）。
+  - [x] **裁定② 取消传播统一与 R1-01/R1-02 产物边界衔接**：C3-004 的 bindCancel 接入**必须后置于裁定①修复**（直接接入现状实现将落入 C3-016 陷阱——两裁定落地顺序约束成文）+ executeOn isDone 守卫语义；R1-01 禁用条款衔接验证方案（绝缘链 future 无 bindCancel 接线维持、ExecutorHelper 层修复后绝缘核心逐轮调度自动受益的断言点、`TestPeriodicTaskInsulation` 9 条门禁）；R1-02 零改动面（池工厂校验/热更/容量语义、EXEC-001/002）不被回改的边界声明；RetryEngineImpl 生产暴露点（:404-407）的回归断言形态（1.6 回归面）。
+  - [x] **裁定③ context 传播原语统一（executeWithContext/thenOnContext 出口泵补齐）**：C3-002 出口泵/递归泵挂接形态二选一（pump 级 thenOnContext vs OrmBatchLoader 显式 context 包装；判据注记[R1]：与既有 thenFetchNext 先例一致性 / 递归泵覆盖面 / 每跳 context 开销）+ C3-015 fetcher 层挂接同口径；C3-012 newRpcContext 统一 binder 入口形态（内置 vs newRpcContextWithBinding 新入口，五入口共用——gRPC/quarkus WS/spring WS[第五入口，R1 补录]/消息/文件）；**平台根因统一裁定**：BaseContext.close 对称 detach 语义（attach 线程登记归还 or close 携带 attach 线程句柄）与 currentContext/ContextBinder isClosed 残留强制替换守卫（4.3-C3-007 止血 + 2.3-C3-017 残留面 + 4.3-CL-011 平台根因移交的承接落账；落地分工[R1]：BaseContextProvider.currentContext 守卫 + BaseContext.close 对称 detach 半边在 Phase 2 落地，nop-rpc-api ContextBinder 替换在 Phase 3 落地）；C3-007 受管提交形态（ExecutorHelper.submit 受管入口 vs 显式快照+binder；受管形态注记[R1]：BizActionService.java:86-91 从 beanContainer 取出的是 `Executor`（非 `ExecutorService`），`ExecutorHelper.submit` 不能直接承载——选该形态须处理 bean 类型问题）；C3-008 fail-fast 语义；`thenOnContext`/`IContext` javadoc 契约成文（线程亲和语义声明）；**4.1-CL-024（Local 红投）归属裁定**：消费线程 IContext 传播专题按本裁定的入口统一口径给出结论（Local 发送者→scheduler 异步边界是否需要传递；broker 后端消费线程既定形态维持的边界声明），结论回填 cra-index/CL 台账注记（exit criteria 第三支柱）；4.4-MA-05（R4-28）口径传导注记。
+  - [x] **裁定④ C2-016 syncGet 窗口修复选型**：drain 段 `endProcessIfIdle()` 复用（审计建议①，与 flush 同构）vs enqueue signal 谓词放宽（`syncing>0 || processingThread!=null`）二选一及理由；await 谓词是否补 tasks 空判定；C10-009 测试手法采纳（同文件 flush 面内部锁冻结先例，构造「drain 完成后、await 前插入 enqueue+flush」交错 + 「enqueue 返回 true 的等待方必然被后续 flush 唤醒」不变式用例）；与已修 flush 面（commit 5ee798e02e）的对称性声明。
+  - [x] **裁定⑤ SPI 回归面全列声明（PA 义务）**：接口签名零变更取向确认（bindCancel 等为静态工具语义收口；context 统一以静态入口 + 既有 IContext 方法承载）；若任一裁定需要 IContext/IContextProvider/ICancelToken 接口变更，则 Baseline SPI 回归面清单（BaseContextProvider/BaseContext/DelegateContext；`Cancellable` 基类及其继承族——ExecutionContextImpl/ServiceContextImpl/TaskRuntimeImpl/BlockingSourceConsumeTask/DefaultTaskExecutionQueue.State/RpcMessageSubscriptions.Subscription/PulsarMessageSubscription；直接实现——FailoverStreamFlow/DebeziumMessageSource.Subscription/ReplayableCdcSourceFunction.ReplaySubscription）**全部实现类列为回归面**并逐个登记验证方式（重枚举 grep 模式含 `extends Cancellable`，见 Baseline SPI 回归面清单）；落盘前重跑全仓 grep 重枚举 mock/测试实现并登记最终清单。
+  - [x] **裁定⑥ C4-008 取消链接线形态与 ICancelToken 平台契约**：排队分支取消联动形态（result 取消传播到触发链）+ executeNow 统一 isCancelled 短路位 + CL-012 注册前补触发语义与裁定①修复后 bindCancelToken 契约的对接；CL-017（fs 族对账面）随单处置声明；17 executor 取消矩阵的验收边界（C10-014：矩阵断言 + wrapper 传播断言）。
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，Phase 2–5 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
-- [ ] 裁定⑤的 SPI 回归面清单终稿在案（接口零变更声明，或全实现类回归面登记）；裁定③含 4.1-CL-024 归属结论与台账回填路径
-- [ ] `No owner-doc update required`（本 Phase 不改使用方文档；owner doc 更新归 Phase 4 统一落账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
+- [x] 裁定⑤的 SPI 回归面清单终稿在案（接口零变更声明，或全实现类回归面登记）；裁定③含 4.1-CL-024 归属结论与台账回填路径
+- [x] `No owner-doc update required`（本 Phase 不改使用方文档；owner doc 更新归 Phase 4 统一落账）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 2 - api-core 本体 + nop-commons 双层本体实现 + SPI 全实现回归测试
+
+
+> **Phase 1 回填注（2026-10-25，closure audit M-1 修复）**：设计工作事实已发生且证据齐备——设计文档 `ai-dev/design/concurrency/bindcancel-context-unification.md`（提交 4a15db6c54）+ 评审 agent_c11e7756（M-1 兼容矩阵证伪+4 Minor）→ 修订 agent_397107f3（落盘）→ 增量复核**通过进入实现**；daily log 2026-10-24 Phase 1a 条目在案。本节回填即 closure audit M-1 修复动作。### Phase 2 - api-core 本体 + nop-commons 双层本体实现 + SPI 全实现回归测试
 
 Status: completed
 Targets: `nop-kernel/nop-api-core/src/main/java/io/nop/api/core/util/FutureHelper.java`、`.../context/ContextTaskQueue.java`、`.../context/BaseContext.java`、`.../context/BaseContextProvider.java`、`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/ExecutorHelper.java`、`.../LimitedExecutor.java`、`.../BindScheduledExecutor.java`、两模块 `src/test/`
@@ -283,49 +285,49 @@ Phase 4 执行记录（2026-10-25，实现子代理）：
 
 ### Phase 5 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.5 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（bindCancel 新守卫/挂接链运行时连通、无空方法体/静默吞异常）与 SPI 回归面执行复核
-- [ ] cra-index 台账回填：P1 台账 2 行（2.3-C3-002/C3-007）+ P2 裁决台账 G26 五成员/G37 三成员/G39 一成员/G55 拆分成员（C4-008）/G68 两成员状态收敛（open → 已修/本批）；4.1-CL-024 注记终态复核
-- [ ] roadmap 8.5 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2499-cra-phase8.5-r1-04-apicore-bindcancel-context.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（bindCancel 新守卫/挂接链运行时连通、无空方法体/静默吞异常）与 SPI 回归面执行复核
+- [x] cra-index 台账回填：P1 台账 2 行（2.3-C3-002/C3-007）+ P2 裁决台账 G26 五成员/G37 三成员/G39 一成员/G55 拆分成员（C4-008）/G68 两成员状态收敛（open → 已修/本批）；4.1-CL-024 注记终态复核
+- [x] roadmap 8.5 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2499-cra-phase8.5-r1-04-apicore-bindcancel-context.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 14 成员行状态全部收敛、4.1-CL-024 注记闭合、roadmap 8.5 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 14 成员行状态全部收敛、4.1-CL-024 注记闭合、roadmap 8.5 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 14 项成员全部修复：2.3-C3-002/C3-007、2.1-C2-016/C3-004/C3-005/C3-007/C3-016、2.3-C3-012/C3-015/C3-017/C3-008、4.3-C3-007/C3-012、3.2-C4-008（CL-012/CL-017 随单闭合）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：C3-016/C3-004/C2-016/C3-007/C3-005/C3-002/C3-007[2.3]/4.3-C3-012/C4-008）
-- [ ] bindCancel 单点改造成立且服务面闭合：2.1 三条（C3-016/C3-004 本批修复 + C6-001 受益面无障碍声明）+ 消费方 1.6/4.3/3.4 回归面全列执行留证（E3）
-- [ ] executeWithContext/thenOnContext 统一落地（出口泵补齐：invokeOperation/递归泵/fetcher 层 + 入口统一 + 平台根因 detach/isClosed 守卫）
-- [ ] 4.1-CL-024 归属本族注记闭合（台账可核验）
-- [ ] C10 验收前置随本体落地：C10-009、2.3-C10-001、4.3-C10-010、3.2-C10-014；C10 其余涉及面确认未越界承接
-- [ ] R1-01/R1-02 产物边界零回改实证：绝缘 9 条 + 池设施 7 条门禁全绿，绝缘四载体 diff 零改动，EXEC-001/002 语义面零触碰
-- [ ] SPI 回归面义务履行：零接口变更声明在案，或全部实现类（含重枚举 mock）回归验证登记（E4 授权声明配套）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 + 消费方回归面命令全部 BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：source-anchors.md（api-core 新建锚点）、service-layer.md（上下文传播契约）；缺口声明登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/下游项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）修复后的取消传播/context 挂接路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2499-cra-phase8.5-r1-04-apicore-bindcancel-context.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 14 成员行收敛 + roadmap 8.5 → done（E6）
+- [x] 14 项成员全部修复：2.3-C3-002/C3-007、2.1-C2-016/C3-004/C3-005/C3-007/C3-016、2.3-C3-012/C3-015/C3-017/C3-008、4.3-C3-007/C3-012、3.2-C4-008（CL-012/CL-017 随单闭合）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：C3-016/C3-004/C2-016/C3-007/C3-005/C3-002/C3-007[2.3]/4.3-C3-012/C4-008）
+- [x] bindCancel 单点改造成立且服务面闭合：2.1 三条（C3-016/C3-004 本批修复 + C6-001 受益面无障碍声明）+ 消费方 1.6/4.3/3.4 回归面全列执行留证（E3）
+- [x] executeWithContext/thenOnContext 统一落地（出口泵补齐：invokeOperation/递归泵/fetcher 层 + 入口统一 + 平台根因 detach/isClosed 守卫）
+- [x] 4.1-CL-024 归属本族注记闭合（台账可核验）
+- [x] C10 验收前置随本体落地：C10-009、2.3-C10-001、4.3-C10-010、3.2-C10-014；C10 其余涉及面确认未越界承接
+- [x] R1-01/R1-02 产物边界零回改实证：绝缘 9 条 + 池设施 7 条门禁全绿，绝缘四载体 diff 零改动，EXEC-001/002 语义面零触碰
+- [x] SPI 回归面义务履行：零接口变更声明在案，或全部实现类（含重枚举 mock）回归验证登记（E4 授权声明配套）
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 + 消费方回归面命令全部 BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：source-anchors.md（api-core 新建锚点）、service-layer.md（上下文传播契约）；缺口声明登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/下游项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）修复后的取消传播/context 挂接路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2499-cra-phase8.5-r1-04-apicore-bindcancel-context.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 14 成员行收敛 + roadmap 8.5 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -366,15 +368,15 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: —
+Status Note: 本计划收口 CRA Phase 8.5（R1-04 api-core 协同批）：bindCancel 单点改造（三态判别守卫+中断残留清除+三半边收口，双层同提交 3f76e2a5b2）+ C3-004 后置接入（c1a1491e99，git 序列可证）+ 上下文传播统一（出口泵 execute 承载/newRpcContext 内置 binder 五入口零改码/平台根因 isClosed 守卫+对称 detach/C3-007 快照+executeWithContext）+ C2-016 endProcessIfIdle 原子化 + C4-008 三档 + CL-024 注记闭合——14 项 P1 全修，41+ 新回归测试，必红五组，SPI ×11 回归面全列执行留证。roadmap 8.5 → done。
+Completed: 2026-10-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （closure audit 时填写）
-- Audit Session: —
-- Evidence: （每条 Exit Criterion 与 Closure Gate 的验证结果，含 Anti-Hollow 与 SPI 回归面复核）
+- Reviewer / Agent: agent_e118c262（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_e118c262-0ebf-443d-a499-d11b7f9fd8a8
+- Evidence: 判定 **PASS with corrections**（14/14 成员实仓抽验全在位带 CRA 注释；提交顺序 merge-base 机械核验 PASS；测试实跑 TestFutureHelperBindCancelContract 14/14 + TestAsyncBizActionOrmChain_P3_E2E 1/1 + TestApiCoreSpiSurface 5/5 全绿；必红抽 3 份 RED→GREEN 真实；钉死面零触碰实证；SPI ×11 grep 重枚举一致；owner doc CANCEL/CTX 四锚点+service-layer 契约节+nop-ai bullet 在位）。两处 Major 收口前置已修复：**M-1 Phase 1 回填**（本 plan Phase 1 Status/checklist/Exit 已补勾+回填注）；**M-2 CANCEL-002 载体 reconcile**（`ICancelToken.appendOnCancel` javadoc 已补契约句[不承诺补发+注册方自检窗口+bindCancelToken 内置补触发]，零签名变更）。2 Minor watch-only（设计 §3.3 形态承载措辞注记已由 CTX-001 owner doc 承载；executeWithThrottling Error 补偿超立案面登记观察）。双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）。Deferred 分类检查：C3-018/C6-001/CL-024/MA-05 四条均为入批前已裁定批外/下游项、successor 清晰，无 in-scope live defect 被降级。
 
 Follow-up:
 
-- （closure 时填写，或明确写 no remaining plan-owned work）
+- Non-Blocking Follow-ups 所列项均已登记归属（C6-001→R4-14、C3-018→R4-13、4.4-MA-05→R4-28、CL-024 注记闭合），no remaining plan-owned work
