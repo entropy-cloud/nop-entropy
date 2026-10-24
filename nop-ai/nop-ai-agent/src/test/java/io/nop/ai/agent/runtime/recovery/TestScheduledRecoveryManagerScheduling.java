@@ -4,6 +4,8 @@ import io.nop.ai.agent.NopAiAgentException;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -18,8 +20,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * and constructor argument validation. Split from
  * {@code TestScheduledRecoveryManager} (MA4.2-06); fixtures in
  * {@link AbstractScheduledRecoveryManagerTest}.
+ *
+ * <p>CRA A4 (plan 2498 Phase 4): {@code start()} binds
+ * {@code executeOn(globalWorker())} on the injected carrier, so the wiring is
+ * registered through the one-shot {@code schedule} trigger path
+ * (BindScheduledExecutor → PeriodicTaskHelper manual-rearm chain). These
+ * tests assert the trigger registration, the live round dispatch on the real
+ * {@code nop-global-worker} pool, and the stopped-chain suppression — same
+ * intents as the pre-A4 wiring assertions, adapted to the bind form.
  */
 public class TestScheduledRecoveryManagerScheduling extends AbstractScheduledRecoveryManagerTest {
+
+    private static void awaitUntil(BooleanSupplier condition) {
+        awaitUntilAtMost(10, condition, "bounded await expired");
+    }
+
+    private static void awaitUntilAtMost(long seconds, BooleanSupplier condition, String message) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(seconds);
+        while (System.nanoTime() < deadline) {
+            if (condition.getAsBoolean()) {
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        assertTrue(condition.getAsBoolean(), message);
+    }
 
     // ========================================================================
     // start / stop — scheduling wiring (Wiring Verification #23)
@@ -32,15 +62,13 @@ public class TestScheduledRecoveryManagerScheduling extends AbstractScheduledRec
 
         mgr.start();
 
-        assertNotNull(scheduler.lastCommand.get(),
-                "start() must register a task via scheduleWithFixedDelay");
-        assertEquals(ScheduledRecoveryManager.DEFAULT_SCAN_INTERVAL_SEC,
-                scheduler.lastDelay.get().longValue(),
-                "start() must use the default 60s delay");
-        assertEquals(TimeUnit.SECONDS, scheduler.lastUnit.get(),
-                "delay unit must be SECONDS");
-        assertFalse(scheduler.cancelled.get(),
-                "the registered handle must NOT be cancelled right after start");
+        assertNotNull(scheduler.lastTrigger.get(),
+                "start() must register the periodic round trigger via the one-shot schedule path");
+        assertEquals(ScheduledRecoveryManager.DEFAULT_SCAN_INTERVAL_SEC * 1000L,
+                scheduler.lastTriggerDelayMillis.get().longValue(),
+                "start() must use the default 60s delay (converted to millis by the bind chain)");
+        assertEquals(1, scheduler.oneShotScheduleCount.get(),
+                "exactly one round trigger must be registered per start");
     }
 
     @Test
@@ -50,23 +78,37 @@ public class TestScheduledRecoveryManagerScheduling extends AbstractScheduledRec
 
         mgr.start();
 
-        assertEquals(15L, scheduler.lastDelay.get().longValue(),
+        assertEquals(15_000L, scheduler.lastTriggerDelayMillis.get().longValue(),
                 "start() must use the configured 15s delay");
     }
 
     @Test
-    void stopCancelsRegisteredHandle() {
+    void stopCancelsRegisteredHandle() throws Exception {
         RecordingScheduler scheduler = new RecordingScheduler();
-        ScheduledRecoveryManager mgr = new ScheduledRecoveryManager(dataSource, scheduler);
+        AtomicInteger scanCount = new AtomicInteger(0);
+        ScheduledRecoveryManager mgr = new ScheduledRecoveryManager(dataSource, scheduler) {
+            @Override
+            public RecoveryScanResult scanOnce() {
+                scanCount.incrementAndGet();
+                return RecoveryScanResult.empty();
+            }
+        };
         mgr.start();
-        assertFalse(scheduler.cancelled.get(), "precondition: handle not yet cancelled");
+        Runnable trigger = scheduler.lastTrigger.get();
+        assertNotNull(trigger, "precondition: round trigger registered");
+        trigger.run();
+        awaitUntilAtMost(10, () -> scanCount.get() >= 1,
+                "a live chain must dispatch the scan round on the worker pool");
 
         mgr.stop();
 
-        assertTrue(scheduler.cancelled.get(),
-                "stop() must cancel the registered Future handle");
-        assertFalse(scheduler.mayInterruptIfRunning,
-                "cancel must use mayInterruptIfRunning=false (best-effort)");
+        // after stop the chain is terminal: running the trigger again must
+        // not dispatch any further scan round (negative await: hold for 2s
+        // and verify the scan count is unchanged)
+        trigger.run();
+        Thread.sleep(2000);
+        assertEquals(1, scanCount.get(),
+                "stop() must terminate the chain: a further scan round was dispatched after stop");
     }
 
     @Test
@@ -74,24 +116,20 @@ public class TestScheduledRecoveryManagerScheduling extends AbstractScheduledRec
         RecordingScheduler scheduler = new RecordingScheduler();
         ScheduledRecoveryManager mgr = new ScheduledRecoveryManager(dataSource, scheduler);
 
-        // Double start → exactly one scheduleWithFixedDelay call.
+        // Double start → exactly one periodic trigger registration.
         mgr.start();
         mgr.start();
-        assertEquals(1, scheduler.scheduleCount.get(),
-                "idempotent start: repeated start must not register a second task");
+        assertEquals(1, scheduler.oneShotScheduleCount.get(),
+                "idempotent start: repeated start must not register a second trigger");
 
-        // Double stop → handle cancelled, no exception.
+        // Double stop → no exception (idempotent).
         mgr.stop();
         mgr.stop();
-        assertTrue(scheduler.cancelled.get(),
-                "idempotent stop: handle is cancelled");
 
         // Restart after stop → registers again.
-        scheduler.scheduleCount.set(0);
-        scheduler.cancelled.set(false);
         mgr.start();
-        assertEquals(1, scheduler.scheduleCount.get(),
-                "start after stop re-registers the task");
+        assertEquals(2, scheduler.oneShotScheduleCount.get(),
+                "start after stop re-registers the trigger");
         mgr.stop();
     }
 
@@ -116,13 +154,18 @@ public class TestScheduledRecoveryManagerScheduling extends AbstractScheduledRec
         insertLockRow("stale-x", "owner", System.currentTimeMillis() - 1000L);
 
         mgr.start();
-        // The wiring is verified by executing the registered Runnable and
+        // The wiring is verified by firing the registered round trigger and
         // checking it actually performed the cleanup (not just that a
-        // command object was registered).
-        Runnable registered = scheduler.lastCommand.get();
+        // trigger object was registered). The trigger hops the scan body to
+        // the real globalWorker pool, so the DB effect is awaited bounded.
+        Runnable registered = scheduler.lastTrigger.get();
         assertNotNull(registered);
         registered.run();
 
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline && countAllLockRows() != 0) {
+            Thread.sleep(50);
+        }
         assertEquals(0, countAllLockRows(),
                 "the registered periodic task must actually run scanOnce and clean stale locks");
         mgr.stop();

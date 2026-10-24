@@ -33,12 +33,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * escaped the task body, the JDK {@code scheduleWithFixedDelay} round was
  * cancelled permanently and recovery went silently blind. Post-fix the guard
  * catches Throwable, keeps the chain re-armable and keeps the failure observable.
+ *
+ * <p>CRA A4 (plan 2498 Phase 4): {@code start()} binds
+ * {@code executeOn(globalWorker())} — the recorded trigger dispatches the scan
+ * round onto the real {@code nop-global-worker} pool, so round runs are
+ * awaited bounded (the trigger returns before the body completes). Insulation
+ * semantics are unchanged: the Throwable guard in {@code scanOnceSafe} plus
+ * the R1-01 chain guard keep the chain alive and observable.
  */
 public class TestScheduledRecoveryManagerInsulation {
 
     /** Recording stub: captures the scheduled periodic command for manual round runs. */
     static final class RecordingScheduler implements IScheduledExecutor, IDestroyable {
         final AtomicReference<Runnable> lastCommand = new AtomicReference<>();
+        // CRA A4: one-shot trigger recording (the executeOn-bound registration path)
+        final AtomicReference<Runnable> lastTrigger = new AtomicReference<>();
         final AtomicBoolean destroyed = new AtomicBoolean(false);
 
         @Override
@@ -49,7 +58,14 @@ public class TestScheduledRecoveryManagerInsulation {
 
         @Override
         public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-            return CompletableFuture.completedFuture(null);
+            lastTrigger.set(() -> {
+                try {
+                    callable.call();
+                } catch (Exception e) {
+                    throw io.nop.api.core.exceptions.NopException.adapt(e);
+                }
+            });
+            return new CompletableFuture<>();
         }
 
         @Override
@@ -160,29 +176,46 @@ public class TestScheduledRecoveryManagerInsulation {
         dataSource = null;
     }
 
+    private void awaitWarns(long expectedMinimum, String message) {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (System.nanoTime() < deadline) {
+            if (warnCount() >= expectedMinimum) {
+                return;
+            }
+            try {
+                Thread.sleep(50);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        assertTrue(warnCount() >= expectedMinimum, message);
+    }
+
+    private long warnCount() {
+        return logAppender.list.stream()
+                .filter(e -> e.getFormattedMessage().contains("periodic scan failed"))
+                .count();
+    }
+
     @Test
     void testScanChainSurvivesInjectedErrorAndStaysObservable() {
         manager.start();
-        Runnable round = scheduler.lastCommand.get();
-        assertTrue(round != null, "start must schedule the periodic scan");
+        Runnable round = scheduler.lastTrigger.get();
+        assertTrue(round != null, "start must schedule the periodic scan (executeOn-bound trigger)");
 
         dataSource.armError();
 
-        // Round 1 with injected Error: pre-fix the LinkageError propagated out of the
-        // task body (killing the JDK periodic round); post-fix it is caught + observed.
-        assertDoesNotThrow(round::run, "the scan task body must not let an Error escape");
-
-        long warns = logAppender.list.stream()
-                .filter(e -> e.getFormattedMessage().contains("periodic scan failed"))
-                .count();
-        assertTrue(warns >= 1, "the failed scan round must be observable via the warn log");
+        // Round 1 with injected Error: pre-insulation-fix the LinkageError propagated
+        // out of the task body (killing the periodic round); post-fix it is caught in
+        // the scan guard + observed. The round is dispatched on the worker pool, so
+        // the warn is awaited bounded.
+        assertDoesNotThrow(round::run, "the scan round trigger must not let an Error escape");
+        awaitWarns(1, "the failed scan round must be observable via the warn log");
 
         // Round 2: the chain is still re-armable — a second failing round is also
         // contained (pre-fix the chain would already be dead after round 1).
         assertDoesNotThrow(round::run, "the periodic chain must remain alive after an Error round");
-        assertTrue(logAppender.list.stream()
-                        .filter(e -> e.getFormattedMessage().contains("periodic scan failed"))
-                        .count() >= 2,
-                "each failing round must be observable");
+        awaitWarns(2, "each failing round must be observable");
     }
 }

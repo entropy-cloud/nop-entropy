@@ -228,9 +228,12 @@ public abstract class AbstractScheduledRecoveryManagerTest {
 
     // ========================================================================
     // Minimal recording IScheduledExecutor stub for scheduling-wiring tests.
-    // Records the scheduleWithFixedDelay arguments and exposes a
-    // cancel-recording Future. Does NOT actually schedule anything — tests
-    // invoke the recorded Runnable manually.
+    // CRA A4 (plan 2498 Phase 4): start() binds executeOn(globalWorker()), so
+    // the manager registers the periodic chain through the one-shot
+    // schedule(Callable, delay, unit) path (BindScheduledExecutor ->
+    // PeriodicTaskHelper manual-rearm chain). The stub records that trigger
+    // and exposes it for manual round runs; it does NOT actually schedule
+    // anything on its own.
     // ========================================================================
     static final class RecordingScheduler implements IScheduledExecutor, IDestroyable {
         final AtomicInteger scheduleCount = new AtomicInteger(0);
@@ -238,6 +241,10 @@ public abstract class AbstractScheduledRecoveryManagerTest {
         final AtomicReference<Long> lastInitialDelay = new AtomicReference<>();
         final AtomicReference<Long> lastDelay = new AtomicReference<>();
         final AtomicReference<TimeUnit> lastUnit = new AtomicReference<>();
+        // one-shot trigger recording (the executeOn-bound registration path)
+        final AtomicInteger oneShotScheduleCount = new AtomicInteger(0);
+        final AtomicReference<Runnable> lastTrigger = new AtomicReference<>();
+        final AtomicReference<Long> lastTriggerDelayMillis = new AtomicReference<>();
         final AtomicBoolean cancelled = new AtomicBoolean(false);
         boolean mayInterruptIfRunning;
         final AtomicBoolean destroyed = new AtomicBoolean(false);
@@ -284,7 +291,16 @@ public abstract class AbstractScheduledRecoveryManagerTest {
 
         @Override
         public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-            return CompletableFuture.completedFuture(null);
+            oneShotScheduleCount.incrementAndGet();
+            lastTriggerDelayMillis.set(delay);
+            lastTrigger.set(() -> {
+                try {
+                    callable.call();
+                } catch (Exception e) {
+                    throw io.nop.api.core.exceptions.NopException.adapt(e);
+                }
+            });
+            return new CompletableFuture<>();
         }
 
         @Override
