@@ -65,6 +65,15 @@ public class TestToolManagerCancelChain_C4_008 {
         final AtomicInteger started = new AtomicInteger();
         final AtomicInteger cancelled = new AtomicInteger();
         final AtomicInteger completed = new AtomicInteger();
+        /**
+         * plan 2501 Phase 1 determinism pin: counts task bodies that actually
+         * started running on a pool thread. {@link #started} flips at
+         * executeAsync entry (before the pool submit), so awaiting it alone
+         * lets a cancel land while the task is still queued — FutureTask then
+         * skips the body entirely and "worker observes cancel" can never be
+         * observed (latent race, fired under batch-suite load).
+         */
+        final AtomicInteger bodyStarted = new AtomicInteger();
         /** 显式放行（零回归用例）：置 true 后所有挂起体以成功路径退出 */
         volatile boolean released;
 
@@ -77,6 +86,7 @@ public class TestToolManagerCancelChain_C4_008 {
         public CompletionStage<AiToolCallResult> executeAsync(AiToolCall call, IToolExecuteContext context) {
             started.incrementAndGet();
             return context.getExecutor().submit(() -> {
+                bodyStarted.incrementAndGet();
                 // 挂起体：future.cancel(true) 的 worker 中断 → 取消路径；released 标志 → 成功路径
                 long deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(5);
                 while (!Thread.currentThread().isInterrupted() && !released
@@ -271,6 +281,16 @@ public class TestToolManagerCancelChain_C4_008 {
             LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(20));
         }
         assertEquals(1, executor.started.get());
+
+        // plan 2501 Phase 1 determinism pin: wait until the task body actually
+        // runs on a worker thread — "in-flight" must mean the body is executing,
+        // otherwise cancel(true) may legitimately skip the queued task and the
+        // worker-observes-cancel assertion below has nothing to observe.
+        deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (executor.bodyStarted.get() < 1 && System.nanoTime() < deadline) {
+            LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(20));
+        }
+        assertEquals(1, executor.bodyStarted.get());
 
         assertTrue(future.cancel(true), "in-flight result must be cancellable");
 

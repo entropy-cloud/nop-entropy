@@ -2,10 +2,14 @@ package io.nop.ai.toolkit.manager;
 
 import io.nop.ai.toolkit.api.*;
 import io.nop.ai.toolkit.model.*;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.component.ResourceComponentManager;
+
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ARG_DETAIL;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,6 +113,19 @@ public class ToolManagerImpl implements IToolManager {
             }).toCompletableFuture();
         };
 
+        // 3.2-C1-001(3) (plan 2501 Phase 1): a wired context without an executor is a
+        // dispatch misconfiguration — it used to surface as an NPE thrown inside the
+        // tool dispatch, which the queued branch turned into a permanently hanging
+        // result (ChatBiToolExecuteContext returns null; ToolExecuteContext.Builder has
+        // no default). Fail loud with an explicit terminal state instead (rule 16/24).
+        if (context != null && context.getExecutor() == null) {
+            CompletableFuture<AiToolCallResult> misconfigured = new CompletableFuture<>();
+            misconfigured.completeExceptionally(new NopException(ERR_AI_TOOLKIT_INVALID_STATE)
+                    .param(ARG_DETAIL, "Tool execution context has no executor wired (fail-loud, "
+                            + "previously an NPE inside dispatch): tool=" + toolName));
+            return misconfigured;
+        }
+
         // Plan 2298 (WI17): per-path serialization for concurrency-unsafe
         // tools. This is the process-wide chokepoint — the dispatcher's
         // parallel fan-out calls callTool per call, so the queue here is what
@@ -125,43 +142,99 @@ public class ToolManagerImpl implements IToolManager {
                 // 触发链与在途执行：轮到本调用时先判 result 取消状态即不再派生执行（消除
                 // result.cancel(true) 假确认）；执行已派生则联动取消执行 future
                 CompletableFuture<AiToolCallResult> result = new CompletableFuture<>();
-                pathQueues.compute(pathKey, (k, tail) -> {
-                    CompletableFuture<Void> trigger = (tail == null
-                            ? CompletableFuture.completedFuture(null)
-                            : tail).handle((v, e) -> null);
-                    return trigger.thenCompose(x -> {
-                        if (result.isCancelled()) {
-                            // 排队窗口取消联动：不再派生执行，链剩余段以取消终态短路
-                            CompletableFuture<Void> skipped = new CompletableFuture<>();
-                            skipped.completeExceptionally(new java.util.concurrent.CancellationException(
-                                    "queued tool call cancelled before its turn: tool=" + toolName
-                                            + ", pathKey=" + pathKey));
-                            return skipped;
-                        }
-                        CompletableFuture<AiToolCallResult> exec = executeNow.get();
-                        // 在途取消联动（C4-008(3)）：result 取消传播到「源」执行 future——
-                        // cancel(true) 经池载体中断 worker，任务不再跑满（取消语义不止步于包装层）
-                        result.whenComplete((r2, e2) -> {
-                            if (e2 instanceof java.util.concurrent.CancellationException) {
-                                CompletableFuture<AiToolCallResult> source = execRef.get();
-                                if (source != null) {
-                                    source.cancel(true);
-                                }
-                            }
-                        });
-                        return exec.whenComplete((r, err) -> {
-                            if (err != null) {
-                                result.completeExceptionally(err);
-                            } else {
-                                result.complete(r);
-                            }
-                        }).thenApply(r -> (Void) null);
-                    });
+                // 3.2-C1-001(a)(b) (plan 2501 Phase 1): compute only swaps the per-path
+                // tail — the tail is a plain promise and the execution body is attached
+                // AFTER compute returns. With a completed predecessor the body would
+                // otherwise run synchronously inside the CHM bin lock (nop-cli
+                // CliCallToolsCommand injects SyncThreadPoolExecutor.INSTANCE, putting
+                // the whole tool execution inside the lock), and a nested same-path
+                // callTool would re-enter compute (Recursive update).
+                CompletableFuture<Void> tail = new CompletableFuture<>();
+                // CHM.compute returns the NEW mapping — the predecessor tail must be
+                // captured inside the mapping function
+                java.util.concurrent.atomic.AtomicReference<CompletableFuture<Void>> prevRef =
+                        new java.util.concurrent.atomic.AtomicReference<>();
+                pathQueues.compute(pathKey, (k, oldTail) -> {
+                    prevRef.set(oldTail);
+                    return tail;
                 });
+                CompletableFuture<Void> prev = prevRef.get();
+                CompletableFuture<Void> trigger = (prev == null)
+                        ? CompletableFuture.completedFuture(null)
+                        : prev.handle((v, e) -> null);
+                trigger.whenComplete((v, e) ->
+                        runQueuedExecution(result, tail, execRef, executeNow, toolName, pathKey));
                 return result;
             }
         }
         return executeNow.get();
+    }
+
+    /**
+     * 3.2-C1-001 (plan 2501 Phase 1): runs one queued call's execution body on the
+     * thread that observed its predecessor's completion — never inside the
+     * {@code pathQueues.compute} critical section.
+     *
+     * <p>Completion contract (C1-001(c)): the caller-visible {@code result} future is
+     * guaranteed to settle exactly once — including when {@code executeNow} throws
+     * synchronously (null-executor misconfiguration, saturated-pool
+     * {@link java.util.concurrent.RejectedExecutionException}). {@code tail} always
+     * settles too, so the next queued call on the same path proceeds (a failed call
+     * never poisons the queue). Plan 2499 (3.2-C4-008) cancellation linkage is
+     * preserved: a call cancelled during its queue window never derives execution,
+     * and an in-flight cancellation propagates to the source execution future.
+     */
+    private void runQueuedExecution(CompletableFuture<AiToolCallResult> result,
+                                    CompletableFuture<Void> tail,
+                                    java.util.concurrent.atomic.AtomicReference<CompletableFuture<AiToolCallResult>> execRef,
+                                    java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow,
+                                    String toolName, String pathKey) {
+        try {
+            if (result.isCancelled()) {
+                // 排队窗口取消联动：不再派生执行，链剩余段以取消终态短路
+                tail.completeExceptionally(new java.util.concurrent.CancellationException(
+                        "queued tool call cancelled before its turn: tool=" + toolName
+                                + ", pathKey=" + pathKey));
+                return;
+            }
+            CompletableFuture<AiToolCallResult> exec;
+            try {
+                exec = executeNow.get();
+            } catch (Throwable syncThrow) {
+                // C1-001(c)：executeNow 同步抛（池拒绝等）时调用方 result 得到显式异常
+                // 终态而非永久悬挂；tail 同步落定使后续排队调用继续（队列不中毒）
+                LOG.warn("ToolManagerImpl: queued tool dispatch threw synchronously: tool="
+                        + toolName + ", pathKey=" + pathKey, syncThrow);
+                result.completeExceptionally(syncThrow);
+                tail.completeExceptionally(syncThrow);
+                return;
+            }
+            // 在途取消联动（C4-008(3)）：result 取消传播到「源」执行 future——
+            // cancel(true) 经池载体中断 worker，任务不再跑满（取消语义不止步于包装层）
+            result.whenComplete((r2, e2) -> {
+                if (e2 instanceof java.util.concurrent.CancellationException) {
+                    CompletableFuture<AiToolCallResult> source = execRef.get();
+                    if (source != null) {
+                        source.cancel(true);
+                    }
+                }
+            });
+            exec.whenComplete((r, err) -> {
+                if (err != null) {
+                    result.completeExceptionally(err);
+                    tail.completeExceptionally(err);
+                } else {
+                    result.complete(r);
+                    tail.complete(null);
+                }
+            });
+        } catch (Throwable unguarded) {
+            // last-resort contract closure — a queued caller must never be left hanging
+            LOG.error("ToolManagerImpl: queued execution contract violated, completing exceptionally: tool="
+                    + toolName + ", pathKey=" + pathKey, unguarded);
+            result.completeExceptionally(unguarded);
+            tail.completeExceptionally(unguarded);
+        }
     }
 
     private boolean isConcurrencySafe(String toolName) {

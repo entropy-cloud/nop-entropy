@@ -99,30 +99,30 @@
 
 ### Phase 1 - 分片 A：3.2-C1-001 ToolManagerImpl 排队链三子缺陷（nop-ai-toolkit）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/manager/ToolManagerImpl.java`（:128-161 compute 块、:246-287 submitBounded）、`nop-ai/nop-ai-toolkit/src/test/`
 
 - Item Types: `Fix`（3.2-C1-001 已确认 live defect，不得写成 Feature）、`Proof`（回归测试）
 
-- [ ] `executeNow.get()` 移出 compute 锁：compute 内只做 `tail` 取换（哨兵链建链），fn 挂锁外执行——(a) 锁内同步执行（nop-cli SyncThreadPoolExecutor 装配全 bin 串行面）与 (b) 锁内重入（Recursive update）同根消除
-- [ ] `result` future 完成契约闭合：对 `executeNow.get()` 本身 try/catch → `result.completeExceptionally`，完成挂整链外层 whenComplete——(c) 同步抛（null executor NPE / REE）时调用方得异常终态非永久悬挂，`submitBounded` semaphore release 随终态恢复
-- [ ] null executor 装配面补强：`ToolExecuteContext.Builder.executor` 无默认值 / `ChatBiToolExecuteContext.getExecutor()` 返回 null 面 fail-loud 或缺省载体（warn-only 不构成终态，rule 16）；**不回退 2499 取消联动语义**（排队窗口取消短路 + 在途取消传播断言共存）
-- [ ] 回归测试（rule 25，测试名带 `_C1_001`）：①同步抛注入 → result 异常完成非悬挂（3.2-C10-004 故障注入形态：null executor / 饱和池 REE 双形态）；②锁内执行消除断言（同步执行器装配下 compute 调用线程不执行分发体）；③排队语义零回归钉（同路径串行/异路径并行/取消联动既有行为）；④nop-cli SyncThreadPoolExecutor 装配链核对——live 回读核对登记（执行时回读装配链、结论登记于执行注记/日志，非新增自动化测试；nop-cli 跨模块自动化断言不纳入本批）
-- [ ] **接线验证**（rule 22 端到端——真实入口→终态输出；rule 23）：真实 callTool 排队链（非 concurrency-safe 工具 + pathKey 提取命中）上断言新完成契约与锁外执行生效——从命令行真实入口到 result 终态输出完整走通
-- [ ] **无静默跳过**（rule 24）：executeNow 同步抛不再静默悬挂——异常路径显式 completeExceptionally 可观测
-- [ ] **提交纪律**：nop-ai-toolkit 一提交，commit message 带 `3.2-C1-001` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `executeNow.get()` 移出 compute 锁：compute 内只做 `tail` 取换（哨兵链建链），fn 挂锁外执行——(a) 锁内同步执行（nop-cli SyncThreadPoolExecutor 装配全 bin 串行面）与 (b) 锁内重入（Recursive update）同根消除
+- [x] `result` future 完成契约闭合：对 `executeNow.get()` 本身 try/catch → `result.completeExceptionally`，完成挂整链外层 whenComplete——(c) 同步抛（null executor NPE / REE）时调用方得异常终态非永久悬挂，`submitBounded` semaphore release 随终态恢复
+- [x] null executor 装配面补强：`ToolExecuteContext.Builder.executor` 无默认值 / `ChatBiToolExecuteContext.getExecutor()` 返回 null 面 fail-loud 或缺省载体（warn-only 不构成终态，rule 16）；**不回退 2499 取消联动语义**（排队窗口取消短路 + 在途取消传播断言共存）
+- [x] 回归测试（rule 25，测试名带 `_C1_001`）：①同步抛注入 → result 异常完成非悬挂（3.2-C10-004 故障注入形态：null executor / 饱和池 REE 双形态）；②锁内执行消除断言（同步执行器装配下 compute 调用线程不执行分发体）；③排队语义零回归钉（同路径串行/异路径并行/取消联动既有行为）；④nop-cli SyncThreadPoolExecutor 装配链核对——live 回读核对登记（执行时回读装配链、结论登记于执行注记/日志，非新增自动化测试；nop-cli 跨模块自动化断言不纳入本批）
+- [x] **接线验证**（rule 22 端到端——真实入口→终态输出；rule 23）：真实 callTool 排队链（非 concurrency-safe 工具 + pathKey 提取命中）上断言新完成契约与锁外执行生效——从命令行真实入口到 result 终态输出完整走通
+- [x] **无静默跳过**（rule 24）：executeNow 同步抛不再静默悬挂——异常路径显式 completeExceptionally 可观测
+- [x] **提交纪律**：nop-ai-toolkit 一提交，commit message 带 `3.2-C1-001` 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.2-C1-001 landed：三子缺陷（锁内执行/重入/悬挂 future）全部闭合，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：悬挂 future 断言先红后绿或变异/回退论证留痕（修复前基线 result 永不完成断言超时红；快照 `_tmp/phase1-c1-001-*.log`）
-- [ ] 接线验证证据登记（哪条断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am` BUILD SUCCESS（分片通道；聚合批行通道归 Phase 5 E3）
-- [ ] Owner doc 裁定：`nop-ai.md` 工具排队链契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.2-C1-001 landed：三子缺陷（锁内执行/重入/悬挂 future）全部闭合，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：悬挂 future 断言先红后绿或变异/回退论证留痕（修复前基线 result 永不完成断言超时红；快照 `_tmp/phase1-c1-001-*.log`）
+- [x] 接线验证证据登记（哪条断言证明运行时生效）
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am` BUILD SUCCESS（分片通道；聚合批行通道归 Phase 5 E3）
+- [x] Owner doc 裁定：`nop-ai.md` 工具排队链契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 统一但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 分片 B：3.2-C6-001/C6-002/C6-003 沙箱清理族三工单（nop-ai-toolkit sandbox）
 
