@@ -30,7 +30,9 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -51,10 +53,44 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     private static final String METHOD_UNSUBSCRIBE = "unsubscribe";
     private static final String METHOD_TOKEN_REFRESH = "tokenRefresh";
 
+    private static final int KEEP_ALIVE_INTERVAL_SECONDS = 10;
+
+    /**
+     * A5 keepalive fan-out convergence (plan 2498 Phase 3, finding 2.3-C8-001): live
+     * handlers registered for the shared keepalive scan. Sessions whose close callback was
+     * missed are evicted lazily by the scan itself (self-cleaning), so the registry cannot
+     * leak.
+     */
+    private static final Set<JsonRpcWebSocketHandler> LIVE_HANDLERS = ConcurrentHashMap.newKeySet();
+
+    /**
+     * The single shared keepalive chain, armed once per JVM. Trigger = shared globalTimer
+     * (O(1) per connection count); body = hops to the shared worker pool via
+     * {@code executeOn} (platform scheduling-slot contract), and each ping is further
+     * enqueued into the target session's bounded send pump, so no timer thread ever
+     * executes a blocking send and one slow client cannot delay other sessions.
+     */
+    private static volatile Future<?> sharedKeepAliveChain;
+
     protected final BiFunction<JsonRpcRequest, Map<String, Object>, Flow.Publisher<ApiResponse<?>>> executionService;
     protected final IWebSocketSession session;
     protected final Map<String, Flow.Subscriber<ApiResponse<?>>> activeOperations = new ConcurrentHashMap<>();
+
+    /**
+     * This session's participation handle in the shared keepalive chain (A5 convergence,
+     * plan 2498 Phase 3): the old per-connection globalTimer periodic task was replaced by
+     * one O(1) shared scan, so this future no longer is a timer task — it represents the
+     * session's registration in {@link #LIVE_HANDLERS} and is cancelled when the session
+     * leaves the chain.
+     */
     protected final Future<?> keepAliveSender;
+
+    /**
+     * Per-session bounded, order-preserving send pump draining on the shared worker pool
+     * (2.3-C8-001): blocking sends never run on the publishing thread or the timer, and a
+     * slow client overflows into a session disconnect instead of pinning platform carriers.
+     */
+    protected final WebSocketSendPump sendPump;
 
     private int maxActiveOperations = 1000;
     protected volatile Map<String, Object> authHeaders;
@@ -79,8 +115,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         this.executionService = executionService;
         this.session = session;
         this.authHeaders = initialHeaders != null ? new ConcurrentHashMap<>(initialHeaders) : new ConcurrentHashMap<>();
-        this.keepAliveSender = GlobalExecutors.globalTimer().scheduleWithFixedDelay(this::sendKeepAlive, 10, 10,
-                TimeUnit.SECONDS);
+        this.sendPump = new WebSocketSendPump(session, WebSocketSendPump.DEFAULT_CAPACITY);
+        this.keepAliveSender = registerKeepAlive(this);
     }
 
     public void setMaxActiveOperations(int maxActiveOperations) {
@@ -111,9 +147,7 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     @Override
     public void onThrowable(Throwable t) {
         LOG.warn("Error in websocket", t);
-        if (keepAliveSender != null) {
-            keepAliveSender.cancel(false);
-        }
+        unregisterKeepAlive();
     }
 
     @Override
@@ -123,8 +157,54 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         if (!session.isClosed()) {
             session.close((short) 1000, "");
         }
-        if (keepAliveSender != null) {
-            keepAliveSender.cancel(false);
+        unregisterKeepAlive();
+        sendPump.close();
+    }
+
+    /**
+     * A5 keepalive fan-out convergence (plan 2498 Phase 3, finding 2.3-C8-001): registers
+     * the handler in the shared scan registry and arms the single shared keepalive chain
+     * once per JVM. The chain is
+     * {@code globalTimer().executeOn(globalWorker()).scheduleWithFixedDelay(...)} — timer
+     * triggers only, the scan body and every send run on the shared worker pool. N
+     * connections therefore add O(1) timer tasks, not N.
+     */
+    private static Future<?> registerKeepAlive(JsonRpcWebSocketHandler handler) {
+        LIVE_HANDLERS.add(handler);
+        if (sharedKeepAliveChain == null) {
+            synchronized (JsonRpcWebSocketHandler.class) {
+                if (sharedKeepAliveChain == null) {
+                    sharedKeepAliveChain = GlobalExecutors.globalTimer()
+                            .executeOn(GlobalExecutors.globalWorker())
+                            .scheduleWithFixedDelay(JsonRpcWebSocketHandler::sendKeepAliveToAll,
+                                    KEEP_ALIVE_INTERVAL_SECONDS, KEEP_ALIVE_INTERVAL_SECONDS, TimeUnit.SECONDS);
+                }
+            }
+        }
+        // registration handle: cancelled when the session leaves the chain (see unregisterKeepAlive)
+        return new CompletableFuture<Void>();
+    }
+
+    private void unregisterKeepAlive() {
+        LIVE_HANDLERS.remove(this);
+        Future<?> handle = keepAliveSender;
+        if (handle != null) {
+            handle.cancel(false);
+        }
+    }
+
+    /**
+     * The single shared keepalive round: evict closed sessions lazily and enqueue one ping
+     * per live session. Enqueue-only by design — a slow session's ping sits in its own
+     * bounded pump, so it can never delay other sessions' keepalives.
+     */
+    static void sendKeepAliveToAll() {
+        for (JsonRpcWebSocketHandler handler : LIVE_HANDLERS) {
+            if (handler.session.isClosed()) {
+                LIVE_HANDLERS.remove(handler);
+                continue;
+            }
+            handler.sendKeepAlive();
         }
     }
 
@@ -361,13 +441,26 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * (ai-dev/design/concurrency/periodic-task-insulation.md), a failed round must stay observable and
      * must never terminate the chain: catch Throwable at site level, log with a structured key, and let
      * the next scheduled round proceed. The failure is logged, not swallowed silently.
+     *
+     * <p>2.3-C8-001 (plan 2498 Phase 3): the ping is enqueued into this session's bounded
+     * send pump and written by the shared worker pool — never on the timer/scan thread. The
+     * site-level Throwable guard (R1-01 insulation) is preserved over the enqueue path.
      */
     protected void sendKeepAlive() {
         try {
-            session.sendMessage(createNotification("ping"));
-        } catch (IOException e) {
-            LOG.warn("nop.websocket.send-keep-alive-fail", e);
+            sendPump.submit(() -> {
+                try {
+                    session.sendMessage(createNotification(METHOD_PING));
+                } catch (IOException e) {
+                    LOG.warn("nop.websocket.send-keep-alive-fail", e);
+                } catch (Throwable e) {
+                    LOG.error("nop.err.websocket.keep-alive-fail:session={}", session, e);
+                }
+            });
         } catch (Throwable e) {
+            // enqueue path itself failed (overflow disconnect / closed session are reported via
+            // the return value; a Throwable here is a pump defect): keep the insulation contract —
+            // observable, never propagated out of the periodic body
             LOG.error("nop.err.websocket.keep-alive-fail:session={}", session, e);
         }
     }
@@ -467,15 +560,21 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         @Override
         public void onNext(ApiResponse<?> executionResult) {
             if (!session.isClosed()) {
-                try {
-                    if (!executionResult.isOk()) {
-                        sendErrorFromGraphQL(operationId, executionResult);
-                    } else {
-                        session.sendMessage(createDataMessage(operationId, executionResult));
+                // 2.3-C8-001 (plan 2498 Phase 3): the blocking send moves off the publisher
+                // thread into the session's bounded send pump (shared worker pool). Overflow
+                // (slow consumer) disconnects this session instead of back-pressuring shared
+                // platform carriers.
+                sendPump.submit(() -> {
+                    try {
+                        if (!executionResult.isOk()) {
+                            sendErrorFromGraphQL(operationId, executionResult);
+                        } else {
+                            session.sendMessage(createDataMessage(operationId, executionResult));
+                        }
+                    } catch (Exception e) {
+                        LOG.warn("nop.websocket.send-next-fail", e);
                     }
-                } catch (Exception e) {
-                    LOG.warn("nop.websocket.send-next-fail", e);
-                }
+                });
                 subscription.get().request(1);
             } else {
                 LOG.debug("nop.websocket.ignore-response");
@@ -495,11 +594,14 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 LOG.trace("nop.websocket.subscription-completed:opId={}", operationId);
             }
 
-            try {
-                session.sendMessage(createCompleteMessage(operationId));
-            } catch (Exception e) {
-                LOG.warn("nop.websocket.send-fail", e);
-            }
+            // complete 消息与数据消息共用同一 pump，保持会话内顺序（2.3-C8-001 卸载）
+            sendPump.submit(() -> {
+                try {
+                    session.sendMessage(createCompleteMessage(operationId));
+                } catch (Exception e) {
+                    LOG.warn("nop.websocket.send-fail", e);
+                }
+            });
             // 使用双参remove防止误删并发重订阅的新条目
             activeOperations.remove(operationId, this);
         }

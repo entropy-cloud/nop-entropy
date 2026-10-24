@@ -100,6 +100,10 @@ public class TestJsonRpcKeepAliveInsulation {
     /**
      * 修复语义回归：keepalive 轮次内抛出 RuntimeException / Error 均不得向外传播，
      * 且失败轮次之后链仍继续投递（keepalive 保持尽力而为 + 失败可观测，非静默吞）。
+     *
+     * <p>plan 2498 Phase 3（2.3-C8-001/A5）：send 改经会话级有界 send pump 异步卸载到共享
+     * worker 池——本测试的绝缘断言全部保留，仅投递断言改为 awaitUntil 适配异步时序；
+     * 失败轮次不得投递消息的断言在异步形态下同样成立（失败 action 内部消化，永不写入 sentMessages）。
      */
     @Test
     public void testKeepAliveThrowableDoesNotPropagateAndChainContinues() {
@@ -110,21 +114,28 @@ public class TestJsonRpcKeepAliveInsulation {
             // 第 1 轮：消息序列化 RuntimeException（审计指认的逃逸面）——不得抛出
             session.throwOnSend.add(new IllegalStateException("serialization-boom"));
             assertDoesNotThrow(handler::sendKeepAlive);
+            awaitUntil("failed round must not deliver a message (async pump must not swallow the failure)",
+                    () -> session.throwOnSend.isEmpty());
             assertTrue(session.sentMessages.isEmpty(), "failed round must not deliver a message");
 
             // 第 2 轮：Error 谱系（守卫宽度=Throwable）——同样不得抛出
             session.throwOnSend.add(new LinkageError("injected-keepalive-error"));
             assertDoesNotThrow(handler::sendKeepAlive);
+            awaitUntil("error round must be consumed without delivery",
+                    () -> session.throwOnSend.isEmpty());
             assertTrue(session.sentMessages.isEmpty(), "error round must not deliver a message");
 
-            // 第 3 轮：链未死——正常投递 ping keepalive
+            // 第 3 轮：链未死——正常投递 ping keepalive（异步 pump 投递）
             assertDoesNotThrow(handler::sendKeepAlive);
+            awaitUntil("keepalive chain must continue after failures",
+                    () -> !session.sentMessages.isEmpty());
             assertEquals(1, session.sentMessages.size(), "keepalive chain must continue after failures");
             assertTrue(session.sentMessages.get(0).contains("\"method\":\"ping\""),
                     "recovered round must deliver the ping keepalive notification");
 
-            // 周期链未被失败取消（站点内兜底不改写链存活语义）
-            assertFalse(handler.keepAliveSender.isCancelled(), "keepalive chain must not be cancelled by task body failures");
+            // 周期链参与未被失败取消（A5 收敛后为共享链注册句柄；站点内兜底不改写链存活语义）
+            assertFalse(handler.keepAliveSender.isCancelled(),
+                    "keepalive chain participation must not be cancelled by task body failures");
         } finally {
             handler.onClose();
         }
