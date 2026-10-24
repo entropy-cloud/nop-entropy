@@ -10,7 +10,7 @@ package io.nop.message.debezium.engine;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.JsonByteArray;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.message.debezium.DebeziumErrors;
@@ -21,6 +21,9 @@ import org.slf4j.LoggerFactory;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -32,14 +35,14 @@ public class DebeziumEngineWrapper {
 
     /**
      * Engine-terminal-failure listeners keyed by connector name (plan 368 Phase 4,
-     * audit R5-CON-03). The engine runs on a global worker thread; without a listener
-     * its terminal death (run() throwing or CompletionCallback(success=false)) was only
-     * visible as ERROR log lines, leaving the owning task RUNNING with a silently dead
-     * CDC stream. The registry is keyed by connector name because the wrapper instances
-     * are created internally by {@code DebeziumMessageSource} — the name is the same
-     * identity the offset registry ({@code NopStreamOffsetBackingStore.forConnector})
-     * already keys by, so consumers of this class register/deregister around their run
-     * lifecycle.
+     * audit R5-CON-03). The engine runs on its dedicated carrier thread (see
+     * {@link #engineExecutor}); without a listener its terminal death (run() throwing or
+     * CompletionCallback(success=false)) was only visible as ERROR log lines, leaving the
+     * owning task RUNNING with a silently dead CDC stream. The registry is keyed by
+     * connector name because the wrapper instances are created internally by
+     * {@code DebeziumMessageSource} — the name is the same identity the offset registry
+     * ({@code NopStreamOffsetBackingStore.forConnector}) already keys by, so consumers of
+     * this class register/deregister around their run lifecycle.
      */
     private static final Map<String, Consumer<Throwable>> FAILURE_LISTENERS = new ConcurrentHashMap<>();
 
@@ -94,7 +97,25 @@ public class DebeziumEngineWrapper {
     private final Consumer<ChangeEvent> changeEventConsumer;
     private final OffsetBackingStore offsetStore;
 
+    /**
+     * Bounded termination budget for the dedicated engine carrier (plan 2498 Phase 1,
+     * finding 1.2-C4-004). stop() awaits the carrier at most this long, aligned with the
+     * reader close chain's existing join(5s); the wait must never be unbounded.
+     */
+    static final int STOP_TERMINATION_BUDGET_SECONDS = 5;
+
     private DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engine;
+
+    /**
+     * Dedicated per-engine single-thread carrier (plan 2498 Phase 1, finding 1.2-C4-004).
+     * The embedded engine body ({@code engine.run()}) blocks for the whole engine lifetime
+     * (day/month scale); it must never occupy a shared {@code nop-global-worker} thread.
+     * The carrier has an independent capacity budget (one daemon thread) and its own
+     * shutdown ownership, and is named {@code debezium-engine-<connector>-<n>-<n>} so
+     * engine threads are distinguishable from shared workers in thread dumps.
+     */
+    private volatile ExecutorService engineExecutor;
+
     private final AtomicBoolean running = new AtomicBoolean(false);
 
     /** R5 CON-02: set synchronously in start(); stop() gates on this, not on the worker-observed flag. */
@@ -156,8 +177,17 @@ public class DebeziumEngineWrapper {
                     .using(new EngineConnectorCallback())
                     .build();
 
-            // 使用全局线程池运行引擎
-            GlobalExecutors.globalWorker().execute(() -> runEngineWorker(engine));
+            // 1.2-C4-004 (plan 2498 Phase 1): run the engine on a dedicated per-engine carrier
+            // instead of the platform-shared globalWorker pool. The engine body is an
+            // unbounded long-running task (one CDC subtask must not permanently pin a shared
+            // worker thread), and the dedicated naming makes engine threads observable.
+            ExecutorService carrier = this.engineExecutor;
+            if (carrier == null || carrier.isShutdown()) {
+                carrier = Executors.newSingleThreadExecutor(new NamedThreadFactory(
+                        "debezium-engine-" + config.getName(), true));
+                this.engineExecutor = carrier;
+            }
+            carrier.execute(() -> runEngineWorker(engine));
 
         } catch (Exception e) {
             throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_START_FAILED)
@@ -178,7 +208,7 @@ public class DebeziumEngineWrapper {
 
     /**
      * 引擎 worker 体（protected 供 C3-009 Error 注入回归测试直接驱动；生产调用点 =
-     * {@code start()} 提交到 globalWorker 的 lambda）。
+     * {@code start()} 提交到专用引擎载体线程的 lambda）。
      *
      * <p>C3-009 ④ (plan 2496 Phase 4): the worker guard must cover Throwable — pre-fix
      * an Error escaping {@code engine.run()} skipped the Exception-only catch and the
@@ -186,6 +216,10 @@ public class DebeziumEngineWrapper {
      * registered FAILURE_LISTENERS never learned the CDC stream had died (nop-stream
      * side tasks waited on the latch forever). Post-fix the Error branch runs the same
      * notification path as Exception, then resets the running flag.
+     *
+     * <p>1.2-C4-004 (plan 2498 Phase 1): when the engine body exits (naturally or via
+     * failure), the dedicated carrier is shut down so its daemon thread does not idle
+     * forever; stop() additionally performs a bounded {@code awaitTermination}.
      */
     protected void runEngineWorker(
             DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef) {
@@ -200,6 +234,7 @@ public class DebeziumEngineWrapper {
             notifyEngineFailure(config.getName(), e);
         } finally {
             running.set(false);
+            shutdownEngineCarrier();
             LOG.info("Debezium engine stopped: {}", config.getName());
         }
     }
@@ -211,7 +246,7 @@ public class DebeziumEngineWrapper {
         // R5 CON-02: gate on the start REQUEST (not the worker-observed
         // running flag) — during the async startup window running is still
         // false while the engine is about to run; early-exiting here leaked
-        // the binlog connection and the global worker thread.
+        // the binlog connection and the carrier thread.
         if (!startRequested.get() || stopped.getAndSet(true)) {
             return;
         }
@@ -226,6 +261,27 @@ public class DebeziumEngineWrapper {
             LOG.error("Error closing Debezium engine: {}", config.getName(), e);
         }
 
+        // 1.2-C4-004 (plan 2498 Phase 1): bounded termination budget on the dedicated
+        // carrier. engine.close() is only a cooperative async signal; awaiting the carrier
+        // with a bounded budget makes stop() wait for the engine body to actually finish,
+        // with no unbounded wait and no silent timeout. The termination-latch contract and
+        // the startup guard remain owned by 1.2-C3-014 (R1-08): no latch is introduced
+        // here and the close semantics themselves are not rewritten.
+        ExecutorService carrier = this.engineExecutor;
+        if (carrier != null) {
+            carrier.shutdown();
+            try {
+                if (!carrier.awaitTermination(STOP_TERMINATION_BUDGET_SECONDS, TimeUnit.SECONDS)) {
+                    LOG.warn("Debezium engine carrier did not terminate within {}s: connector={}",
+                            STOP_TERMINATION_BUDGET_SECONDS, config.getName());
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOG.error("Interrupted while awaiting Debezium engine carrier termination: connector={}",
+                        config.getName(), e);
+            }
+        }
+
         running.set(false);
     }
 
@@ -234,6 +290,28 @@ public class DebeziumEngineWrapper {
      */
     public boolean isRunning() {
         return running.get();
+    }
+
+    /**
+     * Dedicated engine carrier (visible for wiring assertions, plan 2498 Phase 1
+     * rule 23): the engine body must actually run on this carrier's thread, not on a
+     * shared pool. Package-private on purpose — production callers have no business
+     * with the carrier's lifecycle.
+     */
+    ExecutorService getEngineExecutor() {
+        return engineExecutor;
+    }
+
+    /**
+     * Releases the dedicated carrier after the engine body has exited. {@code shutdown()}
+     * (not {@code shutdownNow()}): the shutdownNow escalation on a stuck engine belongs to
+     * 1.2-C3-014 (R1-08); this batch only owns the carrier itself.
+     */
+    private void shutdownEngineCarrier() {
+        ExecutorService carrier = this.engineExecutor;
+        if (carrier != null) {
+            carrier.shutdown();
+        }
     }
 
     /**
