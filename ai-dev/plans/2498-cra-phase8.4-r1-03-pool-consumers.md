@@ -203,34 +203,47 @@ Exit Criteria:
 
 ### Phase 4 - 分片 D：3.1 三项 + A4 ScheduledRecoveryManager + 3.2-C4-004 shell 池隔离（nop-ai）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/tool/AgentDispatchExecutor.java`（:34/:40/:52）、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/AgentToolDispatcher.java`（:560 装配）、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/engine/SingleTurnExecutor.java`（:42/:59）、`nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/runtime/recovery/ScheduledRecoveryManager.java`（:361 `scheduleWithFixedDelay` 调用点 + :199 javadoc 装配示例）、`nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/EmbeddingServiceImpl.java`（:89-142）+ `nop-ai/nop-ai-core/src/main/resources/_vfs/nop/ai/beans/ai-defaults.beans.xml`（:12-13）、`nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/executor/ShellCommandExecutor.java`（:58-60 装配点）、各模块测试目录
 
 > 续作纪律：本分片五面（3.1-C4-011 / 3.1-C4-004 / 3.1-C4-009 / A4 / 3.2-C4-004）允许分会话续作——每面独立提交（commit message 带对应工单 ID 与 plan 号），每面完成即时勾选对应 checklist 项与 Exit Criteria，不跨面积压未勾选项；分会话交接以本 plan 的勾选状态为进度事实源，不依赖会话记忆。
 
 - Item Types: `Fix`（3.1-C4-011[C4-004/C4-009 为 G51 确认缺陷]、3.2-C4-004、A4 移交行）、`Proof`（回归测试）
 
-- [ ] 3.1-C4-011：`AgentDispatchExecutor` 缺省 commonPool 收敛——注入命名有界平台池（R1-02 工厂校验契约内构造：poolSize ≥ 1/queueSize ≥ 1）或复用引擎自有 agentExecutor，经 `AgentToolDispatcher` 装配点（:560）接入；三方法（execute/submit×2）一并收口；`cap ≤ 0` 禁超时配置加 LOG.warn；javadoc 补阻塞占用与池宽封顶边界声明
-- [ ] 3.1-C4-004：`EmbeddingServiceImpl` 重试调度器生命周期闭合（成员 5 修复方向两分支任一，验收同标）：私有池补 stop/destroy（shutdown + 有界 awaitTermination）+ `ai-defaults.beans.xml` 注册 `ioc:stop` + `setRetryScheduler` 换装旧池有界终结；或移除私有池改平台载体（timer 触发+载体提交，dispatch 体不得直连 timer 线程）
-- [ ] 3.1-C4-009：`SingleTurnExecutor` 两缺省点（:42 向后兼容构造器、:59 null 兜底）不再静默落 commonPool——缺省载体改平台设施（`globalWorker`）或模块专用载体（终态唯一，与 Current Baseline 成员 6 修复方向同口径）；LOG.warn 仅作伴随可见性、warn-only 不构成终态（rule 16 防假收敛）；javadoc 补缺省池语义；生产接线（`AgentExecutorResolver:215-216`）零变化回归钉
-- [ ] A4 ScheduledRecoveryManager（矩阵移交行）：recovery scan 体（DB 多查询）不常驻 timer 线程——在 `start()`（:361 `scheduleWithFixedDelay` 调用点）对注入载体绑定 `executeOn(GlobalExecutors.globalWorker())`（或模块专用载体，矩阵 A4 行口径）；`:199` javadoc 装配示例同步改为 executeOn 形态（集成方接线由 javadoc 契约收敛）；绝缘覆盖保持；本项无独立 finding ID 且**无仓内装配面**（零 beans.xml 注册/零 main 构造点，生产默认 `NoOpRecoveryManager`，集成方经 `engine.config().setRecoveryManager(...)` 程序化注入）——cra-index A4 注记载明「无仓内装配面，集成方接线由 javadoc 契约收敛」，归 Phase 8 台账回填
-- [ ] 3.2-C4-004：shell pipeline 阶段与全平台任务池隔离——嵌入装配点注入独立有界池（审计建议 `newExecutor("nop-ai-shell-pipeline", n, m)` 形态，R1-02 校验契约内构造），与前台 bash 工具池、平台 worker 三者隔离；池参数对照「最大并发会话 × 最大管道段数」并在 owner doc 声明包络
-- [ ] 回归测试（rule 25，测试名带 `_C4_011`/`_C4_004`/`_C4_009`/`_A4`/`_C4_004_3_2` 对应标识）：①C4-011 工具体执行线程断言（非 commonPool[ForkJoinPool.worker-*]）；②C4-004 换装/关闭后无孤儿线程断言（`nop-ai-embedding-retry` 线程有界终结）；③C4-009 缺省构造行为断言（不落 commonPool[ForkJoinPool.worker-*]，LOG.warn 伴随可见——warn-only 不作为通过形态）；④A4 scan 体执行线程断言（直接构造 manager 注入真实/探测 scheduler，断言 scan 体执行线程非 timer——与既有 `TestScheduledRecoveryManagerInsulation` 并行）；⑤3.2 阶段任务执行线程断言（专用池线程、非 nop-global-worker）；⑥既有 nop-ai 测试零回归
-- [ ] **接线验证**（rule 23）：真实装配链（AgentToolDispatcher 装配点/beans.xml bean/ShellCommandExecutor 构造链）上断言载体生效，非仅类型系统存在
-- [ ] **无静默跳过**（rule 24）：cap≤0 warn、缺省池告警、换装旧池终结失败路径均显式可见，不吞异常
-- [ ] **提交纪律**：nop-ai-agent、nop-ai-core、nop-ai-shell 各一提交（同聚合模块可合并为按模块面提交并声明关系），commit message 带对应工单 ID 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.1-C4-011：`AgentDispatchExecutor` 缺省 commonPool 收敛——注入命名有界平台池（R1-02 工厂校验契约内构造：poolSize ≥ 1/queueSize ≥ 1）或复用引擎自有 agentExecutor，经 `AgentToolDispatcher` 装配点（:560）接入；三方法（execute/submit×2）一并收口；`cap ≤ 0` 禁超时配置加 LOG.warn；javadoc 补阻塞占用与池宽封顶边界声明
+- [x] 3.1-C4-004：`EmbeddingServiceImpl` 重试调度器生命周期闭合（成员 5 修复方向两分支任一，验收同标）：私有池补 stop/destroy（shutdown + 有界 awaitTermination）+ `ai-defaults.beans.xml` 注册 `ioc:stop` + `setRetryScheduler` 换装旧池有界终结；或移除私有池改平台载体（timer 触发+载体提交，dispatch 体不得直连 timer 线程）
+- [x] 3.1-C4-009：`SingleTurnExecutor` 两缺省点（:42 向后兼容构造器、:59 null 兜底）不再静默落 commonPool——缺省载体改平台设施（`globalWorker`）或模块专用载体（终态唯一，与 Current Baseline 成员 6 修复方向同口径）；LOG.warn 仅作伴随可见性、warn-only 不构成终态（rule 16 防假收敛）；javadoc 补缺省池语义；生产接线（`AgentExecutorResolver:215-216`）零变化回归钉
+- [x] A4 ScheduledRecoveryManager（矩阵移交行）：recovery scan 体（DB 多查询）不常驻 timer 线程——在 `start()`（:361 `scheduleWithFixedDelay` 调用点）对注入载体绑定 `executeOn(GlobalExecutors.globalWorker())`（或模块专用载体，矩阵 A4 行口径）；`:199` javadoc 装配示例同步改为 executeOn 形态（集成方接线由 javadoc 契约收敛）；绝缘覆盖保持；本项无独立 finding ID 且**无仓内装配面**（零 beans.xml 注册/零 main 构造点，生产默认 `NoOpRecoveryManager`，集成方经 `engine.config().setRecoveryManager(...)` 程序化注入）——cra-index A4 注记载明「无仓内装配面，集成方接线由 javadoc 契约收敛」，归 Phase 8 台账回填
+- [x] 3.2-C4-004：shell pipeline 阶段与全平台任务池隔离——嵌入装配点注入独立有界池（审计建议 `newExecutor("nop-ai-shell-pipeline", n, m)` 形态，R1-02 校验契约内构造），与前台 bash 工具池、平台 worker 三者隔离；池参数对照「最大并发会话 × 最大管道段数」并在 owner doc 声明包络
+- [x] 回归测试（rule 25，测试名带 `_C4_011`/`_C4_004`/`_C4_009`/`_A4`/`_C4_004_3_2` 对应标识）：①C4-011 工具体执行线程断言（非 commonPool[ForkJoinPool.worker-*]）；②C4-004 换装/关闭后无孤儿线程断言（`nop-ai-embedding-retry` 线程有界终结）；③C4-009 缺省构造行为断言（不落 commonPool[ForkJoinPool.worker-*]，LOG.warn 伴随可见——warn-only 不作为通过形态）；④A4 scan 体执行线程断言（直接构造 manager 注入真实/探测 scheduler，断言 scan 体执行线程非 timer——与既有 `TestScheduledRecoveryManagerInsulation` 并行）；⑤3.2 阶段任务执行线程断言（专用池线程、非 nop-global-worker）；⑥既有 nop-ai 测试零回归
+- [x] **接线验证**（rule 23）：真实装配链（AgentToolDispatcher 装配点/beans.xml bean/ShellCommandExecutor 构造链）上断言载体生效，非仅类型系统存在
+- [x] **无静默跳过**（rule 24）：cap≤0 warn、缺省池告警、换装旧池终结失败路径均显式可见，不吞异常
+- [x] **提交纪律**：nop-ai-agent、nop-ai-core、nop-ai-shell 各一提交（同聚合模块可合并为按模块面提交并声明关系），commit message 带对应工单 ID 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 4，agent 分片 D @ `a435aede0e`/`930b8dc579`/`81e85c2c7c`/`496b29b659`/`15f65b2c66`）：
+
+- **面 1（3.1-C4-011，提交 `a435aede0e`，nop-ai-agent）**：`AgentDispatchExecutor` 三方法（execute/submit(Callable)/submit(Runnable,T)）全部经 R1-02 工厂 `DefaultThreadPoolExecutor.newExecutor("nop-ai-agent-dispatch", 32, 1024, true)` 构造的模块专用有界池收口（一参 `runAsync` 缺省 commonPool 形态消除；饱和 fail-loud 拒绝 = CL-025 无界 runAsync 面随条处置，处置注记文本供 Phase 8 落 cra-index L249 行：无界提交面由本修复的有界队列+fail-loud 拒绝替代，随 C4-011 一并闭合）；`AgentToolDispatcher.resolveToolTimeoutMs` 对 cap≤0 配置一次性 LOG.warn（`nop.ai.agent.tool.timeout-cap-disabled`，rule 24 可见性）；javadoc 补阻塞占用/池宽封顶（上限=本池 32 宽，不再封顶于 commonPool）/cap0 永久占线边界声明。
+- **面 2（3.1-C4-004，提交 `930b8dc579`，nop-ai-core）**：取「私有池补生命周期闭合」分支——`EmbeddingServiceImpl` 跟踪自建池（`internalRetryScheduler`），`setRetryScheduler` 换装/传 null 恢复默认时对旧内部池有界终结（`shutdown` + 1s 宽限 + 超时 `shutdownNow` + 有界再等待 + 中断恢复，全路径显式日志不吞异常）；新增 `stop()` + `destroy()`（implements `IDestroyable`，所有权边界=仅终结自建池、外部注入调度器不触碰）；`ai-defaults.beans.xml` 注册 `destroy-method="stop"`（beans.xdef 生命周期钩子属性——即 plan 文本 `ioc:stop` 的 schema 形态）。
+- **面 3（3.1-C4-009，提交 `81e85c2c7c`，nop-ai-agent）**：两缺省点（向后兼容构造器 + 全参构造器 null 兜底）缺省载体改 `GlobalExecutors.globalWorker()`（M2 终态=载体真实变更 + `nop.ai.agent.single-turn.default-timeout-executor` LOG.warn 伴随，非 warn-only）；`ForkJoinPool` import 移除；javadoc 补缺省池语义；生产接线回归钉：显式专用 executor 原样使用且不触发 warn（`explicitExecutorIsHonouredWithoutWarn_C4_009`）。
+- **面 4（A4，提交 `496b29b659`，nop-ai-agent）**：`start()`（:361）对注入载体绑定 `executeOn(GlobalExecutors.globalWorker())`——timer 只触发轮次，scan 体（DB 孤儿会话多查询）在 worker 池执行；Bind 载体继承 R1-01 绝缘链（守卫包裹+失败退避重臂，`InsulatedPeriodicTask` 周期契约保持）；构造器 javadoc（:199 装配示例）与类级 Scheduling 段同步 executeOn 形态并载明「无仓内装配面，集成方接线由 javadoc 契约收敛」。**A4 cra-index 注记文本（供 Phase 8 落账）**：「A4 ScheduledRecoveryManager 已由 plan 2498 Phase 4 闭合（提交 496b29b659）：start() 对注入载体绑定 executeOn(globalWorker)，scan 体不常驻 timer 线程；无仓内装配面，集成方接线由 javadoc 契约收敛」。绑定形态下接线契约变化（scheduleWithFixedDelay 直调 → Bind 一次性触发器+手工重臂链），既有测试按新契约适配且意图全保留：`RecordingScheduler` 增一次性触发器记录；`TestScheduledRecoveryManagerScheduling` 9 条改钉触发器注册/真实 globalWorker 轮次派发（Anti-Hollow #22 保持）/stop 后链终止负等待；`TestScheduledRecoveryManagerInsulation` 改有界等待 warn 观测（Error 存活+链可重臂语义不变）；recovery 全族 51 条零失败。
+- **面 5（3.2-C4-004 本体，提交 `15f65b2c66`，nop-ai-shell）**：`ShellCommandExecutor` 缺省装配（executor==null，:58-60）不再回退 `GlobalExecutors.globalWorker()`——建 R1-02 工厂契约内专用有界池 `nop-ai-shell-pipeline`（32 线程/队列 1024/daemon，`DefaultThreadPoolExecutor.newExecutor`）；与前台 bash 工具池、平台 worker 三者隔离；池参数包络 =「最大并发会话（≤32 有效并发行）× 最大管道段数（1024 队列深度）」，javadoc 成文（owner doc `nop-ai.md` 包络声明落账去向归 Phase 7）；所有权边界=内部池由实例持有、`close()` 有界关闭，显式注入 executor 保持优先且永不被 close 触碰。
+- **测试（rule 25，五面 5 个测试类 14 条）**：`TestAgentDispatchExecutor_C4_011` 3 条（execute/submit×2 线程归属 + 有界配置 + `prepareDispatchContext` 真实装配链 `assertSame(INSTANCE)` 接线）；`TestEmbeddingRetrySchedulerLifecycle_C4_004` 4 条（换装孤儿终结/destroy 钩子/注入不触碰/关闭后惰性重建）；`TestSingleTurnExecutorDefaultCarrier_C4_009` 3 条（2 参构造 worker 线程+warn/null 兜底+显式 executor 零 warn 回归钉）；`TestScheduledRecoveryManagerWorkerOffload_A4` 1 条（真实 globalTimer 注入 1s 间隔周期注册，scan 体线程断言）；`TestShellPipelinePoolIsolation_C4_004_3_2` 3 条（缺省链隔离钉/注入优先钉/close 终结钉）。
+- **必红证据（E2，先红后绿五面全覆盖）**：C4-011 修复前 3/3 红（`ForkJoinPool.commonPool-worker-1`，`_tmp/phase4-c4-011-red-baseline.log`）→ 绿；C4-004 修复前 4/4 红（换装孤儿线程 10s 不终结 + destroy 钩子缺失 CCE，`_tmp/phase4-c4-004-red-baseline.log`）→ 绿；C4-009 修复前 2/3 红（commonPool 签名+缺 warn，`_tmp/phase4-c4-009-red-baseline.log`）→ 绿；A4 修复前 6 失败+1 错误（scan 体线程 `nop-global-timer-1-2` 等，`_tmp/phase4-a4-red-baseline.log`）→ 绿；3.2 修复前 2/3 红（阶段线程 `nop-global-worker-1-1`，`_tmp/phase4-c4-004-3-2-red-baseline.log`）→ 绿。GREEN 快照各对应 `_tmp/phase4-*-green-fixed.log`。
+- **接线验证证据（rule 23）**：C4-011 = `dispatchContextAssemblyWiresModulePool_C4_011` 在真实 `AgentToolDispatcher.prepareDispatchContext`（:560 生产装配点）上断言 `assertSame(AgentDispatchExecutor.INSTANCE, toolExecCtx.getExecutor())` + 任务体线程 `nop-ai-agent-dispatch-*`；C4-004 = `destroy-method="stop"` 经 `TestEmbeddingModelBeanAssembly` 真实 IoC 容器装配零失败 + 换装路径真实线程终结断言；C4-009 = 真实 `SingleTurnExecutor.execute` 链上 call 体线程 `nop-global-worker-*`；A4 = 真实 `GlobalExecutors.globalTimer()` 注入 + 真实 `start()` 周期注册，scan 体线程 `nop-global-worker-*`；3.2 = 真实 2 参构造链真实 pipeline 执行，阶段线程 `nop-ai-shell-pipeline-*`。
+- **门禁**：`./mvnw test -pl nop-ai -am -Dsurefire.failIfNoSpecifiedTests=false` BUILD SUCCESS EXIT=0（29 模块全 SUCCESS，33,508 tests / 0 失败 / 0 错误，含 Phase 1–3 无关面全量回归，快照 `_tmp/phase4-gate-nop-ai.log`）；五次面内提交 pre-commit Java lint 全部 0 violations。
+- **Owner doc 裁定去向**：`nop-ai.md` 核对——现有文本（agentExecutor cached 池契约 :123 行）与本批零冲突；三处受影响面（工具分发载体缺省池契约 [AgentDispatchExecutor 模块池]、embedding 重试调度器生命周期契约、shell pipeline 池包络声明）**归 Phase 7 统一落账**（本 Phase 显式登记去向；`nop-ai.md` 本 Phase 零改动）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.1-C4-011 / 3.1-C4-004 / 3.1-C4-009 / A4 / 3.2-C4-004 五面全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：至少 C4-011（修复前 commonPool 线程断言红）与 A4（修复前 timer 线程断言红）两项先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行（快照 `_tmp/phase4-*.log`）
-- [ ] 接线验证证据登记（每工单哪条装配链断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-ai -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-ai.md` 核对（工具分发载体缺省池契约、embedding 重试调度器生命周期、shell 池包络声明）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.1-C4-011 / 3.1-C4-004 / 3.1-C4-009 / A4 / 3.2-C4-004 五面全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：至少 C4-011（修复前 commonPool 线程断言红）与 A4（修复前 timer 线程断言红）两项先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行（快照 `_tmp/phase4-*.log`）
+- [x] 接线验证证据登记（每工单哪条装配链断言证明运行时生效）
+- [x] `./mvnw test -pl nop-ai -am` BUILD SUCCESS
+- [x] Owner doc 裁定：`nop-ai.md` 核对（工具分发载体缺省池契约、embedding 重试调度器生命周期、shell 池包络声明）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 7 但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 分片 E：1.7-C8-003 batch 兜底池统一评估 + SocketServer 消费迁移评估（nop-batch + nop-xdefs [+ nop-socket 评估面]）
 
