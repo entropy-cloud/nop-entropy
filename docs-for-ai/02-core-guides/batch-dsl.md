@@ -33,7 +33,7 @@ batch
 
 ### concurrency + executor
 
-`concurrency>0` 时需配合 `executor`（线程池 Bean）才会并行，否则使用 `SyncExecutor` 串行。
+`concurrency>0` 时建议配置 `executor`（线程池 Bean）承载 chunk 任务；未配置 `executor` 时兜底提交到**平台共享 cached 线程池**并行执行（并非串行）。共享池有全局上界（`nop.commons.concurrent.cached-pool.maxPoolSize`，缺省 200）与达界熔断；`concurrency`/`fetchThreadCount` 超过 `nop.batch.max-concurrency-cap`（缺省 200）在任务装配期 fail-fast（`nop.err.batch.concurrency-exceeds-cap`）。
 
 ### transactionScope
 

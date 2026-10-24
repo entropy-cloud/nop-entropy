@@ -15,6 +15,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.ProcessResult;
+import io.nop.batch.core.BatchConfigs;
 import io.nop.batch.core.BatchTaskGlobals;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchChunkProcessorProvider;
@@ -38,7 +39,11 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 
+import static io.nop.batch.core.BatchErrors.ARG_MAX_CONCURRENCY_CAP;
+import static io.nop.batch.core.BatchErrors.ARG_PARAM_NAME;
+import static io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_CONCURRENCY_EXCEEDS_CAP;
 
 public class BatchTask<S> implements IBatchTask {
 
@@ -74,16 +79,40 @@ public class BatchTask<S> implements IBatchTask {
         this.loaderProvider = loaderProvider;
         this.chunkProcessorProvider = chunkProcessorProvider;
         this.stateStore = stateStore;
-        this.concurrency = concurrency <= 0 ? 1 : concurrency;
+        this.concurrency = normalizeConcurrency(concurrency);
         this.allowStartIfComplete = allowStartIfComplete;
         this.startLimit = startLimit;
         this.executor = getExecutor(executor);
     }
 
+    /**
+     * concurrency 装配期护栏（1.7-C8-003，plan 2498 Phase 5）：<=0 归一为 1（既有文档化行为），
+     * 超过 {@link BatchConfigs#CFG_BATCH_MAX_CONCURRENCY_CAP} 装配期类型化 fail-fast——
+     * 防止单任务把平台共享兜底池提交面放大到超界（线程占用/达界拒绝风暴在装配期即不可达）。
+     */
+    static int normalizeConcurrency(int concurrency) {
+        int normalized = Math.max(concurrency, 1);
+        int cap = BatchConfigs.CFG_BATCH_MAX_CONCURRENCY_CAP.get();
+        if (normalized > cap) {
+            throw new NopException(ERR_BATCH_CONCURRENCY_EXCEEDS_CAP)
+                    .param(ARG_PARAM_NAME, "concurrency")
+                    .param(ARG_PARAM_VALUE, concurrency)
+                    .param(ARG_MAX_CONCURRENCY_CAP, cap);
+        }
+        return normalized;
+    }
+
+    /**
+     * 兜底池形态（1.7-C8-003 评估结论，plan 2498 Phase 5）：维持平台共享 cached 池兜底。
+     * 该池经 R1-02 裁定④基线加固——池宽上界由配置项 nop.commons.concurrent.cached-pool.maxPoolSize
+     * 控制（缺省 200），达界提交获得显式拒绝信号（nop.err.commons.concurrent.cached-pool-saturated），
+     * 线程爆炸面已在设施层闭合；本模块装配期护栏（normalizeConcurrency）在其上再封单任务并发上界。
+     * 不迁移到 globalWorker：chunk 循环为长任务体，按平台族契约（调度槽 vs 执行体）不得常驻平台共享 worker。
+     */
     static Executor getExecutor(Executor executor) {
         if (executor != null)
             return executor;
-        // concurrency在构造器中已归一化为>=1，chunk循环统一由cachedThreadPool执行
+        // concurrency在构造器中已归一化为>=1且不超装配期上界，chunk循环统一由cachedThreadPool执行
         return GlobalExecutors.cachedThreadPool();
     }
 

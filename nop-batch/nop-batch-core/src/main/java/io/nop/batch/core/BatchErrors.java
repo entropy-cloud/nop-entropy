@@ -27,6 +27,10 @@ public interface BatchErrors {
     String ARG_TASK_ID = "taskId";
     String ARG_TASK_KEY = "taskKey";
 
+    String ARG_PARAM_NAME = "paramName";
+    String ARG_PARAM_VALUE = "paramValue";
+    String ARG_MAX_CONCURRENCY_CAP = "maxConcurrencyCap";
+
     ErrorCode ERR_BATCH_PERSIST_VAR_CONVERT_TYPE_FAIL = define("nop.err.batch.persist-var-convert-type-fail",
             "状态变量[{varName}]的类型转换失败", ARG_VAR_NAME);
 
@@ -49,4 +53,10 @@ public interface BatchErrors {
 
     ErrorCode ERR_BATCH_RATE_LIMIT_ACQUIRE_TIMEOUT = define("nop.err.batch.rate-limit-acquire-timeout",
             "在限流超时时间内未能获取到足够的许可，限流配置可能过低", ARG_ITEM_COUNT);
+
+    ErrorCode ERR_BATCH_CONCURRENCY_EXCEEDS_CAP = define("nop.err.batch.concurrency-exceeds-cap",
+            "并发参数[{paramName}]的值[{paramValue}]超过装配期上界[{maxConcurrencyCap}]，任务不允许装配。"
+                    + "如确需更高并发，请调大配置项nop.batch.max-concurrency-cap（同时需要评估平台共享cached池上界"
+                    + "nop.commons.concurrent.cached-pool.maxPoolSize）",
+            ARG_PARAM_NAME, ARG_PARAM_VALUE, ARG_MAX_CONCURRENCY_CAP);
 }

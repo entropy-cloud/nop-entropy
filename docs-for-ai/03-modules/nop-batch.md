@@ -11,7 +11,7 @@
 - **记录级幂等**：`historyStore` 把成功记录写入 `NopBatchRecordResult`（`resultStatus=0`，mandatory 三列 retryCount=0/batchSize=filtered.size()/handleStatus=0 由 saveProcessed 显式赋值——P1-3.4-002），`filterProcessed` 按 `recordKey` 跳过已处理记录；`saveProcessed` 与业务 consume 同事务提交（`consume` scope + history 时 `BatchTaskBuilder` 自动提升为 process 级事务包装，详见 `../02-core-guides/batch-dsl.md` 的 transactionScope 一节）
 - **重试/跳过**：`retryPolicy` + `skipPolicy` 内建支持
 - **`snapshotBuilder="orm-entity"` 用法（P1-3.4-001，plan 2382）**：映射到 `OrmBatchRecordSnapshotBuilder`（魔法治具值经 `BatchConstants.SNAPSHOT_BUILDER_ORM_ENTITY`；也可 `snapshotBuilder="beanName"` 指向自定义 `IBatchRecordSnapshotBuilder`）。语义：ORM 实体在 processor 链前后做快照/恢复——`restore` 返回**恢复后的完整记录列表**并回写 retry 集；未配置时 retry 消费方拿不到恢复记录（失败 chunk 记录会静默丢弃），使用 ORM 实体 + 重试语义的任务应配置它。
-- **并发处理**：`concurrency` + `executor` 线程池
+- **并发处理**：`concurrency` 控制 chunk 循环并行度，`executor` 指定承载线程池（Bean 名称）。配置 `executor` 时 chunk 任务提交到该池执行；**未配置时兜底提交到平台共享 cached 线程池执行（并非串行）**——该池有全局上界（配置项 `nop.commons.concurrent.cached-pool.maxPoolSize`，缺省 200）与达界熔断（超界提交报错 `nop.err.commons.concurrent.cached-pool-saturated`）。`concurrency` 与 `dispatcher` 的 `fetchThreadCount` 受装配期护栏约束：超过 `nop.batch.max-concurrency-cap`（缺省 200）在任务装配期报错 `nop.err.batch.concurrency-exceeds-cap`（fail-fast，不进入线程创建路径）。兜底池形态裁定（1.7-C8-003）：维持共享 cached 池兜底 + 上界熔断基线声明，不迁移 globalWorker（chunk 循环为长任务体，不得常驻平台共享 worker）
 - **分区处理**：`dispatcher` + `partitionIndexField` 按字段分区并行
 - **生命周期 Listener**：12 种回调（onTaskBegin/End, onChunkBegin/End 等）
 
@@ -208,7 +208,7 @@ task steps:
 | `taskName` | 任务名称 |
 | `taskKeyExpr` | 任务实例区分表达式（同 taskName+taskKey 只允许一个活跃实例） |
 | `batchSize` | 每次处理的数据量（Chunk 大小） |
-| `concurrency` | 并发线程数（需配合 executor） |
+| `concurrency` | chunk 循环并行线程数（配置 `executor` 时提交该池；未配置兜底平台共享 cached 池[上界 `nop.commons.concurrent.cached-pool.maxPoolSize` 缺省 200 + 达界熔断]；超过 `nop.batch.max-concurrency-cap` 缺省 200 装配期 fail-fast） |
 | `executor` | 线程池 Bean 名称 |
 | `saveState` | 是否保存状态（断点续传） |
 | `asyncProcessor` | 是否异步处理 processor |
