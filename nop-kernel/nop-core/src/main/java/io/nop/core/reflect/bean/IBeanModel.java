@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -126,6 +127,20 @@ public interface IBeanModel extends IBeanCollectionAdapter {
     boolean isAllowMakeExtProperty();
 
     Map<String, IBeanPropertyModel> getPropertyModels();
+
+    /**
+     * 类级 @JsonIgnoreProperties(value=...) 声明的属性名（序列化契约名）。
+     */
+    default Set<String> getIgnoredPropertyNames() {
+        return Collections.emptySet();
+    }
+
+    /**
+     * 类级 @JsonIgnoreProperties(ignoreUnknown=true) 是否放宽未知属性处理。
+     */
+    default boolean isIgnoreUnknownProps() {
+        return false;
+    }
 
     default List<String> getDefaultSelectionPropNames() {
         List<String> ret = new ArrayList<>();

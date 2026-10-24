@@ -54,6 +54,15 @@ public class ClassModelBuilder extends MethodModelBuilder {
 
     public static final Set<String> SYS_CLASS_PREFIXES = new HashSet<>(Arrays.asList("java.", "javax.", "jakarta."));
 
+    private static final Set<String> INHERITED_JACKSON_METHOD_ANNOTATIONS = new HashSet<>(Arrays.asList(
+            "com.fasterxml.jackson.annotation.JsonAlias",
+            "com.fasterxml.jackson.annotation.JsonGetter",
+            "com.fasterxml.jackson.annotation.JsonIgnore",
+            "com.fasterxml.jackson.annotation.JsonInclude",
+            "com.fasterxml.jackson.annotation.JsonProperty",
+            "com.fasterxml.jackson.annotation.JsonRawValue",
+            "com.fasterxml.jackson.annotation.JsonSetter"));
+
     private final Class<?> clazz;
 
     private final IGenericType classType;
@@ -508,9 +517,7 @@ public class ClassModelBuilder extends MethodModelBuilder {
     }
 
     private void initInterfaceMethods() {
-        // 如果不是抽象类和接口，则所有接口上的方法必然已经被实现，不需要再查找
-        if (!Modifier.isAbstract(clazz.getModifiers()))
-            return;
+        boolean abstractClass = Modifier.isAbstract(clazz.getModifiers());
 
         Class<?>[] infs = clazz.getInterfaces();
         for (Class<?> inf : infs) {
@@ -522,6 +529,9 @@ public class ClassModelBuilder extends MethodModelBuilder {
                 MethodModelCollection mc = getMethodCollection(method.getName());
                 IFunctionModel fn = mc.getExactMatchMethod(method.getArgRawTypes());
                 if (fn == null) {
+                    if (!abstractClass)
+                        continue;
+
                     IFunctionModel resolvedMethod = fixTypeParameter(classType, (FunctionModel) method, true);
                     if (resolvedMethod == method) {
                         mc.addMethod(resolvedMethod);
@@ -550,7 +560,8 @@ public class ClassModelBuilder extends MethodModelBuilder {
             if (thisAnn != null)
                 continue;
 
-            if (ann.annotationType().isAnnotationPresent(Inherited.class)) {
+            if (ann.annotationType().isAnnotationPresent(Inherited.class)
+                    || INHERITED_JACKSON_METHOD_ANNOTATIONS.contains(ann.annotationType().getName())) {
                 fn.addAnnotation(ann);
             }
         }

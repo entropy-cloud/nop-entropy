@@ -483,6 +483,12 @@ public class BeanCopier implements IBeanCopier {
         }
         IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
         if (propModel != null) {
+            if (propModel.isIgnored()) {
+                LOG.debug("nop.reflect.bean.builder.ignore-prop-by-class-annotation:className={},propName={}",
+                        beanModel.getClassName(), propName);
+                return;
+            }
+
             if (propModel.getType().isBooleanType()) {
                 value = ConvertHelper.toBoolean(value);
             }
@@ -532,15 +538,21 @@ public class BeanCopier implements IBeanCopier {
                 value = beanToType(deep, value, propType, subSelection, options);
                 beanModel.buildProperty(bean, propName, value);
             } else {
+                if (beanModel.getIgnoredPropertyNames().contains(propName)) {
+                    LOG.debug("nop.reflect.bean.builder.ignore-unknown-prop-by-class-annotation:className={},propName={}",
+                            beanModel.getClassName(), propName);
+                    return;
+                }
+
                 if (beanModel.isAllowSetExtProperty()) {
-                    if (options.isIgnoreUnknownProp()) {
+                    if (options.isIgnoreUnknownProp() || beanModel.isIgnoreUnknownProps()) {
                         // 判断是否允许扩展属性
                         if (!beanModel.isAllowExtProperty(bean, propName))
                             return;
                     }
                     beanModel.setExtProperty(bean, propName, value, options.getEvalScope());
                 } else {
-                    if (!options.isIgnoreUnknownProp()) {
+                    if (!options.isIgnoreUnknownProp() && !beanModel.isIgnoreUnknownProps()) {
                         // 忽略ISourceLocationGetter引入到的location属性
                         if (!propName.equals(CoreConstants.PROP_LOCATION) && !propName.startsWith("__")) {
                             throw new NopException(ERR_REFLECT_UNKNOWN_BEAN_PROP).param(ARG_CLASS_NAME, bean.getClass())

@@ -10,7 +10,6 @@ package io.nop.core.reflect.bean;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
 import io.nop.core.lang.utils.ReadonlyModel;
 import io.nop.core.reflect.IAnnotationSupport;
@@ -19,7 +18,14 @@ import io.nop.core.reflect.IPropertySetter;
 import io.nop.core.type.IGenericType;
 
 import java.lang.annotation.Annotation;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_PROP_NAME;
@@ -44,6 +50,8 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
     private boolean deterministic;
     private boolean lazyLoad;
     private boolean notSecure;
+    private boolean ignored;
+    private boolean rawValue;
 
     private Boolean nullable;
     private String description;
@@ -198,6 +206,26 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
         this.notSecure = notSecure;
     }
 
+    @Override
+    public boolean isIgnored() {
+        return ignored;
+    }
+
+    public void setIgnored(boolean ignored) {
+        checkReadonly();
+        this.ignored = ignored;
+    }
+
+    @Override
+    public boolean isRawValue() {
+        return rawValue;
+    }
+
+    public void setRawValue(boolean rawValue) {
+        checkReadonly();
+        this.rawValue = rawValue;
+    }
+
     public Include getJsonInclude() {
         return jsonInclude;
     }
@@ -246,17 +274,48 @@ public class BeanPropertyModel extends ReadonlyModel implements IBeanPropertyMod
 
     @Override
     public boolean shouldIncludeInSerialization(Object value) {
+        if (jsonInclude == null)
+            return true;
         if (jsonInclude == Include.NON_NULL)
             return value != null;
         if (jsonInclude == Include.NON_EMPTY)
-            return !StringHelper.isEmptyObject(value);
-        if (jsonInclude == Include.NON_ABSENT) {
-            if (value instanceof Optional) {
-                return ((Optional) value).isPresent();
-            }
-            return false;
-        }
+            return !isEmptyValue(value);
+        if (jsonInclude == Include.NON_ABSENT)
+            return isPresent(value);
+        if (jsonInclude == Include.NON_DEFAULT)
+            return !Objects.equals(value, defaultValue);
         return true;
+    }
+
+    private static boolean isPresent(Object value) {
+        if (value == null)
+            return false;
+        if (value instanceof Optional)
+            return ((Optional<?>) value).isPresent();
+        if (value instanceof OptionalInt)
+            return ((OptionalInt) value).isPresent();
+        if (value instanceof OptionalLong)
+            return ((OptionalLong) value).isPresent();
+        if (value instanceof OptionalDouble)
+            return ((OptionalDouble) value).isPresent();
+        if (value instanceof AtomicReference)
+            return ((AtomicReference<?>) value).get() != null;
+        return true;
+    }
+
+    private static boolean isEmptyValue(Object value) {
+        if (value == null)
+            return true;
+        if (value instanceof String) {
+            return ((String) value).isEmpty();
+        }
+        if (value instanceof Collection)
+            return ((Collection<?>) value).isEmpty();
+        if (value instanceof Map)
+            return ((Map<?, ?>) value).isEmpty();
+        if (value.getClass().isArray())
+            return java.lang.reflect.Array.getLength(value) == 0;
+        return !isPresent(value);
     }
 
     @Override

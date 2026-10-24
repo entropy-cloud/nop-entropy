@@ -763,6 +763,10 @@ public interface CoreErrors {
     ErrorCode ERR_REFLECT_BEAN_PROP_ALIAS_CONFLICT = define("nop.err.core.reflect.bean-prop-alias-conflict",
             "属性[{propName}]的别名[{alias}]与已有别名冲突", ARG_PROP_NAME, ARG_ALIAS);
 
+    ErrorCode ERR_REFLECT_BEAN_DUPLICATE_SUB_TYPE_NAME = define(
+            "nop.err.core.reflect.bean-duplicate-sub-type-name",
+            "类[{className}]的子类型名称[{typeName}]重复", ARG_CLASS_NAME, ARG_TYPE_NAME);
+
     ErrorCode ERR_REFLECT_PARSE_PROP_PATH_FAIL = define("nop.err.core.reflect.parse-prop-path-fail", "非法的属性路径");
 
     ErrorCode ERR_REFLECT_MULTIPLE_FACTORY_METHOD = define("nop.err.core.reflect.multiple-factory-method",

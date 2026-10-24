@@ -11,11 +11,17 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonIgnoreType;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonRawValue;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.nop.api.core.annotations.biz.BizObjName;
 import io.nop.api.core.annotations.config.ConfigBean;
 import io.nop.api.core.annotations.config.ConfigField;
@@ -71,10 +77,14 @@ import jakarta.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.lang.annotation.Annotation;
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -88,6 +98,8 @@ import static io.nop.core.CoreErrors.ARG_ALIAS;
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
 import static io.nop.core.CoreErrors.ARG_OTHER_PROP_NAME;
 import static io.nop.core.CoreErrors.ARG_PROP_NAME;
+import static io.nop.core.CoreErrors.ARG_TYPE_NAME;
+import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_DUPLICATE_SUB_TYPE_NAME;
 import static io.nop.core.CoreErrors.ERR_REFLECT_BEAN_PROP_ALIAS_CONFLICT;
 import static io.nop.core.CoreErrors.ERR_REFLECT_CLASS_NO_DEFAULT_CONSTRUCTOR;
 
@@ -224,7 +236,17 @@ public class BeanModelBuilder {
             for (JsonSubTypes.Type subType : subTypes.value()) {
                 String name = subType.name();
                 Class<?> value = subType.value();
-                typeMap.put(name, ReflectionManager.instance().buildRawType(value));
+                if (StringHelper.isEmpty(name)) {
+                    JsonTypeName typeName = value.getAnnotation(JsonTypeName.class);
+                    if (typeName != null && !StringHelper.isEmpty(typeName.value())) {
+                        name = typeName.value();
+                    }
+                }
+                IGenericType oldType = typeMap.putIfAbsent(name, ReflectionManager.instance().buildRawType(value));
+                if (oldType != null) {
+                    throw new NopException(ERR_REFLECT_BEAN_DUPLICATE_SUB_TYPE_NAME)
+                            .param(ARG_CLASS_NAME, classModel.getClassName()).param(ARG_TYPE_NAME, name);
+                }
             }
             beanModel.setTypeMap(CollectionHelper.immutableMap(typeMap));
         }
@@ -277,6 +299,18 @@ public class BeanModelBuilder {
             }
         }
 
+        for (Field rawField : getDeclaredJsonAnnotatedFields(classModel.getRawClass())) {
+            PropCandidate candidate = candidateMap.get(rawField.getName());
+            if (candidate == null)
+                continue;
+            candidate.declaredField = rawField;
+            if (candidate.propName == null) {
+                String jsonName = getJsonPropName(rawField);
+                if (jsonName != null)
+                    candidate.propName = jsonName;
+            }
+        }
+
         for (Map.Entry<String, PropCandidate> entry : candidateMap.entrySet()) {
             String propName = entry.getKey();
             PropCandidate candidate = entry.getValue();
@@ -286,16 +320,14 @@ public class BeanModelBuilder {
                 propName = candidate.propName;
 
             BeanPropertyModel prop = buildProp(propName, candidate, propAliases);
-            if (candidate.field != null && candidate.field.isAnnotationPresent(JsonIgnore.class)) {
-                prop.setSerializable(false);
-            } else if (candidate.getMethod != null && candidate.getMethod.isAnnotationPresent(JsonIgnore.class)) {
+            if (isJsonIgnored(candidate)) {
                 prop.setSerializable(false);
             }
             props.put(propName, prop);
         }
         initExtProperties(classModel, props);
 
-        applyClassLevelAnnotations(classModel, props);
+        applyClassLevelAnnotations(beanModel, classModel, props);
 
         ReflectionManager.instance().enhanceBeanModel(beanModel, classModel, props, propAliases);
 
@@ -361,6 +393,9 @@ public class BeanModelBuilder {
         if (candidate.field != null) {
             processPropAnnotations(prop, candidate.field, propAliases);
         }
+        if (candidate.declaredField != null) {
+            processDeclaredFieldAnnotations(prop, candidate.declaredField, propAliases);
+        }
         if (candidate.getMethod != null) {
             processPropAnnotations(prop, candidate.getMethod, propAliases);
         }
@@ -404,7 +439,32 @@ public class BeanModelBuilder {
         }
     }
 
-    private void applyClassLevelAnnotations(IClassModel classModel, Map<String, BeanPropertyModel> props) {
+    private void applyClassLevelAnnotations(BeanModel beanModel, IClassModel classModel,
+                                            Map<String, BeanPropertyModel> props) {
+        JsonIgnoreProperties ignoreProperties = classModel.getAnnotation(JsonIgnoreProperties.class);
+        Set<String> ignoredNames = new HashSet<>();
+        if (ignoreProperties != null) {
+            for (String name : ignoreProperties.value()) {
+                if (StringHelper.isEmpty(name))
+                    continue;
+                ignoredNames.add(name);
+                BeanPropertyModel prop = props.get(name);
+                if (prop != null) {
+                    prop.setIgnored(true);
+                    prop.setSerializable(false);
+                }
+            }
+            beanModel.setIgnoreUnknownProps(ignoreProperties.ignoreUnknown());
+        }
+        beanModel.setIgnoredPropertyNames(CollectionHelper.immutableSet(ignoredNames));
+
+        for (BeanPropertyModel prop : props.values()) {
+            if (prop.getRawClass() != null && prop.getRawClass().isAnnotationPresent(JsonIgnoreType.class)) {
+                prop.setIgnored(true);
+                prop.setSerializable(false);
+            }
+        }
+
         JsonInclude classInclude = classModel.getAnnotation(JsonInclude.class);
         if (classInclude == null)
             return;
@@ -421,6 +481,30 @@ public class BeanModelBuilder {
         JsonProperty prop = ann.getAnnotation(JsonProperty.class);
         if (prop != null && prop.value().length() > 0) {
             return prop.value();
+        }
+        JsonGetter getter = ann.getAnnotation(JsonGetter.class);
+        if (getter != null && getter.value().length() > 0) {
+            return getter.value();
+        }
+        JsonSetter setter = ann.getAnnotation(JsonSetter.class);
+        if (setter != null && setter.value().length() > 0) {
+            return setter.value();
+        }
+        return null;
+    }
+
+    private String getJsonPropName(Field field) {
+        JsonProperty prop = field.getAnnotation(JsonProperty.class);
+        if (prop != null && prop.value().length() > 0) {
+            return prop.value();
+        }
+        JsonGetter getter = field.getAnnotation(JsonGetter.class);
+        if (getter != null && getter.value().length() > 0) {
+            return getter.value();
+        }
+        JsonSetter setter = field.getAnnotation(JsonSetter.class);
+        if (setter != null && setter.value().length() > 0) {
+            return setter.value();
         }
         return null;
     }
@@ -461,12 +545,16 @@ public class BeanModelBuilder {
         JsonAlias alias = ann.getAnnotation(JsonAlias.class);
         if (alias != null) {
             for (String name : alias.value()) {
-                String otherPropName = propAliases.put(prop.getName(), name);
-                if (otherPropName != null && !otherPropName.equals(name)) {
+                String otherPropName = propAliases.put(name, prop.getName());
+                if (otherPropName != null && !otherPropName.equals(prop.getName())) {
                     throw new NopException(ERR_REFLECT_BEAN_PROP_ALIAS_CONFLICT).param(ARG_PROP_NAME, prop.getName())
                             .param(ARG_ALIAS, alias).param(ARG_OTHER_PROP_NAME, otherPropName);
                 }
             }
+        }
+
+        if (ann.isAnnotationPresent(JsonRawValue.class)) {
+            prop.setRawValue(true);
         }
 
         if (prop.getBizObjName() == null) {
@@ -500,8 +588,74 @@ public class BeanModelBuilder {
         }
     }
 
+    private void processDeclaredFieldAnnotations(BeanPropertyModel prop, Field field,
+                                                 Map<String, String> propAliases) {
+        if (prop.getDescription() == null) {
+            Description desc = field.getAnnotation(Description.class);
+            if (desc != null)
+                prop.setDescription(desc.value());
+        }
+
+        JsonAlias alias = field.getAnnotation(JsonAlias.class);
+        if (alias != null) {
+            for (String name : alias.value()) {
+                String otherPropName = propAliases.put(name, prop.getName());
+                if (otherPropName != null && !otherPropName.equals(prop.getName())) {
+                    throw new NopException(ERR_REFLECT_BEAN_PROP_ALIAS_CONFLICT).param(ARG_PROP_NAME, prop.getName())
+                            .param(ARG_ALIAS, alias).param(ARG_OTHER_PROP_NAME, otherPropName);
+                }
+            }
+        }
+
+        if (field.isAnnotationPresent(JsonRawValue.class)) {
+            prop.setRawValue(true);
+        }
+
+        JsonInclude include = field.getAnnotation(JsonInclude.class);
+        if (include != null)
+            prop.setJsonInclude(include.value());
+    }
+
+    private List<Field> getDeclaredJsonAnnotatedFields(Class<?> clazz) {
+        Map<String, Field> fields = new LinkedHashMap<>();
+        for (Class<?> current = clazz; current != null && current != Object.class; current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers()))
+                    continue;
+                if (!hasJacksonAnnotation(field))
+                    continue;
+                fields.putIfAbsent(field.getName(), field);
+            }
+        }
+        return new ArrayList<>(fields.values());
+    }
+
+    private boolean hasJacksonAnnotation(Field field) {
+        for (Annotation ann : field.getAnnotations()) {
+            if (ann.annotationType().getName().startsWith("com.fasterxml.jackson.annotation."))
+                return true;
+        }
+        return false;
+    }
+
+    private boolean isJsonIgnored(PropCandidate candidate) {
+        if (candidate.field != null && isJsonIgnore(candidate.field))
+            return true;
+        if (candidate.declaredField != null && isJsonIgnore(candidate.declaredField))
+            return true;
+        if (candidate.getMethod != null && isJsonIgnore(candidate.getMethod))
+            return true;
+        return candidate.setMethod != null && isJsonIgnore(candidate.setMethod);
+    }
+
+    private boolean isJsonIgnore(Field field) {
+        JsonIgnore jsonIgnore = field.getAnnotation(JsonIgnore.class);
+        return jsonIgnore != null && jsonIgnore.value();
+    }
+
     static class PropCandidate {
         IFieldModel field;
+        Field declaredField;
         IFunctionModel getMethod;
         IFunctionModel setMethod;
         IFunctionModel makeMethod;
@@ -602,6 +756,8 @@ public class BeanModelBuilder {
     private boolean isSetter(IFunctionModel method) {
         if (method.isAnnotationPresent(PropertySetter.class))
             return true;
+        if (method.isAnnotationPresent(JsonSetter.class) || method.isAnnotationPresent(JsonProperty.class))
+            return true;
 
         if (!method.getName().startsWith("set") || method.getName().length() <= 3)
             return false;
@@ -618,6 +774,8 @@ public class BeanModelBuilder {
 
     private boolean isGetter(IFunctionModel method) {
         if (method.isAnnotationPresent(PropertyGetter.class))
+            return true;
+        if (method.isAnnotationPresent(JsonGetter.class) || method.isAnnotationPresent(JsonProperty.class))
             return true;
         if (isBooleanGetter(method))
             return true;
@@ -680,6 +838,10 @@ public class BeanModelBuilder {
         if (name.startsWith("set")) {
             return beanPropName(name.substring("set".length()));
         }
+
+        String jsonName = getJsonPropName(method);
+        if (jsonName != null)
+            return jsonName;
         return name;
     }
 }

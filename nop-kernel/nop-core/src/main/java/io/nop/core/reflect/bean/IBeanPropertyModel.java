@@ -71,6 +71,21 @@ public interface IBeanPropertyModel {
     boolean isNotSecure();
 
     /**
+     * 是否被类级 @JsonIgnoreProperties / @JsonIgnoreType 显式忽略。
+     * 与 @JsonIgnore 不同，该标志不受 onlySerializableTarget 开关影响。
+     */
+    default boolean isIgnored() {
+        return false;
+    }
+
+    /**
+     * 是否标记了 @JsonRawValue。
+     */
+    default boolean isRawValue() {
+        return false;
+    }
+
+    /**
      * 类声明中为字段设置的缺省值
      */
     Object getDefaultValue();

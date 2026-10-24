@@ -57,6 +57,8 @@ public class BeanModel extends ReadonlyModel implements IBeanModel {
     private IPropertyGetter extPropertyMaker;
     private IGenericTypeBuilder genericTypeResolver = ReflectionManager.instance();
     private Map<String, String> propAliases;
+    private Set<String> ignoredPropertyNames = Collections.emptySet();
+    private boolean ignoreUnknownProps;
 
     public IGenericTypeBuilder getGenericTypeResolver() {
         return genericTypeResolver;
@@ -165,6 +167,26 @@ public class BeanModel extends ReadonlyModel implements IBeanModel {
     public void setPropAliases(Map<String, String> propAliases) {
         checkReadonly();
         this.propAliases = propAliases;
+    }
+
+    @Override
+    public Set<String> getIgnoredPropertyNames() {
+        return ignoredPropertyNames;
+    }
+
+    public void setIgnoredPropertyNames(Set<String> ignoredPropertyNames) {
+        checkReadonly();
+        this.ignoredPropertyNames = ignoredPropertyNames;
+    }
+
+    @Override
+    public boolean isIgnoreUnknownProps() {
+        return ignoreUnknownProps;
+    }
+
+    public void setIgnoreUnknownProps(boolean ignoreUnknownProps) {
+        checkReadonly();
+        this.ignoreUnknownProps = ignoreUnknownProps;
     }
 
     @Override
@@ -283,9 +305,9 @@ public class BeanModel extends ReadonlyModel implements IBeanModel {
         IBeanPropertyModel propModel = propertyModels.get(propName);
         if (propModel == null) {
             if (propAliases != null) {
-                String alias = propAliases.get(propName);
-                if (alias != null)
-                    propModel = propertyModels.get(alias);
+                String primaryName = propAliases.get(propName);
+                if (primaryName != null)
+                    propModel = propertyModels.get(primaryName);
             }
         }
         return propModel;

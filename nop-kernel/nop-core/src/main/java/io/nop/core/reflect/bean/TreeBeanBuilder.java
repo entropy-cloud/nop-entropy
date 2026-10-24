@@ -106,6 +106,9 @@ public class TreeBeanBuilder {
                               BeanCopyOptions options) {
         IBeanPropertyModel propModel = beanModel.getPropertyModel(propName);
         if (propModel != null) {
+            if (propModel.isIgnored())
+                return;
+
             IGenericType propType = propModel.getType().refine(beanModel.getType(), beanType);
             Object value;
             if (propModel.getType().isCollectionLike()) {
@@ -115,6 +118,9 @@ public class TreeBeanBuilder {
             }
             propModel.setPropertyValue(bean, value);
         } else {
+            if (beanModel.getIgnoredPropertyNames().contains(propName) || beanModel.isIgnoreUnknownProps())
+                return;
+
             if (!beanModel.isAllowSetExtProperty())
                 throw new NopException(ERR_BEAN_UNKNOWN_PROP)
                         .param(ARG_CLASS_NAME, bean.getClass().getName())

@@ -7,7 +7,6 @@
  */
 package io.nop.core.lang.json.serialize;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.json.IJsonString;
@@ -31,8 +30,12 @@ import org.slf4j.LoggerFactory;
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Map;
-import java.util.Objects;
+import java.util.Optional;
+import java.util.OptionalDouble;
+import java.util.OptionalInt;
+import java.util.OptionalLong;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.core.CoreConfigs.CFG_JSON_SERIALIZE_ONLY_DATA_BEAN;
 import static io.nop.core.CoreErrors.ARG_CLASS_NAME;
@@ -76,13 +79,26 @@ public class JsonSerializer implements IJsonSerializer {
             out.booleanValue(loc, (Boolean) o);
         } else if (o instanceof Number) {
             out.numberValue(loc, (Number) o);
+        } else if (o instanceof Optional) {
+            serializeToJson(loc, ((Optional<?>) o).orElse(null), out);
+        } else if (o instanceof OptionalInt) {
+            OptionalInt value = (OptionalInt) o;
+            serializeToJson(loc, value.isPresent() ? value.getAsInt() : null, out);
+        } else if (o instanceof OptionalLong) {
+            OptionalLong value = (OptionalLong) o;
+            serializeToJson(loc, value.isPresent() ? value.getAsLong() : null, out);
+        } else if (o instanceof OptionalDouble) {
+            OptionalDouble value = (OptionalDouble) o;
+            serializeToJson(loc, value.isPresent() ? value.getAsDouble() : null, out);
+        } else if (o instanceof AtomicReference) {
+            serializeToJson(loc, ((AtomicReference<?>) o).get(), out);
         } else if (o instanceof byte[]) {
             // 字节数组序列化为base64Url，在前台可以直接拼接为dataUrl。例如 data:audio/wav;base64,xxxxxx
             out.stringValue(loc, StringHelper.encodeBase64Url((byte[]) o));
         } else if (o.getClass().isArray()) {
             writeArray(loc, o, out);
         } else if (o instanceof RawText) {
-            out.rawValue(loc, o);
+            out.rawValue(loc, ((RawText) o).getText());
         } else if (o instanceof IJsonSerializable) {
             LOG.trace("nop.json.use-json-serializable-interface:o={}", o.getClass());
             ((IJsonSerializable) o).serializeToJson(out);
@@ -178,13 +194,15 @@ public class JsonSerializer implements IJsonSerializer {
             if (!propModel.isSerializable())
                 continue;
             Object value = propModel.getPropertyValue(o, scope);
-            if (!shouldInclude(propModel, value))
+            if (!propModel.shouldIncludeInSerialization(value))
                 continue;
 
             String prop = propModel.getName();
             out.key(prop);
             if (value == null) {
                 out.value(loc, null);
+            } else if (propModel.isRawValue() && value instanceof String) {
+                out.rawValue(loc, value);
             } else {
                 if (propModel.getSerializer() != null && serializerFactory != null) {
                     IJsonSerializer serializer = serializerFactory.getSerializer(propModel.getSerializer());
@@ -203,33 +221,6 @@ public class JsonSerializer implements IJsonSerializer {
 
         writeExtProps(beanModel, loc, o, out);
         out.endObject();
-    }
-
-    private boolean shouldInclude(IBeanPropertyModel propModel, Object value) {
-        JsonInclude.Include include = propModel.getJsonInclude();
-        if (include != null) {
-            if (include == JsonInclude.Include.NON_NULL) {
-                if (value == null)
-                    return false;
-            } else if (include == JsonInclude.Include.NON_EMPTY) {
-                if (value == null)
-                    return false;
-
-                if (propModel.getType().isCollectionLike()) {
-                    if (((Collection<?>) value).isEmpty())
-                        return false;
-                } else if (propModel.getType().isMapLike()) {
-                    if (((Map<?, ?>) value).isEmpty()) {
-                        return false;
-                    }
-                }
-            } else if (include == JsonInclude.Include.NON_DEFAULT) {
-                if (Objects.equals(value, propModel.getDefaultValue()))
-                    return false;
-            }
-        }
-
-        return true;
     }
 
     private void writeExtProps(IBeanModel beanModel, SourceLocation loc, Object o, IJsonHandler out) {

@@ -373,6 +373,20 @@ public class CollectTextJsonHandler implements IJsonHandler {
         }
     }
 
+    public IJsonHandler rawValue(SourceLocation loc, Object value) {
+        try {
+            if (value == null) {
+                return nullValue(loc);
+            }
+            writeDeferredName(loc);
+            beforeValue(loc);
+            out.append(value instanceof RawText ? ((RawText) value).getText() : String.valueOf(value));
+            return this;
+        } catch (IOException e) {
+            throw NopException.adapt(e);
+        }
+    }
+
     public IJsonHandler stringValue(SourceLocation loc, String value) {
         try {
             if (value == null) {
