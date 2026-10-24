@@ -44,6 +44,12 @@ public class JdbcConfigSource implements IConfigSource {
 
     private int errorCount = 0;
 
+    /**
+     * C1-021：变更回调失败计数（与 {@link #errorCount} 的 &lt;10 分级抑制同形态，防日志刷屏）。
+     * 一轮刷新中所有回调均成功时清零并记恢复日志。
+     */
+    private int callbackErrorCount = 0;
+
     private Connection connection;
 
     public JdbcConfigSource(JdbcConfig jdbcConfig) {
@@ -97,12 +103,32 @@ public class JdbcConfigSource implements IConfigSource {
             tryTriggerChange(vars);
     }
 
-    private synchronized void tryTriggerChange(Map<String, ValueWithLocation> vars) {
+    /**
+     * 触发变更回调。C1-021（plan 2496）：per-callback 隔离在设计裁定④中归站点内实现（设施绝缘边界 =
+     * 周期任务体整体，不提供回调级隔离）——单个坏回调抛出的任何 Throwable 都在此被捕获留痕：
+     * 不杀死 DB 配置热更新刷新调度链（原缺陷 = 零日志永久杀死全链、重启前不可自愈），
+     * 也不拖累同轮其余回调。日志按既有 errorCount&lt;10 同形态抑制；整轮成功后计数清零记恢复。
+     * 包私有可见性供回归测试确定性触发。
+     */
+    synchronized void tryTriggerChange(Map<String, ValueWithLocation> vars) {
         if (this.vars == null || ConfigSourceHelper.isChanged(this.vars, vars)) {
             this.vars = vars;
 
+            boolean anyFailure = false;
             for (Runnable task : onChanges) {
-                task.run();
+                try {
+                    task.run();
+                } catch (Throwable e) {
+                    anyFailure = true;
+                    callbackErrorCount++;
+                    if (callbackErrorCount < 10) {
+                        LOG.error("nop.config.jdbc-change-callback-fail", e);
+                    }
+                }
+            }
+            if (!anyFailure && callbackErrorCount > 0) {
+                callbackErrorCount = 0;
+                LOG.info("nop.config.jdbc-change-callback-recovered");
             }
         }
     }
