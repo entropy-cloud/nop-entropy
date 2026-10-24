@@ -322,7 +322,13 @@ public class DBMessageService implements IMessageService, AutoCloseable {
             }
             try {
                 pollTopic(topic);
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // MA-07/C3-027 (plan 2496 Phase 4): per-topic guard must cover Throwable.
+                // An Error escaping the per-topic catch would kill the single poller
+                // thread (JDK suppresses the periodic task after any Throwable) — every
+                // topic on this consumer stops being delivered with zero trace. Catching
+                // per topic keeps the poller alive for the remaining topics and keeps
+                // the failed round observable.
                 LOG.error("nop.ai.agent.message.db-poll-error:topic={}, consumerId={}", topic, consumerId, e);
             }
         }
@@ -575,7 +581,10 @@ public class DBMessageService implements IMessageService, AutoCloseable {
         }
         try {
             sweepStaleClaimedMessages(staleClaimTimeoutMs);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // MA-07/C7-029 (plan 2496 Phase 4): same-root guard widening as pollAllTopics —
+            // an Error escaping this wrapper would permanently kill the sweep task on the
+            // shared poller thread (the at-least-once safety net dies silently).
             LOG.error("nop.ai.agent.message.db-sweep-stale-claimed-error:consumerId={}", consumerId, e);
         }
     }

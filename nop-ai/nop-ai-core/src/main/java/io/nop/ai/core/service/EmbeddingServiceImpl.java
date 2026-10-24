@@ -41,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -269,13 +270,22 @@ public class EmbeddingServiceImpl implements IEmbeddingModel {
                         } else {
                             future.complete(parseSuccess(resp));
                         }
-                    } catch (Exception e) {
+                    } catch (Throwable e) {
+                        // MA-07/C4-003[3.1] (plan 2496 Phase 4): the guard must cover
+                        // Throwable. This callback runs on the HTTP client completion
+                        // thread — an Error escaping here would vanish into the client's
+                        // callback chain and leave the caller future permanently
+                        // incomplete (embedAllAsync hangs with zero trace). Routing the
+                        // Throwable into the future keeps the caller terminal.
                         future.completeExceptionally(e);
                     }
                 });
-            } catch (Exception e) {
+            } catch (Throwable e) {
                 // 配置缺失（如备用账号链耗尽后 baseUrl 无法解析）不得静默丢失：
                 // dispatch 可能运行在 whenComplete 回调链内，异常必须落到 future。
+                // MA-07/C4-003[3.1]: width widened to Throwable so an Error on the
+                // dispatch path also terminalizes the caller future instead of
+                // propagating uncaught and hanging embedAllAsync.
                 future.completeExceptionally(e);
             }
         }
@@ -439,8 +449,21 @@ public class EmbeddingServiceImpl implements IEmbeddingModel {
 
     /**
      * 重试延迟调度点（protected 供测试以同线程立即执行方式覆盖）。
+     *
+     * <p>MA-07/C4-003[3.1]（plan 2496 Phase 4）：返回的 {@link ScheduledFuture} 不再被静默丢弃。
+     * 重试腿任务体包 Throwable 守卫——dispatch 自身已把失败路由进调用方 future（其内层/外层
+     * catch 均为 Throwable 宽度），本守卫只承接守卫边界之外抛出的任何 Throwable（含 Error），
+     * 使重试腿死亡带 ERROR 观测而非消失在调度器里；拒绝（调度器已关闭）沿调用链传播，
+     * 由 dispatch 的 Throwable catch 收进调用方 future 终态。
      */
     protected void scheduleRetry(long delayMs, Runnable task) {
-        scheduler().schedule(task, delayMs, TimeUnit.MILLISECONDS);
+        scheduler().schedule(() -> {
+            try {
+                task.run();
+            } catch (Throwable e) {
+                LOG.error("nop.ai.embedding.retry-task-fail: retry leg died before terminalizing "
+                        + "the caller future", e);
+            }
+        }, delayMs, TimeUnit.MILLISECONDS);
     }
 }

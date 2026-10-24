@@ -71,7 +71,14 @@ public class SessionLockRenewal {
             if (!renewed) {
                 handleLeaseLost(handle, sessionId, ownerId);
             }
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
+            // MA-07/C4-007 (plan 2496 Phase 4): the guard must cover Throwable, not just
+            // RuntimeException. A renewal loop killed by an Error escapes the JDK
+            // scheduleWithFixedDelay contract (the round is cancelled and never
+            // rescheduled), the lease silently expires and another instance can preempt
+            // the session while local execution continues — the double-execution hazard
+            // this class exists to prevent. The catch keeps the periodic chain alive
+            // (JDK re-arms on the next interval) and keeps the failure observable.
             LOG.warn("DefaultAgentEngine: takeover lock renewal failed for sessionId={}, "
                     + "ownerId={} (will retry next interval): {}", sessionId, ownerId, e.toString());
         }

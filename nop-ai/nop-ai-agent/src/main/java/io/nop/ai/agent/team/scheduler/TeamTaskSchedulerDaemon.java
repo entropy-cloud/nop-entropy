@@ -269,7 +269,12 @@ public class TeamTaskSchedulerDaemon implements ITeamTaskSchedulerDaemon {
                 LOG.debug("TeamTaskSchedulerDaemon: scan complete (no tasks claimed / dispatched): {}",
                         result);
             }
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
+            // MA-07/C4-013 (plan 2496 Phase 4): the guard must cover Throwable. An Error
+            // escaping here kills the JDK periodic schedule permanently and silently
+            // (team-task scheduling stops; the discarded ScheduledFuture carries the
+            // failure). Catching keeps the chain alive (re-armed next interval) and
+            // keeps the failed scan observable.
             LOG.warn("TeamTaskSchedulerDaemon: periodic scan failed (will retry next interval): {}",
                     e.toString());
         }

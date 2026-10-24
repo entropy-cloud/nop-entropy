@@ -390,7 +390,11 @@ public class ScheduledRecoveryManager implements IRecoveryManager {
             } else {
                 LOG.debug("ScheduledRecoveryManager: scan complete (no stale locks / orphans / timeouts / stuck team tasks): {}", result);
             }
-        } catch (RuntimeException e) {
+        } catch (Throwable e) {
+            // MA-07/C3-020 (plan 2496 Phase 4): the guard must cover Throwable. An Error
+            // escaping here cancels the JDK periodic round permanently (silent recovery
+            // blindness); catching keeps the chain alive (re-armed next interval) and
+            // keeps the failed scan observable.
             LOG.warn("ScheduledRecoveryManager: periodic scan failed (will retry next interval): {}",
                     e.toString());
         }
