@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static io.nop.cli.CliErrors.ARG_PATH;
@@ -87,9 +88,7 @@ public class CliRunCommand implements Callable<Integer> {
         runTasks(globalState);
 
         if (interval > 0) {
-            GlobalExecutors.globalTimer().scheduleWithFixedDelay(() -> {
-                runTasks(globalState);
-            }, interval, interval, TimeUnit.MILLISECONDS);
+            Future<?> watchFuture = startWatchLoop(globalState);
 
             try {
                 System.in.read();
@@ -100,7 +99,27 @@ public class CliRunCommand implements Callable<Integer> {
         return 0;
     }
 
-    private void runTasks(Map<String, Object> globalState) {
+    /**
+     * watch 周期链（plan 2496 4.5-C4-001）：返回 future 不再丢弃——平台绝缘设施保证任务体
+     * Throwable 被捕获观测、链重臂（单轮脚本失败不静默停摆 watch），本方法挂 whenComplete
+     * 把失败显式落日志（失败可见化）。包私有可见性供回归测试。
+     */
+    Future<?> startWatchLoop(Map<String, Object> globalState) {
+        Future<?> watchFuture = GlobalExecutors.globalTimer().scheduleWithFixedDelay(() -> {
+            runTasks(globalState);
+        }, interval, interval, TimeUnit.MILLISECONDS);
+        // C4-001：失败可见化。返回 future 是失败/取消/拒绝信号（首次失败即异常完结，链继续重臂）
+        if (watchFuture instanceof java.util.concurrent.CompletableFuture<?>) {
+            ((java.util.concurrent.CompletableFuture<?>) watchFuture).whenComplete((result, error) -> {
+                if (error != null && !(error instanceof java.util.concurrent.CancellationException)) {
+                    LOG.error("nop.cli.run.watch-round-failed:path={}", file.getAbsolutePath(), error);
+                }
+            });
+        }
+        return watchFuture;
+    }
+
+    protected void runTasks(Map<String, Object> globalState) {
         if (file.isFile()) {
             if (!file.getName().endsWith(".xrun"))
                 throw new NopException(ERR_CLI_FILE_NOT_TASK_FILE)
