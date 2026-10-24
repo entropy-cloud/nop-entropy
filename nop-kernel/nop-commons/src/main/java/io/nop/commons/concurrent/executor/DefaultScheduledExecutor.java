@@ -19,6 +19,10 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import static io.nop.api.core.ApiErrors.ARG_VALUE;
+import static io.nop.commons.CommonErrors.ARG_NAME;
+import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
+import static io.nop.commons.CommonErrors.ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM;
 import static io.nop.commons.CommonErrors.ERR_SERVICE_NOT_ACTIVE;
 
 public class DefaultScheduledExecutor implements IScheduledExecutor {
@@ -68,12 +72,27 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public void refreshConfig() {
-        if (config.getMaxPoolSize() > 0 && config.getCorePoolSize() > config.getMaxPoolSize()) {
-            config.setCorePoolSize(config.getMaxPoolSize());
+        // scheduled形态专用热更路径（scheduled容量旋钮唯一为corePoolSize）：不经通用updateThreadPool、
+        // 无max钳制——STPE的maxPoolSize是惰性展示字段，若套用通用路径的max比较分支，
+        // core热增值大于惰性默认max时会被静默钳回（复刻死配置形态）。
+        // 本路径与periodicTasks登记表、destroy()拒绝路径无交互（不枚举、不增删守卫登记）
+        if (this.config == null || this.executor == null)
+            return;
+
+        int core = config.getCorePoolSize();
+        // STPE core<=0无合法钳制目标（core=0的STPE永不执行任务=静默死配置），失败前置优于静默永不执行
+        if (core < 1) {
+            throw new NopException(ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM)
+                    .param(ARG_NAME, getName()).param(ARG_PARAM_NAME, "corePoolSize").param(ARG_VALUE, core);
         }
 
-        if (this.config != null && this.executor != null) {
-            ExecutorHelper.updateThreadPool(executor, config);
+        try {
+            if (core != executor.getCorePoolSize()) {
+                executor.setCorePoolSize(core);
+            }
+        } catch (IllegalArgumentException e) {
+            throw new NopException(ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM, e)
+                    .param(ARG_NAME, getName()).param(ARG_PARAM_NAME, "corePoolSize").param(ARG_VALUE, core);
         }
     }
 

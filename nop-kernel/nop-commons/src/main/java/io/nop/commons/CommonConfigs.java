@@ -18,9 +18,19 @@ import static io.nop.api.core.config.AppConfig.varRef;
 public interface CommonConfigs {
     SourceLocation s_loc = SourceLocation.fromClass(CommonConfigs.class);
 
-    @Description("全局定时器线程池的大小")
+    @Description("全局定时器线程池的固定线程数（ScheduledThreadPoolExecutor 的容量只由 corePoolSize 决定）")
+    IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_TIMER_CORE_POOL_SIZE = varRef(s_loc,
+            "nop.commons.concurrent.global-timer.corePoolSize", Integer.class, 4);
+
+    @Deprecated
+    @Description("已废弃：globalTimer 容量请改用 nop.commons.concurrent.global-timer.corePoolSize。"
+            + "仅当本键被显式配置且新键未配置时回读其值并记录 WARN，其余情况本键被忽略")
     IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_TIMER_MAX_POOL_SIZE = varRef(
             s_loc, "nop.commons.concurrent.global-timer.maxPoolSize", Integer.class, 5);
+
+    @Description("cached 形态线程池（maxPoolSize<0 的显式 cached 标记，含 nop-cached-thread-pool）的最大线程数上界，构造期读取、热更不生效")
+    IConfigReference<Integer> CFG_CONCURRENT_CACHED_POOL_MAX_POOL_SIZE = varRef(s_loc,
+            "nop.commons.concurrent.cached-pool.maxPoolSize", Integer.class, 200);
 
     @Description("全局工作线程池的大小")
     IConfigReference<Integer> CFG_CONCURRENT_GLOBAL_WORKER_MAX_POOL_SIZE = varRef(s_loc,

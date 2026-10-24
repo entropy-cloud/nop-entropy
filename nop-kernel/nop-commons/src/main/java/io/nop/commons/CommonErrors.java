@@ -74,6 +74,8 @@ public interface CommonErrors {
 
     String ARG_MAX_SIZE = "maxSize";
 
+    String ARG_MAX_POOL_SIZE = "maxPoolSize";
+
     String ARG_TYPE_NAME = "typeName";
 
     String ARG_ALLOWED_NAMES = "allowedNames";
@@ -231,6 +233,12 @@ public interface CommonErrors {
     ErrorCode ERR_CONCURRENT_STOP_POOLED_THREAD = define("nop.err.commons.concurrent.stop-pooled-thread", "停止线程池中的线程");
 
     ErrorCode ERR_CONCURRENT_UNKNOWN_THREAD_POOL = define("nop.err.commons.concurrent.unknown-thread-pool", "未知的线程池[{name}]", ARG_NAME);
+
+    ErrorCode ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM = define("nop.err.commons.concurrent.invalid-thread-pool-param",
+            "线程池[{name}]的参数[{paramName}]取值非法:{value}", ARG_NAME, ARG_PARAM_NAME, ARG_VALUE);
+
+    ErrorCode ERR_CONCURRENT_CACHED_POOL_SATURATED = define("nop.err.commons.concurrent.cached-pool-saturated",
+            "cached线程池[{name}]的并发线程数已达上界[{maxPoolSize}]，任务提交被拒绝", ARG_NAME, ARG_MAX_POOL_SIZE);
 
     ErrorCode ERR_CONCURRENT_CYCLE_ALREADY_BEGIN = define("nop.err.concurrent.cycle-already-begin",
             "正在处理过程中，不能再次启动一个处理过程");
