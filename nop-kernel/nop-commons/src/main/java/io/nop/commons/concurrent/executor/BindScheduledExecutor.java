@@ -7,6 +7,7 @@
  */
 package io.nop.commons.concurrent.executor;
 
+import io.nop.api.core.util.FutureHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,10 +53,13 @@ public class BindScheduledExecutor implements IScheduledExecutor {
     @Override
     public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         CompletableFuture<V> future = new CompletableFuture<>();
-        timer.schedule(() -> {
+        // C3-004（裁定②，接入后置于裁定① bindCancel 守卫修复）：返回 future 的取消传播到底层
+        // timer 调度——cancel 从 timer 队列移除待触发任务，延迟任务不再照常执行
+        Future<?> timerFuture = timer.schedule(() -> {
             executeOn(callable, future);
             return null;
         }, delay, unit);
+        FutureHelper.bindCancel(future, timerFuture);
         return future;
     }
 
@@ -115,9 +119,11 @@ public class BindScheduledExecutor implements IScheduledExecutor {
     @Override
     public <V> CompletableFuture<V> submit(Callable<V> callable) {
         CompletableFuture<V> future = new CompletableFuture<>();
-        timer.submit(() -> {
+        // C3-004：同 schedule——返回 future 的取消传播到底层 timer 包装任务
+        CompletableFuture<V> timerFuture = timer.submit(() -> {
             executeOn(callable, future);
         }, null);
+        FutureHelper.bindCancel(future, timerFuture);
         return future;
     }
 
@@ -127,6 +133,10 @@ public class BindScheduledExecutor implements IScheduledExecutor {
     }
 
     private <V> void executeOn(Callable<V> callable, CompletableFuture<V> future) {
+        // C3-004：排队窗口取消的兜底守卫——包装 future 已完结（取消终态已由 future 承载）时
+        // 直接短路，不投递 worker；该守卫不替代 bindCancel 传播
+        if (future.isDone())
+            return;
         try {
             executor.execute(() -> {
                 try {
