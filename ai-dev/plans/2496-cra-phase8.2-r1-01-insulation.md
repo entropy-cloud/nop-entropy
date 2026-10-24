@@ -116,7 +116,7 @@ Targets: `ai-dev/design/`（新建：io.nop.commons 周期任务异常绝缘层�
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）——**满足**：设计文档已落地（`ai-dev/design/concurrency/periodic-task-insulation.md`，最终状态写法，①–⑥ 全覆盖）；独立 draft review 已通过（agent_e4f1555a，PASS + 修订落盘 @ 533da223e1，记录见设计文档头与 closure audit Minor-1 引用）
+- [x] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）——**满足**：设计文档已落地（`ai-dev/design/concurrency/periodic-task-insulation.md`，最终状态写法，①–⑥ 全覆盖）；独立 draft review 已通过（agent_e4f1555a，PASS + 修订落盘 @ 533da223e1，记录见设计文档头与 closure audit Minor-1 引用）
 - [x] 本体单元测试 ≥5 条（上述五类语义各 ≥1）全绿；每条测试验证的行为在测试名/断言中可辨识——TestPeriodicTaskInsulation 9 条全绿（Tests run: 9, Failures: 0, Errors: 0）
 - [x] 接线验证证据登记（哪个消费方、哪条断言证明运行时调用）——消费方 = GlobalExecutors.globalTimer()（平台共享单例）+ executeOn(Runnable::run)（BindScheduledExecutor 载体）；断言 = listener 失败回调非空 + runs≥2 重臂 + chain isDone/completedExceptionally（TestPeriodicTaskInsulation.testGlobalTimerBindWiringReachesInsulatedPath）
 - [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（聚合实跑：BUILD SUCCESS EXIT=0，12 套件合计 2021 条全绿；focused 通道 `-pl nop-kernel/nop-commons -am` → nop-api-core 165 + nop-commons 381（含新绝缘 9 条）全绿）
