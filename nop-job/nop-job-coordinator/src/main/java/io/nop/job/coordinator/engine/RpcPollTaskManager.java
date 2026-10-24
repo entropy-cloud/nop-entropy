@@ -172,7 +172,13 @@ public class RpcPollTaskManager {
         return executor != null ? executor : GlobalExecutors.globalTimer();
     }
 
-    private void pollOnce(PollEntry entry) {
+    /**
+     * 单轮轮询。整方法在站点内守卫（plan 2496 1.4-MA-05 站点①/C4-004）：任何 Throwable（含 Error）
+     * 都被捕获留痕，不逃逸到周期设施边界——entry 不会因单轮失败僵尸化零日志；本轮失败后下一轮
+     * 仍按周期触发（链存活由平台绝缘设施保证），deadline/cancelToken 检查每轮重跑。
+     * 包私有可见性供回归测试注入 Error。
+     */
+    void pollOnce(PollEntry entry) {
         try {
             if (entry.getFuture().isDone()) {
                 // 已终结：whenComplete 会取消句柄；调度间隙内防御性跳过
@@ -203,6 +209,9 @@ public class RpcPollTaskManager {
                     });
         } catch (Exception e) {
             LOG.warn("nop.job.remote.poll-failed:taskId={}", entry.getTaskId(), e);
+        } catch (Throwable e) {
+            // MA-05/C4-004：Error 级失败不得静默（原缺陷 = JDK 周期抑制 + entry 僵尸化零日志）
+            LOG.error("nop.job.remote.poll-error:taskId={}", entry.getTaskId(), e);
         }
     }
 

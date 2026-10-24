@@ -7,6 +7,7 @@ import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_CONFIG_VALUE;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.job.core.partition.JobPartitionResolver;
@@ -17,8 +18,11 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -55,13 +59,35 @@ public abstract class AbstractBatchScanner {
 
     private JobPartitionResolver partitionResolver;
 
+    // ========== scanner 存活指标（plan 2496 1.4-C4-003 #12 模块侧义务）==========
+    private final AtomicLong scanCycleCount = new AtomicLong();
+    private final AtomicLong scanFailureCount = new AtomicLong();
+    private final AtomicLong scanChainRejectedCount = new AtomicLong();
+    private volatile long lastScanStartTimeMillis;
+    private volatile long lastScanEndTimeMillis;
+    private volatile long lastScanFailureTimeMillis;
+
     public synchronized void startScanning() {
         if (running) {
             return;
         }
         running = true;
+        String scannerName = getClass().getSimpleName();
+        // 平台绝缘入口（带业务标识）：任务体 Throwable 由设施捕获观测并重臂，链存活至显式
+        // stopScanning 或设施级拒绝（设计契约 ai-dev/design/concurrency/periodic-task-insulation.md）
         scanFuture = getExecutor().scheduleWithFixedDelay(
-                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS);
+                this::doScan, 0, scanIntervalMs, TimeUnit.MILLISECONDS, scannerName, null);
+        // C4-003：返回 future 不再丢弃（默认 whenComplete 挂接，不改对外 API）。绝缘契约下异常终态是
+        // 失败/取消/拒绝信号而非链死亡指标；仅设施级拒绝（链真死且不复活）时把 running 状态真实化为 false
+        if (scanFuture instanceof CompletableFuture<?>) {
+            ((CompletableFuture<?>) scanFuture).whenComplete((result, error) -> {
+                if (error != null && !(error instanceof CancellationException)) {
+                    scanChainRejectedCount.incrementAndGet();
+                    running = false;
+                    LOG.error("nop.job.scan-chain-rejected:scanner={}", scannerName, error);
+                }
+            });
+        }
     }
 
     public synchronized void stopScanning() {
@@ -84,18 +110,38 @@ public abstract class AbstractBatchScanner {
      * 写空壳 override（5 个子类曾有 `@Override protected void scanOnce() { super.scanOnce(); }` 的设计 hack）。
      * <p>
      * 入口顺序：(1) reset 所有已注册 cursor；(2) 调 {@link #onCycleStart()}；(3) 进入批循环。
+     * <p>
+     * 整个周期体（含 try-外段 cursor.reset/onCycleStart）在站点内统一守卫：任何 Throwable（含 Error）
+     * 都在本方法边界被捕获、计数、留痕，不再逃逸到周期设施边界——失败轮次可观测，{@link #running}
+     * 与链状态不说谎（链由绝缘设施保持存活）。
      */
     public void scanOnce() {
-        for (Cursor c : registeredCursors) {
-            c.reset();
+        long begin = CoreMetrics.currentTimeMillis();
+        scanCycleCount.incrementAndGet();
+        lastScanStartTimeMillis = begin;
+        try {
+            for (Cursor c : registeredCursors) {
+                c.reset();
+            }
+            onCycleStart();
+            scanBatches();
+            lastScanEndTimeMillis = CoreMetrics.currentTimeMillis();
+        } catch (Throwable e) {
+            lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
+            scanFailureCount.incrementAndGet();
+            onScanCycleFailed(e);
         }
-        onCycleStart();
+    }
+
+    private void scanBatches() {
         for (int i = 0; i < maxScanLoops; i++) {
             try {
                 if (!scanBatch()) {
                     return;
                 }
             } catch (Exception e) {
+                lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
+                scanFailureCount.incrementAndGet();
                 onScanFailed(e);
                 return;
             }
@@ -129,6 +175,46 @@ public abstract class AbstractBatchScanner {
 
     protected void onScanFailed(Exception e) {
         LOG.error("nop.job.scan-failed:scanner={}", getClass().getSimpleName(), e);
+    }
+
+    /**
+     * 扫描周期体的 Error 级（Throwable 非 Exception）失败回调。默认实现记录带 scanner 名的 ERROR 日志；
+     * 子类可 override 扩展上报。该回调在 {@link #scanOnce()} 的站点守卫内触发，异常不逃逸、链不死亡。
+     */
+    protected void onScanCycleFailed(Throwable e) {
+        LOG.error("nop.job.scan-cycle-failed:scanner={}", getClass().getSimpleName(), e);
+    }
+
+    // ========== scanner 存活指标（C4-003 模块侧义务：存活/最后扫描时间可观测）==========
+
+    /** 已完成的扫描周期数（每轮 {@link #scanOnce()} 计一次）。 */
+    public long getScanCycleCount() {
+        return scanCycleCount.get();
+    }
+
+    /** 扫描失败轮次数（含 Exception 级与 Error 级周期失败）。 */
+    public long getScanFailureCount() {
+        return scanFailureCount.get();
+    }
+
+    /** 周期链遭设施级拒绝（真死、不复活）的次数。拒绝后 {@link #running} 已真实化为 false。 */
+    public long getScanChainRejectedCount() {
+        return scanChainRejectedCount.get();
+    }
+
+    /** 最近一轮扫描的开始时间（毫秒；0 = 从未扫描）。 */
+    public long getLastScanStartTimeMillis() {
+        return lastScanStartTimeMillis;
+    }
+
+    /** 最近一轮成功走完的扫描结束时间（毫秒；0 = 从未完整走完一轮）。 */
+    public long getLastScanEndTimeMillis() {
+        return lastScanEndTimeMillis;
+    }
+
+    /** 最近一次扫描失败的时间（毫秒；0 = 从未失败）。 */
+    public long getLastScanFailureTimeMillis() {
+        return lastScanFailureTimeMillis;
     }
 
     protected IScheduledExecutor getExecutor() {

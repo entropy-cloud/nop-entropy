@@ -31,6 +31,10 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nop.job.core.JobCoreErrors.ERR_JOB_INVOKER_RETURNED_NULL;
 
@@ -48,6 +52,46 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
     private int maxConcurrency = 0;
     private boolean enforceAttribution = false;
     private IntRangeSet assignedPartitions;
+
+    /**
+     * MA-06（plan 2496，设计文档 §3.6 裁定⑥）：worker 侧 invoke 看门狗阈值（毫秒），默认 0 = 无执行超时。
+     * {@code schedule.timeoutSeconds > 0} 时仍优先（沿用 checker 既有取值顺序）。看门狗是<b>宽松观测</b>：
+     * 阈值超限时只记 ERROR 日志 + in-flight 年龄 gauge，永不 complete/cancel invoke future、永不杀派发链；
+     * coordinator checker 链是任务终结的唯一仲裁者。
+     */
+    private long invokeTimeoutMs = 0;
+
+    /**
+     * 在飞 invoke 注册表（taskId → 派发开始毫秒时间戳）：in-flight 年龄 gauge 与看门狗观测的事实源。
+     * 派发时登记、{@code handleExecutionResult} 回调时移除。
+     */
+    private final ConcurrentHashMap<String, Long> inFlightInvokeStartMillis = new ConcurrentHashMap<>();
+
+    private final AtomicLong invokeTimeoutObservedCount = new AtomicLong();
+    private volatile long lastInvokeTimeoutObservedMillis;
+
+    public JobWorkerScannerImpl() {
+        // in-flight 年龄 gauge（C7-002 观测面）：采样时计算最老在飞年龄；registry 为默认 SimpleMeterRegistry，
+        // 同名 gauge 重复注册由 micrometer 保留首个，无异常
+        io.micrometer.core.instrument.MeterRegistry registry =
+                io.nop.commons.metrics.GlobalMeterRegistry.instance();
+        if (registry != null) {
+            io.micrometer.core.instrument.Gauge.builder("nop.job.worker.invoke.inflight.age.max",
+                            inFlightInvokeStartMillis,
+                            m -> oldestInFlightAgeMillis(System.currentTimeMillis()))
+                    .register(registry);
+        }
+    }
+
+    @InjectValue("@cfg:nop.job.worker.invoke-timeout-ms|0")
+    public void setInvokeTimeoutMs(long invokeTimeoutMs) {
+        if (invokeTimeoutMs < 0) {
+            throw new NopException(JobCoreErrors.ERR_JOB_CONFIG_INVALID)
+                    .param(JobCoreErrors.ARG_CONFIG_KEY, "nop.job.worker.invoke-timeout-ms")
+                    .param(JobCoreErrors.ARG_VALUE, invokeTimeoutMs);
+        }
+        this.invokeTimeoutMs = invokeTimeoutMs;
+    }
 
     @Inject
     public void setTaskStore(IJobTaskStore taskStore) {
@@ -299,11 +343,97 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
                 handleExecutionResult(runningTask.getJobTaskId(), null,
                         new NopException(ERR_JOB_INVOKER_RETURNED_NULL));
             } else {
-                promise.whenComplete((result, err) -> handleExecutionResult(runningTask.getJobTaskId(), result, err));
+                // MA-06：派发登记在飞 + 宽松看门狗（只观测不终结）；终结唯一通道仍是 invoke future
+                // 自身完成 → handleExecutionResult。checker 链（coordinator 侧）保持唯一仲裁者。
+                String taskId = runningTask.getJobTaskId();
+                // JVM 墙钟（诊断用途，非 DB 时间语义）：autotest 环境的 CoreMetrics 时钟可被测试替换
+                long startMillis = System.currentTimeMillis();
+                inFlightInvokeStartMillis.put(taskId, startMillis);
+                long thresholdMs = resolveInvokeWatchdogThresholdMs(schedule);
+                if (thresholdMs > 0) {
+                    scheduleInvokeWatchdog(taskId, thresholdMs, startMillis);
+                }
+                promise.whenComplete((result, err) -> {
+                    inFlightInvokeStartMillis.remove(taskId);
+                    handleExecutionResult(taskId, result, err);
+                });
             }
         } catch (Exception e) {
             handleExecutionResult(runningTask.getJobTaskId(), null, e);
         }
+    }
+
+    /**
+     * 看门狗阈值解析（设计裁定⑥）：{@code schedule.timeoutSeconds > 0} 优先（沿用 checker 既有取值顺序），
+     * 否则取 {@code nop.job.worker.invoke-timeout-ms}（0 = disabled）。
+     */
+    long resolveInvokeWatchdogThresholdMs(NopJobSchedule schedule) {
+        Integer timeoutSeconds = schedule != null ? schedule.getTimeoutSeconds() : null;
+        if (timeoutSeconds != null && timeoutSeconds > 0) {
+            return timeoutSeconds * 1000L;
+        }
+        return invokeTimeoutMs;
+    }
+
+    /**
+     * 宽松看门狗：阈值到期后在飞仍未终结时记 ERROR + 观测计数。永不 complete/cancel invoke future、
+     * 永不改任务状态——「长任务误杀」被 plan340 契约与设计裁定⑥双重禁止。protected 供测试注入。
+     */
+    protected void scheduleInvokeWatchdog(String taskId, long thresholdMs, long startMillis) {
+        io.nop.commons.concurrent.executor.GlobalExecutors.globalTimer().schedule(() -> {
+            checkInvokeTimeout(taskId, thresholdMs, startMillis);
+            return null;
+        }, thresholdMs, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 看门狗观测动作：仅当该任务仍在飞且年龄达到阈值时记录观测信号（ERROR 日志 + 计数/时间戳）。
+     * package-private 供回归测试确定性触发。
+     */
+    void checkInvokeTimeout(String taskId, long thresholdMs, long startMillis) {
+        Long registered = inFlightInvokeStartMillis.get(taskId);
+        if (registered == null) {
+            return; // 已终结（正常完成/失败），无需观测
+        }
+        long ageMs = System.currentTimeMillis() - startMillis;
+        if (ageMs < thresholdMs) {
+            return;
+        }
+        invokeTimeoutObservedCount.incrementAndGet();
+        lastInvokeTimeoutObservedMillis = System.currentTimeMillis();
+        LOG.error("nop.job.worker.invoke-timeout-observed:taskId={},ageMs={},thresholdMs={} "
+                        + "-- observe-only: worker watchdog never terminates; checker chain is the sole arbiter",
+                taskId, ageMs, thresholdMs);
+    }
+
+    /** 当前在飞 invoke 数（观测用）。 */
+    public int getInFlightInvokeCount() {
+        return inFlightInvokeStartMillis.size();
+    }
+
+    /** 最老在飞 invoke 的年龄（毫秒；无在飞时为 0）——in-flight 年龄 gauge 的取值函数。 */
+    public long getOldestInFlightAgeMillis(long nowMillis) {
+        return oldestInFlightAgeMillis(nowMillis);
+    }
+
+    /** 看门狗观测触发次数（宽松观测信号，测试与运维可读）。 */
+    public long getInvokeTimeoutObservedCount() {
+        return invokeTimeoutObservedCount.get();
+    }
+
+    /** 最近一次看门狗观测触发时间（毫秒；0 = 从未触发）。 */
+    public long getLastInvokeTimeoutObservedMillis() {
+        return lastInvokeTimeoutObservedMillis;
+    }
+
+    private long oldestInFlightAgeMillis(long nowMillis) {
+        long oldest = 0;
+        for (Long start : inFlightInvokeStartMillis.values()) {
+            long age = nowMillis - start;
+            if (age > oldest)
+                oldest = age;
+        }
+        return oldest;
     }
 
     private void handleExecutionResult(String jobTaskId, io.nop.job.api.execution.JobFireResult result, Throwable err) {
@@ -378,6 +508,29 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
             }
         } catch (Exception e) {
             LOG.error("nop.job.worker.handle-result-failed:taskId={}", jobTaskId, e);
+            failSafeTerminalize(jobTaskId, e);
+        } catch (Throwable e) {
+            // MA-05/C4-012 站点②：回调动作的 Error 级 Throwable 不得被 whenComplete 衍生 future 静默吞掉
+            //（原缺陷 = 零日志 + task 永久滞留 RUNNING → sumReservedCost 容量永久侵蚀）
+            LOG.error("nop.job.worker.handle-result-failed:taskId={}", jobTaskId, e);
+            workerMetrics.onTaskExecuteFailed(1);
+            failSafeTerminalize(jobTaskId, e);
+        }
+    }
+
+    /**
+     * MA-05 终态 fail-safe：{@code handleExecutionResult} 主流程失败（Exception/Error）时尽力把任务
+     * 终态化为 FAILED，阻断「task 永久 RUNNING → 容量账本永久侵蚀」。fail-safe 自身失败只记日志，
+     * 不再向外抛（回调边界内禁止二次逃逸）。
+     */
+    private void failSafeTerminalize(String jobTaskId, Throwable cause) {
+        try {
+            NopJobTask freshTask = taskStore.loadTask(jobTaskId);
+            if (freshTask != null) {
+                completeTaskWithFailure(freshTask, null, "handle-result-failed: " + cause);
+            }
+        } catch (Throwable e2) {
+            LOG.error("nop.job.worker.handle-result-failsafe-failed:taskId={}", jobTaskId, e2);
         }
     }
 

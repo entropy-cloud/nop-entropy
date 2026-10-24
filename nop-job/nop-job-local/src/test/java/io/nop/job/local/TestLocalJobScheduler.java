@@ -485,4 +485,70 @@ public class TestLocalJobScheduler {
         spec.setTriggerSpec(ts);
         return spec;
     }
+
+    // ========== plan 2496 1.4-MA-05 站点③（C4-012 LocalJobScheduler whenComplete 区域）==========
+
+    /**
+     * 站点③：whenComplete 回调动作内的 Error（此处经 handleResult → scheduleNext → 触发器计算抛
+     * LinkageError 注入）不得被丢弃的衍生 future 吞掉导致 job 永久滞留 RUNNING；修复后 job 以
+     * FAILED 终态收口（终态 fail-safe），done future 异常完结（等待者可见）。
+     */
+    @Test
+    void testWhenCompleteErrorTerminalizesJobNotStuckRunning() throws Exception {
+        CompletableFuture<JobFireResult> invokeFuture = CompletableFuture.completedFuture(
+                // CONTINUE（nextScheduleTime=-1）：handleResult 落到 scheduleNext(job,0) → 触发器计算（注入点）
+                JobFireResult.CONTINUE);
+        LocalJobScheduler sched = new LocalJobScheduler(
+                GlobalExecutors.globalTimer(),
+                name -> new IJobInvoker() {
+                    @Override
+                    public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                        return invokeFuture;
+                    }
+
+                    @Override
+                    public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                        return CompletableFuture.completedFuture(Boolean.TRUE);
+                    }
+                }
+        );
+        sched.activate();
+        try {
+            String jobName = "test-ma05-trigger-error";
+            sched.addJob(newSpec(jobName, 100, true), false);
+
+            // 把 trigger 换成「第二次调用抛 LinkageError」的触发器：
+            // 第 1 次调用发生在 addJob→scheduleNext（正常返回 next=+100ms）；
+            // 第 2 次调用发生在首轮执行完成后的 whenComplete 回调→handleResult→scheduleNext（注入点）
+            java.util.Map<String, ?> jobs = readJobsMap(sched);
+            Object scheduledJob = jobs.get(jobName);
+            assertNotNull(scheduledJob);
+            java.lang.reflect.Field triggerField = scheduledJob.getClass().getDeclaredField("trigger");
+            triggerField.setAccessible(true);
+            triggerField.set(scheduledJob, new io.nop.job.core.ITrigger() {
+                int calls = 0;
+
+                @Override
+                public long nextScheduleTime(long afterTime, io.nop.job.core.ITriggerEvalContext ctx) {
+                    if (++calls >= 2)
+                        throw new LinkageError("trigger-boom");
+                    return afterTime + 100;
+                }
+            });
+
+            // 修复前：Error 逃出回调被丢弃 future 吞掉，job 永久滞留 RUNNING（awaitState 超时 → 红）
+            // 修复后：终态 fail-safe 生效，job 进入 FAILED
+            assertTrue(sched.awaitState(jobName, JobState.FAILED, 5, TimeUnit.SECONDS),
+                    "MA-05 station-3: Error inside whenComplete callback must fail-safe the job to FAILED, "
+                            + "not leave it stuck RUNNING");
+        } finally {
+            sched.deactivate();
+        }
+    }
+
+    private static java.util.Map<String, ?> readJobsMap(LocalJobScheduler sched) throws Exception {
+        java.lang.reflect.Field f = LocalJobScheduler.class.getDeclaredField("jobs");
+        f.setAccessible(true);
+        return (java.util.Map<String, ?>) f.get(sched);
+    }
 }

@@ -281,9 +281,10 @@ public class LocalJobScheduler implements IJobScheduler {
         try {
             nextTime = overrideNextTime > 0 ? overrideNextTime
                     : job.trigger.nextScheduleTime(now, job.state);
-        } catch (Exception e) {
-            // 触发器计算异常（病态cron的runaway/overflow、日历迭代超限等）不得逃出whenComplete回调：
-            // 逃逸后异常进入被丢弃的返回future，job永久卡在RUNNING且无任何日志。置FAILED并记error
+        } catch (Throwable e) {
+            // 触发器计算失败（病态cron的runaway/overflow、日历迭代超限等）不得逃出whenComplete回调：
+            // 逃逸后异常进入被丢弃的返回future，job永久卡在RUNNING且无任何日志。置FAILED并记error。
+            // MA-05/C4-012 站点③：catch 宽度含 Error（Error 逃逸同样滞留 RUNNING 且零日志）
             LOG.error("nop.job.trigger-calc-failed:jobName={}", job.spec.getJobName(), e);
             job.state.internal = InternalState.FAILED;
             return;
@@ -327,21 +328,33 @@ public class LocalJobScheduler implements IJobScheduler {
         if (future == null) {
             handleResult(job, null, null);
         } else {
-            // 先用占位 future 占住 job.running，再注册回调。否则当 invoker 返回的是
-            // 已完成的 future 时，whenComplete 会同步执行回调把 job.running 置 null，
-            // 随后的外层赋值又把它覆盖回非空，导致 job.running 永远清不掉。
-            final CompletableFuture<?> done = new CompletableFuture<>();
-            job.running = done;
-            future.whenComplete((result, err) -> {
-                synchronized (job) {
+        // 先用占位 future 占住 job.running，再注册回调。否则当 invoker 返回的是
+        // 已完成的 future 时，whenComplete 会同步执行回调把 job.running 置 null，
+        // 随后的外层赋值又把它覆盖回非空，导致 job.running 永远清不掉。
+        final CompletableFuture<?> done = new CompletableFuture<>();
+        job.running = done;
+        future.whenComplete((result, err) -> {
+            synchronized (job) {
+                // MA-05/C4-012 站点③：回调动作（handleResult 内含触发器计算/状态迁移/再排程）
+                // 的任何 Throwable 都不得被丢弃的衍生 future 吞掉——原缺陷 = job 永久滞留
+                // RUNNING + 永不再排程 + done 悬空且零日志。终态 fail-safe 保证 job 离开 RUNNING。
+                Throwable failure = err;
+                try {
                     job.running = null;
                     handleResult(job, result, err);
-                    if (err == null)
-                        done.complete(null);
-                    else
-                        done.completeExceptionally(err);
+                } catch (Throwable e) {
+                    LOG.error("nop.job.handle-result-error:jobName={}", job.spec.getJobName(), e);
+                    if (failure == null)
+                        failure = e;
+                    if (job.state.internal == InternalState.RUNNING)
+                        job.state.internal = InternalState.FAILED;
                 }
-            });
+                if (failure == null)
+                    done.complete(null);
+                else
+                    done.completeExceptionally(failure);
+            }
+        });
         }
     }
 
