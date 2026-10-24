@@ -14,11 +14,13 @@
 ### Architecture Baseline 层
 
 - `periodic-task-insulation.md` — 周期任务异常绝缘层（重臂 vs kill+alarm 选型、返回 future 终态 × isDone 守卫 × 重臂三相容、失败治理四件套[计数/退避/日志抑制/升级]、拒绝路径、API source-compat 形态与 C3-016 边界、MA-06 看门狗前置裁定、30 点表载体覆盖矩阵）
+- `pool-facility-hardening.md` — 平台池设施加固（调度槽/执行体契约与 globalTimer 27 消费方处置矩阵、globalTimer 容量语义与工厂副作用移除、池工厂 fail-fast 校验契约、cached 共享池上界与熔断、收缩语义与热更面处置、与绝缘层共享代码位边界）
 
 ## 阅读顺序
 
-1. `periodic-task-insulation.md`（当前唯一分项设计；新增分项设计按编号或主题追加于此表）
-2. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）
+1. `periodic-task-insulation.md`（周期任务绝缘语义；新增分项设计按编号或主题追加于此表）
+2. `pool-facility-hardening.md`（池设施容量/校验/卸载契约；与 1 共享 executor 代码位，边界见其 §3.6）
+3. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）
 
 ## 职责边界
 
