@@ -23,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
@@ -204,14 +205,49 @@ public class AutoRegistration {
         if (autoUpdate && autoUpdateInterval != null && autoUpdateInterval.toMillis() > 0) {
             autoUpdateTimerFuture = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
                     .scheduleWithFixedDelay(this::refreshRegistration, autoUpdateInterval.toMillis(), autoUpdateInterval.toMillis(), TimeUnit.MILLISECONDS);
+            attachAutoUpdateWatch();
         }
+    }
+
+    /**
+     * C4-004 / CL-014 (plan 2496 Phase 4, 30-pt table #10): the refresh chain runs on the
+     * platform insulated periodic facility (task-body Throwable is caught + observed and
+     * the chain re-arms), but a chain-level terminal (facility rejection — the shared
+     * worker pool Abort path) still completes the chain future exceptionally with only
+     * the executor's generic error log. This watcher is the business-identified alarm
+     * hook the audit demanded: a broken refresh chain is reported with the instance
+     * identity instead of leaving registration metadata silently stale. Observation only
+     * — no re-arm here: the insulated facility already re-arms task-body failures, and a
+     * second periodic chain started from a completed future could fork the loop.
+     */
+    private void attachAutoUpdateWatch() {
+        Future<?> chain = autoUpdateTimerFuture;
+        if (!(chain instanceof CompletableFuture)) {
+            // The insulated platform facility returns CompletableFuture-typed chains; a
+            // plain Future carrier has no completion-callback face (observation degrades
+            // to the site-level guard in refreshRegistration).
+            return;
+        }
+        ((CompletableFuture<?>) chain).whenComplete((r, e) -> {
+            if (e != null && !(e instanceof java.util.concurrent.CancellationException)) {
+                LOG.error("nop.err.cluster.refresh-registration-chain-broken:instance={} "
+                                + "- auto-update periodic chain terminated (insulated facility re-arms "
+                                + "task failures; terminal only on facility rejection)",
+                        instance, e);
+            }
+        });
     }
 
     protected void refreshRegistration() {
         if (instance != null) {
             try {
                 namingService.updateInstance(instance);
-            } catch (Exception e) {
+            } catch (Throwable e) {
+                // C4-004/CL-011 (plan 2496 Phase 4): the site guard widened to Throwable —
+                // an Error from the naming client no longer escapes into the periodic
+                // facility (where it would only surface as an anonymous chain failure);
+                // it is reported here with the instance business identifier. The chain
+                // itself keeps running (insulated facility re-arm).
                 LOG.warn("nop.err.cluster.refresh-registration-fail:instance={}", instance, e);
             }
         }
