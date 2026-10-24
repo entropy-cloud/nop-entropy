@@ -9,7 +9,6 @@ package io.nop.core.resource.deps;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.thread.NamedThreadLocal;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceConstants;
@@ -113,14 +112,8 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
             if (current != null) {
                 current.addDepend(deps);
             }
-            // 判据值记录（宽限锚簿记规则，裁定①/M-1）：与dependencyMap既有条目对照，值未变的重载继承旧锚
-            // （重读同值不重锚），仅值变化时以本次记录时刻重锚——防止持续访问的热条目因反复重载而宽限窗口永续
-            ResourceDependencySet previous = dependencyMap.get(resource.getPath());
-            if (previous != null && previous.getLastModified() == verifiedLastModified) {
-                deps.updateLastModified(verifiedLastModified, previous.getRecordedAt());
-            } else {
-                deps.updateLastModified(verifiedLastModified, CoreMetrics.currentTimeMillis());
-            }
+            // 判据值记录：经双mtime核验的稳定读数。宽限裁决以文件写入年龄为锚（载体唯一实现），无需伴随锚字段
+            deps.setLastModified(verifiedLastModified);
             success = true;
             return ret;
         } finally {
@@ -269,15 +262,14 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
             return false;
         }
 
-        // 经载体stat型入口走宽限感知判据（mtime相等比较+宽限期承诺双条件）
-        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(),
-                deps.getLastModified(), deps.getRecordedAt());
+        // 经载体stat型入口走唯一判据实现（mtime相等比较+写入新鲜度宽限双条件）
+        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(), deps.getLastModified());
         if (result.isChanged()) {
             return true;
         }
 
-        // 内容没有修改，但是可能文件的修改时间变化了。涂新走判据值簿记入口：值变才重锚（重读同值不重锚）
-        deps.updateLastModified(result.getLastModified(), CoreMetrics.currentTimeMillis());
+        // 内容没有修改，但是可能文件的修改时间变化了
+        deps.setLastModified(result.getLastModified());
 
         if (deps.getDepends() != null) {
             for (ResourceDependencySet dep : deps.getDepends()) {

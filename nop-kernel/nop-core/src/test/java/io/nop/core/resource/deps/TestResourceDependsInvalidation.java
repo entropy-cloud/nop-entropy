@@ -109,8 +109,6 @@ public class TestResourceDependsInvalidation {
         assertEquals(1, taskCount.get());
         // 判据值记录为已核验的mtime（m2==m1）
         assertEquals(1000L, mgr.getResourceDepends(PATH).getLastModified());
-        // 记录即锚定
-        assertTrue(mgr.getResourceDepends(PATH).getRecordedAt() >= CoreMetrics.currentTimeMillis() - 1000);
     }
 
     @Test
@@ -132,8 +130,6 @@ public class TestResourceDependsInvalidation {
         assertEquals(2, taskCount.get());
         assertEquals("v2", ret);
         assertEquals(1001L, mgr.getResourceDepends(PATH).getLastModified());
-        // 失配读数（1000L）不得被记录
-        assertTrue(mgr.getResourceDepends(PATH).getRecordedAt() <= CoreMetrics.currentTimeMillis());
     }
 
     @Test
@@ -157,7 +153,8 @@ public class TestResourceDependsInvalidation {
     @Test
     public void testIsDependencyChangedGraceConservativeThroughWalk() {
         ProgrammableChecker checker = new ProgrammableChecker();
-        checker.resources.put(SUB_PATH, new FlipReference(SUB_PATH, 500L));
+        // 子依赖注入「最近被写过」的mtime（写入年龄<宽限期）：宽限裁决以写入年龄为锚
+        checker.resources.put(SUB_PATH, new FlipReference(SUB_PATH, CoreMetrics.currentTimeMillis()));
         ResourceDependsManager mgr = new ResourceDependsManager(checker);
 
         // task执行时trace一个子依赖：walk会经载体stat型入口检查该子依赖的判据值
@@ -168,30 +165,27 @@ public class TestResourceDependsInvalidation {
         ResourceDependencySet root = mgr.getResourceDepends(PATH);
         assertEquals(1, root.getDepends().size());
 
-        // mtime未变，但判据值刚记录、仍在宽限期内：walk保守判已变更（窗口一闭合经真实walk链路）
+        // mtime未变，但文件最近G内被写过：walk保守判已变更（窗口一闭合经真实walk链路）
         AppConfig.getConfigProvider().updateConfigValue(CFG_COMPONENT_RESOURCE_CACHE_CHANGE_GRACE_PERIOD,
                 Duration.ofSeconds(2));
         assertTrue(mgr.isDependencyChanged(PATH));
 
-        // G=0关闭档：等价于既有纯相等比较语义；UNCHANGED分支到达涂新点
+        // G=0关闭档：等价于既有纯相等比较语义（同值mtime判UNCHANGED）
         AppConfig.getConfigProvider().updateConfigValue(CFG_COMPONENT_RESOURCE_CACHE_CHANGE_GRACE_PERIOD,
                 Duration.ZERO);
-        ResourceDependencySet subDeps = root.getDepends().iterator().next();
-        long anchorBefore = subDeps.getRecordedAt();
         assertFalse(mgr.isDependencyChanged(PATH));
-        // 涂新走簿记入口：重读同值不重锚（宽限窗口不因反复walk而永续）
-        assertEquals(anchorBefore, subDeps.getRecordedAt());
     }
 
     @Test
-    public void testFrozenCopyInDependencyMapCarriesRecordedAt() {
+    public void testFrozenCopyCarriesVerifiedLastModified() {
         ResourceDependsManager mgr = newManager();
         mgr.collectDepends(ref, () -> "v");
 
         ResourceDependencySet mapped = mgr.getResourceDepends(PATH);
         assertNotNull(mapped);
         assertEquals(1000L, mapped.getLastModified());
-        // 判据值二元组完整入dependencyMap（后续merge版本推进时copy携带recordedAt）
-        assertTrue(mapped.getRecordedAt() > 0);
+        // 判据值（经双mtime核验）随frozen copy进入dependencyMap（merge版本推进时copy携带lastModified）
+        ResourceDependencySet copy = mapped.copy();
+        assertEquals(1000L, copy.getLastModified());
     }
 }

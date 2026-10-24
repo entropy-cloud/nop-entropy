@@ -172,13 +172,15 @@ public class TestResourceCacheEntryGate {
     }
 
     /**
-     * 门缺失必红对照：修复前直连路径无节流（grace窗口内逐调用真实裁决+重载）；
-     * 修复后TRUE侧同源键限速使宽限窗口内重载频度有界（M-1风暴闭合钉）
+     * 门缺失必红对照：修复前直连路径无节流（宽限窗口内逐调用真实裁决+重载）；
+     * 修复后TRUE侧同源键限速使宽限窗口内重载频度有界（风暴闭合钉）。
+     * 宽限以写入年龄为锚（Phase 3修订）：依赖注入「最近被写过」的mtime使宽限裁决可达
      */
     @Test
     public void testTrueSideRateLimitBoundsGraceReloadStorm() {
         setGrace(Duration.ofSeconds(2));
         setRefreshMinInterval(100);
+        depRef.mtime = CoreMetrics.currentTimeMillis();
         ResourceCacheEntry<String> entry = new ResourceCacheEntry<>("/test/gate/b");
         IResourceObjectLoader<String> loader = tracingLoader();
 

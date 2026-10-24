@@ -103,7 +103,7 @@ public interface CoreConfigs {
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL = varRef(s_loc,
             "nop.core.component.resource-cache.refresh-min-interval", Integer.class, 100);
 
-    @Description("check-changed失效判据的宽限期：判据值记录后该时间段内的重复检查保守判定为已变更，避免同一mtime粒度tick内二次写入被相等比较漏检。0表示关闭")
+    @Description("check-changed失效判据的宽限期：文件修改时间距当前时刻在该时间段内（写入新鲜度锚）时，mtime相等的重复检查保守判定为已变更，避免同一mtime粒度tick内二次写入被相等比较漏检；旧mtime资源不受影响，不产生虚假重载。0表示关闭")
     IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_CHANGE_GRACE_PERIOD = varRef(s_loc,
             "nop.core.component.resource-cache.change-grace-period", Duration.class, Duration.ofSeconds(2));
 

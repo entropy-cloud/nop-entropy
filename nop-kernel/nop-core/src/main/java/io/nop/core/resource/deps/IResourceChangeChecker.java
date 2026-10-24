@@ -24,18 +24,4 @@ public interface IResourceChangeChecker {
      * @return 文件内容是否已经修改，以及文件最新的修改时间
      */
     ResourceChangeCheckResult checkChanged(String path, long lastModified);
-
-    /**
-     * 宽限感知的检查变体：判据值为 (lastModified, recordedAt) 二元组，recordedAt为判据值的记录时刻（宽限锚）。
-     * 判据语义全仓唯一实现于 {@link DefaultResourceChangeChecker}：mtime相等比较 + 宽限期承诺双条件。
-     *
-     * <p>default实现委托既有2-arg入口，即宽限0档（纯mtime相等比较）——既有自定义checker实现无需改码即保持旧语义。
-     *
-     * @param lastModified 上次记录的文件修改时间
-     * @param recordedAt   上次记录判据值时的时刻（宽限锚，取自ResourceDependencySet.getRecordedAt()）
-     * @return 文件内容是否已经修改（含宽限期内保守判定），以及文件最新的修改时间
-     */
-    default ResourceChangeCheckResult checkChanged(String path, long lastModified, long recordedAt) {
-        return checkChanged(path, lastModified);
-    }
 }

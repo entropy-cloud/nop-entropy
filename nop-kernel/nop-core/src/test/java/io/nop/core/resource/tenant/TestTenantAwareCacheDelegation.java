@@ -176,6 +176,9 @@ public class TestTenantAwareCacheDelegation {
         TenantAwareResourceLoadingCache<String> wrapper = new TenantAwareResourceLoadingCache<>(
                 "test-loading-cache", null, null);
 
+        // 宽限以写入年龄为锚（Phase 3修订）：依赖注入「最近被写过」的mtime使宽限保守重载经包装层可达
+        checker.resources.get(DEP_PATH).mtime = CoreMetrics.currentTimeMillis();
+
         // G>0档：宽限期内保守CHANGED经包装层触发保守重载
         setGrace(Duration.ofSeconds(2));
         setRefreshMinInterval(100);
@@ -225,7 +228,9 @@ public class TestTenantAwareCacheDelegation {
         String rootPath = "/test/tenant-gate/root.model";
         ProgrammableChecker localChecker = new ProgrammableChecker();
         localChecker.register(rootPath, 800L);
-        localChecker.register(DEP_PATH, 500L);
+        // 宽限以写入年龄为锚（Phase 3修订）：dep注入「最近被写过」的mtime——isDependencyChanged只walk
+        // 嵌套deps（不查root自身），保守判定到达判据消费层须由dep的写入年龄驱动
+        localChecker.register(DEP_PATH, CoreMetrics.currentTimeMillis());
         TenantAwareDependencyManager wrapper = new TenantAwareDependencyManager(localChecker);
 
         ContextProvider.runWithTenant(TENANT, () -> {
@@ -242,7 +247,7 @@ public class TestTenantAwareCacheDelegation {
             setGrace(Duration.ZERO);
             assertFalse(wrapper.isDependencyChanged(rootPath));
 
-            // G>0：mtime未变但判据值刚记录——同tick双写注入形态保守判已变更
+            // G>0：mtime未变但文件最近G内被写过（写入年龄<宽限期）——同tick双写注入形态保守判已变更
             setGrace(Duration.ofSeconds(2));
             assertTrue(wrapper.isDependencyChanged(rootPath));
             return null;
