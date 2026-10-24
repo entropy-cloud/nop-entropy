@@ -247,57 +247,82 @@ Exit Criteria:
 
 ### Phase 5 - 分片 E：1.7-C8-003 batch 兜底池统一评估 + SocketServer 消费迁移评估（nop-batch + nop-xdefs [+ nop-socket 评估面]）
 
-Status: planned
+Status: completed
 Targets: `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java`（:83-87）、`nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java`（:335-337）、`nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java`（:285）/`ImportDbTool.java`（:297）、`nop-kernel/nop-xdefs/src/main/resources/_vfs/nop/schema/task/batch.xdef`（头注释）、`nop-network/nop-socket/src/main/java/io/nop/socket/SocketServer.java`（:140，评估面）、`docs-for-ai/03-modules/nop-batch.md`（F3⑥ 随修）、各模块测试目录
 
 - Item Types: `Fix`（1.7-C8-003 确认缺陷面：护栏缺失 + 声明失真）、`Decision`（兜底池形态与 SocketServer 迁移评估结论）、`Proof`（回归测试）
 
-- [ ] 裁定④基线核对与兜底池形态评估（§3.1.3 行 6；G22 行注记对账防与 2.1-C4-004 重复立项——设施面上界 200 + REE 熔断已在 R1-02 落地）：batch 兜底池（BatchTask:87/BatchTaskBuilder:337/ExportDbTool:285/ImportDbTool:297 四兜底点）形态评估结论落账——改有界形态（globalWorker 或平台 `ThreadPoolConfig` 有界池 + QueueOverflowPolicy 声明）或维持 cached + 熔断基线声明；评估结论写 owner doc（`nop-batch.md`），四兜底点处置一致不静默分叉
-- [ ] 装配期护栏：concurrency/fetchThreadCount 合理上界 fail-fast（Guard 校验或全局配置项封顶——具体形态随实现期定夺），超界构造期类型化报错
-- [ ] **接线验证**（rule 23）：真实 `BatchTaskBuilder`→`BatchTask` 构造链上断言超界 `concurrency`/`fetchThreadCount` 触发构造期类型化 fail-fast 报错（护栏生效于真实装配链，非仅 Guard 单测）
-- [ ] batch.xdef 声明失真修正（复核裁定=产品缺陷随修）：`@concurrency` 头注释（live :2）改为与实现一致（修后兜底池形态的真实语义），声明边界失真消除；验证形态 = schema 装载 + batch 模型解析绿（rule 25 声明 `No new test required: 注释声明文本，schema 装载绿为验证`——注释文本修正不新增独立测试）
-- [ ] owner doc 随修义务（F3⑥）：`nop-batch.md:14,211` 沿用失真的两处随批修正
-- [ ] SocketServer cached 池消费迁移评估（plan 2497 Deferred 移交 + 设计 §3.1.3 行；勘误 5）：在裁定④熔断基线上评估——结论三选一落账（改码迁移有界池[随批最小迁移+回归] / 维持 cached + `maxConnections` 封顶与熔断信号声明 / 两者结合）；评估结论写 owner doc 或处置登记（cra-index 2.1-C4-004 行注记核验）
-- [ ] 回归测试（rule 25，测试名带 `_C8_003` 标识）：①装配护栏 fail-fast 断言（超界 concurrency/fetchThreadCount 构造期报错）；②兜底池形态断言（按评估结论钉行为——如改有界则达界拒绝可见）；③既有 batch 测试零回归
-- [ ] **提交纪律**：nop-batch 一提交；batch.xdef（nop-xdefs）与 owner doc 随同提交或分提交并声明关系；SocketServer 若判改码则 nop-network 单独一提交
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 裁定④基线核对与兜底池形态评估（§3.1.3 行 6；G22 行注记对账防与 2.1-C4-004 重复立项——设施面上界 200 + REE 熔断已在 R1-02 落地）：batch 兜底池（BatchTask:87/BatchTaskBuilder:337/ExportDbTool:285/ImportDbTool:297 四兜底点）形态评估结论落账——改有界形态（globalWorker 或平台 `ThreadPoolConfig` 有界池 + QueueOverflowPolicy 声明）或维持 cached + 熔断基线声明；评估结论写 owner doc（`nop-batch.md`），四兜底点处置一致不静默分叉
+- [x] 装配期护栏：concurrency/fetchThreadCount 合理上界 fail-fast（Guard 校验或全局配置项封顶——具体形态随实现期定夺），超界构造期类型化报错
+- [x] **接线验证**（rule 23）：真实 `BatchTaskBuilder`→`BatchTask` 构造链上断言超界 `concurrency`/`fetchThreadCount` 触发构造期类型化 fail-fast 报错（护栏生效于真实装配链，非仅 Guard 单测）
+- [x] batch.xdef 声明失真修正（复核裁定=产品缺陷随修）：`@concurrency` 头注释（live :2）改为与实现一致（修后兜底池形态的真实语义），声明边界失真消除；验证形态 = schema 装载 + batch 模型解析绿（rule 25 声明 `No new test required: 注释声明文本，schema 装载绿为验证`——注释文本修正不新增独立测试）
+- [x] owner doc 随修义务（F3⑥）：`nop-batch.md:14,211` 沿用失真的两处随批修正
+- [x] SocketServer cached 池消费迁移评估（plan 2497 Deferred 移交 + 设计 §3.1.3 行；勘误 5）：在裁定④熔断基线上评估——结论三选一落账（改码迁移有界池[随批最小迁移+回归] / 维持 cached + `maxConnections` 封顶与熔断信号声明 / 两者结合）；评估结论写 owner doc 或处置登记（cra-index 2.1-C4-004 行注记核验）
+- [x] 回归测试（rule 25，测试名带 `_C8_003` 标识）：①装配护栏 fail-fast 断言（超界 concurrency/fetchThreadCount 构造期报错）；②兜底池形态断言（按评估结论钉行为——如改有界则达界拒绝可见）；③既有 batch 测试零回归
+- [x] **提交纪律**：nop-batch 一提交；batch.xdef（nop-xdefs）与 owner doc 随同提交或分提交并声明关系；SocketServer 若判改码则 nop-network 单独一提交
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 5，agent 分片 E @ `d77bcc8cc9` + codegen 再生产物配套提交 `ab8cb1845b`）：
+
+- **评估结论（①，裁定④基线）**：四兜底点（`BatchTask:87`/`BatchTaskBuilder:337`/`ExportDbTool:285`/`ImportDbTool:297`）**维持平台共享 cached 池兜底 + 裁定④熔断基线声明**。理由：(a) 无界面已由 R1-02 在设施层闭合（上界 `nop.commons.concurrent.cached-pool.maxPoolSize` 缺省 200 + 达界 REE `nop.err.commons.concurrent.cached-pool-saturated`），线程爆炸链（审计 P2 本体）不可达；(b) 迁移 globalWorker 被拒——chunk 循环为长任务体，按 §3.1.1 调度槽/执行体契约不得常驻平台共享 worker（该方向复刻本批正在消除的共享载体占用缺陷）；(c) per-task 专用有界池被拒——BatchTask 无关闭钩子，引入池所有权属资源生命周期负担且无在立缺陷承载。四兜底点处置一致（同一池、同一基线），不静默分叉；结论落 owner doc `nop-batch.md`。
+- **装配期护栏（②）**：新配置键 `nop.batch.max-concurrency-cap`（`BatchConfigs`，缺省 200 与 cached 池上界对齐——单任务并发不可能超过兜底池容量，更高并发须同时显式调大两键）；concurrency 护栏 = `BatchTask.normalizeConcurrency`（构造期：≤0→1 下界既有文档化行为保留，超界 `NopException` 新错误键 `nop.err.batch.concurrency-exceeds-cap`，params paramName/paramValue/maxConcurrencyCap）；fetchThreadCount 护栏 = `BatchDispatchConfig.setFetchThreadCount`（DSL 装配 `ModelBasedBatchTaskBuilderFactory.buildDispatchConfig` 与程序化装配的共同漏斗，超界同错误键且无半装配状态）；Export/ImportDbTool per-table 链经 `builder.concurrency → buildTask` 真实构造链同护栏覆盖，处置一致。
+- **xdef 修正（③）**：`batch.xdef:2 @concurrency` 注释改为与实现一致（兜底 cached 池并行非 SyncExecutor 串行 + 双护栏声明文本）；验证形态 = schema 装载 + batch 模型解析绿（`TestBatchTaskDsl` 2/2 于门禁内）——**No new test required: 注释声明文本修正，schema 装载绿为验证**。同失真副本同任务 reconcile：`docs-for-ai/02-core-guides/batch-dsl.md:36` 同一失真声明与 `docs-for-ai/04-reference/xdefs/batch.xdef`（引用副本）随同修正；nop-batch-dsl codegen 从源 xdef 再生成 `_BatchTaskModel.java`（javadoc 承载注释文本，配套提交 `ab8cb1845b`，非手编生成物）。
+- **F3⑥（④）**：`nop-batch.md:14/:211` 失真两处随批修正 + 评估结论落账（并发处理 bullet 与关键配置项 concurrency 行）。
+- **SocketServer 评估面（勘误 5，不改码）**：结论 = 三选一取**「维持 cached + `maxConnections` 封顶与熔断信号声明」**。live 核实：`SocketServer.java:140` 兜底 cached 池仅在 executor==null 时（显式注入优先）；`ServerConfig.maxConnections` 默认 10（`ServerConfig.java:22`）封顶并发连接派发面，远低于裁定④池上界 200；达界提交有显式 REE 熔断信号。有界池迁移被拒：per-connection handler 数已被连接封顶、迁移引入服务端池生命周期所有权而不闭合任何在立缺陷——plan 2497 Deferred 分类 `watch-only residual` 维持，Successor Required = no。结论落账载体 = 本执行记录 + 2026-10-24 daily log；nop-network 零产品 diff（`-pl nop-network` 通道不适用）。**cra-index 2.1-C4-004 行注记文本（供 Phase 8 落账）**：「SocketServer cached 池消费迁移评估已在 plan 2498 Phase 5 完成（裁定④基线）：维持 cached 兜底 + maxConnections(默认 10) 封顶声明 + 达界 REE 熔断信号，不迁移有界池；评估记录见 plan 2498 Phase 5 执行记录与 2026-10-24 daily log」。
+- **测试（rule 25）**：`TestBatchAssemblyGuard_C8_003` 4 条——①`overCapConcurrencyFailsFastOnRealBuildChain`（真实 `BatchTaskBuilder→buildTask→BatchTask` 构造链，201>200 断言错误键 + 三参数）②`overCapFetchThreadCountFailsFastOnDispatchConfigAssembly`（真实装配漏斗 setter，201 超界 + 无半装配状态钉）③`executorFallbackPinsPlatformBoundedCachedPool`（兜底=平台共享 cached 池单例 assertSame + 显式 executor 优先 + 真实构造链兜底字段反射钉——评估结论行为钉）④`withinCapConcurrencyBuildsAndNormalizesLowerBound`（≤0→1 下界零回退钉 + cap 界内正常装配）。
+- **必红证据（E2）**：修复前基线（stash 产品 diff 5 文件；测试仅用修复前可编译 API——参数断言用字面量保证双基线可编译）2/4 红（`Expected NopException to be thrown, but nothing was thrown` = 超界静默放行缺陷签名），快照 `_tmp/phase5-c8-003-red-baseline.log` → 恢复修复 4/4 绿 `_tmp/phase5-c8-003-green-fixed.log`。
+- **接线验证证据（rule 23）**：测试 ① 在真实 `BatchTaskBuilder→BatchTask` 构造链上断言护栏生效（超界 buildTask 即抛类型化异常）；测试 ② 在 fetchThreadCount 真实装配漏斗（DSL 与程序化装配共同路径）断言生效；测试 ③④ 真实构造链兜底池/归一值反射钉。
+- **门禁**：`./mvnw test -pl nop-batch -am` EXIT=0（9461 tests / 0 失败，快照 `_tmp/phase5-gate-nop-batch.log`；首跑 1 失败系 nop-commons `TestPeriodicTaskInsulation` 观测钩子计数时序 flaky——nop-commons diff=0 零触碰，隔离复跑 9/9 绿（`_tmp/phase5-insulation-retry.log`）+ 全门禁复跑 EXIT=0 证实环境性）。xdef 消费面全绿：nop-batch-dsl（`TestBatchTaskDsl` 2/2 = schema 装载 + batch 模型解析绿）+ nop-batch-exp（`TestDbToolExecutorContract` 2/2）。pre-commit lint 0 violations。
+- **Owner doc 裁定**：F3⑥ 在位（`nop-batch.md` 两处 + 评估结论 + 同失真副本 reconcile 两处）；SocketServer 结论落账（载体见上）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 1.7-C8-003 三面收敛：兜底池形态评估结论落 owner doc、装配护栏 fail-fast 在位、batch.xdef 声明与实现一致（`nop-batch.md` F3⑥ 同步）
-- [ ] SocketServer 评估结论落账（三选一，载体可核验：owner doc 或处置登记）；不默认扩批改码
-- [ ] 必红证据（E2）：护栏 fail-fast 断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase5-c8-003-*.log`）
-- [ ] 接线验证证据登记（BatchTaskBuilder/BatchTask 真实构造链 fail-fast 断言）
-- [ ] `./mvnw test -pl nop-batch -am` BUILD SUCCESS；batch.xdef 修改后受影响模块（nop-batch 及其 schema 消费面）构建与测试绿；SocketServer 若改码则 `./mvnw test -pl nop-network -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-batch.md` F3⑥ 随修在位 + SocketServer 结论落账；`No owner-doc update required` 不适用于本 Phase（F3⑥ 为既定随修义务）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 1.7-C8-003 三面收敛：兜底池形态评估结论落 owner doc、装配护栏 fail-fast 在位、batch.xdef 声明与实现一致（`nop-batch.md` F3⑥ 同步）
+- [x] SocketServer 评估结论落账（三选一，载体可核验：owner doc 或处置登记）；不默认扩批改码
+- [x] 必红证据（E2）：护栏 fail-fast 断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase5-c8-003-*.log`）
+- [x] 接线验证证据登记（BatchTaskBuilder/BatchTask 真实构造链 fail-fast 断言）
+- [x] `./mvnw test -pl nop-batch -am` BUILD SUCCESS；batch.xdef 修改后受影响模块（nop-batch 及其 schema 消费面）构建与测试绿；SocketServer 若改码则 `./mvnw test -pl nop-network -am` BUILD SUCCESS（评估面零改码，通道不适用）
+- [x] Owner doc 裁定：`nop-batch.md` F3⑥ 随修在位 + SocketServer 结论落账；`No owner-doc update required` 不适用于本 Phase（F3⑥ 为既定随修义务）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - 分片 F：4.2-C4-003 executeOn 卸载 + 轮询链整体 deadline（nop-cluster + nop-rpc-core）
 
-Status: planned
+Status: completed
 Targets: `nop-cluster/nop-rpc-cluster/src/main/java/io/nop/rpc/cluster/ClusterRpcProxyFactoryBean.java`（:42-43）、`ClusterRpcServiceInvoker.java`（:67-68）、`ClusterRpcClient.java`（:147）、`nop-network/nop-rpc/nop-rpc-core/src/main/java/io/nop/rpc/core/composite/PollingRpcClient.java`（:94-101）、两模块测试目录
 
 - Item Types: `Fix`（4.2-C4-003 已确认 live defect——两面映射唯一收敛载体）、`Proof`（回归测试）
 
-- [ ] 两注入点裸 globalTimer 改 `GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())`（§3.1.3 行 7 = 矩阵 D3/D4 行口径；与 `AbstractPollingLeaderElector.java:74`/`AutoRegistration.java:206` C 类先例同口径）——轮询体（全量请求体序列化等同步前缀）不再在 timer 线程执行
-- [ ] `PollingRpcClient` 增加可选整体 deadline：轮询链有界终止（deadline 到期 future 异常完成 + 停止续排），cancelToken 缺失时也强制终止链——「链无整体截止」面闭合；既有 `maxErrorCount`/cancelToken 出口语义零回退
-- [ ] 回归测试（rule 25，测试名带 `_C4_003` 标识）：①轮询体执行线程断言（非 `nop-global-timer` 线程）；②deadline 到期链终止断言（future 完成、timer 队列不再续排）；③cancelToken/maxErrorCount 既有出口零回归
-- [ ] **接线验证**（rule 23）：真实 `ClusterRpcClient` 装配链上断言 `executeOn` 载体生效（轮询 tick 线程可观测为 worker）
-- [ ] **提交纪律**：nop-cluster 一提交；nop-rpc-core（PollingRpcClient）若产生 diff 单独一提交并声明与 nop-cluster 提交的关系
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两注入点裸 globalTimer 改 `GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())`（§3.1.3 行 7 = 矩阵 D3/D4 行口径；与 `AbstractPollingLeaderElector.java:74`/`AutoRegistration.java:206` C 类先例同口径）——轮询体（全量请求体序列化等同步前缀）不再在 timer 线程执行
+- [x] `PollingRpcClient` 增加可选整体 deadline：轮询链有界终止（deadline 到期 future 异常完成 + 停止续排），cancelToken 缺失时也强制终止链——「链无整体截止」面闭合；既有 `maxErrorCount`/cancelToken 出口语义零回退
+- [x] 回归测试（rule 25，测试名带 `_C4_003` 标识）：①轮询体执行线程断言（非 `nop-global-timer` 线程）；②deadline 到期链终止断言（future 完成、timer 队列不再续排）；③cancelToken/maxErrorCount 既有出口零回归
+- [x] **接线验证**（rule 23）：真实 `ClusterRpcClient` 装配链上断言 `executeOn` 载体生效（轮询 tick 线程可观测为 worker）
+- [x] **提交纪律**：nop-cluster 一提交；nop-rpc-core（PollingRpcClient）单独一提交并声明与 nop-cluster 提交的关系
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+执行记录（Phase 6，agent 分片 F @ `98cdde0e0e`[nop-rpc-core 载体面] + `7ac75dc674`[nop-rpc-cluster 本体]，两提交互指关系）：
+
+- **修复面①（两注入点卸载，矩阵 D3/D4）**：`ClusterRpcProxyFactoryBean.init`（:42-43）与 `ClusterRpcServiceInvoker.init`（:67-68）裸 globalTimer 兜底改 `GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())`——轮询体（URL 构建/全量请求体序列化/`whenComplete` 续排等同步前缀）hop 到 globalWorker 执行，timer 只承载触发；与 `AbstractPollingLeaderElector.java:74`/`AutoRegistration.java:206` C 类先例同口径（§3.1.3 行 7）；Bind 载体继承 R1-01 绝缘覆盖（30 点表 #10–13 设施级覆盖零回退，`TestPollingRpcClientFix` 既有 2 条共存全绿）。
+- **修复面②（轮询链整体 deadline，nop-rpc-core）**：`PollingRpcClient` 新增 6 参构造（`pollTimeout>0` 启用）：①deadline watchdog——PollTask 构造期单次 `timer.schedule`，到期 `future.completeExceptionally(nop.err.rpc.poll-deadline-exceeded)` + cancel timerFuture + `LOG.warn`（链终止不依赖轮次续排路径——cancelToken 缺失同样终止、在飞轮次挂死/底层 callAsync 永不完成亦被兜底）；②`schedule()` 续排前 belt 检查（已过 deadline 即终止，watchdog 为主终态通道）；③future 结束时 watchdog 有界释放（完成/取消/异常完成三态）。既有出口零回退：5 参构造向后兼容（pollTimeout=0 = 不启用，链终止仍由 maxErrorCount/cancelToken 承载——可选 deadline 形态按 plan 文本，升级零行为变化）；装配链 = 新 `RpcConstants.PROP_POLL_TIMEOUT` + 新配置键 `nop.rpc.client-ext.default-poll-timeout`（`RpcConfigs`，缺省 0）+ `RpcHelper.getPollTimeout/setPollTimeout`（请求属性按请求覆盖）+ `ClusterRpcClient:147` 传入。
+- **测试（rule 25，9 条两模块）**：nop-rpc-core `TestPollingRpcClientDeadline_C4_003` 4 条——①`deadlineTerminatesChainWhenCancelTokenAbsent`（cancelToken=null，200ms deadline 到期 future 异常完成 + 错误键断言 + 终止后观察窗 tick 计数不增长 = timer 队列不再续排）②`deadlineWatchdogTerminatesChainWhenPollCallHangs`（底层 callAsync 永不完成，链在 deadline 处有界终止 <2s）③`maxErrorCountExitUnaffectedByDeadline`（deadline=10s 不先到期，maxErrorCount=2 既有出口照常终止 = 零回退钉）④`legacyConstructorCompletesNormallyWithoutDeadline`（5 参构造语义零变化钉）；nop-rpc-cluster `TestClusterRpcPollOffload_C4_003` 3 条——①/② 双注入点真实 `init()` 装配链反射捕获传入 ClusterRpcClient 的 timer，probe 任务体线程 `nop-global-worker-*`（Bind 载体真实生效）③ rule 22 端到端：真实 invoker→ClusterRpcClient→PollingRpcClient 全链 polling 请求（pollingMethod/pollInterval 请求属性），tick 线程全 worker 非 timer。
+- **必红证据（E2）**：offload——注入点修复 stash 真基线 3/3 红（probe/tick 线程 `nop-global-timer-1-1`/`nop-global-timer-1-3` 缺陷签名），快照 `_tmp/phase6-c4-003-red-baseline.log`；deadline——变异论证（E2 允许支路）：watchdog+belt 条件反转禁用 deadline → 2/4 红（`TimeoutException` 链永续签名），快照 `_tmp/phase6-c4-003-red-deadline-mutation.log` → 恢复修复（grep 断言 `if (pollTimeout > 0)` :104 在位）全绿 `_tmp/phase6-c4-003-green-fixed.log`。
+- **接线验证证据（rule 23）**：测试 ①② 在真实 `init()` 构造链上（真实 ClusterRpcClient 反射 timer + 真实 probe 调度）断言 Bind 载体；测试 ③ 真实 invoker 装配链发起 polling 请求，轮询 tick 线程运行时可观测为 worker。
+- **门禁**：`./mvnw test -pl nop-cluster -am` EXIT=0（1967 tests / 0 失败，含 Deadline 4 条 + Offload 3 条 + 既有 `TestPollingRpcClientFix` 2 条零回归，快照 `_tmp/phase6-gate-nop-cluster.log`）；nop-rpc-core 产生 diff → `./mvnw test -pl nop-network -am` EXIT=0 BUILD SUCCESS（plan 通道，快照 `_tmp/phase6-gate-nop-network.log`）；两提交 pre-commit lint 0 violations。
+- **Owner doc 裁定**：`No owner-doc update required`（本 Phase）——触达模块 nop-rpc-cluster/nop-rpc-core 均无 `docs-for-ai/03-modules/` 条目，缺口声明归 Phase 7 R-G 轨登记；`nop.rpc.client-ext.default-poll-timeout` 配置键契约核对随 Phase 7 owner doc 收口面一并执行。
+
+Exit Criteria:
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 4.2-C4-003 两面 landed：轮询体不在 timer 线程执行 + 轮询链整体 deadline 在位，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：线程归属断言与无 deadline 链永续断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase6-c4-003-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-cluster -am` BUILD SUCCESS；nop-rpc-core 若产生 diff 则 `./mvnw test -pl nop-network -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：触达模块 owner doc 核对（nop-cluster 无 03-modules 条目→缺口声明归 Phase 7 R-G 轨登记；nop-rpc-core 面 service-layer/api-and-graphql 归属核对）——或显式写 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4.2-C4-003 两面 landed：轮询体不在 timer 线程执行 + 轮询链整体 deadline 在位，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：线程归属断言与无 deadline 链永续断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase6-c4-003-*.log`）
+- [x] 接线验证证据登记
+- [x] `./mvnw test -pl nop-cluster -am` BUILD SUCCESS；nop-rpc-core 若产生 diff 则 `./mvnw test -pl nop-network -am` BUILD SUCCESS（PollingRpcClient 面 diff，通道已跑 EXIT=0）
+- [x] Owner doc 裁定：`No owner-doc update required`（本 Phase）——触达模块 nop-rpc-cluster/nop-rpc-core 均无 03-modules 条目，缺口声明归 Phase 7 R-G 轨登记（去向前向已显式登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - 全量验证 + owner doc 更新 + MA-16 解除声明
 
