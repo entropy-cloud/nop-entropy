@@ -9,6 +9,7 @@ package io.nop.js.engine;
 
 import io.nop.api.core.config.IConfigRefreshable;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.functional.IAsyncFunctionService;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.core.resource.IResourceTextLoader;
@@ -37,7 +38,14 @@ public class JavaScriptService extends LifeCycleSupport implements IConfigRefres
 
     @Override
     protected void doStart() {
-        executor = DefaultThreadPoolExecutor.newExecutor("javascript-engine", -1, -1);
+        // 显式cached形态（配置重载，maxPoolSize<0=cached标记）：保留原newExecutor("javascript-engine",-1,-1)
+        // 的0-core cached实际语义，同时获得池工厂契约的上界与达界熔断（上界=nop.commons.concurrent.cached-pool.maxPoolSize）。
+        // 旧的三参负值传参已按工厂校验契约封死（负值不再被静默解释为cached）
+        ThreadPoolConfig config = new ThreadPoolConfig();
+        config.setName("javascript-engine");
+        config.setCorePoolSize(0);
+        config.setMaxPoolSize(-1);
+        executor = DefaultThreadPoolExecutor.newExecutor(config);
 
         workers = new JavaScriptWorker[workerCount];
         for (int i = 0; i < workerCount; i++) {

@@ -147,7 +147,8 @@ public class ExportDbTool {
 
         IThreadPoolExecutor executor;
         if (config.getThreadCount() > 1) {
-            executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), Integer.MAX_VALUE);
+            // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
+            executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), 10000);
         } else {
             executor = SyncThreadPoolExecutor.INSTANCE;
         }
