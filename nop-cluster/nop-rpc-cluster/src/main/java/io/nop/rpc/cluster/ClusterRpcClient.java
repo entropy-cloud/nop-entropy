@@ -144,8 +144,10 @@ public class ClusterRpcClient implements IRpcService {
         if (pollingMethod != null) {
             int interval = RpcHelper.getPollInterval(request);
             if (interval > 0) {
+                // 4.2-C4-003（plan 2498 Phase 6）：可选整体 deadline 按请求属性/平台配置键装配，
+                // deadline 到期强制终止轮询链（cancelToken 缺失亦终止），闭合「链无整体截止」面
                 service = new PollingRpcClient(service, pollingMethod, timer,
-                        interval, RpcHelper.getMaxPollErrorCount(request));
+                        interval, RpcHelper.getMaxPollErrorCount(request), RpcHelper.getPollTimeout(request));
             }
         }
         return service;

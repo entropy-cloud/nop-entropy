@@ -65,7 +65,11 @@ public class ClusterRpcServiceInvoker implements IRpcServiceInvoker {
     @PostConstruct
     public void init() {
         if (timer == null)
-            timer = GlobalExecutors.globalTimer();
+            // 4.2-C4-003（plan 2498 Phase 6，设计 pool-facility-hardening §3.1.2 矩阵 D3 行）：
+            // 裸 globalTimer 会使轮询任务体（全量请求体序列化等同步前缀）在 timer 线程执行——
+            // 经 executeOn(globalWorker) 卸载（与 AbstractPollingLeaderElector/AutoRegistration C 类先例同口径），
+            // timer 只承载触发，Bind 载体继承 R1-01 绝缘覆盖
+            timer = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
 
         if (this.interceptors == null)
             this.interceptors = Collections.emptyList();
