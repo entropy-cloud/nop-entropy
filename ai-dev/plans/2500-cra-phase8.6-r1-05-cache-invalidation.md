@@ -90,70 +90,91 @@
 
 ### Phase 1 - 单点修复设计文档 + nop-kernel 失效链本体实现 + 单元测试（plan-first 前置）
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/`（新建：模型缓存失效判据统一设计——check-changed 单点修复）、`nop-kernel/nop-core/src/main/java/io/nop/core/resource/`（deps/DefaultResourceChangeChecker、deps/ResourceDependsManager、cache/ResourceCacheEntry、cache/ResourceLoadingCache、cache/CacheEntryManagement、cache/ResourceTimestampCache）、`nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java`、`nop-kernel/nop-core/src/test/java/io/nop/core/resource/`、`nop-kernel/nop-xlang/src/test/java/io/nop/xlang/xpl/TestXplTask.java`
 
 - Item Types: `Decision`（设计文档六裁定）、`Fix`（2.1-C7-007/2.1-C9-001/2.1-C9-010 全部为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10-005+N3 验收前置）
 
-- [ ] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
-  - [ ] **裁定① check-changed 判据统一与唯一修复位（本批核心裁定）**：双漏检窗口消除方案选型（窗口二=「读前读后双 mtime」load 原子化——load 前取 m1、load 后取 m2、m1≠m2 立即重载；窗口一=涂新加内容指纹确认或宽限期——C7-007 建议(1)(2)的组合选型）+ **唯一判据载体落点**（checker 层 / ResourceDependsManager 涂新点 / ResourceCacheEntry 层——一处承载，禁止 checker 层一处、entry 层又一处两套判据并存）+ 判据统一后 ResourceLoadingCache 门路径与 6 直连使用方路径行为一致性声明（同链同判据：无论经门或直连，同一 entry 的失效判定结果可对照）+ 对既有 `TenantAwareResourceLoadingCache`/`depends-with-cache` 等消费形态的语义影响声明。**单点修复位机械判定**：设计文档须以「文件 + 类 + 机制」粒度声明唯一判据载体，并**显式枚举允许的从属编辑点**——窗口二 load 原子化方法（`ResourceCacheEntry.loadObject` / `ResourceDependsManager.collectDepends`）、窗口一涂新点（`isDependencyChanged:246`）、门所在类（`ResourceCacheEntry` / `ResourceLoadingCache`）、裁定②涉及文件（`ResourceTimestampCache`）——并声明「判据比较语义仅一处实现，其余为机械传递」。机械约束：checker 层（`DefaultResourceChangeChecker`）不在 load 路径上，物理上无法单独消除窗口二——若设计选 checker 层承载判据，必须搭配 load 路径从属编辑点，禁止声称「checker 层唯一落点就地消除双窗口」。closure audit 专项复核按此操作化：产品 diff 路径 ⊆ 声明集合 + 判据实现 grep 全仓唯一。
-  - [ ] **裁定② ResourceTimestampCache 活化或移除（两审计建议方向相反，一次裁决）**：C9-001 建议恢复带 TTL 时间戳缓存降 stat 税 vs C7-007 建议(4) 清理死代码死配置——二选一并给出 stat 税性能面的完整落点（活化=时间戳缓存成为判据链一部分，须证明缓存 TTL 窗口不重新引入窗口一形态的漏检盲区[缓存粒度与判据安全性的叠加面显式论证]；移除=死代码与 `CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE/TIMEOUT` 两死配置一并清理，stat 税改道 entry 级 `isChanged` 结果记忆化或其他形态，C9-001 性能面不得悬空）；`new HashSet` 逐次分配面随裁决一并处置。
-  - [ ] **裁定③ TTL 兜底语义**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`（默认 null 无兜底）是否改默认值或以何种兜底形态启用（漏检自愈通道——C7-007 建议(3)，审计建议「哪怕 5 分钟级」）+ 配置契约变化（默认值变更 = 行为变更）的 source-compat 声明与 owner doc 义务登记；若判维持 null 默认，须给出漏检自愈的替代通道或显式 residual 裁定。**覆盖矩阵义务（live 回读）**：该配置全仓唯一消费点 = `ResourceLoadingCache.java:81`（经 `createCache`/`refreshConfig` 落为 `setExpireAfterWrite`——TTL 到期**整条目逐出 + destroy**、下次访问冷加载重建，属冷启动式自愈，**非**陈旧期内重检）；6 直连使用方（GatewayHttpFilter/DefaultDataAuthChecker/XplLibTagCompiler/DynOrmModelProvider/DefaultOrmModelProvider/XDefinition）的 entry 不经该消费路径，**启用该配置对 C9-010 门缺失面零效果**。裁定③义务追加：(a) 漏检自愈通道须按「门路径 vs 6 直连路径」分别声明各自的自愈载体——直连路径自愈若由裁定④ entry 级记忆化 TTL 承载，须交叉引用裁定④，不得留任一路径无载体；(b) source-compat 声明须计入 expireAfterWrite 逐出/destroy 语义代价（整条目丢弃 → 下次请求冷加载，非廉价重检）。
-  - [ ] **裁定④ 直连使用方门语义（C9-010 面）**：主选 = `ResourceCacheEntry` 层内建门（entry 级 `isChanged` 结果短 TTL 记忆化、对齐 `isRefreshEnabled` 节流语义——6 使用方零改码获得节流，2.3-C9-002 别名面随之闭合）；备选 = 逐点修（须列全部 6 站点改码清单，且②站点触 nop-auth-service 触发 ask-first 升级——默认不选）；`CacheEntryManagement` 3-arg timeout 变体（`CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT` 默认 null 时 clear 重建分支恒死）修复后行为显式声明；GraphQLEngine documentCache 反例（deps 恒空零 stat）零误修声明。
-  - [ ] **裁定⑤ TenantAware 同链复制面自动受益验证**：`TenantAwareDependencyManager`/`TenantAwareResourceLoadingCache`/`TenantAwareResourceCacheEntry` 包装的**委托穿透断言**（测试或代码追踪——三者均为委托/装饰器形态，须断言包装路径真实穿透到修复后的 entry 层判据/门语义，不得只凭类型存在断言自动受益）。
-  - [ ] **裁定⑥ 边界声明**：与 R2-01 C2-001/C2-002 同文件锁纪律边界（ResourceCacheEntry 持有监视器加载语义不重构，本批只改判据与门逻辑；`TestResourceCacheEntry` 既有钉零回退；R2-01 后续修复以本批落盘后基线为准）；与 R4-32 墙钟面边界（既有 currentTimeMillis 敏感点不换时钟源；**新增时间机制两条义务**：(a) 本批新增的时间机制（宽限期计时、`isChanged` 结果记忆化 TTL、时间戳缓存 TTL 等）一律复用现有时钟入口 `CoreMetrics.currentTimeMillis`（R4-32 换源自动覆盖新增点），并在 Phase 3 的 R4-32 注记中登记新增敏感点清单——零新增亦须显式登记；(b) 宽限期/TTL 形态须同时声明确定性测试缝——阈值可配置为 0，保证 E2 断言不依赖真实时间推进）；与 5.5-W-03 判据联动口径（判据变更是否触及「依赖钉定→失效检测」通道语义的判定 + Phase 3 联动验证形态选型：nop-rule focused 冒烟或链路审查+注记——默认**义务成立**[判据统一即判据变更面]，除非裁定显式论证判据语义对外不变）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，本 Phase 后续实现项与 Phase 2 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] 2.1-C7-007 本体修复：双漏检窗口闭合 + TTL 兜底 + ResourceTimestampCache 处置（按裁定①②③实施；`ResourceLoadingCache`/直连使用方公开协议零 API 签名变更，或按裁定④声明协议变化）
-- [ ] 2.1-C9-001/C9-010 设施面修复：stat 税落点 + 直连使用方门语义单点（按裁定②④实施；6 使用方零改码为默认形态）
-- [ ] 本体单元测试（rule 25 显式覆盖 + C10-005 成员面验收前置）：
-  - [ ] 窗口二确定性测试：可编程 mtime 注入断言「load 期间 mtime 变更 → 不固化旧内容+新 mtime」（C10-005 建议形态；修复前红、修复后绿）
-  - [ ] 窗口一确定性测试：同 tick 双写模拟断言重检触发（修复前红、修复后绿）
-  - [ ] checkChanged 默认开启冒烟：改文件 → 模型失效（check-changed 默认 true 的生产形态链路测试）
-  - [ ] `TestXplTask` 恢复/改写：解除类级 `@Disabled`（或改写为等效链路测试），覆盖 watch→debounce→checkChanged→模型重载整条链（N3 义务；与本体**同 diff**——E2）。**C1-004 恢复预案**（C10 报告 N3 明记：该链涉及 C1-004[debounce 非原子]，归 R4-13 open、不在本批成员面）——解除类级 `@Disabled` 后 debounce/watch 面断言可能因 C1-004 变红：checkChanged 失效链断言必须全绿；debounce/watch 面断言若因 C1-004 失败，允许方法级隔离 + 原因注记 + R4-13 对端回归义务传导（或改写为绕开 debounce 触发形态的等效链路测试）；**禁止整类回退 `@Disabled`**（静默跳过嫌疑，rule 24）；隔离注记落 daily log 与 cra-index R4-13 可见载体
-  - [ ] 门语义一致性断言：直连 `getObject` 使用方修复后默认获得节流（对照 ResourceLoadingCache 门路径行为，6 使用方代表性站点至少 1 处断言）；`CacheEntryManagement` 3-arg 变体行为钉（按裁定④）
-  - [ ] TTL 兜底行为断言（按裁定③；若判维持 null 默认则改为 residual 行为钉）
-  - [ ] stat 税落点行为断言（按裁定②：活化=时间戳缓存命中路径断言+判据安全断言；移除+记忆化=记忆化节流断言）
-  - [ ] TenantAware 包装委托穿透断言（按裁定⑤；含 `TenantAwareResourceCacheEntry` 装饰器穿透与 `ResourceCacheEntryWithLoader` 1-arg 委托面）
-- [ ] **接线验证**（rule 23）：≥1 条断言证明新判据在真实 loadObject→collectDependsTo→checker 链上运行时生效（非仅单类单元面）——证据随执行记录登记
-- [ ] **无静默跳过**（rule 24）：新判据分支在无法判定时显式失败或保守重载，不得以静默返回旧值兜底；裁定②若判移除，死配置清理不得残留「配了不认」的静默断档
-- [ ] **提交纪律**：设计文档与实现分离提交（设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；nop-core 失效链一提交；**C10-005+N3 测试与本体同一 commit**（E2 同 diff 核验依据）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/`（最终状态写法，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码），须含以下六项裁定：
+  - [x] **裁定① check-changed 判据统一与唯一修复位（本批核心裁定）**：双漏检窗口消除方案选型（窗口二=「读前读后双 mtime」load 原子化——load 前取 m1、load 后取 m2、m1≠m2 立即重载；窗口一=涂新加内容指纹确认或宽限期——C7-007 建议(1)(2)的组合选型）+ **唯一判据载体落点**（checker 层 / ResourceDependsManager 涂新点 / ResourceCacheEntry 层——一处承载，禁止 checker 层一处、entry 层又一处两套判据并存）+ 判据统一后 ResourceLoadingCache 门路径与 6 直连使用方路径行为一致性声明（同链同判据：无论经门或直连，同一 entry 的失效判定结果可对照）+ 对既有 `TenantAwareResourceLoadingCache`/`depends-with-cache` 等消费形态的语义影响声明。**单点修复位机械判定**：设计文档须以「文件 + 类 + 机制」粒度声明唯一判据载体，并**显式枚举允许的从属编辑点**——窗口二 load 原子化方法（`ResourceCacheEntry.loadObject` / `ResourceDependsManager.collectDepends`）、窗口一涂新点（`isDependencyChanged:246`）、门所在类（`ResourceCacheEntry` / `ResourceLoadingCache`）、裁定②涉及文件（`ResourceTimestampCache`）——并声明「判据比较语义仅一处实现，其余为机械传递」。机械约束：checker 层（`DefaultResourceChangeChecker`）不在 load 路径上，物理上无法单独消除窗口二——若设计选 checker 层承载判据，必须搭配 load 路径从属编辑点，禁止声称「checker 层唯一落点就地消除双窗口」。closure audit 专项复核按此操作化：产品 diff 路径 ⊆ 声明集合 + 判据实现 grep 全仓唯一。
+  - [x] **裁定② ResourceTimestampCache 活化或移除（两审计建议方向相反，一次裁决）**：C9-001 建议恢复带 TTL 时间戳缓存降 stat 税 vs C7-007 建议(4) 清理死代码死配置——二选一并给出 stat 税性能面的完整落点（活化=时间戳缓存成为判据链一部分，须证明缓存 TTL 窗口不重新引入窗口一形态的漏检盲区[缓存粒度与判据安全性的叠加面显式论证]；移除=死代码与 `CFG_COMPONENT_RESOURCE_TIMESTAMP_CACHE_SIZE/TIMEOUT` 两死配置一并清理，stat 税改道 entry 级 `isChanged` 结果记忆化或其他形态，C9-001 性能面不得悬空）；`new HashSet` 逐次分配面随裁决一并处置。
+  - [x] **裁定③ TTL 兜底语义**：`CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT`（默认 null 无兜底）是否改默认值或以何种兜底形态启用（漏检自愈通道——C7-007 建议(3)，审计建议「哪怕 5 分钟级」）+ 配置契约变化（默认值变更 = 行为变更）的 source-compat 声明与 owner doc 义务登记；若判维持 null 默认，须给出漏检自愈的替代通道或显式 residual 裁定。**覆盖矩阵义务（live 回读）**：该配置全仓唯一消费点 = `ResourceLoadingCache.java:81`（经 `createCache`/`refreshConfig` 落为 `setExpireAfterWrite`——TTL 到期**整条目逐出 + destroy**、下次访问冷加载重建，属冷启动式自愈，**非**陈旧期内重检）；6 直连使用方（GatewayHttpFilter/DefaultDataAuthChecker/XplLibTagCompiler/DynOrmModelProvider/DefaultOrmModelProvider/XDefinition）的 entry 不经该消费路径，**启用该配置对 C9-010 门缺失面零效果**。裁定③义务追加：(a) 漏检自愈通道须按「门路径 vs 6 直连路径」分别声明各自的自愈载体——直连路径自愈若由裁定④ entry 级记忆化 TTL 承载，须交叉引用裁定④，不得留任一路径无载体；(b) source-compat 声明须计入 expireAfterWrite 逐出/destroy 语义代价（整条目丢弃 → 下次请求冷加载，非廉价重检）。
+  - [x] **裁定④ 直连使用方门语义（C9-010 面）**：主选 = `ResourceCacheEntry` 层内建门（entry 级 `isChanged` 结果短 TTL 记忆化、对齐 `isRefreshEnabled` 节流语义——6 使用方零改码获得节流，2.3-C9-002 别名面随之闭合）；备选 = 逐点修（须列全部 6 站点改码清单，且②站点触 nop-auth-service 触发 ask-first 升级——默认不选）；`CacheEntryManagement` 3-arg timeout 变体（`CFG_AUTH_DATA_AUTH_CACHE_TIMEOUT` 默认 null 时 clear 重建分支恒死）修复后行为显式声明；GraphQLEngine documentCache 反例（deps 恒空零 stat）零误修声明。
+  - [x] **裁定⑤ TenantAware 同链复制面自动受益验证**：`TenantAwareDependencyManager`/`TenantAwareResourceLoadingCache`/`TenantAwareResourceCacheEntry` 包装的**委托穿透断言**（测试或代码追踪——三者均为委托/装饰器形态，须断言包装路径真实穿透到修复后的 entry 层判据/门语义，不得只凭类型存在断言自动受益）。
+  - [x] **裁定⑥ 边界声明**：与 R2-01 C2-001/C2-002 同文件锁纪律边界（ResourceCacheEntry 持有监视器加载语义不重构，本批只改判据与门逻辑；`TestResourceCacheEntry` 既有钉零回退；R2-01 后续修复以本批落盘后基线为准）；与 R4-32 墙钟面边界（既有 currentTimeMillis 敏感点不换时钟源；**新增时间机制两条义务**：(a) 本批新增的时间机制（宽限期计时、`isChanged` 结果记忆化 TTL、时间戳缓存 TTL 等）一律复用现有时钟入口 `CoreMetrics.currentTimeMillis`（R4-32 换源自动覆盖新增点），并在 Phase 3 的 R4-32 注记中登记新增敏感点清单——零新增亦须显式登记；(b) 宽限期/TTL 形态须同时声明确定性测试缝——阈值可配置为 0，保证 E2 断言不依赖真实时间推进）；与 5.5-W-03 判据联动口径（判据变更是否触及「依赖钉定→失效检测」通道语义的判定 + Phase 3 联动验证形态选型：nop-rule focused 冒烟或链路审查+注记——默认**义务成立**[判据统一即判据变更面]，除非裁定显式论证判据语义对外不变）。
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后，本 Phase 后续实现项与 Phase 2 方可启动（plan-first 门禁）——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] 2.1-C7-007 本体修复：双漏检窗口闭合 + TTL 兜底 + ResourceTimestampCache 处置（按裁定①②③实施；`ResourceLoadingCache`/直连使用方公开协议零 API 签名变更，或按裁定④声明协议变化）
+- [x] 2.1-C9-001/C9-010 设施面修复：stat 税落点 + 直连使用方门语义单点（按裁定②④实施；6 使用方零改码为默认形态）
+- [x] 本体单元测试（rule 25 显式覆盖 + C10-005 成员面验收前置）：
+  - [x] 窗口二确定性测试：可编程 mtime 注入断言「load 期间 mtime 变更 → 不固化旧内容+新 mtime」（C10-005 建议形态；修复前红、修复后绿）
+  - [x] 窗口一确定性测试：同 tick 双写模拟断言重检触发（修复前红、修复后绿）
+  - [x] checkChanged 默认开启冒烟：改文件 → 模型失效（check-changed 默认 true 的生产形态链路测试）
+  - [x] `TestXplTask` 恢复/改写：解除类级 `@Disabled`（或改写为等效链路测试），覆盖 watch→debounce→checkChanged→模型重载整条链（N3 义务；与本体**同 diff**——E2）。**C1-004 恢复预案**（C10 报告 N3 明记：该链涉及 C1-004[debounce 非原子]，归 R4-13 open、不在本批成员面）——解除类级 `@Disabled` 后 debounce/watch 面断言可能因 C1-004 变红：checkChanged 失效链断言必须全绿；debounce/watch 面断言若因 C1-004 失败，允许方法级隔离 + 原因注记 + R4-13 对端回归义务传导（或改写为绕开 debounce 触发形态的等效链路测试）；**禁止整类回退 `@Disabled`**（静默跳过嫌疑，rule 24）；隔离注记落 daily log 与 cra-index R4-13 可见载体
+  - [x] 门语义一致性断言：直连 `getObject` 使用方修复后默认获得节流（对照 ResourceLoadingCache 门路径行为，6 使用方代表性站点至少 1 处断言）；`CacheEntryManagement` 3-arg 变体行为钉（按裁定④）
+  - [x] TTL 兜底行为断言（按裁定③；若判维持 null 默认则改为 residual 行为钉）
+  - [x] stat 税落点行为断言（按裁定②：活化=时间戳缓存命中路径断言+判据安全断言；移除+记忆化=记忆化节流断言）
+  - [x] TenantAware 包装委托穿透断言（按裁定⑤；含 `TenantAwareResourceCacheEntry` 装饰器穿透与 `ResourceCacheEntryWithLoader` 1-arg 委托面）
+- [x] **接线验证**（rule 23）：≥1 条断言证明新判据在真实 loadObject→collectDependsTo→checker 链上运行时生效（非仅单类单元面）——证据随执行记录登记
+- [x] **无静默跳过**（rule 24）：新判据分支在无法判定时显式失败或保守重载，不得以静默返回旧值兜底；裁定②若判移除，死配置清理不得残留「配了不认」的静默断档
+- [x] **提交纪律**：设计文档与实现分离提交（设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；nop-core 失效链一提交；**C10-005+N3 测试与本体同一 commit**（E2 同 diff 核验依据）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
-- [ ] 2.1-C7-007/C9-001/C9-010 三面 landed 于**单一修复位**（设计文档声明的唯一判据载体；checker/entry/使用方多层并存补丁 = 违反批行单点纪律，不得勾选本项），各带 ≥1 条 focused 回归测试且测试名可辨识对应工单
-- [ ] C10-005+N3 成员面覆盖在案：`TestXplTask` 恢复/改写与本体同 diff、双窗口确定性测试 + 默认开启冒烟 + 门语义一致性 + TenantAware 断言全部在案；`TestXplTask` 恢复如触发 C1-004 预案，方法级隔离 + 原因注记 + R4-13 传导已登记（无整类 `@Disabled` 回退）
-- [ ] 必红证据（E2）：窗口二（load 期间 mtime 变更注入）、窗口一（同 tick 双写模拟）、门缺失（直连使用方节流前行为对照）至少三项有先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行
-- [ ] 接线验证证据登记（哪条真实链、哪条断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（批行验证命令）
-- [ ] Owner doc 裁定：登记锚点定稿去向 = Phase 3 统一落账（单一动作，无替代分支——模型缓存锚点为新建条目[Baseline 勘误 7]，本 Phase 不落锚点内容，不存在 `No owner-doc update required` 分支）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含裁定①–⑥全部项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）
+- [x] 2.1-C7-007/C9-001/C9-010 三面 landed 于**单一修复位**（设计文档声明的唯一判据载体；checker/entry/使用方多层并存补丁 = 违反批行单点纪律，不得勾选本项），各带 ≥1 条 focused 回归测试且测试名可辨识对应工单
+- [x] C10-005+N3 成员面覆盖在案：`TestXplTask` 恢复/改写与本体同 diff、双窗口确定性测试 + 默认开启冒烟 + 门语义一致性 + TenantAware 断言全部在案；`TestXplTask` 恢复如触发 C1-004 预案，方法级隔离 + 原因注记 + R4-13 传导已登记（无整类 `@Disabled` 回退）
+- [x] 必红证据（E2）：窗口二（load 期间 mtime 变更注入）、窗口一（同 tick 双写模拟）、门缺失（直连使用方节流前行为对照）至少三项有先红后绿或变异/回退论证留痕；其余工单按 E2 逐条可复现口径执行
+- [x] 接线验证证据登记（哪条真实链、哪条断言证明运行时生效）
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（批行验证命令）
+- [x] Owner doc 裁定：登记锚点定稿去向 = Phase 3 统一落账（单一动作，无替代分支——模型缓存锚点为新建条目[Baseline 勘误 7]，本 Phase 不落锚点内容，不存在 `No owner-doc update required` 分支）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 1 执行记录（2026-10-25，实现子代理，单点修复本体+C10-005 验收前置同 commit）：
+
+1. **修复位落地与编辑点表对照（closure audit 操作化判据①输入）**：产品 diff = 编辑点表 12 行中的 11 文件——#1 `DefaultResourceChangeChecker`（比较语义唯一实现 `isChangeRecord` + 纯比较入口 `isLoadMismatch` + stat 型入口 3-arg `checkChanged`；2-arg 入口保留为宽限 0 档）+ #2 `IResourceChangeChecker`（3-arg 宽限感知 default 变体，既有签名零删除）+ #3 `ResourceComponentManager`（新变体机械透传，零逻辑新增）+ #4 `ResourceDependencySet`（`recordedAt` 判据值承载 + `updateLastModified` 值变重锚/同值不重锚簿记入口 + copy 携带锚）+ #5 `ResourceCacheEntry`（`executeLoadWithMtimeGuard` 双 mtime 原子化 + `MAX_LOAD_MTIME_RETRY=3` 有界保守重载 + 超限 `ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 显式失败 + `shouldReloadObject` 内建门[maxAge→verdict 记忆化→TRUE 侧同源键限速→真实裁决]，deps-空豁免走既有 `isChanged()` 同路径零 stat）+ #6 `ResourceDependsManager`（`collectDepends` m1/m2 采集+失配有界重执行编译 task+判据值簿记记录；`isDependencyChanged` 改 3-arg 宽限裁决 + 涂新点 `updateLastModified` 簿记）+ #8 `CacheEntryManagement`（3-arg 变体语义 javadoc 钉，逻辑零变更）+ #9 `ResourceTimestampCache`（整文件删除）+ #10 `CoreConfigs`（TTL 默认 null→`Duration.ofMinutes(5)`、新增 `nop.core.component.resource-cache.change-grace-period` 默认 2s[0=关闭档]、两死配置+`ChronoUnit` 导入删除）+ #11 `CoreConstants`（`RESOURCE_TIMESTAMP_CACHE_NAME` 删除）+ #12 `CoreErrors`（`ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 登记）。**#7 `ResourceLoadingCache` 零触碰**（行 7「零逻辑变更预期」成立：:81 TTL 唯一消费点既有 `!isNegative()` 守卫自动承接默认值变更，`get` 门 :192 既有 `isRefreshEnabled` 先置门与 entry 门协同无需改码）。判据比较语义 grep 全仓唯一：mtime 不等式变更裁决仅存于载体类（`isLoadMismatch`/`isChangeRecord`），从属编辑点零内联比较。**越集检查：零**（`git status` 产品路径全集 ⊆ 上列 11 文件）。
+2. **实现层适配注记两处（非设计偏离，簿记规则落地必需）**：(a) **M-1 锚点继承**——`collectDepends` 每次 reload 经 `stack.push` 创建全新 dep set 对象，构造器无条件锚定会绕过「同值不重锚」簿记（探针实测 anchor=重载时刻），持续访问下宽限窗口被重载反复重置=设计 §四拒绝表第 8 行「宽限锚随每次重载重置→永续保守重载风暴」形态；修复=记录时对照 `dependencyMap` 既有条目，值未变继承旧锚、值变以记录时刻重锚（编辑点 6 簿记性质范围内），锚定风暴上界回归设计口径 ≈ G/100ms 次/条目。测试锚=`TestResourceCacheInvalidationChain` 全链行为 + 门测试 `testTrueSideRateLimitBoundsGraceReloadStorm`。(b) **m1/m2 采集异常安全化**——全量回归揭出：entry 的 path 不一定是可 raw 解析的虚拟路径（i18n-cache 以裸 locale 字符串如 `"zh-CN"` 为键），`getRawResource` 严格路径校验抛 `NopException`，而 NopException 消息构造重入 i18n 缓存查询→同 entry 可重入监视器→`loadObject` 无限递归（StackOverflow，8 个批内既有测试红：i18n/dict/VFS 校验族）；修复=`resolveRootLastModified` 预检 `ResourceHelper.isNormalVirtualPath`（非正规虚拟路径守卫惰性化=哨兵等值读数，等同 `resource==null`）+ try/catch 兜底 + debug 留痕——簿记采集零异常逃逸，窗口二守卫对不可 raw 解析键自动不适用（其失效链仍由 deps walk 承载，非静默跳过：既有行为逐字节维持）。
+3. **测试交付（新增 6 测试类 31 条 + TestXplTask 恢复改造 1 条 = 32 条，全部先红后绿或变异红）**：`TestDefaultResourceChangeChecker` 8（载体双条件判据/宽限 0 档退化钉/配置驱动/纯比较入口）+ `TestResourceDependencySet` 4（判据值二元组承载/值变重锚同值不重锚/copy 携带锚）+ `TestResourceDependsInvalidation` 5（编译路径窗口二：稳定单执行/mtime 翻转重执行编译 task/持续翻转有界显式失败 ERR 码钉/宽限保守判定经真实 walk 链/冻结副本携带锚）+ `TestResourceCacheEntryGate` 6（记忆化 stat 税收敛/TRUE 侧限速风暴上界/maxAge 绕过判据强制重载/maxAge 0 与负值关闭档/deps-空豁免零 stat 零 maxAge[GraphQLEngine 反例钉]/反序列化未加载态钉）+ `TestTenantAwareCacheDelegation` 4（裁定⑤四包装层非继承委托穿透：装饰器→per-tenant entry 门/LoadingCache G 双档宽限重载可达/DependencyManager getImpl 宽限裁决/WithLoader 1-arg→2-arg 门）+ `TestResourceCacheInvalidationChain` 4（rule 23 真实链路：默认配置依赖变更失效冒烟/窗口二保守重载/窗口一同 tick 双写/门路径 expireAfterWrite 冷加载+负值关闭档）。断言全以可编程 mtime 注入+忙等驱动，零 sleep（裁定⑥(c) 确定性测试缝）。
+4. **TestXplTask 恢复（C10-005+N3，与本体同 diff）**：类级 `@Disabled` 移除。**C1-004 预案触发与处置（F3）**：恢复后 `testWatch` 于 :129 `assertNotEquals` 确定性失败（3/3）——**反事实基线验证**：独立 worktree @ `8cc5e219e2`（零产品改动、仅移除类级 `@Disabled`）同样同点失败，证据 `_tmp/phase1b-xpltask-baseline-counterfactual.log`——失败面为 watch→debounce 触发管道（C1-004 debounce 非原子，归 R4-13 open，不在本批成员面），非本批判据回归；checkChanged 链断言（依赖登记/缓存命中/mtime 检出）在失败点之前全部通过。处置=**testWatch 方法级 `@Disabled`（注记 R4-13 传导，非整类回退）+ 新增 `testCheckChangedInvalidationRerunsTask` 等效链路活测试**（F3 备选分支：绕开 watch/debounce 形态——依赖文件真实修改→载体判据检出→模型重载→xtask 重跑→result.txt 更新，恢复后 3/3 绿，`_tmp/phase1b-xpltask-restored-run{1,2,3}.log`）；R4-13 对端回归义务传导已登记（R4-13 修复后应解除隔离并复核基线证据）；cra-index R4-13 行注记归 Phase 4 回填。
+5. **必红证据（E2 三变异，先红后绿，红证 `_tmp/phase1b-red-*.log`）**：窗口一红证 `_tmp/phase1b-red-window1-grace-mutation.log`（MUTATION-A 载体宽限裁决移除→`testWindowOneSameTickDoubleWriteTriggersReload` 红 `expected:<d2> but was:<d1>`[同 tick 双写漏检回旧语义] + 载体裁决测试 2 红）；窗口二红证 `_tmp/phase1b-red-window2-doublemtime-mutation.log`（MUTATION-B loadObject/collectDepends 双 mtime 失配裁决移除→`testWindowTwoRootReplacedDuringLoadConservativeReload` 红 `expected:<v2> but was:<v1>`[旧内容+新 mtime 固化] + `testMtimeFlipDuringTaskRetriggerCompilation` 红 `expected:<2> but was:<1>`）；门缺失红证 `_tmp/phase1b-red-gate-missing-mutation.log`（MUTATION-C `getObject` 内建门移除回退无门行为→`testMemoizationThrottlesDepWalkStatTax` 红 `expected:<2> but was:<22>`[stat 税回归] + `testTrueSideRateLimitBoundsGraceReloadStorm` 红[宽限窗口重载风暴] + `testMaxAgeForcedReloadBypassesVerdict` 红 + TenantAware 穿透 2 红）。变异脚本 `_tmp/phase1b-red-mutations.sh`（备份→变异→跑红→还原），还原后 `MUTATION` grep 零残留、`git diff` 与修复位变更集一致。
+6. **接线验证（rule 23）**：`TestResourceCacheInvalidationChain#testRealChainInvalidatesOnDepFileChange`——真实 VFS（CoreInitialization 生产接线、`_vfs` classpath 真实文件）+ 生产默认配置（check-changed=true、宽限 2s、refresh-min-interval 100ms 均未覆写），断言真实 `loadObject→collectDependsTo→编译路径 collectDepends→ResourceDependsManager walk→DefaultResourceChangeChecker 3-arg 载体裁决→重载`全链运行时生效：依赖文件真实修改后同 entry 重载（loader count 1→2、服务内容 d1→d2），重载后判据值推进、G=0 档复核无抖动。C10-005 默认开启冒烟同测试承载。
+7. **批行验证命令（E3）**：`./mvnw test -pl nop-kernel -am` **BUILD SUCCESS**（20 模块 SUCCESS，3551 测试 0F 0E，仅 1 skip=上述 F3 隔离方法）——绝缘门禁 `TestPeriodicTaskInsulation` 9/9 + 池设施门禁 `TestThreadPoolFacilityHardening` 7/7 全绿（R1-01/R1-02 共享代码位零回改门禁）。期间三轮修复迭代留痕：run1 揭出 i18n StackOverflow 递归（见注记 2b，8 红修复）→ run2 复现定位 → run4 全绿。快照 `_tmp/phase1b-nop-kernel-test4.log`。
+8. **零触碰与边界（裁定⑥）**：`ResourceCacheEntry` 锁纪律面零重构（`getObject`/`reloadObject` 持监视器加载语义、`clear`/`destroy` 生命周期形态零改动，窗口二原子化在既有 synchronized 上下文内完成、零新增锁获取顺序）；既有 `TestResourceCacheEntry` reload-null 占位钉零回退（随门禁绿）；既有 currentTimeMillis 敏感点（`isRefreshEnabled`/`loadObject` lastLoadTime）零改写、未引入可注入时钟；**新增墙钟敏感点清单（Phase 3 R4-32 注记输入）**：载体宽限裁决 `now`（`isChangeRecord` 消费）、verdict 记忆化 TTL 判定、entry maxAge 判定——三类消费点全部复用 `CoreMetrics.currentTimeMillis`，零新增时钟入口。`nop-api-core`/`model/*.orm.xml`/nop-auth 产品代码零触碰（diff 过滤零命中）。`_` 前缀生成物零触碰。
+9. **Owner doc 裁定**：登记锚点定稿去向 = Phase 3 统一落账（source-anchors 新建模型缓存锚点，内容源 = 设计文档裁定 + 本执行记录注记 1/2 的实现形态[键默认值/宽限键/负值关闭档/键移除清单/门语义]），本 Phase 不落锚点内容。
+10. ** cra-index 台账注记**：P1/P2 台账行收敛归 Phase 4；本 Phase 登记 cra-index 待办两条——(a) R4-13 行补 TestXplTask 方法级隔离对端注记（F3 传导载体）；(b) R4-32 行补新增墙钟敏感点三条清单（见注记 8）。
 
 ### Phase 2 - 2.3-C9-002 别名面随主闭合验证 + 使用方回归面
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/nop-gateway/src/main/java/io/nop/gateway/http/GatewayHttpFilter.java`（预期零改码，验证面）、`nop-auth/nop-auth-service`、`nop-persistence/nop-orm`、`nop-dyn/nop-dyn-service`（预期零改码，聚合门禁回归面）
 
 - Item Types: `Proof`（别名面验证 + 回归）；若裁定④判逐点修则相应站点为 `Fix`（须先过 ask-first 升级，见 PA 连带声明）
 
-- [ ] 别名面行为验证：GatewayHttpFilter handlerCache（`:127`）在修复后默认获得节流与统一判据——代表性站点 focused 测试或模块内验证（与 Phase 1 门语义一致性断言同口径），验证单点修复对别名站点生效
-- [ ] 使用方零改码确认（默认分支）：`git diff` 过滤确认 nop-gateway/nop-auth-service/nop-orm/nop-dyn-service/nop-xlang 产品代码零命中并登记；若裁定④为逐点修则按实际清单逐站验证
-- [ ] 消费方聚合门禁：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS（勘误 3 补列命令；nop-auth/nop-persistence/nop-dyn 若有 focused 触达按实际登记）
-- [ ] 对端台账注记核对：2.3 审计 merge-adjudication A10/X14 口径与 WI 2.1 侧注记互引一致（Phase 4 回填前预检）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 别名面行为验证：GatewayHttpFilter handlerCache（`:127`）在修复后默认获得节流与统一判据——代表性站点 focused 测试或模块内验证（与 Phase 1 门语义一致性断言同口径），验证单点修复对别名站点生效
+- [x] 使用方零改码确认（默认分支）：`git diff` 过滤确认 nop-gateway/nop-auth-service/nop-orm/nop-dyn-service/nop-xlang 产品代码零命中并登记；若裁定④为逐点修则按实际清单逐站验证
+- [x] 消费方聚合门禁：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS（勘误 3 补列命令；nop-auth/nop-persistence/nop-dyn 若有 focused 触达按实际登记）
+- [x] 对端台账注记核对：2.3 审计 merge-adjudication A10/X14 口径与 WI 2.1 侧注记互引一致（Phase 4 回填前预检）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 2.3-C9-002 别名面随主闭合验证 landed（行为验证 + 零独立修复位确认，或裁定④实际清单登记）
-- [ ] 使用方模块 diff 确认登记（零改码或实际清单）
-- [ ] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；其他触达聚合门禁逐条登记
-- [ ] Owner doc 裁定：gateway/使用方契约面若无文本变化显式登记 `No owner-doc update required` + 理由（核对结论归 Phase 3 统一）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.3-C9-002 别名面随主闭合验证 landed（行为验证 + 零独立修复位确认，或裁定④实际清单登记）
+- [x] 使用方模块 diff 确认登记（零改码或实际清单）
+- [x] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；其他触达聚合门禁逐条登记
+- [x] Owner doc 裁定：gateway/使用方契约面若无文本变化显式登记 `No owner-doc update required` + 理由（核对结论归 Phase 3 统一）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+Phase 2 执行记录（2026-10-25，实现子代理，纯验证零改码）：
+
+1. **别名面行为验证（模块内验证分支，与 Phase 1 门语义一致性断言同口径）**：live 回读 `GatewayHttpFilter.java`——`:95 init` 创建裸 `ResourceCacheEntry<GatewayHandler>`（无 LocalCache 层/无 TTL 包装），`:127 handlerCache.getObject(true, handlerLoader)` 为 2-arg 直连协议——与 Phase 1 `TestResourceCacheEntryGate`（`getObject(true, loader)` 直连门：记忆化节流/TRUE 侧限速/maxAge/deps-空豁免）+ `TestTenantAwareCacheDelegation` 断言的协议面**完全同一**（`ResourceCacheEntry.getObject(boolean, IResourceObjectLoader)` 单点门），别名站点零改码自动获得「100ms 记忆化节流 + 5min maxAge 自愈 + 载体统一判据」；协议面同一性由本批 diff 零触碰 gateway 佐证（修复位在 entry 层，站点协议未动）。focused 门缺失变异（MUTATION-C）在该协议面上先红后绿（`_tmp/phase1b-red-gate-missing-mutation.log`），行为验证同口径成立。
+2. **使用方零改码确认**：`git status`/`git diff` 过滤 nop-service-framework（含 nop-gateway）、nop-auth（含 nop-auth-service）、nop-persistence（含 nop-orm）、nop-dyn（nop-dyn-service）产品代码——**零命中**（diff 全集 = nop-core 11 产品文件 + nop-xlang 1 测试文件 + 新增测试 6 文件，见 Phase 1 执行记录注记 1）；6 直连使用方（gateway/auth/xpl/dyn/orm/xdef）全部零改码，nop-auth ask-first 不触发。
+3. **消费方聚合门禁**：`./mvnw test -pl nop-service-framework -am` **BUILD SUCCESS**（50 模块 SUCCESS，0F 0E，快照 `_tmp/phase1b-svcframework-gate.log`）。nop-auth/nop-persistence/nop-dyn 无独立 focused 触达（零改码，回归由后续 Phase 3 全量验证命令承载）。
+4. **对端台账注记预检（Phase 4 前置）**：2.3 审计 merge-adjudication A10（「修复单点归属 WI 2.1 C9-010 设施工单，不产生独立修复工单、不重复计数」）与本批事实一致——2.3-C9-002 零独立修复位，随 Phase 1 entry 层单点闭合；X14 映射口径（「本单元新增 C9-002 实例面一行」↔ WI 2.1 C9-010）待 Phase 4 双单台账回填时落注记互引，本 Phase 预检无口径冲突。
+5. **Owner doc 裁定**：`No owner-doc update required`（本 Phase）——gateway/使用方契约面无文本变化（零改码；门语义为设施层内部行为增益，对外协议/配置键名零变化），核对结论归 Phase 3 统一落账（source-anchors 模型缓存锚点将承载直连使用方协议说明）。
 
 ### Phase 3 - 5.5-W-03 联动验证注记（R3-05）+ 全量验证 + owner doc 更新
 

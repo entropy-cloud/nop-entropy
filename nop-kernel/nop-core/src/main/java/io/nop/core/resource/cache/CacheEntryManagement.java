@@ -51,6 +51,11 @@ public class CacheEntryManagement<V> implements ICacheManagement<V>, IResourceCa
         return cache.getObject(checkChanged, loader);
     }
 
+    /**
+     * 3-arg显式超时变体：语义钉（plan 2500裁定④）——「isRefreshEnabled(timeout) -&gt; clear()重建」的显式超时
+     * 重建语义维持不变；timeout配置为null时分支恒死亦维持现状（不静默改绑全局TTL键nop.core.component.resource-cache.timeout，
+     * 配置契约显式性）。直连路径的节流与maxAge自愈由底层entry内建门承载（IResourceCacheEntry.getObject协议）
+     */
     public V getObject(boolean checkChanged, IResourceObjectLoader<V> loader, Duration timeout) {
         if (cache.isRefreshEnabled(timeout))
             cache.clear();

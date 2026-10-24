@@ -9,6 +9,7 @@ package io.nop.core.resource.deps;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
+import io.nop.api.core.time.CoreMetrics;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,10 +40,12 @@ public class ResourceDependencySet {
 
     /**
      * resource和lastModified用于缓存上次IResourceChangeChecker的检查结果。
+     * 判据值为(lastModified, recordedAt)二元组，recordedAt为判据值的记录时刻（宽限锚）。
      * freeze后仍允许更新，且会被多个线程并发读写，因此声明为volatile
      */
     private final String path;
     private volatile long lastModified;
+    private volatile long recordedAt;
 
     /**
      * 从资源路径到
@@ -52,6 +55,7 @@ public class ResourceDependencySet {
     public ResourceDependencySet(IResourceReference resource) {
         this.path = resource.getPath();
         this.lastModified = resource.lastModified();
+        this.recordedAt = CoreMetrics.currentTimeMillis();
         this.version = nextVersion();
     }
 
@@ -59,6 +63,7 @@ public class ResourceDependencySet {
         this.version = other.version;
         this.path = other.path;
         this.lastModified = other.lastModified;
+        this.recordedAt = other.recordedAt;
         if (other.dependsMap != null)
             this.dependsMap = new HashMap<>(other.dependsMap);
     }
@@ -96,8 +101,26 @@ public class ResourceDependencySet {
         return lastModified;
     }
 
+    /**
+     * 宽限锚：当前判据值(lastModified)的记录时刻。仅在lastModified值变化时重置
+     */
+    public long getRecordedAt() {
+        return recordedAt;
+    }
+
+    /**
+     * 判据值记录的唯一簿记入口：仅在lastModified值变化时重置宽限锚（重读同值不重锚，
+     * 防止持续访问的热条目宽限窗口永续）。宽限锚语义见DefaultResourceChangeChecker
+     */
+    public void updateLastModified(long lastModified, long recordedAt) {
+        if (this.lastModified != lastModified) {
+            this.lastModified = lastModified;
+            this.recordedAt = recordedAt;
+        }
+    }
+
     public void setLastModified(long lastModified) {
-        this.lastModified = lastModified;
+        updateLastModified(lastModified, CoreMetrics.currentTimeMillis());
     }
 
     public Map<String, ResourceDependencySet> getDependsMap() {

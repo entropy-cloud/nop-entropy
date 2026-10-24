@@ -356,6 +356,10 @@ public interface CoreErrors {
     ErrorCode ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL = define("nop.err.core.component.resource-cache-return-null",
             "装载资源文件返回结果为空:{resourcePath}", ARG_RESOURCE_PATH, ARG_RESOURCE);
 
+    ErrorCode ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED = define(
+            "nop.err.core.component.resource-cache.load-mtime-changed",
+            "资源文件在装载期间修改时间持续变化，保守重载重试超限:{resourcePath}", ARG_RESOURCE_PATH);
+
     ErrorCode ERR_COMPONENT_CACHE_DUPLICATE_REGISTRATION = define("nop.err.core.component.cache.duplicate-registration",
             "注册cache失败，同名的cache已存在:{cacheName}", ARG_CACHE_NAME);
 

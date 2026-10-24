@@ -7,7 +7,9 @@
  */
 package io.nop.core.resource.deps;
 
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.thread.NamedThreadLocal;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.ResourceConstants;
@@ -27,6 +29,9 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED;
+
 /**
  * 集中管理所有组件文件之间的依赖关系. 此对象的方法不应该被直接调用，应用代码应该通过 {@link io.nop.core.resource.component.IResourceComponentManager}接口来收集依赖。
  * <p>
@@ -34,6 +39,11 @@ import java.util.function.Supplier;
  */
 public class ResourceDependsManager implements IResourceDependencyManager, Closeable {
     static final Logger LOG = LoggerFactory.getLogger(ResourceDependsManager.class);
+
+    /**
+     * 窗口二保守重执行的有界重试上限：task执行前后mtime持续不一致时显式失败（禁止静默固化「旧内容+新mtime」）
+     */
+    static final int MAX_LOAD_MTIME_RETRY = 3;
 
     private final IResourceChangeChecker changeChecker;
 
@@ -84,11 +94,33 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         ResourceDependencySet deps = stack.push(resource);
         boolean success = false;
         try {
-            T ret = task.get();
+            // 窗口二消除：task执行前后取双mtime，经载体纯比较入口裁决；失配=内容可能在task执行期间被替换，重执行编译task
+            T ret = null;
+            long verifiedLastModified = 0;
+            for (int attempt = 0; ; attempt++) {
+                long m1 = resource.lastModified();
+                ret = task.get();
+                long m2 = resource.lastModified();
+                if (!DefaultResourceChangeChecker.isLoadMismatch(m1, m2)) {
+                    verifiedLastModified = m2;
+                    break;
+                }
+                if (attempt >= MAX_LOAD_MTIME_RETRY)
+                    throw new NopException(ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED)
+                            .param(ARG_RESOURCE_PATH, resource.getPath());
+                LOG.warn("nop.resource.collect-depends-mtime-changed:path={},attempt={}", resource.getPath(), attempt + 1);
+            }
             if (current != null) {
                 current.addDepend(deps);
             }
-            deps.setLastModified(resource.lastModified());
+            // 判据值记录（宽限锚簿记规则，裁定①/M-1）：与dependencyMap既有条目对照，值未变的重载继承旧锚
+            // （重读同值不重锚），仅值变化时以本次记录时刻重锚——防止持续访问的热条目因反复重载而宽限窗口永续
+            ResourceDependencySet previous = dependencyMap.get(resource.getPath());
+            if (previous != null && previous.getLastModified() == verifiedLastModified) {
+                deps.updateLastModified(verifiedLastModified, previous.getRecordedAt());
+            } else {
+                deps.updateLastModified(verifiedLastModified, CoreMetrics.currentTimeMillis());
+            }
             success = true;
             return ret;
         } finally {
@@ -237,13 +269,15 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
             return false;
         }
 
-        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(), deps.getLastModified());
+        // 经载体stat型入口走宽限感知判据（mtime相等比较+宽限期承诺双条件）
+        ResourceChangeCheckResult result = changeChecker.checkChanged(deps.getResourcePath(),
+                deps.getLastModified(), deps.getRecordedAt());
         if (result.isChanged()) {
             return true;
         }
 
-        // 内容没有修改，但是可能文件的修改时间变化了
-        deps.setLastModified(result.getLastModified());
+        // 内容没有修改，但是可能文件的修改时间变化了。涂新走判据值簿记入口：值变才重锚（重读同值不重锚）
+        deps.updateLastModified(result.getLastModified(), CoreMetrics.currentTimeMillis());
 
         if (deps.getDepends() != null) {
             for (ResourceDependencySet dep : deps.getDepends()) {

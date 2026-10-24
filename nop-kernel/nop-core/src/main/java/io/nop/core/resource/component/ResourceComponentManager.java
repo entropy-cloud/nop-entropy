@@ -159,6 +159,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         return changeChecker.checkChanged(resourcePath, lastModified);
     }
 
+    /**
+     * 宽限感知check变体的机械透传：委托底层checker的3-arg入口（自定义checker未覆写时经default方法退化为宽限0档）
+     */
+    @Override
+    public ResourceChangeCheckResult checkChanged(String resourcePath, long lastModified, long recordedAt) {
+        return changeChecker.checkChanged(resourcePath, lastModified, recordedAt);
+    }
+
     @Override
     public boolean isDependencyChanged(String path) {
         return dependsManager.isDependencyChanged(path);
