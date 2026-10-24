@@ -1,6 +1,6 @@
 # 2500 CRA Phase 8.6 — R1-05 缓存失效传播链批（R24：三面单点修复 + 别名随主，4 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_b9afee28（0 Blocker、4 Major[F1 自愈通道覆盖面不对称/F2 单点修复位机械判定缺失/F3 TestXplTask 批外缺陷污染无预案/F4 墙钟敏感点登记+测试缝]+3 Minor——修订 agent_c85f2713 全量应用[live 回读后落笔]，active）
 > Design Review: 设计文档 `cache-invalidation-single-point.md` 独立评审 agent_27b2c138（M-1 宽限重载风暴规范缺口+M-2 触发集/source-compat 缺口+4 Minor → 修订 agent_104312c7 落盘 → 增量复核**通过进入实现**；裁定本体全部维持，12 行编辑点集合零扩张）
 > Last Reviewed: 2026-10-25
@@ -134,7 +134,7 @@ Exit Criteria:
 
 Phase 1 执行记录（2026-10-25，实现子代理，单点修复本体+C10-005 验收前置同 commit）：
 
-1. **修复位落地与编辑点表对照（closure audit 操作化判据①输入）**：产品 diff = 编辑点表 12 行中的 11 文件——#1 `DefaultResourceChangeChecker`（比较语义唯一实现 `isChangeRecord` + 纯比较入口 `isLoadMismatch` + stat 型入口 3-arg `checkChanged`；2-arg 入口保留为宽限 0 档）+ #2 `IResourceChangeChecker`（3-arg 宽限感知 default 变体，既有签名零删除）+ #3 `ResourceComponentManager`（新变体机械透传，零逻辑新增）+ #4 `ResourceDependencySet`（`recordedAt` 判据值承载 + `updateLastModified` 值变重锚/同值不重锚簿记入口 + copy 携带锚）+ #5 `ResourceCacheEntry`（`executeLoadWithMtimeGuard` 双 mtime 原子化 + `MAX_LOAD_MTIME_RETRY=3` 有界保守重载 + 超限 `ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 显式失败 + `shouldReloadObject` 内建门[maxAge→verdict 记忆化→TRUE 侧同源键限速→真实裁决]，deps-空豁免走既有 `isChanged()` 同路径零 stat）+ #6 `ResourceDependsManager`（`collectDepends` m1/m2 采集+失配有界重执行编译 task+判据值簿记记录；`isDependencyChanged` 改 3-arg 宽限裁决 + 涂新点 `updateLastModified` 簿记）+ #8 `CacheEntryManagement`（3-arg 变体语义 javadoc 钉，逻辑零变更）+ #9 `ResourceTimestampCache`（整文件删除）+ #10 `CoreConfigs`（TTL 默认 null→`Duration.ofMinutes(5)`、新增 `nop.core.component.resource-cache.change-grace-period` 默认 2s[0=关闭档]、两死配置+`ChronoUnit` 导入删除）+ #11 `CoreConstants`（`RESOURCE_TIMESTAMP_CACHE_NAME` 删除）+ #12 `CoreErrors`（`ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 登记）。**#7 `ResourceLoadingCache` 零触碰**（行 7「零逻辑变更预期」成立：:81 TTL 唯一消费点既有 `!isNegative()` 守卫自动承接默认值变更，`get` 门 :192 既有 `isRefreshEnabled` 先置门与 entry 门协同无需改码）。判据比较语义 grep 全仓唯一：mtime 不等式变更裁决仅存于载体类（`isLoadMismatch`/`isChangeRecord`），从属编辑点零内联比较。**越集检查：零**（`git status` 产品路径全集 ⊆ 上列 11 文件）。
+1. **修复位落地与编辑点表对照（closure audit 操作化判据①输入）**：产品 diff = 编辑点表 12 行中的 11 文件——#1 `DefaultResourceChangeChecker`（比较语义唯一实现 `isChangeRecord` + 纯比较入口 `isLoadMismatch` + stat 型入口 3-arg `checkChanged`；2-arg 入口保留为宽限 0 档）+ #2 `IResourceChangeChecker`（3-arg 宽限感知 default 变体，既有签名零删除）+ #3 `ResourceComponentManager`（新变体机械透传，零逻辑新增）+ #4 `ResourceDependencySet`（`recordedAt` 判据值承载 + `updateLastModified` 值变重锚/同值不重锚簿记入口 + copy 携带锚）+ #5 `ResourceCacheEntry`（`executeLoadWithMtimeGuard` 双 mtime 原子化 + `MAX_LOAD_MTIME_RETRY=3` 有界保守重载 + 超限 `ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 显式失败 + `shouldReloadObject` 内建门[maxAge→verdict 记忆化→TRUE 侧同源键限速→真实裁决]，deps-空豁免走既有 `isChanged()` 同路径零 stat）+ #6 `ResourceDependsManager`（`collectDepends` m1/m2 采集+失配有界重执行编译 task+判据值簿记记录；`isDependencyChanged` 改 3-arg 宽限裁决 + 涂新点 `updateLastModified` 簿记）+ #8 `CacheEntryManagement`（3-arg 变体语义 javadoc 钉，逻辑零变更）+ #9 `ResourceTimestampCache`（整文件删除）+ #10 `CoreConfigs`（TTL 默认 null→`Duration.ofMinutes(5)`、新增 `nop.core.component.resource-cache.change-grace-period` 默认 2s[0=关闭档]、两死配置+`ChronoUnit` 导入删除）+ #11 `CoreConstants`（`RESOURCE_TIMESTAMP_CACHE_NAME` 删除）+ #12 `CoreErrors`（`ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED` 登记）。**#7 `ResourceLoadingCache` 零触碰**（行 7「零逻辑变更预期」成立：:81 TTL 唯一消费点既有 `!isNegative()` 守卫自动承接默认值变更，`get` 门 :192 既有 `isRefreshEnabled` 先置门与 entry 门协同无需改码）。判据比较语义 grep 全仓唯一：mtime 不等式变更裁决仅存于载体类（`isLoadMismatch`/`isChangeRecord`），从属编辑点零内联比较。**越集检查：零**（`git status` 产品路径全集 ⊆ 上列 11 文件）。**〔本段描述的 12 行表/recordedAt/3-arg 协议已被 Phase 3 载体修订取代：宽限锚改写入年龄、编辑点表收敛为 9 行、三文件回归基线零 diff——以 Phase 3 执行记录与设计文档修订版为准；closure audit Minor-1 内联指向〕**
 2. **实现层适配注记两处（非设计偏离，簿记规则落地必需）**：(a) **M-1 锚点继承**——`collectDepends` 每次 reload 经 `stack.push` 创建全新 dep set 对象，构造器无条件锚定会绕过「同值不重锚」簿记（探针实测 anchor=重载时刻），持续访问下宽限窗口被重载反复重置=设计 §四拒绝表第 8 行「宽限锚随每次重载重置→永续保守重载风暴」形态；修复=记录时对照 `dependencyMap` 既有条目，值未变继承旧锚、值变以记录时刻重锚（编辑点 6 簿记性质范围内），锚定风暴上界回归设计口径 ≈ G/100ms 次/条目。测试锚=`TestResourceCacheInvalidationChain` 全链行为 + 门测试 `testTrueSideRateLimitBoundsGraceReloadStorm`。(b) **m1/m2 采集异常安全化**——全量回归揭出：entry 的 path 不一定是可 raw 解析的虚拟路径（i18n-cache 以裸 locale 字符串如 `"zh-CN"` 为键），`getRawResource` 严格路径校验抛 `NopException`，而 NopException 消息构造重入 i18n 缓存查询→同 entry 可重入监视器→`loadObject` 无限递归（StackOverflow，8 个批内既有测试红：i18n/dict/VFS 校验族）；修复=`resolveRootLastModified` 预检 `ResourceHelper.isNormalVirtualPath`（非正规虚拟路径守卫惰性化=哨兵等值读数，等同 `resource==null`）+ try/catch 兜底 + debug 留痕——簿记采集零异常逃逸，窗口二守卫对不可 raw 解析键自动不适用（其失效链仍由 deps walk 承载，非静默跳过：既有行为逐字节维持）。
 3. **测试交付（新增 6 测试类 31 条 + TestXplTask 恢复改造 1 条 = 32 条，全部先红后绿或变异红）**：`TestDefaultResourceChangeChecker` 8（载体双条件判据/宽限 0 档退化钉/配置驱动/纯比较入口）+ `TestResourceDependencySet` 4（判据值二元组承载/值变重锚同值不重锚/copy 携带锚）+ `TestResourceDependsInvalidation` 5（编译路径窗口二：稳定单执行/mtime 翻转重执行编译 task/持续翻转有界显式失败 ERR 码钉/宽限保守判定经真实 walk 链/冻结副本携带锚）+ `TestResourceCacheEntryGate` 6（记忆化 stat 税收敛/TRUE 侧限速风暴上界/maxAge 绕过判据强制重载/maxAge 0 与负值关闭档/deps-空豁免零 stat 零 maxAge[GraphQLEngine 反例钉]/反序列化未加载态钉）+ `TestTenantAwareCacheDelegation` 4（裁定⑤四包装层非继承委托穿透：装饰器→per-tenant entry 门/LoadingCache G 双档宽限重载可达/DependencyManager getImpl 宽限裁决/WithLoader 1-arg→2-arg 门）+ `TestResourceCacheInvalidationChain` 4（rule 23 真实链路：默认配置依赖变更失效冒烟/窗口二保守重载/窗口一同 tick 双写/门路径 expireAfterWrite 冷加载+负值关闭档）。断言全以可编程 mtime 注入+忙等驱动，零 sleep（裁定⑥(c) 确定性测试缝）。
 4. **TestXplTask 恢复（C10-005+N3，与本体同 diff）**：类级 `@Disabled` 移除。**C1-004 预案触发与处置（F3）**：恢复后 `testWatch` 于 :129 `assertNotEquals` 确定性失败（3/3）——**反事实基线验证**：独立 worktree @ `8cc5e219e2`（零产品改动、仅移除类级 `@Disabled`）同样同点失败，证据 `_tmp/phase1b-xpltask-baseline-counterfactual.log`——失败面为 watch→debounce 触发管道（C1-004 debounce 非原子，归 R4-13 open，不在本批成员面），非本批判据回归；checkChanged 链断言（依赖登记/缓存命中/mtime 检出）在失败点之前全部通过。处置=**testWatch 方法级 `@Disabled`（注记 R4-13 传导，非整类回退）+ 新增 `testCheckChangedInvalidationRerunsTask` 等效链路活测试**（F3 备选分支：绕开 watch/debounce 形态——依赖文件真实修改→载体判据检出→模型重载→xtask 重跑→result.txt 更新，恢复后 3/3 绿，`_tmp/phase1b-xpltask-restored-run{1,2,3}.log`）；R4-13 对端回归义务传导已登记（R4-13 修复后应解除隔离并复核基线证据）；cra-index R4-13 行注记归 Phase 4 回填。
@@ -219,49 +219,49 @@ Phase 3 执行记录（2026-10-25，实现子代理；含 E1 门禁揭出回归�
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.6 行、cra-index 台账（P1 台账 + P2 裁决台账 G24/G38 + 2.3 审计对端注记）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（单点修复位唯一性复核、调用链运行时连通、无空方法体/静默吞异常）与**单点纪律专项复核**（操作化判据见裁定①：产品 diff 路径 ⊆ 设计文档声明的修复位+从属编辑点集合；判据比较语义实现 grep 全仓唯一；四成员确无第二修复位）
-- [ ] cra-index 台账回填：P1 台账 `nop-kernel-concurrency-C7-007` 行收敛（open → 已修[R1-05, plan 2500]）；P2 裁决台账 G24 行 **C9-001/C9-010 成员面**收敛注记（G24 组行其余成员 C1-003/C1-014/C2-002/C2-017 归 R2-01、C3-015 已随 R1-01——只收敛本批成员面，**不整组置 fixed**）；G38 行收敛（别名随主闭合）；2.3-C9-002 与 2.1-C9-010 互引注记与 2.3 审计 A10/X14 口径一致
-- [ ] roadmap 8.6 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2500-cra-phase8.6-r1-05-cache-invalidation.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（单点修复位唯一性复核、调用链运行时连通、无空方法体/静默吞异常）与**单点纪律专项复核**（操作化判据见裁定①：产品 diff 路径 ⊆ 设计文档声明的修复位+从属编辑点集合；判据比较语义实现 grep 全仓唯一；四成员确无第二修复位）
+- [x] cra-index 台账回填：P1 台账 `nop-kernel-concurrency-C7-007` 行收敛（open → 已修[R1-05, plan 2500]）；P2 裁决台账 G24 行 **C9-001/C9-010 成员面**收敛注记（G24 组行其余成员 C1-003/C1-014/C2-002/C2-017 归 R2-01、C3-015 已随 R1-01——只收敛本批成员面，**不整组置 fixed**）；G38 行收敛（别名随主闭合）；2.3-C9-002 与 2.1-C9-010 互引注记与 2.3 审计 A10/X14 口径一致
+- [x] roadmap 8.6 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2500-cra-phase8.6-r1-05-cache-invalidation.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 四成员行状态全部收敛（G24 仅本批成员面）、roadmap 8.6 = done、对端注记互引一致
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 四成员行状态全部收敛（G24 仅本批成员面）、roadmap 8.6 = done、对端注记互引一致
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 4 项成员全部收敛：2.1-C7-007（双窗口+TTL 兜底+ResourceTimestampCache 裁定）、2.1-C9-001（stat 税面）、2.1-C9-010（门缺失面 6 使用方）、2.3-C9-002（别名随主闭合验证，零独立修复位）
-- [ ] **单点修复纪律达成**：三面收敛于设计文档声明的唯一判据载体，checker/entry/使用方无第二修复位（closure audit 专项复核）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：窗口二 mtime 注入、窗口一同 tick 双写、门缺失对照至少三项）
-- [ ] C10-005+N3 验收前置随本体同 diff 落地（TestXplTask 恢复/改写 + 双窗口 + 冒烟）；确认无越界承接（C10-005 涉及缺陷与本批三成员完全重合）
-- [ ] 六裁定成文（Phase 1 设计文档）且相互一致；5.5-W-03 联动验证 + R3-05 注记落账（或裁定⑥显式论证判据语义对外不变 + 注记声明）
-- [ ] 相邻面零回改实证：ResourceCacheEntry 锁纪律面（C2-001/C2-002 前提）零触碰；墙钟面按裁定⑥(a)——既有 currentTimeMillis 敏感点零改写 + 新增敏感点已登记 R4-32 注记清单；`TestResourceCacheEntry` 既有钉零回退
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-kernel -am` BUILD SUCCESS + Phase 2 补列命令 BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：source-anchors.md 新建模型缓存锚点；缺口声明登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/successor 项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）新判据/门语义在真实失效链与直连使用方路径上运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2500-cra-phase8.6-r1-05-cache-invalidation.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 四成员行收敛 + roadmap 8.6 → done（E6）
+- [x] 4 项成员全部收敛：2.1-C7-007（双窗口+TTL 兜底+ResourceTimestampCache 裁定）、2.1-C9-001（stat 税面）、2.1-C9-010（门缺失面 6 使用方）、2.3-C9-002（别名随主闭合验证，零独立修复位）
+- [x] **单点修复纪律达成**：三面收敛于设计文档声明的唯一判据载体，checker/entry/使用方无第二修复位（closure audit 专项复核）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；关键项有先红后绿或变异/回退论证（E2：窗口二 mtime 注入、窗口一同 tick 双写、门缺失对照至少三项）
+- [x] C10-005+N3 验收前置随本体同 diff 落地（TestXplTask 恢复/改写 + 双窗口 + 冒烟）；确认无越界承接（C10-005 涉及缺陷与本批三成员完全重合）
+- [x] 六裁定成文（Phase 1 设计文档）且相互一致；5.5-W-03 联动验证 + R3-05 注记落账（或裁定⑥显式论证判据语义对外不变 + 注记声明）
+- [x] 相邻面零回改实证：ResourceCacheEntry 锁纪律面（C2-001/C2-002 前提）零触碰；墙钟面按裁定⑥(a)——既有 currentTimeMillis 敏感点零改写 + 新增敏感点已登记 R4-32 注记清单；`TestResourceCacheEntry` 既有钉零回退
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-kernel -am` BUILD SUCCESS + Phase 2 补列命令 BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：source-anchors.md 新建模型缓存锚点；缺口声明登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/successor 项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）新判据/门语义在真实失效链与直连使用方路径上运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2500-cra-phase8.6-r1-05-cache-invalidation.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 四成员行收敛 + roadmap 8.6 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -287,16 +287,15 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 本计划收口 CRA Phase 8.6（R1-05 缓存失效传播链批）：判据统一单点修复（DefaultResourceChangeChecker isChangeRecord=mtime 不等+写入年龄宽限双条件，G 默认 2s 可配置 0 关闭）+ 窗口二 load 路径双 mtime 原子化+有界保守重载（超限新错误码显式失败）+ ResourceTimestampCache 移除（死代码+死配置+死常量清理）+ TTL 默认 5min 双路径自愈 + ResourceCacheEntry 内建门（verdict 记忆化 100ms 同源键+TRUE 侧限速+maxAge+deps-空豁免）覆盖 6 直连使用方零改码 + 2.3-C9-002 别名随主验证——四成员单点收敛，Phase 3 载体修订（宽限锚改写入年龄，E1 揭出回归三态证据处置）后编辑点表收敛 9 行。roadmap 8.6 → done。
+Completed: 2026-10-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence: <<每条 Exit Criterion 与 Closure Gate 的验证结果（PASS/FAIL + 证据来源）；check-plan-checklist --strict 退出码；Anti-Hollow 检查结果；Deferred 项分类检查>>
+- Reviewer / Agent: agent_107e4e33（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_107e4e33-f92f-44a8-9f6a-4c6c3bfb70b7
+- Evidence: 判定 **PASS**（10 项核验无一 FAIL、零 Blocker/Major）。①四成员实仓抽验（checker isChangeRecord 双条件 :83-93、loadObject 双 mtime+MAX_LOAD_MTIME_RETRY=3、门 :192+expireAfterWrite、6 使用方抽 2 零改码、别名随主）；②单点纪律专项（product diff 恰 8 文件 ⊆ 9 行表、被废除三文件对基线 0 diff、判据语义载体外零命中——Minor-2 注记：ResourceContentCache:50,73 mtime 比较为批前既有文本内容缓存 hit/miss 判定非失效裁决链）；③Phase 3 载体修订三处一致（设计/plan/实现写入年龄同形；recordedAt 零残留；TestXplLibLoadIdentity 回归钉实跑绿）；④测试实跑七类全绿（TestResourceCacheInvalidationChain 4/4、TestDefaultResourceChangeChecker 8/8、TestResourceDependsInvalidation 5/5、TestResourceCacheEntryGate 6/6、TestTenantAwareCacheDelegation 4/4、TestXplLibLoadIdentity 1/1、TestXplTask 2 run 0F 1 skip）；⑤必红/三态证据齐（窗口一/窗口二/门缺失红证+三态探针+MUTATION-A 3 红还原绿）；⑥TestXplTask 处置合规（类级移除+testWatch 方法级隔离带 C1-004/R4-13 注记+反事实基线+等效链路活测试绿）。双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）；scan-hollow nop-kernel EXIT=0（独立复跑）。Deferred 分类检查：条目均为入批前已裁定批外/successor 项（C1-004→R4-13、xlang 身份容忍→Follow-up、W-03 本体→R3-05），无 in-scope live defect 被降级。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- Non-Blocking Follow-ups 所列项均已登记归属（xlang scope 身份容忍批前既有脆性→Follow-up 轨；C1-004→R4-13；W-03 本体→R3-05/roadmap 8.35），no remaining plan-owned work
