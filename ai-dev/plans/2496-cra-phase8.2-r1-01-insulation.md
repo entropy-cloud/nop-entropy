@@ -1,6 +1,6 @@
 # 2496 CRA Phase 8.2 — R1-01 周期任务异常绝缘层批（R04 平台批，14 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_a86f4018（0 Blocker、5 Major[M1 连续失败策略/M2 MA-06 看门狗语义/M3 30 点表 #23–27 缺行/M4 owner-doc 裁定/M5 E1 落地]+10 Minor——修订子代理 agent_52485b28 全量应用并自检通过后 active）
 > Last Reviewed: 2026-10-24
 > Source: roadmap 工作项 8.2（R1-01，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L144）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-01 行（finding ID 清单 14 项 / PA 授权 / exit criteria 增补）；成员发现详情 = 各单元审计目录（见 Current Baseline 逐条回读路径）；执行基线 @ `227e693011`（分支 `concurrency-audit-remediation`，roadmap 8.1 已 done）
@@ -101,7 +101,7 @@ Targets: `ai-dev/design/`（新建：io.nop.commons 周期任务异常绝缘层�
 
 - [x] 设计文档落 `ai-dev/design/`（最终状态文档，rule 14：只写决策与契约，不写 Proposed-vs-Current、不写类签名代码）：①统一语义定稿——捕获边界（Throwable）、completeExceptionally 传播与返回 future 终态语义、重臂 vs kill+alarm 的选型及理由、观测钩子（停摆告警挂接点/whenComplete/带业务标识失败上报——吸收 CL-014 语义）、拒绝（REE/停机竞态）路径语义、**连续失败计数/退避/日志抑制与 kill+alarm 升级阈值（必裁项）**——in-repo 先例 = JdbcConfigSource 的 errorCount<10 分级抑制；载体为 globalTimer 单例 daemon core=4 共享、承载全平台 ~26 条周期任务且无队列隔离，天真重臂会把一次静默停摆换成失败风暴+日志洪泛，故退避/抑制/升级阈值必须随绝缘语义一次定稿；②绝缘语义 × isDone 守卫 × future 终态三者相容性裁定（Baseline 硬约束）；③30 点表载体覆盖矩阵（平台设施覆盖行 vs raw 载体不覆盖声明）；④F3 注记决策——config 变更回调在共享 timer 线程同步执行（AbstractFileConfigSource/JdbcConfigSource）是否随设施改造一并处置（C3-round2 §1 F3「供设施修复时一并决策」义务闭合）；⑤API 形态与 javadoc 契约声明（IScheduledExecutor 周期方法的任务体异常行为成为成文契约）——硬约束：对外部调用方 source-compat，绝缘能力以新增 default 方法/新接口提供，不改 IScheduledExecutor 既有签名；并显式声明与 C3-016（ExecutorHelper bindCancel 误取消面，归 R1-04）的交互边界——绝缘层若采用任务体内 complete 形态，必须给出禁用条件，不得扩大 bindCancel 误取消触发面；⑥MA-06 看门狗语义前置裁定——超时来源（schedule.timeoutSeconds 或新配置 `nop.job.worker.invoke-timeout-ms`）与默认值；默认形态 = **默认无执行超时 + 宽松看门狗仅 ERROR+metric 观测不终结**（与 plan340 契约测试 testLongRunningTaskWithoutTimeoutNotKilled + `JobTimeoutCheckerImpl:497-501` 注释钉死契约一致，禁止在 worker 侧复活「长任务误杀」）；与 checker 链双向不冲突断言纳入设计文档
   - 产物：`ai-dev/design/concurrency/periodic-task-insulation.md`（§一设计结论 5 条 = 裁定①–⑥ 全覆盖；§3.3 = 30 点覆盖矩阵 12 设施级覆盖 / 16 显式接入（#7/#14/#15–28）/ 2 豁免批外；§四拒绝清单 8 项）+ `ai-dev/design/concurrency/README.md`（子系统索引）
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后才进入 Phase 2（plan-first 门禁）——**待执行：Phase 2 启动门禁，实现子代理不得自审自过**
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后才进入 Phase 2（plan-first 门禁）——**已通过**：独立评审 agent_e4f1555a（六项裁定与实现一致性 PASS；§3.3/§3.1/§3.5 修订项按评审意见落盘——#14 移入显式接入 12/16/2、拒绝路径四动作+catch 五动作与实现对齐；修订提交 533da223e1，评审记录见设计文档头 Last Reviewed 行）
 - [x] nop-kernel 绝缘层本体实现（扩展既有设施，不新建平行调度器）
   - 产物：新增 `IPeriodicTaskListener`（观测钩子接口，public）/ `InsulatedPeriodicTask`（任务体守卫：catch Throwable + 观测 + 失败计数 + 退避计算 + 拒绝终态）/ `InsulatedPeriodicChain`（返回 future：失败/取消/拒绝终态 + stopRequested 停止标记，cancel 对失败完结链仍生效）/ `PeriodicTaskHelper`（fixedDelay 手工重臂核心 + fixedRate 装配 + native 触发器终结监听，均为包私有）；修改 `IScheduledExecutor`（周期方法 javadoc 成文契约 + 2 个新增 default 方法带 taskName/listener，既有签名零改动）/ `DefaultScheduledExecutor`（fixedRate 直接线材原生周期+守卫；fixedDelay 走 helper；destroy() 对登记链统一拒绝终态）/ `BindScheduledExecutor`（fixedDelay 走 helper(timer,executor)；fixedRate 守卫化 hop；移除杀链的 isDone 守卫私有重排链）
 - [x] 本体单元测试（rule 25，显式覆盖）：
@@ -116,7 +116,7 @@ Targets: `ai-dev/design/`（新建：io.nop.commons 周期任务异常绝缘层�
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）——**部分满足**：设计文档已落地（`ai-dev/design/concurrency/periodic-task-insulation.md`，最终状态写法，①–⑥ 全覆盖）；独立 draft review 待独立子 agent 执行（Phase 2 门禁），本项在 review 记录在案后勾选
+- [ ] 设计文档存在于 `ai-dev/design/`、为最终状态写法、含上述①–⑥全部裁定项，且独立 draft review 记录在案（plan 头部 Draft Review 行或 daily log）——**满足**：设计文档已落地（`ai-dev/design/concurrency/periodic-task-insulation.md`，最终状态写法，①–⑥ 全覆盖）；独立 draft review 已通过（agent_e4f1555a，PASS + 修订落盘 @ 533da223e1，记录见设计文档头与 closure audit Minor-1 引用）
 - [x] 本体单元测试 ≥5 条（上述五类语义各 ≥1）全绿；每条测试验证的行为在测试名/断言中可辨识——TestPeriodicTaskInsulation 9 条全绿（Tests run: 9, Failures: 0, Errors: 0）
 - [x] 接线验证证据登记（哪个消费方、哪条断言证明运行时调用）——消费方 = GlobalExecutors.globalTimer()（平台共享单例）+ executeOn(Runnable::run)（BindScheduledExecutor 载体）；断言 = listener 失败回调非空 + runs≥2 重臂 + chain isDone/completedExceptionally（TestPeriodicTaskInsulation.testGlobalTimerBindWiringReachesInsulatedPath）
 - [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（聚合实跑：BUILD SUCCESS EXIT=0，12 套件合计 2021 条全绿；focused 通道 `-pl nop-kernel/nop-commons -am` → nop-api-core 165 + nop-commons 381（含新绝缘 9 条）全绿）
@@ -281,43 +281,43 @@ Exit Criteria:
 
 ### Phase 6 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.2 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（绝缘层被消费方运行时调用的调用链追踪；无空 catch/静默跳过作为正常实现——本批 catch Throwable+观测+重臂路径不得退化为吞异常）
-- [ ] cra-index 台账回填：P1 台账 5 行（2.1-C3-001、1.6-C8-001、1.7-C6-001、2.2-C1-021、4.5-C4-001）与 P2 裁决台账 7 组成员行状态收敛（open → 已修/本批）
-- [ ] roadmap 8.2 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2496-cra-phase8.2-r1-01-insulation.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查——agent_84c08f2f **PASS with corrections**（14 成员实仓抽验全在位+Anti-Hollow 调用链闭合+无空 catch；checker 零改动实证；2 个新测试类 fresh 实跑绿；30 点 31 行与设计 12/16/2 一致；唯一 Minor-1=Phase 1 两处陈旧勾选，已修正）
+- [x] cra-index 台账回填：P1 台账 5 行（2.1-C3-001、1.6-C8-001、1.7-C6-001、2.2-C1-021、4.5-C4-001）与 P2 裁决台账 7 组成员行状态收敛（open → 已修/本批）
+- [x] roadmap 8.2 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2496-cra-phase8.2-r1-01-insulation.md --strict` 退出码 0；scan-hollow 全绿复核（触达面 high=0，2 模块 7 条批前既有已裁定登记）
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 14 成员行状态全部收敛、roadmap 8.2 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 14 成员行状态全部收敛、roadmap 8.2 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > 只有本节全部条目与每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 Plan Status 改为 `completed`。
 
-- [ ] 14 项成员全部修复：2.1-C3-001（设施主体）、2.1-C3-015（同变更集）、1.6-C8-001、1.7-C6-001、1.7-C6-010（与 C6-001 同 diff）、4.5-C4-001、2.2-C1-021、1.4-MA-05、1.4-MA-06、1.4-C4-003、3.1-MA-07（六站点）、4.1-C3-009（七屏障）、4.2-C4-004（+CL-011/014）、5.5-W-11
-- [ ] 每个下游单元修复均有对应回归测试（rule 25），关键项有先红后绿或变异/回退论证（E2）
-- [ ] 绝缘层本体有单元测试 + ≥1 跨模块接线验证（rule 23）；30 点表接线验证（Phase 2）
-- [ ] 30 点绝缘状态表 30 行处置登记完整，锚点落 `docs-for-ai/04-reference/source-anchors.md`
-- [ ] 全量构建绿：`./mvnw clean install -T 1C` BUILD SUCCESS + Phase 5 清单 12 模块 focused 测试全部 BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：nop-job.md / nop-batch.md / nop-metadata.md / nop-message.md / nop-retry.md / source-anchors.md；缺口声明仅限 nop-cluster/nop-runner 两模块（E5）
-- [ ] MA-06 钉死面（plan340 契约测试 + JobTimeoutCheckerImpl:497-501 注释）零改动；C10-008 护栏义务确认保留 3.1 侧未越界承接
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 全部退出码 0
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（raw 载体/C10-008/C3-017 等均为入批前已裁定的批外项，归属清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）绝缘层→消费方调用链运行时连通（不只 import 存在），（b）无空方法体/静默吞异常/no-op 作为正常实现（catch Throwable 路径必须有观测+重臂行为）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2496-cra-phase8.2-r1-01-insulation.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 14 成员行收敛 + roadmap 8.2 → done（E6）
+- [x] 14 项成员全部修复：2.1-C3-001（设施主体）、2.1-C3-015（同变更集）、1.6-C8-001、1.7-C6-001、1.7-C6-010（与 C6-001 同 diff）、4.5-C4-001、2.2-C1-021、1.4-MA-05、1.4-MA-06、1.4-C4-003、3.1-MA-07（六站点）、4.1-C3-009（七屏障）、4.2-C4-004（+CL-011/014）、5.5-W-11（closure audit 逐成员 live 抽验全在位）
+- [x] 每个下游单元修复均有对应回归测试（rule 25，新回归 24+ 条），关键项有先红后绿或变异/回退论证（E2：C6-001 悬挂 future 红/C8-001 裸载体链死红/MA-06 看门狗移除红/MA-07 与 C3-009 变异红——快照 `_tmp/phase3-*`/`phase4-*`）
+- [x] 绝缘层本体有单元测试（9 条）+ ≥1 跨模块接线验证（rule 23：globalTimer/Bind 真实拓扑断言）；30 点表接线验证（Phase 2 #2 站点消费方模块内）
+- [x] 30 点绝缘状态表 30 行处置登记完整（31 行含 F3 补登），锚点落 `docs-for-ai/04-reference/source-anchors.md`（INSUL-001/002）
+- [x] 全量构建绿：`./mvnw clean install -T 1C -DskipTests` 453/453 BUILD SUCCESS（授权支路已声明）+ Phase 5 清单 12 模块 focused 测试全部 BUILD SUCCESS（E1/E3；nop-runner 叶子级 71 绿替代通道已声明）
+- [x] Owner doc 更新完成：nop-job.md / nop-batch.md / nop-metadata.md / nop-message.md / nop-retry.md / source-anchors.md；缺口声明仅限 nop-cluster/nop-runner 两模块（E5）
+- [x] MA-06 钉死面（plan340 契约测试 + JobTimeoutCheckerImpl 注释）零改动（git diff 实证 0 行）；C10-008 护栏义务确认保留 3.1 侧未越界承接
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high`：触达面 high=0；nop-ai/nop-service-framework 7 条批前既有发现零触碰已逐条裁定登记（Phase 5 §3）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（raw 载体/C10-008/C3-017/C3-003 均为入批前已裁定的批外项，Deferred 节四条 successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27：agent_84c08f2f PASS with corrections）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）绝缘层→消费方调用链运行时连通（PeriodicTaskHelper:51/:75/:128 驱动 guard.runBody；消费方接线测试双落点），（b）无空方法体/静默吞异常（抽验 catch Throwable 路径全部有观测+重臂行为）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2496-cra-phase8.2-r1-01-insulation.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 14 成员行收敛 + roadmap 8.2 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -359,15 +359,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 本计划收口 CRA Phase 8.2（R1-01 周期任务异常绝缘层批）：nop-kernel 绝缘层本体（catch Throwable+completeExceptionally+重臂/观测+连续失败治理，source-compat 零签名改动）+ 30 点表逐行处置（12 设施级/16 显式接入/2 豁免）+ 14 项 P1 全部修复（12 模块、24+ 新回归测试、关键项变异先红后绿）。三处偏离（E1 支路/nop-runner .m2 基线既有/scan-hollow 批前既有 7 条）均已声明并给替代证据。roadmap 8.2 → done。
+Completed: 2026-10-24
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent 标识）
-- Audit Session: （session ID）
-- Evidence: （每条 Exit Criterion / Closure Gate 的 PASS/FAIL + 证据来源；check-plan-checklist --strict 退出码；Anti-Hollow 调用链追踪结果；scan-hollow 退出码；Deferred 分类检查结论）
+- Reviewer / Agent: agent_84c08f2f（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_84c08f2f-4373-4570-916b-9486ad061d19
+- Evidence:
+  - 判定 **PASS with corrections**（唯一 Minor-1=Phase 1 两处陈旧勾选，已按评审记录修正；Minor-2 文件计数口径漂移为观察项）
+  - 14 成员实仓抽验全部在位（逐成员 file:line 证据见审计报告；Anti-Hollow：PeriodicTaskHelper:51/:75/:128 调用链闭合、抽验 catch Throwable 路径零静默吞）
+  - checker 侧钉死零改动：`git diff ebab18ee46..HEAD` 双文件 0 行
+  - 测试 fresh 实跑：TestRetryScannerInsulation 3 条绿、TestKafkaConsumeTaskErrorBarrier 2 条绿（EXIT=0×2）
+  - 30 点处置 31 行与设计修订版 12/16/2 一致；抽 4 行回原点表逐字核对
+  - 零触碰实证：53 文件中 nop-tcc/nop-api-core/nop-auth/orm/_ 生成物命中 0
+  - 双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）；scan-hollow 触达面 high=0
+  - Deferred 分类检查：四条 Deferred（raw 载体/C10-008/C3-017/C3-003）均为入批前已裁定批外项、successor 指针清晰，无 in-scope live defect 被降级
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- Non-Blocking Follow-ups 节所列 5 项（cluster CycleSynchronizer 长期迁移/C4-002 同 diff 协同注记/nop-sys 注释卫生/nop-cli-core 死依赖治理/scan-hollow 批前既有 7 条）均已登记归属（R-G 治理轨/后续批次），无 remaining plan-owned work
