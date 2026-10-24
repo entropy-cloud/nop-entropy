@@ -112,7 +112,9 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
         step = addOutput(stepModel, step);
 
         if (stepModel.getRetry() != null) {
-            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel));
+            // 传入步骤级 executor 配置（1.5-C4-001/C4-008，plan 2498 Phase 2）：延迟重试轮次的
+            // 步骤体与簿记在该池上执行，executor 隔离对延迟路径真实生效（未配置回退 globalWorker）
+            step = new RetryTaskStepWrapper(step, buildRetryPolicy(stepModel), stepModel.getExecutor());
         }
 
         if (!StringHelper.isEmpty(stepModel.getExecutor())) {

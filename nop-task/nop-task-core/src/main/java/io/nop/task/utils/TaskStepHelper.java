@@ -8,6 +8,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.ICancellable;
 import io.nop.api.core.util.SourceLocation;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.lang.impl.Cancellable;
 import io.nop.commons.util.StringHelper;
@@ -32,6 +33,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -245,6 +247,12 @@ public class TaskStepHelper {
 
     public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
                                        IRetryPolicy<ITaskStepRuntime> retryPolicy, Callable<TaskStepReturn> action) {
+        return retry(loc, stepRt, retryPolicy, action, null);
+    }
+
+    public static TaskStepReturn retry(SourceLocation loc, ITaskStepRuntime stepRt,
+                                       IRetryPolicy<ITaskStepRuntime> retryPolicy,
+                                       Callable<TaskStepReturn> action, String executorBean) {
         do {
             checkNotCancelled(stepRt);
 
@@ -265,8 +273,16 @@ public class TaskStepHelper {
                     // thenCompleteAsync 同时处理 schedule 的成败：err != null 走 doRetry 重试，
                     // 成功则基于 result 判定 async（与非延迟路径结构一致）；handler 返回
                     // CompletionStage 时会被压平，保证外层 future 的最终完成值是同步 TaskStepReturn。
+                    //
+                    // 1.5-C4-001/MA-04（plan 2498 Phase 2）：schedule 的 callable 就是步骤体本身，
+                    // 完成回调链（doRetry 的 saveState 簿记）也在完成 future 的线程上执行。裸
+                    // schedule(action, delay) 会把整条链压到全平台共享 globalTimer 线程上（≥4 个
+                    // 长体重试并发即钉死全池，且步骤级 executor 隔离配置对延迟路径无效 = C4-008）。
+                    // 按平台调度槽契约改为「timer 只做定时唤醒 + 载体执行」：executeOn 载体 =
+                    // 步骤显式 executor（隔离配置对延迟路径真实生效）或共享 globalWorker。
                     return TaskStepReturn.of(null, FutureHelper.thenCompleteAsync(
                             stepRt.getTaskRuntime().getScheduledExecutor()
+                                    .executeOn(resolveRetryCarrier(stepRt, executorBean))
                                     .schedule(action, delay, TimeUnit.MILLISECONDS),
                             (TaskStepReturn result, Throwable err) -> {
                                 try {
@@ -322,6 +338,23 @@ public class TaskStepHelper {
                 throw NopException.adapt(saveErr);
             }
         } while (true);
+    }
+
+    /**
+     * 1.5-C4-001/MA-04（plan 2498 Phase 2）：延迟重试轮次的执行载体。步骤配置了显式
+     * {@code executor} 时用该池（executor 隔离配置对延迟路径真实生效 = C4-008 行为钉）；
+     * 未配置时回退共享 {@code globalWorker}——绝不把步骤体/簿记直接留在 globalTimer 线程。
+     */
+    static Executor resolveRetryCarrier(ITaskStepRuntime stepRt, String executorBean) {
+        if (!StringHelper.isEmpty(executorBean)) {
+            Executor executor = stepRt.getTaskRuntime().getThreadPoolExecutor(executorBean);
+            if (executor != null)
+                return executor;
+            LOG.warn("nop.task.retry-executor-bean-not-found:executorBean={},stepPath={}; "
+                    + "delayed retry body falls back to the shared global worker pool",
+                    executorBean, stepRt.getStepPath());
+        }
+        return GlobalExecutors.globalWorker();
     }
 
     static TaskStepReturn doRetry(TaskStepReturn value, Throwable err,
