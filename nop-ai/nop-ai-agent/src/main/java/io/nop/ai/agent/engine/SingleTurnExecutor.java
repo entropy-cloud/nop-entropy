@@ -11,6 +11,7 @@ import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.IChatService;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -21,7 +22,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -37,9 +37,19 @@ public class SingleTurnExecutor implements IAgentExecutor {
     private final long llmTimeoutMs;
     private final Executor timeoutExecutor;
 
-    /** Backward-compatible constructor: 120s timeout on the common pool. */
+    /**
+     * Backward-compatible constructor: 120s timeout on the platform global
+     * worker pool. CRA 3.1-C4-009 (plan 2498 Phase 4): the default carrier is
+     * {@code GlobalExecutors.globalWorker()} — <b>not</b>
+     * {@code ForkJoinPool.commonPool()}; the blocking {@code chatService.call}
+     * (up to {@code llmTimeoutMs}) must never occupy the JVM-wide common pool
+     * (same starvation argument as {@code DefaultAgentEngine}'s own executor).
+     * The defaulting emits a one-shot-per-construction WARN (visibility only —
+     * the carrier change is the fix; inject a dedicated executor for pool
+     * isolation, as {@code AgentExecutorResolver} does).
+     */
     public SingleTurnExecutor(IChatService chatService, IAgentEventPublisher eventPublisher) {
-        this(chatService, eventPublisher, 120_000L, ForkJoinPool.commonPool());
+        this(chatService, eventPublisher, 120_000L, null);
     }
 
     /**
@@ -50,13 +60,30 @@ public class SingleTurnExecutor implements IAgentExecutor {
      * {@code LlmCallCoordinator.callChatWithTimeout} (same config source:
      * {@code DefaultAgentEngineConfig.llmTimeoutMs} wired by
      * {@code AgentExecutorResolver}).
+     *
+     * <p>CRA 3.1-C4-009 default-pool semantics: a {@code null}
+     * {@code timeoutExecutor} falls back to {@code GlobalExecutors.globalWorker()}
+     * with a WARN — never to {@code ForkJoinPool.commonPool()}. An explicit
+     * non-null executor (the production wiring) is used as-is, without warning.
      */
     public SingleTurnExecutor(IChatService chatService, IAgentEventPublisher eventPublisher,
                               long llmTimeoutMs, Executor timeoutExecutor) {
         this.chatService = chatService;
         this.eventPublisher = eventPublisher;
         this.llmTimeoutMs = llmTimeoutMs;
-        this.timeoutExecutor = timeoutExecutor != null ? timeoutExecutor : ForkJoinPool.commonPool();
+        this.timeoutExecutor = timeoutExecutor != null ? timeoutExecutor : defaultTimeoutExecutor(llmTimeoutMs);
+    }
+
+    /**
+     * CRA 3.1-C4-009: the null-fallback default carrier. Returns the platform
+     * global worker pool; the WARN is the companion visibility signal (rule 16:
+     * warn alone would not be a fix — the carrier genuinely changes here).
+     */
+    private static Executor defaultTimeoutExecutor(long llmTimeoutMs) {
+        LOG.warn("nop.ai.agent.single-turn.default-timeout-executor: no timeoutExecutor configured "
+                + "— blocking LLM calls (up to {}ms) run on the shared nop-global-worker pool "
+                + "(CRA 3.1-C4-009); inject a dedicated executor for pool isolation", llmTimeoutMs);
+        return GlobalExecutors.globalWorker();
     }
 
     @Override
