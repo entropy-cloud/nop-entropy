@@ -14,20 +14,32 @@ import io.nop.ai.shell.io.FileShellInput;
 import io.nop.ai.shell.io.FileShellOutput;
 import io.nop.ai.shell.io.IShellInput;
 import io.nop.ai.shell.io.IShellOutput;
+import io.nop.ai.shell.io.ShellChunk;
 import io.nop.ai.shell.model.*;
 import io.nop.ai.shell.parser.BashSyntaxParser;
 import io.nop.ai.toolkit.fs.IToolFileSystem;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.ExecutorHelper;
+import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
 import io.nop.commons.util.IoHelper;
+
+import static io.nop.ai.shell.NopAiShellErrors.ARG_MSG;
+import static io.nop.ai.shell.NopAiShellErrors.ERR_AI_SHELL_INVALID_REDIRECT;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -269,14 +281,30 @@ public class ShellCommandExecutor implements Closeable {
         BlockingQueueShellOutput stdoutOutput = new BlockingQueueShellOutput();
         BlockingQueueShellOutput stderrOutput = new BlockingQueueShellOutput();
 
+        // C4-003 C8-001 mechanism A (MA-06, plan 2501 Phase 3): collectors must run
+        // CONCURRENTLY with production — the previous produce-then-collect order
+        // deadlocked the calling thread on queue.put once a command emitted more
+        // than the queue capacity (1024 chunks). Collector submission failure
+        // (saturated pool) fails loud BEFORE the command runs — no partial state.
+        CompletableFuture<String> stdoutText;
+        CompletableFuture<String> stderrText;
+        try {
+            stdoutText = submitCollector(stdoutOutput);
+            stderrText = submitCollector(stderrOutput);
+        } catch (RejectedExecutionException e) {
+            IoHelper.safeClose(stdoutOutput);
+            IoHelper.safeClose(stderrOutput);
+            throw NopException.adapt(e);
+        }
+
         try {
             int exitCode = executeSimpleCommandWithContext(cmd, context.stdin(), stdoutOutput, stderrOutput, context, cancelToken);
 
             stdoutOutput.close();
             stderrOutput.close();
 
-            String stdout = collectOutput(stdoutOutput);
-            String stderr = collectOutput(stderrOutput);
+            String stdout = stdoutText.join();
+            String stderr = stderrText.join();
 
             ExecutionResult result = new ExecutionResult(exitCode, stdout, stderr);
             updateContextFromResult(cmd, result, context);
@@ -288,16 +316,94 @@ public class ShellCommandExecutor implements Closeable {
         }
     }
 
+    /**
+     * C4-003 (MA-06, plan 2501 Phase 3): overflow / rejection declaration. Stage
+     * and collector tasks run on the injected (or default dedicated) bounded pool:
+     * pool saturation fails loud with {@link RejectedExecutionException} and is
+     * rolled back (see {@link #rollbackStages}); stage output queues are bounded
+     * (1024 chunks) with blocking writes — the bounded-queue backpressure is
+     * consumed by the always-started concurrent collector (pipeline last stage) or
+     * the next pipeline stage, and every abort path closes the queues it created
+     * and cancels the stages it submitted, so no producer stays pinned on a
+     * consumer that will never exist.
+     */
+    private CompletableFuture<String> submitCollector(BlockingQueueShellOutput output) {
+        Callable<String> drain = () -> collectOutput(output);
+        if (executor instanceof IThreadPoolExecutor) {
+            return ((IThreadPoolExecutor) executor).submit(drain);
+        }
+        if (executor instanceof ExecutorService) {
+            return ExecutorHelper.submit((ExecutorService) executor, drain);
+        }
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return drain.call();
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
+        }, executor);
+    }
+
+    /**
+     * C4-003 (MA-06): interrupt-capable stage submission — stage futures backed by
+     * a real FutureTask (platform bindCancel) so {@code cancel(true)} in the
+     * rollback / upstream-unblock paths genuinely interrupts a stage blocked in
+     * {@code queue.put}. A plain-Executor injection falls back to supplyAsync
+     * (cancel marks the future; the close-fail-loud path still aborts producers
+     * not yet inside put).
+     */
+    private CompletableFuture<Integer> submitStage(Callable<Integer> task) {
+        if (executor instanceof IThreadPoolExecutor) {
+            return ((IThreadPoolExecutor) executor).submit(task);
+        }
+        if (executor instanceof ExecutorService) {
+            return ExecutorHelper.submit((ExecutorService) executor, task);
+        }
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return task.call();
+            } catch (Exception e) {
+                throw NopException.adapt(e);
+            }
+        }, executor);
+    }
+
+    /**
+     * C4-003 (MA-06): submission-abort / early-exit rollback — cancel the stages
+     * already submitted (interrupts a running stage on FutureTask-backed futures)
+     * and close every queue this pipeline created, so producers not yet inside
+     * {@code queue.put} fail loud on the next write and no thread stays pinned on
+     * a consumer that will never be submitted. Rollback is observable (WARN).
+     */
+    private void rollbackStages(List<CompletableFuture<Integer>> stageFutures,
+                                List<BlockingQueueShellOutput> stageOutputs, String reason) {
+        if (stageFutures.isEmpty()) {
+            return;
+        }
+        LOG.warn("ShellCommandExecutor: pipeline rollback ({} committed stage(s)): {}", stageFutures.size(), reason);
+        for (CompletableFuture<Integer> stageFuture : stageFutures) {
+            stageFuture.cancel(true);
+        }
+        for (BlockingQueueShellOutput out : stageOutputs) {
+            IoHelper.safeClose(out);
+        }
+    }
+
     private CompletionStage<ExecutionResult> executePipeline(PipelineExpr pipeline, IShellCommandExecutionContext context, ICancelToken cancelToken) {
         List<CommandExpression> commands = pipeline.commands();
         IShellInput currentInput = context.stdin();
         BlockingQueueShellOutput prevOutput = null;
         List<CompletableFuture<Integer>> stageFutures = new ArrayList<>();
+        List<BlockingQueueShellOutput> stageOutputs = new ArrayList<>();
 
         for (int i = 0; i < commands.size(); i++) {
             CommandExpression cmdExpr = commands.get(i);
 
             if (!(cmdExpr instanceof SimpleCommand)) {
+                // C6-004 early-exit face (MA-06): stages may already be committed —
+                // roll them back instead of abandoning them
+                rollbackStages(stageFutures, stageOutputs,
+                        "pipeline does not support complex commands (mid-pipeline early exit)");
                 return FutureHelper.success(new ExecutionResult(1, "", "Pipeline does not support complex commands yet"));
             }
 
@@ -308,29 +414,60 @@ public class ShellCommandExecutor implements Closeable {
             final IShellInput input = stageInput;
             final IShellOutput out = output;
 
-            CompletableFuture<Integer> stageFuture = CompletableFuture.supplyAsync(() -> {
-                try {
-                    return executeSimpleCommandWithContext(cmd, input, out, context.stderr(), context, cancelToken);
-                } catch (Exception e) {
-                    throw io.nop.api.core.exceptions.NopException.adapt(e);
-                } finally {
-                    IoHelper.safeClose(out);
-                }
-            }, executor);
-
-            stageFutures.add(stageFuture);
+            try {
+                CompletableFuture<Integer> stageFuture = submitStage(() -> {
+                    try {
+                        return executeSimpleCommandWithContext(cmd, input, out, context.stderr(), context, cancelToken);
+                    } catch (Exception e) {
+                        throw NopException.adapt(e);
+                    } finally {
+                        IoHelper.safeClose(out);
+                    }
+                });
+                stageFutures.add(stageFuture);
+            } catch (RejectedExecutionException e) {
+                // C4-003 (MA-06): submission abort — the consumer of the last committed
+                // stage will never be submitted; cancel what runs and close what was
+                // created, then fail loud
+                rollbackStages(stageFutures, stageOutputs, "stage submission rejected (pool saturated)");
+                throw NopException.adapt(e);
+            }
+            stageOutputs.add(output);
             prevOutput = output;
+        }
+
+        // C8-003 face (MA-06): failure propagation never travelled upstream — a dead
+        // stage's producer blocked in queue.put forever. Every stage failure now
+        // cancels its upstream stages (interrupt aborts their put) and is observed
+        // (CL-008①: a non-last stage's exception is no longer silently dropped).
+        for (int i = 0; i < stageFutures.size(); i++) {
+            int stageIndex = i;
+            stageFutures.get(i).whenComplete((v, e) -> {
+                if (e != null) {
+                    LOG.warn("ShellCommandExecutor: pipeline stage {} failed", stageIndex, e);
+                    for (int upstream = 0; upstream < stageIndex; upstream++) {
+                        stageFutures.get(upstream).cancel(true);
+                    }
+                }
+            });
         }
 
         BlockingQueueShellOutput lastOutput = prevOutput;
 
-        CompletableFuture<ExecutionResult> pipelineFuture =
-                stageFutures.get(stageFutures.size() - 1).thenApply(lastExitCode -> {
-                    String stdout = collectOutput(lastOutput);
-                    return new ExecutionResult(lastExitCode, stdout, "");
-                });
+        // C8-001 mechanism B (MA-06): the last stage's collection starts CONCURRENTLY
+        // with its production — chaining collectOutput only after the last stage
+        // future completed deadlocked that stage on its own queue for >1024-chunk
+        // outputs (the collector was topologically forbidden from starting).
+        CompletableFuture<String> lastStdout;
+        try {
+            lastStdout = submitCollector(lastOutput);
+        } catch (RejectedExecutionException e) {
+            rollbackStages(stageFutures, stageOutputs, "last-stage collection submission rejected (pool saturated)");
+            throw NopException.adapt(e);
+        }
 
-        return pipelineFuture;
+        return stageFutures.get(stageFutures.size() - 1).thenCombine(lastStdout,
+                (lastExitCode, stdout) -> new ExecutionResult(lastExitCode, stdout, ""));
     }
 
     private CompletionStage<ExecutionResult> executeLogicalExpr(LogicalExpr logical, IShellCommandExecutionContext context, ICancelToken cancelToken) {
@@ -568,13 +705,27 @@ public class ShellCommandExecutor implements Closeable {
         int sourceFd = redirect.sourceFd() != null ? redirect.sourceFd() : 0;
         String targetStr = redirect.target();
 
+        int targetFd;
         try {
-            int targetFd = Integer.parseInt(targetStr);
+            targetFd = Integer.parseInt(targetStr);
+        } catch (NumberFormatException e) {
+            // C8-011 (MA-06, plan 2501 Phase 3): FD_INPUT combinations were silently
+            // ignored pre-fix — silent misdirection is the same face; make it explicit
+            throw new NopException(ERR_AI_SHELL_INVALID_REDIRECT).param(ARG_MSG,
+                    "non-numeric fd input redirect target: " + targetStr);
+        }
 
-            if (sourceFd == 0 && targetFd == 1) {
-                streams.stdin = streams.stdout.asInput();
-            }
-        } catch (NumberFormatException e) { /* non-numeric fd target, ignore */ }
+        if (sourceFd == 0 && targetFd == 1) {
+            // C8-011 (MA-06, plan 2501 Phase 3): stdin aliased to the command's own
+            // stdout queue is a deterministic deadlock — nothing will ever produce the
+            // chunk the reader waits for. Reject loud instead of hanging the caller.
+            throw new NopException(ERR_AI_SHELL_INVALID_REDIRECT).param(ARG_MSG,
+                    "0<&1 self-referential input redirection rejected: stdin would read this "
+                            + "command's own stdout queue and deadlock");
+        }
+        // 其余 FD_INPUT 组合（修复前静默忽略面，C8-011 同修）：显式拒绝
+        throw new NopException(ERR_AI_SHELL_INVALID_REDIRECT).param(ARG_MSG,
+                "unsupported fd input redirection " + sourceFd + "<&" + targetFd);
     }
 
     private void handleMergeRedirect(RedirectedStreams streams, Redirect redirect, boolean append) {
@@ -672,11 +823,44 @@ public class ShellCommandExecutor implements Closeable {
         return path.isEmpty() ? "/" : path;
     }
 
+    /**
+     * C4-003 F9 (MA-06, plan 2501 Phase 3): a collection failure is observable —
+     * logged and propagated — never silently mapped to an empty string.
+     *
+     * <p>The drain itself runs on the queue with a closed-and-drained backstop: the
+     * EOF chunk is delivered by {@code close()} via a non-blocking offer (MA-05 face,
+     * untouched here), so once the producer side is closed a momentarily-full queue
+     * could drop the EOF chunk; {@code closed && queue.isEmpty()} is terminal
+     * regardless (after close no further data chunk can arrive — {@code write()}
+     * rejects on a closed output).
+     */
     private String collectOutput(BlockingQueueShellOutput output) {
         try {
-            return output.asInput().readAllText();
-        } catch (Exception e) {
-            return "";
+            BlockingQueue<ShellChunk> queue = output.getQueue();
+            StringBuilder sb = new StringBuilder();
+            while (true) {
+                ShellChunk chunk = queue.poll(50, TimeUnit.MILLISECONDS);
+                if (chunk == null) {
+                    if (output.isClosed() && queue.isEmpty()) {
+                        break;
+                    }
+                    continue;
+                }
+                if (chunk.isEof()) {
+                    break;
+                }
+                if (chunk.isText()) {
+                    sb.append(chunk.asText());
+                }
+            }
+            return sb.toString();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            LOG.warn("ShellCommandExecutor: shell output collection interrupted", e);
+            throw NopException.adapt(e);
+        } catch (RuntimeException e) {
+            LOG.warn("ShellCommandExecutor: failed to collect shell output", e);
+            throw e;
         }
     }
 

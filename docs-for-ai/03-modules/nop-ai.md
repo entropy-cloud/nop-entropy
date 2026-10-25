@@ -178,9 +178,13 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 
 装配形态：`<property name="sandbox" ref="..."/>` 注入 `BashExecutor`。默认 fail-closed 语义是硬约束——任何接线不得改变"未显式 opt-in 时拒绝调用"的行为；全仓生产装配面无默认静默启用 bash 的路径（`TestBashToolDefaultWiring` 守护该文件）。
 
+**沙箱清理契约（3.2-C6-001/C6-002/C6-003，plan 2501）**：三口径在 Host/Docker 双实现统一——①reader 退出补偿：宽限耗尽后显式关流强制 EOF（interrupt 对阻塞原生 read 无效），reader 线程唯一命名（callId 后缀）可观测，stdin 恒指向 NUL 设备（`cat` 类命令不悬挂）；`cmd &` 孪生子进程的输出在主进程结束后丢弃（声明边界，孪生进程本身由宿主回收）。②Docker 清理失败可见化：`docker kill`/`docker rm -f` 失败（异常或非零退出）记 WARN 携容器名——容器名是残留的唯一可寻址面，运维按名清扫；**容器侧兜底裁定 = 声明运维边界 + 本包络**（不内置 `--stop-timeout`/后台 reaper——后者为 Deferred 增强项）；超时路径对本地 `docker run` CLI 进程 `destroyForcibly()` 兜底（CLI 不随容器清理失败而滞留）。③清理辅助命令（`docker kill`/`rm -f`）有界化：限时 drain（3s）+ 有界 waitFor（1s）+ 超时必 destroy——daemon 挂死不再钉死清理线程（wallSeconds 契约不被绕过）。取消路径（`cancelExecution`）带进程树收割 + 关流补偿。回归测试：`TestSandboxReaderExitCompensation_C6_001`/`TestDockerKillVisibility_C6_002`/`TestDockerTimeoutCliBackstop_C6_002`/`TestRunShortCommandBounded_C6_003`。
+
 ### shell 命令执行池与 pipeline 包络（nop-ai-shell，3.2-C4-004，plan 2498）
 
 `ShellCommandExecutor` 缺省装配（未注入 executor）不回落平台 `globalWorker`：构造模块专用有界命名池 `nop-ai-shell-pipeline`（32 线程/队列 1024/daemon，平台池工厂校验契约构造）——pipeline 生产/消费阶段与前台 bash 工具池、平台 worker 三者隔离，阶段任务不与全平台任务共池。**池参数包络** =「最大并发会话 × 最大管道段数」：有效并发行 ≤32、待发段深度 ≤1024。显式注入 executor 保持优先且永不被实例 `close()` 触碰（所有权边界=仅关闭自建池，`close()` 有界关闭）。测试锚点：`TestShellPipelinePoolIsolation_C4_004_3_2`（缺省链隔离钉/注入优先钉/close 终结钉）。
+
+**pipeline 失败回滚契约（3.2-C4-003，plan 2501）**：阶段提交 REE 与管道早退即回滚——取消已提交阶段（FutureTask 载体下真实中断）并关闭全部已建队列（写方下一写显式失败），调用方得异常终态且池无线程滞留；任一阶段异常向上游传播取消（下游死亡不再钉死上游生产者）且非末位阶段异常 WARN 可观测；末级收集与末级生产并发启动（>1024 chunk 输出不再自锁，单命令路径收集同样并行化）；`0<&1` 自引用及其余 FD_INPUT 组合显式拒绝（不再静默忽略/挂死）；输出收集失败显式 WARN + 异常传播（不静默空串）。溢出语义声明：阶段队列 1024 chunk 有界阻塞写（背压由并发收集器消费），池饱和 fail-loud + 回滚。cancelToken 在本执行器链仅透传、无自身检查点——该覆盖面**裁定归 R4-23 批次承载**（3.2 工具输出/路径束；非 G56 dormant 面、不 Deferred）。回归测试：`TestShellPipelineDeadlockFamily_C4_003`（两自锁拓扑钉/REE 回滚/阶段异常解锁/`0<&1` 拒绝/收集可观测/端到端）。
 
 ### 工具执行语义（nop-ai-toolkit，P2 round-4 收口）
 

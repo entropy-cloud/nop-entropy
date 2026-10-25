@@ -126,7 +126,7 @@ Exit Criteria:
 
 ### Phase 2 - 分片 B：3.2-C6-001/C6-002/C6-003 沙箱清理族三工单（nop-ai-toolkit sandbox）
 
-Status: in progress
+Status: completed
 Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/sandbox/HostBashSandbox.java`（:92-95/:178-180/:188-198）、`DockerBashSandbox.java`（:107-110/:120-124/:137-141/:253-264/:266-275）、`BashExecutionTracker.java`（:63-75/:82-98）、`nop-ai/nop-ai-toolkit/src/test/`
 
 - Item Types: `Fix`（三工单均为已确认 live defect P1）、`Decision`（容器侧兜底形态三选一裁定）、`Proof`（回归测试）
@@ -136,54 +136,54 @@ Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/sandbox/Ho
 - [x] 3.2-C6-001（MA-02 主，含 C6-008/C4-001 成员面同 diff）：reader 退出补偿——drainStream 结束/中断路径显式 `in.close()` 强制 EOF（关流替代无效 interrupt）；`redirectInput(NUL)` 杜绝 stdin 悬挂；终态发布改不可变快照 + `capturedToString`/`progressSnapshot` 消费面同步；Docker 侧孪生实现同修（**F3 残留随 MA-02 补齐义务**）；孪生场景 `ProcessHandle.descendants()` 收割或文档声明边界（二选一以实现期裁定落账）
 - [x] 3.2-C6-002（MA-03 主，含 C8-009）：`killContainer` 双 `catch ignored` 改显式 WARN（容器名/步骤/异常可见）+ CLI 进程 `destroyForcibly()` 兜底；容器侧兜底形态三选一裁定落账（`--stop-timeout` / 后台 reaper / 声明运维边界+owner doc 包络）；unregister 配对保留、失败不再静默
 - [x] 3.2-C6-003（MA-04，含 C4-002 心跳占用面）：`runShortCommand` 重写有界形态（drain 累计时限或 `waitFor(total)`→`destroyForcibly()`→再 drain）；`waitFor` false 分支补 `destroyForcibly()`；清理线程不再被 daemon 挂死钉死
-- [ ] 回归测试（rule 25，测试名带 `_C6_001`/`_C6_002`/`_C6_003`）：①孪生进程负载（`sh -c "sleep 30 & echo started"` 形态）reader 线程预算内终止断言（线程名计数，Host 侧无 Docker 依赖承载 CI 可见面——3.2-C10-005 形态）；②终态快照并发稳定性断言（execute 返回后并发 capturedToString/progressSnapshot N 次无异常内容前缀稳定）；③kill 失败故障注入可见性断言（3.2-C10-006 形态：注入失败 CLI → WARN 可观测 + destroyForcibly 兜底发生）；④runShortCommand 挂死注入有界返回断言；⑤既有沙箱测试（TestBashExecutionProgress 等 plan 2285 已修面）零回归
-- [ ] **护栏共享形态**：docker 门内用例与 3.1-C10-011 共用 `isDockerAvailable` 门控形态；Host 侧无 Docker 依赖用例承载主要回归面
-- [ ] **接线验证**（rule 23）：真实 execute/超时路径上断言关流补偿与 destroyForcibly 兜底运行时生效（线程终止/进程退出可观测）
-- [ ] **无静默跳过**（rule 24）：kill/cleanup 失败路径显式日志与异常传播，不吞异常
-- [ ] **提交纪律**：三工单三提交（或按实际 diff 面单提交并声明关系），commit message 带对应工单 ID 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试（rule 25，测试名带 `_C6_001`/`_C6_002`/`_C6_003`）：①孪生进程负载（`sh -c "sleep 30 & echo started"` 形态）reader 线程预算内终止断言（线程名计数，Host 侧无 Docker 依赖承载 CI 可见面——3.2-C10-005 形态）；②终态快照并发稳定性断言（execute 返回后并发 capturedToString/progressSnapshot N 次无异常内容前缀稳定）；③kill 失败故障注入可见性断言（3.2-C10-006 形态：注入失败 CLI → WARN 可观测 + destroyForcibly 兜底发生）；④runShortCommand 挂死注入有界返回断言；⑤既有沙箱测试（TestBashExecutionProgress 等 plan 2285 已修面）零回归
+- [x] **护栏共享形态**：docker 门内用例与 3.1-C10-011 共用 `isDockerAvailable` 门控形态；Host 侧无 Docker 依赖用例承载主要回归面（实现期强化：本分片 Docker 用例经 fake-CLI 注入接缝/反射直调无需真实 daemon 即确定性执行，强于门控形态）
+- [x] **接线验证**（rule 23）：真实 execute/超时路径上断言关流补偿与 destroyForcibly 兜底运行时生效（线程终止/进程退出可观测）
+- [x] **无静默跳过**（rule 24）：kill/cleanup 失败路径显式日志与异常传播，不吞异常
+- [x] **提交纪律**：三工单三提交（或按实际 diff 面单提交并声明关系），commit message 带对应工单 ID 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.2-C6-001/C6-002/C6-003 三工单全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 沙箱清理族三口径在位：超时 destroyForcibly + reader 退出补偿 + kill 失败可见化；Docker 侧 F3 残留补齐（toolkit 侧）
-- [ ] 必红证据（E2）：reader 泄漏断言与 kill 失败静默断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-c6-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-ai/nop-ai-toolkit -am` BUILD SUCCESS（含 Phase 1 面回归）
-- [ ] Owner doc 裁定：`nop-ai.md` bash 工具 sandbox 节（清理契约/超时语义）核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.2-C6-001/C6-002/C6-003 三工单全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 沙箱清理族三口径在位：超时 destroyForcibly + reader 退出补偿 + kill 失败可见化；Docker 侧 F3 残留补齐（toolkit 侧）
+- [x] 必红证据（E2）：reader 泄漏断言与 kill 失败静默断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-c6-*.log`）
+- [x] 接线验证证据登记
+- [x] `./mvnw test -pl nop-ai/nop-ai-toolkit -am` BUILD SUCCESS（含 Phase 1 面回归）
+- [x] Owner doc 裁定：`nop-ai.md` bash 工具 sandbox 节（清理契约/超时语义）核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 分片 C：3.2-C4-003（MA-06）shell pipeline 死锁族单 diff（nop-ai-shell）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/executor/ShellCommandExecutor.java`（:291-330 executePipeline、:245-284 executeSimpleCommand、:675-681 collectOutput）、`nop-ai/nop-ai-shell/src/main/java/io/nop/ai/shell/io/BlockingQueueShellOutput.java`（:15/:30）、`nop-ai/nop-ai-shell/src/test/`
 
 - Item Types: `Fix`（3.2-C4-003 族案已确认 live defect P1——B1-03 终裁维持）、`Decision`（cancelToken 检查点去向三选一裁定 + 溢出行为声明口径）、`Proof`（回归测试）
 
-- [ ] 提交循环 REE 回滚：`supplyAsync` 提交 try/catch REE——失败时对 `stageFutures` 已提交项逐个 `cancel(true)` + 对 `prevOutput` 链逐级 `close()`（close offer EOF 解除下游 `queue.put` 阻塞）；已提交阶段无线程滞留
-- [ ] C8-001 面修复（同 diff）：`executeSimpleCommand` 收集与生产并行化（或等效有界形态——消除同线程写满 1024 chunk 自锁，live :245-284）+ `executePipeline` 末级收集并行化（收集与末级 stage 生产并发启动、不待其完成，live :327-331）
-- [ ] F9 面（同 diff）：`collectOutput`（live :675-681）去吞异常——收集失败显式可观测（日志/异常传播，与 kill/cleanup 可见化同口径），不静默返回空串
-- [ ] cancelToken 检查点去向裁定：G56 条化 / R4-23 工单 / Deferred 三选一，显式登记于执行注记（不静默丢弃——本执行器链现仅透传 token、无自身检查点，去向须落账）
-- [ ] 中途失败/早退弃管 close（C6-004 面）+ `0<&1` 自引用拒绝语义（C8-011 面）同 diff 落地；溢出行为按平台 `QueueOverflowPolicy` 语义显式声明
-- [ ] 族成员面单 diff 承载核对：C6-004/C8-001/C8-003/C8-011 面随本 diff 收敛（族成员关系与单 diff 修复范围不变裁定）；条化判级维持 G56 登记、不单独立卷（cra-index 注记归 Phase 5）
-- [ ] 回归测试（rule 25，测试名带 `_C4_003`，3.2-C10-001 单保护面覆盖 MA-06 五成员）：①1025-chunk 参数化挂死检测（小容量/小池注入 + `@Timeout` 断言完成；显式钉两个自锁拓扑——「末级 stage 1025-chunk」+「单命令 >1024」）；②阶段 lambda 异常注入断言上游解锁、无线程滞留（线程数断言）；③REE 饱和池提交中止回滚断言（已提交阶段取消 + 队列解除阻塞）；④`0<&1` 拒绝语义；⑤collectOutput 失败可观测断言（不再静默空串）；⑥既有 `ShellConcurrencyEdgeCaseTest` 与 `TestShellPipelinePoolIsolation_C4_004_3_2`（2498 池隔离钉）零回归
-- [ ] **接线验证**（rule 22 端到端——真实入口→终态输出；rule 23）：真实 executePipeline 多阶段链（缺省专用池装配）上断言回滚路径运行时生效；真实单命令入口到 ExecutionResult 终态输出完整走通
-- [ ] **无静默跳过**（rule 24）：提交中止路径显式异常传播 + 回滚动作可观测；collectOutput 失败不静默吞
-- [ ] **提交纪律**：nop-ai-shell 一提交，commit message 带 `3.2-C4-003` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 提交循环 REE 回滚：`supplyAsync` 提交 try/catch REE——失败时对 `stageFutures` 已提交项逐个 `cancel(true)` + 对 `prevOutput` 链逐级 `close()`（close offer EOF 解除下游 `queue.put` 阻塞）；已提交阶段无线程滞留
+- [x] C8-001 面修复（同 diff）：`executeSimpleCommand` 收集与生产并行化（或等效有界形态——消除同线程写满 1024 chunk 自锁，live :245-284）+ `executePipeline` 末级收集并行化（收集与末级 stage 生产并发启动、不待其完成，live :327-331）
+- [x] F9 面（同 diff）：`collectOutput`（live :675-681）去吞异常——收集失败显式可观测（日志/异常传播，与 kill/cleanup 可见化同口径），不静默返回空串
+- [x] cancelToken 检查点去向裁定：G56 条化 / R4-23 工单 / Deferred 三选一，显式登记于执行注记（不静默丢弃——本执行器链现仅透传 token、无自身检查点，去向须落账）
+- [x] 中途失败/早退弃管 close（C6-004 面）+ `0<&1` 自引用拒绝语义（C8-011 面）同 diff 落地；溢出行为按平台 `QueueOverflowPolicy` 语义显式声明
+- [x] 族成员面单 diff 承载核对：C6-004/C8-001/C8-003/C8-011 面随本 diff 收敛（族成员关系与单 diff 修复范围不变裁定）；条化判级维持 G56 登记、不单独立卷（cra-index 注记归 Phase 5）
+- [x] 回归测试（rule 25，测试名带 `_C4_003`，3.2-C10-001 单保护面覆盖 MA-06 五成员）：①1025-chunk 参数化挂死检测（小容量/小池注入 + `@Timeout` 断言完成；显式钉两个自锁拓扑——「末级 stage 1025-chunk」+「单命令 >1024」）；②阶段 lambda 异常注入断言上游解锁、无线程滞留（线程数断言）；③REE 饱和池提交中止回滚断言（已提交阶段取消 + 队列解除阻塞）；④`0<&1` 拒绝语义；⑤collectOutput 失败可观测断言（不再静默空串）；⑥既有 `ShellConcurrencyEdgeCaseTest` 与 `TestShellPipelinePoolIsolation_C4_004_3_2`（2498 池隔离钉）零回归
+- [x] **接线验证**（rule 22 端到端——真实入口→终态输出；rule 23）：真实 executePipeline 多阶段链（缺省专用池装配）上断言回滚路径运行时生效；真实单命令入口到 ExecutionResult 终态输出完整走通
+- [x] **无静默跳过**（rule 24）：提交中止路径显式异常传播 + 回滚动作可观测；collectOutput 失败不静默吞
+- [x] **提交纪律**：nop-ai-shell 一提交，commit message 带 `3.2-C4-003` 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.2-C4-003 landed：REE 回滚 + 弃管 close + 自引用拒绝 + C8-001 面收集/生产并行化（单命令与末级 stage 双拓扑）+ F9 collectOutput 可观测化在位（族单 diff），带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：REE 级联阻塞断言与 C8-001 自锁断言（「末级 stage 1025-chunk」+「单命令 >1024」双拓扑）先红后绿或变异/回退论证留痕（修复前基线阶段 k-1 永久阻塞红；快照 `_tmp/phase3-c4-003-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-ai/nop-ai-shell -am` BUILD SUCCESS；2498 池隔离基线零回退（`TestShellPipelinePoolIsolation_C4_004_3_2` 全绿）
-- [ ] Owner doc 裁定：`nop-ai.md` shell pipeline 节（失败回滚契约）核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.2-C4-003 landed：REE 回滚 + 弃管 close + 自引用拒绝 + C8-001 面收集/生产并行化（单命令与末级 stage 双拓扑）+ F9 collectOutput 可观测化在位（族单 diff），带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：REE 级联阻塞断言与 C8-001 自锁断言（「末级 stage 1025-chunk」+「单命令 >1024」双拓扑）先红后绿或变异/回退论证留痕（修复前基线阶段 k-1 永久阻塞红；快照 `_tmp/phase3-c4-003-*.log`）
+- [x] 接线验证证据登记
+- [x] `./mvnw test -pl nop-ai/nop-ai-shell -am` BUILD SUCCESS；2498 池隔离基线零回退（`TestShellPipelinePoolIsolation_C4_004_3_2` 全绿）
+- [x] Owner doc 裁定：`nop-ai.md` shell pipeline 节（失败回滚契约）核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 分片 D：3.1-MA-17 沙箱清理族 + 3.1-C7-014 heartbeat 预算（nop-ai-agent）
 

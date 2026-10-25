@@ -51,6 +51,16 @@ public class BlockingQueueShellOutput implements IShellOutput {
         return new BlockingQueueShellInputAdapter(queue);
     }
 
+    /**
+     * C4-003 (MA-06, plan 2501 Phase 3): exposes the close flag so an executor-side
+     * collector can use {@code closed && queue.isEmpty()} as a terminal backstop even
+     * when the EOF chunk was dropped by a full queue (executor-side mitigation; the
+     * {@code close()} offer semantics themselves are MA-05 scope and untouched).
+     */
+    public boolean isClosed() {
+        return closed;
+    }
+
     public BlockingQueue<ShellChunk> getQueue() {
         return queue;
     }
