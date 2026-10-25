@@ -82,6 +82,12 @@ public class TestDockerTimeoutCliBackstop_C6_002 {
                     .build());
 
             assertTrue(result.isTimedOut(), "wall timeout must be enforced");
+            // destroyForcibly is asynchronous — under suite load the CLI process may
+            // need a moment to actually die; bounded await instead of a same-tick check
+            long deadline = System.currentTimeMillis() + 5000;
+            while (fakeCli.get() != null && fakeCli.get().isAlive() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(50);
+            }
             assertTrue(fakeCli.get() != null && !fakeCli.get().isAlive(),
                     "the local `docker run` CLI process must be destroyed by the timeout-path backstop");
             boolean killFailureVisible = appender.list.stream().anyMatch(e -> e.getLevel() == Level.WARN
