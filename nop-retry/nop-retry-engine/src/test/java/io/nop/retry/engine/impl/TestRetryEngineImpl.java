@@ -1083,6 +1083,11 @@ public class TestRetryEngineImpl extends JunitAutoTestCase {
         }
 
         @Override
+        public long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize) {
+            return delegate.purgeExpiredLedgerRows(retentionTimeMillis, batchSize);
+        }
+
+        @Override
         public void savePolicy(NopRetryPolicy policy) {
             delegate.savePolicy(policy);
         }

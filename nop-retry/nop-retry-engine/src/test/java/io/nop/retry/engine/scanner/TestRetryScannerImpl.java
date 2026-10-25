@@ -131,6 +131,11 @@ class TestRetryScannerImpl {
         }
 
         @Override
+        public long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public io.nop.retry.dao.entity.NopRetryPolicy loadPolicy(String policyId) {
             throw new UnsupportedOperationException();
         }

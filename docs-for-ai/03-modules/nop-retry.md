@@ -89,6 +89,24 @@
 - **存活指标**：`getScanCount()` / `getLastScanTimeMillis()` / `getLastScanDurationMillis()`（每轮扫描结束刷新，含异常路径）与 `getScanFailureCount()` / `getLastScanFailureTimeMillis()`——`lastScanTimeMillis` 停止增长即扫描链停摆的可判别信号。
 - **积压兜底**：扫描停摆的直接后果是 `nop_retry_record` 表积压；绝缘层消除「单次 Throwable 即永久停摆」后，表积压回归瞬态可自愈。
 
+## 账本保留策略（1.6-C7-001，plan 2502）
+
+三账本表（`nop_retry_record` / `nop_retry_attempt` / `nop_retry_dead_letter`）由引擎生命周期链周期清理（与扫描链同构的绝缘载体，taskName=`nop-retry-ledger-cleanup`）。参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md（R01 族级保留策略，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.retry.ledger.retention-days` | 30 | 保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast |
+| `nop.retry.ledger.cleanup-interval` | 1h | 清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.retry.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（有界拾取+IN 批删）；非正数启动期 fail-fast |
+
+清理谓词与保留语义：
+
+- **COMPLETED record**：锚列 `updateTime`、谓词 `status=COMPLETED`，超期整行删除，其 attempt 行级联删除。
+- **死信**：锚列 `createTime`，超期整行删除；其孤儿 attempt（recordId 指向已删除 record，含死信化与 OVERWRITE 重建两类来源）随死信保留期一并删除。
+- **不清理**：PENDING/RETRYING/SUSPENDED（在途/可恢复）记录永不进入清理谓词。
+- **死信重放通道随保留期关闭**：死信行超期清除后，`retryFromDeadLetter` 对该行不再可用——需要长期保留可重放死信的部署应调大 `nop.retry.ledger.retention-days`。
+- 清理失败显式可见：失败轮 ERROR（`nop.retry.ledger.cleanup-fail`）+ 失败计数，周期链由绝缘层保障不断链。
+
 ## 子模块
 
 | 子模块 | 职责 |

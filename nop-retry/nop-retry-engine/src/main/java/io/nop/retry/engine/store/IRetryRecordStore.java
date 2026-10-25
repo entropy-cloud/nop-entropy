@@ -87,6 +87,25 @@ public interface IRetryRecordStore {
 
     void moveToDeadLetter(NopRetryRecord record, String errorCode, String errorMessage, String errorStack);
 
+    /**
+     * 1.6-C7-001（plan 2502）：三账本表保留期清理。参数语义 =
+     * ai-dev/design/concurrency/ledger-retention-policy.md §3.4 成员 1 行（时间锚列显式落名）：
+     * <ul>
+     * <li>COMPLETED record：锚列 updateTime、谓词 status=COMPLETED，级联删除其 attempt 行</li>
+     * <li>死信：锚列 createTime，级联删除孤儿 attempt（recordId IN 死信 recordId 集；
+     * sid 为 seq 生成不复用，删除安全）</li>
+     * <li>孤儿 attempt 兜底扫描：锚列 startTime，recordId 不在任何活跃 record 行——统一覆盖
+     * 死信迁移、OVERWRITE 重建（无死信行孤儿源）及历史遗留孤儿</li>
+     * </ul>
+     * 每轮每表先按锚列谓词+limit 有界拾取主键集再按 IN 集批删（单批删除上限 batchSize）；
+     * 谓词幂等，重复触发无害。retentionTimeMillis &lt;= 0 或 batchSize &lt;= 0 时行为未定义，
+     * 由调用方（引擎装配期校验）fail-fast 保证不出现。
+     *
+     * @param retentionTimeMillis 保留期（毫秒）
+     * @param batchSize           单轮单表删除上限
+     * @return 本轮删除的行数（record+attempt+deadLetter 合计）
+     */
+    long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize);
 
     long getCurrentTime();
 

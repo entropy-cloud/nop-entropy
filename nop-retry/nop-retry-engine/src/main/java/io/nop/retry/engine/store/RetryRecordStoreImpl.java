@@ -22,6 +22,8 @@ import io.nop.retry.dao.entity.NopRetryAttempt;
 import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
+import io.nop.retry.dao.entity._gen._NopRetryAttempt;
+import io.nop.retry.dao.entity._gen._NopRetryDeadLetter;
 import io.nop.retry.engine.NopRetryConstants;
 import jakarta.inject.Inject;
 
@@ -307,6 +309,96 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         // 副作用：deadLetter.record 关系悬空（无 FK/cascade），attempt 行成为孤儿；
         // 终态视图以死信页为准（死信行保留 recordId 快照）。
         getRecordDao().deleteEntityDirectly(record);
+    }
+
+    @Override
+    public long purgeExpiredLedgerRows(long retentionTimeMillis, int batchSize) {
+        // 清理谓词时间锚列显式落名（ledger-retention-policy §3.4 成员 1）：
+        // nop_retry_record=updateTime(+status=COMPLETED)、nop_retry_dead_letter=createTime、
+        // nop_retry_attempt=recordId 级联随父（死信 recordId 集）+ startTime 孤儿兜底扫描。
+        long now = getRecordDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+        Timestamp cutoff = new Timestamp(now - retentionTimeMillis);
+        long total = 0L;
+
+        // ① COMPLETED record：updateTime < cutoff 且 status=COMPLETED，级联删 attempt
+        QueryBean recordQuery = new QueryBean();
+        recordQuery.setLimit(batchSize);
+        recordQuery.addFilter(FilterBeans.eq(PROP_NAME_status, NopRetryConstants.RETRY_RECORD_STATUS_COMPLETED));
+        recordQuery.addFilter(FilterBeans.lt(PROP_NAME_updateTime, cutoff));
+        List<NopRetryRecord> expiredRecords = getRecordDao().findAllByQuery(recordQuery);
+        if (!expiredRecords.isEmpty()) {
+            List<String> recordIds = new ArrayList<>(expiredRecords.size());
+            for (NopRetryRecord expired : expiredRecords) {
+                recordIds.add(expired.getSid());
+            }
+            total += deleteAttemptsByRecordIds(recordIds);
+            total += deleteRecordsBySids(recordIds);
+        }
+
+        // ② 死信：createTime < cutoff，级联删孤儿 attempt（recordId IN 死信 recordId 集）。
+        // 死信化删除 record 后 attempt 悬空（无 FK/cascade），随死信保留期一并清理。
+        QueryBean deadLetterQuery = new QueryBean();
+        deadLetterQuery.setLimit(batchSize);
+        deadLetterQuery.addFilter(FilterBeans.lt(_NopRetryDeadLetter.PROP_NAME_createTime, cutoff));
+        List<NopRetryDeadLetter> expiredDeadLetters = getDeadLetterDao().findAllByQuery(deadLetterQuery);
+        if (!expiredDeadLetters.isEmpty()) {
+            List<String> orphanRecordIds = new ArrayList<>(expiredDeadLetters.size());
+            List<String> deadLetterIds = new ArrayList<>(expiredDeadLetters.size());
+            for (NopRetryDeadLetter expired : expiredDeadLetters) {
+                deadLetterIds.add(expired.getSid());
+                if (expired.getRecordId() != null) {
+                    orphanRecordIds.add(expired.getRecordId());
+                }
+            }
+            if (!orphanRecordIds.isEmpty()) {
+                total += deleteAttemptsByRecordIds(orphanRecordIds);
+            }
+
+            QueryBean deadLetterDelete = new QueryBean();
+            deadLetterDelete.addFilter(FilterBeans.in(_NopRetryDeadLetter.PROP_NAME_sid, deadLetterIds));
+            total += getDeadLetterDao().deleteByQuery(deadLetterDelete);
+        }
+
+        // ③ 孤儿 attempt 兜底扫描（锚列 startTime）：recordId 不在任何活跃 record 行——
+        // 统一覆盖死信迁移、OVERWRITE 重建（无死信行的孤儿源）及历史遗留孤儿；批内有界拾取，
+        // 存在性核对后批删，谓词幂等（存留 attempt 的 record 必在活跃集，不误伤）。
+        QueryBean attemptScanQuery = new QueryBean();
+        attemptScanQuery.setLimit(batchSize);
+        attemptScanQuery.addFilter(FilterBeans.lt(_NopRetryAttempt.PROP_NAME_startTime, cutoff));
+        List<NopRetryAttempt> oldAttempts = getAttemptDao().findAllByQuery(attemptScanQuery);
+        if (!oldAttempts.isEmpty()) {
+            List<String> candidateRecordIds = new ArrayList<>();
+            for (NopRetryAttempt attempt : oldAttempts) {
+                if (attempt.getRecordId() != null && !candidateRecordIds.contains(attempt.getRecordId())) {
+                    candidateRecordIds.add(attempt.getRecordId());
+                }
+            }
+            if (!candidateRecordIds.isEmpty()) {
+                QueryBean liveQuery = new QueryBean();
+                liveQuery.addFilter(FilterBeans.in(PROP_NAME_sid, candidateRecordIds));
+                List<NopRetryRecord> liveRecords = getRecordDao().findAllByQuery(liveQuery);
+                List<String> orphanRecordIds = new ArrayList<>(candidateRecordIds);
+                for (NopRetryRecord live : liveRecords) {
+                    orphanRecordIds.remove(live.getSid());
+                }
+                if (!orphanRecordIds.isEmpty()) {
+                    total += deleteAttemptsByRecordIds(orphanRecordIds);
+                }
+            }
+        }
+        return total;
+    }
+
+    private long deleteAttemptsByRecordIds(List<String> recordIds) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(_NopRetryAttempt.PROP_NAME_recordId, recordIds));
+        return getAttemptDao().deleteByQuery(query);
+    }
+
+    private long deleteRecordsBySids(List<String> sids) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.in(PROP_NAME_sid, sids));
+        return getRecordDao().deleteByQuery(query);
     }
 
     @Override

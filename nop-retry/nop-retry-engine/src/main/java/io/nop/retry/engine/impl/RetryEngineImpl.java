@@ -16,6 +16,7 @@ import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.executor.IPeriodicTaskListener;
 import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -28,6 +29,7 @@ import io.nop.retry.dao.entity.NopRetryDeadLetter;
 import io.nop.retry.dao.entity.NopRetryPolicy;
 import io.nop.retry.dao.entity.NopRetryRecord;
 import io.nop.retry.engine.NopRetryConstants;
+import io.nop.retry.engine.RetryEngineConfigs;
 import io.nop.retry.engine.scanner.IRetryScanner;
 import io.nop.retry.engine.store.IRetryRecordStore;
 import io.nop.api.core.beans.ErrorBean;
@@ -37,9 +39,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static io.nop.retry.engine.NopRetryErrors.*;
 
@@ -51,6 +56,17 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     private IRetryRecordStore recordStore;
     private IRetryScanner retryScanner;
     private IScheduledExecutor executor;
+
+    // 1.6-C7-001（plan 2502）：三账本表保留期清理参数。null = 未显式注入，回退
+    // RetryEngineConfigs 声明的键值（设计 ledger-retention-policy §3.2 nop-retry 行；
+    // 参数修订只走该设计文档，模块内不发明缺省值）。
+    private Integer ledgerRetentionDays;
+    private Duration ledgerCleanupInterval;
+    private Integer ledgerDeleteBatchSize;
+
+    // 周期清理链句柄与失败计数（fail-fast 包络：失败 ERROR 可见 + 计数可观测，链由绝缘层重臂）
+    private Future<?> ledgerCleanupFuture;
+    private final AtomicLong ledgerCleanupFailureCount = new AtomicLong();
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
@@ -65,6 +81,22 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     @Inject
     public void setRetryScanner(IRetryScanner retryScanner) {
         this.retryScanner = retryScanner;
+    }
+
+    public void setLedgerRetentionDays(Integer ledgerRetentionDays) {
+        this.ledgerRetentionDays = ledgerRetentionDays;
+    }
+
+    public void setLedgerCleanupInterval(Duration ledgerCleanupInterval) {
+        this.ledgerCleanupInterval = ledgerCleanupInterval;
+    }
+
+    public void setLedgerDeleteBatchSize(Integer ledgerDeleteBatchSize) {
+        this.ledgerDeleteBatchSize = ledgerDeleteBatchSize;
+    }
+
+    public long getLedgerCleanupFailureCount() {
+        return ledgerCleanupFailureCount.get();
     }
 
     @Override
@@ -649,13 +681,100 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             });
             LOG.info("nop.retry.scanner-started");
         }
+
+        // 1.6-C7-001（plan 2502）：三账本表保留期清理周期链接线（生产可达生命周期钩子，
+        // 防 C7-005「清理 API 零生产装配」空壳形态）。retention-days=0 为显式禁用。
+        startLedgerCleanup();
     }
 
     @Override
     protected void doStop() {
+        if (ledgerCleanupFuture != null) {
+            ledgerCleanupFuture.cancel(false);
+            ledgerCleanupFuture = null;
+            LOG.info("nop.retry.ledger.cleanup-stopped");
+        }
         if (retryScanner != null) {
             retryScanner.stopScanning();
             LOG.info("nop.retry.scanner-stopped");
         }
+    }
+
+    /**
+     * 1.6-C7-001：账本保留期清理周期链。载体与扫描链同构（绝缘层 scheduleWithFixedDelay +
+     * IPeriodicTaskListener）：清理体任何 Throwable 由设施捕获观测并重臂，失败 ERROR 显式可见
+     * （fail-fast 包络：不静默吞掉、链不中断）；错配置（负保留期/非正批删上限/周期低于 60s 下限）
+     * 启动期 fail-fast——参数语义见 ledger-retention-policy §3.1 第 1/2/3/5 项。
+     */
+    protected void startLedgerCleanup() {
+        int retentionDays = resolveLedgerRetentionDays();
+        long intervalMillis = resolveLedgerCleanupInterval().toMillis();
+        int batchSize = resolveLedgerDeleteBatchSize();
+
+        if (retentionDays < 0) {
+            throw new NopException(ERR_RETRY_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.retry.ledger.retention-days")
+                    .param(ARG_CONFIG_VALUE, retentionDays);
+        }
+        if (batchSize <= 0) {
+            throw new NopException(ERR_RETRY_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.retry.ledger.delete-batch-size")
+                    .param(ARG_CONFIG_VALUE, batchSize);
+        }
+        if (intervalMillis < RetryEngineConfigs.RETRY_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS) {
+            throw new NopException(ERR_RETRY_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.retry.ledger.cleanup-interval")
+                    .param(ARG_CONFIG_VALUE, intervalMillis);
+        }
+        if (retentionDays == 0) {
+            LOG.info("nop.retry.ledger.cleanup-disabled");
+            return;
+        }
+
+        long retentionMillis = retentionDays * 24L * 3600_000L;
+        ledgerCleanupFuture = getExecutor().scheduleWithFixedDelay(this::runLedgerCleanup,
+                intervalMillis, intervalMillis, TimeUnit.MILLISECONDS,
+                "nop-retry-ledger-cleanup", new IPeriodicTaskListener() {
+                    @Override
+                    public void onRunFailure(Throwable e, long consecutiveFailures) {
+                        ledgerCleanupFailureCount.incrementAndGet();
+                        LOG.error("nop.retry.ledger.cleanup-fail:consecutiveFailures={}", consecutiveFailures, e);
+                    }
+
+                    @Override
+                    public void onChainRejected(Throwable e) {
+                        ledgerCleanupFailureCount.incrementAndGet();
+                        LOG.error("nop.retry.ledger.cleanup-chain-rejected: cleanup chain terminated"
+                                + " by executor rejection, will not resurrect", e);
+                    }
+                });
+        LOG.info("nop.retry.ledger.cleanup-started:retentionDays={},intervalMillis={},batchSize={}",
+                retentionDays, intervalMillis, batchSize);
+    }
+
+    /**
+     * 单轮清理：清理体失败直接抛出（由绝缘 listener 观测），不在本方法内吞异常。
+     */
+    protected void runLedgerCleanup() {
+        long retentionMillis = resolveLedgerRetentionDays() * 24L * 3600_000L;
+        long deleted = recordStore.purgeExpiredLedgerRows(retentionMillis, resolveLedgerDeleteBatchSize());
+        if (deleted > 0) {
+            LOG.info("nop.retry.ledger.cleanup-done:deleted={}", deleted);
+        }
+    }
+
+    private int resolveLedgerRetentionDays() {
+        return ledgerRetentionDays != null ? ledgerRetentionDays
+                : RetryEngineConfigs.CFG_RETRY_LEDGER_RETENTION_DAYS.get();
+    }
+
+    private Duration resolveLedgerCleanupInterval() {
+        return ledgerCleanupInterval != null ? ledgerCleanupInterval
+                : RetryEngineConfigs.CFG_RETRY_LEDGER_CLEANUP_INTERVAL.get();
+    }
+
+    private int resolveLedgerDeleteBatchSize() {
+        return ledgerDeleteBatchSize != null ? ledgerDeleteBatchSize
+                : RetryEngineConfigs.CFG_RETRY_LEDGER_DELETE_BATCH_SIZE.get();
     }
 }

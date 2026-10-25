@@ -67,4 +67,10 @@ public interface NopRetryErrors {
 
     ErrorCode ERR_RETRY_RECORD_OVERWRITTEN = define("nop.err.retry.record-overwritten",
             "重试记录已被覆盖: {recordId}", ARG_RECORD_ID);
+
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+
+    ErrorCode ERR_RETRY_LEDGER_CONFIG_INVALID = define("nop.err.retry.ledger-config-invalid",
+            "retry账本保留策略配置非法: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }
