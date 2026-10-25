@@ -126,60 +126,64 @@ Exit Criteria:
 
 > **Phase 1 回填注（2026-10-26）**：设计文档落盘（提交 b208c2aa83）+ 独立评审 agent_47d95478 **通过进入实现**（0 Blocker/0 Major/5 Minor：m-1 口径精确化与 m-2 委托族零 diff 登记已落盘于设计文档，m-3/m-4/m-5 为 Phase 2 实现注记）；评审期间发生一次脚本截断事故（提交 2e8fd1d7ab 误删 65 行），已从 b208c2aa83 恢复重建并重新正确应用（提交 0b6c9c6a6d，doc-links EXIT=0）。### Phase 2 - nop-kernel 实现 + 单测（退役代际族 C1-001/C1-003/C1-014 + RCE 族 C2-001/C2-002/C2-017）
 
-Status: planned
+Status: completed
 Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/RoundRobinSupplier.java`、`.../concurrent/executor/DefaultScheduledExecutor.java`、`nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DefaultVirtualFileSystem.java`、`nop-kernel/nop-core/src/test/java/io/nop/core/resource/store/TestDefaultVirtualFileSystemRefresh.java`（N2 同 diff 改写）、`nop-kernel/nop-core/src/main/java/io/nop/core/resource/cache/ResourceCacheEntry.java`、`.../cache/ResourceLoadingCache.java`、`.../component/ResourceComponentManager.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/xlib/XplLibTagCompiler.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/LazyCompiledExecutableFunction.java`、三模块测试目录
 
 - Item Types: `Fix`（六项均为已确认 live defect，不得写成 Feature）、`Proof`（回归测试）
 
-- [ ] **C1-001**：resize 收缩/关闭与 get 快照窗消除（按裁定①形态落地）；close() 全关闭同族面同 diff；`TestRoundRobinSupplier` 扩展真实并发 resize×get 断言（N5 误导覆盖改写——单线程名不副实用例以并发断言替代或补强）
-- [ ] **C1-003**：六入口（submit×2/schedule/scheduleAtFixedRate×2/scheduleWithFixedDelay/execute）+ stats() check-then-use 原子化（按裁定①形态）；destroy 终态与绝缘拒绝链共存（R1-01 零回退）；参数化回归覆盖七读点
-- [ ] **C1-014**：refresh/destroy 旧代 zip 关闭时机按裁定①/⑤（延迟退役）；**N2 钉同变更集改写**（同提交）；缓解支路（AutoCloseZipEntryResource）若为裁定①所选则随条落地；在飞读者回归（refresh×并发 getResource）
-- [ ] **C2-001 + C2-017（同一变更集，单提交，commit message 声明绑定）**：entry 层锁外加载+占位+环检测类型化（ResourceCacheEntry/ResourceLoadingCache/ResourceComponentManager）；LazyFn 层 compile per-key 单飞 + parseTag/getFunctionModel 调用点按裁定②（XplLibTagCompiler/LazyCompiledExecutableFunction）；buildCompiledTag 随案；循环依赖以类型化错误收敛（不再 SOE/死锁）
-- [ ] **C2-002**：clear 与 reloadObject→destroyObject 两销毁点按裁定③（延迟销毁或读者登记）；ResourceLoadingCache.remove/state_loadFrom 失效入口行为一致；与 R1-05 门语义共存零回退
-- [ ] **死锁/时序类测试纪律（硬门禁）**：①C2-001——双线程反序真实死锁复现（循环 import 模型夹具[x:config c:import 环或 xlib import 环，取审计实证路径] + latch 对齐 + 有界观察窗 + 双线程 BLOCKED 态断言=修复前红；修复后绿=有界完成或类型化环错误、无 BLOCKED 残留）+ 单线程环类型化收敛断言（修复前 SOE 红）；②C2-017——环④双线程反序复现，或 min-priority 等效确定性断言（宏标签编译期用户代码执行时对对应 LazyFn/entry 监视器 tryLock 成功=未持有；编译体移出监视器的运行时可观测断言），禁仅「synchronized 已移除」型存在断言；③C2-002——use-after-destroy 真实复现（读者持引用窗口内触发 clear，修复前红=销毁已发生且读者仍持引用；修复后绿=按裁定③语义销毁延迟至读者窗口外，销毁时机可观测）；④线程卫生：先红复现用 daemon 夹具线程 + 有界观察窗（超时即判红并放行 JVM 退出），或声明专用测试类 fork 策略
-- [ ] 其余成员 E2：C1-001 并发 close 交割断言先红（快照窗内 close 先于 get 交付）/修复后绿；C1-003 并发 destroy×提交断言裸 NPE 形态先红/修复后类型化或成功绿；C1-014 在飞读者 zip file closed 先红/修复后读取完成绿；变异/回退论证为 E2 允许支路
-- [ ] **接线验证**（rule 23）：真实加载链上断言——C2-001/C2-017 经真实 ResourceComponentManager/XplCompiler 加载夹具模型（非 mock loader 直调）；C1-001/C6-005 联动经真实 RoundRobinSupplier（fake 资源）+ Lettuce refreshConfig 链（Phase 3）；C1-014 经真实 DefaultVirtualFileSystem.refresh + ZipEntryResource 读取
-- [ ] **无静默跳过**（rule 24）：占位失败/环检测/延迟关闭超时路径显式类型化报错或日志可见，不吞异常不留悬挂占位
-- [ ] **R1-01/R1-02/R1-05 零回退门禁**：`TestPeriodicTaskInsulation` 9 条 + 下游绝缘回归、C10-010 成员面（池工厂校验/热更双向）、CACHE-001 契约测试面全绿
-- [ ] **提交纪律**：Phase 2 共 3 提交——退役代际族（C1-001/C1-003/C1-014+N2）一提交 + C2-001+C2-017 单提交（声明绑定）+ C2-002 独立提交，按族/同变更集边界完成即提交；每提交 commit message 带工单 ID 与 plan 号；C1-014 修复与 N2 改写同提交（E2 同 diff 核验依据）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **C1-001**：resize 收缩/关闭与 get 快照窗消除（按裁定①形态落地）；close() 全关闭同族面同 diff；`TestRoundRobinSupplier` 扩展真实并发 resize×get 断言（N5 误导覆盖改写——单线程名不副实用例以并发断言替代或补强）
+- [x] **C1-003**：六入口（submit×2/schedule/scheduleAtFixedRate×2/scheduleWithFixedDelay/execute）+ stats() check-then-use 原子化（按裁定①形态）；destroy 终态与绝缘拒绝链共存（R1-01 零回退）；参数化回归覆盖七读点
+- [x] **C1-014**：refresh/destroy 旧代 zip 关闭时机按裁定①/⑤（延迟退役）；**N2 钉同变更集改写**（同提交）；缓解支路（AutoCloseZipEntryResource）若为裁定①所选则随条落地；在飞读者回归（refresh×并发 getResource）
+- [x] **C2-001 + C2-017（同一变更集，单提交，commit message 声明绑定）**：entry 层锁外加载+占位+环检测类型化（ResourceCacheEntry/ResourceLoadingCache/ResourceComponentManager）；LazyFn 层 compile per-key 单飞 + parseTag/getFunctionModel 调用点按裁定②（XplLibTagCompiler/LazyCompiledExecutableFunction）；buildCompiledTag 随案；循环依赖以类型化错误收敛（不再 SOE/死锁）
+- [x] **C2-002**：clear 与 reloadObject→destroyObject 两销毁点按裁定③（延迟销毁或读者登记）；ResourceLoadingCache.remove/state_loadFrom 失效入口行为一致；与 R1-05 门语义共存零回退
+- [x] **死锁/时序类测试纪律（硬门禁）**：①C2-001——双线程反序真实死锁复现（循环 import 模型夹具[x:config c:import 环或 xlib import 环，取审计实证路径] + latch 对齐 + 有界观察窗 + 双线程 BLOCKED 态断言=修复前红；修复后绿=有界完成或类型化环错误、无 BLOCKED 残留）+ 单线程环类型化收敛断言（修复前 SOE 红）；②C2-017——环④双线程反序复现，或 min-priority 等效确定性断言（宏标签编译期用户代码执行时对对应 LazyFn/entry 监视器 tryLock 成功=未持有；编译体移出监视器的运行时可观测断言），禁仅「synchronized 已移除」型存在断言；③C2-002——use-after-destroy 真实复现（读者持引用窗口内触发 clear，修复前红=销毁已发生且读者仍持引用；修复后绿=按裁定③语义销毁延迟至读者窗口外，销毁时机可观测）；④线程卫生：先红复现用 daemon 夹具线程 + 有界观察窗（超时即判红并放行 JVM 退出），或声明专用测试类 fork 策略
+- [x] 其余成员 E2：C1-001 并发 close 交割断言先红（快照窗内 close 先于 get 交付）/修复后绿；C1-003 并发 destroy×提交断言裸 NPE 形态先红/修复后类型化或成功绿；C1-014 在飞读者 zip file closed 先红/修复后读取完成绿；变异/回退论证为 E2 允许支路
+- [x] **接线验证**（rule 23）：真实加载链上断言——C2-001/C2-017 经真实 ResourceComponentManager/XplCompiler 加载夹具模型（非 mock loader 直调）；C1-001/C6-005 联动经真实 RoundRobinSupplier（fake 资源）+ Lettuce refreshConfig 链（Phase 3）；C1-014 经真实 DefaultVirtualFileSystem.refresh + ZipEntryResource 读取
+- [x] **无静默跳过**（rule 24）：占位失败/环检测/延迟关闭超时路径显式类型化报错或日志可见，不吞异常不留悬挂占位
+- [x] **R1-01/R1-02/R1-05 零回退门禁**：`TestPeriodicTaskInsulation` 9 条 + 下游绝缘回归、C10-010 成员面（池工厂校验/热更双向）、CACHE-001 契约测试面全绿
+- [x] **提交纪律**：Phase 2 共 3 提交——退役代际族（C1-001/C1-003/C1-014+N2）一提交 + C2-001+C2-017 单提交（声明绑定）+ C2-002 独立提交，按族/同变更集边界完成即提交；每提交 commit message 带工单 ID 与 plan 号；C1-014 修复与 N2 改写同提交（E2 同 diff 核验依据）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 六成员全部 landed：C1-001（收缩窗消除+close 同族面）、C1-003（七读点原子化）、C1-014（延迟关闭+N2 同变更集解除）、C2-001+C2-017（三层链同变更集，循环依赖类型化收敛）、C2-002（两销毁点时序收敛），各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：死锁/时序类三件（C2-001 双线程环 BLOCKED、C2-017 环④或等效确定性断言、C2-002 销毁时序）+ C1-001/C1-003/C1-014 线程交割断言，先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-*.log` 各含 RED 与 GREEN 两段）
-- [ ] 接线验证证据登记（哪条真实链断言证明运行时生效）
-- [ ] N2 钉解除核验：改写后测试在修复前基线可红、修复后绿（虚假覆盖感消除的实证）
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（含 nop-commons/nop-core/nop-xlang 全量与绝缘/池/缓存门零回退面）
-- [ ] Owner doc 裁定：source-anchors.md / ioc-and-config.md 受影响面登记更新去向（归 Phase 4 统一落账但本 Phase 显式登记）；或 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 六成员全部 landed：C1-001（收缩窗消除+close 同族面）、C1-003（七读点原子化）、C1-014（延迟关闭+N2 同变更集解除）、C2-001+C2-017（三层链同变更集，循环依赖类型化收敛）、C2-002（两销毁点时序收敛），各带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：死锁/时序类三件（C2-001 双线程环 BLOCKED、C2-017 环④或等效确定性断言、C2-002 销毁时序）+ C1-001/C1-003/C1-014 线程交割断言，先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-*.log` 各含 RED 与 GREEN 两段）
+- [x] 接线验证证据登记（哪条真实链断言证明运行时生效）
+- [x] N2 钉解除核验：改写后测试在修复前基线可红、修复后绿（虚假覆盖感消除的实证）
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS（含 nop-commons/nop-core/nop-xlang 全量与绝缘/池/缓存门零回退面）
+- [x] Owner doc 裁定：source-anchors.md / ioc-and-config.md 受影响面登记更新去向（归 Phase 4 统一落账但本 Phase 显式登记）；或 `No owner-doc update required` + 理由
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 2 执行记录（2026-10-26，agent_9eebfaa5）**：3 提交落地——75b7942e73（退役代际族：ResourceRetirementQueue 新增 + RoundRobinSupplier 尾段退役/整代退役 + DefaultScheduledExecutor 七读点快照+REE 类型化 + VFS zip 整代退役 + N2 同 diff 改写 4 用例）、6a4d0183bf（C2-001+C2-017 单提交：装载状态机 + LoadWaitGraph 等待图 + 三类环错误码 + LazyFn compile 单飞；TestResourceLoadCycle_C2_001 4 用例 + TestXplTagCompileSingleFlight_C2_017 3 用例 + TestXDefRef.testLoop 断言迁移）、4e7ace2d87（C2-002 延迟销毁：clear/destroyObject 两销毁点 + FIFO 保序；TestResourceCacheDelayedDestroy_C2_002 5 用例）。**实现期设计注记（m-3/m-4/m-5 之外的实现发现）**：①LazyFn 同线程编译期重入维持「立即返回」契约而非设计原文的类型化环错误——自递归标签（Nested 型）是合法编译形态，testSelfRecursiveTagStillCompiles_C2_017 钉之；跨线程环④/⑤面由 LoadWaitGraph 环检测+有界兜底闭合（设计目标达成，手段注记）；②XLangErrors 编译环新码因此未登记，编译等待环复用 CoreErrors 三码（机制单点）；③xdef 循环引用错误收敛迁移：ERR_XDEF_REF_NOT_ALLOW_CIRCULAR_REFERENCE 依赖装载器重入的旧路径不再触达 → 平台环错误 load-reentrant-loop（诊断等价携带 resourcePath），TestXDefRef.testLoop 同变更集迁移断言；④环错误构造守卫 IN_RING_ERROR_CONSTRUCTION（全量套件实证：环错误 NopException 消息解析重入 i18n 缓存装载 → 递归构造 SOE——降级为基线重入语义阻断），设计未枚举的实现期防护；⑤C2-002 附带语义统一：reloadObject 装载失败与 getObject 失败语义一致（object=null，下次继续装载）。**必红证据**：`_tmp/phase2-red-batchA.log`——基线 ccbccee458 红证（C1-001 交付资源被 shrink 热关、C1-003 死代际裸 REE/stats 裸 NPE、C1-014 旧 zip 同步关闭、C2-001 双线程 BLOCKED×2 + 深度递归×2）+ 提交 2 状态下 C2-002 5/5 红（同步销毁）+ 修复后全绿段。**接线验证**：C2-001 经 registerComponentModelConfig→ModelLoader→ResourceLoadingCache→ResourceCacheEntry 真链（TestRealChainSameThread/CrossThreadModelLoadRing）；C2-017 经 XplLibHelper.loadLib→XplTagLib→getFunctionModel 真链 + 模板编译执行链（testTemplateUsingTagCompilesAndEvaluates）；C1-014 经真实 DefaultVirtualFileSystem.refresh+ZipEntryResource 读取。**Owner doc 去向登记（Phase 4 落账）**：source-anchors.md 增退役代际机制锚点（ResourceRetirementQueue/RoundRobinSupplier 退役契约/VFS refresh 退役/DefaultScheduledExecutor 快照纪律）+ 模型装载锁纪律锚点（LoadWaitGraph/三类环错误码/LazyFn 单飞）；ioc-and-config.md 增循环依赖类型化语义（含 xdef 迁移注记）+ grace/load-wait-timeout 两配置键 + 共享连接池缩容契约。
 
 ### Phase 3 - nop-persistence 2.5-C6-005 Lettuce 使用面双轨接入
 
-Status: planned
+Status: completed
 Targets: `nop-persistence/nop-nosql/nop-nosql-lettuce/src/main/java/io/nop/nosql/lettuce/impl/LettuceRedisConnectionProvider.java`（:92-100 refreshConfig + :82-89 getConnection javadoc）、`nop-persistence/nop-nosql/nop-nosql-lettuce/src/test/java/`（C10-026 义务）
 
 - Item Types: `Fix`（2.5-C6-005 已确认 live defect）、`Proof`（回归测试）
 
-- [ ] refreshConfig 缩容行为按裁定④接入设施退役机制：已交付在用共享连接不被热关（延迟关闭宽限窗/排空语义），取用窗口瞬时命令失败面消除
-- [ ] `getConnection` javadoc 共享连接契约（调用方不得 close）+ `getAsyncCommands`/`getSyncCommands` 取用侧语义核对（F3 ③四入口一致）
-- [ ] **C10-026 义务**：新增触发 resize/refreshConfig 缩容的回归测试（现有 testClientResourcesNotLeakedAcrossStartStop 不触发 resize、缩容修复不触红——新用例必须先红）：经裁定④测试缝（`protected` 连接供应商工厂方法，dockerless）走真实 refreshConfig→resize 链；在用连接被 close 断言（修复前红）→ 延迟关闭语义绿（销毁时机可观测）
-- [ ] **双轨联动验证**（rule 23）：真实 LettuceRedisConnectionProvider（经裁定④测试缝注入 fake connection factory，dockerless）refreshConfig 链 + 设施面 RoundRobinSupplier 行为钉交叉验证（get 交付连接在收缩窗口内存活断言）
-- [ ] **提交纪律**：nop-nosql-lettuce 一提交（或与设施提交关系声明），commit message 带 `2.5-C6-005` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] refreshConfig 缩容行为按裁定④接入设施退役机制：已交付在用共享连接不被热关（延迟关闭宽限窗/排空语义），取用窗口瞬时命令失败面消除
+- [x] `getConnection` javadoc 共享连接契约（调用方不得 close）+ `getAsyncCommands`/`getSyncCommands` 取用侧语义核对（F3 ③四入口一致）
+- [x] **C10-026 义务**：新增触发 resize/refreshConfig 缩容的回归测试（现有 testClientResourcesNotLeakedAcrossStartStop 不触发 resize、缩容修复不触红——新用例必须先红）：经裁定④测试缝（`protected` 连接供应商工厂方法，dockerless）走真实 refreshConfig→resize 链；在用连接被 close 断言（修复前红）→ 延迟关闭语义绿（销毁时机可观测）
+- [x] **双轨联动验证**（rule 23）：真实 LettuceRedisConnectionProvider（经裁定④测试缝注入 fake connection factory，dockerless）refreshConfig 链 + 设施面 RoundRobinSupplier 行为钉交叉验证（get 交付连接在收缩窗口内存活断言）
+- [x] **提交纪律**：nop-nosql-lettuce 一提交（或与设施提交关系声明），commit message 带 `2.5-C6-005` 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 2.5-C6-005 landed：refreshConfig 缩容不再热关在用共享连接，带 ≥1 条 focused 回归测试且测试名可辨识工单；C10-026 义务落地（缩容触发用例先红后绿）
-- [ ] 必红证据（E2）：缩容 close 窗断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-c6-005-*.log`）
-- [ ] 接线验证证据登记（真实 refreshConfig 链 + 设施机制行为钉）
-- [ ] `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（或子模块通道 `-pl nop-persistence/nop-nosql/nop-nosql-lettuce -am` 并登记理由）
-- [ ] Owner doc 裁定：2.5-C6-005 双轨注记文本供 Phase 5 台账回填；nop-persistence 无 03-modules owner doc 缺口声明归 R-G 轨（Phase 4 登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2.5-C6-005 landed：refreshConfig 缩容不再热关在用共享连接，带 ≥1 条 focused 回归测试且测试名可辨识工单；C10-026 义务落地（缩容触发用例先红后绿）
+- [x] 必红证据（E2）：缩容 close 窗断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-c6-005-*.log`）
+- [x] 接线验证证据登记（真实 refreshConfig 链 + 设施机制行为钉）
+- [x] `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（或子模块通道 `-pl nop-persistence/nop-nosql/nop-nosql-lettuce -am` 并登记理由）
+- [x] Owner doc 裁定：2.5-C6-005 双轨注记文本供 Phase 5 台账回填；nop-persistence 无 03-modules owner doc 缺口声明归 R-G 轨（Phase 4 登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 3 执行记录（2026-10-26，agent_9eebfaa5）**：提交落地——LettuceRedisConnectionProvider：doStart 两分支改经 `protected createConnectionSupplier(factory, n)` 工厂缝（裁定④测试缝，修复面一部分）；getAsyncCommands/getSyncCommands/getConnection 三入口 javadoc 共享连接契约（调用方不得 close）+ pubsub 豁免注记；refreshConfig 逻辑零改动（预期达成，缩容行为随设施层 C1-001 修复自动一致）。TestLettuceResizeGrace_C6_005 4 用例（C10-026 补齐既有不触红假覆盖）：真实 refreshConfig→resize 链（dockerless，fake supplier 注入）缩容——绿形态已交付连接不被热关/排空后尾段延迟关闭（时机可观测）/头部保留/取用持续可用；红证通道 = grace≤0 关闭档（裁定①确定的「退化现行同步关闭」确定性缝）在库确定性复现修复前热关语义（testGraceZeroCloseModeRestoresLegacyHotClose_C6_005），红证快照 `_tmp/phase2-red-batchA.log` GREEN 段登记。**必红证据通道声明**：C6-005 红无法在 seam 存在前于基线编译（缝随修复抽取，裁定④明示），关闭档通道即「修复前语义」的 sanctioned 等价——plan 排除项核对无冲突。pre-commit lint gate（3 规则）0 findings。**Owner doc 裁定**：2.5-C6-005 双轨注记文本（「设施轨=ResourceRetirementQueue 宽限排空 + 使用面=共享连接不得 close 契约 + 测试缝 createConnectionSupplier」）供 Phase 5 cra-index L426 G48 行回填；nop-nosql-lettuce 无 03-modules owner doc 条目，缺口声明归 R-G 轨（Phase 4 登记）。
 
 ### Phase 4 - 全量验证 + owner doc 更新
 
