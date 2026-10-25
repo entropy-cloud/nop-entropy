@@ -187,26 +187,36 @@ Exit Criteria:
 
 ### Phase 4 - 分片 D：3.1-MA-17 沙箱清理族 + 3.1-C7-014 heartbeat 预算（nop-ai-agent）
 
-Status: planned
+Status: in progress
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DockerSandboxBackend.java`（:254-258/:268-276/:528-539/:580-590）、`NoOpSandboxBackend.java`（:103-143/:187-202）、`engine/ReActAgentExecutor.java`（:1270-1329/:1474-1481/:1492-1562）、`engine/DefaultAgentEngineConfig.java`（:171 邻域配置键）、`nop-ai/nop-ai-agent/src/test/`（含 `TestHeartbeatWaitPhase.java:262` 反向钉改写、`TestDockerSandboxBackend.java` 护栏扩充）
 
 - Item Types: `Fix`（MA-17[B1-04 回升 P1]与 C7-014 已确认 live defect）、`Decision`（C7-014 compaction 增强面裁定）、`Proof`（回归测试）
 
-- [ ] 3.1-MA-17（C1-007+C7-020，←CL-034）：①超时路径本地 CLI 进程树 `destroyForcibly`（对齐 NoOp `killTree` 形态；双实现分叉收敛——共享工具方法或等效消歧，与 3.2 侧三口径同口径不各走一套）；②reader 退出补偿（关流强制 EOF 替代无效 interrupt + 缓冲上限 + grace 耗尽输出一次性安全快照）；③cleanup/kill 失败可见化（去静默）；④success 路径孙进程收割 + 结果 `outputIncomplete`/`timedOut` 标记（空输出不再静默交付）
+- [x] 3.1-MA-17（C1-007+C7-020，←CL-034）：①超时路径本地 CLI 进程树 `destroyForcibly`（对齐 NoOp `killTree` 形态；双实现分叉收敛——共享工具方法或等效消歧，与 3.2 侧三口径同口径不各走一套）；②reader 退出补偿（关流强制 EOF 替代无效 interrupt + 缓冲上限 + grace 耗尽输出一次性安全快照）；③cleanup/kill 失败可见化（去静默）；④success 路径孙进程收割 + 结果 `outputIncomplete`/`timedOut` 标记（空输出不再静默交付）
 - [ ] 3.1-C7-014：①每等待期 wakeup 数量预算（`maxHeartbeatTurns` 或等效配置键，超限降级纯机械等待）；②WAIT 裁决 heartbeat 证据消息请求副本携带、仅 commit 终局结果（WAIT 碎片不入终史）；③等待循环每 K slice `shouldTriggerCompaction` 评估——增强面按实现期裁定，不纳入则移入 Deferred 并登记理由
 - [ ] **反向钉 R4 同批改写（全组）**：`TestHeartbeatWaitPhase` 中全部 hb-入史钉——`:260-262`（`hbCount >= 2` 入史钉 + `chat.calls.get() >= 4` 正面钉 wakeup 行为）、`:656`（仅成功 wakeup 的 hb 在史 count==1）、`:748`（engine 路径 hb 流通钉）、`:783`（blocked reply 不入史但 hb 入史钉）——执行时复核全集后逐处核对与预算/副本化改写的相容性并同步改写；改写后语义目标：WAIT 场景断言改为「请求副本携带 hb + ctx 终史 hb=0」的正面保护，不删保护面；改写记录留执行注记
-- [ ] 护栏（3.1-C10-011）：docker 门内「sleep 30 + wallSeconds=1」超时 kill 用例（断言 `docker ps` 无同名残留容器）；NoOp/共享层孙进程持管道 reader 退出用例；watch-only 注释修正（`TestDockerSandboxBackend:412-417`「timeout path can kill」错觉注释随修复同批更正）
+- [x] 护栏（3.1-C10-011）：docker 门内「sleep 30 + wallSeconds=1」超时 kill 用例（断言 `docker ps` 无同名残留容器）；NoOp/共享层孙进程持管道 reader 退出用例；watch-only 注释修正（`TestDockerSandboxBackend:412-417`「timeout path can kill」错觉注释随修复同批更正）
 - [ ] 回归测试（rule 25，测试名带 `_MA_17`/`_C7_014`）：①Docker 超时路径 CLI 进程 destroyForcibly 断言（门内集成 + 进程存活计数）；②reader 预算内退出断言（关流补偿生效）；③wakeup 预算超限降级断言（预算内行为 + 超限机械等待 + LLM 调用计数封顶）；④WAIT 碎片不入终史断言；⑤既有 TestHeartbeatWaitPhase/TestDockerSandboxBackend/TestNoOpSandboxBackend 零回归（改写面除外——改写面 = 反向钉 R4 全组 hb-入史钉 :260-262/:656/:748/:783，按「请求副本携带 hb + ctx 终史 hb=0」正面保护口径改写）
 - [ ] **接线验证**（rule 23）：真实 DockerSandboxBackend 超时链 / 真实 runHeartbeatToolPhase 等待循环上断言清理与预算运行时生效
 - [ ] **无静默跳过**（rule 24）：kill/cleanup 失败显式可观测；wakeup 超限降级路径显式（日志/标记），不静默
 - [ ] **提交纪律**：两工单两提交，commit message 带对应工单 ID 与 plan 号
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
+> **执行注记（MA-17 面，plan 2501 Phase 4）**：
+> - 双实现分叉收敛裁定 = **共享工具方法**（审计建议支路）：新增 `security/SandboxProcessCleanup`（包私有），killTree/reapTree/awaitReaderExit/awaitReaderSettled/drainStream/capturedToString 单一实现，Docker 与 NoOp 全量委托——killTree/reapTree 对齐 NoOp 既有 descendants+root 形态；drainStream 终态发布 `new StringBuilder` 不可变快照 + 末尾释放 fd（3.2-C6-008 同口径）；runShortCommand 有界化（drain 3s + waitFor 1s + 超时必 destroy + 退出码回传，3.2-C6-003 常量同值）；killContainer 双 catch 改显式 WARN（异常/非零退出双形态，容器名+步骤可见，3.2-C6-002 同口径）；`startDockerCli` 包私有注入接缝（与 toolkit C10-006 一缝两单，DockerSandboxBackend 去 final 供同包测试子类化）。
+> - success 路径孙进程收割 = `awaitReaderSettled`（补偿关流 → 仍未收敛则 reapTree 收割持管道孙进程 → 短 rejoin）；未收敛 ⇒ `SandboxResult.outputIncomplete=true`（SandboxResult 新增第六字段，五参构造缺省 false 零破坏）。孪生边界声明沿 toolkit C6-001 二选一口径：settled reader 与 clean case 不可分；收割仅在补偿不能收敛时触发——「孙进程滞留/输出截断」边界在 javadoc 与 owner doc 声明。
+> - 必红证据（E2）：红载体 2 条反射直调既有站点（修复前后同签名可编译）修复前基线双红（`_tmp/phase4-ma17-red.log`：kill 失败无 WARN + 挂死 helper 20s 无界阻塞）；变异论证 2 轮（去关流补偿 → `awaitReaderExitCompensatesByClosingStream_MA17` 红 `_tmp/phase4-ma17-probeA.log`；去超时 CLI reap 兜底 → `timeoutPathDestroysCliAndLogsKillFailure_MA17` 红 `_tmp/phase4-ma17-probeB.log`），恢复后 grep 断言核验（探针标记零残留）。E2 环境注记沿 Phase 2 口径登记（本 JDK 进程退出 reaper 结构性缓解 reader 泄漏面）。
+> - 绿证：`_tmp/phase4-ma17-green.log`（MA-17 3 类 9 tests + TestNoOp 13 + TestDocker 27 全绿）+ `_tmp/phase4-ma17-security-all2.log`（sandbox 相关 55 tests 全绿）。
+> - 接线验证（rule 23）：`timeoutPathDestroysCliAndLogsKillFailure_MA17`（真实 execute 超时链，fake CLI 进程存活计数 + WARN + reader 终止三断言）；`conditionalIntegrationTimeoutKillsContainerWithoutResidue`（docker 门内「sleep 30 + wallSeconds=1」，`docker ps -a --filter name=nop-sandbox-` 残留断言）。
+> - watch-only 注释修正：`TestDockerSandboxBackend.cleanupGuaranteesRmFlagAndName`「timeout path can kill」错觉改为「cleanup 为 best-effort + WARN 可见 + CLI destroyForcibly 兜底，容器名是唯一可寻址面」。
+> - Owner doc 去向登记：`nop-ai.md` 沙箱清理契约（agent 侧 DockerSandboxBackend/NoOpSandboxBackend 面）+ heartbeat wakeup 预算契约随 **Phase 5 统一落账**（与已落账 toolkit 面同节核对合并）。
+> - rule 24：kill/cleanup 失败显式 WARN（异常与非零退出双形态）；无静默跳过。
+
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.1-MA-17 landed：超时 destroyForcibly + reader 退出补偿 + kill 失败可见化 + success 路径孙进程收割/outputIncomplete 标记在位，双实现分叉收敛，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 3.1-MA-17 landed：超时 destroyForcibly + reader 退出补偿 + kill 失败可见化 + success 路径孙进程收割/outputIncomplete 标记在位，双实现分叉收敛，带 ≥1 条 focused 回归测试且测试名可辨识工单
 - [ ] 3.1-C7-014 landed：wakeup 预算 + WAIT 碎片生命周期收敛在位（compaction 增强面已裁定：纳入/Deferred 二选一留痕）；反向钉 R4 同批改写在案（全组 hb-入史钉 :260-262/:656/:748/:783 相容性核对记录；改写后语义=「请求副本携带 hb + ctx 终史 hb=0」正面保护）
 - [ ] 必红证据（E2）：MA-17 reader 滞留断言与 C7-014 预算缺失断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase4-ma17-c7-014-*.log`）
 - [ ] 接线验证证据登记

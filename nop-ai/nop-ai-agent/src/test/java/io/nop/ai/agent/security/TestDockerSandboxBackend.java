@@ -409,12 +409,17 @@ public class TestDockerSandboxBackend {
                 "ctr-cleanup-1", "alpine", req, SandboxConfig.defaults());
 
         // --rm guarantees Docker auto-removes the container on natural
-        // exit. The name is required for the timeout path's
-        // `docker kill <name>` to find the container.
+        // exit. The name is the timeout cleanup's only addressability: the
+        // backend runs `docker kill <name>` + `docker rm -f <name>` (CRA
+        // 3.1-MA-17, plan 2501 Phase 4: failures are WARN-visible with the
+        // name, never swallowed, and the local CLI process is destroyed as
+        // a leak backstop — the kill itself stays best-effort, so the name
+        // is what ops clean up by when the daemon is wedged).
         assertTrue(cmd.contains("--rm"),
                 "every docker run must include --rm so natural exits auto-clean; got " + cmd);
         assertTrue(cmd.contains("--name"),
-                "every docker run must include --name so the timeout path can kill it; got " + cmd);
+                "every docker run must include --name so the timeout cleanup (kill/rm -f, "
+                        + "WARN-visible failures) can address the container; got " + cmd);
         assertEquals("ctr-cleanup-1", nextOf(cmd, "--name"),
                 "--name must carry the supplied container name");
     }
@@ -569,6 +574,54 @@ public class TestDockerSandboxBackend {
                         + result.getStdout());
     }
 
+    /**
+     * CRA 3.1-MA-17 (plan 2501 Phase 4; 3.1-C10-011 docker-gated shape): a
+     * wall-time timeout against a real daemon must leave NO {@code
+     * nop-sandbox-*} container residue — the kill/rm cleanup runs (failures
+     * would be WARN-visible) and the local CLI process is destroyed. Skipped
+     * when Docker/alpine is unavailable (same gate as the echo integration
+     * test above).
+     */
+    @Test
+    void conditionalIntegrationTimeoutKillsContainerWithoutResidue(@TempDir Path tempDir) throws Exception {
+        if (!isDockerAvailable() || !isImageCached("alpine:3.19")) {
+            return;
+        }
+
+        long containersBefore = dockerSandboxContainerCount();
+
+        SandboxRequest req = SandboxRequest.builder()
+                .command(List.of("sh", "-c", "sleep 30"))
+                .config(SandboxConfig.builder()
+                        .wallSeconds(1)
+                        .cpuCores(1.0)
+                        .memoryMb(128)
+                        .build())
+                .build();
+
+        DockerSandboxBackend backend = new DockerSandboxBackend("alpine:3.19");
+        long start = System.currentTimeMillis();
+        SandboxException ex = assertThrows(SandboxException.class, () -> backend.execute(req),
+                "the wall-time budget must surface as TIMEOUT");
+        assertEquals(SandboxFailureReason.TIMEOUT, ex.getReason(), "timeout reason surfaced");
+        long elapsed = System.currentTimeMillis() - start;
+        assertTrue(elapsed < 15_000L,
+                "the timeout path must return bounded (cleanup helpers are bounded; "
+                        + "the local CLI is destroyed), elapsed=" + elapsed + "ms");
+
+        // --rm + docker rm -f are asynchronous on the daemon side — poll for
+        // the residue check within a bounded window.
+        long deadline = System.currentTimeMillis() + 10_000L;
+        long residue = dockerSandboxContainerCount();
+        while (residue > containersBefore && System.currentTimeMillis() < deadline) {
+            Thread.sleep(500);
+            residue = dockerSandboxContainerCount();
+        }
+        assertEquals(containersBefore, residue,
+                "no nop-sandbox-* container may survive the timeout cleanup "
+                        + "(docker kill + rm -f; failures are WARN-visible)");
+    }
+
     // ========================================================================
     // Helpers
     // ========================================================================
@@ -580,6 +633,32 @@ public class TestDockerSandboxBackend {
             throw new AssertionError("token '" + token + "' not followed by a value in " + cmd);
         }
         return cmd.get(i + 1);
+    }
+
+    /** Count existing containers named {@code nop-sandbox-*} (any state). */
+    private static long dockerSandboxContainerCount() {
+        try {
+            Process p = new ProcessBuilder(List.of("docker", "ps", "-a",
+                    "--filter", "name=nop-sandbox-", "--format", "{{.ID}}"))
+                    .redirectErrorStream(true).start();
+            byte[] buf = new byte[4096];
+            StringBuilder out = new StringBuilder();
+            try (java.io.InputStream in = p.getInputStream()) {
+                int n;
+                while ((n = in.read(buf)) != -1) {
+                    out.append(new String(buf, 0, n));
+                }
+            }
+            if (!p.waitFor(10, java.util.concurrent.TimeUnit.SECONDS)
+                    || p.exitValue() != 0) {
+                throw new AssertionError("docker ps -a failed: " + out);
+            }
+            return out.toString().lines().filter(s -> !s.isBlank()).count();
+        } catch (AssertionError e) {
+            throw e;
+        } catch (Exception e) {
+            throw new AssertionError("docker ps -a probe failed", e);
+        }
     }
 
     /** True iff the {@code docker} binary is on PATH and the daemon answers {@code docker info}. */
@@ -602,8 +681,7 @@ public class TestDockerSandboxBackend {
     }
 
     /** True iff a binary by the given name resolves on the current PATH. */
-    private static boolean isOnPath(String binary) {
-        try {
+    private static boolean isOnPath(String binary) {        try {
             Process p = new ProcessBuilder(List.of("which", binary)).redirectErrorStream(true).start();
             byte[] buf = new byte[4096];
             try (java.io.InputStream in = p.getInputStream()) {

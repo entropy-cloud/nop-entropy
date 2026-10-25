@@ -6,7 +6,6 @@ import io.nop.ai.core.NopAiCoreErrors;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -18,6 +17,9 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Functional opt-in {@link ISandboxBackend} that isolates command execution
@@ -66,10 +68,28 @@ import java.util.regex.Pattern;
  * <p><b>Cleanup</b>: every container is launched with {@code --rm} so a
  * natural exit auto-removes it. On timeout the backend issues
  * {@code docker kill <name>} (the {@code --rm} flag then auto-removes the
- * killed container) followed by a defensive {@code docker rm -f <name>}
- * that ignores any error — so a container always ends up removed whether
- * the kill path or the natural-exit path fired. The container name is a
+ * killed container) followed by a defensive {@code docker rm -f <name>}.
+ * <b>Cleanup failures are visible</b> (CRA 3.1-MA-17, plan 2501 Phase 4):
+ * a kill/rm failure (exception or non-zero exit) logs a WARN carrying the
+ * container name — the only addressability for manual ops cleanup —
+ * instead of being silently swallowed. The timeout path additionally
+ * destroys the local {@code docker run} CLI process tree
+ * ({@link SandboxProcessCleanup#reapTree}) so a failed or wedged container
+ * kill can no longer leave the CLI process behind. The container name is a
  * generated UUID so concurrent executions never collide.
+ *
+ * <p><b>Reader exit compensation + success-path harvest</b> (CRA 3.1-MA-17,
+ * plan 2501 Phase 4): the output reader is settled by closing the pipe
+ * (bounded grace + forced EOF — {@code interrupt()} alone cannot break a
+ * native pipe read); if a detached grandchild (e.g. a mounted script's
+ * background process) still holds the pipe, the CLI's descendant tree is
+ * harvested. A reader that still cannot finish marks the result {@code
+ * outputIncomplete} — a partial/empty capture is never silently delivered
+ * as complete output. Shared implementation:
+ * {@link SandboxProcessCleanup} (dual-fork convergence with
+ * {@link NoOpSandboxBackend}). Cleanup helper commands run with a bounded
+ * drain + bounded exit wait + forcible destroy, so a wedged daemon can no
+ * longer pin the timeout/cleanup thread.
  *
  * <p><b>Resource limits mapping</b>:
  * <ul>
@@ -115,9 +135,14 @@ import java.util.regex.Pattern;
  *
  * <p><b>Thread safety</b>: stateless after construction — safe for
  * concurrent use across sessions. Each {@link #execute} call owns its own
- * container name, Process, and reader thread.
+ * container name, Process, and reader thread. Non-final since plan 2501
+ * Phase 4: the fault-injection seam ({@link #startDockerCli}) is exercised
+ * by test subclasses (same-package tests substitute a fake {@code docker}
+ * CLI — no daemon required for timeout/cleanup-path coverage).
  */
-public final class DockerSandboxBackend implements ISandboxBackend {
+public class DockerSandboxBackend implements ISandboxBackend {
+
+    private static final Logger LOG = LoggerFactory.getLogger(DockerSandboxBackend.class);
 
     /** Canonical workdir mount point inside the container. */
     public static final String CONTAINER_WORKDIR = "/workspace";
@@ -130,6 +155,16 @@ public final class DockerSandboxBackend implements ISandboxBackend {
      */
     static final Pattern ENV_KEY_PATTERN =
             Pattern.compile("^[A-Za-z_][A-Za-z0-9_]*$");
+
+    /**
+     * MA-17 (plan 2501 Phase 4, 3.2-C6-003 aligned): bounded drain budget for
+     * the short cleanup helper commands ({@code docker kill} / {@code docker
+     * rm -f}) — a daemon-wedged helper can never pin the cleanup thread.
+     */
+    static final int SHORT_COMMAND_DRAIN_SECONDS = 3;
+
+    /** MA-17: bounded exit wait before the forcible destroy. */
+    static final int SHORT_COMMAND_EXIT_WAIT_SECONDS = 1;
 
     private final String dockerImage;
     private final SandboxConfig defaultConfig;
@@ -237,22 +272,13 @@ public final class DockerSandboxBackend implements ISandboxBackend {
                 containerName, dockerImage, request, config);
 
         ProcessBuilder pb = new ProcessBuilder(dockerCmd).redirectErrorStream(true);
-        Process process;
-        try {
-            process = pb.start();
-        } catch (IOException e) {
-            // docker binary not on PATH, or exec() failed entirely.
-            throw new SandboxException(SandboxFailureReason.DOCKER_UNAVAILABLE,
-                    "DockerSandboxBackend: failed to launch 'docker' CLI for command "
-                            + request.getCommand() + ": " + e.getMessage(),
-                    e);
-        }
+        Process process = startDockerCli(pb);
 
         long startNanos = CoreMetrics.nanoTime();
         int maxBytes = config.getMaxOutputBytes();
         AtomicReference<StringBuilder> capturedRef = new AtomicReference<>();
-        Thread reader = new Thread(
-                () -> drainStream(process.getInputStream(), maxBytes, capturedRef),
+        Thread reader = new Thread(() -> SandboxProcessCleanup.drainStream(
+                        process.getInputStream(), maxBytes, capturedRef),
                 "nop-docker-sandbox-reader");
         reader.setDaemon(true);
         reader.start();
@@ -267,7 +293,12 @@ public final class DockerSandboxBackend implements ISandboxBackend {
 
         if (timedOut) {
             killContainer(containerName);
-            awaitReader(reader, config.getWallSeconds());
+            // MA-17 (plan 2501 Phase 4): CLI-process leak backstop — destroy
+            // the local `docker run` CLI tree unconditionally on the timeout
+            // path, so a failed or wedged `docker kill` no longer leaves the
+            // CLI process behind either.
+            SandboxProcessCleanup.reapTree(process);
+            SandboxProcessCleanup.awaitReaderExit(process, reader, config.getWallSeconds());
             long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
             throw new SandboxException(SandboxFailureReason.TIMEOUT,
                     "DockerSandboxBackend: wall-time budget (" + config.getWallSeconds()
@@ -275,10 +306,15 @@ public final class DockerSandboxBackend implements ISandboxBackend {
                             + " (container " + containerName + " killed)");
         }
 
-        awaitReader(reader, config.getWallSeconds());
+        // Success path: settle the reader with exit compensation and — when
+        // a grandchild holds the stdout pipe — a descendant harvest (MA-17).
+        // A reader that still cannot finish marks the result
+        // outputIncomplete (empty output is never silently delivered).
+        boolean readerSettled =
+                SandboxProcessCleanup.awaitReaderSettled(process, reader, config.getWallSeconds());
         int exitCode = exitCodeOrNegative(process);
         long elapsedMs = (CoreMetrics.nanoTime() - startNanos) / 1_000_000L;
-        String stdout = capturedToString(capturedRef);
+        String stdout = SandboxProcessCleanup.capturedToString(capturedRef);
 
         // Failure classification (plan 219 Phase 2 Decision).
         SandboxFailureReason reason = classifyFailure(exitCode, stdout);
@@ -290,7 +326,26 @@ public final class DockerSandboxBackend implements ISandboxBackend {
                             + (stdout.isEmpty() ? "" : "; output: " + truncateForMessage(stdout)));
         }
 
-        return new SandboxResult(exitCode, stdout, "", elapsedMs, false);
+        return new SandboxResult(exitCode, stdout, "", elapsedMs, false, !readerSettled);
+    }
+
+    /**
+     * MA-17 fault-injection seam (plan 2501 Phase 4; shared C10-006 shape
+     * with the toolkit {@code DockerBashSandbox}): starts the {@code docker
+     * run} CLI process. Package-private so tests in this package can
+     * substitute a fake CLI (no Docker daemon required for timeout/cleanup
+     * path coverage).
+     */
+    Process startDockerCli(ProcessBuilder pb) {
+        try {
+            return pb.start();
+        } catch (IOException e) {
+            // docker binary not on PATH, or exec() failed entirely.
+            throw new SandboxException(SandboxFailureReason.DOCKER_UNAVAILABLE,
+                    "DockerSandboxBackend: failed to launch 'docker' CLI for command "
+                            + pb.command() + ": " + e.getMessage(),
+                    e);
+        }
     }
 
     // ========================================================================
@@ -507,87 +562,96 @@ public final class DockerSandboxBackend implements ISandboxBackend {
     // ========================================================================
 
     /**
-     * Kill and force-remove a container by name. Best-effort: errors are
-     * swallowed because (1) {@code --rm} already auto-removes the
-     * container on kill, and (2) a cleanup failure must not mask the
-     * original timeout exception.
+     * MA-17 (plan 2501 Phase 4; 3.2-C6-002 aligned): two-step container
+     * cleanup with visible failures. A swallowed kill/rm failure used to
+     * leave an unaddressable running container (its unique {@code --name}
+     * is the only addressability); both failure faces now log WARN with the
+     * container name and step so residue is observable and ops-cleanable.
+     *
+     * <p><b>Container-side bottoming adjudication (inherited from the
+     * toolkit adjudication, plan 2501 Phase 2 Decision)</b>: declared ops
+     * boundary — the WARNed container name is the cleanup envelope;
+     * {@code --stop-timeout} needs daemon-side cooperation and a background
+     * reaper is deferred (see plan Deferred "容器侧兜底增强"). The local CLI
+     * process is destroyed unconditionally on the timeout path
+     * ({@link SandboxProcessCleanup#reapTree}).
      */
     private static void killContainer(String containerName) {
         try {
-            runShortCommand("docker", "kill", containerName);
-        } catch (Exception ignored) {
-            // best-effort — --rm should already clean up on kill
+            int killExit = runShortCommand("docker", "kill", containerName);
+            if (killExit != 0) {
+                // MA-17: a non-zero `docker kill` exit (daemon down, container
+                // gone) used to be invisible — the container name is the only
+                // addressability
+                LOG.warn("DockerSandboxBackend: docker kill FAILED (exit {}) for container {} — "
+                        + "container may remain running (--rm will not fire); clean up manually "
+                        + "with the container name", killExit, containerName);
+            }
+        } catch (Exception e) {
+            LOG.warn("DockerSandboxBackend: docker kill FAILED for container {} — container may "
+                    + "remain running (--rm will not fire); clean up manually with the container name",
+                    containerName, e);
         }
         try {
-            runShortCommand("docker", "rm", "-f", containerName);
-        } catch (Exception ignored) {
-            // best-effort fallback — container may already be gone
+            int rmExit = runShortCommand("docker", "rm", "-f", containerName);
+            if (rmExit != 0) {
+                LOG.warn("DockerSandboxBackend: docker rm -f FAILED (exit {}) for container {} — "
+                        + "container may remain; clean up manually with the container name",
+                        rmExit, containerName);
+            }
+        } catch (Exception e) {
+            LOG.warn("DockerSandboxBackend: docker rm -f FAILED for container {} — container may "
+                    + "remain; clean up manually with the container name", containerName, e);
         }
     }
 
-    private static void runShortCommand(String... argv) throws IOException, InterruptedException {
+    /**
+     * MA-17 (plan 2501 Phase 4; 3.2-C6-003 aligned): bounded execution for
+     * the cleanup helper commands ({@code docker kill} / {@code docker rm
+     * -f}). The previous form drained with an unbounded blocking read
+     * BEFORE the exit wait — a daemon-wedged helper (output pipe held open,
+     * process never exiting) pinned the timeout/cleanup thread forever and
+     * the exit wait ignored its timeout without any destroy. Now:
+     * cumulative-bounded drain (available-probe + deadline), bounded exit
+     * wait, and forcible destroy on timeout — the helper can never outlive
+     * the short-command budget.
+     */
+    private static int runShortCommand(String... argv) throws IOException, InterruptedException {
         Process p = new ProcessBuilder(Arrays.asList(argv)).redirectErrorStream(true).start();
-        // Drain so the child does not block on a full pipe.
+        long deadlineNanos = System.nanoTime()
+                + TimeUnit.SECONDS.toNanos(SHORT_COMMAND_DRAIN_SECONDS);
         byte[] buf = new byte[1024];
-        try (InputStream in = p.getInputStream()) {
-            //noinspection StatementWithEmptyBody
-            while (in.read(buf) != -1) {
-                // discard
-            }
-        }
-        p.waitFor(5, TimeUnit.SECONDS);
-    }
-
-    // ========================================================================
-    // Stream draining + helpers — shared shape with NoOpSandboxBackend but
-    // kept independent (no shared base class to avoid coupling the two
-    // backends).
-    // ========================================================================
-
-    private static void drainStream(InputStream in, int maxBytes, AtomicReference<StringBuilder> capturedRef) {
-        StringBuilder captured = new StringBuilder(Math.min(maxBytes, 8192));
-        byte[] buf = new byte[4096];
-        boolean truncated = false;
         try {
-            int n;
-            while ((n = in.read(buf)) != -1) {
-                if (truncated) {
-                    continue;
-                }
-                int remaining = maxBytes - captured.length();
-                if (remaining <= 0) {
-                    truncated = true;
-                    continue;
-                }
-                int take = Math.min(n, remaining);
-                captured.append(new String(buf, 0, take, StandardCharsets.UTF_8));
-                if (take < n) {
-                    truncated = true;
+            try (InputStream in = p.getInputStream()) {
+                while (System.nanoTime() < deadlineNanos) {
+                    int available = in.available();
+                    if (available > 0) {
+                        // available() > 0 guarantees this read returns without blocking
+                        in.read(buf, 0, Math.min(buf.length, available));
+                    } else if (!p.isAlive()) {
+                        // exited; remaining buffered bytes are drained by the loop above
+                        break;
+                    } else {
+                        Thread.sleep(5);
+                    }
                 }
             }
-        } catch (IOException ignored) {
-            // best-effort — keep the partial capture
-        } finally {
-            capturedRef.set(captured);
-        }
-    }
-
-    private static String capturedToString(AtomicReference<StringBuilder> ref) {
-        StringBuilder sb = ref.get();
-        return sb != null ? sb.toString() : "";
-    }
-
-    private static void awaitReader(Thread reader, int wallSeconds) {
-        long graceMillis = Math.max(500L, Math.min(2_000L, wallSeconds * 500L));
-        try {
-            reader.join(graceMillis);
+            if (p.isAlive() && !p.waitFor(SHORT_COMMAND_EXIT_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                // wedged helper: forcible destroy, never a bare (or ignored) wait
+                p.destroyForcibly();
+            }
         } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            p.destroyForcibly();
+            throw e;
         }
-        if (reader.isAlive()) {
-            reader.interrupt();
-        }
+        // MA-17: surface the exit code (un-reaped helper → -1, treated as failure)
+        return p.isAlive() ? -1 : p.exitValue();
     }
+
+    // ========================================================================
+    // Stream draining + helpers — shared implementation with NoOpSandboxBackend
+    // via SandboxProcessCleanup (MA-17 dual-fork convergence, plan 2501 Phase 4).
+    // ========================================================================
 
     private static int exitCodeOrNegative(Process process) {
         try {
