@@ -7,7 +7,7 @@
 | 文档 | 层级 | 职责 |
 | --- | --- | --- |
 | `message-contract-design.md` | Architecture Baseline | SPI 消息契约：能力声明机制、信封元数据契约、选项字段演进规则（D1/D2/D4/D8） |
-| `backend-semantics-design.md` | Architecture Baseline | 后端行为语义：seek 起点、返回协议、DLQ 分层、身份模型、错误码、模块处置、事务语义（D3/D5/D6/D7/D9/D10/D11） |
+| `backend-semantics-design.md` | Architecture Baseline | 后端行为语义：seek 起点、返回协议、DLQ 分层、身份模型、错误码、模块处置、事务语义、Debezium 路径毒事件 endpoint 与屏障两极（D3/D5/D6/D7/D9/D10/D11/D12；范围含 nop-message-debezium） |
 
 ## 阅读顺序
 

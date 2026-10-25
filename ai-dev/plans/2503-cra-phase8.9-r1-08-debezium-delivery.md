@@ -89,24 +89,24 @@
 
 ### Phase 1 - 设计裁定面：毒事件 endpoint 行为 + R4-24 REGISTRY 契约一次裁决
 
-Status: planned
+Status: in progress（设计裁定两文档已落盘、本 Phase Exit Criteria 全勾；独立 draft review 由协调方派发中——评审通过并处置发现前，Phase 2/3 不得消费裁定条款，本 Phase 不得置 completed）
 Targets: `ai-dev/design/nop-message/backend-semantics-design.md`（范围节扩展 + 失败终点节补 CDC 面）、`ai-dev/design/concurrency/registry-lifecycle-contract.md`（新增 REGISTRY 生命周期契约设计文档，内容四要素见下）
 
 - Item Types: `Decision`
 
-- [ ] 毒事件 endpoint 行为裁定（4.1 merge-adjudication §五-7「工单内前置设计裁定」）：C3-002（存活极性：屏障须有，禁整体炸流）与 C8-004（投递极性：屏障不得吞后静默推进 offset）两极同禁约束下，Debezium 路径失败行为二选一定稿——(a) 跳过+计数+上报+`ConsumeFailure` 派发（该事件 at-most-once，可见性保底）或 (b) 中止本轮投递换 at-least-once 重放（故障订阅者阻塞引擎线程的取舍须随裁定显式声明）；`DebeziumMessageSource.dispatchEvent` 失败分支与 `handleDebeziumEvent` 屏障共用同一 endpoint 语义。裁定记录扩入 `backend-semantics-design.md`（范围节覆盖 nop-message-debezium——补齐审计证实的范围缺口，SSOT 不另起新交付语义文档）；C10-001 建议测试场景 (2)（毒事件两极）为该裁定的唯一行为锚定，Phase 2 测试消费本结论
-- [ ] R4-24 REGISTRY 契约一次裁决（设计项；R4-24 硬依赖，batch-proposal R4-24 行依赖列声明）：`NopStreamOffsetBackingStore` 生命周期契约三选一定稿（stop-clear vs TTL/evictIdle vs 条件移除——对「同名重启续传」期望影响相反）+ 软钉#5（`setOffsets` REPLACE 契约，`TestNopStreamOffsetBackingStore:90-98` 现状钉）一并裁决 + WI 2.5 消费面表态（C3-008/CL-010/WI 2.5 C1-005 互斥分层维持声明）+ **与 C3-014 幽灵引擎修复的一致性声明**（ghost 歼灭后同名 registry 桶互覆残余的语义归宿、与 C3-004 恢复语义的衔接）。设计文档四要素齐备；覆盖对象按勘误 2 权威口径（C5-001+C6-004+C1-002 三单，非「MA-03/MA-04/C1-002」）；R4-24 十三项按本裁决实施，禁止各修一半
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 毒事件 endpoint 行为裁定（4.1 merge-adjudication §五-7「工单内前置设计裁定」）：C3-002（存活极性：屏障须有，禁整体炸流）与 C8-004（投递极性：屏障不得吞后静默推进 offset）两极同禁约束下，Debezium 路径失败行为二选一定稿——(a) 跳过+计数+上报+`ConsumeFailure` 派发（该事件 at-most-once，可见性保底）或 (b) 中止本轮投递换 at-least-once 重放（故障订阅者阻塞引擎线程的取舍须随裁定显式声明）；`DebeziumMessageSource.dispatchEvent` 失败分支与 `handleDebeziumEvent` 屏障共用同一 endpoint 语义。裁定记录扩入 `backend-semantics-design.md`（范围节覆盖 nop-message-debezium——补齐审计证实的范围缺口，SSOT 不另起新交付语义文档）；C10-001 建议测试场景 (2)（毒事件两极）为该裁定的唯一行为锚定，Phase 2 测试消费本结论【2026-10-25 落档：终裁 (a) 案——§一结论 8 + §3.3.3 + §四两条拒绝；范围节补 nop-message-debezium（live 核实落档前零该模块）；(b) 案拒绝理由 = debezium-embedded 回调异常逃逸即引擎终态死亡（与存活极性冲突）+ 屏障内自建重投违反 nop-retry 唯一重试机制约束】
+- [x] R4-24 REGISTRY 契约一次裁决（设计项；R4-24 硬依赖，batch-proposal R4-24 行依赖列声明）：`NopStreamOffsetBackingStore` 生命周期契约三选一定稿（stop-clear vs TTL/evictIdle vs 条件移除——对「同名重启续传」期望影响相反）+ 软钉#5（`setOffsets` REPLACE 契约，`TestNopStreamOffsetBackingStore:90-98` 现状钉）一并裁决 + WI 2.5 消费面表态（C3-008/CL-010/WI 2.5 C1-005 互斥分层维持声明）+ **与 C3-014 幽灵引擎修复的一致性声明**（ghost 歼灭后同名 registry 桶互覆残余的语义归宿、与 C3-004 恢复语义的衔接）。设计文档四要素齐备；覆盖对象按勘误 2 权威口径（C5-001+C6-004+C1-002 三单，非「MA-03/MA-04/C1-002」）；R4-24 十三项按本裁决实施，禁止各修一半【2026-10-25 落档：`ai-dev/design/concurrency/registry-lifecycle-contract.md`——终裁 stop 侧配对释放 + 绑定代条件移除（同名重启续传唯一合法路径 = 显式 checkpoint 恢复）；软钉#5 维持 REPLACE 不改写、仅增恢复声明窗守卫；WI 2.5 互斥分层维持；C3-014 双层防御一致性 + C3-004 衔接闭环】
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 毒事件 endpoint 裁定已在 `backend-semantics-design.md` 落档（范围节覆盖 nop-message-debezium、两极同禁语义成文），Phase 2 测试可直接引用其行为条款
-- [ ] REGISTRY 契约设计文档 `ai-dev/design/concurrency/registry-lifecycle-contract.md` 已落档，四要素齐备（三选一结论 / 软钉#5 裁决 / WI 2.5 表态 / C3-014 一致性声明），覆盖对象为勘误 2 权威口径
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
-- [ ] No owner-doc update required（本 Phase 为 ai-dev 设计文档产出；`docs-for-ai/` 三份 owner doc 的受影响面归 Phase 4 统一核对——去向前向已显式登记）
+- [x] 毒事件 endpoint 裁定已在 `backend-semantics-design.md` 落档（范围节覆盖 nop-message-debezium、两极同禁语义成文），Phase 2 测试可直接引用其行为条款
+- [x] REGISTRY 契约设计文档 `ai-dev/design/concurrency/registry-lifecycle-contract.md` 已落档，四要素齐备（三选一结论 / 软钉#5 裁决 / WI 2.5 表态 / C3-014 一致性声明），覆盖对象为勘误 2 权威口径
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- [x] No owner-doc update required（本 Phase 为 ai-dev 设计文档产出；`docs-for-ai/` 三份 owner doc 的受影响面归 Phase 4 统一核对——去向前向已显式登记）
 
 ### Phase 2 - 4.1 修复分片：Debezium 本体面三工单 + Local 失败回调（nop-message）
 
