@@ -1,6 +1,6 @@
 # 2502 CRA Phase 8.8 — R1-07 F4 账本保留统一批（R01 族行：统一保留期/TTL/上限设计一处定稿，6 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_a834f6e3（0 Blocker、4 Major[M1 trusted-device 第七面授权边界/M2 第七面机制与测试义务低于六面/M3 Phase 2 接线措辞与裁定菜单不一致/M4 缺 doc-links 门禁]+7 Minor——修订 agent_585e2639 全量应用；M1 采保守裁决：授权边界维持六族、trusted-device 移出本批 Deferred 登记 successor=R3-01[扩面询问未获回复，不静默扩面]，active）
 > Last Reviewed: 2026-10-25
 > Source: roadmap 工作项 8.8（R1-07，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L150，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-07 行（L68：finding ID 清单 6 项 / PA=nop-auth ask-first / 依赖=无前置（可并行）+「保留策略设计=族级 SSOT（上限+逐出+fail-fast 包络声明，4.5 口径）」/ exit criteria 增补四条）；**族级纪律 SSOT = family-clustering.md R01 行（L45：保留期/TTL/行数上限+成功即清理；族级纪律=上限+逐出+fail-fast 包络声明[4.5 口径]；5.1 MA-01/1.6 C7-001/1.7 C7-003/5.5 W-02/5.6 W-01 统一批次[ledger §二#3]；账本表批次对齐 1.6 C7-001↔1.7 C7-003）+ 4.5 口径出处 `ai-dev/audits/2026-10/2026-10-21-1444-deep-audit-nop-search-runner-autotest-concurrency/merge-adjudication.md:125`（F4 无界账本家族族级修复纪律）**；5.2-MA-04 留存语义条款 = family-clustering §三.5#5（L564：维持 P2 入 R01 族行，留存语义按族级纪律统一设计[保留期/TTL/上限+owner doc 补 retention 声明后落地]）；成员发现详情 = 六个审计目录（见 Current Baseline 逐条回读路径）；执行基线 @ `6aeb7d43e9`（分支 `concurrency-audit-remediation`，工作树 clean；roadmap 8.1–8.7 已 done，plan 2495–2501 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
@@ -187,7 +187,7 @@ Exit Criteria:
 ### Phase 4 - 分片 C：5.1-MA-01 六族清理配对（nop-auth，ask-first 已授权[边界=六族] + nop-credential 先例面；trusted-device 第七面 R1 修订摘除）
 
 Status: completed（2026-10-25，提交 `35933a88e7`）
-Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DaoUserContextCache.java`（:164 removeUserContextAsync 面）、`login/DaoLoginSessionStore.java`、`mfa/store/DbMfaChallengeStore.java`、`mfa/store/DbSmsCodeStore.java`、`mfa/store/DbEmailCodeStore.java`、`ratelimit/DbSendCodeRateLimiter.java`、`login/DbLoginAttemptStore.java`、`mfa/MfaTrustedDeviceManager.java`（R1 修订摘除——零触碰，仅作零 diff 核验对照）、`NopAuthConfigs`（retention 配置）、`nop-auth`/`nop-credential` 测试目录
+Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DaoUserContextCache.java`（:164 removeUserContextAsync 面）、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DaoLoginSessionStore.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/store/DbMfaChallengeStore.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/store/DbSmsCodeStore.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/store/DbEmailCodeStore.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/ratelimit/DbSendCodeRateLimiter.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DbLoginAttemptStore.java`、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaTrustedDeviceManager.java`（R1 修订摘除——零触碰，仅作零 diff 核验对照）、`nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/NopAuthConfigs.java`（retention 配置）、`nop-auth`/`nop-credential` 测试目录
 
 - Item Types: `Fix`（5.1-MA-01 已确认 live defect[六族 P1]）、`Proof`（回归测试，C10-001/004/005 回归钉）
 
@@ -366,41 +366,41 @@ Exit Criteria:
 
 ### Phase 9 - closure audit + 收口（E6）
 
-Status: planned
+Status: completed
 Targets: 本 plan 全部 Phase、`ai-dev/logs/` 收口条目、roadmap 8.8 行翻转
 
 - Item Types: `Proof`（独立 closure audit）
 
-- [ ] 从头重读整份 plan，逐条核对每个 Phase Exit Criteria 与 Closure Gates（guide「When Closing The Plan」9 件事）
-- [ ] 独立子 agent closure audit（fresh session，不复用实现会话）：每条 Exit Criterion/Closure Gate 的 PASS/FAIL + live 证据；Anti-Hollow 检查（清理入口真实被调用链连通——非仅 API 存在；W-01 桥接在真实 step 消费链上生效；无空方法体/静默跳过）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2502-cra-phase8.8-r1-07-f4-ledger-retention.md --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0
-- [ ] 文本一致性核对：Plan Status / 各 Phase Status / 各 Exit Criteria / Closure Gates / `ai-dev/logs/` 收口记录五处彼此一致
-- [ ] roadmap 8.8 → done 翻转；Closure Audit Evidence 写入本 plan Closure 段
+- [x] 从头重读整份 plan，逐条核对每个 Phase Exit Criteria 与 Closure Gates（guide「When Closing The Plan」9 件事）
+- [x] 独立子 agent closure audit（fresh session，不复用实现会话）：每条 Exit Criterion/Closure Gate 的 PASS/FAIL + live 证据；Anti-Hollow 检查（清理入口真实被调用链连通——非仅 API 存在；W-01 桥接在真实 step 消费链上生效；无空方法体/静默跳过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2502-cra-phase8.8-r1-07-f4-ledger-retention.md --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high` 退出码 0
+- [x] 文本一致性核对：Plan Status / 各 Phase Status / 各 Exit Criteria / Closure Gates / `ai-dev/logs/` 收口记录五处彼此一致
+- [x] roadmap 8.8 → done 翻转；Closure Audit Evidence 写入本 plan Closure 段
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 独立 closure audit PASS 且证据写入 Closure 段（Reviewer/Agent 标识 + 每条 Gate 验证结果）
-- [ ] check-plan-checklist `--strict` 退出码 0；scan-hollow-implementations 退出码 0
-- [ ] roadmap 8.8 行 Status=done
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立 closure audit PASS 且证据写入 Closure 段（Reviewer/Agent 标识 + 每条 Gate 验证结果）
+- [x] check-plan-checklist `--strict` 退出码 0；scan-hollow-implementations 退出码 0
+- [x] roadmap 8.8 行 Status=done
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 6 项 in-scope confirmed live defects 已修复（1.6-C7-001/1.7-C7-003/5.1-MA-01/5.5-W-02/5.6-W-01 P1 + 5.2-MA-04 P2 提前搭车）
-- [ ] 批特有 exit criteria 四条增补全收敛：①统一保留期/TTL/行数上限设计一处定稿（Phase 1 设计文档）且五（六）模块落地无分叉（各分片参数可追溯到逐单表）；②1.6-C7-001↔1.7-C7-003 账本表批次对齐（同设计同参声明在两分片与 owner doc 中互引）；③5.2-MA-04 留存语义按族级纪律落地（owner doc retention 声明在位）；④5.6-W-01 过期指纹误拒面同批闭合（跨 engine 复用回归钉在位）
-- [ ] 每工单 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；成员 3 携 C10-001/004/005 回归钉
-- [ ] 必红证据（E2）各分片留痕（先红后绿或变异/回退论证，`_tmp/` 快照）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs（八份）已同步到 live baseline，或显式写明 `No owner-doc update required` + 理由；PA ask-first 授权记录与零触碰声明经 E4 复核
-- [ ] 独立子 agent closure-audit 已完成并记录证据（Closure 段）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）清理入口/桥接在真实调用链上运行时生效（retry 清理入口被装配链调用、duckdb 包装在真实 step 链生效等——不只是类型系统存在），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw clean install -T 1C` BUILD SUCCESS（或受影响聚合模块树 `-am` 全绿，快照留证）
-- [ ] checkstyle / 代码规范检查通过（pre-commit lint 0 violations 留痕）
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本批修改 `ai-dev/design/`、`docs-for-ai/`、`ai-dev/plans/` 后强制）
+- [x] 6 项 in-scope confirmed live defects 已修复（1.6-C7-001/1.7-C7-003/5.1-MA-01/5.5-W-02/5.6-W-01 P1 + 5.2-MA-04 P2 提前搭车）
+- [x] 批特有 exit criteria 四条增补全收敛：①统一保留期/TTL/行数上限设计一处定稿（Phase 1 设计文档）且五（六）模块落地无分叉（各分片参数可追溯到逐单表）；②1.6-C7-001↔1.7-C7-003 账本表批次对齐（同设计同参声明在两分片与 owner doc 中互引）；③5.2-MA-04 留存语义按族级纪律落地（owner doc retention 声明在位）；④5.6-W-01 过期指纹误拒面同批闭合（跨 engine 复用回归钉在位）
+- [x] 每工单 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；成员 3 携 C10-001/004/005 回归钉
+- [x] 必红证据（E2）各分片留痕（先红后绿或变异/回退论证，`_tmp/` 快照）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs（八份）已同步到 live baseline，或显式写明 `No owner-doc update required` + 理由；PA ask-first 授权记录与零触碰声明经 E4 复核
+- [x] 独立子 agent closure-audit 已完成并记录证据（Closure 段）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）清理入口/桥接在真实调用链上运行时生效（retry 清理入口被装配链调用、duckdb 包装在真实 step 链生效等——不只是类型系统存在），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw clean install -T 1C` BUILD SUCCESS（或受影响聚合模块树 `-am` 全绿，快照留证）
+- [x] checkstyle / 代码规范检查通过（pre-commit lint 0 violations 留痕）
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本批修改 `ai-dev/design/`、`docs-for-ai/`、`ai-dev/plans/` 后强制）
 
 ## Deferred But Adjudicated
 
@@ -420,17 +420,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （未完成）
+Status Note: 本计划收口 CRA Phase 8.8（R1-07 F4 账本保留统一批）：族级保留策略 SSOT 一处定稿（统一参数集七项含锚列/触发形态四态菜单/逐单表含第七面裁定/包络声明）+ 六成员全修——retry 三账本表三通道清理+engine 生命周期接线、batch 终态级联+TTL 通道、nop-auth 六族清理配对（ask-first 授权 2026-10-25，trusted-device 第七面保守摘除归 R3-01）、nop-metadata 六表 retention+第七面 C7-101 归 R3-05、DuckDB close 桥接+指纹误拒闭合、nop-sys EXPIRE_AT 清扫+changelog 90d 语义+saveBatch 批量化——35+ 新回归测试先红后绿。roadmap 8.8 → done。
+Completed: 2026-10-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待 Phase 9 独立子 agent closure audit 填写）
-- Evidence: （待填写：每条 Exit Criterion / Closure Gate 验证结果 + checklist/hollow 扫描退出码 + Anti-Hollow 调用链追踪结论）
+- Reviewer / Agent: agent_8f468354（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_8f468354-3dfc-4b60-b16e-efd35a4baf2e
+- Evidence: 判定 **PASS**（10 项核验无一 FAIL、零 Blocker/Major）。①六成员修复在位实仓抽验（file:line：RetryRecordStoreImpl:314-390 三通道、DaoBatchLedgerCleaner 级联+TTL、NopAuthLedgerCleaner 六通道+beans:201、NopMetaLedgerCleaner 六表+裁定④选③落账、BridgeConnection:340-363 close 记账先行、SysDaoLedgerCleaner 双通道+saveBatch:120-128）；②族级 SSOT 同参抽验（四模块 30/1h/1000+nop-sys 7d/90d 零分叉）；③rule 23 防空壳抽验 4 处真端到端（Minor-1 澄清：retry 接线测试为 CapturingStore 接线断言+独立真实 DB purge 测试两段式，接缝一行实读在案，非空壳）；④测试实跑 TestSysLedgerRetention_MA_04 7/7+TestAuthLedgerRetention_MA_01 7/7（EXIT=0×2）；⑤ask-first 三处合规（plan 头部/commit 正文/git diff trusted-device 零触碰）；⑥三处偏离声明在案（E1 skipTests 支路/flake triage/分解等价通道）；⑦owner doc 八份核对（六份更新+nop-credential/nop-rule No-update 登记+Phase 8 补 nop-retry.md 锚点行）。双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）。Deferred 分类检查：trusted-device 第七面（moved to explicit successor ownership→R3-01）等条目均为入批前裁定或授权边界裁决项、successor 清晰，无 in-scope live defect 被降级。
 
 Follow-up:
 
-- （待收口时填写，或明确写 no remaining plan-owned work）
+- Non-Blocking Follow-ups 所列项均已登记归属（trusted-device 第七面→R3-01 补授权后实施、C7-101→R3-05、W-28→R3-05、C6-001→R4-14、C7-015→R2-12、nop-auth TestOperationMfaE2E flake→环境轨），no remaining plan-owned work
 
 ## Risks And Rollback
 
