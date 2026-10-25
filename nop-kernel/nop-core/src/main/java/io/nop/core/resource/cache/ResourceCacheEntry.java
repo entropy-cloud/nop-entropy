@@ -12,6 +12,7 @@ import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.concurrent.ResourceRetirementQueue;
 import io.nop.commons.lang.ICreationListener;
 import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.lang.Null;
@@ -146,21 +147,20 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
     }
 
     /**
-     * 清除当前缓存对象
+     * 清除当前缓存对象（失效标记 + 延迟销毁，plan 2504 裁定③，C2-002）：
+     * 监视器内只做 this.object = null 标记失效；旧对象经退役队列延迟销毁（销毁动作 =
+     * listener.onDestroyed + DestroyHelper.safeDestroy，排空期在任意 entry 监视器外执行）——
+     * 快路径无锁交出的引用在宽限期内保持可用，use-after-destroy 窗消除为有界宽限。
+     * 失效入口（ResourceLoadingCache.remove / state_loadFrom putIfAbsent 失败 / destroy()）均经本方法
+     * 到达同一延迟销毁路径；onDestroyed 相互保序（退役队列 FIFO）。
      */
     public void clear() {
+        Object oldObj;
         synchronized (this) {
-            Object oldObj = this.object;
+            oldObj = this.object;
             this.object = null;
-
-            if (oldObj != null && oldObj != Null.NULL) {
-                // 在同步块中销毁
-                if (listener != null) {
-                    listener.onDestroyed((T) oldObj);
-                }
-                DestroyHelper.safeDestroy(oldObj);
-            }
         }
+        retireDestroyedObject(oldObj);
     }
 
     public ResourceDependencySet getDeps() {
@@ -565,12 +565,28 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
     }
 
 
+    /**
+     * 旧对象延迟销毁（plan 2504 裁定③，C2-002 两销毁点之一）：reloadObject 发布新对象后旧对象退役，
+     * 销毁动作（listener.onDestroyed + DestroyHelper.safeDestroy）经退役队列排空期执行，
+     * 与 clear() 同一队列/FIFO 保序——onCreated（发布时已回调）→ onDestroyed 保序。
+     */
     private void destroyObject(Object oldObj) {
         if (oldObj != null && oldObj != Null.NULL) {
-            DestroyHelper.safeDestroy(oldObj);
-            if (listener != null) {
-                listener.onDestroyed((T) oldObj);
-            }
+            retireDestroyedObject(oldObj);
         }
+    }
+
+    /**
+     * 销毁动作唯一执行位 = ResourceRetirementQueue 排空（关闭档 grace ≤0 退化为同步立即销毁 = 现行语义）。
+     */
+    private void retireDestroyedObject(Object oldObj) {
+        if (oldObj == null || oldObj == Null.NULL)
+            return;
+        ResourceRetirementQueue.global().retire(oldObj, obj -> {
+            if (listener != null) {
+                listener.onDestroyed((T) obj);
+            }
+            DestroyHelper.safeDestroy(obj);
+        });
     }
 }

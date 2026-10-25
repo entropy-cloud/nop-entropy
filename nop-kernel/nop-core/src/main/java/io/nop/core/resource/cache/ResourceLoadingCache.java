@@ -159,6 +159,11 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
         cache.clear();
     }
 
+    /**
+     * 失效入口：条目移出缓存并失效其对象。销毁时序随 entry 层（plan 2504 裁定③）——
+     * {@code entry.clear()} 为标记失效 + 旧对象经退役队列延迟销毁（宽限期内快路径已交出引用保持可用），
+     * 本入口自身无独立销毁实现（机制单点）。
+     */
     @Override
     public void remove(String key) {
         ResourceCacheEntry<V> entry = cache.getIfPresent(key);
