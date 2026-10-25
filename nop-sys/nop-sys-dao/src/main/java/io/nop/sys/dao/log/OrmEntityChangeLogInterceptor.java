@@ -16,6 +16,9 @@ import io.nop.orm.model.OrmModelConstants;
 import io.nop.sys.dao.NopSysDaoConstants;
 import io.nop.sys.dao.entity.NopSysChangeLog;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
 
     @Override
@@ -31,6 +34,7 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
         NopSysChangeLog changeLog = dao.newEntity();
         initChangeLog(changeLog, NopSysDaoConstants.OPERATION_SAVE, entity);
 
+        List<NopSysChangeLog> logs = new ArrayList<>(entityModel.getColumns().size());
         entityModel.getColumns().forEach(col -> {
             int propId = col.getPropId();
             if (propId == entityModel.getVersionPropId())
@@ -44,8 +48,9 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
             // null 显式记为空串：newValue 为 NULL 表示记录未初始化，"" 表示列存在但值为空
             // （回归覆盖 wi7#4，plan 2306 项 20）
             log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId), ""));
-            saveDirectly(dao, log);
+            logs.add(log);
         });
+        saveBatch(dao, logs);
     }
 
     @Override
@@ -61,6 +66,7 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
         NopSysChangeLog changeLog = dao.newEntity();
         initChangeLog(changeLog, NopSysDaoConstants.OPERATION_UPDATE, entity);
 
+        List<NopSysChangeLog> logs = new ArrayList<>();
         entity.orm_forEachDirtyProp((value, propId) -> {
             // 乐观锁更新version必为脏属性，与postSave一致跳过，避免每次更新多写一条
             // propName=version的噪声记录
@@ -73,8 +79,9 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
             // null 显式记为空串，保持与 postSave 一致的 NULL/"" 语义区分
             log.setOldValue(ConvertHelper.toString(value, ""));
             log.setNewValue(ConvertHelper.toString(entity.orm_propValue(propId), ""));
-            saveDirectly(dao, log);
+            logs.add(log);
         });
+        saveBatch(dao, logs);
     }
 
     @Override
@@ -92,7 +99,7 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
         changeLog.setPropName(NopSysDaoConstants.PROP_DELETED);
         changeLog.setOldValue("0");
         changeLog.setNewValue("1");
-        saveDirectly(dao, changeLog);
+        saveBatch(dao, List.of(changeLog));
     }
 
     protected IEntityDao<NopSysChangeLog> dao() {
@@ -103,11 +110,24 @@ public class OrmEntityChangeLogInterceptor implements IOrmInterceptor {
      * 拦截器在外层会话的flush回调内触发：入队式saveEntity会随会话关闭被丢弃（internalSave
      * 已入队但INSERT从未执行）；saveEntityDirectly复用环境会话又与进行中的flush相互重入
      * （同一动作重复入队，duplicate-key）。必须在独立新会话中直接落库。
+     * <p>
+     * 5.2-MA-04（plan 2502）批量化：同一实体事件的全部审计列行在<b>一个</b>独立新会话中批量
+     * 插入（saveDirectly(entity,false) 入队 + 单次 flushActionQueue），替代此前每列一次
+     * runInNewSession 的 N 会话/事务写放大。批内任一行失败则整批失败、异常显式上抛不吞
+     * （审计行全有或全无，失败回滚语义与此前单行失败上抛一致且更强）。
      */
     @SuppressWarnings("unchecked")
-    private void saveDirectly(IEntityDao<NopSysChangeLog> dao, NopSysChangeLog log) {
+    private void saveBatch(IEntityDao<NopSysChangeLog> dao, List<NopSysChangeLog> logs) {
+        if (logs.isEmpty())
+            return;
         IOrmEntityDao<NopSysChangeLog> ormDao = (IOrmEntityDao<NopSysChangeLog>) dao;
-        ormDao.getOrmTemplate().runInNewSession(session -> session.saveDirectly(log));
+        ormDao.getOrmTemplate().runInNewSession(session -> {
+            for (NopSysChangeLog log : logs) {
+                session.saveDirectly(log, false);
+            }
+            session.flushActionQueue();
+            return null;
+        });
     }
 
     protected void initChangeLog(NopSysChangeLog changeLog, String defaultOpName,

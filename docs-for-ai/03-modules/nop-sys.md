@@ -111,6 +111,25 @@ nop-sys 内置字段级变更日志（`NopSysChangeLog` + `OrmEntityChangeLogInt
 - **`../03-runbooks/audit-field-changes.md`** — 字段级变更日志：实体加 `tagSet="audit"` 自动记 old→new，默认启用
 - **`../03-runbooks/orm-interceptor-trigger.md`** — 通用 ORM 拦截器（应用层 trigger）：`IOrmInterceptor` + `orm-interceptor.xml` 配置式回调
 
+字段级变更日志的写入形态：同一实体事件的全部审计列行在**一个**独立新会话中批量插入（单会话批量，非每列一会话）；批内任一行失败则整批失败、异常上抛（审计行全有或全无）。
+
+## 账本保留策略
+
+sys_lock 与 sys_change_log 双面账本由 `SysDaoLedgerCleaner`（bean `nopSysDaoLedgerCleaner`，IoC 容器 `@PostConstruct` 生命周期链周期调度，taskName=`nop-sys-ledger-cleanup`）周期清理。参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md §3.2 nop-sys 行（多语义 face 模块 face 段必配，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.sys.ledger.lock.retention-days` | 7 | 过期僵尸锁行保留期（天）；`0`=显式禁用 lock 面清理；负值启动期 fail-fast |
+| `nop.sys.ledger.changelog.retention-days` | 90 | 审计留痕保留期（天，全平台缺省最长——审计宁长勿短）；**`0`=永久保留的显式 opt-in**（合规场景）；负值启动期 fail-fast |
+| `nop.sys.ledger.cleanup-interval` | 1h | 清理触发周期（双 face 共用）；下限 60s，低于下限启动期 fail-fast |
+| `nop.sys.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（先按锚列谓词+limit 有界拾取，再按拾取集批删）；非正数启动期 fail-fast |
+
+清理谓词与留存语义：
+
+- **sys_lock**：锚列 `expireAt`，谓词 `expireAt < now - 保留期`——覆盖「崩溃持有者+无人争用」僵尸锁行（既有删除点 `releaseLock`/`forceUnlock`/争用触发惰性删除对不再被争用的资源零覆盖）。活跃锁行随续约刷新 `expireAt`，不会进入清理谓词。
+- **sys_change_log（留存语义裁定⑤）**：锚列 `createTime`。平台不裁定审计留痕为「永久有意保留」——缺省保留 90 天（宁长勿短全域上限）；合规场景需要长期保留时以 `nop.sys.ledger.changelog.retention-days=0` **显式声明**永久保留（opt-in），禁止无声明/无清理/无上限的三无状态延续。需要更长排查窗口的部署应调大该键而非关闭清理。
+- 双面保留期均为 0 时不调度清理链。清理失败显式可见：失败轮 ERROR（`nop.sys.ledger.cleanup-fail`）+ 失败计数，周期链由绝缘层保障不断链。
+
 ## 子模块
 
 | 子模块 | 职责 |
@@ -133,6 +152,7 @@ nop-sys 内置字段级变更日志（`NopSysChangeLog` + `OrmEntityChangeLogInt
 | 普通事件 batch 调度入口 | `nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml` + `nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/job/conf/scheduler.yaml`（scheduler 直接调用 `nopBatchTaskRunner.executeAsync`） |
 | 序列号生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/seq/SysSequenceGenerator.java` |
 | 编码规则生成器 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/coderule/SysCodeRuleGenerator.java` |
+| 账本保留清理 | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/cleanup/SysDaoLedgerCleaner.java` |
 | Bean 注册 | `nop-sys/nop-sys-dao/src/main/resources/_vfs/nop/sys/beans/app-dao.beans.xml` |
 
 ## 相关文档

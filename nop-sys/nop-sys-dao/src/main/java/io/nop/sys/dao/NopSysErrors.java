@@ -43,4 +43,12 @@ public interface NopSysErrors {
     ErrorCode ERR_SYS_CODE_RULE_EMPTY_SEQ_NAME =
             define("nop.err.sys.code-rule-empty-seq-name",
                     "编码规则中用到了顺序号，但是没有配置对应序列名称：{ruleName}", ARG_RULE_NAME);
+
+    // ===== 账本保留策略（5.2-MA-04，plan 2502；fail-fast 包络——错配置启动期拒绝不降级） =====
+
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+
+    ErrorCode ERR_SYS_LEDGER_CONFIG_INVALID = define("nop.err.sys.ledger-config-invalid",
+            "Invalid sys ledger retention config: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }
