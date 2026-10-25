@@ -19,9 +19,11 @@ import org.apache.kafka.connect.storage.OffsetBackingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -124,7 +126,39 @@ public class DebeziumEngineWrapper {
      */
     static final int STOP_TERMINATION_BUDGET_SECONDS = 5;
 
+    /**
+     * C3-014 ① (plan 2503 Phase 3): bounded retry budget for {@code engine.close()}
+     * rejections during the STARTING_TASKS window (debezium-embedded state-machine
+     * contract), sliced at {@link #STARTING_TASKS_RETRY_SLICE_MILLIS}.
+     */
+    static final long STARTING_TASKS_RETRY_BUDGET_MILLIS = 2000L;
+    static final long STARTING_TASKS_RETRY_SLICE_MILLIS = 200L;
+
+    /**
+     * C3-014 ⑤/④ (plan 2503 Phase 3): engine-body termination wait and stuck-engine
+     * escalation budgets. Defaults align with the carrier budget of plan 2498; instance
+     * fields (not constants) so the stuck-engine paths stay unit-testable without paying
+     * the full default budget.
+     */
+    volatile long terminationWaitMillis = STOP_TERMINATION_BUDGET_SECONDS * 1000L;
+    volatile long escalationWaitMillis = 1000L;
+
     private DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engine;
+
+    /**
+     * C3-014 ⑤ (plan 2503 Phase 3): engine-body termination latch — the queryable
+     * terminality signal of the upgraded stop contract ("stop issued" → "engine
+     * terminated"). Created at start(); counted down by the carrier lambda's finally, so
+     * overrides of {@link #runEngineWorker} cannot lose it. Polled by the four nop-stream
+     * stop faces via {@link #isTerminated()}.
+     */
+    private volatile CountDownLatch terminationLatch;
+
+    /**
+     * C3-014 ③ (C4-006 worker guard): set at stop() entry — a worker lambda that has not
+     * entered yet must not drive the engine during or after the stop contract.
+     */
+    private final AtomicBoolean stopRequested = new AtomicBoolean(false);
 
     /**
      * Dedicated per-engine single-thread carrier (plan 2498 Phase 1, finding 1.2-C4-004).
@@ -204,6 +238,9 @@ public class DebeziumEngineWrapper {
         // inside the async startup window (worker lambda queued but not yet
         // past running.set(true)) does not early-exit and leak the engine.
         startRequested.set(true);
+        // C3-014 ⑤: a fresh termination latch per start — the terminality signal is
+        // defined from the moment the engine could run.
+        this.terminationLatch = new CountDownLatch(1);
 
         try {
             // 构建配置
@@ -228,9 +265,26 @@ public class DebeziumEngineWrapper {
                         "debezium-engine-" + config.getName(), true));
                 this.engineExecutor = carrier;
             }
-            carrier.execute(() -> runEngineWorker(engine));
+            final DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef = engine;
+            carrier.execute(() -> {
+                try {
+                    runEngineWorker(engineRef);
+                } finally {
+                    // C3-014 ⑤: the termination signal fires when the carrier task exits —
+                    // independent of how the body ended (natural, failure, or worker skip).
+                    CountDownLatch latch = terminationLatch;
+                    if (latch != null) {
+                        latch.countDown();
+                    }
+                }
+            });
 
         } catch (Exception e) {
+            // nothing will run: the engine is vacuously terminated
+            CountDownLatch latch = terminationLatch;
+            if (latch != null) {
+                latch.countDown();
+            }
             throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_START_FAILED)
                     .param("connector", config.getName())
                     .cause(e);
@@ -331,6 +385,15 @@ public class DebeziumEngineWrapper {
      */
     protected void runEngineWorker(
             DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef) {
+        // C3-014 ③ (C4-006, plan 2503 Phase 3): a worker lambda entering after the stop
+        // contract began must not drive the engine — the queued task would otherwise open a
+        // fresh engine AFTER stop completed (pre-fix ghost face). Orderly cancel: no failure
+        // notification; the termination latch is counted by the carrier lambda's finally.
+        if (stopRequested.get()) {
+            LOG.warn("Debezium engine worker skipped after stop request: connector={}",
+                    config.getName());
+            return;
+        }
         try {
             running.set(true);
             LOG.info("Starting Debezium engine: {}", config.getName());
@@ -349,32 +412,43 @@ public class DebeziumEngineWrapper {
 
     /**
      * 停止引擎
+     *
+     * <p>C3-014 (plan 2503 Phase 3): the stop contract is upgraded from「已发出」to「已终止」.
+     * ① STARTING_TASKS close rejections are retried within a bounded budget and fail typed
+     * on exhaustion (never swallowed); ④ a stuck engine is escalated to
+     * {@code carrier.shutdownNow()}; ⑤ the engine-body termination latch is awaited and a
+     * residual ghost is declared by explicit ERROR. The one-shot {@code stopped} latch
+     * engages only AFTER the contract completed — a typed stop failure leaves the wrapper
+     * retryable (a later stop() retries the close), closing the pre-fix permanent-no-op
+     * ghost window. The 2498 carrier shape (dedicated carrier + bounded
+     * {@code awaitTermination}) is kept verbatim (zero-regression pin).
      */
     public synchronized void stop() {
-        // R5 CON-02: gate on the start REQUEST (not the worker-observed
-        // running flag) — during the async startup window running is still
-        // false while the engine is about to run; early-exiting here leaked
-        // the binlog connection and the carrier thread.
-        if (!startRequested.get() || stopped.getAndSet(true)) {
+        // C3-014 ③: worker-entry guard signal — set BEFORE the gate so even a gated stop
+        // (never-started wrapper) arms the worker skip.
+        stopRequested.set(true);
+        if (!startRequested.get() || stopped.get()) {
             return;
         }
 
         LOG.info("Stopping Debezium engine: {}", config.getName());
 
+        // C3-014 ①: engine.close() may be rejected with IllegalStateException while the
+        // engine is still starting up (STARTING_TASKS window, debezium-embedded contract).
+        // Bounded retry until the window clears; exhaustion fails typed — never swallowed.
+        // The waits below still run (the engine may yet die); the typed failure surfaces
+        // after them and does NOT latch the one-shot.
+        NopException closeFailure = null;
         try {
-            if (engine != null) {
-                engine.close();
-            }
-        } catch (Exception e) {
-            LOG.error("Error closing Debezium engine: {}", config.getName(), e);
+            closeEngineWithRetry();
+        } catch (NopException e) {
+            closeFailure = e;
         }
 
         // 1.2-C4-004 (plan 2498 Phase 1): bounded termination budget on the dedicated
         // carrier. engine.close() is only a cooperative async signal; awaiting the carrier
         // with a bounded budget makes stop() wait for the engine body to actually finish,
-        // with no unbounded wait and no silent timeout. The termination-latch contract and
-        // the startup guard remain owned by 1.2-C3-014 (R1-08): no latch is introduced
-        // here and the close semantics themselves are not rewritten.
+        // with no unbounded wait and no silent timeout.
         ExecutorService carrier = this.engineExecutor;
         if (carrier != null) {
             carrier.shutdown();
@@ -390,7 +464,105 @@ public class DebeziumEngineWrapper {
             }
         }
 
+        // C3-014 ⑤: bounded wait on the engine-body termination latch.
+        if (!awaitEngineTermination(terminationWaitMillis, TimeUnit.MILLISECONDS)) {
+            LOG.warn("Debezium engine body did not terminate within {}ms after close; escalating "
+                    + "to carrier shutdownNow: connector={}", terminationWaitMillis, config.getName());
+            // C3-014 ④: stuck-engine escalation (reserved by plan 2498 errata 4)
+            ExecutorService carrierNow = this.engineExecutor;
+            if (carrierNow != null) {
+                carrierNow.shutdownNow();
+            }
+            if (!awaitEngineTermination(escalationWaitMillis, TimeUnit.MILLISECONDS)) {
+                // rule 24: the residual ghost is DECLARED, never silent
+                LOG.error("nop.message.debezium.engine-ghost-risk:connector={} - engine body did not "
+                        + "terminate within the stop budget; a ghost engine (live connector thread, "
+                        + "continuing offset writes) may persist until JVM exit", config.getName());
+            }
+        }
+
         running.set(false);
+        if (closeFailure != null) {
+            // C3-014 ①: typed stop failure — NOT latched, so a later stop() may retry the
+            // close (retry coordination with the one-shot guard)
+            throw closeFailure;
+        }
+        stopped.set(true);
+    }
+
+    /**
+     * C3-014 ①: close with bounded retry over the STARTING_TASKS rejection window. Budget
+     * exhaustion fails typed ({@code ERR_DEBEZIUM_ENGINE_STOP_FAILED}) — the pre-fix shape
+     * (single attempt, Exception swallowed into a log line, one-shot latch engaged) is the
+     * audited permanent-ghost mechanism. Package-private as a focused test seam (same
+     * visibility discipline as {@link #getEngineExecutor()}).
+     */
+    void closeEngineWithRetry() {
+        closeEngineWithRetry(this.engine);
+    }
+
+    void closeEngineWithRetry(DebeziumEngine<io.debezium.engine.ChangeEvent<byte[], byte[]>> engineRef) {
+        if (engineRef == null) {
+            return;
+        }
+        long deadline = System.currentTimeMillis() + STARTING_TASKS_RETRY_BUDGET_MILLIS;
+        while (true) {
+            try {
+                engineRef.close();
+                return;
+            } catch (IllegalStateException e) {
+                if (System.currentTimeMillis() >= deadline) {
+                    throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_STOP_FAILED)
+                            .param("connector", config.getName())
+                            .param("detail", "engine.close() rejected with IllegalStateException "
+                                    + "past the STARTING_TASKS retry budget; the engine may be a ghost")
+                            .cause(e);
+                }
+                LOG.warn("Debezium engine close rejected while starting up (STARTING_TASKS window); "
+                        + "retrying within budget: connector={}", config.getName());
+                try {
+                    Thread.sleep(STARTING_TASKS_RETRY_SLICE_MILLIS);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_STOP_FAILED)
+                            .param("connector", config.getName())
+                            .param("detail", "interrupted while retrying engine.close() during "
+                                    + "the STARTING_TASKS window")
+                            .cause(ie);
+                }
+            } catch (IOException e) {
+                // I/O failure while closing = a real stop-contract failure: typed, never
+                // swallowed into a log line (rule 24)
+                throw new NopException(DebeziumErrors.ERR_DEBEZIUM_ENGINE_STOP_FAILED)
+                        .param("connector", config.getName())
+                        .param("detail", "engine.close() failed with IOException")
+                        .cause(e);
+            }
+        }
+    }
+
+    /**
+     * C3-014 ⑤: whether the engine body has terminated. A never-started wrapper is vacuously
+     * terminated. This is the queryable terminality signal the nop-stream stop faces poll
+     * after the stop chain returns.
+     */
+    public boolean isTerminated() {
+        CountDownLatch latch = this.terminationLatch;
+        return latch == null || latch.getCount() == 0;
+    }
+
+    /** C3-014 ⑤: bounded wait for the engine-body termination signal. */
+    public boolean awaitEngineTermination(long timeout, TimeUnit unit) {
+        CountDownLatch latch = this.terminationLatch;
+        if (latch == null) {
+            return true;
+        }
+        try {
+            return latch.await(timeout, unit);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return latch.getCount() == 0;
+        }
     }
 
     /**

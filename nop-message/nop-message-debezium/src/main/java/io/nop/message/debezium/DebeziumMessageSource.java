@@ -344,6 +344,17 @@ public class DebeziumMessageSource {
     }
 
     /**
+     * C3-014 ② (plan 2503 Phase 3): whether the bound engine body has TERMINATED (delegates
+     * to the wrapper's termination latch). A stopped or never-started source is vacuously
+     * terminated. This is the signal the nop-stream stop faces poll after the stop chain
+     * returns, upgrading the stop contract from「已发出」to「已终止」.
+     */
+    public boolean isEngineTerminated() {
+        DebeziumEngineWrapper wrapper = this.engineWrapper;
+        return wrapper == null || wrapper.isTerminated();
+    }
+
+    /**
      * D12 §3.3.3 poison-event endpoint (MA-02): skip + count + WARN + guarded ConsumeFailure
      * dispatch — one implementation for both barrier faces (禁分叉). The counter is the
      * {@code nop.message.debezium.poison-event} metric surface (visible via
