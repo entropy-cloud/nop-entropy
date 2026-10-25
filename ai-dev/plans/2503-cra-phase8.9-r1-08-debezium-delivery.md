@@ -1,6 +1,6 @@
 # 2503 CRA Phase 8.9 — R1-08 Debezium 双轨与消息交付语义批（R16/R17/R18 面，B1-05 三案，6 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_68ef0989（0 Blocker、2 Major[Issue1 TestDebeziumErrorBarriers 9→3+4+2 归因勘正/Issue2 roadmap L329 幽灵锚点修正]+5 Minor——修订 agent_1563e10d 全量应用[live 锚点回读核实]，active）
 > Design Review: 两裁定文档独立评审 agent_d082ac70（D12 M-1[ConsumeFailure CDC 接收面未裁定]+m-1/m-2；REGISTRY 原样通过）→ 修订 agent_28bc4b02 落盘（subscribe 变体携带失败处理器/convert attempt 固定 0/poison-event 键/守卫挂桶代粒度）→ 增量复核**通过进入实现**[零遗留]
 > Last Reviewed: 2026-10-25
@@ -182,7 +182,7 @@ Exit Criteria:
 
 Status: completed
 
-> **Phase 4 执行记录（2026-10-26，实现子代理）**：①E1 授权支路：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（453 模块，`_tmp/phase4-e1-fullbuild.log`，2026-10-26 01:34）——支路理由 = 全量测试由批行验证命令（Phase 2/3 终态快照通道）+ 零回退钉抽验组合覆盖，沿 plan 2496~2502 同支路先例。②批行验证终态引用（E3；终态快照后产品代码零 diff，引用即终态）：`./mvnw test -pl nop-message -am` BUILD SUCCESS（8560 tests / 0 failures / 0 errors，`_tmp/phase3-nop-message-gate.log` 01:17 Phase 3 wrapper 面终态）+ `./mvnw test -pl nop-stream -am` BUILD SUCCESS（18164 tests，`_tmp/phase3-nop-stream-gate.log` 01:26 Phase 3 终态）；零回退钉 9 条抽验（终态快照内实证全绿）：TestDebeziumErrorBarriers 3/3 + TestDebeziumEngineWrapperFailureListener 4/4 + TestDebeziumEngineDedicatedCarrier_C4_004 2/2，附加 TestPeriodicTaskInsulation 9/9。③零触碰（E4）：`git diff 7c9767ae77..HEAD --name-only` = 14 文件全过滤通过——nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/绝缘载体/R1-02 设施面零命中（产品 diff 仅 nop-message×7+nop-stream×5，其余 ai-dev×2）；`.rels` 零命中（终态还原核对）；2496/2498 零回退 = 钉套件全绿 + Phase 2/3 执行记录设施 diff 核对复证。④owner doc 三份逐份更新：`nop-stream-connectors.md`（2498 节边界 bullet 更新为已续作闭合 + 新增「Debezium 停止契约终止性（1.2-C3-014）」节：已发出→已终止/STARTING_TASKS 有预算重试 typed 不吞/终结 latch+isTerminated 可观测/shutdownNow 升级/ghost ERROR 声明/worker 守卫/四停止面验证双形态/REGISTRY 边界指针/测试锚点；DebeziumCdcSource 矩阵行补恢复分配差集一句）；`nop-message.md`（DLQ 节补 Local 面闭合+重投立场显式裁决；新增「Debezium 订阅与毒事件 endpoint 契约（D12 §3.3.3）」节：两极同禁+(a) 案四步+`nop.message.debezium.poison-event` 键+getPoisonEventCount+subscribe 失败回调重载与两通道退化声明+MA-05 三面归一+C6-006 Subscription 身份集+isStarted 诚实/isEngineTerminated）；`nop-stream-cdc-cookbook.md`（恢复节新增条目 4「恢复分配差集/每表恰一桶」[含 include-list 收缩 WARN+TestDebeziumTableSplitEnumeratorRestore_C3_004 锚]与条目 5「恢复声明窗 REPLACE 重播种契约」[AR-03 废除+R4-24 边界]；指纹契约核对结论=零受影响面，StateMigrationRegistry/schemaChecksum 面本批零触碰无变更必要）。三处 ai-dev 设计文档引用按既有先例纯文本提及（docs-for-ai 边界规则不直接链接），BOUNDARY 零错误。⑤对齐注记组落 cra-index 七行：R2-16 互注（C8-002 行+3.1-MA-11 行互指 §五-6，G62 行既有 MA-01 对齐文本维持；batch-proposal L90「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记，历史裁定档案不改）+ MA-09 边界注记两行（C3-014 行+G62 行；结论=Phase 3 同文件 diff 未以最小增量自然覆盖四子面——live 核实 start 失败不复位 startRequested/worker 死亡路径无幂等 close 回收/start-after-stop 无契约声明/quiesce join stuck WARN 细化未承接且 ghost ERROR 属 C3-014⑤ 自有面——MA-09 维持 P3 最小 diff 归并轨，successor=R4-24 同文件顺带）+ R17 族注记（G67 行 4.3-MA-09+5.2-I-02 行：与 MA-05 已落地形态对齐义务）+ 勘误 2 勘正注记（G62 行：覆盖对象=C5-001+C6-004+C1-002，MA-04 系笔误）+ 勘误 3 防混注记（MA-05 行：链#21 所记「MA-09」实为 MA-05）；m-2 回填指针落 `registry-lifecycle-contract.md` §3.3（守卫粒度=桶/绑定代级一行，指向 backend-semantics-design.md §五关系行，防第二事实入口）。⑥scan-hollow：nop-message High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-message.log`）+ nop-stream High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-stream.log`）——零批前既有发现，无裁定项。⑦`check-doc-links.mjs --strict` 退出码 0（`_tmp/phase4-doclinks.log`；余 2 warning 为 ai-dev/plans 既有存档文档，非本批引入）。
+> **Phase 4 执行记录（2026-10-26，实现子代理）**：①E1 授权支路：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（453 模块，`_tmp/phase4-e1-fullbuild.log`，2026-10-26 01:34）——支路理由 = 全量测试由批行验证命令（Phase 2/3 终态快照通道）+ 零回退钉抽验组合覆盖，沿 plan 2496~2502 同支路先例。②批行验证终态引用（E3；终态快照后产品代码零 diff，引用即终态）：`./mvnw test -pl nop-message -am` BUILD SUCCESS（8560 tests / 0 failures / 0 errors，`_tmp/phase3-nop-message-gate.log` 01:17 Phase 3 wrapper 面终态）+ `./mvnw test -pl nop-stream -am` BUILD SUCCESS（18164 tests，`_tmp/phase3-nop-stream-gate.log` 01:26 Phase 3 终态）；零回退钉 9 条抽验（终态快照内实证全绿）：TestDebeziumErrorBarriers 3/3 + TestDebeziumEngineWrapperFailureListener 4/4 + TestDebeziumEngineDedicatedCarrier_C4_004 2/2，附加 TestPeriodicTaskInsulation 9/9。③零触碰（E4）：`git diff 7c9767ae77..HEAD --name-only` = 19 文件（closure audit M-1 计数勘正：记录时点在 docs 提交并入前）全过滤通过——nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/绝缘载体/R1-02 设施面零命中（产品 diff 仅 nop-message×7+nop-stream×5，其余 ai-dev×2）；`.rels` 零命中（终态还原核对）；2496/2498 零回退 = 钉套件全绿 + Phase 2/3 执行记录设施 diff 核对复证。④owner doc 三份逐份更新：`nop-stream-connectors.md`（2498 节边界 bullet 更新为已续作闭合 + 新增「Debezium 停止契约终止性（1.2-C3-014）」节：已发出→已终止/STARTING_TASKS 有预算重试 typed 不吞/终结 latch+isTerminated 可观测/shutdownNow 升级/ghost ERROR 声明/worker 守卫/四停止面验证双形态/REGISTRY 边界指针/测试锚点；DebeziumCdcSource 矩阵行补恢复分配差集一句）；`nop-message.md`（DLQ 节补 Local 面闭合+重投立场显式裁决；新增「Debezium 订阅与毒事件 endpoint 契约（D12 §3.3.3）」节：两极同禁+(a) 案四步+`nop.message.debezium.poison-event` 键+getPoisonEventCount+subscribe 失败回调重载与两通道退化声明+MA-05 三面归一+C6-006 Subscription 身份集+isStarted 诚实/isEngineTerminated）；`nop-stream-cdc-cookbook.md`（恢复节新增条目 4「恢复分配差集/每表恰一桶」[含 include-list 收缩 WARN+TestDebeziumTableSplitEnumeratorRestore_C3_004 锚]与条目 5「恢复声明窗 REPLACE 重播种契约」[AR-03 废除+R4-24 边界]；指纹契约核对结论=零受影响面，StateMigrationRegistry/schemaChecksum 面本批零触碰无变更必要）。三处 ai-dev 设计文档引用按既有先例纯文本提及（docs-for-ai 边界规则不直接链接），BOUNDARY 零错误。⑤对齐注记组落 cra-index 七行：R2-16 互注（C8-002 行+3.1-MA-11 行互指 §五-6，G62 行既有 MA-01 对齐文本维持；batch-proposal L90「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记，历史裁定档案不改）+ MA-09 边界注记两行（C3-014 行+G62 行；结论=Phase 3 同文件 diff 未以最小增量自然覆盖四子面——live 核实 start 失败不复位 startRequested/worker 死亡路径无幂等 close 回收/start-after-stop 无契约声明/quiesce join stuck WARN 细化未承接且 ghost ERROR 属 C3-014⑤ 自有面——MA-09 维持 P3 最小 diff 归并轨，successor=R4-24 同文件顺带）+ R17 族注记（G67 行 4.3-MA-09+5.2-I-02 行：与 MA-05 已落地形态对齐义务）+ 勘误 2 勘正注记（G62 行：覆盖对象=C5-001+C6-004+C1-002，MA-04 系笔误）+ 勘误 3 防混注记（MA-05 行：链#21 所记「MA-09」实为 MA-05）；m-2 回填指针落 `registry-lifecycle-contract.md` §3.3（守卫粒度=桶/绑定代级一行，指向 backend-semantics-design.md §五关系行，防第二事实入口）。⑥scan-hollow：nop-message High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-message.log`）+ nop-stream High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-stream.log`）——零批前既有发现，无裁定项。⑦`check-doc-links.mjs --strict` 退出码 0（`_tmp/phase4-doclinks.log`；余 2 warning 为 ai-dev/plans 既有存档文档，非本批引入）。
 
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-stream-connectors.md`、`docs-for-ai/03-modules/nop-message.md`、`docs-for-ai/03-modules/nop-stream-cdc-cookbook.md`（roadmap 8.9 Owner Doc 列三份）；`ai-dev/audits/cra-index.md`（对齐注记组）
 
@@ -211,50 +211,50 @@ Exit Criteria:
 
 ### Phase 5 - closure audit + 台账收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.9 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「stop 契约终止性运行时真实生效」（ghost 场景断言）、「毒事件 endpoint 两极行为与 Phase 1 裁定一致」、「2496/2498 产物零回退」
-- [ ] cra-index 台账回填：P1 五行（L150 `C3-014（MA-07）`、L152 `C3-004`、L266 `nop-message-C3-002+C8-004（MA-02 同 diff 配对）`、L267 `nop-message-C6-002（MA-05 主）`、L268 `nop-message-C8-002`）+ P2-G63 行 C6-006 成分状态收敛（open → 已修/本批，携修复提交引用）；**B1-05 三案统一 P1 落账注记**（三行终裁引用 family-clustering §三 L516 + 4.1 §五-3 同批调整完成确认 + 「结构性免疫」触发条件限定口径）随行落账
-- [ ] roadmap 8.9 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2503-cra-phase8.9-r1-08-debezium-delivery.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「stop 契约终止性运行时真实生效」（ghost 场景断言）、「毒事件 endpoint 两极行为与 Phase 1 裁定一致」、「2496/2498 产物零回退」
+- [x] cra-index 台账回填：P1 五行（L150 `C3-014（MA-07）`、L152 `C3-004`、L266 `nop-message-C3-002+C8-004（MA-02 同 diff 配对）`、L267 `nop-message-C6-002（MA-05 主）`、L268 `nop-message-C8-002`）+ P2-G63 行 C6-006 成分状态收敛（open → 已修/本批，携修复提交引用）；**B1-05 三案统一 P1 落账注记**（三行终裁引用 family-clustering §三 L516 + 4.1 §五-3 同批调整完成确认 + 「结构性免疫」触发条件限定口径）随行落账
+- [x] roadmap 8.9 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2503-cra-phase8.9-r1-08-debezium-delivery.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 六成员行状态全部收敛 + B1-05 三案注记 + 对齐注记组可核验、roadmap 8.9 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 六成员行状态全部收敛 + B1-05 三案注记 + 对齐注记组可核验、roadmap 8.9 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 6 项成员全部修复收敛：4.1-C3-002+C8-004（屏障两极同禁 + isStarted 诚实）、4.1-C6-002（MA-05 三面归一）、4.1-C6-006（注销身份改造）、4.1-C8-002（第一层回调 + 三层架构闭合 + 重投立场显式裁决）、1.2-C3-014（残余五项：ISE 不吞/终止性验证/worker 守卫/shutdownNow 升级/终结契约）、1.2-C3-004（恢复每表恰一桶）
-- [ ] B1-05 三案统一 P1 落账确认完成（cra-index 三行注记 + §五-3 同批调整确认）；使用面/本体面批次对齐落账（R16 族同批收敛 + MA-09/R17/R18 对齐注记 + R2-16 consumeAwaitTimeout 互注）
-- [ ] R4-24 REGISTRY 契约一次裁决设计项落档（四要素齐备，覆盖对象为勘误 2 权威口径）；毒事件 endpoint 裁定落 `backend-semantics-design.md`
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：ghost 场景 + 双桶断言 + 失败派发红 + 幽灵订阅红等）
-- [ ] C10-001 四场景 `TestDebeziumMessageSource` 随批交付；C10-006「失败派发」维度转绿
-- [ ] 2496 屏障产物与 2498 载体产物零回退实证：`TestDebeziumErrorBarriers` 3 条 + `TestDebeziumEngineWrapperFailureListener` 4 条 + `TestDebeziumEngineDedicatedCarrier_C4_004` 2 条（2496/2498 产物合计 9）、`TestPeriodicTaskInsulation` 全绿 + 设施文件 diff 核对
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（`-pl nop-stream -am` / `-pl nop-message -am`）BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：roadmap 8.9 三份逐份核对与更新（或 `No owner-doc update required` 声明）；缺口声明核对登记（E5）
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）停止契约终止性与失败回调派发在运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2503-cra-phase8.9-r1-08-debezium-delivery.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 6 成员行收敛 + roadmap 8.9 → done（E6）
+- [x] 6 项成员全部修复收敛：4.1-C3-002+C8-004（屏障两极同禁 + isStarted 诚实）、4.1-C6-002（MA-05 三面归一）、4.1-C6-006（注销身份改造）、4.1-C8-002（第一层回调 + 三层架构闭合 + 重投立场显式裁决）、1.2-C3-014（残余五项：ISE 不吞/终止性验证/worker 守卫/shutdownNow 升级/终结契约）、1.2-C3-004（恢复每表恰一桶）
+- [x] B1-05 三案统一 P1 落账确认完成（cra-index 三行注记 + §五-3 同批调整确认）；使用面/本体面批次对齐落账（R16 族同批收敛 + MA-09/R17/R18 对齐注记 + R2-16 consumeAwaitTimeout 互注）
+- [x] R4-24 REGISTRY 契约一次裁决设计项落档（四要素齐备，覆盖对象为勘误 2 权威口径）；毒事件 endpoint 裁定落 `backend-semantics-design.md`
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：ghost 场景 + 双桶断言 + 失败派发红 + 幽灵订阅红等）
+- [x] C10-001 四场景 `TestDebeziumMessageSource` 随批交付；C10-006「失败派发」维度转绿
+- [x] 2496 屏障产物与 2498 载体产物零回退实证：`TestDebeziumErrorBarriers` 3 条 + `TestDebeziumEngineWrapperFailureListener` 4 条 + `TestDebeziumEngineDedicatedCarrier_C4_004` 2 条（2496/2498 产物合计 9）、`TestPeriodicTaskInsulation` 全绿 + 设施文件 diff 核对
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（`-pl nop-stream -am` / `-pl nop-message -am`）BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：roadmap 8.9 三份逐份核对与更新（或 `No owner-doc update required` 声明）；缺口声明核对登记（E5）
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）停止契约终止性与失败回调派发在运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2503-cra-phase8.9-r1-08-debezium-delivery.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 6 成员行收敛 + roadmap 8.9 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -279,19 +279,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 本计划收口 CRA Phase 8.9（R1-08 Debezium 双轨与消息交付语义批）：六项 P1 全修——MA-02 配对（per-event 屏障[存活极性]+毒事件 endpoint (a) 案四步）、MA-05 三面归一、C6-006 身份集、C8-002 Local 三层闭合+重投立场声明、C3-014 五项残余（终结 latch+四停止面终止性+worker 守卫+shutdownNow 升级+typed 不吞）、C3-004 恢复差集语义——2496/2498 零回退钉 9 条全绿，Phase 1 两裁定文档（D12+REGISTRY）评审通过并为 R4-24 提供实现契约。roadmap 8.9 → done。
+Completed: 2026-10-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence:
-  - <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）>>
-  - <<每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）>>
-  - <<`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码为 0>>
-  - <<Anti-Hollow 检查结果；`scan-hollow-implementations.mjs` 退出码为 0>>
-  - <<Deferred 项分类检查：确认无 in-scope live defect 被降级>>
+- Reviewer / Agent: agent_2215add2（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_2215add2-d48d-41cb-9a7e-00c80f6a7db1
+- Evidence: 判定 **PASS**（10 项核验无一 FAIL、零 Blocker/Major）。①六成员实仓抽验全在位（file:line：handleDebeziumEvent :307-316 屏障+reportPoisonEvent :324-340 convert attempt 固定 0+PoisonEventEndpoint :363-408 四步、MA-05 三面归一 :155-156/:145/:499/:301/:305/:146-153、身份集 :45/:503、dispatchConsumeFailure :268-278、C3-014 五项 :504-542/:342-369/:392-396/:471-481/:549-566、C3-004 :148-163/:77-80/:85-93）；②零回退钉 9 条本审计全新复跑全绿；③六类新测试全实跑全绿（stop 契约 5/5/毒 endpoint 1/1/source 7/7/Local 4/4/stop 验证 3/3/restore 1/1+rule-22 锚 12/12）；④运行时行为证据：复跑日志实证 ghost-risk ERROR 与 started 翻转实际触发（Anti-Hollow）；⑤isStarted 诚实边界裁定登记与实现一致（实例级 terminalFailureListener 不覆写 R5-CON-03 单槽协议，键升维归 R4-24/MA-10）；⑥m-2 回填指针双向在位（registry-lifecycle-contract.md §3.3 ↔ backend-semantics-design.md §五）；⑦cra-index 对齐注记组五处在位、六成员行未越权提前收敛。双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）；scan-hollow 双模块 High=0。2 Minor：M-1 文件计数 14→19 已勘正（protected-path 零命中对全部 19 文件成立）；M-2 孤儿 javadoc 注释块登记 watch-only 随下次同文件触碰清理。Deferred 分类检查：MA-09/R17/R18 等条目均为入批前已裁定批外/相邻项、successor 清晰，无 in-scope live defect 被降级。
+
+Follow-up:
+
+- Non-Blocking Follow-ups 所列项均已登记归属（MA-09 四子面→R4-24 同文件顺带、R17 族→R4-32、xlang 身份容忍→Follow-up 轨），no remaining plan-owned work
 
 Follow-up:
 
