@@ -16,6 +16,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
@@ -76,7 +77,9 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         // 无max钳制——STPE的maxPoolSize是惰性展示字段，若套用通用路径的max比较分支，
         // core热增值大于惰性默认max时会被静默钳回（复刻死配置形态）。
         // 本路径与periodicTasks登记表、destroy()拒绝路径无交互（不枚举、不增删守卫登记）
-        if (this.config == null || this.executor == null)
+        // C1-003 同型读点快照化：判空与解引用之间不再存在 destroy 置空窗（行为零变化：null 快照静默 return 保持）
+        ScheduledThreadPoolExecutor exec = this.executor;
+        if (this.config == null || exec == null)
             return;
 
         int core = config.getCorePoolSize();
@@ -87,8 +90,8 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         }
 
         try {
-            if (core != executor.getCorePoolSize()) {
-                executor.setCorePoolSize(core);
+            if (core != exec.getCorePoolSize()) {
+                exec.setCorePoolSize(core);
             }
         } catch (IllegalArgumentException e) {
             throw new NopException(ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM, e)
@@ -109,7 +112,9 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public ThreadPoolStats stats() {
-        return ExecutorHelper.getStats(executor);
+        // C1-003 七读点快照化：destroy 置空后 stats 取类型化终态而非裸 NPE
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
+        return ExecutorHelper.getStats(exec);
     }
 
     public void destroy() {
@@ -141,50 +146,82 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         return executor == null || executor.isShutdown();
     }
 
-    private void checkEnabled() {
-        if (executor == null) {
+    /**
+     * C1-003 七读点局部快照：一次 volatile 读取得代际快照，判空与后续解引用使用同一快照，
+     * 消除 checkEnabled-then-use 与 destroy 置空之间的竞态窗。
+     * 快照为 null → 类型化 ERR_SERVICE_NOT_ACTIVE；快照非 null 但代际已死（shutdownNow 后提交）→
+     * JDK REE 在提交点捕获并转类型化 ERR_SERVICE_NOT_ACTIVE（{@link #adaptRejected}）。
+     */
+    private ScheduledThreadPoolExecutor snapshotExecutor() {
+        ScheduledThreadPoolExecutor exec = this.executor;
+        if (exec == null) {
             throw new NopException(ERR_SERVICE_NOT_ACTIVE)
                     .param("service", "DefaultScheduledExecutor");
         }
+        return exec;
+    }
+
+    /**
+     * 死代际拒绝的类型化收敛：窗口内提交要么成功（快照先于 destroy），要么获类型化
+     * ERR_SERVICE_NOT_ACTIVE（cause 保留原 REE）——与 R1-01「future 有终态、不悬挂」对齐，裸 NPE/REE 消失。
+     */
+    private RuntimeException adaptRejected(RejectedExecutionException e) {
+        return new NopException(ERR_SERVICE_NOT_ACTIVE, e)
+                .param("service", "DefaultScheduledExecutor");
     }
 
     @Override
     public <T> CompletableFuture<T> submit(Callable<T> task) {
-        checkEnabled();
-        return ExecutorHelper.submit(executor, task);
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            return ExecutorHelper.submit(exec, task);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e);
+        }
     }
 
     @Override
     public <V> CompletableFuture<V> submit(Runnable task, V result) {
-        checkEnabled();
-        return ExecutorHelper.submit(executor, task, result);
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            return ExecutorHelper.submit(exec, task, result);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e);
+        }
     }
 
     @Override
     public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        checkEnabled();
-        return ExecutorHelper.schedule(executor, callable, delay, unit);
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            return ExecutorHelper.schedule(exec, callable, delay, unit);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e);
+        }
     }
 
     @Override
     public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        checkEnabled();
+        // 委托六参直连底层路径，代际快照在六参内统一执行
         return scheduleAtFixedRate(command, initialDelay, period, unit, getName(), null);
     }
 
     @Override
     public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit,
                                          String taskName, IPeriodicTaskListener listener) {
-        checkEnabled();
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
         // 直接接线底层 JDK 原生周期机制（不得经由本类的四参方法，否则守卫双层包装）：
         // 守卫保证任务体 Throwable 不逃逸，JDK 的「异常抑制后续执行」行为被结构性绕开，
         // 原生周期本身成为重臂机制；fixedRate 速率契约不被失败改写
         InsulatedPeriodicChain chain = new InsulatedPeriodicChain();
         InsulatedPeriodicTask guard = new InsulatedPeriodicTask(taskName, command, listener, chain);
         try {
-            Future<?> handle = executor.scheduleAtFixedRate(guard, initialDelay, period, unit);
+            Future<?> handle = exec.scheduleAtFixedRate(guard, initialDelay, period, unit);
             chain.setNativeHandle(handle);
             PeriodicTaskHelper.watchNativeHandle(chain, handle);
+        } catch (RejectedExecutionException e) {
+            // 死代际拒绝在 rejectChain 前转换，拒绝终态 cause 类型化（R1-01 绝缘语义不变，仅 cause 类型化）
+            guard.rejectChain(adaptRejected(e));
         } catch (Throwable e) {
             guard.rejectChain(e);
         }
@@ -194,22 +231,26 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
-        checkEnabled();
+        // 委托六参绝缘路径；逐轮一次性调度经 this.schedule(...) 走快照检查
         return scheduleWithFixedDelay(command, initialDelay, delay, unit, getName(), null);
     }
 
     @Override
     public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit,
                                             String taskName, IPeriodicTaskListener listener) {
-        checkEnabled();
-        // fixedDelay 绝缘核心：逐轮一次性调度 + 失败感知重臂（含退避），任务体运行在 timer 线程
+        // fixedDelay 绝缘核心：逐轮一次性调度 + 失败感知重臂（含退避），任务体运行在 timer 线程。
+        // 逐轮重排经 this.schedule(...) 走快照检查，死代际类型化错误落入绝缘拒绝终态（R1-01 语义不变）
         return PeriodicTaskHelper.scheduleWithFixedDelay(this, this, taskName, command, initialDelay, delay, unit,
                 listener);
     }
 
     @Override
     public void execute(Runnable command) {
-        checkEnabled();
-        executor.execute(command);
+        ScheduledThreadPoolExecutor exec = snapshotExecutor();
+        try {
+            exec.execute(command);
+        } catch (RejectedExecutionException e) {
+            throw adaptRejected(e);
+        }
     }
 }

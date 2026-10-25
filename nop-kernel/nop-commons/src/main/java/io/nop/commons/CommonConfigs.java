@@ -75,4 +75,10 @@ public interface CommonConfigs {
 
     @Description("是否启用虚拟线程池支持")
     IConfigReference<Boolean> CFG_ENABLE_VIRTUAL_THREAD_POOL = varRef(s_loc, "nop.commons.enable-virtual-thread-pool", Boolean.class, true);
+
+    @Description("退役代际机制（plan 2504 裁定①③）的宽限期：RoundRobinSupplier收缩/VFS zip刷新/缓存失效销毁"
+            + "等旧代资源自退役登记起至少存活该时长，宽限到期后由共享退役队列排空关闭。"
+            + "≤0为关闭档：退化为同步立即关闭（修复前语义，显式回退通道）")
+    IConfigReference<java.time.Duration> CFG_CONCURRENT_RETIREMENT_GRACE_PERIOD = varRef(s_loc,
+            "nop.commons.concurrent.retirement.grace-period", java.time.Duration.class, java.time.Duration.ofSeconds(5));
 }

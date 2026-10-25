@@ -9,6 +9,7 @@ package io.nop.core.resource.store;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.progress.IStepProgressListener;
+import io.nop.commons.concurrent.ResourceRetirementQueue;
 import io.nop.commons.lang.IRefreshable;
 import io.nop.commons.util.ClassHelper;
 import io.nop.commons.util.IoHelper;
@@ -68,12 +69,12 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
 
     @Override
     public synchronized void refresh(boolean refreshDepends) {
-        // 先构建并发布新store，最后再关闭旧的zipFiles。
-        // 如果先关闭旧zip，构建期间读线程通过volatile读到旧store并访问其中的ZipEntryResource
-        // 会抛出zip file closed异常
+        // 退役代际契约（plan 2504 裁定①⑤，C1-014）：先构建并发布新store，再对旧代zipFiles做退役登记
+        // （延迟关闭）。发布动作保护后发读者；宽限期保护发布前已捕获旧store引用的在飞读者——
+        // 其经ZipEntryResource共享ZipFile句柄的读取在宽限期内不再抛zip file closed。
         List<ZipFile> oldZipFiles = this.zipFiles;
         this.buildResourceStore();
-        IoHelper.safeCloseAll(oldZipFiles);
+        retireZipGeneration(oldZipFiles);
     }
 
     protected void buildResourceStore() {
@@ -89,8 +90,17 @@ public class DefaultVirtualFileSystem implements IVirtualFileSystem, IRefreshabl
         deltaResourceStore.setStore(new InMemoryResourceStore());
         this.deltaResourceStore = deltaResourceStore;
 
-        IoHelper.safeCloseAll(zipFiles);
+        retireZipGeneration(this.zipFiles);
         zipFiles = null;
+    }
+
+    /**
+     * 旧代zipFiles整代退役登记（关闭动作唯一执行位 = ResourceRetirementQueue 排空）。
+     */
+    private void retireZipGeneration(List<ZipFile> oldZipFiles) {
+        if (oldZipFiles == null || oldZipFiles.isEmpty())
+            return;
+        ResourceRetirementQueue.global().retire(oldZipFiles, IoHelper::safeCloseAll);
     }
 
     @Override
