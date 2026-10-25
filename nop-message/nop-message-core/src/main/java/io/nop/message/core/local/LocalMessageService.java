@@ -1,6 +1,7 @@
 package io.nop.message.core.local;
 
 import io.nop.api.core.message.Acknowledge;
+import io.nop.api.core.message.ConsumeFailure;
 import io.nop.api.core.message.ConsumeLater;
 import io.nop.api.core.message.MessageCapability;
 import io.nop.api.core.message.MessageOptionsValidator;
@@ -236,7 +237,51 @@ public class LocalMessageService implements IMessageService {
             // message was lost without a WARN). Catching keeps both threads alive and
             // keeps the failure observable.
             LOG.error("nop.message.consumer-failed:topic={},message={}", subscription.topic, message, e);
+            // C8-002 (plan 2503 Phase 2, D6 three-layer architecture): Local is a no-DLQ-
+            // substrate backend, so the FIRST layer (SPI failure callback) must still fire —
+            // pre-fix it never did, the three-layer chain (callback →
+            // MessageConsumeFailureBridge) was dead on Local, and the failure was
+            // at-most-once with zero visibility beyond this log. Guarded dispatch
+            // (KafkaConsumeTask:dispatchConsumeFailure shape, WI16): a throwing user
+            // callback must not kill the sender / redelivery thread.
+            dispatchConsumeFailure(subscription, message, e);
         }
+    }
+
+    /**
+     * C8-002 (plan 2503 Phase 2): first-layer failure callback for the Local backend,
+     * aligned with KafkaConsumeTask:dispatchConsumeFailure (WI16). attempt is fixed 0 —
+     * Local has no broker redelivery loop (design §3.9), so no cross-delivery budget is
+     * tracked; the ConsumeLater deferred redelivery is an explicit contract signal, not a
+     * failure-budget replay.
+     *
+     * <p><strong>Redelivery adjudication (explicit, plan 2503 Phase 2 — never silently
+     * undecided)</strong>: a Local delivery terminated by an exception is NOT automatically
+     * redelivered. {@code ConsumeLater} remains the only redelivery path (per-subscription
+     * timer); an exception-terminated delivery is dropped with the
+     * {@code nop.message.consumer-failed} WARN + this first-layer callback as its two
+     * visibility channels — the design §3.3 rule for no-DLQ-substrate backends ("first-layer
+     * callback only, drop with proof"). Replay is the deployment's business via the
+     * third-layer {@code MessageConsumeFailureBridge} wired inside
+     * {@code onConsumeFailure}.
+     */
+    private void dispatchConsumeFailure(Subscription subscription, Object message, Throwable e) {
+        try {
+            subscription.consumer.onConsumeFailure(new ConsumeFailure(
+                    subscription.topic, null, message, 0, asReportedException(e)));
+        } catch (Throwable callbackError) {
+            // C3-009 ⑥ guard width: a throwing user callback must not escape into the
+            // sender / redelivery thread
+            LOG.warn("nop.message.local.failure-callback-throw:topic={}",
+                    subscription.topic, callbackError);
+        }
+    }
+
+    private static Exception asReportedException(Throwable e) {
+        if (e instanceof Exception) {
+            return (Exception) e;
+        }
+        return new IllegalStateException("non-exception throwable: " + e, e);
     }
 
     /**
