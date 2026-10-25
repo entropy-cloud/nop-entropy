@@ -186,58 +186,77 @@ Exit Criteria:
 
 ### Phase 4 - 分片 C：5.1-MA-01 六族清理配对（nop-auth，ask-first 已授权[边界=六族] + nop-credential 先例面；trusted-device 第七面 R1 修订摘除）
 
-Status: planned
+Status: completed（2026-10-25，提交 `35933a88e7`）
 Targets: `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/login/DaoUserContextCache.java`（:164 removeUserContextAsync 面）、`login/DaoLoginSessionStore.java`、`mfa/store/DbMfaChallengeStore.java`、`mfa/store/DbSmsCodeStore.java`、`mfa/store/DbEmailCodeStore.java`、`ratelimit/DbSendCodeRateLimiter.java`、`login/DbLoginAttemptStore.java`、`mfa/MfaTrustedDeviceManager.java`（R1 修订摘除——零触碰，仅作零 diff 核验对照）、`NopAuthConfigs`（retention 配置）、`nop-auth`/`nop-credential` 测试目录
 
 - Item Types: `Fix`（5.1-MA-01 已确认 live defect[六族 P1]）、`Proof`（回归测试，C10-001/004/005 回归钉）
 
 > 续作纪律（R1 修订增补）：分片 C 允许分会话续作——续作会话开工前必须重读本 Phase 全文与头部授权声明；每面独立提交（六族清扫/retention 参数化/回归测试可分 commit，commit message 均带工单 ID 与 plan 号）；本 Phase 勾选状态为进度事实源，续作以勾选状态为准、不凭记忆或会话外状态推进。
 
-- [ ] **授权前置核对**：确认头部 ask-first 授权记录（2026-10-25）在案且本分片触碰面限于授权范围（**六族清理配对**——trusted-device 过期清扫第七面 R1 修订摘除：本批摘除，归 Deferred But Adjudicated 已登记项，successor=R3-01，本分片不得触碰 `MfaTrustedDeviceManager`）；不触碰认证模型判定逻辑/MFA 并发纪律（MA-04 本体 → R3-01）
-- [ ] 六族统一批量清扫（复用 `NopCredentialOauthStateStore.cleanupExpired()` 语句形态）：NopAuthSession 过期行清理（含令牌载荷行——行删除即载荷清除）+ 五族跨键批量清扫（`delete where expireAt < now - retention`）；清理载体（job 低频接入或 create/管理路径顺带）按 Phase 1 逐单表定稿，六族处置一致不静默分叉。trusted-device 过期行清扫不在本项（R1 修订摘除→Deferred/R3-01）
-- [ ] retention 参数化：`NopAuthConfigs` 配置键/缺省值照抄 Phase 1 逐单表；orm 不变（纯清理——零触碰声明）
-- [ ] 回归测试（rule 25，测试名带 `_MA_01` 标识；C10-001/004/005 回归钉同 diff）：①session 过期行清理+未过期行保留断言（可注入时钟）；②五族批量清扫参数化断言（仅过期行删除，五族逐一）；③countUnexpired 口径不变断言（仅计未过期，C10-005 钉——零改动面只读口径钉，trusted-device 文件本批零产品 diff 下仍须绿）；④trusted-device 过期行清扫断言——**本批摘除（R1 修订：授权边界=六族，第七面归 Deferred→R3-01），不实施该断言，改核验 `git diff` 中 MfaTrustedDeviceManager 零产品 diff**；⑤既有 nop-auth 测试零回归
-- [ ] **无静默跳过**（rule 24）：清扫失败/部分失败路径显式可见
-- [ ] **提交纪律**：nop-auth 一提交（nop-credential 若产生先例面对齐 diff 单独提交并声明关系），commit message 带 `5.1-MA-01` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **授权前置核对**：确认头部 ask-first 授权记录（2026-10-25）在案且本分片触碰面限于授权范围（**六族清理配对**——trusted-device 过期清扫第七面 R1 修订摘除：本批摘除，归 Deferred But Adjudicated 已登记项，successor=R3-01，本分片不得触碰 `MfaTrustedDeviceManager`）；不触碰认证模型判定逻辑/MFA 并发纪律（MA-04 本体 → R3-01）——核对通过：授权记录在 plan 头部与 commit message 双留痕；`git diff` 核验 MfaTrustedDeviceManager/NopAuthMfaTrustedDevice 零产品 diff
+- [x] 六族统一批量清扫（复用 `NopCredentialOauthStateStore.cleanupExpired()` 语句形态）：NopAuthSession 过期行清理（含令牌载荷行——行删除即载荷清除）+ 五族跨键批量清扫（`delete where expireAt < now - retention`）；清理载体（job 低频接入或 create/管理路径顺带）按 Phase 1 逐单表定稿，六族处置一致不静默分叉。trusted-device 过期行清扫不在本项（R1 修订摘除→Deferred/R3-01）——`NopAuthLedgerCleaner.purgeExpiredLedgerRows` 六通道（session 锚列 lastAccessTime 主锚+logoutTime 判别；五族锚列 expireAt[epoch 毫秒]，逐表显式传参），六族一处实现处置一致
+- [x] retention 参数化：`NopAuthConfigs` 配置键/缺省值照抄 Phase 1 逐单表；orm 不变（纯清理——零触碰声明）——`nop.auth.ledger.retention-days=30`/`cleanup-interval=1h`/`delete-batch-size=1000`（六族共用一套）；产品 diff 无 `model/*.orm.xml`
+- [x] 回归测试（rule 25，测试名带 `_MA_01` 标识；C10-001/004/005 回归钉同 diff）：①session 过期行清理+未过期行保留断言（可注入时钟）；②五族批量清扫参数化断言（仅过期行删除，五族逐一）；③countUnexpired 口径不变断言（仅计未过期，C10-005 钉——零改动面只读口径钉，trusted-device 文件本批零产品 diff 下仍须绿）；④trusted-device 过期行清扫断言——**本批摘除（R1 修订：授权边界=六族，第七面归 Deferred→R3-01），不实施该断言，改核验 `git diff` 中 MfaTrustedDeviceManager 零产品 diff**；⑤既有 nop-auth 测试零回归——`TestAuthLedgerRetention_MA_01` 7 例（①expiredSessionPurgedWithTokenPayloadUnexpiredRetained ②fiveFamiliesExpiredRowsSweptUnexpiredRetained ③countUnexpiredCountsOnlyUnexpiredRowsAndSweepLeavesTrustedDeviceUntouched ④=零 diff 核验替代 ⑤既有测试零回归由模块门禁承载；另有 purgeIdempotent/lifecycleChainInvokesLedgerCleanup/zeroRetentionDisables/invalidConfigFailsFast 四例）
+- [x] **无静默跳过**（rule 24）：清扫失败/部分失败路径显式可见——`IPeriodicTaskListener.onRunFailure/onChainRejected` ERROR+失败计数（`nop.auth.ledger.cleanup-fail`）；清理体异常直接抛出由绝缘 listener 观测；错配置启动期 fail-fast（`nop.err.auth.ledger-config-invalid` 三态断言）
+- [x] **提交纪律**：nop-auth 一提交（nop-credential 若产生先例面对齐 diff 单独提交并声明关系），commit message 带 `5.1-MA-01` 与 plan 号——`35933a88e7`（nop-credential 零 diff——先例形态仅作语句形态引用，未改动其文件）
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-10-25 条目随本 Phase 回填提交落账）
+
+> **执行注记（5.1-MA-01 面，plan 2502 Phase 4）**：
+> - 六族现状与修复对应：session 族此前连惰性删除都没有（`removeUserContextAsync` 空操作、checkExpired 仅置 LOGOUT_TYPE_EXPIRE），五族仅同键访问时惰性删除（键不复访即永久驻留）——本修复不动五族惰性删除语义（保留为快路径），新增跨键周期清扫通道；`DaoUserContextCache`/`DaoLoginSessionStore`/五个 Db store 产品文件零改动（清理面收敛到独立 cleaner 组件，非内联改造）。
+> - 生命周期接线（防 C7-005 空壳）：`auth-service.beans.xml` 装配单例 bean `nopAuthLedgerCleaner`（ioc:default=true，宿主可覆盖）→ IoC 容器创建 → `LifeCycleSupport` `@PostConstruct start()` → `doStart` 周期调度（`timer.executeOn(worker).scheduleWithFixedDelay` 绝缘六参入口，taskName=`nop-auth-ledger-cleanup`，与 nop-sys cleanupExpiredEvents/nop-batch cleaner 同构）→ `doStop` 取消；`retention-days=0` 显式禁用调度。
+> - 锚列类型注记：五族 `expireAt` 为 epoch 毫秒 BIGINT 列（orm stdDataType=long），谓词绑定 long 截止时刻；session `lastAccessTime` 为 LocalDateTime 列、`logoutTime` 为 Timestamp 列，谓词分别绑定对应类型——均逐表显式传参（设计 §3.1 第 7 项）。
+> - 必红证据（E2，变异探针，修复后恢复即绿）：purge 体置空 → 4 红（`_tmp/phase4-ma01-red.log`：①session 清理/②五族清扫/幂等/接线端到端四断言 deleted=0 或行残留；C10-005 只读钉与 fail-fast/禁用三例不受变异影响保持绿——与只读/装配断言面一致）→ 恢复全绿（`_tmp/phase4-ma01-green.log` 7 success=true）。
+> - rule 23 接线验证：`testMA_01_lifecycleChainInvokesLedgerCleanup`——doStart→CapturingTimer 捕获调度参数（taskName=`nop-auth-ledger-cleanup`/interval=1h 传参）→ 被调度命令运行时在真实 DB 链上删除过期 session 行（端到端接线断言——非仅 API/bean 存在）+ doStop 取消断言。
+> - C10-005 钉双面断言：`countUnexpired` 仅计未过期行（口径不变）+ 清扫后 trusted-device 过期行保留（零触碰的产品级在测证据——第七面不在六族清扫范围）。
+> - 门禁：`./mvnw test -pl nop-auth -am` BUILD SUCCESS 全聚合通道一次通过（`_tmp/phase4-ma01-gate.log`，GATE_EXIT=0，12min48s/453 模块反应堆全绿；`TestAuthLedgerRetention_MA_01` 7/7 in-reactor 绿；Phase 2 注记中的 TestOperationMfaE2E/debezium flake 本轮未复现）。
+> - Owner doc 去向：`docs-for-ai/03-modules/nop-auth.md`「账本保留策略」节已随本提交落账（配置键表/六族清理谓词/trusted-device 摘除边界/失败可见性）+「源码锚点」表补 `NopAuthLedgerCleaner` 行；`nop-credential.md` 核对结论=No update required（对照组先例 `NopCredentialOauthStateStore.cleanupExpired` 仅作语句形态引用，其文件与语义零回退、零改动）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 5.1-MA-01 landed：六族批量清扫在位（session 令牌载荷行随过期清理、五族不再仅同键惰性；trusted-device 第七面清扫已 R1 修订摘除、不在本验收面），参数来自 Phase 1 逐单表；ask-first 授权记录引用在 commit/日志留痕
-- [ ] C10-001/004/005 回归钉同 diff 在位（测试 ①②③ 即三钉落地）
-- [ ] 必红证据（E2）：清扫断言先红后绿或变异/回退论证留痕（修复前基线无批量清扫入口——回退论证断言红；快照 `_tmp/phase4-ma01-*.log`）
-- [ ] **接线验证**（rule 23）：断言六族清扫在真实生产链上被调用（job 装配链或 create/管理路径真实触发——非仅 store 方法存在；防 C7-005 空壳形态）
-- [ ] `./mvnw test -pl nop-auth -am` BUILD SUCCESS；nop-credential 若有 diff 则 `./mvnw test -pl nop-credential -am` BUILD SUCCESS（零 diff 以实际为准登记）
-- [ ] Owner doc 裁定：`nop-auth.md` 六族保留期契约核对与更新（PA 授权面文档同步）；`nop-credential.md` 核对（对照组先例语义零回退）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；去向登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 5.1-MA-01 landed：六族批量清扫在位（session 令牌载荷行随过期清理、五族不再仅同键惰性；trusted-device 第七面清扫已 R1 修订摘除、不在本验收面），参数来自 Phase 1 逐单表；ask-first 授权记录引用在 commit/日志留痕
+- [x] C10-001/004/005 回归钉同 diff 在位（测试 ①②③ 即三钉落地）
+- [x] 必红证据（E2）：清扫断言先红后绿或变异/回退论证留痕（修复前基线无批量清扫入口——回退论证断言红；快照 `_tmp/phase4-ma01-*.log`）
+- [x] **接线验证**（rule 23）：断言六族清扫在真实生产链上被调用（job 装配链或 create/管理路径真实触发——非仅 store 方法存在；防 C7-005 空壳形态）
+- [x] `./mvnw test -pl nop-auth -am` BUILD SUCCESS；nop-credential 若有 diff 则 `./mvnw test -pl nop-credential -am` BUILD SUCCESS（零 diff 以实际为准登记）
+- [x] Owner doc 裁定：`nop-auth.md` 六族保留期契约核对与更新（PA 授权面文档同步）；`nop-credential.md` 核对（对照组先例语义零回退）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；去向登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 分片 D：5.5-W-02 七面 retention（nop-metadata）
 
-Status: planned
+Status: completed（2026-10-25，提交 `fc8ed4af2d`）
 Targets: `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/QualityResultWriter.java`（对照面）、清理载体（nop-job 定期 job 或 BizModel purge action，按 Phase 1 逐单表）、`nop-metadata` 测试目录；ORM 模型零触碰（只读引用）
 
 - Item Types: `Fix`（5.5-W-02 已确认 live defect）、`Decision`（七面清理载体与 event 表最长保留窗口结论）、`Proof`（回归测试）
 
-- [ ] 按 Phase 1 逐单表实现七面 retention：六表（quality_result/quality_score/catalog/profiling_result/reconciliation_result/model_changed_event[mediumtext 双快照]）+ 衍生告警工作流实例面（C7-101 三写点随族覆盖；第七面落在 nop-wf 侧工作流实例存储非自有表——处置按 Phase 1 设计裁定④三选一结论执行，见 Phase 1 第七面具名行）——六表清理载体按逐单表（deleteByQuery 先例形态），event 表最长保留窗口结论落账
-- [ ] G2 契约核对：retention 设计与 reJudge 同表面语义在 Phase 1 设计文档注记闭合（勘误 8），本分片零 W-28 本体改动
-- [ ] retention 参数化：配置键/缺省值照抄 Phase 1 逐单表；owner doc 声明保留策略默认值（`nop-metadata.md`，去向登记归 Phase 8）
-- [ ] 回归测试（rule 25，测试名带 `_W_02` 标识）：①六表逐面超期清理断言（mediumtext event 表含内）；②未到期行保留断言（「历史事实语义」在保留窗口内不破坏）；③清理幂等断言；④既有 nop-metadata 测试零回归；⑤第七面（C7-101 工作流实例）验证形态按设计裁定④落账——裁定为可测清理路径时补对应断言（测试名仍带 `_W_02`）；裁定为边界声明归属 R3-05 时在本 Phase Exit Criteria 显式登记 rule 25 No-new-test 声明 + 理由（nop-wf 侧非自有表，本批零产品 diff）
-- [ ] **无静默跳过**（rule 24）：清理失败路径显式可见
-- [ ] **提交纪律**：nop-metadata 一提交，commit message 带 `5.5-W-02` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 按 Phase 1 逐单表实现七面 retention：六表（quality_result/quality_score/catalog/profiling_result/reconciliation_result/model_changed_event[mediumtext 双快照]）+ 衍生告警工作流实例面（C7-101 三写点随族覆盖；第七面落在 nop-wf 侧工作流实例存储非自有表——处置按 Phase 1 设计裁定④三选一结论执行，见 Phase 1 第七面具名行）——六表清理载体按逐单表（deleteByQuery 先例形态），event 表最长保留窗口结论落账：`NopMetaLedgerCleaner.purgeExpiredLedgerRows` 六表锚列均 createTime 谓词 <now−retention（逐表显式传参），形态 A 周期低频（机器速率写入面禁止形态 C 唯一载体）；event 表最长保留窗口=统一保留期 30 天（configs javadoc + owner doc 声明）
+- [x] G2 契约核对：retention 设计与 reJudge 同表面语义在 Phase 1 设计文档注记闭合（勘误 8），本分片零 W-28 本体改动——设计 §3.5 差异条款②在案；configs javadoc 与 nop-metadata.md「保留窗即复用历史上界」双落账；`git diff` 核验零 W-28/reJudge 面改动
+- [x] retention 参数化：配置键/缺省值照抄 Phase 1 逐单表；owner doc 声明保留策略默认值（`nop-metadata.md`，去向登记归 Phase 8）——新建 `NopMetadataLedgerConfigs`（`nop.metadata.ledger.retention-days=30`/`cleanup-interval=1h`/`delete-batch-size=1000`，NopSysDaoConfigs 形态新建载体；缺省值唯一事实源=设计 §3.2 nop-metadata 行）；owner doc「账本保留策略」节已随提交落账
+- [x] 回归测试（rule 25，测试名带 `_W_02` 标识）：①六表逐面超期清理断言（mediumtext event 表含内）；②未到期行保留断言（「历史事实语义」在保留窗口内不破坏）；③清理幂等断言；④既有 nop-metadata 测试零回归；⑤第七面（C7-101 工作流实例）验证形态按设计裁定④落账——裁定为可测清理路径时补对应断言（测试名仍带 `_W_02`）；裁定为边界声明归属 R3-05 时在本 Phase Exit Criteria 显式登记 rule 25 No-new-test 声明 + 理由（nop-wf 侧非自有表，本批零产品 diff）——`TestMetaLedgerRetention_W_02` 5 例（①expiredRowsPurgedPerFaceUnexpiredRetained ②②'保留断言含①内 ③purgeIdempotent ④零回归由模块门禁承载 ⑤No-new-test 声明见 Exit；另有 lifecycleChainInvokesLedgerCleanup/zeroRetentionDisables/invalidConfigFailsFast 三例）
+- [x] **无静默跳过**（rule 24）：清理失败路径显式可见——`IPeriodicTaskListener.onRunFailure/onChainRejected` ERROR+失败计数（`nop.metadata.ledger.cleanup-fail`）；清理体异常直接抛出由绝缘 listener 观测；错配置启动期 fail-fast（`nop.err.metadata.ledger-config-invalid` 三态断言）
+- [x] **提交纪律**：nop-metadata 一提交，commit message 带 `5.5-W-02` 与 plan 号——`fc8ed4af2d`
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-10-25 条目随本 Phase 回填提交落账）
+
+> **执行注记（5.5-W-02 面，plan 2502 Phase 5）**：
+> - 七面落地面：六自有表经 `NopMetaLedgerCleaner`（`io.nop.metadata.service.cleanup`）统一清理；第七面（C7-101 衍生 qualityBreachApproval 工作流实例）按设计裁定④=选③**显式边界声明归属 R3-05**——本组件不含该面清理通道（javadoc 明示四理由），本批 nop-wf 侧零产品 diff；rule 25 No-new-test 声明落本 Phase Exit（nop-wf 非自有表零 diff，R3-05 承接时补回归钉）。
+> - 生命周期接线（防 C7-005 空壳）：`app-service.beans.xml` 装配单例 bean `nopMetaLedgerCleaner`（ioc:default=true，手维护文件——沿同文件 `nopMetaQualityCheckpointScheduler` 注记「必须放 app-service.beans.xml 否则 codegen 覆盖」）→ `LifeCycleSupport` `@PostConstruct start()` → `doStart` 周期调度（`timer.executeOn(worker).scheduleWithFixedDelay` 绝缘六参入口，taskName=`nop-metadata-ledger-cleanup`）→ `doStop` 取消；`retention-days=0` 显式禁用。
+> - 必红证据（E2，变异探针，修复后恢复即绿）：purge 体置空 → 3 红（`_tmp/phase5-w02-red.log`：①六表清理/③幂等/接线端到端三断言 deleted=0 或行残留；禁用/fail-fast 两装配断言不受变异影响保持绿）→ 恢复全绿（`_tmp/phase5-w02-green.log` 5 success=true）。
+> - rule 23 接线验证：`testW_02_lifecycleChainInvokesLedgerCleanup`——doStart→CapturingTimer 捕获调度参数（taskName=`nop-metadata-ledger-cleanup`/interval=1h 传参）→ 被调度命令运行时在真实 DB 链上删除过期行（端到端接线断言）+ doStop 取消断言。
+> - 门禁（分解等价通道，沿 Phase 2「分解模块集等价通道」先例；triage 记录 `_tmp/phase5-flake-triage-notes.md`）：全聚合通道 `./mvnw test -pl nop-metadata -am` 三度被**零 diff 外部模块**阻断（①nop-auth-service `TestOperationMfaE2E` 时钟/TOTP 窗口型批前既有 flake——分片 C 门禁 20:55 同源码 in-reactor 18/0/0 绿 + Phase 2 基线 checkout solo 同族 6 错先例 + 本会话 solo 6E/7E/5E 逐轮波动，`_tmp/phase5-mfa-solo-run.log`；②nop-stream-core `ReproG3PerWindowStateLeakOnDiscard`——`git diff 4b7c8b28f2..HEAD -- nop-stream` =0 文件，模块代码与批次基线逐字节一致，solo 亦红=基线行为；③nop-stream-connector-jdbc `insert-no-debezium` 执行发现期 NoClassDefFoundError——同模块 19+3+3+2+1+4 组测试全绿仅命名 execution 类解析失败，gate1 全反应堆同模块曾绿）。等价通道承载：`./mvnw install -DskipTests -pl nop-metadata -am` BUILD SUCCESS（`_tmp/phase5-w02-install.log`，编译级全链绿）+ `./mvnw test -pl nop-metadata` 家族 solo **BUILD SUCCESS 9/9 模块**（`_tmp/phase5-w02-family-solo.log`，`TestMetaLedgerRetention_W_02` 5/5 in-solo 绿）+ `./mvnw test -pl nop-metadata-service` solo **1361 tests 0F 0E** BUILD SUCCESS（`_tmp/phase5-w02-service-solo.log`，既有测试零回归）。
+> - nop-rule 零 diff 核验：`git diff 4b7c8b28f2..HEAD -- nop-rule` = 0 文件（勘误 1 登记的「预期零产品 diff」成立，`./mvnw test -pl nop-rule -am` 通道以零 diff + 家族 solo 通道等价承载）。
+> - Owner doc 去向：`docs-for-ai/03-modules/nop-metadata.md`「账本保留策略」节已随本提交落账（配置键表/六表锚列/第七面边界/保留窗=复用历史上界声明/失败可见性）+「关键内部组件」补 `NopMetaLedgerCleaner` 行；G2 注记核对=设计 §3.5 ②在案（Phase 1 已闭合，本分片引用未改）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 5.5-W-02 landed：七面 retention 在位且参数来自 Phase 1 逐单表（机械核验：六表清理入口经 git diff/测试可见；第七面按设计裁定④结论二选一在案——清理接线在位，或「边界声明归属 R3-05 + rule 25 No-new-test 声明」落账），带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：清理断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase5-w02-*.log`）
-- [ ] **接线验证**（rule 23）：断言七面清理在真实生产链上被调用（job 注册链或 BizModel action 真实可达——防 C7-005 空壳形态）
-- [ ] `./mvnw test -pl nop-metadata -am` BUILD SUCCESS（勘误 1 补通道）；`./mvnw test -pl nop-rule -am` 若零 diff 以实际为准登记
-- [ ] Owner doc 裁定：`nop-metadata.md` retention 契约更新（勘误 2 补锚）；`nop-rule.md` 核对（预期 `No owner-doc update required`——站点零在 nop-rule，以核对结论为准）；G2 注记核对；去向登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 5.5-W-02 landed：七面 retention 在位且参数来自 Phase 1 逐单表（机械核验：六表清理入口经 git diff/测试可见；第七面按设计裁定④结论二选一在案——清理接线在位，或「边界声明归属 R3-05 + rule 25 No-new-test 声明」落账），带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：清理断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase5-w02-*.log`）
+- [x] **接线验证**（rule 23）：断言七面清理在真实生产链上被调用（job 注册链或 BizModel action 真实可达——防 C7-005 空壳形态）
+- [x] `./mvnw test -pl nop-metadata -am` BUILD SUCCESS（勘误 1 补通道）；`./mvnw test -pl nop-rule -am` 若零 diff 以实际为准登记——以分解等价通道承载（install 全链 BUILD SUCCESS + nop-metadata 家族 solo 9/9 模块 BUILD SUCCESS + service solo 1361 tests 0F0E；全聚合通道三度被零 diff 外部模块 flake 阻断，triage 见执行注记与 `_tmp/phase5-flake-triage-notes.md`）；nop-rule 零 diff 登记
+- [x] Owner doc 裁定：`nop-metadata.md` retention 契约更新（勘误 2 补锚）；`nop-rule.md` 核对（预期 `No owner-doc update required`——站点零在 nop-rule，以核对结论为准）；G2 注记核对；去向登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - 分片 E：5.6-W-01 双载体账本 close 桥接 + 过期指纹误拒闭合（nop-duckdb）
 
