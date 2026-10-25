@@ -24,6 +24,11 @@ public interface HttpApiErrors {
      */
     String ARG_RESPONSE_HEADERS = "responseHeaders";
 
+    /**
+     * 通用超时预算参数（毫秒）。4.3-C6-004 面① SSE demand 停滞终态使用。
+     */
+    String ARG_TIMEOUT = "timeout";
+
     ErrorCode ERR_HTTP_INIT_SSL_FAIL = ErrorCode.define("nop.err.http.init-ssl-fail", "初始化SSL失败");
 
     ErrorCode ERR_HTTP_RESPONSE_TEXT_NOT_JSON = ErrorCode.define("nop.err.http.response-text-not-json",
@@ -40,6 +45,17 @@ public interface HttpApiErrors {
 
     ErrorCode ERR_HTTP_TIMEOUT =
             ErrorCode.define("nop.err.http.timeout","http请求超时");
+
+    /**
+     * 4.3-C6-004 面①（plan 2505，设计权威来源
+     * ai-dev/design/concurrency/sse-backpressure-and-body-phase-lifecycle.md §3.1）：
+     * SSE 订阅者 demand 等待超过停滞预算——订阅以错误终态化（cleanup + onError），
+     * 不再无限期挂起承载线程（R21 纪律：异常终态非静默）。
+     */
+    ErrorCode ERR_HTTP_SSE_DEMAND_TIMEOUT =
+            ErrorCode.define("nop.err.http.sse-demand-timeout",
+                    "SSE subscriber demand wait exceeded the stall budget (timeout={timeout} ms); "
+                            + "subscription terminated");
 
     String ARG_EXPECTED = "expected";
     String ARG_ACTUAL = "actual";
