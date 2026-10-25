@@ -426,7 +426,12 @@ public class AgentToolDispatcher {
                 session.callsByCallId.put(chatToolCall.getId(), chatToolCall);
                 // cap <= 0 = mechanical timeout disabled → no deadline bound
                 // (MAX_VALUE); a zero deadline would collapse the wait slice
-                // to a busy heartbeat loop
+                // to a busy heartbeat loop. C7-014 (plan 2501 Phase 4): this
+                // deadline is the terminator the heartbeat wakeup budget
+                // degrades to — once the executor's wakeup budget is
+                // exhausted, the wait loop relies on it (or, when disabled,
+                // on cancel/steer/forceStop — the documented escape hatch)
+                // instead of issuing more LLM wakeup calls.
                 session.deadlinesByCallId.put(chatToolCall.getId(),
                         capMs > 0 ? startMs + capMs : Long.MAX_VALUE);
                 session.startsByCallId.put(chatToolCall.getId(), startMs);

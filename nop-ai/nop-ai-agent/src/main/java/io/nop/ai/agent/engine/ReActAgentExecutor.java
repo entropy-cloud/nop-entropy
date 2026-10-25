@@ -199,6 +199,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
     private final AgentToolDispatcher toolDispatcher;
     // Plan 2285 (WI4): heartbeat slice interval for the tool wait phase.
     private final long heartBeatIntervalMs;
+    // Plan 2501 Phase 4 (CRA 3.1-C7-014): per wait-phase budget on heartbeat
+    // wakeup turns (<= 0 disables wakeup turns entirely — pure mechanical wait).
+    private final int maxHeartbeatTurns;
     // Plan 2285 (WI4): tool execution progress/cancel seam.
     private final io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
     private final AgentLoopGuard loopGuard;
@@ -256,6 +259,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
         long llmTimeoutMs = config.getLlmTimeoutMs();
         long toolTimeoutMs = config.getToolTimeoutMs();
         long heartBeatIntervalMs = config.getHeartBeatIntervalMs();
+        int maxHeartbeatTurns = config.getMaxHeartbeatTurns();
         java.util.Map<String, Long> toolTimeoutPolicy = config.getToolTimeoutPolicy();
         io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker = config.getToolProgressTracker();
         IWaitCoordinator waitCoordinator = config.getWaitCoordinator();
@@ -355,6 +359,8 @@ public class ReActAgentExecutor implements IAgentExecutor {
         // Plan 2285 (WI4): heartbeat slice interval for the tool wait phase
         // (<=0 disables sliced waiting — single deadline-bounded wait).
         this.heartBeatIntervalMs = heartBeatIntervalMs;
+        // Plan 2501 Phase 4 (C7-014): per wait-phase wakeup budget.
+        this.maxHeartbeatTurns = maxHeartbeatTurns;
         this.toolProgressTracker = toolProgressTracker != null
                 ? toolProgressTracker
                 : io.nop.ai.agent.tool.NoOpToolProgressTracker.noOp();
@@ -1274,6 +1280,9 @@ public class ReActAgentExecutor implements IAgentExecutor {
         AgentToolDispatcher.ToolPhaseSession session = toolDispatcher.startToolPhase(
                 ctx, agentName, sessionId, allowedCalls, toolExecCtx, execStartTime, checkpointSeq);
         Set<String> executingStarted = new HashSet<>();
+        // C7-014 (plan 2501 Phase 4): per wait-phase heartbeat wakeup budget.
+        int heartbeatTurns = 0;
+        boolean wakeupBudgetExhaustedLogged = false;
         while (true) {
             AgentToolDispatcher.PhaseWaitEvent event = session.awaitWakeup(
                     nextWaitSlice(session),
@@ -1303,7 +1312,20 @@ public class ReActAgentExecutor implements IAgentExecutor {
                     // hot-loop the fail-soft path)
                     session.awaitCompletionSlice(nextWaitSlice(session));
                 }
+            } else if (heartbeatTurns >= maxHeartbeatTurns) {
+                // C7-014 (plan 2501 Phase 4): wakeup budget exhausted — degrade
+                // to pure mechanical waiting. No further wakeup LLM calls: the
+                // loop keeps polling on bounded slices, so the mechanical cap
+                // (deadline), cancel/pause/forceStop, and queued steering all
+                // stay live. The transition is logged once (never silent).
+                if (!wakeupBudgetExhaustedLogged) {
+                    wakeupBudgetExhaustedLogged = true;
+                    LOG.info("heartbeat wakeup budget ({}) exhausted for session={} — degrading to "
+                            + "pure mechanical wait until the tools complete/cancel/steer (CRA C7-014)",
+                            maxHeartbeatTurns, sessionId);
+                }
             } else {
+                heartbeatTurns++;
                 runHeartbeatWakeupTurn(ctx, sessionId, agentName, session, toolExecCtx,
                         execStartTime, checkpointSeq, options, state);
             }
@@ -1484,10 +1506,12 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * One heartbeat wakeup turn: build the transient request (ctx snapshot +
      * per-own-callId anchored placeholders + heartbeat evidence message),
      * call the LLM via the fail-soft wakeup entry, apply the content
-     * guardrail fast path, commit the heartbeat message and the assistant
-     * reply to ctx (heartbeat first, reply after — session order), record
-     * usage, and adjudicate the reply (WAIT / ABANDON [callId] / tool_calls
-     * = parallel work).
+     * guardrail fast path, record usage, and adjudicate the reply (WAIT /
+     * ABANDON [callId] / tool_calls = parallel work). C7-014 (plan 2501
+     * Phase 4): the heartbeat evidence rides the request COPY only — ctx is
+     * committed (heartbeat first, reply after — session order) solely for
+     * terminal adjudications (parallel work / ABANDON); transient WAIT
+     * replies commit nothing to the session history.
      */
     private void runHeartbeatWakeupTurn(AgentExecutionContext ctx, String sessionId, String agentName,
                                         AgentToolDispatcher.ToolPhaseSession session,
@@ -1542,23 +1566,54 @@ public class ReActAgentExecutor implements IAgentExecutor {
         // invariant trivially.
         if (assistantMsg != null && promptAssembly.checkOutputGuardrailBlockedForWakeup(ctx, assistantMsg)) {
             LOG.warn("heartbeat wakeup reply blocked by content guardrail; adjudicated as WAIT. session={}", sessionId);
-            ctx.addMessage(heartbeatMessage);
+            // C7-014 (plan 2501 Phase 4): a blocked reply adjudicates as WAIT —
+            // nothing enters ctx (the evidence rode the request copy above).
             return;
         }
 
-        // heartbeat message first, reply after (session order, design §三.3)
-        ctx.addMessage(heartbeatMessage);
-        if (assistantMsg != null) {
-            ctx.addMessage(assistantMsg);
+        // C7-014 (plan 2501 Phase 4): WAIT verdicts commit NOTHING to the ctx
+        // terminal history — the heartbeat evidence rode the request copy
+        // (WI3 invariant 1 mechanism) and a WAIT reply is a transient
+        // adjudication, so a long wait no longer accumulates heartbeat/reply
+        // fragments in the session history. Only terminal adjudications
+        // (parallel work / ABANDON — they change execution state and must be
+        // recorded) commit the evidence + reply.
+        if (isTerminalWakeupReply(derivedCalls, assistantMsg)) {
+            // heartbeat message first, reply after (session order, design §三.3)
+            ctx.addMessage(heartbeatMessage);
+            if (assistantMsg != null) {
+                ctx.addMessage(assistantMsg);
+            }
+            // parallel-work derived calls: append their tool_call messages to ctx
+            // (same discipline as the regular turn — appendToolCallMessages before
+            // dispatch — so deny results pair up and committed results anchor
+            // in-place by their own callId)
+            appendToolCallMessages(ctx, llmResult.response);
         }
-        // parallel-work derived calls: append their tool_call messages to ctx
-        // (same discipline as the regular turn — appendToolCallMessages before
-        // dispatch — so deny results pair up and committed results anchor
-        // in-place by their own callId)
-        appendToolCallMessages(ctx, llmResult.response);
 
         adjudicateHeartbeatReply(ctx, sessionId, agentName, session, toolExecCtx,
                 execStartTime, checkpointSeq, derivedCalls, assistantMsg);
+    }
+
+    /**
+     * C7-014 (plan 2501 Phase 4): a wakeup reply is terminal — and its
+     * heartbeat evidence + reply must be committed to ctx — when it spawns
+     * parallel work (derived tool calls) or abandons pending calls. Any
+     * other reply (explicit WAIT token, empty text) is a transient wait
+     * continuation: nothing enters the session history.
+     */
+    private static boolean isTerminalWakeupReply(List<ChatToolCall> derivedCalls,
+                                                 ChatAssistantMessage assistantMsg) {
+        if (derivedCalls != null && !derivedCalls.isEmpty()) {
+            return true;
+        }
+        String text = assistantMsg != null && assistantMsg.getContent() != null
+                ? assistantMsg.getContent().trim() : "";
+        return isAbandonReply(text);
+    }
+
+    private static boolean isAbandonReply(String text) {
+        return text.regionMatches(true, 0, WAKEUP_DECISION_ABANDON, 0, WAKEUP_DECISION_ABANDON.length());
     }
 
     /**
@@ -1604,7 +1659,7 @@ public class ReActAgentExecutor implements IAgentExecutor {
 
         String text = assistantMsg != null && assistantMsg.getContent() != null
                 ? assistantMsg.getContent().trim() : "";
-        if (text.regionMatches(true, 0, WAKEUP_DECISION_ABANDON, 0, WAKEUP_DECISION_ABANDON.length())) {
+        if (isAbandonReply(text)) {
             String rest = text.substring(WAKEUP_DECISION_ABANDON.length()).trim();
             List<String> targets = new ArrayList<>();
             if (rest.isEmpty()) {

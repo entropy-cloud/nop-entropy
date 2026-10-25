@@ -2,7 +2,7 @@
 
 > Plan Status: active
 > Draft Review: R1 agent_66909c18（1 Blocker[ISSUE-1 C8-001 本体站点缺失]+1 Major[ISSUE-2 反向钉全组]+8 Minor——修订 agent_1524094d 全量应用[live 锚点回读核实]，active）
-> Last Reviewed: 2026-10-24
+> Last Reviewed: 2026-10-25
 > Source: roadmap 工作项 8.7（R1-06，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L149，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 R1-06 行（L67：finding ID 清单 7 项 / 模块=nop-ai / 验证命令=`./mvnw test -pl nop-ai -am` / Owner Doc=`docs-for-ai/03-modules/nop-ai.md` / PA=无 / 依赖=无前置（可并行）/ exit criteria 增补）；成员发现详情 = 3.2 审计目录 `ai-dev/audits/2026-10/2026-10-20-0829-deep-audit-nop-ai-toolkit-tools-shell-concurrency/`（C6-001/C6-002/C6-003/C1-001/C4-003）与 3.1 审计目录 `ai-dev/audits/2026-10/2026-10-19-1410-deep-audit-nop-ai-core-nop-ai-agent-concurrency/`（MA-17[C1-007+C7-020 族]/C7-014）；执行基线 @ `e0df517864`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.6 已 done，plan 2495–2500 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
 > Related: plan 2493/2494（批次划分与 Phase 8 展开）；plan 2496（R1-01 绝缘层批，completed——其 nop-ai 面为 3.1-MA-07 六站点周期绝缘，与本批沙箱/shell 面**零交集**，G50 组的 MA-07 成员已闭合，本批只承接 G50 的 R1-06 成分）；plan 2497（R1-02 池设施批，completed——本批不回改设施面）；plan 2498（R1-03 池消费方批，completed——**同文件边界**：其 3.2-C4-004 shell 专用池隔离（提交 `15f65b2c66`）为本批 C4-003 修复的池基线，本批不回退）；plan 2499（R1-04 api-core 批，completed——其 3.2-C4-008 工具取消联动（提交 `276618d9da`）改写了 ToolManagerImpl 排队分支（C1-001 行号漂移成因），本批不得回退取消联动）；plan 2285（WI4 心跳即输入）与 plan 2301（WI25 后台模式）——沙箱进度副本/进程树收割既有修复史（C6-001 现状注记「已修站点残余缺口面」的成因）；**下游交互**：R2-16（3.1 agent 编排批，软依赖本批「同仓沙箱面先行」）、R4-23（3.2 工具输出/路径束 G54，软依赖本批）——两批成员均不属本批，软依赖解除注记归 Phase 5/6
 > Protected Area 与授权：本批 **PA 触碰面为零（batch-proposal PA 列 = 无）**——无 plan-first/ask-first 义务。零触碰声明（E4）：产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物；`nop-ai/nop-ai-toolkit/src/main/resources/_vfs/nop/ai/beans/ai-toolkit-defaults.beans.xml` 为手维护 beans 装配文件（`_vfs` 为 VFS 资源根，非生成物），若本批涉及装配面修改按 2498 E4 先例豁免登记。
@@ -187,20 +187,20 @@ Exit Criteria:
 
 ### Phase 4 - 分片 D：3.1-MA-17 沙箱清理族 + 3.1-C7-014 heartbeat 预算（nop-ai-agent）
 
-Status: in progress
+Status: completed
 Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DockerSandboxBackend.java`（:254-258/:268-276/:528-539/:580-590）、`NoOpSandboxBackend.java`（:103-143/:187-202）、`engine/ReActAgentExecutor.java`（:1270-1329/:1474-1481/:1492-1562）、`engine/DefaultAgentEngineConfig.java`（:171 邻域配置键）、`nop-ai/nop-ai-agent/src/test/`（含 `TestHeartbeatWaitPhase.java:262` 反向钉改写、`TestDockerSandboxBackend.java` 护栏扩充）
 
 - Item Types: `Fix`（MA-17[B1-04 回升 P1]与 C7-014 已确认 live defect）、`Decision`（C7-014 compaction 增强面裁定）、`Proof`（回归测试）
 
 - [x] 3.1-MA-17（C1-007+C7-020，←CL-034）：①超时路径本地 CLI 进程树 `destroyForcibly`（对齐 NoOp `killTree` 形态；双实现分叉收敛——共享工具方法或等效消歧，与 3.2 侧三口径同口径不各走一套）；②reader 退出补偿（关流强制 EOF 替代无效 interrupt + 缓冲上限 + grace 耗尽输出一次性安全快照）；③cleanup/kill 失败可见化（去静默）；④success 路径孙进程收割 + 结果 `outputIncomplete`/`timedOut` 标记（空输出不再静默交付）
-- [ ] 3.1-C7-014：①每等待期 wakeup 数量预算（`maxHeartbeatTurns` 或等效配置键，超限降级纯机械等待）；②WAIT 裁决 heartbeat 证据消息请求副本携带、仅 commit 终局结果（WAIT 碎片不入终史）；③等待循环每 K slice `shouldTriggerCompaction` 评估——增强面按实现期裁定，不纳入则移入 Deferred 并登记理由
-- [ ] **反向钉 R4 同批改写（全组）**：`TestHeartbeatWaitPhase` 中全部 hb-入史钉——`:260-262`（`hbCount >= 2` 入史钉 + `chat.calls.get() >= 4` 正面钉 wakeup 行为）、`:656`（仅成功 wakeup 的 hb 在史 count==1）、`:748`（engine 路径 hb 流通钉）、`:783`（blocked reply 不入史但 hb 入史钉）——执行时复核全集后逐处核对与预算/副本化改写的相容性并同步改写；改写后语义目标：WAIT 场景断言改为「请求副本携带 hb + ctx 终史 hb=0」的正面保护，不删保护面；改写记录留执行注记
+- [x] 3.1-C7-014：①每等待期 wakeup 数量预算（`maxHeartbeatTurns` 或等效配置键，超限降级纯机械等待）；②WAIT 裁决 heartbeat 证据消息请求副本携带、仅 commit 终局结果（WAIT 碎片不入终史）；③等待循环每 K slice `shouldTriggerCompaction` 评估——增强面按实现期裁定，不纳入则移入 Deferred 并登记理由（③裁定=不纳入，Deferred 节既有条目维持留痕，见 C7-014 执行注记）
+- [x] **反向钉 R4 同批改写（全组）**：`TestHeartbeatWaitPhase` 中全部 hb-入史钉——`:260-262`（`hbCount >= 2` 入史钉 + `chat.calls.get() >= 4` 正面钉 wakeup 行为）、`:656`（仅成功 wakeup 的 hb 在史 count==1）、`:748`（engine 路径 hb 流通钉）、`:783`（blocked reply 不入史但 hb 入史钉）——执行时复核全集后逐处核对与预算/副本化改写的相容性并同步改写；改写后语义目标：WAIT 场景断言改为「请求副本携带 hb + ctx 终史 hb=0」的正面保护，不删保护面；改写记录留执行注记（旧→新对照表见 C7-014 执行注记）
 - [x] 护栏（3.1-C10-011）：docker 门内「sleep 30 + wallSeconds=1」超时 kill 用例（断言 `docker ps` 无同名残留容器）；NoOp/共享层孙进程持管道 reader 退出用例；watch-only 注释修正（`TestDockerSandboxBackend:412-417`「timeout path can kill」错觉注释随修复同批更正）
-- [ ] 回归测试（rule 25，测试名带 `_MA_17`/`_C7_014`）：①Docker 超时路径 CLI 进程 destroyForcibly 断言（门内集成 + 进程存活计数）；②reader 预算内退出断言（关流补偿生效）；③wakeup 预算超限降级断言（预算内行为 + 超限机械等待 + LLM 调用计数封顶）；④WAIT 碎片不入终史断言；⑤既有 TestHeartbeatWaitPhase/TestDockerSandboxBackend/TestNoOpSandboxBackend 零回归（改写面除外——改写面 = 反向钉 R4 全组 hb-入史钉 :260-262/:656/:748/:783，按「请求副本携带 hb + ctx 终史 hb=0」正面保护口径改写）
-- [ ] **接线验证**（rule 23）：真实 DockerSandboxBackend 超时链 / 真实 runHeartbeatToolPhase 等待循环上断言清理与预算运行时生效
-- [ ] **无静默跳过**（rule 24）：kill/cleanup 失败显式可观测；wakeup 超限降级路径显式（日志/标记），不静默
-- [ ] **提交纪律**：两工单两提交，commit message 带对应工单 ID 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 回归测试（rule 25，测试名带 `_MA_17`/`_C7_014`）：①Docker 超时路径 CLI 进程 destroyForcibly 断言（门内集成 + 进程存活计数）；②reader 预算内退出断言（关流补偿生效）；③wakeup 预算超限降级断言（预算内行为 + 超限机械等待 + LLM 调用计数封顶）；④WAIT 碎片不入终史断言；⑤既有 TestHeartbeatWaitPhase/TestDockerSandboxBackend/TestNoOpSandboxBackend 零回归（改写面除外——改写面 = 反向钉 R4 全组 hb-入史钉 :260-262/:656/:748/:783，按「请求副本携带 hb + ctx 终史 hb=0」正面保护口径改写）
+- [x] **接线验证**（rule 23）：真实 DockerSandboxBackend 超时链 / 真实 runHeartbeatToolPhase 等待循环上断言清理与预算运行时生效
+- [x] **无静默跳过**（rule 24）：kill/cleanup 失败显式可观测；wakeup 超限降级路径显式（日志/标记），不静默
+- [x] **提交纪律**：两工单两提交，commit message 带对应工单 ID 与 plan 号（MA-17 = `f9a760ba7f`；C7-014 = 本 Phase 4 第二提交，hash 见日志/提交）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 > **执行注记（MA-17 面，plan 2501 Phase 4）**：
 > - 双实现分叉收敛裁定 = **共享工具方法**（审计建议支路）：新增 `security/SandboxProcessCleanup`（包私有），killTree/reapTree/awaitReaderExit/awaitReaderSettled/drainStream/capturedToString 单一实现，Docker 与 NoOp 全量委托——killTree/reapTree 对齐 NoOp 既有 descendants+root 形态；drainStream 终态发布 `new StringBuilder` 不可变快照 + 末尾释放 fd（3.2-C6-008 同口径）；runShortCommand 有界化（drain 3s + waitFor 1s + 超时必 destroy + 退出码回传，3.2-C6-003 常量同值）；killContainer 双 catch 改显式 WARN（异常/非零退出双形态，容器名+步骤可见，3.2-C6-002 同口径）；`startDockerCli` 包私有注入接缝（与 toolkit C10-006 一缝两单，DockerSandboxBackend 去 final 供同包测试子类化）。
@@ -211,18 +211,32 @@ Targets: `nop-ai/nop-ai-agent/src/main/java/io/nop/ai/agent/security/DockerSandb
 > - watch-only 注释修正：`TestDockerSandboxBackend.cleanupGuaranteesRmFlagAndName`「timeout path can kill」错觉改为「cleanup 为 best-effort + WARN 可见 + CLI destroyForcibly 兜底，容器名是唯一可寻址面」。
 > - Owner doc 去向登记：`nop-ai.md` 沙箱清理契约（agent 侧 DockerSandboxBackend/NoOpSandboxBackend 面）+ heartbeat wakeup 预算契约随 **Phase 5 统一落账**（与已落账 toolkit 面同节核对合并）。
 > - rule 24：kill/cleanup 失败显式 WARN（异常与非零退出双形态）；无静默跳过。
+>
+> **执行注记（C7-014 面，plan 2501 Phase 4——配额中断接续交付）**：
+> - 接续说明：MA-17 已由实现会话提交（`f9a760ba7f`）；C7-014 修复落盘后因配额中断未验证未提交。本续作子代理按本 plan 逐项审计前任 diff → 就地补缺 → 变异红双探针 → 批行全绿 → C7-014 一提交收口（携本 plan 回填与日志）。
+> - **续作补缺（前任未编译实证，3 处编译阻断 + 1 处过时 javadoc）**：新增测试 `TestHeartbeatWakeupBudget_C7_014` 跨类引用 `TestHeartbeatWaitPhase.tokens`/`isHeartbeatMessage` 为 private（改包私有共享）；`AiToolCallResult`/`IToolManager` import 缺失；`io.nop.core.CoreInitialization` 错误 FQN 改 `io.nop.core.initialize.CoreInitialization`；`runHeartbeatWakeupTurn` javadoc 仍述旧「commit hb+reply to ctx」语义，改终局裁决限定表述。
+> - ①wakeup 预算：`DefaultAgentEngineConfig.maxHeartbeatTurns`（默认 20，`heartBeatIntervalMs`（:171）邻域；≤0 = 完全禁用 wakeup 轮，非校验失败——同 heartBeatIntervalMs 约定）+ `ReActAgentExecutorBuilder.maxHeartbeatTurns(int)` 装配缝 + executor 字段传导；`runHeartbeatToolPhase` 预算门：`heartbeatTurns >= maxHeartbeatTurns` → 降级纯机械等待（deadline/cancel/pause/forceStop/queued steering 全保持活性），转场 INFO 恰记一次（rule 24）。
+> - ②WAIT 碎片生命周期：heartbeat 证据沿 WI3 invariant 1 既有请求副本机制携带（副本尾部，新增尾部位断言钉）；新增 `isTerminalWakeupReply`（派生并行工作非空 或 ABANDON 前缀）才 commit hb+reply+tool_call 消息入 ctx——WAIT/空文本回复与 guardrail 拦截回复零入史；`appendToolCallMessages` 随终局分支收拢（非终局回复无 tool_call，语义等价）。Dispatcher :427-431 传导：cap≤0 → deadline=MAX_VALUE 注释明示 deadline 即预算耗尽后的机械终结面（禁 cap 时 escape hatch = cancel/steer/forceStop）。
+> - ③compaction 增强面裁定 = **不纳入**：Deferred 节「C7-014 等待期周期 compaction 评估」（optimization candidate，Successor no）维持留痕，本 Phase 无需新立项。
+> - **反向钉 R4 全组改写对照（`TestHeartbeatWaitPhase`；改写后语义 = 「请求副本携带 hb + ctx 终史 hb=0」正面保护，保护面未删，wakeup 行为计数钉全保留）**：旧 :260-262（hbCount>=2 入史钉 + calls>=4 正面钉）→ 新 :298-316（`hbRequestCount>=2` + 携 hb 请求副本尾部位断言 + 终史 `hbCount==0` + `calls>=4` 保留）；旧 :656（仅成功 wakeup hb 入史 count==1）→ 新 :705-715（终史 hb==0 双形态——失败与成功 WAIT 均不入史 + `hbRequestCount>=1`）；旧 :748（engine 路径 tokens.contains("hb") 流通钉）→ 新 :805-813（`hbRequestCount>=1` 引擎路径流通 + `assertFalse(contains("hb"))` 终史零）；旧 :783（blocked reply 不入史但 hb 入史钉）→ 新 :846-854（拦截回复零提交 + `hbRequestCount>=1`）。**全集复核**：`[heartbeat]`/`"hb"` 全测试树 grep——dialect 测试自建合成史非 ctx 钉；`TestToolResultCommitOrdering` 心跳史为合成锚定形态钉（终局裁决提交路径仍产生该真实历史形态，锚定契约独立有效）；`TestWakeupCallFailSoft:59` 合成请求非 ctx 钉——R4 全集即改写四处，无遗漏。
+> - 必红证据（E2，变异红双探针；恢复后 grep 断言核验——探针标记零残留、`heartbeatTurns++`/`isAbandonReply` 返回行在位）：预算门变异（注释 `heartbeatTurns++`）→ `wakeupTurnsAreBudgetCappedPerWaitPhase` + `budgetExhaustionIsExplicitlyObservable` 双红（`_tmp/phase4-c7-014-red.log`：script exhausted at call 7/6 = 无预算 wakeup 无上限实证）；生命周期门变异（`isTerminalWakeupReply` 恒真）→ 反向钉改写面 4 断言红（`_tmp/phase4-c7-014-red-lifecycle.log`：终史 hb==0 三处 + 请求副本尾部位一处）。
+> - 新增测试：`TestHeartbeatWakeupBudget_C7_014` 6 条（预算封顶/预算 0 禁用/WAIT 证据仅请求副本/ABANDON 终局仍提交/parallel 终局仍提交/降级转场 INFO 恰一次）。
+> - 接线验证（rule 23）：`wakeupTurnsAreBudgetCappedPerWaitPhase` 真实 `runHeartbeatToolPhase` 等待循环（cap=1000ms/slice=20ms/budget=2 ⇒ LLM 调用恰 4 次，变异下 ~50 次）+ `waitWakeupEvidenceRidesRequestCopyOnly` 真实请求副本携证 + 终史零碎片。
+> - 绿证：批行 `./mvnw test -pl nop-ai -am -Dsurefire.failIfNoSpecifiedTests=false -fae` BUILD SUCCESS 453 模块全绿（`_tmp/phase4-c7-014-nop-ai-test3.log`——含本 Phase Exit 模块行 `-pl nop-ai/nop-ai-agent` 超集通道：nop-ai-agent 3564 tests 0F0E，TestHeartbeatWakeupBudget_C7_014 6/6 + TestHeartbeatWaitPhase 14/14 + MA-17 面 TestDockerKillVisibility_MA17 2 + TestDockerSandboxCleanup_MA17 2 + TestSandboxCleanupContract_MA17 5 + TestDockerSandboxBackend 27 + TestNoOpSandboxBackend 13 全绿 + Phase 1–3 面 toolkit/shell 全绿）。**首跑 flake triage 登记**：run1 同命令（`_tmp/phase4-c7-014-nop-ai-test.log`）于上游传递依赖 nop-stream-runtime `TestStreamConnectorRegistryE2E.registryTwoPhaseCommitSinkCommitsExactlyOnce` 60s 收敛超时 1/1210（本批 diff 零 nop-stream 触碰；solo 复跑 2/2 绿 1.3s，`_tmp/phase4-c7-014-flake-solo.log`——负载敏感批前既有 flake，沿 plan 2499 Phase 4 `TestJdbcCheckpointStorage` triage 先例裁定非本批回归；run3 全量复跑该测试亦绿）。
+> - Owner doc 去向：`nop-ai.md` heartbeat wakeup 预算契约随 **Phase 5 统一落账**（与 MA-17 注记登记的沙箱清理契约同节合并核对）。
+> - rule 24：预算耗尽降级转场 INFO 显式可观测（恰一次），无静默跳过。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [x] 3.1-MA-17 landed：超时 destroyForcibly + reader 退出补偿 + kill 失败可见化 + success 路径孙进程收割/outputIncomplete 标记在位，双实现分叉收敛，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 3.1-C7-014 landed：wakeup 预算 + WAIT 碎片生命周期收敛在位（compaction 增强面已裁定：纳入/Deferred 二选一留痕）；反向钉 R4 同批改写在案（全组 hb-入史钉 :260-262/:656/:748/:783 相容性核对记录；改写后语义=「请求副本携带 hb + ctx 终史 hb=0」正面保护）
-- [ ] 必红证据（E2）：MA-17 reader 滞留断言与 C7-014 预算缺失断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase4-ma17-c7-014-*.log`）
-- [ ] 接线验证证据登记
-- [ ] `./mvnw test -pl nop-ai/nop-ai-agent -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-ai.md` 沙箱清理契约与 heartbeat 预算契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.1-C7-014 landed：wakeup 预算 + WAIT 碎片生命周期收敛在位（compaction 增强面已裁定：纳入/Deferred 二选一留痕——裁定=不纳入，Deferred 既有条目维持）；反向钉 R4 同批改写在案（全组 hb-入史钉 :260-262/:656/:748/:783 相容性核对记录；改写后语义=「请求副本携带 hb + ctx 终史 hb=0」正面保护——对照表见 C7-014 执行注记）
+- [x] 必红证据（E2）：MA-17 reader 滞留断言与 C7-014 预算缺失断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase4-ma17-c7-014-*.log` 口径下的实落路径：MA-17 = `_tmp/phase4-ma17-red.log` + probeA/B；C7-014 = `_tmp/phase4-c7-014-red.log` 预算门变异双红 + `_tmp/phase4-c7-014-red-lifecycle.log` 生命周期门变异 4 红——路径登记见执行注记）
+- [x] 接线验证证据登记（MA-17：`timeoutPathDestroysCliAndLogsKillFailure_MA17` + docker 门内 `conditionalIntegrationTimeoutKillsContainerWithoutResidue`；C7-014：`wakeupTurnsAreBudgetCappedPerWaitPhase` 真实等待循环调用计数封顶 + `waitWakeupEvidenceRidesRequestCopyOnly` 副本携证）
+- [x] `./mvnw test -pl nop-ai/nop-ai-agent -am` BUILD SUCCESS（以批行 `-pl nop-ai -am` 超集通道承载：453 模块 BUILD SUCCESS，nop-ai-agent 3564 tests 0F0E——`_tmp/phase4-c7-014-nop-ai-test3.log`；首跑 flake triage 见执行注记）
+- [x] Owner doc 裁定：`nop-ai.md` 沙箱清理契约与 heartbeat 预算契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 5 但须在本 Phase 显式登记去向（已登记：两契约随 Phase 5 统一落账，见 MA-17/C7-014 执行注记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - 全量验证 + owner doc 更新 + B1-04/B1-03 批级确认
 
