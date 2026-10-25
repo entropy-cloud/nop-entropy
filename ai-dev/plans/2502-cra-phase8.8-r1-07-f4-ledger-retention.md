@@ -329,30 +329,40 @@ Exit Criteria:
 
 ### Phase 8 - 全量验证 + owner doc 八份落账 + 台账回填（E1/E3/E5）
 
-Status: planned
+Status: completed（2026-10-25；docs 提交 hash 见 git log「plan 2502 Phase 8」）
 Targets: 受影响聚合模块树（nop-retry/nop-batch/nop-auth/nop-credential/nop-metadata/nop-rule/nop-duckdb/nop-sys）、`docs-for-ai/03-modules/`（nop-retry.md、nop-batch.md、nop-credential.md、nop-rule.md、nop-duckdb.md、nop-sys.md、nop-auth.md、nop-metadata.md）、cra-index 六成员行、roadmap 8.8 行
 
 - Item Types: `Proof`（全量验证留证）、`Fix`（owner doc/台账同步义务）
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（最低限度：受影响聚合模块树 `-am` 全绿——nop-retry/nop-batch/nop-auth/nop-credential/nop-metadata/nop-duckdb/nop-sys 各通道；nop-tcc/nop-rule 若零 diff 以实际为准登记，勘误 1/4）
-- [ ] E3 验证通道留证：各分片 `./mvnw test -pl <模块> -am` 结果快照 `_tmp/phase*-gate-*.log`
-- [ ] 零触碰复核（E4）：`git diff` 核对产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-graph-api/`_` 前缀生成物；ask-first 授权记录与 commit 留痕核对
-- [ ] E5 owner doc 八份落账：六份既定锚点（nop-retry/nop-batch/nop-credential/nop-rule/nop-duckdb/nop-sys.md）+ 两份实际触达锚点（nop-auth.md/nop-metadata.md，勘误 2）——各分片登记的去向统一落账；nop-rule.md 若核对后零更新则登记 `No owner-doc update required` + 理由
-- [ ] cra-index 回填：6 成员行收敛（1.6-C7-001/1.7-C7-003/5.1-MA-01/5.5-W-02/5.6-W-01 P1 台账行 + P2-G75 行）+ 勘误 4/5 边界注记（C7-005→R2-12 对齐 SSOT、MA-04 本体+trusted-device 清扫第七面→R3-01[R1 修订摘除]）+ G2 契约注记（W-02 行）
-- [ ] roadmap 8.8 行 → done（在 Phase 9 closure audit PASS 之后执行翻转；本 Phase 仅准备）
-- [ ] 文档链接门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（覆盖本批新建 `ai-dev/design/concurrency/ledger-retention-policy.md`、`ai-dev/design/concurrency/README.md` 索引登记与八份 owner doc 修改）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（最低限度：受影响聚合模块树 `-am` 全绿——nop-retry/nop-batch/nop-auth/nop-credential/nop-metadata/nop-duckdb/nop-sys 各通道；nop-tcc/nop-rule 若零 diff 以实际为准登记，勘误 1/4）
+- [x] E3 验证通道留证：各分片 `./mvnw test -pl <模块> -am` 结果快照 `_tmp/phase*-gate-*.log`
+- [x] 零触碰复核（E4）：`git diff` 核对产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-graph-api/`_` 前缀生成物；ask-first 授权记录与 commit 留痕核对
+- [x] E5 owner doc 八份落账：六份既定锚点（nop-retry/nop-batch/nop-credential/nop-rule/nop-duckdb/nop-sys.md）+ 两份实际触达锚点（nop-auth.md/nop-metadata.md，勘误 2）——各分片登记的去向统一落账；nop-rule.md 若核对后零更新则登记 `No owner-doc update required` + 理由
+- [x] cra-index 回填：6 成员行收敛（1.6-C7-001/1.7-C7-003/5.1-MA-01/5.5-W-02/5.6-W-01 P1 台账行 + P2-G75 行）+ 勘误 4/5 边界注记（C7-005→R2-12 对齐 SSOT、MA-04 本体+trusted-device 清扫第七面→R3-01[R1 修订摘除]）+ G2 契约注记（W-02 行）
+- [x] roadmap 8.8 行 → done（在 Phase 9 closure audit PASS 之后执行翻转；本 Phase 仅准备）
+- [x] 文档链接门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（覆盖本批新建 `ai-dev/design/concurrency/ledger-retention-policy.md`、`ai-dev/design/concurrency/README.md` 索引登记与八份 owner doc 修改）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **执行注记（plan 2502 Phase 8——E1/E3/E4/E5 全量验证与台账回填）**：
+> - **E1（授权支路 `-DskipTests`，支路理由=测试验证由六分片 E3 通道独立承载，沿 plan 2501 Phase 5 先例）**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（EXIT=0，全仓 453 模块 SUCCESS；`_tmp/phase8-e1-fullbuild-skiptests.log`）；shade 副作用文件 nop-kernel-cli 模块 dependency-reduced-pom.xml 即时还原（沿前批教训）。
+> - **E3 六模块验证终态（快照全集在位，零补跑）**：nop-retry=`_tmp/phase13-nop-retry-gate3.log`（engine/api/dao/meta in-reactor SUCCESS，C7_001 7/7）+`_tmp/phase13-nop-retry-service-solo.log`（4/4 BUILD SUCCESS）+红绿四段 `_tmp/phase2-c7-001-*.log`；nop-batch=`_tmp/phase13-nop-batch-gate.log`（14 模块分解通道 BUILD SUCCESS，C7_003 6/6）+`_tmp/phase3-c7-003-*.log`；nop-auth=`_tmp/phase4-ma01-gate.log`（全聚合 453 模块一次通过，MA_01 7/7）+`_tmp/phase4-ma01-*.log`；nop-metadata=分解等价通道 `_tmp/phase5-w02-install.log`+`_tmp/phase5-w02-family-solo.log`（9/9 模块）+`_tmp/phase5-w02-service-solo.log`（1361 tests 0F0E）+triage `_tmp/phase5-flake-triage-notes.md`+`_tmp/phase5-w02-*.log`；nop-duckdb=`_tmp/phase6-w01-gate.log`（62 测 0F0E）+`_tmp/phase6-w01-*.log`；nop-sys=`_tmp/phase7-ma04-gate.log`（全聚合 453 模块一次通过，MA_04 7/7）+`_tmp/phase7-ma04-*.log`。nop-tcc 零 diff 登记（勘误 4：`git diff b88a130a8f..HEAD --name-only` 零 nop-tcc 文件——通道以零 diff 等价承载）；nop-credential/nop-rule 零产品 diff 同口径登记。
+> - **族级 SSOT 同参抽验（六模块 Configs vs 设计 §3.2 键表逐键比对）**：nop-retry（`RetryEngineConfigs`）/nop-batch（`NopBatchDaoConfigs`）/nop-auth（`NopAuthConfigs`）/nop-metadata（`NopMetadataLedgerConfigs`）四模块均为 `nop.<module>.ledger.retention-days=30`/`cleanup-interval=1h`/`delete-batch-size=1000` + 下限常量 60s；nop-sys（`NopSysDaoConfigs`）双 face=lock 7d/changelog 90d（0=永久 opt-in）/共用 1h/1000——**全部与设计 §3.2 一致，零分叉零发明**。
+> - **E5 owner doc 八份核对**：六份已落锚点与配置键核对一致（nop-retry.md/nop-batch.md「账本保留策略」节、nop-auth.md 配置表+「账本保留策略」节+trusted-device 摘除边界+锚点行、nop-metadata.md「账本保留策略」节+G2 注记+组件行、nop-sys.md「账本保留策略」节+裁定⑤声明+批量化注记+锚点行、nop-duckdb.md「连接生命周期与账本释放」节+close() 注记+测试计数 62）；**唯一缺口补齐=nop-retry.md 源码锚点表补「账本保留清理（1.6-C7-001）」行**（nop-batch/auth/sys 均有对应锚点行，族内一致性缺口）；nop-credential.md=No update required（对照组先例 `NopCredentialOauthStateStore` 零改动，分片 C 已登记）；nop-rule.md=No owner-doc update required（零产品 diff、站点全在 nop-metadata-service，分片 D 已登记）。
+> - **cra-index 回填**：P1 台账五行（C7-001/C7-003/5.1-MA-01/W-02/W-01）状态 open→fixed，状态列写「已修（R1-07，plan 2502 分片 X，提交 hash）」形态并携边界注记——C7-001 行携 C7-005→R2-12 对齐 SSOT 注记（勘误 4）、MA-01 行携 trusted-device 第七面→R3-01 注记（勘误 5）、W-02 行携 G2 契约注记（保留窗=reJudge 复用历史上界）与 C7-101→R3-05 注记、W-01 行携形态 D 差异条款①注记；P2 台账 G75 行追加「R1-07 成分收敛注」（5.2-MA-04 提交 ef91ce0871）；P2 裁决台账节新增 R1-07 批次收敛注 blockquote（六成员提交引用+两第七面归属 R3-01/R3-05+closure audit 待 Phase 9 诚实声明——不写「closure audit PASS」，翻转事实位=状态列）。
+> - **scan-hollow**：六触达模块 `--severity high` 逐个扫描全部 exit 0（Critical 0/High 0；`_tmp/phase8-scanhollow-{nop-retry,nop-batch,nop-auth,nop-metadata,nop-duckdb,nop-sys}.txt`）；无新增裁定面（Phase 1–7 各分片扫描已覆盖批内新增代码，本 Phase 为批终态复核）。
+> - **零触碰复核（E4）**：`git diff b88a130a8f..HEAD --name-only` 全集过滤——nop-tcc/nop-credential/nop-rule/nop-api-core/nop-graph-api/`model/*.orm.xml`/`.rels` 全部零命中；nop-auth 触达面=清理入口新增面（`NopAuthLedgerCleaner`/`NopAuthConfigs`/`NopAuthErrors`/auth-service.beans.xml 装配/测试），核心认证逻辑（`DaoUserContextCache`/`DaoLoginSessionStore`/五族 Db store/`MfaTrustedDeviceManager`）零 diff；`_cases/**/autotest.yaml` 全部为新增（A）测试用例记录、零既有生成物改写；`_vfs` 下四 beans 文件（auth-service/app-batch-dao/app-service/app-dao.beans.xml）均为 plan Phase 4/5/7 既定手维护装配面；ask-first 授权记录 plan 头部+分片 C commit message 双留痕核对通过。
+> - 文档门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（本 Phase 修改 cra-index/nop-retry.md/本 plan/daily log 后复核）。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 全量构建绿（快照留证）
-- [ ] E3 各模块验证通道全绿且快照在 `_tmp/`
-- [ ] E4 零触碰复核通过（git diff 核对记录留痕）
-- [ ] E5 owner doc 八份更新或显式 `No owner-doc update required` + 理由；cra-index 六行收敛
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建绿（快照留证）
+- [x] E3 各模块验证通道全绿且快照在 `_tmp/`
+- [x] E4 零触碰复核通过（git diff 核对记录留痕）
+- [x] E5 owner doc 八份更新或显式 `No owner-doc update required` + 理由；cra-index 六行收敛
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 9 - closure audit + 收口（E6）
 

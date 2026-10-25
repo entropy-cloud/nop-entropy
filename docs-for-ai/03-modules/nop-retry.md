@@ -126,6 +126,7 @@
 |------|------|
 | ORM 模型 | `nop-retry/model/nop-retry.orm.xml` |
 | 扫描链 | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/scanner/RetryScannerImpl.java` |
+| 账本保留清理（1.6-C7-001） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java`（`purgeExpiredLedgerRows` 三通道清理面；保留参数 `RetryEngineConfigs`，引擎生命周期链接线 `RetryEngineImpl`） |
 
 ## 相关文档
 
