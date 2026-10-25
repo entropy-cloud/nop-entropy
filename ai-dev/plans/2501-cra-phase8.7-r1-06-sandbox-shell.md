@@ -240,30 +240,43 @@ Exit Criteria:
 
 ### Phase 5 - 全量验证 + owner doc 更新 + B1-04/B1-03 批级确认
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-ai.md`（roadmap 8.7 Owner Doc 列）；`ai-dev/audits/cra-index.md`（B1-04 确认 + B1-03 声明 + G50 行注记准备）
 
 - Item Types: `Proof`、`Decision`（B1-03 声明注记）
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2496–2500 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` BUILD SUCCESS 留证（模块/测试数/退出码/快照路径）
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记；`_vfs` 下 beans 装配文件若触达按头部豁免口径登记）
-- [ ] Owner doc 更新（E5）：`docs-for-ai/03-modules/nop-ai.md` 四处受影响面逐项核对与更新（工具排队链契约 / bash 工具 sandbox 清理契约与超时语义 / shell pipeline 失败回滚契约 / heartbeat wakeup 预算契约），或逐项显式登记 `No owner-doc update required` + 理由；缺口声明（实际 diff 触达模块无 03-modules 条目者——本批三子模块均在 nop-ai.md 覆盖内，核对登记）
-- [ ] **B1-04 计数迁移落账确认**：核对 cra-index L58（B1-04 回升注记）/ L131（批次回填注记 179→180 行）/ L252（MA-17 回升行）三处互洽，确认结论登记（不重做回填）
-- [ ] **B1-03 MA-06 维持 P1 确认 + G56 不单独立卷声明**：cra-index `nop-ai-toolkit-tools-shell-C4-003（MA-06 主）` 行（L257）注记「B1-03 终裁维持 P1；族成员 C6-004/C8-001/C8-003/C8-011 面随本批单 diff 承载，条化判级与回升条款维持 G56 登记、不单独立卷」；交叉注记：在 G56 行或触发条款登记册对应条目加指向 L257 的注记，或显式声明 L257 注记即条款锚点（二选一登记）；G50 行（L424）R1-06 成分（MA-17/C7-014）收敛注记
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（或批前既有发现逐条裁定登记——沿 2496/2498 先例：批前基线见 plan 2498 Phase 7 nop-ai 4 条裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2496–2500 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` BUILD SUCCESS 留证（模块/测试数/退出码/快照路径）——终态通道 `./mvnw test -fae -pl nop-ai -am`（串行）BUILD SUCCESS EXIT=0：166 模块全 SUCCESS（nop-ai-toolkit/nop-ai-shell/nop-ai-agent/nop-ai-app 全绿），16,905 tests 0F 0E（161 skipped = docker 门控/环境条件跳过，与既有通道 skip 剖面一致），wall 12:58；快照 `_tmp/phase5-plan2501-e3-nop-ai-gate4.log`（run1–run3 triage 过程件与两起 flake 裁定 + run2 揭出的批内测试竞态修复见执行注记）
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记；`_vfs` 下 beans 装配文件若触达按头部豁免口径登记）
+- [x] Owner doc 更新（E5）：`docs-for-ai/03-modules/nop-ai.md` 四处受影响面逐项核对与更新（工具排队链契约 / bash 工具 sandbox 清理契约与超时语义 / shell pipeline 失败回滚契约 / heartbeat wakeup 预算契约），或逐项显式登记 `No owner-doc update required` + 理由；缺口声明（实际 diff 触达模块无 03-modules 条目者——本批三子模块均在 nop-ai.md 覆盖内，核对登记）
+- [x] **B1-04 计数迁移落账确认**：核对 cra-index L58（B1-04 回升注记）/ L131（批次回填注记 179→180 行）/ L252（MA-17 回升行）三处互洽，确认结论登记（不重做回填）
+- [x] **B1-03 MA-06 维持 P1 确认 + G56 不单独立卷声明**：cra-index `nop-ai-toolkit-tools-shell-C4-003（MA-06 主）` 行（L257）注记「B1-03 终裁维持 P1；族成员 C6-004/C8-001/C8-003/C8-011 面随本批单 diff 承载，条化判级与回升条款维持 G56 登记、不单独立卷」；交叉注记：在 G56 行或触发条款登记册对应条目加指向 L257 的注记，或显式声明 L257 注记即条款锚点（二选一登记）；G50 行（L424）R1-06 成分（MA-17/C7-014）收敛注记
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（或批前既有发现逐条裁定登记——沿 2496/2498 先例：批前基线见 plan 2498 Phase 7 nop-ai 4 条裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **执行注记（plan 2501 Phase 5）**：
+> - **E1（授权支路）**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（EXIT=0，全仓 reactor 453 模块，wall 01:15；快照 `_tmp/phase5-e1-fullbuild.log`）。支路理由：测试验证由批行 E3 通道独立承载并本 Phase 留证（见下），沿 plan 2496–2500 先例；shade 构建副作用 `nop-kernel/nop-kernel-cli/dependency-reduced-pom.xml` 即时还原（沿 plan 2500 先例）。
+> - **模块门禁终态（七触达面 = 引用 Phase 1–4 快照 + 本 Phase E3 复跑）**：Phase 1 toolkit 首跑快照 `_tmp/phase1-toolkit-gate.log` 为过程件（新测试断言笔误 1 失败，当轮修正），toolkit 终态由 `_tmp/phase2-toolkit-gate-final.log`（320 tests 0F0E，含 Phase 1 面回归）承载；Phase 3 shell `_tmp/phase3-shell-gate.log`（305 tests 0F0E）；Phase 4 nop-ai 聚合 `_tmp/phase4-c7-014-nop-ai-test3.log`（166 模块 0F0E）。**勘误登记**：Phase 4 执行注记「453 模块全绿/nop-ai-agent 3564 tests」系**全仓 E1 模块数误记为批行计数**（453=全仓 reactor 规模，本 Phase E1 实测 453 模块）且 `-T 1C` 并行日志交错致模块级测试数不可靠；批行快照实测 reactor 摘要 166 模块全 SUCCESS 0F0E（汇总测试数 33,810），门禁效力不变（BUILD SUCCESS 全绿），数字以本勘误为准。
+> - **E3 批行验证（本 Phase 复跑留证）**：见下方 E3 checklist 行（终态通道快照 `_tmp/phase5-plan2501-e3-nop-ai-gate4.log`；run1–run3 为 triage 过程件）。
+> - **首跑 flake triage 登记（两起，均负载敏感批前既有，非本批回归）**：①run1（`_tmp/phase5-plan2501-e3-nop-ai-gate.log`）nop-core `TestResourceCacheInvalidationChain` 3/4 红（写入年龄宽限窗口 timing 面，plan 2500 缓存失效链批自身回归面）——本批 diff 零 nop-kernel/nop-commons 触碰（`git diff e2a06a6900..HEAD -- nop-kernel/ nop-commons/` = 0 文件），solo 复跑 4/4 绿 0.77s（`_tmp/phase5-plan2501-flake-solo-cachain.log`）；②run3（`_tmp/phase5-plan2501-e3-nop-ai-gate3.log`）nop-ai-agent `TestScheduledRecoveryManagerInsulation` ConcurrentModificationException——plan 2496/2498 绝缘面测试（本批 diff 零 recovery 触达），测试 logAppender ArrayList 主线程流式迭代 vs `nop-global-worker` 并发 append 的既存竞态，solo 复跑 1/1 绿（`_tmp/phase5-plan2501-flake-solo-recovery.log`）。两起均沿 plan 2499 Phase 4 `TestJdbcCheckpointStorage` / plan 2500 Phase 3 triage 先例裁定。
+> - **批内测试竞态修复（门禁复跑修正，a03b6ecc8b 先例）**：run2（`_tmp/phase5-plan2501-e3-nop-ai-gate2.log`）揭出本批 Phase 1 新测试 `TestToolManagerQueueChain_C1_001` 三站点（rejectedExecutionSettles/queueNotPoisoned/semaphoreReleased）饱和注入的**线程启动竞态**——首任务体尚未被池线程拾起时仍占队列位，第二次 `tiny.submit` 提前 REE（全量负载下复现、solo 恒绿：`_tmp/phase5-plan2501-flake-solo-c1-001-pre.log` 7/7 绿）；三站点补 `occupierStarted` 握手（任务体真实运行后再填队列位——同 Phase 1 对 `TestToolManagerCancelChain_C4_008` bodyStarted 补强先例，断言语义不变，先红后绿证据链不受影响）；修后 solo 7/7 绿（`_tmp/phase5-plan2501-flake-solo-c1-001-post.log`），修复随本 Phase 独立 test 提交。
+> - **零触碰（E4）**：`git diff e2a06a6900..HEAD --name-only` = 30 文件 = nop-ai 27（toolkit 10 = 4 main + 6 test；shell 3 = 2 main + 1 test；agent 14 = 8 main + 6 test）+ plan/log/owner-doc 3；nop-tcc/nop-api-core（io.nop.api.core.*）/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/`.rels` 全部零命中；`_vfs` 下 beans 装配文件零触达（头部豁免口径未触发）。
+> - **Owner doc（E5）四处结论**：①**路径串行排队链契约**（Phase 1 已落，`nop-ai.md` 工具执行语义节）核对在位，零补；②**沙箱清理三口径**——toolkit 面（Phase 2 已落「bash 工具 sandbox 接线」节）核对在位，本 Phase **补落 agent 侧**：「Agent 引擎可靠性配置」节新增「Agent 沙箱后端清理契约（3.1-MA-17，plan 2501，B1-04 回升 P1）」段（SandboxProcessCleanup 双实现分叉收敛/三口径与 toolkit 同口径不各走一套/outputIncomplete 标记/孪生「孙进程滞留/输出截断」声明边界/容器名运维口径同 toolkit）；③**shell pipeline 失败回滚契约**（Phase 3 已落）核对在位，与 **shell 池隔离契约**（2498，C4-004 同节）交叉引用结构完备——回滚段明示「池饱和 fail-loud + 回滚」+ cancelToken 去向 R4-23 注记，池隔离契约**无需补注**（任务书核对项结论：无需交叉引用补齐）；④**heartbeat wakeup 预算契约**本 Phase 新落：同节新增「Heartbeat wakeup 预算与 WAIT 碎片生命周期（3.1-C7-014，plan 2501）」段（maxHeartbeatTurns 默认 20、≤0 禁用 wakeup 轮、WAIT 证据仅请求副本、仅终局裁决入史、**ctx 终史 hb=0 正面契约**）。缺口声明：本批三子模块均在 `nop-ai.md` 覆盖内，无 03-modules 缺口。
+> - **B1-04 落账确认**：cra-index L58（联动注记 P1×13→14/P2×29→28）/ L131（批次回填注记台账 179→180 行——本 Phase 追加三处互洽确认注）/ L252（MA-17 行在册：报告=3.1、批次=R1-06、计数迁移注记在位）**三处互洽成立**；与 MA-17 修复提交 `f9a760ba7f` 一致性核对——修复已落地而台账行修复状态维持 open **正确**（状态翻转归 Phase 6 closure audit 台账收敛，修复状态列唯一状态位不被本批提前改写）。登记载体 = L131 追加确认注 + 本注记；未重做回填。
+> - **B1-03 声明（ISSUE-7 修订形态）**：L257 行注记「B1-03 终裁=MA-06 维持 P1；族成员 C6-004/C8-001/C8-003/C8-011 面随 R1-06 单 diff 承载已落地（plan 2501 Phase 3），条化判级与「投产接线即回升」条款维持 G56 登记、**不单独立卷**」——**锚点二选一裁定 = L257 注记即 B1-03 条款锚点**（G56 触发条款激活时以 L257 为准，不另立登记册条目；理由：G56 行成员清单七条不含 C6/C8 riders，在 G56 行反向加注反生成员关系歧义，单点锚点最符合 link-don't-copy）；G50 行（L424）追加 **R1-06 成分收敛注**（MA-17 `f9a760ba7f` / C7-014 `b14a502a0b` 以 R1-06 独立工单承载已落地，本行承接成分收敛，状态翻转归 Phase 6）。
+> - **scan-hollow（--module nop-ai --severity high）**：4 条 high，与 plan 2498 Phase 7 nop-ai 裁定集**完全同集**（任务简报所称 7 条 = 2498 跨模块合计 nop-service-framework 3 + nop-ai 4）——ReActAgentExecutor 两条「transient request copy: placeholders…」注释（批前 e2a06a6900 在位 :1373/:1502，本批 C7-014 编辑致行号漂移至 :1395/:1526；注释描述 WI3 请求副本领域术语、后接真实逻辑，「placeholder」关键词误报）；PlanReplanner:273（同型注释误报）；NoOpProviderFailoverQueue:34（有意 NoOp 直通队列成文注释、自我援引 Minimum Rules #24）。**本批触达面 high=0**。快照 `_tmp/phase5-plan2501-scanhollow-nop-ai.txt`；批前同集对照 = plan 2496 `_tmp/phase5-scanhollow-nop-ai.txt` 与 plan 2498 Phase 7 裁定。
+> - **双门禁**：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0（0 errors；5 warnings 均批前既有——3 条在本 plan 反引号路径串 L43/L191、2 条在 design-comparison 旧档）；`check-plan-checklist.mjs --strict` 归 Phase 6 双门禁项。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] Owner doc `nop-ai.md` 四处受影响面结论逐项登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
-- [ ] B1-04 落账确认 + B1-03 MA-06 维持 P1/G56 不单独立卷声明 + G50 行注记已登记（载体可核验：cra-index 对应行）
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] Owner doc `nop-ai.md` 四处受影响面结论逐项登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
+- [x] B1-04 落账确认 + B1-03 MA-06 维持 P1/G56 不单独立卷声明 + G50 行注记已登记（载体可核验：cra-index 对应行）
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 6 - closure audit + 收口
 
