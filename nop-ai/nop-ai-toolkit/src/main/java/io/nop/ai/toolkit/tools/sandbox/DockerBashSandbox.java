@@ -329,16 +329,51 @@ public class DockerBashSandbox implements IBashSandbox {
         }
     }
 
+    /** C6-003 (MA-04, plan 2501 Phase 2): bounded drain budget for cleanup helpers. */
+    static final int SHORT_COMMAND_DRAIN_SECONDS = 3;
+
+    /** C6-003 (MA-04): bounded exit wait before the forcible destroy. */
+    static final int SHORT_COMMAND_EXIT_WAIT_SECONDS = 1;
+
+    /**
+     * C6-003 (MA-04, plan 2501 Phase 2): bounded execution for the cleanup helper
+     * commands ({@code docker kill} / {@code docker rm -f}). The previous form drained
+     * with an unbounded blocking read BEFORE the exit wait — a daemon-wedged helper
+     * (output pipe held open, process never exiting) pinned the timeout/cleanup
+     * thread forever (the wall-clock cleanup itself became invisible, F5) and the
+     * exit wait ignored its timeout without any destroy. Now: cumulative-bounded
+     * drain (available-probe + deadline), bounded exit wait, and forcible destroy
+     * on timeout — the helper can never outlive the short-command budget.
+     */
     private static int runShortCommand(String... argv) throws IOException, InterruptedException {
         Process p = new ProcessBuilder(Arrays.asList(argv)).redirectErrorStream(true).start();
+        long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(SHORT_COMMAND_DRAIN_SECONDS);
         byte[] buf = new byte[1024];
-        try (InputStream in = p.getInputStream()) {
-            while (in.read(buf) != -1) {
-                // discard
+        try {
+            try (InputStream in = p.getInputStream()) {
+                while (System.nanoTime() < deadlineNanos) {
+                    int available = in.available();
+                    if (available > 0) {
+                        // available() > 0 guarantees this read returns without blocking
+                        in.read(buf, 0, Math.min(buf.length, available));
+                    } else if (!p.isAlive()) {
+                        // exited; remaining buffered bytes are drained by the loop above
+                        break;
+                    } else {
+                        Thread.sleep(5);
+                    }
+                }
             }
+            if (p.isAlive() && !p.waitFor(SHORT_COMMAND_EXIT_WAIT_SECONDS, TimeUnit.SECONDS)) {
+                // wedged helper: forcible destroy, never a bare (or ignored) wait
+                p.destroyForcibly();
+            }
+        } catch (InterruptedException e) {
+            p.destroyForcibly();
+            throw e;
         }
-        // C6-002: surface the exit code (waitFor timeout → -1, un-reaped helper)
-        return p.waitFor(5, TimeUnit.SECONDS) ? p.exitValue() : -1;
+        // C6-002: surface the exit code (un-reaped helper → -1, treated as failure)
+        return p.isAlive() ? -1 : p.exitValue();
     }
 
     private static void drainStream(InputStream in, int maxBytes, AtomicReference<StringBuilder> capturedRef) {
