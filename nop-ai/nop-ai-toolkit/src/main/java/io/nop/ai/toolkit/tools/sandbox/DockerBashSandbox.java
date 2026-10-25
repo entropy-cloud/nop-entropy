@@ -17,6 +17,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * The selected isolation backend (plan 335 DR-3a): isolates command execution inside a Docker
  * container, reusing the nop-ai-agent {@code DockerSandboxBackend} pattern ({@code allowedBaseDirs}
@@ -46,11 +49,19 @@ import java.util.regex.Pattern;
  * forced EOF), so no sandbox thread or fd leaks; output produced after the CLI's main stream
  * ends is discarded. Container-side cleanup is best-effort with visible failures — see
  * {@code killContainer} (plan 2501 Phase 2, C6-002: kill/rm failures log WARN with the
- * container name so an unaddressable residue is observable and ops-cleanable).
+ * container name so an unaddressable residue is observable and ops-cleanable; the timeout
+ * path additionally destroys the local CLI process as a leak backstop — C8-009 face).
+ * <p>Short cleanup helper commands ({@code docker kill}/{@code docker rm -f}) run with a
+ * bounded drain + bounded exit wait + forcible destroy — a wedged docker daemon can no
+ * longer pin the timeout/cleanup thread (C6-003/MA-04, plan 2501 Phase 2).
  *
- * <p>Stateless after construction — safe for concurrent use.
+ * <p>Stateless after construction — safe for concurrent use. Non-final since plan 2501
+ * Phase 2: the C10-006 fault-injection seam ({@link #startDockerCli}) is exercised by
+ * test subclasses (same-package tests substitute a fake {@code docker} CLI).
  */
-public final class DockerBashSandbox implements IBashSandbox {
+public class DockerBashSandbox implements IBashSandbox {
+    private static final Logger LOG = LoggerFactory.getLogger(DockerBashSandbox.class);
+
     /** Plan 2285 (WI4): incremental-progress publish cadence (time-based). */
     private static final long PUBLISH_INTERVAL_NS = 50_000_000L;
 
@@ -105,15 +116,7 @@ public final class DockerBashSandbox implements IBashSandbox {
         // C6-001 (MA-02, plan 2501 Phase 2): the CLI's stdin used to stay a PIPE
         // nobody closes — point it at the null device (no docker command reads it).
         pb.redirectInput(nullInput());
-        Process process;
-        try {
-            process = pb.start();
-        } catch (IOException e) {
-            throw new BashSandboxException(BashSandboxFailureReason.BACKEND_UNAVAILABLE,
-                    "DockerBashSandbox: failed to launch 'docker' CLI for command "
-                            + request.getCommand() + ": " + e.getMessage(),
-                    e);
-        }
+        Process process = startDockerCli(pb);
 
         int maxBytes = config.getMaxOutputBytes();
         AtomicReference<StringBuilder> capturedRef = new AtomicReference<>();
@@ -141,6 +144,22 @@ public final class DockerBashSandbox implements IBashSandbox {
         }
     }
 
+    /**
+     * C10-006 shared fault-injection seam (MA-03/MA-04, plan 2501 Phase 2): starts
+     * the {@code docker run} CLI process. Package-private so tests in this package
+     * can substitute a fake CLI (no Docker daemon required for timeout/cleanup
+     * path coverage).
+     */
+    Process startDockerCli(ProcessBuilder pb) {
+        try {
+            return pb.start();
+        } catch (IOException e) {
+            throw new BashSandboxException(BashSandboxFailureReason.BACKEND_UNAVAILABLE,
+                    "DockerBashSandbox: failed to launch 'docker' CLI: " + e.getMessage(),
+                    e);
+        }
+    }
+
     private BashSandboxResult doExecute(BashSandboxConfig config, Process process, Thread reader,
                                         AtomicReference<StringBuilder> capturedRef, String containerName) {
         boolean timedOut;
@@ -153,6 +172,10 @@ public final class DockerBashSandbox implements IBashSandbox {
 
         if (timedOut) {
             killContainer(containerName);
+            // C6-002 (MA-03, plan 2501 Phase 2): CLI-process leak backstop — kill the
+            // local `docker run` CLI unconditionally on the timeout path (container
+            // kill failure no longer leaves the CLI process behind either)
+            process.destroyForcibly();
             awaitReader(process, reader, config.getWallSeconds());
             return new BashSandboxResult(exitCodeOrNegative(process), capturedToString(capturedRef), "", true);
         }
@@ -267,20 +290,46 @@ public final class DockerBashSandbox implements IBashSandbox {
         return s.length() <= 256 ? s : s.substring(0, 256) + "...(truncated)";
     }
 
+    /**
+     * C6-002 (MA-03, plan 2501 Phase 2): two-step container cleanup with visible
+     * failures. A swallowed kill/rm failure used to leave an unaddressable running
+     * container (its unique {@code --name} is the only addressability) plus the
+     * local CLI process; both failure faces now log WARN with the container name
+     * and step so residue is observable and ops-cleanable.
+     *
+     * <p><b>Container-side bottoming adjudication (三选一, plan 2501 Phase 2
+     * Decision)</b>: declared ops boundary — the WARNed container name is the
+     * cleanup envelope; {@code --stop-timeout} needs daemon-side cooperation and a
+     * background reaper is deferred (see plan Deferred "容器侧兜底增强"). Registered
+     * in the owner doc ({@code docs-for-ai/03-modules/nop-ai.md} sandbox section).
+     */
     private static void killContainer(String containerName) {
         try {
-            runShortCommand("docker", "kill", containerName);
-        } catch (Exception ignored) {
-            // best-effort — --rm should already clean up on kill
+            int killExit = runShortCommand("docker", "kill", containerName);
+            if (killExit != 0) {
+                // C6-002: a non-zero `docker kill` exit (daemon down, container gone)
+                // used to be invisible — the container name is the only addressability
+                LOG.warn("DockerBashSandbox: docker kill FAILED (exit {}) for container {} — container may "
+                        + "remain running (--rm will not fire); clean up manually with the container name",
+                        killExit, containerName);
+            }
+        } catch (Exception e) {
+            LOG.warn("DockerBashSandbox: docker kill FAILED for container {} — container may remain running "
+                    + "(--rm will not fire); clean up manually with the container name", containerName, e);
         }
         try {
-            runShortCommand("docker", "rm", "-f", containerName);
-        } catch (Exception ignored) {
-            // best-effort fallback — container may already be gone
+            int rmExit = runShortCommand("docker", "rm", "-f", containerName);
+            if (rmExit != 0) {
+                LOG.warn("DockerBashSandbox: docker rm -f FAILED (exit {}) for container {} — container may "
+                        + "remain; clean up manually with the container name", rmExit, containerName);
+            }
+        } catch (Exception e) {
+            LOG.warn("DockerBashSandbox: docker rm -f FAILED for container {} — container may remain; "
+                    + "clean up manually with the container name", containerName, e);
         }
     }
 
-    private static void runShortCommand(String... argv) throws IOException, InterruptedException {
+    private static int runShortCommand(String... argv) throws IOException, InterruptedException {
         Process p = new ProcessBuilder(Arrays.asList(argv)).redirectErrorStream(true).start();
         byte[] buf = new byte[1024];
         try (InputStream in = p.getInputStream()) {
@@ -288,7 +337,8 @@ public final class DockerBashSandbox implements IBashSandbox {
                 // discard
             }
         }
-        p.waitFor(5, TimeUnit.SECONDS);
+        // C6-002: surface the exit code (waitFor timeout → -1, un-reaped helper)
+        return p.waitFor(5, TimeUnit.SECONDS) ? p.exitValue() : -1;
     }
 
     private static void drainStream(InputStream in, int maxBytes, AtomicReference<StringBuilder> capturedRef) {

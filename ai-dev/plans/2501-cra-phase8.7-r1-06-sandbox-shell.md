@@ -134,7 +134,7 @@ Targets: `nop-ai/nop-ai-toolkit/src/main/java/io/nop/ai/toolkit/tools/sandbox/Ho
 > 续作纪律：本分片三工单允许分会话续作——每工单独立提交（commit message 带对应工单 ID 与 plan 号），每工单完成即时勾选对应 checklist 项与 Exit Criteria，不跨工单积压未勾选项；分会话交接以本 plan 的勾选状态为进度事实源，不依赖会话记忆。
 
 - [x] 3.2-C6-001（MA-02 主，含 C6-008/C4-001 成员面同 diff）：reader 退出补偿——drainStream 结束/中断路径显式 `in.close()` 强制 EOF（关流替代无效 interrupt）；`redirectInput(NUL)` 杜绝 stdin 悬挂；终态发布改不可变快照 + `capturedToString`/`progressSnapshot` 消费面同步；Docker 侧孪生实现同修（**F3 残留随 MA-02 补齐义务**）；孪生场景 `ProcessHandle.descendants()` 收割或文档声明边界（二选一以实现期裁定落账）
-- [ ] 3.2-C6-002（MA-03 主，含 C8-009）：`killContainer` 双 `catch ignored` 改显式 WARN（容器名/步骤/异常可见）+ CLI 进程 `destroyForcibly()` 兜底；容器侧兜底形态三选一裁定落账（`--stop-timeout` / 后台 reaper / 声明运维边界+owner doc 包络）；unregister 配对保留、失败不再静默
+- [x] 3.2-C6-002（MA-03 主，含 C8-009）：`killContainer` 双 `catch ignored` 改显式 WARN（容器名/步骤/异常可见）+ CLI 进程 `destroyForcibly()` 兜底；容器侧兜底形态三选一裁定落账（`--stop-timeout` / 后台 reaper / 声明运维边界+owner doc 包络）；unregister 配对保留、失败不再静默
 - [ ] 3.2-C6-003（MA-04，含 C4-002 心跳占用面）：`runShortCommand` 重写有界形态（drain 累计时限或 `waitFor(total)`→`destroyForcibly()`→再 drain）；`waitFor` false 分支补 `destroyForcibly()`；清理线程不再被 daemon 挂死钉死
 - [ ] 回归测试（rule 25，测试名带 `_C6_001`/`_C6_002`/`_C6_003`）：①孪生进程负载（`sh -c "sleep 30 & echo started"` 形态）reader 线程预算内终止断言（线程名计数，Host 侧无 Docker 依赖承载 CI 可见面——3.2-C10-005 形态）；②终态快照并发稳定性断言（execute 返回后并发 capturedToString/progressSnapshot N 次无异常内容前缀稳定）；③kill 失败故障注入可见性断言（3.2-C10-006 形态：注入失败 CLI → WARN 可观测 + destroyForcibly 兜底发生）；④runShortCommand 挂死注入有界返回断言；⑤既有沙箱测试（TestBashExecutionProgress 等 plan 2285 已修面）零回归
 - [ ] **护栏共享形态**：docker 门内用例与 3.1-C10-011 共用 `isDockerAvailable` 门控形态；Host 侧无 Docker 依赖用例承载主要回归面
