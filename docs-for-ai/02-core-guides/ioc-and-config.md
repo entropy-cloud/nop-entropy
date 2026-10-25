@@ -231,6 +231,25 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 - **`ioc:lazy-property` 属性在 bean 创建阶段不可用**：懒加载属性首次访问时才解析；`@PostConstruct` 内若触发事务/使用该依赖（如 `DataInitInitializer` 开事务），属性未注入 → NPE。
 - **`bean-init-self-wait`**：bean 初始化同线程重入自等待（如 sessionFactory ↔ sequenceGenerator 相互依赖）。断环手段：`ioc:lazy-property` 延迟一方，或 `ioc:ignore-depends` 显式忽略依赖检查。诊断：启动日志含 `bean-init-self-wait` 且指向相互引用的两个 bean。
 
+## 模型装载与退役代际并发契约
+
+平台模型装载与共享池资源退役的并发行为契约（实现锚点见 `../04-reference/source-anchors.md` `RETIRE-001`/`RETIRE-002`/`LOCK-001`/`LOCK-002`；选型与语义权威 = AI 开发记录区 concurrency 设计集 kernel-retirement-generation-and-model-load-locking.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 模型循环依赖：类型化收敛（不再死锁/SOE）
+
+- 模型装载统一不变式：**监视器内只做同 key 去重 + 占位，装载体在监视器外**（`ResourceCacheEntry` 装载状态机 + `LoadWaitGraph` 等待图环检测；XPL 标签编译层同不变式单飞）。
+- 循环依赖三形态全部类型化报错，无永久死锁、无 StackOverflowError 路径：同线程重入环 `nop.err.core.component.resource-cache.load-reentrant-loop`；跨线程等待环 `...load-circular-wait`；检测竞态漏检由有界等待兜底 `...load-wait-timeout`（携带等待链快照）。三码均携带 `resourcePath`。
+- **xdef 循环引用错误迁移（对外可见变化）**：xdef 循环引用由旧错误码 `ref-not-allow-circular-reference` 收敛为 `load-reentrant-loop`——旧码依赖的装载器重入路径已消除、不再触达；迁移先例 `TestXDefRef.testLoop`。对循环引用做错误码断言的测试/工具需按新码对齐。
+- 配置键 `nop.core.component.resource-cache.load-wait-timeout`（默认 60s；`≤0` = 不设上界档）。
+- 装载失败占位复位不驻留：失败后下次访问重新装载（与缓存失效门语义共存，见 `../04-reference/source-anchors.md` `CACHE-001`）。
+
+### 退役代际：旧代资源延迟关闭（grace 契约）
+
+- 共享池/句柄/缓存类资源（`RoundRobinSupplier` 连接池、VFS zip 句柄、模型缓存条目）的替换点**只发布新代、不内联关闭旧代**：旧代登记进 `ResourceRetirementQueue` 延迟退役；已交付在用资源自登记起存活 ≥ 宽限期。
+- 配置键 `nop.commons.concurrent.retirement.grace-period`（默认 5s；`≤0` = 关闭档，退化为同步立即关闭的现行语义）。
+- 配置刷新链（`refreshConfig` → resize 缩容）：被裁剪的共享连接不再被热关，取用窗口无瞬时命令失败尖峰。Lettuce 使用面契约：`getConnection`/`getAsyncCommands`/`getSyncCommands` 返回的共享连接**调用方不得 close**（显式 close 不走 autoReconnect、直接杀死共享连接；pubsub 为独立建连、调用方拥有、豁免此契约）。
+- VFS 热刷新（DevTool refresh）：重建发布新 store 后旧 zip 句柄延迟关闭，在飞读者宽限期内完成读取。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

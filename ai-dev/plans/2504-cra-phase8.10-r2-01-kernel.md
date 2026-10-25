@@ -187,29 +187,31 @@ Exit Criteria:
 
 ### Phase 4 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/04-reference/source-anchors.md`、`docs-for-ai/02-core-guides/ioc-and-config.md`（roadmap 8.10 Owner Doc 列两份）；触达模块 owner doc 归属核对
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
-- [ ] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-persistence -am`——每条登记模块/测试数/退出码/快照路径
-- [ ] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记；codegen 再生产物若有按豁免路径登记）；R1-01/R1-02/R1-05 产物文件（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/ExecutorHelper/GlobalExecutors/CommonConfigs、DefaultResourceChangeChecker 等）diff 零回退核对
-- [ ] Owner doc 更新（E5）：①source-anchors.md——退役代际机制/模型加载锁纪律/VFS 刷新契约锚点新增或既有行（VFS-003/CACHE-001）受影响面更新；②ioc-and-config.md——模型加载与配置刷新链并发契约节（refreshConfig→resize 链、循环依赖类型化语义、共享连接池缩容契约）；逐份核对与更新或 `No owner-doc update required` + 理由
-- [ ] 缺口声明：实际 diff 触达模块无 `docs-for-ai/03-modules/` 条目者（nop-nosql-lettuce 等，以实际 diff 为准）按 R-G 治理轨先例登记（执行记录 + daily log），不在本批新建 owner doc
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（与 Closure Gates 受影响模块一致：nop-kernel、nop-persistence）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
+- [x] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-persistence -am`——每条登记模块/测试数/退出码/快照路径
+- [x] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记；codegen 再生产物若有按豁免路径登记）；R1-01/R1-02/R1-05 产物文件（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/ExecutorHelper/GlobalExecutors/CommonConfigs、DefaultResourceChangeChecker 等）diff 零回退核对
+- [x] Owner doc 更新（E5）：①source-anchors.md——退役代际机制/模型加载锁纪律/VFS 刷新契约锚点新增或既有行（VFS-003/CACHE-001）受影响面更新；②ioc-and-config.md——模型加载与配置刷新链并发契约节（refreshConfig→resize 链、循环依赖类型化语义、共享连接池缩容契约）；逐份核对与更新或 `No owner-doc update required` + 理由
+- [x] 缺口声明：实际 diff 触达模块无 `docs-for-ai/03-modules/` 条目者（nop-nosql-lettuce 等，以实际 diff 为准）按 R-G 治理轨先例登记（执行记录 + daily log），不在本批新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（与 Closure Gates 受影响模块一致：nop-kernel、nop-persistence）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] 两份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；缺口声明登记；check-doc-links --strict 退出码 0
-- [ ] 零触碰确认（E4）+ 前批产物零回退实证登记
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] 两份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；缺口声明登记；check-doc-links --strict 退出码 0
+- [x] 零触碰确认（E4）+ 前批产物零回退实证登记
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 4 执行记录（2026-10-26，agent_66fcea85）**：E1 `./mvnw clean install -T 1C -DskipTests` **BUILD SUCCESS EXIT=0**（授权支路，`_tmp/phase4-e1-fullbuild.log`；支路理由：Phase 2/3 已登记全量测试形态绿 + 本 Phase 零回退门禁三套件与核心模块套件 HEAD 复跑覆盖，沿先批 E1 支路先例）。**批行验证终态（E3，快照引用 + HEAD 复跑）**：Phase 2/3 快照引用 = `_tmp/phase2-red-batchA.log`（必红全谱：C1-001 交付资源热关/C1-003 裸 REE+NPE/C1-014 旧 zip 同步关/C2-001 双线程 BLOCKED×2+单线程深度递归/C2-002 提交2 态 5/5 红；GREEN：nop-core 547 0F / nop-xlang 864 0F / C1 族+门禁 26 / Lettuce C6-005 4+6）+ `ai-dev/logs/2026/10-26.md`（`-pl nop-kernel -am` BUILD SUCCESS：nop-commons 414/nop-core 547/nop-xlang 864；`-pl nop-persistence/nop-nosql/nop-nosql-lettuce` 通道绿[通道理由=Phase 3 执行记录已登记]）；Phase 4 HEAD 复跑——零回退门禁三套件全绿：R1-01 `TestPeriodicTaskInsulation` 9/9 + R1-02 `TestThreadPoolFacilityHardening` 7/7（`_tmp/phase4-gates-commons.log` EXIT=0）；R1-05 `TestResourceCacheEntryGate` 6/6 + `TestResourceCacheInvalidationChain` 4/4（权威形态 `./mvnw test -pl nop-kernel/nop-core` 全量 547 0F 2 skip BUILD SUCCESS，`_tmp/phase4-nopcore-fullsuite.log` EXIT=0；单类隔离 4/4 绿 `_tmp/phase4-gate-r105-solo.log`）。**隔离伪影裁定（watch-only 登记，非阻塞）**：`-Dtest` 双类同 JVM 过滤跑法下 `TestResourceCacheInvalidationChain` 3/4 红（失效链未检出变更形态）；单类隔离绿 + 模块全量绿双重复核，且 nop-core 产品码自 Phase 2 全量绿后零改动——判定为过滤跑法下 `TestResourceCacheEntryGate` 先行的跨类测试隔离敏感（测试基建面，非产品回退）；门禁以权威全量形态与单类形态为准，测试类间隔离修复归后续批评估。**零触碰（E4）**：`git diff ccbccee458..HEAD --name-only` 全集 21 路径 = ai-dev docs 2 + 产品码 11 + 测试 8；产品码 11 全部 ⊆ 设计 §3.7 编辑点表（#1 ResourceRetirementQueue/#2 RoundRobinSupplier/#3 DefaultScheduledExecutor/#4 DefaultVirtualFileSystem/#5 ResourceCacheEntry/#6 ResourceLoadingCache/#8 XplLibTagCompiler/#10 LettuceRedisConnectionProvider/#11 CommonConfigs/#12 CoreConfigs/#13 CoreErrors；**#7 ResourceComponentManager/#9 LazyCompiledExecutableFunction 零 diff 预期达成**）；nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物零命中；R1-01/R1-02/R1-05 产物文件（InsulatedPeriodicTask/InsulatedPeriodicChain/PeriodicTaskHelper/ExecutorHelper/GlobalExecutors/DefaultResourceChangeChecker 等）零 diff（CommonConfigs 仅 grace 键新增=裁定⑥机械登记）；E1 构建后 shade 副作用 `nop-kernel-cli/dependency-reduced-pom.xml` 已还原（工作树终态 clean）。**Owner doc（E5）**：source-anchors.md 新增「退役代际与模型装载锁纪律锚点（plan 2504 R2-01）」节——`RETIRE-001`（ResourceRetirementQueue 载体 + grace 键 `nop.commons.concurrent.retirement.grace-period` + 排空/fail-safe/关闭档契约）+ `RETIRE-002`（RoundRobinSupplier 尾段/整代退役 + DefaultScheduledExecutor 七读点快照 + VFS retireZipGeneration 三站落点）+ `LOCK-001`（ResourceCacheEntry 装载状态机 + LoadWaitGraph + 三环错误码 CoreErrors :364-375 + IN_RING_ERROR_CONSTRUCTION 守卫 + load-wait-timeout 键 + 延迟销毁）+ `LOCK-002`（LazyFn compile 单飞 + 同线程重入立即返回契约 + ERR_XPL_TAG_FUNC_IS_COMPILING 保持）+ `LOCK-003`（xdef 循环引用错误迁移）——沿 CACHE/EXEC/CANCEL 先例，设计文档为选型权威（按边界规则不直接链接）；ioc-and-config.md 新增「模型装载与退役代际并发契约」节（循环依赖类型化三码使用方口径 + **xdef 错误迁移落账：`load-reentrant-loop` 替代 `ref-not-allow-circular-reference`**[设计偏差③对外可见变化，断言旧码的测试/工具需对齐] + `load-wait-timeout`/`retirement.grace-period` 两配置键 + refreshConfig→resize 缩容不热关契约 + Lettuce 共享连接不得 close 契约 + VFS 在飞读者宽限契约）；VFS-003/CACHE-001 既有行核对无需改动（VFS 行为随 RETIRE-002 锚点覆盖，CACHE-001 门语义零回退）。缺口声明：实际 diff 触达模块 nop-nosql-lettuce 无 `docs-for-ai/03-modules/` 条目，按 R-G 治理轨先例登记（Phase 3 执行记录已裁定归 R-G 轨），本批不新建 owner doc。**scan-hollow**：nop-kernel EXIT=0（0 findings，`_tmp/phase4-scanhollow-nop-kernel.txt`）；nop-persistence EXIT=1（3 high 均批前既有，`_tmp/phase4-scanhollow-nop-persistence.txt`）逐条裁定：`TdMessageService.sendAsync:36`/`subscribe:42`（nop-orm-tdengine）与 `GeometryTypeHandler.fromLiteral:91`（nop-orm-geo）均为显式 `UnsupportedOperationException` fail-fast 桩（非静默 no-op，rule 24 合规形态），所在文件最后改动 3a87df66a0（2026-10-04）/99abdf8f28（2026-08-22）均早于本批基线 ccbccee458，本批 diff 零命中——登记为批前既有已裁定、非触达面，不阻塞收口。`check-doc-links --strict` 退出码 0（`_tmp/phase4-doclinks-final.log`；2 条 pre-existing warning 位于归档 plan 目录，非错误）。`ai-dev/logs/2026/10-26.md` 已追加 Phase 4 条目。
 
 ### Phase 5 - closure audit + 收口
 
