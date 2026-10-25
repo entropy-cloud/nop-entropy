@@ -35,6 +35,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 public class LettuceRedisConnectionProvider extends LifeCycleSupport
         implements IRedisConnectionProvider, IConfigRefreshable {
@@ -56,6 +57,15 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         this.codec = codec;
     }
 
+    /**
+     * 取用共享连接池中的一条连接并返回其同步命令面（2.5-C6-005 共享连接契约）：
+     * <ul>
+     * <li>连接由 {@link RoundRobinSupplier} 全权管理（缩容经退役代际机制延迟关闭，宽限期内已交付连接保持存活）；
+     * <b>调用方不得 close</b>——显式 close 不走 autoReconnect 直接杀死共享连接，会放大到池内同连接的其他取用方；</li>
+     * <li>refreshConfig 缩容窗口内取用的连接同样受宽限期保护，不发生瞬时热关。</li>
+     * </ul>
+     * 独立建连、调用方拥有的通道见 {@link #createPubSubConnection()}（豁免于本契约）。
+     */
     @Override
     @SuppressWarnings("unchecked")
     public RedisClusterAsyncCommands<String, Object> getAsyncCommands() {
@@ -67,6 +77,9 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         return ((StatefulRedisConnection<String, Object>) conn).async();
     }
 
+    /**
+     * 取用共享连接池中的一条连接并返回其异步命令面（契约同 {@link #getAsyncCommands()}：调用方不得 close）。
+     */
     @Override
     @SuppressWarnings("unchecked")
     public RedisClusterCommands<String, Object> getSyncCommands() {
@@ -78,6 +91,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         return ((StatefulRedisConnection<String, Object>) conn).sync();
     }
 
+    /**
+     * 取用共享连接池中的一条 standalone 连接（契约同 {@link #getAsyncCommands()}：调用方不得 close，
+     * 连接生命周期由设施全权管理；cluster 模式不支持本入口）。
+     */
     @SuppressWarnings("unchecked")
     public StatefulRedisConnection<String, Object> getConnection() {
         checkIsActive();
@@ -88,6 +105,11 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         throw new UnsupportedOperationException("Use getAsyncCommands()/getSyncCommands() for cluster mode");
     }
 
+    /**
+     * refreshConfig 缩容经 resize 触发设施退役代际机制（裁定④）：被裁剪尾段共享连接延迟关闭
+     * （存活 ≥ grace 宽限期），已交付在用连接不被热关——本方法自身无排空实现，机制单点在
+     * ResourceRetirementQueue。缩容面残余（2.5-C6-005）由设施层 C1-001 修复闭环。
+     */
     @Override
     public void refreshConfig() {
         if (connectionSupplier != null) {
@@ -97,6 +119,16 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             }
             connectionSupplier.resize(n);
         }
+    }
+
+    /**
+     * 连接供应商工厂缝（裁定④测试缝子句，2.5-C6-005 修复面一部分）：doStart 两分支统一经本方法
+     * 构造 RoundRobinSupplier；测试经子类覆写注入 fake 供应商，走真实 refreshConfig→resize 链
+     * （dockerless）验证缩容排空语义。
+     */
+    protected RoundRobinSupplier<? extends AutoCloseable> createConnectionSupplier(
+            Supplier<? extends AutoCloseable> factory, int n) {
+        return new RoundRobinSupplier<>(factory, n);
     }
 
     @Override
@@ -112,15 +144,13 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
             clientResources = DefaultClientResources.create();
             clusterClient = RedisClusterClient.create(clientResources, uris);
             clusterClient.setOptions(buildClusterOptions());
-            this.connectionSupplier = new RoundRobinSupplier<>(
-                    () -> clusterClient.connect(codec), n);
+            this.connectionSupplier = createConnectionSupplier(() -> clusterClient.connect(codec), n);
         } else {
             RedisURI uri = buildRedisURI();
             clientResources = DefaultClientResources.create();
             standaloneClient = RedisClient.create(clientResources, uri);
             standaloneClient.setOptions(buildStandaloneOptions());
-            this.connectionSupplier = new RoundRobinSupplier<>(
-                    () -> standaloneClient.connect(codec), n);
+            this.connectionSupplier = createConnectionSupplier(() -> standaloneClient.connect(codec), n);
         }
     }
 
@@ -137,6 +167,10 @@ public class LettuceRedisConnectionProvider extends LifeCycleSupport
         }
     }
 
+    /**
+     * 独立建连通道（pubsub），不走共享 RoundRobinSupplier 连接池：调用方拥有该连接、自行负责关闭，
+     * 豁免于 getAsyncCommands/getSyncCommands/getConnection 的共享连接不得 close 契约。
+     */
     StatefulRedisPubSubConnection<String, Object> createPubSubConnection() {
         checkIsActive();
         if (clusterClient != null) {
