@@ -153,72 +153,9 @@ getObject(checkChanged, loader):
 |---|---|---|---|
 | 1 | `io/nop/commons/concurrent/`（nop-commons）· 退役队列载体类（**新增**，类名实现期定稿）· 机制载体：retire/drain/grace/排空调度缝/时间锚 | ①③ | 新增文件；关闭/销毁动作唯一执行位 |
 | 2 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/RoundRobinSupplier.java` · RoundRobinSupplier · 代际发布改退役登记 | ① | 收缩 toClose → 尾段 retire；close() → 整代 retire；构造失败路径维持 inline close；get :41-45 零改动 |
-| 3 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/DefaultScheduledExecutor.java` · DefaultScheduledExecutor · 七读点快照化 + 死代际 REE 类型化 | ① | submit×2/schedule/scheduleAtFixedRate×2/scheduleWithFixedDelay/execute/stats + refreshConfig 同型读点快照化；REE→ERR_SERVICE_NOT_ACTIVE；destroy/periodicTasks/trackPeriodicTask 零改动 |
+| 3 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/DefaultScheduledExecutor.java` · DefaultScheduledExecutor · 七读点快照化 + 死代际 REE 类型化 | ① | submit×2/schedule/scheduleAtFixedRate×2[重载双入口同修]/scheduleWithFixedDelay/execute/stats + refreshConfig 同型读点快照化（直接解引用点口径=6+checkEnabled 判空点）；REE→ERR_SERVICE_NOT_ACTIVE；destroy/periodicTasks/trackPeriodicTask 零改动 |
 | 4 | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DefaultVirtualFileSystem.java` · DefaultVirtualFileSystem · refresh/destroy 旧代 zip 退役登记 | ①⑤ | refresh :74-77 与 destroy :87-94 的 safeCloseAll → 整代 retire；buildResourceStore 发布点形态保持 |
 | 5 | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/cache/ResourceCacheEntry.java` · ResourceCacheEntry · 装载状态机（LOADING 占位 + 监视器外装载 + 等待图环检测 + 有界等待兜底）+ clear/destroyObject 销毁延迟化 | ②③ | getObject/reloadObject 编排重构；等待图与环判定唯一实现；两销毁点 retire；R1-05 门/记忆化/mtime 守卫零回改 |
 | 6 | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/cache/ResourceLoadingCache.java` · ResourceLoadingCache · 失效入口行为随 entry 层一致 | ③ | 零逻辑改动预期（javadoc 契约注记级） |
 | 7 | `nop-kernel/nop-core/src/main/java/io/nop/core/resource/component/ResourceComponentManager.java` · ModelLoader · 递归面经 entry 层收敛 | ② | 零逻辑改动预期（登记防越界：表外逻辑改动 = 违反单点纪律） |
-| 8 | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/xlib/XplLibTagCompiler.java` · LazyCompiledFunction（+XplLibTagCompiler 调用点）· compile 单飞化（双检+占位、编译体外移、同线程重入环类型化） | ② | compile :734-770 编排重构；parseTag/getFunctionModel/buildCompiledTag 随案声明（预期零移位）；invoke() is-compiling 语义保持 |
-| 9 | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/LazyCompiledExecutableFunction.java` · LazyCompiledExecutableFunction · 首触链经 LazyCompiledFunction 自动一致 | ② | 零改动预期 |
-| 10 | `nop-persistence/nop-nosql/nop-nosql-lettuce/src/main/java/io/nop/nosql/lettuce/impl/LettuceRedisConnectionProvider.java` · LettuceRedisConnectionProvider · createConnectionSupplier protected 工厂缝 + 三入口 javadoc 共享连接契约 | ④ | doStart 两分支改经工厂方法；refreshConfig 逻辑零改动预期；javadoc 成文 |
-| 11 | `nop-kernel/nop-commons/src/main/java/io/nop/commons/CommonConfigs.java` · grace 配置键登记 | ①③④ | 机械登记（新增键） |
-| 12 | `nop-kernel/nop-core/src/main/java/io/nop/core/CoreConfigs.java` · 装载等待上界键登记 | ② | 机械登记（新增键） |
-| 13 | `nop-kernel/nop-core/src/main/java/io/nop/core/CoreErrors.java` + `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/XLangErrors.java` · 错误码登记 | ② | 机械登记：跨线程环/同线程环/装载等待超时（CoreErrors）+ LazyFn 编译环（XLangErrors），错误码名实现期定稿 |
-
-## 四、拒绝了什么
-
-| 被拒方案 | 拒绝理由 |
-|---|---|
-| RoundRobinSupplier.get 改锁内读取（synchronized 快照） | redis 每请求热路径加锁税；且锁内读取只消除 get 内部快照窗，不消除已交付连接的热关窗（2.5-C6-005）——单靠它修不完家族；退役机制对两窗同治，热路径零代价 |
-| 代际引用计数（get 计数 / 在飞读者登记）替代宽限延迟关闭 | 共享 RoundRobin **无借还制**：get 交付后调用方持有时长对设施不可见（redis 命令时长、模型请求时长），计数永不归零或需借还 API 改造（全调用方 source-compat 破坏）；宽限期是有界自限的唯一可判定边界 |
-| C1-014 取 AutoCloseZipEntryResource 全量迁移支路（按路径重开 zip） | 每次读付 zip 重开代价（模型装载热路径回归）；触达 zip store 构建链 diff 面大；退役机制与 C1-001 同机制收敛（本批目标即单机制家族收敛），重开形态归 VFS 后续治理批评估（plan Deferred 既定条款随本裁定成立） |
-| C1-003 取 destroy 不置 null 形态 | 置空与快照形态对竞态修复等价，但「不置 null」需在 checkEnabled 增加 isShutdown 分支才能获得同等类型化语义（更多分支同收益）；保持置 null 使 destroy 体零改动（R1-01 交互面最小）、isDestroyed 语义零变化 |
-| C1-003 仅快照不转 REE | 死代际 REE 仍是裸非类型化异常——与缺陷本体「类型化终态而非裸异常」同族残留；REE→ERR_SERVICE_NOT_ACTIVE 转换后七读点单一死代际错误 |
-| entry 层装载等待者直接自旋/自装载（放弃单飞去重） | 放弃同 key 去重 = 高并发下同模型重复装载风暴（与现行 monitor 去重行为回退）；等待 + 等待图环检测 + 有界兜底三件套在保住去重的同时闭合死锁与悬挂 |
-| 跨线程环仅靠有界等待超时（不做等待图环检测） | 循环依赖配置错误应即时类型化报告（「循环 xlib import 应为配置错误报告」），60s 超时才报错 = 错误延迟放大 + 超时值难以两全（正常大模型装载 vs 环检出时延）；等待图登记成本为每等待一次 O(链长) 内存操作 |
-| C2-002 取读者登记（引用计数/租约）分支 | 快路径是刻意无锁热路径（gateway 每 HTTP 请求、xpl 每模板编译），逐读登记/归还为热路径加税且要求读方归还（调用方契约破坏）；延迟销毁保持快路径字节不变且与裁定①同机制 |
-| C2-002 以 javadoc 契约/warn 日志声明「交出引用后勿失效」收敛 | rule 16 防假收敛：已确认 live defect 不得以声明替代修复；use-after-destroy 窗必须由时序机制真实消除 |
-| C2-017 只修 entry 层（C2-001）不顺手单飞 LazyFn | 环④/环⑤残余闭合：LazyFn 监视器内完整编译（import 求值可再入模型装载）与装载发布的交叉等待仍可死锁——家族裁定同变更集硬约束 |
-| invoke() 改为阻塞等待编译完成 | 运行时执行路径引入编译时长阻塞（宏/首触语义变更）；ERR_XPL_TAG_FUNC_IS_COMPILING 既有契约保持，编译等待只属编译发起路径 |
-| 宽限期默认 0（保持现行即时关闭） | 0 = 缺陷形态常态化；默认 5s 才是修复，「0 关闭档」仅作确定性测试缝与显式回退通道 |
-| 退役队列按站点各自实现（RoundRobin/VFS/cache 三套延迟关闭） | 平台机制单点义务：三套实现 = 三套 grace/调度/观测口径，行为无法交叉验证；单载体一裁定全族收敛 |
-
-## 五、与已有设计的关系
-
-- 同目录 [periodic-task-insulation.md](periodic-task-insulation.md)：R1-01 绝缘拒绝终态语义（future 有终态、不悬挂、链不复活）为 C1-003 死代际类型化的对接面（§3.1.3）；其 destroy 拒绝路径零回改。
-- 同目录 [pool-facility-hardening.md](pool-facility-hardening.md)：退役队列排空任务体经 globalTimer + executeOn(globalWorker) 卸载即其调度槽契约的消费；R1-02 的 refreshConfig 类型化路径为 C1-003 快照化的邻接零回改面；RoundRobinSupplier 不在 R1-02 修复面（勘误 5），本批即该残余面主责闭环。
-- 同目录 [cache-invalidation-single-point.md](cache-invalidation-single-point.md)：R1-05 门语义（verdict 记忆化/maxAge/deps-空豁免/双 mtime 守卫）零回改；本批 C2-001/C2-002 与其共享 ResourceCacheEntry 文件，交互边界见 §3.6；其裁定⑥「R2-01 锁纪律面零重构」以本设计为 successor 落地。
-- **R2-04（roadmap 8.13，2.2-C1-007）**：上游发布协议归 R2-04，本批修下游取用窗，无代码依赖，Phase 5 cra-index 双行互注。
-- **R4-13/R4-14（roadmap 8.53/8.54）**：G27 两束（C2-003 CHM bin 锁重计算、2.1-C6-005 平台模型缓存销毁链三断点等）依赖本批但不属本批；本批不改 LocalCache.destroy/destroyOnRemove 链（Non-Goal 防混）。
-- **R4-32（墙钟批）**：本批新增时间敏感点（§3.6 F4 声明）随 Phase 3 注记并入其清单。
-- **owner doc 去向预登记（Phase 4 落账）**：`docs-for-ai/04-reference/source-anchors.md`——退役代际机制锚点（RoundRobinSupplier/VFS refresh 契约/DefaultScheduledExecutor 快照纪律）+ 模型装载锁纪律锚点（三层链不变式/等待图环检测/循环依赖类型化语义）；`docs-for-ai/02-core-guides/ioc-and-config.md`——模型加载与配置刷新链并发契约节（refreshConfig→resize 链、循环依赖类型化、共享连接池缩容契约、grace/等待上界两配置键）。
-
-## 六、七成员 → 裁定映射
-
-| 成员（判级/台账） | 面 | 消费裁定 | 修复位（§3.7 行号） |
-|---|---|---|---|
-| 2.1-C1-001（P1 族主，cra-index L190，吸收 C2-021） | resize 收缩锁外关闭 × 并发 get 快照 use-after-close | ①（代际机制 + close 同族面） | #1 载体 + #2 |
-| 2.1-C2-001（P1，RCE 死锁族主，cra-index L191） | entry 监视器内装载：双线程环死锁 / 单线程环 SOE | ②（装载状态机 + 等待图环检测 + 类型化收敛） | #5（#6/#7 零改动预期传导） |
-| 2.1-C1-003（P2，G24） | 七读点 checkEnabled-then-use × destroy 置空 → 裸 NPE | ①（局部快照 + REE 类型化） | #3 |
-| 2.1-C1-014（P2，G24，携 N2 钉） | VFS refresh/destroy 先发布后关 zip × 在飞读者 | ①（zip 整代退役）+ ⑤（N2 同变更集改写） | #4 + 测试同 diff |
-| 2.1-C2-002（P2，G24；非 2.2-C2-002 防混） | 快路径无锁读 × clear/reload 锁内销毁 use-after-destroy | ③（标记失效 + 延迟销毁） | #5（销毁点）+ #1（队列复用） |
-| 2.1-C2-017（P2，G24，与 C2-001 同变更集） | LazyFn 监视器内完整编译：环④/环⑤ | ②（compile 单飞 + 调用点边界 + buildCompiledTag 随案） | #8（#9 零改动预期） |
-| 2.5-C6-005（P2，G48，双轨 §四#6） | refreshConfig 缩容热关已交付共享连接 | ④（设施关闭时机契约 + 使用面接入 + 测试缝） | #1/#2（设施）+ #10（使用面） |
-
-## 七、死锁/时序测试纪律契约
-
-本节为 Phase 2/3 死锁与线程交割测试的设计级定义（与 plan 硬门禁一致，此为内容源）：
-
-- **夹具纪律**：先红复现用 **daemon 夹具线程** + latch 对齐（强制反序/窗口交错）+ **有界观察窗**（观察超时即判红并放行 JVM 退出，禁止无限 join 挂死构建）；或声明专用测试类 fork 策略。
-- **通过形态禁令**：禁仅类型/修饰符存在断言（「synchronized 已移除」「字段已加 volatile」不构成通过形态）；每件必含修复后**可观测行为**断言。
-- **修复后可观测预期（裁定①②③成文，E2 可追）**：
-
-| 件 | 修复前红形态 | 修复后绿形态（可观测） |
-|---|---|---|
-| C2-001 双线程环 | 双线程相反顺序装载循环 import 模型夹具（x:config c:import 环或 xlib import 环，取审计实证路径）→ 有界观察窗内双线程 BLOCKED | 环检测即时类型化环错误（双线程各自获类型化失败，无 BLOCKED 残留、有界完成） |
-| C2-001 单线程环 | 单线程 loadDslModel 循环 → StackOverflowError | 类型化环错误（无 SOE） |
-| C2-017 环④ | 双线程反序（编译等待 × 装载发布交叉）→ BLOCKED；或等效确定性断言（宏标签编译期用户代码执行时对对应 entry/LazyFn 监视器 tryLock 成功 = 未持有） | 有界完成或类型化环错误；tryLock 断言持续成立 |
-| C2-002 use-after-destroy | 读者持快路径交出引用窗口内触发 clear → 引用已被销毁 | 销毁延迟至读者窗口外（grace 内引用可用；确定性触发排空后销毁发生——销毁时机可观测） |
-| C1-001/C6-005 交割 | 快照窗内收缩先于 get 交付 / 缩容先于命令 → 交付已关闭连接 | 交付连接存活过宽限；确定性排空后关闭（时机可观测） |
-| C1-003 交割 | destroy × 提交窗口内裸 NPE | 提交成功或类型化 ERR_SERVICE_NOT_ACTIVE |
-| C1-014 在飞读者 | refresh × 并发 getResource → `zip file closed` | 在飞读取宽限期内完成；排空后旧 zip 关闭 + 新读取解析新代（N2 改写断言） |
+| — | 委托包装族（ResourceCacheEntryWithLoader/TenantAwareResourceCacheEntry/TenantAwareResourceLoadingCache/CacheEntryManagement）· 零 diff 预期 | — | 显式零改动登记（R1-05 §3.5 已证纯委托） |
