@@ -37,7 +37,7 @@ nop-duckdb 以 [DuckDB](https://duckdb.org)（进程内列存分析引擎，`duc
 
 - `openMemory()`：私有内存库连接（多步管线共享表须改用 `openFile`）
 - `openFile(filePath)`：打开/创建 `.duckdb` 文件连接（同 JVM 同文件多连接安全；跨进程单写者见硬约束）
-- `close()`：关闭全部被跟踪连接并释放注册表引用
+- `close()`：关闭全部被跟踪连接并释放注册表引用（幂等兜底；正常消费方经连接自身 close 即完成账本释放，见下节）
 
 `io.nop.duckdb.DuckDbFiles`（静态工具）：
 
@@ -46,6 +46,14 @@ nop-duckdb 以 [DuckDB](https://duckdb.org)（进程内列存分析引擎，`duc
 - `readXlsx(conn, xlsxPath, tableName)`：xlsx 入口桥（复用 nop-tablesaw XlsxReader，经内部临时 CSV 中转，用后即删）
 
 类型语义实测（WI2）：空字段→NULL；前导零串保持 VARCHAR、纯数字串重推断 BIGINT（桥的类型漂移边界）；空串经 CSV 回读坍缩 NULL。**表生命周期 = 连接生命周期**（内存库跨连接不可见表；持久库跨连接可见表但 ATTACH 等实例态随实例销毁——步骤间需锚定连接，见 task step 节）。
+
+### 连接生命周期与账本释放
+
+`openMemory()` / `openFile()` 返回的连接是 **close 桥接包装**：连接 `close()` 时在锁内移出引擎 connections 账本，`openFile` 连接还同步释放 OPEN_FILES 注册表 refs（归零即条目移除）——双载体账本随连接生命周期闭合，消费方（含 `DuckDbSqlTaskStep` 的 try-with-resources 消费链）无需依赖 `engine.close()` 即完成释放。包装 close 幂等（重复 close 只记账一次）；`unwrap` 透传原连接。
+
+`IDuckDbEngine.close()` 保留兜底语义且幂等：从不关闭返回连接的消费方由 `close()` 关闭全部残留连接并释放注册表引用；已走包装 close 的连接不会重复处理。包装 close 失败路径显式记日志（不静默吞掉）。
+
+由此同路径跨 engine 重开（异配置）不再命中残留指纹——`nop.err.duckdb.config-conflict` 只在真实并存的不同配置间触发。本模块账本为**进程内生命周期配对形态**（清理形态 D），族级保留期/TTL/行数上限/批删参数不适用（族级 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md 差异条款①，平台内部文档——按 docs-for-ai 边界规则不直接链接）。
 
 ## 错误码（`NopDuckDbErrors`，消息全英文）
 
@@ -99,4 +107,4 @@ DuckDB 作为分析数据源与业务 H2/MySQL 并存（WI5 实测先例）：
 
 ## 测试入口
 
-`./mvnw test -pl nop-duckdb -am`（57 测：连接管理/文件面/任务步骤/单写者与续跑/对拍矩阵/外存与端到端/性能基线/方言全量）。上游模块需已 install；`-Dtest` 过滤配 `-am` 时加 `-Dsurefire.failIfNoSpecifiedTests=false`。三方性能基线（duckdb/tablesaw/H2 同数据集聚合）实测记录与复现方式存于平台 AI 开发记录区的 analysis 当月目录（按文档边界规则此处不直接链接）。
+`./mvnw test -pl nop-duckdb -am`（62 测：连接管理/文件面/任务步骤/单写者与续跑/对拍矩阵/外存与端到端/性能基线/方言全量/连接账本生命周期）。上游模块需已 install；`-Dtest` 过滤配 `-am` 时加 `-Dsurefire.failIfNoSpecifiedTests=false`。三方性能基线（duckdb/tablesaw/H2 同数据集聚合）实测记录与复现方式存于平台 AI 开发记录区的 analysis 当月目录（按文档边界规则此处不直接链接）。
