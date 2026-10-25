@@ -1,6 +1,6 @@
 # 2501 CRA Phase 8.7 — R1-06 沙箱/shell 工具执行链批（R09 沙箱清理族 + B1-03/B1-04 回升行，7 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_66909c18（1 Blocker[ISSUE-1 C8-001 本体站点缺失]+1 Major[ISSUE-2 反向钉全组]+8 Minor——修订 agent_1524094d 全量应用[live 锚点回读核实]，active）
 > Last Reviewed: 2026-10-25
 > Source: roadmap 工作项 8.7（R1-06，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L149，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 R1-06 行（L67：finding ID 清单 7 项 / 模块=nop-ai / 验证命令=`./mvnw test -pl nop-ai -am` / Owner Doc=`docs-for-ai/03-modules/nop-ai.md` / PA=无 / 依赖=无前置（可并行）/ exit criteria 增补）；成员发现详情 = 3.2 审计目录 `ai-dev/audits/2026-10/2026-10-20-0829-deep-audit-nop-ai-toolkit-tools-shell-concurrency/`（C6-001/C6-002/C6-003/C1-001/C4-003）与 3.1 审计目录 `ai-dev/audits/2026-10/2026-10-19-1410-deep-audit-nop-ai-core-nop-ai-agent-concurrency/`（MA-17[C1-007+C7-020 族]/C7-014）；执行基线 @ `e0df517864`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.6 已 done，plan 2495–2500 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
@@ -261,7 +261,7 @@ Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-ai.md`�
 > - **E3 批行验证（本 Phase 复跑留证）**：见下方 E3 checklist 行（终态通道快照 `_tmp/phase5-plan2501-e3-nop-ai-gate4.log`；run1–run3 为 triage 过程件）。
 > - **首跑 flake triage 登记（两起，均负载敏感批前既有，非本批回归）**：①run1（`_tmp/phase5-plan2501-e3-nop-ai-gate.log`）nop-core `TestResourceCacheInvalidationChain` 3/4 红（写入年龄宽限窗口 timing 面，plan 2500 缓存失效链批自身回归面）——本批 diff 零 nop-kernel/nop-commons 触碰（`git diff e2a06a6900..HEAD -- nop-kernel/ nop-commons/` = 0 文件），solo 复跑 4/4 绿 0.77s（`_tmp/phase5-plan2501-flake-solo-cachain.log`）；②run3（`_tmp/phase5-plan2501-e3-nop-ai-gate3.log`）nop-ai-agent `TestScheduledRecoveryManagerInsulation` ConcurrentModificationException——plan 2496/2498 绝缘面测试（本批 diff 零 recovery 触达），测试 logAppender ArrayList 主线程流式迭代 vs `nop-global-worker` 并发 append 的既存竞态，solo 复跑 1/1 绿（`_tmp/phase5-plan2501-flake-solo-recovery.log`）。两起均沿 plan 2499 Phase 4 `TestJdbcCheckpointStorage` / plan 2500 Phase 3 triage 先例裁定。
 > - **批内测试竞态修复（门禁复跑修正，a03b6ecc8b 先例）**：run2（`_tmp/phase5-plan2501-e3-nop-ai-gate2.log`）揭出本批 Phase 1 新测试 `TestToolManagerQueueChain_C1_001` 三站点（rejectedExecutionSettles/queueNotPoisoned/semaphoreReleased）饱和注入的**线程启动竞态**——首任务体尚未被池线程拾起时仍占队列位，第二次 `tiny.submit` 提前 REE（全量负载下复现、solo 恒绿：`_tmp/phase5-plan2501-flake-solo-c1-001-pre.log` 7/7 绿）；三站点补 `occupierStarted` 握手（任务体真实运行后再填队列位——同 Phase 1 对 `TestToolManagerCancelChain_C4_008` bodyStarted 补强先例，断言语义不变，先红后绿证据链不受影响）；修后 solo 7/7 绿（`_tmp/phase5-plan2501-flake-solo-c1-001-post.log`），修复随本 Phase 独立 test 提交。
-> - **零触碰（E4）**：`git diff e2a06a6900..HEAD --name-only` = 30 文件 = nop-ai 27（toolkit 10 = 4 main + 6 test；shell 3 = 2 main + 1 test；agent 14 = 8 main + 6 test）+ plan/log/owner-doc 3；nop-tcc/nop-api-core（io.nop.api.core.*）/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/`.rels` 全部零命中；`_vfs` 下 beans 装配文件零触达（头部豁免口径未触发）。
+> - **零触碰（E4）**：`git diff e2a06a6900..HEAD --name-only` = 31 文件 = nop-ai 27（toolkit 10 = 4 main + 6 test；shell 3 = 2 main + 1 test；agent 14 = 8 main + 6 test）+ plan/log/owner-doc 3 + cra-index 1（closure audit M-1 计数勘正）；nop-tcc/nop-api-core（io.nop.api.core.*）/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/`.rels` 全部零命中；`_vfs` 下 beans 装配文件零触达（头部豁免口径未触发）。
 > - **Owner doc（E5）四处结论**：①**路径串行排队链契约**（Phase 1 已落，`nop-ai.md` 工具执行语义节）核对在位，零补；②**沙箱清理三口径**——toolkit 面（Phase 2 已落「bash 工具 sandbox 接线」节）核对在位，本 Phase **补落 agent 侧**：「Agent 引擎可靠性配置」节新增「Agent 沙箱后端清理契约（3.1-MA-17，plan 2501，B1-04 回升 P1）」段（SandboxProcessCleanup 双实现分叉收敛/三口径与 toolkit 同口径不各走一套/outputIncomplete 标记/孪生「孙进程滞留/输出截断」声明边界/容器名运维口径同 toolkit）；③**shell pipeline 失败回滚契约**（Phase 3 已落）核对在位，与 **shell 池隔离契约**（2498，C4-004 同节）交叉引用结构完备——回滚段明示「池饱和 fail-loud + 回滚」+ cancelToken 去向 R4-23 注记，池隔离契约**无需补注**（任务书核对项结论：无需交叉引用补齐）；④**heartbeat wakeup 预算契约**本 Phase 新落：同节新增「Heartbeat wakeup 预算与 WAIT 碎片生命周期（3.1-C7-014，plan 2501）」段（maxHeartbeatTurns 默认 20、≤0 禁用 wakeup 轮、WAIT 证据仅请求副本、仅终局裁决入史、**ctx 终史 hb=0 正面契约**）。缺口声明：本批三子模块均在 `nop-ai.md` 覆盖内，无 03-modules 缺口。
 > - **B1-04 落账确认**：cra-index L58（联动注记 P1×13→14/P2×29→28）/ L131（批次回填注记台账 179→180 行——本 Phase 追加三处互洽确认注）/ L252（MA-17 行在册：报告=3.1、批次=R1-06、计数迁移注记在位）**三处互洽成立**；与 MA-17 修复提交 `f9a760ba7f` 一致性核对——修复已落地而台账行修复状态维持 open **正确**（状态翻转归 Phase 6 closure audit 台账收敛，修复状态列唯一状态位不被本批提前改写）。登记载体 = L131 追加确认注 + 本注记；未重做回填。
 > - **B1-03 声明（ISSUE-7 修订形态）**：L257 行注记「B1-03 终裁=MA-06 维持 P1；族成员 C6-004/C8-001/C8-003/C8-011 面随 R1-06 单 diff 承载已落地（plan 2501 Phase 3），条化判级与「投产接线即回升」条款维持 G56 登记、**不单独立卷**」——**锚点二选一裁定 = L257 注记即 B1-03 条款锚点**（G56 触发条款激活时以 L257 为准，不另立登记册条目；理由：G56 行成员清单七条不含 C6/C8 riders，在 G56 行反向加注反生成员关系歧义，单点锚点最符合 link-don't-copy）；G50 行（L424）追加 **R1-06 成分收敛注**（MA-17 `f9a760ba7f` / C7-014 `b14a502a0b` 以 R1-06 独立工单承载已落地，本行承接成分收敛，状态翻转归 Phase 6）。
@@ -280,50 +280,50 @@ Exit Criteria:
 
 ### Phase 6 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.7 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「沙箱清理三口径运行时真实生效（reader 终止/进程销毁/失败可观测）」「排队链 result 终态」「pipeline 回滚解锁」「wakeup 预算真实约束」与「既有覆盖零回退（2496/2498/2499/2285/2301 面回归门禁）」
-- [ ] cra-index 台账回填：7 成员行状态收敛（open → 已修/本批；P1 六行 L252–L257 + G50 行 L424 的 R1-06 成分）+ 专项义务注记（三口径/Docker F3 补齐/反向钉 R4 改写/B1-04 确认/B1-03 声明）
-- [ ] roadmap 8.7 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2501-cra-phase8.7-r1-06-sandbox-shell.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「沙箱清理三口径运行时真实生效（reader 终止/进程销毁/失败可观测）」「排队链 result 终态」「pipeline 回滚解锁」「wakeup 预算真实约束」与「既有覆盖零回退（2496/2498/2499/2285/2301 面回归门禁）」
+- [x] cra-index 台账回填：7 成员行状态收敛（open → 已修/本批；P1 六行 L252–L257 + G50 行 L424 的 R1-06 成分）+ 专项义务注记（三口径/Docker F3 补齐/反向钉 R4 改写/B1-04 确认/B1-03 声明）
+- [x] roadmap 8.7 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2501-cra-phase8.7-r1-06-sandbox-shell.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 7 成员行状态全部收敛 + 专项义务注记可核验、roadmap 8.7 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 7 成员行状态全部收敛 + 专项义务注记可核验、roadmap 8.7 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 7 项成员全部修复收敛：3.2-C1-001（排队链三子缺陷）、3.2-C6-001（reader 泄漏+终态快照+stdin）、3.2-C6-002（kill 可见化+destroyForcibly 兜底）、3.2-C6-003（runShortCommand 有界化）、3.2-C4-003（REE 回滚+弃管 close+自引用拒绝+C8-001 收集/生产并行化+F9 collectOutput 可观测化）、3.1-MA-17（超时 destroy+reader 补偿+失败可见化+success 路径收割）、3.1-C7-014（wakeup 预算+WAIT 碎片生命周期）
-- [ ] 沙箱清理族三口径统一（超时 destroyForcibly / reader 退出补偿 / kill 失败可见化）且双实现不各走一套；Docker 侧 F3 残留补齐（toolkit DockerBashSandbox + agent DockerSandboxBackend），Host/NoOp 已修面零回退
-- [ ] 3.1-C7-014 携反向钉 R4 改写义务同批完成（TestHeartbeatWaitPhase 全组 hb-入史钉 :260-262/:656/:748/:783 相容性核对 + 改写记录在案——改写后语义=「请求副本携带 hb + ctx 终史 hb=0」正面保护）；本批无其他反向钉死义务（3.2 反向钉-1 随 G56，不在本批）
-- [ ] B1-04 计数迁移落账确认登记（cra-index 三处回填互洽核对）；B1-03 MA-06 维持 P1 + G56 条化成员不单独立卷声明落 cra-index
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2）；护栏共享形态落地（3.2-C10-001 单保护面覆盖 MA-06 五成员 + C10-004/005/006 故障注入 + 3.1-C10-011 docker 门内形态）
-- [ ] 既有覆盖零回退：2496 绝缘、2498 池隔离（shell 专用池/AgentDispatchExecutor）、2499 取消联动、2285 进度副本、2301 进程树收割对应回归面全绿
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-ai -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：`docs-for-ai/03-modules/nop-ai.md` 四处受影响面逐项核对与更新（或 `No owner-doc update required` 声明）；缺口声明登记（E5）
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/增强面，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）沙箱清理三口径与排队链/回滚/预算改造运行时真实生效（线程终止/进程销毁/future 终态/调用计数可观测，不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2501-cra-phase8.7-r1-06-sandbox-shell.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 7 成员行收敛 + roadmap 8.7 → done（E6）
+- [x] 7 项成员全部修复收敛：3.2-C1-001（排队链三子缺陷）、3.2-C6-001（reader 泄漏+终态快照+stdin）、3.2-C6-002（kill 可见化+destroyForcibly 兜底）、3.2-C6-003（runShortCommand 有界化）、3.2-C4-003（REE 回滚+弃管 close+自引用拒绝+C8-001 收集/生产并行化+F9 collectOutput 可观测化）、3.1-MA-17（超时 destroy+reader 补偿+失败可见化+success 路径收割）、3.1-C7-014（wakeup 预算+WAIT 碎片生命周期）
+- [x] 沙箱清理族三口径统一（超时 destroyForcibly / reader 退出补偿 / kill 失败可见化）且双实现不各走一套；Docker 侧 F3 残留补齐（toolkit DockerBashSandbox + agent DockerSandboxBackend），Host/NoOp 已修面零回退
+- [x] 3.1-C7-014 携反向钉 R4 改写义务同批完成（TestHeartbeatWaitPhase 全组 hb-入史钉 :260-262/:656/:748/:783 相容性核对 + 改写记录在案——改写后语义=「请求副本携带 hb + ctx 终史 hb=0」正面保护）；本批无其他反向钉死义务（3.2 反向钉-1 随 G56，不在本批）
+- [x] B1-04 计数迁移落账确认登记（cra-index 三处回填互洽核对）；B1-03 MA-06 维持 P1 + G56 条化成员不单独立卷声明落 cra-index
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2）；护栏共享形态落地（3.2-C10-001 单保护面覆盖 MA-06 五成员 + C10-004/005/006 故障注入 + 3.1-C10-011 docker 门内形态）
+- [x] 既有覆盖零回退：2496 绝缘、2498 池隔离（shell 专用池/AgentDispatchExecutor）、2499 取消联动、2285 进度副本、2301 进程树收割对应回归面全绿
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-ai -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：`docs-for-ai/03-modules/nop-ai.md` 四处受影响面逐项核对与更新（或 `No owner-doc update required` 声明）；缺口声明登记（E5）
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/增强面，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）沙箱清理三口径与排队链/回滚/预算改造运行时真实生效（线程终止/进程销毁/future 终态/调用计数可观测，不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2501-cra-phase8.7-r1-06-sandbox-shell.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 7 成员行收敛 + roadmap 8.7 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -354,19 +354,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 本计划收口 CRA Phase 8.7（R1-06 沙箱/shell 工具执行链批）：七项 P1 全修——ToolManagerImpl 排队链（tail 哨兵+锁外执行+fail-loud）、沙箱清理族双实现三口径（reader 关流补偿/终态快照/stdin NUL/kill 可见化/destroyForcibly 兜底/有界化，共享 SandboxProcessCleanup 分叉收敛）、shell pipeline 死锁族单 diff（REE 回滚+C8-001 双机制+F9 去吞+0<&1 拒绝，G56 条化成员随单承载）、Agent 沙箱清理（MA-17 B1-04 回升行）、heartbeat wakeup 预算+WAIT 副本化（C7-014，反向钉 R4 全组正面改写）。30+ 新回归测试先红后绿。roadmap 8.7 → done。
+Completed: 2026-10-25
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
+- Reviewer / Agent: agent_fabc33ba（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_fabc33ba-e466-4e62-b009-1c2452b5d4be
 - Evidence:
-  - <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）>>
-  - <<每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）>>
-  - <<`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码>>
-  - <<Anti-Hollow 检查结果；`scan-hollow-implementations.mjs` 退出码>>
-  - <<Deferred 项分类检查>>
+  - 判定 **PASS**（10/10 核验；零 Blocker/Major；2 Minor 簿记[M-1 文件计数 30→31 已勘正；M-2 `_tmp/phase1-c1-001-green.log` 命名含前握手期 1 失败——终态绿证由 repeat1-3 与 Phase 2 门禁 320 tests 0F0E 承载，登记于本段]）
+  - 七成员实仓抽验全在位（file:line 证据见审计报告；Anti-Hollow：三口径运行时生效/result 终态/回滚解锁/预算真实约束均有代码+测试+故障注入红绿证据）
+  - 测试 fresh 实跑：TestShellPipelineDeadlockFamily_C4_003 7/7、TestHeartbeatWakeupBudget_C7_014 6/6（EXIT=0×2）
+  - G56 条款边界与反向钉 R4 全组改写（旧→新对照四组）PASS；保护面未删
+  - 钉死面保护：绝缘/池设施/api-core/nop-auth/orm 零命中；2498 池隔离钉零 diff；gate4 C4_008 4/4+池隔离 3/3 绿
+  - 双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）；scan-hollow 触达面 high=0（4 条批前既有同集裁定）
+  - Deferred 分类检查：四条均为入批前已裁定批外/相邻面、successor 清晰，无 in-scope live defect 被降级
+
+Follow-up:
+
+- Non-Blocking Follow-ups 所列项均已登记归属（R4-23 cancelToken/G56 激活回升条款/运维边界声明），no remaining plan-owned work
 
 Follow-up:
 
