@@ -43,6 +43,7 @@
 
 - **REPLACE 维持**：`setOffsets` 的 clear+put REPLACE 语义为声明契约，依据 = R5 CON-03「nop checkpoint 是恢复 offset 的单一事实源」——checkpoint 缺席的分区键必须不存活，否则恢复后首次快照携带幽灵分区、读取跳过 checkpoint 位点。`TestNopStreamOffsetBackingStore.java:90-98` 现状钉为该契约的保护钉，**语义不改写**。
 - **恢复声明窗**：`setOffsets` 的合法调用窗 = `forConnector`（建桶/绑定）之后、engine start 之前。窗内 REPLACE 为声明语义；引擎运行中调用会把运行期新写入回滚为恢复值（C1-002 失效面登记的时序面）。R4-24 实施按恢复声明窗加守卫：窗外调用 typed 拒绝。当前唯一生产调用序（`initializeState` 先于 engine start）在窗内，零波及；软钉测试两处调用仍在窗内、断言零改动，窗外负向断言随 R4-24 批新增（先增后守，钉零回退）。
+- **守卫粒度（m-2 回填指针，2026-10-25 设计评审移交）**：守卫粒度 = **桶/绑定代级**（守卫挂桶/绑定代持有者，任一绑定实例 `start()` 即封窗，窗状态随绑定代释放消亡），裁定见 `../nop-message/backend-semantics-design.md` §五关系行——防第二事实入口，本文档不重复裁定文本。
 
 ### 3.4 WI 2.5 消费面表态（互斥分层维持声明）
 

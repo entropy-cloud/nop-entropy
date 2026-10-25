@@ -65,6 +65,20 @@ beans.xml + `ioc:default="true"` 同 id 覆盖。例：切换到 Kafka：
 
 三层架构：SPI 失败回调（`onConsumeFailure`）+ 后端原生 DLQ（Pulsar `deadLetterPolicy` / Kafka 应用级重发布）+ nop-retry 桥。SPI 不出现 `deadLetterTopic`/`maxRetries` 字段。
 
+**Local 面闭合（三层失败架构全后端连通）**：`LocalMessageService.invokeSubscription` 消费失败时在 `nop.message.consumer-failed` WARN 之外派发第一层 `onConsumeFailure`（`dispatchConsumeFailure`，对齐 `KafkaConsumeTask` 形态——回调自身抛异常不影响发送者/重投线程，attempt 固定 0）——`MessageConsumeFailureBridge` 在 Local 后端可收到失败事件，Local 不再是三层架构断链点（无 DLQ substrate 后端仅第一层回调，符合 design 3.3）。
+
+**Local 重投立场（显式裁决，禁止按需猜测）**：异常终结本次投递、**不自动重投**——`ConsumeLater` 返回值是唯一重投路径（per-subscription 延迟队列显式信号）；失败回调/WARN/桥为可见性保底通道，不承担重投。无 broker 的 Local 不引入隐式 broker 重投循环（design §3.9 立场）。
+
+## Debezium 订阅与毒事件 endpoint 契约（D12 §3.3.3）
+
+`nop-message-debezium` 的 `DebeziumMessageSource`（Debezium 嵌入引擎的事件订阅宿主）订阅与交付契约：
+
+- **毒事件两极同禁**：畸形事件/订阅者异常**不得炸流**（存活极性——异常逃逸进 `engine.run()` 即 CDC 流终态死亡、`isStarted` 撒谎），也**不得吞后静默推进 offset**（投递极性——事件对该订阅者永久丢失）。行为终裁 = **(a) 案四步**：跳过（不重抛进引擎线程）+ 计数 + 上报 + `ConsumeFailure` 派发（该事件 at-most-once，可见性保底）。裁定文本 = backend-semantics-design.md §3.3.3（D12，位于 ai-dev/design/nop-message/ 目录，按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影。
+- **毒事件 endpoint**：wrapper 屏障（`handleDebeziumEvent`，convert 与 consumer 调用统一纳入）与 `dispatchEvent` 订阅者分发失败分支共用**同一 endpoint**（禁分叉）；观测面 = WARN 键 `nop.message.debezium.poison-event`（topic/location/attempt/total）+ 失败计数 `getPoisonEventCount()`；convert 阶段 attempt 固定 0（M-1 裁定），订阅者粒度 attempt 连续失败计数、成功清零。
+- **subscribe 失败回调重载**：`subscribe(action, failureHandler)` 接收 per-subscription 失败回调（毒事件第三通道）；`failureHandler=null` 为显式声明的两通道退化（WARN 键 `nop.message.debezium.poison-event.no-failure-handler` + 计数，不静默）；回调自身抛异常被守卫（`poison-event.failure-callback-throw` WARN），不反噬投递循环。
+- **订阅生命周期（MA-05 三面归一 + WI23 注销身份）**：注册移至引擎启动成功之后（启动失败无幽灵订阅残留——异常上抛且无条目留存）；subscribe/cancel/stop 复合操作统一在 source monitor 内；stop 之后 subscribe typed 拒绝（`ERR_DEBEZIUM_ENGINE_START_FAILED` 族，不复活引擎）。订阅表为 **Subscription 身份集**（`Set<Subscription>`）——同一 action 引用重复订阅 = 两条独立订阅，各自 cancel 各自生效，cancel 旧句柄不影响现任订阅（不回退到按 consumer 身份查找）。
+- **isStarted 诚实 + 终止可观测**：引擎终态死亡经实例级失败回调翻转 `started` 并可达注册的失败监听（静态 `FAILURE_LISTENERS` 连接器名单槽协议零触碰——实例回调不覆写宿主任务注册）；`isEngineTerminated()` / 停止契约「已终止」语义见 `03-modules/nop-stream-connectors.md`「Debezium 停止契约终止性」节。
+
 ## 消费循环异常屏障契约（Throwable 宽度）
 
 全部消费/引擎异常屏障为 **Throwable 宽度**——Kafka/Pulsar `runTask` 循环、`LocalMessageService.invokeSubscription`、Debezium 引擎 worker 体（`DebeziumEngineWrapper.runEngineWorker`）与 per-subscriber 分发（`DebeziumMessageSource.dispatchEvent`）、`dispatchConsumeFailure`/failure-endpoint 的 `onConsumeFailure` 回调守卫、`MessageConsumeFailureBridge.submit` 与 failure-listener 守卫：

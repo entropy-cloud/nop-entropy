@@ -180,31 +180,34 @@ Exit Criteria:
 
 ### Phase 4 - 全量验证 + owner doc 三份 + 对齐注记
 
-Status: planned
+Status: completed
+
+> **Phase 4 执行记录（2026-10-26，实现子代理）**：①E1 授权支路：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（453 模块，`_tmp/phase4-e1-fullbuild.log`，2026-10-26 01:34）——支路理由 = 全量测试由批行验证命令（Phase 2/3 终态快照通道）+ 零回退钉抽验组合覆盖，沿 plan 2496~2502 同支路先例。②批行验证终态引用（E3；终态快照后产品代码零 diff，引用即终态）：`./mvnw test -pl nop-message -am` BUILD SUCCESS（8560 tests / 0 failures / 0 errors，`_tmp/phase3-nop-message-gate.log` 01:17 Phase 3 wrapper 面终态）+ `./mvnw test -pl nop-stream -am` BUILD SUCCESS（18164 tests，`_tmp/phase3-nop-stream-gate.log` 01:26 Phase 3 终态）；零回退钉 9 条抽验（终态快照内实证全绿）：TestDebeziumErrorBarriers 3/3 + TestDebeziumEngineWrapperFailureListener 4/4 + TestDebeziumEngineDedicatedCarrier_C4_004 2/2，附加 TestPeriodicTaskInsulation 9/9。③零触碰（E4）：`git diff 7c9767ae77..HEAD --name-only` = 14 文件全过滤通过——nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物/绝缘载体/R1-02 设施面零命中（产品 diff 仅 nop-message×7+nop-stream×5，其余 ai-dev×2）；`.rels` 零命中（终态还原核对）；2496/2498 零回退 = 钉套件全绿 + Phase 2/3 执行记录设施 diff 核对复证。④owner doc 三份逐份更新：`nop-stream-connectors.md`（2498 节边界 bullet 更新为已续作闭合 + 新增「Debezium 停止契约终止性（1.2-C3-014）」节：已发出→已终止/STARTING_TASKS 有预算重试 typed 不吞/终结 latch+isTerminated 可观测/shutdownNow 升级/ghost ERROR 声明/worker 守卫/四停止面验证双形态/REGISTRY 边界指针/测试锚点；DebeziumCdcSource 矩阵行补恢复分配差集一句）；`nop-message.md`（DLQ 节补 Local 面闭合+重投立场显式裁决；新增「Debezium 订阅与毒事件 endpoint 契约（D12 §3.3.3）」节：两极同禁+(a) 案四步+`nop.message.debezium.poison-event` 键+getPoisonEventCount+subscribe 失败回调重载与两通道退化声明+MA-05 三面归一+C6-006 Subscription 身份集+isStarted 诚实/isEngineTerminated）；`nop-stream-cdc-cookbook.md`（恢复节新增条目 4「恢复分配差集/每表恰一桶」[含 include-list 收缩 WARN+TestDebeziumTableSplitEnumeratorRestore_C3_004 锚]与条目 5「恢复声明窗 REPLACE 重播种契约」[AR-03 废除+R4-24 边界]；指纹契约核对结论=零受影响面，StateMigrationRegistry/schemaChecksum 面本批零触碰无变更必要）。三处 ai-dev 设计文档引用按既有先例纯文本提及（docs-for-ai 边界规则不直接链接），BOUNDARY 零错误。⑤对齐注记组落 cra-index 七行：R2-16 互注（C8-002 行+3.1-MA-11 行互指 §五-6，G62 行既有 MA-01 对齐文本维持；batch-proposal L90「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记，历史裁定档案不改）+ MA-09 边界注记两行（C3-014 行+G62 行；结论=Phase 3 同文件 diff 未以最小增量自然覆盖四子面——live 核实 start 失败不复位 startRequested/worker 死亡路径无幂等 close 回收/start-after-stop 无契约声明/quiesce join stuck WARN 细化未承接且 ghost ERROR 属 C3-014⑤ 自有面——MA-09 维持 P3 最小 diff 归并轨，successor=R4-24 同文件顺带）+ R17 族注记（G67 行 4.3-MA-09+5.2-I-02 行：与 MA-05 已落地形态对齐义务）+ 勘误 2 勘正注记（G62 行：覆盖对象=C5-001+C6-004+C1-002，MA-04 系笔误）+ 勘误 3 防混注记（MA-05 行：链#21 所记「MA-09」实为 MA-05）；m-2 回填指针落 `registry-lifecycle-contract.md` §3.3（守卫粒度=桶/绑定代级一行，指向 backend-semantics-design.md §五关系行，防第二事实入口）。⑥scan-hollow：nop-message High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-message.log`）+ nop-stream High=0/Medium=0（exit 0，`_tmp/phase4-hollow-nop-stream.log`）——零批前既有发现，无裁定项。⑦`check-doc-links.mjs --strict` 退出码 0（`_tmp/phase4-doclinks.log`；余 2 warning 为 ai-dev/plans 既有存档文档，非本批引入）。
+
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-stream-connectors.md`、`docs-for-ai/03-modules/nop-message.md`、`docs-for-ai/03-modules/nop-stream-cdc-cookbook.md`（roadmap 8.9 Owner Doc 列三份）；`ai-dev/audits/cra-index.md`（对齐注记组）
 
 - Item Types: `Proof`、`Decision`（对齐注记）
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2496~2502 同支路先例）
-- [ ] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-stream -am`、`./mvnw test -pl nop-message -am`——每条登记模块/测试数/退出码/快照路径（引用 Phase 2/3 终态快照或终态补跑）
-- [ ] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；2496 屏障面与 2498 载体面零回退实证（对应测试套件全绿 + 设施文件 diff 核对）
-- [ ] Owner doc 更新（E5）：三份逐份核对与更新（内容源 = 各 Phase 修复面：Debezium 订阅/交付语义契约[message]、停止契约终止性[connectors，扩 2498 既有节]、恢复分配语义[cookbook 恢复节]），或逐份显式登记 `No owner-doc update required` + 理由；触达模块均有 03-modules 条目（无缺口预期，以实际 diff 为准核对）
-- [ ] **R2-16 对齐互注**（4.1 merge-adjudication §五-6 + batch-proposal R2-16 行 L90 / R4-24 行 L139）：cra-index 相关成员行追加「consumeAwaitTimeout 契约对齐」注记——C8-002 落地的 Local 失败派发契约与 4.1-MA-01（R4-24）/3.1-MA-11（R2-16）的 consumeAwaitTimeout 契约对齐义务互指（R2-16 实施时按 4.1 §五-6 对齐）；batch-proposal R2-16 行（L90）既有「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记（不改 batch-proposal，历史裁定档案）
-- [ ] **m-2 回填指针（设计评审移交）**：向 `ai-dev/design/concurrency/registry-lifecycle-contract.md` §3.3 回填一行「守卫粒度=桶/绑定代级，裁定见 backend-semantics-design.md §五关系行」（防第二事实入口）
-- [ ] **批次对齐注记组**：①MA-09（勘误 5）与 1.2-C3-014 的同文件续作边界注记落 cra-index 两行（含「最小增量自然覆盖」发生与否的结论）；②R17 族对齐注记（4.3-MA-09 → R4-26、5.2-I-02 → R3-02：注册/注销配对修复与 MA-05 落地形态对齐义务）；③勘误 2 引用勘正注记（REGISTRY 裁决覆盖对象 = C5-001/C6-004/C1-002）；④勘误 3 防混注记（链#21「MA-09」实为 MA-05）在 cra-index R1-08 相关行落账
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致：nop-message、nop-stream）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2496~2502 同支路先例）【支路声明：-DskipTests + 批行终态快照通道 + 零回退钉抽验组合覆盖，执行记录①】
+- [x] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-stream -am`、`./mvnw test -pl nop-message -am`——每条登记模块/测试数/退出码/快照路径（引用 Phase 2/3 终态快照或终态补跑）【终态快照引用，执行记录②】
+- [x] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；2496 屏障面与 2498 载体面零回退实证（对应测试套件全绿 + 设施文件 diff 核对）【执行记录③】
+- [x] Owner doc 更新（E5）：三份逐份核对与更新（内容源 = 各 Phase 修复面：Debezium 订阅/交付语义契约[message]、停止契约终止性[connectors，扩 2498 既有节]、恢复分配语义[cookbook 恢复节]），或逐份显式登记 `No owner-doc update required` + 理由；触达模块均有 03-modules 条目（无缺口预期，以实际 diff 为准核对）【三份均更新，执行记录④】
+- [x] **R2-16 对齐互注**（4.1 merge-adjudication §五-6 + batch-proposal R2-16 行 L90 / R4-24 行 L139）：cra-index 相关成员行追加「consumeAwaitTimeout 契约对齐」注记——C8-002 落地的 Local 失败派发契约与 4.1-MA-01（R4-24）/3.1-MA-11（R2-16）的 consumeAwaitTimeout 契约对齐义务互指（R2-16 实施时按 4.1 §五-6 对齐）；batch-proposal R2-16 行（L90）既有「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记（不改 batch-proposal，历史裁定档案）【执行记录⑤】
+- [x] **m-2 回填指针（设计评审移交）**：向 `ai-dev/design/concurrency/registry-lifecycle-contract.md` §3.3 回填一行「守卫粒度=桶/绑定代级，裁定见 backend-semantics-design.md §五关系行」（防第二事实入口）【已落 §3.3 守卫粒度行】
+- [x] **批次对齐注记组**：①MA-09（勘误 5）与 1.2-C3-014 的同文件续作边界注记落 cra-index 两行（含「最小增量自然覆盖」发生与否的结论）；②R17 族对齐注记（4.3-MA-09 → R4-26、5.2-I-02 → R3-02：注册/注销配对修复与 MA-05 落地形态对齐义务）；③勘误 2 引用勘正注记（REGISTRY 裁决覆盖对象 = C5-001/C6-004/C1-002）；④勘误 3 防混注记（链#21「MA-09」实为 MA-05）在 cra-index R1-08 相关行落账【①C3-014 行+G62 行；②G67 行+5.2-I-02 行；③G62 行；④MA-05 行——执行记录⑤】
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0【`_tmp/phase4-doclinks.log`】
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致：nop-message、nop-stream）退出码 0；若有批前既有发现，逐条裁定登记【两模块 High=0 exit 0，零既有发现】
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] 三份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
-- [ ] R2-16 互注 + 批次对齐注记组四项全部落 cra-index（可核验）
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] 三份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
+- [x] R2-16 互注 + 批次对齐注记组四项全部落 cra-index（可核验）
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 5 - closure audit + 台账收口
 
