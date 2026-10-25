@@ -87,61 +87,61 @@
 
 ### Phase 1 - 分片 A：4.3 传输层——MA-02 族响应体生命周期收敛 + C6-004 反压/不可中断面（nop-network）
 
-Status: planned
+Status: completed
 Targets: `nop-network/nop-http/nop-http-client-jdk/src/main/java/io/nop/http/client/jdk/JdkHttpClient.java`（:382 绑定动作、:391-403 416 分支、:407-412 读循环、:449 读体）、`.../jdk/ServerEventPublisher.java`（:91 cleanup 绑定、:119-121 cancel-at-entry、:138-145 parseEvents）、`nop-network/nop-http/nop-http-client-apache/src/main/java/io/nop/http/apache/ServerEventPublisher.java`（:107-109 reactor 内联面）、`nop-network/nop-http/nop-http-api/src/main/java/io/nop/http/api/client/AbstractServerEventSubscription.java`（:143-149 waitForDemand——PA 裁定面）、两模块测试目录
 
 - Item Types: `Fix`（4.3-C3-002[含 C3-003/C6-002/CL-026]、4.3-C6-004 已确认 live defect，不得写成 Feature）、`Decision`（nop-http-api PA 裁定）、`Proof`（回归测试）
 
-- [ ] **PA 裁定先行**：面①（waitForDemand 超时上移）经 live 结构性核验**叶内不可达**（基类 `demand` 为 private long、`dispatchEvent()` private 硬编码 waitForDemand→onNext 顺序，叶类 override 无法读写 demand、影子计数与基类 request 记账双轨冲突）——**预期主路径 = plan-first 批内闭环**：先落闭环物（设计文档 `ai-dev/design/concurrency/` + 独立评审记录 + SPI 回归清单，本 Phase 预留该三项工时）再动手改 `AbstractServerEventSubscription`，裁定结论与证据随执行记录登记（头部授权节）；面②③④在 apache/jdk 客户端叶内落地，该三面登记「nop-http-api 零触碰」；**触碰声明**含两潜在形态——C6-004 面① waitForDemand 上移 + SSE idle 读超时若需 nop-http-api 配置面（预算承载优先 jdk 叶内配置键或常量缺省，见成员 1 修复方向③），两者均按本裁定项闭环后触碰
-- [ ] 4.3-C3-002（含 C3-003/C6-002/CL-026 同 diff）：下载读循环取消响应点（迭代间 isCancelled 检查，取消即 CancellationException + 关闭 sink/in）+ SSE cleanup 显式关闭底层 InputStream/HttpResponse（脱离 future.cancel no-op 形态）+ readLine idle 读超时（可中断行读取或 SoTimeout 等价物，预算独立于 headers 阶段 request timeout）+ 416 分支与 cancel-at-entry 分支 return 前安全关闭 response.body()；取消监听维持 bindCancelToken 收敛入口（R1-04 原语零回退）
-- [ ] 4.3-C6-004：demand 等待有界化（超时走 onError/cleanup 终态化）+ apache reactor 线程内联 wait 消除（独立消费队列投递，平台 `IBlockingQueue`+`QueueOverflowPolicy` 形态）+ jdk parse 循环可中断化/可关闭化（与上条同 diff 收敛）+ 不可中断残留面承载线程 daemon 工厂化（R06 族口径兜底半边；新承载不违反 MA-16 收窄后约束）
-- [ ] **边界纪律**：C6-002① 修复只闭合 416 分支 body 流生命周期，**不改 Range 头语义**（C6-003 归 R4-27，勘误 5）；Apache/OkHttp 未中招面零改造
-- [ ] 回归测试（rule 25，测试名带 `_C3_002`/`_C6_004` 标识）：①幽灵下载红转绿——真实/桩传输大 body 上 cancel 后读循环有界退出、sink 停止增长；②SSE 泄漏红转绿——静默流上 cancel 后 executor 线程有界释放（不再滞留 readLine）；③遗弃红转绿——416 分支与 cancel-at-entry 后响应体流关闭可观测（close 标志/socket 归还）；④demand 挂起红转绿——停滞订阅者场景承载线程不再滞留 waitForDemand 超预算窗；⑤daemon 断言——残留阻塞承载线程为 daemon 形态；⑥既有回归零回退——`TestJdkHttpClientCancelListenerCleanup_C3_012`、`TestServerEventPublisherStreamFix`、`TestJdkHttpClient`、`TestFileTransfer` 全绿
-- [ ] **接线验证**（rule 23）：真实 `JdkHttpClient`/`ServerEventPublisher` 装配链（bindCancelToken 注册→cancel 触发→读循环退出）上断言取消语义生效，非仅类型系统存在
-- [ ] **无静默跳过**（rule 24）：取消/超时/遗弃路径显式异常或终态化（CancellationException/错误回调/日志），不吞异常、不以静默 return 替代关闭
-- [ ] **提交纪律**：nop-network 一提交（或 jdk/apache 分提交并声明关系），commit message 带 `4.3-C3-002`/`4.3-C6-004` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **PA 裁定先行**：面①（waitForDemand 超时上移）经 live 结构性核验**叶内不可达**——**plan-first 批内闭环物已落**：设计文档 `ai-dev/design/concurrency/sse-backpressure-and-body-phase-lifecycle.md`（含裁定①-⑤ + §五 SPI 回归清单 ×3 子类全表）已提交 @ `94bcc9f035`；**独立评审由协调方批内并行派发**（偏离计划「先评审后动手」顺序的授权来源 = Phase 1/2 执行任务契约，评审结论回填与按需修订随执行记录登记）；面②③④已在 apache/jdk 客户端叶内落地（commit `8407a3c50c`），该三面 nop-http-api 零触碰实证 = `git diff --name-only` 无 http-api 面②③④相关改动；**触碰声明裁定**：C6-004 面① waitForDemand 上移已按闭环触碰（HttpApiErrors 增 `ERR_HTTP_SSE_DEMAND_TIMEOUT`/`ARG_TIMEOUT` + 基类有界化）；SSE idle 读超时**未上移 nop-http-api 配置面**（预算承载 = jdk 叶内配置键 `nop.http.client.jdk.body-idle-timeout`，JdkHttpConfigs）
+- [x] 4.3-C3-002（含 C3-003/C6-002/CL-026 同 diff）：读循环迭代间 isCancelled 检查→CancellationException 终态（JdkHttpClient.processDownloadResponse）；SSE cleanup 覆盖显式关闭登记的底层 body 流（`ServerEventSubscription.cleanup` override；**promise 生命周期移至 body 阶段终态**——修复中发现的注册面事实：`future.whenComplete` promise 在 headers 即完结导致 bindCancelToken 监听器 body 阶段被反注册，cleanup 关流不可达，已随本批修正）；idle 读超时 = BodyIdleWatchdog（globalTimer 短任务巡检 + 关流解除阻塞，预算 `nop.http.client.jdk.body-idle-timeout` 缺省 120s，独立于 headers request timeout）；416 分支与 cancel-at-entry 分支 return 前关闭遗弃 body（C6-002①②）；取消监听维持 bindCancelToken 收敛入口（R1-04 原语零签名变更，`TestJdkHttpClientCancelListenerCleanup_C3_012` 全绿）
+- [x] 4.3-C6-004：demand 等待有界化（基类 `waitForDemand` 有界预算 + 停滞终态 cleanup + `onError(ERR_HTTP_SSE_DEMAND_TIMEOUT)`，protected `demandWaitTimeoutMillis()` 钩子）；apache reactor 线程内联 wait 消除（行/终态经有界 `OverflowBlockingQueue`（ERROR 溢出策略 fail-loud）投递，专用 `nop-sse-dispatch` daemon 消费线程执行基类处理）；jdk parse 循环可关闭化（cleanup 关流 + watchdog idle 关流解除 readLine 阻塞）；残留面 daemon 化（新承载线程 NamedThreadFactory daemon；jdk `executor()` globalWorker 回退维持 plan 2498 约定不动，该池线程本身 daemon）
+- [x] **边界纪律**：C6-002① 修复只闭合 416 分支 body 流生命周期（close），Range 头语义零改动（C6-003 归 R4-27）；Apache/OkHttp 未中招面零改造（apache 仅 C6-004 面②队列化触达 SSE 订阅，下载/非 SSE 面未动）
+- [x] 回归测试（rule 25，测试名带 `_C3_002`/`_C6_004` 标识）：`TestBodyPhaseCancel_C3_002`（6 条：①幽灵下载有界退出+sink 停增 ②静默 body idle 预算终态 ③SSE cancel 对端 EOF ④SSE idle onError ⑤416 遗弃 body EOF ⑥cancel-at-entry 遗弃 body EOF）+ `TestServerEventSubscriptionDemandTimeout_C6_004`（2 条：停滞预算终态/取消唤醒无停滞错）+ `TestApacheSseReactorDecouple_C6_004`（2 条：停滞订阅不阻塞同 reactor 探针请求/派发承载 daemon）；**先红后绿证据**：`_tmp/phase1-red-{api,jdk,apache,416}.log`（api 2F/jdk 5F/apache 2F/416 隔离红）→ `_tmp/phase1-green-{api,jdk,apache}.log` 全绿；⑥既有回归零回退：`TestJdkHttpClientCancelListenerCleanup_C3_012`/`TestServerEventPublisherStreamFix`/`TestServerEventPublisherErrorResponse`（jdk+apache）/`TestFileTransfer`（jdk+apache）/`TestServerEventSubscriptionFix`/`TestApacheHttpClientFix`/`TestLineAsyncDataConsumerFix`/`TestFileDownloadSinkClose` 全绿（`_tmp/phase1-green-jdk.log`/`_tmp/phase1-green-apache.log`）
+- [x] **接线验证**（rule 23）：真实 `JdkHttpClient`/`ServerEventPublisher`/`ApacheHttpClient` 装配链上断言（raw socket 对端 EOF 作关闭信号、HttpServer 真流做幽灵下载/静默形态、apache 双连接探针做 reactor 存活信号）——取消/超时语义运行时生效，非类型系统存在
+- [x] **无静默跳过**（rule 24）：取消路径 promise 以 CancellationException 异常终态；demand 停滞 onError 显式错误码；416/cancel-at-entry 显式关流；队列满 fail-loud（ERROR 策略）；watchdog 关流走既有 IOException→onError 路径
+- [x] **提交纪律**：nop-network 一提交 @ `8407a3c50c`（jdk/apache/api 同提交，message 带 `4.3-C3-002`/`4.3-C6-004` 与 plan 号，pre-commit lint 通过）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-26.md`，随 Phase 2 收口一并落账）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 4.3-C3-002（含 C3-003/C6-002/CL-026 面）landed：body 阶段取消有界生效、三出口 body 流全关闭、读超时在位，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 4.3-C6-004 landed：demand 等待有界、reactor 线程不再内联 wait、jdk 读可中断/可关闭、残留面 daemon 化，带 ≥1 条 focused 回归测试
-- [ ] 必红证据（E2）：幽灵下载/线程滞留/遗弃/demand 挂起断言先红后绿或变异/回退论证留痕（先红形态按 Goals 具体化口径，快照 `_tmp/phase1-*.log` 含 RED 与 GREEN）
-- [ ] PA 裁定结论登记（零触碰或 plan-first 闭环物 + 证据）
-- [ ] 接线验证证据登记（哪条装配链断言证明运行时生效）
-- [ ] `./mvnw test -pl nop-network -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-network.md` body 阶段取消/读超时契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 3 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4.3-C3-002（含 C3-003/C6-002/CL-026 面）landed：body 阶段取消有界生效、三出口 body 流全关闭、读超时在位，focused 回归 6 条（`TestBodyPhaseCancel_C3_002`，测试名可辨识工单）
+- [x] 4.3-C6-004 landed：demand 等待有界（基类）、reactor 线程不再内联 wait（apache 队列化）、jdk 读可中断/可关闭（cleanup 关流 + watchdog）、残留面 daemon 化（nop-sse-dispatch daemon 工厂），focused 回归 2+2 条
+- [x] 必红证据（E2）：幽灵下载/线程滞留/遗弃/demand 挂起断言先红后绿留痕——`_tmp/phase1-red-api.log`（2F）/`_tmp/phase1-red-jdk.log`（5F）/`_tmp/phase1-red-apache.log`（2F）/`_tmp/phase1-red-416.log`（隔离红）→ `_tmp/phase1-green-{api,jdk,apache}.log`（GREEN）
+- [x] PA 裁定结论登记：plan-first 批内闭环物 = 设计文档 `ai-dev/design/concurrency/sse-backpressure-and-body-phase-lifecycle.md` @ `94bcc9f035`（裁定①-⑤ + SPI 回归清单 ×3）；独立评审由协调方批内并行派发（任务契约授权，结论回填随执行记录）；面②③④+idle 预算承载 nop-http-api 零触碰（唯一触碰形态 = 面①基类有界化 + HttpApiErrors 新错误码，已登记）
+- [x] 接线验证证据登记：raw socket 对端 EOF（真实关闭信号）+ HttpServer 真实流（幽灵下载/静默）+ apache 双连接探针（reactor 存活）——`TestBodyPhaseCancel_C3_002`/`TestApacheSseReactorDecouple_C6_004` 装配链断言
+- [x] `./mvnw test -pl nop-network -am` BUILD SUCCESS（`_tmp/phase1-gate-nop-network.log`，exit 0；首轮 exit 1 为 nop-netty `TestNettyTcpClient` 环境性端口竞争 BindException（findAvailableTcpPort 后 bind 前被占），隔离复跑绿 + 全量复跑绿，与本批 diff 无关，已登记）
+- [x] Owner doc 裁定：`nop-network.md` body 阶段取消/读超时契约——**受影响面更新归 Phase 3 统一落账**（本 Phase 显式登记去向：Phase 3 owner doc 更新项覆盖 nop-network.md 下载/SSE body 阶段取消与读超时契约）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-26.md`）
 
 ### Phase 2 - 分片 B：3.1 聚合层——MA-01 族五点 + C7-001 全程期限 + C7-002 R11 纪律（nop-ai）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/ChatServiceImpl.java`（:202 构造点、:207-213 取消绑定、:391-440 聚合链、:427-438 onComplete、:483-529 StreamAggregator）、`nop-ai/nop-ai-core` 的 ChatLogger 面（盘写异步化）、`nop-ai/nop-ai-core` 配置/错误码面（AiCoreConfigs/NopAiCoreErrors 新增随实现期定夺）、`nop-ai/nop-ai-gateway/src/main/java/io/nop/ai/gateway/failover/FailoverStreamFlow.java`（仅消费面行为钉，不改本体）、nop-ai 测试目录
 
 - Item Types: `Fix`（3.1-C3-001[含 MA-01 族成员]/C7-001/C7-002 已确认 live defect）、`Proof`（回归测试）
 
-- [ ] 3.1-C3-001（MA-01 族五点单 PR 面）：①取消闭合——appendOnCancelTask 同时闭合下游（close 或 closeExceptionally[CancellationException]，注册点前完成 publisher 捕获），onNext 容错 + closeExceptionally 兜底；②背压恢复——两级订阅改有限 request 窗口（恢复有界缓冲满载语义）；③受管承载——:202 构造点显式受管 executor（R1-02 工厂契约内或 GlobalExecutors 治理面；阻塞体不指向 globalTimer）；④盘写异步化——logResponse 移出终态回调线程且日志失败不阻断 future 完成（失败显式可见）；⑤聚合上界——StreamAggregator 累积上界 + tool-call 条目上界（超界 fail-fast 新错误码）
-- [ ] 3.1-C7-001：聚合层全程期限（future 级总期限，orTimeout 语义）+ chunk 间 inactivity 上界（独立配置键，与 CFG_AI_SERVICE_READ_TIMEOUT 分离）+ 超时经 subscription.cancel() + closeExceptionally 走既有错误路径（R21 纪律）+ watchdog 复用 io.nop.commons 调度设施非自旋
-- [ ] 3.1-C7-002：onComplete 终止信号校验（Phase.DONE/非空 finishReason）——缺失时 completeExceptionally（带截断字节数诊断）或 ChatResponse invalid 标记，fail-loud 不静默成功（R11 族纪律；分支选择随实现期对齐族口径并落 owner doc）
-- [ ] 消费面行为钉：FailoverStreamFlow 作为 callStream 直接订阅者的取消终止回归（取消后下游有界终止、订阅注册不泄漏）——gateway 本体零改动（R2-06 边界，勘误 6）
-- [ ] 回归测试（rule 25，测试名带 `_C3_001`/`_C7_001`/`_C7_002` 标识）：①取消悬挂红转绿——cancel 后下游订阅有界窗内收到终态信号、publisher 关闭；②背压红转绿——有限 request 窗口在位（双层 request(MAX_VALUE) 消除）、慢下游不再 uninterruptibly 阻塞 reader；③承载红转绿——终态回调/延续链执行线程为受管池线程（非 ForkJoinPool.worker-\*）；④盘写红转绿——logResponse 抛异常场景 future 仍按既有语义完成（悬挂消除）；⑤上界红转绿——超界累积 fail-fast 类型化报错；⑥期限红转绿——挂死传输（fake/stub client 不发终态）下 future 在总期限/inactivity 预算内异常完成且失败可见；⑦R11 红转绿——半关闭流（无终止信号）不再以成功交付；⑧消费面行为钉——FailoverStreamFlow 订阅场景取消终止；⑨既有 nop-ai-core 测试零回归（`TestChatServiceImpl` 族、`TestStreamAggregator`、`TestChatServiceImplCallPathContract` 等）
-- [ ] **接线验证**（rule 23）：真实 `ChatServiceImpl.callStream→aggregateStreamToResponse` 链（或真实 beans 装配链）上断言取消闭合/期限/watchdog 生效；端到端最小链 = 调用方 callAsync（stream=true）→ fake 挂死传输 → 期限终止（rule 22 组件级预演，全链端到端归 Phase 3）
-- [ ] **无静默跳过**（rule 24）：日志失败/上界超界/期限到期路径显式异常或终态可见，不吞异常、不以静默 complete 替代
-- [ ] **提交纪律与子分片纪律**：nop-ai-core 一提交（消费面钉随同或分提交并声明关系），commit message 带 `3.1-C3-001`/`3.1-C7-001`/`3.1-C7-002` 与 plan 号；本分片工作量大于分片 A，单会话不可收口时按 plan 2499 子分片纪律拆分（子分片独立提交并即时勾选对应 checklist 项与 Exit Criteria、不跨分片积压未勾选项，分会话续作以本 plan 勾选状态为交接事实源、不依赖会话记忆）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.1-C3-001（MA-01 族五点单 PR 面）：①取消闭合——appendOnCancelTask 同时 `subscription.cancel()` + `publisher.closeExceptionally(CancellationException)`（注册点前完成 publisher 捕获 ✓），onNext try/catch(Throwable) 容错 + closeExceptionally 兜底；②背压恢复——两级订阅有限 request 窗口（`STREAM_REQUEST_WINDOW=64`，初始 + 滑动补给；替代 Long.MAX_VALUE/Integer.MAX_VALUE）+ 桥接 offer 满载 fail-loud（`ERR_AI_STREAM_BUFFER_OVERFLOW`，替代 uninterruptible submit 阻塞）；③受管承载——构造点 `GlobalExecutors.cachedThreadPool()`（平台治理面 daemon cached 池；阻塞日志体不指向 globalTimer，MA-16 收窄后约束满足）；④盘写异步化——`logResponseAsync`（complete 后异步记日志，cached 池承载，失败 WARN 显式可见不阻断 future；落点在 ChatServiceImpl 终态回调侧而非 DefaultChatLogger 内部——IChatLogger 同步契约保持、脱敏测试零回退，偏差已登记）；⑤聚合上界——StreamAggregator 累积字符上界（text+reasoning+tool-call arguments 总和，键 `nop.ai.service.stream-max-accumulated-chars` 缺省 200 万）+ tool-call 条目上界（键 `nop.ai.service.stream-max-tool-calls` 缺省 100），超界 fail-fast `ERR_AI_STREAM_ACCUMULATION_EXCEEDED`
+- [x] 3.1-C7-001：聚合层全程期限（`CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT` = `nop.ai.service.stream-total-timeout` 缺省 10min，`CoreMetrics.timeoutToExpireTime` 口径）+ chunk 间 inactivity 上界（`CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT` = `nop.ai.service.stream-idle-timeout` 缺省 2min，独立配置键，与 READ_TIMEOUT 分离）；超时经 `subscription.cancel()` + `future.completeExceptionally(ERR_AI_STREAM_TOTAL_TIMEOUT/ERR_AI_STREAM_IDLE_TIMEOUT)` 走既有错误路径（R21 纪律，带 llmName+timeout 诊断）；watchdog 复用 `GlobalExecutors.globalTimer()` 调度（一次性总期限任务 + 固定延迟 inactivity 巡检，任务体短动作非自旋非长阻塞体，MA-16 豁免判据），终态 whenComplete 双取消无残留
+- [x] 3.1-C7-002：onComplete 终止信号校验（`hasTerminationSignal` = finishReason 非空 ∨ `StreamItemPhase.DONE`）——**分支裁定 = completeExceptionally**（`ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING`，带截断字符数诊断 `accumulatedChars`，ARG_LLM_NAME 在案），fail-loud 不静默成功（R11 族纪律 + R21）；零 chunk 空流保持既有成功契约（`TestChatServiceImplCallPathContract` 零回退），分支选择落 owner doc 归 Phase 3
+- [x] 消费面行为钉：`TestFailoverStreamCancelPin_C3_001`（gateway）——FailoverStreamFlow 作为 callStream 直接订阅者，挂死传输上调用方取消后有界窗内 attempt 终止（并发计数释放 + 上游 SSE 订阅取消 + attempt token 精确取消一次，订阅注册不泄漏）；**gateway 本体零改动**（R2-06 边界，勘误 6；适配器「调用方取消不向输出发终态」为既有语义归 R2-06，钉内注记 + 核心侧取消闭合红转绿在 nop-ai-core 两条 _C3_001 用例承载）
+- [x] 回归测试（rule 25）：`TestStreamCancelDeadlineAndDelivery_C3_001`（nop-ai-core，13 条全带 `_C3_001`/`_C7_001`/`_C7_002` 标识：①取消闭合直订阅者+聚合 future ②request 窗有界+慢下游 fail-loud ③承载非 commonPool ④日志失败不悬挂 ⑤双上界 fail-fast ⑥总期限/inactivity ⑦R11 半关闭 fail-loud + 空流/终止流双零回归边界）+ `TestFailoverStreamCancelPin_C3_001`（⑧消费面钉）；**先红后绿证据**：`_tmp/phase2-red-core.log`（13 条中 11F——红形态①③④全部真红，2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core.log` + 3x 复跑全绿；⑨既有零回归：`TestStreamAggregator`/`TestChatServiceImplCallPathContract`/`TestChatServiceImplErrorResponse`/`TestChatLoggerRedaction`/`TestChatLogHelper`/`TestChatServiceRateLimit`/`TestLlmConfigHelper`/`TestLlmErrorMapping` 50 条全绿（`_tmp/phase2-regression-core.log`）；`./mvnw test -pl nop-ai` 聚焦全绿 48 tests BUILD SUCCESS（`_tmp/phase2-gate-nop-ai-focused.log`）
+- [x] **接线验证**（rule 23）：真实 `ChatServiceImpl.callStream → aggregateStreamToResponse` 链 + fake 挂死传输（gate/静默形态）上断言取消闭合/期限/watchdog 运行时生效（`cancelTerminatesAggregatedFuture`/`totalDeadlineTerminatesHungStream`/`idleTimeoutTerminatesSilentStream`/`slowDownstreamFailsFastInsteadOfBlocking` 均为全链断言非类型存在）；端到端最小链 = callAsync(stream=true)→fake 挂死→期限终止（组件级预演 ✓，全链端到端归 Phase 3）
+- [x] **无静默跳过**（rule 24）：日志失败 WARN 显式可见（`nop.ai.chat-log-write-fail`）；上界超界类型化 `ERR_AI_STREAM_ACCUMULATION_EXCEEDED`；期限到期 `ERR_AI_STREAM_TOTAL_TIMEOUT`/`ERR_AI_STREAM_IDLE_TIMEOUT` 显式异常终态；缓冲满载 `ERR_AI_STREAM_BUFFER_OVERFLOW`；半关闭 `ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING`——不吞异常、不以静默 complete 替代
+- [x] **提交纪律与子分片纪律**：nop-ai-core 一提交（生产+测试同提交；消费面钉随同声明关系），commit message 带 `3.1-C3-001`/`3.1-C7-001`/`3.1-C7-002` 与 plan 号；单会话内收口未触发子分片拆分
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-26.md`）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 3.1-C3-001（含 MA-01 族五点）/ 3.1-C7-001 / 3.1-C7-002 全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：取消悬挂/期限/R11 三类断言先红后绿或变异/回退论证留痕（先红形态按 Goals 具体化口径，快照 `_tmp/phase2-*.log`）
-- [ ] 接线验证证据登记（真实链断言 + 哪条证明 watchdog/取消闭合运行时生效）
-- [ ] `./mvnw test -pl nop-ai -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-ai.md` 流式链契约核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 3 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 3.1-C3-001（含 MA-01 族五点）/ 3.1-C7-001 / 3.1-C7-002 全部 landed，focused 回归 13+1 条且测试名可辨识工单
+- [x] 必红证据（E2）：取消悬挂/期限/R11 三类断言先红后绿留痕——`_tmp/phase2-red-core.log`（11F：`cancelTerminatesAggregatedFuture`/`cancelClosesDownstreamSubscriber` 悬挂、`totalDeadlineTerminatesHungStream`/`idleTimeoutTerminatesSilentStream` 悬挂、`halfCloseWithoutTerminationSignalFailsLoud` 误判成功、五点其余各面）→ `_tmp/phase2-green-core.log`（13/13 GREEN）+ 3x 复跑稳定
+- [x] 接线验证证据登记：真实 ChatServiceImpl 全链断言（fake 挂死传输 gate/静默形态）；watchdog 运行时生效证明 = `totalDeadlineTerminatesHungStream_C7_001`（800ms 预算内挂死流异常终态）/`idleTimeoutTerminatesSilentStream_C7_001`；取消闭合运行时生效证明 = `cancelTerminatesAggregatedFuture_C3_001`/gateway 钉计数释放
+- [x] `./mvnw test -pl nop-ai -am` 门禁：链全模块构建+测试通过，唯 nop-auth-service `TestOperationMfaE2E` 为**基线批前既有失败**（基线 `0eb3ea67ba` worktree 隔离复跑同败 6 errors，证据 `_tmp/mfa-baseline.log`，与本批 diff 零交集[nop-auth 零触碰]）；授权支路证据组 = ①`./mvnw test -pl nop-ai` 聚焦 BUILD SUCCESS 48 tests（`_tmp/phase2-gate-nop-ai-focused.log`）②链构建+全测试运行在案（`_tmp/phase2-gate-nop-ai.log`/`_tmp/phase2-gate-nop-ai-unfiltered.log`，唯 nop-auth-service 该类失败）——支路理由随执行记录登记，MFA 修复归 nop-auth 工单不在本批 scope
+- [x] Owner doc 裁定：`nop-ai.md` 流式链契约（取消/期限/交付语义 + C7-002 分支裁定 + 新配置键）——**更新归 Phase 3 统一落账**（本 Phase 显式登记去向：Phase 3 owner doc 更新项）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/10-26.md`）
 
 ### Phase 3 - 全量验证 + 两侧同批端到端 + owner doc 两份
 
@@ -216,6 +216,22 @@ Exit Criteria:
 - [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-cra-phase8.11-r2-02-stream-cancel.md --strict` 退出码 0
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [ ] cra-index 台账 5 成员行收敛 + roadmap 8.11 → done（E6）
+
+## Execution Record
+
+### Phase 1（分片 A，4.3 传输层）——completed @ 分片提交 `8407a3c50c` + PA 设计文档 `94bcc9f035`
+
+- 落地面：基类有界化（`AbstractServerEventSubscription` waitForDemand 有界预算 + 停滞终态 `ERR_HTTP_SSE_DEMAND_TIMEOUT`）、apache 队列化（`OverflowBlockingQueue` ERROR 策略 + `nop-sse-dispatch` daemon 消费线程）、jdk body 三出口（cleanup 关流/读循环取消点/BodyIdleWatchdog idle 预算，叶内键 `nop.http.client.jdk.body-idle-timeout`）、416+cancel-at-entry 关流；HttpApiErrors 新增 `ERR_HTTP_SSE_DEMAND_TIMEOUT` + `ARG_TIMEOUT`（PA 面内）。
+- 先红后绿：`_tmp/phase1-red-{api,jdk,apache,416}.log`（2F/5F/2F/隔离红）→ `_tmp/phase1-green-{api,jdk,apache}.log`；门禁 `_tmp/phase1-gate-nop-network.log` BUILD SUCCESS。
+- **实现期发现（注册面事实修正）**：jdk SSE `startRequest` 原以 `future.whenComplete(...)` 返回值作 bindCancelToken 的 promise——该 promise 在 headers 到达即完结，取消监听器在 body 阶段已被反注册，「cleanup 显式关流」修复不可达。修正 = promise 生命周期移至 body 阶段终态（parse 任务 finally 完结），监听器覆盖整个 body 阶段且按 promise 配对移除（C3-012 无累积契约保持，`TestJdkHttpClientCancelListenerCleanup_C3_012` 零回退）。该发现为 2499 注册面收敛的正确性补强（非回退），已钉 `sseCancelClosesUnderlyingStream_C3_003`。
+- 测试基建裁定：raw socket 对端 EOF 作「body 流真实关闭」信号（SSE 遗弃面用 Content-Length>实发字节构造在途交换，保证关闭可观测性与确定性——完全到达的未消费 body 的 socket 关闭由 JDK 客户端延迟化，不可作确定性断言）；idle 配置键在用例级锚定生产缺省值（`assignConfigValue(key,null)` 不能复原数值型缺省，防跨用例泄漏）。
+
+### Phase 2（分片 B，3.1 聚合层）——completed @ 分片提交 `477e1afa03`
+
+- 落地面：MA-01 族五点（取消闭合/背压窗口+满载 fail-loud/受管承载/盘写异步化/聚合双上界）+ C7-001 双 watchdog（新键 ×2）+ C7-002 R11 校验（分支裁定 = completeExceptionally）+ 新错误码 ×5 + gateway 消费面钉（本体零改动）。
+- 先红后绿：`_tmp/phase2-red-core.log`（13 条用例 11F——红形态①③④真红；2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core.log` + 3x 复跑稳定；既有回归 50 条零回退（`_tmp/phase2-regression-core.log`）。
+- 门禁证据组（`./mvnw test -pl nop-ai -am` 授权支路，理由登记）：链全量运行唯一失败 = nop-auth-service `TestOperationMfaE2E`，**基线批前既有**（基线 `0eb3ea67ba` worktree 隔离复跑同败 6 errors，`_tmp/mfa-baseline.log`；本批 diff nop-auth 零触碰）；`./mvnw test -pl nop-ai` 聚焦 BUILD SUCCESS 48 tests（`_tmp/phase2-gate-nop-ai-focused.log`）；链全量运行留痕（`_tmp/phase2-gate-nop-ai-unfiltered.log`）。附带登记：首轮门禁 `nop-netty TestNettyTcpClient` BindException 为 findAvailableTcpPort 端口竞争环境抖动（隔离复跑绿，与本批无关）；`-Dtest='!X'` 过滤式排除会破坏 jpath 数据驱动生成测试（`JSONPointTest_*`），门禁禁用过滤式排除。
+- **实现期偏差登记**：①④盘写异步化落点在 `ChatServiceImpl` 终态回调侧（`logResponseAsync`）而非 `DefaultChatLogger` 内部——IChatLogger 同步契约与既有脱敏/落盘测试零回退优先，异步调度属回调方职责（owner doc 注记归 Phase 3）；②消费面钉语义：适配器对调用方取消「不向输出发终态信号」为既有契约（`callerCancelStopsCurrentAttemptOnly` 钉死；适配器先 cancel 内部订阅再 cancel attempt token 的顺序使核心侧 closeExceptionally 不达已取消订阅），该输出语义归 R2-06，本钉按「有界终止 + 注册不泄漏」断言（核心侧取消闭合红转绿由 nop-ai-core 两条 `_C3_001` 用例承载）；③测试基建：fake 流发射加启动延迟（桥接在 callStream 内部即订阅上游，无延迟则首 chunk 于下游订阅前丢弃——FailoverTestSupport 同型先例）。
 
 ## Deferred But Adjudicated
 
