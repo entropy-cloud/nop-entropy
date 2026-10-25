@@ -260,55 +260,72 @@ Exit Criteria:
 
 ### Phase 6 - 分片 E：5.6-W-01 双载体账本 close 桥接 + 过期指纹误拒闭合（nop-duckdb）
 
-Status: planned
+Status: completed（2026-10-25，提交 `d467186a93`）
 Targets: `nop-duckdb/src/main/java/io/nop/duckdb/DuckDbEngine.java`（openFile/openMemory 返回值包装 + track/untracked）、`nop-duckdb/src/main/java/io/nop/duckdb/DuckDbSqlTaskStep.java`（消费链回归面）、`nop-duckdb` 测试目录；`IDuckDbEngine.java` 契约文本零改动（Non-Goals）
 
 - Item Types: `Fix`（5.6-W-01 已确认 live defect——四方案并证族主）、`Proof`（回归测试）
 
-- [ ] 按 Phase 1 逐单表（含形态差异条款，勘误 7）实现连接 close 桥接：openFile/openMemory 返回 close 时回调的 Connection 包装——包装 close 内锁内移除对应 TrackedConnection（untracked）+ filePath != null 时 releaseOpen；`track` 记录原对象保 engine.close() 幂等兜底语义零回退；`DuckDbSqlTaskStep` TWRS 消费链经包装后 refs 自动归零（生产消费者零改动或最小适配，以逐单表结论为准）
-- [ ] 过期指纹误拒面闭合：step 消费链执行后 OPEN_FILES 条目随 refs 归零释放，同路径异配置 engine 重开不再命中残留指纹（exit criteria 增补条独立验收面）
-- [ ] 回归测试（rule 25，测试名带 `_W_01` 标识）：①step 执行后 OPEN_FILES 条目释放断言（双载体之一：refs 归零）；②connections 账本随包装 close 清理断言（载体 B：C6-R2-001 面）；③同路径跨 engine 重开不再误拒断言（`ERR_DUCKDB_CONFIG_CONFLICT` 假阳性消除——100% 假阳性场景回归钉；**rule 22 端到端**：step 消费链执行→refs 归零→跨 engine 重开不误拒全链一次跑通，组件级单测不替代）；④engine.close() 兜底幂等断言（既有 close 语义零回退）；⑤既有 duckdb 测试零回归
-- [ ] **无静默跳过**（rule 24）：包装 close 失败路径显式可见，不吞异常
-- [ ] **提交纪律**：nop-duckdb 一提交，commit message 带 `5.6-W-01` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 按 Phase 1 逐单表（含形态差异条款，勘误 7）实现连接 close 桥接：openFile/openMemory 返回 close 时回调的 Connection 包装——包装 close 内锁内移除对应 TrackedConnection（untracked）+ filePath != null 时 releaseOpen；`track` 记录原对象保 engine.close() 幂等兜底语义零回退；`DuckDbSqlTaskStep` TWRS 消费链经包装后 refs 自动归零（生产消费者零改动或最小适配，以逐单表结论为准）——`DuckDbEngine.BridgeConnection`（静态嵌套类，全方法委托）：`track` 登记 TrackedConnection（tc.connection=原对象）后返回包装；包装 close 记账先行（CAS 单次：`owner.untrack(tc)` 与 track 同 monitor + `filePath!=null` 时 `releaseOpen`）再 `IoHelper.safeCloseObject(delegate)`；engine.close() 快照关闭原对象+releaseOpen 兜底语义零改动；**生产消费者零改动**（DuckDbSqlTaskStep 产品文件零 diff——TWRS 关包装即触发桥接）
+- [x] 过期指纹误拒面闭合：step 消费链执行后 OPEN_FILES 条目随 refs 归零释放，同路径异配置 engine 重开不再命中残留指纹（exit criteria 增补条独立验收面）——`testW_01_rule22_stepChainThenReopenSamePathAcrossEngines` 端到端全链绿（变异探针下该断言红=修复前 100% 假阳性复现）
+- [x] 回归测试（rule 25，测试名带 `_W_01` 标识）：①step 执行后 OPEN_FILES 条目释放断言（双载体之一：refs 归零）；②connections 账本随包装 close 清理断言（载体 B：C6-R2-001 面）；③同路径跨 engine 重开不再误拒断言（`ERR_DUCKDB_CONFIG_CONFLICT` 假阳性消除——100% 假阳性场景回归钉；**rule 22 端到端**：step 消费链执行→refs 归零→跨 engine 重开不误拒全链一次跑通，组件级单测不替代）；④engine.close() 兜底幂等断言（既有 close 语义零回退）；⑤既有 duckdb 测试零回归——`TestDuckDbLedgerCloseBridge_W_01` 4 例（①+②stepConsumptionChainReleasesBothLedgers[真实 DuckDbSqlTaskStep 消费链——ITaskStepRuntime 反射桩注入 inputs，TWRS 关闭包装后 openFileRefCount=null + trackedConnectionCount=0，接线验证与载体释放断言合一] ③rule22_stepChainThenReopenSamePathAcrossEngines[128MB 引擎 step 执行→refs 归零中间态→close→256MB 新引擎重开同路径成功+已建表跨引擎可见] ④engineCloseFallbackIdempotentZeroRegression[从不关包装→engine.close() 清账本+关原连接+释放 refs→包装事后 close/引擎重复 close 均无害] ⑤bridgeCloseIdempotentAndReallyCloses[refs=1→close→isClosed=true→重复 close refs 不重复递减]）；⑤既有 duckdb 测试零回归由模块门禁承载（TestDuckDbEngine 9 含指纹冲突测试、TestDuckDbSingleWriter 4 等全绿）
+- [x] **无静默跳过**（rule 24）：包装 close 失败路径显式可见，不吞异常——物理关闭经 `IoHelper.safeCloseObject`（失败 INFO 日志显式可见，与 engine.close() 同形态）；记账先行保证任何后续失败不使账本滞留
+- [x] **提交纪律**：nop-duckdb 一提交，commit message 带 `5.6-W-01` 与 plan 号——`d467186a93`
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-10-25 条目随本 Phase 回填提交落账）
+
+> **执行注记（5.6-W-01 面，plan 2502 Phase 6）**：
+> - 桥接形态：`BridgeConnection` 为静态嵌套类持有 owner 反引调 `untrack`（与 `track` 同一实例 monitor，锁内记账）；记账 CAS（AtomicBoolean）保证重复 close 只 releaseOpen 一次（releaseOpen 自身对缺失条目 no-op 兜底）；`unwrap`/`isWrapperFor` 透传原连接。`openMemory` 包装 filePath=null 无 OPEN_FILES 面。
+> - 勘误 7 差异条款落点：`DuckDbEngine` 类 javadoc「Ledger retention policy note」（进程内生命周期配对 ledgers、族级保留期/TTL/row-cap 参数不适用、形态 D close 桥接投影、禁止套用 DB 表清理形态）+ owner doc `nop-duckdb.md` 新节「连接生命周期与账本释放」（refs 随连接 close 归零契约 + config-conflict 只在真实并存异配置间触发 + 族级 SSOT 差异条款①引用）。
+> - 必红证据（E2，变异探针——沿 Phase 2–5 同族先例）：`track` 桥接置空（返回原连接）→ 3 红（`_tmp/phase6-w01-red.log`：①双载体释放/rule 22 端到端/桥接幂等记账三断言 refs=1 残留；④engine.close() 兜底断言不受变异影响保持绿——兜底路径未被变异）→ 恢复 4 绿（`_tmp/phase6-w01-green.log` EXIT=0，surefire 4/0/0）。
+> - rule 23 接线验证：`testW_01_stepConsumptionChainReleasesBothLedgers`——真实 `DuckDbSqlTaskStep.execute` 消费链（ITaskStepRuntime 反射桩仅注入 step-local inputs）经 TWRS 真实持有并关闭包装连接，refs 归零可观测（openFileRefCount=null + trackedConnectionCount=0）——非仅包装类型存在。
+> - 门禁：`./mvnw test -pl nop-duckdb -am` BUILD SUCCESS（`_tmp/phase6-w01-gate.log` GATE_EXIT=0，62 测 0F 0E——既有 58 + 新增 4；TestDuckDbEngine 指纹冲突既有测试零回退）。
+> - Owner doc 去向：`docs-for-ai/03-modules/nop-duckdb.md`「连接生命周期与账本释放」节已随本提交落账（包装 close 幂等/unwrap 透传/close 兜底语义/失败显式可见/config-conflict 语义收敛/差异条款①引用）+「执行层 API」close() 条目补桥接注记 +「测试入口」计数 57→62。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 5.6-W-01 landed：双载体随连接生命周期闭合（close 桥接在位）+ 过期指纹误拒面闭合，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：先红后绿（修复前基线跑 ①③——TWRS 旁路下 refs 残留 + 指纹误拒断言红，测试仅用修复前既有 API 面保证可编译）或变异/回退论证留痕（快照 `_tmp/phase6-w01-*.log`）
-- [ ] **接线验证**（rule 23）：断言 close 桥接在真实 `DuckDbSqlTaskStep` 消费链上运行时生效（包装连接被 step 真实持有并关闭，refs 归零可观测——非仅包装类型存在）
-- [ ] `./mvnw test -pl nop-duckdb -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-duckdb.md` 连接生命周期契约核对（「refs 随连接 close 归零」语义随修复收敛为显式契约）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；去向登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 5.6-W-01 landed：双载体随连接生命周期闭合（close 桥接在位）+ 过期指纹误拒面闭合，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：先红后绿（修复前基线跑 ①③——TWRS 旁路下 refs 残留 + 指纹误拒断言红，测试仅用修复前既有 API 面保证可编译）或变异/回退论证留痕（快照 `_tmp/phase6-w01-*.log`）——变异探针承载（桥接置空 3 红→恢复 4 绿）
+- [x] **接线验证**（rule 23）：断言 close 桥接在真实 `DuckDbSqlTaskStep` 消费链上运行时生效（包装连接被 step 真实持有并关闭，refs 归零可观测——非仅包装类型存在）
+- [x] `./mvnw test -pl nop-duckdb -am` BUILD SUCCESS
+- [x] Owner doc 裁定：`nop-duckdb.md` 连接生命周期契约核对（「refs 随连接 close 归零」语义随修复收敛为显式契约）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；去向登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 7 - 分片 F：5.2-MA-04 sys_lock/sys_change_log retention + 留存语义（nop-sys）
 
-Status: planned
+Status: completed（2026-10-25，提交 `ef91ce0871`）
 Targets: `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/lock/SysDaoResourceLockManager.java`（周期清理面）、`nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/log/OrmEntityChangeLogInterceptor.java`（清理对面 + saveDirectly 批量化）、retention 配置载体、`nop-sys` 测试目录
 
 - Item Types: `Fix`（5.2-MA-04 已确认 live defect[P2 族]）、`Decision`（sys_change_log 留存语义条款结论）、`Proof`（回归测试）
 
-- [ ] 按 Phase 1 逐单表实现周期清理（照抄 `cleanupExpiredEvents` 形态）：sys_lock `delete where expireAt < now - grace`（覆盖「崩溃持有者+无人争用」僵尸行——争用触发式惰性清理的零覆盖面）+ sys_change_log 按留存语义结论清理
-- [ ] 留存语义条款落地（exit criteria 增补条）：sys_change_log retention 默认值与审计合规对照结论取自 Phase 1 设计文档，owner doc 补 retention 声明（声明落点=本工单验收面；若结论为「有意长期保留」则声明为显式边界并登记上限/导出策略——不允许三无状态延续）
-- [ ] ChangeLog saveDirectly 批量化（单会话批量插入同实体列行——写放大面随批，MA-04 族成员面）
-- [ ] retention 参数化：配置键/缺省值照抄 Phase 1 逐单表
-- [ ] 回归测试（rule 25，测试名带 `_MA_04` 标识）：①sys_lock 僵尸行（expireAt 过期+无争用）周期清理断言；②在持有/未到期锁行保留断言（清理不误伤活锁）；③sys_change_log 按留存语义清理断言；④批量化后列行数与内容等价断言（postSave/postUpdate 面）；⑤既有 nop-sys 测试零回归
-- [ ] **无静默跳过**（rule 24）：清理失败路径显式可见；批量化失败回退语义显式
-- [ ] **提交纪律**：nop-sys 一提交，commit message 带 `5.2-MA-04` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 按 Phase 1 逐单表实现周期清理（照抄 `cleanupExpiredEvents` 形态）：sys_lock `delete where expireAt < now - grace`（覆盖「崩溃持有者+无人争用」僵尸行——争用触发式惰性清理的零覆盖面）+ sys_change_log 按留存语义结论清理——新建 `SysDaoLedgerCleaner`（`io.nop.sys.dao.cleanup`，`LifeCycleSupport` @PostConstruct → doStart 周期调度，taskName=`nop-sys-ledger-cleanup`，绝缘六参入口）：lock 面锚列 `expireAt` 谓词 `expireAt < now − retention`（有界拾取+复合主键 or-of-and 精确批删——活跃锁续约刷新 expireAt 不入谓词；SysDaoResourceLockManager 产品文件零改动——清理面收敛独立 cleaner 组件不内联改造）；changelog 面锚列 `createTime`（有界拾取+sid IN 批删）
+- [x] 留存语义条款落地（exit criteria 增补条）：sys_change_log retention 默认值与审计合规对照结论取自 Phase 1 设计文档，owner doc 补 retention 声明（声明落点=本工单验收面；若结论为「有意长期保留」则声明为显式边界并登记上限/导出策略——不允许三无状态延续）——裁定⑤落账：不裁定永久保留，缺省 90 天（全域最长），`nop.sys.ledger.changelog.retention-days=0` 为永久保留显式 opt-in；`nop-sys.md`「账本保留策略」节声明留存语义（含「需要更长排查窗口应调大该键而非关闭清理」部署指引）
+- [x] ChangeLog saveDirectly 批量化（单会话批量插入同实体列行——写放大面随批，MA-04 族成员面）——`OrmEntityChangeLogInterceptor.saveBatch`：同一实体事件全部审计列行在一个独立新会话内 `saveDirectly(log,false)` 入队 + 单次 `flushActionQueue()`（postSave/postUpdate/postDelete 三入口统一走批量通道）；批内任一行失败整批异常上抛不吞（审计行全有或全无，失败语义与此前单行上抛一致且更强）
+- [x] retention 参数化：配置键/缺省值照抄 Phase 1 逐单表——`NopSysDaoConfigs` 补双 face 键（`nop.sys.ledger.lock.retention-days=7`/`nop.sys.ledger.changelog.retention-days=90[0=永久 opt-in]`/共用 `nop.sys.ledger.cleanup-interval=1h`/`nop.sys.ledger.delete-batch-size=1000`）+ `SYS_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS` 下限常量；`NopSysErrors` 补 `nop.err.sys.ledger-config-invalid`（fail-fast 三态+负保留期双面）
+- [x] 回归测试（rule 25，测试名带 `_MA_04` 标识）：①sys_lock 僵尸行（expireAt 过期+无争用）周期清理断言；②在持有/未到期锁行保留断言（清理不误伤活锁）；③sys_change_log 按留存语义清理断言；④批量化后列行数与内容等价断言（postSave/postUpdate 面）；⑤既有 nop-sys 测试零回归——`TestSysLedgerRetention_MA_04` 7 例（①zombieLockPurgedHeldAndInWindowRetained[②含内：活锁+窗内过期锁保留] ③changeLogRetentionSweepAndZeroPermanentOptIn[90d 语义+0 永久 opt-in 零删除] ④purgeIdempotent ⑤lifecycleChainInvokesLedgerCleanup[rule 23] ⑥zeroRetentionDisablesCleanupScheduling ⑦invalidLedgerConfigFailsFast[负 lock/负 changelog/非正批删/周期<60s 四态] + changeLogBatchSaveEquivalenceInSingleSession[④：单会话计数/flush 单次/行数与 propName·oldValue·newValue 逐行等价]）；⑤既有 nop-sys 测试零回归由模块门禁承载（拦截器既有 6+1 例、TestSysEventCleanup 2、TestSysDaoResourceLockManager 6 solo 全绿）
+- [x] **无静默跳过**（rule 24）：清理失败路径显式可见；批量化失败回退语义显式——`IPeriodicTaskListener.onRunFailure/onChainRejected` ERROR+失败计数（`nop.sys.ledger.cleanup-fail`）；批内失败整批异常上抛（javadoc 明示全有或全无）；错配置启动期 fail-fast
+- [x] **提交纪律**：nop-sys 一提交，commit message 带 `5.2-MA-04` 与 plan 号——`ef91ce0871`
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-10-25 条目随本 Phase 回填提交落账）
+
+> **执行注记（5.2-MA-04 面，plan 2502 Phase 7）**：
+> - 双面现状与修复对应：sys_lock 既有删除点仅 forceUnlock/争用触发惰性删除/releaseLock 三处（崩溃持有者+无人争用资源零覆盖）；sys_change_log 全模块零删除点——本修复不动既有惰性删除语义（保留为快路径），新增跨键周期清扫通道；`SysDaoResourceLockManager` 产品文件零改动（清理面收敛独立 cleaner，与 nop-auth/nop-metadata 分片同形态）。
+> - 生命周期接线（防 C7-005 空壳）：`app-dao.beans.xml`（手维护文件）装配单例 bean `nopSysDaoLedgerCleaner`（ioc:default=true）→ `LifeCycleSupport` `@PostConstruct start()` → `doStart` 周期调度（`timer.executeOn(worker).scheduleWithFixedDelay` 绝缘六参入口）→ `doStop` 取消；lock 保留期 7 天=过期后滞留窗（grace 由保留窗承担——宁长勿短）。
+> - 必红证据（E2，变异探针，修复后恢复即绿）：双 purge 体置空 → 4 红（`_tmp/phase7-ma04-red.log`：①③僵尸锁清理/changelog 留存语义/幂等/接线端到端四断言 deleted=0 或行残留；批量化等价/fail-fast/双 0 禁用三例不受变异影响保持绿——断言面与变异面正交）→ 恢复全绿（`_tmp/phase7-ma04-green.log` EXIT=0，surefire 7/0/0）。
+> - rule 23 接线验证：`testMA_04_lifecycleChainInvokesLedgerCleanup`——doStart→CapturingTimer 捕获调度参数（taskName=`nop-sys-ledger-cleanup`/interval=1h 传参）→ 被调度命令运行时在真实 DB 链上删除过期僵尸锁行（端到端接线断言）+ doStop 取消断言。
+> - 批量化等价断言（④）：`changeLogBatchSaveEquivalenceInSingleSession`——反射桩记录 runInNewSession/saveDirectly(entity,flush)/flushActionQueue：postSave 两可审计列=恰 1 会话+2 行+1 flush+propName/newValue 逐行等价；postUpdate 剔除 version 单会话；postDelete deleted=0→1 单行——行数与内容语义与逐列形态等价（既有 wi7 拦截器测试 6+1 例零回归佐证）。
+> - 门禁：`./mvnw test -pl nop-sys -am` 全聚合通道一次通过 BUILD SUCCESS（`_tmp/phase7-ma04-gate.log` GATE_EXIT=0，453 模块 12min21s；`TestSysLedgerRetention_MA_04` 7/7 in-reactor 绿；Phase 2/5 注记中的 TestOperationMfaE2E/nop-stream flake 本轮未复现）。
+> - Owner doc 去向：`docs-for-ai/03-modules/nop-sys.md`「账本保留策略」节已随本提交落账（双 face 配置键表/清理谓词/留存语义裁定⑤声明[本工单既定验收面]/失败可见性）+「字段级变更日志」节补批量写入形态注记 +「源码锚点」表补 `SysDaoLedgerCleaner` 行。
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 5.2-MA-04 landed：sys_lock/sys_change_log 周期清理在位 + saveDirectly 批量化 + 留存语义声明落 owner doc，参数来自 Phase 1 逐单表，带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：清理断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase7-ma04-*.log`）
-- [ ] **接线验证**（rule 23）：断言周期清理在真实装配链上被调度执行（照抄 cleanupExpiredEvents 的 doStart 接线形态真实生效——防 C7-005 空壳形态）
-- [ ] `./mvnw test -pl nop-sys -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-sys.md` retention 声明与留存语义结论落账（5.2-MA-04 exit criteria 增补条的落点）——受影响面随批更新；`No owner-doc update required` 不适用于本 Phase（留存语义声明为既定验收面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 5.2-MA-04 landed：sys_lock/sys_change_log 周期清理在位 + saveDirectly 批量化 + 留存语义声明落 owner doc，参数来自 Phase 1 逐单表，带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：清理断言先红后绿或变异/回退论证留痕（快照 `_tmp/phase7-ma04-*.log`）——变异探针承载（双 purge 体置空 4 红→恢复 7 绿）
+- [x] **接线验证**（rule 23）：断言周期清理在真实装配链上被调度执行（照抄 cleanupExpiredEvents 的 doStart 接线形态真实生效——防 C7-005 空壳形态）
+- [x] `./mvnw test -pl nop-sys -am` BUILD SUCCESS
+- [x] Owner doc 裁定：`nop-sys.md` retention 声明与留存语义结论落账（5.2-MA-04 exit criteria 增补条的落点）——受影响面随批更新；`No owner-doc update required` 不适用于本 Phase（留存语义声明为既定验收面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 8 - 全量验证 + owner doc 八份落账 + 台账回填（E1/E3/E5）
 
