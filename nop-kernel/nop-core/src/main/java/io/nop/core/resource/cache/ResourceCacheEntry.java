@@ -8,6 +8,7 @@
 package io.nop.core.resource.cache;
 
 import io.nop.api.core.config.IConfigReference;
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.resource.IResourceReference;
 import io.nop.api.core.time.CoreMetrics;
@@ -27,11 +28,19 @@ import org.slf4j.LoggerFactory;
 import java.io.Serializable;
 import java.time.Duration;
 import java.util.Collection;
+import java.util.Map;
+import java.util.StringJoiner;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_CACHE_TIMEOUT;
+import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT;
 import static io.nop.core.CoreConfigs.CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL;
+import static io.nop.core.CoreErrors.ARG_DEP_STACK;
 import static io.nop.core.CoreErrors.ARG_RESOURCE_PATH;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_CIRCULAR_WAIT;
 import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_MTIME_CHANGED;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_REENTRANT_LOOP;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT;
 
 /**
  * 管理缓存对象和对象的依赖集合。每次获取时如果发现依赖已经改变，则重新加载
@@ -54,6 +63,13 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
 
     // 值为null表示尚未加载，如果为占位对象NULL，则表示加载过，但是加载得到的结果是null
     private volatile Object object; //NOSONAR
+
+    // 装载状态机（plan 2504 裁定②，C2-001）：IDLE=空闲；LOADING=已安装占位、装载体在监视器外执行。
+    // 读写均在entry监视器内（等待者在wait前登记等待图边），非volatile安全
+    static final int STATE_IDLE = 0;
+    static final int STATE_LOADING = 1;
+    private int loadState = STATE_IDLE;
+    private Thread loaderThread;
 
     // 对象记载过程中所记录的依赖资源集合。写入发生在synchronized的loadObject内，
     // isChanged/isRefreshEnabled等读路径不持锁，需要volatile保证可见性
@@ -255,35 +271,226 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
     public T getObject(boolean checkChanged, IResourceObjectLoader<T> loader) {
         Object value = object;
         if (value == null || checkChanged && shouldReloadObject()) {
-            synchronized (this) {
-                // 如果object与value不同，则表示在争抢锁的过程中已经有其他线程加载
-                Object current = object;
-                if (current != value && current != null) {
-                    value = current;
-                } else {
-                    try {
-                        value = loadObject(loader);
-                    } catch (Exception e) {
-                        // 装载失败，则原先的结果也清空，这样下次会继续执行装载
-                        object = null;
-                        throw NopException.adapt(e);
-                    }
-                    if (value != null && listener != null)
-                        listener.onCreated((T) value);
-
-                    if (value == null) {
-                        object = Null.NULL;
-                    } else {
-                        object = value;
-                    }
-
-                }
-            }
+            value = doGetObject(value, loader);
         }
         ResourceDependencySet deps = this.deps;
         if (deps != null)
             ResourceComponentManager.instance().traceAllDepends(deps.getDepends());
         return normalizeObject(value);
+    }
+
+    /**
+     * 装载状态机编排（plan 2504 裁定②，C2-001）：监视器内只做同 key 去重 + 占位安装 + 发布；
+     * 装载体（解析+编译 I/O）一律在监视器外执行。跨线程装载/编译等待统一登记于
+     * {@link LoadWaitGraph}（机制单点，LazyFn 编译等待共用）做环检测；检测竞态漏检窗由
+     * 有界等待兜底（CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT，≤0=不设上界）。
+     */
+    private Object doGetObject(Object value, IResourceObjectLoader<T> loader) {
+        synchronized (this) {
+            for (;;) {
+                Object current = this.object;
+                if (current != null && current != value) {
+                    // 同 key 去重：争抢/等待期间其他线程已发布新结果
+                    return current;
+                }
+                if (loadState == STATE_LOADING) {
+                    // 环错误消息构造重入降级：NopException 消息解析会重入 i18n 缓存装载（I18nMessageManager →
+                    // ResourceLoadingCache）。若在环错误构造期间再次命中装载占位，按基线重入语义直接重载
+                    // （不等待、不构造新错误——flag 已置位压制装载期错误构造的递归），阻断
+                    // 「构造错误 → i18n 装载 → 构造错误」无限递归（SOE 面）；仅发生在错误构造栈内
+                    if (IN_RING_ERROR_CONSTRUCTION.get() == Boolean.TRUE) {
+                        if (LOG.isDebugEnabled())
+                            LOG.debug("nop.core.resource.cache-ring-error-reentry:path={}", path);
+                        return loadObject(loader);
+                    }
+                    // 占位命中：等待协议（监视器外装载完成/失败复位时 notifyAll）
+                    Object waited = awaitLoadCompletion(value);
+                    if (waited != null)
+                        return waited;
+                    // 失败复位/空闲 → 本线程成为装载者（失败不驻留，禁 C2-015 式条目驻留）
+                    continue;
+                }
+                // 占位安装（监视器内），装载体在监视器外执行
+                loadState = STATE_LOADING;
+                loaderThread = Thread.currentThread();
+                break;
+            }
+        }
+
+        Object result;
+        try {
+            result = loadObject(loader);
+        } catch (Exception e) {
+            synchronized (this) {
+                // 装载失败：清除陈旧结果并复位占位（与既有 getObject 失败语义一致），唤醒等待者各自重试
+                this.object = null;
+                finishLoading();
+            }
+            throw NopException.adapt(e);
+        } catch (Throwable e) {
+            synchronized (this) {
+                // Error 不落占位悬挂：复位后原样上抛
+                this.object = null;
+                finishLoading();
+            }
+            throw e;
+        }
+
+        synchronized (this) {
+            if (result != null && listener != null)
+                listener.onCreated((T) result);
+
+            if (result == null) {
+                object = Null.NULL;
+            } else {
+                object = result;
+            }
+            finishLoading();
+        }
+        return result;
+    }
+
+    /**
+     * 等待协议（调用时持 entry 监视器）：先做同线程重入环检测（SOE 面闭合），再登记等待图边做
+     * 跨线程环检测，最后进入有界等待。返回非 null = 已发布结果（去重复用）；返回 null = 装载失败
+     * 复位/空闲，调用方成为装载者。环命中/等待超时抛类型化错误并即时打断（无永久悬挂路径）。
+     */
+    private Object awaitLoadCompletion(Object value) {
+        Thread current = Thread.currentThread();
+        if (loaderThread == current) {
+            // 同线程重入环（loadDslModel 循环依赖的同线程形态）：类型化收敛，SOE 面闭合
+            throw ringError(ERR_COMPONENT_RESOURCE_LOAD_REENTRANT_LOOP, null);
+        }
+
+        Thread target = loaderThread;
+        long timeoutMillis = loadWaitTimeoutMillis();
+        long deadline = timeoutMillis > 0 ? CoreMetrics.currentTimeMillis() + timeoutMillis : 0L;
+
+        // 跨线程环检测：登记「等待者 → 目标装载线程」边并回溯目标等待链（与 LazyFn 编译等待共用同一等待图）
+        LoadWaitGraph.register(current, target);
+        try {
+            if (LoadWaitGraph.wouldCycle(current, target)) {
+                throw ringError(ERR_COMPONENT_RESOURCE_LOAD_CIRCULAR_WAIT, LoadWaitGraph.describeChain(current))
+                        .param(ARG_RESOURCE_PATH, path);
+            }
+            for (;;) {
+                Object currentObj = this.object;
+                if (currentObj != null && currentObj != value) {
+                    // 装载完成发布：去重复用
+                    return currentObj;
+                }
+                if (loadState != STATE_LOADING) {
+                    // 失败复位/空闲：交还调用方重新裁决
+                    return null;
+                }
+                if (deadline > 0) {
+                    long remaining = deadline - CoreMetrics.currentTimeMillis();
+                    if (remaining <= 0) {
+                        // 有界兜底：等待图回溯存在竞态漏检窗，超时类型化（携带等待链快照，诊断可见）
+                        throw ringError(ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT,
+                                LoadWaitGraph.describeChain(current)).param(ARG_RESOURCE_PATH, path);
+                    }
+                    wait(remaining);
+                } else {
+                    wait();
+                }
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw NopException.adapt(e);
+        } finally {
+            LoadWaitGraph.unregister(current);
+        }
+    }
+
+    private void finishLoading() {
+        loadState = STATE_IDLE;
+        loaderThread = null;
+        notifyAll();
+    }
+
+    /**
+     * 有界等待兜底上界（毫秒）：装载等待与 LazyFn 编译等待共用同一配置键
+     * （CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT），≤0 = 不设上界。
+     */
+    public static long loadWaitTimeoutMillis() {
+        Integer timeout = CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT.get();
+        if (timeout == null || timeout < 0)
+            return 0;
+        return timeout;
+    }
+
+    /**
+     * 环错误构造守卫：NopException 构造期会解析本地化描述（重入 i18n 缓存装载）。构造期间置位，
+     * 使重入的装载占位命中走降级路径（见 doGetObject），阻断递归构造。
+     */
+    static final ThreadLocal<Boolean> IN_RING_ERROR_CONSTRUCTION = new ThreadLocal<>();
+
+    /**
+     * 环/等待类型化错误构造（携带 resourcePath 与等待链快照）：构造期间置
+     * {@link #IN_RING_ERROR_CONSTRUCTION}，i18n 解析重入装载时降级而非递归构造。
+     */
+    public static NopException ringError(ErrorCode code, String waitChain) {
+        IN_RING_ERROR_CONSTRUCTION.set(Boolean.TRUE);
+        try {
+            NopException e = new NopException(code);
+            if (waitChain != null)
+                e.param(ARG_DEP_STACK, waitChain);
+            return e;
+        } finally {
+            IN_RING_ERROR_CONSTRUCTION.set(Boolean.FALSE);
+        }
+    }
+
+    /**
+     * 跨线程装载/编译等待共用的等待图（plan 2504 裁定②机制单点）：边 = 等待线程 → 被等待线程。
+     * 环检测 = 从目标线程出发回溯其等待链，链回到等待者自身即命中环（后到等待者抛类型化环错误，
+     * 打断环上一条边，对方装载随后以失败复位收敛）。登记成本为每等待一次 O(链长) 内存操作。
+     */
+    public static final class LoadWaitGraph {
+        private static final int MAX_CHAIN_DEPTH = 1000;
+        private static final Map<Thread, Thread> WAIT_EDGES = new ConcurrentHashMap<>();
+
+        private LoadWaitGraph() {
+        }
+
+        public static void register(Thread waiter, Thread target) {
+            WAIT_EDGES.put(waiter, target);
+        }
+
+        public static void unregister(Thread waiter) {
+            WAIT_EDGES.remove(waiter);
+        }
+
+        /**
+         * 从 target 回溯等待链，链回到 waiter 即环命中。
+         */
+        public static boolean wouldCycle(Thread waiter, Thread target) {
+            Thread t = target;
+            for (int depth = 0; t != null && depth < MAX_CHAIN_DEPTH; depth++) {
+                if (t == waiter)
+                    return true;
+                t = WAIT_EDGES.get(t);
+            }
+            return false;
+        }
+
+        /**
+         * 等待链快照（诊断可见）：waiter → ... 形式。
+         */
+        public static String describeChain(Thread waiter) {
+            StringJoiner sj = new StringJoiner(" -> ");
+            Thread t = waiter;
+            for (int depth = 0; t != null && depth < MAX_CHAIN_DEPTH; depth++) {
+                sj.add(String.valueOf(t.getName()));
+                t = WAIT_EDGES.get(t);
+                if (t == waiter) {
+                    sj.add("(cycle)");
+                    break;
+                }
+            }
+            return sj.toString();
+        }
     }
 
     public void traceDepends() {
@@ -345,20 +552,18 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
         }
     }
 
-    private synchronized void reloadObject(IResourceObjectLoader<T> loader) {
+    private void reloadObject(IResourceObjectLoader<T> loader) {
         Object oldObj = normalizeObject(this.object);
 
-        Object obj = loadObject(loader);
-        if (obj != oldObj) {
-            // 与getObject保持一致：null结果记录Null占位而不是裸null，且不回调onCreated(null)
-            if (obj != null && listener != null) {
-                listener.onCreated((T) obj);
-            }
-            this.object = obj == null ? Null.NULL : obj;
+        // C2-001 同链修复：装载经装载状态机编排（占位安装 + 监视器外装载 + 等待协议/环检测），
+        // 与 getObject 共用同一不变式「监视器内只做同 key 去重+占位，装载在监视器外」
+        Object obj = doGetObject(this.object, loader);
 
+        if (obj != oldObj) {
             destroyObject(oldObj);
         }
     }
+
 
     private void destroyObject(Object oldObj) {
         if (oldObj != null && oldObj != Null.NULL) {

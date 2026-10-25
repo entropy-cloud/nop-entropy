@@ -10,6 +10,7 @@ package io.nop.xlang.xpl.xlib;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
@@ -23,6 +24,7 @@ import io.nop.core.reflect.ReflectionManager;
 import io.nop.core.reflect.impl.FunctionArgument;
 import io.nop.core.reflect.impl.FunctionModel;
 import io.nop.core.resource.cache.IObjectChangeDetectable;
+import io.nop.core.resource.cache.ResourceCacheEntry;
 import io.nop.core.resource.cache.ResourceCacheEntryWithLoader;
 import io.nop.core.resource.component.ResourceComponentManager;
 import io.nop.core.resource.deps.ResourceDependencySet;
@@ -70,6 +72,9 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static io.nop.xlang.XLangConfigs.CFG_XPL_LIB_TAG_RELOADABLE;
+import static io.nop.core.CoreErrors.ARG_DEP_STACK;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_CIRCULAR_WAIT;
+import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT;
 import static io.nop.xlang.XLangErrors.ARG_ALLOWED_NAMES;
 import static io.nop.xlang.XLangErrors.ARG_ARG_NAME;
 import static io.nop.xlang.XLangErrors.ARG_ATTR_NAME;
@@ -716,6 +721,9 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
          */
         private final String bindingKey;
         private boolean compiled;
+        // 编译中占位（plan 2504 裁定②，C2-017）：监视器内只做双检+占位安装/复位，编译体在监视器外
+        private boolean compiling;
+        private Thread compilingThread;
         // invoke() 无锁读取编译产物，主流程依赖组件缓存的安全发布；volatile 补齐无发布中介场景的可见性
         private volatile IEvalFunction compiledFn;
         private volatile RuntimeException compileException;
@@ -731,42 +739,122 @@ public class XplLibTagCompiler implements IXplLibTagCompiler {
             return compiledFn;
         }
 
-        public synchronized void compile() {
-            if (compileException != null)
-                throw compileException;
+        /**
+         * 编译单飞（plan 2504 裁定②，C2-017）：监视器内只做 compiled/compileException 双检 + 编译中占位；
+         * 编译体（parseSource/runImportExprs 宏执行/compileFunction/类绑定）整体移出监视器 ——
+         * 消除「持 LazyFn 监视器执行完整 XPL 编译」与模型装载发布的交叉等待环（环④/环⑤）。
+         * <p>
+         * 跨线程在飞等待统一登记 {@link ResourceCacheEntry.LoadWaitGraph}（与 entry 层装载等待共用同一
+         * 等待图）做环检测，检测竞态漏检窗由有界等待兜底（CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT，
+         * ≤0=不设上界）；环命中/超时抛类型化错误（CoreErrors，机制单点），无永久悬挂路径。
+         * <p>
+         * 编译期重入（同线程）：与既有语义一致立即返回（compiled 已置位）——自递归标签（Nested 型，
+         * 嵌套调用点经 CallExpression 引用本函数）是合法编译形态，重入返回后由运行期 compiledFn
+         * 就绪状态决定 invoke 行为（未就绪时 ERR_XPL_TAG_FUNC_IS_COMPILING 契约保持）。
+         */
+        public void compile() {
+            boolean owner = false;
+            synchronized (this) {
+                if (compileException != null)
+                    throw compileException;
 
-            if (compiled)
+                if (compiled)
+                    return;
+
+                if (compiling) {
+                    if (compilingThread == Thread.currentThread()) {
+                        // 编译期重入：自递归标签合法形态，立即返回（契约见方法注释）
+                        return;
+                    }
+                    awaitCompiledByOther();
+                    if (compileException != null)
+                        throw compileException;
+                    return;
+                }
+
+                compiled = true;
+                compiling = true;
+                compilingThread = Thread.currentThread();
+                owner = true;
+            }
+
+            if (!owner)
                 return;
 
-            compiled = true;
-
-            ResourceDependencySet deps = new VirtualResourceDependencySet(getTag().getTagFuncName());
             try {
-                ResourceComponentManager.instance().collectDependsTo(deps, () -> {
-                    try {
-                        ArrowFunctionExpression ast = parseSource(compileTool);
-                        compiledFn = compileTool.compileFunction(ast);
-                        applyGeneratedClassBinding();
-                        compiledTag.functionModel.setInvoker(compiledFn);
-                        compiledTag.functionModel.freeze(true);
-                    } catch (Exception e) {
-                        compiledTag.deps = deps;
+                ResourceDependencySet deps = new VirtualResourceDependencySet(getTag().getTagFuncName());
+                try {
+                    ResourceComponentManager.instance().collectDependsTo(deps, () -> {
+                        try {
+                            ArrowFunctionExpression ast = parseSource(compileTool);
+                            compiledFn = compileTool.compileFunction(ast);
+                            applyGeneratedClassBinding();
+                            compiledTag.functionModel.setInvoker(compiledFn);
+                            compiledTag.functionModel.freeze(true);
+                        } catch (Exception e) {
+                            compiledTag.deps = deps;
+                            compileException = NopException.adapt(e);
+                            throw compileException;
+                        }
+                        return null;
+                    });
+                } catch (Exception e) {
+                    // 内层 catch 已设置 compileException 时原样重抛；否则是依赖收集机制自身失败。
+                    // 不记录的话 compiled=true 且产物为 null，后续 compile() 静默返回、
+                    // invoke() 永远抛 ERR_XPL_TAG_FUNC_IS_COMPILING，进入不可恢复状态
+                    if (compileException == null) {
                         compileException = NopException.adapt(e);
                         throw compileException;
                     }
-                    return null;
-                });
-            } catch (Exception e) {
-                // 内层 catch 已设置 compileException 时原样重抛；否则是依赖收集机制自身失败。
-                // 不记录的话 compiled=true 且产物为 null，后续 compile() 静默返回、
-                // invoke() 永远抛 ERR_XPL_TAG_FUNC_IS_COMPILING，进入不可恢复状态
-                if (compileException == null) {
-                    compileException = NopException.adapt(e);
-                    throw compileException;
+                    throw e;
                 }
-                throw e;
+                compiledTag.deps = deps;
+            } finally {
+                // 监视器内复位占位并唤醒在飞等待者（成功与失败路径统一收敛）
+                synchronized (this) {
+                    compiling = false;
+                    compilingThread = null;
+                    notifyAll();
+                }
             }
-            compiledTag.deps = deps;
+        }
+
+        /**
+         * 跨线程单飞等待（调用时持本监视器）：登记等待图边 + 环检测 + 有界等待，与 entry 层装载等待共用
+         * 同一等待图机制（plan 2504 裁定②机制单点）。
+         */
+        private void awaitCompiledByOther() {
+            Thread current = Thread.currentThread();
+            Thread target = compilingThread;
+            long timeoutMillis = ResourceCacheEntry.loadWaitTimeoutMillis();
+            long deadline = timeoutMillis > 0 ? CoreMetrics.currentTimeMillis() + timeoutMillis : 0L;
+
+            ResourceCacheEntry.LoadWaitGraph.register(current, target);
+            try {
+                if (ResourceCacheEntry.LoadWaitGraph.wouldCycle(current, target)) {
+                    throw ResourceCacheEntry.ringError(ERR_COMPONENT_RESOURCE_LOAD_CIRCULAR_WAIT,
+                            ResourceCacheEntry.LoadWaitGraph.describeChain(current)).source(tag);
+                }
+                for (;;) {
+                    if (!compiling)
+                        return;
+                    if (deadline > 0) {
+                        long remaining = deadline - CoreMetrics.currentTimeMillis();
+                        if (remaining <= 0) {
+                            throw ResourceCacheEntry.ringError(ERR_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT,
+                                    ResourceCacheEntry.LoadWaitGraph.describeChain(current)).source(tag);
+                        }
+                        wait(remaining);
+                    } else {
+                        wait();
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
+            } finally {
+                ResourceCacheEntry.LoadWaitGraph.unregister(current);
+            }
         }
 
         /**

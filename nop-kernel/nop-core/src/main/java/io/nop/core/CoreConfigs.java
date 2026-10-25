@@ -107,6 +107,11 @@ public interface CoreConfigs {
     IConfigReference<Duration> CFG_COMPONENT_RESOURCE_CACHE_CHANGE_GRACE_PERIOD = varRef(s_loc,
             "nop.core.component.resource-cache.change-grace-period", Duration.class, Duration.ofSeconds(2));
 
+    @Description("装载等待上界（plan 2504 裁定②）：entry层装载状态机与LazyFn编译单飞的跨线程等待在等待图环检测"
+            + "竞态漏检窗内的兜底上限，超时抛类型化错误（携带等待链快照）。≤0表示不设上界（现行无界语义）")
+    IConfigReference<Integer> CFG_COMPONENT_RESOURCE_LOAD_WAIT_TIMEOUT = varRef(s_loc,
+            "nop.core.component.resource-cache.load-wait-timeout", Integer.class, 60_000);
+
     @Description("在启用tenant定制的情况下，最多允许多少个tenant的数据缓存在内存中")
     IConfigReference<Integer> CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE = varRef(s_loc,
             "nop.core.component.resource-cache.tenant-cache-container-size", Integer.class, 100);
