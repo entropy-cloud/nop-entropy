@@ -306,6 +306,13 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
                                 + CLOSE_JOIN_TIMEOUT_MILLIS + "ms of close()");
             }
         }
+        if (embeddedFunction != null) {
+            // C3-014 ② (plan 2503 Phase 3): the close contract requires the embedded engine
+            // TERMINATED, not merely asked to stop — the pre-fix「join 成功 ≠ 引擎终止」window
+            // (runner exited via latch while the ghost engine survived) is closed with a
+            // typed failure on ghost risk.
+            embeddedFunction.verifyEmbeddedEngineTerminated("reader-close", true);
+        }
         if (queue != null) {
             queue.clear();
         }

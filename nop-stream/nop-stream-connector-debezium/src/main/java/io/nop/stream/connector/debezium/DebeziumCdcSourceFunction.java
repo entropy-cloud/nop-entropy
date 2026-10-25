@@ -42,6 +42,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_STATE_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECUTE_FAILED;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
@@ -68,6 +69,12 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
      * Operator-state key under which the CDC offset map is persisted in the checkpoint snapshot.
      */
     public static final String CDC_OFFSETS_KEY = "cdc-offsets";
+
+    /**
+     * C3-014 ② (plan 2503 Phase 3): bounded budget for the engine terminality verification
+     * applied after every in-scope stop face (aligned with the reader close chain's 5s join).
+     */
+    static final long ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS = 5000L;
 
     /**
      * Debezium connector configuration. No longer {@code transient}: {@link DebeziumConfig}
@@ -308,6 +315,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             if (source != null) {
                 try {
                     source.stop();
+                    // C3-014 ②: stop contract =「已终止」— ERROR ghost declaration (cleanup
+                    // must never mask the primary result of run())
+                    verifyEmbeddedEngineTerminated("run-finally", false);
                 } catch (Exception e) {
                     // cleanup path: never masks the primary result, but stays observable
                     LOG.warn("Failed to stop Debezium message source during cleanup", e);
@@ -315,6 +325,46 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                 source = null;
             }
             runEntered.set(false);
+        }
+    }
+
+    /**
+     * C3-014 ② (plan 2503 Phase 3): engine terminality verification after a stop face —
+     * the stop contract is「引擎已终止」, not「stop 已发出」. Polls the embedded message
+     * source's engine termination signal within {@link #ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS}.
+     *
+     * <p>{@code throwOnGhost} selects the visible-failure shape per face: typed
+     * {@link StreamException} where the face's signature carries failures to the caller
+     * (reader close / truncateForDrain); explicit ERROR ghost-risk declaration where cleanup
+     * must never mask a primary result (run finally / cancel). Both shapes are rule-24
+     * visible — never silent.
+     */
+    void verifyEmbeddedEngineTerminated(String stopFace, boolean throwOnGhost) throws StreamException {
+        DebeziumMessageSource msgSource = this.source;
+        if (msgSource == null) {
+            // nothing launched under this face — vacuously terminated
+            return;
+        }
+        long deadline = System.currentTimeMillis() + ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS;
+        while (!msgSource.isEngineTerminated()) {
+            if (System.currentTimeMillis() >= deadline) {
+                String detail = "embedded Debezium engine did not terminate within "
+                        + ENGINE_TERMINATION_VERIFY_BUDGET_MILLIS + "ms of " + stopFace
+                        + " - ghost engine risk (live binlog connection; offset writes may "
+                        + "continue until JVM exit)";
+                if (throwOnGhost) {
+                    throw new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED)
+                            .param(ARG_DETAIL, detail);
+                }
+                LOG.error("nop.stream.debezium.engine-ghost-risk:face={} - {}", stopFace, detail);
+                return;
+            }
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
         }
     }
 
@@ -340,6 +390,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         DebeziumMessageSource msgSource = this.source;
         if (msgSource != null) {
             msgSource.stop();
+            // C3-014 ②: terminality verification with ERROR ghost declaration — cancel()
+            // must not throw into framework teardown, but the ghost risk stays visible
+            verifyEmbeddedEngineTerminated("cancel", false);
         }
     }
 
@@ -359,6 +412,8 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         DebeziumMessageSource msgSource = this.source;
         if (msgSource != null) {
             msgSource.stop();
+            // C3-014 ②: typed failure on ghost risk (the drain contract carries failures)
+            verifyEmbeddedEngineTerminated("truncateForDrain", true);
             source = null;
         }
         if (completionLatch != null) {

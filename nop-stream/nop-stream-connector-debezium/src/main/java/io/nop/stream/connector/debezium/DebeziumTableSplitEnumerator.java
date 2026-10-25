@@ -14,9 +14,11 @@ import io.nop.stream.core.source.SplitEnumeratorContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +47,15 @@ public class DebeziumTableSplitEnumerator
     private final List<String> tables;
     /** subtask index → table share (computed at start, consumed by addReader). */
     private final Map<Integer, List<String>> shareBySubtask = new LinkedHashMap<>();
+    /**
+     * C3-004 (plan 2503 Phase 3): restored unassigned tables, RECORDED — never pre-bucketed.
+     * Consumed by {@link #start(SplitEnumeratorContext)} so each table lands in exactly one
+     * share bucket (difference-set semantics: the restored set never adds a second
+     * registration for a table the fresh recompute already buckets).
+     */
+    private final Set<String> restoredUnassigned = new LinkedHashSet<>();
+    /** Recorded reader slot for restored tables that fall out of a shrunken include list. */
+    private int restoredNextSubtaskIndex;
     private boolean parallelismValidated;
     private transient SplitEnumeratorContext<DebeziumTableSplit> context;
 
@@ -60,10 +71,25 @@ public class DebeziumTableSplitEnumerator
             validateParallelism(parallelism);
             parallelismValidated = true;
         }
-        // round-robin the tables over the reader slots
+        // round-robin the tables over the reader slots. C3-004: every table lands in
+        // EXACTLY ONE bucket (its position share) — the restored unassigned set merges into
+        // the same bucketing below instead of forming a second registration.
         for (int i = 0; i < tables.size(); i++) {
             int subtask = i % parallelism;
             shareBySubtask.computeIfAbsent(subtask, k -> new ArrayList<>()).add(tables.get(i));
+        }
+        // C3-004 (plan 2503 Phase 3): restored unassigned tables that are no longer in the
+        // current include list (include-list shrink across restart) keep a single-bucket
+        // re-offer under the recorded reader slot, so the re-offer is never silently dropped.
+        // They cannot double-register: the recompute above never touches them.
+        for (String table : restoredUnassigned) {
+            if (!tables.contains(table)) {
+                LOG.warn("DebeziumTableSplitEnumerator restored unassigned table {} is no longer "
+                        + "in the include list; re-offering via the recorded reader slot {}",
+                        table, restoredNextSubtaskIndex);
+                shareBySubtask.computeIfAbsent(restoredNextSubtaskIndex, k -> new ArrayList<>())
+                        .add(table);
+            }
         }
         LOG.info("DebeziumTableSplitEnumerator started: {} tables over {} readers (shares={})",
                 tables.size(), parallelism, shareBySubtask);
@@ -124,14 +150,16 @@ public class DebeziumTableSplitEnumerator
                 || state.getUnassignedTables().isEmpty()) {
             return;
         }
-        // restored unassigned tables are re-offered to registering readers (one table per
-        // registration — a partial-assignment recovery)
-        List<String> unassigned = new ArrayList<>(state.getUnassignedTables());
-        for (String table : unassigned) {
-            shareBySubtask.computeIfAbsent(state.getNextSubtaskIndex(), k -> new ArrayList<>())
-                    .add(table);
-        }
-        LOG.info("DebeziumTableSplitEnumerator restored {} unassigned table(s)", unassigned.size());
+        // C3-004 (plan 2503 Phase 3): restored unassigned tables are RECORDED, not
+        // pre-bucketed. Pre-fix they were dumped into a single nextSubtaskIndex bucket while
+        // start()'s full recompute ALSO registered them in their position buckets — the same
+        // table ended up in two readers' shares and two engines consumed it (recovered-state
+        // ∪ fresh-share union instead of the required difference set; each table duplicated
+        // downstream). Now start()'s position recompute alone decides the single bucket.
+        restoredUnassigned.addAll(state.getUnassignedTables());
+        restoredNextSubtaskIndex = state.getNextSubtaskIndex();
+        LOG.info("DebeziumTableSplitEnumerator restored {} unassigned table(s)",
+                restoredUnassigned.size());
     }
 
     @Override
