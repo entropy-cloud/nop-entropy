@@ -87,6 +87,26 @@
 | `nop.auth.defaultPublic` | `true` | 所有路径默认公开，仅 authPaths 中的需认证 |
 | `nop.auth.rate-limit.store-type` | `local` | 发码限流后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
 | `nop.auth.login-attempt.store-type` | `local` | 登录失败计数后端（`local`/`db`/`redis`）；集群取 `db`（无 Redis）或 `redis` |
+| `nop.auth.ledger.retention-days` | `30` | 六族账本保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast（见「账本保留策略」） |
+| `nop.auth.ledger.cleanup-interval` | `1h` | 账本清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.auth.ledger.delete-batch-size` | `1000` | 账本单轮单表删除上限（有界拾取 + IN 批删）；非正数启动期 fail-fast |
+
+## 账本保留策略（5.1-MA-01，plan 2502）
+
+认证六族账本表由 `NopAuthLedgerCleaner` 生命周期链周期清扫（IoC 单例 bean `nopAuthLedgerCleaner` → `LifeCycleSupport` `@PostConstruct start()` → 周期调度，taskName=`nop-auth-ledger-cleanup`）。参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md（R01 族级保留策略，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.auth.ledger.retention-days` | 30 | 保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast |
+| `nop.auth.ledger.cleanup-interval` | 1h | 清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.auth.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（有界拾取 + IN 批删）；非正数启动期 fail-fast |
+
+清理谓词与保留语义（六族一处实现、处置一致）：
+
+- **NopAuthSession**：锚列 `lastAccessTime`（主锚）+ `logoutTime` 判别（已终结行），超期整行删除——行删除即令牌载荷（accessToken/refreshToken/cacheData）清除。
+- **五族短 TTL 临时行**（mfa_challenge / sms_code / email_code / rate_limit_counter / login_attempt）：锚列 `expireAt`（epoch 毫秒），谓词 `expireAt < now − retention`——过期后滞留超过保留窗才清扫（宁长勿短）；跨键批量清扫，不再依赖键复访触发惰性删除。
+- **trusted-device 过期行清扫不在本面**：`MfaTrustedDeviceManager` 第七面已按 plan 2502 R1 修订摘除（授权边界=六族），归后续 nop-auth 确认批次（R3-01）——清扫入口对 `nop_auth_mfa_trusted_device` 零触碰。
+- 清理失败显式可见：失败轮 ERROR（`nop.auth.ledger.cleanup-fail`）+ 失败计数，周期链由绝缘层保障不断链；错配置（负保留期/非正批删上限/周期低于 60s）启动期 fail-fast（`nop.err.auth.ledger-config-invalid`）。
 
 ## 认证路径规则
 
@@ -108,6 +128,7 @@
 | 登记通道验证端点 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/biz/LoginApiBizModel.java`（`verifyChannelProof`） |
 | 共享因子校验组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaFactorVerifier.java` |
 | 可信设备共享组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaTrustedDeviceManager.java`（指纹计算 + 豁免判定 + 登记 + 撤销矩阵统一落点） |
+| 六族账本保留清理 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/cleanup/NopAuthLedgerCleaner.java`（5.1-MA-01 周期清扫，bean 装配 `auth-service.beans.xml`） |
 | EmailCodeStore 接口 | `nop-service-framework/nop-biz-auth-core/src/main/java/io/nop/auth/core/mfa/store/EmailCodeStore.java`（SmsCodeStore 同形平行接口；Local 在 core，Db/Redis 在 nop-auth-service） |
 | WebAuthn 验证器组件 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/WebAuthnAuthenticator.java`（封装 Yubico webauthn-server-core，库类型不外溢） |
 | MFA challenge payload 契约辅助 | `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/MfaChallengeHelper.java`（登录级 challenge 创建三触点收敛：checkMfaRequired / MfaLoginPolicyServiceImpl 副本共用 `createLoginChallenge`） |

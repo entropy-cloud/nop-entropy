@@ -194,6 +194,12 @@
 
     </bean>
 
+    <!-- 5.1-MA-01（plan 2502）：认证六族账本表保留期周期清扫（形态 A——登录机器速率写入面）。
+         生命周期接线 = 容器创建单例 bean → LifeCycleSupport @PostConstruct start() → doStart
+         周期调度（taskName=nop-auth-ledger-cleanup）；nop.auth.ledger.retention-days=0 可显式禁用。
+         授权边界=六族：trusted-device 过期行清扫第七面不在本组件（R1 修订摘除→R3-01）。 -->
+    <bean id="nopAuthLedgerCleaner" class="io.nop.auth.service.cleanup.NopAuthLedgerCleaner" ioc:default="true"/>
+
     <bean id="nopGraphQLLogger" class="io.nop.auth.service.audit.GraphQLAuditLogger" ioc:default="true">
         <ioc:condition>
             <if-property name="nop.auth.graphql.enable-audit" enableIfMissing="false"/>
