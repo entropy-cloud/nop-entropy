@@ -31,6 +31,28 @@ public interface AiCoreConfigs {
     IConfigReference<Integer> CFG_AI_SERVICE_READ_TIMEOUT =
             varRef(s_loc, "nop.ai.service.read-timeout", Integer.class, 60000);
 
+    @Description("LLM 流式调用的全程总期限（毫秒），默认10分钟。独立于 "
+            + "nop.ai.service.read-timeout（后者仅约束响应头到达）：provider 返回 200 后连接挂死时，"
+            + "聚合 future 在本期限内以显式错误终态（3.1-C7-001，两侧同批）。0 = 不启用总期限（不推荐）")
+    IConfigReference<Long> CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT =
+            varRef(s_loc, "nop.ai.service.stream-total-timeout", Long.class, 600_000L);
+
+    @Description("LLM 流式调用的 chunk 间 inactivity 上界（毫秒），默认2分钟。"
+            + "服务端静默（hang/代理黑洞/进程假死）超过本预算时聚合 future 以显式错误终态"
+            + "（3.1-C7-001，两侧同批；与传输层 idle 读超时构成双层预算）。0 = 不启用 inactivity 检测（不推荐）")
+    IConfigReference<Long> CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT =
+            varRef(s_loc, "nop.ai.service.stream-idle-timeout", Long.class, 120_000L);
+
+    @Description("LLM 流式聚合的单次调用累积字符上界（text+reasoning+tool-call arguments 总和），"
+            + "默认200万。超界 fail-fast 终态化流（3.1-C5-001 聚合无界面）。0 = 不设上界（不推荐）")
+    IConfigReference<Integer> CFG_AI_SERVICE_STREAM_MAX_ACCUMULATED_CHARS =
+            varRef(s_loc, "nop.ai.service.stream-max-accumulated-chars", Integer.class, 2_000_000);
+
+    @Description("LLM 流式聚合的单次调用 tool-call 条目数上界（按线上 itemIndex 计），默认100。"
+            + "超界 fail-fast 终态化流（3.1-C5-001 线上可控键累加器无上界面）。0 = 不设上界（不推荐）")
+    IConfigReference<Integer> CFG_AI_SERVICE_STREAM_MAX_TOOL_CALLS =
+            varRef(s_loc, "nop.ai.service.stream-max-tool-calls", Integer.class, 100);
+
     @Description("AI 请求/响应持久化是否启用AES加密（nop.crypt.default-enc-key 或 setTextCipher 注入密钥）。"
             + "默认关闭以兼容历史明文文件；开启后新写入内容加密，旧明文文件仍可读取")
     IConfigReference<Boolean> CFG_AI_PERSIST_EXCHANGE_ENCRYPT =

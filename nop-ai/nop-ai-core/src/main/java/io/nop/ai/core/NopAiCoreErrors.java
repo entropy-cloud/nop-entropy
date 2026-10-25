@@ -17,6 +17,11 @@ public interface NopAiCoreErrors {
     String ARG_OPTION_NAME = "optionName";
     String ARG_HTTP_STATUS = "httpStatus";
 
+    /**
+     * 通用期限预算参数（毫秒）。3.1-C7-001 流式全程期限/inactivity 终态使用。
+     */
+    String ARG_TIMEOUT = "timeout";
+
     String ARG_PROP_PATH = "propPath";
 
 
@@ -114,6 +119,54 @@ public interface NopAiCoreErrors {
     ErrorCode ERR_AI_RATE_LIMITED =
             define("nop.err.ai.service.rate-limited", "LLM {llmName} call rate-limited (local quota exhausted)",
                     ARG_LLM_NAME);
+
+    /**
+     * 3.1-C7-001（plan 2505，两侧同批消费面）：流式调用超过全程总期限。超时经
+     * subscription.cancel + future.completeExceptionally 显式终态（R21 纪律，非静默）。
+     */
+    ErrorCode ERR_AI_STREAM_TOTAL_TIMEOUT =
+            define("nop.err.ai.stream.total-timeout",
+                    "LLM {llmName} stream did not finish within the total deadline (timeout={timeout} ms)",
+                    ARG_LLM_NAME, ARG_TIMEOUT);
+
+    /**
+     * 3.1-C7-001（plan 2505）：流式 chunk 间静默超过 inactivity 上界。与传输层 idle
+     * 读超时构成两侧同批双层预算（4.3 merge-adjudication §七-6）。
+     */
+    ErrorCode ERR_AI_STREAM_IDLE_TIMEOUT =
+            define("nop.err.ai.stream.idle-timeout",
+                    "LLM {llmName} stream inactive for {timeout} ms (no chunk within the inactivity budget)",
+                    ARG_LLM_NAME, ARG_TIMEOUT);
+
+    /**
+     * 3.1-C7-002（plan 2505，R11 错误以成功交付族纪律）：流式中途干净半关闭
+     * （无 finish_reason/[DONE] 终止信号）不得以成功响应交付——按传输级错误
+     * completeExceptionally（带截断字符数诊断），fail-loud 不静默成功（rule 24）。
+     */
+    ErrorCode ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING =
+            define("nop.err.ai.stream.termination-signal-missing",
+                    "LLM {llmName} stream closed without a termination signal (finishReason/DONE missing); "
+                            + "truncated content is not delivered as success, accumulatedChars={detail}",
+                    ARG_LLM_NAME, ARG_DETAIL);
+
+    /**
+     * 3.1-C3-001 ②（plan 2505，背压恢复）：流式桥接 publisher 缓冲满载且下游停滞——
+     * fail-loud 终态化（替代 SubmissionPublisher.submit 的不可中断阻塞，慢下游显式可见）。
+     */
+    ErrorCode ERR_AI_STREAM_BUFFER_OVERFLOW =
+            define("nop.err.ai.stream.buffer-overflow",
+                    "LLM {llmName} stream buffer overflow: downstream subscriber stalled, "
+                            + "stream terminated fail-loud (no silent drop)",
+                    ARG_LLM_NAME);
+
+    /**
+     * 3.1-C3-001 ⑤（plan 2505，聚合上界）：单次流式调用累积超配置上界
+     * （字符总量或 tool-call 条目数）。超界 fail-fast 终态化流。
+     */
+    ErrorCode ERR_AI_STREAM_ACCUMULATION_EXCEEDED =
+            define("nop.err.ai.stream.accumulation-exceeded",
+                    "LLM stream accumulation exceeded the configured limit: {detail}",
+                    ARG_DETAIL);
 
     ErrorCode ERR_AI_RESULT_IS_EMPTY =
             define("nop.err.ai.service.result-is-empty", "The result returned by the LLM is empty");
