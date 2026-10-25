@@ -227,6 +227,24 @@ task steps:
 
 回归锚点：`nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/impl/TestBatchTaskErrorTerminalization.java`（注入点分别为 processor 与 propagateContext）。
 
+## 账本保留策略（1.7-C7-003，plan 2502）
+
+`nop_batch_task` / `nop_batch_task_var` / `nop_batch_record_result`（及级联面 `nop_batch_file`）由 nop-batch-dao 的 `DaoBatchLedgerCleaner` 周期清理（容器装配单例 bean → `LifeCycleSupport` 生命周期链 → `timer.executeOn(worker)` 绝缘调度，taskName=`nop-batch-ledger-cleanup`）。**与 nop-retry 1.6-C7-001 账本表清理同设计同参（批次对齐声明：batch-proposal §四「1.7 C7-003 与 1.6 C7-001 账本保留族批次对齐」；参数 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md §3.2/§3.4，平台内部文档——按 docs-for-ai 边界规则不直接链接；保留策略语义见 [nop-retry.md](nop-retry.md)「账本保留策略」节）**。模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.batch.ledger.retention-days` | 30 | 保留期（天）；`0`=显式禁用周期清理；负值启动期 fail-fast |
+| `nop.batch.ledger.cleanup-interval` | 1h | 清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.batch.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（有界拾取+IN 批删）；非正数启动期 fail-fast |
+
+清理谓词与保留语义：
+
+- **终态任务行**：锚列 `endTime`、谓词 `taskStatus` 为终态（COMPLETED/FAILED/CANCELLED/KILLED），超期整行删除；其 `nop_batch_task_var` / `nop_batch_file` / `nop_batch_record_result` 行按 `batchTaskId` 级联删除。
+- **record_result 独立 TTL 通道**：锚列 `createTime`，即使任务行长期非终态，成功记录账本行超期后仍按 TTL 批删（UUID taskKey 任务行写完即死数据的增长面由此收敛）。
+- **不清理**：非终态（CREATED/RUNNING/SUSPENDED）任务行及其级联行。
+- **幂等语义窗口即保留窗**：`filterProcessed` 的记录级去重依赖 record_result 行存在；超期清除后，同 taskKey 任务的已处理记录可能被重新处理——需要更长幂等窗口的部署应调大 `nop.batch.ledger.retention-days`。
+- 清理失败显式可见：失败轮 ERROR（`nop.batch.ledger.cleanup-fail`）+ 失败计数，周期链由绝缘层保障不断链。
+
 ## 源码锚点
 
 | 组件 | 路径 |
@@ -235,6 +253,7 @@ task steps:
 | DSL Schema | `nop-kernel/nop-xdefs/.../nop/schema/task/batch.xdef` |
 | 运行时标签库 | `nop-batch/nop-batch-dsl/.../nop/batch/xlib/batch.xlib` |
 | 批处理任务执行体（异常终态守卫） | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java` |
+| 账本保留期清理（1.7-C7-003） | `nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/cleanup/DaoBatchLedgerCleaner.java` |
 | 批处理任务文档 | `docs/dev-guide/batch/batch-task.md` |
 | 设计理念 | `docs/theory/why-springbatch-is-bad.md` |
 
