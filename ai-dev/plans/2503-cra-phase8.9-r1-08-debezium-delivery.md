@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Draft Review: R1 agent_68ef0989（0 Blocker、2 Major[Issue1 TestDebeziumErrorBarriers 9→3+4+2 归因勘正/Issue2 roadmap L329 幽灵锚点修正]+5 Minor——修订 agent_1563e10d 全量应用[live 锚点回读核实]，active）
+> Design Review: 两裁定文档独立评审 agent_d082ac70（D12 M-1[ConsumeFailure CDC 接收面未裁定]+m-1/m-2；REGISTRY 原样通过）→ 修订 agent_28bc4b02 落盘（subscribe 变体携带失败处理器/convert attempt 固定 0/poison-event 键/守卫挂桶代粒度）→ 增量复核**通过进入实现**[零遗留]
 > Last Reviewed: 2026-10-25
 > Source: roadmap 工作项 8.9（R1-08，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L151，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.1 R1-08 行（L69：finding ID 清单 6 项 / PA=无 / 依赖=无前置可并行 + R4-24 设计联动 + R2-16 对齐注记 / exit criteria 增补四条）；判级终裁 = family-clustering `.../family-clustering.md` §三 B1-05 行（L516：三案统一维持 P1）；成员发现详情 = 1.2 审计 `ai-dev/audits/2026-10/2026-10-14-0330-deep-audit-nop-stream-state-connectors-concurrency/`（C3-014 = C3-async-chains.md L496、C3-004 = L145）+ 4.1 审计 `ai-dev/audits/2026-10/2026-10-20-2210-deep-audit-nop-message-concurrency/`（C3-002/C8-004/C6-002/C8-002/C6-006 条目；**工单落位权威 = merge-adjudication.md**：MA-02 同 diff 配对、MA-05 三面归一、§五-3 判级配对、§五-5 REGISTRY 契约、§五-7 毒事件 endpoint、§七-1/3/4 跨单元对账）；执行基线 @ `9042b56f69`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.8 已 done，plan 2495–2502 均 completed；本 Baseline 全部行号为该基线 live 回读值，执行前如再漂移以 live 为准并登记）
 > Related: plan 2496（R1-01 绝缘层批，completed——4.1-C3-009 七屏障 Throwable 闭合 @ `1925eb2dd5`：本批 C8-004/C8-002 的屏障宽度面、wrapper worker 守卫④已由其落地，**同文件异面零回退钉**见 Baseline 边界核对 2）；plan 2498（R1-03 池消费方批，completed——1.2-C4-004 per-engine 专用载体 + stop 有界终结预算 @ `a6a59f2035`：本批 C3-014 残余面为该载体前提上的续作，**不重做载体**，边界见 Baseline 边界核对 1，2498 勘误 4 与 Non-Blocking Follow-ups 协同注记的兑现批次即本批）；plan 2495/2493/2494（批次划分与 Phase 8 展开）；**下游交互**：R4-24（roadmap 8.64，硬依赖本批——REGISTRY 契约一次裁决设计项为 G62 十三项的实现契约，**禁止各修一半**）、R2-16（3.1-MA-11 consumeAwaitTimeout 契约对齐互注——4.1 merge-adjudication §五-6 + batch-proposal R2-16 行 L90 / R4-24 行 L139「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」）、R2-08（1.2 连接器 MA 束——C3-014 同文件 MA-09~18 续作面本批不承接，边界注记落账）、R4-26/R3-02（R17 族兄弟 4.3-MA-09 / 5.2-I-02——注册/注销配对族批次对齐注记）
@@ -89,7 +90,7 @@
 
 ### Phase 1 - 设计裁定面：毒事件 endpoint 行为 + R4-24 REGISTRY 契约一次裁决
 
-Status: in progress（设计裁定两文档已落盘、本 Phase Exit Criteria 全勾；独立 draft review 由协调方派发中——评审通过并处置发现前，Phase 2/3 不得消费裁定条款，本 Phase 不得置 completed）
+Status: completed（设计裁定两文档已落盘、本 Phase Exit Criteria 全勾；独立 draft review 由协调方派发中——评审通过并处置发现前，Phase 2/3 不得消费裁定条款，本 Phase 不得置 completed）
 Targets: `ai-dev/design/nop-message/backend-semantics-design.md`（范围节扩展 + 失败终点节补 CDC 面）、`ai-dev/design/concurrency/registry-lifecycle-contract.md`（新增 REGISTRY 生命周期契约设计文档，内容四要素见下）
 
 - Item Types: `Decision`
@@ -108,7 +109,9 @@ Exit Criteria:
 - [x] `ai-dev/logs/` 对应日期条目已更新
 - [x] No owner-doc update required（本 Phase 为 ai-dev 设计文档产出；`docs-for-ai/` 三份 owner doc 的受影响面归 Phase 4 统一核对——去向前向已显式登记）
 
-### Phase 2 - 4.1 修复分片：Debezium 本体面三工单 + Local 失败回调（nop-message）
+
+
+> **Phase 1 回填注（2026-10-26）**：两裁定文档落盘（提交 ed91055920）+ 评审 agent_d082ac70（D12 M-1/m-1/m-2；REGISTRY 原样通过）+ 修订 agent_28bc4b02 + 增量复核**通过进入实现**（零遗留）。m-2 回填指针义务登记归 Phase 4（R4-24 批末向 registry-lifecycle-contract.md §3.3 回填守卫粒度裁定一行，防第二事实入口）。### Phase 2 - 4.1 修复分片：Debezium 本体面三工单 + Local 失败回调（nop-message）
 
 Status: planned
 Targets: `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/DebeziumMessageSource.java`（:72-80 subscribe、:163-171 dispatchEvent、:176-188 stop、:227-237 cancel、:32 map 键）、`nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/DebeziumEngineWrapper.java`（:202-207 handleDebeziumEvent）、`nop-message/nop-message-core/src/main/java/io/nop/message/core/local/LocalMessageService.java`（:213-240 invokeSubscription）、两模块测试目录
@@ -183,6 +186,7 @@ Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-stream-
 - [ ] 零触碰确认（E4）：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；2496 屏障面与 2498 载体面零回退实证（对应测试套件全绿 + 设施文件 diff 核对）
 - [ ] Owner doc 更新（E5）：三份逐份核对与更新（内容源 = 各 Phase 修复面：Debezium 订阅/交付语义契约[message]、停止契约终止性[connectors，扩 2498 既有节]、恢复分配语义[cookbook 恢复节]），或逐份显式登记 `No owner-doc update required` + 理由；触达模块均有 03-modules 条目（无缺口预期，以实际 diff 为准核对）
 - [ ] **R2-16 对齐互注**（4.1 merge-adjudication §五-6 + batch-proposal R2-16 行 L90 / R4-24 行 L139）：cra-index 相关成员行追加「consumeAwaitTimeout 契约对齐」注记——C8-002 落地的 Local 失败派发契约与 4.1-MA-01（R4-24）/3.1-MA-11（R2-16）的 consumeAwaitTimeout 契约对齐义务互指（R2-16 实施时按 4.1 §五-6 对齐）；batch-proposal R2-16 行（L90）既有「MA-11 与 R1-08 consumeAwaitTimeout 契约对齐」只读核对登记（不改 batch-proposal，历史裁定档案）
+- [ ] **m-2 回填指针（设计评审移交）**：向 `ai-dev/design/concurrency/registry-lifecycle-contract.md` §3.3 回填一行「守卫粒度=桶/绑定代级，裁定见 backend-semantics-design.md §五关系行」（防第二事实入口）
 - [ ] **批次对齐注记组**：①MA-09（勘误 5）与 1.2-C3-014 的同文件续作边界注记落 cra-index 两行（含「最小增量自然覆盖」发生与否的结论）；②R17 族对齐注记（4.3-MA-09 → R4-26、5.2-I-02 → R3-02：注册/注销配对修复与 MA-05 落地形态对齐义务）；③勘误 2 引用勘正注记（REGISTRY 裁决覆盖对象 = C5-001/C6-004/C1-002）；④勘误 3 防混注记（链#21「MA-09」实为 MA-05）在 cra-index R1-08 相关行落账
 - [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
 - [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（受影响模块全集与 Closure Gates 一致：nop-message、nop-stream）退出码 0；若有批前既有发现，逐条裁定登记
