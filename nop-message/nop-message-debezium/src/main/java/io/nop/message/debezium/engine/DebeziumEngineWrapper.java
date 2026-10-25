@@ -10,6 +10,7 @@ package io.nop.message.debezium.engine;
 import io.debezium.engine.DebeziumEngine;
 import io.debezium.engine.format.JsonByteArray;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.message.ConsumeFailure;
 import io.nop.commons.concurrent.thread.NamedThreadFactory;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
@@ -98,6 +99,25 @@ public class DebeziumEngineWrapper {
     private final OffsetBackingStore offsetStore;
 
     /**
+     * MA-02 (plan 2503 Phase 2, D12 §3.3.3): receives a {@link ConsumeFailure} for every
+     * event the {@link #handleDebeziumEvent} barrier contains (convert stage — attempt is
+     * fixed 0 per the M-1 attribution ruling). The owning DebeziumMessageSource fans the
+     * failure out to every subscription's failure handler. Null (legacy constructors) = the
+     * endpoint degrades to a declared WARN-only fallback inside the wrapper.
+     */
+    private final Consumer<ConsumeFailure> poisonEventReporter;
+
+    /**
+     * MA-02 ③ (plan 2503 Phase 2): instance-level engine-terminal-death listener, invoked
+     * alongside the static FAILURE_LISTENERS registry. Instance-level ON PURPOSE: the static
+     * registry is single-slot per connector name and is owned by the embedding task (e.g.
+     * DebeziumCdcSourceFunction's R5-CON-03 listener registers before this source even
+     * exists) — a source-side static registration would clobber it. The registry protocol is
+     * unchanged (key upgrade belongs to R4-24/MA-10).
+     */
+    private final Consumer<Throwable> terminalFailureListener;
+
+    /**
      * Bounded termination budget for the dedicated engine carrier (plan 2498 Phase 1,
      * finding 1.2-C4-004). stop() awaits the carrier at most this long, aligned with the
      * reader close chain's existing join(5s); the wait must never be unbounded.
@@ -123,7 +143,7 @@ public class DebeziumEngineWrapper {
     private final AtomicBoolean stopped = new AtomicBoolean(false);
 
     public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer) {
-        this(config, changeEventConsumer, null);
+        this(config, changeEventConsumer, null, null, null);
     }
 
     /**
@@ -139,9 +159,30 @@ public class DebeziumEngineWrapper {
      */
     public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer,
                                  OffsetBackingStore offsetStore) {
+        this(config, changeEventConsumer, offsetStore, null, null);
+    }
+
+    /**
+     * Full constructor (MA-02, plan 2503 Phase 2, D12 §3.3.3).
+     *
+     * @param poisonEventReporter    receives a {@link ConsumeFailure} for every event the
+     *                               {@link #handleDebeziumEvent} barrier contains (convert
+     *                               stage, attempt fixed 0 per the M-1 ruling); null = the
+     *                               endpoint degrades to a declared WARN-only fallback
+     * @param terminalFailureListener invoked on every engine-terminal death notification
+     *                               alongside the static FAILURE_LISTENERS registry; the
+     *                               owning source flips its started flag with it (isStarted
+     *                               must not lie about a dead CDC stream)
+     */
+    public DebeziumEngineWrapper(DebeziumConfig config, Consumer<ChangeEvent> changeEventConsumer,
+                                 OffsetBackingStore offsetStore,
+                                 Consumer<ConsumeFailure> poisonEventReporter,
+                                 Consumer<Throwable> terminalFailureListener) {
         this.config = config;
         this.changeEventConsumer = changeEventConsumer;
         this.offsetStore = offsetStore;
+        this.poisonEventReporter = poisonEventReporter;
+        this.terminalFailureListener = terminalFailureListener;
     }
 
     /**
@@ -198,11 +239,78 @@ public class DebeziumEngineWrapper {
 
     /**
      * 处理 Debezium 事件并转换为 ChangeEvent
+     *
+     * <p>D12 §3.3.3 (MA-02 同 diff 配对 C3-002+C8-004, plan 2503 Phase 2): per-event barrier
+     * over BOTH the convert and the consumer call. Pre-fix an exception here (CCE on a
+     * malformed payload, NPE on a null key, numeric-width CCE, ...) escaped into
+     * {@code engine.run()} and killed the CDC stream terminally with {@code isStarted()}
+     * still lying (survival polarity / C3-002). Post-fix the failure enters the poison-event
+     * endpoint — skip + WARN + counter + guarded {@code ConsumeFailure} dispatch (convert
+     * stage attempt fixed 0 per the M-1 ruling) — and the engine moves on to the next event;
+     * the endpoint acks the delivery with full evidence obligations (delivery polarity /
+     * C8-004: no silent swallow-and-advance).
      */
-    private void handleDebeziumEvent(io.debezium.engine.ChangeEvent<byte[], byte[]> event) {
-        ChangeEvent changeEvent = DebeziumEventConverter.convert(event);
-        if (changeEvent != null) {
-            changeEventConsumer.accept(changeEvent);
+    protected void handleDebeziumEvent(io.debezium.engine.ChangeEvent<byte[], byte[]> event) {
+        try {
+            ChangeEvent changeEvent = DebeziumEventConverter.convert(event);
+            if (changeEvent != null) {
+                changeEventConsumer.accept(changeEvent);
+            }
+        } catch (Throwable e) {
+            reportPoisonEvent(event, e);
+        }
+    }
+
+    /**
+     * Poison-event endpoint, convert stage (D12 §3.3.3): skip (never rethrow into the engine
+     * thread) + WARN + counter + guarded {@code ConsumeFailure} dispatch. The WARN/counter/
+     * fan-out live in the source-owned endpoint; this fallback covers wrapper-standalone use
+     * without a wired reporter — the missing channels are DECLARED, never silent (M-1).
+     */
+    private void reportPoisonEvent(io.debezium.engine.ChangeEvent<byte[], byte[]> event, Throwable error) {
+        String topic = (event == null || event.destination() == null)
+                ? config.getName() : event.destination();
+        String location = config.getName() + "@" + topic;
+        if (poisonEventReporter == null) {
+            LOG.warn("nop.message.debezium.poison-event:topic={},location={},attempt=0 "
+                    + "(no failure reporter wired; WARN-only visibility)", topic, location, error);
+            return;
+        }
+        try {
+            poisonEventReporter.accept(new ConsumeFailure(topic, location, event, 0,
+                    asReportedException(error)));
+        } catch (Throwable reporterError) {
+            LOG.error("Debezium poison-event reporter threw: connector={}", config.getName(),
+                    reporterError);
+        }
+    }
+
+    /** {@link ConsumeFailure} carries an Exception (nop-api-core contract, zero-touch). */
+    static Exception asReportedException(Throwable e) {
+        if (e instanceof Exception) {
+            return (Exception) e;
+        }
+        return new IllegalStateException("non-exception throwable: " + e, e);
+    }
+
+    /**
+     * Engine-terminal failure notification: the static FAILURE_LISTENERS registry
+     * (R5-CON-03, protocol unchanged) plus the instance-level listener wired by the owning
+     * {@code DebeziumMessageSource} (MA-02 ③ — started-flag honesty).
+     */
+    private void notifyTerminalFailure(Throwable error) {
+        notifyEngineFailure(config.getName(), error);
+        Consumer<Throwable> listener = this.terminalFailureListener;
+        if (listener == null) {
+            return;
+        }
+        try {
+            listener.accept(error);
+        } catch (Throwable listenerError) {
+            // same guard width as the static path (C3-009 ⑦): a listener failure must not
+            // kill the engine worker thread
+            LOG.error("Debezium engine terminal-failure listener threw for connector {}",
+                    config.getName(), listenerError);
         }
     }
 
@@ -231,7 +339,7 @@ public class DebeziumEngineWrapper {
             LOG.error("Debezium engine error: {}", config.getName(), e);
             // R5-CON-03: a terminal engine death must be observable by the
             // owning task, not only in the log.
-            notifyEngineFailure(config.getName(), e);
+            notifyTerminalFailure(e);
         } finally {
             running.set(false);
             shutdownEngineCarrier();
@@ -324,8 +432,7 @@ public class DebeziumEngineWrapper {
                 LOG.error("Debezium engine completed with error: {} - {}", config.getName(), message, error);
                 // R5-CON-03: CompletionCallback(success=false) is an engine-terminal
                 // failure — surface it the same way as a thrown engine error.
-                notifyEngineFailure(config.getName(),
-                        error != null ? error : new DebeziumEngineFailure(message));
+                notifyTerminalFailure(error != null ? error : new DebeziumEngineFailure(message));
             } else {
                 LOG.info("Debezium engine completed successfully: {}", config.getName());
             }
