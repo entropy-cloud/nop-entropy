@@ -224,11 +224,15 @@ public class TestToolManagerQueueChain_C1_001 {
         DefaultThreadPoolExecutor tiny = DefaultThreadPoolExecutor.newExecutor("c1-001-ree", 1, 1, true);
         CountDownLatch hang = new CountDownLatch(1);
         try {
-            // 饱和注入：占满 1 线程 + 1 队列位
+            // 饱和注入：占满 1 线程 + 1 队列位（首任务体真实运行后再填队列位——
+            // 消除线程启动竞态：负载下首 submit 若尚在队列，第二次 submit 会提前 REE）
+            CountDownLatch occupierStarted = new CountDownLatch(1);
             tiny.submit(() -> {
+                occupierStarted.countDown();
                 hang.await();
                 return null;
             });
+            occupierStarted.await();
             tiny.submit(() -> null);
 
             SyncDispatchProvider provider = new SyncDispatchProvider();
@@ -284,10 +288,14 @@ public class TestToolManagerQueueChain_C1_001 {
         DefaultThreadPoolExecutor tiny = DefaultThreadPoolExecutor.newExecutor("c1-001-poison", 1, 1, true);
         CountDownLatch hang = new CountDownLatch(1);
         try {
+            // 首任务体真实运行后再填队列位（线程启动竞态消除，同上）
+            CountDownLatch occupierStarted = new CountDownLatch(1);
             tiny.submit(() -> {
+                occupierStarted.countDown();
                 hang.await();
                 return null;
             });
+            occupierStarted.await();
             tiny.submit(() -> null);
 
             SyncDispatchProvider provider = new SyncDispatchProvider();
@@ -333,10 +341,14 @@ public class TestToolManagerQueueChain_C1_001 {
         DefaultThreadPoolExecutor tiny = DefaultThreadPoolExecutor.newExecutor("c1-001-sem", 1, 1, true);
         CountDownLatch hang = new CountDownLatch(1);
         try {
+            // 首任务体真实运行后再填队列位（线程启动竞态消除，同上）
+            CountDownLatch occupierStarted = new CountDownLatch(1);
             tiny.submit(() -> {
+                occupierStarted.countDown();
                 hang.await();
                 return null;
             });
+            occupierStarted.await();
             tiny.submit(() -> null);
 
             SyncDispatchProvider provider = new SyncDispatchProvider();
