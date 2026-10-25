@@ -122,6 +122,8 @@ public interface NopMetadataArgs {
     String ARG_CLASSIFICATION_ID = "classificationId";
     String ARG_AUTO_CLASSIFICATION_CONFIG = "autoClassificationConfig";
     String ARG_CONFIG = "config";
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
     String ARG_PATTERN = "pattern";
     String ARG_TAG_FQN = "tagFQN";
     String ARG_PRIORITY = "priority";

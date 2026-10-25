@@ -241,6 +241,7 @@ mutation {
 - `META-003 MetaQualityRuleExecutor` — 单条质量规则执行（not_null/unique/regex/volume/custom_sql 等）
 - `META-004 SqlColumnLineageExtractor` — SQL AST 列级血缘抽取（SELECT 列 → 源列）
 - `META-005 MetaQualityCheckpointScheduler` — cron 调度器（启动 scanner + 运行时增量 + beanMethod invoker）
+- `NopMetaLedgerCleaner`（`nop-metadata-service/.../service/cleanup/`）— 六张时序账本表保留期周期清理（5.5-W-02，锚列 createTime，见「账本保留策略」节）
 
 ## 模块结构
 
@@ -342,6 +343,25 @@ live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 cr
 ### nop-rule 不适配裁定（2026-09-13，审计 MD-6）
 
 质量规则需对外部库做方言感知 SQL 检查（not_null/unique/regex/volume/custom_sql，`MetaQualityRuleExecutor`），nop-rule 的决策模型不适配，代码内判定为正解；`AutoClassificationProcessor` 的标签自动分类为代码内规则，同等裁定。后续复读无需重新评估。
+
+## 账本保留策略（5.5-W-02，plan 2502）
+
+六张 append-only 时序表（`nop_meta_quality_result` / `nop_meta_quality_score` / `nop_meta_catalog` / `nop_meta_profiling_result` / `nop_meta_reconciliation_result` / `nop_meta_model_changed_event`——末表 mediumtext 前后双快照）由 `NopMetaLedgerCleaner` 生命周期链周期清扫（IoC 单例 bean `nopMetaLedgerCleaner`，装配于 `app-service.beans.xml`；`LifeCycleSupport` `@PostConstruct start()` → 周期调度，taskName=`nop-metadata-ledger-cleanup`）。cron 检查点 + auto-score + 事件发布点以机器速率写入，人工清理以人速进行——速率差即无界增长，故清理载体为自动周期形态（人工 purge action 不作为唯一载体）。
+
+参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md（R01 族级保留策略，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.metadata.ledger.retention-days` | 30 | 保留期（天），七面同窗（event 表最长保留窗口=该值）；`0`=显式禁用周期清理；负值启动期 fail-fast |
+| `nop.metadata.ledger.cleanup-interval` | 1h | 清理触发周期；下限 60s，低于下限启动期 fail-fast |
+| `nop.metadata.ledger.delete-batch-size` | 1000 | 单轮单表删除上限（有界拾取 + IN 批删）；非正数启动期 fail-fast |
+
+清理谓词与保留语义：
+
+- **六表锚列均 `createTime`**：谓词 `createTime < now − retention`，超期整行清扫；保留窗口内「历史事实语义」（ORM 注释钉死的 insert-only/不覆盖旧行）不受破坏。ORM 模型零变更（无新增 cascadeDelete/索引）。
+- **第七面不在本面**：C7-101 衍生 qualityBreachApproval 告警工作流实例落在 nop-wf 侧工作流实例存储（非本模块自有表）——按设计裁定显式边界声明归属后续 quality 域批次（活跃审批实例不可 TTL 误删），本清理入口对其零触碰。
+- **保留窗即复用历史窗上界**：质量结果 reJudge/复用视野不得超过 `nop.metadata.ledger.retention-days` 窗口；需更长视野时修订保留期参数（只走设计文档一处定稿），不在本模块另设第二套保留语义。
+- 清理失败显式可见：失败轮 ERROR（`nop.metadata.ledger.cleanup-fail`）+ 失败计数；错配置启动期 fail-fast（`nop.err.metadata.ledger-config-invalid`）。
 
 ## 参考文档
 
