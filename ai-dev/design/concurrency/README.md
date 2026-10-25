@@ -19,6 +19,7 @@
 - `cache-invalidation-single-point.md` — 模型缓存失效链单点修复（check-changed 判据统一与唯一载体落点[DefaultResourceChangeChecker：mtime 相等 + 宽限期承诺]、从属编辑点枚举表与 closure audit 机械判定、窗口二 load 原子化/窗口一宽限裁决、ResourceTimestampCache 移除终裁、TTL 兜底双路径自愈覆盖矩阵、ResourceCacheEntry 内建门[verdict 记忆化 + maxAge + deps-空豁免]覆盖 6 直连使用方零改码、TenantAware/WithLoader 委托穿透断言、R2-01/R4-32/5.5-W-03 三边界）
 - `ledger-retention-policy.md` — R01 F4 无界账本族级保留策略（统一参数集七项一处定稿[保留期/触发周期/批删上限/行数上限裁定/fail-fast 包络/配置键命名/清理谓词时间锚列]、触发形态四态菜单判据[机器速率写入面必须自动触发]、R01 六成员逐单传导表、C7-101 第七面三选一裁定与 trusted-device 边界注记、W-01 生命周期配对与 G2 retention×reJudge 两条差异条款、sys_change_log 留存语义、家族 SSOT 与参数修订纪律）
 - `registry-lifecycle-contract.md` — REGISTRY 生命周期契约（NopStreamOffsetBackingStore；R4-24 实现契约：生命周期三选一终裁[stop 侧配对释放 + 绑定代条件移除，同名重启续传唯一合法路径 = 显式 checkpoint 恢复]、软钉 #5 setOffsets REPLACE 契约维持与恢复声明窗、WI 2.5 消费面互斥分层表态、C3-014 幽灵引擎双层防御一致性声明与 C3-004 恢复语义衔接）
+- `kernel-retirement-generation-and-model-load-locking.md` — kernel 退役代际与模型加载锁序（退役代际平台机制单点[发布新代 + 旧代退役登记 + 宽限延迟关闭：RoundRobinSupplier 收缩窗/DefaultScheduledExecutor 置空窗/DefaultVirtualFileSystem zip 句柄窗三站同机制 + 七读点快照化 + close 同族面]、三层监视器链统一不变式[监视器内只做同 key 去重+占位、装载/编译在锁外；等待图环检测 + 有界等待兜底 + 循环依赖类型化收敛；C2-001/C2-017 同变更集]、失效销毁时序[标记失效 + 延迟销毁]、2.5-C6-005 双轨联动与 createConnectionSupplier 测试缝、N2 钉改写契约、R1-01/R1-02/R1-05 零回改边界与 F4 时间机制复用 CoreMetrics、从属编辑点枚举表与死锁测试纪律）
 
 ## 阅读顺序
 
@@ -28,7 +29,8 @@
 4. `cache-invalidation-single-point.md`（check-changed 失效判据与模型缓存门语义；与 1/2/3 零共享代码位，边界归 R2-01/R4-32/R3-05 successor，见其裁定⑥）
 5. `ledger-retention-policy.md`（R01 族保留策略参数与逐单传导；形态 A 周期清理链消费 1/2 的设施契约，见其 §3.6）
 6. `registry-lifecycle-contract.md`（Debezium CDC offset 基质的桶生命周期与恢复声明窗契约；与 1–5 零共享代码位，本体修复归 R4-24，见其裁定⑥）
-7. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）+ `nop-kernel/nop-core/src/main/java/io/nop/core/resource/`（失效链设施与判据载体代码侧锚点）
+7. `kernel-retirement-generation-and-model-load-locking.md`（退役代际机制与模型装载锁纪律；消费 1/2 的调度槽契约与 4 的门语义零回改边界，见其裁定⑥/§3.6；plan 2504 Phase 1a 产出）
+8. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）+ `nop-kernel/nop-core/src/main/java/io/nop/core/resource/`（失效链设施与判据载体代码侧锚点）
 
 ## 职责边界
 
