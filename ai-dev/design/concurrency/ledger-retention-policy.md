@@ -1,0 +1,102 @@
+# R01 F4 无界账本族级保留策略（ledger retention policy）
+
+> Status: active
+> Last Reviewed: 2026-10-25（plan 2502 Phase 1 产出；族级 SSOT 一处定稿）
+> Source: plan 2502（`ai-dev/plans/2502-cra-phase8.8-r1-07-f4-ledger-retention.md`）Phase 1；族级纪律 SSOT = family-clustering R01 行（`ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/family-clustering.md` §二.1：「保留期/TTL/行数上限+成功即清理；族级纪律=上限+逐出+fail-fast 包络声明」）；4.5 口径出处 = `ai-dev/audits/2026-10/2026-10-21-1444-deep-audit-nop-search-runner-autotest-concurrency/merge-adjudication.md`（F4 无界账本家族族级修复纪律）；成员发现事实源 = plan 2502 Current Baseline 六成员表（行号以该 plan live 回读值为准）
+> 实现锚（分批落地）：nop-retry `RetryRecordStoreImpl`/`RetryEngineImpl`；nop-batch `nop-batch-dao` 清理组件；nop-auth 六族 store + `NopAuthConfigs`；nop-metadata 六表清理载体；nop-duckdb `DuckDbEngine` close 桥接；nop-sys `SysDaoResourceLockManager`/`OrmEntityChangeLogInterceptor` 邻接清理载体
+> 传导先例：[pool-facility-hardening.md](pool-facility-hardening.md) §3.1.3（多模块工单同口径传导表范式）
+
+## 一、设计结论
+
+1. **裁定①（统一参数集一处定稿）**：R01 族 DB 账本表的保留策略参数全平台统一为七项（§3.1）：保留期 `retention-days`（缺省 30 天，0=显式禁用）、清理触发周期 `cleanup-interval`（缺省 1h，下限 60s）、单批删除上限 `delete-batch-size`（缺省 1000）、行数上限（DB 账本表**不设**——逐出判据唯一为保留期 TTL，理由见 §3.1 第 4 项）、超限/失败包络行为（配置非法装配期 fail-fast；执行失败 ERROR 显式可见+失败计数，周期链由 R1-01 绝缘层保障不断链）、配置键命名规则（§3.2）、清理谓词时间锚列（逐表显式指定，逐单表落名——禁止隐式选列）。**保留策略参数不六模块各自发明；后续任何参数修订只走本文档一处定稿。**
+2. **裁定②（清理载体与生产接线契约）**：机器速率写入的 DB 账本表必须采用**自动触发形态**（周期低频清理，形态 A）；人工 purge action（形态 C）只能作为补充运维通道、不得为唯一形态——人工速率对 cron/自动提交速率差无解（与 5.5-W-02 缺陷逻辑同源）。周期链必须挂接生产可达的生命周期钩子（IoC 容器 `@PostConstruct`/`LifeCycleSupport.doStart` 链或 job 注册链），并以回归测试断言清理体被调度器真实调用——**防 1.6-C7-005「清理 API 存在但零生产装配」空壳先例复刻**（tcc `cleanCompletedTransactions` 本批仅作形态先例引用）。
+3. **裁定③（触发形态菜单四态判据）**：形态 A 周期 job 低频接入（机器速率写入面**必须**）；形态 B create/管理路径顺带清扫（仅适用于写入路径天然周期性触达的短 TTL 临时行，credential OAuth state 先例；对键不复访场景有残留面，不得用于永续账本）；形态 C BizModel purge action（人工补充通道）；形态 D close 桥接（进程内生命周期配对专用，非 DB 表）。判据全景见 §3.3。
+4. **裁定④（5.5-W-02 第七面机制三选一 → 选③边界声明归属 R3-05）**：C7-101 衍生 qualityBreachApproval 告警工作流实例（落在 nop-wf 侧工作流实例存储，非 nop-metadata 自有表）的清理机制裁定为**显式边界声明归属 R3-05**，本批 nop-wf 侧零产品 diff。理由：(a) 模块所有权——工作流实例表为 nop-wf 所有，nop-metadata 跨模块 DELETE 违反模块边界；(b) 语义不同构——工作流实例非 append-only 账本，存在进行中审批状态，TTL 误删产生「审批中告警实例静默消失」的正确性危害，与「终态即可逐出」的账本行语义不同；(c) 选①需 nop-wf 侧新增完成/取消清理 API，扩批且 nop-wf 非 R1-07 成员模块；(d) R3-05 已是 W-02 同表 retention×reJudge 契约对侧（差异条款②），quality 域 successor 收敛一处。落账：§3.4 成员 4 第七面具名行 + R3-05 对齐义务。
+5. **裁定⑤（5.2-MA-04 留存语义条款）**：sys_change_log **不裁定为「永久有意保留」**。缺省保留期 90 天（全平台缺省中最长——审计留痕宁长勿短）；`nop.sys.ledger.changelog.retention-days=0` 为「永久保留」的**显式声明形态**（合规场景 opt-in，禁止三无状态延续：无声明/无清理/无上限）；owner doc（nop-sys.md）必须声明该保留策略，声明落点为 5.2-MA-04 工单验收面。依据：change log 审计行平台未接任何导出/归档设施，「永久」缺省使其成为逐列复制的最大无界表；显式 opt-out 保留合规可能性且使「长期保留」从隐式默认变为显式声明。
+6. **裁定⑥（两条差异条款）**：①5.6-W-01 进程内注册表/连接账本（OPEN_FILES+connections）为**生命周期配对破损**，非 DB 表周期增长——保留期/TTL/行数上限参数对其不直接适用，族级纪律「上限+逐出+fail-fast」的投影 = 连接 close 桥接（泄漏载体消除后无「保留」需求）+ `engine.close()` 幂等兜底保留 + 过期指纹误拒面同批闭合（跨 engine 复用回归钉）；②5.5 G2 retention×reJudge 同表契约：quality_result 的保留窗即 reJudge 复用历史窗上界——R3-05 落地 W-28 时若需更长复用视野，参数修订只走本文档（上调 `nop.metadata.ledger.retention-days` 或按 §3.2 引入 face 级键），不得模块内另设语义；W-28 本体不进 R1-07 批。
+
+## 二、背景与动机
+
+R01（F4 无界账本/零保留族，19 成员/12 单元）的共同形态：账本表/注册表只写不逐出，行数随业务量/时间单调增长，查询随表深退化，终态数据与在途数据无生命周期分界。family-clustering R01 行给定族级纪律「上限+逐出+fail-fast 包络声明（4.5 口径）」；本设计把该纪律落成**一处定稿的参数集 + 逐成员传导表**，使 R1-07 六成员与后续 13 项族成员（R2-07/R2-08/R2-12/R3-05/R4-03/R4-07/R4-10/R4-29）共享同一套保留语义，防止六模块各自发明保留参数与触发形态。
+
+平台既有先例集（本设计的对照锚）：tcc `TccEngine.cleanCompletedTransactions(retentionTime)`（状态过滤+分支随父级联删除形态）、nop-sys `SysDaoMessageService.cleanupExpiredEvents`（doStart 周期接线+失败可见形态）、nop-credential `NopCredentialOauthStateStore.cleanupExpired()`（create 顺带惰性清扫形态）、nop-metadata `NopMetaLineageEdgeQueryAction` deleteByQuery（单语句批量删除先例）。
+
+## 三、核心设计
+
+### 3.1 统一参数集（七项）
+
+| # | 参数项 | 统一取值/规则 | 理由 |
+|---|--------|--------------|------|
+| 1 | 保留期 `retention-days` | int，单位天；缺省 **30**；`0`=显式禁用周期清理；负值=装配期 fail-fast | 宁长勿短（plan 风险段既定倾向）：误删危害大于晚删；30 天覆盖常用运维排查窗口 |
+| 2 | 清理触发周期 `cleanup-interval` | Duration；缺省 **1h**；下限 60s，低于下限装配期 fail-fast | 低频自动触发；下限防高频清理冲击业务库 |
+| 3 | 单批删除上限 `delete-batch-size` | int；缺省 **1000**；每轮每表先按锚列谓词+limit 有界拾取主键集，再按 `IN` 集批删；`<=0` 装配期 fail-fast | 防全表单语句删除的长事务/锁放大；周期调度下有界批删自然收敛 |
+| 4 | 行数上限（row cap） | DB 账本表**不设**数值行上限；逐出判据唯一为保留期 TTL。进程内账本（W-01）的「上限」投影为生命周期闭合（裁定⑥①） | 行数上限对 append-only 账本引入「满即删未到期行」的正确性危害；TTL 已闭无界面，双判据徒增误删面 |
+| 5 | 超限/失败包络行为（fail-fast 声明，4.5 口径） | 配置非法（负 retention/interval<60s/batch-size≤0）= **装配期 fail-fast**（模块级 `NopException`，不降级继续）；清理执行失败 = ERROR 日志（`nop.<module>.ledger.cleanup-fail`，含表名）+ 失败计数可见；**禁止空 catch**；单轮失败不阻断下轮（R1-01 绝缘层重臂语义） | 「上限+逐出+fail-fast」中 fail-fast 的两层投影：错配置不启动、执行失败不可见即违例；周期链失败显式可见而非静默吞掉（rule 24 同源） |
+| 6 | 配置键命名与缺省值归属 | `nop.<module>.ledger[.<face>].retention-days` / `.cleanup-interval` / `.delete-batch-size`；键常量归属清理载体所在模块的类型化 Configs 接口（§3.2）；缺省值以本表为准，Configs 常量缺省值必须与本表一致 | 键名可预测、缺省值单一事实源 |
+| 7 | **清理谓词时间锚列** | 逐表显式指定账龄列（逐单表落名），谓词形 = `锚列 < now − retention`（+ 状态/终态谓词限定可删集）；级联删除以父行主键 `IN` 集传递，不独立选锚；**禁止隐式选列/无谓词全表删除** | 清理谓词的账龄语义必须可审计；锚列错选（如用会被业务更新的列）会造成误删/漏删 |
+
+时间锚列选取规则：锚列必须是**写入后不被业务语义回改**的账龄事实列（创建/终态迁移/过期时刻）；终态谓词与锚列并用以排除在途行。
+
+### 3.2 配置键命名规则与归属
+
+| 模块（清理载体所在） | 配置载体 | 键（缺省值） |
+|----------------------|---------|--------------|
+| nop-retry-engine | 新建 `RetryEngineConfigs`（`io.nop.retry.engine`，`varRef` 类型化形态，先例 = `BatchConfigs`） | `nop.retry.ledger.retention-days`（30）/ `nop.retry.ledger.cleanup-interval`（1h）/ `nop.retry.ledger.delete-batch-size`（1000） |
+| nop-batch-dao | 新建 `NopBatchDaoConfigs`（`io.nop.batch.dao`，先例 = `NopSysDaoConfigs`） | `nop.batch.ledger.retention-days`（30）/ `nop.batch.ledger.cleanup-interval`（1h）/ `nop.batch.ledger.delete-batch-size`（1000）——**与 nop-retry 同参（1.6-C7-001↔1.7-C7-003 批次对齐，batch-proposal §四 L314）** |
+| nop-auth-service | 既有 `NopAuthConfigs` | `nop.auth.ledger.retention-days`（30）/ `nop.auth.ledger.cleanup-interval`（1h）/ `nop.auth.ledger.delete-batch-size`（1000）——六族共用一套，处置一致 |
+| nop-metadata-service | 新建（`NopSysDaoConfigs` 形态） | `nop.metadata.ledger.retention-days`（30）/ `nop.metadata.ledger.cleanup-interval`（1h）/ `nop.metadata.ledger.delete-batch-size`（1000）——七面同窗（event 表最长保留窗口 = 该统一值） |
+| nop-sys-dao | 既有 `NopSysDaoConfigs` | 双 face 段：`nop.sys.ledger.lock.retention-days`（7）/ `nop.sys.ledger.changelog.retention-days`（90，`0`=永久保留显式 opt-in）/ 共用 `nop.sys.ledger.cleanup-interval`（1h）、`nop.sys.ledger.delete-batch-size`（1000） |
+
+face 段规则：单面模块省略 face 段（`nop.<module>.ledger.*`）；多语义 face 模块（nop-sys 的锁行 vs 审计行）face 段必配。retention 缺省值差异（sys lock 7 天 / changelog 90 天）来自行语义：锁行过期后即无效果（grace 仅防御时钟偏移），change log 是审计留痕（宁长勿短全域上限）。
+
+### 3.3 清理触发形态菜单与判据
+
+| 形态 | 判据（满足方可选） | 平台先例 | 约束 |
+|------|-------------------|---------|------|
+| A 周期 job 低频接入（自动） | 机器速率写入面（cron/自动提交/每请求落账）——**此类账本必须选 A** | `SysDaoMessageService.cleanupExpiredEvents` doStart 接线 | 挂生产可达生命周期钩子（`@PostConstruct`/`LifeCycleSupport.doStart` 或 job 注册链）；周期载体遵守池设施契约（timer 只触发、任务体 hop worker，[pool-facility-hardening.md](pool-facility-hardening.md) §3.1.1）+ R1-01 绝缘覆盖；回归测试必须断言调度器真实调用清理体（防 C7-005 空壳） |
+| B create/管理路径顺带清扫（惰性） | 写路径天然周期性触达 + 短 TTL 临时行 | `NopCredentialOauthStateStore.cleanupExpired()` create 前调用 | 键不复访即残留——不得用于永续账本主形态；可与 A 组合 |
+| C BizModel purge action（人工） | 补充运维通道 | tcc `cleanCompletedTransactions`（API 形态先例；其零生产装配 = C7-005 反例） | **不得为机器速率写入面唯一形态**（人工速率差无解）；若落地须附真实调用链测试 + 生产可达性核对 |
+| D close 桥接（生命周期配对） | 进程内注册表/连接账本（非 DB 表） | 5.6-W-01 修复形态 | 保留期参数不适用（裁定⑥①） |
+
+### 3.4 R01 六成员逐单传导表
+
+本批六成员与后续族成员按本表落地，不得模块内发明参数/形态。回归钉均要求：清理断言 + 保留断言（未到期/非终态/活行不误伤）+ fail-fast 包络断言（非法配置拒绝）+ 接线断言（清理体被生产链真实调用）。
+
+| 成员 | 账本清单（清理谓词时间锚列显式落名） | 参数取值（§3.2 键） | 清理载体与形态 | 回归钉要求（特有面） |
+|------|--------------------------------------|---------------------|----------------|----------------------|
+| 1.6-C7-001（nop-retry 三账本表） | `nop_retry_record`：锚列 `updateTime`，谓词 `status=2`（COMPLETED 终态）；`nop_retry_attempt`：锚列 `startTime`（孤儿扫描/级联随父）；`nop_retry_dead_letter`：锚列 `createTime` | §3.2 nop-retry 行 | `RetryRecordStoreImpl` 清理方法 + `RetryEngineImpl` 生命周期链周期调度，形态 A。清理序：①COMPLETED record 有界拾取 → 级联删 attempt（`recordId IN` 父 sid 集）→ 删 record；②死信有界拾取 → 级联删孤儿 attempt（`recordId IN` 死信 recordId 集——sid 为 seq 生成不复用，删除安全；同时覆盖 OVERWRITE 重建与死信迁移两类孤儿源）→ 删死信；③幂等（重复触发无害） | COMPLETED+attempt 超期清理；孤儿 attempt 随死信保留期一并清理（不留 `deadLetter.record` 悬空后的永久孤儿）；未到期保留（PENDING/RETRYING/SUSPENDED 及未到期 COMPLETED 不误伤）；幂等；引擎调度链接线断言。保留语义注记：死信超期清除后 `retryFromDeadLetter` 重放通道随之关闭（owner doc 声明） |
+| 1.7-C7-003（nop-batch 三表，**与成员 1 同设计同参**） | `nop_batch_task`：锚列 `endTime`，谓词 `taskStatus∈{30,40,50,60}`（COMPLETED/FAILED/CANCELLED/KILLED 终态）；`nop_batch_task_var`：级联随任务行（`batchTaskId IN`），无独立 TTL；`nop_batch_record_result`：锚列 `createTime`（独立 TTL 通道）+ 终态级联（`batchTaskId IN`）双通道；`nop_batch_file`：级联随任务行（`batchTaskId IN`），显式声明无独立 TTL | §3.2 nop-batch 行（与成员 1 同参同形） | nop-batch-dao 清理组件（`LifeCycleSupport.doStart` + `timer.executeOn(worker).scheduleWithFixedDelay` + `doStop` 取消，照抄 sys 先例形态），`app-batch-dao.beans.xml` 装配，形态 A。清理序：终态任务有界拾取 → record_result/task_var/file 按 `batchTaskId IN` 级联 → 删任务行；record_result 独立 createTime TTL 通道覆盖「任务行非终态期」的增长面 | UUID taskKey 终态任务行超期清理；record_result 按 TTL 批删；task_var/file 随任务行级联；未到期+非终态（CREATED/RUNNING/SUSPENDED）保留；幂等；装配链接线断言。owner doc 声明与 nop-retry 互引（批次对齐声明 L314） |
+| 5.1-MA-01（nop-auth 六族，ask-first 已授权[边界=六族]） | `nop_auth_session`：锚列 `lastAccessTime`（主锚）+ `logoutTime` 判别（已终结行）；mfa_challenge / sms_code / email_code / rate_limit_counter / login_attempt 五族：锚列 `expireAt`，谓词 `expireAt < now − retention` | §3.2 nop-auth 行 | 六族统一批量清扫（credential `cleanupExpired` 语句形态），载体=周期低频清理（形态 A——登录机器速率写入面）；session 行删除即令牌载荷（accessToken/refreshToken/cacheData）清除 | C10-001/004/005 回归钉同 diff（session 过期行清理+未过期保留[可注入时钟]、五族批量清扫参数化逐一、`countUnexpired` 口径不变钉）；trusted-device 文件零产品 diff 下既有测试仍绿 |
+| ↳ 边界注记行（非本批成员面） | trusted-device 过期行清扫第七面（`MfaTrustedDeviceManager`）——**R1 修订摘除**：授权边界=六族，本面归 Deferred But Adjudicated，successor=R3-01；落地时按本表形态 A + `nop.auth.ledger` 键对齐 | — | — | — |
+| 5.5-W-02（nop-metadata 六表+第七面） | 六表锚列均 `createTime`：`nop_meta_quality_result` / `nop_meta_quality_score` / `nop_meta_catalog` / `nop_meta_profiling_result` / `nop_meta_reconciliation_result` / `nop_meta_model_changed_event`（mediumtext 前后双快照） | §3.2 nop-metadata 行（七面同窗；event 表最长保留窗口=统一保留期 30 天） | 形态 A 周期清理（deleteByQuery 先例语句形态），机器速率写入面（cron+auto-score）禁止形态 C 为唯一载体；ORM 模型零触碰（不新增 cascadeDelete/索引，不改「历史事实语义」注释——保留窗内该语义不破坏） | 六表逐面超期清理；窗口内行保留（历史事实语义窗内不破坏）；幂等；G2 契约核对（差异条款②） |
+| ↳ 第七面具名行（C7-101 衍生告警工作流实例） | 载体=nop-wf 侧工作流实例存储（非 nop-metadata 自有表）。**裁定④=选③：显式边界声明归属 R3-05**，本批 nop-wf 零产品 diff；R3-05 落地时按 nop-wf 所有权设计该面（对齐本表判据：实例终态后方可逐出，活跃审批实例不可 TTL 误删） | — | — | 本批 rule 25 No-new-test 声明（nop-wf 非自有表零 diff）；R3-05 承接时补回归钉 |
+| 5.6-W-01（nop-duckdb 双载体，差异条款①） | 进程内：`OPEN_FILES` 注册表 + connections 账本——无 DB 锚列（生命周期配对面） | 保留期/TTL/行数上限**不适用**（裁定⑥①投影） | 形态 D close 桥接：连接 close 时锁内 untracked + `releaseOpen`；`track` 保留原对象使 `engine.close()` 幂等兜底零回退 | refs 随连接 close 归零；connections 账本随包装 close 清理；**过期指纹误拒面同批闭合**（同路径跨 engine 重开不再 100% 假阳性 bizFatal——端到端回归钉，组件级单测不替代）；既有 close 语义零回退 |
+| 5.2-MA-04（nop-sys 双面） | `nop_sys_lock`：锚列 `expireAt`，谓词 `expireAt < now − retention`（覆盖崩溃持有者+无人争用僵尸行）；`nop_sys_change_log`：锚列 `createTime`，留存语义见裁定⑤ | §3.2 nop-sys 行（lock 7 天 / changelog 90 天） | 照抄 `cleanupExpiredEvents` 形态：retention 配置 + 周期清理（doStart 接线真实生效），形态 A；ChangeLog `saveDirectly` 批量化（写放大面随批，族内联动面） | 僵尸锁行清理；持有中/未到期活锁保留（不误伤）；change log 按留存语义清理（`0` 配置下零删除）；批量化后列行数与内容等价；接线断言 |
+
+### 3.5 差异条款两则
+
+1. **5.6-W-01 生命周期配对投影（勘误 7 落设计）**：W-01 是 close 权与 release 权无桥接的生命周期配对破损，非 DB 表周期增长。「保留期/TTL/行数上限」对其不直接适用；族级纪律「上限+逐出+fail-fast 包络声明」的投影 = 修复后双载体账本随连接生命周期闭合（泄漏载体消除，无「保留」需求）+ `engine.close()` 幂等兜底保留 + 包装 close 失败路径显式可见。**禁止把 DB 表清理形态（deleteByQuery/retention 配置）套用到 nop-duckdb。**
+2. **5.5 G2 retention×reJudge 同表契约注记（勘误 8 落设计）**：quality_result 的保留窗（`nop.metadata.ledger.retention-days`）即 reJudge（W-28，R3-05）可复用的历史窗上界。R3-05 到达时：若 reJudge 复用视野 ≤ 统一保留窗，零参数改动；若需更长视野，按本文档修订参数（上调统一键或引入 face 级键），**不得在 nop-metadata 内另设第二套保留语义**。W-28 本体不进 R1-07 批。
+
+### 3.6 家族 SSOT 声明与参数修订纪律
+
+- 本文档为 R01 全族（19 成员/12 单元）保留策略的**唯一事实源**。非本批 13 项族成员所属批次（R2-07、R2-08、R2-12、R3-05、R4-03、R4-07、R4-10、R4-29）落地时按 §3.4 对应行/同类行对齐，禁止模块内发明保留参数、触发形态或键名。
+- R2-12（1.6-C7-005 tcc 两表清理接线）到达时按成员 1 行同参对齐（tcc `cleanCompletedTransactions` 即形态 A/C 先例引用）；R4-29（4.5-MA-01）与 R4-07（1.4-C7-004）按同构行对齐。
+- **参数修订只走本文档一处定稿**：任何模块调整保留期/周期/批删上限/锚列，先修订本文档对应行（附理由），再改模块配置缺省值；Configs 常量缺省值与本文档不一致即为缺陷。
+- 本设计与 [periodic-task-insulation.md](periodic-task-insulation.md)（周期链绝缘）、[pool-facility-hardening.md](pool-facility-hardening.md) §3.1.1（timer/worker 契约）共享周期清理链的设施契约：形态 A 的周期载体必须同时满足两者的接线约束。
+
+## 四、拒绝了什么
+
+1. **拒绝各模块自定保留参数/触发形态**——R01 族级纪律一处定稿（family-clustering R01 行 + 4.5 口径），分叉即第二事实源。
+2. **拒绝 DB 账本表数值行数上限（row cap）**——「满即删」会删除未到期行（正确性危害）；保留期 TTL 已闭合无界面（§3.1 第 4 项）。
+3. **拒绝人工 purge action 作为机器速率写入面唯一形态**——人工清理速率对 cron/自动提交写入速率差无解，正是 5.5-W-02 的缺陷逻辑。
+4. **拒绝 ORM 模型变更**（新增 cascadeDelete/索引/修改注释）——R1-07 零触碰声明；retention 全部走代码+配置+既有实体删除语句。
+5. **拒绝第七面搭车**——trusted-device 过期清扫未获授权不静默扩面（→R3-01）；工作流实例 TTL 误删违反 nop-wf 所有权与活跃状态正确性（裁定④）。
+6. **拒绝 `saveProcessed` upsert 评估入批**——其真实动机是 C7-015 键语义场景；复合主键已在模型层，重复插入响亮失败非静默累积（plan 2502 勘误 6）。
+
+## 五、与已有设计的关系
+
+- [periodic-task-insulation.md](periodic-task-insulation.md)：形态 A 周期链的绝缘契约（失败可见、重臂、拒绝终态）——清理链失败包络（§3.1 第 5 项）直接消费该语义。
+- [pool-facility-hardening.md](pool-facility-hardening.md)：§3.1.1 调度槽/执行体契约——形态 A 的 `timer.executeOn(worker)` 载体约束。
+- [cache-invalidation-single-point.md](cache-invalidation-single-point.md)：零共享代码位（无关联）。
+- owner doc 落点：`docs-for-ai/03-modules/nop-retry.md`、`nop-batch.md`（保留期声明，二者互引批次对齐）、`nop-auth.md`、`nop-metadata.md`、`nop-duckdb.md`、`nop-sys.md`（留存语义声明）——各分片落地时随批更新。
