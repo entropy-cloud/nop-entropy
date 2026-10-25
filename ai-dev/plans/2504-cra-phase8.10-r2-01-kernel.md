@@ -97,32 +97,34 @@
 
 ### Phase 1 - 设计裁定文档（plan-first 前置）+ 独立 draft review
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/kernel-retirement-generation-and-model-load-locking.md`（新建，退役代际与模型加载锁纪律设计——按 design 写作指南终态形态，只写选型/理由/拒绝的替代方案）
 
 - Item Types: `Decision`
 
-- [ ] **裁定① 退役代际平台机制单点方案**（C1-001/C1-003/C1-014 同一机制族）：「发布新代 + 延迟退役关闭」统一形态（代际引用计数 / 宽限窗延迟关闭 / 在飞读者登记，三选一或组合，含拒绝理由）；RoundRobinSupplier get 热路径锁形态与性能取向（锁内读取 vs 无锁快照+退役，redis 每请求热路径代价声明）；C1-003 形态定稿（六入口局部快照 vs destroy 不置 null——与 `isDestroyed()` 语义、R1-01 `periodicTasks` 拒绝终态、R1-02 refreshConfig 类型化路径的交互逐项声明）；close() 全关闭与并发 get 同族面（C1-001 F3③）覆盖方式
-- [ ] **裁定② C2-001/C2-017 同变更集方案**（三层监视器链统一不变式：监视器内只做同 key 去重+占位，加载/编译在锁外）：entry 层 getObject/reloadObject per-key 占位形态（占位与 R1-05 门/记忆化状态共存语义）；循环依赖检测与类型化收敛（单线程环 SOE 面、双线程环、失败占位清理——不得复刻 C2-015 式条目驻留）；LazyFn 层 compile per-key 单飞；parseTag/getFunctionModel 惰性编译调用点移出 entry 监视器的具体边界；buildCompiledTag 随案子面覆盖声明
-- [ ] **裁定③ C2-002 失效/销毁时序方案**：标记失效+延迟销毁（与裁定①机制同构复用）或读者登记，二选一定稿并给理由；**终态不得为 javadoc-only/warn-only**（rule 16——已确认 live defect 不得以声明替代修复）；覆盖面含 clear 与 reloadObject→destroyObject 两销毁点（F3 #1/#2）及 ResourceLoadingCache.remove/state_loadFrom 两失效入口
-- [ ] **裁定④ 2.5-C6-005 双轨联动方案**（§四#6）：设施面对「已交付在用共享连接」的关闭时机契约（延迟关闭宽限窗/排空——共享 RoundRobin 无借还制下的形态与参数）；Lettuce 使用面接入方式（refreshConfig 缩容行为 + `getConnection` javadoc 共享连接不得 close 契约）；双轨验收口径（设施行为钉 + 使用面行为钉各一）；**测试缝子句**：live `LettuceRedisConnectionProvider.connectionSupplier` 为 private、仅 doStart 内硬构造、无 setter/工厂缝，refreshConfig 在 connectionSupplier==null 时跳过，测试类与 provider 异包（测试包 `io.nop.nosql.lettuce` vs provider 包 `io.nop.nosql.lettuce.impl`）——现有测试无法注入 fake supplier；随修复抽取 `protected` 连接供应商工厂方法（如 `createConnectionSupplier(factory, n)`），并显式声明为 C6-005 修复面一部分；Phase 3 测试项引用该缝（dockerless 下经真实 refreshConfig→resize 链跑通 C10-026 先红/绿）
-- [ ] **裁定⑤ N2 钉改写契约**：退役代际关闭时机的可观测测试缝定义——改写后 `TestDefaultVirtualFileSystemRefresh` 断言语义确定化（保留「重建期间不得提前关闭」；「立即关闭」断言改为新契约的确定性等价断言），消除虚假覆盖感
-- [ ] **裁定⑥ 共享代码位边界声明**：R1-01 绝缘层（periodicTasks/重臂/拒绝终态）、R1-02 池设施（refreshConfig 类型化/收缩重排）、R1-05 缓存门（shouldReloadObject/双 mtime/记忆化）零回退清单 + 本批改动与其交界的回归门禁清单（`TestPeriodicTaskInsulation` 9 条、C10-010 成员面、CACHE-001 契约测试面）
-- [ ] **独立 draft review**（fresh-session 子代理，想象性分析必做——「每个 Phase 我真的知道改哪个文件/怎么写吗」+ 设计到代码断层清单）：0 Blocker 方可转 active 进入 Phase 2；评审记录与 task id 登记本 plan
-- [ ] 设计文档与 plan 状态同步：设计文档提交；本 plan Plan Status 视评审结论 draft → active
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] **裁定① 退役代际平台机制单点方案**（C1-001/C1-003/C1-014 同一机制族）：「发布新代 + 延迟退役关闭」统一形态（代际引用计数 / 宽限窗延迟关闭 / 在飞读者登记，三选一或组合，含拒绝理由）；RoundRobinSupplier get 热路径锁形态与性能取向（锁内读取 vs 无锁快照+退役，redis 每请求热路径代价声明）；C1-003 形态定稿（六入口局部快照 vs destroy 不置 null——与 `isDestroyed()` 语义、R1-01 `periodicTasks` 拒绝终态、R1-02 refreshConfig 类型化路径的交互逐项声明）；close() 全关闭与并发 get 同族面（C1-001 F3③）覆盖方式
+- [x] **裁定② C2-001/C2-017 同变更集方案**（三层监视器链统一不变式：监视器内只做同 key 去重+占位，加载/编译在锁外）：entry 层 getObject/reloadObject per-key 占位形态（占位与 R1-05 门/记忆化状态共存语义）；循环依赖检测与类型化收敛（单线程环 SOE 面、双线程环、失败占位清理——不得复刻 C2-015 式条目驻留）；LazyFn 层 compile per-key 单飞；parseTag/getFunctionModel 惰性编译调用点移出 entry 监视器的具体边界；buildCompiledTag 随案子面覆盖声明
+- [x] **裁定③ C2-002 失效/销毁时序方案**：标记失效+延迟销毁（与裁定①机制同构复用）或读者登记，二选一定稿并给理由；**终态不得为 javadoc-only/warn-only**（rule 16——已确认 live defect 不得以声明替代修复）；覆盖面含 clear 与 reloadObject→destroyObject 两销毁点（F3 #1/#2）及 ResourceLoadingCache.remove/state_loadFrom 两失效入口
+- [x] **裁定④ 2.5-C6-005 双轨联动方案**（§四#6）：设施面对「已交付在用共享连接」的关闭时机契约（延迟关闭宽限窗/排空——共享 RoundRobin 无借还制下的形态与参数）；Lettuce 使用面接入方式（refreshConfig 缩容行为 + `getConnection` javadoc 共享连接不得 close 契约）；双轨验收口径（设施行为钉 + 使用面行为钉各一）；**测试缝子句**：live `LettuceRedisConnectionProvider.connectionSupplier` 为 private、仅 doStart 内硬构造、无 setter/工厂缝，refreshConfig 在 connectionSupplier==null 时跳过，测试类与 provider 异包（测试包 `io.nop.nosql.lettuce` vs provider 包 `io.nop.nosql.lettuce.impl`）——现有测试无法注入 fake supplier；随修复抽取 `protected` 连接供应商工厂方法（如 `createConnectionSupplier(factory, n)`），并显式声明为 C6-005 修复面一部分；Phase 3 测试项引用该缝（dockerless 下经真实 refreshConfig→resize 链跑通 C10-026 先红/绿）
+- [x] **裁定⑤ N2 钉改写契约**：退役代际关闭时机的可观测测试缝定义——改写后 `TestDefaultVirtualFileSystemRefresh` 断言语义确定化（保留「重建期间不得提前关闭」；「立即关闭」断言改为新契约的确定性等价断言），消除虚假覆盖感
+- [x] **裁定⑥ 共享代码位边界声明**：R1-01 绝缘层（periodicTasks/重臂/拒绝终态）、R1-02 池设施（refreshConfig 类型化/收缩重排）、R1-05 缓存门（shouldReloadObject/双 mtime/记忆化）零回退清单 + 本批改动与其交界的回归门禁清单（`TestPeriodicTaskInsulation` 9 条、C10-010 成员面、CACHE-001 契约测试面）
+- [x] **独立 draft review**（fresh-session 子代理，想象性分析必做——「每个 Phase 我真的知道改哪个文件/怎么写吗」+ 设计到代码断层清单）：0 Blocker 方可转 active 进入 Phase 2；评审记录与 task id 登记本 plan
+- [x] 设计文档与 plan 状态同步：设计文档提交；本 plan Plan Status 视评审结论 draft → active
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 裁定①–⑥ 全部落定，每块含选型、理由、拒绝的替代方案及原因（rule 14 终态形态，无 Proposed vs Current 演进叙事）
-- [ ] 死锁复现测试的修复后行为定义可追：C2-001 双线程环/单线程环、C2-017 环④、C2-002 use-after-destroy 在修复后的可观测预期（有界完成/类型化错误/延迟销毁时机）在裁定①②③中成文
-- [ ] 独立 draft review 通过（0 Blocker；Major/Minor 处置记录 + reviewer task id 登记在案）
-- [ ] Owner doc 去向预登记：source-anchors.md / ioc-and-config.md 更新点清单（落 Phase 4），或显式声明 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 裁定①–⑥ 全部落定，每块含选型、理由、拒绝的替代方案及原因（rule 14 终态形态，无 Proposed vs Current 演进叙事）
+- [x] 死锁复现测试的修复后行为定义可追：C2-001 双线程环/单线程环、C2-017 环④、C2-002 use-after-destroy 在修复后的可观测预期（有界完成/类型化错误/延迟销毁时机）在裁定①②③中成文
+- [x] 独立 draft review 通过（0 Blocker；Major/Minor 处置记录 + reviewer task id 登记在案）
+- [x] Owner doc 去向预登记：source-anchors.md / ioc-and-config.md 更新点清单（落 Phase 4），或显式声明 `No owner-doc update required` + 理由
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
-### Phase 2 - nop-kernel 实现 + 单测（退役代际族 C1-001/C1-003/C1-014 + RCE 族 C2-001/C2-002/C2-017）
+
+
+> **Phase 1 回填注（2026-10-26）**：设计文档落盘（提交 b208c2aa83）+ 独立评审 agent_47d95478 **通过进入实现**（0 Blocker/0 Major/5 Minor：m-1 口径精确化与 m-2 委托族零 diff 登记已落盘于设计文档，m-3/m-4/m-5 为 Phase 2 实现注记）；评审期间发生一次脚本截断事故（提交 2e8fd1d7ab 误删 65 行），已从 b208c2aa83 恢复重建并重新正确应用（提交 0b6c9c6a6d，doc-links EXIT=0）。### Phase 2 - nop-kernel 实现 + 单测（退役代际族 C1-001/C1-003/C1-014 + RCE 族 C2-001/C2-002/C2-017）
 
 Status: planned
 Targets: `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/RoundRobinSupplier.java`、`.../concurrent/executor/DefaultScheduledExecutor.java`、`nop-kernel/nop-core/src/main/java/io/nop/core/resource/store/DefaultVirtualFileSystem.java`、`nop-kernel/nop-core/src/test/java/io/nop/core/resource/store/TestDefaultVirtualFileSystemRefresh.java`（N2 同 diff 改写）、`nop-kernel/nop-core/src/main/java/io/nop/core/resource/cache/ResourceCacheEntry.java`、`.../cache/ResourceLoadingCache.java`、`.../component/ResourceComponentManager.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/xpl/xlib/XplLibTagCompiler.java`、`nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/LazyCompiledExecutableFunction.java`、三模块测试目录
