@@ -113,66 +113,70 @@ Exit Criteria:
 
 > **Phase 1 回填注（2026-10-26）**：两裁定文档落盘（提交 ed91055920）+ 评审 agent_d082ac70（D12 M-1/m-1/m-2；REGISTRY 原样通过）+ 修订 agent_28bc4b02 + 增量复核**通过进入实现**（零遗留）。m-2 回填指针义务登记归 Phase 4（R4-24 批末向 registry-lifecycle-contract.md §3.3 回填守卫粒度裁定一行，防第二事实入口）。### Phase 2 - 4.1 修复分片：Debezium 本体面三工单 + Local 失败回调（nop-message）
 
-Status: planned
+Status: completed
+
+> **Phase 2 执行记录（2026-10-25/26，实现子代理）**：四工单 landed，提交 `825e04cc57`（C8-002，nop-message-core）+ `03e6203a46`（MA-02 配对 + MA-05 三面归一 + C6-006 同 map/锁改造同 diff，nop-message-debezium）。①毒事件 endpoint 按 Phase 1 (a) 案四步落地：wrapper `handleDebeziumEvent` per-event 屏障（convert+consumer 统一纳入，存活极性闭合）+ source 端 `PoisonEventEndpoint` 内聚 WARN（`nop.message.debezium.poison-event`）+LongAdder 计数（`getPoisonEventCount()` 观测面）+guarded ConsumeFailure 派发（convert attempt 固定 0/M-1；订阅者粒度 attempt 成功清零）；`dispatchEvent` 失败分支同 endpoint 禁分叉；失败回调经 `subscribe(action, failureHandler)` 新重载承载（M-1 subscribe 变体裁定），无 handler 时 per-failure 显式两通道退化声明。②isStarted 诚实 = **实例级** `terminalFailureListener`（wrapper 5 参构造新增）：静态 FAILURE_LISTENERS 为连接器名单槽协议且由宿主任务先注册（`DebeziumCdcSourceFunction.run` :248 R5-CON-03），source 若静态注册会覆写它并回退 R5-CON-03（`TestDebeziumCdcSourceErrorPropagation` 实证调用序）——实例回调零触碰注册协议，键升维归 R4-24/MA-10，该实现形态偏离 plan「注册 failure listener」字面而守住其「不改注册协议」边界，随批登记。③MA-05 三面归一：注册移至 start 成功后、subscribe/cancel/stop 复合操作统一 source monitor、stop 先置 stopped、stop 后 subscribe typed 拒绝（detail 声明）；C6-006 同 diff 改 `Set<Subscription>` 身份集（WI23 独立订阅语义，重复 action=两条独立订阅）。④C8-002：Local `dispatchConsumeFailure`（对齐 KafkaConsumeTask 形态，attempt=0）+ 重投立场显式裁决（异常终结投递不自动重投，ConsumeLater 唯一重投路径，落码注+本记录，owner doc 去向=Phase 4）。测试：TestDebeziumMessageSource 7 条（C10-001 四场景）+ TestDebeziumEngineWrapperPoisonEndpoint_C3_002_C8_004 1 条（rule 22 真实 wrapper 专用载体入口到出口，扩 C4_004 探针形态）+ TestLocalConsumeFailure_C8_002 4 条；必红四项取证：C8-002 真基线红（`_tmp/phase2-c8-002-red.log` 3 红）、C6-002/C6-006/C3-003 真基线红（`_tmp/phase2-c6-002-c6-006-red.log` 3 红，基线兼容临时 harness、生产 stash）、MA-02 屏障变异红（`_tmp/phase2-ma02-barrier-mutation-red.log`）+ C8-004 派发面变异红（`_tmp/phase2-c8-004-dispatch-mutation-red.log`）——共享夹具红论证=基线兼容子集先行+变异 revert（Exit 条款预期形态），GREEN `_tmp/phase2-debezium-newtests-green.log`/`_tmp/phase2-nop-message-gate.log`。rule 23 接线证据=`engineTerminalDeathFlipsStartedAndReachesListener_C3_002`（真实 subscribe→startEngineIfNeeded→createEngineWrapper→wrapper.start 载体链，死亡→started 翻转+静态 listener 必达）。rule 24：typed 拒绝/endpoint 派发/退化声明/ghost ERROR 全部显式可见。零回退钉 9 条零回归（门禁内实证）；`./mvnw test -pl nop-message -am` BUILD SUCCESS（`_tmp/phase2-nop-message-gate.log`；首轮 3 失败为 nop-core `TestResourceCacheInvalidationChain` tick 窗口型批前既有 flake——solo 当前/基线双绿实证与本批 diff 无关，复跑全绿）。
 Targets: `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/DebeziumMessageSource.java`（:72-80 subscribe、:163-171 dispatchEvent、:176-188 stop、:227-237 cancel、:32 map 键）、`nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/DebeziumEngineWrapper.java`（:202-207 handleDebeziumEvent）、`nop-message/nop-message-core/src/main/java/io/nop/message/core/local/LocalMessageService.java`（:213-240 invokeSubscription）、两模块测试目录
 
 > 续作纪律：本分片四工单允许分会话续作——每工单独立提交（commit message 带对应工单 ID 与 plan 号），每工单完成即时勾选对应 checklist 项与 Exit Criteria，不跨面积压未勾选项；MA-02/MA-05/C6-006 同文件同 diff 面（DebeziumMessageSource map/锁改造）按「同站点一个 diff」纪律合并或分提交并声明关系，不得拆散三面归一。
 
 - Item Types: `Fix`（四工单均为已确认 live defect，不得写成 Feature）、`Decision`（C8-002 重投立场显式裁决）、`Proof`（回归测试）
 
-- [ ] 4.1-C3-002+C8-004（MA-02 配对）：`handleDebeziumEvent` 补 per-event 屏障（convert + consumer 统一）+ 毒事件 failure endpoint 按 Phase 1 裁定落地（两极同禁）+ `DebeziumMessageSource` 启动时注册 failure listener 并把终态死亡反映到 started 标志或健康探针（isStarted 不撒谎）+ dispatchEvent 失败分支接入同一 endpoint 语义；listener 接线按现行 API 形态（不改 MA-10 注册协议）
-- [ ] 4.1-C6-002（MA-05 三面归一，勘误 1）：`subscriptions.put` 移至 start 成功后（或 catch remove 后重抛）+ subscribe/cancel「增删+空判定+启停」复合操作统一入同一锁 + stop 后 subscribe typed 拒绝（`ERR_DEBEZIUM_ENGINE_START_FAILED` 族）；C3-003 交错 A/B 与 C1-006 并入子面随同 diff 闭合
-- [ ] 4.1-C6-006：注销身份改造按 WI23 同法（`values().remove(this)` 或 `Map<Subscription, ·>`）——与 MA-05 同 map/锁改造同 diff；重复 action 订阅语义（WARN 声明或 typed 拒绝）随实现期对齐 WI23 先例
-- [ ] 4.1-C8-002：Local catch 中构造 `ConsumeFailure` 并 guarded dispatch `onConsumeFailure`（对齐 `KafkaConsumeTask:631-643` 形态，回调自身异常不杀死发送者/重投线程）+ 三层架构闭合核验（`MessageConsumeFailureBridge` 可收到 Local 事件）+ 重投与否按设计 §3.9 立场显式裁决（结论落 owner doc，禁止静默不裁决）；不回退 2496 Throwable 宽度与 `nop.message.consumer-failed` 日志键
-- [ ] 回归测试（rule 25，测试名带 `_C3_002`/`_C8_004`/`_C6_002`/`_C6_006`/`_C8_002` 标识）：①**TestDebeziumMessageSource 新建**（C10-001 随批义务，四场景：幽灵订阅不残留[启动失败后无条目、二次订阅不双投递]/毒事件两极[按 Phase 1 裁定断言 endpoint 行为]/并发 subscribe×stop 交错 A/B 断言/同引用双订阅注销不误停引擎）；②handleDebeziumEvent 屏障断言（畸形 payload 不炸流 + engine 死亡时 failure listener 必达 + started 反映终态）；③dispatchEvent 失败分支按裁定断言（不静默推进 offset 语义的行为钉）；④Local 失败派发断言（handler 抛异常 → `onConsumeFailure` 收到 ConsumeFailure + bridge 事件可见——C10-006「失败派发」维度现状预期红，随批转绿）+ 回调自身抛异常不杀死发送者线程；⑤`TestDebeziumErrorBarriers` 3 条 + `TestDebeziumEngineWrapperFailureListener` 4 条 + `TestDebeziumEngineDedicatedCarrier_C4_004` 2 条（2496/2498 产物合计 9）零回归（2496 屏障/失败监听零回退钉 + 2498 载体零回退钉）
-- [ ] **接线验证**（rule 23）：真实订阅链（`subscribe` → `startEngineIfNeeded` → wrapper start）上断言 listener 注册/死亡通知连通（engine 死亡 → source started 翻转/探针可见）；Local 真实 send 链上断言失败回调派发
-- [ ] **无静默跳过**（rule 24）：typed 拒绝路径（stop 后 subscribe）、失败派发路径、重投裁决路径均显式失败或可观测，不吞异常不静默返回
-- [ ] **提交纪律**：nop-message 分提交或按实际 diff 面单提交并声明关系，commit message 带对应工单 ID 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4.1-C3-002+C8-004（MA-02 配对）：`handleDebeziumEvent` 补 per-event 屏障（convert + consumer 统一）+ 毒事件 failure endpoint 按 Phase 1 裁定落地（两极同禁）+ `DebeziumMessageSource` 启动时注册 failure listener 并把终态死亡反映到 started 标志或健康探针（isStarted 不撒谎）+ dispatchEvent 失败分支接入同一 endpoint 语义；listener 接线按现行 API 形态（不改 MA-10 注册协议）
+- [x] 4.1-C6-002（MA-05 三面归一，勘误 1）：`subscriptions.put` 移至 start 成功后（或 catch remove 后重抛）+ subscribe/cancel「增删+空判定+启停」复合操作统一入同一锁 + stop 后 subscribe typed 拒绝（`ERR_DEBEZIUM_ENGINE_START_FAILED` 族）；C3-003 交错 A/B 与 C1-006 并入子面随同 diff 闭合
+- [x] 4.1-C6-006：注销身份改造按 WI23 同法（`values().remove(this)` 或 `Map<Subscription, ·>`）——与 MA-05 同 map/锁改造同 diff；重复 action 订阅语义（WARN 声明或 typed 拒绝）随实现期对齐 WI23 先例
+- [x] 4.1-C8-002：Local catch 中构造 `ConsumeFailure` 并 guarded dispatch `onConsumeFailure`（对齐 `KafkaConsumeTask:631-643` 形态，回调自身异常不杀死发送者/重投线程）+ 三层架构闭合核验（`MessageConsumeFailureBridge` 可收到 Local 事件）+ 重投与否按设计 §3.9 立场显式裁决（结论落 owner doc，禁止静默不裁决）；不回退 2496 Throwable 宽度与 `nop.message.consumer-failed` 日志键
+- [x] 回归测试（rule 25，测试名带 `_C3_002`/`_C8_004`/`_C6_002`/`_C6_006`/`_C8_002` 标识）：①**TestDebeziumMessageSource 新建**（C10-001 随批义务，四场景：幽灵订阅不残留[启动失败后无条目、二次订阅不双投递]/毒事件两极[按 Phase 1 裁定断言 endpoint 行为]/并发 subscribe×stop 交错 A/B 断言/同引用双订阅注销不误停引擎）；②handleDebeziumEvent 屏障断言（畸形 payload 不炸流 + engine 死亡时 failure listener 必达 + started 反映终态）；③dispatchEvent 失败分支按裁定断言（不静默推进 offset 语义的行为钉）；④Local 失败派发断言（handler 抛异常 → `onConsumeFailure` 收到 ConsumeFailure + bridge 事件可见——C10-006「失败派发」维度现状预期红，随批转绿）+ 回调自身抛异常不杀死发送者线程；⑤`TestDebeziumErrorBarriers` 3 条 + `TestDebeziumEngineWrapperFailureListener` 4 条 + `TestDebeziumEngineDedicatedCarrier_C4_004` 2 条（2496/2498 产物合计 9）零回归（2496 屏障/失败监听零回退钉 + 2498 载体零回退钉）
+- [x] **接线验证**（rule 23）：真实订阅链（`subscribe` → `startEngineIfNeeded` → wrapper start）上断言 listener 注册/死亡通知连通（engine 死亡 → source started 翻转/探针可见）；Local 真实 send 链上断言失败回调派发
+- [x] **无静默跳过**（rule 24）：typed 拒绝路径（stop 后 subscribe）、失败派发路径、重投裁决路径均显式失败或可观测，不吞异常不静默返回
+- [x] **提交纪律**：nop-message 分提交或按实际 diff 面单提交并声明关系，commit message 带对应工单 ID 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 4.1-C3-002+C8-004 / C6-002（含 MA-05 三面归一）/ C6-006 / C8-002 四工单 landed：各带 ≥1 条 focused 回归测试且测试名可辨识工单；C10-001 四场景 TestDebeziumMessageSource 随批交付
-- [ ] 必红证据（E2）：至少 C8-002（修复前 onConsumeFailure 零派发断言红——C10-006 维度现状红）、C6-002（修复前幽灵订阅残留断言红）、MA-02（修复前毒事件两极断言红：畸形事件炸流极性 + 吞后静默推进 offset 极性 / 幽灵双投递断言红）与 C6-006（修复前同引用双订阅 cancel 误停活跃引擎断言红）四项先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-*.log` 含 RED 与 GREEN 两段）；MA-02/C6-002/C6-006 同 map/锁改造共享测试夹具，红基线可在共享夹具改造前统一取证，留痕中显式声明共享夹具的红论证方式；其余工单按 E2 逐条可复现口径执行
-- [ ] 接线验证证据登记（哪条断言证明运行时生效）
-- [ ] 入口到出口断言（真实 wrapper 通道）：在专用载体上经真实 wrapper 驱动 `start → handleDebeziumEvent → 毒事件 endpoint → failure listener 必达` 的入口到出口断言在位（扩 `TestDebeziumEngineDedicatedCarrier_C4_004` 既有半成品形态）——本 Phase 以该真实 wrapper 全链断言为组件+接线级闭环的行为证据
-- [ ] `./mvnw test -pl nop-message -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：`nop-message.md` 消费失败契约/Debezium 订阅契约受影响面核对（含 C8-002 重投立场声明落点）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 4 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4.1-C3-002+C8-004 / C6-002（含 MA-05 三面归一）/ C6-006 / C8-002 四工单 landed：各带 ≥1 条 focused 回归测试且测试名可辨识工单；C10-001 四场景 TestDebeziumMessageSource 随批交付
+- [x] 必红证据（E2）：至少 C8-002（修复前 onConsumeFailure 零派发断言红——C10-006 维度现状红）、C6-002（修复前幽灵订阅残留断言红）、MA-02（修复前毒事件两极断言红：畸形事件炸流极性 + 吞后静默推进 offset 极性 / 幽灵双投递断言红）与 C6-006（修复前同引用双订阅 cancel 误停活跃引擎断言红）四项先红后绿或变异/回退论证留痕（快照 `_tmp/phase2-*.log` 含 RED 与 GREEN 两段）；MA-02/C6-002/C6-006 同 map/锁改造共享测试夹具，红基线可在共享夹具改造前统一取证，留痕中显式声明共享夹具的红论证方式；其余工单按 E2 逐条可复现口径执行
+- [x] 接线验证证据登记（哪条断言证明运行时生效）
+- [x] 入口到出口断言（真实 wrapper 通道）：在专用载体上经真实 wrapper 驱动 `start → handleDebeziumEvent → 毒事件 endpoint → failure listener 必达` 的入口到出口断言在位（扩 `TestDebeziumEngineDedicatedCarrier_C4_004` 既有半成品形态）——本 Phase 以该真实 wrapper 全链断言为组件+接线级闭环的行为证据
+- [x] `./mvnw test -pl nop-message -am` BUILD SUCCESS
+- [x] Owner doc 裁定：`nop-message.md` 消费失败契约/Debezium 订阅契约受影响面核对（含 C8-002 重投立场声明落点）——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 4 统一但须在本 Phase 显式登记去向【2026-10-26 去向登记：归 Phase 4 统一落账——`nop-message.md` 消费失败契约节补 Local onConsumeFailure 语义 + Debezium 订阅契约节补 subscribe 失败回调重载/毒事件 endpoint 行为 + C8-002 重投立场（不自动重投/ConsumeLater 唯一路径）声明；本 Phase 已随批落码注与执行记录】
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 1.2 修复分片：C3-014 残余面 + C3-004 恢复双登记（nop-stream + nop-message 载体续作）
 
-Status: planned
+Status: completed
+
+> **Phase 3 执行记录（2026-10-26，实现子代理）**：残余五项 + C3-004 landed，提交 `9a4158287a`（wrapper 面：⑤终结 latch/终止可观测契约 + ①STARTING_TASKS 关闭有预算重试 typed 不吞 + ③worker 入口 stopRequested 守卫[C4-006] + ④carrier shutdownNow 升级[2498 勘误 4 预留面]，nop-message-debezium——⑤先行落地，②的轮询消费其 isTerminated 信号，次序约束满足）+ `41e77c601c`（nop-stream 面：②四停止面终止性验证——function `verifyEmbeddedEngineTerminated` 5s 预算轮询，truncateForDrain/reader close typed StreamException、run finally/cancel ERROR ghost 声明[rule 24 双形态，清理路径不掩蔽主结果]；C3-004 恢复差集——restoreState 记录 restoredUnassigned 不再单桶预置，start 全表 i%parallelism 重算为唯一登记来源，include-list 收缩恢复表保留记录槽位重发 WARN）。「已发出」→「已终止」闭合；:302-307 既有 runner-join typed 超时零回退；2498 载体形态（engineExecutor 惰性重建/STOP_TERMINATION_BUDGET_SECONDS/finally 自关停）零改动。R4-24/REGISTRY 边界：NopStreamOffsetBackingStore 零 diff，配对释放未落（归 R4-24），Phase 3 新落 isTerminated/awaitEngineTermination 终止性信号按 §3.5 ①「谁先落地谁不得假设对方存在」纪律供 R4-24 自由取用、不改写任何释放调用点语义。测试：TestDebeziumEngineStopContract_C3_014 5 条（①窗口重试至终止/typed+可重试/③worker 守卫/④stuck 升级+ghost/⑤cancel→source.stop→wrapper.stop→引擎终止→信号可查询入口到出口链，真实载体+注入引擎）+ TestDebeziumCdcStopVerification_C3_014 3 条（truncate typed/cancel ERROR/reader close typed）+ TestDebeziumTableSplitEnumeratorRestore_C3_004 1 条；既有 connector 套件零回归（TestDebeziumCdcCheckpoint 12 条快照/恢复 round-trip 全绿=rule 22 锚，gated 真库套件按门控跳过未触发）。必红两项：C3-004 真基线红（`_tmp/phase3-c3-004-red.log`：db.t2 双桶、两引擎双消费）+ C3-014 ghost 变异红（`_tmp/phase3-c3-014-ghost-red.log`：close 重试 revert 回吞形态后 closeAttempts=0/isTerminated=false）；GREEN `_tmp/phase3-stopcontract-green.log`/`_tmp/phase3-stream-newtests-green.log`。rule 23 接线=⑤入口到出口链（真实 cancel 链）+ reader close 验证调用链；rule 24=typed 拒绝/ERROR ghost/退化声明全显式。门禁：`./mvnw test -pl nop-stream -am` BUILD SUCCESS（`_tmp/phase3-nop-stream-gate.log`）+ `./mvnw test -pl nop-message -am` BUILD SUCCESS（`_tmp/phase3-nop-message-gate.log`，wrapper 面 diff 通道）。
 Targets: `nop-message/nop-message-debezium/src/main/java/io/nop/message/debezium/engine/DebeziumEngineWrapper.java`（stop :245-286、runEngineWorker :224-240）、`nop-stream/nop-stream-connector-debezium/src/main/java/io/nop/stream/connector/debezium/DebeziumCdcSourceReader.java`（close :295-312）、`DebeziumCdcSourceFunction.java`（run finally :297-316 / cancel :331-344 / truncateForDrain :352-367）、`DebeziumTableSplitEnumerator.java`（start :63-67 / restoreState :130-133）、两模块测试目录
 
 > 续作纪律：本分片允许分会话续作——提交粒度按「残余面组」（如 C3-014 残余①ISE 不吞组 / ②四停止面终止性验证组 / ③④worker 守卫+shutdownNow 升级组 / ⑤终结 latch/终止可观测契约组 / C3-004 枚举器恢复组）独立提交（commit message 带对应工单 ID 与 plan 号），每组完成即时勾选对应 checklist 项与 Exit Criteria，不跨面积压未勾选项；次序约束：⑤（终结 latch/终止可观测契约）先行落地或与②（四停止面终止性验证）同 diff 落地——②的轮询消费⑤产出的终止性信号，⑤未在位前②不得声明闭环。
 
 - Item Types: `Fix`（两项均为已确认 live defect）、`Proof`（回归测试）
 
-- [ ] C3-014 残余①：`wrapper.stop()` 对 STARTING_TASKS 窗口依赖方 ISE 不再吞——有预算重试（等状态离开后重试 close 直至 STOPPED）或 typed 上抛，形态随实现期对齐 debezium-embedded 3.7 状态机契约；`stopped` 一次性守卫与重试路径协调（重试期间不永久锁死后续 stop）
-- [ ] C3-014 残余②：四个 in-scope 停止面（reader close / function run finally / cancel / truncateForDrain）`source.stop()` 后增加引擎终止性验证——有限预算内轮询，未终止即 typed 失败或 ERROR 显式 ghost 风险声明（「已发出」→「已终止」）；runner-join 既有 typed 超时（:302-307）零回退
-- [ ] C3-014 残余③④⑤：`runEngineWorker` stopped 守卫（C4-006——stop 已完成后 worker lambda 不再驱动引擎）；stuck 引擎载体 `shutdownNow()` 升级（2498 预留面，触发条件与 5s 预算衔接）；终结 latch/终止可观测契约闭合（C4-005 残余——终止性信号对停止面可查询）
-- [ ] **载体零回退钉**：不改动 2498 载体形态（`engineExecutor` 惰性重建 / `STOP_TERMINATION_BUDGET_SECONDS` / finally 自关停）——`TestDebeziumEngineDedicatedCarrier_C4_004` 2 条零回归
-- [ ] 1.2-C3-004：恢复双登记闭合（成员 6 修复方向二选一，对齐 `FileSplitEnumerator` 恢复形态）——恢复态与新鲜份额求差集，每表恰一桶
-- [ ] 回归测试（rule 25，测试名带 `_C3_014`/`_C3_004` 标识）：①STARTING_TASKS 窗口 stop 场景（注入启动期阻塞 → 窗口内 stop → 断言引擎真实终止、无 ghost：引擎线程有界消亡 + registry 桶不再被覆写——修复前基线跑红）；②终止性验证断言（未终止时 typed 失败或 ghost 声明可见）；③worker stopped 守卫断言（stop 后完成的 worker 不复活引擎）；④shutdownNow 升级断言（stuck 引擎有界强制终结）；⑤枚举器恢复测试（构造「部分 reader 注册后崩溃」快照 → restore → start → 断言每表恰一桶、两 reader 分配无交集——修复前双桶断言红）；⑥既有 connector 测试（`TestDebeziumCdcSource`/`TestDebeziumCdcSharding`/gated 真库套件除外[不触发 gated]）零回归
-- [ ] **端到端验证**（rule 22）：以既有真实链路测试为锚（`TestDebeziumCdcCheckpoint` 快照/恢复 round-trip 套件绿）——本批新增面在 enumerator/wrapper 级 focused 测试覆盖入口到出口（stop 链：cancel→msgSource.stop→wrapper.stop→engine 终止→验证可查询；恢复链：snapshot→restore→start→assignSplits 无重复），gated 真库 E2E 不在本批触发范围
-- [ ] **接线验证**（rule 23）：真实 stop 链（`DebeziumCdcSourceReader.close` → `embeddedFunction.cancel` → `source.stop` → wrapper）上断言终止性验证生效（ghost 场景可观测）；真实 coordinator 时序（restoreState→start）上断言恢复分配
-- [ ] **无静默跳过**（rule 24）：ISE 重试预算耗尽、终止性验证超时、shutdownNow 升级路径均显式失败或 ERROR 可见，不吞异常
-- [ ] **提交纪律**：nop-message（wrapper 面）与 nop-stream（停止面 + 枚举器）各一提交（或按实际 diff 面单提交并声明关系），commit message 带 `1.2-C3-014`/`1.2-C3-004` 与 plan 号
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] C3-014 残余①：`wrapper.stop()` 对 STARTING_TASKS 窗口依赖方 ISE 不再吞——有预算重试（等状态离开后重试 close 直至 STOPPED）或 typed 上抛，形态随实现期对齐 debezium-embedded 3.7 状态机契约；`stopped` 一次性守卫与重试路径协调（重试期间不永久锁死后续 stop）
+- [x] C3-014 残余②：四个 in-scope 停止面（reader close / function run finally / cancel / truncateForDrain）`source.stop()` 后增加引擎终止性验证——有限预算内轮询，未终止即 typed 失败或 ERROR 显式 ghost 风险声明（「已发出」→「已终止」）；runner-join 既有 typed 超时（:302-307）零回退
+- [x] C3-014 残余③④⑤：`runEngineWorker` stopped 守卫（C4-006——stop 已完成后 worker lambda 不再驱动引擎）；stuck 引擎载体 `shutdownNow()` 升级（2498 预留面，触发条件与 5s 预算衔接）；终结 latch/终止可观测契约闭合（C4-005 残余——终止性信号对停止面可查询）
+- [x] **载体零回退钉**：不改动 2498 载体形态（`engineExecutor` 惰性重建 / `STOP_TERMINATION_BUDGET_SECONDS` / finally 自关停）——`TestDebeziumEngineDedicatedCarrier_C4_004` 2 条零回归
+- [x] 1.2-C3-004：恢复双登记闭合（成员 6 修复方向二选一，对齐 `FileSplitEnumerator` 恢复形态）——恢复态与新鲜份额求差集，每表恰一桶
+- [x] 回归测试（rule 25，测试名带 `_C3_014`/`_C3_004` 标识）：①STARTING_TASKS 窗口 stop 场景（注入启动期阻塞 → 窗口内 stop → 断言引擎真实终止、无 ghost：引擎线程有界消亡 + registry 桶不再被覆写——修复前基线跑红）；②终止性验证断言（未终止时 typed 失败或 ghost 声明可见）；③worker stopped 守卫断言（stop 后完成的 worker 不复活引擎）；④shutdownNow 升级断言（stuck 引擎有界强制终结）；⑤枚举器恢复测试（构造「部分 reader 注册后崩溃」快照 → restore → start → 断言每表恰一桶、两 reader 分配无交集——修复前双桶断言红）；⑥既有 connector 测试（`TestDebeziumCdcSource`/`TestDebeziumCdcSharding`/gated 真库套件除外[不触发 gated]）零回归
+- [x] **端到端验证**（rule 22）：以既有真实链路测试为锚（`TestDebeziumCdcCheckpoint` 快照/恢复 round-trip 套件绿）——本批新增面在 enumerator/wrapper 级 focused 测试覆盖入口到出口（stop 链：cancel→msgSource.stop→wrapper.stop→engine 终止→验证可查询；恢复链：snapshot→restore→start→assignSplits 无重复），gated 真库 E2E 不在本批触发范围
+- [x] **接线验证**（rule 23）：真实 stop 链（`DebeziumCdcSourceReader.close` → `embeddedFunction.cancel` → `source.stop` → wrapper）上断言终止性验证生效（ghost 场景可观测）；真实 coordinator 时序（restoreState→start）上断言恢复分配
+- [x] **无静默跳过**（rule 24）：ISE 重试预算耗尽、终止性验证超时、shutdownNow 升级路径均显式失败或 ERROR 可见，不吞异常
+- [x] **提交纪律**：nop-message（wrapper 面）与 nop-stream（停止面 + 枚举器）各一提交（或按实际 diff 面单提交并声明关系），commit message 带 `1.2-C3-014`/`1.2-C3-004` 与 plan 号
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 1.2-C3-014 残余五项 landed（ISE 不吞 + 四停止面终止性验证 + worker 守卫 + shutdownNow 升级 + 终结契约）且 1.2-C3-004 landed：各带 ≥1 条 focused 回归测试且测试名可辨识工单
-- [ ] 必红证据（E2）：至少 C3-014 ghost 场景断言（STARTING_TASKS 窗口 stop 后引擎存活）与 C3-004 双桶断言（恢复后同表双份额）两项先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-*.log`）
-- [ ] 接线验证证据登记（真实 stop 链 / restore→start 时序）
-- [ ] `./mvnw test -pl nop-stream -am` BUILD SUCCESS；`./mvnw test -pl nop-message -am` BUILD SUCCESS（wrapper 面 diff 通道）
-- [ ] Owner doc 裁定：`nop-stream-connectors.md` 停止契约节（2498 落的「引擎线程模型与终结预算」节扩终止性契约）与 `nop-stream-cdc-cookbook.md` 恢复语义节核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 4 统一但须在本 Phase 显式登记去向
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 1.2-C3-014 残余五项 landed（ISE 不吞 + 四停止面终止性验证 + worker 守卫 + shutdownNow 升级 + 终结契约）且 1.2-C3-004 landed：各带 ≥1 条 focused 回归测试且测试名可辨识工单
+- [x] 必红证据（E2）：至少 C3-014 ghost 场景断言（STARTING_TASKS 窗口 stop 后引擎存活）与 C3-004 双桶断言（恢复后同表双份额）两项先红后绿或变异/回退论证留痕（快照 `_tmp/phase3-*.log`）
+- [x] 接线验证证据登记（真实 stop 链 / restore→start 时序）
+- [x] `./mvnw test -pl nop-stream -am` BUILD SUCCESS；`./mvnw test -pl nop-message -am` BUILD SUCCESS（wrapper 面 diff 通道）
+- [x] Owner doc 裁定：`nop-stream-connectors.md` 停止契约节（2498 落的「引擎线程模型与终结预算」节扩终止性契约）与 `nop-stream-cdc-cookbook.md` 恢复语义节核对——受影响面随批更新或显式写 `No owner-doc update required` + 理由；最终落账可归 Phase 4 统一但须在本 Phase 显式登记去向【2026-10-26 去向登记：归 Phase 4 统一落账——`nop-stream-connectors.md` 扩「停止契约终止性」（已发出→已终止 + 四停止面验证 + ghost 声明 + STARTING_TASKS 重试）与 `nop-stream-cdc-cookbook.md` 恢复节补「每表恰一桶」差集语义；本 Phase 已随批落码注与执行记录】
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - 全量验证 + owner doc 三份 + 对齐注记
 
