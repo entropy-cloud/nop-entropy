@@ -117,43 +117,47 @@ Exit Criteria:
 
 ### Phase 2 - 七成员实现 + 单元测试（nop-ioc 三成员 + api-core/config 一成员族 + nop-persistence 三成员）
 
-Status: planned
+Status: completed
 Targets: `nop-core-framework/nop-ioc/src/main/java/io/nop/ioc/`（impl/initialize/resolvers）及 `src/test/`、`nop-kernel/nop-api-core/src/main/java/io/nop/api/core/config/` 及 `src/test/`、`nop-core-framework/nop-config/src/main/java/io/nop/config/impl/` 及 `src/test/`、`nop-persistence/nop-orm/`、`nop-persistence/nop-orm-migration/`、`nop-persistence/nop-dao/`（含各自 `src/test/`）
 
 - Item Types: `Fix`（七成员全部为已确认 live defect[含 G48a P2 搭车的已裁决修项]，不得写成 Feature）、`Proof`（单元测试 + C10 成员面验收前置）
 
-- [ ] C4-003 实现（含 C4-008 三形态）：按裁定①实施框架级 join + 有界超时 + 失败终态与快速失败 + 汇聚点兜底
-- [ ] C2-001 实现（含 C2-012 边族）：按裁定②实施不可见边补收集 + 等待图环检出 + 有界等待兜底（allow-cycle 按裁定②定夺形态，无临场自加项）
-- [ ] C2-002 实现（含 C1-002 并案面）：按裁定③实施有界等待 + 类型化超时/环错误；既有机制级钉零回改
-- [ ] C1-007 实现（含 C1-017 族案）：按裁定④实施 api-core holder 化 + nop-config 四写点适配 + SPI 回归面全列执行（零接口签名默认分支）
-- [ ] 2.5-C1-007 实现：按裁定⑤实施 shardSelector volatile + ConfigShardSelector 安全发布（+ 读回确认如裁定采信）
-- [ ] 2.5-C7-004 实现：按裁定⑤实施租约 fail-open（或备选回写形态）；多实例操作矩阵 owner doc 内容同步产出
-- [ ] 2.5-C1-010 实现：可见性半边随 C1-007（零独立代码，登记承载）+ 保持机制半边按裁定⑤默认形态实施（runVerify/confirmSwitch 窗口复核 + 失配 gateFailed 留痕）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 成员面验收前置同 diff，先红后绿或变异/回退论证留痕；全部死锁/并发测试按裁定⑦纪律）：
-  - [ ] C4-003（C10-002 成员面）：失败注入 bean + concurrentStart(true) → join 语义下失败传导可观测断言（awaitStartFinished 抛出/容器失败终态可查询；修复前红 = 进程面 run-success 姿态可查询但无失败信号）；Error 注入 bean → 无 limbo（started 不翻转且失败终态成立，F2 闭合）；成功回调异常注入 → 非静默（F5 闭合）；join 超时注入（挂死 init + 上界调小）→ 类型化超时失败（F4 闭合）；`testAsyncStartOrder` 成功路径零回归 + N5 覆盖边界 javadoc 注记
-  - [ ] C2-001（C10-003 成员面）：双线程互为 type-injection 环 fixture 并发首触 → 有界窗内类型化环错误/超时错误而非永久 BLOCKED（修复前红 = 断言窗内不可完成）；factoryBean 环 fixture 同型；不可见边补收集后拓扑可观测断言（构建期日志/图内容）；`TestConstructorCycleDetection`/`TestPrototypeCycleDetection`/`TestBeanParentLoop`/`TestReentrantCircularRepro` 零回归
-  - [ ] C2-002（C10-003 成员面）：双 owner 互等环 fixture（init 期 includeCreating=false 交叉获取）→ 类型化环错误或有界超时（修复前红 = @Timeout 窗内挂死）；`TestBeanConcurrentInitDeadlock` 全断言零回改
-  - [ ] C1-007（C10-009 成员面）：刷新线程写 × 多读者线程可见性测试（有界窗内读者读到新值；修复前红 = 陈旧读观测）；撕裂窗断言（updateValue 后 location/provider 代际一致——holder 单发布）；7 写点逐点冒烟（W1–W7 经 holder 路径）；N3 测试类（TestPluginLifecycle/TestReloadPlugin/TestShellRunner/TestBeanConditionUnlessProperty/TestMultiConfigVarExpression/TestAppBeansFilter 等）全绿强制回归；R1-01/R1-02 零回退门禁（per-callback 隔离 4 条 + WorkerOffload 2+2 条 + Timeout 7 条 + 构造序/互斥回归）；SPI 回归面测试执行（SimpleConfigProvider/DefaultConfigProvider/wrapper 链）
-  - [ ] 2.5-C1-007（C10-012）：rebuildRouting 热替换后并发读者有界窗内读到新 selector 断言（修复前红 = 读旧 selector 观测）；策略表不可变/安全发布断言；e2e restart-required 降级断言零回改核对（:95）
-  - [ ] 2.5-C7-004（C10-014 成员面）：租约超时 fail-open 断言（时钟注入）；开门后新写放行 + 状态行留痕断言；`TestOrmMigrationWriteGate` 既有 5 用例 + e2e 门序列零回归
-  - [ ] 2.5-C1-010（C10-014 成员面）：VERIFY 窗口内翻转线程 × 校验线程交错 → 校验结束前复核命中失配 gateFailed 留痕断言（修复前红 = passed 落账观测）；confirmSwitch 窗口同型
-- [ ] **端到端验证**（rule 22）：≥1 条 IoC 并发启动→失败传导→容器终态链路测试（concurrentStart 全链：start→图执行→失败注入→失败终态→join 感知→已建 bean 销毁→stop 可重入；rule 22 入口点=容器 start、出口点=调用方可观测失败终态）；≥1 条配置发布→刷新链下游链路测试（updateConfigValue/applyChange 写 → holder 单发布 → 下游读者[写门 isClosed / CFG_ORM_SHARD.get()→selector] 读到新值——发布协议从写点入口到下游出口完整走通）
-- [ ] **接线验证**（rule 23）：join 在 IocCoreInitializer 启动序真实执行断言（非测试直接调 awaitStartFinished 的自证）；环检出/等待登记在 getBean0/runUntil 等待路径真实注册断言；holder 单发布路径被 applyChangeToUsed/updateConfigValue/updateRefs 真实调用断言（计数器/标志位或链路断言）
-- [ ] **无静默跳过**（rule 24）：join 超时/环检出/等待超时全部类型化抛出而非静默吞；租约 fail-open 告警+留痕而非静默开启；门禁复核失配 gateFailed 而非跳过校验；C4-008 兜底路径无空 catch
-- [ ] **提交纪律**：设计文档与实现分离提交（Phase 1 先落盘提交 → 独立 draft review → 实现按工单逐项提交）；七工单按模块分组提交——**nop-ioc 组**（C4-003/C2-001/C2-002）、**nop-config + nop-api-core 组**（C1-007 holder 两模块同变更集）、**nop-persistence 组**（2.5-C1-007/C7-004/C1-010），C10 成员面测试与对应本体**同一 commit**（E2 同 diff 核验依据）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] C4-003 实现（含 C4-008 三形态）：按裁定①实施框架级 join + 有界超时 + 失败终态与快速失败 + 汇聚点兜底
+- [x] C2-001 实现（含 C2-012 边族）：按裁定②实施不可见边补收集 + 等待图环检出 + 有界等待兜底（allow-cycle 按裁定②定夺形态，无临场自加项）
+- [x] C2-002 实现（含 C1-002 并案面）：按裁定③实施有界等待 + 类型化超时/环错误；既有机制级钉零回改
+- [x] C1-007 实现（含 C1-017 族案）：按裁定④实施 api-core holder 化 + nop-config 四写点适配 + SPI 回归面全列执行（零接口签名默认分支）
+- [x] 2.5-C1-007 实现：按裁定⑤实施 shardSelector volatile + ConfigShardSelector 安全发布（+ 读回确认如裁定采信）
+- [x] 2.5-C7-004 实现：按裁定⑤实施租约 fail-open（或备选回写形态）；多实例操作矩阵 owner doc 内容同步产出
+- [x] 2.5-C1-010 实现：可见性半边随 C1-007（零独立代码，登记承载）+ 保持机制半边按裁定⑤默认形态实施（runVerify/confirmSwitch 窗口复核 + 失配 gateFailed 留痕）
+- [x] 回归测试（rule 25 显式覆盖 + C10 成员面验收前置同 diff，先红后绿或变异/回退论证留痕；全部死锁/并发测试按裁定⑦纪律）：
+  - [x] C4-003（C10-002 成员面）：失败注入 bean + concurrentStart(true) → join 语义下失败传导可观测断言（awaitStartFinished 抛出/容器失败终态可查询；修复前红 = 进程面 run-success 姿态可查询但无失败信号）；Error 注入 bean → 无 limbo（started 不翻转且失败终态成立，F2 闭合）；成功回调异常注入 → 非静默（F5 闭合）；join 超时注入（挂死 init + 上界调小）→ 类型化超时失败（F4 闭合）；`testAsyncStartOrder` 成功路径零回归 + N5 覆盖边界 javadoc 注记
+  - [x] C2-001（C10-003 成员面）：双线程互为 type-injection 环 fixture 并发首触 → 有界窗内类型化环错误/超时错误而非永久 BLOCKED（修复前红 = 断言窗内不可完成）；factoryBean 环 fixture 同型；不可见边补收集后拓扑可观测断言（构建期日志/图内容）；`TestConstructorCycleDetection`/`TestPrototypeCycleDetection`/`TestBeanParentLoop`/`TestReentrantCircularRepro` 零回归
+  - [x] C2-002（C10-003 成员面）：双 owner 互等环 fixture（init 期 includeCreating=false 交叉获取）→ 类型化环错误或有界超时（修复前红 = @Timeout 窗内挂死）；`TestBeanConcurrentInitDeadlock` 全断言零回改
+  - [x] C1-007（C10-009 成员面）：刷新线程写 × 多读者线程可见性测试（有界窗内读者读到新值；修复前红 = 陈旧读观测）；撕裂窗断言（updateValue 后 location/provider 代际一致——holder 单发布）；7 写点逐点冒烟（W1–W7 经 holder 路径）；N3 测试类（TestPluginLifecycle/TestReloadPlugin/TestShellRunner/TestBeanConditionUnlessProperty/TestMultiConfigVarExpression/TestAppBeansFilter 等）全绿强制回归；R1-01/R1-02 零回退门禁（per-callback 隔离 4 条 + WorkerOffload 2+2 条 + Timeout 7 条 + 构造序/互斥回归）；SPI 回归面测试执行（SimpleConfigProvider/DefaultConfigProvider/wrapper 链）
+  - [x] 2.5-C1-007（C10-012）：rebuildRouting 热替换后并发读者有界窗内读到新 selector 断言（修复前红 = 读旧 selector 观测）；策略表不可变/安全发布断言；e2e restart-required 降级断言零回改核对（:95）
+  - [x] 2.5-C7-004（C10-014 成员面）：租约超时 fail-open 断言（时钟注入）；开门后新写放行 + 状态行留痕断言；`TestOrmMigrationWriteGate` 既有 5 用例 + e2e 门序列零回归
+  - [x] 2.5-C1-010（C10-014 成员面）：VERIFY 窗口内翻转线程 × 校验线程交错 → 校验结束前复核命中失配 gateFailed 留痕断言（修复前红 = passed 落账观测）；confirmSwitch 窗口同型
+- [x] **端到端验证**（rule 22）：≥1 条 IoC 并发启动→失败传导→容器终态链路测试（concurrentStart 全链：start→图执行→失败注入→失败终态→join 感知→已建 bean 销毁→stop 可重入；rule 22 入口点=容器 start、出口点=调用方可观测失败终态）；≥1 条配置发布→刷新链下游链路测试（updateConfigValue/applyChange 写 → holder 单发布 → 下游读者[写门 isClosed / CFG_ORM_SHARD.get()→selector] 读到新值——发布协议从写点入口到下游出口完整走通）
+- [x] **接线验证**（rule 23）：join 在 IocCoreInitializer 启动序真实执行断言（非测试直接调 awaitStartFinished 的自证）；环检出/等待登记在 getBean0/runUntil 等待路径真实注册断言；holder 单发布路径被 applyChangeToUsed/updateConfigValue/updateRefs 真实调用断言（计数器/标志位或链路断言）
+- [x] **无静默跳过**（rule 24）：join 超时/环检出/等待超时全部类型化抛出而非静默吞；租约 fail-open 告警+留痕而非静默开启；门禁复核失配 gateFailed 而非跳过校验；C4-008 兜底路径无空 catch
+- [x] **提交纪律**：设计文档与实现分离提交（Phase 1 先落盘提交 → 独立 draft review → 实现按工单逐项提交）；七工单按模块分组提交——**nop-ioc 组**（C4-003/C2-001/C2-002）、**nop-config + nop-api-core 组**（C1-007 holder 两模块同变更集）、**nop-persistence 组**（2.5-C1-007/C7-004/C1-010），C10 成员面测试与对应本体**同一 commit**（E2 同 diff 核验依据）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 七成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 成员面验收前置（C10-002/003/009[均成员面]、C10-012、C10-014）同 diff 落地
-- [ ] 必红证据（E2）：七成员至少各一项先红后绿或变异/回退论证留痕（C4-003 假活红 / C2-001 互等挂死红 / C2-002 环挂死红 / C1-007 可见性或撕裂红 / 2.5-C1-007 旧 selector 红 / 2.5-C7-004 冻结不自愈红 / 2.5-C1-010 窗口翻转无感知红），快照落 `_tmp/` 并登记
-- [ ] 零回退实证：`TestBeanConcurrentInitDeadlock`、`TestBeanDepends`、`TestConstructorCycleDetection` 族、N3 测试类、R1-01/R1-02 刷新链回归、`TestOrmMigrationWriteGate`、e2e restart-required 断言全绿（钉零回改项逐条 git diff 为空核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-kernel -am` BUILD SUCCESS（api-core 触达通道）；`./mvnw test -pl nop-persistence -am` BUILD SUCCESS
-- [ ] Owner doc 裁定：ioc-and-config.md 新建节 + source-anchors.md 锚点扩展的内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 七成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 成员面验收前置（C10-002/003/009[均成员面]、C10-012、C10-014）同 diff 落地
+- [x] 必红证据（E2）：七成员至少各一项先红后绿或变异/回退论证留痕（C4-003 假活红 / C2-001 互等挂死红 / C2-002 环挂死红 / C1-007 可见性或撕裂红 / 2.5-C1-007 旧 selector 红 / 2.5-C7-004 冻结不自愈红 / 2.5-C1-010 窗口翻转无感知红），快照落 `_tmp/` 并登记
+- [x] 零回退实证：`TestBeanConcurrentInitDeadlock`、`TestBeanDepends`、`TestConstructorCycleDetection` 族、N3 测试类、R1-01/R1-02 刷新链回归、`TestOrmMigrationWriteGate`、e2e restart-required 断言全绿（钉零回改项逐条 git diff 为空核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-kernel -am` BUILD SUCCESS（api-core 触达通道）；`./mvnw test -pl nop-persistence -am` BUILD SUCCESS
+- [x] Owner doc 裁定：ioc-and-config.md 新建节 + source-anchors.md 锚点扩展的内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 2 执行记录（2026-10-26）**：三组按提交纪律落地——组 B `9b6447558f`（C1-007 holder：`DefaultConfigReference` 单 volatile `ConfigRefState` + `updateValue` 单发布 + `getLocation` 覆写 + 零接口签名；SPI 回归面 5 实现 + 2 provider 子类 + AppConfig 逐一核对，`DefinitionConfigProvider` 消费面 source-compat 成立；`TestConfigReferencePublishAtomicity` 5[红：61432 快照 22308 混代→绿 0]+`TestConfigRefreshPublishChain`[rule 22 链路②经 changeConfigSource/applyChange 真实刷新路径]；nop-api-core 196 + nop-config 57 绿，2496/2497 门禁零回退）；组 C `d017ea6291`（C1-007 shardSelector volatile + `ConfigShardSelector` 不可变 ConfigState 构造期注入 + rebuild 拆 build/publish 读回确认失配 gateFailed；C7-004 租约 fail-open——`firstSeenClosedAt` 惰性锚定[观察即起租]、`nop.orm.migration.write-gate-lease-seconds` 1800s/≤0 关闭档、WARN 一次性 marker、时钟缝 `setLeaseClock`、**setClosed(false) 同步清零**[实施期绿跑发现的设计缺口：连续翻转无中间观察时旧锚点残留致新租约立即到期]；C1-010 runVerify/confirmSwitch 窗口复核 → gateFailed + `ERR_MIG_GATE_NOT_SATISFIED`；`TestWriteGateLeaseFailOpen` 4[红：第二实例租约不自愈]/`TestShardSelectorHotSwapVisibility` 5[红：失配静默]/`TestWriteGateWindowRecheck` 3[红：窗口开门静默 passed 落账]；nop-dao 338 + nop-orm 407 + nop-orm-migration 60 绿，`TestOrmMigrationWriteGate` 5 + `TestMigrationPipelineE2E` 9 零回退）；组 A `c5b8530cd9`（C4-003 join + 失败终态汇聚[startFailed 单一事实源 + 幂等] + C2-001 getBean0 → per-BD ReentrantLock.tryLock 有界获取 + LoadWaitGraph 双域环检出[载体 = `ResourceCacheEntry.LoadWaitGraph` 内部类，设计所写 `resource/deps/LoadWaitGraph.java` 独立文件不存在——以设计文档载点为准] + C2-002 waitQuietly 有界化；IocErrors 五新码 + `BeanWaitErrors` 环构造守卫；`TestIocConcurrentStartFailurePropagation` 4 + `TestIocCoreInitializerJoinE2E`[**rule 22 链路①经 `CoreInitialization.initialize()` 真实入口**，失败后平台可完整重新初始化无 limbo] + `TestBeanDefCrossThreadCycleDetection` 3 + `TestPbiWaitBoundedAndCycleSniff` 2 + 14 夹具类；红：缺陷形态源码真挂死[永久 BLOCKED/互等 50s/e2e 0.57s 假活红]；nop-ioc 82 绿，`TestBeanConcurrentInitDeadlock` 四钉零回改[线程状态探针补 TIMED_WAITING=有界 wait 的 JVM 必然状态，不属钉弱化]）。
+>
+> **偏差登记**：①无 OrmErrors 租约新码——租约到期为 WARN 事件非异常、新码无 throw 面（rule 24），复核失配沿既有 `ERR_MIG_GATE_NOT_SATISFIED`（设计 §3.7 可选配套未采）；②F2 Error 注入点在 init 阶段（@PostConstruct 经 `ClassHelper.invoke` 解包 raw 逃逸）而非构造器（ITE 包装降级为普通 Exception 是既有平台行为）；③环错误经 ITE 包装到达调用方，测试按因果链匹配错误码；④runVerify 复核点 1 无确定性外部注入钩子，红证据由复核点 2 + confirmSwitch 腿承载；⑤组 B 测试落两树（api-core 需 `stateSnapshot()` 缝 / nop-config 需 DefaultConfigProvider），测试名 `TestConfigReferencePublishAtomicity` 与设计 §六 `TestConfigReferencePublishProtocol` 择一在 Phase 3 对齐登记；⑥`route_rebuild VARCHAR(32)` 既有 `rebuild-failed:`+message 超长风险为批前既有（归 R2-15）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
