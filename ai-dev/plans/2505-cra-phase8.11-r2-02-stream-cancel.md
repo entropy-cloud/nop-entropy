@@ -1,6 +1,6 @@
 # 2505 CRA Phase 8.11 — R2-02 流式取消/期限两侧同批（R14 消费面 + R05/R06/R11/R21 相邻，5 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_59c548fb（0 Blocker、2 Major[F1 cra-index 行号三处连坐自纠/F2 PA 预期主路径校正——面①叶内不可达结构性事实]+5 Minor——修订 agent_c78e09bf 全量应用[live 核验后落笔]，active）
 > Last Reviewed: 2026-10-25
 > Plan Review R1: agent_59c548fb @ 2026-10-25——2 Major（M-1 cra-index 行号 L263/L281 误载连坐修正为 L274/L290 + 勘误 3 自纠补记；M-2 C6-004 面① waitForDemand 上移经 live 结构性核验叶内不可达、PA 裁定预期主路径校正为 plan-first 批内闭环，四处同步 + Phase 1 工时预留）+ 5 Minor（idle 读超时预算承载建议与触碰声明、Phase 3 场景②真实 JdkHttpClient+raw ServerSocket、Phase 2 子分片纪律、成员 2 无人 interrupt 补注等）修订已全部入文（live 事实经本仓库重验后落笔）
@@ -126,7 +126,7 @@ Targets: `nop-ai/nop-ai-core/src/main/java/io/nop/ai/core/service/ChatServiceImp
 - [x] 3.1-C7-001：聚合层全程期限（`CFG_AI_SERVICE_STREAM_TOTAL_TIMEOUT` = `nop.ai.service.stream-total-timeout` 缺省 10min，`CoreMetrics.timeoutToExpireTime` 口径）+ chunk 间 inactivity 上界（`CFG_AI_SERVICE_STREAM_IDLE_TIMEOUT` = `nop.ai.service.stream-idle-timeout` 缺省 2min，独立配置键，与 READ_TIMEOUT 分离）；超时经 `subscription.cancel()` + `future.completeExceptionally(ERR_AI_STREAM_TOTAL_TIMEOUT/ERR_AI_STREAM_IDLE_TIMEOUT)` 走既有错误路径（R21 纪律，带 llmName+timeout 诊断）；watchdog 复用 `GlobalExecutors.globalTimer()` 调度（一次性总期限任务 + 固定延迟 inactivity 巡检，任务体短动作非自旋非长阻塞体，MA-16 豁免判据），终态 whenComplete 双取消无残留
 - [x] 3.1-C7-002：onComplete 终止信号校验（`hasTerminationSignal` = finishReason 非空 ∨ `StreamItemPhase.DONE`）——**分支裁定 = completeExceptionally**（`ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING`，带截断字符数诊断 `accumulatedChars`，ARG_LLM_NAME 在案），fail-loud 不静默成功（R11 族纪律 + R21）；零 chunk 空流保持既有成功契约（`TestChatServiceImplCallPathContract` 零回退），分支选择落 owner doc 归 Phase 3
 - [x] 消费面行为钉：`TestFailoverStreamCancelPin_C3_001`（gateway）——FailoverStreamFlow 作为 callStream 直接订阅者，挂死传输上调用方取消后有界窗内 attempt 终止（并发计数释放 + 上游 SSE 订阅取消 + attempt token 精确取消一次，订阅注册不泄漏）；**gateway 本体零改动**（R2-06 边界，勘误 6；适配器「调用方取消不向输出发终态」为既有语义归 R2-06，钉内注记 + 核心侧取消闭合红转绿在 nop-ai-core 两条 _C3_001 用例承载）
-- [x] 回归测试（rule 25）：`TestStreamCancelDeadlineAndDelivery_C3_001`（nop-ai-core，13 条全带 `_C3_001`/`_C7_001`/`_C7_002` 标识：①取消闭合直订阅者+聚合 future ②request 窗有界+慢下游 fail-loud ③承载非 commonPool ④日志失败不悬挂 ⑤双上界 fail-fast ⑥总期限/inactivity ⑦R11 半关闭 fail-loud + 空流/终止流双零回归边界）+ `TestFailoverStreamCancelPin_C3_001`（⑧消费面钉）；**先红后绿证据**：`_tmp/phase2-red-core.log`（13 条中 11F——红形态①③④全部真红，2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core.log` + 3x 复跑全绿；⑨既有零回归：`TestStreamAggregator`/`TestChatServiceImplCallPathContract`/`TestChatServiceImplErrorResponse`/`TestChatLoggerRedaction`/`TestChatLogHelper`/`TestChatServiceRateLimit`/`TestLlmConfigHelper`/`TestLlmErrorMapping` 50 条全绿（`_tmp/phase2-regression-core.log`）；`./mvnw test -pl nop-ai` 聚焦全绿 48 tests BUILD SUCCESS（`_tmp/phase2-gate-nop-ai-focused.log`）
+- [x] 回归测试（rule 25）：`TestStreamCancelDeadlineAndDelivery_C3_001`（nop-ai-core，13 条全带 `_C3_001`/`_C7_001`/`_C7_002` 标识：①取消闭合直订阅者+聚合 future ②request 窗有界+慢下游 fail-loud ③承载非 commonPool ④日志失败不悬挂 ⑤双上界 fail-fast ⑥总期限/inactivity ⑦R11 半关闭 fail-loud + 空流/终止流双零回归边界）+ `TestFailoverStreamCancelPin_C3_001`（⑧消费面钉）；**先红后绿证据**：`_tmp/phase2-red-core.log`（13 条中 11F——红形态①③④全部真红，2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core-recapture.log` + 3x 复跑全绿；⑨既有零回归：`TestStreamAggregator`/`TestChatServiceImplCallPathContract`/`TestChatServiceImplErrorResponse`/`TestChatLoggerRedaction`/`TestChatLogHelper`/`TestChatServiceRateLimit`/`TestLlmConfigHelper`/`TestLlmErrorMapping` 50 条全绿（`_tmp/phase2-regression-core.log`）；`./mvnw test -pl nop-ai` 聚焦全绿 48 tests BUILD SUCCESS（`_tmp/phase2-gate-nop-ai-focused.log`）
 - [x] **接线验证**（rule 23）：真实 `ChatServiceImpl.callStream → aggregateStreamToResponse` 链 + fake 挂死传输（gate/静默形态）上断言取消闭合/期限/watchdog 运行时生效（`cancelTerminatesAggregatedFuture`/`totalDeadlineTerminatesHungStream`/`idleTimeoutTerminatesSilentStream`/`slowDownstreamFailsFastInsteadOfBlocking` 均为全链断言非类型存在）；端到端最小链 = callAsync(stream=true)→fake 挂死→期限终止（组件级预演 ✓，全链端到端归 Phase 3）
 - [x] **无静默跳过**（rule 24）：日志失败 WARN 显式可见（`nop.ai.chat-log-write-fail`）；上界超界类型化 `ERR_AI_STREAM_ACCUMULATION_EXCEEDED`；期限到期 `ERR_AI_STREAM_TOTAL_TIMEOUT`/`ERR_AI_STREAM_IDLE_TIMEOUT` 显式异常终态；缓冲满载 `ERR_AI_STREAM_BUFFER_OVERFLOW`；半关闭 `ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING`——不吞异常、不以静默 complete 替代
 - [x] **提交纪律与子分片纪律**：nop-ai-core 一提交（生产+测试同提交；消费面钉随同声明关系），commit message 带 `3.1-C3-001`/`3.1-C7-001`/`3.1-C7-002` 与 plan 号；单会话内收口未触发子分片拆分
@@ -137,7 +137,7 @@ Exit Criteria:
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [x] 3.1-C3-001（含 MA-01 族五点）/ 3.1-C7-001 / 3.1-C7-002 全部 landed，focused 回归 13+1 条且测试名可辨识工单
-- [x] 必红证据（E2）：取消悬挂/期限/R11 三类断言先红后绿留痕——`_tmp/phase2-red-core.log`（11F：`cancelTerminatesAggregatedFuture`/`cancelClosesDownstreamSubscriber` 悬挂、`totalDeadlineTerminatesHungStream`/`idleTimeoutTerminatesSilentStream` 悬挂、`halfCloseWithoutTerminationSignalFailsLoud` 误判成功、五点其余各面）→ `_tmp/phase2-green-core.log`（13/13 GREEN）+ 3x 复跑稳定
+- [x] 必红证据（E2）：取消悬挂/期限/R11 三类断言先红后绿留痕——`_tmp/phase2-red-core.log`（11F：`cancelTerminatesAggregatedFuture`/`cancelClosesDownstreamSubscriber` 悬挂、`totalDeadlineTerminatesHungStream`/`idleTimeoutTerminatesSilentStream` 悬挂、`halfCloseWithoutTerminationSignalFailsLoud` 误判成功、五点其余各面）→ `_tmp/phase2-green-core-recapture.log`（13/13 GREEN）+ 3x 复跑稳定
 - [x] 接线验证证据登记：真实 ChatServiceImpl 全链断言（fake 挂死传输 gate/静默形态）；watchdog 运行时生效证明 = `totalDeadlineTerminatesHungStream_C7_001`（800ms 预算内挂死流异常终态）/`idleTimeoutTerminatesSilentStream_C7_001`；取消闭合运行时生效证明 = `cancelTerminatesAggregatedFuture_C3_001`/gateway 钉计数释放
 - [x] `./mvnw test -pl nop-ai -am` 门禁：链全模块构建+测试通过，唯 nop-auth-service `TestOperationMfaE2E` 为**基线批前既有失败**（基线 `0eb3ea67ba` worktree 隔离复跑同败 6 errors，证据 `_tmp/mfa-baseline.log`，与本批 diff 零交集[nop-auth 零触碰]）；授权支路证据组 = ①`./mvnw test -pl nop-ai` 聚焦 BUILD SUCCESS 48 tests（`_tmp/phase2-gate-nop-ai-focused.log`）②链构建+全测试运行在案（`_tmp/phase2-gate-nop-ai.log`/`_tmp/phase2-gate-nop-ai-unfiltered.log`，唯 nop-auth-service 该类失败）——支路理由随执行记录登记，MFA 修复归 nop-auth 工单不在本批 scope
 - [x] Owner doc 裁定：`nop-ai.md` 流式链契约（取消/期限/交付语义 + C7-002 分支裁定 + 新配置键）——**更新归 Phase 3 统一落账**（本 Phase 显式登记去向：Phase 3 owner doc 更新项）
@@ -172,50 +172,52 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.11 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「取消后下游真实终止」「挂死链真实有界终止」「半关闭不再成功交付」（三场景线程/终态断言）与「原语/设施零回改」
-- [ ] cra-index 台账回填：5 成员行（L239 C3-001[MA-01 族吸收注记]、L250 C7-001、L251 C7-002、L274 C3-002[MA-02 族吸收注记]、L290 C6-004）状态收敛（open → 已修/本批）；§七-6 两侧同批回写注记（MA-02/C6-004 行与 3.1-C7-001 行互指）；R11 族对齐注记（4.3-C3-005/3.3-C3-001/3.4-C3-005 各归其批互注）与 R21 纪律适用注记；C10-002/C10-003 本批格子落账注记（G67 侧格子留其批，勘误 5）
-- [ ] roadmap 8.11 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-cra-phase8.11-r2-02-stream-cancel.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）；重点抽查「取消后下游真实终止」「挂死链真实有界终止」「半关闭不再成功交付」（三场景线程/终态断言）与「原语/设施零回改」
+- [x] cra-index 台账回填：5 成员行（L239 C3-001[MA-01 族吸收注记]、L250 C7-001、L251 C7-002、L274 C3-002[MA-02 族吸收注记]、L290 C6-004）状态收敛（open → 已修/本批）；§七-6 两侧同批回写注记（MA-02/C6-004 行与 3.1-C7-001 行互指）；R11 族对齐注记（4.3-C3-005/3.3-C3-001/3.4-C3-005 各归其批互注）与 R21 纪律适用注记；C10-002/C10-003 本批格子落账注记（G67 侧格子留其批，勘误 5）
+- [x] roadmap 8.11 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-cra-phase8.11-r2-02-stream-cancel.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 5 成员行状态全部收敛 + 两侧同批/R11/R21/C10 注记可核验、roadmap 8.11 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 5 成员行状态全部收敛 + 两侧同批/R11/R21/C10 注记可核验、roadmap 8.11 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
-## Closure Gates
+
+
+> **Phase 4 回填注（2026-10-26，closure audit agent_6fdbcdc8 PASS with corrections）**：Major-1 证据引用订正——原 `_tmp/phase2-green-core.log` 被中间调试跑覆盖（2F），已重捕获 `_tmp/phase2-green-core-recapture.log`（BUILD SUCCESS，13 条全绿）并全量替换引用；Minor-1 登记时序敏感 watch-only（carrier-thread 断言/5s 取消窗单次时序性失败，HEAD 复跑绿）；Minor-2 流程观察（audit 清单第 2 项 G56/C4-003 系从他批误植，与本批无关——cra-index/roadmap/batch-proposal 三处 grep 确认本批无 G56 条款）。## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 5 项成员全部修复收敛：4.3-C3-002（body 阶段取消+读超时+三出口关闭，含 C3-003/C6-002/CL-026）、4.3-C6-004（demand 有界+reactor 内联消除+jdk 可中断+daemon 化）、3.1-C3-001（MA-01 族五点）、3.1-C7-001（全程期限+inactivity）、3.1-C7-002（R11 纪律）
-- [ ] 两侧同批闭合（§七-6）：聚合层期限与传输层读超时/可中断同批落地，缺省装配三场景端到端有界终止留证
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：取消悬挂/幽灵下载/线程滞留/期限/R11 五类断言）
-- [ ] R11/R21 纪律落地：半关闭不以成功交付、失败路径 completeExceptionally 可观测
-- [ ] R1-04 原语零回退实证：FutureHelper/ExecutorHelper/ICancelToken diff 零改动 + `TestJdkHttpClientCancelListenerCleanup_C3_012` 等 2499 回归面全绿；R1-01/R1-02 设施零回改
-- [ ] PA 裁定落账：nop-http-api 零触碰或 plan-first 闭环物（设计文档+评审+回归）证据在案
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（`-pl nop-network -am`、`-pl nop-ai -am` 两条通道）BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：`nop-ai.md`/`nop-network.md` 两份逐份核对与更新（或 `No owner-doc update required` 声明）（E5）
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）取消/期限/交付语义运行时真实生效（下游终态、线程释放、非 success 终态可观测，不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-cra-phase8.11-r2-02-stream-cancel.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 5 成员行收敛 + roadmap 8.11 → done（E6）
+- [x] 5 项成员全部修复收敛：4.3-C3-002（body 阶段取消+读超时+三出口关闭，含 C3-003/C6-002/CL-026）、4.3-C6-004（demand 有界+reactor 内联消除+jdk 可中断+daemon 化）、3.1-C3-001（MA-01 族五点）、3.1-C7-001（全程期限+inactivity）、3.1-C7-002（R11 纪律）
+- [x] 两侧同批闭合（§七-6）：聚合层期限与传输层读超时/可中断同批落地，缺省装配三场景端到端有界终止留证
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，测试名可辨识工单）；可复现项有先红后绿或变异/回退论证（E2：取消悬挂/幽灵下载/线程滞留/期限/R11 五类断言）
+- [x] R11/R21 纪律落地：半关闭不以成功交付、失败路径 completeExceptionally 可观测
+- [x] R1-04 原语零回退实证：FutureHelper/ExecutorHelper/ICancelToken diff 零改动 + `TestJdkHttpClientCancelListenerCleanup_C3_012` 等 2499 回归面全绿；R1-01/R1-02 设施零回改
+- [x] PA 裁定落账：nop-http-api 零触碰或 plan-first 闭环物（设计文档+评审+回归）证据在案
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令（`-pl nop-network -am`、`-pl nop-ai -am` 两条通道）BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：`nop-ai.md`/`nop-network.md` 两份逐份核对与更新（或 `No owner-doc update required` 声明）（E5）
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core/`model/*.orm.xml`/nop-auth/`_` 前缀生成物
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻面，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）取消/期限/交付语义运行时真实生效（下游终态、线程释放、非 success 终态可观测，不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2505-cra-phase8.11-r2-02-stream-cancel.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 5 成员行收敛 + roadmap 8.11 → done（E6）
 
 ## Execution Record
 
@@ -229,7 +231,7 @@ Exit Criteria:
 ### Phase 2（分片 B，3.1 聚合层）——completed @ 分片提交 `477e1afa03`
 
 - 落地面：MA-01 族五点（取消闭合/背压窗口+满载 fail-loud/受管承载/盘写异步化/聚合双上界）+ C7-001 双 watchdog（新键 ×2）+ C7-002 R11 校验（分支裁定 = completeExceptionally）+ 新错误码 ×5 + gateway 消费面钉（本体零改动）。
-- 先红后绿：`_tmp/phase2-red-core.log`（13 条用例 11F——红形态①③④真红；2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core.log` + 3x 复跑稳定；既有回归 50 条零回退（`_tmp/phase2-regression-core.log`）。
+- 先红后绿：`_tmp/phase2-red-core.log`（13 条用例 11F——红形态①③④真红；2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core-recapture.log` + 3x 复跑稳定；既有回归 50 条零回退（`_tmp/phase2-regression-core.log`）。
 - 门禁证据组（`./mvnw test -pl nop-ai -am` 授权支路，理由登记）：链全量运行唯一失败 = nop-auth-service `TestOperationMfaE2E`，**基线批前既有**（基线 `0eb3ea67ba` worktree 隔离复跑同败 6 errors，`_tmp/mfa-baseline.log`；本批 diff nop-auth 零触碰）；`./mvnw test -pl nop-ai` 聚焦 BUILD SUCCESS 48 tests（`_tmp/phase2-gate-nop-ai-focused.log`）；链全量运行留痕（`_tmp/phase2-gate-nop-ai-unfiltered.log`）。附带登记：首轮门禁 `nop-netty TestNettyTcpClient` BindException 为 findAvailableTcpPort 端口竞争环境抖动（隔离复跑绿，与本批无关）；`-Dtest='!X'` 过滤式排除会破坏 jpath 数据驱动生成测试（`JSONPointTest_*`），门禁禁用过滤式排除。
 - **实现期偏差登记**：①④盘写异步化落点在 `ChatServiceImpl` 终态回调侧（`logResponseAsync`）而非 `DefaultChatLogger` 内部——IChatLogger 同步契约与既有脱敏/落盘测试零回退优先，异步调度属回调方职责（owner doc 注记归 Phase 3）；②消费面钉语义：适配器对调用方取消「不向输出发终态信号」为既有契约（`callerCancelStopsCurrentAttemptOnly` 钉死；适配器先 cancel 内部订阅再 cancel attempt token 的顺序使核心侧 closeExceptionally 不达已取消订阅），该输出语义归 R2-06，本钉按「有界终止 + 注册不泄漏」断言（核心侧取消闭合红转绿由 nop-ai-core 两条 `_C3_001` 用例承载）；③测试基建：fake 流发射加启动延迟（桥接在 callStream 内部即订阅上游，无延迟则首 chunk 于下游订阅前丢弃——FailoverTestSupport 同型先例）。
 
@@ -274,21 +276,15 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 本计划收口 CRA Phase 8.11（R2-02 流式取消/期限两侧同批）：五项 P1 全修——4.3-C3-002 MA-02 族（读循环取消响应+cleanup 关流+idle watchdog+416/cancel-at-entry 关流+promise 生命周期移至 body 终态）、4.3-C6-004 R06 族（基类 waitForDemand 有界化[PA 面①批内闭环]+apache 队列解耦 daemon 化）、3.1-C3-001 MA-01 族五修复点（取消闭合/双级 request 窗/受管承载/盘写异步化/聚合双上界）、3.1-C7-001 全程期限+inactivity 独立键、3.1-C7-002 R11 fail-loud 分支裁定——两侧同批端到端四场景真实全链绿（E2E 4/4）。roadmap 8.11 → done。
+Completed: 2026-10-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence:
-  - <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）>>
-  - <<每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）>>
-  - <<`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码>>
-  - <<Anti-Hollow 检查结果；`scan-hollow-implementations.mjs` 退出码>>
-  - <<Deferred 项分类检查>>
+- Reviewer / Agent: agent_6fdbcdc8（独立 closure audit 子代理，fresh session）
+- Audit Session: agent_6fdbcdc8-c3fe-48fd-82b1-42aeb3f73b3b
+- Evidence: 判定 **PASS with corrections**（零 Blocker；1 Major 证据引用订正+2 Minor 均随本收口处置）。①五成员实仓抽验全在位（file:line 见审计报告）；②零回退钉 9 条+九条 R1-01~R1-08 产物零回改实证；③测试实跑：E2E 4/4+TestBodyPhaseCancel_C3_002 6/6+TestStreamCancelDeadlineAndDelivery_C3_001 13/13 全绿（audit fresh 实跑）；④Major-1 订正：`_tmp/phase2-green-core.log` 被中间调试跑覆盖（2F），已重捕获 `_tmp/phase2-green-core-recapture.log`（BUILD SUCCESS 13 条全绿）并全量替换 plan 引用；⑤Minor-1 时序敏感 watch-only 登记（carrier-thread/5s 取消窗单次时序性失败，HEAD 复跑绿）；⑥Minor-2 流程观察登记（audit 清单 G56 条款系他批误植）。双门禁：`check-doc-links --strict` EXIT=0；`check-plan-checklist --strict` EXIT=0（收口后复核）。Deferred 分类检查：三条均为入批前已裁定批外/相邻项、successor 清晰，无 in-scope live defect 被降级。
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- Non-Blocking Follow-ups 所列项均已登记归属（R4-23 cancelToken/G67 边界/C10 跨批矩阵/R2-16 对齐），no remaining plan-owned work
