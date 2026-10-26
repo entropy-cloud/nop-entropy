@@ -13,6 +13,7 @@ import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.util.IoHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.commons.util.objects.ValueWithLocation;
+import io.nop.config.ConfigErrors;
 import io.nop.config.source.ConfigSourceHelper;
 import io.nop.config.source.IConfigSource;
 import org.slf4j.Logger;
@@ -55,6 +56,18 @@ public class JdbcConfigSource implements IConfigSource {
     public JdbcConfigSource(JdbcConfig jdbcConfig) {
         this.jdbcConfig = jdbcConfig;
 
+        // 2.2-C6-003（plan 2506 裁定⑤）：先加载成功再调度——初始装载失败时构造器直接抛错，
+        // 尚未注册任何周期任务（原缺陷 = 先调度后加载，失败后半构造对象被 globalTimer 周期任务
+        // 持有，任务无引用可取消，泄漏窗口覆盖全运行期并跨 destroy→reinit 代际）。
+        try {
+            this.vars = loadConfig();
+        } catch (SQLException e) {
+            // 失败路径关闭已建连接（loadConfig 可能已在 createConnection 成功后于查询段失败），
+            // jdbc 变体附带面随案闭合：连接资源随对象构造失败一并释放，不滞留
+            closeConnection();
+            throw NopException.adapt(e);
+        }
+
         if (jdbcConfig.getRefreshInterval() != null) {
             long seconds = jdbcConfig.getRefreshInterval().getSeconds();
             // 2.2-C4-001（plan 2497 Phase 2）：与 AbstractFileConfigSource 两站点同口径（G32，设计
@@ -66,12 +79,6 @@ public class JdbcConfigSource implements IConfigSource {
                     .scheduleWithFixedDelay(this::refreshConfig, seconds, seconds, TimeUnit.SECONDS);
         } else {
             this.refreshTaskFuture = null;
-        }
-
-        try {
-            this.vars = loadConfig();
-        } catch (SQLException e) {
-            throw NopException.adapt(e);
         }
     }
 
@@ -139,6 +146,13 @@ public class JdbcConfigSource implements IConfigSource {
     }
 
     private Map<String, ValueWithLocation> loadConfig() throws SQLException {
+        // 2.2-C1-009（裁定④）closed 防退化守卫：close() 与 refreshConfig/tryTriggerChange 同
+        // this monitor 全量串行后，closed=true 时不可能到达本方法的连接重建点（refreshConfig
+        // 入口检查已拦截）；此守卫防未来新增调用点绕过互斥在关闭后重建连接（泄漏连接永不被关闭），
+        // 命中即类型化抛错，非静默 return。
+        if (closed)
+            throw new NopException(ConfigErrors.ERR_CONFIG_SOURCE_CLOSED);
+
         if (connection == null) {
             connection = jdbcConfig.createConnection();
         }
@@ -189,8 +203,16 @@ public class JdbcConfigSource implements IConfigSource {
         }
     }
 
+    /**
+     * 2.2-C1-009（裁定④）：与 refreshConfig/tryTriggerChange 同 this monitor 互斥——close 与
+     * 在途刷新轮全序化：「任务体新建连接写入字段」与「close 置位+关连接+取消任务」不再交叠
+     * （close 先行则任务体下轮入口检查退出、重建点守卫双保险；任务体先行则 close 关闭其连接），
+     * 两序均无泄漏。代价声明：close 需等待在途轮完成（上界 = 一轮 loadConfig + 回调段），
+     * 换取零连接泄漏。connection 修复后全部读写均在 monitor 内，无需 volatile（closed 保持
+     * volatile 既有形态）。
+     */
     @Override
-    public void close() {
+    public synchronized void close() {
         closed = true;
         closeConnection();
 
