@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C4-003 失败传导腿：failInitBean init 抛 RuntimeException（depends-on 保证 okBean 先建）。 -->
+    <bean id="okBean" class="test.io.entropy.beans.TestStartOkBean" destroy-method="destroyMe"/>
+    <bean id="failInitBean" class="test.io.entropy.beans.TestStartFailInitBean" init-method="initMe"
+          depends-on="okBean"/>
+</beans>

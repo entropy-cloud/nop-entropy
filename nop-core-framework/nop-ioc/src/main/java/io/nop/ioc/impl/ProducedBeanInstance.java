@@ -7,14 +7,22 @@
  */
 package io.nop.ioc.impl;
 
+import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.core.resource.cache.ResourceCacheEntry.LoadWaitGraph;
+import io.nop.ioc.IocConfigs;
 
 import java.lang.reflect.InvocationHandler;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static io.nop.ioc.IocErrors.ARG_BEAN_NAME;
+import static io.nop.ioc.IocErrors.ARG_CREATE_THREAD;
+import static io.nop.ioc.IocErrors.ARG_INIT_THREAD;
+import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_INIT_CIRCULAR_WAIT;
 import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_INIT_SELF_WAIT;
+import static io.nop.ioc.IocErrors.ERR_IOC_BEAN_INIT_WAIT_TIMEOUT;
 
 /**
  * 如果存在beanMethod，则createdBean为factoryBean, bean为对factoryBean.beanMethod()的返回结果进行aopProxy处理后的最终对象
@@ -110,10 +118,15 @@ public class ProducedBeanInstance {
 
     /**
      * 推进 bean 生命周期到指定阶段。owner 线程在锁外执行阶段回调，其他线程在条件变量上等待。
+     * 等待预算（deadline）按单次 runUntil 调用计算一次：跨等待轮次累计，超时类型化失败。
      */
     public void runUntil(int initLevel) {
         if (initLevel == STATUS_CREATED)
             return;
+
+        Integer timeoutConfig = IocConfigs.CFG_IOC_BEAN_INIT_WAIT_TIMEOUT.get();
+        long timeoutMillis = timeoutConfig == null ? 0 : timeoutConfig;
+        long deadline = timeoutMillis > 0 ? CoreMetrics.currentTimeMillis() + timeoutMillis : 0L;
 
         while (true) {
             int phase = -1;
@@ -129,14 +142,14 @@ public class ProducedBeanInstance {
                     // PROPERTY_SET 阶段由创建线程在创建路径内推进，runUntil 绝不执行它。
                     if (createThread == Thread.currentThread())
                         throw selfWait();
-                    waitQuietly();
+                    waitQuietly(createThread, deadline);
                     continue;
                 }
 
                 if (initThread != null) {
                     if (initThread == Thread.currentThread())
                         throw selfWait();
-                    waitQuietly();
+                    waitQuietly(initThread, deadline);
                     continue;
                 }
 
@@ -191,13 +204,99 @@ public class ProducedBeanInstance {
         return new NopException(ERR_IOC_BEAN_INIT_SELF_WAIT).param(ARG_BEAN_NAME, beanId);
     }
 
-    private void waitQuietly() {
-        try {
-            wait();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw NopException.adapt(e);
+    /**
+     * 跨线程等待有界化（plan 2507 裁定③）：裸 wait() 改带超时等待。等待前经
+     * {@link LoadWaitGraph}（机制单点，与 BD 锁获取域共用同一等待图与配置键
+     * nop.ioc.bean-init.wait-timeout）登记「等待线程 → 目标 owner」边并回溯环，命中即抛
+     * 类型化环错误；deadline 耗尽抛类型化超时错误（携带 beanId/createThread/initThread/
+     * 等待链快照）。target 为 null（尚无 owner 引用）时退化为无环检语义，仅有界兜底。
+     * 中断处理保持：恢复中断位后抛出。deadline ≤0 = 不设上界档（现行无界语义）。
+     * 调用方持有本对象监视器（runUntil synchronized 块内），initError/status 重查协议不变。
+     */
+    private void waitQuietly(Thread target, long deadline) {
+        Thread current = Thread.currentThread();
+
+        if (deadline > 0) {
+            long remaining = deadline - CoreMetrics.currentTimeMillis();
+            if (remaining <= 0 || BeanWaitErrors.isConstructingRingError()) {
+                // 预算耗尽（或错误构造守卫置位需快速失败）时类型化超时，不再进入等待
+                throw waitTimeoutError(current);
+            }
+            waitOnce(target, remaining);
+        } else {
+            // ≤0 不设上界档：现行无界语义（环检出仍生效）
+            if (target != null && target != current) {
+                LoadWaitGraph.register(current, target);
+                try {
+                    if (LoadWaitGraph.wouldCycle(current, target)) {
+                        throw ringWaitError(ERR_IOC_BEAN_INIT_CIRCULAR_WAIT);
+                    }
+                    wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
+                } finally {
+                    LoadWaitGraph.unregister(current);
+                }
+            } else {
+                try {
+                    wait();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw NopException.adapt(e);
+                }
+            }
         }
+    }
+
+    private void waitOnce(Thread target, long remaining) {
+        Thread current = Thread.currentThread();
+        if (target != null && target != current) {
+            LoadWaitGraph.register(current, target);
+            try {
+                if (LoadWaitGraph.wouldCycle(current, target)) {
+                    throw ringWaitError(ERR_IOC_BEAN_INIT_CIRCULAR_WAIT);
+                }
+                wait(remaining);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
+            } finally {
+                LoadWaitGraph.unregister(current);
+            }
+        } else {
+            // owner 引用缺失（尚无创建者/初始化者）：退化为无环检语义，仅有界等待兜底
+            try {
+                wait(remaining);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw NopException.adapt(e);
+            }
+        }
+    }
+
+    /**
+     * PBI 环/超时类型化错误（携带 beanId/createThread/initThread/等待链快照，构造守卫沿
+     * ResourceCacheEntry.ringError 先例）。
+     */
+    private NopException ringWaitError(ErrorCode code) {
+        NopException e = BeanWaitErrors.ringError(code, LoadWaitGraph.describeChain(Thread.currentThread()));
+        e.param(ARG_BEAN_NAME, beanId);
+        e.param(ARG_CREATE_THREAD, createThread);
+        e.param(ARG_INIT_THREAD, initThread);
+        return e;
+    }
+
+    /**
+     * 等待超时类型化错误（携带 beanId/createThread/initThread/等待链快照）。
+     */
+    private NopException waitTimeoutError(Thread current) {
+        NopException e = BeanWaitErrors.ringError(ERR_IOC_BEAN_INIT_WAIT_TIMEOUT,
+                LoadWaitGraph.describeChain(current));
+        e.param(ARG_BEAN_NAME, beanId);
+        e.param(ARG_CREATE_THREAD, createThread);
+        e.param(ARG_INIT_THREAD, initThread);
+        return e;
     }
 
     public void checkBeanInitialized() {

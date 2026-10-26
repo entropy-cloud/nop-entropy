@@ -97,15 +97,20 @@ public class TestBeanConcurrentInitDeadlock extends BaseTestCase {
             }, "t1-flush-ctxA");
             t1.start();
 
-            // 等待 T1 阻塞于 P 的 monitor（旧代码 BLOCKED/WAITING；新代码 WAITING），确认已进入 flushInit 并持锁/等待
+            // 等待 T1 阻塞于 P 的 monitor，确认已进入 flushInit 并持锁/等待。
+            // plan 2507 裁定③：PBI 等待有界化后 wait(remaining) 的 JVM 线程状态为 TIMED_WAITING
+            // （有界等待的必然形态）；本探针仅用于时序对齐，机制级钉四断言
+            // （@Timeout/join+isAlive/早可见同实例/resolvedDepends 契约）零回改。
             deadline = System.currentTimeMillis() + 10000;
             while (System.currentTimeMillis() < deadline) {
                 Thread.State state = t1.getState();
-                if (state == Thread.State.BLOCKED || state == Thread.State.WAITING)
+                if (state == Thread.State.BLOCKED || state == Thread.State.WAITING
+                        || state == Thread.State.TIMED_WAITING)
                     break;
                 Thread.sleep(5);
             }
-            assertTrue(t1.getState() == Thread.State.BLOCKED || t1.getState() == Thread.State.WAITING,
+            assertTrue(t1.getState() == Thread.State.BLOCKED || t1.getState() == Thread.State.WAITING
+                    || t1.getState() == Thread.State.TIMED_WAITING,
                     "T1 must be blocked on P monitor, but was " + t1.getState());
 
             // Step 4: 放开门闩，T2 继续 newObject(D) → flushInit(ctxA)。旧代码死锁，新代码通过

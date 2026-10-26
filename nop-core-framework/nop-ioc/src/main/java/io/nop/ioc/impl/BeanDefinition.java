@@ -47,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 public class BeanDefinition implements IBeanDefinition {
@@ -80,10 +81,29 @@ public class BeanDefinition implements IBeanDefinition {
 
     /**
      * 正在执行 createInstance（含构造器参数解析）的线程，用于检测构造器循环依赖。
-     * 单例路径在 synchronized(beanDef) 临界区内标记/清除；同线程重入即存在构造器环，
+     * 单例路径在 per-BD {@link #creationLock} 临界区内标记/清除；同线程重入即存在构造器环，
      * 此时 bean 尚未进入 scope、无法走早期暴露机制，放任递归会静默产生重复单例。
+     *
+     * <p>volatile 承载跨线程等待域的 owner 载体（plan 2507 裁定②）：等待者线程在
+     * {@code BeanContainerImpl} 的锁外等待路径读取本字段以登记 LoadWaitGraph 等待边，
+     * 必须与临界区内的写构成 happens-before，否则环检出退化为大概率命中。</p>
      */
-    private Thread inCreationThread;
+    private volatile Thread inCreationThread;
+
+    /**
+     * per-BeanDefinition 创建临界区锁（plan 2507 裁定②）：迁移自全仓唯一 synchronized(beanDef)
+     * 站点（BeanContainerImpl.getBean0）。锁对象随 BeanDefinition 生命周期，不新增全局锁。
+     * ReentrantLock 与 monitor 重入语义一致，同线程递归 getBean 行为不变。
+     */
+    private final ReentrantLock creationLock = new ReentrantLock();
+
+    Thread getInCreationThread() {
+        return inCreationThread;
+    }
+
+    ReentrantLock getCreationLock() {
+        return creationLock;
+    }
 
     boolean isInCreationByCurrentThread() {
         return inCreationThread == Thread.currentThread();

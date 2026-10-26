@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C2-001 构造器级跨线程互等环（type-injection 边族形态）：
+         ctorInjectA / ctorInjectB 构造器内互相按类型获取对偶 bean（边不可见），
+         latch 强制两线程各持一 BD 锁后互请求。lazy-init 保证 start() 不预创建。 -->
+    <bean id="ctorInjectA" class="test.io.entropy.beans.TestCtorInjectA" lazy-init="true"/>
+    <bean id="ctorInjectB" class="test.io.entropy.beans.TestCtorInjectB" lazy-init="true"/>
+
+    <!-- C2-001 factoryBean 环夹具（同型）：fbProdA 经 factory-bean 边依赖 fbHolderB（边不可见），
+         fbHolderB 构造器反向获取 fbProdA。 -->
+    <bean id="fbProdA" class="test.io.entropy.beans.TestFbProductA" factory-bean="fbHolderB"
+          factory-method="makeA" lazy-init="true"/>
+    <bean id="fbHolderB" class="test.io.entropy.beans.TestFbHolderB" lazy-init="true"/>
+
+    <!-- C2-001 有界兜底腿：构造器阻塞（持 BD 锁），等待方必须超时类型化收敛。 -->
+    <bean id="ctorHangBean" class="test.io.entropy.beans.TestCtorHangBean" lazy-init="true"/>
+</beans>

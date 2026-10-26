@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef">
+    <!-- C2-002 PBI 互等环夹具：pbiRingA init 获取 pbiRingB（includeCreating=false 等待语义），
+         pbiRingB 构造器等待 A 的 init 开始后创建，init 反向获取 pbiRingA——双 owner 互等。 -->
+    <bean id="pbiRingA" class="test.io.entropy.beans.TestPbiRingA" init-method="initMe" lazy-init="true"/>
+    <bean id="pbiRingB" class="test.io.entropy.beans.TestPbiRingB" init-method="initMe" lazy-init="true"/>
+
+    <!-- C2-002 有界等待腿：属性赋值阶段阻塞（PROPERTY_SET 不推进），等待方必须超时类型化收敛。 -->
+    <bean id="pbiSlow" class="test.io.entropy.beans.TestPbiSlowSetupBean" lazy-init="true">
+        <property name="gate" value="x"/>
+    </bean>
+</beans>

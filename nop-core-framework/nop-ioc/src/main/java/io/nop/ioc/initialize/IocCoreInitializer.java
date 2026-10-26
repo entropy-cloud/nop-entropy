@@ -44,6 +44,11 @@ public class IocCoreInitializer implements ICoreInitializer {
         if (CFG_CORE_MAX_INITIALIZE_LEVEL.get() > INITIALIZER_PRIORITY_ANALYZE) {
             try {
                 appContainer.start();
+                // concurrent-start 框架级 join（plan 2507 裁定①）：与 start() 同一 try 界内有界等待
+                // 启动图终态。失败终态/join 超时经 awaitStartFinished 类型化抛出 → 本 catch 恢复
+                // parentContainer 后重抛 → CoreInitialization.initializeTo → NopApplication.run()
+                // 自然传播（主任务不启动、进程非零退出；NopApplication 零改动）。
+                appContainer.awaitStartFinished();
             } catch (Exception e) {
                 BeanContainer.registerInstance(parentContainer);
                 throw NopException.adapt(e);
