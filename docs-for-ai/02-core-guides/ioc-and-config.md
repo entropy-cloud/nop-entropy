@@ -278,6 +278,34 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 
 - `ShellRunner.run` 的任何退出路径（正常/超时/stdin 断管/中断/收集线程抛错/调度拒绝）均保证已创建子进程被销毁（锚点 `SHELL-001`）：`destroy()` 后有界等待 2s 未退出升级 `destroyForcibly()`；stderr 读取线程随进程销毁经 EOF 退出，不再 pin 住 `cachedThreadPool` 线程。`timeout=0` 的无限等待悬挂为相邻缺陷，不在本契约范围。
 
+## IoC 并发启动与配置发布协议并发契约
+
+IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化等待的环检出与有界化，以及配置引用（`IConfigReference`）热刷新的原子发布契约；连带 ORM 分片迁移路由热替换与写门集群语义（实现锚点见 `../04-reference/source-anchors.md` `IOC-004`/`IOC-005`/`CFG-003`/`ORM-MIG-001`；选型与语义权威 = AI 开发记录区 concurrency 设计集 ioc-startup-graph-and-config-publish-protocol.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 并发启动：join + 有界 + 失败传导
+
+- `nop.ioc.concurrent-start=true` 时，app 容器启动在 `IocCoreInitializer` 启动序内**同步 join** 异步启动图（配置键 `nop.ioc.app-beans-container.start-join-timeout`，默认 60s；`≤0` = 不设上界档）。任一 bean 启动失败（含 `Error`、成功回调内抛错、无超时 pending）统一收敛为**失败终态**：在飞/孤儿启动任务取消 → 容器 stop（已建 bean 销毁）→ 失败标记 → 类型化异常抛出。
+- 传导链：`IocCoreInitializer.initialize()` 抛出 → `CoreInitialization.initialize()` 原样重抛 → `NopApplication.run()` 主任务不执行、进程非零退出。standalone 宿主**无代码改动**即获得该语义；quarkus/spring 宿主的健康检查/退出码联动属宿主集成面（见 `../01-repo-map/module-groups.md` 宿主模块），不在本契约内。
+- 失败后 `awaitStartFinished()` 快速失败（不再静默返回）；失败终态收敛幂等（成功回调路径已收敛的不重复 stop）。
+
+### bean 创建/初始化等待：环检出 + 有界兜底
+
+- 同一机制单点：bean 定义级创建等待（`getBean0` 临界区）与 `ProducedBeanInstance` 跨实例初始化等待均登记到平台等待图（与模型装载 `LoadWaitGraph` 同一载体），等待前检环——命中即抛类型化环错误（携带等待链快照与双方 beanId），不再永久死锁；检出竞态漏检由有界等待兜底（配置键 `nop.ioc.bean-init.wait-timeout`，默认 60s；`≤0` = 不设上界档，两域共用）。
+- 构建期拓扑序与 `nop.ioc.allow-cycle`（默认 `true`）**维持现状**：type-injection / factoryBean / 表达式等运行期才可见的依赖边**不进入**拓扑序与 `ioc:init-order` 校验（现网可启动的配置零破坏），只在运行期等待点参与环检出。
+- 60s 默认档对合法的超长 bean 构造（>60s）会以超时错误失败：这是对死锁确定性暴露的有意取舍；此类场景调大键值或设 `≤0` 逃生档。同线程递归 `getBean` 的可重入与自依赖 fail-fast 行为不变。
+
+### 配置引用热刷新：单一不可变 holder
+
+- `IConfigReference` 的 `location + provider` 收拢为一个不可变 holder，刷新链（`DefaultConfigProvider` 配置源变更 / `updateConfigValue` / `assignConfigValue` / `reset`）以**单次 volatile 发布**替换整代：读侧要么见全旧代、要么见全新代，不再出现「新 location + 旧 provider」撕裂快照，刷新后 `get()` 立即可见。
+- `IConfigReference` 接口签名零变更；`defaultValue` 为独立字段（启动期写定、只读），`get()` 在 provider 值为 `null` 时回落 `defaultValue` 的语义不变。
+- 下游消费（JDBC/文件配置源刷新链、ORM 分片路由 `shardSelector` 热替换）依赖本发布协议获得可见性；`SessionFactoryImpl.shardSelector` 为 volatile 发布，`rebuildRouting` 读回确认失配即记 `gateFailed`。
+
+### ORM 迁移写门：租约 fail-open（集群语义）
+
+- 写门 `OrmMigrationWriteGate` 的 closed 态经配置源传播到各实例；每个实例**自观察到 closed 起计租约**（配置键 `nop.orm.migration.write-gate-lease-seconds`，默认 1800s；`≤0` = 关闭租约档即现行永久关门语义）。租约到期该实例自动 fail-open（恢复写）并 **WARN 留痕**——到期是显式运维信号，不是静默恢复。配置 true→false 时租约清零，再次 closed 重新起租。
+- **残余风险（显式接受）**：若租约在 VERIFY 中段到期而迁移未完成，写直达旧分片路由（双写窗）。硬条款：租约默认值必须 ≥ 迁移全程预期时长；收到到期 WARN 须人工介入（abort 或延长）。
+- 编排器 `runVerify`/`confirmSwitch` 在关键窗口复核门态：窗口内门被翻开（含 fail-open）→ 迁移状态行记 `gateFailed` + 类型化失败，不静默继续。多实例操作顺序：先在全部实例观察到 closed（配置源刷新到位）再进入 VERIFY；`completeSwitch`/`abort` 开门经配置源传播。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

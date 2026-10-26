@@ -161,30 +161,32 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试（nop-kernel / nop-core-framework / nop-persistence）；`docs-for-ai/02-core-guides/ioc-and-config.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497/2506 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-kernel -am`（api-core SPI 回归面通道——勘误见下）、`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记
-- [ ] SPI 回归面通道（若裁定④零接口签名成立）：`./mvnw test -pl nop-kernel -am` 覆盖 api-core + 全仓受影响实现模块抽查（按裁定④清单最低覆盖 = AbstractConfigProvider 两子类所属模块 + N3 测试类所在 nop-core-framework/nop-plugin/nop-shell 模块测试绿）；若裁定④涉接口签名变更则按 2499 先例全实现模块通道逐列执行并登记
-- [ ] 零触碰确认：本批产品 diff 不含 `model/*.orm.xml`、nop-auth、`_` 前缀生成物、nop-plugin（2506 收口面）；`BeanScopeImpl` 若零改动作显式零触碰声明（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`ioc-and-config.md` **新建**「IoC 启动图与配置发布协议并发契约」节（concurrent-start join/失败终态契约、环检出与有界等待契约、配置发布 holder 单发布协议、写门租约/复核契约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」）；`source-anchors.md` **扩展** IOC/CFG 锚点族（启动图契约/锁序环收敛锚点 + 配置发布协议锚点，LOCK/RETIRE 既有条目交叉引用）
-- [ ] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-ioc/nop-config/nop-orm-migration 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel --severity high`、`--module nop-core-framework --severity high`、`--module nop-persistence --severity high` 退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497/2506 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-kernel -am`（api-core SPI 回归面通道——勘误见下）、`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记
+- [x] SPI 回归面通道（若裁定④零接口签名成立）：`./mvnw test -pl nop-kernel -am` 覆盖 api-core + 全仓受影响实现模块抽查（按裁定④清单最低覆盖 = AbstractConfigProvider 两子类所属模块 + N3 测试类所在 nop-core-framework/nop-plugin/nop-shell 模块测试绿）；若裁定④涉接口签名变更则按 2499 先例全实现模块通道逐列执行并登记
+- [x] 零触碰确认：本批产品 diff 不含 `model/*.orm.xml`、nop-auth、`_` 前缀生成物、nop-plugin（2506 收口面）；`BeanScopeImpl` 若零改动作显式零触碰声明（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`ioc-and-config.md` **新建**「IoC 启动图与配置发布协议并发契约」节（concurrent-start join/失败终态契约、环检出与有界等待契约、配置发布 holder 单发布协议、写门租约/复核契约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」）；`source-anchors.md` **扩展** IOC/CFG 锚点族（启动图契约/锁序环收敛锚点 + 配置发布协议锚点，LOCK/RETIRE 既有条目交叉引用）
+- [x] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-ioc/nop-config/nop-orm-migration 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-kernel --severity high`、`--module nop-core-framework --severity high`、`--module nop-persistence --severity high` 退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] ioc-and-config.md 新建节 + source-anchors.md 锚点扩展落地；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（orm.xml/nop-auth/生成物/nop-plugin；BeanScopeImpl 口径）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] ioc-and-config.md 新建节 + source-anchors.md 锚点扩展落地；check-doc-links --strict 退出码 0
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（orm.xml/nop-auth/生成物/nop-plugin；BeanScopeImpl 口径）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 3 执行记录（2026-10-26）**：**E1**（授权支路 `-DskipTests`，沿 2496–2506 先例）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（`_tmp/phase3-e1-install.log`），shade 副作用 `nop-kernel/nop-kernel-cli/dependency-reduced-pom.xml` 即时还原。**E3 批行门禁**（`-Dsurefire.rerunFailingTestsCount=2`）：`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 30 模块 0 flake（`_tmp/phase3-gate-nop-core-framework.log`）；`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 49 模块 0 flake（`_tmp/phase3-gate-nop-persistence.log`）；**SPI 面** `./mvnw test -pl nop-kernel -am` BUILD SUCCESS 20 模块 0 flake（`_tmp/phase3-gate-nop-kernel.log`，含 nop-api-core 测试——测试数非零自证触发）。**零触碰**：产品 diff（`f970f1de4e..c5b8530cd9`）⊆ nop-ioc ×7 主源 + nop-api-core ×1（`DefaultConfigReference`，PA 已声明授权）+ nop-persistence ×5 + 测试/夹具/beans 资源；禁触面（orm.xml / nop-auth / nop-boot[NopApplication 零改动兑现裁定①] / `_` 生成物 / `.rels`）零命中。**scan-hollow**：nop-core-framework Total=0 / nop-kernel Total=0 均 exit 0；nop-persistence exit 1 = 3 条 High **批前既有裁定登记**——`nop-orm-drivers/nop-orm-tdengine` `TdMessageService` ×2 与 `nop-orm-geo` `GeometryTypeHandler` ×1，全部为显式 `UnsupportedOperationException("... is not implemented")` 快速失败桩（rule 24 合规形态，非静默 no-op），文件不在本批触达面，watch-only 不阻断。**Owner doc**：`ioc-and-config.md` 新建「IoC 并发启动与配置发布协议并发契约」节（四小节：并发启动 join+失败传导 / 环检出+有界兜底 / 配置引用单一不可变 holder / ORM 写门租约 fail-open）；`source-anchors.md` 新增 `IOC-004`/`IOC-005`/`CFG-003`/`ORM-MIG-001`。**缺口声明**：nop-orm-migration 无 03-modules owner doc（本批契约经 IOC/CFG/ORM-MIG 锚点 + ioc-and-config 节承载，缺口随 R-G 登记）。测试名对齐登记：组 B 落两树用 `TestConfigReferencePublishAtomicity`（设计 §六 `TestConfigReferencePublishProtocol` 名未采用），以实际名为准回写。`check-doc-links --strict` 退出码 0。
 
 ### Phase 4 - closure audit + 收口
 
