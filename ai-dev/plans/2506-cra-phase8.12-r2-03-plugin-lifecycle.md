@@ -115,42 +115,48 @@ Exit Criteria:
 
 ### Phase 2 - 六成员实现 + 单元测试（nop-core-framework 五成员 + nop-utils ShellRunner 一成员）
 
-Status: planned
+Status: completed
 Targets: `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/`（VfsPluginDefinition/PluginManagerImpl/ServiceProxy）、`nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/AbstractPlugin.java`、`nop-core-framework/nop-config/src/main/java/io/nop/config/source/jdbc/JdbcConfigSource.java`、`.../source/file/AbstractFileConfigSource.java`、`nop-utils/nop-shell/src/main/java/io/nop/shell/ShellRunner.java`、对应 `src/test/` 树（nop-plugin-manager/nop-plugin-support/nop-config/nop-shell）
 
 - Item Types: `Fix`（六成员全部为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 成员面验收前置）
 
-- [ ] C1-010 实现（含 C1-011/012 并案、C2-004 镜像窗）：按裁定①实施 lifecycleLock 全迁移 + reconcileLock 序列化 + AbstractPlugin volatile + 复合读双检（updateConfig 分支按裁定①预设形态，无临场自加项）
-- [ ] C6-002 实现：按裁定②实施中间态 try/finally 终态收敛 + 字段置空时序修正 + autoInit destroy 保障 + 状态机恢复 API
-- [ ] C6-001 实现：按裁定③实施前置失败点释放（try 收窄 + finally）；N2 钉断言零回改
-- [ ] C1-009 实现：按裁定④实施 close 互斥 + closed 双检（或裁定等价形态）；per-callback 隔离体与卸载/超时语义零回改
-- [ ] C6-003 实现：按裁定⑤实施两站点构造序/失败清理修正（同口径）；executeOn 形态保留
-- [ ] C6-004 实现：按裁定⑥实施外层 finally safeDestroy 兜底（←C6-014 同 diff）+ destroyForcibly 升级 + stderr 线程退出保障
-- [ ] 回归测试（rule 25 显式覆盖 + C10 成员面验收前置同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C1-010（C10-004 成员面）：unload×reconcile 交错并发测试（修复前红：孤儿活容器/状态机破坏可观测断言——如 unload 后容器仍 start、getState 与容器实态不一致）；lifecycleLock 全迁移后 load/unload 与 activate 的互斥断言；AbstractPlugin volatile 化可见性冒烟（双轨对齐）；复合读双检的 deactivate 翻转窗异常类型断言（INACTIVE 快速失败而非 NOT_STARTED 混型）；PluginManagerImpl 生命周期操作与 reconcile 串行化断言
-  - [ ] C6-002（C10-005；`MockStopControl.failStop` 桩复用）：destroy-method 抛错 → deactivate 落终态（非 DEACTIVATING 永久卡死）断言；activate rollback 失败 → FAILED 落定断言；恢复 API 从中间态/FAILED 态恢复到 UNLOADED 并可重新 load/activate 的端到端断言；AbstractPlugin.autoInit destroy 异常路径不跳过 CoreInitialization.destroy 断言
-  - [ ] C6-001（C10-006；断言缝按裁定③授权形态——默认 package-private `newPluginClassLoader` 工厂钩子捕获实例）：缺 plugin.json 坏包 loadPlugin 失败 → 捕获的 classLoader 已关闭断言（`isClosed()`）；重试再失败 → 每次捕获实例均已关闭、无累积断言；N2 兼容：`testUnloadFailureKeepsClassLoaderUsableAndRetryable` 原样全绿（既有 `classLoaderOf` 探针仅用于 N2「映射后失败」腿）
-  - [ ] C1-009（C10-001 成员面）：停机撞在途刷新交错测试（修复前红：close 后 connection 字段出现新建连接且永不关闭的可观测断言——stub Connection 计数）；close 后 loadConfig 不再 createConnection 断言；`TestJdbcConfigSourceCallbackIsolation` 4 条 + `TestJdbcConfigSourceWorkerOffload` 2 条 + `TestJdbcConfigTimeout` 7 条零回归
-  - [ ] C6-003（C10-001 jdbc 面 + C10-008 file 面）：构造期 loadConfig 抛错（stub/staged loader 注入）→ 无残留周期任务断言（scheduled future 未注册或已 cancel 可观测）；jdbc 变体构造失败 → 已建连接已关闭断言；两站点同口径；`TestFileConfigSourceRefresh/Walk/WorkerOffload` 零回归（注意 N7：新测试不得以 refreshInterval=0 弱形态伪装调度路径覆盖）
-  - [ ] C6-004（C10-007）：非 timeout 异常（stdin 断管/collector 抛错/中断）→ 子进程已销毁断言（Process stub 或存活探针）；时序 D waitFor 超时子路径 → 进程已销毁断言；destroyForcibly 升级路径断言；stderr 读取线程有限时退出断言（线程存活计数/ join 有界）；N6 平台守卫（非 Unix/Windows 兼容面跳过守卫形态）；`TestShellRunner`/`TestShellCommand`/`TestShellLib` 既有用例零回归
-- [ ] **端到端验证**（rule 22）：≥1 条插件全生命周期链路测试（load→activate→命令路由→失败注入→恢复 API→unload→重载 的完整状态机闭环，覆盖裁定②恢复 API 从入口到可重载的完整路径）+ ≥1 条配置源全生命周期链路测试（构造成功→刷新→close→无泄漏 的完整路径）
-- [ ] **接线验证**（rule 23）：恢复 API 在 PluginManagerImpl/宿主调用链上真实可达断言（不是仅定义存在）；C1-010 修复后 unloadPlugin 与 reconcile 的运行时串行化断言（并发压力下零交错窗）
-- [ ] **无静默跳过**（rule 24）：恢复 API 对不可恢复形态显式抛类型化异常而非静默 no-op；C6-004 兜底失败（destroy 抛错）显式留痕不吞；C1-009/C6-003 修正路径无空 catch
-- [ ] **提交纪律**：设计文档与实现分离提交（Phase 1 设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；六工单按模块分组提交（nop-plugin 一组、nop-config 一组、nop-shell 一组），C10 成员面测试与对应本体**同一 commit**（E2 同 diff 核验依据）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] C1-010 实现（含 C1-011/012 并案、C2-004 镜像窗）：按裁定①实施 lifecycleLock 全迁移 + reconcileLock 序列化 + AbstractPlugin volatile + 复合读双检（updateConfig 分支按裁定①预设形态，无临场自加项）
+- [x] C6-002 实现：按裁定②实施中间态 try/finally 终态收敛 + 字段置空时序修正 + autoInit destroy 保障 + 状态机恢复 API
+- [x] C6-001 实现：按裁定③实施前置失败点释放（try 收窄 + finally）；N2 钉断言零回改
+- [x] C1-009 实现：按裁定④实施 close 互斥 + closed 双检（或裁定等价形态）；per-callback 隔离体与卸载/超时语义零回改
+- [x] C6-003 实现：按裁定⑤实施两站点构造序/失败清理修正（同口径）；executeOn 形态保留
+- [x] C6-004 实现：按裁定⑥实施外层 finally safeDestroy 兜底（←C6-014 同 diff）+ destroyForcibly 升级 + stderr 线程退出保障
+- [x] 回归测试（rule 25 显式覆盖 + C10 成员面验收前置同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C1-010（C10-004 成员面）：unload×reconcile 交错并发测试（修复前红：孤儿活容器/状态机破坏可观测断言——如 unload 后容器仍 start、getState 与容器实态不一致）；lifecycleLock 全迁移后 load/unload 与 activate 的互斥断言；AbstractPlugin volatile 化可见性冒烟（双轨对齐）；复合读双检的 deactivate 翻转窗异常类型断言（INACTIVE 快速失败而非 NOT_STARTED 混型）；PluginManagerImpl 生命周期操作与 reconcile 串行化断言
+  - [x] C6-002（C10-005；`MockStopControl.failStop` 桩复用）：destroy-method 抛错 → deactivate 落终态（非 DEACTIVATING 永久卡死）断言；activate rollback 失败 → FAILED 落定断言；恢复 API 从中间态/FAILED 态恢复到 UNLOADED 并可重新 load/activate 的端到端断言；AbstractPlugin.autoInit destroy 异常路径不跳过 CoreInitialization.destroy 断言
+  - [x] C6-001（C10-006；断言缝按裁定③授权形态——默认 package-private `newPluginClassLoader` 工厂钩子捕获实例）：缺 plugin.json 坏包 loadPlugin 失败 → 捕获的 classLoader 已关闭断言（`isClosed()`）；重试再失败 → 每次捕获实例均已关闭、无累积断言；N2 兼容：`testUnloadFailureKeepsClassLoaderUsableAndRetryable` 原样全绿（既有 `classLoaderOf` 探针仅用于 N2「映射后失败」腿）
+  - [x] C1-009（C10-001 成员面）：停机撞在途刷新交错测试（修复前红：close 后 connection 字段出现新建连接且永不关闭的可观测断言——stub Connection 计数）；close 后 loadConfig 不再 createConnection 断言；`TestJdbcConfigSourceCallbackIsolation` 4 条 + `TestJdbcConfigSourceWorkerOffload` 2 条 + `TestJdbcConfigTimeout` 7 条零回归
+  - [x] C6-003（C10-001 jdbc 面 + C10-008 file 面）：构造期 loadConfig 抛错（stub/staged loader 注入）→ 无残留周期任务断言（scheduled future 未注册或已 cancel 可观测）；jdbc 变体构造失败 → 已建连接已关闭断言；两站点同口径；`TestFileConfigSourceRefresh/Walk/WorkerOffload` 零回归（注意 N7：新测试不得以 refreshInterval=0 弱形态伪装调度路径覆盖）
+  - [x] C6-004（C10-007）：非 timeout 异常（stdin 断管/collector 抛错/中断）→ 子进程已销毁断言（Process stub 或存活探针）；时序 D waitFor 超时子路径 → 进程已销毁断言；destroyForcibly 升级路径断言；stderr 读取线程有限时退出断言（线程存活计数/ join 有界）；N6 平台守卫（非 Unix/Windows 兼容面跳过守卫形态）；`TestShellRunner`/`TestShellCommand`/`TestShellLib` 既有用例零回归
+- [x] **端到端验证**（rule 22）：≥1 条插件全生命周期链路测试（load→activate→命令路由→失败注入→恢复 API→unload→重载 的完整状态机闭环，覆盖裁定②恢复 API 从入口到可重载的完整路径）+ ≥1 条配置源全生命周期链路测试（构造成功→刷新→close→无泄漏 的完整路径）
+- [x] **接线验证**（rule 23）：恢复 API 在 PluginManagerImpl/宿主调用链上真实可达断言（不是仅定义存在）；C1-010 修复后 unloadPlugin 与 reconcile 的运行时串行化断言（并发压力下零交错窗）
+- [x] **无静默跳过**（rule 24）：恢复 API 对不可恢复形态显式抛类型化异常而非静默 no-op；C6-004 兜底失败（destroy 抛错）显式留痕不吞；C1-009/C6-003 修正路径无空 catch
+- [x] **提交纪律**：设计文档与实现分离提交（Phase 1 设计文档先落盘提交 → 独立 draft review → 实现按工单逐项提交，单会话超时可无损接续）；六工单按模块分组提交（nop-plugin 一组、nop-config 一组、nop-shell 一组），C10 成员面测试与对应本体**同一 commit**（E2 同 diff 核验依据）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 六成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 成员面验收前置（C10-001/004[成员面]/005/006/007/008）同 diff 落地
-- [ ] 必红证据（E2）：六成员至少各一项先红后绿或变异/回退论证留痕（C1-010 交错红 / C6-002 卡死红 / C6-001 句柄滞留红 / C1-009 连接重建红 / C6-003 任务滞留红 / C6-004 进程存活红），快照落 `_tmp/` 并登记
-- [ ] N2 兼容性实证：`TestPluginUnloadFailure#testUnloadFailureKeepsClassLoaderUsableAndRetryable` 修复后原样全绿（钉零回改）
-- [ ] 既有回归零回退：plan 2496/2497 在 JdbcConfigSource/AbstractFileConfigSource 的全部既有测试 + nop-plugin 既有测试树 + nop-shell 既有测试树全绿
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（插件全生命周期链路 + 配置源全生命周期链路；恢复 API 运行时可达 + unloadPlugin×reconcile 串行化；恢复 API 不可恢复形态类型化抛错 + 兜底失败留痕）
-- [ ] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-utils -am` BUILD SUCCESS（勘误 2 补充通道，以实际触达为准登记）
-- [ ] Owner doc 裁定：ioc-and-config.md 新建节 + source-anchors.md PLG 锚点扩展的内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向）；否则显式写 `No owner-doc update required` + 理由
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 六成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 成员面验收前置（C10-001/004[成员面]/005/006/007/008）同 diff 落地
+- [x] 必红证据（E2）：六成员至少各一项先红后绿或变异/回退论证留痕（C1-010 交错红 / C6-002 卡死红 / C6-001 句柄滞留红 / C1-009 连接重建红 / C6-003 任务滞留红 / C6-004 进程存活红），快照落 `_tmp/` 并登记
+- [x] N2 兼容性实证：`TestPluginUnloadFailure#testUnloadFailureKeepsClassLoaderUsableAndRetryable` 修复后原样全绿（钉零回改）
+- [x] 既有回归零回退：plan 2496/2497 在 JdbcConfigSource/AbstractFileConfigSource 的全部既有测试 + nop-plugin 既有测试树 + nop-shell 既有测试树全绿
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（插件全生命周期链路 + 配置源全生命周期链路；恢复 API 运行时可达 + unloadPlugin×reconcile 串行化；恢复 API 不可恢复形态类型化抛错 + 兜底失败留痕）
+- [x] `./mvnw test -pl nop-core-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-utils -am` BUILD SUCCESS（勘误 2 补充通道，以实际触达为准登记）
+- [x] Owner doc 裁定：ioc-and-config.md 新建节 + source-anchors.md PLG 锚点扩展的内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向）；否则显式写 `No owner-doc update required` + 理由
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 2 执行记录（2026-10-26）**：三模块组按提交纪律分组落地——组 B nop-config `2682a25e80`（C6-003 两站点先加载后调度 + C1-009 close 互斥 + `ERR_CONFIG_SOURCE_CLOSED` 守卫；`TestConfigSourceConstructorLeak` 2 + `TestJdbcConfigSourceCloseRace` 3；红 `_tmp/phase2-config-C6-003-red.log`[file 变体 expected 1 but was 10 调度轮次 / jdbc 变体连接滞留]、`_tmp/phase2-config-C1-009-red.log`[close 后新连接 close 计数 expected 1 but was 0 + 守卫缺失]；模块 56 tests 绿）；组 C nop-shell `7c42be615d`（C6-004 外层 finally + `DESTROY_GRACE_TIMEOUT_MILLIS` 2000 有界 forcibly；`TestShellRunnerProcessDestroy` 10；红 `_tmp/phase2-shell-C6-004-red.log` 9/10 失败[E 窗 destroyCount=0 等]；模块 28 tests 绿）；组 A nop-plugin `983d4f8c41`（C1-010/C6-002/C6-001；`TestPluginLifecycleLockMigration` 5 + `TestPluginStateRecovery` 7 + `TestPluginLoadFailureResourceRelease` 4 + `TestPluginClassLoaderConstructorCleanup` 3；红：C6-002 变异 `_tmp/phase2-plugin-C6-002-red.log`[expected FAILED but was DEACTIVATING]、C6-001 双窗变异 `_tmp/phase2-plugin-C6-001-red.log`[4 断言红]、C1-010 缺陷形态源码（`_tmp/phase2-plugin-prefix/`）下整类运行于 blocking-gate 在途激活场景**活性停滞**（`_tmp/phase2-plugin-C1-010-red.log` 18:05:10 后零事件，35 分钟后终止；修复态同类 0.9s 全绿）；N2 `TestPluginUnloadFailure` 零回改全绿；模块 15+92 tests 绿）。
+>
+> **实施期补裁定（已回写设计文档最终态）**：①裁定②锁内复核契约——forceUnload 受理 ACTIVATING 后等锁期间在途激活成功落 ACTIVATED 时，定义层 `recoverToUnloaded` 返回未恢复、manager 类型化拒绝（不强杀健康活容器）；②裁定③构造期抛错窗——`PluginClassLoader` 构造器内 loadPluginConfig 失败时实例不可达、lambda finally 无法代为释放，由构造器自清理闭合（设计原文「try 边界上移」未覆盖此窗，实施期亲测发现）；③**批前既有回归承接**：`TestChangeDetection` 两用例在修复前基线（prefix 源码）即确定性红——plan 2500 `DefaultResourceChangeChecker` 宽限期语义使刚加载的 plugin.xml 被判变更伪 reload；`checkChangedAndReload` 改消费同一载体纯比较入口 `isLoadMismatch`（单一载体维持），设计文档 §3.7 与 cache-invalidation-single-point.md 同步成文。
+>
+> **偏差/事件**：三实现子代理两次因用量上限中断（组 A 三次启动，最终产物由协调方接手补全 C6-001 测试 + 三处测试缺陷修正：`PinnedErrorStream` 桩响应中断失真[真实管道读不可中断，改不可中断等待]；`AbstractPlugin.invokeCommandAsync` 双检误把「ACTIVATED 无 beans 容器」判 INACTIVE[既有 `testAwareNoContainerCommandResolvesViaFallbackChain` 回归，去除 `container==null` 条件]；两条新测试轮间清理绕过 manager 留下 UNLOADED holder / 门控未关回）；pom 新增 nop-plugin-manager → nop-plugin-support 依赖（forceUnload 跨包调 jar 轨恢复方法，support 仅依赖 api/ioc/xlang 无环）；`ServiceProxy` 零改动（站点 5 按设计「现有参数传递形态保持」由站点 1 双检覆盖）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 

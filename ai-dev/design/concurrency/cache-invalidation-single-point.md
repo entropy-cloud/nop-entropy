@@ -63,6 +63,7 @@ G = 0                                  → 退化为现行「纯 mtime 相等」
 
 - 宽限期 `G` 为判据语义的组成部分（非门参数），锚 = **文件的写入时刻（mtime 本身）**：mtime 相等且「写入年龄」（`now - current`）落在 G 内时 check 保守判 CHANGED → 触发重载（重载重读内容，含宽限窗口内已落盘的同 tick 写入）；写入年龄随墙钟推进自然退出宽限，无需任何伴随锚簿记。同 tick 双写的可疑窗口本就是「写入发生后一个 mtime 粒度 tick 内」，写入年龄锚以 G ≥ 报告粒度精确覆盖该窗口；旧 mtime 资源（jar 内模板、已安装产物、构建期拷贝件）写入年龄远超 G，零虚假重载——模型实例身份敏感的消费方（XPL 模板编译 scope 按实例身份注册 tag compiler）不受重复加载扰动。
 - G 默认 **2 秒**（覆盖容器 bind-mount/网络盘 1–2s mtime 报告粒度；ext4/overlayfs 1ms 粒度下宽限成本由门限速吸收，见下）；新配置键 `nop.core.component.resource-cache.change-grace-period`（Duration，0 = 关闭档）。
+- 宽限语义的消费边界：宽限仅服务「重读廉价、实例身份由缓存门承载」的模型缓存层；**重量级/身份敏感的消费方不得经 stat 型入口继承宽限**——插件 HMR（`PluginManagerImpl.checkChangedAndReload`，reload = deactivate/unload/load/activate 迁移且定义对象身份对持有方可观测）消费同一载体的纯比较入口 `isLoadMismatch`，保持「lastModified 相等不触发 reload」契约（plugin-lifecycle-and-config-source-hardening.md §3.7）。
 - 宽限期内保守 CHANGED 的重载频度由同源节流键限速（`CFG_COMPONENT_RESOURCE_REFRESH_MIN_INTERVAL`，默认 100ms），两路径口径一致：门路径受 `isRefreshEnabled(refreshMinInterval)` 约束；直连路径受裁定④双重约束——verdict 记忆化限速 walk、TRUE 侧同源键限速重载（仅 `now - lastLoadTime > refreshMinInterval` 才进入重载路径，见 §3.4）——**无每请求重载放大**。宽限冗余重载的触发集 = **文件写入发生后 G 窗口内的重复检查**（写入年龄锚），以同源键间隔为节奏，上界 ≈ G/100ms 次/写入；未被写入的条目（旧 mtime）触发集为空集。
 - 残余漏检（宽限期内未被任何检查覆盖的同 tick 写）由裁定③ TTL 兜底兜住——陈旧有界（≤ maxAge），非无限期。
 
