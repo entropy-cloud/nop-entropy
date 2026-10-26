@@ -1,6 +1,6 @@
 # 2507 CRA Phase 8.13 — R2-04 2.2 IoC 启动图/死锁 + 配置发布协议批（R22 刷新链，7 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_0c039821 @ 2026-10-26（0 Blocker、3 Major、7 Minor；基线 20 组 file:line 抽查 17 PASS/3 DRIFT[均为勘误初稿误记]）——M1 裁定① standalone 传导默认分支与 Scope 歧义（NopApplication 入口检查 vs nop-boot 未入 Targets）→ 定夺 NopApplication 零改动、传导=join 抛出经 initialize() 自然传播、宿主面归 R2-21(8.30)；M2 裁定② 补收集边触发 `ERR_IOC_BEAN_DEPEND_ON_HIGH_ORDER_BEAN` 构建期硬失败兼容面缺失 → 默认「补收集边仅入等待登记/环检出、不进拓扑序与 order 校验」+ 类型→beanId 解析缝落点 + 与审计自主组 4 tryLock 方案替代关系声明；M3 勘误 1/2 live 值误记（OrmMigrationWriteGate :41-43/:51-57/:62-65 全文 67 行；IocCoreInitializer :46 零漂移；flipShardConfig :415）订正；Minor×7（R2-21=8.30/R2-15=8.24 批号 4 处、C10-012 N7 幻影归属删除、allowLoop :256-261、测试树 17 类表述、TestMigrationPipelineE2E 归 nop-orm-migration、裁定③超时档位/配置键命名、E3 -pl nop-kernel 以测试数非零自证触发 api-core）——修订全量应用，转 active
 > Last Reviewed: 2026-10-26
 > Source: roadmap 工作项 8.13（R2-04，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L155，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-04 行（L78：finding ID 清单 7 项 / 模块与验证命令 nop-core-framework + nop-persistence / PA 授权 / 依赖标注「无前置（可并行）；R4-15 协同」/ exit criteria 增补五条）+ §一 通用门禁 E1–E6 + §四.3 授权落批表（框架核心引擎 plan-first → 含 R2-04）；成员发现详情 = WI 2.2 审计目录 `ai-dev/audits/2026-10/2026-10-17-1725-deep-audit-nop-core-framework-concurrency/`（C1-shared-mutable-state.md / C2-lock-sync.md / C4-thread-pools.md / C4-round2.md / merge-adjudication.md / C10-test-protection.md，逐条回读路径见 Current Baseline）+ WI 2.5 审计目录 `ai-dev/audits/2026-10/2026-10-19-0624-deep-audit-nop-persistence-peri-concurrency/`（C1-shared-mutable-state.md / C7-long-running.md / merge-adjudication.md / C10-test-protection.md）；执行基线 @ `89d325d923`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.12 已 done，plan 2495–2506 均 completed；本 Baseline 全部行号为该基线 live 回读值，2026-10-26 亲读，执行前如再漂移以 live 为准并登记）
@@ -155,7 +155,7 @@ Exit Criteria:
 - [x] Owner doc 裁定：ioc-and-config.md 新建节 + source-anchors.md 锚点扩展的内容定稿归 Phase 3 统一落账（本 Phase 显式登记该去向）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
-> **Phase 2 执行记录（2026-10-26）**：三组按提交纪律落地——组 B `9b6447558f`（C1-007 holder：`DefaultConfigReference` 单 volatile `ConfigRefState` + `updateValue` 单发布 + `getLocation` 覆写 + 零接口签名；SPI 回归面 5 实现 + 2 provider 子类 + AppConfig 逐一核对，`DefinitionConfigProvider` 消费面 source-compat 成立；`TestConfigReferencePublishAtomicity` 5[红：61432 快照 22308 混代→绿 0]+`TestConfigRefreshPublishChain`[rule 22 链路②经 changeConfigSource/applyChange 真实刷新路径]；nop-api-core 196 + nop-config 57 绿，2496/2497 门禁零回退）；组 C `d017ea6291`（C1-007 shardSelector volatile + `ConfigShardSelector` 不可变 ConfigState 构造期注入 + rebuild 拆 build/publish 读回确认失配 gateFailed；C7-004 租约 fail-open——`firstSeenClosedAt` 惰性锚定[观察即起租]、`nop.orm.migration.write-gate-lease-seconds` 1800s/≤0 关闭档、WARN 一次性 marker、时钟缝 `setLeaseClock`、**setClosed(false) 同步清零**[实施期绿跑发现的设计缺口：连续翻转无中间观察时旧锚点残留致新租约立即到期]；C1-010 runVerify/confirmSwitch 窗口复核 → gateFailed + `ERR_MIG_GATE_NOT_SATISFIED`；`TestWriteGateLeaseFailOpen` 4[红：第二实例租约不自愈]/`TestShardSelectorHotSwapVisibility` 5[红：失配静默]/`TestWriteGateWindowRecheck` 3[红：窗口开门静默 passed 落账]；nop-dao 338 + nop-orm 407 + nop-orm-migration 60 绿，`TestOrmMigrationWriteGate` 5 + `TestMigrationPipelineE2E` 9 零回退）；组 A `c5b8530cd9`（C4-003 join + 失败终态汇聚[startFailed 单一事实源 + 幂等] + C2-001 getBean0 → per-BD ReentrantLock.tryLock 有界获取 + LoadWaitGraph 双域环检出[载体 = `ResourceCacheEntry.LoadWaitGraph` 内部类，设计所写 `resource/deps/LoadWaitGraph.java` 独立文件不存在——以设计文档载点为准] + C2-002 waitQuietly 有界化；IocErrors 五新码 + `BeanWaitErrors` 环构造守卫；`TestIocConcurrentStartFailurePropagation` 4 + `TestIocCoreInitializerJoinE2E`[**rule 22 链路①经 `CoreInitialization.initialize()` 真实入口**，失败后平台可完整重新初始化无 limbo] + `TestBeanDefCrossThreadCycleDetection` 3 + `TestPbiWaitBoundedAndCycleSniff` 2 + 14 夹具类；红：缺陷形态源码真挂死[永久 BLOCKED/互等 50s/e2e 0.57s 假活红]；nop-ioc 82 绿，`TestBeanConcurrentInitDeadlock` 四钉零回改[线程状态探针补 TIMED_WAITING=有界 wait 的 JVM 必然状态，不属钉弱化]）。
+> **Phase 2 执行记录（2026-10-26）**：三组按提交纪律落地——组 B `9b6447558f`（C1-007 holder：`DefaultConfigReference` 单 volatile `ConfigRefState` + `updateValue` 单发布 + `getLocation` 覆写 + 零接口签名；SPI 回归面 5 实现 + 2 provider 子类 + AppConfig 逐一核对，`DefinitionConfigProvider` 消费面 source-compat 成立；`TestConfigReferencePublishAtomicity` 5[红：61432 快照 22308 混代→绿 0]+`TestConfigRefreshPublishChain`[rule 22 链路②经 changeConfigSource/applyChange 真实刷新路径]；nop-api-core 196 + nop-config 57 绿，2496/2497 门禁零回退）；组 C `d017ea6291`（C1-007 shardSelector volatile + `ConfigShardSelector` 不可变 ConfigState 构造期注入 + rebuild 拆 build/publish 读回确认失配 gateFailed；C7-004 租约 fail-open——`firstSeenClosedAt` 惰性锚定[观察即起租]、`nop.orm.migration.write-gate-lease-seconds` 1800s/≤0 关闭档、WARN 一次性 marker、时钟缝 `setLeaseClock`、**setClosed(false) 同步清零**[实施期绿跑发现的设计缺口：连续翻转无中间观察时旧锚点残留致新租约立即到期]；C1-010 runVerify/confirmSwitch 窗口复核 → gateFailed + `ERR_MIG_GATE_NOT_SATISFIED`；`TestWriteGateLeaseFailOpen` 4[红：第二实例租约不自愈]/`TestShardSelectorHotSwapVisibility` 5[红：失配静默]/`TestWriteGateWindowRecheck` 3[红：窗口开门静默 passed 落账]；nop-dao 338 + nop-orm 407 + nop-orm-migration 60 绿，`TestOrmMigrationWriteGate` 5 + `TestMigrationPipelineE2E` 9 零回退）；组 A `c5b8530cd9`（C4-003 join + 失败终态汇聚[startFailed 单一事实源 + 幂等] + C2-001 getBean0 → per-BD ReentrantLock.tryLock 有界获取 + LoadWaitGraph 双域环检出[载体 = `ResourceCacheEntry.LoadWaitGraph` 内部类（closure audit Minor-1 订正：独立文件形态不存在，以设计文档载点为准）] + C2-002 waitQuietly 有界化；IocErrors 五新码 + `BeanWaitErrors` 环构造守卫；`TestIocConcurrentStartFailurePropagation` 4 + `TestIocCoreInitializerJoinE2E`[**rule 22 链路①经 `CoreInitialization.initialize()` 真实入口**，失败后平台可完整重新初始化无 limbo] + `TestBeanDefCrossThreadCycleDetection` 3 + `TestPbiWaitBoundedAndCycleSniff` 2 + 15 夹具类；红：缺陷形态源码真挂死[永久 BLOCKED/互等 50s/e2e 0.57s 假活红]；nop-ioc 82 绿，`TestBeanConcurrentInitDeadlock` 四钉零回改[线程状态探针补 TIMED_WAITING=有界 wait 的 JVM 必然状态，不属钉弱化]）。
 >
 > **偏差登记**：①无 OrmErrors 租约新码——租约到期为 WARN 事件非异常、新码无 throw 面（rule 24），复核失配沿既有 `ERR_MIG_GATE_NOT_SATISFIED`（设计 §3.7 可选配套未采）；②F2 Error 注入点在 init 阶段（@PostConstruct 经 `ClassHelper.invoke` 解包 raw 逃逸）而非构造器（ITE 包装降级为普通 Exception 是既有平台行为）；③环错误经 ITE 包装到达调用方，测试按因果链匹配错误码；④runVerify 复核点 1 无确定性外部注入钩子，红证据由复核点 2 + confirmSwitch 腿承载；⑤组 B 测试落两树（api-core 需 `stateSnapshot()` 缝 / nop-config 需 DefaultConfigProvider），测试名 `TestConfigReferencePublishAtomicity` 与设计 §六 `TestConfigReferencePublishProtocol` 择一在 Phase 3 对齐登记；⑥`route_rebuild VARCHAR(32)` 既有 `rebuild-failed:`+message 超长风险为批前既有（归 R2-15）。
 
@@ -190,48 +190,48 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.13 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：P1 台账 6 行（L195/L199/L200/L201/L233/L237）状态收敛（open → 已修/本批）+ 并案成员行（C1-017/C4-008/C2-012/C1-002）随主案注记 + P2-G48 行（L432）C1-010 成分收敛注记（C6-005 成分已随 R2-01 收敛，本行整组可闭）+ C10-002/003/009 共享条目成员面注记（勘误 6）+ C10-012/C10-014 整条收敛
-- [ ] roadmap 8.13 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-cra-phase8.13-r2-04-ioc-startup-config-publish.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：P1 台账 6 行（L195/L199/L200/L201/L233/L237）状态收敛（open → 已修/本批）+ 并案成员行（C1-017/C4-008/C2-012/C1-002）随主案注记 + P2-G48 行（L432）C1-010 成分收敛注记（C6-005 成分已随 R2-01 收敛，本行整组可闭）+ C10-002/003/009 共享条目成员面注记（勘误 6）+ C10-012/C10-014 整条收敛
+- [x] roadmap 8.13 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-cra-phase8.13-r2-04-ioc-startup-config-publish.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 7 项成员（6 P1 行 + G48 P2 行）状态全部收敛（并案行随主案注记）、roadmap 8.13 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 7 项成员（6 P1 行 + G48 P2 行）状态全部收敛（并案行随主案注记）、roadmap 8.13 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 7 项成员全部修复：C4-003（含 C4-008 三形态）、C2-001（含 C2-012）、C2-002（含 C1-002）、C1-007（含 C1-017）、2.5-C1-007、2.5-C7-004、2.5-C1-010
-- [ ] batch-proposal R2-04 行 exit criteria 增补五条逐条达成并留证：①B1-01 终裁 P1 维持——C4-003 修复以无 join+失败不传导两面承载（join+失败传导+超时落地，判级不降档留证）；②C4-003 同 PR 批次边界——C4-009/C4-011+CL-019 移交 R4-15 清单在案（本批未越界改 TaskExecutionGraph 设施 catch 面）；③配置发布协议三字段单一不可变 holder——7 写点×8 读站对照表逐点落地、api-core PA 义务（SPI 回归面全列）执行留证；④2.5-C1-007/C7-004 刷新链下游 volatile 化同批——shardSelector volatile + 安全发布 + 写门持久化/租约形态落地；⑤C1-010 写门可见性半边（G48a）随批——holder 化承载声明 + 保持机制半边去向成文（无台账悬挂）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；七成员均有先红后绿或变异/回退论证（E2）；C10 成员面验收前置同 diff 落地（C10-002/003/009 仅成员面，R4-15 面未越界承接）
-- [ ] 设计文档裁定①–⑦成文且经独立 draft review；R1-01/R1-02 刷新链已修面（per-callback 隔离/卸载/超时/构造序）与 2504 LoadWaitGraph 既有语义零回退实证（既有回归全绿 + diff 抽验）
-- [ ] R4-15/R2-21/R2-15 边界守约：TaskExecutionGraph 设施面/宿主联动面/链编排面零越界修复、移交清单在案（裁定⑥）；2506 的 BeanScopeImpl.close 上抛消费口径维持或扩大声明已登记
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：ioc-and-config.md（新建契约节）、source-anchors.md（IOC/CFG 锚点扩展）；缺口声明登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/后置协同项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）join/失败传导/holder 单发布/环检出/租约 fail-open 路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-cra-phase8.13-r2-04-ioc-startup-config-publish.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 7 成员收敛 + roadmap 8.13 → done（E6）
+- [x] 7 项成员全部修复：C4-003（含 C4-008 三形态）、C2-001（含 C2-012）、C2-002（含 C1-002）、C1-007（含 C1-017）、2.5-C1-007、2.5-C7-004、2.5-C1-010
+- [x] batch-proposal R2-04 行 exit criteria 增补五条逐条达成并留证：①B1-01 终裁 P1 维持——C4-003 修复以无 join+失败不传导两面承载（join+失败传导+超时落地，判级不降档留证）；②C4-003 同 PR 批次边界——C4-009/C4-011+CL-019 移交 R4-15 清单在案（本批未越界改 TaskExecutionGraph 设施 catch 面）；③配置发布协议三字段单一不可变 holder——7 写点×8 读站对照表逐点落地、api-core PA 义务（SPI 回归面全列）执行留证；④2.5-C1-007/C7-004 刷新链下游 volatile 化同批——shardSelector volatile + 安全发布 + 写门持久化/租约形态落地；⑤C1-010 写门可见性半边（G48a）随批——holder 化承载声明 + 保持机制半边去向成文（无台账悬挂）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；七成员均有先红后绿或变异/回退论证（E2）；C10 成员面验收前置同 diff 落地（C10-002/003/009 仅成员面，R4-15 面未越界承接）
+- [x] 设计文档裁定①–⑦成文且经独立 draft review；R1-01/R1-02 刷新链已修面（per-callback 隔离/卸载/超时/构造序）与 2504 LoadWaitGraph 既有语义零回退实证（既有回归全绿 + diff 抽验）
+- [x] R4-15/R2-21/R2-15 边界守约：TaskExecutionGraph 设施面/宿主联动面/链编排面零越界修复、移交清单在案（裁定⑥）；2506 的 BeanScopeImpl.close 上抛消费口径维持或扩大声明已登记
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-kernel -am`、`./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：ioc-and-config.md（新建契约节）、source-anchors.md（IOC/CFG 锚点扩展）；缺口声明登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/后置协同项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）join/失败传导/holder 单发布/环检出/租约 fail-open 路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-cra-phase8.13-r2-04-ioc-startup-config-publish.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 7 成员收敛 + roadmap 8.13 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -264,14 +264,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: R2-04 七项（2.2-C4-003/C2-001/C2-002/C1-007 + 2.5-C1-007/C7-004/C1-010[G48a]）全部修复并各带 focused 回归 + 真实红证据（撕裂 22308/61432、缺陷形态挂死 140.6s/110.5s、假活 0.57s、第二实例租约不自愈）；Phase 1 七裁定经独立评审两轮（R1 1B+4M+7m 全修 / R2 0B/0M，5 残留 Minor 当轮落文）+ 实施期缺口修复（setClosed(false) 同步清零）；E1 全量 + E3 三门禁（含 api-core SPI 面 nop-kernel -am）BUILD SUCCESS；PA 合规（nop-ioc + nop-api-core 双 plan-first，SPI 回归面 5+2+AppConfig 零签名）；独立 closure audit PASS；cra-index 六 P1 行 fixed + G48 整束收敛注；roadmap 8.13 → done。无 in-scope live defect 被降级。
+Completed: 2026-10-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Evidence: <<每条 Exit Criterion 和 Closure Gate 的验证结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，未参与实现）agent_dfe46084 @ 2026-10-26
+- Audit Session: agent_dfe46084-6755-4a4d-8a13-99c0ccafe2e4
+- Evidence:
+  - **Exit Criteria**：Phase 1 4/4 PASS、Phase 2 7/7 PASS（三组提交产品与测试同 commit；七成员红日志失败签名亲验——撕裂 22308/61432、IoC 挂死类 140.6s/110.5s 真实缺陷形态、e2e 假活 0.57s 红、租约不自愈/失配静默/窗口开门静默落账；`TestBeanConcurrentInitDeadlock` 四钉零回改[探针补 TIMED_WAITING]；`TestOrmMigrationWriteGate` 5 + `TestMigrationPipelineE2E` 9 复跑绿）、Phase 3 5/5 PASS（E1/E3 三门禁快照 + owner doc 落地 + 零触碰[13 文件 ⊆ 声明范围，NopApplication/BeanScopeImpl/TaskExecutionGraph/orm.xml/_gen/nop-auth 零 diff] + scan-hollow 裁定[persistence 3 条 orm-drivers 显式 UOE 桩批前既有、`git diff 89d325d923..HEAD` 零触碰]）
+  - **Closure Gates**：实质 13 条 PASS（七成员 live 语义亲读：join 落位 :46-51 + startFailed 单一事实源 + 幂等 handleStartError + awaitStartFinished :656 有界收敛；getOrCreateSingleton :447 有界获取 + 环检出 + 防假环；waitQuietly 有界化；ConfigRefState :37 单 volatile :94-97 单发布；firstSeenClosedAt :68 惰性锚定 + requireGateStillClosed :565 + publishRebuiltSelector :493；batch L78 五条增补逐条达成[B1-01 P1 维持 / C4-003 同 PR 边界零越界 / holder 7×8 全适配 / 2.5 volatile 化同批 / G48a 随批]；R4-15/R2-21/R2-15 边界守约）；Phase 4 待办项在本次 closure pass 内完成
+  - **Anti-Hollow 五项 PASS**：失败传导链端到端（`TestIocCoreInitializerJoinE2E` 真实 `CoreInitialization.initialize()` 入口 + 重初始化无 limbo）；环检出运行时生效（两腿错误码断言）；单发布混代=0；租约观察即起租第二实例自愈（腿②不调 setClosed）；新代码 catch 逐一核对无空吞（全部重抛/类型化/恢复中断位，租约 WARN 为显式事件，BeanWaitErrors 构造守卫快速失败）
+  - **工具退出码（closure pass 终态）**：`check-plan-checklist.mjs --strict` 退出码 0（completed 形态重跑）；`scan-hollow`：nop-kernel 0 / nop-core-framework 0 / nop-persistence exit 1 = 3 条批前既有显式 UOE 桩（裁定登记）；`check-doc-links --strict` 退出码 0；独立复跑 `./mvnw test -pl :nop-ioc,:nop-api-core,:nop-config,:nop-dao,:nop-orm,:nop-orm-migration` BUILD SUCCESS（196+82+57+338+407+60 全 0 失败，7 新测试类全绿）
+  - **Deferred/Follow-ups**：三条均批前已裁定批外（R4-15 同 PR / R2-21 宿主 / C2-017 watch-only P3），无 in-scope 降级；偏差六项逐一与 live 核对诚实
+  - **checkstyle Gate 口径**：四组 pre-commit `nop-cli lint` 通过（两组夹具裸 RuntimeException → IllegalStateException 改写后复绿）；变更文件 import 分组逐文件读验
+  - **审计 Minor×3**（LoadWaitGraph 载点表述、夹具计数 14→15、N5 落位注记）已当轮入文
+  - **证据日志形态**：`_tmp/phase3-*.log` 为 grep 蒸馏摘要（含 Reactor Summary/BUILD SUCCESS）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
+- R4-15 同 PR 交接（C4-009/011+CL-019、C10-002/003/009 的 R4-15 成员面）与 R2-21 宿主消费面、R2-15 链编排面——非本 plan 剩余 debt，cra-index 与设计文档已落账
+- watch-only：`route_rebuild VARCHAR(32)` 既有 `rebuild-failed:`+message 超长风险（归 R2-15 基线）；orm-drivers 显式 UOE 桩 3 条（实现归后续功能批次）
+- no remaining plan-owned work
