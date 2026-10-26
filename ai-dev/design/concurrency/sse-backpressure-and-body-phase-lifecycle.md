@@ -1,10 +1,10 @@
 # SSE 反压有界化与响应体阶段生命周期设计
 
 **日期**：2026-10-25
-**范围**：`nop-network/nop-http/nop-http-api`（`AbstractServerEventSubscription` 共享基类——plan 2505 PA 裁定面）、`nop-network/nop-http/nop-http-client-jdk`（`JdkHttpClient` 下载读循环 + `ServerEventPublisher`）、`nop-network/nop-http/nop-http-client-apache`（`ServerEventPublisher`）
+**范围**：`nop-network/nop-http/nop-http-api`（`AbstractServerEventSubscription` 共享基类——plan 2505 PA 裁定面；`HttpApiErrors` 新增 `ERR_HTTP_SSE_DEMAND_TIMEOUT` 错误码 + 复用既有 `ARG_TIMEOUT` 参数名）、`nop-network/nop-http/nop-http-client-jdk`（`JdkHttpClient` 下载读循环 + `ServerEventPublisher`）、`nop-network/nop-http/nop-http-client-apache`（`ServerEventPublisher`）
 **状态**：active
 **来源**：plan 2505（CRA Phase 8.11 / R2-02）Phase 1 PA 裁定项——本批 4.3-C6-004 修复面①（`waitForDemand` 超时语义）经 live 结构性核验叶内不可达，按 AGENTS.md plan-first 在批内闭环；本设计是该闭环的设计文档，同时承载 4.3-MA-02 族（C3-002/C3-003/C6-002/CL-026 同 diff）与 C6-004 面②③④的契约。发现事实源 = plan 2505 Current Baseline 成员表与 `ai-dev/audits/2026-10/2026-10-21-0610-deep-audit-nop-network-integration-concurrency/`
-**Last Reviewed**：2026-10-25 落笔（独立评审由协调方另行派发，评审结论回填本节）
+**Last Reviewed**：2026-10-25 落笔（独立评审由协调方另行派发，评审结论回填本节）；评审修订（Major-1/Minor-3~6）落盘；增量复核 agent_b3456a7b **通过**（Major-1 gateway 行改写闭合发现，ARG_TIMEOUT 措辞随结论回填修正）
 
 ---
 
@@ -49,7 +49,9 @@ flowchart LR
 
 **队列契约**：容量有界（1024 行）；溢出策略 = `QueueOverflowPolicy` 缺省 ERROR 形态（满载抛 `ERR_QUEUE_FULL`）——异常沿 HC5 消费者协议进入 `failed` → 终态化订阅。reactor 线程在任何负载形态下**零阻塞**（不 wait、不 take）。被拒策略：BLOCK_WAIT（满载时 reactor 阻塞回归缺陷形态）、DROP_*/静默丢弃（SSE 数据静默丢失 = 数据完整性违约）、无界队列（C5 无界累积面，消费线程停滞时内存无上界）。
 
-**终态串行化**：`onComplete` 与 `onError` 由 reactor 线程投递 sentinel，消费线程按队列序执行基类终态（含 final flush 的有界 demand 等待）。终态 sentinel 单次投递守卫（首个终态胜出，后到终态丢弃——Flow 单终态纪律），终态后到达的数据行由消费线程按 `isCancelled` 退出循环自然丢弃。
+**终态串行化**：`onComplete` 与 `onError` 由 reactor 线程投递 sentinel，消费线程按队列序执行基类终态（含 final flush 的有界 demand 等待）。终态 sentinel 单次投递守卫（首个终态胜出，后到终态丢弃——Flow 单终态纪律）。终态后到达的数据行按终态形态分流丢弃：**取消形态** = 消费线程 `drainDispatchQueue` 按 `isCancelled()` 退出循环，finally 中 `clear()` 队列一次性丢弃积压行；**complete 形态** = 消费线程执行基类 `onComplete` 后 return（不再取行），后到数据行继续入队直至 1024 容量满载触发 `ERR_QUEUE_FULL`，异常沿 HC5 消费者协议进入 `failed` → `onError`，再被终态单次投递守卫丢弃（debug 记录，不静默升级为订阅错误）。
+
+**自终态直透钉死**：apache `ServerEventSubscription.onError` 保留直透基类分支——`Thread.currentThread() == dispatchThread`（消费线程自身产生的停滞终态，基类 `onDemandStall` 在消费线程上触发）或 `dispatchThread == null`（尚无行派发、未建线程，纯错误流；`onComplete` 的 null 分支同理，live `ServerEventPublisher.java` :162-168/:176-182）。消费线程自身产生的停滞终态若强制再入队，会被自身退出循环丢弃（终态信号丢失）——该直透分支是停滞终态可达性的必要条件，任何按「reactor → 队列 → 消费线程」纯队列形态的重写不得丢失它。
 
 **消费线程生命周期**：首次行投递时惰性创建（daemon、命名）；每个条目处理后检查取消态，取消或终态后退出；demand 停滞时被裁定①有界化（≤ 预算）终态退出——线程按订阅有界存活，无池化残留。
 
@@ -90,15 +92,16 @@ flowchart LR
 
 ## 五、SPI 回归清单（基类触达面全列）
 
-`AbstractServerEventSubscription` 为 nop-http-api 公共抽象基类。live grep（`extends AbstractServerEventSubscription`，@ 基线 0eb3ea67ba）全部子类：
+`AbstractServerEventSubscription` 为 nop-http-api 公共抽象基类。live grep（`extends AbstractServerEventSubscription`，@ 基线 0eb3ea67ba + 本批新增文件）全部子类（HEAD 全列 4 条，含本批新增测试桩）：
 
 | # | 类 | 承载 | 回归义务 |
 |---|---|---|---|
 | 1 | `io.nop.http.client.jdk.ServerEventPublisher$ServerEventSubscription` | jdk SSE 订阅 | 本批改造面（裁定③）；回归 = `TestServerEventPublisherStreamFix` + `TestServerEventPublisherErrorResponse` + 本批新增 `_C3_002` 用例 |
 | 2 | `io.nop.http.client.apache.ServerEventPublisher$ServerEventSubscription` | apache SSE 订阅 | 本批改造面（裁定②）；回归 = `TestServerEventPublisherErrorResponse`（apache）+ 本批新增 `_C6_004` 用例 |
 | 3 | `io.nop.http.api.client.TestServerEventSubscriptionFix$TestSubscription` | 基类测试桩 | 既有 5 条全绿维持 + 本批新增 demand 超时用例 |
+| 4 | `io.nop.http.api.client.TestServerEventSubscriptionDemandTimeout_C6_004$StallTestSubscription` | 基类测试桩（本批新增 demand 超时用例，protected `demandWaitTimeoutMillis()` 收紧至 300ms） | 回归 = 本类 2 条：停滞预算内 `onError` 到达 + 取消解除等待不产生停滞错误 |
 
-行为兼容矩阵：`waitForDemand`/`dispatchEvent` 无外部 override（grep 零命中）；`processLine` 唯一外部调用形态为测试桩 `feed` 直调（demand 充足路径，行为不变）；`fetchServerEventFlow` 生产消费方 `ChatServiceImpl`（本批 Phase 2 承接下游闭合）与 nop-gateway `BufferedStreamingPublisher`/`StreamingProcessor`（request(MAX) 派——demand 等待不触发，有界化对其零行为变化）。
+行为兼容矩阵：`waitForDemand`/`dispatchEvent` 无外部 override（grep 零命中）；`processLine` 唯一外部调用形态为测试桩 `feed` 直调（demand 充足路径，行为不变）；`fetchServerEventFlow` 生产消费方 `ChatServiceImpl`（本批 Phase 2 承接下游闭合）与 nop-gateway `BufferedStreamingPublisher`/`StreamingProcessor`——后者为 **request(1) 逐元素拉取派**（`StreamingProcessor.java` onSubscribe/onNext 尾部各 `request(1)`（live :144/:162），`BufferedStreamingPublisher.java:378` 自述「映射链自驱动（createMappedPublisher 每元素内部 request(1)），缓冲层不追加请求」）：正常路径零变化；下游停滞超预算时从「承载线程无限挂起」变为「预算内错误终态」（§3.1 行为不变式的缺陷修复本体，非零变化面）。
 
 ## 六、与已有设计的关系
 
