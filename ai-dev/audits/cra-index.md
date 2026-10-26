@@ -193,16 +193,16 @@
 | nop-kernel-concurrency-C4-001 | 2.1 | nop-kernel-concurrency | globalTimer 死配置（newScheduledExecutor 副作用改写 maxPoolSize=0）+4 线程全平台共享定时器阻塞放大（28 消费方分类终表；与 WI 1.5 MA-04 隔离方案统一） | 已修（R1-02，plan 2497 closure audit PASS） | fixed |
 | nop-kernel-concurrency-C7-007 | 2.1 | nop-kernel-concurrency | 模型缓存 check-changed 双漏检窗口（旧内容+新 mtime 固化；ResourceTimestampCache 死代码；与 C9-001/C9-010 同链三面绑定单点修复） | 已修（R1-05，plan 2500 closure audit PASS） | fixed |
 | nop-core-framework-C1-007 | 2.2 | nop-core-framework | 配置发布协议三字段裸写裸读+两步写序撕裂（族案含 C1-017；api-core 单一不可变 holder 修复，7 写点×8 读站；WI 2.1 C1-001 刷新链上游） | R2-04 | open |
-| nop-core-framework-C1-009 | 2.2 | nop-core-framework | JdbcConfigSource.close 竞态：停机后在途刷新重建永不关闭的连接（←C4-002 同位点并案） | R2-03 | open |
-| nop-core-framework-C1-010 | 2.2 | nop-core-framework | 插件 unload×reconcile 交错活容器永久泄漏（含 C1-011/012 并案、←C2-004；lifecycleLock 全迁移统一修复批次） | R2-03 | open |
+| nop-core-framework-C1-009 | 2.2 | nop-core-framework | JdbcConfigSource.close 竞态：停机后在途刷新重建永不关闭的连接（←C4-002 同位点并案；修复 = close synchronized 同 monitor + loadConfig closed 防退化守卫 `nop.err.config.source-closed`，并案 C4-002 随主案收敛） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
+| nop-core-framework-C1-010 | 2.2 | nop-core-framework | 插件 unload×reconcile 交错活容器永久泄漏（含 C1-011/012 并案、←C2-004；修复 = 双锁单向序 reconcileLock→lifecycleLock 全迁移 + updateConfig 回调延迟契约 + AbstractPlugin volatile 对齐[C1-011] + 复合读 7 站点双检统一 INACTIVE[C1-012] + unload 守卫读写同锁闭合镜像窗[C2-004]；updateConfig 随批纳锁兑现 C1-020 同批条款；C10-004 仅成员面 C1-010/011/012 承接，C1-018/019/C2-005 面归 R4-15） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
 | nop-core-framework-C1-021 | 2.2 | nop-core-framework | tryTriggerChange 在 try 外：回调异常永久静默杀死 DB 配置热更新全链（CL-001 终裁升格；WI 2.1 C3-001 平台绝缘层吸收） | 已修（R1-01，plan 2496 closure audit PASS） | fixed |
 | nop-core-framework-C2-001 | 2.2 | nop-core-framework | getBean0 锁序环依赖边不可见跨线程永久死锁（←C2-012；allow-cycle 默认 true 附注；历史 check 审计 P2-6 同源回访升 P1） | R2-04 | open |
 | nop-core-framework-C2-002 | 2.2 | nop-core-framework | ProducedBeanInstance 跨实例 monitor 等待环 wait 无超时（←C1-002 跨维度并案） | R2-04 | open |
 | nop-core-framework-C4-003 | 2.2 | nop-core-framework | concurrent-start 三复合面：无 join 点+失败吞入+死容器 exit-0 伪装/quarkus 三绿假活（←C4-008；与 C4-009/011+CL-019 同 PR 批次；门控 P1/P2 双口径留 7.1 裁） | R2-04 | open |
-| nop-core-framework-C6-001 | 2.2 | nop-core-framework | loadPluginFromJar 失败点 try 外：ClassLoader+JAR 句柄线性累积泄漏（与测试 N2 设计冲突须消解） | R2-03 | open |
-| nop-core-framework-C6-002 | 2.2 | nop-core-framework | 插件状态机永久卡死 DEACTIVATING/ACTIVATING 无恢复 API | R2-03 | open |
-| nop-core-framework-C6-003 | 2.2 | nop-core-framework | config source 先调度后加载：初始失败泄漏永久 globalTimer 刷新任务（启动期降档不适用论证成立） | R2-03 | open |
-| nop-core-framework-C6-004 | 2.2 | nop-core-framework | ShellRunner 非 timeout 异常不销毁子进程+stderr 线程 pin（←C6-014；修复须外层 try finally） | R2-03 | open |
+| nop-core-framework-C6-001 | 2.2 | nop-core-framework | loadPluginFromJar 失败点 try 外：ClassLoader+JAR 句柄线性累积泄漏（与测试 N2 设计冲突须消解；修复 = try 收窄 + 仅失败路径释放 + newPluginClassLoader 工厂钩子缝 + PluginClassLoader 构造期自清理[实施期补裁定]；N2 钉零回改两类失败终态成文） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
+| nop-core-framework-C6-002 | 2.2 | nop-core-framework | 插件状态机永久卡死 DEACTIVATING/ACTIVATING 无恢复 API（修复 = 中间态 try/finally 落 FAILED[不回退 ACTIVATED] + 双轨 recoverToUnloaded 锁内复核 + PluginManagerImpl.forceUnload 实现类恢复 API `nop.err.plugin.force-unload-not-allowed` 类型化拒绝 ACTIVATED） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
+| nop-core-framework-C6-003 | 2.2 | nop-core-framework | config source 先调度后加载：初始失败泄漏永久 globalTimer 刷新任务（启动期降档不适用论证成立；修复 = 两站点「先加载成功再调度」+ jdbc 失败路径关闭已建连接，executeOn 卸载形态保留） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
+| nop-core-framework-C6-004 | 2.2 | nop-core-framework | ShellRunner 非 timeout 异常不销毁子进程+stderr 线程 pin（←C6-014 同 diff 并案；修复 = 外层 try finally 兜底[process 引用提升覆盖 A–F 六时序] + destroyForcibly 2000ms 有界升级；C4-005 timeout=0 相邻面不入批） | 已修（R2-03，plan 2506 closure audit PASS）| fixed |
 | nop-service-framework-hotpath-C3-002 | 2.3 | nop-service-framework-hotpath | invokeOperation 出口泵缺 thenOnContext：OrmBatchLoader 在 future 完成线程 requireSession→NOT_IN_SESSION/错 ORM 会话 | 已修（R1-04，plan 2499 closure audit PASS） | fixed |
 | nop-service-framework-hotpath-C3-003 | 2.3 | nop-service-framework-hotpath | BufferedStreamingPublisher 背压断裂：映射链自驱动 request(1) 越窗后元素进无界 ArrayDeque，慢客户端长流内存失控（AI 路由默认形态） | R2-06 | open |
 | nop-service-framework-hotpath-C3-007 | 2.3 | nop-service-framework-hotpath | BizActionService.callActionAsync 裸 executor.execute：调用方 IContext 不传播，租户/用户跨任务残留（全单元唯一站点，10 形态 grep） | 已修（R1-04，plan 2499 closure audit PASS） | fixed |
@@ -351,6 +351,8 @@
 ### WI 2.2 nop-core-framework（CL-001~021：编号 21、升格 1、落格 2、同位点并入设施 2、零立案 1、纯移交 7、关联保留 8、驳回 0；逐条归属如下——7.1 盘点发现小节头截断后补全）
 
 **升格立案**：CL-001→C1-021（P1）。**落格**：CL-002→C2-005（同站点 computeIfAbsent bin 锁内 HTTP 下载/类加载/start）、CL-018→C4-010（BeanScopeImpl 哈希序销毁同站点）。**同位点并入设施**：CL-008→WI 2.1 C6-011、CL-020→WI 2.1 C6-003。**零立案**：CL-009（PluginManager syncGet 调用线程内联终判）。**纯移交（7）**：CL-013/CL-019→nop-kernel（CL-013 为 2.1 未登记新面 registerCleanup）、CL-021→安全线（OsUserHelper 明文口令入进程参数）、CL-016→api-core 功能缺陷轨（PlaceholderConfigReference 未替换占位符返回）、CL-010→插件功能线（子容器不经 PluginClassLoader 加载——热卸载隔离失效）、CL-011→C5 面（DefaultShellOutputCollector 无界收集）、CL-012→C7 面（ChangeSubscriptions 空条目不摘）。**关联保留（8）**：CL-003/005/007/014/015/017 及其余——一句话归属见审计目录 merge-adjudication.md。
+
+**R2-03 批前既有回归承接（plan 2506 Phase 2 实施期发现，非 R2-03 成员、非本批引入）**：`PluginManagerImpl.checkChangedAndReload` 消费 `DefaultResourceChangeChecker.checkChanged` 的「写入年龄 < 宽限期保守判 CHANGED」语义（R1-05/plan 2500 产物）致刚加载的 plugin.xml 在 2s 宽限窗内被伪 reload——既有 `TestChangeDetection` 两用例于修复前基线（prefix 源码）确定性红、此前批次门禁未覆盖 nop-plugin-manager 而遗漏；R2-03 随批承接：改用同一载体纯比较入口 `isLoadMismatch`（单一载体维持、宽限语义不外溢插件轨），设计 plugin-lifecycle-and-config-source-hardening.md §3.7 + cache-invalidation-single-point.md 消费边界同步成文，`TestChangeDetection` 为其回归（commit `983d4f8c41`）。
 
 ## P2 裁决台账（7.1 逐项裁决）
 

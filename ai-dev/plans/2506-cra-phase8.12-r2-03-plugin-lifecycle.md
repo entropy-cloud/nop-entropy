@@ -1,6 +1,6 @@
 # 2506 CRA Phase 8.12 — R2-03 2.2 插件生命周期/配置源/Shell 批（6 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_7260c86d @ 2026-10-26（0 Blocker、2 Major、5 Minor；基线 17 组 file:line 抽查零事实错误、2 处标签级 DRIFT）——M-1 裁定③补「C6-001 映射前失败路径断言缝裁定」（既有 `classLoaderOf` 探针从 holder 读、映射前失败恒 null 不可用；默认 = `PluginManagerImpl` package-private `newPluginClassLoader` 工厂钩子，备选 fd 计数替身）；M-2 裁定①补「lifecycleLock 持有期间禁止触发 onConfigChanged/reconcile」锁序硬规则（updateConfig 尾部回调 :589-592 = manager::reconcile 需 reconcileLock，与 unloadPlugin 持 reconcileLock→lifecycleLock 构成 ABBA 向量；回调锁外派发）；Minor×5（PluginErrors→PluginApiErrors/PluginManagerErrors、AbstractPlugin :313-322 为 aware 路径/兼容路径 :326-335、ServiceProxy 复合读窗补 invoke :63-67、±1~2 行漂移以 live 为准总声明覆盖、Phase 2 e2e/接线/无静默跳过三项镜像入 Exit Criteria）——修订全量应用，转 active
 > Last Reviewed: 2026-10-26
 > Source: roadmap 工作项 8.12（R2-03，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L154，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-03 行（L77：finding ID 清单 6 项 / PA 授权 / 依赖标注 / exit criteria 增补）；成员发现详情 = WI 2.2 审计目录 `ai-dev/audits/2026-10/2026-10-17-1725-deep-audit-nop-core-framework-concurrency/`（C1-shared-mutable-state.md / C6-resource-lifecycle.md / merge-adjudication.md / C10-test-protection.md，逐条回读路径见 Current Baseline）；执行基线 @ `1aafb2ccda`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.11 已 done，plan 2495–2505 均 completed；本 Baseline 全部行号为该基线 live 回读值，2026-10-25 亲读）
@@ -111,7 +111,7 @@ Exit Criteria:
 - [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
-> **Phase 1 执行记录（2026-10-26）**：设计文档 `ai-dev/design/concurrency/plugin-lifecycle-and-config-source-hardening.md`（~207 行）落盘并登记 `design/concurrency/README.md`（层级表 + 阅读顺序第 8 位 + 实现锚）。独立 draft review R1（agent_6df99f00，fresh session，30+ 处 file:line 抽查零漂移）：**1 Blocker**（start :549-563 持 lifecycleLock 重入调 updateConfig，monitor 可重入致回调无法按「锁外派发」字面实现——补「回调延迟契约」：步进段返回变更标志、两受害点[外部入口/start 内嵌]均在最外层临界区退出后派发 + finally 派发保证 + 时序变化声明[start 路径回调自 activate 前移至 activate 后]）+ **2 Major**（forceUnload 在守卫零改动下无定义层载体——补双轨内部恢复方法契约与可见性[Vfs package-private / AbstractPlugin public 内部契约]；destroyForcibly 2s 等待占共享 globalTimer 线程代价未声明——补代价声明 + 接受裁定 + watch）+ 7 Minor 全部入文。R2 增量复核（同 agent）：三处闭合 PASS、无新 B/M、2 残留极轻项（start 异常退出派发保证、forceUnload 尾部 reconcile）已一句话落文。设计文档 Status → active。设计撰写子代理亲读登记的 Baseline 轻微偏差（unloadPlugin live :144-165 vs plan :145-166；ConfigStarter 入列 :133-137/:152-156；AbstractPlugin `lastActivationError` :76 亦非 volatile 纳入对齐面；IPluginManager 位于 nop-plugin-manager 非 nop-plugin-api）均以 live 为准、不改 plan 正文。`check-doc-links --strict` 退出码 0。零产品代码改动。
+> **Phase 1 执行记录（2026-10-26）**：设计文档 `ai-dev/design/concurrency/plugin-lifecycle-and-config-source-hardening.md`（~207 行）落盘并登记 `ai-dev/design/concurrency/README.md`（层级表 + 阅读顺序第 8 位 + 实现锚）。独立 draft review R1（agent_6df99f00，fresh session，30+ 处 file:line 抽查零漂移）：**1 Blocker**（start :549-563 持 lifecycleLock 重入调 updateConfig，monitor 可重入致回调无法按「锁外派发」字面实现——补「回调延迟契约」：步进段返回变更标志、两受害点[外部入口/start 内嵌]均在最外层临界区退出后派发 + finally 派发保证 + 时序变化声明[start 路径回调自 activate 前移至 activate 后]）+ **2 Major**（forceUnload 在守卫零改动下无定义层载体——补双轨内部恢复方法契约与可见性[Vfs package-private / AbstractPlugin public 内部契约]；destroyForcibly 2s 等待占共享 globalTimer 线程代价未声明——补代价声明 + 接受裁定 + watch）+ 7 Minor 全部入文。R2 增量复核（同 agent）：三处闭合 PASS、无新 B/M、2 残留极轻项（start 异常退出派发保证、forceUnload 尾部 reconcile）已一句话落文。设计文档 Status → active。设计撰写子代理亲读登记的 Baseline 轻微偏差（unloadPlugin live :144-165 vs plan :145-166；ConfigStarter 入列 :133-137/:152-156；AbstractPlugin `lastActivationError` :76 亦非 volatile 纳入对齐面；IPluginManager 位于 nop-plugin-manager 非 nop-plugin-api）均以 live 为准、不改 plan 正文。`check-doc-links --strict` 退出码 0。零产品代码改动。
 
 ### Phase 2 - 六成员实现 + 单元测试（nop-core-framework 五成员 + nop-utils ShellRunner 一成员）
 
@@ -184,52 +184,52 @@ Exit Criteria:
 - [x] 零触碰确认登记（含 nop-ioc 容器内部零改动）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
-> **Phase 3 执行记录（2026-10-26）**：**E1**（授权支路 `-DskipTests`，沿 2496–2505 先例，测试由 Phase 2 模块门禁 + 本 Phase E3 批行通道承载）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS 1:02 min（`_tmp/phase3-e1-install.log`），shade 副作用 `nop-kernel-cli/dependency-reduced-pom.xml` 即时还原。**E3 批行门禁**：`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 30 模块（`_tmp/phase3-gate-nop-core-framework.log`；首轮在上游 nop-commons `TestExecutorHelperCancelContract` 1F fail-fast 中止——solo 3/3 绿为 plan 2499 遗留时序抖动，本批 nop-commons 零触碰，watch-only 登记；重跑带 `-Dsurefire.rerunFailingTestsCount=2`，`TestResourceCacheInvalidationChain` 3 flakes 重跑通过 = plan 2504/2505 已裁定 tick 窗伪影）；`./mvnw test -pl nop-utils -am` BUILD SUCCESS 24 模块 0 flake（`_tmp/phase3-gate-nop-utils.log`）。**零触碰**：`git diff --name-only 3df6efe0aa..983d4f8c41` 禁触面（nop-api-core / `model/*.orm.xml` / nop-auth / nop-ioc 容器内部 / `_` 前缀生成物 / `.rels`）零命中（`_vfs/` 测试资源目录为 VFS 根惯例、文件非 `_` 前缀）；产品 diff ⊆ nop-plugin ×5 主源 + pom / nop-config ×3 / nop-shell ×1。**scan-hollow**：`--module nop-core-framework` 与 `--module nop-utils` `--severity high` 均 Critical/High/Medium=0、exit 0（`_tmp/phase3-hollow-*.log`），零批前既有发现。**Owner doc**：`ioc-and-config.md` 新建「插件生命周期与配置源生命周期并发契约」节（锁契约 / 状态机失败落定与恢复入口 / 配置源构造序与关闭 / Shell 子进程兜底四小节）；`source-anchors.md` 新增 `PLG-010`（锁契约）/`PLG-011`（失败落定+forceUnload）/`PLG-012`（jar 轨资源释放+HMR 纯比较）/`CFG-002`（配置源构造序+close 互斥）/`SHELL-001`（子进程兜底）；`03-modules/nop-plugin.md` HMR 节判据口径 reconcile（纯比较入口、不继承宽限）+ 新增「生命周期并发契约（插件开发者须知）」摘要节 + 锚点范围 PLG-001~012。**缺口声明（E5）**：nop-config / nop-shell 无 `03-modules/` owner doc——契约节落 `ioc-and-config.md`（配置源为 IoC/Config 核心指南自然归属；Shell 兜底小节为无 owner doc 下的承载位），缺口随 R-G 治理轨登记。`check-doc-links --strict` 退出码 0。
+> **Phase 3 执行记录（2026-10-26）**：**E1**（授权支路 `-DskipTests`，沿 2496–2505 先例，测试由 Phase 2 模块门禁 + 本 Phase E3 批行通道承载）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS 1:02 min（`_tmp/phase3-e1-install.log`），shade 副作用 `nop-kernel/nop-kernel-cli/dependency-reduced-pom.xml` 即时还原。**E3 批行门禁**：`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 30 模块（`_tmp/phase3-gate-nop-core-framework.log`；首轮在上游 nop-commons `TestExecutorHelperCancelContract` 1F fail-fast 中止——solo 3/3 绿为 plan 2499 遗留时序抖动，本批 nop-commons 零触碰，watch-only 登记；重跑带 `-Dsurefire.rerunFailingTestsCount=2`，`TestResourceCacheInvalidationChain` 3 flakes 重跑通过 = plan 2504/2505 已裁定 tick 窗伪影）；`./mvnw test -pl nop-utils -am` BUILD SUCCESS 24 模块 0 flake（`_tmp/phase3-gate-nop-utils.log`）。**零触碰**：`git diff --name-only 3df6efe0aa..983d4f8c41` 禁触面（nop-api-core / `model/*.orm.xml` / nop-auth / nop-ioc 容器内部 / `_` 前缀生成物 / `.rels`）零命中（`_vfs/` 测试资源目录为 VFS 根惯例、文件非 `_` 前缀）；产品 diff ⊆ nop-plugin ×5 主源 + pom / nop-config ×3 / nop-shell ×1。**scan-hollow**：`--module nop-core-framework` 与 `--module nop-utils` `--severity high` 均 Critical/High/Medium=0、exit 0（`_tmp/phase3-hollow-*.log`），零批前既有发现。**Owner doc**：`ioc-and-config.md` 新建「插件生命周期与配置源生命周期并发契约」节（锁契约 / 状态机失败落定与恢复入口 / 配置源构造序与关闭 / Shell 子进程兜底四小节）；`source-anchors.md` 新增 `PLG-010`（锁契约）/`PLG-011`（失败落定+forceUnload）/`PLG-012`（jar 轨资源释放+HMR 纯比较）/`CFG-002`（配置源构造序+close 互斥）/`SHELL-001`（子进程兜底）；`03-modules/nop-plugin.md` HMR 节判据口径 reconcile（纯比较入口、不继承宽限）+ 新增「生命周期并发契约（插件开发者须知）」摘要节 + 锚点范围 PLG-001~012。**缺口声明（E5）**：nop-config / nop-shell 无 `03-modules/` owner doc——契约节落 `ioc-and-config.md`（配置源为 IoC/Config 核心指南自然归属；Shell 兜底小节为无 owner doc 下的承载位），缺口随 R-G 治理轨登记。`check-doc-links --strict` 退出码 0。
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.12 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：P1 台账 6 行（C1-009/C1-010/C6-001/C6-002/C6-003/C6-004）状态收敛（open → 已修/本批）+ 并案成员行（C1-011/C1-012/C2-004/C4-002/C6-014）随主案注记 + C10-004 共享条目成员面注记（勘误 7）
-- [ ] roadmap 8.12 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2506-cra-phase8.12-r2-03-plugin-lifecycle.md --strict` 退出码 0；scan-hollow 全绿复核
-- [ ] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（调用链运行时连通、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：P1 台账 6 行（C1-009/C1-010/C6-001/C6-002/C6-003/C6-004）状态收敛（open → 已修/本批）+ 并案成员行（C1-011/C1-012/C2-004/C4-002/C6-014）随主案注记 + C10-004 共享条目成员面注记（勘误 7）
+- [x] roadmap 8.12 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2506-cra-phase8.12-r2-03-plugin-lifecycle.md --strict` 退出码 0；scan-hollow 全绿复核
+- [x] Closure Evidence 写入本 plan `## Closure` 段（rule 27）
+- [x] `ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 6 成员行状态全部收敛（并案行随主案注记）、roadmap 8.12 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 6 成员行状态全部收敛（并案行随主案注记）、roadmap 8.12 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 6 项成员全部修复：C1-010（lifecycleLock 全迁移统一，含 C1-011/012 并案与 C2-004 镜像窗）、C6-002（状态机收敛 + 恢复 API）、C6-001（前置失败点释放 + N2 冲突消解）、C1-009（close 互斥 + closed 双检）、C6-003（两站点构造序修正）、C6-004（外层 try finally 兜底 + destroyForcibly，←C6-014 同 diff）
-- [ ] batch-proposal R2-03 行 exit criteria 增补四条逐条达成并留证：C6-001 与测试 N2 设计冲突消解（N2 钉零回改实证）；C6-004 外层 try finally；C1-010 lifecycleLock 全迁移统一；插件状态机恢复 API（端到端恢复链路测试在案）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；六成员均有先红后绿或变异/回退论证（E2）；C10 成员面验收前置同 diff 落地（C10-004 仅成员面，R4-15 面未越界承接）
-- [ ] 设计文档裁定①–⑦成文且经独立 draft review；R1-01/R1-02 已落地语义（per-callback 隔离、executeOn 卸载、JDBC 超时）零回退实证（既有回归全绿 + diff 抽验）
-- [ ] R2-04/R4-15 边界守约：nop-ioc 容器内部零改动、C2-005/C1-018/019 缺陷本体未越界修复、移交清单在案（裁定⑦）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-utils -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：ioc-and-config.md（新建契约节）、source-anchors.md（PLG 锚点扩展）；缺口声明登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻治理项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）恢复 API/互斥/兜底路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile`（受影响模块）
-- [ ] `./mvnw test`（受影响模块）
-- [ ] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2506-cra-phase8.12-r2-03-plugin-lifecycle.md --strict` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 6 成员行收敛 + roadmap 8.12 → done（E6）
+- [x] 6 项成员全部修复：C1-010（lifecycleLock 全迁移统一，含 C1-011/012 并案与 C2-004 镜像窗）、C6-002（状态机收敛 + 恢复 API）、C6-001（前置失败点释放 + N2 冲突消解）、C1-009（close 互斥 + closed 双检）、C6-003（两站点构造序修正）、C6-004（外层 try finally 兜底 + destroyForcibly，←C6-014 同 diff）
+- [x] batch-proposal R2-03 行 exit criteria 增补四条逐条达成并留证：C6-001 与测试 N2 设计冲突消解（N2 钉零回改实证）；C6-004 外层 try finally；C1-010 lifecycleLock 全迁移统一；插件状态机恢复 API（端到端恢复链路测试在案）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；六成员均有先红后绿或变异/回退论证（E2）；C10 成员面验收前置同 diff 落地（C10-004 仅成员面，R4-15 面未越界承接）
+- [x] 设计文档裁定①–⑦成文且经独立 draft review；R1-01/R1-02 已落地语义（per-callback 隔离、executeOn 卸载、JDBC 超时）零回退实证（既有回归全绿 + diff 抽验）
+- [x] R2-04/R4-15 边界守约：nop-ioc 容器内部零改动、C2-005/C1-018/019 缺陷本体未越界修复、移交清单在案（裁定⑦）
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-utils -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：ioc-and-config.md（新建契约节）、source-anchors.md（PLG 锚点扩展）；缺口声明登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外/相邻治理项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）恢复 API/互斥/兜底路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile`（受影响模块）
+- [x] `./mvnw test`（受影响模块）
+- [x] checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2506-cra-phase8.12-r2-03-plugin-lifecycle.md --strict` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 6 成员行收敛 + roadmap 8.12 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -261,16 +261,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: <<YYYY-MM-DD>>
+Status Note: R2-03 六项 P1（C1-010 含 C1-011/012/C2-004 并案、C6-002、C6-001、C1-009 ←C4-002、C6-003、C6-004 ←C6-014）全部修复并各带 focused 回归 + 先红后绿/变异/缺陷形态活性证据；Phase 1 设计七裁定经独立评审两轮（R1 1B+2M+7m 全修 / R2 0B/0M）+ 实施期三处补裁定回写最终态；E1 全量 + E3 两批行门禁 BUILD SUCCESS；owner doc 三份落账；独立 closure audit PASS；cra-index 六行 fixed + 批前既有回归承接注记；roadmap 8.12 → done。无 in-scope live defect 被降级，Deferred 三条均为入批前已裁定批外/相邻治理项。
+Completed: 2026-10-26
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence: <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）；每条 Closure Gate 的验证结果；check-plan-checklist --strict 退出码；Anti-Hollow 检查结果；Deferred 项分类检查>>
+- Reviewer / Agent: 独立子 agent（fresh session，未参与实现）agent_7d97e548 @ 2026-10-26
+- Audit Session: agent_7d97e548-248f-4ae5-b3f2-380b487f189b
+- Evidence:
+  - **Exit Criteria**：Phase 1 4/4 PASS（设计文档 207 行七裁定无 Proposed-vs-Current、R1/R2 评审记录在案）；Phase 2 8/8 PASS（4 提交产品与测试同 commit；9 新测试类方法逐一核对；六成员红日志失败签名亲验——config-C6-003 `expected 1 but was 10`、config-C1-009 `close 计数 expected 1 but was 0`、shell-C6-004 9/10 红、plugin-C6-002 `expected FAILED but was DEACTIVATING`、plugin-C6-001 4 断言红、plugin-C1-010 缺陷形态源码 18:05:10 后零事件活性挂死；N2 `git diff 1aafb2ccda..HEAD` 为空；亲跑 4 模块 191 tests/0F/0E）；Phase 3 5/5 PASS（E1/E3 快照含 Reactor Summary + flake 重跑证据、owner doc 三份与 live 一致、零触碰零命中、`_vfs/` 测试资源非 `_` 前缀豁免成立）
+  - **Closure Gates**：13/13 实质项 PASS（六成员 live 语义亲读逐行号：Vfs lifecycleLock 全程 :365/:377/:403/:458/:670/:406、updateConfig 锁内步进 :707-709/锁外派发 :712-717、PluginManagerImpl reconcileLock :152/:179/:193、forceUnload :225→recoverToUnloaded 锁内复核→remove :263→reconcile :272、loadPluginFromJar :671-703 + newPluginClassLoader :715、PluginClassLoader 构造器自清理 :62-72、JdbcConfigSource close synchronized :215 + 守卫 :153-154、ShellRunner 外层 finally :151-157 + forcibly :285-290；batch-proposal R2-03 四条增补逐条达成；R2-04/R4-15 边界守约——nop-ioc 零 diff、computeIfAbsent lambda 结构未越界）；4 项 Phase 4 待办项在本次 closure pass 内完成（cra-index 六行 fixed、roadmap 8.12 done、Closure Evidence 本段、双门禁终态见下）
+  - **Anti-Hollow**：(a) forceUnload→recoverToUnloaded→UNLOADED→holder 移除→尾部 reconcile 全链代码在位 + `testForceUnloadEndToEndRecoveryChain` 运行时端到端证据；(b) 回调在最外层 lifecycleLock 释放后派发（updateConfig :707 仅裹步进、:712 锁外；start :669-679 持锁、:680-691 finally 派发）+ 两条专项测试覆盖正常/失败路径；(c) 7 变更产品文件 awk 扫描零空 catch，全部 catch 为重抛/聚合落 FAILED 再抛/成文尽力段 LOG.error/类型化守卫；no-op 均为成文幂等语义且记日志
+  - **工具退出码（closure pass 终态）**：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2506-cra-phase8.12-r2-03-plugin-lifecycle.md --strict` 退出码 0（全部勾选 + Closure Evidence 写入后重跑）；`scan-hollow-implementations.mjs --module nop-core-framework/--module nop-utils --severity high` 均 Total=0 exit 0；`check-doc-links.mjs --strict` 退出码 0
+  - **Deferred 分类**：C4-005（timeout=0 外层 finally 不可达，同文件相邻不同缺陷，入批前 Non-Goal）、N1/N7（测试弱形态注记非产品缺陷，N1 危害随 C6-002 修复消失）、updateConfig C1-020 条件项（裁定①判随批纳入，自消除）——均诚实非降级；Follow-ups 四条均非 confirmed defect
+  - **checkstyle Gate 口径**（auditor advisory 1）：7 变更文件逐文件读验 import 分组 io.nop→jakarta→第三方→java.*→static 符合规范 + 三次 pre-commit `nop-cli lint`（no-raw-exception/no-empty-catch/no-log-getmessage）通过；仓内 `check-import-order.mjs` 全仓既有 2297 错误非本批引入、非本批门禁，不作本 Gate 依据
+  - **证据日志形态**（advisory 2）：`_tmp/phase3-e1-install.log`、`_tmp/phase3-gate-*.log` 为 grep 蒸馏摘要（含 Reactor Summary/Flakes/BUILD SUCCESS），非原始全量输出
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- R4-15 同 PR 协同交接清单（设计 §3.7：C1-018/019 锁域复用、C2-005 lambda 锁纪律重构、C10-004 R4-15 成员面测试）与 R2-04 上游联动注记——非本 plan 剩余 debt，已在 cra-index 与设计文档落账
+- watch-only：`TestExecutorHelperCancelContract`（nop-commons，plan 2499 遗留时序抖动，E3 首轮 1F solo 3/3 绿）与 `TestResourceCacheInvalidationChain`（plan 2504/2505 已裁定 tick 窗伪影）——非本批触达面，登记供 R-G 测试基建治理轨
+- destroyForcibly 2000ms 占用共享 globalTimer 线程的 ≤2s 调度抖动（设计 §3.6 接受裁定）登记 watch
+- no remaining plan-owned work
