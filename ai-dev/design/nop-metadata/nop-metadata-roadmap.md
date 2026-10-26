@@ -247,8 +247,8 @@
 | M1-2 | 新增 dict：`meta/method-kind`、`meta/method-source`、`meta/method-impl-kind` | done |
 | M1-3 | save 守卫：methodKind/implKind 组合、methodName 保留名与格式、sourceKind=imported 拒手写 + 对应 ErrorCode（`MethodErrors` 分组）（argName 重复由 DB UK 承载，无豁免面不设应用层查重码——P2-28 先例；kind 非法值入口面由 xmeta dict 校验拒绝，`method-kind-unknown`/`method-impl-kind-unsupported` 为 DAO 直写行 defense-in-depth 码） | done |
 | M1-4 | `INopMetaEntityMethodBiz`/`INopMetaMethodArgBiz` 接口 + AutoTest（CRUD + 守卫拒绝路径） | done |
-| M2-1 | `NopMetaEntityField` 增加 `fieldKind`/`computeExpr`/`mapToProp` 列 + dict `meta/field-kind` + kind 互斥守卫（`FieldKindErrors` 分组） | todo |
-| M2-2 | queryData 输出投影解析：computed 列经 XLang 表达式行上求值（`ExprFeatures.SIMPLE` 特性集）、alias 列投影重命名（不下推 SQL） | todo |
+| M2-1 | `NopMetaEntityField` 增加 `fieldKind`（dict `meta/field-kind`：storage/computed/alias，缺省 storage）/`computeExpr`/`mapToProp` 列 + dict `meta/field-kind` + kind 互斥守卫（`FieldKindErrors` 分组） | done |
+| M2-2 | queryData 输出投影解析：computed 列经 XLang 表达式行上求值（`ExprFeatures.SIMPLE` 特性集）、alias 列投影重命名（不下推 SQL） | done |
 | M3-1 | `MetaMethodExecutor` + `NopMetaEntity__invokeMethod` 泛化入口（PHYSICAL→EQL / SQL_VIEW/EXTERNAL→withConnection） | todo |
 | M3-2 | 方法 SQL 沙箱：save-time + query-time 同源校验（SELECT-only + blocklist 水位不低于 custom_sql + `?` 参数绑定）+ 强类型返回 DTO | todo |
 | M3-3 | 行级 roles 检查 + 执行错误码族 + 错误面不泄漏 SQL 全文 | todo |

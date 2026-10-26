@@ -346,6 +346,7 @@ prop:
       businessDomainId: 业务域ID
       columnCode: 列名
       comment: 注释
+      computeExpr: 计算表达式
       createTime: 创建时间
       createdBy: 创建人
       defaultValue: 默认值
@@ -354,12 +355,15 @@ prop:
       entityFieldId: 字段ID
       extConfig: 扩展配置
       extConfigComponent: null
+      fieldKind: 字段类别
+      fieldKind_label: 字段类别
       fieldName: 属性名
       fixedValue: 固定值
       insertable: 可插入
       isDelta: 是否Delta
       lazy: 懒加载
       mandatory: 必填
+      mapToProp: 别名目标
       metaEntity: 元数据实体
       metaEntity.displayName: 元数据实体
       metaEntityId: 实体ID

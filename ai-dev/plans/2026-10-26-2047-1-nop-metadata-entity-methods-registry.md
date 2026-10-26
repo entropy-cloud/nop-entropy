@@ -102,25 +102,31 @@ Exit Criteria:
 
 ### Phase 2 - 计算属性与别名字段（M2-1..M2-2）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata/model/nop-metadata.orm.xml`、`nop-metadata-meta`、`nop-metadata-service`
 
 - Item Types: `Feature`
 
-- [ ] `NopMetaEntityField` 增加 `fieldKind`（dict `meta/field-kind`：storage/computed/alias，缺省 storage）/`computeExpr`/`mapToProp` 列 + xmeta + i18n + `upgrade-nop-meta-entity-field-kind.sql` DDL（三方言）
-- [ ] kind 互斥守卫 + `FieldKindErrors` 分组：computed 无表达式拒绝、storage 带 expr/mapToProp 拒绝、alias 目标非法（不存在/自引用/非 storage）统一 `field-alias-target-unknown` 拒绝
-- [ ] `queryData` 输出投影解析：computed 字段经 XLang 表达式在返回行上求值（`XLang.newCompileTool()` 解析 + `EvalScopeImpl(rowMap)` 作用域 + `XLang.execute` 求值，`ExprFeatures.SIMPLE` 特性集禁 import/new/语句；save-time 校验 = 可解析 + 标识符白名单 ⊆ 实体字段集，求值失败抛 `field-computed-eval-failed`）、alias 字段以别名列名出现；不下推 SQL（行上解析）
-- [ ] AutoTest：computed/alias 字段出现在 `queryData` 返回行、storage 字段行为零变化、守卫拒绝路径、computed 求值失败显式报错
+- [x] `NopMetaEntityField` 增加 `fieldKind`（dict `meta/field-kind`：storage/computed/alias，缺省 storage）/`computeExpr`/`mapToProp` 列 + xmeta + i18n + `upgrade-nop-meta-entity-field-kind.sql` DDL（三方言）
+- [x] kind 互斥守卫 + `FieldKindErrors` 分组：computed 无表达式拒绝、storage 带 expr/mapToProp 拒绝、alias 目标非法（不存在/自引用/非 storage）统一 `field-alias-target-unknown` 拒绝
+- [x] `queryData` 输出投影解析：computed 字段经 XLang 表达式在返回行上求值（`XLang.newCompileTool()` 解析 + `EvalScopeImpl(rowMap)` 作用域 + `XLang.execute` 求值，`ExprFeatures.SIMPLE` 特性集禁 import/new/语句；save-time 校验 = 可解析 + 标识符白名单 ⊆ 实体字段集，求值失败抛 `field-computed-eval-failed`）、alias 字段以别名列名出现；不下推 SQL（行上解析）
+- [x] AutoTest：computed/alias 字段出现在 `queryData` 返回行、storage 字段行为零变化、守卫拒绝路径、computed 求值失败显式报错
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖：computed 求值、alias 重命名、storage 零变化（回归断言既有 queryData 测试不改预期）、每个守卫错误码一条拒绝用例
-- [ ] **端到端验证**：GraphQL `queryData` 入口 → 含 computed/alias 字段实体的返回行断言（AutoTest）
-- [ ] **无静默跳过**：非法 kind 组合显式抛错码；表达式求值失败显式报错（不静默置 null）
-- [ ] owner doc 增补计算属性/别名契约段；roadmap M2 子项状态同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖：computed 求值、alias 重命名、storage 零变化（回归断言既有 queryData 测试不改预期）、每个守卫错误码一条拒绝用例（2026-10-27 实测全量 1371 tests 全绿，含新增 `TestNopMetaEntityFieldKind` 5 用例；既有 queryData 测试零改动通过 = storage 零变化回归）
+- [x] **端到端验证**：GraphQL `queryData` 入口 → 含 computed/alias 字段实体的返回行断言（AutoTest `testComputedAndAliasFieldsInQueryData`）
+- [x] **无静默跳过**：非法 kind 组合显式抛错码；表达式求值失败显式报错（不静默置 null）
+- [x] owner doc 增补计算属性/别名契约段；roadmap M2 子项状态同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+**Phase 2 执行裁定（2026-10-27 实测修正——API 面与计划描述的机械差异，语义契约不变）**：
+
+1. **解析器特性面落点**：`XLangCompileTool.compileSimpleExpr` 底层 `XplExprParser` 启用 `ExprFeatures.ALL`（"simple" 指表达式文法而非特性面），不满足本 Phase 的 SIMPLE 安全契约。实际落地 = 直接构造 `SimpleExprParser` + `enableFeatures(ExprFeatures.SIMPLE)` 解析（FilterExprHelper newFilterExprParser 同款平台用法），再经 `IXplCompiler.buildExecutable` 出可执行体、`ExprEvalAction.invoke(EvalScopeImpl(rowMap))` 求值（与计划所述 `XLang.execute` 同一执行语义的等价 API 面）。
+2. **行字段标识符编译期解析**：编译期作用域默认拒绝未注册标识符（`LexicalScopeAnalysis` → `unresolved-identifier`）；行字段经 compile scope `setAllowUnregisteredScopeVar(true)` 注册为 SCOPE_VAR_REF、求值时从行 Map 解析（平台回退语义），save-time 标识符白名单仍为本 Phase 显式校验层。
+3. **query-time 失败面扩展**：投影器对编译失败（如校验器水位变化后的存量行）与求值失败统一抛 `field-computed-eval-failed`，不静默跳过该列。
 
 ### Phase 3 - 方法执行器与 SQL 沙箱（M3-1..M3-3）
 

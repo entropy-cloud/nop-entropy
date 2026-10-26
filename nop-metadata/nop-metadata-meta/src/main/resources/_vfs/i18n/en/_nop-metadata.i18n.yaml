@@ -375,6 +375,10 @@ prop:
       updatedBy: Updated By
       updateTime: Update Time
       remark: Remark
+      fieldKind: Field Kind
+      fieldKind_label: null
+      computeExpr: Compute Expr
+      mapToProp: Map To Prop
       metaEntity: Meta Entity
       metaEntity.displayName: Meta Entity
       extConfigComponent: null

@@ -1,0 +1,18 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 字段类别
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: 存储字段
+    value: storage
+    description: 物理列（缺省）
+
+  - label: 计算列
+    value: computed
+    description: XLang表达式计算列，查询输出投影时行上求值
+
+  - label: 别名
+    value: alias
+    description: 同实体存储字段别名

@@ -42,6 +42,7 @@ import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataArgs;
 import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
+import io.nop.metadata.service.field.MetaComputedFieldProjector;
 import io.nop.metadata.service.field.ResolvedTableField;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.profiling.MetaEntityProfiler;
@@ -307,18 +308,34 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         QueryEntityDataResultDTO result = new QueryEntityDataResultDTO();
         result.setEntityKind(entityKind);
         limit = normalizeQueryLimit(limit);
+        List<Map<String, Object>> items;
         if (entity.isPhysical()) {
-            result.setItems(queryAction.queryPhysicalData(entity, filter, limit, offset, daoProvider(), orm()));
+            items = queryAction.queryPhysicalData(entity, filter, limit, offset, daoProvider(), orm());
         } else if (entity.isExternal()) {
-            result.setItems(queryAction.queryExternalData(entity, filter, limit, offset, connectionService, daoProvider(), orm()));
+            items = queryAction.queryExternalData(entity, filter, limit, offset, connectionService, daoProvider(), orm());
         } else if (entity.isSqlView()) {
-            result.setItems(queryAction.querySqlData(entity, filter, limit, offset, connectionService, daoProvider(), orm()));
+            items = queryAction.querySqlData(entity, filter, limit, offset, connectionService, daoProvider(), orm());
         } else {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
                     .param("metaEntityId", metaEntityId)
                     .param("entityKind", String.valueOf(entityKind));
         }
+        // M2（plan 2026-10-26-2047-1 Phase 2）：computed/alias 字段输出投影（行上解析，不下推 SQL；
+        // storage 字段行为零变化）
+        applyFieldKindProjection(entity, items);
+        result.setItems(items);
         return result;
+    }
+
+    /** M2 输出投影：加载实体目录字段行，computed/alias 行交给投影器（无此类行时零开销 no-op）。 */
+    private void applyFieldKindProjection(NopMetaEntity entity, List<Map<String, Object>> items) {
+        if (items == null || items.isEmpty()) {
+            return;
+        }
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntityField.PROP_NAME_metaEntityId, entity.getMetaEntityId()));
+        List<NopMetaEntityField> fields = daoFor(NopMetaEntityField.class).findAllByQuery(q);
+        MetaComputedFieldProjector.project(fields, items);
     }
 
     /** F4：{@code selection} 同 {@link #queryData} 的显式 no-op 契约说明。 */

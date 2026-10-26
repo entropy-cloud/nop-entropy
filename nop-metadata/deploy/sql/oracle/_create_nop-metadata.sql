@@ -538,6 +538,9 @@ CREATE TABLE nop_meta_entity_field(
   UPDATED_BY VARCHAR2(50) NOT NULL ,
   UPDATE_TIME TIMESTAMP NOT NULL ,
   REMARK VARCHAR2(200)  ,
+  FIELD_KIND VARCHAR2(20)  ,
+  COMPUTE_EXPR VARCHAR2(1000)  ,
+  MAP_TO_PROP VARCHAR2(100)  ,
   constraint UK_NOP_META_FIELD_ENTITY_NAME unique (META_ENTITY_ID,FIELD_NAME),
   constraint PK_nop_meta_entity_field primary key (ENTITY_FIELD_ID)
 );
@@ -1786,6 +1789,12 @@ create index IX_NOP_META_METHOD_ARG_METHOD on nop_meta_method_arg (METHOD_ID) ;
       COMMENT ON COLUMN nop_meta_entity_field.UPDATE_TIME IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_entity_field.REMARK IS '备注';
+                    
+      COMMENT ON COLUMN nop_meta_entity_field.FIELD_KIND IS '字段类别';
+                    
+      COMMENT ON COLUMN nop_meta_entity_field.COMPUTE_EXPR IS '计算表达式';
+                    
+      COMMENT ON COLUMN nop_meta_entity_field.MAP_TO_PROP IS '别名目标';
                     
       COMMENT ON TABLE nop_meta_entity_relation IS '实体关系';
                 

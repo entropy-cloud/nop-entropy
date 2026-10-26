@@ -149,8 +149,20 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 32;
     
+    /* 字段类别: FIELD_KIND VARCHAR */
+    public static final String PROP_NAME_fieldKind = "fieldKind";
+    public static final int PROP_ID_fieldKind = 33;
+    
+    /* 计算表达式: COMPUTE_EXPR VARCHAR */
+    public static final String PROP_NAME_computeExpr = "computeExpr";
+    public static final int PROP_ID_computeExpr = 34;
+    
+    /* 别名目标: MAP_TO_PROP VARCHAR */
+    public static final String PROP_NAME_mapToProp = "mapToProp";
+    public static final int PROP_ID_mapToProp = 35;
+    
 
-    private static int _PROP_ID_BOUND = 33;
+    private static int _PROP_ID_BOUND = 36;
 
     
     /* relation: 元数据实体 */
@@ -163,7 +175,7 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_entityFieldId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_entityFieldId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[33];
+    private static final String[] PROP_ID_TO_NAME = new String[36];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -263,6 +275,15 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_fieldKind] = PROP_NAME_fieldKind;
+          PROP_NAME_TO_ID.put(PROP_NAME_fieldKind, PROP_ID_fieldKind);
+      
+          PROP_ID_TO_NAME[PROP_ID_computeExpr] = PROP_NAME_computeExpr;
+          PROP_NAME_TO_ID.put(PROP_NAME_computeExpr, PROP_ID_computeExpr);
+      
+          PROP_ID_TO_NAME[PROP_ID_mapToProp] = PROP_NAME_mapToProp;
+          PROP_NAME_TO_ID.put(PROP_NAME_mapToProp, PROP_ID_mapToProp);
+      
     }
 
     
@@ -361,6 +382,15 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 字段类别: FIELD_KIND */
+    private java.lang.String _fieldKind;
+    
+    /* 计算表达式: COMPUTE_EXPR */
+    private java.lang.String _computeExpr;
+    
+    /* 别名目标: MAP_TO_PROP */
+    private java.lang.String _mapToProp;
     
 
     public _NopMetaEntityField(){
@@ -531,6 +561,15 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_fieldKind:
+               return getFieldKind();
+        
+            case PROP_ID_computeExpr:
+               return getComputeExpr();
+        
+            case PROP_ID_mapToProp:
+               return getMapToProp();
         
            default:
               return super.orm_propValue(propId);
@@ -863,6 +902,36 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_fieldKind:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_fieldKind));
+               }
+               setFieldKind(typedValue);
+               break;
+            }
+        
+            case PROP_ID_computeExpr:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_computeExpr));
+               }
+               setComputeExpr(typedValue);
+               break;
+            }
+        
+            case PROP_ID_mapToProp:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_mapToProp));
+               }
+               setMapToProp(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1092,6 +1161,27 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_fieldKind:{
+               onInitProp(propId);
+               this._fieldKind = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_computeExpr:{
+               onInitProp(propId);
+               this._computeExpr = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_mapToProp:{
+               onInitProp(propId);
+               this._mapToProp = (java.lang.String)value;
                
                break;
             }
@@ -1706,6 +1796,63 @@ public class _NopMetaEntityField extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 字段类别: FIELD_KIND
+     */
+    public final java.lang.String getFieldKind(){
+         onPropGet(PROP_ID_fieldKind);
+         return _fieldKind;
+    }
+
+    /**
+     * 字段类别: FIELD_KIND
+     */
+    public final void setFieldKind(java.lang.String value){
+        if(onPropSet(PROP_ID_fieldKind,value)){
+            this._fieldKind = value;
+            internalClearRefs(PROP_ID_fieldKind);
+            
+        }
+    }
+    
+    /**
+     * 计算表达式: COMPUTE_EXPR
+     */
+    public final java.lang.String getComputeExpr(){
+         onPropGet(PROP_ID_computeExpr);
+         return _computeExpr;
+    }
+
+    /**
+     * 计算表达式: COMPUTE_EXPR
+     */
+    public final void setComputeExpr(java.lang.String value){
+        if(onPropSet(PROP_ID_computeExpr,value)){
+            this._computeExpr = value;
+            internalClearRefs(PROP_ID_computeExpr);
+            
+        }
+    }
+    
+    /**
+     * 别名目标: MAP_TO_PROP
+     */
+    public final java.lang.String getMapToProp(){
+         onPropGet(PROP_ID_mapToProp);
+         return _mapToProp;
+    }
+
+    /**
+     * 别名目标: MAP_TO_PROP
+     */
+    public final void setMapToProp(java.lang.String value){
+        if(onPropSet(PROP_ID_mapToProp,value)){
+            this._mapToProp = value;
+            internalClearRefs(PROP_ID_mapToProp);
             
         }
     }

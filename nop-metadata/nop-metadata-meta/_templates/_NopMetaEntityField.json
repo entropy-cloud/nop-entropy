@@ -31,6 +31,10 @@
   "updatedBy": "",
   "updateTime": "2000-01-01 14:00:00",
   "remark": "",
+  "fieldKind": "",
+  "fieldKind_label": "",
+  "computeExpr": "",
+  "mapToProp": "",
   "metaEntity": null,
   "metaEntity.displayName": "",
   "extConfigComponent": null
