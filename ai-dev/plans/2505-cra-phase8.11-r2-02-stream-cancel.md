@@ -145,30 +145,30 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + 两侧同批端到端 + owner doc 两份
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试；`docs-for-ai/03-modules/nop-ai.md`、`docs-for-ai/03-modules/nop-network.md`（roadmap 8.11 Owner Doc 列两份）；`ai-dev/audits/cra-index.md`（回填准备）
 
 - Item Types: `Proof`、`Decision`（两侧同批回写注记）
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）
-- [ ] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am`——每条登记模块/测试数/退出码/快照路径
-- [ ] **两侧同批端到端验证**（rule 22，§七-6 验收面）：缺省装配（http-api beans 默认 JdkHttpClient）下三场景全链有界终止——①取消场景：callAsync(stream=true) 进行中 cancelToken.cancel() → 下游终态有界到达、reader 线程释放、无悬挂注册；②挂死场景：**真实 `JdkHttpClient` + 本地静默 SSE 服务端（raw `ServerSocket` 可构造——accept 后不回发任何数据）** → 聚合层期限终止且传输层读预算兜底（双层预算均断言；fake/stub 挂死传输仅限 Phase 2 组件级红测，不计入本端到端验收）；③半关闭场景：部分 chunk 后干净断连 → 非 success 终态（completeExceptionally 或 invalid 标记）——端到端测试留名与快照
-- [ ] 零触碰确认（E4）：产品 diff 不含 nop-api-core（io.nop.api.core.\*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；nop-http-api 触碰与否按 Phase 1 裁定核对；R1-04 设施文件（FutureHelper/ExecutorHelper/ICancelToken）与 R1-01 绝缘层、R1-02 池设施 diff 零改动核对
-- [ ] Owner doc 更新（E5）：`nop-ai.md` 流式链取消/期限/交付语义契约（含 C7-002 分支裁定与配置键）+ `nop-network.md` 下载/SSE body 阶段取消与读超时契约逐份核对与更新，或逐份显式登记 `No owner-doc update required` + 理由
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（nop-network/nop-ai，与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明）【授权支路：`-DskipTests` 沿 plan 2496~2503 先例，全量测试由两通道批行门禁 + 端到端测试组合覆盖，`_tmp/phase3-e1-install.log` exit 0】
+- [x] 批行验证命令（E3）逐条登记：`./mvnw test -pl nop-network -am`、`./mvnw test -pl nop-ai -am`——每条登记模块/测试数/退出码/快照路径【三快照：nop-network 重跑 2369 tests/0F exit 0 + nop-ai focused 5177/0F exit 0 + nop-ai -am 16989/0F exit 0；首轮 nop-core 抖动隔离复验绿，执行记录段】
+- [x] **两侧同批端到端验证**（rule 22，§七-6 验收面）：缺省装配（http-api beans 默认 JdkHttpClient）下三场景全链有界终止——①取消场景：callAsync(stream=true) 进行中 cancelToken.cancel() → 下游终态有界到达、reader 线程释放、无悬挂注册；②挂死场景：**真实 `JdkHttpClient` + 本地静默 SSE 服务端（raw `ServerSocket` 可构造——accept 后不回发任何数据）** → 聚合层期限终止且传输层读预算兜底（双层预算均断言；fake/stub 挂死传输仅限 Phase 2 组件级红测，不计入本端到端验收）；③半关闭场景：部分 chunk 后干净断连 → 非 success 终态（completeExceptionally 或 invalid 标记）——端到端测试留名与快照【`TestStreamFullChainEndToEnd_C3_001` 4 条（`_tmp/phase3-e2e-green.log` + 2x 复跑 + 两门禁内绿），构造注记与场景映射见执行记录段】
+- [x] 零触碰确认（E4）：产品 diff 不含 nop-api-core（io.nop.api.core.\*）、`model/*.orm.xml`、nop-auth、`_` 前缀生成物路径（`git diff --name-only` 核对登记）；nop-http-api 触碰与否按 Phase 1 裁定核对；R1-04 设施文件（FutureHelper/ExecutorHelper/ICancelToken）与 R1-01 绝缘层、R1-02 池设施 diff 零改动核对【禁触面 grep 零命中；nop-http-api 触碰 = Phase 1 PA 裁定面①在案；R1-01/02/04 面 diff 零改动】
+- [x] Owner doc 更新（E5）：`nop-ai.md` 流式链取消/期限/交付语义契约（含 C7-002 分支裁定与配置键）+ `nop-network.md` 下载/SSE body 阶段取消与读超时契约逐份核对与更新，或逐份显式登记 `No owner-doc update required` + 理由【两份均更新，逐份结论见执行记录段】
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0【`_tmp/phase3-doc-links-final.log`】
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module <受影响模块> --severity high`（nop-network/nop-ai，与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记【nop-network exit 0；nop-ai 4 条批前既有 P6b 已逐条裁定（注记模式误报×3 + 显式文档化 NoOp×1，四文件本批 diff 零命中）】
+- [x] `ai-dev/logs/` 对应日期条目已更新【`ai-dev/logs/2026/10-26.md` 顶部 Phase 3 条目】
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] 两侧同批端到端三场景（取消/挂死/半关闭）留名留证（rule 22）
-- [ ] 两份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
-- [ ] 零触碰确认登记（含 nop-http-api 裁定核对、R1-04/R1-01/R1-02 产物零回改实证）
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] 两侧同批端到端三场景（取消/挂死/半关闭）留名留证（rule 22）
+- [x] 两份 Owner Doc 核对与更新结论逐份登记（含 `No owner-doc update required` 声明者）；check-doc-links --strict 退出码 0
+- [x] 零触碰确认登记（含 nop-http-api 裁定核对、R1-04/R1-01/R1-02 产物零回改实证）
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
@@ -232,6 +232,16 @@ Exit Criteria:
 - 先红后绿：`_tmp/phase2-red-core.log`（13 条用例 11F——红形态①③④真红；2 条零回归边界用例基线绿符合设计）→ `_tmp/phase2-green-core.log` + 3x 复跑稳定；既有回归 50 条零回退（`_tmp/phase2-regression-core.log`）。
 - 门禁证据组（`./mvnw test -pl nop-ai -am` 授权支路，理由登记）：链全量运行唯一失败 = nop-auth-service `TestOperationMfaE2E`，**基线批前既有**（基线 `0eb3ea67ba` worktree 隔离复跑同败 6 errors，`_tmp/mfa-baseline.log`；本批 diff nop-auth 零触碰）；`./mvnw test -pl nop-ai` 聚焦 BUILD SUCCESS 48 tests（`_tmp/phase2-gate-nop-ai-focused.log`）；链全量运行留痕（`_tmp/phase2-gate-nop-ai-unfiltered.log`）。附带登记：首轮门禁 `nop-netty TestNettyTcpClient` BindException 为 findAvailableTcpPort 端口竞争环境抖动（隔离复跑绿，与本批无关）；`-Dtest='!X'` 过滤式排除会破坏 jpath 数据驱动生成测试（`JSONPointTest_*`），门禁禁用过滤式排除。
 - **实现期偏差登记**：①④盘写异步化落点在 `ChatServiceImpl` 终态回调侧（`logResponseAsync`）而非 `DefaultChatLogger` 内部——IChatLogger 同步契约与既有脱敏/落盘测试零回退优先，异步调度属回调方职责（owner doc 注记归 Phase 3）；②消费面钉语义：适配器对调用方取消「不向输出发终态信号」为既有契约（`callerCancelStopsCurrentAttemptOnly` 钉死；适配器先 cancel 内部订阅再 cancel attempt token 的顺序使核心侧 closeExceptionally 不达已取消订阅），该输出语义归 R2-06，本钉按「有界终止 + 注册不泄漏」断言（核心侧取消闭合红转绿由 nop-ai-core 两条 `_C3_001` 用例承载）；③测试基建：fake 流发射加启动延迟（桥接在 callStream 内部即订阅上游，无延迟则首 chunk 于下游订阅前丢弃——FailoverTestSupport 同型先例）。
+
+### Phase 3（全量验证 + 两侧同批端到端 + owner doc 两份）——completed @ Phase 3 docs+test 提交
+
+- **E1**：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS exit 0（`_tmp/phase3-e1-install.log`，453 模块）；授权支路沿 plan 2496~2503 先例，支路理由 = 全量测试由两通道批行门禁 + 新增端到端测试组合覆盖。
+- **批行验证（E3）三快照**：①`./mvnw test -pl nop-network -am` BUILD SUCCESS exit 0（`_tmp/phase3-gate-nop-network-rerun.log`，链 2369 tests/0F/0E/11 skip，`TestBodyPhaseCancel_C3_002` 6/6 绿）——首轮 exit 1（`_tmp/phase3-gate-nop-network.log`）为 nop-core `TestResourceCacheInvalidationChain` 3F 时间戳窗抖动：单类隔离复跑 4/4 绿（`_tmp/phase3-nopcore-cache-flake-check.log`）+ 该测试已由 plan 2504 裁定为跨类隔离敏感 watch-only 伪影（`ai-dev/logs/2026/10-26.md` plan 2504 条）+ nop-core 本批 diff 零命中——环境抖动非产品回退，复跑全链绿；②`./mvnw test -pl nop-ai` BUILD SUCCESS exit 0（`_tmp/phase3-gate-nop-ai-focused.log`，链 5177/0F/0E/10 skip）；③`./mvnw test -pl nop-ai -am` BUILD SUCCESS exit 0（`_tmp/phase3-gate-nop-ai-am.log`，链 16989/0F/0E/46 skip，13:51 min，含 nop-auth-service 全绿）——Phase 2 的 MFA 基线既有失败授权支路理由本轮升级为全绿实跑。
+- **两侧同批端到端（rule 22）**：新增 `nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestStreamFullChainEndToEnd_C3_001.java`（4 条，全绿 + 2x 复跑稳定 + 两门禁内绿；`_tmp/phase3-e2e-green.log`/`_tmp/phase3-e2e-rerun{1,2}.log`）：①`cancelTerminatesFullChainCallAsync_C3_001`——callAsync(stream=true) 真实 JdkHttpClient + raw ServerSocket SSE 服务端（headers+首 chunk 后保持连接），流进行中（`future.isDone()==false` 先验）cancel → 2s 观察窗 CancellationException 终态 + 服务端观测客户端 EOF（body 读线程释放/底层流关闭；无悬挂注册由 promise 按 body 终态配对移除 + `TestJdkHttpClientCancelListenerCleanup_C3_012` 承载）；②`aggregateTotalDeadlineTerminatesFullChainSilentSse_C7_001`（仅收紧 `nop.ai.service.stream-total-timeout=800ms`，传输层 idle 锚定缺省 120s → `ERR_AI_STREAM_TOTAL_TIMEOUT` 类型化终态）+ `transportIdleBudgetTerminatesFullChainSilentSse_C7_001`（仅收紧 `nop.http.client.jdk.body-idle-timeout=600ms`，聚合层双键锚定缺省 → 5s 窗内异常终态）——双层预算各自独立断言；③`halfCloseCleanDisconnectFailsLoudFullChain_C7_002`——部分 chunk 后服务端 `shutdownOutput()` 干净半关闭（TCP FIN，无 finish_reason/[DONE]）→ `ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING` fail-loud（R11 红形态④全链版）。构造注记：静默服务端采用「headers+首 chunk 后停滞」而非纯 accept 不回发（后者挂死在 headers 阶段，body 阶段双层预算均不可达）；装配按 `TestChatServiceImpl` 既有先例直构 JdkHttpClient（= http-api beans 缺省 raw client 同型），无新建模块 infra。Phase 2 fake 链 13 条（组件级）与 Phase 1 传输层 6 条不重复计入端到端验收。
+- **零触碰（E4）**：`git diff 0eb3ea67ba..HEAD --name-only` 禁触面过滤（nop-tcc/`model/*.orm.xml`/nop-auth/nop-api-core（io.nop.api.core.\*）/`_` 前缀生成物/`.rels`）零命中；产品 diff 全集 = nop-http-client-jdk ×5（产品 4+测试 1）+ nop-http-client-apache ×2 + nop-http-api ×3（= Phase 1 PA 裁定面①：`AbstractServerEventSubscription` 基类有界化 + `HttpApiErrors` 新错误码 + 测试）+ nop-ai-core ×5（产品 3+测试 2，含本 Phase 新增端到端测试）+ nop-ai-gateway 测试 ×1；R1-04 设施（FutureHelper/ExecutorHelper/ICancelToken）/R1-01 绝缘层/R1-02 池设施 diff 零改动。
+- **Owner doc（E5）两份逐份结论**：①`docs-for-ai/03-modules/nop-ai.md` = 已更新——「服务级配置（nop-ai-core）」表新增 4 行流式键（stream-total-timeout/stream-idle-timeout/stream-max-accumulated-chars/stream-max-tool-calls 含缺省与 0=禁用语义）+ 新增「流式调用取消/期限/交付语义契约（3.1-C3-001/C7-001/C7-002，plan 2505）」节（取消闭合/背压窗口/受管承载/盘写异步化/R11 分支裁定[completeExceptionally + 空Stream 成功契约边界]五条 + 双层预算与端到端/组件级/消费面钉测试锚点）；②`docs-for-ai/03-modules/nop-network.md` = 已更新——新增「响应体阶段取消与读超时契约（4.3-C3-002 族 / 4.3-C6-004，plan 2505）」节（body 取消响应与 promise 生命周期/body idle 键 + **120s 缺省边界声明**[评审 Minor-2：无 keepalive 且静默 >120s 的合法流将由「滞留后续传」变为 120s 关流错误——配置键调高与 `<=0` 关闭为缓解面，上层聚合预算兜底]/SSE demand 停滞预算/三出口统一关流/反压不可中断面收敛/测试锚点五组）。
+- **scan-hollow**：nop-network exit 0（`_tmp/phase3-scan-hollow-nop-network.log`）；nop-ai exit 1 = 4 条批前既有 P6b「not yet implemented」注释模式发现（`ReActAgentExecutor.java:1395`/`:1526`「placeholders」描述性注释误报、`PlanReplanner.java:273`「split placeholder」注释误报、`NoOpProviderFailoverQueue.java:34` 显式文档化 NoOp 缺省实现）——四文件本批 diff 零命中，沿 Phase 1/2 同口径裁定为既有面（`_tmp/phase3-scan-hollow-nop-ai.log`）。
+- **门禁**：`check-doc-links.mjs --strict` 退出码 0（`_tmp/phase3-doc-links-final.log`）；`check-plan-checklist.mjs --strict` 退出码 0（non-completed 警告面=Phase 4 未勾选项，符合预期）。
 
 ## Deferred But Adjudicated
 

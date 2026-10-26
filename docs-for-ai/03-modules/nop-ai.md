@@ -148,8 +148,24 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 | `nop.ai.service.cache-ttl` | `0` | AiChat 响应缓存的过期时间（秒）。`0`=永不过期（兼容默认）。读取时惰性过期：缓存条目文件 mtime 超过 TTL 视为 miss 并删除，不主动清扫、不改缓存文件格式。接线于 `nopAiChatResponseCache` bean（`ai-defaults.beans.xml`） |
 | `nop.ai.service.log-message` | `false` | LLM 引擎执行时是否自动打印全部请求/响应消息。全局默认关闭（安全）；生效条件为「全局开启 且 单模型未显式关闭」——单模型可在 llm 配置中经 `logMessage="false"`（`setLogMessage`）覆盖关闭。凭据脱敏由 `DefaultChatLogger` 保证 |
 | `nop.ai.service.rate-limit-acquire-timeout` | `1000` | LLM 调用本地限流（llm.xml 配 `rateLimit` 时）的许可获取超时（毫秒）。超时未获许可抛 `ERR_AI_RATE_LIMITED`（携带 `httpStatus=429`，`LlmErrorClassifier` 判为 RATE_LIMITED 可重试）——替代旧的无限阻塞 `acquire()`，消除挂起风险（MA6.3-AR-6）。`0`=立即失败（fail-fast） |
+| `nop.ai.service.stream-total-timeout` | `600000`（10min） | LLM 流式调用的全程总期限（毫秒）。独立于 `read-timeout`（后者仅约束响应头到达）：provider 返回 200 后连接挂死时，聚合 future 在本期限内以 `ERR_AI_STREAM_TOTAL_TIMEOUT` 显式异常终态。`0` = 不启用总期限（不推荐）。watchdog 为 globalTimer 短任务（非自旋） |
+| `nop.ai.service.stream-idle-timeout` | `120000`（2min） | LLM 流式调用的 chunk 间 inactivity 上界（毫秒）。服务端静默（hang/代理黑洞/进程假死）超过本预算时聚合 future 以 `ERR_AI_STREAM_IDLE_TIMEOUT` 显式异常终态。`0` = 不启用（不推荐）。与传输层 body idle 读超时（见 `nop-network.md`）构成双层预算 |
+| `nop.ai.service.stream-max-accumulated-chars` | `2000000` | LLM 流式聚合单次调用的累积字符上界（text+reasoning+tool-call arguments 总和）。超界 fail-fast `ERR_AI_STREAM_ACCUMULATION_EXCEEDED` 终态化流（防恶意端点单请求 OOM）。`0` = 不设上界（不推荐） |
+| `nop.ai.service.stream-max-tool-calls` | `100` | LLM 流式聚合单次调用的 tool-call 条目数上界（按线上 itemIndex 键控的累加器）。超界 fail-fast `ERR_AI_STREAM_ACCUMULATION_EXCEEDED`。`0` = 不设上界（不推荐） |
 
 **限流扩展点（MA6.3-AR-6 裁定）**：`ChatServiceImpl` 每 provider 一个 in-memory token bucket（`DefaultRateLimiter`），无 tenant 身份来源。per-tenant 配额 = **文档化扩展点**：子类覆盖 `createRateLimiter(double)`（按需 per-tenant key 建 limiter）或 `checkRateLimit(...)`；跨 JVM 分布式限流 = **文档化扩展点**：替换 `IRateLimiter` 实现（接口已抽象 `tryAcquire` 语义）。旧 `DefaultAiChatService`（已随 plan 2414 删除）的同款限时 tryAcquire 对齐约定随之失效。
+
+## 流式调用取消/期限/交付语义契约（nop-ai-core，3.1-C3-001/C7-001/C7-002，plan 2505）
+
+`ChatServiceImpl.callStream`/`aggregateStreamToResponse`（`callAsync(stream=true)` 汇聚路径同此语义）五条契约：
+
+1. **取消闭合下游（不再单向悬挂）**：cancelToken 取消同时触发上游订阅 `cancel()` 与桥接 publisher `closeExceptionally(CancellationException)`——下游 Flow 订阅与聚合 future 在有界观察窗内收到可区分的取消终态（修复前 cancel 只向上游传播，下游悬挂、future 永不完成、订阅注册泄漏）。onNext 解析/提交异常经 closeExceptionally 兜底终态化，publisher 不存在永不关闭形态。
+2. **背压窗口有界**：两级订阅（桥接对上游、聚合对桥接）均为有限 request 窗口（`STREAM_REQUEST_WINDOW=64` 初始 + 滑动补给），不再 `request(MAX_VALUE)` 全速拉取；桥接缓冲满载 fail-loud `ERR_AI_STREAM_BUFFER_OVERFLOW`（替代 uninterruptible 阻塞发射线程）。
+3. **受管承载**：桥接 publisher 构造点显式 `GlobalExecutors.cachedThreadPool()`（平台治理面 daemon 池）——缺省不再是 `ForkJoinPool.commonPool`；响应日志盘写（logResponse）不指向 globalTimer。
+4. **日志盘写异步化**：终态回调先 `future.complete` 再异步 `logResponseAsync`（cached 池承载）——序列化/脱敏/写盘失败仅 WARN（`nop.ai.chat-log-write-fail`）可见，不阻断 future 完成（修复前日志 I/O 抛异常 future 永不完成）。落点在 `ChatServiceImpl` 终态回调侧而非 `DefaultChatLogger` 内部——`IChatLogger` 同步契约保持不变。
+5. **R11 交付纪律（终止信号校验）**：`onComplete` 校验聚合器终止信号（finishReason 非空 ∨ `StreamItemPhase.DONE`）；**分支裁定 = completeExceptionally**——收到过内容 chunk 但无终止信号（干净半关闭截断流）按传输级错误 `ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING`（带 llmName + 截断字符数诊断）显式失败，不以成功响应交付（截断内容不经 `hasStreamedContent` 守卫漏入重试体系）。**零 chunk 空流保持既有成功契约**（空流成功为既有行为，不受 R11 校验影响）。
+
+**双层预算与端到端锚点**：聚合层期限（上表 `stream-total-timeout`/`stream-idle-timeout`）与传输层 body idle 读超时（`nop.http.client.jdk.body-idle-timeout`，见 `nop-network.md`）构成两侧同批双层预算——缺省装配（JdkHttpClient）下取消/挂死/半关闭三场景全链有界终止，端到端回归锚点 `TestStreamFullChainEndToEnd_C3_001`（nop-ai-core）；组件级回归锚点 `TestStreamCancelDeadlineAndDelivery_C3_001`（nop-ai-core 13 条）与消费面钉 `TestFailoverStreamCancelPin_C3_001`（nop-ai-gateway——FailoverStreamFlow 作为 callStream 直接订阅者，挂死传输上调用方取消有界终止、订阅注册不泄漏；其「调用方取消不向输出发终态」的适配器既有语义归 R2-06，不在本契约内）。
 
 ## Embedding 客户端（nop-ai-core，K1）
 

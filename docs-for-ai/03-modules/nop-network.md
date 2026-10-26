@@ -79,6 +79,17 @@ JdkHttpClient.toHttpResponse 不再把 HTTP 503 映射为 NopConnectException—
 
 GatewayHttpFilter 两条契约：①**路由预匹配后置**——path 级路由预匹配（`GatewayHandler.hasRouteFor`）无命中时请求体零消费直接放行下游；请求体解析按 content-type 分流，仅 JSON（或未声明）content-type 走严格解析（非法 body fail-fast 5xx），multipart/表单等不再炸滤器（body 不向下游透传，data=null）；异步段异常经 `exceptionally` 兜底写 5xx，响应已提交（streaming 中途失败）时只记日志不二次写出。②**OAuth redirect 凭证下发**——code+redirect_uri 分支在 sendRedirect 前初始化用户上下文并下发 auth cookie（新会话凭证；redirect 提交后 header/cookie 必丢），消除 SSO 回调登录循环；redirect 后下游对已提交响应的写入为无害噪音（现状既有行为）。
 
+## 响应体阶段取消与读超时契约（4.3-C3-002 族 / 4.3-C6-004，plan 2505）
+
+JDK 客户端的 `sendAsync(..., BodyHandlers.ofInputStream())` future 在**响应头到达即完成**——cancelToken 只绑 headers 阶段时，body 阶段的取消/静默均无响应点。修复后的契约（下载与 SSE body 阶段，jdk 叶内）：
+
+- **body 阶段取消响应**：下载读循环每迭代检查 `cancelToken.isCancelled()`，取消即 `CancellationException` 终态并关闭 sink/in（幽灵下载消除）；SSE cleanup 显式关闭登记的底层 body 流——阻塞中的 `readLine` 抛 IOException 解除（`future.cancel(true)` 对 headers 后已完成的 future 是 no-op，显式关流是唯一出口）。取消监听经 `FutureHelper.bindCancelToken` 收敛，且 **promise 生命周期 = body 阶段终态**（非 headers 到达）——监听器覆盖整个 body 阶段、按 promise 配对移除（无累积契约保持）。
+- **body idle 读超时**：`nop.http.client.jdk.body-idle-timeout`（`JdkHttpConfigs.CFG_HTTP_BODY_IDLE_TIMEOUT`，缺省 `120000` ms，独立于只覆盖 headers 的 request timeout）——`BodyIdleWatchdog`（globalTimer 短任务巡检，任务体仅「进度/取消判定 + 关流」）超阈或取消时从独立线程关闭底层流，阻塞 read/readLine 抛 IOException 进入既有错误路径（SSE 静默 >30s 为常态，预算独立于 headers 语义）。`<= 0` 关闭看门狗（不推荐）。
+- **缺省 120s 边界声明**：无 keepalive 且单次静默间隔合法超过 120s 的 SSE 流，在缺省配置下将由「读取滞留后续恢复」变为 **120s 关流错误**（IOException → onError）——这是有界终止换取的显式取舍；合法长静默流的缓解面 = 调高 `nop.http.client.jdk.body-idle-timeout`，或置 `<= 0` 关闭看门狗回到滞留形态（此时上层聚合层预算兜底，见 `nop-ai.md` 流式契约）。SSE demand 等待预算同理：`AbstractServerEventSubscription` 基类缺省 120s，停滞订阅者以 `ERR_HTTP_SSE_DEMAND_TIMEOUT` 显式终态化（可经 `demandWaitTimeoutMillis()` 钩子收紧）。
+- **三出口统一关流**：取消出口（cleanup）、416 重试分支、SSE cancel-at-entry 分支——三处 return/终态前均关闭遗弃的响应体（连接/socket 归还，对端可观测 EOF）。
+- **反压不可中断面收敛**：demand 等待有界化（基类 `waitForDemand` 预算 + 停滞终态）；apache SSE 事件投递经有界队列 + 专用 `nop-sse-dispatch` daemon 消费线程（HC5 I/O reactor 线程不再内联 wait）；jdk parse 循环可关闭化；残留长阻塞承载线程为 daemon 形态（挂死不阻断 JVM 退出）。
+- 测试锚点：`TestBodyPhaseCancel_C3_002`（6 条，raw socket/HttpServer 真实装配链）、`TestServerEventSubscriptionDemandTimeout_C6_004`、`TestApacheSseReactorDecouple_C6_004`、`TestJdkHttpClientCancelListenerCleanup_C3_012`（2499 注册面零回退）；消费面全链（聚合层 + 传输层双层预算）端到端见 `nop-ai.md` 流式契约节与 `TestStreamFullChainEndToEnd_C3_001`。
+
 ## 相关文档
 
 - `../02-core-guides/rpc-and-distributed-rpc.md`（RPC 分层调用模型，`/px/` 代理）
