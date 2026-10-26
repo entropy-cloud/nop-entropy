@@ -66,14 +66,20 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     private String pluginArtifactId;
     private String pluginVersion;
 
-    private IBeanContainer beanContainer;
+    /**
+     * 状态机字段 volatile（裁定① C1-011 双轨防护对齐，与 VfsPluginDefinition 轨既有风格一致）：
+     * state/beanContainer/definition/lastActivationError 由生命周期线程与消费方线程并发读写，
+     * volatile 保证复合读双检（取引用 → 复核 state）的可见性前提。坐标/时间戳字段维持现状
+     * （启动期写读，条件安全口径）。
+     */
+    private volatile IBeanContainer beanContainer;
     private Timestamp lastChangeTime;
     private Timestamp loadTime = CoreMetrics.currentTimestamp();
     private boolean autoInit;
 
-    private DynamicObject definition;
-    private PluginState state = PluginState.UNLOADED;
-    private Throwable lastActivationError;
+    private volatile DynamicObject definition;
+    private volatile PluginState state = PluginState.UNLOADED;
+    private volatile Throwable lastActivationError;
 
     private final Object lifecycleLock = new Object();
 
@@ -130,37 +136,48 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
 
     @Override
     public void load(Map<String, Object> config) {
-        // jar 轨契约：容忍 xdef 缺失——无载体时空定义加载成功；有载体时解析持有（仅元数据）
-        String defPath = getPluginDefinitionPath();
-        IResource defResource = VirtualFileSystem.instance().getResource(defPath);
-        if (defResource.exists()) {
-            try {
-                this.definition = (DynamicObject) new DslModelParser(NopPluginConstants.PLUGIN_XDEF_PATH)
-                        .parseFromVirtualPath(defPath);
-            } catch (NopException e) {
-                throw e.param(ARG_PLUGIN_ID, defPath);
+        // 锁矩阵（裁定①双轨对齐）：迁移写（definition/state/loadTime）不可分割
+        synchronized (lifecycleLock) {
+            // jar 轨契约：容忍 xdef 缺失——无载体时空定义加载成功；有载体时解析持有（仅元数据）
+            String defPath = getPluginDefinitionPath();
+            IResource defResource = VirtualFileSystem.instance().getResource(defPath);
+            if (defResource.exists()) {
+                try {
+                    this.definition = (DynamicObject) new DslModelParser(NopPluginConstants.PLUGIN_XDEF_PATH)
+                            .parseFromVirtualPath(defPath);
+                } catch (NopException e) {
+                    throw e.param(ARG_PLUGIN_ID, defPath);
+                }
+            } else {
+                this.definition = null;
             }
-        } else {
-            this.definition = null;
+            this.state = PluginState.LOADED;
+            this.loadTime = CoreMetrics.currentTimestamp();
         }
-        this.state = PluginState.LOADED;
-        this.loadTime = CoreMetrics.currentTimestamp();
     }
 
     @Override
     public void unload() {
-        // unload 守卫（01 §三不变量）：ACTIVATED/中间态禁止 unload（须先 deactivate）；
-        // FAILED 态错误清理已完成，允许 unload
-        if (isStateMachineAware()) {
-            if (state == PluginState.ACTIVATED || state == PluginState.ACTIVATING
-                    || state == PluginState.DEACTIVATING) {
-                throw new NopException(ERR_PLUGIN_NOT_DEACTIVATED)
-                        .param(ARG_PLUGIN_ID, describePluginId())
-                        .param(ARG_PLUGIN_STATE, state.name());
+        synchronized (lifecycleLock) {
+            // unload 守卫（01 §三不变量）：ACTIVATED/中间态禁止 unload（须先 deactivate）；
+            // FAILED 态错误清理已完成，允许 unload。守卫读与迁移写同锁（裁定①/C2-004 双轨对齐）
+            if (isStateMachineAware()) {
+                if (state == PluginState.ACTIVATED || state == PluginState.ACTIVATING
+                        || state == PluginState.DEACTIVATING) {
+                    throw new NopException(ERR_PLUGIN_NOT_DEACTIVATED)
+                            .param(ARG_PLUGIN_ID, describePluginId())
+                            .param(ARG_PLUGIN_STATE, state.name());
+                }
+                // FAILED 态残留字段幂等尽力清理（裁定②）：防「丢弃引用漏停容器」
+                // （成功路径字段已空，零行为变化）
+                if (state == PluginState.FAILED) {
+                    bestEffortCleanupResidual();
+                    beanContainer = null;
+                }
             }
+            this.definition = null;
+            this.state = PluginState.UNLOADED;
         }
-        this.definition = null;
-        this.state = PluginState.UNLOADED;
     }
 
     @Override
@@ -193,6 +210,7 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
                 return true;
             } catch (RuntimeException | Error e) {
                 LOG.error("nop.plugin.activate-fail:pluginId={}", describePluginId(), e);
+                // 回滚尽力清理（裁定②）：清理异常降级为留痕，不阻断下方 FAILED 落定
                 rollbackActivation();
                 this.state = PluginState.FAILED;
                 this.lastActivationError = e;
@@ -233,11 +251,24 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
         }
     }
 
+    /**
+     * 激活失败回滚（裁定②失败终态表第 4 行）：尽力清理，清理异常降级为留痕（LOG.error），
+     * 不阻断 activate catch 内的 FAILED 落定。清理成功 → beanContainer 置空；失败 → 保留
+     * 原引用（FAILED 态残留 = 待恢复入口 forceUnload 处置的显式信号）。
+     */
     private void rollbackActivation() {
         IBeanContainer c = beanContainer;
-        beanContainer = null;
+        boolean cleanupFailed = false;
         if (c != null) {
-            c.stop();
+            try {
+                c.stop();
+            } catch (RuntimeException | Error e) {
+                cleanupFailed = true;
+                LOG.error("nop.plugin.rollback-container-stop-fail:pluginId={}", describePluginId(), e);
+            }
+        }
+        if (!cleanupFailed) {
+            beanContainer = null;
         }
     }
 
@@ -261,14 +292,41 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
             }
             this.state = PluginState.DEACTIVATING;
             IBeanContainer c = beanContainer;
-            beanContainer = null;
-            if (c != null) {
-                c.stop();
+            // 清理逐段尽力、失败聚合（裁定②失败终态表）：失败路径保留原引用，成功路径清理后置空
+            Throwable failure = null;
+            try {
+                if (c != null) {
+                    c.stop();
+                }
+            } catch (RuntimeException | Error e) {
+                failure = e;
+                LOG.error("nop.plugin.deactivate-container-stop-fail:pluginId={}", describePluginId(), e);
             }
+            // autoInit 的 CoreInitialization.destroy() 纳入独立尽力段（裁定②）：stop 抛错不跳过
+            // destroy（全局初始化/拆除配对不因插件清理失败而破坏）
             if (autoInit) {
                 autoInit = false;
-                CoreInitialization.destroy();
+                try {
+                    CoreInitialization.destroy();
+                } catch (RuntimeException | Error e) {
+                    if (failure == null) {
+                        failure = e;
+                    } else {
+                        failure.addSuppressed(e);
+                    }
+                    LOG.error("nop.plugin.deactivate-core-destroy-fail:pluginId={}", describePluginId(), e);
+                }
             }
+            if (failure != null) {
+                // 失败落定 FAILED（临界区出口前落定，不滞留中间态）；lastActivationError 记因
+                this.state = PluginState.FAILED;
+                this.lastActivationError = failure;
+                if (failure instanceof RuntimeException) {
+                    throw (RuntimeException) failure;
+                }
+                throw (Error) failure;
+            }
+            beanContainer = null;
             this.state = PluginState.LOADED;
         }
     }
@@ -312,17 +370,21 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
         if (isStateMachineAware()) {
             // §7.1 收敛 + 状态边界（两轨统一规格）：start = load + activate（jar 轨门控空集 →
             // activate 恒为 true）。仅 UNLOADED 补 load 步；已 LOADED/FAILED 不重复 load 直接
-            // activate；已 ACTIVATED 时 activate 幂等 no-op（不重建容器）
-            this.pluginGroupId = pluginGroupId;
-            this.pluginArtifactId = pluginArtifactId;
-            this.pluginVersion = pluginVersion;
-            if (state == PluginState.UNLOADED) {
-                load(config);
+            // activate；已 ACTIVATED 时 activate 幂等 no-op（不重建容器）。
+            // 锁矩阵（裁定①双轨对齐）：aware 段全程 lifecycleLock（load/activate 锁内重入）
+            synchronized (lifecycleLock) {
+                this.pluginGroupId = pluginGroupId;
+                this.pluginArtifactId = pluginArtifactId;
+                this.pluginVersion = pluginVersion;
+                if (state == PluginState.UNLOADED) {
+                    load(config);
+                }
+                activate();
+                return;
             }
-            activate();
-            return;
         }
 
+        // 兼容路径（非 aware 轨无六态迁移，锁迁移面显式豁免）
         this.pluginGroupId = pluginGroupId;
         this.pluginArtifactId = pluginArtifactId;
         this.pluginVersion = pluginVersion;
@@ -338,10 +400,14 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     public void stop() {
         if (isStateMachineAware()) {
             // §7.1 收敛：stop = deactivate + unload（两轨统一边界：UNLOADED 态幂等 no-op——
-            // deactivate 非激活态 no-op、unload 对 UNLOADED 幂等）
-            FutureHelper.syncGet(deactivate());
-            unload();
-            return;
+            // deactivate 非激活态 no-op、unload 对 UNLOADED 幂等）。
+            // 锁矩阵（裁定①）：stop aware 段 lifecycleLock（deactivate/unload 锁内重入；
+            // futureCall 任务体在调用线程执行，无跨线程持锁）
+            synchronized (lifecycleLock) {
+                FutureHelper.syncGet(deactivate());
+                unload();
+                return;
+            }
         }
         super.stop();
     }
@@ -375,14 +441,63 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
     }
 
     /**
+     * FAILED 态残留资源幂等尽力清理（须持 lifecycleLock 调用）：容器 stop 逐段尽力，
+     * 异常留痕不阻断（不吞不抛，状态迁移由调用方继续）。
+     */
+    private void bestEffortCleanupResidual() {
+        IBeanContainer c = beanContainer;
+        if (c != null) {
+            try {
+                c.stop();
+            } catch (RuntimeException | Error e) {
+                LOG.error("nop.plugin.residual-container-stop-fail:pluginId={}", describePluginId(), e);
+            }
+        }
+    }
+
+    /**
+     * 平台内部恢复契约（裁定②）：{@code PluginManagerImpl.forceUnload} 专用——
+     * <b>非插件开发者 API</b>。不经 {@link #unload()} 守卫（守卫拒绝 ACTIVATING/DEACTIVATING
+     * 且不接受残留字段），在 lifecycleLock 内原子完成：残留容器尽力 stop（异常留痕不阻断）→
+     * 字段置空 → 落 UNLOADED。lastActivationError 保留供诊断。public 可见性为跨包调用所需
+     * （nop-plugin-support 为 impl 模块，不构成公共 API 面）。
+     *
+     * <p>锁内复核：manager 侧前置态判定在 lifecycleLock 外读取，若受理时为 ACTIVATING 而等锁
+     * 期间在途激活已成功落 ACTIVATED，则无可恢复对象——不强杀健康活容器，返回 false 交 manager
+     * 作类型化拒绝（holder 保留）；其余状态恢复并返回 true。
+     *
+     * @return 是否已落定 UNLOADED；false 表示锁内复核为 ACTIVATED、未做任何迁移
+     */
+    public boolean recoverToUnloaded() {
+        synchronized (lifecycleLock) {
+            if (state == PluginState.ACTIVATED) {
+                return false;
+            }
+            bestEffortCleanupResidual();
+            this.beanContainer = null;
+            this.definition = null;
+            this.state = PluginState.UNLOADED;
+            return true;
+        }
+    }
+
+    /**
      * 命令 bean 解析回退链（与 VfsPluginDefinition 同一链，不分叉）：本插件容器优先 →
      * 宿主容器回退（ignoreUnknown=true 时 miss 返回 null）→ default bean 兜底
      * （ignoreUnknown=false 时 miss 经 getBean 显式抛异常，不静默返回）。
      */
     protected IPluginCommand getCommandBean(String beanName, boolean ignoreUnknown) {
-        if (beanContainer != null) {
-            if (beanContainer.containsBean(beanName))
-                return (IPluginCommand) beanContainer.getBean(beanName);
+        return getCommandBean(this.beanContainer, beanName, ignoreUnknown);
+    }
+
+    /**
+     * 回退链实现（容器引用参数化）：aware 命令路由的复合读双检（3.1.4 站点 7 附加面）要求
+     * 同一容器引用贯穿路由（取引用 → 复核 state → 引用使用），不二次取字段。
+     */
+    private IPluginCommand getCommandBean(IBeanContainer container, String beanName, boolean ignoreUnknown) {
+        if (container != null) {
+            if (container.containsBean(beanName))
+                return (IPluginCommand) container.getBean(beanName);
         }
         if (ignoreUnknown) {
             Object bean = BeanContainer.tryGetBean(beanName);
@@ -396,15 +511,19 @@ public abstract class AbstractPlugin extends LifeCycleSupport implements IPlugin
                                                                     String fieldSelection,
                                                                     IPluginCancelToken cancelToken) {
         if (isStateMachineAware()) {
-            // 定义级路由：命令 bean 分发于本插件激活容器；未激活显式抛 INACTIVE（不静默返回）
+            // 定义级路由：命令 bean 分发于本插件激活容器；未激活显式抛 INACTIVE（不静默返回）。
+            // 复合读双检（裁定① 3.1.4 站点 7 附加面）：取容器引用 → 复核 state → 同一引用贯穿
+            // 路由，deactivate 翻转窗统一快速失败 INACTIVE。容器为 null（ACTIVATED 但无 beans 文件）
+            // 是合法形态，沿既有宿主回退链解析，不判 INACTIVE
+            IBeanContainer container = beanContainer;
             if (getState() != PluginState.ACTIVATED) {
                 throw new NopException(ERR_PLUGIN_INACTIVE)
                         .param(ARG_PLUGIN_ID, getPluginDefinitionPath());
             }
             String beanName = BEAN_NOP_PLUGIN_COMMAND_PREFIX + command;
-            IPluginCommand commandBean = getCommandBean(beanName, true);
+            IPluginCommand commandBean = getCommandBean(container, beanName, true);
             if (commandBean == null) {
-                commandBean = getCommandBean(BEAN_NOP_PLUGIN_COMMAND_PREFIX + "default", false);
+                commandBean = getCommandBean(container, BEAN_NOP_PLUGIN_COMMAND_PREFIX + "default", false);
             }
             return commandBean.invokeCommandAsync(command, args, fieldSelection, cancelToken);
         }

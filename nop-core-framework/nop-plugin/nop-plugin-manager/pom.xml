@@ -21,6 +21,14 @@
             <artifactId>nop-plugin-api</artifactId>
         </dependency>
 
+        <!-- 状态机恢复 API（设计裁定②）：forceUnload 经 AbstractPlugin 轨 public 内部恢复契约
+             （recoverToUnloaded，跨包调用）落定 jar 轨中间态；support 与 manager 无环
+             （support 仅依赖 api/ioc/xlang） -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-plugin-support</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-ioc</artifactId>

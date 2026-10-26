@@ -322,9 +322,16 @@ public class VfsPluginDefinition implements IPlugin {
     /**
      * ACTIVATED 态返回激活 scope（{@link IPluginScope}，quiescence 断言 / 代理解析用）；
      * 否则返回 null。
+     *
+     * <p>复合读双检（裁定① 3.1.4 站点 1）：先取引用（volatile 读）→ 复核 state；复核不通过
+     * 返回 null（形态保持）——deactivate 翻转窗内消费方统一获 null/INACTIVE，不泄漏陈旧引用。
      */
     public IPluginScope getScope() {
-        return state == PluginState.ACTIVATED ? scope : null;
+        PluginScopeImpl s = scope;
+        if (state != PluginState.ACTIVATED || s == null) {
+            return null;
+        }
+        return s;
     }
 
     /**
@@ -356,24 +363,39 @@ public class VfsPluginDefinition implements IPlugin {
 
     @Override
     public void load(Map<String, Object> config) {
-        this.definitionConfig = config == null ? new LinkedHashMap<>() : new LinkedHashMap<>(config);
-        this.state = PluginState.LOADED;
-        this.loadTime = CoreMetrics.currentTimestamp();
-        this.lastChangeTime = this.loadTime;
+        // 锁矩阵（裁定①）：迁移写（definitionConfig/state/loadTime）不可分割——与 unload/
+        // activate 同锁串行，load×reconcile 交错窗消除
+        synchronized (lifecycleLock) {
+            this.definitionConfig = config == null ? new LinkedHashMap<>() : new LinkedHashMap<>(config);
+            this.state = PluginState.LOADED;
+            this.loadTime = CoreMetrics.currentTimestamp();
+            this.lastChangeTime = this.loadTime;
+        }
     }
 
     @Override
     public void unload() {
-        // unload 守卫（01 §三不变量）：ACTIVATED/中间态禁止 unload（须先 deactivate）；
-        // FAILED 态错误清理已完成（无容器/无 effect），允许 unload
-        if (state == PluginState.ACTIVATED || state == PluginState.ACTIVATING
-                || state == PluginState.DEACTIVATING) {
-            throw new NopException(ERR_PLUGIN_NOT_DEACTIVATED)
-                    .param(ARG_PLUGIN_ID, pluginId)
-                    .param(ARG_PLUGIN_STATE, state.name());
+        synchronized (lifecycleLock) {
+            // unload 守卫（01 §三不变量）：ACTIVATED/中间态禁止 unload（须先 deactivate）；
+            // FAILED 态错误清理已完成（无容器/无 effect），允许 unload。
+            // 守卫读与迁移写同锁（裁定①/C2-004：正反两序镜像交错均不可达）
+            if (state == PluginState.ACTIVATED || state == PluginState.ACTIVATING
+                    || state == PluginState.DEACTIVATING) {
+                throw new NopException(ERR_PLUGIN_NOT_DEACTIVATED)
+                        .param(ARG_PLUGIN_ID, pluginId)
+                        .param(ARG_PLUGIN_STATE, state.name());
+            }
+            // FAILED 态残留字段幂等尽力清理（裁定②）：防「丢弃引用漏停容器」
+            // （成功路径字段已空，零行为变化）
+            if (state == PluginState.FAILED) {
+                bestEffortCleanupResidual();
+                scope = null;
+                container = null;
+                configProvider = null;
+            }
+            this.state = PluginState.UNLOADED;
+            this.definitionConfig = new LinkedHashMap<>();
         }
-        this.state = PluginState.UNLOADED;
-        this.definitionConfig = new LinkedHashMap<>();
     }
 
     @Override
@@ -407,7 +429,8 @@ public class VfsPluginDefinition implements IPlugin {
                 return true;
             } catch (RuntimeException | Error e) {
                 LOG.error("nop.plugin.activate-fail:pluginId={}", pluginId, e);
-                // 回滚：停止本次激活创建的子容器（scope 随之回退）——不残留半激活状态
+                // 回滚：停止本次激活创建的子容器（scope 随之回退）——不残留半激活状态。
+                // 回滚内清理异常降级为留痕（裁定②），不阻断下方 FAILED 落定
                 rollbackActivation();
                 this.state = PluginState.FAILED;
                 this.lastActivationError = e;
@@ -440,19 +463,43 @@ public class VfsPluginDefinition implements IPlugin {
             this.state = PluginState.DEACTIVATING;
             PluginScopeImpl s = scope;
             IBeanContainer c = container;
-            scope = null;
-            container = null;
-            configProvider = null;
+            // 清理逐段尽力、失败聚合（裁定②失败终态表）：失败路径保留原引用（FAILED 态残留
+            // scope/container/configProvider = 待恢复入口处置的显式信号），成功路径清理后置空
+            Throwable failure = null;
             try {
                 // deactivate 顺序：先 scope.close()（LIFO 回退全部注册 effect）再子容器 stop
                 if (s != null) {
                     s.close();
                 }
-            } finally {
+            } catch (RuntimeException | Error e) {
+                failure = e;
+                LOG.error("nop.plugin.deactivate-scope-close-fail:pluginId={}", pluginId, e);
+            }
+            try {
                 if (c != null) {
                     c.stop();
                 }
+            } catch (RuntimeException | Error e) {
+                if (failure == null) {
+                    failure = e;
+                } else {
+                    failure.addSuppressed(e);
+                }
+                LOG.error("nop.plugin.deactivate-container-stop-fail:pluginId={}", pluginId, e);
             }
+            if (failure != null) {
+                // 失败落定 FAILED（临界区出口前落定，不滞留中间态）：半停容器不可信，
+                // 拒绝回退 ACTIVATED/LOADED；lastActivationError 记因
+                this.state = PluginState.FAILED;
+                this.lastActivationError = failure;
+                if (failure instanceof RuntimeException) {
+                    throw (RuntimeException) failure;
+                }
+                throw (Error) failure;
+            }
+            scope = null;
+            container = null;
+            configProvider = null;
             this.state = PluginState.LOADED;
         }
     }
@@ -504,20 +551,85 @@ public class VfsPluginDefinition implements IPlugin {
         }
     }
 
+    /**
+     * 激活失败回滚（裁定②失败终态表第 2 行）：尽力清理本次激活创建的资源，清理异常降级为
+     * 留痕（LOG.error），不阻断 activate catch 内的 FAILED 落定。清理段全部成功 → 残留引用
+     * 置空；任一段失败 → 保留原引用（FAILED 态残留 = 待恢复入口 forceUnload 处置的显式信号）。
+     */
     private void rollbackActivation() {
         PluginScopeImpl s = scope;
         IBeanContainer c = container;
-        scope = null;
-        container = null;
-        configProvider = null;
+        boolean cleanupFailed = false;
         try {
             if (s != null) {
                 s.close();
             }
-        } finally {
+        } catch (RuntimeException | Error e) {
+            cleanupFailed = true;
+            LOG.error("nop.plugin.rollback-scope-close-fail:pluginId={}", pluginId, e);
+        }
+        try {
             if (c != null) {
                 c.stop();
             }
+        } catch (RuntimeException | Error e) {
+            cleanupFailed = true;
+            LOG.error("nop.plugin.rollback-container-stop-fail:pluginId={}", pluginId, e);
+        }
+        if (!cleanupFailed) {
+            scope = null;
+            container = null;
+            configProvider = null;
+        }
+    }
+
+    /**
+     * FAILED 态残留资源幂等尽力清理（须持 lifecycleLock 调用）：逐段 safeClose/safeStop，
+     * 异常逐段 catch 留痕不阻断（不吞不抛，状态迁移由调用方继续）。
+     */
+    private void bestEffortCleanupResidual() {
+        PluginScopeImpl s = scope;
+        IBeanContainer c = container;
+        if (s != null) {
+            try {
+                s.close();
+            } catch (RuntimeException | Error e) {
+                LOG.error("nop.plugin.residual-scope-close-fail:pluginId={}", pluginId, e);
+            }
+        }
+        if (c != null) {
+            try {
+                c.stop();
+            } catch (RuntimeException | Error e) {
+                LOG.error("nop.plugin.residual-container-stop-fail:pluginId={}", pluginId, e);
+            }
+        }
+    }
+
+    /**
+     * 平台内部恢复契约（裁定②，PluginManagerImpl.forceUnload 专用，非插件开发者 API）：
+     * 不经 {@link #unload()} 守卫（守卫拒绝 ACTIVATING/DEACTIVATING 且不接受残留字段），
+     * 在 lifecycleLock 内原子完成——残留资源逐段尽力清理 → 字段置空 → 落 UNLOADED。
+     * lastActivationError 保留供诊断；每段异常 catch 留痕不阻断。package-private 可见性
+     * （与 PluginManagerImpl 同包，manager 侧唯一合法调用方）。
+     *
+     * <p>锁内复核：manager 前置态判定在 lifecycleLock 外读取，若受理时为 ACTIVATING 而等锁期间
+     * 在途激活已成功落 ACTIVATED，则无可恢复对象——不强杀健康活容器，返回 false 交 manager 作
+     * 类型化拒绝（holder 保留）；其余状态恢复并返回 true。
+     *
+     * @return 是否已落定 UNLOADED；false 表示锁内复核为 ACTIVATED、未做任何迁移
+     */
+    boolean recoverToUnloaded() {
+        synchronized (lifecycleLock) {
+            if (state == PluginState.ACTIVATED) {
+                return false;
+            }
+            bestEffortCleanupResidual();
+            this.scope = null;
+            this.container = null;
+            this.configProvider = null;
+            this.state = PluginState.UNLOADED;
+            return true;
         }
     }
 
@@ -551,45 +663,84 @@ public class VfsPluginDefinition implements IPlugin {
                       Map<String, Object> config) {
         // §7.1 收敛：start = load + activate。已 LOADED 时 config 并入定义级配置域
         // （LOADED 缓存 / ACTIVATED 热应用，updateConfig 语义）；门控不满足 no-op 返回 false，
-        // 记录日志不抛异常
-        if (state == PluginState.UNLOADED) {
-            load(config);
-        } else if (config != null && !config.isEmpty()) {
-            updateConfig(config);
-        }
-        if (!activate()) {
-            LOG.warn("nop.plugin.start-gated:pluginId={} (coeffect 定义级条件不满足，未激活)", pluginId);
+        // 记录日志不抛异常。锁矩阵（裁定①）：状态分支判定 + load/updateConfig 步进 + activate
+        // 锁内重入，同一临界区
+        boolean configChanged = false;
+        try {
+            synchronized (lifecycleLock) {
+                if (state == PluginState.UNLOADED) {
+                    load(config);
+                } else if (config != null && !config.isEmpty()) {
+                    configChanged = applyConfigUpdate(config);
+                }
+                if (!activate()) {
+                    LOG.warn("nop.plugin.start-gated:pluginId={} (coeffect 定义级条件不满足，未激活)", pluginId);
+                }
+            }
+        } finally {
+            // 回调延迟契约（受害点②，裁定①）：内嵌 updateConfig 步进的 onConfigChanged 派发
+            // 延迟到 start 自身临界区退出后（finally 语义：activate 抛错亦派发，失败路径不丢
+            // reconcile 通知）。时序变化声明：回调自「activate 之前」移至「activate 完成之后」，
+            // reconcile 见到 ACTIVATED 终态（自动激活守卫幂等 no-op）
+            if (configChanged) {
+                Runnable callback = onConfigChanged;
+                if (callback != null) {
+                    callback.run();
+                }
+            }
         }
     }
 
     @Override
     public void stop() {
-        // §7.1 收敛：stop = deactivate + unload
+        // §7.1 收敛：stop = deactivate + unload（两步各自锁内原子——deactivate→unload 中间窗
+        // 由 unload 守卫拒绝兜底（可观测、可重试），不引入复合锁）
         FutureHelper.syncGet(deactivate());
         unload();
     }
 
     @Override
     public void updateConfig(Map<String, Object> config) {
+        // 锁矩阵（裁定①，C1-020/C1-013 随批纳入）：merge + 热应用 + 态判定原子——与
+        // activateInternal 快照读同锁串行，ACTIVATING 窗口丢更新结构性消失，merge RMW 随锁闭合
+        boolean changed;
+        synchronized (lifecycleLock) {
+            changed = applyConfigUpdate(config);
+        }
+        // 回调延迟契约（受害点①）：onConfigChanged 只在 lifecycleLock 临界区退出后派发，
+        // lifecycleLock 持有期间禁止触发 manager.reconcile（单向锁序 reconcileLock → lifecycleLock）
+        if (changed) {
+            Runnable callback = onConfigChanged;
+            if (callback != null) {
+                callback.run();
+            }
+        }
+    }
+
+    /**
+     * 锁内步进段（回调延迟契约）：合并定义级配置域 + ACTIVATED 热应用 + 变更判定；仅在已持
+     * lifecycleLock 前提下调用。返回是否发生变更（非空 config 视为变更；空更新无 merge 效果，
+     * 不触发回调派发）。onConfigChanged 派发由调用方在锁外执行。
+     */
+    private boolean applyConfigUpdate(Map<String, Object> config) {
+        if (config == null || config.isEmpty()) {
+            return false;
+        }
         // 定义级配置域累积合并（load 传入的初始 config + updateConfig 累积值）
         Map<String, Object> merged = new LinkedHashMap<>(definitionConfig);
-        if (config != null) {
-            merged.putAll(config);
-        }
+        merged.putAll(config);
         this.definitionConfig = merged;
         if (state == PluginState.ACTIVATED) {
-            // 热应用：定义级配置域视图刷新 + 经委托 provider 触发变更通知（bean 属性真实重绑定）
+            // 热应用：定义级配置域视图刷新 + 经委托 provider 触发变更通知（bean 属性真实重绑定）。
+            // 留锁内（与 merge 原子 = C1-020 闭合前提）；DefinitionConfigProvider 内部为
+            // synchronized(mergedView) 叶锁，从不回引 lifecycleLock/reconcileLock
             DefinitionConfigProvider provider = configProvider;
             if (provider != null) {
                 provider.updateMergedView(merged);
             }
         }
         // LOADED/FAILED 缓存：下次 activate 应用（activateInternal 读最新 definitionConfig）
-        // 自动触发：定义级 updateConfig 后经 manager 注入的回调自动 reconcile
-        Runnable callback = onConfigChanged;
-        if (callback != null) {
-            callback.run();
-        }
+        return true;
     }
 
     /**

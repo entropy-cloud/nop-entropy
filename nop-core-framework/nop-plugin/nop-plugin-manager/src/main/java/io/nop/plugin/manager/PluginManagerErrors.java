@@ -123,4 +123,15 @@ public interface PluginManagerErrors {
             define("nop.err.plugin.reload-not-supported",
                     "插件不支持热重载:{pluginId}（uber jar 轨 HMR 为 successor 项）",
                     io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID);
+
+    /**
+     * forceUnload 对 ACTIVATED 态的类型化拒绝（设计裁定②）：健康活容器须经 deactivatePlugin
+     * 正常通道退出（effect 回退/容器 stop 的正常时序不可跳过），恢复 API 不强行销毁——
+     * forceUnload 定位为卡死态恢复 hatch 而非万能强杀（No Silent No-Op：拒绝而非静默 no-op）。
+     */
+    ErrorCode ERR_PLUGIN_FORCE_UNLOAD_NOT_ALLOWED =
+            define("nop.err.plugin.force-unload-not-allowed",
+                    "Plugin is in ACTIVATED state, forceUnload is not allowed, deactivate it first:{pluginId},{pluginState}",
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_ID,
+                    io.nop.plugin.api.PluginApiErrors.ARG_PLUGIN_STATE);
 }
