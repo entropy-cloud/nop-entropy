@@ -20,6 +20,7 @@
 - `ledger-retention-policy.md` — R01 F4 无界账本族级保留策略（统一参数集七项一处定稿[保留期/触发周期/批删上限/行数上限裁定/fail-fast 包络/配置键命名/清理谓词时间锚列]、触发形态四态菜单判据[机器速率写入面必须自动触发]、R01 六成员逐单传导表、C7-101 第七面三选一裁定与 trusted-device 边界注记、W-01 生命周期配对与 G2 retention×reJudge 两条差异条款、sys_change_log 留存语义、家族 SSOT 与参数修订纪律）
 - `registry-lifecycle-contract.md` — REGISTRY 生命周期契约（NopStreamOffsetBackingStore；R4-24 实现契约：生命周期三选一终裁[stop 侧配对释放 + 绑定代条件移除，同名重启续传唯一合法路径 = 显式 checkpoint 恢复]、软钉 #5 setOffsets REPLACE 契约维持与恢复声明窗、WI 2.5 消费面互斥分层表态、C3-014 幽灵引擎双层防御一致性声明与 C3-004 恢复语义衔接）
 - `kernel-retirement-generation-and-model-load-locking.md` — kernel 退役代际与模型加载锁序（退役代际平台机制单点[发布新代 + 旧代退役登记 + 宽限延迟关闭：RoundRobinSupplier 收缩窗/DefaultScheduledExecutor 置空窗/DefaultVirtualFileSystem zip 句柄窗三站同机制 + 七读点快照化 + close 同族面]、三层监视器链统一不变式[监视器内只做同 key 去重+占位、装载/编译在锁外；等待图环检测 + 有界等待兜底 + 循环依赖类型化收敛；C2-001/C2-017 同变更集]、失效销毁时序[标记失效 + 延迟销毁]、2.5-C6-005 双轨联动与 createConnectionSupplier 测试缝、N2 钉改写契约、R1-01/R1-02/R1-05 零回改边界与 F4 时间机制复用 CoreMetrics、从属编辑点枚举表与死锁测试纪律）
+- `plugin-lifecycle-and-config-source-hardening.md` — plugin 生命周期锁面与配置源加固（双锁单向序 reconcileLock → lifecycleLock 与 lifecycleLock 持锁禁触发 reconcile 硬规则、方法×持锁矩阵[VfsPluginDefinition/AbstractPlugin/PluginManagerImpl 三载体全生命周期方法]与锁内外呼站点逐一裁定、复合读双检 7 站点统一 ERR_PLUGIN_INACTIVE、中间态 try/finally 失败落定 FAILED 与 forceUnload 恢复 API 契约[实现类公共方法 + PluginManagerErrors 类型化拒绝]、loadPluginFromJar 映射前失败 try 收窄与 newPluginClassLoader package-private 断言缝[N2 两类失败终态消解]、JdbcConfigSource close 互斥 + closed 守卫[与 C1-021 隔离体/R1-02 卸载超时正交]、配置源构造器先加载成功再调度[executeOn 卸载形态保留]、ShellRunner 外层 finally 兜底 + destroyForcibly 有界升级[时序 A–F 全覆盖]、R2-04/R4-15 协同边界与 R1-01/R1-02 零回退承诺）
 
 ## 阅读顺序
 
@@ -30,7 +31,8 @@
 5. `ledger-retention-policy.md`（R01 族保留策略参数与逐单传导；形态 A 周期清理链消费 1/2 的设施契约，见其 §3.6）
 6. `registry-lifecycle-contract.md`（Debezium CDC offset 基质的桶生命周期与恢复声明窗契约；与 1–5 零共享代码位，本体修复归 R4-24，见其裁定⑥）
 7. `kernel-retirement-generation-and-model-load-locking.md`（退役代际机制与模型装载锁纪律；消费 1/2 的调度槽契约与 4 的门语义零回改边界，见其裁定⑥/§3.6；plan 2504 Phase 1a 产出）
-8. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）+ `nop-kernel/nop-core/src/main/java/io/nop/core/resource/`（失效链设施与判据载体代码侧锚点）
+8. `plugin-lifecycle-and-config-source-hardening.md`（插件生命周期锁矩阵与状态机恢复契约、配置源构造序与 close 互斥契约、Shell 进程兜底契约；消费 1/2 的 executeOn 卸载与隔离体零回改边界，见其裁定④⑤⑦/§3.7；plan 2506 Phase 1 产出）
+9. 实现锚：`nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/executor/`（`IScheduledExecutor` javadoc 为周期调度成文契约的代码侧锚点）+ `nop-kernel/nop-core/src/main/java/io/nop/core/resource/`（失效链设施与判据载体代码侧锚点）+ `nop-core-framework/nop-plugin/nop-plugin-manager/src/main/java/io/nop/plugin/manager/impl/` 与 `nop-core-framework/nop-plugin/nop-plugin-support/src/main/java/io/nop/plugin/support/`（双轨生命周期锁契约与状态机恢复 API 代码侧锚点）+ `nop-core-framework/nop-config/src/main/java/io/nop/config/source/`（配置源构造序与 close 互斥代码侧锚点）+ `nop-utils/nop-shell/src/main/java/io/nop/shell/`（进程兜底契约代码侧锚点）
 
 ## 职责边界
 
