@@ -14,6 +14,7 @@ import io.nop.dao.DaoConfigs;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.shard.ConfigShardSelector;
 import io.nop.dao.shard.EmptyShardSelector;
+import io.nop.dao.shard.IShardSelector;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.orm.IOrmSessionFactory;
 import io.nop.orm.OrmMigrationWriteGate;
@@ -231,6 +232,10 @@ public class OrmMigrationOrchestrator {
             throw gateFailed(jobId, state.getPhase(),
                     "lag != 0 within quiesce window (offset advanced or ledger committed)");
         }
+        // 门禁复核 1（plan 2507 裁定⑤ 2.5-C1-010）：lag 静默窗后复核写门仍关闭——
+        // 门禁检查是瞬时读而冻结承诺贯穿 VERIFY 全程，窗口内翻转（含租约 fail-open）不得无感知
+        requireGateStillClosed(jobId, state.getPhase(),
+                "write-gate reopened after lag quiesce window (VERIFY precondition lost)");
 
         state.setPhase(MigrationPhase.VERIFY);
         store().update(state);
@@ -249,6 +254,14 @@ public class OrmMigrationOrchestrator {
             if (re instanceof NopException)
                 ((NopException) re).param(ARG_REASON, "verify failed: " + e.getMessage());
             throw re;
+        }
+        // 门禁复核 2（plan 2507 裁定⑤ 2.5-C1-010）：三级校验落账前复核写门仍关闭——
+        // 校验窗口内门被翻开（外部翻转或租约 fail-open）时不得在漂移数据上记录 passed
+        if (!OrmMigrationWriteGate.isClosed()) {
+            state.setVerifyResult("failed");
+            store().update(state);
+            throw gateFailed(jobId, state.getPhase(),
+                    "write-gate reopened during VERIFY window (external flip or lease fail-open)");
         }
         state.setVerifyResult(report.isPassed() ? "passed" : "failed");
         store().update(state);
@@ -277,6 +290,14 @@ public class OrmMigrationOrchestrator {
         // 配置翻转（单一配置点，原子生效）：nop.orm.shard 整体替换 / relocate 翻 querySpace 指向
         flipShardConfig(state);
         rebuildRouting(state);
+        // 门禁复核（plan 2507 裁定⑤ 2.5-C1-010）：翻转+路由重建时长窗后复核写门仍关闭——
+        // 窗口内门被翻开（外部翻转或租约 fail-open）时继续收敛 SWITCH 会掩盖双写窗，留痕后类型化失败
+        if (!OrmMigrationWriteGate.isClosed()) {
+            state.setRouteRebuild("gate-reopened-after-rebuild");
+            store().update(state);
+            throw gateFailed(jobId, MigrationPhase.SWITCH,
+                    "write-gate reopened during SWITCH window (external flip or lease fail-open)");
+        }
         // SWITCH 收敛（翻转+路由重建完成）即停止增量链：此后源事件重放落入已晋级的线上
         // 目标表属于幽灵写（IncrementalJobManager.stopAll 契约：ABORT/SWITCH 收敛后由编排器调用）
         stopIncrementalChains(jobId);
@@ -423,24 +444,21 @@ public class OrmMigrationOrchestrator {
 
     private void rebuildRouting(MigrationJobState state) {
         // 单 JVM 形态：以新配置 init 新 ConfigShardSelector 并热替换 session factory 的 selector
-        // （getShardSelector 每查询即时读取，替换后新查询立即生效）。非 SessionFactoryImpl 宿主
-        // 按设计降级滚动重启，状态行标注 restart-required（待重启实例语义可见）。
+        // （shardSelector 为 volatile 读面，热替换经 volatile 写安全发布；替换后读回同一性确认——
+        // plan 2507 裁定⑤ 2.5-C1-007：可见性失配转化为显式 gateFailed，保持写门冻结，
+        // 绝不带失配路由开门）。非 SessionFactoryImpl 宿主按设计降级滚动重启，
+        // 状态行标注 restart-required（待重启实例语义可见）。
+        IShardSelector expected;
         try {
             String shardConfig = DaoConfigs.CFG_ORM_SHARD.get();
-            if (sessionFactory instanceof SessionFactoryImpl) {
-                if (shardConfig == null || shardConfig.isEmpty()) {
-                    ((SessionFactoryImpl) sessionFactory).setShardSelector(EmptyShardSelector.INSTANCE);
-                } else {
-                    ConfigShardSelector selector = new ConfigShardSelector();
-                    selector.init();
-                    ((SessionFactoryImpl) sessionFactory).setShardSelector(selector);
-                }
-                state.setRouteRebuild("rebuild-done");
-            } else {
+            if (!(sessionFactory instanceof SessionFactoryImpl)) {
                 // 非 SessionFactoryImpl 宿主：热重建不可行，按设计降级滚动重启，
                 // 状态行标注待重启实例语义（收敛门 = 全部实例重建完成）
                 state.setRouteRebuild("restart-required");
+                store().update(state);
+                return;
             }
+            expected = buildRebuiltSelector(shardConfig);
         } catch (Exception e) {
             // 路由重建失败 = 收敛门不满足：保持写门冻结，fix-forward（修复后 confirm 重试）
             // 或回翻（shard 翻回旧配置 + 开门）。绝不带着半重建路由开门。
@@ -449,7 +467,39 @@ public class OrmMigrationOrchestrator {
             throw gateFailed(state.getJobId(), MigrationPhase.SWITCH,
                     "route rebuild failed: " + e.getMessage());
         }
+        publishRebuiltSelector(state, (SessionFactoryImpl) sessionFactory, expected);
+        state.setRouteRebuild("rebuild-done");
         store().update(state);
+    }
+
+    /**
+     * 构建重建后的 selector（新配置 init 新 ConfigShardSelector / 无配置回 EmptyShardSelector）。
+     * 配置解析失败抛出（由 rebuild 包装为 rebuild-failed 留痕）。
+     */
+    private IShardSelector buildRebuiltSelector(String shardConfig) {
+        if (shardConfig == null || shardConfig.isEmpty())
+            return EmptyShardSelector.INSTANCE;
+        ConfigShardSelector selector = new ConfigShardSelector();
+        selector.init();
+        return selector;
+    }
+
+    /**
+     * 热替换发布 + 读回同一性确认（plan 2507 裁定⑤ 2.5-C1-007 采信最小形态）：
+     * volatile 写后立即读回 {@code getShardSelector()} 比对——失配 = 发布可见性异常
+     * （JMM 下不可观测缺陷的显式化），状态行留痕后类型化失败，保持写门冻结。
+     * 留痕值须落在 route_rebuild VARCHAR(32) 容量内。
+     */
+    private void publishRebuiltSelector(MigrationJobState state, SessionFactoryImpl factory,
+                                        IShardSelector expected) {
+        factory.setShardSelector(expected);
+        if (factory.getShardSelector() != expected) {
+            state.setRouteRebuild("rebuild-failed:pub-mismatch");
+            store().update(state);
+            throw gateFailed(state.getJobId(), MigrationPhase.SWITCH,
+                    "shard selector publication mismatch: value written by setShardSelector"
+                            + " not visible on read-back");
+        }
     }
 
     // ------------------------------------------------------------------
@@ -506,6 +556,15 @@ public class OrmMigrationOrchestrator {
         if (state == null)
             throw new NopException(ERR_MIG_JOB_NOT_FOUND).param(ARG_JOB_ID, jobId);
         return state;
+    }
+
+    /**
+     * 写门窗口复核（plan 2507 裁定⑤ 2.5-C1-010）：复核失败 = 门在窗口内被翻开
+     * （外部翻转或租约 fail-open，两者在 isClosed() 读面同型）——类型化失败，绝不静默继续。
+     */
+    private void requireGateStillClosed(String jobId, MigrationPhase phase, String gate) {
+        if (!OrmMigrationWriteGate.isClosed())
+            throw gateFailed(jobId, phase, gate);
     }
 
     private static NopException gateFailed(String jobId, MigrationPhase phase, String gate) {

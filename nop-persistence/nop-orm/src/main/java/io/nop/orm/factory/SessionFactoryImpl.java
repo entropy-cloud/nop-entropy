@@ -67,7 +67,11 @@ public class SessionFactoryImpl implements IPersistEnv {
 
     private IJdbcTemplate jdbcTemplate;
 
-    private IShardSelector shardSelector = EmptyShardSelector.INSTANCE;
+    /**
+     * plan 2507 裁定⑤（2.5-C1-007）：升 volatile——rebuildRouting 热替换（setShardSelector）
+     * 对每查询读面（getShardSelector）跨线程安全发布；写少读多，开销可忽略。
+     */
+    private volatile IShardSelector shardSelector = EmptyShardSelector.INSTANCE;
 
     private ICacheProvider globalCache;
 
