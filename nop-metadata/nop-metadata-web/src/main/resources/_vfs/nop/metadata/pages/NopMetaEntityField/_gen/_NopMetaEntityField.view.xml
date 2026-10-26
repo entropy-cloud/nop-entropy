@@ -110,6 +110,15 @@
 
                 <!--备注-->
                 <col id="remark" sortable="true"/>
+
+                <!--字段类别-->
+                <col id="fieldKind" sortable="true"/>
+
+                <!--计算表达式-->
+                <col id="computeExpr" sortable="true"/>
+
+                <!--别名目标-->
+                <col id="mapToProp" sortable="true"/>
             </cols>
         </grid>
         <grid id="pick-list" x:prototype="list" x:abstract="true"/>
@@ -133,7 +142,8 @@
  businessDomainId[业务域ID] extConfig[扩展配置]
  createdBy[创建人] createTime[创建时间]
  updatedBy[修改人] updateTime[修改时间]
- remark[备注] 
+ remark[备注] fieldKind[字段类别]
+ computeExpr[计算表达式] mapToProp[别名目标]
 </layout>
         </form>
         <form id="add" editMode="add" title="新增-实体字段" i18n-en:title="Add Meta Entity Field" x:prototype="edit"/>
@@ -152,7 +162,8 @@
  tagSet[标签集] displayName[显示名]
  comment[注释] nativeSqlType[原生SQL类型]
  businessDomainId[业务域ID] extConfig[扩展配置]
- remark[备注] 
+ remark[备注] fieldKind[字段类别]
+ computeExpr[计算表达式] mapToProp[别名目标]
 </layout>
         </form>
         <form id="query" editMode="query" title="查询条件" i18n-en:title="Query Condition" x:abstract="true"/>
