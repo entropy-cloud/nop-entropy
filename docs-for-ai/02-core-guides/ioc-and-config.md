@@ -250,6 +250,34 @@ Nop IoC 提供 `<ioc:collect-beans>` 标签，用于在 bean 定义中声明式�
 - 配置刷新链（`refreshConfig` → resize 缩容）：被裁剪的共享连接不再被热关，取用窗口无瞬时命令失败尖峰。Lettuce 使用面契约：`getConnection`/`getAsyncCommands`/`getSyncCommands` 返回的共享连接**调用方不得 close**（显式 close 不走 autoReconnect、直接杀死共享连接；pubsub 为独立建连、调用方拥有、豁免此契约）。
 - VFS 热刷新（DevTool refresh）：重建发布新 store 后旧 zip 句柄延迟关闭，在飞读者宽限期内完成读取。
 
+## 插件生命周期与配置源生命周期并发契约
+
+插件双轨（VFS `*.plugin.xml` 轨 / uber-jar 轨）生命周期锁面、状态机失败落定与恢复入口，以及配置源（jdbc/file）的构造序与关闭互斥契约（实现锚点见 `../04-reference/source-anchors.md` `PLG-010`/`PLG-011`/`PLG-012`/`CFG-002`；选型与语义权威 = AI 开发记录区 concurrency 设计集 plugin-lifecycle-and-config-source-hardening.md，按边界规则此处不直接链接；本节为使用方口径）。
+
+### 插件生命周期锁契约（双锁单向序）
+
+- 两把锁、单向获取：manager 编排锁（`reconcileLock`，所有 `loadPlugin/unloadPlugin/activatePlugin/deactivatePlugin/reconcile/reloadPlugin` 全程持有）→ 单插件生命周期锁（`lifecycleLock`，`load/unload/activate/deactivate/start/stop/updateConfig` 的状态迁移全程持有）。两轨对齐：jar 轨 `AbstractPlugin` 与 VFS 轨同形入锁、生命周期字段同为 volatile。
+- **硬规则**：持有 `lifecycleLock` 期间不触发 `reconcile`。`updateConfig` 的变更回调（`onConfigChanged` = manager reconcile）一律在最外层临界区退出后派发；`start(config)` 路径的回调因此落在 activate **之后**（含 activate 抛错路径仍派发）——reconcile 见到的是终态而非激活中的插件。
+- **用户代码契约**：插件 activator、effect dispose、bean destroy-method 内**不得**调用 `IPluginManager` 生命周期 API 或 `reconcilePlugins`（这些用户代码在 `lifecycleLock` 内执行，回调 manager 会与编排锁构成反向获取）。
+- 消费侧复合读（`getScope`/`getService`/命令路由）统一为「取引用 → 复核状态」双检，deactivate 翻转窗内一律得到 `nop.err.plugin.inactive`（不再出现 NOT_STARTED/ISE 混型）；双检不承诺在途请求排空（quiescence 非本契约范围）。
+
+### 插件状态机：失败落定与恢复入口
+
+- 六态不变（`UNLOADED/LOADED/ACTIVATING/ACTIVATED/DEACTIVATING/FAILED`）；`ACTIVATING/DEACTIVATING` 只在临界区内存在，任何失败路径（effect dispose 抛错、bean destroy 抛错、activator 抛错、rollback 抛错、`CoreInitialization.destroy` 抛错）在退出临界区前落定终态——activate 失败落 `FAILED`，**deactivate 失败亦落 `FAILED`（不回退 `ACTIVATED`：半停容器不可信）**，`lastActivationError` 记因。
+- `FAILED` 态语义扩展：定义上 scope/container 引用**可能非 null**（失败路径保留原引用供诊断与恢复；成功路径清理后置空）。读到 `FAILED` 且字段非 null = 残留半停容器待恢复。
+- **恢复入口** `PluginManagerImpl.forceUnload(pluginId)`（实现类公共方法，**不在** `IPluginManager` 接口上）：受理前置态 `{ACTIVATING, DEACTIVATING, FAILED, LOADED}` → 尽力逐段清理残留 scope/container → `UNLOADED` → manager 侧 holder 移除/索引清理/classLoader 关闭/尾部 reconcile；对 `ACTIVATED` 抛类型化异常（须先走 `deactivatePlugin` 正常通道，不强杀健康容器）；`UNLOADED`/不存在幂等返回。既有 `unload/activate` 守卫零改动，`forceUnload` 是中间态唯一合法出口。
+- jar 轨加载失败（坏包：缺 `plugin.json`、类加载失败、配置拉取失败）在 holder 建立前即确定性释放 `PluginClassLoader` 与 jar 句柄（重试不累积）；holder 建立后的 `unloadPlugin` 失败保留 classLoader 可重试（两类失败终态语义不同）。
+
+### 配置源（jdbc/file）构造序与关闭契约
+
+- **先加载成功再调度**：`JdbcConfigSource`/`AbstractFileConfigSource`（含 `KeyFileConfigSource`/`PropsFileConfigSource`）构造器先同步执行初始 `loadConfig`，成功后才注册周期刷新任务（调度槽 `globalTimer` + 任务体 `executeOn(globalWorker)` 卸载形态不变）。初始加载失败 → 构造抛错且**零残留周期任务**；jdbc 变体同时关闭已建连接。
+- **close 与刷新互斥**：`JdbcConfigSource.close()` 与刷新任务体/变更回调同 monitor 串行。停机时若有在途刷新，`close` 等待该轮完成（上界 = 一轮 SQL[受 `queryTimeout` 约束] + 用户回调时长），换取连接零泄漏；`close` 后任何重建连接路径命中 `closed` 守卫抛类型化异常（防退化守卫，正常路径不可达）。
+- 变更回调 per-callback 隔离（异常不杀刷新链）与 R1-02 的卸载/超时语义不受本契约影响。
+
+### Shell 子进程兜底（nop-shell）
+
+- `ShellRunner.run` 的任何退出路径（正常/超时/stdin 断管/中断/收集线程抛错/调度拒绝）均保证已创建子进程被销毁（锚点 `SHELL-001`）：`destroy()` 后有界等待 2s 未退出升级 `destroyForcibly()`；stderr 读取线程随进程销毁经 EOF 退出，不再 pin 住 `cachedThreadPool` 线程。`timeout=0` 的无限等待悬挂为相邻缺陷，不在本契约范围。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

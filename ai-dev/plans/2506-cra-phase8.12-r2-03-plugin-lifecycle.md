@@ -160,29 +160,31 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试（nop-core-framework / nop-utils）；`docs-for-ai/02-core-guides/ioc-and-config.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-utils -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记
-- [ ] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、nop-ioc 容器内部（BeanContainerImpl/BeanScopeImpl——R2-04 领域）、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`ioc-and-config.md` **新建**插件生命周期与配置源生命周期契约节（双轨锁契约、状态机六态+失败终态+恢复 API 契约、配置源构造序契约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」）；`source-anchors.md` **扩展** PLG 锚点系列（生命周期锁契约/状态机恢复 API 锚点，PLG-005/009 受影响面更新）+ 配置源构造序锚点（如无既有条目则新建）
-- [ ] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-shell/nop-config 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-core-framework --severity high` 与 `--module nop-utils --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路：`-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-core-framework -am`、`./mvnw test -pl nop-utils -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记
+- [x] 零触碰确认：本批产品 diff 不含 nop-api-core（io.nop.api.core.*）、`model/*.orm.xml`、nop-auth、nop-ioc 容器内部（BeanContainerImpl/BeanScopeImpl——R2-04 领域）、`_` 前缀生成物路径（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`ioc-and-config.md` **新建**插件生命周期与配置源生命周期契约节（双轨锁契约、状态机六态+失败终态+恢复 API 契约、配置源构造序契约——内容源 = Phase 1 设计文档裁定，派生摘要标注「以设计文档为准」）；`source-anchors.md` **扩展** PLG 锚点系列（生命周期锁契约/状态机恢复 API 锚点，PLG-005/009 受影响面更新）+ 配置源构造序锚点（如无既有条目则新建）
+- [x] 缺口声明：触达模块中无 `docs-for-ai/03-modules/` 条目者（nop-shell/nop-config 等，以实际 diff 为准）按 R-G 治理轨先例登记（plan 执行记录 + daily log），不在本批新建 owner doc
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-core-framework --severity high` 与 `--module nop-utils --severity high`（受影响模块全集与 Closure Gates 一致）退出码 0；若有批前既有发现，逐条裁定登记
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] ioc-and-config.md 新建节 + source-anchors.md 锚点扩展落地；check-doc-links --strict 退出码 0
-- [ ] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（含 nop-ioc 容器内部零改动）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] ioc-and-config.md 新建节 + source-anchors.md 锚点扩展落地；check-doc-links --strict 退出码 0
+- [x] scan-hollow 受影响模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（含 nop-ioc 容器内部零改动）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 3 执行记录（2026-10-26）**：**E1**（授权支路 `-DskipTests`，沿 2496–2505 先例，测试由 Phase 2 模块门禁 + 本 Phase E3 批行通道承载）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS 1:02 min（`_tmp/phase3-e1-install.log`），shade 副作用 `nop-kernel-cli/dependency-reduced-pom.xml` 即时还原。**E3 批行门禁**：`./mvnw test -pl nop-core-framework -am` BUILD SUCCESS 30 模块（`_tmp/phase3-gate-nop-core-framework.log`；首轮在上游 nop-commons `TestExecutorHelperCancelContract` 1F fail-fast 中止——solo 3/3 绿为 plan 2499 遗留时序抖动，本批 nop-commons 零触碰，watch-only 登记；重跑带 `-Dsurefire.rerunFailingTestsCount=2`，`TestResourceCacheInvalidationChain` 3 flakes 重跑通过 = plan 2504/2505 已裁定 tick 窗伪影）；`./mvnw test -pl nop-utils -am` BUILD SUCCESS 24 模块 0 flake（`_tmp/phase3-gate-nop-utils.log`）。**零触碰**：`git diff --name-only 3df6efe0aa..983d4f8c41` 禁触面（nop-api-core / `model/*.orm.xml` / nop-auth / nop-ioc 容器内部 / `_` 前缀生成物 / `.rels`）零命中（`_vfs/` 测试资源目录为 VFS 根惯例、文件非 `_` 前缀）；产品 diff ⊆ nop-plugin ×5 主源 + pom / nop-config ×3 / nop-shell ×1。**scan-hollow**：`--module nop-core-framework` 与 `--module nop-utils` `--severity high` 均 Critical/High/Medium=0、exit 0（`_tmp/phase3-hollow-*.log`），零批前既有发现。**Owner doc**：`ioc-and-config.md` 新建「插件生命周期与配置源生命周期并发契约」节（锁契约 / 状态机失败落定与恢复入口 / 配置源构造序与关闭 / Shell 子进程兜底四小节）；`source-anchors.md` 新增 `PLG-010`（锁契约）/`PLG-011`（失败落定+forceUnload）/`PLG-012`（jar 轨资源释放+HMR 纯比较）/`CFG-002`（配置源构造序+close 互斥）/`SHELL-001`（子进程兜底）；`03-modules/nop-plugin.md` HMR 节判据口径 reconcile（纯比较入口、不继承宽限）+ 新增「生命周期并发契约（插件开发者须知）」摘要节 + 锚点范围 PLG-001~012。**缺口声明（E5）**：nop-config / nop-shell 无 `03-modules/` owner doc——契约节落 `ioc-and-config.md`（配置源为 IoC/Config 核心指南自然归属；Shell 兜底小节为无 owner doc 下的承载位），缺口随 R-G 治理轨登记。`check-doc-links --strict` 退出码 0。
 
 ### Phase 4 - closure audit + 收口
 
