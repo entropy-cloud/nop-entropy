@@ -14,7 +14,7 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 - 跨库 JOIN：同库走原生 JOIN SQL，跨库走应用层拼接（限流 + 显式失败）
 - 元数据变更事件（`NopMetaModelChangedEvent`）：表/模块/数据源 CRUD 自动记录 before/after 快照
 
-## 核心实体（38 个，完整清单与 `nop-metadata/model/nop-metadata.orm.xml` 一致）
+## 核心实体（40 个，完整清单与 `nop-metadata/model/nop-metadata.orm.xml` 一致）
 
 | 实体 | 表名 | 用途 |
 |------|------|------|
@@ -26,6 +26,8 @@ nop-metadata 是 Nop 平台的**联邦式元数据中心**，承担五类职责�
 | NopMetaEntityRelation | `nop_meta_entity_relation` | 实体关系定义 |
 | NopMetaEntityUniqueKey | `nop_meta_entity_unique_key` | 实体唯一键定义 |
 | NopMetaEntityIndex | `nop_meta_entity_index` | 实体索引定义 |
+| NopMetaEntityMethod | `nop_meta_entity_method` | 实体方法注册表（methodKind 判别：static-query/static-mutation/loader；implKind 首版仅 sql；sourceKind SSOT 标注） |
+| NopMetaMethodArg | `nop_meta_method_arg` | 方法参数子表（method 内 argName 唯一） |
 | NopMetaDomain | `nop_meta_domain` | 域定义（stdDomain 声明） |
 | NopMetaDict | `nop_meta_dict` | 元数据字典定义 |
 | NopMetaDictItem | `nop_meta_dict_item` | 字典项 |
@@ -152,6 +154,10 @@ mutation {
 **TagLabel GLOSSARY 查重守卫（P2-01 裁定选项 ii）**：`UK_NOP_META_TAG_LABEL (entityType,entityId,tagId,source)` 对 `source=Glossary && tagId=NULL` 的行不生效（复合 UK 任一列 NULL 即豁免）。`NopMetaTagLabelBizModel` 在 save/update 之后按 `(entityType, entityId, source, glossaryTermId, tagId IS NULL)` 查重（自排除），命中抛 `nop.err.metadata.tag-label-duplicate-glossary-term` 并回滚；tagId 非 NULL 的行（含 GLOSSARY source）继续由 DB UK 拒绝。UK 保持不变（裸扩列与哨兵方案经 NULL-distinct/Oracle ''≡NULL 分析否决，见 plan 裁决表）。
 
 **BusinessDomain 根域重名守卫（P2-28 裁定）**：`UK_NOP_META_BUSINESS_DOMAIN_PARENT_NAME (parentDomainId,name)` 对根域（parentDomainId NULL）不生效。`NopMetaBusinessDomainBizModel` 在 save/update 之后对根域按 `(parentDomainId IS NULL, name)` 查重（自排除），命中抛 `nop.err.metadata.business-domain-duplicate-root-name` 并回滚；非根域由 DB UK 拒绝。UK 与列语义均不变（sentinel 改造否决理由见 plan 裁决表）。
+
+## 实体方法注册表（M1，plan 2026-10-26-2047-1 Phase 1）
+
+**方法注册表**：`NopMetaEntityMethod`（methodKind 判别列：`static-query` 顶层只读入口 / `static-mutation` 顶层变更入口（实现体仍为只读 SELECT）/ `loader` 实体级带参函数）+ 参数子表 `NopMetaMethodArg`；`NopMetaEntity.methods` to-many（cascadeDelete）。`methodName` 实体内唯一（`UK_NOP_META_METHOD_ENTITY_NAME`）且必须为小驼峰标识符、不得与平台标准 action 名冲突（`NopMetaEntityMethodBizModel.RESERVED_METHOD_NAMES`）；`argName` 方法内唯一由 DB UK 承载（无 NULL-distinct 豁免面，平台转译 `entity-already-exists`）。**SSOT 标注**：`sourceKind`（`imported` 快照通道独占 / `custom` 目录自定义缺省注入）——GraphQL save 缺省注入 `custom`，手写 `imported` 显式拒绝（`method-source-imported-forbidden`）。**kind 拒绝分层**：methodKind/implKind 非法值在 GraphQL 入口由 xmeta dict 校验拒绝（`nop.err.biz.invalid-dict-option`）；`method-kind-unknown`/`method-impl-kind-unsupported` 是 DAO 直写行经 GraphQL update 触达 BizModel 守卫的 defense-in-depth 拒绝码。首版 `implKind` 仅 `sql`；执行入口（invokeMethod）与 SQL 沙箱在 Phase 3 落地。存量库升级：`deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-meta-entity-methods.sql`（新建 2 表，无既有表变更）。
 
 ## 状态机字段写路径分层契约（plan 2026-08-16-0920-2）
 

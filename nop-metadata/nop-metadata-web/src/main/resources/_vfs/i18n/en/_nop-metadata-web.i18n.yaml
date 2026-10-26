@@ -64,6 +64,10 @@ site:
       displayName: Modify Meta Entity Measure
     FNPT:NopMetaEntityMeasure:query:
       displayName: Query Meta Entity Measure
+    FNPT:NopMetaEntityMethod:mutation:
+      displayName: Modify Meta Entity Method
+    FNPT:NopMetaEntityMethod:query:
+      displayName: Query Meta Entity Method
     FNPT:NopMetaEntityRelation:mutation:
       displayName: Modify Meta Entity Relation
     FNPT:NopMetaEntityRelation:query:
@@ -88,6 +92,10 @@ site:
       displayName: Modify Meta Manifest
     FNPT:NopMetaManifest:query:
       displayName: Query Meta Manifest
+    FNPT:NopMetaMethodArg:mutation:
+      displayName: Modify Meta Method Arg
+    FNPT:NopMetaMethodArg:query:
+      displayName: Query Meta Method Arg
     FNPT:NopMetaModelChangedEvent:mutation:
       displayName: Modify Meta Model Changed Event
     FNPT:NopMetaModelChangedEvent:query:
@@ -184,6 +192,8 @@ site:
       displayName: Meta Entity Join
     NopMetaEntityMeasure-main:
       displayName: Meta Entity Measure
+    NopMetaEntityMethod-main:
+      displayName: Meta Entity Method
     NopMetaEntityRelation-main:
       displayName: Meta Entity Relation
     NopMetaEntityUniqueKey-main:
@@ -196,6 +206,8 @@ site:
       displayName: Meta Lineage Edge
     NopMetaManifest-main:
       displayName: Meta Manifest
+    NopMetaMethodArg-main:
+      displayName: Meta Method Arg
     NopMetaModelChangedEvent-main:
       displayName: Meta Model Changed Event
     NopMetaModule-main:

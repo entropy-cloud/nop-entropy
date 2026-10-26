@@ -800,6 +800,13 @@
                         <on leftProp="metaEntityId" rightProp="metaEntityId"/>
                     </join>
                 </to-many>
+                <to-many displayName="实体方法集" name="methods"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaEntityMethod" refPropName="metaEntity"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Entity Methods">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-many>
             </relations>
             <indexes>
                 <index name="IX_NOP_META_ENTITY_MODEL" unique="false">
@@ -3507,6 +3514,150 @@
                     <column name="businessDomainId"/>
                 </index>
             </indexes>
+        </entity>
+
+        <!-- =====================================================
+             NopMetaEntityMethod: 实体方法（方法注册表，设计 14 §3.1）
+             methodKind 判别列区分静态入口（static-query/static-mutation）与实体级函数（loader），
+             参数落子表 NopMetaMethodArg；首版实现仅 implKind=sql
+             ===================================================== -->
+        <entity className="io.nop.metadata.dao.entity.NopMetaEntityMethod" createTimeProp="createTime"
+                createrProp="createdBy" displayName="实体方法" name="io.nop.metadata.dao.entity.NopMetaEntityMethod"
+                registerShortName="true" tableName="nop_meta_entity_method" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="function-square"
+                i18n-en:displayName="Meta Entity Method">
+            <columns>
+                <column code="METHOD_ID" displayName="方法ID" mandatory="true" name="methodId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Method Id"/>
+                <column code="META_ENTITY_ID" displayName="实体ID" mandatory="true" name="metaEntityId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Meta Entity Id"/>
+                <column code="IS_DELTA" displayName="是否Delta" domain="boolFlag" mandatory="true" name="isDelta"
+                        propId="3" stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Is Delta"/>
+                <column code="METHOD_NAME" displayName="方法名" mandatory="true" name="methodName" precision="100"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Method Name"/>
+                <column code="METHOD_KIND" displayName="方法类别" mandatory="true" name="methodKind" precision="20"
+                        propId="5" stdDataType="string" stdSqlType="VARCHAR" ext:dict="meta/method-kind"
+                        i18n-en:displayName="Method Kind"/>
+                <column code="SOURCE_KIND" displayName="来源类别" mandatory="true" name="sourceKind" precision="20"
+                        propId="6" stdDataType="string" stdSqlType="VARCHAR" ext:dict="meta/method-source"
+                        i18n-en:displayName="Source Kind"/>
+                <column code="IMPL_KIND" displayName="实现类别" mandatory="true" name="implKind" precision="20"
+                        propId="7" stdDataType="string" stdSqlType="VARCHAR" ext:dict="meta/method-impl-kind"
+                        i18n-en:displayName="Impl Kind"/>
+                <column code="IMPL_SOURCE" displayName="实现体" domain="mediumtext" name="implSource"
+                        precision="16777215" propId="8" stdDataType="string" stdSqlType="VARCHAR"
+                        tagSet="sensitive" i18n-en:displayName="Impl Source"/>
+                <column code="RETURN_TYPE" displayName="返回类型" mandatory="true" name="returnType" precision="200"
+                        propId="9" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Return Type"/>
+                <column code="ROLES" displayName="行级角色" name="roles" precision="500" propId="10"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Roles"/>
+                <column code="DISABLED" displayName="禁用" domain="boolFlag" name="disabled" propId="11"
+                        stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Disabled"/>
+                <column code="EXT_CONFIG" displayName="扩展配置" domain="json-4000" name="extConfig"
+                        propId="12" stdDataType="string" stdDomain="json" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Ext Config"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="13" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="14" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="15" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="16" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="17" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+                <column code="REMARK" displayName="备注" domain="remark" name="remark" precision="200" propId="18"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Remark"/>
+            </columns>
+            <relations>
+                <to-one displayName="元数据实体" name="metaEntity"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntity" refPropName="methods"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Meta Entity">
+                    <join>
+                        <on leftProp="metaEntityId" rightProp="metaEntityId"/>
+                    </join>
+                </to-one>
+                <to-many displayName="方法参数集" name="args"
+                         refEntityName="io.nop.metadata.dao.entity.NopMetaMethodArg" refPropName="method"
+                         tagSet="pub,ref-pub" cascadeDelete="true" i18n-en:displayName="Method Args">
+                    <join>
+                        <on leftProp="methodId" rightProp="methodId"/>
+                    </join>
+                </to-many>
+            </relations>
+            <indexes>
+                <index name="IX_NOP_META_METHOD_ENTITY" unique="false">
+                    <column name="metaEntityId"/>
+                </index>
+            </indexes>
+            <unique-keys>
+                <unique-key name="UK_NOP_META_METHOD_ENTITY_NAME" columns="metaEntityId,methodName" constraint="UK_NOP_META_METHOD_ENTITY_NAME"
+                            i18n-en:displayName="Unique Method Name Per Entity"/>
+            </unique-keys>
+        </entity>
+
+        <!-- =====================================================
+             NopMetaMethodArg: 方法参数（NopMetaEntityMethod 参数子表，设计 14 §3.1）
+             ===================================================== -->
+        <entity className="io.nop.metadata.dao.entity.NopMetaMethodArg" createTimeProp="createTime"
+                createrProp="createdBy" displayName="方法参数" name="io.nop.metadata.dao.entity.NopMetaMethodArg"
+                registerShortName="true" tableName="nop_meta_method_arg" updateTimeProp="updateTime"
+                updaterProp="updatedBy" versionProp="version" ext:icon="braces"
+                i18n-en:displayName="Meta Method Arg">
+            <columns>
+                <column code="ARG_ID" displayName="参数ID" mandatory="true" name="argId" precision="32"
+                        primary="true" propId="1" stdDataType="string" stdSqlType="VARCHAR" tagSet="seq"
+                        i18n-en:displayName="Arg Id"/>
+                <column code="METHOD_ID" displayName="方法ID" mandatory="true" name="methodId" precision="32"
+                        propId="2" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Method Id"/>
+                <column code="ARG_NAME" displayName="参数名" mandatory="true" name="argName" precision="100"
+                        propId="3" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Arg Name"/>
+                <column code="ARG_TYPE" displayName="参数类型" mandatory="true" name="argType" precision="200"
+                        propId="4" stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Arg Type"/>
+                <column code="MANDATORY" displayName="必填" domain="boolFlag" name="mandatory" propId="5"
+                        stdDataType="byte" stdSqlType="TINYINT" i18n-en:displayName="Mandatory"/>
+                <column code="DEFAULT_VALUE" displayName="默认值" name="defaultValue" precision="500" propId="6"
+                        stdDataType="string" stdSqlType="VARCHAR" i18n-en:displayName="Default Value"/>
+                <column code="DISPLAY_NAME" displayName="显示名" name="displayName" precision="200" propId="7"
+                        stdDataType="string" stdSqlType="VARCHAR" tagSet="disp" i18n-en:displayName="Display Name"/>
+                <column code="VERSION" displayName="数据版本" domain="version" mandatory="true" name="version"
+                        propId="8" stdDataType="long" stdSqlType="BIGINT" i18n-en:displayName="Version"/>
+                <column code="CREATED_BY" displayName="创建人" domain="createdBy" mandatory="true" name="createdBy"
+                        precision="50" propId="9" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Created By"/>
+                <column code="CREATE_TIME" displayName="创建时间" domain="createTime" mandatory="true"
+                        name="createTime" propId="10" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Create Time"/>
+                <column code="UPDATED_BY" displayName="修改人" domain="updatedBy" mandatory="true" name="updatedBy"
+                        precision="50" propId="11" stdDataType="string" stdSqlType="VARCHAR"
+                        i18n-en:displayName="Updated By"/>
+                <column code="UPDATE_TIME" displayName="修改时间" domain="updateTime" mandatory="true"
+                        name="updateTime" propId="12" stdDataType="timestamp" stdSqlType="TIMESTAMP"
+                        i18n-en:displayName="Update Time"/>
+            </columns>
+            <relations>
+                <to-one displayName="实体方法" name="method"
+                        refEntityName="io.nop.metadata.dao.entity.NopMetaEntityMethod" refPropName="args"
+                        tagSet="pub,ref-pub" i18n-en:displayName="Entity Method">
+                    <join>
+                        <on leftProp="methodId" rightProp="methodId"/>
+                    </join>
+                </to-one>
+            </relations>
+            <indexes>
+                <index name="IX_NOP_META_METHOD_ARG_METHOD" unique="false">
+                    <column name="methodId"/>
+                </index>
+            </indexes>
+            <unique-keys>
+                <unique-key name="UK_NOP_META_METHOD_ARG_NAME" columns="methodId,argName" constraint="UK_NOP_META_METHOD_ARG_NAME"
+                            i18n-en:displayName="Unique Arg Name Per Method"/>
+            </unique-keys>
         </entity>
     </entities>
 </orm>

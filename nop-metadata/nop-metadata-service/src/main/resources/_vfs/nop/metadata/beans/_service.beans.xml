@@ -283,6 +283,14 @@
         <property name="bizObjName" value="NopMetaQualityScore"/>
     </bean>
 
+    <bean id="io.nop.metadata.service.entity.NopMetaEntityMethodBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaEntityMethod" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaEntityMethodBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaEntityMethod"/>
+    </bean>
+
     <bean id="io.nop.metadata.service.entity.NopMetaDictItemBizModel" ioc:type="@bean:id" ioc:default="true"/>
 
     <bean id="biz_NopMetaDictItem" class="io.nop.biz.proxy.BizProxyFactoryBean"
@@ -305,5 +313,13 @@
           ioc:type="io.nop.metadata.biz.INopMetaReconciliationResultBiz" ioc:force-lazy-property="true" lazy-init="true"
           primary="true">
         <property name="bizObjName" value="NopMetaReconciliationResult"/>
+    </bean>
+
+    <bean id="io.nop.metadata.service.entity.NopMetaMethodArgBizModel" ioc:type="@bean:id" ioc:default="true"/>
+
+    <bean id="biz_NopMetaMethodArg" class="io.nop.biz.proxy.BizProxyFactoryBean"
+          ioc:type="io.nop.metadata.biz.INopMetaMethodArgBiz" ioc:force-lazy-property="true" lazy-init="true"
+          primary="true">
+        <property name="bizObjName" value="NopMetaMethodArg"/>
     </bean>
 </beans>

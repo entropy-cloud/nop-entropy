@@ -842,6 +842,30 @@ CREATE TABLE nop_meta_quality_score(
 );
 
 create index IX_NOP_META_QSCORE_TABLE on nop_meta_quality_score (meta_entity_id,score_time) ;
+CREATE TABLE nop_meta_entity_method(
+  method_id VARCHAR(32) NOT NULL ,
+  meta_entity_id VARCHAR(32) NOT NULL ,
+  is_delta INT4 default 0  NOT NULL ,
+  method_name VARCHAR(100) NOT NULL ,
+  method_kind VARCHAR(20) NOT NULL ,
+  source_kind VARCHAR(20) NOT NULL ,
+  impl_kind VARCHAR(20) NOT NULL ,
+  impl_source TEXT  ,
+  return_type VARCHAR(200) NOT NULL ,
+  roles VARCHAR(500)  ,
+  disabled INT4 default 0   ,
+  ext_config VARCHAR(4000)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  remark VARCHAR(200)  ,
+  constraint UK_NOP_META_METHOD_ENTITY_NAME unique (meta_entity_id,method_name),
+  constraint PK_nop_meta_entity_method primary key (method_id)
+);
+
+create index IX_NOP_META_METHOD_ENTITY on nop_meta_entity_method (meta_entity_id) ;
 CREATE TABLE nop_meta_dict_item(
   dict_item_id VARCHAR(32) NOT NULL ,
   meta_dict_id VARCHAR(32) NOT NULL ,
@@ -902,6 +926,24 @@ CREATE TABLE nop_meta_reconciliation_result(
 
 create index IX_NOP_META_RECONCILIATION_RESULT_CONFIG on nop_meta_reconciliation_result (config_id,execute_time) ;
 create index IX_NOP_META_RECONCILIATION_RESULT_TABLE on nop_meta_reconciliation_result (meta_entity_id) ;
+CREATE TABLE nop_meta_method_arg(
+  arg_id VARCHAR(32) NOT NULL ,
+  method_id VARCHAR(32) NOT NULL ,
+  arg_name VARCHAR(100) NOT NULL ,
+  arg_type VARCHAR(200) NOT NULL ,
+  mandatory INT4 default 0   ,
+  default_value VARCHAR(500)  ,
+  display_name VARCHAR(200)  ,
+  version INT8 NOT NULL ,
+  created_by VARCHAR(50) NOT NULL ,
+  create_time TIMESTAMP NOT NULL ,
+  updated_by VARCHAR(50) NOT NULL ,
+  update_time TIMESTAMP NOT NULL ,
+  constraint UK_NOP_META_METHOD_ARG_NAME unique (method_id,arg_name),
+  constraint PK_nop_meta_method_arg primary key (arg_id)
+);
+
+create index IX_NOP_META_METHOD_ARG_METHOD on nop_meta_method_arg (method_id) ;
 
       COMMENT ON TABLE nop_meta_module IS '元数据模块';
                 
@@ -2197,6 +2239,44 @@ create index IX_NOP_META_RECONCILIATION_RESULT_TABLE on nop_meta_reconciliation_
                     
       COMMENT ON COLUMN nop_meta_quality_score.remark IS '备注';
                     
+      COMMENT ON TABLE nop_meta_entity_method IS '实体方法';
+                
+      COMMENT ON COLUMN nop_meta_entity_method.method_id IS '方法ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.meta_entity_id IS '实体ID';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.is_delta IS '是否Delta';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.method_name IS '方法名';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.method_kind IS '方法类别';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.source_kind IS '来源类别';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.impl_kind IS '实现类别';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.impl_source IS '实现体';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.return_type IS '返回类型';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.roles IS '行级角色';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.disabled IS '禁用';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.ext_config IS '扩展配置';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.update_time IS '修改时间';
+                    
+      COMMENT ON COLUMN nop_meta_entity_method.remark IS '备注';
+                    
       COMMENT ON TABLE nop_meta_dict_item IS '字典项';
                 
       COMMENT ON COLUMN nop_meta_dict_item.dict_item_id IS '字典项ID';
@@ -2286,4 +2366,30 @@ create index IX_NOP_META_RECONCILIATION_RESULT_TABLE on nop_meta_reconciliation_
       COMMENT ON COLUMN nop_meta_reconciliation_result.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_meta_reconciliation_result.remark IS '备注';
+                    
+      COMMENT ON TABLE nop_meta_method_arg IS '方法参数';
+                
+      COMMENT ON COLUMN nop_meta_method_arg.arg_id IS '参数ID';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.method_id IS '方法ID';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.arg_name IS '参数名';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.arg_type IS '参数类型';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.mandatory IS '必填';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.default_value IS '默认值';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.display_name IS '显示名';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.version IS '数据版本';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.created_by IS '创建人';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.create_time IS '创建时间';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.updated_by IS '修改人';
+                    
+      COMMENT ON COLUMN nop_meta_method_arg.update_time IS '修改时间';
                     

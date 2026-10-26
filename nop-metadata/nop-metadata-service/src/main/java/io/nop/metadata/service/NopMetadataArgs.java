@@ -126,4 +126,13 @@ public interface NopMetadataArgs {
     String ARG_TAG_FQN = "tagFQN";
     String ARG_PRIORITY = "priority";
     String ARG_FIELD_TYPE_FILTER = "fieldTypeFilter";
+    String ARG_METHOD_ID = "methodId";
+    String ARG_METHOD_NAME = "methodName";
+    String ARG_METHOD_KIND = "methodKind";
+    String ARG_IMPL_KIND = "implKind";
+    String ARG_SOURCE_KIND = "sourceKind";
+    String ARG_ARGS = "args";
+    String ARG_DISABLED = "disabled";
+    String ARG_COMPUTE_EXPR = "computeExpr";
+    String ARG_MAP_TO_PROP = "mapToProp";
 }

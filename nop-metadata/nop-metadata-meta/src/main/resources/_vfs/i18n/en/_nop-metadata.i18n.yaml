@@ -16,12 +16,14 @@ entity:
     NopMetaEntityIndex: Meta Entity Index
     NopMetaEntityJoin: Meta Entity Join
     NopMetaEntityMeasure: Meta Entity Measure
+    NopMetaEntityMethod: Meta Entity Method
     NopMetaEntityRelation: Meta Entity Relation
     NopMetaEntityUniqueKey: Meta Entity Unique Key
     NopMetaGlossary: Meta Glossary
     NopMetaGlossaryTerm: Meta Glossary Term
     NopMetaLineageEdge: Meta Lineage Edge
     NopMetaManifest: Meta Manifest
+    NopMetaMethodArg: Meta Method Arg
     NopMetaModelChangedEvent: Meta Model Changed Event
     NopMetaModule: Meta Module
     NopMetaOrmModel: Meta ORM Model
@@ -314,6 +316,7 @@ prop:
       dataContracts: Data Contracts
       reconciliationConfigs: Reconciliation Configs
       reconciliationResults: Reconciliation Results
+      methods: Entity Methods
       extConfigComponent: null
     NopMetaEntityDimension:
       dimensionId: Dimension Id
@@ -459,6 +462,32 @@ prop:
       metaEntity: Meta Entity
       metaEntity.displayName: Meta Entity
       extConfigComponent: null
+    NopMetaEntityMethod:
+      methodId: Method Id
+      metaEntityId: Meta Entity Id
+      isDelta: Is Delta
+      methodName: Method Name
+      methodKind: Method Kind
+      methodKind_label: null
+      sourceKind: Source Kind
+      sourceKind_label: null
+      implKind: Impl Kind
+      implKind_label: null
+      implSource: Impl Source
+      returnType: Return Type
+      roles: Roles
+      disabled: Disabled
+      extConfig: Ext Config
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      remark: Remark
+      metaEntity: Meta Entity
+      metaEntity.displayName: Meta Entity
+      args: Method Args
+      extConfigComponent: null
     NopMetaEntityRelation:
       relationId: Relation Id
       metaEntityId: Meta Entity Id
@@ -598,6 +627,20 @@ prop:
       metaModule: Meta Module
       metaModule.displayName: Meta Module
       contentComponent: null
+    NopMetaMethodArg:
+      argId: Arg Id
+      methodId: Method Id
+      argName: Arg Name
+      argType: Arg Type
+      mandatory: Mandatory
+      defaultValue: Default Value
+      displayName: Display Name
+      version: Version
+      createdBy: Created By
+      createTime: Create Time
+      updatedBy: Updated By
+      updateTime: Update Time
+      method: Entity Method
     NopMetaModelChangedEvent:
       modelChangedEventId: Model Changed Event Id
       eventType: Event Type

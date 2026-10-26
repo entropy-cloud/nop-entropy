@@ -57,5 +57,6 @@
   "dataContracts": null,
   "reconciliationConfigs": null,
   "reconciliationResults": null,
+  "methods": null,
   "extConfigComponent": null
 }

@@ -22,6 +22,7 @@
 | `10-event-model.md` | Event Model | 元数据变更事件模型 |
 | `11-enterprise-semantic-layer.md` | Enterprise Semantic Layer | Classification/Tag + Glossary + Domain + DataProduct + TagLabel |
 | `12-data-contract-and-governance-workflow.md` | Data Contract & Governance Workflow | DataContract/TagLabel/GlossaryTerm 接入 nop-wf 审批流 |
+| `14-entity-methods-design.md` | Entity Methods & Computed Fields | 实体方法注册表、计算属性/别名字段、标准 CRUD 标签 |
 
 ## 核心设计决策
 

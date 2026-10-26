@@ -1,0 +1,10 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 方法实现类别
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: 参数化SQL
+    value: sql
+    description: 带?占位符的单条只读SELECT语句（首版唯一实现类别）

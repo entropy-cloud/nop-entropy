@@ -69,11 +69,15 @@ alter table nop_meta_reconciliation_config add NOP_TENANT_ID VARCHAR(32) DEFAULT
 
 alter table nop_meta_quality_score add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
+alter table nop_meta_entity_method add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
 alter table nop_meta_dict_item add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_profiling_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_reconciliation_result add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
+
+alter table nop_meta_method_arg add NOP_TENANT_ID VARCHAR(32) DEFAULT '0' NOT NULL;
 
 alter table nop_meta_module drop primary key;
 alter table nop_meta_module add primary key (NOP_TENANT_ID, META_MODULE_ID);
@@ -180,6 +184,9 @@ alter table nop_meta_reconciliation_config add primary key (NOP_TENANT_ID, CONFI
 alter table nop_meta_quality_score drop primary key;
 alter table nop_meta_quality_score add primary key (NOP_TENANT_ID, QUALITY_SCORE_ID);
 
+alter table nop_meta_entity_method drop primary key;
+alter table nop_meta_entity_method add primary key (NOP_TENANT_ID, METHOD_ID);
+
 alter table nop_meta_dict_item drop primary key;
 alter table nop_meta_dict_item add primary key (NOP_TENANT_ID, DICT_ITEM_ID);
 
@@ -188,6 +195,9 @@ alter table nop_meta_profiling_result add primary key (NOP_TENANT_ID, PROFILING_
 
 alter table nop_meta_reconciliation_result drop primary key;
 alter table nop_meta_reconciliation_result add primary key (NOP_TENANT_ID, RESULT_ID);
+
+alter table nop_meta_method_arg drop primary key;
+alter table nop_meta_method_arg add primary key (NOP_TENANT_ID, ARG_ID);
 
 alter table nop_meta_module drop constraint UK_NOP_META_MODULE_ID_VER;
 alter table nop_meta_module add constraint UK_NOP_META_MODULE_ID_VER unique (NOP_TENANT_ID,MODULE_ID,MODULE_VERSION);
@@ -288,7 +298,13 @@ alter table nop_meta_data_contract add constraint UK_NOP_META_CONTRACT_NAME uniq
                 alter table nop_meta_reconciliation_config drop constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME;
 alter table nop_meta_reconciliation_config add constraint UK_NOP_META_RECONCILIATION_CONFIG_NAME unique (NOP_TENANT_ID,CONFIG_NAME);
 
+                alter table nop_meta_entity_method drop constraint UK_NOP_META_METHOD_ENTITY_NAME;
+alter table nop_meta_entity_method add constraint UK_NOP_META_METHOD_ENTITY_NAME unique (NOP_TENANT_ID,META_ENTITY_ID,METHOD_NAME);
+
                 alter table nop_meta_dict_item drop constraint UK_NOP_META_DICT_ITEM_VALUE;
 alter table nop_meta_dict_item add constraint UK_NOP_META_DICT_ITEM_VALUE unique (NOP_TENANT_ID,META_DICT_ID,ITEM_VALUE);
+
+                alter table nop_meta_method_arg drop constraint UK_NOP_META_METHOD_ARG_NAME;
+alter table nop_meta_method_arg add constraint UK_NOP_META_METHOD_ARG_NAME unique (NOP_TENANT_ID,METHOD_ID,ARG_NAME);
 
                 

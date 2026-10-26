@@ -1,0 +1,18 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 方法类别
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: 静态查询
+    value: static-query
+    description: 顶层只读入口
+
+  - label: 静态变更入口
+    value: static-mutation
+    description: 顶层入口，业务副作用由外部过程承担，实现体仍为只读SELECT
+
+  - label: 实体级函数
+    value: loader
+    description: 实体级带参字段

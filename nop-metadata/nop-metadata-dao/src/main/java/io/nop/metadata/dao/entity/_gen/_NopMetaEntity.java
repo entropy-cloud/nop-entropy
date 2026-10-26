@@ -228,6 +228,9 @@ public class _NopMetaEntity extends DynamicOrmEntity{
     /* relation: 对账结果集 */
     public static final String PROP_NAME_reconciliationResults = "reconciliationResults";
     
+    /* relation: 实体方法集 */
+    public static final String PROP_NAME_methods = "methods";
+    
     /* component:  */
     public static final String PROP_NAME_extConfigComponent = "extConfigComponent";
     
@@ -2151,6 +2154,16 @@ public class _NopMetaEntity extends DynamicOrmEntity{
      */
     public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaReconciliationResult> getReconciliationResults(){
        return _reconciliationResults;
+    }
+       
+    private final OrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityMethod> _methods = new OrmEntitySet<>(this, PROP_NAME_methods,
+        io.nop.metadata.dao.entity.NopMetaEntityMethod.PROP_NAME_metaEntity, null,io.nop.metadata.dao.entity.NopMetaEntityMethod.class);
+
+    /**
+     * 实体方法集。 refPropName: metaEntity, keyProp: {rel.keyProp}
+     */
+    public final IOrmEntitySet<io.nop.metadata.dao.entity.NopMetaEntityMethod> getMethods(){
+       return _methods;
     }
        
    private io.nop.orm.component.JsonOrmComponent _extConfigComponent;

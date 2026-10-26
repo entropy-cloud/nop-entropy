@@ -259,6 +259,55 @@ public class TestNopMetaBizInterfaceCompleteness {
                 "retention NopMetaDataContract.xbiz must keep approval-support in extends chain");
     }
 
+    /**
+     * M1（plan 2026-10-26-2047-1 Phase 1）：方法注册表两接口已登记——存在、驻
+     * {@code io.nop.metadata.biz} 包、绑定正确实体类型、实现类关系成立。
+     * 两接口当前无自定义方法（标准 CRUD 由 ICrudBiz 承载，save 守卫为 BizModel override
+     * 非接口新增），故不入 COVERAGE 真值表（全集守卫只登记非空接口），存在性由本测试钉死；
+     * 后续任一接口新增自定义方法时，全集守卫会转红要求登记。
+     */
+    @Test
+    public void testMethodRegistryInterfacesRegistered() throws Exception {
+        Class<?> methodBiz = Class.forName("io.nop.metadata.biz.INopMetaEntityMethodBiz");
+        Class<?> argBiz = Class.forName("io.nop.metadata.biz.INopMetaMethodArgBiz");
+        assertTrue(io.nop.orm.biz.ICrudBiz.class.isAssignableFrom(methodBiz),
+                "INopMetaEntityMethodBiz must extend ICrudBiz");
+        assertTrue(io.nop.orm.biz.ICrudBiz.class.isAssignableFrom(argBiz),
+                "INopMetaMethodArgBiz must extend ICrudBiz");
+        assertEquals(0, methodBiz.getDeclaredMethods().length,
+                "INopMetaEntityMethodBiz must stay empty until a custom method is added "
+                        + "(then register it in COVERAGE)");
+        assertEquals(0, argBiz.getDeclaredMethods().length,
+                "INopMetaMethodArgBiz must stay empty until a custom method is added "
+                        + "(then register it in COVERAGE)");
+        assertCrudBizTypeArg(methodBiz, io.nop.metadata.dao.entity.NopMetaEntityMethod.class);
+        assertCrudBizTypeArg(argBiz, io.nop.metadata.dao.entity.NopMetaMethodArg.class);
+
+        Class<?> methodBizModel = Class.forName(
+                "io.nop.metadata.service.entity.NopMetaEntityMethodBizModel");
+        assertTrue(methodBiz.isAssignableFrom(methodBizModel),
+                "NopMetaEntityMethodBizModel must implement INopMetaEntityMethodBiz");
+        Class<?> argBizModel = Class.forName(
+                "io.nop.metadata.service.entity.NopMetaMethodArgBizModel");
+        assertTrue(argBiz.isAssignableFrom(argBizModel),
+                "NopMetaMethodArgBizModel must implement INopMetaMethodArgBiz");
+    }
+
+    /** 钉死 I*Biz 接口的 ICrudBiz 泛型实参（绑定正确实体类型，防止错绑）。 */
+    private static void assertCrudBizTypeArg(Class<?> iface, Class<?> expectedEntity) {
+        for (java.lang.reflect.Type gi : iface.getGenericInterfaces()) {
+            if (gi instanceof java.lang.reflect.ParameterizedType) {
+                java.lang.reflect.ParameterizedType pt = (java.lang.reflect.ParameterizedType) gi;
+                if (pt.getRawType().equals(io.nop.orm.biz.ICrudBiz.class)) {
+                    assertEquals(expectedEntity, pt.getActualTypeArguments()[0],
+                            iface.getSimpleName() + " must bind ICrudBiz<" + expectedEntity.getSimpleName() + ">");
+                    return;
+                }
+            }
+        }
+        throw new AssertionError(iface.getSimpleName() + " does not directly declare ICrudBiz<...>");
+    }
+
     private void assertDeclaresMethod(Class<?> iface, String methodName, int paramCount) {
         assertNotNull(iface, "interface class must not be null");
         Method found = null;

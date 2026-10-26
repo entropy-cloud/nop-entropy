@@ -1,0 +1,14 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 方法来源
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: 快照导入
+    value: imported
+    description: 快照导入通道独占写入，目录侧手写被守卫拒绝
+
+  - label: 目录自定义
+    value: custom
+    description: 目录侧手工登记（缺省）

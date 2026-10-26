@@ -1,7 +1,7 @@
 # nop-metadata Implementation Roadmap
 
-> Last Updated: 2026-07-22 (S1/G2 状态同步：plan 302 与 plan G2 均已 closure audit 通过，roadmap 状态统一更新为 done；所有 roadmap Phase（P1-P4, P1+, S1-S3, G1-G3, SR, Opt 系列）均已实现)（先前更新：2026-07-21 G1 DataContract 审批流 plan 2026-07-20-2000-2 closure audit 落地：roadmap G1 子项全部 done；先前更新：expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
-> Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 10-event-model）；`01-architecture-baseline.md` 为架构权威
+> Last Updated: 2026-10-26（M1-M4 Entity Methods 工作项增补：方法注册表 + 计算属性/别名 + 方法执行器 + 标准 CRUD 标签，设计 `14-entity-methods-design.md`，plan `2026-10-26-2047-1` draft 待 review/audit；先前更新：2026-07-22（S1/G2 状态同步：plan 302 与 plan G2 均已 closure audit 通过，roadmap 状态统一更新为 done；所有 roadmap Phase（P1-P4, P1+, S1-S3, G1-G3, SR, Opt 系列）均已实现)（先前更新：2026-07-21 G1 DataContract 审批流 plan 2026-07-20-2000-2 closure audit 落地：roadmap G1 子项全部 done；先前更新：expression 型 Measure 输出列的列级血缘实现 plan 2026-07-18-1800-1 落地：§2.6.1 D1-D5 裁定 + 本 plan 新增 D6 replace 语义裁定落地 + D5 失败处理分层精细化（表级前置失败 vs per-measure 隔离）+ D4 en label 跟随既有模式同步——`extractMeasureLineage` action 在 NopMetaLineageEdgeBizModel 实现 + dict `measure_parse` 新增值经 codegen 生成 `LINEAGE_SOURCE_MEASURE_PARSE` 常量 + flat-collect 自环边产出 + 直接边查询召回（D2，无 contract 变更）+ D6 replace 重抽语义 + case-insensitive 字段比对 + 8 e2e 测试，462 tests；收口 Opt-followup-impl + §八 follow-up 实现部分。先前更新：多列 having 算术表达式 plan 2026-07-18-1500-2 落地：§4.4.2 D11.4 裁定写入——TreeBean `expr` 属性承载（经 setAttr/getAttr，不修改 TreeBean 类）+ preprocess 落点（候选 b：translate 前预处理）+ post-substitution `ExpressionMeasureValidator.validateStatic(saveTimeLoose)` defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用（D12.4）+ Phase 1 字面量禁止 + translate 单次遍历产出参数 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」。先前更新：expression 型 Measure 输出列的列级血缘 design-first 裁定 plan 2026-07-18-1500-1 落地：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定写入，§八 follow-up 划线标注裁定覆盖；实现属 successor plan Opt-followup-impl planned。先前更新：expression 型 Measure 表达式语言执行实现 plan 2026-07-18-1400-1 落地：§4.4.2 D12 实现部分收口，6 新 ErrorCode（unparseable/unsafe/dialect-unsupported/memory-not-computable/too-long/having-order-by-unsupported）+ 删除 ERR_AGGR_EXPRESSION_MEASURE；新增 ExpressionMeasureValidator（dialect-independent 静态校验 + dialect-specific 函数支持检查）；5 处抛点替换为真实执行（entity bypass EQL + external-sql withConnection + JOIN 同库注入 <agg>(<validatedExpr>)）+ 跨库内存显式失败；D12.5 save-time 校验经 BizModel.save 入口 + VARCHAR(1000) 容量；参数绑定顺序修正（expression 字面量 → filter → having）；HAVING/ORDER BY 引用 expression measure 显式失败；10 新增 e2e 测试 + 24 单元测试，434 tests)
+> Source: 设计体系 `ai-dev/design/nop-metadata/`（00-vision ~ 14-entity-methods-design）；`01-architecture-baseline.md` 为架构权威
 
 ## Purpose
 
@@ -41,6 +41,10 @@
 - G3. Governance Phase 3 — 质量告警工作流: `done`（plan 2026-07-20-2000-3；`NopMetaQualityResult` 新增 `isFalsePositive` 列；`QualityAlertWorkflowProcessor` 实现；`qualityBreachApproval/v1.xwf` 工作流定义；`NopMetaQualityResultBizModel` approve/reject override；`judgeByRuleId` 方法；集成到 `NopMetaQualityRuleBizModel.executeQualityRule` FAIL+ERROR 路径；661 tests；收口所有 Phase 1 + Phase 2 项）
 - S4. Semantic Layer Phase 4 — 传播引擎实现（Lineage-driven TagLabel 传播 + AutoClassification 规则引擎）: `done`（plan 2026-07-22-1500-1；`LineageTagPropagationService` + `AutoClassificationService` 实现；`propagateTags` + `suggestTags` mutations 注册在 `NopMetaTagLabelBizModel`；dict `meta/tag-label-source` 新增 `lineage-propagation`/`auto-classify` 选项；`NopMetadataErrors.java` 新增 4 个 ErrorCode；809 tests）
 - SR. Search — 元数据搜索索引: `done`（plan 312；利用 Nop 平台 ISearchEngine + LuceneSearchEngine 基础设施实现搜索索引构建与查询；覆盖 6 个核心实体（Classification/Tag/GlossaryTerm/MetaEntity/MetaEntity/MetaEntityField）；全量索引 NopMetaIndexBuilder + 增量索引 NopMetaSearchProcessor + 搜索 API NopMetaSearchBizModel；`searchMetadata` GraphQL query + `rebuildSearchIndex` mutation；705 tests）
+- M1. Entity Methods P1 — 方法注册表建模（NopMetaEntityMethod/NopMetaMethodArg 实体 + dict + save 守卫 + GraphQL CRUD）: `planned`
+- M2. Entity Methods P2 — 计算属性与别名（NopMetaEntityField fieldKind/computeExpr/mapToProp + queryData 输出投影解析）: `planned`
+- M3. Entity Methods P3 — 方法执行器（invokeMethod 泛化入口 + SQL 沙箱双侧校验 + entityKind 取数分派 + 行级 roles）: `planned`
+- M4. Entity Methods P4 — 标准 CRUD 标签（tagSet 保留标签 std-crud/std-crud-ro + findEntityPage/findEntityList/getEntity 目录合成 + 守卫）: `planned`
 
 ## Status Values
 
@@ -233,6 +237,26 @@
 | SR-3 | 增量索引（NopMetaSearchProcessor、6 个 BizModel save/delete hook、OrmModelImporter 导入路径） | done |
 | SR-4 | 搜索 API + 集成测试（searchMetadata query、SearchResultDTO/SearchHitDTO、17 新增单元测试） | done |
 
+### M1-M4. Entity Methods — 方法注册表 + 计算属性/别名 + 执行器 + 标准 CRUD 标签
+
+> 设计参考：`14-entity-methods-design.md`（决策与安全契约的权威来源）
+
+| 工作项 | 描述 | 状态 |
+|--------|------|------|
+| M1-1 | 新增实体 `NopMetaEntityMethod`（methodKind/sourceKind/implKind 判别 + implSource SQL + roles）与 `NopMetaMethodArg`（参数子表），`NopMetaEntity` 增加 methods to-many 关联 | done |
+| M1-2 | 新增 dict：`meta/method-kind`、`meta/method-source`、`meta/method-impl-kind` | done |
+| M1-3 | save 守卫：methodKind/implKind 组合、methodName 保留名与格式、sourceKind=imported 拒手写 + 对应 ErrorCode（`MethodErrors` 分组）（argName 重复由 DB UK 承载，无豁免面不设应用层查重码——P2-28 先例；kind 非法值入口面由 xmeta dict 校验拒绝，`method-kind-unknown`/`method-impl-kind-unsupported` 为 DAO 直写行 defense-in-depth 码） | done |
+| M1-4 | `INopMetaEntityMethodBiz`/`INopMetaMethodArgBiz` 接口 + AutoTest（CRUD + 守卫拒绝路径） | done |
+| M2-1 | `NopMetaEntityField` 增加 `fieldKind`/`computeExpr`/`mapToProp` 列 + dict `meta/field-kind` + kind 互斥守卫（`FieldKindErrors` 分组） | todo |
+| M2-2 | queryData 输出投影解析：computed 列经 XLang 表达式行上求值（`ExprFeatures.SIMPLE` 特性集）、alias 列投影重命名（不下推 SQL） | todo |
+| M3-1 | `MetaMethodExecutor` + `NopMetaEntity__invokeMethod` 泛化入口（PHYSICAL→EQL / SQL_VIEW/EXTERNAL→withConnection） | todo |
+| M3-2 | 方法 SQL 沙箱：save-time + query-time 同源校验（SELECT-only + blocklist 水位不低于 custom_sql + `?` 参数绑定）+ 强类型返回 DTO | todo |
+| M3-3 | 行级 roles 检查 + 执行错误码族 + 错误面不泄漏 SQL 全文 | todo |
+| M4-1 | tagSet 保留标签 `std-crud`/`std-crud-ro`（dict `meta/entity-tag`）守卫（entityKind 匹配，显式拒绝不静默降级） | todo |
+| M4-2 | 目录合成只读入口 `NopMetaEntity__findEntityPage/findEntityList/getEntity`（走 queryData 同源取数路径） | todo |
+
+> Plan: 2026-10-26-2047-1
+
 ---
 
 ## 未建模实体（设计中存在，ORM 中尚未创建）
@@ -259,6 +283,8 @@
 | `NopMetaGlossaryTerm` | S2 | `11-enterprise-semantic-layer.md` §3.2.4 |
 | ~~`NopMetaBusinessDomain`~~ | ~~S3~~ | ~~`11-enterprise-semantic-layer.md` §3.2.6~~ **已建模** |
 | ~~`NopMetaDataProduct`~~ | ~~S3~~ | ~~`11-enterprise-semantic-layer.md` §3.2.7~~ **已建模** |
+| ~~`NopMetaEntityMethod`~~ | ~~M1~~ | ~~`14-entity-methods-design.md` §3.1~~ **已建模（M1-1 done，plan 2026-10-26-2047-1 Phase 1）** |
+| ~~`NopMetaMethodArg`~~ | ~~M1~~ | ~~`14-entity-methods-design.md` §3.1~~ **已建模（M1-1 done，plan 2026-10-26-2047-1 Phase 1）** |
 
 ---
 
@@ -278,6 +304,10 @@ graph TD
     G2["G2 Governance Phase 2 — TagLabel 治理"]
     G3["G3 Governance Phase 3 — 质量告警工作流"]
     SR["SR Search — 元数据搜索索引"]
+    M1["M1 Entity Methods P1 — 方法注册表建模"]
+    M2["M2 Entity Methods P2 — 计算属性/别名"]
+    M3["M3 Entity Methods P3 — 方法执行器"]
+    M4["M4 Entity Methods P4 — 标准 CRUD 标签"]
 
     P1 --> P1P
     P1P --> P2
@@ -291,6 +321,11 @@ graph TD
     S1 --> G2
     S2 --> S3
     P2 --> G3
+
+    M1 --> M2
+    M1 --> M3
+    M2 --> M4
+    M3 --> M4
 
     style P1 fill:#dfd,stroke:#3a3
     style P1P fill:#dfd,stroke:#3a3
@@ -318,10 +353,10 @@ graph TD
 
 非 roadmap 内容已拆分到各自归属，本文件不重复维护：
 
-- **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 12-data-contract-and-governance-workflow，共 13 份编号文档 + README）
+- **设计文档** → `ai-dev/design/nop-metadata/`（00-vision ~ 14-entity-methods-design，共 14 份编号文档 + README）
 - **已完成 plan** → `292`（Phase 1 导入引擎）；`293`（设计一致性修复）；`294`（P1+ 导入引擎完整性）；`295`（P1+ Delta 展开 + 版本发布）；`2026-07-16-0225-1`（P2-1 数据源注册+连接验证）；`2026-07-16-0225-2`（P2-2 外部表同步）；`2026-07-16-0225-3`（P2-3 Manifest 快照）；`2026-07-16-0420-1`（P2-4 Catalog 运行时收集）；`2026-07-16-0420-2`（P2-5 血缘采集+遍历）；`2026-07-16-0800-1`（P4-1 单表联邦查询）；`2026-07-16-0900-1`（P4-4 数据契约 MetaDataContract）；`2026-07-16-0900-2`（P4-5 Reconciliation 对账）；`2026-07-16-1905-1`（P2 entity/sql 执行覆盖扩展）；`2026-07-17-0228-1`（P-event 元数据变更事件模型）；`2026-07-17-0228-2`（P2-5+ 列级 SQL 血缘解析）；`2026-07-17-0852-2`（P2-5++ CTE/子查询列穿透）；`2026-07-17-0228-3`（P3+ 跨表 Measure/Dimension 校验）；`2026-07-17-0700-1`（P3+/P4+ sql/external 表作为 NopMetaEntityJoin 端点）；`2026-07-17-0700-2`（P4-2+ sql/external 端点联邦 JOIN 查询执行）；`2026-07-17-0027-1`（P2-8 质量检查点编排）；`2026-07-17-0027-2`（P2-9 质量评分）；`2026-07-17-0540-1`（checkpoint→score 自动评分触发）；`2026-07-17-0540-2`（checkpoint 结果动作投递）；`2026-07-17-0852-3`（P2-multi-schema 多 schema 数据源）；`2026-07-17-1308-1`（P2-cron 质量检查点 cron 定时调度 nop-job 集成）；`2026-07-17-1500-1`（P4-dc-1 混合端点同库 JOIN 聚合）；`2026-07-17-1500-2`（P4-dc-2 跨库 JOIN 聚合全端点组合，收口 0852-1/1200-1/0700-2 跨库 deferred）；`2026-07-17-2055-1`（P2+P4 phase closure：系统级回归复核 + roadmap 状态翻转 + §八 待定问题收口）；`2026-07-18-0900-1`（Opt-1 sql 视图字段类型推断方案 B：LIMIT 0 + ResultSetMetaData，收口 0700-1/0800-1/1905-1/0700-2 Non-Blocking Follow-up）；`2026-07-18-0900-2`（Opt-2 queryAggregation having/orderBy 增强：FilterToSqlTranslator.translate 重载 + MemoryFilterEvaluator/MemoryOrderByComparator + 三条路径一致支持，收口 0852-1/1200-1/1500-1/1500-2 Non-Blocking Follow-up「聚合 having/排序增强」）；`2026-07-18-1100-1`（Opt-3 expression 型 Measure 表达式语言设计与执行契约 design-first：§4.4.2 D12 裁定 方言原生 SQL 片段 + 三条路径契约 + 安全模型 + 失败路径 ErrorCode + 容量约束，实现属 successor plan）；`2026-07-18-1100-2`（Opt-4 entity 路径时间维度 granularity 分桶补齐：§4.4.2 D7 收口 + 新增 D7.1 裁定，bypass EQL 经 TableReferenceExecutor 平台 JDBC Connection 直查物理 SQL，复用 GranularityBucketing.translate 同 external/sql 路径；收口 D7 follow-up「granularity 暂不下沉到 SQL」）；`2026-07-18-1400-1`（Opt-3 expression 型 Measure 表达式语言执行实现：§4.4.2 D12 实现部分收口，新增 ExpressionMeasureValidator（dialect-independent 静态 + dialect-specific 函数检查）+ 6 新 ErrorCode + 5 处抛点替换为真实执行 + D12.5 save-time 校验 + 参数绑定顺序修正 + HAVING/ORDER BY 引用 expression 显式失败，删 ERR_AGGR_EXPRESSION_MEASURE）；`2026-07-18-1500-1`（Opt-followup-design expression 型 Measure 输出列的列级血缘 design-first：§2.6.1 D1/D3/D4/D5 + §2.6.2 D2 五项裁定——D1 自环边 + BFS 语义隔离 + D2 直接边查询召回 + D3 flat-collect 多边 + D4 lineageSource 新增 measure_parse / transformType=aggregated + D5 复用 ValidatedExpression.identifiers + MetaEntityFieldResolver 归属 + per-measure try/catch 隔离；§八 follow-up 划线标注裁定覆盖；§2.6 ASCII schema 列名收敛 transformExpression→transformExpr；实现属 successor plan Opt-followup-impl）；`2026-07-18-1500-2`（Opt-followup 多列 having 算术表达式：§4.4.2 D11.4 裁定 TreeBean `expr` 属性承载 + preprocess 落点（候选 b）+ post-substitution validator defense-in-depth + name→aggSql 替换 + `?` 安全边界沿用 + Phase 1 字面量禁止 + 三条 SQL 路径 6+ 注入点 + 跨库内存 `MemoryFilterEvaluator.evaluate` 入口显式失败；3 新 ErrorCode + 12 单元测试 + 8 e2e 测试，454 tests；收口 Opt-2/Opt-3 两处 `Deferred But Adjudicated`「多列 having 算术表达式」）
-- **活跃 plan** → `302`（S1 Semantic Layer Phase 1 — Classification + TagLabel，draft 待执行）
-- **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单
+- **活跃 plan** → `302`（S1 Semantic Layer Phase 1 — Classification + TagLabel，draft 待执行）；`2026-10-26-2047-1`（M1-M4 Entity Methods — 方法注册表 + 计算属性/别名 + 执行器 + 标准 CRUD 标签，draft 待 review/audit）
+- **设计决策** → `01-architecture-baseline.md` §一 设计结论 + §七 拒绝清单；实体方法/计算属性/标准 CRUD 标签 → `14-entity-methods-design.md`
 - **待定问题** → `01-architecture-baseline.md` §八 待定问题
 - **Gap 分析** → `02-gap-analysis.md`（对比 DataHub/OpenMetadata/Atlas/Amundsen/Marquez）
 - **审计发现** → plan 293 的 G1-G10 gap 清单
@@ -344,7 +379,7 @@ graph TD
 ## Rule
 
 - 本文档是状态索引和粗粒度 Phase 划分，不是 execution plan。实现细节在 plan 文件，不在本 roadmap。
-- **可标记单位是 Phase**（P1 ~ P4 + P1+ + S1 ~ S3 + G1 ~ G3），当前全 Old Phase（P1/P1+/P2/P3/P4 + 增量项）均为 `done`，新 Phase（S1/S2/S3/G1/G2/G3）为 `planned`/`todo`。新工作项出现时在 Work Item Status 追加。
+- **可标记单位是 Phase**（P1 ~ P4 + P1+ + S1 ~ S3 + G1 ~ G3 + M1 ~ M4），当前全 Old Phase（P1/P1+/P2/P3/P4 + 增量项）均为 `done`，新 Phase（S1/S2/S3/G1/G2/G3/M1-M4）为 `planned`/`todo`。新工作项出现时在 Work Item Status 追加。
 - **唯一动态块是 Work Item Status**（顶部）。状态不散落到 Work Items 表、Pointers 或别处。
 - 审计发现不在此追踪；设计决策不在此重述；逐项实现描述不在此复制。
 - 不得在 closure audit 通过前把 Phase 标为 `done`。

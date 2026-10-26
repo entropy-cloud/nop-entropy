@@ -34,7 +34,9 @@ drop table nop_meta_profiling_rule;
 drop table nop_meta_data_contract;
 drop table nop_meta_reconciliation_config;
 drop table nop_meta_quality_score;
+drop table nop_meta_entity_method;
 drop table nop_meta_dict_item;
 drop table nop_meta_profiling_result;
 drop table nop_meta_reconciliation_result;
+drop table nop_meta_method_arg;
 
