@@ -249,9 +249,9 @@
 | M1-4 | `INopMetaEntityMethodBiz`/`INopMetaMethodArgBiz` 接口 + AutoTest（CRUD + 守卫拒绝路径） | done |
 | M2-1 | `NopMetaEntityField` 增加 `fieldKind`（dict `meta/field-kind`：storage/computed/alias，缺省 storage）/`computeExpr`/`mapToProp` 列 + dict `meta/field-kind` + kind 互斥守卫（`FieldKindErrors` 分组） | done |
 | M2-2 | queryData 输出投影解析：computed 列经 XLang 表达式行上求值（`ExprFeatures.SIMPLE` 特性集）、alias 列投影重命名（不下推 SQL） | done |
-| M3-1 | `MetaMethodExecutor` + `NopMetaEntity__invokeMethod` 泛化入口（PHYSICAL→EQL / SQL_VIEW/EXTERNAL→withConnection） | todo |
-| M3-2 | 方法 SQL 沙箱：save-time + query-time 同源校验（SELECT-only + blocklist 水位不低于 custom_sql + `?` 参数绑定）+ 强类型返回 DTO | todo |
-| M3-3 | 行级 roles 检查 + 执行错误码族 + 错误面不泄漏 SQL 全文 | todo |
+| M3-1 | `MetaMethodExecutor` + `NopMetaEntity__invokeMethod` 泛化入口（PHYSICAL→平台事务 JDBC 连接 / SQL_VIEW/EXTERNAL→withConnection，经 TableReferenceExecutor 联邦取数先例） | done |
+| M3-2 | 方法 SQL 沙箱：save-time + query-time 同源校验（SELECT-only + blocklist 水位不低于 custom_sql（直接复用其 token 集合，同域共享）+ `?` 参数绑定）+ 强类型返回 DTO | done |
+| M3-3 | 行级 roles 检查 + 执行错误码族 + 错误面不泄漏 SQL 全文 | done |
 | M4-1 | tagSet 保留标签 `std-crud`/`std-crud-ro`（dict `meta/entity-tag`）守卫（entityKind 匹配，显式拒绝不静默降级） | todo |
 | M4-2 | 目录合成只读入口 `NopMetaEntity__findEntityPage/findEntityList/getEntity`（走 queryData 同源取数路径） | todo |
 

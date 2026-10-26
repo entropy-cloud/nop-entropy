@@ -131,8 +131,10 @@ public interface NopMetadataArgs {
     String ARG_METHOD_KIND = "methodKind";
     String ARG_IMPL_KIND = "implKind";
     String ARG_SOURCE_KIND = "sourceKind";
+    String ARG_ARG_NAME = "argName";
     String ARG_ARGS = "args";
     String ARG_DISABLED = "disabled";
     String ARG_COMPUTE_EXPR = "computeExpr";
     String ARG_MAP_TO_PROP = "mapToProp";
+    String ARG_CATEGORY = "category";
 }

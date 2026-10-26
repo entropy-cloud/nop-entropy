@@ -43,4 +43,34 @@ interface MethodErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.method-impl-invalid",
                     "Method implSource is empty or fails SQL sandbox validation: "
                             + "methodName={methodName}", ARG_METHOD_NAME);
+    ErrorCode ERR_METHOD_SQL_UNSAFE =
+            ErrorCode.define("nop.err.metadata.method-sql-unsafe",
+                    "Method implSource failed query-time SQL sandbox re-validation: "
+                            + "methodName={methodName}", ARG_METHOD_NAME);
+    ErrorCode ERR_METHOD_NOT_FOUND =
+            ErrorCode.define("nop.err.metadata.method-not-found",
+                    "Method is not registered on the entity: "
+                            + "metaEntityId={metaEntityId} methodName={methodName}",
+                    ARG_META_ENTITY_ID, ARG_METHOD_NAME);
+    ErrorCode ERR_METHOD_DISABLED =
+            ErrorCode.define("nop.err.metadata.method-disabled",
+                    "Method is disabled: methodName={methodName}", ARG_METHOD_NAME);
+    ErrorCode ERR_METHOD_ARG_MISSING =
+            ErrorCode.define("nop.err.metadata.method-arg-missing",
+                    "Mandatory method argument is missing: "
+                            + "methodName={methodName} argName={argName}", ARG_METHOD_NAME, ARG_ARG_NAME);
+    ErrorCode ERR_METHOD_ARG_UNKNOWN =
+            ErrorCode.define("nop.err.metadata.method-arg-unknown",
+                    "Unknown method arguments (not declared on the method): "
+                            + "methodName={methodName} args={args}", ARG_METHOD_NAME, ARG_ARGS);
+    ErrorCode ERR_METHOD_ROLE_DENIED =
+            ErrorCode.define("nop.err.metadata.method-role-denied",
+                    "Caller does not hold any of the method's required roles: "
+                            + "methodName={methodName} requiredRoles={requiredRoles}",
+                    ARG_METHOD_NAME, ARG_REQUIRED_ROLES);
+    ErrorCode ERR_METHOD_EXEC_FAILED =
+            ErrorCode.define("nop.err.metadata.method-exec-failed",
+                    "Method SQL execution failed (details are not disclosed): "
+                            + "methodId={methodId} methodName={methodName} category={category}",
+                    ARG_METHOD_ID, ARG_METHOD_NAME, ARG_CATEGORY);
 }

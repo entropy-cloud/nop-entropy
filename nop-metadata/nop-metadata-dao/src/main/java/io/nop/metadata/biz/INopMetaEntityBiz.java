@@ -10,6 +10,7 @@ import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.core.context.IServiceContext;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.CreateSqlViewResultDTO;
+import io.nop.metadata.api.dto.MethodInvocationResultDTO;
 import io.nop.metadata.api.dto.PreviewSqlFieldsResultDTO;
 import io.nop.metadata.api.dto.ProfileResultDTO;
 import io.nop.metadata.api.dto.QueryEntityDataResultDTO;
@@ -19,6 +20,7 @@ import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.orm.biz.ICrudBiz;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * NopMetaEntity BizModel 契约接口：声明 NopMetaEntityBizModel 的全部自定义 public 方法签名。
@@ -81,4 +83,14 @@ public interface INopMetaEntityBiz extends ICrudBiz<NopMetaEntity> {
                                           @Optional @Name("orderBy") List<OrderFieldBean> orderBy,
                                           @Optional @Name("selection") FieldSelectionBean selection,
                                           IServiceContext context);
+
+    /**
+     * 方法泛化执行入口（设计 14 §3.4，plan 2026-10-26-2047-1 Phase 3）：加载校验 →
+     * args 校验 → roles 检查 → SQL 沙箱 query-time 重验 → entityKind 取数分派。
+     */
+    @BizQuery
+    MethodInvocationResultDTO invokeMethod(@Name("metaEntityId") String metaEntityId,
+                                           @Name("methodName") String methodName,
+                                           @Optional @Name("args") Map<String, Object> args,
+                                           IServiceContext context);
 }

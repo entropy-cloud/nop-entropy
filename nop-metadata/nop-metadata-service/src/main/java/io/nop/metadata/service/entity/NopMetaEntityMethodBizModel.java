@@ -11,6 +11,7 @@ import io.nop.metadata.service.NopMetadataException;
 
 import io.nop.metadata.biz.INopMetaEntityMethodBiz;
 import io.nop.metadata.dao.entity.NopMetaEntityMethod;
+import io.nop.metadata.service.method.MetaMethodSqlValidator;
 
 import java.util.Map;
 import java.util.Set;
@@ -119,9 +120,10 @@ public class NopMetaEntityMethodBizModel extends CrudBizModel<NopMetaEntityMetho
         }
         String implSource = method.getImplSource();
         if (implSource == null || implSource.trim().isEmpty()) {
-            // Phase 1 非空校验；Phase 3 SQL 沙箱落地后同点位回接（同码 method-impl-invalid）
             throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_IMPL_INVALID)
                     .param(NopMetadataArgs.ARG_METHOD_NAME, methodName);
         }
+        // Phase 3 回接：save-time SQL 沙箱（与 query-time 同源校验器，双侧同源水位）
+        MetaMethodSqlValidator.validateSaveTime(implSource, methodName);
     }
 }

@@ -6,6 +6,7 @@ import io.nop.api.core.annotations.biz.BizQuery;
 import io.nop.api.core.annotations.core.Name;
 import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.annotations.ioc.InjectValue;
+import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
@@ -25,6 +26,7 @@ import io.nop.metadata.core._NopMetadataCoreConstants;
 import io.nop.metadata.dao.NopMetadataDaoConstants;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.CreateSqlViewResultDTO;
+import io.nop.metadata.api.dto.MethodInvocationResultDTO;
 import io.nop.metadata.api.dto.PreviewSqlFieldsResultDTO;
 import io.nop.metadata.api.dto.ProfileResultDTO;
 import io.nop.metadata.api.dto.QueryEntityDataResultDTO;
@@ -35,6 +37,8 @@ import io.nop.metadata.api.dto.SqlViewFieldDTO;
 import io.nop.metadata.dao.entity.NopMetaDataSource;
 import io.nop.metadata.dao.entity.NopMetaEntity;
 import io.nop.metadata.dao.entity.NopMetaEntityField;
+import io.nop.metadata.dao.entity.NopMetaEntityMethod;
+import io.nop.metadata.dao.entity.NopMetaMethodArg;
 import io.nop.metadata.dao.entity.NopMetaModule;
 import io.nop.metadata.dao.entity.NopMetaOrmModel;
 import io.nop.metadata.dao.entity.NopMetaProfilingResult;
@@ -44,6 +48,7 @@ import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.event.MetaModelChangedEventPublisher;
 import io.nop.metadata.service.field.MetaComputedFieldProjector;
 import io.nop.metadata.service.field.ResolvedTableField;
+import io.nop.metadata.service.method.MetaMethodExecutor;
 import io.nop.metadata.service.profiling.ProfilingSnapshot;
 import io.nop.metadata.service.profiling.MetaEntityProfiler;
 import io.nop.metadata.service.query.MetaAggregationExecutor;
@@ -107,6 +112,9 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     private final NopMetaEntityQueryAction queryAction = new NopMetaEntityQueryAction();
 
     private TableReferenceExecutor tableRefExecutor;
+
+    /** M3：方法执行器（惰性构造，依赖 connectionService + tableRefExecutor）。 */
+    private MetaMethodExecutor methodExecutor;
 
     public NopMetaEntityBizModel() {
         setEntityName(NopMetaEntity.class.getName());
@@ -391,6 +399,110 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     private MetaQueryContext buildQueryContext() {
         return new MetaQueryContext(daoProvider(), orm(), connectionService, ensureTableRefExecutor(),
                 queryAction.dataSourceResolver(), queryAction.fieldResolver(), queryAction.filterTranslator());
+    }
+
+    /**
+     * M3（plan 2026-10-26-2047-1 Phase 3）：方法泛化执行入口（设计 14 §3.4）。
+     *
+     * <p>执行序：加载校验（not-found/disabled）→ args 校验（missing/unknown，optional
+     * 缺省 defaultValue）→ 行级 roles 检查（无登录态放行，沿凭证 admin 判定先例；
+     * GraphQL 入口另有 action-auth 兜底）→ implKind 分派（首版仅 sql）→ entityKind
+     * 取数分派（MetaMethodExecutor，PHYSICAL 平台连接 / SQL_VIEW/EXTERNAL 绑定数据源）。
+     * methodKind 首版为文档性分类，三种 kind 共用本入口、运行时行为一致。
+     */
+    @BizQuery
+    public MethodInvocationResultDTO invokeMethod(@Name("metaEntityId") String metaEntityId,
+                                                  @Name("methodName") String methodName,
+                                                  @Optional @Name("args") Map<String, Object> args,
+                                                  IServiceContext context) {
+        NopMetaEntity entity = requireEntity(metaEntityId, "invokeMethod", context);
+
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaEntityMethod.PROP_NAME_metaEntityId, metaEntityId));
+        q.addFilter(FilterBeans.eq(NopMetaEntityMethod.PROP_NAME_methodName, methodName));
+        NopMetaEntityMethod method = daoFor(NopMetaEntityMethod.class).findFirstByQuery(q);
+        if (method == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_NOT_FOUND)
+                    .param(NopMetadataArgs.ARG_META_ENTITY_ID, metaEntityId)
+                    .param(NopMetadataArgs.ARG_METHOD_NAME, methodName);
+        }
+        if (method.getDisabled() != null && method.getDisabled() != 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_DISABLED)
+                    .param(NopMetadataArgs.ARG_METHOD_NAME, methodName);
+        }
+        if (!NopMetaEntityMethodBizModel.IMPL_KIND_SQL.equals(method.getImplKind())) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_IMPL_KIND_UNSUPPORTED)
+                    .param(NopMetadataArgs.ARG_IMPL_KIND, method.getImplKind());
+        }
+
+        // args 校验：未知参数名拒绝；mandatory 缺失拒绝；optional 缺省 defaultValue（可空）
+        List<NopMetaMethodArg> declaredArgs = listMethodArgs(method.getMethodId());
+        Map<String, Object> provided = args != null ? args : java.util.Collections.emptyMap();
+        List<String> declaredNames = new ArrayList<>(declaredArgs.size());
+        List<Object> argValues = new ArrayList<>(declaredArgs.size());
+        for (NopMetaMethodArg declared : declaredArgs) {
+            declaredNames.add(declared.getArgName());
+            Object value = provided.get(declared.getArgName());
+            if (value == null && declared.getDefaultValue() != null) {
+                value = declared.getDefaultValue();
+            }
+            if (value == null && declared.getMandatory() != null && declared.getMandatory() != 0) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_ARG_MISSING)
+                        .param(NopMetadataArgs.ARG_METHOD_NAME, methodName)
+                        .param(NopMetadataArgs.ARG_ARG_NAME, declared.getArgName());
+            }
+            argValues.add(value);
+        }
+        List<String> unknown = new ArrayList<>();
+        for (String key : provided.keySet()) {
+            if (!declaredNames.contains(key)) {
+                unknown.add(key);
+            }
+        }
+        if (!unknown.isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_ARG_UNKNOWN)
+                    .param(NopMetadataArgs.ARG_METHOD_NAME, methodName)
+                    .param(NopMetadataArgs.ARG_ARGS, String.join(",", unknown));
+        }
+
+        // 行级 roles：roles 非空且当前用户不含任一角色 → 拒绝；无登录态（内部调用）放行
+        String rolesCsv = method.getRoles();
+        if (rolesCsv != null && !rolesCsv.trim().isEmpty()) {
+            IUserContext userContext = IUserContext.get();
+            if (userContext != null) {
+                java.util.Set<String> roles = new java.util.LinkedHashSet<>();
+                for (String role : rolesCsv.split(",")) {
+                    String trimmed = role.trim();
+                    if (!trimmed.isEmpty()) {
+                        roles.add(trimmed);
+                    }
+                }
+                if (!roles.isEmpty() && !userContext.isUserInAnyRole(roles)) {
+                    throw new NopMetadataException(NopMetadataErrors.ERR_METHOD_ROLE_DENIED)
+                            .param(NopMetadataArgs.ARG_METHOD_NAME, methodName)
+                            .param(NopMetadataArgs.ARG_REQUIRED_ROLES, String.join(",", roles));
+                }
+            }
+        }
+
+        return ensureMethodExecutor().invoke(entity, method, declaredNames, argValues, daoProvider(), orm());
+    }
+
+    private List<NopMetaMethodArg> listMethodArgs(String methodId) {
+        QueryBean q = new QueryBean();
+        q.addFilter(FilterBeans.eq(NopMetaMethodArg.PROP_NAME_methodId, methodId));
+        // 绑定顺序契约：声明参数按 argName 字典序排列，与 SQL 中 ? 占位符的出现顺序一一对应
+        // （方法注册时作者按同序声明参数；argName 在方法内由 UK 保证唯一）
+        List<NopMetaMethodArg> args = daoFor(NopMetaMethodArg.class).findAllByQuery(q);
+        args.sort(java.util.Comparator.comparing(NopMetaMethodArg::getArgName));
+        return args;
+    }
+
+    private MetaMethodExecutor ensureMethodExecutor() {
+        if (methodExecutor == null) {
+            methodExecutor = new MetaMethodExecutor(connectionService, ensureTableRefExecutor());
+        }
+        return methodExecutor;
     }
 
     private List<ResolvedTableField> inferResolvedSqlFieldTypes(NopMetaEntity entity,

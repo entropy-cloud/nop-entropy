@@ -105,7 +105,12 @@ public class MetaQualityRuleExecutor {
      * （经 {@code ExpressionMeasureValidator} 校验的 expression 列）。CTE 包装的 DML（{@code WITH x AS (DELETE...) SELECT 1}）
      * 经 token 化后 DML 关键字亦暴露被拒，{@code WITH} 条目使其更早 fail-fast。
      */
-    private static final Set<String> CUSTOM_SQL_FORBIDDEN_WORDS = unmodifiableSet(
+    /**
+     * custom_sql token 黑名单。可见性开放给同语义域沙箱（MetaMethodSqlValidator，方法 SQL：
+     * 整条语句文本 + token 精确匹配 + fail-closed）复用——F9 DRY 裁定的"同域共享"面
+     * （与 ExpressionMeasureValidator 的 SELECT 片段域保持分离不变）。
+     */
+    public static final Set<String> CUSTOM_SQL_FORBIDDEN_WORDS = unmodifiableSet(
             "UNION",
             "LOAD_FILE",
             "CALL", "EXEC", "EXECUTE",
@@ -126,8 +131,8 @@ public class MetaQualityRuleExecutor {
             "INTO", "PG_TERMINATE_BACKEND",
             "WITH");
 
-    /** 多 token 危险序列（归一化分词后的连续 token 序列）。 */
-    private static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
+    /** 多 token 危险序列（归一化分词后的连续 token 序列）；可见性开放同上。 */
+    public static final String[][] CUSTOM_SQL_FORBIDDEN_SEQUENCES = {
             {"INTO", "OUTFILE"},
             {"INTO", "DUMPFILE"},
             {"LOAD", "DATA"},
@@ -432,7 +437,8 @@ public class MetaQualityRuleExecutor {
     }
 
     /** 归一化 SQL：剥离普通注释（块注释/行注释）并折叠空白，返回大写 token 流文本。 */
-    private static List<String> tokenizeSqlForSandbox(String upperSql) {
+    /** 分词器；可见性开放给同语义域沙箱（MetaMethodSqlValidator）复用。 */
+    public static List<String> tokenizeSqlForSandbox(String upperSql) {
         String s = upperSql.replaceAll("/\\*.*?\\*/", " ");
         s = s.replaceAll("--[^\\n]*", " ");
         s = s.replaceAll("#[^\\n]*", " ");
@@ -449,7 +455,8 @@ public class MetaQualityRuleExecutor {
         return tokens;
     }
 
-    private static boolean containsTokenSequence(List<String> tokens, String[] sequence) {
+    /** 连续 token 序列匹配；可见性开放给同语义域沙箱（MetaMethodSqlValidator）复用。 */
+    public static boolean containsTokenSequence(List<String> tokens, String[] sequence) {
         if (tokens.size() < sequence.length) {
             return false;
         }

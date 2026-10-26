@@ -130,27 +130,33 @@ Exit Criteria:
 
 ### Phase 3 - 方法执行器与 SQL 沙箱（M3-1..M3-3）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata-service`、`nop-metadata-api`、`nop-metadata-dao`
 
 - Item Types: `Feature`
 
-- [ ] `MetaMethodSqlValidator`：单语句 SELECT-only + token 黑名单（水位不低于 custom_sql 现状：DDL/DML/文件族/PG 危险函数/`INTO`/`WITH` 等）+ `?` 占位符参数绑定检查；`MetaMethodExecutor` save-time（拒绝码 `method-impl-invalid`）与 query-time（拒绝码 `method-sql-unsafe`，兜底存量行）调用同一校验器
-- [ ] `MethodInvocationResultDTO`（methodId/methodName/columns/items/rowCount）入 `nop-metadata-api`
-- [ ] `NopMetaEntityBizModel.invokeMethod(metaEntityId, methodName, args)`：加载校验（not-found/disabled/arg-missing/arg-unknown）→ roles 检查（`IUserContext.isUserInAnyRole`，无登录态放行）→ implKind 分派 → entityKind 取数分派（PHYSICAL→EQL/ORM；SQL_VIEW/EXTERNAL→绑定数据源 withConnection，单表）→ 强类型 DTO 返回；执行错误 param 只带 methodId/methodName/类别
-- [ ] `INopMetaEntityBiz` 增补 `invokeMethod`；执行错误码族（method-not-found/method-disabled/method-arg-missing/method-arg-unknown/method-role-denied/method-sql-unsafe）
-- [ ] AutoTest：PHYSICAL 实体 invokeMethod 端到端（H2 localDb）；EXTERNAL 实体 invokeMethod 端到端（沿质量规则外部连接测试基建）；沙箱拒绝族（DML/多语句/黑名单函数/字面量注入形态）；roles 拒绝与放行；错误响应不含 SQL 全文断言
+- [x] `MetaMethodSqlValidator`：单语句 SELECT-only + token 黑名单（水位不低于 custom_sql 现状：DDL/DML/文件族/PG 危险函数/`INTO`/`WITH` 等）+ `?` 占位符参数绑定检查；`MetaMethodExecutor` save-time（拒绝码 `method-impl-invalid`）与 query-time（拒绝码 `method-sql-unsafe`，兜底存量行）调用同一校验器
+- [x] `MethodInvocationResultDTO`（methodId/methodName/columns/items/rowCount）入 `nop-metadata-api`
+- [x] `NopMetaEntityBizModel.invokeMethod(metaEntityId, methodName, args)`：加载校验（not-found/disabled/arg-missing/arg-unknown）→ roles 检查（`IUserContext.isUserInAnyRole`，无登录态放行）→ implKind 分派 → entityKind 取数分派（PHYSICAL→EQL/ORM；SQL_VIEW/EXTERNAL→绑定数据源 withConnection，单表）→ 强类型 DTO 返回；执行错误 param 只带 methodId/methodName/类别
+- [x] `INopMetaEntityBiz` 增补 `invokeMethod`；执行错误码族（method-not-found/method-disabled/method-arg-missing/method-arg-unknown/method-role-denied/method-sql-unsafe + method-exec-failed）
+- [x] AutoTest：PHYSICAL 实体 invokeMethod 端到端（H2 localDb）；EXTERNAL 实体 invokeMethod 端到端（沿质量规则外部连接测试基建）；沙箱拒绝族（DML/多语句/黑名单函数/字面量注入形态）；roles 拒绝与放行；错误响应不含 SQL 全文断言
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖上列全部路径（沙箱拒绝族逐类一条）
-- [ ] **端到端验证**：GraphQL `NopMetaEntity__invokeMethod` 入口 → 校验链 → SQL 执行 → DTO 返回，PHYSICAL 与 EXTERNAL 各一条完整用例
-- [ ] **接线验证**：save-time 与 query-time 确认调用同一 `MetaMethodSqlValidator`（代码追踪 + 测试证明 save 时拒掉的 SQL query 时同样被拒）
-- [ ] **无静默跳过**：disabled/roles/校验失败全部显式错误码；无 catch 吞错
-- [ ] owner doc 增补 invokeMethod 契约与安全约束段；roadmap M3 子项状态同步
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖上列全部路径（沙箱拒绝族逐类一条）（2026-10-27 实测全量 1378 tests 全绿，含新增 `TestNopMetaEntityMethodInvoke` 7 用例）
+- [x] **端到端验证**：GraphQL `NopMetaEntity__invokeMethod` 入口 → 校验链 → SQL 执行 → DTO 返回，PHYSICAL 与 EXTERNAL 各一条完整用例
+- [x] **接线验证**：save-time 与 query-time 确认调用同一 `MetaMethodSqlValidator`（代码追踪 + 测试证明 save 时拒掉的 SQL query 时同样被拒：`testQueryTimeRevalidationSameValidator`——DAO 直写 DML 行 invoke 时得 `method-sql-unsafe`，与 save-time `method-impl-invalid` 同一校验逻辑不同码）
+- [x] **无静默跳过**：disabled/roles/校验失败全部显式错误码；无 catch 吞错
+- [x] owner doc 增补 invokeMethod 契约与安全约束段；roadmap M3 子项状态同步
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+**Phase 3 执行裁定（2026-10-27 实测修正——语义契约不变，机制归属/契约补全 3 处）**：
+
+1. **黑名单同域共享**：`MetaMethodSqlValidator` 不复制 custom_sql token 集合——方法 SQL 与 custom_sql 为同一语义域（整条语句文本 + token 精确匹配 + fail-closed），直接复用 `MetaQualityRuleExecutor.CUSTOM_SQL_FORBIDDEN_WORDS`/`CUSTOM_SQL_FORBIDDEN_SEQUENCES`/`tokenizeSqlForSandbox`（可见性 public 化）。F9 DRY 裁定拒绝的是与 `ExpressionMeasureValidator`（SELECT 片段域）共享，同域共享正是该裁定的相反面。水位随 custom_sql 演进自动同步。
+2. **PHYSICAL 取数走 TableReferenceExecutor**（平台事务 JDBC 连接），非 plan 原文"EQL/ORM"——方法 implSource 是带 `?` 占位符的物理 SQL 文本，EQL 无法执行；entityKind 分派（PHYSICAL 平台连接 / SQL_VIEW/EXTERNAL withConnection）经 `MetaEntityReferenceResolver.resolve` + `TableReferenceExecutor.execute` 完成，与 profileEntity 同一取数先例（原文"绑定数据源连接执行"语义的精确化）。
+3. **绑定顺序契约显式化**：`NopMetaMethodArg` 无 position 列，声明参数按 `argName` 字典序与 SQL `?` 出现顺序对应（owner doc 已记）；占位符数 ≠ 声明参数数在执行入口拒绝（`method-impl-invalid`/placeholder-count-mismatch）。
 
 ### Phase 4 - 标准 CRUD 标签与目录合成入口（M4-1..M4-2）
 
