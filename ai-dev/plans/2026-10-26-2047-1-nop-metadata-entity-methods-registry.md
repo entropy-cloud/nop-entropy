@@ -1,6 +1,6 @@
 # 2026-10-26-2047-1 nop-metadata 实体方法注册表 + 计算属性/别名 + 执行器 + 标准 CRUD 标签（M1-M4）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-10-27
 > Source: `ai-dev/design/nop-metadata/14-entity-methods-design.md`（设计决策与安全契约权威）；`ai-dev/design/nop-metadata/nop-metadata-roadmap.md` M1-M4
 > Related: roadmap Work Item Status M1-M4；`docs-for-ai/03-modules/nop-metadata.md`（owner doc）
@@ -189,18 +189,18 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] 所有 in-scope confirmed live defects 已修复（或不存在）
-- [ ] 4 组能力行为契约达成：方法可登记可执行、计算属性/别名可声明可查询、标签可声明、目录合成入口可用
-- [ ] 必要 focused verification 已完成（每能力至少一条 GraphQL 端到端 + 守卫拒绝族全覆盖）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
-- [ ] 受影响 owner docs 已同步到 live baseline（`docs-for-ai/03-modules/nop-metadata.md`；`docs-for-ai/04-reference/source-anchors.md` 若新增锚点）
-- [ ] 独立子 agent closure-audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：closure audit 已验证 invokeMethod/findEntityPage 调用链在运行时连通（GraphQL 入口 → 校验 → 取数 → DTO），无空方法体/静默跳过
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
-- [ ] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] roadmap M1-M4 状态翻转与 plan 一致性核对完成
+- [x] 所有 in-scope confirmed live defects 已修复（或不存在）
+- [x] 4 组能力行为契约达成：方法可登记可执行、计算属性/别名可声明可查询、标签可声明、目录合成入口可用
+- [x] 必要 focused verification 已完成（每能力至少一条 GraphQL 端到端 + 守卫拒绝族全覆盖）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift
+- [x] 受影响 owner docs 已同步到 live baseline（`docs-for-ai/03-modules/nop-metadata.md`；`docs-for-ai/04-reference/source-anchors.md` 若新增锚点）
+- [x] 独立子 agent closure-audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：closure audit 已验证 invokeMethod/findEntityPage 调用链在运行时连通（GraphQL 入口 → 校验 → 取数 → DTO），无空方法体/静默跳过
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0
+- [x] `node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] roadmap M1-M4 状态翻转与 plan 一致性核对完成
 
 ## Deferred But Adjudicated
 
@@ -219,14 +219,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （未关闭）
-Completed:
+Status Note: 4 组能力（方法注册表 / 计算属性与别名 / 方法执行器与 SQL 沙箱 / 标准 CRUD 标签与目录合成入口）全部实现并配齐 GraphQL 端到端 + 守卫拒绝族测试；4 个 Phase Exit Criteria 全勾；全量 `./mvnw test -pl nop-metadata-service` 1382 tests 全绿（四轮递进 1366→1371→1378→1382，见 daily log 2026-10-27）；独立子 agent closure audit APPROVED 后翻转 completed。执行 commits：d567102588 / de2b4d02a7 / df5c62a15b / 47a13ec9f0。
+Completed: 2026-10-27
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
+- Reviewer / Agent: 独立 fresh-session 子 agent（general-purpose，agent_5ba51cdb-6bd0-4b68-8568-bffe95a2c531，2026-10-27）
 - Evidence:
+  - Phase 1-4 每条 Exit Criterion PASS（live file:line 逐条核验：orm.xml 实体/UK/to-many 行号、各 BizModel 守卫行号、四份 AutoTest 用例面）
+  - Anti-Hollow PASS：链 1 `NopMetaEntity__invokeMethod` → BizModel 加载/args/roles 校验（:547-:613）→ `MetaMethodExecutor.invoke` → validateQueryTime → `TableReferenceExecutor.execute`（JDBC 回调）→ `executeSelect` → `MethodInvocationResultDTO`；链 2 `findEntityPage` → requireStdCrudEntity（:449）→ queryEntityData 三分派（:504）→ `MetaComputedFieldProjector.project`（:521）→ DTO(+total)；双侧沙箱同源接线确认（save 侧 BizModel:127 / query 侧 Executor:73 同一 validator）
+  - Deferred 项分类诚实性 PASS：`method-arg-duplicate` 不落地裁定经 DB UK 覆盖面核验成立（methodId/argName 均 mandatory，三方言 NOT NULL，无 NULL-distinct 豁免面，全仓无死码）；guard 1/5 存量命中经 git 归属核验为 plan 前提交（0ea57a097e），successor 归属已记录，非本 plan 降级
+  - `node ai-dev/tools/check-plan-checklist.mjs <本文件> --strict` 退出码 0（翻转后复跑确认）；`scan-hollow-implementations.mjs --module nop-metadata --severity high` 退出码 0（0 命中）；`check-doc-links.mjs --strict` 0 errors
+  - 测试复现：auditor 实跑 `TestNopMetaEntityMethodInvoke`(7) + `TestNopMetaEntityStdCrudTag`(4) 共 11 tests 全绿，BUILD SUCCESS
+  - Audit 发现 2 Minor（roadmap 活跃 plan 指引过时 / MetaMethodExecutor 日志注释与行为不符）+ 1 Watch-only（invariants 聚合门禁存量命中），Minor 已在翻转 commit 内同点修复，Watch-only 已记录 successor
+  - `./mvnw test -pl nop-metadata-service` 全量 1382 tests 全绿（2026-10-27，Phase 4 后；`-am` 形式的上游模块经本地 install 同源验证）
 
 Follow-up:
 
-- （closure 时填写）
+- `run-nop-metadata-invariants.sh` 聚合门禁 exit 1 的存量命中（guard 1 AggregationHelper silent-swallow 1 处 + guard 5 baseline 与扫描器新规则族版本漂移 24 处）——归属 lint 工具换代工作流（plan 21 系）处置，非本 plan 引入（watch-only residual，hit 集不含本 plan 文件）
+- `sourceKind=imported` 快照导入通道实现（importOrmModel 扩展）——独立 successor plan（沿 Non-Blocking Follow-ups 既有登记）
+- 计算列 SQL 下推 / 搜索索引接入新实体——沿 Non-Blocking Follow-ups 既有登记（optimization candidate）

@@ -102,7 +102,7 @@ public class MetaMethodExecutor {
     /** 单条只读 SELECT 执行：位置绑定 + 行 Map 化；失败只暴露 methodId/methodName/类别。 */
     private List<Map<String, Object>> executeSelect(Connection conn, String sql, List<Object> argValues,
                                                     NopMetaEntityMethod method) {
-        // 日志面只记 sqlHash，全文降 DEBUG（AR-16 同口径）
+        // 日志面只记 sqlHash，不落 SQL 全文（方法 SQL 错误面与日志面同口径脱敏，AR-16 同源）
         LOG.info("MetaMethodExecutor SQL executed: methodId={}, sqlHash={}",
                 method.getMethodId(), MetaQualityRuleExecutor.sqlHashOf(sql));
         try (PreparedStatement st = conn.prepareStatement(sql)) {
