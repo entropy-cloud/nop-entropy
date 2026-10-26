@@ -7,6 +7,7 @@ import io.nop.api.core.annotations.core.Optional;
 import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.TreeBean;
 import io.nop.api.core.beans.query.OrderFieldBean;
+import io.nop.api.core.beans.query.QueryBean;
 import io.nop.core.context.IServiceContext;
 import io.nop.metadata.api.dto.AggregationResultDTO;
 import io.nop.metadata.api.dto.CreateSqlViewResultDTO;
@@ -93,4 +94,25 @@ public interface INopMetaEntityBiz extends ICrudBiz<NopMetaEntity> {
                                            @Name("methodName") String methodName,
                                            @Optional @Name("args") Map<String, Object> args,
                                            IServiceContext context);
+
+    /** 目录合成只读分页入口（M4，plan 2026-10-26-2047-1 Phase 4）：要求 std-crud/std-crud-ro 标签。 */
+    @BizQuery
+    QueryEntityDataResultDTO findEntityPage(@Name("metaEntityId") String metaEntityId,
+                                            @Optional @Name("query") QueryBean query,
+                                            @Optional @Name("selection") FieldSelectionBean selection,
+                                            IServiceContext context);
+
+    /** 目录合成只读列表入口：要求 std-crud/std-crud-ro 标签。 */
+    @BizQuery
+    QueryEntityDataResultDTO findEntityList(@Name("metaEntityId") String metaEntityId,
+                                            @Optional @Name("query") QueryBean query,
+                                            @Optional @Name("selection") FieldSelectionBean selection,
+                                            IServiceContext context);
+
+    /** 目录合成单条入口：按过滤条件取第一行（0..1 items），要求 std-crud/std-crud-ro 标签。 */
+    @BizQuery
+    QueryEntityDataResultDTO getEntity(@Name("metaEntityId") String metaEntityId,
+                                       @Optional @Name("filter") TreeBean filter,
+                                       @Optional @Name("selection") FieldSelectionBean selection,
+                                       IServiceContext context);
 }

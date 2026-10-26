@@ -252,8 +252,8 @@
 | M3-1 | `MetaMethodExecutor` + `NopMetaEntity__invokeMethod` 泛化入口（PHYSICAL→平台事务 JDBC 连接 / SQL_VIEW/EXTERNAL→withConnection，经 TableReferenceExecutor 联邦取数先例） | done |
 | M3-2 | 方法 SQL 沙箱：save-time + query-time 同源校验（SELECT-only + blocklist 水位不低于 custom_sql（直接复用其 token 集合，同域共享）+ `?` 参数绑定）+ 强类型返回 DTO | done |
 | M3-3 | 行级 roles 检查 + 执行错误码族 + 错误面不泄漏 SQL 全文 | done |
-| M4-1 | tagSet 保留标签 `std-crud`/`std-crud-ro`（dict `meta/entity-tag`）守卫（entityKind 匹配，显式拒绝不静默降级） | todo |
-| M4-2 | 目录合成只读入口 `NopMetaEntity__findEntityPage/findEntityList/getEntity`（走 queryData 同源取数路径） | todo |
+| M4-1 | tagSet 保留标签 `std-crud`/`std-crud-ro`（dict `meta/entity-tag`）守卫（entityKind 匹配，显式拒绝不静默降级） | done |
+| M4-2 | 目录合成只读入口 `NopMetaEntity__findEntityPage/findEntityList/getEntity`（走 queryData 同源取数路径，orderBy 按 entityKind 下推 + findEntityPage 含 total） | done |
 
 > Plan: 2026-10-26-2047-1
 

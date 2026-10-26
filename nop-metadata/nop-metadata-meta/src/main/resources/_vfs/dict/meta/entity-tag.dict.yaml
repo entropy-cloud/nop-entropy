@@ -1,0 +1,14 @@
+# __XGEN_FORCE_OVERRIDE__
+label: 实体标签
+locale: zh-CN
+valueType: string
+description:
+options:
+
+  - label: 标准CRUD
+    value: std-crud
+    description: 平台标准CRUD已由该实体的bizObj提供（仅PHYSICAL）
+
+  - label: 标准只读CRUD
+    value: std-crud-ro
+    description: 目录合成只读查询入口（仅SQL_VIEW/EXTERNAL）

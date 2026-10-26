@@ -160,24 +160,30 @@ Exit Criteria:
 
 ### Phase 4 - 标准 CRUD 标签与目录合成入口（M4-1..M4-2）
 
-Status: planned
+Status: completed
 Targets: `nop-metadata-service`、`nop-metadata-meta`、`nop-metadata-dao`
 
 - Item Types: `Feature`
 
-- [ ] dict `meta/entity-tag` 登记 `std-crud`/`std-crud-ro` 保留标签；`NopMetaEntityBizModel` save 守卫：SQL_VIEW/EXTERNAL 写 `std-crud` 显式拒绝、PHYSICAL 写 `std-crud-ro` 显式拒绝（错误码族 `entity-tag-*`，不静默降级）
-- [ ] 目录合成只读入口 `NopMetaEntity__findEntityPage(metaEntityId, query)`/`findEntityList`/`getEntity`：要求实体带 `std-crud` 或 `std-crud-ro` 标签，无标签显式拒绝（`entity-std-crud-not-declared`）；返回结构与 `queryData` 同源（`QueryEntityDataResultDTO`）；取数复用 queryData 同源路径（limit 契约沿 AR-09）
-- [ ] `INopMetaEntityBiz` 增补三方法；AutoTest：标签守卫拒绝族、EXTERNAL 实体 findEntityPage 端到端（分页/过滤/排序）、无标签拒绝
+- [x] dict `meta/entity-tag` 登记 `std-crud`/`std-crud-ro` 保留标签；`NopMetaEntityBizModel` save 守卫：SQL_VIEW/EXTERNAL 写 `std-crud` 显式拒绝、PHYSICAL 写 `std-crud-ro` 显式拒绝（错误码族 `entity-tag-*`，不静默降级）
+- [x] 目录合成只读入口 `NopMetaEntity__findEntityPage(metaEntityId, query)`/`findEntityList`/`getEntity`：要求实体带 `std-crud` 或 `std-crud-ro` 标签，无标签显式拒绝（`entity-std-crud-not-declared`）；返回结构与 `queryData` 同源（`QueryEntityDataResultDTO`）；取数复用 queryData 同源路径（limit 契约沿 AR-09）
+- [x] `INopMetaEntityBiz` 增补三方法；AutoTest：标签守卫拒绝族、EXTERNAL 实体 findEntityPage 端到端（分页/过滤/排序）、无标签拒绝
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖：每个守卫错误码一条拒绝用例 + EXTERNAL 分页查询端到端
-- [ ] **端到端验证**：GraphQL save 实体（带 `std-crud-ro` 标签）→ `findEntityPage` 返回分页结果的完整路径
-- [ ] **无静默跳过**：标签与 entityKind 不匹配显式拒绝，无自动降级
-- [ ] owner doc 增补标准 CRUD 标签契约段；roadmap M4 子项状态同步、M1-M4 全部翻转状态
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-metadata/nop-metadata-service -am` 通过，新增测试显式覆盖：每个守卫错误码一条拒绝用例 + EXTERNAL 分页查询端到端（2026-10-27 实测全量 1382 tests 全绿，含新增 `TestNopMetaEntityStdCrudTag` 4 用例）
+- [x] **端到端验证**：GraphQL save 实体（带 `std-crud-ro` 标签）→ `findEntityPage` 返回分页结果的完整路径（EXTERNAL：过滤 ROW_ID>1 + orderBy ROW_ID desc + limit 2 + total=2 全链断言）
+- [x] **无静默跳过**：标签与 entityKind 不匹配显式拒绝，无自动降级
+- [x] owner doc 增补标准 CRUD 标签契约段；roadmap M4 子项状态同步（M1-M4 汇总行翻转在 closure audit 通过后执行——roadmap Rule「不得在 closure audit 通过前把 Phase 标为 done」优先于本条原文时序）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+**Phase 4 执行裁定（2026-10-27 实测补全——语义契约不变，能力补全 1 处 + 机制说明 2 处）**：
+
+1. **排序下推补全**：plan 原文「取数复用 queryData 同源路径」未含 orderBy（queryData 无排序参数），而本 Phase AutoTest 项要求 EXTERNAL 分页/过滤/排序端到端——`findEntityPage/findEntityList` 增加 orderBy 下推：PHYSICAL 走 QueryBean 原生 orderBy；EXTERNAL/SQL_VIEW 在既有 SQL builder 上加 ORDER BY 拼接重载（EXTERNAL 字段名过已解析列白名单 + 标识符校验，SQL_VIEW 仅标识符校验；`nullsFirst` 首版忽略并记 owner doc）。
+2. **分页 total**：`findEntityPage 含分页信息`落为 `QueryEntityDataResultDTO` 新增可空 `total` 字段（不另造 DTO 族，沿设计 §3.3）；PHYSICAL 走 dao countByQuery，EXTERNAL/SQL_VIEW 用无界 SELECT 包装 COUNT(*)（与取数同源过滤翻译）。
+3. **limit 契约**：合成入口沿 queryData 浏览语义（normalizeQueryLimit：缺省 1000/封顶 10000/负值拒绝）而非 AR-09 分析语义——入口性质与 queryData 同为数据浏览面（原文「沿 AR-09」精确化为「queryData 的 AR-09 INV-LIMIT 负值拒绝 + 浏览封顶」）。
 
 ## Closure Gates
 

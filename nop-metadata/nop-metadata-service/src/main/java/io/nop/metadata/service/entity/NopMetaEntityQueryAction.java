@@ -2,6 +2,7 @@ package io.nop.metadata.service.entity;
 
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.TreeBean;
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
@@ -66,6 +67,13 @@ public class NopMetaEntityQueryAction {
      */
     public List<Map<String, Object>> queryPhysicalData(NopMetaEntity entity, TreeBean filter, Long limit, Long offset,
                                                        IDaoProvider daoProvider, IOrmTemplate orm) {
+        return queryPhysicalData(entity, filter, null, limit, offset, daoProvider, orm);
+    }
+
+    /** M4 重载：目录合成入口的排序（QueryBean 原生 orderBy，PHYSICAL 路径免拼接）。 */
+    public List<Map<String, Object>> queryPhysicalData(NopMetaEntity entity, TreeBean filter,
+                                                       List<OrderFieldBean> orderBy, Long limit, Long offset,
+                                                       IDaoProvider daoProvider, IOrmTemplate orm) {
         String entityName = entity.getEntityName();
         if (entityName == null || entityName.isEmpty() || !orm.isValidEntityName(entityName)) {
             throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_REGISTERED)
@@ -75,6 +83,7 @@ public class NopMetaEntityQueryAction {
         io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> targetDao = castToOrmEntityDao(daoProvider.dao(entityName));
         QueryBean query = new QueryBean();
         if (filter != null) query.setFilter(filter);
+        if (orderBy != null && !orderBy.isEmpty()) query.setOrderBy(orderBy);
         if (limit != null) query.setLimit(limit.intValue());
         if (offset != null) query.setOffset(offset.intValue());
         List<io.nop.orm.IOrmEntity> entities = targetDao.findAllByQuery(query);
@@ -97,6 +106,14 @@ public class NopMetaEntityQueryAction {
     public List<Map<String, Object>> queryExternalData(NopMetaEntity table, TreeBean filter, Long limit, Long offset,
                                                         IMetaDataSourceConnectionProcessor connectionService,
                                                         IDaoProvider daoProvider, IOrmTemplate orm) {
+        return queryExternalData(table, filter, null, limit, offset, connectionService, daoProvider, orm);
+    }
+
+    /** M4 重载：目录合成入口的排序下推（字段名白名单 = 已解析列集，大小写不敏感）。 */
+    public List<Map<String, Object>> queryExternalData(NopMetaEntity table, TreeBean filter,
+                                                        List<OrderFieldBean> orderBy, Long limit, Long offset,
+                                                        IMetaDataSourceConnectionProcessor connectionService,
+                                                        IDaoProvider daoProvider, IOrmTemplate orm) {
         NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table, daoProvider);
         IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
         List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
@@ -110,7 +127,8 @@ public class NopMetaEntityQueryAction {
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaEntityId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = MetaEntityQueryExecutor.buildExternalSelectSql(table.getTableName(), columns, tf.getSql(), limit, offset, productName);
+                    String sql = MetaEntityQueryExecutor.buildExternalSelectSql(table.getTableName(), columns,
+                            tf.getSql(), orderBy, limit, offset, productName);
                     holder[0] = MetaEntityQueryExecutor.executeQuery(conn, sql,
                             tf.getParams(), limit, offset,
                             table.getMetaEntityId());
@@ -119,6 +137,14 @@ public class NopMetaEntityQueryAction {
     }
 
     public List<Map<String, Object>> querySqlData(NopMetaEntity table, TreeBean filter, Long limit, Long offset,
+                                                   IMetaDataSourceConnectionProcessor connectionService,
+                                                   IDaoProvider daoProvider, IOrmTemplate orm) {
+        return querySqlData(table, filter, null, limit, offset, connectionService, daoProvider, orm);
+    }
+
+    /** M4 重载：目录合成入口的排序下推（sql 路径标识符校验，无列白名单）。 */
+    public List<Map<String, Object>> querySqlData(NopMetaEntity table, TreeBean filter,
+                                                   List<OrderFieldBean> orderBy, Long limit, Long offset,
                                                    IMetaDataSourceConnectionProcessor connectionService,
                                                    IDaoProvider daoProvider, IOrmTemplate orm) {
         String sourceSql = table.getSourceSql();
@@ -132,12 +158,89 @@ public class NopMetaEntityQueryAction {
                     String productName = safeProductName(metaData);
                     requireSupportedDialect(productName, table.getMetaEntityId());
                     FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
-                    String sql = MetaEntityQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(), limit, offset, productName);
+                    String sql = MetaEntityQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(), orderBy, limit, offset, productName);
                     holder[0] = MetaEntityQueryExecutor.executeQuery(conn, sql,
                             tf.getParams(), limit, offset,
                             table.getMetaEntityId());
                 });
         return holder[0];
+    }
+
+    // ===== M4（plan 2026-10-26-2047-1 Phase 4）：目录合成入口的 count 路径 =====
+
+    public long countPhysicalData(NopMetaEntity entity, TreeBean filter, IDaoProvider daoProvider, IOrmTemplate orm) {
+        String entityName = entity.getEntityName();
+        if (entityName == null || entityName.isEmpty() || !orm.isValidEntityName(entityName)) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_ENTITY_NOT_REGISTERED)
+                    .param("metaEntityId", entity.getMetaEntityId())
+                    .param("entityName", String.valueOf(entityName));
+        }
+        io.nop.orm.dao.IOrmEntityDao<io.nop.orm.IOrmEntity> targetDao = castToOrmEntityDao(daoProvider.dao(entityName));
+        QueryBean query = new QueryBean();
+        if (filter != null) query.setFilter(filter);
+        return targetDao.countByQuery(query);
+    }
+
+    /** EXTERNAL count：无界 SELECT 包装 COUNT(*)（与取数同源过滤翻译，无 ORDER BY/分页）。 */
+    public long countExternalData(NopMetaEntity table, TreeBean filter,
+                                  IMetaDataSourceConnectionProcessor connectionService,
+                                  IDaoProvider daoProvider, IOrmTemplate orm) {
+        NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table, daoProvider);
+        IEntityDao<NopMetaEntityField> fieldDao = daoProvider.daoFor(NopMetaEntityField.class);
+        List<ResolvedTableField> fields = fieldResolver.resolve(table, fieldDao);
+        List<String> columns = new ArrayList<>(fields.size());
+        for (ResolvedTableField f : fields) {
+            columns.add(f.getName());
+        }
+        final long[] holder = new long[1];
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    requireSupportedDialect(productName, table.getMetaEntityId());
+                    FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
+                    String inner = MetaEntityQueryExecutor.buildExternalSelectSql(table.getTableName(), columns,
+                            tf.getSql(), null, null, null, productName);
+                    holder[0] = executeCount(conn, "SELECT COUNT(*) FROM (" + inner + ") _cnt",
+                            tf.getParams(), table.getMetaEntityId());
+                });
+        return holder[0];
+    }
+
+    /** SQL 视图 count：无界 SELECT 包装 COUNT(*)。 */
+    public long countSqlData(NopMetaEntity table, TreeBean filter,
+                             IMetaDataSourceConnectionProcessor connectionService,
+                             IDaoProvider daoProvider, IOrmTemplate orm) {
+        String sourceSql = table.getSourceSql();
+        if (sourceSql == null || sourceSql.trim().isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_SQL_SOURCE_EMPTY).param("metaEntityId", table.getMetaEntityId());
+        }
+        NopMetaDataSource dataSource = resolveQueryDataSourceOrThrow(table, daoProvider);
+        final long[] holder = new long[1];
+        connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
+                (Connection conn, DatabaseMetaData metaData) -> {
+                    String productName = safeProductName(metaData);
+                    requireSupportedDialect(productName, table.getMetaEntityId());
+                    FilterToSqlTranslator.TranslatedFilter tf = filterTranslator.translate(filter);
+                    String inner = MetaEntityQueryExecutor.buildSqlSelectSql(sourceSql, tf.getSql(),
+                            null, null, null, productName);
+                    holder[0] = executeCount(conn, "SELECT COUNT(*) FROM (" + inner + ") _cnt",
+                            tf.getParams(), table.getMetaEntityId());
+                });
+        return holder[0];
+    }
+
+    private long executeCount(Connection conn, String sql, List<Object> params, String metaEntityId) {
+        List<Map<String, Object>> rows = MetaEntityQueryExecutor.executeQuery(conn, sql, params, null, null, metaEntityId);
+        if (rows.isEmpty() || rows.get(0).isEmpty()) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_SQL_EXEC_FAILED)
+                    .param("metaEntityId", metaEntityId)
+                    .param(NopMetadataErrors.ARG_ERROR, "count query returned no rows");
+        }
+        Object value = rows.get(0).values().iterator().next();
+        if (value instanceof Number) {
+            return ((Number) value).longValue();
+        }
+        return Long.parseLong(String.valueOf(value));
     }
 
     private NopMetaDataSource resolveQueryDataSourceOrThrow(NopMetaEntity table, IDaoProvider daoProvider) {

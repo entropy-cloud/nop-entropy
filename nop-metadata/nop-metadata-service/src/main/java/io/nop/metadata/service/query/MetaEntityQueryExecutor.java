@@ -1,5 +1,6 @@
 package io.nop.metadata.service.query;
 
+import io.nop.api.core.beans.query.OrderFieldBean;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.metadata.service.NopMetadataErrors;
@@ -16,9 +17,12 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * 单表数据查询执行器（plan 2026-07-19-1250-3 Phase 3 维度07-04：从 NopMetaEntityBizModel 抽出）。
@@ -47,6 +51,17 @@ public final class MetaEntityQueryExecutor {
      */
     public static String buildExternalSelectSql(String tableName, List<String> columns,
                                                  String filterSql, Long limit, Long offset, String dialect) {
+        return buildExternalSelectSql(tableName, columns, filterSql, null, limit, offset, dialect);
+    }
+
+    /**
+     * M4（plan 2026-10-26-2047-1 Phase 4）重载：目录合成入口的排序下推。
+     * {@code orderBy} 字段名经标识符校验 + {@code allowedColumns} 白名单（大小写不敏感，
+     * 外部路径传入已解析列集；传 null 跳过白名单——仅限调用方已另行保证的场景）。
+     */
+    public static String buildExternalSelectSql(String tableName, List<String> columns,
+                                                 String filterSql, List<OrderFieldBean> orderBy,
+                                                 Long limit, Long offset, String dialect) {
         StringBuilder sb = new StringBuilder("SELECT ");
         if (columns == null || columns.isEmpty()) {
             sb.append("*");
@@ -65,6 +80,8 @@ public final class MetaEntityQueryExecutor {
         if (filterSql != null && !filterSql.isEmpty()) {
             sb.append(" WHERE ").append(filterSql);
         }
+        appendOrderBy(sb, orderBy, columns == null ? null
+                : columns.stream().map(c -> c.toLowerCase(Locale.ROOT)).collect(java.util.stream.Collectors.toSet()));
         SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
         return sb.toString();
     }
@@ -73,14 +90,49 @@ public final class MetaEntityQueryExecutor {
      * 构建 sql 路径 SELECT SQL：{@code SELECT * FROM (<sourceSql>) _t [WHERE <filter>] [LIMIT ? OFFSET ?]}。
      */
     public static String buildSqlSelectSql(String sourceSql, String filterSql, Long limit, Long offset, String dialect) {
+        return buildSqlSelectSql(sourceSql, filterSql, null, limit, offset, dialect);
+    }
+
+    /** M4 重载：目录合成入口的排序下推（sql 路径无列白名单，仅标识符校验）。 */
+    public static String buildSqlSelectSql(String sourceSql, String filterSql, List<OrderFieldBean> orderBy,
+                                            Long limit, Long offset, String dialect) {
         StringBuilder sb = new StringBuilder("SELECT * FROM (");
         sb.append(sourceSql);
         sb.append(") _t");
         if (filterSql != null && !filterSql.isEmpty()) {
             sb.append(" WHERE ").append(filterSql);
         }
+        appendOrderBy(sb, orderBy, null);
         SqlPagination.appendLimitOffset(sb, limit, offset, dialect);
         return sb.toString();
+    }
+
+    /**
+     * M4：ORDER BY 子句构建。字段名 fail-closed（标识符校验 + 白名单），方向仅 ASC/DESC
+     * （OrderFieldBean.nullsFirst 首版忽略——跨方言 NULLS FIRST/LAST 语义差异大，目录合成
+     * 排序不做方言分支；需求出现时随方言层另裁定）。
+     */
+    private static void appendOrderBy(StringBuilder sb, List<OrderFieldBean> orderBy, Set<String> allowedColumns) {
+        if (orderBy == null || orderBy.isEmpty()) {
+            return;
+        }
+        sb.append(" ORDER BY ");
+        for (int i = 0; i < orderBy.size(); i++) {
+            OrderFieldBean field = orderBy.get(i);
+            if (i > 0) {
+                sb.append(",");
+            }
+            String name = field.getName();
+            FilterToSqlTranslator.validateIdentifier(name);
+            if (allowedColumns != null && !allowedColumns.contains(name.toLowerCase(Locale.ROOT))) {
+                throw new NopException(NopMetadataErrors.ERR_PAGINATION_ORDER_FIELD_UNKNOWN)
+                        .param(NopMetadataErrors.ARG_FIELD_NAME, name);
+            }
+            sb.append(name);
+            if (field.isDesc()) {
+                sb.append(" DESC");
+            }
+        }
     }
 
     /**

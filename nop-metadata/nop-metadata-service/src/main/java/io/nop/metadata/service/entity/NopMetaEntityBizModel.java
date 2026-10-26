@@ -129,6 +129,8 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
         String id = NopMetadataHelper.stringOf(data, NopMetaEntity.PROP_NAME_metaEntityId);
         NopMetaEntity before = id != null ? dao().getEntityById(id) : null;
         NopMetaEntity saved = super.save(data, context);
+        // M4（plan 2026-10-26-2047-1 Phase 4）：标准 CRUD 保留标签守卫（显式拒绝不静默降级）
+        rejectInvalidEntityTags(saved);
         String eventType = before == null
                 ? _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_CREATED
                 : _NopMetadataCoreConstants.CHANGE_EVENT_TYPE_ENTITY_UPDATED;
@@ -399,6 +401,137 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     private MetaQueryContext buildQueryContext() {
         return new MetaQueryContext(daoProvider(), orm(), connectionService, ensureTableRefExecutor(),
                 queryAction.dataSourceResolver(), queryAction.fieldResolver(), queryAction.filterTranslator());
+    }
+
+    // ===== M4（plan 2026-10-26-2047-1 Phase 4）：标准 CRUD 标签守卫 + 目录合成只读入口 =====
+
+    /** 保留标签（dict {@code meta/entity-tag}）：PHYSICAL 声明平台标准 CRUD 已由 bizObj 提供。 */
+    public static final String TAG_STD_CRUD = "std-crud";
+
+    /** 保留标签：SQL_VIEW/EXTERNAL 声明目录合成只读查询入口。 */
+    public static final String TAG_STD_CRUD_RO = "std-crud-ro";
+
+    /**
+     * 标签守卫（save/update 双入口，显式拒绝不静默降级，设计 14 §3.3）：
+     * SQL_VIEW/EXTERNAL 写 {@code std-crud} 拒绝（只允许 std-crud-ro）；PHYSICAL 写
+     * {@code std-crud-ro} 拒绝（PHYSICAL 的只读声明无目录合成意义）。
+     */
+    private void rejectInvalidEntityTags(NopMetaEntity entity) {
+        String tagSet = entity.getTagSet();
+        if (tagSet == null || tagSet.isEmpty()) {
+            return;
+        }
+        boolean physical = entity.isPhysical();
+        for (String tag : tagSet.split(",")) {
+            String trimmed = tag.trim();
+            if (TAG_STD_CRUD_RO.equals(trimmed) && physical) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_ENTITY_TAG_STD_CRUD_RO_ENTITY_KIND)
+                        .param(NopMetadataErrors.ARG_TABLE_TYPE, entity.getEntityKind())
+                        .param(NopMetadataArgs.ARG_TAG_SET, tagSet);
+            }
+            if (TAG_STD_CRUD.equals(trimmed) && !physical) {
+                throw new NopMetadataException(NopMetadataErrors.ERR_ENTITY_TAG_STD_CRUD_PHYSICAL_ONLY)
+                        .param(NopMetadataErrors.ARG_TABLE_TYPE, entity.getEntityKind())
+                        .param(NopMetadataArgs.ARG_TAG_SET, tagSet);
+            }
+        }
+    }
+
+    @Override
+    public NopMetaEntity update(@Name("data") Map<String, Object> data, IServiceContext context) {
+        NopMetaEntity updated = super.update(data, context);
+        // update 写入面对称防护（改 tagSet 撞守卫与 save 同族）
+        rejectInvalidEntityTags(updated);
+        return updated;
+    }
+
+    /** 保留标签是合成入口的启用开关：实体未带 std-crud/std-crud-ro 时显式拒绝。 */
+    private NopMetaEntity requireStdCrudEntity(String metaEntityId, IServiceContext context) {
+        NopMetaEntity entity = requireEntity(metaEntityId, "query", context);
+        String tagSet = entity.getTagSet();
+        if (tagSet == null || tagSet.isEmpty()
+                || (!tagSet.contains(TAG_STD_CRUD) && !tagSet.contains(TAG_STD_CRUD_RO))) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_ENTITY_STD_CRUD_NOT_DECLARED)
+                    .param(NopMetadataArgs.ARG_META_ENTITY_ID, metaEntityId);
+        }
+        return entity;
+    }
+
+    /**
+     * 目录合成只读分页入口：返回结构与 queryData 同源（{@code QueryEntityDataResultDTO}），
+     * 另含 {@code total} 分页总数；取数复用 queryData 同源路径（limit 契约沿 AR-09/queryData
+     * 浏览语义；排序按 entityKind 下推——PHYSICAL 走 QueryBean 原生 orderBy，EXTERNAL/SQL_VIEW
+     * 拼接 ORDER BY，字段名 fail-closed 校验）。
+     */
+    @BizQuery
+    public QueryEntityDataResultDTO findEntityPage(@Name("metaEntityId") String metaEntityId,
+                                                   @Optional @Name("query") QueryBean query,
+                                                   @Optional @Name("selection") FieldSelectionBean selection,
+                                                   IServiceContext context) {
+        NopMetaEntity entity = requireStdCrudEntity(metaEntityId, context);
+        QueryBean q = query != null ? query : new QueryBean();
+        Long limit = normalizeQueryLimit((long) q.getLimit());
+        Long offset = q.getOffset() > 0 ? q.getOffset() : null;
+        QueryEntityDataResultDTO result = queryEntityData(entity, q.getFilter(), q.getOrderBy(), limit, offset);
+        result.setTotal(countEntityData(entity, q.getFilter()));
+        return result;
+    }
+
+    /** 目录合成只读列表入口（无 total；limit 契约同 {@link #findEntityPage}）。 */
+    @BizQuery
+    public QueryEntityDataResultDTO findEntityList(@Name("metaEntityId") String metaEntityId,
+                                                   @Optional @Name("query") QueryBean query,
+                                                   @Optional @Name("selection") FieldSelectionBean selection,
+                                                   IServiceContext context) {
+        NopMetaEntity entity = requireStdCrudEntity(metaEntityId, context);
+        QueryBean q = query != null ? query : new QueryBean();
+        Long limit = normalizeQueryLimit((long) q.getLimit());
+        Long offset = q.getOffset() > 0 ? q.getOffset() : null;
+        return queryEntityData(entity, q.getFilter(), q.getOrderBy(), limit, offset);
+    }
+
+    /** 目录合成单条入口：按过滤条件取第一行（0..1 items），不隐式报"不存在"。 */
+    @BizQuery
+    public QueryEntityDataResultDTO getEntity(@Name("metaEntityId") String metaEntityId,
+                                              @Optional @Name("filter") TreeBean filter,
+                                              @Optional @Name("selection") FieldSelectionBean selection,
+                                              IServiceContext context) {
+        NopMetaEntity entity = requireStdCrudEntity(metaEntityId, context);
+        return queryEntityData(entity, filter, null, 1L, null);
+    }
+
+    /** 与 queryData 同源的取数分派（增加 orderBy 下推）。 */
+    private QueryEntityDataResultDTO queryEntityData(NopMetaEntity entity, TreeBean filter,
+                                                     List<OrderFieldBean> orderBy, Long limit, Long offset) {
+        QueryEntityDataResultDTO result = new QueryEntityDataResultDTO();
+        result.setEntityKind(entity.getEntityKind());
+        List<Map<String, Object>> items;
+        if (entity.isPhysical()) {
+            items = queryAction.queryPhysicalData(entity, filter, orderBy, limit, offset, daoProvider(), orm());
+        } else if (entity.isExternal()) {
+            items = queryAction.queryExternalData(entity, filter, orderBy, limit, offset, connectionService, daoProvider(), orm());
+        } else if (entity.isSqlView()) {
+            items = queryAction.querySqlData(entity, filter, orderBy, limit, offset, connectionService, daoProvider(), orm());
+        } else {
+            throw new NopMetadataException(NopMetadataErrors.ERR_QUERY_UNSUPPORTED_TABLE_TYPE)
+                    .param("metaEntityId", entity.getMetaEntityId())
+                    .param("entityKind", String.valueOf(entity.getEntityKind()));
+        }
+        // M2 输出投影对合成入口同样生效（同源取数路径）
+        applyFieldKindProjection(entity, items);
+        result.setItems(items);
+        return result;
+    }
+
+    /** 分页总数：PHYSICAL 走 dao count；EXTERNAL/SQL_VIEW 用无界 SELECT 包装 COUNT(*)。 */
+    private long countEntityData(NopMetaEntity entity, TreeBean filter) {
+        if (entity.isPhysical()) {
+            return queryAction.countPhysicalData(entity, filter, daoProvider(), orm());
+        }
+        if (entity.isExternal()) {
+            return queryAction.countExternalData(entity, filter, connectionService, daoProvider(), orm());
+        }
+        return queryAction.countSqlData(entity, filter, connectionService, daoProvider(), orm());
     }
 
     /**

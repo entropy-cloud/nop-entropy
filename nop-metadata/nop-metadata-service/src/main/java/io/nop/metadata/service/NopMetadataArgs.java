@@ -137,4 +137,5 @@ public interface NopMetadataArgs {
     String ARG_COMPUTE_EXPR = "computeExpr";
     String ARG_MAP_TO_PROP = "mapToProp";
     String ARG_CATEGORY = "category";
+    String ARG_TAG_SET = "tagSet";
 }

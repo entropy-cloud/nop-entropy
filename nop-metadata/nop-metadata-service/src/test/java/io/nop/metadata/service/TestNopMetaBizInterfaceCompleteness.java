@@ -48,7 +48,8 @@ public class TestNopMetaBizInterfaceCompleteness {
      */
     private static final Map<String, Set<String>> COVERAGE = Map.ofEntries(
             Map.entry("INopMetaEntityBiz", Set.of("profileEntity", "createSqlView", "previewSqlFields",
-                    "resolveEntityFields", "queryData", "queryJoinData", "queryAggregation", "invokeMethod")),
+                    "resolveEntityFields", "queryData", "queryJoinData", "queryAggregation", "invokeMethod",
+                    "findEntityPage", "findEntityList", "getEntity")),
             Map.entry("INopMetaDataSourceBiz", Set.of("bindCredential", "unbindCredential", "migrateDataSourcesCredential", "testConnection", "syncExternalTables",
                     "collectCatalog", "collectCatalogForTable")),
             Map.entry("INopMetaModuleBiz", Set.of("importOrmModel", "importOrmModels",
@@ -88,6 +89,10 @@ public class TestNopMetaBizInterfaceCompleteness {
         assertDeclaresMethod(INopMetaEntityBiz.class, "queryAggregation", 11);
         // M3（plan 2026-10-26-2047-1 Phase 3）：方法泛化执行入口
         assertDeclaresMethod(INopMetaEntityBiz.class, "invokeMethod", 4);
+        // M4（plan 2026-10-26-2047-1 Phase 4）：目录合成只读入口
+        assertDeclaresMethod(INopMetaEntityBiz.class, "findEntityPage", 4);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "findEntityList", 4);
+        assertDeclaresMethod(INopMetaEntityBiz.class, "getEntity", 4);
 
         assertDeclaresMethod(INopMetaDataSourceBiz.class, "testConnection", 2);
         assertDeclaresMethod(INopMetaDataSourceBiz.class, "syncExternalTables", 3);
