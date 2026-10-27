@@ -69,27 +69,31 @@
 
 ### Phase 1 - SSO 刷新异步化与网关重试准入设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/hotpath-sso-refresh-async-and-gateway-retry-admission.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下四项裁定，每条唯一预设默认分支：
-  - [ ] **裁定① C4-007 异步化形态**：(a) 契约 API 形态——预设默认分支 = `ILoginService` 新增 default 方法 `refreshTokenAsync(IUserContext, AuthToken): CompletionStage<String>`，默认实现 `FutureHelper.success(refreshToken(...))`（纯新增零签名破坏，SPI 回归面 live 重枚举登记，2499 先例）；备选「过滤器侧对无异步能力实现降级包装」须论证为何契约层不足后方可采（`ILoginSpi` 错误层先例为拒绝理由输入）。(b) timeout 键——预设默认分支 = SsoConfig 新键（预设名 `nop.auth.sso.refresh-token-timeout`，默认 10s[audit 建议 5-10s 档]、≤0 = 不设显式请求超时回落客户端默认 30s[LOCK-001 两档语义]，落点 `newRefreshTokenRequest` 单行 `req.timeout`）。(c) thenCompose 链序——刷新严格领先 `next.get()`（共享实例变异可见性 + 头/cookie 新鲜度；禁止并行），完成线程漂移与 MDC 窗口语义按 `CTX-001` 对照成文。(d) 降级语义——预设默认分支 = 异常/超时 → warn + 携既有 token 继续（stale-serve，与现行 error→null 一致、认证结果零变化，PA 边界锚点）+ 异常不再逃逸 runOnContext 任务体（闭合 :354 挂死面）；备选 fail-closed = 触发头部 ask-first 条件，须用户询问后方可采。(e) 本地 JWT 零改造兼容核验声明。
-  - [ ] **裁定② C8-002 准入上界与时间整形**：(a) 准入形态——预设默认分支 = 并发许可 tryAcquire（非阻塞）+ 超限类型化快速拒绝（不排队不静默丢弃；新 GatewayErrors 错误码），落点 = `InvokeProcessor.invoke` 入口（主腿+重试挂起全程持有）+ `tryFallbackUrl` 入口（fallback 腿准入）共享许可池，在途 ≤ permits 与 H 解耦（OOM 轨迹消除数学陈述成文）；备选（有界排队/丢弃策略）须论证为何快速拒绝不满足网关语义后方可采；许可原语选型（`Semaphore` vs `IRateLimiter`——后者为速率限流非并发上界）一次声明。(b) 时间整形——预设默认分支 = Retry-After 钳制后值施加 equal jitter（delay/2 + U(0, delay/2)，保留 ≥delay/2 上游恢复窗并破同步重试波），jitter 源可注入（测试缝），配置开关/比率与 5xx 既有 jitter 分支（:162-167）关系成文；既有 30s 钳制与 parseRetryAfter 语义零改动。(c) 配置键——`GatewayConfigs` 新增准入上限键（预设名 `nop.gateway.upstream-max-inflight`，默认有界值设计文档定夺、≤0 = 不设上界档）+ 主链重试上限键（预设名 `nop.gateway.upstream-max-retries`，默认 3 现行为保持）。(d) 与 Retry-After 的关系——尊重语义不变、许可覆盖重试挂起窗（挂起不释放）、准入拒绝优先于重试发起。
-  - [ ] **裁定③ 测试缝与观测缝**：C4-007 = fake `IHttpClient`（可控 future）+ `req.timeout` 捕获断言 + `handleUserContext` 刷新支路执行链测试（C10-004 缺口本体；N4 注记——fake executeBlocking 同步内联掩蔽载体维度，夹具须显式声明载体缝）+ 不钉线观测（载体线程返回后再完成 fake future）+ 链序断言（`next.get` 严格后于刷新完成）+ 降级断言（刷新失败→下游继续+无头/cookie 更新+warn）；C8-002 = `RecordingHttpClient` 计数[**桩形态扩展声明（draft review Minor-4）**：既有 RecordingHttpClient[ArrayList 立即完成型]无 pending-future 控制与并发在途计数能力——「第 N+1 个挂起」与在途 ≤ permits 断言需扩展为可控 future + Atomic 计数桩或新建子类，Phase 2 不得临场发明其他缝]+ 准入拒绝断言（permits 耗尽→零上游调用+类型化错误）+ 在途计数上界断言 + jitter seeded 分布断言 + 主腿重试计数断言（补 C10-006 缺口）。
-  - [ ] **裁定④ 边界声明**：R2-16（8.25）会话/配额取消束零承接；G36 面（C3-010/CL-025/C4-003/C4-004/C4-008）归 8.56 并核对无重叠（R4-16 软依赖本批的承载前提注记）；C3-003 面=8.15；Redis 移交线索；本批许可闸与未来断连取消原语的正交组合声明。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下四项裁定，每条唯一预设默认分支：
+  - [x] **裁定① C4-007 异步化形态**：(a) 契约 API 形态——预设默认分支 = `ILoginService` 新增 default 方法 `refreshTokenAsync(IUserContext, AuthToken): CompletionStage<String>`，默认实现 `FutureHelper.success(refreshToken(...))`（纯新增零签名破坏，SPI 回归面 live 重枚举登记，2499 先例）；备选「过滤器侧对无异步能力实现降级包装」须论证为何契约层不足后方可采（`ILoginSpi` 错误层先例为拒绝理由输入）。(b) timeout 键——预设默认分支 = SsoConfig 新键（预设名 `nop.auth.sso.refresh-token-timeout`，默认 10s[audit 建议 5-10s 档]、≤0 = 不设显式请求超时回落客户端默认 30s[LOCK-001 两档语义]，落点 `newRefreshTokenRequest` 单行 `req.timeout`）。(c) thenCompose 链序——刷新严格领先 `next.get()`（共享实例变异可见性 + 头/cookie 新鲜度；禁止并行），完成线程漂移与 MDC 窗口语义按 `CTX-001` 对照成文。(d) 降级语义——预设默认分支 = 异常/超时 → warn + 携既有 token 继续（stale-serve，与现行 error→null 一致、认证结果零变化，PA 边界锚点）+ 异常不再逃逸 runOnContext 任务体（闭合 :354 挂死面）；备选 fail-closed = 触发头部 ask-first 条件，须用户询问后方可采。(e) 本地 JWT 零改造兼容核验声明。
+  - [x] **裁定② C8-002 准入上界与时间整形**：(a) 准入形态——预设默认分支 = 并发许可 tryAcquire（非阻塞）+ 超限类型化快速拒绝（不排队不静默丢弃；新 GatewayErrors 错误码），落点 = `InvokeProcessor.invoke` 入口（主腿+重试挂起全程持有）+ `tryFallbackUrl` 入口（fallback 腿准入）共享许可池，在途 ≤ permits 与 H 解耦（OOM 轨迹消除数学陈述成文）；备选（有界排队/丢弃策略）须论证为何快速拒绝不满足网关语义后方可采；许可原语选型（`Semaphore` vs `IRateLimiter`——后者为速率限流非并发上界）一次声明。(b) 时间整形——预设默认分支 = Retry-After 钳制后值施加 equal jitter（delay/2 + U(0, delay/2)，保留 ≥delay/2 上游恢复窗并破同步重试波），jitter 源可注入（测试缝），配置开关/比率与 5xx 既有 jitter 分支（:162-167）关系成文；既有 30s 钳制与 parseRetryAfter 语义零改动。(c) 配置键——`GatewayConfigs` 新增准入上限键（预设名 `nop.gateway.upstream-max-inflight`，默认有界值设计文档定夺、≤0 = 不设上界档）+ 主链重试上限键（预设名 `nop.gateway.upstream-max-retries`，默认 3 现行为保持）。(d) 与 Retry-After 的关系——尊重语义不变、许可覆盖重试挂起窗（挂起不释放）、准入拒绝优先于重试发起。
+  - [x] **裁定③ 测试缝与观测缝**：C4-007 = fake `IHttpClient`（可控 future）+ `req.timeout` 捕获断言 + `handleUserContext` 刷新支路执行链测试（C10-004 缺口本体；N4 注记——fake executeBlocking 同步内联掩蔽载体维度，夹具须显式声明载体缝）+ 不钉线观测（载体线程返回后再完成 fake future）+ 链序断言（`next.get` 严格后于刷新完成）+ 降级断言（刷新失败→下游继续+无头/cookie 更新+warn）；C8-002 = `RecordingHttpClient` 计数[**桩形态扩展声明（draft review Minor-4）**：既有 RecordingHttpClient[ArrayList 立即完成型]无 pending-future 控制与并发在途计数能力——「第 N+1 个挂起」与在途 ≤ permits 断言需扩展为可控 future + Atomic 计数桩或新建子类，Phase 2 不得临场发明其他缝]+ 准入拒绝断言（permits 耗尽→零上游调用+类型化错误）+ 在途计数上界断言 + jitter seeded 分布断言 + 主腿重试计数断言（补 C10-006 缺口）。
+  - [x] **裁定④ 边界声明**：R2-16（8.25）会话/配额取消束零承接；G36 面（C3-010/CL-025/C4-003/C4-004/C4-008）归 8.56 并核对无重叠（R4-16 软依赖本批的承载前提注记）；C3-003 面=8.15；Redis 移交线索；本批许可闸与未来断连取消原语的正交组合声明。
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–④全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定①含 SPI 回归面重枚举清单与 ask-first 触发边界成文；裁定②含双落点对照、OOM 轨迹消除数学陈述、IRateLimiter 选型声明；裁定④含 R2-16/R4-16/R2-06 三向边界核对结论
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–④全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定①含 SPI 回归面重枚举清单与 ask-first 触发边界成文；裁定②含双落点对照、OOM 轨迹消除数学陈述、IRateLimiter 选型声明；裁定④含 R2-16/R4-16/R2-06 三向边界核对结论
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 1 执行记录（2026-10-26）**：设计文档 `ai-dev/design/concurrency/hotpath-sso-refresh-async-and-gateway-retry-admission.md`（~168 行）落盘并登记 README（层级表 + 阅读顺序第 10 位 + 实现锚）。四裁定唯一结论：①`ILoginService` default `refreshTokenAsync`（**SPI 回归面 9 面[3 main + 6 fixture]全列 + `AbstractLoginService` 族规则兜底**）+ `OAuthLoginServiceImpl` 剥 syncGet 纯异步链（error→null stale-serve 保持）+ 超时键 `nop.auth.sso.refresh-token-timeout` 10s/≤0 回落 30s + **接线 = `sso-defaults.beans.xml` `@cfg:` property 行** + `thenCompose` 链序**经 `ctx.runOnContext` 再入任务队列**执行设头/next.get（contextHolder 绑定丢失规避 + 再入调用 checkClosed 守护）；②平台 `ISemaphore`（`tryAcquire(1,0)` 形态钉）双落点共享池（invokeUrl 主腿含挂起窗 + tryFallbackUrl 逐腿；XPL/RPC/流式不入池）+ 全出口 finally/whenComplete 释放 + **拒绝传播按落点钉死[主腿同步 throw / fallback 腿 failedFuture]** + 新码不可重试钉 + equal jitter 后置（七例钉零触碰）+ `upstream-max-inflight` 默认 1000 / `upstream-max-retries` 默认 3 + OOM 数学（P 与 λ/H 解耦）；③fake IHttpClient protected 字段注入 + **新建独立可控桩**（RecordingHttpClient private 不可继承）+ E2E 链路①归 nop-auth-sso / 链路②归 nop-gateway；④边界（R2-16 零承接/G36→8.56/C3-003→8.15）+ 五组零回退钉。
+>
+> 独立 draft review R1（agent_969e4acc，fresh session，30+ 处抽查零漂移）：0 Blocker / **3 Major**（SPI 面 9 vs 8 穷举性失实；fallback 拒绝同步 throw 复制挂死面；next.get 执行介质丢失 contextHolder）+ 5 Minor 全修；R2 增量复核 M2/M3 PASS（异常收敛自洽）+ M1 半闭合后补齐 + checkClosed 补强。实施期亲读 4 发现（SPI fixture 实为 5→6、RecordingHttpClient private、InvokeProcessor 构造适配定夺保留旧两参重载、流式路由不入池）均已入文。设计文档 Status → active。零产品代码改动。`check-doc-links --strict` 退出码 0。
 
 ### Phase 2 - 两成员实现 + 回归测试（auth 组 + gateway 组）
 
