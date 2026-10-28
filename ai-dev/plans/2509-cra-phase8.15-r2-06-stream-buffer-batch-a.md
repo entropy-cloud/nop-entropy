@@ -111,36 +111,40 @@ Exit Criteria:
 
 ### Phase 2 - 11 成员实现 + 回归测试（gateway 组 + ai-gateway 组）
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/nop-gateway/src/`（executor、streaming 链）与 `nop-ai/nop-ai-gateway/src/`（failover、routing）——各自 main + test 树
 
 - Item Types: `Fix`（11 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 七条验收前置）
 
-- [ ] 组 A（nop-service-framework）：2.3-C3-003 实现（组件化收敛 + 越窗上界 + demand 门控 + 上游 cancel 扩展面）、3.3-C2-009 实现（重试全链外移）、3.3-C3-007 宿主链协调（`StreamingProcessor` 降级信号形态按裁定⑦）
-- [ ] 组 B（nop-ai/nop-ai-gateway）：C2-001（acquire/release 配对）、C1-001（monitor 完整性）、C3-001（pendingComplete 对齐）、C8-001（越窗上界 + request 策略）、C2-002（投递外移）、MA-05（三回调体护栏）、C3-003（取消短路 + 协调注记落码面）、C3-007（拦截器降级显式化）、C7-005（allowCall 消费面）——全部按裁定①–⑦实施
-- [ ] 回归测试（rule 25 显式覆盖 + C10 七条同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C8-001/C10-001 红①（越窗无界）：demand 受限订阅者（request(1) 后停滞）+ 长流上游——修复前 `AttemptState.buffer` 深度随元素数线性增长（越窗后无上界红）→ 修复后深度 ≤ bufferSize 上界 + 溢出路径类型化错误 + 上游授信不再恒 MAX（授信记账断言）
-  - [ ] C3-001/C10-002 红②（终态截断）：demand 耗尽时上游 onComplete——修复前缓冲剩余元素被丢弃且收到 onComplete（尾部 chunk[finish_reason/usage] 丢失红）→ 修复后 request() 冲空缓冲后才收到 onComplete 且元素 exactly-once 全量交付；窗口内完成次级面（passed 门控）同钉
-  - [ ] C1-001/C10-002 红③（泄漏×撕裂）：attempt-1 窗口内失败与下游 request(5) 交错（classifyStreamError 阻塞桩拉宽窗口）——修复前 attempt-1 已缓冲 chunk 泄漏进下游输出或 onNext(null) 红 → 修复后零泄漏零 null（attempt-identity 守卫断言：放弃 attempt 的缓冲永不交付）
-  - [ ] C2-001/C10-003 红④（幽灵计数）：取消落在 :235 检查后/:263 acquire 后交错——修复前 registry 计数永久 +1（饱和误判红）→ 修复后全部 4 进入点交错下 acquire/release 配对（计数终值归零断言）
-  - [ ] C2-002/C2-009/C10-004 红⑤（锁卡位）：慢下游 onNext 阻塞桩——修复前 `request()` 被投递锁卡位（计时断言红）/重试决策持锁（monitor 持有断言红）→ 修复后 request 不被下游 onNext 阻塞、重试决策在锁外（monitor 持有时长/线程断言）
-  - [ ] P2 组红⑥：MA-05（回调体抛非 NopException——修复前 future 永不完成红 → 修复后 completeExceptionally）；C3-003（取消后 stage 异常完成——修复前 recordFailure+预算误耗红 → 修复后零记账零耗预算 + future 异常完成）；C3-007/C10-006（降级路径——修复前 attempt-1 前缀泄漏 + 失败 attempt recordSuccess 红 → 修复后零泄漏零记账反转）；C7-005/C10-014（OPEN 冷却期满候选——修复前永久出局红 → 修复后 allowCall 复查恢复可达；HALF_OPEN 恢复期行为按裁定⑦断言）
-- [ ] **端到端验证**（rule 22）：≥1 条 3.3 流式 failover 全链测试（入口 `callStream`/拦截器流式路径 → attempt 失败 → 重订阅 → 越窗 → demand 受限消费 → 终态交付 → 出口点=订阅者收到的元素序列与终态信号 exactly-once 且零泄漏，含一次取消路径 teardown 配对）；≥1 条 2.3 缓冲链路测试（`StreamingProcessor` 映射链 → BufferedStreamingPublisher 组件 → ManualDemandSubscriber 出口点=尾部元素交付 + onComplete 时序，复用/重写 `bufferedTailElementsDeliveredBeforeComplete` 形态）
-- [ ] **接线验证**（rule 23）：裁定①若物理共享组件——两实现真实调用组件断言（mock verify/计数器，非 import 自证）；C7-005 allowCall 代理真实被选择路径调用断言；C3-003 取消短路真实在 whenComplete 链上生效断言
-- [ ] **无静默跳过**（rule 24）：溢出策略 fail-loud 而非静默丢弃/排队；MA-05 护栏显式 completeExceptionally 而非空 catch；降级信号显式终态而非伪装 onComplete；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按模块分组提交——**组 A**（nop-gateway：C3-003+C2-009+C3-007 宿主）、**组 B**（nop-ai-gateway：其余成员），C10 测试与对应本体同一 commit；两模块无耦合时组 A/组 B 可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 A（nop-service-framework）：2.3-C3-003 实现（组件化收敛 + 越窗上界 + demand 门控 + 上游 cancel 扩展面）、3.3-C2-009 实现（重试全链外移）、3.3-C3-007 宿主链协调（`StreamingProcessor` 降级信号形态按裁定⑦）
+- [x] 组 B（nop-ai/nop-ai-gateway）：C2-001（acquire/release 配对）、C1-001（monitor 完整性）、C3-001（pendingComplete 对齐）、C8-001（越窗上界 + request 策略）、C2-002（投递外移）、MA-05（三回调体护栏）、C3-003（取消短路 + 协调注记落码面）、C3-007（拦截器降级显式化）、C7-005（allowCall 消费面）——全部按裁定①–⑦实施
+- [x] 回归测试（rule 25 显式覆盖 + C10 七条同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C8-001/C10-001 红①（越窗无界）：demand 受限订阅者（request(1) 后停滞）+ 长流上游——修复前 `AttemptState.buffer` 深度随元素数线性增长（越窗后无上界红）→ 修复后深度 ≤ bufferSize 上界 + 溢出路径类型化错误 + 上游授信不再恒 MAX（授信记账断言）
+  - [x] C3-001/C10-002 红②（终态截断）：demand 耗尽时上游 onComplete——修复前缓冲剩余元素被丢弃且收到 onComplete（尾部 chunk[finish_reason/usage] 丢失红）→ 修复后 request() 冲空缓冲后才收到 onComplete 且元素 exactly-once 全量交付；窗口内完成次级面（passed 门控）同钉
+  - [x] C1-001/C10-002 红③（泄漏×撕裂）：attempt-1 窗口内失败与下游 request(5) 交错（classifyStreamError 阻塞桩拉宽窗口）——修复前 attempt-1 已缓冲 chunk 泄漏进下游输出或 onNext(null) 红 → 修复后零泄漏零 null（attempt-identity 守卫断言：放弃 attempt 的缓冲永不交付）
+  - [x] C2-001/C10-003 红④（幽灵计数）：取消落在 :235 检查后/:263 acquire 后交错——修复前 registry 计数永久 +1（饱和误判红）→ 修复后全部 4 进入点交错下 acquire/release 配对（计数终值归零断言）
+  - [x] C2-002/C2-009/C10-004 红⑤（锁卡位）：慢下游 onNext 阻塞桩——修复前 `request()` 被投递锁卡位（计时断言红）/重试决策持锁（monitor 持有断言红）→ 修复后 request 不被下游 onNext 阻塞、重试决策在锁外（monitor 持有时长/线程断言）
+  - [x] P2 组红⑥：MA-05（回调体抛非 NopException——修复前 future 永不完成红 → 修复后 completeExceptionally）；C3-003（取消后 stage 异常完成——修复前 recordFailure+预算误耗红 → 修复后零记账零耗预算 + future 异常完成）；C3-007/C10-006（降级路径——修复前 attempt-1 前缀泄漏 + 失败 attempt recordSuccess 红 → 修复后零泄漏零记账反转）；C7-005/C10-014（OPEN 冷却期满候选——修复前永久出局红 → 修复后 allowCall 复查恢复可达；HALF_OPEN 恢复期行为按裁定⑦断言）
+- [x] **端到端验证**（rule 22）：≥1 条 3.3 流式 failover 全链测试（入口 `callStream`/拦截器流式路径 → attempt 失败 → 重订阅 → 越窗 → demand 受限消费 → 终态交付 → 出口点=订阅者收到的元素序列与终态信号 exactly-once 且零泄漏，含一次取消路径 teardown 配对）；≥1 条 2.3 缓冲链路测试（`StreamingProcessor` 映射链 → BufferedStreamingPublisher 组件 → ManualDemandSubscriber 出口点=尾部元素交付 + onComplete 时序，复用/重写 `bufferedTailElementsDeliveredBeforeComplete` 形态）
+- [x] **接线验证**（rule 23）：裁定①若物理共享组件——两实现真实调用组件断言（mock verify/计数器，非 import 自证）；C7-005 allowCall 代理真实被选择路径调用断言；C3-003 取消短路真实在 whenComplete 链上生效断言
+- [x] **无静默跳过**（rule 24）：溢出策略 fail-loud 而非静默丢弃/排队；MA-05 护栏显式 completeExceptionally 而非空 catch；降级信号显式终态而非伪装 onComplete；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按模块分组提交——**组 A**（nop-gateway：C3-003+C2-009+C3-007 宿主）、**组 B**（nop-ai-gateway：其余成员），C10 测试与对应本体同一 commit；两模块无耦合时组 A/组 B 可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 11 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 七条同 diff 落地
-- [ ] 必红证据（E2）：红①–红⑥全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：`StreamingProcessorBufferingTest` 12 用例、`TestFailoverStreamCancelPin_C3_001`、`TestStreamFullChainEndToEnd_C3_001`、`InvokeProcessorRetryTest`、`TestGatewayUpstreamAdmission` 全绿（钉零回改项逐条 git diff 为空核对）；2505 已修面（nop-network）零 diff
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-ai -am` BUILD SUCCESS；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 11 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 七条同 diff 落地
+- [x] 必红证据（E2）：红①–红⑥全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：`StreamingProcessorBufferingTest` 12 用例、`TestFailoverStreamCancelPin_C3_001`、`TestStreamFullChainEndToEnd_C3_001`、`InvokeProcessorRetryTest`、`TestGatewayUpstreamAdmission` 全绿（钉零回改项逐条 git diff 为空核对）；2505 已修面（nop-network）零 diff
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-ai -am` BUILD SUCCESS；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 2 执行记录（2026-10-28）**：组 A `41508cded5`（2.3-C3-003+C2-009 半边：共享泛型核 `BoundedWindowBuffer` 六合一[+disabled 直通档，不加锁由宿主 monitor 保护] + `StreamingBufferOverflowException` 不可重试终态 + BufferedStreamingPublisher 迁移[映射链自驱动 request(1) 改 demand 门控授信 GatedUpstreamPublisher + drain-loop 出锁投递六点 + attempt-identity 复检 + retry/startAttempt 出锁] + StreamingProcessor cancel 一处两态 + GatewayFixTest N1 重写；真红 5/6 `_tmp/phase2-stream-C3-003-red.log`；nop-gateway 132 绿，StreamingProcessorBufferingTest 12 零改动）；组 B `ae0dd2d570`（3.3 侧 9 成员：FailoverStreamFlow 重写迁移至共享核[request(MAX) 保留 + 越窗上界 + 溢出不可重试终态绕过分类/记账/重订阅] + C2-001 漏斗单行 + C1-001 clear 入锁/identity 守卫[真实前缀泄漏红] + C3-001 挂起对齐/request 补发第 6 投递点 + C2-002 drain-loop + recordSuccess/重试决策出锁 + MA-05 双回调体护栏 + C3-003 取消短路零记账 + C7-005/C3-005 `ThresholdBreaker.cooldownElapsed` 只读追加[零 PA 偏离申报] + healthView 第 5 标量纯读投影 + 选中后唯一权威 allowCall + HALF_OPEN 单探针维持；10 红日志 `_tmp/phase2-failover-*-red.log`[真实前缀泄漏 got[a1,a2,b1,b2]/终态截断/预算误耗等]；**C3-007 宿主半边由协调方落地**[组 B 禁触 nop-service-framework——`BufferedStreamingPublisher.deliverDegradedTerminal` 清缓冲终态序列委托 + `StreamingProcessor` 缓冲分支 degradedSink/直通形态零回归 + 宿主腿测试]，nop-ai-gateway 266 + nop-gateway 133 绿）。
+>
+> **偏差登记**：①溢出指标 = WARN 深度日志 + 计数 Counter，无 per-subscription 深度 gauge（每流注册泄漏 MeterRegistry，网关流每请求粒度）；②2.3 侧溢出码为类型化异常类 `StreamingBufferOverflowException` 而非 GatewayErrors 新码（生成面边界）；③C3-005 attempted 回收 = 请求级生命周期 + allowCall 冷却窗失效，零簿记；④既有用例适配 4 文件断言级变更逐条登记[探活恢复语义随幻影 probe 槽结构性消除更新："untouched stays OPEN"] + `TestFailoverMetricsLocal` 观测缺口 1 处登记[选择点 allowCall 未接 CircuitObservation]；⑤`FailoverTestSupport` 纯追加 +144 行[ManualDemand/ScriptedPublisher 缝]。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
