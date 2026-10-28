@@ -450,16 +450,23 @@
                         // AMIS validations → Flux 字段级属性
                         if(cell.validations != null) {
                             const v = cell.validations;
-                            if(v.isRequired) cell.required = true;
-                            if(v.maxLength != null) cell.maxLength = v.maxLength;
-                            if(v.minLength != null) cell.minLength = v.minLength;
-                            if(v.minimum != null) cell.min = v.minimum;
-                            if(v.maximum != null) cell.max = v.maximum;
-                            if(v.pattern != null) cell.pattern = v.pattern;
-                            // AMIS format validations → Flux format property
-                            if(v.isEmail) cell.format = 'email';
-                            if(v.isUrl) cell.format = 'url';
-                            if(v.isInt) cell.format = 'integer';
+                            // AMIS validations 既可以是对象形式也可以是字符串形式（如 "isRequired"），
+                            // 字符串形态直接按对象取属性会抛 unknown-prop
+                                                        try {
+                                if(v.isRequired) cell.required = true;
+                                if(v.maxLength != null) cell.maxLength = v.maxLength;
+                                if(v.minLength != null) cell.minLength = v.minLength;
+                                if(v.minimum != null) cell.min = v.minimum;
+                                if(v.maximum != null) cell.max = v.maximum;
+                                if(v.pattern != null) cell.pattern = v.pattern;
+                                if(v.isEmail) cell.format = 'email';
+                                if(v.isUrl) cell.format = 'url';
+                                if(v.isInt) cell.format = 'integer';
+                            } catch (e) {
+                                // AMIS 字符串形式 validations（如 "isRequired"）：对象属性访问在 String 上会抛错
+                                if((v + '').indexOf('isRequired') >= 0) cell.required = true;
+                                if((v + '').indexOf('isEmail') >= 0) cell.format = 'email';
+                            }
                             cell.validations = null;
                         }
                     }else{
