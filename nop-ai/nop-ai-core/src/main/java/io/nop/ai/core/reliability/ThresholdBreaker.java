@@ -218,6 +218,31 @@ public final class ThresholdBreaker implements ICircuitBreaker {
         return holder[0];
     }
 
+    /**
+     * Read-only cooldown query (plan 2509 R2-06 adjudication 7(b) C7-005): reports whether a
+     * call to this model would be admissible <i>without</i> consuming the HALF_OPEN probe slot —
+     * {@code true} for any non-OPEN state, or for OPEN whose cooldown has already elapsed.
+     *
+     * <p>Unlike {@link #allowCall(String)} this never mutates the breaker (no OPEN → HALF_OPEN
+     * transition, no probe-slot take), so selection views can consult cooldown progress without
+     * burning phantom probe slots. Declared deviation from the plan's "zero breaker change"
+     * constraint: read-only addition to an internal implementation class (not part of the
+     * {@code ICircuitBreaker} platform SPI), zero write-face change.
+     *
+     * @param modelKey non-null composite model identity ({@code provider:model})
+     * @return {@code true} when the cooldown gate would admit a call right now
+     */
+    public boolean cooldownElapsed(String modelKey) {
+        if (modelKey == null) {
+            throw new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG, "modelKey must not be null");
+        }
+        BreakerEntry entry = entries.get(modelKey);
+        if (entry == null || entry.state != CircuitState.OPEN) {
+            return true;
+        }
+        return CoreMetrics.currentTimeMillis() - entry.openedAt >= cooldownMs;
+    }
+
     @Override
     public CircuitState getState(String modelKey) {
         if (modelKey == null) {

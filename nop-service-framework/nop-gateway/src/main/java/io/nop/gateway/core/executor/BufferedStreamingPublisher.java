@@ -116,10 +116,25 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
         }
     }
 
+    /** 当前活跃订阅（C3-007 降级终态交付的委托目标；subscribe 时置位）。 */
+    private volatile BufferedSubscription activeSubscription;
+
+    /**
+     * C3-007 宿主半边（plan 2509 裁定⑦(a)）：降级响应的显式降级终态交付——降级 wrapper
+     * 不经元素通路（不占 demand、不进缓冲），窗口内清缓冲后经出锁 drain 直接以
+     * 「onNext + onComplete」终态序列交付。直通形态不使用本 API（保持既有行为零回归）。
+     */
+    public void deliverDegradedTerminal(Object degraded) {
+        BufferedSubscription sub = this.activeSubscription;
+        if (sub != null)
+            sub.deliverDegradedTerminal(degraded);
+    }
+
     @Override
     public void subscribe(Flow.Subscriber<? super Object> subscriber) {
         Objects.requireNonNull(subscriber);
         BufferedSubscription sub = new BufferedSubscription(subscriber);
+        this.activeSubscription = sub;
         subscriber.onSubscribe(sub);
         sub.startFirstAttempt();
     }
@@ -311,6 +326,25 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                 }
                 drain();
             }
+        }
+
+        /**
+         * C3-007 降级终态交付（外层 {@link #deliverDegradedTerminal(Object)} 委托目标）：
+         * 清缓冲 + 挂起终态失效 + 出锁 drain 直投「degraded onNext + onComplete」终态序列
+         * （不占 demand、不进缓冲；attempt-identity 经信号携带的 attempt 引用由投递段复核）。
+         * 调用方 = 外层公共 API，非上游回调语境。
+         */
+        void deliverDegradedTerminal(Object degraded) {
+            synchronized (this) {
+                if (cancelled.get()) {
+                    return;
+                }
+                buffer.clear();
+                buffer.setPendingComplete(false);
+                signalQueue.add(Signal.item(attempt, degraded));
+                signalQueue.add(Signal.complete(attempt));
+            }
+            drain();
         }
 
         // ======================= 锁内状态机（裁定⑥：仅记账，不出信号） =======================

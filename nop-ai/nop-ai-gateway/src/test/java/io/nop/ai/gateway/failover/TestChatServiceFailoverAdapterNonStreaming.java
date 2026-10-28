@@ -327,8 +327,10 @@ class TestChatServiceFailoverAdapterNonStreaming {
         assertTrue(resp.isSuccess());
         assertEquals(1, fake.requests.size());
         assertEquals(CircuitState.CLOSED, breaker.getState("gw-test:gw-model-1"));
-        assertEquals(CircuitState.HALF_OPEN, breaker.getState("gw-rl:gw-rl-model"),
-                "provider-chain candidate must be probed (allowCall) by the probe traversal");
+        // plan 2509 裁定⑦(b)：allowCall 收口至选择点——类内冷却期满候选直接经选择点
+        // allowCall 复查恢复可达，provider 链扩展遍历不再被触发（链候选不被探活，维持 OPEN）。
+        assertEquals(CircuitState.OPEN, breaker.getState("gw-rl:gw-rl-model"),
+                "provider-chain candidate must not be probed (in-class recovery via selection allowCall)");
     }
 
     // ======================= 并发复查（M-6a） =======================

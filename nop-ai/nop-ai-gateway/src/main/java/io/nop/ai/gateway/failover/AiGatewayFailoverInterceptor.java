@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -282,33 +283,51 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         }
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
         stage.whenComplete((resp, err) -> {
-            // 全终止路径 release（M-2）：成功、失败切换、NON_TRANSIENT、async 异常。
-            registry.release(candidate.getProvider(), candidate.getAccountKey());
-            if (metrics != null) {
-                metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
-            }
-            if (err != null) {
-                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, err,
+            try {
+                whenCompleteBody(future, invocation, request, svcCtx, router, attempt, candidate, resp, err,
                         startNanos);
-            } else if (resp != null && resp.isOk()) {
-                // 成功路径：recordSuccess（D6；HALF_OPEN 探活成功 → CLOSED 恢复）。
-                CircuitObservation.recordSuccess(metrics, breaker, candidate.getProvider(), candidate.getModel(),
-                        candidate.getModelKey());
-                if (metrics != null) {
-                    metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
-                            (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
-                }
-                future.complete(resp);
-            } else if (resp != null) {
-                decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, resp, null,
-                        startNanos);
-            } else {
-                future.completeExceptionally(new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
-                        .param(NopAiCoreErrors.ARG_MSG,
-                                "proceedInvoke returned null response for route: " + routeId(svcCtx)));
+            } catch (Throwable t) {
+                // MA-05 护栏（裁定⑦(c)）：回调体内异常不得吞入无人消费的从属 stage——
+                // future 必达异常终态。
+                future.completeExceptionally(t);
             }
         });
         return future;
+    }
+
+    /**
+     * {@code invokeNonStreamingAttempt} 的 whenComplete 回调体（MA-05 护栏外提，调用方
+     * try/catch (Throwable) 兜底）：全终止路径 release + 成功/失败分支决策。
+     */
+    private void whenCompleteBody(CompletableFuture<ApiResponse<?>> future, IGatewayInvocation invocation,
+                                  ApiRequest<?> request, IGatewayContext svcCtx, ModelClassRouter router,
+                                  int attempt, ModelClassCandidate candidate,
+                                  ApiResponse<?> resp, Throwable err, long startNanos) {
+        // 全终止路径 release（M-2）：成功、失败切换、NON_TRANSIENT、async 异常。
+        registry.release(candidate.getProvider(), candidate.getAccountKey());
+        if (metrics != null) {
+            metrics.onConcurrencyRelease(candidate.getProvider(), candidate.getAccountKey());
+        }
+        if (err != null) {
+            decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, null, err,
+                    startNanos);
+        } else if (resp != null && resp.isOk()) {
+            // 成功路径：recordSuccess（D6；HALF_OPEN 探活成功 → CLOSED 恢复）。
+            CircuitObservation.recordSuccess(metrics, breaker, candidate.getProvider(), candidate.getModel(),
+                    candidate.getModelKey());
+            if (metrics != null) {
+                metrics.onRequestSuccess(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
+                        (CoreMetrics.nanoTime() - startNanos) / 1_000_000L);
+            }
+            future.complete(resp);
+        } else if (resp != null) {
+            decideNonStreamFailure(future, invocation, request, svcCtx, router, attempt, candidate, resp, null,
+                    startNanos);
+        } else {
+            future.completeExceptionally(new NopAiCoreException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG)
+                    .param(NopAiCoreErrors.ARG_MSG,
+                            "proceedInvoke returned null response for route: " + routeId(svcCtx)));
+        }
     }
 
     /**
@@ -320,6 +339,13 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
                                         ApiRequest<?> request, IGatewayContext svcCtx, ModelClassRouter router,
                                         int attempt, ModelClassCandidate candidate,
                                         ApiResponse<?> response, Throwable error, long startNanos) {
+        // C3-003 取消短路（裁定⑦(d)，interceptor 无 cancelToken——cause 链判定路径）：
+        // 取消不记账、不耗预算、不重试 → completeExceptionally。
+        if (error != null && hasCancellationInCauseChain(error)) {
+            future.completeExceptionally(error instanceof CancellationException
+                    ? error : new CancellationException("call cancelled"));
+            return;
+        }
         if (metrics != null) {
             // 每次 attempt 失败均计数（切换类 / NON_TRANSIENT / CACHE_STATE_LOST / 预算耗尽）。
             metrics.onRequestFailure(candidate.getProvider(), candidate.getModel(), candidate.getAccountKey(),
@@ -377,12 +403,28 @@ public class AiGatewayFailoverInterceptor implements IGatewayInterceptor {
         return ErrorClassification.NON_TRANSIENT;
     }
 
+    private static boolean hasCancellationInCauseChain(Throwable error) {
+        Throwable cause = error;
+        while (cause != null) {
+            if (cause instanceof CancellationException) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
     private static void completeRelay(CompletableFuture<ApiResponse<?>> future,
                                       ApiResponse<?> response, Throwable error) {
-        if (error != null) {
-            future.completeExceptionally(error);
-        } else {
-            future.complete(response);
+        try {
+            if (error != null) {
+                future.completeExceptionally(error);
+            } else {
+                future.complete(response);
+            }
+        } catch (Throwable t) {
+            // MA-05 护栏（裁定⑦(c)）：relay 兜底必达终态，不留未完成 future。
+            future.completeExceptionally(t);
         }
     }
 

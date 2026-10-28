@@ -210,6 +210,71 @@ class TestStreamingWindowBufferGate_C3_003 {
     }
 
     /** 手动驱动 demand 的订阅者：onSubscribe 不预取（demand = 0），request(n) 显式授信。 */
+    /**
+     * C3-007 宿主半边（plan 2509 裁定⑦(a)）：缓冲接管形态下降级响应为显式降级终态——
+     * 清缓冲 + 不经元素通路/不占 demand，直接以「onNext + onComplete」终态序列交付
+     * （修复前：降级元素进 AttemptSubscriber 元素序列与缓冲内容交错）。
+     */
+    @Test
+    @Timeout(10)
+    void degradedTerminalDeliveredDirectlyInBufferedForm_C3_007() {
+        GatewayStreamingModel streaming = streamingModel(true, 2);
+        GatewayRouteModel route = route(streaming);
+        GatewayContextImpl context = new GatewayContextImpl();
+        context.setRequest(request());
+        context.setHttpMethod("POST");
+
+        FakeHttpClient fake = new FakeHttpClient();
+        // 上游在首发即失败（proceedOnError 将产出降级元素）
+        fake.queue(new CountingPublisher(List.of(), new RuntimeException("upstream broken"),
+                CountingPublisher.Mode.BURST));
+
+        IGatewayInvocation degradedInvocation = new IGatewayInvocation() {
+            @Override
+            public CompletionStage<ApiResponse<?>> proceedInvoke(ApiRequest<?> r, IGatewayContext c) {
+                return null;
+            }
+
+            @Override
+            public ApiResponse<?> proceedOnError(Throwable e, IGatewayContext c) {
+                ApiResponse<Object> degraded = new ApiResponse<>();
+                degraded.setData("degraded-fallback");
+                return degraded; // 降级响应
+            }
+
+            @Override public ApiRequest<?> proceedOnRequest(ApiRequest<?> r, IGatewayContext c) { return r; }
+            @Override public ApiResponse<?> proceedOnResponse(ApiResponse<?> r, IGatewayContext c) { return r; }
+            @Override public void proceedOnStreamStart(ApiRequest<?> r, IGatewayContext c) {}
+            @Override public Object proceedOnStreamElement(Object e, IGatewayContext c) { return e; }
+            @Override public Object proceedOnStreamError(Throwable e, IGatewayContext c) { return null; }
+            @Override public void proceedOnStreamComplete(IGatewayContext c) {}
+        };
+
+        StreamingProcessor processor = new StreamingProcessor(fake, new MappingProcessor(null));
+        processor.executeStreaming(route, request(), context, degradedInvocation);
+
+        StreamingResponse streamingResponse = (StreamingResponse) context.getAttribute(StreamingResponse.class.getName());
+        assertNotNull(streamingResponse);
+
+        ManualDemandSubscriber subscriber = new ManualDemandSubscriber();
+        streamingResponse.getPublisher().subscribe(subscriber);
+
+        // 授信 1 驱动上游首发失败（2.3 侧上游拉取由下游 demand 门控）；
+        // 降级终态本身不经元素通路/不占剩余 demand 直达
+        subscriber.request(1);
+        long deadline = System.currentTimeMillis() + 5000;
+        while (System.currentTimeMillis() < deadline && !subscriber.completed
+                && subscriber.texts.size() == 0 && subscriber.error == null) {
+            try { Thread.sleep(10); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+        }
+
+        assertTrue(subscriber.completed, "degraded terminal must complete the stream");
+        assertEquals(1, subscriber.texts.size(), "degraded response delivered as explicit degraded terminal");
+        assertTrue(subscriber.texts.get(0).contains("degraded-fallback"),
+                "delivered element must be the degraded wrapper, was " + subscriber.texts.get(0));
+        assertNull(subscriber.error);
+    }
+
     private static final class ManualDemandSubscriber implements Flow.Subscriber<Object> {
         final List<String> texts = new ArrayList<>();
         volatile boolean completed;

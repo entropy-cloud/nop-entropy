@@ -149,9 +149,11 @@ class TestFailoverMetricsLocal {
         assertEquals(1L, counter(TRANSITION, "provider", "gw-test", "model", "gw-model-1", "to-state", "OPEN"));
         // 冷却启动 = 迁移至 OPEN。
         assertEquals(1L, counter(COOLDOWN, "provider", "gw-test", "model", "gw-model-1", "type", "started"));
-        // 备份账号成功 recordSuccess 在 CLOSED 上 = 无迁移。
-        assertEquals(0L, counter(TRANSITION, "to-state", "CLOSED"));
-        assertEquals(CircuitState.OPEN, breaker.getState("gw-test:gw-model-1"),
+        // plan 2509 裁定⑦(b)：重选的备份账号（同 provider:model 熔断键）经选择点 allowCall
+        // 冷却复查恢复可达（HALF_OPEN 探活），其成功 recordSuccess → CLOSED 恢复（计一次迁移）。
+        assertEquals(1L, counter(TRANSITION, "to-state", "CLOSED"),
+                "probe success via selection allowCall must restore CLOSED (observed transition)");
+        assertEquals(CircuitState.CLOSED, breaker.getState("gw-test:gw-model-1"),
                 "breaker 状态机语义不受观测影响");
     }
 
@@ -196,8 +198,11 @@ class TestFailoverMetricsLocal {
                 FailoverTestSupport.request("gw-test", "gw-model-1", false), null));
 
         assertTrue(resp.isSuccess(), "probe-admitted account must be callable again");
-        // 探活放行 = OPEN→HALF_OPEN 迁移（类内 2 候选均被探活）。
-        assertEquals(2L, counter(TRANSITION, "to-state", "HALF_OPEN"));
+        // plan 2509 裁定⑦(b)：恢复路径改为选择点 allowCall 冷却复查（权威迁移唯一调用点收口）
+        // ——选择点当前未接 CircuitObservation 观测（登记为观测缺口/协调项），OPEN→HALF_OPEN
+        // 不再产生编排层派生迁移计数；CLOSED 恢复仍经 recordSuccess 观测。
+        assertEquals(0L, counter(TRANSITION, "to-state", "HALF_OPEN"),
+                "selection-site allowCall is not yet observed by CircuitObservation (registered gap)");
         // 探活成功 recordSuccess → HALF_OPEN→CLOSED（仅被调用候选）。
         assertEquals(1L, counter(TRANSITION, "to-state", "CLOSED"));
         // 冷却 0：无拒绝事件。

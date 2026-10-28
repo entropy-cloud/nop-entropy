@@ -9,8 +9,15 @@ import io.nop.ai.core.model.ModelClassCandidate;
 import io.nop.ai.gateway.routing.ModelClassRouter;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.gateway.core.executor.BoundedWindowBuffer;
+import io.nop.gateway.core.executor.StreamingBufferOverflowException;
+import io.nop.commons.metrics.GlobalMeterRegistry;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CancellationException;
@@ -21,7 +28,8 @@ import java.util.function.Consumer;
 
 /**
  * 本地形态流式 failover 的 {@link Flow.Publisher} 实现（plan 2026-08-15-1116-2 LOCAL-03，
- * W1 spike SPIKE-02 输入）。
+ * W1 spike SPIKE-02 输入；plan 2509 R2-06 起迁移为共享有界窗口缓冲组件
+ * {@link BoundedWindowBuffer} 的 3.3 侧宿主）。
  *
  * <p><b>语义</b>：单订阅者 publisher。每次 attempt（首次 + 每次重订阅）：
  * <ol>
@@ -35,20 +43,39 @@ import java.util.function.Consumer;
  *       {@code recordSuccess(末次 attempt 候选)}（Minor-2：探活成功 → CLOSED 恢复）。</li>
  * </ol>
  *
+ * <p><b>共享缓冲核契约</b>（plan 2509 裁定①③④⑤⑥）：buffer/窗口态（passed/forwarded）/
+ * demand 记账/pendingComplete 终态挂起/cancel 清理由 {@link BoundedWindowBuffer} 承载，本类
+ * monitor 保护全部组件调用；3.3 侧上游授信 = <b>request(MAX) 保留</b>（上游为阻塞 submit 语义，
+ * demand 联动会阻塞 HTTP 接收线程 stall 连接——裁定⑤(b) 成文）+ 越窗上界兜底：越窗缓冲满
+ * （同 bufferSize）= {@link StreamingBufferOverflowException} 类型化溢出错误终态，且为
+ * <b>不可重试终态</b>（绕过分类/recordFailure/重选/重订阅，直接断流 + releaseAttempt）。
+ *
+ * <p><b>acquire/release 配对</b>（裁定② C2-001）：{@code AttemptSubscriber.onSubscribe} 取消/
+ * 放弃分支 = {@code subscription.cancel() + releaseAttempt(state)} 漏斗单行——覆盖全部 4 进入点
+ * （首 attempt / 超限重选递归 / CACHE_STATE_LOST 原地重发 / 切换类重订阅）× 全部取消交错时序；
+ * {@code released} CAS 保证 exactly-once。
+ *
+ * <p><b>monitor 完整性</b>（裁定③ C1-001）：buffer 全部触点均在 monitor 内（clear 入锁）；
+ * flush 信号携带 attempt 引用，投递前 identity 复检——放弃 attempt 的缓冲永不交付。
+ *
+ * <p><b>终态挂起</b>（裁定④ C3-001）：complete 路径冲刷后缓冲非空（demand 耗尽）→ 置
+ * pendingComplete 挂起终态，request() 冲空缓冲后补发 onComplete（尾部 chunk 不得丢弃）；错误
+ * 终态豁免（错误优先、剩余缓冲丢弃为显式语义）。
+ *
+ * <p><b>出锁投递</b>（裁定⑥ C2-002）：锁内仅状态机变更（记账 + 元素摘取入信号队列），全部下游
+ * 投递（onNext/onComplete/onError）与成功记账（recordSuccess/metrics）在 monitor 外经单一
+ * drain 守卫串行执行——同元素不乱序、终态最后。
+ *
  * <p><b>取消契约</b>（spike 实证）：取消顺序 = 先 cancel 适配器对 delegate publisher 的
- * <b>内部订阅</b>（唤醒阻塞 submit）→ 再 cancel 该 attempt 的 token（断 HTTP）；窗口期保持
- * demand（request(MAX)）。调用方取消（token 或输出订阅 cancel）→ 传播到<b>当前</b> attempt
- * token，两路径都必须完整 teardown（含并发计数释放）。每次 attempt 前检查调用方
- * {@code isCancelled()}（Minor-5：已取消 → 干净终态，不发起新 fetch）。
+ * <b>内部订阅</b>（唤醒阻塞 submit）→ 再 cancel 该 attempt 的 token（断 HTTP）；每次 attempt 前
+ * 检查调用方 {@code isCancelled()}（Minor-5）。
  *
- * <p><b>并发计数</b>（D7/M-2/M-3/M-4）：+1 挂钩 delegate {@code callStream} 调用时刻；-1 挂钩
- * attempt 终止（onComplete/onError）或取消完成，键 = 被终止 attempt 的候选下沉值（旧
- * provider/accountKey）；per-attempt 一次释放守卫（AtomicBoolean）防误下溢。
- *
- * <p><b>无静默跳过</b>：预算耗尽 / NON_TRANSIENT / 窗口外失败 → 显式断流报错（onError）；
- * 重订阅同步抛异常（checkRateLimit）→ 按传输异常级分类决策，不吞。
+ * <p><b>无静默跳过</b>：预算耗尽 / NON_TRANSIENT / 窗口外失败 / 缓冲溢出 → 显式断流报错
+ * （onError）；重订阅同步抛异常（checkRateLimit）→ 按传输异常级分类决策，不吞。
  */
 final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(FailoverStreamFlow.class);
 
     private final ChatServiceFailoverAdapter adapter;
     private final ChatRequest request;
@@ -141,8 +168,9 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
     }
 
     /**
-     * 单个 attempt 的运行时状态。缓冲区/window 状态由 {@link StreamSubscription} 的 monitor
-     * 保护；{@code released} 为 per-attempt 一次释放守卫（Minor-3，AtomicBoolean 无锁）。
+     * 单个 attempt 的运行时状态。缓冲/窗口/demand/pendingComplete 由共享组件
+     * {@link BoundedWindowBuffer} 承载（StreamSubscription monitor 保护）；本状态仅保留
+     * attempt 私有面 + {@code released} per-attempt 一次释放守卫（Minor-3，AtomicBoolean 无锁）。
      */
     private static final class AttemptState {
         final int index; // 1-based：1 = 首次 attempt
@@ -150,11 +178,8 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         final ChatOptions sunkOptions;
         final AttemptCancelToken token;
         final AtomicBoolean released = new AtomicBoolean();
-        final ArrayDeque<ChatStreamChunk> buffer = new ArrayDeque<>();
-        final long windowStart = CoreMetrics.currentTimeMillis();
+        final long windowStart = CoreMetrics.currentTimeMillis(); // 仅 metrics 时长维度
         volatile Flow.Subscription upSub;
-        boolean passed;   // guarded by StreamSubscription monitor
-        boolean forwarded; // guarded by StreamSubscription monitor
 
         AttemptState(int index, ModelClassCandidate candidate, ChatOptions sunkOptions,
                      AttemptCancelToken token) {
@@ -165,17 +190,59 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         }
     }
 
+    /**
+     * 出锁投递信号。锁内入队（入队序 = 投递序），drain 守卫串行消费——终态信号必位于
+     * 在途元素信号之后，顺序 drain 天然终态最后。
+     */
+    private static final class Signal {
+        static final int ITEM = 0;
+        static final int COMPLETE = 1;
+        static final int ERROR = 2;
+
+        final int kind;
+        final AttemptState attempt;
+        final ChatStreamChunk item;
+        final Throwable cause;
+
+        private Signal(int kind, AttemptState attempt, ChatStreamChunk item, Throwable cause) {
+            this.kind = kind;
+            this.attempt = attempt;
+            this.item = item;
+            this.cause = cause;
+        }
+
+        static Signal item(AttemptState attempt, ChatStreamChunk item) {
+            return new Signal(ITEM, attempt, item, null);
+        }
+
+        static Signal complete(AttemptState attempt) {
+            return new Signal(COMPLETE, attempt, null, null);
+        }
+
+        static Signal error(AttemptState attempt, Throwable cause) {
+            return new Signal(ERROR, attempt, null, cause);
+        }
+    }
+
     private final class StreamSubscription implements Flow.Subscription {
 
         private final Flow.Subscriber<? super ChatStreamChunk> subscriber;
         private final AtomicBoolean cancelled = new AtomicBoolean();
-        private long demand; // guarded by this
+        // 共享状态核：buffer/窗口/passed/forwarded/demand/pendingComplete/cancel 由组件承载
+        private final BoundedWindowBuffer<ChatStreamChunk> buffer;
         private volatile AttemptState attempt;
         private volatile boolean callerListenerRegistered;
         private int attemptsStarted; // 仅在实际创建 attempt（发起 fetch）时递增
+        private boolean terminated;  // guarded by this：终态信号 exactly-once
+        private volatile Counter overflowCounter; // 溢出计数指标（懒创建，provider/model 维度）
+
+        private final java.util.ArrayDeque<Signal> signalQueue = new java.util.ArrayDeque<>(); // guarded by this
+        private boolean draining; // guarded by this：单一 drain 守卫（投递串行化）
 
         StreamSubscription(Flow.Subscriber<? super ChatStreamChunk> subscriber) {
             this.subscriber = subscriber;
+            this.buffer = new BoundedWindowBuffer<>(adapter.getBufferSize(), false,
+                    adapter.getBufferTimeMs());
         }
 
         // ======================= Flow.Subscription =======================
@@ -190,15 +257,19 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 return;
             }
             synchronized (this) {
-                demand += n;
-                if (demand < 0) {
-                    demand = Long.MAX_VALUE;
-                }
-                AttemptState current = attempt;
-                if (current != null) {
-                    flushBuffer(current);
+                buffer.addDemand(n);
+                enqueueFlushLocked();
+                if (buffer.isPendingComplete()) {
+                    enqueueFlushAllLocked();
+                    if (buffer.isEmpty()) {
+                        // 挂起的终态：冲空缓冲后补发 onComplete（尾部元素不得随 onComplete 丢弃，
+                        // 裁定④ pendingComplete 先例对齐——第 6 投递点，出锁投递）。
+                        buffer.setPendingComplete(false);
+                        signalQueue.add(Signal.complete(attempt));
+                    }
                 }
             }
+            drain();
         }
 
         @Override
@@ -230,6 +301,7 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
         /**
          * 启动一个 attempt。{@code fixedCandidate != null} = CACHE_STATE_LOST 原地重发
          * （同候选同 options，不重选）；否则经 router 选择（主动/被动按既有 attempt 数）。
+         * acquire 后的装配/订阅段在 monitor 外（裁定⑥：attempt 发起出锁）。
          */
         private void startAttemptWithOptions(ModelClassCandidate fixedCandidate, ChatOptions fixedOptions) {
             if (cancelled.get()) {
@@ -285,7 +357,15 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 }
             }
             AttemptState state = new AttemptState(attemptsStarted, candidate, sunk, new AttemptCancelToken());
-            attempt = state;
+            synchronized (this) {
+                if (cancelled.get() || terminated) {
+                    // 取消落在 acquire 后/装配前：漏斗行统一释放（不装配、不留幽灵计数）。
+                    releaseAttempt(state);
+                    return;
+                }
+                attempt = state;
+                buffer.beginWindow();
+            }
             try {
                 Flow.Publisher<ChatStreamChunk> publisher =
                         adapter.getDelegate().callStream(attemptRequest(sunk), state.token);
@@ -318,11 +398,16 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
 
         /**
          * 取消顺序契约（spike 实证）：先 cancel 内部订阅（唤醒阻塞 submit）→ 再 cancel attempt
-         * token（断 HTTP）；释放并发计数（per-attempt 一次守卫）。
+         * token（断 HTTP）；释放并发计数（per-attempt 一次守卫）。组件 cancel 清理半边：
+         * 挂起终态不再补发、缓冲/demand 全清理（裁定①组件契约）。
          */
         private void teardownCurrentAttempt(String reason) {
-            AttemptState state = attempt;
-            attempt = null;
+            AttemptState state;
+            synchronized (this) {
+                state = attempt;
+                attempt = null;
+                buffer.clearForCancel();
+            }
             if (state != null) {
                 Flow.Subscription up = state.upSub;
                 if (up != null) {
@@ -343,77 +428,176 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
             }
         }
 
-        // ======================= 缓冲窗口（D1/D1a/Major-1） =======================
+        // ======================= 锁内状态机（裁定⑥：仅记账，不出信号） =======================
 
         /**
-         * 窗口内/外判定 = 是否有数据已送达下游（forwarded）。N/T 只决定缓冲何时转为透传：
-         * N 满或 T 超时后首个到达元素触发越窗 + 冲刷缓冲。T 超时但无元素到达时无元素可转发，
-         * 失败仍完全透明 = 窗口内（与需求 §3.2"未转发任何数据时失败可重订阅"精确对齐）。
+         * 窗口内/外判定 = 是否有数据已送达下游（forwarded，组件承载）。N/T 只决定缓冲何时转为
+         * 透传：N 满或 T 超时后首个到达元素触发越窗 + 冲刷缓冲。溢出面：越窗后 demand==0 的元素
+         * 入缓冲前容量检查（与窗口期同界 bufferSize），满 = 类型化溢出错误终态（裁定⑤）。
+         * 调用方持锁。
          */
-        private void bufferOrForward(AttemptState state, ChatStreamChunk item) {
-            synchronized (this) {
-                if (cancelled.get()) {
+        private void handleItemLocked(AttemptState state, ChatStreamChunk item) {
+            if (terminated) {
+                return;
+            }
+            if (!buffer.isPassed()) {
+                if (buffer.shouldBufferInWindow()) {
+                    buffer.add(item);
                     return;
                 }
-                if (!state.passed) {
-                    if (state.buffer.size() < adapter.getBufferSize()
-                            && CoreMetrics.currentTimeMillis() - state.windowStart < adapter.getBufferTimeMs()) {
-                        state.buffer.add(item);
-                        return;
-                    }
-                    state.passed = true;
-                    flushBuffer(state);
-                }
-                deliver(state, item);
+                buffer.markPassed();
+                enqueueFlushLocked();
+            }
+            if (buffer.hasDemand()) {
+                buffer.decDemand();
+                buffer.markForwarded();
+                signalQueue.add(Signal.item(state, item));
+            } else if (!buffer.add(item)) {
+                // 越窗上界（与窗口期同界 bufferSize）：溢出 = 类型化不可重试终态（fail-loud，
+                // 绕过分类/记账/重订阅），request(MAX) 阻塞 submit 语义下的兜底防线（裁定⑤）。
+                recordOverflow(buffer.size(), state);
+                signalQueue.add(Signal.error(state, new StreamingBufferOverflowException(
+                        "streaming failover buffer overflow: backlog " + buffer.size()
+                                + " chunks exceeds bufferSize " + buffer.getCapacity()
+                                + " (slow downstream, fail loud)")));
             }
         }
 
-        private void deliver(AttemptState state, ChatStreamChunk item) {
-            if (cancelled.get()) {
+        /**
+         * 缓冲冲刷（passed 门控）：锁内摘元素 + demand 递减入信号队列（元素携带摘取时点的
+         * attempt 引用——identity 守卫素材，裁定③）。调用方持锁。
+         */
+        private void enqueueFlushLocked() {
+            if (!buffer.isPassed()) {
+                // 窗口未越前缓冲元素不得提前流出（D1a：缓冲的语义 = 窗口期不转发）。
                 return;
             }
-            if (demand > 0) {
-                demand--;
-                state.forwarded = true;
-                subscriber.onNext(item);
-            } else {
-                state.buffer.add(item);
-            }
-        }
-
-        private void flushBuffer(AttemptState state) {
-            // 窗口未越前缓冲元素不得提前流出（D1a：缓冲的语义 = 窗口期不转发）。
-            if (!state.passed) {
-                return;
-            }
-            while (!state.buffer.isEmpty() && demand > 0 && !cancelled.get()) {
-                demand--;
-                state.forwarded = true;
-                subscriber.onNext(state.buffer.poll());
+            AttemptState current = attempt;
+            while (!buffer.isEmpty() && buffer.hasDemand() && !cancelled.get() && current != null) {
+                buffer.decDemand();
+                buffer.markForwarded();
+                signalQueue.add(Signal.item(current, buffer.poll()));
             }
         }
 
         /**
          * 终态冲刷（onComplete/断流前）：不受窗口状态门控——窗口语义只延迟转发，不吞数据。
+         * 调用方持锁。
          */
-        private void flushAll(AttemptState state) {
-            while (!state.buffer.isEmpty() && demand > 0 && !cancelled.get()) {
-                demand--;
-                state.forwarded = true;
-                subscriber.onNext(state.buffer.poll());
+        private void enqueueFlushAllLocked() {
+            AttemptState current = attempt;
+            while (!buffer.isEmpty() && buffer.hasDemand() && !cancelled.get() && current != null) {
+                buffer.decDemand();
+                buffer.markForwarded();
+                signalQueue.add(Signal.item(current, buffer.poll()));
             }
         }
 
-        // ======================= 终态处理 =======================
+        private void recordOverflow(int depth, AttemptState state) {
+            LOG.warn("nop.ai.gateway.failover.streaming-buffer-overflow:provider={},model={},accountKey={},"
+                            + "backlogDepth={},bufferSize={}",
+                    state.candidate.getProvider(), state.candidate.getModel(),
+                    state.candidate.getAccountKey(), depth, buffer.getCapacity());
+            Counter counter = overflowCounter;
+            if (counter == null) {
+                MeterRegistry registry = GlobalMeterRegistry.instance();
+                if (registry != null) {
+                    counter = Counter.builder("nop.ai.gateway.failover.buffer.overflow")
+                            .tag("provider", String.valueOf(state.candidate.getProvider()))
+                            .tag("model", String.valueOf(state.candidate.getModel()))
+                            .register(registry);
+                    overflowCounter = counter;
+                }
+            }
+            if (counter != null) {
+                counter.increment();
+            }
+        }
+
+        // ======================= 出锁投递（drain-loop，裁定⑥钉死形态） =======================
+
+        /**
+         * while 循环：持锁取快照 → 出锁投递 → 重入锁重查队列，空则清投递标志退出、非空继续
+         * 消费。投递期间新入队信号由下一轮消费（无滞留、无通知原语）；同元素不乱序、终态最后。
+         */
+        private void drain() {
+            synchronized (this) {
+                if (draining) {
+                    return; // 外层 drain 循环将消费本轮新入队信号
+                }
+                draining = true;
+            }
+            try {
+                while (true) {
+                    List<Signal> snapshot;
+                    synchronized (this) {
+                        if (signalQueue.isEmpty() || cancelled.get()) {
+                            return;
+                        }
+                        snapshot = new ArrayList<>(signalQueue);
+                        signalQueue.clear();
+                    }
+                    for (Signal signal : snapshot) {
+                        if (cancelled.get()) {
+                            return;
+                        }
+                        deliver(signal);
+                    }
+                }
+            } finally {
+                synchronized (this) {
+                    draining = false;
+                }
+            }
+        }
+
+        /**
+         * 单信号出锁投递。identity 复检失败仅丢弃元素信号（放弃 attempt 的缓冲永不交付，
+         * 已 forwarded 的残留丢弃 + WARN 留痕计数——数据丢失由上游 failover 重试承载）；
+         * 终态信号为流级，由 terminated exactly-once 门控。
+         */
+        private void deliver(Signal signal) {
+            if (signal.kind == Signal.ITEM) {
+                synchronized (this) {
+                    if (signal.attempt != attempt) {
+                        if (buffer.isForwarded()) {
+                            LOG.warn("nop.ai.gateway.failover.dropped-orphan-item:attemptIndex={},depth={}",
+                                    signal.attempt.index, buffer.size());
+                        }
+                        return;
+                    }
+                }
+                subscriber.onNext(signal.item);
+                return;
+            }
+            if (signal.kind == Signal.ERROR) {
+                terminate(signal.attempt, signal.cause);
+                return;
+            }
+            // COMPLETE 终态（最后序由入队序 + 顺序 drain 保证）：成功记账出锁（裁定⑥）。
+            terminateComplete(signal.attempt);
+        }
+
+        // ======================= 终态处理（monitor 外） =======================
 
         /**
          * 流式错误决策（D5a 流式路径）：窗口内（未转发）→ 分类 + 记账 + 重选/重订阅（预算）；
-         * 窗口外（已转发）→ 断流报错不切换（需求 §3.2）。
+         * 窗口外（已转发）→ 断流报错不切换（需求 §3.2）。溢出错误 = 不可重试终态，直接断流。
+         * 锁内仅 inWindow 判定 + clear（裁定③：clear 入锁）+ 终态信号入队；分类（文件 I/O 重活）、
+         * 记账与重订阅决策全部在 monitor 外（裁定⑥）。
          */
         private void handleStreamFailure(AttemptState state, Throwable throwable) {
             boolean inWindow;
             synchronized (this) {
-                inWindow = !state.forwarded;
+                if (terminated || cancelled.get()) {
+                    return;
+                }
+                inWindow = !buffer.isForwarded();
+                if (inWindow) {
+                    // 窗口内失败：丢弃已缓冲元素（Major-1——attempt1 前缀不得进入最终输出）。
+                    // clear 入锁（裁定③ C1-001）：与 request() 冲刷互斥，零撕裂零泄漏。
+                    buffer.clear();
+                }
             }
             releaseAttempt(state);
             IFailoverMetrics metrics = adapter.getMetrics();
@@ -423,19 +607,31 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                         state.candidate.getAccountKey(),
                         CoreMetrics.currentTimeMillis() - state.windowStart);
             }
+            if (throwable instanceof StreamingBufferOverflowException) {
+                // 裁定⑤：溢出 = 不可重试终态——不分类、不 recordFailure、不重选/重订阅，直接断流。
+                synchronized (this) {
+                    if (terminated || cancelled.get()) {
+                        return;
+                    }
+                    buffer.clear();
+                    signalQueue.add(Signal.error(state, throwable));
+                }
+                drain();
+                return;
+            }
             if (!inWindow) {
                 // 窗口外失败：不切换。先交付剩余缓冲元素（受 demand 约束），再断流报错。
                 synchronized (this) {
-                    if (cancelled.get()) {
+                    if (terminated || cancelled.get()) {
                         return;
                     }
-                    flushAll(state);
-                    subscriber.onError(throwable);
+                    enqueueFlushAllLocked();
+                    signalQueue.add(Signal.error(state, throwable));
                 }
+                drain();
                 return;
             }
-            // 窗口内失败：丢弃已缓冲元素（Major-1——attempt1 前缀不得进入最终输出），干净重来。
-            state.buffer.clear();
+            // 分类在锁外（裁定③协调：文件 I/O 重活不拖回锁内）。
             ErrorClassification cls = ChatServiceFailoverAdapter.classifyStreamError(throwable, state.candidate);
             if (cls == ErrorClassification.CACHE_STATE_LOST) {
                 // 原地重试语义：不触发账号切换，重发同一候选一次，预算同样计数（防御分支）。
@@ -459,39 +655,83 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 return;
             }
             // 重订阅：被动路径重选（含 provider 链扩展）+ 新窗口 + 新 per-attempt token。
+            // 重试决策与 startAttempt 均在 monitor 外（裁定⑥）。
             startAttemptWithOptions(null, null);
         }
 
+        /**
+         * 完成终态（裁定④）：锁内冲刷 + 缓冲非空挂起 pendingComplete；缓冲空则 complete 信号
+         * 入队。成功记账（recordSuccess/metrics）在投递段出锁执行（裁定⑥）。
+         */
         private void handleStreamComplete(AttemptState state) {
             synchronized (this) {
-                if (cancelled.get()) {
+                if (terminated || cancelled.get() || state != attempt) {
                     return;
                 }
-                releaseAttempt(state);
-                // 流式成功路径 recordSuccess 挂钩（Minor-2）：HALF_OPEN 探活成功 → CLOSED 恢复。
-                CircuitObservation.recordSuccess(adapter.getMetrics(), adapter.getBreaker(),
-                        state.candidate.getProvider(), state.candidate.getModel(), state.candidate.getModelKey());
-                IFailoverMetrics metrics = adapter.getMetrics();
-                if (metrics != null) {
-                    metrics.onRequestSuccess(state.candidate.getProvider(), state.candidate.getModel(),
-                            state.candidate.getAccountKey(), CoreMetrics.currentTimeMillis() - state.windowStart);
+                enqueueFlushAllLocked();
+                if (!buffer.isEmpty() && !cancelled.get()) {
+                    // demand 耗尽且缓冲区还有元素：挂起终态，等后续 request() 冲空缓冲再补发
+                    // onComplete——尾部元素（如携带 finish_reason/usage 的最后 chunk）不得丢弃
+                    //（裁定④ pendingComplete 先例对齐）
+                    buffer.setPendingComplete(true);
+                } else {
+                    signalQueue.add(Signal.complete(state));
                 }
-                // 窗口期成功终止：缓冲元素必须全部交付（窗口语义只延迟转发，不吞数据）。
-                flushAll(state);
+            }
+            // 挂起分支同样必须 drain——冲刷出的元素信号已在队列，出锁投递不得滞留
+            drain();
+        }
+
+        /**
+         * 成功终态交付（monitor 外）：成功记账出锁（裁定⑥：锁内仅置位）+ onComplete。
+         */
+        private void terminateComplete(AttemptState state) {
+            synchronized (this) {
+                if (terminated || cancelled.get()) {
+                    return;
+                }
+                terminated = true;
+                attempt = null;
+            }
+            releaseAttempt(state);
+            // 流式成功路径 recordSuccess 挂钩（Minor-2）：HALF_OPEN 探活成功 → CLOSED 恢复。
+            CircuitObservation.recordSuccess(adapter.getMetrics(), adapter.getBreaker(),
+                    state.candidate.getProvider(), state.candidate.getModel(), state.candidate.getModelKey());
+            IFailoverMetrics metrics = adapter.getMetrics();
+            if (metrics != null) {
+                metrics.onRequestSuccess(state.candidate.getProvider(), state.candidate.getModel(),
+                        state.candidate.getAccountKey(), CoreMetrics.currentTimeMillis() - state.windowStart);
+            }
+            if (!cancelled.get()) {
                 subscriber.onComplete();
             }
         }
 
+        /**
+         * 错误终态（monitor 外）：deliverError 决策入口与错误信号投递共用。错误路径豁免成文
+         * （裁定④）：错误优先、剩余缓冲丢弃为显式语义（无「半个成功」数据完整性违约面）。
+         */
         private void deliverError(Throwable throwable) {
             synchronized (this) {
-                if (cancelled.get()) {
+                if (terminated || cancelled.get()) {
                     return;
                 }
-                AttemptState current = attempt;
-                if (current != null) {
-                    current.buffer.clear();
+                buffer.clear();
+                signalQueue.add(Signal.error(attempt, throwable));
+            }
+            drain();
+        }
+
+        private void terminate(AttemptState state, Throwable cause) {
+            synchronized (this) {
+                if (terminated || cancelled.get()) {
+                    return;
                 }
-                subscriber.onError(throwable);
+                terminated = true;
+                attempt = null;
+            }
+            if (!cancelled.get()) {
+                subscriber.onError(cause);
             }
         }
 
@@ -508,11 +748,15 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
             public void onSubscribe(Flow.Subscription subscription) {
                 state.upSub = subscription;
                 if (cancelled.get() || state != attempt) {
-                    // 已取消或已被放弃的 attempt：立即取消内部订阅（防 HTTP 连接到 EOF 泄漏）。
+                    // 已取消或已被放弃的 attempt：立即取消内部订阅（防 HTTP 连接到 EOF 泄漏）
+                    // + 释放 acquire（裁定② C2-001 漏斗单行：released CAS exactly-once，
+                    // 覆盖全部 4 进入点 × 全部取消交错时序）。
                     subscription.cancel();
+                    releaseAttempt(state);
                     return;
                 }
-                // 窗口期保持 demand（request(MAX)），避免缓冲积压导致 submit/close 阻塞（spike）。
+                // 窗口期保持 demand（request(MAX)），避免缓冲积压导致 submit/close 阻塞（spike 实证，
+                // 裁定⑤(b) 3.3 侧成文：阻塞 submit 语义不可 demand 联动，越窗上界兜底承担防线）。
                 subscription.request(Long.MAX_VALUE);
             }
 
@@ -521,7 +765,13 @@ final class FailoverStreamFlow implements Flow.Publisher<ChatStreamChunk> {
                 if (cancelled.get() || state != attempt) {
                     return;
                 }
-                bufferOrForward(state, item);
+                synchronized (StreamSubscription.this) {
+                    if (cancelled.get() || terminated || state != attempt) {
+                        return;
+                    }
+                    handleItemLocked(state, item);
+                }
+                drain();
             }
 
             @Override
