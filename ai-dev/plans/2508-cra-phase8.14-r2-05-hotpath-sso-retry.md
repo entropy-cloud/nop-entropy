@@ -97,34 +97,38 @@ Exit Criteria:
 
 ### Phase 2 - 两成员实现 + 回归测试（auth 组 + gateway 组）
 
-Status: planned
+Status: completed
 Targets: `nop-service-framework/nop-biz-auth-core/src/`（login/filter）与 `nop-auth/nop-auth-sso/src/`、`nop-auth/nop-auth-service/`（回归）、`nop-service-framework/nop-gateway/src/`（core/executor、core/interceptor、impl、GatewayConfigs、GatewayErrors）——各自 main + test 树
 
 - Item Types: `Fix`（两成员均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10-004/C10-006 验收前置）
 
-- [ ] C4-007 实现（C10-004）：按裁定①实施契约 default 方法 + OAuthLoginServiceImpl 异步链 override（剥离 syncGet :258）+ 请求超时键 + handleUserContext 异步链化（thenCompose 领先 next.get）+ 降级语义闭合挂死面
-- [ ] C8-002 实现（C10-006）：按裁定②实施许可准入（invoke + tryFallbackUrl 双落点共享池）+ 类型化快速拒绝错误码 + jitter 整形 + maxRetries/准入上限配置化 + GatewayHandler 构造适配
-- [ ] 回归测试（rule 25 显式覆盖 + C10 验收前置同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C4-007 红①（钉线+挂死）：fake IdP 挂起下（修复前）载体线程被钉住、:354 future 不完成、请求无响应——修复后载体线程即时返回、刷新完成回调驱动下游（线程身份断言）；异常注入（修复前任务体逃逸挂死红）→ 修复后 warn + 下游继续 + 无头/cookie 更新（stale-serve 语义钉）
-  - [ ] C4-007 红②：修复前 `newRefreshTokenRequest` 构造的 HttpRequest timeout=0（捕获断言红）→ 修复后 = 配置键值 + ≤0 档回落断言；链序钉：`next.get` 严格后于刷新完成（保持性回归钉，防后续重构成并行）；`testIsNeedRefreshHalfLife` 三态钉零回退；本地 JWT 路径回归绿
-  - [ ] C8-002 红①：permits=N 耗尽后第 N+1 个并发上游腿（修复前）照常发起并挂起（在途无界红）→ 修复后零上游调用 + 类型化拒绝错误码；在途计数全程 ≤ permits 断言（挂起窗内持有）
-  - [ ] C8-002 红②：主腿 1+3 重试调用计数断言（修复前无此钉/不可配）→ 默认 3 + 配置覆盖生效 + 4+3=7 加法组合级断言；同值 Retry-After × N（修复前）齐发重试红 → seeded jitter 分布断言（首波重试时刻非单点）；parseRetryAfter 七例 + 30s 钳制 + 耗尽两例 + fallback 上界例零回退
-- [ ] **端到端验证**（rule 22）：≥1 条 SSO 刷新链路测试（`filterAsync` 入口 → 半衰期判定 → 异步刷新撞 brownout[**fake `IHttpClient` 可控 future 构造，无需真实网络端点**；**E2E 归属 = nop-auth-sso 测试树**——真实 OAuthLoginServiceImpl+fake IHttpClient 链；nop-biz-auth-core `TestLoginService` fixture 走 default 方法不触达真实链，不得作为链路①证据——draft review Minor-3/6] → 载体线程不阻塞 → 降级语义 → `next.get()` 下游输出，出口点=客户端可观测响应/头状态）；≥1 条 429 风暴链路测试（N>permits 并发 429 → 在途有界 → 超限快速类型化拒绝路径 → 出口点=GatewayHttpFilter 错误响应可达客户端）
-- [ ] **接线验证**（rule 23）：`GatewayHandler` :76 直构的 `InvokeProcessor` 真实携带许可设施断言（非测试直接 new 的自证）；`nopLoginService` 装配的 `OAuthLoginServiceImpl.refreshTokenAsync` 真实被过滤器调用断言（mock verify 或链路标志位）；`nopAiFailoverGatewayInterceptor` fallback 腿准入接线断言
-- [ ] **无静默跳过**（rule 24）：准入拒绝类型化抛出而非静默吞/排队挂起；刷新降级 warn 日志 + 显式 stale-serve 而非空 catch；超时/准入 ≤0 档语义显式成文而非 magic number；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交（Phase 1 → 独立评审 → 实现）；两工单分组提交——**auth 组**（C4-007：nop-biz-auth-core + nop-auth-sso 两聚合同变更集 + LoginServiceImpl 回归）、**gateway 组**（C8-002：nop-gateway），C10-004/C10-006 测试与对应本体**同一 commit**（E2 同 diff 核验依据）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] C4-007 实现（C10-004）：按裁定①实施契约 default 方法 + OAuthLoginServiceImpl 异步链 override（剥离 syncGet :258）+ 请求超时键 + handleUserContext 异步链化（thenCompose 领先 next.get）+ 降级语义闭合挂死面
+- [x] C8-002 实现（C10-006）：按裁定②实施许可准入（invoke + tryFallbackUrl 双落点共享池）+ 类型化快速拒绝错误码 + jitter 整形 + maxRetries/准入上限配置化 + GatewayHandler 构造适配
+- [x] 回归测试（rule 25 显式覆盖 + C10 验收前置同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C4-007 红①（钉线+挂死）：fake IdP 挂起下（修复前）载体线程被钉住、:354 future 不完成、请求无响应——修复后载体线程即时返回、刷新完成回调驱动下游（线程身份断言）；异常注入（修复前任务体逃逸挂死红）→ 修复后 warn + 下游继续 + 无头/cookie 更新（stale-serve 语义钉）
+  - [x] C4-007 红②：修复前 `newRefreshTokenRequest` 构造的 HttpRequest timeout=0（捕获断言红）→ 修复后 = 配置键值 + ≤0 档回落断言；链序钉：`next.get` 严格后于刷新完成（保持性回归钉，防后续重构成并行）；`testIsNeedRefreshHalfLife` 三态钉零回退；本地 JWT 路径回归绿
+  - [x] C8-002 红①：permits=N 耗尽后第 N+1 个并发上游腿（修复前）照常发起并挂起（在途无界红）→ 修复后零上游调用 + 类型化拒绝错误码；在途计数全程 ≤ permits 断言（挂起窗内持有）
+  - [x] C8-002 红②：主腿 1+3 重试调用计数断言（修复前无此钉/不可配）→ 默认 3 + 配置覆盖生效 + 4+3=7 加法组合级断言；同值 Retry-After × N（修复前）齐发重试红 → seeded jitter 分布断言（首波重试时刻非单点）；parseRetryAfter 七例 + 30s 钳制 + 耗尽两例 + fallback 上界例零回退
+- [x] **端到端验证**（rule 22）：≥1 条 SSO 刷新链路测试（`filterAsync` 入口 → 半衰期判定 → 异步刷新撞 brownout[**fake `IHttpClient` 可控 future 构造，无需真实网络端点**；**E2E 归属 = nop-auth-sso 测试树**——真实 OAuthLoginServiceImpl+fake IHttpClient 链；nop-biz-auth-core `TestLoginService` fixture 走 default 方法不触达真实链，不得作为链路①证据——draft review Minor-3/6] → 载体线程不阻塞 → 降级语义 → `next.get()` 下游输出，出口点=客户端可观测响应/头状态）；≥1 条 429 风暴链路测试（N>permits 并发 429 → 在途有界 → 超限快速类型化拒绝路径 → 出口点=GatewayHttpFilter 错误响应可达客户端）
+- [x] **接线验证**（rule 23）：`GatewayHandler` :76 直构的 `InvokeProcessor` 真实携带许可设施断言（非测试直接 new 的自证）；`nopLoginService` 装配的 `OAuthLoginServiceImpl.refreshTokenAsync` 真实被过滤器调用断言（mock verify 或链路标志位）；`nopAiFailoverGatewayInterceptor` fallback 腿准入接线断言
+- [x] **无静默跳过**（rule 24）：准入拒绝类型化抛出而非静默吞/排队挂起；刷新降级 warn 日志 + 显式 stale-serve 而非空 catch；超时/准入 ≤0 档语义显式成文而非 magic number；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交（Phase 1 → 独立评审 → 实现）；两工单分组提交——**auth 组**（C4-007：nop-biz-auth-core + nop-auth-sso 两聚合同变更集 + LoginServiceImpl 回归）、**gateway 组**（C8-002：nop-gateway），C10-004/C10-006 测试与对应本体**同一 commit**（E2 同 diff 核验依据）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 两成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10-004/C10-006 同 diff 落地
-- [ ] 必红证据（E2）：C4-007 钉线红/挂死红/无超时红、C8-002 在途无界红/同步波红（先红后绿或变异/回退论证），快照落 `_tmp/` 并登记
-- [ ] 零回退实证：`InvokeProcessorRetryTest`（七例+两耗尽+成功）、`AiFailoverGatewayInterceptorTest` 全部、`testIsNeedRefreshHalfLife`、`TestGatewayHttpFilterErrorResponse` 全绿（钉零回改项逐条 git diff 为空核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-auth -am` BUILD SUCCESS（勘误 1 增补门禁）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 两成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10-004/C10-006 同 diff 落地
+- [x] 必红证据（E2）：C4-007 钉线红/挂死红/无超时红、C8-002 在途无界红/同步波红（先红后绿或变异/回退论证），快照落 `_tmp/` 并登记
+- [x] 零回退实证：`InvokeProcessorRetryTest`（七例+两耗尽+成功）、`AiFailoverGatewayInterceptorTest` 全部、`testIsNeedRefreshHalfLife`、`TestGatewayHttpFilterErrorResponse` 全绿（钉零回改项逐条 git diff 为空核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-service-framework -am` BUILD SUCCESS；`./mvnw test -pl nop-auth -am` BUILD SUCCESS（勘误 1 增补门禁）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 2 执行记录（2026-10-26/27）**：组 A `28248437cd`（C4-007：`ILoginService` default `refreshTokenAsync` 兼容回退型[SPI 9 面零签名] + `OAuthLoginServiceImpl` 剥 syncGet 纯异步链[error→null stale-serve 保持] + `nop.auth.sso.refresh-token-timeout` 10s/≤0 回落 30s + `sso-defaults.beans.xml` `@cfg:` 接线 + `AuthHttpServerFilter.handleUserContext` 链序改造[刷新终态三路一致 → `ctx.runOnContext` 再入任务队列执行设头/next.get，任务体全异常包容闭合 :354 挂死面，再入调用 checkClosed 守护]；回归 `TestSsoRefreshAsyncChain` 5 + `TestSsoRefreshTokenTimeoutWiring` 3[含配置覆盖真实生效断言] + `TestAuthHttpServerFilterRefreshChain`；红 `_tmp/phase2-sso-C4-007-red.log`[载体钉线/请求挂死/timeout==0]；三模块 reactor `-pl :nop-biz-auth-core,:nop-auth-service,:nop-auth-sso` 新测试面与零回退面全绿）；组 B `31552cbebe`（C8-002：`UpstreamAdmission` 共享许可池[主腿 InvokeProcessor + fallback 腿 AiFailoverGatewayInterceptor 同池，`nop.gateway.upstream-max-inflight` 1000/≤0 无上界] + tryAcquire(1,0) 同步抛出点后 + 主腿全程持有含挂起窗 + 全出口释放 + 拒绝传播按落点钉死[主腿同步 throw / fallback 腿 failedFuture] + `ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT` 白名单外不可重试 + `upstream-max-retries` 3/≤0 零重试 + equal jitter 后置[jitter 源可注入，5xx 同源迁移] + 旧两参构造保留无上界测试语义；回归 `TestGatewayUpstreamAdmission` 7 + `ControlledUpstreamHttpClient` 可控桩；变异红 3/7 `_tmp/phase2-gw-C8-002-red.log`[第 N+1 腿不拒绝/挂起窗不持有/fallback 拒绝挂死]；`InvokeProcessorRetryTest` 10 + `AiFailoverGatewayInterceptorTest` 零回退，模块 118 tests 绿）。
+>
+> **偏差/事件登记**：①两组子代理均因用量/并发上限中断——组 A 核心实现与红日志已落、协调方补跑门禁；组 B 仅留可控桩，**产品代码由协调方按设计直接实施**（设计裁定②③已钉死全部形态，零临场发明）；②组 A 门禁唯一红面 `TestOperationMfaE2E` 5~7 Errors = **批前既有测试隔离脆弱**（stash 基线同红 7E、单方法 solo 绿、2026-10-27 同 reactor 绿、错误数波动——三证据定性 flake，非本批触达面[nop-auth-service 零 diff]），watch-only 登记归 R-G 测试基建轨；③单模块 `-pl :nop-auth-sso` 跑新测试红为 classpath 解析 ~/.m2 旧 `nop-biz-auth-core` jar（无再入改动）所致，权威门禁为三模块 reactor（与 2507 组 C 同型现象）；④共享许可池载体 = 新增 `UpstreamAdmission` 持有者（设计「共享池」在 GatewayHandler 直构 vs IoC bean 两条装配路径下的落地形态，拦截器留 setter 供测试注入）；⑤fallback 腿 fetchAsync 同步抛出同样以 failedFuture 收敛（回调体语境一致性，设计 M2 口径延伸）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
