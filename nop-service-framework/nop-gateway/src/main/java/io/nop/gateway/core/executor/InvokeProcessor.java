@@ -14,6 +14,8 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
+import io.nop.gateway.GatewayConfigs;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.model.GatewayInvokeModel;
 import io.nop.gateway.model.GatewayRouteModel;
@@ -25,12 +27,14 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.DoubleSupplier;
 
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_INVOKE_WITH_NULL_URL;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_HTTP_CLIENT;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_UPSTREAM_429;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_UPSTREAM_FAILED;
+import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT;
 
 /**
  * 处理路由调用逻辑，支持三种调用方式：
@@ -45,10 +49,38 @@ public class InvokeProcessor {
     private final IRpcServiceInvoker invoker;
     private final IHttpClient httpClient;
 
+    /**
+     * 2.3-C8-002（plan 2508 裁定②）：url 路由腿上游在途许可池（与 fallback 腿共享）。
+     * null = 不设上界档（配置 ≤0 时的退化语义）。
+     */
+    private final ISemaphore admissionPermits;
+
+    /**
+     * 退避抖动源（[0,1) 均匀分布）。可注入供 seeded 分布断言；生产默认 {@link Math#random()}，
+     * 5xx 分支迁移至同源后分布零变化。
+     */
+    private final DoubleSupplier jitterSource;
+
+    /**
+     * 仅测试语义的兼容构造：无上界许可池 + 默认抖动源。生产装配唯一经
+     * {@code GatewayHandler} 携许可池的构造，不得作为旁路。
+     */
     public InvokeProcessor(IRpcServiceInvoker invoker, IHttpClient httpClient) {
+        this(invoker, httpClient, null, Math::random);
+    }
+
+    public InvokeProcessor(IRpcServiceInvoker invoker, IHttpClient httpClient, ISemaphore admissionPermits) {
+        this(invoker, httpClient, admissionPermits, Math::random);
+    }
+
+    public InvokeProcessor(IRpcServiceInvoker invoker, IHttpClient httpClient, ISemaphore admissionPermits,
+                           DoubleSupplier jitterSource) {
         this.invoker = invoker;
         this.httpClient = httpClient;
+        this.admissionPermits = admissionPermits;
+        this.jitterSource = jitterSource == null ? Math::random : jitterSource;
     }
+
 
     /**
      * 执行路由调用
@@ -132,8 +164,29 @@ public class InvokeProcessor {
         }
 
         String url = urlObj.toString();
-        int maxRetries = 3;
-        return invokeUrlWithRetry(url, request, invoke, svcCtx, maxRetries);
+        Integer configured = GatewayConfigs.CFG_GATEWAY_UPSTREAM_MAX_RETRIES.get();
+        int maxRetries = configured == null ? 3 : Math.max(configured, 0);
+
+        // 准入（裁定②）：置于全部同步抛出点之后——httpClient 缺失/URL 为 null 两路不沾许可。
+        // 主腿拒绝沿既有同步 throw 通道（RouteExecutor→processRoute try/catch 转 failedFuture）。
+        if (admissionPermits != null && !admissionPermits.tryAcquire(1, 0)) {
+            throw new NopException(ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT).source(invoke)
+                    .param("url", url);
+        }
+        if (admissionPermits == null) {
+            return invokeUrlWithRetry(url, request, invoke, svcCtx, maxRetries);
+        }
+        // 许可覆盖主腿全程（首发 + 429/5xx 重试挂起窗 + 终态组装）：挂起窗正是 body 解析树的
+        // 内存持有窗，释放许可即重开 OOM 轨迹。全出口释放 = 同步抛出 catch + 终态 whenComplete。
+        CompletionStage<ApiResponse<?>> stage;
+        try {
+            stage = invokeUrlWithRetry(url, request, invoke, svcCtx, maxRetries);
+        } catch (RuntimeException | Error e) {
+            admissionPermits.release(1);
+            throw e;
+        }
+        stage.whenComplete((r, e) -> admissionPermits.release(1));
+        return stage;
     }
 
     private CompletionStage<ApiResponse<?>> invokeUrlWithRetry(String url, ApiRequest<?> request,
@@ -152,7 +205,9 @@ public class InvokeProcessor {
             // 429 Too Many Requests — 退避重试
             if (httpStatus == 429 && retriesLeft > 0) {
                 String retryAfter = httpResponse.getHeaders().get("Retry-After");
-                long delayMs = parseRetryAfter(retryAfter, retriesLeft);
+                // equal jitter（裁定②(b)）：施加于 parseRetryAfter 钳制之后——保留 ≥D/2 的上游
+                // 恢复窗并打破同值 Retry-After 的同步重试波；parseRetryAfter 与 30s 钳制零改动
+                long delayMs = applyEqualJitter(parseRetryAfter(retryAfter, retriesLeft));
                 return delayedFuture(delayMs).thenCompose(v ->
                         invokeUrlWithRetry(url, request, invoke, svcCtx, retriesLeft - 1)
                 );
@@ -160,7 +215,7 @@ public class InvokeProcessor {
 
             // 其他服务端错误 — 抛异常供上层拦截器捕获（用于 failover）
             if (httpStatus >= 500 && retriesLeft > 0) {
-                long delayMs = (long) (Math.pow(2, 3 - retriesLeft) * 1000) + (long) (Math.random() * 1000);
+                long delayMs = (long) (Math.pow(2, 3 - retriesLeft) * 1000) + (long) (jitterSource.getAsDouble() * 1000);
                 return delayedFuture(delayMs).thenCompose(v ->
                         invokeUrlWithRetry(url, request, invoke, svcCtx, retriesLeft - 1)
                 );
@@ -234,6 +289,16 @@ public class InvokeProcessor {
 
     private static long capRetryDelay(long delayMs) {
         return Math.min(Math.max(delayMs, 0L), MAX_RETRY_DELAY_MS);
+    }
+
+    /**
+     * equal jitter：D/2 + U(0, D/2)。D=0 → 0。
+     */
+    long applyEqualJitter(long delayMs) {
+        if (delayMs <= 0)
+            return 0L;
+        long half = delayMs / 2;
+        return half + (long) (jitterSource.getAsDouble() * half);
     }
 
     /**

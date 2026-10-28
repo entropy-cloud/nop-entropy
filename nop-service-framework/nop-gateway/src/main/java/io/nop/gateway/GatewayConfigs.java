@@ -19,4 +19,21 @@ public interface GatewayConfigs {
     @Description("网关模型文件对应的虚拟文件路径")
     IConfigReference<String> CFG_GATEWAY_MODEL_PATH =
             varRef(s_loc, "nop.gateway.model-path", String.class, "/nop/main/app.gateway.xml");
+
+    /**
+     * 2.3-C8-002（plan 2508 裁定②）：url 路由腿上游在途并发上界（主腿含重试挂起窗 + fallback
+     * 腿共享许可池）。≤0 = 不设上界档（退化为现行无界语义）。上界使「在途内存持有 × 挂起时长」
+     * 与请求到达率解耦，消除 429 重试放大 × 挂起窗的确定性 OOM 轨迹。
+     */
+    @Description("上游 HTTP 在途并发上界（主腿+fallback 共享；≤0=不设上界）")
+    IConfigReference<Integer> CFG_GATEWAY_UPSTREAM_MAX_INFLIGHT =
+            varRef(s_loc, "nop.gateway.upstream-max-inflight", Integer.class, 1000);
+
+    /**
+     * 2.3-C8-002（plan 2508 裁定②(c)）：主链 429/5xx 重试次数上限。默认 3 = 现行硬编码行为；
+     * ≤0 = 零重试（429/5xx 首次响应即终态失败）。
+     */
+    @Description("上游主链重试次数上限（≤0=零重试；默认 3=现行行为）")
+    IConfigReference<Integer> CFG_GATEWAY_UPSTREAM_MAX_RETRIES =
+            varRef(s_loc, "nop.gateway.upstream-max-retries", Integer.class, 3);
 }

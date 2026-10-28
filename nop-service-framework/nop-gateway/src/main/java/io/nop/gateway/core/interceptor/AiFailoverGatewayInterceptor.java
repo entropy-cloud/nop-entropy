@@ -3,7 +3,9 @@ package io.nop.gateway.core.interceptor;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.concurrent.semaphore.ISemaphore;
 import io.nop.gateway.GatewayErrors;
+import io.nop.gateway.core.executor.UpstreamAdmission;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
@@ -35,9 +37,19 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
     private int maxRetries = 3;
     private boolean forwardSensitiveHeaders = false;
 
+    /**
+     * 2.3-C8-002（plan 2508 裁定②）：fallback 腿与主腿共享的上游在途许可池；默认取
+     * {@link UpstreamAdmission#shared()}，setter 供测试注入。null = 不设上界档。
+     */
+    private ISemaphore admissionPermits = UpstreamAdmission.shared();
+
     @Inject
     public void setHttpClient(IHttpClient httpClient) {
         this.httpClient = httpClient;
+    }
+
+    public void setAdmissionPermits(ISemaphore admissionPermits) {
+        this.admissionPermits = admissionPermits;
     }
 
     public void setFallbackUrls(List<String> fallbackUrls) {
@@ -123,7 +135,27 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
         httpRequest.setBody(request.getData());
         httpRequest.setMethod(svcCtx.getHttpMethod());
 
-        return httpClient.fetchAsync(httpRequest, null).thenCompose(httpResponse -> {
+        // 逐腿准入（裁定②）：本方法运行在上游 whenComplete/thenCompose 回调体语境——拒绝必须以
+        // failedFuture 返回而非同步 throw（回调体内 throw 只完成被丢弃的 stage，外层 future 永不完成
+        // = 与 C4-007 :354 同型的请求挂死面）。准入拒绝码不在可重试白名单内，不触发下一腿级联。
+        if (admissionPermits != null && !admissionPermits.tryAcquire(1, 0)) {
+            return CompletableFuture.failedFuture(
+                    new NopException(GatewayErrors.ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT).param("url", url));
+        }
+        CompletionStage<io.nop.http.api.client.IHttpResponse> fetch;
+        try {
+            fetch = httpClient.fetchAsync(httpRequest, null);
+        } catch (RuntimeException | Error e) {
+            if (admissionPermits != null)
+                admissionPermits.release(1);
+            // 回调体语境：同步抛出同样以 failedFuture 收敛，不得逃逸
+            return CompletableFuture.failedFuture(e);
+        }
+        if (admissionPermits != null) {
+            // 单腿单发时长持有；腿终态即释放，链推进时下一腿重新准入
+            fetch.whenComplete((r, e) -> admissionPermits.release(1));
+        }
+        return fetch.thenCompose(httpResponse -> {
             int status = httpResponse.getHttpStatus();
             if (status == 429 && nextFallbackIndex < maxFallbackAttempts()) {
                 return tryFallbackUrl(fallbackUrls.get(nextFallbackIndex), request, svcCtx, nextFallbackIndex + 1);
