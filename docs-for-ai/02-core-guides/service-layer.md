@@ -350,6 +350,23 @@ BizModel 异步 action（`callActionAsync` 及其执行链）的线程上下文�
 
 测试锚点：`nop-graphql-core` `TestGraphQLExecutorContextPump_C3_002`/`TestTccContextInvokerFailFast_C3_008`、`nop-biz` `TestBizActionServiceManagedSubmit_C3_007`、`nop-graphql-orm` `TestAsyncBizActionOrmChain_P3_E2E`。
 
+## SSO token 刷新的异步化契约（nop-auth-sso，2.3-C4-007，plan 2508）
+
+认证过滤器对 SSO token 的半衰期刷新**不得在载体线程同步执行**（brownout 下 IdP HTTP 挂起按 RTT 钉满全局 worker 载体、全站确定性吞吐停摆面已消除；实现锚点见 `../04-reference/source-anchors.md` `AUTH-005`）：
+
+- **契约 API**：`ILoginService.refreshTokenAsync`（default 方法，默认实现回退同步 `refreshToken`——未升级的实现保持现行行为；SSO 实现经纯异步 HTTP 链 override）。
+- **请求超时**：刷新 HTTP 请求显式超时（键 `nop.auth.sso.refresh-token-timeout`，默认 10s；`≤0` = 回落客户端默认 30s）——无超时的 IdP 挂起不再钉死过滤器。
+- **链序与执行介质**：过滤器刷新终态（成功/error→null 降级/异常三路一致）后，设头/cookie 与下游 `next.get()` 续段**经 `runOnContext` 再入上下文任务队列执行**——不在 HTTP 客户端回调线程直执（下游 `currentContext()` ThreadLocal 依赖任务队列绑定）。
+- **降级语义**：刷新失败沿用既有 stale-serve（error→null）——fail-closed 不在本契约（如需按 ask-first 另行走查）。
+
+## 网关上游调用的准入上界契约（nop-gateway，2.3-C8-002，plan 2508）
+
+网关对上游 HTTP 的在途调用数**有并发上界**（429 重试 ×7 加法放大 + 90s 挂起窗的 OOM 轨迹已消除；实现锚点见 `../04-reference/source-anchors.md` `GW-001`）：
+
+- **准入**：主腿（含 429/5xx 重试挂起窗全程）与 fallback 腿共享并发许可池（键 `nop.gateway.upstream-max-inflight`，默认 1000；`≤0` = 不设上界档）；超限**类型化快速拒绝**（不排队不静默），且该拒绝为不可重试错误——不触发 fallback 级联。主腿重试次数受 `nop.gateway.upstream-max-retries`（默认 3；`≤0` = 零重试）。
+- **许可纪律**：获取在同步抛出点之后；全出口 finally/whenComplete 释放；重试挂起窗（内存持有窗）**不释放**许可。
+- **时间整形**：429 Retry-After 钳制后施加 equal jitter（delay/2 + U(0, delay/2)）——保留 ≥delay/2 上游恢复窗并打破同值 Retry-After 的同步重试波；`parseRetryAfter` 与 30s 钳制语义零变化。XPL/RPC/流式路由不入池。
+
 ## 相关文档
 
 - `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则

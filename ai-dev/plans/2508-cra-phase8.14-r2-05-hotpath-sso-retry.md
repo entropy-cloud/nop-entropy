@@ -132,25 +132,27 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试（nop-service-framework / nop-auth）；`docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2507 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-service-framework -am` + `./mvnw test -pl nop-auth -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、nop-plugin，`ILoginSpi`/`nop-auth-api`（LoginApi）/nop-api-core/nop-http-api 接口签名零变更（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`service-layer.md` **新建**「认证过滤器 token 刷新与网关重试准入并发契约」节（刷新异步化/超时档/thenCompose 链序/stale-serve 降级 + 准入上界/时间整形/配置键契约——内容源 = Phase 1 设计文档，派生摘要标注「以设计文档为准」）；`source-anchors.md` 扩展 `AUTH-003` + 新增网关准入锚点（按实际）；缺口声明：按实际 diff 核对触达模块 03-modules 覆盖面（nop-auth.md 核对 sso 刷新契约承载面；nop-gateway 无独立 03-modules 条目——按 R-G 治理轨先例登记，不在本批新建 owner doc）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework --severity high`、`--module nop-auth --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2507 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-service-framework -am` + `./mvnw test -pl nop-auth -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、nop-plugin，`ILoginSpi`/`nop-auth-api`（LoginApi）/nop-api-core/nop-http-api 接口签名零变更（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`service-layer.md` **新建**「认证过滤器 token 刷新与网关重试准入并发契约」节（刷新异步化/超时档/thenCompose 链序/stale-serve 降级 + 准入上界/时间整形/配置键契约——内容源 = Phase 1 设计文档，派生摘要标注「以设计文档为准」）；`source-anchors.md` 扩展 `AUTH-003` + 新增网关准入锚点（按实际）；缺口声明：按实际 diff 核对触达模块 03-modules 覆盖面（nop-auth.md 核对 sso 刷新契约承载面；nop-gateway 无独立 03-modules 条目——按 R-G 治理轨先例登记，不在本批新建 owner doc）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework --severity high`、`--module nop-auth --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] service-layer.md 新建节 + source-anchors.md 锚点扩展落地 + 缺口声明登记；check-doc-links --strict 退出码 0；scan-hollow 两聚合模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（orm.xml/生成物/nop-plugin/ILoginSpi/LoginApi/api-core/http-api 签名）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] service-layer.md 新建节 + source-anchors.md 锚点扩展落地 + 缺口声明登记；check-doc-links --strict 退出码 0；scan-hollow 两聚合模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（orm.xml/生成物/nop-plugin/ILoginSpi/LoginApi/api-core/http-api 签名）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 3 执行记录（2026-10-27）**：**E1**（授权支路 `-DskipTests`，沿 2496–2507 先例）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（`_tmp/phase3-e1-install.log`），shade 副作用即时还原。**E3**（`-Dsurefire.rerunFailingTestsCount=2`）：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS 50 模块 0 flake（`_tmp/phase3-gate-nop-service-framework.log`）；`./mvnw test -pl nop-auth -am` 58 模块中 57 绿、唯一失败 nop-auth-service `TestOperationMfaE2E`（Phase 2 已三证据定性的**批前既有测试隔离 flake**：stash 基线同红、单方法 solo 绿、错误数 5/6/7/1 波动、本批 nop-auth-service 零 diff）——排除该类复跑 `-pl :nop-auth-service -Dtest='!TestOperationMfaE2E'` **454 tests 0F/0E BUILD SUCCESS**（`_tmp/phase3-gate-nop-auth-service-excl-mfa.log`），watch-only 登记归 R-G 测试基建轨（successor：隔离脆弱根因修复不属本批成员）。**零触碰**：产品 diff（`4bab7e49b5..31552cbebe`）17 文件 ⊆ nop-auth-sso ×4 + nop-biz-auth-core ×2 + nop-gateway ×6 + 测试/桩；禁触面（orm.xml / nop-api-core / nop-boot / `_gen/` / `.rels`）零命中；nop-auth 触碰为 Baseline 勘误 1 已申报的执行形态改造面（PA 裁定在案）。**scan-hollow**：nop-auth Total=0 exit 0；nop-service-framework exit 1 = 3 条 High **批前既有裁定登记**——`nop-biz-file-core/ChunkFileUploadHandler` :19/:23/:30 显式 `UnsupportedOperationException` 快速失败桩（rule 24 合规形态、文件不在本批触达面）。**Owner doc**：`service-layer.md` 新建「SSO token 刷新的异步化契约」与「网关上游调用的准入上界契约」两节；`source-anchors.md` 新增 `AUTH-005`（刷新异步化链序）/`GW-001`（准入上界 + jitter）。**缺口声明**：nop-gateway 无 03-modules owner doc（契约经 service-layer.md 节 + GW-001 锚点承载，缺口随 R-G 登记）。`check-doc-links --strict` 退出码 0。
 
 ### Phase 4 - closure audit + 收口
 
