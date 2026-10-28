@@ -1,6 +1,6 @@
 # 2509 CRA Phase 8.15 — R2-06 流式缓冲批 A（chain25/R02 双实现分叉，3.3 同文件批 A，11 项）
 
-"> Plan Status: active
+"> Plan Status: completed
 > Draft Review: R1 agent_1bf37222 @ 2026-10-28（0→1 Blocker、2 Major、3 Minor；基线 24 处 file:line 抽查全 PASS）——B1 C10-014 的 C3-005 半边归属自违勘误 3 原则[定夺：C3-005 半边吸收进成员 11，随裁定⑦(b) attempted 回收一次裁定，C10-014 验收 = C7-005 全 face + C3-005 半边同 diff]；M1 Related 误引 plan 2506[订正为 2505——MA-02/C6-004 溯源号]；M2 成员 11 RuleBasedSelectionStrategy 半边接线不可唯一实施[定夺：healthView 增第 5 标量 allowCall 纯追加 + 规则模型触面核验结论成文 + 红⑥断言落点 + C3-005 attempted 回收经 allowCall 冷却窗自然失效不引入新簿记]；Minor×3（pom :17 单向依赖预录[PA 预期不触发主路径]、4 进入点 :227/:273/:443/:462 枚举、cancel 落点 :164-166 一处两态澄清）——修订全量应用，转 active
 > Last Reviewed: 2026-10-28
 > Source: roadmap 工作项 8.15（R2-06，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L157，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-06 行（L80：finding ID 清单 11 项[2.3-C3-003；3.3-C2-001；3.3-C1-001；3.3-C3-001；3.3-C8-001；3.3-MA-05；3.3-C2-002；3.3-C2-009；3.3-C3-003；3.3-C3-007；3.3-C7-005] / 模块与验证命令 nop-service-framework + nop-ai[各自 `./mvnw test -pl <模块> -am`] / Owner Doc=`docs-for-ai/02-core-guides/service-layer.md` + `docs-for-ai/03-modules/nop-ai-gateway.md` / PA=无 / 依赖「无前置（可并行）」/ exit criteria 增补：**pendingComplete 正确先例对齐（同仓）、「共享有界缓冲组件」方向收敛双实现分叉、越窗上界+demand 修正、C2-002/C2-009 R03 锁内重活外移、C3-003 与 3.1 分类器跨模块协调注记；依赖注记：3.3-C7-002 拆出至 R4-32、G36 的 G-D 面（R4-17）批次对齐注记**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 2.3 审计目录 `ai-dev/audits/2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency/`（C3-async-chains.md C3-003 立案 :137 / C3-round2.md 失效面扩展 :66-71 / C8-backpressure.md B1 深化 :37 / merge-adjudication.md G-D 族 :75 / C10-test-protection.md P1-2+C10-002）与 WI 3.3 审计目录 `ai-dev/audits/2026-10/2026-10-20-1302-deep-audit-nop-ai-gateway-concurrency/`（C2-lock-sync.md C2-001/C2-002 + CL-003 / C1-shared-mutable-state.md C1-001 / C3-async-chains.md C3-001/C3-003 / C3-round2.md C3-007 / C7-round2.md C7-005 / C8-backpressure.md C8-001 / merge-adjudication.md MA-05/MA-07、裁定 1/3、§七跨单元 #1/2/14/17/19/21、§九 C10 映射、§8.4 同文件批 A 防碎片化条款），逐条回读路径见 Current Baseline；执行基线 @ `9ca5c3c8be`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.14 已 done，plan 2495–2508 均 completed；本 Baseline 全部行号为该基线 live 回读值，2026-10-28 亲读，执行前如再漂移以 live 为准并登记）
@@ -172,43 +172,43 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.15 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（组件/配对/守卫/外移运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：L207（2.3-C3-003）、L258（C2-001）、L259（C1-001）、L260（C3-001）、L261（C8-001）状态收敛（open → fixed，注记 plan 2509）；L442（P2-G58）**成员拆注**（6/7 收敛，C7-002 维持 open 归 R4-32）；C10 七条收敛注记；roadmap 8.15 行 Status → done；R4-16 软依赖 8.15 的就绪注记（沿 2508 对 R4-16 先例）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（组件/配对/守卫/外移运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：L207（2.3-C3-003）、L258（C2-001）、L259（C1-001）、L260（C3-001）、L261（C8-001）状态收敛（open → fixed，注记 plan 2509）；L442（P2-G58）**成员拆注**（6/7 收敛，C7-002 维持 open 归 R4-32）；C10 七条收敛注记；roadmap 8.15 行 Status → done；R4-16 软依赖 8.15 的就绪注记（沿 2508 对 R4-16 先例）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 5 独立行收敛 + L442 拆注 + C10 七条注记、roadmap 8.15 = done、R4-16 对接注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 5 独立行收敛 + L442 拆注 + C10 七条注记、roadmap 8.15 = done、R4-16 对接注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 11 项成员全部修复：2.3-C3-003（组件收敛+上界+门控+cancel）、3.3 四 P1（配对/完整性/终态挂起/越窗上界+授信）、P2 六项（MA-05 护栏、C2-002/C2-009 外移、C3-003 短路、C3-007 降级显式化、C7-005 allowCall）
-- [ ] batch-proposal R2-06 行 exit criteria 增补五条逐条达成并留证：①**pendingComplete 正确先例对齐**（终态挂起语义与 `BufferedStreamingPublisher` 基准逐条对照成文 + 回归钉）；②**「共享有界缓冲组件」方向收敛双实现分叉**（组件落点/容量语义/背压协议按裁定①落地，两实现缓冲语义同型断言）；③**越窗上界+demand 修正**（缓冲深度 ≤ bufferSize 断言 + 授信策略落地）；④**C2-002/C2-009 R03 锁内重活外移**（monitor 持有时长/锁外投递断言）；⑤**C3-003 与 3.1 分类器跨模块协调注记**（注记成文 + 分类器本体零 diff 核对）
-- [ ] 依赖注记守约：3.3-C7-002 拆出 R4-32（墙钟语义零改动勘误钉在案）、G36 的 G-D 面归 R4-17 批次对齐注记成文、R2-16（C5-001/分类器）零承接核对
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；四 P1 + 锁卡位均有先红后绿或变异/回退论证（E2）；C10 七条同 diff 落地
-- [ ] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（StreamingProcessorBufferingTest 12 用例/CancelPin/E2E 链路/2508 门禁组）零回退实证
-- [ ] 2505 已修面零回退：nop-network 零 diff + 裁定⑤组合行为核验结论在案
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：nop-ai-gateway.md（契约节扩展+锚点）、service-layer.md（归属落定）、source-anchors.md（锚点）；缺口声明登记（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）共享组件/配对守卫/终态挂起/锁外投递/降级信号运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（受影响聚合模块）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 5 独立行 + L442 拆注收敛 + roadmap 8.15 → done（E6）
+- [x] 11 项成员全部修复：2.3-C3-003（组件收敛+上界+门控+cancel）、3.3 四 P1（配对/完整性/终态挂起/越窗上界+授信）、P2 六项（MA-05 护栏、C2-002/C2-009 外移、C3-003 短路、C3-007 降级显式化、C7-005 allowCall）
+- [x] batch-proposal R2-06 行 exit criteria 增补五条逐条达成并留证：①**pendingComplete 正确先例对齐**（终态挂起语义与 `BufferedStreamingPublisher` 基准逐条对照成文 + 回归钉）；②**「共享有界缓冲组件」方向收敛双实现分叉**（组件落点/容量语义/背压协议按裁定①落地，两实现缓冲语义同型断言）；③**越窗上界+demand 修正**（缓冲深度 ≤ bufferSize 断言 + 授信策略落地）；④**C2-002/C2-009 R03 锁内重活外移**（monitor 持有时长/锁外投递断言）；⑤**C3-003 与 3.1 分类器跨模块协调注记**（注记成文 + 分类器本体零 diff 核对）
+- [x] 依赖注记守约：3.3-C7-002 拆出 R4-32（墙钟语义零改动勘误钉在案）、G36 的 G-D 面归 R4-17 批次对齐注记成文、R2-16（C5-001/分类器）零承接核对
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；四 P1 + 锁卡位均有先红后绿或变异/回退论证（E2）；C10 七条同 diff 落地
+- [x] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（StreamingProcessorBufferingTest 12 用例/CancelPin/E2E 链路/2508 门禁组）零回退实证
+- [x] 2505 已修面零回退：nop-network 零 diff + 裁定⑤组合行为核验结论在案
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-ai -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：nop-ai-gateway.md（契约节扩展+锚点）、service-layer.md（归属落定）、source-anchors.md（锚点）；缺口声明登记（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）共享组件/配对守卫/终态挂起/锁外投递/降级信号运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（受影响聚合模块）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 5 独立行 + L442 拆注收敛 + roadmap 8.15 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -235,14 +235,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （closure 时填写）
-Completed: YYYY-MM-DD
+Status Note: R2-06 十一项（2.3-C3-003 + 3.3 十项含 C3-005 半边与 B1 吸收）全部修复并各带 focused 回归 + 真实红证据（前缀泄漏 got[a1,a2,b1,b2]/终态截断/预算误耗/挂死等 10+1 件红日志）；Phase 1 八裁定经独立评审三轮（R1 1B+2M+3m / R2 +2M / R3 0B/0M）全修；E1 全量 + E3 双门禁 BUILD SUCCESS；C3-007 宿主半边由协调方落地；共享核 `BoundedWindowBuffer` 双侧宿主真实消费；独立 closure audit PASS；cra-index 11 行收敛；roadmap 8.15 → done。无 in-scope live defect 被降级。
+Completed: 2026-10-28
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent）
-- Evidence: （每条 Exit Criterion / Closure Gate 的 PASS/FAIL + 证据来源；check-plan-checklist 退出码；Anti-Hollow 结果；Deferred 分类检查）
+- Reviewer / Agent: 独立子 agent（fresh session，未参与实现）agent_7b86a7d5 @ 2026-10-28
+- Audit Session: agent_7b86a7d5-dd27-4c24-8537-d91c1c5f0c40
+- Evidence:
+  - **Exit Criteria**：Phase 1/2/3 全部 PASS（11/11 站点源码生效亲读；红日志抽查确认真红；`StreamingProcessorBufferingTest` 12 用例零改动 diff 零命中；E3 双聚合复跑独立确认；owner doc 亲读六条契约 + FGW-001 :138）
+  - **Closure Gates**：实质 13 条 PASS（11 成员源码逐点 + batch 五条增补逐条达成[pendingComplete 对齐/共享核收敛分叉/越窗上界+demand/R03 出锁/协调注记] + 2505 零回退[nop-network 零 diff + `TestStreamFullChainEndToEnd_C3_001` 4/4 复跑绿 `_tmp/audit-pin-c3-001.log`] + 依赖注记守约）；Phase 4 待办项在本 closure pass 内完成
+  - **Anti-Hollow 五项 PASS**：(a) 共享核双侧宿主真实持有（BufferedStreamingPublisher :196/:208、FailoverStreamFlow :232/:244）+ 门禁运行时证据；(b) 溢出终态短路 :610-621/:500 排除重试；(c) 漏斗 :754-755/:362-364/teardown :417 + CAS exactly-once；(d) 宿主半边 :337 ← degradedSink :103 + 直通 null 零回归；(e) catch 全部处置（Minor-8 解析回退 fall-through 非静默；MA-05 兜底亲读在案）
+  - **工具退出码（closure pass 终态）**：`check-plan-checklist.mjs --strict` 退出码 0（completed 形态重跑）；`scan-hollow`：nop-ai exit 1 = 4 条 2505 已裁定批前既有（注释误报 ×3 + 显式 NoOp）、nop-service-framework exit 1 = 3 条 file-core UOE 桩——均非本批触达面，裁定成立；`check-doc-links --strict` 退出码 0；独立复跑 `-pl :nop-gateway` 133 0F/0E、`-pl :nop-ai-gateway` 266 0F/0E
+  - **Deferred/偏差**：三项 Deferred successor 清晰无静默降级；偏差五项与代码实况逐一吻合
+  - **证据日志**：`_tmp/phase2-*.log`/`_tmp/phase3-*.log` 为蒸馏摘要；本次 audit 新增 `_tmp/audit-pin-c3-001.log` 已登记
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- R4-17（8.57）G-D 面对齐、R4-32（8.72）C7-002、R2-16（8.25）C5-001+分类器「取消独立分类」——cra-index 与设计文档已落账
+- watch-only：`TestFailoverMetricsLocal` allowCall 未接 CircuitObservation 观测缺口 1 处（设计态，观测面归后续指标批次）
+- no remaining plan-owned work
