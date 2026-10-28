@@ -162,6 +162,9 @@ public class StreamingProcessor {
                     subscription.request(1);
 
                 } catch (Exception e) {
+                    // 错误分支补上游 cancel（plan 2509 C3-003 两态落点：映射链断流时回收
+                    // SSE 连接，防滞留至 EOF；缓冲层错误终态同语义，两处一处闭合）。
+                    subscription.cancel();
                     subscriber.onError(e);
                 }
             }
