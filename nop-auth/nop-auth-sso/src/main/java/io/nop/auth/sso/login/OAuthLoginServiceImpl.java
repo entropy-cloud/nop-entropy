@@ -29,6 +29,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.http.api.HttpApiConstants;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import io.nop.http.api.client.IHttpResponse;
 import jakarta.annotation.Nullable;
 import jakarta.annotation.PostConstruct;
 import jakarta.inject.Inject;
@@ -255,16 +256,42 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
                 refreshToken.length(), refreshToken.substring(0, Math.min(8, refreshToken.length())));
 
         HttpRequest req = newRefreshTokenRequest(refreshToken);
-        return FutureHelper.syncGet(httpClient.fetchAsync(req, null).thenApply(res -> {
-            AccessTokenResponse response = res.getBodyAsBean(AccessTokenResponse.class);
-            if (response.getError() != null) {
-                LOG.debug("nop.auth.sso.refresh-token-fail:error={}", response.getError());
-                return null;
-            }
-            userContext.setAccessToken(response.getAccessToken());
-            userContext.setRefreshToken(response.getRefreshToken());
-            return response.getAccessToken();
-        }));
+        return FutureHelper.syncGet(httpClient.fetchAsync(req, null).thenApply(res -> applyRefreshResponse(userContext, res)));
+    }
+
+    /**
+     * C4-007（plan 2508 裁定①）：纯异步刷新链——剥离同步版 {@link #refreshToken} 的
+     * {@code FutureHelper.syncGet} 外壳，{@code fetchAsync(...).thenApply} 异步形状直接
+     * 暴露给调用方；error→null 的 stale-serve 语义逐字保持。认证过滤器载体线程不再被
+     * 远程 IdP 调用阻塞。
+     */
+    @Override
+    public CompletionStage<String> refreshTokenAsync(IUserContext userContext, AuthToken authToken) {
+        String refreshToken = userContext.getRefreshToken();
+        if (refreshToken == null)
+            return FutureHelper.success(null);
+
+        // 长效refresh token不落日志：仅记录长度+前缀摘要，防生产误开debug级或日志聚合降级时泄露凭证
+        LOG.debug("nop.auth.sso.refresh-token:tokenLength={},prefix={}",
+                refreshToken.length(), refreshToken.substring(0, Math.min(8, refreshToken.length())));
+
+        HttpRequest req = newRefreshTokenRequest(refreshToken);
+        return httpClient.fetchAsync(req, null).thenApply(res -> applyRefreshResponse(userContext, res));
+    }
+
+    /**
+     * 刷新响应映射（同步/异步两链共用）：IdP error 响应 → null（stale-serve，不更新
+     * 共享 userContext）；成功响应 → 更新 access/refresh token 并返回新 accessToken。
+     */
+    private String applyRefreshResponse(IUserContext userContext, IHttpResponse res) {
+        AccessTokenResponse response = res.getBodyAsBean(AccessTokenResponse.class);
+        if (response.getError() != null) {
+            LOG.debug("nop.auth.sso.refresh-token-fail:error={}", response.getError());
+            return null;
+        }
+        userContext.setAccessToken(response.getAccessToken());
+        userContext.setRefreshToken(response.getRefreshToken());
+        return response.getAccessToken();
     }
 
     protected HttpRequest newRefreshTokenRequest(String refreshToken) {
@@ -281,6 +308,13 @@ public class OAuthLoginServiceImpl extends AbstractLoginService {
         req.dataType(HttpApiConstants.DATA_TYPE_FORM);
         req.body(map);
         req.url(config.getFullUrl(config.getTokenUrl()));
+        // C4-007：显式请求超时（键 nop.auth.sso.refresh-token-timeout，默认 10000ms）。
+        // ≤0 = 不设显式超时（保持 HttpRequest 字段默认 0 = 客户端部署级默认，
+        // HttpClientConfig readTimeout 30s 兜底）——LOCK-001「默认有界 + ≤0 豁免档」两档语义。
+        long timeout = config.getRefreshTokenTimeout();
+        if (timeout > 0) {
+            req.timeout(timeout);
+        }
         return req;
     }
 }

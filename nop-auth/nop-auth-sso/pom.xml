@@ -32,6 +32,15 @@
             <artifactId>nop-http-client-jdk</artifactId>
         </dependency>
 
+        <!-- C4-007（plan 2508）rule-23 接线验证：真实 IoC 容器装配 sso-defaults.beans.xml，
+             断言 nop.auth.sso.refresh-token-timeout 经 @cfg: 行真实注入 nopSsoConfig bean。
+             仅测试树消费（TestChannelBindServiceIoC / AppBeanContainerLoader 同款先例）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ioc</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

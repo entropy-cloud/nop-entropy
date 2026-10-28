@@ -355,26 +355,59 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         try {
             // runOnContext会创建一个任务队列。如果异步调用过程中使用了同步等待，则内部实现会利用任务队列来避免出现死锁。
             ctx.runOnContext(() -> {
-                if (needRefresh) {
-                    String accessToken = loginService.refreshToken(userContext, authToken);
-                    // 如果不支持刷新，则可能返回null
-                    if (accessToken != null) {
-                        routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
-                        if (config.getAuthCookie() != null) {
-                            addCookie(authCookieName(), accessToken, routeContext);
-                        }
-                    }
-                } else if (config.getAuthCookie() != null && authToken != null) {
-                    // 如果cookie不一致，则增加cookie
-                    if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
-                        addCookie(authCookieName(), authToken.getToken(), routeContext);
+                // C4-007（plan 2508 裁定①）：刷新异步化——载体线程仅发起刷新链即释放，
+                // 不再被远程 IdP 调用阻塞（与既有 error→null 语义一致的三路终态收敛见续段）。
+                // 刷新异常在此收敛为降级（stale-serve：携既有 token 继续），不再逃逸任务体。
+                CompletionStage<String> refreshStage;
+                try {
+                    refreshStage = needRefresh
+                            ? loginService.refreshTokenAsync(userContext, authToken)
+                            : FutureHelper.success(null);
+                } catch (Throwable ex) {
+                    // 同步抛出（如兼容回退型 default 实现内部刷新失败）同样收敛为降级
+                    LOG.warn("nop.auth.token-refresh-fail:sessionId={}", authToken.getSessionId(), ex);
+                    refreshStage = FutureHelper.success(null);
                 }
 
+                refreshStage.whenComplete((accessToken, ex) -> {
+                    // 刷新终态（成功 / error→null / 异常→降级，三路一致）后经 runOnContext
+                    // 再入上下文任务队列执行续段：设头/cookie 步与 next.get() 必须运行在
+                    // contextHolder 绑定的队列介质上，下游 biz/graphql 的
+                    // ContextProvider.currentContext() ThreadLocal 读才不丢失上下文，
+                    // 且规避 routeContext 头/cookie 跨线程写未论证问题（plan 2508 Major-3）。
+                    try {
+                        ctx.runOnContext(() -> {
+                            try {
+                                if (ex != null) {
+                                    // 刷新异常降级：warn + 携既有 token 继续，不更新头/cookie（stale-serve）
+                                    LOG.warn("nop.auth.token-refresh-fail:sessionId={}", authToken.getSessionId(), ex);
+                                } else if (accessToken != null) {
+                                    // 如果不支持刷新，则可能返回null
+                                    routeContext.setResponseHeader(IHttpServerContext.HEADER_X_ACCESS_TOKEN, accessToken);
+                                    if (config.getAuthCookie() != null) {
+                                        addCookie(authCookieName(), accessToken, routeContext);
+                                    }
+                                } else if (!needRefresh && config.getAuthCookie() != null && authToken != null) {
+                                    // 如果cookie不一致，则增加cookie
+                                    if (!authToken.getToken().equals(getAuthTokenFromCookie(routeContext)))
+                                        addCookie(authCookieName(), authToken.getToken(), routeContext);
+                                }
 
-                CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
-                    loginService.flushUserContextAsync(userContext);
+                                CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
+                                    loginService.flushUserContextAsync(userContext);
+                                });
+                                FutureHelper.bindResult(promise, future);
+                            } catch (Throwable t) {
+                                // 续段任务体全异常包容（含 next.get() 同步抛出）：
+                                // 透传下游失败，future 必达终态（无「永不完成」路径）
+                                future.completeExceptionally(NopException.adapt(t));
+                            }
+                        });
+                    } catch (Throwable t) {
+                        // 再入调用自身同步抛出（含 BaseContext.checkClosed）同样收敛于 future 终态
+                        future.completeExceptionally(NopException.adapt(t));
+                    }
                 });
-                FutureHelper.bindResult(promise, future);
             });
 
             return future;
