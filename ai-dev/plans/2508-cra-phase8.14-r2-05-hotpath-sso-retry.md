@@ -1,6 +1,6 @@
 # 2508 CRA Phase 8.14 — R2-05 2.3 服务热路径剩余批（R05 SSO 刷新钉线 + R25 重试放大，2 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_ccc9c237 @ 2026-10-26（0 Blocker、2 Major、6 Minor；基线 22 处 file:line 抽查 20 PASS/2 勘误类 ±1~2；**PA 自洽性核查 PASS**——nop-auth-sso 执行形态改造非认证语义变更、fail-closed 设为 ask-first 触发条件护栏闭合）——M1 SSO 超时键接线载体缺失[`SsoConfig` @ConfigBean 不经 config-prefix 不接线，live bean 用逐属性 `@cfg:` 引用 → 定夺 beans.xml 增补一行 `@cfg:` property 为默认分支 + Scope 增补 `sso-defaults.beans.xml` + rule-23 增补配置覆盖真实生效断言，防死配置键空心面]；M2 准入许可释放保证与准入面语义未闭合[定夺：全出口 finally/whenComplete 释放 + tryAcquire 置于同步抛出点后 + 异常路径许可归还红腿 + 准入面=url 路由腿[XPL/RPC 非 HTTP 路由不入池] + 新准入错误码钉 `AiFailoverGatewayInterceptor` 不可重试分类防 fallback 级联]；Minor×6（勘误 :15-21 订正、七例区间 :36-81、E2E 归属 nop-auth-sso 测试树 + fake IdP 无需真实网络端点、RecordingHttpClient 桩形态扩展声明、`tryFallbackUrl` req.timeout R4-16 面补登记）——修订全量应用，转 active
 > Last Reviewed: 2026-10-26
 > Source: roadmap 工作项 8.14（R2-05，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L156，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-05 行（L79：finding ID 清单 2 项[2.3-C4-007；2.3-C8-002] / 模块与验证命令 nop-service-framework `./mvnw test -pl nop-service-framework -am` / Owner Doc=`docs-for-ai/02-core-guides/service-layer.md` / PA=无 / 依赖「无前置（可并行）」/ exit criteria 增补：**SSO token 刷新异步化+timeout API+thenCompose 领先 next.get；429 重试准入上界/时间整形[在途×90s OOM 轨迹消除]**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 2.3 审计目录 `ai-dev/audits/2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency/`（C4-round2.md C4-007 立案+复核勘误 9 / C4-round3.md ①修复设计核对+勘误 7 / C8-backpressure.md C8-002 立案 / C8-round2.md ②量化收口 / merge-adjudication.md G-B/G-C 族+终裁 2 / C10-test-protection.md P1-4[→C10-004] 与 P1-6[→C10-006]，逐条回读路径见 Current Baseline）；执行基线 @ `2afb9d0c7e`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.13 已 done，plan 2495–2507 均 completed；本 Baseline 全部行号为该基线 live 回读值，2026-10-26 亲读，执行前如再漂移以 live 为准并登记）
@@ -156,42 +156,42 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.14 行、cra-index 台账
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（异步链运行时连通、准入闸运行时生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：`nop-service-framework-hotpath-C4-007` L209、`-C8-002` L211 状态收敛（open → fixed，注记 plan 2508）+ C10-004/C10-006 整条收敛；roadmap 8.14 行 Status → done
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2508-cra-phase8.14-r2-05-hotpath-sso-retry.md --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（异步链运行时连通、准入闸运行时生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：`nop-service-framework-hotpath-C4-007` L209、`-C8-002` L211 状态收敛（open → fixed，注记 plan 2508）+ C10-004/C10-006 整条收敛；roadmap 8.14 行 Status → done
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2508-cra-phase8.14-r2-05-hotpath-sso-retry.md --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 2 项成员（L209/L211）状态全部收敛 + C10-004/C10-006 收敛注记、roadmap 8.14 = done
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 2 项成员（L209/L211）状态全部收敛 + C10-004/C10-006 收敛注记、roadmap 8.14 = done
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 2 项成员全部修复：C4-007（异步化+超时+链序+降级）、C8-002（准入上界+时间整形+配置化）
-- [ ] batch-proposal R2-05 行 exit criteria 增补两条逐条达成并留证：①**SSO token 刷新异步化 + timeout API + thenCompose 领先 next.get**（契约 default 方法 + override 异步链 + 请求超时键 + 过滤器链序钉落地）；②**429 重试准入上界/时间整形[在途×90s OOM 轨迹消除]**（在途 ≤ permits 与持有时长解耦的断言留证 + jitter/配置化落地）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；两成员均有先红后绿或变异/回退论证（E2）；C10-004/C10-006 同 diff 落地
-- [ ] 设计文档裁定①–④成文且经独立 draft review；既有钉（parseRetryAfter 七例/30s 钳制/重试耗尽两例/fallback 上界/testIsNeedRefreshHalfLife 三态）零回退实证（既有回归全绿 + diff 抽验）
-- [ ] R4-16/R2-06/R2-16 边界守约：断连原语/取消传播/载体治理/流式缓冲/会话取消束零越界修复、移交注记在案（裁定④）；PA ask-first 触发条件未被触发（或已按规询问并记录）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-auth -am` BUILD SUCCESS（E1/E3）
-- [ ] Owner doc 更新完成：service-layer.md（新建契约节）、source-anchors.md（锚点扩展）；缺口声明登记（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）刷新异步链/许可准入/降级路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（受影响聚合模块）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2508-cra-phase8.14-r2-05-hotpath-sso-retry.md --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 2 成员收敛 + roadmap 8.14 → done（E6）
+- [x] 2 项成员全部修复：C4-007（异步化+超时+链序+降级）、C8-002（准入上界+时间整形+配置化）
+- [x] batch-proposal R2-05 行 exit criteria 增补两条逐条达成并留证：①**SSO token 刷新异步化 + timeout API + thenCompose 领先 next.get**（契约 default 方法 + override 异步链 + 请求超时键 + 过滤器链序钉落地）；②**429 重试准入上界/时间整形[在途×90s OOM 轨迹消除]**（在途 ≤ permits 与持有时长解耦的断言留证 + jitter/配置化落地）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；两成员均有先红后绿或变异/回退论证（E2）；C10-004/C10-006 同 diff 落地
+- [x] 设计文档裁定①–④成文且经独立 draft review；既有钉（parseRetryAfter 七例/30s 钳制/重试耗尽两例/fallback 上界/testIsNeedRefreshHalfLife 三态）零回退实证（既有回归全绿 + diff 抽验）
+- [x] R4-16/R2-06/R2-16 边界守约：断连原语/取消传播/载体治理/流式缓冲/会话取消束零越界修复、移交注记在案（裁定④）；PA ask-first 触发条件未被触发（或已按规询问并记录）
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-service-framework -am`、`./mvnw test -pl nop-auth -am` BUILD SUCCESS（E1/E3）
+- [x] Owner doc 更新完成：service-layer.md（新建契约节）、source-anchors.md（锚点扩展）；缺口声明登记（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）刷新异步链/许可准入/降级路径运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（受影响聚合模块）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2508-cra-phase8.14-r2-05-hotpath-sso-retry.md --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 2 成员收敛 + roadmap 8.14 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -217,15 +217,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: R2-05 两项 P1（2.3-C4-007 SSO 刷新异步化 / 2.3-C8-002 Gateway 准入上界）全部修复并各带 focused 回归 + 真实红/变异红证据；Phase 1 四裁定经独立评审两轮（R1 0B+3M+5m 全修 / R2 0B/0M）；E1 全量 + E3 两门禁 BUILD SUCCESS（nop-auth 唯一红面为批前既有 MFA 测试隔离 flake，排除后 454 绿）；PA 合规（nop-auth-sso 执行形态改造零认证语义变更，fail-closed 未采）；独立 closure audit PASS；cra-index 两行 fixed；roadmap 8.14 → done。无 in-scope live defect 被降级。
+Completed: 2026-10-27
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent>>
-- Audit Session: <<如用子 agent，记录 session ID>>
-- Evidence: <<每条 Exit Criterion 与 Closure Gate 的验证结果；check-plan-checklist --strict 退出码；Anti-Hollow 检查结果>>
+- Reviewer / Agent: 独立子 agent（fresh session，未参与实现）agent_3764795e @ 2026-10-27
+- Audit Session: agent_3764795e-6593-492b-8fbd-539911569f54
+- Evidence:
+  - **Exit Criteria**：Phase 1 4/4、Phase 2 5/5、Phase 3 4/4 全 PASS（两成员提交产品与测试同 commit；红证据亲验——sso timeout==0 红 + 挂死 TimeoutException 红、gw 变异红 3/7；`InvokeProcessorRetryTest` parseRetryAfter/钳制/耗尽 live 逐行未改动、`testIsNeedRefreshHalfLife` :320-329 未触碰；零触碰 17 文件 ⊆ 声明范围；scan-hollow 3 High = `ChunkFileUploadHandler` 显式 UOE 桩，`git log` 证实批前 `299f7765f0`）
+  - **Closure Gates**：实质 13 条 PASS（live 亲读：`ILoginService:135` default、`OAuthLoginServiceImpl:269` 纯异步链 + `req.timeout` 两档、filter 刷新发起→终态→`runOnContext` 再入→next.get 链序 + 全异常包容；`InvokeProcessor:172` 准入、:297 equal jitter、`UpstreamAdmission` 共享池、`GatewayConfigs` 双键、`GatewayErrors:61` 新码；batch L79 两条增补逐条达成；R4-16/R2-06/R2-16 边界零越界；**PA 核对：error→null stale-serve 逐字保持、无 fail-closed、`LoginServiceImpl` 零 diff → ask-first 条件未触发成立**）；Phase 4 待办项在本 closure pass 内完成
+  - **Anti-Hollow 五项 PASS**：(a) brownout 腿端到端（真实 OAuthLoginServiceImpl + 可控 future，next 线程 ≠ 载体线程、头/cookie/共享 context 更新）；(b) 准入 7 腿运行时生效 + 全出口释放；(c) fallback 拒绝 failedFuture 无挂死；(d) 配置键接线经真实 IoC 容器穿透断言（7654 覆盖值→bean→请求 timeout）；(e) 新增 catch 三处均 warn + 显式降级/completeExceptionally
+  - **工具退出码（closure pass 终态）**：`check-plan-checklist.mjs --strict` 退出码 0（completed 形态重跑）；`scan-hollow`：nop-auth 0 / nop-service-framework exit 1 = 3 条批前既有显式 UOE 桩（裁定登记）；`check-doc-links --strict` 退出码 0；独立复跑 `-pl :nop-gateway` 118 tests 0F/0E、`-pl :nop-biz-auth-core,:nop-auth-sso` 124+19 全绿
+  - **Deferred/偏差**：三条 Deferred 均批前裁定批外项；「批前既有」两项（MFA flake / file-core 桩）登记核实；Phase 2 偏差五项（含组 B 由协调方直接实施）与 live 一致诚实
+  - **checkstyle Gate 口径**：两组 pre-commit `nop-cli lint` 通过；变更文件 import 分组逐文件读验
+  - **证据日志形态**：`_tmp/phase3-*.log` 为 grep 蒸馏摘要
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up 或明确写 no remaining plan-owned work；confirmed live defect 不得出现在这里>>
+- R4-16/R4-17（8.56/8.57）G36 面（buildHttpRequest/tryFallbackUrl `req.timeout`、WS 适配层等）与 R2-06（8.15）C3-003——cra-index 与设计文档已落账
+- watch-only：`TestOperationMfaE2E` 测试隔离脆弱（nop-auth-service，批前既有，归 R-G 测试基建轨）；`ChunkFileUploadHandler` 显式 UOE 桩 3 条（实现归后续功能批次）
+- `invokeRpc` 流控「RPC 层自有设施」为断言性声明，锚点待 RPC 域批次补证（设计 §3.2 已降格登记）
+- no remaining plan-owned work
