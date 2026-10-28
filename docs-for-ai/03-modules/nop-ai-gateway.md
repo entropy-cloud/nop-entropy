@@ -286,6 +286,17 @@ bean 已在 `nop-ai-gateway` 的 `ai-gateway-defaults.beans.xml` 注册（经 `/
 
 维度约定：`provider`/`model`/`account`（主账号 accountKey null → 空串维度）/`model-class`/`to-state`/`type`/`outcome`。
 
+## 流式 failover 缓冲与并发契约（plan 2509，2.3-C3-003 同族）
+
+`FailoverStreamFlow` 的缓冲/需求/终态语义（实现锚点见 `../04-reference/source-anchors.md` `FGW-001`；选型与语义权威 = AI 开发记录区 concurrency 设计集 stream-buffer-unification-and-failover-flow-concurrency.md，此处不直接链接）：
+
+- **共享有界缓冲核**：与 2.3 网关侧 `BufferedStreamingPublisher` 共享同一泛型状态核 `BoundedWindowBuffer`（buffer/窗口/demand/pendingComplete/cancel 六合一 + disabled 直通档；组件不加锁、宿主 monitor 保护）。越窗后缓冲深度 ≤ bufferSize；**溢出 = 类型化不可重试终态**（`StreamingBufferOverflowException`——不进重选/记账/重订阅决策，直接断流 + WARN + 溢出计数）。
+- **attempt 配对**：attempt 的 acquire/release 经取消分支漏斗单行 + released CAS exactly-once（取消×重订阅 TOCTOU 已闭合）；窗口内失败清理入锁、flush 信号携带 attempt 引用投递前 identity 复检（放弃 attempt 的缓冲前缀永不交付）。
+- **终态交付**：成功终态缓冲非空时挂起（`pendingComplete` 先例），`request()` 冲空后补发 onComplete——流式响应不以成功截断；error 终态豁免维持（flushAll 尽力交付 + onError）。
+- **出锁投递**：全部下游信号（元素/冲刷/终态/request 补发六点）经 Signal 队列 + 单一 drain-loop 守卫出锁投递——锁内仅状态机与记账，monitor 持有窗内不执行用户回调；信号序 = 入队序（终态最后）。
+- **选择门控**：`allowCall` 消费双面收敛——`healthOf` 视图第 5 标量为纯读投影（承载 `ThresholdBreaker.cooldownElapsed` 只读查询，不占探针槽），权威状态迁移 allowCall 在两策略「选中后、返回前」唯一调用点（HALF_OPEN 单探针语义保持）；超限重选的 attempted 标记经 allowCall 冷却复查自然恢复可达（零额外簿记）。
+- **降级终态**：降级响应为显式降级终态（清缓冲 + 不经元素通路交付），不与缓冲内容交错；可切换失败仍走既有 failover 决策。取消短路由 adapter/interceptor 承担（取消后零记账零预算）。
+
 ## 源码锚点
 
 | 组件 | 路径 |

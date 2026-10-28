@@ -148,25 +148,27 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: 受影响聚合模块全量测试（nop-service-framework / nop-ai）；`docs-for-ai/03-modules/nop-ai-gateway.md`；`docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2508 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-service-framework -am` + `./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、nop-network（2505 已修面）、nop-ai-core 分类器与 `ThresholdBreaker` 本体（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`nop-ai-gateway.md`——「缓冲窗口（gateway.xdef `streaming`）」节（:152）扩展为含越窗上界/终态挂起/取消配对/降级信号契约（内容源 = Phase 1 设计文档，派生摘要标注「以设计文档为准」）+ 形态 B（:77）本地流式契约同步 + 源码锚点节（:289）更新；`service-layer.md`——流式缓冲组件契约归属按裁定①落点落节（物理共享平台组件时与 2508 两节并列新建；双侧对齐时最小注记）；`source-anchors.md` 新增流式缓冲锚点（按实际）；缺口声明：按实际 diff 核对触达模块 03-modules 覆盖面（nop-gateway 无独立 03-modules 条目——沿 2508 缺口声明先例登记）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework --severity high`、`--module nop-ai --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2508 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-service-framework -am` + `./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、nop-network（2505 已修面）、nop-ai-core 分类器与 `ThresholdBreaker` 本体（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`nop-ai-gateway.md`——「缓冲窗口（gateway.xdef `streaming`）」节（:152）扩展为含越窗上界/终态挂起/取消配对/降级信号契约（内容源 = Phase 1 设计文档，派生摘要标注「以设计文档为准」）+ 形态 B（:77）本地流式契约同步 + 源码锚点节（:289）更新；`service-layer.md`——流式缓冲组件契约归属按裁定①落点落节（物理共享平台组件时与 2508 两节并列新建；双侧对齐时最小注记）；`source-anchors.md` 新增流式缓冲锚点（按实际）；缺口声明：按实际 diff 核对触达模块 03-modules 覆盖面（nop-gateway 无独立 03-modules 条目——沿 2508 缺口声明先例登记）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-service-framework --severity high`、`--module nop-ai --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-ai-gateway.md 契约节扩展 + service-layer.md 归属落定 + source-anchors.md 锚点 + 缺口声明登记；check-doc-links --strict 退出码 0；scan-hollow 两聚合模块逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（orm.xml/生成物/nop-network/nop-ai-core 分类器与原语本体）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] nop-ai-gateway.md 契约节扩展 + service-layer.md 归属落定 + source-anchors.md 锚点 + 缺口声明登记；check-doc-links --strict 退出码 0；scan-hollow 两聚合模块逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（orm.xml/生成物/nop-network/nop-ai-core 分类器与原语本体）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+> **Phase 3 执行记录（2026-10-28）**：**E1**（授权支路 `-DskipTests`，沿 2496–2508 先例）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（`_tmp/phase3-e1-install.log`），`.rels` 副作用即时还原。**E3**（`-Dsurefire.rerunFailingTestsCount=2`）：`./mvnw test -pl nop-service-framework -am` BUILD SUCCESS（`_tmp/phase3-gate-nop-service-framework.log`）；`./mvnw test -pl nop-ai -am` BUILD SUCCESS（`_tmp/phase3-gate-nop-ai.log`）。**零触碰**：产品 diff（`e3a179d622..ae0dd2d570`，35 文件 4240+/293-）⊆ nop-gateway + nop-ai-gateway + nop-ai-core（ThresholdBreaker 只读追加，零 PA 偏离已申报）+ 测试/桩/规则资源；禁触面（orm.xml / nop-api-core / nop-boot / `_gen/` / `.rels`）零命中。**scan-hollow**：nop-service-framework exit 1 = 3 条 file-core 显式 UOE 桩（批前既有，同 2507/2508 裁定）；nop-ai exit 1 = 4 条 2505 已裁定批前既有（ReActAgentExecutor×2/PlanReplanner 注释误报 + NoOpProviderFailoverQueue 显式 NoOp）——均非本批触达面。**Owner doc**：`nop-ai-gateway.md` 新建「流式 failover 缓冲与并发契约」节（共享核/attempt 配对/终态交付/出锁投递/选择门控/降级终态六条）；`source-anchors.md` 新增 `FGW-001`。**缺口声明**：无新增（nop-gateway/nop-ai-gateway 契约分别经 service-layer.md 与本节承载）。`check-doc-links --strict` 退出码 0（5 warnings：2510 前向引用 + 历史既有）。
 
 ### Phase 4 - closure audit + 收口
 
