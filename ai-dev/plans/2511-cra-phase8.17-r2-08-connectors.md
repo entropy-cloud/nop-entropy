@@ -1,6 +1,7 @@
 # 2511 CRA Phase 8.17 — R2-08 1.2 连接器批（并发正确性 + 资源包络，7 项）
 
 > Plan Status: active
+> Design Review: R2 agent_ee958fe0 @ 2026-10-29（第 1 轮 FAIL[2 Major/0 Blocker/6 Minor]：Major-1 裁定② 未簿记测试必红面[TestCepOperatorLateRecordsDroppedMetric 匿名 fixture]→§3.8 随同 diff 影响面登记；Major-2 裁定⑥ ChangeEvent 无 partition 访问器、位点载体实为 ChangeEventMetadata 特化字段可 null + per-split 粒度未定夺→位点键形 lsn→commitLsn→binlog 优先级序+逐字段 typed 判据+per-server 键形+restore 取 min 保守重放；Minor×8 全闭合[SSOT ceil、换算基声明、SnapshotRestore 全量 opt-out leg、:262 间接锚、钉#6 构造适配触碰注记、部署期行为变更声明]——第 2 轮复审 8/8 CLOSED PASS，probe(a)(b) 均通过[restore-min 只放大重复面不放大丢失面；copyForSubtask 测试调用方全仓穷尽仅 2 处均在簿记]）
 > Draft Review: agent_96b5498c @ 2026-10-29（PASS，仅 6 Minor——行号微漂移 :91/:336/:273/:431 已修入、C5-007 跨单元边界注记、C3-014 residual 注记义务入 Phase 4；基线 14 组抽查全吻合、R03 §3.6 引用亲读核实、结构完备性对照 plan guide 与先例 2510 全在位）
 > Last Reviewed: 2026-10-29
 > Source: roadmap 工作项 8.17（R2-08，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L159，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-08 行（L82 全文：finding ID 清单 7 项[1.2-C1-002；C1-001；C2-002；C3-002；C5-002；C8-001；C8-006] / 模块与验证命令 nop-stream `./mvnw test -pl nop-stream -am` / Owner Doc=`docs-for-ai/03-modules/nop-stream-connectors.md` / PA=无 / 依赖「无前置（可并行）；MA-05 保留策略与 R1-07 同设计；MA-04 R03 锁内 HTTP 外移」/ exit criteria 增补：**gauge 锁外 dbRef 修复（SIGSEGV 窗口）；CEP copyForSubtask 三面封闭；Avro registry 请求超时+锁外建连；2PC 保留策略（R01）；checkpoint offset 对齐（≤256 条丢失面）；2PC 事务裕度守卫**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 1.2 审计目录 `ai-dev/audits/2026-10/2026-10-14-0330-deep-audit-nop-stream-state-connectors-concurrency/`（C1-shared-mutable-state.md C1-001 :53 / C1-002 :85；C2-locks-sync.md C2-002 :110；C3-async-chains.md C3-002 :85；C5-memory-bounds.md C5-002 :91；C8-backpressure.md C8-001 :50 / C8-006 :274；C10-test-protection.md 映射表 :55-75 + C10-002 :107 / C10-003 :132 / C10-007 :211 / C10-008 :234 / C10-012 :318 / C10-013 :334 / C10-014 :363；merge-adjudication.md 族表 MA-02 :45 / MA-03 :46 / MA-04 :47 / MA-05 :48 / MA-08 :51、独立案 C8-001 :70 / C8-006 :71、P1 清单 :140-154、修序建议 :235-241、C10 映射 :213-225），逐条回读路径见 Current Baseline；执行基线 @ `c1674460dd`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.16 已 done，plan 2495–2510 均已完成或进入收口；本 Baseline 全部行号为该基线 live 回读值，2026-10-29 亲读，执行前如再漂移以 live 为准并登记）
@@ -84,30 +85,30 @@
 
 ### Phase 1 - 连接器并发正确性与资源包络设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/stream-connectors-concurrency-and-envelope.md`（新建）；`ai-dev/design/concurrency/ledger-retention-policy.md`（成员传导行追加）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下七项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-002 gauge 锁内取值**：预设默认分支 = 新增 `synchronized readCurrent(property)`（锁内 `dbRef.get()`）+ gauge 闭包改调；与既有 close 顺序（recorder.close→db.close）的配对关系成文；备选 AtomicReference+异常兜 NaN 须论证前者不足后方可采。
-  - [ ] **裁定② C1-001 copyForSubtask 三面封闭**：预设默认分支 = round-trip 深拷贝 `nfaFactory`+userFunction（C1-001/C1-005/C1-006 一次封闭）；round-trip 代价评估（每 subtask 一次、启动窗）与序列化约束（条件对象 Serializable 前提核验）成文；`RichCompositeIterativeCondition` 传播面随拷贝自然私有声明；r4 R5-CEP-05 双登记消号注记。
-  - [ ] **裁定③ C2-002 锁外建连+请求级超时（MA-04=R03 对齐显式裁定项）**：超时缺省值定夺（含配置化与否）+ mapping function 出锁形态（锁外 fetch→putIfAbsent 幂等）+ 三路径（getSchemaById/getLatestSchema/registerSchema）全覆盖声明 + `StreamAvroException` typed 失败维持；与 MA-10/MA-11（R4-03）及 R4-24 外部依赖超时契约的边界注记（本批只落①面）。
-  - [ ] **裁定④ C3-002 R01 保留策略成员传导（MA-05 对齐显式裁定项）**：SSOT §3.4 追加成员行——face token 定夺（jdbc 台账/file manifest 分合）+ 两面锚列/谓词显式落名（台账=写入口时间戳列+守卫语义保留窗 ≥ 可重提交窗口；manifest=epoch 键账龄+裁剪载体[commit 顺带 vs 形态 A 周期]按 SSOT §3.3 判据裁定）+ 非裸 DELETE 守卫（幂等恢复不踩坏，`TestJdbcTwoPhaseCommitSinkDeep` 恢复幂等钉零回退）+ 本文档不复制参数值（link, don't copy）。
-  - [ ] **裁定⑤ C5-002 物化包络收敛**：三选一（流式写出/阈值 typed 拒绝/增量缺省化）预设默认分支一次定夺，组合取舍与 owner doc 数值包络声明成文；不得以纯文档声明零代码收口。
-  - [ ] **裁定⑥ C8-001 last-emitted 位点协议**：预设默认分支 = reader 侧已发射位点回退/截断；per-record offset 暴露路径（经 `DebeziumSourceSupport`/engine wrapper）vs 恢复期安全重叠重放+下游幂等声明，一次定夺；落点边界（connector-debezium 侧优先，不越界 nop-message-debezium 引擎 commit 策略本体；触 offset backing store 契约面则 R4-24 对齐注记）成文；C10-013 双改写方案。
-  - [ ] **裁定⑦ C8-006 事务超时缺省+耦合守卫**：`transaction.timeout.ms` 缺省值定夺（≥数倍 checkpoint 间隔、≤broker max 900s 声明）+ 耦合校验 typed fail-fast 的挂点（构造期/checkConnection）+ 用户显式配置冲突行为（拒配 vs 告警，一次定夺）。
-  - [ ] **裁定⑧ 测试缝与零回退钉清单**：测试缝 = close×scrape 交错压窗器（①）、并行 open 交错驱动（②）、挂死注入 HttpServer（③）、多 epoch 台账/manifest 写入器+保留窗口注错缝（④）、键数参数化+堆驻留探针（⑤）、队列偏斜注入+kill-recover 竞速缝（⑥）、producer 属性白盒断言+配置冲突注入（⑦）；零回退钉 = `TestRocksDBSnapshotRestore`、`TestStateFamilyBackendMatrix`、`TestJdbcTwoPhaseCommitSinkDeep`、`TestJdbcTwoPhaseCommitLedgerNamespace`、`TestFileTwoPhaseCommitSink`（AR-14 并行锁钉）、`TestKafkaTwoPhaseCommitSinkLifecycle`、`TestDebeziumCdcSource`（改写外其余用例）、`TestDebeziumCdcCheckpoint`（改写外其余用例）全列，改写类（C10-002/003/007/008/012/013）标注「改写后新断言即新钉、旧断言消号理由」。
-- [ ] `ledger-retention-policy.md` 成员传导行追加（裁定④）——仅追加成员行，不改七项参数与形态判据；若执行中发现参数确需修订，修订只走该文档并在本 plan 登记
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下七项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-002 gauge 锁内取值**：预设默认分支 = 新增 `synchronized readCurrent(property)`（锁内 `dbRef.get()`）+ gauge 闭包改调；与既有 close 顺序（recorder.close→db.close）的配对关系成文；备选 AtomicReference+异常兜 NaN 须论证前者不足后方可采。
+  - [x] **裁定② C1-001 copyForSubtask 三面封闭**：预设默认分支 = round-trip 深拷贝 `nfaFactory`+userFunction（C1-001/C1-005/C1-006 一次封闭）；round-trip 代价评估（每 subtask 一次、启动窗）与序列化约束（条件对象 Serializable 前提核验）成文；`RichCompositeIterativeCondition` 传播面随拷贝自然私有声明；r4 R5-CEP-05 双登记消号注记。
+  - [x] **裁定③ C2-002 锁外建连+请求级超时（MA-04=R03 对齐显式裁定项）**：超时缺省值定夺（含配置化与否）+ mapping function 出锁形态（锁外 fetch→putIfAbsent 幂等）+ 三路径（getSchemaById/getLatestSchema/registerSchema）全覆盖声明 + `StreamAvroException` typed 失败维持；与 MA-10/MA-11（R4-03）及 R4-24 外部依赖超时契约的边界注记（本批只落①面）。
+  - [x] **裁定④ C3-002 R01 保留策略成员传导（MA-05 对齐显式裁定项）**：SSOT §3.4 追加成员行——face token 定夺（jdbc 台账/file manifest 分合）+ 两面锚列/谓词显式落名（台账=写入口时间戳列+守卫语义保留窗 ≥ 可重提交窗口；manifest=epoch 键账龄+裁剪载体[commit 顺带 vs 形态 A 周期]按 SSOT §3.3 判据裁定）+ 非裸 DELETE 守卫（幂等恢复不踩坏，`TestJdbcTwoPhaseCommitSinkDeep` 恢复幂等钉零回退）+ 本文档不复制参数值（link, don't copy）。
+  - [x] **裁定⑤ C5-002 物化包络收敛**：三选一（流式写出/阈值 typed 拒绝/增量缺省化）预设默认分支一次定夺，组合取舍与 owner doc 数值包络声明成文；不得以纯文档声明零代码收口。
+  - [x] **裁定⑥ C8-001 last-emitted 位点协议**：预设默认分支 = reader 侧已发射位点回退/截断；per-record offset 暴露路径（经 `DebeziumSourceSupport`/engine wrapper）vs 恢复期安全重叠重放+下游幂等声明，一次定夺；落点边界（connector-debezium 侧优先，不越界 nop-message-debezium 引擎 commit 策略本体；触 offset backing store 契约面则 R4-24 对齐注记）成文；C10-013 双改写方案。
+  - [x] **裁定⑦ C8-006 事务超时缺省+耦合守卫**：`transaction.timeout.ms` 缺省值定夺（≥数倍 checkpoint 间隔、≤broker max 900s 声明）+ 耦合校验 typed fail-fast 的挂点（构造期/checkConnection）+ 用户显式配置冲突行为（拒配 vs 告警，一次定夺）。
+  - [x] **裁定⑧ 测试缝与零回退钉清单**：测试缝 = close×scrape 交错压窗器（①）、并行 open 交错驱动（②）、挂死注入 HttpServer（③）、多 epoch 台账/manifest 写入器+保留窗口注错缝（④）、键数参数化+堆驻留探针（⑤）、队列偏斜注入+kill-recover 竞速缝（⑥）、producer 属性白盒断言+配置冲突注入（⑦）；零回退钉 = `TestRocksDBSnapshotRestore`、`TestStateFamilyBackendMatrix`、`TestJdbcTwoPhaseCommitSinkDeep`、`TestJdbcTwoPhaseCommitLedgerNamespace`、`TestFileTwoPhaseCommitSink`（AR-14 并行锁钉）、`TestKafkaTwoPhaseCommitSinkLifecycle`、`TestDebeziumCdcSource`（改写外其余用例）、`TestDebeziumCdcCheckpoint`（改写外其余用例）全列，改写类（C10-002/003/007/008/012/013）标注「改写后新断言即新钉、旧断言消号理由」。
+- [x] `ledger-retention-policy.md` 成员传导行追加（裁定④）——仅追加成员行，不改七项参数与形态判据；若执行中发现参数确需修订，修订只走该文档并在本 plan 登记
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑧全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定④含 R01 SSOT 传导行落账证据（SSOT diff 仅为成员行追加，face token 与参数零发明）；裁定③含 R03 范式引用与族边界注记；裁定⑧含零回退钉全列与改写类消号理由
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑧全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定④含 R01 SSOT 传导行落账证据（SSOT diff 仅为成员行追加，face token 与参数零发明）；裁定③含 R03 范式引用与族边界注记；裁定⑧含零回退钉全列与改写类消号理由
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 7 成员实现 + 回归测试（按模块/子域四组）
 
