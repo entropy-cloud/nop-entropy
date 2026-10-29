@@ -182,8 +182,16 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
         // Boot the enumerator on the first-ever registration (fresh start path).
         startEnumerator(null);
 
+        // C1-001 (plan 2510 R2-07, adjudication 1): addReader converges on
+        // enumeratorLock, same as snapshotState/close — enumerator state changes and
+        // snapshot reads are mutually exclusive, so parallel source startup cannot
+        // double-assign splits or tear a snapshot. Lock discipline: enumeratorLock is
+        // a leaf lock (never nested inside another monitor) and the guarded call is a
+        // pure in-memory state change — no I/O, no user callbacks inside the lock.
         try {
-            enumerator.addReader(subtaskIndex);
+            synchronized (enumeratorLock) {
+                enumerator.addReader(subtaskIndex);
+            }
         } catch (Exception e) {
             throw new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL, "Failed to addReader " + subtaskIndex + " for vertex " + vertexId);
         }
@@ -256,8 +264,15 @@ public class LocalSourceCoordinator<T extends SourceSplit, StateT> {
             if (subtaskIndex != this.subtaskIndex) {
                 return;
             }
+            // C1-001 (plan 2510 R2-07, adjudication 1): handleSplitRequest converges
+            // on the owner's enumeratorLock, same as addReader/snapshotState/close —
+            // the reader task thread must not touch enumerator state unlocked. The
+            // call is a pure in-memory state change (no I/O, no user callback under
+            // the lock); enumeratorLock is a leaf lock.
             try {
-                owner.enumerator.handleSplitRequest(subtaskIndex, reason);
+                synchronized (owner.enumeratorLock) {
+                    owner.enumerator.handleSplitRequest(subtaskIndex, reason);
+                }
             } catch (Exception e) {
                 LOG.warn("handleSplitRequest failed for subtask {}", subtaskIndex, e);
             }

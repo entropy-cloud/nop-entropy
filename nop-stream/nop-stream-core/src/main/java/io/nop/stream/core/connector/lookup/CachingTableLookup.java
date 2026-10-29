@@ -13,8 +13,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -75,10 +79,37 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
     private final int refreshMaxConcurrency;
     private final int maxEntries;
 
+    /**
+     * C4-002 (plan 2510 R2-07, adjudication 3): bounded dispatch queue capacity =
+     * {@code refreshMaxConcurrency * 2}. Orthogonal to {@code maxEntries}: that
+     * bounds the cache entry count (eviction), this bounds the in-flight refresh
+     * task count (dispatch backlog). Not shared, not linked.
+     */
+    private final int maxDispatchQueueSize;
+
+    /**
+     * C4-002: keys currently dispatched and not yet completed. A key in this set is
+     * never re-dispatched by a later scan round (in-flight de-duplication); aged
+     * keys that were not dispatched are naturally re-scanned by the next round.
+     * Transient: rebuilt lazily together with the other background resources.
+     */
+    private transient volatile Set<Object> inFlightRefreshKeys;
+
+    /**
+     * C4-002: count of refresh dispatches dropped because the bounded queue was
+     * full (slow/hung delegate). The dropped key stays aged and is re-dispatched
+     * by a later round — the degradation surfaces only as refresh delay, never as
+     * silent unbounded backlog.
+     */
+    private final AtomicInteger droppedDispatchCount = new AtomicInteger();
+
+    /** Rate-limit window for the dispatch-drop WARN (nanos of last warning). */
+    private transient volatile long lastDropWarnNanos;
+
     /** WI11 state, all transient: rebuilt lazily by the first synchronous lookup. */
     private transient volatile Map<Object, Entry> cache;
     private transient volatile ScheduledExecutorService scanScheduler;
-    private transient volatile java.util.concurrent.ExecutorService refreshPool;
+    private transient volatile ThreadPoolExecutor refreshPool;
     private transient volatile boolean closed;
 
     /** One lookup key currently materialized (value may be the NULL_SENTINEL). */
@@ -118,6 +149,7 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
         this.refreshIntervalMs = refreshIntervalMs;
         this.refreshMaxConcurrency = refreshMaxConcurrency;
         this.maxEntries = maxEntries;
+        this.maxDispatchQueueSize = refreshMaxConcurrency * 2;
     }
 
     private static StreamException typedConfig(String detail) {
@@ -186,16 +218,24 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
                 return;
             }
             cache = new ConcurrentHashMap<>();
+            inFlightRefreshKeys = ConcurrentHashMap.newKeySet();
             if (closed) {
                 return;
             }
             AtomicInteger seq = new AtomicInteger();
-            refreshPool = Executors.newFixedThreadPool(refreshMaxConcurrency, r -> {
+            // C4-002: bounded dispatch queue (capacity = refreshMaxConcurrency * 2).
+            // The pool size remains the concurrency bound; the bounded queue plus
+            // the in-flight key de-duplication replace the unbounded default queue
+            // of Executors.newFixedThreadPool (OOM candidate on a hung delegate).
+            ThreadPoolExecutor pool = new ThreadPoolExecutor(refreshMaxConcurrency,
+                    refreshMaxConcurrency, 0L, TimeUnit.MILLISECONDS,
+                    new ArrayBlockingQueue<>(maxDispatchQueueSize), r -> {
                 Thread t = new Thread(r, "nop-lookup-refresh-" + System.identityHashCode(this)
                         + "-" + seq.incrementAndGet());
                 t.setDaemon(true);
                 return t;
             });
+            refreshPool = pool;
             ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
                 Thread t = new Thread(r, "nop-lookup-refresh-scan-" + System.identityHashCode(this));
                 t.setDaemon(true);
@@ -208,47 +248,107 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
         }
     }
 
-    private void scanAndDispatch() {
+    /**
+     * C4-002 (plan 2510 R2-07, adjudication 3): bounded, de-duplicated refresh
+     * dispatch. Package-private for test visibility. For every aged key: skip keys
+     * already in flight (in-flight de-duplication — one dispatch per key until it
+     * completes); when the bounded queue is full, drop the dispatch with an
+     * explicit counter and a rate-limited WARN (fail-loud degradation — the key
+     * stays aged and is re-dispatched by a later round, so no data is lost and no
+     * unbounded backlog accumulates).
+     */
+    void scanAndDispatch() {
         Map<Object, Entry> map = cache();
         if (map == null || closed) {
             return;
         }
         long now = System.nanoTime();
         long refreshAge = TimeUnit.MILLISECONDS.toNanos(refreshIntervalMs);
+        Set<Object> inFlight = inFlightRefreshKeys;
+        if (inFlight == null) {
+            return;
+        }
         for (Map.Entry<Object, Entry> e : map.entrySet()) {
             if (closed) {
                 return;
             }
             if (now - e.getValue().loadNanos >= refreshAge) {
-                // the worker pool's size is the concurrency bound (review F-2)
-                refreshPool.execute(() -> refreshOne(e.getKey()));
+                Object key = e.getKey();
+                // In-flight de-duplication: a dispatched-but-unfinished key is never
+                // re-enqueued (the next round re-scans it if still aged).
+                if (!inFlight.add(key)) {
+                    continue;
+                }
+                // Re-check freshness AFTER winning the in-flight slot: a concurrent
+                // refresh of the same key may have completed (renewed loadNanos and
+                // left the in-flight set) between the aged check above and the add —
+                // re-dispatching here would probe the delegate twice for one refresh
+                // cycle (C4-002 in-flight de-duplication must hold without races).
+                Entry refreshed = map.get(key);
+                if (refreshed == null || now - refreshed.loadNanos < refreshAge) {
+                    inFlight.remove(key);
+                    continue;
+                }
+                try {
+                    // the worker pool's size is the concurrency bound (review F-2);
+                    // the dispatch queue is bounded (C4-002)
+                    refreshPool.execute(() -> refreshOne(key));
+                } catch (RejectedExecutionException rex) {
+                    inFlight.remove(key);
+                    droppedDispatchCount.incrementAndGet();
+                    warnDropThrottled(key, rex);
+                } catch (RuntimeException rex) {
+                    inFlight.remove(key);
+                    throw rex;
+                }
             }
         }
     }
 
+    /** Rate-limited (>=1s window) WARN for dropped refresh dispatches. */
+    private void warnDropThrottled(Object key, RejectedExecutionException cause) {
+        long now = System.nanoTime();
+        if (now - lastDropWarnNanos >= TimeUnit.SECONDS.toNanos(1)) {
+            lastDropWarnNanos = now;
+            LOG.warn("CachingTableLookup refresh dispatch queue full (capacity={}); dropping "
+                    + "the refresh dispatch for key {} — it stays aged and will be re-dispatched "
+                    + "by a later scan round; dropped so far: {}", maxDispatchQueueSize, key,
+                    droppedDispatchCount.get(), cause);
+        }
+    }
+
     private void refreshOne(Object key) {
-        if (closed) {
-            return;
-        }
-        Map<Object, Entry> map = cache();
-        Entry current = map.get(key);
-        if (current == null) {
-            return;
-        }
         try {
-            Object value = delegate.lookup(key);
-            Entry entry = map.get(key);
-            if (entry != null) {
-                // refresh renews the load time: refreshed entries count as fresh for
-                // eviction ordering (documented semantics)
-                entry.value = value == null ? NULL_SENTINEL : value;
-                entry.loadNanos = System.nanoTime();
+            if (closed) {
+                return;
             }
-        } catch (Exception e) {
-            // keep the old value and retry on a later round; the TTL expiry falls back
-            // to a synchronous requery as the self-heal exit
-            LOG.warn("CachingTableLookup background refresh failed for key {}; keeping stale value",
-                    key, e);
+            Map<Object, Entry> map = cache();
+            Entry current = map.get(key);
+            if (current == null) {
+                return;
+            }
+            try {
+                Object value = delegate.lookup(key);
+                Entry entry = map.get(key);
+                if (entry != null) {
+                    // refresh renews the load time: refreshed entries count as fresh for
+                    // eviction ordering (documented semantics)
+                    entry.value = value == null ? NULL_SENTINEL : value;
+                    entry.loadNanos = System.nanoTime();
+                }
+            } catch (Exception e) {
+                // keep the old value and retry on a later round; the TTL expiry falls back
+                // to a synchronous requery as the self-heal exit
+                LOG.warn("CachingTableLookup background refresh failed for key {}; keeping stale value",
+                        key, e);
+            }
+        } finally {
+            // C4-002: the key leaves the in-flight set when its refresh completes
+            // (successfully or not), so a later aged scan can re-dispatch it.
+            Set<Object> inFlight = inFlightRefreshKeys;
+            if (inFlight != null) {
+                inFlight.remove(key);
+            }
         }
     }
 
@@ -295,6 +395,23 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
     public int materializedSize() {
         Map<Object, Entry> map = cache;
         return map == null ? 0 : map.size();
+    }
+
+    /** Test/ops visibility: pending refresh dispatches in the bounded queue (C4-002). */
+    int getPendingRefreshDispatchCountForTest() {
+        ThreadPoolExecutor pool = refreshPool;
+        return pool == null ? 0 : pool.getQueue().size();
+    }
+
+    /** Test/ops visibility: keys currently in-flight (dispatched, not completed). */
+    int getInFlightRefreshKeyCountForTest() {
+        Set<Object> inFlight = inFlightRefreshKeys;
+        return inFlight == null ? 0 : inFlight.size();
+    }
+
+    /** Test/ops visibility: refresh dispatches dropped on a full bounded queue (C4-002). */
+    int getDroppedRefreshDispatchCountForTest() {
+        return droppedDispatchCount.get();
     }
 
     /** Test visibility: whether the background resources are started. */

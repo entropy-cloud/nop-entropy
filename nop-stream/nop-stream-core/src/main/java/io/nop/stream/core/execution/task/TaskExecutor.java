@@ -82,6 +82,12 @@ public class TaskExecutor {
     private final ExecutorService executorService;
 
     /**
+     * The fixed pool size (C4-001 guard a: LOCAL submission fails fast when the
+     * topology subtask total exceeds this bound).
+     */
+    private final int poolSize;
+
+    /**
      * Map of all submitted tasks, keyed by a unique task identifier.
      */
     private final Map<String, Task> submittedTasks;
@@ -115,6 +121,7 @@ public class TaskExecutor {
 
         this.executorService = Executors.newFixedThreadPool(poolSize,
                 NopStreamThreadFactory.named("stream-task-executor-"));
+        this.poolSize = poolSize;
         this.submittedTasks = new ConcurrentHashMap<>();
         this.submittedSubtaskTasks = new ConcurrentHashMap<>();
         this.taskFutures = new ConcurrentHashMap<>();
@@ -424,6 +431,14 @@ public class TaskExecutor {
      */
     public boolean isTerminated() {
         return executorService.isTerminated();
+    }
+
+    /**
+     * @return the fixed pool size (C4-001 guard a: the LOCAL submission guard
+     *         compares the topology subtask total against this bound)
+     */
+    public int getPoolSize() {
+        return poolSize;
     }
 
     /**

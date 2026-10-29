@@ -111,7 +111,7 @@ R2-07 批十个成员覆盖两类缺陷面：**并发正确性**（enumerator �
 
 | 面 | 唯一结论 |
 |----|---------|
-| (a) store 上界来源 | **独立配置** `nop.stream.materialization.store-max-entries`（缺省 1024，≤0 装配期 fail-fast）——不锚 bufferPool 容量族：store 是 checkpoint 恢复记录平面，上界与逐边可配的 queue 容量解耦，进程级保守上界独立成文 |
+| (a) store 上界来源 | **独立配置** `nop.stream.materialization.store-max-entries`，语义（**live 证据驱动的修订**，组合门禁裁定）：**未配置或 ≤0 = 不设上界**（恢复正确性缺省——store 是 checkpoint 作用域恢复记录面，许可保留修复后 store 即在途未提交记录的镜像，恢复面必须 ≥ 在途未提交记录数；无 checkpoint 时记录全量保留供重启回放，随 checkpoint 推进收缩）；未设上界时 store 尺寸跨越 1024/4096/16384... 档位输出一次 WARN（含 pointId 与当前尺寸）+ 既有 size 指标；**显式配置 >0 = 启用 fail-loud 上界**（运维强约束可选项，超界抛 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`）。**修订理由**：组合门禁 live 证据 `TestRegionRestartInternalEdgeE2E.materializedEdge_replaySetLargerThanQueueCapacity_doesNotBlockRestart`（1500 条无 checkpoint 全量回放 vs 旧缺省上界 1024）——固定缺省上界 < 在途数使 `InMemoryMaterializationPoint.write` 抛溢出 → 源任务反复失败 → supervision-restart-exhausted，慢消费者被变成不可恢复死亡，违反 N1 回归保证；C5-001 的无界向量（queue 满静默改道 store）已被许可保留消除，故无界缺省不再构成 OOM 候选。不锚 bufferPool 容量族维持不变 |
 | (b) overflow 语义 | **许可保留（Minor-2 钉死）**：pool+materialization 象限 `queue.offer` 失败不再 `release()` 改道 store-only（bypass release :354 消除）——acquire 恒 `put`（与非物化路径同形，阻塞背压回归，IBufferPool 上界恢复约束力），store 仅承担 checkpoint 语义记录（恢复回放平面），不引入自旋/阻塞变体。**运维声明（②×⑩交叠）**：守卫 b 经 `nop.stream.local.await-completion-timeout-ms=0` 显式禁用时，materialization 象限回归阻塞 put——消费者停摆引发的时序型互等死锁风险由运维自担（禁用守卫 b 即显式接受该面；守卫 a 恒在不受影响） |
 | (b') typed 溢出信号 | **不采**：许可保留后该象限经阻塞 put 不再产生溢出事件；typed 信号唯一可能触发点是 store 超独立上界——该处直接 fail-loud typed 异常即可，第二信号通道无消费场景。禁静默 bypass 维持 |
 | (c) 运行期可见性 | 溢出 bypass 消除后全部元素经 queue 到达消费者，运行期记录零静默跳过；store 回放面仅服务 checkpoint 恢复 |

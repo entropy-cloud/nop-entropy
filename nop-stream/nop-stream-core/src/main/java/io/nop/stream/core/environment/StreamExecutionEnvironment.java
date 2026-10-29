@@ -14,6 +14,10 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.ProcessingGuarantee;
@@ -68,6 +72,19 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_FAILED;
 
 public class StreamExecutionEnvironment {
+
+    private static final Logger LOG = LoggerFactory.getLogger(StreamExecutionEnvironment.class);
+
+    /**
+     * C4-001 guard b (plan 2510 R2-07, adjudication 2): bounded-wait configuration
+     * for the LOCAL {@code awaitCompletion} funnel point. Default 300000ms; {@code 0}
+     * explicitly disables guard b (long-running LOCAL development scenarios — the
+     * operator explicitly accepts the mutual-wait deadlock risk of blocking edges);
+     * a negative value fails fast at assembly.
+     */
+    public static final String LOCAL_AWAIT_TIMEOUT_CONFIG = "nop.stream.local.await-completion-timeout-ms";
+
+    public static final long DEFAULT_LOCAL_AWAIT_TIMEOUT_MS = 300_000L;
 
     private final List<Transformation<?>> transformations = new ArrayList<>();
 
@@ -541,6 +558,23 @@ public class StreamExecutionEnvironment {
         GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
 
         TaskExecutor executor = new TaskExecutor();
+        // C4-001 guard a (plan 2510 R2-07, adjudication 2): fail fast BEFORE any task
+        // is submitted when the topology subtask total exceeds the fixed pool size —
+        // such a topology deadlocks (producers/consumers mutually waiting across full
+        // result-partition queues). The typed failure is bounded and actionable; a
+        // legitimate bounded small-data job that would have finished without filling
+        // the queues is deliberately rejected (adjudicated trade-off).
+        int subtaskTotal = 0;
+        for (String vertexId : plan.getSortedVertexIds()) {
+            subtaskTotal += plan.getSubtasks(vertexId).size();
+        }
+        if (subtaskTotal > executor.getPoolSize()) {
+            shutdownLocalExecution(executor, plan);
+            throw new StreamException(NopStreamErrors.ERR_STREAM_LOCAL_POOL_EXCEEDED)
+                    .param(NopStreamErrors.ARG_SUBTASK_TOTAL, subtaskTotal)
+                    .param(NopStreamErrors.ARG_POOL_SIZE, executor.getPoolSize());
+        }
+        long awaitTimeoutMs = resolveLocalAwaitTimeoutMs();
         try {
             List<SubtaskTask> subtaskTasks = new ArrayList<>();
             java.util.Set<Integer> sourceApiVertexIds = new java.util.LinkedHashSet<>();
@@ -571,7 +605,20 @@ public class StreamExecutionEnvironment {
                 }
             }
 
-            executor.awaitCompletion();
+            // C4-001 guard b (plan 2510 R2-07, adjudication 2): bounded wait at the
+            // single LOCAL awaitCompletion funnel point (covers the execute /
+            // execute(jobName) / savepoint entries). On timeout: abort — cancel all
+            // task futures (interrupt) + shut the executor down + typed failure. No
+            // hang, no silence, no partial residue.
+            if (awaitTimeoutMs > 0) {
+                if (!executor.awaitCompletion(awaitTimeoutMs, TimeUnit.MILLISECONDS)) {
+                    executor.shutdownNow();
+                    throw new StreamException(NopStreamErrors.ERR_STREAM_LOCAL_AWAIT_TIMEOUT)
+                            .param(ARG_DETAIL, "await timeout " + awaitTimeoutMs + "ms exceeded (job " + jobName + ")");
+                }
+            } else {
+                executor.awaitCompletion();
+            }
 
             for (SubtaskTask task : subtaskTasks) {
                 if (task.getState() == SubtaskTask.State.FAILED) {
@@ -585,6 +632,27 @@ public class StreamExecutionEnvironment {
         } finally {
             shutdownLocalExecution(executor, plan);
         }
+    }
+
+    /**
+     * Resolves the C4-001 guard-b bounded-wait window:
+     * {@code nop.stream.local.await-completion-timeout-ms} (default 300000;
+     * 0 = explicitly disabled with a WARN; negative = typed fail-fast).
+     */
+    private static long resolveLocalAwaitTimeoutMs() {
+        long configured = Long.getLong(LOCAL_AWAIT_TIMEOUT_CONFIG, DEFAULT_LOCAL_AWAIT_TIMEOUT_MS);
+        if (configured < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, LOCAL_AWAIT_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be >= 0 (0 disables the bounded-wait guard), got: " + configured);
+        }
+        if (configured == 0) {
+            LOG.warn("nop.stream.local.await-completion-timeout-ms=0: the LOCAL bounded-wait "
+                    + "guard is explicitly DISABLED — a mutual-wait deadlock on blocking edges "
+                    + "will hang the job forever (operator-accepted risk). The submission-time "
+                    + "subtask-total guard stays in force.");
+        }
+        return configured;
     }
 
     /**

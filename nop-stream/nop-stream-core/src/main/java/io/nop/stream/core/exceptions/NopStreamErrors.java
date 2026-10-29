@@ -474,6 +474,21 @@ public interface NopStreamErrors {
                     "Materialization bypass write failed for point {pointId}: {detail}",
                     ARG_POINT_ID, ARG_DETAIL);
 
+    /**
+     * FAM-1 (plan 2510 R2-07, adjudication 10a/10b', revised by combined-gate live
+     * evidence): the materialization store exceeded an EXPLICITLY CONFIGURED size
+     * bound ({@code nop.stream.materialization.store-max-entries} set {@code > 0}).
+     * Unconfigured or {@code <= 0} means no hard bound (the checkpoint-scoped
+     * recovery plane must hold all in-flight uncommitted records, with once-per-tier
+     * WARN at 1024/4096/16384/...); only an explicit operator-imposed bound fails
+     * loud. Raise the configured bound or unset it to allow checkpoint-scoped
+     * recovery growth.
+     */
+    ErrorCode ERR_STREAM_MATERIALIZE_STORE_OVERFLOW =
+            define("nop.err.stream.materialize-store-overflow",
+                    "Materialization point {pointId} store bound exceeded: {detail}",
+                    ARG_POINT_ID, ARG_DETAIL);
+
     String ARG_REGION_ID = "regionId";
     String ARG_MAX_RESTARTS = "maxRestarts";
 
@@ -848,4 +863,39 @@ public interface NopStreamErrors {
                     "Connector endpoint '{connectorEndpoint}' implements no probe contract: dry-run cannot "
                             + "determine its connectivity ({detail})",
                     ARG_CONNECTOR_ENDPOINT, ARG_DETAIL);
+
+    String ARG_SUBTASK_TOTAL = "subtaskTotal";
+    String ARG_POOL_SIZE = "poolSize";
+
+    /**
+     * C4-001 (plan 2510 R2-07, adjudication 2 guard a): the LOCAL topology's
+     * subtask total exceeds the fixed {@code TaskExecutor} pool size. With every
+     * pool thread occupied and any result-partition queue full, producers and
+     * consumers mutually wait forever (silent permanent hang). The submission
+     * fails fast instead — reduce the job parallelism or raise the executor pool
+     * size.
+     */
+    ErrorCode ERR_STREAM_LOCAL_POOL_EXCEEDED =
+            define("nop.err.stream.local.pool-exceeded",
+                    "LOCAL topology subtask total {subtaskTotal} exceeds the task executor "
+                            + "pool size {poolSize}: the fixed thread pool would deadlock "
+                            + "(producers/consumers mutually waiting across full result-partition "
+                            + "queues). Reduce the job parallelism or raise the executor pool size.",
+                    ARG_SUBTASK_TOTAL, ARG_POOL_SIZE);
+
+    /**
+     * C4-001 (plan 2510 R2-07, adjudication 2 guard b): the LOCAL execution did
+     * not complete within the bounded await window
+     * ({@code nop.stream.local.await-completion-timeout-ms}, default 300000; 0
+     * explicitly disables the guard). The task executor was aborted (running
+     * tasks interrupted) and the execution fails typed instead of hanging forever.
+     */
+    ErrorCode ERR_STREAM_LOCAL_AWAIT_TIMEOUT =
+            define("nop.err.stream.local.await-timeout",
+                    "LOCAL execution did not complete within the bounded await window "
+                            + "({detail}); the task executor was aborted (running tasks "
+                            + "interrupted). Tune nop.stream.local.await-completion-timeout-ms "
+                            + "(0 explicitly disables this guard — at the operator's own "
+                            + "mutual-wait deadlock risk).",
+                    ARG_DETAIL);
 }

@@ -243,14 +243,15 @@ public class ResultPartition implements IWriteStatus {
      * rejects the element; the producer does not silently continue with a
      * divergent main-queue/materialization-store pair (No-Silent-No-Op).
      *
-     * <p>Overflow-bypass (deadlock release): when a
-     * materialization point is attached, the main-queue write is
-     * <strong>non-blocking</strong> ({@code queue.offer}). If the queue is full,
-     * the element is not enqueued — but it has already been dual-written to the
-     * materialization store, so no data is lost and the producer does not block
-     * indefinitely on a dead/slow consumer. When no point is attached, the
-     * original blocking {@code queue.put} path is preserved (zero regression for
-     * existing jobs and non-materialization edges).
+     * <p>FAM-1 (plan 2510 R2-07, adjudication 10b — permit retention): the former
+     * overflow-bypass (non-blocking offer + permit release + store-only reroute on
+     * queue-full) is REMOVED. With or without a materialization point, the
+     * main-queue write uses the blocking {@code queue.put} path: the producer
+     * backpressures when the queue is full, the pool permit stays retained while
+     * the element is in flight, and every runtime element reaches the consumer
+     * exactly-once (no silent store-only skipping). The materialization store only
+     * carries checkpoint-recovery record semantics and is independently bounded
+     * (see {@code InMemoryMaterializationPoint}).
      *
      * @param element the element to write (must not be null)
      * @throws InterruptedException if the thread is interrupted while waiting
@@ -294,7 +295,7 @@ public class ResultPartition implements IWriteStatus {
         // concurrent detach does not split the dual-write into a partial state.
         IMaterializationPoint point = this.materializationPoint;
         dualWriteToMaterialization(point, element);
-        enqueueWithBackpressure(point, element);
+        enqueueWithBackpressure(element);
     }
 
     /**
@@ -328,50 +329,34 @@ public class ResultPartition implements IWriteStatus {
     }
 
     /**
-     * Enqueues the element on the main queue with the quadrant-specific
-     * backpressure policy (materialization attached or not × pool attached or
-     * not), preserving the ordering and guards of the pre-extraction write path:
+     * Enqueues the element on the main queue with blocking backpressure
+     * (FAM-1, plan 2510 R2-07, adjudication 10b — permit retention):
      * <ul>
-     *   <li>pool + materialization: non-blocking offer under an optimistically
-     *       acquired permit; on queue-full the permit is released and the record
-     *       overflows to the materialization store only (Stage 44 successor 4
-     *       Phase 2 overflow-bypass — the producer never blocks indefinitely on
-     *       a dead/slow consumer — failover-design.md §9.4 deadlock case)</li>
-     *   <li>pool, no materialization: blocking put; the permit is returned when
-     *       the put is interrupted so it cannot leak</li>
-     *   <li>no pool + materialization: non-blocking offer, no permit accounting</li>
-     *   <li>no pool, no materialization: legacy blocking put (zero regression)</li>
+     *   <li>pool attached: blocking put under an acquired permit — the permit is
+     *       retained while the element is in flight (returned on read/drain, or on
+     *       an interrupted put so it cannot leak). The former overflow-bypass
+     *       (offer + release + store-only reroute) is REMOVED: it silently released
+     *       the permit and skipped the record for the runtime consumer, voiding the
+     *       IBufferPool bound.</li>
+     *   <li>no pool: legacy blocking put (zero regression).</li>
      * </ul>
+     * The materialization store only carries checkpoint-recovery record semantics;
+     * every runtime element reaches the consumer through the queue (exactly-once,
+     * no silent skipping).
      */
-    private void enqueueWithBackpressure(IMaterializationPoint point,
-                                         StreamElement element) throws InterruptedException {
+    private void enqueueWithBackpressure(StreamElement element) throws InterruptedException {
         if (bufferPool != null) {
-            if (point != null) {
-                bufferPool.acquire();
-                if (!queue.offer(element)) {
-                    // Queue full — overflow to the materialization store only
-                    // (already written above). Release the permit and continue.
-                    bufferPool.release();
-                }
-            } else {
-                bufferPool.acquire();
-                try {
-                    queue.put(element);
-                } catch (InterruptedException e) {
-                    // Acquired a permit but never enqueued; return it to avoid a leak.
-                    bufferPool.release();
-                    throw e;
-                }
+            bufferPool.acquire();
+            try {
+                queue.put(element);
+            } catch (InterruptedException e) {
+                // Acquired a permit but never enqueued; return it to avoid a leak.
+                bufferPool.release();
+                throw e;
             }
         } else {
-            if (point != null) {
-                // Overflow-bypass without a pool: non-blocking offer, no permit
-                // accounting. Data already in the materialization store.
-                queue.offer(element);
-            } else {
-                // Legacy blocking path (no materialization → zero regression).
-                queue.put(element);
-            }
+            // Legacy blocking path (zero regression).
+            queue.put(element);
         }
     }
 
