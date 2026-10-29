@@ -371,6 +371,16 @@ StreamExecutionEnvironment env = StreamModelDslBuilder.of(model, resolver)
 3. 作业拓扑经 `pipelineFactoryClass`（`ClusterPipelineFactory`）在 coordinator 进程重建——XDSL 管线经 `RemotePipelineResolver` 用与本地完全相同的 `DslModelParser → StreamModelDslBuilder → buildJobGraph` 链在 TM 侧重建，fingerprint 跨 JVM 一致。
 4. TM 失败自动 global recovery（fencing epoch 轮转 + 从最近 durable checkpoint 恢复）；健康状态机与告警见 owner doc。
 
+### 并发与资源包络运维要点（plan 2510 R2-07）
+
+以下为 LOCAL 提交/运行与 DB 数据面部署的**运维可见行为变化**（完整契约见 owner doc `03-modules/nop-stream.md`「并发契约」节与「账本保留策略」节）：
+
+- **LOCAL 提交 fail-fast 守卫**：`Σsubtask > poolSize`（LOCAL fixed 线程池，默认 = 本机 CPU 核数，构造参数可覆盖）的拓扑在提交期类型化快速失败——处置：下调并行度或上调 poolSize（错误消息含两者现值）。合法的有界小数据作业若不填满队列即跑完也会被拒（显式取舍，防静默互等死锁）。
+- **LOCAL 运行期有界等待**：`nop.stream.local.await-completion-timeout-ms`（缺省 300000）——作业在此时限内未完成即 abort（typed 异常，无悬挂残留）；`0` = 显式禁用（长跑 LOCAL 开发场景；注意此时 materialization 边的消费者停摆互等死锁风险由运维自担）；负值装配期拒绝。
+- **materialization store 上界语义**：`nop.stream.materialization.store-max-entries` 缺省**不设上界**（store 是 checkpoint 恢复镜像，无界缺省不构成 OOM 候选——queue 满阻塞背压而非改道 store）；显式配置 >0 才启用 fail-loud 上界（超界 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`）。
+- **账本保留配置**：`nop_stream_task_assignment` 与 `nop_stream_msg_queue` 两账本带形态 A 周期保留清理，键形 `nop.stream.ledger.assignment.*` / `nop.stream.ledger.msgqueue.*`（`retention-days` 缺省 30、`cleanup-interval` 缺省 1h、`delete-batch-size` 缺省 1000；参数 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md，平台内部文档——按 docs-for-ai 边界规则不直接链接）。msg_queue 为**消费后可删**语义（已派发位点 + TTL 双谓词取交）：进程重启后派发位点归零重建，重建到历史水位前清理**保守暂停**（宁可滞后清理也不误删未消费行）；未消费积压由下条门控负责。
+- **DB 数据面门控真实可达**：`-Dnop.stream.data.db.backlog.limit=<n>`（launch DB 通道）现可真实生效——`PollingJdbcMessageService` 实现 `ChannelBacklogProbe`（backlog = 未消费行数）；生产者发送前按未消费积压准入，超限有界等待后 typed 失败。单次 poll 物化行数另有上界 `nop.stream.launch.poll-batch-size`（缺省 500，≤0 装配期拒绝），积压按游标分批清空。
+
 ### 入口类现状（WI1 后：main-scope 生产入口）
 
 独立进程入口类 `JobCoordinatorMain` / `TaskManagerMain` 及其支撑类（`SharedJdbcInfrastructure`/`PollingJdbcMessageService`）自 2026-10（plan 2328 / WI1）起位于 `nop-stream-runtime` 的 **main sources**（`io.nop.stream.runtime.launch` 包）——发布 runtime jar 直接含入口类。启动方式：① 启动脚本 `nop-stream/nop-stream-runtime/src/main/scripts/nop-stream-cluster.sh`（classpath 经 `dependency:build-classpath -DincludeScope=runtime` 自动装配；`NOP_STREAM_EXTRA_CLASSPATH` 追加 JDBC 驱动 jar，`jdbcDriver=` 指定驱动类）；② 手工 `java -cp <classpath>`（classpath = runtime jar + `dependency:build-classpath -DincludeScope=runtime` 输出 + 驱动 jar）。多 JVM gated 测试经 runtime test-jar 消费 harness（`MiniStreamCluster`，仍为 test-only）。main-scope 运维面（`OpsJobManager` 多作业模式、`StreamOpsHttpServer` REST、`StreamMaintenanceMain` 维护工具）与入口类同面可用。

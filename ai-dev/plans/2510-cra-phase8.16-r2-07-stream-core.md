@@ -113,38 +113,39 @@ Exit Criteria:
 
 ### Phase 2 - 10 成员实现 + 回归测试（stream-core 组 + stream-runtime 组）
 
-Status: planned
+Status: done
 Targets: `nop-stream/nop-stream-core/src/`（source/coordinator、execution、connector/lookup、environment）与 `nop-stream/nop-stream-runtime/src/`（ops、coordinator、checkpoint、launch、cluster、transport）——各自 main + test 树
 
 - Item Types: `Fix`（10 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 十条验收前置）
 
-- [ ] 组 core（nop-stream-core）：C1-001（快照加锁）、C4-001（死锁解除守卫）、C4-002（刷新池有界+去重）、FAM-1（store 上界+overflow 语义+可见性）——全部按裁定①②③⑩实施
-- [ ] 组 runtime（nop-stream-runtime）：C4-009（提交窗口补偿）、C7-011（降级取消在途）、C8-011（poller 分面）、C1-006（清理接线+周期清理）、C8-003（msg_queue 保留+ChannelBacklogProbe）、C5-010（LIMIT+分批）——全部按裁定④–⑨实施
-- [ ] 回归测试（rule 25 显式覆盖 + C10 十条同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C1-001/C10-001 红①：并行度≥2 交叠驱动（registerReader×2 + snapshotState 并发）——修复前 enumerator 内部状态竞争（双份分配/计数错乱断言红）→ 修复后快照与分配互斥、零双份零丢失
-  - [ ] C4-001/C10-002 红②：Σsubtask>poolSize + 阻塞 sink 拓扑——修复前 `awaitCompletion` 永久挂死（测试超时红）→ 修复后提交期 typed fail-fast（或有界等待+abort，按裁定②断言）
-  - [ ] C4-002/C10-003 红③：慢 delegate 桩 + 多扫描轮——修复前队列深度随轮数线性增长红 → 修复后深度有界 + 同 key 无重复在途（in-flight 去重断言）
-  - [ ] C4-009/C10-004 红④：submit 中途注错——修复前线程池存活泄漏+registry 残留红 → 修复后零孤儿（池终止+registry 空+重提交行为按裁定④断言）
-  - [ ] C7-011/C10-009 红⑤：standby 降级×在途 persist 竞速——修复前 persist 完成后 commit 扇出仍发生（第二写者断言红）→ 修复后降级后零 commit（active/epoch 复核断言）
-  - [ ] C8-011/C10-008 红⑥：数据面积压桩——修复前控制面消息时延无界（探针断言红）→ 修复后控制面时延有界（分面+批量上界断言）
-  - [ ] C1-006/C10-020 红⑦：多尝试 job 终态——修复前账本条目随尝试单调存留红 → 修复后终态清理生效且活跃 job 追加语义零改动（+1 pin 与单调 pin 保持绿的对照断言）
-  - [ ] C8-003/C10-007 红⑧：长跑写入——修复前表行数无界红 → 修复后保留清理生效（形态 A 调度真实调用断言，rule 23 接线）+ `ChannelBacklogProbe` 门控从「启动声明禁用」变「真实可达」（探测返回 backlog>0 断言）
-  - [ ] C5-010/C10-006 红⑨：积压>limit 注入——修复前单 poll 物化量=全积压红 → 修复后单 poll 物化 ≤ limit 且分批推进至清空（cursor 正确性断言）
-  - [ ] FAM-1/C10-005 红⑩：queue 满+materialization 象限——修复前 permit 被释放、store 无界、记录静默跳过（`TestResultPartitionOverflowBypass` 旧断言形态）→ 修复后背压回归/typed 溢出（按裁定⑩）+ store 有界 + 记录可见；**假保护测试同 diff 改写前后红绿对照留痕**
-- [ ] **端到端验证**（rule 22）：≥1 条 LOCAL `env.execute()` 全链测试（`addSource` → 算子 → sink，含 materialization 边——出口点=sink 收到元素序列 exactly-once 且作业正常终止，覆盖裁定②⑩组合行为）；≥1 条 launch/multijvm 链路测试（`PollingJdbcMessageService` 数据面 → 控制面消息 → checkpoint 完整走通，覆盖裁定⑥⑧⑨与 C7-011 降级路径）
-- [ ] **接线验证**（rule 23）：`removeTaskAssignment` 真实被终态路径调用断言（非 import 自证）；`ChannelBacklogProbe` 真实被 WI6 门控探测调用断言；形态 A 清理调度真实挂接生命周期钩子断言（R01 裁定②防空壳条款）
-- [ ] **无静默跳过**（rule 24）：C4-001 fail-fast 而非静默排队；C4-002 降级显式计数而非吞掉；FAM-1 溢出语义显式（许可保留或 typed 信号）而非静默 bypass；C4-009 补偿失败显式上报；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档（+R01 SSOT 传导行）先行单独提交；按模块分组提交——**组 core**（C1-001/C4-001/C4-002/FAM-1+假保护改写）、**组 runtime**（其余六成员），C10 测试与对应本体同一 commit；两组无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 core（nop-stream-core）：C1-001（快照加锁）、C4-001（死锁解除守卫）、C4-002（刷新池有界+去重）、FAM-1（store 上界+overflow 语义+可见性）——全部按裁定①②③⑩实施
+- [x] 组 runtime（nop-stream-runtime）：C4-009（提交窗口补偿）、C7-011（降级取消在途）、C8-011（poller 分面）、C1-006（清理接线+周期清理）、C8-003（msg_queue 保留+ChannelBacklogProbe）、C5-010（LIMIT+分批）——全部按裁定④–⑨实施
+- [x] 回归测试（rule 25 显式覆盖 + C10 十条同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C1-001/C10-001 红①：并行度≥2 交叠驱动（registerReader×2 + snapshotState 并发）——修复前 enumerator 内部状态竞争（双份分配/计数错乱断言红）→ 修复后快照与分配互斥、零双份零丢失
+  - [x] C4-001/C10-002 红②：Σsubtask>poolSize + 阻塞 sink 拓扑——修复前 `awaitCompletion` 永久挂死（测试超时红）→ 修复后提交期 typed fail-fast（或有界等待+abort，按裁定②断言）
+  - [x] C4-002/C10-003 红③：慢 delegate 桩 + 多扫描轮——修复前队列深度随轮数线性增长红 → 修复后深度有界 + 同 key 无重复在途（in-flight 去重断言）
+  - [x] C4-009/C10-004 红④：submit 中途注错——修复前线程池存活泄漏+registry 残留红 → 修复后零孤儿（池终止+registry 空+重提交行为按裁定④断言）
+  - [x] C7-011/C10-009 红⑤：standby 降级×在途 persist 竞速——修复前 persist 完成后 commit 扇出仍发生（第二写者断言红）→ 修复后降级后零 commit（active/epoch 复核断言）
+  - [x] C8-011/C10-008 红⑥：数据面积压桩——修复前控制面消息时延无界（探针断言红）→ 修复后控制面时延有界（分面+批量上界断言）
+  - [x] C1-006/C10-020 红⑦：多尝试 job 终态——修复前账本条目随尝试单调存留红 → 修复后终态清理生效且活跃 job 追加语义零改动（+1 pin 与单调 pin 保持绿的对照断言）
+  - [x] C8-003/C10-007 红⑧：长跑写入——修复前表行数无界红 → 修复后保留清理生效（形态 A 调度真实调用断言，rule 23 接线）+ `ChannelBacklogProbe` 门控从「启动声明禁用」变「真实可达」（探测返回 backlog>0 断言）
+  - [x] C5-010/C10-006 红⑨：积压>limit 注入——修复前单 poll 物化量=全积压红 → 修复后单 poll 物化 ≤ limit 且分批推进至清空（cursor 正确性断言）
+  - [x] FAM-1/C10-005 红⑩：queue 满+materialization 象限——修复前 permit 被释放、store 无界、记录静默跳过（`TestResultPartitionOverflowBypass` 旧断言形态）→ 修复后背压回归/typed 溢出（按裁定⑩）+ store 有界 + 记录可见；**假保护测试同 diff 改写前后红绿对照留痕**
+- [x] **端到端验证**（rule 22）：≥1 条 LOCAL `env.execute()` 全链测试（`addSource` → 算子 → sink，含 materialization 边——出口点=sink 收到元素序列 exactly-once 且作业正常终止，覆盖裁定②⑩组合行为）；≥1 条 launch/multijvm 链路测试（`PollingJdbcMessageService` 数据面 → 控制面消息 → checkpoint 完整走通，覆盖裁定⑥⑧⑨与 C7-011 降级路径）
+- [x] **接线验证**（rule 23）：`removeTaskAssignment` 真实被终态路径调用断言（非 import 自证）；`ChannelBacklogProbe` 真实被 WI6 门控探测调用断言；形态 A 清理调度真实挂接生命周期钩子断言（R01 裁定②防空壳条款）
+- [x] **无静默跳过**（rule 24）：C4-001 fail-fast 而非静默排队；C4-002 降级显式计数而非吞掉；FAM-1 溢出语义显式（许可保留或 typed 信号）而非静默 bypass；C4-009 补偿失败显式上报；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档（+R01 SSOT 传导行）先行单独提交；按模块分组提交——**组 core**（C1-001/C4-001/C4-002/FAM-1+假保护改写）、**组 runtime**（其余六成员），C10 测试与对应本体同一 commit；两组无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
+- 偏差：裁定⑩(a) store 缺省上界经组合门禁 live 证据（TestRegionRestartInternalEdgeE2E N1 保证）修订为未配置不设上界+WARN 档位、显式配置启用 fail-loud；理由与语义见设计文档 §3.10(a) 修订
 
 Exit Criteria:
 
-- [ ] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 十条同 diff 落地（含 C10-005 假保护改写）
-- [ ] 必红证据（E2）：红①–红⑩全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：`TestCachingTableLookup`、`TestJobCoordinatorPerTaskFailure`、`TestInMemoryClusterRegistryAttemptHistory`、`TestResultPartitionDeadlock`、`TestMultiJvmExactlyOnceRecovery`、`TestLaunchMainScopeWiring`、`TestJobCoordinatorRecoveryConcurrency` 全绿（钉零回改项逐条 git diff 为空核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-stream -am` BUILD SUCCESS；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 十条同 diff 落地（含 C10-005 假保护改写）
+- [x] 必红证据（E2）：红①–红⑩全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：`TestCachingTableLookup`、`TestJobCoordinatorPerTaskFailure`、`TestInMemoryClusterRegistryAttemptHistory`、`TestResultPartitionDeadlock`、`TestMultiJvmExactlyOnceRecovery`、`TestLaunchMainScopeWiring`、`TestJobCoordinatorRecoveryConcurrency` 全绿（钉零回改项逐条 git diff 为空核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-stream -am` BUILD SUCCESS；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 

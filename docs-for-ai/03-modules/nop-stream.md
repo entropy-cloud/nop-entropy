@@ -226,6 +226,17 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 | `nop.stream.ops.job-record.retention-minutes` | `1440` | 终态作业记录保留时长 |
 | `nop.stream.ops.governance.cleanup-interval-ms` | `300000` | 治理扫描周期（5 分钟） |
 
+### 账本保留策略（R01 成员，plan 2510 裁定⑦⑧）
+
+nop-stream 两条 DB 账本由 `LedgerRetentionConfig`（`io.nop.stream.runtime.ledger`）承载的形态 A 周期清理（参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md §3.1/§3.4 成员传导行，平台内部文档——按 docs-for-ai 边界规则不直接链接；缺省值/键名/校验与 SSOT 零分叉，参数修订只走该文档）：
+
+| face | 账本 | 清理语义 | 配置键 |
+|---|---|---|---|
+| `assignment` | `nop_stream_task_assignment`（分配账本） | 终态 job 定界清理（终态集 CANCEL/DRAIN/SUSPEND 进程内白名单主谓词 + `assigned_at` 账龄 TTL 兜底，均排除活跃 job；零 DDL） | `nop.stream.ledger.assignment.retention-days`（30，0=禁用）/ `.cleanup-interval`（1h，下限 60s）/ `.delete-batch-size`（1000） |
+| `msgqueue` | `nop_stream_msg_queue` | **消费后可删**：主谓词 = `id ≤ 进程内 per-topic 已派发最大 id`（订阅启动 MAX(id) bootstrap 不作清理位点），与 retention TTL **双谓词取交**——TTL 不独立启用删除；进程重启后派发位点归零重建，重建到历史水位前清理**保守暂停**（滞后清理不误删未消费行） | `nop.stream.ledger.msgqueue.retention-days`（30，0=禁用）/ `.cleanup-interval`（1h，下限 60s）/ `.delete-batch-size`（1000） |
+
+非法配置（负 retention / interval < 60s / batch-size ≤ 0）装配期 fail-fast。未消费积压的增长控制不归 retention（retention 不删未派发行），归「DB 数据面生产者背压」门控（见下文）。
+
 ### 逻辑健康状态机（P-REQ-7）
 
 `io.nop.stream.runtime.health.StreamJobHealth` 七态（KS 七态参照按 nop-stream 连续流 + 全局恢复语义裁剪），由 `JobCoordinator` 真实生命周期事件驱动（start / globalRecovery / failJob / terminate / durable checkpoint 完成回调），非定时推断：
@@ -263,6 +274,16 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 > **自建调度线程裁定（审计 ST-6，2026-09-13）**：治理清扫（OpsJobManager sweeper）、指标周期上报（StreamMetricsReporter）、webhook 投递线程为引擎自建——流引擎是自包含运行时（可独立于 nop-job 部署），周期任务随引擎生命周期；宿主集成 nop-job 时可外置触发（successor 候选）。barrier/心跳/checkpoint 超时等引擎底座计时属引擎内部边界。
 
+## 并发契约（plan 2510 R2-07，裁定①②⑤⑩使用面投影）
+
+> 唯一设计裁决权威 = 仓库 ai-dev/design/concurrency/stream-core-concurrency-and-resource-envelope.md（平台内部文档——按 docs-for-ai 边界规则不直接链接）。本节只记录用户/运维可见契约。
+
+- **enumerator 锁纪律（裁定①）**：`LocalSourceCoordinator` 的 `addReader` / `handleSplitRequest` / `snapshotState` / `close` 全部在 `enumeratorLock` 内互斥——并行 source 启动不再出现双份 split 分配或快照撕裂；`enumeratorLock` 为叶锁（锁内禁 I/O / 用户回调 / 再入其他监视器）。
+- **LOCAL 池双守卫（裁定②）**：提交期 Σsubtask > poolSize → typed fail-fast（错误消息带 Σsubtask/poolSize 与处置指引：下调并行度或上调 poolSize；合法的有界小数据作业若在队列不填满即跑完也会被拒——这是显式取舍，互等死锁的危害无界且不可诊断）；运行期 `runLocal` 经有界等待接入（覆盖全部 LOCAL execute 入口），超时 = abort（cancel 全部 task future + 关停执行器 + typed 异常，不悬挂不残留）。配置键 `nop.stream.local.await-completion-timeout-ms`（缺省 300000；`0` = 显式禁用运行期守卫，仅留守卫 a；负值装配期 fail-fast）。
+- **standby 降级第四层防线（裁定⑤）**：coordinator 降级 standby 时主动 abort 在途 pending checkpoint，且 persist 完成/commit 扇出入口复核 active/fencing 状态——降级后才完成的在途 checkpoint 被丢弃不 commit + 失败计数；僵尸 standby 不再成为 checkpoint 持久平面的第二写者。既有三层防线（collectAck 门控/pending 超时/新 leader abort）零改写。
+- **materialization store 溢出语义（裁定⑩）**：pool+materialization 象限 queue 满时 producer **阻塞背压**（无静默 bypass、无许可丢失）；store 仅承担 checkpoint 恢复记录语义。store 上界 = `nop.stream.materialization.store-max-entries`：**未配置或 ≤0 = 不设上界**（恢复正确性缺省——store 是在途未提交记录的恢复镜像；跨 1024/4096/16384… 档位输出一次 WARN + size 指标）；**显式配置 >0 = fail-loud 上界**（超界抛 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`，运维强约束可选项）。
+- **②⑩交叠运维声明**：经 `nop.stream.local.await-completion-timeout-ms=0` 显式禁用运行期守卫时，materialization 象限回归阻塞 put——消费者停摆引发的时序型互等死锁风险由运维自担（禁用守卫即显式接受该面；提交期守卫恒在不受影响）。
+
 ## 运维手册（分布式模式操作）
 
 > 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。
@@ -295,7 +316,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 
 ### DB 数据面生产者背压（WI6，2026-10-07）
 
-- **启用**：launch 参数 `-Dnop.stream.data.db.backlog.limit=<n>`（job 级；0/缺省 = 关闭，零侵入）。仅对 DB（SysDao）数据面通道生效——`DataPlaneMessageServiceAdapter` 解包后探测裸后端的 `ChannelBacklogProbe` 能力（`SysDaoMessageService` 已实现：按数据 topic 的 WAITING+CLAIMED 行数）；Kafka/Pulsar/内存通道无该能力，配了 limit 会在启动日志声明一次后禁用（诚实 no-op，非静默）。
+- **启用**：launch 参数 `-Dnop.stream.data.db.backlog.limit=<n>`（job 级；0/缺省 = 关闭，零侵入）。仅对 DB（SysDao）数据面通道生效——`DataPlaneMessageServiceAdapter` 解包后探测裸后端的 `ChannelBacklogProbe` 能力：`SysDaoMessageService`（按数据 topic 的 WAITING+CLAIMED 行数）与 **launch DB 通道 `PollingJdbcMessageService`（plan 2510 裁定⑧(b)——backlog 口径 = 未消费行数 `COUNT(*) WHERE topic=? AND id > 派发 cursor`）** 均已实现该能力，`-Dnop.stream.data.db.backlog.limit` 对两条 DB 通道真实可达；Kafka/Pulsar/内存通道无该能力，配了 limit 会在启动日志声明一次后禁用（诚实 no-op，非静默）。
 - **语义**：生产者发送前检查该 topic 未消费积压深度，达到上限则**锁外有界等待**（100ms 分片，可中断；不持 sendLock——close/EOS 不被阻塞放大）；等待 10s（D2 同款缺省）仍超限 = typed 失败 `nop.err.stream.send-gate-timeout` → task 失败重启（持续过载的显式语义，非静默丢弃）。barrier/watermark 与数据同门（in-band，对齐屏障语义下排队属预期背压）。
 - **积压记账**：生产者侧本地计数器随每次发送自增（突发精确受限），DB COUNT 仅用于观察消费进度（TTL 200ms 缓存 + 达限时逐片强刷）。
 - **观测**：`nop.stream.io.db.backlog` gauge（topic 标签；门控启用时注册；区别于 `nop.stream.io.channel.queue.size` 的消费侧本地队列口径）。
@@ -322,7 +343,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 ### 指标采集与告警配置速查
 
 - Prometheus：`nop.stream.ops.http.enabled=true` + `port`（默认 8901）→ `GET /metrics`（TextFormat 0.0.4 / OpenMetrics 协商）；配置模板 `nop-stream-runtime/src/main/resources/_vfs/nop/stream/conf/metrics.properties.template`。多 JVM 模式：JC 端点 + 各 TM 端点（`TaskManagerMain opsHttpPort=<port>`——main-scope 生产入口；每 TM 一个 scrape target；端口避开 JC 的 8901/8931，演练装置自 8941 起分配）。
-- 数据面背压观察：TM 面直读 `nop_stream_io_channel_queue_size`（通道水位 gauge，per-edge max 为关注口径）与 `nop_stream_io_emit_time_seconds_*`；`nop_stream_msg_queue` 表 COUNT 仅作 INSERT-only 后端的对照代理（见 runbook 演练观察面章节）。
+- 数据面背压观察：TM 面直读 `nop_stream_io_channel_queue_size`（通道水位 gauge，per-edge max 为关注口径）与 `nop_stream_io_emit_time_seconds_*`；`nop_stream_msg_queue` 表 COUNT 作 append-write 后端的对照代理——该表现带保留清理（消费后可删：已派发位点 + TTL 双谓词取交，见「账本保留策略」节），表深不再单调增长，COUNT 同时反映未消费积压（门控口径同源）。
 - 周期 sink：`nop.stream.metrics.log.*`（stdout/file）。
 - 告警：`nop.stream.alert.*`（见「告警与事件外发」节）；coordinator 进程日志检索锚点：`nop-stream job event:`（事件）、`job health transition:`（健康迁移）、`nop-stream alert:`（告警外发）。
 - 治理：`nop.stream.ops.checkpoint-history.*` / `nop.stream.ops.job-record.*` / `nop.stream.ops.governance.cleanup-interval-ms`（见「历史与日志生命周期治理」节）。
