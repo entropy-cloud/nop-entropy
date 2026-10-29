@@ -34,7 +34,9 @@ import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
+import io.nop.stream.runtime.cluster.JdbcClusterRegistry;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
+import io.nop.stream.runtime.ledger.LedgerRetentionConfig;
 import io.nop.stream.runtime.launch.ClusterLaunchConfig;
 import io.nop.stream.runtime.launch.ClusterPipelineFactory;
 
@@ -70,6 +72,16 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
      * nop-job 时可外置触发（successor 候选）。
      */
     private ScheduledExecutorService governanceSweeper;
+
+    /**
+     * C1-006 (plan 2510 adjudication 7, R01 member row): assignment-ledger
+     * retention parameters (face=assignment, keys {@code nop.stream.ledger.assignment.*},
+     * SSOT defaults). Retention-days=0 disables the periodic JDBC cleanup.
+     */
+    private LedgerRetentionConfig assignmentRetentionConfig = LedgerRetentionConfig.assignmentFace();
+
+    /** Rule-23 evidence for the form-A cleanup schedule wiring. */
+    private volatile boolean assignmentRetentionScheduled;
 
     public OpsJobManager(IMessageService messageService,
                          ClusterRegistry clusterRegistry,
@@ -185,17 +197,58 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         // Item 16 (P-REQ-12): fault-semantic events flow to the alert channels.
         coordinator.addJobEventListener(alertService);
 
-        coordinator.start();
-        coordinator.assignTasks();
-        if (artifacts.getCheckpointIntervalMs() != null && artifacts.getCheckpointIntervalMs() > 0) {
-            coordinator.startPeriodicCheckpoints(artifacts.getCheckpointIntervalMs());
+        try {
+            coordinator.start();
+            coordinator.assignTasks();
+            postAssignTasks(coordinator, artifacts);
+            jobs.put(jobId, coordinator);
+            terminalAt.remove(jobId);
+        } catch (RuntimeException e) {
+            compensateFailedSubmit(coordinator, jobId);
+            throw e;
         }
-
-        jobs.put(jobId, coordinator);
-        terminalAt.remove(jobId);
         LOG.info("OpsJobManager submitted job {} (factory={}, vertices={})",
                 jobId, spec.getPipelineFactoryClass(), artifacts.getJobGraph().getVertices().size());
         return coordinator;
+    }
+
+    /**
+     * Starts the periodic checkpoint driver for a freshly submitted job.
+     * Overridable test seam (裁定⑪ 缝4「submit 注错桩」): throwing from an
+     * override simulates a submit-window failure AFTER the coordinator is
+     * started and tasks assigned, exercising the orphan compensation path.
+     */
+    protected void postAssignTasks(JobCoordinator coordinator, ClusterPipelineFactory.PipelineArtifacts artifacts) {
+        if (artifacts.getCheckpointIntervalMs() != null && artifacts.getCheckpointIntervalMs() > 0) {
+            coordinator.startPeriodicCheckpoints(artifacts.getCheckpointIntervalMs());
+        }
+    }
+
+    /**
+     * C4-009 (plan 2510 裁定④): submit-window failure compensation. Any failure
+     * between {@code coordinator.start()} and the {@code jobs.put} registration
+     * would leave an orphan coordinator (live failure detector / periodic
+     * checkpoint scheduler / checkpoint commit fan-out executor pools, invisible
+     * to governance). The compensation terminalizes the coordinator (stop()
+     * shutdownNow's the failure detector and the periodic checkpoint driver and
+     * shuts down the CheckpointCoordinator pool group) and guarantees zero
+     * registry entries, so a re-submit of the same jobId is safe (no second live
+     * coordinator). Compensation failures are logged ERROR — never swallowed.
+     *
+     * <p>HA fencing zero-overlap: this runs on the failed coordinator's own
+     * terminalization path; no fencing token / epoch comparison logic is touched.
+     */
+    private void compensateFailedSubmit(JobCoordinator coordinator, String jobId) {
+        LOG.error("OpsJobManager submit failed for job {} — compensating orphan coordinator "
+                + "(terminal stop + zero registry residue) before rethrow", jobId);
+        try {
+            coordinator.stop();
+        } catch (Exception stopFailure) {
+            LOG.error("OpsJobManager compensation failed to stop orphan coordinator for job {} "
+                    + "— live pool leak possible, requires investigation", jobId, stopFailure);
+        }
+        jobs.remove(jobId);
+        terminalAt.remove(jobId);
     }
 
     /**
@@ -300,6 +353,17 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         }
         coordinator.terminate(mode);
         terminalAt.put(jobId, CoreMetrics.currentTimeMillis());
+        // C1-006 (plan 2510 adjudication 7): the terminal transition point is the
+        // single cleanup anchor - remove this terminal job's task assignment
+        // ledger entries (InMemory prefix removal + JDBC job_id DELETE). Active
+        // jobs keep the append-only attempt semantics (+1 pin untouched); failure
+        // is logged ERROR, never fatal to the stop path.
+        try {
+            clusterRegistry.removeJobTaskAssignments(jobId);
+        } catch (Exception e) {
+            LOG.error("Failed to remove task assignments for terminal job {} "
+                    + "(assignment-ledger cleanup, C1-006)", jobId, e);
+        }
         return coordinator;
     }
 
@@ -342,12 +406,88 @@ public class OpsJobManager implements IOpsJobRegistry, AutoCloseable {
         governanceSweeper.scheduleAtFixedRate(this::governanceSweep,
                 governanceConfig.getCleanupIntervalMs(), governanceConfig.getCleanupIntervalMs(),
                 TimeUnit.MILLISECONDS);
+        scheduleAssignmentRetentionCleanup();
         LOG.info("OpsJobManager governance started (intervalMs={}, checkpointHistoryMax={}, "
                         + "checkpointHistoryRetentionMinutes={}, jobRecordRetentionMinutes={})",
                 governanceConfig.getCleanupIntervalMs(),
                 governanceConfig.getCheckpointHistoryMaxEntries(),
                 governanceConfig.getCheckpointHistoryRetentionMinutes(),
                 governanceConfig.getJobRecordRetentionMinutes());
+    }
+
+    /**
+     * C1-006 (plan 2510 adjudication 7, R01 form A): schedule the periodic
+     * JDBC assignment-ledger cleanup on the OpsJobManager lifecycle hook
+     * ({@link #startGovernance()}). Disabled by
+     * {@code nop.stream.ledger.assignment.retention-days=0}.
+     */
+    private void scheduleAssignmentRetentionCleanup() {
+        if (assignmentRetentionConfig.getRetentionDays() <= 0) {
+            LOG.info("Assignment ledger retention cleanup disabled (retention-days=0)");
+            return;
+        }
+        if (!(clusterRegistry instanceof JdbcClusterRegistry)) {
+            // InMemory ledger cleanup happens at the terminal transition point;
+            // process-lifetime entries have no cross-restart TTL face.
+            return;
+        }
+        governanceSweeper.scheduleWithFixedDelay(this::runAssignmentRetentionCleanupGuarded,
+                assignmentRetentionConfig.getCleanupIntervalMs(),
+                assignmentRetentionConfig.getCleanupIntervalMs(),
+                TimeUnit.MILLISECONDS);
+        assignmentRetentionScheduled = true;
+        LOG.info("Assignment ledger retention cleanup scheduled (retentionDays={}, intervalMs={}, deleteBatchSize={})",
+                assignmentRetentionConfig.getRetentionDays(),
+                assignmentRetentionConfig.getCleanupIntervalMs(),
+                assignmentRetentionConfig.getDeleteBatchSize());
+    }
+
+    private void runAssignmentRetentionCleanupGuarded() {
+        try {
+            runAssignmentRetentionCleanupOnce();
+        } catch (Exception e) {
+            // R01 SSOT fail-fast envelope: cleanup failure = explicit ERROR, the
+            // schedule stays armed (periodic-task insulation).
+            LOG.error("nop.stream.ledger.assignment cleanup-fail: periodic assignment ledger cleanup "
+                    + "failed - schedule stays armed", e);
+        }
+    }
+
+    /**
+     * One form-A cleanup pass (also invoked directly by tests): combined
+     * predicate per adjudication 7 - terminal whitelist (in-process terminalAt,
+     * non-active) OR assigned_at TTL fallback, with the active-job-set exclusion
+     * as the hard protection against deleting live attempts.
+     */
+    public int runAssignmentRetentionCleanupOnce() {
+        if (!(clusterRegistry instanceof JdbcClusterRegistry)) {
+            return 0;
+        }
+        Set<String> activeJobs = new java.util.HashSet<>();
+        for (Map.Entry<String, JobCoordinator> e : jobs.entrySet()) {
+            if (e.getValue().isRunning()) {
+                activeJobs.add(e.getKey());
+            }
+        }
+        Set<String> terminalJobs = new java.util.HashSet<>(terminalAt.keySet());
+        terminalJobs.removeAll(activeJobs);
+        long ttlCutoff = 0;
+        if (assignmentRetentionConfig.getRetentionDays() > 0) {
+            ttlCutoff = CoreMetrics.currentTimeMillis()
+                    - TimeUnit.DAYS.toMillis(assignmentRetentionConfig.getRetentionDays());
+        }
+        return ((JdbcClusterRegistry) clusterRegistry).cleanupTaskAssignments(
+                terminalJobs, activeJobs, ttlCutoff, assignmentRetentionConfig.getDeleteBatchSize());
+    }
+
+    /** Rule-23 evidence: the form-A cleanup schedule is armed on the lifecycle hook. */
+    public boolean isAssignmentRetentionScheduled() {
+        return assignmentRetentionScheduled;
+    }
+
+    /** Test seam: override the assignment retention parameters before startGovernance(). */
+    public void setAssignmentRetentionConfig(LedgerRetentionConfig config) {
+        this.assignmentRetentionConfig = config;
     }
 
     /**

@@ -35,6 +35,12 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dataset.IDataSet;
+import io.nop.message.core.channel.ChannelBacklogProbe;
+import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.runtime.ledger.LedgerRetentionConfig;
+
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 
 /**
  * Stage 42 Phase 1: minimal cross-JVM {@link IMessageService} backed by a shared
@@ -74,13 +80,26 @@ import io.nop.dataset.IDataSet;
  *       (publish-subscribe semantics, matching {@code LocalMessageService}).</li>
  * </ul>
  */
-public class PollingJdbcMessageService implements IMessageService, AutoCloseable {
+public class PollingJdbcMessageService implements IMessageService, AutoCloseable, ChannelBacklogProbe {
 
     private static final Logger LOG = LoggerFactory.getLogger(PollingJdbcMessageService.class);
 
+    /** 裁定⑥⑨共享参数：单 poll 有界批量（LIMIT），缺省 500，&le;0 装配期 fail-fast。 */
+    public static final String POLL_BATCH_SIZE_KEY = "nop.stream.launch.poll-batch-size";
+    public static final int DEFAULT_POLL_BATCH_SIZE = 500;
+
     private final IJdbcTemplate jdbcTemplate;
     private final long pollIntervalMs;
-    private final ScheduledExecutorService poller;
+    private final int pollBatchSize;
+    /** C8-011 裁定⑥：数据面 poll/派发线程池（topic 前缀 {@code nop-stream.data.}）。 */
+    private final ScheduledExecutorService dataPoller;
+    /** C8-011 裁定⑥：控制面调度线程池（部署/取消/协调指令），与数据面分离。 */
+    private final ScheduledExecutorService controlPoller;
+    /** C8-003 裁定⑧：msg_queue 形态 A 周期清理调度器（retention-days>0 时创建）。 */
+    private volatile ScheduledExecutorService retentionSweeper;
+    private volatile java.util.concurrent.ScheduledFuture<?> retentionTask;
+    private final AtomicLong retentionCleanupInvocations = new AtomicLong();
+    private final LedgerRetentionConfig retentionConfig;
     private final Map<String, List<Subscription>> subscriptions = new ConcurrentHashMap<>();
     private final String queueTable;
     private volatile boolean initialized = false;
@@ -90,14 +109,45 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
     }
 
     public PollingJdbcMessageService(IJdbcTemplate jdbcTemplate, long pollIntervalMs, String queueTable) {
+        this(jdbcTemplate, pollIntervalMs, queueTable, defaultPollBatchSize(),
+                LedgerRetentionConfig.msgqueueFace());
+    }
+
+    /**
+     * Full constructor. {@code pollBatchSize} is the single-poll LIMIT shared by
+     * the faceted poller (裁定⑥) and the bounded read path (裁定⑨); values &le; 0
+     * fail fast at assembly time. {@code retentionConfig} carries the R01 SSOT
+     * msgqueue face parameters ({@code nop.stream.ledger.msgqueue.*}).
+     */
+    public PollingJdbcMessageService(IJdbcTemplate jdbcTemplate, long pollIntervalMs, String queueTable,
+                                     int pollBatchSize, LedgerRetentionConfig retentionConfig) {
+        if (pollBatchSize <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    POLL_BATCH_SIZE_KEY + " must be > 0 (single-poll batch limit): " + pollBatchSize);
+        }
         this.jdbcTemplate = jdbcTemplate;
         this.pollIntervalMs = pollIntervalMs;
+        this.pollBatchSize = pollBatchSize;
         this.queueTable = queueTable;
-        this.poller = Executors.newScheduledThreadPool(2, r -> {
-            Thread t = new Thread(r, "polling-jdbc-msg");
+        this.retentionConfig = retentionConfig;
+        this.dataPoller = Executors.newScheduledThreadPool(2, namedFactory("polling-jdbc-msg-data"));
+        this.controlPoller = Executors.newScheduledThreadPool(2, namedFactory("polling-jdbc-msg-control"));
+    }
+
+    private static int defaultPollBatchSize() {
+        String raw = System.getProperty(POLL_BATCH_SIZE_KEY);
+        if (raw == null || raw.isBlank()) {
+            return DEFAULT_POLL_BATCH_SIZE;
+        }
+        return Integer.parseInt(raw.trim());
+    }
+
+    private static java.util.concurrent.ThreadFactory namedFactory(String name) {
+        return r -> {
+            Thread t = new Thread(r, name);
             t.setDaemon(true);
             return t;
-        });
+        };
     }
 
     /** Idempotently creates the queue table. Must be called once before use. */
@@ -132,8 +182,178 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
             }
         }
         initialized = true;
-        LOG.info("PollingJdbcMessageService initialized (table={}, pollIntervalMs={})",
-                queueTable, pollIntervalMs);
+        LOG.info("PollingJdbcMessageService initialized (table={}, pollIntervalMs={}, pollBatchSize={})",
+                queueTable, pollIntervalMs, pollBatchSize);
+        scheduleRetentionCleanup();
+    }
+
+    /**
+     * C8-003 (plan 2510 裁定⑧, R01 形态 A): schedule the msg_queue retention
+     * cleanup on the service's own lifecycle hook ({@link #initialize()} is the
+     * production-reachable entry — every send/subscribe path and the launch
+     * mains call it). Disabled by {@code nop.stream.ledger.msgqueue.retention-days=0}.
+     */
+    private void scheduleRetentionCleanup() {
+        if (retentionConfig.getRetentionDays() <= 0) {
+            LOG.info("msg_queue retention cleanup disabled (retention-days=0, face={})",
+                    retentionConfig.getFace());
+            return;
+        }
+        if (retentionTask != null) {
+            return;
+        }
+        synchronized (this) {
+            if (retentionTask != null) {
+                return;
+            }
+            ScheduledExecutorService sweeper = Executors.newSingleThreadScheduledExecutor(
+                    namedFactory("polling-jdbc-msg-retention"));
+            retentionSweeper = sweeper;
+            retentionTask = sweeper.scheduleWithFixedDelay(this::runRetentionCleanupGuarded,
+                    retentionConfig.getCleanupIntervalMs(), retentionConfig.getCleanupIntervalMs(),
+                    TimeUnit.MILLISECONDS);
+        }
+        LOG.info("msg_queue retention cleanup scheduled (table={}, retentionDays={}, intervalMs={}, deleteBatchSize={})",
+                queueTable, retentionConfig.getRetentionDays(), retentionConfig.getCleanupIntervalMs(),
+                retentionConfig.getDeleteBatchSize());
+    }
+
+    private void runRetentionCleanupGuarded() {
+        try {
+            int deleted = runRetentionCleanupOnce();
+            if (deleted > 0) {
+                LOG.info("msg_queue retention cleanup deleted {} dispatched rows (table={})", deleted, queueTable);
+            }
+        } catch (Exception e) {
+            // R01 §3.1 第5项: cleanup failure = explicit ERROR (nop.<module>.ledger.cleanup-fail
+            // shape) + visible counter; never an empty catch; single failure must not break the chain.
+            retentionCleanupFailedCount++;
+            LOG.error("nop.stream.ledger.msgqueue cleanup-fail: retention cleanup failed for table {} "
+                    + "(failures={}) — schedule stays armed", queueTable, retentionCleanupFailedCount, e);
+        }
+    }
+
+    private int retentionCleanupFailedCount = 0;
+
+    /**
+     * One retention pass (also invoked directly by tests): deletes rows that are
+     * BOTH at or behind the per-topic dispatched position AND older than the
+     * retention TTL (双谓词取交，裁定⑧). Topics without a dispatched position
+     * (no subscription / restarted process before cursor rebuild) are
+     * conservatively skipped — retention never deletes undispatched rows.
+     *
+     * @return the number of rows deleted
+     */
+    public int runRetentionCleanupOnce() {
+        retentionCleanupInvocations.incrementAndGet();
+        int retentionDays = retentionConfig.getRetentionDays();
+        if (retentionDays <= 0) {
+            return 0;
+        }
+        long cutoff = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(retentionDays);
+        int batchSize = retentionConfig.getDeleteBatchSize();
+        int deleted = 0;
+        for (Map.Entry<String, List<Subscription>> entry : subscriptions.entrySet()) {
+            String topic = entry.getKey();
+            Long position = dispatchedPosition(entry.getValue());
+            if (position == null) {
+                continue;
+            }
+            while (true) {
+                List<Long> ids = jdbcTemplate.executeQuery(SQL.begin()
+                        .sql("SELECT id FROM " + queueTable
+                                + " WHERE topic = ? AND id <= ? AND created_at_ms < ? ORDER BY id ASC LIMIT ?",
+                                topic, position, cutoff, batchSize)
+                        .end(), PollingJdbcMessageService::readIds);
+                if (ids.isEmpty()) {
+                    break;
+                }
+                jdbcTemplate.executeUpdate(SQL.begin()
+                        .sql("DELETE FROM " + queueTable + " WHERE id IN (" + idList(ids) + ")")
+                        .end());
+                deleted += ids.size();
+                if (ids.size() < batchSize) {
+                    break;
+                }
+            }
+        }
+        return deleted;
+    }
+
+    /**
+     * The per-topic dispatched position: the MINIMUM {@code lastSeenId} across
+     * the topic's live subscriptions (every subscriber must have consumed past a
+     * row before it is deletable). Null = no live subscription — the restart
+     * conservative-pause window of 裁定⑧.
+     */
+    private Long dispatchedPosition(List<Subscription> subs) {
+        Long min = null;
+        for (Subscription sub : subs) {
+            if (sub.isCancelled()) {
+                continue;
+            }
+            long cursor = sub.lastSeenId();
+            if (min == null || cursor < min) {
+                min = cursor;
+            }
+        }
+        return min;
+    }
+
+    private static String idList(List<Long> ids) {
+        StringBuilder sb = new StringBuilder();
+        for (Long id : ids) {
+            if (sb.length() > 0) {
+                sb.append(',');
+            }
+            sb.append(id);
+        }
+        return sb.toString();
+    }
+
+    private static List<Long> readIds(IDataSet dataSet) {
+        List<Long> ids = new ArrayList<>();
+        while (dataSet.hasNext()) {
+            io.nop.dataset.IDataRow r = dataSet.next();
+            ids.add(r.getLong(0));
+        }
+        return ids;
+    }
+
+    /**
+     * C8-003 (裁定⑧ b-half): WI6 producer gate capability — the backlog is the
+     * number of UNCONSUMED rows for the topic (id &gt; dispatched cursor; no live
+     * subscription cursor yet = all rows count as unconsumed, the conservative
+     * backpressure direction).
+     */
+    @Override
+    public long backlog(String topic) {
+        List<Subscription> subs = subscriptions.get(topic);
+        Long position = subs == null ? null : dispatchedPosition(subs);
+        long cursor = position == null ? 0L : position;
+        return jdbcTemplate.executeQuery(SQL.begin()
+                .sql("SELECT COUNT(*) FROM " + queueTable + " WHERE topic = ? AND id > ?", topic, cursor)
+                .end(), dataSet -> {
+            if (dataSet.hasNext()) {
+                return dataSet.next().getLong(0);
+            }
+            return 0L;
+        });
+    }
+
+    /** Rule-23 接线证据: the retention schedule is armed on the lifecycle hook. */
+    public boolean isRetentionCleanupScheduled() {
+        return retentionTask != null && !retentionTask.isCancelled();
+    }
+
+    /** Rule-23 接线证据: the scheduled task really invokes the cleanup body. */
+    public long retentionCleanupInvocations() {
+        return retentionCleanupInvocations.get();
+    }
+
+    /** Rule-25 观测面: cleanup failures are counted, never swallowed. */
+    public int retentionCleanupFailures() {
+        return retentionCleanupFailedCount;
     }
 
     private static boolean chainContainsAlreadyExists(Throwable t) {
@@ -193,15 +413,24 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
 
     @Override
     public void close() {
-        poller.shutdownNow();
+        shutdownExecutor(dataPoller, "data poller");
+        shutdownExecutor(controlPoller, "control poller");
+        ScheduledExecutorService sweeper = retentionSweeper;
+        if (sweeper != null) {
+            shutdownExecutor(sweeper, "retention sweeper");
+        }
+        subscriptions.clear();
+    }
+
+    private static void shutdownExecutor(ScheduledExecutorService executor, String name) {
+        executor.shutdownNow();
         try {
-            if (!poller.awaitTermination(2, TimeUnit.SECONDS)) {
-                LOG.warn("PollingJdbcMessageService poller did not terminate cleanly");
+            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) {
+                LOG.warn("PollingJdbcMessageService {} did not terminate cleanly", name);
             }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        subscriptions.clear();
     }
 
     /**
@@ -290,7 +519,19 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
             lastSeenId.set(initialCursor);
             LOG.info("Subscription started for topic={} at cursor={}", topic, lastSeenId.get());
 
-            this.task = poller.scheduleWithFixedDelay(this::poll, pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+            this.task = pollExecutorFor(topic).scheduleWithFixedDelay(this::poll,
+                    pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+        }
+
+        /**
+         * C8-011 (plan 2510 裁定⑥): data-plane topics ({@code nop-stream.data.})
+         * poll/dispatch on the dedicated data-plane pool; every other topic
+         * (deploy/cancel/coordination RPC/control topics) runs on the separate
+         * control-plane pool — slow data-plane consumption can no longer starve
+         * the control plane.
+         */
+        private ScheduledExecutorService pollExecutorFor(String topicName) {
+            return topicName.startsWith("nop-stream.data.") ? dataPoller : controlPoller;
         }
 
         /**
@@ -308,14 +549,15 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
             }
             try {
                 long cursor = lastSeenId.get();
+                ConsumeContext ctx = new ConsumeContext(topic);
+                // C5-010 (plan 2510 裁定⑨): bounded pick - a single poll query
+                // materializes at most pollBatchSize rows (LIMIT shared with 裁定⑥);
+                // a larger backlog drains across successive poll cycles via the
+                // persisted cursor (分批推进至清空, C10-006).
                 List<Row> rows = jdbcTemplate.executeQuery(SQL.begin()
                         .sql("SELECT id, payload FROM " + queueTable
-                                + " WHERE topic = ? AND id > ? ORDER BY id ASC", topic, cursor)
+                                + " WHERE topic = ? AND id > ? ORDER BY id ASC LIMIT ?", topic, cursor, pollBatchSize)
                         .end(), PollingJdbcMessageService::readRows);
-                if (rows.isEmpty()) {
-                    return;
-                }
-                ConsumeContext ctx = new ConsumeContext(topic);
                 for (Row row : rows) {
                     Object message;
                     try {
@@ -335,6 +577,10 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
             } catch (Exception e) {
                 LOG.error("Poll failed for topic={}", topic, e);
             }
+        }
+
+        long lastSeenId() {
+            return lastSeenId.get();
         }
 
         @Override

@@ -2205,6 +2205,9 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             // Mark active BEFORE rebuilding so the internal assignment materialization
             // (prepareAssignmentsLocked) observes the active state.
             this.active = true;
+            // C7-011: re-arm the layer-4 persist/commit activity re-check on
+            // (re-)activation so a later degrade is what flips it off.
+            this.checkpointCoordinator.setLeaderActive(true);
             // On leadership grant, rebuild the latestCompletedCheckpoint view
             // from durable storage (failover-safe). A new coordinator JVM has a null
             // in-memory view; restoreFromCheckpoint() reloads the latest durable epoch.
@@ -2343,10 +2346,19 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         } finally {
             recoveryLock.unlock();
         }
-        // In-flight checkpoints will not commit: collectAck is gated on active,
-        // so further ACKs are rejected and the pending checkpoint times out /
-        // is aborted by the new leader. We intentionally do NOT touch the
-        // failure detector here (deactivate != stop).
+        // C7-011 (plan 2510 adjudication 5, layer 4): actively abort in-flight
+        // pending checkpoints and arm the persist-success / commit-fan-out
+        // re-check so a persist completing after the degrade is discarded - the
+        // zombie standby can no longer become a second writer on the checkpoint
+        // durability plane. This supplements (never rewrites) the existing three
+        // defenses: collectAck active gating, pending timeout, new-leader abort.
+        try {
+            checkpointCoordinator.onLeaderDeactivated();
+        } catch (Exception e) {
+            LOG.error("Failed to abort in-flight checkpoints during standby degrade for job {}", jobId, e);
+        }
+        // We intentionally do NOT touch the failure detector here
+        // (deactivate != stop).
     }
 
     // ==================== Termination ====================

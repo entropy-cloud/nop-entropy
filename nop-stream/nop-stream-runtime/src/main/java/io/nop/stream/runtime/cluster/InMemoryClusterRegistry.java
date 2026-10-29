@@ -191,6 +191,23 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
         taskAssignmentHistory.remove(assignmentKey(jobId, vertexId, subtaskIndex));
     }
 
+    @Override
+    public void removeJobTaskAssignments(String jobId) {
+        String prefix = jobId + "/";
+        int removed = 0;
+        synchronized (taskAssignmentHistory) {
+            for (String key : taskAssignmentHistory.keySet()) {
+                if (key.startsWith(prefix)) {
+                    taskAssignmentHistory.remove(key);
+                    removed++;
+                }
+            }
+        }
+        if (removed > 0) {
+            LOG.info("Removed {} task assignment history entries for terminal job {}", removed, jobId);
+        }
+    }
+
     private String assignmentKey(String jobId, String vertexId, int subtaskIndex) {
         return jobId + "/" + vertexId + "/" + subtaskIndex;
     }

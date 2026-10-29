@@ -227,6 +227,21 @@ public class CheckpointCoordinator {
     private ExecutorService commitFanoutExecutor;    private volatile boolean isShutdown = false;
 
     /**
+     * C7-011 (plan 2510 adjudication 5, layer 4 of the checkpoint
+     * defense-in-depth): leadership activity flag re-checked at the
+     * persist-success entry and before the participant commit fan-out dispatch.
+     * A degrade to standby (via {@link #onLeaderDeactivated()}) flips this to
+     * false so an in-flight persist completing AFTER the degrade is discarded -
+     * the zombie standby never becomes a second writer on the checkpoint
+     * durability plane. Layer 4 supplements (never rewrites) the existing three
+     * defenses: collectAck active gating, pending timeout, new-leader abort.
+     */
+    private volatile boolean leaderActive = true;
+
+    /** C7-011: counter of checkpoints discarded by the standby degrade re-check. */
+    private final AtomicInteger standbyDiscardedCheckpoints = new AtomicInteger(0);
+
+    /**
      * Dedicated single-thread executor for
      * retention storage I/O ({@code getAllCheckpoints} + {@code deleteCheckpoint}).
      * Deliberately NOT the persist executor: with the default
@@ -949,6 +964,25 @@ public class CheckpointCoordinator {
                                           boolean asyncRetention) {
         long checkpointId = completed.getCheckpointId();
 
+        // C7-011 layer 4: the persist completed AFTER this coordinator degraded
+        // to standby - discard it (no latestCompleted update, no commit fan-out,
+        // no completion notification) and count the discard.
+        if (!leaderActive) {
+            if (pendingCheckpoints.remove(checkpointId, pending)) {
+                standbyDiscardedCheckpoints.incrementAndGet();
+                LOG.warn("Discarding checkpoint {} for job {}: the coordinator degraded to standby "
+                        + "before persist completion - no commit fan-out (C7-011 second-writer guard)",
+                        checkpointId, jobId);
+                recordHistory(new io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry(
+                        checkpointId, io.nop.stream.runtime.checkpoint.metrics.CheckpointHistoryEntry.Status.ABORTED,
+                        pending.getTriggerTimestamp(), 0L, 0L,
+                        "discarded: coordinator degraded to standby before persist completion",
+                        CoreMetrics.currentTimeMillis()));
+                pending.forceFail("coordinator degraded to standby before persist completion", null);
+            }
+            return;
+        }
+
         if (!pendingCheckpoints.remove(checkpointId, pending)) {
             LOG.debug("Skip completing checkpoint {} because pending state changed", checkpointId);
             return;
@@ -999,8 +1033,21 @@ public class CheckpointCoordinator {
         // notify (the abort-path gating reads failedCommitParticipants, which the
         // task itself may populate).
         final long fanoutCheckpointId = checkpointId;
+        final boolean activeAtDispatch = leaderActive;
         getOrCreateCommitFanoutExecutor().execute(() -> {
             try {
+                // C7-011 layer 4: re-check at the fan-out commit point - the
+                // coordinator may have degraded between the dispatch decision and
+                // the queued task running.
+                if (!activeAtDispatch || !leaderActive) {
+                    standbyDiscardedCheckpoints.incrementAndGet();
+                    LOG.warn("Skipping commit fan-out for checkpoint {} on job {}: coordinator "
+                            + "degraded to standby before fan-out execution (C7-011 second-writer guard)",
+                            fanoutCheckpointId, jobId);
+                    checkpointSuccessMap.remove(fanoutCheckpointId);
+                    return;
+                }
+
                 retryFailedCommits();
 
                 // §12 invariant 5: commit happens only after manifest is durable (forceComplete above).
@@ -1562,6 +1609,35 @@ public class CheckpointCoordinator {
                 failedCommitParticipants.put(failedEpoch, stillFailing);
             }
         }
+    }
+
+    /**
+     * C7-011 (plan 2510 adjudication 5): leadership-loss degrade entry point,
+     * invoked by the JobCoordinator when it deactivates to standby. Arms the
+     * layer-4 re-check and ACTIVELY aborts every in-flight pending checkpoint -
+     * upgrading the previously passive "wait for timeout / new-leader abort"
+     * posture into an active terminalization.
+     */
+    public void onLeaderDeactivated() {
+        this.leaderActive = false;
+        for (PendingCheckpoint pending : new ArrayList<>(pendingCheckpoints.values())) {
+            try {
+                abortPendingCheckpoint(pending, "coordinator deactivated to standby (C7-011)");
+            } catch (Exception e) {
+                LOG.error("Failed to abort pending checkpoint {} during standby degrade for job {}",
+                        pending.getCheckpointId(), jobId, e);
+            }
+        }
+    }
+
+    /** C7-011: leadership re-grant re-arms the persist/commit activity re-check. */
+    public void setLeaderActive(boolean active) {
+        this.leaderActive = active;
+    }
+
+    /** C7-011 observability: checkpoints discarded by the standby degrade re-check. */
+    public int getStandbyDiscardedCheckpoints() {
+        return standbyDiscardedCheckpoints.get();
     }
 
     public void shutdown() {

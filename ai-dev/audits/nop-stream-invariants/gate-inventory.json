@@ -221,6 +221,7 @@
           "getOrCreateRetentionExecutor",
           "incrementTriggerFailures",
           "markTaskCompleted",
+          "onLeaderDeactivated",
           "pruneOldestCheckpointHistory",
           "registerSourceEnumeratorVertex",
           "registerTask",
@@ -235,6 +236,7 @@
           "setCurrentFingerprint",
           "setIncrementalCheckpointEnabled",
           "setJobEventBus",
+          "setLeaderActive",
           "setSegmentStore",
           "setTasksToAcknowledge",
           "shutdown",
@@ -284,6 +286,7 @@
           "assignTask",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]
@@ -291,8 +294,10 @@
       "io.nop.stream.runtime.cluster.JdbcClusterRegistry": {
         "methods": [
           "assignTask",
+          "cleanupTaskAssignments",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]
@@ -303,6 +308,7 @@
           "evictExpiredNodes",
           "registerCoordinator",
           "registerNode",
+          "removeJobTaskAssignments",
           "removeTaskAssignment",
           "renewLease"
         ]

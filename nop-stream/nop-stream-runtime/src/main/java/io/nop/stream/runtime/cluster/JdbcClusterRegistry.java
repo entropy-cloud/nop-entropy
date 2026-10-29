@@ -287,6 +287,124 @@ public class JdbcClusterRegistry implements ClusterRegistry {
         jdbcTemplate.executeUpdate(sql);
     }
 
+    @Override
+    public void removeJobTaskAssignments(String jobId) {
+        if (!taskAssignmentTableExists()) {
+            return;
+        }
+
+        // C1-006: terminal-job cleanup by job_id predicate (same statement shape
+        // as removeTaskAssignment, scoped to the whole job).
+        SQL sql = SQL.begin().name("removeJobTaskAssignments").querySpace(querySpace)
+                .sql("DELETE FROM " + TASK_ASSIGNMENT_TABLE + " WHERE job_id = ?", jobId)
+                .end();
+        long deleted = jdbcTemplate.executeUpdate(sql);
+        if (deleted > 0) {
+            LOG.info("Removed {} task assignment rows for terminal job {}", deleted, jobId);
+        }
+    }
+
+    /**
+     * C1-006 (plan 2510 adjudication 7, R01 form-A periodic cleanup): one
+     * bounded batch pass over {@code nop_stream_task_assignment} using the R01
+     * combined predicate -
+     * <pre>
+     *   (job_id IN terminalJobIds                -- in-process terminal whitelist, exact
+     *    OR assigned_at &lt; assignedBefore          -- assigned_at age TTL fallback (crash orphans)
+     *   ) AND job_id NOT IN activeJobIds         -- active-job hard protection (anti-join rejected;
+     *                                             -- protection = active-job-set exclusion)
+     * </pre>
+     * Rows are picked with a LIMIT (delete-batch-size) and deleted per full key,
+     * so no single statement touches an unbounded set. Caller passes an
+     * assignedBefore cutoff of 0 to disable the TTL fallback branch.
+     *
+     * @return the number of rows deleted in this pass
+     */
+    public int cleanupTaskAssignments(java.util.Set<String> terminalJobIds,
+                                      java.util.Set<String> activeJobIds,
+                                      long assignedBefore, int deleteBatchSize) {
+        if (!taskAssignmentTableExists()) {
+            return 0;
+        }
+        if (deleteBatchSize <= 0) {
+            throw new IllegalArgumentException("deleteBatchSize must be > 0 (R01 ledger-retention SSOT): "
+                    + deleteBatchSize);
+        }
+        if (terminalJobIds.isEmpty() && assignedBefore <= 0) {
+            return 0;
+        }
+
+        StringBuilder where = new StringBuilder(" WHERE (");
+        List<Object> params = new ArrayList<>();
+        boolean hasTerminal = !terminalJobIds.isEmpty();
+        if (hasTerminal) {
+            where.append("job_id IN (").append(placeholders(terminalJobIds.size())).append(")");
+            params.addAll(terminalJobIds);
+        }
+        if (assignedBefore > 0) {
+            if (hasTerminal) {
+                where.append(" OR ");
+            }
+            where.append("assigned_at < ?");
+            params.add(assignedBefore);
+        }
+        where.append(")");
+        if (!activeJobIds.isEmpty()) {
+            where.append(" AND job_id NOT IN (").append(placeholders(activeJobIds.size())).append(")");
+            params.addAll(activeJobIds);
+        }
+
+        int deleted = 0;
+        while (deleted < deleteBatchSize) {
+            int limit = deleteBatchSize - deleted;
+            List<Object> selectParams = new ArrayList<>(params);
+            selectParams.add(limit);
+            SQL selectSql = SQL.begin().name("selectCleanupTaskAssignments").querySpace(querySpace)
+                    .sql("SELECT job_id, vertex_id, subtask_index, attempt_number FROM " + TASK_ASSIGNMENT_TABLE
+                            + where + " ORDER BY assigned_at ASC LIMIT ?", selectParams.toArray())
+                    .end();
+
+            List<Object[]> keys = new ArrayList<>();
+            jdbcTemplate.executeQuery(selectSql, dataSet -> {
+                for (IDataRow row : dataSet) {
+                    keys.add(new Object[]{row.getString(0), row.getString(1), row.getInt(2), row.getInt(3)});
+                }
+                return null;
+            });
+            if (keys.isEmpty()) {
+                break;
+            }
+            for (Object[] key : keys) {
+                SQL deleteSql = SQL.begin().name("cleanupTaskAssignmentRow").querySpace(querySpace)
+                        .sql("DELETE FROM " + TASK_ASSIGNMENT_TABLE
+                                + " WHERE job_id = ? AND vertex_id = ? AND subtask_index = ? AND attempt_number = ?",
+                                key)
+                        .end();
+                deleted += (int) jdbcTemplate.executeUpdate(deleteSql);
+            }
+            if (keys.size() < limit) {
+                break;
+            }
+        }
+        if (deleted > 0) {
+            LOG.info("Periodic assignment ledger cleanup deleted {} rows "
+                    + "(terminalWhitelist={}, ttlCutoff={}, activeProtected={})",
+                    deleted, terminalJobIds.size(), assignedBefore, activeJobIds.size());
+        }
+        return deleted;
+    }
+
+    private static String placeholders(int n) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < n; i++) {
+            if (i > 0) {
+                sb.append(',');
+            }
+            sb.append('?');
+        }
+        return sb.toString();
+    }
+
     // ---- Table initialization ----
 
     private boolean coordinatorTableExists() {
