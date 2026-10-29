@@ -155,7 +155,7 @@
 | 8.13 | R2-04 2.2 IoC 启动图/死锁 + 配置发布协议批（R22 刷新链） | done（closure audit PASS，plan 2507；7 项全修[2.2×4+2.5×3]+join 失败传导/getBean0 等待图环检出+有界获取/配置发布 holder 单发布/写门租约 fail-open 观察即起租+实施期 setClosed(false) 清零缺口修复；api-core 零签名 SPI 面全绿） | `docs-for-ai/02-core-guides/ioc-and-config.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-04（7 项） | none（修复 plan） |
 | 8.14 | R2-05 2.3 服务热路径剩余批（R05 SSO + R25 重试放大） | done（closure audit PASS，plan 2508；2 项全修——SSO 刷新异步化[default 方法 + beans 接线 + runOnContext 再入链序] + Gateway 准入上界[共享许可池 + 拒绝按落点钉死 + equal jitter]；nop-auth-sso 触碰 PA 裁定执行形态改造） | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R2-05（2 项） | none（修复 plan） |
 | 8.15 | R2-06 流式缓冲批 A（chain25/R02 双实现分叉，3.3 同文件批 A） | done（closure audit PASS，plan 2509；11 项全修——共享泛型缓冲核 BoundedWindowBuffer 收敛双实现分叉 + 溢出不可重试终态 + attempt 漏斗配对 + pendingComplete 对齐 + drain-loop 出锁投递 + allowCall 双面收敛[cooldownElapsed 只读追加] + C3-007 宿主半边） | `docs-for-ai/02-core-guides/service-layer.md`；`docs-for-ai/03-modules/nop-ai-gateway.md` | batch-proposal.md §二 R2-06（11 项） | none（修复 plan） |
-| 8.16 | R2-07 1.1 stream-core 批（并发正确性 + 资源包络） | planned（plan 2510，draft review R1 0B+4M+2m 全修转 active） | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-user-guide.md` | batch-proposal.md §二 R2-07（10 项） | none（修复 plan） |
+| 8.16 | R2-07 1.1 stream-core 批（并发正确性 + 资源包络） | done（plan 2510 completed @ 2026-10-29，closure audit APPROVED） | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-user-guide.md` | batch-proposal.md §二 R2-07（10 项） | none（修复 plan） |
 | 8.17 | R2-08 1.2 连接器批 | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R2-08（7 项） | none（修复 plan） |
 | 8.18 | R2-09 1.3 编排薄层批 | todo | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-sql.md` | batch-proposal.md §二 R2-09（4 项） | none（修复 plan） |
 | 8.19 | R2-10 1.4 job 批 | todo | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R2-10（2 项） | none（修复 plan） |
@@ -180,8 +180,8 @@
 | 8.38 | R3-08 6.2 tools-parse 批 | todo | `docs-for-ai/03-modules/nop-refactor.md`；`docs-for-ai/03-modules/nop-treesitter.md`（nop-lint/nop-jq owner doc drift→R-G） | batch-proposal.md §二 R3-08（8 项） | none（修复 plan） |
 | 8.39 | R3-09 6.3 code-index 批 | todo | `docs-for-ai/03-modules/nop-code.md` | batch-proposal.md §二 R3-09（2 项）；软依赖 8.37（R3-07） | none（修复 plan） |
 | 8.40 | R3-10 6.5 peripheral 批（CL-301 通道批） | todo | —（nop-dev-tools 无 owner doc→缺口声明（6.5 四模块无 owner doc 整体登记→R-G）） | batch-proposal.md §二 R3-10（6 项） | none（修复 plan） |
-| 8.41 | R4-01 1.1 流核并发正确性束（G01） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-01（15 项）；软依赖 8.16（R2-07） | none（修复 plan） |
-| 8.42 | R4-02 1.1 资源包络 + FAM-2 束（G02+G03） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-02（7 项）；软依赖 8.16（R2-07） | none（修复 plan） |
+| 8.41 | R4-01 1.1 流核并发正确性束（G01） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-01（15 项）；软依赖 8.16（R2-07）——**8.16 已 done（plan 2510），软依赖解除**；裁定①–⑪与三范式/溢出语义结论见 `ai-dev/design/concurrency/stream-core-concurrency-and-resource-envelope.md` 可引用为既有裁定 | none（修复 plan） |
+| 8.42 | R4-02 1.1 资源包络 + FAM-2 束（G02+G03） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-02（7 项）；软依赖 8.16（R2-07）——**8.16 已 done（plan 2510），软依赖解除**；裁定①–⑪与三范式/溢出语义结论见 `ai-dev/design/concurrency/stream-core-concurrency-and-resource-envelope.md` 可引用为既有裁定 | none（修复 plan） |
 | 8.43 | R4-03 1.2 连接器 MA 束 + 包络声明（G05+G09） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R4-03（12 项）；软依赖 8.17（R2-08） | none（修复 plan） |
 | 8.44 | R4-04 1.2 并发正确性 + 失败路径泄漏束（G07+G08） | todo | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R4-04（11 项）；软依赖 8.17（R2-08） | none（修复 plan） |
 | 8.45 | R4-05 1.3 Replay/流语义束（G11） | todo | `docs-for-ai/03-modules/nop-stream.md` | batch-proposal.md §二 R4-05（10 项）；软依赖 8.18（R2-09） | none（修复 plan） |
