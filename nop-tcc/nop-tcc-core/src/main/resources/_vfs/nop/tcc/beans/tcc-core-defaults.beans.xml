@@ -9,7 +9,7 @@
         </property>
     </bean>
 
-    <bean id="nopTccEngine" class="io.nop.tcc.core.impl.TccEngine" />
+    <bean id="nopTccEngine" class="io.nop.tcc.core.impl.TccEngine" init-method="start" destroy-method="stop" />
 
     <bean id="nopRpcServiceInterceptor_tcc" class="io.nop.tcc.core.interceptor.TccRpcServiceInterceptor" />
 </beans>

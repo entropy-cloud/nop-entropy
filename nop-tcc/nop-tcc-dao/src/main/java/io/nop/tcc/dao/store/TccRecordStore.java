@@ -15,6 +15,7 @@ import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.config.AppConfig;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
@@ -22,6 +23,7 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.tcc.api.*;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
@@ -39,10 +41,19 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 
+import static io.nop.tcc.api.TccErrors.ARG_BRANCH_ID;
+import static io.nop.tcc.api.TccErrors.ARG_FROM_STATUS;
+import static io.nop.tcc.api.TccErrors.ARG_TO_STATUS;
+import static io.nop.tcc.api.TccErrors.ARG_TXN_ID;
+import static io.nop.tcc.api.TccErrors.ERR_TCC_STATUS_CAS_CONFLICT;
+
 public class TccRecordStore implements ITccRecordStore {
     static final Logger LOG = LoggerFactory.getLogger(TccRecordStore.class);
 
     private IDaoProvider daoProvider;
+
+    // 可空：单测直连构造（绕过 IoC）时无事务模板，CAS 方法退化为无事务立即结算
+    private ITransactionTemplate txnTemplate;
 
     private int defaultBranchTimeout;
 
@@ -63,6 +74,11 @@ public class TccRecordStore implements ITccRecordStore {
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
+    }
+
+    @Inject
+    public void setTransactionTemplate(ITransactionTemplate txnTemplate) {
+        this.txnTemplate = txnTemplate;
     }
 
     @InjectValue("@cfg:nop.tcc.default-max-retry-times|100")
@@ -157,13 +173,41 @@ public class TccRecordStore implements ITccRecordStore {
         });
     }
 
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public CompletionStage<Void> updateTccStatusAsync(ITccRecord record, TccStatus status, Throwable error) {
+        return FutureHelper.futureCall(() -> runInNewTxn(() -> doUpdateTccStatus(record, status, error)));
+    }
+
+    /**
+     * plan 2515 裁定②（提交可见性）：CAS future 必须在事务提交之后完成——自管 REQUIRES_NEW
+     * 事务（TransactionTemplate.runInTransactionAsync），commit 在内层 stage 完成后执行，
+     * 调用方可见的 future 在 afterCommit 完成成、rollback/commit-fail 分支以异常完成（配对语义，
+     * 零「永不完成」残留）；无事务模板可用（单测直连构造）时立即结算。方法体同步异常经
+     * FutureHelper.futureCall 即时 failedStage。
+     */
+    private CompletionStage<Void> runInNewTxn(java.util.concurrent.Callable<CompletionStage<Void>> task) {
+        if (txnTemplate == null) {
+            try {
+                return task.call();
+            } catch (Throwable t) {
+                return FutureHelper.reject(t);
+            }
+        }
+        return txnTemplate.runInTransactionAsync(null, TransactionPropagation.REQUIRES_NEW,
+                        txn -> {
+                            try {
+                                return task.call();
+                            } catch (Throwable t) {
+                                return FutureHelper.reject(t);
+                            }
+                        });
+    }
+
+    private CompletionStage<Void> doUpdateTccStatus(ITccRecord record, TccStatus status, Throwable error) {
         return FutureHelper.futureCall(() -> {
             NopTccRecord tccRecord = (NopTccRecord) record;
             // from状态必须在修改内存status之前捕获，updateByQuery按[id+from状态]做单语句CAS：
-            // 并发writer/stale writer导致DB状态已变化时本次更新0行，跳过以保护已落库的终态
+            // 并发writer/stale writer导致DB状态已变化时本次更新0行
             Integer fromStatus = tccRecord.getStatus();
 
             Map<String, Object> props = new HashMap<>();
@@ -187,9 +231,15 @@ public class TccRecordStore implements ITccRecordStore {
 
             long updated = recordDao().updateByQuery(statusCasQuery(tccRecord.getTxnId(), fromStatus), props);
             if (updated == 0) {
+                // plan 2515 裁定①③：CAS 0 行=并发冲突（互斥守卫的陈旧内存副本已失效），
+                // WARN 留痕后显式异常完成——吞为正常返回会使补偿 RPC 对撞照发/误报终态直写
                 LOG.warn("nop.tcc.skip-status-update-due-to-conflict:txnId={},fromStatus={},toStatus={}",
                         tccRecord.getTxnId(), fromStatus, status.getCode());
-                return null;
+                throw new NopException(ERR_TCC_STATUS_CAS_CONFLICT)
+                        .param(ARG_TXN_ID, tccRecord.getTxnId())
+                        .param(ARG_BRANCH_ID, "")
+                        .param(ARG_FROM_STATUS, fromStatus)
+                        .param(ARG_TO_STATUS, status.getCode());
             }
             tccRecord.setStatus(status.getCode());
             return null;
@@ -217,9 +267,12 @@ public class TccRecordStore implements ITccRecordStore {
         });
     }
 
-    @Transactional(propagation = TransactionPropagation.REQUIRES_NEW)
     @Override
     public CompletionStage<Void> updateTccBranchStatusAsync(ITccBranchRecord branchRecord, TccStatus status, Throwable error) {
+        return FutureHelper.futureCall(() -> runInNewTxn(() -> doUpdateTccBranchStatus(branchRecord, status, error)));
+    }
+
+    private CompletionStage<Void> doUpdateTccBranchStatus(ITccBranchRecord branchRecord, TccStatus status, Throwable error) {
         return FutureHelper.futureCall(() -> {
             NopTccBranchRecord record = (NopTccBranchRecord) branchRecord;
             // from状态先于内存修改捕获，updateByQuery按[branchId+from状态]做单语句CAS，终态不被stale writer覆盖
@@ -273,9 +326,15 @@ public class TccRecordStore implements ITccRecordStore {
 
             long updated = branchDao().updateByQuery(query, props);
             if (updated == 0) {
+                // plan 2515 裁定①②：分支 CAS 0 行=并发冲突，WARN 留痕后显式异常完成——
+                // 吞为正常返回且不回写内存，会使聚合按陈旧副本折叠误报终态（预留资源永久悬挂）
                 LOG.warn("nop.tcc.skip-branch-status-update-due-to-conflict:txnId={},branchId={},fromStatus={},toStatus={}",
                         record.getTxnId(), record.getBranchId(), fromStatus, status.getCode());
-                return null;
+                throw new NopException(ERR_TCC_STATUS_CAS_CONFLICT)
+                        .param(ARG_TXN_ID, record.getTxnId())
+                        .param(ARG_BRANCH_ID, record.getBranchId())
+                        .param(ARG_FROM_STATUS, fromStatus)
+                        .param(ARG_TO_STATUS, status.getCode());
             }
             record.setStatus(status.getCode());
             return null;
@@ -352,5 +411,81 @@ public class TccRecordStore implements ITccRecordStore {
             branchDao().deleteByQuery(branchQuery);
         }
         recordDao().deleteByQuery(query);
+    }
+
+    /**
+     * plan 2515 裁定⑧：耗尽行前置终态化。retryTimes>=maxRetryCount 且已过期且未完结的记录
+     * 被恢复扫描与 finished 清理谓词双重永久排除——先终态化为 KILLED（endTime 落账）再入清理谓词，
+     * 保留审计窗。有界批处理（拾取 limit batchSize）防大表首扫冲击。
+     */
+    @Override
+    @Transactional
+    public int killExhaustedRecords(int maxRetryCount, int batchSize) {
+        IOrmEntityDao<NopTccRecord> dao = recordDao();
+
+        Timestamp now = new Timestamp(CoreMetrics.currentTimeMillis());
+        QueryBean query = new QueryBean();
+        // 已过期
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_expireTime, now));
+        // 未完结（终态之前的所有状态）
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_status, TccStatus.CONFIRM_SUCCESS.getCode()));
+        // 重试次数已达上限（与 fetchExpiredRecords 的 retryTimes<maxRetryCount 拾取条件互补）
+        query.addFilter(FilterBeans.ge(NopTccRecord.PROP_NAME_retryTimes, maxRetryCount));
+        query.setLimit(batchSize);
+
+        List<NopTccRecord> records = dao.findAllByQuery(query);
+        if (records.isEmpty())
+            return 0;
+
+        List<String> txnIds = new ArrayList<>(records.size());
+        for (NopTccRecord record : records) {
+            txnIds.add(record.getTxnId());
+        }
+
+        Map<String, Object> props = new HashMap<>();
+        props.put(NopTccRecord.PROP_NAME_status, TccStatus.KILLED.getCode());
+        props.put(NopTccRecord.PROP_NAME_endTime, now);
+
+        QueryBean updateQuery = new QueryBean();
+        updateQuery.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_txnId, txnIds));
+        updateQuery.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_status, TccStatus.CONFIRM_SUCCESS.getCode()));
+        long updated = dao.updateByQuery(updateQuery, props);
+        LOG.info("nop.tcc.ledger.kill-exhausted-rows:maxRetryCount={},batchSize={},killed={}",
+                maxRetryCount, batchSize, updated);
+        return (int) updated;
+    }
+
+    /**
+     * plan 2515 裁定⑧：removeCompletedRecords 的有界批删形态——按锚列 beginTime 拾取
+     * （limit batchSize）+ 分支随父级联，返回删除的主记录行数。
+     */
+    @Override
+    @Transactional
+    public int removeCompletedRecords(long retentionTime, boolean onlyCompleted, int batchSize) {
+        QueryBean query = new QueryBean();
+        Timestamp minTime = new Timestamp(CoreMetrics.currentTimeMillis() - retentionTime);
+        query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_beginTime, minTime));
+        if (onlyCompleted)
+            query.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
+        query.setLimit(batchSize);
+
+        List<NopTccRecord> records = recordDao().findAllByQuery(query);
+        if (records.isEmpty())
+            return 0;
+
+        List<String> txnIds = new ArrayList<>(records.size());
+        for (NopTccRecord record : records) {
+            txnIds.add(record.getTxnId());
+        }
+        QueryBean branchQuery = new QueryBean();
+        branchQuery.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_txnId, txnIds));
+        branchDao().deleteByQuery(branchQuery);
+
+        QueryBean deleteQuery = new QueryBean();
+        deleteQuery.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_txnId, txnIds));
+        long deleted = recordDao().deleteByQuery(deleteQuery);
+        LOG.info("nop.tcc.ledger.remove-completed:retentionTime={},onlyCompleted={},batchSize={},deleted={}",
+                retentionTime, onlyCompleted, batchSize, deleted);
+        return (int) deleted;
     }
 }

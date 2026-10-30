@@ -71,6 +71,21 @@
                     </join>
                 </to-many>
             </relations>
+            <!-- plan 2515 裁定⑧（C7-005，orm PA 批内申报已闭环）：恢复扫描/清理谓词索引。
+                 配套迁移脚本 nop-tcc/deploy/sql/postgresql/2026-10-add-tcc-record-indexes.sql -->
+            <indexes>
+                <!-- Index for expired-record recovery scan and exhausted-row terminalization
+                     (expire_time, status, retry_times) -->
+                <index name="idx_tcc_record_expire" unique="false">
+                    <column name="expireTime"/>
+                    <column name="status"/>
+                    <column name="retryTimes"/>
+                </index>
+                <!-- Index for beginTime ordered pickup (cleanup anchor column) -->
+                <index name="idx_tcc_record_begin_time" unique="false">
+                    <column name="beginTime"/>
+                </index>
+            </indexes>
         </entity>
         <entity className="io.nop.tcc.dao.entity.NopTccBranchRecord" createTimeProp="createTime" displayName="TCC事务分支记录"
                 name="io.nop.tcc.dao.entity.NopTccBranchRecord" registerShortName="true"

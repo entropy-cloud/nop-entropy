@@ -19,6 +19,8 @@ CREATE TABLE nop_tcc_record(
   constraint PK_nop_tcc_record primary key (TXN_ID)
 );
 
+create index idx_tcc_record_expire on nop_tcc_record (EXPIRE_TIME,STATUS,RETRY_TIMES) ;
+create index idx_tcc_record_begin_time on nop_tcc_record (BEGIN_TIME) ;
 CREATE TABLE nop_tcc_branch_record(
   BRANCH_ID VARCHAR2(50) NOT NULL ,
   TXN_ID VARCHAR2(50) NOT NULL ,

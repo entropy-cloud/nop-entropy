@@ -218,8 +218,10 @@ public class TestTccEngine extends AbstractTccTest {
     }
 
     /**
-     * confirm RPC以异常完成（网络故障/超时）时，分支必须记为CONFIRM_FAILED、全局CONFIRM_FAILED，
-     * 由恢复循环重试。此前ex参数被忽略，异常完成的confirm被误写入终态CONFIRM_SUCCESS
+     * confirm RPC以异常完成（网络故障/超时）时，分支必须记为CONFIRM_FAILED。
+     * plan 2515 裁定③（挂点err!=null门控）：全局不再误折叠任何终态（含CONFIRM_FAILED），
+     * 保持CONFIRMING交恢复扫描续跑（CONFIRMING路由会重试confirm直到成功）；补偿失败经
+     * 门控显式向上传播，不再被留痕吞掉。
      */
     @Test
     public void testConfirmRpcExceptionMarksConfirmFailed() {
@@ -227,26 +229,31 @@ public class TestTccEngine extends AbstractTccTest {
         mockRpcServiceInvoker.setException(new NopException(TccCoreErrors.ERR_TCC_NO_TXN_ID));
 
         String[] txnIdHolder = new String[1];
-        ormTemplate.runInSession(session -> {
-            return tccEngine.runInTransaction("test-confirm-rpc-ex", txn -> {
-                txnIdHolder[0] = txn.getTxnId();
-                tccEngine.runBranchTransaction(txn, newBranchRequest("svcA", "confirmMethod", "cancelMethod"),
-                        branch -> "ok");
-                return null;
+        assertThrows(Exception.class, () -> {
+            ormTemplate.runInSession(session -> {
+                return tccEngine.runInTransaction("test-confirm-rpc-ex", txn -> {
+                    txnIdHolder[0] = txn.getTxnId();
+                    tccEngine.runBranchTransaction(txn, newBranchRequest("svcA", "confirmMethod", "cancelMethod"),
+                            branch -> "ok");
+                    return null;
+                });
             });
-        });
+        }, "compensation failure must propagate explicitly (adjudication 3 gate)");
 
         NopTccRecord loaded = recordDao.getEntityById(txnIdHolder[0]);
-        assertEquals(TccStatus.CONFIRM_FAILED.getCode(), loaded.getStatus());
+        assertEquals(TccStatus.CONFIRMING.getCode(), loaded.getStatus(),
+                "global must stay CONFIRMING (non-terminal) for recovery resumption");
 
         NopTccBranchRecord branch = findBranch(txnIdHolder[0]);
-        assertEquals(TccStatus.CONFIRM_FAILED.getCode(), branch.getStatus());
+        assertEquals(TccStatus.CONFIRM_FAILED.getCode(), branch.getStatus(),
+                "branch must record CONFIRM_FAILED for confirm resumption");
         assertNotNull(branch.getCommitErrorMessage());
     }
 
     /**
-     * cancel RPC以异常完成时，分支必须记为CANCEL_FAILED、全局CANCEL_FAILED以便重试。
-     * 此前ex参数被忽略，异常完成的cancel被误写入终态CANCEL_SUCCESS
+     * cancel RPC以异常完成时，分支必须记为CANCEL_FAILED。plan 2515 裁定③（挂点err!=null门控）：
+     * 全局保持CANCELLING（非终态）交恢复扫描续跑，补偿失败显式传播；此前被误写入终态
+     * CANCEL_SUCCESS/CANCEL_FAILED使补偿被错误终局化
      */
     @Test
     public void testCancelRpcExceptionMarksCancelFailed() {
@@ -266,10 +273,13 @@ public class TestTccEngine extends AbstractTccTest {
         });
 
         NopTccRecord loaded = recordDao.getEntityById(txnIdHolder[0]);
-        assertEquals(TccStatus.CANCEL_FAILED.getCode(), loaded.getStatus());
+        assertEquals(TccStatus.CANCELLING.getCode(), loaded.getStatus(),
+                "global must stay CANCELLING (non-terminal) for recovery resumption"
+                        + " (plan 2515 adjudication 3 gate)");
 
         NopTccBranchRecord branch = findBranch(txnIdHolder[0]);
-        assertEquals(TccStatus.CANCEL_FAILED.getCode(), branch.getStatus());
+        assertEquals(TccStatus.CANCEL_FAILED.getCode(), branch.getStatus(),
+                "branch must record CANCEL_FAILED for cancel resumption");
     }
 
     /**
@@ -487,8 +497,9 @@ public class TestTccEngine extends AbstractTccTest {
     }
 
     /**
-     * status列为null的脏数据全局记录走endAsync不得NPE：
-     * null状态不命中confirm/cancel拦截条件，按普通路径处理（CAS因from=null不落库，仅告警）
+     * status列为null的脏数据全局记录走endAsync不得NPE（裸NullPointerException）。
+     * plan 2515 裁定①③：from=null的CAS命中0行按类型化ERR_TCC_STATUS_CAS_CONFLICT显式
+     * 异常完成（不再被吞为正常返回），DB行保持原状交人工处理。
      */
     @Test
     public void testEndAsyncWithNullStatusRecordNotCrash() {
@@ -502,7 +513,11 @@ public class TestTccEngine extends AbstractTccTest {
         // status保持null
 
         TccTransaction txn = new TccTransaction(true, record, tccEngine);
-        txn.endAsync(false, ApiResponse.success(null), null).toCompletableFuture().join();
+        CompletionException e = assertThrows(CompletionException.class,
+                () -> txn.endAsync(false, ApiResponse.success(null), null).toCompletableFuture().join());
+        assertTrue(e.getCause() instanceof NopException,
+                "must fail with typed NopException (no raw NPE), got " + e.getCause());
+        assertEquals("nop.err.tcc.status-cas-conflict", ((NopException) e.getCause()).getErrorCode());
     }
 
     /**
@@ -593,7 +608,9 @@ public class TestTccEngine extends AbstractTccTest {
     }
 
     /**
-     * CAS保护：stale writer（内存from状态与DB不一致）不得覆盖已落库终态
+     * CAS保护：stale writer（内存from状态与DB不一致）不得覆盖已落库终态。
+     * plan 2515 裁定①③：0 行冲突不再被吞为正常返回，而是显式异常完成（类型化
+     * ERR_TCC_STATUS_CAS_CONFLICT）；DB 终态保护语义不变。
      */
     @Test
     public void testStaleWriterDoesNotOverwriteTerminalStatus() {
@@ -607,8 +624,12 @@ public class TestTccEngine extends AbstractTccTest {
         other.setEndTime(CoreMetrics.currentTimestamp());
         recordDao.updateEntityDirectly(other);
 
-        // stale writer仍持有TRYING视角，尝试写CANCELLING：CAS前置校验失败，跳过
-        tccRecordStore.updateTccStatusAsync(record, TccStatus.CANCELLING, null).toCompletableFuture().join();
+        // stale writer仍持有TRYING视角，尝试写CANCELLING：CAS命中0行，显式异常完成
+        CompletionException e = assertThrows(CompletionException.class, () ->
+                tccRecordStore.updateTccStatusAsync(record, TccStatus.CANCELLING, null).toCompletableFuture().join());
+        assertTrue(e.getCause() instanceof NopException,
+                "CAS conflict must fail explicitly, got " + e.getCause());
+        assertEquals("nop.err.tcc.status-cas-conflict", ((NopException) e.getCause()).getErrorCode());
 
         assertEquals(TccStatus.CONFIRM_SUCCESS.getCode(),
                 recordDao.getEntityById(record.getTxnId()).getStatus());

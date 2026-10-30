@@ -239,6 +239,16 @@ public class FakeTccRecordStore implements ITccRecordStore {
         lastRemoveCompletedOnlyCompleted = onlyCompleted;
     }
 
+    // plan 2515 裁定⑧接口方法：清理语义由具体测试 fake 子类覆写（缺省零终态化/零删除）
+    public int killExhaustedRecords(int maxRetryCount, int batchSize) {
+        return 0;
+    }
+
+    public int removeCompletedRecords(long retentionTime, boolean onlyCompleted, int batchSize) {
+        lastRemoveCompletedOnlyCompleted = onlyCompleted;
+        return 0;
+    }
+
     public static void assertStatus(ITccBranchRecord branch, TccStatus expected) {
         assertEquals(expected, branch.getBranchStatus(), "branch status=" + branch.getBranchStatus());
     }

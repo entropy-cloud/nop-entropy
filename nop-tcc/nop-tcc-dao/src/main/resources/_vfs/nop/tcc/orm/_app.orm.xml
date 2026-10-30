@@ -71,6 +71,16 @@
                 <column code="RETRY_TIMES" displayName="重试次数" name="retryTimes" propId="16" stdDataType="int"
                         stdSqlType="INTEGER" i18n-en:displayName="Retry Times"/>
             </columns>
+            <indexes>
+                <index name="idx_tcc_record_expire" unique="false">
+                    <column name="expireTime"/>
+                    <column name="status"/>
+                    <column name="retryTimes"/>
+                </index>
+                <index name="idx_tcc_record_begin_time" unique="false">
+                    <column name="beginTime"/>
+                </index>
+            </indexes>
             <relations>
                 <to-many cascadeDelete="true" displayName="分支事务记录" name="branchRecords"
                          refEntityName="io.nop.tcc.dao.entity.NopTccBranchRecord" refPropName="tccRecord"

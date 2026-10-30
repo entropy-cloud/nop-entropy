@@ -21,6 +21,9 @@ public interface TccCoreErrors {
     String ARG_SERVICE_NAME = "serviceName";
     String ARG_SERVICE_METHOD = "serviceMethod";
 
+    String ARG_CONFIG_KEY = "configKey";
+    String ARG_CONFIG_VALUE = "configValue";
+
     ErrorCode ERR_TCC_MISSING_TRANSACTION_RECORD = define("nop.err.tcc.core.missing-transaction-record",
             "事务记录不存在:{txnGroup},{txnId}", ARG_TXN_GROUP, ARG_TXN_ID);
 
@@ -44,4 +47,11 @@ public interface TccCoreErrors {
 
     ErrorCode ERR_TCC_UNKNOWN_SERVICE_METHOD = define("nop.err.tcc.core.unknown-service-method",
             "未知的服务方法:{serviceName}/{serviceMethod}", ARG_SERVICE_NAME, ARG_SERVICE_METHOD);
+
+    /**
+     * plan 2515 裁定⑧（C7-005）：清理周期链错配置启动期 fail-fast
+     * （负保留期/非正批删上限/周期低于60s下限）。
+     */
+    ErrorCode ERR_TCC_LEDGER_CONFIG_INVALID = define("nop.err.tcc.core.ledger-config-invalid",
+            "tcc账本清理配置非法:{configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }

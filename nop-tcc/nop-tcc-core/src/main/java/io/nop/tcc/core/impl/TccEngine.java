@@ -12,6 +12,10 @@ import io.nop.api.core.rpc.IRpcServiceInvoker;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
+import io.nop.commons.concurrent.executor.IPeriodicTaskListener;
+import io.nop.commons.service.LifeCycleSupport;
 import io.nop.commons.util.StringHelper;
 import io.nop.rpc.api.DefaultApiResponseNormalizer;
 import io.nop.tcc.api.ITccBranchRecord;
@@ -23,36 +27,53 @@ import io.nop.tcc.api.ITccRecordStore;
 import io.nop.tcc.api.ITccTransaction;
 import io.nop.tcc.api.TccBranchRequest;
 import io.nop.tcc.api.TccStatus;
+import io.nop.tcc.core.TccEngineConfigs;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 
 import static io.nop.api.core.context.ContextProvider.completeAsyncOnContext;
 import static io.nop.api.core.context.ContextProvider.thenOnContext;
+import static io.nop.tcc.core.TccCoreErrors.ARG_CONFIG_KEY;
+import static io.nop.tcc.core.TccCoreErrors.ARG_CONFIG_VALUE;
 import static io.nop.tcc.core.TccCoreErrors.ARG_SERVICE_METHOD;
 import static io.nop.tcc.core.TccCoreErrors.ARG_SERVICE_NAME;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_ID;
+import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_LEDGER_CONFIG_INVALID;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_MISSING_TRANSACTION_RECORD;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_TRANSACTION_ALREADY_FINISHED;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_TRANSACTION_NOT_ALLOW_START_BRANCH;
 
-public class TccEngine implements ITccEngine {
+public class TccEngine extends LifeCycleSupport implements ITccEngine {
     private static final Logger LOG = LoggerFactory.getLogger(TccEngine.class);
 
     private ITccRecordStore repository;
     private IRpcServiceInvoker serviceInvoker;
     private ITccExceptionChecker exceptionChecker;
     private IApiResponseNormalizer apiResponseNormalizer = DefaultApiResponseNormalizer.INSTANCE;
+
+    // 清理周期链（plan 2515 裁定⑧）状态
+    private IScheduledExecutor executor;
+    private Future<?> ledgerCleanupFuture;
+    private final AtomicLong ledgerCleanupFailureCount = new AtomicLong();
+    // 测试/装配侧参数覆盖：null 时回落 TccEngineConfigs 配置键
+    private Integer ledgerRetentionDays;
+    private Duration ledgerCleanupInterval;
+    private Integer ledgerDeleteBatchSize;
+    private Integer maxRetryTimes;
 
     public IApiResponseNormalizer getApiResponseNormalizer() {
         return apiResponseNormalizer;
@@ -82,6 +103,136 @@ public class TccEngine implements ITccEngine {
 
     public ITccRecordStore getTccRecordRepository() {
         return repository;
+    }
+
+    public void setLedgerRetentionDays(Integer ledgerRetentionDays) {
+        this.ledgerRetentionDays = ledgerRetentionDays;
+    }
+
+    public void setLedgerCleanupInterval(Duration ledgerCleanupInterval) {
+        this.ledgerCleanupInterval = ledgerCleanupInterval;
+    }
+
+    public void setLedgerDeleteBatchSize(Integer ledgerDeleteBatchSize) {
+        this.ledgerDeleteBatchSize = ledgerDeleteBatchSize;
+    }
+
+    public void setMaxRetryTimes(Integer maxRetryTimes) {
+        this.maxRetryTimes = maxRetryTimes;
+    }
+
+    protected IScheduledExecutor getExecutor() {
+        if (executor == null) {
+            executor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
+        }
+        return executor;
+    }
+
+    public void setExecutor(IScheduledExecutor executor) {
+        this.executor = executor;
+    }
+
+    @Override
+    protected void doStart() {
+        // plan 2515 裁定⑧（C7-005）：清理周期链生产接线（生产可达生命周期钩子，防
+        // 「清理 API 零生产装配」空壳形态）。retention-days=0 为显式禁用。
+        startLedgerCleanup();
+    }
+
+    @Override
+    protected void doStop() {
+        if (ledgerCleanupFuture != null) {
+            ledgerCleanupFuture.cancel(false);
+            ledgerCleanupFuture = null;
+            LOG.info("nop.tcc.ledger.cleanup-stopped");
+        }
+    }
+
+    /**
+     * plan 2515 裁定⑧：账本保留期清理周期链。载体与 R2-11 扫描链同构（绝缘载体
+     * scheduleWithFixedDelay + IPeriodicTaskListener）：清理体任何 Throwable 由设施捕获观测
+     * 并重臂，失败 ERROR 显式可见（fail-fast 包络：不静默吞掉、链不中断）；错配置（负保留期/
+     * 非正批删上限/周期低于 60s 下限）启动期 fail-fast。键族/缺省值以 R01 族级 SSOT
+     * ledger-retention-policy §3.1/§3.2 为唯一事实源（nop.tcc.ledger.* 投影，零参数发明）。
+     */
+    protected void startLedgerCleanup() {
+        int retentionDays = resolveLedgerRetentionDays();
+        long intervalMillis = resolveLedgerCleanupInterval().toMillis();
+        int batchSize = resolveLedgerDeleteBatchSize();
+
+        if (retentionDays < 0) {
+            throw new NopException(ERR_TCC_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.tcc.ledger.retention-days")
+                    .param(ARG_CONFIG_VALUE, retentionDays);
+        }
+        if (batchSize <= 0) {
+            throw new NopException(ERR_TCC_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.tcc.ledger.delete-batch-size")
+                    .param(ARG_CONFIG_VALUE, batchSize);
+        }
+        if (intervalMillis < TccEngineConfigs.TCC_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS) {
+            throw new NopException(ERR_TCC_LEDGER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.tcc.ledger.cleanup-interval")
+                    .param(ARG_CONFIG_VALUE, intervalMillis);
+        }
+        if (retentionDays == 0) {
+            LOG.info("nop.tcc.ledger.cleanup-disabled");
+            return;
+        }
+
+        long retentionMillis = retentionDays * 24L * 3600_000L;
+        ledgerCleanupFuture = getExecutor().scheduleWithFixedDelay(this::runLedgerCleanup,
+                intervalMillis, intervalMillis, TimeUnit.MILLISECONDS,
+                "nop-tcc-ledger-cleanup", new IPeriodicTaskListener() {
+                    @Override
+                    public void onRunFailure(Throwable e, long consecutiveFailures) {
+                        ledgerCleanupFailureCount.incrementAndGet();
+                        LOG.error("nop.tcc.ledger.cleanup-fail:consecutiveFailures={}", consecutiveFailures, e);
+                    }
+
+                    @Override
+                    public void onChainRejected(Throwable e) {
+                        ledgerCleanupFailureCount.incrementAndGet();
+                        LOG.error("nop.tcc.ledger.cleanup-chain-rejected: cleanup chain terminated"
+                                + " by executor rejection, will not resurrect", e);
+                    }
+                });
+        LOG.info("nop.tcc.ledger.cleanup-started:retentionDays={},intervalMillis={},batchSize={}",
+                retentionDays, intervalMillis, batchSize);
+    }
+
+    /**
+     * 单轮清理：①耗尽行前置终态化（KILLED，入既有 finished 谓词，C7-006 接缝：终态字段=
+     * 复用 status 列，观测/干预工具本体归 R4-10）；②removeCompletedRecords 有界批删。
+     * 清理体失败直接抛出（由绝缘 listener 观测），不在本方法内吞异常。
+     */
+    protected void runLedgerCleanup() {
+        int killed = repository.killExhaustedRecords(resolveMaxRetryTimes(), resolveLedgerDeleteBatchSize());
+        long retentionMillis = resolveLedgerRetentionDays() * 24L * 3600_000L;
+        int deleted = repository.removeCompletedRecords(retentionMillis, true, resolveLedgerDeleteBatchSize());
+        if (killed > 0 || deleted > 0) {
+            LOG.info("nop.tcc.ledger.cleanup-done:killed={},deleted={}", killed, deleted);
+        }
+    }
+
+    private int resolveLedgerRetentionDays() {
+        return ledgerRetentionDays != null ? ledgerRetentionDays
+                : TccEngineConfigs.CFG_TCC_LEDGER_RETENTION_DAYS.get();
+    }
+
+    private Duration resolveLedgerCleanupInterval() {
+        return ledgerCleanupInterval != null ? ledgerCleanupInterval
+                : TccEngineConfigs.CFG_TCC_LEDGER_CLEANUP_INTERVAL.get();
+    }
+
+    private int resolveLedgerDeleteBatchSize() {
+        return ledgerDeleteBatchSize != null ? ledgerDeleteBatchSize
+                : TccEngineConfigs.CFG_TCC_LEDGER_DELETE_BATCH_SIZE.get();
+    }
+
+    private int resolveMaxRetryTimes() {
+        return maxRetryTimes != null ? maxRetryTimes
+                : TccEngineConfigs.CFG_TCC_DEFAULT_MAX_RETRY_TIMES.get();
     }
 
     private String normalizeTxnGroup(String txnGroup) {
@@ -325,11 +476,15 @@ public class TccEngine implements ITccEngine {
                 if (canceller != null && canceller.isCancelled())
                     return;
 
+                CompletionStage<Void> future = checkExpiredAsync(record);
                 try {
                     // 单条记录的补偿等待加上限，取expireGap作为超时时间：
                     // 单个补偿挂死时跳过该记录继续处理下一条，不再永久阻塞整个调度循环
-                    checkExpiredAsync(record).toCompletableFuture().get(expireGap, TimeUnit.MILLISECONDS);
+                    future.toCompletableFuture().get(expireGap, TimeUnit.MILLISECONDS);
                 } catch (TimeoutException e) {
+                    // plan 2515 裁定①（幽灵双驱动源封堵）：超时后必须取消在飞补偿链，
+                    // 否则挂死的补偿链苏醒后与下一轮恢复扫描双驱动（C3-008 弃链追踪本体归 R4-10）
+                    future.toCompletableFuture().cancel(true);
                     LOG.error("TccEngine.checkExpiredTransactions compensation timeout for txnId={}",
                             record.getTxnId(), e);
                 } catch (InterruptedException e) {

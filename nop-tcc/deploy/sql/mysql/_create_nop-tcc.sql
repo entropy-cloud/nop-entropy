@@ -19,6 +19,8 @@ CREATE TABLE nop_tcc_record(
   constraint PK_nop_tcc_record primary key (TXN_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create index idx_tcc_record_expire on nop_tcc_record (EXPIRE_TIME,STATUS,RETRY_TIMES) ;
+create index idx_tcc_record_begin_time on nop_tcc_record (BEGIN_TIME) ;
 CREATE TABLE nop_tcc_branch_record(
   BRANCH_ID VARCHAR(50) NOT NULL    COMMENT '事务分支ID',
   TXN_ID VARCHAR(50) NOT NULL    COMMENT '事务ID',
