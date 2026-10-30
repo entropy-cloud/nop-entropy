@@ -497,6 +497,10 @@ class TestMaxParallelismReshardMigrationE2E {
             } else {
                 RocksDBKeyedStateBackend<String> rdb =
                         new RocksDBKeyedStateBackend<>(rdbPath + "-" + subtaskIndex, String.class, newMaxP, null);
+                // plan 2511 C5-002: this read-back leg consumes the FULL-materialized
+                // snapshot form ("states" entries) — opt out of the now-default
+                // incremental checkpoint path explicitly.
+                rdb.setIncrementalCheckpointEnabled(false);
                 rdb.setTargetKeyGroupRange(range);
                 rdb.restoreState(snapshot);
                 restored = rdb.snapshotState();

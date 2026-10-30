@@ -175,6 +175,17 @@ class TaskCheckpointWiring {
                             : new MemoryStateBackend();
                     abstractOp.setStateBackend(stateBackend);
                 }
+                // plan 2511 C5-002 (engine checkpoint-mode coherence): the task-side
+                // snapshot form must match the coordinator's checkpoint mode. The
+                // engine restore path (RescaleStateAssembler) merges full-form
+                // "states" maps; a backend left on its own incremental default while
+                // the coordinator runs non-incremental would produce markers every
+                // restore silently drops (silent keyed-state loss). Backends without
+                // a snapshot-form duality ignore the pin (IStateBackend default).
+                IStateBackend wiredBackend = abstractOp.getStateBackend();
+                if (wiredBackend != null) {
+                    wiredBackend.setIncrementalCheckpointEnabled(coordinator.isIncrementalCheckpointEnabled());
+                }
             }
         }
     }

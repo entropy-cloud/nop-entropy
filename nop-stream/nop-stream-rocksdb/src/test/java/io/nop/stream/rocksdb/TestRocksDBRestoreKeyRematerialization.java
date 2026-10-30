@@ -105,6 +105,7 @@ class TestRocksDBRestoreKeyRematerialization {
     public void beanKeyValueState_checkpointRestoreReadWrite() throws Exception {
         RocksDBKeyedStateBackend<BeanKey> source = new RocksDBKeyedStateBackend<>(
                 tempDir.resolve("bean-src").toFile().getAbsolutePath(), BeanKey.class, MAX_P, null);
+        source.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         Map<String, BeanKey> allKeys = new LinkedHashMap<>();
         Map<String, Long> values = new LinkedHashMap<>();
         ValueState<Long> state = source.getState(COUNT);
@@ -141,6 +142,7 @@ class TestRocksDBRestoreKeyRematerialization {
     public void dateKeyMapState_checkpointRestoreReadWrite() throws Exception {
         RocksDBKeyedStateBackend<Date> source = new RocksDBKeyedStateBackend<>(
                 tempDir.resolve("date-src").toFile().getAbsolutePath(), Date.class, MAX_P, null);
+        source.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         Map<Date, Long> allKeys = new LinkedHashMap<>();
         for (int i = 0; i < 8; i++) {
             Date key = new Date(1690000000000L + i * 86_400_000L);
@@ -173,6 +175,7 @@ class TestRocksDBRestoreKeyRematerialization {
     public void beanKeyPartialRestore_conservesKeysAcrossRanges() throws Exception {
         RocksDBKeyedStateBackend<BeanKey> source = new RocksDBKeyedStateBackend<>(
                 tempDir.resolve("bean-partial-src").toFile().getAbsolutePath(), BeanKey.class, MAX_P, null);
+        source.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         Map<String, BeanKey> allKeys = new LinkedHashMap<>();
         Map<String, Long> values = new LinkedHashMap<>();
         ValueState<Long> state = source.getState(COUNT);

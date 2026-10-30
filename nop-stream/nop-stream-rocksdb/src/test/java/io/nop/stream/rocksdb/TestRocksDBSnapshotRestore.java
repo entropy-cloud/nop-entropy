@@ -36,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -49,13 +50,17 @@ class TestRocksDBSnapshotRestore {
     File tempDir;
 
     private RocksDBKeyedStateBackend<String> newRocksBackend() {
-        return new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), String.class, 1, null);
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
+        return backend;
     }
 
     private RocksDBKeyedStateBackend<String> newRocksBackend(int shardCount, String subPath) {
         File sub = new File(tempDir, subPath);
         sub.mkdirs();
-        return new RocksDBKeyedStateBackend<>(sub.getAbsolutePath(), String.class, shardCount, null);
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(sub.getAbsolutePath(), String.class, shardCount, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
+        return backend;
     }
 
     @SuppressWarnings("unchecked")
@@ -541,6 +546,7 @@ class TestRocksDBSnapshotRestore {
         StateSnapshot persisted = new StateSnapshot(parsed);
 
         RocksDBKeyedStateBackend<Long> rocks = new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), Long.class, 1, null);
+        rocks.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         rocks.restoreState(persisted);
         rocks.setCurrentKey(123L);
         List<Event> rocksEvents = (List<Event>) (List<?>) rocks.getMapState(
@@ -672,6 +678,7 @@ class TestRocksDBSnapshotRestore {
         StateSnapshot persisted = new StateSnapshot(parsed);
 
         RocksDBKeyedStateBackend<Long> rocks = new RocksDBKeyedStateBackend<>(tempDir.getAbsolutePath(), Long.class, 1, null);
+        rocks.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         rocks.restoreState(persisted);
         rocks.setCurrentKey(123L);
         assertEquals(10L, rocks.getState(new ValueStateDescriptor<>("vs", Long.class)).value(),
@@ -690,6 +697,79 @@ class TestRocksDBSnapshotRestore {
                 "Memory backend must hit Long key > 2^31 after JSON checkpoint restore (same as RocksDB)");
 
         rocks.close();
+    }
+
+    // ==================== plan 2511 C5-002 / C10-012 ====================
+
+    /**
+     * C5-002 (adjudication ⑤): the incremental SST path is the DEFAULT — the
+     * default snapshot carries the incremental marker and NO materialized
+     * 'states' object graph (heap residency does not grow with key count).
+     */
+    @Test
+    void testC5_002_DefaultCheckpointPathIsIncrementalNotMaterialized() throws Exception {
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(
+                tempDir.getAbsolutePath() + "-c5002-default", String.class, 1, null);
+        try {
+            assertTrue(backend.isIncrementalCheckpointEnabled(), "incremental must default to true");
+            for (int i = 0; i < 50; i++) {
+                backend.setCurrentKey("k" + i);
+                backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update((long) i);
+            }
+            StateSnapshot snapshot = backend.snapshotState();
+            assertNotNull(snapshot);
+            assertTrue(snapshot.getStateData()
+                    .containsKey(io.nop.stream.core.checkpoint.incremental.IncrementalSnapshotResult.MARKER_KEY),
+                    "default path must take the incremental SST route");
+            // Heap-residency bound probe: the default snapshot must not carry a
+            // materialized per-entry object graph regardless of the 50 keys written.
+            assertNull(snapshot.getStateData().get("states"),
+                    "default path must not materialize the state library into the heap");
+        } finally {
+            backend.close();
+        }
+    }
+
+    /**
+     * C5-002 full opt-out leg: below the threshold the full-scan path still
+     * round-trips (zero coverage loss); above it the snapshot fails typed with
+     * guidance to the incremental path instead of OOMing at checkpoint time.
+     */
+    @Test
+    void testC5_002_FullOptOutAboveThresholdFailsTypedBelowRoundTrips() throws Exception {
+        File dbDir = new File(tempDir, "c5002-optout");
+        dbDir.mkdirs();
+        RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(
+                dbDir.getAbsolutePath(), String.class, 1, null);
+        try {
+            backend.setIncrementalCheckpointEnabled(false);
+            backend.setSnapshotMaterializeMaxEntries(5);
+            assertTrue(backend.getSnapshotMaterializeMaxEntries() == 5);
+
+            // Below threshold: full-scan round trip still works.
+            backend.setCurrentKey("k1");
+            backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update(10L);
+            StateSnapshot below = backend.snapshotState();
+            assertNotNull(below.getStateData().get("states"));
+
+            // Above threshold: typed rejection before any materialization.
+            for (int i = 2; i <= 10; i++) {
+                backend.setCurrentKey("k" + i);
+                backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update((long) i);
+            }
+            io.nop.stream.core.exceptions.StreamException ex = assertThrows(
+                    io.nop.stream.core.exceptions.StreamException.class, backend::snapshotState,
+                    "full-scan snapshot above the materialize bound must fail typed");
+            assertTrue(String.valueOf(ex.getMessage()).contains("snapshot-materialize-max-entries"),
+                    "rejection must carry the config key guidance, got: " + ex.getMessage());
+
+            // Guard disabled (<=0): explicit self-assumed risk, snapshot succeeds.
+            backend.setSnapshotMaterializeMaxEntries(0);
+            assertNotNull(backend.snapshotState().getStateData().get("states"),
+                    "disabled guard (<=0) must allow the full-scan path");
+        } finally {
+            backend.close();
+        }
     }
 
     // ==================== Helper ====================

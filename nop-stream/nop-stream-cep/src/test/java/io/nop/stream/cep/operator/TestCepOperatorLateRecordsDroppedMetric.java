@@ -97,14 +97,24 @@ public class TestCepOperatorLateRecordsDroppedMetric {
      * DISTINCT meters — drops observed by one instance must never appear in the
      * other instance's counter (the old JVM-level shared counter merged them).
      */
+    /**
+     * plan 2511 C1-001 influence-surface registration: copyForSubtask now
+     * serialization-round-trips the user function (adjudication ②), so this
+     * fixture must be a static named class (Serializable, no enclosing test
+     * instance capture). Assertion semantics unchanged.
+     */
+    public static class CollectMatchFunction extends PatternProcessFunction<Event, String> {
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public void processMatch(Map<String, List<Event>> match, Context ctx, Collector<String> out) {
+            out.collect("match");
+        }
+    }
+
     @Test
     void twoParallelInstancesDoNotCrossCount() throws Exception {
-        PatternProcessFunction<Event, String> function = new PatternProcessFunction<>() {
-            @Override
-            public void processMatch(Map<String, List<Event>> match, Context ctx, Collector<String> out) {
-                out.collect("match");
-            }
-        };
+        PatternProcessFunction<Event, String> function = new CollectMatchFunction();
 
         Pattern<Event, ?> pattern = Pattern.<Event>begin("start")
                 .where(SimpleCondition.of(event -> event.getId() >= 42))

@@ -249,8 +249,14 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
             @SuppressWarnings("unchecked")
             Map<String, Object> after = (Map<String, Object>) spec.get("after");
 
+            // plan 2511 C8-001 contract: the LastEmittedOffsetTracker requires a
+            // usable position field (lsn here) plus a non-empty serverName on
+            // every emitted event — position-less events fail typed. The replay
+            // fixture synthesizes a deterministic lsn from the event ts so the
+            // scenario satisfies the same contract as a real Debezium stream.
             ChangeEventMetadata metadata = new ChangeEventMetadata(
-                    null, null, "fraud", null, "transactions", "data");
+                    null, "fraud-server", "fraud", null, "transactions", "data",
+                    null, null, ts, null);
             Map<String, Object> key = new LinkedHashMap<>();
             key.put("transactionId", after.get("transactionId"));
             return new ChangeEvent(metadata, op, null, after, key, ts);

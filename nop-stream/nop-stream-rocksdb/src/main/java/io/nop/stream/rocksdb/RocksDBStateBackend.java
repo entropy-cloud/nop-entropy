@@ -43,6 +43,13 @@ public class RocksDBStateBackend implements IStateBackend, Serializable {
     private final RocksDBOptionConfig optionConfig;
 
     /**
+     * plan 2511 C5-002 (engine checkpoint-mode coherence): explicit snapshot-form
+     * pin propagated to every created keyed backend. {@code null} = follow the
+     * keyed backend's own default (incremental, per C5-002 adjudication 5).
+     */
+    private Boolean incrementalCheckpointEnabled;
+
+    /**
      * Create a RocksDB state backend.
      *
      * @param dbPath         directory for the RocksDB database
@@ -114,7 +121,22 @@ public class RocksDBStateBackend implements IStateBackend, Serializable {
 
     @Override
     public <K> IKeyedStateBackend<K> createKeyedStateBackend(Class<K> keyType) {
-        return new RocksDBKeyedStateBackend<>(dbPath, keyType, maxParallelism, optionConfig);
+        RocksDBKeyedStateBackend<K> backend =
+                new RocksDBKeyedStateBackend<>(dbPath, keyType, maxParallelism, optionConfig);
+        if (incrementalCheckpointEnabled != null) {
+            backend.setIncrementalCheckpointEnabled(incrementalCheckpointEnabled);
+        }
+        return backend;
+    }
+
+    /**
+     * plan 2511 C5-002 (engine checkpoint-mode coherence): pins the snapshot form
+     * of every keyed backend created from this factory. See
+     * {@link IStateBackend#setIncrementalCheckpointEnabled(boolean)}.
+     */
+    @Override
+    public void setIncrementalCheckpointEnabled(boolean incrementalCheckpointEnabled) {
+        this.incrementalCheckpointEnabled = incrementalCheckpointEnabled;
     }
 
     @Override

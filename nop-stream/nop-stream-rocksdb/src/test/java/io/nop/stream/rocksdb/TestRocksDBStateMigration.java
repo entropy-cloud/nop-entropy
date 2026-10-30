@@ -72,6 +72,7 @@ class TestRocksDBStateMigration {
         Path origDir = tempDir.toPath().resolve("orig");
         RocksDBKeyedStateBackend<String> backend =
                 new RocksDBKeyedStateBackend<>(origDir.toString(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         ValueStateDescriptor<Integer> intDesc = new ValueStateDescriptor<>("counter", Integer.class);
         backend.setCurrentKey("k1");
         backend.getState(intDesc).update(42);
@@ -84,6 +85,7 @@ class TestRocksDBStateMigration {
         Path restoreDir = tempDir.toPath().resolve("restored");
         RocksDBKeyedStateBackend<String> restored =
                 new RocksDBKeyedStateBackend<>(restoreDir.toString(), String.class, 1, null);
+        restored.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         restored.restoreState(snapshot);
 
         StreamComponents components = new StreamComponents();
@@ -109,6 +111,7 @@ class TestRocksDBStateMigration {
         Path origDir = tempDir.toPath().resolve("orig");
         RocksDBKeyedStateBackend<String> backend =
                 new RocksDBKeyedStateBackend<>(origDir.toString(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         ValueStateDescriptor<Integer> intDesc = new ValueStateDescriptor<>("counter", Integer.class);
         backend.setCurrentKey("k1");
         backend.getState(intDesc).update(7);
@@ -118,6 +121,7 @@ class TestRocksDBStateMigration {
         Path restoreDir = tempDir.toPath().resolve("restored");
         RocksDBKeyedStateBackend<String> restored =
                 new RocksDBKeyedStateBackend<>(restoreDir.toString(), String.class, 1, null);
+        restored.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         restored.restoreState(snapshot);
 
         // No migration registry set → fail-fast
@@ -132,6 +136,7 @@ class TestRocksDBStateMigration {
         Path origDir = tempDir.toPath().resolve("orig");
         RocksDBKeyedStateBackend<String> backend =
                 new RocksDBKeyedStateBackend<>(origDir.toString(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         ValueStateDescriptor<Integer> intDesc = new ValueStateDescriptor<>("counter", Integer.class);
         backend.setCurrentKey("k1");
         backend.getState(intDesc).update(42);
@@ -141,6 +146,7 @@ class TestRocksDBStateMigration {
         Path restoreDir = tempDir.toPath().resolve("restored");
         RocksDBKeyedStateBackend<String> restored =
                 new RocksDBKeyedStateBackend<>(restoreDir.toString(), String.class, 1, null);
+        restored.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         restored.restoreState(snapshot);
         StreamComponents components = new StreamComponents();
         components.registerStateMigrationFunction("counter", new IntegerToLongMigration("counter"));

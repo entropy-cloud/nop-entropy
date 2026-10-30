@@ -104,6 +104,7 @@ class TestStateFamilyBackendMatrix {
         dir.mkdirs();
         RocksDBKeyedStateBackend<String> backend =
                 new RocksDBKeyedStateBackend<>(dir.getAbsolutePath(), String.class, 1, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         backend.setTtlTimeProvider(clock);
         return backend;
     }

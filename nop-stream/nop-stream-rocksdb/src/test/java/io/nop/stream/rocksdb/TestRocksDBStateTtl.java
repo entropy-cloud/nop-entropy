@@ -66,6 +66,7 @@ class TestRocksDBStateTtl {
                 (RocksDBKeyedStateBackend<String>) new RocksDBStateBackend(tempDir.getAbsolutePath())
                         .createKeyedStateBackend(String.class);
         backend.setTtlTimeProvider(clock);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         return backend;
     }
 

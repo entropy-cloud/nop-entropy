@@ -72,6 +72,10 @@ public class TestRocksDBStateBackendE2E {
     @Test
     void testOperatorSnapshotUsesRocksDBBackend() throws Exception {
         RocksDBStateBackend stateBackend = new RocksDBStateBackend(rocksPath("wiring"));
+        // plan 2511 C5-002: this test pins the FULL-form operator snapshot round
+        // trip (byte-compatible StateSnapshot consumed without an ISegmentStore)
+        // — opt out of the now-default incremental checkpoint path explicitly.
+        stateBackend.setIncrementalCheckpointEnabled(false);
         IKeyedStateBackend<String> keyedBackend = stateBackend.createKeyedStateBackend(String.class);
 
         StreamMap<String, String> mapOp = new StreamMap<>((MapFunction<String, String>) s -> s);
@@ -141,6 +145,8 @@ public class TestRocksDBStateBackendE2E {
         StreamSinkOperator<Integer> sinkOp1 = new StreamSinkOperator<>(sink1);
 
         RocksDBStateBackend rocksBackend = new RocksDBStateBackend(rocksPath("pipeline"));
+        // plan 2511 C5-002: full-form snapshot leg (see testOperatorSnapshotUsesRocksDBBackend)
+        rocksBackend.setIncrementalCheckpointEnabled(false);
         mapOp1.setStateBackend(rocksBackend);
         IKeyedStateBackend<String> keyedBackend = rocksBackend.createKeyedStateBackend(String.class);
         mapOp1.setKeyedStateBackend(keyedBackend);

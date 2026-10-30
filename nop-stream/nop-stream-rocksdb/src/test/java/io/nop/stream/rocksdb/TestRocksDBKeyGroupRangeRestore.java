@@ -49,6 +49,7 @@ public class TestRocksDBKeyGroupRangeRestore {
         srcDir.mkdirs();
         RocksDBKeyedStateBackend<String> source = new RocksDBKeyedStateBackend<>(
                 srcDir.getAbsolutePath(), String.class, MAX_P, null);
+        source.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
 
         ValueState<Long> state = source.getState(COUNT);
         java.util.Map<String, Long> allKeys = new java.util.LinkedHashMap<>();
@@ -69,6 +70,7 @@ public class TestRocksDBKeyGroupRangeRestore {
             dstDir.mkdirs();
             RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(
                     dstDir.getAbsolutePath(), String.class, MAX_P, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
             KeyGroupRange range = KeyGroupAssignment.computeKeyGroupRangeForSubtaskIndex(MAX_P, 4, sub);
             backend.setTargetKeyGroupRange(range);
             backend.restoreState(snapshot);
@@ -95,6 +97,7 @@ public class TestRocksDBKeyGroupRangeRestore {
         srcDir.mkdirs();
         RocksDBKeyedStateBackend<String> source = new RocksDBKeyedStateBackend<>(
                 srcDir.getAbsolutePath(), String.class, MAX_P, null);
+        source.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         ValueState<Long> state = source.getState(COUNT);
         java.util.Map<String, Long> allKeys = new java.util.LinkedHashMap<>();
         for (int i = 0; i < 20; i++) {
@@ -110,6 +113,7 @@ public class TestRocksDBKeyGroupRangeRestore {
         dstDir.mkdirs();
         RocksDBKeyedStateBackend<String> backend = new RocksDBKeyedStateBackend<>(
                 dstDir.getAbsolutePath(), String.class, MAX_P, null);
+        backend.setIncrementalCheckpointEnabled(false); // C5-002 full-path opt-out leg
         backend.restoreState(snapshot);
         for (java.util.Map.Entry<String, Long> e : allKeys.entrySet()) {
             assertEquals(e.getValue().longValue(), readValue(backend, e.getKey()));

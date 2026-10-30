@@ -44,11 +44,17 @@ class TestRocksDBIncrementalBackendWiring {
 
     @Test
     void disabledKeepsFullScanPath() throws Exception {
+        // plan 2511 C5-002 (adjudication ⑤): the incremental SST path is the
+        // DEFAULT (full-scan materialization becomes the explicit opt-out,
+        // guarded by the snapshot-materialize-max-entries bound).
         RocksDBKeyedStateBackend<String> backend = newBackend();
+        assertTrue(backend.isIncrementalCheckpointEnabled(), "default must be true (C5-002)");
         backend.setCurrentKey("k1");
         backend.getState(new ValueStateDescriptor<>("vs", Long.class)).update(42L);
 
-        assertFalse(backend.isIncrementalCheckpointEnabled(), "default must be false");
+        // Explicit full-scan opt-out keeps the JSON 'states' map path.
+        backend.setIncrementalCheckpointEnabled(false);
+        assertFalse(backend.isIncrementalCheckpointEnabled(), "opt-out honored");
 
         StateSnapshot snapshot = backend.snapshotState();
         assertNotNull(snapshot);

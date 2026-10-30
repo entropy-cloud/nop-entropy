@@ -80,7 +80,24 @@ public class RocksDBMetricsRecorder {
     }
 
     private void gauge(MeterRegistry registry, String meterName, String property) {
-        registry.gauge(meterName, Tags.empty(), dbRef, ref -> readProperty(ref.get(), property));
+        // plan 2511 C1-002 (adjudication ①): the dbRef evaluation point MUST sit
+        // inside the recorder monitor — reading the reference outside the
+        // synchronized block lets a scrape thread carry a stale reference across
+        // the close window into a native read on a closed handle (SIGSEGV).
+        registry.gauge(meterName, Tags.empty(), dbRef, ref -> readCurrent(property));
+    }
+
+    /**
+     * Reads an aggregated property with the reference fetch INSIDE the monitor
+     * (plan 2511 C1-002). If the reference is non-null at read time the close
+     * sequence ({@link #close()} sets it to null under the same monitor, before
+     * the owning backend closes the native handle) has not yet detached it, so
+     * the native handle is still open; if it is null the recorder is detached
+     * and the gauge reports {@code Double.NaN}. This closes the
+     * fetch-close-use race window without introducing any new lock.
+     */
+    public synchronized double readCurrent(String property) {
+        return readProperty(dbRef.get(), property);
     }
 
     /**

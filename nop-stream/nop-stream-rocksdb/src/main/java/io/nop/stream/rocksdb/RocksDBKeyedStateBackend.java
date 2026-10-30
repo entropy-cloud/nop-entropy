@@ -113,10 +113,25 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     /**
      * When {@code true}, {@link #snapshotState()} takes the incremental
      * path — a native RocksDB checkpoint is created and SST files are content-addressed
-     * (see {@link RocksDBIncrementalSnapshotStrategy}). Defaults to {@code false} so
-     * the full-scan path remains the default (backward compatible).
+     * (see {@link RocksDBIncrementalSnapshotStrategy}). Defaults to {@code true}
+     * (plan 2511 C5-002, adjudication ⑤): within the "state beyond heap" envelope
+     * the DEFAULT checkpoint path must not deserialize and materialize the whole
+     * state library into an on-heap object graph (2-5x amplification, periodic
+     * OOM face). The full-scan JSON path remains available as an explicit opt-out
+     * ({@link #setIncrementalCheckpointEnabled(boolean) setIncrementalCheckpointEnabled(false)}),
+     * guarded by the materialize-entry threshold
+     * ({@link NopStreamRocksdbConfigs#SNAPSHOT_MATERIALIZE_MAX_ENTRIES}).
      */
-    private boolean incrementalCheckpointEnabled = false;
+    private boolean incrementalCheckpointEnabled = true;
+
+    /**
+     * Full-scan opt-out guard (plan 2511 C5-002): maximum number of entries the
+     * full JSON snapshot path may materialize into the heap. {@code <= 0}
+     * disables the guard (explicit self-assumed risk). Default from
+     * {@link NopStreamRocksdbConfigs#SNAPSHOT_MATERIALIZE_MAX_ENTRIES}.
+     */
+    private long snapshotMaterializeMaxEntries =
+            NopStreamRocksdbConfigs.SNAPSHOT_MATERIALIZE_MAX_ENTRIES.get();
 
     /**
      * Base directory under which per-checkpoint directories ({@code cp-{id}}) are
@@ -158,6 +173,32 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     @SuppressWarnings("unchecked")
     private final Map<String, StateDescriptor<?>> restoredDescriptors = new LinkedHashMap<>();
+
+    /**
+     * plan 2511 C5-002 (dual-path migration invariant): schema headers carried by
+     * an INCREMENTAL checkpoint restore ({@code restoredSchemas} entry =
+     * {@code [stateType, restored descriptor]} reconstructed by
+     * {@link RocksDBSnapshotSerDe#registerRestoredSchemas}). Unlike the full-JSON
+     * path — which materializes a state object per restored state — the
+     * incremental path copies raw SST bytes and creates no state objects, so the
+     * first live {@code getXxxState(...)} after an incremental restore must run
+     * the same schema-compatibility verification (migration-or-fail-fast) the
+     * full path performs; otherwise a restored checkpoint written with an older
+     * schema would be silently read with the new serializer (silent corruption).
+     */
+    private final Map<String, RestoredSchema> restoredSchemas = new LinkedHashMap<>();
+
+    /** One incremental-restore schema header: state type + reconstructed descriptor. */
+    record RestoredSchema(String stateType, StateDescriptor<?> descriptor) {
+    }
+
+    void putRestoredSchema(String name, String stateType, StateDescriptor<?> descriptor) {
+        restoredSchemas.put(name, new RestoredSchema(stateType, descriptor));
+    }
+
+    Map<String, RestoredSchema> getRestoredSchemas() {
+        return restoredSchemas;
+    }
 
     /**
      * Processing-time source used by all {@link TtlContext}s created in {@link #applyTtl}.
@@ -598,16 +639,59 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
      * create via {@code creator}, register the state's public interface type
      * and cache. On hit: run the schema-compatibility verification
      * (with migration).
+     *
+     * <p>plan 2511 C5-002 (dual-path migration invariant): on miss the backend
+     * first consults {@link #restoredSchemas} — schema headers recorded by an
+     * INCREMENTAL checkpoint restore. A checksum mismatch without a registered
+     * migration fails fast with {@code ERR_STREAM_STATE_SCHEMA_MISMATCH} (same
+     * judgment as the full-JSON path); with a registered migration the state is
+     * created with the RESTORED descriptor, migrated entry-by-entry, then its
+     * descriptor is swapped to the current one (idempotency invariant).
      */
     @SuppressWarnings("unchecked")
     private <S> S getOrCreateState(StateDescriptor<?> descriptor, String schemaStateType,
                                    Class<?> registeredInterface,
-                                   java.util.function.BiFunction<String, ColumnFamilyHandle, Object> creator) {
+                                   java.util.function.BiFunction<StateDescriptor<?>, ColumnFamilyHandle, Object> creator) {
         String name = descriptor.getName();
         Object existing = states.get(name);
         if (existing == null) {
+            StateDescriptor<?> createDescriptor = descriptor;
+            StateMigrationFunction<?, ?> pendingMigration = null;
+            RestoredSchema restored = restoredSchemas.remove(name);
+            if (restored != null) {
+                if (!restored.stateType().equals(schemaStateType)) {
+                    throw new StreamException(ERR_STREAM_TYPE_MISMATCH)
+                            .param(ARG_STATE_NAME, name)
+                            .param(ARG_EXPECTED_TYPE, restored.stateType())
+                            .param(ARG_ACTUAL_TYPE, schemaStateType);
+                }
+                SerializerFingerprint currentFp =
+                        StateSchemaResolver.fromDescriptor(schemaStateType, descriptor);
+                SerializerFingerprint restoredFp =
+                        StateSchemaResolver.fromDescriptor(schemaStateType, restored.descriptor());
+                if (!StateSchemaResolver.fingerprintsCompatible(currentFp, restoredFp)) {
+                    StateMigrationFunction<?, ?> migration = StateSchemaResolver.findMigration(
+                            migrationRegistry, name, restoredFp, currentFp);
+                    if (migration == null) {
+                        throw new StreamException(ERR_STREAM_STATE_SCHEMA_MISMATCH)
+                                .param(ARG_STATE_NAME, name)
+                                .param(ARG_EXPECTED_CHECKSUM, currentFp.getSchemaChecksum())
+                                .param(ARG_ACTUAL_CHECKSUM, restoredFp.getSchemaChecksum());
+                    }
+                    // Create with the restored (old) descriptor so the migration
+                    // reads stored values in their original serializer, then swap
+                    // to the current descriptor after the migration applies.
+                    createDescriptor = restored.descriptor();
+                    pendingMigration = migration;
+                }
+            }
             ColumnFamilyHandle cf = getOrCreateColumnFamily(name);
-            Object state = creator.apply(name, cf);
+            Object state = creator.apply(createDescriptor, cf);
+            if (pendingMigration != null) {
+                MigratableKeyedState migratable = (MigratableKeyedState) state;
+                migratable.applyMigration(pendingMigration);
+                migratable.replaceDescriptor(descriptor);
+            }
             registerStateType(name, registeredInterface);
             states.put(name, state);
             return (S) state;
@@ -617,42 +701,48 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ValueState<T> getState(ValueStateDescriptor<T> stateProperties) {
         ValueState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_VALUE,
-                ValueState.class, (name, cf) -> new RocksDBValueState<>(this, cf, stateProperties));
+                ValueState.class, (d, cf) -> new RocksDBValueState<>(this, cf, (ValueStateDescriptor<T>) d));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <UK, UV> MapState<UK, UV> getMapState(MapStateDescriptor<UK, UV> stateProperties) {
         MapState<UK, UV> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_MAP,
-                MapState.class, (name, cf) -> new RocksDBMapState<>(this, cf, stateProperties));
+                MapState.class, (d, cf) -> new RocksDBMapState<>(this, cf, (MapStateDescriptor<UK, UV>) d));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ListState<T> getListState(ListStateDescriptor<T> stateProperties) {
         ListState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_LIST,
-                ListState.class, (name, cf) -> new RocksDBListState<>(this, cf, stateProperties));
+                ListState.class, (d, cf) -> new RocksDBListState<>(this, cf, (ListStateDescriptor<T>) d));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ReducingState<T> getReducingState(ReducingStateDescriptor<T> stateProperties) {
         ReducingState<T> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_REDUCING,
-                ReducingState.class, (name, cf) -> new RocksDBReducingState<>(this, cf, stateProperties));
+                ReducingState.class, (d, cf) -> new RocksDBReducingState<>(this, cf, (ReducingStateDescriptor<T>) d));
         applyTtl(state, stateProperties);
         return state;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <IN, ACC, OUT> AggregatingState<IN, OUT> getAggregatingState(
             AggregatingStateDescriptor<IN, ACC, OUT> stateProperties) {
         AggregatingState<IN, OUT> state = getOrCreateState(stateProperties, StateSchemaResolver.STATE_TYPE_AGGREGATING,
-                AggregatingState.class, (name, cf) -> new RocksDBAggregatingState<>(this, cf, stateProperties));
+                AggregatingState.class,
+                (d, cf) -> new RocksDBAggregatingState<>(this, cf, (AggregatingStateDescriptor<IN, ACC, OUT>) d));
         applyTtl(state, stateProperties);
         return state;
     }
@@ -664,7 +754,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         InternalAppendingState<K, N, IN, IN, IN> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_APPENDING,
                         InternalAppendingState.class,
-                        (name, cf) -> new RocksDBInternalAppendingState<>(this, cf, descriptor));
+                        (d, cf) -> new RocksDBInternalAppendingState<>(this, cf, (ReducingStateDescriptor<IN>) d));
         applyTtl(state, descriptor);
         return state;
     }
@@ -676,7 +766,8 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         InternalAppendingState<K, N, IN, ACC, OUT> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_AGGREGATING,
                         InternalAppendingState.class,
-                        (name, cf) -> new RocksDBInternalAggregatingState<>(this, cf, descriptor));
+                        (d, cf) -> new RocksDBInternalAggregatingState<>(this, cf,
+                                (AggregatingStateDescriptor<IN, ACC, OUT>) d));
         applyTtl(state, descriptor);
         return state;
     }
@@ -686,7 +777,8 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     public <N, T> InternalListState<K, N, T> getInternalListState(ListStateDescriptor<T> descriptor) {
         InternalListState<K, N, T> state =
                 getOrCreateState(descriptor, StateSchemaResolver.STATE_TYPE_INTERNAL_LIST,
-                        InternalListState.class, (name, cf) -> new RocksDBInternalListState<>(this, cf, descriptor));
+                        InternalListState.class,
+                        (d, cf) -> new RocksDBInternalListState<>(this, cf, (ListStateDescriptor<T>) d));
         applyTtl(state, descriptor);
         return state;
     }
@@ -832,6 +924,21 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             return snapshotIncremental();
         }
         cleanupExpiredEntries();
+        // plan 2511 C5-002 (adjudication ⑤): the opt-in full JSON path materializes
+        // every entry as a heap object graph. Above the configured bound, fail typed
+        // with guidance instead of OOMing the task at checkpoint time.
+        long maxEntries = snapshotMaterializeMaxEntries;
+        if (maxEntries > 0) {
+            long entries = RocksDBSnapshotSerDe.countSnapshotEntries(this);
+            if (entries > maxEntries) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "Full-scan checkpoint materializes " + entries
+                                + " entries, above nop.stream.rocksdb.snapshot-materialize-max-entries="
+                                + maxEntries + " — enable the incremental checkpoint path "
+                                + "(setIncrementalCheckpointEnabled(true)) or explicitly raise/disable "
+                                + "the bound (setSnapshotMaterializeMaxEntries) at your own risk");
+            }
+        }
         return RocksDBSnapshotSerDe.snapshotState(this);
     }
 
@@ -861,6 +968,12 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         if (keyType != null) {
             data.put("keyType", keyType.getName());
         }
+        // plan 2511 C5-002 (dual-path migration invariant): embed the per-state
+        // schema headers (stateType/valueType/schemaChecksum/...) so the
+        // incremental restore path can run the same migration-registry /
+        // ERR_STREAM_STATE_SCHEMA_MISMATCH verification the full-JSON path
+        // performs from the materialized state headers.
+        data.put("schemas", RocksDBSnapshotSerDe.snapshotStateSchemas(this));
         return new StateSnapshot(data);
     }
 
@@ -880,6 +993,18 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         this.checkpointBaseDir = checkpointBaseDir;
     }
 
+    /**
+     * Full-scan opt-out materialize bound (plan 2511 C5-002). {@code <= 0}
+     * disables the guard.
+     */
+    public long getSnapshotMaterializeMaxEntries() {
+        return snapshotMaterializeMaxEntries;
+    }
+
+    public void setSnapshotMaterializeMaxEntries(long snapshotMaterializeMaxEntries) {
+        this.snapshotMaterializeMaxEntries = snapshotMaterializeMaxEntries;
+    }
+
     @Override
     public void restoreState(StateSnapshot snapshot) throws Exception {
         if (snapshot != null && !snapshot.isEmpty()) {
@@ -889,7 +1014,9 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                 // on legacy/absent keyLayoutVersion before restoreIncremental scans
                 // SST files with the wrong byte-range assumption (silent data loss).
                 RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true);
+                restoredSchemas.clear();
                 restoreIncremental((IncrementalSnapshotResult) marker);
+                registerRestoredSchemasQuietly(snapshot);
                 return;
             }
             if (marker instanceof Map) {
@@ -897,12 +1024,24 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                 @SuppressWarnings("unchecked")
                 IncrementalSnapshotResult result = io.nop.core.reflect.bean.BeanTool
                         .buildBean(marker, IncrementalSnapshotResult.class);
-                if (result != null) {
+                if (result != null && result.getNonSstDir() != null) {
                     // Same strict key-layout fail-fast as the typed-marker branch:
                     // the reconstructed result still consumes layout-sensitive SSTs.
                     RocksDBKeyEncoder.verifyKeyLayoutVersion(snapshot.getStateData(), true);
+                    restoredSchemas.clear();
                     restoreIncremental(result);
+                    registerRestoredSchemasQuietly(snapshot);
                     return;
+                }
+                if (result != null) {
+                    // A JSON round trip that lost the payload fields (e.g. a marker
+                    // reconstructed with all-null fields) is NOT a usable incremental
+                    // checkpoint: falling through to the full-JSON path would silently
+                    // restore nothing — fail fast instead (no-silent-skip rule 24).
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "Snapshot carries an incremental checkpoint marker whose "
+                                    + "payload could not be reconstructed (nonSstDir is null) — the "
+                                    + "checkpoint body was truncated or written by an incompatible format");
                 }
             }
             if (marker != null) {
@@ -915,7 +1054,24 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
                                 + " that is neither an IncrementalSnapshotResult nor a reconstructable map");
             }
         }
+        // Full-JSON restore supersedes any previously registered incremental
+        // schema headers (the SerDe re-materializes state objects with their own
+        // restored descriptors).
+        restoredSchemas.clear();
         RocksDBSnapshotSerDe.restoreState(this, snapshot);
+    }
+
+    /**
+     * plan 2511 C5-002 (dual-path migration invariant): after a successful
+     * incremental range restore, register the snapshot's per-state schema
+     * headers so the first live {@code getXxxState(...)} runs the same
+     * migration-registry / fail-fast verification the full-JSON restore path
+     * performs at state-materialization time. Legacy incremental snapshots
+     * without a {@code schemas} header are tolerated (verification is then
+     * structurally impossible) — new checkpoints always embed it.
+     */
+    private void registerRestoredSchemasQuietly(StateSnapshot snapshot) throws Exception {
+        RocksDBSnapshotSerDe.registerRestoredSchemas(this, snapshot.getStateData());
     }
 
     @Override
