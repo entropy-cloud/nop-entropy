@@ -94,6 +94,48 @@ public class ReplayableCdcSourceFunction extends DebeziumCdcSourceFunction {
         return Collections.unmodifiableList(eventSpecs);
     }
 
+    /**
+     * 2511 C8-001 residual-face completion: the production {@code snapshotState} replaces the
+     * store snapshot with the {@link io.nop.stream.connector.debezium.LastEmittedOffsetTracker}
+     * last-emitted map (marker + per-server entries) once any event was emitted. This fixture's
+     * resume position lives in its OWN store key {@link #REPLAY_INDEX_KEY}, which that synthesized
+     * map does not carry — a restore would drop it and the replay engine would restart from index
+     * 0 (re-emitting the already-consumed prefix). Merge the replay-index entry back into the
+     * checkpoint map (same base64 byte encoding as
+     * {@code NopStreamOffsetBackingStore.toSerializable}) so restore resumes at the consumed
+     * boundary. The emitter writes the index AFTER the tracker's {@code onEmitted} on the same
+     * thread, so the merged value is never fresher than the tracker boundary.
+     */
+    @Override
+    public io.nop.stream.core.checkpoint.OperatorSnapshotResult snapshotState(long checkpointId)
+            throws Exception {
+        io.nop.stream.core.checkpoint.OperatorSnapshotResult result = super.snapshotState(checkpointId);
+        NopStreamOffsetBackingStore store = getOffsetStore();
+        if (store == null) {
+            return result;
+        }
+        java.nio.ByteBuffer indexValue = store.getOffsets().get(REPLAY_INDEX_KEY);
+        if (indexValue == null) {
+            return result;
+        }
+        Map<String, String> offsets = castOffsetMap(
+                result.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY));
+        if (offsets == null) {
+            return result;
+        }
+        offsets.put(base64Utf8(REPLAY_INDEX_KEY.array()), base64Utf8(indexValue.array()));
+        return result;
+    }
+
+    private static String base64Utf8(byte[] bytes) {
+        return java.util.Base64.getEncoder().encodeToString(bytes);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, String> castOffsetMap(Object raw) {
+        return raw instanceof Map ? (Map<String, String>) raw : null;
+    }
+
     @Override
     protected DebeziumMessageSource createMessageSource(DebeziumConfig config,
                                                         NopStreamOffsetBackingStore offsetStore) {

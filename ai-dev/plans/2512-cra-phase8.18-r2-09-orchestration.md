@@ -102,37 +102,39 @@ Exit Criteria:
 
 ### Phase 2 - 4 成员实现 + 回归测试（按模块三组）
 
-Status: planned
+Status: done
 Targets: `nop-stream/nop-stream-sql/src/`、`nop-stream/nop-stream-fraud-example/src/`、`nop-stream/nop-stream-core/src/`——各自 main + test 树
 
 - Item Types: `Fix`（4 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门 + C10-007 搭车）
 
-- [ ] 组 sql：C1-001（容器化+换绑契约，按裁定①，含 sql.md §3a docs bug 同 diff——docs 修正随本体 commit 不拆）
-- [ ] 组 fraud-example：C3-008（增量恢复，按裁定②）+ C6-007（cancelled 复位，按裁定④，与裁定②同文件共验 C10-006 钉）+ C10-007 搭车探针
-- [ ] 组 core：C3-009（per-subtask 封闭，按裁定③）+ C10-003 隔离测试（归属登记注明 core）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C1-001/C10-001 红①：并发 register×call 压窗——修复前撕裂/null/CME（trip-wire 红）→ 修复后 CHM 零 CME、注册可见、namesList 无 CME 子用例绿；换绑 WARN/契约断言按裁定①形态
-  - [ ] C3-008/C10-002 红②：restore-vs-run 交错（已完成文件变体）——修复前 checkpoint 位点滞后断言红 → 修复后增量合并位点不回退、恢复重放零重复计入
-  - [ ] C3-009/C10-003 红③：LOCAL P=2 有状态 keyed UDF——修复前 keyedStateStore 实例同一性断言红（两子任务收敛同一 backend）→ 修复后各子任务 context/backend 独立、跨键零污染
-  - [ ] C6-007/C10-004 红④：cancel 后同实例重跑——修复前零事件红 → 修复后全量重发 + 快照游标单调；run 中 cancel 变体先红留痕
-  - [ ] C10-007 搭车：MultiFile ≥3 文件顺序 + ≥8KB 块边界 resume 不丢不重 + 空目录 EOS 契约探针（纯参数化入 CI）
-- [ ] **端到端验证**（rule 22）：≥1 条 S2 链路 E2E（源失败/取消 → region 重启 → 恢复重放零重复 + 零截断——覆盖裁定②④组合行为；`TestS2RecoveryAndRescaleE2E` 为最近载体，若其不覆盖 cancel 路径则补参数化 leg）；≥1 条 SQL UDF 声明面链路（`<sql>` 声明 → 编译 → 逐记录 call——覆盖裁定①，`TestUdfE2E` 扩展或新用例）
-- [ ] **接线验证**（rule 23）：裁定③ per-subtask context 真实被 `UserHistoryEnricher` 形态消费断言（非仅字段存在）；裁定②增量合并真实被 `initializeState`→`advanceCursor` 链消费断言；裁定① CHM 真实被生成 xpl 体 `call()` 消费断言
-- [ ] **无静默跳过**（rule 24）：裁定①换绑拒绝形态（若裁 typed fail-fast）显式失败而非静默换绑；裁定②若裁「静默才 REPLACE」则运行中 restore typed 拒绝而非静默跳过；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交——sql / fraud-example / core，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 sql：C1-001（容器化+换绑契约，按裁定①，含 sql.md §3a docs bug 同 diff——docs 修正随本体 commit 不拆）
+- [x] 组 fraud-example：C3-008（增量恢复，按裁定②）+ C6-007（cancelled 复位，按裁定④，与裁定②同文件共验 C10-006 钉）+ C10-007 搭车探针
+- [x] 组 core：C3-009（per-subtask 封闭，按裁定③）+ C10-003 隔离测试（归属登记注明 core）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C1-001/C10-001 红①：并发 register×call 压窗——修复前撕裂/null/CME（trip-wire 红）→ 修复后 CHM 零 CME、注册可见、namesList 无 CME 子用例绿；换绑 WARN/契约断言按裁定①形态
+  - [x] C3-008/C10-002 红②：restore-vs-run 交错（已完成文件变体）——修复前 checkpoint 位点滞后断言红 → 修复后增量合并位点不回退、恢复重放零重复计入
+  - [x] C3-009/C10-003 红③：LOCAL P=2 有状态 keyed UDF——修复前 keyedStateStore 实例同一性断言红（两子任务收敛同一 backend）→ 修复后各子任务 context/backend 独立、跨键零污染
+  - [x] C6-007/C10-004 红④：cancel 后同实例重跑——修复前零事件红 → 修复后全量重发 + 快照游标单调；run 中 cancel 变体先红留痕
+  - [x] C10-007 搭车：MultiFile ≥3 文件顺序 + ≥8KB 块边界 resume 不丢不重 + 空目录 EOS 契约探针（纯参数化入 CI）
+- [x] **端到端验证**（rule 22）：≥1 条 S2 链路 E2E（源失败/取消 → region 重启 → 恢复重放零重复 + 零截断——覆盖裁定②④组合行为；`TestS2RecoveryAndRescaleE2E` 为最近载体，若其不覆盖 cancel 路径则补参数化 leg）；≥1 条 SQL UDF 声明面链路（`<sql>` 声明 → 编译 → 逐记录 call——覆盖裁定①，`TestUdfE2E` 扩展或新用例）
+- [x] **接线验证**（rule 23）：裁定③ per-subtask context 真实被 `UserHistoryEnricher` 形态消费断言（非仅字段存在）；裁定②增量合并真实被 `initializeState`→`advanceCursor` 链消费断言；裁定① CHM 真实被生成 xpl 体 `call()` 消费断言
+- [x] **无静默跳过**（rule 24）：裁定①换绑拒绝形态（若裁 typed fail-fast）显式失败而非静默换绑；裁定②若裁「静默才 REPLACE」则运行中 restore typed 拒绝而非静默跳过；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交——sql / fraud-example / core，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 四条收口门 + C10-007 搭车同 diff 落地；C10-006 反向钉保持绿
-- [ ] 必红证据（E2）：红①–红④全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；C10-006 `runEnteredGuardPreventsDoubleEmission` 与 `TestUdfE2E` 为关键钉）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-stream -am` BUILD SUCCESS（debezium docker fork timeout 环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；sql.md §3a 修正随组 sql 本体 commit 的除外）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 四条收口门 + C10-007 搭车同 diff 落地；C10-006 反向钉保持绿
+- [x] 必红证据（E2）：红①–红④全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；C10-006 `runEnteredGuardPreventsDoubleEmission` 与 `TestUdfE2E` 为关键钉）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-stream -am` BUILD SUCCESS（debezium docker fork timeout 环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；sql.md §3a 修正随组 sql 本体 commit 的除外）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 
 - 偏差登记（实施期，core 组）：设计文档 §3.3「钉 fixture 均非 RichFunction」前提失实——ProcessFunction 本身是 RichFunction，ProcessOperator 的 UDF 全部落 round-trip 分支；零回退钉 TestOperatorSubtaskIsolation assertSame 属缺陷钉住断言，按 2511 C10-003 范式同 diff 反转为 assertNotSame（其余钉零触碰）；透传分支对通用工具其他形态仍有效。已同步登记至设计文档 §3.3 实施期勘误块。
+
+- 偏差登记（2511 残留闭环，fraud fixture 面）：2511 偏差③ fraud fixture 适配（`ReplayableCdcSourceFunction.toChangeEvent` 补 lsn/serverName 满足 C8-001 typed 契约）的补全——C8-001 后 `snapshotState` 在 tracker 有位点时以合成 map（marker+per-server）整体替换 store 快照，fixture 私有恢复键 `fraud-s1-replay-idx` 被丢弃，恢复后从头重放（`offsetCheckpointAndResumeSkipConsumedPrefix` expected 3/2 was 6）。判定为 fixture 面而非产品语义缺陷（真实引擎按 per-server 合成条目恢复，契约自洽）；修法：fixture 覆写 `snapshotState` 将 store 中的 replay-idx 以同 toSerializable base64 形态并回 checkpoint map（emitter 同线程先 tracker 记账后写 idx，不超前 tracker 边界）。证据：`_tmp/red-green-2512-residual-C8-001-{red,green}.log`、`_tmp/2512-fraud-gate-r2.log`（EXIT=0，TestS1CdcPipelineE2E 3/3 绿）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
