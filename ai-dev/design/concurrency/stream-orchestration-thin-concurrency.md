@@ -63,6 +63,7 @@ R2-09 批四项 P1 覆盖编排薄层两类缺陷面：**共享可变态的跨�
 - **作用域与非 RichFunction 豁免**：仅 `userFunction instanceof RichFunction` 时深拷贝——键控状态污染缺陷面只存在于接受 `setFunctionRuntimeContext` 写的 RichFunction UDF；非 RichFunction UDF（纯 `ProcessFunction` lambda/匿名类）零 context 写入，共享无害，维持现引用透传（无状态 UDF 零回归）。白名单外非 Serializable 的 RichFunction UDF typed 失败（`StreamException` 指引实现 Serializable），不做静默共享回退——与跨进程部署序列化约束互证（2511 §3.2 部署期行为变更声明同源）。
 - **round-trip + ShareRef 工具落点裁定（唯一结论）**：round-trip 与 ShareRef 白名单豁免工具落 **nop-stream-core util 包**（2511 裁定②判据原样平移——xlang 编译态不可变可执行体豁免判据不重开）；cep（CepOperator :345-348）与 debezium（DebeziumSourceSupport :188、DebeziumCdcSourceFunction :761）的既有模块内私有实现本批零触碰、不强制收敛（core 工具就位后其迁移归后续各自主人批）。
 - **存量盘点注记（Minor-3）**：零回退钉 fixture（`TestProcessOperator`/`TestOperatorSubtaskIsolation` 的 UDF 桩）均非 RichFunction——落非拷贝透传分支，钉保绿；bean 形态 KeyedProcessFunction（nop-stream-flow `AdvancedTransforms.java:930`）是 typed 失败声明的现实暴露面，Phase 2 按 2511 §3.2「测试侧已知形态」范式登记适配（fixture 序列化化，不改断言语义）。
+> 实施期勘误（core 组 live 亲读）：「钉 fixture 均非 RichFunction」前提失实——`ProcessFunction extends AbstractRichFunction implements RichFunction`，ProcessOperator 的 UDF 全部为 RichFunction，透传分支对 ProcessOperator 实际不可达；据此零回退钉 `TestOperatorSubtaskIsolation` 的 assertSame 断言属缺陷钉住本体，按 2511 C10-003 范式同 diff 反转为 assertNotSame（`processOperatorRichFunctionUdfIsPrivatePerSubtask`）。透传分支对通用工具面其他调用形态仍有效。
 - **失效面外溢矩阵（C10-003 复核义务载体）**：
 
 | UDF 形态 | 修复前 | 修复后 |

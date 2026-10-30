@@ -8,6 +8,7 @@ import io.nop.stream.core.common.state.VoidNamespace;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.time.TimerService;
 import io.nop.stream.core.util.OutputTag;
+import io.nop.stream.core.util.SerializationRoundTripCopy;
 
 public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, ProcessFunction<IN, OUT>>
         implements OneInputStreamOperator<IN, OUT>, Triggerable<Object, VoidNamespace> {
@@ -34,13 +35,27 @@ public class ProcessOperator<IN, OUT> extends AbstractUdfStreamOperator<OUT, Pro
     /**
      * {@inheritDoc}
      *
-     * <p>Process operator: the user process function is shared across subtasks
-     * (it may capture external state). All transient state (collector, timer
-     * service, contexts) is left null and re-initialized by {@link #open()}.
+     * <p>Process operator: all transient state (collector, timer service,
+     * contexts) is left null and re-initialized by {@link #open()}.
+     *
+     * <p>Plan 2512 C3-009 (adjudication ③): a {@code RichFunction} user function
+     * (every {@link ProcessFunction} is one) stores its {@code RuntimeContext} in
+     * an instance field, so a shared instance gave parallel subtasks one shared
+     * context slot — each subtask's {@link #open()} (via
+     * {@code AbstractUdfStreamOperator.open} and the keyed-state wiring at
+     * {@code setKeyedStateStore}) overwrote the previous write and all subtasks'
+     * keyed state collapsed into a single last-writer-wins backend.
+     * {@code copyForSubtask} therefore deep copies RichFunction UDFs
+     * (serialization round-trip with the compiled-XLang shareable-leaf carve-out,
+     * see {@link io.nop.stream.core.util.SerializationRoundTripCopy}) so each
+     * subtask gets a private UDF instance and a private context. Non-RichFunction
+     * UDFs keep the pass-through shared reference (no context write face —
+     * zero regression for stateless functions). A non-Serializable RichFunction
+     * UDF fails typed (no silent sharing fallback).
      */
     @Override
     public ProcessOperator<IN, OUT> copyForSubtask() {
-        return new ProcessOperator<>(userFunction);
+        return new ProcessOperator<>(SerializationRoundTripCopy.copyForSubtask(userFunction));
     }
 
     @Override

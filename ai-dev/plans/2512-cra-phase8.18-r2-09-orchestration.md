@@ -131,6 +131,9 @@ Exit Criteria:
 - [ ] `./mvnw test -pl nop-stream -am` BUILD SUCCESS（debezium docker fork timeout 环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；sql.md §3a 修正随组 sql 本体 commit 的除外）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
+
+- 偏差登记（实施期，core 组）：设计文档 §3.3「钉 fixture 均非 RichFunction」前提失实——ProcessFunction 本身是 RichFunction，ProcessOperator 的 UDF 全部落 round-trip 分支；零回退钉 TestOperatorSubtaskIsolation assertSame 属缺陷钉住断言，按 2511 C10-003 范式同 diff 反转为 assertNotSame（其余钉零触碰）；透传分支对通用工具其他形态仍有效。已同步登记至设计文档 §3.3 实施期勘误块。
+
 ### Phase 3 - 全量验证 + owner doc 更新
 
 Status: planned
