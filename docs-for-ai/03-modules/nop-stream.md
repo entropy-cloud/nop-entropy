@@ -284,6 +284,14 @@ nop-stream 两条 DB 账本由 `LedgerRetentionConfig`（`io.nop.stream.runtime.
 - **materialization store 溢出语义（裁定⑩）**：pool+materialization 象限 queue 满时 producer **阻塞背压**（无静默 bypass、无许可丢失）；store 仅承担 checkpoint 恢复记录语义。store 上界 = `nop.stream.materialization.store-max-entries`：**未配置或 ≤0 = 不设上界**（恢复正确性缺省——store 是在途未提交记录的恢复镜像；跨 1024/4096/16384… 档位输出一次 WARN + size 指标）；**显式配置 >0 = fail-loud 上界**（超界抛 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`，运维强约束可选项）。
 - **②⑩交叠运维声明**：经 `nop.stream.local.await-completion-timeout-ms=0` 显式禁用运行期守卫时，materialization 象限回归阻塞 put——消费者停摆引发的时序型互等死锁风险由运维自担（禁用守卫即显式接受该面；提交期守卫恒在不受影响）。
 
+## 编排薄层并发契约（plan 2512 R2-09，裁定①②③④使用面投影）
+
+> 唯一设计裁决权威 = 仓库 ai-dev/design/concurrency/stream-orchestration-thin-concurrency.md（平台内部文档——按 docs-for-ai 边界规则不直接链接）。本节只记录用户/运维可见契约。
+
+- **SQL 标量 UDF 注册表（裁定①）**：UDF 注册表为 `ConcurrentHashMap`——`register` 任意线程任意时刻可调，注册新名即时生效，覆写同名即时影响后续逐记录查表（CHM 免疫并发读撕裂/CME）；default resolver 为进程级单例语义，运行期换绑（重复 `registerAsDefault`/`setDefault` 非空换绑）**放行 + WARN 留痕**（日志键 `nop.stream.sql.udf.default-rebound`，含新旧 resolver 标识），换绑后已编译作业无需重编译即对后续记录生效，一致性由应用自担。双路径解析表述以 `nop-stream-sql.md` §3a 为准（≤3 行摘要：Java 内嵌路径编译期一次解析；声明面逐记录查表，换绑即时生效）。
+- **UDF RuntimeContext per-subtask（裁定③）**：`ProcessOperator` 对 RichFunction 形态 UDF 在 `copyForSubtask` 做序列化 round-trip 私有化（core util `SerializationRoundTripCopy`）——每 subtask 私有 UDF 实例与 RuntimeContext/keyed backend，parallelism ≥2 不再收敛单一 backend（有状态 keyed UDF 跨键零污染）；**非 Serializable 的 RichFunction UDF 部署期 typed 失败**（指引实现 Serializable，无静默共享回退——与跨进程部署序列化约束同源，属声明过的行为变更面）；非 RichFunction UDF 维持引用透传（无 context 写入面，零回归）。
+- **REPLAYABLE 目录文件源跨 run 复用（裁定②④）**：`DirectoryFileSourceFunction` 为共享实例契约（runtime 跨 subtask/跨 region 重启复用同一实例）——run 入口 CAS 成功后复位 `cancelled`（上一 run 的取消位不再静默饿死重启 run 的零事件假成功；并行双入落败者仍早退）；位点恢复为 per-file **max 增量合并**（不 REPLACE 清零），checkpoint 位点不回退、恢复重放不丢不重。详细语义归设计文档，REPLAYABLE 声明以此两半边（复位完整 + 位点单调）为成立前提。
+
 ## 运维手册（分布式模式操作）
 
 > 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。

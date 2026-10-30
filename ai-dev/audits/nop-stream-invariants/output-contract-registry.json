@@ -51,21 +51,21 @@
   "emissionPoints": [
     {
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/ProcessOperator.java",
-      "line": 181,
+      "line": 196,
       "operator": "ProcessOperator",
       "scenario": "ProcessFunction ctx.output emission",
       "tagForm": "parameter-form OutputTag<X> outputTag (method param of output(OutputTag<X>, X))",
       "disposition": "in-task chained path (E2E covered by TestSideOutputChainingE2E)",
-      "note": "re-pinned plan 2436 2026-10-11 (line drift; emission semantics unchanged)"
+      "note": "re-pinned plan 2436 2026-10-11 (line drift; emission semantics unchanged); re-pinned plan 2512 2026-10-30 (line drift from C3-009 per-subtask deep-copy header/javadoc; emission semantics unchanged)"
     },
     {
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/ProcessOperator.java",
-      "line": 204,
+      "line": 219,
       "operator": "ProcessOperator",
       "scenario": "OnTimer ctx.output emission",
       "tagForm": "parameter-form OutputTag<X> outputTag (method param of output(OutputTag<X>, X))",
       "disposition": "in-task chained path (E2E covered by TestSideOutputChainingE2E)",
-      "note": "re-pinned plan 2436 2026-10-11 (line drift; emission semantics unchanged)"
+      "note": "re-pinned plan 2436 2026-10-11 (line drift; emission semantics unchanged); re-pinned plan 2512 2026-10-30 (line drift from C3-009 per-subtask deep-copy header/javadoc; emission semantics unchanged)"
     },
     {
       "file": "nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/operators/windowing/WindowOperator.java",
