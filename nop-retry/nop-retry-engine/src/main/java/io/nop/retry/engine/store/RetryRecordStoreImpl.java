@@ -12,10 +12,13 @@ import io.nop.api.core.annotations.txn.Transactional;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.json.JsonTool;
+import io.nop.dao.DaoErrors;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.orm.OrmEntityState;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.retry.api.IRetryTask;
 import io.nop.retry.dao.entity.NopRetryAttempt;
@@ -26,6 +29,8 @@ import io.nop.retry.dao.entity._gen._NopRetryAttempt;
 import io.nop.retry.dao.entity._gen._NopRetryDeadLetter;
 import io.nop.retry.engine.NopRetryConstants;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -38,6 +43,8 @@ import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.beans.TreeBean;
 import java.util.ArrayList;
 public class RetryRecordStoreImpl implements IRetryRecordStore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(RetryRecordStoreImpl.class);
 
     private static final List<Integer> PENDING_STATUSES = Arrays.asList(
             NopRetryConstants.RETRY_RECORD_STATUS_PENDING,
@@ -115,8 +122,11 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
             record.setRequestPayload(JsonTool.serialize(request, false));
         }
 
-        // 到期时间推迟一个租约周期：调用方发起首次执行期间记录保持PENDING且nextTriggerTime=now，
-        // 会被扫描器误拾取并发起第二次执行（重复副作用）。推迟后扫描器只在调用方失联后接管
+        // 首提租约起点（plan 2515 裁定④钉改写登记：唯一允许的钉改写）。原钉「一次性推延一个
+        // 租约周期」曾是首执行窗的唯一防线；现由续租协议替代为结构化契约——每轮 attempt 前
+        // renewLease CAS 续租、0 行败方显式中止（ERR_RETRY_LEASE_LOST），扫描器接管面（含
+        // 首执行窗）由协议闭合。推延值保留为首提租约的起点（nextTriggerTime = now + 租约），
+        // 调用方失联超过租约后扫描器照常接管，双执行由续租 CAS + attempt 级超时上界闭合。
         record.setNextTriggerTime(new Timestamp(CoreMetrics.currentTimestamp().getTime()
                 + NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS));
 
@@ -133,21 +143,87 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         IOrmEntityDao<NopRetryAttempt> dao = getAttemptDao();
         NopRetryAttempt attempt = dao.newEntity();
         attempt.setRecordId(record.getSid());
-        attempt.setAttemptNo((record.getRetryCount() != null ? record.getRetryCount() : 0) + 1);
+        // 1.6-C6-002（plan 2515 裁定⑦）：attemptNo 取该 record 名下 max(attemptNo)+1（对账后
+        // 单行 max 查询）——崩溃/挂死后遗留 RUNNING attempt#1 在场时 scanner 重拾仍产出
+        // attemptNo=2，UK_RETRY_ATTEMPT_RECORD_NO 碰撞从根消除（原 retryCount+1 形态在
+        // retryCount 未递增的恢复路径必产出同号 attempt → 同步抛 UK → 记录永久砖化）。
+        // 无 attempt 行时回退 retryCount+1（首提路径语义不变）。
+        attempt.setAttemptNo(nextAttemptNo(record.getSid(), record.getRetryCount()));
         attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_WAITING);
         attempt.setStartTime(new Timestamp(getCurrentTime()));
         attempt.setRequestPayloadSnapshot(record.getRequestPayload());
         return attempt;
     }
 
+    /**
+     * 1.6-C6-002（plan 2515 裁定⑦）：attemptNo = max(attemptNo)+1；无行时回退 retryCount+1
+     * （retryCount 亦缺失则 1）。
+     */
+    private int nextAttemptNo(String recordId, Integer fallbackRetryCount) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(_NopRetryAttempt.PROP_NAME_recordId, recordId));
+        query.addOrderField(_NopRetryAttempt.PROP_NAME_attemptNo, false);
+        query.setLimit(1);
+        NopRetryAttempt last = getAttemptDao().findFirstByQuery(query);
+        if (last != null && last.getAttemptNo() != null) {
+            return last.getAttemptNo() + 1;
+        }
+        return (fallbackRetryCount != null ? fallbackRetryCount : 0) + 1;
+    }
+
     @Override
     public void saveAttempt(NopRetryAttempt attempt) {
         // 首次保存为 TRANSIENT 插入；执行完成后再次保存时实体已 MANAGED，需走更新
         if (attempt.orm_state().isTransient()) {
-            getAttemptDao().saveEntityDirectly(attempt);
+            try {
+                getAttemptDao().saveEntityDirectly(attempt);
+            } catch (Exception e) {
+                if (!isDuplicateKeyError(e)) {
+                    throw e;
+                }
+                // 1.6-C6-002（plan 2515 裁定⑦）：首插 duplicate-key 防御兜底（与 record 侧
+                // resolveInsertRaceWinner 对称形态）——对账关闭遗留 RUNNING 行后以 max+1
+                // 重插一次；兜底触发即 WARN 显式留痕，不静默。
+                LOG.warn("nop.retry.attempt.insert-conflict:recordId={},attemptNo={}",
+                        attempt.getRecordId(), attempt.getAttemptNo(), e);
+                reconcileStaleRunningAttempts(attempt.getRecordId());
+                attempt.setAttemptNo(nextAttemptNo(attempt.getRecordId(), null));
+                // 首插失败后实体滞留 SAVING 状态（session 异常路径不复位），重置为 TRANSIENT
+                // 才能按新 attemptNo 重新走插入状态机（同一 session 每次调用独立开启，
+                // 失败插入未落库，主键复用安全）
+                attempt.orm_state(OrmEntityState.TRANSIENT);
+                getAttemptDao().saveEntityDirectly(attempt);
+            }
         } else {
             getAttemptDao().updateEntityDirectly(attempt);
         }
+    }
+
+    @Override
+    public void reconcileStaleRunningAttempts(String recordId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(_NopRetryAttempt.PROP_NAME_recordId, recordId));
+        query.addFilter(FilterBeans.eq(_NopRetryAttempt.PROP_NAME_status,
+                NopRetryConstants.RETRY_ATTEMPT_STATUS_RUNNING));
+        List<NopRetryAttempt> staleAttempts = getAttemptDao().findAllByQuery(query);
+        if (staleAttempts.isEmpty()) {
+            return;
+        }
+        // 崩溃/挂死恢复语义：遗留 RUNNING attempt 置 STOPPED（KILLED 类终态，激活既有
+        // 零使用常量）+ endTime 落账——僵尸 RUNNING 行终态化，UK 碰撞砖化链不可达
+        Timestamp endTime = new Timestamp(getCurrentTime());
+        for (NopRetryAttempt stale : staleAttempts) {
+            stale.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_STOPPED);
+            stale.setEndTime(endTime);
+            getAttemptDao().updateEntityDirectly(stale);
+        }
+        LOG.warn("nop.retry.attempt.stale-reconciled:recordId={},count={}",
+                recordId, staleAttempts.size());
+    }
+
+    private static boolean isDuplicateKeyError(Throwable e) {
+        return e instanceof NopException
+                && DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(((NopException) e).getErrorCode());
     }
 
     @Override
@@ -158,9 +234,12 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
         QueryBean query = new QueryBean();
         query.setLimit(limit);
 
-        // 自动过滤命名空间
-        query.addFilter(FilterBeans.eq(PROP_NAME_namespaceId, namespaceId));
-        
+        // 1.6-C7-012（plan 2515 裁定⑨）：移除 eq(namespaceId) 单值硬过滤——store 单值装配
+        // （namespaceId 普通 setter，无分片装配）造成的意外收窄曾使非 default 记录失败进入
+        // PENDING 后扫描器永远看不到（重试承诺静默违约）。租户隔离由分区键
+        // （namespaceId:groupId:idempotentId → partitionIndex）与幂等 UK 承担；
+        // namespaceId 字段保留为提交缺省值用途（findRecordByIdempotentId 等显式传参路径零改写）。
+
         // 查询 nextTriggerTime <= now 的 PENDING/RETRYING 记录
         query.addFilter(FilterBeans.in(PROP_NAME_status, PENDING_STATUSES));
         query.addFilter(FilterBeans.le(PROP_NAME_nextTriggerTime, now));
@@ -248,6 +327,28 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
     @Override
     public void deleteRecord(NopRetryRecord record) {
         getRecordDao().deleteEntityDirectly(record);
+    }
+
+    /**
+     * 1.6-C6-003（plan 2515 裁定⑤）：OVERWRITE 原子替换包络。REQUIRED 同事务内 delete+save，
+     * 任何失败整体回滚（旧记录存活）。直接使用 dao 原语，不经 {@link #deleteRecord}（裸自动提交）
+     * 与 {@link #saveRecord}（REQUIRES_NEW）——方法体内自调用会绕事务拦截器且传播分叉。
+     */
+    @Transactional
+    @Override
+    public void replaceRecord(NopRetryRecord existingRecord, NopRetryRecord newRecord) {
+        getRecordDao().deleteEntityDirectly(existingRecord);
+        getRecordDao().saveEntityDirectly(newRecord);
+    }
+
+    /**
+     * 1.6-C3-003（plan 2515 裁定④）：续租 CAS。载体 = 既有乐观锁 tryUpdateWithVersionCheck；
+     * 0 行（实体被标记 readonly）= 租约被扫描器/他链抢持，败方由引擎显式中止。
+     */
+    @Override
+    public boolean renewLease(NopRetryRecord record, long leaseTimeoutMs) {
+        record.setNextTriggerTime(new Timestamp(getCurrentTime() + leaseTimeoutMs));
+        return getRecordDao().tryUpdateWithVersionCheck(record);
     }
 
     @Override

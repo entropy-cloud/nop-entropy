@@ -361,6 +361,10 @@ public class TestRetryLedgerRetention_C7_001 extends JunitAutoTestCase {
         }
 
         @Override
+        public void reconcileStaleRunningAttempts(String recordId) {
+        }
+
+        @Override
         public List<NopRetryRecord> fetchPendingRecords(int limit, io.nop.api.core.beans.IntRangeSet partitions) {
             return List.of();
         }
@@ -387,6 +391,15 @@ public class TestRetryLedgerRetention_C7_001 extends JunitAutoTestCase {
 
         @Override
         public void deleteRecord(NopRetryRecord record) {
+        }
+
+        @Override
+        public void replaceRecord(NopRetryRecord existingRecord, NopRetryRecord newRecord) {
+        }
+
+        @Override
+        public boolean renewLease(NopRetryRecord record, long leaseTimeoutMs) {
+            return true;
         }
 
         @Override

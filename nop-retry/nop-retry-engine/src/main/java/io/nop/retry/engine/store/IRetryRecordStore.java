@@ -29,8 +29,22 @@ public interface IRetryRecordStore {
 
     /**
      * 保存执行尝试（插入或更新）。每次执行尝试（含立即重试与延迟重试）一条记录。
+     * <p>
+     * 1.6-C6-002（plan 2515 裁定⑦）：首插 duplicate-key 防御兜底——对账关闭遗留 RUNNING 行后
+     * 以 max(attemptNo)+1 重插一次（与 record 侧并发首提 UK 兜底对称形态），兜底触发 WARN 显式留痕。
      */
     void saveAttempt(NopRetryAttempt attempt);
+
+    /**
+     * 1.6-C6-002（plan 2515 裁定⑦）：遗留 RUNNING attempt 对账（崩溃/挂死恢复语义）。
+     * 将该 record 名下全部 RUNNING attempt 置 STOPPED（KILLED 类终态语义）+ endTime 落账，
+     * 使 UK_RETRY_ATTEMPT_RECORD_NO 碰撞从根消除、僵尸 RUNNING attempt 终态化；
+     * 幂等（无 RUNNING 行时零写）。扫描器重拾与 OVERWRITE 新链的执行入口（executeWithRetry）
+     * 必须先对账再发起新 attempt。
+     *
+     * @param recordId 重试记录 ID
+     */
+    void reconcileStaleRunningAttempts(String recordId);
     /**
      * 获取待处理的重试记录（不锁定）。
      * <p>
@@ -73,6 +87,27 @@ public interface IRetryRecordStore {
      * 删除未完成的重试记录
      */
     void deleteRecord(NopRetryRecord record);
+
+    /**
+     * 1.6-C6-003（plan 2515 裁定⑤）：OVERWRITE 原子替换包络——delete 旧行 + save 新行在
+     * 同一事务（REQUIRED）内执行，整体提交或整体回滚。方法体内直接使用 dao 原语
+     * （deleteEntityDirectly + saveEntityDirectly），不消费 {@link #deleteRecord}（裸自动提交）
+     * 与 {@link #saveRecord}（REQUIRES_NEW 独立事务）——两条独立事务的无包络组合是原缺陷本体。
+     * 事务失败整体回滚 → 旧记录存活、零蒸发；替换失败由调用方对旧记录执行死信快照。
+     *
+     * @param existingRecord 被替换的旧记录
+     * @param newRecord      替换后的新记录（同 idempotentId）
+     */
+    void replaceRecord(NopRetryRecord existingRecord, NopRetryRecord newRecord);
+
+    /**
+     * 1.6-C3-003（plan 2515 裁定④）：即时重试链每轮 attempt 前的租约续租。经乐观锁版本 CAS
+     * （tryUpdateWithVersionCheck）将 nextTriggerTime 推进 now + leaseTimeoutMs。
+     *
+     * @return true = 续租成功（CAS 1 行）；false = 租约被抢（版本冲突/行已消失），调用方
+     * （引擎）必须以 {@code ERR_RETRY_LEASE_LOST} 显式中止本链（败方语义，不静默续跑）
+     */
+    boolean renewLease(NopRetryRecord record, long leaseTimeoutMs);
 
     NopRetryDeadLetter loadDeadLetter(String deadLetterId);
 

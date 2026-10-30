@@ -80,6 +80,11 @@ class TestRetryScannerImpl {
         }
 
         @Override
+        public void reconcileStaleRunningAttempts(String recordId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
         public io.nop.retry.dao.entity.NopRetryRecord loadRecord(String recordId) {
             throw new UnsupportedOperationException();
         }
@@ -96,6 +101,17 @@ class TestRetryScannerImpl {
 
         @Override
         public void deleteRecord(io.nop.retry.dao.entity.NopRetryRecord record) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void replaceRecord(io.nop.retry.dao.entity.NopRetryRecord existingRecord,
+                                  io.nop.retry.dao.entity.NopRetryRecord newRecord) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean renewLease(io.nop.retry.dao.entity.NopRetryRecord record, long leaseTimeoutMs) {
             throw new UnsupportedOperationException();
         }
 

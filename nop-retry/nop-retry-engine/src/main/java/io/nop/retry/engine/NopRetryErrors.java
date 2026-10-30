@@ -9,6 +9,7 @@ package io.nop.retry.engine;
 
 import io.nop.api.core.annotations.core.Locale;
 import io.nop.api.core.exceptions.ErrorCode;
+import io.nop.retry.api.NopRetryApiConstants;
 
 import static io.nop.api.core.exceptions.ErrorCode.define;
 
@@ -68,9 +69,19 @@ public interface NopRetryErrors {
     ErrorCode ERR_RETRY_RECORD_OVERWRITTEN = define("nop.err.retry.record-overwritten",
             "重试记录已被覆盖: {recordId}", ARG_RECORD_ID);
 
+    // 1.6-C3-003（plan 2515 裁定④）：续租 CAS 0 行 = 租约被扫描器接管（或他链抢持），
+    // 败方显式中止（WARN + failedStage），不静默续跑
+    ErrorCode ERR_RETRY_LEASE_LOST = define("nop.err.retry.lease-lost",
+            "重试记录租约已被接管，本链中止: {recordId}", ARG_RECORD_ID);
+
     String ARG_CONFIG_KEY = "configKey";
     String ARG_CONFIG_VALUE = "configValue";
 
     ErrorCode ERR_RETRY_LEDGER_CONFIG_INVALID = define("nop.err.retry.ledger-config-invalid",
             "retry账本保留策略配置非法: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
+
+    // 1.6-C3-003（plan 2515 裁定④）：attempt 级超时上界必须小于租约，装配期 fail-fast
+    ErrorCode ERR_RETRY_ATTEMPT_TIMEOUT_INVALID = define("nop.err.retry.attempt-timeout-invalid",
+            "attempt 超时上界必须小于租约: attemptTimeoutMs={configValue}, leaseTimeoutMs="
+                    + NopRetryApiConstants.DEFAULT_RETRYING_TIMEOUT_MS, ARG_CONFIG_VALUE);
 }

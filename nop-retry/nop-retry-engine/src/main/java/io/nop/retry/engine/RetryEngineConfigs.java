@@ -33,4 +33,13 @@ public interface RetryEngineConfigs {
      * 清理触发周期下限（设计 §3.1 第2项）：低于该值启动期 fail-fast，防高频清理冲击业务库。
      */
     long RETRY_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS = 60_000L;
+
+    /**
+     * 1.6-C3-003（plan 2515 裁定④）：attempt 级执行超时上界（毫秒）。缺省取租约
+     * （DEFAULT_RETRYING_TIMEOUT_MS=600s）的一半分数档；装配期 fail-fast 校验必须小于租约——
+     * 挂死 attempt 在租约到期前被超时取消落账，扫描器接管读到的必是已终态化的 attempt，
+     * attempt 内双执行窗不可达。
+     */
+    IConfigReference<Long> CFG_RETRY_ATTEMPT_TIMEOUT_MS = varRef(s_loc, "nop.retry.attempt.timeout-ms",
+            Long.class, NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS / 2);
 }

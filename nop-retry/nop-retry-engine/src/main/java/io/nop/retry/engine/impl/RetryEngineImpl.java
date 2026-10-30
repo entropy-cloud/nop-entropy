@@ -42,6 +42,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,6 +68,17 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     // 周期清理链句柄与失败计数（fail-fast 包络：失败 ERROR 可见 + 计数可观测，链由绝缘层重臂）
     private Future<?> ledgerCleanupFuture;
     private final AtomicLong ledgerCleanupFailureCount = new AtomicLong();
+
+    // 1.6-C3-003（plan 2515 裁定④）：attempt 级超时上界（< 租约，装配期 fail-fast 校验）
+    private Long attemptTimeoutMs;
+
+    // 1.6-C3-005（plan 2515 裁定⑤）：per-recordId 进程内代际号——OVERWRITE 重建递增，
+    // 旧链回调/续跑/回写前校验代际（执行令牌「record 版本 + 代际」二元组的进程内半边）
+    private final ConcurrentHashMap<String, AtomicLong> recordGenerations = new ConcurrentHashMap<>();
+
+    // 1.6-C3-006/C8-012（plan 2515 裁定⑥）：两层簿记失败计数（ERROR 通道 + 计数可观测）
+    private final AtomicLong attemptBookkeepFailureCount = new AtomicLong();
+    private final AtomicLong recordBookkeepFailureCount = new AtomicLong();
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
@@ -97,6 +109,35 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
 
     public long getLedgerCleanupFailureCount() {
         return ledgerCleanupFailureCount.get();
+    }
+
+    public void setAttemptTimeoutMs(Long attemptTimeoutMs) {
+        this.attemptTimeoutMs = attemptTimeoutMs;
+    }
+
+    public long getAttemptBookkeepFailureCount() {
+        return attemptBookkeepFailureCount.get();
+    }
+
+    public long getRecordBookkeepFailureCount() {
+        return recordBookkeepFailureCount.get();
+    }
+
+    /** 裁定⑤：读取 record 当前进程内代际号（无记录返回 0）。 */
+    long currentGeneration(String recordId) {
+        AtomicLong gen = recordGenerations.get(recordId);
+        return gen != null ? gen.get() : 0L;
+    }
+
+    /** 裁定⑤：OVERWRITE 重建时递增 record 代际号，旧链持有的代际随即失配。 */
+    private void bumpGeneration(String recordId) {
+        recordGenerations.computeIfAbsent(recordId, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    /** 裁定④：attempt 超时上界。null = 未显式注入，回退 RetryEngineConfigs 声明的键值。 */
+    private long resolveAttemptTimeoutMs() {
+        return attemptTimeoutMs != null ? attemptTimeoutMs
+                : RetryEngineConfigs.CFG_RETRY_ATTEMPT_TIMEOUT_MS.get();
     }
 
     @Override
@@ -286,9 +327,23 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
 
             case NopRetryConstants.BLOCK_STRATEGY_OVERWRITE:
                 LOG.info("nop.retry.block-strategy-overwrite:recordId={}", existingRecord.getSid());
-                recordStore.deleteRecord(existingRecord);
+                // 1.6-C3-005（plan 2515 裁定⑤）：OVERWRITE 递增进程内代际号——旧链（在途回调、
+                // 已调度续跑定时器）每次回调/续跑前校验代际，不一致即短路，幽灵任务双执行不可达
+                bumpGeneration(existingRecord.getSid());
                 NopRetryRecord newRecord = recordStore.newRecord(task, request);
-                recordStore.saveRecord(newRecord);
+                try {
+                    // 1.6-C6-003（plan 2515 裁定⑤）：原子替换包络（delete+save 同事务），
+                    // 替换失败整体回滚 → 旧记录存活
+                    recordStore.replaceRecord(existingRecord, newRecord);
+                } catch (Exception e) {
+                    // 替换失败：旧记录已回滚存活 → 死信快照（对齐「死信保留全量快照」可恢复性
+                    // 设计），failedStage 显式失败——半个成功任务蒸发不可达（C6-003/R10）
+                    LOG.error("nop.retry.overwrite-replace-failed:recordId={}", existingRecord.getSid(), e);
+                    moveToDeadLetter(existingRecord, "OVERWRITE_REPLACE_FAILED",
+                            "OVERWRITE atomic replacement failed (see nop.retry.overwrite-replace-failed log for cause)", null);
+                    return CompletableFuture.failedStage(new NopException(ERR_RETRY_RECORD_OVERWRITTEN, e)
+                            .param(ARG_RECORD_ID, existingRecord.getSid()));
+                }
                 return executeWithRetry(newRecord, policy, request, cancelToken, task);
 
             default:
@@ -318,8 +373,20 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             return CompletableFuture.failedStage(ex);
         }
 
-        NopRetryPolicy policy = loadPolicyOrDefault(record.getPolicyId());
-        ApiRequest<?> request = ApiRequest.build(JsonTool.parseMap(requestPayload));
+        // 1.6-C7-003（plan 2515 裁定⑦）：反序列化与策略装载包 try/catch——损坏 JSON /
+        // 策略装载异常的记录首次失败即走 moveToDeadLetter 既有兜底（:305-319 同族漏网路径
+        // 补齐）+ failedStage。原缺陷：裸 parseMap/loadPolicy 同步抛止于 scanner catch，
+        // 记录状态/retryCount 零推进，每租约周期（144 条 ERROR/天）无限循环重拾（僵尸记录）
+        NopRetryPolicy policy;
+        ApiRequest<?> request;
+        try {
+            policy = loadPolicyOrDefault(record.getPolicyId());
+            request = ApiRequest.build(JsonTool.parseMap(requestPayload));
+        } catch (Throwable t) {
+            LOG.error("nop.retry.scanner.payload-parse-failed:recordId={}", record.getSid(), t);
+            moveToDeadLetter(record, t);
+            return CompletableFuture.failedStage(t);
+        }
 
         return executeWithRetry(record, policy, request, cancelToken, null);
     }
@@ -331,21 +398,34 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ICancelToken cancelToken,
             IRetryTask task) {
 
-        long deadlineTimeoutMs = policy.getDeadlineTimeoutMsOrDefault();
-        if (deadlineTimeoutMs > 0) {
-            Timestamp createTime = record.getCreateTime();
-            if (createTime != null) {
-                long elapsed = recordStore.getCurrentTime() - createTime.getTime();
-                if (elapsed > deadlineTimeoutMs) {
-                    return handleDeadlineExceeded(record);
+        try {
+            // 1.6-C6-002（plan 2515 裁定⑦）：执行入口对 record 名下遗留 RUNNING attempt 对账
+            // （置 STOPPED + endTime 落账）——覆盖 scanner 重拾与 OVERWRITE 新链。崩溃/挂死后
+            // retryCount 未递增，重拾产出同号 attempt 的 UK 碰撞砖化链从根消除；幂等
+            // （无 RUNNING 行零写）。对账失败（DB 故障）由外层 catch 统一 failedStage。
+            recordStore.reconcileStaleRunningAttempts(record.getSid());
+
+            long deadlineTimeoutMs = policy.getDeadlineTimeoutMsOrDefault();
+            if (deadlineTimeoutMs > 0) {
+                Timestamp createTime = record.getCreateTime();
+                if (createTime != null) {
+                    long elapsed = recordStore.getCurrentTime() - createTime.getTime();
+                    if (elapsed > deadlineTimeoutMs) {
+                        return handleDeadlineExceeded(record);
+                    }
                 }
             }
-        }
 
-        if (isImmediateRetryPhase(record, policy)) {
-            return executeImmediateRetry(record, policy, request, cancelToken, task);
-        } else {
-            return executeSingleAttempt(record, policy, request, cancelToken, task);
+            if (isImmediateRetryPhase(record, policy)) {
+                return executeImmediateRetry(record, policy, request, cancelToken, task);
+            } else {
+                return executeSingleAttempt(record, policy, request, cancelToken, task);
+            }
+        } catch (Throwable t) {
+            // 1.6-C8-012（plan 2515 裁定⑥）T1 逃逸点闭合：doExecute 前置持久化等同步异常
+            // 不再悬置返回 future——任何未预期 Throwable 使链以异常完成（每 future 必有终态，
+            // 扫描器 allOf().join() 有界返回，业务级永久冻结不可再现）
+            return CompletableFuture.failedStage(t);
         }
     }
 
@@ -358,6 +438,22 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         return retryCount < immediateRetryCount;
     }
 
+    /**
+     * 即时重试链（plan 2515 裁定④⑥重构）：
+     * <ul>
+     * <li>裁定④：每轮 attempt 发起前 CAS 续租 nextTriggerTime（载体 tryUpdateWithVersionCheck）；
+     *     续租 0 行 = 租约被扫描器接管/他链抢持 → 败方显式中止（ERR_RETRY_LEASE_LOST + WARN），
+     *     不静默续跑、不重抢、不再发起 attempt。</li>
+     * <li>裁定⑥ future 拓扑单一化：返回 future ≡ 回调挂接同一 promise（handle/thenCompose 链式
+     *     传导），续排经 scheduleImmediateRetry 的挂接 future 回流到同一链；每条链 Throwable 兜底，
+     *     任何路径必有终态（E-a/E-b/E-c 逃逸点逐一闭合）。</li>
+     * <li>裁定⑥ 记账/业务分层：业务结论（成功/失败/重试判定）先于簿记确定并锁定；attempt 层与
+     *     record 层簿记写各自独立 try/catch 隔离，簿记异常 ERROR+计数显式可见，不改判业务结论、
+     *     不以簿记异常完成 stage。</li>
+     * <li>裁定⑤ 代际校验：回调入口校验进程内代际号，被 OVERWRITE 重建抢先的旧链短路（INFO 留痕），
+     *     不再回写、不再续排。</li>
+     * </ul>
+     */
     private CompletionStage<ApiResponse<?>> executeImmediateRetry(
             NopRetryRecord record,
             NopRetryPolicy policy,
@@ -365,62 +461,114 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ICancelToken cancelToken,
             IRetryTask task) {
 
-        CompletableFuture<ApiResponse<?>> result = new CompletableFuture<>();
+        // 裁定④：轮间续租。0 行 = 租约被抢 → 败方显式中止（回写义务随链终止消灭）
+        if (!recordStore.renewLease(record, NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS)) {
+            NopException leaseLost = new NopException(ERR_RETRY_LEASE_LOST)
+                    .param(ARG_RECORD_ID, record.getSid());
+            LOG.warn("nop.retry.lease-lost-abort:recordId={}", record.getSid());
+            return CompletableFuture.failedStage(leaseLost);
+        }
+
+        long generation = currentGeneration(record.getSid());
+        try {
+            return doExecute(record, request, cancelToken)
+                    .handle((response, ex) ->
+                            finishImmediateRetry(record, policy, request, cancelToken, task, generation,
+                                    response, ex))
+                    .thenCompose(stage -> stage);
+        } catch (Throwable t) {
+            // 裁定⑥：任何同步异常不悬置链——异常完成（终态完备）
+            return CompletableFuture.failedStage(t);
+        }
+    }
+
+    /**
+     * 裁定⑥：即时重试链业务结算。业务结论在此先确定，簿记写全部经独立 try/catch 隔离。
+     */
+    private CompletionStage<ApiResponse<?>> finishImmediateRetry(
+            NopRetryRecord record,
+            NopRetryPolicy policy,
+            ApiRequest<?> request,
+            ICancelToken cancelToken,
+            IRetryTask task,
+            long generation,
+            ApiResponse<?> response,
+            Throwable ex) {
+
+        // 裁定⑤：代际校验——被 OVERWRITE 重建抢先的旧链短路（INFO 留痕，非吞），
+        // 不再回写（回写义务随链终止消灭）、不再续排
+        if (generation != currentGeneration(record.getSid())) {
+            LOG.info("nop.retry.stale-chain-aborted:recordId={},generation={}", record.getSid(), generation);
+            return CompletableFuture.failedStage(new NopException(ERR_RETRY_RECORD_OVERWRITTEN)
+                    .param(ARG_RECORD_ID, record.getSid()));
+        }
+
         int immediateRetryCount = policy.getImmediateRetryCountOrDefault();
         long immediateRetryIntervalMs = policy.getImmediateRetryIntervalMsOrDefault();
 
-        doExecute(record, request, cancelToken)
-                .whenComplete((response, ex) -> {
-                    if (ex != null) {
-                        int retryCount = (record.getRetryCount() != null ? record.getRetryCount() : 0) + 1;
-                        if (retryCount < immediateRetryCount) {
-                            record.setRetryCount(retryCount);
-                            recordStore.updateRecord(record);
-                            scheduleImmediateRetry(record, policy, request, cancelToken, task, immediateRetryIntervalMs)
-                                    .whenComplete((r, e) -> {
-                                        if (e != null) {
-                                            result.completeExceptionally(e);
-                                        } else {
-                                            result.complete(r);
-                                        }
-                                    });
-                        } else {
-                            handleExecutionFailure(record, policy, ex, task);
-                            result.completeExceptionally(ex);
-                        }
-                    } else if (response != null && response.isOk()) {
-                        handleExecutionSuccess(record, policy, task);
-                        result.complete(response);
-                    } else {
-                        NopException failureEx = response != null
-                                ? NopRebuildException.rebuild(response)
-                                : new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR);
-                        if (failureEx.isBizFatal()) {
-                            // bizFatal 不重试，直接移入死信
-                            moveToDeadLetter(record, failureEx);
-                            result.complete(response);
-                        } else {
-                            int retryCount = (record.getRetryCount() != null ? record.getRetryCount() : 0) + 1;
-                            if (retryCount < immediateRetryCount) {
-                                record.setRetryCount(retryCount);
-                                recordStore.updateRecord(record);
-                                scheduleImmediateRetry(record, policy, request, cancelToken, task, immediateRetryIntervalMs)
-                                        .whenComplete((r, e) -> {
-                                            if (e != null) {
-                                                result.completeExceptionally(e);
-                                            } else {
-                                                result.complete(r);
-                                            }
-                                        });
-                            } else {
-                                handleExecutionFailure(record, policy, failureEx, task);
-                                result.complete(response);
-                            }
-                        }
-                    }
-                });
+        if (ex != null) {
+            int retryCount = (record.getRetryCount() != null ? record.getRetryCount() : 0) + 1;
+            if (retryCount < immediateRetryCount) {
+                bookkeepRecordRetryCount(record, retryCount);
+                return scheduleImmediateRetry(record, policy, request, cancelToken, task,
+                        immediateRetryIntervalMs, generation);
+            }
+            runRecordBookkeeping(record, "handleExecutionFailure", () ->
+                    handleExecutionFailure(record, policy, ex, task));
+            return CompletableFuture.failedStage(ex);
+        }
 
-        return result;
+        if (response != null && response.isOk()) {
+            runRecordBookkeeping(record, "handleExecutionSuccess", () ->
+                    handleExecutionSuccess(record, policy, task));
+            return CompletableFuture.completedFuture(response);
+        }
+
+        NopException failureEx = response != null
+                ? NopRebuildException.rebuild(response)
+                : new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR);
+        if (failureEx.isBizFatal()) {
+            // bizFatal 不重试，直接移入死信（簿记失败不改判业务结论：仍以原 response 完成）
+            runRecordBookkeeping(record, "moveToDeadLetter", () -> moveToDeadLetter(record, failureEx));
+            return CompletableFuture.completedFuture(response);
+        }
+
+        int retryCount = (record.getRetryCount() != null ? record.getRetryCount() : 0) + 1;
+        if (retryCount < immediateRetryCount) {
+            bookkeepRecordRetryCount(record, retryCount);
+            return scheduleImmediateRetry(record, policy, request, cancelToken, task,
+                    immediateRetryIntervalMs, generation);
+        }
+        runRecordBookkeeping(record, "handleExecutionFailure", () ->
+                handleExecutionFailure(record, policy, failureEx, task));
+        return CompletableFuture.completedFuture(response);
+    }
+
+    /**
+     * 裁定⑥ record 层簿记隔离：retryCount 推进写失败 ERROR+计数显式可见，不改判业务结论、
+     * 不中断续排。
+     */
+    private void bookkeepRecordRetryCount(NopRetryRecord record, int retryCount) {
+        try {
+            record.setRetryCount(retryCount);
+            recordStore.updateRecord(record);
+        } catch (Throwable t) {
+            recordBookkeepFailureCount.incrementAndGet();
+            LOG.error("nop.retry.record.bookkeep-fail:recordId={},op=updateRetryCount", record.getSid(), t);
+        }
+    }
+
+    /**
+     * 裁定⑥ record 层簿记隔离：终态结算（成功落账/失败落账/死信迁移）失败 ERROR+计数显式可见，
+     * 不改判业务结论。
+     */
+    private void runRecordBookkeeping(NopRetryRecord record, String op, Runnable bookkeeping) {
+        try {
+            bookkeeping.run();
+        } catch (Throwable t) {
+            recordBookkeepFailureCount.incrementAndGet();
+            LOG.error("nop.retry.record.bookkeep-fail:recordId={},op={}", record.getSid(), op, t);
+        }
     }
 
     private CompletionStage<ApiResponse<?>> scheduleImmediateRetry(
@@ -429,7 +577,8 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ApiRequest<?> request,
             ICancelToken cancelToken,
             IRetryTask task,
-            long immediateRetryIntervalMs) {
+            long immediateRetryIntervalMs,
+            long generation) {
 
         // Capture the executor at scheduling time to prevent stale callbacks from
         // leaking retries into a different test's executor (gh-xxx stale-callback race).
@@ -437,14 +586,29 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
 
         executor.schedule(() -> {
-            executeImmediateRetry(record, policy, request, cancelToken, task)
-                    .whenComplete((resp, ex) -> {
-                        if (ex != null) {
-                            future.completeExceptionally(ex);
-                        } else {
-                            future.complete(resp);
-                        }
-                    });
+            try {
+                // 裁定⑤：定时器触发时先校验代际——被 OVERWRITE 重建抢先的旧链定时器短路，
+                // 不再发起 attempt（幽灵任务双执行不可达）
+                if (generation != currentGeneration(record.getSid())) {
+                    LOG.info("nop.retry.stale-timer-aborted:recordId={},generation={}",
+                            record.getSid(), generation);
+                    future.completeExceptionally(new NopException(ERR_RETRY_RECORD_OVERWRITTEN)
+                            .param(ARG_RECORD_ID, record.getSid()));
+                    return null;
+                }
+                // 裁定⑥ E-a：delay-lambda 体任何同步异常显式传导至持有 future（completeExceptionally），
+                // 不再悬置；续排经同一 promise 链式回流（返回 future ≡ 挂接 future）
+                executeImmediateRetry(record, policy, request, cancelToken, task)
+                        .whenComplete((resp, ex) -> {
+                            if (ex != null) {
+                                future.completeExceptionally(ex);
+                            } else {
+                                future.complete(resp);
+                            }
+                        });
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
             return null;
         }, immediateRetryIntervalMs, TimeUnit.MILLISECONDS);
 
@@ -458,21 +622,27 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ICancelToken cancelToken,
             IRetryTask task) {
 
+        // 裁定⑥：单次 attempt 链——返回 future ≡ doExecute 挂接链（拓扑单一化），
+        // record 层簿记独立 try/catch 隔离，簿记异常不改判业务结论、不以簿记异常完成 stage
         return doExecute(record, request, cancelToken)
                 .whenComplete((response, ex) -> {
                     if (ex != null) {
-                        handleExecutionFailure(record, policy, ex, task);
+                        runRecordBookkeeping(record, "handleExecutionFailure", () ->
+                                handleExecutionFailure(record, policy, ex, task));
                     } else if (response != null && response.isOk()) {
-                        handleExecutionSuccess(record, policy, task);
+                        runRecordBookkeeping(record, "handleExecutionSuccess", () ->
+                                handleExecutionSuccess(record, policy, task));
                     } else {
                         NopException failureEx = response != null
                                 ? NopRebuildException.rebuild(response)
                                 : new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR);
                         if (failureEx.isBizFatal()) {
                             // bizFatal 不重试，直接移入死信
-                            moveToDeadLetter(record, failureEx);
+                            runRecordBookkeeping(record, "moveToDeadLetter", () ->
+                                    moveToDeadLetter(record, failureEx));
                         } else {
-                            handleExecutionFailure(record, policy, failureEx, task);
+                            runRecordBookkeeping(record, "handleExecutionFailure", () ->
+                                    handleExecutionFailure(record, policy, failureEx, task));
                         }
                     }
                 });
@@ -484,40 +654,99 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             ICancelToken cancelToken) {
 
         NopRetryAttempt attempt = recordStore.newAttempt(record);
-        attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_RUNNING);
-        recordStore.saveAttempt(attempt);
+        // 1.6-C8-012（plan 2515 裁定⑥）attempt 层簿记位点隔离：前置 RUNNING 落账失败
+        // ERROR+计数显式可见，不阻断业务执行（原缺陷：同步 DB 异常悬置返回 future →
+        // 扫描器 allOf().join() 永久冻结，T1 形态）
+        try {
+            attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_RUNNING);
+            recordStore.saveAttempt(attempt);
+        } catch (Throwable t) {
+            attemptBookkeepFailureCount.incrementAndGet();
+            LOG.error("nop.retry.attempt.bookkeep-fail:recordId={},op=saveRunningAttempt",
+                    record.getSid(), t);
+        }
 
-        return rpcServiceInvoker.invokeAsync(
-                record.getServiceName(),
-                record.getServiceMethod(),
-                request,
-                cancelToken
-        ).whenComplete((response, ex) -> {
+        CompletionStage<ApiResponse<?>> invoke;
+        try {
+            invoke = rpcServiceInvoker.invokeAsync(
+                    record.getServiceName(),
+                    record.getServiceMethod(),
+                    request,
+                    cancelToken
+            );
+        } catch (Throwable t) {
+            // 1.6-C7-003（plan 2515 裁定⑦）：invokeAsync 同步抛时 whenComplete 未挂接——
+            // attempt 终态化落账（FAILED + endTime + 错误三元组，簿记失败 ERROR+计数隔离）
+            // + 业务链 failedStage，僵尸 RUNNING attempt 不可达
+            finalizeAttemptOnSyncThrow(record, attempt, t);
+            return CompletableFuture.failedStage(t);
+        }
+
+        // 1.6-C3-003（plan 2515 裁定④）：attempt 级超时上界 < 租约——挂死 attempt 在租约到期前
+        // 被取消落账（TimeoutException 经 whenComplete 以 FAILED 落账），租约到期接管读到的必是
+        // 已终态化的 attempt，attempt 内双执行窗不可达
+        long attemptTimeoutMs = resolveAttemptTimeoutMs();
+        if (attemptTimeoutMs > 0) {
+            invoke = invoke.toCompletableFuture().orTimeout(attemptTimeoutMs, TimeUnit.MILLISECONDS);
+        }
+
+        return invoke.whenComplete((response, ex) -> {
+            // attempt 层簿记位点独立 try/catch（裁定⑥）：簿记失败 ERROR+计数，stage 以业务
+            // response/ex 完成——簿记异常不再成为 stage 完成异常（逃逸入口关闭，C3-006）
+            try {
+                long endTime = recordStore.getCurrentTime();
+                Timestamp startTime = attempt.getStartTime();
+                attempt.setEndTime(new Timestamp(endTime));
+                attempt.setDurationMs(startTime != null ? endTime - startTime.getTime() : null);
+
+                if (ex != null) {
+                    attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
+                    ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, ex);
+                    attempt.setErrorCode(errorBean.getErrorCode());
+                    attempt.setErrorMessage(errorBean.getDescription());
+                    attempt.setErrorStack(errorBean.getErrorStack());
+                } else if (response != null && response.isOk()) {
+                    attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_SUCCESS);
+                } else {
+                    attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
+                    ErrorBean errorBean = response != null
+                            ? ErrorMessageManager.instance().buildErrorMessage(null, NopRebuildException.rebuild(response))
+                            : ErrorMessageManager.instance().buildErrorMessage(null,
+                                    new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR));
+                    attempt.setErrorCode(errorBean.getErrorCode());
+                    attempt.setErrorMessage(errorBean.getDescription());
+                    attempt.setErrorStack(errorBean.getErrorStack());
+                }
+                recordStore.saveAttempt(attempt);
+            } catch (Throwable t) {
+                attemptBookkeepFailureCount.incrementAndGet();
+                LOG.error("nop.retry.attempt.bookkeep-fail:recordId={},op=saveFinalAttempt",
+                        record.getSid(), t);
+            }
+        });
+    }
+
+    /**
+     * 1.6-C7-003（plan 2515 裁定⑦）：invokeAsync 同步抛路径的 attempt 终态化落账。
+     * 簿记失败按裁定⑥口径 ERROR+计数隔离（不覆盖业务异常传导）。
+     */
+    private void finalizeAttemptOnSyncThrow(NopRetryRecord record, NopRetryAttempt attempt, Throwable t) {
+        try {
             long endTime = recordStore.getCurrentTime();
             Timestamp startTime = attempt.getStartTime();
             attempt.setEndTime(new Timestamp(endTime));
             attempt.setDurationMs(startTime != null ? endTime - startTime.getTime() : null);
-
-            if (ex != null) {
-                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
-                ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, ex);
-                attempt.setErrorCode(errorBean.getErrorCode());
-                attempt.setErrorMessage(errorBean.getDescription());
-                attempt.setErrorStack(errorBean.getErrorStack());
-            } else if (response != null && response.isOk()) {
-                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_SUCCESS);
-            } else {
-                attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
-                ErrorBean errorBean = response != null
-                        ? ErrorMessageManager.instance().buildErrorMessage(null, NopRebuildException.rebuild(response))
-                        : ErrorMessageManager.instance().buildErrorMessage(null,
-                                new NopException(ERR_RETRY_DEAD_LETTER_INVALID_EXECUTOR));
-                attempt.setErrorCode(errorBean.getErrorCode());
-                attempt.setErrorMessage(errorBean.getDescription());
-                attempt.setErrorStack(errorBean.getErrorStack());
-            }
+            attempt.setStatus(NopRetryConstants.RETRY_ATTEMPT_STATUS_FAILED);
+            ErrorBean errorBean = ErrorMessageManager.instance().buildErrorMessage(null, t);
+            attempt.setErrorCode(errorBean.getErrorCode());
+            attempt.setErrorMessage(errorBean.getDescription());
+            attempt.setErrorStack(errorBean.getErrorStack());
             recordStore.saveAttempt(attempt);
-        });
+        } catch (Throwable bookkeepFailure) {
+            attemptBookkeepFailureCount.incrementAndGet();
+            LOG.error("nop.retry.attempt.bookkeep-fail:recordId={},op=finalizeSyncThrowAttempt",
+                    record.getSid(), bookkeepFailure);
+        }
     }
 
     private CompletionStage<ApiResponse<?>> handleDeadlineExceeded(NopRetryRecord record) {
@@ -591,18 +820,23 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         ApiRequest<Object> callbackRequest = new ApiRequest<>();
         callbackRequest.setData(buildCallbackData(record, success, error));
 
-        // 异步执行回调任务
-        executeTask(callbackTask, callbackRequest, null)
-                .whenComplete((resp, ex) -> {
-                    if (ex != null) {
-                        LOG.error("nop.retry.callback-failed:recordId={}", record.getSid(), ex);
-                    } else if (resp != null && resp.isOk()) {
-                        LOG.info("nop.retry.callback-success:recordId={}", record.getSid());
-                    } else {
-                        LOG.warn("nop.retry.callback-response-error:recordId={},status={}",
-                                record.getSid(), resp != null ? resp.getStatus() : null);
-                    }
-                });
+        // 异步执行回调任务。1.6-C8-017（plan 2515 裁定⑥ E-b）：executeTask 同步抛（DB 类故障）
+        // 补 try 隔离——回调提交失败 ERROR 留痕，不影响主结论（业务结果已定）
+        try {
+            executeTask(callbackTask, callbackRequest, null)
+                    .whenComplete((resp, ex) -> {
+                        if (ex != null) {
+                            LOG.error("nop.retry.callback-failed:recordId={}", record.getSid(), ex);
+                        } else if (resp != null && resp.isOk()) {
+                            LOG.info("nop.retry.callback-success:recordId={}", record.getSid());
+                        } else {
+                            LOG.warn("nop.retry.callback-response-error:recordId={},status={}",
+                                    record.getSid(), resp != null ? resp.getStatus() : null);
+                        }
+                    });
+        } catch (Throwable t) {
+            LOG.error("nop.retry.callback-submit-failed:recordId={}", record.getSid(), t);
+        }
     }
 
     private Object buildCallbackData(NopRetryRecord record, boolean success, Throwable error) {
@@ -663,6 +897,15 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
 
     @Override
     protected void doStart() {
+        // 1.6-C3-003（plan 2515 裁定④）：attempt 超时上界必须小于租约，装配期 fail-fast——
+        // 否则挂死 attempt 存活跨租约边界，扫描器接管读到未终态化 attempt，attempt 内双执行窗复现
+        long attemptTimeout = resolveAttemptTimeoutMs();
+        if (attemptTimeout > 0 && attemptTimeout >= NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS) {
+            throw new NopException(ERR_RETRY_ATTEMPT_TIMEOUT_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.retry.attempt.timeout-ms")
+                    .param(ARG_CONFIG_VALUE, attemptTimeout);
+        }
+
         if (retryScanner != null) {
             retryScanner.startScanning(records -> {
                 // 内部并发执行每个 record
