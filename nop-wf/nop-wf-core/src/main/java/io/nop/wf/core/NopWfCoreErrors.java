@@ -17,6 +17,12 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_INVALID_WF_FILE_PATH = define("nop.err.wf.invalid-wf-file-path",
             "Invalid workflow file path: {path}", ARG_PATH);
 
+    // plan 2514 MA-05（裁定④）：扫描配置键装配期 fail-fast（scan-batch-size<=0 / scan-time-budget-ms<0）
+    String ARG_CONFIG_NAME = "configName";
+    String ARG_CONFIG_VALUE = "configValue";
+    ErrorCode ERR_WF_INVALID_SCHEDULER_CONFIG = define("nop.err.wf.invalid-scheduler-config",
+            "Invalid workflow scheduler config: {configName}={configValue}", ARG_CONFIG_NAME, ARG_CONFIG_VALUE);
+
     String ARG_WF_NAME = "wfName";
     String ARG_STEP_NAME = "stepName";
     String ARG_ACTION_NAME = "actionName";

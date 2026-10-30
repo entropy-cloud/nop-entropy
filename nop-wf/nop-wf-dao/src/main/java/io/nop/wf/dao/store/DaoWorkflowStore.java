@@ -17,10 +17,12 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.LogLevel;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
+import io.nop.core.lang.sql.SQL;
 import io.nop.core.utils.IVarSet;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.orm.IOrmEntitySet;
+import io.nop.orm.IOrmTemplate;
 import io.nop.orm.kv.KvTableVarSet;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.wf.core.model.IWorkflowActionModel;
@@ -40,20 +42,55 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Supplier;
 
 public class DaoWorkflowStore extends AbstractWorkflowStore {
     private static final Logger LOG = LoggerFactory.getLogger(DaoWorkflowStore.class);
 
     private IDaoProvider daoProvider;
 
+    private IOrmTemplate ormTemplate;
+
     @Inject
     public void setDaoProvider(IDaoProvider daoProvider) {
         this.daoProvider = daoProvider;
+    }
+
+    @Inject
+    public void setOrmTemplate(IOrmTemplate ormTemplate) {
+        this.ormTemplate = ormTemplate;
+    }
+
+    // ==================== plan 2514 MA-02（裁定①）wfInstanceId 条带锁 ====================
+    // plan 364 [05-02] DaoTaskStateStore.rowLock 范式投影（64 槽，有界内存；不同 wf 实例可能
+    // 共享槽位被过度串行化，低频判定-迁移段可接受）。只覆盖单 JVM：多节点部署的跨进程残留
+    // 由设计文档 §3.1 边界声明承接（DB 乐观锁兜底）。
+
+    private static final int WF_LOCK_STRIPES = 64;
+    private static final Object[] WF_LOCKS = newWfLocks();
+
+    private static Object[] newWfLocks() {
+        Object[] locks = new Object[WF_LOCK_STRIPES];
+        for (int i = 0; i < WF_LOCK_STRIPES; i++)
+            locks[i] = new Object();
+        return locks;
+    }
+
+    @Override
+    public <T> T withWfLock(String wfId, Supplier<T> action) {
+        if (wfId == null)
+            return action.get();
+        Object lock = WF_LOCKS[(wfId.hashCode() & 0x7fffffff) % WF_LOCK_STRIPES];
+        synchronized (lock) {
+            return action.get();
+        }
     }
 
     protected IEntityDao<NopWfInstance> wfDao() {
@@ -179,18 +216,110 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
 
     @Override
     public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
-        QueryBean query = new QueryBean();
-        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
-        query.addFilter(FilterBeans.le(NopWfStepInstance.PROP_NAME_dueTime, CoreMetrics.currentTimestamp()));
-        return stepDao().findAllByQuery(query);
+        return stepDao().findAllByQuery(buildDueScanQuery(null, null));
     }
 
     @Override
     public List<? extends IWorkflowStepRecord> findRemindActivatedSteps() {
+        return stepDao().findAllByQuery(buildRemindScanQuery(null, null));
+    }
+
+    /**
+     * plan 2514 MA-05（裁定④）：due 扫描分批查询形状——limit(batchSize) + orderBy(dueTime asc)
+     * + 游标谓词（dueTime &gt; cursor），消费侧按游标推进，消除全量驻留。C10-008 查询形状
+     * 断言载体（包内可见供测试核验 limit/orderBy 存在）。
+     */
+    QueryBean buildDueScanQuery(Integer batchSize, Timestamp cursorDueTime) {
+        return buildScanQuery(NopWfStepInstance.PROP_NAME_dueTime, batchSize, cursorDueTime);
+    }
+
+    /**
+     * plan 2514 MA-05（裁定④）：remind 扫描分批查询形状，与 due 半区同构同修。
+     */
+    QueryBean buildRemindScanQuery(Integer batchSize, Timestamp cursorRemindTime) {
+        return buildScanQuery(NopWfStepInstance.PROP_NAME_remindTime, batchSize, cursorRemindTime);
+    }
+
+    private QueryBean buildScanQuery(String timeProp, Integer batchSize, Timestamp cursorTime) {
         QueryBean query = new QueryBean();
         query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
-        query.addFilter(FilterBeans.le(NopWfStepInstance.PROP_NAME_remindTime, CoreMetrics.currentTimestamp()));
-        return stepDao().findAllByQuery(query);
+        query.addFilter(FilterBeans.le(timeProp, CoreMetrics.currentTimestamp()));
+        if (cursorTime != null) {
+            // 分页游标：上批末条 time 为下批下界谓词（严格大于），无全量物化
+            query.addFilter(FilterBeans.gt(timeProp, cursorTime));
+        }
+        if (batchSize != null) {
+            query.setLimit(batchSize);
+        }
+        query.addOrderField(timeProp, false);
+        return query;
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findDueActivatedSteps(int batchSize, Timestamp cursorDueTime) {
+        if (batchSize <= 0)
+            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
+        return stepDao().findAllByQuery(buildDueScanQuery(batchSize, cursorDueTime));
+    }
+
+    @Override
+    public List<? extends IWorkflowStepRecord> findRemindActivatedSteps(int batchSize, Timestamp cursorRemindTime) {
+        if (batchSize <= 0)
+            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
+        return stepDao().findAllByQuery(buildRemindScanQuery(batchSize, cursorRemindTime));
+    }
+
+    // ==================== plan 2514 MA-23（裁定⑥）扫描抢占 fencing ====================
+    // scanHolderId/scanLeaseTime 两列只经直发 UPDATE 语句读写（实体写路径列集约束，
+    // 设计文档 §3.6），防止扫描会话陈旧实体全字段 save 覆写他节点抢占列。
+
+    @Override
+    public boolean tryClaimScanLease(IWorkflowStepRecord stepRecord, String holderId, Timestamp leaseUntil) {
+        Timestamp now = CoreMetrics.currentTimestamp();
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId()));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        query.addFilter(FilterBeans.or(
+                FilterBeans.isNull(NopWfStepInstance.PROP_NAME_scanLeaseTime),
+                FilterBeans.lt(NopWfStepInstance.PROP_NAME_scanLeaseTime, now)));
+        Map<String, Object> props = new HashMap<>();
+        props.put(NopWfStepInstance.PROP_NAME_scanHolderId, holderId);
+        props.put(NopWfStepInstance.PROP_NAME_scanLeaseTime, leaseUntil);
+        // rowsAffected==1 赢单飞；==0 败者（调用方以 race skip INFO 形态显式跳过）
+        return stepDao().updateByQuery(query, props) == 1;
+    }
+
+    @Override
+    public void releaseScanLease(IWorkflowStepRecord stepRecord, String holderId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId()));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_scanHolderId, holderId));
+        Map<String, Object> props = new HashMap<>();
+        props.put(NopWfStepInstance.PROP_NAME_scanHolderId, null);
+        props.put(NopWfStepInstance.PROP_NAME_scanLeaseTime, null);
+        stepDao().updateByQuery(query, props);
+    }
+
+    @Override
+    public void incrementRemindCount(IWorkflowStepRecord stepRecord) {
+        // DB 原子自增，消除双会话读-改-写丢失更新（裁定⑥条款③）
+        SQL sql = SQL.begin()
+                .update(NopWfStepInstance.class.getName())
+                .sql(" set remindCount=COALESCE(remindCount,0)+1, remindTime=null")
+                .where().eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId())
+                .end();
+        ormTemplate.executeUpdate(sql);
+    }
+
+    @Override
+    public void postponeStepDueTime(IWorkflowStepRecord stepRecord, Timestamp newDueTime) {
+        // 限定列集的直发 UPDATE（裁定④毒步骤退避 + 裁定⑥列集约束）
+        SQL sql = SQL.begin()
+                .update(NopWfStepInstance.class.getName())
+                .sql(" set dueTime=").param(newDueTime)
+                .where().eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId())
+                .end();
+        ormTemplate.executeUpdate(sql);
     }
 
     @Override

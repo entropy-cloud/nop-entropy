@@ -183,6 +183,8 @@ CREATE TABLE nop_wf_step_instance(
   updated_by VARCHAR(50) NOT NULL ,
   update_time TIMESTAMP NOT NULL ,
   remark VARCHAR(200)  ,
+  scan_holder_id VARCHAR(64)  ,
+  scan_lease_time TIMESTAMP  ,
   constraint PK_nop_wf_step_instance primary key (step_id)
 );
 
@@ -616,6 +618,10 @@ CREATE TABLE nop_wf_log(
       COMMENT ON COLUMN nop_wf_step_instance.update_time IS '修改时间';
                     
       COMMENT ON COLUMN nop_wf_step_instance.remark IS '备注';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.scan_holder_id IS '扫描持有者ID';
+                    
+      COMMENT ON COLUMN nop_wf_step_instance.scan_lease_time IS '扫描租约到期时间';
                     
       COMMENT ON TABLE nop_wf_output IS '工作流输出变量';
                 

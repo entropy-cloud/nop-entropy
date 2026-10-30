@@ -473,6 +473,12 @@ public class TestWfTaskScanner extends BaseTestCase {
                                                             Function<IWorkflowStepRecord, Object> onSave) {
         return proxy(io.nop.wf.core.store.IWorkflowStore.class, (proxy, method, args) -> {
             String name = method.getName();
+            if (method.isDefault()) {
+                // plan 2514 裁定④/⑥新增接口缺省方法（扫描抢占/退避/原子计数）在内存替身上
+                // 走产品缺省实现：tryClaim=true、remindCount 经 saveStepRecord 读-改-写，
+                // 既有断言语义零回改
+                return InvocationHandler.invokeDefault(proxy, method, args);
+            }
             if ("findDueActivatedSteps".equals(name)) {
                 return dueSteps;
             }

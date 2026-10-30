@@ -229,8 +229,16 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     public static final String PROP_NAME_remark = "remark";
     public static final int PROP_ID_remark = 52;
     
+    /* 扫描持有者ID: SCAN_HOLDER_ID VARCHAR */
+    public static final String PROP_NAME_scanHolderId = "scanHolderId";
+    public static final int PROP_ID_scanHolderId = 53;
+    
+    /* 扫描租约到期时间: SCAN_LEASE_TIME TIMESTAMP */
+    public static final String PROP_NAME_scanLeaseTime = "scanLeaseTime";
+    public static final int PROP_ID_scanLeaseTime = 54;
+    
 
-    private static int _PROP_ID_BOUND = 53;
+    private static int _PROP_ID_BOUND = 55;
 
     
     /* relation: 工作流实例 */
@@ -252,7 +260,7 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     protected static final List<String> PK_PROP_NAMES = Arrays.asList(PROP_NAME_stepId);
     protected static final int[] PK_PROP_IDS = new int[]{PROP_ID_stepId};
 
-    private static final String[] PROP_ID_TO_NAME = new String[53];
+    private static final String[] PROP_ID_TO_NAME = new String[55];
     private static final Map<String,Integer> PROP_NAME_TO_ID = new HashMap<>();
     static{
       
@@ -412,6 +420,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
           PROP_ID_TO_NAME[PROP_ID_remark] = PROP_NAME_remark;
           PROP_NAME_TO_ID.put(PROP_NAME_remark, PROP_ID_remark);
       
+          PROP_ID_TO_NAME[PROP_ID_scanHolderId] = PROP_NAME_scanHolderId;
+          PROP_NAME_TO_ID.put(PROP_NAME_scanHolderId, PROP_ID_scanHolderId);
+      
+          PROP_ID_TO_NAME[PROP_ID_scanLeaseTime] = PROP_NAME_scanLeaseTime;
+          PROP_NAME_TO_ID.put(PROP_NAME_scanLeaseTime, PROP_ID_scanLeaseTime);
+      
     }
 
     
@@ -570,6 +584,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
     
     /* 备注: REMARK */
     private java.lang.String _remark;
+    
+    /* 扫描持有者ID: SCAN_HOLDER_ID */
+    private java.lang.String _scanHolderId;
+    
+    /* 扫描租约到期时间: SCAN_LEASE_TIME */
+    private java.sql.Timestamp _scanLeaseTime;
     
 
     public _NopWfStepInstance(){
@@ -800,6 +820,12 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         
             case PROP_ID_remark:
                return getRemark();
+        
+            case PROP_ID_scanHolderId:
+               return getScanHolderId();
+        
+            case PROP_ID_scanLeaseTime:
+               return getScanLeaseTime();
         
            default:
               return super.orm_propValue(propId);
@@ -1332,6 +1358,26 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
                break;
             }
         
+            case PROP_ID_scanHolderId:{
+               java.lang.String typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toString(value,
+                       err-> newTypeConversionError(PROP_NAME_scanHolderId));
+               }
+               setScanHolderId(typedValue);
+               break;
+            }
+        
+            case PROP_ID_scanLeaseTime:{
+               java.sql.Timestamp typedValue = null;
+               if(value != null){
+                   typedValue = ConvertHelper.toTimestamp(value,
+                       err-> newTypeConversionError(PROP_NAME_scanLeaseTime));
+               }
+               setScanLeaseTime(typedValue);
+               break;
+            }
+        
            default:
               super.orm_propValue(propId,value);
         }
@@ -1701,6 +1747,20 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
             case PROP_ID_remark:{
                onInitProp(propId);
                this._remark = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_scanHolderId:{
+               onInitProp(propId);
+               this._scanHolderId = (java.lang.String)value;
+               
+               break;
+            }
+        
+            case PROP_ID_scanLeaseTime:{
+               onInitProp(propId);
+               this._scanLeaseTime = (java.sql.Timestamp)value;
                
                break;
             }
@@ -2695,6 +2755,44 @@ public class _NopWfStepInstance extends DynamicOrmEntity{
         if(onPropSet(PROP_ID_remark,value)){
             this._remark = value;
             internalClearRefs(PROP_ID_remark);
+            
+        }
+    }
+    
+    /**
+     * 扫描持有者ID: SCAN_HOLDER_ID
+     */
+    public final java.lang.String getScanHolderId(){
+         onPropGet(PROP_ID_scanHolderId);
+         return _scanHolderId;
+    }
+
+    /**
+     * 扫描持有者ID: SCAN_HOLDER_ID
+     */
+    public final void setScanHolderId(java.lang.String value){
+        if(onPropSet(PROP_ID_scanHolderId,value)){
+            this._scanHolderId = value;
+            internalClearRefs(PROP_ID_scanHolderId);
+            
+        }
+    }
+    
+    /**
+     * 扫描租约到期时间: SCAN_LEASE_TIME
+     */
+    public final java.sql.Timestamp getScanLeaseTime(){
+         onPropGet(PROP_ID_scanLeaseTime);
+         return _scanLeaseTime;
+    }
+
+    /**
+     * 扫描租约到期时间: SCAN_LEASE_TIME
+     */
+    public final void setScanLeaseTime(java.sql.Timestamp value){
+        if(onPropSet(PROP_ID_scanLeaseTime,value)){
+            this._scanLeaseTime = value;
+            internalClearRefs(PROP_ID_scanLeaseTime);
             
         }
     }

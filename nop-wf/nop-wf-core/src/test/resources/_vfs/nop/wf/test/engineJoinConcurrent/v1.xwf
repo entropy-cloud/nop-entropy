@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<workflow bizEntityStateProp="state" x:schema="/nop/schema/wf/wf.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+
+    <!-- plan 2514 红②（C10-005）测试模型：and-split 双上游并发到达 and-join 步骤 -->
+
+    <start startStepName="wf-start"/>
+
+    <actions>
+        <action displayName="发起" name="go">
+            <transition splitType="and">
+                <to-step stepName="u1"/>
+                <to-step stepName="u2"/>
+            </transition>
+        </action>
+        <action displayName="上游一通过" name="ok1">
+            <transition>
+                <to-step stepName="j"/>
+            </transition>
+        </action>
+        <action displayName="上游二通过" name="ok2">
+            <transition>
+                <to-step stepName="j"/>
+            </transition>
+        </action>
+        <action displayName="审批" name="sp">
+            <transition>
+                <to-end/>
+            </transition>
+        </action>
+    </actions>
+
+    <steps>
+        <step displayName="开始步骤" name="wf-start">
+            <assignment>
+                <actors>
+                    <actor actorId="0" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="go"/>
+            </ref-actions>
+        </step>
+        <step displayName="上游一" name="u1">
+            <assignment>
+                <actors>
+                    <actor actorId="1" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="ok1"/>
+            </ref-actions>
+        </step>
+        <step displayName="上游二" name="u2">
+            <assignment>
+                <actors>
+                    <actor actorId="2" actorType="user" actorModelId="actor2"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="ok2"/>
+            </ref-actions>
+        </step>
+        <join displayName="汇聚步骤" joinType="and" name="j">
+            <assignment>
+                <actors>
+                    <actor actorId="3" actorType="user" actorModelId="actor1"/>
+                </actors>
+            </assignment>
+            <ref-actions>
+                <ref-action name="sp"/>
+            </ref-actions>
+        </join>
+    </steps>
+</workflow>

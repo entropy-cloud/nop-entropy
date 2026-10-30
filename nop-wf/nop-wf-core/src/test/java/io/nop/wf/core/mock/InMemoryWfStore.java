@@ -38,6 +38,28 @@ public class InMemoryWfStore extends AbstractWorkflowStore {
 
     private final Map<String, WorkflowStepRecordBean> stepBeans = new ConcurrentHashMap<>();
 
+    // plan 2514 MA-02（裁定①）：测试 store 与 DaoWorkflowStore 同构的 64 槽 wfInstanceId 条带锁，
+    // 使引擎五站点并发语义（组迁移/checkEnd/join/action/子流回滚）在无 DB 测试下同样生效
+    private static final int WF_LOCK_STRIPES = 64;
+    private static final Object[] WF_LOCKS = newWfLocks();
+
+    private static Object[] newWfLocks() {
+        Object[] locks = new Object[WF_LOCK_STRIPES];
+        for (int i = 0; i < WF_LOCK_STRIPES; i++)
+            locks[i] = new Object();
+        return locks;
+    }
+
+    @Override
+    public <T> T withWfLock(String wfId, java.util.function.Supplier<T> action) {
+        if (wfId == null)
+            return action.get();
+        Object lock = WF_LOCKS[(wfId.hashCode() & 0x7fffffff) % WF_LOCK_STRIPES];
+        synchronized (lock) {
+            return action.get();
+        }
+    }
+
     public void registerBizEntity(String bizObjType, String bizEntityId, Object entity) {
         boMap.put(Pair.of(bizObjType, bizEntityId), entity);
     }
