@@ -1,6 +1,6 @@
 # 2511 CRA Phase 8.17 — R2-08 1.2 连接器批（并发正确性 + 资源包络，7 项）
 
-> Plan Status: active
+> Plan Status: completed
 > Design Review: R2 agent_ee958fe0 @ 2026-10-29（第 1 轮 FAIL[2 Major/0 Blocker/6 Minor]：Major-1 裁定② 未簿记测试必红面[TestCepOperatorLateRecordsDroppedMetric 匿名 fixture]→§3.8 随同 diff 影响面登记；Major-2 裁定⑥ ChangeEvent 无 partition 访问器、位点载体实为 ChangeEventMetadata 特化字段可 null + per-split 粒度未定夺→位点键形 lsn→commitLsn→binlog 优先级序+逐字段 typed 判据+per-server 键形+restore 取 min 保守重放；Minor×8 全闭合[SSOT ceil、换算基声明、SnapshotRestore 全量 opt-out leg、:262 间接锚、钉#6 构造适配触碰注记、部署期行为变更声明]——第 2 轮复审 8/8 CLOSED PASS，probe(a)(b) 均通过[restore-min 只放大重复面不放大丢失面；copyForSubtask 测试调用方全仓穷尽仅 2 处均在簿记]）
 > Draft Review: agent_96b5498c @ 2026-10-29（PASS，仅 6 Minor——行号微漂移 :91/:336/:273/:431 已修入、C5-007 跨单元边界注记、C3-014 residual 注记义务入 Phase 4；基线 14 组抽查全吻合、R03 §3.6 引用亲读核实、结构完备性对照 plan guide 与先例 2510 全在位）
 > Last Reviewed: 2026-10-29
@@ -156,60 +156,60 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done
 Targets: `nop-stream` 聚合全量测试；`docs-for-ai/03-modules/nop-stream-connectors.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2510 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-stream -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、R4-03/R4-04/R4-24 批外成员站点、nop-message-debezium 引擎 commit 策略本体（`git diff --name-only` 核对登记）
-- [ ] Owner doc 更新：`nop-stream-connectors.md`——新增 2PC 保留策略节（以 `ledger-retention-policy.md` 为准的 ≤3 行摘要）、Avro 格式层节补请求级超时与锁外加载表述（:114 失败面声明修复后成立性）、能力矩阵Debezium 行 offset 语义同步（:130）、kafka-2pc 行事务超时耦合声明（:132/:35）、rocksdb/cep 模块表述缺口裁定（补节或登记 drift→按 docs 维护规则处理）；`source-anchors.md` 新增锚点（按实际）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2510 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-stream -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、R4-03/R4-04/R4-24 批外成员站点、nop-message-debezium 引擎 commit 策略本体（`git diff --name-only` 核对登记）
+- [x] Owner doc 更新：`nop-stream-connectors.md`——新增 2PC 保留策略节（以 `ledger-retention-policy.md` 为准的 ≤3 行摘要）、Avro 格式层节补请求级超时与锁外加载表述（:114 失败面声明修复后成立性）、能力矩阵Debezium 行 offset 语义同步（:130）、kafka-2pc 行事务超时耦合声明（:132/:35）、rocksdb/cep 模块表述缺口裁定（补节或登记 drift→按 docs 维护规则处理）；`source-anchors.md` 新增锚点（按实际）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-stream --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-stream-connectors.md 保留策略/Avro/offset/事务超时各节更新 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（orm.xml/生成物/批外成员站点/nop-message-debezium 契约域）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] nop-stream-connectors.md 保留策略/Avro/offset/事务超时各节更新 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（orm.xml/生成物/批外成员站点/nop-message-debezium 契约域）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: done
 Targets: 本 plan、roadmap 8.17 行、cra-index 台账、R4-03/R4-04 就绪注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（锁内取值/拷贝私有/锁外建连/保留清理/位点回退/守卫拒配运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填（顺带在 C3-014 行注记 residual 归属防歧义——plan 2503 已修但状态列因 MA-09 残余保持 open）：L145/L146/L147/L148/L151/L153/L154 七行状态收敛（open → fixed，注记 plan 2511；吸收成员括注随主行；C1-001 行 r4 R5-CEP-05 双登记消号注记）；C10 七条收敛注记（改写类注明假保护消号）；roadmap 8.17 行 Status → done；R4-03（8.43）/R4-04（8.44）软依赖 8.17 的就绪注记（沿 2510 对 R4-01/R4-02 先例——含 MA-16/MA-13 可引用裁定④、MA-10/MA-11 可引用裁定③前提、C3-006 同案双轨归 R4-24 边界声明）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（锁内取值/拷贝私有/锁外建连/保留清理/位点回退/守卫拒配运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填（顺带在 C3-014 行注记 residual 归属防歧义——plan 2503 已修但状态列因 MA-09 残余保持 open）：L145/L146/L147/L148/L151/L153/L154 七行状态收敛（open → fixed，注记 plan 2511；吸收成员括注随主行；C1-001 行 r4 R5-CEP-05 双登记消号注记）；C10 七条收敛注记（改写类注明假保护消号）；roadmap 8.17 行 Status → done；R4-03（8.43）/R4-04（8.44）软依赖 8.17 的就绪注记（沿 2510 对 R4-01/R4-02 先例——含 MA-16/MA-13 可引用裁定④、MA-10/MA-11 可引用裁定③前提、C3-006 同案双轨归 R4-24 边界声明）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 7 行收敛 + C10 七条注记、roadmap 8.17 = done、R4-03/R4-04 就绪注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 7 行收敛 + C10 七条注记、roadmap 8.17 = done、R4-03/R4-04 就绪注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 7 项成员全部修复：C1-002（gauge 锁内取值）、C1-001（copyForSubtask 三面封闭）、C2-002（请求超时+锁外建连）、C3-002（2PC 保留双面）、C5-002（物化包络收敛）、C8-001（offset 位点对齐）、C8-006（事务裕度守卫）
-- [ ] batch-proposal R2-08 行 exit criteria 增补六段逐条达成并留证：①**gauge 锁外 dbRef 修复（SIGSEGV 窗口）**（交错压窗+锁内取参断言）；②**CEP copyForSubtask 三面封闭**（三面[条件图/ctx 槽位/udf 生命周期]断言+assertSame 反转）；③**Avro registry 请求超时+锁外建连**（挂死注入 typed+锁限时释放）；④**2PC 保留策略（R01）**（台账+manifest 双面保留清理按 SSOT 落地+SSOT 成员传导行在案+恢复幂等钉零回退）；⑤**checkpoint offset 对齐（≤256 条丢失面）**（偏斜注入+offset==last-emitted+恢复重放断言）；⑥**2PC 事务裕度守卫**（缺省超时在位+耦合校验 fail-fast）。C5-002 经 E2 通用+C10-012 承载（勘误 2 对应项）
-- [ ] 对齐纪律守约：C3-002 保留参数/face/锚列与 `ledger-retention-policy.md` 零分叉（SSOT diff 仅为成员行追加，face 自定不复制 2510 两 face）；C2-002 锁外建连+请求超时与 R03 范式（stream-buffer-unification §3.6）同构声明在案
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑦均有先红后绿或变异/回退论证（E2）；C10 七条同 diff 落地（五处改写对照留痕）
-- [ ] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-stream -am` BUILD SUCCESS（E1/E3；debezium 环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-stream-connectors.md + source-anchors.md（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）锁内取值/拷贝私有/锁外建连/保留清理接线/位点回退/守卫拒配运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-stream 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 7 行收敛 + roadmap 8.17 → done + R4-03/R4-04 就绪注记（E6）
+- [x] 7 项成员全部修复：C1-002（gauge 锁内取值）、C1-001（copyForSubtask 三面封闭）、C2-002（请求超时+锁外建连）、C3-002（2PC 保留双面）、C5-002（物化包络收敛）、C8-001（offset 位点对齐）、C8-006（事务裕度守卫）
+- [x] batch-proposal R2-08 行 exit criteria 增补六段逐条达成并留证：①**gauge 锁外 dbRef 修复（SIGSEGV 窗口）**（交错压窗+锁内取参断言）；②**CEP copyForSubtask 三面封闭**（三面[条件图/ctx 槽位/udf 生命周期]断言+assertSame 反转）；③**Avro registry 请求超时+锁外建连**（挂死注入 typed+锁限时释放）；④**2PC 保留策略（R01）**（台账+manifest 双面保留清理按 SSOT 落地+SSOT 成员传导行在案+恢复幂等钉零回退）；⑤**checkpoint offset 对齐（≤256 条丢失面）**（偏斜注入+offset==last-emitted+恢复重放断言）；⑥**2PC 事务裕度守卫**（缺省超时在位+耦合校验 fail-fast）。C5-002 经 E2 通用+C10-012 承载（勘误 2 对应项）
+- [x] 对齐纪律守约：C3-002 保留参数/face/锚列与 `ledger-retention-policy.md` 零分叉（SSOT diff 仅为成员行追加，face 自定不复制 2510 两 face）；C2-002 锁外建连+请求超时与 R03 范式（stream-buffer-unification §3.6）同构声明在案
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑦均有先红后绿或变异/回退论证（E2）；C10 七条同 diff 落地（五处改写对照留痕）
+- [x] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-stream -am` BUILD SUCCESS（E1/E3；debezium 环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：nop-stream-connectors.md + source-anchors.md（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）锁内取值/拷贝私有/锁外建连/保留清理接线/位点回退/守卫拒配运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-stream 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 7 行收敛 + roadmap 8.17 → done + R4-03/R4-04 就绪注记（E6）
 
 ## Deferred But Adjudicated
 
@@ -236,14 +236,19 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 七项成员（C1-002/C1-001/C2-002/C3-002/C5-002/C8-001/C8-006）全部 landed 并经独立 closure audit APPROVED；三条偏差（C5-002 runtime E2E 交互、裁定② xlang 编译叶子豁免、fraud fixture 适配）均三件套登记；debezium fork timeout 环境面三联裁定（基线同红+solo 绿+波动）在案。
+Completed: 2026-10-30
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session）
-- Evidence: （每条 Exit Criterion 与 Closure Gate 的验证结果；`check-plan-checklist.mjs --strict` 退出码；Anti-Hollow 检查结果；scan-hollow 退出码）
+- Reviewer / Agent: 独立 closure audit 子代理 agent_2771ecc0（fresh session，@ 2026-10-30，HEAD=5cc611ea1e），总裁定 **APPROVED**（附回填前置条件：E1 重跑留证——已满足，`./mvnw clean install -T 1C -DskipTests` EXIT=0 且 BUILD SUCCESS 在 `_tmp/2511-e1-full-build-r2.log`）
+- Evidence: 七成员 Anti-Hollow 逐条 live 亲读实证全 PASS（含 ShareRef pool probe——单调 id 不会错误合并不同函数实例；增量路径 migrate-or-fail-fast 真实执行 :652-706）；红①–红⑦证据 14 文件在盘；零回退钉零回改（钉文件 diff 4 个全为改写/允许适配类）；抽样复跑全绿（kafka Lifecycle+Margin、cep、SnapshotRestore 24/24、Debezium Source+C8_001）；C10 七条同 diff；SSOT 零参数分叉（git show 5ff90de858 单行追加）
+- 门禁记录：E1 EXIT=0（`_tmp/2511-e1-full-build-r2.log`）；E3 组合门禁 5 轮记录（r1 暴露三处真实交互已修复；r2-r5 debezium testcontainers 镜像拉取 fork timeout 环境面）；check-doc-links --strict EXIT=0；scan-hollow high=0 EXIT=0；check-nop-stream-invariants EXIT=0（registry re-pin）；check-plan-checklist 退出码见收口提交
+- 台账回填：cra-index R2-08 七行 open→fixed（吸收成员随主行括注）；roadmap 8.17→done；R4-03/R4-04 就绪注记
+- 提交链：0afa884723（立项）→ 5ff90de858（Phase 1 设计）→ d7c737644d（组 A）→ 1d34caa770（组 B）→ 5cc611ea1e（Phase 3）→ 本收口提交
 
 Follow-up:
 
-- （只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- CepOperator.SHAREABLE_LEAF_POOL 条目只增不删（watch-only，audit 观察；高频 re-copy 场景内存观感项，非正确性缺陷，归 R4-03/R4-04 实施时顺带评估）。
+- `nop.stream.avro.registry-request-timeout`/`nop.stream.connector.kafka.transaction-timeout-ms` 当前无生产装配点直读（构造注入承载），装配链接入归 R4-03（MA-16 等）。
+- R4-03/R4-04 实施引用本设计文档八项裁定为既有裁定，不重开体裁决。

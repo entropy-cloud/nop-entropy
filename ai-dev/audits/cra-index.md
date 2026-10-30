@@ -142,16 +142,16 @@
 | C8-003 | 1.1 | nop-stream-core-runtime | msg_queue INSERT-only 无界账本+WI6 门控不可达（←C7-003） | R2-07 |fixed（plan 2510，closure audit APPROVED @ 2026-10-29） |
 | C8-011 | 1.1 | nop-stream-core-runtime | launch 共享 2 线程 poller：数据面积压垄断→控制面饥饿（←C4-004） | R2-07 |fixed（plan 2510，closure audit APPROVED @ 2026-10-29） |
 | FAM-1 | 1.1 | nop-stream-core-runtime | materialization store 无界+overflow-bypass 背压旁路（C5-001 主←C7-001、C8-001） | R2-07 |fixed（plan 2510，closure audit APPROVED @ 2026-10-29） |
-| C1-002（MA-02） | 1.2 | nop-stream-state-connectors | RocksDB gauge 锁外取 dbRef→native UAF（SIGSEGV 窗口；←C2-001、C6-004） | R2-08 | open |
-| C1-001（MA-03） | 1.2 | nop-stream-state-connectors | CEP copyForSubtask 引用透传共享：NFA 条件图/ctx 槽位/udf 生命周期三面（←C1-005、C1-006；C1-001 已知未修复←r4 R5-CEP-05） | R2-08 | open |
-| C2-002（MA-04） | 1.2 | nop-stream-state-connectors | Avro registry 无请求超时 × computeIfAbsent 锁内 HTTP（挂死+锁毒化；←C3-003、C4-003、C6-008、C8-004、C7-006①） | R2-08 | open |
-| C3-002（MA-05） | 1.2 | nop-stream-state-connectors | 2PC 持久化登记无保留策略：JDBC 台账只增不删 + file manifest O(E) 放大（←C5-006、C7-001、C8-007、C7-007①） | R2-08 | open |
+| C1-002（MA-02） | 1.2 | nop-stream-state-connectors | RocksDB gauge 锁外取 dbRef→native UAF（SIGSEGV 窗口；←C2-001、C6-004） | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
+| C1-001（MA-03） | 1.2 | nop-stream-state-connectors | CEP copyForSubtask 引用透传共享：NFA 条件图/ctx 槽位/udf 生命周期三面（←C1-005、C1-006；C1-001 已知未修复←r4 R5-CEP-05） | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
+| C2-002（MA-04） | 1.2 | nop-stream-state-connectors | Avro registry 无请求超时 × computeIfAbsent 锁内 HTTP（挂死+锁毒化；←C3-003、C4-003、C6-008、C8-004、C7-006①） | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
+| C3-002（MA-05） | 1.2 | nop-stream-state-connectors | 2PC 持久化登记无保留策略：JDBC 台账只增不删 + file manifest O(E) 放大（←C5-006、C7-001、C8-007、C7-007①） | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
 | C4-004（MA-06） | 1.2 | nop-stream-state-connectors | Debezium 引擎无限阻塞任务常驻平台共享 globalWorker 池（←C3-009） | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | C3-014（MA-07） | 1.2 | nop-stream-state-connectors | Debezium 停止/启动契约无终结保证：幽灵引擎/重启交叠/排队窗口三面（←C4-005、C4-006） | R1-08（同文件续作边界注记，plan 2503 Phase 4：4.1-MA-09 wrapper 生命周期族[C6-005/C1-011/C6-007，P3]不属本工单修复面——Phase 3 同文件 diff 未以最小增量自然覆盖其四子面[quiesce join stuck WARN 细化/worker 死亡路径幂等 close 回收/start 失败复位 startRequested/start-after-stop one-shot 契约声明；本批新增 ghost ERROR 声明属 C3-014⑤ 自有终止性面非 MA-09 承接]，MA-09 维持 P3 最小 diff 归并轨、successor=R4-24 同文件顺带；对侧注记见 P2-G62 行） | open |
-| C5-002（MA-08） | 1.2 | nop-stream-state-connectors | RocksDB 默认全量 JSON checkpoint 整库物化进堆（←C8-005） | R2-08 | open |
+| C5-002（MA-08） | 1.2 | nop-stream-state-connectors | RocksDB 默认全量 JSON checkpoint 整库物化进堆（←C8-005） | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
 | C3-004 | 1.2 | nop-stream-state-connectors | Debezium 枚举器恢复双登记→同表双引擎重复消费 | 已修（R1-08，plan 2503 closure audit PASS） | fixed |
-| C8-001 | 1.2 | nop-stream-state-connectors | Debezium reader checkpoint offset 领先已发射→恢复静默丢 ≤256 条/检查点 | R2-08 | open |
-| C8-006 | 1.2 | nop-stream-state-connectors | Kafka 2PC 事务存活期与 checkpoint 间隔零裕度→触界失败循环 | R2-08 | open |
+| C8-001 | 1.2 | nop-stream-state-connectors | Debezium reader checkpoint offset 领先已发射→恢复静默丢 ≤256 条/检查点 | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
+| C8-006 | 1.2 | nop-stream-state-connectors | Kafka 2PC 事务存活期与 checkpoint 间隔零裕度→触界失败循环 | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
 | C1-001（MA-01） | 1.3 | nop-stream-orchestration-thin | UDF 注册表非线程安全：逐记录 call() 无锁读 × 公开 register() 任意线程写 + 运行期静默换绑（←C3-002、C2-001；含 sql.md §3a docs bug） | R2-09 | open |
 | C3-008 | 1.3 | nop-stream-orchestration-thin | region 重启 Phase-3 流水线下兄弟 initializeState REPLACE 清零已推进游标→恢复重放已反映窗口（编排面关联 runtime） | R2-09 | open |
 | C3-009 | 1.3 | nop-stream-orchestration-thin | 共享 UDF × 各子任务 open() 覆写共享 RuntimeContext→并行 ≥2 键控状态收敛单一 backend（根因载体 core ProcessOperator，跨单元关联） | R2-09 | open |
