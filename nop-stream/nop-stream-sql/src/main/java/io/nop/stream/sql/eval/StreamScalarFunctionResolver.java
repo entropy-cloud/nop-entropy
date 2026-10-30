@@ -9,12 +9,14 @@ package io.nop.stream.sql.eval;
 
 import io.nop.stream.core.common.typeinfo.TypeInformation;
 import io.nop.stream.flow.spi.IScalarFunctionResolver;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -28,22 +30,47 @@ import java.util.function.Function;
  */
 public class StreamScalarFunctionResolver implements IScalarFunctionResolver, AutoCloseable {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StreamScalarFunctionResolver.class);
+
     private static volatile StreamScalarFunctionResolver defaultResolver;
 
     /**
      * The compile-time lookup instance — the WindowedStreamImpl.setDefaultFactory
      * precedent (the app-beans bean and this static instance are the same object in
      * production; tests set it directly without an IoC container).
+     *
+     * <p>Runtime rebinding (calling {@link #setDefault} again after a default is
+     * already registered) is permitted — the registration initiator is the
+     * application side and the framework has no determinable startup-window
+     * contract anchor, so fail-fast would turn a legitimate hot swap into an
+     * unwarned deployment failure. It is recorded with a WARN instead; the new
+     * resolver's function table is authoritative for subsequent per-record
+     * lookups without recompilation.
      */
     public static StreamScalarFunctionResolver getDefault() {
         return defaultResolver;
     }
 
     public static void setDefault(StreamScalarFunctionResolver resolver) {
+        StreamScalarFunctionResolver previous = defaultResolver;
+        if (previous != null && previous != resolver) {
+            LOG.warn("nop.stream.sql.udf.default-rebound: scalar function resolver "
+                    + "rebound at runtime; the new resolver's function table is "
+                    + "authoritative for subsequent per-record lookups (previous={}, new={})",
+                    previous.getClass().getName(), resolver == null ? "null"
+                            : resolver.getClass().getName());
+        }
         defaultResolver = resolver;
     }
 
-    private final Map<String, Function<Object[], Object>> functions = new LinkedHashMap<>();
+    /**
+     * Concurrent registry: {@code register} is callable from any thread at any
+     * time (application-side hot swap), while the per-record lookup hot path
+     * ({@link #call}) reads without locking. A new registration takes effect
+     * immediately; overwriting an existing name affects subsequent lookups
+     * immediately (rebinding semantics, see {@link #setDefault}).
+     */
+    private final Map<String, Function<Object[], Object>> functions = new ConcurrentHashMap<>();
 
     /** registers (or replaces) a scalar function under the given SQL call name. */
     public void register(String fnName, Function<Object[], Object> fn) {

@@ -44,7 +44,7 @@ FROM TUMBLE(orders.ts, INTERVAL 5 SECOND) WHERE amount > 0 GROUP BY item]]></sou
 
 ## 3a. 标量 UDF（WI30）
 
-应用通过 `StreamScalarFunctionResolver.register(fnName, fn)` 注册自定义标量函数后，可在 SQL 标量表达式（SELECT/WHERE/HAVING）中以函数名调用。SPI 接口 `IScalarFunctionResolver` 与聚合解析器同构（BeanContainer 按类型查找 + app-beans 注册；roadmap 字面 ServiceLoader 实为 IoC 同构——如实披露）。编译期一次解析（非逐记录查找）；未注册函数名 fail-fast 列出已注册名。生命周期：provider 实现 AutoCloseable 由 bean 容器传播 close。
+应用通过 `StreamScalarFunctionResolver.register(fnName, fn)` 注册自定义标量函数后，可在 SQL 标量表达式（SELECT/WHERE/HAVING）中以函数名调用。SPI 接口 `IScalarFunctionResolver` 与聚合解析器同构（BeanContainer 按类型查找 + app-beans 注册；roadmap 字面 ServiceLoader 实为 IoC 同构——如实披露）。UDF 解析按声明面双路径：Java 内嵌编译路径编译期一次解析捕获闭包；`<sql>`/`<sqlTransform>` 声明面为逐记录静态查表（生成 xpl 体每记录经 `StreamScalarFunctionResolver.call` 按 defaultResolver 查表），运行期换绑（重复 `registerAsDefault`，WARN 留痕）对声明面后续记录即时生效。未注册函数名 fail-fast 列出已注册名。生命周期：provider 实现 AutoCloseable 由 bean 容器传播 close；default resolver 为进程级单例语义——`register` 任意线程任意时刻可调（注册表为 ConcurrentHashMap，注册新名即时生效，覆写同名即时影响后续逐记录查表）。
 
 ```java
 StreamScalarFunctionResolver resolver = new StreamScalarFunctionResolver();
