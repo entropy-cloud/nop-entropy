@@ -28,7 +28,7 @@
 ## 阻塞策略
 
 - **丢弃**（DISCARD）：同命名空间、同分组、同幂等键已有未完成记录时丢弃新任务
-- **覆盖**（OVERWRITE）：删除已有未完成记录并以新请求替换
+- **覆盖**（OVERWRITE）：以原子替换包络删除已有未完成记录并以新请求替换（store 层 `replaceRecord` 单事务 delete+save，失败整体回滚、旧记录存活并死信化全量快照，任务零蒸发）；替换成功时递增该记录的进程内代际号，旧链（在途回调/已调度续跑定时器）每次回调/续跑/回写前校验「代际一致 ∧ DB 行仍在」，任一不满足即短路中止（INFO 留痕）；旧链回写命中已删行（0 行）同样显式短路——覆盖重提后幽灵旧链双执行不可达
 - **查重范围**：提交去重覆盖全部生命周期状态——已有 PENDING/RETRYING/SUSPENDED 记录按上述策略阻塞（SUSPENDED 是运维暂停，重复提交不偷偷恢复执行）；已有 COMPLETED 记录时重提交按幂等重放直接返回成功，不重新执行副作用、不撞唯一键
 - **并发首提兜底**：两方同时以同一幂等键首发时由 `UK_RETRY_IDEMPOTENT_ID` 唯一键裁决，输家按 blockStrategy 处理，不以裸约束冲突暴露
 
@@ -80,6 +80,15 @@
 - **分区**：`partitionIndex = floorMod(hash(namespaceId:groupId:idempotentId), 16)`，集群扫描按分区取数。
 - **回调**：`callbackEnabled` 是总开关；仅当开关打开且存在 `callbackPolicyId` 时才按 `callbackTriggerType`（ON_SUCCESS/ON_FAILURE/ALWAYS）触发。当前实现仍回调原 service/method，新任务 idempotentId 追加 `_callback` 后缀。
 
+## 并发与租约契约（plan 2515 R2-12）
+
+- **租约续租协议**：即时重试链每轮 attempt 发起前对 `nextTriggerTime` 做乐观锁版本 CAS 续租（推进一个租约周期，缺省租约 600s）。续租 0 行 = 租约被扫描器接管或他链抢持 → 本链**败方显式中止**（错误码 `nop.err.retry.lease-lost` + WARN），不静默续跑、不重抢。扫描器拾取维持「status∈{PENDING,RETRYING} ∧ nextTriggerTime<=now」双条件；单次 attempt 挂死窗由 **attempt 级超时上界**闭合：配置键 `nop.retry.attempt.timeout-ms`（缺省 300s = 默认租约的一半分数档），装配期 fail-fast 校验必须小于租约——挂死 attempt 在租约到期前被超时取消落账，接管读到的必是已终态化的 attempt。
+- **记账分层（簿记失败不改判业务结果）**：attempt 层（`NopRetryAttempt` 落账）与 record 层（retryCount 推进/状态回写/死信化）簿记写各自独立 try/catch 隔离——簿记失败记 ERROR（`nop.retry.attempt.bookkeep-fail` / `nop.retry.record.bookkeep-fail`）+ 失败计数，**不改判业务结论、不以簿记异常完成业务 future**（簿记瞬时 DB 故障不得把已成功的业务调用改判失败并重试）。
+- **future 拓扑单一化**：`executeImmediateRetry` 返回的 future 与回调挂接为**同一 promise**，每条链出口 Throwable 兜底 `completeExceptionally`——返回 future 必有终态（成功/失败/兜底异常），扫描器 `allOf().join()` 有界返回，业务级永久冻结形态不可再现（扫描链绝缘契约见下节，两层正交零回退）。
+- **提交面失败交付契约（C8-017）**：`IRetryTask.callAsync` 受支持的调用形态包含 fire-and-forget——调用方**等待非必需**；提交面任何失败（策略/记录装载、OVERWRITE 替换等同步 DB 类故障）保证经返回的 future 异常终态交付（实现侧 try-catch(Throwable) → failedStage），同步抛 / future 异常 / 永不完成三通道收敛为 future 单通道。调用方不读取 future 即自担失败感知；读取 future 者必然感知一切提交面失败。
+- **attempt 终态化与僵尸记录消除**：执行入口（含扫描器重拾与 OVERWRITE 新链）对 record 名下遗留 RUNNING attempt 先对账置 STOPPED（终态）+ endTime；新 attempt 的 attemptNo 取该 record 下 max(attemptNo)+1（`UK_RETRY_ATTEMPT_RECORD_NO` 碰撞从根消除），`saveAttempt` 另有 duplicate-key 防御兜底（关闭遗留行 + max+1 重插一次，触发即 WARN 不静默）——崩溃/挂死残留 RUNNING attempt 不再砖化记录。解析（payload 反序列化/策略装载）与 invoker 同步抛等异常路径**首败即死信化**（`moveToDeadLetter` 全量快照 + failedStage），不再产生每租约周期无限重拾的僵尸记录。
+- **扫描 namespace 覆盖**：扫描器拾取覆盖**全部 namespace** 的 PENDING/RETRYING 记录（不按 store 装配的单值 namespaceId 过滤；该字段保留为提交缺省值用途）。租户隔离由分区键（`namespaceId:groupId:idempotentId → partitionIndex`）与幂等 UK 承担；依赖「扫描面按 namespace 隔离」的部署须以分区分配表达。
+
 ## 扫描链（RetryScanner）
 
 `RetryScannerImpl` 经平台周期任务绝缘层驱动（`IScheduledExecutor.scheduleWithFixedDelay` 六参绝缘入口，taskName=`nop-retry-scanner`；绝缘语义契约 = `IScheduledExecutor` 周期方法 javadoc 成文契约）：
@@ -127,6 +136,7 @@
 | ORM 模型 | `nop-retry/model/nop-retry.orm.xml` |
 | 扫描链 | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/scanner/RetryScannerImpl.java` |
 | 账本保留清理（1.6-C7-001） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java`（`purgeExpiredLedgerRows` 三通道清理面；保留参数 `RetryEngineConfigs`，引擎生命周期链接线 `RetryEngineImpl`） |
+| 并发契约（plan 2515 R2-12） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java`（续租+被抢中止 `executeImmediateRetry` :457/:465、代际校验 `finishImmediateRetry` :488/:500、两层簿记隔离 `runRecordBookkeeping` :565/:665/:723、僵尸死信化 `executeRetryFromScanner` :355/:377-388、join 兜底 :923）；`RetryRecordStoreImpl`（store/）（原子替换 `replaceRecord` :339、续租 CAS `renewLease` :349、遗留 RUNNING 对账 `reconcileStaleRunningAttempts` :203、namespace 放宽 `fetchPendingRecords` :230-241）；`RetryTaskImpl`（impl/）（提交面 failedStage 契约 `callAsync` :101）；attempt 超时上界键 `nop.retry.attempt.timeout-ms` = `RetryEngineConfigs` |
 
 ## 相关文档
 

@@ -129,33 +129,36 @@ Exit Criteria:
 
 ### Phase 2 - 13 成员实现 + 回归测试（按 retry/tcc 两组）
 
-Status: planned
+Status: done
 Targets: `nop-retry/nop-retry-engine/src/`、`nop-tcc/nop-tcc-core/src/`、`nop-tcc/nop-tcc-dao/src/`——各自 main + test 树
 
 - Item Types: `Fix`（12 项 P1 均为已确认 live defect，不得写成 Feature；C8-017 为 P2 搭车 `Fix`，R21 同 diff）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 retry（nop-retry-engine）：C3-003（裁定④续租）+ C10-006 retry 半；C3-005+C6-003（裁定⑤ OVERWRITE 同族）+ C10-005 retry 半；C3-006+C8-012+C8-017（裁定⑥记账族+拓扑+契约半边，同 diff）+ C10-001 + C10-008；C6-002+C7-003（裁定⑦终态化）+ C10-007 retry 半；C7-012（裁定⑨）+ C10-006 namespace 半
-- [ ] 组 tcc（nop-tcc-core/dao）：C1-001（裁定①）+ C3-002（裁定②）+ C3-012（裁定③）——三裁定同变更集（共享 CAS 传播与权威裁决机制）+ C10-003；C7-005（裁定⑧清理接线+终态化+索引[PA 申报已闭环]）+ C10-007 tcc 半
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] 红①–红③（tcc 组/C10-003）：双链对撞（恢复链认领×调用方 endAsync）RPC 门控 + 聚合权威裁决 + 首跳异常传播——缺陷态各自红 → 修复后绿
-  - [ ] 红④+红⑫（retry/C10-006）：长链超租约接管双执行 + 非 default namespace 接管——缺陷态红 → 修复后绿
-  - [ ] 红⑤+红⑥+红⑨（retry/C10-005）：幽灵链双执行 + OVERWRITE 蒸发死信 + RUNNING attempt 砖化——缺陷态红 → 修复后绿
-  - [ ] 红⑦+红⑧（retry/C10-001+C10-008）：簿记改判 + join 冻结（T1/T2 两形态）+ C8-017 三通道断言——缺陷态红 → 修复后绿（C10-001 真异常注入，非串行假保护）
-  - [ ] 红⑩+红⑪（retry/tcc/C10-007）：僵尸记录死信化 + 清理接线/耗尽终态化/索引生效——缺陷态红 → 修复后绿
-- [ ] **端到端验证**（rule 22）：≥1 条 retry 全链（提交→首执行→租约内即时重试→失败退避→扫描重拾→死信化→[接线面]清理，覆盖裁定④⑤⑥⑦⑨；DB 持久化形态）；≥1 条 tcc 全链（Try→分支 RPC→恢复扫描认领→CAS 门控补偿→聚合终态→[接线面]周期清理，覆盖裁定①②③⑧）
-- [ ] **接线验证**（rule 23）：裁定④续租 CAS 真实被即时重试链调用断言（非仅方法存在）；裁定⑤原子替换/代际校验真实被 handleBlockStrategy/回调路径消费断言；裁定⑥拓扑单一化断言（返回 future 完成态 == 挂接链完成态，含异常路径）；裁定⑧清理任务真实被 beans 装配/周期链调用 + 索引真实生效断言（EXPLAIN 或查询计划面，非仅 orm xml 存在）；裁定⑨fetch 过滤放宽后非 default 记录真实被拾取断言
-- [ ] **无静默跳过**（rule 24）：裁定①CAS 失败显式传播（非 warn 后吞）；裁定④被抢中止显式（非静默续跑）；裁定⑥E-a/E-b/E-c 逃逸点显式闭合（无永不完成形态残留）；裁定⑦⑧终态化路径显式可见（非空 catch）；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交——retry / tcc，C10 测试与对应本体同一 commit（裁定⑥三成员+C8-017 同一变更集；裁定①②③同一变更集）；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 retry（nop-retry-engine）：C3-003（裁定④续租）+ C10-006 retry 半；C3-005+C6-003（裁定⑤ OVERWRITE 同族）+ C10-005 retry 半；C3-006+C8-012+C8-017（裁定⑥记账族+拓扑+契约半边，同 diff）+ C10-001 + C10-008；C6-002+C7-003（裁定⑦终态化）+ C10-007 retry 半；C7-012（裁定⑨）+ C10-006 namespace 半
+- [x] 组 tcc（nop-tcc-core/dao）：C1-001（裁定①）+ C3-002（裁定②）+ C3-012（裁定③）——三裁定同变更集（共享 CAS 传播与权威裁决机制）+ C10-003；C7-005（裁定⑧清理接线+终态化+索引[PA 申报已闭环]）+ C10-007 tcc 半
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] 红①–红③（tcc 组/C10-003）：双链对撞（恢复链认领×调用方 endAsync）RPC 门控 + 聚合权威裁决 + 首跳异常传播——缺陷态各自红 → 修复后绿
+  - [x] 红④+红⑫（retry/C10-006）：长链超租约接管双执行 + 非 default namespace 接管——缺陷态红 → 修复后绿
+  - [x] 红⑤+红⑥+红⑨（retry/C10-005）：幽灵链双执行 + OVERWRITE 蒸发死信 + RUNNING attempt 砖化——缺陷态红 → 修复后绿
+  - [x] 红⑦+红⑧（retry/C10-001+C10-008）：簿记改判 + join 冻结（T1/T2 两形态）+ C8-017 三通道断言——缺陷态红 → 修复后绿（C10-001 真异常注入，非串行假保护）
+  - [x] 红⑩+红⑪（retry/tcc/C10-007）：僵尸记录死信化 + 清理接线/耗尽终态化/索引生效——缺陷态红 → 修复后绿
+- [x] **端到端验证**（rule 22）：≥1 条 retry 全链（提交→首执行→租约内即时重试→失败退避→扫描重拾→死信化→[接线面]清理，覆盖裁定④⑤⑥⑦⑨；DB 持久化形态）；≥1 条 tcc 全链（Try→分支 RPC→恢复扫描认领→CAS 门控补偿→聚合终态→[接线面]周期清理，覆盖裁定①②③⑧）
+- [x] **接线验证**（rule 23）：裁定④续租 CAS 真实被即时重试链调用断言（非仅方法存在）；裁定⑤原子替换/代际校验真实被 handleBlockStrategy/回调路径消费断言；裁定⑥拓扑单一化断言（返回 future 完成态 == 挂接链完成态，含异常路径）；裁定⑧清理任务真实被 beans 装配/周期链调用 + 索引真实生效断言（EXPLAIN 或查询计划面，非仅 orm xml 存在）；裁定⑨fetch 过滤放宽后非 default 记录真实被拾取断言
+- [x] **无静默跳过**（rule 24）：裁定①CAS 失败显式传播（非 warn 后吞）；裁定④被抢中止显式（非静默续跑）；裁定⑥E-a/E-b/E-c 逃逸点显式闭合（无永不完成形态残留）；裁定⑦⑧终态化路径显式可见（非空 catch）；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交——retry / tcc，C10 测试与对应本体同一 commit（裁定⑥三成员+C8-017 同一变更集；裁定①②③同一变更集）；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 13 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 六条收口门同 diff 落地
-- [ ] 必红证据（E2）：红①–红⑫均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = `newRecord` 一次性推延注释钉按裁定④协议替代，改写登记在案）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-retry -am` 与 `./mvnw test -pl nop-tcc -am` 均 BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 13 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 六条收口门同 diff 落地
+- [x] 必红证据（E2）：红①–红⑫均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = `newRecord` 一次性推延注释钉按裁定④协议替代，改写登记在案）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-retry -am` 与 `./mvnw test -pl nop-tcc -am` 均 BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+
+- 偏差登记（实施期）：① tcc：store CAS 事务形态以 ITransactionTemplate.runInTransactionAsync(REQUIRES_NEW) 实现 afterCommit 配对条款（方法内挂 listener 到自有事务会死锁），语义三条款等价达成，无事务模板时（单测直连）退化为立即结算；② tcc：ITccRecordStore 接口扩展（killExhaustedRecords/removeCompletedRecords）为跨模块公共 API 面加法（旧实现零破坏），批内登记；③ tcc：TestTccEngine 4 处既有测试改写（0 行吞为正常返回/RPC 异常仍折叠终态两缺陷契约 → 裁定①③契约断言），均非零回退钉清单成员，新旧语义对照入 javadoc；④ retry：renewLease 载体用单实体 tryUpdateWithVersionCheck（设计文本 tryUpdateManyWithVersionCheck 的同机制单实体形态，等价乐观锁 CAS）；⑤ retry：代际校验旧链 DB 回写半边=异常可见（ERR_ORM_UPDATE_ENTITY_NOT_FOUND 经裁定⑥簿记隔离 ERROR+计数）而非显式 0 行短路，语义达成（不静默落空）；⑥ retry：裁定⑦ saveAttempt 兜底重插前需 orm_state(TRANSIENT) 复位（ORM 状态机约束，设计未言）；⑦ retry：裁定⑦实现晚于主体（首两轮遗漏，后补红⑨⑩留痕齐全）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
