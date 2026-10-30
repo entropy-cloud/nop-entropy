@@ -1,7 +1,7 @@
 # 2513 CRA Phase 8.19 — R2-10 1.4 job 批（2 项 P1：MA-01 rpcPoll 终结驱动五面 / C2-001 监视器内外部 invoker 外移）
 
 > Design Review: R2 agent_72ef639c @ 2026-10-30（第 1 轮 FAIL[1 Blocker/3 Major/5 Minor]：Blocker=裁定②「调用点零改动」monitor 重入下锁外移不发生→§3.7 重写两阶段 prepareJobLocked+startJobUnlocked；Major=①(a) 窗口 ≈25s 失真改 ≈95s 跳轮推演、放弃分支 running 悬空+禁走 handleResult、ctx 活引用改真快照；Minor×5 全闭合——第 2 轮 PASS[probe A 交错矩阵亲推无缺口；余 2 Minor[ctx 快照字段清单+反射缝、beans 行号颠倒]协调方修入]）
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R2 agent_a42ed23a @ 2026-10-30（第 2 轮：9 点机械核验全部一致落盘[勘误 6 补登/activeCount 口径/裁定①(a) 默认分支/(d) 计数器并发形态/14→15×2/行号纠正×3]；残留 3 处旧值[L29/L36/L46 同组数字]由协调方随手替换为勘误 6 口径——评审裁定修订清单全部闭合）
 > Draft Review: R1 agent_a42ed23a @ 2026-10-30（第 1 轮 FAIL[1 Major/0 Blocker/4 Minor]：两处基线事实失真未入勘误[activeCount 引用面/TestLocalJobScheduler 14→15]+register/deactivate/fail-safe 三处行号微漂+裁定①(a) 双分支矛盾钉默认+头部缺 Draft Review 行+失败计数器并发归属未点名——修订经 R2 复审确认落盘后闭合，见 R2 行）
 > Last Reviewed: 2026-10-30
@@ -141,60 +141,60 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done
 Targets: `nop-job` 聚合全量测试；`docs-for-ai/03-modules/nop-job.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2512 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-job -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、R4-06/R4-07 批外成员本体（C2-007/C1-004/C4-002/C7-004/C7-008 等）、MA-05/MA-06/2497 已修面（`AbstractBatchScanner`/`JobWorkerScannerImpl`/`JobTimeoutCheckerImpl` 零 diff 核对登记）
-- [ ] Owner doc 更新：`nop-job.md`——§七 pollOnce 豁免表述复核修订（失败预算/回查落地后「纯内存检查」表述如实化）、§一.4 管理 API 响应性/停机契约句（裁定②）、§三.1 IJobInvoker 异步性契约声明（若裁定②落）、§五 新增配置键登记（MA-01 兜底/预算/gauge 键）、源码锚点表补 RpcPollTaskManager 行；`source-anchors.md` 新增锚点（按实际）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2512 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-job -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、R4-06/R4-07 批外成员本体（C2-007/C1-004/C4-002/C7-004/C7-008 等）、MA-05/MA-06/2497 已修面（`AbstractBatchScanner`/`JobWorkerScannerImpl`/`JobTimeoutCheckerImpl` 零 diff 核对登记）
+- [x] Owner doc 更新：`nop-job.md`——§七 pollOnce 豁免表述复核修订（失败预算/回查落地后「纯内存检查」表述如实化）、§一.4 管理 API 响应性/停机契约句（裁定②）、§三.1 IJobInvoker 异步性契约声明（若裁定②落）、§五 新增配置键登记（MA-01 兜底/预算/gauge 键）、源码锚点表补 RpcPollTaskManager 行；`source-anchors.md` 新增锚点（按实际）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-job --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-job.md 五处落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（orm.xml/生成物/R4-06/R4-07 批外成员本体/2496·2497 已修面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] nop-job.md 五处落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（orm.xml/生成物/R4-06/R4-07 批外成员本体/2496·2497 已修面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: done
 Targets: 本 plan、roadmap 8.19 行、cra-index 台账、R4-06/R4-07 就绪注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（失败预算/兜底/回传/gauge 与锁外移运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：L159/L160 两行状态收敛（open → fixed，注记 plan 2513；吸收成员 C5-001/C7-001/C5-005 随 C4-001 主行括注）；C10-001/003 收敛注记；C10-009 注记「维持 deferred，触达批=R4-06」；roadmap 8.19 行 Status → done；R4-06（8.46）硬依赖就绪注记（沿 2512 R4-05 先例——含 C2-007 共设计结论与 executeJob 重构后形态、C1-004/C4-002 联调边界、C10-004/006/007/008 前置集确认、C10-009 触达声明）；R4-07（8.47）注记（C7-004→R01 SSOT §3.6 指向、C7-008 时钟源结论）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（失败预算/兜底/回传/gauge 与锁外移运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：L159/L160 两行状态收敛（open → fixed，注记 plan 2513；吸收成员 C5-001/C7-001/C5-005 随 C4-001 主行括注）；C10-001/003 收敛注记；C10-009 注记「维持 deferred，触达批=R4-06」；roadmap 8.19 行 Status → done；R4-06（8.46）硬依赖就绪注记（沿 2512 R4-05 先例——含 C2-007 共设计结论与 executeJob 重构后形态、C1-004/C4-002 联调边界、C10-004/006/007/008 前置集确认、C10-009 触达声明）；R4-07（8.47）注记（C7-004→R01 SSOT §3.6 指向、C7-008 时钟源结论）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 2 行收敛 + C10 注记（含 C10-009 处置）、roadmap 8.19 = done、R4-06/R4-07 就绪注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 2 行收敛 + C10 注记（含 C10-009 处置）、roadmap 8.19 = done、R4-06/R4-07 就绪注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 2 项成员全部修复：C4-001/MA-01（终结驱动五面一次闭合）、C2-001（监视器内外部 invoker 外移）
-- [ ] batch-proposal R2-10 行 exit criteria 增补两段逐条达成并留证：①**rpcPoll 终结驱动+失败预算/deadline 兜底/DB 回传/PollEntry 精简/gauge 五面一次闭合**（恒失败注入+终结断言+驻留体积+gauge）；②**监视器内外部 invoker 外移**（阻塞 invoker × 管理 API/停机响应性锚点）
-- [ ] 联调纪律守约：C2-001×C2-007 接缝保序（占位先行关系不回退，R4-06 注记在案）；MA-01×C1-004 register 保序边界；MA-01×C7-008 时钟源结论注记；MA-05 站点①③ fail-safe 零回退
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①红②均有先红后绿或变异/回退论证（E2）；C10 两条同 diff 落地
-- [ ] 设计文档裁定①–③成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-job -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-job.md（五处落点）+ source-anchors.md（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）五面终结驱动与锁外移运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-job 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 2 行收敛 + roadmap 8.19 → done + R4-06/R4-07 就绪注记（E6）
+- [x] 2 项成员全部修复：C4-001/MA-01（终结驱动五面一次闭合）、C2-001（监视器内外部 invoker 外移）
+- [x] batch-proposal R2-10 行 exit criteria 增补两段逐条达成并留证：①**rpcPoll 终结驱动+失败预算/deadline 兜底/DB 回传/PollEntry 精简/gauge 五面一次闭合**（恒失败注入+终结断言+驻留体积+gauge）；②**监视器内外部 invoker 外移**（阻塞 invoker × 管理 API/停机响应性锚点）
+- [x] 联调纪律守约：C2-001×C2-007 接缝保序（占位先行关系不回退，R4-06 注记在案）；MA-01×C1-004 register 保序边界；MA-01×C7-008 时钟源结论注记；MA-05 站点①③ fail-safe 零回退
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①红②均有先红后绿或变异/回退论证（E2）；C10 两条同 diff 落地
+- [x] 设计文档裁定①–③成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-job -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：nop-job.md（五处落点）+ source-anchors.md（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）五面终结驱动与锁外移运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-job 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 2 行收敛 + roadmap 8.19 → done + R4-06/R4-07 就绪注记（E6）
 
 ## Deferred But Adjudicated
 
@@ -221,14 +221,18 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （完成或关闭时填写）
-Completed: —
+Status Note: 两项成员（C4-001/C2-001）全部 landed 并经独立 closure audit 终局 APPROVED（首轮 REJECTED 两项窄修复[新钉稳定化+E3 完整留痕]闭环后复核通过）；三条实施期偏差 + audit 抓出三项闭环登记在案。
+Completed: 2026-10-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 closure audit 子代理，待 Phase 4）
-- Evidence: （待 Phase 4）
+- Reviewer / Agent: 独立 closure audit 子代理 agent_b4f50377（fresh session，首轮 @ 2026-10-31 REJECTED[2 项]→修复闭环后终局复核 **APPROVED** @ HEAD=1034bb1ca4）
+- Evidence: 两成员 Anti-Hollow 逐条 live 亲读实证全 PASS（C4-001 五面[handlePollFailure :301-314/computeDeadline :387-396/resolveFromAuthority :194-200 两 TIMEOUT 写点均接/PollEntry 零实体字段反射白名单 12 项/gauge+counter 注册；2496 catch Throwable 零触碰]、C2-001 两阶段[两调用点 synchronized 闭合/fireNow :220-228、timer :312-318/放弃分支 :398-405 禁 handleResult/settleExecution fail-safe 形态保持]）；零回退 12 钉文件 diff 全 0 行；新钉稳定化语义零削弱 + 6 连绿；E3 完整留痕 BUILD SUCCESS EXIT=0 且 nop-job 域零红（`_tmp/2513-gate-nop-job-full-r2.log`）；E1 EXIT=0（`_tmp/2513-e1-full-build.log`）；三条实施期偏差 + audit 三项闭环均三件套登记；Deferred 诚实（R4-06/R4-07/C10-009）
+- 门禁记录：E1 `./mvnw clean install -T 1C -DskipTests` EXIT=0；E3 `./mvnw test -pl nop-job -am` r3 EXIT=0 + 完整留痕轮 BUILD SUCCESS EXIT=0；check-doc-links --strict EXIT=0；scan-hollow nop-job high=0 EXIT=0；check-plan-checklist 退出码见收口提交
+- 台账回填：cra-index R2-10 两行 open→fixed（吸收成员随主行括注）；roadmap 8.19→done；R4-06 硬依赖解除注记（含 C2-007 接缝/C1-004/C7-008 时钟源结论可引用）
+- 提交链：e8ebaa27f8（立项）→ d0fd997a8a/c2d0e8083b（Phase 1）→ 955c9833f9（Phase 2+3）→ 1034bb1ca4（audit 修复）→ 本收口提交
 
 Follow-up:
 
-- （待 Phase 4 填写；只记录 non-blocking follow-up）
+- R4-06（8.46）实施引用本设计文档裁定①②为既有裁定（硬依赖解除；C7-008 时钟源/C1-004 register 保序/C2-007 接缝结论已带）；C10-009 维持 deferred（触达批=R4-06）。
+- 上游环境噪声面（nop-auth MFA、nop-ai-shell、debezium fork timeout、TestDebeziumMessageSource 负载时序）维持批前三联裁定 watch-only。

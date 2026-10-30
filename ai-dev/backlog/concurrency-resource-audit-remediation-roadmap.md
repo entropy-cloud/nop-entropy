@@ -158,7 +158,7 @@
 | 8.16 | R2-07 1.1 stream-core 批（并发正确性 + 资源包络） | done（plan 2510 completed @ 2026-10-29，closure audit APPROVED） | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-user-guide.md` | batch-proposal.md §二 R2-07（10 项） | none（修复 plan） |
 | 8.17 | R2-08 1.2 连接器批 | done（plan 2511 completed @ 2026-10-30，closure audit APPROVED） | `docs-for-ai/03-modules/nop-stream-connectors.md` | batch-proposal.md §二 R2-08（7 项） | none（修复 plan） |
 | 8.18 | R2-09 1.3 编排薄层批 | done（plan 2512 completed @ 2026-10-30，closure audit APPROVED） | `docs-for-ai/03-modules/nop-stream.md`；`docs-for-ai/03-modules/nop-stream-sql.md` | batch-proposal.md §二 R2-09（4 项） | none（修复 plan） |
-| 8.19 | R2-10 1.4 job 批 | planned（plan 2513，draft review R1 FAIL 1M→修订 R2 机械核验全一致转 active） | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R2-10（2 项） | none（修复 plan） |
+| 8.19 | R2-10 1.4 job 批 | done（plan 2513 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/03-modules/nop-job.md` | batch-proposal.md §二 R2-10（2 项） | none（修复 plan） |
 | 8.20 | R2-11 1.5 task/wf 批 | todo | `docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/03-modules/nop-wf.md` | batch-proposal.md §二 R2-11（6 项） | none（修复 plan） |
 | 8.21 | R2-12 1.6 tcc 批（CAS/守卫 + 补偿/账本卫生） | todo | `docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md` | batch-proposal.md §二 R2-12（13 项） | none（修复 plan） |
 | 8.22 | R2-13 1.7 batch 批 | todo | `docs-for-ai/03-modules/nop-batch.md` | batch-proposal.md §二 R2-13（8 项）；硬依赖 8.2（R1-01） | none（修复 plan） |
