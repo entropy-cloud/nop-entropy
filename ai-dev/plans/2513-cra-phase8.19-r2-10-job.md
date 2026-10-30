@@ -1,5 +1,6 @@
 # 2513 CRA Phase 8.19 — R2-10 1.4 job 批（2 项 P1：MA-01 rpcPoll 终结驱动五面 / C2-001 监视器内外部 invoker 外移）
 
+> Design Review: R2 agent_72ef639c @ 2026-10-30（第 1 轮 FAIL[1 Blocker/3 Major/5 Minor]：Blocker=裁定②「调用点零改动」monitor 重入下锁外移不发生→§3.7 重写两阶段 prepareJobLocked+startJobUnlocked；Major=①(a) 窗口 ≈25s 失真改 ≈95s 跳轮推演、放弃分支 running 悬空+禁走 handleResult、ctx 活引用改真快照；Minor×5 全闭合——第 2 轮 PASS[probe A 交错矩阵亲推无缺口；余 2 Minor[ctx 快照字段清单+反射缝、beans 行号颠倒]协调方修入]）
 > Plan Status: active
 > Draft Review: R2 agent_a42ed23a @ 2026-10-30（第 2 轮：9 点机械核验全部一致落盘[勘误 6 补登/activeCount 口径/裁定①(a) 默认分支/(d) 计数器并发形态/14→15×2/行号纠正×3]；残留 3 处旧值[L29/L36/L46 同组数字]由协调方随手替换为勘误 6 口径——评审裁定修订清单全部闭合）
 > Draft Review: R1 agent_a42ed23a @ 2026-10-30（第 1 轮 FAIL[1 Major/0 Blocker/4 Minor]：两处基线事实失真未入勘误[activeCount 引用面/TestLocalJobScheduler 14→15]+register/deactivate/fail-safe 三处行号微漂+裁定①(a) 双分支矛盾钉默认+头部缺 Draft Review 行+失败计数器并发归属未点名——修订经 R2 复审确认落盘后闭合，见 R2 行）
@@ -86,24 +87,24 @@
 
 ### Phase 1 - job 并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/job-rpcpoll-termination-and-invoker-lock.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下两项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① MA-01 终结驱动五面**：(a) 失败预算/退避——默认分支=连续失败超阈值 resolve ERROR(ERR_JOB_REMOTE_INVOKE_FAILED)，降频退避为达阈值前辅助形态、DB 回查归 (c)；阈值/窗口配置键命名与缺省值成文（判据：entry 有限时间终态 + 瞬态抖动不误杀）；(b) deadline 兜底——`computeDeadline` 纳入全局 `execution-timeout-ms` 的取值优先序（schedule.timeoutSeconds > 全局 > 无）与新键缺省值成文，兜底位=manager 轮询侧的 plan 340 钉不冲突声明；(c) DB 回传——机制三选一（退避后低频 DB 回查 / checker 写终态经 manager resolve / 其他）按「最小改动 + 不破坏 manager javadoc 契约（随裁定修订）」一次定夺；(d) PollEntry 精简——失败计数器并发形态（AtomicInteger/volatile，两线程域）成文；capture 冻结面最小视图清单成文（taskId/scheduleId/fireId/targetHost/cancelToken/deadline/future），C5-005 驻留体积断言口径成文；(e) gauge——`activeCount()` 升格命名与失败计数可见性成文；C4-010「补 cancelToken 无效」前置约束 + C7-008/C1-004 同点协调边界 + MA-05 站点① 零触碰声明成文
-  - [ ] **裁定② C2-001 锁外移**：预设默认分支 = 锁内状态迁移 → 释放监视器 → 锁外 invokeAsync（两个调用点 timer :303-309 / fireNow :215-221 逐一处置表）；出锁段 identity/状态复检（remove/deactivate 交错放弃判定，2509 §3.6 范式投影）；占位先行关系接缝（C2-007 共设计，R4-06 可续接）成文；`awaitXxx` 监视器获取段 timeout 语义处置或显式残留边界一次定夺；MA-05 站点③ fail-safe 零回退义务 + 既有占位防护（:331-335）零回退成文；invoker 异步性 SPI 契约文档化落点（§三.1/§一.4）成文
-  - [ ] **裁定③ 测试缝与零回退钉清单**：测试缝 = getJobStatus 恒失败 + 无 timeoutSeconds 终结观察（①[+deadline 兜底变体 +DB 回传变体 +PollEntry 驻留体积]）、latch 阻塞型 invoker × 管理 API/停机响应性（②[+awaitIdle 上界变体]）；零回退钉 = `TestRemoteJobInvoker`（13 测试全列，含 `:254` 监听器摘除）、`TestRpcPollTaskManagerInsulation`（2 测试）、`TestJobCoordinatorScanner`（含两 rpcPoll E2E）、`TestDefaultRpcPollTaskClient`、`TestRpcJobInvoker`、`TestLocalJobScheduler`（补测外其余用例）、`TestBeanMethodJobInvoker`、`TestLocalSchedulerResultContract`、`TestJobTimeoutChecker`（plan 340 钉 :614-639）、`TestJobWorkerScanner` 全列；补测类（C10-001/003）标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下两项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① MA-01 终结驱动五面**：(a) 失败预算/退避——默认分支=连续失败超阈值 resolve ERROR(ERR_JOB_REMOTE_INVOKE_FAILED)，降频退避为达阈值前辅助形态、DB 回查归 (c)；阈值/窗口配置键命名与缺省值成文（判据：entry 有限时间终态 + 瞬态抖动不误杀）；(b) deadline 兜底——`computeDeadline` 纳入全局 `execution-timeout-ms` 的取值优先序（schedule.timeoutSeconds > 全局 > 无）与新键缺省值成文，兜底位=manager 轮询侧的 plan 340 钉不冲突声明；(c) DB 回传——机制三选一（退避后低频 DB 回查 / checker 写终态经 manager resolve / 其他）按「最小改动 + 不破坏 manager javadoc 契约（随裁定修订）」一次定夺；(d) PollEntry 精简——失败计数器并发形态（AtomicInteger/volatile，两线程域）成文；capture 冻结面最小视图清单成文（taskId/scheduleId/fireId/targetHost/cancelToken/deadline/future），C5-005 驻留体积断言口径成文；(e) gauge——`activeCount()` 升格命名与失败计数可见性成文；C4-010「补 cancelToken 无效」前置约束 + C7-008/C1-004 同点协调边界 + MA-05 站点① 零触碰声明成文
+  - [x] **裁定② C2-001 锁外移**：预设默认分支 = 锁内状态迁移 → 释放监视器 → 锁外 invokeAsync（两个调用点 timer :303-309 / fireNow :215-221 逐一处置表）；出锁段 identity/状态复检（remove/deactivate 交错放弃判定，2509 §3.6 范式投影）；占位先行关系接缝（C2-007 共设计，R4-06 可续接）成文；`awaitXxx` 监视器获取段 timeout 语义处置或显式残留边界一次定夺；MA-05 站点③ fail-safe 零回退义务 + 既有占位防护（:331-335）零回退成文；invoker 异步性 SPI 契约文档化落点（§三.1/§一.4）成文
+  - [x] **裁定③ 测试缝与零回退钉清单**：测试缝 = getJobStatus 恒失败 + 无 timeoutSeconds 终结观察（①[+deadline 兜底变体 +DB 回传变体 +PollEntry 驻留体积]）、latch 阻塞型 invoker × 管理 API/停机响应性（②[+awaitIdle 上界变体]）；零回退钉 = `TestRemoteJobInvoker`（13 测试全列，含 `:254` 监听器摘除）、`TestRpcPollTaskManagerInsulation`（2 测试）、`TestJobCoordinatorScanner`（含两 rpcPoll E2E）、`TestDefaultRpcPollTaskClient`、`TestRpcJobInvoker`、`TestLocalJobScheduler`（补测外其余用例）、`TestBeanMethodJobInvoker`、`TestLocalSchedulerResultContract`、`TestJobTimeoutChecker`（plan 340 钉 :614-639）、`TestJobWorkerScanner` 全列；补测类（C10-001/003）标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–③全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定①含 C4-010 前置约束与 C7-008/C1-004 协调边界、plan 340 钉不冲突声明；裁定②含 C2-007 接缝与 MA-05 零回退义务；裁定③含零回退钉全列与补测类缺陷态红口径
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–③全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定①含 C4-010 前置约束与 C7-008/C1-004 协调边界、plan 340 钉不冲突声明；裁定②含 C2-007 接缝与 MA-05 零回退义务；裁定③含零回退钉全列与补测类缺陷态红口径
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 2 成员实现 + 回归测试（按模块两组）
 
