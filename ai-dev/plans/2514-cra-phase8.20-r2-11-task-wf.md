@@ -1,11 +1,12 @@
 # 2514 CRA Phase 8.20 — R2-11 1.5 task/wf 批（6 项 P1：五站点快照竞态 / SUSPENDED 游离写 / sync+executor 嵌套死锁 / 扫描无界与毒步骤 / 闸门注册表无界 / WfTaskScanner fencing）
 
+> Design Review: R2 agent_5d14a125 @ 2026-10-30（第 1 轮 FAIL[4 Major/4 Minor]：Major-1 条带锁载体依赖方向反向→IWorkflowStore.withWfLock 接线；Major-2 ORM PA 申报与 plan 冲突+迁移未成文→plan PA 行批内申报修订[协调方]+§3.6 迁移三行；Major-3 逐出×获取竞态→同 key computeIfAbsent 内联+引用一致 remove；Major-4 runXpl 持锁 ABBA→action 锁段收窄 runXpl 不持锁+迁移段重取锁终检[probe (b) 终检成立]；Minor×4 闭合——第 2 轮 PASS[余 3 Minor[N1 外置表 DDL 方向写反必改/N2 plan 零触碰行同步/N3 措辞降格]协调方修入]）
 > Plan Status: active
 > Draft Review: R1 agent_f5593d05 @ 2026-10-30（PASS，仅 4 Minor——13 站点基线亲读全吻合、fencing 三方协调[谁建谁引用]/MA-08 owner 表态出口/C10-009 反向钉先改写均核验成立；Minor×4[勘误 6 补登 3 处行号/裁定①站点④默认分支/owner 表态机制成文/前向引用 warning 知悉]由协调方修入）
 > Last Reviewed: 2026-10-30
 > Source: roadmap 工作项 8.20（R2-11，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L162，Status=todo[本 plan 立项时回写为「todo（plan 2514 drafted，待 draft review）」]）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-11 行（L85 全文：finding ID 清单 6 项[1.5-C1-001；1.5-C3-001；1.5-C3-002；1.5-C5-001；1.5-C5-003；1.5-C7-001] / 模块与验证命令 nop-task `./mvnw test -pl nop-task -am`；nop-wf `./mvnw test -pl nop-wf -am` / Owner Doc=`docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/03-modules/nop-wf.md` / PA=无 / 依赖「无前置（可并行）；MA-23 fencing 对齐 R1-01（C8-001 平台方案）+R2-13（1.7-C7-001）——避免两套 fencing；MA-05 R02；MA-08 R01」/ exit criteria 增补：**五站点快照竞态修复（组迁移/终结滞留/join 双实例/action 双跑/子流回滚）；sync+executor 嵌套死锁解除；闸门注册表上限（R01，plan 364 之上 owner 表态出口）；WfTaskScanner fencing（holderId+单飞+remindCount 原子）**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 1.5 审计目录 `ai-dev/audits/2026-10/2026-10-15-0930-deep-audit-nop-wf-nop-task-concurrency/`（C1-shared-mutable-state.md C1-001 :26-75 + 复核 :333/:352/:359；C3-async-chains.md C3-001 :55-88 + 复核 :371、C3-002 :83-111 + 复核 :110-111；C5-memory-bounds.md C5-001 :66-91 + 复核 :92、C5-003 :130-160 + 复核 :161；C7-long-running.md C7-001 :60-95 + 复核 :469/:485/:508；merge-adjudication.md §2.1 MA-01/MA-02/MA-03/MA-05/MA-08/MA-23 六族行 :50-58/:72 + §3-C 判级统一 :137；C10 映射 = 跨模块裁定 `inventory-p2-c10.md` §二 WI 1.5 节 :122-150 + 小结行 :43[**1.5（14）** 全映射]）；执行基线 @ `83052aa1ff`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.19 已 done，plan 2495–2513 均已完成或收口；本 Baseline 全部行号为该基线 live 回读值，2026-10-30 亲读，执行前如再漂移以 live 为准并登记）
 > Related: plan 2496（R1-01 周期任务异常绝缘层批，completed——**MA-23 fencing 对齐的「C8-001 平台方案」出处**：`ai-dev/design/concurrency/periodic-task-insulation.md` 为周期任务链绝缘/重臂/观测语义的唯一权威；WfTaskScanner 扫描链 riding 该设施语义，本批 fencing 修复不得回归链存活/失败可见契约）；plan 2502（R1-07，completed——R01 族级 SSOT `ai-dev/design/concurrency/ledger-retention-policy.md`，本批 MA-08 为 R01 族成员，对齐条款见 Baseline 对齐纪律节）；plan 2498（R1-03，completed——**1.5-C4-001/MA-04 已修**：retry/delay 隔离 executor 已 landed，live `TaskStepEnhancer.java:115-118` 注释在案，本批零触碰）；plan 364（nop-task 引擎契约前案，completed——[05-02] 条带锁/[05-03] SUSPENDED cancel 驱动/[05-04] 强引用注册表裁定均在其上，MA-01/MA-08 为 plan 364 声明边界之上的残留面）；**下游**：R2-13（8.22，1.7 batch 批）——fencing 对齐依赖本批（batch-proposal 附录 L313「R2-13 依赖 R2-11 + R1-01」；R2-13 行 Deps 列「C7-001 fencing 对齐 R1-01+R2-11」），**本批为 R12 族平台 fencing 语义的建立批、R2-13 为引用批（谁建谁引用，见对齐纪律节）**；R4-08（8.48，1.5 闸门/throttle 束 G14 12 项）软依赖本批；R4-09（8.49，1.5 图执行/扫描 infra 束 G15 13 项）软依赖本批/R4-08——批末须回写就绪注记（含 fencing 平台语义引用指向、MA-08 观测面/MA-09 联动边界、MA-05 毒步骤接缝、C10 处置边界）；**并行协同**：无同门禁在飞批，本批可独立开跑
-> Protected Area 授权：批次 PA=无（batch-proposal §二.2 R2-11 行授权列）。本批六成员站点分别位于 `nop-task/nop-task-core`（MA-01/MA-03/MA-08）、`nop-wf/nop-wf-core`（MA-02）、`nop-wf/nop-wf-dao`（MA-02/MA-05）、`nop-wf/nop-wf-scheduler`（MA-05/MA-23）——**均非 Protected Area**（AGENTS.md Protected Areas 表所列 `nop-core/`/`nop-xlang/`/`nop-api-core`/`nop-auth`/orm 模型结构/生成管线均不涉及；nop-task/nop-wf 为业务模块）。live 回读勘误申报：本批不做 `_` 前缀生成物改动、不触 `model/*.orm.xml`；**MA-23 fencing 若 Phase 1 裁定需上收平台层（nop-kernel/nop-api-core 新原语）即触发框架核心 plan-first，须在该裁定项内批内申报后方可实施**——预设默认分支 = fencing 落 nop-wf 模块内（条件 UPDATE 抢占 + 模块内注册表），零平台层触碰（见对齐纪律节 MA-23 条款）；旁证站点 `nop-ai/nop-ai-agent/.../TeamTaskFlowOrchestrator.java:655`（MA-01 跨线程驱动源，只读引用不改码）。本批不触碰 R2-13/R4-08/R4-09 的批外成员本体。
+> Protected Area 授权：批次 PA=无（batch-proposal §二.2 R2-11 行授权列）。本批六成员站点分别位于 `nop-task/nop-task-core`（MA-01/MA-03/MA-08）、`nop-wf/nop-wf-core`（MA-02）、`nop-wf/nop-wf-dao`（MA-02/MA-05）、`nop-wf/nop-wf-scheduler`（MA-05/MA-23）——**均非 Protected Area**（AGENTS.md Protected Areas 表所列 `nop-core/`/`nop-xlang/`/`nop-api-core`/`nop-auth`/orm 模型结构/生成管线均不涉及；nop-task/nop-wf 为业务模块）。live 回读勘误申报（含 draft review R2 Major-2 修订）：本批不做 `_` 前缀生成物手改；**MA-23 裁定⑥经 Phase 1 评审触发 ORM 结构 plan-first 批内申报——`nop-wf/model/nop-wf.orm.xml` 为 NopWfStepInstance 新增 scan_holder_id/scan_lease_time 两列 + 迁移脚本（非 `_` 前缀新建脚本落 `nop-wf/deploy/sql/postgresql/`），申报载体=本 plan 本条+设计文档 §3.6+独立评审闭环，沿 2510 先例「新增列须先裁定 DDL migration 方案并在 plan 登记后方可采」口径；其余站点不触 `model/*.orm.xml`**；**MA-23 fencing 若 Phase 1 裁定需上收平台层（nop-kernel/nop-api-core 新原语）即触发框架核心 plan-first，须在该裁定项内批内申报后方可实施**——预设默认分支 = fencing 落 nop-wf 模块内（条件 UPDATE 抢占 + 模块内注册表），零平台层触碰（见对齐纪律节 MA-23 条款）；旁证站点 `nop-ai/nop-ai-agent/.../TeamTaskFlowOrchestrator.java:655`（MA-01 跨线程驱动源，只读引用不改码）。本批不触碰 R2-13/R4-08/R4-09 的批外成员本体。
 
 ## Purpose
 
@@ -70,7 +71,7 @@
 - **不做 R4-09 成员**（G15 十三项：1.5-C1-006/C3-003/C3-004/C4-003/C4-004/C4-007/C5-005/C5-006/C7-004/C7-007/C7-009/C7-010/C7-014）及其 C10-010/C10-012/C10-014——特别地 **C7-014**（task 执行级 fencing 双执行）与 MA-01 的 C1-009 为**分立裁定**（merge-adjudication §3-B：根因不同——无执行级互斥 vs SUSPENDED 写者无守卫），本批零触碰；**C4-003**（扫描 job yaml invoker.bean 失配，已知未修复 2026-09 P2-3.1-001 同案）归 R4-09 按同案对齐一处修复。
 - **不做 R2-13 成员**（1.7 八项，含 C7-001 RUNNING 死区本体）——C7-001 到达时引用本批 fencing 设计文档对齐，不重建第二套 fencing；本批不代做其测试 N1 参数化改写前置。
 - **不做 MA-04 面**（plan 2498 已闭合）——`RetryTaskStepWrapper` executor 隔离（:115-118）零触碰零回退。
-- 不触碰 plan 364/349/2496/2498 已修面（零回退引用）、`model/*.orm.xml`（join 唯一约束若裁定需 DDL/索引变更即触发 ORM 结构 plan-first，须在该裁定项内批内申报——预设默认分支=唯一约束经应用层占位实现，零 DDL）、`_` 前缀生成物；不做 Deferred 节所列项。
+- 不触碰 plan 364/349/2496/2498 已修面（零回退引用）、`model/*.orm.xml`（join 唯一约束维持应用层占位零 DDL；**唯一例外=裁定⑥ MA-23 两列批内申报，见头部 PA 行**）、`_` 前缀生成物；不做 Deferred 节所列项。
 
 ## Scope
 
@@ -84,34 +85,34 @@
 
 ### Out Of Scope
 
-- Non-Goals 所列全部项；R2-13/R4-08/R4-09 及后续批次工单；nop-kernel/nop-api-core 平台设施本体（除非 MA-23/MA-08 裁定上收且批内申报）；nop-cluster 集群锁接入（MA-23 备选分支若裁定需依赖 nop-cluster，Phase 1 评估 pom 变更面并申报）；`model/*.orm.xml` 与 `_` 前缀生成物（含 `_vfs` 下 job yaml 除非裁定触发批内申报）。
+- Non-Goals 所列全部项；R2-13/R4-08/R4-09 及后续批次工单；nop-kernel/nop-api-core 平台设施本体（除非 MA-23/MA-08 裁定上收且批内申报）；nop-cluster 集群锁接入（MA-23 备选分支若裁定需依赖 nop-cluster，Phase 1 评估 pom 变更面并申报）；`model/*.orm.xml`（裁定⑥申报两列除外）与 `_` 前缀生成物手改（含 `_vfs` 下 job yaml 除非裁定触发批内申报；迁移脚本为非 `_` 前缀新建）。
 
 ## Execution Plan
 
 ### Phase 1 - task/wf 并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/wf-task-scanner-fencing-and-task-wf-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威 + R12 族 fencing 语义载体）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下六项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① MA-02 五站点原子化**：wfInstanceId 条带锁（`DaoTaskStateStore.rowLock` 范式投影）+ 锁内重读的预设分支；五站点逐一处置表（组迁移[含 vote 快照口径零回退]/checkEnd 终结/join 双实例 and+or 两型[占位 vs 唯一约束两分支，零 DDL 前提]/action 双跑[默认分支=条带锁直接覆盖（同 wf 实例串行化后双跑仅剩跨进程残留面）+跨进程幂等边界声明；占位/唯一约束仅在锁方案不足时呈 Phase 1 备选]/子流回滚重放）；`saveWfRecord` 6 调用点覆盖约束；跨进程残留边界显式声明（SELECT FOR UPDATE 备选）；MA-17 实例线程封闭契约节（落 owner doc 句）
-  - [ ] **裁定② MA-01 监视器收敛**：SUSPENDED 转移纳入 `synchronized(taskState)` + 终态前置检查；C1-009 复活半边（resume 非终态确认+ACTIVE 显式重置落盘）；[05-03] 零回退声明；「timeout-cancel 记 KILLED 非 TIMEOUT」分类裁定；不引入新同步结构声明（或锁序复核义务）；C10-001 假保护→真并发交错注入测试形态
-  - [ ] **裁定③ MA-03 sync×executor**：构建期互斥/同池嵌套检测 fail-fast（校验链同码同位）；syncGet 时限+cancel 接入（缺省值/可配置性成文）；C2-010 闭合声明；C10-006 pool-size=1 死锁回归形态
-  - [ ] **裁定④ MA-05 分批+毒步骤接缝**：limit+orderBy 分页游标（due/remind 同构同修）；批次上限/时间预算配置键与缺省值；失败计数/退避字段语义（**MA-06 接缝：字段由本批定、MA-06 本体归 R4-08**）；C10-008 查询形状+收敛性断言口径
-  - [ ] **裁定⑤ MA-08 键空间治理**：预设分支=治理（准入约束或 lastAccess+空闲逐出，permit 池完整性约束前提）；**owner 表态出口两分支呈现**（治理 vs 构建期拒绝+文档缺口降级）+ 表态记录机制（owner=nop-task owner doc 维护方，表态落设计文档 Decision 记录；未表态→默认治理分支兜底，不阻塞）；R01 SSOT 对齐投影（族级纪律三要素落进程内形态；引入保留/淘汰参数键须回 SSOT 修订）；输入直通面覆盖；registry.size gauge 半面（MA-09 全量治理归 R4-08 注记）；C10-009 反向钉死改写契约（保留同 key 同实例断言+新增上界断言）
-  - [ ] **裁定⑥ MA-23 fencing 平台语义**（R12 族建立批）：条件 UPDATE 抢占（holderId+期限）预设分支 vs 分布式调度锁/幂等键备选一次定夺；due+remind 双路径+单节点重叠覆盖；remindCount DB 原子自增；引擎 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` 兜底零回退；R1-01 绝缘层 riding 零回退声明；**R2-13 引用边界条款**（本文档为族内 fencing 语义权威，R2-13 到达引用不重建）；平台层上收申报触发条件成文；C10-011 双 scanner 竞速形态
-  - [ ] **裁定⑦ 测试缝与零回退钉清单**：红①–红⑥ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestPhase4TerminalAndConcurrency`（[05-03] 钉全列；[05-04] 钉按 C10-009 改写后形态）、`TestWfTaskScanner`（含 `testScanDueTasksIgnoresCurrentStepStatusRace` :112）、`ExecGroupSupport` vote 快照口径、`RetryTaskStepWrapper` 隔离注释面（2498）全列；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下六项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① MA-02 五站点原子化**：wfInstanceId 条带锁（`DaoTaskStateStore.rowLock` 范式投影）+ 锁内重读的预设分支；五站点逐一处置表（组迁移[含 vote 快照口径零回退]/checkEnd 终结/join 双实例 and+or 两型[占位 vs 唯一约束两分支，零 DDL 前提]/action 双跑[默认分支=条带锁直接覆盖（同 wf 实例串行化后双跑仅剩跨进程残留面）+跨进程幂等边界声明；占位/唯一约束仅在锁方案不足时呈 Phase 1 备选]/子流回滚重放）；`saveWfRecord` 6 调用点覆盖约束；跨进程残留边界显式声明（SELECT FOR UPDATE 备选）；MA-17 实例线程封闭契约节（落 owner doc 句）
+  - [x] **裁定② MA-01 监视器收敛**：SUSPENDED 转移纳入 `synchronized(taskState)` + 终态前置检查；C1-009 复活半边（resume 非终态确认+ACTIVE 显式重置落盘）；[05-03] 零回退声明；「timeout-cancel 记 KILLED 非 TIMEOUT」分类裁定；不引入新同步结构声明（或锁序复核义务）；C10-001 假保护→真并发交错注入测试形态
+  - [x] **裁定③ MA-03 sync×executor**：构建期互斥/同池嵌套检测 fail-fast（校验链同码同位）；syncGet 时限+cancel 接入（缺省值/可配置性成文）；C2-010 闭合声明；C10-006 pool-size=1 死锁回归形态
+  - [x] **裁定④ MA-05 分批+毒步骤接缝**：limit+orderBy 分页游标（due/remind 同构同修）；批次上限/时间预算配置键与缺省值；失败计数/退避字段语义（**MA-06 接缝：字段由本批定、MA-06 本体归 R4-08**）；C10-008 查询形状+收敛性断言口径
+  - [x] **裁定⑤ MA-08 键空间治理**：预设分支=治理（准入约束或 lastAccess+空闲逐出，permit 池完整性约束前提）；**owner 表态出口两分支呈现**（治理 vs 构建期拒绝+文档缺口降级）+ 表态记录机制（owner=nop-task owner doc 维护方，表态落设计文档 Decision 记录；未表态→默认治理分支兜底，不阻塞）；R01 SSOT 对齐投影（族级纪律三要素落进程内形态；引入保留/淘汰参数键须回 SSOT 修订）；输入直通面覆盖；registry.size gauge 半面（MA-09 全量治理归 R4-08 注记）；C10-009 反向钉死改写契约（保留同 key 同实例断言+新增上界断言）
+  - [x] **裁定⑥ MA-23 fencing 平台语义**（R12 族建立批）：条件 UPDATE 抢占（holderId+期限）预设分支 vs 分布式调度锁/幂等键备选一次定夺；due+remind 双路径+单节点重叠覆盖；remindCount DB 原子自增；引擎 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` 兜底零回退；R1-01 绝缘层 riding 零回退声明；**R2-13 引用边界条款**（本文档为族内 fencing 语义权威，R2-13 到达引用不重建）；平台层上收申报触发条件成文；C10-011 双 scanner 竞速形态
+  - [x] **裁定⑦ 测试缝与零回退钉清单**：红①–红⑥ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestPhase4TerminalAndConcurrency`（[05-03] 钉全列；[05-04] 钉按 C10-009 改写后形态）、`TestWfTaskScanner`（含 `testScanDueTasksIgnoresCurrentStepStatusRace` :112）、`ExecGroupSupport` vote 快照口径、`RetryTaskStepWrapper` 隔离注释面（2498）全列；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定⑤含 owner 表态出口两分支与 R01 SSOT 对齐投影；裁定⑥含 R2-13 引用边界与 R1-01 零回退、平台层上收申报触发条件；裁定①含五站点处置表与 MA-17 契约节；裁定④含 MA-06 接缝定界
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定⑤含 owner 表态出口两分支与 R01 SSOT 对齐投影；裁定⑥含 R2-13 引用边界与 R1-01 零回退、平台层上收申报触发条件；裁定①含五站点处置表与 MA-17 契约节；裁定④含 MA-06 接缝定界
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 6 成员实现 + 回归测试（按 task/wf 两组）
 
@@ -152,7 +153,7 @@ Targets: nop-task/nop-wf 聚合全量测试；`docs-for-ai/03-modules/nop-task.m
 - Item Types: `Proof`
 
 - [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2513 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-task -am` 与 `./mvnw test -pl nop-wf -am` 均 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`、`_` 前缀生成物、R2-13/R4-08/R4-09 批外成员本体（MA-06/MA-09 本体/C7-014/C4-003/MA-04 等）、plan 364/349/2496/2498 已修面零 diff 核对登记
+- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-task -am` 与 `./mvnw test -pl nop-wf -am` 均 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `model/*.orm.xml`（裁定⑥申报两列与 `IWorkflowStore.withWfLock` 接口新增除外）、`_` 前缀生成物手改、R2-13/R4-08/R4-09 批外成员本体（MA-06/MA-09 本体/C7-014/C4-003/MA-04 等）、plan 364/349/2496/2498 已修面零 diff 核对登记
 - [ ] Owner doc 更新：`nop-task.md`——§挂起与恢复补 MA-01 原子化契约句、sync×executor 构建期约束（MA-03）、throttle/rate-limit global 键空间治理/包络声明（MA-08，按裁定⑤分支成文）、源码锚点表补行；`nop-wf.md`——扫描/fencing/组完成语义契约补节（MA-02/MA-23，含「以设计文档为准」归属声明）；`workflow-configuration.md` dueAction 多节点语义句（按实际）；`source-anchors.md` 新增锚点（按实际）
 - [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-task --severity high` 与 `--module nop-wf --severity high` 退出码 0（批前既有发现逐条裁定登记）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
