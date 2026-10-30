@@ -4,6 +4,7 @@ import io.nop.job.core.JobCoreErrors;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.orm.SingleSession;
+import io.nop.api.core.beans.ErrorBean;
 import io.nop.api.core.beans.IntRangeSet;
 import io.nop.api.core.config.AppConfig;
 import io.nop.cluster.discovery.ServiceInstance;
@@ -12,6 +13,7 @@ import io.nop.commons.util.StringHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.job.api.alarm.IJobAlarmHandler;
 import io.nop.job.api.alarm.JobAlarmEvent;
+import io.nop.job.api.execution.JobFireResult;
 import io.nop.job.core.AbstractBatchScanner;
 import io.nop.job.core._NopJobCoreConstants;
 import io.nop.job.dao.entity.NopJobFire;
@@ -47,6 +49,7 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     private IJobCancelHandler cancelHandler;
     private IJobAlarmHandler alarmHandler;
     private INamingService namingService;
+    private RpcPollTaskManager rpcPollTaskManager;
     private volatile String workerServiceName;
     private final AtomicBoolean livenessDisabledWarned = new AtomicBoolean(false);
     private long dispatchTimeoutMs = 300000;
@@ -87,6 +90,32 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
     @Inject
     public void setNamingService(@Nullable INamingService namingService) {
         this.namingService = namingService;
+    }
+
+    /**
+     * plan 2513 1.4-C4-001 裁定①(c)：rpcPoll 条目 DB 终态回传通道。checker 置 task TIMEOUT
+     * 终态后经 manager package-private resolveFromAuthority 回传 in-memory future——否则
+     * 「DB 已 TIMEOUT 而 rpcPoll entry future 悬挂」的原缺陷形态残留。同包直连零跨模块 API；
+     * 未装配（null，如单元测试直构）时回传通道关闭，checker 置终态主流程不受影响。
+     */
+    @Inject
+    public void setRpcPollTaskManager(RpcPollTaskManager rpcPollTaskManager) {
+        this.rpcPollTaskManager = rpcPollTaskManager;
+    }
+
+    /**
+     * 裁定①(c) 回传降级路径：回传失败不阻断 checker 置终态主流程，ERROR 留痕非静默（rule 24）。
+     */
+    private void notifyPollManagerTaskTimeout(NopJobTask task) {
+        if (rpcPollTaskManager == null) {
+            return;
+        }
+        try {
+            rpcPollTaskManager.resolveFromAuthority(task.getJobTaskId(),
+                    JobFireResult.ERROR(new ErrorBean(ERR_JOB_TIMEOUT.getErrorCode())));
+        } catch (Exception e) {
+            LOG.error("nop.job.timeout.poll-manager-notify-failed:taskId={}", task.getJobTaskId(), e);
+        }
     }
 
     /** 容器接线验证（同 getTaskBuilders 的 test-access 先例）：存活链是否实际装配。 */
@@ -452,6 +481,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
             LOG.warn("nop.job.timeout.suspicious-update-conflict:taskId={}", task.getJobTaskId());
         }
 
+        // 裁定①(c)：TIMEOUT 写点①（worker-liveness SUSPICIOUS→TIMEOUT 链）回传 rpcPoll entry future
+        notifyPollManagerTaskTimeout(task);
+
         LOG.info("nop.job.timeout.suspicious-to-timeout:taskId={},workerId={}", task.getJobTaskId(), task.getWorkerInstanceId());
     }
 
@@ -525,6 +557,9 @@ public class JobTimeoutCheckerImpl extends AbstractBatchScanner implements IJobT
         if (!taskStore.updateTask(task)) {
             LOG.warn("nop.job.timeout.task-update-conflict:taskId={}", task.getJobTaskId());
         }
+
+        // 裁定①(c)：TIMEOUT 写点②（schedule.timeoutSeconds / 全局 execution-timeout-ms 墙钟链）回传 rpcPoll entry future
+        notifyPollManagerTaskTimeout(task);
     }
 
     private int defaultInt(Integer value) {

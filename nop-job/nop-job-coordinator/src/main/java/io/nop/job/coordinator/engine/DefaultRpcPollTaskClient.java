@@ -90,17 +90,19 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
     @Override
     public CompletionStage<String> startJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                                             ICancelToken cancelToken) {
-        Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
+        // startJob 与 poll/cancel 共享 RpcPollRequest 冻结快照的请求构造路径（plan 2513 C4-001 ①(d)）
+        RpcPollRequest poll = RpcPollRequest.of(schedule, fire, task);
+        Map<String, Object> jobParams = poll.getJobParams();
         // futureCall：同步校验失败（如 serviceName 缺失）与 RPC 失败走同一条 future 错误通道，
         // 调用方无需区分同步/异步异常
         return FutureHelper.futureCall(() -> {
             String serviceName = requireServiceName(jobParams);
 
             ApiRequest<Object> request = new ApiRequest<>();
-            injectFrameworkHeaders(request, fire, task, schedule);
-            injectTargetHost(request, task);
+            injectFrameworkHeaders(request, poll);
+            injectTargetHost(request, poll.getTargetHost());
             injectUserHeaders(request, jobParams);
-            injectTimeoutHeader(request, schedule);
+            injectTimeoutHeader(request, poll.getTimeoutSeconds());
 
             // 载荷键统一约定：data.instanceId = DB taskId；业务参数（jobParams.data）原样透传并合并 instanceId
             Map<String, Object> data = new LinkedHashMap<>();
@@ -137,17 +139,23 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
     @Override
     public CompletionStage<TaskStatusBean> getJobStatus(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                                                         ICancelToken cancelToken) {
-        Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
+        // plan 2513 C4-001 ①(d)：实体形态与窄快照形态共享同一条请求构造路径，请求契约不变
+        return getJobStatus(RpcPollRequest.of(schedule, fire, task), cancelToken);
+    }
+
+    @Override
+    public CompletionStage<TaskStatusBean> getJobStatus(RpcPollRequest request, ICancelToken cancelToken) {
+        Map<String, Object> jobParams = request.getJobParams();
         return FutureHelper.futureCall(() -> {
             String serviceName = requireServiceName(jobParams);
 
-            ApiRequest<Object> request = new ApiRequest<>();
-            injectFrameworkHeaders(request, fire, task, schedule);
-            injectTargetHost(request, task);
-            injectPollTimeoutHeader(request);
-            request.setData(Map.of("instanceId", task.getJobTaskId()));
+            ApiRequest<Object> req = new ApiRequest<>();
+            injectFrameworkHeaders(req, request);
+            injectTargetHost(req, request.getTargetHost());
+            injectPollTimeoutHeader(req);
+            req.setData(Map.of("instanceId", request.getTaskId()));
 
-            return rpcServiceInvoker.invokeAsync(serviceName, statusMethod, request, cancelToken)
+            return rpcServiceInvoker.invokeAsync(serviceName, statusMethod, req, cancelToken)
                     .thenApply(response -> {
                         if (response.isOk() && response.getData() != null) {
                             Object data = response.getData();
@@ -157,7 +165,7 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
                             return (TaskStatusBean) JsonTool.jsonObjectToBean(data, TaskStatusBean.class);
                         }
                         throw new NopException(ERR_JOB_REMOTE_INVOKE_FAILED)
-                                .param("taskId", task.getJobTaskId());
+                                .param("taskId", request.getTaskId());
                     });
         });
     }
@@ -165,30 +173,25 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
     @Override
     public CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                                              ICancelToken cancelToken) {
-        Map<String, Object> jobParams = resolveJobParams(schedule, fire, task);
+        // plan 2513 C4-001 ①(d)：实体形态与窄快照形态共享同一条请求构造路径，请求契约不变
+        return cancelJob(RpcPollRequest.of(schedule, fire, task), cancelToken);
+    }
+
+    @Override
+    public CompletionStage<Boolean> cancelJob(RpcPollRequest request, ICancelToken cancelToken) {
+        Map<String, Object> jobParams = request.getJobParams();
         return FutureHelper.futureCall(() -> {
             String serviceName = requireServiceName(jobParams);
 
-            ApiRequest<Object> request = new ApiRequest<>();
-            injectFrameworkHeaders(request, fire, task, schedule);
-            injectTargetHost(request, task);
-            injectPollTimeoutHeader(request);
-            request.setData(Map.of("instanceId", task.getJobTaskId()));
+            ApiRequest<Object> req = new ApiRequest<>();
+            injectFrameworkHeaders(req, request);
+            injectTargetHost(req, request.getTargetHost());
+            injectPollTimeoutHeader(req);
+            req.setData(Map.of("instanceId", request.getTaskId()));
 
-            return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, request, cancelToken)
+            return rpcServiceInvoker.invokeAsync(serviceName, cancelMethod, req, cancelToken)
                     .thenApply(response -> response.isOk());
         });
-    }
-
-    private static Map<String, Object> resolveJobParams(NopJobSchedule schedule, NopJobFire fire, NopJobTask task) {
-        Map<String, Object> jobParams = task.getEffectiveParams(fire);
-        if (jobParams.isEmpty() && schedule != null) {
-            Map<String, Object> scheduleParams = schedule.getJobParamsComponent().get_jsonMap();
-            if (scheduleParams != null) {
-                jobParams = new LinkedHashMap<>(scheduleParams);
-            }
-        }
-        return jobParams;
     }
 
     private static String requireServiceName(Map<String, Object> jobParams) {
@@ -200,36 +203,34 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
         return (String) value;
     }
 
-    private static void injectFrameworkHeaders(ApiRequest<Object> request, NopJobFire fire, NopJobTask task,
-                                               NopJobSchedule schedule) {
-        if (fire.getJobName() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_NAME, fire.getJobName());
+    private static void injectFrameworkHeaders(ApiRequest<Object> request, RpcPollRequest poll) {
+        if (poll.getJobName() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_NAME, poll.getJobName());
         }
-        if (fire.getGroupId() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_GROUP, fire.getGroupId());
+        if (poll.getGroupId() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_GROUP, poll.getGroupId());
         }
-        if (fire.getJobFireId() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_FIRE_ID, fire.getJobFireId());
+        if (poll.getFireId() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_FIRE_ID, poll.getFireId());
         }
-        request.setHeader(NopJobApiConstants.HEADER_JOB_TASK_ID, task.getJobTaskId());
-        if (task.getShardingIndex() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_INDEX, task.getShardingIndex());
+        request.setHeader(NopJobApiConstants.HEADER_JOB_TASK_ID, poll.getTaskId());
+        if (poll.getShardingIndex() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_INDEX, poll.getShardingIndex());
         }
-        if (task.getShardingTotal() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_TOTAL, task.getShardingTotal());
+        if (poll.getShardingTotal() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_SHARDING_TOTAL, poll.getShardingTotal());
         }
-        if (schedule != null && schedule.getFireCount() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_EXEC_COUNT, schedule.getFireCount());
+        if (poll.getExecCount() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_EXEC_COUNT, poll.getExecCount());
         }
-        if (fire.getScheduledFireTime() != null) {
-            request.setHeader(NopJobApiConstants.HEADER_JOB_SCHEDULED_FIRE_TIME,
-                    fire.getScheduledFireTime().getTime());
+        if (poll.getScheduledFireTime() != null) {
+            request.setHeader(NopJobApiConstants.HEADER_JOB_SCHEDULED_FIRE_TIME, poll.getScheduledFireTime());
         }
     }
 
-    private static void injectTargetHost(ApiRequest<Object> request, NopJobTask task) {
-        if (task.getTargetHost() != null && !task.getTargetHost().isBlank()) {
-            request.setHeader(ApiConstants.HEADER_SVC_TARGET_HOST, task.getTargetHost());
+    private static void injectTargetHost(ApiRequest<Object> request, String targetHost) {
+        if (targetHost != null && !targetHost.isBlank()) {
+            request.setHeader(ApiConstants.HEADER_SVC_TARGET_HOST, targetHost);
         }
     }
 
@@ -242,8 +243,7 @@ public class DefaultRpcPollTaskClient implements IRpcPollTaskClient {
         }
     }
 
-    private static void injectTimeoutHeader(ApiRequest<Object> request, NopJobSchedule schedule) {
-        Integer timeoutSeconds = schedule != null ? schedule.getTimeoutSeconds() : null;
+    private static void injectTimeoutHeader(ApiRequest<Object> request, Integer timeoutSeconds) {
         if (timeoutSeconds != null && timeoutSeconds > 0) {
             request.setHeader(ApiConstants.HEADER_TIMEOUT, timeoutSeconds * 1000L);
         }

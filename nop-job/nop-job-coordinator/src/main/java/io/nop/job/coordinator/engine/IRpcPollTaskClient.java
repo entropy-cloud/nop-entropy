@@ -57,4 +57,21 @@ public interface IRpcPollTaskClient {
      */
     CompletionStage<Boolean> cancelJob(NopJobSchedule schedule, NopJobFire fire, NopJobTask task,
                                       ICancelToken cancelToken);
+
+    /**
+     * plan 2513 1.4-C4-001 裁定①(d) 窄参数形态：轮询条目以冻结标量快照
+     * {@link RpcPollRequest} 发起状态查询（实体引用不驻留条目，C5-005）。
+     * 默认实现重建轻量实体壳回退到实体参数形态，未覆写本方法的既有实现行为不变。
+     */
+    default CompletionStage<TaskStatusBean> getJobStatus(RpcPollRequest request, ICancelToken cancelToken) {
+        return getJobStatus(request.toScheduleShell(), request.toFireShell(), request.toTaskShell(), cancelToken);
+    }
+
+    /**
+     * plan 2513 1.4-C4-001 裁定①(d) 窄参数形态：以冻结标量快照发起 best-effort 取消。
+     * 默认实现重建轻量实体壳回退到实体参数形态，未覆写本方法的既有实现行为不变。
+     */
+    default CompletionStage<Boolean> cancelJob(RpcPollRequest request, ICancelToken cancelToken) {
+        return cancelJob(request.toScheduleShell(), request.toFireShell(), request.toTaskShell(), cancelToken);
+    }
 }

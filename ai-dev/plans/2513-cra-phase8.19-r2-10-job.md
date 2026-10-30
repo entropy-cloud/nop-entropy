@@ -108,30 +108,33 @@ Exit Criteria:
 
 ### Phase 2 - 2 成员实现 + 回归测试（按模块两组）
 
-Status: planned
+Status: done
 Targets: `nop-job/nop-job-coordinator/src/`、`nop-job/nop-job-local/src/`——各自 main + test 树
 
 - Item Types: `Fix`（2 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 coordinator：C4-001/MA-01（终结驱动五面，按裁定①）+ C10-001 收口门
-- [ ] 组 local：C2-001（锁外移，按裁定②）+ C10-003 收口门
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C4-001/C10-001 红①：getJobStatus 恒 failedFuture + 无 timeoutSeconds——修复前 `activeCount()>0` 永不终结红 → 修复后失败预算终结绿；deadline 兜底变体（不配 timeoutSeconds、注入全局 executionTimeoutMs → 墙钟上限内终结）+ DB 回传变体（checker 置 TIMEOUT → future 完成 ERR_JOB_TIMEOUT + activeCount 归零）+ PollEntry 驻留体积断言 + gauge 断言各自绿；每终结测试末尾统一 `activeCount()==0` 断言（终结断言零→升格为事实断言；唯一既有引用为绝缘钉）
-  - [ ] C2-001/C10-003 红②：latch 阻塞型 invoker（BeanMethodJobInvoker 同步形态模拟）——修复前 `getJobState`/`deactivate` 响应性断言恒超时红 → 修复后 ≤500ms 绿 + job 体最终自然完成不崩；`awaitIdle` 执行期上界变体绿
-- [ ] **端到端验证**（rule 22）：≥1 条 rpcPoll 全链 E2E（DB 集成 + 真实轮询——覆盖裁定①失败/兜底路径与 DB 回传联动；`TestJobCoordinatorScanner` 两既有 rpcPoll E2E 为载体，扩展错误注入 leg 或新增用例）；≥1 条本地模式链路（YAML/编程式注册 → 触发 → 同步 invoker 执行 → 执行期管理 API 可达 → 停机不阻塞——覆盖裁定②，`TestLocalJobScheduler` 扩展）
-- [ ] **接线验证**（rule 23）：裁定①失败预算/兜底/回传真实被 `pollOnce`→`applyStatus`/`cancelEntry` 链消费断言（非仅字段存在）；裁定②锁外 invokeAsync 真实脱离监视器断言（响应性断言即接线证据）+ whenComplete 回调重新取锁终态迁移连通断言
-- [ ] **无静默跳过**（rule 24）：裁定①失败预算触发的 resolve 显式终态（非静默清除）；DB 回传机制（若裁回查）查询失败显式降级路径留痕非空 catch；裁定②出锁段放弃判定显式分支（非静默吞）；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交——coordinator / local，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 coordinator：C4-001/MA-01（终结驱动五面，按裁定①）+ C10-001 收口门
+- [x] 组 local：C2-001（锁外移，按裁定②）+ C10-003 收口门
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C4-001/C10-001 红①：getJobStatus 恒 failedFuture + 无 timeoutSeconds——修复前 `activeCount()>0` 永不终结红 → 修复后失败预算终结绿；deadline 兜底变体（不配 timeoutSeconds、注入全局 executionTimeoutMs → 墙钟上限内终结）+ DB 回传变体（checker 置 TIMEOUT → future 完成 ERR_JOB_TIMEOUT + activeCount 归零）+ PollEntry 驻留体积断言 + gauge 断言各自绿；每终结测试末尾统一 `activeCount()==0` 断言（终结断言零→升格为事实断言；唯一既有引用为绝缘钉）
+  - [x] C2-001/C10-003 红②：latch 阻塞型 invoker（BeanMethodJobInvoker 同步形态模拟）——修复前 `getJobState`/`deactivate` 响应性断言恒超时红 → 修复后 ≤500ms 绿 + job 体最终自然完成不崩；`awaitIdle` 执行期上界变体绿
+- [x] **端到端验证**（rule 22）：≥1 条 rpcPoll 全链 E2E（DB 集成 + 真实轮询——覆盖裁定①失败/兜底路径与 DB 回传联动；`TestJobCoordinatorScanner` 两既有 rpcPoll E2E 为载体，扩展错误注入 leg 或新增用例）；≥1 条本地模式链路（YAML/编程式注册 → 触发 → 同步 invoker 执行 → 执行期管理 API 可达 → 停机不阻塞——覆盖裁定②，`TestLocalJobScheduler` 扩展）
+- [x] **接线验证**（rule 23）：裁定①失败预算/兜底/回传真实被 `pollOnce`→`applyStatus`/`cancelEntry` 链消费断言（非仅字段存在）；裁定②锁外 invokeAsync 真实脱离监视器断言（响应性断言即接线证据）+ whenComplete 回调重新取锁终态迁移连通断言
+- [x] **无静默跳过**（rule 24）：裁定①失败预算触发的 resolve 显式终态（非静默清除）；DB 回传机制（若裁回查）查询失败显式降级路径留痕非空 catch；裁定②出锁段放弃判定显式分支（非静默吞）；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交——coordinator / local，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 2 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 两条收口门同 diff 落地
-- [ ] 必红证据（E2）：红①红②均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；`TestRpcPollTaskManagerInsulation`、`TestRemoteJobInvoker:254` 监听器摘除、`TestJobTimeoutChecker` plan 340 钉、`TestLocalJobScheduler` 既有 15 用例为关键钉）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-job -am` BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 2 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 两条收口门同 diff 落地
+- [x] 必红证据（E2）：红①红②均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；`TestRpcPollTaskManagerInsulation`、`TestRemoteJobInvoker:254` 监听器摘除、`TestJobTimeoutChecker` plan 340 钉、`TestLocalJobScheduler` 既有 15 用例为关键钉）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-job -am` BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+
+- 偏差登记（实施期，3 处）：① IRpcPollTaskClient 未删实体参数方法（删除会破坏不可改钉 mock）——落地为新增窄参数 default 方法+壳回退、实体方法保留并委托窄形态共享请求路径，C5-005 PollEntry 零实体引用目标完全达成；② PollEntry 白名单 10→12 项（+request 冻结标量快照/+skipRounds 退避计数），缝4 反射断言仍成立；③ 红①红②采用变异/回退论证（stash 全量回退会使新测试无法编译），四点缺陷逐一回引后复跑全绿。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
