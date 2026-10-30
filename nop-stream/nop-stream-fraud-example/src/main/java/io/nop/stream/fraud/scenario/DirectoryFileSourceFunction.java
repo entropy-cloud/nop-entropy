@@ -114,6 +114,13 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
         if (!runEntered.compareAndSet(false, true)) {
             return;
         }
+        // Plan 2512 C6-007 (design adjudication 4): the runtime may reuse the same
+        // source-function instance across region restarts, so a stale cancellation
+        // flag from the previous run must not silently starve the new run (zero
+        // events, false EOS success). Reset right after winning the CAS and before
+        // the first loop read; a cancel racing inside this window is re-issued by
+        // teardown (StreamSourceOperator.close always calls cancel()).
+        this.cancelled = false;
         try {
             for (File file : discoverFiles()) {
                 if (cancelled) {
@@ -279,11 +286,27 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
             return;
         }
         synchronized (cursors) {
-            cursors.clear();
             putAllCursors(restored);
         }
     }
 
+    /**
+     * Plan 2512 C3-008 (design adjudication 2): incremental merge-max restore
+     * instead of the previous clear+putAll REPLACE. The runtime shares one
+     * source-function instance across subtasks and across region restarts, so a
+     * sibling subtask may already have restored or advanced cursors in the shared
+     * map when a lagging checkpoint is replayed here; a REPLACE would wipe those
+     * newer positions and make every later checkpoint lag behind emitted progress
+     * (recovery then replays windows already reflected downstream).
+     *
+     * <p>Per-file cursor monotonicity: {@link #advanceCursor} only fires after a
+     * line is emitted, so any position already present in the shared map marks a
+     * prefix that was certainly emitted. Taking the max of the restored position
+     * and the existing position therefore merges the union of emitted prefixes:
+     * no loss (never rewind behind an emitted boundary) and no duplication (never
+     * jump past one) at once. For a cold cross-process restore the shared map is
+     * empty and the merge degenerates to a plain write — same code path.
+     */
     private void putAllCursors(Map<String, Long> restored) {
         for (Map.Entry<String, ?> entry : restored.entrySet()) {
             Object value = entry.getValue();
@@ -293,7 +316,7 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
             } else {
                 offset = Long.parseLong(String.valueOf(value));
             }
-            cursors.put(String.valueOf(entry.getKey()), offset);
+            cursors.merge(String.valueOf(entry.getKey()), offset, Math::max);
         }
     }
 }
