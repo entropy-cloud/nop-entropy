@@ -116,6 +116,19 @@ public class TaskImpl implements ITask {
             }
         }
 
+        // plan 2514 MA-01（1.5-C1-009 resume 半边）：恢复执行在 taskState 监视器内做非终态确认后
+        // 显式重置 ACTIVE 并落盘——挂起任务恢复后不再滞留 SUSPENDED 快照（cancel 判定块据此驱动 KILLED，
+        // 滞留 SUSPENDED 会让恢复执行中的任务被误判为可 kill 挂起态）；终态任务不重置（first-terminal-wins 保持）。
+        synchronized (taskState) {
+            if (!taskState.isTerminal()) {
+                Integer resumeStatus = taskState.getTaskStatus();
+                if (resumeStatus != null && resumeStatus == TaskConstants.TASK_STATUS_SUSPENDED) {
+                    taskState.setTaskStatus(TaskConstants.TASK_STATUS_ACTIVE);
+                    taskRt.saveTaskState();
+                }
+            }
+        }
+
         ITaskStepRuntime stepRt = taskRt.newMainStepRuntime();
         if (flagOperation == null) {
             stepRt.setTagSet(taskRt.getTagSet());
@@ -156,8 +169,20 @@ public class TaskImpl implements ITask {
                 // 不能驱动为 COMPLETED——否则 resume 被 isTerminal 短路，挂起恢复语义端到端断裂。
                 // 不 runCleanup（task 级 bean 容器保留给进程内 resume）；task meter 不关闭
                 // （任务未终态，TaskFlowMetricsImpl 暂无 suspend 维度，挂起任务 meter 遗留量级有限，可接受）。
-                taskState.setTaskStatus(TaskConstants.TASK_STATUS_SUSPENDED);
-                taskRt.saveTaskState();
+                // plan 2514 MA-01（1.5-C1-001/C1-009，裁定②）：SUSPENDED 转移是第五个 taskStatus 写者，
+                // 纳入与四终态 driver 同一 taskState 监视器 + 终态前置检查——判定-写入原子化：
+                // cancel 先写 KILLED 则此处短路（复活面闭合），本写先入锁则 cancel 后入锁见 SUSPENDED
+                // 即时驱动 KILLED。零新同步结构（复用既有监视器）。
+                synchronized (taskState) {
+                    if (taskState.isTerminal()) {
+                        // 终态前置检查：已终态（如 cancel 驱动 KILLED）则拒绝 SUSPENDED 裸覆写
+                        LOG.debug("nop.task.suspend-transfer-skipped-terminal:taskInstanceId={},keepStatus={}",
+                                taskState.getTaskInstanceId(), taskState.getTaskStatus());
+                        return ret;
+                    }
+                    taskState.setTaskStatus(TaskConstants.TASK_STATUS_SUSPENDED);
+                    taskRt.saveTaskState();
+                }
                 return ret;
             }
             taskRt.runCleanup();

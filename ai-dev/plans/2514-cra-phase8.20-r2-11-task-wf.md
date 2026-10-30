@@ -116,34 +116,37 @@ Exit Criteria:
 
 ### Phase 2 - 6 成员实现 + 回归测试（按 task/wf 两组）
 
-Status: planned
+Status: done
 Targets: `nop-task/nop-task-core/src/`、`nop-wf/nop-wf-core/src/`、`nop-wf/nop-wf-dao/src/`、`nop-wf/nop-wf-scheduler/src/`——各自 main + test 树
 
 - Item Types: `Fix`（6 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 task（nop-task-core）：MA-01（C1-001 监视器收敛，按裁定②）+ C10-001 收口门；MA-03（C3-002 sync×executor，按裁定③）+ C10-006 收口门；MA-08（C5-003 键空间治理，按裁定⑤）+ C10-009 反向钉死先改写收口门
-- [ ] 组 wf（nop-wf-core/dao/scheduler）：MA-02（C3-001 五站点，按裁定①）+ C10-003/004/005 三收口门；MA-05（C5-001 分批+毒步骤，按裁定④）+ C10-008 收口门；MA-23（C7-001 fencing，按裁定⑥）+ C10-011 收口门
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕；C10-009 为先改测试再修本体的强制前置）：
-  - [ ] MA-01/C10-001 红①：真并发交错注入（latch 挂起分支写前挂起 × cancel 线程）——缺陷态 KILLED 不驱动红 → 修复后 KILLED 即时驱动绿；C1-009 复活面对称绿；[05-03] 既有钉零回退
-  - [ ] MA-02/C10-003/004/005 红②：双线程并发 action 同 and 组（组迁移恰好一次）+ 末段并发完成（实例不滞留 ACTIVATED）+ join 并发到达（单实例）——缺陷态各自红 → 修复后绿
-  - [ ] MA-03/C10-006 红③：pool-size=1 sync×executor 嵌套——缺陷态互等超时红 → 修复后构建期拒绝绿 + syncGet 时限/取消路径绿
-  - [ ] MA-05/C10-008 红④：毒步骤注入 + 查询形状断言（limit/orderBy 存在）——缺陷态集合不收敛红 → 修复后退出扫描集绿
-  - [ ] MA-08/C10-009 红⑤：动态高基数键注入——缺陷态 registry.size 无界红 → 修复后有界/被拒绿；`globalGates_strongRefRegistry` 改写记录（保留断言+新增断言清单）在案
-  - [ ] MA-23/C10-011 红⑥：双 scanner 竞速（DB 集成或 proxy 注入）——缺陷态触发次数==2/remindCount 丢失红 → 修复后触发恒==1、remindCount 终值==轮数绿
-- [ ] **端到端验证**（rule 22）：≥1 条 task 全链（模型构建[fail-fast 拒绝面]→执行→挂起→cancel→终态落盘，覆盖裁定②③；DB 持久化形态）；≥1 条 wf 全链（审批流 and 组双人提交→组迁移→流程终结，覆盖裁定①；due 扫描 job 启用→抢占→action 恰好一次→dueTime 推进收敛，覆盖裁定④⑥——`TestWfTaskScanner`/`BaseTestCase` DB 载体扩展）
-- [ ] **接线验证**（rule 23）：裁定②SUSPENDED 写点真实经新监视器路径断言（非仅 synchronized 关键字存在）；裁定①条带锁真实被 `invokeAction`/`checkEnd` 链消费断言；裁定⑤注册表治理真实被 `getRateLimiter/getSemaphore` computeIfAbsent 路径消费断言；裁定⑥条件 UPDATE 真实被 scanner 循环调用+抢占失败分支可见断言（非仅 SQL 存在）
-- [ ] **无静默跳过**（rule 24）：裁定③构建期拒绝显式抛 ERR_TASK_STEP_CONFIG_INVALID 族（非静默忽略组合）；裁定⑥抢占失败显式 skip 日志路径（复用 race skip INFO 形态，非吞）；裁定④失败计数路径显式可见（非空 catch）；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交——task / wf，C10 测试与对应本体同一 commit（C10-009 改写与 MA-08 本体同一变更集）；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 task（nop-task-core）：MA-01（C1-001 监视器收敛，按裁定②）+ C10-001 收口门；MA-03（C3-002 sync×executor，按裁定③）+ C10-006 收口门；MA-08（C5-003 键空间治理，按裁定⑤）+ C10-009 反向钉死先改写收口门
+- [x] 组 wf（nop-wf-core/dao/scheduler）：MA-02（C3-001 五站点，按裁定①）+ C10-003/004/005 三收口门；MA-05（C5-001 分批+毒步骤，按裁定④）+ C10-008 收口门；MA-23（C7-001 fencing，按裁定⑥）+ C10-011 收口门
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕；C10-009 为先改测试再修本体的强制前置）：
+  - [x] MA-01/C10-001 红①：真并发交错注入（latch 挂起分支写前挂起 × cancel 线程）——缺陷态 KILLED 不驱动红 → 修复后 KILLED 即时驱动绿；C1-009 复活面对称绿；[05-03] 既有钉零回退
+  - [x] MA-02/C10-003/004/005 红②：双线程并发 action 同 and 组（组迁移恰好一次）+ 末段并发完成（实例不滞留 ACTIVATED）+ join 并发到达（单实例）——缺陷态各自红 → 修复后绿
+  - [x] MA-03/C10-006 红③：pool-size=1 sync×executor 嵌套——缺陷态互等超时红 → 修复后构建期拒绝绿 + syncGet 时限/取消路径绿
+  - [x] MA-05/C10-008 红④：毒步骤注入 + 查询形状断言（limit/orderBy 存在）——缺陷态集合不收敛红 → 修复后退出扫描集绿
+  - [x] MA-08/C10-009 红⑤：动态高基数键注入——缺陷态 registry.size 无界红 → 修复后有界/被拒绿；`globalGates_strongRefRegistry` 改写记录（保留断言+新增断言清单）在案
+  - [x] MA-23/C10-011 红⑥：双 scanner 竞速（DB 集成或 proxy 注入）——缺陷态触发次数==2/remindCount 丢失红 → 修复后触发恒==1、remindCount 终值==轮数绿
+- [x] **端到端验证**（rule 22）：≥1 条 task 全链（模型构建[fail-fast 拒绝面]→执行→挂起→cancel→终态落盘，覆盖裁定②③；DB 持久化形态）；≥1 条 wf 全链（审批流 and 组双人提交→组迁移→流程终结，覆盖裁定①；due 扫描 job 启用→抢占→action 恰好一次→dueTime 推进收敛，覆盖裁定④⑥——`TestWfTaskScanner`/`BaseTestCase` DB 载体扩展）
+- [x] **接线验证**（rule 23）：裁定②SUSPENDED 写点真实经新监视器路径断言（非仅 synchronized 关键字存在）；裁定①条带锁真实被 `invokeAction`/`checkEnd` 链消费断言；裁定⑤注册表治理真实被 `getRateLimiter/getSemaphore` computeIfAbsent 路径消费断言；裁定⑥条件 UPDATE 真实被 scanner 循环调用+抢占失败分支可见断言（非仅 SQL 存在）
+- [x] **无静默跳过**（rule 24）：裁定③构建期拒绝显式抛 ERR_TASK_STEP_CONFIG_INVALID 族（非静默忽略组合）；裁定⑥抢占失败显式 skip 日志路径（复用 race skip INFO 形态，非吞）；裁定④失败计数路径显式可见（非空 catch）；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交——task / wf，C10 测试与对应本体同一 commit（C10-009 改写与 MA-08 本体同一变更集）；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 6 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 八条收口门同 diff 落地（C10-009 先改写记录在案）
-- [ ] 必红证据（E2）：红①–红⑥均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；[05-03] KILLED 钉、vote 快照口径、`testScanDueTasksIgnoresCurrentStepStatusRace`、`RetryTaskStepWrapper` 隔离面为关键钉）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-task -am` 与 `./mvnw test -pl nop-wf -am` 均 BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 6 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 八条收口门同 diff 落地（C10-009 先改写记录在案）
+- [x] 必红证据（E2）：红①–红⑥均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；[05-03] KILLED 钉、vote 快照口径、`testScanDueTasksIgnoresCurrentStepStatusRace`、`RetryTaskStepWrapper` 隔离面为关键钉）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-task -am` 与 `./mvnw test -pl nop-wf -am` 均 BUILD SUCCESS（上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+
+- 偏差登记（实施期）：① task 组 MA-08 逐出机制落为 compute 内原子整体替换（CHM 禁 compute 内修改本 map，remove 两参形态不可用；以 existing 引用复核后返回新实例，比 remove+新建更强，bin 锁内无 check-then-act 窗，并发交错 assertSame 实证）；② 旧容量键 nop.task.max-global-rate-limiters/semaphores 被 max-entries 取代（定义保留、主代码不再引用，键退役归 Phase 3 owner doc 落账）；③ wf 组迁移段/前置双检终检口径按裁定①「复检 step 状态」字面收窄为 requireStepStatusForAction 状态位守卫（完整 checkAllowedAction 复检在 withdraw 场景误拒，全量测试暴露后收窄，兜底错误码不变）；④ 红证据采用精确变异回退（新测试引用新 scanner 方法，整文件回退无法编译）；⑤ 红③形态红=有界等待测试缺陷态永久挂起（surefire fork 强杀），挂起即死锁判据。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
