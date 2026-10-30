@@ -163,13 +163,16 @@ public class TestDebeziumCdcSource {
         assertTrue(stub.launchedConfig.get().getSchemaHistoryJdbcTable().endsWith("cdc_0"),
                 "schema history instance-qualified (AR parity)");
 
-        // the offset map lifts into EVERY split snapshot (instance-level copy, M-2)
+        // C10-013 rewrite (缺陷载体反转, plan 2511 C8-001): the engine-store offset is
+        // NOT lifted unconditionally into split snapshots — with no emitted records the
+        // snapshot carries NO offsets even when the store holds a (fresher) value.
+        // 旧断言消号理由 = "offset 无条件抬入每个 split 快照"正是 ≤256 丢失面本体。
         stub.offsets.put("partition-key", "base64-offset");
-        List<DebeziumTableSplit> snapshot = reader.snapshotState(7L);
-        assertEquals(2, snapshot.size());
-        for (DebeziumTableSplit split : snapshot) {
-            assertTrue(split.isOffsetCarrying());
-            assertEquals("base64-offset", split.getOffsetMap().get("partition-key"));
+        List<DebeziumTableSplit> beforeEmit = reader.snapshotState(7L);
+        assertEquals(2, beforeEmit.size());
+        for (DebeziumTableSplit split : beforeEmit) {
+            assertFalse(split.isOffsetCarrying(),
+                    "engine-store offset must NOT be lifted past the emitted boundary");
         }
         assertFalse(reader.isFinished(), "UNBOUNDED reader only stops via close");
 
@@ -228,6 +231,9 @@ public class TestDebeziumCdcSource {
     static class StubbedReader extends DebeziumCdcSourceReader {
         final AtomicReference<DebeziumConfig> launchedConfig = new AtomicReference<>();
         final Map<String, String> offsets = new LinkedHashMap<>();
+        /** C10-013: the reader's queue SourceContext, captured so tests can push events. */
+        final AtomicReference<io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<io.nop.message.debezium.ChangeEvent>> queueCtx =
+                new AtomicReference<>();
 
         StubbedReader(DebeziumConfig config, io.nop.credential.api.ICredentialProvider provider,
                       Map<String, String> initialOffsets) {
@@ -253,6 +259,7 @@ public class TestDebeziumCdcSource {
                 @Override
                 public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<io.nop.message.debezium.ChangeEvent> ctx)
                         throws Exception {
+                    queueCtx.set(ctx);
                     // live-subscription stand-in: block until cancel, interruptibly
                     while (!cancelled.get()) {
                         Thread.sleep(50);

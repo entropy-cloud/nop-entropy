@@ -50,14 +50,23 @@ public class AvroWireFormat {
     /**
      * Encodes a GenericRecord into Confluent wire format: registers the record's
      * schema under the subject on first use, then writes magic + schemaId + binary.
+     *
+     * <p>Plan 2511 C2-002: the registry calls (POST register + id cache warm-up) run
+     * OUTSIDE the {@code writerSchemaIds} CHM bin locks — get → miss → fetch →
+     * {@code putIfAbsent} idempotent backfill. A hung registry can therefore delay at
+     * most the fetching thread (bounded by the client's request timeout), never a
+     * whole bin of concurrent encoders.
      */
     public byte[] encode(GenericRecord record, String subject) {
-        int schemaId = writerSchemaIds.computeIfAbsent(subject, s -> {
-            int id = client.registerSchema(s, record.getSchema());
+        Integer cached = writerSchemaIds.get(subject);
+        if (cached == null) {
+            int id = client.registerSchema(subject, record.getSchema());
             // cache for reads routed by this id
             client.getSchemaById(id);
-            return id;
-        });
+            Integer race = writerSchemaIds.putIfAbsent(subject, id);
+            cached = race != null ? race : id;
+        }
+        int schemaId = cached;
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         out.write(MAGIC_BYTE);
         out.write((schemaId >>> 24) & 0xFF);

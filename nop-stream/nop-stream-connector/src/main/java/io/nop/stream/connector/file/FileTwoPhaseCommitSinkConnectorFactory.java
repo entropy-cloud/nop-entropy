@@ -14,11 +14,13 @@ import io.nop.stream.core.connector.registry.ConnectorParamDescriptor;
 import io.nop.stream.core.connector.registry.ConnectorRecoverySemantic;
 import io.nop.stream.core.connector.registry.IStreamSinkFactory;
 import io.nop.stream.core.connector.registry.StreamConnectorConfig;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.common.functions.SinkFunction;
 
 import java.nio.charset.Charset;
 import java.util.List;
 
+import static io.nop.stream.core.connector.registry.ConnectorParamKind.INT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.STRING;
 
 /**
@@ -39,7 +41,15 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                     ConnectorParamDescriptor.required("outputDir", STRING,
                             "output directory for per-epoch committed files and manifest"),
                     ConnectorParamDescriptor.optional("charset", STRING,
-                            "text charset name, defaults to UTF-8")))
+                            "text charset name, defaults to UTF-8"),
+                    ConnectorParamDescriptor.optional("ledgerRetentionDays", INT,
+                            "plan 2511 C3-002 / R01 epochledger face: manifest retention in days"
+                                    + " (SSOT ledger-retention-policy §3.1 default 30; 0 disables"
+                                    + " manifest pruning)"),
+                    ConnectorParamDescriptor.optional("checkpointIntervalMs", INT,
+                            "plan 2511 C3-002: the deployment checkpoint interval used to convert"
+                                    + " retention-days into the manifest retention epoch window"
+                                    + " (defaults to CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL)")))
             .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
@@ -58,6 +68,19 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
         String outputDir = config.requireString("outputDir");
         String charsetName = config.getString("charset");
         Charset charset = charsetName == null ? null : Charset.forName(charsetName);
-        return new FileTwoPhaseCommitSink<>(outputDir, charset);
+        // C3-002 (R01 epochledger face, form B): retention-days × checkpoint interval
+        // → retention epoch window, computed once at assembly; zero new config keys
+        // (the SSOT nop.stream.ledger.epochledger.retention-days value is projected in
+        // by the deployment when it differs from the SSOT default)
+        Integer retentionDays = config.getInt("ledgerRetentionDays");
+        Integer checkpointIntervalMs = config.getInt("checkpointIntervalMs");
+        if (retentionDays == null && checkpointIntervalMs == null) {
+            return new FileTwoPhaseCommitSink<>(outputDir, charset);
+        }
+        long window = FileTwoPhaseCommitSink.computeRetentionEpochWindow(
+                retentionDays != null ? retentionDays : 30L,
+                checkpointIntervalMs != null ? checkpointIntervalMs.longValue()
+                        : CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset, 0, window);
     }
 }

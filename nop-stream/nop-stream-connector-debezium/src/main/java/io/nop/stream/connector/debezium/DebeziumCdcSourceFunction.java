@@ -119,6 +119,15 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
     private transient NopStreamOffsetBackingStore offsetStore;
 
     /**
+     * Plan 2511 C8-001 (adjudication ⑥, legacy face): per-server last-emitted positions
+     * recorded AFTER the downstream collector returns for each event, closing the same
+     * store-leads-emission window the FLIP-27 reader closes (here the skew is ≈1 record —
+     * the collect-直连 path). Non-transient: the table survives the deployment
+     * serialization path so a checkpoint right after restore still carries positions.
+     */
+    private final LastEmittedOffsetTracker lastEmittedTracker = new LastEmittedOffsetTracker();
+
+    /**
      * WI9 data-migration contract (ai-dev/design/nop-orm-data-migration-pipeline-design.md §4.2):
      * first-run CDC offset seeding. When non-null and the job has NO prior checkpoint
      * ({@code state == null}), the offset store is seeded with these entries AFTER the AR-03
@@ -267,6 +276,10 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
                 subscription = source.subscribe(event -> {
                     try {
                         ctx.collect(event);
+                        // C8-001: the event is emitted once collect returns — record its
+                        // position AFTER the dispatch so snapshotState snapshots at most
+                        // this boundary (typed failure on a position-less event)
+                        lastEmittedTracker.onEmitted(event);
                     } catch (Exception e) {
                         // R5-CON-02: capture-and-rethrow. The upstream dispatcher swallows
                         // consumer exceptions by design; recording the first one here and
@@ -440,6 +453,12 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
             return result;
         }
 
+        if (lastEmittedTracker.hasPositions()) {
+            // C8-001: snapshot the last-EMITTED boundary, not the store's (possibly
+            // one record fresher) value
+            result.putOperatorState(CDC_OFFSETS_KEY, lastEmittedTracker.synthesizeOffsetMap());
+            return result;
+        }
         Map<java.nio.ByteBuffer, java.nio.ByteBuffer> offsets = store.getOffsets();
         result.putOperatorState(CDC_OFFSETS_KEY, NopStreamOffsetBackingStore.toSerializable(offsets));
         return result;
@@ -480,6 +499,9 @@ public class DebeziumCdcSourceFunction implements SubtaskShardedSourceFunction<C
         }
 
         Map<String, String> serialized = (Map<String, String>) raw;
+        // C8-001: seed the last-emitted table from the restored maps (numeric-min per
+        // server for last-emitted-marker maps; legacy engine-format maps are ignored)
+        lastEmittedTracker.seedFromOffsetMap(serialized);
         Map<java.nio.ByteBuffer, java.nio.ByteBuffer> restored =
                 NopStreamOffsetBackingStore.fromSerializable(serialized);
 

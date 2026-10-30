@@ -15,12 +15,21 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -243,6 +252,138 @@ class TestAvroWireFormat {
         Schema schema = new Schema.Parser().parse(USER_SCHEMA_V1);
         GenericRecord record = user("dave", 20, null, schema);
         assertThrows(StreamAvroException.class, () -> format.encode(record, "subj"));
+    }
+
+    /**
+     * Plan 2511 C2-002 / C10-008 (adjudication ③): a HUNG registry (connection
+     * accepted, never answered) must fail typed within the request-level timeout —
+     * the pre-fix shape was an unbounded block. Replaces the old fast-refusal-only
+     * injection which never exercised the hang face (假保护消号：快速拒连不承载挂死面).
+     */
+    @Test
+    void registryHangFailsTypedWithinRequestTimeout() throws Exception {
+        try (ServerSocket hangServer = new ServerSocket(0, 8,
+                InetAddress.getByName("127.0.0.1"))) {
+            // accept and HOLD the connections open, never read/write: the client
+            // connection hangs on read until the request-level timeout fires
+            List<Socket> held = new ArrayList<>();
+            Thread acceptor = new Thread(() -> {
+                while (!hangServer.isClosed()) {
+                    try {
+                        held.add(hangServer.accept());
+                    } catch (IOException e) {
+                        return;
+                    }
+                }
+            }, "hang-registry-acceptor");
+            acceptor.setDaemon(true);
+            acceptor.start();
+
+            AvroSchemaRegistryClient client = new AvroSchemaRegistryClient(
+                    "http://127.0.0.1:" + hangServer.getLocalPort(),
+                    Duration.ofMillis(500));
+            AvroWireFormat format = new AvroWireFormat(client);
+            Schema schema = new Schema.Parser().parse(USER_SCHEMA_V1);
+            GenericRecord record = user("hung", 1, null, schema);
+
+            long start = System.nanoTime();
+            // timeout red line (plan 2511 E2 red ③): pre-fix this carrier bounds the
+            // otherwise UNBOUNDED hang; post-fix the typed failure arrives well inside it
+            StreamAvroException ex = assertTimeoutPreemptively(Duration.ofSeconds(10),
+                    () -> assertThrows(StreamAvroException.class,
+                            () -> format.encode(record, "subj")),
+                    "C2-002: hung registry must fail typed within the request timeout "
+                            + "(pre-fix: unbounded hang carried by this red line)");
+            long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+            // typed failure arrives via the request-level timeout, not after an
+            // unbounded hang (bound: 10x the configured timeout for CI slack)
+            assertTrue(elapsedMillis < 5_000,
+                    "hang must fail within the request timeout, took " + elapsedMillis + "ms");
+            assertTrue(elapsedMillis >= 400,
+                    "failure must come from the timeout, not an immediate refusal: "
+                            + elapsedMillis + "ms");
+            assertTrue(ex.getMessage().contains("failed"), ex.getMessage());
+            for (Socket s : held) {
+                try {
+                    s.close();
+                } catch (IOException ignored) {
+                    // best-effort teardown
+                }
+            }
+        }
+    }
+
+    /**
+     * Plan 2511 C2-002 (adjudication ③, R03 projection): while one encode is stuck on
+     * the hung registry, a concurrent encode of ANOTHER subject must still complete
+     * (typed) — the fetch runs outside the {@code writerSchemaIds} bin locks, so the
+     * hang cannot serialize the whole bin (锁限时释放/不互阻断言).
+     */
+    @Test
+    void concurrentEncodeNotBlockedByHungFetch() throws Exception {
+        try (ServerSocket hangServer = new ServerSocket(0, 8,
+                InetAddress.getByName("127.0.0.1"))) {
+            Thread acceptor = new Thread(() -> {
+                while (!hangServer.isClosed()) {
+                    try {
+                        hangServer.accept().close();
+                    } catch (IOException e) {
+                        return;
+                    }
+                }
+            }, "hang-registry-acceptor-2");
+            acceptor.setDaemon(true);
+            acceptor.start();
+
+            AvroSchemaRegistryClient client = new AvroSchemaRegistryClient(
+                    "http://127.0.0.1:" + hangServer.getLocalPort(),
+                    Duration.ofMillis(500));
+            AvroWireFormat format = new AvroWireFormat(client);
+            Schema schema = new Schema.Parser().parse(USER_SCHEMA_V1);
+            GenericRecord record = user("carol", 3, null, schema);
+
+            CountDownLatch firstInFlight = new CountDownLatch(1);
+            CountDownLatch firstDone = new CountDownLatch(1);
+            Thread stuckEncoder = new Thread(() -> {
+                firstInFlight.countDown();
+                try {
+                    format.encode(record, "stuck-subject");
+                } catch (StreamAvroException expected) {
+                    // typed failure is the contract; both threads must land here
+                } finally {
+                    firstDone.countDown();
+                }
+            }, "stuck-encoder");
+            stuckEncoder.setDaemon(true);
+            stuckEncoder.start();
+
+            assertTrue(firstInFlight.await(5, TimeUnit.SECONDS),
+                    "stuck encoder never started");
+            // give the stuck encoder time to be blocked inside its HTTP call
+            Thread.sleep(200);
+
+            long start = System.nanoTime();
+            assertTimeoutPreemptively(Duration.ofSeconds(10),
+                    () -> assertThrows(StreamAvroException.class,
+                            () -> format.encode(record, "other-subject"),
+                            "concurrent encode must not be blocked by the hung fetch"),
+                    "C2-002: bin lock must be released in bounded time (pre-fix red line)");
+            long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+            assertTrue(elapsedMillis < 5_000,
+                    "concurrent encode must finish within its own timeout, took "
+                            + elapsedMillis + "ms");
+            assertTrue(firstDone.await(10, TimeUnit.SECONDS),
+                    "stuck encoder must eventually fail typed");
+        }
+    }
+
+    /** Plan 2511 C2-002: a non-positive request timeout is rejected at assembly. */
+    @Test
+    void nonPositiveRequestTimeoutFailsFast() {
+        assertThrows(StreamAvroException.class,
+                () -> new AvroSchemaRegistryClient("http://127.0.0.1:1", Duration.ZERO));
+        assertThrows(StreamAvroException.class,
+                () -> new AvroSchemaRegistryClient("http://127.0.0.1:1", Duration.ofMillis(-1)));
     }
 
     private static Schema userSchema() {

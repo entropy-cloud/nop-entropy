@@ -28,11 +28,23 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ul>
  *
  * <p>Thread-safe; per-id and per-subject latest schema lookups are cached.
+ *
+ * <p>Plan 2511 C2-002 (adjudication ③, R03 lock-heavy-work-out-of-lock projection):
+ * every {@link HttpRequest} carries a request-level {@code .timeout()} (default 10s,
+ * constructor-injected {@link Duration} — the client never reads global config), so a
+ * hung registry fails typed instead of blocking the task thread forever; and schema
+ * fetches run OUTSIDE the ConcurrentHashMap bin locks (get → miss → fetch →
+ * {@code putIfAbsent} idempotent backfill) — HTTP I/O must never stay inside a CHM
+ * mapping function.
  */
 public class AvroSchemaRegistryClient {
 
+    /** Default request-level timeout when not injected (same order as connectTimeout). */
+    public static final Duration DEFAULT_REQUEST_TIMEOUT = Duration.ofSeconds(10);
+
     private final HttpClient http;
     private final String baseUrl;
+    private final Duration requestTimeout;
     private final Map<Integer, Schema> schemaByIdCache = new ConcurrentHashMap<>();
     private final Map<String, CachedSchema> latestBySubject = new ConcurrentHashMap<>();
 
@@ -41,10 +53,19 @@ public class AvroSchemaRegistryClient {
     }
 
     public AvroSchemaRegistryClient(String baseUrl) {
+        this(baseUrl, DEFAULT_REQUEST_TIMEOUT);
+    }
+
+    public AvroSchemaRegistryClient(String baseUrl, Duration requestTimeout) {
         if (baseUrl == null || baseUrl.isEmpty()) {
             throw new StreamAvroException("registry baseUrl must not be empty");
         }
+        if (requestTimeout == null || requestTimeout.isZero() || requestTimeout.isNegative()) {
+            throw new StreamAvroException("registry request timeout must be positive, got: "
+                    + requestTimeout);
+        }
         this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        this.requestTimeout = requestTimeout;
         this.http = HttpClient.newBuilder().connectTimeout(Duration.ofSeconds(10)).build();
     }
 
@@ -55,6 +76,7 @@ public class AvroSchemaRegistryClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + "/subjects/" + subject + "/versions"))
                 .header("Content-Type", "application/vnd.schemaregistry.v1+json")
+                .timeout(requestTimeout)
                 .POST(HttpRequest.BodyPublishers.ofString(body)).build();
         Map<?, ?> resp = postJson(request);
         Object id = resp.get("id");
@@ -64,9 +86,20 @@ public class AvroSchemaRegistryClient {
         throw new StreamAvroException("registerSchema: unexpected response body: " + resp);
     }
 
-    /** Cached schema lookup by registry id. */
+    /**
+     * Cached schema lookup by registry id. The HTTP fetch runs OUTSIDE any CHM bin
+     * lock (get → miss → fetch → putIfAbsent idempotent backfill): a hung registry
+     * delays only the fetching thread up to the request timeout, never poisons the
+     * cache's bin locks for concurrent lookups of other ids.
+     */
     public Schema getSchemaById(int id) {
-        return schemaByIdCache.computeIfAbsent(id, this::fetchSchemaById);
+        Schema cached = schemaByIdCache.get(id);
+        if (cached != null) {
+            return cached;
+        }
+        Schema fetched = fetchSchemaById(id);
+        Schema race = schemaByIdCache.putIfAbsent(id, fetched);
+        return race != null ? race : fetched;
     }
 
     /** Cached latest schema + id for a subject. */
@@ -102,6 +135,7 @@ public class AvroSchemaRegistryClient {
         HttpRequest request = HttpRequest.newBuilder()
                 .uri(URI.create(baseUrl + path))
                 .header("Accept", "application/vnd.schemaregistry.v1+json")
+                .timeout(requestTimeout)
                 .GET().build();
         return readJsonResponse(request);
     }

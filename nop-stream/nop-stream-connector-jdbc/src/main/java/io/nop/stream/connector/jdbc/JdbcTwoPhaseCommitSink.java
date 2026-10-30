@@ -81,7 +81,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
  * @param <IN> the type of input records
  */
 public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
-        implements ConnectivityCheckable, CdcChangeAwareSink {
+        implements ConnectivityCheckable, CdcChangeAwareSink, AutoCloseable {
 
     private static final long serialVersionUID = 1L;
 
@@ -444,6 +444,17 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     /** R5 CON-05: one-shot flag for the fallback warning. */
     private transient volatile boolean fallbackWarned;
 
+    /**
+     * Plan 2511 C3-002 (R01 SSOT member row, face {@code epochledger}): form-A
+     * periodic retention cleaner for {@code stream_epoch_ledger_v2}, started on the
+     * first {@code beginTransaction()} (production-reachable lifecycle chain — every
+     * deployed job passes through ensureInitialized) and stopped on
+     * {@link #close()}. Parameters come from the {@code nop.stream.ledger.epochledger.*}
+     * keys owned by {@link EpochLedgerConfigs}; a failed cleanup round is ERROR-logged
+     * and counted, never swallowed.
+     */
+    private transient volatile JdbcEpochLedgerCleaner ledgerCleaner;
+
     // ---- Lifecycle ----
 
     @Override
@@ -467,7 +478,47 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             this.insertLedgerSql = buildInsertLedgerSql(dialect);
             this.ledgerExistsSql = buildLedgerExistsSql(dialect);
             this.initialized = true;
+            startLedgerRetentionCleaner();
         }
+    }
+
+    /**
+     * C3-002 form-A wiring (anti-hollow, SSOT ruling ②): the periodic cleaner starts
+     * on the production lifecycle chain (first beginTransaction), one per sink copy.
+     * Config failures fail fast here; a disabled (retention-days=0) cleaner starts
+     * inert without scheduling.
+     */
+    private void startLedgerRetentionCleaner() {
+        if (ledgerCleaner != null) {
+            return;
+        }
+        synchronized (this) {
+            if (ledgerCleaner != null) {
+                return;
+            }
+            JdbcEpochLedgerCleaner cleaner =
+                    JdbcEpochLedgerCleaner.forConfig(jdbcTemplate, querySpace, ledgerTableName);
+            cleaner.start();
+            ledgerCleaner = cleaner;
+        }
+    }
+
+    /**
+     * C3-002: stops the retention cleaner's schedule chain. Idempotent; called by the
+     * runtime teardown chain ({@code StreamSinkOperator.close} → {@code AutoCloseable}
+     * userFunction), the same contract the Kafka 2PC sink documents for producer close.
+     */
+    @Override
+    public void close() {
+        JdbcEpochLedgerCleaner cleaner = this.ledgerCleaner;
+        if (cleaner != null && cleaner.isActive()) {
+            cleaner.stop();
+        }
+    }
+
+    /** Test visibility: the started retention cleaner (null before first beginTransaction). */
+    JdbcEpochLedgerCleaner getLedgerCleanerForTest() {
+        return ledgerCleaner;
     }
 
     // ---- Data path ----

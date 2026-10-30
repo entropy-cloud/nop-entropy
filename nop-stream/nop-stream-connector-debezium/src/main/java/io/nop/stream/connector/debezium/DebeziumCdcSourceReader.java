@@ -43,10 +43,12 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECU
  * ({@code name-<subtaskIndex>}, instance-qualified schema history).
  *
  * <p>Offset checkpointing travels the FLIP-27 surface: {@link #snapshotState} lifts the
- * embedded function's {@code cdc-offsets} map into every split (instance-granular copy,
- * plan M-2); {@link #restoreState} rebuilds a {@link TaskStateSnapshot} from the first
- * offset-carrying split and replays it through the embedded function's
- * {@code initializeState} — no legacy operator-state path involved.
+ * per-server last-emitted position map (plan 2511 C8-001 — the engine store value can
+ * lead the emitted boundary by up to {@link #QUEUE_CAPACITY} records, so the snapshot
+ * synthesizes from the tracker instead) into every split (instance-granular copy, plan
+ * M-2); {@link #restoreState} rebuilds a {@link TaskStateSnapshot} from the restored
+ * offset maps (numeric-min per server, conservative replay) and replays it through the
+ * embedded function's {@code initializeState} — no legacy operator-state path involved.
  */
 public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, DebeziumTableSplit> {
 
@@ -67,6 +69,12 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
     private transient volatile Throwable runnerFailure;
     private final Map<String, DebeziumTableSplit> adoptedSplits = new LinkedHashMap<>();
     private final Map<String, Map<String, String>> restoredOffsetByTable = new LinkedHashMap<>();
+    /**
+     * Plan 2511 C8-001 (adjudication ⑥): per-server last-emitted position protocol —
+     * checkpoint offsets must never run ahead of what this reader actually emitted
+     * downstream (the pre-fix engine-store snapshot could be ≤256 records fresh).
+     */
+    private final LastEmittedOffsetTracker lastEmittedTracker = new LastEmittedOffsetTracker();
     private volatile boolean running;
     private transient DebeziumCdcSourceFunction embeddedFunction;
 
@@ -109,7 +117,9 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         }
 
         try {
-            Map<String, String> offsetMap = firstOffsetMap();
+            Map<String, String> offsetMap = lastEmittedTracker.hasPositions()
+                    ? lastEmittedTracker.synthesizeOffsetMap()
+                    : firstOffsetMap();
             if (offsetMap != null) {
                 // restore path: replay the instance-level offset map through the
                 // embedded function's own state contract
@@ -182,6 +192,8 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
                 adoptedSplits.put(split.splitId(), split);
                 if (split.isOffsetCarrying() && split.getOffsetMap() != null) {
                     restoredOffsetByTable.put(split.splitId(), split.getOffsetMap());
+                    // C8-001: min-merge seed (same rule as restoreState)
+                    lastEmittedTracker.seedFromOffsetMap(split.getOffsetMap());
                 }
             }
             if (running) {
@@ -231,7 +243,12 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (runnerFailure != null) {
             throw asException(runnerFailure);
         }
-        return Optional.of((ChangeEvent) value);
+        ChangeEvent event = (ChangeEvent) value;
+        // C8-001 emission point: the record is handed downstream here — record its
+        // position BEFORE returning so snapshotState can never lift an offset past it.
+        // A position-less event fails typed (rule 24), never falls back silently.
+        lastEmittedTracker.onEmitted(event);
+        return Optional.of(event);
     }
 
     private StreamException asException(Throwable failure) {
@@ -256,19 +273,24 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (adoptedSplits.isEmpty()) {
             return List.of();
         }
-        Map<String, String> offsets = null;
-        if (embeddedFunction != null) {
-            var snapshot = embeddedFunction.snapshotState(checkpointId);
-            Object raw = snapshot.getOperatorState(DebeziumCdcSourceFunction.CDC_OFFSETS_KEY);
-            if (raw instanceof Map) {
-                @SuppressWarnings("unchecked")
-                Map<String, String> map = (Map<String, String>) raw;
-                offsets = map;
-            }
+        Map<String, String> offsets;
+        if (lastEmittedTracker.hasPositions()) {
+            // C8-001: snapshot offsets == last-EMITTED boundary (per-server synthesized
+            // engine-shape map). The engine store may legitimately be up to
+            // QUEUE_CAPACITY + 1 records ahead of this boundary — lifting its value
+            // was the pre-fix silent-loss window.
+            offsets = lastEmittedTracker.synthesizeOffsetMap();
+        } else {
+            // C8-001: no emitted position since start (first checkpoint before any
+            // record) — carry ONLY the maps restored for THIS run (legacy checkpoint
+            // compatibility); the live engine-store value must NEVER lift into a
+            // snapshot past the emitted boundary (that lift was the pre-fix
+            // ≤256-record silent-loss window, C10-013 inverted carrier)
+            offsets = firstOffsetMap();
         }
         List<DebeziumTableSplit> splits = new ArrayList<>(adoptedSplits.size());
         if (offsets != null) {
-            // one instance-level copy per split (plan M-2)
+            // one instance-level copy per split (plan M-2, semantics preserved)
             for (DebeziumTableSplit split : adoptedSplits.values()) {
                 splits.add(split.withOffsetMap(offsets));
             }
@@ -287,6 +309,10 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
             adoptedSplits.putIfAbsent(split.splitId(), split);
             if (split.isOffsetCarrying() && split.getOffsetMap() != null) {
                 restoredOffsetByTable.put(split.splitId(), split.getOffsetMap());
+                // C8-001: seed the per-server table taking the NUMERIC MINIMUM across
+                // offset-carrying splits — conservative replay (duplicate-not-lose),
+                // replacing the pre-fix "take the first one" arbitrariness
+                lastEmittedTracker.seedFromOffsetMap(split.getOffsetMap());
             }
         }
     }

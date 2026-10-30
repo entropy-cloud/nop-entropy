@@ -32,6 +32,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.nop.core.resource.impl.FileResource;
+import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.sink.SinkConsistencyCapability;
 import io.nop.stream.core.common.functions.sink.TwoPhaseCommitSinkFunction;
@@ -86,6 +87,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private static final String MANIFEST_FILE = "manifest.properties";
     private static final String LINE_SEPARATOR = System.lineSeparator();
     /**
+     * C3-002: default retention epoch window = SSOT defaults projected through the
+     * assembly formula — ceil(30d × 86400000ms ÷ 60000ms) = 43200 epochs. Deployments
+     * override via {@link #computeRetentionEpochWindow(long, long)} with their actual
+     * retention-days and checkpoint interval.
+     */
+    public static final long DEFAULT_RETENTION_EPOCH_WINDOW =
+            computeRetentionEpochWindow(30L, CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL);
+    /**
      * AR-14 (plan 2026-09-04-1326-3): cross-writer manifest lock file in the output
      * directory. Serializes the manifest read-modify-write across parallel subtasks —
      * both threads within one JVM (ReentrantLock) and subtask copies in different
@@ -99,6 +108,17 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             new ConcurrentHashMap<>();
 
     private final String outputDir;
+    /**
+     * Plan 2511 C3-002 (R01 SSOT member row, face {@code epochledger}): manifest
+     * retention epoch window = {@code ceil(retention-days × 86400000ms ÷
+     * checkpointIntervalMs)}, computed once at assembly ({@link
+     * #computeRetentionEpochWindow(long, long)}) and injected here. Manifest pruning
+     * (form B, commit-time piggyback) removes keys whose encoded epoch is older than
+     * {@code currentEpoch - window} inside the existing AR-14-locked rewrite, so the
+     * manifest stops growing O(all epochs). Negative window = assembly fail-fast; a
+     * zero window disables pruning explicitly (retention-days = 0 opt-out).
+     */
+    private final long retentionEpochWindow;
     /**
      * Item 14 (distributed): stored as a NAME (not a {@link Charset} object) so the
      * sink survives the Java serialization of the deployment descriptor's pipeline
@@ -162,20 +182,32 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * Copy constructor for a parallel subtask (see {@link #copyForSubtask(int)}).
      */
     private FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex) {
-        if (outputDir == null || outputDir.isEmpty()) {
-            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
+        this(outputDir, charset, subtaskIndex, DEFAULT_RETENTION_EPOCH_WINDOW);
+    }
+
+    /**
+     * C3-002: the retention epoch window computed at assembly time — {@code
+     * ceil(retentionDays × 86400000ms ÷ checkpointIntervalMs)}, ceiling so the window
+     * never UNDER-retains (the window must stay &ge; the re-submittable epoch window).
+     * The conversion base is the assembly-time checkpoint interval constant (sink
+     * lifetime fixed; interval changes across runs are absorbed by the ceiling and the
+     * 30-day default's order of magnitude).
+     */
+    public static long computeRetentionEpochWindow(long retentionDays, long checkpointIntervalMs) {
+        if (retentionDays < 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "retentionDays")
+                    .param(ARG_DETAIL, "retentionDays must be >= 0 (0 disables pruning), got: "
+                            + retentionDays);
         }
-        this.outputDir = outputDir;
-        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
-        this.charset = charset != null ? charset : StandardCharsets.UTF_8;
-        this.subtaskIndex = subtaskIndex;
-        this.outputDirPath = Paths.get(outputDir);
-        try {
-            Files.createDirectories(outputDirPath);
-        } catch (IOException e) {
-            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)
-                    .param(ARG_DETAIL, "Failed to create output directory: " + outputDir);
+        if (checkpointIntervalMs <= 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "checkpointIntervalMs")
+                    .param(ARG_DETAIL, "checkpointIntervalMs must be positive, got: "
+                            + checkpointIntervalMs);
         }
+        long retentionMillis = retentionDays * 86_400_000L;
+        return (retentionMillis + checkpointIntervalMs - 1) / checkpointIntervalMs;
     }
 
     /**
@@ -195,7 +227,41 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     @Override
     public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
-        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex, retentionEpochWindow);
+    }
+
+    /**
+     * C3-002: constructs a sink with an explicit manifest retention epoch window
+     * (assembly-time projection of the SSOT {@code epochledger} retention parameters
+     * via {@link #computeRetentionEpochWindow(long, long)}). Primarily for the
+     * deployment assembly and tests; the plain constructors keep the SSOT-default
+     * window.
+     */
+    public FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex,
+                                  long retentionEpochWindow) {
+        if (outputDir == null || outputDir.isEmpty()) {
+            throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
+        }
+        // C3-002: the retention epoch window is an assembly-time constant; negative
+        // values would prune not-yet-expired epochs (a recovery-correctness hazard)
+        if (retentionEpochWindow < 0) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR)
+                    .param(ARG_ARG_NAME, "retentionEpochWindow")
+                    .param(ARG_DETAIL, "manifest retention epoch window must be >= 0 (0 disables"
+                            + " pruning), got: " + retentionEpochWindow);
+        }
+        this.outputDir = outputDir;
+        this.charsetName = (charset != null ? charset : StandardCharsets.UTF_8).name();
+        this.charset = charset != null ? charset : StandardCharsets.UTF_8;
+        this.subtaskIndex = subtaskIndex;
+        this.retentionEpochWindow = retentionEpochWindow;
+        this.outputDirPath = Paths.get(outputDir);
+        try {
+            Files.createDirectories(outputDirPath);
+        } catch (IOException e) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR, e)
+                    .param(ARG_DETAIL, "Failed to create output directory: " + outputDir);
+        }
     }
 
     /**
@@ -302,6 +368,14 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         String manifestEntryKey = manifestKey(ownerSubtask, checkpointId);
         Properties manifest = loadManifest();
 
+        // C3-002 form B (R01 SSOT member row, face epochledger): commit-time piggyback
+        // pruning — drop manifest keys whose encoded epoch fell out of the retention
+        // window, folding the prune into the SAME locked rewrite the commit already
+        // performs, so manifest growth converges from O(all epochs) to O(retention set).
+        // Never touches the key being committed; the window guarantees pruning only
+        // strictly older-than (currentEpoch - window) keys.
+        pruneExpiredEntries(manifest, checkpointId);
+
         // Idempotent guard: manifest already records this epoch.
         // R6 CON-01 (plan 2325): discriminate by pending-entry PROVENANCE — an
         // entry restored via setPendingCommits belongs to the previous run and
@@ -378,6 +452,66 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         forceDirectoryQuietly(outputDirPath);
 
         getPendingCommits().remove(checkpointId);
+    }
+
+    /**
+     * C3-002 form B: removes manifest entries whose epoch-key age exceeds the
+     * retention window — {@code epoch(key) < currentEpoch - retentionEpochWindow}.
+     * Idempotent (a second pass over the same manifest removes nothing) and guarded
+     * against over-deletion by the ceiling-rounded window (retention window &ge;
+     * the re-submittable epoch window, so restoredKeys-style recoverable epochs are
+     * never pruned).
+     */
+    private void pruneExpiredEntries(Properties manifest, long currentEpoch) {
+        if (retentionEpochWindow <= 0) {
+            return; // retention-days=0 opt-out: pruning disabled
+        }
+        long keepAbove = currentEpoch - retentionEpochWindow;
+        List<String> expired = null;
+        for (String key : manifest.stringPropertyNames()) {
+            Long epoch = epochOfKey(key);
+            if (epoch != null && epoch < keepAbove) {
+                if (expired == null) {
+                    expired = new ArrayList<>();
+                }
+                expired.add(key);
+            }
+        }
+        if (expired != null) {
+            for (String key : expired) {
+                manifest.remove(key);
+            }
+            LOG.info("file-2pc: pruned {} manifest key(s) below epoch {} (retention window {})",
+                    expired.size(), keepAbove, retentionEpochWindow);
+        }
+    }
+
+    /**
+     * C3-002: decodes the epoch number encoded in a manifest key ({@code N} for
+     * subtask 0, {@code N.sK} for subtask K). Returns null for keys without an
+     * epoch-shaped prefix — those are never pruned by the epoch-age predicate.
+     */
+    static Long epochOfKey(String key) {
+        int dot = key.indexOf('.');
+        String digits = dot >= 0 ? key.substring(0, dot) : key;
+        if (digits.isEmpty()) {
+            return null;
+        }
+        for (int i = 0; i < digits.length(); i++) {
+            if (!Character.isDigit(digits.charAt(i))) {
+                return null;
+            }
+        }
+        try {
+            return Long.parseLong(digits);
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
+    /** C3-002 test/ops visibility: the effective retention epoch window. */
+    long getRetentionEpochWindow() {
+        return retentionEpochWindow;
     }
 
     /**
