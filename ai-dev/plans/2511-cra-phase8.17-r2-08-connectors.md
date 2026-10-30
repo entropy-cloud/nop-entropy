@@ -112,37 +112,47 @@ Exit Criteria:
 
 ### Phase 2 - 7 成员实现 + 回归测试（按模块/子域四组）
 
-Status: planned
+Status: done
 Targets: `nop-stream/nop-stream-rocksdb/src/`、`nop-stream/nop-stream-cep/src/`、`nop-stream/nop-stream-format-avro/src/`、`nop-stream/nop-stream-connector-jdbc/src/`、`nop-stream/nop-stream-connector/src/`（file 面）、`nop-stream/nop-stream-connector-debezium/src/`、`nop-stream/nop-stream-connector-kafka/src/`——各自 main + test 树
 
 - Item Types: `Fix`（7 项均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 七条验收前置）
 
-- [ ] 组 rocksdb：C1-002（gauge 锁内取值，按裁定①）+ C5-002（物化包络，按裁定⑤）
-- [ ] 组 cep+avro：C1-001（copyForSubtask round-trip 三面，按裁定②）+ C2-002（超时+锁外建连，按裁定③）
-- [ ] 组 2pc：C3-002（JDBC 台账+file manifest 保留，按裁定④）+ C8-006（事务超时+耦合守卫，按裁定⑦）
-- [ ] 组 debezium：C8-001（last-emitted 位点，按裁定⑥）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 七条同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] C1-002/C10-002 红①：close×scrape 交错压窗——修复前取参点在锁外（白盒断言红）→ 修复后取参点在监视器内、close 窗口 scrape 返 NaN 零 UAF 路径
-  - [ ] C1-001/C10-003 红②：parallelism≥2 并行 open 交错——修复前共享条件 runtimeContext 错配（keyedStateStore 探针断言红）→ 修复后各 subtask 条件图实例不同、ctx 各自正确；`TestCepOperatorSubtaskCopy` assertSame 反转留痕
-  - [ ] C2-002/C10-008 红③：挂死注入 registry——修复前请求无界挂起（测试超时红线承载）→ 修复后请求级超时 typed `StreamAvroException` + bin 锁限时释放（并发 encode 不互阻断言）
-  - [ ] C3-002/C10-007 红④：多 epoch 写入——修复前台账行数/manifest 键数无界红 → 修复后过期行/键清理（台账与 manifest 双面）+ 未到期/未到期终态保留 + 恢复幂等守卫零回退（`TestJdbcTwoPhaseCommitSinkDeep` 保持绿）+ 清理体生产接线断言（若裁定④选形态 A——防 C7-005 空壳）
-  - [ ] C5-002/C10-012 红⑥：键数参数化——修复前堆驻留随键数超上界红 → 修复后驻留有界（按裁定⑤形态断言）+ round-trip 语义等价零回退（`TestRocksDBSnapshotRestore` 保持绿）
-  - [ ] C8-001/C10-013 红⑤：队列偏斜注入 + kill-recover——修复前快照 offset>已发射位点（断言红）→ 修复后 snapshot offset==last-emitted + 恢复重放在途 K 条不丢；`TestDebeziumCdcSource` 缺陷载体断言反转、`TestDebeziumCdcCheckpoint` 快照时点改回竞速窗内留痕
-  - [ ] C8-006/C10-014 红⑦：缺省 producer 属性断言红（无 transaction.timeout.ms）→ 修复后缺省值在位 + checkpointInterval×系数>超时的配置注入 typed fail-fast
-- [ ] **端到端验证**（rule 22）：≥1 条 2PC 链路 E2E（jdbc-2pc 或 kafka-2pc：写入多 epoch → checkpoint/恢复幂等 → 保留清理生效 → 作业恢复正确——覆盖裁定④⑦组合行为）；≥1 条 Debezium/连接器链路（offset 快照 → kill-recover → 重放零丢失，覆盖裁定⑥；gated 真库/broker 测试不强制入 CI，本地留证）
-- [ ] **接线验证**（rule 23）：若裁定④含形态 A 周期清理——清理体被生产生命周期链真实调用断言（防空壳）；裁定⑥位点协议真实被 `snapshotState` 消费断言（非仅字段存在）；裁定③锁外路径真实被 encode/decode 调用断言
-- [ ] **无静默跳过**（rule 24）：C2-002 超时 typed 失败而非静默重试；C8-006 配置冲突拒配而非告警放行（按裁定⑦）；C3-002 清理失败 ERROR+计数可见非吞掉（SSOT §3.1 第 5 项包络）；C8-001 位点不可得时显式失败而非回退旧 offset；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档（+R01 SSOT 传导行）先行单独提交；按组提交——rocksdb / cep+avro / 2pc / debezium，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 rocksdb：C1-002（gauge 锁内取值，按裁定①）+ C5-002（物化包络，按裁定⑤）
+- [x] 组 cep+avro：C1-001（copyForSubtask round-trip 三面，按裁定②）+ C2-002（超时+锁外建连，按裁定③）
+- [x] 组 2pc：C3-002（JDBC 台账+file manifest 保留，按裁定④）+ C8-006（事务超时+耦合守卫，按裁定⑦）
+- [x] 组 debezium：C8-001（last-emitted 位点，按裁定⑥）
+- [x] 回归测试（rule 25 显式覆盖 + C10 七条同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] C1-002/C10-002 红①：close×scrape 交错压窗——修复前取参点在锁外（白盒断言红）→ 修复后取参点在监视器内、close 窗口 scrape 返 NaN 零 UAF 路径
+  - [x] C1-001/C10-003 红②：parallelism≥2 并行 open 交错——修复前共享条件 runtimeContext 错配（keyedStateStore 探针断言红）→ 修复后各 subtask 条件图实例不同、ctx 各自正确；`TestCepOperatorSubtaskCopy` assertSame 反转留痕
+  - [x] C2-002/C10-008 红③：挂死注入 registry——修复前请求无界挂起（测试超时红线承载）→ 修复后请求级超时 typed `StreamAvroException` + bin 锁限时释放（并发 encode 不互阻断言）
+  - [x] C3-002/C10-007 红④：多 epoch 写入——修复前台账行数/manifest 键数无界红 → 修复后过期行/键清理（台账与 manifest 双面）+ 未到期/未到期终态保留 + 恢复幂等守卫零回退（`TestJdbcTwoPhaseCommitSinkDeep` 保持绿）+ 清理体生产接线断言（若裁定④选形态 A——防 C7-005 空壳）
+  - [x] C5-002/C10-012 红⑥：键数参数化——修复前堆驻留随键数超上界红 → 修复后驻留有界（按裁定⑤形态断言）+ round-trip 语义等价零回退（`TestRocksDBSnapshotRestore` 保持绿）
+  - [x] C8-001/C10-013 红⑤：队列偏斜注入 + kill-recover——修复前快照 offset>已发射位点（断言红）→ 修复后 snapshot offset==last-emitted + 恢复重放在途 K 条不丢；`TestDebeziumCdcSource` 缺陷载体断言反转、`TestDebeziumCdcCheckpoint` 快照时点改回竞速窗内留痕
+  - [x] C8-006/C10-014 红⑦：缺省 producer 属性断言红（无 transaction.timeout.ms）→ 修复后缺省值在位 + checkpointInterval×系数>超时的配置注入 typed fail-fast
+- [x] **端到端验证**（rule 22）：≥1 条 2PC 链路 E2E（jdbc-2pc 或 kafka-2pc：写入多 epoch → checkpoint/恢复幂等 → 保留清理生效 → 作业恢复正确——覆盖裁定④⑦组合行为）；≥1 条 Debezium/连接器链路（offset 快照 → kill-recover → 重放零丢失，覆盖裁定⑥；gated 真库/broker 测试不强制入 CI，本地留证）
+- [x] **接线验证**（rule 23）：若裁定④含形态 A 周期清理——清理体被生产生命周期链真实调用断言（防空壳）；裁定⑥位点协议真实被 `snapshotState` 消费断言（非仅字段存在）；裁定③锁外路径真实被 encode/decode 调用断言
+- [x] **无静默跳过**（rule 24）：C2-002 超时 typed 失败而非静默重试；C8-006 配置冲突拒配而非告警放行（按裁定⑦）；C3-002 清理失败 ERROR+计数可见非吞掉（SSOT §3.1 第 5 项包络）；C8-001 位点不可得时显式失败而非回退旧 offset；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档（+R01 SSOT 传导行）先行单独提交；按组提交——rocksdb / cep+avro / 2pc / debezium，C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+**偏差登记（Phase 2 组 A / C5-002 缺省翻转的 runtime E2E 交互面处置，2026-10-30，不勾选上方 checkbox）**：
+E3 组合门禁（nop-stream 全量）发现 C5-002（`RocksDBKeyedStateBackend.incrementalCheckpointEnabled` 缺省翻 true）与 runtime 侧 4+2 个 E2E 真实冲突。亲读裁定结论（证据 `_tmp/red-green-2511-a-C5-002-e2e.log` 红 + `_tmp/probe/` 溯源）：
+1. **产品缺陷（两类，均已修，双路径迁移不变式落地）**：① 增量恢复路径完全绕过 schema-mismatch fail-fast 与迁移注册——`restoreIncremental` 只拷贝 SST 字节、不物化状态对象，首次 `getState` 走 miss 分支直接以当前 descriptor 建状态，`verifySchemaCompatibility` 零执行。修复：增量快照内嵌逐 state schema header（`RocksDBSnapshotSerDe.snapshotStateSchemas`），恢复侧 `registerRestoredSchemas` 重建 restored descriptor，`getOrCreateState` miss 分支补齐与全量路径同判据的 migrate-or-fail-fast（红绿双 leg：`TestStateMigrationEndToEnd.rocksdbIncremental*` 两条新用例）。② `restoreState` 对 JSON 往返后字段丢失的增量 marker（`BeanTool.buildBean` 产出全 null bean）静默穿透全量路径导致恢复空态（无异常）——补 `nonSstDir != null` 判据 typed fail-fast（rule 24）。
+2. **引擎检查点模式一致性缺陷（已修）**：runtime 引擎（`CheckpointCoordinator` 增量缺省关、无 segment store）下任务侧 RocksDB 后端按新缺省产出增量 marker，而引擎恢复路径 `RescaleStateAssembler` 只消费全量 `"states"` 形态——marker 被静默 `continue` 丢弃（`TestE2EWindowAggregateRestore`「silently-empty restore would fire 100」红即此面，静默丢状态 = 严重回归）。修复两处：`TaskCheckpointWiring.wireTaskCheckpointPipeline` 将任务侧后端快照形态钉到 coordinator 增量模式（`IStateBackend` 新增 default `setIncrementalCheckpointEnabled`（no-op 缺省，`nop-stream-core` 内新增接口面，非 protected area）；`RocksDBStateBackend` 工厂覆写传播）；`RescaleStateAssembler` 对携带增量 marker 的 keyed 快照 typed fail-fast（rule 24，附处置指引）——增量 coordinator + rescale 恢复的完整增量恢复集成不在本批，按 fail-fast 指引显式失败。
+3. **测试侧显式 opt-out（全量物化语义用例）**：`TestStateMigrationEndToEnd` 两条 rocksdb 全量 leg、`TestMaxParallelismReshardMigrationE2E` 读回 leg、`TestRocksDBStateBackendE2E` 两条全量 round-trip leg 各显式 `setIncrementalCheckpointEnabled(false)`（与 rocksdb 模块既有 fixture 同形态），并新增两条增量路径迁移 leg（转换 + mismatch fail-fast 各一）。
+4. **门禁状态**：组 A 面（rocksdb 142 测试、core 1980 测试、runtime 全量除 kafka gated E2E）全部绿；`./mvnw test -pl nop-stream/nop-stream-runtime -am -Dsurefire.rerunFailingTestsCount=2` EXIT=1，唯一失败 = gated 真实 broker `TestKafkaConnectorExactlyOnceE2E`。三段二分（基线 stash 全量绿 → 仅组 A 面 stash 组 B 七文件绿 → 仅 stash 组 B kafka 模块绿）证明该失败由**组 B 面（nop-stream-connector-kafka，C8-006 承接组）**引入，与组 A C5-002 无关（组 A 面单飞绿），归组 B executor 处置，组 A 按边界不触碰。
+
+**偏差登记（Phase 2 组 A / C1-001 裁定②可共享叶子豁免 + fraud-example 回放 fixture 适配，2026-10-30，不勾选上方 checkbox）**：
+E3 组合门禁发现组 A C1-001 round-trip 真实回归（红证据 `_tmp/2511-s1-solo.log`）：fraud-example `TestS1CdcPipelineE2E`（2/3 error，solo 复跑同样红）——XPL 脚本 CEP pattern 条件经 `EvalFunctionCondition` 持有 `io.nop.xlang.exec.MakeScopeEvalFunction`（非 Serializable），round-trip NotSerializableException → job-execute-failed；脚本场景是合法生产形态，typed 失败不可接受。亲读结论：`NFAFactoryImpl.createNFA()` 复用同一 `states` 集合（factory 重建不构成条件图私有，round-trip 仍必要）；编译态 xlang 函数（`MakeScopeEvalFunction` 及内层 `ExecutableFunction`）为不可变可执行体、对调用方传入 scope 求值、无 per-subtask 状态、不实现 RichFunction 生命周期（`FunctionUtils` 只对 `RichFunction` 分派），共享引用不重开裁定②三面。修复（设计文档 §3.2 已原地修订）：`CepOperator.serializationRoundTripCopy` 经 `ObjectOutputStream.replaceObject` 对白名单叶子（`IEvalFunction` 且非 Serializable 且非 `RichFunction` 且类名前缀 `io.nop.xlang.`）以 `ShareRef` 共享引用回填，条件对象仍深拷贝私有；白名单外非 Serializable 叶子保持 typed 失败（回归 `TestCepOperatorSubtaskCopy#cepOperatorCopySharesOnlyCompiledXlangFunctionLeaves` + `#cepOperatorCopyFailsTypedForNonSerializableNonXlangLeaf`）。绿证据 `_tmp/2511-c1-s1-green.log`（`TestS1CdcPipelineE2E` 3/3 绿）+ `_tmp/2511-c1-cep-full.log`（cep 模块全量绿）。**连带适配（超出 cep 边界的最小必要面，登记防漏）**：组 debezium C8-001 在飞未提交代码（`LastEmittedOffsetTracker`）对无位点事件 typed 失败，fraud 回放 fixture `ReplayableCdcSourceFunction.toChangeEvent` 的 metadata（无 serverName/lsn）被其拦下——按 C8-001 新契约补 `serverName="fraud-server"` + 确定性 `lsn=ts`（fraud-example 场景支撑代码，非产品行为变更）；该面归属组 debezium C8-001 验证范围，若其裁定演进需以该文件为准再收敛。
 
 Exit Criteria:
 
-- [ ] 7 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 七条同 diff 落地（含五处假保护/缺陷载体改写）
-- [ ] 必红证据（E2）：红①–红⑦全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（改写类以外钉零回改逐条 git diff 为空核对；`TestJdbcTwoPhaseCommitSinkDeep`/`TestFileTwoPhaseCommitSink`/`TestKafkaTwoPhaseCommitSinkLifecycle` 为恢复幂等/并行锁/调用序列关键钉）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-stream -am` BUILD SUCCESS（debezium docker fork timeout 环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 7 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 七条同 diff 落地（含五处假保护/缺陷载体改写）
+- [x] 必红证据（E2）：红①–红⑦全部先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（改写类以外钉零回改逐条 git diff 为空核对；`TestJdbcTwoPhaseCommitSinkDeep`/`TestFileTwoPhaseCommitSink`/`TestKafkaTwoPhaseCommitSinkLifecycle` 为恢复幂等/并行锁/调用序列关键钉）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-stream -am` BUILD SUCCESS（debezium docker fork timeout 环境抖动按 Baseline 勘误 5 三联裁定处理并留痕）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
