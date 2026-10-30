@@ -53,11 +53,29 @@
 
 nop-wf 是独立工作流引擎，不依赖 nop-task。
 
+## 并发与扫描契约（plan 2514 R2-11）
+
+### wf 实例条带锁（五站点判定-迁移原子化）
+
+同一 wf 实例的「组完成判定 → 组迁移 → 落盘」段经 **wfInstanceId 级进程内条带锁**（64 槽，`IWorkflowStore.withWfLock` 接口暴露、`DaoWorkflowStore` 实现）串行化，锁内经 store 重读兄弟步骤最新已提交状态（每请求 `WorkflowImpl` 步骤快照互不可见的竞态由此闭合）。覆盖五站点：组迁移、流程自动终结（checkEnd）、join 实例查建、用户 action（锁段收窄：`runXpl` 本体不持锁、执行前锁内状态双检 + 迁移段重取锁终检，状态已迁移即以 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` 拒绝第二到达者）、子流结束回滚重放。**跨进程残留边界**：条带锁只覆盖单 JVM；多节点部署下跨请求互斥退化为 DB 乐观锁，多节点 + 关键审批流场景的幂等要求由应用层承接（DB 级 `SELECT FOR UPDATE` 为未启用的备选）。**实例线程封闭**：`WorkflowImpl`/`WorkflowStepImpl` 为每请求新建、不保证实例级线程安全，禁止跨请求/跨线程持有。
+
+### WfTaskScanner fencing（R12 族平台语义权威）
+
+due/remind 扫描以 **DB 条件 UPDATE 抢占**为事前 fencing：`NopWfStepInstance` 新增 `scanHolderId`（`nodeId:UUID`）+ `scanLeaseTime` 两列（ORM 源模型 + 迁移脚本 `nop-wf/deploy/sql/postgresql/2026-10-add-wf-step-scan-fencing.sql`；两列只经直发 UPDATE 读写，不经实体逐字段落盘）。抢占 `rowsAffected==1` 即单飞赢家，==0 以 skip INFO 跳过；租约键 `nop.wf.scheduler.scan-lease-ms`（缺省 120000，崩溃节点到期后他节点可重入）；`remindCount` 为 DB 原子自增（不再读-改-写）。引擎 `ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS` status 守卫保留为事中兜底，两层并存。nop-job `LocalJobScheduler` 无集群锁的部署形态下，fencing 使多节点 cron 重叠无害化（不引入 nop-cluster 依赖）。**本节为 R12 族平台 fencing 语义的权威声明；后续批（如 1.7 RUNNING 死区）引用对齐，不重建第二套 fencing。**设计裁定权威为 AI 开发记录区 concurrency 设计集设计文档 wf-task-scanner-fencing-and-task-wf-concurrency（plan 2514，按边界规则此处不直接链接，以该设计文档为准）。
+
+### 扫描分批与毒步骤收敛
+
+due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推进（无全量载入），单轮扫描受时间预算约束；键 `nop.wf.scheduler.scan-batch-size`（缺省 500，`<=0` 装配期 fail-fast）、`nop.wf.scheduler.scan-time-budget-ms`（缺省 30000，`<0` fail-fast，`0`=单批即止）。due action 执行失败的毒步骤按指数退避推进 dueTime（`now + min(60s × 2^n, 1h)`）退出本轮扫描集，扫描集有界收敛；**`dueTime` 兼作「下次重试时间」字段（退避记账载体）——显式失败计数字段/隔离标记/due-backlog gauge 等毒步骤治理本体归后续 R4-08 批，消费同一字段语义**。
+
 ## 源码锚点
 
 | 组件 | 路径 |
 |------|------|
-| ORM 模型 | `nop-wf/model/nop-wf.orm.xml` |
+| ORM 模型 | `nop-wf/model/nop-wf.orm.xml`（含 step 实例 `scanHolderId`/`scanLeaseTime` 两列） |
+| 引擎（五站点条带锁消费点） | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java` |
+| store 接口（`withWfLock`/`tryClaimScanLease` 契约） | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/store/IWorkflowStore.java` |
+| store 实现（64 槽锁体/条件 UPDATE 抢占/分批查询族） | `nop-wf/nop-wf-dao/src/main/java/io/nop/wf/dao/store/DaoWorkflowStore.java` |
+| 调度扫描器（fencing 接线/分批/退避） | `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java` |
 
 ## 相关文档
 

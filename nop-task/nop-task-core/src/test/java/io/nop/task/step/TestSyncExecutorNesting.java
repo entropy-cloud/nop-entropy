@@ -178,7 +178,7 @@ public class TestSyncExecutorNesting {
                                         return ((Callable<?>) args[0]).call();
                                     } catch (Exception e) {
                                         // test stub: rethrow callable failure to the future's awaiting thread
-                                        throw new io.nop.core.exceptions.NopException(e.getMessage() == null ? "callable failed" : e.getMessage(), e);
+                                        throw new NopException(TaskErrors.ERR_TASK_STEP_CONFIG_INVALID, e);
                                     }
                                 }, singleThreadPool);
                             }

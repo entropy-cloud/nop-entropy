@@ -30,7 +30,7 @@
 - **持久化明文 residual-risk 全列清单（F-WF-02-1 脱敏契约，plan 2380）**：除错误诊断列外，以下列同样以结构化明文落库且读出面无字段级裁剪——`taskInputs`（任务输入 request）、`remark`（终态 resultValue）、`stateBeanData`（resultValue/stateBean/outputs/nextStepName/persistVars 版本化 wrapper）、`errorBeanData`（ErrorBean 含 params + cause chain）。DB 泄露即暴露结构化明文，部署时应将实例/步骤表的 `query` 权限收敛到可信角色。
 - **`secret` 标记脱敏契约（plan 2380）**：task 模型的 `<input>`/`<output>` 属性支持 `secret="true"`——`DaoTaskStateStore` 序列化落库（taskInputs/remark/stateBeanData/errorBeanData 五锚点）时按声明名集递归排除同名键（任意层级、宁过滤勿漏）。语义要点：①无 secret 声明的任务落库行为字节级零变化；②**secret 属性不持久化 → 中断恢复（resume）时该属性不可用**（输出可由步骤体重算的才适合标记）；③过滤失败的异常路径 fail-open 返回原文（resume 数据完整性优先，warn 可见）；④落库加密（encrypted-at-rest）为正交补充手段，平台不翻 persist 缺省、不内置加密。
 - 任务实例表族**无租户列**（tenantId/namespaceId）：多租户场景的行级隔离需应用层自行过滤（数据权限按租户过滤对本模块不可下推）。
-- `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）；注册表为强引用、按配置容量阈值告警（plan 364 [05-04]，在用实例永不驱逐）。
+- `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）。注册表为强引用，plan 364 [05-04] 的「永不驱逐」边界之上已落**键空间治理**（plan 2514 MA-08）：entry 持 `lastAccess`，逐出为同 key 复访时内联执行（空闲超阈且 permits 满额才逐出，permit 池不分裂；无独立清扫位/无后台线程）；键 `nop.task.global-gate.idle-evict-ms`（缺省 300000）、`nop.task.global-gate.max-entries`（缺省 10000，超限周期 WARN + 渐进收敛，冷 key 驻留 ≤ 历史取值域）、gauge `nop.task.global-gate.registry-size`。**旧容量键 `nop.task.max-global-rate-limiters` / `nop.task.max-global-semaphores` 已退役**（定义保留、主代码不再引用）。动态 keyExpr（如 `${input.*}` 直通）为合法用法，受上述逐出治理约束；包络 fail-fast 面 = 配置负值/非法值装配期拒绝。
 
 **并行语义（plan 364 [03-06]**）：`parallel`/`fork`/`fork-n`/`graph` 只做 promise 聚合——子步骤默认在调用线程内联串行执行，仅当子步骤显式配置 `executor` 时才提交线程池真正并行。把耗时同步步骤放入 `parallel` 而不配 executor 不会获得并行加速。
 
@@ -65,6 +65,7 @@
 - 挂起传播：sequential/selector（同步与异步）、loop/loop-n、fork/fork-n、parallel、graph 中的分支挂起都会向上传播 SUSPEND，不会被当作成功聚合项或静默跳过。
 - 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
 - 挂起任务的 kill（plan 364 [05-03]）：`cancel()` 对处于 `SUSPENDED`（无驱动在飞）的任务直接驱动 KILLED 终态并落盘，不再等待 resume；执行中（ACTIVE）任务的取消仍走 cancel token → step driver 路径。
+- **SUSPENDED 转移原子化（plan 2514 MA-01）**：执行线程的 SUSPENDED 写入与落盘纳入 `synchronized(taskState)` 监视器（与四个终态 driver 同一监视器），块内做终态前置检查——任务已终态（如 cancel 先驱动 KILLED）则拒绝 SUSPENDED 裸覆写，**KILLED 不会被挂起转移复活**；cancel 判定块对「刚转入 SUSPENDED 尚在保存中」的任务同样即时驱动 KILLED。挂起任务被 timeout-cancel 归类记 **KILLED 非 TIMEOUT**（TIMEOUT 语义保留给在飞步骤的 step-timeout）。resume 在非终态确认后显式重置 ACTIVE 并落盘，终态任务 resume 显式拒绝。
 
 **已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。进程内同 stepPath 行的并发 `saveStepState` 已由 `DaoTaskStateStore` 条带锁串行化（plan 364 [05-02]，不再冒泡乐观锁异常），跨进程并发写仍属上述边界。
 
@@ -156,6 +157,8 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 每个 step 是一个一等公民，声明 input/output，可选 `when/validator/retry/catch/timeout` 等。step 的执行体有几种形态：
 
 **可靠性属性取值约束（plan 364）**：`timeout` 负值、`retry` 负值（maxRetryCount/retryDelay/maxRetryDelay）、`rate-limit` 节点存在但 `requestPerSecond<=0`，在 first-class 属性与 `<decorator>` 两条路径上均为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` / `ERR_TASK_DECORATOR_INVALID_CONFIG`）；`timeout=0`/缺省在 first-class 路径表示"未配置"。per-step `saveState="false"` 表示该步骤自身状态行不落盘（跳过 ACTIVE/挂起/终态保存，挂起恢复对该步骤退化为重新执行），未配置时行为不变（任务级 `defaultSaveState` 开启即落盘）。
+
+**`sync` × `executor` 组合构建期禁止（plan 2514 MA-03）**：`sync="true"` 与 `executor` 同步配置为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` 族，与上述校验链同位）——sync 包装（外层，调用线程阻塞等待）× executor 包装（内层，池上执行）同池嵌套时池饱和即全体永久互等。**部署期行为变更：存量模型若存在该组合，升级后装配即 fail-fast，须先移除组合再升级**（无静默兼容降级）。`sync` 等待本身有界：取消 token 可唤醒，时限键 `nop.task.step.sync-wait-timeout-ms`（缺省 600000，`0`=不限时仅取消唤醒，负值装配期 fail-fast），超时显式抛错。
 
 **延迟重试执行载体（1.5-C4-001/MA-04，plan 2498）**：`<retry>` 延迟轮次采用「定时器只触发 + 载体执行」形态——调度器（未注入 scheduledExecutor 时的回退面为平台 globalTimer）仅承载延迟唤醒，重试步骤体与完成回调链（含 `saveState` 簿记）在步骤显式 `executor` 指定的池执行；未配置 executor 时回落平台 `globalWorker` 池。**重试业务体不在共享 globalTimer 定时器线程执行**，且 `executor` 隔离配置对延迟路径真实生效（与首次尝试的 executor 包装同一池语义）。测试锚点：`nop-task-core` `TestTaskStepHelperRetryDelayOffload_C4_001`（延迟体/簿记线程断言 worker 非 timer；显式 executor 池隔离钉）。
 
@@ -274,6 +277,8 @@ nop-task 与 nop-wf 是**两个相互独立的引擎**。nop-wf 并非基于 nop
 | task 模型 schema | `nop/schema/task/task.xdef` |
 | xbiz 绑定属性 | `nop/schema/biz/xbiz.xdef`（`BizActionModel.task:name/task:version`） |
 | 管理器 | `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java` |
+| 状态监视器（SUSPENDED 原子化/四终态 driver） | `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java` |
+| step 装配校验链（sync×executor fail-fast） | `nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskStepEnhancer.java` |
 | step 接口 | `nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java` |
 | 事务 decorator | `nop-task/nop-task-ext/src/main/java/io/nop/task/ext/dao/TransactionTaskStepDecorator.java` |
 | xlib 例子 | `nop-task/nop-task-core/src/main/resources/_vfs/nop/task/xlib/task.xlib` |
