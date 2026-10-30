@@ -1,6 +1,7 @@
 # 2515 CRA Phase 8.21 — R2-12 1.6 tcc 批（13 项：CAS 失败阻断补偿/回写内存/续租族 + 簿记改判/future 拓扑断裂 + OVERWRITE 原子化/幽灵链 + RUNNING attempt 砖化 + 僵尸记录 + tcc 清理接线/索引 + namespace 扫描 + C8-017 搭车）
 
 > Design Review: R2 agent_bb236b91 @ 2026-10-30（修复清单机械核验 6 点全部闭合[勘误 6 OVERWRITE :287-292/成员表三格/C10 前置集行内接缝[本轮归位]/C6-012×2/:213-215/裁定⑥两层位点]——PASS）
+> Design Review: R2 agent_1c1e1312 @ 2026-10-30（第 1 轮 FAIL[3 Major/3 Minor]：Major-1 「首跳失败聚合不可达」断言在 live whenComplete 拓扑不成立→err==null 显式门控+三前提显式检查；Major-2 DB 权威重载提交可见性竞态→store CAS future 改 afterCommit 完成[评审新-1：须配对 afterCompletion 回滚分支 completeExceptionally——协调方修入]；Major-3 续租 attempt 内残留窗→(a) 轮间续租+attempt 级超时上界<租约装配期 fail-fast；Minor×3 闭合[TccEngine LifeCycleSupport 生命周期挂接+beans 装配行/拒绝理由改写/replaceRecord dao 原语]——第 2 轮 PASS[probe (b) err 门控半边正确无新问题]）
 > Plan Status: active
 > Draft Review: R1 agent_bb236b91 @ 2026-10-30（FAIL[2 Major/4 Minor]：Major-1 OVERWRITE 漂移台账错误映射[:257-261 实为 resolveInsertRaceWinner 体]→勘误 6 纠正为 :287-292[handleBlockStrategy :275-298]；Major-2 C10-003 覆盖面缺 C3-010/C6-015 批外接缝→补登记；Minor×4[cra-index 行号 live 校正/C6-012 批外补登/TccStatus 模块标注+重抛点 :213-215/裁定⑥两层簿记位点枚举]——协调方修入后转 active）
 > Last Reviewed: 2026-10-30
@@ -99,32 +100,32 @@
 
 ### Phase 1 - retry/tcc 并发与账本卫生设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/retry-tcc-cas-compensation-and-ledger-hygiene.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下九项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-001 CAS 传播与补偿门控**：CAS 失败（0 行/异常）显式失败传播形态（返回失败标记 vs 异常完成——一次定夺）；doCancelAsync/doConfirmAsync/runBranchConfirmAsync/runBranchCancelAsync 及 TccBranchTransaction begin* 内存守卫兄弟站点逐点处置表；checkExpiredTransactions 超时分支在飞去重/cancel 形态（C3-008 接缝：只封本条双驱动源）；DB 级补偿租约备选分支呈现；恢复对称续跑路由零回退声明
-  - [ ] **裁定② C3-002 聚合权威裁决**：聚合读 DB 权威状态 vs CAS 失败重载后再聚合（一次定夺）；全局终态 CAS 前按分支 DB 状态终裁；误报 CANCEL_SUCCESS 不可达断言口径
-  - [ ] **裁定③ C3-012 异常单元格**：CAS 异常并入①传播面；零驱动不可直写终态的前置校验形态；与②共用权威裁决机制声明
-  - [ ] **裁定④ C3-003 续租协议**：每轮 attempt 前 CAS 续租 nextTriggerTime（载体=`tryUpdateManyWithVersionCheck` 既有 CAS）；租约被抢中止链的败方显式语义；扫描器拾取/接管双条件；执行令牌语义（A2 族载体，供裁定⑥⑦与 R4-10 消费）；C1-009 首执行窗随协议闭合声明
-  - [ ] **裁定⑤ C3-005+C6-003 OVERWRITE 同族**：原子替换包络形态（`replaceRecord` @Transactional vs 先插后删 vs 失败补偿恢复——一次定夺）；替换失败死信快照语义；代际号/epoch 取消在途旧链（回调/续跑先校验代际）vs canceled 标记短路（一次定夺）；C1-002 暴露面收窄接缝登记（本体归 R4-10）
-  - [ ] **裁定⑥ C3-006+C8-012+C8-017 完成期记账失败族**：业务结论层/簿记层分层形态（whenCompleteAsync+独立 try/catch）；future 拓扑单一化（返回=挂接同一 promise；E-a/E-b/E-c 逃逸点逐一闭合清单）；`allOf().join()` 面（保留 join+兜底 vs 异步汇聚，一次定夺；扫描链业务级永久冻结不可再现声明 + R1-01 绝缘零回退）；`RetryTaskImpl.callAsync` 同步抛转 failedStage + 提交面失败交付契约声明落 owner doc（IRpcCall javadoc 备选分支与 nop-api-core PA 申报触发条件成文）；triggerCallback try 收窄
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下九项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-001 CAS 传播与补偿门控**：CAS 失败（0 行/异常）显式失败传播形态（返回失败标记 vs 异常完成——一次定夺）；doCancelAsync/doConfirmAsync/runBranchConfirmAsync/runBranchCancelAsync 及 TccBranchTransaction begin* 内存守卫兄弟站点逐点处置表；checkExpiredTransactions 超时分支在飞去重/cancel 形态（C3-008 接缝：只封本条双驱动源）；DB 级补偿租约备选分支呈现；恢复对称续跑路由零回退声明
+  - [x] **裁定② C3-002 聚合权威裁决**：聚合读 DB 权威状态 vs CAS 失败重载后再聚合（一次定夺）；全局终态 CAS 前按分支 DB 状态终裁；误报 CANCEL_SUCCESS 不可达断言口径
+  - [x] **裁定③ C3-012 异常单元格**：CAS 异常并入①传播面；零驱动不可直写终态的前置校验形态；与②共用权威裁决机制声明
+  - [x] **裁定④ C3-003 续租协议**：每轮 attempt 前 CAS 续租 nextTriggerTime（载体=`tryUpdateManyWithVersionCheck` 既有 CAS）；租约被抢中止链的败方显式语义；扫描器拾取/接管双条件；执行令牌语义（A2 族载体，供裁定⑥⑦与 R4-10 消费）；C1-009 首执行窗随协议闭合声明
+  - [x] **裁定⑤ C3-005+C6-003 OVERWRITE 同族**：原子替换包络形态（`replaceRecord` @Transactional vs 先插后删 vs 失败补偿恢复——一次定夺）；替换失败死信快照语义；代际号/epoch 取消在途旧链（回调/续跑先校验代际）vs canceled 标记短路（一次定夺）；C1-002 暴露面收窄接缝登记（本体归 R4-10）
+  - [x] **裁定⑥ C3-006+C8-012+C8-017 完成期记账失败族**：业务结论层/簿记层分层形态（whenCompleteAsync+独立 try/catch）；future 拓扑单一化（返回=挂接同一 promise；E-a/E-b/E-c 逃逸点逐一闭合清单）；`allOf().join()` 面（保留 join+兜底 vs 异步汇聚，一次定夺；扫描链业务级永久冻结不可再现声明 + R1-01 绝缘零回退）；`RetryTaskImpl.callAsync` 同步抛转 failedStage + 提交面失败交付契约声明落 owner doc（IRpcCall javadoc 备选分支与 nop-api-core PA 申报触发条件成文）；triggerCallback try 收窄
   - 〔draft review R1 Minor-6〕两层簿记位点逐一隔离：attempt 层 doExecute whenComplete 内联 saveAttempt（:519——该点抛出即以异常完成 stage、落入 cb1 的 ex 分支改判业务，正是逃逸入口）与 record 层 cb1 内 updateRecord/handleExecutionSuccess（:377-421），两处均移入独立 try/catch 隔离形态，禁只修 cb1 层残留同型缺陷
-  - [ ] **裁定⑦ C6-002+C7-003 终态化**：attempt UK 容错三分支（duplicate-key 容错[resolveInsertRaceWinner 对称形态] / 重试前关闭遗留 RUNNING / attemptNo max+1——一次定夺）；崩溃恢复语义测试形态；僵尸记录死信化（parseMap/策略装载异常走 moveToDeadLetter 既有兜底 + invokeAsync 同步抛 attempt 失败落账）；死信化契约句落 owner doc 口径
-  - [ ] **裁定⑧ C7-005 清理接线+索引**（R01 对齐 + PA 申报落地）：清理周期链形态（对齐 plan 2502 绝缘载体同构；`nop.tcc.ledger.*` 键族与缺省值；与 R01 SSOT 修订登记义务）；耗尽行终态化字段与语义（**C7-006 接缝：字段由本批定、本体归 R4-10**）；`nop-tcc.orm.xml` 索引方案（两索引列集）+ 迁移脚本载体；orm PA 批内申报闭环（本 plan PA 行+设计文档+独立评审）
-  - [ ] **裁定⑨ C7-012 namespace 覆盖**：三分支（fetch 放宽全 namespace[预设] / 多实例装配 / 提交时校验 fail-fast）一次定夺 + job 桥接零改码行为闭合声明 + 条件面标注保留
-  - [ ] **裁定⑩ 测试缝与零回退钉清单**：红①–红⑫ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestRetryScannerInsulation`（绝缘契约）、`TestRetryLedgerRetention_C7_001`（2502 保留清理）、owner doc §扫描链/§账本保留策略/§崩溃恢复语义 成文契约、`endAsync` 恢复路由注释钉、`fetchExpiredRecords` 版本 CAS 认领、`resolveInsertRaceWinner` 兜底、`newRecord` 一次性推延注释钉（被裁定④协议替代时须显式改写登记——唯一允许的钉改写，改写前后语义对照留痕）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+  - [x] **裁定⑦ C6-002+C7-003 终态化**：attempt UK 容错三分支（duplicate-key 容错[resolveInsertRaceWinner 对称形态] / 重试前关闭遗留 RUNNING / attemptNo max+1——一次定夺）；崩溃恢复语义测试形态；僵尸记录死信化（parseMap/策略装载异常走 moveToDeadLetter 既有兜底 + invokeAsync 同步抛 attempt 失败落账）；死信化契约句落 owner doc 口径
+  - [x] **裁定⑧ C7-005 清理接线+索引**（R01 对齐 + PA 申报落地）：清理周期链形态（对齐 plan 2502 绝缘载体同构；`nop.tcc.ledger.*` 键族与缺省值；与 R01 SSOT 修订登记义务）；耗尽行终态化字段与语义（**C7-006 接缝：字段由本批定、本体归 R4-10**）；`nop-tcc.orm.xml` 索引方案（两索引列集）+ 迁移脚本载体；orm PA 批内申报闭环（本 plan PA 行+设计文档+独立评审）
+  - [x] **裁定⑨ C7-012 namespace 覆盖**：三分支（fetch 放宽全 namespace[预设] / 多实例装配 / 提交时校验 fail-fast）一次定夺 + job 桥接零改码行为闭合声明 + 条件面标注保留
+  - [x] **裁定⑩ 测试缝与零回退钉清单**：红①–红⑫ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestRetryScannerInsulation`（绝缘契约）、`TestRetryLedgerRetention_C7_001`（2502 保留清理）、owner doc §扫描链/§账本保留策略/§崩溃恢复语义 成文契约、`endAsync` 恢复路由注释钉、`fetchExpiredRecords` 版本 CAS 认领、`resolveInsertRaceWinner` 兜底、`newRecord` 一次性推延注释钉（被裁定④协议替代时须显式改写登记——唯一允许的钉改写，改写前后语义对照留痕）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑩全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定⑥含 R21 搭车条款与 nop-api-core PA 备选分支触发条件；裁定⑧含 R01 SSOT 对齐投影与 orm PA 申报落地；裁定④含 A2 令牌接缝；裁定⑤含 C1-002 接缝；裁定⑦含崩溃恢复测试形态
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑩全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定⑥含 R21 搭车条款与 nop-api-core PA 备选分支触发条件；裁定⑧含 R01 SSOT 对齐投影与 orm PA 申报落地；裁定④含 A2 令牌接缝；裁定⑤含 C1-002 接缝；裁定⑦含崩溃恢复测试形态
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 13 成员实现 + 回归测试（按 retry/tcc 两组）
 
