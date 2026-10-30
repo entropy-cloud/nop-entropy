@@ -228,6 +228,14 @@
               insertable="true" updatable="true" ui:show="SL">
             <schema domain="remark" type="java.lang.String" precision="200"/>
         </prop>
+        <prop name="scanHolderId" displayName="扫描持有者ID" propId="53" i18n-en:displayName="Scan Holder ID"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.lang.String" precision="64"/>
+        </prop>
+        <prop name="scanLeaseTime" displayName="扫描租约到期时间" propId="54" i18n-en:displayName="Scan Lease Time"
+              queryable="true" sortable="true" insertable="true" updatable="true" internal="true" ui:show="X">
+            <schema type="java.sql.Timestamp"/>
+        </prop>
         <prop name="wfInstance" displayName="工作流实例" i18n-en:displayName="Workflow Instance"
               tagSet="pub,ref-pub,ref-cascade-delete" ext:kind="to-one" internal="true" queryable="true"
               ext:joinLeftProp="wfId" ext:joinRightProp="wfId" ext:joinRightDisplayProp="title" insertable="false"

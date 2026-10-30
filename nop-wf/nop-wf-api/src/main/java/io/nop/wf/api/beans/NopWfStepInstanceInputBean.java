@@ -670,4 +670,32 @@
         }
 
 
+        private String _scanHolderId;
+
+    
+        @PropMeta(propId=53)
+    
+        public String getScanHolderId(){
+            return _scanHolderId;
+        }
+
+        public void setScanHolderId(String value){
+            this._scanHolderId = value;
+        }
+
+
+        private java.sql.Timestamp _scanLeaseTime;
+
+    
+        @PropMeta(propId=54)
+    
+        public java.sql.Timestamp getScanLeaseTime(){
+            return _scanLeaseTime;
+        }
+
+        public void setScanLeaseTime(java.sql.Timestamp value){
+            this._scanLeaseTime = value;
+        }
+
+
     }

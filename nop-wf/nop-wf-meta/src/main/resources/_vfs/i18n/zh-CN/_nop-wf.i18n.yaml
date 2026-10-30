@@ -247,6 +247,8 @@ prop:
       remindCount: 提醒次数
       remindTime: 提醒时间
       retryCount: 已重试次数
+      scanHolderId: 扫描持有者ID
+      scanLeaseTime: 扫描租约到期时间
       startTime: 开始时间
       status: 状态
       status_label: 状态
