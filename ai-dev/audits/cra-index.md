@@ -152,10 +152,10 @@
 | C3-004 | 1.2 | nop-stream-state-connectors | Debezium 枚举器恢复双登记→同表双引擎重复消费 | 已修（R1-08，plan 2503 closure audit PASS） | fixed |
 | C8-001 | 1.2 | nop-stream-state-connectors | Debezium reader checkpoint offset 领先已发射→恢复静默丢 ≤256 条/检查点 | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
 | C8-006 | 1.2 | nop-stream-state-connectors | Kafka 2PC 事务存活期与 checkpoint 间隔零裕度→触界失败循环 | R2-08 |fixed（plan 2511，closure audit APPROVED @ 2026-10-30） |
-| C1-001（MA-01） | 1.3 | nop-stream-orchestration-thin | UDF 注册表非线程安全：逐记录 call() 无锁读 × 公开 register() 任意线程写 + 运行期静默换绑（←C3-002、C2-001；含 sql.md §3a docs bug） | R2-09 | open |
-| C3-008 | 1.3 | nop-stream-orchestration-thin | region 重启 Phase-3 流水线下兄弟 initializeState REPLACE 清零已推进游标→恢复重放已反映窗口（编排面关联 runtime） | R2-09 | open |
-| C3-009 | 1.3 | nop-stream-orchestration-thin | 共享 UDF × 各子任务 open() 覆写共享 RuntimeContext→并行 ≥2 键控状态收敛单一 backend（根因载体 core ProcessOperator，跨单元关联） | R2-09 | open |
-| C6-007 | 1.3 | nop-stream-orchestration-thin | cancelled volatile 跨 run 永不复位→区域重启共享实例零事件静默 EOS 假成功 | R2-09 | open |
+| C1-001（MA-01） | 1.3 | nop-stream-orchestration-thin | UDF 注册表非线程安全：逐记录 call() 无锁读 × 公开 register() 任意线程写 + 运行期静默换绑（←C3-002、C2-001；含 sql.md §3a docs bug） | R2-09 |fixed（plan 2512，closure audit APPROVED @ 2026-10-30） |
+| C3-008 | 1.3 | nop-stream-orchestration-thin | region 重启 Phase-3 流水线下兄弟 initializeState REPLACE 清零已推进游标→恢复重放已反映窗口（编排面关联 runtime） | R2-09 |fixed（plan 2512，closure audit APPROVED @ 2026-10-30） |
+| C3-009 | 1.3 | nop-stream-orchestration-thin | 共享 UDF × 各子任务 open() 覆写共享 RuntimeContext→并行 ≥2 键控状态收敛单一 backend（根因载体 core ProcessOperator，跨单元关联） | R2-09 |fixed（plan 2512，closure audit APPROVED @ 2026-10-30） |
+| C6-007 | 1.3 | nop-stream-orchestration-thin | cancelled volatile 跨 run 永不复位→区域重启共享实例零事件静默 EOS 假成功 | R2-09 |fixed（plan 2512，closure audit APPROVED @ 2026-10-30） |
 | C4-001（MA-01，成员 C5-001/C7-001/C5-005） | 1.4 | nop-job | rpcPoll 条目无终结驱动：注册表/句柄永久泄漏+无退避重试风暴+WARN 放大+零观测（修复须同盖失败预算/deadline 兜底/DB 回传/PollEntry 精简/gauge 五面） | R2-10 | open |
 | C2-001 | 1.4 | nop-job | per-job 监视器内调用外部 invoker：管理面/停机无限期阻塞+可构造 ABBA 死锁 | R2-10 | open |
 | C1-001（MA-01，成员 C2-001/C7-016） | 1.5 | nop-wf-nop-task | task SUSPENDED 转移游离监视器 × cancel 竞态（kill 静默丢失/KILLED 后复活双向） | R2-11 | open |
@@ -472,7 +472,7 @@
 | P2-G88（6.3 读路径超时/删除链/失效面/C5 族束，成员 14 条：6.3-W-04、6.3-W-06、6.3-W-07、6.3-W-08、6.3-W-09、6.3-W-11、6.3-W-12、6.3-W-13、6.3-W-14、6.3-W-15、6.3-W-16、6.3-W-17、6.3-W-18、6.3-W-19） | nop-code-index | 6.3 | git 读无超时、deleteIndex 清单缺守卫、双写吞异常、SymbolTable 裸读 36 站点、C5 族 7 张无上限等 | 修→R4+ | 批次=R4-31；W-04=外部进程桥第 6 例（TP-004）；W-06 接线前置工单挂接（与 W-20/W-35 并列）；W-11 承接 2026-09 G11-15-02 超集/扩面复活防双计；W-13~W-19=R02 C5 族 7 张同单元同根因自并；C10 缺保护 TP-004/006~009/011~019 随本体（验收前置） |
 | P2-G89（6.3 dormant 激活计级束，成员 2 条：6.3-W-05、6.3-W-10） | nop-code-index | 6.3 | 半克隆毒化链零清理、每 SHA 全量 clone 零 retention | deferred | Why Not Blocking：dormant 激活计级；触发条款=对应功能激活即复核计级；successor=触发条款；TP-005/010 随条款 |
 | P2-G90（6.5 IDE 插件生命周期束，成员 4 条：6.5-W-03、6.5-W-04、6.5-W-05、6.5-W-06） | nop-peripheral | 6.5 | Project 键静态缓存、挂起交接非原子、全局注册表交叉销毁、suspendedThreads 只进不出 | 修→R4+ | 批次=R3-10；W-03=R22 成员（验证通道=Gradle/harness[CL-301]，S5 批次约束三选一写入验收标准）；W-04=R06 cross-ref；W-06=F4 清理族；C10 缺保护 C10-003~006 共 4 条随本体（验收前置） |
-| P2-G91（非 P2 实体——无本体 C10 条目 4 条：1.2-C10-016、1.3-C10-007、1.3-C10-008、1.4-C10-009） | 跨单元 | 1.2、1.3、1.4 | 测试自身缺陷、解耦登记、测试基建缺口、无宿主时序敏感测试——无缺陷本体不占 P2 计数 | deferred | Why Not Blocking：非缺陷本体不独立立项（1.3-C10-007 建议随 C3-008/C6-007 P1 批加固）；successor=治理批 R-G（测试基建/解耦登记加固） |
+| P2-G91（非 P2 实体——无本体 C10 条目 4 条：1.2-C10-016、1.3-C10-007（已随 plan 2512 C3-008/C6-007 加固搭车落地消号 @ 2026-10-30）、1.3-C10-008、1.4-C10-009） | 跨单元 | 1.2、1.3、1.4 | 测试自身缺陷、解耦登记、测试基建缺口、无宿主时序敏感测试——无缺陷本体不占 P2 计数 | deferred | Why Not Blocking：非缺陷本体不独立立项（1.3-C10-007 建议随 C3-008/C6-007 P1 批加固）；successor=治理批 R-G（测试基建/解耦登记加固） |
 
 > 2026-10-23 落账：P2×560 逐项裁决为 90 个裁决组行（修 483 条=提前 44+R4+ 439；deferred 77 条）+1 无本体 C10 条目行（G91，不计 P2）；成员级并集校验 560/560（脚本比对 `inventory-p2-c10.md` §一，见详表 §七）；3.1-MA-17 按 B1-04 终裁回升 P1（本台账保留承接行 G50，cra-index P1/P2 计数收口时联动更新）。**已联动（2026-10-23 Phase 5 回填）**：报告清单 3.1 行 P1 13→14、P2 格 29→28；P1 台账增补 MA-17 行（裁定批次 R1-06）。P2 组行批次占位符已按 [batch-proposal.md §二.5 组→批映射表](2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md) 全量替换完成（批量替换 40 行 + 提前组按 P1 台账解析 20 行 = 60 行，2026-10-24）。
 
