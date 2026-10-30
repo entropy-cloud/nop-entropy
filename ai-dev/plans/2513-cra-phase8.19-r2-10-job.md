@@ -136,6 +136,9 @@ Exit Criteria:
 
 - 偏差登记（实施期，3 处）：① IRpcPollTaskClient 未删实体参数方法（删除会破坏不可改钉 mock）——落地为新增窄参数 default 方法+壳回退、实体方法保留并委托窄形态共享请求路径，C5-005 PollEntry 零实体引用目标完全达成；② PollEntry 白名单 10→12 项（+request 冻结标量快照/+skipRounds 退避计数），缝4 反射断言仍成立；③ 红①红②采用变异/回退论证（stash 全量回退会使新测试无法编译），四点缺陷逐一回引后复跑全绿。
 
+
+- 偏差登记（closure audit 抓出，2 项闭环）：① C10-003 新钉 `testC2_001_abandonAfterInterleave_explicitTerminalNotHandleResult` 首版时序不稳定（repeatFixedDelay 首轮立即触发与手工编排竞态，1/5 红；红轮产品行为正确）→ 稳定化[首触隔离]，断言语义不变，5 连跑绿（`_tmp/2513-flaky-fix-5runs.log`）；② rule 22「扩展错误注入 leg 或新增用例」以新测试类等价承载（TestRpcPollTaskManagerEntryTermination/TestLocalJobSchedulerManagementResponsiveness），TestJobCoordinatorScanner 零改动；③ E3 完整留痕：`_tmp/2513-gate-nop-job-full-r2.log` BUILD SUCCESS EXIT=0（首跑 fork 启动崩溃为环境级 flake）。
+
 ### Phase 3 - 全量验证 + owner doc 更新
 
 Status: planned

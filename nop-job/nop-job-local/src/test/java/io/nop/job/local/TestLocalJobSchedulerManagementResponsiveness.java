@@ -164,6 +164,14 @@ public class TestLocalJobSchedulerManagementResponsiveness {
         });
 
         JobSpec spec = newSpec("c20001-abandon", 100000);
+        // 稳定化（C10-003 审计复跑 1/5 红根因）：repeatFixedDelay 首跑按 PeriodicTrigger
+        // nextScheduleTime 返回 afterTime+1 立即触发，globalTimer 真实首跑与本测试手工
+        // prepare/cancel 编排竞态，invoke 计数被首跑污染。改为非 fixedDelay + minScheduleTime
+        // 锚定到 now+60s（PeriodicTrigger 非 fixedDelay 分支：lastScheduledTime<=0 时首触发
+        // 返回 minScheduleTime），真实首跑永不落入观察窗；断言语义不变。
+        TriggerSpec ts = spec.getTriggerSpec();
+        ts.setRepeatFixedDelay(false);
+        ts.setMinScheduleTime(System.currentTimeMillis() + 60_000);
         scheduler.addJob(spec, false);
         assertTrue(scheduler.awaitIdle("c20001-abandon", 5, TimeUnit.SECONDS));
 
