@@ -1,7 +1,7 @@
 # 2512 CRA Phase 8.18 — R2-09 1.3 编排薄层批（4 项 P1：UDF 注册表 / 游标 REPLACE / RuntimeContext 共享 / cancelled 残留）
 
 > Plan Status: active
-> Draft Review: R1 agent_c8da5df5 @ 2026-10-30（第 1 轮 FAIL[3 Major/0 Blocker/2 Minor]：复核结论挂错文件→改挂 C3-async-chains.md/C6-resource-lifecycle.md；勘误 1 live 值失真三处[FunctionUtils :51-56 反向纠错、DebeziumCdcSourceFunction 复位块 :247-252、run() :111]→改回；裁定③形态 B 缺可实施性约束→追加 RichFunction 契约不改约束句；Minor×2 闭合——第 2 轮复审 5/5 CLOSED PASS
+> Draft Review: R1 agent_c8da5df5 @ 2026-10-30（第 1 轮 FAIL[3 Major/0 Blocker/2 Minor]：复核结论挂错文件→改挂 C3-async-chains.md/C6-resource-lifecycle.md；勘误 1 live 值失真三处[FunctionUtils :51-56 反向纠错、DebeziumCdcSourceFunction 复位块 :247-252、run() :111]→改回；裁定③形态 B 缺可实施性约束→追加 RichFunction 契约不改约束句；Minor×2 闭合——第 2 轮复审 5/5 CLOSED PASS；Design Review: R2 agent_5f443adb @ 2026-10-30（第 1 轮 FAIL[2 Major/4 Minor]：裁定② 截断行为声明与 live 相反[:153-155 静默早退]→如实改写；裁定③ ShareRef 机制落点缺口→钉 core util 包落点[2511 判据单一来源平移，cep/debezium 私有实现零触碰]——第 2 轮 PASS，余 2 Minor[模块归属 fraud-example→nop-stream-flow、钉编号 1–8→1–10]由协调方修入）
 > Last Reviewed: 2026-10-30
 > Source: roadmap 工作项 8.18（R2-09，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L160，Status=todo）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-09 行（L83 全文：finding ID 清单 4 项[1.3-C1-001；C3-008；C3-009；C6-007] / 模块与验证命令 nop-stream `./mvnw test -pl nop-stream -am` / Owner Doc=`docs-for-ai/03-modules/nop-stream.md` + `docs-for-ai/03-modules/nop-stream-sql.md` / PA=无 / 依赖「无前置（可并行）；C3-009 根因载体 core 跨单元（与 1.3-C3-008 同批）」/ exit criteria 增补：**UDF 注册表并发容器化+运行期换绑契约（含 sql.md §3a docs bug 修正）；REPLACE 清零改增量恢复；RuntimeContext per-subtask 封闭；cancelled volatile 复位**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 1.3 审计目录 `ai-dev/audits/2026-10/2026-10-14-1440-deep-audit-nop-stream-orchestration-thin-concurrency/`（C1-shared-mutable-state.md C1-001 :23-69 + 复核结论 :398/:409；C3-round2.md C3-008 :12-69 / C3-009 :72-131 + 复核结论 C3-async-chains.md :412（另 :424/:430/:437）；C6-round3.md C6-007 :11-84 + 保留裁定等 C6-resource-lifecycle.md :322/:328/:351；C10-test-protection.md 映射 :83/:318/:355 + merge-adjudication.md 族表 MA-01 :42 / 独立案 C3-008 :58 / C3-009 :59 / C6-007 :62 / P1 四族 :107-116 / C10 映射表 :142-153 / 跨单元关联 :156-165 / 修复批次建议 :170-190），逐条回读路径见 Current Baseline；执行基线 @ `96e7e94cce`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.17 已 done，plan 2495–2511 均已完成或收口；本 Baseline 全部行号为该基线 live 回读值，2026-10-30 亲读，执行前如再漂移以 live 为准并登记）
 > Related: plan 2511（R2-08，completed——同上游 nop-stream 门禁与三联裁定时序先例：本批验证命令同聚合 `./mvnw test -pl nop-stream -am`，其 debezium testcontainers fork timeout 三联裁定模式与 `TestCepOperatorSubtaskCopy` round-trip 深拷贝范式可引用不重开体）；plan 2510（R2-07，completed——**WI 1.1 core/runtime 同域先例**：其裁定与测试锚零回退引用；C3-009 根因载体 ProcessOperator/AbstractUdfStreamOperator 为该轮覆盖空洞（merge-adjudication §4.6 #1：WI 1.1 全目录零 ProcessOperator/RuntimeContext 面登记），本批闭合该空洞、非重做）；plan 2502（R1-07，completed——R01 SSOT：**本批无保留策略面，零 R01 传导**，若执行期裁定涉保留需引用时只走成员传导不改参数）；plan 2509（R2-06，completed——R03 锁内重活外移范式：本批 C1-001 的容器化为读写纪律成员投影，无锁内 I/O 面，零范式裁决重开）；**下游**：R4-05（roadmap 8.45，G11 十项 1.3 Replay/流语义与注册表束：MA-02/03/04/05 + C1-002/C1-003/C1-005/C3-005/C6-003/C6-005）软依赖 8.18（L187）——本批为同单元 P1 先行批，批末须回写就绪注记（含 C1-003 P2 本体与 C6-007 同文件联调边界、C6-005/MA-03 与 C6-007 同文件族前提）；**G91 无本体 C10 条目**：1.3-C10-007/008 归治理批 R-G（cra-index L475），其中 **C10-007 本批随 C3-008/C6-007 P1 加固搭车承接**（batch-proposal §五 + merge-adjudication :152 建议随批），C10-008 仍归 R-G（见 Baseline 勘误 4）；**并行协同**：无同门禁在飞批（8.19 R2-10 起未立项），本批可独立开跑
@@ -79,26 +79,26 @@
 
 ### Phase 1 - 编排薄层并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/stream-orchestration-thin-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下四项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-001 注册表容器化 + 换绑契约**：预设默认分支 = `functions` 改 `ConcurrentHashMap` + `register`/`registerAsDefault` 运行期（default 已在位时）WARN + javadoc 生命周期契约；运行期换绑是否升级 typed fail-fast 一次定夺（判据：公共 SPI 面声明 vs 应用侧合法热更新场景）；sql.md §3a 双路径表述修正文案成文；与 R4-05 C6-003（close/解绑面）边界注记。
-  - [ ] **裁定② C3-008 增量恢复**：预设默认分支 = 增量合并（per-file 位点取 max，不清零）——与「runEntered 静默才 REPLACE」备选按判据一次定夺（判据：per-file 位点单调性 + 恢复确定性 + 已完成文件游标不被清零）；验收断言口径以复核机制（checkpoint 位点滞后→恢复重放）为准成文；编排侧移交边界（SupervisionLoop Phase-3 统一 submit 归 runtime 单元）注记。
-  - [ ] **裁定③ C3-009 per-subtask 封闭**：预设默认分支定夺（UDF 深拷贝私有化[2511 裁定② round-trip 同族手段，含 xlang 叶子豁免引用] vs per-subtask RuntimeContext holder）；序列化约束与无状态 UDF 零回归取舍成文；失效面外溢矩阵（含状态 RichFunction UDF 全型）+ PA 零触碰声明（落点 nop-stream-core，如需上收平台层则批内申报 plan-first）；C10-003 回归锚归属登记（挂 core 工单）成文。
-  - [ ] **裁定④ C6-007 cancelled 复位**：预设默认分支 = run 入口 CAS 成功后复位；与基类复位契约（`DebeziumCdcSourceFunction` :247-252：running/draining/pendingError/latch）的对齐关系成文；C1-003 联调边界 + C10-006 反向钉零回退义务成文；两条重建路径（LOCAL/distributed）验证矩阵成文；C10-007 搭车探针清单（MultiFile/BufferBoundary/空目录）与 C10-008 不搭车理由成文。
-  - [ ] **裁定⑤ 测试缝与零回退钉清单**：测试缝 = 并发 register×call 压窗器 + namesList CME 注入（①）、Phase-3 restore-vs-run 时序模拟 + 已完成文件变体（②）、LOCAL P=2 keyed UDF 隔离矩阵 + keyedStateStore 实例同一性白盒断言（③）、cancel 后同实例重跑 + run 中 cancel 变体（④）、C10-007 三探针；零回退钉 = `TestUdfE2E`、`TestDirectoryFileSourceFunction#runEnteredGuardPreventsDoubleEmission`（C10-006）、`TestProcessOperator`、`TestOperatorSubtaskIsolation`、`TestS1CdcPipelineE2E`、`TestS2RecoveryAndRescaleE2E`、`TestS2FileAggregationE2E`、`TestParallel2PcFileE2E`、`TestStreamScalarFunctionResolver`（补测外其余用例）全列，补测类（C10-001/002/003/004/007）标注「新增断言即新钉、缺陷态红→修复后绿」。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下四项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-001 注册表容器化 + 换绑契约**：预设默认分支 = `functions` 改 `ConcurrentHashMap` + `register`/`registerAsDefault` 运行期（default 已在位时）WARN + javadoc 生命周期契约；运行期换绑是否升级 typed fail-fast 一次定夺（判据：公共 SPI 面声明 vs 应用侧合法热更新场景）；sql.md §3a 双路径表述修正文案成文；与 R4-05 C6-003（close/解绑面）边界注记。
+  - [x] **裁定② C3-008 增量恢复**：预设默认分支 = 增量合并（per-file 位点取 max，不清零）——与「runEntered 静默才 REPLACE」备选按判据一次定夺（判据：per-file 位点单调性 + 恢复确定性 + 已完成文件游标不被清零）；验收断言口径以复核机制（checkpoint 位点滞后→恢复重放）为准成文；编排侧移交边界（SupervisionLoop Phase-3 统一 submit 归 runtime 单元）注记。
+  - [x] **裁定③ C3-009 per-subtask 封闭**：预设默认分支定夺（UDF 深拷贝私有化[2511 裁定② round-trip 同族手段，含 xlang 叶子豁免引用] vs per-subtask RuntimeContext holder）；序列化约束与无状态 UDF 零回归取舍成文；失效面外溢矩阵（含状态 RichFunction UDF 全型）+ PA 零触碰声明（落点 nop-stream-core，如需上收平台层则批内申报 plan-first）；C10-003 回归锚归属登记（挂 core 工单）成文。
+  - [x] **裁定④ C6-007 cancelled 复位**：预设默认分支 = run 入口 CAS 成功后复位；与基类复位契约（`DebeziumCdcSourceFunction` :247-252：running/draining/pendingError/latch）的对齐关系成文；C1-003 联调边界 + C10-006 反向钉零回退义务成文；两条重建路径（LOCAL/distributed）验证矩阵成文；C10-007 搭车探针清单（MultiFile/BufferBoundary/空目录）与 C10-008 不搭车理由成文。
+  - [x] **裁定⑤ 测试缝与零回退钉清单**：测试缝 = 并发 register×call 压窗器 + namesList CME 注入（①）、Phase-3 restore-vs-run 时序模拟 + 已完成文件变体（②）、LOCAL P=2 keyed UDF 隔离矩阵 + keyedStateStore 实例同一性白盒断言（③）、cancel 后同实例重跑 + run 中 cancel 变体（④）、C10-007 三探针；零回退钉 = `TestUdfE2E`、`TestDirectoryFileSourceFunction#runEnteredGuardPreventsDoubleEmission`（C10-006）、`TestProcessOperator`、`TestOperatorSubtaskIsolation`、`TestS1CdcPipelineE2E`、`TestS2RecoveryAndRescaleE2E`、`TestS2FileAggregationE2E`、`TestParallel2PcFileE2E`、`TestStreamScalarFunctionResolver`（补测外其余用例）全列，补测类（C10-001/002/003/004/007）标注「新增断言即新钉、缺陷态红→修复后绿」。
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑤全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定③含 core 落点 PA 核对声明与失效面外溢矩阵；裁定④含 C10-006 反向钉零回退义务与 C1-003 联调边界；裁定⑤含零回退钉全列与补测类缺陷态红口径
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑤全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定③含 core 落点 PA 核对声明与失效面外溢矩阵；裁定④含 C10-006 反向钉零回退义务与 C1-003 联调边界；裁定⑤含零回退钉全列与补测类缺陷态红口径
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 4 成员实现 + 回归测试（按模块三组）
 
