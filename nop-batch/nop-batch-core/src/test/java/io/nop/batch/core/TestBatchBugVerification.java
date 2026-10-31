@@ -182,7 +182,7 @@ public class TestBatchBugVerification {
                     assertTrue(await(siblingLoaded));
                     assertTrue(await(s1Recorded));
                     failed.countDown();
-                    throw new NopException("nop.err.test.boom").param("item", item);
+                    throw new TestBoomException("boom on " + item);
                 }
                 // S1 是失败前的在途 chunk，直接记录；S2/S3 一旦到达 consumer 即为失败后继续处理的证据
                 processedAll.add(item);
@@ -447,7 +447,7 @@ public class TestBatchBugVerification {
         CompletableFuture<Void> future = BatchTaskBuilder.<String, String>create()
                 .loader(taskCtx -> (batchSize, chunkCtx) -> Collections.singletonList("x"))
                 .consumer(taskCtx -> (items, c) -> {
-                    throw new NopException("nop.err.test.boom-original");
+                    throw new TestBoomException("boom-original");
                 })
                 .concurrency(1)
                 .executor(GlobalExecutors.cachedThreadPool())
@@ -706,7 +706,7 @@ public class TestBatchBugVerification {
         AtomicInteger attempts = new AtomicInteger();
         IBatchConsumerProvider.IBatchConsumer<String> fail200ThenSucceed = (items, ctx) -> {
             if (attempts.incrementAndGet() <= 200)
-                throw new NopException("nop.err.test.fail-seq").param("seq", attempts.get());
+                throw new TestBoomException("fail#" + attempts.get());
         };
 
         RuntimeException thrown = assertThrows(RuntimeException.class, () ->
@@ -714,5 +714,15 @@ public class TestBatchBugVerification {
                         Collections.singletonList("x"), chunkCtx));
         assertEquals("fail#1", thrown.getMessage());
         assertEquals(1, attempts.get(), "null retryPolicy must give up after first failure");
+    }
+
+
+    /** test-local failure payload (lint: no raw RuntimeException). */
+    static class TestBoomException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
+        TestBoomException(String message) {
+            super(message);
+        }
     }
 }
