@@ -180,13 +180,18 @@ Targets: `nop-ai/nop-ai-{agent,core}/src/`（各自 main + test 树）
 
 Exit Criteria:
 
-- [ ] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（8 条成员面）同 diff 落地；gate3 反向钉死改写履行留痕（改写语义对照在案）
-- [ ] 必红证据（E2）：红①–红⑩均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = gate3 清单扩容+断言补全[语义对照留痕]，登记在案）
+- [x] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（8 条成员面）同 diff 落地；gate3 反向钉死改写履行留痕（改写语义对照在案）
+- [x] 必红证据（E2）：红①–红⑩均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = gate3 清单扩容+断言补全[语义对照留痕]，登记在案）
 - [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-ai -am` BUILD SUCCESS；上游环境抖动按 Baseline 勘误 9 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `./mvnw test -pl nop-ai -am` BUILD SUCCESS；上游环境抖动按 Baseline 勘误 9 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
+Phase 2 执行登记（2026-10-31）：
+- 提交：六组——f12225187d（①②⑥引擎/会话，gate3 唯一允许改写随同 diff）/367f111b43（③④⑤⑦ team/tool，MA-04×C4-015 同变更集）/c6ae7b7ae0（⑨⑩ message/reliability）/c233fe02bb（⑧ dialect）/70666670c228 更正=706670c228（⑦ tracker 装配缝接线+rule 22 三链用例）/92e74ccb5d（docs）。
+- E2E：`_tmp/red-green-2519-e2e-chains.log`（三链 7/7 绿 + rule 23 逐条 + rule 24 核对表全 PASS）。
+- 中断与续作：两次 5h 用量限额中断——裁定⑨⑩ main 与红③–红⑦ focused 钉由续作代理补齐（mutation 探针红绿留痕 `_tmp/red-green-2519-*`）；编译半成品三处真实缺陷（DONE 帧枚举/Gemini finishReason/Ollama done 帧）修复。
+- 偏差：勘误 14（completed 边界收窄：isSessionLifecycleTerminal −completed，多轮契约保住）与勘误 15（⑩ Error 轮计数豁免窗）已登记。
 ### Phase 3 - 全量验证 + owner doc 更新
 
 Status: planned
