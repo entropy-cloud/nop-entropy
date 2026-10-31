@@ -1,5 +1,6 @@
 # 2516 CRA Phase 8.22 — R2-13 1.7 batch 批（8 项：RUNNING 死区 fencing + dispatch/参数护栏 + excel 物化 + fetchSize 死配置 + REE 裸逃逸 + 终态写吞没 + sys-event 守卫旁路）
 
+> Design Review: R2 agent_0180df21 @ 2026-10-30（第 1 轮 FAIL[1 Major/3 Minor]：Major-1 restartTime 零写点事实+NULL 语义判据→事实登记[评审亲读推翻：:153 唯一生产写点/tagSet=clock 非自动维护/NULL 判 stale 成立，撰写者勘误正确]；Minor×3 闭合——第 2 轮 probe 揪出 insert-path NULL 活行接管回归[新 Major]→newTask 补租约初始写点一行+三处措辞+myExecCount 载体表述+日志键入表+N1 时序 B 断言——评审明示修复面局部无裁量点，协调方核验落盘后 PASS）
 > Plan Status: active
 > Draft Review: R1 agent_c8501c74 @ 2026-10-30（FAIL[1 Major/3 Minor]：Major-1 裁定①(b) restartTime 零生产写点+NULL 语义判据缺口→事实登记+NULL 语义定夺子项；Minor×3[cra-index 收敛计数 L385→G21 L405/七行+束行、_vfs 目录歧义消解、前向 warning 预期]——协调方修入后转 active）
 > Last Reviewed: 2026-10-30
@@ -95,30 +96,30 @@
 
 ### Phase 1 - batch RUNNING 死区 fencing 与参数护栏设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/batch-running-deadzone-fencing-and-parameter-guards.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下八项裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C7-001 fencing/stale 判定**：2514 裁定⑥形态菜单投影声明（引用不重建；偏离即回 2514 修订登记）；stale 谓词形态一次定夺——(a) 租约列分支（orm plan-first 申报：列名/类型/迁移脚本三行沿 2514 迁移方案三行模板）vs (b) `restartTime`+租约超时条件（零 orm 触碰，预设默认分支候选）；`tryMarkTaskRunning` WHERE 扩展与 rowsAffected==1 单飞判据；既有快失败守卫（:123-129）事中兜底零回退与双层并存声明；接管后行内状态原子刷新面；实体写路径列集约束（沿 2514 评审⑤增补——防陈旧实体全字段 save 覆写抢占列）；运维 force-kill action 备选分支呈现；N1 三用例参数化改写方案（live/stale 两态构造）**前置**成文；C7-012 接缝（同一状态机写者，本体归 R4-12）；时序 A/B 双路径测试形态
-  - [ ] **裁定② C8-001 dispatch Guard**：三层防线一次定夺（builder fail-fast[预设] / 队列构造 Guard / xdef min）；错误码与配置上下文形态；orm-reader fail-fast 终态口径（复核修正①）；cancel 第二释放入口断言形态；C8-005 同位点吸收面；A4 次序约束成文（C8-009 前置声明义务）；N3 latch 超时搭车方案
-  - [ ] **裁定③ C8-002 守卫对称**：Export `>0` 守卫（预设）+ adjustBatchSize 钳位 WARN vs 上移 Guard（一次定夺）；A3 共享位点封闭边界与 C8-010 接缝（本体归 R4-12）；放大面断言形态
-  - [ ] **裁定④ C5-001 物化包络**：(a) 游标式改造（nop-report 触碰申报 + E3 增补）vs (b) 包络声明+maxCount 接线（物化面残留登记 R-G 观察项）——一次定夺；C10-011 回归钉形态（两分支均强制）；C5-006 顺带评估边界；G79 双轨联动位点清单（R3-04 消费方声明）
-  - [ ] **裁定⑤ C5-002 fetchSize 门**：门条件独立兜底形态 + WARN 路径；N2 改写方案**前置**成文（缺省语义变更前后对照）；C10-005 半边运行时断言形态（记录型 Proxy）；变体 B/autocommit 登记边界（归 R4-12 注记）
-  - [ ] **裁定⑥ C6-002 REE 封闭**：提交点防御 + futures 循环包络形态；C7-002A 幽灵 futures 显式结算/取消语义；与裁定⑦共享 onTaskComplete 直达链；零回退钉清单（:260-268 注释钉/primaryError/owner doc §任务异常终态契约）；C10-001 断言形态（Error+REE 双注入）
-  - [ ] **裁定⑦ C6-009 清理段显式化**：S4/S5/S6 逐点处置表（捕获+ERROR 留痕/complete 必达防御/X 不替换原始 e）；族 A2 闭环声明（终态写失败行残留由裁定① stale 接管承接）；与裁定①同设计文档配套声明
-  - [ ] **裁定⑧ C7-011 守卫覆盖**：三分支一次定夺（配置补 saveState+taskKeyExpr[预设] / singleActive 解耦声明 / owner doc 契约显式化）；UUID 绕过面处置边界；跨单元前提划出声明；job.yaml 缺省关闭条件面标注
-  - [ ] **裁定⑨ 测试缝与零回退钉清单**：红①–红⑧ 测试形态逐条（含缺陷态红判据）；零回退钉 = `BatchTask.java:260-268`（plan 2496 C6-001/C6-010 注释钉）、plan 2381 primaryError 注释钉（:50-51/:209-214/:279-281）、owner doc §任务异常终态契约/§账本保留策略 成文契约、`TestDaoBatchStateStore` 闸门正确面 7 例（N1 改写仅限三用例参数化、其余零触碰）、`TestBatchBugVerification`/`TestBatchTaskCheckpoint` 相邻钉；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下八项裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C7-001 fencing/stale 判定**：2514 裁定⑥形态菜单投影声明（引用不重建；偏离即回 2514 修订登记）；stale 谓词形态一次定夺——(a) 租约列分支（orm plan-first 申报：列名/类型/迁移脚本三行沿 2514 迁移方案三行模板）vs (b) `restartTime`+租约超时条件（零 orm 触碰，预设默认分支候选）；`tryMarkTaskRunning` WHERE 扩展与 rowsAffected==1 单飞判据；既有快失败守卫（:123-129）事中兜底零回退与双层并存声明；接管后行内状态原子刷新面；实体写路径列集约束（沿 2514 评审⑤增补——防陈旧实体全字段 save 覆写抢占列）；运维 force-kill action 备选分支呈现；N1 三用例参数化改写方案（live/stale 两态构造）**前置**成文；C7-012 接缝（同一状态机写者，本体归 R4-12）；时序 A/B 双路径测试形态
+  - [x] **裁定② C8-001 dispatch Guard**：三层防线一次定夺（builder fail-fast[预设] / 队列构造 Guard / xdef min）；错误码与配置上下文形态；orm-reader fail-fast 终态口径（复核修正①）；cancel 第二释放入口断言形态；C8-005 同位点吸收面；A4 次序约束成文（C8-009 前置声明义务）；N3 latch 超时搭车方案
+  - [x] **裁定③ C8-002 守卫对称**：Export `>0` 守卫（预设）+ adjustBatchSize 钳位 WARN vs 上移 Guard（一次定夺）；A3 共享位点封闭边界与 C8-010 接缝（本体归 R4-12）；放大面断言形态
+  - [x] **裁定④ C5-001 物化包络**：(a) 游标式改造（nop-report 触碰申报 + E3 增补）vs (b) 包络声明+maxCount 接线（物化面残留登记 R-G 观察项）——一次定夺；C10-011 回归钉形态（两分支均强制）；C5-006 顺带评估边界；G79 双轨联动位点清单（R3-04 消费方声明）
+  - [x] **裁定⑤ C5-002 fetchSize 门**：门条件独立兜底形态 + WARN 路径；N2 改写方案**前置**成文（缺省语义变更前后对照）；C10-005 半边运行时断言形态（记录型 Proxy）；变体 B/autocommit 登记边界（归 R4-12 注记）
+  - [x] **裁定⑥ C6-002 REE 封闭**：提交点防御 + futures 循环包络形态；C7-002A 幽灵 futures 显式结算/取消语义；与裁定⑦共享 onTaskComplete 直达链；零回退钉清单（:260-268 注释钉/primaryError/owner doc §任务异常终态契约）；C10-001 断言形态（Error+REE 双注入）
+  - [x] **裁定⑦ C6-009 清理段显式化**：S4/S5/S6 逐点处置表（捕获+ERROR 留痕/complete 必达防御/X 不替换原始 e）；族 A2 闭环声明（终态写失败行残留由裁定① stale 接管承接）；与裁定①同设计文档配套声明
+  - [x] **裁定⑧ C7-011 守卫覆盖**：三分支一次定夺（配置补 saveState+taskKeyExpr[预设] / singleActive 解耦声明 / owner doc 契约显式化）；UUID 绕过面处置边界；跨单元前提划出声明；job.yaml 缺省关闭条件面标注
+  - [x] **裁定⑨ 测试缝与零回退钉清单**：红①–红⑧ 测试形态逐条（含缺陷态红判据）；零回退钉 = `BatchTask.java:260-268`（plan 2496 C6-001/C6-010 注释钉）、plan 2381 primaryError 注释钉（:50-51/:209-214/:279-281）、owner doc §任务异常终态契约/§账本保留策略 成文契约、`TestDaoBatchStateStore` 闸门正确面 7 例（N1 改写仅限三用例参数化、其余零触碰）、`TestBatchBugVerification`/`TestBatchTaskCheckpoint` 相邻钉；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑨全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定①含 MA-23 引用不重建条款与 orm PA 申报分支（或零 orm 声明）；裁定②含 A4 次序约束；裁定③含 C8-010 接缝；裁定④含 C10-011 强制回归钉与 G79 联动；裁定⑤含 N2 前置改写方案；裁定⑥含 C7-002A 吸收与零回退钉清单；裁定⑦含族 A2 闭环声明；裁定⑧含跨单元划出声明
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑨全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定①含 MA-23 引用不重建条款与 orm PA 申报分支（或零 orm 声明）；裁定②含 A4 次序约束；裁定③含 C8-010 接缝；裁定④含 C10-011 强制回归钉与 G79 联动；裁定⑤含 N2 前置改写方案；裁定⑥含 C7-002A 吸收与零回退钉清单；裁定⑦含族 A2 闭环声明；裁定⑧含跨单元划出声明
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 8 成员实现 + 回归测试
 
