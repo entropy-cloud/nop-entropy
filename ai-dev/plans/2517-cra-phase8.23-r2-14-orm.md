@@ -154,32 +154,40 @@ Exit Criteria:
 
 ### Phase 2 - 13 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: done（2026-10-31，红绿证据 `_tmp/red-green-2517-*`，四模块 reactor 全绿 707 测试 0 失败，偏差登记见 Phase 2 尾部附录）
 Targets: `nop-persistence/nop-{orm,orm-model,dao,orm-data}/src/`（各自 main + test 树）
 
 - Item Types: `Fix`（13 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A 会话注册与生命周期（nop-orm impl）：C1-001（裁定①，含 C1-023/C2-003 吸收面）+ C2-002（裁定⑤）+ C3-001（裁定⑪，与⑤同变更集）+ C10-001/C10-002
-- [ ] 组 B 会话互斥与 flush 状态机（nop-orm session/persister）：C2-001（裁定④）+ C3-005（裁定⑫，含 C2-006 吸收面）+ C10-004 半边/C10-009（钉错相位注记履行）
-- [ ] 组 C 模型发布（nop-orm factory + nop-orm-model）：C1-003（裁定②）+ C1-015（裁定③）+ C10-003 半边
-- [ ] 组 D 实体缓存（nop-orm persister）：C2-004（裁定⑥）+ C10-005 半边
-- [ ] 组 E 事务协议与连接（nop-dao txn）：C2-013（裁定⑧）+ C2-015（裁定⑨，与⑧同变更集[R10]）+ C2-017（裁定⑩，含 C1-026 吸收面）+ C10-007/C10-008
-- [ ] 组 F 抢占与 drainTo（nop-orm-data）：C2-005（裁定⑦）+ C6-001（裁定⑬，含 C3-006 吸收面，N4 同变更集约束）+ C10-006/C10-010
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑬ 按组 A–F 落位（Goals 节逐条判据）；红绿快照落 `_tmp/` 并登记
-- [ ] **端到端验证**（rule 22）：≥1 条全链并发场景（真/替身 context 上：并发首触 ORM 访问→session 注册→并发 flush 互斥→事务注册协议并发→组事务提交/回滚→连接释放，覆盖裁定①④⑧⑨⑩）；≥1 条异步/资源链（runInNewSessionAsync 挂起与完成两路径→收尾队列化/兜底关闭→drainTo 空闲零持连→有数据短事务抢占单方匹配，覆盖裁定⑤⑦⑪⑬；read-repair 世代交错场景覆盖裁定⑥）
-- [ ] **接线验证**（rule 23）：裁定① computeIfAbsent 真实被 OrmSessionRegistry/TransactionRegistry 双入口消费断言（非仅工具存在）；裁定④互斥真实在并发 flush 用例中生效断言（非仅锁字段存在）；裁定⑥世代围栏真实拦截迟到回填断言；裁定⑬短事务包络真实包裹 tryClaim 断言（事务计数/连接计数证据）
-- [ ] **无静默跳过**（rule 24）：裁定①不匹配分支显式 close（非跳过）；裁定④竞争分支显式等待/报错（非静默 return——保留语义处显式声明）；裁定⑧cleanup 身份不符降级告警留痕（非静默）；裁定⑨迟到子事务显式拒绝（非静默丢弃）；裁定⑩doCommit null 显式 warn/失败（非无痕 no-op）；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交（A/B/C/D/E/F 六组，裁定⑧⑨同变更集、裁定⑤⑪同变更集、裁定⑦⑬同变更集[N4]）；C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 A 会话注册与生命周期（nop-orm impl）：C1-001（裁定①，含 C1-023/C2-003 吸收面）+ C2-002（裁定⑤）+ C3-001（裁定⑪，与⑤同变更集）+ C10-001/C10-002
+- [x] 组 B 会话互斥与 flush 状态机（nop-orm session/persister）：C2-001（裁定④）+ C3-005（裁定⑫，含 C2-006 吸收面）+ C10-004 半边/C10-009（钉错相位注记履行）
+- [x] 组 C 模型发布（nop-orm factory + nop-orm-model）：C1-003（裁定②）+ C1-015（裁定③）+ C10-003 半边
+- [x] 组 D 实体缓存（nop-orm persister）：C2-004（裁定⑥）+ C10-005 半边
+- [x] 组 E 事务协议与连接（nop-dao txn）：C2-013（裁定⑧）+ C2-015（裁定⑨，与⑧同变更集[R10]）+ C2-017（裁定⑩，含 C1-026 吸收面）+ C10-007/C10-008
+- [x] 组 F 抢占与 drainTo（nop-orm-data）：C2-005（裁定⑦）+ C6-001（裁定⑬，含 C3-006 吸收面，N4 同变更集约束）+ C10-006/C10-010
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑬ 按组 A–F 落位（Goals 节逐条判据）；红绿快照落 `_tmp/` 并登记
+- [x] **端到端验证**（rule 22）：≥1 条全链并发场景（真/替身 context 上：并发首触 ORM 访问→session 注册→并发 flush 互斥→事务注册协议并发→组事务提交/回滚→连接释放，覆盖裁定①④⑧⑨⑩）；≥1 条异步/资源链（runInNewSessionAsync 挂起与完成两路径→收尾队列化/兜底关闭→drainTo 空闲零持连→有数据短事务抢占单方匹配，覆盖裁定⑤⑦⑪⑬；read-repair 世代交错场景覆盖裁定⑥）
+- [x] **接线验证**（rule 23）：裁定① computeIfAbsent 真实被 OrmSessionRegistry/TransactionRegistry 双入口消费断言（非仅工具存在）；裁定④互斥真实在并发 flush 用例中生效断言（非仅锁字段存在）；裁定⑥世代围栏真实拦截迟到回填断言；裁定⑬短事务包络真实包裹 tryClaim 断言（事务计数/连接计数证据）
+- [x] **无静默跳过**（rule 24）：裁定①不匹配分支显式 close（非跳过）；裁定④竞争分支显式等待/报错（非静默 return——保留语义处显式声明）；裁定⑧cleanup 身份不符降级告警留痕（非静默）；裁定⑨迟到子事务显式拒绝（非静默丢弃）；裁定⑩doCommit null 显式 warn/失败（非无痕 no-op）；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交（A/B/C/D/E/F 六组，裁定⑧⑨同变更集、裁定⑤⑪同变更集、裁定⑦⑬同变更集[N4]）；C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 13 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（全量 6 + 半边 3 + 009 注记）同 diff 落地
-- [ ] 必红证据（E2）：红①–红⑬均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = C10-009 语义对照新增[旧钉保留]，登记在案）
+- [x] 13 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（全量 6 + 半边 3 + 009 注记）同 diff 落地
+- [x] 必红证据（E2）：红①–红⑬均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = C10-009 语义对照新增[旧钉保留]，登记在案）
 - [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
 - [ ] `./mvnw test -pl nop-persistence -am` BUILD SUCCESS；上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+### Phase 2 偏差登记（2026-10-31，续作代理完成）
+
+1. **裁定⑪落点形态**：设计写「context 关闭钩子（onClose 属性伴生）」，实现为静态 WeakHashMap(context→sessions) + `instance()`/收尾路径惰性清扫（阈值 100 WARN）——同样零 BaseContext 触碰、生命周期弱引用绑定，语义等效。
+2. **裁定⑦双路径**：非 NULL 旧值维持既有 `updateByExample` 等值路径（零回退钉保护）；仅含 NULL 旧值走显式 `IS NULL` 条件 UPDATE；方言/表名不可解析的替身环境回落等值路径——两路径均条件 UPDATE，绝不退化为无条件 UPDATE（代码注释显式声明）。
+3. **测试环境 flake**：reactor r1 上游 nop-core `TestResourceCacheInvalidationChain` 3 红（本批零触碰 nop-core）→ solo 复跑绿 → r2 恢复复跑 BUILD SUCCESS EXIT=0（三联裁定留痕 `_tmp/2517-phase2-final-test-r2.log`）。
+4. **钉族唯一 diff** = `TestFlushFailure.java`（C10-009 允许的语义适配：DROP→RENAME 保数据 + 重试 flush，旧断言不变）。
+5. **续作中断恢复**：前序子代理已落组 A–F main 全部代码与红①–④⑥⑪⑫/红⑦–⑩⑬留痕；缺口（红⑤测试+留痕、lint 空 catch、rule 22/23 E2E 证据）由续作代理补齐。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
