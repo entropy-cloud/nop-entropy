@@ -1,8 +1,12 @@
 package io.nop.ai.agent.engine;
 
+import io.nop.ai.agent.NopAiAgentException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.SQLException;
+import java.sql.SQLRecoverableException;
+import java.sql.SQLTransientException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -40,6 +44,27 @@ public class SessionLockRenewal {
         return ownLockRenewExecutor;
     }
 
+    /**
+     * Plan 2519 (裁定⑩ / 3.1-C7-012): bound on consecutive renewal failures
+     * tolerated inside the transient exemption window before the local
+     * execution is aborted via {@link #handleLeaseLost}. Zero {@code @cfg:}
+     * keys are introduced (setter injection only); the default of 3 keeps the
+     * plan 2496 insulation pin (2 injected Error rounds, then recovery) green.
+     */
+    private int maxConsecutiveRenewalFailures = 3;
+
+    public int getMaxConsecutiveRenewalFailures() {
+        return maxConsecutiveRenewalFailures;
+    }
+
+    public void setMaxConsecutiveRenewalFailures(int maxConsecutiveRenewalFailures) {
+        if (maxConsecutiveRenewalFailures <= 0) {
+            throw new NopAiAgentException("maxConsecutiveRenewalFailures must be positive, got: "
+                    + maxConsecutiveRenewalFailures);
+        }
+        this.maxConsecutiveRenewalFailures = maxConsecutiveRenewalFailures;
+    }
+
     // ---- moved verbatim from DefaultAgentEngine (MA4.2-05 split) ----
     synchronized ScheduledExecutorService getLockRenewExecutor() {
         if (lockRenewExecutor == null) {
@@ -62,7 +87,8 @@ public class SessionLockRenewal {
         return exec.scheduleWithFixedDelay(() -> renewOnceSafe(handle, sessionId, ownerId),
                 config.getLockRenewIntervalMs(), config.getLockRenewIntervalMs(), TimeUnit.MILLISECONDS);
     }
-    private void renewOnceSafe(AgentSessionLifecycle.CancelHandle handle, String sessionId, String ownerId) {
+    // package-private for the abort-upgrade regression test (plan 2519 红⑩)
+    void renewOnceSafe(AgentSessionLifecycle.CancelHandle handle, String sessionId, String ownerId) {
         if (!runningExecutions.containsKey(sessionId)) {
             return;
         }
@@ -70,18 +96,76 @@ public class SessionLockRenewal {
             boolean renewed = config.getSessionTakeoverLock().tryRenew(sessionId, ownerId, config.getLockLeaseMs());
             if (!renewed) {
                 handleLeaseLost(handle, sessionId, ownerId);
+                return;
+            }
+            // Plan 2519 (裁定⑩): a successful renewal proves the lease is
+            // (again) known-good — reset the consecutive-failure counter.
+            // (handle is null only for probes; production always carries one.)
+            if (handle != null) {
+                handle.renewalFailureCount.set(0);
             }
         } catch (Throwable e) {
             // MA-07/C4-007 (plan 2496 Phase 4): the guard must cover Throwable, not just
-            // RuntimeException. A renewal loop killed by an Error escapes the JDK
-            // scheduleWithFixedDelay contract (the round is cancelled and never
-            // rescheduled), the lease silently expires and another instance can preempt
-            // the session while local execution continues — the double-execution hazard
-            // this class exists to prevent. The catch keeps the periodic chain alive
+            // RuntimeException. The catch keeps the periodic chain alive
             // (JDK re-arms on the next interval) and keeps the failure observable.
-            LOG.warn("DefaultAgentEngine: takeover lock renewal failed for sessionId={}, "
-                    + "ownerId={} (will retry next interval): {}", sessionId, ownerId, e.toString());
+            // Plan 2519 (裁定⑩ / 3.1-C7-012): the guard is no longer the terminal
+            // state. Failures are classified by unwrapping the cause chain to the
+            // root cause (never by the outer wrapper type — DbSessionTakeoverLock
+            // wraps every SQLException in a NopAiAgentException, so outer-type
+            // classification would be constant "unknown" and mis-kill):
+            // - root cause is a recoverable/other SQLException (connection refused /
+            //   dropped / DB unreachable) => the lease state is UNKNOWN, which under
+            //   fencing is treated as possibly lost (fail-safe: self-abort beats
+            //   double-execution in an asymmetric partition) => immediate abort.
+            // - root cause is a transient SQL exception (lock-wait timeout and
+            //   other retryable semantics) or a non-SQL failure (Error, runtime
+            //   exception) => counted inside the exemption window; the window bound
+            //   is maxConsecutiveRenewalFailures — exceeding it aborts (no infinite
+            //   WARN, which was the pre-fix defect face). The bound (3) stays above
+            //   the plan 2496 insulation pin (2 injected Error rounds + recovery),
+            //   so the plan 2496 guard semantics are preserved zero-regressed.
+            boolean leaseStateUnknown = isLeaseStateUnknownFailure(e);
+            int failures = handle == null ? 1 : handle.renewalFailureCount.incrementAndGet();
+            if (leaseStateUnknown || failures >= maxConsecutiveRenewalFailures) {
+                LOG.warn("nop.ai.agent.lease-renew-abort: takeover lock renewal failed "
+                        + "consecutively for sessionId={}, ownerId={}, consecutiveFailures={}, "
+                        + "leaseStateUnknown={} — escalating to lease-lost abort (lease state "
+                        + "unknown is treated as possibly lost, fail-safe)", sessionId, ownerId,
+                        failures, leaseStateUnknown, e);
+                handleLeaseLost(handle, sessionId, ownerId);
+            } else {
+                LOG.warn("DefaultAgentEngine: takeover lock renewal failed for sessionId={}, "
+                        + "ownerId={} (will retry next interval, consecutiveFailures={}/{}): {}",
+                        sessionId, ownerId, failures, maxConsecutiveRenewalFailures, e.toString());
+            }
         }
+    }
+
+    /**
+     * Plan 2519 (裁定⑩): classification predicate. Unwraps the full cause chain
+     * to the root cause (self-referential chains are guarded) and reports
+     * whether the failure means the lease state is unknowable (DB unreachable):
+     * any root {@link SQLException} other than a retryable
+     * {@link SQLTransientException} (lock-wait timeout and similar retryable
+     * semantics — {@link SQLRecoverableException} is explicitly NOT transient
+     * here: a lost connection means the lease is unknown). Classification never
+     * short-circuits on the outer wrapper type.
+     */
+    static boolean isLeaseStateUnknownFailure(Throwable e) {
+        Throwable root = e;
+        Throwable cause = root.getCause();
+        while (cause != null && cause != root) {
+            root = cause;
+            cause = root.getCause();
+        }
+        if (root instanceof SQLException) {
+            return !(root instanceof SQLTransientException)
+                    || root instanceof SQLRecoverableException;
+        }
+        // Non-SQL failures (Error, unexpected RuntimeException) do not prove the
+        // lease is lost, but neither do they prove it is held — they stay inside
+        // the counted exemption window (bounded by maxConsecutiveRenewalFailures).
+        return false;
     }
     public void handleLeaseLost(AgentSessionLifecycle.CancelHandle handle, String sessionId, String ownerId) {
         LOG.warn("DefaultAgentEngine: takeover lease lost for sessionId={}, ownerId={} "
