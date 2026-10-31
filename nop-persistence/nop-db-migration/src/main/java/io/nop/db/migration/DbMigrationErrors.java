@@ -20,6 +20,7 @@ public interface DbMigrationErrors {
     String ARG_QUERY_SPACE = "querySpace";
     String ARG_DEFAULT_VALUE = "defaultValue";
     String ARG_PRECONDITION_TYPE = "preconditionType";
+    String ARG_LOCK_NAME = "lockName";
 
     ErrorCode ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE = ErrorCode.define(
         "nop.err.db-migration.unknown-change-type",
@@ -75,6 +76,17 @@ public interface DbMigrationErrors {
         "nop.err.db-migration.history-query-failed",
         "Failed to query migration history table {tableName} in querySpace {querySpace}",
         ARG_TABLE_NAME, ARG_QUERY_SPACE);
+
+    ErrorCode ERR_DB_MIGRATION_GUARD_LOCK_TIMEOUT = ErrorCode.define(
+        "nop.err.db-migration.guard-lock-timeout",
+        "Failed to acquire the migration guard lock {lockName} within the timeout "
+            + "(another node may hold it; retry or clean up a crashed owner row)",
+        ARG_LOCK_NAME);
+
+    ErrorCode ERR_DB_MIGRATION_GUARD_LOCK_FAILED = ErrorCode.define(
+        "nop.err.db-migration.guard-lock-failed",
+        "Failed to acquire or release the migration guard lock {lockName}",
+        ARG_LOCK_NAME);
 
     ErrorCode ERR_DB_MIGRATION_INVALID_DEFAULT_VALUE = ErrorCode.define(
         "nop.err.db-migration.invalid-default-value",
