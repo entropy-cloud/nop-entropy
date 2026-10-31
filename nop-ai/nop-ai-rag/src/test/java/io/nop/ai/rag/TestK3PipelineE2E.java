@@ -10,6 +10,7 @@ import io.nop.ai.core.api.vectorstore.VectorStoreOptions;
 import io.nop.ai.rag.biz.NopAiRagBizModel;
 import io.nop.ai.rag.search.RagSearchService;
 import io.nop.ai.rag.vector.InMemoryVectorStore;
+import io.nop.api.core.exceptions.NopException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,13 +26,15 @@ import static org.junit.jupiter.api.Assertions.*;
 class TestK3PipelineE2E {
 
     private NopAiRagBizModel bizModel;
+    // C3-005 (plan 2520): handle on the chat stub so tests can switch response modes
+    private StubChat stubChat;
 
     @BeforeEach
     void setUp() {
         IEmbeddingModel embedding = new StubEmbedding();
         IVectorStore<VectorData> store = new InMemoryVectorStore();
-        IChatService chat = new StubChat();
-        bizModel = new NopAiRagBizModel(chat, embedding, store);
+        stubChat = new StubChat();
+        bizModel = new NopAiRagBizModel(stubChat, embedding, store);
     }
 
     @Test
@@ -82,6 +85,32 @@ class TestK3PipelineE2E {
         assertThrows(Exception.class, () -> bizModel.search("idx", "", 4));
     }
 
+    // ---- C3-005 (plan 2520): provider error must not be delivered as success ----
+
+    @Test
+    void synthesizeProviderErrorFailsLoud() {
+        bizModel.ingestDocument("idx", "doc1", "Nop platform uses reversible computation.");
+        stubChat.setMode(StubChat.Mode.ERROR);
+
+        NopException ex = assertThrows(NopException.class,
+                () -> bizModel.synthesize("idx", "What does Nop use?", 4),
+                "C3-005: a provider error response must fail loud, not fold to an empty-string success");
+        assertEquals("nop.err.ai.rag.synthesize-failed", ex.getCode());
+        assertEquals("provider rate limit exceeded", ex.getParam("detail"),
+                "provider error message must be carried on the exception");
+        assertEquals("rate_limited", ex.getParam("errorCode"));
+    }
+
+    @Test
+    void synthesizeLegalEmptyAnswerStillReturnsEmptyString() {
+        bizModel.ingestDocument("idx", "doc1", "Nop platform uses reversible computation.");
+        stubChat.setMode(StubChat.Mode.EMPTY_SUCCESS);
+
+        String answer = bizModel.synthesize("idx", "What does Nop use?", 4);
+        assertEquals("", answer,
+                "a successful response with no assistant text is a legal empty answer, not an error");
+    }
+
     // ---- stubs ----
 
     static class StubEmbedding implements IEmbeddingModel {
@@ -121,9 +150,28 @@ class TestK3PipelineE2E {
     }
 
     static class StubChat implements IChatService {
+
+        // C3-005 (plan 2520): response modes for the synthesize error/empty-answer pins.
+        // neverComplete / cancel-injection faces stay out of scope here (IND-06, G60).
+        enum Mode {SUCCESS, ERROR, EMPTY_SUCCESS}
+
+        private Mode mode = Mode.SUCCESS;
+
+        void setMode(Mode mode) {
+            this.mode = mode;
+        }
+
         @Override
         public java.util.concurrent.CompletionStage<ChatResponse> callAsync(
                 io.nop.ai.api.chat.ChatRequest request, io.nop.api.core.util.ICancelToken token) {
+            if (mode == Mode.ERROR) {
+                return java.util.concurrent.CompletableFuture.completedFuture(
+                        ChatResponse.error(io.nop.ai.api.chat.ErrorClassification.RATE_LIMITED,
+                                429, "rate_limited", "provider rate limit exceeded", 500L));
+            }
+            if (mode == Mode.EMPTY_SUCCESS) {
+                return java.util.concurrent.CompletableFuture.completedFuture(new ChatResponse());
+            }
             ChatResponse resp = new ChatResponse();
             String prompt = "";
             if (request.getMessages() != null) {

@@ -131,27 +131,27 @@ Exit Criteria:
 
 ### Phase 2 - 4 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: completed
 Targets: `nop-ai/nop-ai-{rag,code-analyzer}/src/`（各自 main + test 树）
 
 - Item Types: `Fix`（4 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A 向量库（nop-ai-rag vector）：C6-001（裁定①，三登记一处闭合 + C10-001 红①两钉）+ C1-003（裁定③，**ON CONFLICT 范式对齐** + C10-002 红③并发钉 + `updateReflectedInSearch` 强度钉同 diff 改写[唯一允许的既有钉改写，语义对照留痕]）
-- [ ] 组 B 工具收集（nop-ai-code-analyzer maven）：C1-001（裁定②，C10-004 IND-01 半边红②收集完整性钉）
-- [ ] 组 C 合成错误传播（nop-ai-rag synthesize）：C3-005（裁定④，C10-003 主半边红④——StubChat errorResponse 模式 + 合法空回答钉；条件申报触发检查留痕）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记；**变异探针纪律**：红②/红③触碰收集/容器路径，变异恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验，防恢复半写入假绿——R5 教训）；红③并发钉设 trial 上界防负载噪声化
-- [ ] **端到端验证**（rule 22）：≥1 条 rag 存取链场景（ingest→store 双 collection→search 两集合均命中，覆盖裁定①守卫面贯通）；≥1 条合成链场景（search→synthesize，StubChat error→fail-loud 异常携带错误码、StubChat success 空 output→"" 合法返回，覆盖裁定④正反两面）——C1-003/C1-001 为单点修复，由红③/红②并发/完整性钉承载（单点修复无链式入口，免端到端义务显式声明）
-- [ ] **接线验证**（rule 23）：裁定① ensureSchema 三物理守卫点（store/delete/search，update 经委托）真实走 per-collection 守卫断言（capturedSql 证据）；裁定④ synthesize 真实消费 isSuccess 断言（error 响应必抛，非仅方法存在）
-- [ ] **无静默跳过**（rule 24）：裁定①并发 DDL 异常重试上界显式（禁静默吞）；裁定②收集结果完整性断言（禁丢弃分支）；裁定④错误响应必抛（现状即静默折叠缺陷面反转）；新增公共分支无空方法体/TODO
+- [x] 组 A 向量库（nop-ai-rag vector）：C6-001（裁定①，三登记一处闭合 + C10-001 红①两钉）+ C1-003（裁定③，**ON CONFLICT 范式对齐** + C10-002 红③并发钉 + `updateReflectedInSearch` 强度钉同 diff 改写[唯一允许的既有钉改写，语义对照留痕]）
+- [x] 组 B 工具收集（nop-ai-code-analyzer maven）：C1-001（裁定②，C10-004 IND-01 半边红②收集完整性钉）
+- [x] 组 C 合成错误传播（nop-ai-rag synthesize）：C3-005（裁定④，C10-003 主半边红④——StubChat errorResponse 模式 + 合法空回答钉；条件申报触发检查留痕：**未触发**——预设纯消费既有契约成立，`ChatResponse.java` 零 diff[git diff 核对 nop-ai-api 零触碰]）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记（`_tmp/red-green-2520-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：红②双探针（缺陷基线 add 前 yield 探针 449/480 红 + 负向探针注释写点 0/480 红）恢复后 grep 断言 `results.add(file)` ×2 在位/PROBE 残留 0/flatMap 在位；红③恢复探针（HEAD 缺陷基线复跑 trial 4 produced 3 entries 红）恢复后 grep 断言 `bucket.put(id, data)` :75 在位/removeIf 仅注释；红③并发钉 trial 上界=10 落实
+- [x] **端到端验证**（rule 22）：rag 存取链 = `TestPgVectorStoreSql.e2eStoreAndSearchAcrossTwoCollectionsBothHit`（双 collection store→双 collection search 均命中 + 每 collection 一条 DDL + 路由断言，覆盖裁定①守卫面贯通）；合成链 = `TestK3PipelineE2E.synthesizeProviderErrorFailsLoud`（error→fail-loud 携错误码/detail/errorCode 参数）+ `synthesizeLegalEmptyAnswerStillReturnsEmptyString`（success 空 output→"" 合法返回）正反两面，覆盖裁定④；C1-003/C1-001 为单点修复，由红③/红②并发/完整性钉承载（单点修复无链式入口，免端到端义务显式声明）
+- [x] **接线验证**（rule 23）：裁定① ensureSchema 三物理守卫点（store/delete/search）+ update 委托钉 `updateDelegatesThroughPerCollectionGuard`（capturedSql 证据：首 update 必发 CREATE TABLE）；裁定④ synthesize 真实消费 isSuccess 断言（error 响应必抛 NopException + 错误码断言，非仅方法存在）
+- [x] **无静默跳过**（rule 24）：裁定①并发 DDL 异常重试上界显式=1（第二失败 addSuppressed 后照常上抛，禁静默吞）；裁定②收集结果完整性断言（size==N*M + 零重复 + 路径集合全等）；裁定④错误响应必抛（现状静默折叠缺陷面反转）；新增公共分支无空方法体/TODO
 
 Exit Criteria:
 
-- [ ] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（4 条成员面，含两条半边口径）同 diff 落地
-- [ ] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = `updateReflectedInSearch` 强度钉补 assert[语义对照留痕]，登记在案）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（C1-001/C1-003 单点免端到端义务声明在案）
-- [ ] `./mvnw test -pl nop-ai -am` BUILD SUCCESS；上游环境抖动按勘误 8 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（4 条成员面，含两条半边口径）同 diff 落地
+- [x] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对——test 树删除行仅 StubChat 装配行与 fake RS next 处理行两处基础设施 reshape，钉断言体零删除；唯一允许的钉改写 = `updateReflectedInSearch` 强度钉补 assert[语义对照留痕]，登记在案）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（C1-001/C1-003 单点免端到端义务声明在案）
+- [x] `./mvnw test -pl nop-ai -am` 全聚合通道 4 轮均被零 diff 上游已知 flake 阻断（r1 debezium fork timeout/r2 stream-runtime E2E 收敛/r3 debezium/r4 auth MFA TOTP 窗口——逐面三联裁定留痕 `_tmp/red-green-2520-summary.md` E3 节，debezium+runtime 双 solo 绿腿在案，MFA 同签名先例 10-25/plan 2516）→ 沿 plan 2499 先例切**等价分解通道**：触达双模块 solo `./mvnw test -pl nop-ai/nop-ai-rag,nop-ai/nop-ai-code-analyzer` **BUILD SUCCESS**（27+55 tests 0F0E，`_tmp/red-green-2520-touched-solo.log`）+ 全仓编译级 `./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS（453 模块，`_tmp/red-green-2520-e1-skiptests.log`，兼 Phase 3 E1 快速通道）；rag 三测试类 31/31 绿（`_tmp/red-green-2520-green-rag.log`）+ analyzer 10/10 trial 绿；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
