@@ -80,6 +80,9 @@ public class EntityPersisterImpl implements IEntityPersister {
     private IBeanConstructor constructor;
     private boolean useTenantCache;
 
+    // plan 2517 R2-14 裁定⑥（C2-004）：read-repair 世代 fence（C1-027 SSOT，见 GenerationFence）
+    private final GenerationFence genFence = new GenerationFence();
+
     @Override
     public void close() throws Exception {
         IoHelper.safeClose(driver);
@@ -157,6 +160,17 @@ public class EntityPersisterImpl implements IEntityPersister {
             propIds = entityModel.getAllPropIds();
         }
 
+        // plan 2517 R2-14 裁定⑥：readGen = load 发起时的世代快照（per key）
+        Map<String, Long> readGens;
+        if (useGlobalCache) {
+            readGens = new HashMap<>();
+            for (IOrmEntity entity : toLoad) {
+                readGens.put(getCacheKey(entity), genFence.snapshot(getCacheKey(entity)));
+            }
+        } else {
+            readGens = null;
+        }
+
         CompletionStage<Void> future = FutureHelper.voidPromise();
         if (entityModel.getShardPropId() <= 0) {
             future = this._batchLoad(null, toLoad, propIds, subSelection, session);
@@ -175,9 +189,9 @@ public class EntityPersisterImpl implements IEntityPersister {
         if (useGlobalCache) {
             // 全局缓存的更新也纳入返回的future链，保证调用方syncGet时缓存已完成更新
             future = future.thenRun(() -> {
-                // 更新全局缓存
+                // 更新全局缓存（世代围栏：readGen != fenceGen 的迟到回填放弃）
                 for (IOrmEntity entity : toLoad) {
-                    this.updateGlobalCache(entity, session);
+                    this.repairGlobalCache(entity, readGens.get(getCacheKey(entity)));
                 }
             });
         }
@@ -230,6 +244,9 @@ public class EntityPersisterImpl implements IEntityPersister {
                 return FutureHelper.voidPromise();
         }
 
+        // plan 2517 R2-14 裁定⑥：readGen = load 发起时的世代快照
+        long readGen = useGlobalCache ? genFence.snapshot(getCacheKey(entity)) : 0L;
+
         ShardSelection shardSelection = this.getShardSelection(entity);
 
         CompletionStage<Void> future = driver.loadAsync(shardSelection, entity,
@@ -237,7 +254,7 @@ public class EntityPersisterImpl implements IEntityPersister {
 
         if (useGlobalCache) {
             future = future.thenApply(r -> {
-                updateGlobalCache(entity, session);
+                repairGlobalCache(entity, readGen);
                 return null;
             });
         }
@@ -524,7 +541,7 @@ public class EntityPersisterImpl implements IEntityPersister {
     }
 
     protected boolean loadFromGlobalCache(IOrmEntity entity, IOrmSessionImplementor session) {
-        Object values = globalCache.get(getCacheKey(entity));
+        Object values = VersionedCacheValue.unwrap(globalCache.get(getCacheKey(entity)));
         if (values != null) {
             Object[] cacheValues = convertCacheValues(values);
             // 全局缓存中保存实体全部属性，简化动态改变装载策略时的处理逻辑
@@ -537,11 +554,32 @@ public class EntityPersisterImpl implements IEntityPersister {
 
     protected void updateGlobalCache(IOrmEntity entity, IOrmSessionImplementor session) {
         if (entity.orm_state().isMissing()) {
+            genFence.invalidate(getCacheKey(entity));
             globalCache.removeAsync(getCacheKey(entity));
         } else {
             Object[] values = OrmAssembly.getPropValues(entity, entityModel.getAllPropIds());
             globalCache.putAsync(getCacheKey(entity), values);
         }
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑥（C2-004）：世代围栏回填。唯一公式 readGen == fenceGen 才回填（CAS 胜者）；
+     * 败者（并发 evict 已推进世代 / 他方回填）放弃——迟到 put 覆盖并发 evict 的复合竞态闭合，
+     * 缓存=v1 DB=v2 的无界驻留窗口消除。lock() 持行锁路径保持 updateGlobalCache 排除项不变。
+     */
+    protected void repairGlobalCache(IOrmEntity entity, long readGen) {
+        if (!useGlobalCache)
+            return;
+        String cacheKey = getCacheKey(entity);
+        if (entity.orm_state().isMissing()) {
+            genFence.invalidate(cacheKey);
+            globalCache.removeAsync(cacheKey);
+            return;
+        }
+        if (!genFence.tryAcquireRepair(cacheKey, readGen))
+            return;
+        Object[] values = OrmAssembly.getPropValues(entity, entityModel.getAllPropIds());
+        globalCache.putAsync(cacheKey, VersionedCacheValue.wrap(readGen, values));
     }
 
     Set<IOrmEntity> asSet(Collection<IOrmEntity> entities) {
@@ -555,6 +593,9 @@ public class EntityPersisterImpl implements IEntityPersister {
             return;
 
         String querySpace = getQuerySpace(shard);
+
+        // plan 2517 R2-14 裁定⑥：evict 记失效世代——evict 后任何持有旧 readGen 的迟到回填 CAS 必败
+        genFence.invalidate(getCacheKey(entity));
 
         if (env.txn().isTransactionOpened(querySpace)) {
             this.env.txn().addTransactionListener(querySpace, new ITransactionListener() {
@@ -615,7 +656,7 @@ public class EntityPersisterImpl implements IEntityPersister {
             Object value = values.get(getCacheKey(entity));
             if (value != null) {
                 // 如果从全局缓存中查到，则从待装载集合中删除
-                Object[] cacheValues = convertCacheValues(value);
+                Object[] cacheValues = convertCacheValues(VersionedCacheValue.unwrap(value));
                 session.internalAssemble(entity, cacheValues, entityModel.getAllPropIds());
                 it.remove();
             }
