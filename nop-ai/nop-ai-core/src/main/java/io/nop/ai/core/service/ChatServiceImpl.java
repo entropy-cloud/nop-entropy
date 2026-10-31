@@ -15,6 +15,7 @@ import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.stream.StreamItemPhase;
 import io.nop.ai.api.chat.stream.StreamItemType;
 import io.nop.ai.api.credential.IAiModelCredentialResolver;
+import io.nop.ai.core.dialect.AbstractLlmDialect;
 import io.nop.ai.core.dialect.ILlmDialect;
 import io.nop.ai.core.model.LlmModel;
 import io.nop.ai.core.model.LlmModelModel;
@@ -260,19 +261,47 @@ public class ChatServiceImpl implements IChatService {
             @Override
             public void onNext(IServerEventResponse item) {
                 try {
-                    ChatStreamChunk chunk = dialect.parseStreamChunk(item.getData());
-                    if (chunk != null) {
-                        // ② 有界缓冲满载 fail-loud（替代 submit 的不可中断阻塞）：溢出即显式终态
-                        AtomicBoolean overflow = new AtomicBoolean();
-                        publisher.offer(chunk, (sub, dropped) -> {
-                            overflow.set(true);
-                            return true; // 溢出项由 closeExceptionally 的错误终态承载，不静默降级
-                        });
-                        if (overflow.get()) {
+                    // Plan 2519 (裁定⑧/C3-028): consume the multi-chunk channel
+                    // — one SSE event enumerates ALL increments (multi
+                    // tool_call entries / usage frames / typed error chunks).
+                    // Falls back to the single-chunk contract for external
+                    // dialect implementations that do not extend
+                    // AbstractLlmDialect (ILlmDialect signature unchanged).
+                    java.util.List<ChatStreamChunk> chunks;
+                    if (dialect instanceof AbstractLlmDialect abstractDialect) {
+                        chunks = abstractDialect.parseStreamChunks(item.getData());
+                    } else {
+                        ChatStreamChunk single = dialect.parseStreamChunk(item.getData());
+                        chunks = single == null ? java.util.List.of() : java.util.List.of(single);
+                    }
+                    for (ChatStreamChunk chunk : chunks) {
+                        if (chunk instanceof io.nop.ai.core.dialect.DialectErrorChunk errorChunk) {
+                            // 裁定⑧: typed in-band error — explicit termination
+                            // signal + traceable log record (never merged into
+                            // assistant text)
+                            LOG.warn("nop.ai.stream-error-chunk: provider in-band error event "
+                                            + "(typed error chunk; stream terminated): provider={}, errorType={}, message={}",
+                                    provider, errorChunk.getErrorType(), errorChunk.getErrorMessage());
                             upstream.cancel();
-                            publisher.closeExceptionally(new NopException(ERR_AI_STREAM_BUFFER_OVERFLOW)
+                            publisher.closeExceptionally(new NopException(ERR_AI_STREAM_TERMINATION_SIGNAL_MISSING)
                                     .param(ARG_LLM_NAME, provider));
                             return;
+                        }
+                    }
+                    for (ChatStreamChunk chunk : chunks) {
+                        if (chunk != null) {
+                            // ② 有界缓冲满载 fail-loud（替代 submit 的不可中断阻塞）：溢出即显式终态
+                            AtomicBoolean overflow = new AtomicBoolean();
+                            publisher.offer(chunk, (sub, dropped) -> {
+                                overflow.set(true);
+                                return true; // 溢出项由 closeExceptionally 的错误终态承载，不静默降级
+                            });
+                            if (overflow.get()) {
+                                upstream.cancel();
+                                publisher.closeExceptionally(new NopException(ERR_AI_STREAM_BUFFER_OVERFLOW)
+                                        .param(ARG_LLM_NAME, provider));
+                                return;
+                            }
                         }
                     }
                 } catch (Throwable e) {

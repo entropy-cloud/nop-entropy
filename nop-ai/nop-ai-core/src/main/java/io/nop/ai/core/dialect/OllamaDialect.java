@@ -4,6 +4,7 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.ChatRequest;
 import io.nop.ai.api.chat.ChatResponse;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
+import io.nop.ai.api.chat.messages.ChatUsage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatReasoningMessage;
 import io.nop.ai.api.chat.messages.ChatToolCall;
@@ -307,72 +308,121 @@ public class OllamaDialect extends AbstractLlmDialect implements ILlmDialect {
         return response;
     }
 
+    /**
+     * Plan 2519 (裁定⑧/C3-028 x C3-031 两案一次消解): (1) the ladder test is
+     * {@code content != null && !content.isEmpty()} — an empty-string content
+     * frame no longer preempts the thinking / tool_calls branches (thinking
+     * and tool frames are reachable again); (2) EVERY tool_calls entry in the
+     * frame is enumerated (the old {@code get(0)} truncated parallel tool
+     * calls); (3) the terminal eval_count usage is mapped.
+     */
     @Override
-    public ChatStreamChunk parseStreamChunk(String data) {
+    public List<ChatStreamChunk> parseStreamChunks(String data) {
         if (data == null || data.isEmpty() || "[DONE]".equals(data)) {
-            return null;
+            return new ArrayList<>();
         }
-
         @SuppressWarnings("unchecked")
         Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
+        List<ChatStreamChunk> chunks = new ArrayList<>();
         ChatStreamChunk chunk = new ChatStreamChunk();
-
         chunk.setModel(getStringByPath(dataMap, "model"));
 
-        // 文本内容增量
+        // C3-031: empty string no longer preempts the ladder
         String content = getStringByPath(dataMap, "message.content");
-        // 思考内容增量（某些模型支持 thinking 字段，如 DeepSeek R1）
+        boolean hasContent = content != null && !content.isEmpty();
         String thinking = getStringByPath(dataMap, "message.thinking");
 
-        if (content != null) {
+        if (hasContent) {
             chunk.setItemType(StreamItemType.text);
             chunk.setItemIndex(0);
             chunk.setPhase(StreamItemPhase.DELTA);
             chunk.setDelta(content);
-        } else if (thinking != null) {
+            chunks.add(chunk);
+        } else if (thinking != null && !thinking.isEmpty()) {
             chunk.setItemType(StreamItemType.reasoning);
             chunk.setItemIndex(0);
             chunk.setPhase(StreamItemPhase.DELTA);
             chunk.setDelta(thinking);
+            chunks.add(chunk);
         } else {
-            // 工具调用（Ollama 使用 OpenAI 风格，流式下通常完整出现于终止帧）
             Object toolCallsObj = BeanTool.getComplexProperty(dataMap, "message.tool_calls");
-            if (toolCallsObj instanceof List && !((List<?>) toolCallsObj).isEmpty()) {
-                Object first = ((List<?>) toolCallsObj).get(0);
-                if (first instanceof Map) {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> tcMap = (Map<String, Object>) first;
-                    Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
-                    chunk.setItemType(StreamItemType.tool_call);
-                    chunk.setItemIndex(0);
-                    chunk.setCallId((String) tcMap.get("id"));
-                    chunk.setPhase(StreamItemPhase.ADDED);
-                    chunk.setDelta(func != null ? (String) func.get("name") : null);
-                    // Ollama 流式 tool_calls 单事件完整下发 name + args。args 可为结构化 Map
-                    // 或 JSON 字符串（与 parseResponse/parseRequestBody 同款双形态），经 arguments
-                    // 通道同载完整 JSON 文本，弥补单 chunk 无法再发 DELTA 片段的通道缺口。
-                    if (func != null) {
-                        Object argsObj = func.get("arguments");
-                        if (argsObj instanceof Map && !((Map<?, ?>) argsObj).isEmpty()) {
-                            chunk.setArguments(JSON.stringify(argsObj));
-                        } else if (argsObj instanceof String && !((String) argsObj).isEmpty()) {
-                            chunk.setArguments((String) argsObj);
-                        }
+            if (toolCallsObj instanceof List) {
+                for (Object tcObj : (List<?>) toolCallsObj) {
+                    ChatStreamChunk tcChunk = toOllamaToolCallChunk(tcObj);
+                    if (tcChunk != null) {
+                        tcChunk.setModel(chunk.getModel());
+                        chunks.add(tcChunk);
                     }
                 }
             }
         }
 
-        // 结束信号
-        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "done_reason"));
-        if (finishReason != null) {
-            chunk.setPhase(StreamItemPhase.DONE);
-            chunk.setFinishReason(finishReason);
+        // 裁定⑧: terminal usage frame (eval_count / prompt_eval_count)
+        ChatUsage usage = new ChatUsage();
+        Integer evalCount = getIntByPath(dataMap, "eval_count");
+        Integer promptEvalCount = getIntByPath(dataMap, "prompt_eval_count");
+        if (evalCount != null || promptEvalCount != null) {
+            usage.setCompletionTokens(evalCount);
+            usage.setPromptTokens(promptEvalCount);
+            ChatStreamChunk usageChunk = new ChatStreamChunk();
+            usageChunk.setModel(chunk.getModel());
+            usageChunk.setUsage(usage);
+            chunks.add(usageChunk);
         }
 
+        String finishReason = normalizeFinishReason(getStringByPath(dataMap, "done_reason"));
+        if (finishReason != null) {
+            // termination chunk: attach to the last enumerated chunk, or emit a
+            // standalone DONE chunk when the done frame carries nothing else
+            // (pre-fix single-chunk contract did the same — the done_reason frame
+            // must never enumerate to nothing)
+            ChatStreamChunk last = chunks.isEmpty() ? null : chunks.get(chunks.size() - 1);
+            if (last == null) {
+                last = chunk;
+                chunks.add(last);
+            }
+            last.setPhase(StreamItemPhase.DONE);
+            last.setFinishReason(finishReason);
+        }
+        return chunks;
+    }
+
+    private ChatStreamChunk toOllamaToolCallChunk(Object tcObj) {
+        if (!(tcObj instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> tcMap = (Map<String, Object>) tcObj;
+        Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
+        ChatStreamChunk chunk = new ChatStreamChunk();
+        chunk.setItemType(StreamItemType.tool_call);
+        chunk.setItemIndex(0);
+        chunk.setCallId((String) tcMap.get("id"));
+        chunk.setPhase(StreamItemPhase.ADDED);
+        chunk.setDelta(func != null ? (String) func.get("name") : null);
+        // Ollama streams tool_calls complete per event (name + args on the
+        // ADDED chunk via the arguments channel — same contract as before,
+        // now per-entry instead of first-entry-only).
+        if (func != null) {
+            Object argsObj = func.get("arguments");
+            if (argsObj instanceof Map && !((Map<?, ?>) argsObj).isEmpty()) {
+                chunk.setArguments(JSON.stringify(argsObj));
+            } else if (argsObj instanceof String && !((String) argsObj).isEmpty()) {
+                chunk.setArguments((String) argsObj);
+            }
+        }
         return chunk;
     }
 
+    /**
+     * Plan 2519 (裁定⑧): single-chunk compatibility delegate (ILlmDialect
+     * contract unchanged).
+     */
+    @Override
+    public ChatStreamChunk parseStreamChunk(String data) {
+        List<ChatStreamChunk> chunks = parseStreamChunks(data);
+        return chunks.isEmpty() ? null : chunks.get(0);
+    }
 
     @Override
     public Map<String, Object> convertMessage(ChatMessage message, LlmModelModel modelConfig,

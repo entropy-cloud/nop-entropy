@@ -542,6 +542,21 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                     @SuppressWarnings("unchecked")
                     Map<String, Object> messageMap = (Map<String, Object>) message;
                     chunk.setModel((String) messageMap.get("model"));
+                    // Plan 2519 (裁定⑧/C3-030): message_start usage mapping —
+                    // input tokens + cache creation/read tokens are announced
+                    // HERE (message_delta only carries output_tokens), so the
+                    // streaming usage chain gets the full picture (aligned with
+                    // the non-streaming mapping).
+                    Object startUsage = messageMap.get("usage");
+                    if (startUsage instanceof Map) {
+                        @SuppressWarnings("unchecked")
+                        Map<String, Object> startUsageMap = (Map<String, Object>) startUsage;
+                        ChatUsage chunkUsage = new ChatUsage();
+                        chunkUsage.setPromptTokens(getIntByPath(startUsageMap, "input_tokens"));
+                        chunkUsage.setCacheCreationTokens(getIntByPath(startUsageMap, "cache_creation_input_tokens"));
+                        chunkUsage.setCacheHitTokens(getIntByPath(startUsageMap, "cache_read_input_tokens"));
+                        chunk.setUsage(chunkUsage);
+                    }
                 }
                 break;
 
@@ -644,21 +659,23 @@ public class AnthropicDialect extends AbstractLlmDialect implements ILlmDialect 
                 return null;
 
             case "error":
-                // 错误消息：作为 text item 的错误文本（快速暴露，不静默）
+                // Plan 2519 (裁定⑧/C3-032): typed in-band error chunk — the
+                // old shape rendered the error as a "[ERROR] ..." text DELTA,
+                // polluting the assistant content. The typed chunk carries the
+                // error explicitly (no text payload) and stays a well-formed
+                // terminal chunk for base-class consumers.
                 Object error = dataMap.get("error");
                 if (error instanceof Map) {
                     @SuppressWarnings("unchecked")
                     Map<String, Object> errorMap = (Map<String, Object>) error;
+                    String errorType = (String) errorMap.get("type");
                     String errorMsg = (String) errorMap.get("message");
                     if (errorMsg == null) {
                         errorMsg = errorMap.toString();
                     }
-                    chunk.setItemType(StreamItemType.text);
-                    chunk.setItemIndex(0);
-                    chunk.setPhase(StreamItemPhase.DELTA);
-                    chunk.setDelta("[ERROR] " + errorMsg);
+                    return new DialectErrorChunk(errorType, errorMsg);
                 }
-                break;
+                return new DialectErrorChunk(null, String.valueOf(dataMap));
         }
 
         return chunk;

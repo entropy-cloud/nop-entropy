@@ -12,6 +12,7 @@ import io.nop.ai.api.chat.messages.ChatSystemMessage;
 import io.nop.ai.api.chat.messages.ChatToolCallMessage;
 import io.nop.ai.api.chat.messages.ChatToolResponseMessage;
 import io.nop.ai.api.chat.messages.ChatUsage;
+import io.nop.ai.api.chat.stream.ChatStreamChunk;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.core.model.LlmErrorMappingModel;
 import io.nop.ai.core.model.LlmErrorResponseModel;
@@ -73,6 +74,31 @@ public abstract class AbstractLlmDialect {
      *   <li>未命中 → 默认启发式（按 HTTP 状态码，等价今日行为，零回归红线）。</li>
      * </ol>
      */
+    /**
+     * Plan 2519 (裁定⑧/C3-028): package-module multi-chunk channel. A single
+     * SSE event may carry MULTIPLE increments (OpenAI delta with text + N
+     * tool_call entries; Gemini parts array; Ollama multi tool_calls frame;
+     * OpenAI usage frame with empty choices). The old single
+     * {@code parseStreamChunk} contract truncated to the first entry —
+     * deterministic data loss on the default stream=true path. This channel
+     * enumerates them ALL. {@link ILlmDialect} signature is UNCHANGED (the
+     * single-chunk method stays as a first-element compatibility delegate) —
+     * condition-declaration ② NOT triggered (zero SPI regression surface).
+     *
+     * @param data SSE data line content
+     * @return the enumerated chunks; never null (empty when the event carries
+     *         nothing consumable)
+     */
+    public List<ChatStreamChunk> parseStreamChunks(String data) {
+        ChatStreamChunk single = ((ILlmDialect) this).parseStreamChunk(data);
+        if (single == null) {
+            return new ArrayList<>();
+        }
+        List<ChatStreamChunk> list = new ArrayList<>(1);
+        list.add(single);
+        return list;
+    }
+
     public ChatResponse parseErrorResponse(String responseBody, int httpStatus,
                                            Map<String, String> headers, LlmModel config) {
         Map<String, Object> bodyMap = parseBodyMap(responseBody);

@@ -154,6 +154,16 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         body.put("model", model);
         body.put("messages", buildMessages(request, modelConfig));
         body.put("stream", stream);
+        // Plan 2519 (裁定⑧/C3-030): stream_options.include_usage — without it
+        // OpenAI-compatible providers never deliver the terminal usage frame
+        // and the whole streaming usage chain stays dead. Tolerated as absent
+        // when a provider rejects the option (usage is an enhancement signal,
+        // null-tolerant per design §3.8).
+        if (stream) {
+            Map<String, Object> streamOptions = new LinkedHashMap<>();
+            streamOptions.put("include_usage", Boolean.TRUE);
+            body.put("stream_options", streamOptions);
+        }
 
         ChatOptions options = request.getOptions();
         if (options != null) {
@@ -244,106 +254,159 @@ public class OpenAiDialect extends AbstractLlmDialect implements ILlmDialect {
         return response;
     }
 
+    /**
+     * Plan 2519 (裁定⑧): full enumeration — one SSE event may carry a text
+     * delta, a reasoning delta, N tool_call entries AND (terminal) the usage
+     * frame with empty choices. The single-chunk contract truncated to the
+     * first tool_call entry (deterministic parallel-tool-call data loss).
+     */
     @Override
-    public ChatStreamChunk parseStreamChunk(String data) {
+    public List<ChatStreamChunk> parseStreamChunks(String data) {
         if (data == null || data.isEmpty() || "[DONE]".equals(data)) {
-            return null;
+            return new ArrayList<>();
         }
-
         @SuppressWarnings("unchecked")
         Map<String, Object> dataMap = (Map<String, Object>) JSON.parse(data);
-        ChatStreamChunk chunk = new ChatStreamChunk();
+        List<ChatStreamChunk> chunks = new ArrayList<>();
+        String requestId = getStringByPath(dataMap, "id");
 
-        chunk.setId(getStringByPath(dataMap, "id"));
+        // usage frame: choices absent/empty + usage present → usage-only chunk
+        ChatUsage usage = parseStreamUsage(dataMap);
+        Object choicesObj = dataMap.get("choices");
+        boolean noChoices = !(choicesObj instanceof List) || ((List<?>) choicesObj).isEmpty();
 
-        // choices[0].delta
         Object deltaObj = BeanTool.getComplexProperty(dataMap, "choices.0.delta");
         Map<String, Object> deltaMap = deltaObj instanceof Map ? (Map<String, Object>) deltaObj : null;
 
         if (deltaMap != null) {
-            // 文本内容增量（空串不是有效增量，OpenAI 常与 reasoning_content 同发空 content）
             String content = (String) deltaMap.get("content");
-            boolean hasContent = content != null && !content.isEmpty();
-
-            if (hasContent) {
-                chunk.setItemType(StreamItemType.text);
-                chunk.setItemIndex(0);
-                chunk.setPhase(StreamItemPhase.DELTA);
-                chunk.setDelta(content);
+            if (content != null && !content.isEmpty()) {
+                ChatStreamChunk text = new ChatStreamChunk();
+                text.setItemType(StreamItemType.text);
+                text.setItemIndex(0);
+                text.setPhase(StreamItemPhase.DELTA);
+                text.setDelta(content);
+                chunks.add(text);
             }
 
-            // 思考/推理内容增量（支持多种字段名）
-            if (!hasContent) {
-                String thinking = (String) deltaMap.get("thinking");
-                if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning_content");
-                if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning");
-                if (thinking != null && !thinking.isEmpty()) {
-                    chunk.setItemType(StreamItemType.reasoning);
-                    chunk.setItemIndex(0);
-                    chunk.setPhase(StreamItemPhase.DELTA);
-                    chunk.setDelta(thinking);
-                }
+            String thinking = (String) deltaMap.get("thinking");
+            if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning_content");
+            if (thinking == null || thinking.isEmpty()) thinking = (String) deltaMap.get("reasoning");
+            if (thinking != null && !thinking.isEmpty()) {
+                ChatStreamChunk reasoning = new ChatStreamChunk();
+                reasoning.setItemType(StreamItemType.reasoning);
+                reasoning.setItemIndex(0);
+                reasoning.setPhase(StreamItemPhase.DELTA);
+                reasoning.setDelta(thinking);
+                chunks.add(reasoning);
             }
 
-            // 流式 tool_calls 增量（补缺口：原实现永不填充）
-            if (!hasContent) {
-                Object toolCallsObj = deltaMap.get("tool_calls");
-                if (toolCallsObj instanceof List && !((List<?>) toolCallsObj).isEmpty()) {
-                    parseToolCallDelta(chunk, (List<?>) toolCallsObj);
+            Object toolCallsObj = deltaMap.get("tool_calls");
+            if (toolCallsObj instanceof List) {
+                // 裁定⑧: enumerate EVERY tool_call entry in the event
+                for (Object tc : (List<?>) toolCallsObj) {
+                    ChatStreamChunk tcChunk = toToolCallChunk(tc);
+                    if (tcChunk != null) {
+                        chunks.add(tcChunk);
+                    }
                 }
             }
         }
 
-        // finish 信号 → DONE
+        if (usage != null) {
+            ChatStreamChunk usageChunk = new ChatStreamChunk();
+            usageChunk.setUsage(usage);
+            if (noChoices && chunks.isEmpty()) {
+                // pure usage frame (include_usage terminal frame): only usage
+                usageChunk.setPhase(StreamItemPhase.DONE);
+            }
+            chunks.add(usageChunk);
+        }
+
         String finishReason = normalizeFinishReason(getStringByPath(dataMap, "choices.0.finish_reason"));
         if (finishReason != null) {
-            chunk.setPhase(StreamItemPhase.DONE);
-            chunk.setFinishReason(finishReason);
+            // termination chunk: attach to the last enumerated chunk, or emit a
+            // standalone DONE chunk when the event carries only the finish frame
+            // (pre-fix single-chunk contract did the same — zero regression for
+            // the plan 2505 termination-signal face)
+            ChatStreamChunk last = chunks.isEmpty() ? null : chunks.get(chunks.size() - 1);
+            if (last == null) {
+                last = new ChatStreamChunk();
+                chunks.add(last);
+            }
+            last.setPhase(StreamItemPhase.DONE);
+            last.setFinishReason(finishReason);
         }
+        if (chunks.isEmpty()) {
+            return new ArrayList<>();
+        }
+        // propagate the response id onto every enumerated chunk (the single-chunk
+        // contract set it on the one returned chunk; multi-chunk keeps per-chunk id)
+        if (requestId != null) {
+            for (ChatStreamChunk c : chunks) {
+                if (c.getId() == null) {
+                    c.setId(requestId);
+                }
+            }
+        }
+        return chunks;
+    }
 
+    private ChatStreamChunk toToolCallChunk(Object tc) {
+        if (!(tc instanceof Map)) {
+            return null;
+        }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> tcMap = (Map<String, Object>) tc;
+        Integer index = toInt(tcMap.get("index"));
+        String id = (String) tcMap.get("id");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
+        String name = func != null ? (String) func.get("name") : null;
+        String args = func != null ? (String) func.get("arguments") : null;
+
+        ChatStreamChunk chunk = new ChatStreamChunk();
+        chunk.setItemType(StreamItemType.tool_call);
+        chunk.setItemIndex(index);
+        boolean isAdded = id != null || name != null;
+        if (isAdded) {
+            chunk.setCallId(id);
+            chunk.setPhase(StreamItemPhase.ADDED);
+            chunk.setDelta(name);
+        } else {
+            chunk.setPhase(StreamItemPhase.DELTA);
+            chunk.setDelta(args);
+        }
         return chunk;
     }
 
     /**
-     * 解析流式 {@code delta.tool_calls[]} 增量。OpenAI SSE 结构：
-     * <ul>
-     *   <li>首个 delta（per index）：{@code {index, id, type, function:{name, arguments:""}}}
-     *       → chunk(ADDED, callId=id, delta=name)</li>
-     *   <li>后续 delta（per index）：{@code {index, function:{arguments:fragment}}}
-     *       → chunk(DELTA, delta=arguments 片段)</li>
-     * </ul>
-     * 多 tool_call 靠 {@code index} 区分。单次返回一个 chunk（与非流式单 toolCall 字段
-     * 等价边界；同一 SSE 事件内多 index 增量取首个）。
+     * 裁定⑧: the include_usage terminal frame carries {@code usage} with
+     * empty choices — parse prompt/completion/total tokens, null-tolerant.
      */
-    @SuppressWarnings("unchecked")
-    private void parseToolCallDelta(ChatStreamChunk chunk, List<?> toolCalls) {
-        for (Object tc : toolCalls) {
-            if (!(tc instanceof Map)) continue;
-            Map<String, Object> tcMap = (Map<String, Object>) tc;
-
-            Integer index = toInt(tcMap.get("index"));
-            String id = (String) tcMap.get("id");
-
-            Map<String, Object> func = (Map<String, Object>) tcMap.get("function");
-            String name = func != null ? (String) func.get("name") : null;
-            String args = func != null ? (String) func.get("arguments") : null;
-
-            // id 或 name 存在 → 首见声明（ADDED）；否则为 arguments 增量（DELTA）
-            boolean isAdded = id != null || name != null;
-            if (isAdded) {
-                chunk.setItemType(StreamItemType.tool_call);
-                chunk.setItemIndex(index);
-                chunk.setCallId(id);
-                chunk.setPhase(StreamItemPhase.ADDED);
-                chunk.setDelta(name);
-            } else {
-                chunk.setItemType(StreamItemType.tool_call);
-                chunk.setItemIndex(index);
-                chunk.setPhase(StreamItemPhase.DELTA);
-                chunk.setDelta(args);
-            }
-            return; // 单 chunk 返回，取首个 entry
+    private ChatUsage parseStreamUsage(Map<String, Object> dataMap) {
+        Object usageObj = dataMap.get("usage");
+        if (!(usageObj instanceof Map)) {
+            return null;
         }
+        @SuppressWarnings("unchecked")
+        Map<String, Object> usageMap = (Map<String, Object>) usageObj;
+        ChatUsage usage = new ChatUsage();
+        usage.setPromptTokens(getIntByPath(usageMap, "prompt_tokens"));
+        usage.setCompletionTokens(getIntByPath(usageMap, "completion_tokens"));
+        usage.setTotalTokens(getIntByPath(usageMap, "total_tokens"));
+        return usage;
+    }
+
+    /**
+     * Plan 2519 (裁定⑧): single-chunk compatibility delegate — returns the
+     * first enumerated chunk (ILlmDialect contract unchanged). Full consumers
+     * must use {@link #parseStreamChunks}.
+     */
+    @Override
+    public ChatStreamChunk parseStreamChunk(String data) {
+        List<ChatStreamChunk> chunks = parseStreamChunks(data);
+        return chunks.isEmpty() ? null : chunks.get(0);
     }
 
     /**
