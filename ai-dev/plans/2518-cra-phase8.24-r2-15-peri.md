@@ -162,30 +162,30 @@ Exit Criteria:
 
 ### Phase 2 - 11 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: done（2026-10-31，实现 session：组 A–D 全部落地，reactor/模块级验证绿；提交由协调方按组执行）
 Targets: `nop-persistence/nop-{nosql/nosql-lettuce,orm-migration,db-migration}/src/`（各自 main + test 树）
 
 - Item Types: `Fix`（11 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A PubSub 生命周期（nop-nosql-lettuce）：C6-004（裁定①，含 C1-011/C3-004 吸收面 + R19 前案消案注记）+ C8-001（裁定②，含 C3-005/C7-010 吸收面 + MA-02 反向钉死改写履行）+ C7-014（裁定③，勘误 10 收窄口径）+ C10-022/C10-023/C10-025
-- [ ] 组 B 链停止与编排 fencing（nop-orm-migration）：**C3-008（裁定⑨，全组最先）**→ C7-001（裁定⑥，硬前置⑨，RP-2 约束）+ C6-003（裁定④，与 MA-03 同变更集）+ C7-003（裁定⑤，引用 2514 形态菜单）+ C7-002（裁定⑪，与⑤谓词协同）+ C10-003/004/005/010/011/015
-- [ ] 组 C 启动补偿与 qs 键族（nop-orm-migration）：C3-001（裁定⑦，与裁定⑤同 diff 协调[X-1]，C6-001 吸收面）+ C3-009（裁定⑩，与⑨键族统一）+ C10-002/C10-006
-- [ ] 组 D 迁移历史表（nop-db-migration）：C1-003（裁定⑧，RP-1 约束，CL-022 吸收面）+ C10-021
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑪ 按组 A–D 落位（Goals 节逐条判据）；红绿快照落 `_tmp/` 并登记；**变异探针纪律**：触碰恢复路径/停止协议的改动（裁定④）收口前必须运行含完整停止-恢复流程的端到端测试（恢复动作以断言方式确认目标可执行行真实存在）
-- [ ] **端到端验证**（rule 22）：≥1 条编排全链场景（runIncremental[键派生清单登记]→链 failure 注入→死链 fail 门禁拒绝→fix-forward 受控自环重入→confirmSwitch 收敛停链[有界 join 断言]→completeSwitch 版本谓词拒绝越权写，覆盖裁定④⑤⑥⑨⑪）；≥1 条 PubSub 生命周期场景（subscribe→慢消费者并发→外移投递不断链→断线重连恢复留痕与幂等确认→cancel 属主校验→doStop 对账，覆盖裁定①②③）；≥1 条守卫场景（并发迁移启动 DDL 幂等 + recordMigration 无脏行覆盖 + startFallbackChains 中途失败回收，覆盖裁定⑦⑧）
-- [ ] **接线验证**（rule 23）：裁定②外移 executor 真实承载投递断言（投递线程名/计数证据，非仅 executor 存在）；裁定⑤版本谓词真实拦截越权 UPDATE 断言（updated==0 路径）；裁定⑥getFailure 真实被门禁消费断言（零调用方现状反转）；裁定⑨派生函数真实被 runVerify 与 startFallbackChains 双入口消费断言（非仅函数存在）
-- [ ] **无静默跳过**（rule 24）：裁定④join null 短路显式化（禁静默）；裁定⑤第二写失败显式抛错（禁吞）；裁定⑥死链 gateFailed 类型化拒绝；裁定⑦同名重入 putIfAbsent 显式拒绝；裁定②执行器拒绝策略显式（禁静默丢弃）；新增公共分支无空方法体/TODO
+- [x] 组 A PubSub 生命周期（nop-nosql-lettuce）：C6-004（裁定①，含 C1-011/C3-004 吸收面 + R19 前案消案注记）+ C8-001（裁定②，含 C3-005/C7-010 吸收面 + MA-02 反向钉死改写履行）+ C7-014（裁定③，勘误 10 收窄口径）+ C10-022/C10-023/C10-025
+- [x] 组 B 链停止与编排 fencing（nop-orm-migration）：**C3-008（裁定⑨，全组最先）**→ C7-001（裁定⑥，硬前置⑨，RP-2 约束）+ C6-003（裁定④，与 MA-03 同变更集）+ C7-003（裁定⑤，引用 2514 形态菜单）+ C7-002（裁定⑪，与⑤谓词协同）+ C10-003/004/005/010/011/015
+- [x] 组 C 启动补偿与 qs 键族（nop-orm-migration）：C3-001（裁定⑦，与裁定⑤同 diff 协调[X-1]，C6-001 吸收面）+ C3-009（裁定⑩，与⑨键族统一）+ C10-002/C10-006
+- [x] 组 D 迁移历史表（nop-db-migration）：C1-003（裁定⑧，RP-1 约束，CL-022 吸收面）+ C10-021
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑪ 按组 A–D 落位（Goals 节逐条判据）；红绿快照落 `_tmp/` 并登记；**变异探针纪律**：触碰恢复路径/停止协议的改动（裁定④）收口前必须运行含完整停止-恢复流程的端到端测试（恢复动作以断言方式确认目标可执行行真实存在）
+- [x] **端到端验证**（rule 22）：≥1 条编排全链场景（runIncremental[键派生清单登记]→链 failure 注入→死链 fail 门禁拒绝→fix-forward 受控自环重入→confirmSwitch 收敛停链[有界 join 断言]→completeSwitch 版本谓词拒绝越权写，覆盖裁定④⑤⑥⑨⑪）；≥1 条 PubSub 生命周期场景（subscribe→慢消费者并发→外移投递不断链→断线重连恢复留痕与幂等确认→cancel 属主校验→doStop 对账，覆盖裁定①②③）；≥1 条守卫场景（并发迁移启动 DDL 幂等 + recordMigration 无脏行覆盖 + startFallbackChains 中途失败回收，覆盖裁定⑦⑧）
+- [x] **接线验证**（rule 23）：裁定②外移 executor 真实承载投递断言（投递线程名/计数证据，非仅 executor 存在）；裁定⑤版本谓词真实拦截越权 UPDATE 断言（updated==0 路径）；裁定⑥getFailure 真实被门禁消费断言（零调用方现状反转）；裁定⑨派生函数真实被 runVerify 与 startFallbackChains 双入口消费断言（非仅函数存在）
+- [x] **无静默跳过**（rule 24）：裁定④join null 短路显式化（禁静默）；裁定⑤第二写失败显式抛错（禁吞）；裁定⑥死链 gateFailed 类型化拒绝；裁定⑦同名重入 putIfAbsent 显式拒绝；裁定②执行器拒绝策略显式（禁静默丢弃）；新增公共分支无空方法体/TODO
 - [ ] **提交纪律**：设计文档先行单独提交；按组提交（A/B/C/D 四组，裁定④与 plan 2472 收敛点同变更集、裁定⑨先于⑥、裁定⑤⑦同变更集[X-1]）；C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 11 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（12 条成员面）同 diff 落地；MA-02 反向钉死改写履行留痕（或裁定申报不触改写面并登记）
-- [ ] 必红证据（E2）：红①–红⑪均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = MA-02 await 化语义适配[旧断言语义对照留痕]，登记在案）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-persistence -am` BUILD SUCCESS；上游环境抖动按 Baseline 勘误 8 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 11 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（12 条成员面）同 diff 落地；MA-02 反向钉死改写履行留痕（或裁定申报不触改写面并登记）
+- [x] 必红证据（E2）：红①–红⑪均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = MA-02 await 化语义适配[旧断言语义对照留痕]，登记在案）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-persistence -am` BUILD SUCCESS；上游环境抖动按 Baseline 勘误 8 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
