@@ -2,7 +2,7 @@
 
 > Design Review: R2 agent_4d71d66b @ 2026-10-30（第 1 轮 FAIL[1 Blocker/2 Major/6 Minor]：Blocker=裁定⑥预设 ICache 原子 compute 能力不存在[插入-only]且补齐触未申报 nop-commons→改判 nop-orm 模块内世代 fence[CHM<String,AtomicLong>+版本化 value+fence CAS，生命周期弱引用+cap 100k]；Major-1 世代公式二义→三具名变量 readGen/fenceGen/valueGen+唯一公式 readGen==fenceGen；Major-2 裁定⑤投递机制与 BaseContext 降级路径不符→具名 context.execute+三句降级/吞弃/vert.x 语义；Minor×6 闭合[restore 原子 put/混合态单向化/⑬包络含 flushSession+跨裁定依赖/⑧synchronization 回退/§4.6 同对象注/⑫]——协调方核验后 PASS）
 > Design Review: R2 终轮 agent_4d71d66b @ 2026-10-30（第 2 轮 FAIL[1 Major/2 Minor]：Major=fence 生命周期 gen-0 起点使「fence 身份重置×gen-0 快照碰撞」可放行旧世代回填→per-persister 单调分配器非零起点[协调方修入]；Minor-2′ 降级/吞弃两处机制精确化、Minor-3′ compute 体异常 safeClose 语义——评审明示修复面局部无裁量点，协调方逐处断言落盘后核验 PASS））
-> Plan Status: active
+> Plan Status: completed（2026-10-31，closure audit APPROVED @ 06aa5959fe）
 > Draft Review: R1 agent_8db17b00 @ 2026-10-30（FAIL[1 Major/3 Minor]：Major-1 C2-001 写路径引用区间误指含 checkContext 方法族→勘误 6 订正 :495-644；Minor×3[cra-index 行号 :213-225 订正/C2-006 P2 并入标注/log 行数精度]——协调方修入后转 active；20+ 组基线亲读全吻合、结构完备、PA 判定 13/13 零 orm 核验成立）
 > Draft Review: 待独立 draft review（本 plan 为起草产出，Status=draft；独立子 agent draft review 通过后转 active）
 > Last Reviewed: 2026-10-30
@@ -221,35 +221,35 @@ Targets: 本 plan、roadmap 8.23 行、cra-index P1 台账、R4-18/R4-19 就绪�
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（注册表原子化/互斥/收尾队列化/世代围栏/协议原子化/锁纪律/NULL 谓词/短事务包络运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-14 十三行状态收敛（open→fixed，注记 plan 2517；吸收成员[C1-023/C2-003/C1-026/C3-006/C2-006]随各主行括注）；C10 收敛注记（全量 6 + 半边 3 按勘误 4 口径 + 009 注记）；roadmap 8.23 行 Status → done；R4-18/R4-19（8.58/8.59）软依赖就绪注记（**R4-18 注记含 C2-004 世代号裁定指向 + C1-016 钉零弱化义务确认**；R4-19 注记含 C2-016 钉边界确认）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（注册表原子化/互斥/收尾队列化/世代围栏/协议原子化/锁纪律/NULL 谓词/短事务包络运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-14 十三行状态收敛（open→fixed，注记 plan 2517；吸收成员[C1-023/C2-003/C1-026/C3-006/C2-006]随各主行括注）；C10 收敛注记（全量 6 + 半边 3 按勘误 4 口径 + 009 注记）；roadmap 8.23 行 Status → done；R4-18/R4-19（8.58/8.59）软依赖就绪注记（**R4-18 注记含 C2-004 世代号裁定指向 + C1-016 钉零弱化义务确认**；R4-19 注记含 C2-016 钉边界确认）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 十三行收敛 + 吸收成员括注 + C10 注记、roadmap 8.23 = done、R4-18/R4-19 就绪注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 十三行收敛 + 吸收成员括注 + C10 注记、roadmap 8.23 = done、R4-18/R4-19 就绪注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 13 项成员全部修复：C1-001（注册表原子化+槽兜底）、C1-003（ormModel volatile 化）、C1-015（组件列映射预计算/安全发布）、C2-001（session 全生命周期互斥）、C2-002（异步收尾线程纪律）、C2-004（read-repair 世代化）、C2-005（抢占 NULL 退化消除）、C2-013（事务注册协议原子化）、C2-015（组事务集合同规范）、C2-017（连接生命周期锁纪律）、C3-001（异步会话兜底关闭）、C3-005（flush 顺序修正）、C6-001（drainTo 等待窗口出事务）
-- [ ] batch-proposal R2-14 行 exit criteria 增补六段逐条达成并留证：①**IContext 注册表 get-or-create 单修复（ContextAttrs）**；②**ormModel volatile 化**；③**session 全生命周期互斥**；④**事务注册协议原子性（半个成功消除）**；⑤**实体缓存 read-repair 世代化**；⑥**drainTo 等待窗口出事务**
-- [ ] 对齐纪律守约：R10 自并单点（裁定⑧⑨同变更集）；C2-004×C1-027 世代号 SSOT 单侧声明（R4-18 消费注记落地）；平台前提零代做（nop-api-core 零触碰）；N4 实现约束（tryClaim+loadItems 同短事务）兑现；C1-016 钉零弱化；PA 条款闭环（零 orm 触碰声明兑现或条件申报面落地）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑬均有先红后绿或变异/回退论证（E2）；C10 收口门同 diff 落地（全量 6 + 半边 3 + 009 注记）
-- [ ] 设计文档裁定①–⑭成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：model-first-development.md（+source-anchors.md 按实际）（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）注册表原子化/互斥/收尾/围栏/协议/锁纪律/谓词/包络运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-persistence 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index P1 台账 R2-14 十三行收敛 + roadmap 8.23 → done + R4-18/R4-19 就绪注记（E6）
+- [x] 13 项成员全部修复：C1-001（注册表原子化+槽兜底）、C1-003（ormModel volatile 化）、C1-015（组件列映射预计算/安全发布）、C2-001（session 全生命周期互斥）、C2-002（异步收尾线程纪律）、C2-004（read-repair 世代化）、C2-005（抢占 NULL 退化消除）、C2-013（事务注册协议原子化）、C2-015（组事务集合同规范）、C2-017（连接生命周期锁纪律）、C3-001（异步会话兜底关闭）、C3-005（flush 顺序修正）、C6-001（drainTo 等待窗口出事务）
+- [x] batch-proposal R2-14 行 exit criteria 增补六段逐条达成并留证：①**IContext 注册表 get-or-create 单修复（ContextAttrs）**；②**ormModel volatile 化**；③**session 全生命周期互斥**；④**事务注册协议原子性（半个成功消除）**；⑤**实体缓存 read-repair 世代化**；⑥**drainTo 等待窗口出事务**
+- [x] 对齐纪律守约：R10 自并单点（裁定⑧⑨同变更集）；C2-004×C1-027 世代号 SSOT 单侧声明（R4-18 消费注记落地）；平台前提零代做（nop-api-core 零触碰）；N4 实现约束（tryClaim+loadItems 同短事务）兑现；C1-016 钉零弱化；PA 条款闭环（零 orm 触碰声明兑现或条件申报面落地）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑬均有先红后绿或变异/回退论证（E2）；C10 收口门同 diff 落地（全量 6 + 半边 3 + 009 注记）
+- [x] 设计文档裁定①–⑭成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：model-first-development.md（+source-anchors.md 按实际）（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）注册表原子化/互斥/收尾/围栏/协议/锁纪律/谓词/包络运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-persistence 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index P1 台账 R2-14 十三行收敛 + roadmap 8.23 → done + R4-18/R4-19 就绪注记（E6）
 
 ## Deferred But Adjudicated
 
@@ -289,3 +289,12 @@ Follow-up:
 - **裁定⑥世代化与 C1-027 接缝风险**：世代号形态若在本批定夺后与 R4-18 的失效判据面（C1-027）出现语义分叉，R4-18 按引用边界条款回本设计文档修订登记，不得模块内发明第二套世代语义（对齐 2514 裁定⑥引用纪律先例）。
 - **裁定⑬事务边界内移的语义面风险**：drainTo 摘除方法级 REQUIRES_NEW 改变既有装配契约（若部署层拦截器未装配则行为面不同——C6-001 判级前提声明）；变异探针纪律适用（注释/删除目标行→跑钉子→恢复→再跑，恢复以断言方式确认）；N4 约束（tryClaim+loadItems 同短事务）破坏即抢占 CAS 失效，回归钉红⑦/红⑬必须同变更集验证。
 - **裁定⑧⑨锁序风险**：per-context 门闩若误覆盖 task 执行/commit（listener 外部回调）将串行化整个请求并制造锁内 I/O——锁序约束在设计文档成文为硬边界，closure audit 抽查临界区边界。
+
+## Closure
+
+- **Closure Audit**：独立 fresh-session auditor @ 2026-10-31，基线 `fb4c40fb5e`..`06aa5959fe`。结论 **APPROVED**（Major-1 = Phase 2 Exit Criteria 两 checkbox 未勾——已修复勾选并附证据路径；Minor-1 = 裁定③混合形态——已入偏差登记 6）。
+- **Anti-Hollow live 实证**：裁定①`OrmSessionRegistry.java:58`/`TransactionRegistry.java:34` computeIfAbsent 双入口；④`OrmSessionImpl.java:117/:192/:832` 互斥真实在 flush/close；⑤`OrmTemplateImpl.dispatchSessionFinalize` context.execute 投递；⑥`GenerationFence.java:72-81` readGen==fenceGen CAS+非零单调起点；⑦`appendClaimCondition` IS NULL 条件 UPDATE 无退化路径；⑧⑨`getOrCreateRegisteredTransaction`+挂起标记+`ERR_TXN_LATE_SUB_TRANSACTION` 显式拒绝；⑩JdbcTransaction 五触点 monitor；⑪WeakHashMap 兜底登记+惰性清扫；⑫dirty 移位至 batchActionQueue.flush 成功后；⑬drainTo 逐轮 REQUIRES_NEW 短事务含 tryClaim（N4 断言 totalLoads==loadsInsideTxn）。零空方法体/吞异常/TODO。
+- **Exit Criteria 逐条**：13 成员 landed + focused 测试 PASS（git diff 核对）；E2 红①–红⑬留痕 PASS（`_tmp/red-green-2517-R1..R6-red` / `G1/G2-G5/G6-green`）；零回退钉 git diff 为空 PASS（唯一 diff=TestFlushFailure C10-009 允许适配）；rule 22/23/24 PASS（e2e-chains log）；E1 EXIT=0（授权支路已声明）；E3 四模块 reactor r2 EXIT=0（707 测试 0 失败，r1 nop-core flake 三联裁定）；owner doc 两节+ORM-CC-001 锚点；check-doc-links --strict EXIT=0；scan-hollow high=3 批前既有裁定（TdMessageService/GeometryTypeHandler guard 式占位，零触碰模块）；零触碰核对 PASS。
+- **抽样复跑**：TestCra2517GenerationFence / TestDaoEntityBlockingSourceClaimCra2517 reactor `-am` EXIT=0（surefire 当日新鲜产出，非陈旧构件）。
+- **台账**：cra-index R2-14 十三行 open→fixed（吸收成员括注随主行）；roadmap 8.23→done；R4-18（8.58）/R4-19（8.59）就绪注记落账。
+- **双门禁**：`check-plan-checklist.mjs --strict` EXIT=0（Passed 1/0 failed）；`check-doc-links.mjs --strict` EXIT=0（0 errors，2 warnings 为批外既有）。

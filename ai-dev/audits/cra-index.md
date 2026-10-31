@@ -210,19 +210,19 @@
 | nop-service-framework-hotpath-C8-001 | 2.3 | nop-service-framework-hotpath | WS 订阅推送同步阻塞发送（无写超时）钉死 globalTimer 全池（实为 4 线程，ρ=N·L/40；平台 27 处消费方） | 已修（R1-03，plan 2498 closure audit PASS） | fixed |
 | nop-service-framework-hotpath-C8-002 | 2.3 | nop-service-framework-hotpath | Gateway 429 重试放大 ×7（加法）无准入上界：在途×90s 挂起确定性 OOM 轨迹（修复 = `UpstreamAdmission` 共享许可池[主腿含挂起窗 + fallback 腿，`nop.gateway.upstream-max-inflight` 1000/≤0 无界] + 拒绝按落点钉死[主腿同步 throw / fallback failedFuture] + `ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT` 不可重试 + `upstream-max-retries` 3 + equal jitter 后置） | 已修（R2-05，plan 2508 closure audit PASS）| fixed |
 | nop-service-framework-hotpath-C9-012 | 2.3 | nop-service-framework-hotpath | LocalDateTimeFieldMarshaller computeSize=20 vs 纳秒实写 23-29 字节 protobuf 越界（双模式硬失效实测；**移交功能正确性维度**） | cross-ref→功能正确性维度 | open（接收轨落名） |
-| nop-persistence-rw-C1-001 | 2.4 | nop-persistence-rw | IContext 会话/事务注册表 get-or-create 竞态：僵尸会话/事务表覆盖/双一级缓存（←C1-023/C2-003；ContextAttrs.getOrCreate 单修复） | R2-14 | open |
-| nop-persistence-rw-C1-003 | 2.4 | nop-persistence-rw | ormModel 非 volatile：reload 后旧模型无限期可见+非同步 setOrmInterceptor | R2-14 | open |
-| nop-persistence-rw-C1-015 | 2.4 | nop-persistence-rw | OrmComponentModel 先发布引用后填充：getColumnPropIdMap 热路径竞态（无需 JMM 假设） | R2-14 | open |
-| nop-persistence-rw-C2-001 | 2.4 | nop-persistence-rw | session 全生命周期零互斥：flush 重入守卫为静默跳过（同上下文并发丢刷写/双刷写） | R2-14 | open |
-| nop-persistence-rw-C2-002 | 2.4 | nop-persistence-rw | runInNewSessionAsync 完成线程执行 flush/registry 恢复/close 无同步 | R2-14 | open |
-| nop-persistence-rw-C2-004 | 2.4 | nop-persistence-rw | 全局实体缓存 read-repair：迟到 put 覆盖并发 evict，陈旧值无界驻留（实体级 opt-in 启用上可达） | R2-14 | open |
-| nop-persistence-rw-C2-005 | 2.4 | nop-persistence-rw | DaoEntityBlockingSource CAS 抢占退化无条件 UPDATE：任务重复投递 | R2-14 | open |
-| nop-persistence-rw-C2-013 | 2.4 | nop-persistence-rw | 事务注册协议无原子性：半个成功 ERR_TXN_NOT_REGISTERED（REQUIRED 组语义退化） | R2-14 | open |
-| nop-persistence-rw-C2-015 | 2.4 | nop-persistence-rw | subTransactions 裸 LinkedHashMap：组提交丢写无感知（最重后果） | R2-14 | open |
-| nop-persistence-rw-C2-017 | 2.4 | nop-persistence-rw | JdbcTransaction 连接生命周期无互斥：双取池连接泄漏+eagerRelease 后僵尸连接丢写（←C1-026） | R2-14 | open |
-| nop-persistence-rw-C3-001 | 2.4 | nop-persistence-rw | runInNewSessionAsync 上游永不完成：session 永不关闭+注册表滞留 | R2-14 | open |
-| nop-persistence-rw-C3-005 | 2.4 | nop-persistence-rw | flush 先清 dirty 再执行 SQL：非事务路径半个成功残留（←C2-006） | R2-14 | open |
-| nop-persistence-rw-C6-001 | 2.4 | nop-persistence-rw | drainTo 事务横跨等待窗口：K≥8 消费者先于生产者即连接池耗尽（←C3-006 单工单） | R2-14 | open |
+| nop-persistence-rw-C1-001 | 2.4 | nop-persistence-rw | IContext 会话/事务注册表 get-or-create 竞态：僵尸会话/事务表覆盖/双一级缓存（←C1-023/C2-003；ContextAttrs.getOrCreate 单修复） 已修（R2-14，plan 2517 closure audit APPROVED（←C1-023/C2-003 随本行消号）） | fixed |
+| nop-persistence-rw-C1-003 | 2.4 | nop-persistence-rw | ormModel 非 volatile：reload 后旧模型无限期可见+非同步 setOrmInterceptor 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C1-015 | 2.4 | nop-persistence-rw | OrmComponentModel 先发布引用后填充：getColumnPropIdMap 热路径竞态（无需 JMM 假设） 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C2-001 | 2.4 | nop-persistence-rw | session 全生命周期零互斥：flush 重入守卫为静默跳过（同上下文并发丢刷写/双刷写） 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C2-002 | 2.4 | nop-persistence-rw | runInNewSessionAsync 完成线程执行 flush/registry 恢复/close 无同步 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C2-004 | 2.4 | nop-persistence-rw | 全局实体缓存 read-repair：迟到 put 覆盖并发 evict，陈旧值无界驻留（实体级 opt-in 启用上可达） 已修（R2-14，plan 2517 closure audit APPROVED（C1-027 世代号 SSOT）） | fixed |
+| nop-persistence-rw-C2-005 | 2.4 | nop-persistence-rw | DaoEntityBlockingSource CAS 抢占退化无条件 UPDATE：任务重复投递 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C2-013 | 2.4 | nop-persistence-rw | 事务注册协议无原子性：半个成功 ERR_TXN_NOT_REGISTERED（REQUIRED 组语义退化） 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C2-015 | 2.4 | nop-persistence-rw | subTransactions 裸 LinkedHashMap：组提交丢写无感知（最重后果） 已修（R2-14，plan 2517 closure audit APPROVED（R10 与 C2-013 同变更集）） | fixed |
+| nop-persistence-rw-C2-017 | 2.4 | nop-persistence-rw | JdbcTransaction 连接生命周期无互斥：双取池连接泄漏+eagerRelease 后僵尸连接丢写（←C1-026） 已修（R2-14，plan 2517 closure audit APPROVED（←C1-026 随本行消号）） | fixed |
+| nop-persistence-rw-C3-001 | 2.4 | nop-persistence-rw | runInNewSessionAsync 上游永不完成：session 永不关闭+注册表滞留 已修（R2-14，plan 2517 closure audit APPROVED） | fixed |
+| nop-persistence-rw-C3-005 | 2.4 | nop-persistence-rw | flush 先清 dirty 再执行 SQL：非事务路径半个成功残留（←C2-006） 已修（R2-14，plan 2517 closure audit APPROVED（←C2-006 随本行消号）） | fixed |
+| nop-persistence-rw-C6-001 | 2.4 | nop-persistence-rw | drainTo 事务横跨等待窗口：K≥8 消费者先于生产者即连接池耗尽（←C3-006 单工单） 已修（R2-14，plan 2517 closure audit APPROVED（←C3-006 随本行消号）） | fixed |
 | nop-persistence-peri-C6-004（MA-01 主） | 2.5 | nop-persistence-peri | PubSub 订阅管理竞态：cancel/suspend/resume 绕过监视器三步变更共享 entry/注册表/通道，订阅静默失效或复活双投递（←C1-011/C3-004；已知未修复 check/nosql-cdc 2026-08-19 前案） | R2-15 | open |
 | nop-persistence-peri-C8-001（MA-02 主，开放裁定暂计 P1） | 2.5 | nop-persistence-peri | PubSub 消费回调在共享 Redis IO 线程内联执行：慢消费者队头阻塞→服务端断链→静默丢消息，CompletionStage ack 契约被整体丢弃（←C3-005/C7-010；严重度 7.1 终裁） | R2-15 | open |
 | nop-persistence-peri-C6-003（MA-04 主） | 2.5 | nop-persistence-peri | 链停止协议不可验证：thread 字段晚于 start 发布使 join 空转、abort 读 stale-null 跳过 stopAll、stopAll 仅 cancel 不等待（←C1-004/CL-009） | R2-15 | open |

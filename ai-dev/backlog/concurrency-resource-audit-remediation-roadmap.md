@@ -162,7 +162,7 @@
 | 8.20 | R2-11 1.5 task/wf 批 | done（plan 2514 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/03-modules/nop-task.md`；`docs-for-ai/03-modules/nop-wf.md` | batch-proposal.md §二 R2-11（6 项） | none（修复 plan） |
 | 8.21 | R2-12 1.6 tcc 批（CAS/守卫 + 补偿/账本卫生） | done（plan 2515 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md` | batch-proposal.md §二 R2-12（13 项） | none（修复 plan） |
 | 8.22 | R2-13 1.7 batch 批 | done（plan 2516 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/03-modules/nop-batch.md` | batch-proposal.md §二 R2-13（8 项）；硬依赖 8.2（R1-01）+8.20（R2-11，勘误申报 @ 2026-10-30：原 Deps 列缺；fencing 引用 plan 2514 设计文档不重建） | none（修复 plan） |
-| 8.23 | R2-14 2.4 ORM 并发批（会话/事务互斥 + 模型发布/缓存/异步） | planned（plan 2517，draft review R1 FAIL 1M→修订转 active） | `docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-14（13 项） | none（修复 plan） |
+| 8.23 | R2-14 2.4 ORM 并发批（会话/事务互斥 + 模型发布/缓存/异步） | done（plan 2517 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-14（13 项） | none（修复 plan） |
 | 8.24 | R2-15 2.5 peri 批（PubSub 断链 + 链编排 fencing） | todo | `docs-for-ai/02-core-guides/model-first-development.md`（迁移 owner 面）；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-15（11 项） | none（修复 plan） |
 | 8.25 | R2-16 3.1 agent 编排/会话批 | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-16（10 项）；硬依赖 8.5（R1-04）；软依赖 8.3（R1-02）；软依赖 8.4（R1-03）；软依赖 8.7（R1-06） | none（修复 plan） |
 | 8.26 | R2-17 3.4 AI REST 批 | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-17（4 项） | none（修复 plan） |
@@ -197,8 +197,8 @@
 | 8.55 | R4-15 2.2 配置刷新/订阅/插件/IoC 启动图/销毁链束（G31） | todo | `docs-for-ai/02-core-guides/ioc-and-config.md` | batch-proposal.md §二 R4-15（17 项） | none（修复 plan） |
 | 8.56 | R4-16 2.3 WS/网关束 a（G36 前半） | todo | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R4-16（12 项）；软依赖 8.5（R1-04）；软依赖 8.14（R2-05）；软依赖 8.15（R2-06） | none（修复 plan） |
 | 8.57 | R4-17 2.3 auth/流缓冲/dispatchAll 束 b（G36 后半） | todo | `docs-for-ai/02-core-guides/service-layer.md` | batch-proposal.md §二 R4-17（12 项）；软依赖 8.56（R4-16） | none（修复 plan） |
-| 8.58 | R4-18 2.4 ORM 切片束 a（G45 前半） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-18（15 项）；软依赖 8.23（R2-14） | none（修复 plan） |
-| 8.59 | R4-19 2.4 ORM 切片束 b（G45 后半） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-19（15 项）；软依赖 8.58（R4-18） | none（修复 plan） |
+| 8.58 | R4-18 2.4 ORM 切片束 a（G45 前半） | todo（软依赖 8.23 已就绪 @ 2026-10-31：世代号语义以 plan 2517 设计文档裁定⑥为 SSOT 消费不重建；C1-016 钉 TestLazyLoadOrmModel 零弱化义务继承） | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-18（15 项）；软依赖 8.23（R2-14） | none（修复 plan） |
+| 8.59 | R4-19 2.4 ORM 切片束 b（G45 后半） | todo（软依赖链就绪 @ 2026-10-31：C2-016 钉 testMultipleCommit 现状容忍边界经 plan 2517 零 diff 核对确认） | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-19（15 项）；软依赖 8.58（R4-18） | none（修复 plan） |
 | 8.60 | R4-20 2.5 链复制/PubSub 关联束（G47，C7-013 拆出至 R4-32） | todo | `docs-for-ai/02-core-guides/model-first-development.md` | batch-proposal.md §二 R4-20（13 项）；软依赖 8.24（R2-15） | none（修复 plan） |
 | 8.61 | R4-21 3.1 会话/配额/取消束 a（G52 前半，C7-004 拆出至 R4-32） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R4-21（10 项）；硬依赖 8.25（R2-16） | none（修复 plan） |
 | 8.62 | R4-22 3.1 资源卫生束 b（G52 后半） | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R4-22（10 项）；软依赖 8.61（R4-21） | none（修复 plan） |
