@@ -114,6 +114,113 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
                 ex.getErrorCode());
     }
 
+    // ==================== C7-001（plan 2516 裁定①）：stale 接管 / N1 参数化改写 ====================
+    // N1 改写前后语义对照（修复 diff 前置义务）：
+    // 改写前：三用例以「存在 RUNNING 行即无条件拒绝」为期望（闸门无 stale 判定，死区永久）。
+    // 改写后：显式构造 live/stale 两态前置行——live 行（restartTime=now，租约未到期）维持 EXIST_RUNNING
+    // 响亮拒绝（语义零变更）；stale 行（restartTime 过期或 NULL）期望 stale 接管成功
+    // （status=RUNNING、execCount 递增、workerId 刷新）。其余闸门正确面用例零触碰。
+
+    /** live 行（租约未到期）：维持响亮拒绝（N1 live 态，语义零回退钉） */
+    @Test
+    void testRunningRow_liveLease_rejectedLoudly() {
+        String taskKey = "live-lease-" + System.nanoTime();
+
+        BatchTaskContextImpl first = newCtx("direct-live-lease", taskKey);
+        store.loadTaskState(first);
+
+        NopException ex = assertStartThrows("direct-live-lease", taskKey);
+        assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE.getErrorCode(),
+                ex.getErrorCode());
+    }
+
+    /** stale 行（restartTime 过期）：接管成功——status=RUNNING、execCount 递增、workerId 刷新 */
+    @Test
+    void testRunningRow_staleLease_takeoverSucceeds() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "stale-lease-" + System.nanoTime();
+
+        BatchTaskContextImpl first = newCtx("direct-stale-lease", taskKey);
+        store.loadTaskState(first);
+        makeStaleRunning(dao, "direct-stale-lease", taskKey);
+
+        BatchTaskContextImpl second = newCtx("direct-stale-lease", taskKey);
+        store.loadTaskState(second);
+        assertTrue(second.isRecoverMode(), "stale takeover must enter recover mode");
+
+        NopBatchTask row = queryOneRow(dao, "direct-stale-lease", taskKey);
+        assertEquals(TASK_STATUS_RUNNING, row.getTaskStatus());
+        assertEquals(2, row.getExecCount(), "takeover must increment execCount");
+        assertNotNull(row.getWorkerId(), "takeover must refresh workerId");
+    }
+
+    /** stale 行（restartTime 为 NULL，存量死区行形态）：NULL 判 stale，接管成功 */
+    @Test
+    void testRunningRow_nullRestartTime_takeoverSucceeds() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "stale-null-" + System.nanoTime();
+
+        BatchTaskContextImpl first = newCtx("direct-stale-null", taskKey);
+        store.loadTaskState(first);
+        makeStaleRunning(dao, "direct-stale-null", taskKey, true);
+
+        BatchTaskContextImpl second = newCtx("direct-stale-null", taskKey);
+        store.loadTaskState(second);
+
+        NopBatchTask row = queryOneRow(dao, "direct-stale-null", taskKey);
+        assertEquals(TASK_STATUS_RUNNING, row.getTaskStatus());
+        assertEquals(2, row.getExecCount());
+    }
+
+    /** 时序 B（进程崩溃死区）：stale 行接管成功后 checkpoint 续租，租约窗内第二实例被拒（双层并存验证） */
+    @Test
+    void testStaleTakeover_thenCheckpointRenewsLease_secondInstanceRejected() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "renew-" + System.nanoTime();
+
+        // 注入 stale RUNNING 行（NULL restartTime 两态之一）
+        BatchTaskContextImpl dead = newCtx("direct-renew", taskKey);
+        store.loadTaskState(dead);
+        makeStaleRunning(dao, "direct-renew", taskKey, true);
+
+        // 重启序列：接管成功
+        BatchTaskContextImpl revived = newCtx("direct-renew", taskKey);
+        store.loadTaskState(revived);
+        assertEquals(2, queryOneRow(dao, "direct-renew", taskKey).getExecCount());
+
+        // checkpoint 续租：saveTaskState(false) 刷新 restartTime 后，租约窗内第二实例响亮被拒
+        store.saveTaskState(false, null, revived);
+        NopException ex = assertStartThrows("direct-renew", taskKey);
+        assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE.getErrorCode(),
+                ex.getErrorCode());
+    }
+
+    /** saveTaskState 条件 UPDATE fencing：僵尸写者（execCount 落后）的状态写被丢弃且显式失败、行不被覆写 */
+    @Test
+    void testSaveTaskState_zombieWriterWriteLost() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "zombie-" + System.nanoTime();
+
+        BatchTaskContextImpl first = newCtx("direct-zombie", taskKey);
+        store.loadTaskState(first);
+
+        // 模拟本实例已被接管重启：DB 行 execCount 推进到 2（僵尸实例上下文仍持 execCount=1）
+        NopBatchTask row = queryOneRow(dao, "direct-zombie", taskKey);
+        row.setExecCount(2);
+        row.setWorkerId("new-instance");
+        dao.updateEntityDirectly(row);
+
+        // 僵尸写者的终态写必须被丢弃（不抛出打断清理链），且不得覆写接管实例的状态
+        first.setCompletedIndex(99L);
+        store.saveTaskState(true, null, first);
+
+        NopBatchTask after = queryOneRow(dao, "direct-zombie", taskKey);
+        assertEquals(2, after.getExecCount(), "zombie write must not change execCount");
+        assertEquals("new-instance", after.getWorkerId(), "zombie write must not overwrite workerId");
+        org.junit.jupiter.api.Assertions.assertNotEquals(NopBatchDaoConstants.TASK_STATUS_COMPLETED,
+                after.getTaskStatus(), "zombie write must not mark task completed");
+    }
+
     @Test
     void testLoadTaskState_killedTask_rejected() {
         IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
@@ -169,6 +276,8 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
      * 修复前：无启动闸门，第二实例插入撞唯一键后以裸数据库错误失败（生产形态），
      * 或在无唯一键环境下双双插入成功（测试环境缺省形态，更隐蔽）。
      * 修复后：唯一键冲突被捕获并转入既有实例路径，恰好一个实例成功，另一个以 EXIST_RUNNING 响亮失败。
+     * N1 改写（plan 2516 裁定①）：新增 stale 前置态变体——前置 stale RUNNING 行时两并发实例
+     * 恰好一个 stale 接管成功，另一个 rowsAffected==0 响亮失败。
      */
     @Test
     void testConcurrentStart_freshKey_onlyOneInstanceEntersRunning() throws Exception {
@@ -193,10 +302,43 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
     }
 
     /**
+     * N1 stale 态变体（plan 2516 裁定①）：前置 stale RUNNING 行，两实例并发启动——
+     * 恰好一个经扩展 WHERE 单飞接管成功（execCount 递增一次），另一个以 EXIST_RUNNING 响亮失败。
+     * 缺陷态（无 stale 判定）：两实例双双被拒（死区风暴）——本用例即为红①载体之一。
+     */
+    @Test
+    void testConcurrentStart_staleRunningRow_onlyOneInstanceTakesOver() throws Exception {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        ensureTaskNameKeyUniqueIndex();
+        String taskName = "conc-stale";
+        String taskKey = "key-" + System.nanoTime();
+
+        // 前置：正常启动一次后把行改造为 stale RUNNING（restartTime 过期）
+        BatchTaskContextImpl seed = newCtx(taskName, taskKey);
+        store.loadTaskState(seed);
+        makeStaleRunning(dao, taskName, taskKey);
+
+        StartOutcome outcome = runConcurrentStarts(taskName, taskKey, false, false);
+
+        assertEquals(0, outcome.otherErrors.size(),
+                "no non-semantic failure allowed: " + outcome.otherErrors);
+        assertEquals(1, outcome.successCount.get(), "exactly one instance may take over");
+        assertEquals(1, outcome.conflicts.size(), "the other instance must fail loudly");
+        assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE.getErrorCode(),
+                outcome.conflicts.peek().getErrorCode());
+
+        List<NopBatchTask> rows = queryRows(dao, taskName, taskKey);
+        assertEquals(1, rows.size());
+        assertEquals(TASK_STATUS_RUNNING, rows.get(0).getTaskStatus());
+        assertEquals(2, rows.get(0).getExecCount(), "takeover must increment execCount exactly once");
+    }
+
+    /**
      * 并发重启：任务已 COMPLETED，两实例同时以 allowStartIfComplete=true 重启（会合栅栏确定化竞态窗口）。
      * 修复前：两实例都通过读后判检查，竞态输家以裸ORM错误 nop.err.orm.update-entity-not-found 失败
      * （实体乐观锁误报为"实体不存在"，无任务上下文，运维无法区分并发冲突与真实故障）。
      * 修复后：条件更新 affected-rows 裁决，恰好一个实例获得 RUNNING，输家收到 EXIST_RUNNING 业务语义错误。
+     * N1 stale 态变体：前置 stale RUNNING 行（restartTime=NULL），并发重启恰好一个接管。
      */
     @Test
     void testConcurrentRestartFromCompleted_onlyOneInstanceGainsRunning() throws Exception {
@@ -234,6 +376,28 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
     }
 
     // ==================== helpers ====================
+
+    /**
+     * C7-001 stale 前置态构造（N1 改写载体）：把任务行改造成 restartTime 过期（2 倍租约之前）的 RUNNING 行，
+     * 模拟终态保存失败/进程崩溃遗留的死区行。
+     */
+    private void makeStaleRunning(IEntityDao<NopBatchTask> dao, String taskName, String taskKey) {
+        makeStaleRunning(dao, taskName, taskKey, false);
+    }
+
+    private void makeStaleRunning(IEntityDao<NopBatchTask> dao, String taskName, String taskKey, boolean nullRestartTime) {
+        NopBatchTask row = queryOneRow(dao, taskName, taskKey);
+        row.setTaskStatus(TASK_STATUS_RUNNING);
+        if (nullRestartTime) {
+            row.setRestartTime(null);
+        } else {
+            // nop.batch.task.stale-lease-ms 缺省 600000（plan 2516 裁定①一次定夺值），
+            // 此处用字面量构造过期租约，避免与产品配置常量产生编译期耦合
+            long staleLeaseMs = 600000L;
+            row.setRestartTime(new java.sql.Timestamp(System.currentTimeMillis() - 2 * staleLeaseMs));
+        }
+        dao.updateEntityDirectly(row);
+    }
 
     private static BatchTaskContextImpl newCtx(String taskName, String taskKey) {
         BatchTaskContextImpl ctx = new BatchTaskContextImpl();

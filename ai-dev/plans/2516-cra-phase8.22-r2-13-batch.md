@@ -123,33 +123,38 @@ Exit Criteria:
 
 ### Phase 2 - 8 成员实现 + 回归测试
 
-Status: planned
+Status: done
 Targets: `nop-batch/nop-batch-{dao,core,dsl,jdbc,exp,sys}/src/`（+分支触发制 `nop-report/nop-report-core/src/`）——各自 main + test 树
 
 - Item Types: `Fix`（6 项 P1 + 2 项 P2 搭车均为已确认 live defect/批前裁定搭车，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 core/dao：C7-001（裁定① fencing/stale + N1 参数化改写前置）+ C6-009（裁定⑦ 同变更集——族 A2 配套）+ C10-002；C6-002（裁定⑥ REE 封闭 + C7-002A 结算）+ C10-001
-- [ ] 组 core 护栏：C8-001（裁定② Guard）+ C8-005 吸收面 + C10-003 + N3 搭车；C8-002（裁定③，core 侧钳位 WARN 半）+ C10-004
-- [ ] 组 dsl/jdbc/exp/sys：C5-001（裁定④）+ C10-011 + C5-006 顺带评估；C5-002（裁定⑤ + N2 改写前置）+ C10-005 半边；C8-002 exp 侧守卫（裁定③ exp 半，与 core 半同变更集）；C7-011（裁定⑧）随 C10-002 同 diff
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
-  - [ ] 红①+红⑦+红⑧（组 core/dao+C10-002）：死区接管 + 终态写失败留痕 + sys-event 守卫接线——缺陷态各自红 → 修复后绿
-  - [ ] 红⑥（组 core/C10-001）：REE 注入资源泄漏/RUNNING + Error 注入并存——缺陷态红 → 修复后终态化+幽灵链结算绿
-  - [ ] 红②+红③（组 core/exp/C10-003+C10-004）：dispatch 护栏 fail-fast + export 守卫对称——缺陷态红 → 修复后绿
-  - [ ] 红④+红⑤（组 dsl/jdbc/C10-011+C10-005 半边）：excel 物化断言 + fetchSize 运行时生效——缺陷态红 → 修复后绿（N1/N2 改写前后对照留痕随红①红⑤）
-- [ ] **端到端验证**（rule 22）：≥1 条批任务全链（DSL 装配→setup→chunk 循环[含 dispatch 派发]→终态保存→[失败路径]终态写失败留痕→[崩溃模拟]重启 stale 接管，覆盖裁定①⑥⑦；saveState=true 持久化形态）；≥1 条读侧链（excel/jdbc reader→物化/fetchSize 断言→chunk 消费，覆盖裁定④⑤；含 guard 用例 dispatch/exp 面）
-- [ ] **接线验证**（rule 23）：裁定① stale 谓词真实被 `tryMarkTaskRunning` 条件 UPDATE 消费且接管分支 rowsAffected 断言（非仅 SQL 存在）；裁定② Guard 真实被 buildLoader 装配链调用断言；裁定③ WARN/守卫真实被缺省配置路径触发断言；裁定⑥ futures 包络真实在 REE 注入下结算全部已提交链断言；裁定⑧ saveState 接线后守卫真实经过断言
-- [ ] **无静默跳过**（rule 24）：裁定①接管失败显式（保留既有快失败异常语义，非静默放行）；裁定⑥REE 路径显式结算（非吞）；裁定⑦终态写失败显式 ERROR+计数（非空 catch）；裁定③钳位 WARN 非静默；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交——core/dao / 护栏 / dsl/jdbc/exp/sys，C10 测试与对应本体同一 commit（裁定①⑦同变更集、裁定③两半同变更集）；组间无耦合时可独立提交序列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 组 core/dao：C7-001（裁定① fencing/stale + N1 参数化改写前置）+ C6-009（裁定⑦ 同变更集——族 A2 配套）+ C10-002；C6-002（裁定⑥ REE 封闭 + C7-002A 结算）+ C10-001
+- [x] 组 core 护栏：C8-001（裁定② Guard）+ C8-005 吸收面 + C10-003 + N3 搭车；C8-002（裁定③，core 侧钳位 WARN 半）+ C10-004
+- [x] 组 dsl/jdbc/exp/sys：C5-001（裁定④）+ C10-011 + C5-006 顺带评估；C5-002（裁定⑤ + N2 改写前置）+ C10-005 半边；C8-002 exp 侧守卫（裁定③ exp 半，与 core 半同变更集）；C7-011（裁定⑧）随 C10-002 同 diff
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：
+  - [x] 红①+红⑦+红⑧（组 core/dao+C10-002）：死区接管 + 终态写失败留痕 + sys-event 守卫接线——缺陷态各自红 → 修复后绿
+  - [x] 红⑥（组 core/C10-001）：REE 注入资源泄漏/RUNNING + Error 注入并存——缺陷态红 → 修复后终态化+幽灵链结算绿
+  - [x] 红②+红③（组 core/exp/C10-003+C10-004）：dispatch 护栏 fail-fast + export 守卫对称——缺陷态红 → 修复后绿
+  - [x] 红④+红⑤（组 dsl/jdbc/C10-011+C10-005 半边）：excel 物化断言 + fetchSize 运行时生效——缺陷态红 → 修复后绿（N1/N2 改写前后对照留痕随红①红⑤）
+- [x] **端到端验证**（rule 22）：≥1 条批任务全链（DSL 装配→setup→chunk 循环[含 dispatch 派发]→终态保存→[失败路径]终态写失败留痕→[崩溃模拟]重启 stale 接管，覆盖裁定①⑥⑦；saveState=true 持久化形态）；≥1 条读侧链（excel/jdbc reader→物化/fetchSize 断言→chunk 消费，覆盖裁定④⑤；含 guard 用例 dispatch/exp 面）
+- [x] **接线验证**（rule 23）：裁定① stale 谓词真实被 `tryMarkTaskRunning` 条件 UPDATE 消费且接管分支 rowsAffected 断言（非仅 SQL 存在）；裁定② Guard 真实被 buildLoader 装配链调用断言；裁定③ WARN/守卫真实被缺省配置路径触发断言；裁定⑥ futures 包络真实在 REE 注入下结算全部已提交链断言；裁定⑧ saveState 接线后守卫真实经过断言
+- [x] **无静默跳过**（rule 24）：裁定①接管失败显式（保留既有快失败异常语义，非静默放行）；裁定⑥REE 路径显式结算（非吞）；裁定⑦终态写失败显式 ERROR+计数（非空 catch）；裁定③钳位 WARN 非静默；新增公共分支无空方法体/TODO
+- [x] **提交纪律**：设计文档先行单独提交；按组提交——core/dao / 护栏 / dsl/jdbc/exp/sys，C10 测试与对应本体同一 commit（裁定①⑦同变更集、裁定③两半同变更集）；组间无耦合时可独立提交序列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 8 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 五条收口门同 diff 落地；N1/N2/N3 三项义务履行并留对照痕
-- [ ] 必红证据（E2）：红①–红⑧均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = N1 三用例参数化 + N2 缺省语义断言，改写前后语义对照留痕登记在案）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-batch -am` BUILD SUCCESS（裁定④ (a) 分支时增补 `./mvnw test -pl nop-report -am`）；上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 8 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 五条收口门同 diff 落地；N1/N2/N3 三项义务履行并留对照痕
+- [x] 必红证据（E2）：红①–红⑧均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：零回退钉清单全部保持绿（钉零回改逐条 git diff 为空核对；唯一允许的钉改写 = N1 三用例参数化 + N2 缺省语义断言，改写前后语义对照留痕登记在案）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-batch -am` BUILD SUCCESS（裁定④ (a) 分支时增补 `./mvnw test -pl nop-report -am`）；上游环境抖动按 Baseline 勘误 5 三联裁定处理并留痕；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
+
+**Phase 2 偏差登记（2026-10-30，TestBatchTaskDsl 快照失败裁定）**：裁定①落地后 `TestBatchTaskDsl#testBatchTask` 在 nop-batch 六模块 reactor 门禁红（solo `-pl nop-batch-dsl` 假绿——离线解析到本地仓库旧版 nop-batch-dao 构件；以 reactor 内 dao 为准）。根因判定 = **fencing 语义正确、非产品缺陷**：saveTaskState 条件 UPDATE 的 exec_count fencing 与 insert-path（DB=实体=1）一致，DSL 流状态写全部落盘（END_TIME/RESTART_TIME 在 DB 非空即条件 UPDATE matched 的直接证据；六模块门禁日志唯一一次 `task-state-write-lost-fencing` 来自新增钉 testSaveTaskState_zombieWriterWriteLost 的预期 zombie 分支）。失败三症状均为 AutoTest 用例表未随裁定①新行为同步：(1) RESTART_TIME 期望空 = 旧契约，新契约 insert 即持租约 + checkpoint 续租 → 恒非空；(2) END_TIME 的 `@var:NopBatchTask@endTime` 变量依赖 ORM 实体 hook（AutoTestOrmHook clock 列 dirty 属性）注册，条件 UPDATE 绕过该 hook → 变量不再注册；(3) VERSION=11 为旧实体写路径（每 checkpoint ORM 乐观锁递增）产物，条件 UPDATE 绕过 VERSION。修复落点 = 用例表同步（裁定①套件义务，路径 (b)）：`nop-batch/nop-batch-dsl/_cases/io/nop/batch/dsl/TestBatchTaskDsl/testBatchTask/output/tables/nop_batch_task.csv` END_TIME/RESTART_TIME 改 `@notNull:` 非空断言、VERSION 11→0；模式名大小写敏感（`@notNull:`，FilterOp 构造名，非枚举名 NOT_NULL）。设计文档裁定①补「观测面影响」句（同日勘误）；owner doc 契约句归 Phase 3。红绿留痕 `_tmp/red-green-2516-fencing-fix-{red,green}.log`；验证：TestBatchTaskDsl solo（dao reactor 在环）绿×3、六模块门禁 `./mvnw test -pl nop-batch-{core,dao,dsl,exp,jdbc,sys} -Dsurefire.rerunFailingTestsCount=2` EXIT=0（`_tmp/2516-gate-nop-batch-modules-r2.log`）、TestDaoBatchStateStore（nop-batch-dao，N1+四新钉）EXIT=0。
+
+
+- 偏差登记（实施期）：① TestBatchTaskDsl AutoTest 用例表随裁定①新行为同步（RESTART_TIME 恒非空/END_TIME 条件 UPDATE 绕 ORM hook 变量注册改 @notNull/VERSION 钉插入态 0——fencing 经证正确[DB 行 END_TIME/RESTART_TIME 非空即条件 UPDATE matched 直接证据]，六模块门禁 EXIT=0；solo -pl 单模块假绿陷阱登记[离线解析旧版 dao 构件]）；② task 组与续作代理两轮接力完成（站点 28 文件）；③ -am 门禁三次：r1 中止于 nop-task-core 2514 C5-003 逐出测试负载 flake（solo 绿 `_tmp/2516-eviction-solo.log`，该钉间歇误红登记 watch 归 2514 owner）、r2 debezium fork timeout、r3 EXIT=0（MFA flake rerun 自愈）；④ E3 快照：模块级六模块 EXIT=0（`_tmp/2516-gate-nop-batch-modules-r2.log`）+ -am r3 EXIT=0（`_tmp/2516-gate-nop-batch-am-r3.log`）。
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
@@ -170,6 +175,7 @@ Exit Criteria:
 - [ ] nop-batch.md 落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
 - [ ] 零触碰确认登记（生成物/R4-11/R4-12/R3-04 批外成员本体/2496·2502·2381 已修面/orm 申报面边界）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
+
 
 ### Phase 4 - closure audit + 收口
 

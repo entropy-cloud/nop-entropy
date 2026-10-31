@@ -26,6 +26,7 @@ import io.nop.dataset.record.IRowNumberRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -392,10 +393,16 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     }
 
     private List<S> loadItems(int batchSize, LoaderState<S> state) {
-        if (filter == null)
-            return state.input.readBatch(batchSize);
-
-        return state.input.readFiltered(batchSize, item -> filter.accept(item, state.context));
+        if (filter != null)
+            return state.input.readFiltered(batchSize, item -> filter.accept(item, state.context));
+        // C5-001（plan 2516 裁定④）：经 hasNext/next 逐条读取——LimitRecordInput 只覆写 hasNext/next，
+        // DelegateRecordInput.readBatch 直接委托底层输入会使 maxCount 截断对批量读取路径失效
+        //（maxCountExpr 接线恢复后该路径即 excel/file reader 的主读取路径）。
+        List<S> ret = new ArrayList<>(batchSize);
+        while (ret.size() < batchSize && state.input.hasNext()) {
+            ret.add(state.input.next());
+        }
+        return ret;
     }
 
     private long getRowNumber(Object item, IBatchChunkContext chunkCtx) {

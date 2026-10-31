@@ -34,9 +34,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static io.nop.batch.core.BatchErrors.ARG_MAX_CONCURRENCY_CAP;
@@ -170,8 +171,22 @@ public class BatchTask<S> implements IBatchTask {
 
             // 多个线程可以并发执行。loader/processor/consumer都需要是线程安全的
             CompletableFuture<?>[] futures = new CompletableFuture[concurrency];
-            for (int i = 0; i < concurrency; i++) {
-                futures[i] = executeChunkLoop(context, i, chunkProcessor);
+            try {
+                for (int i = 0; i < concurrency; i++) {
+                    futures[i] = executeChunkLoop(context, i, chunkProcessor);
+                }
+            } catch (Exception e) {
+                // C6-002（plan 2516，含 C7-002A 吸收面）：提交循环包络——任一 executor.execute 同步拒绝时，
+                // 已提交的 futures[0..i-1] 幽灵链必须逐个显式结算，否则 allOf 永不触发 → onTaskComplete 不执行 →
+                // reader/output/JDBC连接泄漏 + 任务行永久 RUNNING。future 终态化使 allOf 立即触发；
+                // 已在运行的加载线程由既有 fail-fast cancel（CANCEL_REASON_STOP）短路承接，不中断数据一致性。
+                // 随后直达 onTaskComplete 既有终态化+关闭链（与 setup 失败路径同型）。
+                for (CompletableFuture<?> submitted : futures) {
+                    if (submitted != null)
+                        submitted.completeExceptionally(e);
+                }
+                onTaskComplete(future, meter, e, context);
+                return future;
             }
 
             CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
@@ -236,13 +251,26 @@ public class BatchTask<S> implements IBatchTask {
                     if (stateStore != null) {
                         stateStore.saveTaskState(true, err, context);
                     }
+                } catch (Throwable x) {
+                    // C6-009 S4/S6（plan 2516）：终态写失败不吞不替换——ERROR 显式留痕（携 taskId/taskName）
+                    // 后放弃本次状态写（行残留由裁定① stale 接管承接），X 不得替代原始 err
+                    // （S6：setup 失败路径进入时对外仍以原始 e 结算）。context.completeExceptionally(err) 必达。
+                    LOG.error("nop.err.batch.task-terminal-save-fail:taskName={},taskId={}",
+                            context.getTaskName(), context.getTaskId(), x);
                 } finally {
                     context.completeExceptionally(err);
                 }
             }
         } finally {
-            if (metrics != null)
-                metrics.endTask(meter, err == null);
+            // C6-009 S5（plan 2516）：metrics.endTask 独立 try——endTask 抛出不得跳过 FutureHelper.complete，
+            // 否则返回 future 成为孤儿、调用方永久挂死。不改 finally 内顺序（plan 2496/2381 已修面零回退）。
+            try {
+                if (metrics != null)
+                    metrics.endTask(meter, err == null);
+            } catch (Throwable x) {
+                LOG.error("nop.err.batch.task-metrics-end-fail:taskName={},taskId={}",
+                        context.getTaskName(), context.getTaskId(), x);
+            }
 
             FutureHelper.complete(future, null, err);
         }
@@ -252,7 +280,8 @@ public class BatchTask<S> implements IBatchTask {
                                              IBatchChunkProcessorProvider.IBatchChunkProcessor<S> chunkProcessor) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        executor.execute(() -> {
+        try {
+            executor.execute(() -> {
             LOG.info("nop.batch.run-chunk-loop:threadIndex={},threadName={}", threadIndex, Thread.currentThread().getName());
             ContextProvider.runWithContext(ctx -> {
                 // C6-010（plan 2496，与 C6-001 同 diff）：守卫起点上移到 lambda 首行——propagateContext /
@@ -292,8 +321,15 @@ public class BatchTask<S> implements IBatchTask {
                 }
                 return null;
             });
-
         });
+
+        } catch (RejectedExecutionException rex) {
+            // C6-002（plan 2516 裁定⑥）：提交点防御——REE 在 lambda 执行前抛出，lambda 内 catch Throwable 管不到。
+            // future 终态化使 allOf 立即触发清理链（lambda 未执行无数据泄漏面），任务不再滞留 RUNNING。
+            LOG.error("nop.err.batch.chunk-loop-submit-rejected:taskName={},taskId={},threadIndex={}",
+                    context.getTaskName(), context.getTaskId(), threadIndex, rex);
+            future.completeExceptionally(rex);
+        }
         return future;
     }
 

@@ -111,7 +111,8 @@
         </file-reader>
 
         <excel-reader filePath="!t-expr" xdef:name="BatchExcelReaderModel" templatePath="v-path" headerRowCount="int"
-                      dataSheetName="string" headerSheetName="string" trailerSheetName="string">
+                      dataSheetName="string" headerSheetName="string" trailerSheetName="string"
+                      maxCountExpr="expr">
             <filter>xpl-fn:(item,batchTaskCtx)=>boolean</filter>
 
             <headers>csv-list</headers>

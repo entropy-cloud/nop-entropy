@@ -31,6 +31,9 @@ public interface BatchErrors {
     String ARG_PARAM_VALUE = "paramValue";
     String ARG_MAX_CONCURRENCY_CAP = "maxConcurrencyCap";
 
+    String ARG_LOAD_BATCH_SIZE = "loadBatchSize";
+    String ARG_FETCH_THREAD_COUNT = "fetchThreadCount";
+
     ErrorCode ERR_BATCH_PERSIST_VAR_CONVERT_TYPE_FAIL = define("nop.err.batch.persist-var-convert-type-fail",
             "状态变量[{varName}]的类型转换失败", ARG_VAR_NAME);
 
@@ -59,4 +62,11 @@ public interface BatchErrors {
                     + "如确需更高并发，请调大配置项nop.batch.max-concurrency-cap（同时需要评估平台共享cached池上界"
                     + "nop.commons.concurrent.cached-pool.maxPoolSize）",
             ARG_PARAM_NAME, ARG_PARAM_VALUE, ARG_MAX_CONCURRENCY_CAP);
+
+    ErrorCode ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID = define("nop.err.batch.dispatch-load-batch-size-invalid",
+            "批处理dispatch读取批大小[{loadBatchSize}]非法：loadBatchSize必须大于0，任务不允许装配。"
+                    + "loadBatchSize<=0会使dispatch队列容量（capacity = loadBatchSize × loadBatchMultiplyFactor，"
+                    + "AsyncFetch缺省×30）退化为0，orm-reader全表单页加载将对Semaphore(0)永久阻塞，"
+                    + "其他reader会静默产出空任务导致数据丢失",
+            ARG_LOAD_BATCH_SIZE, ARG_FETCH_THREAD_COUNT);
 }

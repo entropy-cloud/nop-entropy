@@ -8,6 +8,7 @@
 package io.nop.batch.core;
 
 import io.nop.api.core.annotations.core.PropertySetter;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.IBatchLoaderProvider.IBatchLoader;
@@ -44,6 +45,10 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
+
+import static io.nop.batch.core.BatchErrors.ARG_FETCH_THREAD_COUNT;
+import static io.nop.batch.core.BatchErrors.ARG_LOAD_BATCH_SIZE;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID;
 
 /**
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
@@ -338,6 +343,14 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
             int fetchThreadCount = dispatchConfig.getFetchThreadCount();
             int loadBatchSize = dispatchConfig.getLoadBatchSize();
+
+            // C8-001（plan 2516 裁定②，←C5-005）：dispatch 容量装配期 fail-fast。buildLoader 为全部 dispatch
+            // 路径（AsyncFetch/同步两 provider、DSL 与程序化装配）的必经点，单点覆盖五层装配链；
+            // 队列构造器 Guard 与 xdef min 为备选不启用（错误上下文丢失、拦不住 Java API 装配路径）。
+            if (loadBatchSize <= 0)
+                throw new NopException(ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID)
+                        .param(ARG_LOAD_BATCH_SIZE, loadBatchSize)
+                        .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 
             if (fetchThreadCount > 0) {
                 loader = new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,

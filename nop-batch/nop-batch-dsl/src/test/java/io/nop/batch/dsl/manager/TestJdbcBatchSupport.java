@@ -177,7 +177,12 @@ public class TestJdbcBatchSupport {
         assertEquals(0L, provider.getMaxRows());
         assertNull(provider.getPartitionIndexField());
         assertNull(provider.getQueryBuilder());
-        assertNull(privateField(provider, "fetchSize"), "unset fetchSize stays null so loader uses SQL-level default");
+        // N2 改写（plan 2516 裁定⑤，修复 diff 前置义务）——改写前契约句：
+        //   "unset fetchSize stays null so loader uses SQL-level default"（死配置契约的装配层表达，
+        //   装配面缺省未变、null 断言保留）；改写后契约：provider 层独立兜底——显式配置即生效
+        //   （见 TestJdbcBatchLoaderProviderFetchSize 运行时 Proxy 断言），未配置走驱动/sql 层缺省。
+        assertNull(privateField(provider, "fetchSize"),
+                "unset fetchSize stays null at wiring layer; provider applies its own fallback at runtime");
         assertEquals(Boolean.FALSE, privateField(provider, "streaming"));
         // 缺省rowMapper为大小写不敏感的ColumnMapRowMapper
         assertSame(ColumnMapRowMapper.CASE_INSENSITIVE, privateField(provider, "rowMapper"));

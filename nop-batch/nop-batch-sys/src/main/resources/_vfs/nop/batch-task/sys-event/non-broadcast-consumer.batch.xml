@@ -1,9 +1,17 @@
+<!-- C7-011（plan 2516 裁定⑧）：补 saveState + taskKeyExpr 接线，使 (taskName,taskKey) 唯一键与启动闸门
+     （含裁定① stale 接管）结构性覆盖 sys-event 触发链；固定常量 taskKey = 全部署单活跃键。
+     allowStartIfComplete=true：cron 周期重复触发的已完成任务允许重入（否则首轮 COMPLETED 后永久拒启），
+     并发重叠仍由启动闸门行级条件 UPDATE 裁决。 -->
 <batch taskName="sys-event.non-broadcast-consumer"
        batchSize="100"
+       saveState="true"
+       allowStartIfComplete="true"
        transactionScope="process"
        x:schema="/nop/schema/task/batch.xdef"
        xmlns:x="/nop/schema/xdsl.xdef"
        xmlns:c="c">
+
+    <taskKeyExpr><![CDATA['non-broadcast']]></taskKeyExpr>
 
     <loader>
         <orm-reader entityName="io.nop.sys.dao.entity.NopSysEvent" partitionIndexField="partitionIndex">

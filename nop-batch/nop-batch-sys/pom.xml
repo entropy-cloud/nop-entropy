@@ -22,6 +22,14 @@
             <artifactId>nop-batch-dsl</artifactId>
         </dependency>
 
+        <!-- C7-011（plan 2516 裁定⑧）：non-broadcast-consumer.batch.xml 补 saveState=true 后，
+             DaoBatchStateStore bean（app-batch-dao.beans.xml）必须在本模块运行时类径上才能接线启动闸门；
+             缺此依赖时 stateStore @Nullable 注入为 null，守卫结构性旁路（本缺陷本体）。 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-batch-dao</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-batch-orm</artifactId>

@@ -74,6 +74,13 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
     
     /**
      *  
+     * xml name: maxCountExpr
+     * 
+     */
+    private io.nop.core.lang.eval.IEvalAction _maxCountExpr ;
+    
+    /**
+     *  
      * xml name: templatePath
      * 
      */
@@ -240,6 +247,25 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
     
     /**
      * 
+     * xml name: maxCountExpr
+     *  
+     */
+    
+    public io.nop.core.lang.eval.IEvalAction getMaxCountExpr(){
+      return _maxCountExpr;
+    }
+
+    
+    public void setMaxCountExpr(io.nop.core.lang.eval.IEvalAction value){
+        checkAllowChange();
+        
+        this._maxCountExpr = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: templatePath
      *  
      */
@@ -299,6 +325,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         out.putNotNull("headerSheetName",this.getHeaderSheetName());
         out.putNotNull("headers",this.getHeaders());
         out.putNotNull("headersNormalizer",this.getHeadersNormalizer());
+        out.putNotNull("maxCountExpr",this.getMaxCountExpr());
         out.putNotNull("templatePath",this.getTemplatePath());
         out.putNotNull("trailerSheetName",this.getTrailerSheetName());
     }
@@ -320,6 +347,7 @@ public abstract class _BatchExcelReaderModel extends io.nop.core.resource.compon
         instance.setHeaderSheetName(this.getHeaderSheetName());
         instance.setHeaders(this.getHeaders());
         instance.setHeadersNormalizer(this.getHeadersNormalizer());
+        instance.setMaxCountExpr(this.getMaxCountExpr());
         instance.setTemplatePath(this.getTemplatePath());
         instance.setTrailerSheetName(this.getTrailerSheetName());
     }

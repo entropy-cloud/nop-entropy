@@ -275,7 +275,11 @@ public class ExportDbTool {
         BatchTaskBuilder builder = new BatchTaskBuilder();
         builder.taskName(tableConfig.getName());
         builder.loader(newLoader(tableConfig, ds));
-        builder.batchSize(config.getBatchSize());
+        // C8-002（plan 2516 裁定③）：复制 ImportDbTool 的 >0 守卫（守卫对称，消除不对称）。
+        // 缺省 batchSize=0 直传会被 BatchChunkProcessor 静默钳位到 1，导致每行一 chunk 写放大
+        // （吞吐塌缩 + 日志/状态写放大）；守卫落缺省后使用 builder 缺省 batchSize=100。
+        if (config.getBatchSize() > 0)
+            builder.batchSize(config.getBatchSize());
         builder.processor(newProcessor(tableConfig));
         builder.consumer(newConsumer(tableConfig));
 

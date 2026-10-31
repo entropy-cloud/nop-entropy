@@ -29,6 +29,8 @@ import io.nop.dataset.record.impl.RecordInputImpls;
 import io.nop.dataset.rowmapper.ColumnMapRowMapper;
 import io.nop.orm.dao.DaoQueryHelper;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -39,6 +41,8 @@ import java.util.List;
 import java.util.function.BiFunction;
 
 public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
+    static final Logger LOG = LoggerFactory.getLogger(JdbcBatchLoaderProvider.class);
+
     private IJdbcTemplate jdbcTemplate;
     private String querySpace;
 
@@ -242,9 +246,16 @@ public class JdbcBatchLoaderProvider<T> implements IBatchLoaderProvider<T> {
 
             if (streaming && dialect.getStreamingFetchSize() != null) {
                 ps.setFetchSize(dialect.getStreamingFetchSize());
+            } else if (fetchSize != null) {
+                // C5-002（plan 2516 裁定⑤）：坏门修复——原 `sql.getFetchSize() != -1 && fetchSize != null`
+                // 中 query/sql 文本路径 SQL 对象 fetchSize 恒 -1 使 && 门恒 false，DSL 配置的 fetchSize
+                // 被静默丢弃（驱动 executeQuery 全量缓冲结果集）。sql 层 fetchSize 已由 JdbcHelper 处理，
+                // provider 层只做独立兜底。
+                ps.setFetchSize(fetchSize);
             } else {
-                if (sql.getFetchSize() != -1 && fetchSize != null)
-                    ps.setFetchSize(fetchSize);
+                // C5-002（plan 2516 裁定⑤）：streaming=false 且未配置 fetchSize 的路径显式可观测——
+                // 驱动全量缓冲结果集是 GB 级 OOM 风险面，不允许静默。
+                LOG.warn("nop.err.batch.jdbc-fetch-size-unset:sql={}", sql.getText());
             }
 
             if (maxRows > 0) {
