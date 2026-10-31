@@ -136,6 +136,11 @@ public class OrmEntityModelInitializer {
         if (entityModel.isNoPrimaryKey())
             entityModel.setReadonly(true);
 
+        // plan 2517 R2-14 裁定③（C1-015）：组件列映射解析期预计算（列解析完成后一次性赋值，运行期只读）
+        for (OrmComponentModel comp : entityModel.getComponents()) {
+            comp.precompute();
+        }
+
         for (OrmColumnModel prop : entityModel.getColumns()) {
             String underscoreName = StringHelper.camelCaseToUnderscore(prop.getName(), true).intern();
             this.propsByUnderscoreName.put(underscoreName.toUpperCase(Locale.ROOT), prop);

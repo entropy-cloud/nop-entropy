@@ -30,7 +30,8 @@ public class LoadedOrmModel implements ILoadedOrmModel {
     private final Map<String, IEntityPersister> entityPersisters;
     private final Map<String, ICollectionPersister> collectionPersisters;
     private final SqlExprMetaCache sqlExprMetaCache;
-    private IOrmInterceptor ormInterceptor;
+    // plan 2517 R2-14 裁定②：volatile 化（写点 setOrmInterceptor 经 getOrmModel 热路径跨线程可见）
+    private volatile IOrmInterceptor ormInterceptor;
 
     private volatile boolean needClose;
     private final AtomicInteger refCount = new AtomicInteger();
