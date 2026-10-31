@@ -165,7 +165,7 @@
 | 8.23 | R2-14 2.4 ORM 并发批（会话/事务互斥 + 模型发布/缓存/异步） | done（plan 2517 completed @ 2026-10-31，closure audit APPROVED） | `docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-14（13 项） | none（修复 plan） |
 | 8.24 | R2-15 2.5 peri 批（PubSub 断链 + 链编排 fencing） | done（plan 2518 completed @ 2026-10-31，closure audit APPROVED；勘误 10：C7-014 F5 前提证伪收窄为可观测缺失，cra-index 行已改写） | `docs-for-ai/02-core-guides/model-first-development.md`（迁移 owner 面）；`docs-for-ai/04-reference/source-anchors.md` | batch-proposal.md §二 R2-15（11 项） | none（修复 plan） |
 | 8.25 | R2-16 3.1 agent 编排/会话批 | done（plan 2519 completed @ 2026-10-31，closure audit APPROVED；勘误 12/13 事实口径修订随行） | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-16（10 项）；硬依赖 8.5（R1-04）；软依赖 8.3（R1-02）；软依赖 8.4（R1-03）；软依赖 8.7（R1-06） | none（修复 plan） |
-| 8.26 | R2-17 3.4 AI REST 批 | todo | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-17（4 项） | none（修复 plan） |
+| 8.26 | R2-17 3.4 AI REST 批 | active（plan 2520，draft review R1 修订转 active） | `docs-for-ai/03-modules/nop-ai.md` | batch-proposal.md §二 R2-17（4 项） | none（修复 plan） |
 | 8.27 | R2-18 4.2 cluster 批（选主/注册中心/重试链） | todo | nop-cluster 无 03-modules owner doc→缺口声明；`docs-for-ai/01-repo-map/module-groups.md` | batch-proposal.md §二 R2-18（4 项） | none（修复 plan） |
 | 8.28 | R2-19 4.3 feishu/文件通道批（B1-07/B1-08 转正 + R05/R11/R08 面） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R2-19（7 项） | none（修复 plan） |
 | 8.29 | R2-20 4.3 连接生命周期批（B1-06 + R26/R08 面） | todo | `docs-for-ai/03-modules/nop-network.md` | batch-proposal.md §二 R2-20（6 项） | none（修复 plan） |
