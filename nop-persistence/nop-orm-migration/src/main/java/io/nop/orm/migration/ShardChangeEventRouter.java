@@ -39,7 +39,9 @@ public class ShardChangeEventRouter {
      */
     public PhysicalTable route(ChangeEvent event) {
         if (mapping.isRelocate())
-            return new PhysicalTable("", mapping.getBaseTableName());
+            // 裁定⑩：relocate 目标 qs 从 mapping 正确派生（单源取唯一目标；多源且事件无源 qs
+            // 显式失败），不再硬编码空串 100% 丢事件
+            return mapping.relocateTarget(null);
 
         Map<String, Object> image = shardImage(event);
         Object shardValue = image == null ? null : caseInsensitiveGet(image, mapping.getShardColumnName());

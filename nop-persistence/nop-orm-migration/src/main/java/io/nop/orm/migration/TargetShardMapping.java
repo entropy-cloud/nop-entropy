@@ -234,7 +234,9 @@ public class TargetShardMapping {
      */
     public PhysicalTable routeRow(Map<String, Object> row, Object pkDisplay, String sourceTable) {
         if (isRelocate())
-            return new PhysicalTable("", baseTableName);
+            // 裁定⑩：relocate 目标 qs 从 mapping 派生（行值不携带源 qs——单源取唯一目标，
+            // 多源不可得显式失败），不再硬编码空串
+            return relocateTarget(null);
         Object shardValue = caseInsensitiveGet(row, shardColumnName);
         if (shardValue == null) {
             throw new NopException(ERR_MIG_NULL_SHARD_KEY)
@@ -250,7 +252,8 @@ public class TargetShardMapping {
      */
     public PhysicalTable routeShardValue(Object shardValue) {
         if (isRelocate())
-            return new PhysicalTable("", baseTableName);
+            // 裁定⑩：同 routeRow——relocate 目标 qs 从 mapping 派生，不落回源侧 default 表
+            return relocateTarget(null);
         if (shardValue == null)
             throw new NopException(ERR_MIG_NULL_SHARD_KEY)
                     .param(ARG_ENTITY_NAME, entityName)
@@ -303,6 +306,30 @@ public class TargetShardMapping {
             throw new NopException(ERR_MIG_CONFIG_INVALID).param(ARG_REASON,
                     "source query space '" + sourceQuerySpace + "' has no target-query-space-mapping entry");
         return mapped;
+    }
+
+    /**
+     * relocate 目标物理表派生（plan 2518 裁定⑩，替代硬编码空串 querySpace）：
+     * 单源取唯一映射目标；多源按 {@link #mapQuerySpace(sourceQuerySpace)} 派生（缺失项既有
+     * 类型化失败）；事件源 qs 不可得且为多源映射时显式失败不猜测。
+     *
+     * @param sourceQuerySpace 事件源 querySpace（不可得传 null）
+     */
+    PhysicalTable relocateTarget(String sourceQuerySpace) {
+        if (!isRelocate())
+            throw new NopException(ERR_MIG_CONFIG_INVALID).param(ARG_REASON,
+                    "relocateTarget is only valid in the relocate scenario");
+        if (sourceQuerySpace == null || sourceQuerySpace.isEmpty()) {
+            if (sourceTables.size() == 1) {
+                sourceQuerySpace = sourceTables.get(0).getQuerySpace();
+            } else {
+                throw new NopException(ERR_MIG_CONFIG_INVALID).param(ARG_REASON,
+                        "event carries no source query space and the relocate mapping is multi-source ("
+                                + sourceTables.size() + " sources); cannot derive the relocation target"
+                                + " without guessing");
+            }
+        }
+        return new PhysicalTable(mapQuerySpace(sourceQuerySpace), baseTableName);
     }
 
     public boolean isRelocate() {

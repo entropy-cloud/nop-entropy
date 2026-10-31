@@ -13,6 +13,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -54,6 +55,32 @@ public class IncrementalLagProbe {
         sleep(quiesceSeconds);
         Snapshot after = snapshot(connectorName);
         return before.equals(after);
+    }
+
+    /**
+     * 逐链聚合静默期观测（plan 2518 裁定⑨新增，加法式入口——既有
+     * {@link #awaitLagZero(String, long)} 签名与语义保留为委托，RP-2 双钉零改写）：
+     * M&gt;1 全链 offsets 指纹 + ledger 计数在<b>单静默窗</b>内聚合判定——任一链指纹前进或
+     * ledger 前进即 lag≠0。
+     *
+     * <p>单静默窗 residual（m1）：各链「窗前快照」时刻随遍历序有微小错位（非严格同刻），
+     * 窗内跨越快照时刻的链事件存在理论漏检窗；错位量级 = 逐链快照取值毫秒级 vs 静默窗秒级，
+     * 占比可忽略，设计文档 §3.9 显式登记。</p>
+     *
+     * @param connectorNames 各链实际注册的 connector 名清单（裁定⑨派生函数产出，逐链消费）
+     * @param quiesceSeconds 静默期秒数（&gt; 0）
+     */
+    public boolean awaitLagZeroChains(List<String> connectorNames, long quiesceSeconds) {
+        List<Snapshot> before = new ArrayList<>(connectorNames.size());
+        for (String connectorName : connectorNames) {
+            before.add(snapshot(connectorName));
+        }
+        sleep(quiesceSeconds);
+        for (int i = 0; i < connectorNames.size(); i++) {
+            if (!before.get(i).equals(snapshot(connectorNames.get(i))))
+                return false;
+        }
+        return true;
     }
 
     private void sleep(long quiesceSeconds) {

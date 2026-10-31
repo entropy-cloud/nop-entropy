@@ -22,7 +22,9 @@ import static io.nop.orm.migration.MigrationErrors.ERR_MIG_PHASE_TRANSITION_INVA
  * 外加 ABORT 中止出路（m4：任何阶段均可中止，旧配置未动无损）。
  *
  * <p>状态迁移只能由编排器按前置门禁推进（{@link #checkTransition}）；增量未启用时 FULL 直达
- * VERIFY（白名单外数据库的停写全量形态，设计 §三.4）。DONE/ABORT 为终态，无任何出边。</p>
+ * VERIFY（白名单外数据库的停写全量形态，设计 §三.4）。DONE/ABORT 为终态，无任何出边。
+ * 受控自环（plan 2518 裁定⑪）：INCREMENTAL→INCREMENTAL、VERIFY→VERIFY 两条白名单自环边，
+ * 仅承载 fix-forward 瞬时故障重试（编排器侧带重试计数上界），非法迁移仍显式失败。</p>
  */
 public enum MigrationPhase {
     PREPARE,
@@ -36,8 +38,10 @@ public enum MigrationPhase {
     private static final Map<MigrationPhase, Set<MigrationPhase>> ALLOWED = Map.of(
             PREPARE, Set.of(FULL, ABORT),
             FULL, Set.of(INCREMENTAL, VERIFY, ABORT),
-            INCREMENTAL, Set.of(VERIFY, ABORT),
-            VERIFY, Set.of(SWITCH, ABORT),
+            // 裁定⑪（C7-002）：失败相位白名单受控自环——INCREMENTAL/VERIFY 仅经既有编排 API
+            // 显式重入 + 进程内重试计数上界（fix-forward 重试，非全开；SWITCH/DONE/ABORT 不增）
+            INCREMENTAL, Set.of(VERIFY, ABORT, INCREMENTAL),
+            VERIFY, Set.of(SWITCH, ABORT, VERIFY),
             SWITCH, Set.of(DONE),
             DONE, Set.of(),
             ABORT, Set.of());

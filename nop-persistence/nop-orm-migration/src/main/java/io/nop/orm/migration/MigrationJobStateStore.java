@@ -97,10 +97,19 @@ public class MigrationJobStateStore {
             throw new IllegalStateException("insert migration job state failed: " + state.getJobId());
     }
 
-    public void update(MigrationJobState state) {
+    /**
+     * 状态行更新（plan 2518 裁定⑤）：带期望相位谓词的条件 UPDATE——
+     * {@code WHERE job_id=? AND phase=?}。返回受影响行数：
+     * <ul>
+     * <li>1 = 写成功；</li>
+     * <li>0 = 行缺失或相位已被并发写推离期望（跨进程 fencing 命中）——
+     *     调用方（编排器）经二次 load 消歧后类型化失败（m4），本层不吞不改。</li>
+     * </ul>
+     */
+    public long update(MigrationJobState state, MigrationPhase expectedPhase) {
         ensureTable();
         state.setUpdateTimeMillis(CoreMetrics.currentTimeMillis());
-        long updated = jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
+        return jdbcTemplate.executeUpdate(SQL.begin().querySpace(querySpace)
                 .name("orm-migration-state-update")
                 .sql("UPDATE " + TABLE_NAME + " SET phase=").param(state.getPhase().name())
                 .sql(",scenario=").param(state.getScenario())
@@ -112,9 +121,8 @@ public class MigrationJobStateStore {
                 .sql(",abort_reason=").param(state.getAbortReason())
                 .sql(",update_time=").param(new Timestamp(state.getUpdateTimeMillis()))
                 .sql(" WHERE job_id=").param(state.getJobId())
+                .sql(" AND phase=").param(expectedPhase.name())
                 .end());
-        if (updated != 1)
-            throw new IllegalStateException("update migration job state failed (row missing): " + state.getJobId());
     }
 
     public MigrationJobState load(String jobId) {
