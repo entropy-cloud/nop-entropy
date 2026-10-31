@@ -567,6 +567,15 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 不满足上述情形的普通实体读写一律用实体写：绕过会话的 raw UPDATE 会造成会话实体与库脱同步（返回值命中一级缓存旧实例）、丢失乐观锁/审计列维护、物理列名硬编码。
 
+### 事务与连接的并发契约（与独立事务/REQUIRES_NEW 相邻）
+
+- **事务注册协议是原子的**：同一 context 内 get→建→注册事务收敛为注册表单步原子操作，REQUIRED 组语义在并行异步分支下不退化为独立事务；事务注销（`runWithoutTransaction`/`NOT_SUPPORTED`）以挂起标记实现、不留注销窗口；清理时若注册表身份比对不符（并发方已接管）降级告警而非误报「事务未注册」——提交成功后不应出现事务注册失败。组事务（subTransactions）提交/回滚对注册期集合持锁快照迭代，快照外的迟到子事务显式拒绝，不存在静默不提交丢写。同一 context 并行异步分支共享外层事务是设计场景，不是未定义行为。
+- **JdbcTransaction 连接生命周期以事务对象自身为 monitor 串行化**：取连接/提交/回滚/释放/关闭五触点不并发交错，双取池连接泄漏与提交后并发重取僵尸连接不成立；已释放连接上的 commit 显式告警留痕（eagerRelease 后 null 连接为合法终态，但必须可观测）。禁止在事务 monitor 临界区内再获取注册表等全局并发结构锁。
+- **队列消费不得横跨事务持有连接**：以 `IBlockingSource` 为载体的轮询消费（如 `drainTo` 等待路径）禁止在 `REQUIRES_NEW` 事务内做无限等待轮询——等待窗口必须在事务外，每轮「抢占 + 读取」以独立短事务包络，且抢占条件 UPDATE（CAS）与轮询读必须在同一短事务内（拆开即抢占失效）。空闲轮询期不应持有池连接。
+- **抢占 CAS 谓词对 NULL 初始态显式化**：抢占字段按声明全集生成 WHERE 谓词——源值为 NULL 的字段生成 `col IS NULL` 而非被静默丢弃，NULL 初始态同样参与 CAS；任何路径下抢占 UPDATE 都不得退化为按 id 的无条件更新（否则同一任务会被多消费者重复投递）。
+
+会话与事务并发契约的完整裁定（锁域、锁序、守卫指标与拒绝方案清单）见 AI 开发记录区 concurrency 设计集 orm-session-txn-atomicity-and-model-cache-generation.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
 ### EQL 书写注意（易踩坑）
 
 - **EQL 运算符优先级（2026-08-23 已修复，plan 2256/2257）**：历史缺陷两处——①算术：`sqlExpr_bit` 文法备选顺序曾与标准相反（`|` 最紧、`/` 接近最松），多个 `/` 夹 `+`/`-` 的表达式被静默重排（`A/B + C/D` 编译为 `(A/B+C)/D`）且 `+` 错误紧于 `-`；②逻辑：NOT 备选曾排在 AND/OR 之后（最松），`not a=1 and b='x'` 解析为 `not(a=1 and b='x')`。修复后为标准语义：算术六级左结合（`^` > `* / %` > `+ -` > `<< >>` > `&` > `|`，与 MySQL 一致）、逻辑 `NOT > AND > OR`。回归测试 `TestEqlArithmeticPrecedence` / `TestEqlLogicalPrecedence`（nop-orm）固化。**升级注意**：从旧版本迁移时，此前"歪打正着"依赖错误分组的无括号表达式（含 `not` 前缀无括号 where）语义会变化；混合算术加显式括号仍是推荐写法（无害且自文档化）。
@@ -583,6 +592,27 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 | `detach(entity, selection)` | 按 selection 级联 detach **已加载**关联实体（未初始化 proxy 关联保持原状、留在 session） | 主实体与级联实体均移出一级缓存 |
 
 两者共同契约：移出后**不再参与 flush**（移出前的未提交修改与移出后的新修改均不落库）、`contains`/`get` 不再命中、已关闭 session 上调用响亮失败。需要「丢弃未提交修改并脱离会话」时用任一入口均可；需要保留未提交修改请先 flush 再 detach。
+
+## ORM 会话并发与模型发布契约
+
+同 context 的并发使用（并行异步分支、异步完成线程触达 session）是受支持的运行形态，会话与模型层提供以下保证；完整裁定权威见 AI 开发记录区 concurrency 设计集 orm-session-txn-atomicity-and-model-cache-generation.md（按 docs-for-ai 边界规则不直接链接），本节为使用知识投影。
+
+### 会话生命周期并发契约
+
+- **session 全生命周期互斥**：`OrmSessionImpl` 的 flush、close 与写路径以 session 级可重入锁串行化——并发 flush 不再静默跳过（静默跳过会让事务带着未刷写提交），双 flusher 并发遍历不可能；写入口（save/update/delete/lock 族）与读路径同样校验执行 context，跨线程误用 fail-fast。
+- **异步会话收尾回 context 队列**：`runInNewSessionAsync` 等异步入口的收尾（flush/注册表恢复/close）经完成线程投递回 context 任务队列执行，完成线程只投递不直接操作 session；队列不可用时降级为投递线程内联执行，session 互斥兜底残留窗口。
+- **会话兜底关闭**：异步入口注册新会话时在 context 生命周期挂兜底关闭登记；上游异步操作永不完成时，context 关闭会兜底关闭滞留会话，注册表不无限期滞留脏会话。
+- **context 注册表 get-or-create 原子化**：`OrmSessionRegistry`/`TransactionRegistry` 的按 context 首触创建为单步原子操作，并发首触恰好一实例。`IContext.getAttrs()` 实现方须返回并发安全 Map——返回非并发 Map 的替身 context 上该原子性不成立。
+- **flush 失败后可重试**：脏标记在批 DML 队列成功刷出之后才清除——flush 中途失败后捕获-重试编排再次 flush 会真实重放，不会因脏标记已清而静默 no-op。
+
+### 模型热刷新可见性契约
+
+- **模型发布 volatile 可见**：`DefaultOrmModelProvider`/`TenantAwareOrmModelProvider` 的 `ormModel` 与 `LoadedOrmModel` 的 `ormInterceptor` 为 volatile——`reloadModel`/`clearCache` 后新模型对新读者可见，不存在旧模型无限期可见；`clearCache` 先清 interceptor 缓存再发布新模型引用，混合态单向化（唯一残留窗为旧模型 + 新 interceptor 的极窄降级窗，非结构错位）。
+- **组件列映射解析期预计算**：`OrmComponentModel` 的 `colPropIds`/`propIds` 在模型解析期一次性计算完成，运行期只读——并发首触不会读到空/部分填充的列映射，实体状态不会按错误 propId 错位写入。
+
+### 全局实体缓存的世代围栏契约
+
+全局实体/集合缓存（`useGlobalCache`）的 read-repair 回填带世代围栏：读库发起时快照世代，回填前经 fence CAS 相等性判定（readGen==fenceGen），evict 推进世代——**evict 之后任何迟到的 read-repair 回填一律放弃**，缓存中不会出现「缓存=旧值、DB=新值且不自愈」的无界驻留。世代语义（进程内 per-persister 单调 fence、版本化 value、非 DB 列/非时间戳）为单一权威设计，失效判据世代的后续演进须引用同一裁定，不得另建第二套世代语义。
 
 ## 常见误区
 
