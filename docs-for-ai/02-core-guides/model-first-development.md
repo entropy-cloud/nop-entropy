@@ -614,6 +614,60 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 
 全局实体/集合缓存（`useGlobalCache`）的 read-repair 回填带世代围栏：读库发起时快照世代，回填前经 fence CAS 相等性判定（readGen==fenceGen），evict 推进世代——**evict 之后任何迟到的 read-repair 回填一律放弃**，缓存中不会出现「缓存=旧值、DB=新值且不自愈」的无界驻留。世代语义（进程内 per-persister 单调 fence、版本化 value、非 DB 列/非时间戳）为单一权威设计，失效判据世代的后续演进须引用同一裁定，不得另建第二套世代语义。
 
+## ORM 迁移编排并发契约
+
+ORM 阶段迁移编排（增量链作业、阶段状态机、迁移历史表）在多节点/并发运维操作下提供以下保证；实现锚点见 `../04-reference/source-anchors.md` 的 `PUBSUB-CC-001` 与 `ORM-ORCH-001`。
+
+### 阶段状态行 fencing 与编排单飞
+
+- **状态行 UPDATE 带期望相位谓词**：`MigrationJobStateStore.update` 以 `WHERE job_id=? AND phase=?` 条件写（期望相位谓词，零 DDL 变更）；`updated==0` 时编排器二次 load 消歧——行缺失按「作业不存在」语义、行存在且相位≠期望按**跨进程 fencing 拒绝**（类型化异常携带期望/实际相位，不静默）；相位相等（理论不可达）时显式重试一次后仍失败即抛。abort×confirmSwitch 等并发编排恰好一写成功、另一写显式失败，终态背离窗口闭合。
+- **编排 API per-jobId 进程内单飞**：runIncremental/runVerify/confirmSwitch/completeSwitch/abort（resume 同域）以 per-jobId 单飞域互斥，同 jobId 两入口并发时败者类型化拒绝（fail-fast，不排队等待——编排 API 为运维显式低频调用，排队掩盖误用）；跨 jobId 零互斥。跨节点同相位同窗口并发推进为显式接受的残余窗（谓词拒绝已把后果收敛为显式失败）。
+- **惰性访问器同步化**：编排器内的惰性访问器（incrementalManager 等）以 double-check 收敛，并发首触不产生双实例。
+
+### 增量链停止协议可验证性
+
+- **链句柄发布先于线程启动**：链线程句柄构造期注入运行句柄，`join` 无 stale-null 空转窗；join 遇缺失句柄显式告警留痕，不静默跳过。
+- **stop 五段式**：cancel → 有界 join → 超时 interrupt → 句柄保留至线程退出 → 退出确认复核（interrupt 后有界宽限再等，仍存活即置「未退出」标记，后续编排重入 gateFailed 类型化拒绝）——防半终止链与新链双写同目标表。
+- **stopAll 汇聚**：逐链串行执行五段式 stop，全部 join 完成后才清空运行注册表；单链 join 上界由编排器 setter 注入（缺省常量，零新配置键）；总时间预算 = 单链上界 × 链数。
+
+### 死链 fail 门禁
+
+链死亡必须可见且必须 fail：runVerify 前置检查逐链消费链 failure（任一链 `getFailure()` 非空即 gateFailed 类型化拒绝，gate 标识 `incremental-chain-failed:*`）；停链后逐链残留 failure 复核留痕；进程内句柄消亡（manager==null）且状态行相位仍为 INCREMENTAL 时 runVerify 类型化拒绝重入（`incremental-manager-missing-restart-reentry`，要求显式 resume 或重入 runIncremental 重建链），仅无增量形态路径才显式留痕跳过。lag 观测量（冻结=追平语义）不得单独作为 VERIFY 放行依据——死链冻结位点必须经 failure 门禁拦截。
+
+### fix-forward 受控自环
+
+五状态机允许两条**白名单自环边**：`INCREMENTAL→INCREMENTAL`、`VERIFY→VERIFY`（SWITCH/DONE/ABORT 不增）。自环仅经既有编排 API 显式重入触发（不新增 API 面），带进程内重试计数上界（缺省 3，超限 gateFailed 拒绝——非全开、非无限重试）；自环写经期望相位谓词协同（期望相位=当前自环相位，abort 竞写将相位推离时自环写显式失败，不覆盖竞写终态）；自环重入前先回收旧链，旧链句柄未确认退出即拒绝重入。
+
+### qs 身份键派生契约（SSOT）
+
+connector 名、jobName、relocate 路由 querySpace 三类身份键的派生为**单点设计**：connector 名派生函数（base / base-i 全枚举）单点产出有序名清单，runVerify 按运行链快照逐链探测、M>1 全链 offsets 指纹聚合判 lag（任一链指纹或 ledger 前进即 lag≠0），不再以原始 base 名直传探测；jobName 纳入 querySpace 派生（多 querySpace 同名目标表不撞键）；relocate 场景路由 querySpace 从分片映射派生（单源取唯一目标，多源按 querySpace 映射派生，源 qs 不可得显式失败不猜测），FULL 侧 routeRow/routeShardValue 同型派生——增量链 filter 不因空串 querySpace 恒 false 丢事件。链注册表写入为 putIfAbsent fail-fast（同名重入类型化拒绝，不静默顶替旧句柄）；startFallbackChains 中途单链启动失败时回收已启动链（逐链五段式 stop）并显式相位后翻 ABORT，不滞留孤儿链。键派生语义演进须在本契约同一单点扩展，不得另建第二套派生。
+
+### 迁移历史表跨进程互斥契约
+
+- **DDL 守卫与版本落账互斥**：`ensureHistoryTableExists`（check-then-act DDL 段）与 `recordMigration`（按版本键域的 UPDATE→INSERT 复合写段）经跨进程互斥原语串行化——mysql `GET_LOCK` / postgresql `pg_advisory_lock`（连接级，同连接 finally 释放），H2 及未列方言回落**条件 INSERT 单行守卫表**（持锁=插入成功；finally 带 owner 比对 DELETE 本 owner 守卫行释放；进程崩溃残留守卫行须人工删除——H2 为测试方言可接受，生产方言连接断开自动释放无残留面）。获取失败类型化异常，不静默继续。
+- **upsert 覆盖语义保留**：`recordMigration` 保留 UPDATE→0→INSERT 顺序，INSERT 条件捕获唯一约束冲突后回落 UPDATE 一次——并发下恰一 INSERT 成功、败者回落覆盖，终态单行；**「冲突即拒绝/insert-only」方向禁用**：重试成功必须替换已存在行（UPDATE 覆盖），写失败必须保留既有行。
+
+本节编排并发契约的完整裁定（锁域/锁序总表、残余窗逐条理由、被拒方案清单、守卫指标名）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
+## Redis PubSub 消息投递并发契约
+
+Redis Pub/Sub 为 fire-and-forget 传输（无消费组、无持久化），lettuce 实现层提供以下投递与订阅生命周期保证；实现锚点见 `../04-reference/source-anchors.md` 的 `PUBSUB-CC-001`。
+
+### 消费线程契约
+
+- **消费回调禁止在 Redis IO/event-loop 线程内联执行**：IO 线程回调只允许把消息投递（入队）至模块内专用投递线程，消费回调（onMessage/onConsumeFailure）在投递线程执行——慢消费者队列头阻塞不会拖垮共享 Redis IO 线程导致服务端断链丢消息。投递 executor 为模块内私有单线程有界队列（保持与 Redis 单连接一致的 FIFO 投递序），队列满时经 `onConsumeFailure` 类型化回调留痕拒绝（禁静默丢弃）；`onConsumeFailure` 实现方契约 = 不阻塞、不发起 Redis 调用（仅日志/计数语义）。
+- **lettuce IO/event-loop 线程硬条款（全路径）**：禁取服务监视器、禁发阻塞 Redis 命令、禁执行消费者回调；连接激活等事件回调只投递专用线程。
+- **消费返回值契约**：onMessage 返回 `CompletionStage` 时挂有界完成观测（超时未完成 WARN 留痕，不取消不重试不阻塞投递线程——投递线程内同步等待即复活队头阻塞）；其他非 null 返回值在 fire-and-forget 传输无消费语义，warn-once 登记。**ack 语义不可承载**：需要可靠投递应选 nop-message 持久化通道，不应依赖 Redis Pub/Sub 返回值。
+
+### 订阅生命周期并发契约
+
+- **监视器串行**：subscribe/cancel/suspend/resume 与停机对账收敛于服务实例单锁域——订阅三步变更（移除 listener → 空判 → unsubscribe+移除注册）在锁内原子化，并发订阅管理不产生孤儿订阅或复活双投递；锁内阻塞 Redis 往返（subscribe/unsubscribe）显式接受队头阻塞代价，受命令超时预算约束。
+- **属主校验**：一个订阅句柄只管理自己注册的 listener，不提供按 topic 取消他方订阅的路径；取消整个 topic = 逐订阅句柄 cancel（最后一个属主 cancel 触发锁内 unsubscribe）。cancel 后对同一句柄的重入为显式 no-op 留痕，resume 对已 cancel 恒拒绝。
+- **停机对账**：服务 stop 时锁内遍历注册表逐 topic unsubscribe 并清空注册表后再关连接——停机后 Redis 侧订阅注册与进程内注册表一致；停机排空投递队列，残余未投递消息逐条经 onConsumeFailure 留痕后丢弃（禁静默消失）。
+- **断线重连恢复可观测**：断线重连后的端点重订阅由 lettuce 自主完成（activated→resubscribe），服务不代做；服务侧职责为可观测——连接激活事件投递专用对账线程后，对注册表快照**锁外**发送幂等确认 SUBSCRIBE（已订阅通道再订阅仅确认语义），确认失败 WARN + 失败计数（`nop.lettuce.pubsub.resubscribe-failed`）。确认只订快照内条目——已 cancel 订阅结构性不复活；断线窗竞态可产生 Redis 侧幽灵通道（无 listener 零回调零双投递，连接 close 兜底），**接受不处置**，实施者不得代清。
+
+本节契约的完整裁定（锁序总表、残余窗登记、被拒方案）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。

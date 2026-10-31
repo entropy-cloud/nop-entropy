@@ -189,24 +189,30 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done（2026-10-31）
 Targets: nop-persistence 聚合全量测试；`docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2517 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`（PA 零触碰声明兑现，或条件申报②下已申报面逐项登记）、不含 nop-api-core/nop-commons/nop-core 平台设施（条件申报①除外）、不含 R4-20/R4-32/G49 批外成员本体、2507 双钉（TestWriteGateWindowRecheck/TestShardSelectorHotSwapVisibility）与 plan 2472 双钉零 diff 核对登记
-- [ ] Owner doc 更新：`model-first-development.md`——新增「ORM 迁移编排并发契约」节（阶段迁移 fencing 语义/停止协议可验证性/死链 fail 门禁/fix-forward 受控自环契约/qs 身份键派生契约[SSOT 指向]、迁移历史表守卫契约句、「以设计文档为准」归属声明）+ PubSub 消息投递线程纪律契约节（Redis PubSub fire-and-forget 能力边界邻接、消费外移与 ack 契约、重连重订阅对账）+ §源码锚点补行；`source-anchors.md` 新增锚点（按实际）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence --severity high` 退出码 0（批前既有发现逐条裁定登记[2517 先例：nop-orm-tdengine/nop-orm-geo 三条 guard 式占位已裁定，本批零触碰]）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2517 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`（PA 零触碰声明兑现，或条件申报②下已申报面逐项登记）、不含 nop-api-core/nop-commons/nop-core 平台设施（条件申报①除外）、不含 R4-20/R4-32/G49 批外成员本体、2507 双钉（TestWriteGateWindowRecheck/TestShardSelectorHotSwapVisibility）与 plan 2472 双钉零 diff 核对登记
+- [x] Owner doc 更新：`model-first-development.md`——新增「ORM 迁移编排并发契约」节（阶段迁移 fencing 语义/停止协议可验证性/死链 fail 门禁/fix-forward 受控自环契约/qs 身份键派生契约[SSOT 指向]、迁移历史表守卫契约句、「以设计文档为准」归属声明）+ PubSub 消息投递线程纪律契约节（Redis PubSub fire-and-forget 能力边界邻接、消费外移与 ack 契约、重连重订阅对账）+ §源码锚点补行；`source-anchors.md` 新增锚点（按实际）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence --severity high` 退出码 0（批前既有发现逐条裁定登记[2517 先例：nop-orm-tdengine/nop-orm-geo 三条 guard 式占位已裁定，本批零触碰]）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] model-first-development.md 迁移 owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/R4-20/R4-32/G49 批外成员本体/2507 与 2472 钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] model-first-development.md 迁移 owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/R4-20/R4-32/G49 批外成员本体/2507 与 2472 钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
+Phase 3 执行登记（2026-10-31）：
+- E1 授权支路 `-DskipTests`（沿 2497–2517 先例；聚焦测试已由 Phase 2 reactor r2 覆盖）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/2518-e1-build.log`/`.exit`）。
+- E3：三模块 reactor `-am` r2 BUILD SUCCESS EXIT=0（12860 tests / 0 failures / 310 skipped docker-gated；r1 上游 nop-core TestResourceCacheInvalidationChain 3 红按勘误 8 三联裁定：零 diff→solo 绿→恢复复跑绿，`_tmp/red-green-2518/reactor-r2.log`）。
+- 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-persistence high=3（`_tmp/2518-scan-hollow.log`）——与 plan 2517 同一批前既有（TdMessageService×2/GeometryTypeHandler guard 式占位，零触碰模块），登记不修复。
+- Owner doc：model-first-development.md 新增「ORM 迁移编排并发契约」「Redis PubSub 消息投递并发契约」两节；source-anchors.md 新增 PUBSUB-CC-001/ORM-ORCH-001；模块 doc 无对应文件——No further owner-doc update required。
+- 零触碰确认：零 orm.xml/零 `_` 生成物/零 nop-api-core/nop-kernel/nop-commons/nop-core；零回退钉 diff 全空（2472 双钉/RP-1/RP-2/2507 双钉/七钉除 :586 允许 await 化）。
 ### Phase 4 - closure audit + 收口
 
 Status: planned
