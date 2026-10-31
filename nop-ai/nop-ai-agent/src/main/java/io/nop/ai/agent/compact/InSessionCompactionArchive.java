@@ -6,8 +6,9 @@ import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.ai.toolkit.api.ICompactionArchive;
 import io.nop.ai.toolkit.compact.ShortRefHasher;
 
-import java.util.HashMap;
+
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
 
 /**
@@ -33,7 +34,7 @@ import java.util.Objects;
  */
 public final class InSessionCompactionArchive implements ICompactionArchive {
 
-    private final Map<String, String> store = new HashMap<>();
+    private final Map<String, String> store = new ConcurrentHashMap<>();
 
     @Override
     public String put(String content) {

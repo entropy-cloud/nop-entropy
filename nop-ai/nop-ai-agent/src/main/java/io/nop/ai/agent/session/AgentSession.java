@@ -74,22 +74,88 @@ public class AgentSession {
      * file stays reader-compatible.
      */
     public static final int MAX_PENDING_INJECTIONS = 256;
-    private final java.util.List<PendingInjection> pendingInjections = new java.util.ArrayList<>();
+    /**
+     * Plan 2519 (裁定①/C1-008): the staging list is a synchronized list — the
+     * bare ArrayList allowed concurrent mutation from parallel injectInput
+     * callers (CME / torn state). Composite operations (overflow check + add,
+     * clear, drain) are additionally guarded by THIS session's monitor so the
+     * check-then-act sequences are atomic (synchronizedList alone does not
+     * make composites atomic).
+     */
+    private final java.util.List<PendingInjection> pendingInjections =
+            java.util.Collections.synchronizedList(new java.util.ArrayList<>());
+
+    /**
+     * Plan 2519 (裁定①/C3-014): terminal marker for the injection removal
+     * order contract. Set (inside the session monitor) by the engine's
+     * terminal path BEFORE the terminal persist and BEFORE the injection
+     * registry remove; any injectInput that acquires the monitor after the
+     * marker observes it and is explicitly rejected (no lost-write window:
+     * an injection is either drained by the terminal path or rejected —
+     * structurally never both-unconsumed-and-unrejected).
+     */
+    private volatile boolean terminal;
 
     public java.util.List<PendingInjection> getPendingInjections() {
         return pendingInjections;
     }
 
+    /**
+     * Plan 2519 (裁定①): terminal marker probe. {@code true} once the engine
+     * began the terminal removal sequence for this session — injectInput must
+     * reject instead of staging.
+     */
+    public boolean isTerminal() {
+        return terminal;
+    }
+
+    /** Plan 2519 (裁定①): set the terminal marker (engine terminal path only). */
+    public void markTerminal() {
+        this.terminal = true;
+    }
+
     public void addPendingInjection(String semantics, String messageJson) {
-        if (pendingInjections.size() >= MAX_PENDING_INJECTIONS) {
-            throw new IllegalStateException("pendingInjections overflow (max="
-                    + MAX_PENDING_INJECTIONS + ")");
+        // 裁定①: composite overflow-check + add is atomic under the session
+        // monitor; a post-terminal arrival is rejected by the engine's
+        // injectInput before reaching here (belt-and-braces check kept local).
+        synchronized (this) {
+            if (terminal) {
+                throw new IllegalStateException(
+                        "inject-after-terminal: session is terminal, injection rejected: sessionId="
+                                + sessionId);
+            }
+            if (pendingInjections.size() >= MAX_PENDING_INJECTIONS) {
+                throw new IllegalStateException("pendingInjections overflow (max="
+                        + MAX_PENDING_INJECTIONS + ")");
+            }
+            pendingInjections.add(new PendingInjection(semantics, messageJson));
         }
-        pendingInjections.add(new PendingInjection(semantics, messageJson));
     }
 
     public void clearPendingInjections() {
-        pendingInjections.clear();
+        synchronized (this) {
+            pendingInjections.clear();
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定①): atomic drain — snapshot the staged injections and
+     * clear the list in ONE critical section (the session monitor). Used by
+     * the engine's terminal removal sequence so an injection that completed
+     * its enqueue before the terminal marker is collected for the terminal
+     * persist, while any injection after the marker is rejected. Iteration
+     * faces snapshot inside the synchronized block (裁定① 载体纪律).
+     */
+    public java.util.List<PendingInjection> drainPendingInjections() {
+        synchronized (this) {
+            if (pendingInjections.isEmpty()) {
+                return java.util.List.of();
+            }
+            java.util.List<PendingInjection> drained =
+                    new java.util.ArrayList<>(pendingInjections);
+            pendingInjections.clear();
+            return drained;
+        }
     }
 
     public Map<String, Long> getSeenInputKeys() {

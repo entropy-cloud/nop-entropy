@@ -786,8 +786,15 @@ public class LlmCallCoordinator {
         if (llmTimeoutMs <= 0 || timeoutExecutor == null) {
             return chatService.call(request, null);
         }
+        // Plan 2519 (裁定⑦/C3-007/C3-004/C3-012): request-level cancel binding —
+        // the mechanical timeout no longer only cancels the wrapper future; it
+        // also cancels the underlying HTTP request through the cancel token
+        // (R1-04 bindCancel/ICancelToken channel consumption — no parallel
+        // cancel mechanism). requestTimeout 契约句与实现对齐: the timeout is a
+        // live deadline, not a dead contract.
+        SimpleCancelToken cancelToken = new SimpleCancelToken();
         CompletableFuture<ChatResponse> f = CompletableFuture.supplyAsync(
-                () -> chatService.call(request, null), timeoutExecutor);
+                () -> chatService.call(request, cancelToken), timeoutExecutor);
         try {
             return f.get(llmTimeoutMs, TimeUnit.MILLISECONDS);
         } catch (InterruptedException e) {
@@ -803,8 +810,69 @@ public class LlmCallCoordinator {
             }
             throw new CompletionException(cause != null ? cause : e);
         } catch (TimeoutException e) {
+            // Plan 2519 (裁定⑦): cancel the underlying HTTP request first
+            // (kill the ghost call at the transport level), then the wrapper.
+            cancelToken.cancel("llm call timeout after " + llmTimeoutMs + "ms");
             f.cancel(true);
             throw new CompletionException(e);
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定⑦): minimal {@link ICancelToken} carrier used to bind the
+     * LLM call timeout to the transport-level cancel channel. This is a token
+     * INSTANCE for {@code FutureHelper}-style binding — not a parallel cancel
+     * mechanism (裁定⑤⑦ 禁新造边界: the consumers registered on it are the
+     * HTTP client's existing cancel hooks).
+     */
+    static final class SimpleCancelToken implements io.nop.api.core.util.ICancelToken {
+        private final java.util.concurrent.CopyOnWriteArrayList<java.util.function.Consumer<String>> onCancelTasks =
+                new java.util.concurrent.CopyOnWriteArrayList<>();
+        private volatile boolean cancelled;
+        private volatile String cancelReason;
+
+        @Override
+        public boolean isCancelled() {
+            return cancelled;
+        }
+
+        @Override
+        public String getCancelReason() {
+            return cancelReason;
+        }
+
+        @Override
+        public void appendOnCancel(java.util.function.Consumer<String> task) {
+            if (task != null) {
+                onCancelTasks.add(task);
+                if (cancelled) {
+                    task.accept(cancelReason);
+                }
+            }
+        }
+
+        @Override
+        public void removeOnCancel(java.util.function.Consumer<String> task) {
+            if (task != null) {
+                onCancelTasks.remove(task);
+            }
+        }
+
+        void cancel(String reason) {
+            if (cancelled) {
+                return;
+            }
+            cancelReason = reason;
+            cancelled = true;
+            for (java.util.function.Consumer<String> task : onCancelTasks) {
+                try {
+                    task.accept(reason);
+                } catch (RuntimeException taskEx) {
+                    // guarded cancel consumer — one failing hook never blocks
+                    // the others (4.1-C8-002 guarded-callback contract shape)
+                    LOG.warn("nop.ai.agent.llm-cancel-task-failed: cancel hook threw (guarded)", taskEx);
+                }
+            }
         }
     }
     /**

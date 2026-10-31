@@ -26,9 +26,13 @@ import java.time.Instant;
  * escaped to a single line); {@code null} strings are written as the literal
  * token {@code null}.
  *
- * <p><b>Thread safety</b>: append writes are synchronized on a per-file lock so
- * concurrent {@code saveCheckpoint} calls for the same session serialize
- * correctly. Cross-session writes target independent files and do not contend.
+ * <p><b>Thread safety</b> (Plan 2519 CL-006/CL-063 javadoc 修订 — declaration
+ * matched reality): append writes are serialized by ONE shared {@code ioLock}
+ * monitor instance-wide (not a per-file lock) — concurrent
+ * {@code saveCheckpoint} calls, same session or cross-session, all serialize
+ * on it. The lock protects journal file read/write mutual exclusion and
+ * nothing more; it does not span snapshot writes (those serialize in
+ * {@code CheckpointSnapshotWriter}'s own lock).
  *
  * <p><b>Append-only semantics</b>: if the file does not exist it is created
  * with the header. Existing content is never overwritten — every write uses

@@ -1,7 +1,8 @@
 package io.nop.ai.agent.compact;
 
-import java.util.HashMap;
+
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
@@ -24,7 +25,7 @@ public final class InMemorySpillStore implements ISpillStore {
     private static final AtomicLong SEQ = new AtomicLong();
 
     /** Live spilled entries keyed by their opaque spill id. */
-    private final Map<String, String> store = new HashMap<>();
+    private final Map<String, String> store = new ConcurrentHashMap<>();
 
     /** Opaque id prefix so spill ids embed the owning session. */
     private final String sessionPrefix;

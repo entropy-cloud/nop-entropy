@@ -337,6 +337,10 @@ public class DefaultAgentEngine implements IAgentEngine {
                 this.instanceId, this.runningExecutions, this::getAgentExecutor,
                 this.executorResolver, this.sessionSupport, this.teamBinder, this.lockRenewal,
                 this.startupWarnings, this);
+        // Plan 2519 (裁定①): share the injection-target registry with the
+        // lifecycle so the three recovery paths (resume/wake/restore) register
+        // symmetrically with doExecute.
+        this.lifecycle.setInjectionTargetRegistry(this.runningInjectionTargets);
         this.startupWarnings.warnIfInsecureDefaults(this.config);
     }
 
@@ -499,6 +503,13 @@ public class DefaultAgentEngine implements IAgentEngine {
     public AgentExecStatus getSessionStatus(String sessionId) {
         AgentSession session = sessionStore.get(sessionId);
         if (session == null) {
+            // 裁定② 终态语义适配: a session evicted by the terminal cleanup
+            // segment keeps its terminal status observable through the tiny
+            // side map (query surface behaviour preserved, zero-rollback).
+            AgentExecStatus evicted = lifecycle.getEvictedTerminalStatus(sessionId);
+            if (evicted != null) {
+                return evicted;
+            }
             throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "getSessionStatus failed: session not found: sessionId=" + sessionId);
         }
         return session.getStatus();
@@ -534,6 +545,12 @@ public class DefaultAgentEngine implements IAgentEngine {
             } else {
                 AgentSession session = sessionStore.get(sessionId);
                 if (session == null) {
+                    // 裁定②/⑤ 终态语义适配: an already-terminal (evicted) session is
+                    // idempotently "cancelled" — cancelSession on a terminal session is a
+                    // benign no-op so convergence cancels never fail on a cleanup race.
+                    if (lifecycle.getEvictedTerminalStatus(sessionId) != null) {
+                        return CompletableFuture.completedFuture(null);
+                    }
                     throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL).param(ARG_DETAIL, "cancelSession failed: session not found: sessionId=" + sessionId);
                 }
                 session.setStatus(AgentExecStatus.cancelled);
@@ -543,7 +560,11 @@ public class DefaultAgentEngine implements IAgentEngine {
                 // status (cancelled) but does NOT enter the inner finally
                 // (no handle was registered). Clean up the checkpoint cache
                 // symmetrically so cancelled sessions do not leak cache entries.
+                // Plan 2519 (裁定②): the terminal cleanup segment also removes
+                // the session from the store (cancelled-without-handle is a
+                // terminal convergence point of the F4 cleanup list).
                 config.getCheckpointManager().remove(sessionId);
+                lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
             }
 
             return CompletableFuture.completedFuture(null);
@@ -614,13 +635,58 @@ public class DefaultAgentEngine implements IAgentEngine {
         // "running" = an execution slot is registered (the persisted session
         // status only updates to a terminal value in the engine's terminal
         // sync, so getStatus() is NOT a reliable in-flight signal)
-        AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
-        if (liveTarget != null) {
-            liveTarget.enqueueSteering(message, semantics);
-        } else {
-            session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+        //
+        // Plan 2519 (裁定①/C1-008): the registry get → enqueue / stage decision
+        // is now atomic under the per-session injection lock (the AgentSession
+        // monitor) — the previous get → null-check → enqueue sequence could
+        // interleave with the terminal path's registry remove (torn
+        // persist / injection loss, C3-014). The terminal marker is set under
+        // the same monitor by the terminal path, so every injectInput either
+        // completes its enqueue BEFORE the terminal drain (consumed by it) or
+        // observes the marker and is explicitly rejected (WARN + counter
+        // nop.ai.agent.inject-after-terminal, never silent). The staged-branch
+        // save runs OUTSIDE the monitor (锁内禁 IO — design §5.7 lock table):
+        // it serializes the live shared session object, so a concurrent
+        // terminal drain still persists the post-drain state.
+        boolean rejectedAfterTerminal = false;
+        boolean liveQueue;
+        synchronized (session) {
+            if (session.isTerminal()) {
+                rejectedAfterTerminal = true;
+                liveQueue = false;
+            } else {
+                AgentExecutionContext liveTarget = runningInjectionTargets.get(sessionId);
+                if (liveTarget != null) {
+                    liveTarget.enqueueSteering(message, semantics);
+                    liveQueue = true;
+                } else {
+                    session.addPendingInjection(semantics.name(), io.nop.core.lang.json.JsonTool.stringify(message));
+                    liveQueue = false;
+                }
+            }
+        }
+        if (rejectedAfterTerminal) {
+            INJECT_AFTER_TERMINAL_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.inject-after-terminal: injection rejected because session already "
+                    + "reached its terminal removal sequence (message dropped by contract, not silently): "
+                    + "sessionId={}, semantics={}", sessionId, semantics);
+            return;
+        }
+        if (!liveQueue) {
             sessionStore.save(session);
         }
+    }
+
+    /**
+     * Plan 2519 (裁定①): counter for injections rejected after the terminal
+     * marker (observable facet of {@code nop.ai.agent.inject-after-terminal}).
+     */
+    private static final java.util.concurrent.atomic.AtomicLong INJECT_AFTER_TERMINAL_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定①): test/diagnostics probe for the rejection counter. */
+    public static long injectAfterTerminalCount() {
+        return INJECT_AFTER_TERMINAL_COUNT.get();
     }
 
     /**
@@ -1003,6 +1069,19 @@ public class DefaultAgentEngine implements IAgentEngine {
                     // handle, never another execution's handle (eliminates the
                     // [14-1] mutual-clobber race where the first execution's
                     // finally removes the second execution's handle).
+                    //
+                    // Plan 2519 (裁定①终态摘除序 step 1, in-lock BEFORE any
+                    // registry remove): terminal marker + drain under the
+                    // session monitor — an injectInput either completed its
+                    // enqueue before this critical section (drained + persisted
+                    // below) or observes the marker afterwards (explicitly
+                    // rejected). Steps (2) persist and (3) registry remove run
+                    // outside the lock (design §5.7: 锁内禁 IO).
+                    boolean terminalExit = AgentSessionLifecycle.isSessionLifecycleTerminal(
+                            ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    if (terminalExit) {
+                        lifecycle.drainTerminalInjections(sessionId, session, ctx);
+                    }
                     runningExecutions.remove(sessionId, handle);
                     // Plan 2289 (WI8): before the terminal sync, drain any
                     // injections that arrived during the final LLM call into
@@ -1050,14 +1129,19 @@ public class DefaultAgentEngine implements IAgentEngine {
                             // terminal sessions so it does not grow unbounded.
                             // NOT called for paused — paused is non-terminal
                             // and must retain checkpoints for restoreSession
-                            // recovery.
+                            // recovery. Plan 2519 (裁定②): the terminal cleanup
+                            // segment also removes the session from the store
+                            // (pure wiring — the three store implementations
+                            // already provide remove; F4 29-station family).
                             if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
                                 config.getCheckpointManager().remove(sessionId);
+                                lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
                             }
                         } else if (AgentSessionLifecycle.isTerminalStatus(session.getStatus())) {
                             // Failure path: preserve the original cleanup order
                             // (checkpoint removal without terminal persistence).
                             config.getCheckpointManager().remove(sessionId);
+                            lifecycle.removeTerminalSessionFromStore(sessionId, session.getStatus());
                         }
                     } finally {
                         // 路径 3 — inner finally). Fault-tolerant: a failed
@@ -1081,6 +1165,7 @@ public class DefaultAgentEngine implements IAgentEngine {
             // (e.g. RejectedExecutionException), clean up the pre-registered
             // handle so a subsequent execute() is not permanently blocked.
             runningExecutions.remove(sessionId, handle);
+            runningInjectionTargets.remove(sessionId);
             // — outer catch / supplyAsync submission failure). Same
             // fault-tolerant releaseLockQuietly as the inner finally.
             lifecycle.releaseLockQuietly(sessionId, instanceId);

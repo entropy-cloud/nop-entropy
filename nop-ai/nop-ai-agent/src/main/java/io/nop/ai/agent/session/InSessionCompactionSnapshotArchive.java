@@ -6,7 +6,7 @@ import static io.nop.ai.agent.NopAiAgentErrors.ARG_DETAIL;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.api.chat.messages.ChatMessage;
 
-import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -35,7 +35,7 @@ import java.util.Objects;
  */
 public final class InSessionCompactionSnapshotArchive implements ICompactionSnapshotArchive {
 
-    private final Map<String, List<ChatMessage>> store = new HashMap<>();
+    private final Map<String, List<ChatMessage>> store = new ConcurrentHashMap<>();
     private final String sessionId;
     private long counter = 0;
 

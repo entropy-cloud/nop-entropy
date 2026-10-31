@@ -56,6 +56,149 @@ public class AgentSessionLifecycle {
     private final SessionLockRenewal lockRenewal;
     private final AgentStartupWarnings startupWarnings;
     private final DefaultAgentEngine engine;
+    /**
+     * Plan 2519 (裁定①): live injection-target registry, shared with the
+     * engine (wired by {@link DefaultAgentEngine} right after construction).
+     * The three recovery paths (resume/wake/restore) register/unregister
+     * symmetrically with {@code doExecute} so the injection window is the
+     * execution window — the previous zero-registration left injections during
+     * recovery silently lost (C1-008).
+     */
+    private volatile java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> injectionTargets;
+    /**
+     * Plan 2519 (裁定②): per-session dedup marker for the
+     * {@code nop.ai.agent.terminal-cleanup-miss} WARN — concurrent terminal
+     * paths reaching the same session report the first failure only.
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, Boolean> terminalCleanupMissReported =
+            new java.util.concurrent.ConcurrentHashMap<>();
+    /**
+     * 裁定② 终态语义适配: retained terminal statuses of evicted sessions
+     * (enum only). Bounds = number of terminal sessions since process start —
+     * O(1) tiny entries; unbounded growth is accepted at the same order as
+     * audit counters (CL-IND-01 retention family owns durable retention).
+     */
+    private final java.util.concurrent.ConcurrentHashMap<String, AgentExecStatus> terminalStatuses =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /** Plan 2519 (裁定①): wire the shared injection-target registry (engine-owned map). */
+    public void setInjectionTargetRegistry(
+            java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> injectionTargets) {
+        this.injectionTargets = injectionTargets;
+    }
+
+    /**
+     * Plan 2519 (裁定①): register this execution as the live injection target
+     * for the session (execution window open). No-op when the registry was
+     * never wired (defensive — should not happen in engine assembly).
+     */
+    void registerInjectionTarget(String sessionId, AgentExecutionContext ctx) {
+        java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> registry = injectionTargets;
+        if (registry != null) {
+            registry.put(sessionId, ctx);
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定①): symmetric unregister (execution window closed /
+     * terminal removal step 3). Must run AFTER the terminal marker is set
+     * (in-lock drain) so post-marker injectInput is rejected instead of
+     * silently lost.
+     */
+    void unregisterInjectionTarget(String sessionId) {
+        java.util.concurrent.ConcurrentHashMap<String, AgentExecutionContext> registry = injectionTargets;
+        if (registry != null) {
+            registry.remove(sessionId);
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定①终态摘除序 step 1, in-lock): set the session's terminal
+     * marker and drain residual injections (staged pendingInjections + the
+     * live ctx steering queue) so they are persisted with the terminal save —
+     * structurally no injection can be both unconsumed and unrejected
+     * (C3-014/CL-061 lost-write window closure).
+     */
+    public void drainTerminalInjections(String sessionId, AgentSession session,
+                                        AgentExecutionContext ctx) {
+        synchronized (session) {
+            session.markTerminal();
+        }
+        java.util.List<AgentSession.PendingInjection> staged = session.drainPendingInjections();
+        java.util.List<ChatMessage> steeringResidual = ctx.drainSteering();
+        for (AgentSession.PendingInjection p : staged) {
+            try {
+                ChatMessage msg = io.nop.core.lang.json.JsonTool.parseBeanFromText(
+                        p.getMessageJson(), ChatMessage.class);
+                ctx.addMessage(msg);
+            } catch (Exception e) {
+                LOG.warn("nop.ai.agent.terminal-drain-parse-failed: dropped unparseable staged "
+                        + "injection during terminal drain: sessionId={}, semantics={}",
+                        sessionId, p.getSemantics(), e);
+            }
+        }
+        for (ChatMessage msg : steeringResidual) {
+            ctx.addMessage(msg);
+        }
+        if (!staged.isEmpty() || !steeringResidual.isEmpty()) {
+            LOG.info("nop.ai.agent.terminal-drain: persisted {} staged + {} steering residual "
+                            + "injection(s) with the terminal save: sessionId={}",
+                    staged.size(), steeringResidual.size(), sessionId);
+        }
+    }
+
+    /**
+     * Plan 2519 (裁定②): sessionStore.remove terminal wiring (F4 terminal
+     * cleanup family; the three store implementations already provide remove).
+     * The persisted layer keeps the terminal-marked row (AgentExecStatus
+     * status retention for DB/FileBacked) — only the in-memory cache is
+     * evicted (终态语义矩阵, design §3.2). Cleanup is remove-idempotent; a
+     * cleanup failure is reported at WARN once per session
+     * ({@code nop.ai.agent.terminal-cleanup-miss}, 双入去重) and never blocks
+     * the terminal path.
+     */
+    public void removeTerminalSessionFromStore(String sessionId, AgentExecStatus terminalStatus) {
+        // Plan 2519 裁定② deviation (registered): `completed` is execution-terminal
+        // but NOT session-lifecycle-terminal — the multi-turn continuation contract
+        // re-executes a completed session in place (store-resident message history;
+        // TestDefaultAgentEngineMultiTurn and 15+ sibling pins). Only the true
+        // session-lifecycle terminal statuses (failed/cancelled/forced_stopped/
+        // escalated/truncated) evict the store entry; the checkpoint-side cleanup
+        // (pre-existing at all terminal statuses) is unaffected. The F4 unbounded-
+        // growth face for completed sessions is carried by the registered deviation
+        // note and the CL-IND-01 retention-policy successor.
+        if (terminalStatus == AgentExecStatus.completed) {
+            return;
+        }
+        // F4 disk purge: the persisted journal/snapshot of a lifecycle-terminal
+        // session is deleted (completed keeps its journal — see deviation above).
+        if (config != null && config.getCheckpointManager() != null) {
+            config.getCheckpointManager().purgeTerminal(sessionId);
+        }
+        // 裁定② 终态语义适配（调用点盘点 C 类）：the terminal status survives
+        // the eviction in a tiny side map (enum only — message history IS
+        // released) so the query surface (getSessionStatus) keeps reporting
+        // the terminal outcome after cleanup (TestDefaultAgentEngineCancel
+        // pin stays green, zero-rollback).
+        terminalStatuses.put(sessionId, terminalStatus);
+        try {
+            sessionStore.remove(sessionId);
+        } catch (RuntimeException e) {
+            if (terminalCleanupMissReported.putIfAbsent(sessionId, Boolean.TRUE) == null) {
+                LOG.warn("nop.ai.agent.terminal-cleanup-miss: failed to remove terminal session "
+                        + "from the session store (subsequent failures for this session are "
+                        + "deduplicated): sessionId={}", sessionId, e);
+            }
+        }
+    }
+
+    /**
+     * 裁定② 终态语义适配: the retained terminal status of an evicted session,
+     * or {@code null} when the session has no terminal record.
+     */
+    public AgentExecStatus getEvictedTerminalStatus(String sessionId) {
+        return terminalStatuses.get(sessionId);
+    }
 
     public AgentSessionLifecycle(DefaultAgentEngineConfig config,
                                  ISessionStore sessionStore,
@@ -129,6 +272,17 @@ public class AgentSessionLifecycle {
         final AgentExecutionContext context;
         volatile Thread thread;
         volatile Future<?> renewHandle;
+        /**
+         * Plan 2519 (裁定⑩ / 3.1-C7-012): consecutive takeover-lock renewal
+         * failures, attributed per handle (per running session — each
+         * execution owns exactly one handle). Reset to zero on every
+         * successful renewal; reaching the configured bound escalates to the
+         * lease-lost abort path instead of warning forever (the pre-fix
+         * infinite-WARN tolerance was the C7-012 defect). Per-handle
+         * attribution isolates concurrent sessions.
+         */
+        final java.util.concurrent.atomic.AtomicInteger renewalFailureCount =
+                new java.util.concurrent.atomic.AtomicInteger();
 
         CancelHandle(AgentExecutionContext context, Thread thread) {
             this.context = context;
@@ -145,7 +299,11 @@ public class AgentSessionLifecycle {
         // clear the staging + persist (single-writer: caller's thread before
         // the execution slot is registered).
         if (!session.getPendingInjections().isEmpty()) {
-            for (AgentSession.PendingInjection staged : session.getPendingInjections()) {
+            // Plan 2519 (裁定①): atomic snapshot+clear under the session
+            // monitor — the previous iterate-then-clear was two separate
+            // critical sections (a concurrent injectInput could land between
+            // them and be dropped or double-counted).
+            for (AgentSession.PendingInjection staged : session.drainPendingInjections()) {
                 // messageJson is a JSON string (not a map) — parse to ChatMessage
                 ChatMessage msg = io.nop.core.lang.json.JsonTool.parseBeanFromText(
                         staged.getMessageJson(), ChatMessage.class);
@@ -157,7 +315,6 @@ public class AgentSessionLifecycle {
                 }
                 ctx.enqueueSteering(msg, semantics);
             }
-            session.clearPendingInjections();
             sessionStore.save(session);
         }
 
@@ -367,6 +524,9 @@ public class AgentSessionLifecycle {
                 ThreadLocalTenantResolver.set(sessionTenantId);
                 try {
                 handle.thread = Thread.currentThread();
+                // Plan 2519 (裁定①): symmetric registration with doExecute —
+                // the recovery execution window is injection-reachable.
+                registerInjectionTarget(sessionId, ctx);
 
                 AgentExecutionResult result;
                 boolean executionCompleted = false;
@@ -386,7 +546,15 @@ public class AgentSessionLifecycle {
                     result = executor.execute(ctx).toCompletableFuture().join();
                     executionCompleted = true;
                 } finally {
+                    // Plan 2519 (裁定①终态摘除序 step 1, in-lock BEFORE registry
+                    // remove): terminal marker + drain (see doExecute).
+                    boolean terminalExit = isSessionLifecycleTerminal(
+                            ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    if (terminalExit) {
+                        drainTerminalInjections(sessionId, session, ctx);
+                    }
                     runningExecutions.remove(sessionId, handle);
+                    unregisterInjectionTarget(sessionId);
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // (mirrors doExecute / restoreSession finally cleanup).
@@ -413,15 +581,18 @@ public class AgentSessionLifecycle {
                             // terminal sessions so it does not grow unbounded.
                             // NOT called for paused — paused is non-terminal
                             // and must retain checkpoints for restoreSession
-                            // recovery.
+                            // recovery. Plan 2519 (裁定②): the terminal cleanup
+                            // segment also removes the session from the store.
                             if (isTerminalStatus(session.getStatus())) {
                                 config.getCheckpointManager().remove(sessionId);
+                                removeTerminalSessionFromStore(sessionId, session.getStatus());
                             }
                         } else if (isTerminalStatus(session.getStatus())) {
                             // Failure path (executor/autoBindTeam threw):
                             // preserve the original cleanup order — checkpoint
                             // removal without terminal persistence.
                             config.getCheckpointManager().remove(sessionId);
+                            removeTerminalSessionFromStore(sessionId, session.getStatus());
                         }
                     } finally {
                         // 路径 3 — inner finally). Fault-tolerant release
@@ -441,6 +612,7 @@ public class AgentSessionLifecycle {
         }, agentExecutorSupplier.get());
         } catch (RuntimeException e) {
             runningExecutions.remove(sessionId, handle);
+            unregisterInjectionTarget(sessionId);
             releaseLockQuietly(sessionId, instanceId);
             // (mirrors releaseLockQuietly path 2).
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
@@ -542,6 +714,8 @@ public class AgentSessionLifecycle {
                 ThreadLocalTenantResolver.set(sessionTenantId);
                 try {
                 handle.thread = Thread.currentThread();
+                // Plan 2519 (裁定①): symmetric registration with doExecute.
+                registerInjectionTarget(sessionId, ctx);
                 AgentExecutionResult result;
                 boolean executionCompleted = false;
                 try {
@@ -554,7 +728,15 @@ public class AgentSessionLifecycle {
                     result = executor.execute(ctx).toCompletableFuture().join();
                     executionCompleted = true;
                 } finally {
+                    // Plan 2519 (裁定①终态摘除序 step 1, in-lock BEFORE registry
+                    // remove): terminal marker + drain (see doExecute).
+                    boolean terminalExit = isSessionLifecycleTerminal(
+                            ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    if (terminalExit) {
+                        drainTerminalInjections(sessionId, session, ctx);
+                    }
                     runningExecutions.remove(sessionId, handle);
+                    unregisterInjectionTarget(sessionId);
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     config.getWriteIntentRegistry().releaseSession(sessionId);
                     if (config.getActorRuntime().isEnabled()) {
@@ -574,13 +756,16 @@ public class AgentSessionLifecycle {
                             session.touch();
                             sessionStore.save(session);
                             // terminal sessions so it does not grow unbounded.
+                            // Plan 2519 (裁定②): sessionStore.remove wiring.
                             if (isTerminalStatus(session.getStatus())) {
                                 config.getCheckpointManager().remove(sessionId);
+                                removeTerminalSessionFromStore(sessionId, session.getStatus());
                             }
                         } else if (isTerminalStatus(session.getStatus())) {
                             // Failure path: preserve the original cleanup order
                             // (checkpoint removal without terminal persistence).
                             config.getCheckpointManager().remove(sessionId);
+                            removeTerminalSessionFromStore(sessionId, session.getStatus());
                         }
                     } finally {
                         // Fault-tolerant release regardless of save outcome — a
@@ -597,6 +782,7 @@ public class AgentSessionLifecycle {
             }, agentExecutorSupplier.get());
         } catch (RuntimeException e) {
             runningExecutions.remove(sessionId, handle);
+            unregisterInjectionTarget(sessionId);
             releaseLockQuietly(sessionId, instanceId);
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
             throw e;
@@ -932,6 +1118,8 @@ public class AgentSessionLifecycle {
                 ThreadLocalTenantResolver.set(null);
                 try {
                 handle.thread = Thread.currentThread();
+                // Plan 2519 (裁定①): symmetric registration with doExecute.
+                registerInjectionTarget(sessionId, ctx);
 
                 AgentExecutionResult result;
                 boolean executionCompleted = false;
@@ -951,7 +1139,15 @@ public class AgentSessionLifecycle {
                     result = executor.execute(ctx).toCompletableFuture().join();
                     executionCompleted = true;
                 } finally {
+                    // Plan 2519 (裁定①终态摘除序 step 1, in-lock BEFORE registry
+                    // remove): terminal marker + drain (see doExecute).
+                    boolean terminalExit = isSessionLifecycleTerminal(
+                            ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
+                    if (terminalExit) {
+                        drainTerminalInjections(sessionId, session, ctx);
+                    }
                     runningExecutions.remove(sessionId, handle);
+                    unregisterInjectionTarget(sessionId);
                     // lease was lost (see doExecute).
                     session.setStatus(ctx.isLeaseLost() ? AgentExecStatus.failed : ctx.getStatus());
                     // (mirrors doExecute / resumeSession finally cleanup).
@@ -974,13 +1170,16 @@ public class AgentSessionLifecycle {
                             session.touch();
                             sessionStore.save(session);
                             // terminal sessions so it does not grow unbounded.
+                            // Plan 2519 (裁定②): sessionStore.remove wiring.
                             if (isTerminalStatus(session.getStatus())) {
                                 config.getCheckpointManager().remove(sessionId);
+                                removeTerminalSessionFromStore(sessionId, session.getStatus());
                             }
                         } else if (isTerminalStatus(session.getStatus())) {
                             // Failure path: preserve the original cleanup order
                             // (checkpoint removal without terminal persistence).
                             config.getCheckpointManager().remove(sessionId);
+                            removeTerminalSessionFromStore(sessionId, session.getStatus());
                         }
                     } finally {
                         // 路径 3 — inner finally). Fault-tolerant release
@@ -999,6 +1198,7 @@ public class AgentSessionLifecycle {
         }, agentExecutorSupplier.get());
         } catch (RuntimeException e) {
             runningExecutions.remove(sessionId, handle);
+            unregisterInjectionTarget(sessionId);
             releaseLockQuietly(sessionId, instanceId);
             // (mirrors releaseLockQuietly path 2).
             SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
@@ -1029,6 +1229,20 @@ public class AgentSessionLifecycle {
                 || status == AgentExecStatus.forced_stopped
                 || status == AgentExecStatus.escalated
                 || status == AgentExecStatus.truncated;
+
+    }
+
+    /**
+     * Plan 2519 裁定①② deviation (registered, see
+     * {@code removeTerminalSessionFromStore}): `completed` is execution-terminal
+     * but NOT session-lifecycle-terminal — a completed multi-turn session is
+     * re-executed in place, so its pending-injection staging channel must stay
+     * open and its persisted journal must survive. The terminal removal
+     * sequence (marker + drain + store eviction + journal purge) runs only for
+     * the true session-lifecycle terminal statuses.
+     */
+    public static boolean isSessionLifecycleTerminal(AgentExecStatus status) {
+        return isTerminalStatus(status) && status != AgentExecStatus.completed;
     }
 
     public SessionRestoreSummary restorePendingSessions(String approver, String reason) {

@@ -356,6 +356,11 @@ public class ReActAgentExecutor implements IAgentExecutor {
                 this.toolPlanResolver,
                 this.securityConsultation,
                 toolTimeoutPolicy);
+        // Plan 2519 (裁定⑦): tracker wiring seam — hand the executor's progress
+        // tracker to the dispatcher so mechanical timeouts and cancelCall
+        // reach the process-level kill channel (previously only heartbeat
+        // abandon used it; C3-011 断链反转).
+        this.toolDispatcher.setToolProgressTracker(toolProgressTracker);
         // Plan 2285 (WI4): heartbeat slice interval for the tool wait phase
         // (<=0 disables sliced waiting — single deadline-bounded wait).
         this.heartBeatIntervalMs = heartBeatIntervalMs;
