@@ -37,6 +37,7 @@ import static io.nop.dao.DaoErrors.ARG_TXN_ID;
 import static io.nop.dao.DaoErrors.ERR_TXN_ALREADY_STARTED;
 import static io.nop.dao.DaoErrors.ERR_TXN_COMMIT_FAIL;
 import static io.nop.dao.DaoErrors.ERR_TXN_DUPLICATE_SUB_TRANSACTION;
+import static io.nop.dao.DaoErrors.ERR_TXN_LATE_SUB_TRANSACTION;
 import static io.nop.dao.DaoErrors.ERR_TXN_ROLLBACK_FAIL;
 import static io.nop.dao.DaoErrors.ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT;
 
@@ -58,6 +59,9 @@ public abstract class AbstractTransaction implements ITransaction {
     private Throwable error;
 
     private Map<String, ITransaction> subTransactions;
+
+    // plan 2517 R2-14 裁定⑨（C2-015）：提交/回滚快照开始后 addSubTransaction 显式拒绝（fail-fast，禁静默丢写）
+    private boolean subTxnFinalized;
 
     public AbstractTransaction(String txnGroup) {
         this.txnGroup = txnGroup;
@@ -103,32 +107,56 @@ public abstract class AbstractTransaction implements ITransaction {
 
     @Override
     public void addSubTransaction(ITransaction subTxn) {
-        if (subTransactions == null)
-            subTransactions = new LinkedHashMap<>();
-        ITransaction oldTxn = subTransactions.put(subTxn.getTxnGroup(), subTxn);
-        if (oldTxn != null && oldTxn != subTxn)
-            throw new NopException(ERR_TXN_DUPLICATE_SUB_TRANSACTION).param(ARG_QUERY_SPACE, subTxn.getTxnGroup());
+        // plan 2517 R2-14 裁定⑨：惰性 init synchronized(this)，与快照迭代点同一监视器（同状态机集合部件同步纪律归一）
+        synchronized (this) {
+            if (subTxnFinalized)
+                // 快照外迟到子事务显式拒绝：提交期静默注册的子事务不会随组提交落库（丢写最重后果），fail-fast
+                throw new NopException(ERR_TXN_LATE_SUB_TRANSACTION).param(ARG_TXN_GROUP, subTxn.getTxnGroup());
+            if (subTransactions == null)
+                subTransactions = new LinkedHashMap<>();
+            ITransaction oldTxn = subTransactions.put(subTxn.getTxnGroup(), subTxn);
+            if (oldTxn != null && oldTxn != subTxn)
+                throw new NopException(ERR_TXN_DUPLICATE_SUB_TRANSACTION).param(ARG_QUERY_SPACE, subTxn.getTxnGroup());
+        }
     }
 
     @Override
     public boolean removeSubTransaction(ITransaction subTxn) {
-        if (subTransactions == null)
-            return false;
-        return subTransactions.remove(subTxn.getTxnGroup(), subTxn);
+        synchronized (this) {
+            if (subTransactions == null)
+                return false;
+            return subTransactions.remove(subTxn.getTxnGroup(), subTxn);
+        }
     }
 
     @Override
     public ITransaction getSubTransaction(String querySpace) {
-        if (subTransactions == null)
-            return null;
-        return subTransactions.get(querySpace);
+        synchronized (this) {
+            if (subTransactions == null)
+                return null;
+            return subTransactions.get(querySpace);
+        }
     }
 
     @Override
     public Collection<ITransaction> getSubTransactions() {
-        if (subTransactions == null)
-            return Collections.emptySet();
-        return subTransactions.values();
+        // 裁定⑨：返回持锁快照，迭代安全
+        return snapshotSubTransactions(false);
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑨：全部迭代消费点统一改持锁快照后锁外迭代。
+     * finalize=true（commit/rollback 路径）时置 subTxnFinalized 位——其后 addSubTransaction 显式拒绝。
+     * 外部回调（子事务 commit/rollback）在快照迭代中锁外执行（锁序总表 §4.6）。
+     */
+    private List<ITransaction> snapshotSubTransactions(boolean finalize) {
+        synchronized (this) {
+            if (subTransactions == null)
+                return Collections.emptyList();
+            if (finalize)
+                subTxnFinalized = true;
+            return new ArrayList<>(subTransactions.values());
+        }
     }
 
     @Override
@@ -144,9 +172,7 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     boolean isSubTxnRollbackOnly() {
-        if (subTransactions == null)
-            return false;
-        for (ITransaction txn : subTransactions.values()) {
+        for (ITransaction txn : snapshotSubTransactions(false)) {
             if (txn.isRollbackOnly())
                 return true;
         }
@@ -193,28 +219,28 @@ public abstract class AbstractTransaction implements ITransaction {
 
     protected RuntimeException rollbackSubTransactions() {
         RuntimeException e = null;
-        if (subTransactions != null) {
-            for (ITransaction subTxn : subTransactions.values()) {
-                try {
-                    subTxn.rollback(error);
-                } catch (RuntimeException err) {
-                    LOG.error("nop.err.dao.txn.sub-txn-rollback-fail", err);
-                    if (e == null)
-                        e = err;
+        // 裁定⑨：持锁快照 + 锁外迭代（快照开始后迟到子事务显式拒绝）
+        for (ITransaction subTxn : snapshotSubTransactions(true)) {
+            try {
+                subTxn.rollback(error);
+            } catch (RuntimeException err) {
+                LOG.error("nop.err.dao.txn.sub-txn-rollback-fail", err);
+                if (e == null)
+                    e = err;
 
-                    rollbackOnly = true;
-                }
+                rollbackOnly = true;
             }
         }
         return e;
     }
 
     protected CompletionStage<Void> rollbackSubTransactionsAsync() {
-        if (subTransactions == null)
+        List<ITransaction> snapshot = snapshotSubTransactions(true);
+        if (snapshot.isEmpty())
             return CompletableFuture.completedFuture(null);
 
-        List<CompletionStage<?>> futures = new ArrayList<>(subTransactions.size());
-        for (ITransaction subTxn : subTransactions.values()) {
+        List<CompletionStage<?>> futures = new ArrayList<>(snapshot.size());
+        for (ITransaction subTxn : snapshot) {
             futures.add(subTxn.rollbackAsync(error));
         }
         return FutureHelper.waitAll(futures);
@@ -229,7 +255,7 @@ public abstract class AbstractTransaction implements ITransaction {
         }
 
         CompletionStage<Void> future;
-        if (subTransactions == null) {
+        if (snapshotSubTransactions(false).isEmpty()) {
             future = thenOnContext(doRollbackAsync(error));
         } else {
             future = completeAsyncOnContext(rollbackSubTransactionsAsync(),
@@ -321,7 +347,7 @@ public abstract class AbstractTransaction implements ITransaction {
         }
 
         CompletionStage<Void> future;
-        if (subTransactions == null) {
+        if (snapshotSubTransactions(false).isEmpty()) {
             invokeListener(listener -> listener.onBeforeCompletion(this), true);
             future = thenOnContext(doCommitAsync());
         } else {
@@ -349,12 +375,13 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected CompletionStage<Void> commitSubTransactionsAsync() {
-        if (subTransactions == null)
+        List<ITransaction> snapshot = snapshotSubTransactions(true);
+        if (snapshot.isEmpty())
             return CompletableFuture.completedFuture(null);
 
-        List<CompletionStage<?>> futures = new ArrayList<>(subTransactions.size());
+        List<CompletionStage<?>> futures = new ArrayList<>(snapshot.size());
 
-        for (ITransaction subTxn : subTransactions.values()) {
+        for (ITransaction subTxn : snapshot) {
             if (subTxn.isTransactionOpened()) {
                 futures.add(subTxn.commitAsync());
             }
@@ -363,11 +390,10 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected void commitSubTransactions() {
-        if (subTransactions != null) {
-            for (ITransaction subTxn : subTransactions.values()) {
-                if (subTxn.isTransactionOpened())
-                    subTxn.commit();
-            }
+        // 裁定⑨：持锁快照 + 锁外迭代（快照开始后迟到子事务显式拒绝）
+        for (ITransaction subTxn : snapshotSubTransactions(true)) {
+            if (subTxn.isTransactionOpened())
+                subTxn.commit();
         }
     }
 
@@ -435,18 +461,14 @@ public abstract class AbstractTransaction implements ITransaction {
     }
 
     protected void closeSubTransactions() {
-        if (subTransactions != null) {
-            for (ITransaction subTxn : subTransactions.values()) {
-                IoHelper.safeClose(subTxn);
-            }
+        for (ITransaction subTxn : snapshotSubTransactions(false)) {
+            IoHelper.safeClose(subTxn);
         }
     }
 
     protected void openSubTransactions() {
-        if (subTransactions != null) {
-            for (ITransaction subTxn : subTransactions.values()) {
-                subTxn.open();
-            }
+        for (ITransaction subTxn : snapshotSubTransactions(false)) {
+            subTxn.open();
         }
     }
 

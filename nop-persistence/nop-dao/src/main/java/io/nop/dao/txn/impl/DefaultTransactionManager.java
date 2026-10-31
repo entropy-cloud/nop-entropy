@@ -168,6 +168,47 @@ public class DefaultTransactionManager implements ITransactionManager {
         return txn;
     }
 
+    /**
+     * plan 2517 R2-14 裁定⑧（C2-013）：get+new+register 三步收敛为注册表级原子 create-if-absent。
+     * compute 函数体内取 external synchronization ?? newTransaction——JTA 型外部同步器保留回退且不落注册表；
+     * 函数体内无 I/O 无锁获取（锁序总表 §4.6：attrs CHM bin 锁内仅创建事务对象）。
+     */
+    @Override
+    public RegisteredTxn getOrCreateRegisteredTransaction(String querySpace) {
+        querySpace = DaoHelper.normalizeQuerySpace(querySpace);
+
+        TransactionRegistry.RegistrationResult result = TransactionRegistry.instance()
+                .getOrCreate(querySpace, group -> {
+                    ITransaction syncTxn = getTransactionFactory(group).getSynchronization(group);
+                    if (syncTxn != null) {
+                        if (defaultListener != null)
+                            syncTxn.addListener(defaultListener);
+                        // 外部同步器不落注册表：返回 null（注册表保持无 entry，语义与原 getRegisteredTransaction 一致）
+                        return null;
+                    }
+                    return newTransaction(group);
+                });
+        return new RegisteredTxn(result.getTxn(), result.isNewlyRegistered());
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑧：挂起事务（runWithoutTransaction/NOT_SUPPORTED 注销窗口改挂起标记）
+     */
+    @Override
+    public void suspendTransaction(ITransaction txn) {
+        LOG.trace("nop.txn.suspend:txn={}", txn);
+        TransactionRegistry.instance().suspend(txn.getTxnGroup(), txn);
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑧：恢复挂起事务
+     */
+    @Override
+    public void resumeTransaction(ITransaction txn) {
+        LOG.trace("nop.txn.resume:txn={}", txn);
+        TransactionRegistry.instance().resume(txn.getTxnGroup(), txn);
+    }
+
     @Override
     public ITransaction registerTransaction(ITransaction txn) {
         LOG.trace("nop.txn.register:txn={}", txn);

@@ -108,6 +108,9 @@ public interface DaoErrors {
     ErrorCode ERR_TXN_DUPLICATE_SUB_TRANSACTION = define("nop.err.dao.txn.duplicate-sub-transaction",
             "不允许注册多个txnGroup相同的子事务:{txnGroup}", ARG_TXN_GROUP);
 
+    ErrorCode ERR_TXN_LATE_SUB_TRANSACTION = define("nop.err.dao.txn.late-sub-transaction",
+            "事务已进入提交/回滚阶段，不允许再注册子事务:{txnGroup}", ARG_TXN_GROUP);
+
     ErrorCode ERR_TXN_ROLLBACK_ONLY_NOT_ALLOW_COMMIT = define("nop.err.dao.txn.rollback-only-not-allow-commit",
             "事务标记为只允许回滚，因此不能提交此事务:{txnGroup}", ARG_TXN_GROUP);
 

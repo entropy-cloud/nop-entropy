@@ -16,6 +16,8 @@ import io.nop.dao.txn.ITransaction;
 import io.nop.dao.txn.ITransactionManager;
 import io.nop.dao.txn.ITransactionTemplate;
 import jakarta.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.util.concurrent.CompletionStage;
@@ -31,6 +33,7 @@ import static io.nop.dao.DaoErrors.ERR_TXN_NOT_REGISTERED;
 import static io.nop.dao.utils.DaoHelper.isDefaultQuerySpace;
 
 public class TransactionTemplateImpl implements ITransactionTemplate {
+    static final Logger LOG = LoggerFactory.getLogger(TransactionTemplateImpl.class);
 
     private ITransactionManager transactionManager;
 
@@ -99,6 +102,9 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
         ITransaction prevTxn;
 
+        // plan 2517 R2-14 裁定⑧：prevTxn 经挂起标记摘除（NOT_SUPPORTED）时为 true，cleanup 走 resume 而非 re-register
+        boolean prevSuspended;
+
         TxnState newState() {
             TxnState state = new TxnState();
             state.txnGroup = txnGroup;
@@ -154,14 +160,20 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
             state.txn = txn;
             state.groupTxn = groupTxn;
         } else {
-            ITransaction txn = transactionManager.getRegisteredTransaction(txnGroup);
-            if (txn == null && allowCreate) {
-                // 只是新建事务对象，但是并没有调用open打开事务
-                txn = transactionManager.newTransaction(txnGroup);
-                state.newlyCreated = true;
-                state.prevTxn = transactionManager.registerTransaction(txn);
+            if (allowCreate) {
+                // plan 2517 R2-14 裁定⑧（C2-013）：get+new+register 三步收敛为注册表级原子 create-if-absent。
+                // 并发下败者采用胜者（自建事务不落注册表，消除 put 覆盖 prevTxn 的注册表覆盖面）——
+                // REQUIRED 组语义不再静默退化为独立事务。锁只保护注册表结构变更（不覆盖 task 执行与 commit）
+                ITransactionManager.RegisteredTxn registered = transactionManager
+                        .getOrCreateRegisteredTransaction(txnGroup);
+                ITransaction txn = registered.getTxn();
+                if (registered.isNewlyRegistered())
+                    state.newlyCreated = true;
+                state.txn = txn;
+            } else {
+                // allowCreate=false（NEVER/SUPPORTS 探测等）：只读不建，保持既有 get+同步器回退语义
+                state.txn = transactionManager.getRegisteredTransaction(txnGroup);
             }
-            state.txn = txn;
         }
         return state;
     }
@@ -172,11 +184,13 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         if (txn == null) {
             return task.get();
         } else {
-            transactionManager.unregisterTransaction(txn);
+            // plan 2517 R2-14 裁定⑧：注销-执行-重挂窗口改挂起标记（registry entry 挂 suspended 位，
+            // 查找侧跳过）——并行分支在窗口内 get-or-create 不再误建新事务，REQUIRED 组语义保持
+            transactionManager.suspendTransaction(txn);
             try {
                 return task.get();
             } finally {
-                transactionManager.registerTransaction(txn);
+                transactionManager.resumeTransaction(txn);
             }
         }
     }
@@ -292,8 +306,9 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
                 state = getTxnState(txnGroup, false);
                 state = state.newState();
                 if (state.prevTxn != null) {
-                    if (!transactionManager.unregisterTransaction(state.prevTxn))
-                        throw new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.prevTxn);
+                    // plan 2517 R2-14 裁定⑧：注销窗口改挂起标记，cleanup 阶段 resume 恢复
+                    transactionManager.suspendTransaction(state.prevTxn);
+                    state.prevSuspended = true;
                 }
                 break;
             }
@@ -408,18 +423,22 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
         // 新建的事务需要取消注册
         if (state.groupNewlyCreated) {
             if (!transactionManager.unregisterTransaction(state.groupTxn)) {
-                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.groupTxn);
+                ex = cleanupIdentityMismatch(state.groupTxn);
             }
         } else if (state.newlyCreated && state.groupTxn == null) {
             // 如果存在主事务，则实际txn是注册到groupTxn中，而不是注册为全局的事务，因此这里也就不需要取消注册
             if (!transactionManager.unregisterTransaction(state.txn)) {
-                ex = new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, state.txn);
+                ex = cleanupIdentityMismatch(state.txn);
             }
         }
 
         // REQUIRE_NEW需要恢复此前的事务
         if (state.prevTxn != null) {
-            transactionManager.registerTransaction(state.prevTxn);
+            // plan 2517 R2-14 裁定⑧：NOT_SUPPORTED 挂起标记走 resume，REQUIRES_NEW 覆盖面走 re-register
+            if (state.prevSuspended)
+                transactionManager.resumeTransaction(state.prevTxn);
+            else
+                transactionManager.registerTransaction(state.prevTxn);
         }
 
         // 新打开的主事务需要关闭。如果是分支事务，则跟随主事务一起关闭
@@ -435,5 +454,20 @@ public class TransactionTemplateImpl implements ITransactionTemplate {
 
         if (ex != null)
             throw ex;
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑧(c)：unregister 失败先身份比对（registry 现值==本事务？）。
+     * 一致（理论不可达，remove(key,value) 失败即现值不同或已空）→ 真异常保留；
+     * 不一致 → 并发方已接管，降级 WARN 非抛错——提交成功后伪 ERR_TXN_NOT_REGISTERED
+     * （触发上游重试与数据重复）消除。可观测指标：nop.dao.txn.cleanup-identity-mismatch
+     */
+    private RuntimeException cleanupIdentityMismatch(ITransaction txn) {
+        ITransaction current = transactionManager.getRegisteredTransaction(txn.getTxnGroup());
+        if (current == txn) {
+            return new NopException(ERR_TXN_NOT_REGISTERED).param(ARG_TXN, txn);
+        }
+        LOG.warn("nop.dao.txn.cleanup-identity-mismatch:txn={},current={}", txn, current);
+        return null;
     }
 }

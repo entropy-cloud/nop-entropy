@@ -50,6 +50,10 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
         return txnId;
     }
 
+    // plan 2517 R2-14 裁定⑩（C2-017/C1-026）：事务实例自身为 monitor 串行化五触点
+    // （getConnection/doCommit/doRollback/releaseConnection/doClose，getConnection0 同监视器）。
+    // 临界区内含池获取 dataSource.get()；禁止锁内再取 registry/CHM 全局锁（锁序总表 §4.6）。
+    // 与裁定⑨ synchronized(this) 同对象监视器（可重入安全，§4.6 同对象注）。
     Connection getConnection0() {
         if (connection == null)
             connection = dataSource.get();
@@ -59,44 +63,54 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
     // 延迟获取连接
     @Override
     public Connection getConnection() {
-        if (connection == null) {
-            LOG.trace("nop.dao.txn.fetch-connection:conn={}", this);
-            connection = dataSource.get();
-            if (isTransactionOpened()) {
-                if (JdbcHelper.getAutoCommit(connection, dialect)) {
-                    JdbcHelper.setAutoCommit(connection, false, dialect);
+        synchronized (this) {
+            if (connection == null) {
+                LOG.trace("nop.dao.txn.fetch-connection:conn={}", this);
+                connection = dataSource.get();
+                if (isTransactionOpened()) {
+                    if (JdbcHelper.getAutoCommit(connection, dialect)) {
+                        JdbcHelper.setAutoCommit(connection, false, dialect);
+                    }
+                }
+                if (daoMetrics != null) {
+                    daoMetrics.onObtainConnection();
                 }
             }
-            if (daoMetrics != null) {
-                daoMetrics.onObtainConnection();
-            }
+            return connection;
         }
-        return connection;
     }
 
     @Override
     protected void doRollback(Throwable error) {
-        if (connection == null)
-            return;
+        synchronized (this) {
+            if (connection == null)
+                return;
 
-        LOG.info("nop.dao.jdbc.rollback:{}", this);
-        JdbcHelper.rollback(connection, dialect);
-        // eagerRelease=false时连接被保留，必须恢复autoCommit，
-        // 否则后续复用连接执行的写操作运行在永不提交的隐式事务中
-        restoreAutoCommit();
-        if (eagerReleaseConnection)
-            releaseConnection();
+            LOG.info("nop.dao.jdbc.rollback:{}", this);
+            JdbcHelper.rollback(connection, dialect);
+            // eagerRelease=false时连接被保留，必须恢复autoCommit，
+            // 否则后续复用连接执行的写操作运行在永不提交的隐式事务中
+            restoreAutoCommit();
+            if (eagerReleaseConnection)
+                releaseConnection();
+        }
     }
 
     @Override
     protected void doCommit() {
-        if (connection == null)
-            return;
+        synchronized (this) {
+            if (connection == null) {
+                // 裁定⑩：null 早退补 WARN 留痕（非静默 no-op；eagerRelease+正常 close 双路径下 null
+                // 为合法终态，不改抛错语义）。可观测指标：nop.dao.jdbc.commit-on-released-connection
+                LOG.warn("nop.dao.jdbc.commit-on-released-connection:txn={}", this);
+                return;
+            }
 
-        JdbcHelper.commit(connection, dialect);
-        restoreAutoCommit();
-        if (eagerReleaseConnection)
-            releaseConnection();
+            JdbcHelper.commit(connection, dialect);
+            restoreAutoCommit();
+            if (eagerReleaseConnection)
+                releaseConnection();
+        }
     }
 
     private void restoreAutoCommit() {
@@ -111,11 +125,13 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
     }
 
     public void releaseConnection() {
-        if (connection != null) {
-            LOG.trace("nop.dao.txn.release-connection:conn={}", this);
+        synchronized (this) {
+            if (connection != null) {
+                LOG.trace("nop.dao.txn.release-connection:conn={}", this);
 
-            IoHelper.safeClose(connection);
-            this.connection = null;
+                IoHelper.safeClose(connection);
+                this.connection = null;
+            }
         }
     }
 
@@ -126,10 +142,11 @@ public class JdbcTransaction extends AbstractTransaction implements IJdbcTransac
 
     @Override
     protected void doOpen() {
-        Connection conn = getConnection0();
-        if (JdbcHelper.getAutoCommit(conn, dialect)) {
-            JdbcHelper.setAutoCommit(conn, false, dialect);
+        synchronized (this) {
+            Connection conn = getConnection0();
+            if (JdbcHelper.getAutoCommit(conn, dialect)) {
+                JdbcHelper.setAutoCommit(conn, false, dialect);
+            }
         }
-
     }
 }

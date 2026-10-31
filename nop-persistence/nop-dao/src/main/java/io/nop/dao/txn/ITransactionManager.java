@@ -25,6 +25,39 @@ public interface ITransactionManager {
     ITransaction getRegisteredTransaction(String txnGroup);
 
     /**
+     * plan 2517 R2-14 裁定⑧（C2-013）：get+new+register 三步收敛为注册表级原子 create-if-absent。
+     * compute 函数体内取 external synchronization ?? newTransaction（JTA 型外部同步器不被原子化遮蔽，
+     * 且外部同步器不落注册表）；并发下败者不再覆盖胜者，自建事务由调用方按 newlyRegistered 判定收尾
+     * （半个成功消除）。锁序约束：注册表锁只保护结构变更，不覆盖 task 执行与 commit。
+     */
+    default RegisteredTxn getOrCreateRegisteredTransaction(String txnGroup) {
+        // 裁定⑧缺省退化实现：非原子两步（供既有 ITransactionManager 实现方渐进升级）；
+        // DefaultTransactionManager 覆盖为注册表级原子形态
+        ITransaction txn = getRegisteredTransaction(txnGroup);
+        if (txn != null)
+            return new RegisteredTxn(txn, false);
+        txn = newTransaction(txnGroup);
+        registerTransaction(txn);
+        return new RegisteredTxn(txn, true);
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑧：注销-执行-重挂窗口改挂起标记——registry entry 摘除并挂 suspended 位，
+     * 查找侧跳过（runWithoutTransaction/NOT_SUPPORTED）。缺省实现退化为 unregister（既有实现方渐进升级）。
+     */
+    default void suspendTransaction(ITransaction txn) {
+        unregisterTransaction(txn);
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑧：恢复挂起的事务（摘除 suspended 位并重挂注册表）。缺省实现退化为 re-register。
+     */
+    default void resumeTransaction(ITransaction txn) {
+        if (txn != null)
+            registerTransaction(txn);
+    }
+
+    /**
      * 将事务对象注册到线程上下文中，返回当前注册的事务对象
      */
     ITransaction registerTransaction(ITransaction txn);
@@ -48,4 +81,26 @@ public interface ITransactionManager {
      * {@code IJdbcTransaction.getConnection()} 获取事务绑定连接。</p>
      */
     Connection openConnection(String querySpace);
+
+    /**
+     * getOrCreateRegisteredTransaction 的结果载体：txn 为当前生效事务；newlyRegistered 标记是否由本次调用
+     * 新建并注册（true 时调用方负责 cleanup 的 unregister/close 收尾）
+     */
+    class RegisteredTxn {
+        private final ITransaction txn;
+        private final boolean newlyRegistered;
+
+        public RegisteredTxn(ITransaction txn, boolean newlyRegistered) {
+            this.txn = txn;
+            this.newlyRegistered = newlyRegistered;
+        }
+
+        public ITransaction getTxn() {
+            return txn;
+        }
+
+        public boolean isNewlyRegistered() {
+            return newlyRegistered;
+        }
+    }
 }
