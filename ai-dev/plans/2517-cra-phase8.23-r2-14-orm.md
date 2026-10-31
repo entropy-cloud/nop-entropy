@@ -191,24 +191,29 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done（2026-10-31）
 Targets: nop-persistence 聚合全量测试；`docs-for-ai/02-core-guides/model-first-development.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2516 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`（PA 零触碰声明兑现，或触发条件条款下已申报面逐项登记）、不含 nop-api-core/nop-commons 平台设施（条件申报面除外）、不含 R4-18/R4-19/R2-15 批外成员本体、C1-016 钉（TestLazyLoadOrmModel）与 C2-016 现状容忍钉（testMultipleCommit）零 diff 核对登记
-- [ ] Owner doc 更新：`model-first-development.md`——新增「ORM 会话与事务并发契约（plan 2517 R2-14）」节（session 互斥语义/异步收尾线程纪律/注册表原子化、「以设计文档为准」归属声明）、模型热刷新可见性与组件预计算声明（裁定②③）、全局缓存世代语义声明（裁定⑥，含 C1-027 SSOT 指向）、IBlockingSource 抢占契约节（NULL 谓词 + 短事务约束，裁定⑦⑬）、drainTo 事务边界契约句（并入 :564-565 邻接节或独立小节）、事务注册协议原子性契约句（裁定⑧⑨，半个成功消除）、连接生命周期锁纪律句（裁定⑩）、flush 失败重试语义句（裁定⑫）、§源码锚点补行；`source-anchors.md` 新增锚点（按实际）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2516 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-persistence -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`（PA 零触碰声明兑现，或触发条件条款下已申报面逐项登记）、不含 nop-api-core/nop-commons 平台设施（条件申报面除外）、不含 R4-18/R4-19/R2-15 批外成员本体、C1-016 钉（TestLazyLoadOrmModel）与 C2-016 现状容忍钉（testMultipleCommit）零 diff 核对登记
+- [x] Owner doc 更新：`model-first-development.md`——新增「ORM 会话与事务并发契约（plan 2517 R2-14）」节（session 互斥语义/异步收尾线程纪律/注册表原子化、「以设计文档为准」归属声明）、模型热刷新可见性与组件预计算声明（裁定②③）、全局缓存世代语义声明（裁定⑥，含 C1-027 SSOT 指向）、IBlockingSource 抢占契约节（NULL 谓词 + 短事务约束，裁定⑦⑬）、drainTo 事务边界契约句（并入 :564-565 邻接节或独立小节）、事务注册协议原子性契约句（裁定⑧⑨，半个成功消除）、连接生命周期锁纪律句（裁定⑩）、flush 失败重试语义句（裁定⑫）、§源码锚点补行；`source-anchors.md` 新增锚点（按实际）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-persistence --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] model-first-development.md 落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/R4-18/R4-19/R2-15 批外成员本体/C1-016 与 C2-016 钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] model-first-development.md 落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/R4-18/R4-19/R2-15 批外成员本体/C1-016 与 C2-016 钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
+Phase 3 执行登记（2026-10-31）：
+- E1 授权支路 `-DskipTests`（沿 2497–2516 先例，理由：四模块聚焦测试已由 Phase 2 reactor r2 全绿覆盖）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/2517-e1-build.log`/`.exit`）。
+- E3：四模块 reactor `-am` r2 EXIT=0（nop-dao 196/nop-orm-model 414/nop-orm 20/nop-orm-data 77，上游链 864，0 失败；r1 nop-core flake 三联裁定）——`_tmp/2517-phase2-final-test-r2.log`。
+- 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-persistence high=3（`_tmp/2517-scan-hollow.log`）——批前既有裁定：TdMessageService.sendAsync/subscribe、GeometryTypeHandler.fromLiteral 均为 guard 式 fail-fast 占位，位于 nop-orm-tdengine/nop-orm-geo，本批零触碰模块，不属本批面（登记不修复）。
+- 零触碰确认：产品 diff 零 orm.xml/零 `_` 生成物/零 nop-api-core/nop-commons/R4-18/R4-19/R2-15 成员本体；C1-016 钉 TestLazyLoadOrmModel 零 diff；C2-016 现状容忍钉（testMultipleCommit）零 diff；钉族唯一 diff=TestFlushFailure（C10-009 允许语义适配）。
 ### Phase 4 - closure audit + 收口
 
 Status: planned
