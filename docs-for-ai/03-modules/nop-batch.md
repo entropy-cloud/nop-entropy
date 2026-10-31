@@ -227,6 +227,53 @@ task steps:
 
 回归锚点：`nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/impl/TestBatchTaskErrorTerminalization.java`（注入点分别为 processor 与 propagateContext）。
 
+## RUNNING 死区与 fencing 契约（1.7-C7-001，plan 2516 裁定①）
+
+`nop_batch_task` 的单活跃守卫（同 taskName+taskKey 只允许一个活跃实例）带 **stale 租约接管**能力：终态保存失败或进程崩溃留下的 RUNNING 死区行在租约过期后可被新实例接管，不再永久拒启。裁定权威 = 仓库 ai-dev/design/concurrency/wf-task-scanner-fencing-and-task-wf-concurrency.md §3.6 裁定⑥（R12 族 fencing 语义权威：条件 UPDATE 抢占 + rowsAffected==1 单飞判据 + 租约——本批为引用方、引用不重建；按 docs-for-ai 边界规则不直接链接）+ batch-running-deadzone-fencing-and-parameter-guards.md（R2-13 批裁定①）。三个变更点：
+
+- **启动闸门 stale 感知化**（`DaoBatchStateStore.startExistingTask`）：`taskStatus <= RUNNING` 且租约未到期（`restartTime` 非空且大于 `now - nop.batch.task.stale-lease-ms`）的活行维持 `ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_EXIST_RUNNING_INSTANCE` 响亮失败（事中兜底，错误码语义零回退）；`restartTime` 为 NULL 或已过租约期的 stale 行放行进入条件 UPDATE，由 rowsAffected 单飞裁决（竞态下另一实例先行接管时 rowsAffected==0，响亮失败兜底）。KILLED 行仍先行拒绝、不被 fencing 覆写。
+- **`tryMarkTaskRunning` WHERE 扩展**：条件 UPDATE 谓词为「`taskStatus > RUNNING` 或（`taskStatus <= RUNNING` 且（`restartTime IS NULL` 或 `restartTime <= staleCutoff`））」——NULL 判 stale（存量死区行 restartTime 恒 NULL，否则缺陷主体不可接管）；接管成功后行内 taskStatus/restartTime/workerId/execCount 原子刷新。
+- **租约写点**：insert-path 于 `newTask` 写入初始租约（insert 即持租约，NULL 仅存在于存量死区行）；续租由既有 per-chunk checkpoint 承接（`saveTaskState` store 侧单点写 `restartTime=now`），接管窗 = checkpoint 间隔 + 租约余量。
+
+**僵尸写者 fencing**：`saveTaskState` 为条件 UPDATE（`WHERE sid=? AND exec_count=:myExecCount`，execCount 随每次进入 RUNNING 递增、为天然 fencing token）——rowsAffected==0 即本实例已被接管/重启，本次状态写被丢弃并记 ERROR（`nop.err.batch.task-state-write-lost-fencing`，携 taskId/execCount），不抛出打断清理链、不覆写新实例已刷新的状态列。该实现为 2514 裁定⑥「限定列集或写前 reload」菜单的等价形态（fencing by execCount），偏离登记已回填 2514 设计文档修订记录，不在模块内发明第二套语义。
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.batch.task.stale-lease-ms` | 600000 | RUNNING 行 stale 接管租约（毫秒）；`<=0` 关闭接管（运维逃生门，等价修复前现状，显式声明非静默降级） |
+
+**观测面影响（AutoTest 快照契约）**：`saveTaskState` 条件 UPDATE 直发 SQL 绕过 ORM 乐观锁与 AutoTestOrmHook——任务行 VERSION 停留在插入态（不随状态写递增），clock/var 列的 `@var:NopBatchTask@*` 快照变量不再经 saveTaskState 注册；AutoTest 快照断言契约为 `END_TIME`/`RESTART_TIME` 用 `@notNull:` 非空断言、`VERSION` 钉插入态值。
+
+## 任务完成清理段契约（onTaskComplete，plan 2516 裁定⑦）
+
+`BatchTask.onTaskComplete` 清理段三处失败路径显式化（不吞不替换）：
+
+- **S4/S6 终态写失败**：err≠null 分支的 `saveTaskState(true, err)` 抛出新异常 X 时，catch + ERROR 留痕（`nop.err.batch.task-terminal-save-fail`，携 taskName/taskId）后放弃本次状态写；X 不替换原始 err（setup 失败路径进入时对外仍以原始 e 结算），`context.completeExceptionally(err)` 必达。终态写失败后的行残留（停留 RUNNING）由上述 stale 接管承接（租约到期即可重入）。
+- **S5 metrics 兜底**：`metrics.endTask` 包独立 try（失败 ERROR 留痕，`nop.err.batch.task-metrics-end-fail`），保证 `FutureHelper.complete` 必达——返回 future 不成为孤儿、调用方不挂死；finally 内既有顺序不变（plan 2496/2381 已修面零回退）。
+
+## REE 双层封闭契约（executor 拒绝，plan 2516 裁定⑥）
+
+`executor.execute` 同步拒绝（RejectedExecutionException，注入有界池饱和/停机竞态）被双层封闭，不裸逃逸绕过 onTaskComplete：
+
+- **提交点防御**：`executeChunkLoop` 内 `executor.execute` 包 try/REE，捕获后 `future.completeExceptionally`（该提交 lambda 未执行、无泄漏面）；
+- **futures 提交循环包络**：`executeAsync` 提交循环任一提交抛出时，已提交 futures 逐个 `completeExceptionally`（幽灵链显式结算，allOf 立即触发；已运行加载线程由既有 fail-fast cancel 短路）后直达 `onTaskComplete` 既有终态化+关闭链。
+
+## dispatch 容量与 batchSize 护栏契约（plan 2516 裁定②③）
+
+- **dispatch 容量**（`BatchTaskBuilder.buildLoader` 装配期 fail-fast）：`loadBatchSize <= 0` 抛 `ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID`（param 携 loadBatchSize 与 capacity 公式 `loadBatchSize × loadBatchMultiplyFactor` 上下文）——Semaphore(0) 永久挂死/静默空任务在装配期即被拒绝，orm-reader 路径期望终态为 fail-fast 而非挂死。
+- **Export/Import 守卫对称**（1.7-C8-002）：`ExportDbTool` 与 `ImportDbTool` 同持 `batchSize > 0` 守卫——缺省 0 不再进入 `adjustBatchSize` 钳位路径（守卫落缺省后使用 builder 缺省 batchSize=100），消除「每行一 chunk」写放大。`adjustBatchSize` 的 `<=0→1` 钳位保留并补每任务一次 WARN（`nop.warn.batch.batch-size-clamped-to-one`），静默兜底可观测。xdef `batchSize` 缺省值维持现状（缺省改 1000 的备选未启用）。
+
+## excel-reader 规模边界与 maxCount 契约（plan 2516 裁定④）
+
+excel-reader（`file-reader`/excel 形态）在读取前将**全 sheet 物化为内存 List**——这是已声明的包络边界而非流式实现：大数据量（XLSX 单 sheet 上限 1,048,576 行）存在确定性内存压力，大数据量场景应走 csv/jdbc-reader 或显式配置 `maxCountExpr` 截断。`maxCountExpr` 已恢复接线（`FileBatchSupport.newExcelReader` → loader）：**行为变更声明——已配置 maxCount 的链路从全量读取变为截断读取**（接线恢复前该配置无效、数据全量消费；恢复后超出 maxCount 的条目不再进入处理）。物化面残留为已登记的 watch-only 观察项。
+
+## jdbc-reader fetchSize 语义契约（plan 2516 裁定⑤）
+
+`jdbc-reader` 的 DSL `fetchSize` 配置在 provider 层独立兜底生效（`JdbcBatchLoaderProvider`：显式配置即 `ps.setFetchSize` 必达；streaming 分支优先不变；sql 层 fetchSize 归 JdbcHelper 既有职责）。修复前「query/sql 文本路径 fetchSize 永不生效」的坏门已闭合；`streaming=false` 且 fetchSize 未配置的路径打一次性 WARN（`nop.err.batch.jdbc-fetch-size-unset`）——驱动全量缓冲结果集的内存风险可观测，大数据量查询应显式配置 fetchSize。
+
+## sys-event 触发链守卫覆盖契约（plan 2516 裁定⑧）
+
+sys-event 普通事件触发链（`non-broadcast-consumer.batch.xml`）已配置 `saveState="true"` + 固定 taskKeyExpr（`'non-broadcast'`，全部署单活跃键）+ `allowStartIfComplete="true"`（cron 重复触发的已完成任务允许重入，并发重叠由启动闸门行级条件 UPDATE 裁决）——(taskName, taskKey) 唯一键与启动闸门（含 stale 接管）结构性覆盖该触发链。契约句：`saveState` 未配置（非 true）时 `ModelBasedBatchTaskBuilderFactory` 不接 stateStore、启动守卫结构性旁路——需要单活跃守卫的任务必须显式配置 `saveState` 与确定性 `taskKeyExpr`（无 taskKeyExpr 时 UUID 键使守卫永不冲突，为无状态任务既有语义）。跨单元前提：重叠防护同时依赖 nop-job 调度语义与 nop-sys claim 原子性，batch 侧守卫为批内兜底。
+
 ## 账本保留策略（1.7-C7-003，plan 2502）
 
 `nop_batch_task` / `nop_batch_task_var` / `nop_batch_record_result`（及级联面 `nop_batch_file`）由 nop-batch-dao 的 `DaoBatchLedgerCleaner` 周期清理（容器装配单例 bean → `LifeCycleSupport` 生命周期链 → `timer.executeOn(worker)` 绝缘调度，taskName=`nop-batch-ledger-cleanup`）。**与 nop-retry 1.6-C7-001 账本表清理同设计同参（批次对齐声明：batch-proposal §四「1.7 C7-003 与 1.6 C7-001 账本保留族批次对齐」；参数 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md §3.2/§3.4，平台内部文档——按 docs-for-ai 边界规则不直接链接；保留策略语义见 [nop-retry.md](nop-retry.md)「账本保留策略」节）**。模块配置键：
@@ -253,6 +300,12 @@ task steps:
 | DSL Schema | `nop-kernel/nop-xdefs/.../nop/schema/task/batch.xdef` |
 | 运行时标签库 | `nop-batch/nop-batch-dsl/.../nop/batch/xlib/batch.xlib` |
 | 批处理任务执行体（异常终态守卫） | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/impl/BatchTask.java` |
+| 状态存储（stale 接管/租约 fencing，1.7-C7-001） | `nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/store/DaoBatchStateStore.java`（闸门守卫+staleCutoff :133-161、单飞判据 `tryMarkTaskRunning`/`isLiveLease` :227-256、checkpoint 续租与 execCount 条件 UPDATE :314-356） |
+| dispatch 容量护栏（1.7-C8-001） | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/BatchTaskBuilder.java`（`buildLoader` fail-fast :345-352）+ `BatchErrors.java`（`ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID` :66） |
+| batchSize 钳位 WARN（1.7-C8-002） | `nop-batch/nop-batch-core/src/main/java/io/nop/batch/core/processor/BatchChunkProcessor.java`（:101）+ `nop-batch/nop-batch-exp/src/main/java/io/nop/batch/exp/ExportDbTool.java`（守卫 :279-282） |
+| excel-reader maxCount 接线（1.7-C5-001） | `nop-batch/nop-batch-dsl/src/main/java/io/nop/batch/dsl/manager/FileBatchSupport.java`（`newExcelReader` :150-155） |
+| jdbc-reader fetchSize 兜底（1.7-C5-002） | `nop-batch/nop-batch-jdbc/src/main/java/io/nop/batch/jdbc/loader/JdbcBatchLoaderProvider.java`（:248-258） |
+| sys-event 触发链守卫接线（1.7-C7-011） | `nop-batch/nop-batch-sys/src/main/resources/_vfs/nop/batch-task/sys-event/non-broadcast-consumer.batch.xml`（saveState/taskKeyExpr/allowStartIfComplete） |
 | 账本保留期清理（1.7-C7-003） | `nop-batch/nop-batch-dao/src/main/java/io/nop/batch/dao/cleanup/DaoBatchLedgerCleaner.java` |
 | 批处理任务文档 | `docs/dev-guide/batch/batch-task.md` |
 | 设计理念 | `docs/theory/why-springbatch-is-bad.md` |
