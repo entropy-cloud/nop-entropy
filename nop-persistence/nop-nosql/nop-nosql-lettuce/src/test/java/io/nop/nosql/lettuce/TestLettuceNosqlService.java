@@ -584,6 +584,10 @@ public class TestLettuceNosqlService {
 
     @Test
     void testPubSub_UnsubscribeStopsReceiving() throws Exception {
+        // MA-02 反向钉死改写（plan 2518 裁定②，唯一允许改写的七钉之一）：投递外移单投递线程后，
+        // cancel 前已入队的 in-flight 消息可在 cancel 完成后仍投递——旧「sleep(200) 型计数严格相等」
+        // 时序断言失效。语义对照（旧断言 = cancel 后收不到任何消息；新断言 = cancel 后新发送的
+        // 消息经 await 静默窗计数不增 + in-flight 至多投递 cancel 前已入队消息）。
         IMessageService msgService = service.getMessageService();
         String topic = "test:pubsub:unsub";
         AtomicInteger counter = new AtomicInteger(0);
@@ -597,16 +601,22 @@ public class TestLettuceNosqlService {
         });
 
         msgService.send(topic, "first");
-        Thread.sleep(200);
+        long deadline = System.currentTimeMillis() + 5000;
+        while (counter.get() < 1 && System.currentTimeMillis() < deadline)
+            Thread.sleep(20);
         int afterFirst = counter.get();
 
         sub.cancel();
 
+        int afterCancel = counter.get();
         msgService.send(topic, "second");
-        Thread.sleep(200);
+        // await 静默窗：cancel 后新 send 的消息不得投递（in-flight 至多为 cancel 前已入队消息）
+        Thread.sleep(500);
         int afterSecond = counter.get();
 
-        assertEquals(afterFirst, afterSecond, "Should not receive after cancel");
+        assertTrue(afterSecond == afterCancel,
+                "no message sent after cancel may be delivered within the quiesce window (afterCancel="
+                        + afterCancel + ", afterSecond=" + afterSecond + ")");
         assertTrue(afterFirst >= 1, "Should receive at least one before cancel");
     }
 
