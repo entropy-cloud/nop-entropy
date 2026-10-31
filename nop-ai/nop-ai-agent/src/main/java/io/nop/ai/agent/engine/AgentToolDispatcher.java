@@ -78,6 +78,61 @@ public class AgentToolDispatcher {
      */
     private final Map<String, Long> toolTimeoutPolicy;
 
+    /**
+     * Plan 2519 (裁定⑦/C3-011): progress-tracker kill-channel wiring seam —
+     * the engine-side {@code IToolProgressTracker} is passed to the dispatcher
+     * by the executor assembly (ReActAgentExecutor constructor injection) so
+     * the mechanical timeout / cancelCall paths can reach the process-level
+     * kill channel (the same channel heartbeat abandon and background stop
+     * use). 判据写死: tracker wired ⇒ mechanical timeout and cancelCall MUST
+     * reach the kill channel; absent tracker ⇒ explicit
+     * {@code nop.ai.agent.tool-kill-unreachable} WARN + counter (never
+     * silent).
+     */
+    private volatile io.nop.ai.agent.tool.IToolProgressTracker toolProgressTracker;
+
+    /** Plan 2519 (裁定⑦): counter for unreachable kill-channel attempts. */
+    private static final java.util.concurrent.atomic.AtomicLong TOOL_KILL_UNREACHABLE_COUNT =
+            new java.util.concurrent.atomic.AtomicLong();
+
+    /** Plan 2519 (裁定⑦): setter for the executor assembly wiring seam. */
+    public void setToolProgressTracker(io.nop.ai.agent.tool.IToolProgressTracker tracker) {
+        this.toolProgressTracker = tracker;
+    }
+
+    /** Plan 2519 (裁定⑦): test/diagnostics probe for kill-unreachable events. */
+    public static long toolKillUnreachableCount() {
+        return TOOL_KILL_UNREACHABLE_COUNT.get();
+    }
+
+    /**
+     * Plan 2519 (裁定⑦): process-level kill via the wired tracker. Trackers
+     * report {@code false} when the callId is unknown / already terminal —
+     * that outcome is explicitly recorded, never silent (rule 24; the defect
+     * state was "kill channel never reached from timeout paths at all").
+     */
+    private void cancelViaKillChannel(String callId, String trigger) {
+        io.nop.ai.agent.tool.IToolProgressTracker tracker = this.toolProgressTracker;
+        if (tracker == null) {
+            TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.tool-kill-unreachable: no progress tracker wired — process-level "
+                    + "kill channel unreachable (mechanical cancel only): callId={}, trigger={}",
+                    callId, trigger);
+            return;
+        }
+        try {
+            if (!tracker.cancelExecution(callId)) {
+                TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+                LOG.warn("nop.ai.agent.tool-kill-unreachable: tracker reported cancelExecution=false "
+                        + "(call unknown / already terminal): callId={}, trigger={}", callId, trigger);
+            }
+        } catch (RuntimeException killEx) {
+            TOOL_KILL_UNREACHABLE_COUNT.incrementAndGet();
+            LOG.warn("nop.ai.agent.tool-kill-unreachable: tracker cancelExecution threw (explicit "
+                    + "record): callId={}, trigger={}", callId, trigger, killEx);
+        }
+    }
+
     public AgentToolDispatcher(IToolManager toolManager,
                                IAgentEngine engine,
                                IAgentMessenger messenger,
@@ -206,8 +261,13 @@ public class AgentToolDispatcher {
                 return false;
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                for (CompletableFuture<ToolCallOutput> f : pending) {
-                    f.cancel(true);
+                for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                    CompletableFuture<ToolCallOutput> f = entry.getValue();
+                    if (!f.isDone() && f.cancel(true)) {
+                        // Plan 2519 (裁定⑦): interruption reaches the process-level
+                        // kill channel (tracker wired ⇒ 必达 kill)
+                        cancelViaKillChannel(entry.getKey(), "tool wait phase interrupted");
+                    }
                 }
                 throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
                         .param(ARG_DETAIL, "tool wait phase interrupted");
@@ -264,8 +324,12 @@ public class AgentToolDispatcher {
                     // quantum expired — loop re-checks the probe
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    for (CompletableFuture<ToolCallOutput> f : pendingFutures()) {
-                        f.cancel(true);
+                    for (Map.Entry<String, CompletableFuture<ToolCallOutput>> entry : futuresByCallId.entrySet()) {
+                        CompletableFuture<ToolCallOutput> f = entry.getValue();
+                        if (!f.isDone() && f.cancel(true)) {
+                            // Plan 2519 (裁定⑦): kill channel on wakeup-slice interrupt
+                            cancelViaKillChannel(entry.getKey(), "tool wakeup wait interrupted");
+                        }
                     }
                     throw new NopAiAgentException(ERR_AGENT_INTERNAL_DETAIL)
                             .param(ARG_DETAIL, "tool wait phase interrupted");
@@ -331,6 +395,12 @@ public class AgentToolDispatcher {
                 return false;
             }
             future.cancel(true);
+            // Plan 2519 (裁定⑦): javadoc 契约句与实现对齐 — cancelCall now
+            // reaches the process-level kill channel whenever a tracker is
+            // wired (same channel as heartbeat abandon / background stop);
+            // without a tracker the outcome is explicitly recorded
+            // (nop.ai.agent.tool-kill-unreachable), never a silent no-op.
+            cancelViaKillChannel(callId, "cancelCall");
             cancelledCallIds.add(callId);
             return true;
         }
