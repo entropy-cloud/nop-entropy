@@ -1,7 +1,10 @@
 # 2519 CRA Phase 8.25 — R2-16 3.1 agent 编排/会话批（10 项：引擎注入登记窗口 + F4 终态清理 29 站点（gate3 反向钉死改写同批）+ spawn 池 close 接线/drain + 成员/spawn 超时取消契约 + 会话 journal 累积上界 + 工具超时取消传播 + 方言流式协议族 + DBMessageService 治理 + 接管锁 abort 语义 + spawn 池 drain 搭车）
 
-> Plan Status: active
+> Plan Status: active（Phase 1 done，待 Phase 2）
 > Last Reviewed: 2026-10-31
+> Draft Review R1: agent_2c67f62f @ 2026-10-31 —— 无 Blocker；2 Major（M1 同号异站防混、M2 gate3 证据锚点 :274→:58）+4 Minor——M1/M2/m1/m2 协调方修复闭环，m3/m4 转设计文档 Phase 1 义务；修订转 active
+> Design Review R1: agent_5ee01926 @ 2026-10-31 —— FAIL（1 Blocker[B1 裁定①终态摘除序自相矛盾/丢写窗未闭合] + 3 Major[AR-3 事实前提漂移/活跃段超 cap 无 fallback/查询面行为变化未登记] + 6 Minor）→ 撰写者修订：B1 采备选(b) 精确化（terminal 标记+drain 同锁临界区→锁外 persist→remove→标记后锁内拒绝），M1–M3/m1–m6 全落
+> Design Review R2: agent_5ee01926 @ 2026-10-31 —— PASS（0B/0M；2 watch-only W1 persist 失败序句级补文[已落设计文档]/W2 Goals 判据指针[已落本 plan]）
 > Source: roadmap 工作项 8.25（R2-16，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L167，Status=todo[本 plan 立项时回写为「todo（plan 2519 drafted，待 draft review）」]）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-16 行（L90 全文：finding ID 清单 10 项[3.1-C1-008；3.1-C5-015；3.1-C4-010；3.1-C7-022；3.1-C5-008；3.1-C3-011；3.1-C3-028；3.1-C3-021；3.1-C7-012；3.1-C4-015] / 模块与验证命令 nop-ai `./mvnw test -pl nop-ai -am` / Owner Doc=`docs-for-ai/03-modules/nop-ai.md` / PA=无 / 依赖「R1-04（取消契约原语）；软依赖 R1-02/R1-03（globalTimer 约束解除）；软依赖 R1-06（同仓沙箱面先行）」/ exit criteria 增补：**MA-03 F4 终态清理 29 站点（gate3 反向钉死改写同批：remove no-op 钉+F4 断言补全）；MA-04 spawn 池 close 接线（C4-015 同批）；MA-05/MA-08 取消契约补齐（依赖 R1-04 bindCancel）；MA-09 方言协议族单修复批；MA-11 与 R1-08 consumeAwaitTimeout 契约对齐；MA-19 接管锁 abort 语义（R12 fencing）**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 3.1 审计目录 `ai-dev/audits/2026-10/2026-10-19-1410-deep-audit-nop-ai-core-nop-ai-agent-concurrency/`（C1-shared-mutable-state.md + C1-round2.md[C1-008]、C5-memory-bounds.md[C5-008/015]、C4-thread-pools.md[C4-010/015]、C7-long-running.md[C7-012/022]、C3-async-chains.md + C3-round2.md[C3-011/028] + C3-round3.md[C3-030/031/032]、merge-adjudication.md §一 MA-02/03/04/05/06/08/09/11/19 + §五 裁定 + 台账、C10-test-protection.md[C10-002/003/005/006/007/009/010/017]）；C10 映射 = 跨模块裁定 `inventory-p2-c10.md` §二 WI 3.1 节 :789（**3.1（19，随本体全映射）**——本批仅承载 10 主 ID 对应成员面 8 条 C10，其余归 R4-21/R4-32/G49/已 fixed 各本体]）；P1 台账 = cra-index `ai-dev/audits/cra-index.md` :240–248（live 2026-10-31 回读：R2-16 open 九行 = :240[C1-008]/:241[C5-015]/:242[C4-010]/:243[C7-022]/:244[C5-008]/:245[C3-011]/:246[C3-028]/:247[C3-021]/:248[C7-012]；C4-015 为 P2 台账 G51 行 :435 搭车成员不占 P1 行；:239[C3-001]/:249[C4-011]/:250[C7-001]/:251[C7-002]/:252[MA-17] 已 fixed[R2-02/R1-03/R1-06] 不属本批）；执行基线 @ `3cf64bc3d7`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.24 已 done，plan 2495–2518 均已完成或收口；**本 Baseline 全部行号为该基线 live 回读值，2026-10-31 亲读，执行前如再漂移以 live 为准并登记**）
 > Related: plan 2499（completed——R1-04 bindCancel 单点改造+上下文传播统一：**本批硬依赖已解除**，MA-05/MA-08 取消契约补齐直接消费 `ICancelToken`/`FutureHelper.bindCancel` 原语，SPI ×11 回归面留证在案）；plan 2497/2498（completed——R1-02/R1-03 池设施/消费方批：globalTimer 约束解除已生效[MA-16 形态收窄裁定]，`AgentDispatchExecutor` C4-011 已修为有界队列+fail-loud 先例）；plan 2501（completed——R1-06 沙箱族批：同仓沙箱面先行已满足，MA-17/C7-014 已 fixed 不属本批）；plan 2505（completed——R2-02 流式取消/期限两侧同批：3.1-C3-001/C7-001/C7-002 已 fixed，流式主链取消契约原语与本批 MA-05/MA-08 消费同源）；plan 2503（completed——R1-08 Debezium 批：**MA-11 consumeAwaitTimeout 契约对齐互注在案**[cra-index :247/:268 双侧]——4.1-C8-002 已落地 Local 失败派发契约[attempt=0/guarded 回调]，本批 MA-11 实施时按 4.1 merge-adjudication §五-6 对齐）；plan 2496（completed——MA-07 平台绝缘层批：`SessionLockRenewal.renewOnceSafe` catch 已由 RuntimeException 扩为 Throwable[护栏面，见勘误 3]——本批 MA-19 在其上补 abort 语义不回退该护栏）；**下游**：R4-21（8.61，G52 前半 10 项，**硬依赖本批**——批末须回写就绪注记）与 R4-24（8.5x，G62）consumeAwaitTimeout 对齐另一侧（4.1-MA-01）；结构模板 = plan 2518（PA 判定表/勘误登记/红绿判据/C10 半边口径/条件申报条款）与 plan 2517
 > Protected Area 授权：批次 PA=**无**（batch-proposal R2-16 行 PA 列显式「无」）。**批内条件申报条款（两处，条件触发制）**：① **MA-02/MA-05 修复若需 `io.nop.api.core.*`（nop-api-core）新增设施或 SPI 签名变更**——预设 = 纯消费 R1-04 已落地原语（`FutureHelper.bindCancel`/`ICancelToken.appendOnCancel`）零签名变更；若 Phase 1 裁定确需新增平台 API，触发 AGENTS.md「nop-api-core plan-first」，须在本 plan PA 行 + 设计文档 + draft review 完成申报并列全 SPI 回归面（bindCancel/ICancelToken 全实现逐类列举）方可实施；② **MA-09 方言修复若需演进 `ILlmDialect`/`ChatStreamChunk` 契约**——预设 = nop-ai-core 模块内 `parseStreamChunk` 多 chunk 语义收敛（返回 List 或多次回调，一次定夺）+ `ChatStreamChunk` 现有字段承载，`ILlmDialect` 接口零签名变更；若裁定演进为接口签名/新增抽象方法（全方言实现 + 外部实现方回归面），须在 draft review 申报并登记迁移方案。**头部预设：10/10 成员零 orm.xml 触碰、零 `_` 生成物触碰**（PA 判定表逐一核实）；站点分布于 `nop-ai/nop-ai-agent`（八单）与 `nop-ai/nop-ai-core`（方言一单九成员）两模块，E3 命令 `./mvnw test -pl nop-ai -am` 触达 nop-ai 聚合器及上游链。
@@ -83,12 +86,15 @@
 3. **C7-012 站点已被 plan 2496 部分改写**：审计引 `SessionLockRenewal.java:74-77`（catch RuntimeException→WARN）——live 回读为 `:74-85` catch **Throwable**（plan 2496 Phase 4 MA-07/C4-007 护栏扩展，注释在案）；缺陷机制（异常仅 WARN 无升级、协议窄化为仅 false→handleLeaseLost）**live 复核成立未修复**；`DbSessionTakeoverLock.tryRenew` SQLException→NopAiAgentException :300-318（审计引 :312-315，+5 内漂移）。裁定⑩设计输入以 live 形态为准，护栏零回退。
 4. **C3-011 主站点形态重构**：审计引 `AgentToolDispatcher L690 orTimeout`——live `AgentToolDispatcher` 无 orTimeout 站点（WI4/plan 2285/2505 系列改造后为 slice 等待循环 + futures map + `f.cancel(true)` :205-210/:263-268 + cancelCall :328-336 + 工具超时 cap :413-427）；取消不传播机制结论不变（cancel(true) 不接进程级 kill）；kill 通道生产调用点 live 两处（DefaultAgentEngine :693-698 background stop + ReActAgentExecutor :1677 heartbeat abandon）——原审计「仅 heartbeat 一处」口径订正为两处，超时/取消路径零接入的缺陷面不变；CL-005（orTimeout 同点）吸收面按 live 形态改挂在等待循环站点。
 5. **C7-022 站点分布收窄**：审计/cra-index「5 路径仅 2 实现 cancelSession」——live 回读 `MemberFanOutDispatcher.executeBoundMember` :313-331 **已有 orTimeout+cancelSession(forced=true)**（fan-out 路径已实现取消）；本批真实残余面 = DefaultMemberSpawner TimeoutException 分支（:191-198 spawnedSessionId 未取消，live 亲读核实）+ TeamTaskFlowOrchestrator overall deadline :634 不取消成员会话 + C3-025/C4-014 吸收面；站点分布勘误登记，缺陷族结论（僵尸成员+RECLAIM 双执行）不变；plan 252–259 系 nop-ai-agent 生命周期早期修复批先例，执行时核对是否已覆盖残余面（若已覆盖则按勘误登记收敛该子面，红⑤判据相应收窄）。
+  - [R2 W2 指针] 红⑤/红⑥判据以勘误 12/13 + 设计文档 §5.1 为准（红⑤两层断言：图已断/会话已终态；红⑥增量面：终态五容器清理接线缺失，非容器逻辑——对既有 remove 实现设红即假红）。
 6. **cra-index 行号基线**：R2-16 open 九行 = :240–248（C4-015 见 P2 台账 G51 行 :435；:239/:249/:250/:251/:252 已 fixed 行不属本批）；cra-index 若在执行前被其他批回填致行号漂移，以「批次列=R2-16 + finding ID」定位为准并登记。
 7. **C10 映射口径**：`inventory-p2-c10.md` :789 小结行 3.1（19）为全量映射；本批仅承载 10 主 ID 对应成员面（C10-002/003/005/006/007/009/010/017 八条；C10-010 仅 MA-19 半边，MA-16 半边归 R4-21），其余 11 条归 R4-21/R4-32/G49/已 fixed/watch 各本体——半边口径以本节清单为准，Phase 4 收敛注记按此书写。
 8. **MA-03 族站点计数**：cra-index 记「族 29 站点」且注记「remove 已实现纯接线」（live 三实现 remove 均在：InMemory :34-35 / DBSessionStore :198-203 / FileBackedSessionStore :177-182）——缺陷主体为引擎终态清理不接线 + gate3 清单不含 sessionStore，非 remove 方法缺失；设计裁定②以「接线 + 清单扩容 + 断言补全」为准核实与成文。
 9. **环境项预登记（批前既有）**：`./mvnw test -pl nop-ai -am` 触达上游模块链（nop-kernel/nop-api-core/nop-core/nop-commons/nop-auth/nop-stream/nop-message/nop-orm 等）——上游环境抖动（nop-auth MFA flake、debezium fork timeout、**nop-ai-agent 负载时序类 flake**[plan 2513/2514/2515 先例裁定，本批为站点所在模块须重点预登记]、nop-core `TestResourceCacheInvalidationChain` 间歇红[2517/2518 执行期留痕先例]、nop-task-core 逐出测试负载间歇误红[2518]、surefire fork 启动崩溃类，沿 plan 2512–2518 已知面）按「stash 基线同红 / solo 绿 / 恢复复跑全绿」**三联裁定**处理并留痕，不得静默重跑或跳过。
 10. **docker-gated / 外部依赖测试面登记**：`TestDockerSandboxBackend` 等沙箱测试 docker-gated 默认不跑——本批 C3-011 kill 通道钉须 mock tracker/fake 进程层非 docker 可跑；`TestDBMessageService*` 族依赖内嵌 DB（H2/derby 面，构建内可跑）——执行时如遇环境缺位按三联口径登记。
 11. **[设计文档起草增补条款]** 裁定①②⑤⑦等涉及执行窗语义改动者，设计文档须给出与 `TestDefaultAgentEngineCancel`/`TestSessionLifecycleSaveBeforeRelease`/`TestEngineLifecycleAndCheckpointBounded` 既有钉的兼容性核对表；gate3 改写为唯一允许的既有钉改写义务，其余钉零回退。
+12. **[设计评审 R2 修订——C7-022 事实前提再收窄]** 本表成员 5 行「overall deadline :634 `orTimeout` 只断 DAG 不取消成员会话」为不完整口径——live :646-667 TimeoutException 分支**已执行 `taskRt.cancel(ICancellable.CANCEL_REASON_TIMEOUT)`**（AR-3 注释在案，防图级 zombie）；缺陷残余面 = **会话级**（成员会话不随图取消终止）+ spawner TimeoutException 分支不取消 spawnedSessionId。裁定⑤增量 = 图取消之上补会话级 cancelSession（per-flow 成员登记表归 orchestrator built 阶段收集，数据面非取消机制），红⑤分「图已断」/「会话已终态」两层断言。
+13. **[设计评审 R2 修订——C5-008 既有面登记]** `FileBackedCheckpointManager.remove`（live :199-215）**已实现**终态五容器清理（bySession + 关联 byWatermark 遍历清除 + snapshotCache/saveCounters/loadedSessions）——本表成员 6 行「byWatermark remove 仅随 session 清理」即为该实现；裁定②对终态面为接线调用非清理逻辑新增，裁定⑥真实增量 = 仅「压缩完成会话淘汰」+ journal cap 轮转（活跃段超 cap 环形截断最旧 + WARN，归档不受 cap 约束）+ 分批解析与峰值观测器；红⑥对既有 remove 实现设红为假红——缺陷态红判据只挂增量面与接线缺失两面（设计文档裁定⑥红⑥增量断言修正条款）。
 
 ## Goals
 
@@ -124,32 +130,32 @@
 
 ### Phase 1 - agent 编排/会话生命周期并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: done（2026-10-31，R2 评审 PASS）
 Targets: `ai-dev/design/concurrency/agent-orchestration-session-lifecycle-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-008 注入登记窗口**：三恢复路径对称注册/注销形态（resume/wake/restore 执行窗注册[预设] vs injectInput 侧会话锁内查询）；注入链复合原子化一次定夺；pendingInjections 载体同步化一次定夺；C3-014/CL-061 吸收面闭环声明
-  - [ ] **裁定② C5-015 F4 终态清理 + gate3 改写**：终态清理清单扩容（F4 29 站点承载面逐容器登记）+ sessionStore 三实现接线；**gate3 反向钉死改写方案**（清单扩容 + 参数化 isEmpty 断言 + 改写语义对照留痕）；终态 save 反向 pin 子面消解；CL-IND-01 对齐注记；MA-10 接缝登记（R4-21 不代做）
-  - [ ] **裁定③ C4-010 spawn 池上提**：executor 生命周期落点（上提单例/注入载体[预设] vs per-invocation try/finally close）一次定夺；CL-036 惰性建池同步随同 diff；C3-022/C7-032 收敛面声明；**MA-16 约束继承声明**
-  - [ ] **裁定④ C4-015 drain**：有界 drain 形态（shutdown→awaitTermination 上界→残余显式 fail/settle[预设] vs 逐任务取消回调）；daemon 侧对称面；inFlightDispatches 不变式恢复声明
-  - [ ] **裁定⑤ C7-022 超时取消契约**：spawner TimeoutException→cancelSession 补齐（预设）+ overall deadline 汇聚取消；**R1-04 bindCancel 消费声明（禁新造机制）**；C7-023/C3-025/C4-014 吸收面；勘误 5 残余面与 plan 252–259 先例兼容核对条款
-  - [ ] **裁定⑥ C5-008 累积上界**：journal 轮转/上界参数化（尺寸/条数 cap 一次定夺）；byWatermark 会话级淘汰（与裁定②协同）；恢复流式化/分批形态一次定夺；spill/归档 CHM 化 + CL-077/CL-006/063 声明面；C5-010/011/C7-031 拆分面闭环
-  - [ ] **裁定⑦ C3-011 取消传播**：超时/取消路径接入 IToolProgressTracker.cancelExecution（预设，复用 heartbeat 通道）判据成文；HTTP/LLM 吸收面（C3-004/007/012/C4-005/C7-024）逐项实现或显式边界声明；cancelCall javadoc 契约句修订；**条件申报①触发检查条款**
-  - [ ] **裁定⑧ C3-028 方言协议族**：多 chunk 语义收敛形态（List 返回 vs 回调——一次定夺）；Ollama 阶梯修正（两案一次消解）；usage 四方言接入矩阵；带内错误通道类型化形态；Anthropic/Responses 免疫复核结论；**条件申报②触发检查条款**
-  - [ ] **裁定⑨ C3-021 DBMessageService 治理四轴**：投递/poll 分离与执行器有界化（拒绝策略显式，禁静默丢弃）；毒消息处置（重投上界+DLQ 形态，**consumeAwaitTimeout/attempt=0/guarded 回调对齐声明**）；consumers 注册治理；claim 世代 fencing（引用 2514 裁定⑥菜单不重建）；R1-08 对齐注记落点声明
-  - [ ] **裁定⑩ C7-012 续期异常升级**：异常分类判据（连续 N 次/不可分类异常[预设] vs 即时 abort）+ 升级 handleLeaseLost 同型 abort；瞬时豁免窗配置化；**plan 2496 护栏零回退声明**；C7-018 批外接缝登记
-  - [ ] **裁定⑪ 测试缝与零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据 + docker-gated 规避[mock tracker/fake 进程层]）；零回退钉 = `TestInvariantGate3EntryPointCleanup`（唯一允许改写=裁定②义务）、`TestDefaultAgentEngineCancel`/`TestDefaultAgentEngineConcurrencyGuard`/`TestEngineLifecycleAndCheckpointBounded`/`TestSessionLifecycleLockGate`/`TestSessionLifecycleSaveBeforeRelease`/`TestFanOutFutureLifecycle`、`TestInMemorySessionStore`（:56 remove）/`TestDBSessionStore`/`TestFileBackedSessionStore`、`TestMemberSpawner`/`TestTeamTaskFlowOrchestratorAsync`/`TestAsyncSpawnStep*` 族、`TestFileBackedCheckpointManager`/`TestDBCheckpointManager`/`TestCheckpointJournalSnapshotFormat`、`TestOpenAiDialect`/`TestOllamaDialect`（:191 参数保留钉）/`TestGeminiDialect`/`TestAnthropicDialect`/`TestResponsesDialect`/`TestLlmDialectErrorResponse`、`TestDBMessageService` 四族、`TestShellPipelinePoolIsolation_C4_004_3_2`/`TestShellPipelineDeadlockFamily_C4_003`/`TestToolManagerQueueChain_C1_001`（2501 钉零触碰）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-008 注入登记窗口**：三恢复路径对称注册/注销形态（resume/wake/restore 执行窗注册[预设] vs injectInput 侧会话锁内查询）；注入链复合原子化一次定夺；pendingInjections 载体同步化一次定夺；C3-014/CL-061 吸收面闭环声明
+  - [x] **裁定② C5-015 F4 终态清理 + gate3 改写**：终态清理清单扩容（F4 29 站点承载面逐容器登记）+ sessionStore 三实现接线；**gate3 反向钉死改写方案**（清单扩容 + 参数化 isEmpty 断言 + 改写语义对照留痕）；终态 save 反向 pin 子面消解；CL-IND-01 对齐注记；MA-10 接缝登记（R4-21 不代做）
+  - [x] **裁定③ C4-010 spawn 池上提**：executor 生命周期落点（上提单例/注入载体[预设] vs per-invocation try/finally close）一次定夺；CL-036 惰性建池同步随同 diff；C3-022/C7-032 收敛面声明；**MA-16 约束继承声明**
+  - [x] **裁定④ C4-015 drain**：有界 drain 形态（shutdown→awaitTermination 上界→残余显式 fail/settle[预设] vs 逐任务取消回调）；daemon 侧对称面；inFlightDispatches 不变式恢复声明
+  - [x] **裁定⑤ C7-022 超时取消契约**：spawner TimeoutException→cancelSession 补齐（预设）+ overall deadline 汇聚取消；**R1-04 bindCancel 消费声明（禁新造机制）**；C7-023/C3-025/C4-014 吸收面；勘误 5 残余面与 plan 252–259 先例兼容核对条款
+  - [x] **裁定⑥ C5-008 累积上界**：journal 轮转/上界参数化（尺寸/条数 cap 一次定夺）；byWatermark 会话级淘汰（与裁定②协同）；恢复流式化/分批形态一次定夺；spill/归档 CHM 化 + CL-077/CL-006/063 声明面；C5-010/011/C7-031 拆分面闭环
+  - [x] **裁定⑦ C3-011 取消传播**：超时/取消路径接入 IToolProgressTracker.cancelExecution（预设，复用 heartbeat 通道）判据成文；HTTP/LLM 吸收面（C3-004/007/012/C4-005/C7-024）逐项实现或显式边界声明；cancelCall javadoc 契约句修订；**条件申报①触发检查条款**
+  - [x] **裁定⑧ C3-028 方言协议族**：多 chunk 语义收敛形态（List 返回 vs 回调——一次定夺）；Ollama 阶梯修正（两案一次消解）；usage 四方言接入矩阵；带内错误通道类型化形态；Anthropic/Responses 免疫复核结论；**条件申报②触发检查条款**
+  - [x] **裁定⑨ C3-021 DBMessageService 治理四轴**：投递/poll 分离与执行器有界化（拒绝策略显式，禁静默丢弃）；毒消息处置（重投上界+DLQ 形态，**consumeAwaitTimeout/attempt=0/guarded 回调对齐声明**）；consumers 注册治理；claim 世代 fencing（引用 2514 裁定⑥菜单不重建）；R1-08 对齐注记落点声明
+  - [x] **裁定⑩ C7-012 续期异常升级**：异常分类判据（连续 N 次/不可分类异常[预设] vs 即时 abort）+ 升级 handleLeaseLost 同型 abort；瞬时豁免窗配置化；**plan 2496 护栏零回退声明**；C7-018 批外接缝登记
+  - [x] **裁定⑪ 测试缝与零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据 + docker-gated 规避[mock tracker/fake 进程层]）；零回退钉 = `TestInvariantGate3EntryPointCleanup`（唯一允许改写=裁定②义务）、`TestDefaultAgentEngineCancel`/`TestDefaultAgentEngineConcurrencyGuard`/`TestEngineLifecycleAndCheckpointBounded`/`TestSessionLifecycleLockGate`/`TestSessionLifecycleSaveBeforeRelease`/`TestFanOutFutureLifecycle`、`TestInMemorySessionStore`（:56 remove）/`TestDBSessionStore`/`TestFileBackedSessionStore`、`TestMemberSpawner`/`TestTeamTaskFlowOrchestratorAsync`/`TestAsyncSpawnStep*` 族、`TestFileBackedCheckpointManager`/`TestDBCheckpointManager`/`TestCheckpointJournalSnapshotFormat`、`TestOpenAiDialect`/`TestOllamaDialect`（:191 参数保留钉）/`TestGeminiDialect`/`TestAnthropicDialect`/`TestResponsesDialect`/`TestLlmDialectErrorResponse`、`TestDBMessageService` 四族、`TestShellPipelinePoolIsolation_C4_004_3_2`/`TestShellPipelineDeadlockFamily_C4_003`/`TestToolManagerQueueChain_C1_001`（2501 钉零触碰）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑪全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定②含 gate3 改写方案与改写语义对照；裁定③④含同变更集绑定；裁定⑤⑦含 R1-04 原语消费与条件申报①检查；裁定⑧含两案必居其一同批消解与条件申报②检查；裁定⑨含 R1-08 对齐声明；裁定⑩含 plan 2496 护栏零回退声明
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑪全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定②含 gate3 改写方案与改写语义对照；裁定③④含同变更集绑定；裁定⑤⑦含 R1-04 原语消费与条件申报①检查；裁定⑧含两案必居其一同批消解与条件申报②检查；裁定⑨含 R1-08 对齐声明；裁定⑩含 plan 2496 护栏零回退声明
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 10 成员实现 + 回归测试（按子域分组）
 
