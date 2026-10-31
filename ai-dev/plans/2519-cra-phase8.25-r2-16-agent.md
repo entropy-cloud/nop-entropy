@@ -194,24 +194,30 @@ Phase 2 执行登记（2026-10-31）：
 - 偏差：勘误 14（completed 边界收窄：isSessionLifecycleTerminal −completed，多轮契约保住）与勘误 15（⑩ Error 轮计数豁免窗）已登记。
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done（2026-10-31）
 Targets: nop-ai 聚合全量测试；`docs-for-ai/03-modules/nop-ai.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2518 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕（**nop-ai-agent 负载 flake 先例重点核对**）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-commons/nop-core 平台设施（条件申报①除外）、不含 R4-21/R4-32/G49 批外成员本体、2505/2501/2496 既有钉面零 diff 核对登记
-- [ ] Owner doc 更新：`nop-ai.md`——新增「agent 编排与会话生命周期并发契约」节（注入登记/终态清理清单语义/spawn 池生命周期与 drain/成员超时取消契约/工具超时传播与 kill 通道判据/接管锁 abort 语义/journal 累积上界）+ 方言流式协议契约句 + DB 传输治理契约句 + §源码锚点补行；`source-anchors.md` 新增锚点（按实际）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（批前既有发现逐条裁定登记[2518 先例口径]）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2518 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕（**nop-ai-agent 负载 flake 先例重点核对**）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-commons/nop-core 平台设施（条件申报①除外）、不含 R4-21/R4-32/G49 批外成员本体、2505/2501/2496 既有钉面零 diff 核对登记
+- [x] Owner doc 更新：`nop-ai.md`——新增「agent 编排与会话生命周期并发契约」节（注入登记/终态清理清单语义/spawn 池生命周期与 drain/成员超时取消契约/工具超时传播与 kill 通道判据/接管锁 abort 语义/journal 累积上界）+ 方言流式协议契约句 + DB 传输治理契约句 + §源码锚点补行；`source-anchors.md` 新增锚点（按实际）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（批前既有发现逐条裁定登记[2518 先例口径]）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-ai.md owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/R4-21/R4-32/G49 批外成员本体/2505/2501/2496 钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] nop-ai.md owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/R4-21/R4-32/G49 批外成员本体/2505/2501/2496 钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
+Phase 3 执行登记（2026-10-31）：
+- E1 授权支路 `-DskipTests`（沿 2497–2518 先例；聚焦测试已由 Phase 2 覆盖）：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/2519-e1-build.log`/`.exit`）。
+- E3：nop-ai-core 459/0 EXIT=0；nop-ai-agent 3596/0 EXIT=0（r2；r1 1 error 批外负载 flake solo 绿三联）；nop-ai-toolkit 离线 `-am` 复跑 EXIT=0（reactor r2 surefire fork EOF 崩溃=环境 flake 三联，报告 0 失败）。
+- 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-ai high=4（`_tmp/2519-scan-hollow.log`）——3 处为注释含 placeholder 关键词误报（ReActAgentExecutor×2/PlanReplanner），1 处 NoOpProviderFailoverQueue 批前既有（本批零触碰），登记不修复。
+- Owner doc：nop-ai.md 新增六面契约节；source-anchors.md 新增 AGENT-CC-001。
+- 零触碰确认：零 orm.xml/`_` 生成物/nop-api-core/零 ILlmDialect 签名变更（条件申报①②均未触发）；零回退钉 diff 零（gate3 唯一允许改写随同 diff 语义对照留痕）。
 ### Phase 4 - closure audit + 收口
 
 Status: planned

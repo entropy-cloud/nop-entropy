@@ -70,6 +70,7 @@
 |------|------|
 | ORM 模型 | `nop-ai/model/nop-ai.orm.xml` |
 | 引擎可靠性/超时 | `AIREL-001`（见 `../04-reference/source-anchors.md`）：`nop-ai-agent` 的 `DefaultAgentEngine` |
+| 会话生命周期/编排并发契约 | `AGENT-CC-001`（见 `../04-reference/source-anchors.md`）：注入登记/终态清理/team 取消/kill 通道/方言流式/DB 消息治理/接管锁 abort |
 
 ## LLM 方言请求序列化契约（P1-6.7-001..002，plan 2399）
 
@@ -134,6 +135,24 @@
 **Agent 沙箱后端清理契约（3.1-MA-17，plan 2501，B1-04 回升 P1）**：nop-ai-agent `security` 的 `DockerSandboxBackend`/`NoOpSandboxBackend` 与 toolkit 侧沙箱族（见「bash 工具 sandbox 接线」节）两套实现同病——本批以共享工具类 `SandboxProcessCleanup`（包私有静态工具，非共享基类）收敛双实现分叉，清理三口径与 toolkit 侧同口径不各走一套：①超时路径对本地 `docker run` CLI 进程树 `reapTree`（descendants+root `destroyForcibly`）兜底——容器 kill 失败/挂死不再泄漏 CLI 进程；②reader 退出补偿：`awaitReaderExit` 宽限 join 后显式关流强制 EOF（interrupt 对阻塞原生 pipe read 无效），drainStream 终态一次性发布不可变快照并释放 fd；③cleanup/kill 失败显式 WARN（异常与非零退出双形态，容器名+步骤可见）不静默。success 路径 `awaitReaderSettled`：补偿关流未收敛即收割持管道孙进程（`cmd &` 孪生持 stdout 写端）后短 rejoin；仍未收敛 ⇒ `SandboxResult.outputIncomplete=true`（缺省 false 零破坏）——空输出不静默交付；「孙进程滞留/输出截断」为声明边界（收割仅在补偿不能收敛时触发）。容器侧残留面运维口径同 toolkit：容器名为唯一可寻址面。测试锚点：`TestSandboxCleanupContract_MA17`/`TestDockerKillVisibility_MA17`/`TestDockerSandboxCleanup_MA17`；docker 门内 `TestDockerSandboxBackend.conditionalIntegrationTimeoutKillsContainerWithoutResidue`。
 
 **Heartbeat wakeup 预算与 WAIT 碎片生命周期（3.1-C7-014，plan 2501）**：`DefaultAgentEngineConfig.maxHeartbeatTurns`（默认 `20`，`heartBeatIntervalMs` 邻域）为每个等待期 wakeup turn 数量预算——预算耗尽（`heartbeatTurns >= maxHeartbeatTurns`）后等待循环降级纯机械等待（deadline/cancel/pause/forceStop/queued steering 全保持活性），降级转场 INFO 恰记一次；`<= 0` 完全禁用 wakeup 轮（纯机械等待——预算/禁用语义非校验失败，同 `heartBeatIntervalMs` 约定；禁 cap 时 escape hatch = cancel/steer/forceStop，`AgentToolDispatcher` cap≤0 → deadline=MAX_VALUE 即预算耗尽后的机械终结面）。WAIT 裁决的 heartbeat 证据消息沿 WI3 invariant 1 既有请求副本机制携带、**不写入会话终史**——仅终局裁决（派生并行工作非空或 ABANDON 前缀，`isTerminalWakeupReply`）才 commit hb/reply/tool_call 入 ctx；WAIT/空文本/guardrail 拦截回复零入史，**ctx 终史 hb=0 为正面契约**。长工具调用期间 LLM 成本不再随等待时长线性放大。测试锚点：`TestHeartbeatWakeupBudget_C7_014`；`TestHeartbeatWaitPhase` 反向钉改写面 =「请求副本携带 hb + ctx 终史 hb=0」正面保护。
+
+## Agent 会话生命周期与编排并发契约（nop-ai-agent / nop-ai-core）
+
+> 本节为规范性契约摘要；裁定权威 = AI 开发记录区 concurrency 设计集 agent-orchestration-session-lifecycle-concurrency.md（按边界规则此处不直接链接），行号锚点见 `../04-reference/source-anchors.md` `AGENT-CC-001`。
+
+**会话注入登记与终态摘除序**：注入可达性以引擎 `runningInjectionTargets` 注册表为唯一 SSOT（「注册在窗 = 注入可达」）——`doExecute` 与 `resumeSession`/`wakeSession`/`restoreSession` 三恢复路径在进入执行窗时对称 `put`、退出 finally 对称 `remove`；`injectInput` 的「查注册表→入 pendingInjections 队列」收敛入 per-session 注入锁（复合原子），`pendingInjections` 为同步载体且溢出判定与 `add`/`clear` 同锁。会话终态摘除序写死为四步：(1) 锁内置 terminal 标记 + drain 残余注入；(2) 锁外 persist（终态 save 含 drain 所得，persist 失败不阻塞后续步骤）；(3) 锁外注册表 remove 与终态清理；(4) 标记置位后任何注入持锁即被显式类型化拒绝（WARN + 计数 `nop.ai.agent.inject-after-terminal`，非静默）。**`completed` 是执行终态而非会话生命周期终态**：多轮原地继续执行依赖 store 驻留与注入通道，生命周期终态摘除（store 逐出/terminal 标记/drain/journal purge，判定谓词 `AgentSessionLifecycle.isSessionLifecycleTerminal`）仅在 failed/cancelled/forced_stopped/escalated/truncated 触发，不含 `completed`。
+
+**终态清理接线与 restore 补偿**：引擎终态路径统一接线终态清理清单（sessionStore 三实现 remove、checkpoint 五容器清理 `FileBackedCheckpointManager.remove`/`purgeTerminal`、注册表/账本/mailbox 等承载容器），清理为 remove 型幂等；save 先于 remove（先落盘后释放）。终态语义矩阵：内存缓存即时释放；DB/FileBacked 持久层行**不物理删除**（复用 `AgentExecStatus` 终态值即终态标记），restore 按持久层终态标记走补偿加载（内存重建、终态只读）；纯内存实现的终态会话不可 restore（显式拒绝）。journal 活跃段受条数/尺寸双 cap 约束，超界环形截断最旧 checkpoint + WARN（`nop.ai.agent.checkpoint-journal-rotate`），归档不受 cap 约束。
+
+**team 编排取消与 spawn 池生命周期**：成员/spawn 超时的取消一律经既有 `IAgentEngine.cancelSession`（消费平台 bindCancel/ICancelToken 原语，禁新造并行取消机制）——`DefaultMemberSpawner` spawn 超时分支在返回失败前取消 spawnedSessionId（取消失败显式 WARN + 计数）；`TeamTaskFlowOrchestrator` overall deadline 到期在既有图取消（taskRt cancel，停 DAG 推进）之上，遍历 per-flow 成员会话登记表对未 settle 成员逐个会话级 `cancelSession(forced=true)`（单点失败不中断汇聚）。spawn 编排池由 `TeamExecuteFlowExecutor` 单点持有（executor 与持有者生命周期对称，经既有 `setSpawnStepExecutor` 注入缝传入 orchestrator/coordinator），停机一律有界 drain 三段式：`shutdown()` → 有界 `awaitTermination` → 超时 `shutdownNow()` + 残余任务显式 fail/settle（dispatch future `completeExceptionally`，WARN `nop.ai.agent.spawn-drain-discard`，禁静默丢弃）。`inFlightDispatches` 不变式对 queued/running 两态均成立：running 态由 awaitTermination 预算内自然落定，queued 态由 drain 点显式 settle。
+
+**工具超时取消传播（kill 通道判据）**：判据写死——`IToolProgressTracker` 已装配 ⇒ 机械超时与 `cancelCall` 必达进程级 kill：`AgentToolDispatcher` 的等待循环超时/取消点在 `future.cancel(true)` 后必经 `tracker.cancelExecution(callId)`（复用 heartbeat abandon 与 background stop 同一通道；bash 沙箱侧为进程树终止）；kill 失败或 tracker 未装配显式 WARN + 计数（`nop.ai.agent.tool-kill-unreachable`），非静默。HTTP/LLM 面超时取消经平台 bindCancel 请求级取消传播。
+
+**方言流式消费契约（nop-ai-core）**：五方言流式解析统一经 `AbstractLlmDialect.parseStreamChunks` 多 chunk 通道（`ILlmDialect.parseStreamChunk` 单 chunk 方法保留为兼容委托，取首 chunk）——单个 SSE 事件携带多个 tool_call/part 时必须全枚举返回，禁止取首丢弃。usage 帧为增强信号非正确性信号：OpenAI 终止 usage 帧（`include_usage`）`choices` 为空数组，解析须容 null/空 choices（只产 usage chunk 不产内容 chunk）；Anthropic/Gemini/Ollama 各自 usage 字段（cache token/usageMetadata/eval_count）接入解析；provider 未回 usage 容忍为 null。provider 错误事件走**类型化带内错误通道**（error chunk），禁止把错误渲染为 text DELTA 污染 assistant 内容；消费侧对 error chunk 显式终止 + 类型化留痕。Ollama 空 content 帧不抢占 text 分支（thinking/tool_calls 分支可达）。
+
+**DB 消息传输治理契约（DBMessageService）**：poll 与投递分离——单线程 poller 只负责取消息与 claim，消费回调由独立有界投递 executor 承载（拒绝策略显式：队列满类型化拒绝 + 消息回 claim 释放 + WARN 计数，禁静默丢弃；拒绝计入消息重投计数），长回调（如 call-agent）不再冻结其他 topic 投递。毒消息处置：per-message 重投计数上界（缺省 3），超界落 DLQ 死信表行（含原始载荷/失败原因/计数）并 ack 跳过——拒绝风暴被 DLQ 上界终结，无「无限拒绝-重投循环」。consumers 注册治理：同 topic 同 consumerId 重复注册为显式类型化拒绝（顶替/身份窃取反转；合法换装须先 cancel 后 subscribe），取消与注册对称。claim 携世代号（fencing token，条件 UPDATE 承载）：旧世代消费写被拒绝（`nop.ai.message.claim-fenced-reject`），suspend 状态由 claim 行世代+状态承载。
+
+**接管锁续期异常升级 abort**：`SessionLockRenewal.renewOnceSafe` 保留 Throwable 绝缘护栏（异常不抛穿续期线程），但其上新增升级分支——异常按 **cause 链 unwrap 至根因**分类（禁按外层包装类型短路：`DbSessionTakeoverLock.tryRenew` 将 SQLException 包装为模块异常，外层类型恒「不可分类」）：根因为连接类 SQLException（不可达/断连）即 lease 未知，立即 `handleLeaseLost` 同型 abort（fail-safe：非对称分区下本节点自 abort 胜过双执行）；可判定瞬时类异常入计数豁免窗（per-handle 计数，连续 N 次缺省 3 超界必 abort，禁无限 WARN）；Error 轮入豁免窗计数不触发即时 abort。成功续期复位计数。
 
 ## Agent store 层边界（nop-ai-agent，审计 2026-09-12 AI-2 裁定）
 
