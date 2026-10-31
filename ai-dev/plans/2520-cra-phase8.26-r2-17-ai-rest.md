@@ -1,6 +1,6 @@
 # 2520 CRA Phase 8.26 — R2-17 3.4 AI REST 批（4 项：PgVectorStore schemaReady per-collection 化（三登记一处闭合）+ JavaSourceFileFinder parallelStream 并发容器 + InMemoryVectorStore upsert 原子化（ON CONFLICT 范式）+ RagSynthesizeService isSuccess 检查（错误以成功交付族））
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: agent_ccbffaf0 @ 2026-10-31 —— 无 Blocker；2 Major（M1 ChatResponse 物理位置事实更正[物理在 nop-ai-api]、M2 TestK3PipelineE2E 幻影双文件更正）+3 Minor（勘误 3 行号回正、五入口→三物理守卫点+委托、红③ trial+探针组合成文）——协调方机械修复闭环，m5 转设计文档义务；修订转 active
 > Design Review R2: agent_e48506c4 @ 2026-11-01 —— 设计文档独立对抗性评审（含想象性分析）：无 Blocker；1 Major（M1「全仓 parallelStream 归零」批末门禁与 live 矛盾——main 树另有 ICollectionView.java:42-43 / CollectionHelper.java:914 两处合法设施命中，归零范围收窄至 nop-ai 两模块瑕疵用法+平台白名单登记，防 plan-first 禁区误触）+5 Minor（重试包裹钉死 CREATE TABLE :95-101、add 返回值忽略措辞、flatMap 终端形态唯一合法化、裁定③ id 非空不变量+delete null 守卫、tie 值 0.995→0.994）——已同 diff 修入设计文档与成员表，全部行号锚点亲读核实零漂移，放行 Phase 2
 > Last Reviewed: 2026-10-31
@@ -163,7 +163,7 @@ Targets: nop-ai 聚合全量测试；`docs-for-ai/03-modules/nop-ai.md`；`docs-
 - [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（**授权支路** `-DskipTests` 快速通道执行：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS 453/453（`_tmp/red-green-2520-e1-skiptests.log`，54s wall）——支路理由 = 全聚合测试通道 `./mvnw test -pl nop-ai -am` 4 轮均被零 diff 上游已知 flake 阻断（r1/r3 debezium docker fork timeout、r2 stream-runtime E2E 收敛、r4 auth MFA TOTP 窗口，逐面三联裁定留痕 `_tmp/red-green-2520-summary.md` E3 节；debezium/runtime 双 solo 绿腿在案）；聚焦测试组合覆盖 = 触达双模块 solo 82 tests 0F0E + rag 三测试类 31/31 + analyzer 10/10 trial——沿 plan 2497–2519 Phase 3 先例声明）
 - [x] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` 4 轮留痕（r1–r4 各自阻断模块/测试/裁定见 `_tmp/red-green-2520-summary.md` E3 节）→ 等价分解通道（plan 2499 先例）BUILD SUCCESS：触达双模块 solo（nop-ai-code-analyzer 27/0/0 + nop-ai-rag 55/0/0，`_tmp/red-green-2520-touched-solo.log`）+ 全仓编译级 453/453；环境抖动按三联裁定留痕（勘误 8 三面 + MFA 第四面）；实际触达模块以 git diff 为准逐条登记（nop-ai-rag 4 main + 3 test、nop-ai-code-analyzer 1 main + 1 test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 `io.nop.ai.api.chat.ChatResponse`（`git diff --stat -- nop-ai/nop-ai-api/ nop-kernel/` = 空，契约归属零触碰[勘误 7]、条件申报未触发）、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 G60/G61/watch 批外成员本体、既有钉面零 diff 核对登记（test 树删除行仅 StubChat 装配 + fake RS next 两处基础设施 reshape，钉断言体零删除）
 - [x] Owner doc 更新：`nop-ai.md`——向量库后端节内 schemaReady per-collection 作用域契约句 + InMemoryVectorStore upsert 原子性契约句 + RAG 管线节内 synthesize 错误传播契约句 + code-analyzer 收集契约句 + §源码锚点表补 `RAG-CC-001` 行；`source-anchors.md` 新增 `RAG-CC-001` 锚点行（AGENT-CC-001 与 ORM-ORCH-001 之间，五文件行号锚修复后 live 亲读核实）；check-doc-links --strict 退出码 0
-- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（4 条 high 逐条裁定登记：全部批前既有且均在 nop-ai-agent/nop-ai-core 面[ReActAgentExecutor :1400/:1531 与 PlanReplanner :273 注释关键词误报、NoOpProviderFailoverQueue :34 引用 rule #24 的有意占位文档面]，触达面 nop-ai-rag/nop-ai-code-analyzer 零发现——2518/2519 先例口径）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 1（**口径更正 @ Phase 4 收口：此前的 EXIT=0 系管道误读 tail 退出码**；真实退出码 1 由 4 条 high 触发，逐条裁定：全部批前既有且均在 nop-ai-agent/nop-ai-core 面[ReActAgentExecutor :1400/:1531 与 PlanReplanner :273 注释关键词误报、NoOpProviderFailoverQueue :34 引用 rule #24 的有意占位文档面]，触达面 nop-ai-rag/nop-ai-code-analyzer **零发现**——gate 条款「触达面 high=0 或批前既有已裁定」以裁定分支满足，2518/2519 先例口径）
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
@@ -175,40 +175,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.26 行、cra-index P1 台账 :262–265 + C10 成员面注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（per-collection 守卫真实生效/收集完整性/upsert 原子性/isSuccess fail-loud 运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-17 四行状态收敛（open→fixed，注记 plan 2520；吸收成员[←C1-002/C3-004/CL-010/CL-008]随各主行括注）+ C10 成员面收敛注记（4 条按勘误 6 半边口径）；roadmap 8.26 行 Status → done；G60 条化束 C10-003 共享基建搭车点注记（successor 指向）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（per-collection 守卫真实生效/收集完整性/upsert 原子性/isSuccess fail-loud 运行时真实生效、无空方法体/静默吞异常）——**agent_5b2f27d9 @ 2026-11-01 APPROVED，零 Blocker/Major/Minor**（焦点测试复跑 31/31+1/1 绿 `_tmp/audit-closure-verify.log`；四入口守卫追踪 store :141/delete :178/search :214 直调 + update :169-171 委托；红绿日志抽验 red-rag/red-analyzer t1/t3/t10/探针 A/B 全部亲验；nop-ai-api diff 空；source-anchors RAG-CC-001 行号抽验 7 处精确命中）
+- [x] cra-index 台账回填：R2-17 四行状态收敛（open→fixed，注记 plan 2520；吸收成员[←C1-002/C3-004/CL-010/CL-008]随各主行括注）+ C10 成员面收敛注记（4 条按勘误 6 半边口径）；roadmap 8.26 行 Status → done；G60 条化束 C10-003 共享基建搭车点注记（C3-005 行内 successor 指向 IND-06[G60]）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核（Phase 3 EXIT=0 维持）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 四行收敛 + 吸收成员括注 + C10 半边注记、roadmap 8.26 = done、G60 搭车点注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 四行收敛 + 吸收成员括注 + C10 半边注记、roadmap 8.26 = done、G60 搭车点注记完成
+- [x] 双门禁退���码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 4 项成员全部修复：C6-001（schemaReady per-collection 化，三登记一处闭合）、C1-001（parallelStream 函数式收集）、C1-003（upsert 原子化，ON CONFLICT 范式）、C3-005（isSuccess fail-loud，错误以成功交付族闭合）
-- [ ] batch-proposal R2-17 行 exit criteria 增补逐条达成并留证：schemaReady per-collection 化（三登记一处闭合）；parallelStream 并发容器；upsert 原子化（ON CONFLICT 范式）；isSuccess 检查（IND-03 升格面闭合）
-- [ ] 对齐纪律守约：MA-01 三登记一处闭合兑现；ON CONFLICT 范式对齐兑现；错误以成功交付族对齐（R2-02/R2-06 族批声明）兑现；C10 四条同 diff 兑现；PA 条款闭环（零 orm/零生成物/零 nop-ai-api 触碰声明兑现或条件申报面落地）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2）；C10 收口门（4 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证（唯一允许改写 = `updateReflectedInSearch` 强度钉补 assert，语义对照留痕）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-ai -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-ai.md（向量库/管线 owner 面）+ source-anchors.md 按实际（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）per-collection 守卫/收集完整性/upsert 原子性/isSuccess 检查运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-ai 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-17 四行收敛 + roadmap 8.26 → done（E6）
+- [x] 4 项成员全部修复：C6-001（schemaReady per-collection 化，三登记一处闭合）、C1-001（parallelStream 函数式收集）、C1-003（upsert 原子化，ON CONFLICT 范式）、C3-005（isSuccess fail-loud，错误以成功交付族闭合）
+- [x] batch-proposal R2-17 行 exit criteria 增补逐条达成并留证：schemaReady per-collection 化（三登记一处闭合）；parallelStream 并发容器；upsert 原子化（ON CONFLICT 范式）；isSuccess 检查（IND-03 升格面闭合）
+- [x] 对齐纪律守约：MA-01 三登记一处闭合兑现；ON CONFLICT 范式对齐兑现；错误以成功交付族对齐（R2-02/R2-06 族批声明）兑现；C10 四条同 diff 兑现；PA 条款闭环（零 orm/零生成物/零 nop-ai-api 触碰声明兑现——`git diff --stat -- nop-ai/nop-ai-api/ nop-kernel/` 空，条件申报未触发）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2）；C10 收口门（4 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑤成文且经独立 draft review（R2 agent_e48506c4）；既有钉（零回退钉清单全列）零回退实证（唯一允许改写 = `updateReflectedInSearch` 强度钉补 assert，语义对照留痕）
+- [x] 全量构建绿：`./mvnw clean install -T 1C -DskipTests` 453/453 BUILD SUCCESS（授权支路已声明）+ 批行验证命令等价分解通道 BUILD SUCCESS（E1/E3；上游环境抖动 4 轮三联裁定留痕）
+- [x] Owner doc 更新完成：nop-ai.md（向量库/管线 owner 面）+ source-anchors.md RAG-CC-001（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（4 条批前既有发现逐条裁定登记——均在 nop-ai-agent/core 面）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰——closure audit §四 PASS）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）——agent_5b2f27d9 APPROVED
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）per-collection 守卫/收集完整性/upsert 原子性/isSuccess 检查运行时真实生效（不只类型系统——守卫真拦截/put 真替换/isSuccess 真消费/局部 List 真收集载体，红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-ai 聚合——触达双模块 solo 82 tests 0F0E + 全仓编译级）；checkstyle / 代码规范检查通过（pre-commit nop-cli lint gate 0 diagnostics @ 00a822de3d）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-17 四行收敛 + roadmap 8.26 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -230,17 +230,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: —
+Status Note: R2-17 批 4 项 P1（C6-001/C1-001/C1-003/C3-005）全部修复并各带 focused 回归测试（C10-001/002/003 主半边/004 IND-01 半边四条成员面同 diff 落地）；红①–红④先红后绿（缺陷基线真红 + 探针纪律恢复断言）；设计文档裁定①–⑤经独立评审 R2；owner doc（nop-ai.md 三句契约 + RAG-CC-001 锚点）同步；E1 快速通道 453/453 + E3 等价分解通道（全聚合通道 4 轮零 diff 上游 flake 三联留痕）；独立 closure audit APPROVED 零发现；cra-index 四行 fixed + roadmap 8.26 done。无剩余 plan-owned work。
+Completed: 2026-11-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待独立 closure audit）
-- Evidence: （待填）
+- Reviewer / Agent: 独立子 agent `agent_5b2f27d9-02a7-4e8e-8c7c-00b69fbcdecf`（fresh session，与实现 session 无关联）@ 2026-11-01，审计基线 `ad5e082061`
+- Audit Session: agent_5b2f27d9（复跑焦点测试 31/31 + 1/1 BUILD SUCCESS，`_tmp/audit-closure-verify.log`）
+- Evidence:
+  - Phase 1 Exit Criteria 3/3 PASS（设计文档 32KB 最终状态写法、Design Review R2 记录 L5、裁定①③④强制项成文 :78/:80/:15）
+  - Phase 2 Exit Criteria 6/6 PASS：C6-001 `PgVectorStore.java:61` readyCollections + `ensureSchema` :91-118 per-collection 守卫 + 四入口全通（store :141/delete :178/search :214 直调，update :169-171 委托）+ CREATE TABLE 重试 :107-116 第二失败 addSuppressed 上抛无静默吞；C1-003 `InMemoryVectorStore.java:75` put 原子 upsert + null 守卫 :87-89 + 快照 :114 + 并发钉 :165-196 真实断言；C3-005 `RagSynthesizeService.java:56-71` `!isSuccess()` 真实消费 + 错误码 `NopAiRagErrors.java:39-42` + 合法空回答 :72-73 + `git diff 88fb6d510f..HEAD -- nop-ai/nop-ai-api/` 空；C1-001 `JavaSourceFileFinder.java:166-179` 函数式收集 + 递归链 :206/:234 签名零变更 + 新测试断言真实；红证 red-rag.log（红① DDL 2≠1/红③ trial 3 两条目/红④ nothing thrown）+ red-analyzer t1/t3/t10 = 469/473/452 of 480 + 探针 A 449/B 0 亲验；零回退钉：test 树删除行仅 StubChat 装配 2 行 + fake RS next 1 行，钉断言体零删除
+  - Phase 3 Exit Criteria 4/4 PASS（e1-skiptests 453 模块；`nop-ai.md:74/:198/:200` 三句契约与 live 吻合；`source-anchors.md:103` RAG-CC-001 行号抽验 7 处精确命中；check-doc-links 0 errors；diff 全集 2 模块 9 文件零 orm/生成物/api/平台设施）
+  - Phase 4 Exit Criteria 4/4 PASS（本段 + cra-index :262–265 fixed + roadmap 8.26 done + 双门禁）
+  - Closure Gates 14/14 PASS（代码/文档类 gate 证据同上；流程类 gate 于本收口动作兑现）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2520-cra-phase8.26-r2-17-ai-rest.md --strict` 退出码 0（收口提交前运行，见 daily log）
+  - Anti-Hollow 检查结果：四成员运行时真实生效——守卫真拦截（capturedSql 每 collection 一条 DDL + 单 collection 二次操作零新��）/put 真替换（并发 10 trial ≤1 条 + 强度钉 ==1）/isSuccess 真消费（error 响应必抛 + 错误码断言）/局部 List 真收集载体（480/480 确定性 + 零重复）；`scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 1（4 条批前既有 nop-ai-agent/core 面已裁定——口径更正见 Phase 3，触达面零发现）；`parallelStream` 唯一残留 :170 即修复后合法函数式形态
+  - Deferred 项分类检查：G60 条化束（cra-index :444 B1-12 终裁 deferred）/G61 dormant（:445）/watch C3-002/CL 线索/4 张条件化 P2 均为批前裁定批外项；batch-proposal :91 R2-17 行 4 项 P1 全部修复，无 in-scope live defect 被降级
+  - 环境抖动处置：E3 4 轮 flake（r1/r3 debezium fork timeout、r2 TestStreamConnectorRegistryE2E 60s、r4 TestOperationMfaE2E mfa-fail）三联裁定与 log 实际签名逐一吻合，debezium/runtime 双 solo 绿腿在案，分解通道成立
+  - 审计发现：Blocker 0 / Major 0 / Minor 0；观察 2 条不构成发现（并发钉 ≤1 按 plan 判据原文；INVALID_ARGUMENT 映射误导面按 plan 登记 Non-Blocking 未代做）
 
 Follow-up:
 
-- （待填；或明确写 no remaining plan-owned work）
+- no remaining plan-owned work。Non-Blocking Follow-ups 节两条（错误码映射治理注记、G60 对接注记）均已在 cra-index C6-001/C3-005 行括注登记 successor 指向。
 
 ## Risks And Rollback
 
