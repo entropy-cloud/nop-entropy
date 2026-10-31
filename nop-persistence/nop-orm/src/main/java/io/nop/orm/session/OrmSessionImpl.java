@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import static io.nop.orm.OrmConfigs.CFG_ORM_SESSION_CHECK_CONTEXT;
@@ -106,6 +107,14 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     private boolean entityMode;
 
     private CascadeFlusher flusher;
+
+    /**
+     * plan 2517 R2-14 裁定④（C2-001）：session 级全生命周期互斥。锁域覆盖 flush/close/flushImmediately
+     * 与写入口族的生命周期变更；可重入承载 CascadeFlusher 回调链（interceptPreFlush/interceptor/user callback
+     * 同线程再入 flush/写入口）。竞争线程锁内串行等待而非静默跳过——「事务带未刷写提交」丢更新面闭合。
+     * 硬边界（锁序总表 §4.6）：临界区内不做 context 注册表写操作；interceptor 回调链同 session 可重入安全。
+     */
+    private final ReentrantLock lock = new ReentrantLock();
 
     private final List<IOrmInterceptor> interceptors;
 
@@ -179,49 +188,52 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
         LOG.debug("orm.begin-flush");
 
-        // 如果正在执行flush, 则直接返回
-        if (this.flusher != null) {
-            LOG.debug("orm.exit-flush-when-another-flush-is-running");
-            return;
-        }
-
-        // 如果没有实体被修改，直接返回
-        if (!dirty) {
-            LOG.debug("orm.exit-flush-when-session-is-not-dirty");
-            return;
-        }
-
-        // 只读session不允许修改
-        if (readOnly) {
-            LOG.debug("orm.exit-flush-when-session-is-readonly");
-            return;
-        }
-
-        // WI9 数据搬迁写停止关：DML 提交入口显式 fail-fast（读路径已在上方 dirty 检查前不受影响）
-        OrmMigrationWriteGate.checkWriteAllowed(null, "flush");
-
-        env.getOrmMetrics().onFlush();
-
-        interceptPreFlush();
-        Throwable exp = null;
+        // plan 2517 R2-14 裁定④：竞争线程锁内等待而非静默跳过（原 flusher != null 静默 return 废弃）
+        lock.lock();
         try {
-            this.flusher = new CascadeFlusher(this, cache);
-            this.flusher.execute();
+            // 如果没有实体被修改，直接返回
+            if (!dirty) {
+                LOG.debug("orm.exit-flush-when-session-is-not-dirty");
+                return;
+            }
 
-            this.dirty = false;
-            this.cache.clearDirty();
+            // 只读session不允许修改
+            if (readOnly) {
+                LOG.debug("orm.exit-flush-when-session-is-readonly");
+                return;
+            }
 
-            this.batchActionQueue.flush();
-        } catch (Throwable e) {
-            exp = e;
+            // WI9 数据搬迁写停止关：DML 提交入口显式 fail-fast（读路径已在上方 dirty 检查前不受影响）
+            OrmMigrationWriteGate.checkWriteAllowed(null, "flush");
+
+            env.getOrmMetrics().onFlush();
+
+            interceptPreFlush();
+            Throwable exp = null;
+            try {
+                this.flusher = new CascadeFlusher(this, cache);
+                this.flusher.execute();
+
+                // plan 2517 R2-14 裁定⑫（C3-005）：dirty=false/clearDirty 移至 batchActionQueue.flush()
+                // 成功返回之后（对齐 flushImmediately 的 oldDirty 保守恢复模板）。
+                // 批 DML 失败后 dirty 保持 true，重试 flush 不再被 !dirty 短路 no-op——
+                // 捕获-重试编排的「半个成功」残留消除。新钉相位 = batchActionQueue.flush 失败（C10-009）
+                this.batchActionQueue.flush();
+                this.dirty = false;
+                this.cache.clearDirty();
+            } catch (Throwable e) {
+                exp = e;
+            } finally {
+                sessionRevVersion = -1L;
+                this.flusher = null;
+            }
+
+            interceptPostFlush(exp);
+            if (exp != null)
+                throw NopException.adapt(exp);
         } finally {
-            sessionRevVersion = -1L;
-            this.flusher = null;
+            lock.unlock();
         }
-
-        interceptPostFlush(exp);
-        if (exp != null)
-            throw NopException.adapt(exp);
 
         LOG.debug("orm.end-flush");
     }
@@ -491,90 +503,128 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public Object save(IOrmEntity entity) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        internalSave(entity);
+        lock.lock();
+        try {
+            internalSave(entity);
 
-        if (this.isStateless())
-            this.flushImmediately(entity);
+            if (this.isStateless())
+                this.flushImmediately(entity);
 
-        return entity.get_id();
+            return entity.get_id();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public Object saveDirectly(IOrmEntity entity, boolean flushActionQueue) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        OrmEntityState state = entity.orm_state();
-        LOG.debug("session.internalSave:{}", entity);
+        // plan 2517 R2-14 裁定④：写入口族生命周期变更入 session 锁
+        lock.lock();
+        try {
+            OrmEntityState state = entity.orm_state();
+            LOG.debug("session.internalSave:{}", entity);
 
-        if (!state.isTransient())
-            throw newError(ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT, entity).param(ARG_STATUS, state);
+            if (!state.isTransient())
+                throw newError(ERR_ORM_SAVE_ENTITY_NOT_TRANSIENT, entity).param(ARG_STATUS, state);
 
-        IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
-        entity.orm_state(OrmEntityState.SAVING);
-        entity.orm_entityModel(persister.getEntityModel());
+            IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
+            entity.orm_state(OrmEntityState.SAVING);
+            entity.orm_entityModel(persister.getEntityModel());
 
-        initEntityId(persister, entity);
+            initEntityId(persister, entity);
 
-        // 新建实体不会有延迟加载属性
-        entity.orm_markFullyLoaded();
+            // 新建实体不会有延迟加载属性
+            entity.orm_markFullyLoaded();
 
-        flushSave(entity);
+            flushSave(entity);
 
-        if (flushActionQueue)
-            this.batchActionQueue.flush();
+            if (flushActionQueue)
+                this.batchActionQueue.flush();
 
-        return entity.get_id();
+            return entity.get_id();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void updateDirectly(IOrmEntity entity, boolean flushActionQueue) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        OrmEntityState state = entity.orm_state();
-        if (!state.isManaged())
-            throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
+        lock.lock();
+        try {
+            OrmEntityState state = entity.orm_state();
+            if (!state.isManaged())
+                throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
 
-        if (!entity.orm_dirty())
-            return;
+            if (!entity.orm_dirty())
+                return;
 
-        flushUpdate(entity);
-        if (flushActionQueue)
-            this.batchActionQueue.flush();
+            flushUpdate(entity);
+            if (flushActionQueue)
+                this.batchActionQueue.flush();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void deleteDirectly(IOrmEntity entity, boolean flushActionQueue) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        OrmEntityState state = entity.orm_state();
-        if (!state.isManaged())
-            throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
+        lock.lock();
+        try {
+            OrmEntityState state = entity.orm_state();
+            if (!state.isManaged())
+                throw newError(ERR_ORM_UPDATE_ENTITY_NOT_MANAGED, entity);
 
-        flushDelete(entity);
+            flushDelete(entity);
 
-        if (flushActionQueue)
-            this.batchActionQueue.flush();
+            if (flushActionQueue)
+                this.batchActionQueue.flush();
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
     public void flushActionQueue() {
-        this.batchActionQueue.flush();
+        // plan 2517 R2-14 裁定④(b)：写路径入口补 checkContext 对称 + 互斥（DML 提交入口）
+        checkContext();
+        lock.lock();
+        try {
+            this.batchActionQueue.flush();
+        } finally {
+            lock.unlock();
+        }
     }
 
     private void update(IOrmEntity entity) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        internalUpdate(entity);
+        lock.lock();
+        try {
+            internalUpdate(entity);
 
-        if (this.isStateless())
-            this.flushImmediately(entity);
+            if (this.isStateless())
+                this.flushImmediately(entity);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void internalUpdate(IOrmEntity entity) {
@@ -602,30 +652,36 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void lock(IOrmEntity entity) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        if (entity.orm_locked()) {
-            LOG.debug("nop.orm.entity-already-locked:entity={}", entity);
-            return;
-        }
+        lock.lock();
+        try {
+            if (entity.orm_locked()) {
+                LOG.debug("nop.orm.entity-already-locked:entity={}", entity);
+                return;
+            }
 
-        if (entity.orm_dirty())
-            throw newError(ERR_ORM_NOT_ALLOW_LOCK_DIRTY_ENTITY, entity);
+            if (entity.orm_dirty())
+                throw newError(ERR_ORM_NOT_ALLOW_LOCK_DIRTY_ENTITY, entity);
 
-        IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
+            IEntityPersister persister = this.requireEntityPersister(entity.orm_entityName());
 
-        if (!persister.lock(entity, persister.getEntityModel().getEagerLoadProps(), this, () -> {
-            entity.orm_locked(false);
-        })) {
-            entity.orm_state(OrmEntityState.MISSING);
+            if (!persister.lock(entity, persister.getEntityModel().getEagerLoadProps(), this, () -> {
+                entity.orm_locked(false);
+            })) {
+                entity.orm_state(OrmEntityState.MISSING);
 
-            // lock是重要的业务操作，如果未成功则应该抛出异常，避免后续在实体已被锁定的错误假设下工作
-            throw newError(ERR_ORM_LOCK_ENTITY_FAIL, entity);
-        } else {
-            entity.orm_locked(true);
+                // lock是重要的业务操作，如果未成功则应该抛出异常，避免后续在实体已被锁定的错误假设下工作
+                throw newError(ERR_ORM_LOCK_ENTITY_FAIL, entity);
+            } else {
+                entity.orm_locked(true);
 
-            // interceptPostLoad(entity);
+                // interceptPostLoad(entity);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
@@ -640,16 +696,22 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void delete(IOrmEntity entity) {
+        checkContext();
         checkValid();
         checkNotReadOnly();
 
-        if (!this.contains(entity))
-            throw newError(ERR_ORM_ENTITY_NOT_IN_SESSION, entity);
+        lock.lock();
+        try {
+            if (!this.contains(entity))
+                throw newError(ERR_ORM_ENTITY_NOT_IN_SESSION, entity);
 
-        internalDelete(entity);
+            internalDelete(entity);
 
-        if (this.isStateless())
-            this.flushImmediately(entity);
+            if (this.isStateless())
+                this.flushImmediately(entity);
+        } finally {
+            lock.unlock();
+        }
     }
 
     @Override
@@ -766,28 +828,34 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
 
     @Override
     public void close() {
-        if (closed)
-            return;
+        // plan 2517 R2-14 裁定④：close 与 flush 生命周期互斥（幂等判定入锁，close×flush 交错面闭合）
+        lock.lock();
+        try {
+            if (closed)
+                return;
 
-        env.getOrmMetrics().onSessionClosed();
+            env.getOrmMetrics().onSessionClosed();
 
-        LOG.debug("orm.session_close:{}", this);
+            LOG.debug("orm.session_close:{}", this);
 
-        this.loadedOrmModel.decRef();
+            this.loadedOrmModel.decRef();
 
-        cache.clear();
-        if (sessionCache != null)
-            sessionCache.clear();
-        closed = true;
+            cache.clear();
+            if (sessionCache != null)
+                sessionCache.clear();
+            closed = true;
 
-        if (onClose != null)
-            for (Runnable task : onClose) {
-                try {
-                    task.run();
-                } catch (Exception e) {
-                    LOG.error("nop.orm.session-on-close-fail", e);
+            if (onClose != null)
+                for (Runnable task : onClose) {
+                    try {
+                        task.run();
+                    } catch (Exception e) {
+                        LOG.error("nop.orm.session-on-close-fail", e);
+                    }
                 }
-            }
+        } finally {
+            lock.unlock();
+        }
     }
 
     IOrmEntity makeProxy(String entityName, Object id) {
@@ -1013,20 +1081,26 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     void flushImmediately(IOrmEntity entity) {
         // WI9 数据搬迁写停止关：无状态会话的立即持久化也是 DML 提交入口
         OrmMigrationWriteGate.checkWriteAllowed(entity.orm_entityName(), "save");
-        boolean createExecutor = false;
-        if (this.flusher == null) {
-            this.flusher = new CascadeFlusher(this, cache);
-            createExecutor = true;
-        }
-        boolean oldDirty = this.dirty;
+        // plan 2517 R2-14 裁定④：flusher 双建窗随 session 锁收敛（原 if (this.flusher == null) 裸双取检查）
+        lock.lock();
         try {
-            flusher.execute(entity);
-            this.batchActionQueue.flush();
+            boolean createExecutor = false;
+            if (this.flusher == null) {
+                this.flusher = new CascadeFlusher(this, cache);
+                createExecutor = true;
+            }
+            boolean oldDirty = this.dirty;
+            try {
+                flusher.execute(entity);
+                this.batchActionQueue.flush();
+            } finally {
+                if (createExecutor)
+                    this.flusher = null;
+                // flush过程中internalMarkDirty可能置位dirty（对应尚未持久化的修改），不能被oldDirty回滚覆盖
+                this.dirty = oldDirty || this.dirty;
+            }
         } finally {
-            if (createExecutor)
-                this.flusher = null;
-            // flush过程中internalMarkDirty可能置位dirty（对应尚未持久化的修改），不能被oldDirty回滚覆盖
-            this.dirty = oldDirty || this.dirty;
+            lock.unlock();
         }
     }
 

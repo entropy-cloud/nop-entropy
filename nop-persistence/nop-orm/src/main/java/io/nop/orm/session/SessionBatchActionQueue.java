@@ -24,7 +24,9 @@ public class SessionBatchActionQueue {
      */
     Map<String, IBatchActionQueue> queues;
 
-    public IBatchActionQueue getBatchActionQueue(String querySpace, IOrmSessionImplementor session) {
+    // plan 2517 R2-14 裁定④同族守卫清单：惰性创建覆盖丢弃消除。方法级互斥保持 TreeMap 的
+    // querySpace 名称序 flush 语义（TreeMap 无原子 computeIfAbsent，不引入第二锁，与本 session 锁同纪律）
+    public synchronized IBatchActionQueue getBatchActionQueue(String querySpace, IOrmSessionImplementor session) {
         // querSpace为map的key时，不允许为null
         if (querySpace == null)
             querySpace = DaoConstants.DEFAULT_QUERY_SPACE;
@@ -37,8 +39,8 @@ public class SessionBatchActionQueue {
         IBatchActionQueue queue = queues.get(querySpace);
         if (queue == null) {
             queue = new BatchActionQueueImpl(querySpace, session);
+            queues.put(querySpace, queue);
         }
-        queues.put(querySpace, queue);
         return queue;
     }
 
