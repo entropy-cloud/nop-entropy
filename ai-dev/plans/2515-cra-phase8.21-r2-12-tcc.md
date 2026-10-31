@@ -2,7 +2,7 @@
 
 > Design Review: R2 agent_bb236b91 @ 2026-10-30（修复清单机械核验 6 点全部闭合[勘误 6 OVERWRITE :287-292/成员表三格/C10 前置集行内接缝[本轮归位]/C6-012×2/:213-215/裁定⑥两层位点]——PASS）
 > Design Review: R2 agent_1c1e1312 @ 2026-10-30（第 1 轮 FAIL[3 Major/3 Minor]：Major-1 「首跳失败聚合不可达」断言在 live whenComplete 拓扑不成立→err==null 显式门控+三前提显式检查；Major-2 DB 权威重载提交可见性竞态→store CAS future 改 afterCommit 完成[评审新-1：须配对 afterCompletion 回滚分支 completeExceptionally——协调方修入]；Major-3 续租 attempt 内残留窗→(a) 轮间续租+attempt 级超时上界<租约装配期 fail-fast；Minor×3 闭合[TccEngine LifeCycleSupport 生命周期挂接+beans 装配行/拒绝理由改写/replaceRecord dao 原语]——第 2 轮 PASS[probe (b) err 门控半边正确无新问题]）
-> Plan Status: active
+> Plan Status: completed
 > Draft Review: R1 agent_bb236b91 @ 2026-10-30（FAIL[2 Major/4 Minor]：Major-1 OVERWRITE 漂移台账错误映射[:257-261 实为 resolveInsertRaceWinner 体]→勘误 6 纠正为 :287-292[handleBlockStrategy :275-298]；Major-2 C10-003 覆盖面缺 C3-010/C6-015 批外接缝→补登记；Minor×4[cra-index 行号 live 校正/C6-012 批外补登/TccStatus 模块标注+重抛点 :213-215/裁定⑥两层簿记位点枚举]——协调方修入后转 active）
 > Last Reviewed: 2026-10-30
 > Source: roadmap 工作项 8.21（R2-12，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` L163，Status=todo[本 plan 立项时回写为「todo（plan 2515 drafted，待 draft review）」]）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.2 R2-12 行（L86 全文：finding ID 清单 13 项[1.6-C1-001；1.6-C3-002；1.6-C3-003；1.6-C3-012；1.6-C6-002；1.6-C3-005；1.6-C3-006；1.6-C6-003；1.6-C7-003；1.6-C7-005；1.6-C7-012；1.6-C8-012；1.6-C8-017] / 模块与验证命令 nop-retry `./mvnw test -pl nop-retry -am`；nop-tcc `./mvnw test -pl nop-tcc -am` / Owner Doc=`docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md` / PA=无 / 依赖「无前置（可并行）；C7-001/C8-001 平台方案在 R1-07/R1-01；C8-012 R21 纪律（C8-017 同 diff 搭车）」/ exit criteria 增补：**CAS 失败阻断补偿/回写内存/续租族闭合；簿记异常不覆盖业务结果；OVERWRITE 原子化+死信（R10）；僵尸记录终态化；清理 API 生产接线+索引；namespace 扫描修复；C8-012 返回 future=回调挂接 future（C10-001 覆盖）**）+ §一 通用门禁 E1–E6；成员发现详情 = WI 1.6 审计目录 `ai-dev/audits/2026-10/2026-10-15-1400-deep-audit-nop-retry-nop-tcc-concurrency/`（C1-shared-mutable-state.md C1-001 :64 起；C3-async-chains.md C3-002 :70 / C3-003 :95 / C3-005 :149 / C3-006 :175；C6-resource-lifecycle.md C6-002 :82 / C6-003 :119；C7-long-running.md C7-003 :107 / C7-005 :169 / C7-012 :349；C8-backpressure.md C8-012 证据链 :397 / C8-017 = C8-round3.md :145；merge-adjudication.md 裁定 1–8 必裁 + §二 M2/M3/M4/M6/M7/M8 并组行 :108-114 + §3.3 C10 映射 :233-246；C10 映射 = 跨模块裁定 `inventory-p2-c10.md` §二 WI 1.6 节 :154-184 + 小结行 :775[**1.6（10）** 全映射]）；执行基线 @ `2cafbc3996`（分支 `concurrency-audit-remediation`，roadmap 8.1–8.20 已 done，plan 2495–2514 均已完成或收口；本 Baseline 全部行号为该基线 live 回读值，2026-10-30 亲读，执行前如再漂移以 live 为准并登记）
@@ -162,60 +162,60 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: done
 Targets: nop-retry/nop-tcc 聚合全量测试；`docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2514 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-retry -am` 与 `./mvnw test -pl nop-tcc -am` 均 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `nop-retry/model/nop-retry.orm.xml`、`_` 前缀生成物手改、R4-10/R4-32/dormant/P3 批外成员本体（C1-002/C3-008/C7-006 本体/C3-004/C7-001 保留清理/绝缘层等）、plan 2496/2502/2386/2388 已修面零 diff 核对登记；`nop-tcc.orm.xml` 变更限于裁定⑧申报索引
-- [ ] Owner doc 更新：`nop-retry.md`——§阻塞策略补 OVERWRITE 原子化/代际语义、§执行语义补续租契约/簿记分层/僵尸死信化/attempt 终态化、新增提交面失败交付契约（C8-017）、扫描覆盖 namespace 声明（裁定⑨）、源码锚点补行；`nop-tcc.md`——CAS 传播/聚合权威裁决契约补节（裁定①②③）、清理接线与 retention 声明（裁定⑧，「以设计文档与 R01 SSOT 为准」归属声明）、耗尽终态化接缝、源码锚点补行；`source-anchors.md` 新增锚点（按实际）
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-retry --severity high` 与 `--module nop-tcc --severity high` 退出码 0（批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2514 Phase 3 先例）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-retry -am` 与 `./mvnw test -pl nop-tcc -am` 均 BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径）；环境抖动按三联裁定留痕；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `nop-retry/model/nop-retry.orm.xml`、`_` 前缀生成物手改、R4-10/R4-32/dormant/P3 批外成员本体（C1-002/C3-008/C7-006 本体/C3-004/C7-001 保留清理/绝缘层等）、plan 2496/2502/2386/2388 已修面零 diff 核对登记；`nop-tcc.orm.xml` 变更限于裁定⑧申报索引
+- [x] Owner doc 更新：`nop-retry.md`——§阻塞策略补 OVERWRITE 原子化/代际语义、§执行语义补续租契约/簿记分层/僵尸死信化/attempt 终态化、新增提交面失败交付契约（C8-017）、扫描覆盖 namespace 声明（裁定⑨）、源码锚点补行；`nop-tcc.md`——CAS 传播/聚合权威裁决契约补节（裁定①②③）、清理接线与 retention 声明（裁定⑧，「以设计文档与 R01 SSOT 为准」归属声明）、耗尽终态化接缝、源码锚点补行；`source-anchors.md` 新增锚点（按实际）
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-retry --severity high` 与 `--module nop-tcc --severity high` 退出码 0（批前既有发现逐条裁定登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 两条批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-retry.md/nop-tcc.md 落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（nop-retry.orm.xml/生成物/R4-10/R4-32/dormant/P3 批外成员本体/2496·2502·2386·2388 已修面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 两条批行验证命令全部 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] nop-retry.md/nop-tcc.md 落点 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
+- [x] 零触碰确认登记（nop-retry.orm.xml/生成物/R4-10/R4-32/dormant/P3 批外成员本体/2496·2502·2386·2388 已修面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: done
 Targets: 本 plan、roadmap 8.21 行、cra-index 台账、R4-10 就绪注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（CAS 传播/门控短路/续租/原子替换/代际取消/拓扑单一化/终态化/清理接线/namespace 覆盖运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-12 十三行状态收敛（12 项 P1 open→fixed，注记 plan 2515；吸收成员随各主行括注；C8-017 随 G18 行注记收敛）；C10 六条收敛注记；roadmap 8.21 行 Status → done；R4-10（8.50）硬依赖就绪注记（沿 2514 R2-13/R4-08 先例——含裁定①⑤⑦接缝边界、A2 令牌语义引用指向、C10-002/004/009 处置边界确认）；R4-32 时钟族边界注记（按需）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（CAS 传播/门控短路/续租/原子替换/代际取消/拓扑单一化/终态化/清理接线/namespace 覆盖运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-12 十三行状态收敛（12 项 P1 open→fixed，注记 plan 2515；吸收成员随各主行括注；C8-017 随 G18 行注记收敛）；C10 六条收敛注记；roadmap 8.21 行 Status → done；R4-10（8.50）硬依赖就绪注记（沿 2514 R2-13/R4-08 先例——含裁定①⑤⑦接缝边界、A2 令牌语义引用指向、C10-002/004/009 处置边界确认）；R4-32 时钟族边界注记（按需）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 13 行收敛 + C10 注记、roadmap 8.21 = done、R4-10 就绪注记完成（R4-32 按需）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 13 行收敛 + C10 注记、roadmap 8.21 = done、R4-10 就绪注记完成（R4-32 按需）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 13 项成员全部修复：C1-001（CAS 失败阻断补偿）、C3-002（CAS 失败回写/聚合权威裁决）、C3-012（首跳异常传播/终态不直写）、C3-003（续租族闭合）、C3-005（幽灵链代际取消）、C6-003（OVERWRITE 原子化+死信，R10）、C3-006（簿记异常不覆盖业务结果）、C8-012（返回 future=回调挂接 future）、C8-017（提交面失败交付契约，R21 同 diff 搭车）、C6-002（RUNNING attempt 砖化消除）、C7-003（僵尸记录终态化）、C7-005（清理 API 生产接线+索引）、C7-012（namespace 扫描修复）
-- [ ] batch-proposal R2-12 行 exit criteria 增补七段逐条达成并留证：①**CAS 失败阻断补偿/回写内存/续租族闭合**；②**簿记异常不覆盖业务结果**；③**OVERWRITE 原子化+死信（R10）**；④**僵尸记录终态化**；⑤**清理 API 生产接线+索引**；⑥**namespace 扫描修复**；⑦**C8-012 返回 future=回调挂接 future（C10-001 覆盖，C8-017 同 diff）**
-- [ ] 对齐纪律守约：C7-005×R01 对齐（SSOT 引用不重建 + 键族同构 + 修订登记义务落地）；扫描面×R1-01 绝缘零回退；C8-012×C8-017 R21 同 diff；裁定④×A2 令牌接缝成文；nop-api-core PA 零触碰（或备选分支采纳时批内申报闭环）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑫均有先红后绿或变异/回退论证（E2）；C10 六条同 diff 落地
-- [ ] 设计文档裁定①–⑩成文且经独立 draft review；orm PA 批内申报闭环（裁定⑧索引）；既有钉（零回退钉清单全列）零回退实证（唯一钉改写登记在案）
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 两条批行验证命令 `./mvnw test -pl nop-retry -am`、`./mvnw test -pl nop-tcc -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-retry.md + nop-tcc.md（+source-anchors.md 按实际）（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）CAS 传播/门控短路/续租/原子替换/代际取消/拓扑单一化/终态化/清理接线/namespace 覆盖运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-retry/nop-tcc 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 台账 13 行收敛 + roadmap 8.21 → done + R4-10 就绪注记（E6）
+- [x] 13 项成员全部修复：C1-001（CAS 失败阻断补偿）、C3-002（CAS 失败回写/聚合权威裁决）、C3-012（首跳异常传播/终态不直写）、C3-003（续租族闭合）、C3-005（幽灵链代际取消）、C6-003（OVERWRITE 原子化+死信，R10）、C3-006（簿记异常不覆盖业务结果）、C8-012（返回 future=回调挂接 future）、C8-017（提交面失败交付契约，R21 同 diff 搭车）、C6-002（RUNNING attempt 砖化消除）、C7-003（僵尸记录终态化）、C7-005（清理 API 生产接线+索引）、C7-012（namespace 扫描修复）
+- [x] batch-proposal R2-12 行 exit criteria 增补七段逐条达成并留证：①**CAS 失败阻断补偿/回写内存/续租族闭合**；②**簿记异常不覆盖业务结果**；③**OVERWRITE 原子化+死信（R10）**；④**僵尸记录终态化**；⑤**清理 API 生产接线+索引**；⑥**namespace 扫描修复**；⑦**C8-012 返回 future=回调挂接 future（C10-001 覆盖，C8-017 同 diff）**
+- [x] 对齐纪律守约：C7-005×R01 对齐（SSOT 引用不重建 + 键族同构 + 修订登记义务落地）；扫描面×R1-01 绝缘零回退；C8-012×C8-017 R21 同 diff；裁定④×A2 令牌接缝成文；nop-api-core PA 零触碰（或备选分支采纳时批内申报闭环）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑫均有先红后绿或变异/回退论证（E2）；C10 六条同 diff 落地
+- [x] 设计文档裁定①–⑩成文且经独立 draft review；orm PA 批内申报闭环（裁定⑧索引）；既有钉（零回退钉清单全列）零回退实证（唯一钉改写登记在案）
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 两条批行验证命令 `./mvnw test -pl nop-retry -am`、`./mvnw test -pl nop-tcc -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：nop-retry.md + nop-tcc.md（+source-anchors.md 按实际）（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）CAS 传播/门控短路/续租/原子替换/代际取消/拓扑单一化/终态化/清理接线/namespace 覆盖运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-retry/nop-tcc 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 台账 13 行收敛 + roadmap 8.21 → done + R4-10 就绪注记（E6）
 
 ## Deferred But Adjudicated
 
@@ -242,17 +242,21 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: 13 项成员（12 P1+P2 搭车 C8-017）全部 landed 并经独立 closure audit APPROVED（附 E3 完整快照回填项闭环）；七条实施期偏差三件套登记；裁定⑧ ORM 索引批内申报五处闭环；上游环境 flake 三联裁定留痕。
+Completed: 2026-10-31
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （收口时填写）
-- Evidence: （收口时填写）
+- Reviewer / Agent: 独立 closure audit 子代理 agent_526666b9（fresh session，@ 2026-10-31，HEAD=b580af1ca2），总裁定 **APPROVED**
+- Evidence: 13 成员 Anti-Hollow 逐条 live 亲读实证全 PASS（CAS 族 failedStage+短路+err 门控+runInNewTxn afterCommit 配对经 TransactionTemplateImpl :184-215 代码级核实；续租 renewLease+orTimeout 上界+装配期 fail-fast；OVERWRITE bumpGeneration+replaceRecord+死信+stale 短路两处；记账两层隔离+拓扑单一化+E-a/b/c；对账 STOPPED+max+1+TRANSIENT 复位+死信化三路径；清理链 beans init-method+耗尽 KILLED+有界批删+两索引+迁移脚本；namespace 放宽；C8-017 failedStage+triggerCallback try）；零回退钉 diff 全 0 行（唯一钉改写 newRecord 推延已登记）；红①–红⑫快照 12 个在案；抽样复跑 8 类全绿；doc-links/scan-hollow×2 审计独立复核 EXIT=0
+- 门禁记录：E1 EXIT=0 BUILD SUCCESS（`_tmp/2515-e1-full-build.log`）；E3 完整快照回填（audit PENDING-② 闭环）：`_tmp/2515-gate-nop-retry-full.log` BUILD SUCCESS EXIT=0 + `_tmp/2515-gate-nop-tcc-full-r3.log` BUILD SUCCESS EXIT=0（TCC -am 两次因 debezium fork timeout 环境抖动[已三联裁定]改上游 skipTests install+模块级完整快照，依据与留痕在 daily log）；check-doc-links --strict EXIT=0；scan-hollow nop-retry/nop-tcc high=0×2；check-plan-checklist 退出码见收口提交
+- 台账回填：cra-index R2-12 十二行 open→fixed（吸收成员随主行括注；P2-G18 搭车消号注记）；roadmap 8.21→done；R4-10（8.50）硬依赖就绪注记
+- 提交链：80f28fefb9（立项）→ d85217c58c（Phase 1）→ 976a4a8432（组 retry）→ 20f2dd43b8（组 tcc）→ 本收口提交
 
 Follow-up:
 
-- （收口时填写）
+- R4-10（8.50）实施引用本设计文档裁定①–⑩为既有裁定（硬依赖解除；C1-002/C3-008/C7-006 接缝与 C3-010/C6-015 批外补测义务已列名）。
+- 上游环境噪声面（nop-auth MFA、debezium fork timeout、TestDebeziumMessageSource 负载时序）维持批前三联裁定 watch-only。
 
 ## Risks And Rollback
 

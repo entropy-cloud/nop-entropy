@@ -165,19 +165,19 @@
 | C5-001（MA-05，成员 C8-001） | 1.5 | nop-wf-nop-task | 到期/提醒扫描无 LIMIT 全量载入+毒步骤不收敛 | R2-11 |fixed（plan 2514，closure audit APPROVED @ 2026-10-31） |
 | C5-003（MA-08，成员 C8-004） | 1.5 | nop-wf-nop-task | 全局闸门强引用注册表 × 动态 keyExpr 键空间持久无界（已知未修复 plan 364 之上；owner 表态出口） | R2-11 |fixed（plan 2514，closure audit APPROVED @ 2026-10-31） |
 | C7-001（MA-23，成员 C1-005） | 1.5 | nop-wf-nop-task | WfTaskScanner 多节点/重叠扫描无 fencing：due 双跑副作用先于守卫+remindCount 丢失更新 | R2-11 |fixed（plan 2514，closure audit APPROVED @ 2026-10-31） |
-| C8-012（←C6-001/C1-008/C1-003A） | 1.6 | nop-retry-nop-tcc | executeImmediateRetry 返回 future ≠ 回调挂接 future，同步 DB 异常下扫描器 join 永久冻结、零日志（C10-001 覆盖） | R2-12 | open |
-| C1-001（←C3-001） | 1.6 | nop-retry-nop-tcc | TCC 全局/分支状态 CAS 失败不阻断补偿 RPC，守卫基于私有过期内存副本 | R2-12 | open |
-| C3-002（←C3-016） | 1.6 | nop-retry-nop-tcc | 分支级 CAS 失败（0 行/异常）不回写内存，聚合折叠 SUCCESS→全局误报终态 | R2-12 | open |
-| C3-003（←C1-009） | 1.6 | nop-retry-nop-tcc | retry 调用链全程不续租，租约到期扫描器接管在途任务双执行 | R2-12 | open |
-| C3-005 | 1.6 | nop-retry-nop-tcc | OVERWRITE 删行不取消在途异步链：幽灵任务与双执行 | R2-12 | open |
-| C3-006（←C6-016） | 1.6 | nop-retry-nop-tcc | doExecute 簿记写内联结果回调，簿记异常覆盖业务结果→成功改判失败并重试 | R2-12 | open |
-| C3-012 | 1.6 | nop-retry-nop-tcc | 全局首跳 CAS 异常→分支零驱动→聚合折叠 SUCCESS→陈旧 from 直写终态 | R2-12 | open |
-| C6-002 | 1.6 | nop-retry-nop-tcc | 崩溃/挂死后 RUNNING attempt 永久残留，UK 碰撞将记录永久砖化 | R2-12 | open |
-| C6-003（←C8-006） | 1.6 | nop-retry-nop-tcc | OVERWRITE delete+insert 非原子：半个成功后任务蒸发且无死信 | R2-12 | open |
+| C8-012（←C6-001/C1-008/C1-003A） | 1.6 | nop-retry-nop-tcc | executeImmediateRetry 返回 future ≠ 回调挂接 future，同步 DB 异常下扫描器 join 永久冻结、零日志（C10-001 覆盖） | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C1-001（←C3-001） | 1.6 | nop-retry-nop-tcc | TCC 全局/分支状态 CAS 失败不阻断补偿 RPC，守卫基于私有过期内存副本 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C3-002（←C3-016） | 1.6 | nop-retry-nop-tcc | 分支级 CAS 失败（0 行/异常）不回写内存，聚合折叠 SUCCESS→全局误报终态 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C3-003（←C1-009） | 1.6 | nop-retry-nop-tcc | retry 调用链全程不续租，租约到期扫描器接管在途任务双执行 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C3-005 | 1.6 | nop-retry-nop-tcc | OVERWRITE 删行不取消在途异步链：幽灵任务与双执行 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C3-006（←C6-016） | 1.6 | nop-retry-nop-tcc | doExecute 簿记写内联结果回调，簿记异常覆盖业务结果→成功改判失败并重试 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C3-012 | 1.6 | nop-retry-nop-tcc | 全局首跳 CAS 异常→分支零驱动→聚合折叠 SUCCESS→陈旧 from 直写终态 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C6-002 | 1.6 | nop-retry-nop-tcc | 崩溃/挂死后 RUNNING attempt 永久残留，UK 碰撞将记录永久砖化 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C6-003（←C8-006） | 1.6 | nop-retry-nop-tcc | OVERWRITE delete+insert 非原子：半个成功后任务蒸发且无死信 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
 | C7-001（←C6-004） | 1.6 | nop-retry-nop-tcc | retry 三张账本表零保留机制，成功即沉淀永久行 | 已修（R1-07，plan 2502 分片 A，提交 873365710c——三通道保留清理+引擎生命周期链接线；nop-tcc 两表零保留=C7-005 归 R2-12，落地时对齐本批族级 SSOT 设计文档） | fixed |
-| C7-003 | 1.6 | nop-retry-nop-tcc | 解析/同步异常路径产生永不终止僵尸记录 + 每租约周期全栈 ERROR 放大 | R2-12 | open |
-| C7-005 | 1.6 | nop-retry-nop-tcc | tcc 账本清理 API 零生产调用方 + 耗尽行双重永久排除 + 全表零索引 | R2-12 | open |
-| C7-012 | 1.6 | nop-retry-nop-tcc | 扫描器只服务单一 namespace：非 default 记录永久 PENDING、零日志零接管（条件面：default-only 部署不触发） | R2-12 | open |
+| C7-003 | 1.6 | nop-retry-nop-tcc | 解析/同步异常路径产生永不终止僵尸记录 + 每租约周期全栈 ERROR 放大 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C7-005 | 1.6 | nop-retry-nop-tcc | tcc 账本清理 API 零生产调用方 + 耗尽行双重永久排除 + 全表零索引 | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
+| C7-012 | 1.6 | nop-retry-nop-tcc | 扫描器只服务单一 namespace：非 default 记录永久 PENDING、零日志零接管（条件面：default-only 部署不触发） | R2-12 |fixed（plan 2515，closure audit APPROVED @ 2026-10-31） |
 | C8-001（←C7-004/C6-014） | 1.6 | nop-retry-nop-tcc | 扫描循环被拒/Error 即（近）静默永久停摆：无自防御、无观测、无重臂（跨单元关联 nop-job C4-003，修复须平台级统一） | 已修（R1-01，plan 2496 closure audit PASS） | fixed |
 | C8-001（←C5-005） | 1.7 | nop-batch | dispatch 容量全链零护栏：loadBatchSize≤0 → orm-reader 全表加载 Semaphore(0) 永久挂死 / jdbc-file 族静默空任务丢数（参数护栏矩阵三层完整者 0；修复先于 C8-009） | R2-13 | open |
 | C8-002（←CL-008） | 1.7 | nop-batch | ExportDbTool 缺省 batchSize=0 静默钳位 1 每行一 chunk：日志/状态文件写放大磁盘耗尽（与 Import `>0` 守卫 F3 不对称；biz 链 batchSize=0 穿透同批 C8-010） | R2-13 | open |
@@ -399,7 +399,7 @@
 | P2-G15（1.5 图执行/扫描 infra/账本束，成员 14 条：1.5-C1-006、1.5-C3-003、1.5-C3-004、1.5-C4-003、1.5-C4-004、1.5-C4-007、1.5-C5-005、1.5-C5-006、1.5-C7-004、1.5-C7-006、1.5-C7-007、1.5-C7-009、1.5-C7-010、1.5-C7-014） | nop-wf-nop-task | 1.5 | 双调度 body 双跑、invoker.bean 失配、O(N²) 物化、账本无归档、fencing 双执行等 | 修→R4+ | 批次=R4-09（13）+ R4-32（C7-006）；C4-003 已知未修复（2026-09 P2-3.1-001 同案，按同案对齐一处修复）；C7-006=R28 墙钟批次；C10-010、012、014 随本体（验收前置） |
 | P2-G16（1.5 可观测/契约文档治理束，成员 3 条：1.5-MA-09、1.5-MA-17、1.5-C8-015） | nop-wf-nop-task | 1.5 | 闸门 warn-once+stats 零消费、javadoc 失真、全模块零指标注册 | deferred | Why Not Blocking：纯可观测/契约文档治理面而非缺陷本体；successor=治理批 R-G |
 | P2-G17（1.6 补偿/扫描/护栏束，成员 15 条：1.6-C1-002、1.6-C1-004、1.6-C1-007、1.6-C3-008、1.6-C3-009、1.6-C3-010、1.6-C6-015、1.6-C7-007、1.6-C7-008、1.6-C7-010、1.6-C7-011、1.6-C7-014、1.6-C7-015、1.6-C8-003、1.6-C8-013） | nop-retry-nop-tcc | 1.6 | OVERWRITE 裸约束、身份分裂、幽灵链、补偿成环自增殖、扫描放大、护栏零校验等 | 修→R4+ | 批次=R4-10（14）+ R4-32（C7-011）；C1-002=C10-005；C8-003=CL-005 同位点主处置；C7-011=R28 墙钟批次；C10-002~009、010 中映射本组成员之面随本体（验收前置，跨条化成员面以 inventory-p2-c10 §二 1.6 为准） |
-| P2-G18（1.6-C8-017 交付对称搭车，成员 1 条：1.6-C8-017） | nop-retry-nop-tcc | 1.6 | 提交面失败交付三通道不对称（future-only 契约缺口） | 修→提前（随 1.6-C8-012 P1 同批） | 理由：与 P1 C8-012 同 diff 修复面；批次随该 P1 批→实际批号 R2-12（随 P1 1.6-C8-012） |
+| P2-G18（已随 plan 2515 C8-012/C8-017 同 diff 搭车落地消号 @ 2026-10-31）（1.6-C8-017 交付对称搭车，成员 1 条：1.6-C8-017） | nop-retry-nop-tcc | 1.6 | 提交面失败交付三通道不对称（future-only 契约缺口） | 修→提前（随 1.6-C8-012 P1 同批） | 理由：与 P1 C8-012 同 diff 修复面；批次随该 P1 批→实际批号 R2-12（随 P1 1.6-C8-012） |
 | P2-G19（1.6 dormant/条化束，成员 5 条：1.6-C3-004、1.6-C6-005、1.6-C7-006、1.6-C8-004、1.6-C8-007） | nop-retry-nop-tcc | 1.6 | 扫描批永久冻结（非默认形态）、过期扫描/清理无生产驱动、恢复取数饿死、扇出无上限 | deferred | Why Not Blocking：dormant/条化——激活前提（补生产驱动、非默认形态确认）未满足；触发条款=补驱动/非默认形态确认即同批复核判级（条件面捆绑 CL-004）；successor=触发条款；C10-004/007 之条化成员面随条款留档 |
 | P2-G20（1.6-C8-008 过载零指标，成员 1 条：1.6-C8-008） | nop-retry-nop-tcc | 1.6 | 两模块过载信号零指标伞形缺口 | deferred | Why Not Blocking：纯可观测缺口属增强；successor=治理批 R-G 可观测性治理 |
 | P2-G21（1.7 终态化/RUNNING 死区搭车束，成员 3 条：1.7-C6-009、1.7-C6-010、1.7-C7-011） | nop-batch | 1.7 | saveState 失败被吞、try 守卫起点过晚、sys-event 链守卫不覆盖 | 修→提前（P1 同 diff/紧随批） | 理由：C6-010 与 P1 C6-001 同 diff（try 上移+catch Throwable）；C6-009 修复排期紧随 P1 RUNNING 死区族；C7-011=A2 注记搭车；批次随 1.7 P1 批→实际批号 R1-01（C6-010 随 P1 1.7-C6-001 同 diff）+ R2-13（C6-009、C7-011 随 P1 1.7-C7-001 RUNNING 死区族）；C10-001、002 随本体（验收前置） |
