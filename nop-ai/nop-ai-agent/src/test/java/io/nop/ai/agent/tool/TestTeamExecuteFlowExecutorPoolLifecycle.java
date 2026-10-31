@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -46,6 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>{@link #closeLeavesInjectedExecutorUntouched} — an executor injected
  *       via {@code setSpawnStepExecutor} is owned by its injector; close()
  *       must NOT shut it down (ownership boundary pin).</li>
+ *   <li>{@link #concurrentFirstTouchCreatesExactlyOnePool} — K threads racing
+ *       on the first resolve create exactly ONE pool (synchronized lazy-build
+ *       single-construction pin; {@code synchronized} removed = RED).</li>
  * </ul>
  */
 public class TestTeamExecuteFlowExecutorPoolLifecycle {
@@ -172,6 +176,91 @@ public class TestTeamExecuteFlowExecutorPoolLifecycle {
         // Clean up the test-owned executor.
         injected.shutdownNow();
         assertTrue(injected.awaitTermination(2, TimeUnit.SECONDS));
+    }
+
+    /**
+     * Plan 2519 closure-audit remediation (M1b / 裁定③ C4-010 判据面): the
+     * lazy pool build in {@code resolveSpawnExecutor} is a synchronized
+     * single-construction point (CL-036 double-check precedent) — concurrent
+     * FIRST TOUCH by K threads must create exactly ONE pool. Defect state
+     * (red probe: {@code synchronized} removed from the resolve method): the
+     * unsynchronized null-check-then-build races past the check and each
+     * racing thread constructs its own pool — RED by executor-identity
+     * divergence. The thread-count face asserts the surviving pool still
+     * conserves its worker budget (one pool capacity, never K pools' worth).
+     */
+    @Test
+    void concurrentFirstTouchCreatesExactlyOnePool() throws Exception {
+        int threads = 8;
+        int trials = 10;
+        int capacity = poolCapacity();
+        List<String> violations = new ArrayList<>();
+
+        for (int trial = 0; trial < trials; trial++) {
+            TeamExecuteFlowExecutor tee = new TeamExecuteFlowExecutor();
+            try {
+                CountDownLatch start = new CountDownLatch(1);
+                CountDownLatch done = new CountDownLatch(threads);
+                Set<Executor> resolved = ConcurrentHashMap.newKeySet();
+                for (int i = 0; i < threads; i++) {
+                    Thread toucher = new Thread(() -> {
+                        try {
+                            start.await();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                        resolved.add(tee.resolveSpawnExecutor());
+                        done.countDown();
+                    }, "tee-first-touch-probe-" + trial + "-" + i);
+                    toucher.setDaemon(true);
+                    toucher.start();
+                }
+                start.countDown();
+                assertTrue(done.await(10, TimeUnit.SECONDS),
+                        "all first-touch threads must settle (trial " + trial + ")");
+
+                if (resolved.size() != 1) {
+                    violations.add("trial " + trial + ": concurrent first touch created "
+                            + resolved.size() + " distinct pools (synchronized removed "
+                            + "= defect state, RED)");
+                    continue;
+                }
+
+                // Thread-count conservation face: the single surviving pool
+                // spins up at most one capacity of distinct workers.
+                ExecutorService pool = (ExecutorService) resolved.iterator().next();
+                Set<String> workers = ConcurrentHashMap.newKeySet();
+                CountDownLatch hold = new CountDownLatch(1);
+                List<Future<?>> forced = new ArrayList<>();
+                for (int i = 0; i < capacity; i++) {
+                    forced.add(pool.submit(() -> {
+                        String name = Thread.currentThread().getName();
+                        if (name.startsWith("ai-agent-flow-spawn-worker-")) {
+                            workers.add(name);
+                        }
+                        try {
+                            hold.await(5, TimeUnit.SECONDS);
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                        }
+                    }));
+                }
+                hold.countDown();
+                for (Future<?> f : forced) {
+                    f.get(5, TimeUnit.SECONDS);
+                }
+                if (workers.size() > capacity) {
+                    violations.add("trial " + trial + ": " + workers.size()
+                            + " distinct spawn workers observed for one pool (capacity "
+                            + capacity + ")");
+                }
+            } finally {
+                tee.close();
+            }
+        }
+
+        assertTrue(violations.isEmpty(),
+                "concurrent first touch must create exactly ONE TEE-owned pool: " + violations);
     }
 
     /**
