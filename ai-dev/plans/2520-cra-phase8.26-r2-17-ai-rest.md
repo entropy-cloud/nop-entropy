@@ -155,23 +155,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: nop-ai 聚合全量测试；`docs-for-ai/03-modules/nop-ai.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2519 Phase 3 先例）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` BUILD SUCCESS 且登记（模块/测试数/退出码/快照路径；nop-ai-rag 与 nop-ai-code-analyzer 两模块触达分别登记）；环境抖动按三联裁定留痕（勘误 8 三面重点核对）；实际触达模块以 git diff 为准逐条登记；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 `io.nop.ai.api.chat.ChatResponse`（契约归属零触碰[勘误 7]）、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 G60/G61/watch 批外成员本体、既有钉面零 diff 核对登记
-- [ ] Owner doc 更新：`nop-ai.md`——schemaReady per-collection 作用域契约句（:197 向量库后端节内）+ InMemoryVectorStore upsert 原子性契约句 + synthesize 错误传播契约句（:199 管线节内）+ code-analyzer 收集契约句 + §源码锚点补行；`source-anchors.md` 新增锚点（按实际）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（批前既有发现逐条裁定登记[2518/2519 先例口径]；code-analyzer 面按触达登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（**授权支路** `-DskipTests` 快速通道执行：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS 453/453（`_tmp/red-green-2520-e1-skiptests.log`，54s wall）——支路理由 = 全聚合测试通道 `./mvnw test -pl nop-ai -am` 4 轮均被零 diff 上游已知 flake 阻断（r1/r3 debezium docker fork timeout、r2 stream-runtime E2E 收敛、r4 auth MFA TOTP 窗口，逐面三联裁定留痕 `_tmp/red-green-2520-summary.md` E3 节；debezium/runtime 双 solo 绿腿在案）；聚焦测试组合覆盖 = 触达双模块 solo 82 tests 0F0E + rag 三测试类 31/31 + analyzer 10/10 trial——沿 plan 2497–2519 Phase 3 先例声明）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-ai -am` 4 轮留痕（r1–r4 各自阻断模块/测试/裁定见 `_tmp/red-green-2520-summary.md` E3 节）→ 等价分解通道（plan 2499 先例）BUILD SUCCESS：触达双模块 solo（nop-ai-code-analyzer 27/0/0 + nop-ai-rag 55/0/0，`_tmp/red-green-2520-touched-solo.log`）+ 全仓编译级 453/453；环境抖动按三联裁定留痕（勘误 8 三面 + MFA 第四面）；实际触达模块以 git diff 为准逐条登记（nop-ai-rag 4 main + 3 test、nop-ai-code-analyzer 1 main + 1 test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 `io.nop.ai.api.chat.ChatResponse`（`git diff --stat -- nop-ai/nop-ai-api/ nop-kernel/` = 空，契约归属零触碰[勘误 7]、条件申报未触发）、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 G60/G61/watch 批外成员本体、既有钉面零 diff 核对登记（test 树删除行仅 StubChat 装配 + fake RS next 两处基础设施 reshape，钉断言体零删除）
+- [x] Owner doc 更新：`nop-ai.md`——向量库后端节内 schemaReady per-collection 作用域契约句 + InMemoryVectorStore upsert 原子性契约句 + RAG 管线节内 synthesize 错误传播契约句 + code-analyzer 收集契约句 + §源码锚点表补 `RAG-CC-001` 行；`source-anchors.md` 新增 `RAG-CC-001` 锚点行（AGENT-CC-001 与 ORM-ORCH-001 之间，五文件行号锚修复后 live 亲读核实）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-ai --severity high` 退出码 0（4 条 high 逐条裁定登记：全部批前既有且均在 nop-ai-agent/nop-ai-core 面[ReActAgentExecutor :1400/:1531 与 PlanReplanner :273 注释关键词误报、NoOpProviderFailoverQueue :34 引用 rule #24 的有意占位文档面]，触达面 nop-ai-rag/nop-ai-code-analyzer 零发现——2518/2519 先例口径）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] nop-ai.md owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定）
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/ChatResponse 契约/G60/G61 批外成员本体/既有钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由（E1 快速通道 + E3 等价分解通道，理由与先例均登记）
+- [x] nop-ai.md owner 面 + source-anchors.md 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记（触达面 high=0 或批前既有已裁定——触达面 high=0，4 条批前既有裁定留痕）
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/ChatResponse 契约/G60/G61 批外成员本体/既有钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
