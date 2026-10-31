@@ -1,5 +1,7 @@
 # 2517 CRA Phase 8.23 — R2-14 2.4 ORM 并发批（13 项：会话注册表原子化 + 模型发布可见性 + session 互斥 + 事务注册协议原子性 + 连接生命周期锁纪律 + 实体缓存 read-repair 世代化 + 抢占 NULL 退化 + drainTo 出事务）
 
+> Design Review: R2 agent_4d71d66b @ 2026-10-30（第 1 轮 FAIL[1 Blocker/2 Major/6 Minor]：Blocker=裁定⑥预设 ICache 原子 compute 能力不存在[插入-only]且补齐触未申报 nop-commons→改判 nop-orm 模块内世代 fence[CHM<String,AtomicLong>+版本化 value+fence CAS，生命周期弱引用+cap 100k]；Major-1 世代公式二义→三具名变量 readGen/fenceGen/valueGen+唯一公式 readGen==fenceGen；Major-2 裁定⑤投递机制与 BaseContext 降级路径不符→具名 context.execute+三句降级/吞弃/vert.x 语义；Minor×6 闭合[restore 原子 put/混合态单向化/⑬包络含 flushSession+跨裁定依赖/⑧synchronization 回退/§4.6 同对象注/⑫]——协调方核验后 PASS）
+> Design Review: R2 终轮 agent_4d71d66b @ 2026-10-30（第 2 轮 FAIL[1 Major/2 Minor]：Major=fence 生命周期 gen-0 起点使「fence 身份重置×gen-0 快照碰撞」可放行旧世代回填→per-persister 单调分配器非零起点[协调方修入]；Minor-2′ 降级/吞弃两处机制精确化、Minor-3′ compute 体异常 safeClose 语义——评审明示修复面局部无裁量点，协调方逐处断言落盘后核验 PASS））
 > Plan Status: active
 > Draft Review: R1 agent_8db17b00 @ 2026-10-30（FAIL[1 Major/3 Minor]：Major-1 C2-001 写路径引用区间误指含 checkContext 方法族→勘误 6 订正 :495-644；Minor×3[cra-index 行号 :213-225 订正/C2-006 P2 并入标注/log 行数精度]——协调方修入后转 active；20+ 组基线亲读全吻合、结构完备、PA 判定 13/13 零 orm 核验成立）
 > Draft Review: 待独立 draft review（本 plan 为起草产出，Status=draft；独立子 agent draft review 通过后转 active）
@@ -122,33 +124,33 @@
 
 ### Phase 1 - ORM 并发设施设计裁定文档 + 独立评审
 
-Status: planned
+Status: done
 Targets: `ai-dev/design/concurrency/orm-session-txn-atomicity-and-model-cache-generation.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-001 注册表原子化**：ContextAttrs get-or-create 形态（computeIfAbsent 于两 registry 内联[预设] vs 平台工具落 nop-api-core[须批内 PA 申报]）一次定夺；put/restore 原子化（remove(k,v) 两参 + 不匹配无条件 close 兜底）+ close 幂等依赖声明（:768-770）；skip-session-close 升级告警；C1-023/C2-003 吸收面双子项闭环声明；N8 两层不混淆注记（实例创建层 vs 协议层）
-  - [ ] **裁定② C1-003 模型发布可见性**：volatile 化点位（两 provider + LoadedOrmModel.ormInterceptor）；clearCache 顺序定夺（clear 先于赋值 vs 同步块）；setOrmInterceptor 变化时才写；TenantAware 同 diff；模型代发布协议切片接缝登记（C2-007/C1-004 归 R4-18/R4-19 不代做）
-  - [ ] **裁定③ C1-015 组件预计算**：解析期预计算（预设）vs volatile+最后赋引用（备选）一次定夺；列序钉零弱化声明；C1-016 同族零触碰声明
-  - [ ] **裁定④ C2-001 session 互斥**：ReentrantLock（预设，可重入承载 CascadeFlusher 回调）vs owner-thread fail-fast 一次定夺；写路径 checkContext 对称面；同族守卫清单逐项落位边界（SessionBatchActionQueue/OrmSessionEntityCache/getSessionRevVersion）；与裁定⑤⑪共享设计
-  - [ ] **裁定⑤+⑪ C2-002/C3-001 异步收尾**：收尾回 context 队列（预设）vs 引用计数（备选）；兜底关闭路径（context 生命周期登记[预设] vs future 超时）；异步入口族 F3 七类收敛声明；泄漏守卫指标
-  - [ ] **裁定⑥ C2-004 read-repair 世代化**：世代号形态（版本化 value/ICache.compute CAS/时间戳围栏）一次定夺；lock() 排除项声明；集合路径同 diff；**C1-027 SSOT 条款**（R4-18 消费不重建 + 两 work item 不合并）；世代列形态触发条件则 PA 申报声明
-  - [ ] **裁定⑦ C2-005 NULL 谓词**：IS NULL 谓词（预设）vs oldValues.isEmpty() fail-fast vs 契约强制非 NULL 初始化三形态定夺；回归钉穿透谓词生成层方案（mock 屏蔽面消解）
-  - [ ] **裁定⑧⑨ C2-013/C2-015 事务协议原子化（R10 自并单点，同变更集）**：registry compute/putIfAbsent 语义；runWithoutTransaction/NOT_SUPPORTED 挂起标记 vs per-context 门闩（锁序约束成文）；cleanup 身份比对消伪 ERR_TXN_NOT_REGISTERED；subTransactions synchronized+快照+迟到显式拒绝（预设）vs 单线程契约声明+fail-fast 守卫；半个成功消除验收口径
-  - [ ] **裁定⑩ C2-017 连接锁纪律**：五触点 monitor 串行化（预设）vs CAS 状态机；锁序裁定（禁锁内取全局锁）；doCommit null 早退 warn/显式失败；C1-026 吸收面闭合声明
-  - [ ] **裁定⑫ C3-005 flush 顺序**：dirty 移至成功后（预设，flushImmediately 模板）vs 失败保守恢复；C2-006 吸收面（actionMap.clear 失败路径 + 已提交失败回调面核对）；**C10-009 钉错相位注记**（新钉相位=batchActionQueue.flush 失败，旧装载钉保留）
-  - [ ] **裁定⑬ C6-001 drainTo 出事务**：REQUIRES_NEW 摘除+循环体 runInTransaction 短事务包络（预设，N4 约束成文）vs 备选；空闲持连守卫指标；queryTimeout 子项挂验收清单；@Transactional 装配前提声明
-  - [ ] **裁定⑭ 测试缝与零回退钉清单**：红①–红⑬ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestOrmComponentModel#testGetColumnPropIdsFollowsDeclarationOrder`（列序钉）、`TestFlushFailure#testFlushFailureClearsFlushVisiting`（装载相位钉，仅并存不弱化）、`TestDaoEntityBlockingSourceClaim` 两钉、`TestTransactionTemplate`×12/`TestTransactionTemplateAsync`×4/`TestDefaultTransactionManager`×8/`TestJdbcTransactionAutoCommitRestore`×2 邻接钉族、`TestLazyLoadOrmModel`（C1-016 唯一真并发钉，零触碰）、`TestGlobalCache` 单线程 evict 钉、`LazyLoadOrmModel` 锁纪律既有正确面（putEntityModel/checkTopoEntryReady 同锁约束零触碰）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-001 注册表原子化**：ContextAttrs get-or-create 形态（computeIfAbsent 于两 registry 内联[预设] vs 平台工具落 nop-api-core[须批内 PA 申报]）一次定夺；put/restore 原子化（remove(k,v) 两参 + 不匹配无条件 close 兜底）+ close 幂等依赖声明（:768-770）；skip-session-close 升级告警；C1-023/C2-003 吸收面双子项闭环声明；N8 两层不混淆注记（实例创建层 vs 协议层）
+  - [x] **裁定② C1-003 模型发布可见性**：volatile 化点位（两 provider + LoadedOrmModel.ormInterceptor）；clearCache 顺序定夺（clear 先于赋值 vs 同步块）；setOrmInterceptor 变化时才写；TenantAware 同 diff；模型代发布协议切片接缝登记（C2-007/C1-004 归 R4-18/R4-19 不代做）
+  - [x] **裁定③ C1-015 组件预计算**：解析期预计算（预设）vs volatile+最后赋引用（备选）一次定夺；列序钉零弱化声明；C1-016 同族零触碰声明
+  - [x] **裁定④ C2-001 session 互斥**：ReentrantLock（预设，可重入承载 CascadeFlusher 回调）vs owner-thread fail-fast 一次定夺；写路径 checkContext 对称面；同族守卫清单逐项落位边界（SessionBatchActionQueue/OrmSessionEntityCache/getSessionRevVersion）；与裁定⑤⑪共享设计
+  - [x] **裁定⑤+⑪ C2-002/C3-001 异步收尾**：收尾回 context 队列（预设）vs 引用计数（备选）；兜底关闭路径（context 生命周期登记[预设] vs future 超时）；异步入口族 F3 七类收敛声明；泄漏守卫指标
+  - [x] **裁定⑥ C2-004 read-repair 世代化**：世代号形态（版本化 value/ICache.compute CAS/时间戳围栏）一次定夺；lock() 排除项声明；集合路径同 diff；**C1-027 SSOT 条款**（R4-18 消费不重建 + 两 work item 不合并）；世代列形态触发条件则 PA 申报声明
+  - [x] **裁定⑦ C2-005 NULL 谓词**：IS NULL 谓词（预设）vs oldValues.isEmpty() fail-fast vs 契约强制非 NULL 初始化三形态定夺；回归钉穿透谓词生成层方案（mock 屏蔽面消解）
+  - [x] **裁定⑧⑨ C2-013/C2-015 事务协议原子化（R10 自并单点，同变更集）**：registry compute/putIfAbsent 语义；runWithoutTransaction/NOT_SUPPORTED 挂起标记 vs per-context 门闩（锁序约束成文）；cleanup 身份比对消伪 ERR_TXN_NOT_REGISTERED；subTransactions synchronized+快照+迟到显式拒绝（预设）vs 单线程契约声明+fail-fast 守卫；半个成功消除验收口径
+  - [x] **裁定⑩ C2-017 连接锁纪律**：五触点 monitor 串行化（预设）vs CAS 状态机；锁序裁定（禁锁内取全局锁）；doCommit null 早退 warn/显式失败；C1-026 吸收面闭合声明
+  - [x] **裁定⑫ C3-005 flush 顺序**：dirty 移至成功后（预设，flushImmediately 模板）vs 失败保守恢复；C2-006 吸收面（actionMap.clear 失败路径 + 已提交失败回调面核对）；**C10-009 钉错相位注记**（新钉相位=batchActionQueue.flush 失败，旧装载钉保留）
+  - [x] **裁定⑬ C6-001 drainTo 出事务**：REQUIRES_NEW 摘除+循环体 runInTransaction 短事务包络（预设，N4 约束成文）vs 备选；空闲持连守卫指标；queryTimeout 子项挂验收清单；@Transactional 装配前提声明
+  - [x] **裁定⑭ 测试缝与零回退钉清单**：红①–红⑬ 测试形态逐条（含缺陷态红判据）；零回退钉 = `TestOrmComponentModel#testGetColumnPropIdsFollowsDeclarationOrder`（列序钉）、`TestFlushFailure#testFlushFailureClearsFlushVisiting`（装载相位钉，仅并存不弱化）、`TestDaoEntityBlockingSourceClaim` 两钉、`TestTransactionTemplate`×12/`TestTransactionTemplateAsync`×4/`TestDefaultTransactionManager`×8/`TestJdbcTransactionAutoCommitRestore`×2 邻接钉族、`TestLazyLoadOrmModel`（C1-016 唯一真并发钉，零触碰）、`TestGlobalCache` 单线程 evict 钉、`LazyLoadOrmModel` 锁纪律既有正确面（putEntityModel/checkTopoEntryReady 同锁约束零触碰）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑭全部项且每条有唯一预设默认分支，独立 draft review 记录在案
-- [ ] 裁定①含 ContextAttrs 双形态与 nop-api-core 申报条款；裁定④⑤⑪含共享设计声明；裁定⑥含 C1-027 SSOT 条款与世代列 PA 触发声明；裁定⑧⑨含 R10 同变更集绑定与锁序约束；裁定⑫含钉错相位注记；裁定⑬含 N4 实现约束成文
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑭全部项且每条有唯一预设默认分支，独立 draft review 记录在案
+- [x] 裁定①含 ContextAttrs 双形态与 nop-api-core 申报条款；裁定④⑤⑪含共享设计声明；裁定⑥含 C1-027 SSOT 条款与世代列 PA 触发声明；裁定⑧⑨含 R10 同变更集绑定与锁序约束；裁定⑫含钉错相位注记；裁定⑬含 N4 实现约束成文
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 13 成员实现 + 回归测试（按子域分组）
 
