@@ -1,6 +1,6 @@
 # 2518 CRA Phase 8.24 — R2-15 2.5 peri 批（PubSub 断链 + 链编排 fencing，11 项：订阅管理监视器化 + IO 线程内联消费外移 + 重连重订阅 + 停止协议可验证 + 状态行版本谓词/单飞 fencing + 死链 fail 门禁 + 部分启动补偿 + 历史表原子守卫 + lag 键派生 + relocate querySpace + 状态机受控自环）
 
-> Plan Status: active
+> Plan Status: completed（2026-10-31，closure audit APPROVED @ 45d4bba1f9）
 > Draft Review: 独立子 agent draft review 已完成（R1 见下），修订转 active
 > Draft Review R1: agent_2e87dfd0 @ 2026-10-31 —— 无 Blocker；1 Major（M-1 成员#8 站点行号 +10 漂移）+2 Minor（C10-022 七钉计数、裁定⑪错字）——协调方机械核验修复闭环，修订转 active
 > Design Review R1: agent_7dbd0fec @ 2026-10-31 —— FAIL（1 Blocker[B1 裁定③前提被 lettuce 7.5.2 字节码证伪] + 4 Major + 6 Minor）→ 撰写者字节码复核属实，裁定③收窄（lettuce 自主 resubscribe+服务侧可观测）、M1–M4/m1–m6 同 diff 修订
@@ -175,7 +175,8 @@ Targets: `nop-persistence/nop-{nosql/nosql-lettuce,orm-migration,db-migration}/s
 - [x] **端到端验证**（rule 22）：≥1 条编排全链场景（runIncremental[键派生清单登记]→链 failure 注入→死链 fail 门禁拒绝→fix-forward 受控自环重入→confirmSwitch 收敛停链[有界 join 断言]→completeSwitch 版本谓词拒绝越权写，覆盖裁定④⑤⑥⑨⑪）；≥1 条 PubSub 生命周期场景（subscribe→慢消费者并发→外移投递不断链→断线重连恢复留痕与幂等确认→cancel 属主校验→doStop 对账，覆盖裁定①②③）；≥1 条守卫场景（并发迁移启动 DDL 幂等 + recordMigration 无脏行覆盖 + startFallbackChains 中途失败回收，覆盖裁定⑦⑧）
 - [x] **接线验证**（rule 23）：裁定②外移 executor 真实承载投递断言（投递线程名/计数证据，非仅 executor 存在）；裁定⑤版本谓词真实拦截越权 UPDATE 断言（updated==0 路径）；裁定⑥getFailure 真实被门禁消费断言（零调用方现状反转）；裁定⑨派生函数真实被 runVerify 与 startFallbackChains 双入口消费断言（非仅函数存在）
 - [x] **无静默跳过**（rule 24）：裁定④join null 短路显式化（禁静默）；裁定⑤第二写失败显式抛错（禁吞）；裁定⑥死链 gateFailed 类型化拒绝；裁定⑦同名重入 putIfAbsent 显式拒绝；裁定②执行器拒绝策略显式（禁静默丢弃）；新增公共分支无空方法体/TODO
-- [ ] **提交纪律**：设计文档先行单独提交；按组提交（A/B/C/D 四组，裁定④与 plan 2472 收敛点同变更集、裁定⑨先于⑥、裁定⑤⑦同变更集[X-1]）；C10 测试与对应本体同一 commit；组间无耦合时可独立提交序列
+
+  - 提交偏差登记（closure audit M-1）：实际三 commit——组 A（30eb079d82）/组 B+C 合并（f316bfe1d4，X-1 ⑤⑦同变更集约束实质满足）/组 D（2d72c19672），非四组划分；合并理由=⑤⑦同 diff 协调条款使 B/C 无独立提交边界。
 - [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
@@ -215,40 +216,40 @@ Phase 3 执行登记（2026-10-31）：
 - 零触碰确认：零 orm.xml/零 `_` 生成物/零 nop-api-core/nop-kernel/nop-commons/nop-core；零回退钉 diff 全空（2472 双钉/RP-1/RP-2/2507 双钉/七钉除 :586 允许 await 化）。
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: done（2026-10-31，closure audit APPROVED）
 Targets: 本 plan、roadmap 8.24 行、cra-index P1 台账、R4-20/R4-32 就绪注记、R19 前案消案注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（监视器串行/消费外移/重订阅对账/停止协议四段式/版本谓词/门禁消费/键派生单点/历史表互斥/受控自环运行时真实生效、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-15 十一行状态收敛（open→fixed，注记 plan 2518；吸收成员[C1-011/C3-004/C3-005/C7-010/C1-004/C1-005/C1-006/C1-009/C3-002/C6-001/CL-006/018/022/023/CL-007/008]随各主行括注）；C10 成员面收敛注记（12 条按勘误 7 口径 + RP-1/RP-2 履行注记 + MA-02 反向钉死改写注记）；roadmap 8.24 行 Status → done；R4-20（8.60）/R4-32 软依赖就绪注记（**含 C3-008 键派生 SSOT 指向[消费不重建] + C1-008 接缝转达 + C7-008 健康子断言被推翻对齐义务**）；R19 前案（check/nosql-cdc 2026-08-19 [P2]）消案注记落 C6-004 行；B1-02 终裁 P1 落账确认
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（监视器串行/消费外移/重订阅对账/停止协议四段式/版本谓词/门禁消费/键派生单点/历史表互斥/受控自环运行时真实生效、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-15 十一行状态收敛（open→fixed，注记 plan 2518；吸收成员[C1-011/C3-004/C3-005/C7-010/C1-004/C1-005/C1-006/C1-009/C3-002/C6-001/CL-006/018/022/023/CL-007/008]随各主行括注）；C10 成员面收敛注记（12 条按勘误 7 口径 + RP-1/RP-2 履行注记 + MA-02 反向钉死改写注记）；roadmap 8.24 行 Status → done；R4-20（8.60）/R4-32 软依赖就绪注记（**含 C3-008 键派生 SSOT 指向[消费不重建] + C1-008 接缝转达 + C7-008 健康子断言被推翻对齐义务**）；R19 前案（check/nosql-cdc 2026-08-19 [P2]）消案注记落 C6-004 行；B1-02 终裁 P1 落账确认
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 全绿复核；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 十一行收敛 + 吸收成员括注 + C10/RP/反向钉死注记 + R19 消案注记、roadmap 8.24 = done、R4-20/R4-32 就绪注记完成、B1-02 落账确认
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 十一行收敛 + 吸收成员括注 + C10/RP/反向钉死注记 + R19 消案注记、roadmap 8.24 = done、R4-20/R4-32 就绪注记完成、B1-02 落账确认
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 11 项成员全部修复：C6-004（订阅管理监视器化+属主校验/停机对账）、C8-001（IO 线程消费外移+ack 契约恢复）、C7-014（重连重订阅对账与检测）、C6-003（停止协议发布序+有界 join+interrupt）、C7-003（状态行版本谓词+编排单飞/fencing）、C7-001（死链 fail 门禁，⑨前置兑现）、C3-001（部分启动补偿+jobName qs 键）、C1-003（历史表跨进程互斥+upsert 保留）、C3-008（connector 键派生单点化）、C3-009（relocate querySpace 派生）、C7-002（状态机受控自环）
-- [ ] batch-proposal R2-15 行 exit criteria 增补逐条达成并留证：B1-02 终裁 P1 落账；PubSub 属主校验/停机对账/重订阅检测；IO 线程内联消费外移+ack 契约恢复；链状态行版本谓词+单飞/fencing；迁移历史表原子守卫；relocate querySpace 修复；写门持久化半边归 R2-04 注记确认（2507 已收口面零触碰）
-- [ ] 对齐纪律守约：C3-008 先于 MA-06 修复顺序兑现；MA-04×MA-03 同变更集；MA-05×MA-10 同 diff 协调（X-1 不并案）；PubSub 三单统一设计+竞次面约束；RP-1/RP-2 修复方向约束兑现；R19 前案消案落账；PA 条款闭环（零 orm 触碰声明兑现或条件申报面落地）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑪均有先红后绿或变异/回退论证（E2）；C10 收口门（12 条成员面）同 diff 落地；MA-02 反向钉死改写义务履行留痕
-- [ ] 设计文档裁定①–⑫成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
-- [ ] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：model-first-development.md（迁移 owner 面）+ source-anchors.md 按实际（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）监视器串行/消费外移/重订阅/停止协议/谓词/门禁/键派生/互斥/自环运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-persistence 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-15 十一行收敛 + roadmap 8.24 → done + R4-20/R4-32 就绪注记 + R19 消案注记（E6）
+- [x] 11 项成员全部修复：C6-004（订阅管理监视器化+属主校验/停机对账）、C8-001（IO 线程消费外移+ack 契约恢复）、C7-014（重连重订阅对账与检测）、C6-003（停止协议发布序+有界 join+interrupt）、C7-003（状态行版本谓词+编排单飞/fencing）、C7-001（死链 fail 门禁，⑨前置兑现）、C3-001（部分启动补偿+jobName qs 键）、C1-003（历史表跨进程互斥+upsert 保留）、C3-008（connector 键派生单点化）、C3-009（relocate querySpace 派生）、C7-002（状态机受控自环）
+- [x] batch-proposal R2-15 行 exit criteria 增补逐条达成并留证：B1-02 终裁 P1 落账；PubSub 属主校验/停机对账/重订阅检测；IO 线程内联消费外移+ack 契约恢复；链状态行版本谓词+单飞/fencing；迁移历史表原子守卫；relocate querySpace 修复；写门持久化半边归 R2-04 注记确认（2507 已收口面零触碰）
+- [x] 对齐纪律守约：C3-008 先于 MA-06 修复顺序兑现；MA-04×MA-03 同变更集；MA-05×MA-10 同 diff 协调（X-1 不并案）；PubSub 三单统一设计+竞次面约束；RP-1/RP-2 修复方向约束兑现；R19 前案消案落账；PA 条款闭环（零 orm 触碰声明兑现或条件申报面落地）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑪均有先红后绿或变异/回退论证（E2）；C10 收口门（12 条成员面）同 diff 落地；MA-02 反向钉死改写义务履行留痕
+- [x] 设计文档裁定①–⑫成文且经独立 draft review；既有钉（零回退钉清单全列）零回退实证
+- [x] 全量构建绿：`./mvnw clean install -T 1C`（或授权支路已声明）+ 批行验证命令 `./mvnw test -pl nop-persistence -am` BUILD SUCCESS（E1/E3；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：model-first-development.md（迁移 owner 面）+ source-anchors.md 按实际（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（或批前既有发现逐条裁定登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）监视器串行/消费外移/重订阅/停止协议/谓词/门禁/键派生/互斥/自环运行时真实生效（不只类型系统），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-persistence 聚合）；checkstyle / 代码规范检查通过（含 pre-commit lint gate 如触发）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-15 十一行收敛 + roadmap 8.24 → done + R4-20/R4-32 就绪注记 + R19 消案注记（E6）
 
 ## Deferred But Adjudicated
 
@@ -289,3 +290,16 @@ Follow-up:
 - **裁定⑤ fencing 的多节点残余风险**：进程内单飞不覆盖跨节点双跑的 DDL/链启动窗口——跨进程面以状态行条件 UPDATE fencing 拒绝第二写，残余窗（两节点同时通过谓词）显式登记为 residual（与 C1-003 互斥面互补）；回滚 = 谓词退化为仅告警需 plan 修订不得静默。
 - **裁定⑧跨进程互斥的方言风险**：DB 咨询锁/条件 INSERT 形态在 mysql/postgresql/H2 三方言矩阵行为不一——设计文档须给方言矩阵核实表；回滚 = 互斥原语 revert 后 DDL 幂等性仍由 CREATE TABLE IF NOT EXISTS 承载（现状不劣化）。
 - **裁定④停止协议的中断风险**：interrupt 链线程可能使Debezium engine 处于半终止态——有界 join+interrupt 后句柄保留、失败面经 getFailure 可观测（裁定⑥消费）；变异探针纪律适用（注释/删除目标行→跑钉子→恢复→再跑，恢复以断言方式确认）。
+
+Phase 4 执行登记（2026-10-31）：
+- Closure audit：独立 fresh-session auditor APPROVED（Anti-Hollow 11 裁定 live 实证全 PASS、零回退钉 git 核对全空、红绿留痕自洽、抽样复跑 2/2 绿）。条件项闭环：cra-index 十一行 open→fixed+C7-014 勘误 10 口径改写、roadmap 8.24→done、8.60（R4-20）就绪注记、M-1 提交偏差登记（上）。
+- Minor 登记：r2 全量日志仅摘要存 `_tmp/red-green-2518/reactor-r2.log`（全量 mvn 输出未归档，测试结论以 surefire 汇总+摘要为准）；三联 solo 留痕曾落系统 /tmp（flake-solo.log，未归档）——两处留痕瑕疵登记不阻断（结论有 reactor r2 EXIT=0 与 E1 EXIT=0 双重佐证）。
+
+## Closure
+
+- **Closure Audit**：独立 fresh-session auditor @ 2026-10-31 @ 45d4bba1f9，结论 **APPROVED**。Major M-1（提交纪律 checkbox+组提交偏差）已登记闭环；Minor×2（r2 日志摘要化、solo 留痕 /tmp）已登记不阻断。
+- **Anti-Hollow 实证**：①cancel/suspend/resume/doStop 全 synchronized(LettucePubSubService.this)+属主校验+remove(topic,entry) 原子绑定；②message 仅入队(:470)+`nop-lettuce-pubsub-consumer` 专用线程+拒绝 onConsumeFailure 类型化+globalTimer 60s 观测(:356-374)；③激活事件→独立 reconciler 线程→锁内快照→锁外幂等确认 SUBSCRIBE→失败 WARN+计数(:419-436)；④五段式 exitConfirmed+`chain-not-confirmed` gateFailed 拒绝重入(Orchestrator :270-278)；⑤相位谓词(:109-126)+二次 load 消歧+ERR_MIG_JOB_STATE_FENCING+per-jobId 单飞(:533-549)；⑥死链门禁三支(:337-365)；⑦补偿回收+jobName qs+putIfAbsent 拒绝(:272-280)；⑧guard().withLock+守卫行 owner DELETE+upsert 保留(:181-202)；⑨deriveConnectorNames 双入口消费；⑩relocateTarget 三处消费；⑪自环白名单+MAX_FIX_FORWARD_RETRIES=3。零空方法体/吞异常/TODO。
+- **Exit Criteria**：11 成员 landed+focused 测试（新增 6 测试类 36+2 钉）；E2 红①–红⑪留痕（变异探针 4+测试内缺陷态 7）；零回退钉 git diff 全空（唯一允许 :586 await 化）；rule 22 三链/23 接线/24 显式化；E1 EXIT=0（授权支路）；E3 reactor r2 EXIT=0（12860/0/310 skipped，勘误 8 三联）；owner doc 两节+PUBSUB-CC-001/ORM-ORCH-001；check-doc-links EXIT=0；scan-hollow high=3 批前既有登记；零触碰确认。
+- **抽样复跑**：TestLettucePubSubConcurrency（11 钉）/TestChainStopProtocol（11）reactor `-am` 全绿。
+- **台账**：cra-index 十一行收敛（C7-014 勘误 10 改写）、roadmap 8.24=done、8.60 R4-20 就绪注记（qs SSOT/C1-008 接缝/C7-008 断言推翻）。
+- **双门禁**：`check-plan-checklist.mjs --strict` EXIT=0；`check-doc-links.mjs --strict` EXIT=0（0 errors，2 warnings 批外既有）。
