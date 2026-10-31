@@ -184,7 +184,7 @@ public class SpawnMemberFanOutStep extends AbstractTaskStep {
                 claimed.get(), team, spawnTargets, reductionStrategy,
                 /*agentEngine=*/null /* spawn-only: no bound targets, no engine needed */,
                 memberSpawner, taskStore, orchestratorSessionId, spawnExecutor, capturedTenant,
-                memberExecTimeoutMs);
+                memberExecTimeoutMs, recorder::recordSpawnedSession);
 
         // Adapt to a nop-task TaskStepReturn + record markComplete/markFailed
         // on the STEP's shared recorder (the dispatcher uses a throwaway

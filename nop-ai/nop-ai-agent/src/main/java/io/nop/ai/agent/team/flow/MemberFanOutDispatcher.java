@@ -169,6 +169,31 @@ public final class MemberFanOutDispatcher {
             Executor spawnExecutor,
             String capturedTenant,
             long memberExecTimeoutMs) {
+        return dispatch(task, team, targets, reductionStrategy, agentEngine, memberSpawner,
+                taskStore, dispatchSessionId, spawnExecutor, capturedTenant, memberExecTimeoutMs,
+                null);
+    }
+
+    /**
+     * Plan 2519 (裁定⑤): dispatch with a spawned-session registrar — the flow
+     * orchestrator passes {@code recorder::recordSpawnedSession} so the
+     * per-flow member-session registry is populated at dispatch time (data
+     * plane for the overall-deadline convergence cancel; no cancel semantics
+     * here). May be {@code null} (daemon path — no convergence cancel).
+     */
+    public static CompletableFuture<MemberDispatchOutcome> dispatch(
+            TeamTask task,
+            Team team,
+            List<DispatchTarget> targets,
+            IReductionStrategy reductionStrategy,
+            IAgentEngine agentEngine,
+            IMemberSpawner memberSpawner,
+            ITeamTaskStore taskStore,
+            String dispatchSessionId,
+            Executor spawnExecutor,
+            String capturedTenant,
+            long memberExecTimeoutMs,
+            java.util.function.Consumer<String> spawnedSessionRegistrar) {
 
         Objects.requireNonNull(task, "task");
         Objects.requireNonNull(targets, "targets");
@@ -231,7 +256,8 @@ public final class MemberFanOutDispatcher {
                 perMember.add(executeBoundMember(target, task, agentEngine, memberExecTimeoutMs));
             } else {
                 perMember.add(spawnOneTarget(target, teamForSpawn, task, memberSpawner,
-                        dispatchSessionId, spawnExecutor, capturedTenant, memberExecTimeoutMs));
+                        dispatchSessionId, spawnExecutor, capturedTenant, memberExecTimeoutMs,
+                        spawnedSessionRegistrar));
             }
         }
 
@@ -368,14 +394,16 @@ public final class MemberFanOutDispatcher {
     private static CompletableFuture<MemberExecOutcome> spawnOneTarget(
             DispatchTarget target, Team team, TeamTask task,
             IMemberSpawner memberSpawner, String dispatchSessionId,
-            Executor spawnExecutor, String capturedTenant, long memberExecTimeoutMs) {
+            Executor spawnExecutor, String capturedTenant, long memberExecTimeoutMs,
+            java.util.function.Consumer<String> spawnedSessionRegistrar) {
         SpawnMemberRequest spawnReq = new SpawnMemberRequest(
                 team, task, dispatchSessionId, target.getSpawnTarget(), memberExecTimeoutMs);
         CompletableFuture<MemberExecOutcome> spawned =
                 CompletableFuture.supplyAsync(() -> {
                     ThreadLocalTenantResolver.set(capturedTenant);
                     try {
-                        return spawnAndInterpret(target, task, memberSpawner, spawnReq);
+                        return spawnAndInterpret(target, task, memberSpawner, spawnReq,
+                                spawnedSessionRegistrar);
                     } finally {
                         ThreadLocalTenantResolver.clear();
                     }
@@ -390,7 +418,8 @@ public final class MemberFanOutDispatcher {
      */
     private static MemberExecOutcome spawnAndInterpret(
             DispatchTarget target, TeamTask task,
-            IMemberSpawner memberSpawner, SpawnMemberRequest spawnReq) {
+            IMemberSpawner memberSpawner, SpawnMemberRequest spawnReq,
+            java.util.function.Consumer<String> spawnedSessionRegistrar) {
         SpawnMemberResult spawnResult;
         try {
             spawnResult = memberSpawner.spawnMember(spawnReq);
@@ -408,6 +437,11 @@ public final class MemberFanOutDispatcher {
                                 + ", member=" + target.getMemberName()
                                 + ", reason=" + spawnResult.getReason()));
             case DISPATCHED:
+                // Plan 2519 (裁定⑤): register the spawned session with the
+                // per-flow registry (data plane for convergence cancel).
+                if (spawnedSessionRegistrar != null) {
+                    spawnedSessionRegistrar.accept(spawnResult.getSpawnedSessionId());
+                }
                 AgentExecutionResult executionResult = spawnResult.getExecutionResult();
                 if (executionResult == null
                         || executionResult.getStatus() != AgentExecStatus.completed) {

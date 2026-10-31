@@ -100,9 +100,42 @@ public class TaskDispatchCoordinator {
     }
 
     public void shutdownOwnSpawnExecutor() {
-        if (ownedSpawnExecutor != null) {
-            ownedSpawnExecutor.shutdownNow();
-            ownedSpawnExecutor = null;
+        ExecutorService pool = ownedSpawnExecutor;
+        ownedSpawnExecutor = null;
+        if (pool != null) {
+            // Plan 2519 (裁定④/C4-015 daemon-side symmetric drain):
+            // shutdown() → awaitTermination(2s, live budget) → shutdownNow().
+            // running dispatches settle inside the budget; queued ones are
+            // settled explicitly below (dispatch future completeExceptionally
+            // with a typed cause — "queued spawn task dropped at stop" is the
+            // designed stop semantics, silent discard is the defect, rule 24).
+            pool.shutdown();
+            try {
+                if (!pool.awaitTermination(2, TimeUnit.SECONDS)) {
+                    pool.shutdownNow();
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                pool.shutdownNow();
+            }
+            pool.shutdownNow();
+        }
+        // Settle every not-yet-settled in-flight dispatch future so the
+        // inFlightDispatches invariant ("every tracked future settles") holds
+        // for BOTH the queued and running states across daemon stop.
+        int settled = 0;
+        for (CompletableFuture<MemberDispatchOutcome> f : inFlightDispatches) {
+            if (!f.isDone() && f.completeExceptionally(
+                    new java.util.concurrent.CompletionException(
+                            new IllegalStateException("spawn pool drained before execution")))) {
+                inFlightDispatches.remove(f);
+                settled++;
+            }
+        }
+        if (settled > 0) {
+            LOG.warn("nop.ai.agent.spawn-drain-discard: {} in-flight dispatch future(s) explicitly "
+                    + "failed at daemon spawn-pool shutdown (task(s) stay CLAIMED for reclaim — "
+                    + "never a silent discard)", settled);
         }
     }
 
