@@ -11,6 +11,7 @@ import io.nop.api.core.beans.FieldSelectionBean;
 import io.nop.api.core.beans.LongRangeBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.time.IEstimatedClock;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
@@ -220,13 +221,37 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
             session.flush();
             return ret;
         } finally {
-            IOrmSession s = registry.put(sessionFactory, oldSession);
-            // 如果已经unregister，则s为null，这里将不会关闭session
-            if (s == session) {
-                session.close();
-            } else {
-                LOG.info("nop.orm.skip-session-close-when-not-current-session");
-            }
+            restoreAndCloseSession(registry, session, oldSession);
+        }
+    }
+
+    /**
+     * plan 2517 R2-14 裁定①（C2-003 吸收子项 b）：单槽 put/restore 交错时不再跳过关闭——
+     * close 幂等兜底，无条件关闭本次会话，消除「跳过-关闭」分支的会话泄漏半边。
+     * put 返回值 != 本次会话时升级 WARN 可观测（nop.orm.skip-session-close-when-not-current-session）。
+     */
+    private void restoreAndCloseSession(OrmSessionRegistry registry, IOrmSession session, IOrmSession oldSession) {
+        IOrmSession s = registry.put(sessionFactory, oldSession);
+        if (s != session) {
+            LOG.warn("nop.orm.skip-session-close-when-not-current-session");
+        }
+        session.close();
+    }
+
+    /**
+     * plan 2517 R2-14 裁定⑤（C2-002）：完成线程只投递不执行——收尾任务经 context.execute 回 context 队列
+     * （对齐 thenOnContext 出口泵语义）。降级路径：context 为 null 时内联执行（无 context 纪律可依赖，由裁定④
+     * session 互斥兜底）；closed context 上 execute 抛出的异常不吞会话——裁定⑪兜底登记负责关闭。
+     */
+    private void dispatchSessionFinalize(IContext context, Runnable task) {
+        if (context == null) {
+            task.run();
+            return;
+        }
+        try {
+            context.execute(task);
+        } catch (Throwable t) {
+            LOG.error("nop.orm.session-finalize-dispatch-fail", t);
         }
     }
 
@@ -244,7 +269,12 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
     public <T> CompletionStage<T> runInNewSessionAsync(Function<IOrmSession, CompletionStage<T>> callback) {
         IOrmSession session = sessionFactory.openSession(stateless);
         OrmSessionRegistry registry = OrmSessionRegistry.instance();
+        IContext context = ContextProvider.currentContext();
         IOrmSession oldSession = registry.put(sessionFactory, session);
+
+        // plan 2517 R2-14 裁定⑪（C3-001）：注册新会话时挂 context 生命周期兜底 close 登记，
+        // 上游 future 永不完成时由 sweepClosedContexts 在 context 关闭后兜底关闭，消除注册表滞留泄漏
+        OrmSessionRegistry.registerPendingClose(context, session);
 
         CompletionStage<T> future;
         try {
@@ -253,25 +283,31 @@ public class OrmTemplateImpl extends AbstractSqlExecutor implements IOrmTemplate
             future = FutureHelper.reject(t);
         }
         return ContextProvider.thenOnContext(future).whenComplete((ret, err) -> {
-            try {
-                if (err == null) {
-                    session.flush();
+            // plan 2517 R2-14 裁定⑤（C2-002）：完成线程只投递不执行，收尾（flush/registry 恢复/close）
+            // 整段经 context.execute 回 context 队列执行
+            dispatchSessionFinalize(context, () -> {
+                try {
+                    if (err == null) {
+                        session.flush();
+                    }
+                } finally {
+                    restoreAndCloseSession(registry, session, oldSession);
+                    OrmSessionRegistry.unregisterPendingClose(session);
                 }
-            } finally {
-                IOrmSession s = registry.put(sessionFactory, oldSession);
-                // 如果已经unregister，则s为null，这里将不会关闭session
-                if (s == session) {
-                    session.close();
-                } else {
-                    LOG.info("nop.orm.skip-session-close-when-not-current-session");
-                }
-            }
+            });
         });
     }
 
     @Override
     public IOrmSession unregisterSession() {
-        return OrmSessionRegistry.instance().remove(sessionFactory);
+        // plan 2517 R2-14 裁定①：公共 unregister 升两参身份一致移除（remove(key, value) 语义），
+        // 防止并发替换场景误删他方会话
+        OrmSessionRegistry registry = OrmSessionRegistry.instance();
+        IOrmSession session = registry.get(sessionFactory);
+        if (session == null)
+            return null;
+        registry.remove(sessionFactory, session);
+        return session;
     }
 
     @Override
