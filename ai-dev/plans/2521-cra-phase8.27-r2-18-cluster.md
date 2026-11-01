@@ -115,26 +115,26 @@
 
 ### Phase 1 - elector 生命周期/发现快照/RPC 终结并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/cluster-election-lifecycle-instance-snapshot-and-rpc-termination-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C1-004 doStop 复活锁序（六条族一处闭合）**：stopped 终态守卫形态（**独立 volatile stopped 标志[预设，R1 Major-1]**——LifeCycleSupport 无 isStopped() 且 allowRestart=true 使 stop 返回后 status 回 CREATED、isStopping()=false 结构性失明；守卫消费点显式覆盖「stop 返回后窗口」三场景 = mid-round stop / post-stop rearm[2496 finally 重臂在 CREATED 态同样失明] / post-stop onElectionCompleted；CancellationException 告警豁免 :112 已在位不重开；备选 = generation/promise-identity 守卫）vs 一次定夺；5 写站点锁统一方案（全部 synchronized[this] vs 私有锁对象）与 onElectionCompleted 入口停止检查；C2-005 派发纪律（complete 取局部引用移出临界区）与 C2-003 锁纪律**一次联动定夺**（禁全站点 synchronized 放大持锁面——C2-round2 警告成文）；pendingCheck stop 撤销挂点与 2496 重臂逻辑协同（`!isStopping()` 守卫 :114/:141 语义保持）；监听器回调停止守护（onStop 后 becomeLeader/becomeFollower/onException 禁达）；回归断言面「停机后无 lease 行重写、无尾部 reschedule」+ C10-003 建议 (1)-(4) 测试形态；模块外 SysDao/Jdbc 子类零行为回退声明；与 `TestPollingElectorLoopInsulation` 3 钉/`TestAbstractLeaderElector` 6 钉兼容性核对表（勘误 13）
-  - [ ] **裁定② C1-001 重建对象不可变化**：重建 ServiceInstance 替换 map 成员（预设） vs volatile 化最小修复（`_host` 失效+全字段 volatile）——一次定夺；modifyIndex 随重建对象携带语义；`Pair<String,ServiceInstance>` instanceText 键与重建协同；12 读者站点零消费者变更声明 + C10-006 建议 (1)(2) 测试形态；公共 API 面（setAttribute/addCleanupTask）零触碰声明
-  - [ ] **裁定③ C1-003 订阅快照版本守护**：守护形态一次定夺——(a) 预设=事件态标志（listener 收过事件后 init 不写入）；(b) 备选=init 前重拉比较；(c) 备选=延迟 init 至首事件（依赖 SDK 首推语义风险自评）；**测试注入缝一次定夺**（stub NamingService 注入 vs getNamingService 工厂接缝抽取——与裁定②共用，缝形态为模块内 seam 不扩公共契约）；与裁定②同写入口（updateInstances）协同落地声明；失败回滚 :194-197 零回退
-  - [ ] **裁定④ C3-001 重试体终结性（R21 族纪律）**：try/catch + `completeExceptionally(NopException.adapt(e))`（预设） vs whenCompleteAsync+handle 链——一次定夺；chooseFromCandidates null → `ERR_CLUSTER_NO_AVAILABLE_SERVER_INSTANCE` 类型化面是否同 diff 纳入（C3-003 本体 R4-25 不触碰——边界成文）；Sentinel entry 释放机制联动声明（`SentinelFlowControlRunner.java` 零触碰）；C8-002/C3-009 不代做声明（禁顺手退避/反向取消）；条件申报（nop-api-core 契约演进）触发检查条款[预设不触发]
-  - [ ] **裁定⑤ 测试缝与零回退钉清单**：红①–红④ 测试形态逐条（含缺陷态红判据 + 全部 plain-JVM 可跑面声明[无 docker/nacos SDK 门控]）；零回退钉 = nop-cluster 基线 80 tests 全量（`_tmp/baseline-2521-nop-cluster.log`）、其中点名：`TestAbstractLeaderElector` 6 钉、`TestPollingElectorLoopInsulation` 3 钉（2496 监督面）、`TestAutoRegistration`+`TestAutoRegistrationInsulation` 6 钉、`TestCachingNamingService` 4 钉、`TestPartitionResolver` 10 钉、`TestWeightedPartitionAssigner` 14 钉（含反向钉死 #3 :251-270 零触碰）、`TestSentinelFlowControlRunner` 6 钉（含反向钉死 #1 :100-114 零触碰）+`TestSentinelFlowControlRunnerContext` 2 钉、`TestNacosNamingServiceCopyFromInstance` 2 钉、`TestClusterRpc` + `TestClusterRpcPollOffload_C4_003` 4 钉、LB/filters 族；模块外焦点腿 = nop-sys-dao elector 族 + stream-runtime elector 族（`-Dtest` 限定清单成文）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C1-004 doStop 复活锁序（六条族一处闭合）**：stopped 终态守卫形态（**独立 volatile stopped 标志[预设，R1 Major-1]**——LifeCycleSupport 无 isStopped() 且 allowRestart=true 使 stop 返回后 status 回 CREATED、isStopping()=false 结构性失明；守卫消费点显式覆盖「stop 返回后窗口」三场景 = mid-round stop / post-stop rearm[2496 finally 重臂在 CREATED 态同样失明] / post-stop onElectionCompleted；CancellationException 告警豁免 :112 已在位不重开；备选 = generation/promise-identity 守卫）vs 一次定夺；5 写站点锁统一方案（全部 synchronized[this] vs 私有锁对象）与 onElectionCompleted 入口停止检查；C2-005 派发纪律（complete 取局部引用移出临界区）与 C2-003 锁纪律**一次联动定夺**（禁全站点 synchronized 放大持锁面——C2-round2 警告成文）；pendingCheck stop 撤销挂点与 2496 重臂逻辑协同（`!isStopping()` 守卫 :114/:141 语义保持）；监听器回调停止守护（onStop 后 becomeLeader/becomeFollower/onException 禁达）；回归断言面「停机后无 lease 行重写、无尾部 reschedule」+ C10-003 建议 (1)-(4) 测试形态；模块外 SysDao/Jdbc 子类零行为回退声明；与 `TestPollingElectorLoopInsulation` 3 钉/`TestAbstractLeaderElector` 6 钉兼容性核对表（勘误 13）
+  - [x] **裁定② C1-001 重建对象不可变化**：重建 ServiceInstance 替换 map 成员（预设） vs volatile 化最小修复（`_host` 失效+全字段 volatile）——一次定夺；modifyIndex 随重建对象携带语义；[R2 Minor-m2 登记扩展：attrs 快照拷贝/cleanupTasks 列表复制随重建携带为设计文档新增定夺——本地维护态（javadoc :156-157 非 nacos 派生）重建丢弃即行为回退，携带依赖「零生产调用方」grep 前提（addCleanupTask 全仓仅定义处命中）]`Pair<String,ServiceInstance>` instanceText 键与重建协同；12 读者站点零消费者变更声明 + C10-006 建议 (1)(2) 测试形态；公共 API 面（setAttribute/addCleanupTask）零触碰声明
+  - [x] **裁定③ C1-003 订阅快照版本守护**：守护形态一次定夺——(a) 预设=事件态标志（listener 收过事件后 init 不写入）；(b) 备选=init 前重拉比较；(c) 备选=延迟 init 至首事件（依赖 SDK 首推语义风险自评）；**测试注入缝一次定夺**（stub NamingService 注入 vs getNamingService 工厂接缝抽取——与裁定②共用，缝形态为模块内 seam 不扩公共契约）；与裁定②同写入口（updateInstances）协同落地声明；失败回滚 :194-197 零回退
+  - [x] **裁定④ C3-001 重试体终结性（R21 族纪律）**：try/catch + `completeExceptionally(NopException.adapt(e))`（预设） vs whenCompleteAsync+handle 链——一次定夺；chooseFromCandidates null → `ERR_CLUSTER_NO_AVAILABLE_SERVER_INSTANCE` 类型化面是否同 diff 纳入（C3-003 本体 R4-25 不触碰——边界成文）；Sentinel entry 释放机制联动声明（`SentinelFlowControlRunner.java` 零触碰）；C8-002/C3-009 不代做声明（禁顺手退避/反向取消）；条件申报（nop-api-core 契约演进）触发检查条款[预设不触发]
+  - [x] **裁定⑤ 测试缝与零回退钉清单**：红①–红④ 测试形态逐条（含缺陷态红判据 + 全部 plain-JVM 可跑面声明[无 docker/nacos SDK 门控]）；零回退钉 = nop-cluster 基线 80 tests 全量（`_tmp/baseline-2521-nop-cluster.log`）、其中点名：`TestAbstractLeaderElector` 6 钉、`TestPollingElectorLoopInsulation` 3 钉（2496 监督面）、`TestAutoRegistration`+`TestAutoRegistrationInsulation` 6 钉、`TestCachingNamingService` 4 钉、`TestPartitionResolver` 10 钉、`TestWeightedPartitionAssigner` 14 钉（含反向钉死 #3 :251-270 零触碰）、`TestSentinelFlowControlRunner` 6 钉（含反向钉死 #1 :100-114 零触碰）+`TestSentinelFlowControlRunnerContext` 2 钉、`TestNacosNamingServiceCopyFromInstance` 2 钉、`TestClusterRpc` + `TestClusterRpcPollOffload_C4_003` 4 钉、LB/filters 族；模块外焦点腿 = nop-sys-dao elector 族 + stream-runtime elector 族（`-Dtest` 限定清单成文）；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——**R2 @ 2026-11-01 agent_175893c0：2 Major+6 Minor 全部文本层修复闭环（M1 doStart 清除点两处落位[子类覆写不调 super 亲读证实]、M2 err 分支回调体纳入终结不变式、m1 置位锁内写前、m2 plan 登记扩展、m3 priming 读、m4 Jdbc 三调用点补全、m5 代际混合窗残余登记、m6 类型规范化措辞）——放行 Phase 2**；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑤全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含六条族一处闭合与 2496 监督钉兼容核对表 + C2-005×C2-003 联动定夺；裁定②③含同写入口协同与注入缝定夺；裁定④含 R21 纪律对齐与 R4-25 边界成文；裁定⑤含反向钉死两处零触碰声明与模块外焦点腿清单
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑤全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定①含六条族一处闭合与 2496 监督钉兼容核对表 + C2-005×C2-003 联动定夺；裁定②③含同写入口协同与注入缝定夺；裁定④含 R21 纪律对齐与 R4-25 边界成文；裁定⑤含反向钉死两处零触碰声明与模块外焦点腿清单
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 4 成员实现 + 回归测试（按子域分组）
 
