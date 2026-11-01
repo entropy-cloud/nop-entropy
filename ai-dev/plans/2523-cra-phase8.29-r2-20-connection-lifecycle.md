@@ -1,6 +1,6 @@
 # 2523 CRA Phase 8.29 — R2-20 4.3 连接生命周期批（6 项：MQTT removeConnection 属主校验（MA-01，C1-008+C3-018+C6-020 三登记一工单）+ sidecar 探测移出 I/O reactor 回调线程（MA-03，B1-06 终裁落账，C3-004 主+C6-006 吸收）+ SimpleRpcClientFactory 幂等 init+世代守卫（MA-07，C1-001 主+←C6-014）+ NettyTcpServer bind 失败释放事件循环组（C6-017）+ SftpClient 构造期会话回收（C6-018，R2-19 后 live 基线续作）+ SesClient 生命周期配对（C6-019））
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: agent_37f989a4 @ 2026-11-01 —— 无 Blocker；2 Major（F1 HC5 ioThreadCount 缺省=availableProcessors 事实更正[运行时反射+javap 亲证，非审计所记缺省 1——勘误 10 登记+四处文本改写+B1-06 SSOT 机制修正+Phase 4 :275 文本勘误义务]；F2 窗口①钉绿路径未成文[补 acceptEndpoint 集成级交错模拟+禁 addConnection 扩张禁令]）+3 Minor（F3 MqttConnection 措辞/F4 计数三处/F5 Closure 占位）+2 登记级建议——协调方机械修复闭环，F1/F2 经 agent_08e34460 快速复核 PASS，修订转 active
 > Design Review R2: agent_8b832793 @ 2026-11-01 —— 设计文档独立对抗性评审（60+ 行号锚抽验零漂移；红①–红⑥缺陷态可红性全成立）：1 Blocker（C6-006 取消传播载体断裂——live 亲读证伪「promise.cancel 触达传输层」：jdk thenApply 派生 stage 取消不上传/okhttp·apache 裸 CF promise.cancel ≠ call.cancel()·HC5 cancel——重裁为「桥接+超时域内取消」两段[fetchAsync whenComplete isCancelled→底层取消]）+6 Minor（m2 TimeoutException 措辞/m3 jdk catch 行号/m4 globalWorker 池参数容量论证/m5 releaseBindFailure 签名补 workerGroup/m6 HttpClientConfig 实位 nop-http-api 叶勘误/m7 命名登记载体指认）——已同 diff 修入设计文档；Blocker-1 修复经 agent_70b0482f 快速复核 PASS（三实现句柄可达+CF 取消语义闭环+jdk 桥挂载点须为返回 promise 注记），放行 Phase 2
 > Draft Review：待独立子 agent draft review（通过后本行登记 R1 结论，修订转 active）
@@ -203,41 +203,41 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.29 行、cra-index P1 台账 :273/:275/:279/:292/:293/:294 + C10 成员面注记 + B1-06 落账 + batch-proposal 勘误注记、vertx-mqtt 部署包络确认结论
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（属主校验真生效/收尾段真在非回调线程/幂等守卫真拦截/组真 shutdown/disconnect 真调用/shutdown 真配对运行时行为、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-20 六行状态收敛（open→fixed，注记 plan 2523 + closure audit 结论；MA-01 行三登记单 diff 注（**含 :275 finding 文本勘误 10 回写[R1 复核交叉引用]**）记；MA-03 行 **B1-06 终裁落账**[「留 7.1」注记改写终态——条款文本以 Current Baseline 节为 SSOT]；C6-014 并入随 :279 行；C10-004/C10-006/C10-008/C10-013 半边注记按勘误 4 口径）；roadmap 8.29 行 Status → done + 「R2-20 验证命令实触 4/6 载体，sftp/email 两载体经补充焦点腿覆盖」勘误注记 + vertx-mqtt 部署包络确认结论登记（owner 反馈如有）；batch-proposal R2-20 行附近勘误注记（L94 括注归属勘误[勘误 3]——不改 L94 原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（属主校验真生效/收尾段真在非回调线程/幂等守卫真拦截/组真 shutdown/disconnect 真调用/shutdown 真配对运行时行为、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-20 六行状态收敛（open→fixed，注记 plan 2523 + closure audit 结论；MA-01 行三登记单 diff 注（**含 :275 finding 文本勘误 10 回写[R1 复核交叉引用]**）记；MA-03 行 **B1-06 终裁落账**[「留 7.1」注记改写终态——条款文本以 Current Baseline 节为 SSOT]；C6-014 并入随 :279 行；C10-004/C10-006/C10-008/C10-013 半边注记按勘误 4 口径）；roadmap 8.29 行 Status → done + 「R2-20 验证命令实触 4/6 载体，sftp/email 两载体经补充焦点腿覆盖」勘误注记 + vertx-mqtt 部署包络确认结论登记（owner 反馈如有）；batch-proposal R2-20 行附近勘误注记（L94 括注归属勘误[勘误 3]——不改 L94 原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 六行收敛 + MA-01 三登记注记 + B1-06 落账注记 + C10 半边注记、roadmap 8.29 = done（含 E3 盲区勘误注记 + 部署包络确认结论）、batch-proposal 勘误注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 六行收敛 + MA-01 三登记注记 + B1-06 落账注记 + C10 半边注记、roadmap 8.29 = done（含 E3 盲区勘误注记 + 部署包络确认结论）、batch-proposal 勘误注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 6 项成员全部修复：MA-01（removeConnection 属主校验+窗口①消除，三登记一处闭合）、MA-03（sidecar 探测移出回调线程+超时内层取消，B1-06 承载）、MA-07（幂等 init+世代守卫，←C6-014 一处闭合）、C6-017（bind 失败组清理）、C6-018（构造期会话回收，R2-19 基线续作）、C6-019（SesClient finally 配对）
-- [ ] batch-proposal R2-20 行 exit criteria 增补逐条达成并留证：MQTT removeConnection 属主校验（三登记一工单）；sidecar 探测移出 I/O reactor 回调线程（apache 面承载 P1，jdk/okhttp P2 备注随单——三实现同 diff）；SimpleRpcClientFactory 幂等 init+世代令牌；bind 失败释放事件循环组（对照兄弟写法——勘误 3 归属裁定执行）；构造期会话回收；SesClient 生命周期配对
-- [ ] 对齐纪律守约：MA-01 三登记单 diff 双窗口兑现；MA-01×C1-018/MA-09/C6-028 不并族兑现；MA-03 三实现同 diff（B1-06 备注非豁免）兑现；MA-07 兄弟零顺手修兑现；C6-017 修复边界兑现；C6-018 基线续作零回退兑现；C6-019 catch 语义零触碰兑现；C10 三条同 diff 兑现；PA 零触碰声明闭环（git diff 核对三 api 叶/orm/生成物零触碰）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑥均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕；当前即红五条标注）；C10 收口门（3 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑦成文且经独立 draft review；既有钉（基线 245 tests + 2505/2522 钉族 + vertx-mqtt takeover 两钉 + TestSftpClientTimeout 钉族零触碰）零回退实证
-- [ ] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + **sftp/email 补充焦点腿 BUILD SUCCESS**（E3 + 勘误 1 强制项；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-network.md 六处落点 + source-anchors.md NETWORK-CC-002（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
-- [ ] vertx-mqtt 部署包络确认申报与结论登记完成（§三.5#9b 随批确认义务——申报记录+owner 结论留痕；不以零装配单方降档）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）属主校验/线程卸载/幂等守卫/组清理/disconnect/shutdown 运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-network 聚合 + sftp/email 焦点腿）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-20 六行收敛（含 B1-06 落账）+ roadmap 8.29 → done（E6）
+- [x] 6 项成员全部修复：MA-01（removeConnection 属主校验+窗口①消除，三登记一处闭合）、MA-03（sidecar 探测移出回调线程+超时内层取消，B1-06 承载）、MA-07（幂等 init+世代守卫，←C6-014 一处闭合）、C6-017（bind 失败组清理）、C6-018（构造期会话回收，R2-19 基线续作）、C6-019（SesClient finally 配对）
+- [x] batch-proposal R2-20 行 exit criteria 增补逐条达成并留证：MQTT removeConnection 属主校验（三登记一工单）；sidecar 探测移出 I/O reactor 回调线程（apache 面承载 P1，jdk/okhttp P2 备注随单——三实现同 diff）；SimpleRpcClientFactory 幂等 init+世代令牌；bind 失败释放事件循环组（对照兄弟写法——勘误 3 归属裁定执行）；构造期会话回收；SesClient 生命周期配对
+- [x] 对齐纪律守约：MA-01 三登记单 diff 双窗口兑现；MA-01×C1-018/MA-09/C6-028 不并族兑现；MA-03 三实现同 diff（B1-06 备注非豁免）兑现；MA-07 兄弟零顺手修兑现；C6-017 修复边界兑现；C6-018 基线续作零回退兑现；C6-019 catch 语义零触碰兑现；C10 三条同 diff 兑现；PA 零触碰声明闭环（git diff 核对三 api 叶/orm/生成物零触碰）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑥均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕；当前即红五条标注）；C10 收口门（3 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑦成文且经独立 draft review；既有钉（基线 245 tests + 2505/2522 钉族 + vertx-mqtt takeover 两钉 + TestSftpClientTimeout 钉族零触碰）零回退实证
+- [x] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + **sftp/email 补充焦点腿 BUILD SUCCESS**（E3 + 勘误 1 强制项；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：nop-network.md 六处落点 + source-anchors.md NETWORK-CC-002（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
+- [x] vertx-mqtt 部署包络确认申报与结论登记完成（§三.5#9b 随批确认义务——申报记录+owner 结论留痕；不以零装配单方降档）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）属主校验/线程卸载/幂等守卫/组清理/disconnect/shutdown 运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-network 聚合 + sftp/email 焦点腿）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-20 六行收敛（含 B1-06 落账）+ roadmap 8.29 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -270,18 +270,28 @@ closure audit（agent_5a987daf，APPROVED with corrections）两项 Major 已闭
 
 ## Closure
 
-Status Note: （draft——收口时填写）
-Completed: ——
+Status Note: R2-20 批 6 项（MA-01 三登记/C3-004+C6-006/C1-001/C6-017/C6-018/C6-019）全部处置：5 项修复各带 focused 回归测试（C10-006 MA-01 全条 + C10-004 四成员半边 + C10-008 MA-07 面随同 diff），C6-019 实施期判定修正（SDK 3.1.213 无 shutdown/close 前提证伪——javap 亲证，沿 2518 先例）；红①③④⑤⑥先红后绿（git stash 缺陷基线实跑 + 变异探针 + 源码结构钉）；设计文档裁定①–⑦经独立评审 R1/R2 双轮闭环（F1 HC5 事实勘误+F2 绿路径成文+Blocker-1 取消传播重裁）；owner doc 五处落点 + NETWORK-CC-002 锚点；E1 快速通道 + E3 三联 final 全链绿；独立 closure audit APPROVED with corrections——两 Major 已闭环（okhttp 卸载补齐+窗口①集成级钉）、5 Minor 已登记；cra-index 六行收敛（C6-019 判定修正）+ roadmap 8.29 done。无剩余 plan-owned work。
+Completed: 2026-11-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: ——（收口时填写）
-- Audit Session: ——（如用子 agent，记录 session ID）[R1 Minor-F5 补占位]
-- Evidence: ——（收口时填写；`check-plan-checklist.mjs --strict` 退出码；Anti-Hollow 检查结果；Deferred 项分类检查）
+- Reviewer / Agent: 独立子 agent `agent_5a987daf`（fresh session，与实现无关联）@ 2026-11-01，审计基线 `731c6d0742`
+- Audit Session: agent_5a987daf（复跑 mqtt 21/0/0 + rpc-simple 4/0/0 @ HEAD）
+- Evidence:
+  - Phase 1 Exit 4/4 PASS（设计文档最终状态写法；Draft Review R1[agent_37f989a4] + R2[agent_8b832793] + Blocker-1 复核[agent_70b0482f] 三轮闭环）
+  - Phase 2 Exit 7/7 PASS（六成员逐行核验全中：compute :47-53/先注册后 accept :116-129/accept :144/桥接 OkHttp :72-75·Jdk :176·Apache :137-140/globalWorker :382/init :120/inited :38/fail-fast :173/releaseBindFailure :194/:201/:322/回收 :171-179；红证 red-r8/red-r1/red-r5/red-c6bridge-r2/red-netty-v2 亲验）
+  - Phase 3 Exit 5/5 PASS（E1 支路声明；E3 三联 r1→solo→final EXIT=0；nop-network.md 五处落点 + NETWORK-CC-002 :105 行号抽验 14 处全中；doc-links EXIT=0 + scan-hollow network 0 findings）
+  - Phase 4 Exit 4/4 PASS（本段 + cra-index 六行 fixed[C6-019 判定修正] + roadmap 8.29 done + batch-proposal 勘误注记 + 双门禁）
+  - Closure Gates 15/15 PASS（含两 Major 闭环后复验：okhttp 卸载+钉、窗口①集成级钉 TestMqttWindow1AcceptOrder 2 钉红证 red-window1-r3）
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2523-cra-phase8.29-r2-20-connection-lifecycle.md --strict` 退出码 0（收口提交前运行）
+  - Anti-Hollow 检查结果：红→绿行为差闭环（red-r8/red-r1/red-r5/red-c6bridge-r2 + red-window1-r3 变异探针）+ 源码结构钉（红④⑤②）；scan-hollow nop-network EXIT=0 零发现
+  - Deferred 项分类检查：R4-26/R4-27 承接面批前裁定批外零触碰；C6-019 判定修正沿 2518 前提证伪先例；无 in-scope live defect 降级
+  - 环境抖动处置：E3 r1 nop-core 3 失败（预登记 flake[勘误 7]）→ solo 4/4 → final EXIT=0；r2/r3 netty 钉自身笔误非环境面逐轮登记
+  - closure audit 发现处置：Major-1 okhttp 卸载补齐（提交 db435d3f54）+ Major-2 窗口①集成级钉新增（TestMqttWindow1AcceptOrder 2 钉，红证 red-window1-r3 变异探针）——均已提交闭环；Minor×5 登记即闭
 
 Follow-up:
 
-- ——（收口时登记 non-blocking follow-up 或明确写 no remaining plan-owned work）
+- no remaining plan-owned work。Non-Blocking Follow-ups（mockwebserver/SMTP 同族/CL-021 文档化落 owner doc/vertx-mqtt 部署包络申报）均已登记 successor 指向或落账；C6-019 SDK 升级复检义务 watch-only。
 
 ## Risks And Rollback
 
