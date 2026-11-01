@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Draft Review R1: agent_37f989a4 @ 2026-11-01 —— 无 Blocker；2 Major（F1 HC5 ioThreadCount 缺省=availableProcessors 事实更正[运行时反射+javap 亲证，非审计所记缺省 1——勘误 10 登记+四处文本改写+B1-06 SSOT 机制修正+Phase 4 :275 文本勘误义务]；F2 窗口①钉绿路径未成文[补 acceptEndpoint 集成级交错模拟+禁 addConnection 扩张禁令]）+3 Minor（F3 MqttConnection 措辞/F4 计数三处/F5 Closure 占位）+2 登记级建议——协调方机械修复闭环，F1/F2 经 agent_08e34460 快速复核 PASS，修订转 active
+> Design Review R2: agent_8b832793 @ 2026-11-01 —— 设计文档独立对抗性评审（60+ 行号锚抽验零漂移；红①–红⑥缺陷态可红性全成立）：1 Blocker（C6-006 取消传播载体断裂——live 亲读证伪「promise.cancel 触达传输层」：jdk thenApply 派生 stage 取消不上传/okhttp·apache 裸 CF promise.cancel ≠ call.cancel()·HC5 cancel——重裁为「桥接+超时域内取消」两段[fetchAsync whenComplete isCancelled→底层取消]）+6 Minor（m2 TimeoutException 措辞/m3 jdk catch 行号/m4 globalWorker 池参数容量论证/m5 releaseBindFailure 签名补 workerGroup/m6 HttpClientConfig 实位 nop-http-api 叶勘误/m7 命名登记载体指认）——已同 diff 修入设计文档；Blocker-1 修复经 agent_70b0482f 快速复核 PASS（三实现句柄可达+CF 取消语义闭环+jdk 桥挂载点须为返回 promise 注记），放行 Phase 2
 > Draft Review：待独立子 agent draft review（通过后本行登记 R1 结论，修订转 active）
 > Last Reviewed: 2026-11-01
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-01 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `d4c32127ad`）起草；全部站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果），执行前如再漂移以 live 为准并登记。结构沿 plan 2522 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 成员逐条表 / 勘误节 / 红绿判据 / C10 半边口径 / 环境三联预登记）。待独立 draft review 通过后修订转 active。
@@ -129,28 +130,28 @@
 
 ### Phase 1 - MQTT 会话属主/回调线程卸载/连接生命周期并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/mqtt-session-ownership-callback-thread-offload-and-connection-lifecycle-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① MA-01 removeConnection 属主校验+acceptEndpoint 顺序（三登记一处闭合）**：属主校验形态[预设 = 仅当 sessions 当前值==conn 才清订阅——compute 两参同法 vs get-校验-remove 形态一次定夺]；`acceptEndpoint` 先注册会话（addConnection+回调挂载）再 `endpoint.accept()`[预设]——窗口①消除论证；C1-018 相邻面影响论证表（顺序调整对 close-回调丢失窗口的影响登记，不代做[R4-26]）；C6-028 doStop 清表面零触碰声明；窗口②与窗口①的红钉形态（C10-006 建议①单线程交错脚本）
-  - [ ] **裁定② MA-03 sidecar 探测移出回调线程+超时内层取消（B1-06 承载）**：收尾重活移出形态[预设 = handleDownloadResult 重活段整体投递独立 executor、回调线程只做 promise 完成——池选择（GlobalExecutors.globalWorker[audit 建议形态] vs 专用池）vs 非阻塞链式 whenCompose 一次定夺] + get 超时路径内层 `cancel`（C6-006 闭合）[预设]；三实现同 diff 改写矩阵（apache/jdk/okhttp 收尾链形态差异表）；CL-021 ioThreadCount 配置面收敛一次定夺（文档化/配置项/零动作三选）；B1-06 落账口径+§三.5#4 并档注记；`TestBodyPhaseCancel_C3_002` 等下载链钉兼容核对表（勘误 9）
-  - [ ] **裁定③ MA-07 幂等 init+世代守卫（CL-024 原始站点承载）**：幂等守卫形态[预设 = volatile inited + synchronized 或 AtomicBoolean CAS 一次定夺；对照 SimpleRpcServer Guard 兄弟（勘误 3）]；拦截器不可变快照形态（装配一次化+unmodifiableList 交 handler）；timer/executor 原子创建惯用法；destroyed 世代守卫形态（volatile+destroy 后 newInstance fail-fast[预设]——exit criteria「世代令牌」语义定位声明，与 feishu lifecycleGeneration 语义不同族禁照抄）；消费方兼容性声明（XLangDebugConnector 面，勘误 9）
-  - [ ] **裁定④ C6-017 bind 失败组清理**：清理清单[预设 = 按 doStop :311-329 逆序：globalTrafficShapingHandler.release() + 自建 workerGroup.shutdownGracefully() + bossGroup.shutdownGracefully()]；两抛出点（catch :189/isSuccess :195）覆盖矩阵；外部注入 workerGroup 所有权纪律（只关 boss[预设]）一次定夺；NettyTcpClient/VertxMqttServer/SocketServer 零触碰声明
-  - [ ] **裁定⑤ C6-018 构造期会话回收（R2-19 基线续作）**：回收形态[预设 = openConnection 内 session.connect 成功后的步骤 try/catch 包裹、失败 session.disconnect() 再抛——disconnectQuietly 提取 vs 内联一次定夺]；ERR_SFTP_CONNECT_FAIL 包装语义保持；超时接线/超时异常路径零回退声明（TestSftpClientTimeout_C3_024 钉族零改写）；SftpConfig 零新增配置项声明
-  - [ ] **裁定⑥ C6-019 SesClient 生命周期配对**：finally `client.shutdown()`[预设——最小契约面变更] vs bean 级单例（OssFileServiceClientFactory 参照、凭证轮换可见性变化属设计层）两案一次定夺禁第三形态；catch 特判分支（EmailAddressIsNULL/FrequencyLimit）行为保持防过修声明（C3-025 不并族）
-  - [ ] **裁定⑦ 测试缝与红①–红⑥驱动器表+零回退钉清单**：红①–红⑥ 测试形态逐条（含缺陷态红判据[当前即红五条+注入红一条] + 挂死类失败模式=超时给足有限 timeout + 全部 plain-JVM 可跑面声明[无 docker 门控；sftp/email 走补充焦点腿]）；红②悬挂端点 mock 形态一次定夺[预设 = loopback HttpServer 挂起 handler 零新依赖]；红⑤ recording-jsch 注入点上移与既有 TestSftpClientTimeout 钉协同形态；零回退钉 = nop-network 215 tests + sftp/email 30 tests（双 log 路径），其中点名：vertx-mqtt 18 用例（TestMqttServerFix takeover/close 两钉禁弱化）/`TestNettyTcpServerFix`/`TestSimpleRpcClient`/`TestTencentEmailSenderCredential`/`TestSftpClientCredential`/`TestSftpHostKeyChecking`/2505 钉族/2522 钉族；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① MA-01 removeConnection 属主校验+acceptEndpoint 顺序（三登记一处闭合）**：属主校验形态[预设 = 仅当 sessions 当前值==conn 才清订阅——compute 两参同法 vs get-校验-remove 形态一次定夺]；`acceptEndpoint` 先注册会话（addConnection+回调挂载）再 `endpoint.accept()`[预设]——窗口①消除论证；C1-018 相邻面影响论证表（顺序调整对 close-回调丢失窗口的影响登记，不代做[R4-26]）；C6-028 doStop 清表面零触碰声明；窗口②与窗口①的红钉形态（C10-006 建议①单线程交错脚本）
+  - [x] **裁定② MA-03 sidecar 探测移出回调线程+超时内层取消（B1-06 承载）**：收尾重活移出形态[预设 = handleDownloadResult 重活段整体投递独立 executor、回调线程只做 promise 完成——池选择（GlobalExecutors.globalWorker[audit 建议形态] vs 专用池）vs 非阻塞链式 whenCompose 一次定夺] + get 超时路径内层 `cancel`（C6-006 闭合）[预设]；三实现同 diff 改写矩阵（apache/jdk/okhttp 收尾链形态差异表）；CL-021 ioThreadCount 配置面收敛一次定夺（文档化/配置项/零动作三选）；B1-06 落账口径+§三.5#4 并档注记；`TestBodyPhaseCancel_C3_002` 等下载链钉兼容核对表（勘误 9）
+  - [x] **裁定③ MA-07 幂等 init+世代守卫（CL-024 原始站点承载）**：幂等守卫形态[预设 = volatile inited + synchronized 或 AtomicBoolean CAS 一次定夺；对照 SimpleRpcServer Guard 兄弟（勘误 3）]；拦截器不可变快照形态（装配一次化+unmodifiableList 交 handler）；timer/executor 原子创建惯用法；destroyed 世代守卫形态（volatile+destroy 后 newInstance fail-fast[预设]——exit criteria「世代令牌」语义定位声明，与 feishu lifecycleGeneration 语义不同族禁照抄）；消费方兼容性声明（XLangDebugConnector 面，勘误 9）
+  - [x] **裁定④ C6-017 bind 失败组清理**：清理清单[预设 = 按 doStop :311-329 逆序：globalTrafficShapingHandler.release() + 自建 workerGroup.shutdownGracefully() + bossGroup.shutdownGracefully()]；两抛出点（catch :189/isSuccess :195）覆盖矩阵；外部注入 workerGroup 所有权纪律（只关 boss[预设]）一次定夺；NettyTcpClient/VertxMqttServer/SocketServer 零触碰声明
+  - [x] **裁定⑤ C6-018 构造期会话回收（R2-19 基线续作）**：回收形态[预设 = openConnection 内 session.connect 成功后的步骤 try/catch 包裹、失败 session.disconnect() 再抛——disconnectQuietly 提取 vs 内联一次定夺]；ERR_SFTP_CONNECT_FAIL 包装语义保持；超时接线/超时异常路径零回退声明（TestSftpClientTimeout_C3_024 钉族零改写）；SftpConfig 零新增配置项声明
+  - [x] **裁定⑥ C6-019 SesClient 生命周期配对**：finally `client.shutdown()`[预设——最小契约面变更] vs bean 级单例（OssFileServiceClientFactory 参照、凭证轮换可见性变化属设计层）两案一次定夺禁第三形态；catch 特判分支（EmailAddressIsNULL/FrequencyLimit）行为保持防过修声明（C3-025 不并族）
+  - [x] **裁定⑦ 测试缝与红①–红⑥驱动器表+零回退钉清单**：红①–红⑥ 测试形态逐条（含缺陷态红判据[当前即红五条+注入红一条] + 挂死类失败模式=超时给足有限 timeout + 全部 plain-JVM 可跑面声明[无 docker 门控；sftp/email 走补充焦点腿]）；红②悬挂端点 mock 形态一次定夺[预设 = loopback HttpServer 挂起 handler 零新依赖]；红⑤ recording-jsch 注入点上移与既有 TestSftpClientTimeout 钉协同形态；零回退钉 = nop-network 215 tests + sftp/email 30 tests（双 log 路径），其中点名：vertx-mqtt 18 用例（TestMqttServerFix takeover/close 两钉禁弱化）/`TestNettyTcpServerFix`/`TestSimpleRpcClient`/`TestTencentEmailSenderCredential`/`TestSftpClientCredential`/`TestSftpHostKeyChecking`/2505 钉族/2522 钉族；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含 MA-01 单 diff 双窗口绑定与 C1-018 影响论证；裁定②含三实现同 diff 矩阵与 B1-06 落账口径；裁定③含「世代令牌」语义定位与消费方兼容声明；裁定④含所有权纪律；裁定⑤含 R2-19 基线续作零回退声明；裁定⑥含两案定夺；裁定⑦含红①–红⑥驱动器表与零回退钉全列
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定①含 MA-01 单 diff 双窗口绑定与 C1-018 影响论证；裁定②含三实现同 diff 矩阵与 B1-06 落账口径；裁定③含「世代令牌」语义定位与消费方兼容声明；裁定④含所有权纪律；裁定⑤含 R2-19 基线续作零回退声明；裁定⑥含两案定夺；裁定⑦含红①–红⑥驱动器表与零回退钉全列
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 6 成员实现 + 回归测试（按子域分组）
 
