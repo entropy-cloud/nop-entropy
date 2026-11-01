@@ -162,23 +162,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: nop-cluster 聚合全量测试 + 模块外 elector 焦点腿；`docs-for-ai/01-repo-map/module-groups.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2520 Phase 3 先例声明支路理由与逐面三联裁定留痕）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-cluster -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定）；**模块外 elector 焦点腿（勘误 11）**：`nop-sys/nop-sys-dao` elector 族 + `nop-stream/nop-stream-runtime` elector 族 `-Dtest` 限定 solo BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/SentinelFlowControlRunner 面/R4-25 批外成员本体/既有钉面）
-- [ ] Owner doc 更新：`module-groups.md`——nop-cluster 模块族通行句（六子模块定位一句 + 并发契约指针一句）+ 缺口声明句（无 03-modules owner doc，整批建设归 R-G 治理批）；`source-anchors.md` 新增 `CLUSTER-CC-001` 锚点行（四文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；按实际行号插入现有锚点序）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-cluster --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518/2519/2520 先例口径，注意 shell 管道退出码误读教训[2520 Phase 3 口径更正先例]，以工具真实退出码为准）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2520 Phase 3 先例声明支路理由与逐面三联裁定留痕）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-cluster -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定）；**模块外 elector 焦点腿（勘误 11）**：`nop-sys/nop-sys-dao` elector 族 + `nop-stream/nop-stream-runtime` elector 族 `-Dtest` 限定 solo BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/SentinelFlowControlRunner 面/R4-25 批外成员本体/既有钉面）
+- [x] Owner doc 更新：`module-groups.md`——nop-cluster 模块族通行句（六子模块定位一句 + 并发契约指针一句）+ 缺口声明句（无 03-modules owner doc，整批建设归 R-G 治理批）；`source-anchors.md` 新增 `CLUSTER-CC-001` 锚点行（四文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；按实际行号插入现有锚点序）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-cluster --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518/2519/2520 先例口径，注意 shell 管道退出码误读教训[2520 Phase 3 口径更正先例]，以工具真实退出码为准）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 + 模块外焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
-- [ ] module-groups.md 通行句 + 缺口声明 + source-anchors.md CLUSTER-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/SentinelFlowControlRunner 面/R4-25 批外成员本体/既有钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 + 模块外焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由
+- [x] module-groups.md 通行句 + 缺口声明 + source-anchors.md CLUSTER-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/SentinelFlowControlRunner 面/R4-25 批外成员本体/既有钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
