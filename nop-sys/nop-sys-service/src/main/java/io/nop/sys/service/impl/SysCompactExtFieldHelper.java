@@ -21,8 +21,16 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
     @Inject
     protected IDaoProvider daoProvider;
 
-    private volatile Map<String, Map<String, Integer>> entityFieldPositions = new ConcurrentHashMap<>();
-    private volatile Map<String, Map<String, NopSysCompactExtField>> entityFieldConfigs = new ConcurrentHashMap<>();
+    /**
+     * 双 map 合一不可变快照（MA-06/W-01 消化）：原两个 volatile 字段两行赋值无法原子替换，
+     * 并发读在纳秒级窗内拿到新 positions × 旧 configs 的代际错配（默认值读到 null）。
+     * 构造后字段引用不再变更，单 volatile 引用发布保证读点同代际。
+     */
+    private record ExtFieldSnapshot(Map<String, Map<String, Integer>> positions,
+                                    Map<String, Map<String, NopSysCompactExtField>> configs) {
+    }
+
+    private volatile ExtFieldSnapshot snapshot = new ExtFieldSnapshot(new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
 
     @PostConstruct
     public void init() {
@@ -33,23 +41,22 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         try {
             IEntityDao<NopSysCompactExtField> dao = daoProvider.daoFor(NopSysCompactExtField.class);
             List<NopSysCompactExtField> fields = dao.findAll();
-            
+
             Map<String, Map<String, Integer>> positions = new ConcurrentHashMap<>();
             Map<String, Map<String, NopSysCompactExtField>> configs = new ConcurrentHashMap<>();
-            
+
             for (NopSysCompactExtField field : fields) {
                 String entityName = field.getEntityName();
                 String propName = field.getPropName();
-                
+
                 positions.computeIfAbsent(entityName, k -> new ConcurrentHashMap<>())
                         .put(propName, field.getPosition());
                 configs.computeIfAbsent(entityName, k -> new ConcurrentHashMap<>())
                         .put(propName, field);
             }
-            
+
             // 写时复制整体替换：clear与putAll之间存在空窗，并发读会短暂读到空映射
-            this.entityFieldPositions = positions;
-            this.entityFieldConfigs = configs;
+            this.snapshot = new ExtFieldSnapshot(positions, configs);
         } catch (Exception e) {
             throw NopException.adapt(e);
         }
@@ -57,12 +64,14 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
 
     @Override
     public String getExtValue(IOrmCompactExtFieldSupport entity, String extName) {
+        // 快照单读：positions与configs必须同代际（W-01/C1-004），跨方法两次读字段会重开代际窗
+        ExtFieldSnapshot snap = snapshot;
         String flags = entity.getExtFlags();
         if (StringHelper.isEmpty(flags)) {
-            return getDefaultValue(entity.orm_entityName(), extName);
+            return getDefaultValue(snap, entity.orm_entityName(), extName);
         }
 
-        int position = getPosition(entity.orm_entityName(), extName);
+        int position = getPosition(snap, entity.orm_entityName(), extName);
         if (position < 0) {
             position = parsePosition(extName);
             if (position < 0) {
@@ -71,19 +80,20 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         }
 
         if (position >= flags.length()) {
-            return getDefaultValue(entity.orm_entityName(), extName);
+            return getDefaultValue(snap, entity.orm_entityName(), extName);
         }
 
         char c = flags.charAt(position);
         if (c == ' ') {
-            return getDefaultValue(entity.orm_entityName(), extName);
+            return getDefaultValue(snap, entity.orm_entityName(), extName);
         }
         return String.valueOf(c);
     }
 
     @Override
     public void setExtValue(IOrmCompactExtFieldSupport entity, String extName, String value) {
-        int position = getPosition(entity.orm_entityName(), extName);
+        ExtFieldSnapshot snap = snapshot;
+        int position = getPosition(snap, entity.orm_entityName(), extName);
         
         if (position < 0) {
             position = parsePosition(extName);
@@ -125,7 +135,8 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         String entityName = entity.orm_entityName();
         Map<String, String> result = new LinkedHashMap<>();
 
-        Map<String, Integer> positions = entityFieldPositions.get(entityName);
+        ExtFieldSnapshot snap = snapshot;
+        Map<String, Integer> positions = snap.positions().get(entityName);
         if (positions != null) {
             for (Map.Entry<String, Integer> entry : positions.entrySet()) {
                 String propName = entry.getKey();
@@ -134,9 +145,9 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
                 String value;
                 if (flags != null && position < flags.length()) {
                     char c = flags.charAt(position);
-                    value = c == ' ' ? getDefaultValue(entityName, propName) : String.valueOf(c);
+                    value = c == ' ' ? getDefaultValue(snap, entityName, propName) : String.valueOf(c);
                 } else {
-                    value = getDefaultValue(entityName, propName);
+                    value = getDefaultValue(snap, entityName, propName);
                 }
                 result.put(propName, value);
             }
@@ -162,12 +173,13 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         String flags = entity.getExtFlags();
         char[] chars = flags != null ? flags.toCharArray() : new char[0];
         String entityName = entity.orm_entityName();
+        ExtFieldSnapshot snap = snapshot;
 
         for (Map.Entry<String, String> entry : values.entrySet()) {
             String extName = entry.getKey();
             String value = entry.getValue();
 
-            int position = getPosition(entityName, extName);
+            int position = getPosition(snap, entityName, extName);
             if (position < 0) {
                 position = parsePosition(extName);
                 if (position < 0) {
@@ -196,8 +208,8 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         entity.setExtFlags(new String(chars));
     }
 
-    private int getPosition(String entityName, String extName) {
-        Map<String, Integer> positions = entityFieldPositions.get(entityName);
+    private int getPosition(ExtFieldSnapshot snap, String entityName, String extName) {
+        Map<String, Integer> positions = snap.positions().get(entityName);
         if (positions != null) {
             Integer pos = positions.get(extName);
             if (pos != null) {
@@ -207,8 +219,8 @@ public class SysCompactExtFieldHelper implements IOrmCompactExtFieldHelper {
         return -1;
     }
 
-    private String getDefaultValue(String entityName, String extName) {
-        Map<String, NopSysCompactExtField> configs = entityFieldConfigs.get(entityName);
+    private String getDefaultValue(ExtFieldSnapshot snap, String entityName, String extName) {
+        Map<String, NopSysCompactExtField> configs = snap.configs().get(entityName);
         if (configs != null) {
             NopSysCompactExtField config = configs.get(extName);
             if (config != null) {

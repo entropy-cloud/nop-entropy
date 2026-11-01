@@ -118,6 +118,9 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
 
     private boolean tryRenewLease(NopSysClusterLeader leader, IEntityDao<NopSysClusterLeader> dao) {
         IEstimatedClock clock = dao.getDbEstimatedClock();
+        // disableVersionCheckError只把0行结果从抛异常降级为orm_readonly标记：genUpdateSql生成的实体
+        // UPDATE恒带"AND version=?"条件（C2-007勘误——本站点并非无条件续期，而是乐观锁CAS：他人接管
+        // 后version已bump，本续约0行→readonly→false→调用方按失去leader处置）
         leader.orm_disableVersionCheckError(true);
 
         leader.setRefreshTime(clock.getMinCurrentTime());
@@ -193,6 +196,9 @@ public class SysDaoLeaderElector extends AbstractPollingLeaderElector {
 
     private boolean changeLeader(NopSysClusterLeader leader, IEntityDao<NopSysClusterLeader> dao) {
         IEstimatedClock clock = dao.getDbEstimatedClock();
+        // 双follower同轮询周期抢占的互斥由乐观锁CAS保证（C2-004勘误）：disableVersionCheckError只把
+        // 0行结果降级为orm_readonly标记，genUpdateSql生成的实体UPDATE恒带"AND version=?"条件——
+        // 两个follower同读version=v时仅一个更新成功（version→v+1），败者readonly→false不触发onBecomeLeader
         leader.setLeaderAdder(getLeaderAddr());
         leader.setLeaderId(getHostId());
         leader.setLeaderEpoch(leader.getLeaderEpoch() + 1);

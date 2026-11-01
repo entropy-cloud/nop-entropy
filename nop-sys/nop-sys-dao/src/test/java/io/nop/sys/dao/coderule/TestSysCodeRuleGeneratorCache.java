@@ -95,15 +95,19 @@ public class TestSysCodeRuleGeneratorCache extends JunitBaseTestCase {
      * TTL 过期兜底：DB 直改规则（模拟另一节点/绕过 BizModel 钩子的修改）后，
      * TTL 内本节点仍用缓存 pattern，TTL 过期后重新加载新 pattern。
      *
-     * <p>Note: Caffeine cache uses System.nanoTime() internally, which cannot be mocked
-     * via CoreMetrics. We rely on a short TTL (1s) + generous sleep margin (2s) for
-     * deterministic expiry.</p>
+     * <p>C10 时序敏感改写（plan 2525 批级搭车）：Caffeine TTL 判定经注入的 {@link
+     * com.github.benmanes.caffeine.cache.Ticker} 驱动——可控 clock 推进替代真实时间 sleep(2000)，
+     * 确定性过期、零墙钟等待。</p>
      */
     @Test
-    public void testExpiredRuleReloadedAfterTtl() throws Exception {
+    public void testExpiredRuleReloadedAfterTtl() {
+        java.util.concurrent.atomic.AtomicLong tickerNanos = new java.util.concurrent.atomic.AtomicLong(
+                System.nanoTime());
+
         saveRule("ttl-rule", "A{@seq:3}", "seq-ttl");
 
         SysCodeRuleGenerator generator = newGenerator();
+        generator.setRuleCache(SysCodeRuleGenerator.newBoundedRuleCache(tickerNanos::get));
         assertEquals("A001", generator.generate("ttl-rule", null));
 
         // DB 直改 pattern（不走BizModel钩子）
@@ -114,8 +118,8 @@ public class TestSysCodeRuleGeneratorCache extends JunitBaseTestCase {
         // TTL 内：缓存命中，仍是旧pattern
         assertEquals("A001", generator.generate("ttl-rule", null), "within TTL the cached rule is used");
 
-        // Wait for Caffeine cache TTL expiry (1s configured + 1s margin)
-        Thread.sleep(2000);
+        // 可控 clock 推进越过 TTL：确定性过期（Caffeine按ticker.nanoTime判定expireAfterWrite）
+        tickerNanos.addAndGet(Duration.ofSeconds(2).toNanos());
 
         // TTL 过期后：重新加载，新pattern生效
         String regenerated = generator.generate("ttl-rule", null);

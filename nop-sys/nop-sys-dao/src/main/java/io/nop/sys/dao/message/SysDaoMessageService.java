@@ -54,11 +54,13 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 public class SysDaoMessageService extends LifeCycleSupport
         implements IMessageService, io.nop.message.core.channel.ChannelBacklogProbe {
@@ -128,9 +130,11 @@ public class SysDaoMessageService extends LifeCycleSupport
         this.cleanupInterval = cleanupInterval;
     }
 
-    private BroadcastEventProcessor broadcastProcessor;
+    // 懒初始化发布卫生（MA-06/C1-003）：timer线程×batch XLang线程并发首访（claimNonBroadcastEvents
+    // 经AOP进入）下的检查-然后-行动会构造双实例——volatile + DCL（范本 DynCodeGen.getTenantCodeCache）
+    private volatile BroadcastEventProcessor broadcastProcessor;
 
-    private NonBroadcastEventProcessor nonBroadcastProcessor;
+    private volatile NonBroadcastEventProcessor nonBroadcastProcessor;
 
     private boolean nonBroadcastAutoScanEnabled = true;
 
@@ -163,6 +167,19 @@ public class SysDaoMessageService extends LifeCycleSupport
 
     public void setLeaseTimeout(long leaseTimeout) {
         this.leaseTimeout = leaseTimeout;
+    }
+
+    /**
+     * 单次事件消费的同步等待总预算（毫秒）。消费者返回未完成的 future 时等待不能无界（C8-001：
+     * syncGet 永久阻塞使 scheduleWithFixedDelay 后续轮询永不开始——全部事件消费静默停摆）；
+     * 预算耗尽按 ConsumeLater 回 WAITING 重排。独立配置键与 leaseTimeout 解耦（leaseTimeout
+     * 另承载 MA-01 续租窗口语义，混用会隐改等待预算）。
+     */
+    private long consumeWaitTimeout = 10000;
+
+    @InjectValue("@cfg:nop.sys.event.consume-wait-timeout|10000")
+    public void setConsumeWaitTimeout(long consumeWaitTimeout) {
+        this.consumeWaitTimeout = consumeWaitTimeout;
     }
 
     public void setAssignedPartitions(IntRangeSet assignedPartitions) {
@@ -303,24 +320,31 @@ public class SysDaoMessageService extends LifeCycleSupport
     }
 
     private void ensureNonBroadcastProcessor() {
-        if (nonBroadcastProcessor == null) {
-            nonBroadcastProcessor = new NonBroadcastEventProcessor(
-                    daoProvider,
-                    localService::getNonBroadcastTopics,
-                    event -> invokeDurableConsumers(event.getEventTopic(), event.toApiRequest(), null, false),
-                    k -> getHostId(),
-                    (event, exception) -> {
-                        int count = event.getRetryTimes() != null ? event.getRetryTimes() : 0;
-                        IRetryPolicy<SysDaoMessageService> policy = topicRetryPolicies
-                                .getOrDefault(event.getEventTopic(), retryPolicy);
-                        return policy.getRetryDelay(exception, count, this);
-                    },
-                    fetchSize,
-                    maxScanLoops,
-                    leaseTimeout,
-                    minProcessDelay,
-                    assignedPartitions
-            );
+        NonBroadcastEventProcessor processor = nonBroadcastProcessor;
+        if (processor == null) {
+            synchronized (this) {
+                processor = nonBroadcastProcessor;
+                if (processor == null) {
+                    processor = new NonBroadcastEventProcessor(
+                            daoProvider,
+                            localService::getNonBroadcastTopics,
+                            event -> invokeDurableConsumers(event.getEventTopic(), event.toApiRequest(), null, false),
+                            k -> getHostId(),
+                            (event, exception) -> {
+                                int count = event.getRetryTimes() != null ? event.getRetryTimes() : 0;
+                                IRetryPolicy<SysDaoMessageService> policy = topicRetryPolicies
+                                        .getOrDefault(event.getEventTopic(), retryPolicy);
+                                return policy.getRetryDelay(exception, count, this);
+                            },
+                            fetchSize,
+                            maxScanLoops,
+                            leaseTimeout,
+                            minProcessDelay,
+                            assignedPartitions
+                    );
+                    nonBroadcastProcessor = processor;
+                }
+            }
         }
     }
 
@@ -373,15 +397,22 @@ public class SysDaoMessageService extends LifeCycleSupport
     }
 
     private void ensureBroadcastProcessor() {
-        if (broadcastProcessor == null) {
-            broadcastProcessor = new BroadcastEventProcessor(
-                    daoProvider,
-                    this::getBroadcastTopics,
-                    this::dispatchBroadcastToSubscribers,
-                    maxScanLoops,
-                    fetchSize,
-                    startGap
-            );
+        BroadcastEventProcessor processor = broadcastProcessor;
+        if (processor == null) {
+            synchronized (this) {
+                processor = broadcastProcessor;
+                if (processor == null) {
+                    processor = new BroadcastEventProcessor(
+                            daoProvider,
+                            this::getBroadcastTopics,
+                            this::dispatchBroadcastToSubscribers,
+                            maxScanLoops,
+                            fetchSize,
+                            startGap
+                    );
+                    broadcastProcessor = processor;
+                }
+            }
         }
     }
 
@@ -540,7 +571,7 @@ public class SysDaoMessageService extends LifeCycleSupport
         DurableConsumeContext context = new DurableConsumeContext();
         Object ret = consumer.onMessage(topic, message, context);
         if (ret instanceof CompletionStage) {
-            ret = FutureHelper.syncGet((CompletionStage<Object>) ret);
+            ret = waitForConsumeResult(topic, (CompletionStage<Object>) ret);
         }
         // D5(b-prime) signals must never be dispatched as ack-topic replies (WI6).
         if (ret instanceof TerminateConsume || ret instanceof PartialCommit) {
@@ -556,6 +587,42 @@ public class SysDaoMessageService extends LifeCycleSupport
             return null;
         }
         return ret;
+    }
+
+    /**
+     * 有界分片等待消费结果（C8-001/裁定⑩）：无界 syncGet 会被挂死消费者永久阻塞轮询线程
+     * （scheduleWithFixedDelay 后续轮询永不开始——全部事件消费静默停摆且健康检测不可见）。
+     * 等待循环 = 「waitResult 切片 → 续租回调 → 判定继续/中止」：每切片 leaseTimeout/3，
+     * 切片超时先执行认领租约续期（事件消费路径经 DispatchLeaseContext 注入——正常慢消费由
+     * 续租保活不被接管[C2-102]），续租失败（已被接管）立即中止等待；总预算 consume-wait-timeout
+     * 耗尽返回 ConsumeLater(0)（回 WAITING 重排，at-least-once 语义，禁静默当成功）。broadcast
+     * 路径无续租回调，纯预算超时。挂死类失败模式=超时，不再存在永久阻塞。
+     */
+    private Object waitForConsumeResult(String topic, CompletionStage<Object> stage) {
+        CompletableFuture<Object> future = stage.toCompletableFuture();
+        long slice = Math.max(1, leaseTimeout / 3);
+        BooleanSupplier keepAlive = DispatchLeaseContext.current();
+        long waited = 0;
+        while (true) {
+            long waitMs = Math.min(slice, consumeWaitTimeout - waited);
+            if (waitMs <= 0) {
+                LOG.warn("nop.message.consume-wait-timeout:topic={},waited={}ms", topic, waited);
+                return new ConsumeLater(0);
+            }
+            try {
+                return FutureHelper.waitResult(future, waitMs);
+            } catch (RuntimeException e) {
+                if (future.isDone())
+                    throw e; // 真实消费失败（ExecutionException适配），非切片超时
+                if (Thread.currentThread().isInterrupted())
+                    throw e; // 中断不吞：waitResult已恢复中断位，交由上层按消费失败处置
+                waited += waitMs;
+                if (keepAlive != null && !keepAlive.getAsBoolean()) {
+                    // 租约已被其他节点接管：中止等待，本节点完成写将被fencing拒绝（终态归接管方）
+                    throw new NopSysDaoException("event lease lost while waiting for consume result:topic=" + topic);
+                }
+            }
+        }
     }
 
     public String getAckTopic(String topic) {
@@ -607,16 +674,24 @@ public class SysDaoMessageService extends LifeCycleSupport
         @Override
         public void cancel() {
             delegate.cancel();
-            List<SubscriptionState> subscriptions = durableSubscriptions.get(state.topic);
-            if (subscriptions != null) {
+            // 判空+摘键必须compute单步完成（I-02/C1-002）：与subscribe的computeIfAbsent同CHM
+            // bin锁互斥。原「get→remove(state)→判空摘键」复合序列可被交错：T2新订阅在T1的
+            // remove与判空之间注册时，T1摘键会把T2订阅整体带走且轮询集合残留topic——订阅者
+            // 孤儿化，事件被warn后置PROCESSED静默丢弃。getConsumers条件移除必须位于compute
+            // 内摘键成功分支：置于compute返回之后将与重订阅的注册重开交错窗
+            // （锁序：durableSubscriptions bin → consumers bin 单向）
+            durableSubscriptions.compute(state.topic, (topic, subscriptions) -> {
+                if (subscriptions == null)
+                    return null;
                 subscriptions.remove(state);
                 if (subscriptions.isEmpty()) {
-                    durableSubscriptions.remove(state.topic);
                     // 最后一个订阅者取消后必须把topic从轮询集合移除：空topic残留会让轮询
                     // 查询持续包含该topic，且期间到达的事件被认领后按无消费者置PROCESSED丢弃
-                    localService.getConsumers().remove(state.topic, new CopyOnWriteArrayList<>());
+                    localService.getConsumers().remove(topic, new CopyOnWriteArrayList<>());
+                    return null;
                 }
-            }
+                return subscriptions;
+            });
         }
 
         @Override

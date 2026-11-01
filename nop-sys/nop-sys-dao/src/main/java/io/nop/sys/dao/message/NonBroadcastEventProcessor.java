@@ -140,15 +140,41 @@ public class NonBroadcastEventProcessor {
     }
 
     public void process(NopSysEvent event) {
+        // 续租回调以线程绑定上下文提供给invokeConsumer的等待循环（C2-102）：等待切片耗尽即续租，
+        // 正常慢消费由续租保活不被接管；出口finally清除防executor线程复用泄漏
+        DispatchLeaseContext.install(() -> renewLease(event));
         try {
             Object ret = dispatchCallback.apply(event);
             handleResult(event, ret, null);
         } catch (Exception e) {
             handleResult(event, null, e);
+        } finally {
+            DispatchLeaseContext.clear();
         }
     }
 
+    /**
+     * 认领租约按当前leaseTimeout顺延一个周期。条件更新由ORM乐观锁版本条件承载（认领后被其他节点
+     * 接管claim必然bump version，本续约0行→readonly→false），返回false即已被接管，等待方应立即
+     * 中止消费（完成写会被fencing拒绝）。updateEntityDirectly自带独立session，不落入消费回调事务。
+     */
+    public boolean renewLease(NopSysEvent event) {
+        if (event.orm_readonly())
+            return false; // 此前续租已失守：readonly 实体禁止属性写入（setter 抛 entity-is-readonly）
+        IOrmEntityDao<NopSysEvent> dao = eventDao();
+        long now = dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
+        event.setLeaseExpireTime(new Timestamp(now + leaseTimeout));
+        return dao.tryUpdateWithVersionCheck(event);
+    }
+
     public void handleResult(NopSysEvent event, Object ret, Throwable err) {
+        // 只读实体（等待期续租失守已被判失去租约）禁止再触碰任何 setter——ORM 对 readonly
+        // 实体的属性写入直接抛 entity-is-readonly。此处提前放弃：事件终态归接管方（fencing 语义）
+        if (event.orm_readonly()) {
+            LOG.warn("nop.sys.event.complete-abandon-lease-taken:eventId={}", event.getEventId());
+            return;
+        }
+
         IEntityDao<NopSysEvent> dao = eventDao();
         try {
             if (err != null) {
@@ -174,7 +200,7 @@ public class NonBroadcastEventProcessor {
                 event.setLeaseOwner(null);
                 event.setLeaseExpireTime(null);
             }
-            dao.updateEntityDirectly(event);
+            fencedComplete(event);
         } catch (Exception e) {
             LOG.error("nop.err.sys.process-event-fail", e);
             try {
@@ -197,7 +223,24 @@ public class NonBroadcastEventProcessor {
             event.setScheduleTime(new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis() + effectiveDelay));
             event.incRetryTimes();
         }
-        dao.updateEntityDirectly(event);
+        fencedComplete(event);
+    }
+
+    /**
+     * 完成写fencing（C2-102）：更新由ORM乐观锁版本条件承载（认领时版本）。租约被其他节点接管后
+     * version已bump，本写0行→orm_readonly——放弃写并显式日志（禁静默吞），事件终态归接管方。
+     * 与「超时放弃写」（ConsumeLater回WAITING可重试）区分：本路径为已被接管，写不再生效。
+     */
+    private void fencedComplete(NopSysEvent event) {
+        if (event.orm_readonly()) {
+            // renewLease失败中止等待后实体已readonly：失去租约在等待期已判定
+            LOG.warn("nop.sys.event.complete-abandon-lease-taken:eventId={}", event.getEventId());
+            return;
+        }
+        event.orm_disableVersionCheckError(true);
+        eventDao().updateEntityDirectly(event);
+        if (event.orm_readonly())
+            LOG.warn("nop.sys.event.complete-abandon-lease-taken:eventId={}", event.getEventId());
     }
 
     private TreeBean buildPartitionFilter() {

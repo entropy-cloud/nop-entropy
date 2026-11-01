@@ -11,7 +11,11 @@ import io.nop.api.core.annotations.ioc.IgnoreDepends;
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.api.core.context.DelegateContext;
+import io.nop.api.core.context.IContext;
+import io.nop.api.core.context.IContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.crypto.HashHelper;
@@ -52,6 +56,18 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     private long defaultSeqInitNextValue = 1L;
 
+    /**
+     * 取号 DB 环节超时上限（毫秒，MA-05）：锁内 REQUIRES_NEW 往返（含 session.lock 行锁等待）
+     * 不再依赖全局 10 分钟语句上限兜底——经上下文 callExpireTime 传导到每个语句的
+     * queryTimeout（JdbcHelper 取两者最小值），超时按取号失败抛出，禁静默重试空转。
+     */
+    private long syncDbTimeout = 10000;
+
+    @InjectValue("@cfg:nop.sys.seq.sync-db-timeout|10000")
+    public void setSyncDbTimeout(long syncDbTimeout) {
+        this.syncDbTimeout = syncDbTimeout;
+    }
+
     private ISequenceGenerator snowflakeGenerator;
     private final Map<String, SeqItem> cache = new ConcurrentHashMap<>();
 
@@ -61,6 +77,9 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     static class SeqItem {
         String name; // 对象类型, 如果没有找到匹配的对象类型，则使用default类型
         String dbSeq; // 是否有对应的数据库sequence, 如果有则使用数据库sequence配置，而忽略nextValue设置
+        // DB行装载名（MA-05）：SEQ_DEFAULT回退项按seqName独立建item后，取值流仍来自SEQ_DEFAULT行，
+        // loadName指向真正的DB装载行；普通item恒等于name
+        String loadName;
         int cacheSize; // 每次获取的sequence值是否代表着一批可以使用的值。例如cacheSize=100,
         // 获取到nextValue=1000之后表示1000-1100的值都已获取。
         int stepSize; // nextValue的步长，缺省为1，下次获取则
@@ -73,13 +92,31 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
         SeqItem(NopSysSequence seq) {
             this.name = seq.getSeqName();
+            this.loadName = this.name;
             this.useUuid = StringHelper.isYes(seq.getIsUuid());
             this.update(seq);
         }
 
         SeqItem(String name) {
             this.name = name;
+            this.loadName = name;
             this.useUuid = true;
+        }
+
+        /**
+         * SEQ_DEFAULT 回退项的配置快照（MA-05）：锁对象独立但取值流同源——cacheSize 置 0
+         * 强制首次取号走 DB 装载（自 SEQ_DEFAULT 行带行锁取段，值流无快照碰撞），
+         * loadName 继承源 item 的 DB 装载行。
+         */
+        void copyConfigFrom(SeqItem other) {
+            this.dbSeq = other.dbSeq;
+            this.useUuid = other.useUuid;
+            this.snowflake = other.snowflake;
+            this.stepSize = other.stepSize;
+            this.loadName = other.loadName;
+            this.cacheSize = 0;
+            this.usedCount = 0;
+            this.nextValue = 0;
         }
 
         public void update(NopSysSequence seq) {
@@ -96,10 +133,14 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     public void clearCache() {
         cache.clear();
+        // defaultCache同步失效（MA-05/C1-007）：回退项按seqName独立后，管理端回拨nextValue
+        // 必须同时穿透回退项缓存，否则最长TTL窗口内对回退序列名不生效
+        defaultCache.clear();
     }
 
     public void removeCache(String cacheKey) {
         cache.remove(cacheKey);
+        defaultCache.remove(cacheKey);
     }
 
     @InjectValue("@cfg:nop.sys.seq.snowflake-worker-id|0")
@@ -232,8 +273,8 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             return doSyncFromDb(item);
         } catch (RuntimeException e) {
             // 序列行被并发删除时懒加载代理抛出的是通用ORM错误（如lock-entity-fail），
-            // 确认行确实缺失时转译为语义化错误码便于排障；其他异常原样抛出
-            if (loadCacheItemFromDb(item.name) == null)
+            // 确认行确实缺失时转译为语义化错误码便于排障；其他异常（含DB环节超时）原样抛出
+            if (loadCacheItemFromDb(item.loadName) == null)
                 throw new NopException(NopSysErrors.ERR_SYS_NO_SEQ)
                         .param(NopSysErrors.ARG_SEQ_NAME, item.name);
             throw e;
@@ -242,7 +283,7 @@ public class SysSequenceGenerator implements ISequenceGenerator {
 
     private long doSyncFromDb(SeqItem item) {
         return runLocal(session -> {
-            NopSysSequence seq = (NopSysSequence) session.load(NopSysSequence.class.getName(), item.name);
+            NopSysSequence seq = (NopSysSequence) session.load(NopSysSequence.class.getName(), item.loadName);
             session.lock(seq);
 
             item.update(seq);
@@ -281,9 +322,15 @@ public class SysSequenceGenerator implements ISequenceGenerator {
             if (seq == null) {
                 if (useDefault && !SEQ_DEFAULT.equals(seqName)) {
                     SeqItem defaultItem = findSeqItem(SEQ_DEFAULT, false);
+                    // 回退项按seqName各建独立item（MA-05/C2-005）：不再共享SEQ_DEFAULT锁对象——
+                    // 否则synchronized(item)内REQUIRES_NEW DB往返（含session.lock行锁等待）使
+                    // 一个冷门序列的DB慢拖住全部默认序列取号。配置快照同源、取值流仍来自
+                    // SEQ_DEFAULT行（copyConfigFrom强制首次DB装载），锁对象独立
+                    SeqItem fallback = new SeqItem(seqName);
+                    fallback.copyConfigFrom(defaultItem);
                     // 回退结果按名缓存，避免未知序列名每次取号都查一次DB（defaultCache带TTL）
-                    defaultCache.put(seqName, defaultItem);
-                    return defaultItem;
+                    defaultCache.put(seqName, fallback);
+                    return fallback;
                 }
 
                 item = new SeqItem(seqName);
@@ -309,8 +356,36 @@ public class SysSequenceGenerator implements ISequenceGenerator {
     protected <T> T runLocal(Function<IOrmSession, T> task) {
         return ormTemplate.runInNewSession(session -> {
             return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRES_NEW, txn -> {
-                return task.apply(session);
+                // 取号DB环节超时上限（MA-05）：以代理上下文携带callExpireTime预算——语句超时取
+                // 其与全局上限的最小值（JdbcHelper.getQueryTimeout），超时抛NopTimeoutException
+                // （取号失败显式化）。attach/restore严格配对，不污染环境上下文
+                IContextProvider provider = ContextProvider.instance();
+                IContext prev = provider.currentContext();
+                // 无环境上下文时代理到未附加的空上下文（DelegateContext不支持null delegate）
+                IContext base = prev != null ? prev : ContextProvider.newContext(false);
+                IContext bounded = new BoundedCallContext(base, CoreMetrics.currentTimeMillis() + syncDbTimeout);
+                provider.attachContext(bounded);
+                try {
+                    return task.apply(session);
+                } finally {
+                    provider.attachContext(prev);
+                }
             });
         });
+    }
+
+    /** 仅覆盖callExpireTime的代理上下文（其余语义透传环境上下文，可为null时按空上下文兜底）。 */
+    private static final class BoundedCallContext extends DelegateContext {
+        private final long expireTime;
+
+        BoundedCallContext(IContext delegate, long expireTime) {
+            super(delegate);
+            this.expireTime = expireTime;
+        }
+
+        @Override
+        public long getCallExpireTime() {
+            return expireTime;
+        }
     }
 }
