@@ -34,6 +34,8 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
     private boolean ownTimer;
     private boolean ownExecutor;
     private boolean destroyed;
+    /** C1-001（plan 2523）：init 幂等标记（volatile——newInstance 与 destroy 并发面的可见性）。 */
+    private volatile boolean inited;
 
     private List<IRpcServiceInterceptor> interceptors;
     private IRpcMessageTransformer transformer = DefaultRpcMessageTransformer.INSTANCE;
@@ -110,21 +112,31 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
     }
 
     void init() {
-        if (clientConfig.isLogBody()) {
-            this.interceptors = CollectionHelper.prepend(interceptors, LogRpcServiceInterceptor.INSTANCE);
-        }
+        // C1-001（plan 2523，WI 2.1 CL-024 原始站点）：init 幂等——init 挂在 newInstance 上
+        // 每次调用都会执行，非幂等形态下 logBody 拦截器随调用次数无界累积、timer/executor
+        // 检查-创建竞态（并发 newInstance）双建泄漏单线程定时器。Guard 兄弟形态为
+        // synchronized + volatile inited 幂等早退（早退非抛错——与 destroyed 的 fail-fast
+        // 两态两语义：未 init 是合法态、destroyed 后使用是编程错误）。
+        synchronized (this) {
+            if (inited)
+                return;
+            if (clientConfig.isLogBody()) {
+                this.interceptors = CollectionHelper.prepend(interceptors, LogRpcServiceInterceptor.INSTANCE);
+            }
 
-        String clientName = clientConfig.getClientName();
-        if (clientName == null)
-            clientName = "default";
+            String clientName = clientConfig.getClientName();
+            if (clientName == null)
+                clientName = "default";
 
-        if (timer == null) {
-            timer = DefaultScheduledExecutor.newSingleThreadTimer("simple-rpc-client-timer-" + clientName);
-            ownTimer = true;
-        }
-        if (executor == null) {
-            executor = DefaultThreadPoolExecutor.newExecutor("simple-rpc-client-executor-" + clientName, 5, 10);
-            ownExecutor = true;
+            if (timer == null) {
+                timer = DefaultScheduledExecutor.newSingleThreadTimer("simple-rpc-client-timer-" + clientName);
+                ownTimer = true;
+            }
+            if (executor == null) {
+                executor = DefaultThreadPoolExecutor.newExecutor("simple-rpc-client-executor-" + clientName, 5, 10);
+                ownExecutor = true;
+            }
+            inited = true;
         }
     }
 
@@ -135,6 +147,7 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
 
     public void destroy() {
         destroyed = true;
+        inited = false;
 
         if (ownExecutor && executor != null) {
             executor.destroy();
@@ -154,6 +167,12 @@ public class SimpleRpcClientFactory<T> implements IDestroyable {
     }
 
     public T newInstance() {
+        if (destroyed) {
+            // C1-001 世代令牌（plan 2523）：destroy 后使用是编程错误——在已销毁
+            // executor/timer 上投递将抛未定义异常，fail-fast 显式化
+            throw new IllegalStateException(
+                    "SimpleRpcClientFactory is destroyed: newInstance must not be called after destroy");
+        }
         init();
 
         ICommandClient client = newClient();

@@ -163,10 +163,19 @@ public class JdkHttpClient implements IHttpClient {
     public CompletionStage<IHttpResponse> fetchAsync(HttpRequest request, ICancelToken cancelTokens) {
         java.net.http.HttpRequest req = toJdkHttpRequest(request);
 
-        CompletableFuture<HttpResponse<byte[]>> future = client.sendAsync(req,
-                HttpResponse.BodyHandlers.ofByteArray()).exceptionally(this::wrapError);
+        CompletableFuture<HttpResponse<byte[]>> raw = client.sendAsync(req,
+                HttpResponse.BodyHandlers.ofByteArray());
+        CompletableFuture<HttpResponse<byte[]>> future = raw.exceptionally(this::wrapError);
 
-        CompletionStage<IHttpResponse> promise = future.thenApply(this::toHttpResponse);
+        CompletableFuture<IHttpResponse> promise = future.thenApply(this::toHttpResponse)
+                .toCompletableFuture();
+        // C6-006 (plan 2523)：promise 终态→底层取消桥接——promise 是 thenApply 派生 stage，
+        // 其 cancel 永不向上游传播；对裸 sendAsync stage 取消才触达传输层
+        promise.whenComplete((r, e) -> {
+            if (promise.isCancelled()) {
+                raw.cancel(true);
+            }
+        });
         // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
         // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
         FutureHelper.bindCancelToken(cancelTokens, reason -> future.cancel(false), promise);
@@ -510,12 +519,15 @@ public class JdkHttpClient implements IHttpClient {
 
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
         for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+            java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                    .toCompletableFuture();
             try {
-                IHttpResponse res = fetchAsync(HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
-                        .toCompletableFuture().get(30, TimeUnit.SECONDS);
+                IHttpResponse res = future.get(30, TimeUnit.SECONDS);
                 if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
                     return res.getBodyAsString();
             } catch (Exception e) {
+                // C6-006（plan 2523）：get 超时取消在途请求——经 promise→raw stage 桥触达底层
+                future.cancel(false);
                 LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
             }
         }

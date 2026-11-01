@@ -134,6 +134,9 @@ public class NettyTcpServer extends LifeCycleSupport {
 
         EventLoopGroup bossGroup = NettyHelper.newEventGroup(config.getBossGroupSize(), config.isUseEpoll(),
                 config.getIoRatio());
+        // C6-017（plan 2523）：所有权快照——自建 workerGroup 是 doStart 局部变量不回写字段
+        //（:137-141 局部遮蔽），bind 失败清理须显式传参（setWorkerGroup :89-91 为唯一字段写点）
+        boolean ownWorkerGroup = this.workerGroup == null;
         EventLoopGroup workerGroup = this.workerGroup;
         if (workerGroup == null)
             workerGroup = NettyHelper.newEventGroup(config.getWorkerGroupSize(),
@@ -186,12 +189,16 @@ public class NettyTcpServer extends LifeCycleSupport {
             }).sync();
         } catch (Exception e) {
             LOG.error("nop.netty.server.bind-port-fail", e);
+            // C6-017（plan 2523）：bind 失败必须释放事件循环组——否则每次「启动失败→再启动」
+            // 循环净增 2×CPU 个非 daemon I/O 线程 + NIO selector/fd 泄漏（对照 doStop 清理清单）
+            releaseBindFailure(bossGroup, workerGroup, ownWorkerGroup, e);
             throw NopException.adapt(e);
         }
 
         if (!future.isSuccess()) {
             Throwable e = future.cause();
             LOG.error("nop.netty.server.bind-port-fail", e);
+            releaseBindFailure(bossGroup, workerGroup, ownWorkerGroup, e);
             throw NopException.adapt(e);
         }
 
@@ -305,6 +312,29 @@ public class NettyTcpServer extends LifeCycleSupport {
             infos.add(info);
         }
         return infos;
+    }
+
+    /**
+     * C6-017（plan 2523）：bind 失败路径的事件循环组清理——清单语义与 doStop 一致
+     *（shaping.release → 自建 worker 组 → boss 组；外部注入 worker 组只关 boss）。
+     * 所有权以创建时刻快照判定（ownWorkerGroup），禁清理点重读字段（字段在成功路径才回写）。
+     */
+    private void releaseBindFailure(EventLoopGroup bossGroup, EventLoopGroup workerGroup,
+                                    boolean ownWorkerGroup, Throwable cause) {
+        if (globalTrafficShapingHandler != null) {
+            try {
+                globalTrafficShapingHandler.release();
+            } catch (Exception e) {
+                LOG.debug("nop.netty.release-shaping-fail-on-bind-fail", e);
+            }
+            globalTrafficShapingHandler = null;
+        }
+        if (ownWorkerGroup && workerGroup != null) {
+            workerGroup.shutdownGracefully();
+        }
+        if (bossGroup != null) {
+            bossGroup.shutdownGracefully();
+        }
     }
 
     @Override

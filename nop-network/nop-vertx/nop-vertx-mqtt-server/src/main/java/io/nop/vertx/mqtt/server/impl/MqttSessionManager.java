@@ -40,8 +40,17 @@ public class MqttSessionManager {
     }
 
     public void removeConnection(IMqttConnection conn) {
-        sessions.remove(conn.getClientId(), conn);
-        subscriptions.remove(conn.getClientId());
+        // C1-008/C3-018/C6-020（plan 2523，MA-01 三登记一工单）：属主校验条件清——仅当
+        // sessions 当前值仍为该连接（属主）时才清订阅表。无条件清会让会话接管后旧连接的
+        // 迟到 close 抹掉新连接已登记的订阅（下行路由静默失效）。compute 单点定夺：属主
+        // 判定与订阅清空同一 bin 锁临界，get-校验-remove 两步会复开 TOCTOU 窗口。
+        sessions.compute(conn.getClientId(), (clientId, current) -> {
+            if (current == conn) {
+                subscriptions.remove(clientId);
+                return null;
+            }
+            return current;
+        });
     }
 
     public IMqttConnection getConnection(String clientId) {

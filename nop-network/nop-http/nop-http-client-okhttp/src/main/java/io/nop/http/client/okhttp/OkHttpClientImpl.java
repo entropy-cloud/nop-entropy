@@ -45,6 +45,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
 public class OkHttpClientImpl implements IHttpClient {
+    static final org.slf4j.Logger LOG = org.slf4j.LoggerFactory.getLogger(OkHttpClientImpl.class);
+
     static final MediaType MEDIA_TYPE_JSON = MediaType.parse(HttpApiConstants.CONTENT_TYPE_JSON);
 
     private final OkHttpClient client;
@@ -64,6 +66,14 @@ public class OkHttpClientImpl implements IHttpClient {
         // 4.3-C3-012：取消监听器经平台单点 FutureHelper.bindCancelToken 收敛——注册与 remove
         // 按 promise 终态配对，长生命周期 cancelToken 的监听器不再随请求次数无界累积
         FutureHelper.bindCancelToken(cancelToken, reason -> call.cancel(), future);
+
+        // C6-006 (plan 2523)：promise 终态→底层取消桥接——promise.cancel 与 call.cancel()
+        // 是两个对象，返回 future 被取消（如 sidecar get 超时）时经桥触达 OkHttp call
+        future.whenComplete((r, e) -> {
+            if (future.isCancelled()) {
+                call.cancel();
+            }
+        });
 
         call.enqueue(new Callback() {
             @Override
@@ -250,14 +260,18 @@ public class OkHttpClientImpl implements IHttpClient {
 
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
         for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+            java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(
+                    HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                    .toCompletableFuture();
             try {
-                IHttpResponse res = fetchAsync(
-                        HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
-                        .toCompletableFuture().get(30, java.util.concurrent.TimeUnit.SECONDS);
+                IHttpResponse res = future.get(30, java.util.concurrent.TimeUnit.SECONDS);
                 if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
                     return res.getBodyAsString();
             } catch (Exception e) {
-                // sidecar 探测失败不阻断下载
+                // C6-006（plan 2522）：get 超时取消在途请求——经 promise→call 桥触达底层，
+                // 连接归还池不再滞留至 readTimeout；sidecar 探测失败不阻断下载
+                future.cancel(false);
+                LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
             }
         }
         return null;

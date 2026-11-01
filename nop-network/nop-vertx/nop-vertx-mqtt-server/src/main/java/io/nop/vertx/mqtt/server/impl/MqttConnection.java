@@ -135,7 +135,13 @@ public class MqttConnection implements IMqttConnection {
                     handler.onUnsubscribe(msg, this);
                 });
 
-        // 注册完所有 handler 后发送 CONNACK，完成与客户端的连接建立
+    }
+
+    /**
+     * C6-020（plan 2523）：CONNACK 发出点移出构造函数——acceptEndpoint 先注册会话再
+     * accept，消除「CONNACK 已发、会话未注册」的订阅丢失窗口。
+     */
+    void accept() {
         endpoint.accept();
     }
 

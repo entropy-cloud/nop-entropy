@@ -167,7 +167,19 @@ public class SftpClient implements IFileServiceClient {
         session.setTimeout(config.getTimeoutMillis());
         session.connect(config.getTimeoutMillis());
         channel = (ChannelSftp) session.openChannel("sftp");
-        channel.connect(config.getTimeoutMillis());
+        try {
+            channel.connect(config.getTimeoutMillis());
+        } catch (Exception e) {
+            // C6-018（plan 2522/2523 接缝，plan 2523 落地）：构造期「session 已连、channel
+            // 未开」失败必须回收 SSH 会话——构造抛错调用方引用不可得，无人 disconnect。
+            // R2-19 的 connect(ms) 超时路径即本回收面的触发前提。
+            try {
+                session.disconnect();
+            } catch (Exception closeError) {
+                LOG.debug("nop.sftp.session-disconnect-fail-on-channel-connect-fail", closeError);
+            }
+            throw e;
+        }
     }
 
     @Override

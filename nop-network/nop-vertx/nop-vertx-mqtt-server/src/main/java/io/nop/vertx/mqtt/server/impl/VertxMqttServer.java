@@ -122,6 +122,11 @@ public class VertxMqttServer extends LifeCycleSupport {
         if (old != null && old != connection) {
             LOG.info("nop.vertx.mqtt.session-takeover:clientId={}", connection.getClientId());
         }
+
+        // C6-020 窗口①（plan 2523）：accept（CONNACK）先注册后发出——否则客户端在注册前
+        // 收到 CONNACK 即发 SUBSCRIBE，订阅先落表、随后 addConnection 接管清空（订阅丢失）。
+        // 窗口①修复与 C1-018 close 回调挂载面相邻（close 回调已在 accept 前挂载，不受影响）。
+        connection.accept();
     }
 
     /**

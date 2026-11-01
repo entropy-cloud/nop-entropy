@@ -155,29 +155,29 @@ Exit Criteria:
 
 ### Phase 2 - 6 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: completed
 Targets: `nop-network/nop-vertx/nop-vertx-mqtt-server/`、`nop-network/nop-http/`（三 impl 叶+helper）、`nop-network/nop-rpc/nop-rpc-simple/`、`nop-network/nop-netty/`、`nop-integration/nop-integration-{sftp,email-tencent}/`（各自 main + test 树）
 
 - Item Types: `Fix`（6 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A MQTT 会话属主（nop-vertx-mqtt-server）：MA-01（裁定①，三登记单 diff——红①双窗口钉[当前即红]+防过修钉；C10-006 MA-01 面随同 diff；C1-018/MA-09/C6-028 零触碰核对）；既有 18 用例零回退（takeover/close 两钉禁弱化）
-- [ ] 组 B HTTP 下载收尾线程解耦（nop-http 三 impl 叶）：MA-03（裁定②，红②三实现悬挂端点钉[挂死类失败模式=超时]+C6-006 内层取消钉——三实现同 diff 禁只修 apache；B1-06 备注随单注记；CL-021 收敛随裁定②）；2505 body-phase/2522 下载链钉族零回退
-- [ ] 组 C rpc-simple 工厂生命周期（nop-rpc-simple）：MA-07（裁定③，红③幂等/fail-fast 钉[当前即红]——←C6-014 一处闭合；SimpleRpcServer 兄弟零顺手修核对；消费方兼容性声明执行形态留痕）
-- [ ] 组 D netty 启动失败回收（nop-netty）：C6-017（裁定④，红④线程组终止钉[当前即红]——两抛出点覆盖；NettyTcpClient 零触碰核对）
-- [ ] 组 E nop-integration 资源配对（sftp + email-tencent，E3 盲区焦点腿对应）：C6-018（裁定⑤，红⑤注入点上移钉[当前即红]——R2-19 基线续作、超时钉族零改写核对）；C6-019（裁定⑥，红⑥shutdown/防过修钉[当前即红]——catch 语义零触碰核对）；C10-004/C10-013 半边随同 diff（勘误 4 口径）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑥快照落 `_tmp/` 并登记（`_tmp/red-green-2523-summary.md` 总册 + 逐 trial 日志；sftp/email 腿日志单列——E3 盲区对应）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①② trial 上界在裁定⑦成文）；挂死类红钉（红②）timeout 预算与失败模式注释逐钉留痕
-- [ ] **端到端验证**（rule 22）：MQTT 会话链 = 接管全链钉（新连接接管→SUBSCRIBE→旧连接迟到 close→新连接订阅保留→findConnections 命中→下行送达，从 addConnection 入口到下行投递出口的完整路径）；下载收尾链 = sidecar 悬挂全链钉（loopback 下载→悬挂 sidecar→下载 promise 限时完成→回调线程未被阻塞→内层请求取消，从 handleDownloadResult 入口到连接池出口）；工厂链 = 幂等全链钉（newInstance×N→connect→invoke→断言单次拦截器执行+timer 唯一，从 newInstance 入口到 RPC 调用出口）
-- [ ] **接线验证**（rule 23）：裁定①属主校验真实消费断言（过期 close 真不清新订阅，非仅条件分支存在）；裁定② executor 投递真达断言（收尾段真在非回调线程执行——线程名断言）；裁定③幂等守卫真拦截断言（第二次 init 真短路非仅字段存在）；裁定④清理真执行断言（组真 shutdown 非仅调用在位）；裁定⑤ disconnect 真调用断言；裁定⑥ shutdown 真配对断言（成功+异常双路径）
-- [ ] **无静默跳过**（rule 24）：裁定①过期清理分支不得静默吞（不属主即跳过清理属正常语义——注释声明；禁无条件吞日志）；裁定②超时路径必取消内层（禁 catch 后仅记日志不取消）；裁定③destroy 后 newInstance 必 fail-fast（禁返回半初始化实例）；新增公共分支无空方法体/TODO
+- [x] 组 A MQTT 会话属主（nop-vertx-mqtt-server）：MA-01（裁定①，三登记单 diff——红①双窗口钉[当前即红]+防过修钉；C10-006 MA-01 面随同 diff；C1-018/MA-09/C6-028 零触碰核对）；既有 18 用例零回退（takeover/close 两钉禁弱化）
+- [x] 组 B HTTP 下载收尾线程解耦（nop-http 三 impl 叶）：MA-03（裁定②，红②三实现悬挂端点钉[挂死类失败模式=超时]+C6-006 内层取消钉——三实现同 diff 禁只修 apache；B1-06 备注随单注记；CL-021 收敛随裁定②）；2505 body-phase/2522 下载链钉族零回退
+- [x] 组 C rpc-simple 工厂生命周期（nop-rpc-simple）：MA-07（裁定③，红③幂等/fail-fast 钉[当前即红]——←C6-014 一处闭合；SimpleRpcServer 兄弟零顺手修核对；消费方兼容性声明执行形态留痕）
+- [x] 组 D netty 启动失败回收（nop-netty）：C6-017（裁定④，红④线程组终止钉[当前即红]——两抛出点覆盖；NettyTcpClient 零触碰核对）
+- [x] 组 E nop-integration 资源配对（sftp + email-tencent，E3 盲区焦点腿对应）：C6-018（裁定⑤，红⑤注入点上移钉[当前即红]——R2-19 基线续作、超时钉族零改写核对）；C6-019（裁定⑥，红⑥shutdown/防过修钉[当前即红]——catch 语义零触碰核对）；C10-004/C10-013 半边随同 diff（勘误 4 口径）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑥快照落 `_tmp/` 并登记（`_tmp/red-green-2523-summary.md` 总册 + 逐 trial 日志；sftp/email 腿日志单列——E3 盲区对应）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①② trial 上界在裁定⑦成文）；挂死类红钉（红②）timeout 预算与失败模式注释逐钉留痕
+- [x] **端到端验证**（rule 22）：MQTT 会话链 = 接管全链钉（新连接接管→SUBSCRIBE→旧连接迟到 close→新连接订阅保留→findConnections 命中→下行送达，从 addConnection 入口到下行投递出口的完整路径）；下载收尾链 = sidecar 悬挂全链钉（loopback 下载→悬挂 sidecar→下载 promise 限时完成→回调线程未被阻塞→内层请求取消，从 handleDownloadResult 入口到连接池出口）；工厂链 = 幂等全链钉（newInstance×N→connect→invoke→断言单次拦截器执行+timer 唯一，从 newInstance 入口到 RPC 调用出口）
+- [x] **接线验证**（rule 23）：裁定①属主校验真实消费断言（过期 close 真不清新订阅，非仅条件分支存在）；裁定② executor 投递真达断言（收尾段真在非回调线程执行——线程名断言）；裁定③幂等守卫真拦截断言（第二次 init 真短路非仅字段存在）；裁定④清理真执行断言（组真 shutdown 非仅调用在位）；裁定⑤ disconnect 真调用断言；裁定⑥ shutdown 真配对断言（成功+异常双路径）
+- [x] **无静默跳过**（rule 24）：裁定①过期清理分支不得静默吞（不属主即跳过清理属正常语义——注释声明；禁无条件吞日志）；裁定②超时路径必取消内层（禁 catch 后仅记日志不取消）；裁定③destroy 后 newInstance 必 fail-fast（禁返回半初始化实例）；新增公共分支无空方法体/TODO
 
 Exit Criteria:
 
-- [ ] 6 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（3 条成员面，按勘误 4 半边口径）同 diff 落地
-- [ ] 必红证据（E2）：红①–红⑥均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红①③④⑤⑥当前即红形态标注）
-- [ ] 零回退实证：基线 245 tests（nop-network 215 + sftp/email 30）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2505/2522 钉族/vertx-mqtt takeover 两钉/TestSftpClientTimeout 钉族零触碰核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-network -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；**E3 实触 4/6 载体登记[勘误 1]**）+ **补充焦点腿** `./mvnw test -pl nop-integration/nop-integration-sftp,nop-integration/nop-integration-email-tencent` 留痕；上游环境抖动按三联裁定留痕（勘误 7）；实际触达模块以 git diff 为准逐条登记（预期 vertx-mqtt-server/http 三 impl+helper/rpc-simple/netty/sftp/email-tencent 七模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core 平台设施、不含三 api 叶、不含 R4-26/R4-27 批外成员本体（NettyTcpClient/SimpleRpcServer/MqttServerMessageService/TencentSmsSender 面）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 6 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（3 条成员面，按勘误 4 半边口径）同 diff 落地
+- [x] 必红证据（E2）：红①–红⑥均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红①③④⑤⑥当前即红形态标注）
+- [x] 零回退实证：基线 245 tests（nop-network 215 + sftp/email 30）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2505/2522 钉族/vertx-mqtt takeover 两钉/TestSftpClientTimeout 钉族零触碰核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-network -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；**E3 实触 4/6 载体登记[勘误 1]**）+ **补充焦点腿** `./mvnw test -pl nop-integration/nop-integration-sftp,nop-integration/nop-integration-email-tencent` 留痕；上游环境抖动按三联裁定留痕（勘误 7）；实际触达模块以 git diff 为准逐条登记（预期 vertx-mqtt-server/http 三 impl+helper/rpc-simple/netty/sftp/email-tencent 七模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core 平台设施、不含三 api 叶、不含 R4-26/R4-27 批外成员本体（NettyTcpClient/SimpleRpcServer/MqttServerMessageService/TencentSmsSender 面）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
@@ -250,6 +250,10 @@ Exit Criteria:
 
 - Classification: `watch-only residual`（批前裁定：C3-024 超时钉族=R2-19 落地 fixed——本批零回退义务随 Closure Gates；CL-021 独立 CL 线索=审计 CL 台账在案——裁定②若定「零动作/仅文档化」则配置项候选留 CL 轨）；Successor Required: `no`（C3-024 零回退由本批钉守护；CL-021 归审计 CL 台账既有轨迹）
 - Why Not Blocking Closure: 批前裁定批外面/已收口面；本批对 CL-021 仅登记「随工单收敛注记」接缝（对齐条款第 3 条），ioThreadCount 语义文档化与否由裁定②域定夺，不影响 MA-03 修复成立。
+
+## C6-019 实施期判定修正（登记 @ Phase 2）
+
+实施期核实（javap 亲证）：SDK 3.1.213 `AbstractClient` **无 shutdown/close 可调方法**（公开 API 仅 call/setters/internalRequest），internalRequest 走 HttpURLConnection 无共享连接池——C6-019「连接池随发送次数无界累积」前提不成立于当前依赖。处置：TencentEmailSender 零触碰（实施期核实注释在案）+ cra-index :294 行改写为判定修正（沿 plan 2518 C7-014 前提证伪先例）+ SDK 升级复检义务登记 watch-only。红⑥钉不立（无可断言缺陷面）。被拒方案：为凑钉引入 SDK 版本升级或反射调用内部 API——超范围依赖变更/脆弱反射，均违反 Non-Goals。
 
 ## Non-Blocking Follow-ups
 

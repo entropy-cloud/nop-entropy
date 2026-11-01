@@ -167,6 +167,9 @@ public class TencentEmailSender implements IEmailSender {
     public void sendEmail(EmailMessage mail) {
         ResolvedCredential credential = resolveCredential();
         SesClient client = createClient(credential);
+        // C6-019 判定修正（plan 2523 实施期核实）：SDK 3.1.213 AbstractClient 无 shutdown/
+        // close 可调（javap 亲证），internalRequest 走 HttpURLConnection 无共享连接池——
+        // 「连接池无界累积」前提不成立于当前依赖；SDK 升级复检义务已登记 cra-index。
         try {
             SendEmailRequest req = new SendEmailRequest();
 
