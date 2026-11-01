@@ -251,6 +251,13 @@ Exit Criteria:
 - Classification: `watch-only residual`（批前裁定：C3-024 超时钉族=R2-19 落地 fixed——本批零回退义务随 Closure Gates；CL-021 独立 CL 线索=审计 CL 台账在案——裁定②若定「零动作/仅文档化」则配置项候选留 CL 轨）；Successor Required: `no`（C3-024 零回退由本批钉守护；CL-021 归审计 CL 台账既有轨迹）
 - Why Not Blocking Closure: 批前裁定批外面/已收口面；本批对 CL-021 仅登记「随工单收敛注记」接缝（对齐条款第 3 条），ioThreadCount 语义文档化与否由裁定②域定夺，不影响 MA-03 修复成立。
 
+## Closure Audit Major 修正闭环（登记 @ Phase 4）
+
+closure audit（agent_5a987daf，APPROVED with corrections）两项 Major 已闭环：
+
+1. **Major-1 okhttp 卸载缺角**：按处置选项 (a) 补实现——okhttp `fetchSidecarChecksum` 收尾段投 `GlobalExecutors.globalWorker()`（与 apache 同型，`.join()` 取回结果）+ 结构钉 `TestSidecarCancelBridge.okhttpSidecarOffloadedToWorkerPool` 兑现；设计文档 §3.2 矩阵 okhttp 行补闭环注记。
+2. **Major-2 MA-01 钉集缺角**：新增 `TestMqttWindow1AcceptOrder_C6_020`（2 钉）——窗口①集成级钉（顺序不变式：accept() 时 sessions 已注册[变异探针：accept 提前至注册前 → 红，`_tmp/red-green-2523-red-window1-r3.log`]）+ accept 后注入 SUBSCRIBE→迟到 stale close 订阅保留 + 并发 subscribe×N 防过修钉。
+
 ## C6-019 实施期判定修正（登记 @ Phase 2）
 
 实施期核实（javap 亲证）：SDK 3.1.213 `AbstractClient` **无 shutdown/close 可调方法**（公开 API 仅 call/setters/internalRequest），internalRequest 走 HttpURLConnection 无共享连接池——C6-019「连接池随发送次数无界累积」前提不成立于当前依赖。处置：TencentEmailSender 零触碰（实施期核实注释在案）+ cra-index :294 行改写为判定修正（沿 plan 2518 C7-014 前提证伪先例）+ SDK 升级复检义务登记 watch-only。红⑥钉不立（无可断言缺陷面）。被拒方案：为凑钉引入 SDK 版本升级或反射调用内部 API——超范围依赖变更/脆弱反射，均违反 Non-Goals。

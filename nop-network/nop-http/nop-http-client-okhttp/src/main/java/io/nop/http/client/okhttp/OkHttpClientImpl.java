@@ -259,22 +259,28 @@ public class OkHttpClientImpl implements IHttpClient {
     }
 
     private String fetchSidecarChecksum(String url, ICancelToken cancelToken) {
-        for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
-            java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(
-                    HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
-                    .toCompletableFuture();
-            try {
-                IHttpResponse res = future.get(30, java.util.concurrent.TimeUnit.SECONDS);
-                if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
-                    return res.getBodyAsString();
-            } catch (Exception e) {
-                // C6-006（plan 2522）：get 超时取消在途请求——经 promise→call 桥触达底层，
-                // 连接归还池不再滞留至 readTimeout；sidecar 探测失败不阻断下载
-                future.cancel(false);
-                LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+        // C3-004（plan 2523 closure audit Major-1 闭环）：sidecar 探测整体移出 OkHttp
+        // dispatcher 回调线程——嵌套同步 get(30s)×2 复用回调线程占用 dispatcher（与 apache
+        // reactor 同型；设计 §3.2 矩阵 okhttp 行兑现）
+        return io.nop.commons.concurrent.executor.GlobalExecutors.globalWorker()
+                .<String>submit(() -> {
+            for (String algorithm : new String[]{FileTransferHelper.SHA256, FileTransferHelper.SHA1}) {
+                java.util.concurrent.CompletableFuture<IHttpResponse> future = fetchAsync(
+                        HttpRequest.get(FileTransferHelper.sidecarUrl(url, algorithm)), cancelToken)
+                        .toCompletableFuture();
+                try {
+                    IHttpResponse res = future.get(30, java.util.concurrent.TimeUnit.SECONDS);
+                    if (res.getHttpStatus() == 200 && res.getBodyAsString() != null)
+                        return res.getBodyAsString();
+                } catch (Exception e) {
+                    // C6-006（plan 2522）：get 超时取消在途请求——经 promise→call 桥触达底层，
+                    // 连接归还池不再滞留至 readTimeout；sidecar 探测失败不阻断下载
+                    future.cancel(false);
+                    LOG.debug("nop.http.download.sidecar-check-fail:url={}", url, e);
+                }
             }
-        }
-        return null;
+            return null;
+        }).join();
     }
 
     private static HttpRequest copyRequest(HttpRequest request) {

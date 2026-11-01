@@ -71,4 +71,13 @@ public class TestSidecarCancelBridge_C6_006 {
                 "C3-004: apache sidecar probing must run off the HC5 reactor callback thread"
                         + " (ioThreadCount=1 config = whole-reactor stall, CL-021)");
     }
+
+    @Test
+    public void okhttpSidecarOffloadedToWorkerPool() throws Exception {
+        String code = read("nop-http-client-okhttp",
+                "io/nop/http/client/okhttp/OkHttpClientImpl.java");
+        assertTrue(code.contains("GlobalExecutors.globalWorker()"),
+                "C3-004: okhttp sidecar probing must run off the OkHttp dispatcher callback thread"
+                        + " (plan 2523 closure audit Major-1 闭环)");
+    }
 }
