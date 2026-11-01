@@ -47,12 +47,17 @@ options.setMode(UploadMode.BASE64_FORM);
 - 校验失败 → 删除 `.part`、以 `nop.err.http.download-checksum-mismatch` 失败；`options.isRequireChecksum()` 要求必须有校验来源，否则 `nop.err.http.download-no-checksum`。
 - 进度：`options.setProgressListener(...)` 按 `offset+received / total` 回调。
 
+## MQTT 会话生命周期并发契约（nop-vertx-mqtt-server，C1-008/C3-018/C6-020）
+
+- **removeConnection 属主校验**：旧连接迟到 close 仅当其仍为会话属主时才清订阅（compute 单点定夺——属主判定与订阅清空同 bin 锁临界，get-校验-remove 两步会复开 TOCTOU 窗口）。否则设备重连后下行路由静默失效（客户端不重发 SUBSCRIBE，QoS0 无错误可见）。
+- **先注册后 CONNACK**：`VertxMqttServer.acceptEndpoint` 顺序 = new MqttConnection（挂 handler，不含 accept）→ 挂 close 回调 → addConnection 注册 → `connection.accept()`。CONNACK 先于注册发出会开「SUBSCRIBE 先落表、接管清空」的订阅丢失窗口①。`MqttConnection.accept()` 为构造后显式调用点。
+
 ## MQTT 服务端消息
 
 `nop-vertx-mqtt-server`：
 
 - **下行**：`IMqttConnection.sendAsync(topic, message, options)` 向该连接 publish（QoS1）。payload 支持 String（UTF-8）/ byte[]，其余对象 JSON 序列化；连接断开抛 `nop.err.mqtt.not-connected`。
-- **路由下发**：`MqttServerMessageService`（bean）实现 `IMessageService`。`sendAsync(topic, msg)` 会向所有订阅匹配（MQTT `+`/`#` 通配）的连接下发；无匹配连接时空广播正常完成。
+- **路由下发**：`MqttServerMessageService`（bean）实现 `IMessageService`（生命周期并发契约见上节）。`sendAsync(topic, msg)` 会向所有订阅匹配（MQTT `+`/`#` 通配）的连接下发；无匹配连接时空广播正常完成。
 - **上行订阅**：`MqttServerMessageService.subscribe("cmd/#", listener)` 注册进程内监听；设备上行 publish 按同一通配语义分发，`data` 为 payload 的 UTF-8 文本；二进制场景直接实现 `IMqttHandler`。
 - 会话接管（同 clientId 新连接踢旧连接）、断连清理（连接与订阅登记）由 `MqttSessionManager` 维护。
 
@@ -67,9 +72,24 @@ options.setMode(UploadMode.BASE64_FORM);
 - **重连单飞与世代守卫（C1-009/C6-021）**：`onClose`/`onError` 双终态经 CAS 单飞去重为恰一在飞重连；`lifecycleGeneration` 在 start（connect 调用前）与 stop 各递增一次，重连/完成回调/`onOpen` 比对连接前记录的世代快照——过期世代回调丢弃、stop 后完成的建连立即关闭（孤儿消除，`connectCount - closeCount ≤ 1` 不变式）、晚到 `onOpen` 不置 connected 不发握手。重连前先 close 旧连接（fd 不依赖对端断开）。
 - **stop 停机语义**：stop 递增世代 + cancel 心跳 + close transport；stop 返回后任何旧世代在途建连/回调确定性失效（不对新世代 promise/连接产生影响）。`stop→start` 重启重置世代并重建连接。
 
+## HTTP 客户端回调线程与 sidecar 探测契约（C3-004/C6-006）
+
+- **下载收尾重活移出回调线程**：下载完成回调线程（HC5 reactor dispatch/OkHttp dispatcher）只做廉价状态判定与 416 重派，sidecar 探测、校验、rename 收尾段投递 `GlobalExecutors.globalWorker()`（apache 面）或既有 executor 卸载（jdk :416 先落）——嵌套同步 `get(30s)×2` 复用回调线程会在 ioThreadCount=1 配置面（CL-021）下占死整个 reactor。
+- **C6-006 取消传播桥接**：三实现 fetchAsync 的返回 promise 均不向上游传播取消（jdk 为 thenApply 派生 stage、okhttp/apache 为裸 CF），fetchAsync 内以 `whenComplete` 桥接 promise-cancellation → 底层取消（call.cancel()/裸 sendAsync stage/HC5 future）；`fetchSidecarChecksum` get(30s) 超时 catch 内对 promise `cancel(false)`，经桥接中止在途请求（连接归还池，不滞留至 readTimeout）。
+- **CL-021**：`HttpClientConfig.ioThreadCount` 缺省 0=HC5 取 availableProcessors；ioThreadCount=1 为全连接停摆配置面，文档化警示不新增配置项。
+
+## SimpleRpcClientFactory 生命周期契约（nop-rpc-simple，C1-001）
+
+- `init` 幂等（synchronized + volatile inited 幂等早退——logBody 拦截器装配一次、timer/executor 单点创建）；`destroy` 后 `newInstance` 抛 IllegalStateException fail-fast（在已销毁 executor 上投递是编程错误）。
+
+## NettyTcpServer bind 失败清理契约（nop-netty，C6-017）
+
+- doStart 两 bind 失败抛出点（sync 异常 + !isSuccess）必须调用 `releaseBindFailure`：shaping.release → 自建 worker 组 shutdown → boss 组 shutdown。所有权以创建时刻快照判定（外部注入 worker 组只关 boss）。
+
 ## SFTP 客户端超时契约（nop-integration-sftp，C3-024）
 
 - `SftpConfig.timeoutMillis`（缺省 15s，0=jsch 无限——禁用）单值承载三段接线：`session.setTimeout(...)`（socket SO_TIMEOUT，per-read 读段包络——活动传输每次读重置计时，长传输无总时长预算为 by design）+ `session.connect(ms)`（建连上界，banner 黑洞等）+ `channel.connect(ms)`（channel 开启上界）。超时异常经既有 `ERR_SFTP_CONNECT_FAIL` 包装外抛。
+- **构造期会话回收（C6-018，plan 2523 落地）**：`channel.connect` 失败路径 `session.disconnect()` 后原样再抛——构造抛错调用方引用不可得，会话必须就地回收。R2-19 的 connect(ms) 超时路径即本回收面的触发前提。
 - **边界注记**：构造期「session 已连、channel 未开」失败回收面归 R2-20（本批 connect(ms) 抛超时路径即其触发前提）。
 - 无连接级 keep-alive/重连语义——`SftpClientFactory.newClient` 每操作新建客户端（构造即建连）。
 

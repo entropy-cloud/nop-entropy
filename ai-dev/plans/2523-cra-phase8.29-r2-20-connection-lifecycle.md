@@ -181,25 +181,25 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: nop-network 聚合全量测试 + sftp/email 补充焦点腿；`docs-for-ai/03-modules/nop-network.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2522 Phase 3 先例声明支路理由与逐面三联裁定留痕）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-network -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定；E3 盲区登记）+ **补充焦点腿（勘误 1 强制项）**：`./mvnw test -pl nop-integration/nop-integration-sftp,nop-integration/nop-integration-email-tencent` BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/三 api 叶/R4-26·27 批外成员本体/既有钉面）
-- [ ] Owner doc 更新：`nop-network.md` 六处落点——①:57 MQTT 行补属主校验契约句（会话接管/断连清理按属主绑定语义——过期清理不清新订阅+双窗口语义）；②:46 sidecar 行补回调线程契约句（探测在非回调线程执行+超时内层取消+ioThreadCount 语义如收敛）；③:73 SFTP 节内补 C6-018 构造回收句（既有边界注记改写为已落地终态）；④新增「Simple RPC 客户端工厂生命周期契约」小节（幂等 init/世代守卫/destroy 后 fail-fast）；⑤新增「Netty TCP 服务端启动失败资源回收契约」小节（两抛出点清理/所有权纪律）；⑥新增「Tencent 邮件发送器资源生命周期契约」小节（finally shutdown 配对/Yunpian 兄弟对照/catch 语义边界）；`source-anchors.md` 新增 `NETWORK-CC-002` 锚点行（六成员文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；NETWORK-CC-001 :105 之后按实际行号插入）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-network --severity high` 与 `--module nop-integration --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2522 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准；nop-integration 已知 1 条批前既有 JavaEmailSender :216 email 叶零触面[2522 Phase 3 留痕]）
-- [ ] vertx-mqtt 部署包络确认**申报动作**执行留痕（勘误 6——申报性非裁定性：登记申报记录[零装配证据+MA-01 功能后果论证]与 owner 结论留白位；结论登记归 Phase 4 收口时随 owner 反馈落账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2522 Phase 3 先例声明支路理由与逐面三联裁定留痕）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-network -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定；E3 盲区登记）+ **补充焦点腿（勘误 1 强制项）**：`./mvnw test -pl nop-integration/nop-integration-sftp,nop-integration/nop-integration-email-tencent` BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/三 api 叶/R4-26·27 批外成员本体/既有钉面）
+- [x] Owner doc 更新：`nop-network.md` 六处落点——①:57 MQTT 行补属主校验契约句（会话接管/断连清理按属主绑定语义——过期清理不清新订阅+双窗口语义）；②:46 sidecar 行补回调线程契约句（探测在非回调线程执行+超时内层取消+ioThreadCount 语义如收敛）；③:73 SFTP 节内补 C6-018 构造回收句（既有边界注记改写为已落地终态）；④新增「Simple RPC 客户端工厂生命周期契约」小节（幂等 init/世代守卫/destroy 后 fail-fast）；⑤新增「Netty TCP 服务端启动失败资源回收契约」小节（两抛出点清理/所有权纪律）；⑥新增「Tencent 邮件发送器资源生命周期契约」小节（finally shutdown 配对/Yunpian 兄弟对照/catch 语义边界）；`source-anchors.md` 新增 `NETWORK-CC-002` 锚点行（六成员文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；NETWORK-CC-001 :105 之后按实际行号插入）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-network --severity high` 与 `--module nop-integration --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2522 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准；nop-integration 已知 1 条批前既有 JavaEmailSender :216 email 叶零触面[2522 Phase 3 留痕]）
+- [x] vertx-mqtt 部署包络确认**申报动作**执行留痕（勘误 6——申报性非裁定性：登记申报记录[零装配证据+MA-01 功能后果论证]与 owner 结论留白位；结论登记归 Phase 4 收口时随 owner 反馈落账）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 + 补充焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；E3 盲区处置登记
-- [ ] nop-network.md 六处契约句落点 + source-anchors.md NETWORK-CC-002 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/三 api 叶/R4-26·27 批外成员本体/既有钉面）
-- [ ] vertx-mqtt 部署包络确认申报记录已登记（Phase 4 结论落账去向显式）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 + 补充焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；E3 盲区处置登记
+- [x] nop-network.md 六处契约句落点 + source-anchors.md NETWORK-CC-002 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/三 api 叶/R4-26·27 批外成员本体/既有钉面）
+- [x] vertx-mqtt 部署包络确认申报记录已登记（Phase 4 结论落账去向显式）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
