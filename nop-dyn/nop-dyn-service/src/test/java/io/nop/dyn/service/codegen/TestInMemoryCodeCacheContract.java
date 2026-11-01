@@ -170,11 +170,20 @@ public class TestInMemoryCodeCacheContract {
     }
 
     /**
-     * 类契约：所有代码生成方法（含 genPageFile/genViewFile/getOrmModel）都必须 synchronized，
-     * 共享 IEvalScope 的局部变量槽不允许交叉写入；mergedStore/dynResourceStore 必须volatile保证可见性
+     * 类契约（MA-02 同 diff 改写为行为等价口径，plan 2525 裁定④；禁纯删）：
+     * ①高频命中路径 getResource 必须无 synchronized 修饰（命中读不再为锁内 DB I/O+XPL 生成排队——
+     * 反向钉死的原断言把全局单点串行固化，随命中无锁化改写为「无锁化」断言本身）；
+     * ②三个生成方法仍必须 synchronized（共享 IEvalScope 的局部变量槽不允许交叉写入）；
+     * ③mergedStore/dynResourceStore 必须 volatile（I-01 COW 写时复制发布依赖 volatile 写保证读侧
+     * 永不观察到底层结构修改）；④DynResourceStore 内层 store 必须 volatile（COW 替换经其原子可见）。
      */
     @Test
     public void testGenerationMethodsSynchronizedAndStoresVolatile() throws Exception {
+        int getResourceMods = DynResourceStore.class
+                .getMethod("getResource", String.class, boolean.class).getModifiers();
+        assertTrue(!Modifier.isSynchronized(getResourceMods),
+                "MA-02: getResource命中路径必须无锁——synchronized修饰符回归即限速器退化");
+
         assertTrue(Modifier.isSynchronized(InMemoryCodeCache.class
                 .getMethod("genPageFile", ModuleModel.class, GraphQLBizModel.class, String.class, boolean.class)
                 .getModifiers()), "genPageFile必须synchronized");
@@ -189,6 +198,8 @@ public class TestInMemoryCodeCacheContract {
                 "mergedStore必须volatile");
         assertTrue(Modifier.isVolatile(field(InMemoryCodeCache.class, "dynResourceStore").getModifiers()),
                 "dynResourceStore必须volatile");
+        assertTrue(Modifier.isVolatile(field(DynResourceStore.class, "store").getModifiers()),
+                "DynResourceStore.store必须volatile——COW整体替换经其对外部持有者原子可见");
     }
 
     static Field field(Class<?> clazz, String name) throws Exception {
@@ -271,9 +282,11 @@ public class TestInMemoryCodeCacheContract {
             }
         };
 
-        ICache<String, AtomicReference<InMemoryCodeCache>> tenantCache =
-                (ICache<String, AtomicReference<InMemoryCodeCache>>) field(DynCodeGen.class, "tenantCache").get(codeGen);
-        tenantCache.put("t1", new AtomicReference<>(tenantCacheEntry));
+        ICache<String, DynCodeGen.TenantCodeCacheEntry> tenantCache =
+                (ICache<String, DynCodeGen.TenantCodeCacheEntry>) field(DynCodeGen.class, "tenantCache").get(codeGen);
+        DynCodeGen.TenantCodeCacheEntry entry = new DynCodeGen.TenantCodeCacheEntry();
+        entry.setCache(tenantCacheEntry);
+        tenantCache.put("t1", entry);
 
         codeGen.clearForTenant("t1");
         assertEquals(1, cleared.get(), "clearForTenant必须执行租户cache的clear()以触发on-unload钩子");

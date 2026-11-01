@@ -64,6 +64,25 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         super.saveEntity(entity, action, context);
     }
 
+    /**
+     * 模块级删除缓存失效（I-04/C6-101，plan 2525 裁定⑨；形态照抄 NopDynFunctionMetaBizModel
+     * afterEntityChange 先例）。模块级删除涉及 codeCache 模块移除 / VFS in-memory 层 /
+     * bizObjectManager 三面——全量 reloadModel 是既有唯一同步三面的通道（按模块精确失效
+     * 无法原子覆盖共享全局态）。已删模型在 reload 完成前的在途请求按旧模型完成（生成/加载
+     * 通道既有语义，窗口声明落 nop-dyn.md）。
+     */
+    @io.nop.api.core.annotations.biz.BizAction
+    @Override
+    protected void afterEntityChange(@Name("entity") NopDynModule entity, @Name("action") String action,
+                                     IServiceContext context) {
+        super.afterEntityChange(entity, action, context);
+
+        if (BizConstants.METHOD_DELETE.equals(action)) {
+            dynCodeGen.removeDynModule(entity.getNopModuleId());
+            dynCodeGen.reloadModel();
+        }
+    }
+
     @BizMutation
     public NopDynModule importExcel(@Name("importFile") String importFile,
                                     @Optional @Name("removeNotExisting") boolean removeNotExisting,
