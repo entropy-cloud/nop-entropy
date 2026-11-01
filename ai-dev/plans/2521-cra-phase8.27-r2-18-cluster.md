@@ -138,27 +138,27 @@ Exit Criteria:
 
 ### Phase 2 - 4 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: completed
 Targets: `nop-cluster/nop-cluster-{core,nacos}/src/`、`nop-cluster/nop-rpc-cluster/src/`（各自 main + test 树）
 
 - Item Types: `Fix`（4 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A elector（nop-cluster-core elector）：C1-004（裁定①，六条族一处闭合 + C10-003 全条四钉[R1 Major-2 逐条枚举：建议(1) 并发复活钉=红①主判据 latch 挂起×stop；建议(2) stop→start 循环×2 双回路钉[checkElection 计数增速不翻倍]；建议(3) 等待者终态完成钉[whenElectionCompleted 挂接后 restartElection，断言等待者在 P2 上完成而非 CancellationException]；建议(4) complete 移出临界区**结构性钉**[慢 continuation latch 阻塞持锁期间另线程有界等待进入 synchronized 方法——缺陷态锁被持有为结构性红，**时延阈值形态按 R1 Major-2 裁定改结构性形态不降 watch**]] + C10-004 MA-01 半边钉[stop 后停止投递/监听器序]；2496 监督钉零回退）
-- [ ] 组 B 发现链（nop-cluster-nacos + core discovery 协同）：C1-001（裁定②，C10-006 半边红②两钉[旧引用视图+_host 契约]）+ C1-003（裁定③，C10-005 半边红③快照回退钉——与 C1-001 同 updateInstances 写入口同 diff 协同落地）
-- [ ] 组 C 调用链（nop-rpc-cluster）：C3-001（裁定④，C10-001 MA-07 半边红④终结性钉；条件申报触发检查留痕：预设未触发——`ClusterRpcClient` 纯消费 `IRpcService`，git diff 核对 nop-api-core 零触碰）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记（`_tmp/red-green-2521-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①/红②并发面 trial 上界在裁定⑤成文）
-- [ ] **端到端验证**（rule 22）：C1-004 生命周期链 = 复活钉（stop→在途裁决完成→断言终态不复活→监听器序全序断言，从 doStop 入口到监听器回调出口的完整路径）；C3-001 调用链 = 终结性钉（首跳失败→重试体同步抛→future completeExceptionally 全链，Mock/stub 从 callAsync 入口到 future 终结出口）；C1-001/C1-003 为写入口单点修复，由红②/红③钉承载（单点修复无链式入口，免端到端义务显式声明）
-- [ ] **接线验证**（rule 23）：裁定①终态守卫在 onElectionCompleted 真实消费断言（stop 后复活路径必被拦截，非仅标志存在）；裁定④ completeExceptionally 真实到达返回 future 断言（stub 异常→future 终结态断言，非仅 catch 存在）；裁定②重建对象真实替换 map 成员断言（旧引用与新引用非同一对象 + 读者视图各自一致）
-- [ ] **无静默跳过**（rule 24）：裁定④重试体异常必终结 future（禁 catch 后仅记日志不终结）；裁定①停止后回调路径显式拒绝/短路（禁静默 no-op 监听器吞并）；新增公共分支无空方法体/TODO
+- [x] 组 A elector（nop-cluster-core elector）：C1-004（裁定①，六条族一处闭合 + C10-003 全条四钉[R1 Major-2 逐条枚举：建议(1) 并发复活钉=红①主判据 latch 挂起×stop；建议(2) stop→start 循环×2 双回路钉[checkElection 计数增速不翻倍]；建议(3) 等待者终态完成钉[whenElectionCompleted 挂接后 restartElection，断言等待者在 P2 上完成而非 CancellationException]；建议(4) complete 移出临界区**结构性钉**[慢 continuation latch 阻塞持锁期间另线程有界等待进入 synchronized 方法——缺陷态锁被持有为结构性红，**时延阈值形态按 R1 Major-2 裁定改结构性形态不降 watch**]] + C10-004 MA-01 半边钉[stop 后停止投递/监听器序]；2496 监督钉零回退）
+- [x] 组 B 发现链（nop-cluster-nacos + core discovery 协同）：C1-001（裁定②，C10-006 半边红②两钉[旧引用视图+_host 契约]）+ C1-003（裁定③，C10-005 半边红③快照回退钉——与 C1-001 同 updateInstances 写入口同 diff 协同落地）
+- [x] 组 C 调用链（nop-rpc-cluster）：C3-001（裁定④，C10-001 MA-07 半边红④终结性钉；条件申报触发检查留痕：预设未触发——`ClusterRpcClient` 纯消费 `IRpcService`，git diff 核对 nop-api-core 零触碰）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记（`_tmp/red-green-2521-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①/红②并发面 trial 上界在裁定⑤成文）
+- [x] **端到端验证**（rule 22）：C1-004 生命周期链 = 复活钉（stop→在途裁决完成→断言终态不复活→监听器序全序断言，从 doStop 入口到监听器回调出口的完整路径）；C3-001 调用链 = 终结性钉（首跳失败→重试体同步抛→future completeExceptionally 全链，Mock/stub 从 callAsync 入口到 future 终结出口）；C1-001/C1-003 为写入口单点修复，由红②/红③钉承载（单点修复无链式入口，免端到端义务显式声明）
+- [x] **接线验证**（rule 23）：裁定①终态守卫在 onElectionCompleted 真实消费断言（stop 后复活路径必被拦截，非仅标志存在）；裁定④ completeExceptionally 真实到达返回 future 断言（stub 异常→future 终结态断言，非仅 catch 存在）；裁定②重建对象真实替换 map 成员断言（旧引用与新引用非同一对象 + 读者视图各自一致）
+- [x] **无静默跳过**（rule 24）：裁定④重试体异常必终结 future（禁 catch 后仅记日志不终结）；裁定①停止后回调路径显式拒绝/短路（禁静默 no-op 监听器吞并）；新增公共分支无空方法体/TODO
 
 Exit Criteria:
 
-- [ ] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（5 条成员面，按勘误 6 半边口径）同 diff 落地
-- [ ] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
-- [ ] 零回退实证：基线 80 tests + 既有钉零回退（钉零回改逐条 git diff 为空核对；反向钉死 #1/#3 零触碰核对）；`TestPollingElectorLoopInsulation` 3 钉零回退（2496 监督面）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（C1-001/C1-003 单点免端到端义务声明在案）
-- [ ] `./mvnw test -pl nop-cluster -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径）；上游环境抖动按三联裁定留痕（勘误 10）；实际触达模块以 git diff 为准逐条登记（预期 core/nacos/rpc-cluster 三模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 `SentinelFlowControlRunner.java` 与 `TestSentinelFlowControlRunner`、不含 R4-25/条化/watch 批外成员本体；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账[R1 Minor-5]）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（5 条成员面，按勘误 6 半边口径）同 diff 落地
+- [x] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记
+- [x] 零回退实证：基线 80 tests + 既有钉零回退（钉零回改逐条 git diff 为空核对；反向钉死 #1/#3 零触碰核对）；`TestPollingElectorLoopInsulation` 3 钉零回退（2496 监督面）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（C1-001/C1-003 单点免端到端义务声明在案）
+- [x] `./mvnw test -pl nop-cluster -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径）；上游环境抖动按三联裁定留痕（勘误 10）；实际触达模块以 git diff 为准逐条登记（预期 core/nacos/rpc-cluster 三模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 `SentinelFlowControlRunner.java` 与 `TestSentinelFlowControlRunner`、不含 R4-25/条化/watch 批外成员本体；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账[R1 Minor-5]）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 

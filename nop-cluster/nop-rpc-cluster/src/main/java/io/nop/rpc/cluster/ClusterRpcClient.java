@@ -70,22 +70,48 @@ public class ClusterRpcClient implements IRpcService {
             IntConsumer fn = new IntConsumer() {
                 @Override
                 public void accept(int retryTimes) {
-                    ServiceInstance instance = serverChooser.chooseFromCandidates(instances, request);
-                    getRpcClient(instance, request).callAsync(serviceMethod, request, cancelToken)
-                            .whenComplete((ret, err) -> {
-                                if (err == null) {
-                                    future.complete(ret);
-                                } else {
-                                    if (retryTimes >= retryCount || (ctx != null && ctx.isCallExpired()) || !isAllowRetry(err)) {
-                                        future.completeExceptionally(err);
-                                    } else {
-                                        if (instances.size() > 1) {
-                                            instances.remove(instance);
+                    // C3-001 (plan 2521): the manual future's termination belongs to the
+                    // retry body — ANY synchronous exception on any hop, or inside the
+                    // completion callback's err branch, must completeExceptionally the
+                    // returned future. Pre-fix these exceptions were swallowed by the
+                    // discarded whenComplete stage and the caller hung forever.
+                    try {
+                        ServiceInstance instance = serverChooser.chooseFromCandidates(instances, request);
+                        if (instance == null) {
+                            // typed consumption-side guard: a null choice must not
+                            // surface as a raw provider NPE (C3-003 body stays in R4-25)
+                            future.completeExceptionally(newNoAvailableServerError(serviceName));
+                            return;
+                        }
+                        getRpcClient(instance, request).callAsync(serviceMethod, request, cancelToken)
+                                .whenComplete((ret, err) -> {
+                                    try {
+                                        if (err == null) {
+                                            future.complete(ret);
+                                        } else {
+                                            if (retryTimes >= retryCount
+                                                    || (ctx != null && ctx.isCallExpired())
+                                                    || !isAllowRetry(err)) {
+                                                future.completeExceptionally(err);
+                                            } else {
+                                                if (instances.size() > 1) {
+                                                    instances.remove(instance);
+                                                }
+                                                this.accept(retryTimes + 1);
+                                            }
                                         }
-                                        this.accept(retryTimes + 1);
+                                    } catch (Throwable e) {
+                                        // the err-branch body runs on the completion
+                                        // thread, outside any accept() frame — e.g. an
+                                        // immutable candidates list throwing
+                                        // UnsupportedOperationException on remove() —
+                                        // and must still terminate the future
+                                        future.completeExceptionally(NopException.adapt(e));
                                     }
-                                }
-                            });
+                                });
+                    } catch (Throwable e) {
+                        future.completeExceptionally(NopException.adapt(e));
+                    }
                 }
             };
             fn.accept(0);

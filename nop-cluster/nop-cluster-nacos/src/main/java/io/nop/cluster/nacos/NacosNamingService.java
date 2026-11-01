@@ -205,6 +205,13 @@ public class NacosNamingService implements INamingService {
         // instanceId ==> Pair<instanceText,ServiceInstance>
         private Map<String, Pair<String, ServiceInstance>> instanceMap = Collections.emptyMap();
 
+        /**
+         * C1-003 (plan 2521): event-state guard — set when an event-driven
+         * updateInstances has landed; a subsequent initInstances with a snapshot
+         * pulled BEFORE that event must not overwrite the newer event state.
+         */
+        private boolean eventReceived;
+
         public ServiceInfoListener(String serviceName, ServiceInfo serviceInfo) {
             this.serviceName = serviceName;
             this.serviceInfo = serviceInfo;
@@ -228,6 +235,10 @@ public class NacosNamingService implements INamingService {
         }
 
         synchronized void initInstances(List<Instance> instances) {
+            // C1-003: an event already landed while this snapshot was being pulled —
+            // the snapshot is stale by construction, do not overwrite the newer state
+            if (eventReceived)
+                return;
             updateInstances(instances);
         }
 
@@ -236,6 +247,10 @@ public class NacosNamingService implements INamingService {
             Map<String, Pair<String, ServiceInstance>> map = new LinkedHashMap<>();
             List<ServiceInstance> removed = Collections.emptyList();
             synchronized (this) {
+                // C1-003: the flag is set inside the same monitor, BEFORE the map is
+                // published — initInstances cannot observe a written map with the
+                // flag still unset
+                eventReceived = true;
                 for (Instance instance : instances) {
                     String key = instance.getInstanceId();
 
@@ -246,13 +261,28 @@ public class NacosNamingService implements INamingService {
                         copyFromInstance(instance, serviceInstance);
                         map.put(instance.getInstanceId(), Pair.of(instance.toString(), serviceInstance));
                     } else {
-                        serviceInstance = old.getRight();
                         // 如果instance的内容改变了
                         if (!old.getLeft().equals(instance.toString())) {
-                            serviceInstance.setModifyIndex(serviceInstance.getModifyIndex() + 1);
-                            copyFromInstance(instance, serviceInstance);
+                            // C1-001 (plan 2521): REBUILD the instance instead of mutating
+                            // the shared object in place — old references keep a stable
+                            // view (no torn reads) and the `_host` lazy cache of the new
+                            // object derives from the new endpoint
+                            ServiceInstance rebuilt = new ServiceInstance();
+                            copyFromInstance(instance, rebuilt);
+                            rebuilt.setModifyIndex(old.getRight().getModifyIndex() + 1);
+                            // locally maintained state (not part of the nacos snapshot)
+                            // must survive the rebuild
+                            rebuilt.getAttrs().putAll(old.getRight().getAttrs());
+                            List<Runnable> tasks = old.getRight().getCleanupTasks();
+                            for (Runnable task : tasks) {
+                                rebuilt.addCleanupTask(task);
+                            }
+                            serviceInstance = rebuilt;
+                            map.put(key, Pair.of(instance.toString(), rebuilt));
+                        } else {
+                            serviceInstance = old.getRight();
+                            map.put(key, old);
                         }
-                        map.put(key, old);
                     }
                 }
                 if (!instanceMap.isEmpty()) {

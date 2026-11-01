@@ -70,11 +70,31 @@ public abstract class AbstractPollingLeaderElector extends AbstractLeaderElector
 
     @Override
     protected void doStart() {
+        // C1-004: this override does NOT call super.doStart() (base addr auto-resolution
+        // must stay inert), so the stop→start reset has to be invoked here explicitly —
+        // all production electors extend this class, a base-only clear never runs.
+        resetStoppedState();
+
         if (scheduledExecutor == null) {
             scheduledExecutor = GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker());
         }
 
         scheduleCheck(0);
+    }
+
+    /**
+     * C1-004 cancel-on-stop (the half intentionally left to R2-18 by the 2496 design):
+     * cancelling the pending round makes a completed round's finally re-arm hit the
+     * scheduleCheck stopped-guard. The in-flight round body is not interrupted;
+     * CancellationException is exempt from the breakdown alarm in the whenComplete
+     * observer, so the cancellation does not misreport a broken loop.
+     */
+    @Override
+    protected void doStop() {
+        super.doStop();
+        CompletableFuture<?> pending = this.pendingCheck;
+        if (pending != null)
+            pending.cancel(false);
     }
 
     /**
@@ -86,6 +106,12 @@ public abstract class AbstractPollingLeaderElector extends AbstractLeaderElector
     }
 
     private void scheduleCheck(long delayMs) {
+        if (stopped) {
+            // C1-004 post-stop rearm short-circuit: a re-arm landing after stop is the
+            // designed terminal semantics, NOT a broken link — silently rejected, no
+            // reportLoopBroken alarm
+            return;
+        }
         AtomicBoolean roundFlag = this.roundRearmed;
         IScheduledExecutor executor = this.scheduledExecutor;
         if (executor == null || executor.isDestroyed()) {
