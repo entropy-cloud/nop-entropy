@@ -157,17 +157,21 @@ public class FileDownloadSink {
     }
 
     /**
-     * 校验并把 .part 原子改名为目标文件。校验失败删除 .part（损坏数据不能作为续传基底）
+     * 校验并把 .part 原子改名为目标文件。校验失败删除 .part（损坏数据不能作为续传基底）。
+     *
+     * <p>C3-005（plan 2522，错误以成功交付族）：rename 无条件强制——校验来源缺失
+     * （{@code expected == null}）仅豁免校验、不豁免落盘收尾；此前 null 分支直接返回，
+     * 下载报成功而目标文件永不产生（.part 滞留）。</p>
      */
     public void verifyAndRename(FileTransferHelper.ExpectedChecksum expected) throws IOException {
-        if (expected == null)
-            return;
-        try {
-            FileTransferHelper.verifyChecksum(expected, digestFor(expected.getAlgorithm()));
-        } catch (Exception e) {
-            if (partFile != null)
-                Files.deleteIfExists(partFile.toPath());
-            throw e;
+        if (expected != null) {
+            try {
+                FileTransferHelper.verifyChecksum(expected, digestFor(expected.getAlgorithm()));
+            } catch (Exception e) {
+                if (partFile != null)
+                    Files.deleteIfExists(partFile.toPath());
+                throw e;
+            }
         }
         if (partFile != null) {
             Files.move(partFile.toPath(), targetFile.toFile().toPath(), StandardCopyOption.REPLACE_EXISTING);

@@ -152,27 +152,27 @@ Exit Criteria:
 
 ### Phase 2 - 7 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: completed
 Targets: `nop-integration/nop-integration-{feishu,sftp}/src/`、`nop-network/nop-http/`（impl 叶 + api 单文件）、`nop-kernel/nop-commons/`（javadoc 一行）（各自 main + test 树）
 
 - Item Types: `Fix`（7 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A feishu 通道（nop-integration-feishu）：C3-015（裁定①，MA-04 吸收面一处闭合 + C10-005 假体升级随组落地 + 红①[挂死类失败模式=超时]）；C1-009（裁定②，红②双活钉 + 前提(a)回码复核结论登记）；C6-021（裁定③，红③孤儿钉——与 C1-009 两单同批实施、世代令牌单点语义，禁合并成单一守卫）；既有 TestFeishuClient 11 钉 + 值捕获钉零回退
-- [ ] 组 B 文件交付链（nop-http 三 impl 叶 + nop-http-api 单文件）：C3-001（裁定④，红④两钉[fetch/upload，挂死类失败模式=超时]）；C3-005（裁定⑤⑥，红⑤ sink 直测钉[当前即红] + PA 申报执行形态留痕[git diff 核对 FileDownloadSink 单文件]）；C6-005（裁定⑧，红⑦三实现 fd 钉[当前即红] + IoHelper javadoc 行）；`TestFileDownloadSinkClose`/2505 钉族/C3-012 收敛行零回退
-- [ ] 组 C sftp（nop-integration-sftp）：C3-024（裁定⑦，红⑥假体钉[当前即红] + C6-018 构造回收面零触碰核对）；C10-004 半边随同 diff
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑦快照落 `_tmp/` 并登记（`_tmp/red-green-2522-summary.md` 总册 + 逐 trial 日志；feishu/sftp 腿日志单列——E3 盲区对应）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①②③ trial 上界在裁定⑧成文）；挂死类红钉（红①红④）timeout 预算与失败模式注释逐钉留痕
-- [ ] **端到端验证**（rule 22）：feishu 通道链 = 孤儿/双活钉全链（stop→在途 connect→世代守卫关闭→重连单飞→心跳恢复，从 stop 入口到连接计数出口的完整路径）；文件交付链 = 下载全链钉（loopback 下载→verifyAndRename(null)→目标文件存在→sink.close fd 配对，从 downloadAsync 入口到文件系统出口）——C3-005/C6-001 同链两本体一次端到端；C6-005 上传链 = BASE64_FORM 上传全链 fd 断言（uploadAsync 入口到 fd 计数出口）；C3-024 连接链 = 超时传值全链（newClient→connect(ms)→断言传值，构造入口到 jsch 调用出口）
-- [ ] **接线验证**（rule 23）：裁定①超时路径真实驱动重连断言（send 超时→close→onError→scheduleReconnect 链真达，非仅 timeout 常量存在）；裁定②③世代令牌真实消费断言（过期回调真丢弃/孤儿连接真关闭，非仅字段存在）；裁定④ completeExceptionally 真实到达返回 future 断言；裁定⑤ null 分支 rename 真实落盘断言；裁定⑦超时传值真实到达 jsch 断言
-- [ ] **无静默跳过**（rule 24）：裁定①超时路径必显式 close+回调（禁吞超时静默重试）；裁定④异常必终结 future（禁 catch 后仅记日志不终结）；裁定③过期连接必显式 close（禁静默遗弃）；新增公共分支无空方法体/TODO
+- [x] 组 A feishu 通道（nop-integration-feishu）：C3-015（裁定①，MA-04 吸收面一处闭合 + C10-005 假体升级随组落地 + 红①[挂死类失败模式=超时]）；C1-009（裁定②，红②双活钉 + 前提(a)回码复核结论登记）；C6-021（裁定③，红③孤儿钉——与 C1-009 两单同批实施、世代令牌单点语义，禁合并成单一守卫）；既有 TestFeishuClient 11 钉 + 值捕获钉零回退
+- [x] 组 B 文件交付链（nop-http 三 impl 叶 + nop-http-api 单文件）：C3-001（裁定④，红④两钉[fetch/upload，挂死类失败模式=超时]）；C3-005（裁定⑤⑥，红⑤ sink 直测钉[当前即红] + PA 申报执行形态留痕[git diff 核对 FileDownloadSink 单文件]）；C6-005（裁定⑧，红⑦三实现 fd 钉[当前即红] + IoHelper javadoc 行）；`TestFileDownloadSinkClose`/2505 钉族/C3-012 收敛行零回退
+- [x] 组 C sftp（nop-integration-sftp）：C3-024（裁定⑦，红⑥假体钉[当前即红] + C6-018 构造回收面零触碰核对）；C10-004 半边随同 diff
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑦快照落 `_tmp/` 并登记（`_tmp/red-green-2522-summary.md` 总册 + 逐 trial 日志；feishu/sftp 腿日志单列——E3 盲区对应）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；并发钉设 trial 上界防噪声化（红①②③ trial 上界在裁定⑧成文）；挂死类红钉（红①红④）timeout 预算与失败模式注释逐钉留痕
+- [x] **端到端验证**（rule 22）：feishu 通道链 = 孤儿/双活钉全链（stop→在途 connect→世代守卫关闭→重连单飞→心跳恢复，从 stop 入口到连接计数出口的完整路径）；文件交付链 = 下载全链钉（loopback 下载→verifyAndRename(null)→目标文件存在→sink.close fd 配对，从 downloadAsync 入口到文件系统出口）——C3-005/C6-001 同链两本体一次端到端；C6-005 上传链 = BASE64_FORM 上传全链 fd 断言（uploadAsync 入口到 fd 计数出口）；C3-024 连接链 = 超时传值全链（newClient→connect(ms)→断言传值，构造入口到 jsch 调用出口）
+- [x] **接线验证**（rule 23）：裁定①超时路径真实驱动重连断言（send 超时→close→onError→scheduleReconnect 链真达，非仅 timeout 常量存在）；裁定②③世代令牌真实消费断言（过期回调真丢弃/孤儿连接真关闭，非仅字段存在）；裁定④ completeExceptionally 真实到达返回 future 断言；裁定⑤ null 分支 rename 真实落盘断言；裁定⑦超时传值真实到达 jsch 断言
+- [x] **无静默跳过**（rule 24）：裁定①超时路径必显式 close+回调（禁吞超时静默重试）；裁定④异常必终结 future（禁 catch 后仅记日志不终结）；裁定③过期连接必显式 close（禁静默遗弃）；新增公共分支无空方法体/TODO
 
 Exit Criteria:
 
-- [ ] 7 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（3 条成员面，按勘误 5 半边口径）同 diff 落地
-- [ ] 必红证据（E2）：红①–红⑦均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红⑤⑥⑦当前即红形态标注）
-- [ ] 零回退实证：基线 279 tests（nop-network 209 + feishu/sftp 70）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2505 钉族/C6-001 fd 钉/值捕获钉零触碰核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-network -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；**E3 实触 3/7 载体登记[勘误 1]**）+ **补充焦点腿** `./mvnw test -pl nop-integration/nop-integration-feishu,nop-integration/nop-integration-sftp` 留痕；上游环境抖动按三联裁定留痕（勘误 8）；实际触达模块以 git diff 为准逐条登记（预期 feishu/sftp/okhttp/jdk/apache/http-api/commons 六模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core 平台设施、不含 nop-rpc-api/nop-integration-api 两叶、不含 R2-20/R4-26/27 批外成员本体（C6-018 构造回收/C6-022/C1-010/C1-011/CL-012 面）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 7 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（3 条成员面，按勘误 5 半边口径）同 diff 落地
+- [x] 必红证据（E2）：红①–红⑦均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红⑤⑥⑦当前即红形态标注）
+- [x] 零回退实证：基线 279 tests（nop-network 209 + feishu/sftp 70）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2505 钉族/C6-001 fd 钉/值捕获钉零触碰核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-network -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；**E3 实触 3/7 载体登记[勘误 1]**）+ **补充焦点腿** `./mvnw test -pl nop-integration/nop-integration-feishu,nop-integration/nop-integration-sftp` 留痕；上游环境抖动按三联裁定留痕（勘误 8）；实际触达模块以 git diff 为准逐条登记（预期 feishu/sftp/okhttp/jdk/apache/http-api/commons 六模块 main+test，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core 平台设施、不含 nop-rpc-api/nop-integration-api 两叶、不含 R2-20/R4-26/27 批外成员本体（C6-018 构造回收/C6-022/C1-010/C1-011/CL-012 面）；Owner doc 内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 更新
 

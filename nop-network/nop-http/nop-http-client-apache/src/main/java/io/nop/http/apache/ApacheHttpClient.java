@@ -484,7 +484,11 @@ public class ApacheHttpClient implements IHttpClient, IConfigRefreshable {
     private CompletionStage<IHttpResponse> uploadByBase64Form(HttpRequest request, IHttpInputFile inputFile,
                                                               UploadOptions options, ICancelToken cancelToken) throws IOException {
         String fileName = inputFile.getName();
-        byte[] content = IoHelper.readBytes(inputFile.getInputStream());
+        // C6-005 (plan 2522): the input stream must be closed — IoHelper.readBytes never closes
+        byte[] content;
+        try (java.io.InputStream in = inputFile.getInputStream()) {
+            content = IoHelper.readBytes(in);
+        }
         String base64 = java.util.Base64.getEncoder().encodeToString(content);
 
         org.apache.hc.client5.http.entity.mime.MultipartEntityBuilder builder =

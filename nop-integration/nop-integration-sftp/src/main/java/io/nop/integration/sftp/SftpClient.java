@@ -160,9 +160,14 @@ public class SftpClient implements IFileServiceClient {
         if (keyPath == null)
             session.setPassword(credential.password);
 
-        session.connect();
+        // C3-024（plan 2522）：全链超时——jsch 缺省 0=无限，网络故障下业务线程与 SSH 会话
+        // 无限挂起。setTimeout 为 socket SO_TIMEOUT（读段 per-read 包络）；connect(ms) 为
+        // 建连上界（banner 黑洞等）；channel.connect(ms) 为 channel 开启上界（jsch 无参
+        // connect 字面传 0，是唯一非冗余接线）。超时异常经既有 ERR_SFTP_CONNECT_FAIL 包装外抛。
+        session.setTimeout(config.getTimeoutMillis());
+        session.connect(config.getTimeoutMillis());
         channel = (ChannelSftp) session.openChannel("sftp");
-        channel.connect();
+        channel.connect(config.getTimeoutMillis());
     }
 
     @Override

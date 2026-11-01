@@ -73,19 +73,27 @@ public class OkHttpClientImpl implements IHttpClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
-                int status = response.code();
-                String text = response.body() == null ? "" : response.body().string();
-                DefaultHttpResponse res = new DefaultHttpResponse();
-                res.setHttpStatus(status);
-                res.setBodyAsText(text);
+                // C3-001 (plan 2522, R21 族纪律): any sync exception in this body (e.g.
+                // body().string() on a truncated connection) must terminate the returned
+                // future — the stage OkHttp's callback returns is discarded, so an
+                // uncaught throw hangs the caller forever
+                try {
+                    int status = response.code();
+                    String text = response.body() == null ? "" : response.body().string();
+                    DefaultHttpResponse res = new DefaultHttpResponse();
+                    res.setHttpStatus(status);
+                    res.setBodyAsText(text);
 
-                Map<String, String> headers = new LinkedHashMap<>();
-                for (String header : response.headers().names()) {
-                    String value = response.header(header);
-                    headers.put(header, value);
+                    Map<String, String> headers = new LinkedHashMap<>();
+                    for (String header : response.headers().names()) {
+                        String value = response.header(header);
+                        headers.put(header, value);
+                    }
+                    res.setHeaders(headers);
+                    future.complete(res);
+                } catch (Exception e) {
+                    future.completeExceptionally(NopException.adapt(e));
                 }
-                res.setHeaders(headers);
-                future.complete(res);
             }
         });
         return future;
@@ -289,9 +297,11 @@ public class OkHttpClientImpl implements IHttpClient {
         RequestBody body;
         if (options.getMode() == UploadMode.BASE64_FORM) {
             String base64;
-            try {
+            // C6-005 (plan 2522): the input stream must be closed — IoHelper.readBytes
+            // never closes (readAllBytes semantics), every upload leaked one fd
+            try (java.io.InputStream in = inputFile.getInputStream()) {
                 base64 = java.util.Base64.getEncoder()
-                        .encodeToString(IoHelper.readBytes(inputFile.getInputStream()));
+                        .encodeToString(IoHelper.readBytes(in));
             } catch (IOException e) {
                 throw new NopException(HttpApiErrors.ERR_HTTP_UPLOAD_INPUT_FILE, e);
             }
@@ -339,6 +349,8 @@ public class OkHttpClientImpl implements IHttpClient {
 
             @Override
             public void onResponse(Call call, Response response) throws IOException {
+                // C3-001 (plan 2522): same termination invariant as fetchAsync — the
+                // try-with-resources closes the response, the catch terminates the future
                 try (Response resp = response) {
                     DefaultHttpResponse res = new DefaultHttpResponse();
                     res.setHttpStatus(resp.code());
@@ -349,6 +361,8 @@ public class OkHttpClientImpl implements IHttpClient {
                     }
                     res.setHeaders(headers);
                     future.complete(res);
+                } catch (Exception e) {
+                    future.completeExceptionally(NopException.adapt(e));
                 }
             }
         });

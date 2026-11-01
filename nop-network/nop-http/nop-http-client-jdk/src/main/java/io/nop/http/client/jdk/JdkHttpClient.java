@@ -587,8 +587,9 @@ public class JdkHttpClient implements IHttpClient {
                                                               UploadOptions options, ICancelToken cancelToken) {
         String fileName = inputFile.getName();
         String base64;
-        try {
-            base64 = java.util.Base64.getEncoder().encodeToString(IoHelper.readBytes(inputFile.getInputStream()));
+        // C6-005 (plan 2522): the input stream must be closed — IoHelper.readBytes never closes
+        try (java.io.InputStream in = inputFile.getInputStream()) {
+            base64 = java.util.Base64.getEncoder().encodeToString(IoHelper.readBytes(in));
         } catch (IOException e) {
             throw new NopException(HttpApiErrors.ERR_HTTP_UPLOAD_INPUT_FILE, e);
         }

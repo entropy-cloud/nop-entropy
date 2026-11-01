@@ -243,6 +243,11 @@ public class IoHelper {
         return out.toString();
     }
 
+    /**
+     * 消费并耗尽输入流但<b>不关闭</b>它（{@code readAllBytes} 语义）——关闭责任在调用方
+     * （C6-005，plan 2522 契约声明：各 HTTP 客户端 BASE64_FORM 上传路径必须以
+     * try-with-resources 包裹本调用）。
+     */
     public static byte[] readBytes(InputStream is) throws IOException {
         if (PlatformEnv.javaVersion() >= 9) {
             return is.readAllBytes();

@@ -39,6 +39,15 @@ public class SftpConfig {
     private boolean strictHostKeyChecking = false;
 
     /**
+     * C3-024（plan 2522）：SFTP 全链超时预算（毫秒），缺省 15s（对齐 JdkFeishuHttpApi
+     * 同仓先例量级）。单值语义：jsch setTimeout 为底层 socket SO_TIMEOUT（per-read），
+     * 同时作为 session.connect(ms)/channel.connect(ms) 的建连上界——连接段（TCP+banner+
+     * channel 开启）与读段一次闭合。分段（connect/read 双值）配置被拒：SO_TIMEOUT per-read
+     * 语义下活动传输每次读重置计时，长传输天然无需总时长预算。0 = 无限（jsch 缺省，禁用）。
+     */
+    private int timeoutMillis = 15_000;
+
+    /**
      * 可选的 known_hosts 文件路径（OpenSSH 格式）：仅在 {@code strictHostKeyChecking=true}
      * 时生效，经 {@code JSch#setKnownHosts(String)} 装载。未提供且开启严格校验时，JSch 对
      * 未知主机 fail-closed（连接失败），不会静默接受陌生主机密钥。
@@ -115,5 +124,13 @@ public class SftpConfig {
 
     public void setKeyPath(String keyPath) {
         this.keyPath = keyPath;
+    }
+
+    public int getTimeoutMillis() {
+        return timeoutMillis;
+    }
+
+    public void setTimeoutMillis(int timeoutMillis) {
+        this.timeoutMillis = timeoutMillis;
     }
 }
