@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Draft Review R1: agent_cb2b45ac @ 2026-11-01 —— 无 Blocker；5 Minor（F1 测试资产头部聚合计数 33→79 更正、F2 TestFeishuClient 9→11 钉全文更正、F3 红⑦ fd 计数平台门控 @EnabledIf 预登记+变异论证 fallback、F4 Closure 补 Audit Session 行、F5 值捕获钉实名 reconnectUsesCapturedResolvedValues）+2 建议级（Phase 4 回写落点点名 L93+:299、裁定⑥零签名变更声明句）——协调方机械修复闭环，修订转 active
+> Design Review R2: agent_6fc286af @ 2026-11-01 —— 设计文档独立对抗性评审（≈50 行号锚抽验零漂移；七条红判据缺陷态可红性全部成立）：无 Blocker；4 Major（M1 裁定②单飞清零无守卫——connect#1 回调迟到清零可击落更新在飞声明双活，改守卫清零[捕获序号==最新]；M2 start 世代递增次序自相矛盾+onOpen 捕获侧未定义——递增点改 :194 connect 之前并记录 connectGeneration 快照，③onOpen 比对本代快照；M3 红⑥证据形态降级缺等价论证——jsch 无参 connect 委托 timeout javap 亲证等价论证+源码级 grep 断言伴生钉；M4 connectAsync seam 越权扩张——plan Non-Goals 登记扩展[包私有 default 仅限 connectAsync]+链式回投预设替代声明）+4 Minor（m4 生产 override 覆盖分叉承接声明、m5 钉点名计数 23→5+补三类、m6 裁定④ Exception 预设改写勘误登记、m7 红⑤ e2e 钉 OS 门控、m8 !started 早退保留收口）——已同 diff 修入设计文档与 plan，放行 Phase 2
 > Last Reviewed: 2026-11-01
 > Draft Review：待独立子 agent draft review（通过后本行登记 R1 结论，修订转 active）
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-01 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `2178232af6`）起草；全部站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果），执行前如再漂移以 live 为准并登记。结构沿 plan 2521 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 成员逐条表 / 勘误节 / 红绿判据 / C10 半边口径 / 环境三联预登记）。待独立 draft review 通过后修订转 active。
@@ -88,7 +89,7 @@
 
 ## Goals
 
-- Phase 1 设计裁定文档一次裁决 8 项裁定（裁定①–⑧，7 成员各一条 + PA 申报/测试缝，含 MA-04 吸收面闭合与 MA-05×MA-06 两单同批协同绑定）+ 独立 draft review 通过，无临场发明空间：①C3-015 send/close/connect 阻塞面有界化形态（MA-04 一处闭合）②C1-009 重连单飞+世代守卫（B1-07 转正承载）③C6-021 stop×connect 世代校验（B1-08 转正承载；与②世代令牌单点语义联动）④C3-001 onResponse 体终结性（R21 族纪律）⑤C3-005 verifyAndRename null 分支强制 rename（R11 族纪律）⑥C3-005 PA 申报（nop-http-api 单文件触碰 vs impl 侧备选——三叶零触碰声明修正一次定夺）⑦C3-024 全链超时+配置面（C6-018 边界注记）⑧C6-005 三调用点流关闭+IoHelper javadoc + 测试缝与零回退钉清单——每条唯一预设默认分支 + 测试缝 + 零回退钉清单。设计文档拟名 `ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-and-resource-timeout-concurrency.md`（Phase 1 产出物，前向引用——落盘前 doc-link warning 为预期已登记；命名裁定：feishu 通道生命周期（MA-04/05/06 域）+ 文件交付完整性（C3-001/C3-005 域）+ 资源流与超时包络（C3-024/C6-005 域）三域合一，与现有 25 份 concurrency 设计集命名风格一致；如内容演进更适可调，调整时在本 plan 登记命名裁定）。
+- Phase 1 设计裁定文档一次裁决 8 项裁定（裁定①–⑧，7 成员各一条 + PA 申报/测试缝，含 MA-04 吸收面闭合与 MA-05×MA-06 两单同批协同绑定）+ 独立 draft review 通过，无临场发明空间：①C3-015 send/close/connect 阻塞面有界化形态（MA-04 一处闭合）②C1-009 重连单飞+世代守卫（B1-07 转正承载）③C6-021 stop×connect 世代校验（B1-08 转正承载；与②世代令牌单点语义联动）④C3-001 onResponse 体终结性（R21 族纪律）⑤C3-005 verifyAndRename null 分支强制 rename（R11 族纪律）⑥C3-005 PA 申报（nop-http-api 单文件触碰 vs impl 侧备选——三叶零触碰声明修正一次定夺）⑦C3-024 全链超时+配置面（C6-018 边界注记）⑧C6-005 三调用点流关闭+IoHelper javadoc + 测试缝与零回退钉清单——每条唯一预设默认分支 + 测试缝 + 零回退钉清单。设计文档拟名 `ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-integrity-and-resource-envelope-concurrency.md`（Phase 1 产出物，前向引用——落盘前 doc-link warning 为预期已登记；命名裁定：feishu 通道生命周期（MA-04/05/06 域）+ 文件交付完整性（C3-001/C3-005 域）+ 资源流与超时包络（C3-024/C6-005 域）三域合一，与现有 25 份 concurrency 设计集命名风格一致；如内容演进更适可调，调整时在本 plan 登记命名裁定）。**[命名裁定登记 @ Phase 1]实际落盘名 = `feishu-channel-lifecycle-file-delivery-integrity-and-resource-envelope-concurrency.md`（integrity/envelope 措辞演进，语义覆盖不变；三处占位名已同步回写）。**
 - 7 项成员全部修复并各带回归测试（rule 25）；C10 收口门（C10-005 feishu 全条/C10-004 C6-005+C3-024 半边/C10-014 C3-001 半边，三条成员面）随本体同 diff 落地（E2）。
 - 关键工单先红后绿或变异/回退论证留痕（E2），红①–红⑦逐成员登记：红① 死锁红（C3-015：FakeStreamTransport.send 可编程 latch 挂起 + sendHeartbeat 触发 → 断言超时预算后 scheduler 线程可执行后续排程任务——缺陷态 sendHeartbeat 占死唯一 scheduler 线程、后续任务永不执行红→有界 send+超时 close 绿；**挂死类：失败模式=超时，给足有限 timeout（建议 ≥5s）并在钉内注释失败模式语义**[沿 2521 红④先例]；三调用点 :277/:324/:353 覆盖形态在裁定⑧成文）；红② 双活红（C1-009：fake listener 序列注入 onError→onClose 双终态 + stop→start 陈旧回调两形态 → 断言在飞重连恰一（reconnectPending 单飞）且过期世代回调被丢弃（connectCount 不增殖）——缺陷态双调度两任务先后执行 connectCount=2 红→单飞+世代绿；前提(a) 回码复核结论随钉登记）；红③ 孤儿红（C6-021：connect latch 挂起期间 stop() → 释放 → 断言新建立连接被世代守卫立即关闭（`connectCount - closeCount ≤ 1` C10-005 建议③形态）——缺陷态孤儿连接存活红→世代校验绿；stop×在途时序确定性构造）；红④ 挂死红（C3-001：loopback 半关闭断连注入（预设）→ fetch() 断言返回 future 有限时间（如 get(10s)）completeExceptionally——缺陷态 future 永不完成 get 超时红→onResponse 体终结绿；**失败模式=超时给足有限 timeout+钉内注释**；uploadAsync 同型第二钉）；红⑤ 落盘红（C3-005：sink 直测 begin→write→finish→verifyAndRename(null) → 断言目标文件存在且 .part 不存在——缺陷态目标文件缺失红（**当前即红=先行失败测试**，非并发零 trial 义务）→null 分支 rename 绿）；红⑥ 超时红（C3-024：recording-jsch 假体断言 `session.setTimeout`/`session.connect(ms)`/`channel.connect(ms)` 传值与 SftpConfig timeout 配置生效——缺陷态无参调用红（当前即红）→显式超时绿；C10-004 建议②形态）；红⑦ 泄漏红（C6-005：三实现 BASE64_FORM 上传 N 次断言 fd 增量≤常量（`TestFileDownloadSinkClose` 40 次增量断言先例形态）——缺陷态线性泄漏红（当前即红）→try-with-resources 绿；trial 数在裁定⑧成文；**[R1 Minor-F3]平台门控预登记：fd 计数断言沿先例 @EnabledIf(openFileDescriptorCountAvailable)——不可用平台红⑦ skip 而非红，届时以变异论证（注释 close 行→钉红→恢复 grep 断言）补红证**）。
 - B1-07/B1-08 转正落账（对称条款成文见 Current Baseline 节，Phase 4 cra-index :277/:278 注记改写落账）。
@@ -103,7 +104,7 @@
 - **不做 MA-10（C6-022 NettyTcpClient stop×reconnect 同构 P2）**：同构异站零关联（family-clustering :294），`NettyTcpClient.java` 零触碰。
 - **不做 MA-15/MA-16**（CompletionStage 同步抛逃逸族 + RP-1 反向钉死；HttpClient selector 线程累积——R4-26）：C3-001 修复禁顺手扩展到 ApiContextInterceptor 族站点；C10-014 的 MA-15 半边不代做。
 - **不做 CL-012 本体**（BASE64 内存峰值 ≈3× OOM 族线索——同站点不同本体，协同注记不互吸；C5/C7 轨批次归属）；不做 C6-016（HttpInputFileBodyPublisher 死代码清理）。
-- 不做平台层改码：nop-api-core/nop-core 平台设施零触碰；nop-commons 仅 IoHelper javadoc 单行注释（行为零变更，禁改 readBytes 关闭语义）；`IHttpClient`/`IStreamTransport`/`IFileServiceClient` 契约签名零变更（`IStreamTransport` 包私有 seam 形态维持）；不做 nop-integration 其余叶（email/sms/oss/file-local/zxing）任何触碰（SMTP 次级同族注记不代做）。
+- 不做平台层改码：nop-api-core/nop-core 平台设施零触碰；nop-commons 仅 IoHelper javadoc 单行注释（行为零变更，禁改 readBytes 关闭语义）；`IHttpClient`/`IStreamTransport`/`IFileServiceClient` 契约签名零变更（`IStreamTransport` 包私有 seam 形态维持；**[R2 Major-4 登记扩展]`IStreamTransport` 包私有 seam 允许 default 方法级扩展，仅限 `connectAsync` 一个方法**——包私有接口不构成跨模块公共契约面，PA 判定不翻转；同时裁定①原预设「connect 阻塞段非阻塞链式回投」由 connectAsync seam 替代，替代理由成文于设计文档 §3.1/§六）；不做 nop-integration 其余叶（email/sms/oss/file-local/zxing）任何触碰（SMTP 次级同族注记不代做）。
 - 不触碰 `_` 前缀生成物；R2-20/R4-26/R4-27 批外成员本体；ChannelConnectorManager 渠道栈激活面（休眠条款维持）；不做 Deferred 节所列项。
 
 ## Scope
@@ -115,7 +116,7 @@
 - `nop-integration/nop-integration-sftp/src/main/java/io/nop/integration/sftp/`：`SftpClient.java`（裁定⑦——connect 超时传值）、`SftpConfig.java`（裁定⑦——timeout 配置项）。
 - `nop-kernel/nop-commons/src/main/java/io/nop/commons/util/IoHelper.java`（裁定⑧——readBytes javadoc「不关闭流」契约声明单行，行为零变更）。
 - 测试树：feishu `client/`（假体升级三件套 + 红①②③新钉 + 既有 11 钉零回退）、okhttp/jdk/apache（红④两钉 + 红⑤消费方钉 + 红⑦ fd 钉 + 既有钉零回退）、nop-http-api（红⑤ sink 直测钉）、sftp（红⑥ + recording-jsch 假体扩展）；既有 279 tests 零回退。
-- 设计文档：`ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-and-resource-timeout-concurrency.md`（新建；裁定①–⑧+测试缝+零回退钉+R21/R11/MA-05×06 对齐条款，最终状态写法；命名调整须登记裁定）。Owner doc：`docs-for-ai/03-modules/nop-network.md`（四处落点见 Goals）、`docs-for-ai/04-reference/source-anchors.md`（NETWORK-CC-001 行）。
+- 设计文档：`ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-integrity-and-resource-envelope-concurrency.md`（新建；裁定①–⑧+测试缝+零回退钉+R21/R11/MA-05×06 对齐条款，最终状态写法；命名调整须登记裁定）。Owner doc：`docs-for-ai/03-modules/nop-network.md`（四处落点见 Goals）、`docs-for-ai/04-reference/source-anchors.md`（NETWORK-CC-001 行）。
 
 ### Out Of Scope
 
@@ -125,29 +126,29 @@
 
 ### Phase 1 - feishu 通道生命周期/文件交付完整性/资源超时包络并发设计裁定文档 + 独立评审
 
-Status: planned
-Targets: `ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-and-resource-timeout-concurrency.md`（新建）
+Status: completed
+Targets: `ai-dev/design/concurrency/feishu-channel-lifecycle-file-delivery-integrity-and-resource-envelope-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C3-015 send/close/connect 阻塞面有界化（MA-04 一处闭合）**：send `get(timeout)` 形态（预设——缺省预算值与是否配置化一次定夺，量级对齐 JdkFeishuHttpApi 15s×3 同模块先例）vs 异步发送+超时 close 备选；超时路径主动 close + onError 回调驱动重连（与裁定②③重连链协同声明）；close 的 sendClose join 有界值；connect join 移出 scheduler 形态（非阻塞链式回投——attemptReconnect 调用形态协同改写，与裁定②③同文件交叉改写顺序成文）；heartbeat 失败 debug→warn；C6-024/CL-005/CL-006 吸收面闭合声明；休眠条款维持注记（ChannelConnectorManager 面零触碰）；与 `TestFeishuClient` 11 钉兼容核对表（勘误 11）
-  - [ ] **裁定② C1-009 重连单飞+世代守卫（MA-05，B1-07 承载）**：`AtomicBoolean reconnectPending` CAS 单飞（attemptReconnect 收尾清零）[预设] vs synchronized 重连任务串行化备选；世代令牌基元单点语义一次定夺（生命周期代际 AtomicLong——递增点 doStart/doStop 选型与裁定③联动；「stop 递增 vs start 递增」以停机语义为准成文）；回调闭包携带世代过期丢弃形态；attemptReconnect 先 close 旧连接；前提(a)（JDK WebSocket onClose/onError 互斥契约）回码复核义务与登记形态（结论只影响失效面枚举）；C1-010/C1-011 P2 面禁顺手引入声明（SessionContext 快照/REE 模拟[R4-26/27]）
-  - [ ] **裁定③ C6-021 stop×在途 connect 世代校验（MA-06，B1-08 承载；两单同批实施）**：世代校验守卫点矩阵（connect 完成回调/onOpen/attemptReconnect 尾段三消费点）[预设——与裁定②世代令牌共用单点语义] vs attemptReconnect 全程 synchronized 备选（锁域扩大持锁面代价定夺）；listener 复活赋值（JdkStreamTransport :41）的守卫形态；与裁定②修复点互异边界成文（不并族——cra-index :277/:278 分立回填对应）；C6-022 同构面零触碰声明
-  - [ ] **裁定④ C3-001 onResponse 体终结性（R21 族纪律）**：两 onResponse 体 try/catch Throwable → `completeExceptionally`[预设——对齐 doDownloadAsync :227-230 与 2521 adapt 范式] vs whenCompleteAsync+handle 链改写（备选）；异常类型化与 onFailure 既有路径语义协同；doDownloadAsync/C3-012/C6-001 已落行零触碰声明；红④ mock 形态（loopback 半关闭[预设，零新依赖]/mockwebserver[依赖评估]/dispatcher stub）一次定夺
-  - [ ] **裁定⑤ C3-005 verifyAndRename null 分支强制 rename（R11 族纪律）**：null 分支补 `Files.move`（仅校验失败分支删 .part）[预设]——与裁定⑥ PA 申报联动；impl 侧 `getPartFile()` 两站点重复 move 备选（拒绝理由成文：逻辑重复/行为分歧重建/api javadoc 契约持续违约）；C6-001 sink.close 语义与 fd 钉零回退声明；Apache 对照面零触碰
-  - [ ] **裁定⑥ C3-005 PA 申报（三叶零触碰声明修正）**：预设 = nop-rpc-api/nop-integration-api 零触碰维持 + nop-http-api 限 FileDownloadSink 单文件触碰 + plan-first 修正声明（AGENTS.md「跨模块公共 API plan-first」证据链：本 plan + 设计文档本节 + owner doc :36-46 契约句修正 + 红⑤回归钉；实施等待 draft review 通过）；备选 = 采纳裁定⑤备选形态维持三叶零触碰字面（两案与裁定⑤联动一次定夺，禁第三形态临场发明）；Phase 4 batch-proposal :299 回写义务成文；**触碰形态声明[R1 建议]：零签名变更（方法体行为演进），消费者站点全仓仅 OkHttp :223/Jdk :497 两处已枚举——不构成契约面演进**
-  - [ ] **裁定⑦ C3-024 全链超时+配置面（C6-018 边界）**：`session.setTimeout(ms)` + `session.connect(ms)`/`channel.connect(ms)` 显式传值[预设]；SftpConfig timeout 配置项形态（单一 timeout vs connect/读写分段——一次定夺）与缺省值（OSS SDK 10s/50s 量级取值）；长传输读包络声明（getInputStream 流式读的 socket 读超时覆盖面）；**C6-018 构造回收面零触碰边界**（connect(ms) 超时异常路径 = R2-20 回收面触发前提的注记成文）；8 个 channel 操作超时覆盖矩阵
-  - [ ] **裁定⑧ C6-005 流关闭 + 测试缝与零回退钉清单**：三调用点 try-with-resources[预设] + IoHelper.readBytes javadoc 契约声明（行为零变更）；CL-012 不互吸注记；红①–红⑦ 测试形态逐条（含缺陷态红判据 + 挂死类失败模式=超时给足有限 timeout + 全部 plain-JVM 可跑面声明[无 docker 门控；feishu/sftp 走补充焦点腿]）；C10-005 假体升级三件套形态（可编程 latch/REE 模拟[假体侧]/连接计数断言）；零回退钉 = nop-network 209 tests + feishu 53 + sftp 17（双 log 路径）、其中点名：`TestFeishuClient` 11 钉/`TestFeishuCredentialResolution` 值捕获钉/`TestFileTransfer` 三叶 20 钉/`TestFileDownloadSinkClose` fd 钉/`TestBodyPhaseCancel_C3_002` 6 钉（2505 面）/`TestOkHttpCancelListenerCleanup_C3_012`/`TestSftpClientCredential`/`TestSftpHostKeyChecking`；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C3-015 send/close/connect 阻塞面有界化（MA-04 一处闭合）**：send `get(timeout)` 形态（预设——缺省预算值与是否配置化一次定夺，量级对齐 JdkFeishuHttpApi 15s×3 同模块先例）vs 异步发送+超时 close 备选；超时路径主动 close + onError 回调驱动重连（与裁定②③重连链协同声明）；close 的 sendClose join 有界值；connect join 移出 scheduler 形态（非阻塞链式回投——attemptReconnect 调用形态协同改写，与裁定②③同文件交叉改写顺序成文）；heartbeat 失败 debug→warn；C6-024/CL-005/CL-006 吸收面闭合声明；休眠条款维持注记（ChannelConnectorManager 面零触碰）；与 `TestFeishuClient` 11 钉兼容核对表（勘误 11）
+  - [x] **裁定② C1-009 重连单飞+世代守卫（MA-05，B1-07 承载）**：`AtomicBoolean reconnectPending` CAS 单飞（attemptReconnect 收尾清零）[预设] vs synchronized 重连任务串行化备选；世代令牌基元单点语义一次定夺（生命周期代际 AtomicLong——递增点 doStart/doStop 选型与裁定③联动；「stop 递增 vs start 递增」以停机语义为准成文）；回调闭包携带世代过期丢弃形态；attemptReconnect 先 close 旧连接；前提(a)（JDK WebSocket onClose/onError 互斥契约）回码复核义务与登记形态（结论只影响失效面枚举）；C1-010/C1-011 P2 面禁顺手引入声明（SessionContext 快照/REE 模拟[R4-26/27]）
+  - [x] **裁定③ C6-021 stop×在途 connect 世代校验（MA-06，B1-08 承载；两单同批实施）**：世代校验守卫点矩阵（connect 完成回调/onOpen/attemptReconnect 尾段三消费点）[预设——与裁定②世代令牌共用单点语义] vs attemptReconnect 全程 synchronized 备选（锁域扩大持锁面代价定夺）；listener 复活赋值（JdkStreamTransport :41）的守卫形态；与裁定②修复点互异边界成文（不并族——cra-index :277/:278 分立回填对应）；C6-022 同构面零触碰声明
+  - [x] **裁定④ C3-001 onResponse 体终结性（R21 族纪律）**：两 onResponse 体 try/catch Throwable → `completeExceptionally`[**R2 Minor-m6 勘误：设计文档裁定④定夺为 try/catch Exception**（与 doDownloadAsync :227 既有写法同形；Throwable→Exception 为预设改写登记——catch Exception 遗漏 Error 逃逸面由外层 CF 机制交付，与既有对照面同形）——对齐 doDownloadAsync :227-230 与 2521 adapt 范式] vs whenCompleteAsync+handle 链改写（备选）；异常类型化与 onFailure 既有路径语义协同；doDownloadAsync/C3-012/C6-001 已落行零触碰声明；红④ mock 形态（loopback 半关闭[预设，零新依赖]/mockwebserver[依赖评估]/dispatcher stub）一次定夺
+  - [x] **裁定⑤ C3-005 verifyAndRename null 分支强制 rename（R11 族纪律）**：null 分支补 `Files.move`（仅校验失败分支删 .part）[预设]——与裁定⑥ PA 申报联动；impl 侧 `getPartFile()` 两站点重复 move 备选（拒绝理由成文：逻辑重复/行为分歧重建/api javadoc 契约持续违约）；C6-001 sink.close 语义与 fd 钉零回退声明；Apache 对照面零触碰
+  - [x] **裁定⑥ C3-005 PA 申报（三叶零触碰声明修正）**：预设 = nop-rpc-api/nop-integration-api 零触碰维持 + nop-http-api 限 FileDownloadSink 单文件触碰 + plan-first 修正声明（AGENTS.md「跨模块公共 API plan-first」证据链：本 plan + 设计文档本节 + owner doc :36-46 契约句修正 + 红⑤回归钉；实施等待 draft review 通过）；备选 = 采纳裁定⑤备选形态维持三叶零触碰字面（两案与裁定⑤联动一次定夺，禁第三形态临场发明）；Phase 4 batch-proposal :299 回写义务成文；**触碰形态声明[R1 建议]：零签名变更（方法体行为演进），消费者站点全仓仅 OkHttp :223/Jdk :497 两处已枚举——不构成契约面演进**
+  - [x] **裁定⑦ C3-024 全链超时+配置面（C6-018 边界）**：`session.setTimeout(ms)` + `session.connect(ms)`/`channel.connect(ms)` 显式传值[预设]；SftpConfig timeout 配置项形态（单一 timeout vs connect/读写分段——一次定夺）与缺省值（OSS SDK 10s/50s 量级取值）；长传输读包络声明（getInputStream 流式读的 socket 读超时覆盖面）；**C6-018 构造回收面零触碰边界**（connect(ms) 超时异常路径 = R2-20 回收面触发前提的注记成文）；8 个 channel 操作超时覆盖矩阵
+  - [x] **裁定⑧ C6-005 流关闭 + 测试缝与零回退钉清单**：三调用点 try-with-resources[预设] + IoHelper.readBytes javadoc 契约声明（行为零变更）；CL-012 不互吸注记；红①–红⑦ 测试形态逐条（含缺陷态红判据 + 挂死类失败模式=超时给足有限 timeout + 全部 plain-JVM 可跑面声明[无 docker 门控；feishu/sftp 走补充焦点腿]）；C10-005 假体升级三件套形态（可编程 latch/REE 模拟[假体侧]/连接计数断言）；零回退钉 = nop-network 209 tests + feishu 53 + sftp 17（双 log 路径）、其中点名：`TestFeishuClient` 11 钉/`TestFeishuCredentialResolution` 值捕获钉/`TestFileTransfer` 三叶 20 钉/`TestFileDownloadSinkClose` fd 钉/`TestBodyPhaseCancel_C3_002` 6 钉（2505 面）/`TestOkHttpCancelListenerCleanup_C3_012`/`TestSftpClientCredential`/`TestSftpHostKeyChecking`；补测类标注「新增断言即新钉、缺陷态红→修复后绿」
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑧全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含 MA-04 吸收面闭合与 TestFeishuClient 兼容核对表；裁定②③含两单同批协同与世代令牌单点语义联动；裁定④含 R21 纪律对齐；裁定⑤⑥含 PA 申报与 batch-proposal 回写义务成文；裁定⑦含 C6-018 边界注记；裁定⑧含红①–红⑦驱动器表与零回退钉全列
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑧全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定①含 MA-04 吸收面闭合与 TestFeishuClient 兼容核对表；裁定②③含两单同批协同与世代令牌单点语义联动；裁定④含 R21 纪律对齐；裁定⑤⑥含 PA 申报与 batch-proposal 回写义务成文；裁定⑦含 C6-018 边界注记；裁定⑧含红①–红⑦驱动器表与零回退钉全列
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 7 成员实现 + 回归测试（按子域分组）
 
