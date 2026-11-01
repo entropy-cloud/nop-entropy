@@ -2,6 +2,8 @@
 
 > Plan Status: active
 > Draft Review R1: agent_fdf10a14 @ 2026-11-01 —— 无 Blocker；2 Major（E3 判据/I-05 API 前提）+6 Minor——机械修复闭环，修订转 active（无需第二轮）
+> Design Review（Phase 1）: R2 初稿评审因用量上限中断未全文落盘（摘要见 commit `3052ba06a0`：1 Blocker 续租挂点 + 4 Major 红⑧形态/R17 矩阵/FutureHelper.waitResult 勘误/ConsumeLater 通道）；可核实三项已修订落稿（waitResult :262 既有 API/续租挂点改 invokeConsumer 等待循环/ConsumeLater 通道勘正，plan 勘误 10），红⑧形态与 R17 矩阵交 R2' 复核
+> Design Review R2': agent_6d3c482e @ 2026-11-02 —— **APPROVED with corrections**：2 Major（F1 R17 矩阵事实源改指 DebeziumMessageSource[plan 2503 落地面]/F2 裁定⑤③ ICache 无 computeIfPresent→零平台面形态改裁）+ 4 Minor（红⑧构造性补注记/compute lambda 执行点/ThreadLocal finally+续租独立事务/sleep 2000 勘误）——全部按 reviewer 处方落稿闭环（机械修复，无需第二轮），设计文档转 active，**放行 Phase 2**
 > Draft Review：R1 已闭环（见上行），后续轮次如有则顺延登记
 > Last Reviewed: 2026-11-01
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-01 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `bf47511cac`）起草；全部成员站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果），执行前如再漂移以 live 为准并登记。结构沿 plan 2524 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 成员逐条表 / 勘误节 / 红绿判据 / C10 口径 / 环境三联预登记）。待独立 draft review 通过后修订转 active。
@@ -108,6 +110,7 @@
 7. **I-01 反向钉死相容性预核实（§一.3#6 落地核对）**：live 亲读 `TestInMemoryCodeCacheContract` :177-194 断言目标 = genPageFile/genViewFile/getOrmModel 三方法 synchronized 修饰 + mergedStore/dynResourceStore volatile——I-01 COW 修复（改 merge/addToMergedStore 实现语义为整体替换）**不触碰三方法修饰符与字段 volatile**，不触红；MA-02 若采纳「钩子移出/读写分离」深度触及三方法 synchronized 时**必须**同 diff 改写断言。两成员对同一测试的相容边界在 Phase 2 组 C 执行序中登记（I-01 先行、MA-02 后行、改写时核 I-01 已落形态）。
 8. **测试树基建现状（对照 2524 勘误 6 形态）**：nop-sys-dao/nop-sys-service/nop-dyn-service 三载体模块测试树均在案且 junit 依赖齐备（31+21 测试类亲读清单）——本批**无新建测试树需求**，红钉全部落入既有测试树新测试类/新用例；唯一 build 面动作为 I-03 的 orm 模型再生成（maven 通道，无手工文件）。
 9. **[Phase 1 起草增补条款（预留）]** 裁定①须给出 MA-01 三子批协同矩阵（续租间隔×fencing 条件×I-05 超时路径的交互表）与 C2-002 激活回升条款注记；裁定④须给出反向钉死改写后的行为等价断言目标（**结构断言[命中路径无 synchronized 修饰]为默认预设，吞吐>1 形态因 CI 时序敏感列为备选**[R1 Minor-6e]）与锁序不变式论证，**并给出钩子移出案的否决理由（代价/锁序/风险）或「锁内用户钩子」残留面 owner doc 登记义务[R1 Minor-4]**；裁定⑤须给出驱逐 removalListener 的执行上下文论证（Caffeine 驱逐回调线程执行 on-unload XPL 的代价与预算）；裁定⑥（I-03）须给出唯一索引 DDL 落点（orm indexes 段 + 存量库升级路径 + 初始化 DDL）与并发双建钉的可构造性论证（缺陷态真实竞态构造或唯一索引违反路径驱动——防「修复后测试无法变红」空洞钉）；裁定⑨须给出删除失效作用域论证（全量 reload vs 精确失效——模块级删除涉及多面清空的原子性）；裁定⑩须给出超时取值（leaseTimeout 同参 vs 独立配置键）与 stall 看门狗采纳与否。
+10. **[R2 评审事实修正登记（2026-11-02，设计文档为实施权威）]** 独立设计评审 R2（初稿评审，输出因用量上限中断未全文落盘，裁定摘要见 commit `3052ba06a0`）指出本 plan 三处事实性断言需修正，修订已落设计文档（§3.1/§3.10/§八勘误 3-4）：①**waitResult 勘误**——成员表第 10 行与 PA 表第 10 行「live 亲读 FutureHelper 仅 syncGet :158/tryResolve :177，无带超时等待公共 API」**作废**：`FutureHelper.waitResult(Future,long)` :262 既有公共 API 在案（live 复核）；裁定⑩改消费既有 API 分片等待，**PA 结论不变**（消费既有 API 仍零平台新增，条件申报分支不触发）。②**续租挂点 Blocker**——裁定①子批③「dispatch 等待期间续租」挂点不可执行（process 线程 dispatch 阻塞期间无执行机会），修订为「invokeConsumer 有界等待循环本体即续租挂点，与裁定⑩切片合一，续租回调由 process 线程绑定上下文注入」。③**ConsumeLater 通道勘正**——超时路径经 handleResult :165-172 ConsumeLater 分支（:533 先例），非 retryDelayProvider 异常路径（handleProcessEventError :189），两通道禁混同。红⑧形态与 R17 矩阵两项 Major 交由修订后 fresh 复审（R2'）复核。
 
 ## Goals
 
@@ -152,32 +155,32 @@
 
 ### Phase 1 - sys-dao fencing/动态模型缓存/序列并发/懒初始化卫生/I-03 唯一索引并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/sys-dao-coordination-fencing-dyn-model-cache-and-sequence-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① MA-01 三子批 fencing 形态（C10×4 随同 diff）**：子批① 过期删除 holderId 条件形态 + tryResetLease version 回写形态（激活回升条款注记）；子批② changeLeader/tryRenewLease 条件更新谓词与影响行数判定形态（版本检查不关闭）；子批③ 续租间隔（leaseTimeout 分数取值）+ 完成写条件谓词（version+leaseOwner）与 0 行放弃语义（handleResult/handleProcessEventError 双站点）；失效面豁免枚举核对表（forceUnlock/restartElection/tryBecomeLeader/refreshLeader）；**MA-01×I-05 协同矩阵**（超时放弃写 vs fencing 拒绝写区分；续租窗口×超时取值交互）
-  - [ ] **裁定② I-01 COW 发布形态（C10-001 面随同 diff）**：merge/addToMergedStore 整体替换形态（SysCompactExtFieldHelper 范本引用）；synchronized+volatile 保留声明（不触反向钉死——勘误 7 边界）；DynResourceStore.getChildren 同族入口处置定夺；内核零触碰声明
-  - [ ] **裁定③ I-02 compute 单步形态（C10-002 面随同 diff）**：cancel 判空+摘键 compute 形态；getConsumers 条件移除语义保持论证；**R17 族对齐矩阵**（与 plan 2503 已落地形态的互斥口径对齐点逐项）
-  - [ ] **裁定④ MA-02 命中无锁化形态（C10-003 面+反向钉死改写随同 diff）**：getResource 先无锁读 miss DCL 形态（范本引用）；钩子移出/读写分离采纳深度两案定夺禁第三形态——**钩子移出案的否决须给出理由（代价/锁序/风险）[R1 Minor-4]；接受残留（选最小面）时须在 nop-dyn.md 生成期窗口声明中显式登记「锁内用户钩子」残留面**；锁序不变式（TestInMemoryCodeCacheDeadlock 零回退）；**反向钉死改写目标**（行为等价断言两形态中，**结构断言[命中路径无 synchronized 修饰]为默认预设，吞吐>1 形态因 CI 时序敏感列为备选[R1 Minor-6e]**——勘误 9 条款）+ I-01/MA-02 同测试相容边界（I-01 先行不改断言）
-  - [ ] **裁定⑤ MA-03 三转变点形态（C10-004 面随同 diff）**：驱逐 removalListener 执行 clear()+on-unload 形态（回调线程执行 XPL 的代价与预算论证——勘误 9 条款）；冷启动后台化 vs 等待预算两案定夺；destroy computeIfPresent vs 残留复扫两案定夺；getUsedTenantIds 失真修正；容器上限 owner doc 声明落点
-  - [ ] **裁定⑥ MA-05 回退路径形态（C10-005 面随同 diff）**：按 seqName 各建 item 形态；DB 超时上限机制；clearCache/removeCache defaultCache 同步失效；两入口同 diff；批量段号预取不扩张声明（TestSysCodeRuleGeneratorCache 可控 clock 改写为批级 C10 时序敏感搭车项[R1 Minor-3：与 MA-05 非同文件，组 B 落地]，非裁定⑥同 diff 义务）
-  - [ ] **裁定⑦ MA-06 三站点卫生形态（C10-006 面随同 diff）**：ensure*×2 DCL/volatile 化（范本+测试迁移形态）；DynOrmModelProvider volatile；Snapshot record 一次发布形态（W-01 消化注记——cra-index :458 兑现）
-  - [ ] **裁定⑧ I-03 唯一索引形态（C10-008 假保护转正随同 diff；**ORM plan-first 裁定专节**）**：orm indexes 段声明形态；存量库升级 DDL/初始化 DDL 落点；应用层检查保留语义（两层并存）；并发双建钉可构造性论证（缺陷态真实竞态 or 唯一索引违反路径驱动——防空洞钉，勘误 9 条款；**若选「唯一索引违反路径驱动」形态[修复后才能红]，红⑧须显式绑定变异/回退论证：摘除 indexes 段→钉红→恢复，恢复动作以 grep 断言确认 indexes 段真实存在[R1 Minor-5]**）；唯一索引违反错误转译形态定夺；再生成链路与生成物一致性核对程序
-  - [ ] **裁定⑨ I-04 afterEntityChange 形态（C10-101 面随同 diff）**：模块级/实体级钩子形态（函数级先例引用）；删除失效作用域定夺（全量 reload vs 按模块精确失效）；removeDynModule 悬空入口接线定夺禁第三形态；三面不可达钉形态
-  - [ ] **裁定⑩ I-05 带超时等待形态（C10-008[C8-001] 面随同 diff）[R1 Major-2 修订]**：**唯一预设默认分支 = 超时等待以模块内机制实现**（`toCompletableFuture().get(timeout, MILLISECONDS)` 或等价 orTimeout，超时异常转译为消费失败走 retryDelayProvider——零平台 API 变更；live 亲读 `FutureHelper`（nop-kernel/nop-api-core）仅 syncGet :158/tryResolve :177 无带超时公共 API）；超时取值定夺（leaseTimeout 同参 vs 独立键）；**否决模块内方案的分支申报义务**：如须向 `FutureHelper` 新增公共 API，触发 nop-api-core plan-first 追加申报（四件证据链），禁静默扩权；stall 看门狗采纳与否定夺禁第三形态；挂死红钉超时预算声明
-  - [ ] **测试缝与红①–红⑩驱动器表+零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据[当前即红五条：红①③⑤⑦⑨ + 构造性/变异两条：红②④ + 挂死超时一条：红⑩ + 假保护转正两条：红⑧ + 竞态功能钉：红⑥]）；零回退钉 = 勘误 5 基线 163 tests（nop-sys 100 + nop-dyn 63）逐模块，点名既有钉族（TestDynCodeGenTenantCacheInit/TestInMemoryCodeCacheDeadlock/TestSysEventCleanup/TestNopDynFunctionMetaAfterChange/TestSysLedgerRetention_MA_04/TestSysCompactExtFieldHelper/TestSysDaoMessageService 12 用例族/TestSysDaoResourceLockManager 4 场景族）零回退义务；时序敏感改写 2 处随批项
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log；**该 review 同时构成 I-03 ORM plan-first 三件套之第三件**（头部 Protected Area 段口径）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① MA-01 三子批 fencing 形态（C10×4 随同 diff）**：子批① 过期删除 holderId 条件形态 + tryResetLease version 回写形态（激活回升条款注记）；子批② changeLeader/tryRenewLease 条件更新谓词与影响行数判定形态（版本检查不关闭）；子批③ 续租间隔（leaseTimeout 分数取值）+ 完成写条件谓词（version+leaseOwner）与 0 行放弃语义（handleResult/handleProcessEventError 双站点）；失效面豁免枚举核对表（forceUnlock/restartElection/tryBecomeLeader/refreshLeader）；**MA-01×I-05 协同矩阵**（超时放弃写 vs fencing 拒绝写区分；续租窗口×超时取值交互）——R2 Blocker 修订：续租挂点改 invokeConsumer 等待循环本体（§3.1）
+  - [x] **裁定② I-01 COW 发布形态（C10-001 面随同 diff）**：merge/addToMergedStore 整体替换形态（SysCompactExtFieldHelper 范本引用）；synchronized+volatile 保留声明（不触反向钉死——勘误 7 边界）；DynResourceStore.getChildren 同族入口处置定夺；内核零触碰声明
+  - [x] **裁定③ I-02 compute 单步形态（C10-002 面随同 diff）**：cancel 判空+摘键 compute 形态；getConsumers 条件移除语义保持论证；**R17 族对齐矩阵**（与 plan 2503 已落地形态的互斥口径对齐点逐项）——R2' Major-1 修正：事实源分行改指 DebeziumMessageSource/WI23（§3.3）
+  - [x] **裁定④ MA-02 命中无锁化形态（C10-003 面+反向钉死改写随同 diff）**：getResource 先无锁读 miss DCL 形态（范本引用）；钩子移出/读写分离采纳深度两案定夺禁第三形态——**钩子移出案的否决须给出理由（代价/锁序/风险）[R1 Minor-4]；接受残留（选最小面）时须在 nop-dyn.md 生成期窗口声明中显式登记「锁内用户钩子」残留面**；锁序不变式（TestInMemoryCodeCacheDeadlock 零回退）；**反向钉死改写目标**（行为等价断言两形态中，**结构断言[命中路径无 synchronized 修饰]为默认预设，吞吐>1 形态因 CI 时序敏感列为备选[R1 Minor-6e]**——勘误 9 条款）+ I-01/MA-02 同测试相容边界（I-01 先行不改断言）
+  - [x] **裁定⑤ MA-03 三转变点形态（C10-004 面随同 diff）**：驱逐 removalListener 执行 clear()+on-unload 形态（回调线程执行 XPL 的代价与预算论证——勘误 9 条款）；冷启动后台化 vs 等待预算两案定夺；destroy computeIfPresent vs 残留复扫两案定夺——R2' Major-2 改裁：ICache 无 computeIfPresent→「remove 原子摘除→摘除实例清理 + DCL 发布后复验自愈」零平台面形态（§3.5③）；getUsedTenantIds 失真修正；容器上限 owner doc 声明落点
+  - [x] **裁定⑥ MA-05 回退路径形态（C10-005 面随同 diff）**：按 seqName 各建 item 形态；DB 超时上限机制；clearCache/removeCache defaultCache 同步失效；两入口同 diff；批量段号预取不扩张声明（TestSysCodeRuleGeneratorCache 可控 clock 改写为批级 C10 时序敏感搭车项[R1 Minor-3：与 MA-05 非同文件，组 B 落地]，非裁定⑥同 diff 义务）
+  - [x] **裁定⑦ MA-06 三站点卫生形态（C10-006 面随同 diff）**：ensure*×2 DCL/volatile 化（范本+测试迁移形态）；DynOrmModelProvider volatile；Snapshot record 一次发布形态（W-01 消化注记——cra-index :458 兑现）
+  - [x] **裁定⑧ I-03 唯一索引形态（C10-008 假保护转正随同 diff；**ORM plan-first 裁定专节**）**：orm indexes 段声明形态；存量库升级 DDL/初始化 DDL 落点；应用层检查保留语义（两层并存）；并发双建钉可构造性论证（缺陷态真实竞态 or 唯一索引违反路径驱动——防空洞钉，勘误 9 条款；**若选「唯一索引违反路径驱动」形态[修复后才能红]，红⑧须显式绑定变异/回退论证：摘除 indexes 段→钉红→恢复，恢复动作以 grep 断言确认 indexes 段真实存在[R1 Minor-5]**）；唯一索引违反错误转译形态定夺；再生成链路与生成物一致性核对程序——R2' Minor-3 补可构造性事实链与钉注记两条（§3.8）
+  - [x] **裁定⑨ I-04 afterEntityChange 形态（C10-101 面随同 diff）**：模块级/实体级钩子形态（函数级先例引用）；删除失效作用域定夺（全量 reload vs 按模块精确失效）；removeDynModule 悬空入口接线定夺禁第三形态；三面不可达钉形态
+  - [x] **裁定⑩ I-05 带超时等待形态（C10-008[C8-001] 面随同 diff）[R1 Major-2 修订+R2 勘误再修订]**：**唯一预设默认分支 = 消费既有平台 API 分片等待**（`FutureHelper.waitResult(stage.toCompletableFuture(), 切片)`——**waitResult :262 既有公共 API[R2 勘误修正，原「无带超时 API」负结论作废]**，消费零平台新增；超时→返回 `new ConsumeLater(0)` 经 handleResult :165-172 通道[R2 通道勘正——禁与 retryDelayProvider 异常通道混同]）；超时取值定夺（独立配置键 `nop.sys.event.consume-wait-timeout`，默认=leaseTimeout 10000ms）；stall 看门狗否决（Non-Blocking Follow-up）；挂死红钉超时预算声明；平台 API 新增分支申报义务保留（禁静默扩权）
+  - [x] **测试缝与红①–红⑩驱动器表+零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据[当前即红五条：红①③⑤⑦⑨ + 构造性/变异两条：红②④ + 挂死超时一条：红⑩ + 假保护转正两条：红⑧ + 竞态功能钉：红⑥]）；零回退钉 = 勘误 5 基线 163 tests（nop-sys 100 + nop-dyn 63）逐模块，点名既有钉族（TestDynCodeGenTenantCacheInit/TestInMemoryCodeCacheDeadlock/TestSysEventCleanup/TestNopDynFunctionMetaAfterChange/TestSysLedgerRetention_MA_04/TestSysCompactExtFieldHelper/TestSysDaoMessageService 12 用例族/TestSysDaoResourceLockManager 4 场景族）零回退义务；时序敏感改写 2 处随批项
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log；**该 review 同时构成 I-03 ORM plan-first 三件套之第三件**（头部 Protected Area 段口径）——R2'（agent_6d3c482e）APPROVED with corrections 全落稿，I-03 plan audit 三件套齐备
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑩全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含三子批形态+协同矩阵+豁免枚举；裁定④含反向钉死改写目标（结构断言默认预设）+相容边界+钩子残留登记义务；裁定⑤含驱逐回调代价论证；裁定⑧含 ORM plan-first 三件套落点+DDL 落点+双建钉可构造性论证；裁定⑩含模块内机制默认分支+平台 API 否决分支申报义务+与裁定①协同矩阵；测试缝节（红①–红⑩驱动器表）含零回退钉全列
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑩全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定——命名未调整）
+- [x] 裁定①含三子批形态+协同矩阵+豁免枚举；裁定④含反向钉死改写目标（结构断言默认预设）+相容边界+钩子残留登记义务；裁定⑤含驱逐回调代价论证；裁定⑧含 ORM plan-first 三件套落点+DDL 落点+双建钉可构造性论证；裁定⑩含模块内机制默认分支+平台 API 否决分支申报义务+与裁定①协同矩阵；测试缝节（红①–红⑩驱动器表）含零回退钉全列
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-11-02 条目）
 
 ### Phase 2 - 10 成员实现 + 回归测试（按模块分组 A–D）
 
