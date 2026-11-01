@@ -162,23 +162,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner 缺口声明落账
 
-Status: planned
+Status: completed
 Targets: nop-spring+nop-quarkus 聚合全量测试；`docs-for-ai/01-repo-map/module-groups.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2523 Phase 3 先例声明支路理由与逐面三联裁定留痕）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-spring,nop-quarkus -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定[勘误 5 预登记面]；E3 双聚合器零盲区）+ 实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/nop-http-api/R4-28 批外成员本体/既有钉面）
-- [ ] Owner 缺口声明落账：`module-groups.md` :19「集成与运行时外围」行内补两宿主缺口句（无 03-modules owner doc→缺口登记归 R-G 治理批；并发契约以 HOST-CC-001 锚点+设计集为准——CLUSTER-CC-001 行先例句式）；`source-anchors.md` 新增 `HOST-CC-001` 锚点行（四成员文件行号锚+契约+回归钉族+设计权威指针，修复后 live 亲读核实；NETWORK-CC-002 :106 之后按表序实际行号插入）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-spring --severity high` 与 `--module nop-quarkus --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2523 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2523 Phase 3 先例声明支路理由与逐面三联裁定留痕）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-spring,nop-quarkus -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定[勘误 5 预登记面]；E3 双聚合器零盲区）+ 实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施/nop-http-api/R4-28 批外成员本体/既有钉面）
+- [x] Owner 缺口声明落账：`module-groups.md` :19「集成与运行时外围」行内补两宿主缺口句（无 03-modules owner doc→缺口登记归 R-G 治理批；并发契约以 HOST-CC-001 锚点+设计集为准——CLUSTER-CC-001 行先例句式）；`source-anchors.md` 新增 `HOST-CC-001` 锚点行（四成员文件行号锚+契约+回归钉族+设计权威指针，修复后 live 亲读核实；NETWORK-CC-002 :106 之后按表序实际行号插入）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-spring --severity high` 与 `--module nop-quarkus --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2523 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；上游抖动三联处置登记
-- [ ] module-groups.md 两宿主缺口句 + source-anchors.md HOST-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/nop-http-api/R4-28 批外成员本体/既有钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；上游抖动三联处置登记
+- [x] module-groups.md 两宿主缺口句 + source-anchors.md HOST-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/nop-http-api/R4-28 批外成员本体/既有钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
