@@ -296,7 +296,7 @@ idea-plugin 站点回归验证**不得依赖 `./mvnw test`**（`nop-dev-tools/po
 | ORM 模型结构（model/*.orm.xml）plan-first | 5.2-I-03 唯一索引（§三.5#6）；2.4 若触 orm | R3-02（I-03 实施前置 plan audit）、R2-14/R4-18/R4-19（零触碰则声明） |
 | nop-graph-api plan-first（W-06 唯一触碰 api 叶） | 5.6 裁定 §六.5 | **R3-06** |
 | Route-B 触 nop-core plan-first（EvalExprProvider volatile） | 6.2 裁定；P1 台账行已注记 | **R3-08**（W-02；替代路径=工单行显式登记） |
-| 4.3 三 api 叶（nop-http-api/nop-rpc-api/nop-integration-api）plan-first——零触碰 | 4.3 计数口径 | R2-19/R2-20/R4-26/R4-27 零触碰声明 |
+| 4.3 三 api 叶（nop-http-api/nop-rpc-api/nop-integration-api）plan-first——零触碰 | 4.3 计数口径 | R2-19/R2-20/R4-26/R4-27 零触碰声明。**[plan 2522 裁定⑥修正回写 @ 2026-11-01]R2-19 例外：nop-http-api 限 FileDownloadSink 单文件触碰（verifyAndRename null 分支强制 rename，零签名变更、消费者仅 OkHttp/Jdk 两站点）经 plan-first 申报闭环——plan 2522 + 设计文档裁定⑤⑥ + owner doc 契约句 + 红⑤回归钉四件证据链；nop-rpc-api/nop-integration-api 零触碰维持，R2-20/R4-26/R4-27 零触碰声明不变** |
 | 4.4-C6-009 触 nop-http-api 须 plan-first | 4.4 计数口径 | 批外注记（该工单未入 179/483 修复面；如未来立项随 migration note） |
 | 5.1-MA-06 触 nop-auth.orm.xml ORM plan-first | 5.1 裁定 §九 | R3-01（若触发） |
 | 5.3 nop-file-api / 5.5 双 api 叶 / 3.4 nop-ai-api / 6.4 nop-code-api / 6.5 零 api 叶 / 4.5 零触碰 | 各单元口径 | 对应批零触碰声明（R3-03、R3-05、R2-17、R3-10、R4-29） |

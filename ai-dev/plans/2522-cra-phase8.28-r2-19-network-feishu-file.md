@@ -1,6 +1,6 @@
 # 2522 CRA Phase 8.28 — R2-19 4.3 feishu/文件通道批（7 项：FeishuClient send 有界化（MA-04，半开连接整体死锁消除）+ 重连单飞/世代守卫（MA-05/B1-07 转正）+ stop×reconnect 竞态（MA-06/B1-08 转正）+ OkHttp future 完成保障（future 族第 4 例）+ verifyAndRename 强制（错误以成功交付族第 4 例）+ SftpClient 全链超时 + BASE64_FORM 流关闭）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: agent_cb2b45ac @ 2026-11-01 —— 无 Blocker；5 Minor（F1 测试资产头部聚合计数 33→79 更正、F2 TestFeishuClient 9→11 钉全文更正、F3 红⑦ fd 计数平台门控 @EnabledIf 预登记+变异论证 fallback、F4 Closure 补 Audit Session 行、F5 值捕获钉实名 reconnectUsesCapturedResolvedValues）+2 建议级（Phase 4 回写落点点名 L93+:299、裁定⑥零签名变更声明句）——协调方机械修复闭环，修订转 active
 > Design Review R2: agent_6fc286af @ 2026-11-01 —— 设计文档独立对抗性评审（≈50 行号锚抽验零漂移；七条红判据缺陷态可红性全部成立）：无 Blocker；4 Major（M1 裁定②单飞清零无守卫——connect#1 回调迟到清零可击落更新在飞声明双活，改守卫清零[捕获序号==最新]；M2 start 世代递增次序自相矛盾+onOpen 捕获侧未定义——递增点改 :194 connect 之前并记录 connectGeneration 快照，③onOpen 比对本代快照；M3 红⑥证据形态降级缺等价论证——jsch 无参 connect 委托 timeout javap 亲证等价论证+源码级 grep 断言伴生钉；M4 connectAsync seam 越权扩张——plan Non-Goals 登记扩展[包私有 default 仅限 connectAsync]+链式回投预设替代声明）+4 Minor（m4 生产 override 覆盖分叉承接声明、m5 钉点名计数 23→5+补三类、m6 裁定④ Exception 预设改写勘误登记、m7 红⑤ e2e 钉 OS 门控、m8 !started 早退保留收口）——已同 diff 修入设计文档与 plan，放行 Phase 2
 > Last Reviewed: 2026-11-01
@@ -196,40 +196,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.28 行、cra-index P1 台账 :276-278/:287-289/:291 + C10 成员面注记 + B1-07/08 转正落账、batch-proposal :299 回写
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（超时路径真驱动重连/世代令牌真丢弃/onResponse 真终结/null 分支真落盘/超时真传值/流真关闭运行时行为、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-19 七行状态收敛（open→fixed，注记 plan 2522 + closure audit 结论；吸收成员[←C6-024 随 :276 行；←C3-017 随 :277 行；←C3-016 随 :278 行]）+ **B1-07/B1-08 转正落账**（:277/:278 行内「判级留 7.1」注记改写为「B1-07/B1-08 转正落账（对称条款：消费面回撤即转条件化 P2）」终态——条款文本以 Current Baseline 节为 SSOT）+ C10 成员面收敛注记（3 条按勘误 5 半边口径；C10-005 的 C1-010/C1-011 半边与 C10-004 其余半边/C10-014 MA-15 半边归属注记）+ :276 行休眠条款注记（MA-04 ChannelConnectorManager 面维持）；roadmap 8.28 行 Status → done + 「R2-19 验证命令实触 3/7 载体，feishu/sftp 四载体经补充焦点腿覆盖」勘误注记；batch-proposal :299 三叶零触碰声明修正回写（如裁定⑥预设成立——「nop-rpc-api/nop-integration-api 零触碰维持，nop-http-api FileDownloadSink 单文件经 plan 2522 plan-first 申报闭环」）；R2-20 行软依赖/协同注记核对（C6-018 同文件排序注记）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（超时路径真驱动重连/世代令牌真丢弃/onResponse 真终结/null 分支真落盘/超时真传值/流真关闭运行时行为、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-19 七行状态收敛（open→fixed，注记 plan 2522 + closure audit 结论；吸收成员[←C6-024 随 :276 行；←C3-017 随 :277 行；←C3-016 随 :278 行]）+ **B1-07/B1-08 转正落账**（:277/:278 行内「判级留 7.1」注记改写为「B1-07/B1-08 转正落账（对称条款：消费面回撤即转条件化 P2）」终态——条款文本以 Current Baseline 节为 SSOT）+ C10 成员面收敛注记（3 条按勘误 5 半边口径；C10-005 的 C1-010/C1-011 半边与 C10-004 其余半边/C10-014 MA-15 半边归属注记）+ :276 行休眠条款注记（MA-04 ChannelConnectorManager 面维持）；roadmap 8.28 行 Status → done + 「R2-19 验证命令实触 3/7 载体，feishu/sftp 四载体经补充焦点腿覆盖」勘误注记；batch-proposal :299 三叶零触碰声明修正回写（如裁定⑥预设成立——「nop-rpc-api/nop-integration-api 零触碰维持，nop-http-api FileDownloadSink 单文件经 plan 2522 plan-first 申报闭环」）；R2-20 行软依赖/协同注记核对（C6-018 同文件排序注记）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 七行收敛 + 吸收成员括注 + B1-07/08 转正落账注记 + C10 半边注记、roadmap 8.28 = done（含 E3 盲区勘误注记）、batch-proposal :299 修正回写（裁定⑥预设成立时）完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 七行收敛 + 吸收成员括注 + B1-07/08 转正落账注记 + C10 半边注记、roadmap 8.28 = done（含 E3 盲区勘误注记）、batch-proposal :299 修正回写（裁定⑥预设成立时）完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 7 项成员全部修复：C3-015（send/close/connect 有界化，MA-04 一处闭合）、C1-009（重连单飞+世代守卫，B1-07 转正承载）、C6-021（stop×connect 世代校验，B1-08 转正承载）、C3-001（onResponse 体终结性，R21 纪律）、C3-005（verifyAndRename 强制，R11 纪律）、C3-024（全链超时+配置面）、C6-005（BASE64 三调用点流关闭）
-- [ ] batch-proposal R2-19 行 exit criteria 增补逐条达成并留证：FeishuClient send 有界化（半开连接整体死锁消除）；重连单飞/世代守卫+stop×reconnect 竞态（两单同批实施）；OkHttp future 完成保障；verifyAndRename 强制；SftpClient 全链超时+构造回收协同（边界注记）；BASE64_FORM 流关闭（CL-012 协同注记）
-- [ ] 对齐纪律守约：MA-04 吸收面一处闭合兑现；MA-05×MA-06 两单同批实施兑现（不并族、分立回填）；R21/R11 族纪律对齐兑现；C6-001 同站点协同零回退兑现；C6-018[R2-20] 构造回收面零触碰兑现；CL-012 不互吸兑现；C10 三条同 diff 兑现；PA 条款闭环（两叶零触碰 + nop-http-api 裁定⑥执行形态——git diff 核对单文件）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑦均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕）；C10 收口门（3 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（基线 279 tests + 2505 钉族 + C6-001 fd 钉 + feishu 值捕获钉零触碰）零回退实证
-- [ ] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + **feishu/sftp 补充焦点腿 BUILD SUCCESS**（E3 + 勘误 1 强制项；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：nop-network.md 四处落点 + source-anchors.md NETWORK-CC-001（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）超时路径/世代守卫/终结性/null 分支 rename/超时传值/流关闭运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-network 聚合 + feishu/sftp 焦点腿）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-19 七行收敛（含 B1-07/08 转正落账）+ roadmap 8.28 → done（E6）
+- [x] 7 项成员全部修复：C3-015（send/close/connect 有界化，MA-04 一处闭合）、C1-009（重连单飞+世代守卫，B1-07 转正承载）、C6-021（stop×connect 世代校验，B1-08 转正承载）、C3-001（onResponse 体终结性，R21 纪律）、C3-005（verifyAndRename 强制，R11 纪律）、C3-024（全链超时+配置面）、C6-005（BASE64 三调用点流关闭）
+- [x] batch-proposal R2-19 行 exit criteria 增补逐条达成并留证：FeishuClient send 有界化（半开连接整体死锁消除）；重连单飞/世代守卫+stop×reconnect 竞态（两单同批实施）；OkHttp future 完成保障；verifyAndRename 强制；SftpClient 全链超时+构造回收协同（边界注记）；BASE64_FORM 流关闭（CL-012 协同注记）
+- [x] 对齐纪律守约：MA-04 吸收面一处闭合兑现；MA-05×MA-06 两单同批实施兑现（不并族、分立回填）；R21/R11 族纪律对齐兑现；C6-001 同站点协同零回退兑现；C6-018[R2-20] 构造回收面零触碰兑现；CL-012 不互吸兑现；C10 三条同 diff 兑现；PA 条款闭环（两叶零触碰 + nop-http-api 裁定⑥执行形态——git diff 核对单文件）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑦均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕）；C10 收口门（3 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑧成文且经独立 draft review；既有钉（基线 279 tests + 2505 钉族 + C6-001 fd 钉 + feishu 值捕获钉零触碰）零回退实证
+- [x] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + **feishu/sftp 补充焦点腿 BUILD SUCCESS**（E3 + 勘误 1 强制项；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：nop-network.md 四处落点 + source-anchors.md NETWORK-CC-001（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）超时路径/世代守卫/终结性/null 分支 rename/超时传值/流关闭运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-network 聚合 + feishu/sftp 焦点腿）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-19 七行收敛（含 B1-07/08 转正落账）+ roadmap 8.28 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -260,15 +260,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （draft——收口时填写）
-Completed: ——
+Status Note: R2-19 批 7 项 P1（C3-015/C1-009/C6-021/C3-001/C3-005/C3-024/C6-005）全部修复并各带 focused 回归测试（C10-005 的 MA-04/05/06 面 + C10-004 的 C6-005+C3-024 半边 + C10-014 的 C3-001 半边随同 diff）；红①–红⑦先红后绿（缺陷基线真红 12 钉 + 源码伴生钉）；设计文档裁定①–⑧经独立评审 R1/R2 双轮闭环（4 Major+4 Minor 修复）；owner doc 四处落点 + NETWORK-CC-001 锚点落账；E1 快速通道 + E3 三联（r1 nop-core flake solo 绿 r2 全链绿）+ E3 盲区焦点腿双模块全绿；独立 closure audit **APPROVED**（2 Minor 登记级随手更正）；cra-index 七行 fixed + roadmap 8.28 done + batch-proposal :299 PA 行修正回写（裁定⑥闭环）。无剩余 plan-owned work。
+Completed: 2026-11-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: ——（收口时填写）
-- Audit Session: ——（如用子 agent，记录 session ID）[R1 Minor-F4]
-- Evidence: ——（收口时填写）
+- Reviewer / Agent: 独立子 agent `agent_3f1a9403`（fresh session，与实现无关联）@ 2026-11-01，审计基线 `187687f2f3`
+- Audit Session: agent_3f1a9403（复跑 feishu 56/0/0 + okhttp 15/0/0 @ HEAD）
+- Evidence:
+  - Phase 1 Exit 4/4 PASS（设计文档 192→约 200 行最终状态写法；Draft Review R1[agent_cb2b45ac] + Design Review R2[agent_6fc286af] 双轮闭环登记：4 Major+4 Minor 全修）
+  - Phase 2 Exit 7/7 PASS（七成员逐行核验：handleSendFailure :319 三调用点收敛/JdkStreamTransport :191/:205/connectAsync :115-176；reconnectPending :335/lifecycleGeneration :88/:222/:236/守卫清零四处；三消费点 :387-393/:414-418；OkHttp 双包裹 :76-94/:352-364；verifyAndRename :166-167 零签名；Sftp :167-169；BASE64 三站 :302/:591/:489；红证 12/12 亲验[red-r5/red-r12/red-r3/red-r10/red-c6-*]）
+  - Phase 3 Exit 5/5 PASS（E1 快速通道支路声明；E3 三联 r1→solo→r2 EXIT=0；焦点腿 feishu 56+sftp 19；nop-network.md 四落点 :34/:41-43/:66-70/:72 与 NETWORK-CC-001 :105 行号抽验 17 处零漂移；doc-links EXIT=0 + scan-hollow network 0 findings/integration 1 条批前既有已裁定[真实退出码口径]）
+  - Phase 4 Exit 4/4 PASS（本段 + cra-index 七行 fixed + roadmap 8.28 done + batch-proposal :299 PA 修正回写 + 双门禁）
+  - Closure Gates 15/15 PASS
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2522-cra-phase8.28-r2-19-network-feishu-file.md --strict` 退出码 0（收口提交前运行）
+  - Anti-Hollow 检查结果：红→绿行为差闭环 + 源码伴生钉（红①⑥）+ fail-fast 判别（红⑥黑洞探针）；`scan-hollow --module nop-network` EXIT=0 零发现/integration EXIT=1 一条批前既有（JavaEmailSender :216 email 叶零触面已裁定）
+  - Deferred 项分类检查：R2-20（C6-018/C6-017/019/MA-03）/R4-26（C1-010/011/MA-16/C6-022）/R4-27 批前裁定批外零触碰（diff 无 NettyTcpClient/构造回收/C1-010 面）；B1-07/B1-08 转正对称条款 SSOT 成文；mockwebserver 降 Non-Blocking（diff 零 pom 变更）；无 in-scope live defect 降级
+  - 环境抖动处置：E3 r1 nop-core `TestResourceCacheInvalidationChain` 3 失败（预登记负载 flake[勘误 8]）→ solo 4/4 绿 → r2 EXIT=0 三联留痕
+  - closure audit 发现处置：Minor-1（summary 勘误编号 10→8）已更正、Minor-2（新增测试 7 个非 8——审计任务书口径笔误）登记即闭
 
 Follow-up:
 
-- ——（收口时填写）
+- no remaining plan-owned work。Non-Blocking Follow-ups（mockwebserver 依赖评估[仅当 loopback 形态不足时激活 E5]、SMTP 次级同族注记）均已登记 successor 指向；E3 盲区（feishu/sftp 载体不在 nop-network reactor）已在 cra-index/roadmap 注记为批次定义勘误。
