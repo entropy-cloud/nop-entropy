@@ -24,6 +24,7 @@ import io.nop.core.resource.IResource;
 import io.nop.core.resource.VirtualFileSystem;
 import io.nop.core.resource.IResource;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.DaoErrors;
 import io.nop.dyn.dao.NopDynDaoConstants;
 import io.nop.dyn.dao.entity.NopDynModule;
 import io.nop.dyn.dao.model.DynEntityMetaToOrmModel;
@@ -185,8 +186,19 @@ public class NopDynModuleBizModel extends CrudBizModel<NopDynModule> implements 
         entity.setStatus(NopDynDaoConstants.MODULE_STATUS_PUBLISHED);
         // 与importExcel保持一致的数据权限检查
         checkDataAuth(BizConstants.METHOD_SAVE, entity, context);
-        dao.saveEntity(entity);
-        dao.flushSession();
+        try {
+            dao.saveEntity(entity);
+            dao.flushSession();
+        } catch (Exception e) {
+            // 唯一索引违反转译（I-03/C1-008，plan 2525 裁定⑧）：并发双建的输家得到与顺序路径
+            // 一致的语义化错误（沿 addDefaultSequence 的 ERR_SQL_DUPLICATE_KEY 识别先例），
+            // 禁裸DB异常暴露与静默重试吞掉。应用层 findFirstByExample 检查（上方）为顺序路径
+            // 友好失败，唯一索引为跨节点并发权威防护——两层并存
+            NopException ne = e instanceof NopException ? (NopException) e : null;
+            if (ne == null || !DaoErrors.ERR_SQL_DUPLICATE_KEY.getErrorCode().equals(ne.getErrorCode()))
+                throw e;
+            throw new NopException(ERR_DYN_MODULE_NAME_EXISTS).param(ARG_MODULE_NAME, moduleName);
+        }
 
         dynCodeGen.generateForModule(entity);
         dynCodeGen.reloadModel();

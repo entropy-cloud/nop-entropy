@@ -1,0 +1,10 @@
+-- I-03/C1-008（plan 2025 批次 R3-02）：nop_dyn_module.moduleName 唯一索引——存量库升级脚本。
+-- orm 模型中的 <indexes> 段仅推导新建库 DDL（initDatabaseSchema=TRUE 通道）；存量库按本脚本手工升级。
+--
+-- 步骤1：重复行预检（命中须先人工合并/清理模块行，否则步骤2建索引整体失败）
+--   SELECT moduleName, COUNT(*) AS cnt, MIN(moduleId) AS keepId
+--   FROM nop_dyn_module
+--   GROUP BY moduleName HAVING COUNT(*) > 1;
+--
+-- 步骤2：创建唯一索引（索引名与 nop-dyn.orm.xml 的 UX_NOP_DYN_MODULE_NAME 一致）
+--   CREATE UNIQUE INDEX UX_NOP_DYN_MODULE_NAME ON nop_dyn_module (moduleName);

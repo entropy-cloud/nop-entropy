@@ -32,6 +32,7 @@ CREATE TABLE nop_dyn_module(
   constraint PK_nop_dyn_module primary key (module_id)
 );
 
+create unique index UX_NOP_DYN_MODULE_NAME on nop_dyn_module (module_name) ;
 CREATE TABLE nop_dyn_entity(
   sid VARCHAR(32) NOT NULL ,
   nop_obj_type VARCHAR(100) NOT NULL ,

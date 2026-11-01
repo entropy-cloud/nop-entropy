@@ -32,6 +32,7 @@ CREATE TABLE nop_dyn_module(
   constraint PK_nop_dyn_module primary key (MODULE_ID)
 )CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs;
 
+create unique index UX_NOP_DYN_MODULE_NAME on nop_dyn_module (MODULE_NAME) ;
 CREATE TABLE nop_dyn_entity(
   SID VARCHAR(32) NOT NULL    COMMENT '主键',
   NOP_OBJ_TYPE VARCHAR(100) NOT NULL    COMMENT '对象类型',

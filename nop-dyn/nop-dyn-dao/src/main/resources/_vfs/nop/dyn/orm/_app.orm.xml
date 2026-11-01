@@ -259,6 +259,11 @@
                         propId="14" stdDataType="timestamp" stdSqlType="TIMESTAMP" ui:show="R"
                         i18n-en:displayName="Update Time"/>
             </columns>
+            <indexes>
+                <index name="UX_NOP_DYN_MODULE_NAME" unique="true">
+                    <column name="moduleName"/>
+                </index>
+            </indexes>
             <relations>
                 <to-one displayName="基础模块" name="baseModule" refDisplayName="派生模块"
                         refEntityName="io.nop.dyn.dao.entity.NopDynModule" refPropName="derivedModules"
