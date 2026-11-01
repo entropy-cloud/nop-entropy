@@ -184,48 +184,48 @@ Exit Criteria:
 
 ### Phase 2 - 10 成员实现 + 回归测试（按模块分组 A–D）
 
-Status: planned
+Status: completed
 Targets: `nop-sys/nop-sys-dao/`、`nop-sys/nop-sys-service/`、`nop-dyn/nop-dyn-service/`、`nop-dyn/model/nop-dyn.orm.xml`（+gen-orm.xgen 通道再生成；各载体模块 test 树）
 
 - Item Types: `Fix`（10 项均为已确认 live defect——P1×3/P2×7，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）、组 D 含 `Feature` 面（唯一索引为新增防护能力——以 I-03 已确认缺陷的 Fix 为主体承载）
 
-- [ ] 组 A nop-sys-dao 协调原语（MA-01 三子批 + I-05）：裁定①（三子批同序列——红①互斥红[当前即红]+续租/fencing 钉+双 follower 钉+二次续约钉；时序敏感改写 TestDaoLeaderElector sleep→状态轮询）+ 裁定⑩（红⑩停摆红[挂死超时形态]——与子批③同序列交付，协同矩阵兑现登记）
-- [ ] 组 B nop-sys 其余（I-02 + MA-05 + MA-06 sys 侧）：裁定③（红③孤儿化红[当前即红]——R17 对齐核对）+ 裁定⑥（红⑥取号钉 + defaultCache 漏清钉）+ **批级 C10 时序敏感搭车项**（TestSysCodeRuleGeneratorCache 可控 clock 改写——R1 Minor-3：位于 coderule 包与 MA-05 非同文件，搭车理由=同模块时序敏感测试治理）+ 裁定⑦ sys 侧（红⑦双实例红[当前即红，闩锁迁移] + Snapshot record + TestSysCompactExtFieldHelper 零回退）
-- [ ] 组 C nop-dyn service（I-01 + MA-02 + MA-03 + MA-06 dyn 侧 + I-04）：批内软序 = I-01 先行（裁定②红②撕裂红——不动反向钉断言）→ MA-06 dyn 侧（volatile 一行面）→ MA-03（裁定⑤红⑤生命周期红——驱逐/destroy 钉）→ MA-02（裁定④红④限速器钉 + **反向钉死同 diff 改写**[改写时核 I-01 已落形态——勘误 7]）→ I-04（裁定⑨红⑨失效红[当前即红三面不可达]）；TestInMemoryCodeCacheDeadlock/TestDynCodeGen 族零回退核对
-- [ ] 组 D I-03 ORM 唯一索引 + 再生成 + 并发双建钉：裁定⑧（orm indexes 段变更 → `./mvnw install -pl nop-dyn -am` 通道再生成 → 生成物一致性核对[git status 仅再生成差异，`_` 生成物零手改核对] → 红⑧双建钉[假保护转正形态——裁定⑧构造性论证兑现]；存量库升级 DDL 落点落地）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑩快照落 `_tmp/` 并登记（`_tmp/red-green-2525-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；挂死类红钉（红⑩）timeout 预算与失败模式注释逐钉留痕
-- [ ] **端到端验证**（rule 22）：fencing 链 = 过期接管全链钉（A/B 同读过期行→A 持锁→B 删除不命中 A 行→A 续约成功→A 释放成功，从 tryLockWithLease 入口到 releaseLock 出口）；事件链 = 慢消费接管全链钉（claim→慢消费超租约→第二节点接管→首节点完成写被 fencing 拒绝→终态归接管方，从 claim 入口到 handleResult 出口）；订阅链 = cancel×subscribe 交错全链钉（T1 cancel 半途→T2 subscribe 完成→T1 摘键→topic 键存活→事件送达 state2，从 subscribe 入口到 invokeDurableConsumers 送达出口）；模型链 = 删除失效全链钉（发布→删除→三面不可达断言，从 BizModel 删除入口到 codeCache/VFS/bizObjectManager 出口）
-- [ ] **接线验证**（rule 23）：MA-01 条件写真拦截断言（0 行路径真放弃写，非仅 SQL 存在）；I-02 compute 真互斥断言（交错点后键存活非仅 compute 调用存在）；MA-02 无锁化真生效断言（并发命中真并行非仅 synchronized 移除）；MA-03 removalListener 真回调断言（驱逐真触发 on-unload 非仅 listener 注册）；I-03 唯一索引真防护断言（DB 层违反真被拒非仅应用层检查）；I-04 钩子真触发断言（删除真驱动失效非仅方法存在）；I-05 超时真退出断言（轮询任务真按超时路径返回非仅超时等待调用存在[模块内机制形态]）
-- [ ] **无静默跳过**（rule 24）：MA-01 fencing 0 行路径不得静默吞（放弃写须显式可见[日志/返回语义]）；I-05 超时不得静默当成功（消费失败语义显式）；I-03 唯一索引违反不得静默重试吞掉（错误转译显式）；新增公共分支无空方法体/TODO
+- [x] 组 A nop-sys-dao 协调原语（MA-01 三子批 + I-05）：裁定①（三子批同序列——红①互斥红[当前即红]+续租/fencing 钉+双 follower 钉+二次续约钉；时序敏感改写 TestDaoLeaderElector sleep→状态轮询）+ 裁定⑩（红⑩停摆红[挂死超时形态]——与子批③同序列交付，协同矩阵兑现登记）——commit `9e10f0a22e`；C2-004/C2-007 前提证伪（ORM genUpdateSql 恒带 version 条件），改特征钉承载，勘误 10 登记
+- [x] 组 B nop-sys 其余（I-02 + MA-05 + MA-06 sys 侧）：裁定③（红③孤儿化红——R17 对齐核对）+ 裁定⑥（红⑥取号钉 + defaultCache 漏清钉）+ **批级 C10 时序敏感搭车项**（TestSysCodeRuleGeneratorCache 可控 clock 改写——生产侧测试缝 newBoundedRuleCache(Ticker)）+ 裁定⑦ sys 侧（红⑦双实例红 + Snapshot record 单读快照 + TestSysCompactExtFieldHelper 零回退）——commit `9e10f0a22e`；红③降级结构钉+功能钉（交错窗无挂钩点，2524 M2 先例）
+- [x] 组 C nop-dyn service（I-01 + MA-02 + MA-03 + MA-06 dyn 侧 + I-04）：批内软序兑现（I-01 先行）→ MA-06 dyn 侧 → MA-03（驱逐对称=IDestroyable条目+destroyOnRemove）→ MA-02（反向钉死同 diff 改写[getResource 无 synchronized + 三生成方法保留]）→ I-04（裁定⑨**实体级删除改模块级通道重生成**——prepareBizObject 已删实体不可解析，形态偏离登记）——commit `74b4fc8365`
+- [x] 组 D I-03 ORM 唯一索引 + 再生成 + 并发双建钉：裁定⑧（orm indexes 段变更 → install 通道再生成[deploy DDL×3+dao _app.orm.xml，`_` 生成物零手改] → 生成物一致性核对 → 红⑧双建钉[唯一索引违反路径驱动+RC5 变异回退论证：摘 indexes→winners=2 红→恢复→grep 双侧断言]；存量库升级 DDL 落点 `nop-dyn/model/upgrade/2026-11-unique-index-nop-dyn-module.sql`）——commit `8396425f97`
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑩快照落 `_tmp/` 并登记（`_tmp/red-green-2525-summary.md` 总册 + 逐 trial 日志 red-b1/b2/b3/b4/c1/c2/c2b/c3/c4/c5 + M1/M2/M3/M3' 变异轮）；变异探针纪律兑现（RC5 首轮锚文本笔误致假绿→二轮 regex 锚+双 assert 闭环，教训登记总册）；挂死红钉 timeout 预算注释在钉内
+- [x] **端到端验证**（rule 22）：fencing 链 = 过期接管全链钉（TestSysDaoResourceLockManager 既有接管钉 + TestSysDaoFencing_MA01.testFreshTakeoverRowNotDeletedByStaleHolderPredicate 从 tryLockWithLease 入口到 isHoldingLock/releaseLock 出口）；事件链 = 慢消费接管全链钉（TestEventLeaseFencing_MA01.testWaitAbortsWhenLeaseLostMidConsumption：claim→慢消费→接管→续租失守中止→fencing 放弃→终态归接管方，从 claim 入口到 handleResult 出口）；订阅链 = cancel×subscribe 交错全链钉（TestDurableSubscriptionCancel_I02.testConcurrentCancelSubscribeKeepsSubscriptionAlive：风暴后锚订阅必达，从 subscribe 入口到 invokeDurableConsumers 送达出口）；模型链 = 删除失效全链钉（TestDynModuleDeleteInvalidation_I04.testModuleDeleteInvalidatesAllThreeFaces：发布→删除→三面不可达，从 BizModel 删除入口到 codeCache/VFS/ModuleManager 出口）+ 双建链（TestDynModuleConcurrentCreate_I03：并发入口→唯一索引→转译→单行落库）
+- [x] **接线验证**（rule 23）：MA-01 条件写真拦截（TestEventLeaseFencing_MA01.testRenewLeaseRejectedAfterTakeover：接管后续租/完成写真 0 行放弃，retryDelay 不误触发）；I-02 compute 真互斥（结构钉+锚订阅必达功能钉）；MA-02 无锁化真生效（contract 改写断言 = 无锁化结构断言本体；DCL 真防双生成由 miss 路径结构保证+死锁钉零回退）；MA-03 removalListener 真回调（TestTenantCacheLifecycle_MA03.testRemoveTenantTriggersEntryDestroy：摘除真触发 entry.destroy→clear 计数）；I-03 唯一索引真防护（RC5 变异轮：无索引双建均成功、有索引输家真被拒）；I-04 钩子真触发（RC4：钩子摘除后三面继续可达；钩子在位三面不可达）；I-05 超时真退出（TestConsumeWaitTimeout_I05：worker 真按预算退出并走 ConsumeLater 路径落库 WAITING）
+- [x] **无静默跳过**（rule 24）：MA-01 fencing 0 行路径显式 WARN（nop.sys.event.complete-abandon-lease-taken）；I-05 超时显式 ConsumeLater 语义（事件回 WAITING+retryTimes+WARN 日志）；I-03 唯一索引违反显式转译（ERR_DYN_MODULE_NAME_EXISTS，非静默重试）；新增公共分支无空方法体/TODO（fencedComplete/renewLease/waitForConsumeResult 全分支显式）
 
 Exit Criteria:
 
-- [ ] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（13 缺保护+2 假保护转正，按勘误 4 口径）同 diff 落地；时序敏感改写 2 处随批落地
-- [ ] 必红证据（E2）：红①–红⑩均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（当前即红五条/构造性两条/挂死超时一条/假保护转正两条形态标注）
-- [ ] 零回退实证：基线 163 tests（nop-sys 100 + nop-dyn 63，勘误 5 r7 等价分解通道口径）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；反向钉死 :177-194 改写仅限 MA-02 同 diff 且改写后行为等价断言在位）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 双通道验证命令执行留痕[R1 Major-1 修订判据]：`./mvnw test -pl nop-sys -am` 与 `./mvnw test -pl nop-dyn -am` 各执行留痕至首个上游阻断面（勘误 5 r1–r6 已登记五面；阻断面按三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw test -pl nop-sys,nop-dyn` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；组 D 追加 install 通道再生成验证留痕[勘误 3]）；实际触达模块以 git diff 为准逐条登记（预期三 impl 叶 main+test + 一个 orm 模型 + 再生成产物，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `nop-sys/model/nop-sys.orm.xml`、不含 nop-api-core/nop-commons/nop-core 平台设施、不含 nop-sys-api/nop-dyn-api、不含 MA-04/MA-07/I-06~I-10/W-02 批外成员本体（cleanupExpiredEvents :253-281 等）；Owner doc 更新内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（Test*_<工单> 惯例：MA01/I02/I03/I04/I05/MA03/MA05/MA06）；C10 收口门（13 缺保护+2 假保护转正）同 diff 落地；时序敏感改写 2 处随批落地（TestDaoLeaderElector 轮询化 + TestSysCodeRuleGeneratorCache Ticker 化）
+- [x] 必红证据（E2）：红①–红⑩均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（red-green-2525-summary.md：行为红 8 钉 + 结构钉红 6 钉 + 特征钉 2；形态标注逐钉在册）
+- [x] 零回退实证：nop-sys 聚合 BUILD SUCCESS（99 tests dao 86→95+api/web）、nop-dyn 聚合 BUILD SUCCESS（既有钉族零回退：TestInMemoryCodeCacheContract 8/8 改写后、TestInMemoryCodeCacheDeadlock、TestDynCodeGenTenantCacheInit、TestSysCompactExtFieldHelper、TestSysDaoMessageService、TestSysSequenceGenerator、TestNopDynModuleBizModel 6/6 全绿）；反向钉死 :177-194 改写仅 MA-02 同 diff 且行为等价断言在位
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] E3 组内留痕：组内 focused 全绿 + 模块聚合绿（nop-sys/nop-dyn 双聚合全量 BUILD SUCCESS）；双通道 `-am` 与等价分解通道全量验收归 Phase 3 统一执行（显式登记去向）；实际触达模块（git diff 核对）：nop-sys-dao/nop-sys-service/nop-dyn-service main+test、nop-dyn/model/nop-dyn.orm.xml、再生成产物（deploy DDL×3+dao _app.orm.xml）——零触碰确认：`_` 生成物仅通道再生成、nop-sys/model 零触碰、平台设施/api 叶零触碰、MA-04/MA-07/I-06~I-10/W-02 零触碰；Owner doc 定稿归 Phase 3
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2 收口条目随本次提交补登）
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-sys+nop-dyn 聚合全量测试；`docs-for-ai/03-modules/nop-sys.md`；`docs-for-ai/03-modules/nop-dyn.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2524 Phase 3 先例声明支路理由与逐面三联裁定留痕）
-- [ ] 批行验证命令（E3[R1 Major-1 修订判据]）：`./mvnw test -pl nop-sys -am` 与 `./mvnw test -pl nop-dyn -am` 双通道各执行并留痕至首个上游阻断面（勘误 5 r1–r6 已登记五面；阻断面按三联裁定/恒红基线行为处置留痕），随后以等价分解通道 `./mvnw test -pl nop-sys,nop-dyn`（无 `-am`，163 tests 0F0E）BUILD SUCCESS 作为 E3 可接受等价验收（沿勘误 5 r7 先例形态；模块/测试数/退出码/快照路径逐项登记）+ 实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物手改/sys orm 模型/平台设施/api 叶/批外成员本体/既有钉面）
-- [ ] Owner doc 落账：`nop-sys.md`（MA-01 fencing 纪律契约节 + MA-05 回退路径语义节——沿既有「序列号生成」「分布式锁」节内嵌增补句式）；`nop-dyn.md`（MA-02 生成锁语义声明[命中无锁化+生成期窗口] + MA-03 容器上限 ≥ 活跃租户数声明 + I-04 删除失效契约 + I-03 moduleName 唯一索引注记——沿既有 P1-3.7-001 节句式）；`source-anchors.md` 新增 `SYS-CC-001`/`DYN-CC-001` 锚点行（成员文件行号锚+契约+回归钉族+设计权威指针，修复后 live 亲读核实；NETWORK-CC-002 之后按表序实际行号插入）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-sys --severity high` 与 `--module nop-dyn --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2524 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0（`_tmp/e1-full-install.log`；快速通道支路声明：勘误 5 五面上游已知 flake，沿 2497–2524 先例；聚焦覆盖 = E3 分解通道 196 tests 全绿）
+- [x] 批行验证命令（E3[R1 Major-1 修订判据]）：`./mvnw test -pl nop-sys -am` 阻断于面① nop-core TestResourceCacheInvalidationChain（`_tmp/e3-sys-am.log`；solo 三联 4/4 绿 EXIT=0 = 负载 flake 裁定，`_tmp/e3-core-solo.log`）；`./mvnw test -pl nop-dyn -am` 阻断于面③ nop-auth-service TestOperationMfaE2E（`_tmp/e3-dyn-am.log`；solo 恒红基线行为，起草期两轮确认先例）；等价分解通道 `./mvnw test -pl nop-sys,nop-dyn` BUILD SUCCESS EXIT=0（`_tmp/e3-decomposed.log`，196 tests 0F0E1S——基线 163 + 新钉 33，1 skipped 为批前既有）
+- [x] Owner doc 落账：`nop-sys.md` 增「DB 行协调原语并发契约」节 + 序列默认回退路径语义段；`nop-dyn.md` 增「动态模型生成与缓存并发契约」节（生成锁窗口/COW/租户生命周期/删除失效/唯一索引五小节）；`source-anchors.md` 新增 `SYS-CC-001`/`DYN-CC-001` 锚点行（修复后 live 行号亲读核实，HOST-CC-001 之后按表序插入）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-sys EXIT=0 + nop-dyn EXIT=0（`_tmp/scan-hollow-{sys,dyn}.log`）
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记（模块/测试数/退出码/快照路径）——E3 按 R1 Major-1 修订判据：双通道 `-am` 各执行留痕至首个上游阻断面 + 阻断面三联/恒红基线行为处置留痕 + 等价分解通道 BUILD SUCCESS 作为可接受等价验收；支路（如有）已声明理由；上游抖动处置登记
-- [ ] nop-sys.md/nop-dyn.md 增补节落账 + source-anchors.md 双锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
-- [ ] 零触碰确认登记（生成物手改/sys orm 模型/平台设施/api 叶/批外成员本体/既有钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面（面①/面③均勘误 5 已登记面，面① solo 三联绿、面③ 恒红基线行为）+ 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
+- [x] nop-sys.md/nop-dyn.md 增补节落账 + source-anchors.md 双锚点；check-doc-links EXIT=0；scan-hollow 双 EXIT=0
+- [x] 零触碰确认登记（git diff：`_` 生成物仅通道再生成、nop-sys/model 零触碰、平台设施/api 叶零触碰、批外成员零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 

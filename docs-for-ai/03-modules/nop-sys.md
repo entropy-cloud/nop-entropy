@@ -52,6 +52,15 @@
 | **字段级变更日志（ChangeLog）** | 实体加 `tagSet="audit"` → 自动记字段级 old→new 到 `NopSysChangeLog`；列加 `tagSet="no-audit"` 排除 | **`../03-runbooks/audit-field-changes.md`**（声明式开关 / 查询历史 / TTL / 反模式） |
 | **通用 ORM 拦截器（应用层 trigger）** | 注册 `IOrmInterceptor` 或写 `orm-interceptor.xml` 配置式回调（per-entity + 8 hook + XPL） | **`../03-runbooks/orm-interceptor-trigger.md`**（trigger 概念 / 两种实现 / 与 BizModel 钩子选型） |
 
+## DB 行协调原语并发契约（MA-01，plan 2525）
+
+nop-sys-dao 三类 DB 行协调原语（分布式锁 / 集群选主 / 事件队列租约）统一遵循**条件写/fencing 纪律**：
+
+- **乐观锁 CAS 惯用法**：实体 UPDATE 经 ORM 乐观锁版本条件（生成 SQL 恒带 `AND version=?`）；`orm_disableVersionCheckError(true)` 只把 0 行结果降级为 `orm_readonly` 标记（不关闭版本条件）——写点按 readonly 判定 CAS 胜负。`SysDaoLeaderElector.changeLeader/tryRenewLease` 即此形态（双 follower 同周期抢占至多一个当选）。
+- **手工条件写**：`SysDaoResourceLockManager` 的删除/续约谓词恒带 `holderId` 条件——重建锁行 version 恒 0，仅 version 条件无法区分新旧持有者；`tryResetLease` DB 成功后必须回写内存实体 version/expireAt（否则二次续约起全部失效）。
+- **事件租约**：`NonBroadcastEventProcessor` 认领 CAS 后，消费等待期间按 `leaseTimeout/3` 切片续租（`renewLease`，乐观锁承载，被接管即 0 行 false）；完成写（含错误路径）走 `fencedComplete` 条件写放弃语义——0 行显式 WARN（`nop.sys.event.complete-abandon-lease-taken`）终态归接管方，禁静默吞。
+- **消费等待有界**：`invokeConsumer` 等待循环 = `FutureHelper.waitResult` 切片 × 续租回调 × 总预算 `nop.sys.event.consume-wait-timeout`（默认=leaseTimeout 10000ms）——预算耗尽返回 `ConsumeLater(0)` 回 WAITING 重排（at-least-once），挂死消费者不再永久停摆轮询线程。注意与异常路径 `retryDelayProvider`（可判 FAILED）语义不同，禁混同。
+
 ## 序列号生成（Sequence）
 
 `ISequenceGenerator`（`io.nop.dao.seq.ISequenceGenerator`）是序列号统一入口，按 `seqName` 取号：
@@ -64,6 +73,8 @@ long nextVal = sequenceGenerator.generateLong("order_seq", false);
 ```
 
 实现 `SysSequenceGenerator` 的并发与性能模型（cacheSize 批量取号 / DB 行锁 / snowflake/uuid 兜底 / `REQUIRES_NEW` 独立事务不被外层回滚），以及业务编码规则的完整用法，见 **`../03-runbooks/generate-business-code.md`**。
+
+**默认回退路径语义（MA-05，plan 2525）**：未知序列名回退 `SEQ_DEFAULT` 时按 seqName 各建独立 item（配置快照同源、取值流仍来自 SEQ_DEFAULT 行、锁对象独立）——一个冷门序列的 DB 慢不再拖住全部默认序列取号。DB 环节有独立超时上限 `nop.sys.seq.sync-db-timeout`（默认 10000ms，经代理上下文 callExpireTime 传导到语句超时，取号失败显式抛出）；`clearCache`/`removeCache` 同步失效回退项缓存（管理端回拨 nextValue 即时生效，无 TTL 兜底窗）。
 
 ## 分布式锁
 
