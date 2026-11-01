@@ -1,6 +1,6 @@
 # 2521 CRA Phase 8.27 — R2-18 4.2 cluster 批（4 项：AbstractLeaderElector doStop 复活锁序（leaderEpoch+监听器序，MA-01 六条族一处闭合）+ ServiceInstance 不可变化（12 读者站点）+ Nacos 订阅快照版本守护 + ClusterRpcClient.callAsync 回调同步异常 completeExceptionally（Sentinel entry 释放，R21 future 族纪律））
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-01
 > Draft Review R1: agent_03adeaa1 @ 2026-11-01 —— 无 Blocker；2 Major（M1 裁定①预设守卫形态自相矛盾[LifeCycleSupport 无 isStopped() 且 allowRestart=true 使 stop 返回回 CREATED 后 isStopping()=false 结构性失明——预设改为独立 volatile stopped 标志+「stop 返回后窗口」三场景显式登记]；M2 C10-003「全条入批」与 Phase 2 组 A 工单枚举不一致[组 A 补列建议(2)(3)(4) 三钉，建议(4) 时延阈值形态裁定改结构性形态不降 watch]）+3 Minor（M3 裁定③注入缝点名子类 override 为预设、M4 Closure 占位补 Audit Session 行、M5 Phase 2 Exit Criteria 补中断回补义务）——协调方机械修复闭环，修订转 active
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-01 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `a9fc5b01a7`）起草；全部站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果），执行前如再漂移以 live 为准并登记。结构沿 plan 2520 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 成员逐条表 / 勘误节 / 红绿判据 / C10 半边口径 / 环境三联预登记）。待独立 draft review 通过后修订转 active。
@@ -182,40 +182,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.27 行、cra-index P1 台账 :269–272 + C10 成员面注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（终态守卫真实拦截/重建对象真实替换/版本守护真实生效/重试体真实终结运行时行为、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-18 四行状态收敛（open→fixed，注记 plan 2521 + closure audit 结论；吸收成员[←C4-001/C2-003/C3-004/C2-005/C4-002 随 :269 行；:272 行 ←C3-008/C8-008 注记按勘误 8 口径改写「落地 R4-25」]）+ C10 成员面收敛注记（5 条按勘误 6 半边口径；C10-004 C4-004 半边 2496 已收敛注记）；roadmap 8.27 行 Status → done；R4-25 行软依赖解除核对（软依赖不阻塞，仅注记）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（终态守卫真实拦截/重建对象真实替换/版本守护真实生效/重试体真实终结运行时行为、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-18 四行状态收敛（open→fixed，注记 plan 2521 + closure audit 结论；吸收成员[←C4-001/C2-003/C3-004/C2-005/C4-002 随 :269 行；:272 行 ←C3-008/C8-008 注记按勘误 8 口径改写「落地 R4-25」]）+ C10 成员面收敛注记（5 条按勘误 6 半边口径；C10-004 C4-004 半边 2496 已收敛注记）；roadmap 8.27 行 Status → done；R4-25 行软依赖解除核对（软依赖不阻塞，仅注记）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 四行收敛 + 吸收成员括注 + C10 半边注记、roadmap 8.27 = done、R4-25 软依赖注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 四行收敛 + 吸收成员括注 + C10 半边注记、roadmap 8.27 = done、R4-25 软依赖注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 4 项成员全部修复：C1-004（doStop 复活锁序+终态守卫，六条族一处闭合）、C1-001（ServiceInstance 重建对象不可变化，12 读者站点）、C1-003（订阅快照版本守护）、C3-001（callAsync 重试体终结性，R21 族纪律）
-- [ ] batch-proposal R2-18 行 exit criteria 增补逐条达成并留证：doStop 复活锁序修复（leaderEpoch+监听器序）；ServiceInstance 不可变化（12 读者站点）；订阅快照版本守护；callAsync 回调同步异常 completeExceptionally+Sentinel entry 释放
-- [ ] 对齐纪律守约：MA-01 六条族一处闭合兑现；C1-003×C1-001 同写入口协同兑现；R21 族纪律对齐兑现（禁顺手退避/反向取消）；12 读者站点零消费者变更兑现；C10 五条同 diff 兑现；R4-25 边界条款兑现（SentinelFlowControlRunner + 反向钉死 #1 零 diff）；PA 条款闭环（零 orm/零生成物/零 nop-api-core 触碰声明兑现——git diff 核对）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2）；C10 收口门（5 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（基线 80 tests + 2496/2498 钉族 + 反向钉死两处零触碰）零回退实证
-- [ ] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + 模块外 elector 焦点腿 BUILD SUCCESS（E3；上游环境抖动三联裁定留痕）
-- [ ] Owner doc 更新完成：module-groups.md 通行句+缺口声明 + source-anchors.md CLUSTER-CC-001（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）终态守卫/重建对象/版本守护/重试体终结运行时真实生效（不只类型系统——守卫真拦截/新对象真替换/快照真不回退/future 真终结，红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-cluster 聚合）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-18 四行收敛 + roadmap 8.27 → done（E6）
+- [x] 4 项成员全部修复：C1-004（doStop 复活锁序+终态守卫，六条族一处闭合）、C1-001（ServiceInstance 重建对象不可变化，12 读者站点）、C1-003（订阅快照版本守护）、C3-001（callAsync 重试体终结性，R21 族纪律）
+- [x] batch-proposal R2-18 行 exit criteria 增补逐条达成并留证：doStop 复活锁序修复（leaderEpoch+监听器序）；ServiceInstance 不可变化（12 读者站点）；订阅快照版本守护；callAsync 回调同步异常 completeExceptionally+Sentinel entry 释放
+- [x] 对齐纪律守约：MA-01 六条族一处闭合兑现；C1-003×C1-001 同写入口协同兑现；R21 族纪律对齐兑现（禁顺手退避/反向取消）；12 读者站点零消费者变更兑现；C10 五条同 diff 兑现；R4-25 边界条款兑现（SentinelFlowControlRunner + 反向钉死 #1 零 diff）；PA 条款闭环（零 orm/零生成物/零 nop-api-core 触碰声明兑现——git diff 核对）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2）；C10 收口门（5 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（基线 80 tests + 2496/2498 钉族 + 反向钉死两处零触碰）零回退实证
+- [x] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS + 模块外 elector 焦点腿 BUILD SUCCESS（E3；上游环境抖动三联裁定留痕）
+- [x] Owner doc 更新完成：module-groups.md 通行句+缺口声明 + source-anchors.md CLUSTER-CC-001（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）终态守卫/重建对象/版本守护/重试体终结运行时真实生效（不只类型系统——守卫真拦截/新对象真替换/快照真不回退/future 真终结，红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-cluster 聚合）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-18 四行收敛 + roadmap 8.27 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -237,18 +237,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （收口时填写）
+Status Note: R2-18 批 4 项 P1（C1-004 六条族/C1-001/C1-003/C3-001 MA-07 主）全部修复并各带 focused 回归测试（C10-003 全条四钉 + C10-004 MA-01 半边 + C10-006 建议(1)(2) 半边 + C10-005 C1-003 半边 + C10-001 MA-07 半边随同 diff）；红①–红④先红后绿（缺陷基线真红 9/9 + 变异探针恢复断言）；设计文档裁定①–⑤经独立评审 R1/R2 双轮闭环；owner doc（module-groups.md 集群基础设施行缺口声明 + CLUSTER-CC-001 锚点）落账；E1 快速通道 + E3 r1 flake 三联 r2 全链绿 + 模块外焦点腿全绿；独立 closure audit APPROVED with corrections（2 Minor 登记级已闭环）；cra-index 四行 fixed + roadmap 8.27 done。无剩余 plan-owned work。
+Completed: 2026-11-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立审阅者或独立子 agent，fresh session）
-- Audit Session: （如用子 agent，记录 session ID）
-- Evidence: （每条 Exit Criterion 与 Closure Gate 的验证结果；`check-plan-checklist.mjs --strict` 退出码；Anti-Hollow 检查结果；Deferred 项分类检查）
+- Reviewer / Agent: 独立子 agent `agent_d4ed1bee`（fresh session，与实现无关联）@ 2026-11-01，审计基线 `6f2bb0283c`
+- Audit Session: agent_d4ed1bee（复跑 `./mvnw test -pl nop-cluster` BUILD SUCCESS 89 tests 0F0E @ HEAD）
+- Evidence:
+  - Phase 1 Exit 4/4 PASS（设计文档 151→约 165 行最终状态写法；Draft Review R1[agent_03adeaa1] + Design Review R2[agent_175893c0] 双轮闭环登记；裁定①③④强制项成文）
+  - Phase 2 Exit 7/7 PASS：C1-004 stopped 守卫 :47/doStop 锁内首动作 :176/onElectionCompleted 入口拒绝 :258-262/三派发入口 :281/:295/:308/rotatePromise :240-246/出锁 drain :269-277 + polling doStart :76/scheduleCheck 拒绝 :109-113/cancel-on-stop :93-98（2496 监督面零改动——git diff 仅 3 个 stopped 块）；C1-001 重建 :266-281；C1-003 eventReceived :213/:240/:253；C3-001 双包裹 :78/:88-112 + null :80-85 + SentinelFlowControlRunner/call/getRpcClient 零 diff；红证 red-r4（3F+1E）/red-r6（2F）/red-r12（3F）逐钉亲验；零回退（diff 全仓仅 11 文件=4M main+3A test+4 docs/plan）
+  - Phase 3 Exit 5/5 PASS（E1 快速通道支路理由已声明；E3 三联 r1 nop-core 3 失败[勘误 10 面]→solo 4/4→r2 EXIT=0；焦点腿 SysDao 5/5 + runtime 23/23 + HA 补跑 1/1；module-groups :20 行 + source-anchors :104 CLUSTER-CC-001 行号抽验 13 处全中；doc-links EXIT=0 + scan-hollow 0 findings EXIT=0）
+  - Phase 4 Exit 4/4 PASS（本段 + cra-index :269–272 fixed + roadmap 8.27 done + 双门禁）
+  - Closure Gates 14/14 PASS
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2521-cra-phase8.27-r2-18-cluster.md --strict` 退出码 0（收口提交前运行，见 daily log）
+  - Anti-Hollow 检查结果：四修复行为级证实（红→绿行为差 + 探针恢复断言 + live 调用链追踪）；`scan-hollow-implementations.mjs --module nop-cluster --severity high` 0 findings EXIT=0（真实零发现）
+  - Deferred 项分类检查：R4-25 G65 束（cra-index :449 批前裁定）/MA-02/MA-04 条化/watch C2-004 均批外；C3-008/C8-008 落 R4-25 边界成立（本批 diff 不含 SentinelFlowControlRunner）；无 in-scope live defect 被降级
+  - 环境抖动处置：E3 r1 nop-core `TestResourceCacheInvalidationChain` 3 失败 = 勘误 10 预登记负载 flake → solo 4/4 绿 → r2 全链 EXIT=0 三联留痕
+  - closure audit 发现处置：Minor-1（summary 模块归属笔误）已更正、Minor-2（HA 焦点腿未跑）已补跑 1/1 绿——均为登记级，零代码变更
 
 Follow-up:
 
-- （收口时登记 non-blocking follow-up 或明确写 no remaining plan-owned work）
+- no remaining plan-owned work。Non-Blocking Follow-ups（停机后无 lease 行重写断言本体归模块外对应批次、isStopped() 子类 loop 迁移义务）均已随 cra-index/design 登记 successor 指向；R-G 治理批承接 nop-cluster owner doc 整批建设缺口。
 
 ## Risks And Rollback
 
