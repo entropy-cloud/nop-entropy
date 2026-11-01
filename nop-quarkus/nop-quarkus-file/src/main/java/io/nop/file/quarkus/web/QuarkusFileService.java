@@ -96,16 +96,19 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 return res.thenApply(JaxrsHelper::buildJaxrsResponse);
             }
             throw new IllegalArgumentException("No Upload File");
-            } catch (Throwable e) {
-                // C6-001 前段兜底（R2 Major-1 ②③）：按「本迭代已提交否」关流（不依赖 res 判空
-                // ——part₁ 成功 res₁ 非 null 而 part₂ 抛出时字面读法漏关）；Error 通道同关
+            } catch (Exception e) {
+                // C6-001 前段兜底：按「本迭代已提交否」关流 + 既有错误响应 envelope 语义零回退
                 if (opened != null && res == null) {
                     io.nop.commons.util.IoHelper.safeCloseObject(opened);
                 }
-                // R21 族纪律：completeExceptionally 终结（NopException.adapt 包装——避免
-                // ErrorMessageManager.buildResponseForException 的 checked IOException 逃逸）
-                return java.util.concurrent.CompletableFuture.failedFuture(
-                        io.nop.api.core.exceptions.NopException.adapt(e));
+                res = FutureHelper.success(ErrorMessageManager.instance().buildResponseForException(locale, e));
+                return res.thenApply(JaxrsHelper::buildJaxrsResponse);
+            } catch (Throwable e) {
+                // Error 通道同关（R2 Minor-1 自洽化）
+                if (opened != null && res == null) {
+                    io.nop.commons.util.IoHelper.safeCloseObject(opened);
+                }
+                throw e;
             }
         });
     }

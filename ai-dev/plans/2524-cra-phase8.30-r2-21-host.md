@@ -1,6 +1,6 @@
 # 2524 CRA Phase 8.30 — R2-21 4.4 host 批（4 项：双宿主启动窗口就绪门禁+空链固化消除（MA-01 主，C1-006+←C4-003 吸收，C10-006/C10-009 双保护面）+ ContextTaskQueue 吞异常 future 永不完成 host 层终结（MA-02，C6-007，future 族第 5 例宿主侧）+ 上传流先校验后消费失败路径配对 close（C6-001，双宿主 F3 孪生同 diff）+ SpringWebProxy 凭据对 volatile 单引用整体替换（C1-001））
 
-> Plan Status: active
+> Plan Status: completed
 > Design Review R2: agent_d57ee821 @ 2026-11-01 —— 设计文档独立对抗性评审（120+ 行号锚抽验零漂移错误；两重点裁决：裁定①503 短路不越权[plan 原文含 503 语义+Phase 1 委托项+三处显式登记 deviation]、平台吞异常定性为登记设计语义成立[亲读 :157-159]）：1 Major（Quarkus 前段兜底三细节落位规格——inputStream 作用域提升/按本迭代已提交否关流防 part₂ 泄漏/通道升 Throwable）+5 Minor（m1 Spring 守卫通道 Throwable 自洽化、m2 类级计数勘误、m3 reinitialize 窄窗残余登记、m4 bindMDC 前奏残余登记、m5 plan 侧勘误镜像+测试类名取代指认）——已同 diff 修入设计文档与 plan，放行 Phase 2
 > Draft Review R1: agent_db1779df @ 2026-11-01 —— 无 Blocker；3 Major（F1 红①驱动器与修复形态错位[钉经 filter 入口驱动，直呼 getFilters 永不变绿]；F2 红④兼容形态耦合未成文收口义务[委托 setter 残留双写假红/假绿]；F3 全局静态态翻转机制+恢复纪律未点名[反射写 initialized+@AfterEach 恢复]）+5 Minor（F4 Closure 占位/F5 类级计数/F6 注入点与送达语义精度/F7 RoutingContext JDK 代理先例/F8 防双关观测点）——协调方机械修复闭环，F1–F3 修订忠实落实评审处方（三薄弱点裁决 a 半成立/F3 机制点名/c whenComplete 维持+精度补强），修订转 active
 > Draft Review：待独立子 agent draft review（通过后本行登记 R1 结论，修订转 active）
@@ -182,40 +182,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.30 行、cra-index P1 台账 :280/:281/:282/:283 + C10 成员面注记、batch-proposal 勘误注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（门禁真拦截/future 真终结/close 真配对/凭据真整体替换运行时行为、无空方法体/静默吞异常）
-- [ ] cra-index 台账回填：R2-21 四行状态收敛（open→fixed，注记 plan 2524 + closure audit 结论；MA-01 行吸收成员 C4-003 注记 + C10-006/009 双保护面注记；MA-02 行 future 族第 5 例注记 + §7.1-3 联动兑现注记；C6-001 行 C10-011 注记 + 双宿主 F3 注记；C1-001 行 C10-001 注记）；roadmap 8.30 行 Status → done + 「R2-21 验证命令 live 裁定 = nop-spring,nop-quarkus 双聚合器，六载体零盲区」勘误注记[勘误 3] + 软依赖解除注记（8.5/8.2 已 done）；batch-proposal R2-21 行附近勘误注记（验证命令占位裁定——不改 L95 原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（门禁真拦截/future 真终结/close 真配对/凭据真整体替换运行时行为、无空方法体/静默吞异常）
+- [x] cra-index 台账回填：R2-21 四行状态收敛（open→fixed，注记 plan 2524 + closure audit 结论；MA-01 行吸收成员 C4-003 注记 + C10-006/009 双保护面注记；MA-02 行 future 族第 5 例注记 + §7.1-3 联动兑现注记；C6-001 行 C10-011 注记 + 双宿主 F3 注记；C1-001 行 C10-001 注记）；roadmap 8.30 行 Status → done + 「R2-21 验证命令 live 裁定 = nop-spring,nop-quarkus 双聚合器，六载体零盲区」勘误注记[勘误 3] + 软依赖解除注记（8.5/8.2 已 done）；batch-proposal R2-21 行附近勘误注记（验证命令占位裁定——不改 L95 原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index 四行收敛 + MA-01 吸收注记 + C10 五条注记、roadmap 8.30 = done（含 E3 裁定注记 + 软依赖解除注记）、batch-proposal 勘误注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index 四行收敛 + MA-01 吸收注记 + C10 五条注记、roadmap 8.30 = done（含 E3 裁定注记 + 软依赖解除注记）、batch-proposal 勘误注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 4 项成员全部修复：MA-01（双宿主就绪门禁+空链固化消除，三登记一处闭合[←C4-003]，runOnContext 之外短路）、MA-02（host 层 completeExceptionally future 终结，R21 族纪律，平台零触碰）、C6-001（获取侧配对 close，双宿主 F3 同 diff，恰一次不变式）、C1-001（volatile Credentials 单引用整体替换）
-- [ ] batch-proposal R2-21 行 exit criteria 增补逐条达成并留证：双宿主启动窗口就绪门禁（空链固化消除）；ContextTaskQueue 异常 completeExceptionally（future 族第 5 例宿主侧）；上传流配对 close+fd 计数回归（C10-011 复用 4.3 TestFileDownloadSinkClose 先例——确定性 close 计数形态）；凭据对 volatile 化
-- [ ] 对齐纪律守约：MA-01 双宿主同 diff（F3 孪生）兑现；MA-01×C4-004/MA-05 不并族兑现；MA-02×R21 族引用不重开+平台零触碰兑现；§7.1-3 联动兑现（门禁位置+completeExceptionally 兜底可证）；C6-001 双宿主同 diff+C6-008 不并族兑现；C1-001 刷新去重不扩张+CL-004 零触碰兑现；C10 五条同 diff 兑现（勘误 4 全条口径）；PA 零触碰声明闭环（git diff 核对平台设施/nop-http-api/orm/生成物零触碰）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕；构造性交错红/当前即红三条标注）；C10 收口门（5 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（基线 51 tests + 2499 landed 钉 + 两宿主 TestJsonRpcWebSocketEndpointLifecycle + core-starter 4 类零触碰）零回退实证
-- [ ] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS（E3 双聚合器零盲区；上游环境抖动三联裁定留痕）
-- [ ] Owner 缺口声明落账完成：module-groups.md 两宿主缺口句 + source-anchors.md HOST-CC-001（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）门禁/终结/配对/整体替换运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-spring+nop-quarkus 聚合）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index R2-21 四行收敛 + roadmap 8.30 → done（E6）
+- [x] 4 项成员全部修复：MA-01（双宿主就绪门禁+空链固化消除，三登记一处闭合[←C4-003]，runOnContext 之外短路）、MA-02（host 层 completeExceptionally future 终结，R21 族纪律，平台零触碰）、C6-001（获取侧配对 close，双宿主 F3 同 diff，恰一次不变式）、C1-001（volatile Credentials 单引用整体替换）
+- [x] batch-proposal R2-21 行 exit criteria 增补逐条达成并留证：双宿主启动窗口就绪门禁（空链固化消除）；ContextTaskQueue 异常 completeExceptionally（future 族第 5 例宿主侧）；上传流配对 close+fd 计数回归（C10-011 复用 4.3 TestFileDownloadSinkClose 先例——确定性 close 计数形态）；凭据对 volatile 化
+- [x] 对齐纪律守约：MA-01 双宿主同 diff（F3 孪生）兑现；MA-01×C4-004/MA-05 不并族兑现；MA-02×R21 族引用不重开+平台零触碰兑现；§7.1-3 联动兑现（门禁位置+completeExceptionally 兜底可证）；C6-001 双宿主同 diff+C6-008 不并族兑现；C1-001 刷新去重不扩张+CL-004 零触碰兑现；C10 五条同 diff 兑现（勘误 4 全条口径）；PA 零触碰声明闭环（git diff 核对平台设施/nop-http-api/orm/生成物零触碰）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红④均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕；构造性交错红/当前即红三条标注）；C10 收口门（5 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（基线 51 tests + 2499 landed 钉 + 两宿主 TestJsonRpcWebSocketEndpointLifecycle + core-starter 4 类零触碰）零回退实证
+- [x] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令 BUILD SUCCESS（E3 双聚合器零盲区；上游环境抖动三联裁定留痕）
+- [x] Owner 缺口声明落账完成：module-groups.md 两宿主缺口句 + source-anchors.md HOST-CC-001（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）门禁/终结/配对/整体替换运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-spring+nop-quarkus 聚合）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index R2-21 四行收敛 + roadmap 8.30 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -235,20 +235,39 @@ Exit Criteria:
 - **C1-002/MA-05 与 C6-007 同函数演进注记**（R4-28 修复 TL 传播时与 MA-02 已落求值序形态对齐——登记 R4-28 对齐注记去向）。
 - （占位）执行期发现的小额治理项（如命名/注释/测试基建微整）在此登记，均不得承载 in-scope live defect。
 
+## Closure Audit Corrections（登记 @ Phase 4）
+
+closure audit（agent_66ecba7d，APPROVED with corrections @ 2026-11-01）四 Major + 六 Minor 处置：
+1. **Major-1** Quarkus 孪生钉：设计 §5.5 双宿主同 diff 满足（quarkus-file 结构钉在 2523 已建）。
+2. **Major-2** 红②③承载形态从行为钉降级为源码结构钉——裁定修正登记（2522 R2 Major-3 同源方法论）。
+3. **Major-3** Quarkus 错误语义变更已回退为既有 error envelope 形态（catch Exception+Throwable 拆通道）。
+4. **Major-4** HOST-CC-001 四处行号修正已提交。
+Minor×6 登记即闭。
+
 ## Closure
 
-Status Note: （draft——收口时填写）
-Completed: ——
+Status Note: R2-21 批 4 项 P1（MA-01/MA-02/C6-001/C1-001）全部修复并各带 focused 回归测试；红①④行为红+红②③结构钉（裁定修正登记——行为探针不可判别实证）；设计文档裁定①–⑤经独立评审 R2 闭环（1 Major+5 Minor 修复）；owner doc 五处落点 + HOST-CC-001 锚点；E1 快速通道 + E3 三联 final 全链绿；独立 closure audit APPROVED with corrections——4 Major+6 Minor 全部闭环（Major-3 回退为 error envelope、Major-4 锚点修正、其余登记即闭）；cra-index 四行收敛 + roadmap 8.30 done。无剩余 plan-owned work。
+Completed: 2026-11-01
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: ——（收口时填写）
-- Audit Session: ——（如用子 agent，记录 session ID）[R1 Minor-F4 补占位]
-- Evidence: ——（收口时填写；`check-plan-checklist.mjs --strict` 退出码；Anti-Hollow 检查结果；Deferred 项分类检查）
+- Reviewer / Agent: 独立子 agent `agent_66ecba7d`（fresh session）@ 2026-11-01，审计基线 `464138f794`
+- Audit Session: agent_66ecba7d（复跑 web-starter 27/0/0 + proxy 2/0/0 @ HEAD）
+- Evidence:
+  - Phase 1 Exit 4/4 PASS（设计文档 189→约 195 行；Draft Review R1[agent_db1779df] + R2[agent_d57ee821] 双轮闭环）
+  - Phase 2 Exit 7/7 PASS（四成员逐行核验全中；红证：红①④行为红+红②③结构钉[缺陷基线零缺行]）
+  - Phase 3 Exit 5/5 PASS（module-groups.md 宿主集成行 + HOST-CC-001 锚点 + doc-links EXIT=0 + scan-hollow 0 findings）
+  - Phase 4 Exit 4/4 PASS（本段 + cra-index 四行 fixed + roadmap 8.30 done + 双门禁）
+  - Closure Gates 15/15 PASS（含四 Major 闭环后复验）
+  - check-plan-checklist --strict 退出码 0
+  - Anti-Hollow：红→绿行为差闭环 + 源码结构钉；scan-hollow EXIT=0 零发现
+  - Deferred：R4-28 承接面批前裁定批外零触碰
+  - 环境抖动：E3 r1 nop-core flake→solo→r6 EXIT=0 三联留痕
+  - audit 发现处置：4 Major 全闭环（M3 回退+M4 修正+M1/M2 登记即闭）；Minor×6 登记即闭
 
 Follow-up:
 
-- ——（收口时登记 non-blocking follow-up 或明确写 no remaining plan-owned work）
+- no remaining plan-owned work。Non-Blocking Follow-ups（mockwebserver/SMTP 同族/CL-021）均已登记 successor 指向。
 
 ## Risks And Rollback
 
