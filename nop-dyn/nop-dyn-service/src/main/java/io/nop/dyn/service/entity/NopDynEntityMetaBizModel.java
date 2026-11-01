@@ -12,6 +12,7 @@ import io.nop.api.core.annotations.biz.BizLoader;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.ContextSource;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.BizConstants;
 import io.nop.core.context.IServiceContext;
 import io.nop.dyn.service.codegen.DynCodeGen;
@@ -62,6 +63,10 @@ public class NopDynEntityMetaBizModel extends CrudBizModel<NopDynEntityMeta> imp
             if (moduleEntity == null)
                 moduleEntity = daoProvider.daoFor(io.nop.dyn.dao.entity.NopDynModule.class)
                         .getEntityById(entity.getModuleId());
+            if (moduleEntity == null)
+                // 极端序：模块行与实体行同批删除——重生成无宿主，语义化失败（closure audit Minor-2）
+                throw new NopException(io.nop.dyn.service.NopDynErrors.ERR_DYN_UNKNOWN_MODULE)
+                        .param(io.nop.dyn.service.NopDynErrors.ARG_MODULE_ID, entity.getModuleId());
             codeGen.generateForModule(moduleEntity);
             codeGen.reloadModel(true);
         }

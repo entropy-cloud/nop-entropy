@@ -1,6 +1,6 @@
 # 2525 CRA Phase 8.32 — R3-02 5.2 sys-dyn 批（10 项：MA-01 DB 行协调原语 fencing 纪律族三子批 + I-01 mergedStore COW 发布 + I-02 DurableSubscription cancel×subscribe compute 单步 + MA-02 动态模型生成锁命中路径无锁化（携反向钉死同 diff 改写） + MA-03 租户缓存三转变点 + MA-05 序列默认回退路径 + MA-06 懒初始化/快照发布卫生（消化 W-01） + I-03 moduleName 唯一索引（ORM plan-first） + I-04 动态模型删除零缓存失效（照抄函数级先例） + I-05 invokeConsumer syncGet 无超时；5.2-MA-04 已在 R1-07 注记不重做）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: agent_fdf10a14 @ 2026-11-01 —— 无 Blocker；2 Major（E3 判据/I-05 API 前提）+6 Minor——机械修复闭环，修订转 active（无需第二轮）
 > Design Review（Phase 1）: R2 初稿评审因用量上限中断未全文落盘（摘要见 commit `3052ba06a0`：1 Blocker 续租挂点 + 4 Major 红⑧形态/R17 矩阵/FutureHelper.waitResult 勘误/ConsumeLater 通道）；可核实三项已修订落稿（waitResult :262 既有 API/续租挂点改 invokeConsumer 等待循环/ConsumeLater 通道勘正，plan 勘误 10），红⑧形态与 R17 矩阵交 R2' 复核
 > Design Review R2': agent_6d3c482e @ 2026-11-02 —— **APPROVED with corrections**：2 Major（F1 R17 矩阵事实源改指 DebeziumMessageSource[plan 2503 落地面]/F2 裁定⑤③ ICache 无 computeIfPresent→零平台面形态改裁）+ 4 Minor（红⑧构造性补注记/compute lambda 执行点/ThreadLocal finally+续租独立事务/sleep 2000 勘误）——全部按 reviewer 处方落稿闭环（机械修复，无需第二轮），设计文档转 active，**放行 Phase 2**
@@ -229,40 +229,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.32 行、cra-index P1 台账 :295/:296/:297 + P2-G74 行 :458 + MA-04 注记维持、inventory-p2-c10 :809 倒排行对照、batch-proposal 勘误注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 的成立性，含 Anti-Hollow 检查（条件写真拦截/compute 真互斥/无锁化真并行/驱逐真回调/唯一索引真防护/钩子真触发/超时真退出运行时行为、无空方法体/静默吞异常）；I-03 ORM plan-first 三件套齐备性复核
-- [ ] cra-index 台账回填：P1 三行 :295/:296/:297 状态收敛（open→fixed，注记 plan 2525 + closure audit 结论；MA-01 行三子批+C10×4 注记；I-01 行 COW+不触反向钉死注记；I-02 行 R17 对齐兑现注记）；P2-G74 行 :458 收敛注（七成员 fixed 注记 + MA-06=W-01 消化兑现 + I-03 唯一索引落地注记 + C10 九条映射面兑现注）；MA-04 行注记维持「已在 R1-07」口径[勘误 6]；roadmap 8.32 行 Status → done + 勘误注记（C10 锚点勘误 1 + install 通道增补[勘误 3]沿 2523/2524 先例形态，不改 L102 原文）；inventory-p2-c10 :809 倒排行对照核对（不回写历史裁定文件，仅 Phase 4 log 登记）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session agent_ec38c863，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（调用链连通 7 项 + 无空方法体/静默吞）——**APPROVED**（2 Minor 非阻塞：upgrade SQL plan 编号笔误 + moduleEntity null 守卫，均随收口提交修正并复测绿）；I-03 ORM plan-first 三件套齐备性复核 PASS
+- [x] cra-index 台账回填：P1 三行 :295/:296/:297 状态收敛（open→fixed，注记 plan 2525 + closure audit 结论；MA-01 行三子批+C2-004/C2-007 前提证伪+C10×4 注记；I-01 行 COW+不触反向钉死注记；I-02 行 R17 对齐兑现+事实源分行修正注记）；P2-G74 行 :458 收敛注（七成员 fixed 注记 + W-01 搭车兑现 + I-03 唯一索引落地 + C10 映射面兑现）；MA-04 行注记维持「已在 R1-07」口径[勘误 6]；roadmap 8.32 行 Status → done + 勘误注记（C10 锚点勘误 + install 通道增补 + 前提证伪 + 裁定⑨偏离，沿 2523/2524 先例形态，不改 L102 原文）；inventory-p2-c10 :809 倒排行对照核对（不回写历史裁定文件，本 Phase log 登记）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（nop-sys/nop-dyn 双 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index P1 三行收敛 + P2-G74 收敛注 + MA-04 注记维持、roadmap 8.32 = done（含勘误注记）、batch-proposal 勘误注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index P1 三行收敛 + P2-G74 收敛注 + MA-04 注记维持、roadmap 8.32 = done（含勘误注记）、batch-proposal 勘误注记完成（勘误注记登记于 roadmap 行与本 Closure 段——batch-proposal 为历史裁定文件不回写，沿 plan 2523/2524 先例）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 10 项成员全部修复：MA-01（三子批 fencing 纪律：holderId 互斥+version 回写+条件更新选主+续租+完成写 fencing）、I-01（mergedStore COW 发布）、I-02（cancel×subscribe compute 单步）、MA-02（命中路径无锁化+反向钉死同 diff 改写）、MA-03（租户缓存三转变点对称治理）、MA-05（回退 item 拆分+超时上限+defaultCache 漏清）、MA-06（DCL/volatile+Snapshot record[W-01 消化]）、I-03（moduleName 唯一索引+并发双建防护）、I-04（删除失效 afterEntityChange 先例照抄）、I-05（syncGet 带超时+与 MA-01 协同）
-- [ ] batch-proposal R3-02 行 exit criteria 增补逐条达成并留证：MA-01 holderId 互斥+租约续期 fencing；I-01 TreeMap COW；MA-02 携反向钉死同 diff 改写（TestInMemoryCodeCacheContract :177-194）；I-03 唯一索引方案落地（moduleName 并发双建防护）；I-04 照抄 5.1 函数级先例；5.2-MA-04 在 R1-07（本批注记）
-- [ ] 对齐纪律守约：MA-01 三子批同序列+跨单元纪律引用不重开兑现；MA-01×I-05 协同矩阵兑现；MA-02 反向钉死同 diff+I-01 相容边界兑现；MA-03 三子面不混同兑现；MA-05 两入口同批+不扩张兑现；MA-06 R23 族+测试形态迁移兑现；I-03 ORM plan-first 三件套+应用层检查保留兑现；I-04 先例照抄+作用域定夺兑现；C10 同 diff 兑现（勘误 4 口径）；PA 零触碰声明闭环（git diff 核对平台设施/api 叶/sys orm 模型/生成物手改零触碰）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25）；红①–红⑩均有先红后绿或变异/回退论证（E2；挂死类失败模式=超时预算留痕；当前即红/构造性/假保护转正形态标注）；C10 收口门（13+2 条成员面）同 diff 落地
-- [ ] 设计文档裁定①–⑩成文且经独立 draft review（同时构成 I-03 plan audit 第三件）；既有钉（基线 163 tests + 既有钉族零触碰）零回退实证；反向钉死改写后行为等价断言在位
-- [ ] 全量构建绿：E1（含授权支路声明[如有]）+ 批行验证命令按 E3 修订判据验收（双通道 `-am` 至首个上游阻断面留痕 + 阻断面处置留痕 + 等价分解通道 `./mvnw test -pl nop-sys,nop-dyn` BUILD SUCCESS 为可接受等价验收[勘误 5 r7 先例]；组 D install 通道再生成验证留痕）
-- [ ] Owner doc 落账完成：nop-sys.md/nop-dyn.md 增补节 + source-anchors.md SYS-CC-001/DYN-CC-001（E5）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0 或批前既有已裁定（逐条登记，真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（Deferred 节条目均为入批前已裁定的批外项，successor 清晰）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）条件写/互斥/无锁化/驱逐回调/唯一索引/失效钩子/超时退出运行时真实生效（不只类型系统——红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-sys+nop-dyn 聚合）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 5.2 P1 三行收敛 + P2-G74 收敛注 + roadmap 8.32 → done（E6）
+- [x] 10 项成员全部修复：MA-01（三子批 fencing 纪律：holderId 互斥+version 回写+条件更新选主+续租+完成写 fencing）、I-01（mergedStore COW 发布）、I-02（cancel×subscribe compute 单步）、MA-02（命中路径无锁化+反向钉死同 diff 改写）、MA-03（租户缓存三转变点对称治理）、MA-05（回退 item 拆分+超时上限+defaultCache 漏清）、MA-06（DCL/volatile+Snapshot record[W-01 消化]）、I-03（moduleName 唯一索引+并发双建防护）、I-04（删除失效 afterEntityChange 先例照抄）、I-05（syncGet 带超时+与 MA-01 协同）
+- [x] batch-proposal R3-02 行 exit criteria 增补逐条达成并留证：MA-01 holderId 互斥+租约续期 fencing；I-01 TreeMap COW；MA-02 携反向钉死同 diff 改写（TestInMemoryCodeCacheContract :177-194）；I-03 唯一索引方案落地（moduleName 并发双建防护）；I-04 照抄 5.1 函数级先例[实体级删除通道形态修正已登记]；5.2-MA-04 在 R1-07（本批注记）
+- [x] 对齐纪律守约：MA-01 三子批同序列+跨单元纪律引用不重开兑现；MA-01×I-05 协同矩阵兑现；MA-02 反向钉死同 diff+I-01 相容边界兑现；MA-03 三子面不混同兑现；MA-05 两入口同批+不扩张兑现；MA-06 R23 族+测试形态迁移兑现；I-03 ORM plan-first 三件套+应用层检查保留兑现；I-04 先例照抄+作用域定夺兑现[实体级通道形态修正登记]；C10 同 diff 兑现（勘误 4 口径）；PA 零触碰声明闭环（closure audit git diff 全量核对 PASS）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，13 新测试类全工单命名）；红①–红⑩均有先红后绿或变异/回退论证（E2；九轮变异留痕；形态标注逐钉在 red-green 总册）；C10 收口门（13+2 条成员面）同 diff 落地
+- [x] 设计文档裁定①–⑩成文且经独立 draft review（R2' APPROVED with corrections，I-03 plan audit 第三件）；既有钉（基线 163 tests + 既有钉族）零回退实证（closure audit git diff 零改动核对 PASS）；反向钉死改写后行为等价断言在位
+- [x] 全量构建绿：E1 快速通道 EXIT=0（支路声明在案）+ 批行验证命令按 E3 修订判据验收（双通道至面①/面③阻断面留痕 + 三联/恒红处置留痕 + 分解通道 196 tests BUILD SUCCESS 等价验收；组 D install 通道再生成验证留痕）
+- [x] Owner doc 落账完成：nop-sys.md/nop-dyn.md 增补节 + source-anchors.md SYS-CC-001/DYN-CC-001（E5）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-sys/nop-dyn 双 EXIT=0 真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS：C2-004/C2-007 前提证伪为事实修正非降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，agent_ec38c863 fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）条件写/互斥/无锁化/驱逐回调/唯一索引/失效钩子/超时退出运行时真实生效（调用链追踪 7 项 + 红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-sys+nop-dyn 聚合——E3 分解通道 196 tests 0F0E1S BUILD SUCCESS）；checkstyle / 代码规范检查通过（git hook nop-cli lint 四次提交全过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 5.2 P1 三行收敛 + P2-G74 收敛注 + roadmap 8.32 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -296,21 +296,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<完成或关闭时填写：为什么这个 plan 可以关闭>>
-Completed: YYYY-MM-DD
+Status Note: 10 项成员（P1×3 + P2×7）全部修复落地并各带工单命名回归钉；红①–红⑩红证九轮变异留证；C10 收口门（13 缺保护+2 假保护转正）同 diff 落地；E1 快速通道 + E3 双通道至阻断面留痕 + 分解通道 196 tests 0F0E1S 等价验收；owner docs/anchors/门禁全绿；独立 closure audit（fresh session）APPROVED——2 Minor（upgrade SQL plan 编号笔误、moduleEntity null 守卫）已随收口修正并复测绿。roadmap 8.32 → done。
+Completed: 2026-11-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立审阅者或独立子 agent 的 session ID / task ID>>
-- Audit Session: <<如用子 agent，记录 session ID>>
+- Reviewer / Agent: agent_ec38c863（独立 closure audit fresh session，只读，对 live @ 817215234c）
+- Audit Session: agent_ec38c863-ea6b-458b-8fbd-0e968ad62a69
 - Evidence:
-  - <<每条 Exit Criterion 的验证结果（PASS/FAIL + 对应的 live code path 或 test name）>>
-  - <<每条 Closure Gate 的验证结果（PASS/FAIL + evidence 来源）>>
+  - Phase 1 Exit Criteria：PASS（设计文档 active + R2' 评审 + I-03 三件套齐备）
+  - Phase 2 Exit Criteria：PASS（10 成员 live 核验逐条 file:line——MA-01 holderId :153/回写 :244-250/renewLease :161-170/fencedComplete :234-247、I-01 COW :321-332、I-02 compute :691-709、MA-02 DCL :36-50、MA-03 :77-110/:165-195、MA-05 :300-320/:360-380、MA-06×3、I-03 orm :252-259+转译 :189-200、I-04 双钩子、I-05 :601-634；既有钉族 git diff 零改动；反向钉死改写非纯删）
+  - Phase 3 Exit Criteria：PASS（E1_EXIT=0 / e3 双通道阻断面与记载逐字一致 / 分解通道 196 tests 0F0E1S / owner docs+anchors+四门禁）
+  - Phase 4 Exit Criteria：PASS（本段回写 + cra-index 三行+G74 收敛注 + roadmap 8.32 done + 双门禁）
+  - Closure Gates：14/14 PASS（含 Anti-Hollow 调用链追踪 7 项：invokeConsumer→waitForConsumeResult、process→DispatchLeaseContext→renewLease、removalListener→safeDestroy→entry.destroy、CrudBizModel→afterEntityChange 等）
+  - 红证抽查 4 份（red-b1/c3/c4/c5）FAILURE 与总册登记逐条一致
   - `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（确认无未勾选项 + Closure Evidence 已写入）
-  - Anti-Hollow 检查结果：<<运行时调用链追踪结果>>；`scan-hollow-implementations.mjs` 退出码
-  - Deferred 项分类检查：<<确认无 in-scope live defect 被降级>>
+  - Anti-Hollow 检查结果：PASS；`scan-hollow-implementations.mjs` nop-sys/nop-dyn 双 EXIT=0
+  - Deferred 项分类检查：PASS（无 in-scope live defect 降级；C2-004/C2-007 为前提证伪事实修正）
 
 Follow-up:
 
-- <<只记录 non-blocking follow-up；confirmed live defect 不得出现在这里>>
-- <<或者明确写 no remaining plan-owned work>>
+- 批量段号预取队列（MA-05 结构性优化，Non-Blocking Follow-up 已登记）
+- stall 看门狗（I-05 可用性优化，裁定⑩否决为 Follow-up）+ 时序敏感测试平台化其余 sleep 形态（R-G 治理批候选）
+- no remaining plan-owned work（除上述批外候选）
