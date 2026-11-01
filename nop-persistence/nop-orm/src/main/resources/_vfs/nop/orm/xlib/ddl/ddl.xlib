@@ -92,10 +92,7 @@
 <source>
                 <c:for var="uniqueKey" items="${table.uniqueKeys}">
                     <c:if test="${uniqueKey.constraint}">
-                        <c:script>
-                            let columns = uniqueKey.getColumnModelsWithTenant(table).map(col =>
-                            dialect.normalizeColumnName(col.code))
-                        </c:script>
+                        <thisLib:UniqueKeyColumns uniqueKey="${uniqueKey}" table="${table}" dialect="${dialect}" xpl:return="columns"/>
                         <c:unit><![CDATA[ constraint ${uniqueKey.constraint} unique (${
                         columns.join(',')})]]></c:unit>
 
@@ -219,6 +216,18 @@
                 <c:script>col.displayName || col.comment</c:script>
             </source>
         </ColumnComment>
+
+        <!-- 唯一键列表达式列表；方言可覆盖（如 MySQL 对超长 VARCHAR 列加前缀长度） -->
+        <UniqueKeyColumns outputMode="none">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <source>
+                <c:script>
+                    return uniqueKey.getColumnModelsWithTenant(table).map(col => dialect.normalizeColumnName(col.code));
+                </c:script>
+            </source>
+        </UniqueKeyColumns>
 
         <UniqueKeyComment outputMode="none">
             <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>

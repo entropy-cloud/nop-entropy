@@ -19,9 +19,10 @@
             </source>
         </AddComment>
 
+        <!-- MySQL 8 拒绝显式 NULL 的主键列（error 1171），主键列无条件 NOT NULL -->
         <ColNullDef>
             <source>
-                <c:unit><![CDATA[ ${col.mandatory and !allNullable ? 'NOT NULL' : 'NULL'} ]]></c:unit>
+                <c:unit><![CDATA[ ${col.primary or (col.mandatory and !allNullable) ? 'NOT NULL' : 'NULL'} ]]></c:unit>
             </source>
         </ColNullDef>
 
@@ -50,6 +51,26 @@
                 <c:unit><![CDATA[   COMMENT ${dialect.getStringLiteral(colComment)}]]></c:unit>
             </source>
         </ColCommentDef>
+
+        <!-- InnoDB 索引键上限 3072 字节：utf8mb4 下 VARCHAR 超过 768 字符的唯一键列改为前缀唯一索引 -->
+        <UniqueKeyColumns outputMode="none">
+            <attr name="uniqueKey" type="io.nop.orm.model.OrmUniqueKeyModel"/>
+            <attr name="table" type="io.nop.orm.model.IEntityModel"/>
+            <attr name="dialect" type="io.nop.dao.dialect.IDialect"/>
+            <source>
+                <c:script><![CDATA[
+                    const MAX_KEY_CHARS = 768;
+                    return uniqueKey.getColumnModelsWithTenant(table).map(col => {
+                        let name = dialect.normalizeColumnName(col.code);
+                        let type = col.stdSqlType.toString();
+                        if ((type == 'VARCHAR' || type == 'CHAR') && col.precision > MAX_KEY_CHARS) {
+                            return name + '(' + MAX_KEY_CHARS + ')';
+                        }
+                        return name;
+                    });
+                ]]></c:script>
+            </source>
+        </UniqueKeyColumns>
 
         <TableCollation>
             <source>CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_as_cs</source>
