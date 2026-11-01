@@ -58,6 +58,9 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
 
             String locale = ContextProvider.currentLocale();
             CompletionStage<ApiResponse<?>> res = null;
+            // C6-001（plan 2524）：inputStream 提升为外层局部（R2 Major-1 ①）——外层 catch
+            // 作用域内可见方可兜底回收；「本迭代已提交否」判据防多 part 陈旧 res 边漏关
+            InputStream opened = null;
             try {
                 for (List<InputPart> inputParts : uploadForm.values()) {
                     for (InputPart inputPart : inputParts) {
@@ -74,13 +77,18 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                         fileName = fixFileName(fileName);
                         // 处理上传文件
                         InputStream inputStream = inputPart.getBody(InputStream.class, null);
+                        opened = inputStream;
 
                         UploadRequestBean fileInput = buildUploadRequestBean(inputStream,
                                 fileName,
                                 -1,
                                 contentType,
                                 (name) -> getParamFrom(request, input, name));
-                        res = uploadAsync(buildApiRequest(request, fileInput));
+                        CompletionStage<ApiResponse<?>> stage = uploadAsync(buildApiRequest(request, fileInput));
+                        // C6-001：提交成功即注册配对 close（校验链失败此前直接抛出泄漏 fd）
+                        stage.whenComplete((r, e) -> io.nop.commons.util.IoHelper.safeCloseObject(inputStream));
+                        opened = null; // 关闭责任已移交 whenComplete
+                        res = stage;
                         break; // NOPMD - intentional early exit on first valid file
                     }
                 }
@@ -88,9 +96,16 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
                 return res.thenApply(JaxrsHelper::buildJaxrsResponse);
             }
             throw new IllegalArgumentException("No Upload File");
-            } catch (Exception e) {
-                res = FutureHelper.success(ErrorMessageManager.instance().buildResponseForException(locale, e));
-                return res.thenApply(JaxrsHelper::buildJaxrsResponse);
+            } catch (Throwable e) {
+                // C6-001 前段兜底（R2 Major-1 ②③）：按「本迭代已提交否」关流（不依赖 res 判空
+                // ——part₁ 成功 res₁ 非 null 而 part₂ 抛出时字面读法漏关）；Error 通道同关
+                if (opened != null && res == null) {
+                    io.nop.commons.util.IoHelper.safeCloseObject(opened);
+                }
+                // R21 族纪律：completeExceptionally 终结（NopException.adapt 包装——避免
+                // ErrorMessageManager.buildResponseForException 的 checked IOException 逃逸）
+                return java.util.concurrent.CompletableFuture.failedFuture(
+                        io.nop.api.core.exceptions.NopException.adapt(e));
             }
         });
     }
@@ -101,6 +116,7 @@ public class QuarkusFileService extends AbstractGraphQLFileService {
             try {
                 value = input.getFormDataPart(name, String.class, null);
             } catch (IOException expected) {
+                // NOPMD - 字段为空时走 getFormDataPart 回退；IOException 表示该 part 无此字段（非错误）
             }
         }
         return value;

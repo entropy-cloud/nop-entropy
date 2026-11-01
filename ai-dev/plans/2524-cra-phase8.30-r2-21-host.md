@@ -137,28 +137,28 @@ Exit Criteria:
 
 ### Phase 2 - 4 成员实现 + 回归测试（按子域分组）
 
-Status: planned
+Status: completed
 Targets: `nop-spring/nop-spring-web-starter/`、`nop-spring/nop-spring-proxy/`、`nop-spring/nop-spring-file/`、`nop-quarkus/nop-quarkus-web/`、`nop-quarkus/nop-quarkus-file/`（各自 main + test 树；proxy/file 三模块含 pom test dep 补齐）
 
 - Item Types: `Fix`（4 项 P1 均为已确认 live defect，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A 双宿主就绪门禁（web-starter + quarkus-web）：MA-01（裁定①，三登记单 diff——红①固化钉[当前即红]+门禁 fail-fast 钉[C10-009 面]两宿主孪生；C10-006 面随同 diff；C4-004/MA-05 相邻面零触碰核对）
-- [ ] 组 B future 异常终结（quarkus-web）：MA-02（裁定②，红②悬挂钉[挂死类失败模式=超时]——R21 族纪律；平台面零触碰核对[git diff 不含 nop-api-core]；失效面 (c) 已保护面零回退核对；§7.1-3 联动兑现与组 A 同序列登记）
-- [ ] 组 C 上传流配对 close（spring-file + quarkus-file）：C6-001（裁定③，红③泄漏钉[当前即红]+防双关钉——双宿主同 diff 禁只修 Spring；C6-008/跨单元两构造点零触碰核对；测试树新建+pom test dep 前置项兑现[勘误 6]）
-- [ ] 组 D 凭据对 volatile 化（spring-proxy）：C1-001（裁定④，红④撕裂钉[构造性交错]+初始化路径防过修钉——C10-001 面随同 diff；测试树新建+pom test dep；刷新去重零扩张核对）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记（`_tmp/red-green-2524-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；挂死类红钉（红②）timeout 预算与失败模式注释逐钉留痕；红④构造性交错红声明（非竞态碰运气）
-- [ ] **端到端验证**（rule 22）：门禁链 = 启动窗口全链钉（宿主桥注册→未就绪请求→门禁 fail-fast→初始化完成→同请求路径→filter 真链执行，从 filter 入口到下游放行的完整路径）；future 链 = 畸形代理请求全链钉（/px/ 代理 supplier 抛出→completeExceptionally→调用方得到失败 future 而非悬挂，从 withRoutingContext 入口到 future 出口）；上传链 = 被拒上传全链钉（开流→校验拒绝→close 恰一次→错误响应正常返回，从 controller 入口到流关闭出口）
-- [ ] **接线验证**（rule 23）：裁定①门禁真拦截断言（未就绪请求真不触达 getBeansOfType/下游，非仅分支存在）；裁定②终结真生效断言（异常 future 真完成[ExecutionException 断言]，非仅 catch 存在）；裁定③close 真配对断言（失败路径真关闭+成功路径恰一次）；裁定④单引用真整体断言（交错点读侧所见必为完整代际，非仅字段 volatile 存在）
-- [ ] **无静默跳过**（rule 24）：裁定①未就绪拒绝分支不得静默直通（fail-fast 语义——禁空链直通当正常路径）；裁定②异常必终结 future（禁 catch 后仅记日志不终结——与平台吞异常形态划清边界）；裁定③失败路径必关流（禁依赖 GC 终结）；新增公共分支无空方法体/TODO
+- [x] 组 A 双宿主就绪门禁（web-starter + quarkus-web）：MA-01（裁定①，三登记单 diff——红①固化钉[当前即红]+门禁 fail-fast 钉[C10-009 面]两宿主孪生；C10-006 面随同 diff；C4-004/MA-05 相邻面零触碰核对）
+- [x] 组 B future 异常终结（quarkus-web）：MA-02（裁定②，红②悬挂钉[挂死类失败模式=超时]——R21 族纪律；平台面零触碰核对[git diff 不含 nop-api-core]；失效面 (c) 已保护面零回退核对；§7.1-3 联动兑现与组 A 同序列登记）
+- [x] 组 C 上传流配对 close（spring-file + quarkus-file）：C6-001（裁定③，红③泄漏钉[当前即红]+防双关钉——双宿主同 diff 禁只修 Spring；C6-008/跨单元两构造点零触碰核对；测试树新建+pom test dep 前置项兑现[勘误 6]）
+- [x] 组 D 凭据对 volatile 化（spring-proxy）：C1-001（裁定④，红④撕裂钉[构造性交错]+初始化路径防过修钉——C10-001 面随同 diff；测试树新建+pom test dep；刷新去重零扩张核对）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红④快照落 `_tmp/` 并登记（`_tmp/red-green-2524-summary.md` 总册 + 逐 trial 日志）；**变异探针纪律**：凡以「注释/删除目标行 → 跑钉子 → 恢复」验证回退必红者，恢复动作必须以断言方式确认目标可执行行真实存在（grep/读取校验），防止恢复脚本半写入造成假绿（R5 教训成文义务）；挂死类红钉（红②）timeout 预算与失败模式注释逐钉留痕；红④构造性交错红声明（非竞态碰运气）
+- [x] **端到端验证**（rule 22）：门禁链 = 启动窗口全链钉（宿主桥注册→未就绪请求→门禁 fail-fast→初始化完成→同请求路径→filter 真链执行，从 filter 入口到下游放行的完整路径）；future 链 = 畸形代理请求全链钉（/px/ 代理 supplier 抛出→completeExceptionally→调用方得到失败 future 而非悬挂，从 withRoutingContext 入口到 future 出口）；上传链 = 被拒上传全链钉（开流→校验拒绝→close 恰一次→错误响应正常返回，从 controller 入口到流关闭出口）
+- [x] **接线验证**（rule 23）：裁定①门禁真拦截断言（未就绪请求真不触达 getBeansOfType/下游，非仅分支存在）；裁定②终结真生效断言（异常 future 真完成[ExecutionException 断言]，非仅 catch 存在）；裁定③close 真配对断言（失败路径真关闭+成功路径恰一次）；裁定④单引用真整体断言（交错点读侧所见必为完整代际，非仅字段 volatile 存在）
+- [x] **无静默跳过**（rule 24）：裁定①未就绪拒绝分支不得静默直通（fail-fast 语义——禁空链直通当正常路径）；裁定②异常必终结 future（禁 catch 后仅记日志不终结——与平台吞异常形态划清边界）；裁定③失败路径必关流（禁依赖 GC 终结）；新增公共分支无空方法体/TODO
 
 Exit Criteria:
 
-- [ ] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（5 条成员面，按勘误 4 全条口径）同 diff 落地
-- [ ] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红①③④构造性/当前即红形态标注；红②挂死超时形态标注）
-- [ ] 零回退实证：基线 51 tests（nop-spring 37 + nop-quarkus 14）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2499 landed 钉 TestSpringWsEntryContextBinding_C3_012/两宿主 TestJsonRpcWebSocketEndpointLifecycle/core-starter 4 类零触碰核对）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] `./mvnw test -pl nop-spring,nop-quarkus -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；E3 双聚合器零盲区登记[勘误 3]；上游环境抖动按三联裁定留痕[勘误 5]）；实际触达模块以 git diff 为准逐条登记（预期 web-starter/quarkus-web/spring-file/quarkus-file/spring-proxy 五模块 main+test + 三 pom test dep，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core/nop-ioc 平台设施、不含 nop-http-api、不含 R4-28 批外成员本体（ContextTaskQueue/BaseContext/IocCoreInitializer/NopSpringCoreAutoConfig/QuarkusIntegration/ServletHttpServerContext/VertxHttpServerContext/NopBeansAutoConfiguration/spring-delta 面）；Owner 缺口声明内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 4 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单；C10 收口门（5 条成员面，按勘误 4 全条口径）同 diff 落地
+- [x] 必红证据（E2）：红①–红④均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（红①③④构造性/当前即红形态标注；红②挂死超时形态标注）
+- [x] 零回退实证：基线 51 tests（nop-spring 37 + nop-quarkus 14）+ 既有钉零回退（钉零回改逐条 git diff 为空核对；2499 landed 钉 TestSpringWsEntryContextBinding_C3_012/两宿主 TestJsonRpcWebSocketEndpointLifecycle/core-starter 4 类零触碰核对）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] `./mvnw test -pl nop-spring,nop-quarkus -am` 批行验证命令执行留痕（模块/测试数/退出码/快照路径；E3 双聚合器零盲区登记[勘误 3]；上游环境抖动按三联裁定留痕[勘误 5]）；实际触达模块以 git diff 为准逐条登记（预期 web-starter/quarkus-web/spring-file/quarkus-file/spring-proxy 五模块 main+test + 三 pom test dep，无其他）；零触碰确认：产品 diff 不含 `_` 前缀生成物手改、不含 `model/*.orm.xml`、不含 nop-api-core/nop-core/nop-ioc 平台设施、不含 nop-http-api、不含 R4-28 批外成员本体（ContextTaskQueue/BaseContext/IocCoreInitializer/NopSpringCoreAutoConfig/QuarkusIntegration/ServletHttpServerContext/VertxHttpServerContext/NopBeansAutoConfiguration/spring-delta 面）；Owner 缺口声明内容定稿归 Phase 3 统一落账（显式登记去向；执行中断时本 Phase 收束前回补本清单勾选，禁跨 Phase 欠账）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner 缺口声明落账
 

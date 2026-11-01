@@ -77,12 +77,15 @@ public class SpringWebProxy {
         return webClient.getWebClient().post()
                 .uri(path)
                 .headers(headers -> {
-                    // 传递预配置的Authorization和Cookie头
-                    if (webClient.getAuthorization() != null) {
-                        headers.set("Authorization", webClient.getAuthorization());
-                    }
-                    if (webClient.getCookie() != null) {
-                        headers.set("Cookie", webClient.getCookie());
+                    // C1-001（plan 2524）：快照单读——同代 Cookie/Authorization 恒一致
+                    WebClientHolder.Credentials snapshot = webClient.getCredentials();
+                    if (snapshot != null) {
+                        if (snapshot.getAuthorization() != null) {
+                            headers.set("Authorization", snapshot.getAuthorization());
+                        }
+                        if (snapshot.getCookie() != null) {
+                            headers.set("Cookie", snapshot.getCookie());
+                        }
                     }
                 })
                 .bodyValue(body) // 设置请求体
@@ -104,11 +107,15 @@ public class SpringWebProxy {
     Flux<String> callWeb(WebClientHolder webClient, String path, String body) {
         return webClient.getWebClient().post()
                 .uri(path).headers(headers -> {
-                    if (webClient.getAuthorization() != null) {
-                        headers.set("authorization", webClient.getAuthorization());
-                    }
-                    if (webClient.getCookie() != null) {
-                        headers.set("cookie", webClient.getCookie());
+                    // C1-001（plan 2524）：快照单读——同代 cookie/authorization 恒一致
+                    WebClientHolder.Credentials snapshot = webClient.getCredentials();
+                    if (snapshot != null) {
+                        if (snapshot.getAuthorization() != null) {
+                            headers.set("authorization", snapshot.getAuthorization());
+                        }
+                        if (snapshot.getCookie() != null) {
+                            headers.set("cookie", snapshot.getCookie());
+                        }
                     }
                 })
                 .bodyValue(body)
@@ -134,24 +141,30 @@ public class SpringWebProxy {
         return webClient.getWebClient().post()
                 .uri(config.getRefreshAuthUrl())
                 .headers(headers -> {
-                    if (webClient.getAuthorization() != null) {
-                        headers.set("authorization", webClient.getAuthorization());
-                    }
-                    if (webClient.getCookie() != null) {
-                        headers.set("cookie", webClient.getCookie());
+                    // C1-001（plan 2524）：快照单读
+                    WebClientHolder.Credentials snapshot = webClient.getCredentials();
+                    if (snapshot != null) {
+                        if (snapshot.getAuthorization() != null) {
+                            headers.set("authorization", snapshot.getAuthorization());
+                        }
+                        if (snapshot.getCookie() != null) {
+                            headers.set("cookie", snapshot.getCookie());
+                        }
                     }
                 })
                 .retrieve()
                 .toEntity(String.class) // 假设能直接获取 token，具体根据实际返回类型调整
                 .doOnNext(response -> {
-                    String cookie = response.getHeaders().getFirst("set-cookie");
-                    cookie = HttpCookieHelper.updateCookie(webClient.getCookie(), cookie);
-                    webClient.setCookie(cookie);
+                    String oldCookie = webClient.getCredentials() == null ? null
+                            : webClient.getCredentials().getCookie();
+                    String cookie = HttpCookieHelper.updateCookie(oldCookie,
+                            response.getHeaders().getFirst("set-cookie"));
                     String data = response.getBody();
                     Map<String, Object> map = JsonTool.parseMap(data);
                     String tokenPath = config.getTokenPath();
                     String token = (String) BeanTool.getComplexProperty(map, tokenPath);
-                    webClient.setAuthorization("Bearer " + token);
+                    // C1-001：整体替换写（cookie 与 authorization 同代原子可见）
+                    webClient.setCredentials(new WebClientHolder.Credentials("Bearer " + token, cookie));
                 }).map(HttpEntity::getBody)
                 .doOnError(e -> LOG.error("Error occurred while refreshing token: ", e));
     }
@@ -171,8 +184,9 @@ public class SpringWebProxy {
         WebClientHolder holder = new WebClientHolder();
         holder.setConfig(config);
         holder.setWebClient(client);
-        holder.setCookie(config.getHeader("cookie"));
-        holder.setAuthorization(config.getHeader("authorization"));
+        // C1-001（plan 2524）：初始化路径整体替换写（行为保持——单线程启动期安全面）
+        holder.setCredentials(new WebClientHolder.Credentials(
+                config.getHeader("authorization"), config.getHeader("cookie")));
         return holder;
     }
 

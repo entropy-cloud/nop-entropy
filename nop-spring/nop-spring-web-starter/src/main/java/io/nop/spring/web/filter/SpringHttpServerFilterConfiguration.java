@@ -89,6 +89,20 @@ public class SpringHttpServerFilterConfiguration {
         protected void doFilterInternal(@Nonnull HttpServletRequest request,
                                         @Nonnull HttpServletResponse response,
                                         @Nonnull FilterChain filterChain) throws ServletException, IOException {
+            // C1-006/C4-003（plan 2524，MA-01）：就绪门禁——启动窗口（宿主桥注册..平台满级）
+            // 内请求直接 503 短路，防止空链在此窗口被 getFilters 首访后 synchronized 永久固化
+            //（认证链旁路直至重启不可自愈）。直写 503 而非抛异常：异常经容器分派默认 500 且
+            // ERROR dispatch 可再入本链；平台守卫 CoreInitializationGuardFilter 的 503 先例同形。
+            if (!io.nop.core.initialize.CoreInitialization.isInitialized()) {
+                try {
+                    response.setStatus(jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                    response.setContentType("text/plain;charset=UTF-8");
+                    response.getWriter().write("Service initializing, retry later");
+                } catch (IOException e) {
+                    // 写失败不改变 503 已发出的状态——吞并保留短路语义
+                }
+                return;
+            }
             List<IHttpServerFilter> serverFilters = getFilters(sys);
 
             if (serverFilters.isEmpty()) {

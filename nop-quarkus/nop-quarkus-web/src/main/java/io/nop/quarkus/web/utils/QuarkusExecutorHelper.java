@@ -8,6 +8,7 @@
 package io.nop.quarkus.web.utils;
 
 import io.nop.api.core.auth.IUserContext;
+import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.api.utils.AuthMDCHelper;
@@ -55,7 +56,17 @@ public class QuarkusExecutorHelper {
                     AuthMDCHelper.bindMDC(userContext);
                 }
                 try {
-                    FutureHelper.bindResult(task.get(), future);
+                    // C6-007（plan 2524，future 族第 5 例宿主侧，R21 族纪律）：task.get()
+                    // 先求值入局部变量 + bindResult 移入 try + catch Throwable 终结返回 future
+                    // ——task.get() 同步异常原样逃逸 lambda 后落入平台 flushTasks 吞异常通道
+                    //（ContextTaskQueue :157-159 登记设计语义），调用方永久悬挂
+                    CompletionStage<T> stage;
+                    try {
+                        stage = task.get();
+                        FutureHelper.bindResult(stage, future);
+                    } catch (Throwable e) {
+                        future.completeExceptionally(NopException.adapt(e));
+                    }
                 } finally {
                     AuthMDCHelper.unbindMDC();
                 }
