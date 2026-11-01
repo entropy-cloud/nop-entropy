@@ -32,12 +32,14 @@ options.setMode(UploadMode.BASE64_FORM);
 
 - 线上协议：标准 `multipart/form-data`，文件内容整体 base64 后作为**普通文本字段**提交——用于只收文本表单字段的网关/遗留服务。
 - base64 文本整体构入请求体（内存约为文件 1.33 倍），仅适用于中小文件。
+- **流关闭契约（C6-005）**：BASE64_FORM 读取文件流必须以 try-with-resources 包裹 `IoHelper.readBytes(inputFile.getInputStream())`——`readBytes` 不关闭输入流（`readAllBytes` 语义，关闭责任在调用方），三实现（JDK/OkHttp/Apache）统一。`IoHelper.readBytes` 行为零变更。
 
 ## IHttpClient 文件下载
 
 `downloadAsync(request, targetFile, options, cancelToken)`：
 
-- **断点续传**（`options.isResume()` 默认 true）：下载写入目标旁的 `{name}.part`；中断后再次调用自动带 `Range: bytes=N-` 续传（206 追加）；服务端不支持 Range（回 200）自动整体重传；`416` 自动删除 `.part` 重下。完成并校验通过后原子 rename 到目标路径。`.part` 布局跨实现一致，可换实现续传。
+- **断点续传**（`options.isResume()` 默认 true）：下载写入目标旁的 `{name}.part`；中断后再次调用自动带 `Range: bytes=N-` 续传（206 追加）；服务端不支持 Range（回 200）自动整体重传；`416` 自动删除 `.part` 重下。**原子 rename 无条件强制（C3-005，错误以成功交付族）**：`verifyAndRename` 对校验来源缺失（expected == null）仅豁免校验、不豁免落盘收尾——.part 必须改名为目标文件，仅校验失败分支删除 .part；下载完成信号与产物落地原子（三实现行为一致）。
+- **future 终结契约（C3-001，R21 future-永不完成族）**：`onResponse` 回调体内任何同步异常（如 body 读取中断连）必须 `completeExceptionally` 终结返回 future——禁依赖上层超时兜底；OkHttp 回调返回的 stage 被框架丢弃，未终结即调用方永久挂起。`.part` 布局跨实现一致，可换实现续传。
 - **完整性校验**（优先级：显式 > 响应头 > sidecar）：
   1. `options.setExpectedSha256(hex)` / `setExpectedSha1(hex)`
   2. 响应头 `x-content-sha256`（hex；兼容 `x-amz-checksum-sha256` base64）
@@ -58,6 +60,18 @@ options.setMode(UploadMode.BASE64_FORM);
 
 - **SMS areaCode 语义（Yunpian，Tencent parity）**：areaCode null/空（平台主链路 MfaCodeSender 不设置——国内短信常态）时仅用裸 mobile 号；非空时剥离 "+" 前缀后拼接。杜绝 null 拼接出 "null138…" 数据损坏形态。
 - **Feishu Stream DATA→ACK 契约**：DATA 帧处理后回发 ACK 帧（headers 原样复制——携带 message_id/log_id 等回执定位信息；requestId 沿用）；FeishuInboundMessage.headers 透传帧头供下游回执。零 ACK 回发会导致服务端重复投递/反复断连。
+
+## Feishu Stream 通道生命周期并发契约（nop-integration-feishu）
+
+- **send 有界预算（C3-015）**：`FeishuClient` 的 send（心跳/握手/ACK 三调用点）统一有界——`JdkStreamTransport.send` 以 `sendTimeoutMillis`（缺省 15s，`FeishuClient.setSendTimeoutMillis` 部署可调）执行有界 get；半开连接上无界 get 会占死心跳+重连唯一 scheduler 线程（整体死锁）。send 失败经失败处理单点收敛：`connected=false` + close（尽力而为，5s 预算与 send 解耦）+ warn（含站点维度）+ 重连调度。connect 阻塞段经 `IStreamTransport.connectAsync` 移出 scheduler（包私有 seam 的 default 方法级扩展，假体经 default 委托同步 connect）。
+- **重连单飞与世代守卫（C1-009/C6-021）**：`onClose`/`onError` 双终态经 CAS 单飞去重为恰一在飞重连；`lifecycleGeneration` 在 start（connect 调用前）与 stop 各递增一次，重连/完成回调/`onOpen` 比对连接前记录的世代快照——过期世代回调丢弃、stop 后完成的建连立即关闭（孤儿消除，`connectCount - closeCount ≤ 1` 不变式）、晚到 `onOpen` 不置 connected 不发握手。重连前先 close 旧连接（fd 不依赖对端断开）。
+- **stop 停机语义**：stop 递增世代 + cancel 心跳 + close transport；stop 返回后任何旧世代在途建连/回调确定性失效（不对新世代 promise/连接产生影响）。`stop→start` 重启重置世代并重建连接。
+
+## SFTP 客户端超时契约（nop-integration-sftp，C3-024）
+
+- `SftpConfig.timeoutMillis`（缺省 15s，0=jsch 无限——禁用）单值承载三段接线：`session.setTimeout(...)`（socket SO_TIMEOUT，per-read 读段包络——活动传输每次读重置计时，长传输无总时长预算为 by design）+ `session.connect(ms)`（建连上界，banner 黑洞等）+ `channel.connect(ms)`（channel 开启上界）。超时异常经既有 `ERR_SFTP_CONNECT_FAIL` 包装外抛。
+- **边界注记**：构造期「session 已连、channel 未开」失败回收面归 R2-20（本批 connect(ms) 抛超时路径即其触发前提）。
+- 无连接级 keep-alive/重连语义——`SftpClientFactory.newClient` 每操作新建客户端（构造即建连）。
 
 ## Kafka 消费生命周期语义（P1-4.4-M01..M03，plan 2396）
 

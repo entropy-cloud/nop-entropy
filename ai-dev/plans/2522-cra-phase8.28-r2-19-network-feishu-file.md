@@ -176,23 +176,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 更新
 
-Status: planned
+Status: completed
 Targets: nop-network 聚合全量测试 + feishu/sftp 补充焦点腿；`docs-for-ai/03-modules/nop-network.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2521 Phase 3 先例声明支路理由与逐面三联裁定留痕）
-- [ ] 批行验证命令（E3）：`./mvnw test -pl nop-network -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定；E3 盲区登记）+ **补充焦点腿（勘误 1 强制项）**：`./mvnw test -pl nop-integration/nop-integration-feishu,nop-integration/nop-integration-sftp` BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施[IoHelper javadoc 单行除外]/两 api 叶/R2-20 批外成员本体/既有钉面）
-- [ ] Owner doc 更新：`nop-network.md` 四处落点——①新增「feishu Stream 通道生命周期契约（R2-19，plan 2522）」节（紧邻 :57 Feishu ACK 节：send 有界预算/超时 close 驱动重连/重连单飞世代守卫/stop 停机语义四句）；②:40 下载节「完成并校验通过后原子 rename」句修正为 rename 无条件强制契约（校验来源缺失不豁免落盘收尾）+ future 终结句；③:34 BASE64_FORM 节补流关闭契约句；④新增「SFTP 客户端超时契约」小节（connect/socket 读/配置项缺省值 + C6-018 边界注记）；`source-anchors.md` 新增 `NETWORK-CC-001` 锚点行（七文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；CLUSTER-CC-001 :104 之后按实际行号插入）；check-doc-links --strict 退出码 0
-- [ ] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-network --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2521 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准；feishu/sftp 模块如工具支持逐模块补跑登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（如全聚合测试通道被零 diff 上游已知 flake 阻断，授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，沿 plan 2497–2521 Phase 3 先例声明支路理由与逐面三联裁定留痕）
+- [x] 批行验证命令（E3）：`./mvnw test -pl nop-network -am` BUILD SUCCESS 留痕（模块/测试数/退出码/快照路径；上游抖动三联裁定；E3 盲区登记）+ **补充焦点腿（勘误 1 强制项）**：`./mvnw test -pl nop-integration/nop-integration-feishu,nop-integration/nop-integration-sftp` BUILD SUCCESS 留证；实际触达模块以 git diff 为准逐条登记；零触碰确认（生成物/orm 模型/平台设施[IoHelper javadoc 单行除外]/两 api 叶/R2-20 批外成员本体/既有钉面）
+- [x] Owner doc 更新：`nop-network.md` 四处落点——①新增「feishu Stream 通道生命周期契约（R2-19，plan 2522）」节（紧邻 :57 Feishu ACK 节：send 有界预算/超时 close 驱动重连/重连单飞世代守卫/stop 停机语义四句）；②:40 下载节「完成并校验通过后原子 rename」句修正为 rename 无条件强制契约（校验来源缺失不豁免落盘收尾）+ future 终结句；③:34 BASE64_FORM 节补流关闭契约句；④新增「SFTP 客户端超时契约」小节（connect/socket 读/配置项缺省值 + C6-018 边界注记）；`source-anchors.md` 新增 `NETWORK-CC-001` 锚点行（七文件行号锚 + 契约 + 回归钉族 + 设计权威指针，修复后 live 亲读核实；CLUSTER-CC-001 :104 之后按实际行号插入）；check-doc-links --strict 退出码 0
+- [x] 工具门禁：`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0；`node ai-dev/tools/scan-hollow-implementations.mjs --module nop-network --severity high` 逐条登记（触达面 high=0 或批前既有已裁定——沿 2518–2521 先例口径，注意 shell 管道退出码误读教训，以工具真实退出码为准；feishu/sftp 模块如工具支持逐模块补跑登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令 + 补充焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；E3 盲区处置登记
-- [ ] nop-network.md 四处契约句落点 + source-anchors.md NETWORK-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
-- [ ] 零触碰确认登记（生成物/orm 模型/平台设施/两 api 叶/R2-20 批外成员本体/既有钉面）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令 + 补充焦点腿 BUILD SUCCESS 且逐条登记（模块/测试数/退出码/快照路径）；支路（如有）已声明理由；E3 盲区处置登记
+- [x] nop-network.md 四处契约句落点 + source-anchors.md NETWORK-CC-001 锚点；check-doc-links --strict 退出码 0；scan-hollow 逐条登记
+- [x] 零触碰确认登记（生成物/orm 模型/平台设施/两 api 叶/R2-20 批外成员本体/既有钉面）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
