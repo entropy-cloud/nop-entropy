@@ -33,6 +33,8 @@ public interface XptErrors {
     String ARG_REPORT_NAME = "reportName";
 
     String ARG_SOURCE = "source";
+
+    String ARG_MAX_COUNT = "maxCount";
     ErrorCode ERR_XPT_INVALID_ROW_PARENT =
             define("nop.err.xpt.invalid-row-parent",
                     "表格[{sheetName}]的单元格[{cellPos}]的行父格[{rowParent}]必须配置为行展开",
@@ -121,4 +123,9 @@ public interface XptErrors {
     ErrorCode ERR_XPT_INVALID_EXCEL_FORMULA =
             define("nop.err.xpt.invalid-excel-formula",
                     "非法的Excel公式:{source}", ARG_SOURCE);
+
+    ErrorCode ERR_XPT_EXCEL_READ_ROW_COUNT_EXCEED_LIMIT =
+            define("nop.err.xpt.excel-read-row-count-exceed-limit",
+                    "Excel表格[{sheetName}]的数据行数超过上限{maxCount}，可调大ExcelIOConfig.maxCountPerSheet或改用csv/jdbc读取",
+                    ARG_SHEET_NAME, ARG_MAX_COUNT);
 }
