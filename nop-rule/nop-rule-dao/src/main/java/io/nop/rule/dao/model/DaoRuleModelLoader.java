@@ -84,6 +84,17 @@ public class DaoRuleModelLoader implements IResourceObjectLoader<RuleModel> {
         ResourceComponentManager.instance().traceDepends(DaoEntityResource.makeDaoResourcePath(entity));
 
         RuleModel model = buildRuleModel(entity);
+
+        // W-03 (C7-R2-001): 钉定集扩展至 NopRuleNode 子行。判定树谓词/输出取自子行
+        // （buildRuleModelNode 消费的同一子行集合），若只钉定定义行，子行经一等 CRUD 写面
+        // 独立编辑时不触定义行 updateTime，平台失效判据（DaoEntityResource）恒判无修改，
+        // 旧编译规则将无限期服务。逐节点补钉定后，任何写路径对子行 updateTime 的变更
+        // 均可被失效检查检出。零平台设施触碰：traceDepends 使用面调用与定义行同法。
+        List<NopRuleNode> nodes = new ArrayList<>(entity.getRuleNodes());
+        for (NopRuleNode node : nodes) {
+            ResourceComponentManager.instance().traceDepends(DaoEntityResource.makeDaoResourcePath(node));
+        }
+
         String path = DaoEntityResource.makeDaoResourcePath(entity);
         model.setLocation(SourceLocation.fromPath(path));
         return model;
