@@ -231,13 +231,15 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
     public List<ScreenSnapshotHistory> getScreenSnapshotHistory(@Name("id") String id, IServiceContext context) {
         NopDatavScreen screen = requireEntity(id, "getScreenSnapshotHistory", context);
 
-        List<NopDatavScreenSnapshot> snapshots = findAllSnapshots(screen.getScreenId());
-        List<ScreenSnapshotHistory> result = new ArrayList<>(snapshots.size());
-        for (NopDatavScreenSnapshot snapshot : snapshots) {
+        // 裁定⑪（plan 2026）：列投影——仅取三元数据列（SNAPSHOT_CONTENT 大列不进物化集，
+        // QueryBean 声明面零模型变更），返回形态（三元组、版本倒序）不变。
+        List<Map<String, Object>> rows = orm().findListByQuery(historySnapshotQuery(screen.getScreenId()));
+        List<ScreenSnapshotHistory> result = new ArrayList<>(rows.size());
+        for (Map<String, Object> row : rows) {
             ScreenSnapshotHistory history = new ScreenSnapshotHistory();
-            history.setSnapshotVersion(snapshot.getSnapshotVersion());
-            history.setPublishedBy(snapshot.getPublishedBy());
-            history.setPublishedTime(snapshot.getPublishedTime());
+            history.setSnapshotVersion(((Number) row.get("snapshotVersion")).longValue());
+            history.setPublishedBy((String) row.get("publishedBy"));
+            history.setPublishedTime((Timestamp) row.get("publishedTime"));
             result.add(history);
         }
         return result;
@@ -402,6 +404,22 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         return e instanceof io.nop.api.core.exceptions.NopException
                 && io.nop.orm.OrmErrors.ERR_ORM_ENTITY_VERSION_CHANGED.getErrorCode()
                         .equals(((io.nop.api.core.exceptions.NopException) e).getErrorCode());
+    }
+
+    /**
+     * 裁定⑪（plan 2026）：快照历史投影查询构造（package-private static 供结构断言——红⑩：
+     * 字段声明面恰为三元数据列、不含 snapshotContent）。零模型变更（QueryBean 声明面）。
+     */
+    static QueryBean historySnapshotQuery(String screenId) {
+        QueryBean query = new QueryBean();
+        query.setSourceName(NopDatavScreenSnapshot.class.getName());
+        query.addFilter(FilterBeans.eq("screenId", screenId));
+        query.addOrderField("snapshotVersion", true);
+        query.addFields(java.util.Arrays.asList(
+                io.nop.api.core.beans.query.QueryFieldBean.forField("snapshotVersion"),
+                io.nop.api.core.beans.query.QueryFieldBean.forField("publishedBy"),
+                io.nop.api.core.beans.query.QueryFieldBean.forField("publishedTime")));
+        return query;
     }
 
     private NopDatavScreenSnapshot findLatestSnapshot(String screenId) {

@@ -124,6 +124,10 @@ public interface NopDatavConfigs {
     IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ENTRIES = varRef(
             s_loc, "nop.datav.dashboard-query.cache.max-entries", Integer.class, 200);
 
+    @Description("看板/面板主查询路径单面板行数上界（W-04，超出抛 ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED，防 OOM；三站点传入 max+1 探测）——交互式看板渲染包络（非导出批处理），既有大面板用户经本键调大兼容")
+    IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_MAX_ROWS_PER_PANEL = varRef(
+            s_loc, "nop.datav.dashboard-query.max-rows-per-panel", Integer.class, 10000);
+
     @Description("单缓存条目行数准入上界：查询结果行数超过该值不缓存（每次直查），不截断——绝不从缓存返回截断数据。内存上界 = max-entries × max-rows-per-entry × 行体量")
     IConfigReference<Integer> CFG_DATAV_DASHBOARD_QUERY_CACHE_MAX_ROWS_PER_ENTRY = varRef(
             s_loc, "nop.datav.dashboard-query.cache.max-rows-per-entry", Integer.class, 1000);

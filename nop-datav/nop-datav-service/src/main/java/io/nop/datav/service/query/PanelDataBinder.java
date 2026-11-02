@@ -78,7 +78,9 @@ public class PanelDataBinder {
      * （跨方言，由 {@link IJdbcTemplate} 经 dialect paging 实现，不手写 LIMIT SQL）。
      * 导出路径用此重载传入 {@code maxRows}，取数阶段即防 OOM（非取数后校验）。</p>
      *
-     * @param rowLimit 最多取的行数；null 表示不限制（运行时 getPanelData 路径）
+     * @param rowLimit 最多取的行数；null 表示不限制。运行时 getPanelData/refreshPanel/dashboard 批量
+     *                 三站点已接入 {@code nop.datav.dashboard-query.max-rows-per-panel}（cfg+1 探测，
+     *                 超限抛 ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED）——null 仅余非运行时/测试直调面
      */
     public PanelDataResult queryPanelData(String panelId, NopDatavPanel panel,
                                           Map<String, Object> requestParams, Integer rowLimit) {

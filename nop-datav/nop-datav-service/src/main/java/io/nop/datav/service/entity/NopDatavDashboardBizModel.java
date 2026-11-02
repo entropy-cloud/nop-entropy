@@ -589,7 +589,16 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                                              DashboardPanelQueryCache cache) {
         return () -> {
             try {
-                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams, null, cache);
+                // 裁定②（plan 2026）：主查询路径行上界——cfg+1 探测（对齐导出先例），超限显式抛
+                // ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED（面板级失败条目，非静默截断）。
+                int maxRows = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_ROWS_PER_PANEL.get();
+                PanelDataResult result = binder.queryPanelData(panel.getPanelId(), panel, resolvedParams,
+                        maxRows + 1, cache);
+                if (result.isHasDataset() && result.getRows().size() > maxRows) {
+                    throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED)
+                            .param(NopDatavErrors.ARG_ROW_COUNT, (long) result.getRows().size())
+                            .param(NopDatavErrors.ARG_MAX_ROWS, (long) maxRows);
+                }
                 return DashboardPanelDataItem.success(result);
             } catch (NopException e) {
                 return DashboardPanelDataItem.failure(panel.getPanelId(), e.getErrorCode(), safeMsg(e));

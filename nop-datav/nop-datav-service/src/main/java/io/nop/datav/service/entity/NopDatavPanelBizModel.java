@@ -36,6 +36,8 @@ import java.util.function.BiConsumer;
 
 import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
+import io.nop.datav.service.NopDatavConfigs;
+import io.nop.datav.service.NopDatavErrors;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_FOUND;
@@ -133,7 +135,8 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
         }
         requirePanelDashboardAccess(panel, "getPanelData", context);
         IDaoProvider daoProvider = daoProvider();
-        return new PanelDataBinder(daoProvider, jdbcTemplate).queryPanelData(id, panel, requestParams);
+        // 裁定②（plan 2026）：cfg+1 探测 + 超限显式拒绝（同 newPanelQueryTask 形态）
+        return queryPanelDataBounded(daoProvider, id, panel, requestParams);
     }
 
     @Override
@@ -147,7 +150,26 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
         requirePanelDashboardAccess(panel, "refreshPanel", context);
         IDaoProvider daoProvider = daoProvider();
         // 复用 getPanelData 的数据绑定管线，触发重新查询并返回最新结果（不重复实现查询逻辑）
-        return new PanelDataBinder(daoProvider, jdbcTemplate).queryPanelData(id, panel, null);
+        // 裁定②（plan 2026）：cfg+1 探测 + 超限显式拒绝（同 newPanelQueryTask 形态）
+        return queryPanelDataBounded(daoProvider, id, panel, null);
+    }
+
+    /**
+     * 裁定②（plan 2026）：单面板查询行上界封装——cfg+1 探测传入 binder（数据集层限行），
+     * 结果行数超 cfg 抛 ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED（对齐导出 ERR_DATAV_EXPORT_ROW_LIMIT_EXCEEDED
+     * 语义：取数阶段防 OOM，非取数后校验、非静默截断）。
+     */
+    private PanelDataResult queryPanelDataBounded(IDaoProvider daoProvider, String panelId,
+                                                  NopDatavPanel panel, Map<String, Object> requestParams) {
+        int maxRows = NopDatavConfigs.CFG_DATAV_DASHBOARD_QUERY_MAX_ROWS_PER_PANEL.get();
+        PanelDataResult result = new PanelDataBinder(daoProvider, jdbcTemplate)
+                .queryPanelData(panelId, panel, requestParams, maxRows + 1);
+        if (result.isHasDataset() && result.getRows().size() > maxRows) {
+            throw new NopException(NopDatavErrors.ERR_DATAV_QUERY_ROW_LIMIT_EXCEEDED)
+                    .param(NopDatavErrors.ARG_ROW_COUNT, (long) result.getRows().size())
+                    .param(NopDatavErrors.ARG_MAX_ROWS, (long) maxRows);
+        }
+        return result;
     }
 
     @Override
