@@ -40,6 +40,16 @@ interface ReconErrors extends NopMetadataArgs {
             ErrorCode.define("nop.err.metadata.recon-selections-empty",
                     "Reconciliation batch confirm selections is empty: resultId={resultId}", ARG_RESULT_ID);
 
+    // ===== W-08（plan 2528 裁定⑥）：候选池加载显式上界（fail-fast，不静默截断） =====
+
+    ErrorCode ERR_RECON_CANDIDATE_POOL_EXCEED_LIMIT =
+            ErrorCode.define("nop.err.metadata.recon-candidate-pool-exceed-limit",
+                    "Reconciliation candidate pool exceeds configured limit: "
+                            + "targetType={targetType} identifierSpace={identifierSpace} "
+                            + "poolSize={poolSize} poolLimit={poolLimit} "
+                            + "-- raise nop.metadata.reconciliation.candidate-pool-limit explicitly",
+                    ARG_TARGET_TYPE, ARG_IDENTIFIER_SPACE, ARG_POOL_SIZE, ARG_POOL_LIMIT);
+
     // ===== Reconciliation process isolation (clause-b formalize) =====
 
     ErrorCode ERR_RECON_PROCESS_ISOLATED =

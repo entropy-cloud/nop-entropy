@@ -128,4 +128,10 @@ public interface NopMetadataArgs {
     String ARG_TAG_FQN = "tagFQN";
     String ARG_PRIORITY = "priority";
     String ARG_FIELD_TYPE_FILTER = "fieldTypeFilter";
+
+    // ===== W-08（plan 2528 裁定⑥）对账候选池上界 =====
+    String ARG_TARGET_TYPE = "targetType";
+    String ARG_IDENTIFIER_SPACE = "identifierSpace";
+    String ARG_POOL_SIZE = "poolSize";
+    String ARG_POOL_LIMIT = "poolLimit";
 }

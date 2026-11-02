@@ -646,8 +646,11 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
         try {
             connectionService.withConnection(dataSource.getDatasourceType(), dataSource.getConnectionConfig(),
                     (Connection conn, DatabaseMetaData metaData) -> {
-                        List<ExternalTableInfo> tables = structureReader.read(conn, metaData, schemaPattern);
-                        for (ExternalTableInfo table : tables) {
+                        // W-09（plan 2528 裁定⑦）流式消费：逐表产出即 upsert（既有 per-key 锁 + REQUIRES_NEW
+                        // 独立事务边界零改动——AR-07）；scan 中途 SQLException 时 1..k−1 已产出表已各自
+                        // upsert（AR-17 部分持久化语义保持），scan 级 SQLException wrap 在 reader 内部
+                        // （AR-23⑤）沿下方既有外层 catch 处理。per-table errors 通道语义不变（仅 upsert 失败）。
+                        structureReader.forEachTable(conn, metaData, schemaPattern, table -> {
                             try {
                                 upsertExternalTableGuarded(externalModuleId, dataSource, table, context);
                                 syncedCount.incrementAndGet();
@@ -660,7 +663,7 @@ public class NopMetaDataSourceBizModel extends CrudBizModel<NopMetaDataSource> i
                                 errors.add(errDTO);
                                 orm().clearSession();
                             }
-                        }
+                        });
                     });
 
             orm().flushSession();

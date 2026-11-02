@@ -52,6 +52,18 @@ public class TestReconciliationExecutorLimit {
             }
             return result;
         }
+
+        @Override
+        public ReconciliationCandidatePool loadCandidatePool(String targetType, String identifierSpace, int poolLimit) {
+            // W-08（plan 2528 裁定⑥）机械适配：本钉只观测逐行 limit 传递——池接口返回空池
+            return new ReconciliationCandidatePool(targetType, identifierSpace, Collections.emptyList());
+        }
+
+        @Override
+        public List<ReconciliationCandidate> reconcile(String value, ReconciliationCandidatePool pool,
+                                                        String matchStrategy, Integer limit) {
+            return reconcile(value, pool.getTargetType(), pool.getIdentifierSpace(), matchStrategy, limit);
+        }
     }
 
     private static NopMetaReconciliationConfig config(String matchStrategy, boolean autoMatch, Double threshold) {

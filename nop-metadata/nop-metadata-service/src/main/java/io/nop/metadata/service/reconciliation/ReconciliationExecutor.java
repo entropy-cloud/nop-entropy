@@ -6,6 +6,7 @@ import io.nop.core.lang.json.JsonTool;
 import io.nop.metadata.dao.entity.NopMetaReconciliationConfig;
 import io.nop.metadata.dao.entity.NopMetaReconciliationResult;
 import io.nop.metadata.service.NopMetadataErrors;
+import io.nop.metadata.service.NopMetadataReconciliationConfigs;
 import io.nop.metadata.service.NopMetadataException;
 
 import java.util.ArrayList;
@@ -73,6 +74,14 @@ public class ReconciliationExecutor {
         int multiple = 0;
 
         List<Map<String, Object>> details = new ArrayList<>(total);
+
+        // W-08（plan 2528 裁定⑥）：候选池执行开头一次载入，行间复用同一池快照——
+        // 消除逐行全池重载 N+1（R×P×O(L²) → O(P)+R×O(P·L) 打分）；池为单次执行的执行期快照
+        // （执行期间并发候选变更对本轮不可见——快照一致性语义，owner doc 声明）。
+        IReconciliationProcessor.ReconciliationCandidatePool candidatePool =
+                reconciliationService.loadCandidatePool(config.getTargetEntityType(),
+                        config.getIdentifierSpace(), resolveCandidatePoolLimit());
+
         for (int rowIndex = 0; rowIndex < total; rowIndex++) {
             Map<String, Object> row = rows.get(rowIndex);
             Object raw = row.get(columnName);
@@ -85,10 +94,10 @@ public class ReconciliationExecutor {
             }
             String value = raw == null ? null : String.valueOf(raw);
 
-            // AR-13：传入默认 limit=50（非 null），候选序列化有界。config-driven limit 移入 Non-Blocking Follow-ups。
+            // AR-13：传入默认 limit=50（非 null），候选序列化有界（零回退——结果行候选截断维持）。
             List<IReconciliationProcessor.ReconciliationCandidate> candidates =
-                    reconciliationService.reconcile(value, config.getTargetEntityType(),
-                            config.getIdentifierSpace(), config.getMatchStrategy(), DEFAULT_CANDIDATE_LIMIT);
+                    reconciliationService.reconcile(value, candidatePool,
+                            config.getMatchStrategy(), DEFAULT_CANDIDATE_LIMIT);
 
             String status = judgeStatus(candidates, config);
             switch (status) {
@@ -119,6 +128,27 @@ public class ReconciliationExecutor {
         result.setDetails(JsonTool.stringify(details));
         return result;
     }
+
+    /**
+     * W-08（裁定⑥）：候选池加载上界解析——{@code nop.metadata.reconciliation.candidate-pool-limit}
+     * 缺省 1000；非正值显式拒绝（无界加载即 C5-104 缺陷本体，不提供关闭档）。
+     * 包内可覆写（测试缝）。
+     */
+    protected int resolveCandidatePoolLimit() {
+        Integer v = NopMetadataReconciliationConfigs.CFG_RECON_CANDIDATE_POOL_LIMIT.get();
+        if (v == null) {
+            return DEFAULT_CANDIDATE_POOL_LIMIT;
+        }
+        if (v <= 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_RECON_CANDIDATE_POOL_EXCEED_LIMIT)
+                    .param(NopMetadataErrors.ARG_POOL_LIMIT, v)
+                    .param(NopMetadataErrors.ARG_CONFIG_KEY, "nop.metadata.reconciliation.candidate-pool-limit");
+        }
+        return v;
+    }
+
+    /** W-08（裁定⑥）：候选池加载上界缺省值（池查询显式 limit——C5-104 无界全池闭合）。 */
+    public static final int DEFAULT_CANDIDATE_POOL_LIMIT = 1000;
 
     /** D5 钉死规则：见类 Javadoc。 */
     private String judgeStatus(List<IReconciliationProcessor.ReconciliationCandidate> candidates,
