@@ -225,6 +225,15 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     public NopDatavDashboardSnapshot publishDashboard(@Name("id") String id, IServiceContext context) {
         NopDatavDashboard dashboard = requireEntity(id, "publishDashboard", context);
 
+        // 裁定⑦（plan 2026）：发布版本号行锁分配——父行 SELECT FOR UPDATE（事务尾释放）使同目标
+        // 并发发布串行化，calculateNextVersion 读 max+1 在锁内线性化（版本轴唯一性闭合）。
+        // isTransactionOpened 守护（沿 submitExecutionAfterCommit 先例）：@BizMutation 经 GraphQL
+        // 事务装饰器恒有事务；无事务直调（单测）无并发入口，跳过锁（lock 语句要求事务中执行）。
+        if (txn() != null && txn().isTransactionOpened(null)) {
+            dashboard = lockDashboardRowForPublish(dashboard);
+        }
+
+
         String snapshotContent = serializeDashboardContent(dashboard);
         long nextVersion = calculateNextVersion(id);
         String publishedBy = NopDatavOperatorResolver.resolveOperator(context);
@@ -925,6 +934,39 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
         NopDatavDashboardSnapshot latest = daoProvider()
                 .daoFor(NopDatavDashboardSnapshot.class).findFirstByQuery(query);
         return latest == null ? 1L : latest.getSnapshotVersion() + 1;
+    }
+
+    /**
+     * 裁定⑦（plan 2026）行锁获取：lockEntity 对 stale 实体（锁等待期间赢家已提交推进版本）经
+     * session 版本校验抛 entity-version-changed——语义即「等待期间父行被并发发布推进」→
+     * clear session 后 fresh 重载再锁（有界 3 次；fresh 载荷下重试窗口极窄）。重试耗尽按冲突上抛。
+     */
+    private NopDatavDashboard lockDashboardRowForPublish(NopDatavDashboard dashboard) {
+        IEntityDao<NopDatavDashboard> dao = daoProvider().daoFor(NopDatavDashboard.class);
+        for (int attempt = 0; ; attempt++) {
+            try {
+                dao.lockEntity(dashboard);
+                return dashboard;
+            } catch (Exception e) {
+                if (!isEntityVersionChanged(e) || attempt >= 2) {
+                    throw e;
+                }
+                orm().runInSession(session -> {
+                    session.clear();
+                    return null;
+                });
+                dashboard = dao.getEntityById(dashboard.getDashboardId());
+                if (dashboard == null) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static boolean isEntityVersionChanged(Exception e) {
+        return e instanceof io.nop.api.core.exceptions.NopException
+                && io.nop.orm.OrmErrors.ERR_ORM_ENTITY_VERSION_CHANGED.getErrorCode()
+                        .equals(((io.nop.api.core.exceptions.NopException) e).getErrorCode());
     }
 
     private NopDatavDashboardSnapshot findLatestSnapshot(String dashboardId) {

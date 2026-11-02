@@ -201,7 +201,7 @@ Targets: `nop-file/nop-file-dao/`、`nop-datav/nop-datav-service/`（main+test �
 
 - [x] 组 A nop-file（W-01）：裁定①（红① 去重红——构造性交错终态确定性编码，`_tmp/red-01-2526.log` 当前即红 + 变异锚定[禁用复验→红→grep 恢复]；removeTempFileByOwner 同族同修；CL-017 removeResource 零触碰；plan 2386 权限钉零回退——TestDaoResourceFileStoreAttachPermission 全绿维持；nop-file 聚合 19 tests 0F0E）
 - [x] 组 B nop-datav 导出/交付执行体（CL-003+CL-001+CL-016+CL-015+CL-023）：裁定③（反向钉死 :308 同 diff 改写✓ 期望反转为 scanner FAILED 粘滞+worker 0 行 readonly 可观测；红② 变异锚定 B1；face b 复活钉=runDeliveryInSessionForTest 同步驱动 FAILED 行短路✓）→ 裁定④（收口点上移 lambda 最外层 finally[按 R2 Major-2]——红③ 结构闭合登记[预声明降级]）→ 裁定⑤（红④ 文件守恒断言 NopFileRecord 零残留✓ + fencedConflictCount 接线断言）→ 裁定⑥（红⑪ B2 变异锚定+@AfterEach 泄漏钩子首例✓）→ 裁定⑭（红⑭ B3 变异锚定+对账接线✓）——同文件多成员 diff 分组登记（ExportTaskBizModel×4/ReportDeliveryExecutor×3）
-- [ ] 组 C nop-datav check-then-act（CL-002+CL-004+CL-005）：裁定⑦（红⑤ 版本红——Dashboard+Screen 同族同 diff）+ 裁定⑧（红⑥ 告警红）+ 裁定⑨（红⑦ 限额红 + **:221 假保护同 diff 修正**）
+- [x] 组 C nop-datav check-then-act（CL-002+CL-004+CL-005）：裁定⑦（行锁 lockEntity+txn 守护+stale 锁重试[session 校验语义]——红⑤ C2 变异锚定✓ Dashboard+Screen 同族同 diff）+ 裁定⑧（IResourceLockManager per-ruleId 三段互斥[评估/决策/通知+回写]+回写版本 CAS 否决等值谓词——红⑥ C1 变异锚定✓）+ 裁定⑨（ISemaphore 原子层+DB count 二层+许可收口点上移——红⑦ C3 变异锚定✓ + **:221 假保护同 diff 补并发形态**[并发测试随组 C 提交，CL-005 本体随组 B——同批交付偏差登记]）
 - [ ] 组 D nop-datav 查询上界（CL-009+CL-010+CL-021）：裁定②（红⑧ 上界红[缺保护-2]——NopDatavConfigs 新键+NopDatavErrors 新错误码）→ 裁定⑩（红⑨ 加载界红）→ 裁定⑪（红⑩ 投影红）——R02 三范式批内一次成文
 - [ ] 组 E nop-datav 调度生命周期（CL-019+CL-020）：裁定⑫（红⑫ 回滚恢复红——afterCommit 后置/补偿）+ 裁定⑬（红⑬ 自愈红——最小面+R1-01 接入点清单登记）
 - [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑭快照落 `_tmp/` 并登记（`_tmp/red-green-2526-summary.md` 总册 + 逐 trial 日志——命名沿 2525 形态）；变异探针纪律兑现（恢复路径以 grep/断言确认目标行真实存在——plan guide When Executing #8 条款）；ChatBI 20-red 面修复期前后恒红维持核对（勘误 3/4 口径）

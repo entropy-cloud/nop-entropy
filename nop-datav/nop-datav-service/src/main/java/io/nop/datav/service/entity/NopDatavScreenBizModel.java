@@ -14,6 +14,7 @@ import io.nop.core.context.IServiceContext;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.dao.api.IDaoEntity;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.datav.biz.INopDatavScreenBiz;
 import io.nop.datav.biz.PanelComponentMeta;
 import io.nop.datav.biz.ScreenLayoutConfig;
@@ -103,6 +104,14 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
     @Auth(permissions = "NopDatavScreen:publishScreen")
     public NopDatavScreenSnapshot publishScreen(@Name("id") String id, IServiceContext context) {
         NopDatavScreen screen = requireEntity(id, "publishScreen", context);
+
+        // 裁定⑦（plan 2026，与 publishDashboard 同族同 diff）：发布版本号行锁分配——父行
+        // SELECT FOR UPDATE（事务尾释放）使同目标并发发布串行化。isTransactionOpened 守护（同
+        // publishDashboard——lock 语句要求事务中执行，无事务直调跳过）。
+        if (txn() != null && txn().isTransactionOpened(null)) {
+            screen = lockScreenRowForPublish(screen);
+        }
+
 
         String snapshotContent = serializeScreenContent(screen);
         long nextVersion = calculateNextVersion(id);
@@ -361,6 +370,38 @@ public class NopDatavScreenBizModel extends CrudBizModel<NopDatavScreen>
         NopDatavScreenSnapshot latest = daoProvider()
                 .daoFor(NopDatavScreenSnapshot.class).findFirstByQuery(query);
         return latest == null ? 1L : latest.getSnapshotVersion() + 1;
+    }
+
+    /**
+     * 裁定⑦（plan 2026）行锁获取（同 lockDashboardRowForPublish——stale 等待期版本冲突
+     * clear+fresh 重载后有界重试）。
+     */
+    private NopDatavScreen lockScreenRowForPublish(NopDatavScreen screen) {
+        IEntityDao<NopDatavScreen> dao = daoProvider().daoFor(NopDatavScreen.class);
+        for (int attempt = 0; ; attempt++) {
+            try {
+                dao.lockEntity(screen);
+                return screen;
+            } catch (Exception e) {
+                if (!isEntityVersionChanged(e) || attempt >= 2) {
+                    throw e;
+                }
+                orm().runInSession(session -> {
+                    session.clear();
+                    return null;
+                });
+                screen = dao.getEntityById(screen.getScreenId());
+                if (screen == null) {
+                    throw e;
+                }
+            }
+        }
+    }
+
+    private static boolean isEntityVersionChanged(Exception e) {
+        return e instanceof io.nop.api.core.exceptions.NopException
+                && io.nop.orm.OrmErrors.ERR_ORM_ENTITY_VERSION_CHANGED.getErrorCode()
+                        .equals(((io.nop.api.core.exceptions.NopException) e).getErrorCode());
     }
 
     private NopDatavScreenSnapshot findLatestSnapshot(String screenId) {

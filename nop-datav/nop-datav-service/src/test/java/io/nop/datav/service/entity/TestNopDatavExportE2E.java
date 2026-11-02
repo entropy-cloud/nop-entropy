@@ -234,6 +234,61 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
         assertEquals(ERR_DATAV_EXPORT_CONCURRENCY_LIMIT.getErrorCode(), ex.getErrorCode());
     }
 
+    /**
+     * CL-005 假保护修正（plan 2026 裁定⑨，与 :221 顺序测试同 diff 补并发形态）：同用户（全新用户，
+     * 无预置行）4 线程 barrier 并发提交，max=3——进程内 ISemaphore 原子层使成功数 ≤3 且 ≥1 拒绝
+     * （确定性：tryAcquire 原子性，非时序敏感）。顺序测试（上）通过≠竞态受控——本测试为竞态面
+     * 的真实断言（check-then-act TOCTOU 闭合验证）。
+     */
+    @Test
+    public void testConcurrencyLimitConcurrentSubmitsAtomic() throws Exception {
+        IServiceContext ctx = ownerContext("carol");
+        int max = io.nop.datav.service.NopDatavConfigs.CFG_DATAV_EXPORT_MAX_CONCURRENT_PER_USER.get();
+        assertTrue(max >= 2, "test assumes a positive limit");
+        int threads = max + 1;
+        setupSalesData();
+        String dashboardId = setupDashboard("dash-conc-cl005");
+        NopDatavPanel panel = saveChartPanelWithDataset("panel-conc-cl005", dashboardId, "Chart CL005");
+
+        java.util.concurrent.CyclicBarrier barrier = new java.util.concurrent.CyclicBarrier(threads);
+        java.util.List<NopDatavExportTask> created = new java.util.concurrent.CopyOnWriteArrayList<>();
+        java.util.concurrent.atomic.AtomicInteger rejected = new java.util.concurrent.atomic.AtomicInteger();
+        java.util.List<Thread> workers = new java.util.ArrayList<>();
+        for (int t = 0; t < threads; t++) {
+            Thread worker = new Thread(() -> {
+                try {
+                    barrier.await(10, java.util.concurrent.TimeUnit.SECONDS);
+                    try {
+                        NopDatavExportTask task = exportBiz.createExportTask(
+                                "panel", panel.getPanelId(), "csv", null, ctx);
+                        created.add(task);
+                    } catch (NopException e) {
+                        if (ERR_DATAV_EXPORT_CONCURRENCY_LIMIT.getErrorCode().equals(e.getErrorCode())) {
+                            rejected.incrementAndGet();
+                        } else {
+                            throw e;
+                        }
+                    }
+                } catch (Exception e) {
+                    throw new IllegalStateException("concurrent submit failed", e);
+                }
+            }, "cl005-submit-" + t);
+            workers.add(worker);
+            worker.start();
+        }
+        for (Thread worker : workers) {
+            worker.join(60_000);
+            assertTrue(!worker.isAlive(), "submit worker must finish in time");
+        }
+
+        assertTrue(created.size() <= max,
+                "in-flight tasks must not exceed max under concurrent submits, got: " + created.size());
+        assertTrue(rejected.get() >= 1,
+                "at least one concurrent submit must be rejected by the semaphore atomic layer");
+        assertEquals(threads, created.size() + rejected.get(),
+                "every submit either created a task or was explicitly rejected");
+    }
+
     // ==================== owner / 下载校验 ====================
 
     /**

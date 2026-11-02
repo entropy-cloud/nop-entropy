@@ -4,6 +4,7 @@ import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.txn.TransactionPropagation;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.concurrent.lock.IResourceLockManager;
 import io.nop.commons.util.StringHelper;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
@@ -109,6 +110,27 @@ public class AlertEvaluator {
     }
 
     /**
+     * 裁定⑧（plan 2026）：进程内 per-ruleId 互斥（IResourceLockManager 使用面）——评估临界区
+     * 覆盖三段（loadOrCreateState 建行段/状态机决策与 saveState 段/通知执行与回写段），同进程内
+     * 「判定+通知+回写」线性化：单冷静期窗口至多一次通知、建行竞态闭合。锁序：ruleId 锁 → DB 行
+     * （单向）；跨节点残余由回写版本 CAS 收敛（第二道防线）。未注入（直调单测构造）时退化为
+     * 无互斥（行为与修复前一致，仅并发语义不设防——单测无并发入口）。
+     */
+    private IResourceLockManager resourceLockManager;
+
+    /** 本评估器实例的锁持有者标识（callWithLock lock/unlock 配对使用）。 */
+    private final String lockHolderId = "datav-alert-evaluator-" + io.nop.commons.util.StringHelper.generateUUID();
+
+    @Inject
+    public void setResourceLockManager(IResourceLockManager resourceLockManager) {
+        this.resourceLockManager = resourceLockManager;
+    }
+
+    private String alertLockKey(String ruleId) {
+        return "datav-alert-rule:" + ruleId;
+    }
+
+    /**
      * 评估告警规则一次。
      *
      * <p>本方法<b>不吞业务错误</b>——异常向上抛由 {@link NopDatavAlertScheduler#executeScheduledAlert}
@@ -119,6 +141,14 @@ public class AlertEvaluator {
      * @return 评估结果（含是否触发、是否通知、新状态、当前值、错误信息）
      */
     public EvalResult evaluate(String ruleId) {
+        if (resourceLockManager == null) {
+            return doEvaluate(ruleId);
+        }
+        return resourceLockManager.callWithLock(alertLockKey(ruleId), lockHolderId,
+                "datav-alert-evaluate", lock -> doEvaluate(ruleId));
+    }
+
+    private EvalResult doEvaluate(String ruleId) {
         NopDatavAlertRule rule = daoProvider.daoFor(NopDatavAlertRule.class).getEntityById(ruleId);
         if (rule == null) {
             throw new NopException(ERR_DATAV_ALERT_RULE_NOT_FOUND).param(ARG_ALERT_RULE_ID, ruleId);
@@ -291,7 +321,15 @@ public class AlertEvaluator {
     private void saveState(NopDatavAlertState state) {
         state.setUpdatedBy("system");
         state.setUpdateTime(CoreMetrics.currentTimestamp());
+        // 裁定⑧（plan 2026）：回写条件更新形态（版本 CAS 载体——与裁定③④同族单形态；
+        // 否决 lastNotifiedTime 等值谓词：NULL→值首通知迁移在 SQL 等值谓词下恒 0 行）。
+        // 0 行 = 并发写者已推进状态行（跨节点残余的第二道防线）→ 放弃写 + WARN（禁静默）。
+        state.orm_disableVersionCheckError(true);
         daoProvider.daoFor(NopDatavAlertState.class).updateEntityDirectly(state);
+        if (state.orm_readonly()) {
+            LOG.warn("nop.datav.alert.state-write-conflict:alertRuleId={} "
+                    + "(state row advanced concurrently; keep winner state)", state.getAlertRuleId());
+        }
     }
 
     /**
@@ -323,16 +361,33 @@ public class AlertEvaluator {
         }
         String alertRuleId = rule.getAlertRuleId();
         transactionTemplate.afterCommit(null, () -> {
-            try {
-                notificationSender.sendAlert(rule, stateValue, currentValue, alertType.getValue());
-            } catch (Exception e) {
-                LOG.error("nop.datav.alert.notify-failed-after-commit: alertRuleId={} state={} type={}"
-                        + " (lastNotifiedTime not written, rearm contract: retry on next evaluation)",
-                        alertRuleId, stateValue, alertType.getValue(), e);
+            // 裁定⑧：延迟路径的发送+回写同入 per-ruleId 互斥（afterCommit 在评估线程执行，
+            // 与 evaluate 的 callWithLock 同 holderId 可重入）——单冷静期窗口至多一次通知闭合；
+            // 锁持有包络 ≈ 单次通知超时（同步 SMTP 量级），见设计 §3.8。
+            if (resourceLockManager == null) {
+                runDeferredNotify(alertRuleId, rule, stateValue, currentValue, alertType, deferredWriteback);
                 return;
             }
-            runDeferredWriteback(alertRuleId, deferredWriteback);
+            resourceLockManager.callWithLock(alertLockKey(alertRuleId), lockHolderId,
+                    "datav-alert-deferred-notify", lock -> {
+                        runDeferredNotify(alertRuleId, rule, stateValue, currentValue, alertType, deferredWriteback);
+                        return null;
+                    });
         });
+    }
+
+    private void runDeferredNotify(String alertRuleId, NopDatavAlertRule rule, String stateValue,
+                                   String currentValue, NopDatavAlertType alertType,
+                                   BiConsumer<NopDatavAlertState, Timestamp> deferredWriteback) {
+        try {
+            notificationSender.sendAlert(rule, stateValue, currentValue, alertType.getValue());
+        } catch (Exception e) {
+            LOG.error("nop.datav.alert.notify-failed-after-commit: alertRuleId={} state={} type={}"
+                    + " (lastNotifiedTime not written, rearm contract: retry on next evaluation)",
+                    alertRuleId, stateValue, alertType.getValue(), e);
+            return;
+        }
+        runDeferredWriteback(alertRuleId, deferredWriteback);
     }
 
     /**
