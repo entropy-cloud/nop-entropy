@@ -35,6 +35,7 @@ import io.nop.file.dao.entity.NopFileRecord;
 import io.nop.integration.api.file.IFileServiceClient;
 import io.nop.orm.IOrmEntityFileStore;
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.MediaType;
 import org.slf4j.Logger;
@@ -51,6 +52,11 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.api.core.beans.FilterBeans.eq;
 import static io.nop.api.core.beans.FilterBeans.ne;
@@ -164,8 +170,9 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
         for (NopFileRecord record : records) {
             dao.deleteEntity(record);
             // 与 detachFile 对齐：仅删DB行会让物理文件成为永久孤儿，存储目录持续膨胀
+            // W-01（plan 2526 裁定①）：判-删竞态窗口窄化——物理删除走两段式延迟清理
             if (isUniqueRef(dao, record)) {
-                removeResource(record.getFilePath());
+                registerDedupCleanup(record);
             }
         }
     }
@@ -267,6 +274,123 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
             LOG.error("nop.file.remove-file-fail:path={}", path, e);
             return false;
         }
+    }
+
+    // ==================== W-01 两段式延迟清理（plan 2526 裁定①） ====================
+
+    /**
+     * 去重延迟清理宽限间隔（10min）：isUniqueRef 命中后物理删除推迟到该间隔之后复验执行，
+     * 并发 copy 记录（共享 originFileId/filePath）只要在宽限间隔内提交即被复验看见并取消删除。
+     * 去重判-删竞态窗口从微秒级（判-删与并发 copy 提交交错）窄化至该间隔；
+     * 残余窗口（登记后间隔届满仍未提交的极端长事务）为已声明语义（owner doc 登记）。
+     */
+    static final long DEDUP_CLEANUP_GRACE_MILLIS = 600_000L;
+    /** 物理删除失败重试上限（同宽限间隔步进）；仍失败输出结构化 give-up WARN（path 可 grep 对账）。 */
+    static final int DEDUP_CLEANUP_MAX_ATTEMPTS = 3;
+
+    private final ConcurrentMap<String, PendingDedupCleanup> pendingDedupCleanups = new ConcurrentHashMap<>();
+
+    private volatile ScheduledExecutorService dedupCleanupExecutor;
+
+    static final class PendingDedupCleanup {
+        final String filePath;
+        final String originFileId;
+        volatile int attempts;
+
+        PendingDedupCleanup(String filePath, String originFileId) {
+            this.filePath = filePath;
+            this.originFileId = originFileId;
+        }
+    }
+
+    private ScheduledExecutorService dedupCleanupExecutor() {
+        ScheduledExecutorService executor = dedupCleanupExecutor;
+        if (executor == null) {
+            synchronized (this) {
+                if (dedupCleanupExecutor == null) {
+                    executor = Executors.newSingleThreadScheduledExecutor(r -> {
+                        Thread t = new Thread(r, "nop-file-dedup-cleanup");
+                        t.setDaemon(true);
+                        return t;
+                    });
+                    dedupCleanupExecutor = executor;
+                } else {
+                    executor = dedupCleanupExecutor;
+                }
+            }
+        }
+        return executor;
+    }
+
+    @PreDestroy
+    public void shutdownDedupCleanupExecutor() {
+        ScheduledExecutorService executor = dedupCleanupExecutor;
+        if (executor != null) {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * 登记去重延迟清理（裁定①）：isUniqueRef 命中（判明唯一引用）后调用——不立即删物理文件，
+     * 登记后由延迟任务复验。同 filePath 重复登记幂等（首登记生效）。
+     */
+    void registerDedupCleanup(NopFileRecord record) {
+        String filePath = record.getFilePath();
+        if (StringHelper.isEmpty(filePath))
+            return;
+        PendingDedupCleanup entry = new PendingDedupCleanup(filePath, record.getOriginFileId());
+        if (pendingDedupCleanups.putIfAbsent(filePath, entry) != null)
+            return;
+        dedupCleanupExecutor().schedule(() -> runDedupCleanup(entry), DEDUP_CLEANUP_GRACE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    private void runDedupCleanup(PendingDedupCleanup entry) {
+        try {
+            // 复验引用计数：同 originFileId 的记录数 >0（并发 copy 已提交，或原记录删除事务回滚）→ 取消删除
+            Long refs = ormTemplate.runInNewSession(session -> {
+                QueryBean query = new QueryBean();
+                query.addFilter(eq(NopFileRecord.PROP_NAME_originFileId, entry.originFileId));
+                return daoProvider.daoFor(NopFileRecord.class).countByQuery(query);
+            });
+            if (refs != null && refs > 0) {
+                pendingDedupCleanups.remove(entry.filePath);
+                LOG.info("nop.file.dedup-cleanup.cancelled:path={},originFileId={},refCount={}",
+                        entry.filePath, entry.originFileId, refs);
+                return;
+            }
+            IResource resource = resourceStore.getResource(entry.filePath);
+            if (resource == null || !resource.exists() || resource.delete()) {
+                pendingDedupCleanups.remove(entry.filePath);
+                return;
+            }
+            retryOrGiveUpDedupCleanup(entry);
+        } catch (Exception e) {
+            LOG.error("nop.file.dedup-cleanup.fail:path={},originFileId={}", entry.filePath, entry.originFileId, e);
+            retryOrGiveUpDedupCleanup(entry);
+        }
+    }
+
+    private void retryOrGiveUpDedupCleanup(PendingDedupCleanup entry) {
+        entry.attempts++;
+        if (entry.attempts >= DEDUP_CLEANUP_MAX_ATTEMPTS) {
+            // 结构化 give-up 日志：path 可 grep，供导出产物对账任务（Non-Blocking Follow-up）消费
+            LOG.error("nop.file.dedup-cleanup.give-up:path={},originFileId={},attempts={}",
+                    entry.filePath, entry.originFileId, entry.attempts);
+            pendingDedupCleanups.remove(entry.filePath);
+            return;
+        }
+        dedupCleanupExecutor().schedule(() -> runDedupCleanup(entry), DEDUP_CLEANUP_GRACE_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    /** 测试缝（package-private）：同步冲刷全部待清理条目（红①不依赖真实宽限等待）。 */
+    void runPendingDedupCleanupsForTest() {
+        for (PendingDedupCleanup entry : pendingDedupCleanups.values().toArray(new PendingDedupCleanup[0])) {
+            runDedupCleanup(entry);
+        }
+    }
+
+    int pendingDedupCleanupCountForTest() {
+        return pendingDedupCleanups.size();
     }
 
     protected String newFileId() {
@@ -379,8 +503,12 @@ public class DaoResourceFileStore implements IFileStore, IOrmEntityFileStore {
                     && Objects.equals(record.getBizObjId(), objId)
                     && Objects.equals(record.getFieldName(), fieldName)) {
                 dao.deleteEntity(record);
+                // W-01（plan 2526 裁定①）：isUniqueRef 判定与物理删除之间并发 copy 可交错（引用计数
+                // 过期判删→悬挂引用/数据丢失）——物理删除改两段式延迟清理：登记后宽限间隔复验引用
+                // 计数仍为零才删。竞态窗口从微秒级窄化至宽限间隔（残余窗口为已声明语义）。
+                // removeResource 本体 best-effort 语义零触碰（CL-017 P3 站点）。
                 if (isUniqueRef(dao, record)) {
-                    removeResource(record.getFilePath());
+                    registerDedupCleanup(record);
                 }
             } else {
                 LOG.warn("nop.file.record-not-attached-to-field:fileId={},bizObjName={},objId={},fieldName={},attachedObjName={},attachedObjId={},attachedFieldName={}",

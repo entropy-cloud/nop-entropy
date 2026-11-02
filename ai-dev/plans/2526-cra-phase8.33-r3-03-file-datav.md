@@ -199,7 +199,7 @@ Targets: `nop-file/nop-file-dao/`、`nop-datav/nop-datav-service/`（main+test �
 
 - Item Types: `Fix`（14 项均为已确认 live defect——P1×2/P2×12，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A nop-file（W-01）：裁定①（红① 去重红[copy×detach latch 或变异论证]；removeTempFileByOwner 同族；CL-017 零触碰；plan 2386 权限钉零回退核对）
+- [x] 组 A nop-file（W-01）：裁定①（红① 去重红——构造性交错终态确定性编码，`_tmp/red-01-2526.log` 当前即红 + 变异锚定[禁用复验→红→grep 恢复]；removeTempFileByOwner 同族同修；CL-017 removeResource 零触碰；plan 2386 权限钉零回退——TestDaoResourceFileStoreAttachPermission 全绿维持；nop-file 聚合 19 tests 0F0E）
 - [ ] 组 B nop-datav 导出/交付执行体（CL-003+CL-001+CL-016+CL-015+CL-023）：裁定③（**反向钉死 :308 同 diff 改写** + 红② fencing 红 + face b 复活钉）→ 裁定④（红③ cancel 竞态红[缺保护-5]——与裁定③同收口通道）→ 裁定⑤（红④ 孤儿红[缺保护-4]+ExportE2E 文件守恒断言）→ 裁定⑥（红⑪ 泄漏红[@AfterEach 钩子首例]）→ 裁定⑭（红⑭ 半程红）——同文件多成员 diff 分组登记（ExportTaskBizModel×3/ReportDeliveryExecutor×3）
 - [ ] 组 C nop-datav check-then-act（CL-002+CL-004+CL-005）：裁定⑦（红⑤ 版本红——Dashboard+Screen 同族同 diff）+ 裁定⑧（红⑥ 告警红）+ 裁定⑨（红⑦ 限额红 + **:221 假保护同 diff 修正**）
 - [ ] 组 D nop-datav 查询上界（CL-009+CL-010+CL-021）：裁定②（红⑧ 上界红[缺保护-2]——NopDatavConfigs 新键+NopDatavErrors 新错误码）→ 裁定⑩（红⑨ 加载界红）→ 裁定⑪（红⑩ 投影红）——R02 三范式批内一次成文
