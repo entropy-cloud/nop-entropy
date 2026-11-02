@@ -145,29 +145,29 @@
 
 ### Phase 1 - record 解码信任边界/format 并发/RAF 生命周期/Excel 导入包络并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/record-decode-bounds-and-format-concurrency.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① C5-001 上界形态（缺保护 P1 随同 diff）**：上限校验单点（getFieldLength+getObjectLength 双函数）形态；上限值与模型级可配置定夺（DEFAULT_MAX_FIELD_LENGTH 常量 vs 配置键——1MB 量级论证）；netty 面单点覆盖论证（禁依赖 maxFrameLength）；错误码复用声明（:71）；readBytes 纵深参数采否与理由；readString/同族保护零触碰边界
-  - [ ] **裁定② C5-R2-001 截断形态（同 diff）**：hex 前截断（4KB limitLen 同款）vs ByteString 延迟 hex 化两案定夺；文本路径 :49-51 同修形态；功能钉先行声明
-  - [ ] **裁定③ G4 FontManager 单设计联合（C1-002+C9-002 同 diff）**：C1-002 半边（CHM 化+defaultFont 收锁形态——synchronized vs volatile 定夺）；C9-002 半边（init DCL 形态+resolveFallbackFont I/O 外移形态——锁外探测+AtomicReference 竞写 vs 独立锁对象定夺）；discoveredFontFiles DCL 收窄或豁免声明；双半边同 diff 实施次序与交叉回归验证设计（红③④）；校准注记成文；同族安全字段零触碰清单（:53/:58/:64/:68/resetForTesting）
-  - [ ] **裁定④ G5 ExcelFormatHelper 单设计联合（C1-003+C9-001 同 diff）**：formats CHM 化+addFormat 守卫声明形态；格式工厂缓存形态（CHM 有界[CacheConfig.newConfig 先例]+ThreadLocal\<Format\> vs DateTimeFormatter 定夺——SimpleDateFormat 禁裸缓存论证与语义等价断言）；缓存有界性与淘汰策略；assertSame 钉形态；8 内建既有缓存零回退
-  - [ ] **裁定⑤ C1-005+C6-001 RAF reader 对（同文件同 diff）**：C1-005 修复形态（按文件重建 vs ByteBuffer 独立视图定夺）+`IBinaryDataReader.detach()/duplicate()` 契约 javadoc 落点；现网 pos 回补路径零回归论证（:73-105/:262-290/:97/:363）；C6-001 构造安全序形态（先建后换 vs 非 final+finally 定夺）+close 幂等标志；fd 计数钉形态（TestFileDownloadSinkClose 先例复用+@EnabledIf 平台门控+变异 fallback——2522 红⑦先例）+构造失败注入点定夺；双钉独立可跑设计；契约族 P3 成员零触碰边界（C1-R2-001/C5-003/C6-R2-001）
-  - [ ] **裁定⑥ C5-004 物化包络（2516 位点 SSOT 消费方）**：行数上限配置 vs 分批/惰性解析两案定夺禁第三形态；既有旋钮 `ExcelIOConfig.maxCountPerSheet`（:15 写侧专用）复用读侧接线 vs 新增读侧专用键一次定夺（M2 强制输入——预设默认分支=读写两侧同名同义复用，禁语义重复双键分裂）；配置键名/默认值/落点（ExcelConfigs vs nop-report 侧）与超限语义（截断+WARN vs 抛错——对照 nop-batch.md :267 maxCount 先例）；模块内修复零触碰 nop-core 论证（collector 本地创建 :88 在案）；分支 (b) 触 nop-ooxml-xlsx `XlsxToRecordOutput` 的条件申报条款（M3——同型四件证据链）；`nop-batch.md` :265-267 收敛改写文案；ExcelResourceIO 透传面触碰与否
-  - [ ] **裁定⑦ C1-001 容器化形态**：内层并发容器化（CHM.newKeySet/ConcurrentSkipListSet）vs 不可变 Map 整体替换 volatile 发布两案定夺；getFileTypes 只读面兼容声明；白盒断言+并发 smoke 钉形态
-  - [ ] **测试缝与红①–红⑩驱动器表+零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据形态标注：构造性当前即红[红①②③⑤⑥⑦⑧⑩候选——红⑩ 经既有 maxCountPerSheet 字段构造]/变异论证[红④锁结构+红⑨构造泄漏——评审 m4 修订红⑨ 主形态]；执行期不可构造降级结构钉沿 2523/2524/2525 先例登记）；零回退钉 = 勘误 3 基线（双聚合器 736 tests 0F0E 逐模块）+点名既有钉族（TestRecordRegionBoundary/TestSubBinaryDataReader/TestDetachReaders 既有用例/TestFontManager/TestPdfFontResolution/TestPdfRenderDefects/TestExcelFormatHelper/TestDocumentConverterManager/TestModelBasedPacketCodec/TestExcelResourceIO/TestHtmlReportRenderer/TestPdfExtractHelper）+7 Skipped 已知面维持声明；同族保护三处零回退（checkCount/DynLV/LVField）；nop-batch 侧 maxCount 接线零回退（2516 产物）
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log（本 plan 自身的立项 draft review 先行于设计文档 review——两级 review 均登记）
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① C5-001 上界形态（缺保护 P1 随同 diff）**：上限校验单点（getFieldLength+getObjectLength 双函数）形态；上限值与模型级可配置定夺（DEFAULT_MAX_FIELD_LENGTH 常量 vs 配置键——1MB 量级论证）；netty 面单点覆盖论证（禁依赖 maxFrameLength）；错误码复用声明（:71）；readBytes 纵深参数采否与理由；readString/同族保护零触碰边界
+  - [x] **裁定② C5-R2-001 截断形态（同 diff）**：hex 前截断（4KB limitLen 同款）vs ByteString 延迟 hex 化两案定夺；文本路径 :49-51 同修形态；功能钉先行声明
+  - [x] **裁定③ G4 FontManager 单设计联合（C1-002+C9-002 同 diff）**：C1-002 半边（CHM 化+defaultFont 收锁形态——synchronized vs volatile 定夺）；C9-002 半边（init DCL 形态+resolveFallbackFont I/O 外移形态——锁外探测+AtomicReference 竞写 vs 独立锁对象定夺）；discoveredFontFiles DCL 收窄或豁免声明；双半边同 diff 实施次序与交叉回归验证设计（红③④）；校准注记成文；同族安全字段零触碰清单（:53/:58/:64/:68/resetForTesting）
+  - [x] **裁定④ G5 ExcelFormatHelper 单设计联合（C1-003+C9-001 同 diff）**：formats CHM 化+addFormat 守卫声明形态；格式工厂缓存形态（CHM 有界[CacheConfig.newConfig 先例]+ThreadLocal\<Format\> vs DateTimeFormatter 定夺——SimpleDateFormat 禁裸缓存论证与语义等价断言）；缓存有界性与淘汰策略；assertSame 钉形态；8 内建既有缓存零回退
+  - [x] **裁定⑤ C1-005+C6-001 RAF reader 对（同文件同 diff）**：C1-005 修复形态（按文件重建 vs ByteBuffer 独立视图定夺）+`IBinaryDataReader.detach()/duplicate()` 契约 javadoc 落点；现网 pos 回补路径零回归论证（:73-105/:262-290/:97/:363）；C6-001 构造安全序形态（先建后换 vs 非 final+finally 定夺）+close 幂等标志；fd 计数钉形态（TestFileDownloadSinkClose 先例复用+@EnabledIf 平台门控+变异 fallback——2522 红⑦先例）+构造失败注入点定夺；双钉独立可跑设计；契约族 P3 成员零触碰边界（C1-R2-001/C5-003/C6-R2-001）
+  - [x] **裁定⑥ C5-004 物化包络（2516 位点 SSOT 消费方）**：行数上限配置 vs 分批/惰性解析两案定夺禁第三形态；既有旋钮 `ExcelIOConfig.maxCountPerSheet`（:15 写侧专用）复用读侧接线 vs 新增读侧专用键一次定夺（M2 强制输入——预设默认分支=读写两侧同名同义复用，禁语义重复双键分裂）；配置键名/默认值/落点（ExcelConfigs vs nop-report 侧）与超限语义（截断+WARN vs 抛错——对照 nop-batch.md :267 maxCount 先例）；模块内修复零触碰 nop-core 论证（collector 本地创建 :88 在案）；分支 (b) 触 nop-ooxml-xlsx `XlsxToRecordOutput` 的条件申报条款（M3——同型四件证据链）；`nop-batch.md` :265-267 收敛改写文案；ExcelResourceIO 透传面触碰与否
+  - [x] **裁定⑦ C1-001 容器化形态**：内层并发容器化（CHM.newKeySet/ConcurrentSkipListSet）vs 不可变 Map 整体替换 volatile 发布两案定夺；getFileTypes 只读面兼容声明；白盒断言+并发 smoke 钉形态
+  - [x] **测试缝与红①–红⑩驱动器表+零回退钉清单**：红①–红⑩ 测试形态逐条（含缺陷态红判据形态标注：构造性当前即红[红①②③⑤⑥⑦⑧⑩候选——红⑩ 经既有 maxCountPerSheet 字段构造]/变异论证[红④锁结构+红⑨构造泄漏——评审 m4 修订红⑨ 主形态]；执行期不可构造降级结构钉沿 2523/2524/2525 先例登记）；零回退钉 = 勘误 3 基线（双聚合器 736 tests 0F0E 逐模块）+点名既有钉族（TestRecordRegionBoundary/TestSubBinaryDataReader/TestDetachReaders 既有用例/TestFontManager/TestPdfFontResolution/TestPdfRenderDefects/TestExcelFormatHelper/TestDocumentConverterManager/TestModelBasedPacketCodec/TestExcelResourceIO/TestHtmlReportRenderer/TestPdfExtractHelper）+7 Skipped 已知面维持声明；同族保护三处零回退（checkCount/DynLV/LVField）；nop-batch 侧 maxCount 接线零回退（2516 产物）
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log（本 plan 自身的立项 draft review 先行于设计文档 review——两级 review 均登记）〔**设计评审 R1 PASS**：agent_353b9660 fresh session @ e676323330——无 Blocker，2 Major（裁定④ supplier catch→null 契约 / 裁定⑥ 读侧数据行计数口径）+ 4 Minor（行号锚×2、null 非负缓存注记、detach fd watch、红⑩ fixture 口径）全部修订闭环，记录于设计文档「评审记录」节；两级 review = 立项 R1 agent_7049da9d + 设计 R1 agent_353b9660〕
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含上限值论证与 netty 面单点覆盖论证；裁定③含 G4 双半边同 diff 设计与交叉回归验证；裁定④含 DateTimeFormatter 语义等价断言（如采）；裁定⑤含 fd 平台门控与 pos 回补零回归论证；裁定⑥含 2516 位点消费声明与 `nop-batch.md` 改写文案；裁定⑦含只读面兼容声明；测试缝节（红①–红⑩驱动器表）含零回退钉全列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定①含上限值论证与 netty 面单点覆盖论证；裁定③含 G4 双半边同 diff 设计与交叉回归验证；裁定④含 DateTimeFormatter 语义等价断言（如采）；裁定⑤含 fd 平台门控与 pos 回补零回归论证；裁定⑥含 2516 位点消费声明与 `nop-batch.md` 改写文案；裁定⑦含只读面兼容声明；测试缝节（红①–红⑩驱动器表）含零回退钉全列
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 10 成员实现 + 回归测试（按模块分组 A–D）
 
