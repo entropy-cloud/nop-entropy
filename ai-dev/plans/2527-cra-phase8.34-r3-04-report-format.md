@@ -1,6 +1,6 @@
 # 2527 CRA Phase 8.34 — R3-04 5.4 report-format 批（10 项：C5-001 record 反序列化 lengthExpr 无界分配[P1·R02 主条目·lengthExpr 恶意长度测试=修复准入门槛，携 C5-R2-001 同 diff] + G4 FontManager 站点单设计联合闭合[C1-002 裸写 + C9-002 锁内字体 I/O·R03 族第 4 例] + G5 ExcelFormatHelper 站点联合闭合[C1-003 addFormat 无守卫 + C9-001 格式工厂缓存] + C1-001 转换器内层裸集合 + C1-005 RAF detach 伪独立视图 + C6-001 构造器 fd 泄漏[R08 族第 5 例·R07/R08 fd 计数先例] + C5-004 Excel 导入全表物化[1.7-C5-001 双轨联动]）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: PASS（2026-11-02，独立评审子 agent agent_7049da9d，fresh session @ `9d90c6e070`）——**无 Blocker**，3 Major + 4 Minor 全部随转 active 修订闭环：M1 勘误1 覆盖句修正[nop-excel 经 nop-ooxml-xlsx 传递依赖**在** `-pl nop-report -am` 闭包内，漏覆盖面 = nop-record 4 文件 + nop-converter 共 5 成员，非「不含任何 nop-format 成员站点」]；M2 既有旋钮 `ExcelIOConfig.maxCountPerSheet`（:15 默认 20_0000，仅写侧 ：122 消费、读侧零引用）登记为裁定⑥强制输入[复用读侧接线 vs 新增读侧专用键]；M3 裁定⑥分支 (b) 分批/惰性解析必然触碰 nop-ooxml-xlsx `XlsxToRecordOutput` → 增补条件申报条款④；m1 勘误4 r2 既有实录补登[EXIT=1 阻断面=debezium known issue]；m2 nop-report.md 行数统一 58；m3 笔误「裁定律」→「裁定③」；m4 红⑨ 主形态改变异锚定[天然注入缝缺失]。评审抽样 30+ 处站点行号零漂移；裁定① 单点覆盖与裁定⑤ pos 回补零回归前提经代码调用链亲证成立；红①–红⑧⑩ 构造性当前即红成立、红⑨ 仅变异通道。后续轮次如有则顺延登记。
 > Last Reviewed: 2026-11-02
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-02 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `9d90c6e070`）起草；全部成员站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果），执行前如再漂移以 live 为准并登记。结构沿 plan 2526 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 成员逐条表 / 勘误节 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。待独立 draft review 通过后修订转 active。
@@ -216,40 +216,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.34 行、cra-index P1 台账 ：301 + P2-G78 行 ：463 + P2-G79 行 ：464、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（上界校验/外移/缓存/独立视图/兜底关闭/上界下推运行时真实生效 + 无空方法体/静默吞）；C5-004 nop-core 条件申报链（如触发）齐备性复核；G4/G5 双半边同 diff 交付复核
-- [ ] cra-index 台账回填：P1 行 ：301 状态收敛（open→fixed，注记 plan 2527 + closure audit 结论 + C5-001 准入钉兑现）；P2-G78 行 ：463 收敛注（七成员 fixed 注记 + G4/G5 单设计联合闭合兑现 + C9-002 校准注记 + fd 计数先例复用）；P2-G79 行 ：464 收敛注（C5-004 双轨收敛 + C5-R2-001 同 diff + 2516 位点消费兑现）；roadmap 8.34 行 Status → done + 勘误注记（E3 双通道 live 裁定[勘误 1] + C9-002 校准 + 2516 残留收敛 + owner doc 缺口声明维持，沿 2523/2524/2525/2526 先例形态，不改 L104 原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（上界校验/外移/缓存/独立视图/兜底关闭/上界下推运行时真实生效 + 无空方法体/静默吞）；C5-004 nop-core 条件申报链（如触发）齐备性复核；G4/G5 双半边同 diff 交付复核
+- [x] cra-index 台账回填：P1 行 ：301 状态收敛（open→fixed，注记 plan 2527 + closure audit 结论 + C5-001 准入钉兑现）；P2-G78 行 ：463 收敛注（七成员 fixed 注记 + G4/G5 单设计联合闭合兑现 + C9-002 校准注记 + fd 计数先例复用）；P2-G79 行 ：464 收敛注（C5-004 双轨收敛 + C5-R2-001 同 diff + 2516 位点消费兑现）；roadmap 8.34 行 Status → done + 勘误注记（E3 双通道 live 裁定[勘误 1] + C9-002 校准 + 2516 残留收敛 + owner doc 缺口声明维持，沿 2523/2524/2525/2526 先例形态，不改 L104 原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index P1 行收敛 + P2-G78/G79 收敛注、roadmap 8.34 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index P1 行收敛 + P2-G78/G79 收敛注、roadmap 8.34 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 10 项成员全部修复：C5-001（lengthExpr 上界单点校验+错误码复用+准入钉先红后绿）、C5-R2-001（同 diff 截断/延迟 hex 化）、C1-002+C9-002（G4 单设计联合——CHM/收锁+DCL/I/O 外移同 diff）、C1-003+C9-001（G5 单设计联合——CHM 守卫+格式工厂缓存同 diff）、C1-001（内层容器化）、C1-005（detach 独立视图+契约 javadoc）、C6-001（构造安全序+fd 计数回归）、C5-004（物化包络/上界——2516 位点消费+跨 doc 收敛）
-- [ ] batch-proposal R3-04 行 exit criteria 增补逐条达成并留证：C5-001 lengthExpr 恶意长度测试=修复准入门槛（先红后绿）；C1-003+C9-001、C1-002+C9-002 两组单设计联合闭合（同 diff 交付核对）；C6-001 构造泄漏 fd 计数回归（R07/R08 先例形态+平台门控）；C9-002 锁内字体 I/O 外移（R03 第 4 例——族纪律引用不重开）
-- [ ] 对齐纪律守约：C5-001 单点化+netty 面覆盖兑现；C5-R2-001 同 diff 兑现；G4/G5 各自双半边同 diff+交叉回归兑现；C1-005 契约族 P3 零触碰兑现；C6-001 fd 先例复用兑现；C5-004 模块内零触碰 nop-core 兑现（或条件申报四件证据链闭合）+2516 位点消费+`nop-batch.md` 收敛兑现；C10 同 diff 兑现（缺保护 10 条）；PA 零触碰声明闭环（closure audit git diff 全量核对 PASS）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，全工单命名）；红①–红⑩ 均有先红后绿或变异/回退论证（E2；形态标注逐钉在 red-green 总册）；C10 缺保护 10 条同 diff 落地（红① 准入门槛验收前置）
-- [ ] 设计文档裁定①–⑦成文且经独立 draft review（两级 review——plan 立项 review + 设计文档 review 均在案）；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；同族保护三处零回退
-- [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 7 Skipped 已知面归因登记）
-- [ ] Owner doc 落账完成：nop-report.md 增补节 + nop-batch.md 跨 doc 收敛 + source-anchors.md 锚点行 + module-groups 核对（E5；nop-format 缺口声明维持随 R-G）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 P3/watch 均为批次定义层排除非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）上界校验/锁外移/缓存/独立视图/兜底关闭/上界下推运行时真实生效（调用链追踪 + 红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-report+nop-format 双聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 5.4 P1 行收敛 + P2-G78/G79 收敛注 + roadmap 8.34 → done（E6）
+- [x] 10 项成员全部修复：C5-001（lengthExpr 上界单点校验+错误码复用+准入钉先红后绿）、C5-R2-001（同 diff 截断/延迟 hex 化）、C1-002+C9-002（G4 单设计联合——CHM/收锁+DCL/I/O 外移同 diff）、C1-003+C9-001（G5 单设计联合——CHM 守卫+格式工厂缓存同 diff）、C1-001（内层容器化）、C1-005（detach 独立视图+契约 javadoc）、C6-001（构造安全序+fd 计数回归）、C5-004（物化包络/上界——2516 位点消费+跨 doc 收敛）
+- [x] batch-proposal R3-04 行 exit criteria 增补逐条达成并留证：C5-001 lengthExpr 恶意长度测试=修复准入门槛（先红后绿）；C1-003+C9-001、C1-002+C9-002 两组单设计联合闭合（同 diff 交付核对）；C6-001 构造泄漏 fd 计数回归（R07/R08 先例形态+平台门控）；C9-002 锁内字体 I/O 外移（R03 第 4 例——族纪律引用不重开）
+- [x] 对齐纪律守约：C5-001 单点化+netty 面覆盖兑现；C5-R2-001 同 diff 兑现；G4/G5 各自双半边同 diff+交叉回归兑现；C1-005 契约族 P3 零触碰兑现；C6-001 fd 先例复用兑现；C5-004 模块内零触碰 nop-core 兑现（或条件申报四件证据链闭合）+2516 位点消费+`nop-batch.md` 收敛兑现；C10 同 diff 兑现（缺保护 10 条）；PA 零触碰声明闭环（closure audit git diff 全量核对 PASS）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，全工单命名）；红①–红⑩ 均有先红后绿或变异/回退论证（E2；形态标注逐钉在 red-green 总册）；C10 缺保护 10 条同 diff 落地（红① 准入门槛验收前置）
+- [x] 设计文档裁定①–⑦成文且经独立 draft review（两级 review——plan 立项 review + 设计文档 review 均在案）；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；同族保护三处零回退
+- [x] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 7 Skipped 已知面归因登记）
+- [x] Owner doc 落账完成：nop-report.md 增补节 + nop-batch.md 跨 doc 收敛 + source-anchors.md 锚点行 + module-groups 核对（E5；nop-format 缺口声明维持随 R-G）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 P3/watch 均为批次定义层排除非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）上界校验/锁外移/缓存/独立视图/兜底关闭/上界下推运行时真实生效（调用链追踪 + 红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-report+nop-format 双聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 5.4 P1 行收敛 + P2-G78/G79 收敛注 + roadmap 8.34 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -262,6 +262,12 @@ Exit Criteria:
 
 - Classification: `optimization candidate`（C9-005 为登记级「缺口即发现」——本批 C9-001/C9-002 验收以单测钉形态成立，基准非 closure 必需）；Successor Required: `yes`；Successor Path: nop-benchmark 缺口批（merge-adjudication §六#4/§5.4 缺口登记）
 - Why Not Blocking Closure: 本批红④⑥以并发/缓存断言钉验收（耗时上界为最小形态辅助断言）；基准为优化度量设施非缺陷修复面，不影响 supported baseline 成立。
+
+### ExcelFormatHelper 缓存上界为近似上界（closure audit Minor F-1）
+
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: `getFormat` 的 `size() >= MAX` 检查与 `computeIfAbsent` 非原子，并发首插可越界至多「并发线程数」个格式串；越界仅影响命中率不影响正确性，裁定④已声明「无淘汰策略复杂度」的取舍。
+- Successor Required: `no`
 
 ## Non-Blocking Follow-ups
 
@@ -286,16 +292,25 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （立项时留空——closure 时填写：为什么这个 plan 可以关闭）
-Completed: YYYY-MM-DD
+Status Note: 10 项成员（P1×1 + P2×9）全部 live 落地并经独立 closure audit APPROVED；红①–红⑩ 均有先红后绿或变异锚定证据；G4/G5 双半边各自同提交交付；PA 零触碰（git diff 全量核对）；owner doc（nop-report.md 并发与资源契约 / nop-batch.md excel-reader 段 / source-anchors RPT-CC-001+FMT-CC-001）与 live 一致；E1/E3/分解通道/下游消费方验收留痕。批内无剩余 plan-owned work。
+Completed: 2026-11-02
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （待 closure audit 填写——独立审阅者或独立子 agent）
-- Audit Session: （待填写）
+- Reviewer / Agent: 独立 closure 审计子 agent（fresh session，只读）
+- Audit Session: agent_ee1473e0-be79-478a-92f5-ea43780518ec（@ `722ed49192`，基线 `9d90c6e070`）
 - Evidence:
-  - （待填写——每条 Exit Criterion 与 Closure Gate 的验证结果 + check-plan-checklist --strict 退出码 + Anti-Hollow 检查结果 + Deferred 项分类检查）
+  - 10 成员 live 核验逐条 PASS（file:line：AbstractModelBasedRecordDeserializer :220-224/:236-240；ModelBasedBinary/TextRecordDeserializer :53-59/:50-54；FontManager :47/:65/:67/:72/:77/:99-105/:140-152/:272-275/:483；ExcelFormatHelper :74/:79/:84/:104-116/:122-127/:296；DocumentConverterManager :154/:161/:271-273；RandomAccessFileBinaryDataReader :55-70/:76/:100-104/:196-205；IBinaryDataReader :606-617；ExcelRecordInput :100-101/:163-169；XptErrors :127-130）。
+  - Phase 1/2/3 Exit Criteria 全 PASS；Closure Gates 全 PASS（设计两级 review 在案、红绿总册与日志抽查 4 份一致、审计员亲跑 5 触达模块测试 EXIT=0 `_tmp/audit-2527-verify.log`）。
+  - Anti-Hollow PASS：getFieldLength 校验位于 decodeString 分配之前；RowLimitedOutput 经 `XlsxToRecordOutput` :42 openOutput 取得并在 :92 每行 write 调用；resolveFallbackFont 由 loadFallbackFont 在 fallbackLock 下调用；无空方法体/静默吞/TODO；scan-hollow 触达面 high=0。
+  - PA 零触碰 PASS（30 文件全量：无 `_` 生成物/orm.xml/nop-kernel/nop-core/nop-api-core/nop-report-api/nop-ooxml-xlsx/批外成员；条件申报①④未触发）；G4 单提交 `f979610023`、G5 单提交 `3b99ab6fa4`。
+  - Owner doc 一致性 PASS（锚点行号 0 漂移；docs-for-ai 零 ai-dev 直链）；文本一致性 PASS；Deferred 诚实性 PASS（batch DSL 未暴露 maxCountPerSheet 判定为行为变更声明+follow-up：配置位缺位为批前既有、暴露需改生成管线越 PA）。
+  - 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2527-cra-phase8.34-r3-04-report-format.md --strict` EXIT=0（`_tmp/checklist-2527.log`）；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
+  - 发现：Minor F-1（缓存上界近似）→ Deferred watch-only；Minor F-2（FileBatchSupport 过时注释）→ Non-Blocking Follow-ups 已登记。无 Blocker/Major。
 
 Follow-up:
 
-- （待 closure 时填写——只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- batch DSL excel-reader 暴露 maxCountPerSheet 配置位（out-of-scope improvement，R-G/R4-11 候选）。
+- FileBatchSupport :150-153 过时注释修订（R-G 候选）。
+- nop-format 独立 owner doc（批次行裁定随 R-G）。
+- 其余 Non-Blocking Follow-ups 节所列优化项；无 confirmed live defect 遗留。
