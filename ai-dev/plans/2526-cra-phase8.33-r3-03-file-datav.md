@@ -220,23 +220,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-file+nop-datav 聚合全量测试；`docs-for-ai/03-modules/nop-datav.md`（新建）；`docs-for-ai/03-modules/nop-file.md`；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/01-repo-map/module-groups.md`（核对）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2525 先例快速通道支路声明；聚焦覆盖 = E3 分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 5）：`./mvnw test -pl nop-datav -am` 与 `./mvnw test -pl nop-file -am` 各执行并留痕至首个上游阻断面（阻断面按三联裁定/恒红基线行为处置留痕——上游已知面集见勘误 5）；等价分解通道 `./mvnw test -pl nop-datav,nop-file`（无 `-am`）BUILD SUCCESS：nop-file 全量 0F0E + nop-datav 剔除 ChatBI 20-red 面（8 类，勘误 3 签名逐字比对）后 0F0E + ChatBI 20-red 面恒红维持归因登记（**排除形态验收沿 2525 勘误 5 r7 + 2520 面③ 先例叠加**）
-- [ ] Owner doc 落账：`nop-datav.md` **新建**（缺口声明兑现——上界配置族含新键默认值、错误码表增补、导出/交付状态机并发契约节、调度生命周期契约节）、`nop-file.md` 增「去重存储并发契约」节（引用计数/物理删除原子性语义）、`source-anchors.md` 新增 `FILE-CC-001`/`DATAV-CC-001` 锚点行（修复后 live 行号亲读核实）、`module-groups.md` 路由核对（nop-datav owner doc 新建后 `:17` 行 `详见 03-modules` 引用核对最小同步）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-datav EXIT=0 + nop-file EXIT=0（`_tmp/scan-hollow-{datav,file}.log`）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2525 先例快速通道支路声明；聚焦覆盖 = E3 分解通道）
+- [x] 批行验证命令（E3 判据——勘误 5）：`./mvnw test -pl nop-datav -am` 阻断于面① nop-core TestResourceCacheInvalidationChain（`_tmp/e3-datav-am-2526.log`；solo 三联 4/4 绿 EXIT=0 = 负载 flake 裁定，`_tmp/e3-core-solo-2526.log`）；`./mvnw test -pl nop-file -am` BUILD SUCCESS EXIT=0（`_tmp/e3-file-am-2526.log`）；等价分解通道 BUILD SUCCESS：nop-file 0F0E + nop-datav 剔除 ChatBI 20-red 面（8 类签名逐字比对）后 0F0E + race 钉三联（r1 并行分发 existsTable 间歇 false→r2/r3 全绿 9/9，红类集合与基线签名零差——负载 flake 裁定，Non-Blocking Follow-up 登记接缝硬化）
+- [x] Owner doc 落账：`nop-datav.md` **新建**（缺口声明兑现——上界配置族含新键默认值、错误码表增补、导出/交付状态机并发契约节、调度生命周期契约节）、`nop-file.md` 增「去重存储并发契约」节（引用计数/物理删除原子性语义）、`source-anchors.md` 新增 `FILE-CC-001`/`DATAV-CC-001` 锚点行（修复后 live 行号亲读核实）、`module-groups.md` 路由核对（nop-datav owner doc 新建后 `:17` 行 `详见 03-modules` 引用核对最小同步）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow nop-datav EXIT=0 + nop-file EXIT=0（`_tmp/scan-hollow-{datav,file}.log`）
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕 + 分解通道（含 ChatBI 排除形态）BUILD SUCCESS 等价验收；E1 支路理由已声明
-- [ ] nop-datav.md 新建落账 + nop-file.md 增补节 + source-anchors.md 双锚点 + module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 双 EXIT=0
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰或条件申报链闭合、平台设施/api 叶零触碰、批外成员与 ChatBI 红面零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕（面① solo 三联绿）+ 分解通道（含 ChatBI 排除形态）BUILD SUCCESS 等价验收；E1 支路理由已声明（`_tmp/e1-full-2526.log` EXIT=0）
+- [x] nop-datav.md 新建落账 + nop-file.md 增补节 + source-anchors.md 双锚点（FILE-CC-001/DATAV-CC-001，live 行号亲读）+ module-groups 核对登记（nop-datav 行更新为 owner doc 已建）；check-doc-links EXIT=0；scan-hollow 双 EXIT=0
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰[三处条件申报全未触发]、平台设施/api 叶零触碰、批外成员与 ChatBI 红面零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
@@ -266,7 +266,7 @@ Exit Criteria:
 - [ ] 每成员 ≥1 条 focused 回归测试（rule 25，全工单命名）；红①–红⑭均有先红后绿或变异/回退论证（E2；形态标注逐钉在 red-green 总册）；C10 收口门（5 缺保护+3 假保护修正）同 diff 落地
 - [ ] 设计文档裁定①–⑭成文且经独立 draft review（两级 review——plan 立项 review + 设计文档 review 均在案）；既有钉（勘误 4 基线 + 既有钉族）零回退实证（closure audit git diff 零改动核对 PASS）；反向钉死与假保护修正后行为等价断言在位（禁纯删）
 - [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 ChatBI 排除形态 BUILD SUCCESS 等价验收 + 20-red 面恒红归因登记）
-- [ ] Owner doc 落账完成：nop-datav.md 新建 + nop-file.md 增补节 + source-anchors.md FILE-CC-001/DATAV-CC-001 + module-groups 核对（E5——缺口声明兑现）
+- [x] Owner doc 落账完成：nop-datav.md 新建 + nop-file.md 增补节 + source-anchors.md FILE-CC-001/DATAV-CC-001 + module-groups 核对（E5——缺口声明兑现）
 - [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-datav/nop-file 双 EXIT=0 真实退出码）
 - [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 CL 均为批次定义层排除非本批降级）
 - [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）

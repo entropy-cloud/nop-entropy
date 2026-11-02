@@ -71,7 +71,8 @@ AI 不需要一开始记住所有模块名，但必须知道应该先去哪个�
 | `nop-rule/` | 规则引擎（决策树/决策矩阵） |
 | `nop-batch/` | 批处理引擎（chunk 处理、断点续传） |
 | `nop-dyn/` | 动态表单/实体（运行时定义） |
-| `nop-file/` | 文件管理（上传/下载/去重）。`nop-file-app` 为休眠态装配壳（不是可部署 HTTP 服务），复活路径见模块内注记 |
+| `nop-file/` | 文件管理（上传/下载/去重）。`nop-file-app` 为休眠态装配壳（不是可部署 HTTP 服务），复活路径见模块内注记。并发契约见 `04-reference/source-anchors.md` 的 `FILE-CC-001` 锚点 + `03-modules/nop-file.md`「文件去重延迟清理并发契约」节 |
+| `nop-datav/` | 数据可视化（dashboard/screen/alert/ChatBI/导出交付）。owner doc `03-modules/nop-datav.md` 已建（最小面——并发契约为主，完整功能文档建设归 R-G 治理批）；并发契约（导出终态 fencing/发布版本行锁/告警互斥/并发限额/调度副作用 afterCommit 后置/启动延迟重试/查询行上界）详见 `03-modules/nop-datav.md` + `04-reference/source-anchors.md` 的 `DATAV-CC-001` 锚点 |
 | `nop-credential/` | 凭证管理（存储/取用授权/OAuth 凭证流程）。`nop-credential-app` 为休眠态装配壳（不是可部署 HTTP 服务），复活路径见模块内注记 |
 | `nop-retry/` | 分布式重试引擎 |
 | `nop-tcc/` | TCC 分布式事务 |
