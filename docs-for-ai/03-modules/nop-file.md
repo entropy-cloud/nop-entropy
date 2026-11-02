@@ -237,7 +237,7 @@ Bean ID：`nopFileStore`（同时 alias 为 `nopOrmEntityFileStore`）。
 
 ## 文件去重延迟清理并发契约（FILE-CC-001，plan 2526）
 
-`DaoResourceFileStore` 的文件去重删除为**两段式延迟清理**（裁定①，plan 2526）：判-删竞态窗口（isUniqueRef 判定唯一引用后、删除文件前，新引用并发挂接）以「宽限间隔（600s）后复验引用计数、计数归零才真删除」窄化——**残余窗口声明**：极慢提交（引用方事务提交晚于复验+宽限）仍可复现悬挂引用，窗口从微秒级窄化至宽限间隔而非闭合；复验失败按结构化 give-up WARN 可观测（重试 3 次上限）。`removeTempFileByOwner` 同族同修；`removeResource`/`saveFile` 路径零触碰。回归钉：`TestDaoResourceFileStoreDedupW01`（闩锁构造性交错+变异锚定）。
+`DaoResourceFileStore` 的文件去重删除为**两段式延迟清理**（裁定①，plan 2526）：判-删竞态窗口（isUniqueRef 判定唯一引用后、删除文件前，新引用并发挂接）以「宽限间隔（600s）后复验引用计数、计数归零才真删除」窄化——**残余窗口声明**：极慢提交（引用方事务提交晚于复验+宽限）仍可复现悬挂引用，窗口从微秒级窄化至宽限间隔而非闭合；复验失败按结构化 give-up WARN 可观测（重试 3 次上限）。`removeTempFileByOwner` 同族同修；`removeResource`/`saveFile` 路径零触碰。回归钉：`TestDaoResourceFileStoreDedupRace_W01`（闩锁构造性交错+变异锚定）。
 
 ## 自定义 MIME 映射
 

@@ -1,6 +1,6 @@
 # 2526 CRA Phase 8.33 — R3-03 5.3 file-datav 批（14 项：W-01 文件去重竞态原子化[P1·CL-014] + W-04 查询上界 R02 三范式[P1·CL-009 主，携 CL-010/CL-021 对齐成员] + W-02 终态 fencing 族三成员[CL-003 携反向钉死同 diff 改写 / CL-001 cancel 竞态 / CL-016 孤儿文件] + W-03 check-then-act 三成员[CL-002 发布版本号 / CL-004 告警状态行 / CL-005 限额 TOCTOU 携假保护同 diff 修正] + W-05 导出临时文件泄漏[CL-015] + W-07 调度生命周期三成员[CL-019 注销回滚窗口 / CL-020 注册失败停摆·平台修复归 R1-01 接入点登记 / CL-023 SMTP 半程窗口]）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: agent_71f576e2 @ 2026-11-02 —— **无 Blocker；2 Major + 3 Minor**——机械修订闭环，修订转 active（无需第二轮全量复审）：Major-1 CL-003 条件更新 0 行分支新孤儿面（裁定③/⑤增补 fileId 处置条款——回收或带 fileId 落 FAILED 二选一入裁定域，红②/红④断言面同步覆盖）；Major-2 裁定⑤备选载体面（nop-biz-file-core 公共接口形态[IFileStore 加方法]须四件证据链追加申报+全 impl 回归面，裁定⑤预设 Option A=daoFor(NopFileRecord)+getResourceStore() 镜像 detach 序列为非扩权缺省）；Minor-3 Scope In-Scope recovery 路径修正（entity→export）；Minor-4 载体文件计数统一逐名清单口径（datav 16+file 1）；Minor-5 裁定⑧谓词枚举补 NULL（首通知）分支覆盖。后续轮次如有则顺延登记
 > Last Reviewed: 2026-11-02
 > Design Review R2（Phase 1 设计文档）: agent_a241b6e9 @ 2026-11-02 —— **APPROVED with corrections；2 Major + 6 Minor 全部落稿闭环**（无需第二轮全量复审），设计文档 Status: draft → active，放行 Phase 2：[Major-1] 裁定①竞态闭合措辞改「窗口从微秒级窄化至宽限间隔」（残余窗口=极端长事务，owner doc 声明义务登记）+ 宽限默认值 60s→600s（10min，择一成文）；[Major-2] 裁定④⑨收口点上移至 submitExecution lambda 最外层 finally（两条早退路径 :288-295/:296-300 与基建故障路径 :271-280 均不经 :367 的覆盖缺口闭合；按真实路径重写残留矩阵；「CAS 成功蕴含此前 RUNNING」修正为非终态 PENDING/RUNNING）；[Minor-1] 勘误追加 5 处方法体内微漂移（publishScreen :104/registerTask :164/catch-log :177-178/doDeleteEntity :99/:103/afterCommit live :87）+「零漂移」弱化为「方法级零漂移」；[Minor-2] 勘误 3 补 supersede 指针（plan 字面谓词示例 where status in non-terminal 已被 version CAS 载体 supersede）；[Minor-3] §3.3 增 CAS 实现注记两条（0 行后 readonly 须 fresh 重载/内存 version 禁作判定）；[Minor-4] §3.8 增锁持有包络声明（横跨 SMTP 发送，上限≈通知超时）；[Minor-5] §3.9 增 ISemaphore 注册表生命周期声明（用户数有界/重启清零）；[Minor-6] §3.13 点名 GlobalExecutors.globalTimer() 一次性任务为延迟重试设施。**零 orm 触碰经 R2 确认成立**——裁定⑦⑧⑭三处条件申报边界全部未触发，四件证据链义务不启动（头部条件申报条款维持备查，无表述冲突）；设计文档命名沿用预定名无命名裁定。
@@ -194,7 +194,7 @@ Exit Criteria:
 
 ### Phase 2 - 14 成员实现 + 回归测试（按模块分组 A–E）
 
-Status: planned
+Status: completed
 Targets: `nop-file/nop-file-dao/`、`nop-datav/nop-datav-service/`（main+test 树；`NopDatavConfigs.java`/`NopDatavErrors.java`）
 
 - Item Types: `Fix`（14 项均为已确认 live defect——P1×2/P2×12，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
@@ -204,19 +204,19 @@ Targets: `nop-file/nop-file-dao/`、`nop-datav/nop-datav-service/`（main+test �
 - [x] 组 C nop-datav check-then-act（CL-002+CL-004+CL-005）：裁定⑦（行锁 lockEntity+txn 守护+stale 锁重试[session 校验语义]——红⑤ C2 变异锚定✓ Dashboard+Screen 同族同 diff）+ 裁定⑧（IResourceLockManager per-ruleId 三段互斥[评估/决策/通知+回写]+回写版本 CAS 否决等值谓词——红⑥ C1 变异锚定✓）+ 裁定⑨（ISemaphore 原子层+DB count 二层+许可收口点上移——红⑦ C3 变异锚定✓ + **:221 假保护同 diff 补并发形态**[并发测试随组 C 提交，CL-005 本体随组 B——同批交付偏差登记]）
 - [x] 组 D nop-datav 查询上界（CL-009+CL-010+CL-021）：裁定②（红⑧ 上界红[缺保护-2]——NopDatavConfigs 新键+NopDatavErrors 新错误码）→ 裁定⑩（红⑨ 加载界红）→ 裁定⑪（红⑩ 投影红）——R02 三范式批内一次成文（红⑧⑨⑩ 变异锚定 MUTATION-08/09/10 恢复 grep=0；接线钉 CL010/CL021 源码结构钉沿 2525 MA01 先例；零回退 nop-file 19 + nop-datav 648=628绿+20red ChatBI 恒红面签名逐字维持）
 - [x] 组 E nop-datav 调度生命周期（CL-019+CL-020）：裁定⑫（红⑫ RD1 变异红——注销直呼回退→回滚后 job 丢失实证；afterCommit 后置五站点+Dashboard/Panel/ReportTask/AlertRule 注销路径化）+ 裁定⑬（红⑬ RD2 变异红 3 条——scheduleOnce 摘除+五站点结构钉；NopDatavInitRetry 一次性 30s+globalTimer 测试缝+R1-01 接入点清单登记于类 javadoc）——组 E 5/5 绿；实现代理中断后主会话接手完成（CL019 断言修正：级联语义=置 DISABLED 非物理删除，live 亲读）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑭快照落 `_tmp/` 并登记（`_tmp/red-green-2526-summary.md` 总册 + 逐 trial 日志——命名沿 2525 形态）；变异探针纪律兑现（恢复路径以 grep/断言确认目标行真实存在——plan guide When Executing #8 条款）；ChatBI 20-red 面修复期前后恒红维持核对（勘误 3/4 口径）
-- [ ] **端到端验证**（rule 22）：去重链 = 实体 copyFrom→flush→detach→物理文件存在性全链钉（W-01）；导出链 = createExportTask→execute→cancel/失败→终态正确+文件守恒全链钉（组 B：ExportE2E 扩展——从 create 入口到 fileStore 出口）；交付链 = runDelivery→SMTP 失败→补偿/对账全链钉（CL-023——从 runDelivery 入口到 rollbackSucceededToFailed/对账出口）；发布链 = 并发 publish→版本唯一全链钉（CL-002）；查询链 = getDashboardData 大结果集→上界拒绝全链钉（CL-009——从 getDashboardData 入口到 ERR 出口）；调度链 = dashboard 删除→afterCommit 注销→回滚恢复全链钉（CL-019——从 handleDeleteCascade 入口到 scheduler 状态出口）
-- [ ] **接线验证**（rule 23）：CL-003 条件写真拦截（0 行路径 WARN 可观测断言）；CL-019 afterCommit 真挂点（回滚不触发注销断言——TestNopDatavAsyncSubmitTransactionPath 既有 seam 形态参照）；CL-020 重试真注册/健康位真翻转；CL-010 LIMIT 真下推（返回消息数断言）；CL-009 上界真抛 ERR（错误码断言）；CL-016 回收真执行（残留行数守恒断言）
-- [ ] **无静默跳过**（rule 24）：CL-003/CL-001 条件写 0 行路径显式 WARN（结构化日志）；CL-016/裁定① 回收/清理失败显式 WARN+path 日志（禁吞）；CL-009 上界拒绝显式 ERR（非静默截断）；CL-020 重试终败显式 WARN/健康位=false（非静默停摆）；CL-014 对账清单显式输出；新增公共分支无空方法体/TODO（全分支显式）
+- [x] 回归测试（rule 25 显式覆盖 + C10 收口门同 diff，先红后绿或变异/回退论证留痕）：红①–红⑭快照落 `_tmp/` 并登记（`_tmp/red-green-2526-summary.md` 总册 + 逐 trial 日志——命名沿 2525 形态）；变异探针纪律兑现（恢复路径以 grep/断言确认目标行真实存在——plan guide When Executing #8 条款）；ChatBI 20-red 面修复期前后恒红维持核对（勘误 3/4 口径）
+- [x] **端到端验证**（rule 22）：去重链 = 实体 copyFrom→flush→detach→物理文件存在性全链钉（W-01）；导出链 = createExportTask→execute→cancel/失败→终态正确+文件守恒全链钉（组 B：ExportE2E 扩展——从 create 入口到 fileStore 出口）；交付链 = runDelivery→SMTP 失败→补偿/对账全链钉（CL-023——从 runDelivery 入口到 rollbackSucceededToFailed/对账出口）；发布链 = 并发 publish→版本唯一全链钉（CL-002）；查询链 = getDashboardData 大结果集→上界拒绝全链钉（CL-009——从 getDashboardData 入口到 ERR 出口）；调度链 = dashboard 删除→afterCommit 注销→回滚恢复全链钉（CL-019——从 handleDeleteCascade 入口到 scheduler 状态出口）
+- [x] **接线验证**（rule 23）：CL-003 条件写真拦截（0 行路径 WARN 可观测断言）；CL-019 afterCommit 真挂点（回滚不触发注销断言——TestNopDatavAsyncSubmitTransactionPath 既有 seam 形态参照）；CL-020 重试真注册/健康位真翻转；CL-010 LIMIT 真下推（返回消息数断言）；CL-009 上界真抛 ERR（错误码断言）；CL-016 回收真执行（残留行数守恒断言）
+- [x] **无静默跳过**（rule 24）：CL-003/CL-001 条件写 0 行路径显式 WARN（结构化日志）；CL-016/裁定① 回收/清理失败显式 WARN+path 日志（禁吞）；CL-009 上界拒绝显式 ERR（非静默截断）；CL-020 重试终败显式 WARN/健康位=false（非静默停摆）；CL-014 对账清单显式输出；新增公共分支无空方法体/TODO（全分支显式）
 
 Exit Criteria:
 
-- [ ] 14 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（`Test*_<工单>` 惯例：W01/CL003/CL001/CL016/CL015/CL002/CL004/CL005/CL009/CL010/CL021/CL019/CL020/CL023）；C10 收口门（缺保护 5+假保护 3）同 diff 落地（缺保护 3/4/5 验收前置逐条勾验）
-- [ ] 必红证据（E2）：红①–红⑭均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（red-green-2526-summary.md：形态标注逐钉在册）
-- [ ] 零回退实证：nop-file 聚合 BUILD SUCCESS（基线 17 tests 全绿维持）+ nop-datav 非 ChatBI 面 BUILD SUCCESS（基线 610 tests 0F0E 维持 + ChatBI 20-red 面恒红归因核对）；既有钉族零回退（TestDaoResourceFileStoreAttachPermission/ParallelQuery/AsyncSubmit/ShareRateLimit/StuckTaskScan 既有用例/PanelDataExporter×2/ReportE2E 等点名族）；反向钉死 :308 改写仅 CL-003 同 diff 且行为等价断言在位（禁纯删）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 组内留痕：组内 focused 全绿 + 模块聚合绿（nop-file/nop-datav 双聚合）；双通道 `-am` 与等价分解通道全量验收归 Phase 3 统一执行（显式登记去向）；实际触达模块（git diff 核对）：nop-file-dao main+test、nop-datav-service main+test——零触碰确认：`_` 生成物零触碰、orm 模型零触碰（或条件申报四件证据链闭合后按申报面）、平台设施/api 叶零触碰、批外 CL 与 ChatBI 红面零触碰；Owner doc 定稿归 Phase 3
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 14 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（`Test*_<工单>` 惯例：W01/CL003/CL001/CL016/CL015/CL002/CL004/CL005/CL009/CL010/CL021/CL019/CL020/CL023）；C10 收口门（缺保护 5+假保护 3）同 diff 落地（缺保护 3/4/5 验收前置逐条勾验）
+- [x] 必红证据（E2）：红①–红⑭均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（red-green-2526-summary.md：形态标注逐钉在册）
+- [x] 零回退实证：nop-file 聚合 BUILD SUCCESS（基线 17 tests 全绿维持）+ nop-datav 非 ChatBI 面 BUILD SUCCESS（基线 610 tests 0F0E 维持 + ChatBI 20-red 面恒红归因核对）；既有钉族零回退（TestDaoResourceFileStoreAttachPermission/ParallelQuery/AsyncSubmit/ShareRateLimit/StuckTaskScan 既有用例/PanelDataExporter×2/ReportE2E 等点名族）；反向钉死 :308 改写仅 CL-003 同 diff 且行为等价断言在位（禁纯删）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] E3 组内留痕：组内 focused 全绿 + 模块聚合绿（nop-file/nop-datav 双聚合）；双通道 `-am` 与等价分解通道全量验收归 Phase 3 统一执行（已兑现）；实际触达模块（closure audit git diff 45 文件核对）：nop-file-dao main+test、nop-datav-service main+test——零触碰确认：`_` 生成物零触碰、orm 模型零触碰（三处条件申报全未触发）、平台设施/api 叶零触碰、批外 CL 与 ChatBI 红面零触碰；Owner doc 定稿归 Phase 3（已兑现）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
@@ -240,40 +240,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.33 行、cra-index P1 台账 :300/:301 + P2-G76 行 :462 + **勘误 1 之 :298/:299 重复行清理**、batch-proposal 勘误注记
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（条件写/原子化/上界/回收/重试运行时真实生效 + 无空方法体/静默吞）；W-01 非 orm 条件申报链（如触发）齐备性复核
-- [ ] cra-index 台账回填：P1 两行 :300/:301 状态收敛（open→fixed，注记 plan 2526 + closure audit 结论）；P2-G76 行 :462 收敛注（十二成员 fixed 注记 + C10 映射面兑现）；**:298/:299 5.2 重复行清理**（勘误 1 义务——删除或标注，登记处置方式）；roadmap 8.33 行 Status → done + 勘误注记（ChatBI 红面移交 + 条件申报触发记录[如触发]，沿 2523/2524/2525 先例形态，不改 L103 原文）；batch-proposal 为历史裁定文件不回写（先例），勘误登记于 roadmap 行与本 Closure 段
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（nop-datav/nop-file 双 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（条件写/原子化/上界/回收/重试运行时真实生效 + 无空方法体/静默吞）；W-01 非 orm 条件申报链（如触发）齐备性复核
+- [x] cra-index 台账回填：P1 两行 :300/:301 状态收敛（open→fixed，注记 plan 2526 + closure audit 结论）；P2-G76 行 :462 收敛注（十二成员 fixed 注记 + C10 映射面兑现）；**:298/:299 5.2 重复行清理**（勘误 1 义务——删除处置，登记于本 Closure 段）；roadmap 8.33 行 Status → done + 勘误注记（ChatBI 红面移交 + 条件申报未触发记录，沿 2523/2524/2525 先例形态，不改 L103 原文）；batch-proposal 为历史裁定文件不回写（先例），勘误登记于 roadmap 行与本 Closure 段
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（nop-datav/nop-file 双 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index P1 两行收敛 + P2-G76 收敛注 + :298/:299 重复行处置登记、roadmap 8.33 = done（含勘误注记）、batch-proposal 勘误注记完成
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index P1 两行收敛 + P2-G76 收敛注 + :298/:299 重复行处置登记、roadmap 8.33 = done（含勘误注记）、batch-proposal 勘误注记完成
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 14 项成员全部修复：W-01（去重竞态原子化——两段式清理或 originFileId 互斥）、W-04（rowLimit 行上界三站点+新配置键+新错误码；CL-010 加载侧 LIMIT；CL-021 投影/分页）、CL-003（终态条件更新+终态短路+反向钉死同 diff 改写）、CL-001（cancel putIfAbsent+同收口+残留兜底）、CL-016（失败/cancel 分支文件回收+文件守恒断言）、CL-015（writeCsv/writeXlsx 失败路径 delete 收口）、CL-002（发布版本号非 orm 原子化——Dashboard+Screen 同族）、CL-004（告警条件更新 fencing+建行收口）、CL-005（限额原子化+:221 假保护同 diff 修正）、CL-019（注销副作用 afterCommit 后置/补偿——五站点）、CL-020（注册失败最小面自愈+R1-01 接入点登记）、CL-023（半程窗口对账/notifyState 定夺形态）
-- [ ] batch-proposal R3-03 行 exit criteria 增补逐条达成并留证：CL-003 反向钉死同 diff 改写（testSlowExecutionRaceWorkerSuccessOverwritesScanFailed :308 反转+R12 对齐）；CL-005 假保护同 diff 修正（:221 并发化）；W-01 去重竞态原子化；W-04 rowLimit 上界（R02 三范式）；缺保护 3/4/5 验收前置（CL-003 配套/CL-016/CL-001 三钉在位）
-- [ ] 对齐纪律守约：CL-003 反向钉死同 diff+face a/b 边界兑现；CL-005 假保护修正兑现；W-01 CL-017 零触碰边界兑现；W-04 R02 三范式一次成文+批内三成员同批兑现；CL-020 R1-01 边界兑现（禁平台面）；CL-019 AR-2 先例复用兑现；CL-002/CL-004/CL-023 非 orm 预设兑现（或条件申报四件证据链闭合）；CL-001/CL-003 同收口单形态兑现；C10 同 diff 兑现（缺保护 5+假保护 3）；PA 零触碰声明闭环（closure audit git diff 全量核对 PASS）
-- [ ] 每成员 ≥1 条 focused 回归测试（rule 25，全工单命名）；红①–红⑭均有先红后绿或变异/回退论证（E2；形态标注逐钉在 red-green 总册）；C10 收口门（5 缺保护+3 假保护修正）同 diff 落地
-- [ ] 设计文档裁定①–⑭成文且经独立 draft review（两级 review——plan 立项 review + 设计文档 review 均在案）；既有钉（勘误 4 基线 + 既有钉族）零回退实证（closure audit git diff 零改动核对 PASS）；反向钉死与假保护修正后行为等价断言在位（禁纯删）
-- [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 ChatBI 排除形态 BUILD SUCCESS 等价验收 + 20-red 面恒红归因登记）
+- [x] 14 项成员全部修复：W-01（去重竞态原子化——两段式清理或 originFileId 互斥）、W-04（rowLimit 行上界三站点+新配置键+新错误码；CL-010 加载侧 LIMIT；CL-021 投影/分页）、CL-003（终态条件更新+终态短路+反向钉死同 diff 改写）、CL-001（cancel putIfAbsent+同收口+残留兜底）、CL-016（失败/cancel 分支文件回收+文件守恒断言）、CL-015（writeCsv/writeXlsx 失败路径 delete 收口）、CL-002（发布版本号非 orm 原子化——Dashboard+Screen 同族）、CL-004（告警条件更新 fencing+建行收口）、CL-005（限额原子化+:221 假保护同 diff 修正）、CL-019（注销副作用 afterCommit 后置/补偿——五站点）、CL-020（注册失败最小面自愈+R1-01 接入点登记）、CL-023（半程窗口对账/notifyState 定夺形态）
+- [x] batch-proposal R3-03 行 exit criteria 增补逐条达成并留证：CL-003 反向钉死同 diff 改写（testSlowExecutionRaceWorkerSuccessOverwritesScanFailed :308 反转+R12 对齐）；CL-005 假保护同 diff 修正（:221 并发化）；W-01 去重竞态原子化；W-04 rowLimit 上界（R02 三范式）；缺保护 3/4/5 验收前置（CL-003 配套/CL-016/CL-001 三钉在位）
+- [x] 对齐纪律守约：CL-003 反向钉死同 diff+face a/b 边界兑现；CL-005 假保护修正兑现；W-01 CL-017 零触碰边界兑现；W-04 R02 三范式一次成文+批内三成员同批兑现；CL-020 R1-01 边界兑现（禁平台面）；CL-019 AR-2 先例复用兑现；CL-002/CL-004/CL-023 非 orm 预设兑现（或条件申报四件证据链闭合）；CL-001/CL-003 同收口单形态兑现；C10 同 diff 兑现（缺保护 5+假保护 3）；PA 零触碰声明闭环（closure audit git diff 全量核对 PASS）
+- [x] 每成员 ≥1 条 focused 回归测试（rule 25，全工单命名）；红①–红⑭均有先红后绿或变异/回退论证（E2；形态标注逐钉在 red-green 总册）；C10 收口门（5 缺保护+3 假保护修正）同 diff 落地
+- [x] 设计文档裁定①–⑭成文且经独立 draft review（两级 review——plan 立项 review + 设计文档 review 均在案）；既有钉（勘误 4 基线 + 既有钉族）零回退实证（closure audit git diff 零改动核对 PASS）；反向钉死与假保护修正后行为等价断言在位（禁纯删）
+- [x] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 ChatBI 排除形态 BUILD SUCCESS 等价验收 + 20-red 面恒红归因登记）
 - [x] Owner doc 落账完成：nop-datav.md 新建 + nop-file.md 增补节 + source-anchors.md FILE-CC-001/DATAV-CC-001 + module-groups 核对（E5——缺口声明兑现）
-- [ ] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-datav/nop-file 双 EXIT=0 真实退出码）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 CL 均为批次定义层排除非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）条件更新/原子化/上界拒绝/文件回收/重试自愈/对账输出运行时真实生效（调用链追踪 + 红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
-- [ ] `./mvnw compile` + `./mvnw test`（nop-file+nop-datav 聚合——E3 分解通道含 ChatBI 排除形态验收）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index 5.3 P1 两行收敛 + P2-G76 收敛注 + :298/:299 重复行处置 + roadmap 8.33 → done（E6）
+- [x] 受影响聚合模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-datav/nop-file 双 EXIT=0 真实退出码）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 CL 均为批次定义层排除非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session agent_f35f6312）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）条件更新/原子化/上界拒绝/文件回收/重试自愈/对账输出运行时真实生效（调用链追踪 + 红绿日志证行为改变），（b）无空方法体/静默跳过/no-op 作为正常实现
+- [x] `./mvnw compile` + `./mvnw test`（nop-file+nop-datav 聚合——E3 分解通道含 ChatBI 排除形态验收）；checkstyle / 代码规范检查通过（git hook nop-cli lint 五次提交全过）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index 5.3 P1 两行收敛 + P2-G76 收敛注 + :298/:299 重复行处置 + roadmap 8.33 → done（E6）
 
 ## Deferred But Adjudicated
 
