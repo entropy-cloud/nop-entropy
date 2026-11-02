@@ -297,12 +297,18 @@ public class TestNopDatavStuckTaskScan extends AbstractNopDatavTest {
                 "beanMethod invoker dispatched runtime call to scanStuck() (wiring verified)");
     }
 
-    // ==================== ⑨ 慢执行竞态 ====================
+    // ==================== ⑨ 慢执行竞态（CL-003 反向钉死改写，plan 2526 裁定③） ====================
 
     /**
-     * ⑨ 慢执行竞态（已裁定良性）：超阈值记录被扫描标 FAILED（假阳性）后，仍在运行的
-     * worker 最终写 SUCCEEDED 覆盖之——终态正确（报告确实送达）、不崩。镜像
-     * ReportDeliveryExecutor / NopDatavExportTaskBizModel 成功路径的终态写字段。
+     * ⑨ 慢执行竞态（plan 2526 反向钉死同 diff 改写——期望终态反转）：超阈值记录被扫描标 FAILED
+     * （假阳性）后，慢 worker 的终态写必须被条件更新拒绝（0 行，{@code orm_readonly()} 可观测），
+     * scanner 的 FAILED <b>保持</b>（粘滞语义）且 stuck 原因不被覆盖——worker 以 fresh 重载确认终态
+     * 后放弃（镜像 ReportDeliveryExecutor/NopDatavExportTaskBizModel.writeWithFencing 的 fenced
+     * 终态写形态：{@code orm_disableVersionCheckError(true)} + 0 行 readonly 判定）。
+     *
+     * <p>改写前语义（worker SUCCEEDED 覆盖 scanner FAILED）为已裁定的反向钉死——本改写即
+     * plan 批次 exit criteria 首条的兑现，禁纯删：断言集合覆盖「fencing 摘除后 worker 无条件覆盖
+     * 回潮」回归（摘除 fencing → worker 写成功 → FAILED 保持断言红）。</p>
      */
     @Test
     public void testSlowExecutionRaceWorkerSuccessOverwritesScanFailed() {
@@ -313,42 +319,59 @@ public class TestNopDatavStuckTaskScan extends AbstractNopDatavTest {
                 now - 90 * MINUTE_MS);
         seedExportTask(taskId, "alice", NopDatavExportTaskStatus.RUNNING, now - 90 * MINUTE_MS);
 
-        // 扫描先把慢执行记录标 FAILED（假阳性）
+        // 慢 worker 先于扫描加载行（stale 版本持有者——生产交错：worker 加载早于 scanner 写入），
+        // 随后以条件更新形态写 SUCCEEDED（镜像 ReportDeliveryExecutor.writeWithFencing：
+        // disableVersionCheckError + 0 行 readonly 判定）——stale 版本写 0 行，必须可观测放弃
+        IEntityDao<NopDatavReportDelivery> deliveryDao =
+                daoProvider.daoFor(NopDatavReportDelivery.class);
+        NopDatavReportDelivery finished = deliveryDao.getEntityById(deliveryId);
+        IEntityDao<NopDatavExportTask> taskDao = daoProvider.daoFor(NopDatavExportTask.class);
+        NopDatavExportTask finishedTask = taskDao.getEntityById(taskId);
+
+        // 扫描把慢执行记录标 FAILED（假阳性）——fencing 下该标记粘滞（DB version 推进）
         assertEquals(1, deliveryRecovery.scanStuck(60));
         assertEquals(1, exportRecovery.scanStuck(60));
         assertEquals(NopDatavReportDeliveryStatus.FAILED, delivery(deliveryId).getStatus(),
                 "scanner marked slow delivery FAILED (false positive)");
+        String stuckReason = delivery(deliveryId).getErrorMsg();
+        assertTrue(stuckReason != null && stuckReason.contains(NopDatavReportDeliveryRecovery.STUCK_REASON_PREFIX),
+                "stuck reason recorded before worker conflict");
 
-        // worker 最终完成、写 SUCCEEDED（镜像 ReportDeliveryExecutor 成功路径终态写）
-        IEntityDao<NopDatavReportDelivery> deliveryDao =
-                daoProvider.daoFor(NopDatavReportDelivery.class);
-        NopDatavReportDelivery finished = deliveryDao.getEntityById(deliveryId);
         finished.setStatus(NopDatavReportDeliveryStatus.SUCCEEDED);
         finished.setEndTime(new Timestamp(System.currentTimeMillis()));
         finished.setDeliveredChannels("email");
         finished.setUpdatedBy("alice");
         finished.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        finished.orm_disableVersionCheckError(true);
         deliveryDao.updateEntityDirectly(finished);
+        assertTrue(finished.orm_readonly(),
+                "worker fenced SUCCEEDED write must be observable 0-row (readonly flag)");
 
-        // 导出 worker 同构（镜像 NopDatavExportTaskBizModel.executeTask 成功路径终态写）
-        IEntityDao<NopDatavExportTask> taskDao = daoProvider.daoFor(NopDatavExportTask.class);
-        NopDatavExportTask finishedTask = taskDao.getEntityById(taskId);
+        // 导出 worker 同构（镜像 NopDatavExportTaskBizModel.writeWithFencing）
         finishedTask.setStatus(NopDatavExportTaskStatus.SUCCEEDED);
         finishedTask.setFileRecordId("simulated-file-record");
         finishedTask.setRowCount(3L);
         finishedTask.setErrorMsg(null);
         finishedTask.setUpdatedBy("alice");
         finishedTask.setUpdateTime(new Timestamp(System.currentTimeMillis()));
+        finishedTask.orm_disableVersionCheckError(true);
         taskDao.updateEntityDirectly(finishedTask);
+        assertTrue(finishedTask.orm_readonly(),
+                "export worker fenced SUCCEEDED write must be observable 0-row (readonly flag)");
 
-        // 终态正确：worker 的 SUCCEEDED 修正扫描的假阳性 FAILED，不崩
-        assertEquals(NopDatavReportDeliveryStatus.SUCCEEDED, delivery(deliveryId).getStatus(),
-                "worker SUCCEEDED overwrites scanner false-positive FAILED (final state correct)");
-        assertEquals("email", delivery(deliveryId).getDeliveredChannels(), "worker fields win");
-        assertEquals(NopDatavExportTaskStatus.SUCCEEDED, exportTask(taskId).getStatus(),
-                "export worker SUCCEEDED overwrites scanner false-positive FAILED");
-        assertEquals(3L, exportTask(taskId).getRowCount(), "worker fields win");
-        assertNull(exportTask(taskId).getErrorMsg(), "scanner reason cleared by worker");
+        // 终态保持：scanner FAILED 粘滞（不被 worker 覆盖），stuck 原因保留，无脏字段写入
+        assertEquals(NopDatavReportDeliveryStatus.FAILED, delivery(deliveryId).getStatus(),
+                "scanner FAILED must stay (sticky marker semantics; worker 0-row abandoned)");
+        assertTrue(delivery(deliveryId).getErrorMsg() != null
+                        && delivery(deliveryId).getErrorMsg().contains(NopDatavReportDeliveryRecovery.STUCK_REASON_PREFIX),
+                "stuck reason preserved (not overwritten by worker fields)");
+        assertNull(delivery(deliveryId).getDeliveredChannels(), "worker fields must not leak into fenced-abandoned row");
+        assertEquals(NopDatavExportTaskStatus.FAILED, exportTask(taskId).getStatus(),
+                "export scanner FAILED stays (worker 0-row abandoned)");
+        assertTrue(exportTask(taskId).getErrorMsg() != null
+                        && exportTask(taskId).getErrorMsg().contains(NopDatavExportTaskRecovery.STUCK_REASON_PREFIX),
+                "export stuck reason preserved");
+        assertNull(exportTask(taskId).getFileRecordId(), "no fileRecordId written by fenced-abandoned worker");
     }
 
     // ==================== Helpers ====================

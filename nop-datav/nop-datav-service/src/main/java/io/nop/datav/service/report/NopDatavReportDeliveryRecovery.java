@@ -73,6 +73,46 @@ public class NopDatavReportDeliveryRecovery {
             return;
         }
         ormTemplate.runInNewSession(this::doRecover);
+        // 裁定⑭（plan 2526）：启动对账——半程窗口（Part A 提交后 Part B 前进程死亡）的物理成因
+        // 是进程死亡，重启必经本入口，触发点与窗口成因一一对应。
+        reconcileSucceededWithoutChannels();
+    }
+
+    /**
+     * 裁定⑭（plan 2526）最简对账案（零模型变更零自动改写）：扫描「SUCCEEDED 且 deliveredChannels
+     * 为空/NULL」的交付行，逐行输出结构化 WARN 对账清单（deliveryId/reportTaskId/endTime 可 grep）。
+     * 语义取舍：不自动重发（SMTP at-least-once 重复投递 + 终态行自动改写两新增面被拒），
+     * 人工/脚本消费；存量行误报面 = 历史上 cosmetic 回写失败行（WARN 级可忽略）。
+     *
+     * @return 对账命中行数（测试断言面）
+     */
+    public int reconcileSucceededWithoutChannels() {
+        if (!deliveryTableExists()) {
+            return 0;
+        }
+        Integer hits = ormTemplate.runInNewSession(session -> {
+            IEntityDao<NopDatavReportDelivery> dao = daoProvider.daoFor(NopDatavReportDelivery.class);
+            QueryBean query = new QueryBean();
+            query.addFilter(FilterBeans.eq("status", NopDatavReportDeliveryStatus.SUCCEEDED));
+            @SuppressWarnings("unchecked")
+            List<NopDatavReportDelivery> succeeded = (List<NopDatavReportDelivery>) dao.findAllByQuery(query);
+            int count = 0;
+            for (NopDatavReportDelivery delivery : succeeded) {
+                if (delivery.getDeliveredChannels() != null && !delivery.getDeliveredChannels().isEmpty()) {
+                    continue;
+                }
+                count++;
+                LOG.warn("nop.datav.report.reconcile-succeeded-without-channels:deliveryId={},reportTaskId={},"
+                                + "endTime={} (SUCCEEDED but no delivered channel recorded; "
+                                + "half-way window candidate for manual/script reconciliation)",
+                        delivery.getDeliveryId(), delivery.getReportTaskId(), delivery.getEndTime());
+            }
+            return count;
+        });
+        if (hits != null && hits > 0) {
+            LOG.warn("nop.datav.report.reconcile-succeeded-without-channels.total:count={}", hits);
+        }
+        return hits == null ? 0 : hits;
     }
 
     private boolean deliveryTableExists() {
@@ -118,16 +158,27 @@ public class NopDatavReportDeliveryRecovery {
         }
         Timestamp now = CoreMetrics.currentTimestamp();
         String reason = STUCK_REASON_PREFIX + " (" + timeoutMinutes + "m)";
+        int marked = 0;
         for (NopDatavReportDelivery delivery : stale) {
             delivery.setStatus(NopDatavReportDeliveryStatus.FAILED);
             delivery.setErrorMsg(reason);
             delivery.setEndTime(now);
             delivery.setUpdatedBy("system");
             delivery.setUpdateTime(now);
+            // 裁定③（plan 2526）：条件更新形态——0 行 = worker 已并发推进该行（如写 SUCCEEDED）→
+            // 跳过该行（标记不覆盖 worker 终态），冲突结构化可见。
+            delivery.orm_disableVersionCheckError(true);
             dao.updateEntityDirectly(delivery);
+            if (delivery.orm_readonly()) {
+                LOG.info("nop.datav.report.stuck-scan-conflict:deliveryId={} "
+                        + "(worker advanced the row; skip marking)", delivery.getDeliveryId());
+                continue;
+            }
+            marked++;
         }
-        LOG.info("nop.datav.report.stuck-scan-marked:count={} timeoutMinutes={}", stale.size(), timeoutMinutes);
-        return stale.size();
+        LOG.info("nop.datav.report.stuck-scan-marked:count={} conflictSkipped={} timeoutMinutes={}",
+                marked, stale.size() - marked, timeoutMinutes);
+        return marked;
     }
 
     private Void doRecover(IOrmSession session) {

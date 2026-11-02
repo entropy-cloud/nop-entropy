@@ -22,7 +22,6 @@ import io.nop.datav.service.component.PanelComponentRegistry;
 import io.nop.datav.service.component.PanelTypeMapping;
 import io.nop.datav.service.query.PanelDataBinder;
 
-import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
@@ -231,7 +230,12 @@ public class PanelDataExporter {
             }
             output.flush();
             writer.flush();
-        } catch (IOException e) {
+        } catch (Exception e) {
+            // 裁定⑥（plan 2026）：失败路径资源收口——catch 面覆盖 Exception（含 checkCancelled 抛
+            // NopException 穿过 IOException catch 的取消路径与磁盘满 IOException），delete 后原样 rethrow。
+            // 成功路径不删（资源即返回给调用方 persist 的产物），调用方 finally 已删成功产物——收口后
+            // 失败/成功清理对称，失败导出不再在 temp 目录线性积累。
+            resource.delete();
             throw NopException.adapt(e);
         } finally {
             IoHelper.safeCloseObject(output);
@@ -251,6 +255,8 @@ public class PanelDataExporter {
         try {
             ExcelHelper.saveExcel(resource, workbook);
         } catch (Exception e) {
+            // 裁定⑥（plan 2026）：同 writeCsv——失败路径 delete 后 rethrow（xlsx 失败不再泄漏临时资源）
+            resource.delete();
             throw NopException.adapt(e);
         }
         long rowCount = rowCountOverride >= 0 ? rowCountOverride : countRows(workbook);
