@@ -11,11 +11,11 @@ import io.nop.core.resource.IResourceDslNodeLoader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import static io.nop.converter.DocConvertErrors.ARG_FILE_TYPE;
 import static io.nop.converter.DocConvertErrors.ARG_FROM_FILE_TYPE;
@@ -151,14 +151,14 @@ public class DocumentConverterManager implements IDocumentConverterManager {
     public void registerConverter(String fromFileType, String toFileType, IDocumentConverter converter) {
         Guard.checkArgument(!fromFileType.equals(toFileType), "fromFileType and toFileType must not be the same: ");
 
-        Map<String, IDocumentConverter> map = converters.computeIfAbsent(fromFileType, k -> new HashMap<>());
+        Map<String, IDocumentConverter> map = converters.computeIfAbsent(fromFileType, k -> new ConcurrentHashMap<>());
         IDocumentConverter oldConverter = map.put(toFileType, converter);
         if (oldConverter != null && oldConverter != converter) {
             LOG.warn("Duplicate converter for fileType {} to {}: {} vs {}", fromFileType, toFileType,
                     oldConverter.getClass().getName(), converter.getClass().getName());
         }
 
-        fromFileTypeMap.computeIfAbsent(toFileType, k -> new TreeSet<>()).add(fromFileType);
+        fromFileTypeMap.computeIfAbsent(toFileType, k -> new ConcurrentSkipListSet<>()).add(fromFileType);
     }
 
     @Override

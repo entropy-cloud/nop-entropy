@@ -24,9 +24,9 @@ import java.text.Format;
 import java.text.ParsePosition;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -69,9 +69,19 @@ public class ExcelFormatHelper {
     // DecimalFormat("#.##########");
 
     /**
-     * 这里只缓存少量规定格式的format，不需要每个format都缓存。另外也不需要线程安全。假定除了系统初始化阶段不会动态设置format
+     * 内建与通过 addFormat 注册的格式，注册后实例被所有线程共享。addFormat 是 public API，运行期可能与渲染并发
      */
-    private static final Map<String, Format> formats = new HashMap<>();
+    private static final Map<String, Format> formats = new ConcurrentHashMap<>();
+
+    /**
+     * 由格式串创建的 SimpleDateFormat/DecimalFormat 非线程安全，不能跨线程共享：按格式串缓存，每线程一个实例
+     */
+    private static final Map<String, ThreadLocal<Format>> formatCache = new ConcurrentHashMap<>();
+
+    /**
+     * formatCache 的格式串数量上界，超过后不再缓存新格式串（直接创建），防止对抗性格式串基数导致无界增长
+     */
+    private static final int MAX_CACHED_FORMAT_PATTERNS = 256;
 
     static {
         // init built-in formats
@@ -98,9 +108,20 @@ public class ExcelFormatHelper {
         if (format != null) {
             return format;
         }
+
+        ThreadLocal<Format> cached = formatCache.get(formatStr);
+        if (cached == null) {
+            if (formatCache.size() >= MAX_CACHED_FORMAT_PATTERNS)
+                return createFormatOrNull(formatStr);
+            cached = formatCache.computeIfAbsent(formatStr,
+                    key -> ThreadLocal.withInitial(() -> createFormatOrNull(key)));
+        }
+        return cached.get();
+    }
+
+    private static Format createFormatOrNull(String formatStr) {
         try {
-            format = createFormat(formatStr);
-            return format;
+            return createFormat(formatStr);
         } catch (Exception e) {
             return null;
         }
@@ -268,6 +289,10 @@ public class ExcelFormatHelper {
         }
     }
 
+    /**
+     * 注册格式串对应的共享 Format 实例。线程安全，可在运行期与 getFormat 并发调用；
+     * 注册的实例会被多个线程同时使用，调用方须保证其 format 方法本身线程安全
+     */
     public static void addFormat(String excelFormatStr, Format format) {
         formats.put(excelFormatStr, format);
     }
