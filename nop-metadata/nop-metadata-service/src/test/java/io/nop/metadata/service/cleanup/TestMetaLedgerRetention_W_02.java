@@ -47,9 +47,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * <li>显式禁用（retention-days=0）与 fail-fast 包络（负保留期/非正批删上限/周期低于 60s）</li>
  * </ul>
  * <p>
- * 测试⑤（第七面 = C7-101 衍生 qualityBreachApproval 告警工作流实例）：按设计裁定④=选③，
- * 该面显式边界声明归属 R3-05（nop-wf 侧非自有表，本批零产品 diff）——本测试类不设该面断言，
- * rule 25 No-new-test 声明落 plan 2502 Phase 5 Exit Criteria。
+ * 测试⑤（第七面 = C7-101 衍生 qualityBreachApproval 告警工作流实例）：plan 2502 裁定④=选③
+ * 显式边界声明归属 R3-05 承接——已由 plan 2528（裁定⑩）兑现，第七通道四件套回归钉落
+ * {@link TestWfInstanceRetention_W_02_Face7}；本类六表面断言零回退维持。
  * <p>
  * 红证据（E2 变异探针）：基线六表零清理路径（5.5 审计 grep 0 命中——回退论证断言全红）；
  * 实现面变异（purge 体置空）时清理断言全红，快照 _tmp/phase5-w02-red.log /

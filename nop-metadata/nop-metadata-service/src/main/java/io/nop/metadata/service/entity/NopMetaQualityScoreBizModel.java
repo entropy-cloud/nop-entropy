@@ -24,7 +24,7 @@ public class NopMetaQualityScoreBizModel extends CrudBizModel<NopMetaQualityScor
     @Inject
     protected io.nop.dao.api.IDaoProvider daoProvider;
 
-    private MetaQualityScorer scorer;
+    private volatile MetaQualityScorer scorer; // W-04（plan 2528 裁定③）
 
     public NopMetaQualityScoreBizModel() {
         setEntityName(NopMetaQualityScore.class.getName());

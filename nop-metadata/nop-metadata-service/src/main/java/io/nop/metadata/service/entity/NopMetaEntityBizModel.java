@@ -105,7 +105,8 @@ public class NopMetaEntityBizModel extends CrudBizModel<NopMetaEntity> implement
     private final MetaAggregationExecutor aggregationExecutor = new MetaAggregationExecutor(joinExecutor);
     private final NopMetaEntityQueryAction queryAction = new NopMetaEntityQueryAction();
 
-    private TableReferenceExecutor tableRefExecutor;
+    // W-04（plan 2528 裁定③）：懒初始化实例字段 volatile 安全发布（R23 族先例——可见性缺口闭合；check-then-act 重复构造为良性竞态）
+    private volatile TableReferenceExecutor tableRefExecutor;
 
     public NopMetaEntityBizModel() {
         setEntityName(NopMetaEntity.class.getName());

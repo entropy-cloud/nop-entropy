@@ -23,6 +23,17 @@ import io.nop.metadata.dao.entity._gen._NopMetaQualityResult;
 import io.nop.metadata.dao.entity._gen._NopMetaQualityScore;
 import io.nop.metadata.dao.entity._gen._NopMetaReconciliationResult;
 import io.nop.metadata.service.NopMetadataLedgerConfigs;
+import io.nop.wf.core.NopWfCoreConstants;
+import io.nop.wf.dao.entity.NopWfInstance;
+import io.nop.wf.dao.entity.NopWfStatusHistory;
+import io.nop.wf.dao.entity.NopWfStepInstance;
+import io.nop.wf.dao.entity.NopWfOutput;
+import io.nop.wf.dao.entity.NopWfVar;
+import io.nop.wf.dao.entity._gen._NopWfInstance;
+import io.nop.wf.dao.entity._gen._NopWfStatusHistory;
+import io.nop.wf.dao.entity._gen._NopWfStepInstance;
+import io.nop.wf.dao.entity._gen._NopWfOutput;
+import io.nop.wf.dao.entity._gen._NopWfVar;
 import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,7 +41,10 @@ import org.slf4j.LoggerFactory;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -56,14 +70,16 @@ import static io.nop.metadata.service.NopMetadataErrors.ERR_LEDGER_CONFIG_INVALI
  * 「历史事实语义」（orm 注释钉死的 insert-only/不覆盖旧行）不受破坏，窗口外行整行清扫。
  * 有界拾取 + IN 批删（§3.1 第 3 项），谓词幂等（重复触发无害）。
  * <p>
- * <b>第七面边界（设计裁定④=选③）</b>：C7-101 衍生 qualityBreachApproval 告警工作流实例
- * 落在 nop-wf 侧工作流实例存储（非 nop-metadata 自有表）——本组件不含该面清理通道，按设计
- * 显式边界声明归属 R3-05（nop-wf 所有权 / 活跃审批不可 TTL 误删 / 扩批禁止 / 契约对侧收敛
- * 四理由），本批 nop-wf 侧零产品 diff。
+ * <b>第七面（W-02 承接，plan 2528 裁定⑩——plan 2502 裁定④=选③边界声明的 R3-05 兑现）</b>：
+ * C7-101 衍生 qualityBreachApproval 告警工作流实例（nop-wf 侧 {@link NopWfInstance}）第七清扫通道
+ * 已并入本组件（{@link #purgeExpiredWfInstances}，与六表同一调度链/同一包络/同一参数集——七面同窗，
+ * 零新配置键、零 nop-wf 产品 diff）。谓词：通道 1 终态 TTL（status ∈ 终态集 且 endTime 超窗）+
+ * 通道 2 CREATED 零步残量孤儿（超窗 + 零 step 复核）；活跃审批实例（ACTIVATED/SUSPENDED/WAITING/
+ * CREATED 已含 step）永不进删除集。nop-wf 侧仍零产品改动——拾取/删除均为既有 dao 消费面。
  * <p>
  * <b>G2 契约注记（设计 §3.5 差异条款②）</b>：nop_meta_quality_result 的保留窗即 R3-05
- * W-28 reJudge 可复用的历史窗上界；R3-05 到达时若需更长复用视野，参数修订只走设计文档，
- * 不得在 nop-metadata 内另设第二套保留语义。
+ * W-28 reJudge 可复用的历史窗上界；若需更长复用视野，参数修订只走设计文档
+ * ledger-retention-policy.md，不得在 nop-metadata 内另设第二套保留语义。
  * <p>
  * 生命周期接线（防 C7-005「清理 API 存在但零生产装配」空壳形态）：IoC 容器创建单例 bean →
  * {@link LifeCycleSupport} {@code @PostConstruct start()} → doStart 周期调度（绝缘六参入口，
@@ -76,6 +92,17 @@ public class NopMetaLedgerCleaner extends LifeCycleSupport {
     static final Logger LOG = LoggerFactory.getLogger(NopMetaLedgerCleaner.class);
 
     public static final String TASK_NAME = "nop-metadata-ledger-cleanup";
+
+    /**
+     * W-02 第七面（裁定⑩）：工作流实例终态集（常量经手写门面 {@link NopWfCoreConstants} 引用
+     * 生成接口 {@code _NopWfCoreConstants :79-114}）。EXPIRED/FAILED 当前引擎无迁移路径
+     * （现网不可达终态）——入谓词无害且前向完备（引擎后续扩展终态迁移时谓词自动覆盖）。
+     */
+    static final Set<Integer> WF_INSTANCE_TERMINAL_STATUSES = new LinkedHashSet<>(List.of(
+            NopWfCoreConstants.WF_STATUS_COMPLETED,
+            NopWfCoreConstants.WF_STATUS_EXPIRED,
+            NopWfCoreConstants.WF_STATUS_FAILED,
+            NopWfCoreConstants.WF_STATUS_KILLED));
 
     private IDaoProvider daoProvider;
     private IScheduledExecutor timer;
@@ -207,7 +234,113 @@ public class NopMetaLedgerCleaner extends LifeCycleSupport {
         total += purgeByCreateTime(NopMetaModelChangedEvent.class, _NopMetaModelChangedEvent.PROP_NAME_modelChangedEventId,
                 NopMetaModelChangedEvent::getModelChangedEventId, _NopMetaModelChangedEvent.PROP_NAME_createTime, cutoff, batchSize);
 
+        // W-02 第七面（plan 2528 裁定⑩，R3-05 承接）：nop-wf 侧告警工作流实例第七通道——
+        // 与六表同一调度链/同一包络/同一参数集（七面同窗，零新配置键）
+        total += purgeExpiredWfInstances(retentionTimeMillis, batchSize);
+
         return total;
+    }
+
+    /**
+     * W-02 第七面（plan 2528 裁定⑩，R3-05 承接兑现）：qualityBreachApproval 等告警工作流实例
+     * （nop-wf 侧 {@link NopWfInstance}）保留期清扫，双通道：
+     * <ul>
+     * <li>通道 1（终态实例 TTL）：{@code status ∈ 终态集} 且 {@code endTime < now − retention}
+     *     （锚列 endTime 显式落名——终态迁移时刻，写入后不被业务回改的账龄事实列）。</li>
+     * <li>通道 2（W-12 存量/崩溃窗残量孤儿）：{@code status = CREATED} 且
+     *     {@code createTime < now − retention} 且<b>零 step 记录</b>（拾取后经
+     *     {@link NopWfStepInstance} 按 wfId 集存在性复核）——覆盖 W-12 修复前存量孤儿与
+     *     自清理失败残量；CREATED 且已有 step、SUSPENDED/WAITING/ACTIVATED 等活跃状态
+     *     永不进删除集（活跃审批实例红线：审批中告警实例不可 TTL 误删）。</li>
+     * </ul>
+     * 子表（statusHistories/steps/outputs/globalVars，nop-wf.orm.xml {@code cascadeDelete="true"} 四关系）
+     * 随父行 wfId IN 集传递清扫（ledger-retention-policy §3.1 第 7 项——子表不独立选锚、不独立 TTL）；
+     * {@code works}（无 cascadeDelete）不在第七通道锚集内。有界拾取 + IN 批删（与六表通道同构），
+     * 谓词幂等（重复触发无害）。
+     *
+     * @param retentionTimeMillis 保留期（毫秒）
+     * @param batchSize           单轮单通道拾取上限
+     * @return 本轮删除的工作流实例行数（子表随行清扫不计数）
+     */
+    public long purgeExpiredWfInstances(long retentionTimeMillis, int batchSize) {
+        long now = wfInstanceDao().getDbEstimatedClock().getMaxCurrentTimeMillis();
+        Timestamp cutoff = new Timestamp(now - retentionTimeMillis);
+        long total = 0L;
+        total += purgeTerminalWfInstances(cutoff, batchSize);
+        total += purgeCreatedZeroStepWfInstances(cutoff, batchSize);
+        return total;
+    }
+
+    /** 通道 1：终态实例 TTL（status ∈ 终态集 且 endTime 超窗）。 */
+    private long purgeTerminalWfInstances(Timestamp cutoff, int batchSize) {
+        QueryBean pick = new QueryBean();
+        pick.setLimit(batchSize);
+        pick.addFilter(FilterBeans.and(
+                FilterBeans.in(_NopWfInstance.PROP_NAME_status, WF_INSTANCE_TERMINAL_STATUSES),
+                FilterBeans.lt(_NopWfInstance.PROP_NAME_endTime, cutoff)));
+        return deletePickedWfInstances(pick);
+    }
+
+    /** 通道 2：CREATED 零步残量孤儿（status = CREATED 且 createTime 超窗 且零 step 复核）。 */
+    private long purgeCreatedZeroStepWfInstances(Timestamp cutoff, int batchSize) {
+        QueryBean pick = new QueryBean();
+        pick.setLimit(batchSize);
+        pick.addFilter(FilterBeans.and(
+                FilterBeans.eq(_NopWfInstance.PROP_NAME_status, NopWfCoreConstants.WF_STATUS_CREATED),
+                FilterBeans.lt(_NopWfInstance.PROP_NAME_createTime, cutoff)));
+        List<NopWfInstance> picked = wfInstanceDao().findAllByQuery(pick);
+        if (picked.isEmpty())
+            return 0L;
+
+        // 零步复核：拾取集中已有 step 记录的实例为在途流程（start 半程推进中）——永不进删除集
+        List<Object> pickedIds = new ArrayList<>(picked.size());
+        for (NopWfInstance row : picked) {
+            pickedIds.add(row.getWfId());
+        }
+        QueryBean stepProbe = new QueryBean();
+        stepProbe.addFilter(FilterBeans.in(_NopWfStepInstance.PROP_NAME_wfId, pickedIds));
+        Set<Object> wfIdsWithSteps = new HashSet<>();
+        for (NopWfStepInstance step : daoProvider.daoFor(NopWfStepInstance.class).findAllByQuery(stepProbe)) {
+            wfIdsWithSteps.add(step.getWfId());
+        }
+        List<Object> orphanIds = new ArrayList<>(pickedIds);
+        orphanIds.removeIf(wfIdsWithSteps::contains);
+        return deleteWfInstanceRowsWithChildren(orphanIds);
+    }
+
+    private long deletePickedWfInstances(QueryBean pick) {
+        List<NopWfInstance> picked = wfInstanceDao().findAllByQuery(pick);
+        if (picked.isEmpty())
+            return 0L;
+        List<Object> ids = new ArrayList<>(picked.size());
+        for (NopWfInstance row : picked) {
+            ids.add(row.getWfId());
+        }
+        return deleteWfInstanceRowsWithChildren(ids);
+    }
+
+    /** 父行 wfId IN 删除 + 四张 cascadeDelete 子表随父行主键 IN 集传递清扫（子表行不计数）。 */
+    private long deleteWfInstanceRowsWithChildren(List<Object> wfIds) {
+        if (wfIds.isEmpty())
+            return 0L;
+        deleteChildRowsByWfIds(NopWfStatusHistory.class, _NopWfStatusHistory.PROP_NAME_wfId, wfIds);
+        deleteChildRowsByWfIds(NopWfStepInstance.class, _NopWfStepInstance.PROP_NAME_wfId, wfIds);
+        deleteChildRowsByWfIds(NopWfOutput.class, _NopWfOutput.PROP_NAME_wfId, wfIds);
+        deleteChildRowsByWfIds(NopWfVar.class, _NopWfVar.PROP_NAME_wfId, wfIds);
+        QueryBean delete = new QueryBean();
+        delete.addFilter(FilterBeans.in(_NopWfInstance.PROP_NAME_wfId, wfIds));
+        return wfInstanceDao().deleteByQuery(delete);
+    }
+
+    private <T extends IDaoEntity> long deleteChildRowsByWfIds(Class<T> entityClass, String wfIdProp,
+                                                               List<Object> wfIds) {
+        QueryBean delete = new QueryBean();
+        delete.addFilter(FilterBeans.in(wfIdProp, wfIds));
+        return daoProvider.daoFor(entityClass).deleteByQuery(delete);
+    }
+
+    private IEntityDao<NopWfInstance> wfInstanceDao() {
+        return daoProvider.daoFor(NopWfInstance.class);
     }
 
     private <T extends IDaoEntity> long purgeByCreateTime(Class<T> entityClass, String pkProp,

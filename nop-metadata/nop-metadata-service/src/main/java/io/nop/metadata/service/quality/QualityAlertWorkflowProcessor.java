@@ -22,6 +22,7 @@ import io.nop.core.context.ServiceContextImpl;
 import io.nop.wf.api.WfReference;
 import io.nop.wf.core.IWorkflow;
 import io.nop.wf.core.IWorkflowManager;
+import io.nop.wf.core.store.IWorkflowStore;
 import io.nop.wf.core.NopWfCoreConstants;
 import io.nop.metadata.service.NopMetadataException;
 import jakarta.annotation.Nullable;
@@ -51,9 +52,21 @@ public class QualityAlertWorkflowProcessor {
     @Nullable
     protected IWorkflowManager wfManager;
 
+    /**
+     * W-12（plan 2528 裁定⑨）：wf.start 半程失败时的实例自清理通道。经 nop-wf 既有公开能力
+     * {@link IWorkflowStore#removeWfRecord}（bean {@code nopWorkflowStore}，wf-dao.beans.xml ioc:default）
+     * 消费，nop-wf 零产品 diff。注入缺失（部署裁剪 nop-wf-dao 理论形态）时 WARN + 退化为现状行为
+     * （半程实例残留显式可见，非静默）。与第七面 retention（NopMetaLedgerCleaner 第七通道）共享
+     * 同一删除原语，禁两套清理机制对同一表各自发明。
+     */
+    @Inject
+    @Nullable
+    protected IWorkflowStore workflowStore;
+
     private final MetaQualityRuleExecutor executor = new MetaQualityRuleExecutor();
     private final MetaEntityReferenceResolver tableRefResolver = new MetaEntityReferenceResolver();
-    private TableReferenceExecutor tableRefExecutor;
+    // W-04（plan 2528 裁定③）：懒初始化实例字段 volatile 安全发布（R23 族先例——可见性缺口闭合；check-then-act 重复构造为良性竞态）
+    private volatile TableReferenceExecutor tableRefExecutor;
 
     /**
      * 在质量规则 FAIL + severity=ERROR 时创建质量告警工作流实例
@@ -93,8 +106,50 @@ public class QualityAlertWorkflowProcessor {
         if (ctx == null) {
             ctx = new ServiceContextImpl();
         }
-        wf.start(vars, ctx);
+        try {
+            wf.start(vars, ctx);
+        } catch (Exception e) {
+            // W-12（plan 2528 裁定⑨，R10 族分支 (a) 补偿）：wf.start save-then-finish 窗口
+            // （引擎 initCreateStatus 先落库 CREATED → 起始步 actor 解析/saveStarted 前任一步抛错）
+            // 半程失败时删除已落库的半程实例，随后重抛原异常——调用方既有 catch 隔离语义零变化，
+            // 不再累积 CREATED 零 step 孤儿。自清理与 store 同一 ORM 会话（无 REQUIRES_NEW）：
+            // 外层提交 → 创建+删除同净效应；外层回滚 → 创建本身消失，天然一致。
+            removeHalfStartedWorkflow(wf, e);
+            throw e;
+        }
         return wf.getWfReference();
+    }
+
+    /**
+     * W-12（裁定⑨）：半程实例自清理。仅当 record 已持久化（wfId 非空）时删除——start 在
+     * initCreateStatus 之前失败（如 allowStart 条件/参数校验）时无行可清，直接跳过。
+     * 清理体自身失败（理论不可达——同会话同实体 dao）时保留原异常并 ERROR 日志显式可见
+     * （fail-visible，非吞）。
+     */
+    private void removeHalfStartedWorkflow(IWorkflow wf, Exception original) {
+        if (wf == null) {
+            return;
+        }
+        if (workflowStore == null) {
+            LOG.warn("nop.meta.quality-alert.half-start-cleanup-unavailable: wf.start failed and no"
+                            + " IWorkflowStore bean is available; the half-started instance (wfName={}) may"
+                            + " remain as a CREATED orphan (deployments without nop-wf-dao)",
+                    wf.getWfName(), original);
+            return;
+        }
+        try {
+            if (wf.getRecord() == null || wf.getRecord().getWfId() == null) {
+                // start 在 CREATED 落库前失败——无行可清
+                return;
+            }
+            workflowStore.removeWfRecord(wf.getRecord());
+            LOG.info("nop.meta.quality-alert.half-start-cleanup: removed half-started workflow instance"
+                    + " wfName={}, wfId={} after start failure", wf.getWfName(), wf.getRecord().getWfId());
+        } catch (Exception cleanupEx) {
+            LOG.error("nop.meta.quality-alert.half-start-cleanup-failed: errorCode={} wfName={}",
+                    NopMetadataErrors.ERR_QUALITY_ALERT_WORKFLOW_ISOLATED.getErrorCode(),
+                    wf.getWfName(), cleanupEx);
+        }
     }
 
     /**

@@ -17,13 +17,15 @@ import static io.nop.api.core.config.AppConfig.varRef;
  * 只走该设计文档。
  * <p>
  * 七面同窗：event 表（mediumtext 前后双快照，全平台最重的账本行）的最长保留窗口 = 本统一
- * 保留期。第七面（C7-101 衍生 qualityBreachApproval 工作流实例，nop-wf 侧存储）按设计
- * 裁定④=选③显式边界声明归属 R3-05——不在本载体管辖面内。
+ * 保留期。第七面（C7-101 衍生 qualityBreachApproval 工作流实例，nop-wf 侧 NopWfInstance）已由
+ * R3-05（plan 2528 裁定⑩）兑现承接——NopMetaLedgerCleaner 第七通道与六表共用本载体三键
+ * （七面同窗，零新配置键，nop-wf 零产品 diff）。
  */
 public interface NopMetadataLedgerConfigs {
     SourceLocation s_loc = SourceLocation.fromClass(NopMetadataLedgerConfigs.class);
 
-    @Description("元数据时序账本六表保留期（天），超期行由周期清理批量清扫；0=显式禁用周期清理；负值启动期 fail-fast。"
+    @Description("元数据时序账本保留期（天，含 nop-wf 侧告警工作流实例第七通道——plan 2528 裁定⑩），"
+            + "超期行由周期清理批量清扫；0=显式禁用周期清理；负值启动期 fail-fast。"
             + "G2 契约：本保留窗即 R3-05 W-28 reJudge 可复用的历史窗上界（ledger-retention-policy §3.5 差异条款②）")
     IConfigReference<Integer> CFG_META_LEDGER_RETENTION_DAYS = varRef(s_loc, "nop.metadata.ledger.retention-days",
             Integer.class, 30);

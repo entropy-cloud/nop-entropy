@@ -151,13 +151,14 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
     private final QualityResultWriter resultWriter = new QualityResultWriter();
 
     /** 按 table-reference 形态分派 Connection 获取（§4.4.3 D1/D2）。延迟初始化（需 orm()）。 */
-    private TableReferenceExecutor tableRefExecutor;
+    // W-04（plan 2528 裁定③）：懒初始化实例字段 volatile 安全发布（R23 族先例——可见性缺口闭合；check-then-act 重复构造为良性竞态）
+    private volatile TableReferenceExecutor tableRefExecutor;
 
     /** 检查点编排执行器（延迟初始化，需 orm() + tableRefExecutor）。 */
-    private MetaQualityCheckpointExecutor checkpointExecutor;
+    private volatile MetaQualityCheckpointExecutor checkpointExecutor; // W-04（plan 2528 裁定③）
 
     /** 结果动作分发器（webhook/notify 投递）。延迟初始化，依赖注入的 httpClient/messageService。 */
-    private CheckpointActionDispatcher actionDispatcher;
+    private volatile CheckpointActionDispatcher actionDispatcher; // W-04（plan 2528 裁定③）
 
     /**
      * 运行期（concurrent）幂等守卫：per-checkpoint 进程内运行标记（R4.3，plan-2026-08-05-1625-2）。
@@ -527,12 +528,17 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
      *
      * <p>维度13-04：把 webhook SSRF 配置（allowed-hosts + timeout）经 {@code configureWebhookSsrf} 注入到 dispatcher；
      * R6.2：重定向跟随开关经 {@code configureRedirectPolicy} 注入（fail-closed 门禁，不依赖 HttpClientConfig 默认值）。
+     *
+     * <p>W-04（plan 2528 裁定③）：configure 先于发布——局部变量先构造并完成全部配置，
+     * 再整体赋值 volatile 字段。并发窗口内其他线程读到的引用必然是已完整配置的实例，
+     * 不再出现「先发布后配置」的缺省保守策略中间态。
      */
     private CheckpointActionDispatcher ensureActionDispatcher() {
         if (actionDispatcher == null) {
-            actionDispatcher = new CheckpointActionDispatcher(httpClient, messageService);
-            actionDispatcher.configureWebhookSsrf(webhookAllowedHostsCsv, webhookTimeoutSeconds);
-            actionDispatcher.configureRedirectPolicy(httpClientFollowRedirects);
+            CheckpointActionDispatcher dispatcher = new CheckpointActionDispatcher(httpClient, messageService);
+            dispatcher.configureWebhookSsrf(webhookAllowedHostsCsv, webhookTimeoutSeconds);
+            dispatcher.configureRedirectPolicy(httpClientFollowRedirects);
+            actionDispatcher = dispatcher;
         }
         return actionDispatcher;
     }
