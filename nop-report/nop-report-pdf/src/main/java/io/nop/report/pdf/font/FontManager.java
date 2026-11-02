@@ -27,7 +27,6 @@ import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -45,7 +44,7 @@ public class FontManager {
     static final String CJK_PROBE_CHAR = "中";
 
     private final Map<String, PDFont> systemFonts = new CaseInsensitiveMap<>();
-    private final Map<String, String> fontNameAliases = new HashMap<>();
+    private final Map<String, String> fontNameAliases = new ConcurrentHashMap<>();
 
     /**
      * 系统字体目录中发现的字体文件：规范化文件名（去扩展名、小写、去空格）-> 文件
@@ -63,9 +62,19 @@ public class FontManager {
     // WeakHashMap：PDType0Font实例与PDDocument绑定，文档关闭后缓存条目应可回收
     private final Map<PDFont, Set<Integer>> unencodableChars = Collections.synchronizedMap(new java.util.WeakHashMap<>());
 
-    private PDFont defaultFont;
+    private volatile PDFont defaultFont;
     private IResource defaultFontResource;
-    private boolean inited;
+    private volatile boolean inited;
+
+    /**
+     * 回退字体探测会逐个加载字体文件（秒级 I/O），使用专用锁串行化探测，避免阻塞持有实例锁的初始化与取字体路径
+     */
+    private final Object fallbackLock = new Object();
+
+    /**
+     * 字体目录扫描专用锁：实例锁上不发生文件系统 I/O
+     */
+    private final Object fontScanLock = new Object();
 
     public static FontManager instance() {
         return _instance;
@@ -87,10 +96,19 @@ public class FontManager {
 
     }
 
-    protected synchronized void init() {
+    protected void init() {
         if (inited)
             return;
 
+        synchronized (this) {
+            if (inited)
+                return;
+            doInit();
+            inited = true;
+        }
+    }
+
+    private void doInit() {
         try {
             registerSystemFonts();
 
@@ -104,7 +122,6 @@ public class FontManager {
         } catch (Exception e) {
             LOG.error("nop.pdf.create-base-font-fail", e);
         }
-        inited = true;
     }
 
     /**
@@ -122,15 +139,22 @@ public class FontManager {
 
     public PDFont getDefaultFont() {
         init();
-        if (defaultFont == null) {
+        PDFont font = defaultFont;
+        if (font == null) {
             // init过程中创建失败时兜底重试，避免返回null字体
-            try {
-                defaultFont = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-            } catch (Exception e) {
-                LOG.error("nop.pdf.create-base-font-fail", e);
+            synchronized (this) {
+                font = defaultFont;
+                if (font == null) {
+                    try {
+                        font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+                        defaultFont = font;
+                    } catch (Exception e) {
+                        LOG.error("nop.pdf.create-base-font-fail", e);
+                    }
+                }
             }
         }
-        return defaultFont;
+        return font;
     }
 
     public boolean hasDefaultFontResource() {
@@ -245,7 +269,13 @@ public class FontManager {
         return font;
     }
 
-    private synchronized PDFont resolveFallbackFont(PDDocument doc) {
+    private PDFont resolveFallbackFont(PDDocument doc) {
+        synchronized (fallbackLock) {
+            return doResolveFallbackFont(doc);
+        }
+    }
+
+    private PDFont doResolveFallbackFont(PDDocument doc) {
         File cached = fallbackFontFile;
         if (cached != null) {
             PDFont font = loadFromFile(cached, doc);
@@ -450,7 +480,7 @@ public class FontManager {
     public Map<String, File> discoveredFontFiles() {
         Map<String, File> ret = discoveredFontFiles;
         if (ret == null) {
-            synchronized (this) {
+            synchronized (fontScanLock) {
                 ret = discoveredFontFiles;
                 if (ret == null) {
                     ret = scanFontDirs();
