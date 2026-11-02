@@ -7,6 +7,7 @@ import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.datav.dao.entity.NopDatavExportTask;
+import io.nop.datav.service.NopDatavInitRetry;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import org.slf4j.Logger;
@@ -63,6 +64,9 @@ public class NopDatavExportTaskRecovery {
             recoverInterruptedTasks();
         } catch (Exception e) {
             LOG.warn("nop.datav.export.recovery-init-fail", e);
+            // 裁定⑬（plan 2526，CL-020）：重启恢复失败调度一次性延迟重试（上限一次——
+            // 启动期 DB 瞬态故障窗自愈；recoverInterruptedTasks 幂等，重跑安全）
+            NopDatavInitRetry.scheduleOnce("export-recovery", this::recoverInterruptedTasks);
         }
     }
 

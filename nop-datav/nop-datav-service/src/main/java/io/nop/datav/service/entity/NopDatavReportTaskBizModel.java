@@ -19,6 +19,7 @@ import io.nop.datav.dao.entity.NopDatavReportDelivery;
 import io.nop.datav.dao.entity.NopDatavReportTask;
 import io.nop.datav.service.NopDatavDashboardOwnerGuard;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.NopDatavSchedulerAfterCommit;
 import io.nop.datav.service.report.NopDatavReportScheduler;
 import io.nop.datav.service.report.NopDatavReportTaskStatus;
 import io.nop.datav.service.report.NopDatavReportTriggerSource;
@@ -71,23 +72,30 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
     @Override
     protected void afterEntityChange(NopDatavReportTask entity, String action, IServiceContext context) {
         // 实体变更后联动调度注册：ENABLED → register；非 ENABLED → unregister
+        // 裁定⑫：注册/注销经 afterCommit 后置（save 路径与 delete 路径同窗口镜像——回滚则不联动）
         if (reportScheduler != null && entity != null) {
+            String reportTaskId = entity.getReportTaskId();
             if (NopDatavReportTaskStatus.isEnabled(entity.getStatus())) {
-                reportScheduler.registerTask(entity.getReportTaskId());
+                NopDatavSchedulerAfterCommit.run(txn(), "afterEntityChange.register:" + reportTaskId,
+                        () -> reportScheduler.registerTask(reportTaskId));
             } else {
-                reportScheduler.unregisterTask(entity.getReportTaskId());
+                NopDatavSchedulerAfterCommit.run(txn(), "afterEntityChange.unregister:" + reportTaskId,
+                        () -> reportScheduler.unregisterTask(reportTaskId));
             }
         }
     }
 
     /**
      * Gap #3 修复（plan 2026-08-14-2020-1）：标准 {@code delete(id)} / {@code batchDelete} /
-     * {@code deleteByQuery} 均虚分派到本方法；删除后即时注销 cron job（原先 3 参
+     * {@code deleteByQuery} 均虚分派到本方法；删除后注销 cron job（原先 3 参
      * {@code afterEntityChange} 覆写在 delete 路径不触发，job 进程内残留直至重启）。
      *
      * <p>P1-09（plan 2026-08-15-2146-3 Phase 3）：级联物理删除 ReportDelivery 子行
      * （先注销调度再删子行，与 Dashboard/Screen 级联模式一致——deleteByQuery 批量物理删除，
      * 避免跨 ORM session 的实体归属问题）。任一步骤失败异常传播（无静默跳过）。</p>
+     *
+     * <p>裁定⑫（plan 2526，CL-019）：注销经 afterCommit 后置——deleteByQuery(deliveries)
+     * 失败回滚时注销不触发（cron job 保留，与回滚后 ENABLED 行一致），静默停摆窗口闭合。</p>
      */
     @Override
     protected void doDeleteEntity(@Name("entity") NopDatavReportTask entity,
@@ -96,7 +104,9 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
                                   IServiceContext context) {
         super.doDeleteEntity(entity, refNamesToCheck, prepareDelete, context);
         if (reportScheduler != null) {
-            reportScheduler.unregisterTask(entity.getReportTaskId());
+            String reportTaskId = entity.getReportTaskId();
+            NopDatavSchedulerAfterCommit.run(txn(), "doDeleteEntity.unregister:" + reportTaskId,
+                    () -> reportScheduler.unregisterTask(reportTaskId));
         }
         QueryBean deliveryQuery = new QueryBean();
         deliveryQuery.addFilter(FilterBeans.eq("reportTaskId", entity.getReportTaskId()));
@@ -116,9 +126,10 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
         task.setStatus(NopDatavReportTaskStatus.ENABLED);
         touchUpdate(task, NopDatavOperatorResolver.resolveOperator(context));
         daoProvider().daoFor(NopDatavReportTask.class).updateEntityDirectly(task);
-        // 联动调度注册
+        // 联动调度注册（裁定⑫：afterCommit 后置——回滚则不注册，无 phantom job）
         if (reportScheduler != null) {
-            reportScheduler.registerTask(reportTaskId);
+            NopDatavSchedulerAfterCommit.run(txn(), "enableReportTask.register:" + reportTaskId,
+                    () -> reportScheduler.registerTask(reportTaskId));
         }
         return task;
     }
@@ -128,13 +139,15 @@ public class NopDatavReportTaskBizModel extends CrudBizModel<NopDatavReportTask>
     @Auth(permissions = "NopDatavReportTask:disableReportTask")
     public NopDatavReportTask disableReportTask(@Name("id") String reportTaskId, IServiceContext context) {
         NopDatavReportTask task = requireTaskWithOwnership(reportTaskId, context);
-        // 先注销调度再落库（防 ENABLED 状态残留期间 cron 触发）
-        if (reportScheduler != null) {
-            reportScheduler.unregisterTask(reportTaskId);
-        }
+        // 落库 DISABLED，注销经 afterCommit 后置（裁定⑫：先落库后注销——落库失败回滚则不注销，
+        // 消除「回滚后行 ENABLED 而 job 已消失」窗口；commit 后 job 与行状态一致）
         task.setStatus(NopDatavReportTaskStatus.DISABLED);
         touchUpdate(task, NopDatavOperatorResolver.resolveOperator(context));
         daoProvider().daoFor(NopDatavReportTask.class).updateEntityDirectly(task);
+        if (reportScheduler != null) {
+            NopDatavSchedulerAfterCommit.run(txn(), "disableReportTask.unregister:" + reportTaskId,
+                    () -> reportScheduler.unregisterTask(reportTaskId));
+        }
         return task;
     }
 

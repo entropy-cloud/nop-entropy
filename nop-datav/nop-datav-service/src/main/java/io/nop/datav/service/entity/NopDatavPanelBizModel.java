@@ -38,6 +38,7 @@ import static io.nop.auth.api.AuthApiErrors.ARG_BIZ_OBJ_NAME;
 import static io.nop.auth.api.AuthApiErrors.ERR_AUTH_NO_DATA_AUTH;
 import io.nop.datav.service.NopDatavConfigs;
 import io.nop.datav.service.NopDatavErrors;
+import io.nop.datav.service.NopDatavSchedulerAfterCommit;
 import static io.nop.datav.service.NopDatavErrors.ARG_DASHBOARD_ID;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_DASHBOARD_NOT_FOUND;
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_PANEL_NOT_FOUND;
@@ -79,7 +80,8 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
     }
 
     /**
-     * 按 panelId 停用关联 AlertRule（status=DISABLED 先落库）并即时 unregisterRule（D3 双动作）。
+     * 按 panelId 停用关联 AlertRule（status=DISABLED 先落库）并注销 unregisterRule（D3 双动作；
+     * 裁定⑫：afterCommit 后置——回滚则不注销，消除「回滚后规则 ENABLED 而 job 已消失」窗口）。
      */
     private void disableAlertRulesForPanel(String panelId, IServiceContext context) {
         IEntityDao<NopDatavAlertRule> dao = daoProvider().daoFor(NopDatavAlertRule.class);
@@ -94,7 +96,9 @@ public class NopDatavPanelBizModel extends CrudBizModel<NopDatavPanel> implement
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {
-                alertScheduler.unregisterRule(rule.getAlertRuleId());
+                String alertRuleId = rule.getAlertRuleId();
+                NopDatavSchedulerAfterCommit.run(txn(), "disableAlertRulesForPanel:" + alertRuleId,
+                        () -> alertScheduler.unregisterRule(alertRuleId));
             }
         }
     }

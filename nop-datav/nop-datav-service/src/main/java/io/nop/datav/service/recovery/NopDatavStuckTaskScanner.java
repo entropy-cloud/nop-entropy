@@ -1,5 +1,6 @@
 package io.nop.datav.service.recovery;
 
+import io.nop.datav.service.NopDatavInitRetry;
 import io.nop.datav.service.export.NopDatavExportTaskRecovery;
 import io.nop.datav.service.report.NopDatavReportDeliveryRecovery;
 import io.nop.job.api.IJobScheduler;
@@ -86,7 +87,9 @@ public class NopDatavStuckTaskScanner {
     /**
      * 注册周期扫描 job：间隔 = {@code nop.datav.stuck-scan.interval-minutes}（默认 10 min），
      * 经 {@link TriggerSpec#setRepeatInterval} 固定间隔触发。enabled=false 或 scheduler==null 时
-     * INFO 日志跳过（显式记录，非静默吞）。注册失败 try/catch 隔离，不抛崩启动。
+     * INFO 日志跳过（显式记录，非静默吞）。注册失败 try/catch 隔离，不抛崩启动；
+     * 裁定⑬（plan 2526，CL-020）：失败后经 {@link NopDatavInitRetry} 调度一次性延迟重试
+     * （30s 上限一次——启动期瞬态故障窗自愈，仍失败 WARN 放弃）。
      */
     @PostConstruct
     public void init() {
@@ -99,14 +102,23 @@ public class NopDatavStuckTaskScanner {
             return;
         }
         try {
-            // 防御性 activate：activate() 幂等，先激活以保证 addJob 可用（镜像 NopDatavReportScheduler.init）
-            scheduler.activate();
-            scheduler.addJob(buildJobSpec(), true);
-            LOG.info("nop.datav.stuck-scanner.registered: jobName={} intervalMinutes={} timeoutMinutes={}",
-                    JOB_NAME, CFG_DATAV_STUCK_SCAN_INTERVAL_MINUTES.get(), CFG_DATAV_STUCK_SCAN_TIMEOUT_MINUTES.get());
+            registerScanJob();
         } catch (Exception e) {
             LOG.error("nop.datav.stuck-scanner.register-failed: jobName={}", JOB_NAME, e);
+            NopDatavInitRetry.scheduleOnce("stuck-scanner:" + JOB_NAME, this::registerScanJob);
         }
+    }
+
+    /**
+     * 注册动作本体（init 首次与裁定⑬ 延迟重试共用——重试不二次排程，由 NopDatavInitRetry
+     * 的一次性守卫保证上限）。失败向上抛由调用方 catch。
+     */
+    private void registerScanJob() {
+        // 防御性 activate：activate() 幂等，先激活以保证 addJob 可用（镜像 NopDatavReportScheduler.init）
+        scheduler.activate();
+        scheduler.addJob(buildJobSpec(), true);
+        LOG.info("nop.datav.stuck-scanner.registered: jobName={} intervalMinutes={} timeoutMinutes={}",
+                JOB_NAME, CFG_DATAV_STUCK_SCAN_INTERVAL_MINUTES.get(), CFG_DATAV_STUCK_SCAN_TIMEOUT_MINUTES.get());
     }
 
     private JobSpec buildJobSpec() {

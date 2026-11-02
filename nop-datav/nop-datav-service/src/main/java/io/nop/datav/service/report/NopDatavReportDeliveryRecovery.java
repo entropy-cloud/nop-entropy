@@ -9,6 +9,7 @@ import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.IOrmSession;
 import io.nop.orm.IOrmTemplate;
 import io.nop.datav.dao.entity.NopDatavReportDelivery;
+import io.nop.datav.service.NopDatavInitRetry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -61,6 +62,9 @@ public class NopDatavReportDeliveryRecovery {
             recoverInterruptedDeliveries();
         } catch (Exception e) {
             LOG.warn("nop.datav.report.recovery-init-fail", e);
+            // 裁定⑬（plan 2526，CL-020）：重启恢复失败调度一次性延迟重试（上限一次——
+            // 启动期 DB 瞬态故障窗自愈；recoverInterruptedDeliveries 幂等，重跑安全）
+            NopDatavInitRetry.scheduleOnce("report-delivery-recovery", this::recoverInterruptedDeliveries);
         }
     }
 

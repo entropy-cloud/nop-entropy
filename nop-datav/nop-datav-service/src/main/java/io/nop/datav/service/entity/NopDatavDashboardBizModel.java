@@ -36,6 +36,7 @@ import io.nop.datav.dao.entity.NopDatavPanel;
 import io.nop.datav.dao.entity.NopDatavReportTask;
 import io.nop.datav.service.NopDatavConfigs;
 import io.nop.datav.service.NopDatavOperatorResolver;
+import io.nop.datav.service.NopDatavSchedulerAfterCommit;
 import io.nop.datav.service.alert.NopDatavAlertScheduler;
 import io.nop.datav.service.filter.DashboardFilterDefExporter;
 import io.nop.datav.service.filter.DashboardFilterResolver;
@@ -143,8 +144,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
     }
 
     /**
-     * 关联 ReportTask（按 dashboardId）：置 status=DISABLED（先落库）并即时 unregisterTask（D3 双动作，
-     * 事务边界见 schedule-report-design.md §26——注销失败异常传播回滚整个删除）。
+     * 关联 ReportTask（按 dashboardId）：置 status=DISABLED（先落库）并注销 unregisterTask（D3 双动作，
+     * 事务边界见 schedule-report-design.md §26——裁定⑫：注销经 afterCommit 后置，回滚则不注销，
+     * 消除「回滚后行 ENABLED 而 job 已消失」的静默停摆窗口）。
      */
     private void disableReportTasksForDashboard(IDaoProvider daoProvider, String dashboardId, String operator) {
         IEntityDao<NopDatavReportTask> dao = daoProvider.daoFor(NopDatavReportTask.class);
@@ -156,13 +158,16 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dao.updateEntityDirectly(task);
             }
             if (reportScheduler != null) {
-                reportScheduler.unregisterTask(task.getReportTaskId());
+                String reportTaskId = task.getReportTaskId();
+                NopDatavSchedulerAfterCommit.run(txn(), "disableReportTasksForDashboard:" + reportTaskId,
+                        () -> reportScheduler.unregisterTask(reportTaskId));
             }
         }
     }
 
     /**
-     * 关联 AlertRule（经 panel.dashboardId 定位）：置 status=DISABLED 并即时 unregisterRule。
+     * 关联 AlertRule（经 panel.dashboardId 定位）：置 status=DISABLED 并注销 unregisterRule
+     * （裁定⑫：afterCommit 后置，同 disableReportTasksForDashboard 形态）。
      */
     private void disableAlertRulesForPanels(IDaoProvider daoProvider, List<NopDatavPanel> panels, String operator) {
         if (panels.isEmpty()) {
@@ -183,7 +188,9 @@ public class NopDatavDashboardBizModel extends CrudBizModel<NopDatavDashboard>
                 dao.updateEntityDirectly(rule);
             }
             if (alertScheduler != null) {
-                alertScheduler.unregisterRule(rule.getAlertRuleId());
+                String alertRuleId = rule.getAlertRuleId();
+                NopDatavSchedulerAfterCommit.run(txn(), "disableAlertRulesForPanels:" + alertRuleId,
+                        () -> alertScheduler.unregisterRule(alertRuleId));
             }
         }
     }
