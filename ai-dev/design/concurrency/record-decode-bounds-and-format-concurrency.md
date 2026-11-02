@@ -88,6 +88,8 @@
 
 **决策**：采**内层并发容器化**（否决不可变 Map volatile 整体替换）：`registerConverter` 的内层 `new HashMap` :154 → `new ConcurrentHashMap`，`fromFileTypeMap` 内层 `new TreeSet` :161 → `new ConcurrentSkipListSet`（保序——`findChainedConverter` :261-269 迭代中间类型的确定性序维持）。`getFromFileTypes`/`getToFileTypes`/`getDirectToFileTypes` 的 `new TreeSet<>(...)` 只读快照拷贝（:49/:77-96）零改动——快照语义本就线程安全。外层 CHM :32/:35 结构不变。
 
+**链式查找自环剪枝**：`findChainedConverter` 跳过与源类型相同的中间类型。并发注册 `from→to` 与链式查找交错时（直连查找未命中后注册完成），`fromFileTypeMap[to]` 会包含 `from` 本身，自环链 `from→from→to` 无意义且会触发 `getDirectConverter` 的 from≠to 守卫异常；单线程下直连查找先命中，该剪枝不改变任何非并发行为。
+
 **否决不可变替换的理由**：每次注册重建双 Map + volatile 发布需原子性跨双字段（两 volatile 无法原子联合发布），引入读偏序新形态；并发容器化是 FontManager/ExcelFormatHelper 同族最小形态。`getFileTypes` 只读面兼容声明：三处快照拷贝行为与返回类型不变。钉 = 白盒内层容器类型断言 + 并发 register/lookup smoke。
 
 ## 裁定⑧ 测试缝总表（红①–红⑩ 驱动器 + 零回退钉）
@@ -102,7 +104,7 @@
 | 红④ | C9-002 | 结构钉：反射断言 `resolveFallbackFont` 方法无 `ACC_SYNCHRONIZED`、`fallbackLock`/`fontScanLock` 字段存在 + `inited` volatile；辅助 = 两线程并发首渲染耗时上界（最小形态） | 构造性当前即红：pre-fix 方法为 synchronized |
 | 红⑤ | C1-003 | 白盒断言 `formats` 为 CHM + 运行期 `addFormat` 并发 `getFormat` smoke | 构造性当前即红 |
 | 红⑥ | C9-001 | 同格式串二次调用 `assertSame`（ThreadLocal 语义）；内建 8 格式 `assertSame` 零回退对照 | 构造性当前即红：pre-fix 每次新建实例 |
-| 红⑦ | C1-001 | 白盒断言内层容器类型（CHM/ConcurrentSkipListSet）+ 并发 registerConverter/getConverter smoke | 构造性当前即红 |
+| 红⑦ | C1-001 | 白盒断言内层容器类型（CHM/ConcurrentSkipListSet）+ 并发 registerConverter/getConverter smoke + 链式查找自环剪枝确定性钉（反射调用 findChainedConverter） | 构造性当前即红（自环钉为变异锚定：摘除剪枝→守卫异常） |
 | 红⑧ | C1-005 | 父子交错读矩阵：parent 读 n 字节 → child=parent.detach() 读推进 → 断言 parent.pos() 不变；duplicate 同矩阵（`TestDetachReaders` :75 @Disabled 形态参照，本钉**不 @Disabled**） | 构造性当前即红：pre-fix 共享指针 parent 位置被推进 |
 | 红⑨ | C6-001 | 子类覆写 `initSize` 抛 IOException → 断言构造抛出且 fd 计数增量 = 0（`UnixOperatingSystemMXBean` 口径 + `@EnabledIf` unix 门控 + close 幂等断言） | **变异锚定主形态**（pre-fix 无注入缝）：fix 后拆 finally 关闭 → 红 → 恢复 → grep 确认恢复行存在 |
 | 红⑩ | C5-004 | `ExcelIOConfig.maxCountPerSheet(3)` + 5 行 xlsx → `ExcelResourceIO.openInput`→`beforeRead` 端到端断言抛 `ERR_XPT_EXCEL_READ_ROW_COUNT_EXCEED_LIMIT`；`maxCountPerSheet(0)` 断言不设上界（5 行全读） | 构造性当前即红：pre-fix 无上界 5 行全读不抛 |

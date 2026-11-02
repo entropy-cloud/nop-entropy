@@ -267,6 +267,9 @@ public class DocumentConverterManager implements IDocumentConverterManager {
 
         // 尝试每个中间类型
         for (String intermediateType : intermediateTypes) {
+            // 中间类型等于源类型是自环链：并发注册 from->to 与本次查找交错时会出现，直接查找已覆盖该情形
+            if (intermediateType.equals(fromFileType))
+                continue;
             IDocumentConverter firstStep = getDirectConverter(fromFileType, intermediateType, allowFileExt);
             if (firstStep != null) {
                 IDocumentConverter secondStep = getDirectConverter(intermediateType, toFileType, allowFileExt);

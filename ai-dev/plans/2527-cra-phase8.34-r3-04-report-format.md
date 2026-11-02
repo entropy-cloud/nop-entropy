@@ -171,28 +171,28 @@ Exit Criteria:
 
 ### Phase 2 - 10 成员实现 + 回归测试（按模块分组 A–D）
 
-Status: in progress
+Status: completed
 Targets: `nop-format/nop-record/`、`nop-format/nop-excel/`、`nop-format/nop-converter/`、`nop-report/nop-report-core/`、`nop-report/nop-report-pdf/`（main+test 树；`RecordConstants.java`/配置键落点）
 
 - Item Types: `Fix`（10 项均为已确认 live defect——P1×1/P2×9，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
 - [x] 组 A nop-record（C5-001+C5-R2-001+C1-005+C6-001——4 成员 4 文件）〔落地：红①pre-fix fork JVM Java heap space 崩溃→绿 / 红②3 红→绿 / 红⑧4 红→绿 / 红⑨变异锚定 fd 增长 40→恢复绿；**执行期发现**：getObjectLength 对象级 lengthExpr 无静态 length 时 null 拆箱 NPE（裁定①单点同行潜伏缺陷，同 diff 修复缺省值=-1 + 钉 testLegalObjectLengthExprWithoutStaticLength）；nop-record 214 tests 0F0E 1S（基线 196+新钉 18）；总册 _tmp/red-green-2527-summary.md〕：裁定①（红① 准入钉——含 lengthExpr 新测试模型+恶意长度断言 ERR，先红后绿+变异锚定[禁用校验→红→grep 恢复]）→ 裁定②（红② rawVarName 功能+截断钉，与裁定① 同 diff）→ 裁定⑤（红⑧ detach 交错钉+红⑨ fd 计数钉[@EnabledIf 门控+变异 fallback]——同文件双钉独立可跑；同族保护三处零回退）
-- [x] 组 B nop-excel+nop-converter（C1-003+C9-001+C1-001——3 成员）〔落地：红⑤ pre-fix 并发 addFormat **真实丢失条目**+内建单例随 HashMap 损坏丢失 / 红⑥ assertSame 红 / 红⑦ pre-fix 并发注册查找 **ConcurrentModificationException**——三钉均为构造性当前即红且复现真实竞态；G5 双半边同 diff 同提交；nop-excel 85（基线 77+8）0F0E 1S、nop-converter 19（基线 17+2）0F0E〕：裁定④（红⑤ 白盒 CHM 钉+红⑥ assertSame 钉——G5 双半边同 diff 同组交付）→ 裁定⑦（红⑦ 白盒容器钉+并发 smoke）
+- [x] 组 B nop-excel+nop-converter（C1-003+C9-001+C1-001——3 成员）〔落地：红⑤ pre-fix 并发 addFormat **真实丢失条目**+内建单例随 HashMap 损坏丢失 / 红⑥ assertSame 红 / 红⑦ pre-fix 并发注册查找 **ConcurrentModificationException**——三钉均为构造性当前即红且复现真实竞态；G5 双半边同 diff 同提交；nop-excel 85（基线 77+8）0F0E 1S、nop-converter 19（基线 17+2）0F0E；**补充（分解通道 r1 暴露）**：并发注册 from→to 与链式查找交错时 `findChainedConverter` 把源类型自身当中间类型触发 from≠to 守卫 IAE（C1-001 并发失效面，单线程不可达）——自环剪枝加固 + 确定性钉 testChainedLookupSkipsSelfLoopIntermediate（变异锚定：摘除剪枝→IAE→恢复绿），设计文档裁定⑦补条款；nop-converter 20〕：裁定④（红⑤ 白盒 CHM 钉+红⑥ assertSame 钉——G5 双半边同 diff 同组交付）→ 裁定⑦（红⑦ 白盒容器钉+并发 smoke）
 - [x] 组 C nop-report-pdf（C1-002+C9-002——2 成员 1 文件）〔落地：红③ pre-fix 并发注册**别名丢失→回退默认字体**（审计症状复现）/ 红④ pre-fix 他线程持实例锁时 getFont **阻塞 5s TimeoutException** + resolveFallbackFont synchronized 结构红；init DCL+defaultFont volatile 双检+fallbackLock/fontScanLock 专用锁同 diff 同提交（G4 禁分开交付兑现），交叉回归两半边钉同绿；nop-report-pdf 40（基线 35+5）0F0E〕：裁定③（红③ 裸写钉+红④ 锁结构钉/并发首渲染耗时上界——G4 双半边同 diff 同组交付，禁分开提交）
 - [x] 组 D nop-report-core（C5-004——1 成员）〔落地：复用 `ExcelIOConfig.maxCountPerSheet` 读侧接线（RowLimitedOutput 装饰 collector，跳过 headerRowCount 行按数据行计数，超限抛 `ERR_XPT_EXCEL_READ_ROW_COUNT_EXCEED_LIMIT`[XptErrors 新注册]，<=0 不设上界）；零触碰 nop-core HeaderListRecordOutput 与 nop-ooxml-xlsx（条件申报①④均未触发）；红⑩ pre-fix 超限不抛→绿；nop-report-core 90（基线 86+4）0F0E〕：裁定⑥（红⑩ 行数上限配置生效钉——模块内修复零触碰 nop-core；ExcelResourceIO 透传面按裁定⑥）
-- [ ] 回归测试（rule 25 显式覆盖 + C10 缺保护 10 条同 diff，先红后绿或变异/回退论证留痕）：红①–红⑩ 快照落 `_tmp/` 并登记（`_tmp/red-green-2527-summary.md` 总册 + 逐 trial 日志——命名沿 2525/2526 形态）；变异探针纪律兑现（恢复路径以 grep/断言确认目标行真实存在——plan guide When Executing #8 条款）；零回退钉核对（双聚合器 736+新钉，7 Skipped 已知面维持）
-- [ ] **端到端验证**（rule 22）：解码链 = 含 lengthExpr 模型→decodeString→超限 ERR 全链钉（C5-001——从 record 模型入口到错误码出口，文件路径形态；netty 路径结构钉或理由声明）；导入链 = ExcelResourceIO→ExcelRecordInput→超限行数拒绝全链钉（C5-004——从 openInput 入口到上界语义出口）；渲染链 = FontManager 首渲染并发→回退探测锁外全链钉（G4——从 getFont 入口到 fallback 探测出口，最小形态）；格式链 = evaluateCell→getFormat 缓存命中全链钉（G5——assertSame 同实例）；转换链 = registerConverter→getConverter 并发全链钉（C1-001）
-- [ ] **接线验证**（rule 23）：C5-001 校验真拦截（恶意长度输入 ERR 断言+合法大长度不误伤断言）；C9-002 外移真生效（结构断言 resolveFallbackFont 无 synchronized 修饰或锁对象隔离可证）；C9-001 缓存真命中（assertSame）；C1-005 detach 真独立（父 reader 位置不受影响断言）；C6-001 兜底真关闭（fd 计数或 raf closed 断言）；C5-004 上界真下推（超限输入行为断言）
-- [ ] **无静默跳过**（rule 24）：C5-001 超限显式抛 ERR（非静默截断）；C5-R2-001 截断显式（limitLen 语义，非静默丢弃）；C5-004 超限显式（截断+WARN 或抛错，按裁定⑥——非静默丢行）；C6-001 回收失败不吞（NopException.adapt 语义保持）；新增公共分支无空方法体/TODO（全分支显式）
+- [x] 回归测试（rule 25 显式覆盖 + C10 缺保护 10 条同 diff，先红后绿或变异/回退论证留痕）：红①–红⑩ 快照落 `_tmp/` 并登记（`_tmp/red-green-2527-summary.md` 总册 + 逐 trial 日志——命名沿 2525/2526 形态）；变异探针纪律兑现（恢复路径以 grep/断言确认目标行真实存在——plan guide When Executing #8 条款）；零回退钉核对（双聚合器 736+新钉，7 Skipped 已知面维持）〔兑现：总册 `_tmp/red-green-2527-summary.md`（红①–红⑩ 逐钉形态+日志路径）；变异探针纪律兑现（红⑨/自环钉恢复后 grep 标记=0 且目标行存在）；分解通道 r2 `./mvnw test -pl nop-report,nop-format` BUILD SUCCESS **774 tests 0F0E 7S**（736+新钉 38，7 Skipped 签名维持）——`_tmp/decomposed-2527-r2.log`；r1 暴露自环竞态面→加固后 r2 绿，见组 B 补充〕
+- [x] **端到端验证**（rule 22）：解码链 = 含 lengthExpr 模型→decodeString→超限 ERR 全链钉（C5-001——从 record 模型入口到错误码出口，文件路径形态；netty 路径结构钉或理由声明）；导入链 = ExcelResourceIO→ExcelRecordInput→超限行数拒绝全链钉（C5-004——从 openInput 入口到上界语义出口）；渲染链 = FontManager 首渲染并发→回退探测锁外全链钉（G4——从 getFont 入口到 fallback 探测出口，最小形态）；格式链 = evaluateCell→getFormat 缓存命中全链钉（G5——assertSame 同实例）；转换链 = registerConverter→getConverter 并发全链钉（C1-001）〔兑现：解码链=TestRecordDecodeBounds_C5_001（模型→RAF 文件 reader/流式/ByteBuffer→ERR，netty 路径共用 deserializer 由设计论证+评审代码链核证）；导入链=TestExcelRecordInputRowLimit_C5_004（openOutput 造 xlsx→openInput→beforeRead→超限 ERR）；渲染链=TestFontManagerConcurrency（getFont 并发+持锁不阻塞）；格式链=assertSame 同实例；转换链=并发 register/lookup smoke〕
+- [x] **接线验证**（rule 23）：C5-001 校验真拦截（恶意长度输入 ERR 断言+合法大长度不误伤断言）；C9-002 外移真生效（结构断言 resolveFallbackFont 无 synchronized 修饰或锁对象隔离可证）；C9-001 缓存真命中（assertSame）；C1-005 detach 真独立（父 reader 位置不受影响断言）；C6-001 兜底真关闭（fd 计数或 raf closed 断言）；C5-004 上界真下推（超限输入行为断言）〔兑现：各钉断言行为改变而非类型存在——红①错误码+参数、红⑥ assertSame、红⑧父位置不变、红⑨ fd 增量、红⑩超限 ERR；红④反射断言方法无 synchronized+持实例锁时 getFont 5s 内返回〕
+- [x] **无静默跳过**（rule 24）：C5-001 超限显式抛 ERR（非静默截断）；C5-R2-001 截断显式（limitLen 语义，非静默丢弃）；C5-004 超限显式（截断+WARN 或抛错，按裁定⑥——非静默丢行）；C6-001 回收失败不吞（NopException.adapt 语义保持）；新增公共分支无空方法体/TODO（全分支显式）〔兑现：C5-001/C5-004 超限均抛 NopException 带参数；截断带显式标记；C6-001 关闭失败 addSuppressed 后 rethrow；createFormatOrNull 保持既有 null 契约（非新增吞异常）；自环 continue 为无效候选剪枝（同既有缺 builder 跳过形态）；nop-cli lint 门禁四次提交均 0 诊断〕
 
 Exit Criteria:
 
-- [ ] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（`Test*_<工单>` 惯例：C5_001/C5_R2_001/C1_002/C9_002/C1_003/C9_001/C1_001/C1_005/C6_001/C5_004）；C10 缺保护 10 条同 diff 落地（**红① 准入门槛先红后绿逐条勾验**）
-- [ ] 必红证据（E2）：红①–红⑩ 均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（red-green-2527-summary.md：形态标注逐钉在册）
-- [ ] 零回退实证：`./mvnw test -pl nop-report,nop-format` BUILD SUCCESS（基线 736 tests 0F0E 维持 + 7 Skipped 已知面维持核对）；既有钉族零回退（点名族逐一核对）；同族保护三处零回退；nop-batch maxCount 接线零回退（2516 产物）；G4/G5 双半边同 diff 交付核对（禁半边先行）
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 组内留痕：组内 focused 全绿 + 模块聚合绿；双通道 `-am` 与等价分解通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认：`_` 生成物零触碰、orm 模型零触碰（本批零 orm 面）、平台设施/api 叶零触碰（C5-004 条件申报如触发须四件证据链闭合）、批外成员零触碰；Owner doc 定稿归 Phase 3
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 项成员全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（`Test*_<工单>` 惯例：C5_001/C5_R2_001/C1_002/C9_002/C1_003/C9_001/C1_001/C1_005/C6_001/C5_004）；C10 缺保护 10 条同 diff 落地（**红① 准入门槛先红后绿逐条勾验**）
+- [x] 必红证据（E2）：红①–红⑩ 均先红后绿或变异/回退论证，快照落 `_tmp/` 并登记（red-green-2527-summary.md：形态标注逐钉在册）
+- [x] 零回退实证：`./mvnw test -pl nop-report,nop-format` BUILD SUCCESS（基线 736 tests 0F0E 维持 + 7 Skipped 已知面维持核对）；既有钉族零回退（点名族逐一核对）；同族保护三处零回退；nop-batch maxCount 接线零回退（2516 产物）；G4/G5 双半边同 diff 交付核对（禁半边先行）
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] E3 组内留痕：组内 focused 全绿 + 模块聚合绿；双通道 `-am` 与等价分解通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认：`_` 生成物零触碰、orm 模型零触碰（本批零 orm 面）、平台设施/api 叶零触碰（C5-004 条件申报如触发须四件证据链闭合）、批外成员零触碰；Owner doc 定稿归 Phase 3
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 

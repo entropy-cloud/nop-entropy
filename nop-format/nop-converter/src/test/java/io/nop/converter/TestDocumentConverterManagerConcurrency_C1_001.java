@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.OutputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +17,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
@@ -52,6 +54,17 @@ public class TestDocumentConverterManagerConcurrency_C1_001 {
         Map<String, ?> fromFileTypeMap = field(manager, "fromFileTypeMap");
         assertInstanceOf(ConcurrentHashMap.class, converters.get("c1a"));
         assertInstanceOf(ConcurrentSkipListSet.class, fromFileTypeMap.get("c1b"));
+    }
+
+    // 并发注册 from->to 与链式查找交错时，中间类型集合会包含源类型本身：必须跳过而不是触发 from==to 守卫异常
+    @Test
+    public void testChainedLookupSkipsSelfLoopIntermediate() throws Exception {
+        DocumentConverterManager manager = new DocumentConverterManager();
+        manager.registerConverter("src", "dst", new DummyConverter());
+        Method find = DocumentConverterManager.class.getDeclaredMethod("findChainedConverter",
+                String.class, String.class, boolean.class);
+        find.setAccessible(true);
+        assertNull(find.invoke(manager, "src", "dst", false));
     }
 
     @Test
