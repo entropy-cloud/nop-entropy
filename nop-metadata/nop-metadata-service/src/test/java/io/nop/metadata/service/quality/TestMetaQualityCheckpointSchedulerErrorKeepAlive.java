@@ -138,6 +138,12 @@ public class TestMetaQualityCheckpointSchedulerErrorKeepAlive {
 
         io.nop.metadata.service.tableref.MetaEntityReferenceResolver tableRefResolver =
                 mock(io.nop.metadata.service.tableref.MetaEntityReferenceResolver.class);
+        // W-07（plan 2528 裁定⑤）机械适配：解析上提后 ref 由 resolver mock 返回——本测试验证
+        // per-rule Throwable 隔离，stub 返回 ENTITY 形态 ref（保护语义不变，仅适配分派接缝）
+        when(tableRefResolver.resolve(any(), any(), any(), any(), any())).thenReturn(
+                new io.nop.metadata.service.tableref.TableReference(
+                        io.nop.metadata.service.tableref.TableReference.Kind.ENTITY,
+                        "table-w11", "W11_TABLE", null, null, table, "qs-w11", null));
         io.nop.metadata.service.tableref.TableReferenceExecutor tableRefExecutor =
                 mock(io.nop.metadata.service.tableref.TableReferenceExecutor.class);
         when(tableRefExecutor.execute(any(), any())).thenAnswer(invocation -> {
@@ -157,7 +163,8 @@ public class TestMetaQualityCheckpointSchedulerErrorKeepAlive {
                 .thenReturn(passJudgment());
 
         MetaQualityCheckpointExecutor executor = new MetaQualityCheckpointExecutor(
-                ruleExecutor, tableRefResolver, tableRefExecutor, resultWriter, daoProvider, orm);
+                ruleExecutor, tableRefResolver, tableRefExecutor, resultWriter, daoProvider, orm,
+                mock(io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor.class));
 
         io.nop.metadata.dao.entity.NopMetaQualityCheckpoint cp =
                 new io.nop.metadata.dao.entity.NopMetaQualityCheckpoint();

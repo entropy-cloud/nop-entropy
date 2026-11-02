@@ -545,11 +545,11 @@ public class NopMetaQualityCheckpointBizModel extends CrudBizModel<NopMetaQualit
         return tableRefExecutor;
     }
 
-    /** 延迟初始化 MetaQualityCheckpointExecutor（需 orm() + tableRefExecutor）。 */
+    /** 延迟初始化 MetaQualityCheckpointExecutor（需 orm() + tableRefExecutor + connectionService 分组复用）。 */
     private MetaQualityCheckpointExecutor ensureCheckpointExecutor() {
         if (checkpointExecutor == null) {
             checkpointExecutor = new MetaQualityCheckpointExecutor(ruleExecutor, tableRefResolver,
-                    ensureTableRefExecutor(), resultWriter, daoProvider(), orm());
+                    ensureTableRefExecutor(), resultWriter, daoProvider(), orm(), connectionService);
         }
         return checkpointExecutor;
     }

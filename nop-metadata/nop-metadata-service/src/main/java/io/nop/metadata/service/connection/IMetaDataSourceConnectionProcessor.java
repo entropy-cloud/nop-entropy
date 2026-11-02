@@ -16,8 +16,11 @@ import java.util.function.BiConsumer;
  * （open → 执行 N 条查询 → close），故提供 callback 式接口。
  *
  * <p><b>安全策略（AR-02）</b>：jdbc 类型解析 connectionConfig（jdbcUrl/username/password，可选 driverClassName）
- * 建连；建连前 jdbcUrl 经协议白名单 + 危险参数黑名单 + 主机白名单校验，driverClassName 经类白名单校验，
- * 建连超时经 {@link java.sql.DriverManager#setLoginTimeout(int)} 在构造函数中设置。失败路径全部抛 {@link NopException}：
+ * 建连；建连前 jdbcUrl 经协议白名单 + 危险参数黑名单 + 主机白名单校验，driverClassName 经类白名单校验。
+ * 建连握手超时经<b>每连接连接属性</b>按驱动族注入（W-05，plan 2528 裁定④——MySQL {@code connectTimeout}
+ * 毫秒 / PostgreSQL 秒 / H2 白名单子集进程内不注入），不再触碰 JVM 全局
+ * {@link java.sql.DriverManager#setLoginTimeout(int)}；建连后 socket 读预算经
+ * {@code Connection#setNetworkTimeout} 单点收口（W-01，裁定①，缺省 30s）。失败路径全部抛 {@link NopException}：
  * <ul>
  *   <li>非 jdbc 类型 → {@code metadata.datasource-type-not-supported}</li>
  *   <li>connectionConfig 缺必填字段 → {@code metadata.datasource-config-invalid}</li>

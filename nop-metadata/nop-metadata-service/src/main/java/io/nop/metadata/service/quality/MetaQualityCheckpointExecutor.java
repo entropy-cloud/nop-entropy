@@ -16,6 +16,7 @@ import io.nop.metadata.dao.entity.NopMetaEntityField;
 import io.nop.metadata.dao.entity.NopMetaQualityCheckpoint;
 import io.nop.metadata.dao.entity.NopMetaQualityResult;
 import io.nop.metadata.dao.entity.NopMetaQualityRule;
+import io.nop.metadata.service.connection.IMetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.tableref.MetaEntityReferenceResolver;
 import io.nop.metadata.service.tableref.TableReference;
 import io.nop.metadata.service.tableref.TableReferenceExecutor;
@@ -24,12 +25,16 @@ import io.nop.metadata.service.NopMetadataException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import static io.nop.metadata.service.query.AggregationHelper.safeProductName;
 
 /**
  * 质量检查点执行器（架构基线 §2.7.3 D3）。无状态编排器：按 checkpoint 配置解析规则集（D2），逐条**复用既有
@@ -66,19 +71,24 @@ public class MetaQualityCheckpointExecutor {
     private final QualityResultWriter resultWriter;
     private final IDaoProvider daoProvider;
     private final IOrmTemplate orm;
+    // W-07（裁定⑤）：分组复用的建连服务——external/sql 组单次 withConnection；ENTITY 规则仍经
+    // tableRefExecutor 平台事务路径（分派层零触碰）。
+    private final IMetaDataSourceConnectionProcessor connectionService;
 
     public MetaQualityCheckpointExecutor(MetaQualityRuleExecutor ruleExecutor,
                                          MetaEntityReferenceResolver tableRefResolver,
                                          TableReferenceExecutor tableRefExecutor,
                                          QualityResultWriter resultWriter,
                                          IDaoProvider daoProvider,
-                                         IOrmTemplate orm) {
+                                         IOrmTemplate orm,
+                                         IMetaDataSourceConnectionProcessor connectionService) {
         this.ruleExecutor = ruleExecutor;
         this.tableRefResolver = tableRefResolver;
         this.tableRefExecutor = tableRefExecutor;
         this.resultWriter = resultWriter;
         this.daoProvider = daoProvider;
         this.orm = orm;
+        this.connectionService = connectionService;
     }
 
     /**
@@ -116,80 +126,51 @@ public class MetaQualityCheckpointExecutor {
 
         IEntityDao<NopMetaQualityResult> resultDao = daoProvider.daoFor(NopMetaQualityResult.class);
 
-        int passCount = 0;
-        int failCount = 0;
-        int errorCount = 0;
-        int skipCount = 0;
+        int[] counters = new int[4]; // pass, fail, error, skip
         List<Map<String, Object>> results = new ArrayList<>();
         List<Map<String, Object>> errors = new ArrayList<>(resolution.errors);
         // D6：受影响表集合（仅实际被判定 judge 的非 database 规则的去重 entityId），
         // 供 BizModel 层按表触发自动评分。database SKIP 规则不纳入（其 entityId 不指向待评实体）。
         Set<String> affectedTableIds = new LinkedHashSet<>();
 
+        // W-07（裁定⑤）两阶段：先逐规则解析 table-reference（解析失败沿同一 catch 面隔离），
+        // 再按数据源分组复用单次建连——同数据源 N 条规则不再产生 N 次「建连+认证+拆连」。
+        List<RulePlan> entityPlans = new ArrayList<>();
+        List<RulePlan> groupedPlans = new ArrayList<>();
         for (NopMetaQualityRule rule : resolution.rules) {
             try {
-                QualityRuleJudgment judgment = executeSingleRule(cp, rule, schemaPattern);
-                resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, judgment);
-                orm.flushSession();
-
-                // 收集受影响表：仅非 database 规则（database 规则 SKIP 不命中 NopMetaEntity），
-                // 且 executeSingleRule + resultWriter.append 成功（真正被判定并落盘结果）。
-                if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
-                    if (rule.getEntityId() != null) {
-                        affectedTableIds.add(rule.getEntityId());
-                    }
+                RulePlan plan = planRule(cp, rule, schemaPattern);
+                if (plan == null) {
+                    // entityType=database → SKIP（同单规则语义，不参与分组）
+                    recordSuccess(resultDao, cp, runId, rule, skipJudgment(rule), counters, results, affectedTableIds);
+                    continue;
                 }
-
-                String status = judgment.getStatus();
-                if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS.equals(status)) {
-                    passCount++;
-                } else if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL.equals(status)) {
-                    failCount++;
-                } else if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR.equals(status)) {
-                    errorCount++;
+                if (plan.ref.getKind() == TableReference.Kind.ENTITY) {
+                    entityPlans.add(plan);
                 } else {
-                    // SKIP（entityType=database / 方言不支持等）——写结果行审计，但不计入 pass/fail/error
-                    skipCount++;
+                    groupedPlans.add(plan);
                 }
-                results.add(buildResultEntry(rule, judgment));
             } catch (Throwable e) {
-                // W-11 同根因随单闭合（plan 2496 Phase 4）：per-rule 失败隔离的捕获宽度从
-                // Exception 放宽到 Throwable——否则单条规则的 Error 逃逸会杀掉整个 checkpoint
-                // 运行（后续规则全部失评），并沿 executeScheduledCheckpoint 的调用链被其
-                // Error 半边守卫兜住后整轮记错。失败隔离语义不变：单规则失败不拖累其余规则。
-                LOG.error("checkpoint execute failed for rule: errorCode={} ruleId={}",
-                        NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
-                        rule.getQualityRuleId(), e);
-                errors.add(buildExecutionErrorEntry(rule, e));
-                // MA7.5-02：异常失败的规则必须计入 errorCount（此前只进 errors 列表——全量失败时摘要
-                // 显示 executedCount=0/errorCount=0 的"0 错误"假象，掩盖外部数据源宕机等链路故障）
-                errorCount++;
-                // 失败隔离：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
-                orm.clearSession();
-                // AR-14：抛异常规则补写 ERROR 结果行——否则 findLatestResult 取到前一轮旧行（可能旧 PASS），
-                // 失败运行后自动评分仍显健康。时序：append 必须在 clearSession **之后**（clear 前 append 的
-                // 未 flush 行会被清掉静默丢失）；新写行 flush 落盘。失败规则的表（非 database）同样进入
-                // affectedTableIds，使本次 run 的 autoScore 即用 ERROR 行重算该表。catch 路径也进
-                // summary.results，保证 ruleResults 条目数与 totalRuleCount/errorCount 可对账。
-                QualityRuleJudgment errorJudgment = buildErrorJudgment(rule, e);
-                results.add(buildResultEntry(rule, errorJudgment));
-                if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())
-                        && rule.getEntityId() != null) {
-                    affectedTableIds.add(rule.getEntityId());
-                }
-                try {
-                    resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, errorJudgment);
-                    orm.flushSession();
-                } catch (Exception appendEx) {
-                    // ERROR 行落盘失败不掩盖原始规则异常——errors 已含原始失败，此处留证即可
-                    LOG.error("checkpoint failed to append ERROR result row for rule: errorCode={} ruleId={}",
-                            NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
-                            rule.getQualityRuleId(), appendEx);
-                }
+                recordFailure(resultDao, cp, runId, rule, e, counters, results, errors, affectedTableIds);
             }
         }
 
-        int executedCount = passCount + failCount + errorCount + skipCount;
+        // ENTITY 规则（平台事务路径）：维持逐规则 tableRefExecutor.execute（零触碰面）
+        for (RulePlan plan : entityPlans) {
+            executePlannedRule(resultDao, cp, runId, plan, null, null, counters, results, errors, affectedTableIds);
+        }
+
+        // W-07（裁定⑤）：按 ref.getDataSource() 的 dataSourceId 等值分组（ref 解析为独立实例，
+        // 禁用对象引用身份比较）；每组单次 withConnection，callback 内逐规则 judge。
+        Map<String, List<RulePlan>> groups = new LinkedHashMap<>();
+        for (RulePlan plan : groupedPlans) {
+            groups.computeIfAbsent(plan.ref.getDataSource().getDataSourceId(), k -> new ArrayList<>()).add(plan);
+        }
+        for (List<RulePlan> group : groups.values()) {
+            executeGroup(resultDao, cp, runId, group, counters, results, errors, affectedTableIds);
+        }
+
+        int executedCount = counters[0] + counters[1] + counters[2] + counters[3];
         Map<String, Object> summary = new LinkedHashMap<>();
         summary.put("checkpointId", cp.getCheckpointId());
         summary.put("runId", runId);
@@ -197,14 +178,220 @@ public class MetaQualityCheckpointExecutor {
         // skipCount = 显式 SKIP 计数（此前只作局部变量从未进摘要）
         summary.put("totalRuleCount", resolution.rules.size());
         summary.put("executedCount", executedCount);
-        summary.put("passCount", passCount);
-        summary.put("failCount", failCount);
-        summary.put("errorCount", errorCount);
-        summary.put("skipCount", skipCount);
+        summary.put("passCount", counters[0]);
+        summary.put("failCount", counters[1]);
+        summary.put("errorCount", counters[2]);
+        summary.put("skipCount", counters[3]);
         summary.put("affectedTableIds", new ArrayList<>(affectedTableIds));
         summary.put("results", results);
         summary.put("errors", errors);
         return summary;
+    }
+
+    // ============================================================
+    // D3'（W-07 裁定⑤）：规则执行计划 + 分组执行
+    // ============================================================
+
+    /** 单规则执行计划：解析上提后的目标表 + table-reference + schema（database 规则返回 null=SKIP）。 */
+    private static final class RulePlan {
+        final NopMetaQualityRule rule;
+        final TableReference ref;
+        final String effectiveSchema;
+
+        RulePlan(NopMetaQualityRule rule, TableReference ref, String effectiveSchema) {
+            this.rule = rule;
+            this.ref = ref;
+            this.effectiveSchema = effectiveSchema;
+        }
+    }
+
+    /** database 规则的 SKIP 判定（与既有单规则语义一致）。 */
+    private static QualityRuleJudgment skipJudgment(NopMetaQualityRule rule) {
+        QualityRuleJudgment skip = new QualityRuleJudgment();
+        skip.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
+        skip.setMessage("entityType=database not supported in first version (external-table-only execution)");
+        skip.getDetails().put("reason", "database-not-supported-first-version");
+        skip.getDetails().put("ruleType", rule.getRuleType());
+        skip.getDetails().put("entityType", rule.getEntityType());
+        return skip;
+    }
+
+    /**
+     * 解析单规则的 table-reference（database→null=SKIP；目标表缺失→抛 {@code ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND}
+     * 由调用方沿同一 catch 面隔离）。解析上提自原 executeSingleRule（W-07 裁定⑤）。
+     */
+    private RulePlan planRule(NopMetaQualityCheckpoint cp, NopMetaQualityRule rule, String schemaPattern) {
+        if (_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
+            return null;
+        }
+        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
+        NopMetaEntity table = tableDao.getEntityById(rule.getEntityId());
+        if (table == null) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
+                    .param("checkpointId", cp.getCheckpointId())
+                    .param("qualityRuleId", rule.getQualityRuleId())
+                    .param("entityId", rule.getEntityId());
+        }
+        TableReference ref = tableRefResolver.resolve(table,
+                daoProvider.daoFor(NopMetaDataSource.class),
+                daoProvider.daoFor(NopMetaEntity.class),
+                daoProvider.daoFor(NopMetaEntityField.class),
+                orm);
+        // AR-07：schema 解析与单规则路径语义一致
+        return new RulePlan(rule, ref, resolveDefaultSchema(schemaPattern, table));
+    }
+
+    /**
+     * 默认 schema 解析（AR-07）：未显式传 schemaPattern（null/空/纯空白）且 {@code table.metaSchema}
+     * 非空 → 默认取 {@code table.metaSchema}；否则维持入参。与
+     * {@code NopMetaQualityRuleBizModel.resolveDefaultSchema} 同语义（单规则路径）。
+     */
+    private static String resolveDefaultSchema(String schemaPattern, NopMetaEntity table) {
+        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
+            return schemaPattern;
+        }
+        return table.getDbSchema();
+    }
+
+    /** ENTITY 路径（平台事务）：维持逐规则 tableRefExecutor.execute 分派。 */
+    private void executePlannedRule(IEntityDao<NopMetaQualityResult> resultDao,
+                                    NopMetaQualityCheckpoint cp, String runId, RulePlan plan,
+                                    Connection sharedConn, DatabaseMetaData sharedMeta,
+                                    int[] counters, List<Map<String, Object>> results,
+                                    List<Map<String, Object>> errors, Set<String> affectedTableIds) {
+        try {
+            QualityRuleJudgment judgment;
+            if (sharedConn != null) {
+                judgment = judgeOnSharedConnection(plan, sharedConn, sharedMeta);
+            } else {
+                judgment = tableRefExecutor.execute(plan.ref,
+                        (conn, metaData, productName) -> ruleExecutor.judge(conn, plan.ref, plan.effectiveSchema,
+                                plan.rule.getRuleType(), plan.rule.getEntityType(),
+                                plan.rule.getParams(), plan.rule.getSqlExpression(),
+                                plan.rule.getThreshold(), productName));
+            }
+            recordSuccess(resultDao, cp, runId, plan.rule, judgment, counters, results, affectedTableIds);
+        } catch (Throwable e) {
+            recordFailure(resultDao, cp, runId, plan.rule, e, counters, results, errors, affectedTableIds);
+        }
+    }
+
+    /**
+     * W-07（裁定⑤）：同数据源规则组单次 withConnection，callback 内逐规则 judge——
+     * 失败隔离粒度保持 per-rule（连接级失败影响组内后续规则的窗口，但逐规则 try/catch
+     * 保证失败进 errors + ERROR 结果行，不拖累其余规则）。组级建连失败（SQLException 逃出
+     * withConnection）时组内规则统一落 ERROR 隔离，不静默跳过。
+     */
+    private void executeGroup(IEntityDao<NopMetaQualityResult> resultDao,
+                              NopMetaQualityCheckpoint cp, String runId, List<RulePlan> group,
+                              int[] counters, List<Map<String, Object>> results,
+                              List<Map<String, Object>> errors, Set<String> affectedTableIds) {
+        TableReference firstRef = group.get(0).ref;
+        try {
+            connectionService.withConnection(firstRef.getDataSource().getDatasourceType(),
+                    firstRef.getDataSource().getConnectionConfig(), (conn, metaData) -> {
+                        for (RulePlan plan : group) {
+                            executePlannedRule(resultDao, cp, runId, plan, conn, metaData,
+                                    counters, results, errors, affectedTableIds);
+                        }
+                    });
+        } catch (Throwable e) {
+            // 组级建连/预算失败（ERR_DATASOURCE_CONNECT_FAILED 等）：组内规则逐条 ERROR 隔离
+            for (RulePlan plan : group) {
+                recordFailure(resultDao, cp, runId, plan.rule, e, counters, results, errors, affectedTableIds);
+            }
+        }
+    }
+
+    /**
+     * W-07（裁定⑤ m3）：分组形态绕过 {@code TableReferenceExecutor.executeOnExternalConnection}，
+     * 其 SQLException 包装（{@code ERR_TABLEREF_EXEC_FAILED} + {@code ARG_META_ENTITY_ID}）在组内
+     * callback 内复刻同型包装——checkpoint 规则错误面错误码与参数零漂移。
+     */
+    private QualityRuleJudgment judgeOnSharedConnection(RulePlan plan, Connection conn, DatabaseMetaData metaData) {
+        String productName = safeProductName(metaData);
+        try {
+            return ruleExecutor.judge(conn, plan.ref, plan.effectiveSchema,
+                    plan.rule.getRuleType(), plan.rule.getEntityType(),
+                    plan.rule.getParams(), plan.rule.getSqlExpression(),
+                    plan.rule.getThreshold(), productName);
+        } catch (Exception e) {
+            if (e instanceof NopException) {
+                throw (NopException) e;
+            }
+            throw new NopMetadataException(NopMetadataErrors.ERR_TABLEREF_EXEC_FAILED, e)
+                    .param(NopMetadataErrors.ARG_META_ENTITY_ID, plan.ref.getMetaEntityId())
+                    .param(NopMetadataErrors.ARG_ERROR, NopMetadataHelper.toErrorMessage(e));
+        }
+    }
+
+    /** 判定成功路径落账（原 execute 循环成功分支语义：结果行 + flush + 计数 + affectedTableIds）。 */
+    private void recordSuccess(IEntityDao<NopMetaQualityResult> resultDao,
+                               NopMetaQualityCheckpoint cp, String runId, NopMetaQualityRule rule,
+                               QualityRuleJudgment judgment, int[] counters,
+                               List<Map<String, Object>> results, Set<String> affectedTableIds) {
+        resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, judgment);
+        orm.flushSession();
+        if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
+            if (rule.getEntityId() != null) {
+                affectedTableIds.add(rule.getEntityId());
+            }
+        }
+        String status = judgment.getStatus();
+        if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_PASS.equals(status)) {
+            counters[0]++;
+        } else if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_FAIL.equals(status)) {
+            counters[1]++;
+        } else if (_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_ERROR.equals(status)) {
+            counters[2]++;
+        } else {
+            // SKIP（entityType=database / 方言不支持等）——写结果行审计，但不计入 pass/fail/error
+            counters[3]++;
+        }
+        results.add(buildResultEntry(rule, judgment));
+    }
+
+    /**
+     * 失败隔离路径落账（原 execute 循环 catch 分支语义完整保留：W-11 Throwable 宽度、AR-14 ERROR
+     * 补行时序、MA7.5-02 errorCount 计数、orm.clearSession 失败隔离）。
+     */
+    private void recordFailure(IEntityDao<NopMetaQualityResult> resultDao,
+                               NopMetaQualityCheckpoint cp, String runId, NopMetaQualityRule rule, Throwable e,
+                               int[] counters, List<Map<String, Object>> results,
+                               List<Map<String, Object>> errors, Set<String> affectedTableIds) {
+        // W-11 同根因随单闭合（plan 2496 Phase 4）：per-rule 失败隔离的捕获宽度从
+        // Exception 放宽到 Throwable——否则单条规则的 Error 逃逸会杀掉整个 checkpoint
+        // 运行（后续规则全部失评），并沿 executeScheduledCheckpoint 的调用链被其
+        // Error 半边守卫兜住后整轮记错。失败隔离语义不变：单规则失败不拖累其余规则。
+        LOG.error("checkpoint execute failed for rule: errorCode={} ruleId={}",
+                NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
+                rule.getQualityRuleId(), e);
+        errors.add(buildExecutionErrorEntry(rule, e));
+        // MA7.5-02：异常失败的规则必须计入 errorCount（此前只进 errors 列表——全量失败时摘要
+        // 显示 executedCount=0/errorCount=0 的"0 错误"假象，掩盖外部数据源宕机等链路故障）
+        counters[2]++;
+        // 失败隔离：清理未刷出的脏实体，不影响已 flush 的规则与后续规则
+        orm.clearSession();
+        // AR-14：抛异常规则补写 ERROR 结果行——否则 findLatestResult 取到前一轮旧行（可能旧 PASS），
+        // 失败运行后自动评分仍显健康。时序：append 必须在 clearSession **之后**（clear 前 append 的
+        // 未 flush 行会被清掉静默丢失）；新写行 flush 落盘。失败规则的表（非 database）同样进入
+        // affectedTableIds，使本次 run 的 autoScore 即用 ERROR 行重算该表。catch 路径也进
+        // summary.results，保证 ruleResults 条目数与 totalRuleCount/errorCount 可对账。
+        QualityRuleJudgment errorJudgment = buildErrorJudgment(rule, e);
+        results.add(buildResultEntry(rule, errorJudgment));
+        if (!_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())
+                && rule.getEntityId() != null) {
+            affectedTableIds.add(rule.getEntityId());
+        }
+        try {
+            resultWriter.append(resultDao, rule.getQualityRuleId(), cp.getCheckpointId(), runId, errorJudgment);
+            orm.flushSession();
+        } catch (Exception appendEx) {
+            // ERROR 行落盘失败不掩盖原始规则异常——errors 已含原始失败，此处留证即可
+            LOG.error("checkpoint failed to append ERROR result row for rule: errorCode={} ruleId={}",
+                    NopMetadataErrors.ERR_CHECKPOINT_RULE_EXEC_ISOLATED.getErrorCode(),
+                    rule.getQualityRuleId(), appendEx);
+        }
     }
 
     // ============================================================
@@ -280,63 +467,6 @@ public class MetaQualityCheckpointExecutor {
         }
 
         return new ResolutionResult(rules, errors);
-    }
-
-    // ============================================================
-    // D3：单规则执行（复用既有 §2.7.1 路径）
-    // ============================================================
-
-    /** 复用单规则执行路径：database→SKIP；其余→resolve 表→table-ref 分派→judge。 */
-    private QualityRuleJudgment executeSingleRule(NopMetaQualityCheckpoint cp, NopMetaQualityRule rule,
-                                                  String schemaPattern) {
-        // entityType=database 首版 SKIP（§2.7.1 D1）——不剔除，写 SKIP 结果行与单规则一致
-        if (_NopMetadataCoreConstants.QUALITY_ENTITY_TYPE_DATABASE.equals(rule.getEntityType())) {
-            QualityRuleJudgment skip = new QualityRuleJudgment();
-            skip.setStatus(_NopMetadataCoreConstants.QUALITY_RESULT_STATUS_SKIP);
-            skip.setMessage("entityType=database not supported in first version (external-table-only execution)");
-            skip.getDetails().put("reason", "database-not-supported-first-version");
-            skip.getDetails().put("ruleType", rule.getRuleType());
-            skip.getDetails().put("entityType", rule.getEntityType());
-            return skip;
-        }
-
-        // 解析目标表（任意 entityKind）+ table-reference
-        IEntityDao<NopMetaEntity> tableDao = daoProvider.daoFor(NopMetaEntity.class);
-        NopMetaEntity table = tableDao.getEntityById(rule.getEntityId());
-        if (table == null) {
-            throw new NopMetadataException(NopMetadataErrors.ERR_CHECKPOINT_RULE_TARGET_TABLE_NOT_FOUND)
-                    .param("checkpointId", cp.getCheckpointId())
-                    .param("qualityRuleId", rule.getQualityRuleId())
-                    .param("entityId", rule.getEntityId());
-        }
-        TableReference ref = tableRefResolver.resolve(table,
-                daoProvider.daoFor(NopMetaDataSource.class),
-                daoProvider.daoFor(NopMetaEntity.class),
-                daoProvider.daoFor(NopMetaEntityField.class),
-                orm);
-
-        // 按 ref 形态分派 Connection 获取并执行（复用 §2.7.1 judge 算法，本层不重写判定）。
-        // AR-07（plan 2026-08-06-0553-3 Phase 2）：schema 解析与单规则路径（NopMetaQualityRuleBizModel
-        // resolveDefaultSchema）语义一致——schemaPattern 为 null/空/纯空白时回退目标表 metaSchema，
-        // 否则同一规则在"手动单规则执行"与"检查点/cron"两个入口评估同一物理表。
-        String effectiveSchema = resolveDefaultSchema(schemaPattern, table);
-        return tableRefExecutor.execute(ref,
-                (conn, metaData, productName) -> ruleExecutor.judge(conn, ref, effectiveSchema,
-                        rule.getRuleType(), rule.getEntityType(),
-                        rule.getParams(), rule.getSqlExpression(),
-                        rule.getThreshold(), productName));
-    }
-
-    /**
-     * 默认 schema 解析（AR-07）：未显式传 schemaPattern（null/空/纯空白）且 {@code table.metaSchema}
-     * 非空 → 默认取 {@code table.metaSchema}；否则维持入参。与
-     * {@code NopMetaQualityRuleBizModel.resolveDefaultSchema} 同语义（单规则路径）。
-     */
-    private static String resolveDefaultSchema(String schemaPattern, NopMetaEntity table) {
-        if (schemaPattern != null && !schemaPattern.trim().isEmpty()) {
-            return schemaPattern;
-        }
-        return table.getDbSchema();
     }
 
     // ============================================================

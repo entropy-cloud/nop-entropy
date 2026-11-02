@@ -5,6 +5,8 @@ import io.nop.metadata.service.connection.MetaDataSourceConnectionProcessor;
 import io.nop.metadata.service.NopMetadataErrors;
 import org.junit.jupiter.api.Test;
 
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -762,32 +764,38 @@ public class TestMetaDataSourceConnectionSecurity {
                 "error message must not contain plaintext credentials: " + msg);
     }
 
-    // ===== 建连超时（loginTimeout）=====
+    // ===== 建连握手超时（W-05，plan 2528 裁定④——反向钉同 diff 改写）=====
 
     /**
-     * AR-02 黑洞 IP 建连必须在合理时间内返回（≤ 30s 兜底，实际由 DriverManager.loginTimeout=5 控制）。
-     * 注：因 DriverManager.setLoginTimeout 是全局且实测依赖网络环境，
-     * 这里只验证 buildDataSource 不会因 loginTimeout 抛异常（验证设置被调用），不断言精确秒数。
-     * 失败路径：192.0.2.1（TEST-NET-1 RFC5737 不可路由，但默认禁内网白名单会先拒绝）。
-     * 为隔离超时机制本身，使用 192.0.2.1 不是内网段，验证 setLoginTimeout 被调用且非内网 IP
-     * 进入实际建连（最终 SQLException，不超时控制溢出）。
+     * W-05 回归钉（反向钉改写，plan 2528 裁定④）：构造函数不再触碰 JVM 全局
+     * {@code DriverManager.loginTimeout}——握手超时改为每连接连接属性注入（MySQL
+     * {@code connectTimeout} 毫秒 / PostgreSQL 秒 / H2 白名单子集进程内不注入）。
+     *
+     * <p>断言 (a)：处理器构造 + 完整 testConnect（H2 mem 真实建连）前后，全局值保持进程初值——
+     * pre-fix 构造器写全局 5（原 :150 全仓 main 面唯一写点）→ 本断言红（先红后绿证明改写为
+     * 判别性而非弱化）。W-01 连接级 setNetworkTimeout 与本钉零交互（批内次序自由度）。
      */
     @Test
-    public void testLoginTimeoutSetGlobally() {
-        // 调用 buildDataSource 路径前先记录
-        int before = java.sql.DriverManager.getLoginTimeout();
+    public void testLoginTimeoutNotGlobalAnymore() {
+        // 哨兵基线：将全局值归零后构造处理器——绕开测试次序干扰（pre-fix 任意先行用例的构造器
+        // 已把全局写成 5，直接对比 before/after 会假绿），保证本断言对缺陷态确定性判红
+        int original = java.sql.DriverManager.getLoginTimeout();
+        java.sql.DriverManager.setLoginTimeout(0);
         try {
-            // 用合法 H2 mem URL 触发 buildDataSource 全路径（含 setLoginTimeout）
-            service.testConnect("jdbc",
-                    "{\"jdbcUrl\":\"jdbc:h2:mem:ok_timeout\",\"driverClassName\":\"org.h2.Driver\","
+            int before = java.sql.DriverManager.getLoginTimeout();
+            // 本钉独占构造时点：字段初始化的 service 在哨兵置位前已构造（构造序不满足观测需求），
+            // 这里在哨兵基线之后新构造处理器，使「构造器触碰全局态」的缺陷面被确定性观测
+            MetaDataSourceConnectionProcessor fresh = new MetaDataSourceConnectionProcessor();
+            Map<String, Object> result = fresh.testConnect("jdbc",
+                    "{\"jdbcUrl\":\"jdbc:h2:mem:ok_w05\",\"driverClassName\":\"org.h2.Driver\","
                             + BASE_CFG + "}");
-        } catch (Exception ignored) {
-            // 仅关心 setLoginTimeout 是否被调用
+            assertEquals(Boolean.TRUE, result.get("connected"), "H2 mem testConnect must succeed: " + result);
+            int after = java.sql.DriverManager.getLoginTimeout();
+            assertEquals(before, after,
+                    "processor construction + full testConnect must not touch JVM-global DriverManager.loginTimeout (W-05)"
+                            + " (before=" + before + ", after=" + after + ")");
+        } finally {
+            java.sql.DriverManager.setLoginTimeout(original);
         }
-        int after = java.sql.DriverManager.getLoginTimeout();
-        assertTrue(after == MetaDataSourceConnectionProcessor.DEFAULT_LOGIN_TIMEOUT_SECONDS,
-                "DriverManager.setLoginTimeout must be set to "
-                        + MetaDataSourceConnectionProcessor.DEFAULT_LOGIN_TIMEOUT_SECONDS
-                        + " after buildDataSource call (before=" + before + ", after=" + after + ")");
     }
 }

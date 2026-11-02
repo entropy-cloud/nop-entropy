@@ -3,12 +3,15 @@ package io.nop.metadata.service.connection;
 
 import io.nop.api.core.annotations.ioc.InjectValue;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.commons.cache.CacheConfig;
+import io.nop.commons.cache.LocalCache;
 import io.nop.commons.util.IoHelper;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.credential.api.CredentialData;
 import io.nop.credential.api.ICredentialProvider;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import io.nop.metadata.core._NopMetadataCoreConstants;
+import io.nop.metadata.service.NopMetadataDatasourceConfigs;
 import io.nop.metadata.service.NopMetadataErrors;
 import io.nop.metadata.service.NopMetadataException;
 import io.nop.metadata.service.security.HostSecurityUtil;
@@ -17,11 +20,11 @@ import jakarta.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.sql.DataSource;
 import java.net.InetAddress;
 import java.net.URLDecoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.sql.Connection;
@@ -36,7 +39,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 
 /**
@@ -46,8 +51,20 @@ import java.util.function.BiConsumer;
  * <p>仅支持 jdbc 类型；http/rest/file 首版显式抛 {@link UnsupportedOperationException}。
  *
  * <p>安全加固（AR-02）：jdbcUrl 协议白名单（mysql/postgresql/h2）+ 危险参数黑名单
- * （allowLoadLocalInfile/INIT=/allowMultiQueries 等）+ driverClassName 白名单 +
- * DriverManager.setLoginTimeout(5) 在构造函数中初始化（{@link SimpleDataSource#setLoginTimeout} 为 no-op）。
+ * （allowLoadLocalInfile/INIT=/allowMultiQueries 等）+ driverClassName 白名单。
+ *
+ * <p>W-01（plan 2528 裁定①）：外部 JDBC 超时预算单点收口——建连握手层经驱动族连接属性
+ * （裁定④，{@code nop.metadata.datasource.login-timeout-seconds}，缺省 5）；建连后 socket
+ * 读层经 {@code Connection#setNetworkTimeout}（{@code nop.metadata.datasource.network-timeout-seconds}，
+ * 缺省 30）。预算应用严格位于 {@code getConnection()} 之后、首次 socket 读（getMetaData/语句执行）
+ * 之前；withConnection/testConnect 两条建连路径共用包内单一打开缝 {@link #openConnection}。
+ *
+ * <p>W-05（裁定④）：构造函数不再写 JVM 全局 {@link DriverManager#setLoginTimeout}——握手超时
+ * 改为每连接连接属性注入，全局副作用为零。
+ *
+ * <p>W-07（裁定⑤）：{@link SimpleDataSource} 实例经固定常量缓存复用
+ * （maxSize=64 / expireAfterWrite=5 分钟，零新配置键），缓存键 = 连接要素与超时配置的
+ * SHA-256 不可逆摘要（凭证/键材料禁入日志）。
  */
 public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnectionProcessor {
 
@@ -120,8 +137,11 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      */
     private static final String HOSTLESS_ATTRIBUTE_GROUP = "(";
 
-    /** AR-02: 默认建连超时秒数（{@link SimpleDataSource#setLoginTimeout} 是 no-op，实际靠 {@link DriverManager#setLoginTimeout}）。 */
+    /** AR-02: 默认建连握手超时秒数（W-05：保留为连接属性注入的缺省值来源，不再是 JVM 全局语义）。 */
     public static final int DEFAULT_LOGIN_TIMEOUT_SECONDS = 5;
+
+    /** W-01（裁定①）：建连后 socket 读预算缺省 30s = 同单元 webhook 投递既有显式超时惯例。 */
+    public static final int DEFAULT_NETWORK_TIMEOUT_SECONDS = 30;
 
     /**
      * P2-08（plan 2026-08-16-0226-1）：自由文本中 jdbc: URL 形态子串的匹配模式（大小写不敏感）。
@@ -137,21 +157,17 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
      */
     private static final String URL_TRAILING_PUNCTUATION = ".,;!?)]}'\":}";
 
-    public MetaDataSourceConnectionProcessor() {
-        setGlobalLoginTimeout();
-    }
-
     /**
-     * 包内可重写（测试用）：实际调用 {@link DriverManager#setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS)}。
-     * 方法级抽象使测试可以 mock/子类化覆盖而不依赖全局状态副作用。
+     * W-07（裁定⑤）：DataSource 实例缓存——固定常量 maxSize=64 / expireAfterWrite=5 分钟
+     * （缓存面无运维调参需求，超时面配置收敛于裁定①两键；零新配置键）。连接要素（凭证轮换）
+     * 或超时配置变更 → SHA-256 摘要键变化 → 自然走新条目，无显式失效监听器依赖。
      */
-    void setGlobalLoginTimeout() {
-        try {
-            DriverManager.setLoginTimeout(DEFAULT_LOGIN_TIMEOUT_SECONDS);
-        } catch (SecurityException se) {
-            LOG.warn(NopMetadataErrors.ERR_DATASOURCE_SECURITY_CHECK_SKIPPED.getErrorCode() + ": DriverManager.setLoginTimeout denied by security manager", se);
-        }
-    }
+    private final LocalCache<String, SimpleDataSource> dataSourceCache =
+            LocalCache.newCache("nop-metadata-datasource", CacheConfig.newConfig(64, 300_000L));
+
+    /** 禁用档 WARN 一次的去重载体（进程生命周期一次，避免周期路径日志风暴）。 */
+    private final AtomicBoolean networkTimeoutDisabledWarned = new AtomicBoolean(false);
+    private final AtomicBoolean loginTimeoutDisabledWarned = new AtomicBoolean(false);
 
     /** AR-02: 可配置的允许内网/RFC1918 主机集合（逗号分隔小写 host）。默认空：禁内网。 */
     @InjectValue(value = "@cfg:nop.metadata.datasource.allowed-hosts|")
@@ -198,10 +214,11 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     @Override
     public void withConnection(String datasourceType, String connectionConfig,
                                BiConsumer<Connection, DatabaseMetaData> action) {
-        DataSource dataSource = buildDataSource(datasourceType, connectionConfig);
+        SimpleDataSource dataSource = buildDataSource(datasourceType, connectionConfig);
         Connection conn = null;
         try {
-            conn = dataSource.getConnection();
+            // W-01（裁定①）：包内单一打开缝——预算应用位于 getConnection() 之后、getMetaData()（第一 socket 读）之前
+            conn = openConnection(dataSource);
             DatabaseMetaData metaData = conn.getMetaData();
             action.accept(conn, metaData);
         } catch (SQLException e) {
@@ -211,11 +228,86 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         }
     }
 
+    /**
+     * W-01（裁定①）：包内单一打开缝（包内可覆写测试缝——对齐原 setGlobalLoginTimeout 缝先例）。
+     * 两条建连路径（{@link #withConnection} / {@link #testConnect}）共用「取 Connection → 应用连接预算」
+     * 序列；预算应用严格位于 {@code getConnection()} 之后、调用方首次 socket 读（getMetaData/语句执行）
+     * 之前。外部源挂起时读阻塞在预算内被打断，SQLException 沿调用方既有包装面抛出。
+     */
+    Connection openConnection(SimpleDataSource dataSource) throws SQLException {
+        Connection conn = dataSource.getConnection();
+        applyConnectionBudget(conn, dataSource.getUrl());
+        return conn;
+    }
+
+    /**
+     * W-01（裁定①）：连接预算应用点 = 连接级 {@code setNetworkTimeout}（socket 读上界，直接执行器
+     * {@code Runnable::run}——白名单网络驱动族均以 SO_TIMEOUT 实现、不使用异步中断执行器）。
+     * H2 白名单子集（mem/file）为进程内连接、无网络 socket——显式跳过并留 DEBUG 日志（非静默）。
+     */
+    void applyConnectionBudget(Connection conn, String jdbcUrl) throws SQLException {
+        int seconds = resolveNetworkTimeoutSeconds();
+        if (seconds <= 0) {
+            // 0 = 显式禁用档（WARN 一次；负值已在 resolve 处 fail-fast）
+            return;
+        }
+        if (isInProcessJdbcUrl(jdbcUrl)) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug("nop.metadata.datasource.network-timeout-skipped-inprocess: H2 in-process whitelist subset has no network socket, setNetworkTimeout not applied");
+            }
+            return;
+        }
+        conn.setNetworkTimeout(Runnable::run, Math.multiplyExact(seconds, 1000));
+    }
+
+    /** W-01：进程内白名单子集判定（H2 mem/file——无网络 socket）。 */
+    static boolean isInProcessJdbcUrl(String jdbcUrl) {
+        if (jdbcUrl == null) {
+            return false;
+        }
+        String lower = jdbcUrl.toLowerCase(Locale.ROOT);
+        return lower.startsWith("jdbc:h2:mem:") || lower.startsWith("jdbc:h2:file:");
+    }
+
+    /** W-01（裁定①）：socket 读预算解析——负值显式失败（不静默缺省），0 = 显式禁用档（WARN 一次）。 */
+    protected int resolveNetworkTimeoutSeconds() {
+        Integer v = NopMetadataDatasourceConfigs.CFG_DATASOURCE_NETWORK_TIMEOUT_SECONDS.get();
+        if (v == null) {
+            return DEFAULT_NETWORK_TIMEOUT_SECONDS;
+        }
+        if (v < 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
+                    .param("reason", "nop.metadata.datasource.network-timeout-seconds must be >= 0, got: " + v);
+        }
+        if (v == 0 && networkTimeoutDisabledWarned.compareAndSet(false, true)) {
+            LOG.warn("nop.metadata.datasource.network-timeout-disabled: network-timeout-seconds=0 explicitly disables"
+                    + " the external JDBC socket-read budget; a hung external source will block worker threads indefinitely");
+        }
+        return v;
+    }
+
+    /** W-05/W-01（裁定④/①）：握手超时解析——负值显式失败，0 = 显式禁用档（WARN 一次）。 */
+    protected int resolveLoginTimeoutSeconds() {
+        Integer v = NopMetadataDatasourceConfigs.CFG_DATASOURCE_LOGIN_TIMEOUT_SECONDS.get();
+        if (v == null) {
+            return DEFAULT_LOGIN_TIMEOUT_SECONDS;
+        }
+        if (v < 0) {
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID)
+                    .param("reason", "nop.metadata.datasource.login-timeout-seconds must be >= 0, got: " + v);
+        }
+        if (v == 0 && loginTimeoutDisabledWarned.compareAndSet(false, true)) {
+            LOG.warn("nop.metadata.datasource.login-timeout-disabled: login-timeout-seconds=0 explicitly disables"
+                    + " the external JDBC connect-handshake budget; a hung handshake will block worker threads indefinitely");
+        }
+        return v;
+    }
+
     @Override
     public Map<String, Object> testConnect(String datasourceType, String connectionConfig) {
         requireJdbcType(datasourceType);
 
-        DataSource dataSource;
+        SimpleDataSource dataSource;
         try {
             dataSource = buildDataSource(datasourceType, connectionConfig);
         } catch (NopException e) {
@@ -236,7 +328,8 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         Map<String, Object> result = new LinkedHashMap<>();
         Connection conn = null;
         try {
-            conn = dataSource.getConnection();
+            // W-01（裁定①）：与 withConnection 共用单一打开缝——预算应用先于 getMetaData（第一 socket 读）
+            conn = openConnection(dataSource);
             DatabaseMetaData metaData = conn.getMetaData();
             result.put("connected", true);
             result.put("databaseProductName", metaData.getDatabaseProductName());
@@ -255,18 +348,23 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
     }
 
     /**
-     * 从 connectionConfig JSON 构建 {@link SimpleDataSource}（非 jdbc 类型快速失败）。
-     * 仅 jdbc 类型支持；其余类型抛 {@link NopException}({@link #NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED})。
+     * 从 connectionConfig 构建（或经 W-07 实例缓存复用）{@link SimpleDataSource}（非 jdbc 类型快速失败）。
+     * 仅 jdbc 类型支持；其余类型抛 {@link NopException}({@code NopMetadataErrors.ERR_DATASOURCE_TYPE_NOT_SUPPORTED})。
      *
-     * <p>AR-02 安全加固：(a) jdbcUrl 协议白名单 + 危险参数黑名单 + 内网主机白名单；
-     * (b) driverClassName 白名单； (c) {@link DriverManager#setLoginTimeout} 在构造函数中设置（非每连接调用）。
+     * <p>AR-02 安全加固：(a) jdbcUrl 协议白名单 + 危险参数黑名单 + 主机白名单；
+     * (b) driverClassName 白名单。
      *
-     * <p>W16-impl 单点解析（设计 §5.1.2）：JSON 解析后含非空 credentialId → 经
-     * {@link ICredentialProvider} 取 {@code jdbc-datasource} 字段集（username/password）合并进
-     * cfg map——后续 requireNonBlank/requireField/AR-02 校验/SimpleDataSource 建连全链零变化；
-     * 14 处消费点经 withConnection/testConnect 汇聚于此，零改动。
+     * <p>W-05（裁定④）：握手超时经每连接连接属性注入（驱动族分派）——不再触碰 JVM 全局
+     * {@link DriverManager#setLoginTimeout}。MySQL 族注入 {@code connectTimeout}=秒×1000（毫秒）；
+     * PostgreSQL 族注入 {@code connectTimeout}=秒；H2 白名单子集（mem/file）不注入（进程内连接无握手窗口）。
+     *
+     * <p>W-07（裁定⑤）：DataSource 实例缓存——缓存键 = jdbcUrl/username/password/driverClassName
+     * <b>及两超时配置值</b>的 SHA-256 不可逆摘要（要素在 mergeCredentialConfig 之后解析计算；
+     * 摘要值与凭证禁入日志，仅记命中与否）。凭证轮换或超时配置变更 → 摘要变化 → 自然走新条目；
+     * 缓存的是 DataSource 实例而非 Connection——连接仍为每次一次性获取/关闭，W-01 预算对每次
+     * 新连接重新应用（幂等、无陈旧预算残留）。
      */
-    private DataSource buildDataSource(String datasourceType, String connectionConfig) {
+    private SimpleDataSource buildDataSource(String datasourceType, String connectionConfig) {
         requireJdbcType(datasourceType);
 
         Map<String, Object> cfg = parseConnectionConfig(connectionConfig, datasourceType);
@@ -286,6 +384,22 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (driverClassName != null && !driverClassName.isEmpty()) {
             validateDriverClassName(driverClassName);
         }
+
+        int loginTimeoutSeconds = resolveLoginTimeoutSeconds();
+        Properties handshakeProps = handshakeProperties(jdbcUrl, loginTimeoutSeconds);
+
+        // W-07（裁定⑤）：要素摘要键缓存——同配置复用同一 DataSource 实例
+        String cacheKey = cacheKey(jdbcUrl, username, password, driverClassName, loginTimeoutSeconds);
+        return dataSourceCache.computeIfAbsent(cacheKey, key ->
+                newSimpleDataSource(jdbcUrl, username, password, driverClassName, handshakeProps));
+    }
+
+    /**
+     * W-07（裁定⑤）：包内可重写构造点（测试缝，对齐原 setGlobalLoginTimeout 缝先例）——
+     * DataSource 实例缓存未命中时的实际构造点。
+     */
+    SimpleDataSource newSimpleDataSource(String jdbcUrl, String username, String password,
+                                         String driverClassName, Properties handshakeProps) {
         SimpleDataSource ds = new SimpleDataSource();
         ds.setUrl(jdbcUrl);
         ds.setUsername(username);
@@ -293,7 +407,48 @@ public class MetaDataSourceConnectionProcessor implements IMetaDataSourceConnect
         if (driverClassName != null && !driverClassName.isEmpty()) {
             ds.setDriverClassName(driverClassName);
         }
+        if (handshakeProps != null && !handshakeProps.isEmpty()) {
+            ds.setProperties(handshakeProps);
+        }
         return ds;
+    }
+
+    /** W-07（裁定⑤）：缓存键 = 连接要素与超时配置的 SHA-256 不可逆摘要（凭证/键材料禁入日志）。 */
+    static String cacheKey(String jdbcUrl, String username, String password,
+                           String driverClassName, int loginTimeoutSeconds) {
+        int networkTimeoutSeconds = NopMetadataDatasourceConfigs.CFG_DATASOURCE_NETWORK_TIMEOUT_SECONDS.get();
+        String material = jdbcUrl + '|' + username + '|' + password + '|' + driverClassName
+                + '|' + loginTimeoutSeconds + '|' + networkTimeoutSeconds;
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(material.getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(hash);
+        } catch (Exception e) {
+            // SHA-256 为 JDK 强制实现，理论不可达；显式失败不留静默降级路径
+            throw new NopMetadataException(NopMetadataErrors.ERR_DATASOURCE_CONFIG_INVALID, e)
+                    .param("reason", "datasource cache key digest failed");
+        }
+    }
+
+    /**
+     * W-05/W-01（裁定④/① 共用同一分派表）：按驱动族构建握手连接属性。
+     * MySQL 族 {@code connectTimeout}=login-timeout×1000（毫秒）；PostgreSQL 族
+     * {@code connectTimeout}=login-timeout（秒）；H2 白名单子集（mem/file）不注入——
+     * 进程内连接无握手悬挂窗口（显式文档化）。login-timeout=0 禁用档 → 空属性。
+     */
+    static Properties handshakeProperties(String jdbcUrl, int loginTimeoutSeconds) {
+        Properties props = new Properties();
+        if (loginTimeoutSeconds <= 0) {
+            return props;
+        }
+        String lower = jdbcUrl == null ? "" : jdbcUrl.toLowerCase(Locale.ROOT);
+        if (lower.startsWith("jdbc:mysql:")) {
+            props.setProperty("connectTimeout", String.valueOf(Math.multiplyExact(loginTimeoutSeconds, 1000L)));
+        } else if (lower.startsWith("jdbc:postgresql:")) {
+            props.setProperty("connectTimeout", String.valueOf(loginTimeoutSeconds));
+        }
+        // H2 白名单子集（mem/file）：进程内连接，无握手属性
+        return props;
     }
 
     /**
