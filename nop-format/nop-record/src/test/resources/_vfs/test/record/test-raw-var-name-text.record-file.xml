@@ -1,0 +1,11 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Body" length="5000" rawVarName="raw">
+            <fields>
+                <field name="a" type="String" length="5000"/>
+            </fields>
+        </type>
+    </types>
+</file>

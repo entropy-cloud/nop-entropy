@@ -4,6 +4,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.bytes.ByteString;
 import io.nop.commons.collections.bit.IBitSet;
 import io.nop.commons.util.StringHelper;
+import io.nop.record.RecordConstants;
 import io.nop.record.codec.FieldCodecRegistry;
 import io.nop.record.codec.IFieldBinaryCodec;
 import io.nop.record.codec.IFieldCodecContext;
@@ -50,7 +51,11 @@ public class ModelBasedBinaryRecordDeserializer extends AbstractModelBasedRecord
 
     @Override
     protected String getRawDataString(IBinaryDataReader in, int length) throws IOException {
-        return in.peekByteString(length).hex();
+        // hex 输出为字节数两倍：只 peek 诊断上限一半的字节，避免对整个区域做 peek+hex 放大驻留
+        int maxBytes = RecordConstants.MAX_RAW_DATA_DIAG_CHARS / 2;
+        if (length <= maxBytes)
+            return in.peekByteString(length).hex();
+        return in.peekByteString(maxBytes).hex() + RecordConstants.RAW_DATA_TRUNCATED_MARK;
     }
 
     @Override

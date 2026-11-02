@@ -171,12 +171,12 @@ Exit Criteria:
 
 ### Phase 2 - 10 成员实现 + 回归测试（按模块分组 A–D）
 
-Status: planned
+Status: in progress
 Targets: `nop-format/nop-record/`、`nop-format/nop-excel/`、`nop-format/nop-converter/`、`nop-report/nop-report-core/`、`nop-report/nop-report-pdf/`（main+test 树；`RecordConstants.java`/配置键落点）
 
 - Item Types: `Fix`（10 项均为已确认 live defect——P1×1/P2×9，不得写成 Feature）、`Proof`（单元测试 + C10 收口门）
 
-- [ ] 组 A nop-record（C5-001+C5-R2-001+C1-005+C6-001——4 成员 4 文件）：裁定①（红① 准入钉——含 lengthExpr 新测试模型+恶意长度断言 ERR，先红后绿+变异锚定[禁用校验→红→grep 恢复]）→ 裁定②（红② rawVarName 功能+截断钉，与裁定① 同 diff）→ 裁定⑤（红⑧ detach 交错钉+红⑨ fd 计数钉[@EnabledIf 门控+变异 fallback]——同文件双钉独立可跑；同族保护三处零回退）
+- [x] 组 A nop-record（C5-001+C5-R2-001+C1-005+C6-001——4 成员 4 文件）〔落地：红①pre-fix fork JVM Java heap space 崩溃→绿 / 红②3 红→绿 / 红⑧4 红→绿 / 红⑨变异锚定 fd 增长 40→恢复绿；**执行期发现**：getObjectLength 对象级 lengthExpr 无静态 length 时 null 拆箱 NPE（裁定①单点同行潜伏缺陷，同 diff 修复缺省值=-1 + 钉 testLegalObjectLengthExprWithoutStaticLength）；nop-record 214 tests 0F0E 1S（基线 196+新钉 18）；总册 _tmp/red-green-2527-summary.md〕：裁定①（红① 准入钉——含 lengthExpr 新测试模型+恶意长度断言 ERR，先红后绿+变异锚定[禁用校验→红→grep 恢复]）→ 裁定②（红② rawVarName 功能+截断钉，与裁定① 同 diff）→ 裁定⑤（红⑧ detach 交错钉+红⑨ fd 计数钉[@EnabledIf 门控+变异 fallback]——同文件双钉独立可跑；同族保护三处零回退）
 - [ ] 组 B nop-excel+nop-converter（C1-003+C9-001+C1-001——3 成员）：裁定④（红⑤ 白盒 CHM 钉+红⑥ assertSame 钉——G5 双半边同 diff 同组交付）→ 裁定⑦（红⑦ 白盒容器钉+并发 smoke）
 - [ ] 组 C nop-report-pdf（C1-002+C9-002——2 成员 1 文件）：裁定③（红③ 裸写钉+红④ 锁结构钉/并发首渲染耗时上界——G4 双半边同 diff 同组交付，禁分开提交）
 - [ ] 组 D nop-report-core（C5-004——1 成员）：裁定⑥（红⑩ 行数上限配置生效钉——模块内修复零触碰 nop-core；ExcelResourceIO 透传面按裁定⑥）

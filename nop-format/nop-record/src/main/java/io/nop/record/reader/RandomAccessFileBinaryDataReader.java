@@ -45,19 +45,36 @@ import java.io.RandomAccessFile;
  * </ul>
  */
 public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
-    protected final RandomAccessFile raf;
+    private final File file;
+    protected RandomAccessFile raf;
     private long bits;
     private int bitsLeft;
     private long pos = 0;
     private long size;
+    private volatile boolean closed;
 
     public RandomAccessFileBinaryDataReader(File file) {
+        this.file = file;
+        RandomAccessFile opened = null;
         try {
-            raf = new RandomAccessFile(file, "r");
-            size = raf.length();
+            opened = new RandomAccessFile(file, "r");
+            size = initSize(opened);
         } catch (Exception e) {
+            // 打开成功但取长度失败时句柄尚未交给本实例，必须在此关闭，否则 fd 泄漏
+            if (opened != null) {
+                try {
+                    opened.close();
+                } catch (IOException closeError) {
+                    e.addSuppressed(closeError);
+                }
+            }
             throw NopException.adapt(e);
         }
+        this.raf = opened;
+    }
+
+    protected long initSize(RandomAccessFile file) throws IOException {
+        return file.length();
     }
 
     @Override
@@ -82,6 +99,9 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
 
     @Override
     public void close() throws IOException {
+        if (closed)
+            return;
+        closed = true;
         raf.close();
     }
 
@@ -168,14 +188,31 @@ public class RandomAccessFileBinaryDataReader implements IBinaryDataReader {
         seek(0);
     }
 
+    /**
+     * 按文件重新打开独立句柄并定位到当前位置：读位置与生命周期都与本实例无关。
+     * 不能返回 subInput 视图——SubBinaryDataReader 与本实例共享 RandomAccessFile 文件指针
+     */
     @Override
     public IBinaryDataReader detach() throws IOException {
-        return subInput(size());
+        return newIndependentReader();
     }
 
     @Override
     public IBinaryDataReader duplicate() throws IOException {
-        return subInput(size());
+        return newIndependentReader();
+    }
+
+    private IBinaryDataReader newIndependentReader() throws IOException {
+        RandomAccessFileBinaryDataReader reader = new RandomAccessFileBinaryDataReader(file);
+        if (pos > 0) {
+            try {
+                reader.seek(pos);
+            } catch (IOException e) {
+                reader.close();
+                throw e;
+            }
+        }
+        return reader;
     }
 
     @Override

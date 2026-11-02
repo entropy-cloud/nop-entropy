@@ -1,0 +1,14 @@
+<file x:schema="/nop/schema/record/record-file.xdef" xmlns:x="/nop/schema/xdsl.xdef" binary="true">
+    <body typeRef="Body"/>
+
+    <types>
+        <type name="Body">
+            <fields>
+                <field name="len" type="String" length="10"/>
+                <field name="data" type="String">
+                    <lengthExpr>record.len</lengthExpr>
+                </field>
+            </fields>
+        </type>
+    </types>
+</file>
