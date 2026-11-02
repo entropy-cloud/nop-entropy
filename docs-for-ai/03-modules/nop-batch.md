@@ -264,7 +264,7 @@ task steps:
 
 ## excel-reader 规模边界与 maxCount 契约（plan 2516 裁定④）
 
-excel-reader（`file-reader`/excel 形态）在读取前将**全 sheet 物化为内存 List**——这是已声明的包络边界而非流式实现：大数据量（XLSX 单 sheet 上限 1,048,576 行）存在确定性内存压力，大数据量场景应走 csv/jdbc-reader 或显式配置 `maxCountExpr` 截断。`maxCountExpr` 已恢复接线（`FileBatchSupport.newExcelReader` → loader）：**行为变更声明——已配置 maxCount 的链路从全量读取变为截断读取**（接线恢复前该配置无效、数据全量消费；恢复后超出 maxCount 的条目不再进入处理）。物化面残留为已登记的 watch-only 观察项。
+excel-reader（`file-reader`/excel 形态）在读取前将整张 sheet 物化为内存 List（非流式实现），物化行数受 `ExcelIOConfig.maxCountPerSheet` 约束：batch 侧 `FileBatchSupport.newExcelIO` 不设置该值，取缺省 **200,000 数据行**（表头行不计入）；sheet 数据行超出时在解析期抛 `ERR_XPT_EXCEL_READ_ROW_COUNT_EXCEED_LIMIT`，任务失败而非 OOM 或静默截断（契约见 `nop-report.md`「Excel 导入行数上界」）。**行为变更声明**：此前超过 20 万行的 excel 会被全量物化读取，现在显式失败；更大数据量须走 csv/jdbc-reader（batch DSL 当前未暴露 maxCountPerSheet 配置位）。`maxCountExpr` 已恢复接线（`FileBatchSupport.newExcelReader` → loader），它截断的是进入处理的条目数，作用在物化之后——不能用来绕开上述物化上界：**行为变更声明——已配置 maxCount 的链路从全量读取变为截断读取**（接线恢复前该配置无效、数据全量消费；恢复后超出 maxCount 的条目不再进入处理）。
 
 ## jdbc-reader fetchSize 语义契约（plan 2516 裁定⑤）
 
