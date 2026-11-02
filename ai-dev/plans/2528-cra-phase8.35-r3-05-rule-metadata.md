@@ -203,23 +203,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-rule+nop-metadata 聚合全量测试；`docs-for-ai/03-modules/nop-metadata.md`；`docs-for-ai/03-modules/nop-rule.md`；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/01-repo-map/module-groups.md`（核对）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2527 先例快速通道支路声明；聚焦覆盖 = E3 分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 7）：`./mvnw test -pl nop-rule -am` 与 `./mvnw test -pl nop-metadata -am` 双通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-rule,nop-metadata`（无 -am）BUILD SUCCESS 等价验收（1421+新钉 0F0E；0 Skipped 签名比对）〔Phase 3 实录：待回填——勘误 7 占位〕
-- [ ] Owner doc 落账：`nop-metadata.md` 增补「并发与资源契约」节（外部 JDBC 超时预算+连接属性声明[W-01/W-05]、ensure 懒初始化并发契约[W-04]、checkpoint 建连复用契约[W-07]、对账池复用契约[W-08]、syncExternalTables 包络声明[W-09——§5.3 drift 收敛]、同库 JOIN limit 硬闸语义[W-10——§5.3 drift 收敛]、告警工作流半程清理语义[W-12]）+ 账本保留策略节 :347 扩展（第七面 retention 声明+G2 契约注记——含 E4 零触碰声明落点）；`nop-rule.md` 增补热更新失效传播契约节（W-03——钉定粒度与节点行语义，收敛 :296 表述缺口）；`ai-dev/design/concurrency/ledger-retention-policy.md` §3.4 第七面行**注记**（裁定⑩通道 2 = 「实例终态后方可逐出」判据的修订性扩展登记——设计评审 M1 义务；注记形态不改裁定原文，扩展论证见设计文档裁定⑩偏差条款）；`source-anchors.md` 新增锚点行（META-CC-001/RULE-CC-001 候选，修复后 live 行号亲读核实）；`module-groups.md` 核对登记（最小同步）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-rule`/`--module nop-metadata` 逐模块 EXIT=0（`_tmp/scan-hollow-2528-*.log`；模块级既有面如 EXIT=1 按 2527 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2527 先例快速通道支路声明；聚焦覆盖 = E3 分解通道）〔兑现：BUILD SUCCESS EXIT=0（`_tmp/e1-full-2528.log`）；支路理由=测试全集由 E3 双通道+分解通道覆盖〕
+- [x] 批行验证命令（E3 判据——勘误 7）：`./mvnw test -pl nop-rule -am` 与 `./mvnw test -pl nop-metadata -am` 双通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-rule,nop-metadata`（无 -am）BUILD SUCCESS 等价验收（1421+新钉 0F0E；0 Skipped 签名比对）〔Phase 3 实录：见本项兑现注记——勘误 7 占位〕〔兑现：`nop-rule -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain` 3 红（`_tmp/e3-rule-am-2528.log`）→ solo 三联 3/3 绿（`_tmp/e3-solo-chain-2528-r{1,2,3}.log`）负载 flake 裁定；`nop-metadata -am` EXIT=1 阻断于已知面③ nop-auth-service `TestOperationMfaE2E` TOTP（`_tmp/e3-metadata-am-2528.log`）→ solo 6/18 errors 恒红（`_tmp/e3-solo-mfa-2528.log`，与 2525/2526 先例同签名）；本批 nop-kernel/nop-auth 零 diff；等价分解通道 BUILD SUCCESS **1452 tests 0F0E0S**（1421+31，`_tmp/decomposed-2528.log`）〕
+- [x] Owner doc 落账：`nop-metadata.md` 增补「并发与资源契约」节（外部 JDBC 超时预算+连接属性声明[W-01/W-05]、ensure 懒初始化并发契约[W-04]、checkpoint 建连复用契约[W-07]、对账池复用契约[W-08]、syncExternalTables 包络声明[W-09——§5.3 drift 收敛]、同库 JOIN limit 硬闸语义[W-10——§5.3 drift 收敛]、告警工作流半程清理语义[W-12]）+ 账本保留策略节 :347 扩展（第七面 retention 声明+G2 契约注记——含 E4 零触碰声明落点）；`nop-rule.md` 增补热更新失效传播契约节（W-03——钉定粒度与节点行语义，收敛 :296 表述缺口）；`ai-dev/design/concurrency/ledger-retention-policy.md` §3.4 第七面行**注记**（裁定⑩通道 2 = 「实例终态后方可逐出」判据的修订性扩展登记——设计评审 M1 义务；注记形态不改裁定原文，扩展论证见设计文档裁定⑩偏差条款）；`source-anchors.md` 新增锚点行（META-CC-001/RULE-CC-001 候选，修复后 live 行号亲读核实）；`module-groups.md` 核对登记（最小同步）〔兑现（Phase 3 owner-doc 落账完成，待验证命令结果后统一勾选）：①`nop-metadata.md` 新增「并发与资源契约」节（外部 JDBC 超时单点收口：socket 读 30s 客户端等待上界语义+0 关闭档+大表 COUNT/剖析聚合 workload 口径+H2 mem/file 跳过；握手超时每连接连接属性+零 DriverManager 全局态；DataSource 摘要键实例复用与凭证/配置变更即换实例；checkpoint 编排分组复用与失败隔离粒度声明；ensure* 懒初始化 volatile 安全发布+先配置后发布；对账候选池执行期快照+candidate-pool-limit 超界 fail-fast；同步流式化与 scan 失败 1..k−1 留存语义；join/aggregation limit 超上限显式拒绝；告警工作流半程自清理；配置键汇总表）+「账本保留策略」节改写（六表+nop-wf 侧 NopWfInstance 第七面双通道：终态集 {40,50,60,70}+endTime 锚 / CREATED 零步残量+零 step 复核活跃红线；G2 reJudge 复用窗契约注记文案落账；标题与「关键内部组件」行去 plan 编号改规范性表述）+「查询分页契约」queryJoinData 行按同库硬闸语义收敛（§5.3 drift 收敛）+AR-17 行按流式形态同步；②`nop-rule.md` 新增「规则热更新失效传播契约」节（钉定集=定义行+全部节点行；平台判据关系与四配置键；检查成本界定；定义级路径零回退）+设计哲学 VFS 热更新 bullet 指向新节；③`source-anchors.md` 新增 `RULE-CC-001`（:114，DaoRuleModelLoader :84/:95）与 `META-CC-001`（:115，连接打开缝 :237/:248/:273/:290/:439/缓存 :165/:401/:417/分组 :167/:285/:311/volatile 载体族/半程自清理 :117/:129/池上界 :82/:100/:137/流式 :70/:99/硬闸 :469/:478/第七通道 :101/:265/:285——全部 live 行号亲读），插于 `FMT-CC-001` 行后，裁定权威以文字指称 concurrency 设计集裁定①–⑩、docs-for-ai 内零 ai-dev 直链；④`ledger-retention-policy.md` §3.4 第七面具名行原地改写为已落地终态（通道 1/通道 2 谓词逐列落名+四件套回归钉+通道 2 判据修订性扩展声明[M1]三重论证——判据原文不改）；⑤`module-groups.md` 核对结论：nop-rule/nop-metadata 行为模块分组概览（用途一句话），无契约级内容需同步——契约 SSOT 在 owner doc 与锚点表，行内不复制契约（Link-don-not-copy 口径：只链接不复制），零修改；⑥check-doc-links --strict EXIT=0（0 errors，2 warnings 为批前既有归档面）〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-rule`/`--module nop-metadata` 逐模块 EXIT=0（`_tmp/scan-hollow-2528-*.log`；模块级既有面如 EXIT=1 按 2527 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）〔兑现：check-doc-links --strict EXIT=0；scan-hollow nop-rule-dao/nop-rule-service/nop-metadata-service 逐模块 EXIT=0 High=0（`_tmp/scan-hollow-2528-*.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
-- [ ] nop-metadata.md 增补节+账本节扩展 + nop-rule.md 热更新契约节 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施/api 叶零触碰、批外模块零触碰、批外工单零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
+- [x] nop-metadata.md 增补节+账本节扩展 + nop-rule.md 热更新契约节 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施/api 叶零触碰、批外模块零触碰、批外工单零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 

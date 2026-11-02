@@ -176,7 +176,7 @@ mutation {
 `queryData` / `queryJoinData` / `queryAggregation` 的 `limit` 语义（负值统一显式拒绝 INV-LIMIT，正值上限差异为有意裁定）：
 
 - **`queryData`**（数据浏览入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，INV-LIMIT）；`limit` 缺省（null/0）给默认值 1000，超大正值静默封顶（上限 10000 或配置 `nop.metadata.query.max-limit`）——浏览语义下正值封顶安全（MA7.4-03）。
-- **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit > Integer.MAX_VALUE` → 截断层显式拒绝（`pagination-limit-too-large`）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 entity-entity / external↔external / mixed）与跨库内存合并路径语义一致。
+- **`queryJoinData` / `queryAggregation`**（分析/分页入口）：`limit < 0` → **显式拒绝**（`nop.err.metadata.pagination-limit-invalid`，错误可诊断，不做静默钳制——静默改 limit 会让分页语义静默漂移）；`limit` 缺省（null/0）给默认值 1000（**有界**，不提供"无界"选项）；`limit` 超过有效上限（`nop.metadata.query.max-limit` >0 时取配置值，否则 10000）→ 入口显式拒绝 `pagination-limit-too-large`（同库与跨库路径的行数闸对称：同库路径在入口归一化拒绝，跨库 merge 路径另有乘积截断层同码拒绝）；`offset` 为 null 或 ≤0 视为不偏移。三条 JOIN 路径（同库 entity-entity / external↔external / mixed）与跨库内存合并路径语义一致。
 
 ## 导入失败路径语义（AR-08 裁定，plan 2026-08-06-0553-3）
 
@@ -241,7 +241,8 @@ mutation {
 - `META-003 MetaQualityRuleExecutor` — 单条质量规则执行（not_null/unique/regex/volume/custom_sql 等）
 - `META-004 SqlColumnLineageExtractor` — SQL AST 列级血缘抽取（SELECT 列 → 源列）
 - `META-005 MetaQualityCheckpointScheduler` — cron 调度器（启动 scanner + 运行时增量 + beanMethod invoker）
-- `NopMetaLedgerCleaner`（`nop-metadata-service/.../service/cleanup/`）— 六张时序账本表保留期周期清理（5.5-W-02，锚列 createTime，见「账本保留策略」节）
+- `NopMetaLedgerCleaner`（`nop-metadata-service/.../service/cleanup/`）— 时序账本保留期周期清理（六表锚列 `createTime` + nop-wf 侧告警工作流实例第七通道，见「账本保留策略」节）
+- `META-CC-001` — 模块并发与资源契约实现锚点（外部 JDBC 超时单点收口 / 懒初始化安全发布 / 建连复用缓存 / 对账候选池上界 / 同步流式化 / JOIN limit 硬闸 / 告警半程自清理 / 账本第七通道，见「并发与资源契约」节）
 
 ## 模块结构
 
@@ -281,7 +282,7 @@ nop-metadata 严格遵循"无静默跳过"原则（plan 2026-07-19-1250-3 Phase 
 - 表不存在 / 数据源不存在 / DISABLED / 非 jdbc 类型 / 不支持的方言 / SQL 解析失败 / 字段引用非法 → **显式抛 `NopException` + ErrorCode**，不静默空集、不伪造值
 - **外部表结构扫描故障分类（AR-23⑤，R8.2）**：`syncExternalTables` 扫描外部库时的真实故障（连接中断/权限/元数据访问失败——含 `getDatabaseProductName` / `getTables` 抛 `SQLException`）显式抛 `nop.err.metadata.external-table-scan-failed`（携带**真实** `databaseProductName` + 原始异常消息），与方言不支持（`datasource-type-not-supported`，方言白名单门禁）区分——真实扫描故障不再误报为"方言不支持"；`COLUMN_SIZE` / `DECIMAL_DIGITS` 为 NULL 时 `precision`/`scale` 保留 **JSON null**（不伪造 0，structure JSON 消费方不读这两个字段）
 - 批量操作（syncExternalTables / collectCatalog / executeCheckpoint）per-row try/catch 隔离失败 + 收集到 errors 列表，不中断整批
-- **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（`structureReader.read` 抛 / 连接中断）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
+- **syncExternalTables 原子性契约（AR-17，R8.4b）**：`syncExternalTables` 是**部分持久化**语义（非全量原子）——每表 upsert 在 per-key 锁 + `REQUIRES_NEW` 独立事务内独立提交（R6.3 裁定，plan-2026-08-05-2157-3）：scan 中途失败或单表失败时**已同步表保持持久化**（不整体回滚），失败表记入 `errors` 且不中断整批；**scan 级失败**（流式扫描中途 `SQLException` / 连接中断——扫描为逐表产出即 upsert 的流式形态，失败时已产出表已各自持久化）异常向上传播（fail-loud），且失败路径**仍发布**变更事件（`NopMetaModelChangedEvent`，changeSource=SYNC）——事件行经 `REQUIRES_NEW` 独立事务提交（沿每表 upsert 先例），不随外层事务回滚消失；事件价值是"sync 尝试发生 + 已部分持久化"的下游通知（dataSource 实体在 sync 期间不变，before/after 快照等同，非实体 diff）
 - ErrorCode 经 `NopMetadataErrors.java` 聚合接口集中暴露（按子域分组为 10 个 Errors 文件：Aggregation/Join/Quality/DataSource/Sql/Field/Lineage/Module/Recon/Misc），命名前缀 `nop.err.metadata.*`
 - **错误消息识别性参数一致性（INV-ERROR-PARAM，plan 2026-08-15-1913-3 + 2026-08-16-0226-2）**：throw 点所用 ErrorCode 描述声明的识别性占位符 `{xxx}` 必须有对应 `.param()` 键（字面量或 `NopMetadataErrors.ARG_X`）——缺键/键错配时运行时渲染字面 `{xxx}`，失败对象身份对用户丢失。null 防御/值语义不存在分支用无必需占位符的错误码（不削既有码占位符——其他 throw 点可能已传齐）；禁止传 null 凑键覆盖（渲染空串空壳）。**define 声明面一致性（P2-10）**：`*Errors.java` 中每个 `ErrorCode.define` 尾部声明的 ARG_* 值集合必须与描述占位符集合完全一致（对称差为空，比对经 ARG 常量**值**解析，禁止常量名比对）；define 在 src/main 零引用（或仅测试引用）即死码，须删除或 `// invariant-ok:` 显式裁定。CI 门禁：`run-nop-metadata-invariants.sh`（用法见 [invariant-guards](../02-core-guides/invariant-guards.md)）guard 6（零命中 hard-gate；变量形态错误码须 `// invariant-ok:` 人工归类标注；`{error}` 附注占位符豁免已于 2026-08-16 收口——`-- {error}` 描述族 throw 点必须传 `.param(ARG_ERROR, …)`，缺参即红）
 
@@ -344,9 +345,52 @@ live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 cr
 
 质量规则需对外部库做方言感知 SQL 检查（not_null/unique/regex/volume/custom_sql，`MetaQualityRuleExecutor`），nop-rule 的决策模型不适配，代码内判定为正解；`AutoClassificationProcessor` 的标签自动分类为代码内规则，同等裁定。后续复读无需重新评估。
 
-## 账本保留策略（5.5-W-02，plan 2502）
+## 并发与资源契约
 
-六张 append-only 时序表（`nop_meta_quality_result` / `nop_meta_quality_score` / `nop_meta_catalog` / `nop_meta_profiling_result` / `nop_meta_reconciliation_result` / `nop_meta_model_changed_event`——末表 mediumtext 前后双快照）由 `NopMetaLedgerCleaner` 生命周期链周期清扫（IoC 单例 bean `nopMetaLedgerCleaner`，装配于 `app-service.beans.xml`；`LifeCycleSupport` `@PostConstruct start()` → 周期调度，taskName=`nop-metadata-ledger-cleanup`）。cron 检查点 + auto-score + 事件发布点以机器速率写入，人工清理以人速进行——速率差即无界增长，故清理载体为自动周期形态（人工 purge action 不作为唯一载体）。
+本节声明 nop-metadata 对外可见的并发与资源使用契约（超时预算 / 全局态 / 懒初始化 / 建连复用 / 池化与包络 / 半程清理）。实现锚点见 `../04-reference/source-anchors.md` 的 `META-CC-001`；语义裁定权威 = AI 开发记录区 concurrency 设计集 rule-metadata-external-timeout-lazy-init-invalidation-and-envelope-concurrency.md（按边界规则此处不直接链接）。
+
+### 外部 JDBC 超时预算（单点收口）
+
+外部数据源连接的两层超时预算收口于连接打开缝单点（`MetaDataSourceConnectionProcessor.openConnection`）：`withConnection` 与 `testConnection` 两条建连路径共用同一打开缝，全部外部语句消费点（联邦查询 / 质量规则 / 剖析 / catalog 收集 / 表结构同步等）经同一入口自动覆盖——预算应用严格位于 `getConnection()` 之后、调用方首次 socket 读（`getMetaData` / 语句执行）之前。
+
+- **socket 读预算**（`nop.metadata.datasource.network-timeout-seconds`，缺省 30，经 `Connection.setNetworkTimeout`）：语义为**客户端等待上界**——外部源挂起时工作线程在读阻塞处被打断并沿既有包装面抛错；不引入查询级主动取消（KILL QUERY / cancel 信号），服务端语句本身不被终止。**workload 口径**：大表 COUNT / 剖析聚合等 server 端长时间执行、期间不出字节的语句会在读阻塞处被预算打断；需要长跑分析的场景经 `0` 显式关闭档承载（`0`=禁用预算，WARN 一次；负值配置期 fail-fast `datasource-config-invalid`，不静默缺省）。
+- **建连握手预算**（`nop.metadata.datasource.login-timeout-seconds`，缺省 5，保留 AR-02 防内网探测窗口）：经**每连接连接属性**按驱动族注入——MySQL 族 `connectTimeout`=秒×1000（毫秒）、PostgreSQL 族 `connectTimeout`=秒；**不写 JVM 全局 `DriverManager.loginTimeout`**（宿主任意其他 DriverManager 使用者与本模块互不影响）。H2 白名单子集（`jdbc:h2:mem:`/`jdbc:h2:file:`）为进程内连接、无网络 socket，两层预算均不注入（跳过伴随 DEBUG 日志，非静默）。
+- **DataSource 实例复用**：同连接要素（jdbcUrl/username/password/driverClassName + 两超时配置值）的 `SimpleDataSource` 实例经固定容量缓存复用（maxSize=64 / 过期 5 分钟，零配置键）；缓存键为要素的 SHA-256 不可逆摘要（凭证/键材料不落明文、不入日志）。凭证轮换或超时配置变更 → 摘要变化 → 即换新实例（无陈旧窗）。缓存的是 DataSource 实例而非 Connection——连接仍为每次一次性获取/关闭，socket 读预算对每次新连接重新应用。
+- **checkpoint 编排建连复用**：质量检查点执行按数据源对规则分组，同数据源规则组单次建连、callback 内逐规则评定（`ENTITY` 形态规则维持平台事务路径逐规则执行）。失败隔离粒度：组内单规则的语句级失败仍逐规则隔离（失败进 errors + ERROR 结果行）；组内规则的**连接级**失败（socket 断开、建连失败）影响同组后续规则的执行窗口——组级建连失败时组内规则统一落 ERROR 隔离，不静默跳过。
+
+### ensure* 懒初始化安全发布
+
+单例 BizModel 的 9 个载体 12 个懒初始化实例字段（tableRefExecutor / checkpointExecutor / actionDispatcher / scorer / queryAction / sqlFieldTypeInferrer 等）全部 `volatile` 安全发布；动作分发器（webhook/notify 投递）构造时**先完成全部配置**（SSRF allowlist / webhook 超时 / 重定向策略）再发布字段——并发窗口内不存在「已发布但未配置」的缺省策略中间态。check-then-act 在 volatile 下仍可能重复构造（良性竞态：两线程各建一个等价实例、后写胜出），契约保证的是可见性与配置完整性，非实例唯一性。
+
+### 对账候选池上界与快照语义
+
+对账执行开头一次性加载候选池，行间复用同一池快照（不再逐行全池重载）；候选实体 properties 随池解析缓存（单次执行每候选解析一次）。**快照一致性**：池为单次对账执行的执行期快照，执行期间并发候选变更对本轮不可见。**池上界**：`nop.metadata.reconciliation.candidate-pool-limit`（缺省 1000）下推到池查询显式 limit；池行数超界**显式失败** `nop.err.metadata.recon-candidate-pool-exceed-limit`（不静默截断——截断即静默改变匹配语义）；配置 ≤0 显式拒绝（无界加载不提供关闭档）。结果行候选序列化上限（50，`DEFAULT_CANDIDATE_LIMIT`）维持不变。
+
+### 外部表结构同步流式化
+
+`syncExternalTables` 的外部 catalog 扫描为**游标驱动逐表产出**形态：每表读完列即交付 upsert（既有 per-key 锁 + `REQUIRES_NEW` 独立事务边界不变），峰值内存从「全 catalog 表×列物化」收敛为单表列集，同步规模不受进程堆约束。scan 级失败语义：第 k 表读列 `SQLException` 为 scan 级故障——执行以 `external-table-scan-failed` 终止（携真实 productName，见「失败路径显式化」AR-23⑤），**表 1..k−1 已产出并各自 upsert 持久化**（部分持久化契约，触发序先成功先落库）；第 k 表不进 per-table errors 通道（该通道只承载 upsert 自身失败）。
+
+### join / aggregation limit 上界
+
+`queryJoinData` / `queryAggregation` 的正值 limit 超过有效上限（`nop.metadata.query.max-limit` >0 时取配置值，否则 10000）时入口**显式拒绝** `nop.err.metadata.pagination-limit-too-large`（与跨库 merge 截断层同码）——分析入口不静默封顶、不伪造截断；同库 JOIN 路径与跨库路径的行数闸语义对称。负值拒绝与 null/0 缺省（1000）形态不变，详见「查询分页契约」。
+
+### 质量告警工作流半程自清理
+
+质量规则 FAIL+ERROR 触发告警工作流创建时，`wf.start` 的「先落库 CREATED 实例、后推进起始步」窗口内任一步失败（典型：起始步审批角色未配置/部署漂移），创建入口在**同一事务内删除半程实例**后重抛原异常——不残留 CREATED 零 step 孤儿行，调用方的失败隔离语义不变（告警侧失败不拖垮规则执行主链）。清理载体为 nop-wf 既有公开删除能力（`IWorkflowStore.removeWfRecord`），nop-wf 侧零产品改动；部署未装配工作流存储时 WARN 显式退化（半程实例残留可见，非静默）。清理体自身失败 ERROR 留证后仍重抛原异常（fail-visible）。存量/崩溃窗残量孤儿由「账本保留策略」第七面 CREATED 零步残量通道兜底清除。
+
+### 并发与资源配置键汇总
+
+| 配置键 | 缺省 | 语义 |
+|--------|------|------|
+| `nop.metadata.datasource.network-timeout-seconds` | 30 | 外部 JDBC socket 读预算（秒）；0=显式关闭档（WARN 一次）；负值 fail-fast |
+| `nop.metadata.datasource.login-timeout-seconds` | 5 | 建连握手预算（秒，按驱动族转连接属性）；0=显式关闭档（WARN 一次）；负值 fail-fast |
+| `nop.metadata.reconciliation.candidate-pool-limit` | 1000 | 对账候选池单次执行加载上界；超界显式失败（不静默截断）；≤0 显式拒绝 |
+| `nop.metadata.query.max-limit` | 0（=用 10000） | join/aggregation 正值 limit 上限来源（与 queryData 封顶同源） |
+| `nop.metadata.ledger.retention-days` 等 | 见「账本保留策略」 | 账本保留窗/周期/批删上界（六表 + nop-wf 侧告警工作流实例第七通道同窗） |
+
+## 账本保留策略
+
+六张 append-only 时序表（`nop_meta_quality_result` / `nop_meta_quality_score` / `nop_meta_catalog` / `nop_meta_profiling_result` / `nop_meta_reconciliation_result` / `nop_meta_model_changed_event`——末表 mediumtext 前后双快照）**与 nop-wf 侧 qualityBreachApproval 告警工作流实例（第七面）**由 `NopMetaLedgerCleaner` 生命周期链周期清扫（IoC 单例 bean `nopMetaLedgerCleaner`，装配于 `app-service.beans.xml`；`LifeCycleSupport` `@PostConstruct start()` → 周期调度，taskName=`nop-metadata-ledger-cleanup`；第七通道与六表共用同一调度链、失败包络与参数集）。cron 检查点 + auto-score + 事件发布点以机器速率写入，人工清理以人速进行——速率差即无界增长，故清理载体为自动周期形态（人工 purge action 不作为唯一载体）。
 
 参数语义 SSOT = 仓库 ai-dev/design/concurrency/ledger-retention-policy.md（R01 族级保留策略，平台内部文档——按 docs-for-ai 边界规则不直接链接），模块配置键：
 
@@ -359,8 +403,11 @@ live xmeta 将 connectionConfig 整列设为不可读写——管理动作是 cr
 清理谓词与保留语义：
 
 - **六表锚列均 `createTime`**：谓词 `createTime < now − retention`，超期整行清扫；保留窗口内「历史事实语义」（ORM 注释钉死的 insert-only/不覆盖旧行）不受破坏。ORM 模型零变更（无新增 cascadeDelete/索引）。
-- **第七面不在本面**：C7-101 衍生 qualityBreachApproval 告警工作流实例落在 nop-wf 侧工作流实例存储（非本模块自有表）——按设计裁定显式边界声明归属后续 quality 域批次（活跃审批实例不可 TTL 误删），本清理入口对其零触碰。
-- **保留窗即复用历史窗上界**：质量结果 reJudge/复用视野不得超过 `nop.metadata.ledger.retention-days` 窗口；需更长视野时修订保留期参数（只走设计文档一处定稿），不在本模块另设第二套保留语义。
+- **第七面（nop-wf 侧告警工作流实例，`NopWfInstance`）双通道**：
+  - **终态实例 TTL（通道 1）**：`status ∈ {COMPLETED=40, EXPIRED=50, FAILED=60, KILLED=70}` 且锚列 `endTime < now − retention`（endTime = 终态迁移时刻，写入后不被业务回改的账龄事实列）。
+  - **CREATED 零步残量（通道 2）**：`status = CREATED(0)` 且 `createTime < now − retention` 且零 step 记录（拾取后经 `NopWfStepInstance` 按 wfId 集存在性复核）——清除告警创建半程失败的自清理残留与进程崩溃窗存量。**活跃审批实例红线**：CREATED 已含 step、SUSPENDED/WAITING/ACTIVATED 等活跃状态永不进删除集（审批中告警实例不可 TTL 误删）。
+  - 子表（statusHistories/steps/outputs/globalVars，ORM `cascadeDelete`）随父行 wfId IN 集传递清扫，不独立选锚、不独立 TTL；nop-wf 侧零产品改动（拾取/删除均为既有 dao 使用面）。
+- **保留窗即 reJudge 复用历史窗上界（G2 契约）**：`nop_meta_quality_result` 的保留窗（`nop.metadata.ledger.retention-days`，缺省 30 天）即质量结果 reJudge 可复用的历史窗上界；若 reJudge 复用视野需超出统一保留窗，参数修订只走保留策略 SSOT 文档（上调统一键或按 face 段引入键），**nop-metadata 模块内禁止另设第二套保留语义**。
 - 清理失败显式可见：失败轮 ERROR（`nop.metadata.ledger.cleanup-fail`）+ 失败计数；错配置启动期 fail-fast（`nop.err.metadata.ledger-config-invalid`）。
 
 ## 参考文档
