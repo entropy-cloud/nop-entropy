@@ -1,6 +1,6 @@
 # 2530 CRA Phase 8.37 — R3-07 Leiden 交叉批（2 工单：6.3-W-03 读路径自愈物化无单飞/无退避[P1·C7-001·消费侧重算风暴·TP-003 验收前置] + 5.6-W-04 LeidenDetector 超时幽灵线程与调用面守卫[P1·CS-001 族主吸 CS-R2-001 调用面+C6-CL-031 别名·CWTS 零 interrupt 面 daemon 化+有界执行·P10-P1-4 验收前置] + C5-R2-007 同站点 P3 收敛面[非成员——守卫面修复即其收敛载体，勘误 5 三源对账]）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: **1 Blocker + 1 Major + 4 Minor**（2026-11-03，独立立项评审子 agent agent_81928b4b，fresh session）——**Plan Status 维持 draft，Blocker 修订后待 R2 复审**（本轮修订全部随本轮落盘，修订登记见勘误 6）。**Blocker-1** 红①(a) 绿锚不可达——LeidenDetector.detect() 在 :79-85 无条件以字面量 "LEIDEN" 重建 CommunityResult（:84），超时降级的 "LABEL_PROPAGATION"（LabelPropagation.java:80）永不外泄；**采选型 (a)——保持降级语义与可观测标签零变更**（本批缺陷面是幽灵线程，不是标签）：红①(a) 锚形改为不依赖标签的降级观测（detect 超时上界内返回 + 结果非空且覆盖全部节点 + 放弃等待 WARN 日志断言[如设计采用]），「超时降级后仍报 LEIDEN」登记为既有行为（Current Baseline）并登记 Non-Blocking Follow-up（标签透传属可观测行为变更，需 GraphQL DTO/GRAPH_SUMMARY 持久值评估，不入本批）；修订 :28/:37/:79/:119/:130 五处及工单表 row 2。**Major-2** 红③/红④ 计数与注入点——加不变式「计数/失败注入点严格位于单飞门之下」：优先计数既有包内可见下游方法（如 communityRows）执行次数，或门内包裹可覆写内层 seam；**禁止覆写 materialize 本身计数**；写入裁定②/裁定④强制输入并修订 :28/:62/:120/:144。**Minor-3** 勘误 2 修正行号漂移——setTimeoutMs(60000) 实为 CodeGraphService.java:752（非 :749-751）、runCommunityDetection 终于 :754、diffGraph 终于 :528、nop-duckdb.md 124 行；撤回「全站点零漂移」措辞。**Minor-4** 裁定④强制输入补「两模块 test classpath 零 mockito——spy 用手工代理（如计数 IGraph 包装，守卫生效则 getOutEdges 零调用）或产品缝，不引 mockito」。**Minor-5** 登记红② pre-fix 红跑成本（>10⁴ 夹具真实跑 Leiden 至 60s 上界）与运行时长口径，避免误判 flake。**Minor-6** :44 组 A 先行理由改为「单文件先行降低交叉面」。
 > Draft Review R2: PASS（2026-11-03，复审子 agent agent_81928b4b @ `cc153c0feb`）——R1 的 1 Blocker + 1 Major + 4 Minor 逐条确认闭合，未引入新问题：红①(a) 新锚形 pre-fix 由结构钉承载确定性红、行为子断言为既有语义绿锚；「计数/注入点位于单飞门之下」不变式 8 处一致，communityRows 包内可见计数可行（测试置 impl 包）；行号勘误 4 处经 live 复核正确。转 active。
 > Last Reviewed: 2026-11-03
@@ -178,40 +178,40 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.37 行、cra-index P1 台账 :308 + :313（+ :305/:306/:307 fixed 维持核对 + :108 2.1 移交闭环注维持核对 + :92 6.3 计数口径 W-29/C5-R2-007 收敛注）、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（daemon 线程/守卫 sink/单飞/退避运行时真实生效 + 无空方法体/静默吞）；条件申报①–④触发与否 git diff 全量核对；8.39/8.71 边界面零触碰复核；C5-R2-007 收敛兑现复核（守卫面修复与收敛注在案）
-- [ ] cra-index 台账回填：P1 两行收敛（:308 W-04 → fixed，注记 plan 2530 + closure audit 结论 + daemon/命名/cancel 兑现 + 守卫下沉与 diffGraph 对称兑现 + C6-CL-031 别名闭环维持 + C5-R2-007 同站点收敛注；:313 W-03 → fixed，注记 plan 2530 + 单飞/退避兑现 + 6 触发点覆盖 + 与 W-04 独立缺陷双修闭合 + TP-003 兑现）；:92 6.3 计数口径注记（W-29/C5-R2-007 收敛注——勘误 5 落账）；:305/:306/:307 fixed 维持核对 + :108 2.1 移交闭环注维持核对；roadmap 8.37 行 Status → done + 勘误注记（E3 验证命令 live 裁定[nop-graph 漏面/nop-duckdb 零 diff 面] + C5-R2-007 收敛面兑现 + 设施对齐软注记兑现，沿 2523–2529 先例形态，不改 L107 原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（daemon 线程/守卫 sink/单飞/退避运行时真实生效 + 无空方法体/静默吞）；条件申报①–④触发与否 git diff 全量核对；8.39/8.71 边界面零触碰复核；C5-R2-007 收敛兑现复核（守卫面修复与收敛注在案）
+- [x] cra-index 台账回填：P1 两行收敛（:308 W-04 → fixed，注记 plan 2530 + closure audit 结论 + daemon/命名/cancel 兑现 + 守卫下沉与 diffGraph 对称兑现 + C6-CL-031 别名闭环维持 + C5-R2-007 同站点收敛注；:313 W-03 → fixed，注记 plan 2530 + 单飞/退避兑现 + 6 触发点覆盖 + 与 W-04 独立缺陷双修闭合 + TP-003 兑现）；:92 6.3 计数口径注记（W-29/C5-R2-007 收敛注——勘误 5 落账）；:305/:306/:307 fixed 维持核对 + :108 2.1 移交闭环注维持核对；roadmap 8.37 行 Status → done + 勘误注记（E3 验证命令 live 裁定[nop-graph 漏面/nop-duckdb 零 diff 面] + C5-R2-007 收敛面兑现 + 设施对齐软注记兑现，沿 2523–2529 先例形态，不改 L107 原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index P1 两行收敛 + :92 收敛注（含 :305/:306/:307/:108 维持核对）、roadmap 8.37 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index P1 两行收敛 + :92 收敛注（含 :305/:306/:307/:108 维持核对）、roadmap 8.37 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 2 工单 + C5-R2-007 收敛面全部修复：6.3-W-03（materialize 收口单飞+失败退避——6 触发点一处封死+降级显式可观测+ShardBuildCoordinator 兼容）、5.6-W-04（runWithTimeout daemon+命名+显式 cancel+语义边界声明+降级零变更；守卫下沉+materializer 守卫+diffGraph 对称）
-- [ ] batch-proposal R3-07 行 exit criteria 增补逐条达成并留证：独立+交叉引用两侧同批（两工单独立钉互不替代——叠加链闭合）；CWTS 全库零 interrupt 面 daemon 化+有界执行（daemon/命名/cancel/语义边界四件）；单飞/退避接入 6 触发点（逐触发点可观测验收）
-- [ ] 对齐纪律守约：两侧同批+独立缺陷不并单条款兑现；CWTS daemon 化条款兑现（与 8.36 W-08 同纪律不共享实例）；单飞/退避 6 触发点条款兑现（兼容三条：零死锁/直接 new 零回退/biz 幂等不变）；守卫面条款兑现（sink+常量复用+对称+生产行为变更声明）；8.36 衔接条款兑现（零回退三钉族）；8.39/8.71 边界条款兑现（零 diff——closure audit git 过滤核对）；C10 同 diff 兑现（缺保护 2 缺陷面）；C5-R2-007 收敛注落账；PA 零触碰声明闭环（条件申报①–④触发与否登记——closure audit git diff 全量核对）
-- [ ] 每工单 ≥1 条 focused 回归测试（rule 25，双单元工单号可辨识）；红①–红④ 均有先红后绿证据（E2；形态标注逐钉在 red-green 总册；红① 间歇面如实标注如触发）；C10 缺保护 2 缺陷面同 diff 落地
-- [ ] 设计文档裁定①–④成文且经独立 draft review；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；8.36 产物面零回退
-- [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 14S 签名比对归因登记）
-- [ ] Owner doc 落账完成：nop-code.md 增补节 + nop-duckdb.md Leiden 边界声明 + source-anchors 锚点行 + module-groups 核对 + nop-graph 缺口声明随 R-G 维持登记（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码或归因登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 6.3-W-01/W-02 为批次定义层排除[8.39]、6.3-W-04~W-19 为批次定义层排除[8.71]、5.6-W-09/W-11/W-12 为单元裁定 P3 登记级，非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）daemon 线程/守卫拦截/单飞串行化/退避冷却运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证五项），（b）无空方法体/静默跳过/no-op 作为正常实现（超时降级显式 WARN、守卫 skip 显式 WARN、单飞降级显式可观测、退避窗内行为显式）
-- [ ] `./mvnw compile` + `./mvnw test`（nop-graph+nop-code 双聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index :308/:313 两行收敛 + :92 收敛注 + roadmap 8.37 → done（E6）
+- [x] 2 工单 + C5-R2-007 收敛面全部修复：6.3-W-03（materialize 收口单飞+失败退避——6 触发点一处封死+降级显式可观测+ShardBuildCoordinator 兼容）、5.6-W-04（runWithTimeout daemon+命名+显式 cancel+语义边界声明+降级零变更；守卫下沉+materializer 守卫+diffGraph 对称）
+- [x] batch-proposal R3-07 行 exit criteria 增补逐条达成并留证：独立+交叉引用两侧同批（两工单独立钉互不替代——叠加链闭合）；CWTS 全库零 interrupt 面 daemon 化+有界执行（daemon/命名/cancel/语义边界四件）；单飞/退避接入 6 触发点（逐触发点可观测验收）
+- [x] 对齐纪律守约：两侧同批+独立缺陷不并单条款兑现；CWTS daemon 化条款兑现（与 8.36 W-08 同纪律不共享实例）；单飞/退避 6 触发点条款兑现（兼容三条：零死锁/直接 new 零回退/biz 幂等不变）；守卫面条款兑现（sink+常量复用+对称+生产行为变更声明）；8.36 衔接条款兑现（零回退三钉族）；8.39/8.71 边界条款兑现（零 diff——closure audit git 过滤核对）；C10 同 diff 兑现（缺保护 2 缺陷面）；C5-R2-007 收敛注落账；PA 零触碰声明闭环（条件申报①–④触发与否登记——closure audit git diff 全量核对）
+- [x] 每工单 ≥1 条 focused 回归测试（rule 25，双单元工单号可辨识）；红①–红④ 均有先红后绿证据（E2；形态标注逐钉在 red-green 总册；红① 间歇面如实标注如触发）；C10 缺保护 2 缺陷面同 diff 落地
+- [x] 设计文档裁定①–④成文且经独立 draft review；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；8.36 产物面零回退
+- [x] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（双通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 14S 签名比对归因登记）
+- [x] Owner doc 落账完成：nop-code.md 增补节 + nop-duckdb.md Leiden 边界声明 + source-anchors 锚点行 + module-groups 核对 + nop-graph 缺口声明随 R-G 维持登记（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码或归因登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 6.3-W-01/W-02 为批次定义层排除[8.39]、6.3-W-04~W-19 为批次定义层排除[8.71]、5.6-W-09/W-11/W-12 为单元裁定 P3 登记级，非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）daemon 线程/守卫拦截/单飞串行化/退避冷却运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证五项），（b）无空方法体/静默跳过/no-op 作为正常实现（超时降级显式 WARN、守卫 skip 显式 WARN、单飞降级显式可观测、退避窗内行为显式）
+- [x] `./mvnw compile` + `./mvnw test`（nop-graph+nop-code 双聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index :308/:313 两行收敛 + :92 收敛注 + roadmap 8.37 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -242,14 +242,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: 〔待 closure audit 后填记〕
-Completed: 〔待填记〕
+Status Note: 2 工单（5.6-W-04 = CS-001 主 + CS-R2-001 吸收 + C6-CL-031 别名闭环；6.3-W-03 独立 P1）全部 live 落地，经独立 closure audit APPROVED；9 条新钉均有先红后绿证据（红① 编译期 + 代核行为双形态红证、红③④ 门下计数构造性红，总册 `_tmp/red-green-2530-summary.md`）；PA 零越界（产品 diff 仅 3 文件；CodeIndexService/ShardBuildCoordinator 零触碰）；owner doc 与锚点行号精确；E1/E3/分解通道验收留痕。2 Minor（`_cases` 入库、冷却 Error 面 watch-only 注释）随收口处置。批内无剩余 plan-owned work。
+Completed: 2026-11-03
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: 〔待独立 closure audit 子 agent 填记——fresh session，不复用实现 session〕
-- Evidence: 〔每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源；双门禁退出码；Anti-Hollow 检查结果〕
+- Reviewer / Agent: 独立 closure 审计子 agent（fresh session，只读）
+- Audit Session: agent_e9a1d9e2-bce6-4680-924b-65895d791881（@ `69969790bc`，基线 `1f043a2e10`）
+- Evidence:
+  - 工单 live 核验逐条 PASS：LeidenDetector runWithTimeout :222-259（daemon :225/WARN :233/cancel(false) :238/:244/解包 :246-256；detect "LEIDEN" :96-103 零 diff）；CodeGraphService sink :771-776/常量 :72/diffGraph target :527-531；GraphMetricMaterializer 门 :128-133/冷却窗 :135-140/:162/:166/:169/缺省 :87/setter :90-96。
+  - Anti-Hollow PASS：6 触发点全经 materialize 唯一收口（grep 实证 :118/:203/:339/:443/:727/:111）；守卫生产路径生效；审计员亲跑实测捕获结构化 WARN 11 处。
+  - 测试 PASS：9 钉带工单号、计数点全在门之下（覆写 communityRows，零处覆写 materialize）、零 mockito 全手工代理；红/变异日志抽查与总册逐字一致；审计员亲跑 nop-graph-core 40 + nop-code-service 296 tests 0F0E（`_tmp/audit-2530-verify.log`/`-summary.log`）。
+  - PA PASS：14 文件 diff 全量核对——零 api 叶/orm/`_` 生成物/平台设施/CodeIndexService 与 ShardBuildCoordinator 产品码/8.39 与 8.71 范围；既有测试零修改（test 树 diff=3 个全新文件）；条件申报①–④未触发。
+  - Owner doc PASS：nop-code.md 契约节、nop-duckdb.md 镜像段+重复句清理、LEIDEN-CC-001/CODEGRAPH-CC-001 锚点 ±2 全中；docs-for-ai 零 ai-dev 直链。
+  - Deferred 诚实性 PASS（标签透传/writer 面阻塞获取均为诚实 follow-up，非 in-scope defect 降级）。
+  - 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2530-cra-phase8.37-r3-07-leiden-cross.md --strict` EXIT=0；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
+  - Minor 处置：两个 nop-code-service `_cases` 空录制目录随本收口 commit 入库（nop-file-dao W01 目录不属本批未带入）；冷却 Error 面 watch-only 注释归后续触碰该文件时补。
 
 Follow-up:
 
-- 〔待 closure audit 后填记——只记录 non-blocking follow-up；confirmed live defect 不得出现在这里〕
+- 标签透传可观测变更评估（GraphQL DTO/GRAPH_SUMMARY 持久值）；writer 面阻塞获取变体（row5/row6 residual 收敛）；GraphExporter 错误码字面量收敛；其余 Non-Blocking Follow-ups 节所列项。无 confirmed live defect 遗留。
