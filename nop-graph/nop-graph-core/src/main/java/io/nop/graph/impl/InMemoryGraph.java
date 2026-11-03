@@ -15,7 +15,10 @@ import io.nop.graph.api.IGraph;
 /**
  * 内存图实现。内部使用 HashMap 存储出边和入边。
  *
- * 这是同步线程安全的实现。
+ * 这是结构级线程安全的实现：结构操作（增删点边/快照读）线程安全；返回列表中的
+ * Edge 元素为共享实例（防御拷贝仅拷贝列表），Edge 字段（含 attrs）的跨线程可见性
+ * 由 {@link Edge} 自身契约保证（attrs 为 volatile，见 nop-graph-api Edge javadoc
+ * 可见性契约）——本类的 synchronized 不覆盖 Edge 字段级读写。
  */
 public class InMemoryGraph implements IGraph {
 
