@@ -243,8 +243,27 @@ public class DuckDbEngine implements IDuckDbEngine {
      * try-with-resources 消费链）关闭包装即在锁内 untrack + 文件注册表 refs 释放，双载体
      * 账本随连接生命周期闭合，跨 engine 重开不再命中残留指纹（100% 假阳性
      * ERR_DUCKDB_CONFIG_CONFLICT 误拒面同批闭合）。
+     *
+     * <p>5.6-W-02 世代守卫（设计裁定①）：{@code closed} 状态在本 monitor（与 {@link #close()}
+     * /{@link #untrack} 同锁）内于入账前复查——openMemory/openFile 双入口的连接唯一入队点
+     * 即此处，checkClosed() 通过后 close 完成的交错被一处封死。命中按「先关闭、后拒绝」
+     * 处置：safeCloseObject 关闭原连接（失败仅记日志显式可见）→ filePath != null 时归还
+     * OPEN_FILES refs（registerOpen 先于 track 的窗口由此覆盖）→ WARN 记录守卫命中
+     * （停机竞态信号）→ 抛 ERR_DUCKDB_ENGINE_CLOSED + bizFatal。守卫拒绝的连接不构造
+     * TrackedConnection、不进入 connections 账本、不构造包装——无包装泄漏、无重复记账。
      */
     private synchronized Connection track(Connection conn, String normalizedFilePath) {
+        if (closed) {
+            IoHelper.safeCloseObject(conn);
+            if (normalizedFilePath != null) {
+                releaseOpen(normalizedFilePath);
+            }
+            LOG.warn("nop.duckdb.engine-closed-late-connection: filePath={} "
+                            + "(connection raced with engine close; closed and rejected)",
+                    normalizedFilePath == null ? "<memory>" : normalizedFilePath);
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_ENGINE_CLOSED)
+                    .bizFatal(true);
+        }
         TrackedConnection tc = new TrackedConnection(conn, normalizedFilePath);
         connections.add(tc);
         return new BridgeConnection(this, conn, normalizedFilePath, tc);

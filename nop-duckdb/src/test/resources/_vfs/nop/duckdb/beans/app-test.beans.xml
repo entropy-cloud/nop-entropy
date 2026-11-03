@@ -11,6 +11,11 @@
         <property name="engine" ref="nopDuckDbEngine"/>
     </bean>
 
+    <!-- 5.6-W-03 replay regression: first attempt commits the CTAS, then fails recoverably -->
+    <bean id="testCtasFlakyDuckDbStep" class="io.nop.duckdb.TestCtasFlakyStep">
+        <property name="engine" ref="nopDuckDbEngine"/>
+    </bean>
+
     <!-- test-only wrapper throwing the permanent file-locked error on first attempt -->
     <bean id="testFileLockedStep" class="io.nop.duckdb.TestFileLockedStep">
         <property name="engine" ref="nopDuckDbEngine"/>

@@ -44,6 +44,16 @@ import java.util.Map;
  *
  * <p>Statelessness: this bean is a shared singleton - execute() must not keep
  * connection/statement state on the instance.
+ *
+ * <p><b>Replay idempotency contract (5.6-W-10, plan 2529 ruling 7)</b>: on a persistent
+ * {@code dbPath} a step can be re-executed by the {@code <retry>} decorator or by task
+ * recovery/resume replay. Caller-provided {@code sql} must therefore be replay-idempotent
+ * (e.g. {@code CREATE TABLE ... IF NOT EXISTS}, or a caller-owned DROP+CREATE pair).
+ * Non-idempotent DDL fails permanently when a kill/replay lands inside its commit window,
+ * and the surfaced io-failed wrapping masks the root cause. The {@code resultTable} path is
+ * the module-side exception: it is guarded (same-named table at entry rejects with
+ * {@code table-exists} + bizFatal, see {@link #materialize}) - it refuses to replay instead
+ * of requiring caller idempotency.
  */
 public class DuckDbSqlTaskStep extends AbstractTaskStep {
     public static final String STEP_TYPE_DUCKDB_SQL = "duckdb-sql";
@@ -120,9 +130,27 @@ public class DuckDbSqlTaskStep extends AbstractTaskStep {
 
     /**
      * Materialize the SQL result into a table; the created row count is reported exactly.
+     *
+     * <p>Replay guard (5.6-W-03, plan 2529 ruling 2): a persistent resultTable is created by
+     * exactly one successful execution. If a same-named table already exists at entry, the
+     * step was killed/replayed after a previous CTAS committed (orphan or stale working set)
+     * - the step fails fast with {@code table-exists} + bizFatal, the same contract as the
+     * ingest path. Callers must clean up explicitly (DROP the table or use a fresh dbPath);
+     * the guard deliberately does not rebuild silently, because a silent rebuild would
+     * discard the previous artifact and mask replay divergence of non-deterministic SQL.
+     * bizFatal also short-circuits the retry chain: blindly replaying the CTAS against the
+     * same orphan table can never succeed.
      */
     private long materialize(Connection conn, String sql, List<Object> params, String resultTable)
             throws SQLException {
+        if (DuckDbFiles.tableExists(conn, resultTable)) {
+            // NopDuckDbException is a RuntimeException: it passes through the execute-level
+            // catch(SQLException) unwrapped, keeping the guard's error code and bizFatal flag
+            // visible to the retry decorator
+            throw (NopException) new NopDuckDbException(NopDuckDbErrors.ERR_DUCKDB_TABLE_EXISTS)
+                    .param(NopDuckDbErrors.ARG_TABLE_NAME, resultTable)
+                    .bizFatal(true);
+        }
         String ctas = "CREATE TABLE " + DuckDbFiles.quoteIdentifier(resultTable) + " AS (" + sql + ")";
         try (PreparedStatement ps = conn.prepareStatement(ctas)) {
             bindParams(ps, params);

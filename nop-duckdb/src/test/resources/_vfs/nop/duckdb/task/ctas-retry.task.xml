@@ -1,0 +1,15 @@
+<task version="1" x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <simple name="ctas_sql" bean="testCtasFlakyDuckDbStep" timeout="60000">
+            <input name="sql" value="SELECT 41 AS v UNION ALL SELECT 1 AS v"/>
+            <input name="dbPath" value="${dbPath}"/>
+            <input name="resultTable" value="${resultTable}"/>
+            <retry maxRetryCount="3" retryDelay="0"/>
+            <output name="rowCount" exportAs="rowCount"/>
+        </simple>
+    </steps>
+
+    <output name="rowCount">
+        <source>rowCount</source>
+    </output>
+</task>
