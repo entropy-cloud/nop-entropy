@@ -179,23 +179,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-duckdb+nop-graph（+nop-code）聚合全量测试；`docs-for-ai/03-modules/nop-duckdb.md`；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/01-repo-map/module-groups.md`（核对）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2528 先例快速通道支路声明；聚焦覆盖 = E3 三通道+分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-duckdb -am` + `./mvnw test -pl nop-graph -am` + `./mvnw test -pl nop-code -am` 三通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕；如载体分支零触碰 nop-code，消费通道以分解通道 nop-code 段等价验收并登记）+ 等价分解通道 `./mvnw -o test -pl nop-duckdb,nop-graph,nop-code`（无 -am）BUILD SUCCESS 等价验收（707+新钉 0F0E；14S 签名比对）〔Phase 3 实录：待回填〕
-- [ ] Owner doc 落账：`nop-duckdb.md` 增补「并发与资源契约」节（close 竞态世代守卫与 ENGINE_CLOSED 拒绝语义[W-02] + CTAS 守卫与 resultTable 生命周期语义[W-03] + xlsx 桥接临时文件配对与 deleteOnExit 移除声明[W-05] + 重放幂等契约与 caller-SQL 幂等例外[W-10——resume 节 drift 收敛] + Betweenness 超时语义边界[W-08 消费面声明]；错误码表 engine-closed/table-exists 行核对；测试入口计数更新）；`source-anchors.md` 新增锚点行（DUCKDB-CC-001/GRAPH-CC-001 候选，修复后 live 行号亲读核实）；`module-groups.md` :24 nop-graph 行核对登记（缺口声明随 R-G 落点——最小同步零契约复制）；nop-graph owner doc 缺口声明在 plan Closure 与 roadmap 行内注记登记（E5 缺口声明形态——沿 8.30/8.34 先例）〔Phase 3 实录：待回填〕
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-duckdb`/`--module nop-graph-core`（+`nop-code-core` 如触达）逐模块 EXIT=0（`_tmp/scan-hollow-2529-*.log`；模块级既有面如 EXIT=1 按 2527 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2528 先例快速通道支路声明；聚焦覆盖 = E3 三通道+分解通道）〔兑现：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/e1-full-2529.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-duckdb -am` + `./mvnw test -pl nop-graph -am` + `./mvnw test -pl nop-code -am` 三通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕；如载体分支零触碰 nop-code，消费通道以分解通道 nop-code 段等价验收并登记）+ 等价分解通道 `./mvnw -o test -pl nop-duckdb,nop-graph,nop-code`（无 -am）BUILD SUCCESS 等价验收（707+新钉 0F0E；14S 签名比对）〔Phase 3 实录：待回填〕〔兑现：`nop-graph -am` BUILD SUCCESS EXIT=0（全上游链绿）；`nop-duckdb -am` 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2529-r{1,2,3}.log`→负载 flake）；`nop-code -am` 阻断于已知面③ nop-auth-service `TestOperationMfaE2E` TOTP（solo 7/18 errors 恒红 `_tmp/e3-solo-mfa-2529.log`，错误基数逐轮波动 5–7 与 2525/2526/2528 先例同签名）；本批 nop-kernel/nop-auth 零 diff；等价分解通道 719 tests 0F0E 14S（`_tmp/decomposed-2529.log`）〕
+- [x] Owner doc 落账：`nop-duckdb.md` 增补「并发与资源契约」节（close 竞态世代守卫与 ENGINE_CLOSED 拒绝语义[W-02] + CTAS 守卫与 resultTable 生命周期语义[W-03] + xlsx 桥接临时文件配对与 deleteOnExit 移除声明[W-05] + 重放幂等契约与 caller-SQL 幂等例外[W-10——resume 节 drift 收敛] + Betweenness 超时语义边界[W-08 消费面声明]；错误码表 engine-closed/table-exists 行核对；测试入口计数更新）；`source-anchors.md` 新增锚点行（DUCKDB-CC-001/GRAPH-CC-001 候选，修复后 live 行号亲读核实）；`module-groups.md` :24 nop-graph 行核对登记（缺口声明随 R-G 落点——最小同步零契约复制）；nop-graph owner doc 缺口声明在 plan Closure 与 roadmap 行内注记登记（E5 缺口声明形态——沿 8.30/8.34 先例）〔Phase 3 实录：待回填〕〔兑现（owner doc 落账完成，待 Phase 3 其余门禁后勾选）：`nop-duckdb.md` 新增「并发与资源契约」节（引擎 open/close 竞态世代守卫——先关闭后拒绝/账本零滞留/monitor 内慢关闭已知代价；resultTable 唯一一次成功执行创建+同名 TABLE_EXISTS bizFatal 拒绝不静默重建+resume/重试行为声明；xlsx 桥接临时文件 finally 配对+deleteOnExit 移除+硬杀残留接受度；caller-SQL 重放幂等契约；Betweenness 超时语义边界消费面声明——配置键/缺省 30000/≤0 显式关闭档/超时仅放弃等待 daemon 后台/两错误码/异常解包/nop-graph 无独立 owner doc 缺口声明）+ 错误码表 engine-closed/table-exists 行触发面核对 + task step resume 节幂等例外声明（drift 收敛）+ readXlsx 入口行配对语义 + 测试入口计数 62→67；`source-anchors.md` 新增 `DUCKDB-CC-001`（:116）/`GRAPH-CC-001`（:117）两行——插于 META-CC-001 之后、ORM-ORCH-001 之前，行号 live 亲读（track 守卫 :255-266/materialize 守卫 :146-152/tableExists :202/readXlsx finally :100/Edge volatile :31/PageRank 预计算 :47-49/:74/Betweenness 常量 :53·配置 :57·daemon :103·两码 :113/:120·解包 :132/NopGraphErrors :18/:29），裁定权威以文字指称 AI 开发记录区 concurrency 设计集（无直链）；`module-groups.md` nop-graph 行最小同步（缺口登记随 R-G + GRAPH-CC-001/nop-duckdb 消费面声明指引——零契约复制）+ nop-duckdb 行核对结论（owner doc 在案、行描述仍准确、契约 SSOT 在 owner doc 节内零重复）；落点裁定：plan 既定 nop-graph 契约载体=设计文档裁定④⑤⑥+GRAPH-CC-001 锚点+module-groups 同步（未采 nop-code.md 新增节——nop-code 为消费方非 owner）；规范性写法核对（无 plan/审计/工单编号与历史叙事）+ U+FFFD grep 零命中 + check-doc-links --strict EXIT=0（0 errors，2 warnings 为无关历史 plan 既有面）；未 commit（待统一提交）〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-duckdb`/`--module nop-graph-core`（+`nop-code-core` 如触达）逐模块 EXIT=0（`_tmp/scan-hollow-2529-*.log`；模块级既有面如 EXIT=1 按 2527 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）〔兑现：check-doc-links --strict EXIT=0；scan-hollow nop-duckdb/nop-graph-api/nop-graph-core 逐模块 EXIT=0 High=0（`_tmp/scan-hollow-2529-*.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记——三通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
-- [ ] nop-duckdb.md 增补节 + resume 幂等例外 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.37 边界面零 diff]、批外工单零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——三通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明〔兑现：`nop-graph -am` BUILD SUCCESS EXIT=0（全上游链绿）；`nop-duckdb -am` 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2529-r{1,2,3}.log`→负载 flake）；`nop-code -am` 阻断于已知面③ nop-auth-service `TestOperationMfaE2E` TOTP（solo 7/18 errors 恒红 `_tmp/e3-solo-mfa-2529.log`，错误基数逐轮波动 5–7 与 2525/2526/2528 先例同签名）；本批 nop-kernel/nop-auth 零 diff；等价分解通道 719 tests 0F0E 14S（`_tmp/decomposed-2529.log`）〕
+- [x] nop-duckdb.md 增补节 + resume 幂等例外 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.37 边界面零 diff]、批外工单零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
