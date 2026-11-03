@@ -267,6 +267,7 @@ Mission Driver 的 closed loop 按**文档顺序**取第一个 `todo` 工作项�
 
 **MG — 持续 guard 激活与知识沉淀**（依赖 MV）
 - 新发现的失败模式提升为 `ai-dev/lessons/`
+- **收官 bugs/lessons 盘点**：盘点全程是否产出需要记录的 bugs 与 lessons——已修复的非平凡缺陷按 `ai-dev/bugs/00-bug-fix-note-writing-guide.md` 落 bug note，可复用教训落 `ai-dev/lessons/`；写入前先对 `ai-dev/bugs/`、`ai-dev/lessons/` 既有条目查重，禁止重复入册；盘点结论（含"无可记录"）写进收官日志
 - 重复审计维度若稳定，提升为 `ai-dev/skills/` 或更新现有技能
 - 更新 `docs-for-ai/` 相关文档
 
@@ -484,6 +485,7 @@ graph LR
 - **状态准确**。初始全 `todo`，不得预填 `ready` 或 `done`
 - **里程碑无状态**
 - **AI 不重新仲裁优先级**
+- **收官 bugs/lessons 盘点**：roadmap 收官（全部工作项 `done`）时，盘点全程是否有需要记录的 bugs 与 lessons——已修复非平凡缺陷按 `ai-dev/bugs/00-bug-fix-note-writing-guide.md` 入册，可复用教训落 `ai-dev/lessons/`；写入前对既有条目查重，禁止重复入册；盘点结论（含"无可记录"）写进收官日志
 
 ## 步骤 7 — 生成 mission.json
 
