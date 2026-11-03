@@ -167,3 +167,21 @@ The `column` column is nullable (`mandatory` not set, defaults to nullable). In 
 - **增量索引失败文件语义**：`triggerIncrementalIndex` 先对全部 changed 文件做分析、再删除并写回；无法分析的文件（无 analyzer / 资源缺失 / 分析抛异常 / 分析返回 null）不删除旧记录、不写新指纹（旧 `NopCodeFile` 指纹行保留），因此下一次增量会重新检出并重试。返回值为**成功持久化**的文件数；失败以 WARN 可观测。
 - **文件记录删除的索引作用域**：`deleteFileRecords` 删除 `NopCodeDependency` 时同时按 `indexId` 过滤——同一仓库/文件路径被多个索引覆盖时，删除某一索引不会波及另一索引的依赖边（call/symbol/usage 经 `generateFileId(indexId, path)` 生成 ID，天然具备索引作用域）。
 - **失败文件与本轮重分析文件的关系**：N3.1-s 依赖边快照/重绑作用域限于「成功重分析文件 ∪ 已删除文件」；失败文件的符号与边保留原状，不纳入重建集合。
+
+## 图分析并发与资源契约
+
+本节是 nop-code 图指标物化与自愈、社区检测守卫、Leiden 超时消费面的规范声明（图分析算法本体在独立顶层模块 `nop-graph/`，见节首说明）。裁定权威 = AI 开发记录区 concurrency 设计集 leiden-timeout-envelope-and-code-graph-self-heal-singleflight-guard-contract.md（按文档边界规则此处不直接链接）；实现锚点见 `../04-reference/source-anchors.md` 的 `CODEGRAPH-CC-001` 与 `LEIDEN-CC-001`（LeidenDetector 本体在 nop-graph，无独立 owner doc——缺口声明随 R-G 治理，形态同 `nop-duckdb.md` Betweenness 段）。
+
+**社区检测节点规模守卫（skip-and-degrade）**：`CodeGraphService.runCommunityDetection` 本体内守卫，常量 `MAX_NODES_FOR_COMMUNITY_DETECTION = 10000`（包内可见**单源**——`GraphMetricMaterializer` 引用同一常量，禁第二常量漂移源；编译期常量非配置键，配置化为候选未实施）。节点数超限时 WARN 并返回**空 CommunityResult**——与 <2 节点短路分支同形（空社区集、totalCommunities=0、"LEIDEN" 字面量），detectCommunities 兜底、getKnowledgeGaps、exportGraph 社区视图、diffGraph target 侧 4 个调用面一处封死。`GraphMetricMaterializer.detectCommunities` 同守卫：超限返回 null → COMMUNITY/COMMUNITY_INFO 行缺失、GRAPH_SUMMARY 无算法字段，读路径经既有 assemble→null→内存兜底链降级；守卫只降级社区族，BETWEENNESS/PAGE_RANK/HUB/ENTRY_POINT 族不受影响（BETWEENNESS 另有同族 10⁴ 守卫）。`diffGraph` 双侧对称早退：baseline 或 target 任一侧符号表超限 → WARN + 空 `GraphDiffDTO`（空 diff 形态：DTO 集合字段为未初始化 null，语义即「无 diff 上报」）。**生产行为声明**：超限图不再计算 Leiden（此前照常计算、60s 超时仅兜挂死不兜内存峰值），现行为空结果 + WARN 可观测；消费方补救路径 = 缩减节点集。
+
+**Leiden 超时包络（消费面契约）**：Leiden 超时由 `LeidenConfig.timeoutMs` 承载（nop-graph-api 既有字段，缺省 30000ms，无新增配置键）；本模块生产调用显式 `setTimeoutMs(60000)`（内存兜底计算与 materializer 同值）。`timeoutMs <= 0` = 同步直跑（调用方显式传参面）。**语义边界**：底层 CWTS Leiden 计算不可中断，超时仅为放弃等待 + 既有 LabelPropagation 降级——放弃后计算在后台一次性 daemon 工作线程（`nop-graph-leiden-` 前缀命名，与 Betweenness 设施同纪律、独立实例不共享）继续至自然结束（不阻塞 JVM 退出、无线程池驻留、按名可辨识），放弃后计算自身的失败不再上报。超时路径 WARN（`nop.graph.leiden-timeout` 结构化标签，含放弃等待时长与节点规模）。**降级结果的可观测标签维持既有行为**：`algorithmUsed` 恒为 "LEIDEN" 字面量（detect 出口无条件以该字面量重建结果）——「超时降级后仍报 LEIDEN」为登记在案的既有行为，标签透传如需变更属可观测行为面，须先评估 GraphQL DTO 与 GRAPH_SUMMARY 持久值消费方。两处显式修正点（相对旧实现的语义收窄）：任务体 Error（如 OOM）不再被吞入降级路径而是原样逃逸；等待线程被中断时恢复中断标志 + 取消任务 + 上抛（终点仍为既有降级）。包络范围仅 `findClustering`（图转换与 cohesion 计算在调用线程）。
+
+**图指标物化单飞 + 失败退避（materialize 收口门）**：`GraphMetricMaterializer.materialize` 是全部自愈/触发面的**唯一收口**——6 个触发点全部经该入口，门在此一处封死、各触发点调用面零改动。单飞形态 = per-index `tryLock` 非阻塞试探 + skip-and-degrade：同索引物化进行中时，后到触发**立即返回**（结构化 WARN `nop.code.graph-metrics-skip:indexId=...,reason=in-progress`，非静默跳过）——赢家正在计算的正是输家想要的结果，输家读路径经既有内存兜底/陈旧返回降级；非阻塞试探结构上无等待环，`ShardBuildCoordinator` 事务内调用兼容（其直接 new 装配形态不受影响），`triggerFullIndex` 物化成功语义零变化。失败退避：门内计算体异常出体时记录 per-index 冷却截止时刻并原样重抛（调用方 catch 链不变，首因可观测不变）；冷却窗缺省 **30000ms**（实例字段 + 包内可见 setter——materializer 为 direct-new 装配非 IoC bean；与 `nop.code.rebuild.debounce-millis` 家族同值非同源），窗内后续触发跳过（WARN `reason=cooldown-active`）不重试计算体；**冷却只作用于失败路径**——计算体成功即清除该索引失败记录，正常重建永不被历史失败窗口压制。
+
+**6 触发点与逐点降级语义**：detectCommunities、getGraphAnalysis、ensureMaterializedForGraphMetrics（getSurprisingConnections / getExplorationQuestions / exportGraphWiki 三入口共用）、getCriticalNodes、`materializeGraphMetrics`（biz 面 `triggerFullIndex` 直通）、ShardBuildCoordinator 发布路径——全经 materialize 收口。门竞争失败（skip）后的消费面降级：detectCommunities / getGraphAnalysis / getCriticalNodes → 物化行缺失 → assemble null → 内存计算兜底（受上述规模守卫约束）；ensureMaterializedForGraphMetrics → 读空/陈旧行走三个分析器既有降级流（与物化失败同链）。
+
+**Residual（显式声明，非静默降级）**：
+
+- **row5 有界陈旧性（triggerFullIndex 面）**：`triggerFullIndex` → `materializeGraphMetrics` 在门竞争下 skip 时，本次触发的重算不执行——陈旧指标保留至下一次索引变更（invalidate 删行后下一次读自愈重算）；与既有失败吞没语义同 blast radius。
+- **row6 最终一致收敛界（shard 发布面）**：`ShardBuildCoordinator` 发布路径（completeShard → finalizeIfAllCompleted → materialize）在门被占用时 skip：发布事务原子性不变（status 翻转照常提交），「published ⇒ fully scored」在该竞争窗口退化为**最终一致**——收敛上界 = 在途物化的剩余时长；在途物化失败时 = 失败冷却窗 + 下一次读触发。发布侧 skip 可观测（`reason=in-progress` WARN）。ShardBuildCoordinator 内既有代码注释（published 即 fully scored）零改动，本条为准。
+

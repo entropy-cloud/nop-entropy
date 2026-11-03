@@ -158,23 +158,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-graph+nop-code 聚合全量测试；`docs-for-ai/03-modules/nop-code.md`；`docs-for-ai/03-modules/nop-duckdb.md`；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/01-repo-map/module-groups.md`（核对）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2529 先例快速通道支路声明；聚焦覆盖 = E3 双通道+分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-code -am` + `./mvnw test -pl nop-graph -am` 双通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-graph,nop-code`（无 -am）BUILD SUCCESS 等价验收（652+新钉 0F0E；14S 签名比对）
-- [ ] Owner doc 落账：`nop-code.md` 增补「图指标物化与自愈契约」节（单飞/退避语义+6 触发点口径+社区检测守卫 skip-and-degrade 语义+生产行为变更声明+Leiden 消费面超时边界；与 :23 图分析能力声明衔接核对；**+裁定② row5/row6 residual 义务[设计评审 R1 Major-1]：row5 有界陈旧性、row6 最终一致收敛界[在途物化剩余时长为上界；在途失败时冷却窗+下一次读触发]与 ShardBuildCoordinator :109-110 注释勘正承载**）；`nop-duckdb.md`「并发与资源契约」节增补 Leiden 超时与降级语义边界（与 Betweenness 节同宿主——nop-graph 无 owner doc 缺口声明随 R-G 维持）；`source-anchors.md` 新增锚点行（CODEIDX-CC-001/GRAPH-CC-002 候选，修复后 live 行号亲读核实）；`module-groups.md` nop-graph 行核对登记（最小同步零契约复制）；check-doc-links `--strict` EXIT=0
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-graph-core`/`--module nop-code-service` 逐模块 EXIT=0（`_tmp/scan-hollow-2530-*.log`；模块级既有面如 EXIT=1 按 2527/2529 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2529 先例快速通道支路声明；聚焦覆盖 = E3 双通道+分解通道）〔兑现：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/e1-full-2530.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-code -am` + `./mvnw test -pl nop-graph -am` 双通道各执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-graph,nop-code`（无 -am）BUILD SUCCESS 等价验收（652+新钉 0F0E；14S 签名比对）〔兑现：`nop-graph -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2530-r{1,2,3}.log`，负载 flake）；`nop-code -am` EXIT=1 阻断于已知面③ nop-auth-service `TestOperationMfaE2E` TOTP（solo 7/18 errors 恒红 `_tmp/e3-solo-mfa-2530.log`，先例同签名）；本批 nop-kernel/nop-auth 零 diff；等价分解通道 661 tests 0F0E 14S（`_tmp/decomposed-2530.log`）〕
+- [x] Owner doc 落账：`nop-code.md` 增补「图指标物化与自愈契约」节（单飞/退避语义+6 触发点口径+社区检测守卫 skip-and-degrade 语义+生产行为变更声明+Leiden 消费面超时边界；与 :23 图分析能力声明衔接核对；**+裁定② row5/row6 residual 义务[设计评审 R1 Major-1]：row5 有界陈旧性、row6 最终一致收敛界[在途物化剩余时长为上界；在途失败时冷却窗+下一次读触发]与 ShardBuildCoordinator :109-110 注释勘正承载**）；`nop-duckdb.md`「并发与资源契约」节增补 Leiden 超时与降级语义边界（与 Betweenness 节同宿主——nop-graph 无 owner doc 缺口声明随 R-G 维持）；`source-anchors.md` 新增锚点行（CODEIDX-CC-001/GRAPH-CC-002 候选，修复后 live 行号亲读核实）；`module-groups.md` nop-graph 行核对登记（最小同步零契约复制）；check-doc-links `--strict` EXIT=0〔兑现（owner-doc 落账实录，**暂不勾选**——E1/-am 通道/scan-hollow 等其余 Phase 3 项另行执行后统一收口）：①`nop-code.md` 新增「图分析并发与资源契约」节（节名按执行指令扩展 plan 拟名「图指标物化与自愈契约」——同一义务面：Leiden 超时[LeidenConfig 缺省 30000/生产显式 60000+daemon 工作线程 nop-graph-leiden- 前缀+超时 WARN 后降级 LabelPropagation 但结果标签维持 "LEIDEN" 字面量的既有行为声明+Error 逃逸/中断标志恢复两显式修正点+timeoutMs≤0 同步直跑]、MAX_NODES 守卫[>10⁴ 空社区结果/不物化 COMMUNITY 与 <2 同形+生产行为声明]、materialize 收口单飞[reason=in-progress WARN]+失败冷却窗[30000 缺省/成功清窗]、6 触发点逐点降级语义、row5 有界陈旧性与 row6 published⇒scored 竞争下最终一致[收敛上界=在途物化剩余时长；在途失败=冷却窗+下一次读]两 residual+ShardBuildCoordinator 既有注释勘正承载——规范性写法零 plan/工单编号零历史叙事）；②`nop-duckdb.md` 最小改动=「并发与资源契约」节新增 Leiden 超时与降级语义边界段（与 Betweenness 段同宿主镜像：LeidenConfig 缺省 30000+daemon 同纪律独立实例+超时仅放弃等待+零新错误码走设计内降级与 Betweenness bizFatal 形态有意差异论证+标签 LEIDEN 既有行为+消费面指向 nop-code.md 契约节）；随插入点清理 Betweenness 段末尾既有误粘重复句[「重放幂等例外」与 task step 节逐字重复，本体在 task step 节保留零损失]；③`source-anchors.md` 新增两锚点行插 `GRAPH-CC-001` 之后——**锚点命名偏差登记**：plan 候选 CODEIDX-CC-001/GRAPH-CC-002 → 实落 `LEIDEN-CC-001`（LeidenDetector 本体）+`CODEGRAPH-CC-001`（nop-code 守卫/单飞面），与同表 DUCKDB-CC-001/GRAPH-CC-001 命名惯例一致；live 行号亲读回读（LeidenDetector :31-47/:56/:101/:129-134/:153-157/:222-259；CodeGraphService :67-72/:510-514/:527-531/:766-778+触发点 :118/:203/:339/:443；GraphMetricMaterializer :63/:77/:85-96/:128-140/:162-171/:189-195/:202/:261-265）；裁定权威以文字指称（docs-for-ai 禁直链 ai-dev/ 维持）；④`module-groups.md` nop-graph 行最小同步（锚点双列+两设计集+两消费面指向，零契约复制）；⑤`check-doc-links --strict` EXIT=0（0 errors，2 warnings 为无关历史 plan 既有面）；写入面 U+FFFD grep 零命中〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-graph-core`/`--module nop-code-service` 逐模块 EXIT=0（`_tmp/scan-hollow-2530-*.log`；模块级既有面如 EXIT=1 按 2527/2529 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）〔兑现：check-doc-links --strict EXIT=0；scan-hollow nop-graph-core/nop-code-service 逐模块 EXIT=0 High=0（`_tmp/scan-hollow-2530-*.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
-- [ ] nop-code.md 增补节 + nop-duckdb.md Leiden 边界声明 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.39/8.71 边界面零 diff]、批外工单零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——双通道至首个阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明〔兑现：`nop-graph -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2530-r{1,2,3}.log`，负载 flake）；`nop-code -am` EXIT=1 阻断于已知面③ nop-auth-service `TestOperationMfaE2E` TOTP（solo 7/18 errors 恒红 `_tmp/e3-solo-mfa-2530.log`，先例同签名）；本批 nop-kernel/nop-auth 零 diff；等价分解通道 661 tests 0F0E 14S（`_tmp/decomposed-2530.log`）〕
+- [x] nop-code.md 增补节 + nop-duckdb.md Leiden 边界声明 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.39/8.71 边界面零 diff]、批外工单零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
