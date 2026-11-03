@@ -129,28 +129,28 @@
 
 ### Phase 1 - duckdb 生命周期竞态/CTAS 守卫/图算法包络/Edge 契约并发设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed
 Targets: `ai-dev/design/concurrency/duckdb-engine-race-ctas-guard-graph-envelope-and-edge-attrs-contract.md`（新建）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **裁定① W-02 track 世代守卫（缺保护 P10-P1-2 面随同 diff）**：track 锁内复查 closed 完整交错封死论证（openMemory/openFile 双入口 × close 全时序矩阵）；命中路径次序定夺（safeCloseObject → filePath!=null 时 releaseOpen → 抛 ERR_DUCKDB_ENGINE_CLOSED）与 BridgeConnection 兼容细节（守卫作用于原连接、不触发重复记账、safeCloseObject 失败日志面）；接口文本零改动边界声明（L16 修复在实现侧——javadoc 运行时语义注记采否）；W-01 钉零回退清单（TestDuckDbLedgerCloseBridge_W_01/TestDuckDbEngine :84-98/:130-155/:151-154）；红① latch 缝时序稳定性设计（BrokenNativeEngine :197-199 缝复用、间歇红容忍与声明）
-  - [ ] **裁定② W-03 CTAS 守卫（W-10 声明面随单）**：方案 (a) 前置 tableExists+bizFatal（预设）vs 方案 (b) DROP IF EXISTS 定夺（「每次重建」契约+误删面论证）；resultTable 生命周期语义界定（步内重试重放 vs 多步合法重复物化——resume.task.xml verify 步持久前提）；tableExists 复用形态（包内可见性提升 vs 等效查询）；RetryPolicy/`<retry>`/execute catch :114-117 零触碰声明；红②a/红②b 形态（**红②b 断言写死[评审 Minor-4]**：首执行 executeUpdate 成功后抛可恢复异常 → `<retry>` 第 2 次重放**命中守卫** → `ERR_DUCKDB_TABLE_EXISTS`+bizFatal → 任务终态 **FAILED、零后续重试、孤儿表留存待显式清理**——NopDuckDbException 为 RuntimeException 穿透 `DuckDbSqlTaskStep` :114 `catch(SQLException)` 不被包装为 IO_FAILED）；**W-10 声明面文案**（materialize/executeSql javadoc 幂等契约 + owner doc resume 幂等例外——随同批交付）
-  - [ ] **裁定③ W-05 临时文件配对**：try/finally 合并形态（两段合一 vs try-with-resources 抽象）；deleteOnExit 移除后的兜底语义声明（JVM 异常退出残留面接受度——owner doc）；CS-003 子面收敛声明；红③ 形态（TestDuckDbFaultInjection :92 先例复制）
-  - [ ] **裁定④ W-06 Edge 可见性契约（nop-graph-api plan-first 专节）**：volatile+javadoc 组合预设 vs synchronized setAttrs 定夺；:13 契约收窄文案 + 可见性语义声明；InMemoryGraph 联动限定范围（impl 注释面——零行为 diff 论证）；**四件证据链成文**（本 plan PA 表/本节/立项 draft review/红④ 钉）+ 零签名变更/二进制兼容 migration 声明；owner-doc 缺口下的契约记录落点终判（预设=设计文档+module-groups 核对，不新建 owner doc——draft review 如推翻显式登记）；红④ 反射结构钉+压力弱断言形态
-  - [ ] **裁定⑤ W-07 邻接分配放大（双路径）**：outDegree 预计算形态（预计算时机/节点集边界/:49 轻症处置）；IGraph degree API 分支禁选声明（条件申报②）；CS-R2-003 载体分支采否（预设零触碰——消费侧消解论证；如采则 nop-code-core impl 叶最小形态）；CL-204 附注+CL-206 顺带覆盖文案；双路径计数钉形态（InMemoryGraph 计数代理 + 生产路径 TestGraphMetricMaterialization 零回退）
-  - [ ] **裁定⑥ W-08 Betweenness 超时（W-04 族 cross-ref）**：timeout 参数形态（overload vs 新签名——签名兼容论证）；**生产接线强制条款[评审 Major-1]**：两处生产调用方（GraphMetricMaterializer :190/CodeGraphService :971）均调 2 参 compute——2 参签名**缺省委托**带缺省 timeout 常量的 3 参路径（生产零调用方改动自动生效；缺省值与语义落 owner doc「Betweenness 超时语义边界」节；缺省超时=**生产行为变更**须声明——现网无超时→受缺省上界约束）；包装设施选型（NamedThreadFactory（nop-commons concurrent/thread）+ JDK 并发原语（ScheduledExecutorService/CompletableFuture.orTimeout）复用+daemon 保证——**防 W-04 同型幽灵线程自反**）；V×E 守卫组合采否；「底层 Brandes 不可中断」语义边界声明文案（C10 义务）；W-04 设施对齐软注记成文（对齐纪律第六条）；红⑥ 双入口形态（3 参 timeout≈0 + 2 参缺省约束断言）
-  - [ ] **测试缝与红①–红⑥驱动器表+零回退钉清单**：红①–红⑥ 测试形态逐条（全部构造性当前即红——无变异锚定/反向钉改写面声明）；零回退钉 = 勘误 4 基线（核心双模块 105 tests 0F0E 0S + 消费方 602 tests 14S 签名）+ 点名既有钉族（TestDuckDbLedgerCloseBridge_W_01/TestDuckDbEngine 三锚/TestDuckDbFiles ingest 守卫锚 :113-119/TestDuckDbSingleWriter 跨进程锁语义面/TestDuckDbFaultInjection :92/TestFlakyDuckDbStep/TestDuckDbResume/TestApiTypes :31-37/TestAlgorithms :158-203/TestCommunityAlgorithms :46-56/:89-107/TestGraphMetricMaterialization/TestShardBuildCoordinator :89-109[零触碰]）+ 14S 签名声明；C10 缺保护 6 缺陷面同 diff 映射表
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log（本 plan 自身的立项 draft review 先行或同轮完成——**该 review 同时是 W-06 四件链第三件**，两级 review 均登记）
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **裁定① W-02 track 世代守卫（缺保护 P10-P1-2 面随同 diff）**：track 锁内复查 closed 完整交错封死论证（openMemory/openFile 双入口 × close 全时序矩阵）；命中路径次序定夺（safeCloseObject → filePath!=null 时 releaseOpen → 抛 ERR_DUCKDB_ENGINE_CLOSED）与 BridgeConnection 兼容细节（守卫作用于原连接、不触发重复记账、safeCloseObject 失败日志面）；接口文本零改动边界声明（L16 修复在实现侧——javadoc 运行时语义注记采否）；W-01 钉零回退清单（TestDuckDbLedgerCloseBridge_W_01/TestDuckDbEngine :84-98/:130-155/:151-154）；红① latch 缝时序稳定性设计（BrokenNativeEngine :197-199 缝复用、间歇红容忍与声明）
+  - [x] **裁定② W-03 CTAS 守卫（W-10 声明面随单）**：方案 (a) 前置 tableExists+bizFatal（预设）vs 方案 (b) DROP IF EXISTS 定夺（「每次重建」契约+误删面论证）；resultTable 生命周期语义界定（步内重试重放 vs 多步合法重复物化——resume.task.xml verify 步持久前提）；tableExists 复用形态（包内可见性提升 vs 等效查询）；RetryPolicy/`<retry>`/execute catch :114-117 零触碰声明；红②a/红②b 形态（**红②b 断言写死[评审 Minor-4]**：首执行 executeUpdate 成功后抛可恢复异常 → `<retry>` 第 2 次重放**命中守卫** → `ERR_DUCKDB_TABLE_EXISTS`+bizFatal → 任务终态 **FAILED、零后续重试、孤儿表留存待显式清理**——NopDuckDbException 为 RuntimeException 穿透 `DuckDbSqlTaskStep` :114 `catch(SQLException)` 不被包装为 IO_FAILED）；**W-10 声明面文案**（materialize/executeSql javadoc 幂等契约 + owner doc resume 幂等例外——随同批交付）
+  - [x] **裁定③ W-05 临时文件配对**：try/finally 合并形态（两段合一 vs try-with-resources 抽象）；deleteOnExit 移除后的兜底语义声明（JVM 异常退出残留面接受度——owner doc）；CS-003 子面收敛声明；红③ 形态（TestDuckDbFaultInjection :92 先例复制）
+  - [x] **裁定④ W-06 Edge 可见性契约（nop-graph-api plan-first 专节）**：volatile+javadoc 组合预设 vs synchronized setAttrs 定夺；:13 契约收窄文案 + 可见性语义声明；InMemoryGraph 联动限定范围（impl 注释面——零行为 diff 论证）；**四件证据链成文**（本 plan PA 表/本节/立项 draft review/红④ 钉）+ 零签名变更/二进制兼容 migration 声明；owner-doc 缺口下的契约记录落点终判（预设=设计文档+module-groups 核对，不新建 owner doc——draft review 如推翻显式登记）；红④ 反射结构钉+压力弱断言形态
+  - [x] **裁定⑤ W-07 邻接分配放大（双路径）**：outDegree 预计算形态（预计算时机/节点集边界/:49 轻症处置）；IGraph degree API 分支禁选声明（条件申报②）；CS-R2-003 载体分支采否（预设零触碰——消费侧消解论证；如采则 nop-code-core impl 叶最小形态）；CL-204 附注+CL-206 顺带覆盖文案；双路径计数钉形态（InMemoryGraph 计数代理 + 生产路径 TestGraphMetricMaterialization 零回退）
+  - [x] **裁定⑥ W-08 Betweenness 超时（W-04 族 cross-ref）**：timeout 参数形态（overload vs 新签名——签名兼容论证）；**生产接线强制条款[评审 Major-1]**：两处生产调用方（GraphMetricMaterializer :190/CodeGraphService :971）均调 2 参 compute——2 参签名**缺省委托**带缺省 timeout 常量的 3 参路径（生产零调用方改动自动生效；缺省值与语义落 owner doc「Betweenness 超时语义边界」节；缺省超时=**生产行为变更**须声明——现网无超时→受缺省上界约束）；包装设施选型（NamedThreadFactory（nop-commons concurrent/thread）+ JDK 并发原语（ScheduledExecutorService/CompletableFuture.orTimeout）复用+daemon 保证——**防 W-04 同型幽灵线程自反**）；V×E 守卫组合采否；「底层 Brandes 不可中断」语义边界声明文案（C10 义务）；W-04 设施对齐软注记成文（对齐纪律第六条）；红⑥ 双入口形态（3 参 timeout≈0 + 2 参缺省约束断言）
+  - [x] **测试缝与红①–红⑥驱动器表+零回退钉清单**：红①–红⑥ 测试形态逐条（全部构造性当前即红——无变异锚定/反向钉改写面声明）；零回退钉 = 勘误 4 基线（核心双模块 105 tests 0F0E 0S + 消费方 602 tests 14S 签名）+ 点名既有钉族（TestDuckDbLedgerCloseBridge_W_01/TestDuckDbEngine 三锚/TestDuckDbFiles ingest 守卫锚 :113-119/TestDuckDbSingleWriter 跨进程锁语义面/TestDuckDbFaultInjection :92/TestFlakyDuckDbStep/TestDuckDbResume/TestApiTypes :31-37/TestAlgorithms :158-203/TestCommunityAlgorithms :46-56/:89-107/TestGraphMetricMaterialization/TestShardBuildCoordinator :89-109[零触碰]）+ 14S 签名声明；C10 缺保护 6 缺陷面同 diff 映射表
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log（本 plan 自身的立项 draft review 先行或同轮完成——**该 review 同时是 W-06 四件链第三件**，两级 review 均登记）〔设计评审 R1 PASS（agent_2fb5f225，fresh session @ `1dbb2d1767`，2026-11-03）：Blocker=0，3 Major + 7 Minor 修订闭环；**W-06 api 变更第二级 review PASS——四件证据链闭合**；修订随设计文档同 diff 落盘。**In-Scope 增补登记**：nop-graph-core 新增 `NopGraphErrors.java`（错误登记族——评审 Major-3，Phase 2 实现面）。〕
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新（`ai-dev/logs/2026/11-03.md` Phase 1 起草条目）
 
 Exit Criteria:
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定①含双入口交错封死论证与 BridgeConnection 兼容细节；裁定②含方案定夺、resultTable 语义界定与 W-10 文案；裁定③含合并形态与兜底声明；裁定④含四件证据链成文与 migration 声明；裁定⑤含载体分支定夺与双路径钉形态；裁定⑥含包装设施选型与语义边界文案；测试缝节（红①–红⑥驱动器表）含零回退钉全列
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑦全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定〔命名未调整——沿 Goals 拟名〕）
+- [x] 裁定①含双入口交错封死论证与 BridgeConnection 兼容细节；裁定②含方案定夺、resultTable 语义界定与 W-10 文案；裁定③含合并形态与兜底声明；裁定④含四件证据链成文与 migration 声明；裁定⑤含载体分支定夺与双路径钉形态；裁定⑥含包装设施选型与语义边界文案；测试缝节（红①–红⑥驱动器表）含零回退钉全列〔R1 修订闭环：裁定⑥增补异常/中断传播、可配置缺省超时 `nop.graph.betweenness-timeout-ms`、NopGraphErrors 命名空间分工〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（11-03.md Phase 1 起草 + R1 收口条目）
 
 ### Phase 2 - 6 工单 + W-10 条款实现 + 回归测试（按组 A–C）
 
