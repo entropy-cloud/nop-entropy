@@ -1,0 +1,269 @@
+# 2532 CRA Phase 8.39 — R3-09 6.3 code-index 批（2 工单：6.3-W-01 公开图查询三动作每请求全量物化 4 关系表[P1·C5-001·R02 无界物化族·守卫声称不存在即契约漂移·TP-001 验收前置·findByMetric 上界入批] + 6.3-W-02 ProjectAnalyzer 输入面守卫全部失效[P1·C5-002·R02 族·死常量+伪流式+全仓库 sourceCode 驻留·TP-002 验收前置·部署包络边界注在案] + W-28/C5-R2-006 触发面 P3 随批收敛面[非成员——merge-adjudication #20「随 W-02 同批」裁定兑现，勘误 5 三源对账]）
+
+> Plan Status: draft
+> Draft Review R1: 待独立 draft review（fresh session 子 agent；行预留）
+> Last Reviewed: 2026-11-04
+> 起草说明：本 plan 由独立起草子 agent 于 2026-11-04 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `720005454c`）起草；全部工单站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果——**缺陷机制与站点集零漂移、行号勘误 2 处随勘误 2 修正**：8.37 批（plan 2530）修复面使 CodeGraphService 早段行号 +4[漂移源=守卫常量 javadoc 扩展]，ProjectAnalyzer 两处 readText ±1；其余站点逐行零漂移），执行前如再漂移以 live 为准并登记。结构沿 plan 2530/2531 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 工单逐条表 / Baseline 勘误 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。内容基于 R3-09 live 事实，不复制其他单元批结论。
+> Source: roadmap 工作项 8.39（R3-09，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :181，Status=**todo**[本 plan 立项时回写「todo（plan 2532 drafted，待 draft review @ 2026-11-03）」]）；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.3 R3-09 行（L109 全文照录：finding ID 清单 2 项[6.3-W-01；6.3-W-02] / 模块与验证命令「nop-code / `./mvnw test -pl nop-code -am`」 / Owner Doc=「`docs-for-ai/03-modules/nop-code.md`」 / PA=「无（零 api 叶声明）」 / 依赖「软依赖 R3-07（W-03 同轮协调）；**S2 反向约束写入本批 exit criteria**」 / exit criteria 增补：「**6.3-W-02 修复或任何索引并行化若引入 analyzer 缓存/跨文件复用 → 须先满足 6.4-C10-W-01 测试先置（adapter assertNotSame+CSharp 交错并发断言，今日全缺），并触发 6.4-CL-101 升 P1 复核**（6.4 裁定 §四.3/§四.4）；W-01 查询三动作 LIMIT/列投影（R02 三范式）+findByMetric 上界；W-02 修复面限于 nop-code-service 消费侧（无需延伸 lang-* 六模块）；G11-15-02 承接面（C1-001）在 R4-31」）+ §一 通用门禁 E1–E6（:36-42：E1 全量构建绿 / E2 focused 测试先红后绿+C10 同 diff / E3 验证通道按批行命令留证 / E4 PA 授权声明[本批 PA=无——**零触碰声明形态**：全批零 api 叶/零 orm/零 `_` 生成物/零平台设施预设，条件申报①–④预设不触发] / E5 owner doc 更新[nop-code.md 随批增补] / E6 批级 closure 独立 audit）+ §四.4 跨单元协同两行（:325「6.3-W-02 上游保证（修复面限于消费侧）| R3-09 exit criteria」；:335「6.4 双契约 watch 脆弱性（C10-W-01 先置）| R3-09 exit criteria（S2 反向约束）」）+ §四.3 零 api 叶声明行（「6.4 nop-code-api …对应批零触碰声明」）；R02 三范式定义 = family-clustering `.../family-clustering.md` :46（R02=F7 无界物化/无上界读族；三范式=setLimit+fail-fast / 分批 / 列投影；6.3-W-01/W-02 与 6.3 C5 族 7 张 W-13~W-19 均为族成员）；成员发现详情 = **6.3 单元**（`ai-dev/audits/2026-10/2026-10-23-0900-deep-audit-nop-code-index-concurrency/`：C5-memory-bounds.md C5-001 :55-93[公开图查询三动作每请求全量物化 4 表边集立案 P1——守卫声称缺失 :62-67/公开面触发链 :69-74/findByMetric 无 LIMIT :76-84/风险与建议 :88-90] + C5-002 :95-130[ProjectAnalyzer 死守卫+伪流式+全文驻留立案 P1——死常量 :101-106/Javadoc 相反 :108-116/readText :118-122/建议四件 :127] + C5-R2-006 :551-583[触发面收口 P3——唯一生产调用点+空回调+双 admin mutation+无规模预检，建议「随 C5-002 修复一并处理」] / C5 复核 :631-638[C5-001 保留 P1 证据链三环重演；C5-002 保留 P1 附部署包络边界注「若部署包络确认存在仓库白名单/配额前置层可复议降 P2」] / merge-adjudication.md §二 #6 :37[C5-001→W-01 移交 7.1 P1——「Javadoc 声称的防线不存在即契约漂移；同族相邻 W-17~W-19 上界面同批验证」]+#7 :38[C5-002→W-02 移交 7.1 P1——「死常量零引用+伪流式+sourceCode 全程驻留三事实核准；W-28 触发面随本单同批；附部署包络边界注」]+#20 :51[C5-R2-006→W-28 P3「随 W-02 同批」]+§三 :103[P1×3 计数口径]+§四 #2 :135-144[无界物化族家族判定——W-01 主/W-13~W-19 同根因面]+§六.2 :170[P1 三工单移交原文——TP-001/TP-002 验收前置] / C10-test-protection.md 矩阵 #6 :47[C5-001 不会红——三测试文件 grep MAX/setLimit/truncat 仅 `TestSurprisingConnections.java:142` 的 `Integer.MAX_VALUE` 分数比较 1 命中非守卫]+#7 :48[C5-002 不会红·无相关测试——`MAX_FILE_SIZE_BYTES|MAX_FILE_COUNT` 测试面 0 命中；`testLargeFilesSkipped` 名实不符]+#20 :61[C5-R2-006 不会红]+TP-001 :105[建议测试形态：大结果集夹具+断言中间产物 ≤ 上界+截断标志置位+warnIfCapped 触发；上界常量可注入；回归锚点 TestCodeRelationGraphLoader 增补 bound 断言组]+TP-002 :106[单文件超 MAX_FILE_SIZE_BYTES（注入小阈值）+文件数超 MAX_FILE_COUNT 夹具，断言 fail-fast 或截断+truncated 标志；激活死常量同时让 testLargeFilesSkipped 名实相符]+§四 :142-145[会红 0/44 第 12 例+P1×3 全无保护]+复核 :157[#6/#7 抽样重演成立]+§五.3 :163[反向钉定 0——TestProjectAnalyzerConcurrency 为 watch-only 资产]）；**6.4 上游保证与反向约束**（`ai-dev/audits/2026-10/2026-10-23-1000-deep-audit-nop-code-rest-concurrency/merge-adjudication.md` §四.2 :52[W-02 修复面划界——驻留失效面完全位于消费侧，「analyzer 每文件新建+实例封闭+即用即弃」契约保证 analyzer 层不复用实例不驻留跨文件 sourceCode，故 W-02 修复面无需延伸至 lang-* 六模块]+§四.3 :53[反向约束——W-02 修复或任何索引并行化若引入 analyzer 缓存或跨文件复用，即触发 CL-101 升 P1 条款，须先满足 C10 W-01 测试先置（assertNotSame 双调用断言+CSharp 交错并发断言，今日全缺）]）；cra-index = `ai-dev/audits/cra-index.md` live 2026-11-04 回读 P1 台账 open 两行 = **:311**（`nop-code-index-W-01`，批次列=**R3-09**）+ **:312**（`nop-code-index-W-02`，批次列=**R3-09**，「admin-only 触发为 P1 下限注，部署包络配额层可复议」）；:313（W-03 fixed——plan 2530 收口在案，本批零交集）；:92（6.3 计数口径——P1×3 中 W-03 已修，W-01/W-02 归 8.39）；:473（P2-G88 十四成员归 R4-31）+:474（P2-G89 deferred）；:49（报告清单行）；执行基线 @ `720005454c`（分支 `concurrency-audit-remediation`，8.36/8.37/8.38 已 done[plan 2529/2530/2531 收口]，8.39 前无未收口同模块批次）。
+> Related: plan 2530（completed——CRA 8.37 R3-07 批 @ 2026-11-03 closure audit APPROVED：**同模块文件交集面**——其修复物=CodeGraphService 守卫 sink+常量单源（:67-72 MAX_NODES_FOR_COMMUNITY_DETECTION 去 private）+diffGraph target 对称+GraphMetricMaterializer 单飞门+失败冷却窗+ensureMaterializedForGraphMetrics 等 6 触发点经 materialize 收口——**本批 W-01 三动作读路径全部经其单飞门下游**，W-01 修复改的是物化内容面/查询上界面，与 2530 的并发编排面正交但同文件（CodeGraphService）同触发链，交互登记归裁定⑤；其零回退锚（TestGraphMetricsSingleFlight_W_03 3/TestCommunityDetectionGuard_W_04 3/TestLeidenTimeoutEnvelope_W_04 3）为本批分解通道零回退钉）；plan 2531（completed——CRA 8.38 R3-08 批 @ 2026-11-03：nop-tools 面零交集）；plan 2490（completed——WI 6.3 审计执行 plan，审计产物即本批事实源）；plan 2493（completed——批次划分提案，R3-09 行即 L109）；**8.37 边界**（6.3-W-03 已修——cra-index :313 fixed，本批零重开；roadmap 8.39 行软依赖 8.37 **已解除**[8.37 done——排期协调义务消灭，2530 单飞/退避/守卫设施先行为本批设计输入]）；**8.71/R4-31 边界**（6.3-W-04~W-19 十四成员+G88 台账行 :473 归 R4-31——含 C1-001/W-11[G11-15-02 承接面，批次行明文]与 W-17~W-19 专属失效面；roadmap 8.71 行 :213 软依赖 8.39[本批先行落地为其设计输入]）；**6.4 边界**（nop-code-api 零触碰声明+lang-* 六模块零触碰[§四.2 上游保证]+S2 反向约束守门条款）；**同号防混**：本批 W-01/W-02 为 6.3 单元 merge-adjudication 自建工单号（主编号 `nop-code-index-` 前缀），与 5.6/6.2 单元的 W-01/W-02 同号异站——cra-index 以 `nop-code-index-` 前缀主编号为准。
+> Protected Area 授权：批次 PA=「无（零 api 叶声明）」（batch-proposal R3-09 行 PA 列原文）——**E4 零触碰声明形态，头部预设（live 亲读核实成立）**：2 工单+W-28 收敛面全部站点为 **impl 叶**（nop-code-service 4 文件[CodeRelationGraphLoader/GraphMetricStore/CodeGraphService/CodeIndexService+NopCodeIndexBizModel biz 面] + nop-code-core 2 文件[ProjectAnalyzer+NopCodeCoreErrors 错误码登记]——均非任何 `*-api` 叶；CodeGraphService/GraphMetricMaterializer 等 service 侧类包内可见）+ **零 orm 模型触碰**（预设修复形态为进程内上界/截断标志/触发面预检/引用释放，无 DB 状态标记——audit 建议「截断落库列/规模预检落库」类分支**禁选预设**：`nop-code/model/nop-code.orm.xml` 触碰 = ORM plan-first 面，条件申报②）、**零 `_` 生成物触碰**（`_gen/` DAO 实体/`_app.orm.xml`/`_service.beans.xml` 全零；新错误码落**手写非生成**保留文件 `NopCodeCoreErrors.java`/`NopCodeErrors.java`——live 核实无 `_` 前缀非生成物）+ **零 nop-kernel/nop-core/nop-commons/nop-api-core 平台设施触碰（预设）**（NopException/QueryBean/BatchQueue/ReentrantLock 全为使用面引用；模块既有 per-index `ReentrantLock` 设施 CodeIndexService :123-141 为模块内先例）；**条件申报义务成文（禁静默扩权）**：①如修复需触 nop-code-api（DTO 字段/biz 动作签名变更——预设零签名：三动作既有 topN/maxCommunities 输出侧参数即 LIMIT 面，中间产物上界为内部形态）→ 按 AGENTS.md 以**本 plan 追加申报 + 设计文档专节修订 + draft review 记录追加 + 回归测试**四件证据链重新申报后方可实施；②如修复采 DB 状态/落库列承载截断或预检（触 `model/*.orm.xml`）→ ORM plan-first 四件链追加申报（预设禁选）；③如修复需改平台设施本体（nop-kernel/nop-core/nop-commons/nop-api-core）→ 四件链追加申报（预设=使用面零平台 diff）；④如任何修复需触 `_` 生成物或 lang-* 六模块（6.4 上游保证面）→ 四件链追加申报（预设零触发）。站点集中于 nop-code 单聚合器（nop-code-core+nop-code-service 两个叶子模块），E3 批行单通道与分解通道均直达（**批次行命令核对通过——非 2529/2530 漏面同型**：nop-code 聚合器 pom :22-36 含 nop-code-core/nop-code-service 全部成员模块，见勘误 1）。
+
+## Purpose
+
+关闭 R3-09 批的 2 项已确认 live 缺陷工单（P1×2：cra-index :311/:312 live 2026-11-04 回读均 open 且批次列=R3-09）+ 1 项 P3 随批收敛面（W-28/C5-R2-006[登记级]——merge-adjudication #20 裁定「随 W-02 同批」，其触发面修复随 W-02 同 diff 收敛，非成员扩容）。核心结果面有二：
+
+①**6.3-W-01 公开图查询三动作每请求全量物化 4 关系表，无上限且无并发叠加护栏（P1，C5-001；R02 无界物化族主成员）**——`CodeRelationGraphLoader.load`（live :48-57）把 4 张关系表全行加载为 `List<CodeEdgeData>`（calls/inheritance/annotation/semantic 四表各经 `batched` :180-197 offset 分页**全量累积**，BATCH_SIZE=5000 仅分页粒度、无总量上界），再由 `CodeRelationGraph` 构造器二次物化 out/in 邻接表 + 每边 LinkedHashMap attrs（≈3 倍放大，构造期间两份并存）；`getSurprisingConnections`（:310-328，load :325）、`getExplorationQuestions`（:346-363，load :355）、`exportGraphWiki`（:374-391，load :387）均为 `NopCodeIndexBizModel` 公开 biz 动作（:161/:171/:180，`NopCodeIndex:query` 权限），每次请求全量物化；同栈叠加 `metricStore.loadCommunities`（经 `findByMetric` :158-165 **无 setLimit**，对照同文件 `hasMaterialized` :48 `setLimit(1)`）与 `getOrRebuildSymbolTable`。输出侧 topN/maxCommunities 有界，中间产物无任何上限。Javadoc（:26-29）自述 "Deliberately unbounded" 并声称 "memory guards are the domain of result materialization and the invariant-loop gates"——三个服务路径上不存在任何可指认的中间产物守卫，**声明防线缺失本身即契约漂移**。风险：单请求 ≈4 表全行×~3 倍放大，按模块自身封顶（MAX_CACHE_EDGES=500k）推算大索引单请求可达数百 MB，N 个 GraphQL worker 并发线性叠加即可 OOM（C5 复核证据链三环重演在案）。批次行 exit criteria 明文修复方向 = 查询三动作 LIMIT/列投影（R02 三范式）+ **findByMetric 上界**。
+
+②**6.3-W-02 ProjectAnalyzer 输入面守卫全部失效：死常量 + 伪流式 + 全仓库 sourceCode 驻留（P1，C5-002；R02 族；部署包络边界注在案）**——三事实（live 核准）：(a) `MAX_FILE_SIZE_BYTES`（:54）与 `MAX_FILE_COUNT`（:55）声明后全 nop-code 模块零引用（活常量仅 DEFAULT_BATCH_SIZE :53，经 :67/:71/:77 使用）；(b) 「避免一次性加载所有文件到内存」Javadoc（:120-122）与实现相反——BatchQueue 消费端 `fileResults.add(result)`（:136）全量累积，「streaming project analysis」变体（LOG :206）`allFileResults.add(result)`（:216）完全同型，`resource.readText()`（:177/:260）无大小检查；(c) 每文件完整 `sourceCode` 驻留（JavaFileAnalyzer.java:148 写入、:634-638 指纹构建读取）生命周期贯穿巨事务直至 persist 完成。生产触发链唯一调用点 = `CodeIndexService.indexDirectory` :354-356（**streaming 变体 + 空回调 `batch -> {}`** :356——"流式"消费价值不存在），触发面 = `triggerFullIndex`（NopCodeIndexBizModel :56-79）+ `indexDirectory`（:121-127）双 `@Auth(roles="admin")` mutation，无文件数/累计字节规模预检（C5-R2-006/W-28 面）。风险：输入面（仓库内容）不可控——误提交构建产物/minified bundle 单文件即 readText 全量进堆→全进程 OOM；死常量使「声明数据规模包络」形同虚设（契约漂移）。**部署包络边界注**（cra-index :312）：若部署包络确认存在仓库白名单/配额前置层可复议降 P2——7.1 裁定已落批次行（修），本批维持 P1 判级修复，边界注随 owner doc 声明（`allowedLocalRoot` 为路径白名单≠规模配额）。
+
+批末 roadmap 8.39 → done，cra-index P1 两行收敛（:311 W-01 → fixed 注记 + :312 W-02 → fixed 注记，Phase 4）+ :92 6.3 计数口径随批注记（W-28 收敛注）；`nop-code.md` owner doc 增补**图查询物化上界契约**与**索引输入面包络契约**声明（2530 已建「图分析并发与资源契约」节——本批为该节增补或兄弟节，落点归 Phase 3 实裁）；`docs-for-ai/04-reference/source-anchors.md` 新增锚点行。
+
+## Current Baseline
+
+### 批次与判级基线
+
+- batch-proposal §二.3 R3-09 = 2 工单成员（P1×2：6.3-W-01[C5-001]+6.3-W-02[C5-002]——cra-index P1 open 两行 :311/:312 与 finding 清单一一对应）；**W-28（C5-R2-006，P3 登记级）不在批次行 finding 清单**——merge-adjudication #7 裁定原文「W-28 触发面随本单同批」+#20 裁定「随 W-02 同批」+C5-R2-006 建议原文「随 C5-002 修复一并处理」，本批随 W-02 同 diff 收敛并落 cra-index 6.3 计数口径注记（勘误 5 三源对账，非成员计数扩容）。依赖核对（live 2026-11-04）：**软依赖 R3-07（W-03 同轮协调）已解除**——8.37 done（plan 2530 completed @ 2026-11-03，roadmap :179），W-03 单飞/退避设施已在位且经 closure audit；本批与 R3-06/R3-08 零重叠（R3-06/R3-08 均 done）。roadmap 8.71 行 :213 软依赖 8.39（本批先行落地为其设计输入，方向声明见对齐纪律第八条）。
+- **工单-实体映射**：2 工单 = 2 实体（各为独立立案 P1，无吸收结构——C5-001/C5-002 均复核全保留独立维持；「同族」是 R02 家族聚类非工单归并）+ 1 P3 随批收敛面：6.3-W-01=C5-001（P1）；6.3-W-02=C5-002（P1，附部署包络边界注）；W-28=C5-R2-006（P3 收敛面，非成员）。工单编号 W-01/W-02/W-28 为 6.3 merge-adjudication 自建索引，cra-index 登记以 `nop-code-index-` 前缀主编号为准。
+- **工单站点文件分布（live 亲读 @ `720005454c`；载体主树最小 5 main 文件 + owner doc/锚点文档面，逐名清单口径；审计基线 7b0ccc89d4 → live 漂移见勘误 2）**：nop-code-service 4 文件（`CodeRelationGraphLoader.java`[W-01 本体：Javadoc 声明 ：26-29、类 :44、BATCH_SIZE :46、**load :48-57**（:51-54 四表 addAll）、loadCalls :59-67/loadInheritances :78-86/loadAnnotationUsages :98-106/loadSemanticEdges :117-125、**batched :180-197**（offset 分页全量累积、无总量上界）]；`GraphMetricStore.java`[W-01 上界面：**hasMaterialized setLimit(1) :48 对照锚**、loadCommunities :52-62/loadScores :64-73/loadHubs :79-89/loadCommunityInfo :92-101/loadSummary :104-110/loadEntryPoints :130-135/loadBetweenness :138-143、**findByMetric :158-165 无 setLimit**]；`CodeGraphService.java`[W-01 消费面（2530 批已改文件——行号 +4 漂移源在案）：**getSurprisingConnections :310-328**（ensureMaterializedForGraphMetrics :312/**loader.load :325**/loadCommunities :326）、**getExplorationQuestions :346-363**（:348/:355/:356）、**exportGraphWiki :374-391**（:376/:387/:388）、ensureMaterializedForGraphMetrics :336-345（check loadSummary==null :337/materialize :339——2530 单飞门在 materializer 侧收口）]；`CodeIndexService.java`[W-02 消费侧+触发面：**indexDirectory :354-356 唯一生产调用点（streaming 变体+空回调 `batch -> {}` :356）**、per-index withIndexLock :123-141 既有设施旁证]）+ biz 面 `NopCodeIndexBizModel.java`[W-01 公开面：getSurprisingConnections :161/getExplorationQuestions :171/exportGraphWiki :180（审计 L161/171/180 零漂移）；W-02/W-28 触发面：triggerFullIndex :56-79（@BizMutation :56/@Auth admin :57）/indexDirectory :121-127（:121/:122）] + nop-code-core 2 文件（`ProjectAnalyzer.java`[W-02 本体：DEFAULT_BATCH_SIZE :53（**活常量** :67/:71/:77 使用）、**死常量 MAX_FILE_SIZE_BYTES :54 + MAX_FILE_COUNT :55**（全 nop-code 模块 grep 仅声明处零引用）、Javadoc :120-122、fileResults :129+add :136、**readText :177**、streaming LOG :206、allFileResults :210+add :216、**readText :260**、dormant readText :445[analyzeIncremental]/:596[analyzeFiles]、指纹读取 :634-638]；`CodeFileAnalysisResult.java`[sourceCode 字段 :14/getter+setter :35-39——关联模型零 diff 预设]）+ 错误码登记库（手写保留文件零 diff 预设）：`NopCodeCoreErrors.java`（:5-22 四码在案——W-02 fail-fast 如需新码在此命名空间登记）+ `NopCodeErrors.java`。**零触碰旁证**：`JavaFileAnalyzer.java`（setSourceCode :148——单元外佐证，lang-* 六模块零触碰）；下游 `SurprisingConnectionAnalyzer`/`GraphQuestionGenerator`/`GraphWikiExporter` 均在 nop-code-service graph 包（审计「无 MAX/limit/cap 常量」在案——本批预设零触碰，防线在 loader/finder 上游一处封口）。测试资产：`TestCodeRelationGraphLoader.java`（TP-001 回归锚点增补 bound 断言组）、`TestSurprisingConnections.java`（:142 `Integer.MAX_VALUE` 为分数比较非守卫——C10 #6 唯一命中在案）、`TestGraphWikiExport.java`（1 test）、`TestExplorationQuestions.java`（2 tests）、`TestGraphMetricMaterialization.java`（4 tests——2530 面）、`TestGraphAnalysisE2E.java`（2 tests）、`TestGraphMetricsSingleFlight_W_03.java`+`TestCommunityDetectionGuard_W_04.java`（2530 新钉——零回退锚）、`TestConcurrentIndexing.java`（既有并发冒烟）、`TestProjectAnalyzerFileFilter.java`（**testLargeFilesSkipped :182 名实不符——C10 #7 在案，同 diff 名实改写义务**）、`TestProjectAnalyzerConcurrency.java`（watch-only 资产——C10 §五.3，保留作辅助观测点零改写）、`TestNopCodeIndexBizModel.java`（2 tests）、`TestIndexNopXlangModule.java`（:90 真实仓库索引——W-02 激活形态的零回退关联面，见裁定③强制输入）。
+- **C10 验收前置入批集（映射 SSOT = 6.3 `C10-test-protection.md` TP-001 :105 + TP-002 :106；随本体同 diff 落地[E2]）**：**红①（W-01 loader 上界，TP-001 主面）**：注入低上界 + 大边集夹具 → 断言中间产物行数 ≤ 上界 + 截断标志置位 + warn 触发（pre-fix 全量物化行数超注入上界——**构造性当前即红**；上界常量可注入以便测试不必造十万行数据——TP-001 原文）。**红②（W-01 findByMetric 上界，TP-001 上界面承载 + 批次行明文入批）**：注入低上限 → 断言返回行数 ≤ 上限 + 截断可观测（pre-fix 全 family 行返回——**当前即红**）；R4-31/W-17（TP-010）的 4-● finder 调用面枚举与 loadSymbolsByIds 装配面不在本批（对齐纪律第三条划界）。**红③（W-02 死常量激活，TP-002 主面）**：注入小阈值——单文件超 `MAX_FILE_SIZE_BYTES` + 文件数超 `MAX_FILE_COUNT` 夹具 → 断言跳过/截断 + truncated 标志（或 fail-fast——形态归裁定③）+ **`testLargeFilesSkipped` :182 名实改写**（同 diff——pre-fix 该测试仅写小文件断言被分析，激活后大文件断言面为真）（pre-fix 大文件照常 readText 进堆——**当前即红**）。**红④（W-02 sourceCode 驻留释放）**：断言指纹构建/persist 完成后 `CodeFileAnalysisResult.sourceCode` 引用清空（释放点在消费侧——裁定③定夺；pre-fix 全程驻留至 GC——**当前即红**）。**红⑤（W-28 触发面预检，TP-002 触发面 + P3 聚合 #20 收敛载体）**：超规模目录在服务层入口（indexDirectory）被拒 fail-fast（pre-fix 无规模守卫直通 analyzer——**当前即红**；与红③ 同 diff 分驱动器、独立可跑）。**本单元会红口径**：6.3 会红 0/44（campaign 第 12 例）在案——本批 2 缺陷面既有保护 = W-01 面 0 上界断言（#6 缺口原文：三测试文件 grep 仅分数比较 1 命中）+ W-02 面 0 规模断言（#7 缺口原文：守卫常量测试面 0 命中 + testLargeFilesSkipped 名实不符）；**红①–红⑤ 全部构造性当前即红（0 条反向钉改写、0 条变异锚定面）**（6.3 merge-adjudication §五.3 在案——`testLargeFilesSkipped` 为「名实不符」改写义务非反向钉：其既有断言与修复方向零冲突，仅名实对齐）；既有零回退锚 = TestCodeRelationGraphLoader/TestSurprisingConnections 2/TestGraphWikiExport 1/TestExplorationQuestions 2（W-01 功能面）+ TestProjectAnalyzer/TestProjectAnalyzerIncremental/TestProjectAnalyzerWithStore（W-02 功能面）+ TestIndexNopXlangModule（真实仓库索引全链）+ TestConcurrentIndexing 1 + TestNopCodeIndexBizModel 2 + **2530 新钉七族零回退**（TestGraphMetricsSingleFlight_W_03 3/TestCommunityDetectionGuard_W_04 3/TestLeidenTimeoutEnvelope_W_04 3[nop-graph-core]/TestGraphMetricMaterialization 4/TestGraphAnalysisE2E 2/TestShardBuildCoordinator 3/TestBetweennessTimeout_W_08 3 等）。
+- **既有行为登记（live 亲读 @ `720005454c`）**：(a) `DEFAULT_BATCH_SIZE`（:53）为**活常量**（构造器 batchSize 通路 :67/:71/:77）——审计「死常量」指控面仅 :54-55 两个 MAX_* 常量，本批不得误伤 batch 通路；(b) 生产链上 analyzeProject 变体共 7 个分析入口，**仅 streaming 变体（带 BatchCallback）有生产调用方**（CodeIndexService :354），且回调为空实现 `batch -> {}`（:356）——不带回调变体/两 analyzeIncremental 变体/analyzeFiles 全部零 main 调用方（C5-R2-006 失效面枚举在案；其内部 readText 站点 :445/:596 为 dormant 面——W-02 激活常量时该两处是否同覆盖为裁定③强制输入）；(c) 触发面无定时/自动放大源（全仓 grep 无定时任务/集群 worker/启动钩子——C5-R2-006 收口结论）；(d) W-01 三动作读路径已全部经 2530 单飞门（ensureMaterializedForGraphMetrics :337→materialize 收口门）与守卫 sink 下游——**并发编排面已封死，本批修物化内容面**：单飞 skip 时三动作走既有内存兜底（受 2530 守卫 sink 规模约束），loader bound 在物化成功路径与兜底路径的分工为裁定⑤强制输入。
+- **批前已收口面（live 形态登记，零触碰）**：8.37 批全部产物（CodeGraphService 守卫 sink :67-72 常量单源+diffGraph 对称+GraphMetricMaterializer 单飞门+失败冷却窗——本批零回退面，七新钉族在分解通道核验）；8.36 批产物（nop-duckdb 面——零交集）；8.38 批产物（nop-tools 面——零交集）；W-03（6.3，cra-index :313 fixed——本批零重开）；C5-R2-007/W-29（2530 已收敛）；G11-15-02 承接闭环（C1-001 别名——归 8.71/R4-31 的 W-11 面，本批零触碰）。
+- **平台设施与测试资产盘点（live 实读 @ `720005454c` + 基线亲跑）**：
+  - **基线测试结果（2026-11-04 亲跑，勘误 3 全记录）**：分解通道 `./mvnw -o test -pl nop-code`（无 `-am`）：**BUILD SUCCESS EXIT=0，合计 608 tests，0 Failures 0 Errors 14 Skipped**（`_tmp/baseline-2532-decomposed.log`，01:02 min；逐模块：nop-code-core 141 + nop-code-flow 43 + lang-java 38 + lang-python 20 + lang-typescript 25 + lang-go 14 + lang-rust 13 + lang-csharp 17 + nop-code-service 296[14S] + nop-code-web 1[nop-code 合计 608=2530 收口态零漂移]；聚合器 nop-code 本体零测试，nop-code-codegen/dao/meta/app 零测试）→ **零回退钉清单 = nop-code 608 tests 0F0E 14S 签名维持**。**14 Skipped 全部在 nop-code-service**：TestIndexNopEntropyProject 13 + NopEntropySelfIndexTest 1——`@Disabled` 批前既有签名，维持义务 = 数量与归属比对，非本批新增 skip 面。既有红/flake 归因：**无**（0F 0E）。时序敏感搭车项口径：本批红①–红⑤ 均为规模夹具/阈值注入确定性形态（非时序敏感面——无幽灵扫描/latch 栅栏依赖）；Risks 节单列 findByMetric 上界的装配面行为变化风险。
+  - **owner doc 现状（2026-11-04 亲读）**：`docs-for-ai/03-modules/nop-code.md`（187 行）在案——2530 已建「**图分析并发与资源契约**」节（:171-186：社区检测守卫/Leiden 超时包络/materialize 收口单飞+失败退避/6 触发点逐点降级/row5-row6 residual）——**本批 E5 增补落点 = 该节增补**图查询物化上界契约（W-01 面——三动作/findByMetric 上界与 2530 单飞门的防线分工）**+ 新增**「索引输入面包络契约」声明（W-02 面——死常量激活语义/触发面预检/sourceCode 驻留释放/部署包络边界注）；锚点行落 `docs-for-ai/04-reference/source-anchors.md`（2530 已有 CODEGRAPH-CC-001/LEIDEN-CC-001——本批新增候选名 CODEIDX-CC-002[图查询物化上界]与 CODEIDX-CC-003[输入面包络]，插入点按表序 live 亲读裁定点）。
+  - **测试基建事实**：nop-code 全部 pom（聚合器+15 子模块）grep mockito **零命中**——spy/计数桩全部手工代理形态，不引 mockito（2530 先例）；错误码登记库 `NopCodeCoreErrors.java`/`NopCodeErrors.java` 为手写非生成保留文件（新增 ErrorCode 零 `_` 生成物触碰——错误消息英文，AGENTS.md 错误处理双层策略）。
+
+### 对齐纪律显式条款（批次行 exit criteria 增补逐条落款）
+
+- **S2 反向约束守门条款（批次 exit criteria 首条 + §四.4 :335 落批原文）**：W-02 修复或任何索引并行化**若引入 analyzer 缓存/跨文件复用** → 须先满足 6.4-C10-W-01 测试先置（adapter `assertNotSame` 双调用断言 + CSharp 交错并发断言，今日全缺——6.4 merge-adjudication §四.3 原文）并触发 6.4-CL-101 升 P1 复核。**本批预设 = 零缓存/零并行化/零跨文件复用**：W-02 修复面为死常量激活（单线程分析语义）+ 触发面预检 + 驻留释放——不触碰 `LanguageAdapterRegistry` 每文件新建契约、不引入 analyzer 实例缓存、不改任何索引并行度；设计文档裁定③须含「不引入 analyzer 缓存/跨文件复用」显式声明（S2 条款为守门声明非触发预设）；如执行期修复形态演进需引入缓存/复用，**先置测试未落地前禁实施**（四件证据链 + 6.4 面回归义务）。
+- **W-01 R02 三范式条款（批次 exit criteria「查询三动作 LIMIT/列投影（R02 三范式）」落款）**：三动作（getSurprisingConnections/getExplorationQuestions/exportGraphWiki）中间产物上界修复三件：①**loader 总量上界**（`CodeRelationGraphLoader` 4 表边集累积上界 + 截断降级标志 + 显式可观测——形态[setLimit+fail-fast / 分批截断 / 列投影裁剪]与常量值归裁定①；对齐 AnnotationPatternExtractor MAX_EDGES=50000 既有惯例[audit 建议原文]）；②**列投影面**（如裁定①采裁剪形态——sourceFilePath/targetFilePath 解析等重字段按需投影为候选）；③**Javadoc 契约漂移修正**（:26-29 "Deliberately unbounded...memory guards are the domain of..." 声称防线不存在——修复后删改如实描述，禁保留与实况不符的防线声明）。**生产行为变更声明**：超大索引三动作从「每请求全量物化」变为「上界截断/降级」——owner doc 落点（对齐 2530 守卫 sink 生产行为变更声明先例）；输出侧 topN/maxCommunities 既有参数零签名变更（条件申报①预设不触发）。
+- **findByMetric 上界条款（批次 exit criteria 明文 + 与 R4-31/W-17 划界）**：`GraphMetricStore.findByMetric`（:158-165）补显式上限常量——**共享私有 finder 一处封口**（loadCommunities/loadScores/loadHubs/loadCommunityInfo/loadSummary/loadEntryPoints/loadBetweenness 七公共 finder 全部经它；hasMaterialized :48 setLimit(1) 独立通路不受影响）；常量值/形态（固定上界对齐 `BETWEENNESS_MAX_NODES=10000` 惯例 vs 按 rankNo setLimit）归裁定②。**划界（勘误 5 三源对账）**：本批封口 = finder 本体共享根；W-17/C5-R2-001（P2，R4-31）的独立失效面 = 4-● 无 LIMIT finder 的调用面枚举（loadCommunities/loadScores/loadHubs/loadEntryPoints 在三装配路径）与 `loadSymbolsByIds` 全量符号实体 chunk 物化——归 R4-31 不双计；本批修复后 R4-31 W-17 承接**常量单源义务**（禁发明第二常量，形态对齐 2530 MAX_NODES 常量单源先例）；TP-001「含同族 C5-R2-001/002/003 的上界面」口径 = 红② 对共享根的 bound 断言即上界面验证承载，R2-002/R2-003（getPublicSurface/fileTree）面零触碰。
+- **W-02 消费侧限界条款（批次 exit criteria「修复面限于 nop-code-service 消费侧（无需延伸 lang-* 六模块）」+ §四.4 :325 落批原文）**：修复面 = nop-code-core `ProjectAnalyzer`（lang analyzer 的**消费方**——死常量激活/伪流式表述修正/readText 检查）+ nop-code-service（触发面规模预检 + sourceCode 驻留释放 + 空回调处置）；**lang-* 六模块零触碰**（6.4 merge-adjudication §四.2 上游保证原文：analyzer 层「每文件新建+实例封闭+即用即弃」契约保证其不复用实例不驻留跨文件 sourceCode——修复责任在消费侧）；批次行「nop-code-service 消费侧」的站点口径澄清见勘误 6（ProjectAnalyzer 实际位于 nop-code-core——「消费侧」语义=analyzer 消费方，非模块字面）。
+- **部署包络边界注条款（cra-index :312 + C5-002 复核边界注原文）**：P1 判级维持（7.1 裁定落批次行/cra-index——修）；owner doc 输入面包络契约声明：`allowedLocalRoot`（既有，路径白名单）≠ 规模配额，部署包络的仓库白名单/配额前置层为可选复议降 P2 条件（不阻塞本批修复；如部署方确认存在则 residual 登记随 Phase 4 注记）。
+- **W-28 随批收敛条款（merge-adjudication #7/#20 裁定兑现；非成员）**：触发面规模预检（indexDirectory 服务层入口——文件数/累计字节超限 fail-fast，R2-006 建议原文「使守卫位于触发面而非仅分析器内部」）+ 空回调处置（:356 `batch -> {}` 移除改非 streaming 变体**或**实现真分批持久化——二选一归裁定③）随 W-02 **同 diff** 落地；红⑤ 为其验收面（无独立钉于红③ 之外再设——红③⑤ 分驱动器同 diff）；W-28 维持 P3 登记级不入成员计数，cra-index :92 计数口径注记随 Phase 4 收敛（2530 勘误 5 C5-R2-007 收敛面先例同型）。
+- **与 8.37/plan 2530 边界条款**：2530 产物零回退——守卫 sink（runCommunityDetection/materializer.detectCommunities/diffGraph 双侧）/常量单源（MAX_NODES_FOR_COMMUNITY_DETECTION :67-72 禁第二常量）/单飞门（materialize 收口）/失败冷却窗全部零触碰；**W-01 与单飞门交互登记**（裁定⑤强制输入）：三动作读路径物化成功→loader bound 生效于物化内容面；单飞 skip→既有内存兜底路径（兜底规模约束由 2530 守卫 sink 承载）——两防线分工（编排面=2530/内容面=本批）写入 owner doc 契约节，防「bound 在 skip 路径不生效」被误读为修复缺口；软依赖 8.37 已解除（8.37 done——排期协调义务消灭，roadmap 8.39 行软依赖方向兑现）。
+- **与 8.71/R4-31 边界条款（批次 exit criteria「G11-15-02 承接面（C1-001）在 R4-31」落款）**：6.3-W-04~W-19 十四成员（git 超时族/删除链/搜索双写/SymbolTable 裸读/C1-002/C5 族 W-13~W-19 等）+ C1-001/W-11（G11-15-02 承接面）零触碰（P2-G88 :473 批次=R4-31）；W-05/W-10（P2-G89 deferred dormant 条款）零触碰；W-17~W-19 专属失效面（装配路径/loadSymbolsByIds/getPublicSurface/fileTree CLOB）零触碰——本批 findByMetric 共享根 bound 为其上游常量单源（条款三）；W-20~W-40 登记级零触碰；roadmap 8.71 行软依赖 8.39 = 本批先行落地为其设计输入（方向声明，非硬前置）。
+- **同变更集绑定（C10 随本体，E2）**：缺保护 2 缺陷面与各自本体同 diff 落地（TP-001↔红①②/W-01、TP-002↔红③④⑤/W-02+W-28），禁止先修本体后补测的拆分交付；红①–红⑤ 逐工单驱动器形态 + 零回退钉清单（分解通道基线 608 tests——勘误 3）+ **0 条反向钉改写、0 条变异锚定面**（6.3 裁定在案；`testLargeFilesSkipped` :182 名实改写为同 diff 义务非反向钉——其既有断言与修复方向零冲突）。
+- **硬序条款**：本批无跨批硬依赖（软依赖 8.37 已解除）；批内软序 = 组 A 先行（W-01——loader/finder 两文件零耦合、与组 B 无文件交集，先行降低交叉面）→ 组 B（W-02+W-28——ProjectAnalyzer/CodeIndexService/NopCodeIndexBizModel 三文件聚合验证）；每工单先红后绿或变异/回退论证（E2）；执行期 Skipped/Failures/Errors 出现即登记归因禁静默（14S 签名比对义务——勘误 3）。
+
+### 2 工单 + W-28 收敛面逐条（站点/缺陷/修复方向——修复内容的事实源；行号 = live @ `720005454c` 2026-11-04 回读值，执行前如再漂移以 live 为准并登记）
+
+| # | 工单（判级；族；C10 面） | 文件（模块） | 站点位置（file:line，live 回读） | 缺陷一句话 | 修复方向 |
+|---|---|---|---|---|---|
+| 1 | 6.3-W-01（**P1**；C5-001 独立立案[R02 无界物化族主成员——6.3 家族关联 #2；cra-index :311 open 批次=R3-09]；C10 #6→TP-001 缺保护[验收前置]） | `CodeRelationGraphLoader.java` + `GraphMetricStore.java` + `CodeGraphService.java`（均 nop-code-service） | 本体：**load :48-57（四表 addAll :51-54）/batched :180-197（全量累积无总量上界）**/Javadoc :26-29（Deliberately unbounded+声称防线不存在）；消费面：getSurprisingConnections :310-328（load :325）/getExplorationQuestions :346-363（load :355）/exportGraphWiki :374-391（load :387）——三动作均 NopCodeIndexBizModel 公开 @BizQuery（:161/:171/:180）；同栈：ensureMaterializedForGraphMetrics :336-345（2530 单飞门下游）/loadCommunities :326/:356/:388；上界面：**findByMetric :158-165 无 setLimit（对照 hasMaterialized :48 setLimit(1)）**——loadCommunities :52-62 等 7 finder 共用 | 公开查询三动作每请求把 4 关系表全行物化为 List+邻接（≈3x 放大、两份并存）+metric family 行全量加载——中间产物零上限、并发请求线性叠加可 OOM；Javadoc 声称的防线不存在即契约漂移 | 裁定①：loader 总量上界（对齐 AnnotationPatternExtractor MAX_EDGES 惯例）+截断降级标志+显式可观测，三动作一处封死（loader 单点）；列投影裁剪形态候选归裁定①；Javadoc 契约漂移修正；裁定②：findByMetric 显式上限常量（一处封口 7 finder，hasMaterialized 通路不受影响）——常量单源义务移交 R4-31/W-17；生产行为变更声明（超大索引三动作全量物化→上界截断/降级——owner doc 落点）；输出侧参数零签名变更（条件申报①预设不触发）；钉 = 红①（注入低上界+断言 ≤ 上界+截断标志+warn——TP-001 形态，TestCodeRelationGraphLoader 增补 bound 断言组）+红②（findByMetric 注入低上限断言截断）——均构造性当前即红 |
+| 2 | 6.3-W-02（**P1**；C5-002 独立立案[R02 族成员；cra-index :312 open 批次=R3-09；部署包络边界注在案——P1 判级维持]；C10 #7→TP-002 缺保护[验收前置]；S2 反向约束守门[对齐纪律第一条]） | `ProjectAnalyzer.java`（nop-code-core）+ `CodeIndexService.java`/`NopCodeIndexBizModel.java`（nop-code-service 消费侧/触发面） | 本体：**死常量 MAX_FILE_SIZE_BYTES :54 + MAX_FILE_COUNT :55（全模块零引用）**/Javadoc :120-122（「避免一次性加载」与实现相反）/fileResults.add :136/**readText :177（无大小检查）**/streaming LOG :206/allFileResults.add :216/readText :260/dormant readText :445/:596/指纹读取 :634-638；关联：CodeFileAnalysisResult.sourceCode :14/:35-39、JavaFileAnalyzer.java:148 setSourceCode（单元外佐证零触碰）；消费侧/触发面：**CodeIndexService :354-356（唯一生产调用点=streaming 变体+空回调 `batch -> {}`）**/NopCodeIndexBizModel triggerFullIndex :56-79+indexDirectory :121-127（双 admin mutation 无规模预检） | 输入面守卫全部失效：单文件大小与文件总数均无强制上限（声明即死代码）、注释自称流式/避免全量加载而实现全量累积、每文件完整 sourceCode 驻留巨事务全程——误提交大文件即全进程 OOM | 裁定③：①死常量激活——readText 前检查 resource 大小（skip+truncated 标志+WARN 预设；fail-fast 备选论证）+遍历中检查 fileCount（触发面预检与 analyzer 内计数的关系归裁定③——R2-006 建议守卫位于触发面）；②触发面规模预检（indexDirectory 服务层入口 fail-fast——W-28 随批）；③sourceCode 驻留释放（指纹构建/persist 完成后消费侧清空——释放点归裁定③）；④空回调处置（移除改非 streaming 变体 或 真分批持久化——二选一）；⑤Javadoc/LOG :120-122/:206 名实修正；dormant readText :445/:596 覆盖与否裁定③强制输入；**S2 守门声明**（零 analyzer 缓存/零并行化/零跨文件复用）；钉 = 红③（注入小阈值+断言 skip/truncated+testLargeFilesSkipped :182 名实改写）+红④（persist 完成后 sourceCode 清空断言）+红⑤（触发面超规模 fail-fast）——均构造性当前即红 |
+| 3 | W-28（C5-R2-006，**P3 登记级**——**非成员，随批收敛面**；merge-adjudication #7「W-28 触发面随本单同批」+#20「随 W-02 同批」；C10 #20→P3-聚） | （零独立站点——收敛载体 = 上行触发面预检同 diff） | 同上行触发面站点（CodeIndexService :354-356 空回调 + NopCodeIndexBizModel :56-79/:121-127 双 admin mutation 无规模预检——live 全核对一致） | 触发面无规模预检 + streaming 空回调名实不符（C5-002 触发层补全视角） | 随裁定③②④同 diff 兑现（触发面预检+空回调处置即其收敛载体——单一修复防双计）；cra-index :92 计数口径注记随 Phase 4 收敛；验收 = 红⑤（无独立钉） |
+
+### PA 判定表（7 面逐一，orm/_生成物/平台设施/api 叶/批外模块触碰与否；live 2026-11-04 核实）
+
+| # | 工单/面 | 站点模块 | 站点形态 | 触 `model/*.orm.xml`？ | 触 `_` 生成物？ | 触 nop-api-core/nop-kernel/nop-core/nop-commons 平台设施？ | 触 `*-api` 叶？ | 判定依据与条件申报 |
+|---|---|---|---|---|---|---|---|---|
+| 1 | W-01 loader 上界 | nop-code-service（graph 包） | load/batched 总量上界+截断标志+Javadoc 修正 | 否 | 否 | 否 | 否（CodeRelationGraph/CodeEdgeData 为 nop-code-core 手写模型类，非 nop-code-api 叶） | 纯 Java 修复；零新错误码预设（截断走 WARN+标志——如裁定①采 fail-fast 错误码形态须落 `NopCodeErrors` 命名空间+grep 零重名证明） |
+| 2 | W-01 三动作消费面 | nop-code-service（impl 包） | CodeGraphService 零 diff 预设（防线在 loader 一处封死）——如裁定①需三动作侧配合改动仅限进程内逻辑 | 否 | 否 | 否 | 否（NopCodeIndexBizModel 动作签名零变更——topN/maxCommunities 既有输出侧参数即 LIMIT 面；如需新增 @Name 入参触 GraphQL schema 变更→条件申报①四件链） | 纯 Java 修复（预设零产品 diff） |
+| 3 | W-01 findByMetric 上界 | nop-code-service（graph 包） | 共享 finder 上限常量一处封口 | 否 | 否 | 否 | 否 | 纯 Java 修复；常量单源义务移交 R4-31/W-17（禁发明第二常量——2530 MAX_NODES 先例） |
+| 4 | W-02 常量激活+驻留释放 | nop-code-core（analyzer 包） | 死常量激活+readText 检查+表述修正 | **否（截断落库列/DB 状态标记分支禁选——条件申报②：如裁定推翻采 orm 承载须四件链追加申报）** | 否 | **预设否——NopException/BatchQueue 为使用面引用（条件申报③：如需改平台设施本体须四件链追加申报）** | 否 | 纯 Java 修复；如采 fail-fast 错误码落 `NopCodeCoreErrors.java`（手写保留文件非生成物——新增码英文消息+grep 零重名证明） |
+| 5 | W-02 触发面预检+空回调（含 W-28 收敛面） | nop-code-service（impl+entity 包） | indexDirectory 入口规模预检+空回调处置 | 否（预检为进程内 fail-fast——DB 配额面禁选，条件申报②同上） | 否 | 否 | 否（NopCodeIndexBizModel 方法体内部预检零签名变更——如需新增入参触 GraphQL schema→条件申报①） | 纯 Java 修复；触发面=双 admin mutation 预检语义零权限变更（@Auth 零触碰） |
+| 6 | 测试树（红①–红⑤） | nop-code-core + nop-code-service src/test | 新测试类/用例+`testLargeFilesSkipped` 同 diff 名实改写（既有树内，零新建模块测试树） | 否（零 orm fixture 触碰——既有 localDb autotest 载体复用形态） | 否 | 否 | 否 | **spy/计数桩零 mockito（live 核实 nop-code 全部 pom 无 mockito 依赖）——全部手工代理形态或产品缝，不引 mockito**（2530 先例）；规模夹具形态归裁定④（注入上界常量免造十万行数据——TP-001 原文）；TestIndexNopXlangModule 真实仓库索引为激活形态零回退关联面（裁定③强制输入：激活后该测试必须维持绿或如实登记归因） |
+| 7 | 文档面 | docs-for-ai | nop-code.md 增补两契约声明+source-anchors 锚点行 | — | — | — | — | E5 义务面非代码面（owner doc 落点：2530「图分析并发与资源契约」节增补+新节；规范写法零 plan/工单编号零历史叙事） |
+
+**结论：全批零 api 叶、零 orm、零 `_` 生成物、零平台设施预设（批次行 PA=「无（零 api 叶声明）」成立——E4 零触碰声明形态）；条件申报①②③④预设全部不触发；批内模块触碰面 = nop-code-core（1 main 文件 + 测试树）+ nop-code-service（3-4 main 文件 + 测试树）+ 文档面（nop-code.md/source-anchors.md）；lang-* 六模块/nop-code-api/nop-code-dao/nop-code-meta/nop-code-web/nop-code-app/nop-code-codegen/nop-graph/nop-tools 批外零触碰（CodeIndexService 触发面预检外产品逻辑/NopCodeIndexBizModel 签名/8.71 面/G11 承接面全零）。E3 批行单通道与分解通道直达零盲区（nop-code 聚合器含全部成员模块——勘误 1 核对通过）。**
+
+### Baseline 勘误（输入不一致登记）
+
+1. **批次行验证命令核对通过（live pom 亲读核实；非 2529/2530 漏面同型）**：R3-09 行模块/验证命令列 = 「nop-code / `./mvnw test -pl nop-code -am`」单通道；live 亲读核实：`nop-code/pom.xml` :22-36 模块清单含 **nop-code-core/nop-code-service 全部成员站点模块**（另有 flow/六 lang/codegen/dao/meta/api/web/app）——单通道直达全批站点，无漏面。E3 = 批行 `-am` 通道 + 等价分解通道 `./mvnw -o test -pl nop-code`（无 -am，608+新钉）双形态留证；`-am` 上游闭包阻断面占位见勘误 4。
+2. **漂移登记与行号勘误（审计基线 6.3=7b0ccc89d4 → live `720005454c`；8.37 批[plan 2530]修复面与本批站点文件交集 = CodeGraphService.java 1 文件）**：**缺陷机制与站点集零漂移维持，行号勘误 2 组**：①`CodeGraphService.java` 早段 **+4 行漂移**（漂移源=2530 守卫常量 javadoc 扩展[MAX_NODES_FOR_COMMUNITY_DETECTION :68→:67-72]）：审计 loader.load 调用 ：321/:351/:383 → live **:325/:355/:387**；ensureMaterializedForGraphMetrics :332-340 → live **:336-345**（check :337/materialize :339）；getSurprisingConnections :308 → live **:310**、getExplorationQuestions :344 入口 → live **:346**、exportGraphWiki :372 入口 → live **:374**——2530 勘误 2 同文件后续漂移链与本批登记一致；②`ProjectAnalyzer.java` 两处 readText 复核行号 :176/:261 → live **:177/:260**、streaming LOG :205 → live **:206**（±1）。其余站点逐行核对一致（零漂移）：CodeRelationGraphLoader Javadoc :26-29/load :48-57/batched :180-197/BATCH_SIZE :46；GraphMetricStore hasMaterialized setLimit(1) :48/findByMetric :158-165/loadCommunities :52-62；NopCodeIndexBizModel :161/:171/:180/:56-79/:121-127；CodeIndexService :354-356/withIndexLock :123-141；ProjectAnalyzer :53-55/:120-122/:136/:216/:445/:596/:634-638；CodeFileAnalysisResult :14/:35-39；JavaFileAnalyzer :148；测试锚 TestSurprisingConnections :142/TestProjectAnalyzerFileFilter testLargeFilesSkipped :182。
+3. **基线测试数登记（起草期亲跑全记录）**：分解通道 `./mvnw -o test -pl nop-code`（无 -am）BUILD SUCCESS EXIT=0：**608 tests / 0 Failures / 0 Errors / 14 Skipped**（`_tmp/baseline-2532-decomposed.log`，01:02 min @ 2026-11-04；逐模块计数见 Current Baseline 盘点节；批核心 nop-code-core 141/nop-code-service 296）。**零回退钉清单 = nop-code 608 tests 0F0E（14S 签名维持）**，Phase 2/3 零回退以此为钉。**14 Skipped 签名**：全部在 nop-code-service——TestIndexNopEntropyProject 13 + NopEntropySelfIndexTest 1（`@Disabled` 批前既有签名——维持义务 = 数量与归属比对）。既有红/flake 归因：无（0F 0E）。时序敏感搭车项：无（红①–红⑤ 均确定性规模/阈值形态）。
+4. **E3 批行 `-am` 通道上游链与阻断面（占位——Phase 3 实录回填）**：`./mvnw test -pl nop-code -am` 触达上游闭包大（nop-core/nop-kernel/nop-auth-service 等面）——五已知面集处置留痕（①nop-core `TestResourceCacheInvalidationChain` 负载 flake[solo 三联裁定] ②nop-cluster-core 时序敏感 ③nop-auth-service `TestOperationMfaE2E` TOTP 恒红 ④nop-stream-core 恒红 ⑤debezium known issue）；2530 先例：`nop-code -am` 阻断面③ MFA 恒红；E3 判据：批行通道执行并留痕至首个上游阻断面，阻断面按三联裁定/恒红基线行为处置留痕后，以等价分解通道 `./mvnw -o test -pl nop-code`（无 -am，608+新钉 0F0E、14S 签名比对）BUILD SUCCESS 作为 E3 可接受等价验收（2529/2530 勘误先例同款），不得静默重跑或跳过。
+5. **findByMetric 上界 × W-17/R4-31 三源对账（跨范围裁定）**：批次行 exit criteria 明文「+findByMetric 上界」入本批；6.3 merge-adjudication #15（C5-R2-001→W-17 P2 台账，R4-31 成员）裁定「与 W-01 失效层分立（metric family 行+符号实体 vs 4 表边集）非重复登记」；C10 TP-001 口径「C5-001（含同族 C5-R2-001/002/003 的上界面）」。三源对账裁定：**本批封口 = findByMetric 本体共享根**（一处上界覆盖 7 finder 全部 LOAD 通路——批次行明文兑现，亦即 TP-001「含同族上界面」的共享根承载）；**W-17 专属失效面归 R4-31 不双计** = 4-● 无 LIMIT finder 的三装配路径调用面枚举（detectCommunities/getGraphAnalysis/getCriticalNodes）+ `loadSymbolsByIds` 全量符号实体 chunk 物化（C5-R2-001 独立立案层）；R2-002/R2-003（getPublicSurface 无条件无 LIMIT/fileTree CLOB）零触碰归 R4-31；R4-31 W-17 承接**常量单源义务**（禁发明第二常量）。C5-R2-006/W-28 随批收敛裁定见对齐纪律第六条（#7/#20 两行裁定三源一致）。
+6. **W-02 修复面限界口径澄清（批次行「nop-code-service 消费侧」× 站点实况）**：6.4 merge-adjudication §四.2 原文核读——「W-02 的驻留失效面完全位于消费侧（BatchQueue 消费端全量累积）…故 W-02 的修复面限于 nop-code-service 消费侧，无需延伸至 lang-* 六模块」；live 核实 ProjectAnalyzer 位于 **nop-code-core**（analyzer 包）——「消费侧」语义 = **lang analyzer 的消费方**（ProjectAnalyzer 消费六语言 analyzer 产物并累积结果），非「nop-code-service 模块字面」；W-02 本体修复必然触碰 nop-code-core 1 文件，消费侧限界的本质约束 = **lang-* 六模块零触碰 + nop-code-api 零触碰 + 零 analyzer 缓存/复用**（对齐纪律第四条）；本批站点分布（nop-code-core 1 + nop-code-service 3）与批次行限界不冲突，登记为口径澄清非勘误冲突。
+7. **draft review R1 修订闭环登记（预留——独立评审轮次完成后回填本条）**：评审发现[Blocker/Major/Minor 分级]与修订落盘记录随轮次登记于此，Plan Status 依评审结论流转。
+
+## Goals
+
+- Phase 1 设计裁定文档一次裁决 5 项裁定（裁定① W-01 loader 上界与三动作守卫形态 / 裁定② findByMetric 上界与常量单源 / 裁定③ W-02 常量激活+触发面预检+驻留释放形态 / 裁定④ 测试缝与红①–红⑤ 驱动器总表 / 裁定⑤ 与 2530 设施交互与两防线分工——每条唯一预设默认分支）+ 独立 draft review 通过，无临场发明空间。设计文档拟名 `ai-dev/design/concurrency/graph-query-bounded-materialization-and-analyzer-input-envelope-contract.md`（Phase 1 产出物，前向引用；命名裁定：图查询物化上界（W-01 域，与 2530 leiden-timeout/graph-self-heal 契约集同宿主族）+ analyzer 输入面包络（W-02 域，含 S2 守门声明与部署包络边界注）多域合一，与现有 concurrency 设计集命名风格一致；如内容演进更适可调，调整时在本 plan 登记命名裁定）。
+- 2 工单全部修复并各带回归测试（rule 25）；W-28 收敛面随 W-02 同 diff 兑现（对齐纪律第六条）；C10 收口门（缺保护 2 缺陷面同 diff——TP-001 ↔ 红①②、TP-002 ↔ 红③④⑤，红①–红⑤ 全部构造性当前即红）落地（E2）。
+- 关键工单先红后绿留痕（E2）：红① loader 上界红（注入低上界大边集夹具断言 ≤ 上界+截断标志+warn——**当前即红**[pre-fix 全量物化]）；红② findByMetric 上界红（注入低上限断言截断——**当前即红**[pre-fix 全 family 行]）；红③ 死常量激活红（注入小阈值断言 skip/truncated + `testLargeFilesSkipped` :182 名实改写——**当前即红**[pre-fix 照常 readText]）；红④ sourceCode 驻留释放红（persist 完成后清空断言——**当前即红**[pre-fix 全程驻留]）；红⑤ 触发面预检红（超规模目录 fail-fast——**当前即红**[pre-fix 直通 analyzer]）。
+- Owner doc 更新落账：`docs-for-ai/03-modules/nop-code.md`（「图分析并发与资源契约」节增补**图查询物化上界契约**——loader/findByMetric 上界语义+与 2530 单飞门/守卫 sink 的两防线分工[裁定⑤]+生产行为变更声明；新增**索引输入面包络契约**声明——死常量激活语义+触发面预检+sourceCode 驻留释放+S2 守门声明+部署包络边界注；规范写法零 plan/工单编号零历史叙事）；`docs-for-ai/04-reference/source-anchors.md` 新增锚点行（CODEIDX-CC-002/CODEIDX-CC-003 候选）。
+- E1–E6 通用门禁全过（batch-proposal §一）。
+
+## Non-Goals
+
+- **不做 6.3-W-03（C7-001）**——已修（8.37/plan 2530，cra-index :313 fixed）；其单飞门/冷却窗/守卫 sink 零回退（对齐纪律第七条）。
+- **不做 6.3-W-04~W-19 十四成员**——归 8.71/R4-31（P2-G88 :473）：git 超时族[6.3-W-04]/半克隆毒化 W-05/ledger 清理 W-06/单页截断 W-07/搜索双写 W-08/删除链 W-09/clone retention W-10/SymbolTable 裸读 W-11[吸 G11-15-02]/缓存失效次序 W-12/C5 族 W-13~W-19；批次行明文「G11-15-02 承接面（C1-001）在 R4-31」。W-17~W-19 专属失效面（三装配路径调用面枚举/loadSymbolsByIds chunk 物化/getPublicSurface/fileTree CLOB）零触碰——本批 findByMetric 共享根 bound 为其上游常量单源（对齐纪律第三条）。
+- **不做 6.3-W-05/W-10（P2-G89 deferred dormant 条款）零触碰；不做 W-20~W-40 登记级**（含 C1-003~005/C5-008/009/W-24/W-25 等查询面邻近工单——findSymbols limit 兜底/getDepGraph 等零触碰）。
+- **不做 lang-* 六模块触碰**（6.4 上游保证——JavaFileAnalyzer setSourceCode :148 等全零 diff）；**不做 nop-code-api 变更**（DTO/biz 签名零变更——条件申报①预设不触发）；**不做 6.4-C10-W-01 契约测试本体**（watch 面归 6.4/R-G——仅当 S2 触发才入批，预设不触发）。
+- **不做 orm/DB 承载形态**（截断落库列/规模预检落库/MATERIALIZING 类状态标记全禁选——条件申报②：触 `nop-code/model/nop-code.orm.xml` = ORM plan-first）；不做 `_` 生成物触碰；不做平台设施本体改动（NopException/QueryBean/BatchQueue 使用面——条件申报③）。
+- **不做 analyzer 缓存/跨文件复用/索引并行化**（S2 反向约束守门——触发即须 6.4 先置测试，预设零触发）；不做死常量值重定义之外的守卫参数配置化（如需配置键形态登记 follow-up 候选）。
+- 不做模型结构变更（CodeFileAnalysisResult 零 diff 预设——sourceCode 字段保留，释放=置 null 非删字段）；不回写历史裁定文件（batch-proposal/merge-adjudication/C10/cra-index 台账行——收敛注记落本 plan Closure 与 roadmap 行/cra-index 收口由 Phase 4 承载）。
+- 不做 Deferred 节所列项；不触碰 R3 其余批（R3-07/R3-08 已 done 零重开；R3-10 成员本体）。
+
+## Scope
+
+### In Scope
+
+- `nop-code/nop-code-service/src/main/java/io/nop/code/service/graph/CodeRelationGraphLoader.java`（裁定① W-01 loader 上界+Javadoc 修正）。
+- `nop-code/nop-code-service/src/main/java/io/nop/code/service/graph/GraphMetricStore.java`（裁定② W-01 findByMetric 上界——共享根一处封口）。
+- `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeGraphService.java`（W-01 消费面零 diff 预设——如裁定①需进程内配合改动，与 2530 产物 diff 分组登记防混）。
+- `nop-code/nop-code-core/src/main/java/io/nop/code/core/analyzer/ProjectAnalyzer.java`（裁定③ W-02 本体：死常量激活+readText 检查+伪流式表述修正）。
+- `nop-code/nop-code-service/src/main/java/io/nop/code/service/impl/CodeIndexService.java` + `nop-code/nop-code-service/src/main/java/io/nop/code/service/entity/NopCodeIndexBizModel.java`（裁定③ W-02 消费侧：触发面规模预检[W-28 随批]+sourceCode 驻留释放+空回调处置）。
+- 错误码登记（如裁定采 fail-fast 形态）：`nop-code/nop-code-core/src/main/java/io/nop/code/core/NopCodeCoreErrors.java` 或 `nop-code/nop-code-service/src/main/java/io/nop/code/service/NopCodeErrors.java`（手写保留文件）。
+- 测试树（既有树内新测试类/用例 + `TestProjectAnalyzerFileFilter` 的 testLargeFilesSkipped :182 同 diff 名实改写，零新建模块测试树）：nop-code-service 测试树（红①②⑤）；nop-code-core 测试树（红③④）。
+- 设计文档：`ai-dev/design/concurrency/graph-query-bounded-materialization-and-analyzer-input-envelope-contract.md`（新建；裁定①–⑤+测试缝总表+零回退钉+与 2530 设施交互专节+S2 守门声明，最终状态写法；命名调整须登记裁定）。Owner doc：`docs-for-ai/03-modules/nop-code.md`（增补两契约声明）、`docs-for-ai/04-reference/source-anchors.md`（新增锚点行）。
+
+### Out Of Scope
+
+- Non-Goals 所列全部项；6.3 侧批外 P1×0+P2×16+P3×20（W-03 已修/W-04~W-19 归 8.71/W-20~W-40 登记级）；lang-* 六模块与 nop-code-api/nop-code-dao/nop-code-meta/nop-code-web/nop-code-app/nop-code-codegen 模块；nop-graph/nop-tools/8.36 产物面（零回退消费）；`_` 生成物与 orm 模型；6.4-C10-W-01 契约测试本体（watch 面）。
+
+## Execution Plan
+
+### Phase 1 - 图查询物化上界/输入面包络设计裁定文档 + 独立评审
+
+Status: planned
+Targets: `ai-dev/design/concurrency/graph-query-bounded-materialization-and-analyzer-input-envelope-contract.md`（新建）
+
+- Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
+
+- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [ ] **裁定① W-01 loader 上界与三动作守卫形态（缺保护 TP-001 主面随同 diff）**：上界形态定夺（setLimit+fail-fast / 分批截断+truncated 标志 / 列投影裁剪——R02 三范式择一或组合论证；预设=总量截断+truncated 标志+WARN 可观测，对齐 AnnotationPatternExtractor MAX_EDGES=50000 惯例与模块内 CodeCacheManager 截断降级惯例）；常量值定夺与可注入测试缝（TP-001 原文「上界常量可注入以便测试不必造十万行数据」——包内可见 setter/构造参数形态）；一处封死论证（loader 单点覆盖三动作与未来调用方；下游 analyzer 零触碰）；Javadoc :26-29 契约漂移修正文案（删改 "Deliberately unbounded...memory guards are the domain of..." 为如实描述）；生产行为变更声明文案（超大索引三动作全量物化→上界截断——owner doc 落点）；输出侧零签名变更声明（条件申报①）
+  - [ ] **裁定② findByMetric 上界与常量单源（缺保护 TP-001 上界面承载 + 批次行明文）**：上限形态定夺（固定常量对齐 BETWEENNESS_MAX_NODES=10000 惯例 vs 按 rankNo setLimit——预设=固定常量+截断可观测）；常量命名与 R4-31/W-17 常量单源义务移交声明（禁第二常量——2530 MAX_NODES 先例）；hasMaterialized :48 setLimit(1) 通路不受影响论证；loadSummary 单行语义不受影响论证（GRAPH_SUMMARY family 行数恒 1——上界对其无行为变化）；红② 断言形态
+  - [ ] **裁定③ W-02 常量激活+触发面预检+驻留释放形态（缺保护 TP-002 随同 diff；含 W-28 收敛面）**：死常量激活形态定夺（文件大小超限：skip+truncated 标志+WARN 预设 vs fail-fast[NopException]——论证面=TestIndexNopXlangModule 真实仓库索引零回退关联面+admin 工作流中断面+模块内截断降级惯例；常量值维持 1MB/50000 或调整的论证）；触发面预检定夺（indexDirectory 服务层入口文件数/累计字节 fail-fast——W-28 随批；预检阈值与常量值关系）；analyzer 内 fileCount 计数与触发面预检的双层关系（W-28 修复「守卫位于触发面」后 analyzer 内 MAX_FILE_COUNT 是否保留为纵深防御——预设保留双层）；sourceCode 驻留释放点定夺（指纹构建 :634-638 读取后/persist 完成后消费侧置 null——释放点必须晚于最后读取点的时序论证；红④ 断言形态）；空回调处置二选一（:356 `batch -> {}` 移除改非 streaming 变体 vs 真分批持久化——与 BatchQueue 既有形态的关系论证）；dormant readText :445/:596 覆盖与否（预设=同覆盖[同一激活逻辑收敛于 readText 检查点则天然覆盖]——如形态不收敛须显式登记 dormant 豁免理由）；伪流式表述修正文案（Javadoc :120-122/LOG :206）；**S2 守门显式声明**（零 analyzer 缓存/零跨文件复用/零并行化——条款一兑现）；lang-* 六模块零触碰声明
+  - [ ] **裁定④ 测试缝与红①–红⑤ 驱动器表+零回退钉清单**：红①–红⑤ 测试形态逐条（全部构造性当前即红——无变异锚定/反向钉改写面声明；`testLargeFilesSkipped` :182 名实改写为同 diff 义务非反向钉）；规模夹具设计（注入上界常量免造十万行——TP-001 原文；大边集夹具构造形态与运行时长口径）；红④ 释放点断言的时序确定性论证；红⑤ 触发面 fail-fast 注入形态；spy/计数桩零 mockito 声明（手工代理形态——勘误 PA 表 row 6）；零回退钉清单 = 勘误 3 基线（nop-code 608[14S 签名]）+ 点名既有钉族（TestCodeRelationGraphLoader/TestSurprisingConnections 2/TestGraphWikiExport 1/TestExplorationQuestions 2/TestGraphMetricMaterialization 4/TestGraphAnalysisE2E 2/TestGraphMetricsSingleFlight_W_03 3/TestCommunityDetectionGuard_W_04 3/TestLeidenTimeoutEnvelope_W_04 3[nop-graph-core]/TestShardBuildCoordinator 3/TestConcurrentIndexing 1/TestProjectAnalyzer 系/TestIndexNopXlangModule/TestNopCodeIndexBizModel 2）+ 14S 签名声明；C10 缺保护 2 缺陷面同 diff 映射表（红①②↔TP-001、红③④⑤↔TP-002）+ W-28 收敛面验收=红⑤ 声明
+  - [ ] **裁定⑤ 与 2530 设施交互与两防线分工**：W-01 三动作读路径与 2530 单飞门（materialize 收口）/守卫 sink（runCommunityDetection 规模守卫）的分工表（编排面=2530——并发物化触发串行化；内容面=本批——物化产物与 finder 行上界；兜底面=2530 守卫 sink——内存兜底计算的规模约束）；skip-and-degrade 路径下 loader bound 不生效的边界声明（防误读为修复缺口——owner doc 契约节承载）；findByMetric 上界 × 2530 assemble 路径 COMMUNITY 缺行降级链的交互论证（上界截断 ≠ COMMUNITY 缺行——降级语义分列）；零回退声明（2530 七新钉族+`TestGraphMetricsSingleFlight_W_03` 等零改动）
+- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 更新归 Phase 3 统一落账——显式登记该去向）
+- [ ] `ai-dev/logs/` 对应日期条目已更新
+
+Exit Criteria:
+
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定①–⑤全部项且每条有唯一预设默认分支，独立 draft review 记录在案（文件命名如调整已登记裁定——本批沿 Goals 拟名预设）
+- [ ] 裁定①含上界形态+常量值+可注入缝+Javadoc 修正+生产行为变更声明+零签名声明；裁定②含上限形态+常量单源移交+hasMaterialized/loadSummary 不受影响论证；裁定③含激活形态+触发面预检+双层关系+释放点时序+空回调处置+dormant 覆盖+S2 守门声明；裁定④含红①–红⑤驱动器表[夹具形态+零 mockito+零回退钉全列]+C10 映射；裁定⑤含两防线分工表+skip 路径边界声明+零回退声明
+- [ ] `ai-dev/logs/` 对应日期条目已更新
+
+### Phase 2 - 2 工单 + W-28 收敛面实现 + 回归测试（按组 A–B）
+
+Status: planned
+Targets: nop-code-service 的 graph/impl/entity 包（CodeRelationGraphLoader/GraphMetricStore/CodeGraphService 零 diff 预设/CodeIndexService/NopCodeIndexBizModel）+ nop-code-core 的 analyzer 包（ProjectAnalyzer）+ 两模块 test 树（完整路径见 Scope In Scope 节）
+
+- Item Types: `Fix`（2 工单均为已确认 live 缺陷——P1×2，不得写成 Feature；W-28 收敛面为已确认 P3 登记级缺陷面的随批收敛）、`Proof`（工单测试 + C10 收口门）
+
+- [ ] 组 A nop-code-service 图查询域（W-01——1 工单 2 文件，CodeRelationGraphLoader/GraphMetricStore 零耦合于组 B）〔裁定①（红① loader 上界钉——注入低上界+截断标志+warn 断言）→ 裁定②（红② findByMetric 上界钉——注入低上限断言截断）〕〔落地形态=裁定①②产物；Javadoc :26-29 契约漂移修正随组 A diff；三动作消费面零 diff 预设核对（CodeGraphService 零产品 diff 或按裁定①登记最小配合面）〕
+- [ ] 组 B nop-code-core+service 输入面包络域（W-02 + W-28 收敛面——ProjectAnalyzer/CodeIndexService/NopCodeIndexBizModel 三文件）〔裁定③（红③ 死常量激活钉——注入小阈值+skip/truncated 断言+testLargeFilesSkipped :182 名实改写；红④ sourceCode 释放钉——persist 后清空断言；红⑤ 触发面预检钉——超规模 fail-fast；W-28 随裁定③②④同 diff 兑现）〕〔S2 守门核对：diff 零 analyzer 缓存/零跨文件复用/零并行化——lang-* 六模块零触碰 git 核对〕
+- [ ] 回归测试（rule 25 显式覆盖 + C10 缺保护 2 缺陷面同 diff，先红后绿或变异/回退论证留痕）：红①–红⑤ 快照落 `_tmp/` 并登记（总册 `_tmp/red-green-2532-summary.md` + 逐 trial 日志——命名沿 2525–2531 形态）；零回退钉核对（分解通道基线 608+新钉，0F0E；14S 签名比对；执行期出现 Skipped/Failures/Errors 即登记归因禁静默）
+- [ ] **端到端验证**（rule 22）：物化上界链 = 公开查询入口（getSurprisingConnections/getExplorationQuestions/exportGraphWiki 之一）→ ensureMaterializedForGraphMetrics（2530 单飞门）→ loader.load 上界判定 → 截断/降级 → 下游 analyzer 有界输出全链钉（W-01——从 @BizQuery 读入口到上界出口）；finder 上界链 = loadCommunities → findByMetric 上限判定 → 截断可观测全链钉（红②）；输入面包络链 = admin mutation 入口（triggerFullIndex/indexDirectory）→ 触发面预检 fail-fast（红⑤）/→ 分析循环 readText 大小检查 skip+truncated（红③）→ persist → sourceCode 释放（红④）全链钉（W-02+W-28——从 admin 入口到驻留释放出口）
+- [ ] **接线验证**（rule 23）：loader 上界真生效（三动作至少 1 个真实入口经 loader.load 走上界分支运行时实测——非仅常量存在）；findByMetric 上界真生效（loadCommunities 运行时实测截断）；死常量真激活（readText 检查运行时实测 skip——非仅常量引用出现）；触发面预检真生效（indexDirectory 运行时实测 fail-fast——非仅校验方法存在）；sourceCode 释放真生效（persist 完成后运行时实测 null——非仅 setSourceCode(null) 调用存在）
+- [ ] **无静默跳过**（rule 24）：loader 截断显式可观测（WARN+truncated 标志——非静默丢边）；findByMetric 截断显式可观测（对齐 warnIfCapped 既有范式）；大文件 skip 显式（WARN+truncated——非静默 continue；如采 skip 形态须与既有 `fileAnalyzer == null continue` 分支的静默形态区分——新增 skip 带 WARN）；触发面预检 fail-fast 显式（NopException+错误码/param——非静默返回 0）；sourceCode 释放为显式生命周期声明（非依赖 GC 碰运气）；新增公共分支无空方法体/TODO（全分支显式）
+- [ ] 条件申报核对（对齐纪律）：条件申报①（nop-code-api 签名/DTO 面）、②（orm/DB 承载）、③（平台设施本体）、④（`_` 生成物/lang-* 六模块）如触发须四件证据链在本 Phase 前闭合；触发与否登记（预设均不触发）；lang-* 零触碰 + NopCodeIndexBizModel 签名零变更 + CodeFileAnalysisResult 零 diff 登记（git diff 核对归 Phase 2/4）
+
+Exit Criteria:
+
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [ ] 2 工单 + W-28 收敛面全部 landed，各带 ≥1 条 focused 回归测试且测试名可辨识对应工单（`Test*_<工单>` 惯例：W_01/W_02——W_28 收敛面以红⑤ 验收+收敛注为验收[无独立钉于红③⑤之外]）
+- [ ] 必红证据（E2）：红①–红⑤ 均先红后绿（构造性当前即红——形态标注逐钉在总册）；`testLargeFilesSkipped` 名实改写同 diff 留痕
+- [ ] 零回退实证：`./mvnw -o test -pl nop-code` BUILD SUCCESS（基线 608 tests 0F0E 维持 + 14S 签名比对维持）；既有钉族零回退（点名族逐一核对——TestCodeRelationGraphLoader/TestSurprisingConnections/TestExplorationQuestions/TestGraphMetricMaterialization/TestGraphMetricsSingleFlight_W_03/TestCommunityDetectionGuard_W_04/TestIndexNopXlangModule 真实仓库索引/TestConcurrentIndexing）；2530 产物面（单飞门/守卫 sink/冷却窗/常量单源）零 diff
+- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选（逐链/逐项实录见各条注记）
+- [ ] E3 组内留痕：组内 focused 全绿 + 模块聚合绿；批行 `-am` 通道与等价分解通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认：`_` 生成物零触碰、orm 模型零触碰、平台设施零触碰、lang-* 六模块零触碰、nop-code-api 零触碰（条件申报①–④如触发须四件证据链闭合）、批外模块/工单（W-03 已修/W-04~W-19/W-20~W-40/8.71 面）零触碰；Owner doc 定稿归 Phase 3
+- [ ] `ai-dev/logs/` 对应日期条目已更新
+
+### Phase 3 - 全量验证 + owner doc 落账
+
+Status: planned
+Targets: nop-code 聚合全量测试；`docs-for-ai/03-modules/nop-code.md`；`docs-for-ai/04-reference/source-anchors.md`
+
+- Item Types: `Proof`
+
+- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2531 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+分解通道）
+- [ ] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-code -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-code`（无 -am）BUILD SUCCESS 等价验收（608+新钉 0F0E；14S 签名比对）
+- [ ] Owner doc 落账：`nop-code.md` 「图分析并发与资源契约」节增补图查询物化上界契约（loader/findByMetric 上界语义+与单飞门/守卫 sink 两防线分工[裁定⑤]+生产行为变更声明）+ 新增索引输入面包络契约声明（死常量激活语义+触发面预检+sourceCode 驻留释放+S2 守门声明+部署包络边界注；与 :49 访问控制声明衔接核对）；`source-anchors.md` 新增锚点行（CODEIDX-CC-002/CODEIDX-CC-003 候选，修复后 live 行号亲读核实）；check-doc-links `--strict` EXIT=0
+- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-code-core`/`--module nop-code-service` 逐模块 EXIT=0（`_tmp/scan-hollow-2532-*.log`；模块级既有面如 EXIT=1 按 2527/2529/2530 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）
+- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+
+Exit Criteria:
+
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [ ] E1 + 批行验证命令验收且逐条登记——批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
+- [ ] nop-code.md 两契约声明增补 + source-anchors.md 锚点行（live 行号亲读）；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
+- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、lang-* 六模块零触碰、批外模块零触碰[含 8.71 边界面零 diff]、批外工单零触碰）
+- [ ] `ai-dev/logs/` 对应日期条目已更新
+
+### Phase 4 - closure audit + 收口
+
+Status: planned
+Targets: 本 plan、roadmap 8.39 行、cra-index P1 台账 :311 + :312（+ :313 fixed 维持核对 + :92 6.3 计数口径 W-28 收敛注）、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
+
+- Item Types: `Proof`
+
+- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；S2 守门核对（diff 零 analyzer 缓存/零跨文件复用/零并行化）；8.71 边界面零触碰复核；W-28 收敛兑现复核（触发面预检+空回调处置与收敛注在案）
+- [ ] cra-index 台账回填：P1 两行收敛（:311 W-01 → fixed，注记 plan 2532 + closure audit 结论 + loader/findByMetric 上界兑现 + Javadoc 契约漂移修正 + TP-001 兑现 + R4-31 常量单源移交注；:312 W-02 → fixed，注记 plan 2532 + 死常量激活/触发面预检/sourceCode 释放兑现 + TP-002 兑现 + 部署包络边界注维持 + W-28 随批收敛注）；:92 6.3 计数口径注记（W-28/C5-R2-006 收敛注）；:313 fixed 维持核对；roadmap 8.39 行 Status → done + 勘误注记（findByMetric 上界 × R4-31 划界兑现 + W-02 消费侧限界口径澄清，沿 2523–2531 先例形态，不改 L109 原文）
+- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+
+Exit Criteria:
+
+> 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [ ] cra-index P1 两行收敛 + :92 收敛注（含 :313 维持核对）、roadmap 8.39 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
+- [ ] 双门禁退出码 0 登记在案
+- [ ] `ai-dev/logs/` 收口条目已更新
+
+## Closure Gates
+
+> **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
+
+- [ ] 2 工单 + W-28 收敛面全部修复：6.3-W-01（loader 总量上界+截断可观测+Javadoc 契约漂移修正+findByMetric 显式上界一处封口）、6.3-W-02（死常量激活+触发面规模预检+sourceCode 驻留释放+空回调处置+伪流式表述修正）、W-28（触发面预检随批收敛）
+- [ ] batch-proposal R3-09 行 exit criteria 增补逐条达成并留证：S2 反向约束守门（零 analyzer 缓存/零跨文件复用/零并行化显式声明——未触发先置测试义务）；W-01 查询三动作 LIMIT/列投影（R02 三范式）+findByMetric 上界；W-02 修复面限于消费侧（lang-* 六模块零触碰）；G11-15-02 承接面（C1-001）归 R4-31 零触碰
+- [ ] 对齐纪律守约：S2 守门条款兑现；R02 三范式条款兑现；findByMetric 划界与常量单源移交兑现；消费侧限界条款兑现；部署包络边界注条款兑现（owner doc 声明）；W-28 随批收敛条款兑现；8.37/2530 边界条款兑现（零回退七钉族+两防线分工）；8.71 边界条款兑现（零 diff——closure audit git 过滤核对）；C10 同 diff 兑现（缺保护 2 缺陷面）；PA 零触碰声明闭环（条件申报①–④触发与否登记——closure audit git diff 全量核对）
+- [ ] 每工单 ≥1 条 focused 回归测试（rule 25，工单号可辨识）；红①–红⑤ 均有先红后绿证据（E2；形态标注逐钉在 red-green 总册）；`testLargeFilesSkipped` 名实改写同 diff 落地；C10 缺保护 2 缺陷面同 diff 落地
+- [ ] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；2530/8.36/8.38 产物面零回退
+- [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 14S 签名比对归因登记）
+- [ ] Owner doc 落账完成：nop-code.md 两契约声明增补 + source-anchors 锚点行（E5）
+- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码或归因登记）
+- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 W-04~W-19/G11 承接面为批次定义层排除[8.71]、W-20~W-40 为单元裁定登记级，非本批降级）
+- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [ ] **Anti-Hollow Check**：closure audit 已验证（a）loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证五项），（b）无空方法体/静默跳过/no-op 作为正常实现（截断显式 WARN+标志、skip 显式 WARN、fail-fast 显式异常、释放显式声明）
+- [ ] `./mvnw compile` + `./mvnw test`（nop-code 聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
+- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [ ] cra-index :311/:312 两行收敛 + :92 收敛注 + roadmap 8.39 → done（E6）
+
+## Deferred But Adjudicated
+
+### 批外登记级面（6.3-W-04~W-19+G11 承接面归 8.71/R4-31；W-05/W-10 deferred 条款；W-20~W-40 登记级；6.4-C10-W-01 契约测试 watch 面）
+
+- Classification: `out-of-scope improvement`（批次定义层排除非本批降级——batch-proposal R3-09 finding 清单 2 项为成员全集；cra-index 台账行批次列为准）；Successor Required: `yes`；Successor Path: plan 8.71[R4-31]/R-G 治理批（W-17 承接 findByMetric 常量单源义务——对齐纪律第三条；6.4-C10-W-01 契约测试为 watch 面仅 S2 触发时激活）
+- Why Not Blocking Closure: 判级对齐零重复——本批成员 = 批次行 finding 清单 2 项全交付 + W-28 收敛面（P3 登记级非成员——勘误 5 三源对账在案）；6.3 单元 P1×3 分批收敛（8.37/W-03 已修[1]+本批 W-01/W-02[2]）。
+
+## Non-Blocking Follow-ups
+
+- **守卫常量配置化候选**（loader 上界/findByMetric 上界/触发面预检阈值为编译期常量——配置键化涉及生产语义变更面评估，对齐 2530 MAX_NODES 配置化 follow-up 形态）。
+- **dormant 分析入口的守卫语义统一**（analyzeIncremental/analyzeFiles 零 main 调用方——如未来接线，激活逻辑是否沿用裁定③形态登记候选）。
+- **loader 上界的列投影裁剪深化**（如裁定①采总量截断——按需投影 sourceFilePath/targetFilePath 等重字段的优化候选）。
+- **部署包络确认跟踪**（仓库白名单/配额前置层如部署方确认存在——W-02 P1 复议降 P2 条件登记，cra-index :312 边界注维持）。
+- （占位）执行期发现的小额治理项（如命名/注释/测试基建微整）在此登记，均不得承载 in-scope live defect。
+
+## Risks And Rollback
+
+- **findByMetric 上界的装配面行为变更风险（本批最大执行风险）**：findByMetric 为 7 finder 共享根——上界触发时 detectCommunities/getGraphAnalysis/getCriticalNodes 三装配路径的 COMMUNITY/HUB/ENTRY_POINT family 行被截断，社区成员/entry point 输出不完整；与 2530 既有降级链（COMMUNITY 缺行→assemble null→内存兜底）语义不同（截断≠缺行——部分行返回）——裁定② 强制输入（截断可观测 WARN+与物化侧 BETWEENNESS 10⁴ skip 语义对齐论证+上界值≥物化守卫值的协调论证[如 10⁴ 对齐则 family 行在守卫内自然有界、上界为纵深防御]）；回滚 = finder 上界单点可逆，红② 防「常量存在但未生效」退化。
+- **W-02 激活形态的生产行为变更风险**：死常量激活使超大文件/超大仓库从「照常分析」变为「skip/fail-fast」——admin 既有索引工作流中断面（大 minified bundle/生成文件仓库被拒或跳过）——裁定③ 强制输入（skip+truncated 预设理由：保留可完成性与可观测；fail-fast 备选论证；owner doc 生产行为变更声明）；常量值（1MB/50000）适配性论证；回滚 = 激活逻辑局部可逆，红③ 防「常量引用出现但检查未接线」退化。
+- **sourceCode 释放时序风险**：释放点早于最后读取点（指纹构建 :634-638/增量路径复用）即破坏功能——裁定③ 强制输入（释放点时序论证+红④ 断言确定性）；dormant 路径（:445/:596）复用面核对；回滚 = 释放点单行可逆。
+- **与 2530 单飞门/守卫 sink 交互风险**：loader bound 在单飞 skip 路径（内存兜底）不生效——兜底规模由守卫 sink 承载，两防线分工若未声明即被误读为修复缺口——裁定⑤ 强制输入（分工表+owner doc 契约承载）；findByMetric 上界与 assemble null 链的语义分列（截断≠缺行）；回滚 = 本批 diff 与 2530 文件交界面仅 CodeGraphService 零 diff 预设——如裁定①需配合面，diff 分组登记防混（2530 组 B 同文件双工单先例）。
+- **真实仓库索引测试零回退风险**：TestIndexNopXlangModule（:90 indexDirectory 真实模块树 `**/*.java`）为激活形态关联面——live 核实仓库内 >1MB 文件仅 pptx/log（非 .java 面，pattern 过滤后不触达 readText），激活 skip 形态下该测试应维持绿；如裁定③采 fail-fast 且未来仓库混入大 .java 文件则恒红——激活形态选择须含此回归面论证；回滚 = 形态切 skip+truncated。
+- **触发面预检与既有权限面交互风险**：indexDirectory 预检在 @Auth admin 之后——预检错误形态（错误码/param）须与既有 validatePath 失败形态一致（TestNopCodeIndexBizModel/TestBizModelErrorPaths 既有锚零回退）；triggerFullIndex → indexDirectory(null pattern) 内部调用链的预检双触发核对（同入口一次预检——不重复计数）。
+- **上游链环境噪声风险**：批行 `-am` 通道触达上游闭包大（勘误 4 五已知面集）——三联裁定/恒红归因执行并留痕，不得静默重跑或跳过；分解通道 01:02 min 可接受为日常迭代通道。
+
+## Closure
+
+Status Note: （收口时填写）
+Completed:
+
+Closure Audit Evidence:
+
+- Reviewer / Agent:
+- Audit Session:
+- Evidence:
+
+Follow-up:
+
+-
