@@ -185,23 +185,23 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-tools 聚合全量测试（-fn 形态）；`docs-for-ai/03-modules/nop-refactor.md`；`docs-for-ai/03-modules/nop-treesitter.md`；`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/01-repo-map/module-groups.md`（核对）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2530 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+`-fn` 分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-tools -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价 `-fn` 分解通道 `./mvnw -o test -fn -pl nop-tools`（无 -am）收口验收（2614+新钉 0F；26E 签名逐类逐数比对；3S 签名比对）〔Route-B 如触发（条件申报①）→ 增 nop-kernel 通道——预设不触发〕
-- [ ] Owner doc 落账：`nop-refactor.md` 增补「落盘语义契约」节（W-08 裁定⑤收敛后单一事实源+landed 载荷如采+W-07 守卫前置行为声明衔接 Runbook 指针节；**+:21/:23 既有原子落盘行同步[R1 Major-1]——(a) 兑现保留/(b) 改写为 fail-loud 声明，随裁定⑤结论同 diff**）；`nop-treesitter.md` 增补语言实例身份契约声明（W-05 并发收敛语义+增量树同实例链要求+computeIfAbsent 持锁语义声明）；`source-anchors.md` 新增锚点行（TSCBRIDGE-CC-001/LINTCORE-CC-001 候选，修复后 live 行号亲读核实；lint 面契约暂承载形态登记）；`module-groups.md` nop-tools 行核对最小同步（缺口声明随 R-G 登记）；nop-lint/nop-jq owner doc 缺口声明维持注记；check-doc-links `--strict` EXIT=0
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module` 触达面逐模块 EXIT=0（nop-lint-js/nop-lint-core/nop-refactor-core/nop-treesitter——模块级既有面如 EXIT=1 按 2527/2529/2530 先例归因登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2530 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+`-fn` 分解通道）〔兑现：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/e1-full-2531.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-tools -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价 `-fn` 分解通道 `./mvnw -o test -fn -pl nop-tools`（无 -am）收口验收（2614+新钉 0F；26E 签名逐类逐数比对；3S 签名比对）〔Route-B 如触发（条件申报①）→ 增 nop-kernel 通道——预设不触发〕〔兑现：`nop-refactor -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2531-r{1,2,3}.log`，负载 flake，本批 nop-kernel 零 diff）；`nop-treesitter -am` EXIT=1 阻断于既有 26E 恒红面本体（TestParseTreeSitterGraphQL 2E+TestShellAnalysisGraphQL 9E=11E，solo 恒红同签名 `_tmp/e3-solo-tsgql-2531.log`——基线勘误登记的非本批面）；等价分解通道 2638 tests 0F 26E 3S（`_tmp/decomposed-2531.log`，26E/3S 逐类逐数零漂移）〕
+- [x] Owner doc 落账：`nop-refactor.md` 增补「落盘语义契约」节（W-08 裁定⑤收敛后单一事实源+landed 载荷如采+W-07 守卫前置行为声明衔接 Runbook 指针节；**+:21/:23 既有原子落盘行同步[R1 Major-1]——(a) 兑现保留/(b) 改写为 fail-loud 声明，随裁定⑤结论同 diff**）；`nop-treesitter.md` 增补语言实例身份契约声明（W-05 并发收敛语义+增量树同实例链要求+computeIfAbsent 持锁语义声明）；`source-anchors.md` 新增锚点行（TSCBRIDGE-CC-001/LINTCORE-CC-001 候选，修复后 live 行号亲读核实；lint 面契约暂承载形态登记）；`module-groups.md` nop-tools 行核对最小同步（缺口声明随 R-G 登记）；nop-lint/nop-jq owner doc 缺口声明维持注记；check-doc-links `--strict` EXIT=0〔兑现（2026-11-04 owner-doc 子任务，仅文档零源码零构建）：①`nop-refactor.md` :21/:23 两行改写为 fail-loud 语义声明（applied=true ⟺ 全部落盘成功；任一文件写盘失败抛 NopRefactorException 无部分成功结果——裁定⑤(b) 收敛，两处矛盾消除为单一事实源）+新增「落盘与并发契约」节（落盘语义 fail-loud 逐文件+landed/notAttemptedCount 机器可读载荷+undo via VCS 崩溃恢复/EditPlanApplier 守卫前置与回滚写移除/写面质量标准三处统一[temp 唯一名+失败清理+ATOMIC_MOVE]/结果缓存跨进程互斥与锁生命周期[线程域可重入+同 JVM 第二持有者 fail-closed+CLI 进程域]）+Runbook 指针节既有 EditPlanApplier javadoc 指向维持（守卫前置行为声明已同步至该 javadoc）；②`nop-treesitter.md` 新增「语言实例身份与并发契约」节（provider CHM computeIfAbsent 单飞单实例身份契约+增量树同实例链+loader 链不回环与第三方禁递归+持锁有界+null 语义不变+遮蔽 putIfAbsent 先注册者胜；tsc 桥接协议契约承载声明[protocolVersion 帧校验/error 帧 correlation+合成 id=-1 规则/BAD_FRAME 回收 taxonomy=仅流完整性面/代际栅栏按代队列分离+统一失败出口+EXHAUSTED 终态零变更+无孤儿]）；③lint 面缺口=source-anchors `LINT-CC-001` 锚点行承载卸载契约与 deadline/写面/注册表语义（行内含缺口声明「nop-lint/nop-jq 无独立 owner doc 页」），module-groups nop-lint 行登记同型缺口声明；④`source-anchors.md` CODEGRAPH-CC-001 后新增三行=TSCBRIDGE-CC-001/LINT-CC-001/REFACTOR-CC-001（命名沿 CC 惯例；全部行号 live 亲读核实——NodeTscBridge :174/:181/:195/:219/:240-242/:280/:326+TscProtocol :34/:81-96/:150+LintDeadlineExecutor :73-74/:97/:124/:169+LintEngine :269/:319/:278/:328+RuleResultCache :96/:132-133/:150-186/:326+BaselineFile :194-203+EditPlanApplier :97-98/:108+LanguageRegistry :38/:83-89+NopRefactorException :26-31/:54/:61+RefactorOperationRunner :42-51/:70-77/:108-116）；docs-for-ai 零 ai-dev 直链（裁定权威=纯文本提及「按边界规则此处不直接链接」先例形态）；⑤`module-groups.md` nop-lint 行核对+缺口声明最小同步（模块清单与位置本就准确，零结构改动）；⑥顺手修复 `nop-treesitter.md` :265 一处 HEAD 既有 mojibake 字符（非本批写入面）；check-doc-links `--strict` EXIT=0（0 errors；2 warnings 为无关历史 plan 既有面）；写入文件 U+FFFD grep 零命中。**本注记登记后 Phase 3 该项保持未勾**——余下 E1/E3 通道与 scan-hollow 与 logs 收口条目由主流程完成后一并勾验〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module` 触达面逐模块 EXIT=0（nop-lint-js/nop-lint-core/nop-refactor-core/nop-treesitter——模块级既有面如 EXIT=1 按 2527/2529/2530 先例归因登记）〔兑现：check-doc-links --strict EXIT=0；scan-hollow nop-lint-core/nop-lint-js/nop-refactor-core 逐模块 EXIT=0 High=0（`_tmp/scan-hollow-2531-*.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行通道至首个阻断面留痕 + `-fn` 分解通道收口验收（26E/3S 签名比对）；E1 支路理由已声明
-- [ ] nop-refactor.md 增补节 + nop-treesitter.md 增补声明 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记 + 缺口声明维持注；check-doc-links EXIT=0；scan-hollow 触达面逐模块 EXIT=0（或归因登记）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[消费方/8.39/8.71 边界面零 diff]、批外工单零触碰、26E 红面测试零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行通道至首个阻断面留痕 + `-fn` 分解通道收口验收（26E/3S 签名比对）；E1 支路理由已声明〔兑现：`nop-refactor -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2531-r{1,2,3}.log`，负载 flake，本批 nop-kernel 零 diff）；`nop-treesitter -am` EXIT=1 阻断于既有 26E 恒红面本体（TestParseTreeSitterGraphQL 2E+TestShellAnalysisGraphQL 9E=11E，solo 恒红同签名 `_tmp/e3-solo-tsgql-2531.log`——基线勘误登记的非本批面）；等价分解通道 2638 tests 0F 26E 3S（`_tmp/decomposed-2531.log`，26E/3S 逐类逐数零漂移）〕
+- [x] nop-refactor.md 增补节 + nop-treesitter.md 增补声明 + source-anchors.md 锚点行（live 行号亲读）+ module-groups 核对登记 + 缺口声明维持注；check-doc-links EXIT=0；scan-hollow 触达面逐模块 EXIT=0（或归因登记）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[消费方/8.39/8.71 边界面零 diff]、批外工单零触碰、26E 红面测试零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 

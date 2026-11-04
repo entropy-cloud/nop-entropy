@@ -18,9 +18,9 @@
 | 操作 | 入口 | 输入 | 载荷 |
 |---|---|---|---|
 | 批量 pattern 改写（preview） | `Refactor__previewRewrite` / CLI `nop-refactor preview --rules <prefix> [--json] <files...>` | RewriteInput：rulesetPrefix + paths | RefactorResult（applied=false 不落盘） |
-| 批量 pattern 改写（apply） | `Refactor__applyRewrite` / CLI `apply` | 同上 | RefactorResult（applied=true 原子落盘） |
+| 批量 pattern 改写（apply） | `Refactor__applyRewrite` / CLI `apply` | 同上 | RefactorResult（applied=true ⟺ 全部计划文件落盘成功；任一文件写盘失败 fail-loud 抛 `NopRefactorException`，无部分成功结果——见「落盘与并发契约」） |
 | rename（preview） | `Refactor__previewRename` | RenameInput：paths（搜索域，java 文件集）+ fqn 或 path+byteOffset（恰一）+ newName | RefactorResult（跨文件改写计划 + symbolIntact） |
-| rename（apply） | `Refactor__applyRename` | 同上 | RefactorResult（跨文件原子落盘） |
+| rename（apply） | `Refactor__applyRename` | 同上 | RefactorResult（applied=true ⟺ 全部目标文件落盘成功；落盘语义与 fail-loud 边界同上行） |
 
 ### RefactorResult 载荷（字段不缩水）
 
@@ -46,6 +46,24 @@
 - `nop.refactor.graphql.max-source-size`（默认 1MB，字节级前置门 + 读后 backstop）。
 - `nop.refactor.graphql.max-target-files`（默认 512，读取前拒绝）。
 - 退出码（CLI）：0 = 全部应用 / 1 = 存在 nonApplied / 2 = 错误中止。
+
+## 落盘与并发契约
+
+### 落盘语义（fail-loud，逐文件落地）
+
+`applied=true` 表示全部计划文件都已成功落盘。落地是逐文件 fail-loud，从不是批级原子：任一文件写盘失败即抛 `NopRefactorException`，不产生部分成功的结果对象。异常携带机器可读的部分落地载荷——`landedFiles()`（失败前已落盘的文件清单）与 `notAttemptedCount()`（因中止从未尝试的文件数），消息文本保持人类可读（已落盘枚举 + 失败文件 + 剩余计数），调用方判定已落地集合无需解析消息。崩溃恢复语义显式为 **undo via VCS**：无 journal/事务标记，进程中途被杀后文件集处于混合状态，以版本控制回滚工作区为恢复权威后重跑。`RefactorResult` 既有载荷字段零变更（部分落地数据只存在于失败通道）。
+
+### 编辑应用守卫前置（EditPlanApplier）
+
+写序为 merge → splice → **内存守卫**（改写前后重解析的 error 节点数比对，输入全在内存前置零成本）→ 守卫通过才原子写。守卫被拒的编辑计划零文件落盘（返回 `rolledBack=true`、`appliedEdits=0` 的结果形态，调用契约不变）——被拒内容不出现在磁盘上，并发读取方不可见破损中间态，kill -9 不滞留被拒内容；守卫前置后回滚写不再存在。dry-run 从不写盘，守卫判定不变。
+
+### 写面质量标准（temp 唯一名 + 失败清理 + 原子替换）
+
+三处磁盘写面（EditPlanApplier / lint 结果缓存 / lint baseline）统一为同一标准：`Files.createTempFile` 目标目录内唯一临时名 + 写入 + `ATOMIC_MOVE` 替换 + 失败路径 `deleteIfExists` 清理（清理失败 WARN 不掩主失败）——固定名临时文件的跨进程互踩面结构性排除，崩溃不留半写产物。
+
+### 结果缓存的跨进程互斥与锁生命周期
+
+`--cache` 结果缓存的 load→save 全程读改写临界区由同目录 sibling 锁文件上的文件锁圈定（`LocalFileLock` 使用面引用）：跨进程并发 run 有界轮询后串行化，超时/获取失败 fail-closed 抛错（禁静默降级跳过保存）；同 JVM 的第二个并发持有者立即 fail-closed（运行自身线程嵌套 load→save 可重入）。锁生命周期全部在缓存类内：load 入口获锁、load 失败路径显式释放（失败不毒化后续 run）、save finally 释放；load 与 save 之间中途中止的放弃语义 = CLI 进程域（每 run 一进程，进程退出由 OS 释放文件锁）。BaselineFile 写入走同一 temp+原子替换形态，读路径 fail-closed 语义不变。
 
 ## 复杂度预算（WI13 审计）
 
