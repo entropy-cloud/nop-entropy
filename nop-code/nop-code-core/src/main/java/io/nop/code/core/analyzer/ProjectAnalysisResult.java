@@ -16,6 +16,10 @@ public class ProjectAnalysisResult {
     private final SymbolTable globalSymbolTable;
     private final ProjectStats stats;
     private List<CodeSemanticEdge> semanticEdges = List.of();
+    // passive truncation flag (precedent: SymbolTable/CallGraph.isTruncated, CodeRelationGraph) —
+    // set by ProjectAnalyzer when an input-envelope guard fired (oversized file skipped /
+    // file-count cap reached); purely observational, never changes analysis behavior
+    private boolean truncated;
 
     public ProjectAnalysisResult(List<CodeFileAnalysisResult> fileResults,
                                  SymbolTable globalSymbolTable,
@@ -59,6 +63,18 @@ public class ProjectAnalysisResult {
 
     public void setSemanticEdges(List<CodeSemanticEdge> semanticEdges) {
         this.semanticEdges = semanticEdges != null ? semanticEdges : List.of();
+    }
+
+    /**
+     * Whether the input envelope fired during this analysis (oversized files skipped or the
+     * file-count cap stopped traversal) — the result set is partial (missing-type degradation).
+     */
+    public boolean isTruncated() {
+        return truncated;
+    }
+
+    public void setTruncated(boolean truncated) {
+        this.truncated = truncated;
     }
 
     /**

@@ -170,6 +170,114 @@ public class CodeIndexService implements ICodeIndexService {
         this.debounceMillis = debounceMillis;
     }
 
+    /**
+     * Trigger-point input-envelope thresholds (W-28 / C5-R2-006): the admin trigger
+     * {@code indexDirectory} (both biz entries — triggerFullIndex and indexDirectory — delegate
+     * here) fails fast before analysis and the surrounding transaction when the scanned
+     * directory exceeds the file-count or the cumulative-byte limit. The file-count default is
+     * the same value family as the analyzer's internal MAX_FILE_COUNT (same-value family,
+     * semantically distinct guards in two defense layers). Path whitelisting (allowedLocalRoot)
+     * is a path scope guard, not a scale quota — the two coexist.
+     * <p>
+     * Test seam: instance fields + package-visible setters (unannotated setter is never wired by
+     * IoC); production keeps these compile-time defaults.
+     */
+    static final int DEFAULT_MAX_INDEX_FILE_COUNT = 50_000;
+    static final long DEFAULT_MAX_INDEX_TOTAL_BYTES = 1024L * 1024L * 1024L;
+
+    private int maxIndexFileCount = DEFAULT_MAX_INDEX_FILE_COUNT;
+    private long maxIndexTotalBytes = DEFAULT_MAX_INDEX_TOTAL_BYTES;
+
+    /** Test seam — package-visible by design, see the threshold field javadoc. */
+    void setMaxIndexFileCount(int maxIndexFileCount) {
+        if (maxIndexFileCount <= 0)
+            throw new IllegalArgumentException("maxIndexFileCount must be positive, got: " + maxIndexFileCount);
+        this.maxIndexFileCount = maxIndexFileCount;
+    }
+
+    /** Test seam — package-visible by design, see the threshold field javadoc. */
+    void setMaxIndexTotalBytes(long maxIndexTotalBytes) {
+        if (maxIndexTotalBytes <= 0)
+            throw new IllegalArgumentException("maxIndexTotalBytes must be positive, got: " + maxIndexTotalBytes);
+        this.maxIndexTotalBytes = maxIndexTotalBytes;
+    }
+
+    /**
+     * Trigger-point scale precheck: metadata-level enumeration only (file names and sizes, no
+     * content reads) with the same filter semantics as the analysis scan (explicit filePattern
+     * or the registered language extensions). Runs inside the per-index lock, after path
+     * validation (which depends on the resolved path) and before analyzeProject and the
+     * surrounding transaction — the in-lock metadata enumeration cost is accepted explicitly
+     * (it shares the window of the existing in-lock analysis chain and introduces no new lock
+     * ordering). Single enforcement point: both biz entries delegate to service indexDirectory,
+     * so one precheck covers both without double triggering.
+     */
+    private void precheckIndexInputScale(String indexId, String resolvedPath, String filePattern) {
+        Set<String> extensions = collectRegisteredExtensions();
+        int[] fileCount = {0};
+        long[] totalBytes = {0};
+        // depthIterator's filter prunes subtrees: directories must pass the filter so the
+        // traversal descends (same shape as ProjectAnalyzer's scan filter); the loop below
+        // skips them
+        IterableIterator<IResource> it = VirtualFileSystem.instance().depthIterator(resolvedPath, false,
+                resource -> resource.isDirectory() || matchesIndexScanFilter(resource, filePattern, extensions));
+        while (it.hasNext()) {
+            IResource resource = it.next();
+            if (resource.isDirectory())
+                continue;
+            fileCount[0]++;
+            totalBytes[0] += resource.length();
+            if (fileCount[0] > maxIndexFileCount) {
+                throw new NopException(ERR_CODE_INDEX_FILE_COUNT_EXCEEDED)
+                        .param(ARG_INDEX_ID, indexId)
+                        .param(ARG_PATH, resolvedPath)
+                        .param(ARG_FILE_COUNT, fileCount[0])
+                        .param(ARG_LIMIT, maxIndexFileCount);
+            }
+            if (totalBytes[0] > maxIndexTotalBytes) {
+                throw new NopException(ERR_CODE_INDEX_TOTAL_BYTES_EXCEEDED)
+                        .param(ARG_INDEX_ID, indexId)
+                        .param(ARG_PATH, resolvedPath)
+                        .param(ARG_TOTAL_BYTES, totalBytes[0])
+                        .param(ARG_LIMIT, maxIndexTotalBytes);
+            }
+        }
+    }
+
+    private Set<String> collectRegisteredExtensions() {
+        Set<String> extensions = new HashSet<>();
+        if (registry == null) {
+            return extensions; // unwired test assembly: the empty filter matches nothing, precheck passes
+        }
+        for (CodeLanguage lang : registry.getSupportedLanguages()) {
+            ILanguageAdapter adapter = registry.getAdapter(lang);
+            extensions.addAll(adapter.getFileExtensions());
+        }
+        return extensions;
+    }
+
+    /**
+     * Same filter semantics as {@link ProjectAnalyzer#analyzeProject} (explicit filePattern
+     * extension match, else registered language extensions) so the precheck sees exactly the
+     * input set the analysis scan would read.
+     */
+    private static boolean matchesIndexScanFilter(IResource resource, String filePattern, Set<String> extensions) {
+        if (filePattern != null && !filePattern.isEmpty() && !"*".equals(filePattern)) {
+            String ext = filePattern;
+            int starSlash = ext.lastIndexOf('/');
+            if (starSlash >= 0)
+                ext = ext.substring(starSlash + 1);
+            if (ext.startsWith("*."))
+                ext = ext.substring(1);
+            return resource.getName().endsWith(ext);
+        }
+        for (String ext : extensions) {
+            if (resource.getName().endsWith(ext))
+                return true;
+        }
+        return false;
+    }
+
     /** Test-visible reset so idempotency verification can bypass the debounce window. */
     public void resetRebuildDebounce() {
         rebuildDebounceMap.clear();
@@ -351,9 +459,14 @@ public class CodeIndexService implements ICodeIndexService {
         return withIndexLock(indexId, () -> {
             String resolvedPath = resolveVfsPath(vfsPath);
             validateLocalPath(indexId, resolvedPath);
+            // W-28 trigger-point scale precheck: fail-fast before analysis and the transaction
+            // (metadata enumeration only — single enforcement point for both biz entries)
+            precheckIndexInputScale(indexId, resolvedPath, filePattern);
+            // non-streaming analysis variant: the previous streaming call passed an empty
+            // callback (batch -> {}), so the streaming pacing had no consumer — the two
+            // variants accumulate results identically
             ProjectAnalysisResult result = analyzer.analyzeProject(
-                    VirtualFileSystem.instance(), resolvedPath, filePattern,
-                    batch -> {});
+                    VirtualFileSystem.instance(), resolvedPath, filePattern);
             final ProjectAnalysisResult finalResult = result;
             return transactionTemplate.runInTransaction(null, TransactionPropagation.REQUIRED, txn ->
                     ormTemplate.runInSession(session -> {
@@ -1271,6 +1384,12 @@ public class CodeIndexService implements ICodeIndexService {
         SymbolTable globalSymbolTable = result.getGlobalSymbolTable();
         for (CodeFileAnalysisResult file : result.getFileResults()) {
             saveFileResultInSession(indexId, file, session, globalSymbolTable);
+            // W-02 residence release: saveFileResultInSession is the last production read of
+            // sourceCode (content hash, file size, CLOB write) — dropping the reference here
+            // shrinks the residency window from "whole transaction" to "single-file persist gap".
+            // Later read paths go through the DB; the fingerprint-based incremental chain does
+            // not pass through this loop.
+            file.setSourceCode(null);
             queue.add(file);
         }
         queue.flush();
