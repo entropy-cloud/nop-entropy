@@ -1,6 +1,6 @@
 # 2532 CRA Phase 8.39 — R3-09 6.3 code-index 批（2 工单：6.3-W-01 公开图查询三动作每请求全量物化 4 关系表[P1·C5-001·R02 无界物化族·守卫声称不存在即契约漂移·TP-001 验收前置·findByMetric 上界入批] + 6.3-W-02 ProjectAnalyzer 输入面守卫全部失效[P1·C5-002·R02 族·死常量+伪流式+全仓库 sourceCode 驻留·TP-002 验收前置·部署包络边界注在案] + W-28/C5-R2-006 触发面 P3 随批收敛面[非成员——merge-adjudication #20「随 W-02 同批」裁定兑现，勘误 5 三源对账]）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: **PASS——0 Blocker + 1 Major + 6 Minor**（2026-11-04，独立立项评审子 agent agent_a2b2ac4d，fresh session）——**修订后转 active**，本轮修订全部随本轮落盘（修订登记见勘误 7）。**Major-1**（必修）注入缝唯一预设：裁定② 补「上界形态=实例字段+包内可见 setter，缺省=编译期常量值（对齐 BETWEENNESS_MAX_NODES 惯例），红②/TP-001 注入低上限经 setter 生产零 diff；若采纯常量形态则红② 改行数夹具形态并论证」；裁定③ 补 W-02 双常量（MAX_FILE_SIZE_BYTES/MAX_FILE_COUNT，ProjectAnalyzer :54-55 private static final）缝预设（同型：实例字段+包内 setter 或 @NopTestProperty 注入，Phase 1 定夺但须写唯一预设）；裁定④ 补红⑤ 预检阈值注入形态；Phase 1 Exit Criteria 裁定②③子句同步。**Minor-1** E1–E6 行号勘误 :36-42→:28-33（batch-proposal live 复核）。**Minor-2** Purpose 指纹构建读取归属修正（:634-638 在 ProjectAnalyzer.java 非 JavaFileAnalyzer）。**Minor-3** Non-Goals G88 枚举移出 W-05/W-10（归 :474 P2-G89，十四计数对齐）。**Minor-4** 裁定② 强制输入补 rank 序 finder（loadEntryPoints/loadBetweenness :130-143 orderBy rankNo）截断排序语义论证。**Minor-5** 区间尾值五处修正（:346-372/:374-393/:336-344/:123-143/:121-128——live grep+sed 逐处核对）。**Minor-6** roadmap 注日期 2026-11-04。
 > Last Reviewed: 2026-11-04
 > 起草说明：本 plan 由独立起草子 agent 于 2026-11-04 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `720005454c`）起草；全部工单站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果——**缺陷机制与站点集零漂移、行号勘误 2 处随勘误 2 修正**：8.37 批（plan 2530）修复面使 CodeGraphService 早段行号 +4[漂移源=守卫常量 javadoc 扩展]，ProjectAnalyzer 两处 readText ±1；其余站点逐行零漂移），执行前如再漂移以 live 为准并登记。结构沿 plan 2530/2531 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 工单逐条表 / Baseline 勘误 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。内容基于 R3-09 live 事实，不复制其他单元批结论。
@@ -192,42 +192,42 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.39 行、cra-index P1 台账 :311 + :312（+ :313 fixed 维持核对 + :92 6.3 计数口径 W-28 收敛注）、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；S2 守门核对（diff 零 analyzer 缓存/零跨文件复用/零并行化）；8.71 边界面零触碰复核；W-28 收敛兑现复核（触发面预检+空回调处置与收敛注在案）
-- [ ] cra-index 台账回填：P1 两行收敛（:311 W-01 → fixed，注记 plan 2532 + closure audit 结论 + loader/findByMetric 上界兑现 + Javadoc 契约漂移修正 + TP-001 兑现 + R4-31 常量单源移交注；:312 W-02 → fixed，注记 plan 2532 + 死常量激活/触发面预检/sourceCode 释放兑现 + TP-002 兑现 + 部署包络边界注维持 + W-28 随批收敛注）；:92 6.3 计数口径注记（W-28/C5-R2-006 收敛注）；:313 fixed 维持核对；roadmap 8.39 行 Status → done + 勘误注记（findByMetric 上界 × R4-31 划界兑现 + W-02 消费侧限界口径澄清，沿 2523–2531 先例形态，不改 L109 原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；S2 守门核对（diff 零 analyzer 缓存/零跨文件复用/零并行化）；8.71 边界面零触碰复核；W-28 收敛兑现复核（触发面预检+空回调处置与收敛注在案）
+- [x] cra-index 台账回填：P1 两行收敛（:311 W-01 → fixed，注记 plan 2532 + closure audit 结论 + loader/findByMetric 上界兑现 + Javadoc 契约漂移修正 + TP-001 兑现 + R4-31 常量单源移交注；:312 W-02 → fixed，注记 plan 2532 + 死常量激活/触发面预检/sourceCode 释放兑现 + TP-002 兑现 + 部署包络边界注维持 + W-28 随批收敛注）；:92 6.3 计数口径注记（W-28/C5-R2-006 收敛注）；:313 fixed 维持核对；roadmap 8.39 行 Status → done + 勘误注记（findByMetric 上界 × R4-31 划界兑现 + W-02 消费侧限界口径澄清，沿 2523–2531 先例形态，不改 L109 原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0 + scan-hollow 复核登记（触达模块逐模块 EXIT=0）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index P1 两行收敛 + :92 收敛注（含 :313 维持核对）、roadmap 8.39 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index P1 两行收敛 + :92 收敛注（含 :313 维持核对）、roadmap 8.39 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 2 工单 + W-28 收敛面全部修复：6.3-W-01（loader 总量上界+截断可观测+Javadoc 契约漂移修正+findByMetric 显式上界一处封口）、6.3-W-02（死常量激活+触发面规模预检+sourceCode 驻留释放+空回调处置+伪流式表述修正）、W-28（触发面预检随批收敛）
-- [ ] batch-proposal R3-09 行 exit criteria 增补逐条达成并留证：S2 反向约束守门（零 analyzer 缓存/零跨文件复用/零并行化显式声明——未触发先置测试义务）；W-01 查询三动作 LIMIT/列投影（R02 三范式）+findByMetric 上界；W-02 修复面限于消费侧（lang-* 六模块零触碰）；G11-15-02 承接面（C1-001）归 R4-31 零触碰
-- [ ] 对齐纪律守约：S2 守门条款兑现；R02 三范式条款兑现；findByMetric 划界与常量单源移交兑现；消费侧限界条款兑现；部署包络边界注条款兑现（owner doc 声明）；W-28 随批收敛条款兑现；8.37/2530 边界条款兑现（零回退七钉族+两防线分工）；8.71 边界条款兑现（零 diff——closure audit git 过滤核对）；C10 同 diff 兑现（缺保护 2 缺陷面）；PA 零触碰声明闭环（条件申报①–④触发与否登记——closure audit git diff 全量核对）
-- [ ] 每工单 ≥1 条 focused 回归测试（rule 25，工单号可辨识）；红①–红⑤ 均有先红后绿证据（E2；形态标注逐钉在 red-green 总册）；`testLargeFilesSkipped` 名实改写同 diff 落地；C10 缺保护 2 缺陷面同 diff 落地
-- [ ] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；2530/8.36/8.38 产物面零回退
-- [ ] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 14S 签名比对归因登记）
-- [ ] Owner doc 落账完成：nop-code.md 两契约声明增补 + source-anchors 锚点行（E5）
-- [ ] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码或归因登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 W-04~W-19/G11 承接面为批次定义层排除[8.71]、W-20~W-40 为单元裁定登记级，非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证五项），（b）无空方法体/静默跳过/no-op 作为正常实现（截断显式 WARN+标志、skip 显式 WARN、fail-fast 显式异常、释放显式声明）
-- [ ] `./mvnw compile` + `./mvnw test`（nop-code 聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index :311/:312 两行收敛 + :92 收敛注 + roadmap 8.39 → done（E6）
+- [x] 2 工单 + W-28 收敛面全部修复：6.3-W-01（loader 总量上界+截断可观测+Javadoc 契约漂移修正+findByMetric 显式上界一处封口）、6.3-W-02（死常量激活+触发面规模预检+sourceCode 驻留释放+空回调处置+伪流式表述修正）、W-28（触发面预检随批收敛）
+- [x] batch-proposal R3-09 行 exit criteria 增补逐条达成并留证：S2 反向约束守门（零 analyzer 缓存/零跨文件复用/零并行化显式声明——未触发先置测试义务）；W-01 查询三动作 LIMIT/列投影（R02 三范式）+findByMetric 上界；W-02 修复面限于消费侧（lang-* 六模块零触碰）；G11-15-02 承接面（C1-001）归 R4-31 零触碰
+- [x] 对齐纪律守约：S2 守门条款兑现；R02 三范式条款兑现；findByMetric 划界与常量单源移交兑现；消费侧限界条款兑现；部署包络边界注条款兑现（owner doc 声明）；W-28 随批收敛条款兑现；8.37/2530 边界条款兑现（零回退七钉族+两防线分工）；8.71 边界条款兑现（零 diff——closure audit git 过滤核对）；C10 同 diff 兑现（缺保护 2 缺陷面）；PA 零触碰声明闭环（条件申报①–④触发与否登记——closure audit git diff 全量核对）
+- [x] 每工单 ≥1 条 focused 回归测试（rule 25，工单号可辨识）；红①–红⑤ 均有先红后绿证据（E2；形态标注逐钉在 red-green 总册）；`testLargeFilesSkipped` 名实改写同 diff 落地；C10 缺保护 2 缺陷面同 diff 落地
+- [x] 设计文档裁定①–⑤成文且经独立 draft review；既有钉（勘误 3 基线 + 点名钉族）零回退实证（closure audit git diff 零改动核对 PASS）；2530/8.36/8.38 产物面零回退
+- [x] 全量构建绿：E1 留痕（支路声明在案）+ 批行验证命令按 E3 判据验收（批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收 + 14S 签名比对归因登记）
+- [x] Owner doc 落账完成：nop-code.md 两契约声明增补 + source-anchors 锚点行（E5）
+- [x] 受影响模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（逐模块 EXIT=0 真实退出码或归因登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——批外 W-04~W-19/G11 承接面为批次定义层排除[8.71]、W-20~W-40 为单元裁定登记级，非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）loader 上界/finder 上界/死常量激活/触发面预检/sourceCode 释放运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证五项），（b）无空方法体/静默跳过/no-op 作为正常实现（截断显式 WARN+标志、skip 显式 WARN、fail-fast 显式异常、释放显式声明）
+- [x] `./mvnw compile` + `./mvnw test`（nop-code 聚合——E3 分解通道验收）；checkstyle / 代码规范检查通过
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
+- [x] cra-index :311/:312 两行收敛 + :92 收敛注 + roadmap 8.39 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -257,15 +257,23 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed:
+Status Note: 2 工单（6.3-W-01 = C5-001 P1 + 吸收面；6.3-W-02 = C5-002 P1）与 W-28/C5-R2-006 收敛面全部 live 落地，经独立 closure audit APPROVED；13 条新钉均有先红后绿证据（红①②③⑤ 编译期构造红+语义红、红④ 既有注入通道行为红，总册 `_tmp/red-green-2532-summary.md`）；PA 零越界（CodeGraphService 三动作调用点与 GraphMetricMaterializer 零 diff；29 文件 diff 全量核对）；owner doc 两契约段与锚点落账；E1/E3/分解通道验收留痕。唯一 Minor（loader 恰等上界边界保守误报）登记 watch-only。批内无剩余 plan-owned work。
+Completed: 2026-11-05
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:
-- Audit Session:
+- Reviewer / Agent: 独立 closure 审计子 agent（fresh session，只读）
+- Audit Session: agent_e1827f6c-bca8-4aa6-9146-ab8127b7a39e（@ `bf5d4ed2ec`，基线 `720005454c`）
 - Evidence:
+  - 工单 live 核验逐条 PASS：CodeRelationGraphLoader :59/:61/:70-74/:80-83/:89-111/:102-106/:269-288 + CodeRelationGraph :99-105；GraphMetricStore :58/:60/:72-77/:90-230/:218/:226-230；ProjectAnalyzer :62-63/:70/:77/:205-209/:215-249/:243/:318/:390-401/:406-415 + CodeIndexService :36-44/:61/:127/:461-469/:1392。
+  - Anti-Hollow PASS：三动作经 3 参门面同一截断分支；biz 双入口均委托单点预检；单飞 skip 路径 bound 生效；scan-hollow 两模块 High=0。
+  - 测试 PASS：红证形态与裁定④一致（编译期构造红+代核行为红+行为断言红）；红⑤ 首版预检误拒偏差三处诚实登记；审计员亲跑 core 144 + service 306 tests 0F0E（`_tmp/audit-2532-verify.log`）。
+  - PA PASS：29 文件 diff 全量——零 api/lang-*/orm/`_` 生成物/平台设施；CodeGraphService/GraphMetricMaterializer/NopCodeIndexBizModel/JavaFileAnalyzer 零 diff；`_cases/` 为测试框架记录物非 codegen 生成物。
+  - Owner doc PASS：nop-code.md 两契约段常量值与语义全一致；CODEINDEX-CC-001/002 锚点 ±2 内；docs-for-ai 零 ai-dev 直链。
+  - Deferred 诚实性 PASS（W-28 真实落地非降级；8.71 划界与 family-aware follow-up 诚实）。
+  - 双门禁：`node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2532-cra-phase8.39-r3-09-code-index.md --strict` EXIT=0；`node ai-dev/tools/check-doc-links.mjs --strict` EXIT=0。
+  - Minor 处置：loader 恰等上界边界保守误报 → Deferred watch-only（方向保守无数据风险，与 warnIfCapped `size>=cap` 先例同语义）。
 
 Follow-up:
 
--
+- loader 截断标志边界精度（watch-only，后续触碰该文件时可改「实际批次截短才置位」）；family-aware 截断保留/交错（follow-up 候选）；其余 Non-Blocking Follow-ups 节所列项。无 confirmed live defect 遗留。
