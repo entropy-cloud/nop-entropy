@@ -5,11 +5,11 @@ import io.nop.lint.core.lang.LintLanguage;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Resolves the {@code language} field of a rule to a {@link LintLanguage}
@@ -27,7 +27,15 @@ import java.util.ServiceLoader;
  */
 public final class LanguageRegistry {
 
-    private final Map<String, LintLanguage> languages = new HashMap<>();
+    /**
+     * Concurrent registration-safe container (plan 2531 W-04, adjudication
+     * 6): the register guard must be atomic against a racing second
+     * registration, so the plain HashMap is replaced by a
+     * {@link ConcurrentHashMap} and the guard rides {@code putIfAbsent} —
+     * two providers claiming one id fail closed (exactly one winner, one
+     * detected conflict), never a silent winner-takes-all.
+     */
+    private final Map<String, LintLanguage> languages = new ConcurrentHashMap<>();
 
     /**
      * An empty registry; populate via {@link #register(LintLanguage)}.
@@ -68,12 +76,18 @@ public final class LanguageRegistry {
                     + language.getClass().getName());
         }
         LintLanguage existing = languages.get(normalized);
-        if (existing != null && existing != language) {
+        if (existing == language) {
+            // re-registering the same instance is an idempotent no-op
+            return;
+        }
+        // putIfAbsent makes the guard atomic against a racing registration;
+        // the loser re-checks the previous value and fails closed
+        LintLanguage incumbent = languages.putIfAbsent(normalized, language);
+        if (incumbent != null && incumbent != language) {
             throw new NopLintException("lint language id '" + language.id() + "' is already bound to "
-                    + existing.getClass().getName() + "; conflicting registration from "
+                    + incumbent.getClass().getName() + "; conflicting registration from "
                     + language.getClass().getName());
         }
-        languages.put(normalized, language);
     }
 
     /**
@@ -96,7 +110,9 @@ public final class LanguageRegistry {
     }
 
     /**
-     * The normalized, sorted ids of all registered bindings.
+     * The normalized, sorted ids of all registered bindings. The snapshot is
+     * weakly consistent (safe against concurrent registration — no
+     * ConcurrentModificationException, no resize race; plan 2531 W-04).
      */
     public List<String> registeredIds() {
         List<String> ids = new ArrayList<>(languages.keySet());
