@@ -21,22 +21,24 @@ import java.util.Objects;
  * The diagnostic-agnostic edit-plan application entry (nop-refactor WI4,
  * design 03 §3 second 2026-09-25 annotation): one explicit, ordered edit
  * list goes in, one per-file outcome comes out — conflict merge through the
- * single {@link Fixer#merge} authority, splice, atomic write (skipped in
- * dry-run), re-parse guard, rollback on a syntax break. No diagnostics are
+ * single {@link Fixer#merge} authority, splice, re-parse guard (in memory,
+ * before any write), atomic write (skipped in dry-run). No diagnostics are
  * consumed, no lint is run, there is no multipass loop — an edit plan exists
  * before any diagnosis (the refactor face), which is exactly what the
  * diagnosis-driven {@link FixApplier} must not assume.
  *
  * <p>The mechanical core is single-sourced here: {@code FixApplier}'s
- * multipass loop drives the same merge→apply→guard→write sequence through
+ * multipass loop drives the same merge→splice→guard→write sequence through
  * {@link #apply} once per pass and remains the only re-lint driver; the
  * refactor face and the WI9 operation framework consume the same entry, so
  * there is no second application path. The guard outcome is a returned
- * ending, not an exception: a pass whose result introduces more error-recovery
- * nodes than the content it started from restores the input bytes (unless
- * dry-run) and reports {@code rolledBack=true} with a net surviving edit
- * count of 0 — the same accounting the multipass loop's {@code applied -=}
- * produced. Every abnormal exit stays explicit: write failures throw
+ * ending, not an exception: a plan whose result introduces more error-recovery
+ * nodes than the content it started from is rejected in memory — the
+ * rejected content never touches the disk (no broken intermediate window
+ * for concurrent readers, nothing to survive a kill -9) — and the outcome
+ * reports {@code rolledBack=true} with a net surviving edit count of 0 —
+ * the same accounting the multipass loop's {@code applied -=} produced.
+ * Every abnormal exit stays explicit: write failures throw
  * {@link NopLintException} (the temp file is cleaned up, the target keeps
  * its previous content), and an edit targeting a range outside the source is
  * a stale-range fail-closed error, never a silent clip.</p>
@@ -68,8 +70,10 @@ public final class EditPlanApplier {
     /**
      * Applies one explicit edit plan to {@code source}. {@code dryRun = true}
      * computes the merged result in memory and never touches {@code file};
-     * {@code false} writes atomically and restores the input content when the
-     * re-parse guard detects a syntax break.
+     * {@code false} passes the re-parse guard in memory first (a syntax
+     * break rejects the plan before anything is written) and then writes
+     * atomically — the rejected content never lands on the disk, so there is
+     * no rollback write and no broken intermediate state to restore from.
      */
     public static EditPlanResult apply(Path file, byte[] source, List<Fix> edits,
                                        LintLanguage language, boolean dryRun) {
@@ -85,20 +89,23 @@ public final class EditPlanApplier {
         }
 
         byte[] next = spliceAll(source, merge.applied());
-        if (!dryRun) {
-            atomicWrite(file, next);
-        }
 
+        // the guard runs BEFORE any write (plan 2531 W-07, adjudication 4):
+        // both inputs are in memory, so a rejected plan's broken content
+        // never lands on the disk — no intermediate broken window for
+        // concurrent readers, and no rejected content can survive a kill -9
         int currentErrorNodes = countErrorNodes(language.parse(source));
         int nextErrorNodes = countErrorNodes(language.parse(next));
         if (nextErrorNodes > currentErrorNodes) {
-            if (!dryRun) {
-                atomicWrite(file, source);
-            }
             // the edits did not survive — the net surviving count is 0, the
-            // same accounting the multipass loop's `applied -=` produced
+            // same accounting the multipass loop's `applied -=` produced;
+            // nothing was written, so no rollback write exists any more
             return new EditPlanResult(source, true, 0, merge.skippedConflicts(), merge.skipped(),
                     List.of());
+        }
+
+        if (!dryRun) {
+            atomicWrite(file, next);
         }
         return new EditPlanResult(next, false, merge.applied().size(), merge.skippedConflicts(),
                 merge.skipped(), merge.applied());
