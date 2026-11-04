@@ -267,8 +267,16 @@ public final class LintEngine {
         }
         FileBudget budget = FileBudget.start(profile, clock);
         LintDeadlineExecutor.install();
-        RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(runnable, tree, stats,
-                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+        RuleSetRunner.RunResult runResult;
+        try {
+            runResult = RuleSetRunner.runWithRewrites(runnable, tree, stats,
+                    profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+        } finally {
+            // plan 2531 adjudication 2: the run owns the global executor slot
+            // only for its duration — the paired release restores the
+            // pre-install snapshot even when the run aborts
+            LintDeadlineExecutor.uninstall();
+        }
         SuppressionFilter filter = new SuppressionFilter(language.suppressionProvider());
         // the suppression tail consumes the reportable channel only — the
         // transform rewrite channel never enters it (WI3 adjudication 1/4)
@@ -309,8 +317,16 @@ public final class LintEngine {
         // global executor slot before any script runs. Idempotent, and
         // transparent for evaluations without a lint deadline in scope.
         LintDeadlineExecutor.install();
-        RuleSetRunner.RunResult runResult = RuleSetRunner.runWithRewrites(compiled, tree, stats,
-                profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+        RuleSetRunner.RunResult runResult;
+        try {
+            runResult = RuleSetRunner.runWithRewrites(compiled, tree, stats,
+                    profile, budget, deep, l2Ready(filePath), filePath, typeQueries);
+        } finally {
+            // plan 2531 adjudication 2: the run owns the global executor slot
+            // only for its duration — the paired release restores the
+            // pre-install snapshot even when the run aborts
+            LintDeadlineExecutor.uninstall();
+        }
         // design 03 §1.1 pipeline tail: the suppression judgment sits after
         // xscript (all rules have run) and before the diagnostics are
         // emitted. The language's annotation provider joins the always-on
