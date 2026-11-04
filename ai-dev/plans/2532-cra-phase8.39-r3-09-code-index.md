@@ -170,25 +170,25 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-code 聚合全量测试；`docs-for-ai/03-modules/nop-code.md`；`docs-for-ai/04-reference/source-anchors.md`
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2531 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+分解通道）
-- [ ] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-code -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-code`（无 -am）BUILD SUCCESS 等价验收（608+新钉 0F0E；14S 签名比对）
-- [ ] Owner doc 落账：`nop-code.md` 「图分析并发与资源契约」节增补图查询物化上界契约（loader/findByMetric 上界语义+与单飞门/守卫 sink 两防线分工[裁定⑤]+生产行为变更声明）+ 新增索引输入面包络契约声明（死常量激活语义+触发面预检+sourceCode 驻留释放+S2 守门声明+部署包络边界注；与 :49 访问控制声明衔接核对）；`source-anchors.md` 新增锚点行（CODEIDX-CC-002/CODEIDX-CC-003 候选，修复后 live 行号亲读核实）；check-doc-links `--strict` EXIT=0
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-code-core`/`--module nop-code-service` 逐模块 EXIT=0（`_tmp/scan-hollow-2532-*.log`；模块级既有面如 EXIT=1 按 2527/2529/2530 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2531 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+分解通道）〔兑现：`./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS EXIT=0（`_tmp/e1-full-2532.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 1/4）：`./mvnw test -pl nop-code -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-code`（无 -am）BUILD SUCCESS 等价验收（608+新钉 0F0E；14S 签名比对）〔兑现：`nop-code -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2532-r{1,2,3}.log`，负载 flake，本批 nop-kernel 零 diff）；等价分解通道 621 tests 0F0E 14S（`_tmp/decomposed-2532.log`）〕
+- [x] Owner doc 落账：`nop-code.md` 「图分析并发与资源契约」节增补图查询物化上界契约（loader/findByMetric 上界语义+与单飞门/守卫 sink 两防线分工[裁定⑤]+生产行为变更声明）+ 新增索引输入面包络契约声明（死常量激活语义+触发面预检+sourceCode 驻留释放+S2 守门声明+部署包络边界注；与 :49 访问控制声明衔接核对）；`source-anchors.md` 新增锚点行（CODEIDX-CC-002/CODEIDX-CC-003 候选，修复后 live 行号亲读核实）；check-doc-links `--strict` EXIT=0〔兑现 2026-11-05：①`nop-code.md`「图分析并发与资源契约」节增补两契约段落——「图查询有界物化契约」（loader 四表累计上界 50000+固定表序 calls→inheritance→annotation→semantic[SEMANTIC/ANNOTATION 系统性最先丢弃降级语义声明]+isTruncated 被动标志+3 参门面零调用方 diff+skip 路径上界同样生效；findByMetric 共享根 cap=10⁴ 注入缝语义+loadHubs orderBy score=totalDegree 保序+PAGE_RANK 主链零读仅 WARN+rankNo 恒写脚注+hasMaterialized setLimit(1) 独立通路/截断≠缺行两链分立；三防线分工[编排=单飞门/兜底=守卫 sink+缓存上界/内容=本契约]+生产行为变更声明）+「索引输入包络契约」（skip+truncated WARN 激活语义与 indexFile 单文件 fail-fast 分立、触发面 50000 文件/1GiB 单点 fail-fast[allowedLocalRoot 路径白名单≠规模配额并存——与 :49 访问控制声明衔接核对通过：path 域与规模域正交零冲突]、sourceCode 消费侧逐文件释放[persistSingleFileInSession residual+dormant 指纹链 producer 侧释放否决理由]+零缓存/零复用/零并行化守门声明）——规范性写法零 plan/审计/工单编号零历史叙事；②`source-anchors.md` 新增锚点行 `CODEINDEX-CC-001`（loader/GraphMetricStore/CodeRelationGraph live 行号亲读）+`CODEINDEX-CC-002`（ProjectAnalyzer/ProjectAnalysisResult/CodeIndexService/NopCodeErrors live 行号亲读），插在 `CODEGRAPH-CC-001` 之后 `TSCBRIDGE-CC-001` 之前——锚点命名登记：plan 候选 CODEIDX-CC-002/003，执行期按协调指令采 `CODEINDEX-` 前缀两行分域[CC-001=图查询物化域/CC-002=输入包络域]；docs-for-ai 零 ai-dev 直链[裁定权威=AI 开发记录区 concurrency 设计集不直接链接形态]；③`module-groups.md` 核对结论：无需更新——模块结构零变化[nop-code 行 :23 子模块清单仍准确；契约声明归属 per-module owner doc `nop-code.md`，nop-graph 行 :24 已指向该节]；④check-doc-links `--strict` EXIT=0[0 errors，2 warnings 为无关历史 plan 既有面]；写入文件 U+FFFD grep 零命中〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-code-core`/`--module nop-code-service` 逐模块 EXIT=0（`_tmp/scan-hollow-2532-*.log`；模块级既有面如 EXIT=1 按 2527/2529/2530 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价）〔兑现：check-doc-links --strict EXIT=0；scan-hollow nop-code-core/nop-code-service 逐模块 EXIT=0 High=0（`_tmp/scan-hollow-2532-*.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明
-- [ ] nop-code.md 两契约声明增补 + source-anchors.md 锚点行（live 行号亲读）；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、lang-* 六模块零触碰、批外模块零触碰[含 8.71 边界面零 diff]、批外工单零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行通道至阻断面留痕 + 分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明〔兑现：`nop-code -am` EXIT=1 阻断于已知面① nop-core `TestResourceCacheInvalidationChain`（solo 三联 3/3 绿 `_tmp/e3-solo-chain-2532-r{1,2,3}.log`，负载 flake，本批 nop-kernel 零 diff）；等价分解通道 621 tests 0F0E 14S（`_tmp/decomposed-2532.log`）〕
+- [x] nop-code.md 两契约声明增补 + source-anchors.md 锚点行（live 行号亲读）；check-doc-links EXIT=0；scan-hollow 逐模块 EXIT=0（或归因登记）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、lang-* 六模块零触碰、批外模块零触碰[含 8.71 边界面零 diff]、批外工单零触碰）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
