@@ -150,6 +150,7 @@
 - **N1（K9）**：JavaScriptService.refreshConfig 扩容分支 :107-115——:112 写旧数组越界、:111 绕过 newWorker 装配。不在 R3-10 finding 清单；归 plan Deferred（out-of-scope，successor 待 plan 指定）。
 - **N2（裁定②.6，R1 M2 订正后文本）**：XLangDebugProcess 会话编排残窗 = **connect 从未成功即退出重试循环**（debuggee 已终止 `isProcessTerminated` 或后台任务取消 `checkCanceled` 抛出）时 `connector::destroy` 从未登记进 cleanup，而首轮 `newInstance` 已经 init 建出工厂 timer/executor（SimpleRpcClientFactory :176 init 先于 :188 connect）——工厂线程资源泄漏。**stop×connect 并发不是残窗**：Cancellable.appendOnCancel 已取消后追加立即执行（:63-72/:106-123），destroy 必达（原「追加不补跑」表述系事实错误，废止）。插件 Gradle 面，归 plan Deferred（out-of-scope，successor 待 plan 指定）。
 - **N3（裁定②.4）**：nop-socket SocketClient.reconnect 不复查 closed 的平台残余窗——watch-only，平台批承接。
+- **N4（closure audit m-5 登记；执行期发现）**：SimpleRpcClient 构造器覆写 SimpleRpcClientFactory 在 SocketClient 上设置的 onChannelOpen/onChannelClose 回调（SimpleRpcClient :55-65 覆写 SimpleRpcClientFactory.newClient :195 设置）——工厂侧回调永不触发；红② 僵尸重连观测据此改服务端 accept 计数承载。平台设施面零触碰（条件申报③），watch-only 平台批承接。
 
 ## 批域边界
 

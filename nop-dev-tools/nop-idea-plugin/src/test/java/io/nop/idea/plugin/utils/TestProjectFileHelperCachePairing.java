@@ -36,20 +36,20 @@ public class TestProjectFileHelperCachePairing extends BaseXLangPluginTestCase {
     @Test
     public void testCacheEntryRemovedOnProjectDispose() {
         Project project = getProject();
-        assertFalse(ProjectFileHelper.cachedProjectKeys().contains(project),
-                "cache must not contain the project before first access");
+        assertFalse("cache must not contain the project before first access",
+                ProjectFileHelper.cachedProjectKeys().contains(project));
 
         // 首次访问触发插入点登记（computeIfAbsent 新建条目 + tryRegister 子 Disposable）
         ProjectFileHelper.getCachedNopVfsPaths(project);
-        assertTrue(ProjectFileHelper.cachedProjectKeys().contains(project),
-                "cache must contain the project after first access");
+        assertTrue("cache must contain the project after first access",
+                ProjectFileHelper.cachedProjectKeys().contains(project));
 
         // 项目级服务 dispose（项目关闭路径的 Disposable 树触发）→ 移除动作执行
         NopProjectService service = project.getService(NopProjectService.class);
         Disposer.dispose(service);
 
-        assertFalse(ProjectFileHelper.cachedProjectKeys().contains(project),
-                "cache entry must be removed after project dispose (C1-004 pairing)");
+        assertFalse("cache entry must be removed after project dispose (C1-004 pairing)",
+                ProjectFileHelper.cachedProjectKeys().contains(project));
     }
 
     /** CL-204 三态：READY 幂等（get() 重复调用不重入 init）；FAILED fail-fast 契约见下注 */
@@ -58,7 +58,7 @@ public class TestProjectFileHelperCachePairing extends BaseXLangPluginTestCase {
         Project project = getProject();
         NopProjectService first = NopProjectService.get();
         NopProjectService second = NopProjectService.get();
-        assertTrue(first == second, "get() must be idempotent after READY (three-state truncation)");
+        assertTrue("get() must be idempotent after READY (three-state truncation)", first == second);
 
         // FAILED 态契约：任一步骤失败 → initState=FAILED，此后 get() fail-fast 抛
         // IllegalStateException 且 cause 携带初始化失败原因（不再静默返回半初始化服务）。
@@ -67,25 +67,23 @@ public class TestProjectFileHelperCachePairing extends BaseXLangPluginTestCase {
         // destroyIfOrphaned 孤儿清理断言。
     }
 
-    /** W-05 接线：项目关闭后全局 XLang 设施仍可解析（registrar 引用计数只门控销毁） */
+    /**
+     * W-05 接线冒烟：init→acquire 与 dispose→release 两路径经真实 NopProjectService 连通
+     * （get() 成功即 acquire 链连通、dispose 不抛即 release 链经 cleanup 连通）。
+     *
+     * <p><b>验证盲区声明（closure audit M-2）</b>：CL-204 FAILED 态与「两项目交叉开/关全局设施
+     * 存活」在本 harness 无可执行断言（需失败注入 fixture 与双项目 fixture）——该两面的
+     * 计数语义由 Maven 侧 TestSharedCoreInitializerRegistrar 计数替身承载（红⑤），状态机与
+     * 接线的组合行为属 Gradle 验证盲区（通道③ 如实登记，禁伪绿）。</p>
+     */
     @Test
-    public void testGlobalFacilitySurvivesProjectClose() {
+    public void testRegistrarWiringThroughProjectInitAndDispose() {
         Project project = getProject();
 
-        // 项目内解析全局函数（per-project 组件管理器经委托链注册）
-        NopProjectService.get();
-        boolean resolvable = evalGlobalFunctionAvailable(project);
-        assertTrue(resolvable, "global xlang functions must be resolvable within the project");
+        // init→acquire 链：get() 成功即经 registrar 持有全局设施
+        NopProjectService service = NopProjectService.get();
 
-        // 项目关闭（registrar 计数-1；Maven 侧 TestSharedCoreInitializerRegistrar 覆盖
-        // 「最后一个持有者释放才销毁/多项目交叉销毁不拆设施」的计数语义）
-        NopProjectService service = project.getService(NopProjectService.class);
+        // dispose→release 链：经 cleanup 登记的凭据释放不抛（计数-1）
         Disposer.dispose(service);
-    }
-
-    private boolean evalGlobalFunctionAvailable(Project project) {
-        // plain-JVM 下不可用真实 XLangCoreInitializer 全局注册（:226 Guard per-project 形态），
-        // harness 内以项目级 xdef/xlib 模型可解析性代位观测
-        return !ProjectFileHelper.getCachedNopXDefVfsPaths(project).isEmpty();
     }
 }

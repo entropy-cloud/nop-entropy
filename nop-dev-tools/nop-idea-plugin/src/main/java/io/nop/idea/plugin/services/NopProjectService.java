@@ -24,6 +24,8 @@ import io.nop.xlang.XLangConstants;
 import io.nop.xlang.debugger.SharedCoreInitializerRegistrar;
 import io.nop.xlang.initialize.DslXmlResourceLoader;
 import io.nop.xlang.initialize.XLangCoreInitializer;
+import java.util.function.Consumer;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -75,10 +77,15 @@ public final class NopProjectService implements Disposable {
                 return null;
             });
             initState = InitState.READY;
-        } catch (RuntimeException e) {
+        } catch (Throwable t) {
+            // 捕 Throwable（含插件宿主可能的 LinkageError/NoClassDefFoundError）——
+            // 否则状态永久停在 INITIALIZING，get() 静默返回半初始化服务（CL-204 症状复现）
             initState = InitState.FAILED;
-            initFailure = e;
-            throw e;
+            initFailure = t;
+            if (t instanceof RuntimeException) {
+                throw (RuntimeException) t;
+            }
+            throw new IllegalStateException("NopProjectService initialization failed", t);
         }
     }
 
@@ -103,9 +110,17 @@ public final class NopProjectService implements Disposable {
             }
             throw NopException.adapt(e);
         }
-        cleanup.appendOnCancelTask(hold::cancel);
-
-        registerXlib();
+        Consumer<String> releaseTask = hold::cancel;
+        cleanup.appendOnCancelTask(releaseTask);
+        try {
+            registerXlib();
+        } catch (Exception e) {
+            // 后续步骤失败（裁定③-B.5）：立即释放本次已取得的持有（计数感知）并撤销
+            // dispose 侧登记，不再等到项目关闭
+            hold.cancel("init-failed");
+            cleanup.removeOnCancel(releaseTask);
+            throw NopException.adapt(e);
+        }
     }
 
     public static NopProjectService get() {

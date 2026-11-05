@@ -528,10 +528,11 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             // 纪元已前进：快照之后已有 resume 到达（含 notifier 回调内同步投递）——本停点直接完成，
             // 不发布任何挂起标志（per-thread 与全局 suspended 均不置位），lastSuspendThread 照常发布。
             // 可观测新语义：停点快照之后到达的 resume 一定生效，不再挂死。
+            // （不提前 return——与等待分支共用出口的 closed 检查，保持「退出时 closed 为真即抛」
+            // 的裁定④.3 语义对两条分支一致。）
             if (resumeEpoch != suspendEpoch) {
                 lastSuspendThread = thread;
-                return;
-            }
+            } else {
             // Mark the per-thread suspended flag BEFORE publishing the volatile global flag,
             // so that any observer that sees suspended==true is guaranteed to also see this
             // thread as suspended (the volatile write establishes a happens-before barrier).
@@ -546,6 +547,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
                 if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
                     LOG.trace("nop.debugger.monitor-await-timeout");
                 }
+            }
             }
         } catch (InterruptedException e) {
             // ignore：与既有 monitorWait 一致，恢复中断标志后按 resume 语义退出等待

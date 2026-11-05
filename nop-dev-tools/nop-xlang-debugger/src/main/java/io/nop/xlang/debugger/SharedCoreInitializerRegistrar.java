@@ -142,12 +142,16 @@ public class SharedCoreInitializerRegistrar {
 
         @Override
         public void removeOnCancel(java.util.function.Consumer<String> callback) {
-            // 凭据不支持外部追加取消回调——释放语义已由 cancel(reason) 承载
+            // 持有凭据的取消语义固定为 registrar 计数释放，不受理外部取消回调——显式失败
+            // （rule 24：禁静默吞掉调用方意图）
+            throw new UnsupportedOperationException(
+                    "SharedCoreInitializerRegistrar credential does not support external cancel callbacks");
         }
 
         @Override
         public void appendOnCancel(java.util.function.Consumer<String> callback) {
-            // 同上：持有凭据的取消语义固定为 registrar 计数释放，不受理外部追加
+            throw new UnsupportedOperationException(
+                    "SharedCoreInitializerRegistrar credential does not support external cancel callbacks");
         }
     }
 }
