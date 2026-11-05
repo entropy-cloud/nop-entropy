@@ -183,25 +183,25 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + 缺口声明落账
 
-Status: planned
+Status: completed〔2026-11-06：E1 BUILD SUCCESS + 批行双通道验收（通道 1 阻断面① solo 三联 3/3 绿归因留痕/通道 2 全绿）+ 分解三件 19/96[1S]/13 全绿 + scan-hollow 双模块 High=0〕
 Targets: nop-dev-tools + nop-frontend-support 双聚合全量测试 + nop-js 独立 pom 通道；本 plan 缺口声明面（roadmap 行注记归 Phase 4）
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（上游已知 flake 面按 2497–2532 先例快速通道支路声明；聚焦覆盖 = E3 批行通道+三件分解通道）〔注意：nop-js 不在反应器——E1 全量构建不覆盖 nop-js，其编译验证由独立 pom 通道承载，如实登记〕
-- [ ] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-dev-tools -am` 与 `./mvnw test -pl nop-frontend-support -am` 执行至首个上游阻断面留痕（阻断面按五已知面集三联裁定/恒红基线行为处置留痕）+ 等价分解通道 `./mvnw -o test -pl nop-dev-tools` + `./mvnw -o test -pl nop-frontend-support` + `./mvnw -o test -f nop-frontend-support/nop-js/pom.xml` BUILD SUCCESS 等价验收（三通道签名+新钉；1S 签名比对）
-- [ ] 缺口声明落账（E5）：roadmap 8.40 行内缺口维持注记随 Phase 4 回写；XLangCoreInitializer 注册契约语义已在设计文档契约节承载（Phase 1 产物核对）；CL-301 通道裁定已落档核对（三选一结果与工单行登记文本在案）；**No owner-doc update required（四模块 owner doc 缺口维持→R-G——显式登记，不新建条目）**
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-js`（独立 pom 模块）与 `--module nop-xlang-debugger` 逐模块 EXIT=0（`_tmp/scan-hollow-2533-*.log`；模块级既有面如 EXIT=1 按 2527/2529/2530/2532 先例归因登记——触达包定向扫描 EXIT=0 为可接受等价；nop-idea-plugin 非 Maven 模块不在 scan-hollow 扫描面——如实登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目）
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/e1-2533.log` BUILD SUCCESS）〔nop-js 不在反应器——E1 不覆盖 nop-js，其编译验证由独立 pom 通道承载（分解通道 DEC3 BUILD SUCCESS 13 tests 兑现）〕
+- [x] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-dev-tools -am` 执行至首个上游阻断面留痕（`_tmp/e3-am-devtools-2533.log`——nop-core `TestResourceCacheInvalidationChain` 3F=五已知面集①，solo 三联 3/3 绿[`_tmp/e3-solo-f1-2533-run{1,2,3}.log`]负载 flake 归因——本批 nop-core 零 diff）；`./mvnw test -pl nop-frontend-support -am` **BUILD SUCCESS**（`_tmp/e3-am-frontend-2533.log`——面① 本轮未现形，负载相关）；等价分解通道三件 BUILD SUCCESS（`_tmp/e3-dec-{devtools,frontend,nopjs}-2533.log`）：nop-dev-tools **19 tests** 0F0E（xlang-debugger 17=基线 6+新钉 11+shaded 2）、nop-frontend-support **96 tests 0F0E 1S**（1S=TestFluxNormalizeAction 1——签名数量与归属维持✓）、nop-js 独立 pom **13 tests** 0F0E（基线 7+新钉 6）
+- [x] 缺口声明落账（E5）：roadmap 8.40 行内缺口维持注记随 Phase 4 回写；XLangCoreInitializer 注册契约语义已在设计文档契约节承载（裁定③-B.6 契约语义声明核对在案）；CL-301 通道裁定已落档核对（W-02/W-05=②sink 兑现、W-03=③harness 登记、W-07=宣读[plan 对齐纪律第五条+设计文档批域边界节]、①归 R-G——三选一结果与工单行登记文本在案）；**No owner-doc update required（四模块 owner doc 缺口维持→R-G——显式登记，不新建条目）**
+- [x] 工具门禁：check-doc-links --strict EXIT=0（0 errors，2 warnings 为无关历史 plan 既有面）；scan-hollow 高=0——`--module nop-frontend-support/nop-js` EXIT=0 与 `--module nop-dev-tools/nop-xlang-debugger` EXIT=0（模块路径含父聚合目录——`--module nop-js` 单段路径不在扫描根，按实测路径通道执行 EXIT=0 等价；`_tmp/scan-hollow-2533-{nopjs,xlangdebugger}.log` 双模块 Critical/High/Medium/Low 全 0；nop-idea-plugin 非 Maven 模块不在 scan-hollow 扫描面——如实登记）
+- [x] `ai-dev/logs/` 对应日期条目已更新（Phase 2+3 条目见 2026-11-06.md）
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行通道至阻断面留痕 + 三件分解通道 BUILD SUCCESS 等价验收；E1 支路理由已声明（nop-js 反应器外形态）
-- [ ] 缺口声明落账核对（E5 缺口维持形态+契约语义设计文档承载+通道裁定落档——逐项在案）；No owner-doc update required 显式登记
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.41+ 边界面零 diff]、批外工单零触碰）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行通道 1 至阻断面①留痕（solo 三联 3/3 绿归因）+ 批行通道 2 BUILD SUCCESS + 三件分解通道 BUILD SUCCESS 等价验收（19/96[1S 签名维持]/13）；E1 支路理由已声明（nop-js 反应器外形态——独立 pom 通道承载编译验证）
+- [x] 缺口声明落账核对（E5 缺口维持形态+契约语义设计文档承载+通道裁定落档——逐项在案）；No owner-doc update required 显式登记
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.41+ 边界面零 diff]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
