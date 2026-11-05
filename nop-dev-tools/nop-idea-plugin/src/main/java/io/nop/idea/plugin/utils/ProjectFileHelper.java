@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 import com.intellij.java.library.JavaLibraryModificationTracker;
+import com.intellij.openapi.Disposable;
 import com.intellij.openapi.application.PathManager;
 import com.intellij.openapi.application.PluginPathManager;
 import com.intellij.openapi.editor.Document;
@@ -18,6 +19,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectRootManager;
 import com.intellij.openapi.vfs.JarFileSystem;
 import com.intellij.openapi.vfs.LocalFileSystem;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
@@ -42,6 +44,7 @@ import io.nop.core.dict.DictProvider;
 import io.nop.core.resource.ResourceConstants;
 import io.nop.core.resource.ResourceHelper;
 import io.nop.idea.plugin.resource.ProjectEnv;
+import io.nop.idea.plugin.services.NopProjectService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -171,7 +174,11 @@ public class ProjectFileHelper {
             Map<Project, CachedValue<T>> caches, //
             Project project, Function<Project, T> searcher //
     ) {
-        return caches.computeIfAbsent(project, (p) -> {
+        CachedValue<T> existing = caches.get(project);
+        // 映射函数只负责建值（R1 M4）：服务获取与移除登记都在映射函数之外——若在映射函数内登记，
+        // 父服务正在/已经 dispose 时子 Disposable 会对同键执行 remove（CHM "Recursive update" 异常），
+        // 且向已 dispose 父对象 register 抛 IncorrectOperationException
+        CachedValue<T> value = caches.computeIfAbsent(project, (p) -> {
             return CachedValuesManager.getManager(p) //
                                       .createCachedValue(() -> {
                                           Object[] deps = new Object[] {
@@ -183,7 +190,48 @@ public class ProjectFileHelper {
 
                                           return CachedValueProvider.Result.create(result, deps);
                                       });
-        }).getValue();
+        });
+        if (existing == null) {
+            registerCacheRemoval(caches, project, value);
+        }
+        return value.getValue();
+    }
+
+    /**
+     * 插入点登记移除（CRA 8.40 W-03 / C1-004）：条目由其插入动作自带移除登记——以插件项目级服务
+     * {@link NopProjectService} 为父 Disposable（项目关闭与插件卸载两路径都会触发；IntelliJ 平台
+     * 插件可卸载性约定插件 Disposable 以插件自有服务为父），动作 = 键值双参 remove（仅移除本条目）。
+     *
+     * <p>关闭竞态以 tryRegister 失败回滚闭合（替代「先检查 disposed 再建条目」的预检查——检查与
+     * 登记之间存在竞态窗口）：tryRegister 返回 false（父已 dispose）→ 立即回滚移除，本次结果为
+     * 一次性计算结果，条目不留存。两线程并发首建时两边都会登记子 Disposable（computeIfAbsent
+     * 原子，映射函数只执行一次，值引用相同）——键值双参 remove 幂等，良性重复。</p>
+     */
+    private static <T> void registerCacheRemoval(
+            Map<Project, CachedValue<T>> caches, Project project, CachedValue<T> value) {
+        try {
+            NopProjectService service = project.getService(NopProjectService.class);
+            if (!Disposer.tryRegister(service, new Disposable() {
+                @Override
+                public void dispose() {
+                    caches.remove(project, value);
+                }
+            })) {
+                caches.remove(project, value);
+            }
+        } catch (Exception e) {
+            // 服务获取失败（项目正在关闭等）：条目不滞留，回滚后原样上抛
+            caches.remove(project, value);
+            throw NopException.adapt(e);
+        }
+    }
+
+    /**
+     * 缓存条目键集合只读快照（CRA 8.40 测试缝 S4，包内可见）：红⑥ harness 断言「项目关闭后缓存
+     * 不再含该项目」用（Gradle 测试面，Maven 门禁外）。
+     */
+    static Set<Project> cachedProjectKeys() {
+        return Set.copyOf(nopVfsPathCaches.keySet());
     }
 
     public static DictBean loadDict(PsiElement refElement, String dictName) {
