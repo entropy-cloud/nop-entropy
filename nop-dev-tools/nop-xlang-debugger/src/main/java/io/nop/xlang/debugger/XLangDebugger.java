@@ -62,6 +62,15 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
     private volatile boolean suspended;
     private volatile boolean closed;
 
+    /**
+     * resume 纪元（CRA 8.40 W-04）：由 resume 侧（monitorNotify，monitorLock 内）推进的单调计数。
+     * 六停点序列在 notifier 回调（宣告）之前取得快照交给 doSuspend；等待判据为「纪元仍等于快照且
+     * 未 closed」——快照之后到达的任何 resume（包括 notifier 回调内同步投递的 resume）都使本停点
+     * 直接完成，不进入等待；快照之前到达的 resume 属于上一停点或无停点，对本停点无效。写入在
+     * monitorLock 内、读取为 volatile 读，快照跨线程可见。
+     */
+    private volatile long resumeEpoch;
+
     private int monitorWaitInterval = 200;
     private final ReentrantLock monitorLock = new ReentrantLock();
     private final Condition resumeCondition = monitorLock.newCondition();
@@ -76,8 +85,43 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         SUSPEND, RESUME, STEP_INTO, STEP_OVER, STEP_OUT
     }
 
+    /**
+     * 缺省清理初始延迟与周期（毫秒，CRA 8.40 W-06：与原一次性 30s 节拍一致）。
+     */
+    static final long DEFAULT_CLEANUP_INITIAL_DELAY_MILLIS = 30_000;
+    static final long DEFAULT_CLEANUP_DELAY_MILLIS = 30_000;
+
+    private final long cleanupInitialDelayMillis;
+    private final long cleanupDelayMillis;
+
     public XLangDebugger() {
-        cleanupThread.schedule(this::cleanup, 30, TimeUnit.SECONDS);
+        this(DEFAULT_CLEANUP_INITIAL_DELAY_MILLIS, DEFAULT_CLEANUP_DELAY_MILLIS);
+    }
+
+    /**
+     * 清理初始延迟/周期注入构造器（CRA 8.40 测试缝 S3，包内可见）：调度发生在构造期，setter 无法
+     * 改写已提交的调度——注入点只能是构造器（monitorWaitInterval setter 为「可注入参数」先例，
+     * 形态因构造期调度而取构造器）。生产调用面走无参构造器，零改动。
+     */
+    XLangDebugger(long cleanupInitialDelayMillis, long cleanupDelayMillis) {
+        this.cleanupInitialDelayMillis = cleanupInitialDelayMillis;
+        this.cleanupDelayMillis = cleanupDelayMillis;
+        // 固定延迟周期（W-06：原一次性 schedule 为笔误）：cleanup 持 suspendedThreads 监视器遍历，
+        // 慢执行时不得补偿性连发。
+        cleanupThread.scheduleWithFixedDelay(this::cleanupPeriodic, cleanupInitialDelayMillis,
+                cleanupDelayMillis, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * 周期体异常绝缘（CRA 8.40 W-06）：ScheduledExecutorService 周期任务一次抛出即被永久取消，
+     * 清理停摆即缺陷复现——捕获记录后继续后续周期。
+     */
+    private void cleanupPeriodic() {
+        try {
+            cleanup();
+        } catch (Exception e) {
+            LOG.warn("nop.debugger.cleanup-fail", e);
+        }
     }
 
     @Override
@@ -194,9 +238,12 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
     private void monitorNotify(DebugStepMode stepMode) {
         this.stepMode = stepMode;
-        this.suspended = false;
         monitorLock.lock();
         try {
+            // 清标志移入锁内（W-04：原锁外清 suspended 落在 doSuspend 置位与守卫读之间即失配），
+            // 与纪元推进同一临界区——resume 与挂起交接原子化
+            this.suspended = false;
+            resumeEpoch++;
             resumeCondition.signalAll();
         } finally {
             monitorLock.unlock();
@@ -365,36 +412,39 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
     private void checkStepInto(SourceLocation loc, EvalRuntime rt) {
         stepMode = DebugStepMode.RESUME;
+        long suspendEpoch = resumeEpoch; // 宣告前快照（W-04：回调内同步投递的 resume 归属本停点）
         SuspendedThread thread = makeSuspendedThread(rt);
         thread.update(loc, rt);
 
         if (notifier != null) {
             notifier.notifyStepInto(thread, loc, rt);
         }
-        doSuspend(thread);
+        doSuspend(thread, suspendEpoch);
     }
 
     private boolean checkTempBreakpoint(SourceLocation loc, EvalRuntime rt) {
         if (!matchTempBreakpoint(loc, rt))
             return false;
         stepMode = DebugStepMode.RESUME;
+        long suspendEpoch = resumeEpoch; // 宣告前快照（W-04）
         SuspendedThread thread = makeSuspendedThread(rt);
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifyBreakAt(thread, loc, rt);
         }
-        doSuspend(thread);
+        doSuspend(thread, suspendEpoch);
         return true;
     }
 
     private void checkSuspend(SourceLocation loc, EvalRuntime rt) {
         stepMode = DebugStepMode.RESUME;
+        long suspendEpoch = resumeEpoch; // 宣告前快照（W-04）
         SuspendedThread thread = makeSuspendedThread(rt);
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifySuspend(thread, loc, rt);
         }
-        doSuspend(thread);
+        doSuspend(thread, suspendEpoch);
     }
 
     private void checkStepOver(SourceLocation loc, EvalRuntime rt) {
@@ -411,11 +461,12 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         if (lastLoc == null || !lastLoc.isSameLine(loc)) {
             if (currentFrame <= lastFrame) {
                 stepMode = DebugStepMode.RESUME;
+                long suspendEpoch = resumeEpoch; // 宣告前快照（W-04）
                 thread.update(loc, rt);
                 if (notifier != null) {
                     notifier.notifyStepOver(thread, loc, rt);
                 }
-                doSuspend(thread);
+                doSuspend(thread, suspendEpoch);
             }
         }
     }
@@ -431,12 +482,13 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         int currentFrame = thread.getCurrentMaxFrameIndex();
         if (lastFrame > currentFrame) {
             stepMode = DebugStepMode.RESUME;
+            long suspendEpoch = resumeEpoch; // 宣告前快照（W-04）
 
             thread.update(loc, rt);
             if (notifier != null) {
                 notifier.notifyStepOut(thread, loc, rt);
             }
-            doSuspend(thread);
+            doSuspend(thread, suspendEpoch);
         }
     }
 
@@ -461,24 +513,50 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
             return false;
 
         stepMode = DebugStepMode.RESUME;
+        long suspendEpoch = resumeEpoch; // 宣告前快照（W-04）
         thread.update(loc, rt);
         if (notifier != null) {
             notifier.notifyBreakAt(thread, loc, rt);
         }
-        doSuspend(thread);
+        doSuspend(thread, suspendEpoch);
         return true;
     }
 
-    private void doSuspend(SuspendedThread thread) {
-        // Mark the per-thread suspended flag BEFORE publishing the volatile global flag,
-        // so that any observer that sees suspended==true is guaranteed to also see this
-        // thread as suspended (the volatile write establishes a happens-before barrier).
-        // Without this ordering, getSuspendedThreads() could observe suspended==true but
-        // an empty thread list, since thread.setSuspended(true) previously lagged behind.
-        thread.setSuspended(true);
-        suspended = true;
-        lastSuspendThread = thread;
-        monitorWait(thread);
+    private void doSuspend(SuspendedThread thread, long suspendEpoch) {
+        monitorLock.lock();
+        try {
+            // 纪元已前进：快照之后已有 resume 到达（含 notifier 回调内同步投递）——本停点直接完成，
+            // 不发布任何挂起标志（per-thread 与全局 suspended 均不置位），lastSuspendThread 照常发布。
+            // 可观测新语义：停点快照之后到达的 resume 一定生效，不再挂死。
+            if (resumeEpoch != suspendEpoch) {
+                lastSuspendThread = thread;
+                return;
+            }
+            // Mark the per-thread suspended flag BEFORE publishing the volatile global flag,
+            // so that any observer that sees suspended==true is guaranteed to also see this
+            // thread as suspended (the volatile write establishes a happens-before barrier).
+            // Without this ordering, getSuspendedThreads() could observe suspended==true but
+            // an empty thread list, since thread.setSuspended(true) previously lagged behind.
+            // 既有可见性序注释语义零回退（W-04 修复不得回退此前次修复）。
+            thread.setSuspended(true);
+            suspended = true;
+            lastSuspendThread = thread;
+            suspendedCondition.signalAll();
+            while (resumeEpoch == suspendEpoch && !closed) {
+                if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
+                    LOG.trace("nop.debugger.monitor-await-timeout");
+                }
+            }
+        } catch (InterruptedException e) {
+            // ignore：与既有 monitorWait 一致，恢复中断标志后按 resume 语义退出等待
+            Thread.currentThread().interrupt();
+        } finally {
+            thread.setSuspended(false);
+            monitorLock.unlock();
+        }
+        if (closed) {
+            throw new NopEvalException(ERR_XLANG_DEBUGGER_ALREADY_CLOSED);
+        }
     }
 
     private boolean matchTempBreakpoint(SourceLocation loc, EvalRuntime rt) {
@@ -529,30 +607,6 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
         }
 
         return false;
-    }
-
-    private void monitorWait(SuspendedThread thread) {
-        if (suspended) {
-            monitorLock.lock();
-            try {
-                thread.setSuspended(true);
-                suspendedCondition.signalAll();
-                while (suspended && !closed) {
-                    if (resumeCondition.await(monitorWaitInterval, TimeUnit.MILLISECONDS)) {
-                        LOG.trace("nop.debugger.monitor-await-timeout");
-                    }
-                }
-            } catch (InterruptedException e) {
-                // ignore
-                Thread.currentThread().interrupt();
-            } finally {
-                thread.setSuspended(false);
-                monitorLock.unlock();
-            }
-        }
-        if (closed) {
-            throw new NopEvalException(ERR_XLANG_DEBUGGER_ALREADY_CLOSED);
-        }
     }
 
     private SuspendedThread makeSuspendedThread(EvalRuntime rt) {
