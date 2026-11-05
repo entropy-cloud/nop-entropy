@@ -18,7 +18,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -173,7 +172,11 @@ class TestTwoPhaseCommitSinkFunction {
     }
 
     @Test
-    void testConcurrentFinishCommitNoConcurrentModificationException() throws Exception {
+    void testConcurrentFinishCommitSameEpochCommittedAtMostOnce() throws Exception {
+        // CRA 8.41 R4-01（1.1 单元）红② / C10-011 同 diff 改写（W-03）：原测试以互异 epochId
+        // （5*(i+1)）+ catch Throwable 置标志构成 superficially-pass——从未覆盖同 epoch 并发双提交
+        // 本体。改写为同 epoch + fail-fast：所有线程对同一 epochId 并发 finishCommit，断言该 epoch
+        // 至多提交一次（in-flight 守卫，post-fix 确定性绿）且异常向上传播（禁静默吞掉）。
         TestSink sink = new TestSink();
         Map<Long, Object> pending = Collections.synchronizedMap(new TreeMap<>());
         for (long i = 1; i <= 50; i++) {
@@ -184,27 +187,26 @@ class TestTwoPhaseCommitSinkFunction {
         int threadCount = 10;
         CyclicBarrier barrier = new CyclicBarrier(threadCount);
         ExecutorService executor = Executors.newFixedThreadPool(threadCount);
-        AtomicBoolean failed = new AtomicBoolean(false);
 
         List<Future<?>> futures = new ArrayList<>();
         for (int i = 0; i < threadCount; i++) {
-            final long epochId = 5L * (i + 1);
+            final long epochId = 5L;
             futures.add(executor.submit(() -> {
-                try {
-                    barrier.await();
-                    sink.finishCommit(epochId, true);
-                } catch (Throwable t) {
-                    failed.set(true);
-                }
+                barrier.await(10, TimeUnit.SECONDS);
+                sink.finishCommit(epochId, true);
+                return null;
             }));
         }
 
         for (Future<?> f : futures) {
-            f.get(10, TimeUnit.SECONDS);
+            f.get(15, TimeUnit.SECONDS);
         }
         executor.shutdown();
 
-        assertFalse(failed.get(), "Concurrent finishCommit should not throw ConcurrentModificationException");
+        long commitsOfEpoch5 = sink.committedEpochs.stream().filter(e -> e == 5L).count();
+        assertTrue(commitsOfEpoch5 <= 1,
+                "same-epoch concurrent finishCommit must commit at most once (in-flight guard), got "
+                        + commitsOfEpoch5);
     }
 
     @Test

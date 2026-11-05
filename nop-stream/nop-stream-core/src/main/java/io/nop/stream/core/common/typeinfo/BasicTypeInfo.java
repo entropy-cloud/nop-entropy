@@ -8,14 +8,16 @@
 package io.nop.stream.core.common.typeinfo;
 
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class BasicTypeInfo<T> implements TypeInformation<T>, Serializable {
 
     private static final long serialVersionUID = 1L;
 
-    private static final Map<Class<?>, BasicTypeInfo<?>> INSTANCES = new HashMap<>();
+    // CRA 8.41 W-01（C1-003）：并发懒注册的 check-then-act（get→put）在 HashMap 上可结构损坏或双实例
+    // 分叉——CHM + computeIfAbsent 与 StreamElementCodec.DECODED_VALUE_TYPES 既有正确形态同型
+    private static final Map<Class<?>, BasicTypeInfo<?>> INSTANCES = new ConcurrentHashMap<>();
 
     public static final BasicTypeInfo<String> STRING = register(String.class);
     public static final BasicTypeInfo<Integer> INT = register(Integer.class);
@@ -42,11 +44,11 @@ public class BasicTypeInfo<T> implements TypeInformation<T>, Serializable {
     }
 
     public static <T> BasicTypeInfo<T> of(Class<T> typeClass) {
+        // CRA 8.41 W-01：computeIfAbsent 原子闭合懒注册（JDK 契约：映射函数对同一 key 至多应用一次——
+        // 同 key 并发只产生一个实例，双实例行为分叉在类型层面不可能）
         @SuppressWarnings("unchecked")
-        BasicTypeInfo<T> info = (BasicTypeInfo<T>) INSTANCES.get(typeClass);
-        if (info != null) return info;
-        info = new BasicTypeInfo<>(typeClass);
-        INSTANCES.put(typeClass, info);
+        BasicTypeInfo<T> info = (BasicTypeInfo<T>) INSTANCES.computeIfAbsent(typeClass,
+                cls -> new BasicTypeInfo<>((Class<?>) cls));
         return info;
     }
 

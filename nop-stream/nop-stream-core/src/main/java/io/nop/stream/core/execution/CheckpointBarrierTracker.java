@@ -108,46 +108,64 @@ public class CheckpointBarrierTracker {
      * @return {@code false} only if {@code checkpointId} is already in-flight
      *         (duplicate trigger) or the source operator rejects the barrier
      */
-    public synchronized boolean triggerCheckpoint(long checkpointId, long timestamp, CheckpointType type) throws Exception {
-        if (inFlight.containsKey(checkpointId)) {
-            LOG.debug("Duplicate trigger for checkpoint {} (already in-flight); ignoring", checkpointId);
-            return false;
-        }
+    public boolean triggerCheckpoint(long checkpointId, long timestamp, CheckpointType type) throws Exception {
+        // CRA 8.41 W-08（C2-008 审计面/C10-013）：拆两段——登记段（锁内：纯登记簿操作，裁定①「锁内禁
+        // 未知代码/阻塞调用」叶锁纪律成立）+ 执行段（锁外：offerBarrier 直通分支的 injectBarrier→
+        // snapshotState 可能持源锁数秒，ACK 线程（acknowledgeOperator synchronized）不再被快照时长
+        // 串行化）。登记先于 offerBarrier——出锁执行期间到达的 ACK 按 id 命中正常路由；拒绝回滚对齐
+        // 既有 :133/:143 形状，回滚窗口内已到达 ACK 走既有 stale/duplicate 丢弃分支（trigger 返回
+        // false、无消费者期待，可接受）。
+        TaskStateSnapshot snapshot;
+        CheckpointBarrier barrier;
+        StreamOperator<?> head = null;
+        synchronized (this) {
+            if (inFlight.containsKey(checkpointId)) {
+                LOG.debug("Duplicate trigger for checkpoint {} (already in-flight); ignoring", checkpointId);
+                return false;
+            }
 
-        int count = 0;
-        for (StreamOperator<?> op : operators) {
-            if (op instanceof AbstractStreamOperator) {
-                count++;
+            int count = 0;
+            for (StreamOperator<?> op : operators) {
+                if (op instanceof AbstractStreamOperator) {
+                    count++;
+                }
+            }
+            snapshot = new TaskStateSnapshot(taskLocation, checkpointId);
+            inFlight.put(checkpointId, new EpochAckState(checkpointId, count, snapshot));
+
+            barrier = new CheckpointBarrier(checkpointId, timestamp, type);
+
+            if (!operators.isEmpty()) {
+                head = operators.get(0);
             }
         }
-        TaskStateSnapshot snapshot = new TaskStateSnapshot(taskLocation, checkpointId);
-        inFlight.put(checkpointId, new EpochAckState(checkpointId, count, snapshot));
 
-        CheckpointBarrier barrier = new CheckpointBarrier(checkpointId, timestamp, type);
-
-        if (!operators.isEmpty()) {
-            StreamOperator<?> head = operators.get(0);
-            if (head instanceof StreamSourceOperator) {
-                boolean accepted = ((StreamSourceOperator<?>) head).offerBarrier(barrier);
-                if (!accepted) {
-                    inFlight.remove(checkpointId);
-                    LOG.warn("Checkpoint {} rejected: source operator rejected barrier", checkpointId);
-                    return false;
-                }
-            } else if (head instanceof io.nop.stream.core.operators.SourceReaderOperator) {
-                // FLIP-27 style source path — deliver the barrier via the
-                // SourceReaderOperator's mailbox-driven handoff.
-                boolean accepted = ((io.nop.stream.core.operators.SourceReaderOperator<?>) head)
-                        .offerBarrier(barrier);
-                if (!accepted) {
-                    inFlight.remove(checkpointId);
-                    LOG.warn("Checkpoint {} rejected: source reader operator rejected barrier", checkpointId);
-                    return false;
-                }
+        // 执行段（锁外）：barrier 投递与快照副作用不再持有 TRK 监视器
+        if (head instanceof StreamSourceOperator) {
+            boolean accepted = ((StreamSourceOperator<?>) head).offerBarrier(barrier);
+            if (!accepted) {
+                rollbackRegistration(checkpointId, "source operator rejected barrier");
+                return false;
+            }
+        } else if (head instanceof io.nop.stream.core.operators.SourceReaderOperator) {
+            // FLIP-27 style source path — deliver the barrier via the
+            // SourceReaderOperator's mailbox-driven handoff.
+            boolean accepted = ((io.nop.stream.core.operators.SourceReaderOperator<?>) head)
+                    .offerBarrier(barrier);
+            if (!accepted) {
+                rollbackRegistration(checkpointId, "source reader operator rejected barrier");
+                return false;
             }
         }
 
         return true;
+    }
+
+    private void rollbackRegistration(long checkpointId, String reason) {
+        synchronized (this) {
+            inFlight.remove(checkpointId);
+        }
+        LOG.warn("Checkpoint {} rejected: {}", checkpointId, reason);
     }
 
     public void acknowledgeOperator(int operatorIndex, OperatorSnapshotResult snapshot) {

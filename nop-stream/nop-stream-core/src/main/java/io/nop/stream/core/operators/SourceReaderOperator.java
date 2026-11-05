@@ -96,8 +96,10 @@ public class SourceReaderOperator<OUT> extends AbstractStreamOperator<OUT> {
     /** Mailbox for barrier / cancel delivery. Set by StreamTaskInvokable before run(). */
     private MailboxExecutor mailboxExecutor;
 
-    /** Live reader instance, created in open(). */
-    private SourceReader<OUT, ? extends SourceSplit> reader;
+    /** Live reader instance, created in open(). CRA 8.41 W-05（C2-002）：open() 写（:255）与跨线程
+     * 回调读（getReaderRaw :226/:325）之间 volatile 建立 HB 边——open 完成后的回调必见非 null reader；
+     * else 分支 preOpen 缓冲形态维持（fail-fast 否决——误杀 wire 先于 open 的合法主时序）。 */
+    private volatile SourceReader<OUT, ? extends SourceSplit> reader;
 
     /**
      * Pre-open split buffer: splits delivered by the enumerator between

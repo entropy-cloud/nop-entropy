@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLongArray;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -115,7 +116,12 @@ public class InputGate {
     private final List<InputChannel> channels;
     private final java.util.concurrent.atomic.AtomicBoolean closed =
             new java.util.concurrent.atomic.AtomicBoolean(false);
-    private final long[] currentWatermarks;
+    // CRA 8.41 W-04（C2-003）：long 元素撕裂是 JLS 17.7 定义的缺陷本体（64 位写可分裂为半写）——
+    // AtomicLongArray 元素读为 volatile-load 语义，单元素撕裂不可能；热路径写（每通道每 watermark
+    // 更新一次）volatile store 为纳秒级。channelIdle 维持 boolean[] 零改动（无撕裂面，陈旧读限单次
+    // 抓取 idle 判定滞后、下次自愈——与审计「陈旧无害面维持零改动」一致）。跨元素聚合读仍为各元素
+    // 独立原子读（非全数组快照）——「聚合时刻跨元素不完全一致」为观测快照固有语义，登记已接受。
+    private final AtomicLongArray currentWatermarks;
     private final EdgeConfig edgeConfig;
     private final boolean barrierAlignment;
 
@@ -352,9 +358,9 @@ public class InputGate {
         this.barrierAlignmentTimeout = barrierAlignmentTimeout;
         this.unalignedCheckpointEnabled = unalignedCheckpointEnabled;
         this.unalignedThreshold = unalignedThreshold;
-        this.currentWatermarks = new long[channels.size()];
-        for (int i = 0; i < currentWatermarks.length; i++) {
-            currentWatermarks[i] = Long.MIN_VALUE;
+        this.currentWatermarks = new AtomicLongArray(channels.size());
+        for (int i = 0; i < currentWatermarks.length(); i++) {
+            currentWatermarks.set(i, Long.MIN_VALUE);
         }
         this.lastAcceptedBarrierIds = new long[channels.size()];
         java.util.Arrays.fill(this.lastAcceptedBarrierIds, -1L);
@@ -398,7 +404,7 @@ public class InputGate {
         this.barrierAlignmentTimeout = DEFAULT_ALIGNMENT_TIMEOUT_MS;
         this.unalignedCheckpointEnabled = false;
         this.unalignedThreshold = DEFAULT_UNALIGNED_THRESHOLD_MS;
-        this.currentWatermarks = new long[]{Long.MIN_VALUE};
+        this.currentWatermarks = new AtomicLongArray(new long[]{Long.MIN_VALUE});
         this.lastAcceptedBarrierIds = new long[]{-1L};
         this.channelIdle = new boolean[1];
         this.currentChannelIndex = 0;
@@ -532,18 +538,19 @@ public class InputGate {
     public long getCurrentWatermark() {
         long min = Long.MAX_VALUE;
         boolean anyActive = false;
-        for (int i = 0; i < currentWatermarks.length; i++) {
+        for (int i = 0; i < currentWatermarks.length(); i++) {
             if (channelIdle[i]) {
                 continue;
             }
             anyActive = true;
-            if (currentWatermarks[i] < min) {
-                min = currentWatermarks[i];
+            if (currentWatermarks.get(i) < min) {
+                min = currentWatermarks.get(i);
             }
         }
         if (!anyActive) {
             min = Long.MAX_VALUE;
-            for (long wm : currentWatermarks) {
+            for (int i = 0; i < currentWatermarks.length(); i++) {
+                long wm = currentWatermarks.get(i);
                 if (wm < min) {
                     min = wm;
                 }
@@ -559,7 +566,7 @@ public class InputGate {
      * @return the channel's current watermark ({@link Long#MIN_VALUE} before the first)
      */
     public long getChannelWatermark(int channelIdx) {
-        return currentWatermarks[channelIdx];
+        return currentWatermarks.get(channelIdx);
     }
 
     /**
@@ -573,17 +580,18 @@ public class InputGate {
     public long getMaxActiveChannelWatermark() {
         long max = Long.MIN_VALUE;
         boolean anyActive = false;
-        for (int i = 0; i < currentWatermarks.length; i++) {
+        for (int i = 0; i < currentWatermarks.length(); i++) {
             if (channelIdle[i]) {
                 continue;
             }
             anyActive = true;
-            if (currentWatermarks[i] > max) {
-                max = currentWatermarks[i];
+            if (currentWatermarks.get(i) > max) {
+                max = currentWatermarks.get(i);
             }
         }
         if (!anyActive) {
-            for (long wm : currentWatermarks) {
+            for (int i = 0; i < currentWatermarks.length(); i++) {
+                long wm = currentWatermarks.get(i);
                 if (wm > max) {
                     max = wm;
                 }
@@ -641,7 +649,7 @@ public class InputGate {
                 // Track watermark for single channel
                 if (element.isWatermark()) {
                     Watermark wm = element.asWatermark();
-                    currentWatermarks[0] = wm.getTimestamp();
+                    currentWatermarks.set(0, wm.getTimestamp());
                 }
                 // Track idleness on the single-channel path
                 // too — the sole channel going idle means ALL channels idle, so the
@@ -1219,11 +1227,11 @@ public class InputGate {
     }
 
     private Optional<StreamElement> handleWatermarkNonRecursive(int channelIndex, Watermark watermark) {
-        long oldWatermark = currentWatermarks[channelIndex];
+        long oldWatermark = currentWatermarks.get(channelIndex);
         if (watermark.getTimestamp() <= oldWatermark) {
             return Optional.empty();
         }
-        currentWatermarks[channelIndex] = watermark.getTimestamp();
+        currentWatermarks.set(channelIndex, watermark.getTimestamp());
 
         // A watermark from a currently-idle channel is recorded but does not
         // drive the combined output (the channel must first signal ACTIVE — Flink
@@ -1289,7 +1297,8 @@ public class InputGate {
      */
     private long minWatermarkAllIgnoringIdleStatus() {
         long min = Long.MAX_VALUE;
-        for (long wm : currentWatermarks) {
+        for (int i = 0; i < currentWatermarks.length(); i++) {
+            long wm = currentWatermarks.get(i);
             if (wm < min) {
                 min = wm;
             }
@@ -1299,12 +1308,12 @@ public class InputGate {
 
     private long minWatermarkExcluding(int excludeIndex, long oldValue) {
         long min = Long.MAX_VALUE;
-        for (int i = 0; i < currentWatermarks.length; i++) {
+        for (int i = 0; i < currentWatermarks.length(); i++) {
             if (channelIdle[i] && i != excludeIndex) {
                 // Idle channels do not constrain the merge
                 continue;
             }
-            long val = (i == excludeIndex) ? oldValue : currentWatermarks[i];
+            long val = (i == excludeIndex) ? oldValue : currentWatermarks.get(i);
             if (val < min) {
                 min = val;
             }
