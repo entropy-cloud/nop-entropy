@@ -179,7 +179,7 @@ Exit Criteria:
 
 ### Phase 2 - 7 工单实现 + 回归测试（按组 A–C）
 
-Status: planned
+Status: in progress〔2026-11-07 实施启动〕
 Targets: nop-stream-core（7 main 文件+测试树）+ nop-stream-runtime（4 main 文件+测试树）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（7 工单均为已确认 live 缺陷——merge-adjudication §五 P2 表判级权威，不得写成 Feature；C8-008/C7-004/C8-004/C8-015/C3-004 并入面与 FAM-2 族三员为已确认伴生缺陷面随批同 diff 收敛）、`Proof`（工单测试 + C10 收口门）
