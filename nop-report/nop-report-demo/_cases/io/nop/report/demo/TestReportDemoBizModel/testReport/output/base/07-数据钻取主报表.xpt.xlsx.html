@@ -337,6 +337,22 @@ white-space:normal;
 border:none;}
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="sheet1">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
+<style>
+@page{size:595pt 842pt;margin:0pt 0pt 0pt 0pt;}
+#xpt-report-sheet-1 .xpt-page-footer{ text-align:center;font-size:10pt;color:#444;}
+@media (max-width:768px){#xpt-report-sheet-1 .xpt-page-footer{font-size:9pt;}}
+@media print{
+#xpt-report-sheet-1 .xpt-page{ page-break-after:always;}
+#xpt-report-sheet-1 .xpt-page:last-child{ page-break-after:auto;}
+}
+</style>
+<div class="xpt-page" data-page="1">
 <table  class="xpt-table">
 <colgroup><col  style="width:173.875pt" /><col  style="width:164.125pt" /><col  style="width:171.158203125pt" /><col  style="width:171.158203125pt" /><col  style="width:178.75pt" /><col  style="width:199.875pt" /></colgroup>
 <thead>
@@ -346,8 +362,8 @@ border:none;}
 <tr  class="xpt-row" style="height:3.75pt"><td  class="xpt-cell xpt-s-1"></td><td  class="xpt-cell xpt-s-2"></td><td  class="xpt-cell xpt-s-2"></td><td  class="xpt-cell xpt-s-2"></td><td  class="xpt-cell xpt-s-2"></td><td  class="xpt-cell xpt-s-3"></td></tr>
 <tr  class="xpt-row" style="height:22.65pt"><td  class="xpt-cell xpt-s-4">订单号</td><td  class="xpt-cell xpt-s-5">订购日期↑↓</td><td  class="xpt-cell xpt-s-6">客户名称</td><td  class="xpt-cell xpt-s-6">负责员工</td><td  class="xpt-cell xpt-s-6">是否付款</td><td  class="xpt-cell xpt-s-7">导出明细</td></tr>
 <tr  class="xpt-row" style="height:3.75pt"><td  class="xpt-cell xpt-s-8"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-9"></td><td  class="xpt-cell xpt-s-10"></td></tr>
-<tr  class="xpt-row" style="height:18.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;report2&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1001}}">1001</a></td><td  class="xpt-cell xpt-s-12">2000-01-01</td><td  class="xpt-cell xpt-s-13">A</td><td  class="xpt-cell xpt-s-13">张三</td><td  class="xpt-cell xpt-s-13">否</td><td  class="xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;detail-report&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1001}}">导出</a></td></tr>
-<tr  class="xpt-row" style="height:18.5pt"><td  class="xpt-cell-num xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;report2&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1002}}">1002</a></td><td  class="xpt-cell xpt-s-12">2000-02-01</td><td  class="xpt-cell xpt-s-13">B</td><td  class="xpt-cell xpt-s-13">李四</td><td  class="xpt-cell xpt-s-13">是</td><td  class="xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;detail-report&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1002}}">导出</a></td></tr>
+<tr  class="xpt-row" style="height:18.5pt" data-expand-group="row-4"><td  class="xpt-cell-num xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;report2&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1001}}">1001</a></td><td  class="xpt-cell xpt-s-12">2000-01-01</td><td  class="xpt-cell xpt-s-13">A</td><td  class="xpt-cell xpt-s-13">张三</td><td  class="xpt-cell xpt-s-13">否</td><td  class="xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;detail-report&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1001}}">导出</a></td></tr>
+<tr  class="xpt-row" style="height:18.5pt" data-expand-group="row-5"><td  class="xpt-cell-num xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;report2&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1002}}">1002</a></td><td  class="xpt-cell xpt-s-12">2000-02-01</td><td  class="xpt-cell xpt-s-13">B</td><td  class="xpt-cell xpt-s-13">李四</td><td  class="xpt-cell xpt-s-13">是</td><td  class="xpt-cell xpt-s-11"><a href="report:{&quot;reportName&quot;:&quot;detail-report&quot;,&quot;params&quot;:{&quot;订单ID&quot;:1002}}">导出</a></td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-14"></td><td  class="xpt-cell xpt-s-14"></td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-s28" colspan="6">订单明细表说明：</td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-s29" colspan="6">1、多维度钻取</td></tr>
@@ -360,7 +376,35 @@ border:none;}
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-15"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 </tbody>
-<tfoot></tfoot>
 </table>
+<div class="xpt-page-footer">第 1 / 1 页</div>
+</div>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

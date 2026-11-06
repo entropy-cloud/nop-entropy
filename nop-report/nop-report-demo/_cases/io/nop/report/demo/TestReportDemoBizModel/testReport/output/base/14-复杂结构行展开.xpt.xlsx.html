@@ -52,16 +52,60 @@ border:1px solid black;
 }
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="Sheet1">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
+<style>
+@page{size:595pt 842pt;margin:75.6pt 50.40000000000001pt 75.60000000000005pt 50.4pt;}
+#xpt-report-sheet-1 .xpt-page-footer{ text-align:center;font-size:10pt;color:#444;}
+@media (max-width:768px){#xpt-report-sheet-1 .xpt-page-footer{font-size:9pt;}}
+@media print{
+#xpt-report-sheet-1 .xpt-page{ page-break-after:always;}
+#xpt-report-sheet-1 .xpt-page:last-child{ page-break-after:auto;}
+}
+</style>
+<div class="xpt-page" data-page="1">
 <table  class="xpt-table">
 <colgroup><col  style="width:145.361328125pt" /><col  style="width:98.083984375pt" /><col  style="width:92.751953125pt" /><col  style="width:66.751953125pt" /><col  style="width:101.61328125pt" /><col  style="width:96.890625pt" /><col  style="width:92.16796875pt" /><col  style="width:115.806640625pt" /><col  style="width:92.16796875pt" /></colgroup>
 <thead>
 </thead>
 <tbody>
 <tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-3">序号</td><td  class="xpt-cell xpt-s-4">设备编码</td><td  class="xpt-cell xpt-s-4">设备名称</td><td  class="xpt-cell xpt-s-4">场景</td><td  class="xpt-cell xpt-s-4">一级分类</td><td  class="xpt-cell xpt-s-4">二级分类</td><td  class="xpt-cell xpt-s-5">应急预案</td><td  class="xpt-cell xpt-s-4">描述</td><td  class="xpt-cell xpt-s-4">管控措施</td></tr>
-<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell-num xpt-cell xpt-s-3" rowspan="2">1</td><td  class="xpt-cell-num xpt-cell xpt-s-4" rowspan="2">1234</td><td  class="xpt-cell xpt-s-4" rowspan="2">test1</td><td  class="xpt-cell xpt-s-4" rowspan="2">2</td><td  class="xpt-cell xpt-s-4" rowspan="2">1234</td><td  class="xpt-cell xpt-s-4" rowspan="2">5678</td><td  class="xpt-cell xpt-s-3">123</td><td  class="xpt-cell xpt-s-4" rowspan="2">a</td><td  class="xpt-cell xpt-s-4" rowspan="2">b</td></tr>
-<tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell xpt-s-3">456</td></tr>
+<tr  class="xpt-row" style="height:14.0pt" data-expand-group="row-1" data-expand-toggle="true" data-expand-group="row-1"><td  class="xpt-cell-num xpt-cell xpt-s-3" rowspan="2">1</td><td  class="xpt-cell-num xpt-cell xpt-s-4" rowspan="2">1234</td><td  class="xpt-cell xpt-s-4" rowspan="2">test1</td><td  class="xpt-cell xpt-s-4" rowspan="2">2</td><td  class="xpt-cell xpt-s-4" rowspan="2">1234</td><td  class="xpt-cell xpt-s-4" rowspan="2">5678</td><td  class="xpt-cell xpt-s-3">123</td><td  class="xpt-cell xpt-s-4" rowspan="2">a</td><td  class="xpt-cell xpt-s-4" rowspan="2">b</td></tr>
+<tr  class="xpt-row" style="height:14.0pt" data-expand-group="row-1"><td  class="xpt-cell xpt-s-3">456</td></tr>
 </tbody>
-<tfoot></tfoot>
 </table>
+<div class="xpt-page-footer">第 1 / 1 页</div>
+</div>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

@@ -178,6 +178,12 @@ background-position:0.0pt 0.0pt,218.03316375492125pt 0.0pt,0.0pt 189.25pt,171.15
 background-repeat:no-repeat,no-repeat,no-repeat,no-repeat;
 }
 </style>
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:171.158203125pt" /><col  style="width:132.158203125pt" /><col  style="width:132.158203125pt" /><col  style="width:132.158203125pt" /><col  style="width:230.75pt" /></colgroup>
 <thead>
@@ -195,5 +201,32 @@ background-repeat:no-repeat,no-repeat,no-repeat,no-repeat;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

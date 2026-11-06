@@ -20,6 +20,9 @@ public interface IReportDataSecurityProvider {
     String BEAN_NAME = "nopReportDataSecurityProvider";
 
     static IReportDataSecurityProvider get() {
+        // tryGetBean 只判 provider 为空；provider 在而容器已卸载（registerInstance(null)）时会 NPE
+        if (!BeanContainer.isInitialized())
+            return null;
         return (IReportDataSecurityProvider) BeanContainer.tryGetBean(BEAN_NAME);
     }
 

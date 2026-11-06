@@ -9663,6 +9663,12 @@ text-align:left;
 }
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="目录">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:36.81640625pt" /><col  style="width:127.10546875pt" /><col  style="width:127.10546875pt" /><col  style="width:106.869140625pt" /></colgroup>
 <thead>
@@ -9680,8 +9686,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-2" data-sheet-name="配置">
+<style>
+#xpt-report-sheet-2{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-2 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:143.7109375pt" /><col  style="width:181.263671875pt" /><col  style="width:254.921875pt" /></colgroup>
 <thead>
@@ -9706,8 +9745,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-3" data-sheet-name="域定义">
+<style>
+#xpt-report-sheet-3{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-3 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:31.763671875pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:59.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -9735,8 +9807,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-4" data-sheet-name="字典定义">
+<style>
+#xpt-report-sheet-4{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-4 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:39.7109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -9884,8 +9989,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-5" data-sheet-name="nop_ai_project">
+<style>
+#xpt-report-sheet-5{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-5 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -9960,8 +10098,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-6" data-sheet-name="nop_ai_project_rule">
+<style>
+#xpt-report-sheet-6{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-6 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10013,8 +10184,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-7" data-sheet-name="nop_ai_project_config">
+<style>
+#xpt-report-sheet-7{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-7 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10057,8 +10261,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-8" data-sheet-name="nop_ai_model">
+<style>
+#xpt-report-sheet-8{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-8 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10101,8 +10338,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-9" data-sheet-name="nop_ai_requirement">
+<style>
+#xpt-report-sheet-9{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-9 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10189,8 +10459,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-10" data-sheet-name="nop_ai_requirement_history">
+<style>
+#xpt-report-sheet-10{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-10 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10233,8 +10536,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-11" data-sheet-name="nop_ai_knowledge">
+<style>
+#xpt-report-sheet-11{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-11 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10277,8 +10613,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-12" data-sheet-name="nop_ai_prompt_template">
+<style>
+#xpt-report-sheet-12{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-12 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10329,8 +10698,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-13" data-sheet-name="nop_ai_prompt_template_history">
+<style>
+#xpt-report-sheet-13{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-13 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10373,8 +10775,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-14" data-sheet-name="nop_ai_chat_request">
+<style>
+#xpt-report-sheet-14{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-14 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10428,8 +10863,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-15" data-sheet-name="nop_ai_chat_response">
+<style>
+#xpt-report-sheet-15{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-15 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10505,8 +10973,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-16" data-sheet-name="nop_ai_gen_file">
+<style>
+#xpt-report-sheet-16{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-16 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10583,8 +11084,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-17" data-sheet-name="nop_ai_gen_file_history">
+<style>
+#xpt-report-sheet-17{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-17 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10627,8 +11161,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-18" data-sheet-name="nop_ai_test_case">
+<style>
+#xpt-report-sheet-18{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-18 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10696,8 +11263,41 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-19" data-sheet-name="nop_ai_test_result">
+<style>
+#xpt-report-sheet-19{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-19 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:28.158203125pt" /><col  style="width:28.869140625pt" /><col  style="width:36.81640625pt" /><col  style="width:83.763671875pt" /><col  style="width:30.31640625pt" /><col  style="width:31.052734375pt" /><col  style="width:98.2109375pt" /><col  style="width:84.5pt" /><col  style="width:55.25pt" /><col  style="width:40.421875pt" /><col  style="width:31.052734375pt" /><col  style="width:71.5pt" /><col  style="width:39.7109375pt" /><col  style="width:53.421875pt" /><col  style="width:82.31640625pt" /><col  style="width:72.2109375pt" /><col  style="width:55.25pt" /><col  style="width:55.25pt" /></colgroup>
 <thead>
@@ -10740,5 +11340,32 @@ text-align:left;
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

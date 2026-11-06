@@ -19,6 +19,8 @@ public interface IReportAuthChecker {
      * 可选查找容器中的 checker；未注册（引擎作嵌入式库使用）返回 null，此时引擎不启用授权检查。
      */
     static IReportAuthChecker get() {
+        if (!io.nop.api.core.ioc.BeanContainer.isInitialized())
+            return null;
         return (IReportAuthChecker) io.nop.api.core.ioc.BeanContainer.tryGetBean(BEAN_NAME);
     }
 

@@ -48,6 +48,12 @@ white-space:normal;
 border:none;}
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="弯头">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /></colgroup>
 <thead>
@@ -57,8 +63,41 @@ border:none;}
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-2" data-sheet-name="滤网">
+<style>
+#xpt-report-sheet-2{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-2 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /></colgroup>
 <thead>
@@ -68,8 +107,41 @@ border:none;}
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-3" data-sheet-name="普板">
+<style>
+#xpt-report-sheet-3{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-3 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /><col  style="width:80.69140625pt" /></colgroup>
 <thead>
@@ -79,5 +151,32 @@ border:none;}
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

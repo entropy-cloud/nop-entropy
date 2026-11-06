@@ -104,6 +104,22 @@ color:rgba(0,0,0,1.0);
 border:none;}
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="苹果">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
+<style>
+@page{size:595pt 842pt;margin:19.440000772476193pt 54pt 19.4400007724762pt 54pt;}
+#xpt-report-sheet-1 .xpt-page-footer{ text-align:center;font-size:10pt;color:#444;}
+@media (max-width:768px){#xpt-report-sheet-1 .xpt-page-footer{font-size:9pt;}}
+@media print{
+#xpt-report-sheet-1 .xpt-page{ page-break-after:always;}
+#xpt-report-sheet-1 .xpt-page:last-child{ page-break-after:auto;}
+}
+</style>
+<div class="xpt-page" data-page="1">
 <table  class="xpt-table">
 <colgroup><col  style="width:63.552734375pt" /><col  style="width:63.552734375pt" /><col  style="width:63.552734375pt" /><col  style="width:53.421875pt" /><col  style="width:53.421875pt" /><col  style="width:53.421875pt" /></colgroup>
 <thead>
@@ -111,15 +127,59 @@ border:none;}
 <tbody>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-s8" colspan="6">标题XXX</td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-2">产地</td><td  class="xpt-cell xpt-s-2">品牌</td><td  class="xpt-cell xpt-s-2">单价</td><td  class="xpt-cell xpt-s-2">克重</td><td  class="xpt-cell xpt-s-2">大小</td><td  class="xpt-cell xpt-s-2">颜色</td></tr>
-<tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-3">山东</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3">3.2</td><td  class="xpt-cell xpt-s-3">100</td><td  class="xpt-cell xpt-s-3">中</td><td  class="xpt-cell xpt-s-3">红</td></tr>
+<tr  class="xpt-row" style="height:14.25pt" data-expand-group="row-2"><td  class="xpt-cell xpt-s-3">山东</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3">3.2</td><td  class="xpt-cell xpt-s-3">100</td><td  class="xpt-cell xpt-s-3">中</td><td  class="xpt-cell xpt-s-3">红</td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell">当前单元格cell的行父格rp的展开值ev是一个Map, 列父格cp的展开值为动态列名</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 </tbody>
-<tfoot></tfoot>
 </table>
+<div class="xpt-page-footer">第 1 / 1 页</div>
+</div>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 <div id="xpt-report-sheet-2" data-sheet-name="香蕉">
+<style>
+#xpt-report-sheet-2{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-2 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
+<style>
+@page{size:595pt 842pt;margin:19.440000772476193pt 54pt 19.4400007724762pt 54pt;}
+#xpt-report-sheet-2 .xpt-page-footer{ text-align:center;font-size:10pt;color:#444;}
+@media (max-width:768px){#xpt-report-sheet-2 .xpt-page-footer{font-size:9pt;}}
+@media print{
+#xpt-report-sheet-2 .xpt-page{ page-break-after:always;}
+#xpt-report-sheet-2 .xpt-page:last-child{ page-break-after:auto;}
+}
+</style>
+<div class="xpt-page" data-page="1">
 <table  class="xpt-table">
 <colgroup><col  style="width:63.552734375pt" /><col  style="width:63.552734375pt" /><col  style="width:63.552734375pt" /><col  style="width:53.421875pt" /><col  style="width:53.421875pt" /><col  style="width:53.421875pt" /></colgroup>
 <thead>
@@ -127,12 +187,40 @@ border:none;}
 <tbody>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-s8" colspan="6">标题XXX</td></tr>
 <tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-2">产地</td><td  class="xpt-cell xpt-s-2">品牌</td><td  class="xpt-cell xpt-s-2">单价</td><td  class="xpt-cell xpt-s-2">长度</td><td  class="xpt-cell xpt-s-2">成熟度</td><td  class="xpt-cell xpt-s-2">存储</td></tr>
-<tr  class="xpt-row" style="height:14.25pt"><td  class="xpt-cell xpt-s-3">山东</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3">2.1</td><td  class="xpt-cell xpt-s-3">150</td><td  class="xpt-cell xpt-s-3">中等</td><td  class="xpt-cell xpt-s-3">低温</td></tr>
+<tr  class="xpt-row" style="height:14.25pt" data-expand-group="row-2"><td  class="xpt-cell xpt-s-3">山东</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3">2.1</td><td  class="xpt-cell xpt-s-3">150</td><td  class="xpt-cell xpt-s-3">中等</td><td  class="xpt-cell xpt-s-3">低温</td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.4pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell">当前单元格cell的行父格rp的展开值ev是一个Map, 列父格cp的展开值为动态列名</td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 </tbody>
-<tfoot></tfoot>
 </table>
+<div class="xpt-page-footer">第 1 / 1 页</div>
+</div>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>

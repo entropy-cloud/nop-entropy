@@ -334,9 +334,9 @@ public class ExpandedSheetEvaluator {
         if (StringHelper.isEmpty(path))
             return;
 
-        IReportEngine engine = io.nop.api.core.ioc.BeanContainer.tryGetBean("nopReportEngine") == null
-                ? null
-                : (IReportEngine) io.nop.api.core.ioc.BeanContainer.tryGetBean("nopReportEngine");
+        IReportEngine engine = io.nop.api.core.ioc.BeanContainer.isInitialized()
+                ? (IReportEngine) io.nop.api.core.ioc.BeanContainer.tryGetBean("nopReportEngine")
+                : null;
         if (engine == null)
             throw new NopException(ERR_XPT_SUBREPORT_ENGINE_UNAVAILABLE)
                     .param(ARG_CELL_POS, cell.getName());

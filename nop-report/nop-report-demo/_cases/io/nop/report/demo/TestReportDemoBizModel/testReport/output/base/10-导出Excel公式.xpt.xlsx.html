@@ -90,16 +90,22 @@ white-space:normal;
 border:none;}
 </style>
 <div id="xpt-report-sheet-1" data-sheet-name="指标">
+<style>
+#xpt-report-sheet-1{overflow-x:auto;}
+@media (max-width:768px){
+#xpt-report-sheet-1 .xpt-cell{font-size:12px;padding:1px;}
+}
+</style>
 <table  class="xpt-table">
 <colgroup><col  style="width:148.408203125pt" /><col  style="width:132.158203125pt" /><col  style="width:132.158203125pt" /><col  style="width:132.158203125pt" /><col  style="width:230.75pt" /></colgroup>
 <thead>
 </thead>
 <tbody>
 <tr  class="xpt-row" style="height:15.75pt"><td  class="xpt-cell">名称</td><td  class="xpt-cell xpt-s-1">单位</td><td  class="xpt-cell xpt-s-1">2023年指标</td><td  class="xpt-cell xpt-s-1">2024年指标</td><td  class="xpt-cell xpt-s-1">累计值</td></tr>
-<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-6">X1</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">1.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">2.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">3.00_ </td></tr>
-<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-6">X2</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">3.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">4.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">7.00_ </td></tr>
-<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-6">X3</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">4.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">5.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">9.00_ </td></tr>
-<tr  class="xpt-row" style="height:16.5pt"><td  class="xpt-cell xpt-s-6">X5</td><td  class="xpt-cell xpt-s-2">%</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell-num xpt-cell xpt-s-4">0.78_ </td></tr>
+<tr  class="xpt-row" style="height:16.5pt" data-expand-group="row-1"><td  class="xpt-cell xpt-s-6">X1</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">1.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">2.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">3.00_ </td></tr>
+<tr  class="xpt-row" style="height:16.5pt" data-expand-group="row-2"><td  class="xpt-cell xpt-s-6">X2</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">3.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">4.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">7.00_ </td></tr>
+<tr  class="xpt-row" style="height:16.5pt" data-expand-group="row-3"><td  class="xpt-cell xpt-s-6">X3</td><td  class="xpt-cell xpt-s-2">个</td><td  class="xpt-cell-num xpt-cell xpt-s-3">4.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-3">5.00_ </td><td  class="xpt-cell-num xpt-cell xpt-s-4">9.00_ </td></tr>
+<tr  class="xpt-row" style="height:16.5pt" data-expand-group="row-4"><td  class="xpt-cell xpt-s-6">X5</td><td  class="xpt-cell xpt-s-2">%</td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell xpt-s-3"></td><td  class="xpt-cell-num xpt-cell xpt-s-4">0.78_ </td></tr>
 <tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
 <tr  class="xpt-row" style="height:14.0pt"><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td><td  class="xpt-cell"></td></tr>
@@ -110,5 +116,32 @@ border:none;}
 </tbody>
 <tfoot></tfoot>
 </table>
+<script>
+(function(){
+if(window.__xptInteractive) return; window.__xptInteractive=true;
+document.addEventListener('click',function(ev){
+  var th=ev.target.closest('th');
+  if(th && th.parentElement && th.parentElement.parentElement && th.parentElement.parentElement.tagName==='THEAD'){
+    var table=th.closest('table'); var tbody=table.querySelector('tbody'); if(!tbody) return;
+    var idx=th.cellIndex;
+    var rows=[].slice.call(tbody.querySelectorAll('tr'));
+    function val(tr){ var td=tr.children[idx]; return td? td.textContent.trim():''; }
+    function cmp(a,b){ var na=parseFloat(val(a)),nb=parseFloat(val(b));
+      if(!isNaN(na)&&!isNaN(nb)) return na-nb; return val(a).localeCompare(val(b)); }
+    rows.sort(cmp); rows.forEach(function(r){tbody.appendChild(r);});
+    return;
+  }
+  var toggle=ev.target.closest('tr[data-expand-toggle]');
+  if(toggle){
+    var group=toggle.getAttribute('data-expand-group');
+    var expanded=toggle.getAttribute('aria-expanded')!=='false';
+    toggle.setAttribute('aria-expanded', expanded?'false':'true');
+    document.querySelectorAll('tr[data-expand-group="'+group+'"]').forEach(function(r){
+      if(r!==toggle) r.style.display=expanded?'none':'';
+    });
+  }
+});
+})();
+</script>
 </div>
 </div>
