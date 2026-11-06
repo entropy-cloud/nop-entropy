@@ -3,6 +3,7 @@
 > Plan Status: active
 > Last Reviewed: 2026-11-07
 > Draft Review R1: **PASS with revisions——0 Blocker + 4 Major + 6 Minor，全部随轮落盘**（2026-11-07，独立评审子 agent fresh session 只读 @ `fe03951544`，live 抽验 60+ 处）：F1[Major] debezium pom mockito-core 声明未用/F2[Major] cep `model/_gen/` 存在[零触碰维持]/F3[Major] Avro 两类生产零构造点事实输入[预设收敛调用方义务·宿主接线降 WI18 预留]/F4[Major] 裁定 A 注入链触面半径登记[预设限定站点内]/F5 勘误 2 口径/F6 C10-002 锚归属/F7 P1×10 一致化/F8 W-02 标签/F9 测试类名/F10 红⑨ 分支绑定声明；想象性分析三风险点：①W-01 修订后可执行[预设限定站点内]②W-09 可执行③W-04/W-10 无需修订
+> 设计评审 R1（设计文档）：**PASS-with-revisions——0 Blocker + 0 Major + 6 Minor，全部随轮落盘，无需 R2 放行 Phase 2**（2026-11-07，agent_ffdca052 fresh session 只读 @ `3b3df13655`，live 抽验 70+ 处）——F-1 subject-missing carve-out/F-2 E5 计 0 明示/F-3 K10 计数 15→14/F-4 清理条件措辞收紧/F-5 S7 可见性放宽触面登记/F-6 错误码补名；三风险专项：C.6 下界口径足够/D.2 偏离合规非空壳/B.1 两步义务满足；裁定 A–E 全部成立、七源引用忠实、K1–K10 命中
 > Draft Review R1:（预留——独立评审子 agent fresh session 完成后回填：结论/修订清单/live 抽验规模/想象性分析三风险点结论）
 > 设计评审 R1（设计文档）：（预留——Phase 1 设计文档独立评审完成后回填）
 > 起草说明：本 plan 由独立起草子 agent（fresh session）于 2026-11-07 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `fe03951544`）起草；全部工单站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果——**审计基线 `41508cded5` → live `fe03951544` 间触碰本批站点文件的 commit 集 = plan 2511/R2-08 批产物两笔（组 A `d7c737644d` + 组 B `1d34caa770`，2026-10-30 收口）；12 工单站点中 5 文件零漂移、7 工单本体文件真实漂移[F5 口径说明：汇总按工单本体文件计；CheckpointConfig/StreamMetricsRegistries 为锚定位差非漂移——git 两基线零 diff 亲证；明细含载体/机制证据文件故条目数大于文件数]（漂移源全部为 2511 落地 diff：gauge readCurrent 插入/Avro 超时+putIfAbsent/2PC 保留载体/CEP round-trip/RocksDB 增量缺省翻转/Debezium 位点 tracker），缺陷机制与站点集零漂移**；执行前如再漂移以 live 为准并登记）。结构沿 plan 2535 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 工单逐条表 / Baseline 勘误 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。内容基于 R4-03 live 事实与 1.2 单元审计权威表（merge-adjudication §2.1 MA 族表 + §2.2 独立案表 + §五 P2 表 + §4.4 C10 映射注），不复制其他单元批结论；既有裁定①–⑧（plan 2511 Phase 1 产物）与裁定①–⑪（plan 2510）/裁定 A–D（plan 2535）仅作引用不重建。起草期零产品代码改动。
@@ -159,7 +160,7 @@
 
 ## Goals
 
-- Phase 1 设计裁定文档一次裁决 12 工单修复形态（**新增裁定**按域分组：裁定 A=rocksdb 观测与快照治理域[W-01/W-05/W-08/W-09——tags 键形与 remove 载体+迁移流式 helper+once-guard+预算耦合校验与哈希旋钮]；裁定 B=cep 域[W-07/W-10——timerKeys 清理点+缓冲过载策略与包络声明]；裁定 C=avro 域[W-02/W-03——回落语义与负缓存+close 生命周期与 fd 回归形态]；裁定 D=2PC/连接器域[W-04/W-06/W-11/W-12——上界旋钮+锁超时+语句超时+桥字节界]；裁定 E=红①–红⑫ 驱动器总表+零回退钉全列[勘误 4 签名+2511 裁定⑧ 钉+既有锚清单]+C10 关联面注记表）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-connectors-envelope-declaration-observability-and-lifecycle-bound-concurrency-contract.md`（Phase 1 产出物；命名如调整随轮登记；1.2 连接器 MA 束[G05]+包络声明束[G09]合一，与既有 `stream-connectors-concurrency-and-envelope.md`[2511]命名序列衔接）。**既有裁定①–⑧（2511）与裁定①–⑪（2510）/裁定 A–D（2535）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（2511 六处同文件零回退红线+R01 SSOT 对齐解读+R03/W-04 转存合规确认）。
+- Phase 1 设计裁定文档一次裁决 12 工单修复形态（**新增裁定**按主题域分组[2026-11-07 Phase 1 起草登记分组裁定——取代本条原「按模块域」预设分组，12 工单→裁定字母映射表见设计文档「工单→裁定映射与分组登记」节，Exit Criteria 各内容项承载节在该表可定位]：裁定 A=rocksdb gauge 观测域[W-01/W-08——tag 键形与 remove 载体+once-guard]；裁定 B=avro 生命周期域[W-02/W-03——回落语义与负缓存+close 生命周期与 fd 回归形态]；裁定 C=上界旋钮族与 2PC/连接器域[W-04/W-10/W-05/W-06/W-11/W-12——2PC 上界旋钮+CEP 缓冲上限与包络声明+迁移流式 helper+锁超时+语句超时+桥字节界]；裁定 D=增长治理域[W-07/W-09——timerKeys 清理点+预算耦合校验与哈希旋钮]；裁定 E=红①–红⑫ 驱动器总表+零回退钉全列[勘误 4 签名+2511 裁定⑧ 钉+既有锚清单]+C10 关联面注记表）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-connectors-metrics-identity-avro-lifecycle-cepbounds-and-2pc-guards-concurrency-contract.md`（Phase 1 产出物；**2026-11-07 Phase 1 起草登记命名裁定**——取代原拟名 `...-envelope-declaration-observability-and-lifecycle-bound-...`[「metrics-identity」覆盖 W-01/W-08 gauge 身份面、「avro-lifecycle」覆盖 W-02/W-03、「cepbounds」覆盖 W-07/W-10、「2pc-guards」覆盖 W-04/W-06/W-11/W-12；沿 2535 文件命名裁定先例]；1.2 连接器 MA 束[G05]+包络声明束[G09]合一，与既有 `stream-connectors-concurrency-and-envelope.md`[2511]命名序列衔接）。**既有裁定①–⑧（2511）与裁定①–⑪（2510）/裁定 A–D（2535）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（2511 六处同文件零回退红线+R01 SSOT 对齐解读+R03/W-04 转存合规确认）。
 - 12 工单全部修复并各带 ≥1 条验收载体（红①–红⑫）；E2 泛在钉收口门落地（E2——本批无 C10 验收前置，钉集见对齐纪律第一条）。
 - 关键工单先红后绿留证（E2）：红①–红⑫ 确定性当前即红（去重吞注册/静默回落/无 close/无上界/双列表物化/锁无超时/单调增长/每 scrape WARN/无耦合校验/无过载分支/无语句超时/无字节界——全部可确定性构造；W-06 OS 锁面如裁定采结构钉/变异论证分支按先例形态留痕禁伪绿）；全部钉落 `_tmp/` 总册+逐 trial 日志。
 - E5 owner doc 落账：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（W-01~W-06/W-07/W-09/W-10/W-11/W-12 各节落点——12 工单行为变更面清单见 Purpose 批末段）+ `docs-for-ai/03-modules/nop-stream.md` :91 告警声明兑现核对（W-08）+指标表按实际 + `nop-stream-user-guide.md` 按实际评估 + source-anchors 按实际——归 Phase 3 统一落账（2511/2535 先例）。
@@ -191,7 +192,7 @@
 - `nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/`：`file/FileTwoPhaseCommitSink`（W-04 面②+W-06 锁超时——同文件两工单 diff 分组登记）+ `MessageSourceReader`（W-12 面①）。
 - `nop-stream/nop-stream-connector-debezium/src/main/java/io/nop/stream/connector/debezium/`：`DebeziumCdcSourceReader`（W-12 面②——仅 put 守卫面）。
 - 测试树：七模块 src/test（红①–红⑫ 落点——包位随裁定；`TestRocksDBKeyedStateBackendCrossThreadOps` 零触碰）。
-- 设计文档：`ai-dev/design/concurrency/stream-connectors-envelope-declaration-observability-and-lifecycle-bound-concurrency-contract.md`（新建[命名裁定见 Goals]；裁定 A–E+既有裁定引用核对节[2511 ①–⑧+2510 ⑪+R01 SSOT 对齐解读]+测试缝与零回退钉总表，最终状态写法）。
+- 设计文档：`ai-dev/design/concurrency/stream-connectors-metrics-identity-avro-lifecycle-cepbounds-and-2pc-guards-concurrency-contract.md`（新建[命名裁定见 Goals]；裁定 A–E+既有裁定引用核对节[2511 ①–⑧+2510 ⑪+R01 SSOT 对齐解读]+测试缝与零回退钉总表，最终状态写法）。
 - owner doc：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面（Phase 3）+ `docs-for-ai/03-modules/nop-stream.md` :91 兑现核对+指标表按实际 + `nop-stream-user-guide.md`（按实际评估）+ `docs-for-ai/04-reference/source-anchors.md`（按实际）。
 - roadmap 8.43 行（本 plan 立项回写+批末 done 回写归 Phase 4）+ cra-index :390/:394 双束行收敛注（Phase 4）。
 
@@ -203,28 +204,28 @@
 
 ### Phase 1 - 连接器包络声明/可观测生命周期/有界契约设计裁定文档 + 独立评审
 
-Status: planned
-Targets: `ai-dev/design/concurrency/stream-connectors-envelope-declaration-observability-and-lifecycle-bound-concurrency-contract.md`（新建——命名裁定见 Goals，如调整随轮登记）
+Status: completed〔2026-11-07：设计文档落档（394 行，命名裁定+分组裁定登记——裁定 A–E 按主题域分组）+ 设计评审 R1（agent_ffdca052）PASS-with-revisions 0M/6Minor 全落盘放行 Phase 2〕
+Targets: `ai-dev/design/concurrency/stream-connectors-metrics-identity-avro-lifecycle-cepbounds-and-2pc-guards-concurrency-contract.md`（新建——2026-11-07 Phase 1 起草登记命名裁定+分组裁定见 Goals，映射表见设计文档）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
   - [ ] **「既有裁定引用核对」节**（起草期义务——软依赖 8.17 解除+批次行配套注记明文）：逐条确认 2511 裁定①–⑧ 引用边界与零回退红线（W-01/W-08×裁定① 同点位/W-02/W-03×裁定③ 同文件簇/W-04×裁定④ 配套/W-05/W-09×裁定⑤ 基线/W-12×裁定⑥ 同文件/全批×裁定⑧ 钉清单）+ R01 SSOT 对齐解读落款（W-07 预设零成员行+W-04 旋钮键名不入 face 空间）+ R03/W-04 转存合规确认（2511 已核对面引用）+ 2511 Follow-up 装配链接入归属裁定落款。
-  - [ ] **裁定 A rocksdb 观测与快照治理域**（W-01/W-05/W-08/W-09）：gauge tag 键形与身份源（backend 无 TaskLocation 前提下的注入链 vs 实例身份 fallback——对照 R5-CEP-03 正例；micrometer tag 基数与 Id 唯一性声明）+ close remove 载体（Meter.Id 集 vs Meter 引用）+ 迁移流式 helper 形态（单遍 vs 分批；三实例验收矩阵 map/list/value）+ once-guard 形态（per-property Set vs AtomicBoolean；命中降 debug）+ 预算耦合校验（估算器来源[estimate-num-keys]/速率常数配置化/校验挂点[构造期 vs validateUnalignedConfig 同构 validate 方法]/两面[全量+增量]同盖/hashPolicy 旋钮完整性取舍/runtime fallback 知悉面处置）。
-  - [ ] **裁定 B cep 域**（W-07/W-10）：timerKeys 清理点形态（同步 remove 条件[ledger 空+state 全清] vs 弱引用有界结构 vs CacheConfig；W-07 清理不得破坏 reconcile 一次性语义）+ 水位测试钩子 + 缓冲过载策略（per-key/subtask 上限 typed fail-fast vs QueueOverflowPolicy 接入——拒绝/降级/告警菜单定夺）+ 缺省上限与配置键（裁定② 纪律）+ owner doc 包络声明文案 + W-07/W-10 同文件 diff 分组与零交叉声明。
-  - [ ] **裁定 C avro 域**（W-02/W-03）：回落语义三选一（typed 失败 vs 负缓存窗口回落+限频 WARN vs 纯 typed——owner doc :118「不静默降级」声明对齐论证）+ 负缓存 TTL 与配置键 + close 生命周期归宿（client AutoCloseable/AvroWireFormat 透传/连接器宿主 close 链接线位——含 2511 Follow-up 装配链接入归属一并裁定）+ fd/线程计数回归形态（R07 先例复用声明）+ C7-008 缓存形态注记边界（零顺手修）。
-  - [ ] **裁定 D 2PC/连接器域**（W-04/W-06/W-11/W-12）：上界旋钮族（maxEpoch*/maxPending* 键名与缺省值/超限行为[typed vs spill]/双容器同盖/与保留链共存声明）+ manifest 锁超时（jvmLock 形态/OS 锁 tryLock 轮询期限/typed 码落点/红⑥ OS 锁面钉形态定夺）+ JDBC 语句超时（覆盖集/缺省值与配置键[checkpointTimeout 同量级]/owner doc 契约声明/DataSource 校验提示形态）+ 桥字节界（maxRecordBytes 双桥/超限行为/缺省值/构造校验/owner doc 包络声明）。
+  - [ ] **裁定 A rocksdb gauge 观测域**（W-01/W-08）：gauge tag 键形与身份源（站点内实例身份预设[F4 限定]——注入链触面半径=IStateBackend+MemoryStateBackend+4 operator 调用点如采须预登记+条件申报；对照 R5-CEP-03 正例；micrometer tag 基数与 Id 唯一性声明）+ close remove 载体（Meter.Id 集 vs Meter 引用）+ once-guard 形态（per-property Set vs AtomicBoolean；命中降 debug）+ 与 2511 裁定① readCurrent/C10-002 钉零回退落款。
+  - [ ] **裁定 B avro 生命周期域**（W-02/W-03）：回落语义三选一（typed 失败 vs 负缓存窗口回落+限频 WARN vs 纯 typed——owner doc :118「不静默降级」声明对齐论证）+ 负缓存 TTL 与配置键 + close 生命周期归宿（client AutoCloseable/AvroWireFormat 透传/工厂 javadoc 调用方义务声明[F3 生产零构造点——宿主接线降 WI18 预留]；含 2511 Follow-up 装配链接入归属一并裁定）+ fd/线程计数回归形态（R07 先例复用声明）+ C7-008 缓存形态注记边界（零顺手修）。
+  - [ ] **裁定 C 上界旋钮族与 2PC/连接器域**（W-04/W-10/W-05/W-06/W-11/W-12）：2PC 上界旋钮族（键名与缺省值/超限 typed vs spill/双容器双载体同盖/与保留链共存声明）+ CEP 缓冲上限（subtask/per-key 上限与策略定夺/缺省与配置键/owner doc 包络声明文案——与 C8-008 deferred gauge 零触碰接缝）+ 迁移流式 helper（单遍 RocksIterator 包装 vs 分批——一修盖 4 状态类；三实例验收矩阵 map/list/value）+ manifest 锁超时（jvmLock 形态/OS 锁 tryLock 轮询期限/typed 码落点/红⑥ OS 锁面钉形态定夺）+ JDBC 语句超时（覆盖集/缺省值与配置键[checkpointTimeout 同量级]/owner doc 契约声明/DataSource 校验提示形态）+ 桥字节界（maxRecordBytes 双桥/测长口径/超限行为/缺省值/构造校验/owner doc 包络声明）。
+  - [ ] **裁定 D 增长治理域**（W-07/W-09）：timerKeys 清理点形态（全清位点同步 remove vs 弱引用有界结构 vs CacheConfig；清理不得破坏 reconcile 一次性语义——幂等论证落款）+ 水位测试钩子 + R01 对齐解读落款（预设零 SSOT 行）+ 预算耦合校验（声明分支 vs runtime-prop 估算[F10 分支绑定定夺]/速率常数诚实来源声明/校验挂点与接线[validateUnalignedConfig 同构——runtime 接线偏离登记]/两面[全量+增量]同盖声明）+ 哈希增量化旋钮（hashPolicy 值域与缺省/完整性取舍声明/上轮 SST index 播种形态）+ runtime JobCoordinatorMain fallback 知悉面处置 + escalation 同族语义与 2535-A.2 对齐引用。
   - [ ] **裁定 E 测试缝与红①–红⑫ 驱动器总表+零回退钉清单**：红①–红⑫ 逐钉形态定夺（全部确定性当前即红——前置构造路径[双 recorder 注册/close 摘除/失败注入/循环装配/上限注入/迁移键数/锁持有/属性恒抛/配置组合/缓冲超限/白盒 setQueryTimeout/超限 record]+伪绿防线——orTimeout 类假绿通道排查+闩带上界 ≤30s 防测试自身挂死+W-06 OS 锁面结构钉/变异论证分支模板）；零回退钉全列（勘误 4 签名+2511 裁定⑧ 全部钉[挂死三件/压窗/保留双钉/驻留/last-emitted/裕度/assertSame 反转]+8.41 受害侧钉+既有锚点名[TestRocksDBMetricsRecorder/TestRocksDBSnapshotRestore/TestRocksDBStateMigration/TestRocksDBKeyedStateBackendCrossThreadOps/TestCepOperatorSubtaskCopy/TestCepOperatorLedgerDrain/TestCepOperatorDanglingCleanup/TestAvroWireFormat/TestJdbcEpochLedgerRetention_C3_002/TestJdbcConcurrencyAndBatchSegments/TestJdbcTwoPhaseCommitSinkDeep/TestFileTwoPhaseCommitSink/TestFileTwoPhaseCommitSinkManifestPrune_C3_002/TestMessageSourceFunctionLifecycle/TestMessageSourceFunctionThreadSafety/TestDebeziumLastEmittedOffsets_C8_001 等]）+ C10 关联面注记表（对齐纪律第一条零改写清单）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档独立 draft review〔agent_ffdca052 PASS-with-revisions 修订闭环〕（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–E 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2511 ①–⑧+R01 对齐解读），独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定 A 含 tag 键形+remove 载体+流式 helper+once-guard+耦合校验唯一分支与红线落款（2511 裁定①⑤ 零触碰）；裁定 B 含清理点+过载策略唯一分支+包络声明文案；裁定 C 含回落语义+close 归属唯一分支+fd 回归形态；裁定 D 含旋钮/锁超时/语句超时/字节界唯一分支+配套红线；裁定 E 含红①–红⑫ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–E 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2511 ①–⑧+R01 对齐解读），独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定 A 含 tag 键形+remove 载体+once-guard 唯一分支与红线落款（2511 裁定① 零触碰）；裁定 B 含回落语义+close 归属唯一分支+fd 回归形态（2511 裁定③ 零回退）；裁定 C 含 2PC 上界旋钮族/CEP 缓冲上限与包络声明/流式 helper/锁超时/语句超时/字节界唯一分支与配套红线（2511 裁定④⑤ 零触碰）；裁定 D 含清理点+耦合校验与哈希旋钮唯一分支+R01 对齐落款（2511 裁定②⑤ 零触碰）；裁定 E 含红①–红⑫ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 12 工单实现 + 回归测试（按组 A–D）
