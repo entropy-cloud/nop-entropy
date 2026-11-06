@@ -898,4 +898,19 @@ public interface NopStreamErrors {
                             + "(0 explicitly disables this guard — at the operator's own "
                             + "mutual-wait deadlock risk).",
                     ARG_DETAIL);
+
+    /**
+     * W-09 (CRA 8.41 R4-01, ruling D.2): the queryable-state REST read did not get
+     * the mailbox-handoff snapshot back from the task thread within the bounded
+     * window ({@code nop.stream.ops.state-query-timeout-ms}, default 5000; values
+     * &le; 0 fail fast). A stuck or stopped task thread answers this typed
+     * rejection (surfaced as 503 by the ops server) instead of serving a torn
+     * cross-thread snapshot of state the task thread is mutating.
+     */
+    ErrorCode ERR_STREAM_STATE_QUERY_TIMEOUT =
+            define("nop.err.stream.state-query-timeout",
+                    "Keyed-state query for {typeName} did not complete within the bounded "
+                            + "state-query window ({detail}). The task thread is busy or stopped; "
+                            + "retry later or tune nop.stream.ops.state-query-timeout-ms.",
+                    ARG_TYPE_NAME, ARG_DETAIL);
 }

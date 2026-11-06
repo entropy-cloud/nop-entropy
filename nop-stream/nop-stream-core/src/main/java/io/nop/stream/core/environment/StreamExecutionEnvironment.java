@@ -86,6 +86,17 @@ public class StreamExecutionEnvironment {
 
     public static final long DEFAULT_LOCAL_AWAIT_TIMEOUT_MS = 300_000L;
 
+    /**
+     * W-11 (CRA 8.41 R4-01, ruling D.3): bounded terminal-state wait AFTER the
+     * cooperative-cancel sweep in the LOCAL teardown. Default 10000ms;
+     * 0 disables the wait (cancel signals still delivered, shutdownNow follows
+     * immediately); negative values fail fast typed at resolution time
+     * (parameter discipline aligned with {@link #LOCAL_AWAIT_TIMEOUT_CONFIG}).
+     */
+    public static final String LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG = "nop.stream.local.cancel-await-timeout-ms";
+
+    public static final long DEFAULT_LOCAL_CANCEL_AWAIT_TIMEOUT_MS = 10_000L;
+
     private final List<Transformation<?>> transformations = new ArrayList<>();
 
     private int parallelism = 1;
@@ -558,6 +569,10 @@ public class StreamExecutionEnvironment {
         GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
 
         TaskExecutor executor = new TaskExecutor();
+        // W-11 (ruling D.3): resolve the cancel-await budget BEFORE any task runs —
+        // a negative configuration fails fast typed at assembly, never from inside
+        // the finally.
+        long cancelAwaitTimeoutMs = resolveLocalCancelAwaitTimeoutMs();
         // C4-001 guard a (plan 2510 R2-07, adjudication 2): fail fast BEFORE any task
         // is submitted when the topology subtask total exceeds the fixed pool size —
         // such a topology deadlocks (producers/consumers mutually waiting across full
@@ -569,7 +584,7 @@ public class StreamExecutionEnvironment {
             subtaskTotal += plan.getSubtasks(vertexId).size();
         }
         if (subtaskTotal > executor.getPoolSize()) {
-            shutdownLocalExecution(executor, plan);
+            shutdownLocalExecution(executor, plan, cancelAwaitTimeoutMs);
             throw new StreamException(NopStreamErrors.ERR_STREAM_LOCAL_POOL_EXCEEDED)
                     .param(NopStreamErrors.ARG_SUBTASK_TOTAL, subtaskTotal)
                     .param(NopStreamErrors.ARG_POOL_SIZE, executor.getPoolSize());
@@ -630,7 +645,7 @@ public class StreamExecutionEnvironment {
             long executionTime = CoreMetrics.currentTimeMillis() - startTime;
             return new StreamExecutionResult(jobName, executionTime);
         } finally {
-            shutdownLocalExecution(executor, plan);
+            shutdownLocalExecution(executor, plan, cancelAwaitTimeoutMs);
         }
     }
 
@@ -656,14 +671,44 @@ public class StreamExecutionEnvironment {
     }
 
     /**
-     * Tears down one local execution: shuts the executor down, releases the per-job
-     * buffer pool so any producer blocked on global exhaustion is woken and permits
-     * do not leak across executions, and unregisters the source-api coordinators
-     * registered for this job (Stage 49 D3) so subsequent executions of the same
-     * vertex id start fresh.
+     * Resolves the W-11 (ruling D.3) bounded terminal-state wait window:
+     * {@code nop.stream.local.cancel-await-timeout-ms} (default 10000; 0 disables
+     * the wait with a WARN; negative = typed fail-fast).
      */
-    private void shutdownLocalExecution(TaskExecutor executor, GraphExecutionPlan plan) {
-        executor.shutdown();
+    private static long resolveLocalCancelAwaitTimeoutMs() {
+        long configured = Long.getLong(LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG, DEFAULT_LOCAL_CANCEL_AWAIT_TIMEOUT_MS);
+        if (configured < 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be >= 0 (0 disables the bounded terminal wait), got: " + configured);
+        }
+        if (configured == 0) {
+            LOG.warn("nop.stream.local.cancel-await-timeout-ms=0: the bounded terminal wait after the "
+                    + "LOCAL cancel sweep is DISABLED — shutdownNow follows the cancel signals immediately.");
+        }
+        return configured;
+    }
+
+    /**
+     * Tears down one local execution (W-11 four-step order, ruling D.3):
+     * <ol>
+     *   <li>cooperative-cancel sweep — mailbox signalCancel + cancel (interrupt) per
+     *       subtask, then a bounded terminal-state wait, so a task blocked in user
+     *       code reaches its CANCELED terminal exit instead of spinning forever;</li>
+     *   <li>{@code shutdownNow()} — interrupt fallback for tasks that missed the
+     *       cooperative signal;</li>
+     *   <li>release the per-job buffer pool so any producer blocked on global
+     *       exhaustion is woken and permits do not leak across executions;</li>
+     *   <li>unregister the source-api coordinators registered for this job
+     *       (Stage 49 D3) so subsequent executions of the same vertex id start
+     *       fresh.</li>
+     * </ol>
+     * On the normal-completion path the sweep is a no-op (terminal tasks cancel
+     * idempotently and the wait exits immediately) — zero behavior change.
+     */
+    private void shutdownLocalExecution(TaskExecutor executor, GraphExecutionPlan plan, long cancelAwaitTimeoutMs) {
+        executor.cancelSubtasks(cancelAwaitTimeoutMs);
+        executor.shutdownNow();
         plan.closeBufferPool();
         for (Transformation<?> t : transformations) {
             if (t instanceof SourceApiTransformation) {

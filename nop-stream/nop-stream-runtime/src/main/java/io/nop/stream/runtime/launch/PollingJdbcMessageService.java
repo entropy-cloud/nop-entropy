@@ -227,13 +227,36 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
         } catch (Exception e) {
             // R01 §3.1 第5项: cleanup failure = explicit ERROR (nop.<module>.ledger.cleanup-fail
             // shape) + visible counter; never an empty catch; single failure must not break the chain.
+            // W-13 (CRA 8.41 R4-01, ruling E.1 补遗): the schedule stays armed and the
+            // counter stays visible, but the repeating ERROR is suppressed to the
+            // three-state window (first full / aggregate / cleared).
             retentionCleanupFailedCount++;
-            LOG.error("nop.stream.ledger.msgqueue cleanup-fail: retention cleanup failed for table {} "
-                    + "(failures={}) — schedule stays armed", queueTable, retentionCleanupFailedCount, e);
+            io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                    msgqueueCleanupFailureSuppressor.failure(e);
+            if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                LOG.error("nop.stream.ledger.msgqueue cleanup-fail: retention cleanup failed for table {} "
+                        + "(failures={}) — schedule stays armed", queueTable, retentionCleanupFailedCount, e);
+            } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                LOG.warn("nop.stream.ledger.msgqueue cleanup-fail: retention cleanup still failing for "
+                                + "table {} (failures={}) — {} suppressed in the last {}ms window; last: {}",
+                        queueTable, retentionCleanupFailedCount,
+                        msgqueueCleanupFailureSuppressor.getLastWindowSuppressedCount(),
+                        msgqueueCleanupFailureSuppressor.getWindowMs(),
+                        msgqueueCleanupFailureSuppressor.getLastSummary());
+            }
+            // Action.SUPPRESS: silent — the failure is counted (failures= on the
+            // next full/aggregate entry) and the schedule stays armed
         }
     }
 
     private int retentionCleanupFailedCount = 0;
+
+    // W-13 (CRA 8.41 R4-01, ruling E.1 补遗 — the 8.16 裁定⑧ cleanup chain's
+    // repeating failure log): three-state suppression; the counter and the armed
+    // schedule stay visible, only the log volume is windowed.
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor msgqueueCleanupFailureSuppressor =
+            new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                    "polling-jdbc.msgqueue-cleanup-fail", 30_000L);
 
     /**
      * One retention pass (also invoked directly by tests): deletes rows that are
@@ -479,12 +502,24 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
         private final String topic;
         private final IMessageConsumer consumer;
         private final AtomicLong lastSeenId = new AtomicLong(0L);
+        // W-13 (CRA 8.41 R4-01, ruling E.1): per-subscription three-state failure
+        // suppression — a 50ms poll cadence failing continuously would otherwise
+        // emit ~1.4M ERROR lines/hour. First failure logs full; same-window
+        // failures are silent but counted; the window boundary emits ONE aggregate.
+        private final io.nop.stream.runtime.support.PeriodicFailureSuppressor pollFailureSuppressor;
+        private final io.nop.stream.runtime.support.PeriodicFailureSuppressor consumeFailureSuppressor;
         private volatile boolean cancelled = false;
         private volatile boolean suspended = false;
         private volatile ScheduledFuture<?> task;
 
         Subscription(String topic, IMessageConsumer consumer) {
             this.topic = topic;
+            // W-13 (CRA 8.41 R4-01, ruling E.1): initialized here — topic is a
+            // blank final assigned by this constructor, not at declaration.
+            this.pollFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                    "polling-jdbc.poll-failed:" + topic, 30_000L);
+            this.consumeFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                    "polling-jdbc.consume-failed:" + topic, 30_000L);
             this.consumer = consumer;
         }
 
@@ -570,12 +605,44 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
                     try {
                         consumer.onMessage(topic, message, ctx);
                     } catch (Exception e) {
-                        LOG.error("Consumer onMessage failed for topic={} id={}", topic, row.id, e);
+                        // W-13 site ⑤: three-state suppression (first full, window
+                        // aggregate, recovery cleared via the success signal below)
+                        io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                                consumeFailureSuppressor.failure(e);
+                        if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                            LOG.error("Consumer onMessage failed for topic={} id={}", topic, row.id, e);
+                        } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                            LOG.warn("Consumer onMessage failures for topic={} — {} suppressed in the "
+                                            + "last {}ms window; last: {}",
+                                    topic, consumeFailureSuppressor.getLastWindowSuppressedCount(),
+                                    consumeFailureSuppressor.getWindowMs(),
+                                    consumeFailureSuppressor.getLastSummary());
+                        }
                     }
                     lastSeenId.set(row.id);
                 }
+                // W-13 site ⑤ recovery: a fully-successful poll cycle clears the
+                // consumer-failure state (one CLEARED entry on the transition)
+                if (consumeFailureSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    LOG.info("Consumer onMessage recovered for topic={} (failure window cleared)", topic);
+                }
+                // W-13 site ① recovery: the poll cycle itself succeeded
+                if (pollFailureSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    LOG.info("Poll recovered for topic={} (failure window cleared)", topic);
+                }
             } catch (Exception e) {
-                LOG.error("Poll failed for topic={}", topic, e);
+                // W-13 site ①: three-state suppression on the 50ms poll cadence
+                io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                        pollFailureSuppressor.failure(e);
+                if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                    LOG.error("Poll failed for topic={}", topic, e);
+                } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                    LOG.warn("Poll failures for topic={} — {} suppressed in the last {}ms window; last: {}",
+                            topic, pollFailureSuppressor.getLastWindowSuppressedCount(),
+                            pollFailureSuppressor.getWindowMs(), pollFailureSuppressor.getLastSummary());
+                }
             }
         }
 

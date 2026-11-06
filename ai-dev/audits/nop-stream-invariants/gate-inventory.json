@@ -97,6 +97,7 @@
       "io.nop.stream.core.operators.windowing.OverWindowOperator": {
         "methods": [
           "bufferedKeys",
+          "close",
           "copyForSubtask",
           "keyedBufferEntries",
           "keyedStore",
@@ -194,6 +195,7 @@
       "io.nop.stream.core.operators.join.EquiJoinOperator": {
         "methods": [
           "bufferedCount",
+          "close",
           "copyForSubtask",
           "keyedAnyMatched",
           "keyedBufferEntries",

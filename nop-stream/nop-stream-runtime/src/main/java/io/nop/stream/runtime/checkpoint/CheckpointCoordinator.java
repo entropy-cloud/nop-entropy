@@ -169,6 +169,17 @@ public class CheckpointCoordinator {
     private volatile CompletedCheckpoint latestCompletedCheckpoint;
     private volatile Set<TaskLocation> tasksToAcknowledge;
 
+    // W-13 site ⑧ (CRA 8.41 R4-01, ruling E.1): per-coordinator three-state
+    // suppression for the periodic persist-failure ERROR (first full / window
+    // aggregate / cleared on the next persist success). Per-site instance — no
+    // cross-thread shared state beyond the suppressor's own atomics.
+    // Initialized in the constructor (jobId is a blank final assigned there).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor persistFailureSuppressor;
+
+    // W-13 site ④ (ruling E.1): retry-failed-commits WARN suppression; the
+    // recovery signal is the retry ledger emptying (all participants recovered).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor retryCommitSuppressor;
+
     /**
      * C3 (plan 369): tasks that reported a terminal (COMPLETED) state and were
      * contracted out of the checkpoint participant set. Their state is
@@ -387,6 +398,10 @@ public class CheckpointCoordinator {
         }
         this.commitFanoutQueueCapacity = commitFanoutQueueCapacity;
         this.jobId = jobId;
+        this.persistFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "checkpoint.persist-failed:" + jobId, 30_000L);
+        this.retryCommitSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "checkpoint.retry-commit-still-failing:" + jobId, 30_000L);
         this.pipelineId = pipelineId;
         this.checkpointIdCounter = checkpointIdCounter;
         this.checkpointStorage = checkpointStorage;
@@ -1037,6 +1052,13 @@ public class CheckpointCoordinator {
                                           boolean asyncRetention) {
         long checkpointId = completed.getCheckpointId();
 
+        // W-13 site ⑧ recovery: a persist success clears the failure window
+        // (one CLEARED entry on the transition).
+        if (persistFailureSuppressor.success()
+                == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+            LOG.info("Checkpoint persist recovered for job {} (failure window cleared)", jobId);
+        }
+
         // C7-011 layer 4: the persist completed AFTER this coordinator degraded
         // to standby - discard it (no latestCompleted update, no commit fan-out,
         // no completion notification) and count the discard.
@@ -1160,7 +1182,22 @@ public class CheckpointCoordinator {
     private void onCompletePersistFailure(CompletedCheckpoint completed, PendingCheckpoint pending,
                                           String failMessage, Exception cause) {
         long checkpointId = completed.getCheckpointId();
-        LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+        // W-13 site ⑧ (CRA 8.41 R4-01, ruling E.1): three-state suppression on the
+        // trigger-cadence persist failure (first full / window aggregate / cleared
+        // on the next persist success). The aggregate line deliberately does NOT
+        // repeat the original message shape (compat: TestCheckpointCoordinatorPersistFailureLog
+        // asserts the full ERROR appears exactly once — the single-failure path is
+        // unchanged; the aggregate is a separate summary-only line).
+        io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a = cause != null
+                ? persistFailureSuppressor.failure(cause)
+                : persistFailureSuppressor.failure(failMessage);
+        if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+            LOG.error("Failed checkpoint {} for job {}: {}", checkpointId, jobId, failMessage, cause);
+        } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+            LOG.warn("Checkpoint persist failures for job {} — {} suppressed in the last {}ms window; last: {}",
+                    jobId, persistFailureSuppressor.getLastWindowSuppressedCount(),
+                    persistFailureSuppressor.getWindowMs(), persistFailureSuppressor.getLastSummary());
+        }
         metrics.recordFailure(failMessage);
         // Engine-layer meter + job event (failureCause carried).
         engineMetrics().checkpointFailed();
@@ -1817,7 +1854,20 @@ public class CheckpointCoordinator {
                         participant.finishCommit(failedEpoch, originalSuccess);
                         LOG.info("Retried finishCommit for participant on epoch {} with success={} succeeded", failedEpoch, originalSuccess);
                     } catch (Exception e) {
-                        LOG.warn("Retry finishCommit for participant on epoch {} still failing", failedEpoch, e);
+                        // W-13 site ④ (CRA 8.41 R4-01, ruling E.1): three-state
+                        // suppression on the checkpoint-cadence retry WARN (first
+                        // full / window aggregate / cleared when the retry ledger
+                        // empties).
+                        io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                                retryCommitSuppressor.failure(e);
+                        if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                            LOG.warn("Retry finishCommit for participant on epoch {} still failing", failedEpoch, e);
+                        } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                            LOG.warn("Retry finishCommit failures for job {} — {} suppressed in the last "
+                                            + "{}ms window; last: {}",
+                                    jobId, retryCommitSuppressor.getLastWindowSuppressedCount(),
+                                    retryCommitSuppressor.getWindowMs(), retryCommitSuppressor.getLastSummary());
+                        }
                         stillFailing.add(participant);
                     }
                 }
@@ -1826,6 +1876,12 @@ public class CheckpointCoordinator {
             if (stillFailing.isEmpty()) {
                 it.remove();
                 checkpointSuccessMap.remove(failedEpoch);
+                // W-13 site ④ recovery: the retry ledger emptied — every failed
+                // participant recovered (one CLEARED entry on the transition).
+                if (failedCommitParticipants.isEmpty() && retryCommitSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    LOG.info("Retried finishCommit fully recovered for job {} (failure window cleared)", jobId);
+                }
             } else {
                 // 原位替换，不经 remove：remove 与 put 之间存在条目暂时消失的窗口，
                 // 并发的 abort 门控（containsKey）会把仍在重试的 epoch 误判为无失败者，

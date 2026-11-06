@@ -61,6 +61,33 @@ class TestObservabilityWiringE2E {
         List<Integer> sinkResults = Collections.synchronizedList(new ArrayList<>());
         int recordCount = 12;
 
+        // W-14 (CRA 8.41 R4-01, ruling E.2): the task meter surface is RELEASED on
+        // task close (registry.remove + holder entry drop) — the "sequence stays,
+        // reads NaN" contract is superseded. The wiring assertions therefore capture
+        // the meters AS THEY ARE REGISTERED via onMeterAdded (a Counter keeps its
+        // count after removal), assert the real-path updates on the captured
+        // references, and additionally verify the release contract on the registry
+        // after teardown.
+        java.util.concurrent.ConcurrentMap<String, java.util.List<io.micrometer.core.instrument.Meter>> captured =
+                new java.util.concurrent.ConcurrentHashMap<>();
+        java.util.Set<String> taskMeterNames = java.util.Set.of(
+                MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_CONSUMED,
+                MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_EMITTED,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_RECORDS_IN,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BUSY_RATIO,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BACKPRESSURED_RATIO,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_RATIO,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_NANOS,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_ELAPSED_NANOS,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK,
+                MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK_CHANNEL_LAG);
+        StreamMetricsRegistries.registry().config().onMeterAdded(m -> {
+            if (jobId.equals(m.getId().getTag("jobId")) && taskMeterNames.contains(m.getId().getName())) {
+                captured.computeIfAbsent(m.getId().getName(), k -> java.util.Collections.synchronizedList(
+                        new java.util.ArrayList<>())).add(m);
+            }
+        });
+
         JobGraph jobGraph = buildSourceToSinkGraph(jobId, sinkResults, recordCount, 60L);
 
         CheckpointConfig config = new CheckpointConfig();
@@ -90,31 +117,67 @@ class TestObservabilityWiringE2E {
                 "engine checkpoints.completed must be incremented by the real path, got " + completed);
 
         // ---- operator/io layers: LOCAL-path injection produced real updates ----
-        // (metrics are per-task — vertex-tagged; summing across the job's tasks)
-        Double consumed = sumCounters(MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_CONSUMED, jobId);
-        Double emitted = sumCounters(MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_EMITTED, jobId);
-        Double recordsIn = sumCounters(MicrometerStreamTaskMetrics.METRIC_OPERATOR_RECORDS_IN, jobId);
+        // (metrics are per-task — vertex-tagged; summed from the captured meters:
+        // the registration points fired on the real path, and the counter values
+        // survived the W-14 teardown removal)
+        assertEquals((double) recordCount,
+                capturedCount(MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_CONSUMED, captured),
+                "io records.consumed must be registered by the LOCAL path and count every source record");
+        assertEquals((double) recordCount,
+                capturedCount(MicrometerStreamTaskMetrics.METRIC_IO_RECORDS_EMITTED, captured),
+                "io records.emitted must be registered by the LOCAL path and count every cross-task emission");
+        assertEquals((double) recordCount,
+                capturedCount(MicrometerStreamTaskMetrics.METRIC_OPERATOR_RECORDS_IN, captured),
+                "operator records.in must be registered by the LOCAL path and count every sink dispatch");
 
-        assertNotNull(consumed, "io records.consumed meter must be registered on the LOCAL path");
-        assertEquals((double) recordCount, consumed, 0.0,
-                "source-side consumption must equal the emitted record count");
-        assertNotNull(emitted, "io records.emitted meter must be registered on the LOCAL path");
-        assertEquals((double) recordCount, emitted, 0.0,
-                "cross-task emissions must equal the emitted record count");
-        assertNotNull(recordsIn, "operator records.in meter must be registered on the LOCAL path");
-        assertEquals((double) recordCount, recordsIn, 0.0,
-                "sink-task input-gate dispatch must equal the record count");
-
-        // ---- WI16 (plan 2337): the three new observability surfaces are registered by
+        // ---- WI16 (plan 2337): the observability surfaces are registered by
         // the real execution path (Anti-Hollow — not island registrations) ----
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BUSY_RATIO, jobId);
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BACKPRESSURED_RATIO, jobId);
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_RATIO, jobId);
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_NANOS, jobId);
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_ELAPSED_NANOS, jobId);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BUSY_RATIO, captured);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_BACKPRESSURED_RATIO, captured);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_RATIO, captured);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_IDLE_NANOS, captured);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_TIME_ELAPSED_NANOS, captured);
         // the sink task has an input gate → the watermark gauges must be bound too
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK, jobId);
-        assertGaugePresent(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK_CHANNEL_LAG, jobId);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK, captured);
+        assertCaptured(MicrometerStreamTaskMetrics.METRIC_OPERATOR_WATERMARK_CHANNEL_LAG, captured);
+
+        // ---- W-14 release contract on the real path: after LOCAL teardown the
+        // whole task meter surface (every captured name) is REMOVED from the
+        // registry — the scrape sequence disappears (ruling E.2; owner doc synced).
+        for (String name : captured.keySet()) {
+            assertTrue(registryMetersForJob(name, jobId) == 0,
+                    "W-14 release must remove the task meter surface on teardown: " + name);
+        }
+    }
+
+    /** Sum of the counters captured by the onMeterAdded listener (all tasks of the job). */
+    private static double capturedCount(String name,
+                                        java.util.concurrent.ConcurrentMap<String, java.util.List<io.micrometer.core.instrument.Meter>> captured) {
+        java.util.List<io.micrometer.core.instrument.Meter> meters = captured.get(name);
+        assertNotNull(meters, "task meter must be registered by the real execution path: " + name);
+        double total = 0.0;
+        for (io.micrometer.core.instrument.Meter m : meters) {
+            total += ((io.micrometer.core.instrument.Counter) m).count();
+        }
+        return total;
+    }
+
+    /** Asserts the onMeterAdded listener captured a meter of this name for the job. */
+    private static void assertCaptured(String name,
+                                       java.util.concurrent.ConcurrentMap<String, java.util.List<io.micrometer.core.instrument.Meter>> captured) {
+        assertNotNull(captured.get(name),
+                "WI16 meter must be registered on the LOCAL path: " + name);
+    }
+
+    /** Number of registry meters with this name carrying the job's taskId tag. */
+    private static int registryMetersForJob(String name, String jobId) {
+        int[] n = {0};
+        StreamMetricsRegistries.registry().find(name).meters().forEach(m -> {
+            if (jobId.equals(m.getId().getTag("jobId"))) {
+                n[0]++;
+            }
+        });
+        return n[0];
     }
 
     /** Asserts at least one meter with the name (and jobId tag) exists in the registry. */

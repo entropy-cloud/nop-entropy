@@ -97,6 +97,14 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
     private volatile boolean tableInitialized = false;
     private volatile boolean counterTableInitialized = false;
 
+    // W-13 site ⑥ (CRA 8.41 R4-01, ruling E.1): poll-cadence check-fail log
+    // suppression + C7-014 INFO→WARN upgrade. Per-site instance; recovery = a
+    // check pass (leader or follower). The site id is instance-independent —
+    // aggregate lines carry the clusterId at log time.
+    private final io.nop.stream.runtime.support.PeriodicFailureSuppressor checkFailSuppressor =
+            new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                    "jdbc-leader-elector.check-fail", 30_000L);
+
     public JdbcLeaderElector(IJdbcTemplate jdbcTemplate) {
         this(jdbcTemplate, DEFAULT_QUERY_SPACE, "nop_stream_leader");
     }
@@ -109,6 +117,14 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
     }
 
     // ==================== Lifecycle ====================
+
+    /** W-13 site ⑥ recovery: a check pass clears the failure window (one CLEARED entry). */
+    private void electorCheckRecovered() {
+        if (checkFailSuppressor.success()
+                == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+            LOG.info("Leader-elector check recovered (clusterId={}) — failure window cleared", getClusterId());
+        }
+    }
 
     @Override
     protected Void checkElection() {
@@ -128,17 +144,33 @@ public class JdbcLeaderElector extends AbstractPollingLeaderElector {
                 LeaseRow row = readLeaseRow();
                 if (isLeader) {
                     if (checkLeader(row)) {
+                        electorCheckRecovered();
                         break;
                     }
                 } else {
                     if (checkFollower(row)) {
+                        electorCheckRecovered();
                         break;
                     }
                 }
                 loopCount++;
             }
         } catch (Exception e) {
-            LOG.info("nop.stream.leader-elector.check-fail: clusterId={}", getClusterId(), e);
+            // W-13 site ⑥ (CRA 8.41 R4-01, ruling E.1): three-state suppression on
+            // the poll-cadence check-fail log + C7-014 INFO→WARN upgrade (a repeating
+            // election-check failure is operator-signal, not ambient noise). First
+            // entry keeps the full stack; the aggregate is summary-only; recovery
+            // (a check pass) is logged by the CLEARED transition.
+            io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action ea =
+                    checkFailSuppressor.failure(e);
+            if (ea == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                LOG.warn("nop.stream.leader-elector.check-fail: clusterId={}", getClusterId(), e);
+            } else if (ea == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                LOG.warn("Leader-elector check failures (clusterId={}) — {} suppressed in the last {}ms "
+                                + "window; last: {}",
+                        getClusterId(), checkFailSuppressor.getLastWindowSuppressedCount(),
+                        checkFailSuppressor.getWindowMs(), checkFailSuppressor.getLastSummary());
+            }
             onException(e);
             onBecomeFollower(null);
             onRestartElection();

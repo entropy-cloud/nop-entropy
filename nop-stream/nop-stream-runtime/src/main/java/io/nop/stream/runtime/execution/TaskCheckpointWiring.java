@@ -283,14 +283,36 @@ class TaskCheckpointWiring {
         ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(
                 NopStreamThreadFactory.named("barrier-injector-" + jobId));
 
+        // W-13 site ⑦ (CRA 8.41 R4-01, ruling E.1): per-site suppressor — one
+        // instance per scheduler (the scheduler IS the site: single-thread, per-job).
+        final io.nop.stream.runtime.support.PeriodicFailureSuppressor barrierInjectSuppressor =
+                new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                        "wiring.barrier-inject-failed:" + jobId, 30_000L);
+
         scheduler.scheduleAtFixedRate(() -> {
             try {
                 PendingCheckpoint pending = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
                 if (pending != null) {
                     triggerBarrierOnAllInvokables(allInvokables, pending);
                 }
+                // W-13 site ⑦ recovery: a tick that did not throw clears the window.
+                if (barrierInjectSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    LOG.info("Barrier injection recovered for job {} (failure window cleared)", jobId);
+                }
             } catch (Exception e) {
-                LOG.error("Failed to inject checkpoint barrier for job {}", jobId, e);
+                // W-13 site ⑦ (ruling E.1): three-state suppression on the
+                // checkpoint-interval cadence (first full / window aggregate).
+                io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                        barrierInjectSuppressor.failure(e);
+                if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                    LOG.error("Failed to inject checkpoint barrier for job {}", jobId, e);
+                } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                    LOG.warn("Barrier injection failures for job {} — {} suppressed in the last {}ms window; "
+                                    + "last: {}",
+                            jobId, barrierInjectSuppressor.getLastWindowSuppressedCount(),
+                            barrierInjectSuppressor.getWindowMs(), barrierInjectSuppressor.getLastSummary());
+                }
                 coordinator.incrementTriggerFailures();
             }
         }, config.getCheckpointInterval(), config.getCheckpointInterval(), TimeUnit.MILLISECONDS);

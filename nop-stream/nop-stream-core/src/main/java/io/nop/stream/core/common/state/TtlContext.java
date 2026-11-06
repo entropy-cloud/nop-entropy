@@ -11,7 +11,6 @@ import io.nop.stream.core.exceptions.StreamException;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import java.io.Serializable;
-import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -46,7 +45,12 @@ import java.util.Map;
  *       — combine the decision with {@code Map} mutation for the memory backend.</li>
  * </ul>
  *
- * <p>This class is single-threaded (mailbox model), mirroring the state backends.
+ * <p>Thread-discipline note (W-9 victim side, CRA 8.41 R4-01): the intended model
+ * is single-threaded (mailbox), mirroring the state backends — but the timestamp
+ * sidecar tolerates cross-thread snapshot/sweep access via its
+ * {@code ConcurrentHashMap} storage (weakly-consistent iteration), so a stray
+ * non-task-thread sweep degrades to a safe weakly-consistent pass instead of a
+ * {@code ConcurrentModificationException}.
  */
 public final class TtlContext<K> implements Serializable {
 
@@ -54,7 +58,15 @@ public final class TtlContext<K> implements Serializable {
 
     private final StateTtlConfig config;
     private final TtlTimeProvider clock;
-    private final Map<K, Long> timestamps = new HashMap<>();
+    /**
+     * W-9 victim side (CRA 8.41 R4-01, finding 1.2-C10-006; plan 2534 ruling D.2.7):
+     * {@code ConcurrentHashMap} — the sweep iterates this map ({@link #sweepExpired})
+     * while writer threads record timestamps, so a plain {@code HashMap} was a live
+     * put-while-iterate CME under any cross-thread snapshot/sweep access (see
+     * {@code TestRocksDBKeyedStateBackendCrossThreadOps}). Weakly-consistent
+     * iteration is the semantics; single-threaded (mailbox) use is unchanged.
+     */
+    private final Map<K, Long> timestamps = new java.util.concurrent.ConcurrentHashMap<>();
 
     public TtlContext(StateTtlConfig config, TtlTimeProvider clock) {
         if (config == null) {

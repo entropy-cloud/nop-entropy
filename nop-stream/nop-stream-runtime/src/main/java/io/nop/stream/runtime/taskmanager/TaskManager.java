@@ -49,6 +49,8 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_FENCING_T
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_QUERY_TIMEOUT;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.protocol.TaskProgress;
@@ -102,7 +104,24 @@ public class TaskManager implements IStreamTaskRpcService {
      */
     static volatile long invokableWaitTimeoutMs = 30_000L;
 
+    /**
+     * W-09 (CRA 8.41 R4-01, ruling D.2): bounded wait for the mailbox-handoff
+     * keyed-state snapshot behind {@code GET .../state}. Configurable via
+     * {@code nop.stream.ops.state-query-timeout-ms} (values &lt;= 0 fail fast
+     * typed at resolve time). Package-visible and volatile so focused tests can
+     * shorten it (the production default stays 5s).
+     */
+    static volatile long stateQueryTimeoutMs = 5_000L;
+    /** Config key for {@link #stateQueryTimeoutMs} (ruling D.2.3). */
+    static final String STATE_QUERY_TIMEOUT_CONFIG = "nop.stream.ops.state-query-timeout-ms";
+
     private final String nodeId;
+
+    // W-13 site ② (CRA 8.41 R4-01, ruling E.1): per-TM heartbeat lease-renewal
+    // failure suppressor (per-site instance — no cross-thread shared state).
+    // Initialized in the primary constructor (nodeId is a blank final there).
+    final io.nop.stream.runtime.support.PeriodicFailureSuppressor heartbeatFailureSuppressor;
+
     private final String endpoint;
     private final int capacity;
     private final IMessageService messageService;
@@ -143,6 +162,22 @@ public class TaskManager implements IStreamTaskRpcService {
      * the queryable-state-lite surface (no write-back, no cross-process read-RPC:
      * the TM-hosted ops server reads in-process).
      *
+     * <p>W-09 (CRA 8.41 R4-01, ruling D.2): the snapshot is handed off to the
+     * TASK THREAD via the control mailbox (Mail.control → TaskMailbox.put →
+     * drained at the task's safe points), restoring the same-thread-as-writes
+     * snapshot premise the checkpoint path already relies on — a REST read can no
+     * longer tear a map the task thread is mutating. The HTTP (caller) thread
+     * bounded-waits on a future; a stuck task answers the typed
+     * {@link io.nop.stream.core.exceptions.NopStreamErrors#ERR_STREAM_STATE_QUERY_TIMEOUT}
+     * after {@link #stateQueryTimeoutMs} instead of serving torn state or hanging.
+     *
+     * <p>Steady-state filters (ruling D.2.4): an unknown task answers typed
+     * TASK_NOT_FOUND; a FINISHED (retained-entry) task answers typed TASK_NOT_FOUND
+     * too — its post-finish commit notifications keep the entry, but it can no
+     * longer serve live snapshots. A registered task whose task thread is not
+     * running (between install and first run, or already wound down) has no
+     * concurrent writer: the snapshot is served directly.
+     *
      * @return the keyed state snapshot, or an empty snapshot when the task exists but
      *         holds no keyed backend; typed error when the task is not running here
      */
@@ -150,12 +185,68 @@ public class TaskManager implements IStreamTaskRpcService {
             String jobId, String vertexId, int subtaskIndex) {
         String taskKey = taskKey(jobId, vertexId, subtaskIndex);
         RunningTask task = runningTasks.get(taskKey);
-        if (task == null || task.invokable == null) {
+        if (task == null || task.invokable == null || task.isFinished()) {
             throw new io.nop.stream.core.exceptions.StreamException(
                     io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_TASK_NOT_FOUND)
                     .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_TYPE_NAME, taskKey);
         }
-        return task.invokable.keyedStateSnapshot();
+        io.nop.stream.core.execution.task.StreamTaskInvokable invokable = task.invokable;
+        if (!task.hasLiveTaskThread()) {
+            // No live task thread → no concurrent task-thread writer exists; serve
+            // directly (the registered-but-not-running window, e.g. between install
+            // and first run, or an already wound-down attempt).
+            return invokable.keyedStateSnapshot();
+        }
+
+        long timeoutMs = resolveStateQueryTimeoutMs();
+        java.util.concurrent.CompletableFuture<io.nop.stream.core.common.state.backend.StateSnapshot> future =
+                new java.util.concurrent.CompletableFuture<>();
+        io.nop.stream.core.execution.Mail mail = io.nop.stream.core.execution.Mail.control(() -> {
+            try {
+                future.complete(invokable.keyedStateSnapshot());
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        }, "queryable-state-snapshot-" + taskKey);
+        invokable.getMailboxExecutor().getMailbox().put(mail);
+        try {
+            return future.get(timeoutMs, TimeUnit.MILLISECONDS);
+        } catch (java.util.concurrent.TimeoutException e) {
+            // TaskMailbox.put silently drops on a closed mailbox too — the bounded
+            // wait is the single funnel for both "task stuck" and "task stopped".
+            throw new StreamException(ERR_STREAM_STATE_QUERY_TIMEOUT)
+                    .param(ARG_TYPE_NAME, taskKey)
+                    .param(ARG_DETAIL, "no snapshot from the task thread within "
+                            + timeoutMs + "ms (" + STATE_QUERY_TIMEOUT_CONFIG + ")");
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StreamException(ERR_STREAM_INVALID_STATE, e)
+                    .param(ARG_DETAIL, "interrupted while waiting for the keyed-state snapshot of " + taskKey);
+        } catch (java.util.concurrent.ExecutionException e) {
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            if (cause instanceof StreamException) {
+                throw (StreamException) cause;
+            }
+            throw new StreamException(ERR_STREAM_INVALID_STATE, cause)
+                    .param(ARG_DETAIL, "keyed state snapshot failed: " + cause);
+        }
+    }
+
+    /**
+     * W-09 (ruling D.2.3): resolves the bounded state-query window from
+     * {@code nop.stream.ops.state-query-timeout-ms} (falls back to
+     * {@link #stateQueryTimeoutMs}); values ≤ 0 fail fast typed (parameter
+     * discipline aligned with adjudication ② / ⑥).
+     */
+    private static long resolveStateQueryTimeoutMs() {
+        Long configured = Long.getLong(STATE_QUERY_TIMEOUT_CONFIG);
+        long effective = configured != null ? configured : stateQueryTimeoutMs;
+        if (effective <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, STATE_QUERY_TIMEOUT_CONFIG)
+                    .param(ARG_DETAIL, "must be > 0, got: " + effective);
+        }
+        return effective;
     }
 
     /** The currently active fencing epoch for this node (updated on global recovery). */
@@ -227,6 +318,8 @@ public class TaskManager implements IStreamTaskRpcService {
                     .param(ARG_DETAIL, "commitQueueCapacity must be positive (got " + commitQueueCapacity + ")");
         }
         this.nodeId = nodeId;
+        this.heartbeatFailureSuppressor = new io.nop.stream.runtime.support.PeriodicFailureSuppressor(
+                "taskmanager.heartbeat:" + nodeId, 30_000L);
         this.endpoint = endpoint;
         this.capacity = capacity;
         this.messageService = messageService;
@@ -475,9 +568,27 @@ public class TaskManager implements IStreamTaskRpcService {
                 if (!renewed) {
                     LOG.warn("Failed to renew lease for node {}. Re-registering.", nodeId);
                     clusterRegistry.registerNode(nodeId, endpoint, capacity);
+                } else if (heartbeatFailureSuppressor.success()
+                        == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_CLEARED) {
+                    // W-13 site ② recovery: renewal succeeded again
+                    LOG.info("Heartbeat lease renewal recovered for node {} (failure window cleared)",
+                            nodeId);
                 }
             } catch (Exception e) {
-                LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
+                // W-13 site ② (CRA 8.41 R4-01, ruling E.1): three-state suppression
+                // on the 5s heartbeat cadence (first full / window aggregate / cleared
+                // on the next successful renewal)
+                io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action a =
+                        heartbeatFailureSuppressor.failure(e);
+                if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_FULL) {
+                    LOG.error("Heartbeat lease renewal failed for node {}", nodeId, e);
+                } else if (a == io.nop.stream.runtime.support.PeriodicFailureSuppressor.Action.LOG_AGGREGATE) {
+                    LOG.warn("Heartbeat lease renewal failures for node {} — {} suppressed in the "
+                                    + "last {}ms window; last: {}",
+                            nodeId, heartbeatFailureSuppressor.getLastWindowSuppressedCount(),
+                            heartbeatFailureSuppressor.getWindowMs(),
+                            heartbeatFailureSuppressor.getLastSummary());
+                }
             }
 
             // Piggyback per-task liveness on the node heartbeat

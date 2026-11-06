@@ -254,8 +254,18 @@ public class StreamOpsHttpServer {
                     taskManager.keyedStateSnapshot(jobId, vertexId, subtaskIndex);
             stateData = snapshot.getStateData();
         } catch (StreamException e) {
-            // task-not-running is a 404; any other read failure is a 500
-            sendError(exchange, 404, "TASK_NOT_FOUND", String.valueOf(e));
+            // W-09 (CRA 8.41 R4-01, ruling D.2.5): dispatch by error code —
+            // TASK_NOT_FOUND is a 404 (zero-regression), the bounded state-query
+            // timeout is a typed 503, and any other read failure is a 500. The
+            // pre-fix shape answered 404 for EVERY StreamException, misclassifying
+            // concurrent-snapshot failures of a RUNNING task as task-not-found.
+            if (NopStreamErrors.ERR_STREAM_TASK_NOT_FOUND.getErrorCode().equals(e.getErrorCode())) {
+                sendError(exchange, 404, "TASK_NOT_FOUND", String.valueOf(e));
+            } else if (NopStreamErrors.ERR_STREAM_STATE_QUERY_TIMEOUT.getErrorCode().equals(e.getErrorCode())) {
+                sendError(exchange, 503, "STATE_QUERY_TIMEOUT", String.valueOf(e));
+            } else {
+                sendError(exchange, 500, "STATE_QUERY_FAILED", String.valueOf(e));
+            }
             return;
         }
         if (stateName != null && stateData.containsKey(stateName)) {

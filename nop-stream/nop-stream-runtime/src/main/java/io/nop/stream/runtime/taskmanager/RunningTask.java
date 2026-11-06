@@ -347,6 +347,17 @@ public class RunningTask implements Runnable {
         return finished;
     }
 
+    /**
+     * W-09 (CRA 8.41 R4-01, ruling D.2): true while this attempt's task thread is
+     * executing (submitted to the executor, not yet done). A registered-but-never-run
+     * or already-wound-down attempt has NO concurrent task-thread writer, so its
+     * keyed-state snapshot can be served without the mailbox handoff.
+     */
+    public boolean hasLiveTaskThread() {
+        Future<?> f = future;
+        return f != null && !f.isDone();
+    }
+
     public String getJobId() { return jobId; }
     public String getVertexId() { return vertexId; }
     public int getSubtaskIndex() { return subtaskIndex; }
