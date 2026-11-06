@@ -115,16 +115,23 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 
 - **`AvroSchemaRegistryClient`**：JDK HttpClient 最小 REST 客户端——`POST /subjects/{subject}/versions`（注册）、`GET .../versions/latest`、`GET /schemas/ids/{id}`；per-schema-id 与 per-subject 双缓存（同 subject 换 schema 后 encoder 侧不自动拾取新版本——已知边界，见下）。**请求级超时与锁外建连（C2-002）**：每个 HTTP 请求携带请求级 `.timeout()`（缺省 **10s**；约定配置键 `nop.stream.avro.registry-request-timeout`，`≤0` 装配期 fail-fast；配置化经构造器 Duration 参数承载——客户端为纯构造注入对象，不直读全局配置）；schema 缓存 miss 走 get→miss→**锁外 fetch**→`putIfAbsent` 幂等回填，HTTP I/O 不进 CHM bin 临界区——registry 挂死只延误发起 fetch 的线程至超时，不再毒化共享锁阻塞其他 subtask。
 - **`AvroWireFormat`**：Confluent wire format（magic `0x0` + 4B BE schemaId + Avro binary）。`encode` 注册 schema 后写 wire；`decode` 按 header schemaId 取 writer schema、以 registry latest 为 reader schema 做演进读取；`readerSchemaFor` 兜底指定 reader schema。工厂 `avroDeserializer(subject)` / `avroSerializer(subject)` 直接可注入 `KafkaSourceFunction` / `KafkaTwoPhaseCommitSink`。
-- **失败面全 typed**：registry 不可达、请求超时到期、magic byte 不符、schema 解析失败均抛 `StreamAvroException`（不静默降级、不静默重试）。
+- **失败面全 typed**：registry 不可达、请求超时到期、magic byte 不符、schema 解析失败均抛 `StreamAvroException`（不静默降级、不静默重试）。**decode 回落面精确化（CRA 8.43 R4-03 W-02）**：`readerSchemaFor` 在负缓存窗口（`nop.stream.avro.reader-schema-fallback-ttl`，缺省 30s，≤0 构造期 fail-fast）内回落 writer schema，每窗口边界一条 WARN 恰一次——subject 未注册（HTTP 404 首次写竞态）为合法回落路径免 WARN；窗口到期重试探底。「不静默降级」语义=回落必带边界 WARN 信号+负缓存退避，非逐条失败抛出。
+- **生命周期（W-03）**：`AvroSchemaRegistryClient`/`AvroWireFormat` 实现 `AutoCloseable`，wire-format `close()` 透传 client——**调用方义务**（当前生产装配零构造点；挂接归 multi-engine WI18，宿主接线届时承载 close 链）。
 - **依赖**：avro 版本单点在 `nop-kernel/nop-dependencies`（`avro.version`，当前 1.12.1 = 实测基线）；无 Confluent 客户端依赖。
 - **已知边界**：同 subject 多 schema 演进时 encoder 侧 schemaId 缓存不感知换版（首版边界；真实多 schema 写入诉求出现时升级缓存策略）。
 - 锚点：`TestAvroWireFormat`（fake registry 真 HttpServer 用例：round trip / v1→v2 演进 / schemaId 缓存 / magic typed 拒绝 / registry 不可达 typed / 挂死注入请求级超时 typed + 并发 encode 不互阻 / 工厂注入）。
+
+## 2PC 双旋钮与语句/锁超时（CRA 8.43 R4-03 W-04/W-06/W-11）
+
+2PC 双载体（JDBC/file）新增上界旋钮：`maxEpochRecords`/`maxEpochLines`（缺省 100000）与 `maxPendingEpochs`（缺省 8）——invoke 监视器内 add 前判定 + saveState 转存前判定，超限 typed `ERR_STREAM_STATE_ERROR`（携带当前水位/上限/epochId 与处置指引）；≤0 构造期 `ERR_STREAM_INVALID_ARG`；连接器 descriptor `optional` 声明 + builder fluent 承载，不入 ledger face 空间。JDBC 提交链全部 5 语句创建点统一 `statement-timeout-seconds`（缺省 60）——闭合 checkpointTimeout 盲区。file manifest 双级锁（JVM+OS）统一 60s 期限（JVM `tryLock` 可中断 + OS `tryLock` 200ms 轮询，超时 typed；OverlappingFileLockException 按被占轮询处理）。保留策略语义零回退。
 
 ## 2PC epoch 台账保留策略（face `epochledger`，C3-002）
 
 2PC 提交台账的两载体（JDBC `stream_epoch_ledger_v2` + file manifest）按族级保留策略统一收敛，face token = `epochledger`（键形 `nop.stream.ledger.epochledger.*`）。摘要（≤3 行）：JDBC 面为形态 A 周期清理（锚列 `committed_at`，有界批删，挂模块生命周期链）；file manifest 面为形态 B commit 顺带裁剪（epoch 号账龄窗口 `ceil(retention-days × 86400000ms ÷ checkpointIntervalMs)`，并入既有 manifest rewrite）；两面保留窗均 ≥ 可重提交 epoch 窗口（防误删踩坏恢复幂等守卫）。**统一参数集（retention-days 缺省 30 / cleanup-interval 缺省 1h 下限 60s / delete-batch-size 缺省 1000，非法值装配期 fail-fast）与键名的唯一事实源 = ledger-retention-policy.md（位于 ai-dev/design/concurrency/ 目录，按 docs-for-ai 边界规则不直接链接）的 §3.1/§3.2/§3.4 R01 族级 SSOT 成员传导行，以该文档为准，本文档不复制参数；参数修订只走 SSOT。** abort 不触台账语义与恢复幂等守卫零回退。锚点：`TestJdbcEpochLedgerRetention_C3_002`、`TestFileTwoPhaseCommitSinkManifestPrune_C3_002`、`JdbcEpochLedgerCleaner`、`EpochLedgerConfigs`。
 
 ## CEP 并行 subtask 契约（copyForSubtask 三面封闭，C1-001）
+
+**CRA 8.43 R4-03 增补**：匹配缓冲上界 `nop.cep.pipeline.match-buffer.max-events`（缺省 100000，open 期 ≤0 fail-fast）——`bufferEvent` 前置计数判定 typed 拒绝（携带 key/计数/上限与「watermark 停滞/补 within」指引），桶移除点按桶大小递减；`reconciledTimerKeys` 在 NFA 全清位点同步移除（幂等——remove 后重对账为零 delta）。
 
 并行 CEP（parallelism ≥ 2）下，`CepOperator.copyForSubtask()` 对 `nfaFactory` 与 userFunction 做序列化 round-trip 深拷贝——每 subtask 私有 NFA 条件图，一次封闭三面：条件 runtimeContext 槽位不再 last-writer-wins、条件 `open` 各 subtask 各一次（无 N 次泄漏）、一个 subtask 的 close 不再关闭其他 subtask 的条件资源。
 
@@ -134,6 +141,8 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 - 锚点：`TestCepOperatorSubtaskCopy`（NFA 图实例不同 + ctx 各自正确 + xlang 叶子共享/非 xlang 非 Serializable typed 失败）、`TestCepOperatorLateRecordsDroppedMetric`（并行实例指标不串）。
 
 ## RocksDB 状态后端快照包络与 metrics gauge 语义（C5-002/C1-002）
+
+**CRA 8.43 R4-03 增补**：gauge 以 `backend=<recorder 序号>` 单标签注册（per-subtask 互异，backend close 在监视器内先置空 dbRef 再逐 Meter.Id 幂等摘除）；个别属性不可用 WARN 一次、后续降 debug。迁移 helper 为单遍 RocksIterator 流式（一修盖 4 状态类，零跨行收集）。快照预算耦合校验 `nop.stream.rocksdb.snapshot.declared-entries`（声明分支，0=旁路；×速率常数 > timeout×0.5 → typed fail-fast）+ `nop.stream.rocksdb.snapshot.hash-policy`（new-only 缺省——restore 播种+逐 checkpoint 滚动+size-drift 重哈希；full 为 opt-out 档）。
 
 - **增量 checkpoint 缺省 true**：`RocksDBKeyedStateBackend.incrementalCheckpointEnabled` 缺省翻转——默认路径产出增量 SST 快照，不再把整个状态库逐值反序列化物化为堆内对象图；显式 opt-out 全量（`setIncrementalCheckpointEnabled(false)`）时受规模阈值守卫：键数超 `nop.stream.rocksdb.snapshot-materialize-max-entries`（缺省 100000，`≤0`=禁用守卫显式自担）typed `StreamException` 拒绝并指引回增量——显式失败优于 OOM。
 - **迁移校验双路径生效**：全量与增量两条恢复路径均执行 schema-mismatch migrate-or-fail-fast——增量快照内嵌逐 state schema header，恢复侧重建 restored descriptor 并走与全量路径同判据的迁移校验；JSON 往返后丢失的增量 marker（全 null bean）typed fail-fast，不静默穿透为空态恢复。恢复面双形态兼容，round-trip 语义等价。

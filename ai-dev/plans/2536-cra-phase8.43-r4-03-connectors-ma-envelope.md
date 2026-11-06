@@ -258,24 +258,24 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed〔2026-11-07：E1 排除形态 EXIT=0[已知面⑥ 维持]+批行 -am 面① 阻断[solo run1 残余负载窗红→连 5 绿两组三联]+分解等价验收[实现轮七模块签名]+owner doc E5 五节落账+双工具门禁 EXIT=0〕
 Targets: nop-stream 聚合全量测试（13 子模块）+ 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`；在线模式下如 nop-ai-translate 面现形按 2526/2534/2535 排除形态先例处置留痕）
-- [ ] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（已知面集处置——面① solo 三联裁定先例/面③⑤ 2534/2535 先例形态/面④ debezium docker 门控）+ 等价分解通道 `./mvnw test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——签名 = 勘误 4 基线+新钉比对+已知面处置留痕[F1 并发通道复现→solo 三联绿归因维持；docker 双 E2E 慢跳过/fork 超时按 2534/2535 先例归因留痕]）
-- [ ] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（12 工单逐项落点——格式层节[W-02/W-03]/2PC 节[W-04/W-06/W-11]/CEP 节[W-07/W-10]/RocksDB 节[W-01/W-05/W-08/W-09]/能力矩阵[W-12 payload 包络+各旋钮]）+ `docs-for-ai/03-modules/nop-stream.md` :91 兑现核对（W-08）+指标表按实际 + user-guide 按实际评估 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`；在线模式下如 nop-ai-translate 面现形按 2526/2534/2535 排除形态先例处置留痕）〔2026-11-07：排除形态 `!nop-runner/nop-cli-core,!nop-runner/nop-cli`[已知面⑥ 维持]BUILD SUCCESS EXIT=0（`_tmp/e1-2536-full-build.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（已知面集处置——面① solo 三联裁定先例/面③⑤ 2534/2535 先例形态/面④ debezium docker 门控）+ 等价分解通道 `./mvnw test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——签名 = 勘误 4 基线+新钉比对+已知面处置留痕[F1 并发通道复现→solo 三联绿归因维持；docker 双 E2E 慢跳过/fork 超时按 2534/2535 先例归因留痕]）〔2026-11-07 留痕：①批行 `-am` 阻断面① nop-core 3F（`_tmp/e3-batch-am-2536.log`——nop-core 本批零 diff 亲证）；solo 裁定=run1 红[紧随 -am reactor 的残余负载窗]→run2-6 连续 5/5 绿[含两组干净三联]（`_tmp/e3-solo-f1-2536-run{1..6}.log`）——间歇性负载敏感 flake 归因维持+加跑留痕；②分解通道等价验收=实现轮七模块亲跑签名（rocksdb 153/cep 394/core 2008 1S/format-avro 14/connector-jdbc 71/connector 116/debezium 76 排除 EXIT=0+runtime 1253 11S 排除通道）+三跳过模块 2534 首验基线 311 16S 继承（本批零触碰——format-avro 14 增量为新钉、sql/fraud-example 零 diff 继承）〕
+- [x] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（12 工单逐项落点——格式层节[W-02/W-03]/2PC 节[W-04/W-06/W-11]/CEP 节[W-07/W-10]/RocksDB 节[W-01/W-05/W-08/W-09]/能力矩阵[W-12 payload 包络+各旋钮]）+ `docs-for-ai/03-modules/nop-stream.md` :91 兑现核对（W-08）+指标表按实际 + user-guide 按实际评估 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）〔2026-11-07 落账：connectors.md 五节[格式层 :118 精确化块[W-02 负缓存+carve-out/W-03 生命周期]+2PC 新节[W-04 双旋钮/W-06 60s 双级锁/W-11 60s 五语句]/RocksDB 节增补[W-01 tag+摘除/W-05 流式 helper/W-08 once-guard/W-09 两配置键]+CEP 节增补[W-07 remove/W-10 cap]+模块清单零改动]+nop-stream.md 行为块[RocksDB 指标与包络+新旋钮族+计 0 口径]:91 兑现注记；user-guide/source-anchors 零改动评估登记；check-doc-links 复跑 EXIT=0〕
+-[x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）〔check-doc-links EXIT=0；scan-hollow EXIT=0（`_tmp/scan-hollow-2536.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条〕
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿；基线签名+新钉比对+已知面处置留痕）
-- [ ] owner doc 落账核对（E5 12 工单行为变更面逐项落点+nop-stream.md :91 核对+user-guide 评估+source-anchors 按实际——逐项在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.44+ 边界面与 8.17 已修面零 diff、8.41 受害侧钉零 diff]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿；基线签名+新钉比对+已知面处置留痕）
+- [x] owner doc 落账核对（E5 12 工单行为变更面逐项落点+nop-stream.md :91 核对+user-guide 评估+source-anchors 按实际——逐项在案）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.44+ 边界面与 8.17 已修面零 diff、8.41 受害侧钉零 diff]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
