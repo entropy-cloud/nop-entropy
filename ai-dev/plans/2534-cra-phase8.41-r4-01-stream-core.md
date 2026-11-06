@@ -244,12 +244,12 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed〔2026-11-07：独立 closure audit agent_15b22cc7 APPROVED with corrections——修订随收口落盘；cra-index :386 收敛注+roadmap 8.41 done 回填；双门禁 EXIT=0〕
 Targets: 本 plan、roadmap 8.41 行（:183）、cra-index P2-G01 束行（:386，+1.2 侧 C10-006 收敛注核对）、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；零回退钉全列核对（裁定⑪ 七钉+2510 新钉+CC/R5 pin+既有锚——钉内断言零改写逐钉核对）；理论面变异/回退论证诚实性核对（禁伪绿）；C10 八条+1.2-C10-006 兑现核对；8.42+ 边界面零触碰复核〔2026-11-07 审计回填：agent_15b22cc7-f0b1-4304-a638-fecc991883e4 APPROVED with corrections——A 15/15 PASS/B Anti-Hollow PASS[五调用链亲证+scan-hollow 0]/C 零触碰 PASS[54 文件 diff 过滤+12 钉零 diff]/D PASS with Major-1[组A/B 原始 trial 灭失勘误登记+蒸馏总册重建]/E C10 八条+rocksdb PASS/F Deferred PASS/G 双门禁亲跑 EXIT=0+Major-2 补勾/H 签名 PASS——修订四条全部随收口落盘〕
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；零回退钉全列核对（裁定⑪ 七钉+2510 新钉+CC/R5 pin+既有锚——钉内断言零改写逐钉核对）；理论面变异/回退论证诚实性核对（禁伪绿）；C10 八条+1.2-C10-006 兑现核对；8.42+ 边界面零触碰复核〔2026-11-07 审计回填：agent_15b22cc7-f0b1-4304-a638-fecc991883e4 APPROVED with corrections——A 15/15 PASS/B Anti-Hollow PASS[五调用链亲证+scan-hollow 0]/C 零触碰 PASS[54 文件 diff 过滤+12 钉零 diff]/D PASS with Major-1[组A/B 原始 trial 灭失勘误登记+蒸馏总册重建]/E C10 八条+rocksdb PASS/F Deferred PASS/G 双门禁亲跑 EXIT=0+Major-2 补勾/H 签名 PASS——修订四条全部随收口落盘〕
 - [x] cra-index 台账回填：:386 P2-G01 束行收敛注（15 成员 fixed + C10 八条兑现注 + 1.2-C10-006 跨单元兑现注——1.2 侧收敛注如需同步按对齐纪律第二条核对）；roadmap 8.41 行（:183）Status → **done** + 勘误注记（行号漂移勘正/裁定引用兑现/盲区登记[如有]——沿 2523–2533 先例形态，不改批次行原文）
 - [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
