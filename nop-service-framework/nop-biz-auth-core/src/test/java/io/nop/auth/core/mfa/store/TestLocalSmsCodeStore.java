@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.commons.test.time.ManualClock;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.time.IClock;
 import org.junit.jupiter.api.AfterEach;
@@ -62,7 +63,7 @@ public class TestLocalSmsCodeStore {
     @Test
     public void testExpiredState() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         SmsCodeStoreConfig cfg = new SmsCodeStoreConfig();
@@ -70,7 +71,7 @@ public class TestLocalSmsCodeStore {
         LocalSmsCodeStore store = new LocalSmsCodeStore(cfg);
         String code = store.send("login:13900000000");
 
-        clock.advanceSeconds(2);
+        clock.advance(2 * 1000L);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("login:13900000000", code));
     }
 

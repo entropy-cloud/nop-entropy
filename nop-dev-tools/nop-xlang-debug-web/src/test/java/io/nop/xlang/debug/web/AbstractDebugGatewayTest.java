@@ -7,6 +7,8 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.exceptions.NopLoginException;

@@ -1,4 +1,4 @@
-package io.nop.xlang.debug.web;
+package io.nop.commons.test.time;
 
 import io.nop.api.core.time.IClock;
 
@@ -14,6 +14,9 @@ import java.util.concurrent.atomic.AtomicLong;
  * 可推进时钟：时间只在测试显式推进时前进；按线程统计 {@link #currentTimeMillis()} 的读取次数，
  * 供测试确认某工作线程已在推进后的时刻读过时钟（如已进入 deadline 检查、已重新求值租约谓词）。
  * 经 {@code CoreMetrics.registerClock} 逐测试注册，测试结束须恢复 {@code CoreMetrics.defaultClock()}。
+ * <p>
+ * Canonical owner：本类为全平台共享确定性时间测试工具（roadmap WI-2，plan 2508 裁定），
+ * 消费方在 pom 中声明 {@code nop-commons} 的 {@code test-jar} 测试依赖后使用；不得在各模块测试源内再造副本。
  */
 public final class ManualClock implements IClock {
     private final AtomicLong millis;

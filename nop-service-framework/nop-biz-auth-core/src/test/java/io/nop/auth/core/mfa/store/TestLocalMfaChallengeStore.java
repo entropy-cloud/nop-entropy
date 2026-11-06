@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.commons.test.time.ManualClock;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.time.IClock;
 import org.junit.jupiter.api.AfterEach;
@@ -68,7 +69,7 @@ public class TestLocalMfaChallengeStore {
     @Test
     public void testPeekDoesNotRefreshTtl() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
@@ -87,7 +88,7 @@ public class TestLocalMfaChallengeStore {
         assertEquals(expireAt1, expireAt2, "peek must NOT refresh TTL (expireAt immutable)");
 
         // advance clock past TTL expiry
-        clock.advanceSeconds(SHORT_TTL + 1);
+        clock.advance((SHORT_TTL + 1) * 1000L);
         assertNull(store.peek(token), "challenge must expire on schedule even with intervening peeks");
     }
 
@@ -248,7 +249,7 @@ public class TestLocalMfaChallengeStore {
     @Test
     public void testTicketWindowExpiryInvalidatesChallenge() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
@@ -259,7 +260,7 @@ public class TestLocalMfaChallengeStore {
 
         assertTrue(store.markVerified(token));
         // advance clock past ticket window
-        clock.advanceSeconds(SHORT_TTL + 1);
+        clock.advance((SHORT_TTL + 1) * 1000L);
         assertNull(store.peek(token), "after ticket window, ticket (and challenge) must be invalid (票不续命)");
         assertFalse(store.markVerified(token), "markVerified after ticket expiry returns false");
     }
@@ -280,7 +281,7 @@ public class TestLocalMfaChallengeStore {
     @Test
     public void testMarkVerifiedOnExpiredChallengeReturnsFalse() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         MfaChallengeStoreConfig cfg = new MfaChallengeStoreConfig();
@@ -288,7 +289,7 @@ public class TestLocalMfaChallengeStore {
         LocalMfaChallengeStore store = new LocalMfaChallengeStore(cfg);
         String token = store.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
         // advance clock past TTL expiry
-        clock.advanceSeconds(SHORT_TTL + 1);
+        clock.advance((SHORT_TTL + 1) * 1000L);
         assertFalse(store.markVerified(token), "markVerified on expired challenge must return false");
     }
 

@@ -17,7 +17,7 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.debugger.IDebugNotifier;
-import io.nop.xlang.debugger.ManualClock;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.xlang.debugger.XLangDebugger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;

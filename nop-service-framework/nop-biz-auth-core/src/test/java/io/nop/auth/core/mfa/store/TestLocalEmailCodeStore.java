@@ -7,6 +7,7 @@
  */
 package io.nop.auth.core.mfa.store;
 
+import io.nop.commons.test.time.ManualClock;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.time.IClock;
 import org.junit.jupiter.api.AfterEach;
@@ -62,7 +63,7 @@ public class TestLocalEmailCodeStore {
     @Test
     public void testExpiredState() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         EmailCodeStoreConfig cfg = new EmailCodeStoreConfig();
@@ -70,7 +71,7 @@ public class TestLocalEmailCodeStore {
         LocalEmailCodeStore store = new LocalEmailCodeStore(cfg);
         String code = store.send("mfa-email:user-2");
 
-        clock.advanceSeconds(2);
+        clock.advance(2 * 1000L);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("mfa-email:user-2", code));
     }
 

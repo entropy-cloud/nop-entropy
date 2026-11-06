@@ -15,7 +15,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.debugger.CollectNotifier;
-import io.nop.xlang.debugger.ManualClock;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.xlang.debugger.XLangDebugger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

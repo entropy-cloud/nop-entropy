@@ -1,5 +1,6 @@
 package io.nop.sys.dao.lock;
 
+import io.nop.commons.test.time.ManualClock;
 import io.nop.api.core.annotations.autotest.NopTestConfig;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.time.CoreMetrics;
@@ -22,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Lock manager tests. Expiry-dependent tests use a {@link MockClock} to control time
+ * Lock manager tests. Expiry-dependent tests use a {@link ManualClock} to control time
  * deterministically instead of relying on Thread.sleep. A {@link TestableLockManager}
  * subclass overrides clock-dependent methods to use CoreMetrics instead of the DB
  * estimated clock, making expiry checks fully deterministic.
@@ -104,14 +105,14 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
     @Test
     public void testExpiredLockIsRecovered() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         TestableLockManager manager = newTestableManager();
         IResourceLockState lock1 = manager.tryLockWithLease("test-expired-lock", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        clock.advanceMillis(500);
+        clock.advance(500);
 
         IResourceLockState lock2 = manager.tryLockWithLease("test-expired-lock", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2);
@@ -128,14 +129,14 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
     @Test
     public void testStaleHolderReleaseDoesNotDeleteTakeoverLock() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         TestableLockManager manager = newTestableManager();
         IResourceLockState lock1 = manager.tryLockWithLease("test-takeover-release", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        clock.advanceMillis(500);
+        clock.advance(500);
 
         IResourceLockState lock2 = manager.tryLockWithLease("test-takeover-release", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2, "expired lock must be taken over by holder2");
@@ -154,14 +155,14 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
     @Test
     public void testStaleHolderResetLeaseDoesNotExtendTakeoverLock() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         TestableLockManager manager = newTestableManager();
         IResourceLockState lock1 = manager.tryLockWithLease("test-takeover-lease", "holder1", 5000, 300, "TEST");
         assertNotNull(lock1);
 
-        clock.advanceMillis(500);
+        clock.advance(500);
 
         IResourceLockState lock2 = manager.tryLockWithLease("test-takeover-lease", "holder2", 3000, 60000, "TEST");
         assertNotNull(lock2, "expired lock must be taken over by holder2");
@@ -180,7 +181,7 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
     @Test
     public void testDeletedRowRetryFailureBacksOffInsteadOfSpinning() {
         originalClock = CoreMetrics.defaultClock();
-        MockClock clock = MockClock.now();
+        ManualClock clock = ManualClock.startingNow();
         CoreMetrics.registerClock(clock);
 
         AtomicInteger attempts = new AtomicInteger();
@@ -189,7 +190,7 @@ public class TestSysDaoResourceLockManager extends JunitBaseTestCase {
             NopSysLock saveNew(String resourceId, String lockId, long leaseTime, String lockReason, long currentTime) {
                 attempts.incrementAndGet();
                 // Advance clock past waitTime (1000ms) so the retry loop terminates
-                clock.advanceMillis(1100);
+                clock.advance(1100);
                 throw new IllegalStateException("injected persistent save failure");
             }
         };

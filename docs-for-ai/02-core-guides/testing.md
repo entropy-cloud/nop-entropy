@@ -517,6 +517,7 @@ public void testMultiStep() {
 - **定时器可注入，测试用手动调度器**：组件经构造参数接收 `ScheduledExecutorService`；测试注入按虚拟时间到期的调度器，由测试推进，在推进线程上执行到期任务；「已调度 / 未调度」看调度器中的待执行任务来断言。
 - **跨线程交接用显式同步**：`CountDownLatch`、`join`、条件等待。需要确认工作线程已进入某段逻辑（如已进入 deadline 窗口、死循环已在回边检查）时，用按线程统计读取次数的可推进时钟来观测，而不是 sleep。
 - **断言「仍未发生」前，先确认对方已在新时刻重新求值**：例如挂起线程按固定间隔复查租约，推进时钟后要等该线程在推进后再读过时钟（读取计数增长），再断言它仍挂起；否则这条断言什么也不证明。
+- **共享工具直接复用，不在模块内再造**：可推进时钟 `ManualClock` 与手动调度器 `ManualScheduler` 的 canonical 实现在 `nop-kernel/nop-commons` 测试源（包 `io.nop.commons.test.time`），消费模块对 `nop-commons` 声明 `<type>test-jar</type><scope>test</scope>` 依赖即可；不得在各模块测试源内再造时钟/调度器副本。
 
 允许保留的形态：
 

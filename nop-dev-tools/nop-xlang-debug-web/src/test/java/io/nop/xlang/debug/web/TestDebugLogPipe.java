@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.commons.test.time.ManualClock;
 import io.nop.xlang.debugger.XLangDebugger;
 import org.junit.jupiter.api.Test;
 

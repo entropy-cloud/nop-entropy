@@ -1,4 +1,4 @@
-package io.nop.xlang.debug.web;
+package io.nop.commons.test.time;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -24,6 +24,9 @@ import java.util.concurrent.TimeUnit;
  * <p>
  * 关停后拒绝新任务；已排队的一次性任务仍在推进时执行，周期任务不再重排。会阻塞等待任务完成的
  * {@code invokeAll}/{@code invokeAny} 在本调度器上无法完成，显式抛 {@link UnsupportedOperationException}。
+ * <p>
+ * Canonical owner：本类为全平台共享确定性时间测试工具（roadmap WI-2，plan 2508 裁定），
+ * 消费方在 pom 中声明 {@code nop-commons} 的 {@code test-jar} 测试依赖后使用；不得在各模块测试源内再造副本。
  */
 public final class ManualScheduler extends AbstractExecutorService implements ScheduledExecutorService {
     private final ManualClock clock;
