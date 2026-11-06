@@ -230,7 +230,7 @@ Exit Criteria:
 
 ### Phase 2 - 12 工单实现 + 回归测试（按组 A–D）
 
-Status: planned
+Status: in progress〔2026-11-07 实施启动〕
 Targets: nop-stream-rocksdb（4 main+测试树）+ nop-stream-core（1-2 main+如裁定测试树）+ nop-stream-cep（2 main+测试树）+ nop-stream-format-avro（2 main+测试树）+ nop-stream-connector-jdbc（1 main+测试树）+ nop-stream-connector（2 main+测试树）+ nop-stream-connector-debezium（1 main+测试树）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（12 工单均为已确认 live 缺陷——merge-adjudication §五 P2 表判级权威，不得写成 Feature；C6-010/C7-004/C3-013/C3-007/C7-013/C8-003/C5-010/C5-008/C5-009/C3-008/C7-005[并轨消号]/C2-008/C8-013 并入面为已确认伴生缺陷面随批同 diff 收敛）、`Proof`（工单测试 + E2 泛在钉）
