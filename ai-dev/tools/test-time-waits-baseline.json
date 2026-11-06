@@ -1,0 +1,843 @@
+{
+  "formatVersion": 1,
+  "generator": "ai-dev/tools/check-test-time-waits.mjs --update",
+  "updatedAt": "2026-11-06",
+  "totals": {
+    "OTHER": 186,
+    "POLL_LOOP": 210,
+    "SIMULATED_WORK": 17,
+    "SLEEP_THEN_ASSERT": 108
+  },
+  "entries": {
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestBackgroundTaskEndToEnd.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestDefaultAgentEngine.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestDefaultAgentEngineCancel.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestFanOutFutureLifecycle.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestInjectionSemanticsTrichotomy.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestInputIdempotency.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestSessionTakeoverLockEngineWiring.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestSteeringInjection.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/engine/TestTakeoverLockHeartbeatRenewal.java": {
+      "OTHER": 6,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/memory/TestInMemoryAiMemoryStore.java": {
+      "OTHER": 2
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/message/TestDBMessageService.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 2,
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/message/TestDBMessageServiceCrossInstance.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/message/TestDBMessageServiceReliability.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/TestActorMailboxConsumption.java": {
+      "POLL_LOOP": 3,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/TestActorRuntimeEndToEnd.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/TestAgentActor.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/TestInMemoryActorRuntime.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/coordination/TestDbDaemonCoordinator.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/lock/TestDbSessionTakeoverLock.java": {
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/runtime/lock/TestDbSessionTakeoverLockDualInstanceE2E.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/session/TestAgentSession.java": {
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/session/TestDBSessionStore.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/session/TestFileBackedSessionStore.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/AbstractMultiMemberFanOutTest.java": {
+      "OTHER": 2
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestAsyncMemberStepParallelBranches.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestAsyncSpawnStepEndToEnd.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestAsyncSpawnStepParallelBranches.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestAsyncTeamTaskFlowEndToEnd.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestMultiMemberFanOutEndToEnd.java": {
+      "OTHER": 1,
+      "SIMULATED_WORK": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/flow/TestTeamTaskFlowOrchestratorOverallTimeout.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/scheduler/TestSpawnDispatchTimeout.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/team/scheduler/TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch.java": {
+      "OTHER": 2
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestBackgroundRegistryJobSink.java": {
+      "SIMULATED_WORK": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestBashSandboxProgressTrackerWiring.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestCallAgentAsyncEndToEnd.java": {
+      "OTHER": 2
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestTaskTools.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/tool/TestTeamExecuteFlowAsyncWiring.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-agent/src/test/java/io/nop/ai/agent/usage/TestDbUsageRecorderWiring.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/mock/MockChatService.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/reliability/TestThresholdBreaker.java": {
+      "SLEEP_THEN_ASSERT": 11
+    },
+    "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestChatServiceImpl.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestResponsesDialectIntegration.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/channel/TestChannelFanOutTimeoutCancel.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/channel/TestChannelInboundBackboneE2E.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/channel/TestChannelMessageService.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/channel/TestChannelMessageServiceIoC.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/channel/TestChannelSessionStore.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/failover/FailoverTestSupport.java": {
+      "OTHER": 2
+    },
+    "nop-ai/nop-ai-gateway/src/test/java/io/nop/ai/gateway/failover/TestChatServiceFailoverAdapterStreaming.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/executor/ShellCommandExecutorTest.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 2
+    },
+    "nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/executor/ShellConcurrencyEdgeCaseTest.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 5
+    },
+    "nop-ai/nop-ai-shell/src/test/java/io/nop/ai/shell/io/ShellIOTest.java": {
+      "SIMULATED_WORK": 1
+    },
+    "nop-ai/nop-ai-toolkit/src/test/java/io/nop/ai/toolkit/manager/TestToolPathQueue.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 2
+    },
+    "nop-ai/nop-ai-toolkit/src/test/java/io/nop/ai/toolkit/manager/ToolManagerImplParallelTest.java": {
+      "OTHER": 1
+    },
+    "nop-ai/nop-ai-toolkit/src/test/java/io/nop/ai/toolkit/tools/sandbox/TestBashExecutionProgress.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestGraphQLLogger.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaCrudLockdownE2E.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaRestrictedSessionE2E.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaSensitiveSurfaceE2E.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaVerificationHardeningE2E.java": {
+      "OTHER": 2
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestOperationMfaE2E.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestXMetaPropDefaultValue.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/login/TestLoginAttemptWiring.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/WebAuthnTestClient.java": {
+      "OTHER": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/store/TestRedisEmailCodeStore.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/store/TestRedisStoreWiring.java": {
+      "SLEEP_THEN_ASSERT": 4
+    },
+    "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestResourceRecordConsumerConcurrentWrite.java": {
+      "OTHER": 1,
+      "SIMULATED_WORK": 1
+    },
+    "nop-cluster/nop-cluster-core/src/test/java/io/nop/cluster/elector/TestAbstractLeaderElector.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-cluster/nop-cluster-core/src/test/java/io/nop/cluster/naming/TestAutoRegistration.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-code/nop-code-core/src/test/java/io/nop/code/core/analyzer/TestProjectAnalyzerIncremental.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-code/nop-code-core/src/test/java/io/nop/code/core/analyzer/TestProjectAnalyzerWithStore.java": {
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-code/nop-code-service/src/test/java/io/nop/code/service/TestIncrementalIndexWithDb.java": {
+      "OTHER": 4
+    },
+    "nop-code/nop-code-service/src/test/java/io/nop/code/service/TestRebuildFromCommit.java": {
+      "OTHER": 1
+    },
+    "nop-code/nop-code-service/src/test/java/io/nop/code/service/cluster/TestIndexAccessPolicyEnforcement.java": {
+      "OTHER": 1
+    },
+    "nop-code/nop-code-service/src/test/java/io/nop/code/service/invariant/TestNopCodeIndexIdempotencyInvariant.java": {
+      "OTHER": 3,
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-core-framework/nop-ioc/src/test/java/io/nop/ioc/TestBeanConcurrentInitDeadlock.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-core-framework/nop-ioc/src/test/java/io/nop/ioc/TestXplBean.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavAsyncSubmitTransactionPath.java": {
+      "OTHER": 2,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavDashboardParallelQuery.java": {
+      "OTHER": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavDashboardQueryCache.java": {
+      "OTHER": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavExportE2E.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavReportE2E.java": {
+      "OTHER": 1
+    },
+    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavStuckTaskScan.java": {
+      "OTHER": 1
+    },
+    "nop-dev-tools/nop-xlang-debug-web/src/test/java/io/nop/xlang/debug/web/AbstractDebugGatewayTest.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/TestRemoteDebugger.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/TestXLangDebugger.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/session/TestDebuggerBackendLinkE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/session/TestLeaseLifecycle.java": {
+      "POLL_LOOP": 4
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/session/TestReplDeadline.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/session/TestSessionIsolation.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-dyn/nop-dyn-service/src/test/java/io/nop/dyn/service/codegen/TestDynCodeGenTenantCacheInit.java": {
+      "OTHER": 1
+    },
+    "nop-dyn/nop-dyn-service/src/test/java/io/nop/dyn/service/codegen/TestInMemoryCodeCacheDeadlock.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-integration/nop-integration-feishu/src/test/java/io/nop/integration/feishu/bind/TestFeishuBindProvider.java": {
+      "OTHER": 1
+    },
+    "nop-job/nop-job-coordinator/src/test/java/io/nop/job/coordinator/engine/TestJobCoordinatorScanner.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java": {
+      "OTHER": 4
+    },
+    "nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalSchedulerResultContract.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-kernel/nop-api-core/src/test/java/io/nop/api/core/context/TestContextTaskQueue.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/executor/TestRateLimitExecutor.java": {
+      "OTHER": 3,
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/executor/TestSequentialTaskExecutor.java": {
+      "OTHER": 1
+    },
+    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/lock/TestLocalLockManager.java": {
+      "OTHER": 2,
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-kernel/nop-xlang-truffle/src/test/java/io/nop/xlang/truffle/TestXLangContextPool.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/xpl/TestXplTask.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-kernel/nop-xlang/src/test/java/model/ExprAST.java": {
+      "OTHER": 2
+    },
+    "nop-message/nop-message-core/src/test/java/io/nop/message/core/contract/AbstractMessageServiceContractTest.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/KafkaBrokerE2ETest.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaConsumeTask.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaServiceLifecycle.java": {
+      "POLL_LOOP": 2,
+      "SIMULATED_WORK": 3
+    },
+    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaSubscription.java": {
+      "OTHER": 1,
+      "SIMULATED_WORK": 2
+    },
+    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/PulsarBrokerE2ETest.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/PulsarMessageServiceContractTest.java": {
+      "OTHER": 1
+    },
+    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/TestPulsarConsumeTask.java": {
+      "POLL_LOOP": 3,
+      "SIMULATED_WORK": 1,
+      "SLEEP_THEN_ASSERT": 4
+    },
+    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/TestPulsarServiceLifecycle.java": {
+      "SIMULATED_WORK": 1
+    },
+    "nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaQualityCheckpointBizModel.java": {
+      "POLL_LOOP": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-network/nop-http/nop-http-client-jdk/src/test/java/io/nop/http/client/jdk/TestConcatenatedBodyPublisherFix.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-network/nop-http/nop-http-client-jdk/src/test/java/io/nop/http/client/jdk/TestServerEventPublisherStreamFix.java": {
+      "OTHER": 2,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-network/nop-netty/src/test/java/io/nop/netty/tcp/TestNettyTcpClientReconnect.java": {
+      "POLL_LOOP": 2,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-network/nop-netty/src/test/java/io/nop/netty/tcp/TestNettyTcpServerFix.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-network/nop-rpc/nop-rpc-core/src/test/java/io/nop/rpc/core/composite/TestCancellableRpcClient.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-network/nop-rpc/nop-rpc-core/src/test/java/io/nop/rpc/core/composite/TestPollingRpcClientFix.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-network/nop-socket/src/test/java/io/nop/socket/TestSocketServer.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-network/nop-socket/src/test/java/io/nop/socket/TestSocketServerRestart.java": {
+      "OTHER": 2
+    },
+    "nop-persistence/nop-nosql/nop-nosql-lettuce/src/test/java/io/nop/nosql/lettuce/TestLettuceClusterService.java": {
+      "OTHER": 2
+    },
+    "nop-persistence/nop-nosql/nop-nosql-lettuce/src/test/java/io/nop/nosql/lettuce/TestLettuceNosqlService.java": {
+      "OTHER": 4,
+      "SLEEP_THEN_ASSERT": 6
+    },
+    "nop-persistence/nop-orm-data/src/test/java/io/nop/orm/data/source/TestDaoEntityBlockingSource.java": {
+      "OTHER": 1
+    },
+    "nop-persistence/nop-orm-migration/src/test/java/io/nop/orm/migration/TestIncrementalLagProbe.java": {
+      "OTHER": 2
+    },
+    "nop-report/nop-report-service/src/test/java/io/nop/report/service/TestReportResultCache.java": {
+      "POLL_LOOP": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-search/nop-search-lucene/src/test/java/io/nop/search/TestLuceneSearchEngine.java": {
+      "OTHER": 1
+    },
+    "nop-service-framework/nop-gateway/src/test/java/io/nop/gateway/core/interceptor/AiRateLimitGatewayInterceptorTest.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/SubscriptionMockSchemaLoader.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/TestGraphQLEngineWithWebSocket.java": {
+      "OTHER": 2,
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/TestGraphQLSubscriptionPublisher.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/ws/TestJsonRpcWebSocketHandler.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-connector-batch/src/test/java/io/nop/stream/connector/batch/TestBatchLoaderSourceFunction.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector-batch/src/test/java/io/nop/stream/connector/batch/testsupport/TestAwait.java": {
+      "OTHER": 3
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumCdcCheckpoint.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 4
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumCdcSource.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumCdcSourceFunction.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumCredentialIntegration.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumCrossDbSyncPipeline.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumRealMysqlCdc.java": {
+      "POLL_LOOP": 4
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumRealMysqlParallel.java": {
+      "POLL_LOOP": 4,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumRealPostgresCdc.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/testsupport/TestAwait.java": {
+      "OTHER": 3
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/TestConnectorResourceManagement.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/TestDrainableSourceSupport.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/TestMessageAdapters.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/TestMessageSource.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/TestMessageSourceFunctionRestart.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/file/TestFileSourceReaderRecovery.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-connector/src/test/java/io/nop/stream/connector/testsupport/TestAwait.java": {
+      "OTHER": 3
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/common/state/backend/memory/TestMemoryStateTtlSweep.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/connector/lookup/TestCachingTableLookup.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 6,
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestInputGateMarkFinishedChannelRace.java": {
+      "POLL_LOOP": 2,
+      "SIMULATED_WORK": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestInputGateMultiEpochBarrier.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestMailboxExecutor.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestProcessingTimeServiceDriver.java": {
+      "POLL_LOOP": 7,
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestResultPartitionDeadlock.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestSourcePullBarrierInjection.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestStreamTaskInvokableProcessingTimeWiring.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/TestTaskLifecycle.java": {
+      "OTHER": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/execution/task/TestWatermarkIdlenessCrossTaskE2E.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/TestOutputContractInvariant.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/TestPeriodicWatermarkAdvancement.java": {
+      "OTHER": 2
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/TestStreamSourceOperator.java": {
+      "POLL_LOOP": 2,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/windowing/TestProcessingTimeSessionWindowOperator.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/operators/windowing/TestProcessingTimeWindowProductionE2E.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/testsupport/TestAwait.java": {
+      "OTHER": 3
+    },
+    "nop-stream/nop-stream-core/src/test/java/io/nop/stream/core/transformation/TestSourceTransformation.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-flow/src/test/java/io/nop/stream/flow/builder/Wi17SyncExternalCallFunction.java": {
+      "OTHER": 2
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/MultiJvmTestSupport.java": {
+      "POLL_LOOP": 6
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/SteppedThrottleWindowAssigner.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestDirectoryFileSourceFunction.java": {
+      "SIMULATED_WORK": 1
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestDistributedScenarioSerialization.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestExerciseSampler.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestReplayableCdcSourceFunction.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestS2MultiJvmE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/TestStabilityExerciseMultiJvm.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 6
+    },
+    "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/ThrottledScenarioSinks.java": {
+      "OTHER": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/acceptance/E1StateMachineDfa.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/acceptance/E2TopSpeedBeans.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/acceptance/E6AsyncBeans.java": {
+      "OTHER": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/alert/TestAlertChannels.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/alert/TestAlertFaultInjectionE2E.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestAsyncSnapshotPipeline.java": {
+      "OTHER": 3,
+      "POLL_LOOP": 3,
+      "SIMULATED_WORK": 2,
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointAbortWiring.java": {
+      "POLL_LOOP": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointCoordinator.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointCoordinatorIncrementalIntegration.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointCoordinatorIncrementalPersistRollback.java": {
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointCoordinatorJdbcRetainedManifests.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointCoordinatorRaceCondition.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointDualPlaneRetentionE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointDualRunDifferential.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointEndToEnd.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointRetentionAsync.java": {
+      "OTHER": 3,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCheckpointTriggerBoundedRetry.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestCommitFanoutOffMonitor2326.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestE2EBoundedJobCheckpointAfterPartialCompletion.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestE2EManifestRestoreIdAdvance.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestE2EWindowAggregateRestore.java": {
+      "OTHER": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestMailboxE2ECheckpoint.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/checkpoint/TestRecalculateBackfillE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/cluster/TestClusterRegistryConsistencyInvariant.java": {
+      "SLEEP_THEN_ASSERT": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/cluster/TestJdbcLeaderElector.java": {
+      "POLL_LOOP": 4
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/cluster/TestJdbcLeaderElectorEpochMonotonicity.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/connector/TestKafkaConnectorExactlyOnceE2E.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/connector/TestStreamConnectorRegistryE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestCheckpointBarrierFanoutAsync.java": {
+      "POLL_LOOP": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestDistributedAbortPath.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinator.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinatorJdbcHaIntegration.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinatorLeaderElection.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinatorRecoveryRobustness.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/coordinator/TestJobCoordinatorStallRecoveryBudget.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/deploy/TestRemoteDeployCheckpointWiringE2E.java": {
+      "OTHER": 2,
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestCheckpointGateServiceLoaderE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestCheckpointJobIdentityIsolationE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestMultiInputBarrierAlignment.java": {
+      "OTHER": 5,
+      "POLL_LOOP": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestMultiInputWatermarkMinMerge.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestRpcDistributedExecutorE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestRpcDistributedExecutorFailureTeardown.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestSupervisionLoopCheckpointReconnectE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestSupervisionLoopCheckpointRewireWiring.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestSupervisionLoopReconnectE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/execution/TestTaskManagerDaemon.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/launch/TestJobCoordinatorMain.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/launch/TestTaskManagerOpsEndpoint.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/maintain/TestStreamStateResetTool.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/metrics/TestObservabilityWiringE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/BlockingSourcePipelineFactory.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/MiniStreamCluster.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/TestMiniStreamClusterProcessSpawn.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/TestMultiJvmCoordinatorFailover.java": {
+      "POLL_LOOP": 7,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/TestMultiJvmExactlyOnceRecovery.java": {
+      "POLL_LOOP": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/TestMultiJvmHealthStateAndAlerts.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/operators/windowing/TestIdlePeriodProcessingTimeWindowE2E.java": {
+      "OTHER": 2,
+      "SIMULATED_WORK": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/ops/TestMetricsExposureE2E.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/ops/TestOpsRestLifecycleE2E.java": {
+      "POLL_LOOP": 1,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/source/TestBatchLoaderSourceE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/source/TestMessageSourceE2E.java": {
+      "OTHER": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestPlan358LifecycleHardening.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestTaskManager.java": {
+      "OTHER": 4,
+      "POLL_LOOP": 3,
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestTaskManagerCommitQueueBound.java": {
+      "OTHER": 1,
+      "POLL_LOOP": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/taskmanager/TestTaskManagerLivenessAndReporting.java": {
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/testsupport/TestAwait.java": {
+      "OTHER": 3
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestChannelQueueFillRatioGauge.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestChannelQueueGauges.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestInputGateSingleChannelRemoteLiveness.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestRemoteInputChannelLiveness.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestRemoteInputChannelQueueFull.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestRemotePartitionSendLock.java": {
+      "POLL_LOOP": 1
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/transport/TestRemoteResultPartitionBackpressureGate.java": {
+      "SLEEP_THEN_ASSERT": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/windowing/TestE2EWindowAllowedLatenessFullAggregate.java": {
+      "OTHER": 1
+    },
+    "nop-sys/nop-sys-dao/src/test/java/io/nop/sys/dao/coderule/TestSysCodeRuleGeneratorCache.java": {
+      "SLEEP_THEN_ASSERT": 1
+    },
+    "nop-task/nop-task-ext/src/test/java/io/nop/task/ext/reliability/StepStateTestHelper.java": {
+      "OTHER": 1
+    }
+  }
+}

@@ -31,7 +31,7 @@ SLEEP_THEN_ASSERT 集中模块（处数 / 该模块 sleep 总数）：nop-ai-age
 |---|---|---|---|
 | WI-1 | 调试子系统（nop-xlang-debugger / nop-xlang-debug-web）+ 规则入册 testing.md | done | `ai-dev/plans/2507-debug-subsystem-test-time-determinism.md` |
 | WI-2 | 共享确定性时间测试工具（可推进时钟 / 手动调度器）的归属模块裁定与归并 | done | `ai-dev/plans/2508-shared-deterministic-time-test-tools.md` |
-| WI-3 | 新增违规守卫：时间等待分类结果入 `ai-dev/tools/` 检查脚本，存量基线只减不增 | todo | — |
+| WI-3 | 新增违规守卫：时间等待分类结果入 `ai-dev/tools/` 检查脚本，存量基线只减不增 | done | `ai-dev/plans/2509-test-time-waits-guard.md` |
 | WI-4 | nop-stream（runtime / core / connector-*） | todo | — |
 | WI-5 | nop-ai（agent / core / gateway） | todo | — |
 | WI-6 | nop-auth、nop-persistence（nosql-*）、nop-message（pulsar / kafka） | todo | — |

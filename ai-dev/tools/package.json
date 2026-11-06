@@ -12,6 +12,8 @@
     "check:import-order:module": "node check-import-order.mjs --module",
     "check:oversized": "node check-oversized-files.mjs",
     "check:garbled": "node check-docs-garbled.mjs",
+    "check:test-time-waits": "node check-test-time-waits.mjs",
+    "check:test-time-waits:selftest": "node check-test-time-waits.mjs self-test",
     "check:flux-pages": "node check-flux-pages.mjs",
     "stats": "node code-stats.mjs",
     "check:plan": "node check-plan-checklist.mjs",

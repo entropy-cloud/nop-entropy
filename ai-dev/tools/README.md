@@ -25,6 +25,7 @@ pnpm check         # run all checks
 | `check-import-order.mjs` | Check Java import grouping: `java.* → jakarta.* → third-party → io.nop.*` | `pnpm check:import-order` |
 | `check-oversized-files.mjs` | Detect oversized source files (>500 lines warn, >700 error) | `pnpm check:oversized` |
 | `check-docs-garbled.mjs` | Detect garbled/corrupted Unicode in documentation | `pnpm check:garbled` |
+| `check-test-time-waits.mjs` | Test-source time-wait guard: classify `Thread.sleep`/`TimeUnit.*.sleep` waits in `src/test/**.java` (4 categories) and enforce 只减不增 against the committed baseline | `pnpm check:test-time-waits` |
 | `code-stats.mjs` | Per-module code statistics (files, LOC, test ratio) | `pnpm stats` |
 | `check-plan-checklist.mjs` | Verify all plan checklist items are checked before closure | `pnpm check:plan` |
 | `codex-module-driver.sh` | Launch codex TUI with module-specific goal prompt | `./codex-module-driver.sh nop-stream` |
@@ -138,6 +139,26 @@ node check-docs-garbled.mjs
 Reports written to `_tmp/docs-garbled-check/`. Exit 1 if likely-garbled files found.
 
 Adapted from `nop-chaos-flux/scripts/check-docs-garbled.mjs`.
+
+### check-test-time-waits.mjs
+
+测试源时间等待守卫（test-timing-determinism roadmap WI3）。
+
+```bash
+node ai-dev/tools/check-test-time-waits.mjs                # 全仓对账（CI 也跑这条）
+node ai-dev/tools/check-test-time-waits.mjs self-test      # 正向控制自测（内置 fixture，扫描器必须证明能变红）
+node ai-dev/tools/check-test-time-waits.mjs --update       # 消号：修复与基线重生成必须同批提交
+node ai-dev/tools/check-test-time-waits.mjs --module <pfx> # 子集扫描（只对子集内报错）
+node ai-dev/tools/check-test-time-waits.mjs --json         # 机器可读报告（含 per-file entries）
+```
+
+基线文件 `test-time-waits-baseline.json`（per-file × category 计数）。对账语义：
+
+- current > baseline（新文件 / 新类别 / 计数上升）→ exit 1（新增违规，禁止）。
+- baseline > current（修复未消号 / 文件消失）→ exit 1（stale），消号 = 修复 + 同批 `--update`，不得延后。
+- 纯重构导致的分类翻转（如 sleep 自 while 移入 lambda）会同时触发双向红——保守且属预期，`--update` 同批重生成即可。
+
+启发式四分类（SLEEP_THEN_ASSERT / POLL_LOOP / SIMULATED_WORK / OTHER）与盘点脚本逐条同口径；注释与字符串字面量中的 sleep 不计；不覆盖墙钟 deadline / 真实定时器语义面（后者按 roadmap 逐模块人工核对）。CI：`.github/workflows/compliance.yml` `test-time-waits` job（self-test 先行 + 全仓对账）。
 
 ### code-stats.mjs
 

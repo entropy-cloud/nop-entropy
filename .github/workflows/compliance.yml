@@ -46,6 +46,26 @@ jobs:
           java -cp "$CP" io.nop.lint.core.cli.NopLintCli check \
             $FILES --rules nop-bean-naming --max-warnings 0
 
+  # test-timing-determinism roadmap WI3 (plan 2509): the sleep-face time-wait
+  # inventory over src/test java is enforced against the committed baseline
+  # (ai-dev/tools/test-time-waits-baseline.json). 只减不增 semantics: a NEW time-wait
+  # (or any count increase) exits 1; a fix without a same-change `--update` baseline
+  # prune also exits 1 (stale entries). Positive control runs first so a scanner
+  # that silently stopped detecting fails the job instead of passing vacuously.
+  test-time-waits:
+    name: Test-source time-wait guard (baseline 只减不增)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Guard self-test (scanner must prove it can go red)
+        run: node ai-dev/tools/check-test-time-waits.mjs self-test
+      - name: Time-wait baseline check (exit 0 required)
+        run: node ai-dev/tools/check-test-time-waits.mjs
+
   message-silent-wrong-result:
     name: Message silent-wrong-result rules (nop-message)
     runs-on: ubuntu-latest
