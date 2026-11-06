@@ -1,6 +1,6 @@
 # 2534 CRA Phase 8.41 — R4-01 1.1 流核并发正确性束 G01（15 工单全 P2：W-01 BasicTypeInfo 静态 HashMap 竞态 + W-02 TM 两阶段分配 epoch 守卫 + W-03 2PC finishCommit TOCTOU + W-04 水位数组跨线程裸读 + W-05 reader 裸读滞留 + W-06 commit-fanout CallerRuns 饱和拉回监视器 + W-07 registry 读路径绕锁 + W-08 barrier tracker 监视器内快照 + W-09 queryable-state 跨线程裸快照[另承 1.2-C10-006 rocksdb 受害侧锚定] + W-10 barrier fanout 无界队列 + W-11 LOCAL 取消路径不对称 + W-12 stop 竞速静默丢 2PC 通知 + W-13 周期失败日志无抑制 + W-14 metrics releaseHolder 不移除 + W-15 算子 counter identityHashCode 基数爆炸；C10-010~016/023 共 8 条验收前置）
 
-> Plan Status: active
+> Plan Status: completed
 > Draft Review R1: **PASS——0 Blocker + 2 Major + 4 Minor**（2026-11-06，独立评审子 agent agent_0a176e05 fresh session @ `f4185e1a12`，只读；live 抽验 25+ 处唯一漂移 F-3、基线日志亲证、权威链逐行命中）——**修订后转 active**，全部随本轮落盘：F-1 红① 驱动器时序反转[原「先装 epoch=2 再投 epoch=1」形态被入口 :543-548 既有检查拦截=伪绿，反转为缺陷本征方向三步时序：装 N→升 fencing N+1→投 N+1 命中 :566 containsKey 静默忽略=红]；F-2 W-06/W-12 统一设计改「单 handler 分窗口语义」[shutdown 窗口 always-inline(W-12)/饱和窗口 typed 拒绝+计数或补投(W-06)——CC 侧三 execute 点全在监视器栈上，饱和窗口内联=缺陷保留、红③ 不可能过；审计建议① 与红③ 互斥声明]；F-3 CC ⑧ 锚点 :1042-1043→:1090（审计旧值）+勘误 2 补漂移行；F-4 rocksdb 测试树「全单线程」表述订正（TestRocksDBMetricsRecorder 2511 scrape 线程×2——新钉落点不受影响）；F-5 红⑤ 落点拆分定案（端点级驱动器落 nop-stream-runtime src/test——core 不可反向引用）；F-6 W-09 访问缝订正（getMailboxExecutor() :497-499 既有 public accessor——真实裁定面=Mail 载荷/结果回传/超时）。
 > 设计评审 R1（设计文档）：**PASS-with-revisions——Blocker ×2 + Major ×3 + Minor ×8，全部随轮落盘，无需 R2**（2026-11-06，agent_c68c0029 fresh session 只读 @ `563c501566`，live 抽验 ≥40 锚点）——**Blocker-1** 红① 三步时序被 updateFencingToken removeIf（:1075-1084）拦截=伪绿[改判：变体 b 同代重复→拒绝+上报为主驱动+变体 c 跨代混装+置换降级结构钉]；**Blocker-2** rocksdb 受害侧钉绿形态不可达[TtlContext.timestamps live 已是裸 HashMap，runtime 修复不触 rocksdb——采受害侧 CHM 化入批（工单 9 伴生面，PA +1 文件），审计原形先红后绿兑现]；**Major-1** W-14 release 序列 generation-safe（remove(key,ref) 无法区分世代[computeIfAbsent 复用同一 ref]——修正=remove 后 ref.get()!=null 即 putIfAbsent 重装回+红⑧ hammer 断言）；**Major-2** 红⑦ 窗口内构造（tm.stop 泊 awaitTermination 拉长窗口+TestSink commit 记录断言；删除 pre-fix 非判别的计数备选）；**Major-3** B.1.1 严格不等比较硬约束（selectDisplacedTask 等值=候选置换语义相悖）；**Minor-1~8** 随轮落盘（S5 可见性放宽产品 diff 登记/setSubtaskIdentity 归属/runtime open 窗口残余/owner doc 行号 :71/:76/超时纪律对齐裁定② 原文/既有 ListAppender 测试兼容性盘点/C.3 #4 溢出 deque/指标名定稿 `nop.stream.engine.barrierFanoutDrops.total`+E.1 第 12 行）。K1–K4 勘正亲读命中（K1 推翻本 plan 勘误 3）；W-15 移除点偏离 plan :824 定案（算子 close()）。Phase 2 放行。
 > Last Reviewed: 2026-11-06
@@ -173,15 +173,15 @@ Targets: `ai-dev/design/concurrency/stream-core-concurrency-correctness-commit-p
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
 - [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：〔2026-11-06 起草落档（agent_6a9837ed，387 行）——文件名沿 Goals 拟名零调整；裁定 A–F 全部成文+「plan 输入勘正」K1–K4（K1 推翻本 plan 勘误 3「StreamMetricsReporter 零命中」——:119 WARN 真实存在入覆盖集/K2 putIfAbsent 败者分支第二站点并合/K3 五处微漂移/K4 零漂移核证范围）+ W-15 移除点偏离 plan :824 登记（算子 close()，偏离论证在 E.3）+ 既有裁定引用核对节①–⑪ 五红线落款；设计评审 R1 修订随轮落盘（红① 终形变体 b 主驱动/TtlContext CHM 化入批[工单 9 伴生面]/W-14 generation-safe/红⑦ 窗口内构造/B.1.1 严格不等约束/S5 可见性放宽等）〕
-  - [ ] **「既有裁定引用核对」节**（起草期义务——roadmap :183 明文可引用）：逐条确认裁定②⑤⑥⑦⑧⑪ 的引用边界与零回退红线（W-11×裁定②/W-06·W-12×裁定⑤/W-13×裁定⑥/W-07×裁定⑦⑧/全批×裁定⑪ 七钉——五处红线落对应裁定项）+ 三范式引用面声明（本批无 R02 三范式直接消费成员——W-15 稳定键形态如需对齐按引用处理不重开体）。
-  - [ ] **裁定 A core 原语域**（W-01/W-04/W-05 三形态唯一分支）：BasicTypeInfo CHM+computeIfAbsent 定案（双检否决论证）+ InputGate AtomicLongArray（vs 快照拷贝定夺+热路径写面论证+boolean[] 处置）+ reader volatile 定案（else 分支 fail-fast 取舍+preOpen 主时序零回退声明）。
-  - [ ] **裁定 B runtime 控制面域**（W-02/W-07/W-10）：epoch 守卫治理（重复槽位分支置换 vs 拒绝定夺+installInvokable 校验+deployTask 重验+updateFencingToken 窗口处置）+ registry 读侧形态（锁 vs CoW）+ barrier fanout 有界队列（容量值/丢弃 vs 有界等待/指标名+owner doc 指标表行）+ C2-010 零触碰防混声明。
-  - [ ] **裁定 C 提交通知域**（W-03+W-06+W-12 统一设计——**单 handler 分窗口语义**[R1 F-2]/缺陷分离三工单）：基类提交守卫形态（in-flight epoch CAS vs 单飞+restoreFromEpoch 同收+与 W-06 串行契约两层关系）+ 饱和治理统一形态（**分窗口复合 handler 表**：shutdown 窗口 always-inline[W-12]/饱和窗口 typed 拒绝+计数或 fanout 补投[W-06——内联在 CC 监视器栈上=缺陷保留]——三 execute 点同覆盖+CC-01 pin 兼容论证+裁定⑤ 层4 零回退红线落款+审计建议①与红③ 互斥声明）+ stop 竞速形态（isShutdown 分支处置+三宿主序边界+javadoc/WARN/计数订正清单）。
-  - [ ] **裁定 D 快照与生命周期域**（W-08/W-09/W-11）：TRK 出锁边界（登记先行+offerBarrier 锁外+回滚——互斥关系保持论证）+ queryable-state mailbox 交接（预设①——访问缝/超时语义/任务卡死面/MemoryStateSerDe 防护余量+rocksdb 受害侧钉形态[1.2-C10-006 落档]）+ LOCAL cancel 遍历（载体/tasks 缝/超时预算/shutdownNow 次序+裁定② 守卫零回退声明）。
-  - [ ] **裁定 E 观测卫生域**（W-13/W-14/W-15）：日志抑制载体（工具类 vs 内联+窗口参数+覆盖集清单①-⑨+8.16 补遗 :231+StreamMetricsReporter 补遗核定[C10-014 关联注记落档]）+ releaseHolder 释放形态（**owner doc「任务结束后 NaN」→「条目移除」语义变化强制裁定+单 jobId 复用重建语义**）+ 算子 counter 稳定键（键形/无 location 回退/同键覆盖语义/release 载体与 W-14 共用）。
-  - [ ] **裁定 F 测试缝与红①–红⑧+E2 泛在钉驱动器总表+零回退钉清单**：红①–红⑧ 逐钉形态定夺（确定性/概率放大/编译期构造分类+前置构造路径+伪绿防线——或Timeout 类假绿通道排查+闩带上界防测试自身挂死）；E2 泛在钉×7 逐钉形态（W-01/W-04/W-05/W-07 变异/回退论证分支的论证模板+W-10/W-13/W-15 确定性构造形态）；零回退钉全列（勘误 4 签名 4392+18S+F1 flake 处置规则 + 裁定⑪ 七钉 + 2510 新钉二 + CC-01/CC-02/R5-CC-10/TestFencingTokenRejection/TestCheckpointBarrierTrackerConcurrency/TestSourcePullBarrierInjection/TestMicrometerStreamTaskMetrics/TestKeyedStateQueryE2E/TestInMemoryClusterRegistryAttemptHistory/TestChannelQueueGauges/TestTwoPhaseCommitSinkFunction 单线程九测 + 既有锚点名）+ C10 八条映射表（对齐纪律第一条）+ 1.2-C10-006 rocksdb 钉形态落档。
+  - [x] **「既有裁定引用核对」节**〔2026-11-07 closure audit Major-2 补勾：实质达成已由审计亲证（设计文档引用核对节①–⑪五红线落款在案）——本组子项为机械记账遗漏〕（起草期义务——roadmap :183 明文可引用）：逐条确认裁定②⑤⑥⑦⑧⑪ 的引用边界与零回退红线（W-11×裁定②/W-06·W-12×裁定⑤/W-13×裁定⑥/W-07×裁定⑦⑧/全批×裁定⑪ 七钉——五处红线落对应裁定项）+ 三范式引用面声明（本批无 R02 三范式直接消费成员——W-15 稳定键形态如需对齐按引用处理不重开体）。
+  - [x] **裁定 A core 原语域**〔closure audit 补勾——裁定 A 全部在案经审计亲证〕（W-01/W-04/W-05 三形态唯一分支）：BasicTypeInfo CHM+computeIfAbsent 定案（双检否决论证）+ InputGate AtomicLongArray（vs 快照拷贝定夺+热路径写面论证+boolean[] 处置）+ reader volatile 定案（else 分支 fail-fast 取舍+preOpen 主时序零回退声明）。
+  - [x] **裁定 B runtime 控制面域**〔closure audit 补勾〕（W-02/W-07/W-10）：epoch 守卫治理（重复槽位分支置换 vs 拒绝定夺+installInvokable 校验+deployTask 重验+updateFencingToken 窗口处置）+ registry 读侧形态（锁 vs CoW）+ barrier fanout 有界队列（容量值/丢弃 vs 有界等待/指标名+owner doc 指标表行）+ C2-010 零触碰防混声明。
+  - [x] **裁定 C 提交通知域**〔closure audit 补勾〕（W-03+W-06+W-12 统一设计——**单 handler 分窗口语义**[R1 F-2]/缺陷分离三工单）：基类提交守卫形态（in-flight epoch CAS vs 单飞+restoreFromEpoch 同收+与 W-06 串行契约两层关系）+ 饱和治理统一形态（**分窗口复合 handler 表**：shutdown 窗口 always-inline[W-12]/饱和窗口 typed 拒绝+计数或 fanout 补投[W-06——内联在 CC 监视器栈上=缺陷保留]——三 execute 点同覆盖+CC-01 pin 兼容论证+裁定⑤ 层4 零回退红线落款+审计建议①与红③ 互斥声明）+ stop 竞速形态（isShutdown 分支处置+三宿主序边界+javadoc/WARN/计数订正清单）。
+  - [x] **裁定 D 快照与生命周期域**〔closure audit 补勾〕（W-08/W-09/W-11）：TRK 出锁边界（登记先行+offerBarrier 锁外+回滚——互斥关系保持论证）+ queryable-state mailbox 交接（预设①——访问缝/超时语义/任务卡死面/MemoryStateSerDe 防护余量+rocksdb 受害侧钉形态[1.2-C10-006 落档]）+ LOCAL cancel 遍历（载体/tasks 缝/超时预算/shutdownNow 次序+裁定② 守卫零回退声明）。
+  - [x] **裁定 E 观测卫生域**〔closure audit 补勾〕（W-13/W-14/W-15）：日志抑制载体（工具类 vs 内联+窗口参数+覆盖集清单①-⑨+8.16 补遗 :231+StreamMetricsReporter 补遗核定[C10-014 关联注记落档]）+ releaseHolder 释放形态（**owner doc「任务结束后 NaN」→「条目移除」语义变化强制裁定+单 jobId 复用重建语义**）+ 算子 counter 稳定键（键形/无 location 回退/同键覆盖语义/release 载体与 W-14 共用）。
+  - [x] **裁定 F 测试缝与红①–红⑧+E2 泛在钉驱动器总表+零回退钉清单**〔closure audit 补勾〕：红①–红⑧ 逐钉形态定夺（确定性/概率放大/编译期构造分类+前置构造路径+伪绿防线——或Timeout 类假绿通道排查+闩带上界防测试自身挂死）；E2 泛在钉×7 逐钉形态（W-01/W-04/W-05/W-07 变异/回退论证分支的论证模板+W-10/W-13/W-15 确定性构造形态）；零回退钉全列（勘误 4 签名 4392+18S+F1 flake 处置规则 + 裁定⑪ 七钉 + 2510 新钉二 + CC-01/CC-02/R5-CC-10/TestFencingTokenRejection/TestCheckpointBarrierTrackerConcurrency/TestSourcePullBarrierInjection/TestMicrometerStreamTaskMetrics/TestKeyedStateQueryE2E/TestInMemoryClusterRegistryAttemptHistory/TestChannelQueueGauges/TestTwoPhaseCommitSinkFunction 单线程九测 + 既有锚点名）+ C10 八条映射表（对齐纪律第一条）+ 1.2-C10-006 rocksdb 钉形态落档。
 - [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log〔**设计评审 R1=agent_c68c0029 fresh session @ `563c501566` PASS-with-revisions**——Blocker-1 红① 三步时序被 updateFencingToken removeIf 拦截=伪绿（改判变体 b 主驱动+变体 c+置换结构钉）/Blocker-2 rocksdb 钉绿形态不可达（TtlContext timestamps live 已是裸 HashMap——采受害侧 CHM 化入批=审计原形先红后绿兑现）/Major-1 W-14 release 序列 generation-safe/Major-2 红⑦ 窗口内构造/Major-3 B.1.1 严格不等约束/Minor-1~8 随轮落盘（设计文档评审记录节全清单）；核证通过面=K1–K4 亲读命中/既有裁定引用忠实/裁定实质成立/live 抽验 ≥40 处——修订后无需 R2，Phase 2 放行〕
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+〔closure audit 补勾〕- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
 - [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 Exit Criteria:
@@ -189,7 +189,7 @@ Exit Criteria:
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
 - [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–F 全部项且每条有唯一预设默认分支+既有裁定引用核对节，独立 draft review 记录在案（文件命名如调整已登记裁定）〔评审 R1 PASS-with-revisions 修订闭环；评审记录在设计文档末节〕
-- [ ] 裁定 A 含三形态唯一分支+热路径论证；裁定 B 含 epoch 治理分支+读侧形态+容量/指标+防混声明；裁定 C 含三工单统一设计+层4 零回退红线+CC-01/R5-CC-10 pin 兼容论证；裁定 D 含出锁论证+mailbox 交接细则+rocksdb 钉落档+cancel 遍历；裁定 E 含抑制覆盖集全清单+W-14 语义变化裁定+稳定键形态；裁定 F 含红①–红⑧+E2 泛在钉驱动器表[伪绿防线+零回退钉全列+C10 映射+1.2-C10-006 落档]
+- [x] 裁定 A 含三形态唯一分支+热路径论证〔closure audit 补勾——审计亲证裁定 A–F 全部在案〕；裁定 B 含 epoch 治理分支+读侧形态+容量/指标+防混声明；裁定 C 含三工单统一设计+层4 零回退红线+CC-01/R5-CC-10 pin 兼容论证；裁定 D 含出锁论证+mailbox 交接细则+rocksdb 钉落档+cancel 遍历；裁定 E 含抑制覆盖集全清单+W-14 语义变化裁定+稳定键形态；裁定 F 含红①–红⑧+E2 泛在钉驱动器表[伪绿防线+零回退钉全列+C10 映射+1.2-C10-006 落档]
 - [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 ### Phase 2 - 15 工单实现 + 回归测试（按组 A–D）
@@ -202,7 +202,7 @@ Targets: nop-stream-core（9 main 文件+测试树）+ nop-stream-runtime（6+3 
 - [x] 组 A core 并发原语域（W-01/W-03/W-04/W-05/W-08——5 工单，nop-stream-core main+测试树）〔裁定 A（W-01/W-04/W-05）+裁定 C 之 W-03+裁定 D 之 W-08；钉=红②④⑤+E2 泛在钉 W-01/W-04/W-05——落 core 测试树〕〔W-05 与 W-08 同文件 SourceReaderOperator 双工单同 diff 分组登记防混〕〔2026-11-06 landed：W-01 CHM+computeIfAbsent[StreamElementCodec 先例]/W-03 in-flight epoch 集合 CAS 守卫[finishCommit 两分支+restoreFromEpoch 同收——首版误删 pending.remove 由 restore 三测试红暴露后补回]/W-04 AtomicLongArray[channelIdle boolean[] 零改动]/W-05 reader volatile/W-08 TRK 登记先行执行出锁[rollbackRegistration 既有回滚形状]；C10-011 同 diff 改写（互异 epoch→同 epoch+fail-fast）；钉=TestStreamCoreGroupAConcurrency 6 tests。红绿留证=总册组 A 节（red-GA 行为变异红 4 命中[红② got 8 commits/红④ ACK 653ms/W-01·W-05 结构钉红]+red-GA-w04 编译期构造红 44 错误+恢复 grep 断言；green=nop-stream-core 全模块 1992 tests 0F0E 1S[基线 1986 签名维持]）；执行期发现 3 条随总册登记〕
 - [x] 组 B runtime 控制面域（W-02/W-06/W-07/W-10/W-12——5 工单，nop-stream-runtime main+测试树）〔裁定 B（W-02/W-07/W-10）+裁定 C 之 W-06/W-12；钉=红①③⑦+E2 泛在钉 W-07/W-10〕〔W-06 与 W-12 同池同设计分工单落地——diff 内统一 handler 形态+分离注释归属；W-02/W-12/W-13 同文件 TaskManager/CheckpointCoordinator 分组登记防混〕〔2026-11-06 landed（实现 agent_917f3fea，主 agent 复核）：W-02 compute 世代分派[严格不等比较硬约束+installInvokable 5 参校验+deployTask compute 重验+updateFencingToken/selectDisplacedTask 本体 byte-identical 留痕]/W-06+W-12 分窗口复合 handler[TM 饱和 CallerRuns 维持+shutdown always-inline/WARN 两文本/计数真实 inline/CC 饱和溢出补投[有界 deque 1000+任务边界 drain 嵌套收敛+二次溢出丢弃]+shutdown inline+javadoc 订正 5 项+S1 六参构造缝/CC-01 pin 维持绿]/W-07 读侧入锁[4 处同监视器 grep 核对]/W-10 有界队列 100+满时丢弃+barrierFanoutDrop 计数[nop.stream.engine.barrierFanoutDrops.total]。红绿留证=总册组 B 节（red-GB-behavioral：红① 变体 b 零上报超时红/变体 c 混装红/红⑦ 窗口内通知 0 红/E2 W-10 drops 0 红；red-GB-compile-initial 编译期构造红；green-GB 新钉 10 tests+既有钉批 95 tests 0F0E）；既有钉核对 5 点名钉全绿[TestTaskManager 31 含 testDuplicateAssignmentIgnored 兼容/TestConcurrencyWindows2326 2/TestFencingTokenRejection 4/TestCommitFanoutOffMonitor2326 1/TestTaskManagerCommitQueueBound 4]；runtime 全模块 **1234 tests 0F0E 11S**[基线 1224 1F 11S→F1 solo 绿归因维持+新钉 10，主 agent 亲跑复核 EXIT=0]；执行期发现 3 条随总册登记〕
 - [x] 组 C 查询面与 LOCAL 生命周期域（W-09/W-11——2 工单，core+runtime 跨模块+rocksdb 钉）〔裁定 D 之 W-09/W-11；钉=红⑤⑥+rocksdb 受害侧钉（1.2-C10-006 同 diff 跨模块义务）〕〔W-09 与 W-11 分模块落点：W-09=runtime handler+core 状态面/rocksdb 钉，W-11=core environment/task——组内文件集分离〕〔2026-11-06 实现 agent 落位+2026-11-07 主 agent 接管收口：W-09 mailbox 交接[Mail.control→TaskMailbox.put→任务线程产出快照→HTTP 有界 future.get(stateQueryTimeoutMs 5000 默认/配置 nop.stream.ops.state-query-timeout-ms/≤0 typed fail-fast)→TimeoutException→typed ERR_STREAM_STATE_QUERY_TIMEOUT[ops 端按错误码分派 404/503/500]+steady-state 前置过滤[task==null||invokable==null||isFinished→TASK_NOT_FOUND；无活动任务线程 hasLiveTaskThread==false 直读]+RunningTask.hasLiveTaskThread+TtlContext.timestamps CHM 化[Blocker-2 受害侧同 diff]]/W-11 cancel 遍历[TaskExecutor.cancelSubtasks[signalCancel→cancel→有界终态等待(50ms 轮询+中断状态隔离)]+shutdownLocalExecution 四步序[cancel sweep→shutdownNow→closeBufferPool→registry 反注册]+LOCAL_CANCEL_AWAIT_TIMEOUT_CONFIG[默认 10000/0 禁用 WARN/负值 fail-fast——裁定② 守卫零回退]；红⑤⑥+rocksdb 受害侧红绿留证=总册组 C 节[red-GC-behavioral 红⑤ 两分支 200≠typed 红+红⑥ exitMode=none 超时红+hammer r2-r8 轮询放大红+red-GC-rocksdb-runtime CME 红→verify-GC-runtime-green4 8 tests 0F0E+verify-rocksdb-green+rocksdb 全模块 143]；执行期发现 E-GC-2 半写损坏三处修复随总册登记〕
-- [x] 组 D 观测卫生域（W-13/W-14/W-15——3 工单，core+runtime main+测试树）〔裁定 E；钉=红⑧+E2 泛在钉 W-13/W-15〕〔W-14 与 W-15 同释放接线点同 diff 协同+同文件不同类防混登记；W-13 并入面文件（RetentionCleaner/TaskCheckpointWiring/JdbcLeaderElector）随组 D diff〕〔2026-11-06 实现 agent 落位 W-14/W-15+2026-11-07 主 agent 接管完成 W-13 覆盖集 12 站全接线：W-13 三态抑制器 PeriodicFailureSuppressor[siteId+30s 窗口+注入时钟缝]落 runtime support 包——①⑤补遗② 3 站实现 session；③④⑥⑦LOCAL⑧⑨⑫+reporter 8 站主 agent 接管[九文件 26 个 failure/success 布点 grep 留痕在总册；⑥ INFO→WARN 升级随批；⑫ W-10 丢弃 WARN 分窗口+恢复=提交被接受；Minor-6 聚合摘要不复述原文——TestCheckpointCoordinatorPersistFailureLog 兼容绿]/W-14 releaseHolder 释放形态[CAS(this→null)→registry.remove 全 13 meter id[6C+2T+5G 按 watermarkGaugesRegistered]→TASK_HOLDERS.remove(key,ref)→ref.get()!=null 即 putIfAbsent 重装回[generation-safe Major-1]+S5 包内可见性放宽[Minor-1 登记]]/W-15 三算子稳定键+close 移除[copyForSubtask(TaskLocation)/(int) 注入+metricScopeKey=jobId|vertexId|taskIndex+WindowOperator 回退"window"+close() registry.remove×3+gate-inventory.json close 变更方法登记[E-GC-3]]；红绿留证=总册组 D 节[red-GD-compile-core 编译红+green-GC-GD-core pre-fix 行为红 7F→verify-GD-core-green2 7 绿+core 全模块 1999]；执行期发现 E-GC-4/5/7 随总册登记〕
+- [x] 组 D 观测卫生域（W-13/W-14/W-15——3 工单，core+runtime main+测试树）〔裁定 E；钉=红⑧+E2 泛在钉 W-13/W-15〕〔W-14 与 W-15 同释放接线点同 diff 协同+同文件不同类防混登记；W-13 并入面文件（RetentionCleaner/TaskCheckpointWiring/JdbcLeaderElector）随组 D diff〕〔2026-11-06 实现 agent 落位 W-14/W-15+2026-11-07 主 agent 接管完成 W-13 覆盖集 12 站全接线：W-13 三态抑制器 PeriodicFailureSuppressor[siteId+30s 窗口+注入时钟缝]落 runtime support 包——①⑤补遗② 3 站实现 session；③④⑥⑦LOCAL⑧⑨⑫+reporter 8 站主 agent 接管[8 文件 27 个 failure/success 调用式（26 逻辑布点——⑧ 站点三元式两调用并合）grep 留痕在总册[closure audit Minor-1 订正：原「九文件 26 布点」计数表述勘误]；⑥ INFO→WARN 升级随批；⑫ W-10 丢弃 WARN 分窗口+恢复=提交被接受；Minor-6 聚合摘要不复述原文——TestCheckpointCoordinatorPersistFailureLog 兼容绿]/W-14 releaseHolder 释放形态[CAS(this→null)→registry.remove 全 13 meter id[6C+2T+5G 按 watermarkGaugesRegistered]→TASK_HOLDERS.remove(key,ref)→ref.get()!=null 即 putIfAbsent 重装回[generation-safe Major-1]+S5 包内可见性放宽[Minor-1 登记]]/W-15 三算子稳定键+close 移除[copyForSubtask(TaskLocation)/(int) 注入+metricScopeKey=jobId|vertexId|taskIndex+**无 location 回退键形=String(subtaskIdentity)/"window"——registered deviation from 裁定 E.3 的 vertexId|subtaskIndex（算子无 vertexId 源；代码注释+cra-index 收敛注双登记[closure audit Minor-2]）**+WindowOperator 回退"window"+close() registry.remove×3+gate-inventory.json close 变更方法登记[E-GC-3]]；红绿留证=总册组 D 节[red-GD-compile-core 编译红+green-GC-GD-core pre-fix 行为红 7F→verify-GD-core-green2 7 绿+core 全模块 1999]；执行期发现 E-GC-4/5/7 随总册登记〕
 - [x] 回归测试（rule 25 显式覆盖 + C10 验收前置 8 面同 diff + 1.2-C10-006 rocksdb 钉 + E2 泛在钉×7，先红后绿或变异/回退论证留痕）：红①–红⑧+E2 泛在钉快照落 `_tmp/` 总册并登记；零回退钉核对（勘误 4 签名+裁定⑪ 七钉+2510 新钉+CC/R5 pin+既有锚——逐钉 grep/git diff 为空或断言零改写核对）；TestTwoPhaseCommitSinkFunction 改写为同 diff 义务非弱化（C10-011——判别力零→同 epoch 断言+fail-fast，9 单线程测试零改写核对）〔总册 `_tmp/red-green-ledger-2534-GC-GD.md` 回填完成：红①–⑧+E2 泛在钉 7 面逐 trial 对照；零回退钉核对=点名 18 钉全绿[TestCachingTableLookup 9/TestJobCoordinatorPerTaskFailure 8/TestInMemoryClusterRegistryAttemptHistory 6/TestResultPartitionDeadlock 5/TestLaunchMainScopeWiring 2/TestJobCoordinatorRecoveryConcurrency 2/TestStandbyDegradeCancelsInFlightPersist 2/TestTaskAssignmentTerminalCleanup 1/TestCommitFanoutOffMonitor2326 1/TestConcurrencyWindows2326 2/TestTaskManagerCommitQueueBound 4/TestFencingTokenRejection 4/TestCheckpointBarrierTrackerConcurrency 17/TestSourcePullBarrierInjection 4/TestMicrometerStreamTaskMetrics 5/TestKeyedStateQueryE2E 1/TestChannelQueueGauges 4/TestTwoPhaseCommitSinkFunction 12]+TestMultiJvmExactlyOnceRecovery 11S 环境跳过签名维持；签名 core 1999 0F0E 1S[1986+6+7]/runtime 1242 0F0E[F1 solo 三联绿归因维持]/rocksdb 143 0F0E〕
 - [x] **端到端验证**（rule 22）：至少 1 条 LOCAL `env.execute()` 全链测试维持绿并覆盖 W-11 修复面（addSource→算子→sink 完整走通+中断取消后线程退出——从 execute 入口到线程终态出口，裁定② 守卫与新 cancel 路径组合行为）；≥1 条提交通知链路测试覆盖 W-03/W-06/W-12 组合行为（finishCommit 通知→commit-fanout→stop 竞速——从 checkpoint 完成到 participant commit 落地）；≥1 条 queryable-state 链路（任务线程写→HTTP 读→一致响应/typed 拒绝——W-09）随红⑤ 驱动器承载〔LOCAL 全链=TestEventTimeWindowE2E 6 tests 1S 签名+TestObservabilityWiringE2E[source→sink 12 记录+checkpoint 完成+W-14 release 契约断言——E-GC-5 改形]+红⑥ TestLocalCancelTerminatesTaskThreadsR401[interrupt→sweep→线程预算内退出]；提交通知链=组A 红②+组B 红⑦+TestCommitFanoutOffMonitor2326+TestTaskManagerCommitQueueBound+TestStandbyDegradeCancelsInFlightPersist；queryable-state 链=红⑤ 三用例〕
 - [x] **接线验证**（rule 23）：epoch 守卫真生效（重复分配运行时实测置换/拒绝+上报到达——红① 变异对照）；提交守卫真生效（同 epoch 并发实测单次 commit——红②）；饱和治理真生效（灌满队列实测计数/拒绝且 monitor 不阻塞——红③）；出锁真生效（慢快照实测 ACK 不阻塞——红④）；mailbox 交接真生效（交叠读写实测无 500——红⑤）；cancel 遍历真生效（interrupt 后线程实测退出——红⑥）；stop 后通知真生效（实测计数/typed——红⑦）；release 真生效（实测 find null——红⑧）〔红①③⑦ 组B 节/红②④ 组A 节/红⑤⑥ verify-GC-runtime-green4/红⑧ verify-GD-core-green2——总册逐 trial 在案〕
@@ -249,37 +249,37 @@ Targets: 本 plan、roadmap 8.41 行（:183）、cra-index P2-G01 束行（:386�
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；零回退钉全列核对（裁定⑪ 七钉+2510 新钉+CC/R5 pin+既有锚——钉内断言零改写逐钉核对）；理论面变异/回退论证诚实性核对（禁伪绿）；C10 八条+1.2-C10-006 兑现核对；8.42+ 边界面零触碰复核〔占位——审计执行后回填 reviewer/session/结果〕
-- [ ] cra-index 台账回填：:386 P2-G01 束行收敛注（15 成员 fixed + C10 八条兑现注 + 1.2-C10-006 跨单元兑现注——1.2 侧收敛注如需同步按对齐纪律第二条核对）；roadmap 8.41 行（:183）Status → **done** + 勘误注记（行号漂移勘正/裁定引用兑现/盲区登记[如有]——沿 2523–2533 先例形态，不改批次行原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效 + 无空方法体/静默跳过）；条件申报①–④触发与否 git diff 全量核对；零回退钉全列核对（裁定⑪ 七钉+2510 新钉+CC/R5 pin+既有锚——钉内断言零改写逐钉核对）；理论面变异/回退论证诚实性核对（禁伪绿）；C10 八条+1.2-C10-006 兑现核对；8.42+ 边界面零触碰复核〔2026-11-07 审计回填：agent_15b22cc7-f0b1-4304-a638-fecc991883e4 APPROVED with corrections——A 15/15 PASS/B Anti-Hollow PASS[五调用链亲证+scan-hollow 0]/C 零触碰 PASS[54 文件 diff 过滤+12 钉零 diff]/D PASS with Major-1[组A/B 原始 trial 灭失勘误登记+蒸馏总册重建]/E C10 八条+rocksdb PASS/F Deferred PASS/G 双门禁亲跑 EXIT=0+Major-2 补勾/H 签名 PASS——修订四条全部随收口落盘〕
+- [x] cra-index 台账回填：:386 P2-G01 束行收敛注（15 成员 fixed + C10 八条兑现注 + 1.2-C10-006 跨单元兑现注——1.2 侧收敛注如需同步按对齐纪律第二条核对）；roadmap 8.41 行（:183）Status → **done** + 勘误注记（行号漂移勘正/裁定引用兑现/盲区登记[如有]——沿 2523–2533 先例形态，不改批次行原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan `## Closure` 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
-- [ ] cra-index :386 束行收敛注（含 1.2-C10-006 跨单元兑现注核对）、roadmap 8.41 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行 :116 原文零改动）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 `## Closure` 段
+- [x] cra-index :386 束行收敛注（含 1.2-C10-006 跨单元兑现注核对）、roadmap 8.41 = done（含勘误注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行 :116 原文零改动）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新〔2026-11-07 Phase 4 收口条〕
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 15 工单全部修复：W-01（CHM+computeIfAbsent）/W-02（epoch 守卫三面）/W-03（基类提交守卫+C2-007）/W-04（AtomicLongArray）/W-05（volatile+C2-002）/W-06（饱和治理+层4 零回退）/W-07（读侧入锁或 CoW+裁定⑦ 零回退）/W-08（登记先行出锁）/W-09（mailbox 交接+rocksdb 受害侧钉）/W-10（有界队列+计数+C2-010 零触碰）/W-11（cancel 遍历+裁定② 零回退）/W-12（always-inline+订正+R5-CC-10 零回退）/W-13（抑制覆盖集全清单）/W-14（release 移除+owner doc 语义同步）/W-15（稳定键+release 接线+C5-008）〔closure audit 逐工单 live 落地核对〕
-- [ ] batch-proposal R4-01 行 exit criteria 增补逐条达成并留证：C10-010~016/023 八条验收前置同 diff 兑现（红①–红⑧ 先红后绿/论证留证）+ 1.2-C10-006 rocksdb 受害侧钉同 diff 兑现（跨单元锚定条款兑现）
-- [ ] 对齐纪律守约：C10 同 diff 条款兑现；跨单元锚定条款兑现；E2 泛在钉条款兑现；8.42+ 边界条款兑现（同文件跨批面零 diff——closure audit git 过滤核对）；R-G 边界条款兑现；既有裁定引用条款兑现（五处零回退红线+裁定⑪ 七钉全列）；同变更集绑定条款兑现（伴生面全清单）；同号防混条款兑现（cra-index 双键+同号异站防混注记）
-- [ ] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑧+E2 泛在钉均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册；理论面禁伪绿）；C10 验收前置 8 缺陷面同 diff 落地
-- [ ] 设计文档裁定 A–F 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对）；2510 产物面零回退
-- [ ] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道 13 子模块 BUILD SUCCESS 等价验收 + 18S 签名比对归因登记 + F1 flake 处置留痕）
-- [ ] owner doc 落账完成：`docs-for-ai/03-modules/nop-stream.md` 六工单行为变更面 + user-guide 评估 + source-anchors 按实际（E5 随批更新形态——非缺口声明）
-- [ ] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-stream 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——P3×24/G04/R4-02 成员为批次定义层排除或他批承接，非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证八项），（b）无空方法体/静默跳过/no-op 作为正常实现（typed 上报显式、fail-fast 显式、处置显式、超时显式、抑制显式）
-- [ ] `./mvnw compile` + `./mvnw test`（nop-stream 分解通道 13 子模块——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（Maven 面）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0
-- [ ] cra-index :386 束行收敛注 + roadmap 8.41 → done（E6）
+- [x] 15 工单全部修复：W-01（CHM+computeIfAbsent）/W-02（epoch 守卫三面）/W-03（基类提交守卫+C2-007）/W-04（AtomicLongArray）/W-05（volatile+C2-002）/W-06（饱和治理+层4 零回退）/W-07（读侧入锁或 CoW+裁定⑦ 零回退）/W-08（登记先行出锁）/W-09（mailbox 交接+rocksdb 受害侧钉）/W-10（有界队列+计数+C2-010 零触碰）/W-11（cancel 遍历+裁定② 零回退）/W-12（always-inline+订正+R5-CC-10 零回退）/W-13（抑制覆盖集全清单）/W-14（release 移除+owner doc 语义同步）/W-15（稳定键+release 接线+C5-008）〔closure audit 逐工单 live 落地核对〕
+- [x] batch-proposal R4-01 行 exit criteria 增补逐条达成并留证：C10-010~016/023 八条验收前置同 diff 兑现（红①–红⑧ 先红后绿/论证留证）+ 1.2-C10-006 rocksdb 受害侧钉同 diff 兑现（跨单元锚定条款兑现）
+- [x] 对齐纪律守约：C10 同 diff 条款兑现；跨单元锚定条款兑现；E2 泛在钉条款兑现；8.42+ 边界条款兑现（同文件跨批面零 diff——closure audit git 过滤核对）；R-G 边界条款兑现；既有裁定引用条款兑现（五处零回退红线+裁定⑪ 七钉全列）；同变更集绑定条款兑现（伴生面全清单）；同号防混条款兑现（cra-index 双键+同号异站防混注记）
+- [x] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑧+E2 泛在钉均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册；理论面禁伪绿）；C10 验收前置 8 缺陷面同 diff 落地
+- [x] 设计文档裁定 A–F 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对）；2510 产物面零回退
+- [x] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道 13 子模块 BUILD SUCCESS 等价验收 + 18S 签名比对归因登记 + F1 flake 处置留痕）
+- [x] owner doc 落账完成：`docs-for-ai/03-modules/nop-stream.md` 六工单行为变更面 + user-guide 评估 + source-anchors 按实际（E5 随批更新形态——非缺口声明）
+- [x] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-stream 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性 PASS——P3×24/G04/R4-02 成员为批次定义层排除或他批承接，非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）〔agent_15b22cc7 APPROVED with corrections——证据在 ## Closure〕
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）epoch 守卫/提交守卫/饱和治理/出锁/mailbox 交接/cancel 遍历/stop 后通知/日志抑制/release 移除/稳定键运行时真实生效（调用链追踪 + 红绿日志证行为改变——接线验证八项），（b）无空方法体/静默跳过/no-op 作为正常实现（typed 上报显式、fail-fast 显式、处置显式、超时显式、抑制显式）
+- [x] `./mvnw compile` + `./mvnw test`（nop-stream 分解通道 13 子模块——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（Maven 面）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0〔终跑随本收口复跑登记〕
+- [x] cra-index :386 束行收敛注 + roadmap 8.41 → done（E6）
 
 ## Deferred But Adjudicated
 
@@ -326,15 +326,26 @@ Exit Criteria:
 
 ## Closure
 
-Status Note:（占位——Phase 4 closure audit 通过后填写）
-Completed:（占位）
+Status Note: 15 工单（R4-01 全 P2 束）全部修复并经独立 closure audit APPROVED with corrections（0 Blocker/2 Major/2 Minor——修订全部随收口落盘）：组 A/B（11-06）+ 组 C/D（11-06 落位+11-07 接管收口）landed，C10 八条验收前置+1.2-C10-006 rocksdb 受害侧钉同 diff 兑现，红①–⑧+E2 泛在钉×7 先红后绿留证，E1/E3/F1 门禁按 E3 判据验收（已知面集⑤⑥+F1 flake 归因留痕），owner doc E5 六处落账，零触碰全量成立。三批提交：d22cbb3f4b（组A）/39140baf1b（组B）/721b98e0d5（组C/D）/5aefeab637（Phase 3）。
+Completed: 2026-11-07
 
 Closure Audit Evidence:
 
-- Reviewer / Agent:（占位——独立子 agent 标识）
-- Audit Session:（占位）
-- Evidence:（占位——每条 Exit Criterion 与 Closure Gate 的验证结果）
+- Reviewer / Agent: agent_15b22cc7-f0b1-4304-a638-fecc991883e4（fresh session 独立 closure auditor，只读）
+- Audit Session: agent_15b22cc7-f0b1-4304-a638-fecc991883e4 @ `5aefeab637`（77 次工具调用，git diff `f4185e1a12..HEAD` 全量过滤核对）
+- Evidence:
+  - A 15 工单 live 落地：**PASS 15/15**（逐工单读码核语义——W-02 严格不等+5 参校验+重验/W-03 三处 begin/endInFlight finally 成对/W-09 交接+typed 分派/W-13 8 文件 27 调用式/W-14 generation-safe 序列/W-15 三算子稳定键+close 移除等逐条实据）
+  - B Anti-Hollow：**PASS**（五条调用链亲证：HTTP handler :254→keyedStateSnapshot 交接/runLocal finally→shutdownLocalExecution→cancelSubtasks/StreamTaskInvokable finally :824→releaseHolder[该文件零 diff]/suppressor.failure 全在 catch/拒绝分支/三算子 close 本体移除；TODO/空 catch 零命中；scan-hollow 全级 0）
+  - C 零触碰：**PASS**（diff 全集 54 文件；零 `_`/orm/平台设施/api 叶/批外模块；8.42+ 跨批面零 hunk；12 钉测试文件 diff 全零；TestTwoPhaseCommitSinkFunction 仅 C10-011 一测改写）
+  - D 红绿诚实性：**PASS with Major-1**（组C/D 逐 trial 对账一致；**组A/组B 原始 trial 日志灭失**[`_tmp/` gitignored 未入库]——勘误登记随本 Closure + 蒸馏总册重建 `_tmp/red-green-2534-summary.md`[provenance 声明在文件头]，红侧语义权威存证=repo 内钉测试断言[审计逐测亲读]+已提交日志/commit message 蒸馏记录）
+  - E C10 八条+1.2-C10-006：**PASS**（八条映射逐条兑现+rocksdb 钉红绿留证；同 diff 条款兑现——禁拆分）
+  - F Deferred 诚实性：**PASS**（相邻 P3/G04/R4-02 三组确属批次定义层排除；Follow-ups 无 in-scope live defect）
+  - G 文本一致性：check-plan-checklist --strict EXIT=0 + check-doc-links --strict EXIT=0（审计员亲跑）；**Major-2 Phase 1 九 checkbox 补勾**随收口落盘
+  - H 测试签名：**PASS**（core 1999 0F0E 1S/runtime 1242 0F0E 11S[F1 solo 三联+docker 双 E2E 留痕]/rocksdb 143 0F0E/三模块 311 0F0E 16S 首验——与 green-GD-core-full5/green-GC-runtime-full3/green-GC-rocksdb-full/e3-three-modules 逐文件对账一致；18 点名钉测试数静态清点全吻合）
+  - 修订随收口落盘：Major-1 勘误登记+蒸馏总册重建/Major-2 Phase 1 补勾/Minor-1 W-13 布点计数表述订正（8 文件 27 调用式 26 逻辑布点）/Minor-2 W-15 回退键形 registered deviation 双登记
+  - Phase 4 剩余项（cra-index :386 收敛注/roadmap 8.41 done/双门禁终跑）由主 agent 随本收口执行
 
 Follow-up:
 
--（占位——只记录 non-blocking follow-up；confirmed live defect 不得出现在这里）
+- C2-005 出锁后 TRK 快照异步化深化候选；W-13 抑制载体平台化候选；W-14/W-15 指标保留策略配置化候选；runtime F1 flake 测试基建治理候选（R-G 登记轨）；debezium docker 抖动环境噪声（R-G）——均见 Non-Blocking Follow-ups 节，无 in-scope live defect。
+- no remaining plan-owned work
