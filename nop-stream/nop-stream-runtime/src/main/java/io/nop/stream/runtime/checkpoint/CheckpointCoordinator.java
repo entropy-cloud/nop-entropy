@@ -221,10 +221,59 @@ public class CheckpointCoordinator {
      * retries — previously run inline UNDER the coordinator monitor, serializing
      * the whole control plane behind slow sinks/nodes. Serial (single thread)
      * preserves the retry→current-epoch commit order and the cross-epoch ordering
-     * of the queue; bounded queue + CallerRuns mirror the tm-commit-* precedent
-     * (TaskManager commit executor).
+     * of the queue; the bounded wait queue mirrors the tm-commit-* precedent
+     * (TaskManager commit executor). W-06/W-12 (CRA 8.41 R4-01, ruling C.2):
+     * saturation parks the rejected task on a bounded overflow re-dispatch queue
+     * (drained at task boundaries on the fan-out thread — never inline under
+     * this monitor) and the shutdown window delivers inline (CC-17); see
+     * {@link #getOrCreateCommitFanoutExecutor()}.
      */
     private ExecutorService commitFanoutExecutor;    private volatile boolean isShutdown = false;
+
+    /**
+     * Default capacity of the commit-fanout executor's wait queue (tm-commit
+     * alignment). Overridable through the package-private constructor seam
+     * (S1, CRA 8.41 红③) so tests can shrink it and reach saturation
+     * deterministically.
+     */
+    static final int DEFAULT_COMMIT_FANOUT_QUEUE_CAPACITY = 1000;
+
+    /**
+     * Capacity of the saturation overflow re-dispatch queue (CRA 8.41 ruling
+     * C.2, W-06): mirrors the main wait queue's bound — a second unbounded
+     * structure is explicitly forbidden; when the overflow queue is full the
+     * epoch is dropped (healed by the next epoch's subsuming commit or the
+     * checkpoint-timeout abort, same declared safety net as C4-012).
+     */
+    static final int COMMIT_FANOUT_OVERFLOW_CAPACITY = 1000;
+
+    /**
+     * S1 seam (CRA 8.41 红③): commit-fanout wait-queue capacity, injected via
+     * the package-private constructor (the TaskManager {@code commitQueueCapacity}
+     * constructor-param shape). Read once when the executor is lazily created.
+     */
+    private final int commitFanoutQueueCapacity;
+
+    /**
+     * W-06 (C2-003): bounded overflow re-dispatch queue. A fan-out task rejected
+     * by a FULL (but not shutdown) wait queue is parked here with its complete
+     * body; the fan-out thread drains it at every task boundary BEFORE the task
+     * body — so the re-dispatched commits stay serial on the fan-out thread and
+     * execute before later-arriving tasks (the retry→current-epoch serial
+     * contract holds again in the saturation window, without ever running I/O
+     * under the coordinator monitor).
+     */
+    private volatile java.util.concurrent.LinkedBlockingDeque<Runnable> commitFanoutOverflow;
+
+    /** W-06: fan-out tasks re-dispatched through the overflow queue (observable saturation). */
+    private final AtomicInteger commitFanoutOverflows = new AtomicInteger(0);
+
+    /**
+     * W-06: fan-out tasks DISCARDED because the overflow queue itself was full
+     * (second-order saturation). The epoch is healed by the next epoch's
+     * subsuming commit or the checkpoint-timeout abort.
+     */
+    private final AtomicInteger commitFanoutDiscards = new AtomicInteger(0);
 
     /**
      * C7-011 (plan 2510 adjudication 5, layer 4 of the checkpoint
@@ -313,6 +362,30 @@ public class CheckpointCoordinator {
             CheckpointIDCounter checkpointIdCounter,
             ICheckpointStorage checkpointStorage,
             CheckpointConfig config) {
+        this(jobId, pipelineId, checkpointIdCounter, checkpointStorage, config,
+                DEFAULT_COMMIT_FANOUT_QUEUE_CAPACITY);
+    }
+
+    /**
+     * Package-private constructor with an explicit commit-fanout wait-queue
+     * capacity — the S1 test seam (CRA 8.41 红③), shaped after the TaskManager
+     * {@code commitQueueCapacity} constructor parameter. A non-positive
+     * capacity fails fast.
+     */
+    CheckpointCoordinator(
+            String jobId,
+            String pipelineId,
+            CheckpointIDCounter checkpointIdCounter,
+            ICheckpointStorage checkpointStorage,
+            CheckpointConfig config,
+            int commitFanoutQueueCapacity) {
+        if (commitFanoutQueueCapacity <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "commitFanoutQueueCapacity must be positive (got " + commitFanoutQueueCapacity + ")");
+        }
+        this.commitFanoutQueueCapacity = commitFanoutQueueCapacity;
         this.jobId = jobId;
         this.pipelineId = pipelineId;
         this.checkpointIdCounter = checkpointIdCounter;
@@ -1129,16 +1202,167 @@ public class CheckpointCoordinator {
         return persistExecutor;
     }
 
-    /** R6 CC-01 (plan 2326): lazy single-thread fan-out executor (tm-commit shape). */
+    /**
+     * R6 CC-01 (plan 2326): lazy single-thread fan-out executor (tm-commit shape).
+     *
+     * <p>W-06/W-12 (CRA 8.41 R4-01, ruling C.2): the rejection handler is
+     * SPLIT-WINDOW and the executor's wait queue is bounded
+     * ({@link #commitFanoutQueueCapacity}). Every submitted body is wrapped as a
+     * {@link CommitFanoutTask} that drains the overflow re-dispatch queue BEFORE
+     * its own body — so a saturated fan-out task is parked (with its full body,
+     * including the layer-4 re-check captured in its closure) on the bounded
+     * overflow queue and executes serially on the fan-out thread at the next
+     * task boundary. The submitting thread — which holds the coordinator
+     * monitor at all three execute points — only performs the non-blocking
+     * overflow offer, never the sink I/O (C2-003 body: CallerRuns would pull
+     * finishCommit file/JDBC I/O back under the monitor and break the serial
+     * commit contract). When the overflow queue itself is full the epoch is
+     * dropped and counted (healed by the next epoch's subsuming commit or the
+     * checkpoint-timeout abort). In the shutdown window the submission runs
+     * INLINE on the caller (CC-17 precedent, W-12 grace-window face; the
+     * overflow residue is discarded by shutdownNow with the same semantics as
+     * the queued tasks).
+     */
     private ExecutorService getOrCreateCommitFanoutExecutor() {
         if (commitFanoutExecutor == null) {
-            commitFanoutExecutor = new java.util.concurrent.ThreadPoolExecutor(1, 1,
+            java.util.concurrent.ThreadPoolExecutor executor = new java.util.concurrent.ThreadPoolExecutor(1, 1,
                     0L, java.util.concurrent.TimeUnit.MILLISECONDS,
-                    new java.util.concurrent.LinkedBlockingQueue<>(1000),
+                    new java.util.concurrent.LinkedBlockingQueue<>(commitFanoutQueueCapacity),
                     NopStreamThreadFactory.named("checkpoint-commit-fwd-" + jobId),
-                    new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+                    this::commitFanoutRejected);
+            commitFanoutOverflow = new java.util.concurrent.LinkedBlockingDeque<>(COMMIT_FANOUT_OVERFLOW_CAPACITY);
+            commitFanoutExecutor = new OverflowDrainingExecutorService(executor);
         }
         return commitFanoutExecutor;
+    }
+
+    /**
+     * W-06 split-window rejection handler: saturation → bounded overflow
+     * re-dispatch (counted, WARNed, NEVER inline — the caller holds the
+     * coordinator monitor); shutdown → deliver inline (CC-17, W-12).
+     */
+    private void commitFanoutRejected(Runnable r, java.util.concurrent.ThreadPoolExecutor executor) {
+        if (executor.isShutdown()) {
+            // W-12 (C4-012) grace window: post-shutdown submissions deliver
+            // inline on the caller (CC-17 precedent). The body runs WITHOUT the
+            // overflow drain — the overflow residue is discarded by shutdownNow
+            // with the same semantics as the queued tasks (review R1 Minor-7),
+            // and draining it here would run sink I/O on this monitor-holding
+            // caller thread (CC-01 violation).
+            ((CommitFanoutTask) r).body.run();
+            return;
+        }
+        // W-06 (C2-003) saturation window: park the wrapped task on the bounded
+        // overflow queue — re-dispatched serially on the fan-out thread at the
+        // next task boundary, before later-arriving tasks.
+        if (commitFanoutOverflow.offerLast(r)) {
+            commitFanoutOverflows.incrementAndGet();
+            // Rate-limiting of this WARN lands with the W-13 suppressor carrier
+            // (ruling E.1 coverage row 12, Group D); counted on every event so
+            // sustained saturation stays observable.
+            LOG.warn("Commit fan-out wait queue saturated for job {} (capacity={}); task parked on the "
+                            + "overflow re-dispatch queue ({}/{}), overflows={}",
+                    jobId, commitFanoutQueueCapacity, commitFanoutOverflow.size(),
+                    COMMIT_FANOUT_OVERFLOW_CAPACITY, commitFanoutOverflows.get());
+            return;
+        }
+        commitFanoutDiscards.incrementAndGet();
+        LOG.warn("Commit fan-out overflow queue full for job {}; discarding the fan-out task "
+                + "(the epoch is healed by the next epoch's subsuming commit or the checkpoint-timeout abort)",
+                jobId);
+    }
+
+    /**
+     * W-06: drains the overflow re-dispatch queue ON THE FAN-OUT THREAD. Called
+     * at every task boundary before the task body (and re-entrantly from each
+     * re-dispatched task — nested drain converges because each drained task
+     * carries its own body and the loop keeps polling until the deque is empty).
+     */
+    private void drainCommitFanoutOverflow() {
+        java.util.concurrent.LinkedBlockingDeque<Runnable> overflow = this.commitFanoutOverflow;
+        if (overflow == null) {
+            return;
+        }
+        Runnable redispatched;
+        while ((redispatched = overflow.pollFirst()) != null) {
+            redispatched.run();
+        }
+    }
+
+    /** W-06: overflow re-dispatch counter (observable saturation; 红③ driver seam). */
+    public int getCommitFanoutOverflows() {
+        return commitFanoutOverflows.get();
+    }
+
+    /** W-06: second-order saturation discard counter. */
+    public int getCommitFanoutDiscards() {
+        return commitFanoutDiscards.get();
+    }
+
+    /**
+     * W-06: a committed fan-out body wrapped with the task-boundary overflow
+     * drain. Overflow elements carry the SAME wrapper, so a re-dispatched task
+     * re-drains before its body (nested drain convergence). The shutdown-window
+     * rejection path runs {@link #body} directly — without the drain — because
+     * the overflow residue belongs to shutdownNow's discard semantics, not to
+     * the caller thread.
+     */
+    private final class CommitFanoutTask implements Runnable {
+        final Runnable body;
+
+        CommitFanoutTask(Runnable body) {
+            this.body = body;
+        }
+
+        @Override
+        public void run() {
+            drainCommitFanoutOverflow();
+            body.run();
+        }
+    }
+
+    /**
+     * W-06: executor view that wraps every submitted command into a
+     * {@link CommitFanoutTask} (task-boundary overflow drain + body) executed on
+     * the single fan-out thread. Lifecycle methods delegate to the underlying
+     * pool.
+     */
+    private final class OverflowDrainingExecutorService extends java.util.concurrent.AbstractExecutorService {
+        private final java.util.concurrent.ThreadPoolExecutor delegate;
+
+        OverflowDrainingExecutorService(java.util.concurrent.ThreadPoolExecutor delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            delegate.execute(new CommitFanoutTask(command));
+        }
+
+        @Override
+        public void shutdown() {
+            delegate.shutdown();
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            return delegate.shutdownNow();
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return delegate.isShutdown();
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return delegate.isTerminated();
+        }
+
+        @Override
+        public boolean awaitTermination(long timeout, TimeUnit unit) throws InterruptedException {
+            return delegate.awaitTermination(timeout, unit);
+        }
     }
 
     private ExecutorService createPersistExecutor() {
@@ -1673,7 +1897,10 @@ public class CheckpointCoordinator {
 
         // R6 CC-01 (plan 2326): participant commit/abort fan-out executor shares
         // the terminal-only lifecycle (grace window drains queued fan-outs so a
-        // shutdown racing a completion still delivers the epoch's commits).
+        // shutdown racing a completion still delivers the epoch's commits;
+        // post-shutdown submissions deliver inline on the caller (CC-17, W-12).
+        // Overflow re-dispatch queue residue is discarded by shutdownNow with
+        // the same semantics as the queued tasks (CRA 8.41 ruling C.3 #4).
         ExecutorService fe = commitFanoutExecutor;
         if (fe != null) {
             fe.shutdown();

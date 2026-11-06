@@ -181,7 +181,7 @@ class TestRpcDistributedExecutorE2E {
                             .orElseThrow(() -> new IllegalStateException(
                                     "No TaskManager for node " + ta.getNodeId()))
                             .installInvokable(handle.getJobId(), vertexId, subtask.getTaskIndex(),
-                                    subtask.getInvokable());
+                                    subtask.getInvokable(), ta.getFencingEpoch());
                 }
             }
         }

@@ -170,20 +170,32 @@ public class InMemoryClusterRegistry implements ClusterRegistry {
 
     @Override
     public TaskAssignment getTaskAssignment(String jobId, String vertexId, int subtaskIndex) {
-        List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
-        if (history == null || history.isEmpty()) {
-            return null;
+        // W-07 (CRA 8.41 R4-01, ruling B.2): the read side runs under the SAME
+        // monitor as the write side (assignTask) — the unsynchronized
+        // get/size-tail read raced a concurrent append (AIOOBE / stale-size
+        // read / unpublished element). Lock form, not CopyOnWriteArrayList
+        // (append-side monotonic read-modify-write stays atomic with zero
+        // write-path churn).
+        synchronized (taskAssignmentHistory) {
+            List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
+            if (history == null || history.isEmpty()) {
+                return null;
+            }
+            return history.get(history.size() - 1);
         }
-        return history.get(history.size() - 1);
     }
 
     @Override
     public List<TaskAssignment> getAttemptHistory(String jobId, String vertexId, int subtaskIndex) {
-        List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
-        if (history == null) {
-            return new ArrayList<>();
+        // W-07: same monitor as the write side — the defensive copy iterates the
+        // list, so it must not race a concurrent append (see getTaskAssignment).
+        synchronized (taskAssignmentHistory) {
+            List<TaskAssignment> history = taskAssignmentHistory.get(assignmentKey(jobId, vertexId, subtaskIndex));
+            if (history == null) {
+                return new ArrayList<>();
+            }
+            return Collections.unmodifiableList(new ArrayList<>(history));
         }
-        return Collections.unmodifiableList(new ArrayList<>(history));
     }
 
     @Override

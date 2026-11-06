@@ -499,7 +499,7 @@ public class RpcDistributedExecutor implements IStreamExecutionDispatcher {
                             throw new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
                                     "No TaskManager for nodeId=" + ta.getNodeId());
                         }
-                        targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable());
+                        targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable(), ta.getFencingEpoch());
                     }
                 }
             } else {

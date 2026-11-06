@@ -38,6 +38,12 @@ public final class EngineMetrics {
     public static final String METRIC_CHECKPOINT_DURATION = "nop.stream.engine.checkpoint.duration";
     public static final String METRIC_CHECKPOINT_SIZE = "nop.stream.engine.checkpoint.size.bytes";
     public static final String METRIC_RECOVERIES = "nop.stream.engine.recoveries.total";
+    /**
+     * W-10 (CRA 8.41 R4-01, ruling B.3): barriers dropped because a node's
+     * barrier fan-out wait queue (capacity 100) was full. The dropped epoch is
+     * healed by the checkpoint-timeout abort (CHECKPOINT_ABORTED observable).
+     */
+    public static final String METRIC_BARRIER_FANOUT_DROPS = "nop.stream.engine.barrierFanoutDrops.total";
 
     public static final String TAG_JOB_ID = "jobId";
 
@@ -61,6 +67,7 @@ public final class EngineMetrics {
     private final io.micrometer.core.instrument.Counter aborted;
     private final Timer duration;
     private final io.micrometer.core.instrument.Counter recoveries;
+    private final io.micrometer.core.instrument.Counter barrierFanoutDrops;
     private final AtomicLong latestSizeBytes = new AtomicLong(0);
 
     private EngineMetrics(MeterRegistry registry, String jobId) {
@@ -72,6 +79,7 @@ public final class EngineMetrics {
         this.aborted = registry.counter(METRIC_CHECKPOINTS_ABORTED, tags);
         this.duration = registry.timer(METRIC_CHECKPOINT_DURATION, tags);
         this.recoveries = registry.counter(METRIC_RECOVERIES, tags);
+        this.barrierFanoutDrops = registry.counter(METRIC_BARRIER_FANOUT_DROPS, tags);
         registry.gauge(METRIC_CHECKPOINT_SIZE, tags, latestSizeBytes, AtomicLong::get);
     }
 
@@ -113,6 +121,7 @@ public final class EngineMetrics {
         registry.remove(aborted.getId());
         registry.remove(duration.getId());
         registry.remove(recoveries.getId());
+        registry.remove(barrierFanoutDrops.getId());
         registry.remove(new io.micrometer.core.instrument.Meter.Id(
                 METRIC_CHECKPOINT_SIZE, tags, null, null,
                 io.micrometer.core.instrument.Meter.Type.GAUGE));
@@ -136,6 +145,16 @@ public final class EngineMetrics {
 
     public void recovery() {
         recoveries.increment();
+    }
+
+    /** W-10 (ruling B.3): counts a barrier dropped on a saturated per-node fan-out queue. */
+    public void barrierFanoutDrop() {
+        barrierFanoutDrops.increment();
+    }
+
+    /** W-10: number of barrier fan-out drops recorded for this job. */
+    public double getBarrierFanoutDropCount() {
+        return barrierFanoutDrops.count();
     }
 
     /**

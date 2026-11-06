@@ -111,7 +111,7 @@ class TestTaskManagerLivenessAndReporting {
 
         // Install empty-chain invokable → run() returns immediately → COMPLETED
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
-        taskManager.installInvokable("job-1", "v-1", 0, inv);
+        taskManager.installInvokable("job-1", "v-1", 0, inv, token);
 
         // Wait for task thread to run to completion
         Thread.sleep(200);
@@ -143,7 +143,7 @@ class TestTaskManagerLivenessAndReporting {
         taskManager.receiveAssignment(a);
 
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
-        taskManager.installInvokable("job-1", "v-done", 0, inv);
+        taskManager.installInvokable("job-1", "v-done", 0, inv, token);
 
         // Wait for the natural COMPLETED report (RunningTask.run finally).
         TestAwait.until("task reports COMPLETED",
@@ -200,7 +200,7 @@ class TestTaskManagerLivenessAndReporting {
         StreamTaskInvokable inv = new StreamTaskInvokable(
                 buildEmptyOperatorChain(), (io.nop.stream.core.execution.RecordWriter<Object>) null,
                 new IdleInputGate());
-        taskManager.installInvokable("job-1", "v-idle", 0, inv);
+        taskManager.installInvokable("job-1", "v-idle", 0, inv, token);
 
         // Let the idle loop run past the idle-return threshold several times.
         // 负向窗口：idle 循环期间任务必须保持 running（循环维持不变量）

@@ -65,7 +65,7 @@ class TestPlan358LifecycleHardening {
                     "job-p358-commit", "v-c", 0, NODE, "att-1", token, System.currentTimeMillis(), 1));
 
             ThreadRecordingParticipant participant = new ThreadRecordingParticipant();
-            tm.installInvokable("job-p358-commit", "v-c", 0, sinkInvokable(participant));
+            tm.installInvokable("job-p358-commit", "v-c", 0, sinkInvokable(participant), token);
             awaitTrue("task installed and running", () -> tm.getRunningTaskCount() == 1, 2000);
 
             String callerThread = Thread.currentThread().getName();
@@ -100,7 +100,7 @@ class TestPlan358LifecycleHardening {
             tm.updateFencingToken(token);
             tm.receiveAssignment(new TaskAssignment(
                     "job-p358-hb", "v-x", 0, NODE + "-hb", "att-1", token, System.currentTimeMillis(), 1));
-            tm.installInvokable("job-p358-hb", "v-x", 0, new ExplodingActivityInvokable());
+            tm.installInvokable("job-p358-hb", "v-x", 0, new ExplodingActivityInvokable(), token);
             awaitTrue("task installed", () -> tm.getRunningTaskCount() == 1, 2000);
 
             int renewalsBeforeExplosion = clusterRegistry.renewals.get();

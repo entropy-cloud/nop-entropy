@@ -70,7 +70,7 @@ class TestTaskManagerCommitQueueBound {
             tm.receiveAssignment(new TaskAssignment(
                     "job-cc10-a", "v-sink", 0, node, "att-1", token, System.currentTimeMillis(), 1));
             CountingParticipant participant = new CountingParticipant(blocker);
-            tm.installInvokable("job-cc10-a", "v-sink", 0, new CommitSinkInvokable(participant));
+            tm.installInvokable("job-cc10-a", "v-sink", 0, new CommitSinkInvokable(participant), token);
             awaitTaskRunning(tm);
 
             // Deterministic saturation: ONLY the first commit blocks. Park the
@@ -129,7 +129,7 @@ class TestTaskManagerCommitQueueBound {
             tm.receiveAssignment(new TaskAssignment(
                     "job-cc10-b", "v-sink", 0, node, "att-1", token, System.currentTimeMillis(), 1));
             CountingParticipant participant = new CountingParticipant(blocker);
-            tm.installInvokable("job-cc10-b", "v-sink", 0, new CommitSinkInvokable(participant));
+            tm.installInvokable("job-cc10-b", "v-sink", 0, new CommitSinkInvokable(participant), token);
             awaitTaskRunning(tm);
             startDelayedReleaser(blocker, 1500);
 

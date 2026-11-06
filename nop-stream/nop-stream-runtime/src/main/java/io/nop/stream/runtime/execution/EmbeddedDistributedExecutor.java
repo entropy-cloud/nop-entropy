@@ -323,7 +323,7 @@ public class EmbeddedDistributedExecutor implements IStreamExecutionDispatcher {
                                     + " (vertex=" + vertexId + " subtaskIndex=" + subtask.getTaskIndex() + ")");
                 }
 
-                targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable());
+                targetTm.installInvokable(jobId, vertexId, subtask.getTaskIndex(), subtask.getInvokable(), ta.getFencingEpoch());
 
                 LOG.info("Installed subtask {}/{} on node {}", vertexId, subtask.getTaskIndex(), targetTm.getNodeId());
             }

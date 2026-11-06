@@ -299,22 +299,47 @@ public class TaskManager implements IStreamTaskRpcService {
      * subsuming commit or a restore-time re-commit, so for the last checkpoint
      * of a bounded job an abort would stall the tail commit indefinitely.
      * CallerRuns applies natural backpressure instead and never loses a
-     * notification. The critical-thread concern was checked: the callers of
+     * notification; after shutdown the same always-inline path delivers the
+     * notification on the caller thread (C4-012 correction) — it is never
+     * silently dropped there either. The critical-thread concern was checked:
+     * the callers of
      * {@link #notifyCheckpointComplete} are the TM-side control-topic dispatch
      * thread / coordinator commit forwarder — NOT the checkpoint monitor; the
      * fallback delays at most ONE commit per saturated notify call on that
      * thread, and only while the commit thread is already saturated. The
      * fallback fires are counted ({@code nop.stream.task.commitCallerRuns.total})
      * so sustained saturation is observable.
+     *
+     * <p>W-12 (CRA 8.41 R4-01, ruling C.3): the handler is SPLIT-WINDOW. In the
+     * saturation window (not shutdown, queue full) the R5-CC-10 CallerRuns
+     * semantics is preserved unchanged. In the shutdown window the former
+     * {@code if (!executor.isShutdown())} guard silently DROPPED the commit —
+     * the stop-race window now always runs it inline (CC-17 precedent), so the
+     * TaskManagerMain {@code tm.stop() → messageService.close()} gap can no
+     * longer lose a 2PC commit notification. The counter increments only when
+     * the commit genuinely runs inline (both windows do), keeping the saturation
+     * metric honest (pre-fix it counted a dropped notification as a caller-run).
      */
     private void saturatedCommitQueuePolicy(Runnable r, java.util.concurrent.ThreadPoolExecutor executor) {
+        if (executor.isShutdown()) {
+            // W-12 (C4-012): shutdown race window — always-inline (CC-17
+            // semantics). A dropped notification here is only healed by the next
+            // epoch's subsuming commit; running it on the caller thread keeps
+            // the bounded-job tail commit deliverable through tm.stop().
+            nodeMetrics.commitCallerRun();
+            LOG.warn("Commit executor already shut down on node {}; running the commit on the "
+                            + "caller thread (shutdown drain: running the commit on the caller "
+                            + "thread, C4-012)",
+                    nodeId);
+            r.run();
+            return;
+        }
+        // R5-CC-10: saturation window — CallerRuns backpressure, never dropped.
         nodeMetrics.commitCallerRun();
         LOG.warn("Commit executor queue saturated on node {} (capacity={}); running the commit "
                         + "on the caller thread (CallerRuns backpressure, R5-CC-10)",
                 nodeId, commitQueueCapacity);
-        if (!executor.isShutdown()) {
-            r.run();
-        }
+        r.run();
     }
 
     // ==================== Lifecycle ====================
@@ -563,12 +588,20 @@ public class TaskManager implements IStreamTaskRpcService {
         }
 
         String taskKey = taskKey(assignment);
-        if (runningTasks.containsKey(taskKey)) {
-            LOG.warn("Task {} already running, ignoring duplicate assignment", taskKey);
-            capacitySemaphore.release();
-            return;
-        }
-
+        // W-02 (CRA 8.41 R4-01, ruling B.1): the duplicate-slot branches (the
+        // former containsKey pre-check and the putIfAbsent race loser) converge
+        // into ONE per-key compute that dispatches by generation:
+        // - incumbent.epoch < assignment.epoch → a zombie slot from an older
+        //   generation (only reachable in the updateFencingToken in-flight
+        //   window) is DISPLACED, CC-02 replacement shape (cancel + permit
+        //   release via the semaphoreReleased CAS). Strict inequality by design
+        //   (review R1 Major-3): selectDisplacedTask's equal-epoch semantic is
+        //   candidate-displaces, which contradicts this branch's reject-on->=
+        //   semantics — the decision shape is reused, not the function.
+        // - incumbent.epoch >= assignment.epoch → same-generation duplicate or
+        //   stale late arrival: REJECT — typed reportAssignmentFailure to the
+        //   coordinator (the RPC is one-way; a warn-and-return is invisible),
+        //   this assignment's permit released, the healthy incumbent untouched.
         // Two-phase assignment: receiveAssignment creates the RunningTask slot (its
         // invokable is not yet installed); the coordinator then populates the
         // invokable via a separate installInvokable() call (see EmbeddedDistributedExecutor
@@ -582,10 +615,43 @@ public class TaskManager implements IStreamTaskRpcService {
                 assignment.getAttemptId(),
                 assignment.getAttemptNumber());
 
-        RunningTask existing = runningTasks.putIfAbsent(taskKey, runningTask);
-        if (existing != null) {
+        RunningTask[] displacedOld = new RunningTask[1];
+        RunningTask[] rejectedIncumbent = new RunningTask[1];
+        runningTasks.compute(taskKey, (k, incumbent) -> {
+            if (incumbent == null) {
+                return runningTask;
+            }
+            if (incumbent.getFencingEpoch() < assignment.getFencingEpoch()) {
+                // newer generation displaces the zombie old-generation slot
+                displacedOld[0] = incumbent;
+                return runningTask;
+            }
+            // same generation or older-than-incumbent: reject, keep incumbent
+            rejectedIncumbent[0] = incumbent;
+            return incumbent;
+        });
+        if (rejectedIncumbent[0] != null) {
+            LOG.warn("Task {} already runs fencing epoch {} >= assignment epoch {}; rejecting "
+                            + "duplicate/stale assignment (incumbent attempt={})",
+                    taskKey, rejectedIncumbent[0].getFencingEpoch(), assignment.getFencingEpoch(),
+                    rejectedIncumbent[0].attemptId);
             capacitySemaphore.release();
+            reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
+                    new StreamException(ERR_STREAM_INVALID_STATE).param(ARG_DETAIL,
+                            "Duplicate/stale assignment for " + taskKey
+                                    + ": slot already runs fencing epoch " + rejectedIncumbent[0].getFencingEpoch()
+                                    + " (>= assignment epoch " + assignment.getFencingEpoch()
+                                    + "); the incumbent is untouched"));
             return;
+        }
+        if (displacedOld[0] != null) {
+            LOG.warn("Slot {} displaced older task (epoch {} -> {}, attempt={}); fencing old before "
+                    + "assignment redeploy", taskKey, displacedOld[0].getFencingEpoch(),
+                    assignment.getFencingEpoch(), displacedOld[0].attemptId);
+            displacedOld[0].cancel();
+            if (displacedOld[0].semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
         }
 
         nodeMetrics.taskDeployed();
@@ -613,13 +679,26 @@ public class TaskManager implements IStreamTaskRpcService {
      *
      * <p>This is called after {@link #receiveAssignment} when the coordinator sends the
      * serialized operator chain and deployment plan.
+     *
+     * <p>W-02 (CRA 8.41 R4-01, ruling B.1.2): the install carries the assignment's
+     * fencing epoch and is REJECTED when it does not equal the slot's epoch — a
+     * stale install must never mix generations into a live slot. The missing-slot
+     * branch keeps its silent-return contract (the two-phase protocol's slot may
+     * already have been swept by a fencing rotation).
+     *
+     * @param fencingEpoch the fencing epoch of the assignment this invokable belongs to
      */
     public void installInvokable(String jobId, String vertexId, int subtaskIndex,
-                                 StreamTaskInvokable invokable) {
+                                 StreamTaskInvokable invokable, long fencingEpoch) {
         String taskKey = taskKey(jobId, vertexId, subtaskIndex);
         RunningTask runningTask = runningTasks.get(taskKey);
         if (runningTask == null) {
             LOG.warn("No running task slot for {}/{}/{}", jobId, vertexId, subtaskIndex);
+            return;
+        }
+        if (runningTask.getFencingEpoch() != fencingEpoch) {
+            LOG.warn("Rejecting invokable install for {}/{}/{}: slot fencing epoch {} != install epoch {}",
+                    jobId, vertexId, subtaskIndex, runningTask.getFencingEpoch(), fencingEpoch);
             return;
         }
         // Inject per-task data-plane
@@ -745,7 +824,19 @@ public class TaskManager implements IStreamTaskRpcService {
         // stale deploy keeps the incumbent untouched and flags the rejection.
         RunningTask[] displacedOld = new RunningTask[1];
         boolean[] staleRejected = new boolean[1];
+        boolean[] fencingRotated = new boolean[1];
         RunningTask incumbentForError = runningTasks.compute(taskKey, (k, current) -> {
+            // W-02 (CRA 8.41 R4-01, ruling B.1.3): FINAL fencing re-verification
+            // inside the slot-write atomic section — pushes the entry-gate epoch
+            // check (:686-696) into the same atomic segment as the map write, so
+            // an updateFencingToken that rotated the epoch between the gate and
+            // this compute can no longer insert the old-generation task into the
+            // map (the audit's getAndSet→removeIf non-atomic window). The
+            // selectDisplacedTask decision function itself is untouched.
+            if (currentFencingEpoch.get() != descriptor.getFencingEpoch()) {
+                fencingRotated[0] = true;
+                return current;
+            }
             // R6 CC-02 (plan 2326): the decision is delegated to the pinned
             // package-private helper (selectDisplacedTask) so the production
             // path and the unit pin cannot drift apart.
@@ -754,6 +845,18 @@ public class TaskManager implements IStreamTaskRpcService {
             staleRejected[0] = current != null && winner == current;
             return winner;
         });
+        if (fencingRotated[0]) {
+            // the epoch rotated away while this deploy was in flight: the slot is
+            // left untouched (old incumbent kept / empty slot stays empty) and the
+            // deploy fails loud through the typed rejectDeploy channel
+            capacitySemaphore.release();
+            throw rejectDeploy(descriptor, fencingEpoch, new StreamException(ERR_STREAM_FENCING_TOKEN_MISMATCH)
+                    .param(ARG_EXPECTED_TOKEN, currentFencingEpoch.get())
+                    .param(ARG_ACTUAL_TOKEN, fencingEpoch)
+                    .param(ARG_DETAIL, "deployTask fencing re-check failed at slot write for " + taskKey
+                            + ": the active epoch rotated away from " + fencingEpoch
+                            + " before the slot write; the deployment is rejected and the slot is untouched"));
+        }
         if (staleRejected[0]) {
             // newer generation owns the slot: release this deployment's permit
             // (same conservation rule as the reject path below) and fail loud

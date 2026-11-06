@@ -432,7 +432,7 @@ class TestTaskManager {
 
         // Installing an invokable for a task that doesn't exist should just log a warning
         assertDoesNotThrow(() ->
-                taskManager.installInvokable("nonexistent-job", "nonexistent-vertex", 99, null));
+                taskManager.installInvokable("nonexistent-job", "nonexistent-vertex", 99, null, 0L));
     }
 
     @Test

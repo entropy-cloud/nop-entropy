@@ -160,6 +160,21 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
             new java.util.concurrent.ConcurrentHashMap<>();
 
     /**
+     * W-10 (CRA 8.41 R4-01, ruling B.3): capacity of each per-node barrier
+     * fan-out wait queue. 100 ≈ 100 checkpoint intervals of buffering (1
+     * barrier per node per checkpointInterval at second-scale intervals); a
+     * node hung longer than that is dropped-and-counted, with the checkpoint
+     * timeout abort as the declared safety net. Memory bound is KB-scale.
+     */
+    static final int BARRIER_FANOUT_QUEUE_CAPACITY = 100;
+
+    /**
+     * W-10: barriers dropped because a node's fan-out wait queue was full
+     * (observable saturation of the per-node control plane).
+     */
+    final java.util.concurrent.atomic.AtomicLong barrierFanoutDrops = new java.util.concurrent.atomic.AtomicLong();
+
+    /**
      * Optional platform leader elector. When non-null the coordinator
      * runs in HA mode (leader-gated lifecycle). When null the coordinator keeps
      * the single-instance behaviour (monotonic long fencing epoch derived
@@ -2940,14 +2955,46 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         return jobFailureCause;
     }
 
-    /** CC-06 (plan 2435): one serial executor per node — epoch-ordered per node, isolated across nodes. */
+    /**
+     * W-10 (CRA 8.41 R4-01, ruling B.3): one serial executor per node —
+     * epoch-ordered per node, isolated across nodes (CC-06 semantics preserved:
+     * single thread, FIFO). The wait queue is BOUNDED (the runtime's last
+     * unbounded executor queue): a node whose RPC send hangs used to grow the
+     * queue monotonically (one barrier per checkpoint interval) and stayed
+     * silently dead until the checkpoint timeout aborted the epoch. On
+     * saturation the barrier task for that node is DROPPED — never run on the
+     * triggering thread (CallerRuns would pull the send back onto the periodic
+     * tick: the W-06 defect shape in this pool) — counted on
+     * {@code nop.stream.engine.barrierFanoutDrops.total} and WARNed
+     * (rate-limiting lands with the W-13 suppressor carrier, ruling E.1 row 12).
+     *
+     * <p>C2-010 zero-touch: the {@code computeIfAbsent} structure and the
+     * stop() drain order are unchanged — only the executor construction and
+     * its rejection handler changed.
+     */
     private java.util.concurrent.ExecutorService fanoutExecutorFor(String nodeId) {
         return barrierFanoutExecutors.computeIfAbsent(nodeId,
-                id -> java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
-                    Thread t = new Thread(r, "jc-barrier-fanout-" + jobId + "-" + id);
-                    t.setDaemon(true);
-                    return t;
-                }));
+                id -> new java.util.concurrent.ThreadPoolExecutor(1, 1,
+                        0L, java.util.concurrent.TimeUnit.MILLISECONDS,
+                        new java.util.concurrent.LinkedBlockingQueue<>(BARRIER_FANOUT_QUEUE_CAPACITY),
+                        r -> {
+                            Thread t = new Thread(r, "jc-barrier-fanout-" + jobId + "-" + id);
+                            t.setDaemon(true);
+                            return t;
+                        },
+                        (r, executor) -> {
+                            barrierFanoutDrops.incrementAndGet();
+                            try {
+                                io.nop.stream.runtime.metrics.EngineMetrics.forJob(jobId).barrierFanoutDrop();
+                            } catch (Exception e) {
+                                // a meter failure must never mask the drop itself
+                                LOG.debug("Failed to record barrierFanoutDrop meter for job {}", jobId, e);
+                            }
+                            LOG.warn("Barrier fan-out queue saturated for node {} on job {} (capacity={}); "
+                                            + "dropping the barrier send for this epoch (checkpoint-timeout "
+                                            + "abort is the safety net)",
+                                    id, jobId, BARRIER_FANOUT_QUEUE_CAPACITY);
+                        }));
     }
 
     private void sendBarrierToAllTaskManagers(CheckpointBarrier barrier) {
