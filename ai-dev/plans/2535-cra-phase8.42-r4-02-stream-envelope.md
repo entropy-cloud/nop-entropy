@@ -2,6 +2,7 @@
 
 > Plan Status: active
 > Last Reviewed: 2026-11-07
+> 设计评审 R1（设计文档）：**PASS-with-revisions——0 Blocker + 4 Major + 6 Minor，全部随轮落盘，无需 R2 放行 Phase 2**（2026-11-07，agent_5587aaa6 fresh session 只读 @ `336eadd084`，live 抽验 100+ 处）——F-1[Major] K3 构造点计数 13→20+SupervisionLoop 重启路径 registry 传递义务/F-2[Major] K4③ 假事实改写（task-local 主时序+fallback 仅 sink 闭包面）/F-3[Major] 远程路径分形态（embedded 同 JVM 显式收紧+E5 登记）/F-4[Major] 红⑤ 终态腿改行为断言/F-5~F-10[Minor] 随轮落盘；三风险点专项：C.2 修订后可执行/C.1 可执行/B.2 可执行且诚实
 > Draft Review R1: **PASS with revisions——0 Blocker + 2 Major + 5 Minor（+1 可选注），全部随轮落盘**（2026-11-07，独立评审子 agent fresh session 只读 @ `91373f8dde`，live 抽验 ≥50 处 40+ 精确命中）：F1[Major] forceTaskExecutorShutdownForTest 行号订正 :715-718→:1338/勘误 2 同步；F2[Major] **裁定 C 补「注册时点 job 身份可达性」裁定输入**（SideOutputDataStream.sink 装配期注册 vs jobId execute 期产生的时序冲突——W-07 复合键须一并裁定注册迁移/键源替代；读点两点评审亲证当前不可达，threading 需触 ~16 构造点全 impl 叶）/想象性分析三风险点结论：①红④ 边界可执行[与 8.41 红① 代码区正交]②W-05 载体可执行[不撞 LIMIT/cursor/抑制器，topic 前缀与裁定⑥ 同构]③W-07 需修订[F2 落盘]/F3 JobSubmissionSpec 模块归属 core→runtime 订正/F4-F7 行号微漂订正/F8 非 aware 消费者 fallback 裁定子项补入
 > 起草说明：本 plan 由独立起草子 agent（fresh session）于 2026-11-07 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `91373f8dde`）起草；全部工单站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果——**审计基线 `41508cded5` → live `91373f8dde` 间触碰本批站点文件的 commit 集 = plan 2510/R2-07 批产物 + plan 2534/R4-01 批产物（8.41 @ `5aefeab637`）；7 工单站点中 2 文件零漂移、5 文件真实漂移（TaskManager 结构性重排[8.41 W-02 compute 并合]），缺陷机制与站点集零漂移**；执行前如再漂移以 live 为准并登记）。结构沿 plan 2534 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 工单逐条表 / Baseline 勘误 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。内容基于 R4-02 live 事实与 1.1 单元审计权威表（merge-adjudication §五 P2 表 + §一 FAM-2 族行），不复制其他单元批结论；既有裁定①–⑪（plan 2510 Phase 1 产物）与 8.41 裁定 A–F（plan 2534 Phase 1 产物）仅作引用不重建。起草期零产品代码改动。
 > Source: roadmap 工作项 8.42（R4-02，`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :184，Status=**todo**[live 2026-11-07 回读；本 plan 立项回写「todo（plan 2535 drafted，待 draft review）」归 Phase 4 批末 done 回写]；Owner Doc 列原文 =「`docs-for-ai/03-modules/nop-stream.md`」；Deps 列原文 =「batch-proposal.md §二 R4-02（7 项）；软依赖 8.16（R2-07）——**8.16 已 done（plan 2510），软依赖解除**；裁定①–⑪与三范式/溢出语义结论见 `ai-dev/design/concurrency/stream-core-concurrency-and-resource-envelope.md` 可引用为既有裁定」；Skill 列=none（修复 plan））；批次定义 = batch-proposal `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二.4 R4-02 行（:117 全文照录：finding ID 清单 7 项[1.1-C5-004；C5-005；C5-006；C5-012；C8-005；C8-009；FAM-2] / 模块与验证命令「nop-stream / `./mvnw test -pl nop-stream -am`」 / Owner Doc=`docs-for-ai/03-modules/nop-stream.md` / PA=「无」 / 依赖「软依赖 R2-07」[live :184 已注记解除] / exit criteria 增补「**C10-017~019/021 + C10-022 验收前置**」）+ §一 通用门禁 E1–E6（:26-33：E1 全量构建绿 / E2 focused 测试每工单强制并发回归+C10 验收前置同 diff+先红后绿或变异/回退论证 / E3 验证通道按批行命令留证 / E4 PA 授权声明[本批 PA=无——**零触碰声明形态**] / E5 owner doc 更新清单 / E6 批级 closure 独立 audit）+ §二.5 组映射（:157-158：G02=6 成员 → R4-02；G03=1 成员 → R4-02）+ §五 R-G 治理批（本批无 R-G 承接面——nop-stream 有 owner doc，非缺口声明形态）；成员发现详情 = **1.1 单元**（`ai-dev/audits/2026-10/2026-10-14-0130-deep-audit-nop-stream-core-runtime-concurrency/`：merge-adjudication.md §一 裁定表 :21[C5-004←C8-008 同一缺陷]/:22[C5-005←C7-004/C8-004 同一缺陷]/:25[C5-012←C8-015 同一缺陷]/:28[C8-005←C3-004 同一缺陷，终裁 P2 :67]/:31[FAM-2 族行：C1-002+C5-007+C7-006 同族相邻——「修复须同时覆盖 job 复合键与终态 remove 接线；C10-022 改指 FAM-2」]/:35[C8-009 与 C1-004 同代码区不同缺陷各自立案——「修复需同批协调但立案分离」] + §四 C10 ID 重映射 :85[C10-017→C5-004]/:87[C10-021→C5-005]/:88[C10-022→FAM-2] + §五 P2 表 :125[C5-004 行]/:126[C5-005 行]/:127[C5-006 行]/:128[C5-012 行]/:132[C8-005 行]/:133[C8-009 行]/:137[FAM-2 行]；C5-memory-bounds.md C5-004 :122-142+C5-005 :144-170+C5-006 :172-196+C5-012 :404-427 及维内复核 :467-471/:482-483；C8-backpressure.md C8-005 :192-223+C8-009 :356-390 及维内复核 :713/:717；C1-shared-mutable-state.md C1-002 :124-148[初审 P1→复核降级 P2 :485]；C7-long-running.md C7-006 :215-237；C10-test-protection.md M19-M23 缺口判定 :71-75+C10-017 :271-278+C10-018 :280-287+C10-019 :289-305+C10-021 :307-314+C10-022 :316-323）；cra-index = `ai-dev/audits/cra-index.md` live 2026-11-07 回读：**P2-G02 束行 :387**（成员 6 条全文 + 「批次=R4-02；C10-017~019、021 共 4 条随本体（验收前置）」）+ **P2-G03 束行 :388**（成员 FAM-2 一条 + 「批次=R4-02；C10-022 随本体（验收前置）」——7 finding 无独立台账行，以双束行统一承载，Phase 4 回填收敛注）；执行基线 @ `91373f8dde`（分支 `concurrency-audit-remediation`，8.1–8.41 已 done[plan 2495–2534 收口]，R4-02 前无未收口同模块批次——软依赖 8.16 已 done 解除；**同模块前置批 8.41[R4-01] 已 done @ 2026-11-07——其产物与零回退义务见对齐纪律第五条**）。
@@ -117,7 +118,7 @@
 
 ## Goals
 
-- Phase 1 设计裁定文档一次裁决 7 工单修复形态（**新增裁定**按域分组：裁定 A=runtime 提交/运维面域[W-01/W-03/W-06——上界预检形态+账本升级出口+zombie 清理]；裁定 B=core 控制面与包络域[W-02/W-04——去抖载体+MemoryBudget 三选一+FAM-3 相邻处置统一裁决注记]；裁定 C=数据面确认与 side-output 生命周期域[W-05/W-07——typed 失败通道+复合键与终态接线]；裁定 D=红①–红⑤+E2 泛在钉×2 驱动器总表+零回退钉全列[勘误 4 签名+裁定⑪ 七钉+8.41 全部钉+既有锚清单]+C10 五条映射表）+ 独立 draft review 通过，无临场发明空间。设计文档拟名 `ai-dev/design/concurrency/stream-core-resource-envelope-message-confirmation-and-sideoutput-lifecycle-concurrency-contract.md`（Phase 1 产出物，前向引用；命名裁定：1.1 资源包络束（G02 域——ops 端点/邮箱/账本/死配置/确认语义）+ FAM-2 side-output 生命周期域（G03）合一，与既有 concurrency 设计集命名风格一致[同前驱两份]；如内容演进更适可调，调整时在本 plan 登记命名裁定）。**既有裁定①–⑪与 8.41 裁定 A–F 仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（裁定②⑥⑧⑨⑪ 五处零回退红线+8.41 批域边界四承接面落款）。
+- Phase 1 设计裁定文档一次裁决 7 工单修复形态（**新增裁定**按域分组：裁定 A=runtime 提交/运维面域[W-01/W-03/W-06——上界预检形态+账本升级出口+zombie 清理]；裁定 B=core 控制面与包络域[W-02/W-04——去抖载体+MemoryBudget 三选一+FAM-3 相邻处置统一裁决注记]；裁定 C=数据面确认与 side-output 生命周期域[W-05/W-07——typed 失败通道+复合键与终态接线]；裁定 D=红①–红⑤+E2 泛在钉×2 驱动器总表+零回退钉全列[勘误 4 签名+裁定⑪ 七钉+8.41 全部钉+既有锚清单]+C10 五条映射表）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-core-resource-envelope-metrics-boundary-and-registry-lifecycle-concurrency-contract.md`（Phase 1 产出物；**命名裁定已登记 2026-11-07**：起草改用 metrics-boundary/registry-lifecycle 命名——「metrics-boundary」覆盖 W-06 taskDeployed 观测失真面、「registry-lifecycle」覆盖 W-07 主面，取代初拟 `...-message-confirmation-and-sideoutput-lifecycle-...`；1.1 资源包络束（G02 域——ops 端点/邮箱/账本/死配置/确认语义）+ FAM-2 side-output 生命周期域（G03）合一不变，与既有 concurrency 设计集命名风格一致[同前驱两份]）。**既有裁定①–⑪与 8.41 裁定 A–F 仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（裁定②⑥⑧⑨⑪ 五处零回退红线+8.41 批域边界四承接面落款）。
 - 7 工单全部修复并各带 ≥1 条验收载体（红①–红⑤ + E2 泛在钉×2；W-04 如裁定采声明形态走变异/回退论证分支——E2 或分支）；C10 收口门（验收前置 5 条同 diff——映射见对齐纪律第一条）落地（E2）。
 - 关键工单先红后绿留证（E2）：红①②③④⑤ 确定性当前即红（上界缺失/去抖缺失/账本无出口/zombie 残留/串台+滞留——全部可确定性构造，无概率窗口依赖）；E2 泛在钉 W-05 确定性红候选（损坏行注入）、W-04 按裁定形态；全部钉落 `_tmp/` 总册+逐 trial 日志。
 - E5 owner doc 落账：`docs-for-ai/03-modules/nop-stream.md` 行为变更面更新（W-01 端点 413 语义/W-03 重试升级出口/W-04 内存包络声明[形态② 时含验算规则]/W-05 数据面失败语义/W-06 submit 拒绝清理语义/W-07 side-output 作用域契约改写[JVM-local→job 作用域]）+ `nop-stream-user-guide.md` 运维可见面按实际评估 + source-anchors 按实际——归 Phase 3 统一落账（2510/2534 先例）。
@@ -141,7 +142,7 @@
 - `nop-stream/nop-stream-runtime/src/main/java/io/nop/stream/runtime/`：`ops/StreamOpsHttpServer`（W-01——仅 handleSubmit 面）+ `checkpoint/CheckpointCoordinator`（W-03——仅 failedCommitParticipants 账本面）+ `taskmanager/TaskManager`（W-06——仅两 submit catch+taskDeployed 位点）+ `launch/PollingJdbcMessageService`（W-05——仅失败行确认语义）+ `execution/DeploymentPlanGenerator`（W-04 面——形态② 时）+ 终态接线锚面（W-07——`ops/OpsJobManager` 如裁定触）。
 - `nop-stream/nop-stream-core/src/main/java/io/nop/stream/core/`：`execution/ProcessingTimeServiceDriver`+`execution/TaskMailbox`（W-02）+ `execution/flow/MemoryBudget`+`execution/plan/DeploymentPlan`+`execution/DefaultDeploymentPlanProvider`（W-04）+ `datastream/SideOutputRegistry`+`datastream/SideOutputDataStream`（W-07）+ 读点 `operators/ChainingOutput`/`execution/task/StreamTaskInvokable`（W-07 如裁定需携带 job 身份）+ `exceptions/NopStreamErrors`（新 typed 码落点——手写保留文件）。
 - 测试树：nop-stream-core src/test（红② + E2 泛在钉 W-04 落点——包位随裁定）+ nop-stream-runtime src/test（红①③④⑤ + E2 泛在钉 W-05 落点）。
-- 设计文档：`ai-dev/design/concurrency/stream-core-resource-envelope-message-confirmation-and-sideoutput-lifecycle-concurrency-contract.md`（新建；裁定 A–D+既有裁定引用核对节[①–⑪+8.41 A–F]+测试缝与零回退钉总表，最终状态写法；命名调整须登记裁定）。
+- 设计文档：`ai-dev/design/concurrency/stream-core-resource-envelope-metrics-boundary-and-registry-lifecycle-concurrency-contract.md`（新建[命名裁定 2026-11-07 已登记——见 Goals]；裁定 A–D+既有裁定引用核对节[①–⑪+8.41 A–F]+测试缝与零回退钉总表，最终状态写法）。
 - owner doc：`docs-for-ai/03-modules/nop-stream.md` 行为变更面（Phase 3）+ `nop-stream-user-guide.md`（按实际评估）+ `docs-for-ai/04-reference/source-anchors.md`（按实际）。
 - roadmap 8.42 行（本 plan 立项回写+批末 done 回写归 Phase 4）+ cra-index :387/:388 双束行收敛注（Phase 4）。
 
@@ -153,28 +154,28 @@
 
 ### Phase 1 - 资源包络/消息确认语义/side-output 生命周期设计裁定文档 + 独立评审
 
-Status: planned
-Targets: `ai-dev/design/concurrency/stream-core-resource-envelope-message-confirmation-and-sideoutput-lifecycle-concurrency-contract.md`（新建）
+Status: completed〔2026-11-07：设计文档落档（270 行→评审修订后终稿）+ 设计评审 R1（agent_5587aaa6）PASS-with-revisions——4 Major+6 Minor 全部随轮落盘，无需 R2 放行 Phase 2；命名裁定登记[定名 metrics-boundary/registry-lifecycle]〕
+Targets: `ai-dev/design/concurrency/stream-core-resource-envelope-metrics-boundary-and-registry-lifecycle-concurrency-contract.md`（新建——命名裁定 2026-11-07 已登记，见 Goals）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **「既有裁定引用核对」节**（起草期义务——roadmap :184 明文可引用）：逐条确认裁定②⑥⑧⑨⑪ 的引用边界与零回退红线（W-01 限额×裁定② 参数纪律/W-05×裁定⑥⑧⑨ 分面与位点/全批×裁定⑪ 七钉——红线落对应裁定项）+ **8.41 裁定 A–F 引用边界节**（W-01×W-09 分派形态/W-06×W-02 通道+CC-17/W-05×E.1 抑制边界——四承接面落款）+ 三范式/溢出语义引用面声明（本批无直接消费成员——引用不重开体）。
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **「既有裁定引用核对」节**〔评审亲证引用忠实〕（起草期义务——roadmap :184 明文可引用）：逐条确认裁定②⑥⑧⑨⑪ 的引用边界与零回退红线（W-01 限额×裁定② 参数纪律/W-05×裁定⑥⑧⑨ 分面与位点/全批×裁定⑪ 七钉——红线落对应裁定项）+ **8.41 裁定 A–F 引用边界节**（W-01×W-09 分派形态/W-06×W-02 通道+CC-17/W-05×E.1 抑制边界——四承接面落款）+ 三范式/溢出语义引用面声明（本批无直接消费成员——引用不重开体）。
   - [ ] **裁定 A runtime 提交/运维面域**（W-01/W-03/W-06）：上界预检形态（Content-Length vs bounded read vs 双检——chunked 无 CL 处置+限额值与配置键[对齐裁定② 参数纪律：≤0 裸值 fail-fast]+typed 413 码落点）+ 账本上界与升级出口（epoch 上限值/轮次阈值 N/failJob vs 注销出口形态+与 abort 门控组合论证+与 8.41 W-13 抑制器共存声明）+ zombie 清理形态（两 catch 清理时序[throw 前清理 vs finally]+deployTask 异常传播面调用方处置核对+taskDeployed 后置+与 8.41 红① Recording 桩组合验证声明）。
   - [ ] **裁定 B core 控制面与包络域**（W-02/W-04）：去抖载体（driver 在途标志 vs mailbox 深度查询——与 fire 幂等性组合论证+closed 丢弃语义零回退声明+mailbox 无界本体残余面处置边界）+ MemoryBudget 三选一定夺（预设② 提交期验算——estimatedItemSize 来源/fail-fast 边/错误码；①③ 备选否决论证+FAM-3 相邻处置统一裁决注记[立案分离不入修复面]+owner doc 包络声明落账面）。
   - [ ] **裁定 C 数据面确认与 side-output 生命周期域**（W-05/W-07）：数据面/控制面分界形态（topic 前缀判定与裁定⑥ 同构）+ typed 失败通道载体（onMessage 回调契约 vs adapter 层——与 at-least-once Limitations 声明同步改写面）+ FAM-2 键形（jobId+tagId 复合键 vs per-job 实例）+ 读点 job 身份传递链（ChainingOutput/StreamTaskInvokable 可达性论证）+ 终态接线锚集（REST/LOCAL/多作业三形态覆盖——OpsJobManager stop/runLocal finally/嵌入式宿主）+ 同 tag 顶替歧义消除声明。
   - [ ] **裁定 D 测试缝与红①–红⑤+E2 泛在钉驱动器总表+零回退钉清单**：红①–红⑤ 逐钉形态定夺（全部确定性当前即红——前置构造路径[超大 body/持续 due timer+阻塞安全点/恒抛 participant/forceTaskExecutorShutdownForTest 拒绝态/双 job 同 tag+终态滞留]+伪绿防线——orTimeout 类假绿通道排查+闩带上界 ≤30s 防测试自身挂死）；E2 泛在钉×2 逐钉形态（W-05 损坏行注入 typed 传播断言/W-04 按裁定形态——①③ 分支变异/回退论证模板）；零回退钉全列（勘误 4 签名+裁定⑪ 七钉+8.41 红①–红⑧/E2 泛在钉×7/CC·R5 pin+既有锚点名[TestTaskMailbox/TestProcessingTimeServiceDriver/TestCheckpointAbortMarkerCleanup/TestTaskManager.testDuplicateAssignmentIgnored/TestStreamOpsAuthAndClassLoading/TestOpsJobManagerSubmitCompensation/TestSideOutputChainingE2E/TestWindowedStreamSideOutputLateData/TestFlowControl 等]）+ C10 五条映射表（对齐纪律第一条）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+〔2026-11-07：agent_5587aaa6 PASS-with-revisions 修订闭环〕- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–D 全部项且每条有唯一预设默认分支+既有裁定引用核对节（①–⑪+8.41 A–F），独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定 A 含三工单形态唯一分支+红线落款（abort 门控/抑制器共存/W-02 零触碰）；裁定 B 含去抖载体定夺+mailbox 残余面边界+MemoryBudget 三选一+FAM-3 注记；裁定 C 含分界形态+通道载体+复合键与终态接线锚集+顶替歧义消除；裁定 D 含红①–红⑤+E2 泛在钉驱动器表[伪绿防线+零回退钉全列+C10 五条映射]
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–D 全部项且每条有唯一预设默认分支+既有裁定引用核对节（①–⑪+8.41 A–F），独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定 A 含三工单形态唯一分支+红线落款（abort 门控/抑制器共存/W-02 零触碰）；裁定 B 含去抖载体定夺+mailbox 残余面边界+MemoryBudget 三选一+FAM-3 注记；裁定 C 含分界形态+通道载体+复合键与终态接线锚集+顶替歧义消除；裁定 D 含红①–红⑤+E2 泛在钉驱动器表[伪绿防线+零回退钉全列+C10 五条映射]
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 7 工单实现 + 回归测试（按组 A–C）
 
