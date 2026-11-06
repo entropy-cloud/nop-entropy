@@ -11,6 +11,7 @@ import io.nop.api.core.convert.ConvertHelper;
 import io.nop.api.core.exceptions.ErrorCode;
 import io.nop.api.core.exceptions.NopEvalException;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.api.debugger.DebugValueKey;
@@ -316,7 +317,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
      * 租约续期（D2 §3.7）：推进会话租约截止时间（now + ttl）。仅推进，不改变挂起态。
      */
     public void renewLease(long ttlMillis) {
-        this.leaseDeadlineMillis = System.currentTimeMillis() + ttlMillis;
+        this.leaseDeadlineMillis = CoreMetrics.currentTimeMillis() + ttlMillis;
     }
 
     /**
@@ -326,7 +327,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
      * 宽限销毁后仍在执行中的脚本线程继续命中断点不得再挂起（无观察者）。
      */
     public void expireLease() {
-        this.leaseDeadlineMillis = System.currentTimeMillis();
+        this.leaseDeadlineMillis = CoreMetrics.currentTimeMillis();
     }
 
     public long getLeaseDeadlineMillis() {
@@ -346,7 +347,7 @@ public class XLangDebugger extends BreakpointManagerImpl implements IXLangDebugg
 
     private boolean leaseExpired() {
         long deadline = leaseDeadlineMillis;
-        return deadline > 0 && System.currentTimeMillis() >= deadline;
+        return deadline > 0 && CoreMetrics.currentTimeMillis() >= deadline;
     }
 
     @Override

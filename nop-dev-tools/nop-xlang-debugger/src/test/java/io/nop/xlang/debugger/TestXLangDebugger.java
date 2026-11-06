@@ -28,7 +28,7 @@ import java.util.concurrent.BlockingQueue;
 
 import static io.nop.api.core.util.SourceLocation.fromLine;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestXLangDebugger {
 
@@ -120,12 +120,17 @@ public class TestXLangDebugger {
     }
 
     void assertBreakAt(String path, IXLangDebugger debugger) {
-        if(!debugger.isSuspended()){
-            try{
-                Thread.sleep(1000);
-            }catch (Exception e){}
+        long deadline = System.currentTimeMillis() + 5000;
+        while (!debugger.isSuspended()) {
+            if (System.currentTimeMillis() > deadline)
+                fail("debugger 未在 5s 内挂起于 " + path);
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                fail("等待挂起时被中断");
+            }
         }
-        assertTrue(debugger.isSuspended());
         assertEquals(path, getLastBreakLocation(debugger));
     }
 

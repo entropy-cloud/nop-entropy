@@ -19,6 +19,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.api.core.util.SourceLocation.fromLine;
@@ -64,24 +66,6 @@ public class TestSessionIsolation {
                 throw new AssertionError("debugger 未在 5s 内挂起");
             Thread.sleep(20);
         }
-    }
-
-    /**
-     * 轮询等待 debugger 完成 step 落点重挂起（确定性等待）：挂起态短暂消失（step 释放
-     * 返回后重挂起前的瞬态）期间继续等待，直到重新挂起且持续到下一次轮询仍挂起。
-     */
-    private static void awaitResuspendedAfterStep(XLangDebugger debugger) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        boolean sawTransientRelease = false;
-        while (System.currentTimeMillis() < deadline) {
-            if (!debugger.isSuspended()) {
-                sawTransientRelease = true;
-            } else if (sawTransientRelease) {
-                return; // 释放后重新挂起 = step 落点已到达
-            }
-            Thread.sleep(20);
-        }
-        throw new AssertionError("step 后未在 5s 内重新挂起");
     }
 
     @Test
@@ -191,18 +175,21 @@ public class TestSessionIsolation {
         m.init(new XLangDebugger());
         List<DebugSessionHandle> created = java.util.Collections.synchronizedList(new ArrayList<>());
         AtomicReference<Boolean> rejected = new AtomicReference<>(false);
+        CountDownLatch someCreated = new CountDownLatch(3);
         Thread creator = new Thread(() -> {
             int i = 0;
             try {
                 while (true) {
                     created.add(m.createSession("race-" + (i++)));
+                    someCreated.countDown();
                 }
             } catch (IllegalStateException shutdown) {
                 rejected.set(true); // shutdown 后拒绝——预期出口
             }
         });
         creator.start();
-        Thread.sleep(50);
+        // 已有会话创建出来后再关停，保证 shutdown 与进行中的创建真正交错
+        assertTrue(someCreated.await(5, TimeUnit.SECONDS), "创建线程未在 5s 内创建出会话");
         m.shutdownAll();
         creator.join(5000);
         assertFalse(creator.isAlive(), "shutdown 后创建线程必须退出");

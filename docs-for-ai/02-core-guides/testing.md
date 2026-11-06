@@ -487,8 +487,8 @@ public void testMultiStep() {
 1. **类级别 `@Timeout`**：所有涉及异步操作的测试类加 `@Timeout(10)`（秒），防止单个测试无限阻塞。
 2. **每个 `Future.get()` / `join()` 都必须带超时**：用 `future.get(5, TimeUnit.SECONDS)` 而非裸 `future.get()` 或 `future.join()`。超时后 test framework 可以 kill 线程。
 3. **`BlockingQueue.take()` 不出现在测试主线程**：测试主线程调用 `take()` 会无限阻塞。用 `poll(timeout, unit)` 或确保生产者线程先 `close()` 再在主线程收集输出。
-4. **Mock 长时间运行的命令用 `Thread.sleep()` + `AtomicBoolean` 检测中断**：不要用 `CountDownLatch.await(30s)`——cancel 后线程未必能走到 `countDown`。用 `Thread.sleep(largeValue)` + `catch InterruptedException` 设置标志位。
-5. **等待后台线程启动用自旋 + 短 sleep**：`for (int i = 0; i < 100 && !started.get(); i++) Thread.sleep(10)` 而非 `latch.await(30s)`。
+4. **Mock 长时间运行的命令用 `Thread.sleep()` + `AtomicBoolean` 检测中断**：不要用 `CountDownLatch.await(30s)`——cancel 后线程未必能走到 `countDown`。用 `Thread.sleep(largeValue)` + `catch InterruptedException` 设置标志位。这是由测试主动中断结束的模拟耗时，属于下文「禁止依赖敏感时间等待」允许的形态，不得挪作等待手段。
+5. **等待后台线程进入某状态用显式同步**：`CountDownLatch.await(timeout, unit)` 并断言其返回值，或条件等待；超时上限只作挂死保护。不要用短上限自旋（如 `100 × sleep(10)`）——负载下线程启动可能超过上限，循环提前退出后测试在错误前提下继续执行。
 6. **`close()` 必须在 `collectOutput` 之前**：如果生产者写 `BlockingQueueShellOutput`，消费者必须等 `close()`（发送 EOF）后才能 `readAllText()`，否则永远阻塞。正确顺序：先关闭输出 → 再读取。
 
 ## 时间可控性：冻结时钟与禁用裸 `now()`
@@ -499,6 +499,38 @@ public void testMultiStep() {
 2. **日期/期间敏感路径的测试必须显式冻结时钟**。生产已合规用 `CoreMetrics.today()`，但测试未 `CoreMetrics.registerClock(...)` 冻结时，seed/快照里的字面年月随真实日期滚动 → 跨月/跨年批量变红，伪装成代码回归。判定：`_cases` 快照含字面年月值、且月初批量爆红的测试，先查时钟冻结。
 
 > **注意**：`CoreMetrics` 覆盖的是平台时钟源；**序列/编码规则的日期源（`SysCodeRuleGenerator` ← `nopSysCalendar` bean）默认直读 `LocalDateTime.now()`，绕过冻结时钟**。涉及编码日期（如单据编号带年月）的测试需经 delta `beans.xml` 覆盖该 bean 或替换实现，见 `03-runbooks/generate-business-code.md`。
+
+## 禁止依赖敏感时间等待
+
+测试的通过与否不得取决于真实时间流逝的长短。以下四类写法禁止出现：
+
+1. **固定 sleep 当同步或等待时间流逝**：`sleep` 后断言异步结果已发生；`sleep` 等 deadline / TTL / 宽限期过去；`sleep` 制造「X 毫秒内未发生」的观察窗。
+2. **墙钟 deadline / TTL 作被测条件**：被测行为靠真实时间到达截止点才触发，如 `begin(System.currentTimeMillis() + 300)` 后等死循环被打断、续租 200ms 后等租约自然过期。
+3. **真实毫秒定时器作被测条件**：把宽限、keepalive、定时 flush 等调成几十上百毫秒，再等它真的触发，或断言它尚未触发。
+4. **耗时阈值断言**：以 `elapsed < N` / `elapsed > N` 判别行为。
+
+这些测试在负载升高时偶发失败。放宽预算、拉长 sleep 只是降低失败概率，不是修复。
+
+替代写法：
+
+- **时间读取走 `CoreMetrics`，测试注册可推进时钟**：生产代码中决定行为的时间读取（deadline、租约、限频、时间戳）一律用 `CoreMetrics.currentTimeMillis()`；测试经 `CoreMetrics.registerClock(...)` 注册只在显式推进时前进的时钟，推进越过截止点即触发被测行为。
+- **定时器可注入，测试用手动调度器**：组件经构造参数接收 `ScheduledExecutorService`；测试注入按虚拟时间到期的调度器，由测试推进，在推进线程上执行到期任务；「已调度 / 未调度」看调度器中的待执行任务来断言。
+- **跨线程交接用显式同步**：`CountDownLatch`、`join`、条件等待。需要确认工作线程已进入某段逻辑（如已进入 deadline 窗口、死循环已在回边检查）时，用按线程统计读取次数的可推进时钟来观测，而不是 sleep。
+- **断言「仍未发生」前，先确认对方已在新时刻重新求值**：例如挂起线程按固定间隔复查租约，推进时钟后要等该线程在推进后再读过时钟（读取计数增长），再断言它仍挂起；否则这条断言什么也不证明。
+
+允许保留的形态：
+
+- 只作挂死保护的超时上限：条件等待、`join(timeout)`、`latch.await(timeout)` 的上限不承载语义，取值以「正常情况下远不会触及」为准，触及即判失败；这些等待内部对墙钟的上限比较不属于被测条件。
+- 由测试主动中断结束的模拟耗时（如模拟长时间运行的命令）。
+- 生产实现内部的轮询（如挂起线程按固定间隔复查谓词）；测试侧以条件等待观测其结果。
+- 对「在两次墙钟读数之间取得的值」做区间检查。
+
+除上述形态外，墙钟比较不得作为断言或被测条件。
+
+可推进时钟的使用约束：
+
+- `CoreMetrics` 的时钟是 JVM 全局量：可推进时钟逐测试注册、`@AfterEach` 恢复 `CoreMetrics.defaultClock()`，不要在测试基类里对全部用例冻结。
+- 时钟冻结期间，凡超时基于 `CoreMetrics` 的路径（如 `FutureHelper.waitUntil`、REPL deadline）只会在测试推进时到期。测试必须显式推进，否则这些路径会无限等待。
 
 ## 测试配置隔离（跨测试类存活）
 

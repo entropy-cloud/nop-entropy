@@ -8,6 +8,7 @@
 package io.nop.xlang.debug.web;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.api.debugger.ThreadInfo;
 import io.nop.graphql.core.ws.IWebSocketSession;
@@ -216,7 +217,7 @@ public class DebugSessionBinder {
      */
     public synchronized LeaseStateView renew(String connectionId) {
         Binding binding = requireBinding(connectionId);
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (!binding.renewExempt) {
             long minInterval = (long) (runtime.renewIntervalMillis() * 0.8);
             if (minInterval > 0 && now - binding.lastRenewMillis < minInterval)

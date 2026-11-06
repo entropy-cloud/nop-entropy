@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debugger.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.core.lang.eval.EvalRuntime;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -69,7 +70,7 @@ public class ThreadLocalReplDeadlineChannel implements ReplDeadlineChannel {
         if (cancelled.get())
             throw new ReplCancelledError(ERR_XLANG_DEBUGGER_REPL_CANCELLED.getErrorCode(),
                     "repl execution cancelled");
-        if (System.currentTimeMillis() >= deadline)
+        if (CoreMetrics.currentTimeMillis() >= deadline)
             throw new ReplCancelledError(ERR_XLANG_DEBUGGER_REPL_TIMEOUT.getErrorCode(),
                     "repl execution timeout");
     }

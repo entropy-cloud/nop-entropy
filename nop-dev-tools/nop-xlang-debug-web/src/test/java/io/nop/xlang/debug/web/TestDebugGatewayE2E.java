@@ -14,8 +14,10 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import io.nop.api.debugger.Breakpoint;
 import static io.nop.api.core.util.SourceLocation.fromLine;
@@ -79,7 +81,7 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         Map<String, Object> renewResp = findResponse(ws.snapshot(), "4");
         @SuppressWarnings("unchecked")
         Map<String, Object> leaseState = (Map<String, Object>) resultMap(renewResp).get("lease");
-        assertTrue(((Number) leaseState.get("expiresAtMs")).longValue() > System.currentTimeMillis());
+        assertTrue(((Number) leaseState.get("expiresAtMs")).longValue() > clock.peekMillis());
         assertEquals(1, ((List<?>) leaseState.get("suspendedThreadIds")).size());
 
         handler.onMessage(req("5", "debugger.resume", "{}"));
@@ -149,10 +151,14 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         script.start();
         awaitSuspended(debugger);
 
-        // 模拟断连（非优雅关闭）→ 宽限 200ms
+        // 模拟断连（非优雅关闭）→ 排一个宽限销毁任务
+        int pendingBefore = scheduler.pendingTaskCount();
         handler.onClose();
+        assertEquals(pendingBefore + 1, scheduler.pendingTaskCount(), "最后连接断开应排宽限销毁任务");
 
-        // 宽限期满：放行（脚本第二个断点因 Destroying 授予判定①不再挂起，直接执行完）
+        // 推进越过宽限：gracefulDispose 在推进线程上执行——放行（脚本第二个断点因 Destroying
+        // 授予判定①不再挂起，直接执行完）
+        scheduler.advance(200);
         script.join(10000);
         assertFalse(script.isAlive(), "宽限期满后脚本线程应放行执行完");
         assertNull(error.get(), "gracefulDispose = resume 语义：脚本不得抛错");
@@ -201,8 +207,6 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     /** 多标签页：部分断连不进宽限（剩余连接续期照常）；全部断连才销毁。 */
     @Test
     public void testMultiTabLastConnectionTriggersGrace() throws Exception {
-        // 宽限取大值：部分断连存活断言用 sleep 固定窗口，窗口须远小于宽限才确定性成立
-        runtime.setGraceMillis(2000);
         MockWsSession ws1 = new MockWsSession();
         MockWsSession ws2 = new MockWsSession();
         DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
@@ -217,14 +221,20 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         assertNotNull(rebindResp, "rebind 应成功");
         assertEquals(s1, resultMap(rebindResp).get("sessionId"));
 
-        // 第一连接断开：仍有绑定连接 → 不销毁（远小于宽限窗口的观测点）
+        // 第一连接断开：仍有绑定连接 → 不排宽限任务；推进越过整个宽限期会话仍在
+        int pendingBefore = scheduler.pendingTaskCount();
         h1.onClose();
-        Thread.sleep(300);
+        assertEquals(pendingBefore, scheduler.pendingTaskCount(), "部分断连不应排宽限销毁任务");
+        scheduler.advance(runtime.graceMillis());
         assertNotNull(manager.getSession(s1), "部分断连应保持会话 Active（D2 §3.3）");
 
-        // 第二连接断开：最后连接 → 宽限 → 销毁
+        // 第二连接断开：最后连接 → 排宽限任务 → 推进越过宽限即销毁
         h2.onClose();
-        awaitUntil("宽限期满后应注销", () -> manager.getSession(s1) == null);
+        assertEquals(pendingBefore + 1, scheduler.pendingTaskCount(), "最后连接断开应排宽限销毁任务");
+        scheduler.advance(runtime.graceMillis());
+        assertNull(manager.getSession(s1), "宽限期满后应注销");
+        // evt.sessionClosed 经每连接出站线程异步送达：等它出站再取
+        awaitUntil("evt.sessionClosed 应出站", () -> hasEvent(ws2.snapshot(), "evt.sessionClosed"));
         Map<String, Object> closedEvt = findEvent(ws2.snapshot(), "evt.sessionClosed");
         assertNotNull(closedEvt);
         @SuppressWarnings("unchecked")
@@ -344,37 +354,54 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         assertEquals("serverShutdown", closedParams.get("reason"));
     }
 
-    /** keepalive ping：短周期出站 ping notification。 */
+    /** keepalive ping：推进虚拟时间即出站 ping notification。 */
     @Test
     public void testKeepalivePing() {
         runtime.setKeepaliveIntervalMillis(50);
         MockWsSession ws = new MockWsSession();
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
         openSession(handler, ws, "1");
-        awaitUntil("keepalive ping 应周期出站", () -> hasEvent(ws.snapshot(), "ping"));
+        assertEquals(0, countEvents(ws, "ping"), "推进前不应出站 ping");
+        // ping 经每连接出站线程异步送达：等送达后再核对次数（推进一个周期只执行一次 keepalive）
+        scheduler.advance(50);
+        awaitUntil("推进一个周期后 ping 应出站", () -> countEvents(ws, "ping") >= 1);
+        assertEquals(1, countEvents(ws, "ping"), "推进一个周期应恰好出站一次 ping");
+        scheduler.advance(50);
+        awaitUntil("再推进一个周期 ping 应再出站一次", () -> countEvents(ws, "ping") >= 2);
+        assertEquals(2, countEvents(ws, "ping"));
         handler.onClose();
+    }
+
+    private static int countEvents(MockWsSession ws, String method) {
+        int count = 0;
+        for (String frame : ws.snapshot()) {
+            if (method.equals(parse(frame).get("method")))
+                count++;
+        }
+        return count;
     }
 
     /** 宽限窗口内 rebind 取消销毁任务（D2 §3.3 Grace→Active 回迁）。 */
     @Test
     public void testRebindWithinGraceWindowKeepsSession() throws Exception {
-        // 宽限取大值（2s）：rebind 需在窗口内完成，sleep(150) + 多步操作对 300ms 级
-        // 定时器余量不足，负载下会输给 disposeByGrace（偶发绿失败）
         runtime.setGraceMillis(2000);
         MockWsSession ws1 = new MockWsSession();
         DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
         String s1 = openSession(h1, ws1, "1");
 
-        h1.onClose(); // 进入宽限
-        Thread.sleep(150);
+        h1.onClose(); // 进入宽限：宽限销毁任务已排队
+        assertEquals(1, scheduler.pendingTaskCount(), "断连应排宽限销毁任务");
+
+        // 宽限窗口内 rebind（不推进时间——在同一个虚拟时刻完成）
         MockWsSession ws2 = new MockWsSession();
         DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
         openSession(h2, ws2, "1");
         h2.onMessage(req("2", "session.rebind", "{\"sessionId\":\"" + s1 + "\"}"));
         assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
+        assertEquals(0, scheduler.pendingTaskCount(), "rebind 应取消宽限销毁任务");
 
-        // 越过原宽限点：会话应因 rebind 取消销毁任务而存活
-        Thread.sleep(2200);
+        // 推进越过原宽限点：会话应存活（销毁任务已取消，不再重排）
+        scheduler.advance(runtime.graceMillis());
         assertNotNull(manager.getSession(s1), "宽限窗口内 rebind 应回迁 Active 并取消销毁任务");
     }
 
@@ -382,37 +409,32 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
 
     // ===== plan 2479 Phase 2：C-2 churn / C-8 destroyed 闸门 / C-5 引擎兜底 / C-9 后写覆盖 =====
 
-    /** C-2：宽限销毁 churn 不泄漏 xlang-debugger-cleanup 线程（dispose 接线守恒；相对计数）。 */
+    /** C-2：宽限销毁 churn 不泄漏 xlang-debugger-cleanup 线程（dispose 接线守恒）。 */
     @Test
-    public void testGraceDisposeChurnDoesNotLeakCleanupThreads() throws Exception {
-        runtime.setGraceMillis(120);
-        // 基线（settle）：预热一轮使 JIT/池稳定后取相对基线
-        for (int round = 0; round < 2; round++) {
-            MockWsSession ws = new MockWsSession();
-            DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
-            openSession(handler, ws, "base" + round);
-            handler.onClose();
-        }
-        awaitUntil("预热轮销毁完成", () -> manager.getSession("u1:conn-base1") == null);
-        Thread.sleep(200);
-        int baseline = cleanupThreadCount();
-
+    public void testGraceDisposeChurnDoesNotLeakCleanupThreads() {
+        Set<Thread> existing = cleanupThreads();
+        List<String> sessionIds = new java.util.ArrayList<>();
         for (int i = 0; i < 5; i++) {
             MockWsSession ws = new MockWsSession();
             DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
-            openSession(handler, ws, "churn" + i);
+            sessionIds.add(openSession(handler, ws, "1"));
             handler.onClose();
         }
-        awaitUntil("churn 全部销毁", () -> manager.getSession("u1:conn-churn4") == null);
-        // 线程退出异步——轮询沉降到基线（C-2 修复前每次宽限销毁泄漏一个 daemon 线程）
-        awaitUntil("cleanup 线程数应守恒（无泄漏）",
-                () -> cleanupThreadCount() <= baseline);
+        // 5 个宽限销毁任务在同一虚拟时刻到期：推进一次即在推进线程上全部执行
+        scheduler.advance(runtime.graceMillis());
+        for (String sessionId : sessionIds) {
+            assertNull(manager.getSession(sessionId), "churn 会话应已宽限销毁: " + sessionId);
+        }
+        // 每个会话的调试器构造即起一个 cleanup 线程，dispose 关停其调度器后线程异步退出。只看
+        // 本用例新起的线程，不受其他用例残留线程影响（C-2 修复前每次宽限销毁泄漏一个 daemon 线程）
+        awaitUntil("churn 会话的 cleanup 线程应全部退出（无泄漏）",
+                () -> existing.containsAll(cleanupThreads()));
     }
 
-    private static int cleanupThreadCount() {
-        return (int) Thread.getAllStackTraces().keySet().stream()
+    private static Set<Thread> cleanupThreads() {
+        return Thread.getAllStackTraces().keySet().stream()
                 .filter(t -> t.getName().startsWith("xlang-debugger-cleanup"))
-                .count();
+                .collect(Collectors.toSet());
     }
 
     /**
@@ -510,37 +532,38 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     }
 
     /**
-     * C-1①：停滞客户端不阻塞引擎挂起授予——notifySuspend 仅入队即返（isSuspended 在
-     * notifySuspend 返回并进入 monitorWait 后才为 true，awaitSuspended 快速通过即证明
-     * 引擎线程未被 WS IO 阻塞；修复前同步直发会在此挂死至 TCP 写超时）。
+     * C-1①：停滞客户端不阻塞引擎挂起授予——notifySuspend 仅入队即返。判据是结构性的：
+     * 引擎已进入挂起态时，停滞连接上的 evt.suspended 仍卡在出站线程里尚未送达；若出站
+     * 退回同步直发，引擎线程会卡在停滞桩上进不了挂起态，awaitSuspended 超时失败。
      */
     @Test
     public void testStalledClientDoesNotBlockEngineSuspend() throws Exception {
         CountDownLatch stall = new CountDownLatch(1);
-        MockWsSession ws = new MockWsSession();
-        DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
-        String sessionId = openSession(handler, ws, "1");
-        XLangDebugger debugger = debuggerOf(sessionId);
-        debugger.setUseExternalPath(false);
-        debugger.addBreakpoint(Breakpoint.build("a", 1));
-        // 停滞桩在全部请求/响应交换之后设置（响应帧仍走同步直发——plan 2479 范围仅
-        // 事件出站队列化；此处模拟"连接事件接收停滞"）
-        ws.setBlocked(stall);
+        try {
+            MockWsSession ws = new MockWsSession();
+            DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
+            String sessionId = openSession(handler, ws, "1");
+            XLangDebugger debugger = debuggerOf(sessionId);
+            debugger.setUseExternalPath(false);
+            debugger.addBreakpoint(Breakpoint.build("a", 1));
+            // 停滞桩在全部请求/响应交换之后设置（响应帧仍走同步直发——plan 2479 范围仅
+            // 事件出站队列化；此处模拟"连接事件接收停滞"）
+            ws.setBlocked(stall);
 
-        Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
-        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
-        long start = System.currentTimeMillis();
-        script.start();
-        awaitSuspended(debugger);
-        long elapsed = System.currentTimeMillis() - start;
-        // 判别语义（closure audit B-1 勘正收紧）：事件帧经 AsyncOutbound 队列异步出站，
-        // notifySuspend 入队即返 → isSuspended 毫秒级；接线移除（直发形态）→ 事件发送
-        // 阻塞在停滞桩（限时 latch 5s）→ isSuspended 滞后 ~5s。阈值 2s 干净分离两态：
-        // 队列态 <2s 绿 / 直发态 ~5s 红（2479 closure audit 实测直发态 5013ms）
-        assertTrue(elapsed < 2000, "挂起授予不得被停滞客户端阻塞（出站须队列化），实际 " + elapsed + "ms");
-        debugger.resume();
-        script.join(10000);
-        stall.countDown();
+            Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
+            script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+            script.start();
+            awaitSuspended(debugger);
+            assertFalse(hasEvent(ws.snapshot(), "evt.suspended"),
+                    "挂起授予不得等待停滞连接的出站：此刻 evt.suspended 应仍卡在出站线程上");
+
+            stall.countDown();
+            awaitUntil("放行停滞桩后 evt.suspended 应送达", () -> hasEvent(ws.snapshot(), "evt.suspended"));
+            debugger.resume();
+            script.join(10000);
+        } finally {
+            stall.countDown();
+        }
     }
 
     /**
@@ -551,35 +574,45 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     public void testStalledClientGraceDisposeDoesNotFreezeGateway() throws Exception {
         runtime.setGraceMillis(200);
         CountDownLatch stall = new CountDownLatch(1);
-        MockWsSession ws1 = new MockWsSession();
-        DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
-        String s1 = openSession(h1, ws1, "1");
-        // 会话挂起在断点（宽限销毁时需 releaseAll → leaseExpired 出站）
-        XLangDebugger debugger1 = debuggerOf(s1);
-        debugger1.setUseExternalPath(false);
-        debugger1.addBreakpoint(Breakpoint.build("a", 1));
-        // 停滞桩后置（响应帧同步直发，不可先阻塞）
-        ws1.setBlocked(stall);
-        Thread script = new Thread(() -> debugger1.checkBreakpoint(fromLine("a", 1), newRt()));
-        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
-        script.start();
-        awaitSuspended(debugger1);
+        try {
+            MockWsSession ws1 = new MockWsSession();
+            DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
+            String s1 = openSession(h1, ws1, "1");
+            // 会话挂起在断点（宽限销毁时需 releaseAll → leaseExpired 出站）
+            XLangDebugger debugger1 = debuggerOf(s1);
+            debugger1.setUseExternalPath(false);
+            debugger1.addBreakpoint(Breakpoint.build("a", 1));
+            // 停滞桩后置（响应帧同步直发，不可先阻塞）
+            ws1.setBlocked(stall);
+            Thread script = new Thread(() -> debugger1.checkBreakpoint(fromLine("a", 1), newRt()));
+            script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+            script.start();
+            awaitSuspended(debugger1);
 
-        // 健康会话（对照面）
-        MockWsSession ws2 = new MockWsSession();
-        DebugWebSocketHandler h2 = newHandler(ws2, TOK_U2);
-        String s2 = openSession(h2, ws2, "1");
+            // 健康会话（对照面）
+            MockWsSession ws2 = new MockWsSession();
+            DebugWebSocketHandler h2 = newHandler(ws2, TOK_U2);
+            String s2 = openSession(h2, ws2, "1");
 
-        h1.onClose(); // 断连 → 宽限计时（onClose 不摘出站目标——B-1 裁定）
-        awaitUntil("宽限销毁应完成（不冻结）", () -> manager.getSession(s1) == null);
+            h1.onClose(); // 断连 → 排宽限任务（onClose 不摘出站目标——B-1 裁定）
+            // 推进放在独立线程上扮演定时器线程：宽限销毁若被停滞连接的出站阻塞（持 M 不放），
+            // 下面的等待会在停滞桩放行之前超时失败
+            Thread timer = new Thread(() -> scheduler.advance(200));
+            timer.setDaemon(true);
+            timer.start();
+            awaitUntil("宽限销毁应完成（不冻结）", () -> manager.getSession(s1) == null);
 
-        // 同期健康会话操作照常：renew 成功、出站正常
-        h2.onMessage(req("2", "lease.renew", "{}"));
-        assertNull(errorCodeOf(findResponse(ws2.snapshot(), "2")));
-        assertTrue(ws2.sentCount() > 0, "健康连接出站应不受停滞连接影响");
-        script.join(10000);
-        assertFalse(script.isAlive(), "挂起脚本应被宽限放行");
-        stall.countDown();
+            // 同期健康会话操作照常：renew 成功、出站正常
+            h2.onMessage(req("2", "lease.renew", "{}"));
+            assertNull(errorCodeOf(findResponse(ws2.snapshot(), "2")));
+            assertTrue(ws2.sentCount() > 0, "健康连接出站应不受停滞连接影响");
+            timer.join(10000);
+            assertFalse(timer.isAlive(), "宽限销毁任务应执行完");
+            script.join(10000);
+            assertFalse(script.isAlive(), "挂起脚本应被宽限放行");
+        } finally {
+            stall.countDown();
+        }
     }
 
     /**
@@ -590,33 +623,36 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     @Test
     public void testStalledClientDoesNotFreezeSharedSessionOutbound() throws Exception {
         CountDownLatch stall = new CountDownLatch(1);
-        MockWsSession ws1 = new MockWsSession();
-        DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
-        String s1 = openSession(h1, ws1, "1");
+        try {
+            MockWsSession ws1 = new MockWsSession();
+            DebugWebSocketHandler h1 = newHandler(ws1, TOK_U1);
+            String s1 = openSession(h1, ws1, "1");
 
-        MockWsSession ws2 = new MockWsSession();
-        DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
-        h2.onMessage(req("1", "session.open", "{\"protoVersion\":\"1.0\"}"));
-        h2.onMessage(req("2", "session.rebind", "{\"sessionId\":\"" + s1 + "\"}"));
-        assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
+            MockWsSession ws2 = new MockWsSession();
+            DebugWebSocketHandler h2 = newHandler(ws2, TOK_U1);
+            h2.onMessage(req("1", "session.open", "{\"protoVersion\":\"1.0\"}"));
+            h2.onMessage(req("2", "session.rebind", "{\"sessionId\":\"" + s1 + "\"}"));
+            assertNotNull(resultMap(findResponse(ws2.snapshot(), "2")));
 
-        XLangDebugger debugger = debuggerOf(s1);
-        debugger.setUseExternalPath(false);
-        debugger.addBreakpoint(Breakpoint.build("a", 1));
-        // 停滞桩后置（rebind 响应同步直发，不可先阻塞）；模拟 ws1 事件接收停滞
-        ws1.setBlocked(stall);
-        Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
-        script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
-        script.start();
+            XLangDebugger debugger = debuggerOf(s1);
+            debugger.setUseExternalPath(false);
+            debugger.addBreakpoint(Breakpoint.build("a", 1));
+            // 停滞桩后置（rebind 响应同步直发，不可先阻塞）；模拟 ws1 事件接收停滞
+            ws1.setBlocked(stall);
+            Thread script = new Thread(() -> debugger.checkBreakpoint(fromLine("a", 1), newRt()));
+            script.setDaemon(true); // 失败路径 latch 不阻塞 JVM 退出
+            script.start();
 
-        // 健康连接 fan-out 对等收帧（停滞连接的 drain 线程阻塞不影响 ws2 通道）
-        awaitUntil("健康连接应收到 evt.suspended（fan-out 对等 + 通道隔离）",
-                () -> hasEvent(ws2.snapshot(), "evt.suspended"));
-        int w2Count = ws2.sentCount();
-        assertTrue(w2Count > 0);
-        debugger.resume();
-        awaitUntil("健康连接应收到 evt.resumed", () -> hasEvent(ws2.snapshot(), "evt.resumed"));
-        script.join(10000);
-        stall.countDown();
+            // 健康连接 fan-out 对等收帧（停滞连接的 drain 线程阻塞不影响 ws2 通道）
+            awaitUntil("健康连接应收到 evt.suspended（fan-out 对等 + 通道隔离）",
+                    () -> hasEvent(ws2.snapshot(), "evt.suspended"));
+            int w2Count = ws2.sentCount();
+            assertTrue(w2Count > 0);
+            debugger.resume();
+            awaitUntil("健康连接应收到 evt.resumed", () -> hasEvent(ws2.snapshot(), "evt.resumed"));
+            script.join(10000);
+        } finally {
+            stall.countDown();
+        }
     }
 }

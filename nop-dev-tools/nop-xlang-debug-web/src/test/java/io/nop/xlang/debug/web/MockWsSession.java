@@ -33,10 +33,9 @@ public class MockWsSession implements IWebSocketSession {
         CountDownLatch latch = blockLatch;
         if (latch != null) {
             try {
-                // 限时阻塞（5s）：模拟停滞但不无限持有调用方监视器——全量套件下无界
-                // latch 会令 drain 线程长期持有 session 监视器产生跨测试楔死（plan 2479
-                // 执行勘误；5s 足够停滞判别：引擎线程/他连接出站在该窗口内不受影响）
-                latch.await(5, java.util.concurrent.TimeUnit.SECONDS);
+                // 上限只作挂死保护、不承载语义：用例在 finally 中放行停滞桩；无界 latch 会令
+                // drain 线程长期持有 session 监视器、在全量套件下跨测试楔死（plan 2479 执行勘误）
+                latch.await(30, java.util.concurrent.TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
                 return;

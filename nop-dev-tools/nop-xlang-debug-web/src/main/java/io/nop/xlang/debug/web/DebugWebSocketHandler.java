@@ -11,6 +11,7 @@ import io.nop.api.core.auth.IActionAuthChecker;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.exceptions.NopLoginException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.api.debugger.DebugValueKey;
@@ -634,7 +635,7 @@ public class DebugWebSocketHandler implements IWebSocketHandler {
      */
     private <T> T evalWithDeadline(XLangDebugger debugger, Supplier<T> eval) {
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
-        channel.begin(System.currentTimeMillis() + runtime.watchEvalTimeoutMillis());
+        channel.begin(CoreMetrics.currentTimeMillis() + runtime.watchEvalTimeoutMillis());
         try {
             return eval.get();
         } catch (ReplCancelledError e) {

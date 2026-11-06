@@ -10,6 +10,7 @@ package io.nop.xlang.debug.web;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.auth.IUserContextExtractor;
 import io.nop.api.core.exceptions.NopLoginException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -32,8 +33,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 /**
- * 网关测试基座：manager 单例初始化 + 注入型 runtime（短 TTL/keepalive 可控）+ 桩鉴权
+ * 网关测试基座：manager 单例初始化 + 注入型 runtime + 桩鉴权
  * （tok1→u1、tok2→u2、tokBad→NopLoginException、未知→null=4401）。
+ * <p>
+ * runtime 的定时器是 {@link ManualScheduler}：宽限销毁、keepalive、日志定时 flush 只在测试
+ * {@code scheduler.advance(...)} 时触发。需要让 CoreMetrics 时间（租约、REPL deadline、日志时间戳）
+ * 也走同一条虚拟时间线的用例调用 {@link #useManualClock()}，基座在 tearDown 恢复默认时钟。
  */
 public abstract class AbstractDebugGatewayTest {
     static final String TOK_U1 = "tok1";
@@ -42,6 +47,8 @@ public abstract class AbstractDebugGatewayTest {
 
     SessionDebugManager manager;
     DebugGatewayRuntime runtime;
+    ManualClock clock;
+    ManualScheduler scheduler;
 
     static class StubExtractor implements IUserContextExtractor {
         @Override
@@ -67,7 +74,9 @@ public abstract class AbstractDebugGatewayTest {
     public void setUpGateway() {
         manager = SessionDebugManager.instance();
         manager.init(new XLangDebugger());
-        runtime = new DebugGatewayRuntime(manager, new StubExtractor());
+        clock = ManualClock.startingNow();
+        scheduler = new ManualScheduler(clock);
+        runtime = new DebugGatewayRuntime(manager, new StubExtractor(), scheduler);
         // plan 2478 SEC-05：基座注入 permissive checker（全部权限放行）——生产装配
         // （DebugWebServerConfig）checker 缺失时 fail-closed 拒绝；该分支由专项测试
         // （TestDebugGatewayProtocol 权限用例）以无 checker runtime 显式覆盖，
@@ -87,7 +96,18 @@ public abstract class AbstractDebugGatewayTest {
         } finally {
             runtime.shutdownTimer();
             manager.reset();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
+    }
+
+    /** 让 CoreMetrics 读本用例的虚拟时钟（与 scheduler 同一时间线）；tearDown 恢复默认时钟。 */
+    void useManualClock() {
+        CoreMetrics.registerClock(clock);
+    }
+
+    /** 等某线程在虚拟时钟上的读取次数达到 reads（REPL deadline 检查每个融合执行器入口读一次）。 */
+    void awaitClockReads(Thread thread, long reads) {
+        awaitUntil("线程未在 10s 内读满 " + reads + " 次时钟", () -> clock.readsBy(thread) >= reads);
     }
 
     DebugWebSocketHandler newHandler(MockWsSession ws, String token) {

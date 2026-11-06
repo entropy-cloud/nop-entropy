@@ -34,6 +34,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * 诊断与超时、审计字段。
  */
 public class TestReplService extends AbstractDebugGatewayTest {
+    /** 远大于编译期入口检查次数：读数到此说明工作线程已在 while 回边上反复检查 deadline。 */
+    private static final long LOOP_READS = 10_000;
+
     private ReplService newService(IActionAuthChecker checker) {
         ReplService service = new ReplService(runtime, new ReplAccessGuard(
                 new AbstractDebugGatewayTest.StubExtractor(), checker));
@@ -71,25 +74,33 @@ public class TestReplService extends AbstractDebugGatewayTest {
         assertNull(response.get("cancelled"));
     }
 
-    /** D6 核心场景：死循环在 deadline 内被打断 → {ok:false, cancelled:true, timeout}。 */
+    /** D6 核心场景：死循环被 deadline 打断 → {ok:false, cancelled:true, timeout}。 */
     @Test
-    public void testExecuteDeadlineInterruptsInfiniteLoop() {
+    public void testExecuteDeadlineInterruptsInfiniteLoop() throws Exception {
+        useManualClock();
         ReplService service = newService((perm, ctx) -> true);
         MockWsSession ws = new MockWsSession();
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
         String sessionId = openSession(handler, ws, "1");
 
-        long start = System.currentTimeMillis();
-        Map<String, Object> response = service.execute(sessionId, "while(true){}", 300, headers(TOK_U1));
-        assertTrue(System.currentTimeMillis() - start < 10000, "死循环必须在请求线程上被打断");
-        assertEquals(Boolean.FALSE, response.get("ok"));
-        assertEquals(Boolean.TRUE, response.get("cancelled"));
-        assertEquals("nop.err.xlang.debugger.repl-timeout", errOf(response).get("errorCode"));
+        // execute 在调用线程上阻塞于死循环：放到工作线程上，主线程才能观测它的时钟读数
+        AtomicReference<Map<String, Object>> response = new AtomicReference<>();
+        Thread worker = new Thread(() -> response.set(
+                service.execute(sessionId, "while(true){}", 300, headers(TOK_U1))));
+        worker.start();
+        awaitClockReads(worker, LOOP_READS);
+        clock.advance(300);
+        worker.join(10000);
+        assertFalse(worker.isAlive(), "死循环必须在请求线程上被打断");
+        assertEquals(Boolean.FALSE, response.get().get("ok"));
+        assertEquals(Boolean.TRUE, response.get().get("cancelled"));
+        assertEquals("nop.err.xlang.debugger.repl-timeout", errOf(response.get()).get("errorCode"));
     }
 
     /** D6 §3.4 限制钉子：断点挂起时间计入绝对时钟 deadline——resume 后首入口即超时。 */
     @Test
     public void testSuspendTimeCountsTowardDeadline() throws Exception {
+        useManualClock();
         ReplService service = newService((perm, ctx) -> true);
         MockWsSession ws = new MockWsSession();
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
@@ -103,7 +114,8 @@ public class TestReplService extends AbstractDebugGatewayTest {
                 service.execute(sessionId, "return 1;", 500, headers(TOK_U1))));
         worker.start();
         awaitSuspended(debugger);
-        Thread.sleep(700); // 越过 500ms deadline
+        // 挂起期间推进越过 deadline 再 resume：挂起时间计入 deadline
+        clock.advance(600);
         debugger.resume();
         worker.join(10000);
         assertFalse(worker.isAlive());

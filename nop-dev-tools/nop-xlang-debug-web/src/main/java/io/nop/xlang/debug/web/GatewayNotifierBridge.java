@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debug.web;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.StackInfo;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -142,7 +143,7 @@ public class GatewayNotifierBridge implements IDebugNotifier {
         entry.put("level", level);
         entry.put("message", message);
         // D1 §3.5 evt.log schema：timestamp 必带（item 13 补齐）
-        entry.put("timestamp", System.currentTimeMillis());
+        entry.put("timestamp", CoreMetrics.currentTimeMillis());
         if (sourcePath != null) {
             entry.put("sourcePath", sourcePath);
             entry.put("line", line);

@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debugger.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -16,8 +17,11 @@ import io.nop.core.lang.eval.IExecutableExpression;
 import io.nop.core.lang.eval.IExecutableExpressionVisitor;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.debugger.IDebugNotifier;
+import io.nop.xlang.debugger.ManualClock;
 import io.nop.xlang.debugger.XLangDebugger;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -83,9 +87,37 @@ public class TestLeaseLifecycle {
         }
     }
 
+    private ManualClock clock;
+
+    @BeforeEach
+    public void setUpClock() {
+        clock = ManualClock.startingNow();
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    public void restoreClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
+
     private static EvalRuntime newRt() {
         IEvalScope scope = XLang.newEvalScope();
         return new EvalRuntime(scope);
+    }
+
+    /**
+     * 推进时钟后，等挂起线程在新时刻完成两轮租约复查。每轮复查读一次时钟；若租约已到期，线程首轮复查即退出
+     * 等待循环，退出判定再读一次后不再读，读数停在 +2、本等待超时失败——读数到 +3 才证明它在新时刻仍判定未到期。
+     */
+    private void advanceAndAwaitLeaseRechecks(Thread suspended, long deltaMillis) throws InterruptedException {
+        clock.advance(deltaMillis);
+        long base = clock.readsBy(suspended);
+        long deadline = System.currentTimeMillis() + 5000;
+        while (clock.readsBy(suspended) < base + 3) {
+            if (System.currentTimeMillis() > deadline)
+                throw new AssertionError("挂起线程未在推进后的时刻完成两轮租约复查");
+            Thread.sleep(10);
+        }
     }
 
     private static void awaitSuspended(XLangDebugger debugger) throws InterruptedException {
@@ -129,11 +161,11 @@ public class TestLeaseLifecycle {
         Thread thread = startSuspendedHit(debugger, null);
         awaitSuspended(debugger);
 
-        // 若不续期，300ms 后到期放行；两次续期跨越 600ms 仍挂起 = 续期保活生效
-        Thread.sleep(250);
+        // 不续期则推进到 300 即到期放行；推进 250 → 续期 → 再推进 250（越过原 deadline）仍挂起 = 续期保活生效
+        advanceAndAwaitLeaseRechecks(thread, 250);
         assertTrue(debugger.isSuspended(), "TTL 内应保持挂起");
         debugger.renewLease(300);
-        Thread.sleep(250);
+        advanceAndAwaitLeaseRechecks(thread, 250);
         assertTrue(debugger.isSuspended(), "续期后应继续保持挂起（原 deadline 已过）");
 
         debugger.resume();
@@ -166,7 +198,8 @@ public class TestLeaseLifecycle {
         thread.start();
         awaitSuspended(debugger);
 
-        // 不再续期：TTL 200ms 到期 → 挂起线程正常返回
+        // 不再续期：推进越过 TTL → 挂起线程下一轮复查到期、正常返回
+        clock.advance(300);
         awaitFinished(thread);
         assertTrue(continued.get(), "到期放行 = resume 语义：脚本必须继续执行完（不抛错）");
         assertEquals(1, recorder.leaseExpired.size(), "leaseExpired 恰一次（单线程单元素）");
@@ -300,7 +333,7 @@ public class TestLeaseLifecycle {
         debugger.setNotifier(recorder);
         debugger.addBreakpoint(Breakpoint.build("a", 1));
         debugger.renewLease(100);
-        Thread.sleep(200); // 租约过期
+        clock.advance(200); // 租约过期
 
         AtomicReference<Throwable> error = new AtomicReference<>();
         Thread thread = new Thread(() -> {
@@ -416,7 +449,10 @@ public class TestLeaseLifecycle {
         });
         threadA.start();
         threadB.start();
+        awaitSuspended(debuggerA);
         awaitSuspended(debuggerB);
+        // 推进越过 A 的租约：A 到期放行；B 在新时刻完成复查后仍挂起
+        advanceAndAwaitLeaseRechecks(threadB, 300);
         awaitFinished(threadA);
 
         assertTrue(debuggerB.isSuspended(), "B 的挂起不受 A 租约到期影响（会话租约隔离）");
@@ -483,7 +519,7 @@ public class TestLeaseLifecycle {
         XLangDebugger debugger = new XLangDebugger();
         assertEquals(0, debugger.getLeaseDeadlineMillis(), "默认租约禁用（deadline=0）");
         debugger.renewLease(5000);
-        assertTrue(debugger.getLeaseDeadlineMillis() > System.currentTimeMillis() - 100,
-                "renew 后 deadline 为未来时刻快照");
+        assertEquals(clock.peekMillis() + 5000, debugger.getLeaseDeadlineMillis(),
+                "renew 后 deadline = 当前时刻 + ttl");
     }
 }

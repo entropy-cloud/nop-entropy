@@ -10,6 +10,7 @@ package io.nop.xlang.debug.web;
 import io.nop.api.core.auth.IUserContext;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.xlang.XLangConfigs;
@@ -127,7 +128,7 @@ public class ReplService {
     }
 
     private Map<String, Object> compileWithinDeadline(String sourcePath, String source, String actor, long start) {
-        long deadline = System.currentTimeMillis()
+        long deadline = CoreMetrics.currentTimeMillis()
                 + Math.min(read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_COMPILE_TIMEOUT),
                         MAX_COMPILE_TIMEOUT_MS);
         Map<String, Object> result;
@@ -229,7 +230,7 @@ public class ReplService {
 
         long timeout = timeoutMs == null ? read(XLangDebuggerConfigs.CFG_XLANG_DEBUG_WEB_REPL_EXECUTE_TIMEOUT)
                 : Math.min(timeoutMs, MAX_EXECUTE_TIMEOUT_MS);
-        long deadline = System.currentTimeMillis() + timeout;
+        long deadline = CoreMetrics.currentTimeMillis() + timeout;
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
         Map<String, Object> response;
         String auditResult;

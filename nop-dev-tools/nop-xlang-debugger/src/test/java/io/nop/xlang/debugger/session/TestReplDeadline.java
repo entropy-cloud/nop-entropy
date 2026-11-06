@@ -7,6 +7,7 @@
  */
 package io.nop.xlang.debugger.session;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.SourceLocation;
 import io.nop.api.debugger.Breakpoint;
 import io.nop.core.lang.eval.EvalRuntime;
@@ -14,6 +15,7 @@ import io.nop.core.lang.eval.IEvalScope;
 import io.nop.xlang.api.XLang;
 import io.nop.xlang.api.ExprEvalAction;
 import io.nop.xlang.debugger.CollectNotifier;
+import io.nop.xlang.debugger.ManualClock;
 import io.nop.xlang.debugger.XLangDebugger;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,11 +39,17 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * （照 TestSessionRoutingIntegration 模式）——compile+invoke 全程经融合执行器。
  */
 public class TestReplDeadline {
+    /** 远大于编译期入口检查次数：读数到此说明工作线程已在 while 回边上反复检查 deadline。 */
+    private static final long LOOP_READS = 10_000;
+
     private SessionDebugManager manager;
     private io.nop.core.lang.eval.IExpressionExecutor prevExecutor;
+    private ManualClock clock;
 
     @BeforeEach
     public void setUp() {
+        clock = ManualClock.startingNow();
+        CoreMetrics.registerClock(clock);
         manager = SessionDebugManager.instance();
         manager.init(new XLangDebugger());
         prevExecutor = io.nop.core.lang.eval.EvalExprProvider.getGlobalExecutor();
@@ -56,6 +64,17 @@ public class TestReplDeadline {
         manager.setSessionListener(null);
         DebugSessionScope.clear();
         manager.reset();
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
+
+    /** 每个融合执行器入口的 deadline 检查在工作线程上读一次时钟；等读数达到 reads。 */
+    private void awaitClockReads(Thread worker, long reads) throws InterruptedException {
+        long deadline = System.currentTimeMillis() + 10000;
+        while (clock.readsBy(worker) < reads) {
+            if (System.currentTimeMillis() > deadline)
+                throw new AssertionError("工作线程未在 10s 内读满 " + reads + " 次时钟");
+            Thread.sleep(10);
+        }
     }
 
     private static Object runScript(DebugSessionHandle handle, String script) {
@@ -73,9 +92,10 @@ public class TestReplDeadline {
         DebugSessionHandle handle = manager.createSession("repl-1");
         AtomicReference<Throwable> error = new AtomicReference<>();
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
+        long deadline = clock.peekMillis() + 300;
 
         Thread worker = new Thread(() -> {
-            channel.begin(System.currentTimeMillis() + 300);
+            channel.begin(deadline);
             try {
                 runScript(handle, "while(true){}");
             } catch (Throwable t) {
@@ -85,6 +105,8 @@ public class TestReplDeadline {
             }
         });
         worker.start();
+        awaitClockReads(worker, LOOP_READS);
+        clock.advance(300);
         worker.join(10000);
         assertFalse(worker.isAlive(), "死循环必须在 deadline 后被打断");
         ReplCancelledError cancelled = assertInstanceOf(ReplCancelledError.class, error.get());
@@ -97,9 +119,10 @@ public class TestReplDeadline {
         DebugSessionHandle handle = manager.createSession("repl-2");
         AtomicReference<Throwable> error = new AtomicReference<>();
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
+        long deadline = clock.peekMillis() + 60000;
 
         Thread worker = new Thread(() -> {
-            channel.begin(System.currentTimeMillis() + 60000);
+            channel.begin(deadline);
             try {
                 runScript(handle, "while(true){}");
             } catch (Throwable t) {
@@ -109,7 +132,8 @@ public class TestReplDeadline {
             }
         });
         worker.start();
-        Thread.sleep(200);
+        // 工作线程首个动作是 begin，有读数即 begin 已执行，此后的 cancel 不会被 begin 复位
+        awaitClockReads(worker, 1);
         channel.cancel(); // 管理面跨线程取消
         worker.join(10000);
         assertFalse(worker.isAlive(), "cancel 后死循环应被打断");
@@ -123,9 +147,10 @@ public class TestReplDeadline {
         DebugSessionHandle handle = manager.createSession("repl-3");
         AtomicReference<Throwable> error = new AtomicReference<>();
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
+        long deadline = clock.peekMillis() + 300;
 
         Thread worker = new Thread(() -> {
-            channel.begin(System.currentTimeMillis() + 300);
+            channel.begin(deadline);
             try {
                 runScript(handle, "try { while(true){} } catch(e) { return 'caught'; }");
             } catch (Throwable t) {
@@ -135,6 +160,8 @@ public class TestReplDeadline {
             }
         });
         worker.start();
+        awaitClockReads(worker, LOOP_READS);
+        clock.advance(300);
         worker.join(10000);
         assertFalse(worker.isAlive());
         ReplCancelledError cancelled = assertInstanceOf(ReplCancelledError.class, error.get());
@@ -156,9 +183,10 @@ public class TestReplDeadline {
         manager.destroySession(handle);
         AtomicReference<Throwable> error = new AtomicReference<>();
         ThreadLocalReplDeadlineChannel channel = ThreadLocalReplDeadlineChannel.instance();
+        long deadline = clock.peekMillis() + 300;
 
         Thread worker = new Thread(() -> {
-            channel.begin(System.currentTimeMillis() + 300);
+            channel.begin(deadline);
             try {
                 runScript(handle, "while(true){}");
             } catch (Throwable t) {
@@ -168,6 +196,8 @@ public class TestReplDeadline {
             }
         });
         worker.start();
+        awaitClockReads(worker, LOOP_READS);
+        clock.advance(300);
         worker.join(10000);
         assertFalse(worker.isAlive(), "destroyed 分支不得解除取消保护");
         assertInstanceOf(ReplCancelledError.class, error.get());

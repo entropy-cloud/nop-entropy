@@ -35,6 +35,7 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
     /** 阈值 flush：达 batch-size 立即出站，entries 保序且带 timestamp。 */
     @Test
     public void testLogBatchingByThresholdOrdered() {
+        useManualClock();
         setupShortFlush(3, 60_000);
         MockWsSession ws = new MockWsSession();
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
@@ -42,7 +43,6 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
 
         GatewayNotifierBridge bridge = runtime.getBinder().getBridge(sessionId);
         assertNotNull(bridge);
-        long before = System.currentTimeMillis();
         bridge.notifyLog(null, "a.xpl", 1, "m1");
         bridge.notifyLog(null, "a.xpl", 2, "m2");
         assertTrue(ws.snapshot().stream().noneMatch(f -> f.contains("evt.logs")),
@@ -60,11 +60,11 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         assertEquals("m3", entries.get(2).get("message"));
         assertEquals(1, ((Number) entries.get(0).get("line")).intValue());
         assertNotNull(entries.get(0).get("timestamp"), "D1 §3.5 evt.log schema 应带 timestamp");
-        long ts = ((Number) entries.get(2).get("timestamp")).longValue();
-        assertTrue(ts >= before && ts <= System.currentTimeMillis() + 1000);
+        assertEquals(clock.peekMillis(), ((Number) entries.get(2).get("timestamp")).longValue(),
+                "日志时间戳取自 CoreMetrics 时钟");
     }
 
-    /** 定时 flush：未达阈值按 flush-interval 出站（短周期注入）。 */
+    /** 定时 flush：未达阈值按 flush-interval 出站。 */
     @Test
     public void testLogTimedFlush() {
         setupShortFlush(100, 50);
@@ -72,7 +72,12 @@ public class TestDebugLogPipe extends AbstractDebugGatewayTest {
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
         String sessionId = openSession(handler, ws, "1");
 
+        int pendingBefore = scheduler.pendingTaskCount();
         runtime.getBinder().getBridge(sessionId).notifyLog(null, null, 0, "single");
+        assertEquals(pendingBefore + 1, scheduler.pendingTaskCount(), "未达阈值应排一次定时 flush");
+        assertFalse(hasEvent(ws.snapshot(), "evt.logs"), "定时 flush 到期前不应出站");
+
+        scheduler.advance(50);
         awaitUntil("定时 flush 应出站", () -> hasEvent(ws.snapshot(), "evt.logs"));
         Map<String, Object> evt = findEvent(ws.snapshot(), "evt.logs");
         @SuppressWarnings("unchecked")
