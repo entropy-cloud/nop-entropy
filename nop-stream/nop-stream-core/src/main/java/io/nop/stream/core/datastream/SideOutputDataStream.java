@@ -87,7 +87,12 @@ public class SideOutputDataStream<T> extends DataStreamImpl<T> {
                     .param(ARG_ARG_NAME, "sinkFunction")
                     .param(ARG_DETAIL, "Side output sink must not be null");
         }
-        SideOutputRegistry.register(outputTag.getId(), record -> {
+        // W-07 (CRA 8.42 R4-02, ruling C.2): the registration target is the OWNING
+        // env's execution-context-local registry (the registration point does NOT
+        // migrate to execution time — the env reference is reachable at assembly,
+        // adjudication C.2 resolves the F2 timing conflict by scoping on the env
+        // instance identity instead of the execute-time jobId).
+        environment.getSideOutputRegistry().register(outputTag.getId(), record -> {
             try {
                 @SuppressWarnings("unchecked")
                 StreamRecord<T> typed = (StreamRecord<T>) record;

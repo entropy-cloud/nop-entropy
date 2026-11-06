@@ -554,6 +554,16 @@ public class JobCoordinator implements IStreamCoordinatorRpcService {
         this.jobEventBus.addListener(new io.nop.stream.runtime.event.LoggingJobEventListener());
         if (this.checkpointCoordinator != null) {
             this.checkpointCoordinator.setJobEventBus(this.jobEventBus);
+            // W-03 (CRA 8.42 R4-02, ruling A.2): the commit-retry escalation exit
+            // routes to the typed idempotent failJob — a participant whose
+            // finishCommit retries keep failing is deregistered by the
+            // coordinator and the job fails so recovery takes over, instead of
+            // the ledger growing forever. Wired at the coordinator-injection
+            // point so LOCAL and distributed jobs get the same contract (the
+            // wiring owner is JobCoordinator in both — cf. the abortHandler
+            // registration shape). failJob is idempotent (an already-terminal
+            // job takes the existing WARN branch, :848-856).
+            this.checkpointCoordinator.setCommitRetryEscalationHandler(this::failJob);
         }
 
         // Health state machine wiring:

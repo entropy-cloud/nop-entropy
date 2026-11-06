@@ -53,6 +53,27 @@ public class ProcessingTimeServiceDriver implements Runnable {
     private volatile boolean stopped = false;
     private volatile Thread thread;
 
+    /**
+     * W-02 (CRA 8.42 R4-02, ruling B.1): delivery debounce. While a timer-fire
+     * mail is in flight (put but not yet run by the task thread), subsequent
+     * ticks do NOT deliver another one — a task thread blocked at a data-plane
+     * backpressure safe point (a slow sink is a NORMAL running state) otherwise
+     * accumulates one redundant mail per tick (~864,000/day at the default
+     * 100ms tick) with an empty TreeMap at every execution. Site-local object,
+     * no cross-thread shared state beyond the CAS/volatile itself (8.41 B.1
+     * shape precedent). Package-visible as the red② observation seam.
+     *
+     * <p>Closed-drop residual (declared semantics): a {@code mailbox.close()}
+     * silently drops the mail so the flag would stay set and the driver stops
+     * delivering — benign, because the driver is single-shot
+     * ({@code StreamTaskInvokable.invoke()} shuts it down in its finally) and
+     * close/shutdown share the same terminal window; the flag dies with the
+     * driver. Timer-fire fail-fast semantics are unchanged: the wrapped runnable
+     * still propagates exceptions from {@link #fireDueTimersOnTaskThread()}.
+     */
+    final java.util.concurrent.atomic.AtomicBoolean timerFireInFlight =
+            new java.util.concurrent.atomic.AtomicBoolean(false);
+
     public ProcessingTimeServiceDriver(TaskMailbox mailbox,
                                        TaskProcessingTimeService processingTimeService,
                                        TimerServiceManager timeServiceManager) {
@@ -119,8 +140,15 @@ public class ProcessingTimeServiceDriver implements Runnable {
             long now = CoreMetrics.currentTimeMillis();
             boolean due = processingTimeService.isTimerDue(now)
                     || (timeServiceManager != null && timeServiceManager.hasProcessingTimeTimersDue(now));
-            if (due) {
-                mailbox.put(Mail.control(this::fireDueTimersOnTaskThread, "processing-time-timer-fire"));
+            // W-02 (ruling B.1): debounce — at most ONE in-flight timer-fire mail.
+            // The fire is an idempotent catch-up read (fireDueTimers drains every
+            // due timer), so skipping ticks while one mail is in flight never
+            // loses a trigger: due stays true until the mail runs, and the next
+            // tick after the in-flight flag clears re-delivers. Trigger latency
+            // is bounded by one tick (the pre-existing tick-sampling granularity).
+            if (due && timerFireInFlight.compareAndSet(false, true)) {
+                mailbox.put(Mail.control(this::fireDueTimersOnTaskThreadAndReset,
+                        "processing-time-timer-fire"));
             }
             try {
                 Thread.sleep(tickMs);
@@ -129,6 +157,19 @@ public class ProcessingTimeServiceDriver implements Runnable {
                     LOG.debug("Processing-time driver interrupted while sleeping", e);
                 }
             }
+        }
+    }
+
+    /**
+     * Task-thread body of the timer-fire mail: run the catch-up fire, then
+     * release the in-flight flag — in a finally, so an exception path (fire
+     * fail-fast killing the task) also clears the flag.
+     */
+    private void fireDueTimersOnTaskThreadAndReset() {
+        try {
+            fireDueTimersOnTaskThread();
+        } finally {
+            timerFireInFlight.set(false);
         }
     }
 

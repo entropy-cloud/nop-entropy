@@ -174,4 +174,135 @@ class TestStreamOpsHttpServer {
             }
         };
     }
+
+    // ==================== CRA 8.42 R4-02 W-01 (C10-017, 红①) ====================
+    // Submit-body size gate: the POST /jobs endpoint must reject an oversized
+    // request body with a typed 413 BEFORE materializing/parsing it (pre-fix the
+    // readAllBytes path answered 400 parse-failure — or 201 for valid JSON — with
+    // no size bound at all). Reverting the size gate turns both oversized-body
+    // tests red (413 expected, 400/201 observed).
+
+    /** Real submit path fixture (mirrors TestOpsRestLifecycleE2E's setup shape). */
+    @TempDir
+    Path submitTempDir;
+
+    private OpsJobManager submitJobManager;
+    private io.nop.stream.runtime.taskmanager.TaskManager submitTaskManager;
+
+    private void startServerWithManager(int maxBodyBytes) throws Exception {
+        client = HttpClient.newHttpClient();
+        io.nop.stream.runtime.cluster.ClusterRegistry clusterRegistry =
+                new io.nop.stream.runtime.cluster.InMemoryClusterRegistry();
+        io.nop.api.core.message.IMessageService messageService =
+                new io.nop.message.core.local.LocalMessageService();
+        submitTaskManager = new io.nop.stream.runtime.taskmanager.TaskManager(
+                "w01-node", "localhost:0", 4, messageService, clusterRegistry, "w01-control");
+        submitTaskManager.start();
+        submitJobManager = new OpsJobManager(messageService, clusterRegistry,
+                new io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage(
+                        submitTempDir.resolve("w01-ckpt").toString()),
+                java.util.Map.of("w01-node", submitTaskManager));
+
+        StreamOpsConfig config = new StreamOpsConfig();
+        config.setEnabled(true);
+        config.setPort(0);
+        // S1 seam: a tiny configured limit turns the gate deterministically
+        // observable without allocating megabytes (adjudication A.1 sizing:
+        // JobSubmissionSpec is three fields — 1KB already exceeds legal payloads).
+        config.setMaxBodyBytes(maxBodyBytes);
+        server = new StreamOpsHttpServer(config, submitJobManager, submitJobManager);
+        server.start();
+    }
+
+    private void stopServerWithManager() {
+        if (server != null) {
+            server.stop();
+        }
+        if (submitJobManager != null) {
+            submitJobManager.close();
+        }
+        if (submitTaskManager != null) {
+            submitTaskManager.stop();
+        }
+    }
+
+    private static final String SUBMIT_FACTORY_FQCN =
+            "io.nop.stream.runtime.ops.TestOpsRestLifecycleE2E$SlowPipelineFactory";
+
+    @Test
+    void oversizedSubmitBodyWithContentLengthAnswersTyped413() throws Exception {
+        startServerWithManager(1024);
+        try {
+            // 2KB invalid-JSON body with an explicit Content-Length: the typed 413
+            // (not the 400 BAD_SUBMISSION_BODY parse failure) proves the request was
+            // rejected BEFORE any body read / JSON parse.
+            String oversized = "x".repeat(2048);
+            HttpResponse<String> resp = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.getBoundPort() + "/jobs"))
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(oversized)).build(),
+                    HttpResponse.BodyHandlers.ofString());
+
+            assertEquals(413, resp.statusCode(),
+                    "oversized declared body must be a typed 413, got: " + resp.statusCode()
+                            + " body=" + resp.body());
+            assertTrue(resp.body().contains("SUBMIT_BODY_TOO_LARGE"),
+                    "rejection carries the typed error code, body=" + resp.body());
+            assertFalse(resp.body().contains("BAD_SUBMISSION_BODY"),
+                    "the parse-failure path must not be reached, body=" + resp.body());
+        } finally {
+            stopServerWithManager();
+        }
+    }
+
+    @Test
+    void oversizedChunkedSubmitBodyAnswersTyped413() throws Exception {
+        startServerWithManager(1024);
+        try {
+            // Chunked variant (no Content-Length header — ofByteArrays has unknown
+            // length so the JDK client emits Transfer-Encoding: chunked): the
+            // bounded-read leg of the double check must still reject with 413
+            // (a CL-only pre-check would be structurally bypassed here).
+            byte[] chunk1 = new byte[1024];
+            byte[] chunk2 = new byte[1024];
+            java.util.Arrays.fill(chunk1, (byte) 'x');
+            java.util.Arrays.fill(chunk2, (byte) 'x');
+            HttpResponse<String> resp = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.getBoundPort() + "/jobs"))
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofByteArrays(
+                                    java.util.List.of(chunk1, chunk2))).build(),
+                    HttpResponse.BodyHandlers.ofString());
+
+            assertEquals(413, resp.statusCode(),
+                    "oversized chunked body must be a typed 413, got: " + resp.statusCode()
+                            + " body=" + resp.body());
+            assertTrue(resp.body().contains("SUBMIT_BODY_TOO_LARGE"),
+                    "rejection carries the typed error code, body=" + resp.body());
+        } finally {
+            stopServerWithManager();
+        }
+    }
+
+    @Test
+    void legalSubmitBodyUnderLimitStillSubmits() throws Exception {
+        startServerWithManager(1024);
+        try {
+            // Zero-regression face: a legal body under the configured limit passes
+            // the gate and reaches the real submit path (201).
+            String legal = "{\"jobId\":\"w01-legal-job\",\"pipelineFactoryClass\":\""
+                    + SUBMIT_FACTORY_FQCN + "\"}";
+            HttpResponse<String> resp = client.send(
+                    HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + server.getBoundPort() + "/jobs"))
+                            .header("Content-Type", "application/json")
+                            .POST(HttpRequest.BodyPublishers.ofString(legal)).build(),
+                    HttpResponse.BodyHandlers.ofString());
+
+            assertEquals(201, resp.statusCode(),
+                    "legal body under the limit must still submit, got: " + resp.statusCode()
+                            + " body=" + resp.body());
+        } finally {
+            stopServerWithManager();
+        }
+    }
 }

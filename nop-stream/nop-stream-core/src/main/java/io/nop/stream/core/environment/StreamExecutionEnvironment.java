@@ -107,6 +107,18 @@ public class StreamExecutionEnvironment {
 
     private final CheckpointConfig checkpointConfig = new CheckpointConfig();
 
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): the execution-context-local
+     * SideOutputRegistry — one execution environment = one side-output scope.
+     * Registered consumers (from {@code getSideOutput(tag).sink(...)} during
+     * assembly) live and die with this env's object graph: two envs on the same
+     * host can never topple each other's same-tag consumers (the pre-fix static
+     * map's silent cross-job mis-delivery), and a new env starts with an empty
+     * registry (no resurrection of a terminal execution's consumer).
+     */
+    private final io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry =
+            new io.nop.stream.core.datastream.SideOutputRegistry();
+
     private static volatile ICheckpointExecutorFactory defaultCheckpointExecutorFactory;
 
     /**
@@ -210,6 +222,17 @@ public class StreamExecutionEnvironment {
 
     public CheckpointConfig getCheckpointConfig() {
         return checkpointConfig;
+    }
+
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): this execution context's side-output
+     * registry (the S5 seam — the public accessor IS the test seam; two envs
+     * construct two independent registries with zero product-side test hooks).
+     * Registration happens on it during assembly; the runtime read points
+     * consult the instance the plan/invokable chain carries.
+     */
+    public io.nop.stream.core.datastream.SideOutputRegistry getSideOutputRegistry() {
+        return sideOutputRegistry;
     }
 
     public StreamExecutionEnvironment enableCheckpointing(long interval) {
@@ -514,6 +537,9 @@ public class StreamExecutionEnvironment {
         StreamGraph streamGraph = graphGenerator.generate(sinkList);
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        // W-07 (CRA 8.42 R4-02, ruling C.2): vertex invokables generated for THIS
+        // env's job graph join this env's side-output execution scope.
+        jobGraphGenerator.setSideOutputRegistry(sideOutputRegistry);
         return jobGraphGenerator.generate(streamGraph, jobName, null);
     }
 
@@ -566,7 +592,11 @@ public class StreamExecutionEnvironment {
                                            DeploymentPlan deploymentPlan,
                                            long startTime) throws Exception {
         boolean barrierAlignment = checkpointConfig.getProcessingGuarantee().isBarrierAlignment();
-        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan, barrierAlignment);
+        // W-07 (CRA 8.42 R4-02, ruling C.2): the LOCAL plan build carries this env's
+        // side-output registry so the runtime invokables consult the same execution
+        // scope the assembly-time getSideOutput(tag).sink(...) registrations landed in.
+        GraphExecutionPlan plan = GraphExecutionPlan.build(jobGraph, deploymentPlan,
+                barrierAlignment, sideOutputRegistry);
 
         TaskExecutor executor = new TaskExecutor();
         // W-11 (ruling D.3): resolve the cancel-await budget BEFORE any task runs —
@@ -918,6 +948,9 @@ public class StreamExecutionEnvironment {
                 ? null : streamGraph.getStreamModel().getComponents());
 
         JobGraphGenerator jobGraphGenerator = new JobGraphGenerator();
+        // W-07 (CRA 8.42 R4-02, ruling C.2): vertex invokables generated for THIS
+        // env's job graph join this env's side-output execution scope.
+        jobGraphGenerator.setSideOutputRegistry(sideOutputRegistry);
         // AR-1: same job-name threading as execute() — the distributed launch path's
         // storage identity must match the local path's for cross-run recovery.
         return jobGraphGenerator.generate(streamGraph, jobName, null);

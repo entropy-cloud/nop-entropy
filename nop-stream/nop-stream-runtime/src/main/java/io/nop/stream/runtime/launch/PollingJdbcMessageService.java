@@ -74,6 +74,16 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_A
  *   <li>At-least-once delivery within a single subscriber — a crash between
  *       dispatch and cursor advance may redeliver. The stream runtime already
  *       handles redelivery via fencing epochs + exactly-once sink contracts.</li>
+ *   <li>W-05 (CRA 8.42 R4-02, ruling C.1): failed DATA-plane rows (payload
+ *       deserialization failure / consumer delivery exception) are NEVER silently
+ *       skipped with the cursor advanced past them. An aware subscriber
+ *       ({@code WireDecodeFailureAware} — via the adapter's delegating
+ *       {@code AdaptingConsumer} in the composed chain) receives the typed
+ *       channel failure; a non-aware subscriber hits the poison-row fail-loud
+ *       wedge (typed throw, cursor NOT advanced, the row retried until the
+ *       damaged row is repaired). Control-plane rows keep the legacy
+ *       warn+skip+cursor-advance semantics (RPC callers have timeout backstops;
+ *       wedging the control channel would pin deploy/cancel/ACK).</li>
  *   <li>Topic-pattern subscriptions are not supported (not needed by the
  *       control RPC or the data plane).</li>
  *   <li>Fan-out: multiple subscribers on the same topic each see all messages
@@ -87,6 +97,14 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
     /** 裁定⑥⑨共享参数：单 poll 有界批量（LIMIT），缺省 500，&le;0 装配期 fail-fast。 */
     public static final String POLL_BATCH_SIZE_KEY = "nop.stream.launch.poll-batch-size";
     public static final int DEFAULT_POLL_BATCH_SIZE = 500;
+
+    /**
+     * W-05 (CRA 8.42 R4-02, ruling C.1): the data-plane topic prefix, shared with
+     * adjudication ⑥'s faceting fact ({@code pollExecutorFor} — same prefix, one
+     * constant now). Data-plane rows whose delivery fails are escalated to a
+     * typed failure (never silently skipped); control-plane rows keep warn+skip.
+     */
+    static final String DATA_TOPIC_PREFIX = "nop-stream.data.";
 
     private final IJdbcTemplate jdbcTemplate;
     private final long pollIntervalMs;
@@ -457,6 +475,15 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
     }
 
     /**
+     * S6 test seam (CRA 8.42 R4-02 red pin E2-W-05): the live subscriptions of one
+     * topic, so the focused pin can read the persisted cursor position. Read-only.
+     */
+    java.util.List<Subscription> subscriptionsForTest(String topic) {
+        List<Subscription> subs = subscriptions.get(topic);
+        return subs == null ? java.util.List.of() : subs;
+    }
+
+    /**
      * Returns the total count of queued rows for diagnostics and tests.
      */
     public int countRows(String topicPrefix) {
@@ -566,7 +593,7 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
          * the control plane.
          */
         private ScheduledExecutorService pollExecutorFor(String topicName) {
-            return topicName.startsWith("nop-stream.data.") ? dataPoller : controlPoller;
+            return isDataPlaneTopic(topicName) ? dataPoller : controlPoller;
         }
 
         /**
@@ -576,6 +603,15 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
          */
         private static boolean isNoBacklogTopic(String topic) {
             return topic.startsWith("nop-stream.rpc.coordinator.");
+        }
+
+        /**
+         * W-05 (ruling C.1): the data-plane/control-plane boundary, isomorphic with
+         * adjudication ⑥'s faceting — data-plane rows escalate failed delivery to
+         * a typed failure; control-plane rows keep warn+skip+cursor-advance.
+         */
+        private static boolean isDataPlaneTopic(String topic) {
+            return topic.startsWith(DATA_TOPIC_PREFIX);
         }
 
         void poll() {
@@ -598,7 +634,31 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
                     try {
                         message = javaDeserialize(row.payload);
                     } catch (Exception e) {
+                        // W-05 (CRA 8.42 R4-02, ruling C.1, face 1): a DATA-plane row
+                        // whose payload cannot be deserialized is escalated to a typed
+                        // channel failure — a data-plane consumer must never silently
+                        // lose a record (the pre-fix warn+skip+cursor-advance created a
+                        // permanent invisible gap: cursor already past the row, no
+                        // replay entry). Aware consumers receive the same channel
+                        // failure the wire-decode path uses; non-aware consumers get
+                        // the poison-row fail-loud wedge (typed throw BEFORE the cursor
+                        // advances — the outer site-① catch records it, the row is
+                        // retried next round). Control-plane rows keep warn+skip: RPC
+                        // callers have timeout backstops and wedging the node control
+                        // channel would pin deploy/cancel/ACK.
                         LOG.warn("Failed to deserialize payload for topic={} id={}: {}", topic, row.id, e.toString());
+                        if (isDataPlaneTopic(topic)) {
+                            if (consumer instanceof io.nop.stream.runtime.transport.WireDecodeFailureAware) {
+                                ((io.nop.stream.runtime.transport.WireDecodeFailureAware) consumer)
+                                        .onWireDecodeFailure(topic, row.payload, e);
+                            } else {
+                                throw new StreamException(
+                                        io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_DATA_PLANE_RECORD_FAILED, e)
+                                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME, topic)
+                                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                                "row id=" + row.id + " failed payload deserialization");
+                            }
+                        }
                         lastSeenId.set(row.id);
                         continue;
                     }
@@ -617,6 +677,25 @@ public class PollingJdbcMessageService implements IMessageService, AutoCloseable
                                     topic, consumeFailureSuppressor.getLastWindowSuppressedCount(),
                                     consumeFailureSuppressor.getWindowMs(),
                                     consumeFailureSuppressor.getLastSummary());
+                        }
+                        // W-05 (ruling C.1, face 2): same escalation shape as the
+                        // deserialize face — the suppression caps the LOG VOLUME only
+                        // (8.41 ruling E.1 boundary), the failed delivery itself is
+                        // still escalated typed. The cursor statement below is
+                        // unchanged for the aware face (terminal channel); the
+                        // non-aware wedge throw skips it (fail-loud, retried next
+                        // round).
+                        if (isDataPlaneTopic(topic)) {
+                            if (consumer instanceof io.nop.stream.runtime.transport.WireDecodeFailureAware) {
+                                ((io.nop.stream.runtime.transport.WireDecodeFailureAware) consumer)
+                                        .onWireDecodeFailure(topic, message, e);
+                            } else {
+                                throw new StreamException(
+                                        io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_DATA_PLANE_RECORD_FAILED, e)
+                                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME, topic)
+                                        .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                                "row id=" + row.id + " failed consumer delivery");
+                            }
                         }
                     }
                     lastSeenId.set(row.id);

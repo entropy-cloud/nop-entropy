@@ -21,56 +21,83 @@ import io.nop.stream.core.streamrecord.StreamRecord;
  * cross-task {@code StreamTaskInvokable} routing) look the consumer up here when their
  * task-local registration map has no entry for the tag.
  *
- * <p>The registry is JVM-local — exactly the scope of the embedded/local execution model
- * where the plan-time {@code getSideOutput} and the producing task share a process.
- * Registering again for the same tag id replaces the previous consumer. Entries are
- * plain function references and small; tests can clear the registry between jobs via
- * {@link #clear()}.
+ * <p>W-07 (CRA 8.42 R4-02, ruling C.2 — 1.1-FAM-2: C1-002 + C5-007 + C7-006): the
+ * registry is EXECUTION-CONTEXT-LOCAL, no longer JVM-static. One instance is hung on
+ * one {@link StreamExecutionEnvironment} ({@code env.getSideOutputRegistry()}):
+ * <ul>
+ *   <li><b>Scope</b>: two executions on the same host register into separate
+ *       instances — a same-tag registration can never topple another execution's
+ *       consumer (the pre-fix static map's silent cross-job mis-delivery is
+ *       structurally impossible; the key space is physically separated, not
+ *       warned or validated).</li>
+ *   <li><b>Lifecycle</b>: the registry lives and dies with the env's object graph —
+ *       a terminal execution's registrations (and the operator chains their
+ *       consumers close over) become unreachable together, with no explicit
+ *       remove wiring at the terminal-state anchors. {@link #remove(String)} stays
+ *       available as an explicit in-execution de-registration API; {@link #clear()}
+ *       is the per-execution isolation helper (tests).</li>
+ *   <li><b>Remote/分进程 form</b> (ruling C.2 / F-3): invokables built by the remote
+ *       plan builder carry NO registry — their read-point miss answers the existing
+ *       {@code ERR_STREAM_SIDE_OUTPUT_NO_CONSUMER} fail-fast, which is exactly the
+ *       pre-existing split-process semantics (side outputs were always JVM-local;
+ *       this ruling tightens the embedded same-JVM form to execution-context-local
+ *       for parity, it does not widen anything).</li>
+ * </ul>
+ *
+ * <p>Re-registering the same tag id within one scope replaces the previous consumer
+ * (unchanged semantics; {@code OutputTag} equality is id-based).
  */
 public final class SideOutputRegistry {
 
-    private static final Map<String, Consumer<StreamRecord<?>>> CONSUMERS = new ConcurrentHashMap<>();
+    private final Map<String, Consumer<StreamRecord<?>>> consumers = new ConcurrentHashMap<>();
 
-    private SideOutputRegistry() {
+    /**
+     * Creates one execution-context-local registry (one per
+     * {@code StreamExecutionEnvironment}).
+     */
+    public SideOutputRegistry() {
     }
 
     /**
-     * Registers (or replaces) the consumer for the given side-output tag id.
+     * Registers (or replaces) the consumer for the given side-output tag id
+     * within this execution scope.
      */
-    public static void register(String tagId, Consumer<StreamRecord<?>> consumer) {
+    public void register(String tagId, Consumer<StreamRecord<?>> consumer) {
         if (tagId == null || tagId.isEmpty()) {
             throw new IllegalArgumentException("Side-output tag id must not be null or empty");
         }
         if (consumer == null) {
             throw new IllegalArgumentException("Side-output consumer must not be null");
         }
-        CONSUMERS.put(tagId, consumer);
+        consumers.put(tagId, consumer);
     }
 
     /**
-     * Returns the consumer registered for the given tag id, or {@code null} when none
-     * is registered (the caller keeps its own no-consumer fail-fast semantics).
+     * Returns the consumer registered for the given tag id in this scope, or
+     * {@code null} when none is registered (the caller keeps its own no-consumer
+     * fail-fast semantics).
      */
-    public static Consumer<StreamRecord<?>> get(String tagId) {
+    public Consumer<StreamRecord<?>> get(String tagId) {
         if (tagId == null || tagId.isEmpty()) {
             return null;
         }
-        return CONSUMERS.get(tagId);
+        return consumers.get(tagId);
     }
 
     /**
-     * Removes the registration for the given tag id.
+     * Removes the registration for the given tag id (explicit in-execution
+     * de-registration).
      */
-    public static void remove(String tagId) {
+    public void remove(String tagId) {
         if (tagId != null) {
-            CONSUMERS.remove(tagId);
+            consumers.remove(tagId);
         }
     }
 
     /**
-     * Removes all registrations (test isolation helper).
+     * Removes all registrations of this scope (isolation helper).
      */
-    public static void clear() {
-        CONSUMERS.clear();
+    public void clear() {
+        consumers.clear();
     }
 }

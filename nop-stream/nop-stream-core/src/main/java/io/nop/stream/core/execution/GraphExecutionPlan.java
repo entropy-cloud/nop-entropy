@@ -212,6 +212,25 @@ public class GraphExecutionPlan {
     }
 
     /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): LOCAL-execution build entry — carries the
+     * executing env's execution-context-local {@link io.nop.stream.core.datastream.SideOutputRegistry}
+     * into every invokable this plan creates, so the runtime read points consult
+     * the SAME registry the assembly-time {@code getSideOutput(tag).sink(...)}
+     * registrations landed in (one execution context = one side-output scope).
+     * The remote build path (RemoteGraphExecutionPlanBuilder) deliberately does
+     * NOT carry one — read misses answer the existing NO_CONSUMER fail-fast
+     * (split-process semantics, explicitly tightened for the embedded same-JVM
+     * remote form).
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment,
+                                           io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, InputGate.DEFAULT_ALIGNMENT_TIMEOUT_MS,
+                new BufferPool(DEFAULT_GLOBAL_BUFFER_CAPACITY), false,
+                InputGate.DEFAULT_ALIGNMENT_TIMEOUT_MS, sideOutputRegistry);
+    }
+
+    /**
      * Builds an execution plan from the given JobGraph with full configuration including
      * barrier alignment timeout.
      *
@@ -299,6 +318,21 @@ public class GraphExecutionPlan {
                                            boolean barrierAlignment, long barrierAlignmentTimeout,
                                            IBufferPool bufferPool,
                                            boolean unalignedCheckpointEnabled, long unalignedThreshold) {
+        return build(jobGraph, deploymentPlan, barrierAlignment, barrierAlignmentTimeout, bufferPool,
+                unalignedCheckpointEnabled, unalignedThreshold, null);
+    }
+
+    /**
+     * W-07 (ruling C.2): full form with the execution-context-local side-output
+     * registry. {@code null} keeps the remote/checkpoint-only semantics (no
+     * side-output fallback scope). The registry is threaded into every created
+     * {@code StreamTaskInvokable} — one execution context = one scope.
+     */
+    public static GraphExecutionPlan build(JobGraph jobGraph, DeploymentPlan deploymentPlan,
+                                           boolean barrierAlignment, long barrierAlignmentTimeout,
+                                           IBufferPool bufferPool,
+                                           boolean unalignedCheckpointEnabled, long unalignedThreshold,
+                                           io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry) {
         if (bufferPool == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "bufferPool");
         }
@@ -329,7 +363,7 @@ public class GraphExecutionPlan {
         createSubtasks(jobGraph, parallelismMap, outgoingEdges, incomingEdges,
                 edgePartitionMatrix, deploymentPlan, barrierAlignment, barrierAlignmentTimeout,
                 unalignedCheckpointEnabled, unalignedThreshold, regionDecomposition,
-                executionVertices, invokables, subtasksMap);
+                executionVertices, invokables, subtasksMap, sideOutputRegistry);
 
         List<String> sorted = topologicalSort(jobGraph);
 
@@ -427,7 +461,8 @@ public class GraphExecutionPlan {
                                        RegionDecomposition regionDecomposition,
                                        Map<String, JobVertex> executionVertices,
                                        Map<String, StreamTaskInvokable> invokables,
-                                       Map<String, List<Subtask>> subtasksMap) {
+                                       Map<String, List<Subtask>> subtasksMap,
+                                       io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry) {
         for (Map.Entry<String, JobVertex> entry : jobGraph.getVertices().entrySet()) {
             String vertexId = entry.getKey();
             JobVertex original = entry.getValue();
@@ -495,6 +530,11 @@ public class GraphExecutionPlan {
                 StreamTaskInvokable invokable =
                         createInvokable(chain, recordWriter, singleWriterTagId,
                                 fanOutWriters, fanOutWriterTagIds, inputGate);
+                // W-07 (CRA 8.42 R4-02, ruling C.2): every invokable this LOCAL plan
+                // builds carries the executing env's side-output registry (single
+                // injection point for all createInvokable construction branches —
+                // the setter propagates into the invokable's wired ChainingOutputs).
+                invokable.setSideOutputRegistry(sideOutputRegistry);
 
                 // WI8 Phase 2 (plan 2332): a vertex fed from a side-output tag edge
                 // registers the tag consumer that feeds its operator chain input —

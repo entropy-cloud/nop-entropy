@@ -520,6 +520,19 @@ public class JobGraphGenerator implements Serializable {
     }
 
     /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): the execution-context-local side-output
+     * registry the owning env hands to this generator; injected into every vertex
+     * invokable created here so the legacy vertex-invokable path stays in the same
+     * execution scope as its pipeline. Null (unset generator) keeps the
+     * remote/no-scope semantics (read misses answer the NO_CONSUMER fail-fast).
+     */
+    private io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry;
+
+    public void setSideOutputRegistry(io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry) {
+        this.sideOutputRegistry = sideOutputRegistry;
+    }
+
+    /**
      * Creates an Invokable for the given operator chain.
      *
      * <p>This is a placeholder implementation. The full implementation would create an invokable
@@ -529,7 +542,11 @@ public class JobGraphGenerator implements Serializable {
      * @return an Invokable instance
      */
     private Invokable<?> createInvokable(final OperatorChain operatorChain) {
-        return new StreamTaskInvokable(operatorChain);
+        StreamTaskInvokable invokable = new StreamTaskInvokable(operatorChain);
+        // W-07 (ruling C.2): the vertex invokable joins the owning env's execution
+        // scope (set by StreamExecutionEnvironment at generator construction).
+        invokable.setSideOutputRegistry(sideOutputRegistry);
+        return invokable;
     }
 
     /**

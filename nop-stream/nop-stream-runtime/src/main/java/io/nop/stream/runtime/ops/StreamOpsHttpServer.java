@@ -402,7 +402,38 @@ public class StreamOpsHttpServer {
                     "Job submission is not enabled on this endpoint (single-job launch mode)");
             return;
         }
-        String requestBody = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+        // W-01 (CRA 8.42 R4-02, ruling A.1): double-check body-size gate BEFORE any
+        // body materialization. The pre-fix readAllBytes path let a single request
+        // materialize ~3x its body size (byte[] + String + JSON tree) and take down
+        // the coordinator heap. Two legs:
+        // 1) Content-Length pre-check — an over-limit DECLARED body is rejected
+        //    before reading a single body byte;
+        // 2) bounded read — a chunked / missing / malformed Content-Length request
+        //    cannot bypass the gate: at most (limit + 1) bytes are ever read, and
+        //    reading that many is itself a typed 413.
+        int limit = config.getMaxBodyBytes();
+        String declaredLength = exchange.getRequestHeaders().getFirst("Content-Length");
+        if (declaredLength != null && !declaredLength.isBlank()) {
+            try {
+                if (Long.parseLong(declaredLength.trim()) > limit) {
+                    sendError(exchange, 413, "SUBMIT_BODY_TOO_LARGE",
+                            "Declared Content-Length " + declaredLength.trim()
+                                    + " exceeds the submission body bound (" + limit
+                                    + " bytes; tune " + StreamOpsConfig.KEY_MAX_BODY_BYTES + ")");
+                    return;
+                }
+            } catch (NumberFormatException e) {
+                // malformed Content-Length — fall through to the bounded read leg
+            }
+        }
+        byte[] bodyBytes = exchange.getRequestBody().readNBytes(limit + 1);
+        if (bodyBytes.length > limit) {
+            sendError(exchange, 413, "SUBMIT_BODY_TOO_LARGE",
+                    "Request body exceeds the submission body bound (" + limit
+                            + " bytes; tune " + StreamOpsConfig.KEY_MAX_BODY_BYTES + ")");
+            return;
+        }
+        String requestBody = new String(bodyBytes, StandardCharsets.UTF_8);
         JobSubmissionSpec spec;
         try {
             spec = io.nop.core.lang.json.JsonTool.parseBeanFromText(

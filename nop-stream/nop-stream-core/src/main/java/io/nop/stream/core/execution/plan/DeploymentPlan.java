@@ -74,6 +74,14 @@ public class DeploymentPlan implements Serializable {
     public String getStateBackendBinding() { return stateBackendBinding; }
     public String getCheckpointStorage() { return checkpointStorage; }
     public Map<String, EdgeConfig> getEdgeConfigs() { return edgeConfigs; }
+
+    /**
+     * Returns the declared memory budget. RECORD-ONLY, NOT ENFORCED (CRA 8.42
+     * R4-02, ruling B.2): the budget rides along as a declaration with zero
+     * production readers and no execution mechanism — never use it as a memory
+     * bound or for capacity planning (see {@link MemoryBudget} and the owner-doc
+     * 「规模与内存包络」section).
+     */
     public MemoryBudget getMemoryBudget() { return memoryBudget; }
 
     /**

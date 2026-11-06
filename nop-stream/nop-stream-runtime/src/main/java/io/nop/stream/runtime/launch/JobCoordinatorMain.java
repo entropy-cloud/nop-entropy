@@ -436,6 +436,11 @@ public final class JobCoordinatorMain {
         OperatorChain sourceChain = new OperatorChain(Collections.singletonList(sourceOp));
         OperatorChain sinkChain = new OperatorChain(Collections.singletonList(sinkOp));
 
+        // W-07 (CRA 8.42 R4-02, ruling C.2 / F-3): coordinator-side invokables for
+        // the REMOTE deploy path carry NO side-output registry (left null
+        // explicitly) — read misses answer the existing NO_CONSUMER fail-fast
+        // (split-process semantics; embedded same-JVM remote form tightened to
+        // match, see RemoteGraphExecutionPlanBuilder).
         StreamTaskInvokable sourceInvokable = new StreamTaskInvokable(sourceChain);
         StreamTaskInvokable sinkInvokable = new StreamTaskInvokable(sinkChain);
 

@@ -95,10 +95,11 @@ public class TestWindowedStreamSideOutputLateData {
             new OutputTag<>("late-data-g2",
                     (TypeInformation<KeyValue>) UnknownTypeInformation.INSTANCE);
 
-    @AfterEach
-    void cleanRegistry() {
-        io.nop.stream.core.datastream.SideOutputRegistry.clear();
-    }
+    // W-07 (CRA 8.42 R4-02, ruling C.2): the pre-fix static SideOutputRegistry.clear()
+    // teardown is gone — the registry is execution-context-local (one env = one
+    // scope), so each execution's registrations die with its env object graph and
+    // no cross-test static cleanup is needed (construction-line adaptation, the
+    // assertions of this class are untouched).
 
     @Test
     void lateRecordsReachSideOutputAndAreRetrievable() throws Exception {

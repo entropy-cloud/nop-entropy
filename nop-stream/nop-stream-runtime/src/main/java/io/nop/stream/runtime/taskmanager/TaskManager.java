@@ -765,13 +765,25 @@ public class TaskManager implements IStreamTaskRpcService {
             }
         }
 
-        nodeMetrics.taskDeployed();
         Future<?> future;
         try {
             future = taskExecutor.submit(runningTask);
         } catch (java.util.concurrent.RejectedExecutionException e) {
             // CC-17 (plan 2435): shutdown race — report assignment failure loud
             // (one-way RPC: bare throw is invisible), mirroring the capacity path.
+            // W-06 (CRA 8.42 R4-02, ruling A.3): BEFORE reporting, run the same
+            // three-step cleanup as the build-failure branch below — a submit
+            // rejection leaves the just-inserted slot entry as a zombie (run()
+            // never executes, so the terminal release is unreachable) and pins
+            // one capacity permit until epoch rotation. Conditional remove (an
+            // interleaved replacement deploy may already have displaced this
+            // entry) + CAS-guarded release (no double release against the
+            // cancelled task's exit path).
+            runningTasks.remove(taskKey, runningTask);
+            runningTask.cancel();
+            if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
             reportAssignmentFailure(assignment, assignment.getFencingEpoch(),
                     new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
                             "Task executor rejected assignment for " + assignment.getVertexId()
@@ -779,6 +791,9 @@ public class TaskManager implements IStreamTaskRpcService {
             return;
         }
         runningTask.setFuture(future);
+        // W-06 (ruling A.3): the deployed counter is only bumped AFTER the submit
+        // succeeded — a rejected (never-run) task must not count as deployed.
+        nodeMetrics.taskDeployed();
 
         LOG.info("TaskManager {} accepted assignment for {}/{} (attempt={})",
                 nodeId, assignment.getVertexId(), assignment.getSubtaskIndex(),
@@ -988,7 +1003,6 @@ public class TaskManager implements IStreamTaskRpcService {
                 capacitySemaphore.release();
             }
         }
-        nodeMetrics.taskDeployed();
         Future<?> future;
         try {
             future = taskExecutor.submit(runningTask);
@@ -996,12 +1010,27 @@ public class TaskManager implements IStreamTaskRpcService {
             // CC-17 (plan 2435): submit-after-shutdown race — degrade LOUD and
             // through the rejectDeploy→FAILED channel (one-way RPC contract:
             // a bare throw is invisible to the coordinator), not silently.
+            // W-06 (CRA 8.42 R4-02, ruling A.3): before the typed rethrow, the
+            // same three-step cleanup as the build-failure branch — conditional
+            // slot remove (protects an interleaved successor deploy), cancel of
+            // the never-run task, CAS-guarded permit release. The remote path's
+            // next-redeploy displacement self-heal no longer has to mask a
+            // pinned permit + zombie entry.
+            runningTasks.remove(taskKey, runningTask);
+            runningTask.cancel();
+            if (runningTask.semaphoreReleased.compareAndSet(false, true)) {
+                capacitySemaphore.release();
+            }
             throw rejectDeploy(descriptor, descriptor.getFencingEpoch(),
                     new StreamException(ERR_STREAM_INVALID_STATE, e).param(ARG_DETAIL,
                             "Task executor rejected deployment for " + descriptor.getVertexId()
                                     + "/" + descriptor.getSubtaskIndex() + " (executor shutdown race)"));
         }
         runningTask.setFuture(future);
+        // W-06 (ruling A.3): deployed counts only tasks whose submit succeeded —
+        // the build-failure path below still counts (its task WAS accepted by the
+        // executor and fails via the invokableLatch timeout), unchanged semantics.
+        nodeMetrics.taskDeployed();
 
         // Build the invokable locally from the descriptor. SubtaskPlanBuilder
         // rebuilds the subtask using this TaskManager's IMessageService, which

@@ -106,8 +106,16 @@ public class DataPlaneMessageServiceAdapter implements IMessageService {
     /**
      * Consumer wrapper that reconstructs the envelope from the backend's wire shape
      * before forwarding to the inner (data-plane) consumer.
+     *
+     * <p>W-05 (CRA 8.42 R4-02, ruling C.1 / K5 seam): the wrapper ITSELF implements
+     * {@link WireDecodeFailureAware} and delegates to the inner aware consumer —
+     * the backend (e.g. the launch poller's payload-deserialization face) sees only
+     * THIS object as the subscriber, so a payload-level failure has a reachable
+     * typed carrier only if the wrapper is aware. The design doc registers this
+     * interface addition as an explicit deviation from "reuse with zero changes"
+     * (K5) — without it the payload-level failure path would wedge silently.
      */
-    private final class AdaptingConsumer implements IMessageConsumer {
+    private final class AdaptingConsumer implements IMessageConsumer, WireDecodeFailureAware {
         private final IMessageConsumer inner;
 
         AdaptingConsumer(IMessageConsumer inner) {
@@ -148,6 +156,22 @@ public class DataPlaneMessageServiceAdapter implements IMessageService {
                 return null;
             }
             return inner.onMessage(topic, envelope, context);
+        }
+
+        /**
+         * W-05 (K5 delegation): a backend-level failure (payload deserialization /
+         * delivery) surfaces through this wrapper — delegate it to the inner aware
+         * channel so the same typed-failure machinery fires. A legacy non-aware
+         * inner keeps the observable-discard fallback (never silent).
+         */
+        @Override
+        public void onWireDecodeFailure(String topic, Object message, Throwable cause) {
+            if (inner instanceof WireDecodeFailureAware) {
+                ((WireDecodeFailureAware) inner).onWireDecodeFailure(topic, message, cause);
+                return;
+            }
+            LOG.warn("Data-plane record failure on topic={} (discarding, legacy non-aware inner "
+                    + "consumer): {}", topic, message, cause);
         }
     }
 }

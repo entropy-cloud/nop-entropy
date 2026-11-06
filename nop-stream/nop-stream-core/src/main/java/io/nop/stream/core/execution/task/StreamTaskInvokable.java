@@ -192,6 +192,45 @@ public class StreamTaskInvokable implements Invokable<Void> {
      */
     private transient ProcessingTimeServiceDriver processingTimeDriver;
 
+    /**
+     * W-07 (CRA 8.42 R4-02, ruling C.2): the execution-context-local
+     * SideOutputRegistry this task belongs to (the owning env's instance, injected
+     * by the LOCAL plan-build chain; {@code null} on the remote/分进程 build path —
+     * an explicit tightening: side-output read misses then answer the existing
+     * NO_CONSUMER fail-fast, matching split-process semantics). The
+     * cross-task {@link #sideOutputConsumerFor} fallback consults this instance
+     * instead of a process-static map, so two executions on the same host can
+     * never topple each other's same-tag consumers and a terminal execution's
+     * registrations die with its env object graph.
+     */
+    private transient volatile io.nop.stream.core.datastream.SideOutputRegistry sideOutputRegistry;
+
+    /**
+     * The ChainingOutputs wired by {@link #chainInnerOperators()} — the
+     * {@link #setSideOutputRegistry} injection point propagates the registry into
+     * them (the wiring runs inside the constructor, before any injection).
+     */
+    private final List<ChainingOutput<?>> wiredChainingOutputs = new ArrayList<>();
+
+    /** This task's execution-scoped side-output registry (null on the remote path). */
+    public io.nop.stream.core.datastream.SideOutputRegistry getSideOutputRegistry() {
+        return sideOutputRegistry;
+    }
+
+    /**
+     * W-07 (ruling C.2): injects the owning env's side-output registry. Called by
+     * the LOCAL plan-build chain right after construction (the constructor has no
+     * registry parameter — the 20 main construction sites stay on their existing
+     * signatures; SupervisionLoop transfers the OLD invokable's registry here, so
+     * a region-restarted task keeps its execution scope).
+     */
+    public void setSideOutputRegistry(io.nop.stream.core.datastream.SideOutputRegistry registry) {
+        this.sideOutputRegistry = registry;
+        for (ChainingOutput<?> chained : wiredChainingOutputs) {
+            chained.setSideOutputRegistry(registry);
+        }
+    }
+
     public StreamTaskInvokable(OperatorChain operatorChain) {
         if (operatorChain == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "operatorChain");
@@ -385,7 +424,10 @@ public class StreamTaskInvokable implements Invokable<Void> {
                     wiredInput = nextInput;
                 }
 
-                currentOp.setOutput(new ChainingOutput<>(wiredInput, null, sideOutputConsumers));
+                ChainingOutput<?> chained =
+                        new ChainingOutput<>(wiredInput, null, sideOutputConsumers, this.sideOutputRegistry);
+                wiredChainingOutputs.add(chained);
+                currentOp.setOutput(chained);
             }
         }
     }
@@ -1224,11 +1266,13 @@ public class StreamTaskInvokable implements Invokable<Void> {
         Consumer<StreamRecord<?>> consumer = sideOutputConsumers.get(
                 new OutputTag<>(tagId, UnknownTypeInformation.INSTANCE));
         if (consumer == null) {
-            // G-2+09e① (plan 369 Phase 2): fall back to the SideOutputRegistry —
-            // a consumer registered at plan time via getSideOutput(tag).sink(...)
-            // is valid for this JVM (embedded/local execution) even though it was
-            // not wired into this task's local registration map.
-            consumer = io.nop.stream.core.datastream.SideOutputRegistry.get(tagId);
+            // W-07 (CRA 8.42 R4-02, ruling C.2): fall back to the execution-context-local
+            // registry carried from the owning env (registered at assembly via
+            // getSideOutput(tag).sink(...)). Null registry (remote build path) misses
+            // here → the caller's NO_CONSUMER fail-fast (split-process semantics,
+            // explicitly tightened for the embedded same-JVM remote form — F-3).
+            io.nop.stream.core.datastream.SideOutputRegistry scoped = sideOutputRegistry;
+            consumer = scoped != null ? scoped.get(tagId) : null;
         }
         return consumer;
     }

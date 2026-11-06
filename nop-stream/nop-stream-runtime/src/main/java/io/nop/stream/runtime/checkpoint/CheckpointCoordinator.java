@@ -355,6 +355,39 @@ public class CheckpointCoordinator {
     // this map (abort must drop the terminal marker).
     final ConcurrentHashMap<Long, Boolean> checkpointSuccessMap = new ConcurrentHashMap<>();
 
+    /**
+     * W-03 (CRA 8.42 R4-02, ruling A.2): consecutive retry-failure count per
+     * participant. At {@link #commitRetryEscalationThreshold} consecutive failed
+     * finishCommit retries the participant is deregistered and the escalation
+     * handler fires once (typed) — the ledger entry then terminalizes through the
+     * existing stillFailing-empty removal path. Package-private for the red③ pin.
+     */
+    final java.util.concurrent.ConcurrentHashMap<CheckpointParticipant, Integer> commitRetryFailureCounts =
+            new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * W-03 (ruling A.2): consecutive-retry-failure threshold. Configurable via
+     * {@code nop.stream.checkpoint.commit-retry-escalation-threshold} (values
+     * &le; 0 fail fast typed at resolve time). Package-visible and volatile so
+     * focused tests can shorten it (the production default stays 6 — six
+     * checkpoint cycles ≈ 3 minutes at the default 30s cadence: longer than
+     * transient I/O jitter, far shorter than infinite retry).
+     */
+    static volatile int commitRetryEscalationThreshold = 6;
+    /** Config key for {@link #commitRetryEscalationThreshold} (ruling A.2). */
+    static final String COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG =
+            "nop.stream.checkpoint.commit-retry-escalation-threshold";
+
+    /**
+     * W-03 (ruling A.2): one-shot escalation callback. Invoked AFTER the retry
+     * iteration completes (never mid-iteration — the coordinator must not be
+     * terminalized while a fanout task body is draining it) with the typed
+     * escalation error. JobCoordinator wires this to
+     * {@code failJob(ERR_STREAM_COMMIT_RETRY_ESCALATED)} at the abortHandler
+     * wiring point; already-terminal jobs take the existing WARN branch.
+     */
+    private volatile java.util.function.Consumer<Throwable> commitRetryEscalationHandler;
+
     private final AtomicInteger consecutiveTriggerFailures = new AtomicInteger(0);
 
     /**
@@ -441,6 +474,47 @@ public class CheckpointCoordinator {
 
     public void removeParticipant(CheckpointParticipant participant) {
         participants.remove(participant);
+    }
+
+    /**
+     * W-03 (ruling A.2): wires the one-shot commit-retry escalation callback.
+     * See {@link #commitRetryEscalationHandler}.
+     */
+    public void setCommitRetryEscalationHandler(java.util.function.Consumer<Throwable> handler) {
+        this.commitRetryEscalationHandler = handler;
+    }
+
+    /**
+     * S3 test seam (red③): shortens the consecutive-failure escalation threshold.
+     * Package-private; the production value flows from
+     * {@link #COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG} with the default 6.
+     */
+    void setCommitRetryEscalationThresholdForTest(int threshold) {
+        if (threshold <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            "commit-retry-escalation-threshold must be positive (got " + threshold + ")");
+        }
+        commitRetryEscalationThreshold = threshold;
+    }
+
+    /**
+     * W-03 (ruling A.2): resolves the escalation threshold from
+     * {@code nop.stream.checkpoint.commit-retry-escalation-threshold} (falls back
+     * to {@link #commitRetryEscalationThreshold}); values &le; 0 fail fast typed
+     * (parameter discipline aligned with adjudication ② / 8.41 thresholds).
+     */
+    static int resolveCommitRetryEscalationThreshold() {
+        Integer configured = Integer.getInteger(COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG);
+        int effective = configured != null ? configured : commitRetryEscalationThreshold;
+        if (effective <= 0) {
+            throw new io.nop.stream.core.exceptions.StreamException(
+                    io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                            COMMIT_RETRY_ESCALATION_THRESHOLD_CONFIG + " must be > 0, got: " + effective);
+        }
+        return effective;
     }
 
     public List<CheckpointParticipant> getParticipants() {
@@ -1823,7 +1897,9 @@ public class CheckpointCoordinator {
         }
     }
 
-    private void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
+    // Package-private for tests (S3 seam, red③): the W-03 pin drives the exact
+    // production notify/retry sequence synchronously.
+    void notifyParticipantsFinishCommit(long checkpointId, boolean success) {
         checkpointSuccessMap.put(checkpointId, success);
         for (int i = participants.size() - 1; i >= 0; i--) {
             CheckpointParticipant participant = participants.get(i);
@@ -1837,8 +1913,23 @@ public class CheckpointCoordinator {
         }
     }
 
-    private void retryFailedCommits() {
+    // Package-private for tests (S3 seam, red③): see notifyParticipantsFinishCommit.
+    void retryFailedCommits() {
         if (failedCommitParticipants.isEmpty()) return;
+
+        // W-03 (CRA 8.42 R4-02, ruling A.2): consecutive-failure escalation. A
+        // participant whose finishCommit retry keeps failing is counted per ROUND
+        // (one increment per retryFailedCommits invocation, never per entry) and,
+        // at N consecutive failed rounds, deregistered (removeParticipant) — its
+        // ledger entries then drain through the EXISTING stillFailing-empty
+        // removal path below (abort gating + successMap terminal-marker semantics
+        // untouched). The escalation action itself (typed failJob via the handler)
+        // fires AFTER the iteration completes — never mid-iteration, so the
+        // coordinator is not terminalized while a fanout task body is draining it.
+        int threshold = resolveCommitRetryEscalationThreshold();
+        Set<CheckpointParticipant> countedThisRound = ConcurrentHashMap.newKeySet();
+        List<CheckpointParticipant> escalated = new ArrayList<>();
+        List<Exception> escalatedCauses = new ArrayList<>();
 
         Iterator<Map.Entry<Long, Set<CheckpointParticipant>>> it = failedCommitParticipants.entrySet().iterator();
         while (it.hasNext()) {
@@ -1852,6 +1943,8 @@ public class CheckpointCoordinator {
                 if (participants.contains(participant)) {
                     try {
                         participant.finishCommit(failedEpoch, originalSuccess);
+                        // W-03: a successful retry resets the consecutive-failure count.
+                        commitRetryFailureCounts.remove(participant);
                         LOG.info("Retried finishCommit for participant on epoch {} with success={} succeeded", failedEpoch, originalSuccess);
                     } catch (Exception e) {
                         // W-13 site ④ (CRA 8.41 R4-01, ruling E.1): three-state
@@ -1868,7 +1961,19 @@ public class CheckpointCoordinator {
                                     jobId, retryCommitSuppressor.getLastWindowSuppressedCount(),
                                     retryCommitSuppressor.getWindowMs(), retryCommitSuppressor.getLastSummary());
                         }
-                        stillFailing.add(participant);
+                        // W-03: count ONE consecutive failed round per participant;
+                        // at the threshold, deregister — the entry then drains via
+                        // the existing empty-stillFailing removal path (the
+                        // participant is NOT added to stillFailing).
+                        if (countedThisRound.add(participant)
+                                && commitRetryFailureCounts.merge(participant, 1, Integer::sum) >= threshold) {
+                            removeParticipant(participant);
+                            escalated.add(participant);
+                            escalatedCauses.add(e);
+                        } else if (!countedThisRound.contains(participant)
+                                || commitRetryFailureCounts.get(participant) < threshold) {
+                            stillFailing.add(participant);
+                        }
                     }
                 }
             }
@@ -1876,6 +1981,13 @@ public class CheckpointCoordinator {
             if (stillFailing.isEmpty()) {
                 it.remove();
                 checkpointSuccessMap.remove(failedEpoch);
+                // W-03: the entry is terminal — drop the participants' counters
+                // (entry-removal is the documented reset event for the survivors).
+                for (CheckpointParticipant participant : failedParts) {
+                    if (!escalated.contains(participant)) {
+                        commitRetryFailureCounts.remove(participant);
+                    }
+                }
                 // W-13 site ④ recovery: the retry ledger emptied — every failed
                 // participant recovered (one CLEARED entry on the transition).
                 if (failedCommitParticipants.isEmpty() && retryCommitSuppressor.success()
@@ -1887,6 +1999,35 @@ public class CheckpointCoordinator {
                 // 并发的 abort 门控（containsKey）会把仍在重试的 epoch 误判为无失败者，
                 // 提前删掉 success 终端标记，使重放默认 success=true
                 failedCommitParticipants.put(failedEpoch, stillFailing);
+            }
+        }
+
+        // W-03: the escalation exit — AFTER the iteration (ruling A.2: collect in
+        // the loop, act at the tail). One-shot typed terminal event: explicit
+        // ERROR log (never routed through the periodic suppressor) + the handler
+        // JobCoordinator wired to failJob(ERR_STREAM_COMMIT_RETRY_ESCALATED)
+        // (idempotent — an already-terminal job takes the existing WARN branch).
+        // The handler's own failure is logged, never swallowed (adjudication ④
+        // discipline).
+        for (int i = 0; i < escalated.size(); i++) {
+            CheckpointParticipant participant = escalated.get(i);
+            commitRetryFailureCounts.remove(participant);
+            io.nop.api.core.exceptions.NopException typed =
+                    new io.nop.stream.core.exceptions.StreamException(
+                            io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_COMMIT_RETRY_ESCALATED,
+                            escalatedCauses.get(i))
+                            .param(io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL,
+                                    String.valueOf(threshold) + " (job " + jobId + ", participant "
+                                            + participant + ")");
+            LOG.error("Commit-retry escalation for job {}: participant deregistered after {} "
+                    + "consecutive failed retry rounds", jobId, threshold, typed);
+            java.util.function.Consumer<Throwable> handler = this.commitRetryEscalationHandler;
+            if (handler != null) {
+                try {
+                    handler.accept(typed);
+                } catch (Exception handlerFailure) {
+                    LOG.error("Commit-retry escalation handler failed for job {}", jobId, handlerFailure);
+                }
             }
         }
     }
