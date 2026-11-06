@@ -37,6 +37,7 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
     /** 全链路（D1 §3.9）：open→setBreakpoints→挂起→evt.suspended→getStackInfo→renew→resume→evt.resumed→close→sessionClosed。 */
     @Test
     public void testFullDebugFlowSequence() throws Exception {
+        useManualClock();
         MockWsSession ws = new MockWsSession();
         DebugWebSocketHandler handler = newHandler(ws, TOK_U1);
 
@@ -77,11 +78,16 @@ public class TestDebugGatewayE2E extends AbstractDebugGatewayTest {
         Map<String, Object> stackResp = findResponse(ws.snapshot(), "3");
         assertNotNull(resultMap(stackResp).get("stackInfo"));
 
+        // 推进一段虚拟时间：此后 renew 的截止时间 = 推进后的虚拟时刻 + ttl，若生产侧改回真实时钟，
+        // 截止值会比期望少掉这段推进量，断言必然失败
+        clock.advance(5000);
         handler.onMessage(req("4", "lease.renew", "{}"));
         Map<String, Object> renewResp = findResponse(ws.snapshot(), "4");
         @SuppressWarnings("unchecked")
         Map<String, Object> leaseState = (Map<String, Object>) resultMap(renewResp).get("lease");
-        assertTrue(((Number) leaseState.get("expiresAtMs")).longValue() > clock.peekMillis());
+        // 租约截止 = 当前虚拟时刻 + 策略 ttl（renew 期间未推进时钟），据此钉住 renewLease 接线
+        assertEquals(clock.peekMillis() + 30000L,
+                ((Number) leaseState.get("expiresAtMs")).longValue());
         assertEquals(1, ((List<?>) leaseState.get("suspendedThreadIds")).size());
 
         handler.onMessage(req("5", "debugger.resume", "{}"));

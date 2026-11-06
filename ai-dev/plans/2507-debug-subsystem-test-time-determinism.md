@@ -1,6 +1,6 @@
 # 2507 调试子系统测试时间确定化（nop-xlang-debugger / nop-xlang-debug-web）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-06
 > Source: 用户 2026-11-06 指令「所有测试必须不依赖敏感的时间等待」；`ai-dev/logs/2026/11-06.md`（同日以放宽预算处理 `TestReplService` / `TestDebugGatewayE2E` 偶发失败，与该指令相悖，由本 plan 重做）
 > Related: `ai-dev/backlog/test-timing-determinism-roadmap.md`（WI-1）
@@ -62,7 +62,7 @@
 ### Out Of Scope
 
 - 其他模块的测试；CI 守卫脚本（roadmap WI-3）。
-- 审计耗时、`ReplService` 审计事件 timestamp、`AsyncOutbound` 告警限频与出站线程空闲退出的时间读取：不被任何断言消费，且后者是出站线程的真实生命周期。
+- 审计耗时、`ReplService` 审计事件 timestamp、`AsyncOutbound` 告警限频与出站线程空闲退出的时间读取：只被值无关断言消费（如 `durationMs >= 0`、timestamp 非空），测试结论不取决于其具体取值；最后一项是出站线程的真实生命周期。
 
 ## Execution Plan
 
@@ -195,18 +195,18 @@ Exit Criteria:
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。
 
-- [ ] Current Baseline 所列依赖真实时间的测试全部改造，或按 Phase 1 口径逐处裁定为允许形态并记录
-- [ ] 两模块测试源无四类依赖（Phase 4 / 5 的 grep 清单）
-- [ ] 生产行为默认不变（两模块既有测试全绿）
-- [ ] 变异探针证据已记录
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope 项
-- [ ] testing.md 规则已入册
-- [ ] 独立子 agent closure audit 已完成并记录证据
-- [ ] **Anti-Hollow Check**：注入的时钟 / 调度器在生产路径上确实被调用；无空方法体或静默跳过
-- [ ] `./mvnw <repo> compile`
-- [ ] `./mvnw <repo> test`（全 reactor）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-debug-subsystem-test-time-determinism.md --strict` 退出 0
-- [ ] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` 与 `--module nop-dev-tools/nop-xlang-debugger` 退出 0
+- [x] Current Baseline 所列依赖真实时间的测试全部改造，或按 Phase 1 口径逐处裁定为允许形态并记录
+- [x] 两模块测试源无四类依赖（Phase 4 / 5 的 grep 清单）
+- [x] 生产行为默认不变（两模块既有测试全绿）
+- [x] 变异探针证据已记录
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope 项
+- [x] testing.md 规则已入册
+- [x] 独立子 agent closure audit 已完成并记录证据
+- [x] **Anti-Hollow Check**：注入的时钟 / 调度器在生产路径上确实被调用；无空方法体或静默跳过
+- [x] `./mvnw <repo> compile`（由 test 生命周期传递满足）
+- [x] `./mvnw <repo> test`（全 reactor）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2507-debug-subsystem-test-time-determinism.md --strict` 退出 0
+- [x] `node ai-dev/tools/scan-hollow-implementations.mjs --module nop-dev-tools/nop-xlang-debug-web --severity high` 与 `--module nop-dev-tools/nop-xlang-debugger` 退出 0
 
 ## Deferred But Adjudicated
 
@@ -224,14 +224,28 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: <<关闭时填写>>
-Completed: YYYY-MM-DD
+Status Note: 两模块测试已不再依赖敏感时间等待：判定用时间读取收敛到 `CoreMetrics`，测试经可推进时钟与手动调度器显式驱动虚拟时间，跨线程交接改为读取计数 / latch / 条件等待；规则已入册 `docs-for-ai/02-core-guides/testing.md`，其余模块按 roadmap 逐模块承接。独立 closure audit 复核全部 Exit Criteria 与 Closure Gate 后 APPROVED，其提出的 F1（一条断言名不副实）已修订并用变异探针验证有效。
+Completed: 2026-11-06
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: <<独立子 agent>>
-- Evidence: <<逐条 Exit Criterion / Closure Gate 结果>>
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session，与执行阶段不同 session；未参与实现）
+- Evidence:
+  - Phase 1：testing.md:503-536 新规则条目（四类禁止 / 允许形态 / 冻结时钟约束），全文仅 5 处 `sleep` 命中且无一处推荐其作同步（:490 限定为模拟耗时、:491 已改显式同步）；`check-doc-links.mjs --strict` 重跑 0 errors。
+  - Phase 2：`git diff ba02ac4310 -- <两模块 src/main>` 恰为 9 处 `CoreMetrics` 替换 + 6 处 import（XLangDebugger:320/330/350、ThreadLocalReplDeadlineChannel:73、ReplService:131/233、DebugWebSocketHandler:638、DebugSessionBinder:220、GatewayNotifierBridge:146）；剩余 main 源命中与日志 Phase 2 条目逐条一致，全属 Out Of Scope 类别。
+  - Phase 3：ManualClock（仅推进前进、按线程计数、peek 不计数）与 ManualScheduler（单线推进、到期序 / 同刻提交序、固定率与固定延迟重排、取消、待执行可见、异常入 future、关停拒绝、不支持方法显式抛）自测 4+4+12 全绿；`awaitTermination` 的惰性语义已在 javadoc 写明且生产侧无调用方。
+  - Phase 4：TestLeaseLifecycle（虚拟时钟租约窗口 / 到期 / 双会话隔离 / 精确截止断言 + 推进后复查计数门）、TestReplDeadline（3 个死循环用例 LOOP_READS=10000 后推进；cancel 用例读数 ≥1 后 cancel）、assertBreakAt ×2 条件等待、TestSessionIsolation latch 化；本模块剩余命中全属允许形态并计入日志。
+  - Phase 5：基座注入 ManualScheduler，生产三处调用点（DebugSessionBinder:281 宽限、DebugWebSocketHandler:119 keepalive、DebugLogPipe:76 定时 flush）均经 `runtime.timer()`；宽限 / 多标签页 / rebind / churn / keepalive / 定时 flush / 停滞客户端 / 挂起计入 deadline 全部改为推进驱动或结构性判据；接线四面对均有「推进前 / 推进后」断言。
+  - Phase 6：16 核满载 10 轮全绿（`_tmp/p6-load-rounds.out`：rounds 1-10 exit=0，burners left 0）；F1 修订后全 reactor 复跑 `./mvnw <repo> test -T 1C -fae` → **26467 用例 0 失败 0 错误，456 模块全 SUCCESS 0 FAILURE 0 SKIPPED**（`_tmp/full-test-2026-11-06-run5.log`，22:32 完成）。
+  - 变异探针 5 组均「撤掉被测行为即红、恢复即绿」并经日志留存：`probe1-mutated`（续期推进租约）、`probe2-mutated`（deadline / cancel 分支）、`probe3-mutated`（宽限到期销毁）、`probe4-mutated`（宽限内 rebind 取消销毁任务）、`probe5-mutated`（挂起计入 deadline）。全仓 `MUTATION-PROBE` 标记 0 命中，两模块 main 源相对提交版零差异。
+  - Anti-Hollow：注入的调度器被生产三处调用点消费；9 处时钟读取均在判定路径上；`scan-hollow-implementations.mjs --severity high` 两模块均 exit 0（0 critical / high）。
+  - 审计发现处理：F1（Minor，`testFullDebugFlowSequence` 未调 `useManualClock()`，租约截止断言名不副实）已修订——用例开头 `useManualClock()`、renew 前 `clock.advance(5000)`、断言改为精确等于「推进后虚拟时刻 + 策略 ttl」，并以变异探针验证（`renewLease` 改回真实时钟即红，差值 4837ms）；F2（`awaitTermination` javadoc 明确惰性语义）、F3（补全 debugger 侧剩余命中清单）、F4（Out Of Scope 措辞改为「只被值无关断言消费」）同批处理。
+  - 文本一致性（Guide #19）：Plan Status、6 个 Phase Status、各自 Exit Criteria、Closure Gates 与本日志条目一致。
+  - `check-plan-checklist.mjs --strict` 退出 0（关闭后复核）。
+- 说明：审计在 F1 修订前给出 APPROVED-with-fix；F1 为测试断言力度问题（非产品缺陷），修订后两个模块与全 reactor 均复跑全绿，故 closure 成立。
 
 Follow-up:
 
-- <<non-blocking follow-up 或 no remaining plan-owned work>>
+- 其余模块的时间敏感测试按 `ai-dev/backlog/test-timing-determinism-roadmap.md` WI-4 ~ WI-8 承接（不在本 plan scope）。
+- WI-2（工具归并）、WI-3（新增违规守卫）为非阻塞治理项。
+- 无剩余 plan-owned work。

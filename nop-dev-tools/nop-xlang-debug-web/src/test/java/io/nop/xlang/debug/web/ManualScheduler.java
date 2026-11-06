@@ -128,7 +128,10 @@ public final class ManualScheduler extends AbstractExecutorService implements Sc
         return shutdown && queue.isEmpty();
     }
 
-    /** 不等待：没有推进就不会有任务完成，直接返回当前是否已终止。 */
+    /**
+     * 不等待也不消费 timeout：只有 {@code advance()} 会让任务完成，故此处只报告当前是否已终止。
+     * 生产代码不调用本方法（两个调试模块 main 源均无 awaitTermination 调用方）。
+     */
     @Override
     public boolean awaitTermination(long timeout, TimeUnit unit) {
         return isTerminated();
