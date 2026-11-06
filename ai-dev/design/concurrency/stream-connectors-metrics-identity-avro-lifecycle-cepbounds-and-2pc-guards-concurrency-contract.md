@@ -391,6 +391,7 @@
 
 ## 评审记录
 
+- **closure audit 勘误注记（2026-11-07 @ `fb067084da`，agent_ec84fc86 APPROVED with corrections）**：①W-06 中断处置形态=重置中断标志+typed `ERR_STREAM_CHECKPOINT_ERROR`（裁定 C.4「原样传播」字面偏离——取消信号经中断标志+typed 双通道保留，行为等价且合项目错误码约定，红⑥ 断言按 typed 写）；②W-12 payload 包络落点=nop-stream.md 行为块（plan Phase 3 承诺的 connectors.md 能力矩阵未动——落点偏离登记）；③K10 测试构造点计数勘正 15→14 随评审 F-3 已落。
 - **设计评审 R1**（2026-11-07，agent_ffdca052 fresh session 只读 @ `3b3df13655`，live 抽验 70+ 处）：**PASS-with-revisions——0 Blocker + 0 Major + 6 Minor，全部随轮落盘，无需 R2 放行 Phase 2**。核证通过面：K1–K10 亲读命中（K10 一处计数勘正 15→14[F-3]）；七源引用忠实（2511/2510/2535/R01 SSOT/merge-adjudication/batch-proposal/owner docs——零回退红线落款工单对应无越界）；裁定 A–E 全部成立（含 C.4 双级锁 60s 期限/C.3 单遍 RocksIterator 钉序/D.2 声明分支校验+new-only 缺省+runtime 两行接线偏离合规[K4 先例同构+PA row 9 预设授权通道]）；rule 14 合规；条件申报①–⑤亲证零触发。三风险专项结论：①C.6 下界口径足够（serialize-to-measure 否决正确；E5 措辞补 F-2 明示）②D.2 偏离合规非守卫空壳（先例同构+opt-in 语义+生产路径真实生效）③B.1 两步义务满足且时序可测（审计建议③ 双选项菜单内+红② 三 leg 确定性）。修订 F-1~F-6 随轮落盘。
 
 - **设计评审 R1**：（预留——独立评审子 agent fresh session 只读完成后回填：结论/修订清单/live 抽验规模/想象性分析三风险点结论）
