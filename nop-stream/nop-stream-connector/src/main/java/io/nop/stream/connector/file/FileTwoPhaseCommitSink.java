@@ -44,6 +44,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 
 /**
@@ -94,6 +95,33 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     public static final long DEFAULT_RETENTION_EPOCH_WINDOW =
             computeRetentionEpochWindow(30L, CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL);
+
+    /**
+     * CRA 8.43 R4-03 W-04 (MA-13=C5-005; adjudication C.1): upper bound of
+     * buffered lines in the current epoch's {@code currentBuffer} (same default
+     * and meaning as the JDBC sink's {@code maxEpochRecords}). Invoke rejects
+     * typed BEFORE buffering once the bound is reached.
+     */
+    public static final long DEFAULT_MAX_EPOCH_LINES = 100_000L;
+
+    /**
+     * CRA 8.43 R4-03 W-04: upper bound of simultaneously pending (uncommitted)
+     * epochs in {@code pendingCommits} — each entry pins a tmp file on disk, so
+     * the pending stack IS the disk-face bound. 8 pending epochs ≈ 8
+     * consecutive unconverged checkpoints before the sink fails typed.
+     */
+    public static final long DEFAULT_MAX_PENDING_EPOCHS = 8L;
+
+    /**
+     * CRA 8.43 R4-03 W-06 (MA-15=C2-005, merged C3-008; adjudication C.4):
+     * bounded wait for the cross-JVM manifest lock (both levels — the JVM-local
+     * {@link ReentrantLock} AND the OS-level file lock share this one budget).
+     * 60s = checkpointInterval-scale: significantly longer than a legal slow
+     * commit (fsync + manifest rewrite, seconds), far short of the unbounded
+     * block the pre-fix shape had (a peer JVM alive-but-hung froze the commit
+     * path forever → checkpoint stall → restart → same hang).
+     */
+    public static final long DEFAULT_MANIFEST_LOCK_TIMEOUT_MS = 60_000L;
     /**
      * AR-14 (plan 2026-09-04-1326-3): cross-writer manifest lock file in the output
      * directory. Serializes the manifest read-modify-write across parallel subtasks —
@@ -119,6 +147,15 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * zero window disables pruning explicitly (retention-days = 0 opt-out).
      */
     private final long retentionEpochWindow;
+
+    /** CRA 8.43 R4-03 W-04: current-epoch line-buffer bound ({@code <= 0} fails fast at construction). */
+    private final long maxEpochLines;
+
+    /** CRA 8.43 R4-03 W-04: pendingCommits stack bound ({@code <= 0} fails fast at construction). */
+    private final long maxPendingEpochs;
+
+    /** CRA 8.43 R4-03 W-06: bounded wait (ms) for BOTH manifest-lock levels ({@code <= 0} fails fast). */
+    private final long manifestLockTimeoutMs;
     /**
      * Item 14 (distributed): stored as a NAME (not a {@link Charset} object) so the
      * sink survives the Java serialization of the deployment descriptor's pipeline
@@ -227,7 +264,8 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     @Override
     public FileTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
-        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex, retentionEpochWindow);
+        return new FileTwoPhaseCommitSink<>(outputDir, charset(), subtaskIndex, retentionEpochWindow,
+                maxEpochLines, maxPendingEpochs, manifestLockTimeoutMs);
     }
 
     /**
@@ -239,8 +277,39 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     public FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex,
                                   long retentionEpochWindow) {
+        this(outputDir, charset, subtaskIndex, retentionEpochWindow,
+                DEFAULT_MAX_EPOCH_LINES, DEFAULT_MAX_PENDING_EPOCHS,
+                DEFAULT_MANIFEST_LOCK_TIMEOUT_MS);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-04/W-06: full constructor with the buffer/pending
+     * envelope bounds and the manifest-lock wait budget. Primarily for the
+     * deployment assembly and tests; the plain constructors keep the defaults.
+     * All three bounds fail fast typed on non-positive values.
+     */
+    public FileTwoPhaseCommitSink(String outputDir, Charset charset, int subtaskIndex,
+                                  long retentionEpochWindow, long maxEpochLines,
+                                  long maxPendingEpochs, long manifestLockTimeoutMs) {
         if (outputDir == null || outputDir.isEmpty()) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "outputDir");
+        }
+        // CRA 8.43 R4-03 W-04/W-06: nonsensical envelope declarations fail fast.
+        if (maxEpochLines <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxEpochLines")
+                    .param(ARG_DETAIL, "maxEpochLines must be > 0, got: " + maxEpochLines);
+        }
+        if (maxPendingEpochs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxPendingEpochs")
+                    .param(ARG_DETAIL, "maxPendingEpochs must be > 0, got: " + maxPendingEpochs);
+        }
+        if (manifestLockTimeoutMs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "manifestLockTimeoutMs")
+                    .param(ARG_DETAIL, "manifestLockTimeoutMs must be > 0, got: "
+                            + manifestLockTimeoutMs);
         }
         // C3-002: the retention epoch window is an assembly-time constant; negative
         // values would prune not-yet-expired epochs (a recovery-correctness hazard)
@@ -255,6 +324,9 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         this.charset = charset != null ? charset : StandardCharsets.UTF_8;
         this.subtaskIndex = subtaskIndex;
         this.retentionEpochWindow = retentionEpochWindow;
+        this.maxEpochLines = maxEpochLines;
+        this.maxPendingEpochs = maxPendingEpochs;
+        this.manifestLockTimeoutMs = manifestLockTimeoutMs;
         this.outputDirPath = Paths.get(outputDir);
         try {
             Files.createDirectories(outputDirPath);
@@ -302,6 +374,19 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "value");
         }
         synchronized (currentBuffer) {
+            // CRA 8.43 R4-03 W-04 (MA-13=C5-005): declared epoch-line envelope —
+            // reject BEFORE buffering (same-monitor atomic check-and-reject) so
+            // the "barrier duration × input rate" product fails typed instead of
+            // growing the heap without bound.
+            if (currentBuffer.size() >= maxEpochLines) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_ARG_NAME, "maxEpochLines")
+                        .param(ARG_DETAIL, "FILE 2PC epoch buffer is full: "
+                                + currentBuffer.size() + "/" + maxEpochLines
+                                + " lines for the current epoch — reduce the checkpoint "
+                                + "interval, raise maxEpochLines, or inspect why commits "
+                                + "are not draining the buffer");
+            }
             currentBuffer.add(value.toString());
         }
     }
@@ -323,6 +408,21 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 // doCommitLocked ran after the checkpoint durable marker, so an
                 // OS crash inside that window could commit a truncated file.
                 forcePath(tempPath);
+                // CRA 8.43 R4-03 W-04 face 2 (C5-010): bound the pendingCommits
+                // stack BEFORE the transfer — every pending entry pins a tmp file
+                // (disk face) and re-serializes on every later barrier. The
+                // retention window / prune chain is NOT touched (2511 adjudication
+                // ④ carrier, zero-touch) — the task fails typed and the recovery
+                // path takes over.
+                if (getPendingCommits().size() >= maxPendingEpochs) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "FILE 2PC pendingCommits stack is full: "
+                                    + getPendingCommits().size() + "/" + maxPendingEpochs
+                                    + " uncommitted epochs (epoch " + epochId
+                                    + " would exceed the bound) — commits are not landing; "
+                                    + "inspect the commit-notification chain (finishCommit) "
+                                    + "or raise maxPendingEpochs for slow-durable deployments");
+                }
                 getPendingCommits().put(epochId,
                         new FilePendingCommit(tempPath.toString(), count, subtaskIndex));
                 currentBuffer.clear();
@@ -523,14 +623,72 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private void withManifestLock(FileTwoPhaseCommitAction action) throws Exception {
         ReentrantLock jvmLock = MANIFEST_JVM_LOCKS.computeIfAbsent(
                 outputDirPath.toAbsolutePath().normalize().toString(), k -> new ReentrantLock());
-        jvmLock.lock();
+        // CRA 8.43 R4-03 W-06 (MA-15=C2-005; adjudication C.4): BOTH lock levels
+        // now share ONE bounded budget ({@code manifestLockTimeoutMs}) —
+        // jvmLock.tryLock(time, unit) is bounded AND interruptible (cancel
+        // propagates), replacing the unbounded lock() that froze the commit
+        // path when a peer JVM hung. Lock ORDER is unchanged: the OS-level
+        // tryLock polling loop below still runs while HOLDING the jvmLock
+        // (JL→FL, no inversion), and every timeout path unlocks symmetrically.
+        boolean jvmAcquired;
+        try {
+            jvmAcquired = jvmLock.tryLock(manifestLockTimeoutMs, java.util.concurrent.TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_ARG_NAME, "manifestLock")
+                    .param(ARG_DETAIL, "Interrupted while waiting for the JVM-local manifest "
+                            + "lock of " + outputDirPath.toAbsolutePath().normalize()
+                            + " (waited up to " + manifestLockTimeoutMs + "ms) — check the "
+                            + "lock-holding thread dump of the peer JVM");
+        }
+        if (!jvmAcquired) {
+            throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                    .param(ARG_ARG_NAME, "manifestLock")
+                    .param(ARG_DETAIL, "Timed out after " + manifestLockTimeoutMs
+                            + "ms waiting for the JVM-local manifest lock of "
+                            + outputDirPath.toAbsolutePath().normalize() + " — a peer writer "
+                            + "holds it; check the lock-holding thread dump");
+        }
         try (FileChannel channel = FileChannel.open(outputDirPath.resolve(MANIFEST_LOCK_FILE),
                 StandardOpenOption.CREATE, StandardOpenOption.WRITE)) {
-            FileLock fileLock = channel.lock();
+            // OS level: FileLock has no timed variant — tryLock() polling with a
+            // fixed 200ms step until the shared budget runs out (audit C2-005
+            // sanctioned shape). Lock order (JL→FL) and the critical section are
+            // unchanged.
+            FileLock fileLock = null;
+            long deadline = System.currentTimeMillis() + manifestLockTimeoutMs;
             try {
+                while (true) {
+                    try {
+                        fileLock = channel.tryLock();
+                    } catch (java.nio.channels.OverlappingFileLockException e) {
+                        // The JVM (or a foreign holder inside this JVM) already
+                        // holds an overlapping lock — treat exactly like a
+                        // cross-JVM contender: keep polling until the shared
+                        // budget runs out (fail-loud, never a thrown raw
+                        // exception from inside the bounded-wait loop).
+                        fileLock = null;
+                    }
+                    if (fileLock != null) {
+                        break;
+                    }
+                    if (System.currentTimeMillis() >= deadline) {
+                        throw new StreamException(ERR_STREAM_CHECKPOINT_ERROR)
+                                .param(ARG_ARG_NAME, "manifestLock")
+                                .param(ARG_DETAIL, "Timed out after " + manifestLockTimeoutMs
+                                        + "ms waiting for the OS-level manifest lock file "
+                                        + outputDirPath.resolve(MANIFEST_LOCK_FILE)
+                                        + " — a peer JVM writer holds it; check whether that "
+                                        + "JVM is alive and dump its lock-holding threads");
+                    }
+                    Thread.sleep(200L);
+                }
                 action.run();
             } finally {
-                fileLock.release();
+                if (fileLock != null) {
+                    fileLock.release();
+                }
             }
         } finally {
             jvmLock.unlock();

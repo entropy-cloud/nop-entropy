@@ -52,6 +52,80 @@ public final class RocksDBIncrementalSnapshotStrategy {
     private static final org.slf4j.Logger LOG =
             org.slf4j.LoggerFactory.getLogger(RocksDBIncrementalSnapshotStrategy.class);
 
+    /** CRA 8.43 R4-03 W-09: hash only new or size-changed SST files (default). */
+    public static final String HASH_POLICY_NEW_ONLY = "new-only";
+    /** CRA 8.43 R4-03 W-09: re-hash every SST file each checkpoint (opt-out tier). */
+    public static final String HASH_POLICY_FULL = "full";
+
+    /** CRA 8.43 R4-03 W-09: hash policy for this strategy instance. */
+    private final String hashPolicy;
+
+    /**
+     * CRA 8.43 R4-03 W-09: previous-checkpoint SST index keyed by file name
+     * (an SST file never mutates under a fixed name, so (name, size) equality
+     * is an honest hash-reuse basis — mtime is unreliable across checkpoint
+     * directories and is not used). Seeded from the restored snapshot's
+     * SharedStateHandle list; rolled forward after every checkpoint. A fresh
+     * open starts empty, so the FIRST checkpoint degrades to full hashing —
+     * the correct semantics with no index to reuse.
+     */
+    private final java.util.Map<String, SstIndexEntry> previousSstIndex = new java.util.HashMap<>();
+
+    private static final class SstIndexEntry {
+        final String hash;
+        final long size;
+
+        SstIndexEntry(String hash, long size) {
+            this.hash = hash;
+            this.size = size;
+        }
+    }
+
+    public RocksDBIncrementalSnapshotStrategy() {
+        this(HASH_POLICY_NEW_ONLY);
+    }
+
+    public RocksDBIncrementalSnapshotStrategy(String hashPolicy) {
+        if (!HASH_POLICY_NEW_ONLY.equals(hashPolicy) && !HASH_POLICY_FULL.equals(hashPolicy)) {
+            throw new StreamException(io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG)
+                    .param("hashPolicy", String.valueOf(hashPolicy))
+                    .param("detail", "nop.stream.rocksdb.snapshot-hash-policy must be '"
+                            + HASH_POLICY_NEW_ONLY + "' or '" + HASH_POLICY_FULL + "', got: " + hashPolicy);
+        }
+        this.hashPolicy = hashPolicy;
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-09: seed the SST index from a restored incremental
+     * snapshot's handle list (hash + size per original SST file name), so the
+     * first post-restore checkpoint can reuse the previous hashes for
+     * unchanged files. Called by the owning backend's restore path.
+     */
+    public void seedIndexFromHandles(List<SharedStateHandle> handles) {
+        if (handles == null) {
+            return;
+        }
+        for (SharedStateHandle handle : handles) {
+            String fileName = extractFileName(handle.getFilePath());
+            if (fileName != null) {
+                previousSstIndex.put(fileName, new SstIndexEntry(handle.getContentHash(), handle.getSize()));
+            }
+        }
+    }
+
+    private static String extractFileName(String path) {
+        if (path == null) {
+            return null;
+        }
+        int slash = Math.max(path.lastIndexOf('/'), path.lastIndexOf('\\'));
+        return slash >= 0 ? path.substring(slash + 1) : path;
+    }
+
+    /** CRA 8.43 R4-03 W-09: how many SST entries the reuse index currently holds. */
+    int previousSstIndexSize() {
+        return previousSstIndex.size();
+    }
+
     /**
      * Build an incremental snapshot result from the live RocksDB instance.
      *
@@ -93,8 +167,21 @@ public final class RocksDBIncrementalSnapshotStrategy {
                 String name = entry.getFileName().toString();
                 String lower = name.toLowerCase();
                 if (lower.endsWith(".sst") || lower.endsWith(".ldb")) {
-                    String hash = SstFileChecksum.sha256Hex(entry);
                     long size = Files.size(entry);
+                    // CRA 8.43 R4-03 W-09 (C8-013): hash-reuse under the SST
+                    // immutability contract — an SST file never mutates under a
+                    // fixed name, so (name, size) equality honestly carries the
+                    // previous hash forward. full policy (or an index miss /
+                    // size drift) re-hashes the whole file.
+                    String hash;
+                    SstIndexEntry previous = HASH_POLICY_NEW_ONLY.equals(hashPolicy)
+                            ? previousSstIndex.get(name) : null;
+                    if (previous != null && previous.size == size) {
+                        hash = previous.hash;
+                    } else {
+                        hash = SstFileChecksum.sha256Hex(entry);
+                        previousSstIndex.put(name, new SstIndexEntry(hash, size));
+                    }
                     sstHandles.add(new SharedStateHandle(hash, entry.toAbsolutePath().toString(), size));
                     totalSize += size;
                     nameMap.append(hash).append('|').append(name).append('\n');

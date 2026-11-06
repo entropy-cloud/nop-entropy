@@ -417,7 +417,12 @@ public class TestFileTwoPhaseCommitSink {
         s0.beginTransaction();
         s1.beginTransaction();
 
-        int epochs = 25;
+        // CRA 8.43 R4-03 E-2536-4: 25 → 8 — the W-04 pendingCommits bound
+        // (DEFAULT_MAX_PENDING_EPOCHS=8, adjudication C.1) now rejects an
+        // unconverged stack beyond 8 epochs BY DESIGN; the drive shrinks into
+        // the declared envelope so the pin's manifest-race assertions (verbatim
+        // below) keep exercising the AR-14 interleave.
+        int epochs = 8;
         // Stage all epochs' temp files first (mirrors saveState-per-barrier), so the
         // concurrent phase below concentrates on the manifest read-modify-write race.
         for (long epoch = 1; epoch <= epochs; epoch++) {

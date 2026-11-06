@@ -79,6 +79,7 @@ import io.nop.stream.core.util.OutputTag;
 import io.micrometer.core.instrument.Counter;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_STATE;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 
@@ -188,6 +189,24 @@ public class CepOperator<IN, KEY, OUT>
      * a ledger entry, maintained by {@code registerTimer}) holds for that key.
      */
     private transient Set<Object> reconciledTimerKeys;
+
+    /**
+     * CRA 8.43 R4-03 W-10 (C8-002, adjudication C.2): subtask-level count of
+     * in-flight buffered match events across ALL keys (incremented at
+     * {@link #bufferEvent}, decremented at the drainDueBuckets bucket-removal
+     * point). Single-task-thread mailbox model — a plain field, no atomics.
+     * Transient: a restore restarts the count at 0, so the protection covers
+     * the post-restore growth (under-counts the restored backlog itself — a
+     * guard weakening, not a false kill; declared in the owner doc).
+     */
+    private transient long bufferedEvents;
+
+    /**
+     * CRA 8.43 R4-03 W-10: the subtask-level match-buffer cap, loaded from
+     * {@link NopCepConfigs#MATCH_BUFFER_MAX_EVENTS} at {@link #open()} and
+     * fail-fast rejected when {@code <= 0}.
+     */
+    private transient long matchBufferMaxEvents;
 
     /**
      * Comparator for secondary sorting. Primary sorting is always done on time.
@@ -524,6 +543,17 @@ public class CepOperator<IN, KEY, OUT>
         resolveKeyedBackend();
         initStateAccess();
         initTimerLedger();
+
+        // CRA 8.43 R4-03 W-10: load the match-buffer envelope at open and fail
+        // fast on a nonsensical (non-positive) declaration.
+        this.matchBufferMaxEvents = NopCepConfigs.MATCH_BUFFER_MAX_EVENTS.get();
+        if (this.matchBufferMaxEvents <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG).param(ARG_DETAIL,
+                    "Invalid CEP config: nop.cep.pipeline.match-buffer.max-events ("
+                            + this.matchBufferMaxEvents + ") must be > 0 — it bounds the "
+                            + "subtask-level in-flight match-buffer events");
+        }
+        this.bufferedEvents = 0;
 
         internalTimerService = createTimerService();
 
@@ -1163,6 +1193,21 @@ public class CepOperator<IN, KEY, OUT>
     }
 
     private void bufferEvent(IN event, long currentTime) throws Exception {
+        // CRA 8.43 R4-03 W-10: subtask-level in-flight envelope — reject BEFORE
+        // buffering (no queue pollution) when the event would exceed the cap.
+        // The check shares the bufferEvent call site with the existing late-event
+        // branch semantics (a separate, parallel branch — late-record counting is
+        // NOT merged into this path).
+        if (bufferedEvents + 1 > matchBufferMaxEvents) {
+            throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                    "CEP match-buffer overflow: in-flight buffered events would exceed "
+                            + "nop.cep.pipeline.match-buffer.max-events=" + matchBufferMaxEvents
+                            + " (current in-flight count: " + bufferedEvents + ", key: "
+                            + currentRegistrationKey() + ", event timestamp: " + currentTime
+                            + "). Check watermark progress (idle source partitions stall "
+                            + "the drain), add a within clause to the pattern, or raise "
+                            + "nop.cep.pipeline.match-buffer.max-events");
+        }
         List<IN> elementsForTimestamp = elementQueueState.get(currentTime);
         if (elementsForTimestamp == null) {
             elementsForTimestamp = new ArrayList<>();
@@ -1171,6 +1216,7 @@ public class CepOperator<IN, KEY, OUT>
 
         elementsForTimestamp.add(event);
         elementQueueState.put(currentTime, elementsForTimestamp);
+        bufferedEvents++;
     }
 
     /**
@@ -1305,6 +1351,19 @@ public class CepOperator<IN, KEY, OUT>
             }
         }
         computationStates.clear();
+        // CRA 8.43 R4-03 W-07 (MA-16=C5-001, adjudication D.1): the key's NFA
+        // state is fully gone — its reconciled-ledger marker must go with it.
+        // Pre-fix reconciledTimerKeys grew monotonically per distinct key (every
+        // key ever drained stayed forever, holding a strong key reference — a
+        // stable per-subtask leak under unbounded key cardinality). Removal is
+        // re-reconcile-safe: the backfill is idempotent (a re-drained key whose
+        // legacy delta is empty observes a no-op), so "once per instance
+        // lifetime" becomes "once per key lifetime" — the set's watermark is
+        // bounded by the live key cardinality. Mirrors the
+        // registeredEventTimeTimersByKey "consume-or-remove" cleanup semantics.
+        if (reconciledTimerKeys != null) {
+            reconciledTimerKeys.remove(currentRegistrationKey());
+        }
     }
 
     private Stream<IN> sort(Collection<IN> elements) {
@@ -1377,6 +1436,10 @@ public class CepOperator<IN, KEY, OUT>
                             }
                         });
             }
+            // CRA 8.43 R4-03 W-10: the bucket is consumed — its events leave the
+            // in-flight envelope (decrement by the bucket size at the removal
+            // point, keeping bufferedEvents == live buffered events).
+            bufferedEvents -= elements.size();
             elementQueueState.remove(timestamp);
         }
     }
@@ -1564,6 +1627,15 @@ public class CepOperator<IN, KEY, OUT>
     boolean hasNonEmptyPQ(KEY key) throws Exception {
         setCurrentKey(key);
         return !elementQueueState.isEmpty();
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-07 (S8 seam): package-visible watermark of the
+     * reconciled-ledger marker set — the red ⑦ convergence assertion point.
+     * Zero public API surface.
+     */
+    int reconciledTimerKeysSizeForTesting() {
+        return reconciledTimerKeys == null ? 0 : reconciledTimerKeys.size();
     }
 
     int getPQSize(KEY key) throws Exception {

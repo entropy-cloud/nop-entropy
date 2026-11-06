@@ -227,6 +227,10 @@ public class GraphModelCheckpointExecutor {
 
         gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         checkpointConfig.validateUnalignedConfig();
+        // CRA 8.43 R4-03 W-09: declared-scale snapshot-budget coupling guard,
+        // wired at the same validate funnel as validateUnalignedConfig (both
+        // D.2 call sites of the existing precedent).
+        checkpointConfig.validateSnapshotBudget();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         boolean threadUnalignedConfig = (planBuildMode == PlanBuildMode.THREAD_UNALIGNED_CONFIG);
         GraphExecutionPlan execPlan = threadUnalignedConfig
@@ -365,6 +369,9 @@ public class GraphModelCheckpointExecutor {
             String overrideStoragePath, String restoreSavepointPath) throws Exception {
         gateTwoPhaseRequiresConfig(jobGraph, checkpointConfig);
         checkpointConfig.validateUnalignedConfig();
+        // CRA 8.43 R4-03 W-09: declared-scale snapshot-budget coupling guard
+        // (same validate funnel, savepoint-runtime path).
+        checkpointConfig.validateSnapshotBudget();
         boolean barrierAlignment = resolveBarrierAlignment(checkpointConfig);
         GraphExecutionPlan execPlan = buildExecutionPlan(jobGraph, barrierAlignment, checkpointConfig.getBarrierAlignmentTimeout());
         String jobId = resolveJobId(checkpointConfig);

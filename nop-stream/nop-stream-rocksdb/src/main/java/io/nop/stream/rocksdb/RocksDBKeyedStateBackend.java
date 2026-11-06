@@ -954,7 +954,7 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             throw new StreamException(ERR_STREAM_STATE_ERROR)
                     .param(ARG_DETAIL, "RocksDB instance is null; incremental snapshot unavailable");
         }
-        RocksDBIncrementalSnapshotStrategy strategy = new RocksDBIncrementalSnapshotStrategy();
+        RocksDBIncrementalSnapshotStrategy strategy = ensureIncrementalStrategy();
         Path baseDir = Paths.get(checkpointBaseDir != null ? checkpointBaseDir : (dbPath + "-checkpoints"));
         long cpId = incrementalSnapshotIdCounter.incrementAndGet();
         IncrementalSnapshotResult result = strategy.doSnapshot(db, baseDir, cpId);
@@ -1003,6 +1003,42 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     public void setSnapshotMaterializeMaxEntries(long snapshotMaterializeMaxEntries) {
         this.snapshotMaterializeMaxEntries = snapshotMaterializeMaxEntries;
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-09 (C8-013, adjudication D.2): SST checksum policy for
+     * the incremental path — {@code new-only} (default) hashes only new or
+     * size-changed SST files and reuses previous hashes (SST immutability
+     * contract), turning the default path's checksum cost from O(total SST
+     * volume) into O(increment); {@code full} is the opt-out per-checkpoint
+     * full re-verification tier. Changing the policy resets the reuse index
+     * (the next checkpoint re-hashes from scratch under the new policy).
+     */
+    private String snapshotHashPolicy = NopStreamRocksdbConfigs.SNAPSHOT_HASH_POLICY.get();
+
+    /**
+     * CRA 8.43 R4-03 W-09: backend-held incremental strategy instance so the
+     * SST hash-reuse index persists across checkpoints (fresh open &rarr;
+     * empty index &rarr; first checkpoint full-hashes; restore &rarr; seeded
+     * from the snapshot's handle list).
+     */
+    private RocksDBIncrementalSnapshotStrategy incrementalStrategy;
+
+    public String getSnapshotHashPolicy() {
+        return snapshotHashPolicy;
+    }
+
+    public void setSnapshotHashPolicy(String snapshotHashPolicy) {
+        this.snapshotHashPolicy = snapshotHashPolicy;
+        this.incrementalStrategy = null;
+    }
+
+    /** Lazily create the persistent incremental strategy under the current hash policy. */
+    private RocksDBIncrementalSnapshotStrategy ensureIncrementalStrategy() {
+        if (incrementalStrategy == null) {
+            incrementalStrategy = new RocksDBIncrementalSnapshotStrategy(snapshotHashPolicy);
+        }
+        return incrementalStrategy;
     }
 
     @Override
@@ -1109,6 +1145,10 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         Files.createDirectories(baseDir);
         int copied = RocksDBIncrementalRestore.restoreRangeInto(
                 this, result, segmentStore, targetKeyGroupRange, baseDir);
+        // CRA 8.43 R4-03 W-09: seed the SST hash-reuse index from the restored
+        // snapshot's handle list so the first post-restore checkpoint reuses
+        // previous hashes for unchanged files (new-only policy).
+        ensureIncrementalStrategy().seedIndexFromHandles(result.getSstHandles());
         LOG.debug("Incremental range restore copied {} entries into RocksDB at {}", copied, dbPath);
     }
 

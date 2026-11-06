@@ -38,8 +38,28 @@ public class MessageSource<T> implements Source<T, MessageTopicSplit, MessageSou
     private final String topic;
     private final Class<?> typeClass;
 
+    /**
+     * CRA 8.43 R4-03 W-12: per-record byte envelope handed to the reader
+     * (default {@link MessageSourceReader#DEFAULT_MAX_RECORD_BYTES}).
+     */
+    private final long maxRecordBytes;
+
     public MessageSource(io.nop.api.core.message.IMessageService messageService, String topic,
                          Class<?> typeClass) {
+        if (messageService == null) {
+            throw new IllegalArgumentException("messageService is required");
+        }
+        if (topic == null || topic.isEmpty()) {
+            throw new IllegalArgumentException("topic must not be null or empty");
+        }
+        this(messageService, topic, typeClass, MessageSourceReader.DEFAULT_MAX_RECORD_BYTES);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-12: full constructor with the per-record byte envelope.
+     */
+    public MessageSource(io.nop.api.core.message.IMessageService messageService, String topic,
+                         Class<?> typeClass, long maxRecordBytes) {
         if (messageService == null) {
             throw new IllegalArgumentException("messageService is required");
         }
@@ -49,11 +69,7 @@ public class MessageSource<T> implements Source<T, MessageTopicSplit, MessageSou
         this.messageService = messageService;
         this.topic = topic;
         this.typeClass = typeClass;
-    }
-
-    /** Payload-decode-free convenience form (parity with the legacy two-arg factory). */
-    public MessageSource(io.nop.api.core.message.IMessageService messageService, String topic) {
-        this(messageService, topic, null);
+        this.maxRecordBytes = maxRecordBytes;
     }
 
     /** Test visibility: the constructor-injected service. */
@@ -84,7 +100,7 @@ public class MessageSource<T> implements Source<T, MessageTopicSplit, MessageSou
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     public SourceReader<T, MessageTopicSplit> createReader(SourceReaderContext readerContext) {
-        return new MessageSourceReader<>(newEmbeddedFunction());
+        return new MessageSourceReader<>(newEmbeddedFunction(), maxRecordBytes);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

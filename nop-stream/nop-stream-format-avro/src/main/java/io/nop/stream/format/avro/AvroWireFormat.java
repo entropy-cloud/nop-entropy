@@ -29,9 +29,24 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Factory methods {@link #avroDeserializer(String)} and {@link #avroSerializer(String)}
  * produce {@code Function} instances directly injectable into the stream connector
  * surface ({@code KafkaSourceFunction.valueDeserializer} /
- * {@code KafkaTwoPhaseCommitSink.valueSerializer}).
+ * {@code KafkaTwoPhaseCommitSink.valueSerializer}). The returned closures hold THIS
+ * wire-format and its registry client — the assembling side (job assembly / test
+ * host; WI18 connector wiring later) is responsible for calling {@link #close()}
+ * at the lifecycle end (CRA 8.43 R4-03 W-03 caller-obligation declaration;
+ * WI18 lands the host close-chain wiring together with the registry-request-timeout
+ * production wiring).
+ *
+ * <p>CRA 8.43 R4-03 W-02 (MA-10, adjudication B.1): reader-schema resolution
+ * degrades NON-silently — a registry failure falls back to the writer schema behind
+ * a negative-cache window (one probe per TTL, WARN once per window per subject;
+ * subject-missing 404 is the legitimate first-write race carve-out and falls back
+ * without WARN). The fallback is a bounded availability form, not a silent
+ * downgrade (owner doc failure-face contract stays typed elsewhere).
  */
-public class AvroWireFormat {
+public class AvroWireFormat implements AutoCloseable {
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(AvroWireFormat.class);
 
     private static final byte MAGIC_BYTE = 0x0;
 
@@ -113,27 +128,87 @@ public class AvroWireFormat {
     }
 
     /**
-     * Reader schema resolution: prefers the latest registered schema for the subject;
-     * falls back to the writer schema itself when the subject has no registered
-     * latest (first-write-before-register race in some producers).
+     * CRA 8.43 R4-03 W-02 (adjudication B.1): reader-schema resolution with a
+     * negative-cache backoff. Fresh negative-cache entry → fall back to the
+     * writer schema with ZERO registry calls (the per-record failure-call
+     * amplification during a registry outage is bounded to one probe per TTL
+     * window). Miss or expired entry → one typed registry probe
+     * ({@code getLatestSchema} keeps the 2511-③ request timeout + outside-lock
+     * fetch contract): success clears the negative entry and restores evolution
+     * reads; failure records the entry and falls back with a WARN once per
+     * window per subject (HTTP 404 subject-missing = legitimate first-write
+     * race → carve-out: falls back silently, still behind the backoff window).
+     * The fallback is NOT silent: every window boundary WARNs (or is exempted
+     * by the carve-out) and the window is bounded — the two halves of the
+     * MA-10 defect (call amplification / zero signal) are closed together.
      */
     private Schema readerSchemaFor(String subject, Schema writerSchema) {
+        if (client.isReaderSchemaFailureCached(subject)) {
+            // Negative cache fresh: zero registry calls, zero new WARN — the
+            // rate-limited fallback window.
+            return writerSchema;
+        }
         try {
-            return client.getLatestSchema(subject).schema();
+            Schema latest = client.getLatestSchema(subject).schema();
+            client.clearReaderSchemaFailure(subject);
+            return latest;
         } catch (StreamAvroException e) {
+            client.markReaderSchemaFailure(subject);
+            if (isSubjectMissing(e)) {
+                // F-1 carve-out: an unregistered subject is the legitimate
+                // first-write-before-register race in some producers — falling
+                // back is the correct steady state (self-heals within one TTL
+                // once the subject registers); no WARN storm for an expected
+                // condition.
+                LOG.debug("reader schema for subject {} not registered yet (HTTP 404); "
+                        + "falling back to writer schema for the TTL window", subject);
+            } else {
+                LOG.warn("reader schema lookup failed for subject {}; falling back to the "
+                        + "writer schema for nop.stream.avro.reader-schema-fallback-ttl "
+                        + "(schema evolution reads pause for the window): {}",
+                        subject, e.toString());
+            }
             return writerSchema;
         }
     }
 
+    /** Subject-missing carve-out detection: the registry answered 404 for the subject's latest version. */
+    private static boolean isSubjectMissing(StreamAvroException e) {
+        String message = e.getMessage();
+        return message != null && message.contains("HTTP 404");
+    }
+
     // ==================== connector injection factories ====================
 
-    /** Deserializer for {@code KafkaSourceFunction.valueDeserializer}. */
+    /**
+     * Deserializer for {@code KafkaSourceFunction.valueDeserializer}. Lifecycle:
+     * the closure holds this wire-format and its registry client — the
+     * assembling side must call {@link #close()} at the lifecycle end
+     * (CRA 8.43 R4-03 W-03; WI18 lands the host close-chain wiring).
+     */
     public java.util.function.Function<byte[], GenericRecord> avroDeserializer(String subject) {
         return bytes -> decode(bytes, subject);
     }
 
-    /** Serializer for {@code KafkaTwoPhaseCommitSink.valueSerializer}. */
+    /**
+     * Serializer for {@code KafkaTwoPhaseCommitSink.valueSerializer}. Lifecycle:
+     * the closure holds this wire-format and its registry client — the
+     * assembling side must call {@link #close()} at the lifecycle end
+     * (CRA 8.43 R4-03 W-03; WI18 lands the host close-chain wiring).
+     */
     public java.util.function.Function<GenericRecord, byte[]> avroSerializer(String subject) {
         return record -> encode(record, subject);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-03 (adjudication B.2): transparent close of the owned
+     * registry client (single-holder semantics — this wire-format received the
+     * client by constructor injection and is its lifecycle owner). Shuts the
+     * HttpClient selector thread + connection pool. Idempotent (delegates to
+     * the client's guarded close).
+     */
+    @Override
+    public void close() {
+        client.close();
     }
 }

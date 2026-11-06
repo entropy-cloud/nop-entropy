@@ -31,6 +31,7 @@ import io.nop.stream.core.source.SourceReader;
 import io.nop.stream.core.source.SourceReaderContext;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_JOB_EXECUTE_FAILED;
 
 /**
@@ -59,6 +60,21 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
     static final int QUEUE_CAPACITY = 256;
     static final long CLOSE_JOIN_TIMEOUT_MILLIS = 5000L;
 
+    /**
+     * CRA 8.43 R4-03 W-12 (C8-012; adjudication C.6): default per-record byte
+     * envelope — SAME default and behavior as the message bridge's
+     * {@code MessageSourceReader.DEFAULT_MAX_RECORD_BYTES} (16MB, in-family
+     * alignment with the file connector's maxLineBytes bound).
+     */
+    public static final long DEFAULT_MAX_RECORD_BYTES = 16L * 1024 * 1024;
+
+    /**
+     * CRA 8.43 R4-03 W-12: per-record byte envelope enforced at the
+     * {@code collect} queue-entry point (BEFORE the put). {@code <= 0} fails
+     * fast at construction.
+     */
+    private final long maxRecordBytes;
+
     private final DebeziumConfig config;
     private final ICredentialProvider credentialProvider;
     private final Map<String, String> initialOffsets;
@@ -80,12 +96,28 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
 
     public DebeziumCdcSourceReader(DebeziumConfig config, ICredentialProvider credentialProvider,
                                    Map<String, String> initialOffsets) {
+        this(config, credentialProvider, initialOffsets, DEFAULT_MAX_RECORD_BYTES);
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-12: full constructor with the per-record byte envelope.
+     * A non-positive bound fails fast typed at construction. The 2511
+     * last-emitted offset tracker chain is NOT touched — this bound guards
+     * only the queue-entry face.
+     */
+    public DebeziumCdcSourceReader(DebeziumConfig config, ICredentialProvider credentialProvider,
+                                   Map<String, String> initialOffsets, long maxRecordBytes) {
         if (config == null) {
             throw new IllegalArgumentException("config is required");
+        }
+        if (maxRecordBytes <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_DETAIL, "maxRecordBytes must be > 0, got: " + maxRecordBytes);
         }
         this.config = config;
         this.credentialProvider = credentialProvider;
         this.initialOffsets = initialOffsets;
+        this.maxRecordBytes = maxRecordBytes;
     }
 
     @Override
@@ -344,6 +376,60 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         }
     }
 
+    /**
+     * CRA 8.43 R4-03 W-12: string/byte-carrier direct-measure LOWER BOUND of a
+     * record's heap footprint (declared measurement caliber — depth-3 bounded
+     * recursion, SAME semantics as the message bridge): a {@link ChangeEvent}
+     * measures through its key/before/after object graphs; {@code byte[]} its
+     * length; {@link String} its UTF-16 code units (correct heap lower bound);
+     * maps / collections / arrays recurse bounded-depth; any other carrier
+     * contributes 0 (declared residual — capability-matrix envelope statement;
+     * depth telemetry = C8-008 deferred governance track).
+     */
+    static long measureRecordBytes(Object record) {
+        return measureValue(record, 3);
+    }
+
+    private static long measureValue(Object value, int depth) {
+        if (value == null || depth < 0) {
+            return 0;
+        }
+        if (value instanceof ChangeEvent event) {
+            return measureValue(event.getKey(), depth - 1)
+                    + measureValue(event.getBefore(), depth - 1)
+                    + measureValue(event.getAfter(), depth - 1);
+        }
+        if (value instanceof byte[] bytes) {
+            return bytes.length;
+        }
+        if (value instanceof String text) {
+            return text.length();
+        }
+        if (value instanceof java.util.Map<?, ?> map) {
+            long sum = 0;
+            for (java.util.Map.Entry<?, ?> entry : map.entrySet()) {
+                sum += measureValue(entry.getKey(), depth - 1)
+                        + measureValue(entry.getValue(), depth - 1);
+            }
+            return sum;
+        }
+        if (value instanceof Iterable<?> iterable) {
+            long sum = 0;
+            for (Object element : iterable) {
+                sum += measureValue(element, depth - 1);
+            }
+            return sum;
+        }
+        if (value instanceof Object[] array) {
+            long sum = 0;
+            for (Object element : array) {
+                sum += measureValue(element, depth - 1);
+            }
+            return sum;
+        }
+        return 0;
+    }
+
     void setContextForTest(SourceReaderContext ctx) {
         this.context = ctx;
     }
@@ -358,6 +444,22 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
 
         @Override
         public void collect(ChangeEvent element) {
+            // CRA 8.43 R4-03 W-12: per-record byte envelope — reject BEFORE the
+            // put; the typed failure rides the bridge's existing first-error
+            // channel. The 2511 last-emitted offset protocol is untouched (the
+            // envelope guards only the queue entry, after offset extraction).
+            if (element != null && measureRecordBytes(element) > maxRecordBytes) {
+                throw new StreamException(ERR_STREAM_INVALID_ARG)
+                        .param(ARG_DETAIL, "debezium CDC record exceeds maxRecordBytes: "
+                                + measureRecordBytes(element) + " > " + maxRecordBytes
+                                + " bytes (subtask="
+                                + (context == null ? "?" : String.valueOf(context.getSubtaskIndex()))
+                                + ", table=" + (element.getKey() == null ? "?"
+                                        : String.valueOf(element.getKey().keySet()))
+                                + ") — enlarge the payload budget (constructor) or compress/"
+                                + "shrink the record; the envelope is a string/byte-carrier "
+                                + "direct-measure lower bound");
+            }
             try {
                 queue.put(element);
             } catch (InterruptedException e) {

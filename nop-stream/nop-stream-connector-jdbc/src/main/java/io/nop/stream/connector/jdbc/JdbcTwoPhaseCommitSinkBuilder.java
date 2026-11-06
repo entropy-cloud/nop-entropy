@@ -38,6 +38,9 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
     private final List<String> columnNames = new ArrayList<>();
     private Function<IN, Map<String, Object>> recordMapper;
     private int maxBatchSize = JdbcTwoPhaseCommitSink.DEFAULT_MAX_BATCH_SIZE;
+    private long maxEpochRecords = JdbcTwoPhaseCommitSink.DEFAULT_MAX_EPOCH_RECORDS;
+    private long maxPendingEpochs = JdbcTwoPhaseCommitSink.DEFAULT_MAX_PENDING_EPOCHS;
+    private int statementTimeoutSeconds = JdbcTwoPhaseCommitSink.DEFAULT_STATEMENT_TIMEOUT_SECONDS;
     private JdbcTwoPhaseCommitSink.DmlMode dmlMode;
     private final List<String> keyColumns = new ArrayList<>();
     private Function<IN, String> opMapper;
@@ -134,9 +137,40 @@ public class JdbcTwoPhaseCommitSinkBuilder<IN> {
         return this;
     }
 
+    /**
+     * CRA 8.43 R4-03 W-04: the current-epoch buffer record bound (default
+     * {@link JdbcTwoPhaseCommitSink#DEFAULT_MAX_EPOCH_RECORDS}). Invoke rejects
+     * typed once the bound is reached.
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> maxEpochRecords(long maxEpochRecords) {
+        this.maxEpochRecords = maxEpochRecords;
+        return this;
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-04: the uncommitted-epoch stack bound (default
+     * {@link JdbcTwoPhaseCommitSink#DEFAULT_MAX_PENDING_EPOCHS}). saveState
+     * rejects typed once the stack is full.
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> maxPendingEpochs(long maxPendingEpochs) {
+        this.maxPendingEpochs = maxPendingEpochs;
+        return this;
+    }
+
+    /**
+     * CRA 8.43 R4-03 W-11: statement-level timeout in seconds for every
+     * statement in the commit transaction (default
+     * {@link JdbcTwoPhaseCommitSink#DEFAULT_STATEMENT_TIMEOUT_SECONDS}).
+     */
+    public JdbcTwoPhaseCommitSinkBuilder<IN> statementTimeoutSeconds(int statementTimeoutSeconds) {
+        this.statementTimeoutSeconds = statementTimeoutSeconds;
+        return this;
+    }
+
     public JdbcTwoPhaseCommitSink<IN> build() {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
                 ledgerTableName, columnNames, recordMapper, 0, maxBatchSize, null,
-                dmlMode, keyColumns, opMapper, deleteKeyMapper);
+                dmlMode, keyColumns, opMapper, deleteKeyMapper,
+                maxEpochRecords, maxPendingEpochs, statementTimeoutSeconds);
     }
 }

@@ -124,8 +124,14 @@ class TestRocksDBMetricsRecorder {
                 "live handle reads a real value");
 
         recorder.close();
-        double afterClose = registry.get(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge().value();
-        assertTrue(Double.isNaN(afterClose), "detached gauge reports NaN, got " + afterClose);
+        // CRA 8.43 R4-03 W-01: the detach now also removes the recorder's
+        // Meter.Ids — "backend not in place" (meter absent) is the honest
+        // scrape signal, replacing the surviving-NaN-gauge observation (the
+        // C2-011 face-2 defect signature this fix removes). The
+        // fetch-inside-monitor race protection is asserted unchanged by the
+        // C10-002 white-box probe below.
+        assertTrue(registry.find(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge() == null,
+                "closed recorder's meters must be removed from the registry (honest absence signal)");
         backend.close();
     }
 
@@ -225,8 +231,22 @@ class TestRocksDBMetricsRecorder {
                 try {
                     while (stop.getCount() > 0) {
                         // Replayed gauge scrape through the registered meter.
-                        registry.get(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge().value();
-                        registry.get(RocksDBMetricsRecorder.METRIC_MEMTABLE_USAGE).gauge().value();
+                        // CRA 8.43 R4-03 W-01: once close() has removed the
+                        // recorder's Meter.Ids the meters are legitimately gone
+                        // (absence = the honest post-close signal) — the scraper
+                        // tolerates absence while the interleaving continues to
+                        // exercise close idempotency; any OTHER exception (a
+                        // race surfacing through the value function, a native
+                        // read on a closed handle) still fails the pin.
+                        io.micrometer.core.instrument.Gauge gauge =
+                                registry.find(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge();
+                        if (gauge != null) {
+                            gauge.value();
+                        }
+                        gauge = registry.find(RocksDBMetricsRecorder.METRIC_MEMTABLE_USAGE).gauge();
+                        if (gauge != null) {
+                            gauge.value();
+                        }
                     }
                 } catch (Throwable t) {
                     scrapeFailure.set(t);
@@ -253,8 +273,138 @@ class TestRocksDBMetricsRecorder {
                     "close×scrape interleaving must never surface an exception, got "
                             + scrapeFailure.get());
             recorder.close();
-            double afterClose = registry.get(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge().value();
-            assertTrue(Double.isNaN(afterClose), "detached gauge reports NaN, got " + afterClose);
+            // CRA 8.43 R4-03 W-01: end state = meters removed (honest absence),
+            // not a surviving NaN gauge.
+            assertTrue(registry.find(RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE).gauge() == null,
+                    "closed recorder's meters must be removed from the registry (honest absence signal)");
+        } finally {
+            db.close();
+        }
+    }
+
+    // ------------------------------------------------------------------------
+    // CRA 8.43 R4-03 (plan 2536) red pins — W-01 (MA-09=C2-011) and W-08
+    // (MA-17=C7-012). Appended cases only; every pre-existing case above is a
+    // zero-rewrite anchor (plan 2511 C10-002 pins keep running unchanged).
+    // ------------------------------------------------------------------------
+
+    /**
+     * CRA 8.43 R4-03 red ①(a) — W-01 tags face: two recorders (per-subtask
+     * backends) registering concurrently must produce 12 distinct Meter.Ids
+     * (6 meter names × 2 distinct {@code backend} tag values). Pre-fix shape
+     * (fixed name + empty tags) hits micrometer first-wins dedup: only 6 Ids
+     * survive and subtask 2's value functions are silently dropped.
+     */
+    @org.junit.jupiter.api.Test
+    void testR403_W01_DualRecorderRegistrationYieldsDistinctBackendTags(@TempDir Path dir) {
+        RocksDB db = openRawDb(dir.resolve("raw-w01a"));
+        try {
+            SimpleMeterRegistry registry = new SimpleMeterRegistry();
+            RocksDBMetricsRecorder first = new RocksDBMetricsRecorder(db);
+            RocksDBMetricsRecorder second = new RocksDBMetricsRecorder(db);
+            first.register(registry);
+            second.register(registry);
+
+            String[] names = {
+                    RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE,
+                    RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_PINNED,
+                    RocksDBMetricsRecorder.METRIC_MEMTABLE_USAGE,
+                    RocksDBMetricsRecorder.METRIC_ESTIMATE_NUM_KEYS,
+                    RocksDBMetricsRecorder.METRIC_COMPACTION_PENDING_BYTES,
+                    RocksDBMetricsRecorder.METRIC_COMPACTIONS_RUNNING};
+            for (String name : names) {
+                java.util.Collection<io.micrometer.core.instrument.Meter> meters = registry.find(name).meters();
+                assertEquals(2, meters.size(),
+                        "both recorders' registrations must stay visible for " + name
+                                + " (no first-wins dedup), got " + meters.size());
+                java.util.Set<String> backendTags = new java.util.HashSet<>();
+                for (io.micrometer.core.instrument.Meter meter : meters) {
+                    backendTags.add(meter.getId().getTag("backend"));
+                }
+                assertEquals(2, backendTags.size(),
+                        "distinct backend tag values required for " + name + ", got " + backendTags);
+            }
+            first.close();
+            second.close();
+        } finally {
+            db.close();
+        }
+    }
+
+    /**
+     * CRA 8.43 R4-03 red ①(b) — W-01 removal face: after {@code close()} the
+     * closed recorder's 6 Meter.Ids must be removed from the registry (scrape
+     * sees "meter gone", not a surviving NaN gauge), while a sibling recorder's
+     * meters stay intact. Pre-fix shape: close only detaches the dbRef — all
+     * 6 Ids survive permanently and a later rebind re-hits the dedup.
+     */
+    @org.junit.jupiter.api.Test
+    void testR403_W01_CloseRemovesEveryMeterIdOfTheClosedRecorder(@TempDir Path dir) {
+        RocksDB db = openRawDb(dir.resolve("raw-w01b"));
+        try {
+            SimpleMeterRegistry registry = new SimpleMeterRegistry();
+            RocksDBMetricsRecorder survivor = new RocksDBMetricsRecorder(db);
+            RocksDBMetricsRecorder closed = new RocksDBMetricsRecorder(db);
+            survivor.register(registry);
+            closed.register(registry);
+            closed.close();
+
+            String[] names = {
+                    RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_USAGE,
+                    RocksDBMetricsRecorder.METRIC_BLOCK_CACHE_PINNED,
+                    RocksDBMetricsRecorder.METRIC_MEMTABLE_USAGE,
+                    RocksDBMetricsRecorder.METRIC_ESTIMATE_NUM_KEYS,
+                    RocksDBMetricsRecorder.METRIC_COMPACTION_PENDING_BYTES,
+                    RocksDBMetricsRecorder.METRIC_COMPACTIONS_RUNNING};
+            for (String name : names) {
+                java.util.Collection<io.micrometer.core.instrument.Meter> meters = registry.find(name).meters();
+                assertEquals(1, meters.size(),
+                        "closed recorder's meter must be removed from the registry for " + name
+                                + "; surviving meters must be exactly the sibling's, got " + meters.size());
+                io.micrometer.core.instrument.Meter surviving = meters.iterator().next();
+                assertTrue(surviving.getId().getTag("backend") != null,
+                        "the surviving meter must be the sibling recorder's (backend tag present)");
+            }
+            survivor.close();
+        } finally {
+            db.close();
+        }
+    }
+
+    /**
+     * CRA 8.43 R4-03 red ⑧ — W-08 once-guard: a persistently failing property
+     * (unknown property name → {@code RocksDBException} on the real
+     * {@code getAggregatedLongProperty} path) must WARN exactly once per
+     * recorder per property across N scrapes (subsequent failures downgrade to
+     * debug). Pre-fix shape: every scrape logs another WARN (≈240/hour at a
+     * 15s scrape for one failing property).
+     */
+    @org.junit.jupiter.api.Test
+    void testR403_W08_PersistentPropertyFailureWarnsExactlyOnce(@TempDir Path dir) {
+        RocksDB db = openRawDb(dir.resolve("raw-w08"));
+        try {
+            RocksDBMetricsRecorder recorder = new RocksDBMetricsRecorder(db);
+            ch.qos.logback.classic.Logger logger =
+                    (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(RocksDBMetricsRecorder.class);
+            ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                    new ch.qos.logback.core.read.ListAppender<>();
+            appender.start();
+            logger.addAppender(appender);
+            try {
+                String badProperty = "rocksdb.nonexistent-property-r403";
+                for (int scrape = 0; scrape < 5; scrape++) {
+                    recorder.readProperty(db, badProperty);
+                }
+                long warnCount = appender.list.stream()
+                        .filter(e -> e.getLevel() == ch.qos.logback.classic.Level.WARN)
+                        .filter(e -> e.getFormattedMessage() != null
+                                && e.getFormattedMessage().contains(badProperty))
+                        .count();
+                assertEquals(1L, warnCount,
+                        "persistent property failure must WARN exactly once (not per scrape), got " + warnCount);
+            } finally {
+                logger.detachAppender(appender);
+            }
         } finally {
             db.close();
         }

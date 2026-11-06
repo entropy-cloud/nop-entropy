@@ -9,10 +9,8 @@ package io.nop.stream.rocksdb;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 import io.nop.core.lang.json.JsonTool;
@@ -28,7 +26,6 @@ import io.nop.stream.core.common.state.backend.MigratableKeyedState;
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.rocksdb.ColumnFamilyHandle;
-import org.rocksdb.RocksDBException;
 import org.rocksdb.RocksIterator;
 
 class RocksDBMapState<UK, UV> extends AbstractRocksDBState implements MapState<UK, UV> {
@@ -47,35 +44,25 @@ class RocksDBMapState<UK, UV> extends AbstractRocksDBState implements MapState<U
     }
 
     /**
-     * Stage 33: full-scan migration. Each column-family entry is one map value
-     * (storage key = base composite key + map-key suffix). Iterate every entry,
-     * deserialize the value as the old value type, pass through {@code migrate},
-     * and write back under the same full key. Map keys are not migrated.
+     * Stage 33 full-scan migration, CRA 8.43 R4-03 W-05 streaming shape: each
+     * column-family entry is one map value (storage key = base composite key +
+     * map-key suffix). Rows stream one at a time through the shared
+     * {@link AbstractRocksDBState#applyMigrationStreaming} helper — read the
+     * row, deserialize the value as the old value type, pass through
+     * {@code migrate}, write back under the same full key. Map keys are not
+     * migrated. No whole-CF keys+values heap materialization.
      */
     @Override
     @SuppressWarnings("unchecked")
     public void applyMigration(StateMigrationFunction<?, ?> migration) {
         StateMigrationFunction<Object, Object> fn = (StateMigrationFunction<Object, Object>) migration;
-        List<byte[]> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
-        try (RocksIterator it = backend.getDb().newIterator(cfHandle)) {
-            for (it.seekToFirst(); it.isValid(); it.next()) {
-                keys.add(it.key());
-                values.add(it.value());
+        applyMigrationStreaming(backend, cfHandle, "RocksDB MapState", storedValue -> {
+            Object old = readValue(storedValue);
+            if (old == null) {
+                return null;
             }
-        }
-        try {
-            for (int i = 0; i < keys.size(); i++) {
-                Object old = readValue(values.get(i));
-                if (old == null) {
-                    continue;
-                }
-                Object migrated = fn.migrate(old);
-                backend.getDb().put(cfHandle, keys.get(i), serializeValue((UV) migrated));
-            }
-        } catch (RocksDBException e) {
-            throw new StreamException("Failed to migrate RocksDB MapState", e);
-        }
+            return serializeValue((UV) fn.migrate(old));
+        });
     }
 
     @Override

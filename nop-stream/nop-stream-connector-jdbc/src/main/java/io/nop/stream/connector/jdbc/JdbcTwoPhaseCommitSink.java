@@ -41,6 +41,7 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_EPOCH_ID;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CHECKPOINT_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_CONFIG_ERROR;
+import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_NULL_ARG;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_STATE_ERROR;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
@@ -214,6 +215,64 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      * unchanged.
      */
     private final int maxBatchSize;
+
+    /**
+     * CRA 8.43 R4-03 W-04 (MA-13=C5-005, merged C8-003/C5-010; adjudication C.1):
+     * upper bound of buffered {@link DmlOp}s in the current epoch's
+     * {@code currentBuffer}. Invoke rejects the record typed BEFORE buffering once
+     * the bound is reached — the "barrier duration × input rate" product becomes a
+     * declared envelope instead of an unbounded heap face (OOM at checkpoint time).
+     * Same default and meaning on the file sink ({@code maxEpochLines}).
+     */
+    public static final long DEFAULT_MAX_EPOCH_RECORDS = 100_000L;
+
+    /**
+     * CRA 8.43 R4-03 W-04: upper bound of simultaneously pending (uncommitted)
+     * epochs in {@code pendingCommits}. Each entry re-serializes on every
+     * checkpoint barrier until its commit lands — an unbounded stack is a
+     * positive-feedback loop (restore commit failure → retain → heavier
+     * snapshots). 8 pending epochs ≈ 8 consecutive unconverged checkpoints
+     * (≈8 min at the default 60s interval) before the sink fails typed —
+     * significantly longer than transient jitter, far short of unbounded
+     * retry (2535-A.2 sizing argument family).
+     */
+    public static final long DEFAULT_MAX_PENDING_EPOCHS = 8L;
+
+    /**
+     * CRA 8.43 R4-03 W-11 (C8-009; adjudication C.5): statement-level timeout
+     * (seconds) applied to EVERY statement created inside the commit
+     * transaction (writeOps / writeInserts / keyed upsert+delete /
+     * writeLedgerEntry / ledgerExists probe). The commit executes on the
+     * checkpoint COMPLETION-notification path — outside
+     * {@code checkpointTimeout}'s barrier→ACK envelope — so without it a hung
+     * database (GC pause / half-open connection) blocks forever with no
+     * failure and no metric while later epochs silently pile up. 60s bounds a
+     * single statement (≤ maxBatchSize rows per executeBatch, seconds in
+     * normal operation) one order of magnitude under the 600s checkpoint
+     * budget.
+     */
+    public static final int DEFAULT_STATEMENT_TIMEOUT_SECONDS = 60;
+
+    /**
+     * CRA 8.43 R4-03 W-04: epoch-buffer record bound (see
+     * {@link #DEFAULT_MAX_EPOCH_RECORDS}). {@code <= 0} fails fast at
+     * construction.
+     */
+    private final long maxEpochRecords;
+
+    /**
+     * CRA 8.43 R4-03 W-04: pending-epoch stack bound (see
+     * {@link #DEFAULT_MAX_PENDING_EPOCHS}). {@code <= 0} fails fast at
+     * construction.
+     */
+    private final long maxPendingEpochs;
+
+    /**
+     * CRA 8.43 R4-03 W-11: statement-level timeout in seconds (see
+     * {@link #DEFAULT_STATEMENT_TIMEOUT_SECONDS}). {@code <= 0} fails fast at
+     * construction.
+     */
+    private final int statementTimeoutSeconds;
     /**
      * Subtask identity of this sink copy (0 for a non-parallel / template instance).
      * Parallel subtask copies disambiguate their ledger rows (idempotent commit guard)
@@ -295,7 +354,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                            int maxBatchSize, String ledgerNamespace) {
         this(jdbcTemplate, querySpace, tableName, ledgerTableName, columnNames, recordMapper,
                 subtaskIndex, maxBatchSize, ledgerNamespace,
-                DmlMode.INSERT, null, null, null);
+                DmlMode.INSERT, null, null, null,
+                DEFAULT_MAX_EPOCH_RECORDS, DEFAULT_MAX_PENDING_EPOCHS,
+                DEFAULT_STATEMENT_TIMEOUT_SECONDS);
     }
 
     /**
@@ -314,7 +375,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                            int maxBatchSize, String ledgerNamespace,
                            DmlMode dmlMode, List<String> keyColumns,
                            Function<IN, String> opMapper,
-                           Function<IN, Map<String, Object>> deleteKeyMapper) {
+                           Function<IN, Map<String, Object>> deleteKeyMapper,
+                           long maxEpochRecords, long maxPendingEpochs,
+                           int statementTimeoutSeconds) {
         if (jdbcTemplate == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "jdbcTemplate");
         }
@@ -323,6 +386,24 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         }
         if (maxBatchSize <= 0) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param(ARG_ARG_NAME, "maxBatchSize");
+        }
+        // CRA 8.43 R4-03 W-04/W-11: nonsensical envelope declarations fail fast
+        // (ERR_STREAM_INVALID_ARG, same form family as maxBatchSize).
+        if (maxEpochRecords <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxEpochRecords")
+                    .param(ARG_DETAIL, "maxEpochRecords must be > 0, got: " + maxEpochRecords);
+        }
+        if (maxPendingEpochs <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "maxPendingEpochs")
+                    .param(ARG_DETAIL, "maxPendingEpochs must be > 0, got: " + maxPendingEpochs);
+        }
+        if (statementTimeoutSeconds <= 0) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG)
+                    .param(ARG_ARG_NAME, "statementTimeoutSeconds")
+                    .param(ARG_DETAIL, "statementTimeoutSeconds must be > 0, got: "
+                            + statementTimeoutSeconds);
         }
         DmlMode mode = dmlMode != null ? dmlMode : DmlMode.INSERT;
         if (mode == DmlMode.INSERT) {
@@ -370,6 +451,9 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         this.opMapper = opMapper;
         this.deleteKeyMapper = deleteKeyMapper;
         this.maxBatchSize = maxBatchSize;
+        this.maxEpochRecords = maxEpochRecords;
+        this.maxPendingEpochs = maxPendingEpochs;
+        this.statementTimeoutSeconds = statementTimeoutSeconds;
     }
 
     /**
@@ -385,7 +469,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     public JdbcTwoPhaseCommitSink<IN> copyForSubtask(int subtaskIndex) {
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
                 ledgerTableName, columnNames, recordMapper, subtaskIndex, maxBatchSize,
-                this.ledgerNamespace, dmlMode, keyColumns, opMapper, deleteKeyMapper);
+                this.ledgerNamespace, dmlMode, keyColumns, opMapper, deleteKeyMapper,
+                maxEpochRecords, maxPendingEpochs, statementTimeoutSeconds);
     }
 
     /**
@@ -401,7 +486,8 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         return new JdbcTwoPhaseCommitSink<>(jdbcTemplate, querySpace, tableName,
                 ledgerTableName, columnNames, recordMapper, location.getTaskIndex(),
                 maxBatchSize, location.getJobId() + "|" + location.getVertexId(),
-                dmlMode, keyColumns, opMapper, deleteKeyMapper);
+                dmlMode, keyColumns, opMapper, deleteKeyMapper,
+                maxEpochRecords, maxPendingEpochs, statementTimeoutSeconds);
     }
 
     /**
@@ -540,6 +626,20 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         // Same monitor as saveState/rollback: an unsynchronized add racing a concurrent
         // saveState snapshot can lose elements or corrupt the ArrayList.
         synchronized (currentBuffer) {
+            // CRA 8.43 R4-03 W-04 (MA-13=C5-005): declared epoch-buffer envelope —
+            // reject BEFORE buffering (same-monitor atomic check-and-reject, no new
+            // lock) so the "barrier duration × input rate" product fails typed
+            // instead of growing the heap without bound toward an OOM at checkpoint
+            // time. The typed param carries the minimal observability face (depth
+            // gauges belong to the C8-008 deferred governance track).
+            if (currentBuffer.size() >= maxEpochRecords) {
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "JDBC 2PC epoch buffer is full: "
+                                + currentBuffer.size() + "/" + maxEpochRecords
+                                + " records for the current epoch — reduce the checkpoint "
+                                + "interval, raise maxEpochRecords, or inspect why commits "
+                                + "are not draining the buffer");
+            }
             currentBuffer.add(op);
         }
     }
@@ -692,6 +792,22 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         ensureInitialized();
         synchronized (currentBuffer) {
             if (!currentBuffer.isEmpty()) {
+                // CRA 8.43 R4-03 W-04 face 2 (C5-010): bound the pendingCommits
+                // stack BEFORE the transfer — every pending epoch re-serializes on
+                // every later barrier, so an uncommitted epoch stack is a
+                // positive-feedback loop (restore-commit failure → retain →
+                // heavier snapshots). The retention cleaner / ledger chain is NOT
+                // touched (2511 adjudication ④ carrier, zero-touch) — the task
+                // fails typed and the recovery path takes over.
+                if (getPendingCommits().size() >= maxPendingEpochs) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR)
+                            .param(ARG_DETAIL, "JDBC 2PC pendingCommits stack is full: "
+                                    + getPendingCommits().size() + "/" + maxPendingEpochs
+                                    + " uncommitted epochs (epoch " + epochId
+                                    + " would exceed the bound) — commits are not landing; "
+                                    + "inspect the commit-notification chain (finishCommit) "
+                                    + "or raise maxPendingEpochs for slow-durable deployments");
+                }
                 List<DmlOp> batch = new ArrayList<>(currentBuffer);
                 getPendingCommits().put(epochId, batch);
                 currentBuffer.clear();
@@ -891,6 +1007,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     private boolean ledgerExists(Connection connection, String namespace, long epochId,
                                  int subtaskIndex) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(ledgerExistsSql)) {
+            applyStatementTimeout(ps);
             ps.setString(1, namespace);
             ps.setLong(2, epochId);
             ps.setInt(3, subtaskIndex);
@@ -900,9 +1017,24 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
         }
     }
 
+    /**
+     * CRA 8.43 R4-03 W-11 (C8-009): apply the statement-level timeout to every
+     * statement created inside the commit transaction. The commit runs on the
+     * checkpoint completion-notification path — outside checkpointTimeout's
+     * barrier→ACK envelope — so this is the ONLY bound a hung database meets
+     * (the "external dependency wait must be bounded and typed" contract,
+     * repair-order suggestion 7 family). A setQueryTimeout call itself throwing
+     * (unsupported driver) propagates typed — explicit failure beats an
+     * unbounded wait.
+     */
+    private void applyStatementTimeout(java.sql.Statement statement) throws SQLException {
+        statement.setQueryTimeout(statementTimeoutSeconds);
+    }
+
     private void writeLedgerEntry(Connection connection, String namespace, long epochId,
                                   int subtaskIndex) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(insertLedgerSql)) {
+            applyStatementTimeout(ps);
             ps.setString(1, namespace);
             ps.setLong(2, epochId);
             ps.setInt(3, subtaskIndex);
@@ -974,6 +1106,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
      */
     private void writeInserts(Connection connection, List<DmlOp> batch) throws SQLException {
         try (PreparedStatement ps = connection.prepareStatement(insertDataSql)) {
+            applyStatementTimeout(ps);
             int pending = 0;
             for (DmlOp op : batch) {
                 if (op.kind != DmlOp.KIND_INSERT) {
@@ -1017,6 +1150,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 if (op.kind == DmlOp.KIND_UPSERT) {
                     if (upsertPs == null) {
                         upsertPs = connection.prepareStatement(upsertSql);
+                        applyStatementTimeout(upsertPs);
                     }
                     bindRow(upsertPs, columns, op.row);
                     upsertPs.addBatch();
@@ -1027,6 +1161,7 @@ public class JdbcTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
                 } else if (op.kind == DmlOp.KIND_DELETE) {
                     if (deletePs == null) {
                         deletePs = connection.prepareStatement(deleteSql);
+                        applyStatementTimeout(deletePs);
                     }
                     bindRow(deletePs, keyColumns, op.row);
                     deletePs.addBatch();

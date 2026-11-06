@@ -20,6 +20,7 @@ import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 
 import java.util.List;
 
+import static io.nop.stream.core.connector.registry.ConnectorParamKind.INT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.OBJECT;
 import static io.nop.stream.core.connector.registry.ConnectorParamKind.STRING;
 
@@ -46,7 +47,11 @@ public final class MessageSourceConnectorFactory implements IStreamSplitSourceFa
                     ConnectorParamDescriptor.required("messageService", OBJECT,
                             "IMessageService backend (Local/Pulsar/Kafka) supplied programmatically"),
                     ConnectorParamDescriptor.optional("valueTypeClass", OBJECT,
-                            "optional Class<T> value type for payload decoding")))
+                            "optional Class<T> value type for payload decoding"),
+                    ConnectorParamDescriptor.optional("maxRecordBytes", INT,
+                            "CRA 8.43 R4-03 W-12: per-record byte envelope at the queue entry "
+                                    + "(default 16MB — string/byte-carrier direct-measure lower "
+                                    + "bound; overflow fails the task typed)")))
             .maturity(ConnectorMaturity.EXPERIMENTAL)
             .build();
 
@@ -65,9 +70,14 @@ public final class MessageSourceConnectorFactory implements IStreamSplitSourceFa
         IMessageService messageService = config.requireObject("messageService", IMessageService.class);
         String topic = config.requireString("topic");
         Class<?> valueTypeClass = config.getObject("valueTypeClass", Class.class);
+        Integer maxRecordBytes = config.getInt("maxRecordBytes");
         if (valueTypeClass != null) {
-            return new MessageSource<Object>(messageService, topic, valueTypeClass);
+            return new MessageSource<Object>(messageService, topic, valueTypeClass,
+                    maxRecordBytes != null ? maxRecordBytes.longValue()
+                            : MessageSourceReader.DEFAULT_MAX_RECORD_BYTES);
         }
-        return new MessageSource<Object>(messageService, topic);
+        return new MessageSource<Object>(messageService, topic, null,
+                maxRecordBytes != null ? maxRecordBytes.longValue()
+                        : MessageSourceReader.DEFAULT_MAX_RECORD_BYTES);
     }
 }

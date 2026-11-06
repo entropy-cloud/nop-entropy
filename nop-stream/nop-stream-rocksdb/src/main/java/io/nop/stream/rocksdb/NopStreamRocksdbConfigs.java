@@ -30,4 +30,32 @@ public interface NopStreamRocksdbConfigs {
             + "guard (explicit self-assumed OOM risk).")
     IConfigReference<Long> SNAPSHOT_MATERIALIZE_MAX_ENTRIES =
             varRef(s_loc, "nop.stream.rocksdb.snapshot-materialize-max-entries", Long.class, 100000L);
+
+    /**
+     * CRA 8.43 R4-03 W-09 (C8-013, adjudication D.2): SST checksum policy for
+     * incremental checkpoints.
+     *
+     * <ul>
+     * <li>{@code new-only} (default) — only new or size-changed SST files are
+     * SHA-256 hashed each checkpoint; unchanged files reuse the previous hash
+     * (SST immutability contract: an SST file never mutates under a fixed
+     * name, so (name, size) equality is an honest reuse basis). Turns the
+     * incremental path's checksum cost from O(total SST volume) into
+     * O(increment).</li>
+     * <li>{@code full} — the pre-existing behavior: every SST file is re-hashed
+     * every checkpoint (per-checkpoint full re-verification integrity tier,
+     * opt-out).</li>
+     * </ul>
+     *
+     * <p>Integrity trade-off of {@code new-only}: the checkpoint checksum
+     * verifies new files per checkpoint and relies on the native read layer to
+     * surface corruption of previously-verified files. Any other value is
+     * rejected typed at snapshot time.
+     */
+    @Description("SST checksum policy for incremental checkpoints: new-only "
+            + "(default; hash only new/size-changed SST files, reuse previous "
+            + "hashes under the SST immutability contract) or full (re-hash "
+            + "every SST file each checkpoint).")
+    IConfigReference<String> SNAPSHOT_HASH_POLICY =
+            varRef(s_loc, "nop.stream.rocksdb.snapshot-hash-policy", String.class, "new-only");
 }

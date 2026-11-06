@@ -49,7 +49,18 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                     ConnectorParamDescriptor.optional("checkpointIntervalMs", INT,
                             "plan 2511 C3-002: the deployment checkpoint interval used to convert"
                                     + " retention-days into the manifest retention epoch window"
-                                    + " (defaults to CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL)")))
+                                    + " (defaults to CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL)"),
+                    ConnectorParamDescriptor.optional("maxEpochLines", INT,
+                            "CRA 8.43 R4-03 W-04: current-epoch line-buffer bound "
+                                    + "(default 100000). invoke fails typed once reached"),
+                    ConnectorParamDescriptor.optional("maxPendingEpochs", INT,
+                            "CRA 8.43 R4-03 W-04: uncommitted-epoch stack bound "
+                                    + "(default 8 — each entry pins a tmp file; saveState fails "
+                                    + "typed once reached)"),
+                    ConnectorParamDescriptor.optional("manifestLockTimeoutMs", INT,
+                            "CRA 8.43 R4-03 W-06: bounded wait for BOTH manifest-lock levels "
+                                    + "(default 60000ms; cross-JVM exactly-once commit no longer "
+                                    + "blocks forever on a hung peer JVM writer)")))
             .maturity(ConnectorMaturity.PRODUCTION)
             .build();
 
@@ -81,6 +92,20 @@ public final class FileTwoPhaseCommitSinkConnectorFactory implements IStreamSink
                 retentionDays != null ? retentionDays : 30L,
                 checkpointIntervalMs != null ? checkpointIntervalMs.longValue()
                         : CheckpointConfig.DEFAULT_CHECKPOINT_INTERVAL);
-        return new FileTwoPhaseCommitSink<>(outputDir, charset, 0, window);
+        // CRA 8.43 R4-03 W-04/W-06: optional envelope/lock-budget knobs (connector
+        // parameter domain — deliberately NOT in the nop.stream.ledger.* face space).
+        Integer maxEpochLines = config.getInt("maxEpochLines");
+        Integer maxPendingEpochs = config.getInt("maxPendingEpochs");
+        Integer manifestLockTimeoutMs = config.getInt("manifestLockTimeoutMs");
+        if (maxEpochLines == null && maxPendingEpochs == null && manifestLockTimeoutMs == null) {
+            return new FileTwoPhaseCommitSink<>(outputDir, charset, 0, window);
+        }
+        return new FileTwoPhaseCommitSink<>(outputDir, charset, 0, window,
+                maxEpochLines != null ? maxEpochLines.longValue()
+                        : FileTwoPhaseCommitSink.DEFAULT_MAX_EPOCH_LINES,
+                maxPendingEpochs != null ? maxPendingEpochs.longValue()
+                        : FileTwoPhaseCommitSink.DEFAULT_MAX_PENDING_EPOCHS,
+                manifestLockTimeoutMs != null ? manifestLockTimeoutMs.longValue()
+                        : FileTwoPhaseCommitSink.DEFAULT_MANIFEST_LOCK_TIMEOUT_MS);
     }
 }
