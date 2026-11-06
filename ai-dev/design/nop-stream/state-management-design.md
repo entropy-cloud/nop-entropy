@@ -323,6 +323,8 @@ Segment 由 LocalFile、JDBC、对象存储或其他 backend 持久化。Epoch m
 
 ### 9.1 MemoryBudget
 
+> **状态注记（CRA 8.42 R4-02 W-04/C5-012，plan 2535 裁定 B.2 @ 2026-11-07）**：本节与 `MemoryBudget`/`MemoryBudgetMonitor` 为 **RECORD-ONLY, NOT ENFORCED**（声明保留、未强制——`MemoryBudget` 类已标 `@Deprecated(since="8.42")`）。设计文档描述的是**目标包络模型**，不是 live 强制保证：`defaultLocalBudget` 的分配算式从未按真实 `estimatedItemSize` 执行（live 全部走 `EdgeConfig.defaultConfig()` 硬编码，无估算点），执行面归 R4+ 后续批次。依赖本节做容量规划时，请以 owner doc「规模与内存包络」声明为准，勿按本算式推导硬保证。
+
 `DeploymentPlan` 包含内存预算配置：
 
 ```java
