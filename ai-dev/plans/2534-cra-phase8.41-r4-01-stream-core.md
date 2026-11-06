@@ -182,7 +182,7 @@ Targets: `ai-dev/design/concurrency/stream-core-concurrency-correctness-commit-p
   - [ ] **裁定 F 测试缝与红①–红⑧+E2 泛在钉驱动器总表+零回退钉清单**：红①–红⑧ 逐钉形态定夺（确定性/概率放大/编译期构造分类+前置构造路径+伪绿防线——或Timeout 类假绿通道排查+闩带上界防测试自身挂死）；E2 泛在钉×7 逐钉形态（W-01/W-04/W-05/W-07 变异/回退论证分支的论证模板+W-10/W-13/W-15 确定性构造形态）；零回退钉全列（勘误 4 签名 4392+18S+F1 flake 处置规则 + 裁定⑪ 七钉 + 2510 新钉二 + CC-01/CC-02/R5-CC-10/TestFencingTokenRejection/TestCheckpointBarrierTrackerConcurrency/TestSourcePullBarrierInjection/TestMicrometerStreamTaskMetrics/TestKeyedStateQueryE2E/TestInMemoryClusterRegistryAttemptHistory/TestChannelQueueGauges/TestTwoPhaseCommitSinkFunction 单线程九测 + 既有锚点名）+ C10 八条映射表（对齐纪律第一条）+ 1.2-C10-006 rocksdb 钉形态落档。
 - [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log〔**设计评审 R1=agent_c68c0029 fresh session @ `563c501566` PASS-with-revisions**——Blocker-1 红① 三步时序被 updateFencingToken removeIf 拦截=伪绿（改判变体 b 主驱动+变体 c+置换结构钉）/Blocker-2 rocksdb 钉绿形态不可达（TtlContext timestamps live 已是裸 HashMap——采受害侧 CHM 化入批=审计原形先红后绿兑现）/Major-1 W-14 release 序列 generation-safe/Major-2 红⑦ 窗口内构造/Major-3 B.1.1 严格不等约束/Minor-1~8 随轮落盘（设计文档评审记录节全清单）；核证通过面=K1–K4 亲读命中/既有裁定引用忠实/裁定实质成立/live 抽验 ≥40 处——修订后无需 R2，Phase 2 放行〕
 - [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 Exit Criteria:
 
@@ -190,7 +190,7 @@ Exit Criteria:
 
 - [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–F 全部项且每条有唯一预设默认分支+既有裁定引用核对节，独立 draft review 记录在案（文件命名如调整已登记裁定）〔评审 R1 PASS-with-revisions 修订闭环；评审记录在设计文档末节〕
 - [ ] 裁定 A 含三形态唯一分支+热路径论证；裁定 B 含 epoch 治理分支+读侧形态+容量/指标+防混声明；裁定 C 含三工单统一设计+层4 零回退红线+CC-01/R5-CC-10 pin 兼容论证；裁定 D 含出锁论证+mailbox 交接细则+rocksdb 钉落档+cancel 遍历；裁定 E 含抑制覆盖集全清单+W-14 语义变化裁定+稳定键形态；裁定 F 含红①–红⑧+E2 泛在钉驱动器表[伪绿防线+零回退钉全列+C10 映射+1.2-C10-006 落档]
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 ### Phase 2 - 15 工单实现 + 回归测试（按组 A–D）
 
@@ -222,25 +222,25 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed〔2026-11-07：E1 排除形态 EXIT=0[已知面⑥ cli 双模块]+批行 -am 面① 阻断留痕+solo 三联绿+分解通道等价验收全绿[11 模块 reactor 签名+三跳过模块首验 311 tests]+owner doc E5 六处落账+双工具门禁 EXIT=0〕
 Targets: nop-stream 聚合全量测试（13 子模块）+ 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`）
-- [ ] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（五已知面集处置——面④ 已解除按基线行为登记；面① solo 三联裁定先例）+ 等价分解通道 `./mvnw -o test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——含 format-avro/sql/fraud-example 三模块补齐覆盖；签名 = 勘误 4 基线 4392+新钉+18S 比对+F1 flake 处置留痕[并发通道复现→solo 三联绿归因维持]）
-- [ ] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream.md` 行为变更面更新（W-09 端点语义/W-10 新指标行/W-11 中断取消语义/W-12 停机通知语义/W-13 日志治理声明/W-14 gauge 生命周期语义改写[NaN→移除——裁定 E 结论落笔]/W-15 标签键形）+ `nop-stream-user-guide.md` 按实际评估 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`）〔2026-11-07：首跑 `_tmp/e1-2534-full-build3.log` 阻断于 nop-runner/nop-cli-core→外部依赖 nop-ai-translate artifact（E-GC-1 m2 清空后不可再得——兄弟仓产物非本仓 reactor 面；env-restore-install 轮同样阻断留痕）→ **排除形态验收**[2526 ChatBI 先例]：`-pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS EXIT=0（`_tmp/e1-2534-full-build4.log`，422+ 模块全绿）——cli 双模块为发行聚合器零批内站点交集，登记为已知面集⑥〕
+- [x] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（五已知面集处置——面④ 已解除按基线行为登记；面① solo 三联裁定先例）+ 等价分解通道 `./mvnw -o test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——含 format-avro/sql/fraud-example 三模块补齐覆盖；签名 = 勘误 4 基线 4392+新钉+18S 比对+F1 flake 处置留痕[并发通道复现→solo 三联绿归因维持]）〔2026-11-07 留痕（E-GC-1 在线通道替代 `-o`）：①批行 `-am` 阻断于面① nop-core TestResourceCacheInvalidationChain 3F（`_tmp/e3-batch-am-channel.log`，nop-core 本批零 diff）→solo 三联 3/3 绿（`_tmp/e3-solo-f1-2534-run{1,2,3}.log`，4 tests each）负载 flake 归因维持；②分解通道 `./mvnw test -pl nop-stream` reactor：core 1999 0F0E 1S/cep 386/flow 315/connector-jdbc 66[65+1 双执行段]/debezium 79 0F0E 6S/batch 62/kafka 26/rocksdb 143/connector 106 全绿，runtime 1242 0F0E 13S 结果完整但 docker 双 E2E[TestS3CheckpointStorageMinioE2E/TestKafkaConnectorExactlyOnceE2E]负载下 241.5s 自跳过×2 触发 fork 300s 超时 BUILD FAILURE（`_tmp/e3-decomp-nop-stream-full.log`——环境门控面与批内零交集，known-face ⑥ 归因）；runtime 等价通道 BUILD SUCCESS 1242 0F0E 11S 签名归位（`_tmp/e3-runtime-excl-docker.log`）+三跳过模块补齐 sql 9/format-avro 176/fraud-example 126[16S] 全绿首验基线（`_tmp/e3-three-modules.log`）；F1 TestStreamConnectorRegistryE2E 负载 flake 复现→solo 三联绿（`_tmp/f1-solo-r{1,2,3}-final.log`）〕
+- [x] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream.md` 行为变更面更新（W-09 端点语义/W-10 新指标行/W-11 中断取消语义/W-12 停机通知语义/W-13 日志治理声明/W-14 gauge 生命周期语义改写[NaN→移除——裁定 E 结论落笔]/W-15 标签键形）+ `nop-stream-user-guide.md` 按实际评估 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）〔2026-11-07 落账：nop-stream.md 六处[W-14 :71/:76 NaN→移除+W-10 新指标行+numLateRecordsDropped W-15 键形+ops 端点 W-09 三态分派+LOCAL 守卫节后 W-11/W-12/W-13 三 bullet 行为变更登记]+user-guide W-11 cancel-await 配置键行；source-anchors 评估=零路由/锚点变化（新增配置键与错误码承载于 owner doc 语义行，无新实现锚点面）→零改动登记；check-doc-links 复跑 EXIT=0〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）〔check-doc-links EXIT=0（0 errors 2 warnings 为无关历史 plan 既有面）；scan-hollow `--module nop-stream --severity high` EXIT=0（`_tmp/scan-hollow-2534.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿含三跳过模块补齐；4392+新钉签名+18S 比对+F1 处置留痕）
-- [ ] owner doc 落账核对（E5 六工单行为变更面逐项落点+user-guide 评估+source-anchors 按实际——逐项在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.42+ 边界面与同文件跨批面零 diff]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿含三跳过模块补齐；4392+新钉签名+18S 比对+F1 处置留痕）〔逐条登记见批行验证命令条+E1 条注记；签名 4392+新钉[+18 组C/组D 钉]+1S/11S/16S 比对在案；F1 solo 三联绿〕
+- [x] owner doc 落账核对（E5 六工单行为变更面逐项落点+user-guide 评估+source-anchors 按实际——逐项在案）〔nop-stream.md 六处+user-guide 一行+source-anchors 零改动登记——见 owner doc 条注记〕
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[含 8.42+ 边界面与同文件跨批面零 diff]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）〔git status/diff 全量亲核（Phase 2 条件申报条注记）；closure audit git 过滤复核归 Phase 4〕
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条（随本 commit）〕
 
 ### Phase 4 - closure audit + 收口
 

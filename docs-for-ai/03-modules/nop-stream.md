@@ -48,6 +48,7 @@ EquiJoinOperator（hash/window 双形态）三条契约：①NULL 等值键不�
 | `nop.stream.engine.checkpoint.duration` | timer | jobId | checkpoint 触发→durable 完成时长 |
 | `nop.stream.engine.checkpoint.size.bytes` | gauge | jobId | 最新完成 checkpoint 大小（字节） |
 | `nop.stream.engine.recoveries.total` | counter | jobId | 全局恢复（globalRecovery）次数 |
+| `nop.stream.engine.barrierFanoutDrops.total` | counter | jobId | barrier fan-out 每节点队列饱和丢弃数（CRA 8.41 R4-01 W-10，plan 2534 裁定 B.3：有界队列 100 满/丢弃该 epoch 的该节点 barrier 发送——checkpoint 超时 abort 兜底；伴随限频 WARN，W-13 三态抑制） |
 
 **task 层（任务）** — 更新点：TaskManager 部署/取消/失败/终态上报路径
 
@@ -68,14 +69,14 @@ EquiJoinOperator（hash/window 双形态）三条契约：①NULL 等值键不�
 | `nop.stream.operator.records.in.total` | counter | jobId/vertexId/subtask | 从输入通道分发进算子链的记录数（MIDDLE/SINK 角色） |
 | `nop.stream.operator.records.out.total` | counter | jobId/vertexId/subtask | 经本任务 RecordWriter 发射的记录数 |
 | `nop.stream.operator.processing.time` | timer | jobId/vertexId/subtask | 单记录算子链处理时长（输入分发计时） |
-| `nop.stream.operator.time.busy.ratio` | gauge | jobId/vertexId/subtask | **忙占比（WI16）**：=(processingTime.sum − emitTime.sum)/elapsed.sum——emit 嵌套于 processing，减法严格；elapsed=0 时 NaN；任务结束（holder 释放）后 NaN |
+| `nop.stream.operator.time.busy.ratio` | gauge | jobId/vertexId/subtask | **忙占比（WI16）**：=(processingTime.sum − emitTime.sum)/elapsed.sum——emit 嵌套于 processing，减法严格；elapsed=0 时 NaN；**任务结束后整组 task meter 条目移除（抓取序列消失）——CRA 8.41 R4-01 W-14（plan 2534 裁定 E.2）起取代旧「恒 NaN 序列」契约；依赖 NaN 哨兵的下游看板/告警需迁移** |
 | `nop.stream.operator.time.backpressured.ratio` | gauge | jobId/vertexId/subtask | **背压占比（WI16）**：=emitTime.sum/elapsed.sum（emit 即「生产侧背压代理」） |
 | `nop.stream.operator.time.idle.ratio` | gauge | jobId/vertexId/subtask | **空闲占比（WI16）**：=idleTime.sum/elapsed.sum（idle = read 返回空的迭代切片） |
 | `nop.stream.operator.time.idle.nanos` | counter | jobId/vertexId/subtask | idle 切片累计（纳秒；WI16） |
 | `nop.stream.operator.time.elapsed.nanos` | counter | jobId/vertexId/subtask | 主循环迭代切片累计（纳秒，占比分母；WI16）。**残差口径**：busy+backpressured+idle 可小于 1——watermark 处理/side-output 发射/barrier 写出等段不计入任何态（other 残差） |
-| `nop.stream.operator.watermark` | gauge | jobId/vertexId/subtask | 输入 gate 合并 watermark 当前值（WI16；**首 watermark 前/任务结束后 = NaN** 哨兵，不用 MIN_VALUE 以免毒化聚合） |
+| `nop.stream.operator.watermark` | gauge | jobId/vertexId/subtask | 输入 gate 合并 watermark 当前值（WI16；**首 watermark 前 = NaN** 哨兵，不用 MIN_VALUE 以免毒化聚合；任务结束后条目移除、抓取序列消失——W-14 裁定 E.2） |
 | `nop.stream.operator.watermark.channel.lag` | gauge | jobId/vertexId/subtask | **级联滞后（WI16）**：max(非 idle 通道 wm) − merged wm（两侧同剔除 idle 语义）；滞后上升 = 有通道领先而另一通道钉住 min |
-| `numLateRecordsDropped` | counter | —（进程级聚合） | 迟到丢弃记录数：WindowOperator（跳过窗口且超 allowedLateness、无迟到侧输出）与 CepOperator（事件时间戳 ≤ 当前 watermark、无迟到侧输出）的丢弃路径递增（plan 366 Phase 3 接线）。命名例外：保留 Flink 兼容的算子级指标名，未套 `nop.stream.*` 前缀 |
+| `numLateRecordsDropped` | counter | operator/subtask（W-15 稳定键） | 迟到丢弃记录数：WindowOperator（跳过窗口且超 allowedLateness、无迟到侧输出）与 CepOperator（事件时间戳 ≤ 当前 watermark、无迟到侧输出）的丢弃路径递增（plan 366 Phase 3 接线）。**键形（CRA 8.41 R4-01 W-15，plan 2534 裁定 E.3）**：有 TaskLocation 时 `jobId.pipeline.vertex`+taskIndex（既有 W-M1 键形保留）；无 location 回退 `window`+subtask 标签；identityHashCode 键废除；算子 close() 移除本实例 meter。命名例外：保留 Flink 兼容的算子级指标名，未套 `nop.stream.*` 前缀 |
 
 **io 层（输入输出）** — 更新点：source 发射点 + 跨任务 writer 发射点
 
@@ -113,6 +114,7 @@ job/cluster/node 指标族视图映射：job 族 = 任一 `jobId` 标签维度�
 - **运维 HTTP 端点**（`io.nop.stream.runtime.ops.StreamOpsHttpServer`，JDK 内建 HttpServer；同一实现宿主于 **coordinator 进程与 TaskManager 进程**——多 JVM 模式下每进程一个本地 pull 端点）：
   - `GET /metrics`：全部 `nop.stream.*` meter 的 Prometheus 抓取端点。默认输出 **TextFormat 0.0.4**（`text/plain; version=0.0.4`）；请求头 `Accept: application/openmetrics-text` 协商输出 **OpenMetrics** 格式（`application/openmetrics-text; version=1.0.0`，以 `# EOF` 结尾）。
   - `GET /jobs/{jobId}/checkpoints`：checkpoint 观测查询（见下节；JC 形态）。
+  - `GET /jobs/{id}/vertices/{v}/subtasks/{i}/state`（keyed-state 查询，TM 形态）：**CRA 8.41 R4-01 W-09（plan 2534 裁定 D.2）起快照经 mailbox 交接由任务线程产出**（与 checkpoint 写线程同侧，消除跨线程撕裂/CME）；HTTP 线程有界等待（配置键 `nop.stream.ops.state-query-timeout-ms`，默认 5000，≤0 启动期 typed fail-fast）。任务卡死/已停应答 typed 503 `STATE_QUERY_TIMEOUT`，未知/已结束任务 404 `TASK_NOT_FOUND`，其余读取失败 500 `STATE_QUERY_FAILED`——不再以 404 毯盖全部 `StreamException`。
   - 指标族覆盖 job（`jobId` 标签维度）/ cluster（`nop.stream.engine.nodes.active` 等）/ node（`nodeId` 标签维度）三级。
 - **JC 侧启用**：配置键 `nop.stream.ops.http.*`（见下）或 launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（`JobCoordinatorMain`，默认关闭；**main-scope 生产入口**——classpath 装配见「运维手册」首注）。
 - **TM 侧启用（item 32，多 JVM 观察面）**：`TaskManagerMain` launch 参数 `opsHttpPort=<port>` / `opsHttpBind=<addr>`（默认 0 = 关闭，显式开启语义与 JC 一致；**main-scope 生产入口**——classpath 装配见「运维手册」首注）。task/operator/io 层指标与通道队列水位 gauge（`nop.stream.io.channel.queue.size`）可从 TM 进程直接刮取——多 JVM 背压量化不再依赖 JC 面代理。TM 进程不承载作业注册表：`/jobs` 族维持既有结构化错误语义（list/submit/stop → 503 `REGISTRY_UNAVAILABLE`/`SUBMIT_UNAVAILABLE`/`STOP_UNAVAILABLE`，detail/checkpoints → 404 `JOB_NOT_FOUND`），非统一 404 毯盖。端口须避开 JC 端口（JC 默认 8901；分布式演练 JC 用 8931，演练装置自独立基址 8941 起为 TM 分配 base+i）。
@@ -283,6 +285,10 @@ nop-stream 两条 DB 账本由 `LedgerRetentionConfig`（`io.nop.stream.runtime.
 - **standby 降级第四层防线（裁定⑤）**：coordinator 降级 standby 时主动 abort 在途 pending checkpoint，且 persist 完成/commit 扇出入口复核 active/fencing 状态——降级后才完成的在途 checkpoint 被丢弃不 commit + 失败计数；僵尸 standby 不再成为 checkpoint 持久平面的第二写者。既有三层防线（collectAck 门控/pending 超时/新 leader abort）零改写。
 - **materialization store 溢出语义（裁定⑩）**：pool+materialization 象限 queue 满时 producer **阻塞背压**（无静默 bypass、无许可丢失）；store 仅承担 checkpoint 恢复记录语义。store 上界 = `nop.stream.materialization.store-max-entries`：**未配置或 ≤0 = 不设上界**（恢复正确性缺省——store 是在途未提交记录的恢复镜像；跨 1024/4096/16384… 档位输出一次 WARN + size 指标）；**显式配置 >0 = fail-loud 上界**（超界抛 `ERR_STREAM_MATERIALIZE_STORE_OVERFLOW`，运维强约束可选项）。
 - **②⑩交叠运维声明**：经 `nop.stream.local.await-completion-timeout-ms=0` 显式禁用运行期守卫时，materialization 象限回归阻塞 put——消费者停摆引发的时序型互等死锁风险由运维自担（禁用守卫即显式接受该面；提交期守卫恒在不受影响）。
+
+- **LOCAL 中断取消语义（CRA 8.41 R4-01 W-11，plan 2534 裁定 D.3）**：LOCAL teardown（finally）在 graceful 关停前先做**协作式取消遍历**（mailbox signalCancel + cancel 中断 → 有界终态等待，预算配置键 `nop.stream.local.cancel-await-timeout-ms`，默认 10000，`0`=禁用等待仅发信号，负值装配期 fail-fast），随后 `shutdownNow` 兜底——阻塞在用户代码中的任务（如 50ms 轮询消费者）从「中断后无限自旋持连接」变为到达 CANCELED 终态退出；正常完成路径取消遍历为幂等 no-op（零行为变化）。
+- **停机 2PC 通知语义（W-12，裁定 C.3）**：TaskManager/CheckpointCoordinator 的 commit 通知执行器在 **shutdown 窗口内改为 always-inline**（调用方线程执行，CC-17 先例推广）——stop 竞速窗口不再静默丢弃 finishCommit 通知；饱和窗口语义不变（TM CallerRuns 维持 R5-CC-10 契约、CC 溢出补投），`nop.stream.task.commitCallerRuns.total` 仅在真实 inline 时递增。
+- **周期失败日志治理（W-13，裁定 E.1）**：九周期失败日志点+两补遗（poll/consumer/heartbeat/stale-heartbeat/retry-commit/persist-failed/barrier-inject/retention-cleanup/leader-elector + msgqueue cleanup/metrics-reporter/barrier-fanout-drop）统一**三态抑制**（首条全量 → 30s 窗口聚合摘要 → 恢复 cleared），故障期日志量从 50ms 节奏的 ~140 万条/小时降为首条+每窗口一条摘要；计数与兜底语义（poll 重试/abort 兜底等）零变化——只限频不吞异常。
 
 ## 编排薄层并发契约（plan 2512 R2-09，裁定①②③④使用面投影）
 
