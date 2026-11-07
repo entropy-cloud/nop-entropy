@@ -10,15 +10,14 @@ import io.nop.core.resource.impl.ClassPathResource;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.BeanContainerBuilder;
 import io.nop.stream.core.exceptions.StreamException;
-import io.nop.stream.flow.model.StreamEdgeModel;
 import io.nop.stream.flow.model.StreamModel;
-import io.nop.stream.flow.model.StreamTransformModel;
+import io.nop.stream.flow.testing.CollectingSinkFunction;
+import io.nop.stream.flow.testing.TestSourceFunction;
 import io.nop.xlang.xdsl.DslModelParser;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -81,56 +80,73 @@ public class TestSqlTransformExpansion {
     private static final String SQL_TRANSFORM =
             "<sqlTransform id=\"st\"><source>SELECT x FROM t WHERE x &gt; 1</source></sqlTransform>";
 
-    private static List<String> transformIds(StreamModel model) {
-        List<String> ids = new ArrayList<>();
-        for (StreamTransformModel t : model.getTransforms())
-            ids.add(t.getId());
-        return ids;
-    }
-
-    private static List<String> edgeStrings(StreamModel model) {
-        List<String> out = new ArrayList<>();
-        for (StreamEdgeModel e : model.getEdges())
-            out.add(e.getFrom() + "->" + e.getTo());
-        return out;
+    /**
+     * CRA 8.45 R4-05 W-07 reshape: the splice result used to be observed on the
+     * caller-held model, which the builder consumed in place. Under the
+     * zero-consumption contract the expansion product lives on the builder's
+     * internal working copy (the caller model stays pristine), so the expansion is
+     * now observed through the built pipeline's execution (output-level oracle).
+     * The rename-id coverage is preserved indirectly by
+     * {@link #fragmentIdCollisionFailsFast()} (the collision safety net only fires
+     * because the fragment filter id is computed as {@code <vertex>_<id>}).
+     */
+    private static void runPipeline(StreamModel model, CollectingSinkFunction<String> sink) throws Exception {
+        InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver()
+                .register("fakeSrcFn", new TestSourceFunction())
+                .register("fakeSinkFn", sink);
+        StreamModelDslBuilder.of(model, resolver).build()
+                .execute("sql-transform-expansion-output");
     }
 
     @Test
-    public void expansionSplicesFragmentAndRewiresEdges() {
+    public void expansionSplicesFragmentAndRewiresEdges() throws Exception {
         StreamModel model = parseModel(
                 "<source id=\"src\" bean=\"fakeSrcFn\"/>" + SQL_TRANSFORM
                         + "<sink id=\"out\" bean=\"fakeSinkFn\"/>",
                 "<edge id=\"e0\" from=\"src\" to=\"st\"/>"
                         + "<edge id=\"e1\" from=\"st\" to=\"out\"/>");
-        StreamModelDslBuilder.of(model).build();
+        CollectingSinkFunction<String> sink = new CollectingSinkFunction<>();
+        runPipeline(model, sink);
 
-        // the sqlTransform vertex and the entry placeholder are gone; the fragment
-        // chain (renamed with the vertex prefix) is spliced in their place
-        assertEquals(List.of("src", "st_fakeTFilter", "out"), transformIds(model),
-                () -> "transforms: " + transformIds(model));
-        assertEquals(List.of("src->st_fakeTFilter", "st_fakeTFilter->out"),
-                edgeStrings(model), () -> "edges: " + edgeStrings(model));
+        // the spliced fragment (renamed filter chain, entry placeholder stripped)
+        // assembled into a working pipeline and carried every record to the sink;
+        // an unexpanded model could not even build (a raw <sqlTransform> vertex is
+        // not a buildable transform type)
+        assertEquals(TestSourceFunction.FIXED_DATA, sink.getCollected(),
+                "the spliced fragment must carry every record through the rewired pipeline");
+        // the caller-held model stays pristine: the declared vertex is still on it
+        assertTrue(model.getTransforms().stream().anyMatch(t -> "st".equals(t.getId())),
+                "build() must not strip the declared <sqlTransform> from the caller model");
     }
 
     @Test
-    public void expansionSupportsFanOutToMultipleDownstreams() {
+    public void expansionSupportsFanOutToMultipleDownstreams() throws Exception {
         StreamModel model = parseModel(
                 "<source id=\"src\" bean=\"fakeSrcFn\"/>" + SQL_TRANSFORM
                         + "<sink id=\"out1\" bean=\"fakeSinkFn\"/>"
-                        + "<sink id=\"out2\" bean=\"fakeSinkFn\"/>",
+                        + "<sink id=\"out2\" bean=\"fakeSinkFn2\"/>",
                 "<edge id=\"e0\" from=\"src\" to=\"st\"/>"
                         + "<edge id=\"e1\" from=\"st\" to=\"out1\"/>"
                         + "<edge id=\"e2\" from=\"st\" to=\"out2\"/>");
-        StreamModelDslBuilder.of(model).build();
+        CollectingSinkFunction<String> sink1 = new CollectingSinkFunction<>();
+        CollectingSinkFunction<String> sink2 = new CollectingSinkFunction<>();
+        InMemoryBeanFunctionResolver resolver = new InMemoryBeanFunctionResolver()
+                .register("fakeSrcFn", new TestSourceFunction())
+                .register("fakeSinkFn", sink1)
+                .register("fakeSinkFn2", sink2);
+        // the canned fragment retargets both downstream edges to the fragment
+        // terminal; the fan-out shape is proven by execution (both sinks collect)
+        StreamModelDslBuilder.of(model, resolver).build().execute("sql-transform-fanout");
 
-        assertEquals(List.of("src->st_fakeTFilter", "st_fakeTFilter->out1",
-                        "st_fakeTFilter->out2"),
-                edgeStrings(model), "the fragment terminal feeds every downstream edge");
+        assertEquals(TestSourceFunction.FIXED_DATA, sink1.getCollected(),
+                "the fragment terminal feeds the first downstream edge");
+        assertEquals(TestSourceFunction.FIXED_DATA, sink2.getCollected(),
+                "the fragment terminal feeds every downstream edge");
     }
 
     /** Two fragments in a chain: each expands with its own vertex-id prefix. */
     @Test
-    public void chainedSqlTransformsExpandWithDistinctPrefixes() {
+    public void chainedSqlTransformsExpandWithDistinctPrefixes() throws Exception {
         StreamModel model = parseModel(
                 "<source id=\"src\" bean=\"fakeSrcFn\"/>" + SQL_TRANSFORM
                         + "<sqlTransform id=\"st2\"><source>SELECT y FROM t2</source></sqlTransform>"
@@ -138,13 +154,13 @@ public class TestSqlTransformExpansion {
                 "<edge id=\"e0\" from=\"src\" to=\"st\"/>"
                         + "<edge id=\"e1\" from=\"st\" to=\"st2\"/>"
                         + "<edge id=\"e2\" from=\"st2\" to=\"out\"/>");
-        StreamModelDslBuilder.of(model).build();
+        CollectingSinkFunction<String> sink = new CollectingSinkFunction<>();
+        runPipeline(model, sink);
 
-        assertEquals(List.of("src", "st_fakeTFilter", "st2_fakeTFilter", "out"),
-                transformIds(model), () -> "transforms: " + transformIds(model));
-        assertEquals(List.of("src->st_fakeTFilter", "st_fakeTFilter->st2_fakeTFilter",
-                        "st2_fakeTFilter->out"),
-                edgeStrings(model), () -> "edges: " + edgeStrings(model));
+        // both fragments expanded (distinct prefixes) and chained into one working
+        // pipeline; distinct-prefix collisions would typed-fail at build time
+        assertEquals(TestSourceFunction.FIXED_DATA, sink.getCollected(),
+                "two chained fragments must splice into a working pipeline");
     }
 
     @Test

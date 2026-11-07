@@ -27,6 +27,9 @@ public final class XplMapFunction<T, R> implements MapFunction<T, R> {
     /**
      * WI11 (plan 2357): static per-invocation bindings (the declarative side-input
      * snapshots, bound under {@code sideInputs}); {@code null} = no extra bindings.
+     * The bindings are a build-time frozen read-only snapshot (see
+     * {@code StreamModelDslBuilder#materializeSideInputs}, CRA 8.45 R4-05 W-01):
+     * writes into them fail typed with {@link UnsupportedOperationException}.
      */
     private final java.util.Map<String, Object> bindings;
 

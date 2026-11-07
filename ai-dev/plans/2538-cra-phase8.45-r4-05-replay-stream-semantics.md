@@ -197,7 +197,7 @@ Targets: nop-stream-flow（3 main+测试树）+ nop-stream-sql（3 main+测试�
 
 - Item Types: `Fix`（10 工单均为已确认 live 缺陷——merge-adjudication §2.1/§2.2 判级权威，不得写成 Feature；C10-005 缺保护收口随 W-02/C10-008 搭车随 W-03/W-10 为已确认伴生面随批同 diff 收敛）、`Proof`（工单测试 + E2 泛在钉）
 
-- [ ] 组 A flow 构建期/作用域域（W-01/W-05/W-07——3 工单，flow main+测试树）〔裁定 A+B；钉=红①⑤⑦〕〔同文件两处交界 diff 分组登记禁顺带（XplFunctionSupport W-01 消费面 vs W-05；StreamModelDslBuilder W-01 物化面 vs W-07）；write-guard/nop-core 零触碰〕
+- [x] 组 A flow 构建期/作用域域（W-01/W-05/W-07——3 工单，flow main+测试树）〔裁定 A+B；钉=红①⑤⑦〕〔同文件两处交界 diff 分组登记禁顺带（XplFunctionSupport W-01 消费面 vs W-05；StreamModelDslBuilder W-01 物化面 vs W-07）；write-guard/nop-core 零触碰〕〔2026-11-07 落地：W-01 递归冻结+union map 装配点冻结[E-2538-3]/W-05 fresh-root/W-07 结构拷贝[E-2538-1 机制替代]；红①⑤⑦ 先红后绿留证（`_tmp/red-green-ledger-2538.md` 组 A 节）；flow 全量 **325 tests 0F 0E 0S EXIT=0**（`_tmp/green2538-flow-full-run3.log`——基线 315+新钉 10）；既有 4 用例消耗语义钉按新契约改形[E-2538-2——TestSqlModelExpansion×1+TestSqlTransformExpansion×3 观察通道迁输出级 oracle，rename 覆盖由 fragmentIdCollisionFailsFast 间接承载]〕
 - [ ] 组 B sql 静态缓存/生命周期域（W-04/W-08/W-09——3 工单，sql main+测试树）〔裁定 C+D；钉=红④⑧⑨〕〔RecordColumnAccess 同文件两工单联动归裁定（同组单 diff 或分组登记）；resolver 2512 三产物零触碰；E5 §3a 文案随组 commit〕
 - [ ] 组 C fraud-example replay/目录源生命周期域（W-02/W-03/W-06/W-10——4 工单，fraud-example main+测试树）〔裁定 E+F；钉=红②③⑥⑩〕〔ReplayableCdcSourceFunction 三工单 diff 分组登记禁顺带禁交叉+族联调矩阵共验；DirectoryFileSourceFunction 2512 产物面零触碰；C10-005 同 diff+C10-006 反向钉零回退+C10-008 搭车两半边（若裁）〕
 - [ ] 回归测试（rule 25 显式覆盖 + C10-005 同 diff + E2 泛在钉红①–红⑩，先红后绿或变异/回退论证留痕）：红①–红⑩ 快照落 `_tmp/` 总册并登记（原始 trial 日志存证）；零回退钉核对（勘误 5 签名+2512 五钉+8.41 受害侧钉+既有锚——逐钉 grep/git diff 为空或断言零改写核对；`:130` 与反向钉为关键钉）；8.18 承接面核对（W-06/W-09/W-10 对复位块/增量恢复/CHM+WARN+null fail-fast/metadata 契约零触碰核对——不新增重复钉）
@@ -209,6 +209,11 @@ Targets: nop-stream-flow（3 main+测试树）+ nop-stream-sql（3 main+测试�
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
+
+**执行期发现登记（E-2538-1~3，2026-11-07 组 A 轮——详证见 `_tmp/red-green-ledger-2538.md` 组 A 节）**：
+- **E-2538-1（机制证伪→模块内等价机制）**：裁定 B.1「xdef round-trip」live 证伪（expr 域属性编译态 IEvalAction 无源文本访问器——serializeToString 默认 toString 出注解串，再解析 unexpected-char；`ReflectionManager.getFields()` 运行时空 map 双重不可用）→ 机制改为模块内结构拷贝（cloneInstance 壳+JavaBean 集合属性复制+编译产物共享），契约零变化（零消耗/F-4 残态钉形/保真锚全维持）；nop-xlang 修复=Protected Area 不触碰。
+- **E-2538-2（既有钉契约改形非弱化）**：既有 4 用例（TestSqlModelExpansion×1/TestSqlTransformExpansion×3）钉住旧消耗语义——裁定 B.1「既有 E2E 零改写」前提对其证伪；按 8.41 TestObservabilityWiringE2E 改形先例：观察通道迁输出级 oracle+caller 模型改断言 pristine；rename-id 覆盖由 fragmentIdCollisionFailsFast 间接承载。
+- **E-2538-3（裁定内缺口补齐非偏离）**：红① 顶层探针捕获 union map（sideInputs 键下）未冻结——裁定 A.2 失效面②装配点半边（:1546-1548 singletonMap）补 unmodifiableMap。
 
 - [ ] 10 工单全部 landed，各带 ≥1 条验收载体且可辨识对应工单（W-01~W-10——红①–红⑩ 对应；伴生面 C10-005 随 W-02/C10-008 搭车随 W-03/W-10/吸收成员随族主载体验收）〔测试类注释显式归属 CRA 8.45 R4-05〕
 - [ ] 必红证据（E2）：红①–红⑩ 均先红后绿（确定性形态标注逐钉在总册；红④⑧ 结构/变异腿按先例留痕禁伪绿——原始日志存证纪律）；C10-005 同 diff 落地留证（FAILED 断言+`:130` 零改写）；C10-006 反向钉零回退留证（git diff 为空核对）；8.18 承接面零改写核对留证

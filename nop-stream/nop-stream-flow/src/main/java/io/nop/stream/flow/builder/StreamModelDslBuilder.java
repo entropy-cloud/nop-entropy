@@ -53,12 +53,16 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
+import java.beans.Introspector;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.core.lang.eval.IEvalFunction;
+import io.nop.core.resource.component.AbstractComponentModel;
 import io.nop.stream.core.common.functions.FilterFunction;
 import io.nop.stream.core.common.functions.FlatMapFunction;
 import io.nop.stream.core.common.functions.KeySelector;
@@ -149,7 +153,14 @@ public final class StreamModelDslBuilder {
     private static final int XDEF_DEFAULT_MAX_CONSECUTIVE_CHECKPOINT_FAILURES = 3;
     private static final String XDEF_DEFAULT_STORAGE_TYPE = "local";
 
-    private final StreamModel model;
+    /**
+     * The builder's WORKING model. Final at construction (the caller's parsed model),
+     * replaced once per {@link #build()} by a defensive deep copy (CRA 8.45 R4-05
+     * W-07 / 1.3-C1-005: build() never mutates the caller-held model — every
+     * expansion runs on the copy, so the input model stays pristine and
+     * {@code of(model)} is idempotent/re-entrant).
+     */
+    private StreamModel model;
     private final BeanFunctionResolver beanResolver;
 
     private StreamSchemaRegistry schemaRegistry;
@@ -226,8 +237,14 @@ public final class StreamModelDslBuilder {
     /**
      * Build a fresh {@link StreamExecutionEnvironment} populated with an equivalent
      * transformation chain for the parsed {@link StreamModel}.
+     *
+     * <p>CRA 8.45 R4-05 W-07 (1.3-C1-005): build() does not mutate the parsed model —
+     * all expansions run on a defensive deep copy taken at entry (the caller-held
+     * model, including its transforms/edges objects, stays pristine and reusable
+     * across builders and repeated builds).
      */
     public StreamExecutionEnvironment build() {
+        this.model = defensiveCopy(this.model);
         expandSqlModel();
         expandSqlTransforms();
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
@@ -258,6 +275,125 @@ public final class StreamModelDslBuilder {
         // buildTransforms — the 2PC verdict needs the resolved sink beans.
         validateDeclaredRequirements();
         return env;
+    }
+
+    /**
+     * CRA 8.45 R4-05 W-07 (1.3-C1-005): entry-time defensive deep copy of the parsed
+     * model — a structural clone of the model node graph: the generated
+     * {@code cloneInstance()} shell per node plus an independent copy of every
+     * collection property (element models cloned recursively, the generated setters
+     * re-normalize to {@code KeyedList}). All subsequent expansion passes rewrite
+     * only the copy, so the caller-held model is never consumed.
+     *
+     * <p>Leaf values (strings, enums, numbers and compiled
+     * {@code IEvalAction}/{@code IEvalFunction} bodies) are shared by reference: the
+     * expansion passes never mutate them. The platform xdef round-trip
+     * (model → XNode → model) is deliberately NOT used here: expression-domain
+     * properties ({@code keyExpr} etc.) are compiled to {@code IEvalAction} at parse
+     * time and do not survive that round-trip (execution-period finding E-2538-1,
+     * registered in plan 2538) — the same mechanism {@code expandSqlModel} uses for
+     * its compiler products only works because compiler output is a plain XML string
+     * with no compiled-expression properties.
+     */
+    private static StreamModel defensiveCopy(StreamModel model) {
+        return (StreamModel) deepCopyComponent(model);
+    }
+
+    /**
+     * Clone one generated component-model node ({@code cloneInstance()} is declared
+     * on every generated model class) and then give it its own copies of all
+     * collection-typed properties, discovered via the generated JavaBean
+     * {@code getXxx()} accessors (the generated setters rebuild the keyed list
+     * wrappers, so the copy keeps the same by-name lookup behavior). Property
+     * discovery deliberately does not go through
+     * {@code ReflectionManager.getClassModel(...).getFields()}: that registry can
+     * come back with an empty field set at runtime (observed live, E-2538-1), while
+     * the generated accessor pattern is a hard guarantee of the codegen.
+     */
+    private static AbstractComponentModel deepCopyComponent(AbstractComponentModel src) {
+        AbstractComponentModel copy;
+        try {
+            copy = (AbstractComponentModel) src.getClass().getMethod("cloneInstance").invoke(src);
+        } catch (ReflectiveOperationException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<stream>")
+                    .param(ARG_DETAIL, "model class does not expose the generated cloneInstance(): "
+                            + src.getClass().getName())
+                    .loc(src.getLocation());
+        }
+        Set<String> copiedProps = new HashSet<>();
+        for (Class<?> c = src.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Method m : c.getDeclaredMethods()) {
+                if (m.getParameterCount() != 0 || m.getReturnType() == void.class
+                        || Modifier.isStatic(m.getModifiers())
+                        || !m.getName().startsWith("get") || m.getName().equals("getClass")) {
+                    continue;
+                }
+                String propName = Introspector.decapitalize(m.getName().substring(3));
+                if (!copiedProps.add(propName)) {
+                    continue;
+                }
+                Object value;
+                try {
+                    value = m.invoke(src);
+                } catch (ReflectiveOperationException e) {
+                    throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                            .param(ARG_ELEMENT, "<stream>")
+                            .param(ARG_DETAIL, "cannot read model property '" + propName
+                                    + "' for the zero-consumption snapshot: " + e.getMessage())
+                            .loc(src.getLocation());
+                }
+                if (!(value instanceof List)) {
+                    continue;
+                }
+                copyListProperty(src, copy, c, propName, (List<?>) value);
+            }
+        }
+        return copy;
+    }
+
+    /**
+     * Give the copy its own list instance with recursively cloned element models.
+     * Leaf elements (compiled {@code IEvalAction}/{@code IEvalFunction} bodies,
+     * strings, enums) are shared by reference — the expansion passes never mutate
+     * them, only the container and the model-node references.
+     */
+    private static void copyListProperty(AbstractComponentModel src, AbstractComponentModel copy,
+                                         Class<?> declaring, String propName, List<?> value) {
+        List<Object> copied = new ArrayList<>(value.size());
+        for (Object item : value) {
+            copied.add(item instanceof AbstractComponentModel
+                    ? deepCopyComponent((AbstractComponentModel) item)
+                    : item);
+        }
+        String setterName = "set" + Character.toUpperCase(propName.charAt(0))
+                + propName.substring(1);
+        Method setter = null;
+        for (Class<?> c = declaring; c != null && c != Object.class; c = c.getSuperclass()) {
+            for (Method m : c.getDeclaredMethods()) {
+                if (m.getName().equals(setterName) && m.getParameterCount() == 1
+                        && List.class.isAssignableFrom(m.getParameterTypes()[0])) {
+                    setter = m;
+                    break;
+                }
+            }
+            if (setter != null) {
+                break;
+            }
+        }
+        if (setter == null) {
+            // no writable setter (computed/read-only list facet) — nothing to detach
+            return;
+        }
+        try {
+            setter.invoke(copy, copied);
+        } catch (ReflectiveOperationException e) {
+            throw new StreamException(ERR_STREAM_INVALID_ARG, e)
+                    .param(ARG_ELEMENT, "<stream>")
+                    .param(ARG_DETAIL, "cannot write copied list property '" + propName
+                            + "' for the zero-consumption snapshot: " + e.getMessage())
+                    .loc(src.getLocation());
+        }
     }
 
     /**
@@ -1521,6 +1657,14 @@ public final class StreamModelDslBuilder {
      * Targets that collect multiple sideInputs see the union under the single
      * {@code sideInputs} binding. A null snapshot is a typed error, never an empty
      * map: a silently-empty dictionary would look exactly like missing data.
+     *
+     * <p>CRA 8.45 R4-05 W-01 (1.3-MA-02): the "frozen read-only snapshot" contract is
+     * enforced mechanically — the supplier's map is structurally copied and wrapped
+     * read-only (recursively through nested Map/List values), so an xpl body write
+     * ({@code sideInputs['dict'].put(...)} or a nested value write) fails typed with
+     * {@link UnsupportedOperationException} instead of polluting every subsequent
+     * record, and the snapshot is detached from the application's live reference
+     * (post-build application writes cannot tear through).
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
     private void materializeSideInputs() {
@@ -1541,12 +1685,49 @@ public final class StreamModelDslBuilder {
                         .loc(si.getLocation());
             }
             snapshotsByTarget.computeIfAbsent(si.getTo(), k -> new LinkedHashMap<>())
-                    .put(si.getId(), snapshot);
+                    .put(si.getId(), freezeSnapshot(snapshot));
         }
         for (Map.Entry<String, Map<String, Object>> entry : snapshotsByTarget.entrySet()) {
+            // the union map bound under "sideInputs" is itself part of the frozen
+            // snapshot surface: a top-level write (sideInputs.put(...)) must fail
+            // typed exactly like a nested snapshot write (W-01 failure mode ②)
             sideInputScopes.put(entry.getKey(),
-                    Collections.singletonMap("sideInputs", entry.getValue()));
+                    Collections.singletonMap("sideInputs",
+                            Collections.unmodifiableMap(entry.getValue())));
         }
+    }
+
+    /**
+     * CRA 8.45 R4-05 W-01: structured freeze of a side-input snapshot — defensive
+     * top-level copy (detaches the snapshot from the application's live reference),
+     * recursive copy + read-only wrapping for nested Map/List values (xpl body writes
+     * fail typed with {@link UnsupportedOperationException}), scalar values shared
+     * as-is. The value contract is data-shaped structures (Map/List/scalars); custom
+     * mutable POJO values are shared by reference after the copy — writing into them
+     * is an unsupported usage (declared boundary, not typed-enforced).
+     */
+    private static Map<String, Object> freezeSnapshot(Map<String, Object> snapshot) {
+        Map<String, Object> copy = new LinkedHashMap<>(snapshot);
+        for (Map.Entry<String, Object> entry : copy.entrySet()) {
+            entry.setValue(freezeValue(entry.getValue()));
+        }
+        return Collections.unmodifiableMap(copy);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Object freezeValue(Object value) {
+        if (value instanceof Map) {
+            return freezeSnapshot((Map<String, Object>) value);
+        }
+        if (value instanceof List) {
+            List<?> list = (List<?>) value;
+            List<Object> copy = new ArrayList<>(list.size());
+            for (Object item : list) {
+                copy.add(freezeValue(item));
+            }
+            return Collections.unmodifiableList(copy);
+        }
+        return value;
     }
 
     /**
