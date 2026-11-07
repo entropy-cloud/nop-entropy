@@ -32,6 +32,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -153,6 +155,39 @@ public abstract class AbstractMultiMemberFanOutTest {
      * concurrency so fan-out tests can assert REAL concurrency (not just
      * final COMPLETED status). Returns a completed result for each call.
      */
+    /**
+     * 时间确定化（plan 2511-WI5）：并发重叠证据由显式 rendezvous 门产生——
+     * 同一任务的 fan-out 执行各自在 per-task {@link CyclicBarrier} 上等待，
+     * 直到该轮全部成员都已进入（结构性并发证明），不再用真实毫秒 sleep 制造
+     * 时间窗。{@code expectConcurrentRound(taskId, parties)} 由断言并发/重叠的
+     * 测试在派发前按任务设定；未设定的任务不等待，行为同直通。超时仅挂死保护。
+     */
+    static final class FanOutRendezvous {
+        final Map<String, Integer> roundParties = new ConcurrentHashMap<>();
+        final Map<String, java.util.concurrent.CyclicBarrier> barriers = new ConcurrentHashMap<>();
+
+        void expectConcurrentRound(String taskId, int parties) {
+            roundParties.put(taskId, parties);
+        }
+
+        void awaitRound(String taskId) {
+            Integer parties = roundParties.get(taskId);
+            if (parties == null) {
+                return;
+            }
+            java.util.concurrent.CyclicBarrier barrier = barriers.computeIfAbsent(taskId,
+                    k -> new java.util.concurrent.CyclicBarrier(parties));
+            try {
+                barrier.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NopAiAgentException("interrupted while awaiting fan-out round", e);
+            } catch (Exception e) {
+                throw new NopAiAgentException("fan-out rendezvous broken", e);
+            }
+        }
+    }
+
     static final class ConcurrencyRecordingEngine implements IAgentEngine {
         final Map<String, Long> enterNano = new ConcurrentHashMap<>();
         final Map<String, Long> exitNano = new ConcurrentHashMap<>();
@@ -161,6 +196,7 @@ public abstract class AbstractMultiMemberFanOutTest {
         final AtomicInteger executeCount = new AtomicInteger();
         final Map<String, String> memberForTask = new ConcurrentHashMap<>();
         final List<String> threadNames = Collections.synchronizedList(new ArrayList<>());
+        final FanOutRendezvous rendezvous = new FanOutRendezvous();
 
         @Override
         public AgentMessageAck sendMessage(AgentMessageRequest request) {
@@ -183,12 +219,8 @@ public abstract class AbstractMultiMemberFanOutTest {
             threadNames.add(Thread.currentThread().getName());
 
             return CompletableFuture.supplyAsync(() -> {
-                try {
-                    Thread.sleep(80);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new NopAiAgentException("interrupted", e);
-                }
+                // 结构性并发 rendezvous（时间确定化）：同任务全轮进入后一起放行
+                rendezvous.awaitRound(taskId);
                 active.decrementAndGet();
                 exitNano.put(key, System.nanoTime());
                 return new AgentExecutionResult(AgentExecStatus.completed, "ok:" + key,
@@ -253,6 +285,7 @@ public abstract class AbstractMultiMemberFanOutTest {
         final AtomicInteger active = new AtomicInteger();
         final List<String> spawnedMembers = Collections.synchronizedList(new ArrayList<>());
         final List<String> threadNames = Collections.synchronizedList(new ArrayList<>());
+        final FanOutRendezvous rendezvous = new FanOutRendezvous();
         // Optional per-(taskId,member) failure config.
         final Map<String, SpawnFailure> failKeys = new ConcurrentHashMap<>();
 
@@ -298,12 +331,8 @@ public abstract class AbstractMultiMemberFanOutTest {
             peakConcurrent.accumulateAndGet(nowActive, Math::max);
             enterNano.put(key, System.nanoTime());
             spawnedMembers.add(member);
-            try {
-                Thread.sleep(80);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new NopAiAgentException("interrupted", e);
-            }
+            // 结构性并发 rendezvous（时间确定化）：同任务全轮进入后一起放行
+            rendezvous.awaitRound(taskId);
             active.decrementAndGet();
             exitNano.put(key, System.nanoTime());
             return SpawnMemberResult.dispatched(

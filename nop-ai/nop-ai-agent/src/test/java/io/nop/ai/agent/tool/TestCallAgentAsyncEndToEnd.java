@@ -51,6 +51,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -326,10 +327,8 @@ public class TestCallAgentAsyncEndToEnd {
         AgentToolExecuteContext ctx = asyncContext(engine, "fail-parent", "parent-agent");
 
         AiToolCall call = call("test-agent", "will fail", null, null);
-        long start = System.currentTimeMillis();
         AiToolCallResult result = new CallAgentExecutor().executeAsync(call, ctx)
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
-        long elapsed = System.currentTimeMillis() - start;
 
         assertEquals("failure", result.getStatus(),
                 "A failed sub-agent must yield a failure result, not success or a hang");
@@ -337,8 +336,11 @@ public class TestCallAgentAsyncEndToEnd {
         assertTrue(result.getError().getBody().contains("failed") || result.getError().getBody().contains("error")
                         || result.getError().getBody().contains("exploded"),
                 "Error message should describe the failure: " + result.getError().getBody());
-        assertTrue(elapsed < 20_000,
-                "Failure must be fast (handler returns error RESPONSE, not a timeout): elapsed=" + elapsed + "ms");
+        // 时间确定化（plan 2511-WI5）：墙钟 elapsed 阈值改结构性判别——错误体必须
+        // 是子代理失败响应（含 "exploded"）而非超时路径消息；速度上界由上方
+        // future.get(30s) 挂死保护承担。
+        assertFalse(result.getError().getBody().toLowerCase().contains("timeout"),
+                "Failure must surface the sub-agent error RESPONSE, not the timeout path");
     }
 
     // ========================================================================
@@ -352,12 +354,17 @@ public class TestCallAgentAsyncEndToEnd {
      */
     @Test
     void asyncTimeoutReturnsErrorResultWithoutHanging() throws Exception {
+        // 时间确定化（plan 2511-WI5）：慢 LLM 改为 latch 阻塞形态（超时 2s 仅作
+        // 挂死上界，远大于 300ms 工具超时）——结果必须在子代理完成前由
+        // orTimeout 超时路径产生（latch 未放行即子调用未完成，结构性证据），
+        // 不再依赖真实 5s sleep 与墙钟 elapsed 阈值。
+        CountDownLatch slowGate = new CountDownLatch(1);
         IChatService slowChat = new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
                 return CompletableFuture.supplyAsync(() -> {
                     try {
-                        Thread.sleep(5000);
+                        slowGate.await(2, TimeUnit.SECONDS);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
@@ -372,7 +379,7 @@ public class TestCallAgentAsyncEndToEnd {
                 // The ReAct loop may use the synchronous call() path; it must
                 // also be slow so the handler's orTimeout fires.
                 try {
-                    Thread.sleep(5000);
+                    slowGate.await(2, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -411,8 +418,10 @@ public class TestCallAgentAsyncEndToEnd {
                         || result.getError().getBody().toLowerCase().contains("timed out")
                         || result.getError().getBody().contains("failed"),
                 "Error should indicate timeout/failure: " + result.getError().getBody());
-        assertTrue(elapsed < 4000,
-                "Timeout must fire around timeoutMs (300ms), not wait for the 5s sub-agent: elapsed=" + elapsed + "ms");
+        // 结构性证据：子代理的 LLM 调用从未完成（gate 未放行）——结果只能来自
+        // timeoutMs=300ms 的超时路径，而非慢子代理的自然返回（替代墙钟阈值）。
+        assertEquals(1, slowGate.getCount(),
+                "slow sub-agent chat must NOT have completed before the timeout fired");
     }
 
     // ========================================================================

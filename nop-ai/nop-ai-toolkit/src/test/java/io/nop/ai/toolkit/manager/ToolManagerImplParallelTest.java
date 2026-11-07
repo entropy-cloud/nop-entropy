@@ -56,6 +56,12 @@ public class ToolManagerImplParallelTest {
         final AtomicInteger inFlight = new AtomicInteger();
         final AtomicInteger maxObserved = new AtomicInteger();
         final AtomicInteger completed = new AtomicInteger();
+        // 时间确定化（plan 2511-WI5）：并发窗口由显式 rendezvous 产生——执行体
+        // 等待 inFlight 达到 {@code targetInFlight}（结构性并发证明），超时仅挂死
+        // 保护；target<=1 时不等待，行为同直通。
+        final java.util.concurrent.atomic.AtomicInteger targetInFlight =
+                new java.util.concurrent.atomic.AtomicInteger();
+        final java.util.concurrent.atomic.AtomicInteger submissions = new java.util.concurrent.atomic.AtomicInteger();
 
         @Override
         public String getToolName() {
@@ -67,10 +73,18 @@ public class ToolManagerImplParallelTest {
             return context.getExecutor().submit(() -> {
                 int now = inFlight.incrementAndGet();
                 maxObserved.accumulateAndGet(now, Math::max);
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                // 时间确定化（plan 2511-WI5）：并发窗口由显式 rendezvous 产生——执行体
+                // 等待本批并发峰值 maxObserved 达到 targetInFlight（结构性并发证明，
+                // 单调计数避免 inFlight 减量竞态），超时仅挂死保护；target<=1 时不等待。
+                int target = targetInFlight.get();
+                long deadlineNanos = System.nanoTime() +
+                        java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+                while (target > 1 && maxObserved.get() < target) {
+                    if (System.nanoTime() > deadlineNanos) {
+                        throw new IllegalStateException(
+                                "rendezvous timeout: maxObserved=" + maxObserved.get() + " target=" + target);
+                    }
+                    java.util.concurrent.locks.LockSupport.parkNanos(200_000);
                 }
                 inFlight.decrementAndGet();
                 completed.incrementAndGet();
@@ -132,6 +146,7 @@ public class ToolManagerImplParallelTest {
     @Test
     void testMaxConcurrencyBoundsInFlightCalls() throws Exception {
         CountingExecutor countingExecutor = new CountingExecutor();
+        countingExecutor.targetInFlight.set(2); // 结构性要求 bound=2 真正被触及
         ToolManagerImpl manager = newManager(countingExecutor);
         AiToolCalls calls = buildCalls(5, 2);
 
@@ -154,6 +169,7 @@ public class ToolManagerImplParallelTest {
     @Test
     void testNullMaxConcurrencyStaysUnbounded() throws Exception {
         CountingExecutor countingExecutor = new CountingExecutor();
+        countingExecutor.targetInFlight.set(5); // 结构性要求 5 全部 in-flight
         ToolManagerImpl manager = newManager(countingExecutor);
         AiToolCalls calls = buildCalls(5, null);
 
@@ -183,6 +199,7 @@ public class ToolManagerImplParallelTest {
     @Test
     void testMaxConcurrencyGreaterThanCallCountRunsAll() throws Exception {
         CountingExecutor countingExecutor = new CountingExecutor();
+        countingExecutor.targetInFlight.set(3); // 结构性要求 3 全部并发在飞
         ToolManagerImpl manager = newManager(countingExecutor);
         AiToolCalls calls = buildCalls(3, 10);
 

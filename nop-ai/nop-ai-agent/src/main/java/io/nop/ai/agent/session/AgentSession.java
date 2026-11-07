@@ -60,7 +60,7 @@ public class AgentSession {
             String eldest = seenInputKeys.keySet().iterator().next();
             seenInputKeys.remove(eldest);
         }
-        seenInputKeys.put(key, System.currentTimeMillis());
+        seenInputKeys.put(key, CoreMetrics.currentTimeMillis());
         return true;
     }
 

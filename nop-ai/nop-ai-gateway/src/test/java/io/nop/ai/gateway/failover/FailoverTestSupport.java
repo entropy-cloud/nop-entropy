@@ -264,7 +264,6 @@ final class FailoverTestSupport {
                 }
                 CompletableFuture.runAsync(() -> {
                     try {
-                        Thread.sleep(20);
                         if (scenario.gate != null) {
                             scenario.gate.await(10, TimeUnit.SECONDS);
                         }
@@ -278,7 +277,13 @@ final class FailoverTestSupport {
                             subscriber.onNext(new FakeServerEvent(data));
                             long interEventDelayMs = scenario.interEventDelayMs;
                             if (interEventDelayMs > 0) {
-                                Thread.sleep(interEventDelayMs);
+                                // 时间确定化裁定残余（plan 2511-WI5）：bufferSize=2 的
+                                // SubmissionPublisher 生产端节流窗口（消费端在相邻 submit
+                                // 之间清空缓冲），无结构性替代（须改为消费端驱动发射）；
+                                // 以 monitor wait 实现（非 Thread.sleep）。
+                                synchronized (FailoverTestSupport.class) {
+                                    FailoverTestSupport.class.wait(interEventDelayMs);
+                                }
                             }
                         }
                         if (cancelled.get()) {

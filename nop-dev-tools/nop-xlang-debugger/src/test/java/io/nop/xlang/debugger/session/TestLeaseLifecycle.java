@@ -466,34 +466,45 @@ public class TestLeaseLifecycle {
         debugger.setUseExternalPath(false);
         debugger.suspend(); // 会话级一次生效旗标
 
-        java.util.concurrent.CountDownLatch settled = new java.util.concurrent.CountDownLatch(2);
-        AtomicReference<Throwable> error = new AtomicReference<>();
-        Runnable hit = () -> {
+        // 逐线程结果：通过线程必须无错完成；挂起线程在 close 中止后允许得到 abort 异常
+        // （close 语义即中止挂起线程）——原共用单个 error 引数的断言只能靠竞态通过。
+        AtomicReference<Throwable> error1 = new AtomicReference<>();
+        AtomicReference<Throwable> error2 = new AtomicReference<>();
+        Thread t1 = new Thread(() -> {
             try {
                 debugger.checkBreakpoint(fromLine("a", 1), newRt());
             } catch (Throwable t) {
-                error.set(t);
-            } finally {
-                settled.countDown();
+                error1.set(t);
             }
-        };
-        Thread t1 = new Thread(hit);
-        Thread t2 = new Thread(hit);
+        });
+        Thread t2 = new Thread(() -> {
+            try {
+                debugger.checkBreakpoint(fromLine("a", 1), newRt());
+            } catch (Throwable t) {
+                error2.set(t);
+            }
+        });
         t1.start();
         t2.start();
-        // 恰一个线程挂起（CAS 原子清除），另一个直接通过
+        // 恰一个线程挂起（CAS 原子清除），另一个直接通过并结束
         long deadline = System.currentTimeMillis() + 5000;
-        while (debugger.getSuspendedThreadIds().size() != 1) {
+        while (debugger.getSuspendedThreadIds().size() != 1 || t1.isAlive() == t2.isAlive()) {
             if (System.currentTimeMillis() > deadline)
-                throw new AssertionError("suspendOnce 应恰好挂起一个线程");
+                throw new AssertionError("suspendOnce 应恰好挂起一个线程且另一线程已通过退出");
             Thread.sleep(10);
         }
-        // 另一线程应已通过并结束
-        t2.join(100);
-        t1.join(100);
+        // 确定性判据：挂起数 == 1 且两线程存活状态不同——按线程 id 区分挂起者与通过者
+        boolean t1Suspended = debugger.getSuspendedThreadIds().contains(t1.getId());
+        Thread passing = t1Suspended ? t2 : t1;
+        Thread suspendedThread = t1Suspended ? t1 : t2;
+        passing.join(5000);
+        assertFalse(passing.isAlive(), "通过线程应已从 checkBreakpoint 返回");
+        AtomicReference<Throwable> passingError = t1Suspended ? error2 : error1;
+        assertEquals(null, passingError.get(), "通过线程不得产生异常（suspendOnce 只挂起一个）");
         assertTrue(debugger.isSuspended());
-        debugger.close(); // 清理挂起线程
-        assertEquals(null, error.get());
+        debugger.close(); // 中止挂起线程（close 语义：挂起线程得到 abort 异常属预期）
+        suspendedThread.join(1000);
+        assertFalse(suspendedThread.isAlive(), "close 应中止挂起线程");
     }
 
     @Test

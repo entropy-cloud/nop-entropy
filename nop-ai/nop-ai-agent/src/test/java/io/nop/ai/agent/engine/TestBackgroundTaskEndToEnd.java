@@ -171,13 +171,12 @@ public class TestBackgroundTaskEndToEnd {
         String taskId = extractTaskId(chat);
         assertTrue(taskId.startsWith("bg-"), "confirmation taskId: " + taskId);
 
-        // the fork runs off the dispatch pool — poll for the terminal state
-        long deadline = System.currentTimeMillis() + 20_000;
-        while (System.currentTimeMillis() < deadline
-                && IBackgroundTaskRegistry.STATUS_RUNNING.equals(
-                        registry.snapshot(taskId) == null ? null : registry.snapshot(taskId).getStatus())) {
-            Thread.sleep(50);
-        }
+        // the fork runs off the dispatch pool — condition-wait for the terminal
+        // state (timeout only guards against a hang)
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> !IBackgroundTaskRegistry.STATUS_RUNNING.equals(
+                        registry.snapshot(taskId) == null ? null : registry.snapshot(taskId).getStatus()),
+                20_000), "background bash reached a terminal state");
         assertEquals(IBackgroundTaskRegistry.STATUS_COMPLETED, registry.snapshot(taskId).getStatus(),
                 "background bash must complete");
         assertTrue(registry.snapshot(taskId).getOutputTail().contains("Hello E2E"),

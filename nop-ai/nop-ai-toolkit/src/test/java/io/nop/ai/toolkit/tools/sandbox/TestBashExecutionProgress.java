@@ -59,14 +59,12 @@ public class TestBashExecutionProgress {
 
         // poll until the reader thread has captured the first line (bounded):
         // inFlight alone flips immediately at execute entry — wait for output
-        BashProgressSnapshot snapshot = BashProgressSnapshot.empty();
-        for (int i = 0; i < 250; i++) {
-            snapshot = sandbox.progressSnapshot("call-progress-1");
-            if (snapshot.isInFlight() && snapshot.getOutputTail().contains("line-1")) {
-                break;
-            }
-            Thread.sleep(20);
-        }
+        // 条件等待（超时仅挂死保护；gated 真实子进程面保持既有形态）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+            BashProgressSnapshot snap = sandbox.progressSnapshot("call-progress-1");
+            return snap.isInFlight() && snap.getOutputTail().contains("line-1");
+        }, 10_000), "running execution must capture the first line");
+        BashProgressSnapshot snapshot = sandbox.progressSnapshot("call-progress-1");
         assertTrue(snapshot.isInFlight(), "running execution must be in flight");
         assertTrue(snapshot.getOutputTail().contains("line-1"),
                 "incremental tail carries the first line: " + snapshot.getOutputTail());

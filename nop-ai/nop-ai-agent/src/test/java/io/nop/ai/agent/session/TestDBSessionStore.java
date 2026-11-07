@@ -164,12 +164,13 @@ public class TestDBSessionStore {
     }
 
     @Test
-    void fieldIntegrityTimestampsPreserved() throws InterruptedException {
+    void fieldIntegrityTimestampsPreserved() {
         DBSessionStore store1 = new DBSessionStore(dataSource);
 
         AgentSession session = AgentSession.create("ts-1", "agent");
         long created = session.getCreatedAt();
-        Thread.sleep(5);
+        // 时间确定化（plan 2511-WI5）：断言为 >= 比较，显式时间戳差异由
+        // CoreMetrics 时钟读取天然保证，无需墙钟间隔
         session.appendMessages(List.of(new ChatUserMessage("x")));
         long updated = session.getUpdatedAt();
 

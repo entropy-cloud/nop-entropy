@@ -355,14 +355,29 @@ class ShellIOTest {
 
         assertEquals("hello", input.readLine());
 
-        Thread eofThread = new Thread(() -> {
-            try { Thread.sleep(50); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
-            input.sendEof();
+        // 时间确定化（plan 2511-WI5）：readLine 在另一线程执行并以 parked 状态
+        // （WAITING，阻塞在空队列上）为结构性证据，主线程在其确已阻塞后显式发送
+        // EOF（latch 交接），不再依赖真实 sleep 窗口。
+        java.util.concurrent.atomic.AtomicReference<String> readOutcome =
+                new java.util.concurrent.atomic.AtomicReference<>("PENDING");
+        java.util.concurrent.CountDownLatch readDone = new java.util.concurrent.CountDownLatch(1);
+        Thread reader = new Thread(() -> {
+            readOutcome.set(input.readLine());
+            readDone.countDown();
         });
-        eofThread.start();
+        reader.start();
 
-        assertNull(input.readLine(), "Should return null after EOF");
-        eofThread.join(1000);
+        long deadlineNanos = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
+        while (reader.getState() != Thread.State.WAITING && System.nanoTime() < deadlineNanos) {
+            Thread.yield();
+        }
+        org.junit.jupiter.api.Assertions.assertEquals(Thread.State.WAITING, reader.getState(),
+                "reader must be parked on the empty queue before EOF is sent");
+
+        input.sendEof();
+        assertTrue(readDone.await(5, java.util.concurrent.TimeUnit.SECONDS),
+                "reader must return after EOF");
+        assertNull(readOutcome.get(), "Should return null after EOF");
     }
 
     @Test

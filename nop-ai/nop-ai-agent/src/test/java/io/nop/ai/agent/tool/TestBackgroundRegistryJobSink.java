@@ -13,6 +13,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import io.nop.api.core.util.FutureHelper;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -61,11 +63,10 @@ public class TestBackgroundRegistryJobSink {
                 release.countDown();
             }
 
-            long deadline = System.currentTimeMillis() + 10_000;
-            while (System.currentTimeMillis() < deadline
-                    && IBackgroundTaskRegistry.STATUS_RUNNING.equals(registry.snapshot(taskId).getStatus())) {
-                Thread.sleep(20);
-            }
+            // 条件等待（超时仅挂死保护）
+            assertTrue(FutureHelper.waitUntil(
+                    () -> !IBackgroundTaskRegistry.STATUS_RUNNING.equals(registry.snapshot(taskId).getStatus()),
+                    10_000), "background body must reach a terminal state");
             assertEquals(IBackgroundTaskRegistry.STATUS_COMPLETED, registry.snapshot(taskId).getStatus());
             assertTrue(registry.readOutput(taskId).contains("job output"));
             assertEquals("shell-&", registry.snapshot(taskId).getToolName());
@@ -90,11 +91,10 @@ public class TestBackgroundRegistryJobSink {
                 throw new IllegalStateException("command not found");
             });
 
-            long deadline = System.currentTimeMillis() + 10_000;
-            while (System.currentTimeMillis() < deadline
-                    && IBackgroundTaskRegistry.STATUS_RUNNING.equals(registry.snapshot(taskId).getStatus())) {
-                Thread.sleep(20);
-            }
+            // 条件等待（超时仅挂死保护）
+            assertTrue(FutureHelper.waitUntil(
+                    () -> !IBackgroundTaskRegistry.STATUS_RUNNING.equals(registry.snapshot(taskId).getStatus()),
+                    10_000), "failing body must reach a terminal state");
             assertEquals(IBackgroundTaskRegistry.STATUS_FAILED, registry.snapshot(taskId).getStatus());
             assertTrue(registry.readOutput(taskId).contains("command not found"),
                     "the failure text must be captured as output");

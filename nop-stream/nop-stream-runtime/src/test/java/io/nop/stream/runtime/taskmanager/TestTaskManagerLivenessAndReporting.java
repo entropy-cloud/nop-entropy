@@ -226,6 +226,15 @@ class TestTaskManagerLivenessAndReporting {
             TestAwait.until("idle loop re-evaluated after the virtual advance",
                     () -> clock.totalReads() >= 500);
 
+            // 确定性：以「心跳上报值 == 虚拟当前时刻」为条件重试心跳——读取计数阈值
+            // 只能证明循环读过新时刻，不能排除心跳恰好落在「已读未写回」的迭代间隙。
+            TestAwait.until("heartbeat reports freshness == virtual now", () -> {
+                taskManager.heartbeat();
+                List<TaskProgress> probe = coordinatorRpc.livenessBatches
+                        .get(coordinatorRpc.livenessBatches.size() - 1);
+                return probe != null && !probe.isEmpty()
+                        && probe.get(0).getLastProgressTime() == clock.peekMillis();
+            });
             taskManager.heartbeat();
             List<TaskProgress> batch = coordinatorRpc.livenessBatches.get(coordinatorRpc.livenessBatches.size() - 1);
             assertNotNull(batch, "heartbeat must report liveness for the idle task");

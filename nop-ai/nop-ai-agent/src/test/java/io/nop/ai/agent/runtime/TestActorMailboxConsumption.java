@@ -1,5 +1,6 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.api.core.util.FutureHelper;
 import io.nop.ai.agent.message.AgentMessageEnvelope;
 import io.nop.ai.agent.message.AgentMessageKind;
 import io.nop.ai.agent.message.DeferredAckMailbox;
@@ -180,25 +181,29 @@ public class TestActorMailboxConsumption {
         assertEquals(0, mailbox.inFlightCount());
         assertEquals(0, mailbox.deadLetterCount());
 
-        // Wait a bit more and verify no additional messages appear
-        Thread.sleep(200);
-        assertEquals(1, actor.getReceivedMessages().size(),
-                "no redelivery after ack — receivedMessages stays at 1");
+        // 重新求值证据（时间确定化）：ack 之后再投递一条探针消息，等消费循环
+        // 真正跑过新一轮 poll→record→ack（探针被记录），再断言原消息没有被
+        // 重复投递（receivedMessages 中 permanent-ack 恰好一条）。
+        mailbox.offer(envelope("probe-after-ack"));
+        waitForReceivedMessages(actor, 2, 3000);
+        waitForMailboxDrained(mailbox, 3000);
+
+        List<MailboxEntry> receivedAfterAck = actor.getReceivedMessages();
+        assertEquals(2, receivedAfterAck.size());
+        assertEquals("permanent-ack", receivedAfterAck.get(0).getEnvelope().getPayload());
+        assertEquals("probe-after-ack", receivedAfterAck.get(1).getEnvelope().getPayload(),
+                "second delivery must be the probe, NOT a redelivery of the acked message");
 
         rt.destroyActor(actor.getActorId());
     }
 
     // ==================== Helpers ====================
 
-    private static void waitForReceivedMessages(AgentActor actor, int expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (actor.getReceivedMessages().size() >= expected) {
-                return;
-            }
-            Thread.sleep(10);
-        }
+    // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
+
+    private static void waitForReceivedMessages(AgentActor actor, int expected, long timeoutMs) {
+        assertTrue(FutureHelper.waitUntil(() -> actor.getReceivedMessages().size() >= expected, timeoutMs),
+                "actor should have received at least " + expected + " messages");
     }
 
     /**
@@ -207,25 +212,14 @@ public class TestActorMailboxConsumption {
      * {@code ack}, so callers that assert mailbox emptiness must wait for the
      * ack to complete, not just for the record to appear.
      */
-    private static void waitForMailboxDrained(DeferredAckMailbox mailbox, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (mailbox.pendingCount() == 0 && mailbox.inFlightCount() == 0) {
-                return;
-            }
-            Thread.sleep(10);
-        }
+    private static void waitForMailboxDrained(DeferredAckMailbox mailbox, long timeoutMs) {
+        assertTrue(FutureHelper.waitUntil(
+                () -> mailbox.pendingCount() == 0 && mailbox.inFlightCount() == 0, timeoutMs),
+                "mailbox should be fully drained");
     }
 
-    private static void waitForStatus(AgentActor actor, AgentActorStatus expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (actor.getStatus() == expected) {
-                return;
-            }
-            Thread.sleep(10);
-        }
+    private static void waitForStatus(AgentActor actor, AgentActorStatus expected, long timeoutMs) {
+        assertTrue(FutureHelper.waitUntil(() -> actor.getStatus() == expected, timeoutMs),
+                "actor should reach status " + expected);
     }
 }

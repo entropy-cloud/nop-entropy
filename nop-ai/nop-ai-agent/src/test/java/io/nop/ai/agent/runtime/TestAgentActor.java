@@ -1,5 +1,7 @@
 package io.nop.ai.agent.runtime;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.ai.agent.message.DeferredAckMailbox;
 import io.nop.ai.agent.message.IMailbox;
 import io.nop.ai.agent.message.MailboxDeliveryState;
@@ -67,14 +69,21 @@ public class TestAgentActor {
     }
 
     @Test
-    void touchUpdatesLastActiveAt() throws InterruptedException {
+    void touchUpdatesLastActiveAt() {
         AgentActor actor = new AgentActor("a", "s", "g", 1000L, null);
         assertEquals(1000L, actor.getLastActiveAt());
 
-        Thread.sleep(5);
-        actor.touch();
-        assertTrue(actor.getLastActiveAt() > 1000L,
-                "touch() must update lastActiveAt to current time");
+        // 时间确定化（plan 2511-WI5）：touch 读取 CoreMetrics，测试推进虚拟时钟
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            clock.advance(100L);
+            actor.touch();
+            assertEquals(1_000_100L, actor.getLastActiveAt(),
+                    "touch() must update lastActiveAt to the (virtual) current time");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     @Test

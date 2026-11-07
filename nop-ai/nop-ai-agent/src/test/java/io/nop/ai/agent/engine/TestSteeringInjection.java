@@ -36,6 +36,7 @@ import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
 import io.nop.ai.agent.tool.SendMessageExecutor;
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.core.CoreConstants;
@@ -428,12 +429,8 @@ public class TestSteeringInjection {
                     toolCall.setArguments(args);
                     return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
-                    // Give the Actor time to poll + enqueue
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
+                    // Actor 的 poll→入队已由 send-message 工具内的条件等待保证，
+                    // 此处无需再留真实时间窗。
                     return ChatResponseFixtures.assistantText("done after steering injection");
                 }
             }
@@ -445,8 +442,10 @@ public class TestSteeringInjection {
             }
         };
 
-        // Tool manager with send-message + delay so the Actor can poll
-        // before the steering checkpoint.
+        // Tool manager with send-message gated on the Actor having polled and
+        // enqueued the steering message（条件等待取代固定 sleep 的时序留白）.
+        final java.util.concurrent.atomic.AtomicReference<io.nop.ai.agent.runtime.InMemoryActorRuntime> rtRef =
+                new java.util.concurrent.atomic.AtomicReference<>();
         IToolManager delayedToolManager = new IToolManager() {
             private final SendMessageExecutor sendMessageExecutor = new SendMessageExecutor();
 
@@ -455,11 +454,18 @@ public class TestSteeringInjection {
                 if ("send-message".equals(toolName)) {
                     return sendMessageExecutor.executeAsync(call, context)
                             .thenCompose(result -> {
-                                try {
-                                    Thread.sleep(500);
-                                } catch (InterruptedException e) {
-                                    Thread.currentThread().interrupt();
-                                }
+                                // 条件等待：Actor 已 poll 邮件并把 steering 消息入队
+                                // （超时仅挂死保护），随后才放行工具结果进入 steering 检查点。
+                                boolean enqueued = FutureHelper.waitUntil(() -> {
+                                    io.nop.ai.agent.runtime.InMemoryActorRuntime rt = rtRef.get();
+                                    if (rt == null) {
+                                        return false;
+                                    }
+                                    return rt.getActorBySession(sessionId)
+                                            .map(a -> a.getSteeringQueue() != null && !a.getSteeringQueue().isEmpty())
+                                            .orElse(false);
+                                }, 10_000);
+                                assertTrue(enqueued, "Actor should have enqueued the steering message");
                                 return CompletableFuture.completedFuture(result);
                             })
                             .toCompletableFuture();
@@ -497,6 +503,7 @@ public class TestSteeringInjection {
         io.nop.ai.agent.runtime.InMemoryActorRuntime rt =
                 new io.nop.ai.agent.runtime.InMemoryActorRuntime(
                         engine::getSessionMailbox, FAST_POLL_MS, FAST_SHUTDOWN_MS);
+        rtRef.set(rt);
         engine.config().setActorRuntime(rt);
 
         AgentMessageRequest request = new AgentMessageRequest(
@@ -599,15 +606,13 @@ public class TestSteeringInjection {
         return sb.toString();
     }
 
-    private static void waitForCondition(java.util.function.BooleanSupplier condition, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(10);
-        }
+    /**
+     * 时间确定化（plan 2511-WI5）：条件等待改走 {@link FutureHelper#waitUntil}
+     * （超时仅挂死保护），条件不满足即以断言失败收尾，不再静默吞掉超时。
+     */
+    private static void waitForCondition(java.util.function.BooleanSupplier condition, long timeoutMs) {
+        assertTrue(FutureHelper.waitUntil(condition, timeoutMs),
+                "condition not met within " + timeoutMs + "ms");
     }
 
     private IToolManager noopToolManager() {

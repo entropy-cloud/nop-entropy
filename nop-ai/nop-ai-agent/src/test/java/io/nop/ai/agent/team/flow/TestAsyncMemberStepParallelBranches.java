@@ -89,6 +89,41 @@ public class TestAsyncMemberStepParallelBranches {
         final AtomicInteger completionSeq = new AtomicInteger();
         final AtomicInteger peakConcurrent = new AtomicInteger();
         final AtomicInteger active = new AtomicInteger();
+    /**
+     * 时间确定化（plan 2511-WI5）：并发重叠证据由显式 rendezvous 产生——同一轮的
+     * 各执行在共享 {@link java.util.concurrent.CyclicBarrier} 上等待，直到全轮
+     * 进入（结构性并发证明），不再用真实毫秒 sleep 制造时间窗。超时仅挂死保护。
+     */
+    static final class RoundRendezvous {
+        final Map<String, String> taskRound = new ConcurrentHashMap<>();
+        final Map<String, Integer> roundParties = new ConcurrentHashMap<>();
+        final Map<String, java.util.concurrent.CyclicBarrier> barriers = new ConcurrentHashMap<>();
+
+        void expectConcurrent(String roundKey, int parties, String... taskIds) {
+            roundParties.put(roundKey, parties);
+            for (String id : taskIds) {
+                taskRound.put(id, roundKey);
+            }
+        }
+
+        void awaitRound(String taskId) {
+            String roundKey = taskRound.get(taskId);
+            if (roundKey == null) {
+                return;
+            }
+            java.util.concurrent.CyclicBarrier barrier = barriers.computeIfAbsent(roundKey,
+                    k -> new java.util.concurrent.CyclicBarrier(roundParties.get(k)));
+            try {
+                barrier.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NopAiAgentException("interrupted while awaiting round rendezvous", e);
+            } catch (Exception e) {
+                throw new NopAiAgentException("round rendezvous broken", e);
+            }
+        }
+    }
+        final RoundRendezvous rendezvous = new RoundRendezvous();
 
         @Override
         public AgentMessageAck sendMessage(AgentMessageRequest request) {
@@ -105,16 +140,8 @@ public class TestAsyncMemberStepParallelBranches {
             startOrder.put(taskId, startSeq.incrementAndGet());
 
             return CompletableFuture.supplyAsync(() -> {
-                try {
-                    // Hold the execution slot briefly so the scheduler has
-                    // time to trigger the sibling branch before this one
-                    // completes. For a TRUE parallel run the sibling branch
-                    // will be triggered while we are still here.
-                    Thread.sleep(80);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new NopAiAgentException("interrupted", e);
-                }
+                // 结构性并发 rendezvous（时间确定化）：同轮执行全部进入后一起放行
+                rendezvous.awaitRound(taskId);
                 active.decrementAndGet();
                 exitNanoTime.put(taskId, System.nanoTime());
                 completionOrder.put(taskId, completionSeq.incrementAndGet());
@@ -161,6 +188,9 @@ public class TestAsyncMemberStepParallelBranches {
         String b = createTask(store, teamId, "B", Collections.singletonList(a));
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
+
+        // 时间确定化（plan 2511-WI5）：B/C 并发重叠由 rendezvous 结构性保证
+        engine.rendezvous.expectConcurrent("diamond-bc", 2, b, c);
 
         TeamTaskFlowOrchestrator orchestrator = new TeamTaskFlowOrchestrator(engine, store, mgr);
         CompletableFuture<TeamTaskFlowResult> future = orchestrator.executeAsync(teamId);

@@ -47,19 +47,10 @@ public class TestChannelFanOutTimeoutCancel {
     }
 
     private static void awaitUntil(java.util.function.BooleanSupplier condition, String label) {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("interrupted while awaiting " + label);
-            }
+        // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
+        if (!io.nop.api.core.util.FutureHelper.waitUntil(condition::getAsBoolean, 5000)) {
+            fail("timed out awaiting " + label);
         }
-        fail("timed out awaiting " + label);
     }
 
     /**

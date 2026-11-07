@@ -222,15 +222,13 @@ public class TestSpawnDispatchTimeout {
         assertEquals(1, tally.dispatched, "the fan-out must have fired (async in-flight)");
 
         // The bounded dispatch future settles within the per-member deadline,
-        // then the whenComplete removal fires — poll for the queue drain
-        // (AR-2 queue-leak proof: no permanent inFlightDispatches entry).
-        long drainDeadline = System.currentTimeMillis() + 10_000;
-        while (coordinator.inFlightDispatchCount() > 0 && System.currentTimeMillis() < drainDeadline) {
-            Thread.sleep(10);
-        }
-        long elapsedMs = System.currentTimeMillis() - start;
-        assertTrue(elapsedMs < 5000,
-                "queue drain must happen bounded by the member timeout, took " + elapsedMs + "ms");
+        // then the whenComplete removal fires — condition-wait for the queue
+        // drain (AR-2 queue-leak proof: no permanent inFlightDispatches entry).
+        // 时间确定化（plan 2511-WI5）：超时仅挂死保护；drain 依赖生产
+        // MemberFanOutDispatcher 的真实 orTimeout member deadline（被测生产语义）。
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> coordinator.inFlightDispatchCount() == 0, 10_000),
+                "queue drain must happen bounded by the member timeout");
         assertEquals(0, coordinator.inFlightDispatchCount(),
                 "inFlightDispatches must drain back to zero after the timed-out dispatch settles");
         assertTrue(coordinator.awaitInFlightDispatches(1000),
@@ -272,13 +270,11 @@ public class TestSpawnDispatchTimeout {
                 team, task, claimed.get(), null);
         assertEquals(1, tally.dispatched, "the fan-out must have fired (async in-flight)");
 
-        long drainDeadline = System.currentTimeMillis() + 10_000;
-        while (coordinator.inFlightDispatchCount() > 0 && System.currentTimeMillis() < drainDeadline) {
-            Thread.sleep(10);
-        }
-        long elapsedMs = System.currentTimeMillis() - start;
-        assertTrue(elapsedMs < 5000,
-                "the daemon path must settle bounded by the member timeout, took " + elapsedMs + "ms");
+        // 时间确定化（plan 2511-WI5）：条件等待（超时仅挂死保护）；settle 依赖生产
+        // MemberFanOutDispatcher 的真实 orTimeout member deadline（被测生产语义）。
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> coordinator.inFlightDispatchCount() == 0, 10_000),
+                "the daemon path must settle bounded by the member timeout");
         assertEquals(0, coordinator.inFlightDispatchCount(),
                 "inFlightDispatches must drain to zero on the real-spawner path too");
         assertTrue(engine.executeCount.get() >= 1,

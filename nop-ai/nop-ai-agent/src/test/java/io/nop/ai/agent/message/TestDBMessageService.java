@@ -1,6 +1,7 @@
 package io.nop.ai.agent.message;
 
 import io.nop.api.core.message.ConsumeLater;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageSubscription;
@@ -86,8 +87,7 @@ public class TestDBMessageService {
                     "A", "agent.B.inbox", "corr-1", AgentMessageKind.ASYNC, "hello-db");
             svc.send("agent.B.inbox", env);
 
-            Thread.sleep(200);
-
+            // send 的 INSERT 是同步完成，无需墙钟等待
             assertEquals(1, countAllRows(), "one row should exist in the table after send");
             assertEquals(1, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
                     "the row should be in PENDING status");
@@ -184,7 +184,7 @@ public class TestDBMessageService {
                 "A", "persistence.topic", "corr-1", AgentMessageKind.ASYNC, "survive-restart");
         sender.send("persistence.topic", env);
 
-        Thread.sleep(200);
+        // send 的 INSERT 是同步完成，落盘后即可关闭（时间确定化）
         sender.close();
 
         assertEquals(1, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
@@ -261,6 +261,16 @@ public class TestDBMessageService {
                 }
             });
 
+            // 探针订阅：证明取消后 poll 线程仍在重新求值（能投递其他话题的消息）
+            AtomicInteger probeReceived = new AtomicInteger(0);
+            svc.subscribe("probe.topic", new IMessageConsumer() {
+                @Override
+                public Object onMessage(String topic, Object message, IMessageConsumeContext context) {
+                    probeReceived.incrementAndGet();
+                    return null;
+                }
+            });
+
             svc.send("cancel.topic", "before-cancel");
             waitForCondition(() -> received.get() >= 1, 3, TimeUnit.SECONDS);
             assertEquals(1, received.get());
@@ -269,7 +279,10 @@ public class TestDBMessageService {
             assertTrue(sub.isCancelled());
 
             svc.send("cancel.topic", "after-cancel");
-            Thread.sleep(500);
+            // 重新求值证据：取消后发送的探针消息被投递，说明 poll 线程在取消之后
+            // 仍然完整跑过 poll→投递周期，却未把 after-cancel 消息投给已取消的订阅。
+            svc.send("probe.topic", "probe-after-cancel");
+            waitForCondition(() -> probeReceived.get() >= 1, 3, TimeUnit.SECONDS);
 
             assertEquals(1, received.get(), "no more messages should be delivered after cancel");
         } finally {
@@ -292,23 +305,41 @@ public class TestDBMessageService {
 
         svc.send("close.topic", "test");
 
-        // Wait for the first message to be consumed
-        long deadline = System.currentTimeMillis() + 10_000;
-        while (System.currentTimeMillis() < deadline) {
-            int pending = countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING);
-            if (pending == 0) break;
-            Thread.sleep(50);
-        }
+        // Wait for the first message to be consumed (条件等待，超时仅挂死保护)
+        assertTrue(FutureHelper.waitUntil(
+                () -> {
+                    try {
+                        return countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING) == 0;
+                    } catch (Exception e) {
+                        throw new IllegalStateException("status poll failed", e);
+                    }
+                }, 10_000),
+                "first message should have been consumed before close");
         assertEquals(0, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
                 "first message should have been consumed before close");
 
         svc.close();
 
+        // 结构性证据：close() 之后 poll 线程已终止（无消费者线程可再投递）
+        assertTrue(!pollerThreadAlive("test-close"),
+                "poller thread must terminate after close()");
+
         svc.send("close.topic", "after-close");
 
-        Thread.sleep(1000);
         assertEquals(1, countRows("STATUS = " + AiAgentMessageTable.STATUS_PENDING),
                 "after close, new messages should remain PENDING (no polling)");
+    }
+
+    private static boolean pollerThreadAlive(String consumerId) {
+        Thread[] threads = new Thread[Thread.activeCount() + 8];
+        int n = Thread.enumerate(threads);
+        for (int i = 0; i < n; i++) {
+            Thread t = threads[i];
+            if (t != null && t.isAlive() && ("db-message-poller-" + consumerId).equals(t.getName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Test
@@ -344,14 +375,13 @@ public class TestDBMessageService {
         }
     }
 
+    /**
+     * 时间确定化（plan 2511-WI5）：条件等待走 {@link FutureHelper#waitUntil}
+     * （超时仅挂死保护），条件不满足即以断言失败收尾。
+     */
     private void waitForCondition(java.util.function.Supplier<Boolean> condition,
-                                  long timeout, TimeUnit unit) throws InterruptedException {
-        long deadline = System.nanoTime() + unit.toNanos(timeout);
-        while (System.nanoTime() < deadline) {
-            if (condition.get()) {
-                return;
-            }
-            Thread.sleep(20);
-        }
+                                  long timeout, TimeUnit unit) {
+        assertTrue(FutureHelper.waitUntil(condition::get, unit.toMillis(timeout)),
+                "condition not met within " + timeout + " " + unit);
     }
 }

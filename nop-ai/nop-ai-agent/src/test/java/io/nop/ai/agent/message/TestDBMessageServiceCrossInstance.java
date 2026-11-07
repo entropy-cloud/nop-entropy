@@ -149,14 +149,10 @@ public class TestDBMessageServiceCrossInstance {
                 () -> noOp.request(request, Duration.ofMillis(50)));
     }
 
+    // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
     private void waitFor(java.util.function.Supplier<Boolean> condition,
-                         long timeout, TimeUnit unit) throws InterruptedException {
-        long deadline = System.nanoTime() + unit.toNanos(timeout);
-        while (System.nanoTime() < deadline) {
-            if (condition.get()) {
-                return;
-            }
-            Thread.sleep(20);
-        }
+                         long timeout, TimeUnit unit) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(condition::get, unit.toMillis(timeout)),
+                "condition not met within " + timeout + " " + unit);
     }
 }

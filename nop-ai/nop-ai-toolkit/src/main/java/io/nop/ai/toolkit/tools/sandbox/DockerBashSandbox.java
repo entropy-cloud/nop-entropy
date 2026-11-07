@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.exceptions.NopException;
 import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_ARGUMENT;
 import java.io.IOException;
@@ -300,7 +301,7 @@ public final class DockerBashSandbox implements IBashSandbox {
                 if (take < n) {
                     truncated = true;
                 }
-                long nowNs = System.nanoTime();
+                long nowNs = CoreMetrics.nanoTime();
                 if (nowNs - lastPublishNs >= PUBLISH_INTERVAL_NS) {
                     lastPublishNs = nowNs;
                     capturedRef.set(new StringBuilder(captured));

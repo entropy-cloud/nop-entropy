@@ -115,22 +115,21 @@ public class TestInMemoryAiMemoryStore {
     }
 
     @Test
-    void getLastNReturnsMostRecent() throws Exception {
+    void getLastNReturnsMostRecent() {
         InMemoryAiMemoryStore store = new InMemoryAiMemoryStore();
 
+        // 排序依据是显式 createTime（时间确定化：无需墙钟间隔保证顺序）
         AiMemoryItem first = new AiMemoryItem();
         first.setKey("k1");
         first.setContent("first");
         first.setCreateTime(LocalDateTime.of(2026, 6, 1, 10, 0));
         store.add(first);
-        Thread.sleep(5);
 
         AiMemoryItem second = new AiMemoryItem();
         second.setKey("k2");
         second.setContent("second");
         second.setCreateTime(LocalDateTime.of(2026, 6, 2, 10, 0));
         store.add(second);
-        Thread.sleep(5);
 
         AiMemoryItem third = new AiMemoryItem();
         third.setKey("k3");

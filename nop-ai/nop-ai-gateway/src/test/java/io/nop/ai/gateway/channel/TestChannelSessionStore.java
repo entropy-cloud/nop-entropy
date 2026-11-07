@@ -164,8 +164,11 @@ public class TestChannelSessionStore {
         ChannelSession before = store.findByChannel("feishu", "oc_2");
         assertNotNull(before.getLastActiveAt());
 
-        // ensure clock advances so the refreshed timestamp is strictly newer
-        Thread.sleep(15);
+        // 时间确定化（plan 2511-WI5）：lastActiveAt 走 CoreMetrics，推进虚拟时钟
+        io.nop.api.core.time.CoreMetrics.registerClock(
+                new io.nop.commons.test.time.ManualClock(
+                        java.time.Instant.ofEpochMilli(before.getLastActiveAt().getTime()).plusMillis(50).toEpochMilli()
+                ));
 
         store.updateLastActive("feishu", "oc_2");
 

@@ -194,7 +194,9 @@ public class TestTaskTools {
             registry.run(taskId, () -> {
                 bodyStarted.countDown();
                 try {
-                    Thread.sleep(30_000);
+                    // 时间确定化（plan 2511-WI5）：后台体的「耗时」由 latch 阻塞承接
+                    //（stop 使 registry 任务进入 FAILED 终态），不再真实睡眠 30s。
+                    new CountDownLatch(1).await(30, java.util.concurrent.TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }

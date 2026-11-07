@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -76,7 +77,11 @@ public class TestDefaultAgentEngine {
         };
     }
 
-    private IChatService createDelayedMockChatService(ChatResponse response, long delayMs) {
+    /**
+     * 时间确定化（plan 2511-WI5）：模拟的 LLM 延迟改为显式 latch 交接——call 阻塞在
+     * latch 上（超时仅挂死保护），测试断言 ack 先行返回后 countDown 放行后台执行。
+     */
+    private IChatService createGatedMockChatService(ChatResponse response, CountDownLatch release) {
         return new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
@@ -86,7 +91,7 @@ public class TestDefaultAgentEngine {
             @Override
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
                 try {
-                    Thread.sleep(delayMs);
+                    release.await(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -129,9 +134,10 @@ public class TestDefaultAgentEngine {
     }
 
     @Test
-    void testSendMessageReturnsAck() {
-        IChatService chatService = createDelayedMockChatService(
-                buildSuccessResponse("Hello!"), 2000L);
+    void testSendMessageReturnsAck() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        IChatService chatService = createGatedMockChatService(
+                buildSuccessResponse("Hello!"), release);
         IToolManager toolManager = createNoOpToolManager();
         DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
@@ -142,6 +148,8 @@ public class TestDefaultAgentEngine {
         assertNotNull(ack.getSessionId());
         assertTrue(!ack.getSessionId().isEmpty());
         assertEquals("accepted", ack.getStatus());
+        // ack 已先行返回，放行被 latch 阻塞的后台 LLM 调用
+        release.countDown();
     }
 
     @Test

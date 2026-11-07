@@ -1,6 +1,8 @@
 package io.nop.ai.agent.runtime.lock;
 
 import io.nop.core.CoreConstants;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import org.junit.jupiter.api.AfterAll;
@@ -46,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestDbSessionTakeoverLockDualInstanceE2E {
 
     private DataSource dataSource;
+    private ManualClock clock;
     private String dbUrl;
 
     @BeforeAll
@@ -60,6 +63,8 @@ public class TestDbSessionTakeoverLockDualInstanceE2E {
 
     @BeforeEach
     void setUp() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         // A single shared DB simulates a multi-instance deployment
         // (instance A and B share one DB).
         dbUrl = "jdbc:h2:mem:test-takeover-e2e-" + System.nanoTime() + ";DB_CLOSE_DELAY=-1";
@@ -73,6 +78,7 @@ public class TestDbSessionTakeoverLockDualInstanceE2E {
 
     @AfterEach
     void tearDown() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
         if (dataSource instanceof AutoCloseable) {
             try {
                 ((AutoCloseable) dataSource).close();
@@ -178,8 +184,8 @@ public class TestDbSessionTakeoverLockDualInstanceE2E {
         // A "crashes" — no release call. The lease remains in the DB.
         assertTrue(instanceA.isHeld("s1"));
 
-        // Wait past the lease TTL (sleep must exceed the lease duration).
-        Thread.sleep(2_100L);
+        // 时间确定化（plan 2511-WI5）：TTL 判定走 CoreMetrics，推进虚拟时间越过 lease TTL
+        clock.advance(2_100L);
 
         // B can now preempt the stale (expired) lease.
         assertFalse(instanceB.isHeld("s1"),

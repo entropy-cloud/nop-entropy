@@ -134,7 +134,9 @@ public class TestChatServiceImpl extends JunitBaseTestCase {
             }
         });
 
-        TimeUnit.SECONDS.sleep(30);
+        // 条件等待（超时仅挂死保护）：流完成或出错即放行，不再固定等待
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> completed[0], 30_000),
+                "Stream should complete");
         assertTrue(completed[0], "Stream should complete");
         assertFalse(fullContent.toString().isBlank(), "Should have received content chunks");
 

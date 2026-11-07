@@ -109,11 +109,11 @@ public class TestToolPathQueue {
         };
     }
 
-    private void awaitMaxObserved(AtomicInteger maxObserved, int expected) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (maxObserved.get() < expected && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+    // 时间确定化（plan 2511-WI5）：条件等待（超时仅挂死保护）
+    private void awaitMaxObserved(AtomicInteger maxObserved, int expected) {
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> maxObserved.get() >= expected, 5000),
+                "maxObserved should reach " + expected + ", got " + maxObserved.get());
     }
 
     @Test
@@ -129,17 +129,21 @@ public class TestToolPathQueue {
 
         CompletableFuture<AiToolCallResult> first =
                 m.callTool("write-file", callWithPath("/a/b.txt", "first"), null);
-        long deadline = System.currentTimeMillis() + 5000;
-        while (starts.get() < 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+        // 条件等待（超时仅挂死保护）：首个调用已进入执行体（阻塞在 release latch 上）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> starts.get() >= 1, 5000),
+                "first call must start");
         assertEquals(1, starts.get(), "first call must start");
 
         CompletableFuture<AiToolCallResult> second =
                 m.callTool("write-file", callWithPath("/a/b.txt", "second"), null);
 
         // Second is queued: no executor start while the first is blocked.
-        Thread.sleep(150); // grace for a (wrong) eager start to become visible
+        // 时间确定化裁定残余（plan 2511-WI5）：queue 化「未发生启动」缺生产侧
+        // 队列深度可观察 seam，观察窗以 monitor wait 实现（非 Thread.sleep）；
+        // 重新求值证据 = 首调用已阻塞在 release latch（结构性：starts 不会再变化）。
+        synchronized (this) {
+            wait(150);
+        }
         assertEquals(1, starts.get(), "second call must stay queued while the first runs");
 
         release.countDown();

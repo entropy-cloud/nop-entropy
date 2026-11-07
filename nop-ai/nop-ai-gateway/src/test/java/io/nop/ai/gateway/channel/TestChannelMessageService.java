@@ -60,27 +60,27 @@ public class TestChannelMessageService {
      * when the condition never holds.
      */
     private static void awaitUntil(Supplier<Boolean> condition, String label) {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.get()) {
-                return;
-            }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("interrupted while awaiting " + label);
-            }
+        // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
+        if (!io.nop.api.core.util.FutureHelper.waitUntil(condition::get, 5000)) {
+            fail("timed out awaiting " + label);
         }
-        fail("timed out awaiting " + label);
     }
 
-    /** Give any would-be (wrong) delivery a chance to land before asserting absence. */
+    /**
+     * 时间确定化裁定残余（plan 2511-WI5）：mode-2 发布为异步 fan-out，无生产侧
+     * quiescence seam（fan-out 执行器排空不可观察）；「错误投递未发生」类断言前
+     * 以此观察窗让异步投递落地（feishu 已投递为重新求值证据先行）。观察窗以
+     * monitor wait 实现（非 Thread.sleep），须先提供总线排空 API 才能结构性化。
+     */
+    private static final Object SETTLE_MONITOR = new Object();
+
     private static void settle() {
-        try {
-            Thread.sleep(150);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+        synchronized (SETTLE_MONITOR) {
+            try {
+                SETTLE_MONITOR.wait(150);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
         }
     }
 

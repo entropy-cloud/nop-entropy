@@ -187,16 +187,10 @@ public class TestInMemoryActorRuntime {
 
     // ==================== Helpers ====================
 
-    private static void waitForStatus(AgentActor actor, AgentActorStatus expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (actor.getStatus() == expected) {
-                return;
-            }
-            Thread.sleep(10);
-        }
-        // If we get here, the status didn't reach the expected value — let
-        // the assertion in the caller fail with the actual status.
+    // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
+    private static void waitForStatus(AgentActor actor, AgentActorStatus expected, long timeoutMs) {
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> actor.getStatus() == expected, timeoutMs),
+                "actor should reach status " + expected + ", got: " + actor.getStatus());
     }
 }

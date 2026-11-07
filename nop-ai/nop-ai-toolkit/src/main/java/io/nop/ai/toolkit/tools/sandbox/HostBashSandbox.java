@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.tools.sandbox;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -167,7 +168,7 @@ public final class HostBashSandbox implements IBashSandbox {
                 if (take < n) {
                     truncated = true;
                 }
-                long nowNs = System.nanoTime();
+                long nowNs = CoreMetrics.nanoTime();
                 if (nowNs - lastPublishNs >= PUBLISH_INTERVAL_NS) {
                     lastPublishNs = nowNs;
                     capturedRef.set(new StringBuilder(captured));

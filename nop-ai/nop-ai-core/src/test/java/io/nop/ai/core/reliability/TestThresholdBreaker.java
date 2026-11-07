@@ -1,5 +1,7 @@
 package io.nop.ai.core.reliability;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
 import org.junit.jupiter.api.Test;
@@ -22,6 +24,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * + thread safety under concurrent access to the same model-key.
  */
 public class TestThresholdBreaker {
+
+    // 时间确定化（plan 2511-WI5）：ThresholdBreaker 冷却/探针超时判定走 CoreMetrics，
+    // 测试注册 ManualClock 显式推进虚拟时间越过截止点。
+    private ManualClock clock;
+
+    @org.junit.jupiter.api.BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     // ========================================================================
     // Constructor validation
@@ -147,7 +164,7 @@ public class TestThresholdBreaker {
         b.recordFailure("openai:gpt-4"); // threshold=1 → OPEN
         assertEquals(CircuitState.OPEN, b.getState("openai:gpt-4"));
         // Wait for the cooldown to elapse.
-        Thread.sleep(80L);
+        clock.advance(80L);
         // The next allowCall must lazily transition to HALF_OPEN and admit
         // the caller as the single probe.
         boolean allowed = b.allowCall("openai:gpt-4");
@@ -174,7 +191,7 @@ public class TestThresholdBreaker {
     void halfOpenSuccessTransitionsToClosed() throws InterruptedException {
         ThresholdBreaker b = new ThresholdBreaker(1, 50L);
         b.recordFailure("openai:gpt-4"); // OPEN
-        Thread.sleep(80L);
+        clock.advance(80L);
         assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
         assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"));
         // Probe succeeds → CLOSED, counter cleared.
@@ -193,7 +210,7 @@ public class TestThresholdBreaker {
     void halfOpenFailureTransitionsBackToOpen() throws InterruptedException {
         ThresholdBreaker b = new ThresholdBreaker(1, 50L);
         b.recordFailure("openai:gpt-4"); // OPEN
-        Thread.sleep(80L);
+        clock.advance(80L);
         assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
         assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"));
         // Probe fails → back to OPEN, cooldown restarted.
@@ -212,7 +229,7 @@ public class TestThresholdBreaker {
     void halfOpenProbeIsExclusive() throws InterruptedException {
         ThresholdBreaker b = new ThresholdBreaker(1, 50L);
         b.recordFailure("openai:gpt-4"); // OPEN
-        Thread.sleep(80L);
+        clock.advance(80L);
         // First caller wins the probe slot → HALF_OPEN, admitted.
         assertTrue(b.allowCall("openai:gpt-4"));
         assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"));
@@ -339,7 +356,7 @@ public class TestThresholdBreaker {
     void stuckProbeTimesOutAndSlotIsRetaken() throws InterruptedException {
         ThresholdBreaker b = new ThresholdBreaker(1, 20L, 50L);
         b.recordFailure("openai:gpt-4"); // threshold=1 → OPEN
-        Thread.sleep(40L); // cooldown elapsed
+        clock.advance(40L); // cooldown elapsed
         assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
         assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"));
         assertFalse(b.allowCall("openai:gpt-4"),
@@ -348,7 +365,7 @@ public class TestThresholdBreaker {
         // The probe never reports (no recordSuccess/recordFailure). After
         // probeTimeoutMs the next caller must be admitted as the new probe
         // (the escape path) — the breaker recovers instead of wedging.
-        Thread.sleep(80L);
+        clock.advance(80L);
         assertTrue(b.allowCall("openai:gpt-4"),
                 "a stuck probe must be escaped after probeTimeoutMs: the next caller re-takes the slot");
         assertEquals(CircuitState.HALF_OPEN, b.getState("openai:gpt-4"),
@@ -367,9 +384,9 @@ public class TestThresholdBreaker {
         // probe reports or times out — no double probe concurrency.
         ThresholdBreaker b = new ThresholdBreaker(1, 20L, 50L);
         b.recordFailure("openai:gpt-4");
-        Thread.sleep(40L);
+        clock.advance(40L);
         assertTrue(b.allowCall("openai:gpt-4")); // probe #1
-        Thread.sleep(80L);
+        clock.advance(80L);
         assertTrue(b.allowCall("openai:gpt-4")); // escape: probe #2 takes the slot
         assertFalse(b.allowCall("openai:gpt-4"),
                 "after the escape re-takes the slot, concurrent callers are rejected again (exclusivity kept)");
@@ -381,9 +398,9 @@ public class TestThresholdBreaker {
         // probe keeps rejecting callers (pre-P2-REL behaviour).
         ThresholdBreaker b = new ThresholdBreaker(1, 20L, 0L);
         b.recordFailure("openai:gpt-4");
-        Thread.sleep(40L);
+        clock.advance(40L);
         assertTrue(b.allowCall("openai:gpt-4")); // probe in flight
-        Thread.sleep(80L); // far past any plausible timeout
+        clock.advance(80L); // far past any plausible timeout
         assertFalse(b.allowCall("openai:gpt-4"),
                 "probeTimeoutMs=0 must disable the escape (stuck probe still blocks)");
     }
@@ -444,7 +461,7 @@ public class TestThresholdBreaker {
         ThresholdBreaker b = new ThresholdBreaker(1, 50L);
         b.recordFailure("openai:gpt-4"); // OPEN
         assertEquals(1, entriesSize(b), "an OPEN entry must never be dropped");
-        Thread.sleep(80L); // cooldown elapsed
+        clock.advance(80L); // cooldown elapsed
         assertTrue(b.allowCall("openai:gpt-4")); // → HALF_OPEN, probe in flight
         assertEquals(1, entriesSize(b), "a HALF_OPEN entry with a probe in flight must never be dropped");
         b.recordSuccess("openai:gpt-4"); // probe success → CLOSED pristine → dropped

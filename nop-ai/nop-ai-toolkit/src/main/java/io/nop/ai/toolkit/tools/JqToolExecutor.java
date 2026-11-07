@@ -1,5 +1,6 @@
 package io.nop.ai.toolkit.tools;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.ai.toolkit.api.IToolExecuteContext;
 import io.nop.ai.toolkit.api.IToolExecutor;
 import io.nop.ai.toolkit.model.AiToolCall;
@@ -61,7 +62,7 @@ public class JqToolExecutor implements IToolExecutor {
             }
 
             long expireAt = context.getExpireAt();
-            if (expireAt > 0 && System.currentTimeMillis() > expireAt) {
+            if (expireAt > 0 && CoreMetrics.currentTimeMillis() > expireAt) {
                 return AiToolCallResult.errorResult(call.getId(), "jq tool call deadline already exceeded");
             }
 

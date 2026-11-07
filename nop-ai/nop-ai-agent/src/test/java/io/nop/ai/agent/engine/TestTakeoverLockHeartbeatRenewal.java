@@ -24,7 +24,10 @@ import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
@@ -42,12 +45,12 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -69,6 +72,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * around an H2-backed {@link DbSessionTakeoverLock} — not just that the
  * {@code lockRenewIntervalMs} field exists.
  *
+ * <p>时间确定化（plan 2511-WI5）：锁 TTL 判定与心跳续期均走 {@code CoreMetrics}
+ * 时间线，测试注册 {@link ManualClock} + {@link ManualScheduler}（同一虚拟时间线）
+ * 显式推进触发续期；执行内 LLM 调用用 latch 显式交接（中断收尾形态用
+ * {@code latch.await} 承接 forced-interrupt）。「续期任务已取消」类负向断言以
+ * 推进后计数不变作重新求值证据，不再使用墙钟观察窗。
+ *
  * <p>Coverage map:
  * <ul>
  *   <li>{@link #doExecuteRenewsPeriodicallyAndCancelsOnCompletion} — execute path wiring</li>
@@ -82,6 +91,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestTakeoverLockHeartbeatRenewal {
 
     private DataSource dataSource;
+    private ManualClock clock;
+    private ManualScheduler renewScheduler;
 
     @BeforeAll
     static void init() {
@@ -101,16 +112,23 @@ public class TestTakeoverLockHeartbeatRenewal {
         ds.setUsername("sa");
         ds.setPassword("");
         dataSource = ds;
+        clock = new ManualClock(1_000_000L);
+        renewScheduler = new ManualScheduler(clock);
+        CoreMetrics.registerClock(clock);
     }
 
     @AfterEach
     void tearDown() {
-        if (dataSource instanceof AutoCloseable) {
-            try {
-                ((AutoCloseable) dataSource).close();
-            } catch (Exception ignored) {
-                // best-effort close during teardown
+        try {
+            if (dataSource instanceof AutoCloseable) {
+                try {
+                    ((AutoCloseable) dataSource).close();
+                } catch (Exception ignored) {
+                    // best-effort close during teardown
+                }
             }
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 
@@ -128,7 +146,11 @@ public class TestTakeoverLockHeartbeatRenewal {
         DBSessionStore store = new DBSessionStore(dataSource);
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("exec-done")), 150L), noOpToolManager()).sessionStore(store)
+        CountDownLatch chatEntered = new CountDownLatch(1);
+        CountDownLatch proceed = new CountDownLatch(1);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(
+                new GatedChatService(List.of(finalResponse("exec-done")), chatEntered, proceed),
+                noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -137,22 +159,37 @@ public class TestTakeoverLockHeartbeatRenewal {
                 .contextCompactor(new MicroCompressionCompactor())
                 .build();
         engine.config().setSessionTakeoverLock(lock);
-        // Short interval so multiple renewals fire during the 150ms execution.
+        // Short interval so multiple renewals fire while the execution is
+        // held in the LLM call.
         engine.config().setLockRenewIntervalMs(20L);
+        engine.setLockRenewExecutor(renewScheduler);
 
-        AgentExecutionResult result = engine.execute(
-                new AgentMessageRequest("test-react-agent", "hi", "renew-exec-1", null))
-                .toCompletableFuture().get(30, TimeUnit.SECONDS);
+        CompletableFuture<AgentExecutionResult> future = engine.execute(
+                new AgentMessageRequest("test-react-agent", "hi", "renew-exec-1", null));
 
-        assertEquals(AgentExecStatus.completed, result.getStatus());
+        // The winner has entered the (held) chat call.
+        assertTrue(chatEntered.await(30, TimeUnit.SECONDS),
+                "Execution should enter the LLM call");
+
+        // Advance the virtual timeline: each 20ms tick fires one due renewal.
+        for (int i = 0; i < 3; i++) {
+            renewScheduler.advance(20L);
+        }
         // Renewal was actually called during execution (Wiring Verification).
         int renewalsDuringExec = lock.renewCount.get();
         assertTrue(renewalsDuringExec >= 1,
                 "tryRenew must be called at least once during execution, got: " + renewalsDuringExec);
 
+        // Release the execution: it completes and cancels the renewal task.
+        proceed.countDown();
+        AgentExecutionResult result = future.get(30, TimeUnit.SECONDS);
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+
         // The renewal task must be cancelled on completion — no further calls.
+        // Structural evidence: another advance fires whatever is still
+        // scheduled on the same virtual timeline; the count must not move.
         int snapshot = lock.renewCount.get();
-        Thread.sleep(120L);
+        renewScheduler.advance(200L);
         assertEquals(snapshot, lock.renewCount.get(),
                 "tryRenew must NOT be called after execution completes (task cancelled)");
 
@@ -170,7 +207,8 @@ public class TestTakeoverLockHeartbeatRenewal {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("resume-renew-ckpt"));
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("initial")), 50L), noOpToolManager()).sessionStore(store)
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(
+                new AutoFinalChatService(List.of(finalResponse("initial"))), noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -181,6 +219,7 @@ public class TestTakeoverLockHeartbeatRenewal {
         engine.config().setCheckpointManager(ckpt);
         engine.config().setSessionTakeoverLock(lock);
         engine.config().setLockRenewIntervalMs(20L);
+        engine.setLockRenewExecutor(renewScheduler);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "renew-resume-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -193,7 +232,11 @@ public class TestTakeoverLockHeartbeatRenewal {
 
         // Fresh counting lock for the resume phase (isolate the count).
         CountingTakeoverLock resumeLock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("resume-done")), 150L), noOpToolManager()).sessionStore(store)
+        CountDownLatch chatEntered = new CountDownLatch(1);
+        CountDownLatch proceed = new CountDownLatch(1);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(
+                new GatedChatService(List.of(finalResponse("resume-done")), chatEntered, proceed),
+                noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -204,16 +247,24 @@ public class TestTakeoverLockHeartbeatRenewal {
         engine2.config().setCheckpointManager(ckpt);
         engine2.config().setSessionTakeoverLock(resumeLock);
         engine2.config().setLockRenewIntervalMs(20L);
+        engine2.setLockRenewExecutor(renewScheduler);
 
-        AgentExecutionResult result = engine2.resumeSession("renew-resume-1", "operator", "resume")
-                .toCompletableFuture().get(30, TimeUnit.SECONDS);
+        CompletableFuture<AgentExecutionResult> future = engine2.resumeSession("renew-resume-1", "operator", "resume");
 
-        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertTrue(chatEntered.await(30, TimeUnit.SECONDS),
+                "Resume execution should enter the LLM call");
+        for (int i = 0; i < 3; i++) {
+            renewScheduler.advance(20L);
+        }
         assertTrue(resumeLock.renewCount.get() >= 1,
                 "tryRenew must be called during resumeSession, got: " + resumeLock.renewCount.get());
 
+        proceed.countDown();
+        AgentExecutionResult result = future.get(30, TimeUnit.SECONDS);
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+
         int snapshot = resumeLock.renewCount.get();
-        Thread.sleep(120L);
+        renewScheduler.advance(200L);
         assertEquals(snapshot, resumeLock.renewCount.get(),
                 "tryRenew must NOT be called after resume completes");
 
@@ -230,7 +281,8 @@ public class TestTakeoverLockHeartbeatRenewal {
         FileBackedCheckpointManager ckpt = new FileBackedCheckpointManager(tempDir.resolve("restore-renew-ckpt"));
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("initial")), 50L), noOpToolManager()).sessionStore(store)
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(
+                new AutoFinalChatService(List.of(finalResponse("initial"))), noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -241,6 +293,7 @@ public class TestTakeoverLockHeartbeatRenewal {
         engine.config().setCheckpointManager(ckpt);
         engine.config().setSessionTakeoverLock(lock);
         engine.config().setLockRenewIntervalMs(20L);
+        engine.setLockRenewExecutor(renewScheduler);
 
         engine.execute(new AgentMessageRequest("test-react-agent", "hi", "renew-restore-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
@@ -252,7 +305,11 @@ public class TestTakeoverLockHeartbeatRenewal {
         store.save(crashed);
 
         CountingTakeoverLock restoreLock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
-        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("restored-done")), 150L), noOpToolManager()).sessionStore(store)
+        CountDownLatch chatEntered = new CountDownLatch(1);
+        CountDownLatch proceed = new CountDownLatch(1);
+        DefaultAgentEngine engine2 = new DefaultAgentEngine.Builder(
+                new GatedChatService(List.of(finalResponse("restored-done")), chatEntered, proceed),
+                noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -263,16 +320,25 @@ public class TestTakeoverLockHeartbeatRenewal {
         engine2.config().setCheckpointManager(ckpt);
         engine2.config().setSessionTakeoverLock(restoreLock);
         engine2.config().setLockRenewIntervalMs(20L);
+        engine2.setLockRenewExecutor(renewScheduler);
 
-        AgentExecutionResult result = engine2.restoreSession("renew-restore-1", "operator", "crash")
-                .toCompletableFuture().get(30, TimeUnit.SECONDS);
+        CompletableFuture<AgentExecutionResult> future =
+                engine2.restoreSession("renew-restore-1", "operator", "crash");
 
-        assertEquals(AgentExecStatus.completed, result.getStatus());
+        assertTrue(chatEntered.await(30, TimeUnit.SECONDS),
+                "Restore execution should enter the LLM call");
+        for (int i = 0; i < 3; i++) {
+            renewScheduler.advance(20L);
+        }
         assertTrue(restoreLock.renewCount.get() >= 1,
                 "tryRenew must be called during restoreSession, got: " + restoreLock.renewCount.get());
 
+        proceed.countDown();
+        AgentExecutionResult result = future.get(30, TimeUnit.SECONDS);
+        assertEquals(AgentExecStatus.completed, result.getStatus());
+
         int snapshot = restoreLock.renewCount.get();
-        Thread.sleep(120L);
+        renewScheduler.advance(200L);
         assertEquals(snapshot, restoreLock.renewCount.get(),
                 "tryRenew must NOT be called after restore completes");
 
@@ -289,7 +355,8 @@ public class TestTakeoverLockHeartbeatRenewal {
         DBSessionStore store = new DBSessionStore(dataSource);
         CountingTakeoverLock lock = new CountingTakeoverLock(new DbSessionTakeoverLock(dataSource));
 
-        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new SlowChatService(List.of(finalResponse("exec-done")), 80L), noOpToolManager()).sessionStore(store)
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(
+                new AutoFinalChatService(List.of(finalResponse("exec-done"))), noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -299,12 +366,16 @@ public class TestTakeoverLockHeartbeatRenewal {
                 .build();
         engine.config().setSessionTakeoverLock(lock);
         engine.config().setLockRenewIntervalMs(0L); // disabled
+        engine.setLockRenewExecutor(renewScheduler);
 
         AgentExecutionResult result = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "renew-disabled-1", null))
                 .toCompletableFuture().get(30, TimeUnit.SECONDS);
 
         assertEquals(AgentExecStatus.completed, result.getStatus());
+        // Structural evidence: even after virtual time moves (which would fire
+        // any scheduled task), no renewal was ever enqueued.
+        renewScheduler.advance(500L);
         assertEquals(0, lock.renewCount.get(),
                 "tryRenew must NOT be called when lockRenewIntervalMs <= 0");
         assertEquals(0, countLockRows("renew-disabled-1"));
@@ -319,7 +390,7 @@ public class TestTakeoverLockHeartbeatRenewal {
      * {@code LOCK_EXPIRES_AT} forward (to {@code now + leaseMs}). Verified
      * by direct SQL on the {@code ai_agent_session_lock} table — the
      * expiry timestamp is observably later after a renew than after the
-     * initial acquire.
+     * initial acquire. Both timestamps live on the virtual clock line.
      */
     @Test
     void tryRenewExtendsLeaseExpiry() throws Exception {
@@ -330,26 +401,23 @@ public class TestTakeoverLockHeartbeatRenewal {
 
         assertTrue(lock.tryAcquire(sessionId, owner, leaseMs));
         long expiresAtAfterAcquire = readLockExpiry(sessionId);
-        long acquiredAt = System.currentTimeMillis();
-        // Sanity: the acquired expiry is ~ now + leaseMs.
-        assertTrue(expiresAtAfterAcquire >= acquiredAt + leaseMs - 5_000L
-                && expiresAtAfterAcquire <= acquiredAt + leaseMs + 5_000L,
-                "Acquired LOCK_EXPIRES_AT should be ~ now + leaseMs, got: " + expiresAtAfterAcquire);
+        // Exact virtual-line contract: acquired expiry == acquire-now + leaseMs.
+        assertEquals(clock.peekMillis() + leaseMs, expiresAtAfterAcquire,
+                "Acquired LOCK_EXPIRES_AT should be virtual-now + leaseMs");
 
-        // Sleep so the renew timestamp is observably later.
-        Thread.sleep(60L);
+        // Advance the virtual timeline so the renew timestamp is observably later.
+        clock.advance(100L);
 
         assertTrue(lock.tryRenew(sessionId, owner, leaseMs),
                 "tryRenew must succeed when the owner holds an active lock");
         long expiresAtAfterRenew = readLockExpiry(sessionId);
-        long renewedAt = System.currentTimeMillis();
 
         assertTrue(expiresAtAfterRenew > expiresAtAfterAcquire,
                 "LOCK_EXPIRES_AT must be pushed forward by tryRenew. Before="
                         + expiresAtAfterAcquire + ", After=" + expiresAtAfterRenew);
-        assertTrue(expiresAtAfterRenew >= renewedAt + leaseMs - 5_000L
-                && expiresAtAfterRenew <= renewedAt + leaseMs + 5_000L,
-                "Renewed LOCK_EXPIRES_AT should be ~ renew-now + leaseMs, got: " + expiresAtAfterRenew);
+        // Exact virtual-line contract: renewed expiry == renew-now + leaseMs.
+        assertEquals(clock.peekMillis() + leaseMs, expiresAtAfterRenew,
+                "Renewed LOCK_EXPIRES_AT should be renew-now + leaseMs");
 
         // A different owner cannot renew (returns false).
         assertFalse(lock.tryRenew(sessionId, "owner-B", leaseMs),
@@ -366,8 +434,9 @@ public class TestTakeoverLockHeartbeatRenewal {
      *
      * <p>Anti-Hollow / No-Silent-No-Op (#22 #24): the abort is observable
      * — the session reaches the {@code failed} terminal state (not
-     * silently continued, not silently completed), and the execution
-     * terminates promptly (not left running).
+     * silently continued, not silently completed), and the blocking LLM
+     * call is interrupted (structural evidence: the call thread observed
+     * the interrupt, not a natural timeout).
      */
     @Test
     void leaseLostAbortsExecutionAndMarksSessionFailed() throws Exception {
@@ -378,7 +447,10 @@ public class TestTakeoverLockHeartbeatRenewal {
         LeaseLosingLock lock = new LeaseLosingLock(new DbSessionTakeoverLock(dataSource));
 
         CountDownLatch chatEntered = new CountDownLatch(1);
-        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(new BlockingInterruptibleChatService(finalResponse("never-completes"), chatEntered), noOpToolManager()).sessionStore(store)
+        CountDownLatch llmGate = new CountDownLatch(1);
+        DefaultAgentEngine engine = new DefaultAgentEngine.Builder(
+                new GateBlockingChatService(finalResponse("never-completes"), chatEntered, llmGate),
+                noOpToolManager()).sessionStore(store)
                 .permissionProvider(new AllowAllPermissionProvider())
                 .toolAccessChecker(new DefaultToolAccessChecker())
                 .pathAccessChecker(new DefaultPathAccessChecker())
@@ -387,9 +459,9 @@ public class TestTakeoverLockHeartbeatRenewal {
                 .contextCompactor(new MicroCompressionCompactor())
                 .build();
         engine.config().setSessionTakeoverLock(lock);
-        engine.config().setLockRenewIntervalMs(500L); // first renewal at ~500ms → lease-lost (must be large enough for the worker thread to enter the blocking LLM call under CI load)
+        engine.config().setLockRenewIntervalMs(500L); // first renewal at +500ms virtual → lease-lost
+        engine.setLockRenewExecutor(renewScheduler);
 
-        long startNs = System.nanoTime();
         CompletableFuture<AgentExecutionResult> future = engine.execute(
                 new AgentMessageRequest("test-react-agent", "hi", "lease-lost-1", null));
 
@@ -397,23 +469,27 @@ public class TestTakeoverLockHeartbeatRenewal {
         assertTrue(chatEntered.await(30, TimeUnit.SECONDS),
                 "Execution should enter the LLM call");
 
-        // The first heartbeat renewal (at ~500ms) returns false →
+        // Advance past the first renewal tick: tryRenew returns false →
         // handleLeaseLost → interrupt → blocking call throws → executor
-        // aborts. The future must resolve promptly (not hang for 30s).
+        // aborts. The future must resolve (not hang).
+        renewScheduler.advance(500L);
         AgentExecutionResult result = future.get(60, TimeUnit.SECONDS);
-        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
 
-        assertTrue(elapsedMs < 30_000L,
-                "Lease-lost abort should terminate far sooner than the 30s block, took " + elapsedMs + "ms");
+        // Structural evidence (plan 2511-WI5): the chat body never returned
+        // naturally (gate still closed) — the abort came from the lease-lost
+        // interrupt on the engine wait, not a natural timeout.
+        assertEquals(1, llmGate.getCount(),
+                "Lease-lost abort must interrupt the engine wait before the LLM call returns naturally");
 
         // The persisted session MUST be in the failed terminal state.
         assertEquals(AgentExecStatus.failed, engine.getSessionStatus("lease-lost-1"),
                 "Session must be marked failed when the takeover lease is lost mid-execution");
 
         // The renewal task must be cancelled (no further tryRenew calls
-        // after the execution ends).
+        // after the execution ends) — further virtual advance must not
+        // move the counter.
         int snapshot = lock.renewCount.get();
-        Thread.sleep(120L);
+        renewScheduler.advance(1_000L);
         assertEquals(snapshot, lock.renewCount.get(),
                 "tryRenew must NOT be called after lease-lost abort completes");
 
@@ -527,19 +603,19 @@ public class TestTakeoverLockHeartbeatRenewal {
     }
 
     /**
-     * Chat service that blocks in the LLM call until interrupted (mirrors
-     * the {@code createBlockingChatService} pattern in
-     * {@code TestDefaultAgentEngineCancel}). On interrupt it throws so the
-     * ReAct executor's catch path handles the abort — used to verify the
-     * lease-lost interrupt actually breaks a long blocking call.
+     * Chat service that blocks in the LLM call on a latch (timeout is hang
+     * protection only). The lease-lost abort interrupts the engine wait —
+     * the gate staying closed proves the call did not end by natural timeout.
      */
-    static final class BlockingInterruptibleChatService implements IChatService {
+    static final class GateBlockingChatService implements IChatService {
         private final ChatResponse response;
         private final CountDownLatch enteredLatch;
+        private final CountDownLatch llmGate;
 
-        BlockingInterruptibleChatService(ChatResponse response, CountDownLatch enteredLatch) {
+        GateBlockingChatService(ChatResponse response, CountDownLatch enteredLatch, CountDownLatch llmGate) {
             this.response = response;
             this.enteredLatch = enteredLatch;
+            this.llmGate = llmGate;
         }
 
         @Override
@@ -551,10 +627,9 @@ public class TestTakeoverLockHeartbeatRenewal {
         public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
             enteredLatch.countDown();
             try {
-                Thread.sleep(30_000L);
+                llmGate.await(30, TimeUnit.SECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                throw new NopAiAgentException("interrupted during blocking LLM call (lease-lost)", e);
             }
             return response;
         }
@@ -567,18 +642,22 @@ public class TestTakeoverLockHeartbeatRenewal {
     }
 
     /**
-     * Chat service that sleeps {@code delayMs} before returning each
-     * scripted response, so the heartbeat scheduler has time to fire
-     * multiple renewal ticks during a single execution.
+     * Chat service that holds each LLM call on a latch until the test
+     * releases it — the renewal ticks are driven explicitly by
+     * {@code renewScheduler.advance} while the call is held, replacing the
+     * former real-ms {@code Thread.sleep} latency.
      */
-    static final class SlowChatService implements IChatService {
+    static final class GatedChatService implements IChatService {
         private final List<ChatResponse> scripted;
-        private final long delayMs;
+        private final CountDownLatch enteredLatch;
+        private final CountDownLatch proceedLatch;
         private final AtomicInteger idx = new AtomicInteger(0);
 
-        SlowChatService(List<ChatResponse> scripted, long delayMs) {
+        GatedChatService(List<ChatResponse> scripted, CountDownLatch enteredLatch,
+                         CountDownLatch proceedLatch) {
             this.scripted = scripted;
-            this.delayMs = delayMs;
+            this.enteredLatch = enteredLatch;
+            this.proceedLatch = proceedLatch;
         }
 
         @Override
@@ -588,11 +667,48 @@ public class TestTakeoverLockHeartbeatRenewal {
 
         @Override
         public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
+            enteredLatch.countDown();
             try {
-                Thread.sleep(delayMs);
+                assertTrue(proceedLatch.await(30, TimeUnit.SECONDS),
+                        "Chat service should be released by the test within timeout");
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
+            int i = idx.getAndIncrement();
+            if (i >= scripted.size()) {
+                ChatAssistantMessage msg = new ChatAssistantMessage();
+                msg.setContent("(no more scripted responses — auto-final)");
+                return ChatResponse.success(msg);
+            }
+            return scripted.get(i);
+        }
+
+        @Override
+        public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
+            return subscriber -> {
+            };
+        }
+    }
+
+    /**
+     * Chat service returning each scripted response immediately (auto-final
+     * on exhaustion) — no simulated latency.
+     */
+    static final class AutoFinalChatService implements IChatService {
+        private final List<ChatResponse> scripted;
+        private final AtomicInteger idx = new AtomicInteger(0);
+
+        AutoFinalChatService(List<ChatResponse> scripted) {
+            this.scripted = scripted;
+        }
+
+        @Override
+        public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
+            return CompletableFuture.completedFuture(call(request, cancelToken));
+        }
+
+        @Override
+        public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
             int i = idx.getAndIncrement();
             if (i >= scripted.size()) {
                 ChatAssistantMessage msg = new ChatAssistantMessage();

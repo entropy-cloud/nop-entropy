@@ -14,6 +14,7 @@ import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
@@ -245,27 +246,27 @@ public class TestFanOutFutureLifecycle {
         worker.start();
 
         // Wait until both tools' callTool have been invoked — the build loop
-        // is done and allOf.get() is about to block.
-        long waitStart = System.currentTimeMillis();
-        while (callToolCount.get() < 2 && System.currentTimeMillis() - waitStart < 5000) {
-            Thread.sleep(20);
-        }
+        // is done and allOf.get() is about to block. (条件等待，超时仅挂死保护)
+        assertTrue(FutureHelper.waitUntil(() -> callToolCount.get() >= 2, 5_000),
+                "both tools should have been dispatched before interrupt");
         assertEquals(2, callToolCount.get(),
                 "both tools should have been dispatched before interrupt");
-        // Small delay to ensure allOf.get() is entered.
-        Thread.sleep(200);
+        // 结构性证据：worker 已阻塞在 fan-out join 上（WAITING 态），而非仍在构建循环
+        assertTrue(FutureHelper.waitUntil(
+                () -> worker.getState() == Thread.State.WAITING
+                        || worker.getState() == Thread.State.TIMED_WAITING
+                        || worker.getState() == Thread.State.BLOCKED,
+                5_000),
+                "worker must be parked inside the fan-out join before interrupt");
 
-        long interruptTime = System.currentTimeMillis();
         worker.interrupt();
 
-        // (a) the wait must be broken quickly — without interruptibility the
-        // never-completing futures would block forever.
+        // (a) the wait must be broken by the interrupt — the never-completing
+        // futures would otherwise block forever, so latching proves the join
+        // was interrupted (structural evidence replaces the wall-clock bound).
         boolean finished = doneLatch.await(5, TimeUnit.SECONDS);
-        long elapsed = System.currentTimeMillis() - interruptTime;
         assertTrue(finished,
                 "14-02: worker thread must terminate after interrupt (join broken by interrupt)");
-        assertTrue(elapsed < 3000,
-                "14-02: fan-out join should be broken by interrupt in << tool-settle time, took " + elapsed + "ms");
 
         // (b) interrupt flag was restored by the catch
         assertTrue(interruptFlagAtReturn.get(),

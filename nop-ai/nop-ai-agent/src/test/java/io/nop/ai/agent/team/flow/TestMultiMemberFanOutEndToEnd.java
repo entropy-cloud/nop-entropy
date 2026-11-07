@@ -91,6 +91,9 @@ public class TestMultiMemberFanOutEndToEnd {
         final AtomicInteger active = new AtomicInteger();
         final Map<String, Long> enterNano = new ConcurrentHashMap<>();
         final Map<String, Long> exitNano = new ConcurrentHashMap<>();
+        // 时间确定化（plan 2511-WI5）：并发重叠由 per-task rendezvous 结构性产生
+        final AbstractMultiMemberFanOutTest.FanOutRendezvous rendezvous =
+                new AbstractMultiMemberFanOutTest.FanOutRendezvous();
 
         @Override
         public AgentMessageAck sendMessage(AgentMessageRequest request) {
@@ -106,9 +109,8 @@ public class TestMultiMemberFanOutEndToEnd {
             peakConcurrent.accumulateAndGet(nowActive, Math::max);
             enterNano.put(key, System.nanoTime());
             return CompletableFuture.supplyAsync(() -> {
-                try { Thread.sleep(80); } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); throw new NopAiAgentException("interrupted", e);
-                }
+                // 结构性并发 rendezvous（时间确定化）：同任务全轮进入后一起放行
+                rendezvous.awaitRound(taskId);
                 active.decrementAndGet();
                 exitNano.put(key, System.nanoTime());
                 return new AgentExecutionResult(AgentExecStatus.completed, "ok:" + key,
@@ -122,6 +124,9 @@ public class TestMultiMemberFanOutEndToEnd {
         final AtomicInteger active = new AtomicInteger();
         final Map<String, Long> enterNano = new ConcurrentHashMap<>();
         final Map<String, Long> exitNano = new ConcurrentHashMap<>();
+        // 时间确定化（plan 2511-WI5）：并发重叠由 per-task rendezvous 结构性产生
+        final AbstractMultiMemberFanOutTest.FanOutRendezvous rendezvous =
+                new AbstractMultiMemberFanOutTest.FanOutRendezvous();
 
         @Override
         public SpawnMemberResult spawnMember(SpawnMemberRequest request) {
@@ -131,9 +136,8 @@ public class TestMultiMemberFanOutEndToEnd {
             int nowActive = active.incrementAndGet();
             peakConcurrent.accumulateAndGet(nowActive, Math::max);
             enterNano.put(key, System.nanoTime());
-            try { Thread.sleep(80); } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); throw new NopAiAgentException("interrupted", e);
-            }
+            // 结构性并发 rendezvous（时间确定化）：同任务全轮进入后一起放行
+            rendezvous.awaitRound(taskId);
             active.decrementAndGet();
             exitNano.put(key, System.nanoTime());
             return SpawnMemberResult.dispatched(
@@ -245,6 +249,10 @@ public class TestMultiMemberFanOutEndToEnd {
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
 
+        // 时间确定化（plan 2511-WI5）：B/C 轮并发重叠由 rendezvous 结构性保证
+        engine.rendezvous.expectConcurrentRound(b, 2);
+        engine.rendezvous.expectConcurrentRound(c, 2);
+
         ITaskMemberRouter router = routerFor(team, subject -> {
             switch (subject) {
                 case "B": return Arrays.asList(boundTarget(team, "b1"), boundTarget(team, "b2"));
@@ -296,6 +304,10 @@ public class TestMultiMemberFanOutEndToEnd {
         String b = createTask(store, teamId, "B", Collections.singletonList(a));
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
+
+        // 时间确定化（plan 2511-WI5）：B/C 轮并发重叠由 rendezvous 结构性保证
+        spawner.rendezvous.expectConcurrentRound(b, 2);
+        spawner.rendezvous.expectConcurrentRound(c, 2);
 
         ITaskMemberRouter router = routerFor(team, subject -> {
             switch (subject) {

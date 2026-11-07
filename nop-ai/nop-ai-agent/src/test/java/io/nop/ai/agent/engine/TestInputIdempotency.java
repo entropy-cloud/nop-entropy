@@ -14,6 +14,7 @@ import io.nop.ai.agent.session.AgentSession;
 import io.nop.ai.agent.session.InMemorySessionStore;
 import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import org.junit.jupiter.api.AfterAll;
@@ -191,9 +192,9 @@ public class TestInputIdempotency {
         // A: gated in the LLM call (holds the execution slot)
         java.util.concurrent.CompletableFuture<AgentExecutionResult> fa =
                 gatedEngine.execute(request("s-idem-5", "key-5"));
-        for (int i = 0; i < 250 && !AgentExecStatus.running.equals(gatedEngine.getSessionStatus("s-idem-5")); i++) {
-            Thread.sleep(20);
-        }
+        assertTrue(FutureHelper.waitUntil(
+                () -> AgentExecStatus.running.equals(gatedEngine.getSessionStatus("s-idem-5")), 10_000),
+                "execution A must reach the running state");
         assertEquals(AgentExecStatus.running, gatedEngine.getSessionStatus("s-idem-5"),
                 "execution A must hold the slot");
 

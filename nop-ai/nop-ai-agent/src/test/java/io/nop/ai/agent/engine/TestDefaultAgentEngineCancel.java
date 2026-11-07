@@ -35,6 +35,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Flow;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -84,7 +85,15 @@ public class TestDefaultAgentEngineCancel {
         };
     }
 
-    private IChatService createBlockingChatService(ChatResponse response, CountDownLatch enteredLatch) {
+    /**
+     * 时间确定化（plan 2511-WI5）：LLM 体的「耗时」由 latch 阻塞承接（30s 仅作
+     * 挂死上界）。forced cancel 的 interrupt 落在引擎线程的
+     * {@code callWithTimeout future.get} 上（非 chat 线程），因此结构性证据 =
+     * 结果先于 latch 超时返回且 chat 体从未自然返回（gate 仍关闭），替代原
+     * 墙钟 elapsed 阈值断言。
+     */
+    private IChatService createBlockingChatService(ChatResponse response, CountDownLatch enteredLatch,
+                                                   CountDownLatch llmGate) {
         return new IChatService() {
             @Override
             public CompletionStage<ChatResponse> callAsync(ChatRequest request, ICancelToken cancelToken) {
@@ -95,10 +104,9 @@ public class TestDefaultAgentEngineCancel {
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
                 enteredLatch.countDown();
                 try {
-                    Thread.sleep(30000);
+                    llmGate.await(30, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
-                    throw new NopAiAgentException("interrupted during LLM call", e);
                 }
                 return response;
             }
@@ -284,7 +292,8 @@ public class TestDefaultAgentEngineCancel {
     void cancelForcedEndToEndInterruptsImmediately() throws Exception {
         ChatResponse toolCallResponse = buildToolCallResponse("test-calculator");
         CountDownLatch llmEntered = new CountDownLatch(1);
-        IChatService chatService = createBlockingChatService(toolCallResponse, llmEntered);
+        CountDownLatch llmGate = new CountDownLatch(1);
+        IChatService chatService = createBlockingChatService(toolCallResponse, llmEntered, llmGate);
         IToolManager toolManager = createNoOpToolManager();
 
         DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
@@ -296,17 +305,17 @@ public class TestDefaultAgentEngineCancel {
         assertTrue(llmEntered.await(30, TimeUnit.SECONDS),
                 "The LLM call should have been entered by the executor");
 
-        long startNs = System.nanoTime();
         engine.cancelSession("forced-e2e", "forced-test", true);
         AgentExecutionResult result = future.get(60, TimeUnit.SECONDS);
-        long elapsedMs = (System.nanoTime() - startNs) / 1_000_000;
 
         assertEquals(AgentExecStatus.cancelled, result.getStatus(),
                 "Forced cancel should yield a cancelled result (not failed)");
         assertEquals(AgentExecStatus.cancelled, engine.getSessionStatus("forced-e2e"),
                 "Session status should be cancelled after forced cancel");
-        assertTrue(elapsedMs < 30000,
-                "Forced cancel should terminate far sooner than the 30s sleep, took " + elapsedMs + "ms");
+        // 结构性证据（plan 2511-WI5）：chat 体从未自然返回（gate 仍关闭）——
+        // 结果只能来自 forced cancel 对引擎等待线程的 interrupt 中断收尾
+        assertEquals(1, llmGate.getCount(),
+                "Forced cancel must interrupt the engine wait before the LLM call returns naturally");
     }
 
     @Test

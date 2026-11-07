@@ -258,9 +258,11 @@ public class TestResponsesDialectIntegration extends JunitBaseTestCase {
             }
         });
 
-        // 等待异步流完成
-        TimeUnit.MILLISECONDS.sleep(1000);
-
+        // 条件等待（超时仅挂死保护）：以 DONE 终止 chunk 到达为完成证据，
+        // 不再固定等待
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() ->
+                chunks.stream().anyMatch(c -> c.getPhase() == StreamItemPhase.DONE), 10_000),
+                "stream must reach the DONE phase");
         assertFalse(chunks.isEmpty(), "stream must produce chunks");
 
         // 验证至少含 text DELTA 增量
@@ -373,6 +375,10 @@ public class TestResponsesDialectIntegration extends JunitBaseTestCase {
                     }
                     CompletableFuture.runAsync(() -> {
                         try {
+                            // 时间确定化裁定残余（plan 2511-WI5）：SSE 适配器的订阅链
+                            // 建立完成无外部可观察 seam（无装配完成回调），事件发射须
+                            // 让过订阅链装配窗口；此处保留真实毫秒发射延迟，须先在生产
+                            // 侧提供订阅就绪 seam 才能虚拟化。
                             Thread.sleep(100);
                             if (events != null) {
                                 for (String data : events) {

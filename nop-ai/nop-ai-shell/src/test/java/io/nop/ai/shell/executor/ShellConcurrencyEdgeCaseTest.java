@@ -35,6 +35,10 @@ import static org.junit.jupiter.api.Assertions.*;
 @Timeout(10)
 class ShellConcurrencyEdgeCaseTest {
 
+    // 时间确定化（plan 2511-WI5）：pipeline stage1 的「未完成」由 latch 结构性承接
+    private final java.util.concurrent.CountDownLatch pipelineBlockerGate =
+            new java.util.concurrent.CountDownLatch(1);
+
     private static final Logger LOG = LoggerFactory.getLogger(ShellConcurrencyEdgeCaseTest.class);
 
     private ShellCommandRegistry registry;
@@ -107,11 +111,9 @@ class ShellConcurrencyEdgeCaseTest {
             public int execute(IShellCommandExecutionContext ctx) throws Exception {
                 stage1Started.set(true);
                 ctx.stdout().println("data-from-blocker");
-                // 2000ms：给 stage2 的 supplyAsync 任务在共享 executor 上的排队留足窗口。
-                // 500ms 在全量并行构建负载下不够（同 JVM 其他测试占满池，stage2 调度推迟
-                // 超过窗口，并发断言假失败）。窗口加宽不削弱断言语义（仍是 stage1 未完成
-                // 时 stage2 已启动）。
-                Thread.sleep(2000);
+                // 时间确定化（plan 2511-WI5）：stage1 的「未完成」由 latch 阻塞结构性
+                // 承接（测试断言并发后显式放行），不再依赖真实 sleep 窗口。
+                pipelineBlockerGate.await(15, java.util.concurrent.TimeUnit.SECONDS);
                 return 0;
             }
         });
@@ -131,21 +133,23 @@ class ShellConcurrencyEdgeCaseTest {
         CompletableFuture<ExecutionResult> future = executor.execute("blocker | waiter", defaultContext())
                 .toCompletableFuture();
 
-            for (int i = 0; i < 500 && !stage1Started.get(); i++) {
-                Thread.sleep(10);
-            }
+            // 条件等待（超时仅挂死保护）：stage1 已进入执行体
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(stage1Started::get, 5_000),
+                    "Stage 1 should have started");
             assertTrue(stage1Started.get(), "Stage 1 should have started");
 
-            // Stage 2 gets its own bounded scheduling window: under heavy build
-            // load its supplyAsync task may be queued for a while after stage 1
-            // starts. The window stays inside the blocker's 2000ms sleep, so the
-            // assertion still fails if the pipeline runs stages sequentially.
-            for (int i = 0; i < 150 && !stage2Reached.get() && !future.isDone(); i++) {
-                Thread.sleep(10);
-            }
+            // Stage 2 gets its own bounded scheduling window: while stage 1 is
+            // structurally parked on the gate latch, stage 2 must start (the
+            // pipeline is concurrent; a sequential pipeline would never reach
+            // stage 2 while the gate is closed).
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                    () -> stage2Reached.get() || future.isDone(), 5_000),
+                    "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
             assertTrue(stage2Reached.get() || future.isDone(),
                     "Stage 2 should start while stage 1 is still running (concurrent pipeline)");
 
+        // 结构性证据已取（stage2 已启动而 stage1 仍停在 gate 上），放行 stage1
+        pipelineBlockerGate.countDown();
         ExecutionResult result = future.get(15, TimeUnit.SECONDS);
         assertEquals(0, result.exitCode());
     }
@@ -359,9 +363,10 @@ class ShellConcurrencyEdgeCaseTest {
         org.junit.jupiter.api.Assertions.assertNotEquals(id1, id2);
         org.junit.jupiter.api.Assertions.assertNotEquals(id2, id3);
 
-        for (int i = 0; i < 500 && executionCount.get() < 3; i++) {
-            Thread.sleep(20);
-        }
+        // 条件等待（超时仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> executionCount.get() >= 3, 10_000),
+                "All 3 background jobs should have executed");
         assertEquals(3, executionCount.get(), "All 3 background jobs should have executed");
         sink.awaitCompletion(id1, 5, TimeUnit.SECONDS);
         sink.awaitCompletion(id2, 5, TimeUnit.SECONDS);
@@ -481,7 +486,9 @@ class ShellConcurrencyEdgeCaseTest {
             public int execute(IShellCommandExecutionContext ctx) throws Exception {
                 for (int i = 0; i < 5; i++) {
                     ctx.stdout().println("chunk" + i);
-                    Thread.sleep(50);
+                    // 时间确定化（plan 2511-WI5）：生产端节流由显式让步承接，
+                    // 消费端经 BlockingQueue 阻塞读取，EOF 语义不受影响。
+                    Thread.yield();
                 }
                 return 0;
             }
@@ -524,7 +531,10 @@ class ShellConcurrencyEdgeCaseTest {
             public int execute(IShellCommandExecutionContext ctx) {
                 started.set(true);
                 try {
-                    Thread.sleep(60000);
+                    // 时间确定化（plan 2511-WI5）：长任务由 latch 阻塞承接，
+                    // executor.close() 的取消路径以 interrupt 收尾。
+                    new java.util.concurrent.CountDownLatch(1)
+                            .await(60, java.util.concurrent.TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -538,9 +548,9 @@ class ShellConcurrencyEdgeCaseTest {
         executor.execute("veryslow &", defaultContext())
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
 
-        for (int i = 0; i < 500 && !started.get(); i++) {
-            Thread.sleep(10);
-        }
+        // 条件等待（超时仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(started::get, 5_000),
+                "background job should have started");
         assertTrue(started.get());
 
         // Plan 2301 (WI25): lifecycle is sink-owned — cancel via the taskId

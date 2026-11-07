@@ -438,7 +438,10 @@ class TestChatServiceFailoverAdapterStreaming {
         awaitStreamCallCount(2);
         assertNull(sub.error, "no terminal signal before cancellation");
         callerToken.cancel("test-cancel");
-        Thread.sleep(50);
+        // 时间确定化（plan 2511-WI5）：条件等待取消落地（超时仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> fake.streamSubscriptions.get(1).isCancelled(), 5_000),
+                "cancel must land on the SSE subscription");
         assertTrue(fake.streamSubscriptions.get(1).isCancelled(),
                 "current attempt's SSE subscription must be cancelled (per-attempt token isolation)");
         assertEquals(1, fake.attemptTokenCancels.size(),
@@ -481,7 +484,10 @@ class TestChatServiceFailoverAdapterStreaming {
 
         awaitStreamCallCount(1);
         outputSub[0].cancel();
-        Thread.sleep(50);
+        // 时间确定化（plan 2511-WI5）：条件等待取消落地（超时仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> fake.streamSubscriptions.get(0).isCancelled(), 5_000),
+                "cancel must land on the SSE subscription");
         assertTrue(fake.streamSubscriptions.get(0).isCancelled(),
                 "output cancel must tear down the SSE subscription (token cancel path)");
         assertEquals(1, fake.attemptTokenCancels.size(), "output cancel must cancel the attempt token");
@@ -591,11 +597,11 @@ class TestChatServiceFailoverAdapterStreaming {
         }
     }
 
-    private void awaitStreamCallCount(int expected) throws Exception {
-        long deadline = System.currentTimeMillis() + 10_000;
-        while (fake.streamCallCount() < expected && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+    // 时间确定化（plan 2511-WI5）：条件等待（超时仅挂死保护）
+    private void awaitStreamCallCount(int expected) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> fake.streamCallCount() >= expected, 10_000),
+                "expected " + expected + " stream fetches, got " + fake.streamCallCount());
         assertEquals(expected, fake.streamCallCount(), "expected " + expected + " stream fetches");
     }
 

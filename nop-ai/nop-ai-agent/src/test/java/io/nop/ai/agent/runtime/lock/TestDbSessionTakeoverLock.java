@@ -1,6 +1,8 @@
 package io.nop.ai.agent.runtime.lock;
 
 import io.nop.ai.agent.NopAiAgentException;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
@@ -40,6 +42,7 @@ public class TestDbSessionTakeoverLock {
 
     private DataSource dataSource;
     private String dbUrl;
+    private ManualClock clock;
 
     @BeforeAll
     static void init() {
@@ -60,10 +63,22 @@ public class TestDbSessionTakeoverLock {
         ds.setUsername("sa");
         ds.setPassword("");
         dataSource = ds;
+        // 时间确定化（plan 2511-WI5）：锁 TTL 判定走 CoreMetrics，测试注册
+        // ManualClock 显式推进虚拟时间越过截止点
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
     }
 
     @AfterEach
     void tearDown() {
+        try {
+            tearDownInner();
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
+    }
+
+    private void tearDownInner() {
         if (dataSource instanceof AutoCloseable) {
             try {
                 ((AutoCloseable) dataSource).close();
@@ -115,12 +130,11 @@ public class TestDbSessionTakeoverLock {
     // ========================================================================
 
     @Test
-    void tryAcquirePreemptsStaleLockAfterTtl() throws InterruptedException {
+    void tryAcquirePreemptsStaleLockAfterTtl() {
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
         assertTrue(lock.tryAcquire("s1", "owner-A", 100L));
-        // Wait until the lease expires (> leaseMs). Pad by 100ms to avoid
-        // wall-clock granularity at the boundary.
-        Thread.sleep(200L);
+        // 推进虚拟时间越过 lease TTL
+        clock.advance(200L);
         assertFalse(lock.isHeld("s1"),
                 "After TTL elapses, isHeld must return false (lease expired)");
         assertTrue(lock.tryAcquire("s1", "owner-B", 60_000L),
@@ -157,12 +171,12 @@ public class TestDbSessionTakeoverLock {
     // ========================================================================
 
     @Test
-    void isHeldReflectsActiveVsExpiredLease() throws InterruptedException {
+    void isHeldReflectsActiveVsExpiredLease() {
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
         assertFalse(lock.isHeld("s1"), "No lease yet → isHeld=false");
         assertTrue(lock.tryAcquire("s1", "owner-A", 100L));
         assertTrue(lock.isHeld("s1"), "Active lease → isHeld=true");
-        Thread.sleep(200L);
+        clock.advance(200L);
         assertFalse(lock.isHeld("s1"), "Expired lease → isHeld=false");
     }
 
@@ -171,15 +185,15 @@ public class TestDbSessionTakeoverLock {
     // ========================================================================
 
     @Test
-    void tryRenewExtendsLeaseAndPreventsPreemption() throws InterruptedException {
+    void tryRenewExtendsLeaseAndPreventsPreemption() {
         DbSessionTakeoverLock lock = new DbSessionTakeoverLock(dataSource);
         assertTrue(lock.tryAcquire("s1", "owner-A", 100L));
         // Renew before the original lease expires.
         assertTrue(lock.tryRenew("s1", "owner-A", 60_000L),
                 "Same-owner renew must succeed (conditional UPDATE)");
-        // Wait past the ORIGINAL leaseMs — the renewed lease should still
+        // 推进虚拟时间越过 ORIGINAL leaseMs — the renewed lease should still
         // be active.
-        Thread.sleep(200L);
+        clock.advance(200L);
         assertTrue(lock.isHeld("s1"),
                 "Renewed lease survives past the original leaseMs");
         assertFalse(lock.tryAcquire("s1", "owner-B", 60_000L),

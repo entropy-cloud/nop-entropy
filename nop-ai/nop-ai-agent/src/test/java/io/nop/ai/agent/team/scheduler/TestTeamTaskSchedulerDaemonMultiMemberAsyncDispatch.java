@@ -119,6 +119,8 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
 
         ITaskMemberRouter router = new FixedPlanRouter(t ->
                 boundFanOutPlan(team, t, Arrays.asList("m1", "m2")));
+        // 时间确定化（plan 2511-WI5）：m1/m2 并发重叠由 rendezvous 结构性保证
+        engine.rendezvous.expectConcurrentRound(a, 2);
         TeamTaskSchedulerDaemon daemon = new TeamTaskSchedulerDaemon(
                 engine, store, mgr, new RecordingScheduler());
         daemon.setTaskMemberRouter(router);
@@ -158,10 +160,10 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
     void daemonAsyncDispatchDoesNotBlockScanThread() {
         InMemoryTeamManager mgr = new InMemoryTeamManager();
         InMemoryTeamTaskStore store = new InMemoryTeamTaskStore();
-        // Engine that completes each execute future only after a 500ms delay
-        // on a worker thread — long enough to prove the scan thread does not
-        // block on it.
-        SlowAsyncEngine engine = new SlowAsyncEngine(500L);
+        // Engine whose execute future stays incomplete until the test releases
+        // the gate — structurally guaranteeing the task has NOT completed when
+        // the scan returns (proof the scan thread does not block on it).
+        SlowAsyncEngine engine = new SlowAsyncEngine();
         Team team = createTeamAndBindMembers(mgr, "slow-team",
                 new String[]{"worker"}, new String[]{"worker-session"});
         String teamId = team.getTeamId();
@@ -170,22 +172,21 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
         TeamTaskSchedulerDaemon daemon = new TeamTaskSchedulerDaemon(
                 engine, store, mgr, new RecordingScheduler());
 
-        long scanStart = System.nanoTime();
         SchedulerScanResult r = daemon.scanOnce();
-        long scanElapsedMs = (System.nanoTime() - scanStart) / 1_000_000;
 
-        // The scan must return WELL BEFORE the 500ms task completes — proof
-        // the daemon thread did not block on the task's future.
-        assertTrue(scanElapsedMs < 400L,
-                "daemon scan thread must NOT block on the slow task (scan took "
-                        + scanElapsedMs + "ms, task takes 500ms)");
+        // The scan returned while the engine gate is still closed — the task
+        // future structurally CANNOT have completed: proof the daemon thread
+        // did not block on the task's future (replaces the wall-clock bound).
+        assertEquals(1, engine.release.getCount(),
+                "engine gate still closed — scan returned before task completion");
         assertEquals(1, r.getDispatchedTasks(), "fan-out dispatch fired (in-flight)");
         assertEquals(0, r.getCompletedTasks(),
                 "task NOT yet completed at scan-return time (async non-blocking)");
         assertEquals(TeamTaskStatus.CLAIMED, store.getTask(a).orElseThrow().getStatus(),
                 "A still CLAIMED at scan-return (the async future has not completed yet)");
 
-        // After awaiting, the task completes.
+        // Release the gate: the task completes.
+        engine.release.countDown();
         assertTrue(daemon.awaitInFlightDispatches(5_000),
                 "in-flight dispatch settled within timeout");
         assertEquals(TeamTaskStatus.COMPLETED, store.getTask(a).orElseThrow().getStatus(),
@@ -502,6 +503,10 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
 
+        // 时间确定化（plan 2511-WI5）：B/C 轮并发重叠由 rendezvous 结构性保证
+        engine.rendezvous.expectConcurrentRound(b, 2);
+        engine.rendezvous.expectConcurrentRound(c, 2);
+
         // Router: B → {b1,b2} fan-out, C → {c1,c2} fan-out, A/D → single bound.
         ITaskMemberRouter router = new FixedPlanRouter(t -> {
             switch (t.getSubject()) {
@@ -637,7 +642,41 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
     // ========================================================================
 
     /** Engine that records per-(task,member) intervals + peak concurrency. */
+    /**
+     * 时间确定化（plan 2511-WI5）：并发重叠证据由显式 rendezvous 产生——同一任务
+     * 的 fan-out 执行在 per-task {@link java.util.concurrent.CyclicBarrier} 上等待，
+     * 直到该轮全部成员进入（结构性并发证明），不再用真实毫秒 sleep 制造时间窗。
+     * 未配置的任务直通。超时仅挂死保护。
+     */
+    static final class FanOutRendezvous {
+        final Map<String, Integer> roundParties = new ConcurrentHashMap<>();
+        final Map<String, java.util.concurrent.CyclicBarrier> barriers = new ConcurrentHashMap<>();
+
+        void expectConcurrentRound(String taskId, int parties) {
+            roundParties.put(taskId, parties);
+        }
+
+        void awaitRound(String taskId) {
+            Integer parties = roundParties.get(taskId);
+            if (parties == null) {
+                return;
+            }
+            java.util.concurrent.CyclicBarrier barrier = barriers.computeIfAbsent(taskId,
+                    k -> new java.util.concurrent.CyclicBarrier(parties));
+            try {
+                barrier.await(5, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new NopAiAgentException("interrupted while awaiting fan-out round", e);
+            } catch (Exception e) {
+                throw new NopAiAgentException("fan-out rendezvous broken", e);
+            }
+        }
+    }
+
     static final class ConcurrencyRecordingEngine implements IAgentEngine {
+        final FanOutRendezvous rendezvous = new FanOutRendezvous();
+
         final Map<String, Long> enterNano = new ConcurrentHashMap<>();
         final Map<String, Long> exitNano = new ConcurrentHashMap<>();
         final AtomicInteger peakConcurrent = new AtomicInteger();
@@ -664,12 +703,8 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
             peakConcurrent.accumulateAndGet(nowActive, Math::max);
             enterNano.put(key, System.nanoTime());
             return CompletableFuture.supplyAsync(() -> {
-                try {
-                    Thread.sleep(80);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new NopAiAgentException("interrupted", e);
-                }
+                // 结构性并发 rendezvous（时间确定化）：同任务全轮进入后一起放行
+                rendezvous.awaitRound(taskId);
                 active.decrementAndGet();
                 exitNano.put(key, System.nanoTime());
                 if ("non-completed".equals(failMode)) {
@@ -682,13 +717,12 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
         }
     }
 
-    /** Engine that completes each future only after a fixed delay (async proof). */
+    /** Engine that completes each future only after the test releases the gate (async proof). */
     static final class SlowAsyncEngine implements IAgentEngine {
-        final long delayMs;
+        final java.util.concurrent.CountDownLatch release = new java.util.concurrent.CountDownLatch(1);
         final List<AgentMessageRequest> captured = Collections.synchronizedList(new ArrayList<>());
 
-        SlowAsyncEngine(long delayMs) {
-            this.delayMs = delayMs;
+        SlowAsyncEngine() {
         }
 
         @Override
@@ -701,7 +735,9 @@ public class TestTeamTaskSchedulerDaemonMultiMemberAsyncDispatch {
             captured.add(request);
             return CompletableFuture.supplyAsync(() -> {
                 try {
-                    Thread.sleep(delayMs);
+                    // 时间确定化（plan 2511-WI5）：成员完成由测试显式放行
+                    // （结构上保证 scan 返回时任务必然未完成），不再依赖真实 500ms 延迟。
+                    release.await(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     throw new NopAiAgentException("interrupted", e);

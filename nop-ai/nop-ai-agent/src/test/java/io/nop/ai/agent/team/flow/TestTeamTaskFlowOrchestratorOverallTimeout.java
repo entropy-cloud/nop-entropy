@@ -22,6 +22,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,7 +74,13 @@ public class TestTeamTaskFlowOrchestratorOverallTimeout extends AbstractMultiMem
             executeCount.incrementAndGet();
             return CompletableFuture.supplyAsync(() -> {
                 try {
-                    Thread.sleep(workMs);
+                    // 时间确定化裁定残余（plan 2511-WI5）：orchestrator 的
+                    // per-member / overall deadline 由 CompletableFuture.orTimeout
+                    // （JDK 真实调度器）实现，被测条件本身就是生产墙钟 deadline
+                    // 语义（须先迁移生产 seam 才能虚拟化）；此处以 latch 超时
+                    // 表达受控真实时长（无 Thread.sleep），超时即代表成员的
+                    // 合法耗时 workMs。
+                    new CountDownLatch(1).await(workMs, TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }

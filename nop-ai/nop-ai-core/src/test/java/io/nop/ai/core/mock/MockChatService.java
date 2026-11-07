@@ -31,7 +31,6 @@ import java.util.List;
 import java.util.concurrent.SubmissionPublisher;
 
 import static io.nop.ai.core.mock.MockChatConfigs.CFG_AI_MOCK_ENABLE_STREAM;
-import static io.nop.ai.core.mock.MockChatConfigs.CFG_AI_MOCK_STREAM_DELAY_MS;
 
 /**
  * Mock实现的IChatService。
@@ -60,7 +59,6 @@ public class MockChatService implements IChatService {
     @Override
     public Flow.Publisher<ChatStreamChunk> callStream(ChatRequest request, ICancelToken cancelToken) {
         boolean enableStream = CFG_AI_MOCK_ENABLE_STREAM.get();
-        long streamDelayMs = CFG_AI_MOCK_STREAM_DELAY_MS.get();
 
         SubmissionPublisher<ChatStreamChunk> publisher = new SubmissionPublisher<>();
 
@@ -115,14 +113,9 @@ public class MockChatService implements IChatService {
                         }
 
                         publisher.submit(chunk);
-
-                        if (streamDelayMs > 0 && !isLast) {
-                            Thread.sleep(streamDelayMs);
-                        }
                     }
                     publisher.close();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                } catch (RuntimeException e) {
                     publisher.closeExceptionally(e);
                 }
             });

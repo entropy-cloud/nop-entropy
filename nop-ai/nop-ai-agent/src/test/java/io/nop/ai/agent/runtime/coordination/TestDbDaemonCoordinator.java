@@ -2,6 +2,8 @@ package io.nop.ai.agent.runtime.coordination;
 
 import io.nop.ai.agent.NopAiAgentException;
 import io.nop.ai.agent.security.ThreadLocalTenantResolver;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
@@ -44,6 +46,7 @@ public class TestDbDaemonCoordinator {
 
     private DataSource dataSource;
     private String dbUrl;
+    private ManualClock clock;
 
     @BeforeAll
     static void init() {
@@ -64,10 +67,22 @@ public class TestDbDaemonCoordinator {
         ds.setUsername("sa");
         ds.setPassword("");
         dataSource = ds;
+        // 时间确定化（plan 2511-WI5）：scan lease TTL 判定走 CoreMetrics，
+        // 测试注册 ManualClock 显式推进虚拟时间越过截止点
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
     }
 
     @AfterEach
     void tearDown() {
+        try {
+            tearDownInner();
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
+    }
+
+    private void tearDownInner() {
         if (dataSource instanceof AutoCloseable) {
             try {
                 ((AutoCloseable) dataSource).close();
@@ -119,12 +134,11 @@ public class TestDbDaemonCoordinator {
     // ========================================================================
 
     @Test
-    void tryAcquirePreemptsStaleLeaseAfterTtl() throws InterruptedException {
+    void tryAcquirePreemptsStaleLeaseAfterTtl() {
         DbDaemonCoordinator coord = new DbDaemonCoordinator(dataSource);
         assertTrue(coord.tryAcquireScanLease("team-1", "daemon-A", 100L));
-        // Wait until the lease expires (> leaseMs). Pad by 100ms to avoid
-        // wall-clock granularity at the boundary.
-        Thread.sleep(200L);
+        // 推进虚拟时间越过 lease TTL
+        clock.advance(200L);
         assertFalse(coord.isScanLeaseActive("team-1"),
                 "After TTL elapses, isScanLeaseActive must return false (lease expired)");
         assertTrue(coord.tryAcquireScanLease("team-1", "daemon-B", 60_000L),

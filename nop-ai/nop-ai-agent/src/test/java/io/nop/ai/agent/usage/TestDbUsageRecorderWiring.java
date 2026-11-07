@@ -32,6 +32,7 @@ import io.nop.dao.jdbc.datasource.SimpleDataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import javax.sql.DataSource;
@@ -121,6 +122,21 @@ public class TestDbUsageRecorderWiring {
         CoreInitialization.destroy();
     }
 
+    // 时间确定化（plan 2511-WI5）：模拟 LLM 延迟改为虚拟时钟推进——时长指标
+    // 读取 CoreMetrics，advance 使 response_duration_ms 确定性为正且零真实耗时。
+    private static io.nop.commons.test.time.ManualClock latencyClock;
+
+    @BeforeEach
+    void registerLatencyClock() {
+        latencyClock = new io.nop.commons.test.time.ManualClock(1_000_000L);
+        io.nop.api.core.time.CoreMetrics.registerClock(latencyClock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        io.nop.api.core.time.CoreMetrics.registerClock(io.nop.api.core.time.CoreMetrics.defaultClock());
+    }
+
     @BeforeEach
     void clearUsageRows() throws Exception {
         // DbUsageRecorder.initSchema() creates nop_ai_chat_response; ensure a
@@ -170,9 +186,9 @@ public class TestDbUsageRecorderWiring {
             @Override
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
                 // Simulate non-zero LLM latency so response_duration_ms is
-                // deterministically positive (the instrumented span is measured
-                // around this call in ReActAgentExecutor).
-                sleepQuietly(5);
+                // deterministically positive — via virtual clock advance
+                // (the instrumented span reads CoreMetrics).
+                latencyClock.advance(5);
                 return responses.get(chatCallCount.getAndIncrement());
             }
 
@@ -306,7 +322,7 @@ public class TestDbUsageRecorderWiring {
 
             @Override
             public ChatResponse call(ChatRequest request, ICancelToken cancelToken) {
-                sleepQuietly(5);
+                latencyClock.advance(5);
                 counter.incrementAndGet();
                 return response;
             }
@@ -317,14 +333,6 @@ public class TestDbUsageRecorderWiring {
                 };
             }
         };
-    }
-
-    private static void sleepQuietly(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
     }
 
     private static IToolManager noToolManager() {

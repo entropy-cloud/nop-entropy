@@ -198,19 +198,10 @@ class TestChannelMessageServiceIoC {
 
     /** Await an async delivery (inbound fan-out runs on the dedicated fan-out executor — I3 R-2-1). */
     private static void awaitUntil(Supplier<Boolean> condition, String label) {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.get()) {
-                return;
-            }
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                fail("interrupted while awaiting " + label);
-            }
+        // 时间确定化（plan 2511-WI5）：条件等待走 FutureHelper.waitUntil（超时仅挂死保护）
+        if (!io.nop.api.core.util.FutureHelper.waitUntil(condition::get, 5000)) {
+            fail("timed out awaiting " + label);
         }
-        fail("timed out awaiting " + label);
     }
 
     private static InboundChannelMessage inbound(String channelType, String userId, String text) {

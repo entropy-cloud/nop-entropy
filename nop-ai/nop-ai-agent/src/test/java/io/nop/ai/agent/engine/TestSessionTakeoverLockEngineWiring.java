@@ -24,7 +24,10 @@ import io.nop.ai.toolkit.api.IToolManager;
 import io.nop.ai.toolkit.model.AiToolCall;
 import io.nop.ai.toolkit.model.AiToolCallResult;
 import io.nop.ai.toolkit.model.AiToolModel;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ICancelToken;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.dao.jdbc.datasource.SimpleDataSource;
@@ -361,44 +364,67 @@ public class TestSessionTakeoverLockEngineWiring {
         engine.config().setLockLeaseMs(1_500L);
         engine.config().setLockRenewIntervalMs(300L);
 
-        String sessionId = "dup-submit-lease";
-        CompletableFuture<AgentExecutionResult> winner = engine.execute(
-                new AgentMessageRequest("test-react-agent", "first", sessionId, null));
+        // 时间确定化（plan 2511-WI5）：锁 TTL 判定与心跳续期均走 CoreMetrics 时间线，
+        // 测试注册 ManualClock + ManualScheduler（单一虚拟时间线）显式推进；
+        // 续期证据 = 每次推进后 LOCK_EXPIRES_AT 单调增长（续期任务确实执行）。
+        ManualClock clock = new ManualClock(1_000_000L);
+        ManualScheduler renewScheduler = new ManualScheduler(clock);
+        engine.setLockRenewExecutor(renewScheduler);
+        CoreMetrics.registerClock(clock);
+        try {
+            String sessionId = "dup-submit-lease";
+            CompletableFuture<AgentExecutionResult> winner = engine.execute(
+                    new AgentMessageRequest("test-react-agent", "first", sessionId, null));
 
-        // The winner has registered its handle and is blocked in the chat call.
-        assertTrue(firstEntered.await(30, TimeUnit.SECONDS),
-                "Winner should have entered the chat service");
+            // The winner has registered its handle and is blocked in the chat call.
+            assertTrue(firstEntered.await(30, TimeUnit.SECONDS),
+                    "Winner should have entered the chat service");
 
-        // Same-instance duplicate submit must fail-fast with "already executing".
-        NopAiAgentException ex = assertThrows(NopAiAgentException.class,
-                () -> engine.execute(
-                        new AgentMessageRequest("test-react-agent", "dup", sessionId, null)),
-                "Same-instance duplicate submit must fail-fast");
-        assertTrue(ex.getMessage().contains("already executing"),
-                "Duplicate submit must say 'already executing'. Got: " + ex.getMessage());
+            // Same-instance duplicate submit must fail-fast with "already executing".
+            NopAiAgentException ex = assertThrows(NopAiAgentException.class,
+                    () -> engine.execute(
+                            new AgentMessageRequest("test-react-agent", "dup", sessionId, null)),
+                    "Same-instance duplicate submit must fail-fast");
+            assertTrue(ex.getMessage().contains("already executing"),
+                    "Duplicate submit must say 'already executing'. Got: " + ex.getMessage());
 
-        // M6-P1: the losing submit must NOT have deleted the winner's lease.
-        assertEquals(1, countLockRows(sessionId),
-                "The winner's lease row must survive the losing duplicate submit");
-        assertTrue(lock.isHeld(sessionId),
-                "The winner's lease must still be active after the duplicate submit");
-        assertEquals(engine.getInstanceId(), readLockOwner(sessionId),
-                "The lease row must still be owned by this engine's instanceId");
+            // M6-P1: the losing submit must NOT have deleted the winner's lease.
+            assertEquals(1, countLockRows(sessionId),
+                    "The winner's lease row must survive the losing duplicate submit");
+            assertTrue(lock.isHeld(sessionId),
+                    "The winner's lease must still be active after the duplicate submit");
+            assertEquals(engine.getInstanceId(), readLockOwner(sessionId),
+                    "The lease row must still be owned by this engine's instanceId");
 
-        // The winner keeps renewing past the lease TTL — direct proof the
-        // row was not deleted and the winner can still renew (a deleted row
-        // would make tryRenew return false and force-cancel the execution).
-        Thread.sleep(2_000L);
-        assertTrue(lock.isHeld(sessionId),
-                "The winner's renewal must keep the lease alive past its TTL");
+            // 推进虚拟时间越过 lease TTL：每次 advance 触发到期的心跳续期任务，
+            // LOCK_EXPIRES_AT 随续期单调前移（续期确实执行的重新求值证据）——
+            // 行若被删除，tryRenew 会失败并 force-cancel 执行。
+            long totalAdvanced = 0;
+            long lastExpiresAt = readLockExpiresAt(sessionId);
+            while (totalAdvanced < 2_000L) {
+                renewScheduler.advance(300L);
+                totalAdvanced += 300L;
+                long nowExpiresAt = readLockExpiresAt(sessionId);
+                assertTrue(nowExpiresAt > lastExpiresAt,
+                        "each fired heartbeat renewal must extend LOCK_EXPIRES_AT (advance "
+                                + totalAdvanced + "ms, " + lastExpiresAt + " -> " + nowExpiresAt + ")");
+                lastExpiresAt = nowExpiresAt;
+            }
+            assertTrue(totalAdvanced > 1_500L,
+                    "virtual time must have moved past the 1500ms lease TTL");
+            assertTrue(lock.isHeld(sessionId),
+                    "The winner's renewal must keep the lease alive past its TTL");
 
-        // Release the winner: it completes normally and releases the row.
-        firstProceed.countDown();
-        AgentExecutionResult winnerResult = winner.get(60, TimeUnit.SECONDS);
-        assertEquals(AgentExecStatus.completed, winnerResult.getStatus(),
-                "The winner must complete normally despite the duplicate submit");
-        assertEquals(0, countLockRows(sessionId),
-                "The lease row must be released after the winner completes");
+            // Release the winner: it completes normally and releases the row.
+            firstProceed.countDown();
+            AgentExecutionResult winnerResult = winner.get(60, TimeUnit.SECONDS);
+            assertEquals(AgentExecStatus.completed, winnerResult.getStatus(),
+                    "The winner must complete normally despite the duplicate submit");
+            assertEquals(0, countLockRows(sessionId),
+                    "The lease row must be released after the winner completes");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     // ========================================================================
@@ -535,8 +561,7 @@ public class TestSessionTakeoverLockEngineWiring {
      * {@code null} when no row exists (mirrors the dual-instance E2E
      * helper).
      */
-    private String readLockOwner(String sessionId) throws Exception {
-        try (Connection conn = dataSource.getConnection();
+    private String readLockOwner(String sessionId) throws Exception {        try (Connection conn = dataSource.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(
                      "SELECT " + AiAgentSessionLockTable.COL_LOCK_OWNER
@@ -544,6 +569,23 @@ public class TestSessionTakeoverLockEngineWiring {
                              + " WHERE " + AiAgentSessionLockTable.COL_SESSION_ID
                              + " = '" + sessionId + "'")) {
             return rs.next() ? rs.getString(1) : null;
+        }
+    }
+
+    /**
+     * Read the current {@code LOCK_EXPIRES_AT} of the lease row (0 when the
+     * row is absent) — used as the re-evaluation evidence that a heartbeat
+     * renewal actually ran.
+     */
+    private long readLockExpiresAt(String sessionId) throws Exception {
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(
+                     "SELECT " + AiAgentSessionLockTable.COL_LOCK_EXPIRES_AT
+                             + " FROM " + AiAgentSessionLockTable.TABLE_NAME
+                             + " WHERE " + AiAgentSessionLockTable.COL_SESSION_ID
+                             + " = '" + sessionId + "'")) {
+            return rs.next() ? rs.getLong(1) : 0L;
         }
     }
 

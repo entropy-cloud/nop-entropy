@@ -42,6 +42,10 @@ public class TestMultiMemberFanOutSuccess extends AbstractMultiMemberFanOutTest 
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
 
+        // 时间确定化（plan 2511-WI5）：B/C 轮的重叠证据由 per-task rendezvous 产生
+        engine.rendezvous.expectConcurrentRound(b, 2);
+        engine.rendezvous.expectConcurrentRound(c, 2);
+
         // Router: B → {b1,b2}, C → {c1,c2}, A/D → single bound (b1 / c1).
         ITaskMemberRouter router = new FixedPlanRouter(t -> {
             switch (t.getSubject()) {
@@ -118,6 +122,10 @@ public class TestMultiMemberFanOutSuccess extends AbstractMultiMemberFanOutTest 
         String c = createTask(store, teamId, "C", Collections.singletonList(a));
         String d = createTask(store, teamId, "D", Arrays.asList(b, c));
 
+        // 时间确定化（plan 2511-WI5）：B/C 轮的重叠证据由 per-task rendezvous 产生
+        spawner.rendezvous.expectConcurrentRound(b, 2);
+        spawner.rendezvous.expectConcurrentRound(c, 2);
+
         ITaskMemberRouter router = new FixedPlanRouter(t -> {
             switch (t.getSubject()) {
                 case "B": return spawnFanOutPlan(team, t, Arrays.asList("b1", "b2"));
@@ -178,6 +186,9 @@ public class TestMultiMemberFanOutSuccess extends AbstractMultiMemberFanOutTest 
 
         String a = createTask(store, teamId, "A", Collections.emptyList());
 
+        // 时间确定化（plan 2511-WI5）：3 成员同轮重叠由 rendezvous 结构性保证
+        engine.rendezvous.expectConcurrentRound(a, 3);
+
         ITaskMemberRouter router = new FixedPlanRouter(
                 t -> boundFanOutPlan(team, t, Arrays.asList("m1", "m2", "m3")));
         TeamTaskFlowOrchestrator orchestrator =
@@ -215,6 +226,11 @@ public class TestMultiMemberFanOutSuccess extends AbstractMultiMemberFanOutTest 
         mgr.bindMemberSession(team.getTeamId(), "b2", "s-b2", "actor-b2");
         String teamId = team.getTeamId();
         String a = createTask(store, teamId, "A", Collections.emptyList());
+
+        // 时间确定化（plan 2511-WI5）：混合 fan-out 的并发重叠由各自 fixture 的
+        // per-task rendezvous 结构性保证（bound 2 成员、spawn 2 成员）
+        engine.rendezvous.expectConcurrentRound(a, 2);
+        spawner.rendezvous.expectConcurrentRound(a, 2);
 
         ITaskMemberRouter router = new FixedPlanRouter(
                 t -> mixedFanOutPlan(team, t, Arrays.asList("b1", "b2"), Arrays.asList("s1", "s2")));

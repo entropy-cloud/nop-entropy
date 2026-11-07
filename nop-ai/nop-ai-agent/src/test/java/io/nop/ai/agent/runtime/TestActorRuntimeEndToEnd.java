@@ -104,11 +104,24 @@ public class TestActorRuntimeEndToEnd {
         LocalMessageService platform = new LocalMessageService();
         LocalAgentMessenger messenger = new LocalAgentMessenger(platform);
 
-        IChatService chatService = mockChatEmittingSendMessageThenComplete();
+        final java.util.concurrent.atomic.AtomicReference<IMailbox> e2eMailbox =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        IChatService chatService = mockChatEmittingSendMessageThenComplete(() -> {
+            IMailbox mb = e2eMailbox.get();
+            if (!(mb instanceof DeferredAckMailbox)) {
+                return false;
+            }
+            DeferredAckMailbox dam = (DeferredAckMailbox) mb;
+            return dam.pendingCount() == 0 && dam.inFlightCount() == 0;
+        });
         IToolManager toolManager = toolManagerWithSendMessage();
         DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chatService, toolManager).sessionStore(new InMemorySessionStore()).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
         engine.setMessenger(messenger);
-        engine.setMailboxFactory(sid -> new DeferredAckMailbox());
+        engine.setMailboxFactory(sid -> {
+            DeferredAckMailbox mb = new DeferredAckMailbox();
+            e2eMailbox.set(mb);
+            return mb;
+        });
 
         // Wrap InMemoryActorRuntime to capture the created Actor for
         // post-execution assertions (the Actor is destroyed in the finally
@@ -265,10 +278,12 @@ public class TestActorRuntimeEndToEnd {
 
     /**
      * Mock chat service: first call emits a send-message tool call targeting
-     * the agent's own session; second call sleeps briefly (to give the Actor's
-     * consumption loop time to poll + ack) then returns a plain message.
+     * the agent's own session; second call waits（条件等待，超时仅挂死保护）until
+     * the mailbox reports the message as consumed（drained）before returning a
+     * plain message — replacing the former fixed wall-clock delay.
      */
-    private IChatService mockChatEmittingSendMessageThenComplete() {
+    private IChatService mockChatEmittingSendMessageThenComplete(
+            java.util.function.Supplier<Boolean> mailboxDrained) {
         return new IChatService() {
             final AtomicInteger callCount = new AtomicInteger(0);
 
@@ -294,12 +309,13 @@ public class TestActorRuntimeEndToEnd {
                     toolCall.setArguments(args);
                     return ChatResponseFixtures.assistantWithToolCalls("", toolCall);
                 } else {
-                    // Give the Actor's consumption loop time to poll + ack
-                    // before the execution completes and destroyActor runs.
-                    try {
-                        Thread.sleep(300);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    // The Actor's consumption loop must have polled + acked
+                    // before the execution completes and destroyActor runs —
+                    // explicit condition instead of a real-time window.
+                    if (mailboxDrained != null) {
+                        org.junit.jupiter.api.Assertions.assertTrue(
+                                io.nop.api.core.util.FutureHelper.waitUntil(mailboxDrained::get, 10_000),
+                                "mailbox should be drained by the actor before execution completes");
                     }
                     return ChatResponseFixtures.assistantText("done");
                 }

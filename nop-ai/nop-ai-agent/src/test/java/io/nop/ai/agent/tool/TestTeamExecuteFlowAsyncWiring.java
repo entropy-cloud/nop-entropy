@@ -92,17 +92,11 @@ public class TestTeamExecuteFlowAsyncWiring {
             executeCount.incrementAndGet();
             capturedRequests.add(request);
             String taskId = (String) request.getMetadata().get("teamTaskId");
-            // Real async: complete on a different thread after a small delay.
-            return CompletableFuture.supplyAsync(() -> {
-                try {
-                    Thread.sleep(20);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new NopAiAgentException("interrupted", e);
-                }
-                return new AgentExecutionResult(AgentExecStatus.completed, "ok:" + taskId,
-                        Collections.emptyList(), 1, 10L, 1L, null);
-            });
+            // Real async: complete on a worker thread (supplyAsync already
+            // guarantees a different thread — 时间确定化：无需真实延迟).
+            return CompletableFuture.supplyAsync(() ->
+                new AgentExecutionResult(AgentExecStatus.completed, "ok:" + taskId,
+                        Collections.emptyList(), 1, 10L, 1L, null));
         }
     }
 

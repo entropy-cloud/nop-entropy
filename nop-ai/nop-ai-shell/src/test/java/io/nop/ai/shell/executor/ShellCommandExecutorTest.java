@@ -43,6 +43,12 @@ class ShellCommandExecutorTest {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShellCommandExecutorTest.class);
 
+    // 时间确定化（plan 2511-WI5）：后台体的耗时由 latch 阻塞承接（测试显式放行/中断收尾）
+    private final java.util.concurrent.CountDownLatch backgroundBodyGate =
+            new java.util.concurrent.CountDownLatch(1);
+    private final java.util.concurrent.CountDownLatch cancellableBodyGate =
+            new java.util.concurrent.CountDownLatch(1);
+
     private ShellCommandExecutor executor;
     private ShellCommandRegistry registry;
     private ICancelToken cancelToken;
@@ -604,7 +610,9 @@ class ShellCommandExecutorTest {
             public int execute(IShellCommandExecutionContext ctx) throws Exception {
                 String[] args = ctx.positionalArguments();
                 if (args.length > 0) {
-                    Thread.sleep(Integer.parseInt(args[0]));
+                    // 时间确定化（plan 2511-WI5）：后台体的「耗时」由 latch 阻塞承接
+                    // （测试断言前景 tail 先行后放行），不再真实睡眠。
+                    backgroundBodyGate.await(5, java.util.concurrent.TimeUnit.SECONDS);
                 }
                 return 0;
             }
@@ -621,6 +629,8 @@ class ShellCommandExecutorTest {
 
         ExecutionResult result = executor.execute("sleep 200 & echo after", context)
                 .toCompletableFuture().get(5, TimeUnit.SECONDS);
+        // 前景 tail 已执行完（result 已返回），放行后台体收尾
+        backgroundBodyGate.countDown();
 
         assertEquals(0, result.exitCode());
         assertTrue(result.stdout().contains("after"),
@@ -700,7 +710,9 @@ class ShellCommandExecutorTest {
             public int execute(IShellCommandExecutionContext context) throws Exception {
                 started.set(true);
                 try {
-                    Thread.sleep(30000);
+                    // 时间确定化（plan 2511-WI5）：阻塞收尾由 latch 承接——sink cancel
+                    // 的 interrupt 使 await 抛出（wasInterrupted 为结构性证据）。
+                    cancellableBodyGate.await(30, java.util.concurrent.TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     wasInterrupted.set(true);
                     Thread.currentThread().interrupt();
@@ -725,17 +737,17 @@ class ShellCommandExecutorTest {
         String taskId = sink.awaitSubmission();
         assertNotNull(taskId, "the sink must own the job lifecycle");
 
-        for (int i = 0; i < 100 && !started.get(); i++) {
-            Thread.sleep(10);
-        }
+        // 条件等待（超时仅挂死保护）：后台体已进入执行体
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(started::get, 5_000),
+                "Background job should have started");
         assertTrue(started.get(), "Background job should have started");
 
         // Plan 2301 (WI25): the job is cancellable through its taskId — the
         // sink channel replaces the old start-and-lose executor-owned map
         assertTrue(sink.cancel(taskId));
-        for (int i = 0; i < 200 && !wasInterrupted.get(); i++) {
-            Thread.sleep(10);
-        }
+        // 条件等待（超时仅挂死保护）：cancel 的 interrupt 到达执行体
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(wasInterrupted::get, 5_000),
+                "sink cancel must reach the running job body");
         assertTrue(wasInterrupted.get(), "sink cancel must reach the running job body");
 
         localExecutor.close();

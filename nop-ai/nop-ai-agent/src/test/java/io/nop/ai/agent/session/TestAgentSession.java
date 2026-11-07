@@ -1,6 +1,8 @@
 package io.nop.ai.agent.session;
 
 import io.nop.ai.agent.model.AgentExecStatus;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.ai.api.chat.messages.ChatAssistantMessage;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
@@ -101,14 +103,21 @@ public class TestAgentSession {
     }
 
     @Test
-    void testTouchUpdatesTimestamp() throws InterruptedException {
-        AgentSession session = AgentSession.create("sess-1", "agent");
-        long before = session.getUpdatedAt();
+    void testTouchUpdatesTimestamp() {
+        // 时间确定化（plan 2511-WI5）：touch 读取 CoreMetrics，测试推进虚拟时钟
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            AgentSession session = AgentSession.create("sess-1", "agent");
+            assertEquals(1_000_000L, session.getUpdatedAt());
+            clock.advance(50L);
+            session.touch();
 
-        Thread.sleep(10);
-        session.touch();
-
-        assertTrue(session.getUpdatedAt() >= before);
+            assertEquals(1_000_050L, session.getUpdatedAt(),
+                    "touch must stamp the (virtual) current time");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     @Test
@@ -140,16 +149,22 @@ public class TestAgentSession {
     }
 
     @Test
-    void testMarkCompacted() throws InterruptedException {
-        AgentSession session = AgentSession.create("sess-1", "agent");
-        long before = session.getUpdatedAt();
+    void testMarkCompacted() {
+        // 时间确定化（plan 2511-WI5）：markCompacted 读取 CoreMetrics，测试推进虚拟时钟
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            AgentSession session = AgentSession.create("sess-1", "agent");
+            clock.advance(50L);
+            session.markCompacted();
 
-        Thread.sleep(10);
-        session.markCompacted();
-
-        assertNotNull(session.getCompactedAt());
-        assertTrue(session.getCompactedAt() >= before);
-        assertTrue(session.getUpdatedAt() >= before);
+            assertNotNull(session.getCompactedAt());
+            assertEquals(1_000_050L, session.getCompactedAt().longValue(),
+                    "compactedAt must stamp the (virtual) current time");
+            assertEquals(1_000_050L, session.getUpdatedAt());
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     // ========================================================================
@@ -217,14 +232,20 @@ public class TestAgentSession {
     }
 
     @Test
-    void replaceMessagesTouchesUpdatedAt() throws InterruptedException {
-        AgentSession session = AgentSession.create("sess-1", "agent");
-        long before = session.getUpdatedAt();
+    void replaceMessagesTouchesUpdatedAt() {
+        // 时间确定化（plan 2511-WI5）：replaceMessages 读取 CoreMetrics，测试推进虚拟时钟
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            AgentSession session = AgentSession.create("sess-1", "agent");
+            assertEquals(1_000_000L, session.getUpdatedAt());
+            clock.advance(50L);
+            session.replaceMessages(List.of(new ChatUserMessage("x")));
 
-        Thread.sleep(5);
-        session.replaceMessages(List.of(new ChatUserMessage("x")));
-
-        assertTrue(session.getUpdatedAt() >= before,
-                "replaceMessages must touch updatedAt");
+            assertEquals(1_000_050L, session.getUpdatedAt(),
+                    "replaceMessages must touch updatedAt with the (virtual) current time");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 }

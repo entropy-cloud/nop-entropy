@@ -16,6 +16,7 @@ import io.nop.ai.api.chat.ChatOptions;
 import io.nop.ai.api.chat.messages.ChatMessage;
 import io.nop.ai.api.chat.messages.ChatUserMessage;
 import io.nop.ai.toolkit.api.IToolManager;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.core.CoreConstants;
 import io.nop.core.initialize.CoreInitialization;
@@ -174,10 +175,14 @@ public class TestInjectionSemanticsTrichotomy {
         // execution 2 merges the staged injection into its queue
         engine.sendMessage(new AgentMessageRequest("test-react-agent", "second",
                 "s-inj-1", Collections.emptyMap())).getStatus();
-        // wait for async completion (three LLM calls total)
-        for (int i = 0; i < 100 && chat.calls.get() < 3; i++) {
-            Thread.sleep(20);
-        }
+        // 条件等待：execution 2 真正完成（会话回到 completed）再断言——
+        // 原轮询为尽力等待；合并后的 INJECT 在 steering checkpoint 消费，
+        // 不强制第三次 LLM 调用（实测 calls=2 即完成合并与历史落账）。
+        assertTrue(FutureHelper.waitUntil(
+                () -> AgentExecStatus.completed.equals(engine.getSessionStatus("s-inj-1")), 10_000),
+                "second execution should complete");
+        assertTrue(chat.calls.get() >= 2,
+                "second execution should have made its LLM calls, got " + chat.calls.get());
 
         // staging cleared after merge; the INJECT reached session history
         assertEquals(0, store.get("s-inj-1").getPendingInjections().size(),

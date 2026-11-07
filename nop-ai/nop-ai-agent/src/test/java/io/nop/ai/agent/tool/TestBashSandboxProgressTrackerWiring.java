@@ -44,14 +44,12 @@ public class TestBashSandboxProgressTrackerWiring {
         CompletableFuture<io.nop.ai.toolkit.tools.sandbox.BashSandboxResult> running =
                 CompletableFuture.supplyAsync(() -> sandbox.execute(request));
 
-        ToolProgressSnapshot snapshot = ToolProgressSnapshot.empty();
-        for (int i = 0; i < 250; i++) {
-            snapshot = tracker.progressSnapshot("call-wire-1");
-            if (snapshot.isInFlight() && snapshot.getOutputTail().contains("hello")) {
-                break;
-            }
-            Thread.sleep(20);
-        }
+        // 条件等待（超时仅挂死保护）：适配器已注册且输出已流入
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+            ToolProgressSnapshot snap = tracker.progressSnapshot("call-wire-1");
+            return snap.isInFlight() && snap.getOutputTail().contains("hello");
+        }, 10_000), "adapter must observe the same-instance registration with output");
+        ToolProgressSnapshot snapshot = tracker.progressSnapshot("call-wire-1");
         assertTrue(snapshot.isInFlight(), "adapter must observe the same-instance registration");
         assertTrue(snapshot.getOutputTail().contains("hello"));
 
