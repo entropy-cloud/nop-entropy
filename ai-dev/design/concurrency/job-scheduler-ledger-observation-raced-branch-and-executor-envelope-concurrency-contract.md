@@ -386,6 +386,3 @@
 ## 评审记录
 
 - **设计评审 R2**（2026-11-07，agent_feecc95b fresh session 只读，live 抽验 ~160 处锚点）：**PASS-with-revisions——0 Blocker + 0 Major + 7 Minor，放行 Phase 2**。三风险专项全部 PASS（裁定 B raced 分支全空间推演[4 组合+对抗性双重 remove]/裁定 C Error 收宽 2513 四产物零回退[settleExecution 全路径+三判据 post-fix 亲证]/裁定 F register 回滚时序保序[REE stub 缝 2513 mock 体系内可实现]）。MJ-1+MN-1~8 九项 9/9 吸收落款核证；BF-1 为真发现亲证（suspend 被完成回调静默撤销）。**MN-R2-1**（红⑧ done 断言观测机制句——红⑧ 实施前落盘，本节随落）/MN-R2-2~7 随本记录回填落盘，无重审义务。
-
-
-- **设计评审 R2**：（预留——独立评审子代理 fresh session 只读完成后回填：结论/修订清单/live 抽验规模/想象性分析三风险点结论）

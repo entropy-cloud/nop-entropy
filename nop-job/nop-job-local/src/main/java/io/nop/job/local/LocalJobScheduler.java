@@ -64,7 +64,18 @@ public class LocalJobScheduler implements IJobScheduler {
     @Override
     public JobDetail getJobDetail(String jobName) {
         ScheduledJob job = jobs.get(jobName);
-        return job == null ? null : job.toJobDetail();
+        if (job == null)
+            return null;
+        // CRA 8.46 R4-06 W-01 (1.4-MA-02): read under the per-job monitor — the same
+        // lock discipline as getJobState. The spec reference (update() may swap it
+        // wholesale) and the plain long counters are only guaranteed to be seen as
+        // ONE consistent snapshot inside the monitor (write-side unlock → read-side
+        // lock establishes happens-before); unlocked CHM get alone carries no such
+        // guarantee, so a concurrent observer could read stale/counter-ordered
+        // fields. toJobDetail is a pure reader — the locked call is microseconds.
+        synchronized (job) {
+            return job.toJobDetail();
+        }
     }
 
     @Override
@@ -104,31 +115,75 @@ public class LocalJobScheduler implements IJobScheduler {
             }
         }
 
-        // New job or existing was removed while we waited for the lock.
-        // putIfAbsent prevents two threads from creating duplicate ScheduledJobs
-        // for the same name; synchronized(job) then protects scheduleNext against
-        // a concurrent removeJob or deactivate.
+        // New job, or the existing entry was removed while we waited for the lock
+        // (that entry-branch race falls through here). putIfAbsent prevents two
+        // threads from creating duplicate ScheduledJobs for the same name; the
+        // raced loop above resolves lost races (W-02/W-07) and the monitor below
+        // protects scheduleNext against a concurrent removeJob or deactivate.
         ScheduledJob job = new ScheduledJob(spec, invoker, trigger, state);
         ScheduledJob raced = jobs.putIfAbsent(spec.getJobName(), job);
-        if (raced != null) {
+        int racedRemovals = 0;
+        while (raced != null) {
+            boolean updateHandled = false;
             // Another thread inserted first — treat as update.
             synchronized (raced) {
                 if (!jobs.containsKey(spec.getJobName())) {
-                    return;
+                    // CRA 8.46 R4-06 W-02 (1.4-MA-03): a concurrent removeJob won the
+                    // race while we waited for the monitor (removeJob removes from the
+                    // map BEFORE taking the lock, so the in-lock re-check fails). The
+                    // old code silently returned — the registration was lost without a
+                    // trace while addJob reported success, although the existing-entry
+                    // branch handles the very same race by falling through and
+                    // rebuilding. WARN + a SINGLE fall-through retry below; a second
+                    // consecutive removal is the remove-wins terminal state (an
+                    // adversarial remove loop ends the same way) — logged, never
+                    // silent.
+                    LOG.warn("nop.job.add-job-raced-removed:jobName={}", spec.getJobName());
+                } else {
+                    // CRA 8.46 R4-06 W-07 (1.4-C2-004): the raced re-check PASSED —
+                    // the job exists. The allowUpdate contract (owner doc §1.2:
+                    // false = already-exists throws) must hold here exactly like on
+                    // the entry existing-branch path; the old code updated
+                    // unconditionally, so two concurrent first-time registrations
+                    // with allowUpdate=false silently overwrote each other's spec.
+                    // Throw BEFORE any mutation: our own putIfAbsent already lost
+                    // (raced was returned) and we touched nothing in the map — no
+                    // rollback needed.
+                    if (!allowUpdate) {
+                        throw new NopException(ERR_JOB_ALREADY_EXISTS)
+                                .param(ARG_JOB_NAME, spec.getJobName());
+                    }
+                    raced.update(spec, invoker, trigger, state);
+                    rescheduleAfterUpdate(raced);
+                    updateHandled = true;
                 }
-                raced.update(spec, invoker, trigger, state);
-                rescheduleAfterUpdate(raced);
             }
-        } else {
-            synchronized (job) {
-                if (!active) {
-                    // deactivate ran after our putIfAbsent; clean up
-                    cancelScheduledFire(job);
-                    jobs.remove(spec.getJobName(), job);
-                    return;
-                }
-                scheduleNext(job);
+            if (updateHandled) {
+                return;
             }
+            if (racedRemovals >= 1) {
+                // Second consecutive raced removal: remove-wins terminal state —
+                // the job does not exist by the remover's own semantics; keep the
+                // second WARN as the caller-visible trace (never silent).
+                LOG.warn("nop.job.add-job-raced-removed:jobName={}", spec.getJobName());
+                return;
+            }
+            racedRemovals++;
+            raced = jobs.putIfAbsent(spec.getJobName(), job);
+        }
+
+        // New job (fresh insert, or the W-02 retry re-insert won): putIfAbsent
+        // prevents two threads from creating duplicate ScheduledJobs for the same
+        // name; synchronized(job) then protects scheduleNext against a concurrent
+        // removeJob or deactivate.
+        synchronized (job) {
+            if (!active) {
+                // deactivate ran after our putIfAbsent; clean up
+                cancelScheduledFire(job);
+                jobs.remove(spec.getJobName(), job);
+                return;
+            }
+            scheduleNext(job);
         }
     }
 
@@ -352,7 +407,18 @@ public class LocalJobScheduler implements IJobScheduler {
         CompletionStage<JobFireResult> future;
         try {
             future = job.invoker.invokeAsync(ctx);
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // CRA 8.46 R4-06 W-08 (1.4-C2-007 residual): Errors must take the SAME
+            // path as Exceptions — without this widening a synchronous Error from
+            // invokeAsync (NoClassDefFoundError/OOM/custom invoker) escaped the
+            // two-phase handoff: the RUNNING placeholder (:335) was left dangling,
+            // the job silently stopped scheduling, awaitIdle never idled, fireNow
+            // always refused, with no FAILED terminal state and no module log.
+            // Via the existing settleExecution channel the Error lands as a FAILED
+            // terminal state (FAILED is terminal in local mode — no self-heal;
+            // self-heal belongs to C7-006/R4-07). The 2513 four-artifact order
+            // (placeholder-first / settle-relock / identity re-check + abandon /
+            // fail-safe) is preserved — this only widens the catch clause.
             settleExecution(job, null, e, done);
             return;
         }

@@ -159,23 +159,46 @@ public class RpcPollTaskManager {
         PollEntry entry = new PollEntry(task.getJobTaskId(), schedule, fire, task, cancelToken, future,
                 computeDeadline(schedule));
         entries.put(entry.getTaskId(), entry);
-        // 即时取消回调：先注册再调度，令牌已取消时 appendOnCancel 立即触发（提前于首个 poll tick）；
-        // 监听器存入 entry，终结清理时 removeOnCancel 防泄漏
-        if (cancelToken != null) {
-            Consumer<String> onCancel = reason -> onCancelToken(entry);
-            entry.setOnCancelListener(onCancel);
-            cancelToken.appendOnCancel(onCancel);
-        }
-        // 每 entry 独立注册：fixed-delay 保证该任务相邻两次 poll 不重叠；
-        // pollOnce 整体 try/catch，不会因异常终止后续调度
-        Future<?> handle = scheduledExecutor().scheduleWithFixedDelay(
-                () -> pollOnce(entry), pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
-        entry.setPollHandle(handle);
-        // future 终结（终态/取消/超时）后取消调度句柄并移出注册表
-        future.whenComplete((r, e) -> cancelEntry(entry));
-        // future 在 handle 设置前已终结（含 appendOnCancel 立即触发的路径）的兜底：避免空转句柄泄漏
-        if (future.isDone()) {
+        // CRA 8.46 R4-06 W-06 (1.4-C1-004): registration rollback. The steps after
+        // the map insert can throw — concretely scheduleWithFixedDelay throws
+        // RejectedExecutionException when the poll executor is shutting down (the
+        // register call runs inside the RemoteJobInvoker whenComplete ACTION, whose
+        // exception the future framework swallows). Unhandled, the entry AND its
+        // cancel listener leak (no whenComplete→cancelEntry was registered yet), the
+        // promise never completes and the task row stays RUNNING — with zero log.
+        // Roll back via the idempotent cancelEntry chain (listener removal + two-arg
+        // conditional map removal — never evicts a same-name re-registration), THEN
+        // complete the caller's future with the existing remote-invoke-failure code
+        // so the task terminates through the normal failure path. The steady-state
+        // order (insert → appendOnCancel → schedule → whenComplete → done-check) is
+        // untouched; this only wraps it.
+        try {
+            // 即时取消回调：先注册再调度，令牌已取消时 appendOnCancel 立即触发（提前于首个 poll tick）；
+            // 监听器存入 entry，终结清理时 removeOnCancel 防泄漏
+            if (cancelToken != null) {
+                Consumer<String> onCancel = reason -> onCancelToken(entry);
+                entry.setOnCancelListener(onCancel);
+                cancelToken.appendOnCancel(onCancel);
+            }
+            // 每 entry 独立注册：fixed-delay 保证该任务相邻两次 poll 不重叠；
+            // pollOnce 整体 try/catch，不会因异常终止后续调度
+            Future<?> handle = scheduledExecutor().scheduleWithFixedDelay(
+                    () -> pollOnce(entry), pollIntervalMs, pollIntervalMs, TimeUnit.MILLISECONDS);
+            entry.setPollHandle(handle);
+            // future 终结（终态/取消/超时）后取消调度句柄并移出注册表
+            future.whenComplete((r, e) -> cancelEntry(entry));
+            // future 在 handle 设置前已终结（含 appendOnCancel 立即触发的路径）的兜底：避免空转句柄泄漏
+            if (future.isDone()) {
+                cancelEntry(entry);
+            }
+        } catch (Throwable e) {
+            // rollback: listener removal first, then the map entry (cancelEntry does
+            // both, idempotently); completing the future LAST — the register-time
+            // whenComplete→cancelEntry hook is not yet registered, so this complete
+            // cannot double-cancel, and rollback itself already cleaned up.
             cancelEntry(entry);
+            future.complete(JobFireResult.ERROR(error(ERR_JOB_REMOTE_INVOKE_FAILED)));
+            LOG.warn("nop.job.remote.register-rollback:taskId={}", entry.getTaskId(), e);
         }
     }
 

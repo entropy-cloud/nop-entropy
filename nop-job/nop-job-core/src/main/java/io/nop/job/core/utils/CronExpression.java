@@ -84,8 +84,6 @@ public class CronExpression implements ICronExpression {
 
     private final TimeZone timeZone;
 
-    private ThreadLocal<GregorianCalendar> threadLocalCal;
-
     private final BitSet months = new BitSet(12);
 
     private final BitSet daysOfMonth = new BitSet(31);
@@ -130,11 +128,6 @@ public class CronExpression implements ICronExpression {
     public CronExpression(String expression, TimeZone timeZone) {
         this.expression = expression;
         this.timeZone = timeZone == null ? TimeZone.getDefault() : timeZone;
-        this.threadLocalCal = ThreadLocal.withInitial(() -> {
-            GregorianCalendar cal = new GregorianCalendar();
-            cal.setTimeZone(this.timeZone);
-            return cal;
-        });
 
         try {
             parse(expression);
@@ -145,15 +138,10 @@ public class CronExpression implements ICronExpression {
 
     private CronExpression(String expression, String[] fields) {
         this.expression = expression;
-        // 维护与公开构造器一致的不变式：timeZone非空（equals/hashCode直接解引用）、
-        // threadLocalCal初始化（getTimeAfter直接get）。实例当前仅isValidExpression内部使用后丢弃，
-        // 但复用（返回/缓存）即触发NPE
+        // 维护与公开构造器一致的不变式：timeZone非空（equals/hashCode直接解引用）。
+        // 实例当前仅isValidExpression内部使用后丢弃（CRA 8.46 R4-06 W-04：calendar
+        // 为getTimeAfter内的栈局部scratch，本构造器parse-only路径不消费calendar）
         this.timeZone = TimeZone.getDefault();
-        this.threadLocalCal = ThreadLocal.withInitial(() -> {
-            GregorianCalendar calendar = new GregorianCalendar(this.timeZone);
-            calendar.setLenient(false);
-            return calendar;
-        });
         doParse(fields);
     }
 
@@ -191,7 +179,16 @@ public class CronExpression implements ICronExpression {
          * forwards, 4.2 Reset the minutes and seconds and go to 2
          */
 
-        Calendar calendar = threadLocalCal.get();
+        // CRA 8.46 R4-06 W-04 (1.4-MA-07): stack-local scratch calendar. The old
+        // per-instance ThreadLocal leaked stale entries into pooled scheduler
+        // threads' ThreadLocalMaps — every planner-built CronExpression created its
+        // own ThreadLocal with no removal point (the instance is discarded right
+        // after use). The calendar is pure scratch within this call: setTimeInMillis
+        // overwrites all state at entry, so per-call construction is semantically
+        // identical and captures this.timeZone exactly like the public constructor's
+        // old initializer did.
+        Calendar calendar = new GregorianCalendar();
+        calendar.setTimeZone(this.timeZone);
         calendar.setTimeInMillis(date);
 
         // First, just reset the milliseconds and try to calculate from there...

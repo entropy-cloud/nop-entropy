@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -58,6 +59,13 @@ public abstract class AbstractBatchScanner {
     private final List<Cursor> registeredCursors = new ArrayList<>();
 
     private JobPartitionResolver partitionResolver;
+
+    // CRA 8.46 R4-06 W-05 (1.4-C1-003): in-flight guard for the PUBLIC scanOnce
+    // entry — "single-threaded" was only a scheduling declaration, an external
+    // caller racing a timer tick used to reset the in-flight cursors (duplicate
+    // processing / torn cursor). AtomicBoolean + mirror of the 2496 counter family.
+    private final AtomicBoolean scanningInFlight = new AtomicBoolean(false);
+    private final AtomicLong scanCycleConflictCount = new AtomicLong();
 
     // ========== scanner 存活指标（plan 2496 1.4-C4-003 #12 模块侧义务）==========
     private final AtomicLong scanCycleCount = new AtomicLong();
@@ -116,21 +124,46 @@ public abstract class AbstractBatchScanner {
      * 与链状态不说谎（链由绝缘设施保持存活）。
      */
     public void scanOnce() {
-        long begin = CoreMetrics.currentTimeMillis();
-        scanCycleCount.incrementAndGet();
-        lastScanStartTimeMillis = begin;
-        try {
-            for (Cursor c : registeredCursors) {
-                c.reset();
-            }
-            onCycleStart();
-            scanBatches();
-            lastScanEndTimeMillis = CoreMetrics.currentTimeMillis();
-        } catch (Throwable e) {
-            lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
-            scanFailureCount.incrementAndGet();
-            onScanCycleFailed(e);
+        // CRA 8.46 R4-06 W-05 (1.4-C1-003): in-flight CAS guard. The loser is
+        // REJECTED, not failed: WARN + conflict counter + return WITHOUT touching
+        // any cursor/chain state (the rejected entrant runs no cursor reset — the
+        // in-flight cycle keeps its cursors intact and the next fixed-delay tick
+        // covers its window). The rejection deliberately stays OUT of the 2496
+        // insulation counters below (those count REAL cycles only) and out of the
+        // insulation-failure stream — a typed rejection here would escape through
+        // the executor facility and be miscounted as a task failure, polluting the
+        // chain-health observation semantics. The 2496 insulation boundary
+        // (Throwable catch / onScanCycleFailed / counters) is untouched — the guard
+        // wraps the SAME body inside the insulation boundary.
+        if (!scanningInFlight.compareAndSet(false, true)) {
+            scanCycleConflictCount.incrementAndGet();
+            LOG.warn("nop.job.scan-cycle-conflict:scanner={}", getClass().getSimpleName());
+            return;
         }
+        try {
+            long begin = CoreMetrics.currentTimeMillis();
+            scanCycleCount.incrementAndGet();
+            lastScanStartTimeMillis = begin;
+            try {
+                for (Cursor c : registeredCursors) {
+                    c.reset();
+                }
+                onCycleStart();
+                scanBatches();
+                lastScanEndTimeMillis = CoreMetrics.currentTimeMillis();
+            } catch (Throwable e) {
+                lastScanFailureTimeMillis = CoreMetrics.currentTimeMillis();
+                scanFailureCount.incrementAndGet();
+                onScanCycleFailed(e);
+            }
+        } finally {
+            scanningInFlight.set(false);
+        }
+    }
+
+    /** CRA 8.46 R4-06 W-05: concurrent-entry rejections observed on this scanner. */
+    public long getScanCycleConflictCount() {
+        return scanCycleConflictCount.get();
     }
 
     private void scanBatches() {
