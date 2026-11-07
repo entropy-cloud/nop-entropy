@@ -10,33 +10,20 @@ package io.nop.stream.connector;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 public class TestMessageAdapters {
-
-    /** Purely event-driven wait: returns as soon as the condition holds; the deadline only guards against hangs. */
-    private static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 30_000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(10);
-        }
-        fail(message + " (condition not met within 30s)");
-    }
 
     private <T> SourceFunction.SourceContext<T> collectingContext(List<T> target) {
         return new SourceFunction.SourceContext<>() {
@@ -99,7 +86,7 @@ public class TestMessageAdapters {
         runner.start();
 
         // Wait until the source has actually subscribed (event-driven, no fixed sleep).
-        awaitUntil("source must subscribe before messages are sent",
+        TestAwait.until("source must subscribe before messages are sent",
                 () -> !messageService.getConsumers().getOrDefault("test-topic", java.util.Collections.emptyList()).isEmpty());
 
         messageService.send("test-topic", "msg1");
@@ -129,7 +116,7 @@ public class TestMessageAdapters {
         runner.start();
 
         // Wait for the subscription to be established before asserting on it.
-        awaitUntil("source must subscribe before assertions",
+        TestAwait.until("source must subscribe before assertions",
                 () -> !messageService.getConsumers().getOrDefault("cancel-topic", java.util.Collections.emptyList()).isEmpty());
         assertFalse(messageService.getConsumers().get("cancel-topic").isEmpty());
 
@@ -184,7 +171,7 @@ public class TestMessageAdapters {
 
         // Wait for the subscribe call to have registered the consumer before cancel
         // (event-driven; also proves run() got past the null-latch re-init).
-        awaitUntil("source must subscribe before cancel",
+        TestAwait.until("source must subscribe before cancel",
                 () -> !messageService.getConsumers().getOrDefault("ser-topic", java.util.Collections.emptyList()).isEmpty());
 
         source.cancel();

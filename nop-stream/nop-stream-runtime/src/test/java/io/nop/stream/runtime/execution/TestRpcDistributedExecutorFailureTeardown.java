@@ -68,17 +68,13 @@ class TestRpcDistributedExecutorFailureTeardown {
         // The partially-started TaskManagers must be torn down: their heartbeat
         // scheduler threads ("tm-heartbeat-node-*") must be gone. Before R-19
         // they stayed alive for the lifetime of the JVM (leak).
-        boolean heartbeatGone = false;
-        long deadline = System.currentTimeMillis() + 5_000;
-        while (System.currentTimeMillis() < deadline) {
-            boolean anyHeartbeat = Thread.getAllStackTraces().keySet().stream()
-                    .anyMatch(t -> t.isAlive() && t.getName().startsWith("tm-heartbeat-node-"));
-            if (!anyHeartbeat) {
-                heartbeatGone = true;
-                break;
-            }
-            Thread.sleep(100);
-        }
+        // 条件等待线程消亡（确定性观测，超时仅作挂死保护）。
+        io.nop.stream.core.testsupport.TestAwait.until("heartbeat threads gone after failed startJob",
+                () -> Thread.getAllStackTraces().keySet().stream()
+                        .noneMatch(t -> t.isAlive() && t.getName().startsWith("tm-heartbeat-node-")),
+                5_000);
+        boolean heartbeatGone = Thread.getAllStackTraces().keySet().stream()
+                .noneMatch(t -> t.isAlive() && t.getName().startsWith("tm-heartbeat-node-"));
         assertTrue(heartbeatGone,
                 "startJob failure must stop the TaskManager heartbeat threads (leaked before R-19)");
 

@@ -16,6 +16,8 @@ import io.nop.stream.core.checkpoint.SavepointMetadata;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
+import io.nop.stream.core.common.state.CheckpointListener;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -40,9 +42,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li><b>Test A</b> — retention eventual consistency: after completing
  *       N &gt; maxRetained checkpoints, the retained set converges to ≤ maxRetained
  *       (newest kept) via an async bounded predicate (no fixed sleeps).</li>
- *   <li><b>Test B</b> — completion critical path not blocked: with slow retention
- *       I/O injected (fast stores), a subsequent checkpoint still completes within a
- *       threshold well below the injected retention latency
+ *   <li><b>Test B</b> — completion critical path not blocked: with retention I/O
+ *       injected as a latch-held getAllCheckpoints (fast stores), a subsequent
+ *       checkpoint completes while the retention round is verifiably still in
+ *       flight — structural proof instead of an elapsed-time threshold
  *       ({@code asyncSnapshotEnabled=true} path).</li>
  *   <li>Serialization guard: retention runs never overlap (peak concurrent
  *       {@code getAllCheckpoints} == 1).</li>
@@ -85,8 +88,6 @@ class TestCheckpointRetentionAsync {
         final AtomicInteger inFlightGetAll = new AtomicInteger();
         final AtomicInteger peakInFlightGetAll = new AtomicInteger();
         final List<String> pruneArgs = new java.util.concurrent.CopyOnWriteArrayList<>();
-        volatile long getAllDelayMs;
-        volatile long deleteDelayMs;
         volatile boolean failGetAll;
         volatile boolean failDelete;
         volatile boolean failPrune;
@@ -166,14 +167,6 @@ class TestCheckpointRetentionAsync {
                         Thread.currentThread().interrupt();
                     }
                 }
-                long delay = getAllDelayMs;
-                if (delay > 0) {
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-                }
                 if (failGetAll) {
                     throw new IllegalStateException("Simulated getAllCheckpoints failure");
                 }
@@ -192,14 +185,6 @@ class TestCheckpointRetentionAsync {
         @Override
         public void deleteCheckpoint(String jobId, String pipelineId, long checkpointId) {
             deleteThread.set(Thread.currentThread().getName());
-            long delay = deleteDelayMs;
-            if (delay > 0) {
-                try {
-                    Thread.sleep(delay);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
             if (failDelete) {
                 throw new IllegalStateException("Simulated deleteCheckpoint failure");
             }
@@ -291,26 +276,55 @@ class TestCheckpointRetentionAsync {
         return coord;
     }
 
-    /** Drive one epoch to fully-acknowledged and wait for durable completion. */
+    /** Completion-listener latch: fires only AFTER the coordinator scheduled the retention run. */
+    static final class CompletionLatch implements CheckpointListener {
+        final CountDownLatch latch = new CountDownLatch(1);
+        volatile long completedId = -1;
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            completedId = checkpointId;
+            latch.countDown();
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+        }
+    }
+
+    /**
+     * Drive one epoch to fully-acknowledged and wait for durable completion.
+     * The completion-listener latch is structural re-evaluation evidence:
+     * {@code notifyCheckpointCompleted} fires after
+     * {@code scheduleRetentionCleanup()} in {@code onCompletePersistSuccess}, so
+     * returning from this method proves the completion path already made the
+     * retention trigger/coalesce decision.
+     */
     private CompletedCheckpoint completeOne(CheckpointCoordinator coord) throws Exception {
         PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
         org.junit.jupiter.api.Assertions.assertNotNull(pending);
+        CompletionLatch latch = new CompletionLatch();
+        coord.addListener(latch);
         coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
         coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
-        return pending.getCompletableFuture().get(30, TimeUnit.SECONDS);
+        CompletedCheckpoint completed = pending.getCompletableFuture().get(30, TimeUnit.SECONDS);
+        assertTrue(latch.latch.await(10, TimeUnit.SECONDS), "completion listeners must fire");
+        assertEquals(pending.getCheckpointId(), latch.completedId);
+        return completed;
     }
 
-    /** Bounded async predicate — polls until true or fails with the timeout message. */
-    private static boolean await(java.util.function.BooleanSupplier predicate, long timeoutMs,
-                                 String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (predicate.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(20);
+    /**
+     * TestAwait-backed bounded async predicate — 确定性条件 + 挂死保护上限（60s）。
+     * Returns false on timeout so callers keep their own assertion messages with
+     * live state; the timeout is hang protection only.
+     */
+    private static boolean await(java.util.function.BooleanSupplier predicate, String what) {
+        try {
+            TestAwait.until(what, predicate);
+            return true;
+        } catch (AssertionError e) {
+            return false;
         }
-        return predicate.getAsBoolean();
     }
 
     // ------------------------------------------------------------------
@@ -330,12 +344,12 @@ class TestCheckpointRetentionAsync {
             }
             final long newest = lastId;
             final long secondNewest = secondLastId;
-            assertTrue(await(() -> storage.size() <= 2, 10_000, "retention must converge"),
+            assertTrue(await(() -> storage.size() <= 2, "retention must converge"),
                     "retained set must converge to <= maxRetained=2 within 10s (was "
                             + storage.size() + ")");
             // The NEWEST checkpoints are retained (deletion always targets the oldest).
             assertTrue(await(() -> storage.checkpoints.containsKey(newest)
-                    && storage.checkpoints.containsKey(secondNewest), 10_000, "newest retained"),
+                            && storage.checkpoints.containsKey(secondNewest), "newest retained"),
                     "retained set must be the two newest epochs {" + secondNewest + "," + newest
                             + "}, was " + storage.checkpoints.keySet());
             assertTrue(storage.deleteCount.get() >= 3,
@@ -344,11 +358,11 @@ class TestCheckpointRetentionAsync {
 
             // Item 33: the manifest plane converges in the SAME retention rounds and
             // keeps the SAME newest epochs (dual-plane bound, §9.2 D2).
-            assertTrue(await(() -> storage.manifestSize() <= 2, 10_000, "manifests converge"),
+            assertTrue(await(() -> storage.manifestSize() <= 2, "manifests converge"),
                     "retained manifest set must converge to <= maxRetained=2 within 10s (was "
                             + storage.manifestSize() + ")");
             assertTrue(await(() -> storage.manifests.containsKey(newest)
-                    && storage.manifests.containsKey(secondNewest), 10_000, "newest manifests retained"),
+                            && storage.manifests.containsKey(secondNewest), "newest manifests retained"),
                     "retained manifest set must be the two newest epochs {" + secondNewest + "," + newest
                             + "}, was " + storage.manifests.keySet());
 
@@ -374,40 +388,44 @@ class TestCheckpointRetentionAsync {
     @Test
     void slowRetentionIoDoesNotBlockSubsequentCompletion() throws Exception {
         RetentionStorage storage = new RetentionStorage();
-        // Slow retention I/O only — stores stay fast, isolating retention's
-        // contribution to any blocking of the completion path.
-        storage.getAllDelayMs = 4_000L;
-        storage.deleteDelayMs = 4_000L;
+        // Slow retention I/O injected as a deterministic latch-held getAllCheckpoints
+        // (no real-time delay) — stores stay fast, isolating retention's contribution
+        // to any blocking of the completion path.
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        storage.getAllEnterLatch = entered;
+        storage.getAllReleaseLatch = release;
         CheckpointCoordinator coord = newCoordinator(storage, asyncConfig(1));
         try {
-            // cp1: durable; its retention run enters the slow getAllCheckpoints.
+            // cp1: durable; its retention run enters the (now blocked) getAllCheckpoints.
             completeOne(coord);
-            assertTrue(await(() -> storage.getAllCount.get() >= 1, 10_000, "retention entered"),
+            assertTrue(entered.await(10, TimeUnit.SECONDS),
                     "retention must have entered getAllCheckpoints after the first completion");
 
-            // cp2 completes while the slow retention I/O is in flight. Under the old
-            // (in-monitor) behavior the coordinator monitor was held for the whole
-            // slow getAll+delete, so this future.get(2500ms) would time out. With the
-            // retention off the monitor it must succeed well within the threshold.
+            // cp2 completes while the retention round is verifiably still in flight
+            // (run #1 is parked on the unreleased latch). Under the old (in-monitor)
+            // behavior the coordinator monitor was held for the whole slow getAll+delete,
+            // so this completion could never happen before the retention I/O finished;
+            // with retention off the monitor the future completes while the latch is
+            // still held — structural proof, no elapsed-time threshold.
             PendingCheckpoint p2 = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             org.junit.jupiter.api.Assertions.assertNotNull(p2);
-            long t0 = System.currentTimeMillis();
             coord.acknowledgeTask(LOC_1, p2.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, p2.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
-            CompletedCheckpoint cp2 = p2.getCompletableFuture().get(2_500, TimeUnit.MILLISECONDS);
-            long elapsed = System.currentTimeMillis() - t0;
+            CompletedCheckpoint cp2 = p2.getCompletableFuture().get(30, TimeUnit.SECONDS);
             org.junit.jupiter.api.Assertions.assertNotNull(cp2);
             final long newest = cp2.getCheckpointId();
-            assertTrue(elapsed < 2_500,
-                    "subsequent checkpoint completion must not block on slow retention I/O (took "
-                            + elapsed + "ms)");
+            assertEquals(1, release.getCount(),
+                    "retention round #1 must still be in flight (latch held) — cp2 completed "
+                            + "without waiting for retention I/O");
 
             // The slow retention path was genuinely exercised and eventually converges
             // (retention deletes cp1: maxRetained=1 keeps only the newest).
-            assertTrue(await(() -> storage.deleteCount.get() >= 1, 30_000, "slow delete ran"),
+            release.countDown();
+            assertTrue(await(() -> storage.deleteCount.get() >= 1, "slow delete ran"),
                     "slow retention delete must eventually run (deleteCount="
                             + storage.deleteCount.get() + ")");
-            assertTrue(await(() -> storage.size() <= 1, 30_000, "converge after slow io"),
+            assertTrue(await(() -> storage.size() <= 1, "converge after slow io"),
                     "retained set must converge to <= 1 after slow retention I/O (was "
                             + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
@@ -415,12 +433,13 @@ class TestCheckpointRetentionAsync {
 
             // Item 33: the manifest plane converges too — slow retention I/O delays
             // but never blocks the dual-plane bound (eventual consistency).
-            assertTrue(await(() -> storage.manifestSize() <= 1, 30_000, "manifests converge after slow io"),
+            assertTrue(await(() -> storage.manifestSize() <= 1, "manifests converge after slow io"),
                     "retained manifest set must converge to <= 1 after slow retention I/O (was "
                             + storage.manifestSize() + ")");
             assertTrue(storage.manifests.containsKey(newest),
                     "the newest manifest must be the retained one");
         } finally {
+            release.countDown();
             coord.shutdown();
         }
     }
@@ -432,23 +451,42 @@ class TestCheckpointRetentionAsync {
     @Test
     void retentionRunsAreSerializedUnderRapidCompletions() throws Exception {
         RetentionStorage storage = new RetentionStorage();
-        storage.getAllDelayMs = 100L;
+        // Block run #1 inside getAllCheckpoints with a latch (deterministic in-flight
+        // window instead of an injected real-time delay): while it is parked, the
+        // remaining completions are processed by the coordinator. A multi-threaded
+        // (non-serialized) retention executor would enter a second getAllCheckpoints
+        // during that window — caught by both the getAllCount and the peak probe.
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        storage.getAllEnterLatch = entered;
+        storage.getAllReleaseLatch = release;
         CheckpointCoordinator coord = newCoordinator(storage, asyncConfig(3));
         try {
-            for (int i = 0; i < 8; i++) {
+            completeOne(coord);
+            assertTrue(entered.await(10, TimeUnit.SECONDS),
+                    "first retention run must enter getAllCheckpoints");
+            for (int i = 0; i < 7; i++) {
                 completeOne(coord);
             }
-            assertTrue(await(() -> storage.size() <= 3, 15_000, "converge"),
+            // 结构性再评估证据：每次 completeOne 都等 completion listener 触发
+            // （生产在 scheduleRetentionCleanup 之后才 notify listeners）——全部
+            // 完成/触发决定均已作出，run #1 仍阻塞时 getAllCount 必须保持 1。
+            assertEquals(1, storage.getAllCount.get(),
+                    "while run #1 is parked, no second retention run may enter (serialized)");
+
+            release.countDown();
+            assertTrue(await(() -> storage.size() <= 3, "converge"),
                     "retained set must converge to <= maxRetained=3 (was " + storage.size() + ")");
             assertEquals(1, storage.peakInFlightGetAll.get(),
                     "retention runs must be serialized (peak concurrent getAllCheckpoints="
                             + storage.peakInFlightGetAll.get() + ")");
 
             // Item 33: manifest plane bounded under the same rapid completions.
-            assertTrue(await(() -> storage.manifestSize() <= 3, 15_000, "manifests converge"),
+            assertTrue(await(() -> storage.manifestSize() <= 3, "manifests converge"),
                     "retained manifest set must converge to <= maxRetained=3 (was "
                             + storage.manifestSize() + ")");
         } finally {
+            release.countDown();
             coord.shutdown();
         }
     }
@@ -475,28 +513,26 @@ class TestCheckpointRetentionAsync {
             // cp2 completes while run #1 is in flight. Its retention trigger must
             // COALESCE (no second concurrent getAll — serialization guard) ...
             newest = completeOne(coord).getCheckpointId();
-            // 无需固定 sleep：run #1 仍阻塞在 getAllReleaseLatch 上，且 retention
-            // 执行器为单线程串行，第二个 getAllCheckpoints 在 release 前不可能进入；
-            // 此处以短窗口轮询确认 getAllCount 保持为 1（coalesce 语义的确定性兜底）
-            long coalesceDeadline = System.currentTimeMillis() + 300;
-            while (System.currentTimeMillis() < coalesceDeadline)
-                Thread.sleep(20);
+            // 结构性再评估证据：completeOne 已等 completion listener 触发（生产在
+            // scheduleRetentionCleanup 之后才 notify listeners），即 cp2 的完成路径
+            // 已作出 retention 触发/合并决定；run #1 仍阻塞在 getAllReleaseLatch 上，
+            // 直接断言 getAllCount 保持为 1（coalesce 语义），无需固定观察窗。
             assertEquals(1, storage.getAllCount.get(),
                     "the in-flight retention run must still be the only one (coalesced trigger)");
 
             // ... and the trailing re-run must fire after run #1 finishes.
             release.countDown();
-            assertTrue(await(() -> storage.getAllCount.get() >= 2, 15_000, "trailing re-run"),
+            assertTrue(await(() -> storage.getAllCount.get() >= 2, "trailing re-run"),
                     "the trailing retention re-run must execute after the in-flight run "
                             + "(getAllCount=" + storage.getAllCount.get() + ")");
-            assertTrue(await(() -> storage.size() <= 1, 15_000, "converge"),
+            assertTrue(await(() -> storage.size() <= 1, "converge"),
                     "retained set must converge to <= 1 (was " + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one");
 
             // Item 33: the manifests completed during the blocked retention run are
             // covered by the trailing re-run too — both planes converge to the newest.
-            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifests converge"),
+            assertTrue(await(() -> storage.manifestSize() <= 1, "manifests converge"),
                     "retained manifest set must converge to <= 1 after the trailing re-run (was "
                             + storage.manifestSize() + ")");
             assertTrue(storage.manifests.containsKey(newest),
@@ -522,7 +558,7 @@ class TestCheckpointRetentionAsync {
             // contained + logged inside cleanupOldCheckpoints, never propagated).
             completeOne(coord);
             completeOne(coord);
-            assertTrue(await(() -> storage.getAllCount.get() >= 1, 10_000, "retention attempted"),
+            assertTrue(await(() -> storage.getAllCount.get() >= 1, "retention attempted"),
                     "retention must have been attempted");
             assertEquals(2, storage.size(),
                     "with retention failing, the retained set stays over maxRetained");
@@ -531,14 +567,14 @@ class TestCheckpointRetentionAsync {
             // with the failure cleared it converges.
             storage.failGetAll = false;
             long newest = completeOne(coord).getCheckpointId();
-            assertTrue(await(() -> storage.size() <= 1, 15_000, "self-heal converge"),
+            assertTrue(await(() -> storage.size() <= 1, "self-heal converge"),
                     "retention must self-heal on the next completion (was " + storage.size() + ")");
             assertTrue(storage.checkpoints.containsKey(newest),
                     "the newest checkpoint must be the retained one after self-heal");
 
             // Item 33: the manifest plane self-heals on the same next completion —
             // the round that failed never pruned, the healed round prunes both planes.
-            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifest self-heal converge"),
+            assertTrue(await(() -> storage.manifestSize() <= 1, "manifest self-heal converge"),
                     "manifest retention must self-heal on the next completion (was "
                             + storage.manifestSize() + ")");
             assertTrue(storage.manifests.containsKey(newest),
@@ -615,10 +651,10 @@ class TestCheckpointRetentionAsync {
             for (int i = 0; i < 3; i++) {
                 newest = completeOne(coord).getCheckpointId();
             }
-            assertTrue(await(() -> storage.size() <= 1, 15_000, "checkpoint plane converges"),
+            assertTrue(await(() -> storage.size() <= 1, "checkpoint plane converges"),
                     "checkpoint plane must converge independently of manifest prune failures (was "
                             + storage.size() + ")");
-            assertTrue(await(() -> storage.pruneCount.get() >= 1, 15_000, "prune attempted"),
+            assertTrue(await(() -> storage.pruneCount.get() >= 1, "prune attempted"),
                     "manifest prune must have been attempted");
             assertEquals(3, storage.manifestSize(),
                     "with prune failing, the manifest plane stays over maxRetained (no silent skip)");
@@ -627,7 +663,7 @@ class TestCheckpointRetentionAsync {
             // cleared the manifest plane converges and keeps the newest.
             storage.failPrune = false;
             newest = completeOne(coord).getCheckpointId();
-            assertTrue(await(() -> storage.manifestSize() <= 1, 15_000, "manifest self-heal"),
+            assertTrue(await(() -> storage.manifestSize() <= 1, "manifest self-heal"),
                     "manifest retention must self-heal on the next completion (was "
                             + storage.manifestSize() + ")");
             assertTrue(storage.manifests.containsKey(newest),
@@ -668,10 +704,10 @@ class TestCheckpointRetentionAsync {
             // newest two — the in-flight margin never turns into newest mis-deletion.
             release.countDown();
             final long newestFinal = newest;
-            assertTrue(await(() -> storage.manifestSize() <= 2, 15_000, "manifest margin converge"),
+            assertTrue(await(() -> storage.manifestSize() <= 2, "manifest margin converge"),
                     "manifest plane must converge after the blocked retention round (was "
                             + storage.manifestSize() + ")");
-            assertTrue(await(() -> storage.size() <= 2, 15_000, "checkpoint converge"),
+            assertTrue(await(() -> storage.size() <= 2, "checkpoint converge"),
                     "checkpoint plane must converge after the blocked retention round (was "
                             + storage.size() + ")");
             assertTrue(storage.manifests.containsKey(newestFinal),

@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -248,7 +249,7 @@ public class MessageSourceReader<T> implements SourceReader<T, MessageTopicSplit
 
         @Override
         public long getProcessingTime() {
-            return System.currentTimeMillis();
+            return CoreMetrics.currentTimeMillis();
         }
 
         @Override

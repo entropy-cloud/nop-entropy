@@ -10,6 +10,7 @@ import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.connector.jdbc.JdbcTwoPhaseCommitSink;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -273,30 +274,31 @@ class TestDebeziumCrossDbSyncPipeline {
 
     private static void waitUntilOp(List<ChangeEvent> events, String operation, int minCount,
                                     long timeoutMs, String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        long count;
-        while (true) {
-            count = events.stream().filter(e -> operation.equals(e.getOperation())).count();
-            if (count >= minCount || System.currentTimeMillis() >= deadline) {
-                break;
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("at least " + minCount + " events with operation " + operation,
+                    () -> events.stream().filter(e -> operation.equals(e.getOperation())).count() >= minCount,
+                    timeoutMs);
+        } catch (AssertionError timeout) {
+            long count = events.stream().filter(ev -> operation.equals(ev.getOperation())).count();
+            assertTrue(count >= minCount, message + " (op=" + operation + " count=" + count + ")");
         }
-        assertTrue(count >= minCount, message + " (op=" + operation + " count=" + count + ")");
     }
 
     private static void waitUntilOpKey(List<ChangeEvent> events, String operation, String key,
                                        long timeoutMs, String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            for (ChangeEvent e : events) {
-                if (operation.equals(e.getOperation()) && key.equals(keyString(e))) {
-                    return;
-                }
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("event with operation " + operation + " and key " + key,
+                    () -> {
+                        for (ChangeEvent e : events) {
+                            if (operation.equals(e.getOperation()) && key.equals(keyString(e))) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            fail(message + " (op=" + operation + ", key=" + key + ")");
         }
-        fail(message + " (op=" + operation + ", key=" + key + ")");
     }
 
     private static String keyString(ChangeEvent e) {

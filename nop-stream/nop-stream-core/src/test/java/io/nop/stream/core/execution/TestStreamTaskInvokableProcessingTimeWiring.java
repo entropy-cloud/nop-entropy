@@ -11,8 +11,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -25,6 +29,7 @@ import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.operators.Triggerable;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.test.TestOutput;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -46,8 +51,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>a processing-time timer registered by an operator fires end-to-end through the
  *       driver → mailbox → task thread chain.</li>
  * </ul>
+ *
+ * <p>时间确定化（plan 2510）：driver 与定时器服务的时间读取经 {@code CoreMetrics}，测试注册
+ * {@link ManualClock}——源算子按元素推进虚拟时间，定时器到期后以「driver 已把 fire mail
+ * 投入任务 mailbox」为确定性条件等待，不再依赖真实毫秒节奏。
  */
 public class TestStreamTaskInvokableProcessingTimeWiring {
+
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     /**
      * Operator that mirrors the timer wiring contract of ProcessOperator/WindowOperator:
@@ -84,7 +106,7 @@ public class TestStreamTaskInvokableProcessingTimeWiring {
                 getTimeServiceManager().registerTimerService(internalTimerService);
             }
             internalTimerService.registerProcessingTimeTimer("ns",
-                    System.currentTimeMillis() + timerDelayMs);
+                    CoreMetrics.currentTimeMillis() + timerDelayMs);
         }
 
         @Override
@@ -105,15 +127,30 @@ public class TestStreamTaskInvokableProcessingTimeWiring {
         }
     }
 
-    private static StreamSourceOperator<String> slowSource(int elements, long emitIntervalMs) {
+    /**
+     * 虚拟时间驱动源：每个元素先把虚拟时钟推进 {@code advancePerElementMs} 再 collect——
+     * collect 点的 mailbox drain 会执行已到期的 processing-time fire mail。定时器越过
+     * 截止点后、collect 前，以「driver 已把 fire mail 投入任务 mailbox（或回调已在本线程
+     * 早先的 drain 中执行过——定时器是一次性的，之后不再有新 mail）」为确定性条件等待。
+     */
+    private StreamSourceOperator<String> pacedSource(int elements, long advancePerElementMs,
+                                                     long timerDueAt,
+                                                     AtomicReference<MailboxExecutor> mailboxRef,
+                                                     AtomicBoolean timerFired) {
+        ManualClock c = clock;
         return new StreamSourceOperator<>(new SourceFunction<String>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void run(SourceContext<String> ctx) throws Exception {
                 for (int i = 0; i < elements; i++) {
+                    c.advance(advancePerElementMs);
+                    MailboxExecutor exec = mailboxRef.get();
+                    if (exec != null && c.peekMillis() >= timerDueAt) {
+                        TestAwait.until("due processing-time fire mail delivered to the task mailbox",
+                                () -> !exec.getMailbox().isEmpty() || timerFired.get());
+                    }
                     ctx.collect("event-" + i);
-                    Thread.sleep(emitIntervalMs);
                 }
             }
 
@@ -125,14 +162,17 @@ public class TestStreamTaskInvokableProcessingTimeWiring {
 
     @Test
     void testNonCheckpointInvokableInjectsProcessingTimeServices() throws Exception {
+        long timerDueAt = clock.peekMillis() + 120;
         TimerRegisteringOperator timerOp = new TimerRegisteringOperator(120);
         TestOutput<String> output = new TestOutput<>();
         timerOp.setOutput((io.nop.stream.core.operators.Output) output);
 
+        AtomicReference<MailboxExecutor> mailboxRef = new AtomicReference<>();
         OperatorChain chain = new OperatorChain(
-                java.util.List.of(slowSource(10, 40), timerOp));
+                java.util.List.of(pacedSource(10, 40, timerDueAt, mailboxRef, timerOp.timerFired), timerOp));
 
         StreamTaskInvokable invokable = new StreamTaskInvokable(chain);
+        mailboxRef.set(invokable.getMailboxExecutor());
         invokable.invoke();
 
         // Wiring evidence (non-checkpoint path: no setBarrierTracker was ever called).
@@ -181,12 +221,15 @@ public class TestStreamTaskInvokableProcessingTimeWiring {
     @Test
     void testTimerCallbackRunsOnTaskThread() throws Exception {
         AtomicReference<Thread> mainThread = new AtomicReference<>(Thread.currentThread());
+        long timerDueAt = clock.peekMillis() + 100;
         TimerRegisteringOperator timerOp = new TimerRegisteringOperator(100);
         timerOp.setOutput((io.nop.stream.core.operators.Output) new TestOutput<>());
 
+        AtomicReference<MailboxExecutor> mailboxRef = new AtomicReference<>();
         OperatorChain chain = new OperatorChain(
-                java.util.List.of(slowSource(8, 50), timerOp));
+                java.util.List.of(pacedSource(8, 50, timerDueAt, mailboxRef, timerOp.timerFired), timerOp));
         StreamTaskInvokable invokable = new StreamTaskInvokable(chain);
+        mailboxRef.set(invokable.getMailboxExecutor());
         invokable.invoke();
 
         assertTrue(timerOp.timerFired.get(), "PT timer fired");

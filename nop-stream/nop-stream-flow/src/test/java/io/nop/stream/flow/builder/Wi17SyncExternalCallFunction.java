@@ -60,15 +60,16 @@ public class Wi17SyncExternalCallFunction
         String call(String key) {
             int now = IN_FLIGHT.incrementAndGet();
             PEAK_CONCURRENCY.accumulateAndGet(now, Math::max);
-            try {
-                long slow = SLOW_MS;
-                if (slow > 0) {
+            // SLOW_MS 注入的模拟耗时（timeout 契约的被测条件本身）：仅当测试显式注入
+            // 慢调用时才有时长，由 deadline 超时路径的 cancel(true) 中断结束——测试
+            // 主动中断结束的模拟耗时允许形态；未注入时调用即时返回（无固定节流等待）。
+            long slow = SLOW_MS;
+            if (slow > 0) {
+                try {
                     Thread.sleep(slow);
-                } else {
-                    Thread.sleep(5);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                 }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
             }
             EXTERNAL_CALLS.add(key);
             IN_FLIGHT.decrementAndGet();

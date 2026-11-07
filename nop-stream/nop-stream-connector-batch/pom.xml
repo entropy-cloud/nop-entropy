@@ -17,6 +17,22 @@
             <artifactId>nop-stream-core</artifactId>
         </dependency>
 
+        <!-- 共享确定性时间测试工具（io.nop.commons.test.time，plan 2508）+ canonical TestAwait（io.nop.stream.core.testsupport，plan 2510）经 test-jar 导出 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-commons</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-stream-core</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.github.entropy-cloud</groupId>
             <artifactId>nop-batch-core</artifactId>

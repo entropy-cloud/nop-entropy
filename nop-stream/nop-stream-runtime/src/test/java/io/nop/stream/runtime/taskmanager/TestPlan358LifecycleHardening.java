@@ -22,6 +22,7 @@ import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.protocol.TaskProgress;
 import io.nop.stream.runtime.protocol.TaskStatusReport;
 import io.nop.stream.runtime.rpc.IStreamCoordinatorRpcService;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -277,13 +278,8 @@ class TestPlan358LifecycleHardening {
     }
 
     private static void awaitTrue(String what, java.util.function.BooleanSupplier condition,
-                                  long timeoutMs) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (!condition.getAsBoolean()) {
-            if (System.currentTimeMillis() > deadline) {
-                throw new AssertionError("timed out waiting for: " + what);
-            }
-            Thread.sleep(20);
-        }
+                                  long timeoutMs) {
+        // 条件等待复用 canonical TestAwait（超时上限仅作挂死保护，不再 sleep 轮询）
+        TestAwait.until(what, condition, timeoutMs);
     }
 }

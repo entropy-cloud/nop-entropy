@@ -74,18 +74,28 @@ class TestLegacyCheckpointFixtureRestore {
         environment.setParallelism(1);
         environment.enableCheckpointing(150L);
         environment.getCheckpointConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE);
+        // 时间确定化（plan 2510 负载稳定化）：singlePass=true = 单遍发射 + 批后提交证据
+        // 等待——每输入恰一次发射，且整批已 commit 才发下一批（提交序列 = 输入序）。
+        // 等待以心跳哨兵（HEARTBEAT）排水控制邮箱，filter（替代原恒等 map 的链位）在
+        // keyBy 前丢弃哨兵——管线声明里 source/keyBy 节点名不变，fixture 的 vertex
+        // 匹配与 operator 指纹不受影响。恢复回放不需要自造新 epoch，断言基于 fixture
+        // 既有 manifest 的恢复边界。
         environment.addSource(
-                new TestCheckpointDualRunDifferential.PacingInput<>(
-                        TestCheckpointDualRunDifferential.firstInput(), 25L), "paced-source")
-                .map(v -> v)
+                new TestLegacyCheckpointFixtureGenerator.LegacyPacingInput<>(
+                        TestCheckpointDualRunDifferential.firstInput(), committed, true), "paced-source")
+                .filter(v -> v >= 0)
                 .keyBy(v -> v % 2)
                 .reduce((a, b) -> a + b)
                 .sink(new TestCheckpointDualRunDifferential.RecordingTwoPhaseSink(JOB_ID, committed));
         // Pre-populate the external commit ledger with the fixture job's committed
-        // epochs (the fixture's run committed every durable pending — the external
-        // system already has those records). Restore re-delivers the terminal-epoch
-        // inherited pendings through commit(), and the ledger absorbs the
-        // redelivery exactly as a production sink would.
+        // epochs (verified semantics: after every durable checkpoint the fixture's
+        // finishCommit drained all pendings <= that epoch, so the only pendings the
+        // restore rebuilds are the latest durable epoch's own — whose manifest is in
+        // the retained set below). restoreFromEpoch re-commits those pendings under
+        // the FIXTURE epoch ids and the ledger absorbs the re-delivery exactly as a
+        // production sink would; the replay's own commits ride NEW epoch ids
+        // (advanceCheckpointIdCounterAfterRestore moves the counter strictly beyond
+        // the restored epoch), so they never collide with the ledger and all land.
         LocalFileCheckpointStorage fixtureStorage =
                 new LocalFileCheckpointStorage(storageDir.toFile().getAbsolutePath());
         for (EpochManifest manifest : fixtureStorage.loadRetainedEpochManifests(JOB_ID, "pipeline-0", 10)) {

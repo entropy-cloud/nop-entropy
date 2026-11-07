@@ -19,6 +19,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.CheckpointedSourceFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -35,8 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -270,12 +269,8 @@ public class TestDebeziumCdcCheckpoint {
         });
         runner.start();
 
-        // Wait until at least 2 events collected
-        long deadline = System.currentTimeMillis() + 5000;
-        while (collected.size() < 2 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(50);
-        }
-        assertTrue(collected.size() >= 2, "should collect at least 2 events on first run");
+        // Wait until at least 2 events collected (条件等待；上限仅挂死保护)
+        TestAwait.until("first run collected at least 2 events", () -> collected.size() >= 2, 5_000L);
 
         // Kill: cancel the source
         source.cancel();
@@ -329,11 +324,9 @@ public class TestDebeziumCdcCheckpoint {
         });
         runner2.start();
 
-        // Wait until at least 1 event collected on recovery
-        deadline = System.currentTimeMillis() + 5000;
-        while (recoveredCollected.size() < 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(50);
-        }
+        // Wait until at least 1 event collected on recovery (条件等待；上限仅挂死保护)
+        TestAwait.until("recovery run emitted at least one new event",
+                () -> !recoveredCollected.isEmpty(), 5_000L);
         recovered.cancel();
         runner2.join(5000);
         assertFalse(runner2.isAlive(), "recovery emitter thread must be dead before assertions");
@@ -446,11 +439,7 @@ public class TestDebeziumCdcCheckpoint {
         });
         run1Thread.start();
 
-        long deadline = System.currentTimeMillis() + 5000;
-        while (run1Collected.size() < 2 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(50);
-        }
-        assertTrue(run1Collected.size() >= 2, "run1 should collect at least 2 events");
+        TestAwait.until("run1 collected at least 2 events", () -> run1Collected.size() >= 2, 5_000L);
         run1.cancel();
         run1Thread.join(5000);
         assertFalse(run1EmittedKeys.isEmpty(), "run1 must have emitted keys");
@@ -484,10 +473,7 @@ public class TestDebeziumCdcCheckpoint {
         });
         run2Thread.start();
 
-        deadline = System.currentTimeMillis() + 5000;
-        while (run2Collected.isEmpty() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(50);
-        }
+        TestAwait.until("run2 emitted events from the beginning", () -> !run2Collected.isEmpty(), 5_000L);
         run2.cancel();
         run2Thread.join(5000);
 
@@ -579,10 +565,10 @@ public class TestDebeziumCdcCheckpoint {
                     store.setOffsets(Collections.singletonMap(
                             ByteBuffer.wrap("__idx__".getBytes()),
                             ByteBuffer.wrap(String.valueOf(idx + 1).getBytes())));
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
+                    // mock emitter pacing（模拟产流节奏，非等待手段）：可中断 park，
+                    // cancel 的 interrupt 使其即刻返回（中断结束的模拟耗时允许形态）
+                    java.util.concurrent.locks.LockSupport.parkNanos(50_000_000L);
+                    if (Thread.currentThread().isInterrupted()) {
                         break;
                     }
                 }

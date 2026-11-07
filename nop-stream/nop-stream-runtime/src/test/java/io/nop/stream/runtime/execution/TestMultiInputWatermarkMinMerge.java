@@ -59,7 +59,6 @@ public class TestMultiInputWatermarkMinMerge {
                 if (!running) return;
                 ctx.collect(tag + "-e" + mark);
                 ctx.emitWatermark(mark);
-                Thread.sleep(40);
             }
             // hold the vertex open so EOS does not push MAX_WATERMARK into the merge
             release.await(8, TimeUnit.SECONDS);

@@ -236,6 +236,9 @@ public class TestDebeziumCdcSource {
 
         final java.util.concurrent.atomic.AtomicBoolean cancelled =
                 new java.util.concurrent.atomic.AtomicBoolean();
+        /** 显式交接信号：cancel 释放 run() 的阻塞等待（60s 上限仅挂死保护）。 */
+        final java.util.concurrent.CountDownLatch cancelSignal =
+                new java.util.concurrent.CountDownLatch(1);
 
         @Override
         protected DebeziumCdcSourceFunction createEmbeddedFunction(DebeziumConfig engineConfig) {
@@ -253,15 +256,15 @@ public class TestDebeziumCdcSource {
                 @Override
                 public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<io.nop.message.debezium.ChangeEvent> ctx)
                         throws Exception {
-                    // live-subscription stand-in: block until cancel, interruptibly
-                    while (!cancelled.get()) {
-                        Thread.sleep(50);
-                    }
+                    // live-subscription stand-in: block until cancel (explicit latch handoff,
+                    // no wall-clock polling)
+                    cancelSignal.await(60, java.util.concurrent.TimeUnit.SECONDS);
                 }
 
                 @Override
                 public void cancel() {
                     cancelled.set(true);
+                    cancelSignal.countDown();
                 }
             };
         }

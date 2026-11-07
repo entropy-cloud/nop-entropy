@@ -277,18 +277,6 @@ class TestCheckpointCoordinatorJdbcRetainedManifests {
         restarted.shutdown();
     }
 
-    private static boolean awaitCondition(java.util.function.BooleanSupplier predicate, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (predicate.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(20);
-        }
-        return predicate.getAsBoolean();
-    }
-
     private long runCheckpoint(CheckpointCoordinator cc, TaskLocation loc, StateSnapshot keyed) throws Exception {
         CompletionLatch latch = new CompletionLatch();
         cc.addListener(latch);

@@ -16,6 +16,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcFactory;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -24,7 +25,6 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Plan 369 Phase 4 (R5-CC-15): the leader epoch granted when the lease row is
@@ -215,18 +215,18 @@ class TestJdbcLeaderElectorEpochMonotonicity {
         return count == null ? 0L : count;
     }
 
-    private LeaderEpoch awaitLeadership(JdbcLeaderElector elector, String hostId, long timeoutMs)
-            throws Exception {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
+    /**
+     * 条件等待目标 host 获得领导权（外部可观测状态 = LeaderEpoch 视图 + isLeader），
+     * 上限仅挂死保护；租约到期经 {@link #expireLease()} 直接 SQL 确定性构造，
+     * 选举轮询为生产实现内部轮询（允许形态）。
+     */
+    private LeaderEpoch awaitLeadership(JdbcLeaderElector elector, String hostId, long timeoutMs) {
+        TestAwait.until(hostId + " must attain leadership within " + timeoutMs + "ms "
+                + "(leader epoch + isLeader)", () -> {
             LeaderEpoch le = elector.getLeaderEpoch();
-            if (le != null && hostId.equals(le.getLeaderId()) && elector.isLeader()) {
-                return le;
-            }
-            Thread.sleep(50);
-        }
-        fail(hostId + " must attain leadership within " + timeoutMs + "ms");
-        return null; // unreachable
+            return le != null && hostId.equals(le.getLeaderId()) && elector.isLeader();
+        }, timeoutMs);
+        return elector.getLeaderEpoch();
     }
 
     private DefaultScheduledExecutor newTimer(String name) {

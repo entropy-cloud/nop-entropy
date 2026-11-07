@@ -7,6 +7,7 @@
  */
 package io.nop.stream.runtime.transport;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.channel.ChannelBacklogProbe;
 import io.nop.stream.core.exceptions.NopStreamErrors;
@@ -179,14 +180,14 @@ public class RemoteResultPartition extends ResultPartition {
             bumpBacklogCached();
             return;
         }
-        long deadline = System.currentTimeMillis() + gateWaitMillis;
+        long deadline = CoreMetrics.currentTimeMillis() + gateWaitMillis;
         while (true) {
             long fresh = forceBacklog();
             if (fresh < backlogLimit) {
                 bumpBacklogCached();
                 return;
             }
-            if (System.currentTimeMillis() >= deadline) {
+            if (CoreMetrics.currentTimeMillis() >= deadline) {
                 throw new StreamException(NopStreamErrors.ERR_STREAM_SEND_GATE_TIMEOUT)
                         .param(NopStreamErrors.ARG_TOPIC, topic)
                         .param(NopStreamErrors.ARG_BACKLOG_LIMIT, backlogLimit)
@@ -197,7 +198,7 @@ public class RemoteResultPartition extends ResultPartition {
     }
 
     private synchronized long peekBacklogCached() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (now - backlogCacheAt >= BACKLOG_CACHE_TTL_MILLIS) {
             backlogCacheValue = backlogProbe.backlog(topic);
             backlogCacheAt = now;
@@ -211,13 +212,13 @@ public class RemoteResultPartition extends ResultPartition {
 
     private synchronized long forceBacklog() {
         backlogCacheValue = backlogProbe.backlog(topic);
-        backlogCacheAt = System.currentTimeMillis();
+        backlogCacheAt = CoreMetrics.currentTimeMillis();
         return backlogCacheValue;
     }
 
     /** TTL-cached backlog read (pass-through path must not COUNT per message). */
     private synchronized long currentBacklog() {
-        long now = System.currentTimeMillis();
+        long now = CoreMetrics.currentTimeMillis();
         if (now - backlogCacheAt >= BACKLOG_CACHE_TTL_MILLIS) {
             backlogCacheValue = backlogProbe.backlog(topic);
             backlogCacheAt = now;

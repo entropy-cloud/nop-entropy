@@ -16,6 +16,7 @@ import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -458,11 +459,10 @@ class TestJobCoordinatorRecoveryRobustness {
         assertTrue(started.await(5, TimeUnit.SECONDS));
 
         // Wait until the terminal savepoint's barrier has been sent (the wait
-        // is now blocked in future.get with nothing to ACK it).
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (rpcA.getLastBarrier() == null && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10L);
-        }
+        // is now blocked in future.get with nothing to ACK it). 条件等待：
+        // barrier 跨过 mock RPC（外部可观测状态），上限仅挂死保护。
+        TestAwait.until("terminal savepoint barrier crossed the mock RPC",
+                () -> rpcA.getLastBarrier() != null);
         CheckpointBarrier barrier = rpcA.getLastBarrier();
         assertNotNull(barrier, "the terminal savepoint barrier must have been sent");
 

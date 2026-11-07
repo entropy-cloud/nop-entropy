@@ -46,29 +46,19 @@ public class TestResultPartitionDeadlock {
         assertTrue(started.await(2, TimeUnit.SECONDS));
 
         // Without draining, close() should still be blocked.
-        // 负向窗口：无人消费时 close() 必须持续阻塞（循环维持不变量）
-        TestAwait.staysTrue("close() stays blocked while queue full",
-                () -> !closed.get(), 200);
+        // 结构性证据：closer 线程已到达其阻塞点（阻塞在 queue.put(END_OF_STREAM) 的
+        // WAITING 态），此时它仍未完成 —— 无需墙钟观察窗。
+        TestAwait.untilThreadParked("closer blocked in blocking close() while queue full", closer);
         assertFalse(closed.get(), "close() must block while the queue is full and no consumer drains");
 
         // Drain one element to make room for the sentinel.
         assertNotNull(partition.read());
 
         // close() should now be able to place the sentinel and return.
-        assertTrue(waitForClosed(closer, 5, TimeUnit.SECONDS), "close() should complete once a slot is freed");
+        closer.join(5_000L);
+        assertFalse(closer.isAlive(), "close() should complete once a slot is freed");
         assertTrue(closed.get());
         assertTrue(partition.isFinished());
-    }
-
-    private static boolean waitForClosed(Thread t, long timeout, TimeUnit unit) throws InterruptedException {
-        long deadlineMillis = System.currentTimeMillis() + unit.toMillis(timeout);
-        while (System.currentTimeMillis() < deadlineMillis) {
-            if (!t.isAlive()) {
-                return true;
-            }
-            Thread.sleep(20);
-        }
-        return !t.isAlive();
     }
 
     @Test

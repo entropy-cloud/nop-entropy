@@ -15,13 +15,17 @@ import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -35,9 +39,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * ({@code tryTriggerPendingCheckpoint}/{@code acknowledgeTask} all share the
  * same monitor).
  *
- * <p>Mutation probe: moving the fan-out back inline (direct call under the
- * monitor) turns {@code slowParticipantFinishCommitDoesNotBlockMonitor} red —
- * the monitor probe then blocks for at least the participant's sleep window.
+ * <p>时间确定化（plan 2510）：模拟慢提交改为 latch 阻塞（由测试显式放行），「慢提交
+ * 在途窗口」不再是墙钟 sleep；monitor 不被占用的证明是结构性事实——探针在
+ * latch 未放行（提交确定性仍在途）时已返回。变异探针语义不变：把扇出挪回
+ * monitor 内联，探针必须等 latch 放行才能拿到 monitor → slowCommitFinished 变
+ * true → 探针前置断言失败变红。
  */
 class TestCommitFanoutOffMonitor2326 {
 
@@ -45,7 +51,6 @@ class TestCommitFanoutOffMonitor2326 {
     private static final String PIPELINE_ID = "pipeline-0";
     private static final TaskLocation LOC_1 = new TaskLocation(JOB_ID, PIPELINE_ID, "src", 0);
     private static final TaskLocation LOC_2 = new TaskLocation(JOB_ID, PIPELINE_ID, "sink", 0);
-    private static final long SLOW_COMMIT_MS = 600L;
 
     @TempDir
     Path tempDir;
@@ -68,6 +73,10 @@ class TestCommitFanoutOffMonitor2326 {
 
         AtomicBoolean slowCommitStarted = new AtomicBoolean(false);
         AtomicBoolean slowCommitFinished = new AtomicBoolean(false);
+        // Simulated slow sink commit I/O (file fsync / JDBC commit): the commit parks
+        // on this latch until the test releases it — the in-flight window is
+        // deterministic, not a wall-clock sleep.
+        CountDownLatch releaseCommit = new CountDownLatch(1);
         coord.addParticipant(new CheckpointParticipant() {
             @Override
             public TaskStateSnapshot saveState(long epochId) {
@@ -80,10 +89,9 @@ class TestCommitFanoutOffMonitor2326 {
 
             @Override
             public void finishCommit(long epochId, boolean success) {
-                // Simulate slow sink commit I/O (file fsync / JDBC commit).
                 slowCommitStarted.set(true);
                 try {
-                    Thread.sleep(SLOW_COMMIT_MS);
+                    releaseCommit.await(30, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }
@@ -101,29 +109,29 @@ class TestCommitFanoutOffMonitor2326 {
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-            // Wait until the fan-out task has ENTERED the slow commit — from this
-            // point the monitor is (post-fix) free even though the commit sleeps.
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (!slowCommitStarted.get() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(10);
-            }
-            assertTrue(slowCommitStarted.get(), "fan-out must reach the participant commit");
+            // Wait until the fan-out task has ENTERED the (latch-parked) slow commit —
+            // from this point the monitor is (post-fix) free even though the commit
+            // cannot finish.
+            TestAwait.until("fan-out must reach the participant commit",
+                    slowCommitStarted::get);
 
-            // Monitor probe: ONE lightweight synchronized call, timed. Pre-fix
-            // (inline fan-out under the monitor) this call blocks ~SLOW_COMMIT_MS
-            // (the slow finishCommit runs while the caller holds the monitor);
-            // post-fix it returns in single-digit milliseconds.
-            long probeStart = System.currentTimeMillis();
+            // Monitor probe: ONE lightweight synchronized call. Pre-fix (inline fan-out
+            // under the monitor) this call could only acquire the monitor after the
+            // slow finishCommit returned (latch released → slowCommitFinished=true);
+            // post-fix it returns while the commit is deterministically still parked.
             coord.registerTask(LOC_1);
             coord.unregisterTask(LOC_1);
-            long probeElapsed = System.currentTimeMillis() - probeStart;
-            assertTrue(probeElapsed < SLOW_COMMIT_MS / 2,
-                    () -> "monitor blocked " + probeElapsed + "ms while the slow participant commit "
-                            + "was in flight — commit fan-out is running under the monitor (CC-01 regression)");
+            assertEquals(1, releaseCommit.getCount(),
+                    "probe precondition: the slow commit is still parked on the latch");
             assertTrue(!slowCommitFinished.get(),
-                    "probe precondition: the slow commit should still be in flight");
+                    "probe returned while the slow commit was still in flight — commit fan-out "
+                            + "is not running under the monitor (CC-01 regression probe)");
+
+            releaseCommit.countDown();
         } finally {
             coord.shutdown();
+            TestAwait.until("shutdown grace must drain the queued slow commit",
+                    slowCommitFinished::get);
             assertTrue(slowCommitFinished.get(),
                     "shutdown grace must drain the queued slow commit");
         }

@@ -14,6 +14,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterEach;
@@ -37,6 +39,7 @@ import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.jobgraph.ResultPartitionType;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.InMemoryClusterRegistry;
@@ -54,7 +57,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Item 14 (composite-scenario distributed): ungated in-process proof of the
- * remote-deploy checkpoint wiring. Spawns a REAL pipeline (throttled source →
+ * remote-deploy checkpoint wiring. Spawns a REAL pipeline (source →
  * 2PC sink) through the deployTask path over two in-process TaskManagers whose
  * control plane traverses RPC proxies (LocalMessageService as transport), and
  * asserts the complete checkpoint loop that was previously impossible in
@@ -73,6 +76,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *   <li>exactly-once at the sink: every element committed exactly once even
  *       though multiple checkpoints commit progressively.</li>
  * </ol>
+ *
+ * <p>时间确定化（plan 2510）：原 fixture 用真实 pacing（40ms/条发射 + 750ms
+ * 订阅窗 + 500ms finish linger）把运行时长拉过真实 150ms 周期 checkpoint。
+ * 现改为全显式同步编排：(a) 订阅建立用探针握手（in-process LocalMessageService
+ * 对无订阅 topic 静默丢包——探针落地前重发）；(b) 周期 checkpoint 由测试显式
+ * {@code coordinator.triggerCheckpoint()} 驱动，pending barrier 在下一条
+ * collect 上发出（引擎语义保持），每轮「发射批次 → 显式触发 → 隔条携带
+ * barrier → 提交证据」；(c) 全部等待为确定性条件（提交计数推进），上限仅挂死
+ * 保护。屏障与记录的到达次序竞争不影响恰好一次语义（记录归属其后最近 epoch
+ * 的 saveState 缓冲），提交里程碑由对应 epoch 确定达成。不再存在任何真实
+ * 时间窗。两个引擎边界保持原裁定：(a) pending barrier 需要下一条 collect——
+ * 编排保证触发后总有后续 collect；(b) EOS 后任务离开 TaskManager——所有
+ * 提交证据在 EOS 前取得。
  *
  * <p>The gated multi-JVM scenario tests (nop-stream-fraud-example) consume the
  * same wiring cross-JVM; this test is the fast default-suite regression for it.
@@ -132,33 +148,38 @@ class TestRemoteDeployCheckpointWiringE2E {
 
     @Test
     void remoteDeployPipelineCheckpointsCommitsAndRestoresExactlyOnce() throws Exception {
-        // Bounded-run determinism (scenario fixture pattern, plan-2 A.0 ruling 6):
-        // 20 "meaningful" elements followed by a sustained trailing flush flow.
-        // Two engine boundaries make this necessary: (a) a pending barrier is
-        // emitted by the source operator on the NEXT collect — a barrier that
-        // arrives while the source merely lingers (no emission) waits until
-        // close; (b) a task that completes (EOS) leaves the TaskManager before
-        // the durable-commit notification can reach it. A sustained trailing
-        // flow lets every periodic checkpoint flush + complete + commit while
-        // the tasks are alive; only the post-last-checkpoint tail may stay
-        // in-flight at EOS (recoverable semantics, engine 2PC contract).
         int meaningfulCount = 20;
-        int totalCount = 80;
-        long emitDelayMs = 40L;
-        ThrottledElementSource source = new ThrottledElementSource(totalCount, emitDelayMs, 500L);
-        RecordingTwoPhaseSink sink = new RecordingTwoPhaseSink();
+        Semaphore permits = new Semaphore(0);
+        CountDownLatch probeLanded = new CountDownLatch(1);
+        TestableSource source = new TestableSource(meaningfulCount, permits, probeLanded);
+        RecordingTwoPhaseSink sink = new RecordingTwoPhaseSink(probeLanded);
 
         JobGraph jobGraph = buildPipeline(JOB_ID, source, sink);
         DeploymentPlan deploymentPlan = buildDeploymentPlan(JOB_ID);
 
         startTopology(jobGraph, deploymentPlan);
 
+        // ============ choreography: streaming emission + test-driven triggers ============
+        // 条件驱动的编排循环：每次条件求值放行一小批记录（数据流在提交证据达标前
+        // 持续流动——pending barrier 在下一条 collect 上发出）并显式触发一次
+        // checkpoint（生产侧门控 maxConcurrent/minPause 照常裁决，拒绝即下一轮
+        // 重试）。记录落进哪个 epoch 由屏障与记录的到达竞争决定，恰好一次语义
+        // 不受影响（2PC 按 epoch saveState 缓冲/提交）。触发节奏 = 条件等待轮询
+        // （非墙钟阈值），上限仅挂死保护。
+        TestAwait.until("test-driven epoch commits carry every meaningful element through "
+                        + "the durable-notification chain",
+                () -> {
+                    int committed = countCommittedMeaningful(sink, meaningfulCount);
+                    if (committed < meaningfulCount) {
+                        permits.release(3);
+                        coordinator.triggerCheckpoint();
+                    }
+                    return committed >= meaningfulCount;
+                }, 60_000L);
+
         // 1. Exactly-once: every meaningful element committed exactly once
         //    (commits only happen through the durable-checkpoint notification
-        //    chain). Wait until each of 0..19 appears exactly once.
-        assertTrue(waitFor(() -> countCommittedMeaningful(sink, meaningfulCount) == meaningfulCount, 30_000L),
-                "All " + meaningfulCount + " meaningful elements must be committed; committed="
-                        + sink.committedElements);
+        //    chain). Each of 0..19 appears exactly once.
         for (int i = 0; i < meaningfulCount; i++) {
             assertEquals(1, java.util.Collections.frequency(sink.committedElements, i),
                     "element " + i + " must be committed exactly once (no duplicate/loss)");
@@ -185,8 +206,9 @@ class TestRemoteDeployCheckpointWiringE2E {
         //    fresh RecordingTwoPhaseSink receives the durable pendingCommits map
         //    via restoreFromEpoch, and its (empty) commit output proves the
         //    restored pendings were already committed (idempotent guard).
-        RecordingTwoPhaseSink restoreSink = new RecordingTwoPhaseSink();
-        JobGraph restoreGraph = buildPipeline(JOB_ID, new ThrottledElementSource(0, 0L, 0L), restoreSink);
+        RecordingTwoPhaseSink restoreSink = new RecordingTwoPhaseSink(new CountDownLatch(1));
+        JobGraph restoreGraph = buildPipeline(JOB_ID, new TestableSource(0, new Semaphore(0),
+                new CountDownLatch(1)), restoreSink);
         io.nop.stream.runtime.protocol.TaskDeploymentDescriptor descriptor =
                 new io.nop.stream.runtime.protocol.TaskDeploymentDescriptor(
                         JOB_ID, "sink", 0, "tm-1", "restore-attempt", 1, 1L,
@@ -247,6 +269,7 @@ class TestRemoteDeployCheckpointWiringE2E {
                         .checkpointEnabled(true)
                         .checkpointInterval(150L)
                         .checkpointTimeout(30_000L)
+                        .minPause(0L)
                         .maxConcurrentCheckpoints(1)
                         .maxRetainedCheckpoints(5)
                         .build());
@@ -277,11 +300,11 @@ class TestRemoteDeployCheckpointWiringE2E {
         coordinator.start();
         coordinator.assignTasks();
 
-        // Launch-path periodic checkpoints (item 14 equivalent mechanism).
-        coordinator.startPeriodicCheckpoints(150L);
+        // 时间确定化（plan 2510）：不再启动真实 150ms 周期 checkpoint 调度器——
+        // 触发点改由测试显式 triggerCheckpoint() 编排（见主用例）。
     }
 
-    private static JobGraph buildPipeline(String jobId, ThrottledElementSource source,
+    private static JobGraph buildPipeline(String jobId, TestableSource source,
                                           RecordingTwoPhaseSink sink) {
         StreamSourceOperator<Integer> sourceOp = new StreamSourceOperator<>(source);
         StreamSinkOperator<Integer> sinkOp = new StreamSinkOperator<>(sink);
@@ -312,66 +335,68 @@ class TestRemoteDeployCheckpointWiringE2E {
     private static int countCommittedMeaningful(RecordingTwoPhaseSink sink, int meaningfulCount) {
         int seen = 0;
         for (Integer v : sink.committedElements) {
-            if (v != null && v < meaningfulCount) {
+            if (v != null && v >= 0 && v < meaningfulCount) {
                 seen++;
             }
         }
         return seen;
     }
 
-    private static boolean waitFor(java.util.function.BooleanSupplier condition, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return true;
-            }
-            TimeUnit.MILLISECONDS.sleep(100L);
-        }
-        return condition.getAsBoolean();
-    }
-
     // ==================== fixture UDFs ====================
 
-    /** Bounded source with per-element pacing so periodic checkpoints interleave. */
-    static final class ThrottledElementSource
+    /** Probe value: filtered out by the sink fixture (subscription-ordering handshake only). */
+    static final int PROBE_VALUE = -1;
+
+    /**
+     * Trailing filler values beyond the asserted meaningful range: they keep the
+     * data stream alive past the last meaningful record so a barrier injected
+     * late still finds a next collect (barrier/record arrival races cannot
+     * strand the last epoch).
+     */
+    static final int TRAILING_FILLERS = 10;
+
+    /**
+     * Emission-controlled source: values 0..(count + TRAILING_FILLERS). Before
+     * any real record, a probe handshake guarantees the downstream subscription
+     * is live (in-process LocalMessageService silently drops sends to
+     * unsubscribed topics); the per-record release semaphore lets the test pace
+     * emission on commit evidence. Replaces the legacy real-time pacing source
+     * (plan 2510 时间确定化).
+     */
+    static final class TestableSource
             implements io.nop.stream.core.common.functions.source.SourceFunction<Integer> {
         private static final long serialVersionUID = 1L;
 
         private final int count;
-        private final long delayMs;
-        private final long finishLingerMs;
+        private final Semaphore permits;
+        private final CountDownLatch probeLanded;
         private volatile boolean running = true;
 
-        ThrottledElementSource(int count, long delayMs, long finishLingerMs) {
+        TestableSource(int count, Semaphore permits, CountDownLatch probeLanded) {
             this.count = count;
-            this.delayMs = delayMs;
-            this.finishLingerMs = finishLingerMs;
+            this.permits = permits;
+            this.probeLanded = probeLanded;
         }
 
         @Override
-        public void run(SourceContext<Integer> ctx) throws Exception {
-            // Initial delay: the in-process LocalMessageService drops sends whose
-            // topic has no subscriber yet, and the source's task thread can start
-            // before the slower-deployed downstream consumer subscribed. The
-            // cross-JVM JDBC transport does not need this (data-plane topics
-            // replay from topic start — PollingJdbcMessageService item-14 fix);
-            // this in-process harness delay only orders the wiring test.
-            // 时间窗（部署顺序），循环形式等待
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("downstream consumer subscribe window", 750L);
-            for (int i = 0; i < count && running; i++) {
-                ctx.collect(i);
-                if (delayMs > 0) {
-                    Thread.sleep(delayMs);
+        public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<Integer> ctx)
+                throws Exception {
+            // probe handshake: resend the probe until the sink fixture observes it
+            for (int probe = 0; probe < 500 && probeLanded.getCount() != 0; probe++) {
+                ctx.collect(PROBE_VALUE);
+                try {
+                    probeLanded.await(10L, TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
                 }
             }
-            // finish linger: keep the source task ALIVE (running, not completed)
-            // so trailing periodic checkpoints can be triggered + injected while
-            // the task still exists — a trigger after task completion cannot
-            // deliver the barrier (TaskManager iterates running tasks only) and
-            // the tail would stay uncommitted (bounded-run determinism, scenario
-            // fixture pattern).
-            Thread.sleep(finishLingerMs);
+            TestAwait.until("downstream consumer took the probe (subscription live)",
+                    () -> probeLanded.getCount() == 0, 10_000L);
+            for (int i = 0; i <= count + TRAILING_FILLERS && running; i++) {
+                permits.acquire();
+                ctx.collect(i);
+            }
         }
 
         @Override
@@ -385,7 +410,8 @@ class TestRemoteDeployCheckpointWiringE2E {
      * buffers per epoch, saveState moves the buffer into pendingCommits, commit
      * (driven ONLY by the durable-checkpoint notification chain) appends to the
      * committed list. Recording the committed epochs proves the commit
-     * notification reached the TM-side participant.
+     * notification reached the TM-side participant. Probe values are never
+     * buffered (subscription handshake only).
      */
     static final class RecordingTwoPhaseSink extends TwoPhaseCommitSinkFunction<Integer> {
         private static final long serialVersionUID = 1L;
@@ -394,7 +420,12 @@ class TestRemoteDeployCheckpointWiringE2E {
         final java.util.concurrent.ConcurrentSkipListMap<Long, Integer> committedEpochs =
                 new java.util.concurrent.ConcurrentSkipListMap<>();
         final List<Integer> currentBuffer = new ArrayList<>();
+        final CountDownLatch probeLanded;
         volatile long lastRestoredEpoch = -1L;
+
+        RecordingTwoPhaseSink(CountDownLatch probeLanded) {
+            this.probeLanded = probeLanded;
+        }
 
         @Override
         public void beginTransaction() {
@@ -402,6 +433,10 @@ class TestRemoteDeployCheckpointWiringE2E {
 
         @Override
         public void invoke(Integer value) {
+            if (value != null && value == PROBE_VALUE) {
+                probeLanded.countDown();
+                return;
+            }
             synchronized (currentBuffer) {
                 currentBuffer.add(value);
             }

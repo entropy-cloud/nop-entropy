@@ -55,46 +55,46 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TestSupervisionLoopReconnectE2E {
 
     /**
-     * Consumer-only region restart with a SLOW source (simulates infinite source):
-     * the source emits records with delays so it's still running when the consumer
-     * restarts. After restart, the consumer replays materialized data AND reads
-     * live data from the still-running producer (reconnect-to-live-queue).
+     * Consumer-only region restart with a source that is STILL RUNNING when the
+     * consumer restarts. After restart, the consumer replays materialized data AND
+     * reads live data from the still-running producer (reconnect-to-live-queue).
      *
      * <p>Graph: Source(A) →[materialization edge]→ FailingSink(B)
      * <ul>
-     *   <li>Region 0 = {A} (producer — slow source, still running at restart time)</li>
+     *   <li>Region 0 = {A} (producer — still running at restart time)</li>
      *   <li>Region 1 = {B} (consumer — fails on first consume, restarted)</li>
      * </ul>
      *
-     * <p>The source emits "s1".."s6" with ~80ms between each. The consumer fails
-     * on the first consume. The supervision loop restarts the consumer (~200ms
-     * later). By then the source has emitted a few records but hasn't finished.
-     * The restarted consumer drains stale queue data, replays materialized data
-     * (epoch 0 — no checkpoint, full replay), then reads live data as the source
-     * continues emitting, and finally sees EOS when the source completes.
+     * <p>时间确定化（plan 2510）：不再用固定 sleep 制造「源仍存活」的窗口——源发出
+     * s1..s3 后在 latch 上显式阻塞（分区保持打开），直到重启后的消费者已回放出
+     * 这 3 条记录（sink 记录计数 = 重启 + 回放完成的结构性证据），随后继续发出
+     * s4..s6 供消费者从活分区实时读取。消费者在第一条记录上失败，supervision loop
+     * 重启消费者；重启后的消费者清空陈旧队列、回放物化数据（epoch 0 — 无
+     * checkpoint，全量回放），再从仍存活的源读取实时数据，最后在源完成时看到 EOS。
      */
     @Test
     void reconnectToLiveQueue_consumerRestartsWhileProducerRunning_readsReplayThenLive() throws Exception {
         List<String> sinkResults = Collections.synchronizedList(new ArrayList<>());
         AtomicBoolean hasFailedOnce = new AtomicBoolean(false);
         CountDownLatch sourceFinished = new CountDownLatch(1);
+        /** Opened by the sink per recorded record; the source's live-tail release gate. */
+        CountDownLatch replayed = new CountDownLatch(3);
 
-        // Slow source: emits 6 records with delays. This keeps the source running
-        // long enough for the consumer to fail + restart while the partition is
-        // still open (not finished → reconnect-to-live-queue path is exercised).
+        // Source: emits s1..s3, then blocks on the replay gate (partition stays open
+        // — the reconnect-to-live-queue precondition holds on every machine speed),
+        // then emits s4..s6 live.
         SourceFunction<String> sourceFn = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public void run(SourceContext<String> ctx) {
-                for (int i = 1; i <= 6; i++) {
+            public void run(SourceContext<String> ctx) throws Exception {
+                for (int i = 1; i <= 3; i++) {
                     ctx.collect("s" + i);
-                    try {
-                        Thread.sleep(80); // slow emission
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
+                }
+                // 显式同步：等重启后的消费者回放出前置记录（latch 上限仅作挂死保护）
+                replayed.await(60, TimeUnit.SECONDS);
+                for (int i = 4; i <= 6; i++) {
+                    ctx.collect("s" + i);
                 }
             }
 
@@ -115,6 +115,7 @@ class TestSupervisionLoopReconnectE2E {
                     throw new StreamException("Injected first-consume failure (reconnect E2E)");
                 }
                 sinkResults.add(value);
+                replayed.countDown();
             }
         };
 

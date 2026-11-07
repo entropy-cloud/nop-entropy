@@ -7,7 +7,8 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.testsupport.TestAwait;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.exceptions.StreamException;
@@ -15,6 +16,7 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -28,6 +30,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Tests for configurable watermark interval in TimestampsAndWatermarksOperator.
+ *
+ * <p>时间确定化（plan 2510）：processElement 的 inline 周期 emit 门经 {@code CoreMetrics}
+ * 读取，测试注册 {@link ManualClock}——watermark 间隔由显式 {@code clock.advance(delta)}
+ * 越过，不再等待真实时间流逝。
  */
 public class TestWatermarkIntervalConfig {
 
@@ -42,12 +48,20 @@ public class TestWatermarkIntervalConfig {
     }
 
     private WatermarkStrategy<TestEvent> defaultStrategy;
+    private ManualClock clock;
 
     @BeforeEach
     void setUp() {
         defaultStrategy = WatermarkStrategy
                 .<TestEvent>forBoundedOutOfOrderness(Duration.ofMillis(100))
                 .withTimestampAssigner((event, ts) -> event.timestamp);
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
     }
 
     @Test
@@ -64,8 +78,9 @@ public class TestWatermarkIntervalConfig {
         operator.processElement(new StreamRecord<>(new TestEvent("a", 1000L)));
 
         // Wait past the interval and process another element
-        // 时间语义（watermark 间隔需流逝），循环形式等待
-        TestAwait.elapsed("watermark interval elapses", 60);
+        // 虚拟时钟推进越过 watermark 间隔（inline emit 门读 CoreMetrics，时钟不推进则
+        // 门必然关闭），不再等待真实时间流逝。
+        clock.advance(60);
         operator.processElement(new StreamRecord<>(new TestEvent("b", 2000L)));
 
         // Finish to emit final watermark

@@ -1,6 +1,7 @@
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -110,29 +111,38 @@ class TestCheckpointMinPauseAndFailureCounter {
      */
     @Test
     void minPauseThrottlesAfterCompletionAndRecoversAfterWait() throws Exception {
+        // 时间确定化（plan 2510）：minPause 判定读取经 CoreMetrics，测试注册
+        // ManualClock 显式推进虚拟时间越过 minPause 截止点（推进前/推进后双断言
+        // 即接线验证），不再等待真实 400ms 窗口流逝。时钟逐用例注册、finally 恢复。
         long pause = 300L;
-        createCoordinator(pause, 4);
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            createCoordinator(pause, 4);
 
-        // cp1
-        PendingCheckpoint cp1 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-        assertNotNull(cp1);
-        completeCheckpoint(coordinator, cp1);
+            // cp1
+            PendingCheckpoint cp1 = coordinator.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            assertNotNull(cp1);
+            completeCheckpoint(coordinator, cp1);
 
-        // Immediate cp2 trigger must be throttled by last-completed minPause.
-        CheckpointCoordinator.TriggerOutcome immediate =
-                coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
-        assertEquals(CheckpointCoordinator.TriggerRejectionReason.THROTTLED_MIN_PAUSE, immediate.reason(),
-                "Trigger fired immediately after completion must be throttled by minPause");
-        assertNull(immediate.pending());
+            // Immediate cp2 trigger must be throttled by last-completed minPause.
+            CheckpointCoordinator.TriggerOutcome immediate =
+                    coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
+            assertEquals(CheckpointCoordinator.TriggerRejectionReason.THROTTLED_MIN_PAUSE, immediate.reason(),
+                    "Trigger fired immediately after completion must be throttled by minPause");
+            assertNull(immediate.pending());
 
-        // Wait beyond minPause, then trigger must succeed.
-        // minPause 是时间语义（距上次完成需流逝），用循环形式等待
-        TestAwait.elapsed("minPause window elapses", pause + 100L);
-        CheckpointCoordinator.TriggerOutcome after =
-                coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
-        assertEquals(CheckpointCoordinator.TriggerRejectionReason.TRIGGERED, after.reason(),
-                "Trigger fired after minPause elapsed must succeed");
-        assertNotNull(after.pending());
+            // 推进虚拟时钟越过 minPause（虚拟线上距上次完成 301ms >= 300ms），
+            // 触发必须成功。
+            clock.advance(pause + 1L);
+            CheckpointCoordinator.TriggerOutcome after =
+                    coordinator.tryTriggerCheckpointWithReason(CheckpointType.CHECKPOINT);
+            assertEquals(CheckpointCoordinator.TriggerRejectionReason.TRIGGERED, after.reason(),
+                    "Trigger fired after minPause elapsed must succeed");
+            assertNotNull(after.pending());
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     /**

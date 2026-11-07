@@ -20,6 +20,7 @@ import io.nop.stream.core.checkpoint.storage.CheckpointStorageException;
 import io.nop.stream.core.checkpoint.storage.ICheckpointStorage;
 import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -62,7 +63,7 @@ class TestAsyncSnapshotPipeline {
     private static final TaskLocation LOC_2 = new TaskLocation(JOB_ID, PIPELINE_ID, "v2", 2);
 
     /**
-     * Busy-wait for {@code coord.getNumberOfPendingCheckpoints()} to reach {@code expected}.
+     * Condition-wait for {@code coord.getNumberOfPendingCheckpoints()} to reach {@code expected}.
      *
      * <p>Necessary because the async persist completion path completes the pending
      * checkpoint's CompletableFuture (via {@code forceComplete}) BEFORE decrementing
@@ -75,20 +76,16 @@ class TestAsyncSnapshotPipeline {
      * {@code decrementPendingCheckpointCount} is observable, producing a flaky
      * {@code expected: <0> but was: <1>}.
      *
-     * <p>The bounded busy-wait lets the volatile decrement become visible without
-     * changing the production ordering, which is intentional: the count must not drop to
-     * zero before the checkpoint is signaled durable / failed (otherwise a racing trigger
-     * could start a new checkpoint prematurely).
+     * <p>时间确定化（plan 2510）：固定窗口忙等改为 TestAwait 条件等待（确定性计数条件 +
+     * 挂死保护上限），不依赖机器快慢。
      */
-    private static void awaitPendingCount(CheckpointCoordinator coord, int expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (coord.getNumberOfPendingCheckpoints() != expected && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+    private static void awaitPendingCount(CheckpointCoordinator coord, int expected) {
+        TestAwait.until("numPendingCheckpoints settles to " + expected
+                + " (forceComplete/decrement race in async persist path)",
+                () -> coord.getNumberOfPendingCheckpoints() == expected);
         assertEquals(expected, coord.getNumberOfPendingCheckpoints(),
-                "numPendingCheckpoints did not settle to " + expected + " within " + timeoutMs
-                        + "ms (forceComplete/decrement race in async persist path)");
+                "numPendingCheckpoints did not settle to " + expected
+                        + " (forceComplete/decrement race in async persist path)");
     }
 
     /**
@@ -223,24 +220,21 @@ class TestAsyncSnapshotPipeline {
             PendingCheckpoint pending = coord.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
 
-            long t0 = System.nanoTime();
             // This call submits the persist task and must return immediately even
             // though storeCheckPoint is blocked on `release`.
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
-            long elapsedMs = (System.nanoTime() - t0) / 1_000_000;
 
             assertTrue(entered.await(5, TimeUnit.SECONDS),
                     "storeCheckPoint must have been entered (on the executor thread)");
-            // The ACK caller should not have blocked for storage: assert it returned well
-            // before the persist completes. We haven't released `release` yet, so the
-            // checkpoint future must NOT be done at this point.
+            // The ACK caller should not have blocked for storage: the persist is
+            // deterministically still in-flight (storeCheckPoint is parked on the
+            // unreleased latch), yet the ACK call already returned and the test
+            // thread proceeded — a blocking ACK could never have reached this point.
             assertFalse(pending.getCompletableFuture().isDone(),
                     "ACK caller returned while storage was still in-flight; future should not be done");
 
             release.countDown();
             pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
-            assertTrue(elapsedMs < 5_000,
-                    "ACK caller should return near-instantly (was " + elapsedMs + "ms)");
         } finally {
             coord.shutdown();
         }
@@ -312,21 +306,16 @@ class TestAsyncSnapshotPipeline {
             trigger.start();
 
             // 等待信号：racing trigger 线程已实际执行若干次迭代（竞争窗口被真正打开），
-            // 而不是依赖固定 sleep 的机器快慢
-            long raceDeadline = System.currentTimeMillis() + 30_000;
-            while (triggerAttempts.get() < 100 && System.currentTimeMillis() < raceDeadline)
-                Thread.sleep(20);
-            assertTrue(triggerAttempts.get() >= 100,
-                    "racing trigger thread must have exercised the in-flight window");
+            // 以迭代计数为确定性条件，不依赖固定 sleep 的机器快慢
+            TestAwait.until("racing trigger thread must have exercised the in-flight window",
+                    () -> triggerAttempts.get() >= 100);
             release.countDown();
             pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
-            // Give post-completion triggers a brief chance to race:
+            // Give post-completion triggers a chance to race:
             // 等待信号：checkpoint 完成后再跑若干次 trigger 迭代，覆盖 post-completion 竞争
             long attemptsAfterCompletion = triggerAttempts.get();
-            long postRaceDeadline = System.currentTimeMillis() + 30_000;
-            while (triggerAttempts.get() < attemptsAfterCompletion + 50
-                    && System.currentTimeMillis() < postRaceDeadline)
-                Thread.sleep(20);
+            TestAwait.until("racing trigger thread must have raced across the completion boundary",
+                    () -> triggerAttempts.get() >= attemptsAfterCompletion + 50);
             stop.set(true);
             watcher.join(2_000);
             trigger.join(2_000);
@@ -369,7 +358,7 @@ class TestAsyncSnapshotPipeline {
             // forceComplete (which unblocks the future above) runs BEFORE
             // decrementPendingCheckpointCount in onCompletePersistSuccess; the count is
             // a non-synchronized AtomicInteger read, so we must busy-wait for it to settle.
-            awaitPendingCount(coord, 0, 5_000);
+            awaitPendingCount(coord, 0);
         } finally {
             coord.shutdown();
         }
@@ -406,13 +395,8 @@ class TestAsyncSnapshotPipeline {
             // since F-01 — force-completes the future exceptionally with the real root
             // cause. Below we assert BOTH the status and the future's fast exceptional
             // completion (previously the future hung until the full checkpoint timeout).
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (pending.getStatus().get() != PendingCheckpoint.Status.FAILED
-                    && System.currentTimeMillis() < deadline) {
-                Thread.sleep(20);
-            }
-            assertEquals(PendingCheckpoint.Status.FAILED, pending.getStatus().get(),
-                    "Storage failure must surface as FAILED status (no silent skip)");
+            TestAwait.until("storage failure must surface as FAILED status (no silent skip)",
+                    () -> pending.getStatus().get() == PendingCheckpoint.Status.FAILED);
             // F-01 (Plan 2026-09-04-1326-1 Phase 2): the future must ALSO complete
             // exceptionally, in seconds (not the 600s default timeout), carrying the
             // real storage-failure root cause. The old comment here asserted the future
@@ -429,17 +413,13 @@ class TestAsyncSnapshotPipeline {
                     "future failure must carry the real root cause, got: " + cause.getMessage());
             assertNotNull(cause.getCause(), "root storage exception must be chained");
             // Confirm the failure callback also flushed finishCommit(false).
-            deadline = System.currentTimeMillis() + 2_000;
-            while (!finishCommitSuccessFalseCalled.get() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(20);
-            }
-            assertTrue(finishCommitSuccessFalseCalled.get(),
-                    "finishCommit(false) must be called on storage failure");
+            TestAwait.until("finishCommit(false) must be called on storage failure",
+                    finishCommitSuccessFalseCalled::get);
             assertFalse(finishCommitSuccessTrueCalled.get(),
                     "finishCommit(true) (commit) must NOT be called when storage failed (§12 invariant 5)");
-            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; busy-wait
-            // for the decrement to become visible.
-            awaitPendingCount(coord, 0, 5_000);
+            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; wait for
+            // the decrement to become visible (deterministic condition).
+            awaitPendingCount(coord, 0);
             assertTrue(storage.storeCheckpointFailCount.get() >= 1);
         } finally {
             coord.shutdown();
@@ -459,20 +439,15 @@ class TestAsyncSnapshotPipeline {
             coord.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (pending.getStatus().get() != PendingCheckpoint.Status.FAILED
-                    && System.currentTimeMillis() < deadline) {
-                Thread.sleep(20);
-            }
-            assertEquals(PendingCheckpoint.Status.FAILED, pending.getStatus().get(),
-                    "Manifest storage failure must surface as FAILED");
+            TestAwait.until("manifest storage failure must surface as FAILED",
+                    () -> pending.getStatus().get() == PendingCheckpoint.Status.FAILED);
             assertTrue(storage.storeCheckpointCount.get() >= 1,
                     "storeCheckPoint must have succeeded before manifest failure");
             assertTrue(storage.storeManifestCount.get() >= 1,
                     "storeEpochManifest must have been attempted");
-            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; busy-wait
-            // for the decrement to become visible.
-            awaitPendingCount(coord, 0, 5_000);
+            // status=FAILED is set BEFORE decrement in onCompletePersistFailure; wait for
+            // the decrement to become visible (deterministic condition).
+            awaitPendingCount(coord, 0);
         } finally {
             coord.shutdown();
         }
@@ -547,9 +522,9 @@ class TestAsyncSnapshotPipeline {
             coord.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
             pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
-            // Ensure commit ordering is captured.
-            long deadline = System.currentTimeMillis() + 2_000;
-            while (commitOrder.get() == 0 && System.currentTimeMillis() < deadline) Thread.sleep(20);
+            // Ensure commit ordering is captured (deterministic condition).
+            TestAwait.until("finishCommit(true) must have run after forceComplete",
+                    () -> commitOrder.get() > 0);
 
             assertTrue(manifestDoneOrder.get() > 0, "storeEpochManifest must have completed");
             assertTrue(forceCompleteOrder.get() > 0, "forceComplete must have run");
@@ -577,11 +552,15 @@ class TestAsyncSnapshotPipeline {
         coord.setTasksToAcknowledge(Arrays.asList(LOC_1, LOC_2));
         try {
             triggerAndAckBoth(coord);
-            // storeCheckpointCount increments on the executor. Give the async path time.
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (storage.storeCheckpointCount.get() < 1 && System.currentTimeMillis() < deadline) {
-                Thread.sleep(20);
-            }
+            // Both persist steps run on the executor thread as two sequential calls
+            // (storeCheckPoint then storeEpochManifest): observing the first does NOT
+            // imply the second has executed — the executor thread can be preempted
+            // between them, which under load produced a fast `expected: 1 but was: 0`
+            // on the manifest count. Wait for both counts (deterministic conditions,
+            // 60s cap is hang protection only).
+            TestAwait.until("completePendingCheckpoint must have invoked the persist executor",
+                    () -> storage.storeCheckpointCount.get() >= 1
+                            && storage.storeManifestCount.get() >= 1);
             assertTrue(storage.storeCheckpointCount.get() >= 1,
                     "completePendingCheckpoint must have invoked the persist executor (storeCheckPoint count="
                             + storage.storeCheckpointCount.get() + ")");
@@ -625,14 +604,12 @@ class TestAsyncSnapshotPipeline {
 
             // finishCommit and notifyCheckpointComplete both fire on the async persist
             // executor inside the coordinator monitor, but they are distinct side effects
-            // observed via separate AtomicLongs. Poll for both before asserting (mirrors
-            // testAllSideEffectsPreservedOnAsyncSuccess), since notifyCheckpointComplete
-            // runs strictly after finishCommit in onCompletePersistSuccess.
-            long deadline = System.currentTimeMillis() + 5_000;
-            while ((committedEpoch.get() < 0 || completedNotifiedEpoch.get() < 0)
-                    && System.currentTimeMillis() < deadline) {
-                Thread.sleep(20);
-            }
+            // observed via separate AtomicLongs. Wait for both via deterministic condition
+            // (mirrors testAllSideEffectsPreservedOnAsyncSuccess), since
+            // notifyCheckpointComplete runs strictly after finishCommit in
+            // onCompletePersistSuccess.
+            TestAwait.until("sink commit and notifyCheckpointComplete both fired",
+                    () -> committedEpoch.get() >= 0 && completedNotifiedEpoch.get() >= 0);
 
             assertEquals(pending.getCheckpointId(), completed.getCheckpointId());
             assertEquals(pending.getCheckpointId(), committedEpoch.get(),
@@ -671,8 +648,8 @@ class TestAsyncSnapshotPipeline {
             PendingCheckpoint pending = triggerAndAckBoth(coord);
             pending.getCompletableFuture().get(10, TimeUnit.SECONDS);
 
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (!completedNotified.get() && System.currentTimeMillis() < deadline) Thread.sleep(20);
+            TestAwait.until("notifyCheckpointCompleted must fire on async success",
+                    completedNotified::get);
 
             // Side-effect completeness: matches pre-async ordering (line 295–313).
             assertNotNull(coord.getLatestCheckpoint(), "latestCompletedCheckpoint must be set");

@@ -13,7 +13,8 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+
+import io.nop.stream.core.testsupport.TestAwait;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -84,17 +85,11 @@ class TestMiniStreamClusterProcessSpawn {
             assertTrue(cluster.taskManagerAlive("tm-0"),
                     "tm-0 process must be alive after restartTaskManager");
 
-            // Wait for re-registration via health-check polling.
-            long deadline = System.currentTimeMillis() + 10_000L;
-            boolean reRegistered = false;
-            while (System.currentTimeMillis() < deadline) {
-                if (cluster.registeredNodeIds().contains("tm-0")) {
-                    reRegistered = true;
-                    break;
-                }
-                TimeUnit.MILLISECONDS.sleep(100L);
-            }
-            assertTrue(reRegistered,
+            // Wait for re-registration via health-check condition wait (external
+            // observable state = shared registry node set; cap = hang protection).
+            TestAwait.until("tm-0 must re-register after restart; logs: " + cluster.logFileFor("tm-0"),
+                    () -> cluster.registeredNodeIds().contains("tm-0"), 10_000L);
+            assertTrue(cluster.registeredNodeIds().contains("tm-0"),
                     "tm-0 must re-register after restart; logs: " + cluster.logFileFor("tm-0"));
         }
     }

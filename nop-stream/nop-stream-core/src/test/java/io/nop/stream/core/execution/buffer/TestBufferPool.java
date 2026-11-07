@@ -12,6 +12,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -234,10 +235,15 @@ public class TestBufferPool {
         assertTrue(firstBlocked.await(2, TimeUnit.SECONDS));
         b.start();
         assertTrue(secondBlocked.await(2, TimeUnit.SECONDS));
-        // 负向窗口：pool.release() 前 A/B 必须持续阻塞（循环维持不变量）
-        io.nop.stream.core.testsupport.TestAwait.staysTrue(
-                "both borrowers stay blocked before release",
-                () -> firstAcquiredBy.get() == null, 200);
+        // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——A/B 借用线程
+        // 均已到达 acquire() 阻塞点（PARKED 于许可等待），release 前的「未获得」
+        // 由线程状态结构性证明，不再用 200ms 墙钟不变量窗口。
+        io.nop.stream.core.testsupport.TestAwait.untilThreadParked(
+                "borrower A parked on acquire before release", a);
+        io.nop.stream.core.testsupport.TestAwait.untilThreadParked(
+                "borrower B parked on acquire before release", b);
+        assertNull(firstAcquiredBy.get(),
+                "neither borrower may acquire before pool.release()");
 
         pool.release();
         a.join(2000);

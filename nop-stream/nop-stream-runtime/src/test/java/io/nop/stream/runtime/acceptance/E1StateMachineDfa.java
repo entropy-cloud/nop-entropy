@@ -46,9 +46,9 @@ public final class E1StateMachineDfa {
             for (Map<String, String> e : events) {
                 if (!running)
                     return;
-                // in-bean self-limiting: fixed pacing stands in for the source rate
-                // limiter (WI0 degradation)
-                Thread.sleep(5);
+                // in-bean self-limiting (WI0 degradation): the fixed event set bounds
+                // emission. 时间确定化（plan 2510）：原 pacing sleep 不承载被测语义
+                // （无任何断言依赖发射间隔），串行 local runner 下删除真实时间依赖。
                 ctx.collect(e);
             }
         }

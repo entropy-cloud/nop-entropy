@@ -233,20 +233,11 @@ class TestCheckpointCoordinatorIncrementalIntegration {
 
         runCheckpoint(cc, loc, s2);
 
-        // Wait for the off-loaded discard executor to delete zero-ref files.
-        long deadline = System.currentTimeMillis() + 5000;
-        boolean allGone = false;
-        while (System.currentTimeMillis() < deadline && !allGone) {
-            allGone = true;
-            for (String h : cp1Hashes) {
-                if (store.segmentExists(h)) {
-                    allGone = false;
-                }
-            }
-            if (!allGone) {
-                Thread.sleep(100);
-            }
-        }
+        // Wait for the off-loaded discard executor to delete zero-ref files
+        // (deterministic condition wait, plan 2510).
+        io.nop.stream.core.testsupport.TestAwait.until(
+                "discard executor reclaimed every zero-ref segment",
+                () -> cp1Hashes.stream().noneMatch(store::segmentExists));
 
         Set<String> cp2Hashes = hashesOf(cc.getCheckpointSegments(storage.loadLatestEpochManifest("job-gc", "pipe-gc").getEpochId()));
         SharedStateRegistry registry = cc.getSharedStateRegistry();
@@ -257,6 +248,7 @@ class TestCheckpointCoordinatorIncrementalIntegration {
                 assertEquals(0, registry.getReferenceCount(h));
             }
         }
+        boolean allGone = cp1Hashes.stream().noneMatch(store::segmentExists);
         assertTrue(allGone, "at least one subsumed unique segment must have been deleted");
         cc.shutdown();
     }

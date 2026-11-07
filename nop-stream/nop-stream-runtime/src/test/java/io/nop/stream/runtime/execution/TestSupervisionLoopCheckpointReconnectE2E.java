@@ -34,16 +34,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Region 0 = {A} (producer), Region 1 = {B} (consumer, fails once on first
  * consume, restarted by the supervision loop).
  *
- * <p>Timing contract (deterministic):
+ * <p>时间确定化（plan 2510）：
  * <ul>
- *   <li>checkpointInterval=300ms, checkpointTimeout=1500ms — the first trigger
- *       fires AFTER the restart completes (~100-150ms), so no checkpoint is
- *       in-flight across the restart boundary and the RED failure mode (post-
- *       restart checkpoints never ACK → timeout abort) is the only visible
- *       outcome when the re-wire is missing.</li>
- *   <li>slow source (~2.4s) — the job is still running at trigger+timeout so the
- *       abort path is reachable in the RED state (a bounded fast source would
- *       end the job before the timeout fires and vacuously pass).</li>
+ *   <li>源发出 s1..s30 后在 latch 上显式阻塞（分区保持打开），直到重启后的消费者
+ *       已消费 30 条（结构性证据 = 重启 + 回放/追平完成），随后发出 s31..s60 作为
+ *       重连后从活分区实时读取的数据——「重启时源仍存活 + 重启后仍有实时数据」
+ *       不再依赖固定 pacing，在任意机器速度下成立。</li>
+ *   <li>源的 EOS 由可观测的 checkpoint 证据门控：barrier 只能在 collect 边界注入，
+ *       故源以 pad 元素（结果断言外单独计数）保持 collect 边界，往返条件等待为
+ *       节奏，直到共享存储出现 ≥ 2 个已完成 epoch manifest（后台 watcher 条件等待
+ *       置位）——作业必然活过 trigger(300ms)+ACK 窗口；RED 形态（post-restart
+ *       checkpoint 从不 ACK → timeout abort）不受影响；上限仅作挂死保护。
+ *       checkpoint 周期触发/超时是 coordinator 内部真实调度器（不可注入），属被测
+ *       语义的具名残余。</li>
  * </ul>
  *
  * <p>Green assertion = observable full-ACK evidence: the job completes without
@@ -51,6 +54,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * (manifests) — at least one checkpoint must have completed after the restart.
  */
 class TestSupervisionLoopCheckpointReconnectE2E {
+
+    /** pad-loop cap so a broken checkpoint path still EOS's (hang protection only). */
+    static final int PAD_CAP = 20_000;
 
     @TempDir
     Path tempDir;
@@ -61,22 +67,40 @@ class TestSupervisionLoopCheckpointReconnectE2E {
     void testRegionRestartRewiresCheckpointPipeline_checkpointsCompleteAfterRestart() throws Exception {
         List<String> sinkResults = Collections.synchronizedList(new ArrayList<>());
         AtomicBoolean hasFailedOnce = new AtomicBoolean(false);
+        /** Opened by the sink per recorded record; the source's live-tail release gate. */
+        java.util.concurrent.CountDownLatch replayed = new java.util.concurrent.CountDownLatch(30);
+        /** Set when ≥ 2 epoch manifests are durably stored (or the job ended). */
+        AtomicBoolean manifestsReady = new AtomicBoolean(false);
+        AtomicBoolean jobEnded = new AtomicBoolean(false);
+        /** Sink-side count of consumed pad elements — the source's round-trip pacing signal. */
+        java.util.concurrent.atomic.AtomicInteger padsSeen = new java.util.concurrent.atomic.AtomicInteger();
 
-        // Slow source: ~2.4s total runtime, outliving trigger(300ms)+timeout(1500ms)
-        // so the RED abort path is reachable before the job ends.
+        // Source: s1..s30 → wait for the restarted consumer to have consumed 30
+        // records → s31..s60 live → keep making collect boundaries (pads) until the
+        // checkpoint evidence exists, then EOS.
         SourceFunction<String> sourceFn = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public void run(SourceContext<String> ctx) {
-                for (int i = 1; i <= 60; i++) {
+            public void run(SourceContext<String> ctx) throws Exception {
+                for (int i = 1; i <= 30; i++) {
                     ctx.collect("s" + i);
-                    try {
-                        Thread.sleep(40);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
+                }
+                // 显式同步：等重启后的消费者消费 30 条（latch 上限仅作挂死保护）
+                replayed.await(60, java.util.concurrent.TimeUnit.SECONDS);
+                for (int i = 31; i <= 60; i++) {
+                    ctx.collect("s" + i);
+                }
+                // EOS 门：barrier 只能在 source 的 collect 边界注入，故保持 collect
+                // 边界（pad 元素，sink 侧单独计数、不进入结果断言），以「上一个 pad
+                // 已被消费者消费」为节奏（往返条件等待），直到 ≥ 2 个 manifest 落盘
+                // （checkpoint 全链路 ACK 的可观测证据）再 EOS。上限仅作挂死保护。
+                for (int p = 0; !manifestsReady.get() && !jobEnded.get() && p < PAD_CAP; p++) {
+                    int before = padsSeen.get();
+                    ctx.collect("pad-" + p);
+                    int expected = before + 1;
+                    io.nop.stream.core.testsupport.TestAwait.until(
+                            "pad consumed downstream", () -> padsSeen.get() >= expected, 5000);
                 }
             }
 
@@ -86,15 +110,21 @@ class TestSupervisionLoopCheckpointReconnectE2E {
         };
 
         // Sink fails once on the FIRST consume (before recording), succeeds after.
+        // Pad elements are counted separately and excluded from the result assertions.
         SinkFunction<String> sinkFn = new SinkFunction<String>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void consume(String value) {
+                if (value.startsWith("pad-")) {
+                    padsSeen.incrementAndGet();
+                    return;
+                }
                 if (!hasFailedOnce.getAndSet(true)) {
                     throw new io.nop.stream.core.exceptions.StreamException("Injected first-consume failure (checkpoint reconnect E2E)");
                 }
                 sinkResults.add(value);
+                replayed.countDown();
             }
         };
 
@@ -137,7 +167,27 @@ class TestSupervisionLoopCheckpointReconnectE2E {
         // Public entry point (Rule #22): the supervision-loop/checkpoint wiring is
         // internal (private static), so the E2E must go through
         // GraphModelCheckpointExecutor.executeWithCheckpoint.
-        GraphModelCheckpointExecutor.executeWithCheckpoint(jobGraph, "test-sl-checkpoint-reconnect", config);
+        //
+        // EOS-gate watcher: open the source's EOS gate once ≥ 2 epoch manifests are
+        // durably stored (observable full-ACK evidence), or as soon as the job ends
+        // (abort path — the assertions below then fail deterministically). 条件等待，
+        // 无固定窗口；daemon 线程不阻塞测试收尾。
+        LocalFileCheckpointStorage gateStorage = new LocalFileCheckpointStorage(tempDir.toString());
+        Thread manifestWatcher = new Thread(() -> {
+            io.nop.stream.core.testsupport.TestAwait.until(
+                    "at least 2 checkpoint manifests durably stored (or the job ended)",
+                    () -> jobEnded.get() || manifestCount(gateStorage) >= 2);
+            manifestsReady.set(true);
+        }, "checkpoint-manifest-gate");
+        manifestWatcher.setDaemon(true);
+        manifestWatcher.start();
+
+        try {
+            GraphModelCheckpointExecutor.executeWithCheckpoint(jobGraph, "test-sl-checkpoint-reconnect", config);
+        } finally {
+            jobEnded.set(true);
+            manifestWatcher.join(5000);
+        }
 
         // The job must NOT have been aborted (no ERR_STREAM_CHECKPOINT_ABORTED),
         // and every record must have been processed exactly once (the failing
@@ -158,5 +208,13 @@ class TestSupervisionLoopCheckpointReconnectE2E {
                         .collect(java.util.stream.Collectors.toList()));
 
         storage.deleteAllCheckpoints(JOB_ID);
+    }
+
+    private static int manifestCount(LocalFileCheckpointStorage storage) {
+        try {
+            return storage.loadRetainedEpochManifests(JOB_ID, "1", Integer.MAX_VALUE).size();
+        } catch (Exception e) {
+            return 0;
+        }
     }
 }

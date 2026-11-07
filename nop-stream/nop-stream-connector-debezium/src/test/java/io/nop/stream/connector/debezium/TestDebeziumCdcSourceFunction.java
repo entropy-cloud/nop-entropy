@@ -7,7 +7,6 @@
  */
 package io.nop.stream.connector.debezium;
 
-import io.nop.stream.connector.debezium.testsupport.TestAwait;
 import io.nop.api.core.util.ICancellable;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
@@ -16,6 +15,7 @@ import io.nop.message.debezium.DebeziumMessageSource;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -382,7 +382,7 @@ public class TestDebeziumCdcSourceFunction {
             }
         });
         runner1.start();
-        awaitUntil(() -> engineCreated.get() >= 1, "first run must create the CDC engine");
+        TestAwait.until("first run must create the CDC engine", () -> engineCreated.get() >= 1, 5_000L);
         // 确定性信号：引擎创建后等 runner 稳定进入 CDC 循环阻塞点再 cancel
         TestAwait.untilThreadSettles("runner stable in CDC loop before cancel", runner1);
         source.cancel();
@@ -409,17 +409,6 @@ public class TestDebeziumCdcSourceFunction {
         source.cancel();
         runner2.join(5000);
         assertFalse(runner2.isAlive());
-    }
-
-    private static void awaitUntil(java.util.function.BooleanSupplier condition,
-                                   String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5_000;
-        while (!condition.getAsBoolean()) {
-            if (System.currentTimeMillis() > deadline) {
-                throw new AssertionError(message);
-            }
-            Thread.sleep(20);
-        }
     }
 
     /**

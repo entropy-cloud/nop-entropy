@@ -13,6 +13,7 @@ import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.source.Source;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -83,21 +84,18 @@ public class TestMessageSourceE2E {
         // consumer — so the loop republishes the not-yet-collected messages until the
         // expected set is complete (each message is in flight at most once, hence no
         // duplicates by construction).
-        long deadline = System.currentTimeMillis() + 30000;
-        while (collected.size() < MESSAGE_COUNT && System.currentTimeMillis() < deadline) {
-            for (int i = 1; i <= MESSAGE_COUNT; i++) {
-                String candidate = "msg-" + i;
-                if (!collected.contains(candidate)) {
-                    service.send("e2e-msg-topic", candidate);
-                }
-            }
-            try {
-                Thread.sleep(20);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
+        // 时间确定化（plan 2510）：重发节奏改由条件等待轮询承载（每次条件求值补发
+        // 尚未收集到的消息），确定性条件 = 收集齐全；上限仅挂死保护。
+        TestAwait.until("every published message collected (republish on each evaluation)",
+                () -> {
+                    for (int i = 1; i <= MESSAGE_COUNT; i++) {
+                        String candidate = "msg-" + i;
+                        if (!collected.contains(candidate)) {
+                            service.send("e2e-msg-topic", candidate);
+                        }
+                    }
+                    return collected.size() >= MESSAGE_COUNT;
+                }, 30_000L);
         jobThread.join(30000);
         assertTrue(!jobThread.isAlive(), "the job must terminate after the injected failure");
 

@@ -422,8 +422,32 @@ if (opts.json) {
 }
 
 if (opts.update) {
-    fs.writeFileSync(BASELINE_PATH, buildBaselineJson(current), 'utf8');
-    console.log(`baseline updated: ${BASELINE_PATH}（消号请与修复同批提交）`);
+    // --module 子集更新必须与既有基线合并（只改子集内条目），不得整仓覆盖。
+    let merged = current;
+    if (opts.module) {
+        const prev = loadBaseline();
+        const prefix = opts.module;
+        const entries = {};
+        for (const [file, counts] of Object.entries(prev ? prev.entries : {})) {
+            if (!file.startsWith(prefix) && !current.entries[file]) {
+                entries[file] = counts;
+            }
+        }
+        for (const [file, counts] of Object.entries(current.entries)) {
+            if (file.startsWith(prefix) || !entries[file]) {
+                entries[file] = counts;
+            }
+        }
+        const totals = {};
+        for (const counts of Object.values(entries)) {
+            for (const [cat, n] of Object.entries(counts)) {
+                totals[cat] = (totals[cat] || 0) + n;
+            }
+        }
+        merged = { scannedFiles: current.scannedFiles, entries, totals };
+    }
+    fs.writeFileSync(BASELINE_PATH, buildBaselineJson(merged), 'utf8');
+    console.log(`baseline updated${opts.module ? ` (module ${opts.module}, merged)` : ''}: ${BASELINE_PATH}（消号请与修复同批提交）`);
     process.exit(0);
 }
 

@@ -35,7 +35,7 @@ import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

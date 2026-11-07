@@ -11,17 +11,27 @@ import com.zaxxer.hikari.HikariDataSource;
 
 import io.nop.cluster.elector.LeaderEpoch;
 import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
+import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.executor.ThreadPoolConfig;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.lang.sql.SQL;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.dao.jdbc.impl.JdbcFactory;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -35,6 +45,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * produces a strictly greater epoch (feeding the composite fencing epoch).
  *
  * <p>Runs by default (no gating) — uses an in-process H2 DB, no spawned JVMs.
+ *
+ * <p>时间确定化（plan 2510）：选举/接管等待全部改为对外部可观测状态（LeaderEpoch 视图）
+ * 的条件等待（{@link TestAwait#until}），上限仅挂死保护；租约到期由直接 SQL 写入过期
+ * 时刻确定性构造。节流单位回归守卫（testPollingCadenceIsMillisecondsNotMicroseconds）
+ * 从「真实 1.5s 窗口内计数 refresh_at 变化」改为结构性判据：记录型 IScheduledExecutor
+ * 捕获 scheduleCheck 实际传入的 (delay, unit) —— 节流单位错误即红，与机器负载无关。
  */
 class TestJdbcLeaderElector {
 
@@ -110,16 +126,13 @@ class TestJdbcLeaderElector {
             assertEquals("host-A", aEpoch.getLeaderId());
 
             b.start();
-            // Poll until b observes a's lease and settles into follower state (avoids
-            // fixed-sleep flakiness under scheduling jitter).
-            long deadline = System.currentTimeMillis() + 5000;
-            while (System.currentTimeMillis() < deadline) {
-                LeaderEpoch bView = b.getLeaderEpoch();
-                if (bView != null && "host-A".equals(bView.getLeaderId())) {
-                    break;
-                }
-                Thread.sleep(50);
-            }
+            // 条件等待 b 观测到 a 的租约并进入 follower 稳态（外部可观测状态），
+            // 上限仅挂死保护。
+            TestAwait.until("host-B must observe host-A's lease and settle into follower state",
+                    () -> {
+                        LeaderEpoch bView = b.getLeaderEpoch();
+                        return bView != null && "host-A".equals(bView.getLeaderId());
+                    });
 
             // Exactly one leader: a holds the lease, b is follower.
             assertTrue(a.isLeader(), "host-A must remain leader (lease not expired)");
@@ -166,16 +179,8 @@ class TestJdbcLeaderElector {
 
             b.start();
             // b's first checkFollower sees the expired lease -> changeLeader.
-            LeaderEpoch bEpoch = null;
-            long deadline = System.currentTimeMillis() + 5000;
-            while (System.currentTimeMillis() < deadline) {
-                LeaderEpoch le = b.getLeaderEpoch();
-                if (le != null && "host-B".equals(le.getLeaderId())) {
-                    bEpoch = le;
-                    break;
-                }
-                Thread.sleep(100);
-            }
+            // 条件等待 b 获得领导权（外部可观测状态），上限仅挂死保护。
+            LeaderEpoch bEpoch = awaitLeadership(b, "host-B", 5000L);
             assertNotNull(bEpoch, "host-B must take over after host-A lease expires");
             assertEquals("host-B", bEpoch.getLeaderId());
             assertTrue(bEpoch.getEpoch() > initialEpoch,
@@ -199,10 +204,11 @@ class TestJdbcLeaderElector {
         // coordinator-failover defect (DB flooding + concurrent state corruption).
         // With MILLISECONDS, checkIntervalMs=200 yields ~5 refreshes/sec.
         //
-        // This test counts how many times the leader's refresh_at column changes over
-        // a fixed window. With MILLISECONDS + 200ms we expect < 20 changes; with
-        // MICROSECONDS we would see thousands — the upper bound catches the regression.
-        DefaultScheduledExecutor exec = DefaultScheduledExecutor.newSingleThreadTimer("cadence-test");
+        // 时间确定化（plan 2510）替代旧的「真实 1.5s 窗口内计数 refresh_at 变化」：
+        // 注入记录型 IScheduledExecutor，结构性断言 scheduleCheck 实际传入的
+        // (delay, unit) = (checkIntervalMs, MILLISECONDS)。MICROSECONDS 回归即红，
+        // 与机器负载和真实时间流逝无关。
+        RecordingScheduledExecutor exec = new RecordingScheduledExecutor("cadence-test");
         JdbcLeaderElector elector = newElector("host-cadence", exec);
         elector.setCheckIntervalMs(200);
         elector.setLeaseMs(60_000);
@@ -210,26 +216,24 @@ class TestJdbcLeaderElector {
             elector.start();
             elector.whenElectionCompleted().toCompletableFuture().get();
 
-            // Poll refresh_at every 20ms for ~1.5s; count how many times it changes.
-            long prev = readRefreshAt();
-            assertNotNull(prev, "lease row must exist after becoming leader");
-            int changes = 0;
-            long windowEnd = System.currentTimeMillis() + 1_500L;
-            while (System.currentTimeMillis() < windowEnd) {
-                Thread.sleep(20L);
-                long current = readRefreshAt();
-                if (current != prev) {
-                    changes++;
-                    prev = current;
-                }
+            // 条件等待：成为 leader 后 checkElection 必然再次 scheduleCheck（首次
+            // doStart 的 delay=0 调用之后至少出现一次周期重排）。
+            TestAwait.until("scheduleCheck re-armed after the initial election check",
+                    () -> exec.scheduledChecks.size() > 1);
+
+            // 结构性判据：除 doStart 的首次 delay=0 调用外，每一次 scheduleCheck
+            // 都必须以 (checkIntervalMs, MILLISECONDS) 重排 —— MICROSECONDS 单位
+            // 回归在此直接变红。
+            List<RecordingScheduledExecutor.ScheduledCall> periodic =
+                    exec.scheduledChecks.subList(1, exec.scheduledChecks.size());
+            assertTrue(!periodic.isEmpty(), "at least one periodic re-schedule must be recorded");
+            for (RecordingScheduledExecutor.ScheduledCall call : periodic) {
+                assertEquals(200L, call.delayMs,
+                        "scheduleCheck must re-arm with the configured checkIntervalMs");
+                assertEquals(TimeUnit.MILLISECONDS, call.unit,
+                        "scheduleCheck must use TimeUnit.MILLISECONDS — MICROSECONDS is the "
+                                + "T2 multi-JVM DB-flooding regression");
             }
-            // With MILLISECONDS + checkIntervalMs=200: ~7 refreshes in 1.5s.
-            // With MICROSECONDS + 0.2ms: thousands of refreshes.
-            // Upper bound 50 is generous (allows scheduling jitter) but catches a
-            // 1000x regression decisively.
-            assertTrue(changes < 50,
-                    "leader refresh count in 1.5s window must be < 50 (MILLISECONDS cadence), got "
-                            + changes + " — scheduleCheck may be using MICROSECONDS instead of MILLISECONDS");
         } finally {
             elector.stop();
             exec.destroy();
@@ -273,16 +277,9 @@ class TestJdbcLeaderElector {
 
             b.start();
             // B's first checkFollower sees the expired lease -> changeLeader.
-            LeaderEpoch bEpoch = null;
-            long deadline = System.currentTimeMillis() + 10_000;
-            while (System.currentTimeMillis() < deadline) {
-                LeaderEpoch le = b.getLeaderEpoch();
-                if (le != null && "host-B-mt".equals(le.getLeaderId())) {
-                    bEpoch = le;
-                    break;
-                }
-                Thread.sleep(100);
-            }
+            // 条件等待 b 获得领导权（外部可观测状态），上限仅挂死保护；被测条件是
+            // 多线程执行器下的接管正确性（执行器为被测面，保持真实线程池形态）。
+            LeaderEpoch bEpoch = awaitLeadership(b, "host-B-mt", 10_000L);
             assertNotNull(bEpoch, "host-B must take over after host-A is killed (multi-threaded executor)");
             assertTrue(bEpoch.getEpoch() > initialEpoch,
                     "takeover epoch (" + bEpoch.getEpoch() + ") must be strictly greater than initial ("
@@ -307,22 +304,19 @@ class TestJdbcLeaderElector {
         return exec;
     }
 
-    private Long readRefreshAt() {
-        try {
-            return jdbcTemplate.executeQuery(SQL.begin()
-                    .sql("SELECT refresh_at FROM nop_stream_leader WHERE cluster_id = ?", "test-cluster")
-                    .end(), dataSet -> {
-                if (!dataSet.hasNext()) {
-                    return null;
-                }
-                return dataSet.next().getLong(0);
-            });
-        } catch (Exception e) {
-            return null;
-        }
+    /**
+     * 条件等待目标 host 获得领导权（外部可观测状态 = LeaderEpoch 视图 + isLeader），
+     * 上限仅挂死保护。
+     */
+    private static LeaderEpoch awaitLeadership(JdbcLeaderElector elector, String hostId, long timeoutMs) {
+        TestAwait.until(hostId + " must attain leadership (leader epoch + isLeader)", () -> {
+            LeaderEpoch le = elector.getLeaderEpoch();
+            return le != null && hostId.equals(le.getLeaderId()) && elector.isLeader();
+        }, timeoutMs);
+        return elector.getLeaderEpoch();
     }
 
-    private JdbcLeaderElector newElector(String hostId, DefaultScheduledExecutor exec) {
+    private JdbcLeaderElector newElector(String hostId, IScheduledExecutor exec) {
         JdbcLeaderElector e = new JdbcLeaderElector(jdbcTemplate);
         e.setClusterId("test-cluster");
         e.setHostId(hostId);
@@ -333,5 +327,93 @@ class TestJdbcLeaderElector {
         e.setAddr("localhost");
         e.setPort(0);
         return e;
+    }
+
+    /**
+     * 记录型 IScheduledExecutor：拦截 {@code schedule(Runnable, delay, unit)} 记录
+     * (delay, unit) 后委托给真实单线程定时器执行 —— 被测的选举循环保持功能完整，
+     * 调度参数成为可断言的结构性证据（节流单位回归的结构性判据）。
+     */
+    static final class RecordingScheduledExecutor implements IScheduledExecutor {
+        /** 一次 schedule 调用的 (delay, unit) 记录。 */
+        static final class ScheduledCall {
+            final long delayMs;
+            final TimeUnit unit;
+
+            ScheduledCall(long delayMs, TimeUnit unit) {
+                this.delayMs = delayMs;
+                this.unit = unit;
+            }
+        }
+
+        final List<ScheduledCall> scheduledChecks = new CopyOnWriteArrayList<>();
+        private final DefaultScheduledExecutor delegate;
+
+        RecordingScheduledExecutor(String name) {
+            this.delegate = DefaultScheduledExecutor.newSingleThreadTimer(name);
+        }
+
+        @Override
+        public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+            scheduledChecks.add(new ScheduledCall(delay, unit));
+            return delegate.schedule(callable, delay, unit);
+        }
+
+        @Override
+        public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+            scheduledChecks.add(new ScheduledCall(initialDelay, unit));
+            return delegate.scheduleAtFixedRate(command, initialDelay, period, unit);
+        }
+
+        @Override
+        public Future<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+            scheduledChecks.add(new ScheduledCall(initialDelay, unit));
+            return delegate.scheduleWithFixedDelay(command, initialDelay, delay, unit);
+        }
+
+        @Override
+        public void execute(Runnable command) {
+            delegate.execute(command);
+        }
+
+        @Override
+        public <V> CompletableFuture<V> submit(Callable<V> callable) {
+            return delegate.submit(callable);
+        }
+
+        @Override
+        public <V> CompletableFuture<V> submit(Runnable task, V result) {
+            return delegate.submit(task, result);
+        }
+
+        @Override
+        public String getName() {
+            return delegate.getName();
+        }
+
+        @Override
+        public ThreadPoolConfig getConfig() {
+            return delegate.getConfig();
+        }
+
+        @Override
+        public io.nop.commons.concurrent.executor.ThreadPoolStats stats() {
+            return delegate.stats();
+        }
+
+        @Override
+        public void refreshConfig() {
+            delegate.refreshConfig();
+        }
+
+        @Override
+        public void destroy() {
+            delegate.destroy();
+        }
+
+        @Override
+        public boolean isDestroyed() {
+            return delegate.isDestroyed();
+        }
     }
 }

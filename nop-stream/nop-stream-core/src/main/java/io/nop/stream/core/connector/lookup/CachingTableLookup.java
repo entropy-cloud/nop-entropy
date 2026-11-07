@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.connector.lookup;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.stream.core.exceptions.StreamException;
 
 import org.slf4j.Logger;
@@ -78,6 +79,8 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
     /** WI11 state, all transient: rebuilt lazily by the first synchronous lookup. */
     private transient volatile Map<Object, Entry> cache;
     private transient volatile ScheduledExecutorService scanScheduler;
+    /** 测试注入的手动调度器（plan 2510）：非空时扫描调度经它推进，不再自建真实定时线程。 */
+    private transient ScheduledExecutorService scanSchedulerOverride;
     private transient volatile java.util.concurrent.ExecutorService refreshPool;
     private transient volatile boolean closed;
 
@@ -98,6 +101,13 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
 
     public CachingTableLookup(ITableLookup delegate, long ttlMs, long refreshIntervalMs,
                               int refreshMaxConcurrency, int maxEntries) {
+        this(delegate, ttlMs, refreshIntervalMs, refreshMaxConcurrency, maxEntries, null);
+    }
+
+    CachingTableLookup(ITableLookup delegate, long ttlMs, long refreshIntervalMs,
+                       int refreshMaxConcurrency, int maxEntries,
+                       ScheduledExecutorService scanSchedulerOverride) {
+        this.scanSchedulerOverride = scanSchedulerOverride;
         if (delegate == null) {
             throw new StreamException(ERR_STREAM_NULL_ARG).param("argName", (Object) "delegate");
         }
@@ -136,7 +146,7 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
                     .param(ARG_DETAIL, "CachingTableLookup is closed — further lookups are rejected "
                             + "instead of silently falling back to the wrapped lookup");
         }
-        long now = System.nanoTime();
+        long now = CoreMetrics.nanoTime();
         Entry entry = cache().get(key);
         if (entry != null && now - entry.loadNanos < TimeUnit.MILLISECONDS.toNanos(ttlMs)) {
             return unwrap(entry.value);
@@ -196,11 +206,16 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
                 t.setDaemon(true);
                 return t;
             });
-            ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
-                Thread t = new Thread(r, "nop-lookup-refresh-scan-" + System.identityHashCode(this));
-                t.setDaemon(true);
-                return t;
-            });
+            ScheduledExecutorService scheduler;
+            if (scanSchedulerOverride != null) {
+                scheduler = scanSchedulerOverride;
+            } else {
+                scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+                    Thread t = new Thread(r, "nop-lookup-refresh-scan-" + System.identityHashCode(this));
+                    t.setDaemon(true);
+                    return t;
+                });
+            }
             // non-overlapping scan; jobs dispatch to the bounded worker pool
             scheduler.scheduleWithFixedDelay(this::scanAndDispatch,
                     refreshIntervalMs, refreshIntervalMs, TimeUnit.MILLISECONDS);
@@ -213,7 +228,7 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
         if (map == null || closed) {
             return;
         }
-        long now = System.nanoTime();
+        long now = CoreMetrics.nanoTime();
         long refreshAge = TimeUnit.MILLISECONDS.toNanos(refreshIntervalMs);
         for (Map.Entry<Object, Entry> e : map.entrySet()) {
             if (closed) {
@@ -242,7 +257,7 @@ public class CachingTableLookup implements ITableLookup, AutoCloseable {
                 // refresh renews the load time: refreshed entries count as fresh for
                 // eviction ordering (documented semantics)
                 entry.value = value == null ? NULL_SENTINEL : value;
-                entry.loadNanos = System.nanoTime();
+                entry.loadNanos = CoreMetrics.nanoTime();
             }
         } catch (Exception e) {
             // keep the old value and retry on a later round; the TTL expiry falls back

@@ -8,9 +8,12 @@
 package io.nop.stream.runtime.multijvm;
 
 import java.nio.file.Files;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+
+import io.nop.stream.core.testsupport.TestAwait;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -32,11 +35,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *
  * <p>Gated by {@code -Dnop.stream.test.multi-jvm.enabled=true} (Stage 42
  * convention: spawning real JVMs is slow and environment-sensitive).
+ *
+ * <p>时间确定化（plan 2510，gated multijvm 边界）：虚拟时钟无法跨越 spawned-JVM 边界；
+ * 全部等待改为对 coordinator 子进程日志（外部可观测状态）的条件等待，超时上限仅挂死
+ * 保护。租约到期 + failure-detector tick + 恢复的真实时长保留为条件的自然等待时长。
  */
 @EnabledIfSystemProperty(named = "nop.stream.test.multi-jvm.enabled", matches = "true")
 class TestMultiJvmHealthStateAndAlerts {
 
-    private static final long POLL_MS = 500L;
     /** Node-lease expiry (15s default) + detection tick + recovery — generous bound. */
     private static final long RECOVERY_TIMEOUT_MS = 90_000L;
 
@@ -86,23 +92,25 @@ class TestMultiJvmHealthStateAndAlerts {
         boolean satisfied() throws java.io.IOException;
     }
 
-    private static void awaitCondition(Condition condition, long timeoutMs, String what)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        java.io.IOException lastFailure = null;
-        while (System.currentTimeMillis() < deadline) {
-            try {
-                if (condition.satisfied()) {
-                    return;
+    /**
+     * 条件等待（{@link TestAwait#until}）：条件 = coordinator 子进程日志包含目标文本
+     * （外部可观测状态）；日志文件尚未创建时继续轮询，超时上限仅挂死保护。
+     */
+    private static void awaitCondition(Condition condition, long timeoutMs, String what) {
+        AtomicReference<java.io.IOException> lastFailure = new AtomicReference<>();
+        try {
+            TestAwait.until(what, () -> {
+                try {
+                    return condition.satisfied();
+                } catch (java.io.IOException e) {
+                    // log file may not exist yet — keep polling until the cap
+                    lastFailure.set(e);
+                    return false;
                 }
-                lastFailure = null;
-            } catch (java.io.IOException e) {
-                // log file may not exist yet — keep polling until the deadline
-                lastFailure = e;
-            }
-            Thread.sleep(POLL_MS);
+            }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new IllegalStateException("timed out waiting for " + what
+                    + (lastFailure.get() == null ? "" : " (last io failure: " + lastFailure.get() + ")"), e);
         }
-        throw new IllegalStateException("timed out waiting for " + what
-                + (lastFailure == null ? "" : " (last io failure: " + lastFailure + ")"));
     }
 }

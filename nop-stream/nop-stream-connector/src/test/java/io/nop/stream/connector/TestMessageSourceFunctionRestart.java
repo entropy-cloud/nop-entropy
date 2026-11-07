@@ -7,7 +7,6 @@
  */
 package io.nop.stream.connector;
 
-import io.nop.stream.connector.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumeContext;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
@@ -16,6 +15,7 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -26,7 +26,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -49,16 +48,6 @@ public class TestMessageSourceFunctionRestart {
         @Override public void suspend() {}
         @Override public void resume() {}
     };
-
-    private static void await(BooleanSupplier condition, String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5_000;
-        while (!condition.getAsBoolean()) {
-            if (System.currentTimeMillis() > deadline) {
-                throw new AssertionError(message);
-            }
-            Thread.sleep(20);
-        }
-    }
 
     @Test
     void testRunAfterCancelResumesDelivery() throws Exception {
@@ -99,9 +88,9 @@ public class TestMessageSourceFunctionRestart {
             }
         });
         runner1.start();
-        await(() -> subscribeCount.get() >= 1, "first run must subscribe");
+        TestAwait.until("first run must subscribe", () -> subscribeCount.get() >= 1, 5_000L);
         consumerRef.get().onMessage("restart-test", "m1", (IMessageConsumeContext) null);
-        await(() -> collected.contains("m1"), "first message must be delivered");
+        TestAwait.until("first message must be delivered", () -> collected.contains("m1"), 5_000L);
 
         source.cancel();
         runner1.join(5000);
@@ -121,10 +110,11 @@ public class TestMessageSourceFunctionRestart {
         TestAwait.untilThreadParked("restarted run re-enters wait loop", runner2);
         assertTrue(runner2.isAlive(),
                 "run() after cancel() must re-enter the wait loop instead of returning immediately (silent EOS)");
-        await(() -> subscribeCount.get() >= 2, "restarted run must re-subscribe");
+        TestAwait.until("restarted run must re-subscribe", () -> subscribeCount.get() >= 2, 5_000L);
 
         consumerRef.get().onMessage("restart-test", "m2", (IMessageConsumeContext) null);
-        await(() -> collected.contains("m2"), "message delivered after restart must reach the context");
+        TestAwait.until("message delivered after restart must reach the context",
+                () -> collected.contains("m2"), 5_000L);
 
         source.cancel();
         runner2.join(5000);

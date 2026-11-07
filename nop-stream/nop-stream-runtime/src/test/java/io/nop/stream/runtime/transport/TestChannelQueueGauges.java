@@ -34,6 +34,7 @@ import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.source.CollectionReplayableSource;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,16 +73,14 @@ class TestChannelQueueGauges {
                 .gauge();
     }
 
-    /** Polls until the gauge reports the expected value (async LocalMessageService dispatch). */
-    private static void awaitGaugeValue(Gauge gauge, double expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (gauge != null && gauge.value() == expected) {
-                return;
-            }
-            Thread.sleep(20L);
-        }
+    /**
+     * 条件等待 gauge 报告期望值（外部可观测状态 = 进程 composite registry 的真实
+     * meter 读数；LocalMessageService dispatch 异步落队，故按条件等待）。上限仅
+     * 挂死保护。
+     */
+    private static void awaitGaugeValue(Gauge gauge, double expected, long timeoutMs) {
+        TestAwait.until("gauge must report " + expected + " within " + timeoutMs + "ms",
+                () -> gauge != null && gauge.value() == expected, timeoutMs);
         assertEquals(expected, gauge == null ? Double.NaN : gauge.value(),
                 "gauge must report " + expected + " within " + timeoutMs + "ms");
     }

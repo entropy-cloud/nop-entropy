@@ -47,6 +47,9 @@ public final class SteppedThrottleWindowAssigner<T, W extends Window> extends Wi
     public Collection<W> assignWindows(T element, long timestamp,
                                        WindowAssigner.WindowAssignerContext context) {
         long level = ThrottledScenarioSinks.currentThrottleLevel(levelFilePath);
+        // RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：per-record 步进节流是 OBS-1
+        // 观测单元的被测条件本身（消费者顶点内节流制造真实通道积压），由驱动端改写 level
+        // 文件（0 = 释放）实时解除；虚拟时钟不可跨越 spawned JVM 边界。
         if (level > 0L) {
             try {
                 Thread.sleep(level);

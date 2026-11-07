@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -216,7 +217,7 @@ public class MiniStreamCluster implements AutoCloseable {
      * JobCoordinator JVM (non-HA, single-instance). Waits for every process to
      * register before returning. Backwards-compatible with Stage 42 tests.
      */
-    public synchronized void start() throws IOException, InterruptedException {
+    public synchronized void start() throws IOException {
         start(false);
     }
 
@@ -227,7 +228,7 @@ public class MiniStreamCluster implements AutoCloseable {
      * table); additional coordinators can be spawned via {@link #spawnJobCoordinator(int)}
      * to form an HA cluster.
      */
-    public synchronized void start(boolean haMode) throws IOException, InterruptedException {
+    public synchronized void start(boolean haMode) throws IOException {
         Files.createDirectories(runDir);
         Files.createDirectories(getCheckpointDir());
         Files.createDirectories(runDir.resolve("logs"));
@@ -254,11 +255,18 @@ public class MiniStreamCluster implements AutoCloseable {
         spawnJobCoordinator(0, haMode);
     }
 
-    public synchronized void restartTaskManager(String nodeId) throws IOException, InterruptedException {
+    public synchronized void restartTaskManager(String nodeId) throws IOException {
+        ProcessHandle old = taskProcesses.get(nodeId);
         killTaskManager(nodeId);
-        // Wait briefly for the OS to reclaim resources.
-        // 进程回收时间窗（OS 语义），循环形式等待
-        io.nop.stream.runtime.testsupport.TestAwait.elapsed("OS reclaims killed TM resources", 200L);
+        // 确定性替代旧的 200ms「OS 回收」固定窗：killTaskManager 在 SIGTERM 路径已同步
+        // await 进程退出（onExit）；超时强杀路径在此按旧句柄条件等待真正退出 ——
+        // 进程完全退出（含回收）即 fd/端口/锁等 OS 资源释放的结构性证据。
+        // TestAwait 上限仅作进程拒绝退出时的挂死保护。
+        if (old != null) {
+            io.nop.stream.core.testsupport.TestAwait.until(
+                    "killed TM process fully exited (OS resources reclaimed) before respawn",
+                    () -> !old.isAlive());
+        }
         spawnTaskManager(nodeId);
         waitForNodeRegistration(java.util.Collections.singletonList(nodeId), healthTimeoutMs);
     }
@@ -629,30 +637,37 @@ public class MiniStreamCluster implements AutoCloseable {
         return p;
     }
 
-    private void waitForNodeRegistration(List<String> expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        Set<String> active = registeredNodeIds();
-        while (System.currentTimeMillis() < deadline) {
-            active = registeredNodeIds();
-            if (active.containsAll(expected)) {
-                LOG.info("MiniStreamCluster({}) all TMs registered: {}", runId, active);
-                return;
-            }
-            Set<String> missing = new java.util.LinkedHashSet<>(expected);
-            missing.removeAll(active);
-            // Fail-fast if a process died during registration.
-            for (String id : new ArrayList<>(missing)) {
-                ProcessHandle h = taskProcesses.get(id);
-                if (h != null && !h.isAlive()) {
-                    throw new IllegalStateException("TaskManager " + id
-                            + " exited before registering. Log: " + logFileFor(id));
-                }
-            }
-            Thread.sleep(100L);
+    /**
+     * 条件等待：所有期望 TM 注册进共享 registry（外部可观测状态）；进程注册前死亡即
+     * fail-fast 抛错（携带日志路径），超时上限仅挂死保护。
+     */
+    private void waitForNodeRegistration(List<String> expected, long timeoutMs) {
+        AtomicReference<Set<String>> lastActive = new AtomicReference<>(java.util.Collections.emptySet());
+        try {
+            io.nop.stream.core.testsupport.TestAwait.until("all TMs registered in the shared cluster registry",
+                    () -> {
+                        Set<String> active = registeredNodeIds();
+                        lastActive.set(active);
+                        if (active.containsAll(expected)) {
+                            LOG.info("MiniStreamCluster({}) all TMs registered: {}", runId, active);
+                            return true;
+                        }
+                        Set<String> missing = new java.util.LinkedHashSet<>(expected);
+                        missing.removeAll(active);
+                        // Fail-fast if a process died during registration.
+                        for (String id : new ArrayList<>(missing)) {
+                            ProcessHandle h = taskProcesses.get(id);
+                            if (h != null && !h.isAlive()) {
+                                throw new IllegalStateException("TaskManager " + id
+                                        + " exited before registering. Log: " + logFileFor(id));
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new IllegalStateException("Timed out (" + timeoutMs + "ms) waiting for TMs to register. "
+                    + "Expected=" + expected + " active=" + lastActive.get(), e);
         }
-        throw new IllegalStateException("Timed out (" + timeoutMs + "ms) waiting for TMs to register. "
-                + "Expected=" + expected + " active=" + active);
     }
 
     private boolean terminateProcess(ProcessHandle handle, long graceMs) {

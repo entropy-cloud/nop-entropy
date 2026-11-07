@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.TreeSet;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.api.core.exceptions.NopException;
@@ -26,6 +25,7 @@ import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.environment.StreamExecutionResult;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.exceptions.NopStreamErrors;
+import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,7 +91,7 @@ public class TestCheckpointJobIdentityIsolationE2E {
             // job 1: source -> map(x2) -> sink, leaves durable checkpoints behind
             List<Integer> out1 = Collections.synchronizedList(new ArrayList<>());
             AtomicReference<String> restored1 = new AtomicReference<>();
-            StreamExecutionResult r1 = runJob("iso-alpha", 2, false, null, out1, restored1);
+            StreamExecutionResult r1 = runJob("iso-alpha", 2, false, null, defaultBase, out1, restored1);
             assertNotNull(r1);
             assertEquals(listOf(2, 4, 6, 8, 10, 12), sorted(out1), "job 1 output complete");
             assertNull(restored1.get(), "job 1 must fresh-start on an empty default base");
@@ -102,7 +102,7 @@ public class TestCheckpointJobIdentityIsolationE2E {
             // same default base with job 1's residue present
             List<Integer> out2 = Collections.synchronizedList(new ArrayList<>());
             AtomicReference<String> restored2 = new AtomicReference<>();
-            StreamExecutionResult r2 = runJob("iso-beta", 3, true, null, out2, restored2);
+            StreamExecutionResult r2 = runJob("iso-beta", 3, true, null, defaultBase, out2, restored2);
             assertNotNull(r2, "job 2 must complete — no ERR_STREAM_CHECKPOINT_EXECUTOR_RESTORE_FAILED pollution");
             assertEquals(listOf(3, 9, 15), sorted(out2), "job 2 output complete (no inherited state)");
             assertNull(restored2.get(), "job 2 must fresh-start (default path never auto-restores)");
@@ -122,14 +122,14 @@ public class TestCheckpointJobIdentityIsolationE2E {
         Path storage = tempDir.resolve("twin-storage");
 
         List<Integer> out1 = Collections.synchronizedList(new ArrayList<>());
-        runJob("twin-job", 2, false, storage.toString(), out1, new AtomicReference<>());
+        runJob("twin-job", 2, false, storage.toString(), storage, out1, new AtomicReference<>());
         assertTrue(Files.exists(storage.resolve(StorageJobIds.sanitizeJobId("twin-job"))),
                 "run 1 persisted checkpoints");
 
         // same job name, different topology -> fingerprint guard must reject typed
         List<Integer> out2 = Collections.synchronizedList(new ArrayList<>());
         StreamException ex = assertThrows(StreamException.class,
-                () -> runJob("twin-job", 3, true, storage.toString(), out2, new AtomicReference<>()),
+                () -> runJob("twin-job", 3, true, storage.toString(), storage, out2, new AtomicReference<>()),
                 "same jobId + different topology must fail typed, not silently inherit");
         // env.execute() wraps execution failures in ERR_STREAM_JOB_EXECUTE_FAILED — the
         // typed restore rejection must be observable in the cause chain
@@ -161,14 +161,14 @@ public class TestCheckpointJobIdentityIsolationE2E {
         // run 1: fresh start, leaves durable checkpointed state behind
         List<Integer> out1 = Collections.synchronizedList(new ArrayList<>());
         AtomicReference<String> restored1 = new AtomicReference<>();
-        runJob("recover-job", 2, false, storage.toString(), out1, restored1);
+        runJob("recover-job", 2, false, storage.toString(), storage, out1, restored1);
         assertNull(restored1.get(), "run 1 fresh-starts");
         assertEquals(listOf(2, 4, 6, 8, 10, 12), sorted(out1));
 
         // run 2: same job name + same topology -> auto-restore from run 1's checkpoints
         List<Integer> out2 = Collections.synchronizedList(new ArrayList<>());
         AtomicReference<String> restored2 = new AtomicReference<>();
-        runJob("recover-job", 2, false, storage.toString(), out2, restored2);
+        runJob("recover-job", 2, false, storage.toString(), storage, out2, restored2);
         assertEquals(MARKER_VALUE, restored2.get(),
                 "run 2 must observe run 1's checkpointed operator state (auto-recovery preserved)");
         assertEquals(listOf(2, 4, 6, 8, 10, 12), sorted(out2), "run 2 output complete");
@@ -183,12 +183,12 @@ public class TestCheckpointJobIdentityIsolationE2E {
         Path storage = tempDir.resolve("name-storage");
 
         List<Integer> out1 = Collections.synchronizedList(new ArrayList<>());
-        runJob("Streaming Job", 2, false, storage.toString(), out1, new AtomicReference<>());
+        runJob("Streaming Job", 2, false, storage.toString(), storage, out1, new AtomicReference<>());
         assertTrue(Files.exists(storage.resolve(StorageJobIds.sanitizeJobId("Streaming Job"))),
                 "'Streaming Job' (no-arg execute() default) maps to a valid storage id");
 
         List<Integer> out2 = Collections.synchronizedList(new ArrayList<>());
-        runJob("订单-监控 作业", 2, false, storage.toString(), out2, new AtomicReference<>());
+        runJob("订单-监控 作业", 2, false, storage.toString(), storage, out2, new AtomicReference<>());
         assertTrue(Files.exists(storage.resolve(StorageJobIds.sanitizeJobId("订单-监控 作业"))),
                 "CJK job name maps to a valid storage id");
     }
@@ -201,13 +201,24 @@ public class TestCheckpointJobIdentityIsolationE2E {
 
     /**
      * Runs source→map(×multiplier)→[filter?]→sink with checkpointing on. The source
-     * lingers so at least one periodic checkpoint completes, and records whether
+     * keeps making collect boundaries (pad values ≥ 1000, counted at the sink and
+     * excluded from the output assertions — odd positive pads survive any odd-value
+     * filter) until the job's first periodic checkpoint manifest is durably stored
+     * under {@code gateBase} (observable evidence — the manifest is produced by the
+     * production checkpoint pipeline, the gate only waits for it), and records whether
      * {@code initializeState} observed a restored operator-state marker.
+     *
+     * <p>时间确定化（plan 2510）：不再用固定 pacing 制造「checkpoint 有时间触发」的
+     * 窗口——barrier 只能在 source 的 collect 边界注入，源以 pad 元素保持 collect
+     * 边界（往返条件等待为节奏），EOS 由 manifest 落盘这一可观测条件门控；周期触发
+     * 本身是 executor 内部真实调度器（不可注入），属被测语义的具名残余。上限仅作
+     * 挂死保护，超时后正常 EOS 让最终的 manifest/恢复断言给出确定性 RED。
      */
     private StreamExecutionResult runJob(String jobName, int multiplier, boolean withFilter,
-                                         String storagePath, List<Integer> sink,
+                                         String storagePath, Path gateBase, List<Integer> sink,
                                          AtomicReference<String> restoredMarker) throws Exception {
-        MarkerSource source = new MarkerSource(restoredMarker);
+        java.util.concurrent.atomic.AtomicInteger padsSeen = new java.util.concurrent.atomic.AtomicInteger();
+        MarkerSource source = new MarkerSource(restoredMarker, jobName, gateBase, padsSeen);
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.enableCheckpointing(50);
         if (storagePath != null) {
@@ -218,7 +229,13 @@ public class TestCheckpointJobIdentityIsolationE2E {
         if (withFilter) {
             stream = stream.filter(i -> i % 2 == 1);
         }
-        stream.sink(sink::add);
+        stream.sink(i -> {
+            if (i >= 1000) {
+                padsSeen.incrementAndGet();
+            } else {
+                sink.add(i);
+            }
+        });
         return env.execute(jobName);
     }
 
@@ -234,24 +251,53 @@ public class TestCheckpointJobIdentityIsolationE2E {
         }
     }
 
-    /** Lingering checkpointed source: emits 1..6 with pauses so periodic checkpoints fire. */
+    /**
+     * Checkpointed source: emits 1..6, then keeps making collect boundaries (odd
+     * positive pads ≥ 1001 — they survive the odd-value filter and are counted at
+     * the sink) until the job's first checkpoint manifest is durably stored under
+     * the gate base. Pads are paced by the round-trip signal (previous pad consumed
+     * downstream), so the source is still collecting when the periodic trigger
+     * fires and the barrier can inject at a collect boundary.
+     */
     private static class MarkerSource implements CheckpointedSourceFunction<Integer> {
         private final AtomicReference<String> restoredMarker;
+        private final String jobName;
+        private final Path gateBase;
+        private final java.util.concurrent.atomic.AtomicInteger padsSeen;
         private volatile boolean running = true;
 
-        MarkerSource(AtomicReference<String> restoredMarker) {
+        MarkerSource(AtomicReference<String> restoredMarker, String jobName, Path gateBase,
+                     java.util.concurrent.atomic.AtomicInteger padsSeen) {
             this.restoredMarker = restoredMarker;
+            this.jobName = jobName;
+            this.gateBase = gateBase;
+            this.padsSeen = padsSeen;
         }
 
         @Override
         public void run(SourceFunction.SourceContext<Integer> ctx) throws Exception {
+            for (int i = 1; i <= 6 && running; i++) {
+                ctx.collect(i);
+            }
+            // EOS 门：第一个周期 checkpoint manifest 落盘（生产 checkpoint 管线的可观测
+            // 证据）。往返条件等待为节奏保持 collect 边界；上限仅作挂死保护，超时后
+            // 正常 EOS —— 最终 manifest/恢复断言给出确定性 RED。
+            for (int p = 0; running && !firstManifestStored() && p < 20_000; p++) {
+                int before = padsSeen.get();
+                ctx.collect(1001 + 2 * p);
+                int expected = before + 1;
+                io.nop.stream.core.testsupport.TestAwait.until(
+                        "pad consumed downstream", () -> padsSeen.get() >= expected, 5000);
+            }
+        }
+
+        private boolean firstManifestStored() {
             try {
-                for (int i = 1; i <= 6 && running; i++) {
-                    ctx.collect(i);
-                    TimeUnit.MILLISECONDS.sleep(80);
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+                LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(gateBase.toString());
+                return storage.loadLatestEpochManifest(
+                        StorageJobIds.sanitizeJobId(jobName), "pipeline-0") != null;
+            } catch (Exception e) {
+                return false;
             }
         }
 

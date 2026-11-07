@@ -13,9 +13,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.resource.IResource;
 import io.nop.ioc.api.IBeanContainerImplementor;
 import io.nop.ioc.loader.BeanContainerBuilder;
-import io.nop.stream.core.common.functions.MapFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
-import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.connector.registry.IStreamSinkFactory;
 import io.nop.stream.core.connector.registry.IStreamSourceFunctionFactory;
 import io.nop.stream.core.connector.registry.IStreamSplitSourceFactory;
@@ -24,7 +22,7 @@ import io.nop.stream.core.connector.registry.StreamConnectorConfig;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
 import io.nop.stream.core.source.Source;
 import io.nop.stream.core.source.SourceSplit;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -142,7 +140,7 @@ public class TestStreamConnectorRegistryE2E {
         }
 
         Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?> source =
-                batchLoaderSource(lines);
+                batchLoaderSource(lines, outputDir.toString(), lines.size());
         SinkFunction<String> sink = fileTwoPhaseCommitSink(outputDir.toString());
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
@@ -150,13 +148,25 @@ public class TestStreamConnectorRegistryE2E {
         env.enableCheckpointing(100L);
         env.getCheckpointConfig().setMinPause(20L);
         env.getCheckpointConfig().setStorageProperty("path", storageDir.toString());
+        // 时间确定化（plan 2510 负载稳定化）：2PC sink 的 currentBuffer 只能被
+        // checkpoint barrier 落入 pendingCommits，且 barrier 注入对已 finish 的
+        // source 分区会失败——无 pacing 的 bounded run 在首个周期 barrier 前就 EOS，
+        // 之后所有周期触发全部注入失败，缓冲随任务完成被丢弃（0/部分提交，收敛
+        // 等待必然落空，30s 挂死实测）。保活门因此放在 LOADER 内：真实数据耗尽后
+        // loader 持续返回哨兵记录（reader 未 finished，分区保持开放，每次 poll
+        // 排水控制邮箱，barrier 注入与 checkpoint 推进不停），直到「40 行全部已
+        // 提交」的证据出现才返回空批次触发 EOS；哨兵经 filter 在 sink 前丢弃，
+        // sink 缓冲恰好只含 40 条真实输入。原 SleepyMapper 的真实时间 pacing 由
+        // 此改为提交证据条件，断言不变。
         env.addSource(source, "registry-batch-loader-source")
-                .map(new SleepyMapper(5L))
+                .map(v -> v)
+                .filter(v -> !v.startsWith(HEARTBEAT_PREFIX))
                 .sink(sink);
         env.execute("registry-e2e-2pc-file-sink");
 
         // 最后一个 epoch 的 2PC commit 骑在完成路径的执行器上，execute() 返回与
         // 落盘之间存在窗口；满载下测试线程会先醒——有界等待内容收敛后再断言
+        // （loader 门已保证 execute() 返回前内容已提交，此等待仅剩挂死保护职责）
         TestAwait.until("committed epoch files converge to the full input",
                 () -> readCommittedLines(outputDir).equals(lines));
 
@@ -177,6 +187,9 @@ public class TestStreamConnectorRegistryE2E {
         }
     }
 
+    /** Sentinel prefix of the loader keep-alive records, dropped before the sink. */
+    static final String HEARTBEAT_PREFIX = "#";
+
     // ------------------------------------------------------------------
     // registry-driven endpoint construction (the wiring under test)
     // ------------------------------------------------------------------
@@ -194,19 +207,42 @@ public class TestStreamConnectorRegistryE2E {
     // WI2 plan 2343 Phase 1: the batch-loader factory produces the FLIP-27 source; the
     // E2E pipeline consumes it through env.addSource(Source) (SourceReaderOperator path).
     @SuppressWarnings("unchecked")
-    private Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?> batchLoaderSource(List<String> lines) {
+    private Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?> batchLoaderSource(
+            List<String> lines, String outputDir, int expectedLines) {
         IStreamSplitSourceFactory factory = assertInstanceOf(IStreamSplitSourceFactory.class,
                 catalog.getRegistry().resolveSourceFactory("batch-loader"));
         IBatchLoaderProvider<String> provider = context -> {
             List<String> remaining = new ArrayList<>(lines);
-            return (batchSize, chunkContext) -> {
-                if (remaining.isEmpty()) {
-                    return List.of();
+            return new IBatchLoaderProvider.IBatchLoader<String>() {
+                int polls = 0;
+                long gateStartMs = -1L;
+
+                @Override
+                public List<String> load(int batchSize, io.nop.batch.core.IBatchChunkContext chunkContext) {
+                    if (remaining.isEmpty()) {
+                        // EOS gate (plan 2510 负载稳定化)：哨兵记录让 reader 保持
+                        // unfinished——分区开放、每次 poll 排水控制邮箱，周期 barrier
+                        // 注入与 2PC 提交持续推进；证据齐了才返回空批次（=EOS）。
+                        if (gateStartMs < 0) {
+                            gateStartMs = System.currentTimeMillis();
+                        }
+                        if (++polls % 64 == 0
+                                && readCommittedLines(Path.of(outputDir)).size() >= expectedLines) {
+                            return List.of();
+                        }
+                        if (System.currentTimeMillis() - gateStartMs > 30_000L) {
+                            throw new IllegalStateException(
+                                    "commit evidence did not converge within 30s (expected "
+                                            + expectedLines + " committed lines under " + outputDir + ")");
+                        }
+                        java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+                        return List.of(HEARTBEAT_PREFIX + "loader-heartbeat");
+                    }
+                    List<String> batch = remaining.subList(0, Math.min(batchSize, remaining.size()));
+                    List<String> result = new ArrayList<>(batch);
+                    remaining.subList(0, result.size()).clear();
+                    return result;
                 }
-                List<String> batch = remaining.subList(0, Math.min(batchSize, remaining.size()));
-                List<String> result = new ArrayList<>(batch);
-                remaining.subList(0, result.size()).clear();
-                return result;
             };
         };
         return (Source<String, ? extends io.nop.stream.core.source.SourceSplit, ?>) factory
@@ -235,6 +271,14 @@ public class TestStreamConnectorRegistryE2E {
         Files.write(dir.resolve(fileName), lines, StandardCharsets.UTF_8);
     }
 
+    /**
+     * 时间确定化（plan 2510）：原 {@code SleepyMapper}（每条 sleep 5ms）只是把
+     * 运行时长拉过真实 100ms checkpoint 周期以制造多个 epoch——被测断言只需要
+     * 「至少一个 epoch 提交 + 恰好一次提交」，运行终止路径的 final checkpoint
+     * 确定性满足（跨任务排空后 triggerFinalCheckpoint 完成并持久化），故删除
+     * 真实时间 pacing。
+     */
+
     private static List<String> readCommittedLines(Path outputDir) {
         List<String> committed = new ArrayList<>();
         try (Stream<Path> files = Files.list(outputDir)) {
@@ -246,22 +290,5 @@ public class TestStreamConnectorRegistryE2E {
                     "failed to read committed epoch files under " + outputDir, e);
         }
         return committed;
-    }
-
-    /** Slows the pipeline so the periodic checkpoint scheduler commits several epochs. */
-    static final class SleepyMapper implements MapFunction<String, String> {
-        private static final long serialVersionUID = 1L;
-
-        private final long delayMs;
-
-        SleepyMapper(long delayMs) {
-            this.delayMs = delayMs;
-        }
-
-        @Override
-        public String map(String value) throws Exception {
-            Thread.sleep(delayMs);
-            return value;
-        }
     }
 }

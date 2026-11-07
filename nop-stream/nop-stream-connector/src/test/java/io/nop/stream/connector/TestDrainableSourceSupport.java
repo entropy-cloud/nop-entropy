@@ -1,33 +1,25 @@
 package io.nop.stream.connector;
 
 import io.nop.stream.core.connector.DrainableSource;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.BooleanSupplier;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.fail;
 
 class TestDrainableSourceSupport {
-
-    /** Event-driven wait: returns as soon as the condition holds; the deadline only guards against hangs. */
-    private static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 30_000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(10);
-        }
-        fail(message + " (condition not met within 30s)");
-    }
 
     @Test
     void testDrainableSourceTruncateStopsConsuming() throws Exception {
         List<String> collected = new ArrayList<>();
+        // 显式交接信号：truncateForDrain/cancel 释放源线程的逐条等待（上限仅挂死保护，
+        // 正常路径由 countDown 即刻唤醒）——不再用墙钟节流制造发射节奏
+        CountDownLatch stepGate = new CountDownLatch(1);
         DrainableSource<String> source = new DrainableSource<>() {
             private static final long serialVersionUID = 1L;
             private volatile boolean running = true;
@@ -36,6 +28,7 @@ class TestDrainableSourceSupport {
             @Override
             public void truncateForDrain() {
                 draining = true;
+                stepGate.countDown();
             }
 
             @Override
@@ -44,13 +37,14 @@ class TestDrainableSourceSupport {
                 while (running && !draining) {
                     ctx.collect("item-" + i);
                     i++;
-                    Thread.sleep(10);
+                    stepGate.await(60, TimeUnit.SECONDS);
                 }
             }
 
             @Override
             public void cancel() {
                 running = false;
+                stepGate.countDown();
             }
         };
 
@@ -89,11 +83,11 @@ class TestDrainableSourceSupport {
         sourceThread.start();
 
         // Wait until the source thread has actually started collecting items
-        awaitUntil("source thread did not collect any items", () -> !collected.isEmpty());
+        TestAwait.until("source thread collected at least one item", () -> !collected.isEmpty());
 
         source.truncateForDrain();
 
-        awaitUntil("source thread should have exited after truncateForDrain", () -> !sourceThread.isAlive());
+        TestAwait.until("source thread exited after truncateForDrain", () -> !sourceThread.isAlive());
         assertFalse(collected.isEmpty(), "Should have collected some items before drain");
 
         source.cancel();

@@ -24,6 +24,10 @@ import io.nop.stream.core.windowing.assigners.WindowAssigner;
 import io.nop.stream.core.windowing.triggers.ProcessingTimeTrigger;
 import io.nop.stream.core.windowing.triggers.Trigger;
 import io.nop.stream.core.windowing.windows.TimeWindow;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -38,11 +42,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * fire once on processing time; a record arriving after the previous session's end starts
  * a separate session.
  *
- * <p>Time control: the timer service's processing-time clock is the wall clock (records
- * sent back-to-back are within the gap by construction); due timers are drained via
- * {@code fireProcessingTimeTimers(Long.MAX_VALUE)}.
+ * <p>Time control (plan 2510): the timer service's processing-time clock reads
+ * {@code CoreMetrics}, so the test registers a {@link ManualClock} — records sent
+ * back-to-back are within the gap by construction, the inter-session distance is
+ * created by an explicit {@code clock.advance(gap + 200)} (no real sleep), and due
+ * timers are drained via {@code fireProcessingTimeTimers(Long.MAX_VALUE)}.
  */
 public class TestProcessingTimeSessionWindowOperator {
+
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     /** Windows seen by the user function, with the element values per firing. */
     static final List<String> FIRED = new ArrayList<>();
@@ -210,7 +229,9 @@ public class TestProcessingTimeSessionWindowOperator {
                     "the merged session must contain both records; fired: " + FIRED);
 
             // A record arriving well past the merged session's end starts a NEW session.
-            Thread.sleep(gap + 200);
+            // 虚拟时钟推进越过 session 间隔（session 分配按 currentProcessingTime 判定），
+            // 不再 sleep 等真实时间流逝。
+            clock.advance(gap + 200);
             operator.processElement(new StreamRecord<>(3, 0));
             ((HeapInternalTimerService<String, TimeWindow>) operator.internalTimerService)
                     .fireProcessingTimeTimers(Long.MAX_VALUE);

@@ -7,6 +7,8 @@
  */
 package io.nop.stream.runtime.coordinator;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.runtime.protocol.TaskProgress;
 import io.nop.stream.runtime.protocol.JobStatus;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
@@ -55,6 +57,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  *       liveness stall into the right budgets (integration through
  *       detectFailures, not just the direct entry points).</li>
  * </ul>
+ *
+ * <p>时间确定化（plan 2510）：InMemoryClusterRegistry 与 JobCoordinator 的活性/租约
+ * 判定读取均经 {@code CoreMetrics}（JobCoordinator 另有包内可注入 clock），测试注册
+ * {@link ManualClock} 显式推进虚拟时间越过租约到期点；liveness 戳一律取自虚拟时钟线
+ * （时间戳陷阱）。时钟为 JVM 全局量：逐测试注册、{@code @AfterEach} 恢复默认时钟。
  */
 class TestJobCoordinatorStallRecoveryBudget {
 
@@ -66,9 +73,12 @@ class TestJobCoordinatorStallRecoveryBudget {
     private InMemoryClusterRegistry clusterRegistry;
     private JobCoordinator coordinator;
     private CoordinatorTestSupport.RecordingTaskRpcService taskRpc;
+    private ManualClock clock;
 
     @BeforeEach
     void setUp() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         clusterRegistry = new InMemoryClusterRegistry();
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         CheckpointConfig config = CheckpointConfig.builder()
@@ -95,6 +105,8 @@ class TestJobCoordinatorStallRecoveryBudget {
                 JOB_ID, "coord-1", deploymentPlan,
                 clusterRegistry, checkpointCoordinator,
                 Collections.singletonMap("node-1", taskRpc));
+        // detectFailures 的 now 与 registry 的租约判定共用同一条虚拟时间线。
+        coordinator.setClock(clock::peekMillis);
         coordinator.setTerminationCheckpointTimeoutMs(500L);
         // Deterministic tests: disable the stall cooldown unless a test sets it.
         coordinator.setStallRecoveryCooldownMs(0L);
@@ -103,6 +115,8 @@ class TestJobCoordinatorStallRecoveryBudget {
     @AfterEach
     void tearDown() {
         coordinator.stop();
+        // 时钟是 JVM 全局量：逐测试恢复默认时钟，避免冻结同 fork 后续所有类。
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
     }
 
     @Test
@@ -179,7 +193,8 @@ class TestJobCoordinatorStallRecoveryBudget {
         coordinator.assignTasks();
 
         // Node alive, one task's recorded liveness is stale (> taskTimeoutMs=60s).
-        long stale = System.currentTimeMillis() - 120_000L;
+        // liveness 戳取自虚拟时钟线（与 detectFailures 注入的同一时钟）。
+        long stale = clock.peekMillis() - 120_000L;
         coordinator.reportNodeTaskLiveness("node-1", Collections.singletonList(
                 new TaskProgress("source", 0, 1, stale)));
 
@@ -223,10 +238,14 @@ class TestJobCoordinatorStallRecoveryBudget {
             assertEquals(1, coordinatorB.getTaskAssignments().size(),
                     "precondition: the source subtask must be assigned to node-1");
             // Also age the liveness so BOTH signals are present — node loss must win.
+            // liveness 戳取自虚拟时钟线（与 detectFailures / registry 判定同一条时间线）。
             coordinatorB.reportNodeTaskLiveness("node-1", Collections.singletonList(
-                    new TaskProgress("source", 0, 1, System.currentTimeMillis() - 120_000L)));
+                    new TaskProgress("source", 0, 1, clock.peekMillis() - 120_000L)));
 
-            Thread.sleep(600L); // let the lease expire
+            // 推进虚拟时间越过租约到期点（renewLease 500ms → expireAt = 虚拟 now + 500）：
+            // getActiveNodes 的租约判定读取 CoreMetrics，推进后 node-1 立即失活 ——
+            // 替代旧的固定 600ms 墙钟等待。
+            clock.advance(600L);
             coordinatorB.detectFailures();
 
             assertEquals(1, coordinatorB.getRestartCount(),

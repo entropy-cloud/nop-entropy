@@ -57,9 +57,13 @@ class TestStreamStateResetTool {
 
             @Override
             public void run(SourceContext<Integer> ctx) throws Exception {
+                // 时间确定化（plan 2510）：原 20ms/条 pacing 只是把运行拉过真实
+                // checkpoint 周期以制造 durable 工件——运行终止路径的 final
+                // checkpoint（CANCEL 模式 triggerFinalCheckpoint）确定性完成并
+                // 持久化，满足「durable checkpoint state exists」断言，无真实
+                // 时间依赖。
                 for (int i = 1; i <= recordCount; i++) {
                     ctx.collect(i);
-                    Thread.sleep(20);
                 }
             }
 

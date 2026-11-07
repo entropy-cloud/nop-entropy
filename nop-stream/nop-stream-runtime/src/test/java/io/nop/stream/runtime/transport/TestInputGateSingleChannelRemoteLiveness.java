@@ -1,12 +1,15 @@
 package io.nop.stream.runtime.transport;
 
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.execution.InputGate;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,15 +68,20 @@ class TestInputGateSingleChannelRemoteLiveness {
     private static final long EPOCH = 7L;
 
     private LocalMessageService messageService;
+    private ManualClock clock;
 
     @BeforeEach
     void setUp() {
         messageService = new LocalMessageService();
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
     }
 
     @AfterEach
     void tearDown() {
         messageService.clearConsumers();
+        // 时钟是 JVM 全局量：逐测试恢复默认时钟，避免冻结同 fork 后续所有类。
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
     }
 
     private RemoteResultPartition producer(String topic) {
@@ -133,9 +141,16 @@ class TestInputGateSingleChannelRemoteLiveness {
         reader.setDaemon(true);
         reader.start();
 
-        // Bounded window: 2 poll rounds (~100ms) + channelTimeout (150ms) +
-        // generous CI slack. If the read hangs (reverted code), join returns
-        // with the reader still alive → the assertion fails.
+        // 结构证据：读者已消费 seed 并进入 bounded-poll 循环（revert guard 的前提）。
+        // 若代码回归为无界 take()，读者在此前就永久停靠 —— 由下方的 join 上限兜底变红。
+        TestAwait.until("reader drained the seed element and parked in the bounded-poll loop",
+                () -> drainedSeed.get());
+
+        // 时间确定化（plan 2510）：channelTimeout 判定读取 CoreMetrics —— 推进虚拟
+        // 时间越过窗口，读者的下一次 poll 轮回（生产内部 ~50ms 真实轮询，允许形态）
+        // 即抛 ERR_STREAM_CHANNEL_TIMEOUT。join 上限仅挂死保护（回归代码会停靠在
+        // take() 里，时钟推进救不了它）。
+        clock.advance(channelTimeout + 1L);
         long boundedWindowMs = 2L * 50L + channelTimeout + 2000L;
         reader.join(boundedWindowMs);
         assertFalse(reader.isAlive(),
@@ -180,20 +195,28 @@ class TestInputGateSingleChannelRemoteLiveness {
         // Total duration > channelTimeout proves the consumer would have timed
         // out if the producer were silent, but does not because liveness is
         // refreshed by each emit.
-        long end = System.currentTimeMillis() + (channelTimeout * 2L);
+        //
+        // 时间确定化（plan 2510）：总时长与「brief idle」都在虚拟时间线上表达 ——
+        // 每次发射之间推进 channelTimeout/4（替代真实 sleep），累计推进越过
+        // 2×channelTimeout（替代墙钟窗口）。活性判定读取 CoreMetrics：每次发射
+        // 刷新 lastReceivedTime，推进间隔 < channelTimeout → 永不超时。
+        long start = clock.peekMillis();
         int received = 0;
-        while (System.currentTimeMillis() < end) {
+        while (clock.peekMillis() - start <= channelTimeout * 2L) {
             producer.write(new StreamRecord<>("d-" + received));
             Optional<StreamElement> el = gate.read();
             assertTrue(el.isPresent(),
                     "live producer must keep the consumer alive (no timeout); iteration " + received);
             assertTrue(el.get().isRecord());
             received++;
-            // Brief idle (< channelTimeout) between emits: the next read will
-            // park via poll(50ms) but the producer is still live within the
-            // window, so no timeout fires.
-            Thread.sleep(channelTimeout / 4);
+            // Brief idle (< channelTimeout) between emits, on the virtual line:
+            // the next read stays within the refreshed liveness window, so no
+            // timeout fires.
+            clock.advance(channelTimeout / 4);
         }
+        assertTrue(clock.peekMillis() - start > channelTimeout * 2L,
+                "the lockstep exchange must span well beyond a single channelTimeout "
+                        + "(virtual elapsed=" + (clock.peekMillis() - start) + "ms)");
         assertTrue(received > 1,
                 "should have received multiple records over the window without timing out");
         assertFalse(consumer.isChannelTimedOut(),
@@ -225,19 +248,34 @@ class TestInputGateSingleChannelRemoteLiveness {
         // Producer finishes (synchronously dispatches CONTROL_END_OF_STREAM).
         producer.close();
 
-        long start = System.currentTimeMillis();
-        Optional<StreamElement> el = gate.read();
-        long elapsed = System.currentTimeMillis() - start;
+        // 时间确定化（plan 2510）：替代旧的 elapsed < 500ms 阈值断言 —— EOS 读在辅助
+        // 线程执行，条件等待其完成（上限 5s 仅挂死保护）。若实现把 EOS-null 当
+        // 「continue」忙碌空转或停靠在 take()，读永不返回 → 上限处确定性变红；
+        // 正常路径毫秒级返回。返回后无 busy-spin 由「线程已退出」结构性证明。
+        AtomicBoolean eosReadReturned = new AtomicBoolean(false);
+        AtomicReference<Optional<StreamElement>> eosResult = new AtomicReference<>();
+        Thread eosReader = new Thread(() -> {
+            try {
+                eosResult.set(gate.read());
+                eosReadReturned.set(true);
+            } catch (Throwable t) {
+                eosResult.set(Optional.empty());
+            }
+        }, "eos-reader");
+        eosReader.setDaemon(true);
+        eosReader.start();
+        TestAwait.until("EOS read returns promptly (no hang, no busy-spin on the finished channel)",
+                () -> eosReadReturned.get(), 5_000L);
+        assertTrue(eosReadReturned.get(),
+                "EOS read should return promptly (a hang or busy-spin would exceed the cap)");
+        Optional<StreamElement> el = eosResult.get();
+        eosReader.join(5_000L);
 
         assertFalse(el.isPresent(), "EOS should return empty promptly, not hang or busy-spin");
         assertTrue(consumer.isFinished(),
                 "channel must be marked finished on END_OF_STREAM");
         assertFalse(consumer.isChannelTimedOut(),
                 "finished channel must never report liveness timeout");
-        // Prompt: well under one poll round (no busy-spin on EOS, which would
-        // be near-instant but never return; no hang, which would be >> 50ms).
-        assertTrue(elapsed < 500L,
-                "EOS read should return promptly (elapsed=" + elapsed + "ms)");
 
         consumer.close();
     }

@@ -18,6 +18,7 @@ import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.fraud.scenario.ReplayableCdcSourceFunction.CdcEventFixtures;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -122,9 +123,8 @@ public class TestReplayableCdcSourceFunction {
             }
         });
         runner.start();
-        while (firstCtx.collected.size() < 3 && runner.isAlive()) {
-            Thread.sleep(5);
-        }
+        TestAwait.until("3 events collected or the emitter exited",
+                () -> firstCtx.collected.size() >= 3 || !runner.isAlive());
         first.cancel();
         runner.join(3000);
         assertNull(error.get(), "interrupted run must not throw");

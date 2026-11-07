@@ -7,6 +7,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,20 +120,28 @@ class TestDebeziumRealMysqlParallel {
         awaitStableMySql();
     }
 
+    /**
+     * 条件等待真实外部状态（gated 真库面，虚拟时钟不适用）：轮询探测直到 MySQL 容器
+     * 可连通且可执行查询，并以连续两次成功探测确认稳定（原固定 40s 启动窗 + 5s 间隔
+     * 双探测的机械化条件等价）；超时上限只作挂死保护，等待时长由真实容器就绪决定。
+     */
     private static void awaitStableMySql() {
-        long startedAt = System.currentTimeMillis();
         try {
-            while (System.currentTimeMillis() - startedAt < 40_000L) {
-                Thread.sleep(2_000L);
-            }
-            for (int i = 0; i < 2; i++) {
-                try (Connection conn = dbConn(); Statement st = conn.createStatement()) {
-                    st.execute("SELECT 1");
-                }
-                Thread.sleep(5_000L);
-            }
+            TestAwait.until("MySQL container accepts and executes a probe query",
+                    TestDebeziumRealMysqlParallel::probeQueryOk, 120_000L);
+            TestAwait.until("MySQL container serves a second consecutive probe (stable)",
+                    TestDebeziumRealMysqlParallel::probeQueryOk, 60_000L);
         } catch (Exception e) {
             throw new IllegalStateException("MySQL container not stable after startup window", e);
+        }
+    }
+
+    private static boolean probeQueryOk() {
+        try (Connection conn = dbConn(); Statement st = conn.createStatement()) {
+            st.execute("SELECT 1");
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -197,11 +206,9 @@ class TestDebeziumRealMysqlParallel {
         source.initializeState(null);
         Thread runner = TestDebeziumRealMysqlCdc.runAndCollect(source, collected);
 
-        // 2000 个快照行全部到达（chunk 并行下不丢行）
-        long deadline = System.currentTimeMillis() + 60_000L;
-        while (collected.size() < rowCount && System.currentTimeMillis() < deadline) {
-            Thread.sleep(200);
-        }
+        // 2000 个快照行全部到达（chunk 并行下不丢行）——条件等待，上限仅挂死保护
+        TestAwait.until("parallel snapshot delivered every row", () -> collected.size() >= rowCount,
+                60_000L);
         source.cancel();
         runner.join(15_000);
         System.err.println("=== V1 forensics: collected=" + collected.size());
@@ -265,7 +272,10 @@ class TestDebeziumRealMysqlParallel {
         waitUntilTableEvent(got0, own0, 30_000, "instance-0 must receive its routed table");
         waitUntilTableEvent(got1, own1, 30_000, "instance-1 must receive its routed table");
 
-        Thread.sleep(2_000); // 给错误路由的事件（不应存在）一个暴露窗口
+        // RESIDUAL（gated 真库面，plan 2510 具名裁定）：给错误路由的事件（不应存在）一个
+        // 真实时长暴露窗口——Debezium 引擎与 binlog 投递是真实外部异步过程，虚拟时钟不可达，
+        // 且"误路由未发生"是负向断言、无结构性计数可观测，只能以真实窗口承接。
+        Thread.sleep(2_000);
         assertNoCrossRouting(got0, got1,
                 own0.substring(own0.indexOf('.') + 1), own1.substring(own1.indexOf('.') + 1));
 
@@ -297,17 +307,20 @@ class TestDebeziumRealMysqlParallel {
                                             long timeoutMs, String message)
             throws InterruptedException {
         String shortName = table.substring(table.indexOf('.') + 1);
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            for (ChangeEvent e : events) {
-                if (e.getMetadata() != null && shortName.equals(e.getMetadata().getTable())) {
-                    return;
-                }
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("routed-table event delivered to instance (table=" + table + ")",
+                    () -> {
+                        for (ChangeEvent e : events) {
+                            if (e.getMetadata() != null && shortName.equals(e.getMetadata().getTable())) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            dumpDebeziumThreadStacks();
+            fail(message + " (table=" + table + ", collected=" + events.size() + ")");
         }
-        dumpDebeziumThreadStacks();
-        fail(message + " (table=" + table + ", collected=" + events.size() + ")");
     }
 
     /**

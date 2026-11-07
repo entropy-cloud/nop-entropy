@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.common.state.backend.memory;
 
+import io.nop.api.core.time.CoreMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -234,7 +235,7 @@ public class MemoryKeyedStateBackend<K> implements IInternalStateBackend<K>, jav
         if (!anyTtlBound || ttlSweepIntervalMillis <= 0) {
             return;
         }
-        long now = System.nanoTime();
+        long now = CoreMetrics.nanoTime();
         if (lastTtlSweepNanos != 0
                 && now - lastTtlSweepNanos < ttlSweepIntervalMillis * 1_000_000L) {
             return;

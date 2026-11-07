@@ -14,6 +14,7 @@ import io.nop.stream.core.checkpoint.JobTerminationMode;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
@@ -66,15 +67,12 @@ class TestJobCoordinator {
 
     /**
      * CC-06 (plan 2435): barrier fan-out dispatches off the trigger thread via
-     * per-node executors — wait (bounded) for the barrier to cross the mocked
-     * RPC before asserting on it. Restored by plan 2436 after the wave's
-     * deferred Maven re-run surfaced these timing gaps.
+     * per-node executors — 条件等待 barrier 跨过 mock RPC（外部可观测计数），
+     * 上限仅挂死保护。Restored by plan 2436 after the wave's deferred Maven
+     * re-run surfaced these timing gaps.
      */
-    private void awaitBarrierCrossed() throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (mockRpcService.lastBarrier.get() == null && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+    private void awaitBarrierCrossed() {
+        TestAwait.until("barrier crossed the mocked RPC", () -> mockRpcService.lastBarrier.get() != null);
     }
 
     private Map<String, IStreamTaskRpcService> taskRpcServices;
@@ -474,13 +472,10 @@ class TestJobCoordinator {
                 + "tracker injects barriers only at source-operator heads)");
     }
 
-    /** CC-06: bounded wait for one mock RPC service's barrier delivery. */
+    /** CC-06: 条件等待一个 mock RPC service 的 barrier 送达（上限仅挂死保护）。 */
     private static void awaitMockBarrier(CoordinatorTestSupport.RecordingTaskRpcService rpc,
-                                         String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (rpc.lastBarrier.get() == null && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+                                         String message) {
+        TestAwait.until(message + " (barrier crossed the mock RPC)", () -> rpc.lastBarrier.get() != null);
         assertNotNull(rpc.lastBarrier.get(), message);
     }
 

@@ -6,6 +6,7 @@ import io.nop.stream.core.common.functions.KeySelector;
 import io.nop.stream.core.common.functions.ReduceFunction;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.common.state.backend.IStateBackend;
 import io.nop.stream.core.common.state.backend.memory.MemoryStateBackend;
 import io.nop.stream.core.datastream.KeyedStream;
@@ -24,6 +25,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -45,9 +47,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
  * window and the terminating final checkpoint captures POST-fire state, so the
  * restore source is the last PERIODIC checkpoint that completed BEFORE the
  * fire. The source therefore bursts all values immediately (full accumulation
- * 55 in the window state) and then parks ~800ms so several periodic checkpoints
- * complete with the PRE-fire state. The window fires at job end of run 2 with
- * the RESTORED + new accumulation (a silently-empty restore would fire 100).
+ * 55 in the window state) and then lingers — draining checkpoint control mails
+ * via filtered heartbeat records (dropped before the keyed operators) — until
+ * at least one periodic checkpoint has completed durably with the PRE-fire
+ * state (deterministic completion-count condition, plan 2510; no fixed sleep).
+ * The window fires at job end of run 2 with the RESTORED + new accumulation
+ * (a silently-empty restore would fire 100).
  *
  * <p>Checkpointing must be enabled end-to-end: the env-based execute path
  * requires the checkpoint executor factory to be registered (the runtime SPI is
@@ -60,6 +65,19 @@ class TestE2EWindowAggregateRestore {
 
     private static final String JOB_NAME = "window-aggregate-restore-e2e";
     private static final long WINDOW_SIZE = 60000L;
+
+    /**
+     * Harness linger signal (plan 2510): periodic checkpoint completions/aborts
+     * observed by the source's CheckpointListener callback (the coordinator
+     * notifies the UDF after scheduling retention, i.e. after the epoch became
+     * durable). Static so the deep-copied executed source and the graph-template
+     * source share the counters; reset at each run's start.
+     */
+    private static final AtomicLong PARK_COMPLETIONS = new AtomicLong();
+    private static final AtomicLong PARK_ABORTS = new AtomicLong();
+
+    /** Linger bound: max heartbeat records (100µs service cadence each ⇒ ~5s wall). */
+    private static final long LINGER_MAX_HEARTBEATS = 50_000L;
 
     @BeforeAll
     static void registerCheckpointExecutorFactory() {
@@ -132,32 +150,62 @@ class TestE2EWindowAggregateRestore {
 
     /**
      * Bounded source that bursts all values immediately (so every periodic
-     * checkpoint captures the FULL pre-fire accumulation) and then parks so
-     * multiple periodic checkpoints complete before the job-end MAX_WATERMARK
-     * fires the window.
+     * checkpoint captures the FULL pre-fire accumulation) and then lingers —
+     * draining checkpoint control mails via heartbeat records that the
+     * pipeline's sentinel filter drops before the keyed operators — until at
+     * least one periodic checkpoint has completed durably with the pre-fire
+     * state (deterministic condition; no fixed sleep). Observes epoch
+     * completions/aborts via the coordinator's UDF listener notification.
      */
+    private static final class ParkThenBurstSource
+            implements SourceFunction<IntEvent>, CheckpointListener {
+        private static final long serialVersionUID = 1L;
+
+        private final int startValue;
+        private final int count;
+
+        ParkThenBurstSource(int startValue, int count) {
+            this.startValue = startValue;
+            this.count = count;
+        }
+
+        @Override
+        public void run(SourceContext<IntEvent> ctx) {
+            PARK_COMPLETIONS.set(0);
+            PARK_ABORTS.set(0);
+            for (int i = 0; i < count; i++) {
+                int value = startValue + i;
+                long ts = (value - startValue + 1) * 1000L;
+                ctx.collectWithTimestamp(new IntEvent("k1", ts, value), ts);
+            }
+            // Linger: heartbeat records (value < 0, dropped by the sentinel
+            // filter before keyBy) keep the task thread servicing the control
+            // mailbox so the periodic epoch can ACK, while the completion
+            // counter provides the deterministic exit condition.
+            for (long i = 0; i < LINGER_MAX_HEARTBEATS
+                    && PARK_COMPLETIONS.get() < 1 && PARK_ABORTS.get() < 3; i++) {
+                ctx.collectWithTimestamp(new IntEvent("k1", 1_000L, -1), 1_000L);
+                java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+            }
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            PARK_COMPLETIONS.incrementAndGet();
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+            PARK_ABORTS.incrementAndGet();
+        }
+    }
+
     private static SourceFunction<IntEvent> burstSource(int startValue, int count) {
-        return new SourceFunction<>() {
-            private static final long serialVersionUID = 1L;
-
-            @Override
-            public void run(SourceContext<IntEvent> ctx) {
-                for (int i = 0; i < count; i++) {
-                    int value = startValue + i;
-                    long ts = (value - startValue + 1) * 1000L;
-                    ctx.collectWithTimestamp(new IntEvent("k1", ts, value), ts);
-                }
-                try {
-                    Thread.sleep(800);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-
-            @Override
-            public void cancel() {
-            }
-        };
+        return new ParkThenBurstSource(startValue, count);
     }
 
     private List<Long> runAggregateJob(Path storageDir, IStateBackend backend,
@@ -168,6 +216,9 @@ class TestE2EWindowAggregateRestore {
 
         KeyedStream<IntEvent, String> keyed = env
                 .addSource(burstSource(startValue, count), "src")
+                // Sentinel filter: linger heartbeats (value < 0) are dropped before
+                // the keyed operators so window state sees exactly the burst values.
+                .filter(e -> e.value >= 0)
                 .keyBy((KeySelector<IntEvent, String>) e -> e.key);
 
         StreamComponents components = new StreamComponents();
@@ -181,6 +232,53 @@ class TestE2EWindowAggregateRestore {
 
         env.execute(JOB_NAME);
         return results;
+    }
+
+    /**
+     * Reduce-path variant of {@link ParkThenBurstSource}: the window element type is
+     * String, so linger heartbeats use a "#" prefix and are dropped by the sentinel
+     * filter before the keyed operators.
+     */
+    private static final class ParkThenBurstStringSource
+            implements SourceFunction<String>, CheckpointListener {
+        private static final long serialVersionUID = 1L;
+
+        private final int startValue;
+        private final int count;
+
+        ParkThenBurstStringSource(int startValue, int count) {
+            this.startValue = startValue;
+            this.count = count;
+        }
+
+        @Override
+        public void run(SourceContext<String> ctx) {
+            PARK_COMPLETIONS.set(0);
+            PARK_ABORTS.set(0);
+            for (int i = 0; i < count; i++) {
+                int value = startValue + i;
+                ctx.collectWithTimestamp(String.valueOf(value), (value - startValue + 1) * 1000L);
+            }
+            for (long i = 0; i < LINGER_MAX_HEARTBEATS
+                    && PARK_COMPLETIONS.get() < 1 && PARK_ABORTS.get() < 3; i++) {
+                ctx.collectWithTimestamp("#hb", 1_000L);
+                java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+            }
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            PARK_COMPLETIONS.incrementAndGet();
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+            PARK_ABORTS.incrementAndGet();
+        }
     }
 
     /**
@@ -199,26 +297,10 @@ class TestE2EWindowAggregateRestore {
         configureCheckpoints(env, storageDir.toString(), backend);
 
         KeyedStream<String, String> keyed = env
-                .addSource(new SourceFunction<String>() {
-                    private static final long serialVersionUID = 1L;
-
-                    @Override
-                    public void run(SourceContext<String> ctx) {
-                        for (int i = 0; i < count; i++) {
-                            int value = startValue + i;
-                            ctx.collectWithTimestamp(String.valueOf(value), (value - startValue + 1) * 1000L);
-                        }
-                        try {
-                            Thread.sleep(800);
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt();
-                        }
-                    }
-
-                    @Override
-                    public void cancel() {
-                    }
-                }, "src")
+                .addSource(new ParkThenBurstStringSource(startValue, count), "src")
+                // Sentinel filter: linger heartbeats ("#" prefix) are dropped before
+                // the keyed operators so window state sees exactly the burst values.
+                .filter(v -> !v.startsWith("#"))
                 .keyBy((KeySelector<String, String>) e -> "k1");
 
         StreamComponents components = new StreamComponents();

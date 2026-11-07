@@ -10,6 +10,7 @@ import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.util.OutputTag;
 
 import org.junit.jupiter.api.Test;
@@ -89,7 +90,8 @@ class TestStreamSourceOperator {
     @Test
     void testSourceFunctionCancelCancelsRunningSource() throws Exception {
         CountDownLatch runStarted = new CountDownLatch(1);
-        AtomicBoolean running = new AtomicBoolean(true);
+        // 显式跨线程交接：source 阻塞等待 cancel()，不再轮询 sleep。
+        CountDownLatch cancelRequested = new CountDownLatch(1);
 
         SourceFunction<String> source = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
@@ -97,14 +99,12 @@ class TestStreamSourceOperator {
             @Override
             public void run(SourceContext<String> ctx) throws Exception {
                 runStarted.countDown();
-                while (running.get()) {
-                    Thread.sleep(50);
-                }
+                cancelRequested.await();
             }
 
             @Override
             public void cancel() {
-                running.set(false);
+                cancelRequested.countDown();
             }
         };
 
@@ -129,8 +129,9 @@ class TestStreamSourceOperator {
     void testBarrierInjectedDuringSourceRun() throws Exception {
         List<Object> emitted = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch ready = new CountDownLatch(1);
-        AtomicBoolean running = new AtomicBoolean(true);
-        AtomicBoolean barrierOffered = new AtomicBoolean(false);
+        // 确定性交接：主线程 offerBarrier 完成后再放行 source 的下一次 collect，
+        // 保证 trigger mail 已在 mailbox 中、collect 点必然 drain 并发射。
+        CountDownLatch barrierRequested = new CountDownLatch(1);
 
         SourceFunction<String> source = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
@@ -139,18 +140,13 @@ class TestStreamSourceOperator {
             public void run(SourceContext<String> ctx) throws Exception {
                 ctx.collect("element-1");
                 ready.countDown();
-                while (running.get()) {
-                    Thread.sleep(50);
-                    if (barrierOffered.get()) {
-                        ctx.collect("element-after-barrier");
-                        break;
-                    }
-                }
+                barrierRequested.await(2, TimeUnit.SECONDS);
+                ctx.collect("element-after-barrier");
             }
 
             @Override
             public void cancel() {
-                running.set(false);
+                barrierRequested.countDown();
             }
         };
 
@@ -178,9 +174,11 @@ class TestStreamSourceOperator {
 
         CheckpointBarrier barrier = new CheckpointBarrier(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
         assertTrue(operator.offerBarrier(barrier));
-        barrierOffered.set(true);
+        barrierRequested.countDown();
 
-        Thread.sleep(500);
+        // 条件等待（确定性事实：trigger mail 已在 collect 点 drain 并发射 barrier），
+        // 超时仅作挂死保护——不再用固定 sleep 观察窗。
+        TestAwait.until("barrier-1 emitted on the next collect", () -> emitted.contains("barrier-1"));
         assertTrue(emitted.contains("barrier-1"), "Barrier should have been emitted on next collect");
 
         operator.close();

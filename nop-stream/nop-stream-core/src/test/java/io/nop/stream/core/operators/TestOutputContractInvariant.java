@@ -22,6 +22,7 @@ import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.util.OutputTag;
 
 import org.junit.jupiter.api.Test;
@@ -564,10 +565,8 @@ public class TestOutputContractInvariant {
 
         try {
             gate.offer(new SideOutputElement("no-consumer-tag", new StreamRecord<>("orphan", 1L)));
-            long deadline = System.currentTimeMillis() + 10_000;
-            while (taskError.get() == null && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
+            // 条件等待（确定性事实：任务线程在路由点 fail-fast 抛错），超时仅作挂死保护。
+            TestAwait.until("unregistered tag failed fast", () -> taskError.get() != null);
             assertTrue(taskError.get() != null, "unregistered tag must fail fast, never silently drop");
             assertTrue(taskError.get() instanceof StreamRuntimeException,
                     "fail-fast must surface as StreamRuntimeException, got: " + taskError.get());

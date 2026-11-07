@@ -21,7 +21,7 @@ import io.nop.stream.core.common.state.CheckpointListener;
 import io.nop.stream.core.execution.CheckpointBarrierTracker;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.operators.AbstractStreamOperator;
 import io.nop.stream.core.operators.ChainingOutput;
 import io.nop.stream.core.operators.StreamMap;
@@ -78,7 +78,6 @@ public class TestCheckpointEndToEnd {
             public void run(SourceContext<Integer> ctx) throws Exception {
                 for (int i = 1; i <= 5; i++) {
                     ctx.collect(i);
-                    Thread.sleep(50);
                 }
             }
 

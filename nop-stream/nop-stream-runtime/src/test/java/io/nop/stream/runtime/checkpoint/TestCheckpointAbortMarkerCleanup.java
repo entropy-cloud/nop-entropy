@@ -13,7 +13,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.checkpoint.participant.CheckpointParticipant;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +23,6 @@ import org.junit.jupiter.api.io.TempDir;
 import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -115,7 +114,15 @@ class TestCheckpointAbortMarkerCleanup {
                         + "(pre-fix removal would make the retry default to success=true)");
         assertFalse(coordinator.checkpointSuccessMap.get(checkpointId),
                 "the replayed flag for an aborted epoch must be success=false");
-        assertEquals(1, coordinator.failedCommitParticipants.size(),
+        // 负载稳定化（plan 2510）：ConcurrentSkipListMap.size() 是 O(n) 弱一致性遍历
+        // （Javadoc: approximate in the presence of concurrent updates）——满载下
+        // fan-out 线程的 computeIfAbsent 插入与测试线程的 size() 遍历赛跑，
+        // containsKey 刚看到条目、紧随的 size() 可漏数（实测 containsKey=true →
+        // size()=0）。改用按 key 的点查（线性化点读）断言同一契约：注册表恰含
+        // 本 epoch 且正是该失败参与者（本测试只有单 epoch，无其他条目来源）。
+        java.util.Set<CheckpointParticipant> retrySet =
+                coordinator.failedCommitParticipants.get(checkpointId);
+        assertTrue(retrySet != null && retrySet.contains(participant),
                 "the failing participant must be registered for the retry cycle");
         // The retry cycle's own remove-on-success behavior is pre-existing
         // (unchanged by A2) and runs inside the coordinator's completion path.
@@ -201,6 +208,12 @@ class TestCheckpointAbortMarkerCleanup {
             // await the fan-out executor's delivery instead of asserting inline.
             TestAwait.until("persist failure notifies participants with finishCommit(false)",
                     () -> participant.finishCommits.containsKey(checkpointId));
+            // 负载稳定化（plan 2510）：finishCommit(false) 的投递与同任务尾部的
+            // 终端标记清理之间无同步点——投递可见不代表清理已执行（满载下观测到
+            // 标记仍在的假阴性窗口）。标记清理是本 fan-out 任务的确定性尾效应
+            // （本测试无失败参与者，containsKey 门控恒真），等它收敛后断言。
+            TestAwait.until("persist-failure terminal marker removed by the fan-out task tail",
+                    () -> !failingCoordinator.checkpointSuccessMap.containsKey(checkpointId));
             assertFalse(failingCoordinator.checkpointSuccessMap.containsKey(checkpointId),
                     "persist-failed epoch must not linger in checkpointSuccessMap (A2': fail path "
                             + "missed the abort-path cleanup)");

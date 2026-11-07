@@ -15,6 +15,7 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.AfterAll;
@@ -29,6 +30,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.jobgraph.JobEdge;
 import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.core.jobgraph.JobVertex;
@@ -219,8 +221,10 @@ class TestTaskManagerOpsEndpoint {
 
         int recordCount = 20;
         List<Integer> sinkReceived = new CopyOnWriteArrayList<>();
+        CountDownLatch probeLanded = new CountDownLatch(1);
+        CountDownLatch scrapeDone = new CountDownLatch(1);
         String jobId = "tm-ops-wiring-" + StringHelper.generateUUID().substring(0, 8);
-        JobGraph graph = buildSourceSinkGraph(jobId, recordCount, sinkReceived);
+        JobGraph graph = buildSourceSinkGraph(jobId, recordCount, sinkReceived, probeLanded, scrapeDone);
 
         // Sink first (its input channel subscribes), then the source (emits).
         tm.deployTask(new TaskDeploymentDescriptor(
@@ -228,10 +232,9 @@ class TestTaskManagerOpsEndpoint {
         tm.deployTask(new TaskDeploymentDescriptor(
                 jobId, "source", 0, "tm-ops-wiring", "attempt-src", 1, epoch, graph, null, null), epoch);
 
-        long deadline = System.currentTimeMillis() + 30_000L;
-        while (System.currentTimeMillis() < deadline && sinkReceived.size() < recordCount) {
-            TimeUnit.MILLISECONDS.sleep(100L);
-        }
+        // 条件等待（上限仅挂死保护）：真实数据路径把每条记录送到 sink 后再抓取。
+        TestAwait.until("the real data path delivered every record",
+                () -> sinkReceived.size() >= recordCount, 30_000L);
         assertEquals(recordCount, sinkReceived.size(),
                 "the real data path must deliver every record before scraping");
 
@@ -251,27 +254,50 @@ class TestTaskManagerOpsEndpoint {
                 "operator layer (sink input dispatch): " + body);
         assertTrue(body.contains("nop_stream_io_channel_queue_size"),
                 "item 32 channel queue gauge visible on the TM face: " + body);
+
+        // 抓取完成后才允许 source 结束（gauge 在任务存活期保持注册——
+        // 替代旧的固定 sleep(500) 存活窗口；teardown 的 shutdown 中断为兜底）。
+        scrapeDone.countDown();
     }
 
     // ==================== fixtures ====================
 
+    private static final int PROBE_VALUE = -1;
+
     private static JobGraph buildSourceSinkGraph(String jobId, int recordCount,
-                                                 List<Integer> sinkReceived) {
+                                                 List<Integer> sinkReceived,
+                                                 CountDownLatch probeLanded,
+                                                 CountDownLatch scrapeDone) {
         SourceFunction<Integer> source = new SourceFunction<Integer>() {
             private static final long serialVersionUID = 1L;
 
             @Override
             public void run(SourceContext<Integer> ctx) throws Exception {
-                // Let the slower-deployed downstream subscriber settle first (the
-                // in-process LocalMessageService drops sends to unsubscribed
-                // topics — same ordering note as the deploy-wiring e2e).
-                // 时间窗（部署顺序），循环形式等待
-                io.nop.stream.runtime.testsupport.TestAwait.elapsed("downstream subscriber settle window", 750L);
+                // 时间确定化（plan 2510）：「下游订阅先于首发」不再用固定 settle 窗口——
+                // 探针握手：重复发送探针值（in-process LocalMessageService 对无订阅
+                // topic 静默丢包），直到 sink fixture 观察到探针（确定性条件）才发
+                // 正式记录；重试节奏 = 可中断条件等待轮询，上限仅挂死保护。
+                for (int probe = 0; probe < 500 && probeLanded.getCount() != 0; probe++) {
+                    ctx.collect(PROBE_VALUE);
+                    try {
+                        probeLanded.await(10L, TimeUnit.MILLISECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
+                TestAwait.until("downstream subscriber took the probe (ordering handshake)",
+                        () -> probeLanded.getCount() == 0, 10_000L);
                 for (int i = 0; i < recordCount; i++) {
                     ctx.collect(i);
-                    Thread.sleep(5L);
                 }
-                Thread.sleep(500L);
+                // 保持存活到测试抓取完成（gauge 注册面），由测试显式放行或
+                // teardown 中断结束——不用固定时长的存活 sleep。
+                try {
+                    scrapeDone.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
             }
 
             @Override
@@ -283,6 +309,10 @@ class TestTaskManagerOpsEndpoint {
 
             @Override
             public void consume(Integer value) {
+                if (value == PROBE_VALUE) {
+                    probeLanded.countDown(); // handshake: subscription is live
+                    return;
+                }
                 sinkReceived.add(value);
             }
         };

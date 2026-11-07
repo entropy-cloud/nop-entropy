@@ -27,6 +27,7 @@ import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.ClusterRegistry;
@@ -190,10 +191,11 @@ class TestMetricsExposureE2E {
         StreamMetricsReporter reporter = new StreamMetricsReporter(50, "file", file);
         reporter.start();
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (System.currentTimeMillis() < deadline && !Files.exists(file)) {
-                Thread.sleep(50);
-            }
+            // 条件等待（上限仅挂死保护）：reporter 首个真实 tick 落盘快照文件。
+            // reporter 的 50ms 调度周期是生产内部轮询节奏，测试侧以确定性条件
+            // （快照文件存在）观测其结果。
+            TestAwait.until("metrics snapshot file written after the first reporter tick",
+                    () -> Files.exists(file), 5_000L);
             assertTrue(Files.exists(file), "snapshot file written after the first tick");
             String text = Files.readString(file);
             assertTrue(text.contains("nop_stream_engine_checkpoints_completed"),

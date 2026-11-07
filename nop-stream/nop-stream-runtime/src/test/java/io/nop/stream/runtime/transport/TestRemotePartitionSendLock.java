@@ -18,6 +18,7 @@ import io.nop.stream.core.execution.RecordWriter;
 import io.nop.stream.core.execution.ResultPartition;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -116,10 +117,9 @@ class TestRemotePartitionSendLock {
         assertTrue(writeSendStarted.await(5, TimeUnit.SECONDS));
         // Wait until the write is parked inside the backend (message recorded,
         // send not completed): close() must wait for it under sendLock.
-        long deadline = System.currentTimeMillis() + 5000;
-        while (backend.sentMessages.size() < 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+        // 条件等待（消息已记录 = 外部可观测状态），上限仅挂死保护。
+        TestAwait.until("in-flight write parked inside the backend (message recorded)",
+                () -> backend.sentMessages.size() >= 1);
 
         partition.close(); // blocks in sendLock until the in-flight data send returns
 

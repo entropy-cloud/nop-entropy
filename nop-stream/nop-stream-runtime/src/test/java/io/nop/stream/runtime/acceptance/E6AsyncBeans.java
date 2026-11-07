@@ -30,6 +30,14 @@ public final class E6AsyncBeans {
 
     public static final int CAPACITY = 4;
     public static final long DEADLINE_MS = 50;
+
+    /**
+     * 时间确定化（plan 2510）：原 fixture 用真实 sleep 模拟慢调用（SLOW_MS）——
+     * 被测的 WI17 契约是「慢项走显式 TIMEOUT fallback」的分流逻辑，fixture 以
+     * slowFlag 确定性地给出 TIMEOUT 发射，真实延迟并非断言对象（串行 local runner
+     * 下也没有并发容量竞争可观测）。保留字段兼容既有测试引用（测试仍设置/复位），
+     * 但执行路径不再依赖任何真实时间流逝。
+     */
     public static volatile long SLOW_MS = 0;
     public static final AtomicInteger PEAK = new AtomicInteger();
     public static final List<String> RESULTS =
@@ -82,10 +90,8 @@ public final class E6AsyncBeans {
             PEAK.accumulateAndGet(now, Math::max);
             try {
                 if (slow) {
-                    Thread.sleep(SLOW_MS);
                     out.collect("TIMEOUT:" + value.get("item"));
                 } else {
-                    Thread.sleep(5);
                     out.collect("DONE:" + value.get("item"));
                 }
             } finally {

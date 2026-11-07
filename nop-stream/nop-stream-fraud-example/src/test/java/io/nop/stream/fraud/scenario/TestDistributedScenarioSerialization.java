@@ -18,6 +18,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.stream.core.jobgraph.JobGraph;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.launch.ClusterLaunchConfig;
 import io.nop.stream.runtime.launch.ClusterPipelineFactory;
 import io.nop.stream.runtime.protocol.RemotePipelineSpec;
@@ -334,14 +335,9 @@ class TestDistributedScenarioSerialization {
                 coordinator.startPeriodicCheckpoints(300L);
 
                 // mid-run-committed rows: the W0 alerts (alice/bob) must be durably
-                // committed while the bounded run is still flowing
-                long deadline = System.currentTimeMillis() + 60_000L;
-                while (System.currentTimeMillis() < deadline) {
-                    if (ScenarioTestSupport.readAlertRows(jdbc).size() >= 2) {
-                        break;
-                    }
-                    Thread.sleep(500L);
-                }
+                // committed while the bounded run is still flowing — 条件等待（上限仅挂死保护）
+                TestAwait.until("at least the W0 alert rows committed via the distributed commit chain",
+                        () -> ScenarioTestSupport.readAlertRows(jdbc).size() >= 2, 60_000L);
                 assertTrue(ScenarioTestSupport.readAlertRows(jdbc).size() >= 2,
                         "at least the W0 alert rows must be committed via the distributed "
                                 + "commit chain; rows=" + ScenarioTestSupport.readAlertRows(jdbc));

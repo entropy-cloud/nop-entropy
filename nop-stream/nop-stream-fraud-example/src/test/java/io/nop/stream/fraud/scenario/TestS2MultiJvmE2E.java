@@ -24,9 +24,9 @@ import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.probeStaleEpochRe
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.readLatestFencingEpoch;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.waitFor;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.waitForDurableManifest;
+import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.waitForExactlyOnceOutput;
 import static io.nop.stream.fraud.scenario.MultiJvmTestSupport.waitForEpochRotation;
 import static io.nop.stream.fraud.scenario.ScenarioTestSupport.T0;
-import static io.nop.stream.fraud.scenario.TestS2FileAggregationE2E.assertExactlyOnceOutput;
 import static io.nop.stream.fraud.scenario.TestS2FileAggregationE2E.readManifestKeys;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -151,31 +151,6 @@ class TestS2MultiJvmE2E {
 
     private Path outputDirOf(MiniStreamCluster cluster) {
         return cluster.getCheckpointDir().getParent().resolve("output");
-    }
-
-    @SuppressWarnings("BusyWait")
-    private void waitForExactlyOnceOutput(Path outputDir, Set<TxSummaryRow> expected,
-                                          long timeoutMs, String context) throws Exception {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        AssertionError last = null;
-        while (System.currentTimeMillis() < deadline) {
-            try {
-                assertExactlyOnceOutput(outputDir, expected);
-                return;
-            } catch (AssertionError e) {
-                last = e;
-            } catch (java.nio.file.NoSuchFileException e) {
-                // The output directory only appears when the sink first writes
-                // (constructor-time dir creation does not cross the JVM boundary:
-                // the running sink is the deserialized bean). A missing directory
-                // means "no committed output yet" — keep waiting, not a fatal error.
-                last = new AssertionError("output directory not created yet: " + outputDir, e);
-            }
-            Thread.sleep(500L);
-        }
-        throw new AssertionError(context + " — output did not converge to the expected set within "
-                + timeoutMs + "ms. Last assertion: " + last
-                + " outputRows=" + TestS2FileAggregationE2E.readOutputRows(outputDir));
     }
 
     @Test

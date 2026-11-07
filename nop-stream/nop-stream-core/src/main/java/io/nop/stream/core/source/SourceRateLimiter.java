@@ -7,6 +7,7 @@
  */
 package io.nop.stream.core.source;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.stream.core.exceptions.NopStreamErrors;
 import io.nop.stream.core.exceptions.StreamException;
 
@@ -60,7 +61,7 @@ public final class SourceRateLimiter implements Serializable {
         }
         this.rowsPerSecond = rowsPerSecond;
         this.bytesPerSecond = bytesPerSecond;
-        this.lastRefillNanos = System.nanoTime();
+        this.lastRefillNanos = CoreMetrics.nanoTime();
     }
 
     public long getRowsPerSecond() {
@@ -85,7 +86,7 @@ public final class SourceRateLimiter implements Serializable {
         if (isOff()) {
             return;
         }
-        long now = System.nanoTime();
+        long now = CoreMetrics.nanoTime();
         refill(now);
         while (true) {
             long waitNanos = deficitNanos(rows, bytes);
@@ -101,7 +102,7 @@ public final class SourceRateLimiter implements Serializable {
             }
             long sleepMs = Math.min(MAX_SLEEP_SLICE_MS, Math.max(1L, waitNanos / 1_000_000L));
             Thread.sleep(sleepMs);
-            refill(System.nanoTime());
+            refill(CoreMetrics.nanoTime());
         }
     }
 

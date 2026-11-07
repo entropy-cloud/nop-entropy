@@ -14,11 +14,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
 import io.nop.core.lang.sql.SQL;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.fraud.scenario.ChaosKillPlanner.KillStep;
 import io.nop.stream.fraud.scenario.ExerciseSampler.SampleRecord;
 import io.nop.stream.runtime.multijvm.MiniStreamCluster;
@@ -298,6 +300,11 @@ class TestStabilityExerciseMultiJvm {
         return events;
     }
 
+    /**
+     * RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：chaos 击杀的脚本化墙钟编排——
+     * 「运行 N ms 后杀」的时点本身是演练场景的真实时长语义（kill 必须落在 RUNNING 段），
+     * 虚拟时钟不可跨越 spawned JVM 边界；1s 分片 sleep 只是把长等待切成可中断片段。
+     */
     private static void sleepUntilKillTime(KillStep step, long emissionEndWallMs) throws InterruptedException {
         long killWallMs = System.currentTimeMillis() + step.getDelayMsBefore();
         while (System.currentTimeMillis() < killWallMs) {
@@ -326,6 +333,10 @@ class TestStabilityExerciseMultiJvm {
             long logSizeBefore = java.nio.file.Files.size(log);
             sendSignal(pid, "STOP");
             try {
+                // RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：分区窗口内租约到期
+                // 是否轮转 fencing 的观测等待——超时是演练的合法 negative outcome（recorded，
+                // not assert-aborted），条件等待工具的超时即抛语义无法表达该「窗口内未发生
+                // 也是证据」的分支；1s 间隔为跨 JVM DB 轮询的主动节流。
                 long deadline = System.currentTimeMillis() + partitionPauseMs + 30_000L;
                 rotated = lastFencingEpoch;
                 while (System.currentTimeMillis() < deadline) {
@@ -340,6 +351,9 @@ class TestStabilityExerciseMultiJvm {
                 // longer rotate fencing — the round outcome series carries the evidence.
                 event.put("leaseExpiryRotatedFencing", rotated > lastFencingEpoch);
                 sendSignal(pid, "CONT");
+                // RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：CONT 后给错误路由的
+                // stale view 一个真实时长暴露窗口再读日志——恢复投递是 spawned JVM 的真实
+                // 异步过程，负向断言无结构计数可观测，虚拟时钟不可达。
                 TimeUnit.MILLISECONDS.sleep(5000L);
                 String delta = readLogDelta(log, logSizeBefore);
                 event.put("staleViewRejectedOnResume", delta.contains("ERR_STREAM_FENCING_TOKEN_MISMATCH")
@@ -452,6 +466,11 @@ class TestStabilityExerciseMultiJvm {
         }
     }
 
+    /**
+     * RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：chaos 击杀的脚本化墙钟编排
+     * （与 {@link #sleepUntilKillTime} 同族）——延迟时点是演练场景的真实时长语义，
+     * 虚拟时钟不可跨越 spawned JVM 边界。
+     */
     private static void sleepFixed(long delayMs) throws InterruptedException {
         long deadline = System.currentTimeMillis() + delayMs;
         while (System.currentTimeMillis() < deadline) {
@@ -463,6 +482,10 @@ class TestStabilityExerciseMultiJvm {
      * HA variant of the fencing-rotation wait: any spawned coordinator may be the
      * live one (the leader we killed is legitimately dead), so the liveness guard
      * checks that AT LEAST ONE coordinator survives instead of index 0.
+     *
+     * <p>RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：超时返回 lastSeen（不抛）
+     * 是演练语义——轮次结果按 recorded-evidence 记入事件序列，由调用方在循环后裁决；
+     * 条件等待工具的超时即抛语义无法表达该分支。
      */
     private static long waitForFencingRotationAnyCoordinator(MiniStreamCluster cluster,
                                                              long baselineEpoch, long timeoutMs)
@@ -499,33 +522,37 @@ class TestStabilityExerciseMultiJvm {
         return Integer.parseInt(suffix.trim());
     }
 
-    private static void waitForLeaseLeaderId(MiniStreamCluster cluster, String contains, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            StabilityExerciseSupport.LeaseRow row = readLeaseRow(cluster);
-            if (row != null && row.leaderId.contains(contains) && row.leaderEpoch >= 1) {
-                return;
-            }
-            TimeUnit.MILLISECONDS.sleep(500L);
+    /** 条件等待 lease leader 就位（上限仅挂死保护；节奏由 spawned JVM 的租约写入决定）。 */
+    private static void waitForLeaseLeaderId(MiniStreamCluster cluster, String contains, long timeoutMs) {
+        try {
+            TestAwait.until("lease leader '" + contains + "' observed with epoch >= 1", () -> {
+                StabilityExerciseSupport.LeaseRow row = readLeaseRow(cluster);
+                return row != null && row.leaderId.contains(contains) && row.leaderEpoch >= 1;
+            }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new AssertionError("lease leader '" + contains + "' not observed within " + timeoutMs
+                    + "ms; lease=" + readLeaseRow(cluster), e);
         }
-        throw new AssertionError("lease leader '" + contains + "' not observed within " + timeoutMs
-                + "ms; lease=" + readLeaseRow(cluster));
     }
 
+    /** 条件等待 standby 接管（上限仅挂死保护；节奏由 spawned JVM 的租约写入决定）。 */
     private static StabilityExerciseSupport.LeaseRow waitForLeaseAwayFrom(MiniStreamCluster cluster,
-                                                                          String killedLeaderId, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            StabilityExerciseSupport.LeaseRow row = readLeaseRow(cluster);
-            if (row != null && !row.leaderId.contains(killedLeaderId) && row.leaderEpoch >= 1) {
-                return row;
-            }
-            TimeUnit.MILLISECONDS.sleep(500L);
+                                                                          String killedLeaderId, long timeoutMs) {
+        AtomicReference<StabilityExerciseSupport.LeaseRow> observed = new AtomicReference<>();
+        try {
+            TestAwait.until("lease moved away from the killed leader (standby takeover)", () -> {
+                StabilityExerciseSupport.LeaseRow row = readLeaseRow(cluster);
+                if (row != null && !row.leaderId.contains(killedLeaderId) && row.leaderEpoch >= 1) {
+                    observed.set(row);
+                    return true;
+                }
+                return false;
+            }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new AssertionError("standby takeover not observed within " + timeoutMs + "ms after killing "
+                    + killedLeaderId + "; lease=" + readLeaseRow(cluster), e);
         }
-        throw new AssertionError("standby takeover not observed within " + timeoutMs + "ms after killing "
-                + killedLeaderId + "; lease=" + readLeaseRow(cluster));
+        return observed.get();
     }
 
     // ==================== BP-1: S2 stepped throttle backpressure ====================

@@ -119,16 +119,18 @@ class TestCheckpointDualPlaneRetentionE2E {
         return completed;
     }
 
-    private static boolean await(java.util.function.BooleanSupplier predicate, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (predicate.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(20);
+    /**
+     * TestAwait-backed bounded async predicate — 确定性条件 + 挂死保护上限（60s，
+     * plan 2510）。Returns false on timeout so callers keep their own assertion
+     * messages with live state; the timeout is hang protection only.
+     */
+    private static boolean await(java.util.function.BooleanSupplier predicate, String what) {
+        try {
+            io.nop.stream.core.testsupport.TestAwait.until(what, predicate);
+            return true;
+        } catch (AssertionError e) {
+            return false;
         }
-        return predicate.getAsBoolean();
     }
 
     private static TreeSet<String> fileNames(Path pipelineDir, String suffix) throws Exception {
@@ -153,10 +155,12 @@ class TestCheckpointDualPlaneRetentionE2E {
             }
             final long newestFinal = newest;
 
-            assertTrue(await(() -> countFiles(pipelineDir, ".checkpoint") <= MAX_RETAINED, 15_000),
+            assertTrue(await(() -> countFiles(pipelineDir, ".checkpoint") <= MAX_RETAINED,
+                            "checkpoint plane converges"),
                     "checkpoint files must converge to <= maxRetained=" + MAX_RETAINED + " (was "
                             + countFiles(pipelineDir, ".checkpoint") + " after 10 completions)");
-            assertTrue(await(() -> countFiles(pipelineDir, ".epoch") <= MAX_RETAINED, 15_000),
+            assertTrue(await(() -> countFiles(pipelineDir, ".epoch") <= MAX_RETAINED,
+                            "manifest plane converges"),
                     ".epoch manifest files must converge to <= maxRetained=" + MAX_RETAINED + " (was "
                             + countFiles(pipelineDir, ".epoch") + " after 10 completions) — "
                             + "the SOAK-3 unbounded-manifest defect must stay closed at the coordinator level");

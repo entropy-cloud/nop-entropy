@@ -141,11 +141,9 @@ class TestTaskManagerDaemon {
                 .anyMatch(t -> t.getName().startsWith(namePrefix));
     }
 
-    private static void waitUntil(BooleanSupplier condition, long timeoutMs, String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (!condition.getAsBoolean() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20);
-        }
+    private static void waitUntil(BooleanSupplier condition, long timeoutMs, String message) {
+        // 条件等待复用 canonical TestAwait（超时上限仅作挂死保护，不再 sleep 轮询）
+        io.nop.stream.core.testsupport.TestAwait.until(message, condition, timeoutMs);
         assertTrue(condition.getAsBoolean(), message);
     }
 

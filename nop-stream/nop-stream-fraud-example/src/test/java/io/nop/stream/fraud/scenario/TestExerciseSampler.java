@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -94,14 +95,13 @@ class TestExerciseSampler {
             }
         });
         sampler.start();
-        long deadline = System.currentTimeMillis() + 2000L;
-        while (System.currentTimeMillis() < deadline && sampler.records().size() < 3) {
-            Thread.sleep(50L);
-            if (sampler.records().size() == 2) {
-                epoch[0] = 2L;
-                progress[0] = 5L;
-            }
-        }
+        // 确定性分步：等前两条样本落定后翻转输入源（原 50ms 轮询翻转的机械化条件等价），
+        // 再等翻转后的第三条样本——采样持续推进与记录数增长均为可观测事实
+        TestAwait.until("sampler collected the first two records", () -> sampler.records().size() >= 2, 2_000L);
+        epoch[0] = 2L;
+        progress[0] = 5L;
+        TestAwait.until("sampler collected a third record after the source flip",
+                () -> sampler.records().size() >= 3, 2_000L);
         sampler.close();
         assertTrue(sampler.records().size() >= 3, "collected " + sampler.records().size() + " records");
         assertTrue(Files.exists(file));
@@ -194,10 +194,7 @@ class TestExerciseSampler {
             }
         });
         sampler.start();
-        long deadline = System.currentTimeMillis() + 2000L;
-        while (System.currentTimeMillis() < deadline && sampler.records().size() < 2) {
-            Thread.sleep(50L);
-        }
+        TestAwait.until("sampler collected two records", () -> sampler.records().size() >= 2, 2_000L);
         sampler.close();
         assertTrue(sampler.records().size() >= 2);
         for (ExerciseSampler.SampleRecord record : sampler.records()) {

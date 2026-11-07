@@ -21,7 +21,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.AfterAll;

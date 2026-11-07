@@ -20,6 +20,9 @@ import io.nop.stream.core.operators.StreamSourceOperator;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.testsupport.TestAwait;
+
+import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.Test;
 
@@ -47,23 +50,25 @@ class TestWatermarkIdlenessCrossTaskE2E {
     /**
      * Source that emits one record + watermark 50, then marks itself idle and
      * waits for cancellation (the "silent partition" shape — an idle upstream
-     * subtask that never sends another watermark).
+     * subtask that never sends another watermark). 阻塞等待取消（测试 teardown 主动
+     * interrupt 结束），不再轮询 sleep。
      */
     static class GoesIdleSource implements SourceFunction<String> {
         private static final long serialVersionUID = 1L;
+
+        final CountDownLatch cancelled = new CountDownLatch(1);
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
             ctx.collectWithTimestamp("a", 10);
             ctx.emitWatermark(50);
             ctx.markAsTemporarilyIdle();
-            while (!ctx.isCancelled() && !Thread.currentThread().isInterrupted()) {
-                Thread.sleep(5);
-            }
+            cancelled.await();
         }
 
         @Override
         public void cancel() {
+            cancelled.countDown();
         }
     }
 
@@ -170,19 +175,17 @@ class TestWatermarkIdlenessCrossTaskE2E {
         assertTrue(!sourceThread.isAlive() && !middleThread.isAlive(), "tasks must exit");
     }
 
-    private static void awaitObserved(MergedWatermarkRecorder recorder, long watermark) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 10_000;
-        while (System.currentTimeMillis() < deadline) {
-            synchronized (recorder.observed) {
-                for (Object o : recorder.observed) {
-                    if (o instanceof Long && (Long) o == watermark) {
-                        return;
+    private static void awaitObserved(MergedWatermarkRecorder recorder, long watermark) {
+        // 条件等待（确定性事实：合并后的 watermark 已到达下游 head；observed 为
+        // CopyOnWriteArrayList，跨线程读安全），超时仅作挂死保护。
+        TestAwait.until("watermark " + watermark + " reached the downstream head",
+                () -> {
+                    for (Object o : recorder.observed) {
+                        if (o instanceof Long && (Long) o == watermark) {
+                            return true;
+                        }
                     }
-                }
-            }
-            Thread.sleep(10);
-        }
-        throw new AssertionError("watermark " + watermark + " never reached the downstream head. Observed: "
-                + recorder.observed);
+                    return false;
+                });
     }
 }

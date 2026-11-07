@@ -9,12 +9,16 @@ package io.nop.stream.core.common.state.backend.memory;
 
 import java.time.Duration;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.common.state.StateTtlConfig;
 import io.nop.stream.core.common.state.StateTtlUpdateType;
 import io.nop.stream.core.common.state.TtlContext;
 import io.nop.stream.core.common.state.TtlTimeProvider;
 import io.nop.stream.core.common.state.ValueState;
 import io.nop.stream.core.common.state.ValueStateDescriptor;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,8 +34,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * ({@link TtlContext#sweepExpired}), so no full-table copy and no
  * ConcurrentModificationException even when every entry in the map is removed
  * during the iteration.
+ *
+ * <p>时间确定化（plan 2510）：TTL 过期判定仍由测试局部的 {@link FakeClock} 驱动；
+ * 自动 sweep 的 nanotime 门经 {@code CoreMetrics.nanoTime()} 读取，测试注册
+ * {@link ManualClock} 显式推进越过 sweep 间隔触发，不再 sleep 等真实时间流逝。
  */
 class TestMemoryStateTtlSweep {
+
+    private ManualClock coreClock;
+
+    @BeforeEach
+    void registerManualClock() {
+        coreClock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(coreClock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     private static final class FakeClock implements TtlTimeProvider {
         long now;
@@ -125,11 +146,9 @@ class TestMemoryStateTtlSweep {
         state.update(1);
         clock.advance(60); // expired — and no value()/snapshot read may touch it below
 
-        try {
-            Thread.sleep(5); // let the nanotime gate elapse (deterministic in practice)
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // 虚拟时钟推进越过 1ms sweep 间隔：下一次 setCurrentKey 的 nanotime 门必然放行，
+        // 自动 sweep 确定性触发（不再 sleep 等真实时间流逝）。
+        coreClock.advance(100);
         backend.setCurrentKey("unrelated"); // the periodic trigger point — no read of "dead"
 
         assertTrue(state.ttlStorage().isEmpty(),

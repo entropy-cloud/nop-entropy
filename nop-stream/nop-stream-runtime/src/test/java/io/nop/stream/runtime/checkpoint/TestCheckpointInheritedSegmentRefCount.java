@@ -14,7 +14,7 @@ import io.nop.stream.core.common.state.ValueStateDescriptor;
 import io.nop.stream.core.common.state.backend.StateSnapshot;
 import io.nop.stream.rocksdb.RocksDBKeyedStateBackend;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;

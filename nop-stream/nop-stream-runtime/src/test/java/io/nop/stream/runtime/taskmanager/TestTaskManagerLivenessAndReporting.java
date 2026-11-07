@@ -7,8 +7,10 @@
  */
 package io.nop.stream.runtime.taskmanager;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.runtime.protocol.CheckpointAckMessage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
@@ -113,8 +115,9 @@ class TestTaskManagerLivenessAndReporting {
         StreamTaskInvokable inv = new StreamTaskInvokable(buildEmptyOperatorChain());
         taskManager.installInvokable("job-1", "v-1", 0, inv);
 
-        // Wait for task thread to run to completion
-        Thread.sleep(200);
+        // Wait for the terminal report to land (条件等待，超时仅作挂死保护)
+        TestAwait.until("terminal report landed after the task completed",
+                () -> !coordinatorRpc.statusReports.isEmpty());
 
         assertFalse(coordinatorRpc.statusReports.isEmpty(),
                 "RunningTask finally block must report terminal status");
@@ -189,36 +192,54 @@ class TestTaskManagerLivenessAndReporting {
      */
     @Test
     void idleSinkTaskHeartbeatReportsFreshAliveness() throws Exception {
-        long token = 1L;
-        taskManager.updateFencingToken(token);
-        TaskAssignment a = new TaskAssignment(
-                "job-1", "v-idle", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
-        taskManager.receiveAssignment(a);
+        // 时间确定化（plan 2510）：markActivity 的时间读取经 CoreMetrics，测试注册
+        // ManualClock —— idle 主循环每轮迭代在读时钟（markActivity），读取计数增长
+        // 即「循环在持续重新求值」的结构性证据；推进虚拟时间后，心跳上报的
+        // aliveness 必须等于虚拟当前时刻（pre-fix 上报构造期冻结值即 RED），
+        // 不再比较墙钟窗口。时钟是 JVM 全局量：用例内注册、finally 恢复。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            long token = 1L;
+            taskManager.updateFencingToken(token);
+            TaskAssignment a = new TaskAssignment(
+                    "job-1", "v-idle", 0, "node-1", "att-1", token, System.currentTimeMillis(), 1);
+            taskManager.receiveAssignment(a);
 
-        // SINK-role invokable: input gate that is never finished but never
-        // delivers data → the task runs an idle loop.
-        StreamTaskInvokable inv = new StreamTaskInvokable(
-                buildEmptyOperatorChain(), (io.nop.stream.core.execution.RecordWriter<Object>) null,
-                new IdleInputGate());
-        taskManager.installInvokable("job-1", "v-idle", 0, inv);
+            // SINK-role invokable: input gate that is never finished but never
+            // delivers data → the task runs an idle loop.
+            StreamTaskInvokable inv = new StreamTaskInvokable(
+                    buildEmptyOperatorChain(), (io.nop.stream.core.execution.RecordWriter<Object>) null,
+                    new IdleInputGate());
+            taskManager.installInvokable("job-1", "v-idle", 0, inv);
 
-        // Let the idle loop run past the idle-return threshold several times.
-        // 负向窗口：idle 循环期间任务必须保持 running（循环维持不变量）
-        TestAwait.staysTrue("idle task stays running",
-                () -> taskManager.getRunningTaskCount() == 1, 800);
-        assertEquals(1, taskManager.getRunningTaskCount(),
-                "idle task must still be running (not completed, not failed)");
+            // 结构性证据：idle 主循环已多次重新求值（每轮 markActivity 读时钟，
+            // 读取计数增长），任务仍 running —— 替代旧的固定观察窗。
+            TestAwait.until("idle loop is cycling (clock reads keep growing)",
+                    () -> clock.totalReads() >= 50);
+            assertEquals(1, taskManager.getRunningTaskCount(),
+                    "idle task must still be running (not completed, not failed)");
 
-        taskManager.heartbeat();
-        List<TaskProgress> batch = coordinatorRpc.livenessBatches.get(coordinatorRpc.livenessBatches.size() - 1);
-        assertNotNull(batch, "heartbeat must report liveness for the idle task");
-        assertEquals(1, batch.size(), "exactly one running task → one liveness entry");
-        long reported = batch.get(0).getLastProgressTime();
-        assertTrue(reported >= System.currentTimeMillis() - 300L,
-                "idle task heartbeat must report FRESH aliveness (got " + reported
-                        + "); a stale value ages past taskTimeoutMs and falsely triggers stall recovery");
+            // 推进虚拟时间越过 idle 循环的后续求值点：接线验证（推进前循环冻结在
+            // 旧时刻，推进后 activity 必然追平虚拟当前时刻）。
+            clock.advance(5_000L);
+            TestAwait.until("idle loop re-evaluated after the virtual advance",
+                    () -> clock.totalReads() >= 500);
 
-        taskManager.cancelTask("job-1", "v-idle", 0, token);
+            taskManager.heartbeat();
+            List<TaskProgress> batch = coordinatorRpc.livenessBatches.get(coordinatorRpc.livenessBatches.size() - 1);
+            assertNotNull(batch, "heartbeat must report liveness for the idle task");
+            assertEquals(1, batch.size(), "exactly one running task → one liveness entry");
+            long reported = batch.get(0).getLastProgressTime();
+            assertEquals(clock.peekMillis(), reported,
+                    "idle task heartbeat must report FRESH aliveness == the virtual now the "
+                            + "loop-top keeps refreshing (a value frozen at construction ages past "
+                            + "taskTimeoutMs and falsely triggers stall recovery)");
+
+            taskManager.cancelTask("job-1", "v-idle", 0, token);
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     /**
@@ -263,9 +284,10 @@ class TestTaskManagerLivenessAndReporting {
         // No invokable installed: a cancel must still be safe and must not
         // fabricate a terminal FAILED report.
         taskManager.cancelTask("job-1", "v-fail", 0, token);
-        // 负向窗口：cancel 后不得产生虚假 FAILED 报告（循环维持不变量）
-        TestAwait.staysTrue("no spurious FAILED report after cancel",
-                () -> coordinatorRpc.statusReports.isEmpty(), 150);
+        // 确定性证据：被取消任务的线程已走完 finally（注册表项移除 = finally 中的
+        // 动作，其后仅剩被 cancel 抑制的报告提交点）——结构证据替代固定观察窗。
+        TestAwait.until("canceled task's finally completed (registry entry removed)",
+                () -> taskManager.getRunningTaskCount() == 0);
 
         // Canceled task → no report (per design)
         // We only assert that no spurious FAILED report was emitted.
@@ -273,6 +295,8 @@ class TestTaskManagerLivenessAndReporting {
             assertNotEquals(TaskStatusReport.TerminalState.FAILED, r.getTerminalState(),
                     "canceled task should not produce a spurious FAILED report");
         }
+        assertTrue(coordinatorRpc.statusReports.isEmpty(),
+                "no terminal report at all for a canceled task (per design)");
     }
 
     @Test
@@ -289,7 +313,9 @@ class TestTaskManagerLivenessAndReporting {
         // cancel without installing invokable — must not throw
         assertDoesNotThrow(() -> taskManager.cancelTask("job-1", "v-cancel", 0, token));
 
-        Thread.sleep(150);
+        // 确定性信号：等槽位释放（条件等待，不再固定 sleep）
+        TestAwait.until("task slot released after cancel without invokable",
+                () -> taskManager.getRunningTaskCount() == 0);
         assertEquals(0, taskManager.getRunningTaskCount(),
                 "task slot must be released after cancel even without invokable");
     }

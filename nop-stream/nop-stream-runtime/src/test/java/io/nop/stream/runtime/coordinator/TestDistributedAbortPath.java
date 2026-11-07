@@ -26,6 +26,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
@@ -154,14 +155,12 @@ class TestDistributedAbortPath {
 
     /**
      * CC-06 (plan 2435): the triggerCheckpoint barrier crosses RPC via the
-     * per-node fan-out executors — wait (bounded) for the server impl to see
-     * it. plan 2436 fix-up after the wave's deferred Maven re-run.
+     * per-node fan-out executors — 条件等待 server impl 观测到 barrier（外部可观测
+     * 计数），上限仅挂死保护。plan 2436 fix-up after the wave's deferred Maven re-run.
      */
-    private void awaitBarrierTriggered() throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (serverImpl.triggerCount.get() < 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+    private void awaitBarrierTriggered() {
+        TestAwait.until("triggerCheckpoint barrier crossed RPC to the server impl",
+                () -> serverImpl.triggerCount.get() >= 1);
     }
 
     private static CheckpointConfig fastConfig() {

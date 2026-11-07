@@ -15,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.TimeUnit;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -168,11 +167,15 @@ class TestCheckpointDualRunDifferential {
         // operator identities and restores the keyed reduce accumulators from the
         // latest durable DATA checkpoint (measured: boundary-state continuation).
         CheckpointConfig config1 = localCheckpointConfig(storageDir);
-        JobGraph jg1 = buildLocalJobGraph(config1, new RecordingTwoPhaseSink(LOCAL_JOB_ID, committed));
+        java.util.concurrent.atomic.AtomicInteger signal1 = new java.util.concurrent.atomic.AtomicInteger(0);
+        JobGraph jg1 = buildLocalJobGraph(config1,
+                new RecordingTwoPhaseSink(LOCAL_JOB_ID, committed, FIRST_INPUT.size(), signal1));
         GraphModelCheckpointExecutor.executeWithCheckpoint(jg1, LOCAL_JOB_ID, config1);
 
         CheckpointConfig config2 = localCheckpointConfig(storageDir);
-        JobGraph jg2 = buildLocalJobGraph(config2, new RecordingTwoPhaseSink(LOCAL_JOB_ID, committed));
+        java.util.concurrent.atomic.AtomicInteger signal2 = new java.util.concurrent.atomic.AtomicInteger(0);
+        JobGraph jg2 = buildLocalJobGraph(config2,
+                new RecordingTwoPhaseSink(LOCAL_JOB_ID, committed, FIRST_INPUT.size(), signal2));
         GraphModelCheckpointExecutor.executeWithCheckpoint(jg2, LOCAL_JOB_ID, config2);
     }
 
@@ -201,7 +204,7 @@ class TestCheckpointDualRunDifferential {
         env.getCheckpointConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE);
         // PacingInput re-iterates the same input on every run (running flips only
         // on cancel), so run 2 replays FIRST_INPUT over the restored accumulators.
-        buildPipeline(env, new PacingInput<>(FIRST_INPUT, 25L), sink);
+        buildPipeline(env, new PacingInput<>(FIRST_INPUT, -1, sink.getCommitSignal()), sink);
         return env.buildJobGraph(LOCAL_JOB_ID);
     }
 
@@ -223,15 +226,40 @@ class TestCheckpointDualRunDifferential {
         config.setCheckpointTimeout(30_000L);
         config.setMaxRetainedCheckpoints(5);
         config.setStorageProperty("path", storageDir.toFile().getAbsolutePath());
-        buildPipeline(env, new PacingInput<>(FIRST_INPUT, 25L),
+        buildPipeline(env, new PacingInput<>(FIRST_INPUT, -1, null),
                 new RecordingTwoPhaseSink(DIST_JOB_ID, committed));
         JobGraph jobGraph = env.buildJobGraph(DIST_JOB_ID);
         StreamModel model = jobGraph.getStreamModel();
 
         IMessageService messageService = new LocalMessageService();
         InMemoryClusterRegistry clusterRegistry = new InMemoryClusterRegistry();
+        // 订阅观测面：LocalMessageService 的订阅表（IMessageService 接口无此能力，
+        // gate lambda 内经具体类型读取）。
+        LocalMessageService localMessages = (LocalMessageService) messageService;
         LocalFileCheckpointStorage storage =
                 new LocalFileCheckpointStorage(storageDir.toFile().getAbsolutePath());
+
+        // 时间确定化（plan 2510）：订阅窗口从固定 750ms 改为确定性条件——下游全部数据
+        // 通道（每条 edge 一个 topic，parallelism 1 → 子任务对 (0,0)）已在
+        // LocalMessageService 上出现订阅后，source 才开始发送。topic 名与
+        // RemoteGraphExecutionPlanBuilder 的构造逻辑逐字一致（edgeId = "src->tgt"，
+        // 由 StreamTopicNaming.buildTopic 统一净化）。
+        java.util.Set<String> expectedTopics = new java.util.HashSet<>();
+        Map<String, Integer> pairCounts = new LinkedHashMap<>();
+        for (JobEdge edge : jobGraph.getEdges()) {
+            pairCounts.merge(edge.getSourceVertex() + "->" + edge.getTargetVertex(), 1, Integer::sum);
+        }
+        Map<String, Integer> pairOrdinals = new LinkedHashMap<>();
+        for (JobEdge edge : jobGraph.getEdges()) {
+            String pairKey = edge.getSourceVertex() + "->" + edge.getTargetVertex();
+            String edgeId = pairCounts.get(pairKey) > 1
+                    ? pairKey + "#" + pairOrdinals.merge(pairKey, 1, Integer::sum)
+                    : pairKey;
+            expectedTopics.add(io.nop.stream.runtime.transport.StreamTopicNaming.buildTopic(
+                    jobGraph.getJobName(), edgeId, 0, 0));
+        }
+        PacingInput.SUBSCRIBE_GATE = () -> localMessages.getConsumers().keySet()
+                .containsAll(expectedTopics);
 
         // Topology assembly mirrors deploy.TestRemoteDeployCheckpointWiringE2E.
         long fencingEpoch = JobCoordinator.deriveHaFencingEpoch(0L, 1L);
@@ -307,8 +335,15 @@ class TestCheckpointDualRunDifferential {
             coordinator.assignTasks();
             coordinator.startPeriodicCheckpoints(150L);
 
-            assertTrue(waitFor(() -> countCommitted(committed) >= FIRST_INPUT.size(), 60_000L),
-                    "distributed face must commit every input element; committed=" + committed);
+            io.nop.stream.core.testsupport.TestAwait.until(
+                    "distributed face must commit every input element",
+                    () -> countCommitted(committed) >= FIRST_INPUT.size());
+            // 多 epoch 契约（下方 (b)/(epoch count) 断言的前置）：分布式面停止前必须已
+            // 落地 >= 2 个 durable epoch manifest（确定性条件；source 的 linger 维持任务
+            // 存活，周期 checkpoint 持续触发直到计数满足）。
+            io.nop.stream.core.testsupport.TestAwait.until(
+                    "distributed face must produce >= 2 durable epochs",
+                    () -> countManifests(storageDir.toFile().getAbsolutePath()) >= 2);
             // Stop the coordinator BEFORE teardown: post-EOS periodic triggers would
             // hit the finished-partition barrier-injection window and spin recovery.
             try {
@@ -318,6 +353,7 @@ class TestCheckpointDualRunDifferential {
             }
             coordinator = null;
         } finally {
+            PacingInput.SUBSCRIBE_GATE = () -> true;
             if (coordinator != null) {
                 try {
                     coordinator.stop();
@@ -349,7 +385,11 @@ class TestCheckpointDualRunDifferential {
     private static void buildPipeline(StreamExecutionEnvironment env,
                                       io.nop.stream.core.common.functions.source.SourceFunction<Integer> source,
                                       RecordingTwoPhaseSink sink) {
+        // Sentinel filter: PacingInput's linger heartbeats carry a negative value and
+        // are dropped before the keyed operators/sink, so committed outputs and keyed
+        // accumulator state see exactly the declared input.
         env.addSource(source, "paced-source")
+                .filter(v -> v >= 0)
                 .map(v -> v)
                 .keyBy(v -> v % 2)
                 .reduce((a, b) -> a + b)
@@ -558,60 +598,102 @@ class TestCheckpointDualRunDifferential {
                 "local", "memory", "local", null, null);
     }
 
-    private static boolean waitFor(java.util.function.BooleanSupplier condition, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return true;
-            }
-            TimeUnit.MILLISECONDS.sleep(100L);
-        }
-        return condition.getAsBoolean();
-    }
-
     // ==================== fixture UDFs ====================
 
-    /** Pacing wrapper: throttles an in-memory input list so periodic checkpoints interleave. */
+    /**
+     * Pacing wrapper (时间确定化 plan 2510): emits the in-memory input list, then
+     * keeps the source task alive (draining checkpoint control mails at each
+     * collect) until the run's commits have landed — the deterministic form of the
+     * old fixed pacing + finish-linger sleeps. Heartbeat elements carry a negative
+     * value and are dropped by the pipeline's sentinel filter before the keyed
+     * operators, so committed outputs are unaffected.
+     */
     static final class PacingInput<T>
-            implements io.nop.stream.core.common.functions.source.SourceFunction<T> {
+            implements io.nop.stream.core.common.functions.source.SourceFunction<T>,
+            io.nop.stream.core.common.state.CheckpointListener {
         private static final long serialVersionUID = 1L;
 
-        private final List<T> input;
-        private final long delayMs;
-        private volatile boolean running = true;
+        /**
+         * In-process harness gate (same JVM, set by the test before deploy):
+         * replaces the old fixed subscribe-window sleep — the source only starts
+         * emitting after the downstream data channels subscribed. Static, never
+         * serialized; defaults to pass-through for the local (in-process chaining)
+         * leg.
+         */
+        static volatile java.util.function.BooleanSupplier SUBSCRIBE_GATE = () -> true;
 
-        PacingInput(List<T> input, long delayMs) {
+        /**
+         * Harness hang-protection bound for the linger loop — max heartbeat collects
+         * (200µs service cadence each ⇒ ~40s wall). Normal runs exit via the commit
+         * signal / cancel long before; touched only when checkpoint commit wiring
+         * is broken. Each heartbeat drains the control mailbox.
+         */
+        private static final long LINGER_SPIN_CAP = 200_000L;
+
+        private final List<T> input;
+        /** Heartbeat element the pipeline's sentinel filter drops (never reaches the keyed operators/sink). */
+        private final T heartbeat;
+        /** Set by the run's RecordingTwoPhaseSink when all expected commits landed; null = no signal. */
+        private final java.util.concurrent.atomic.AtomicInteger commitSignal;
+        private volatile boolean running = true;
+        private volatile long completions;
+        private volatile long aborts;
+
+        PacingInput(List<T> input, T heartbeat, java.util.concurrent.atomic.AtomicInteger commitSignal) {
             this.input = input;
-            this.delayMs = delayMs;
+            this.heartbeat = heartbeat;
+            this.commitSignal = commitSignal;
         }
 
         @Override
         public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<T> ctx)
                 throws Exception {
-            // subscribe window: in-process LocalMessageService drops sends before the
-            // downstream consumer subscribes (deploy.TestRemoteDeployCheckpointWiringE2E fix)
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("downstream consumer subscribe window", 750L);
+            completions = 0;
+            aborts = 0;
+            // subscribe gate: in-process LocalMessageService drops sends before the
+            // downstream consumer subscribes (deploy.TestRemoteDeployCheckpointWiringE2E
+            // fix) — deterministic condition wait instead of a fixed window.
+            io.nop.stream.core.testsupport.TestAwait.until(
+                    "downstream data channels subscribed before the source emits",
+                    SUBSCRIBE_GATE::getAsBoolean);
             for (T value : input) {
                 if (!running) {
                     return;
                 }
                 ctx.collect(value);
-                if (delayMs > 0) {
-                    Thread.sleep(delayMs);
-                }
             }
-            // finish linger: keep the source task alive so trailing periodic
-            // checkpoints can complete while tasks exist (bounded-run determinism).
-            // Long enough that the final commits land before EOS — post-EOS
-            // periodic triggers hit the finished-partition barrier-injection
-            // window (StreamSourceOperator#offerBarrier after finish).
-            Thread.sleep(1500L);
+            // finish linger: keep the source task alive (draining control mails via
+            // heartbeat collects) so trailing periodic checkpoints can complete and
+            // their commits land before EOS — post-EOS periodic triggers hit the
+            // finished-partition barrier-injection window
+            // (StreamSourceOperator#offerBarrier after finish). Deterministic exits:
+            // commit signal (local leg), task cancel (distributed leg), completion/
+            // abort counts, spin cap (hang protection only). The short park between
+            // heartbeats is only the mailbox-servicing cadence — it bounds wire
+            // volume (distributed leg) without carrying any time semantics: the
+            // loop's exit is always a deterministic condition.
+            long spins = 0;
+            while (running && (commitSignal == null || commitSignal.get() == 0)
+                    && completions < 30 && aborts < 10 && spins < LINGER_SPIN_CAP) {
+                java.util.concurrent.locks.LockSupport.parkNanos(200_000L);
+                ctx.collect(heartbeat);
+                spins++;
+            }
         }
 
         @Override
         public void cancel() {
             running = false;
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            completions++;
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+            aborts++;
         }
     }
 
@@ -641,9 +723,29 @@ class TestCheckpointDualRunDifferential {
         private final List<Integer> currentBuffer = new ArrayList<>();
         volatile long lastRestoredEpoch = -1L;
 
+        /**
+         * Linger signal (plan 2510 deterministic form): set to 1 once this run's
+         * expected commit count landed — PacingInput's finish-linger exits on it.
+         * Null for the distributed leg (the test thread observes commits there and
+         * stops the coordinator; the deserialized task-side copy shares no signal).
+         */
+        private final transient java.util.concurrent.atomic.AtomicInteger commitSignal;
+        private final int expectedCommits;
+
         RecordingTwoPhaseSink(String jobId, List<Integer> committedSink) {
+            this(jobId, committedSink, 0, null);
+        }
+
+        RecordingTwoPhaseSink(String jobId, List<Integer> committedSink, int expectedCommits,
+                              java.util.concurrent.atomic.AtomicInteger commitSignal) {
             this.jobId = jobId;
             this.committedSink = committedSink;
+            this.expectedCommits = expectedCommits;
+            this.commitSignal = commitSignal;
+        }
+
+        java.util.concurrent.atomic.AtomicInteger getCommitSignal() {
+            return commitSignal;
         }
 
         @Override
@@ -691,6 +793,10 @@ class TestCheckpointDualRunDifferential {
                 }
                 getPendingCommits().remove(checkpointId);
                 committedEpochs.put(checkpointId, ((List<Integer>) raw).size());
+                // Linger signal for PacingInput (plan 2510 deterministic finish-linger).
+                if (commitSignal != null && committedElements.size() >= expectedCommits) {
+                    commitSignal.set(1);
+                }
             }
         }
 

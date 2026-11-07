@@ -11,6 +11,7 @@ import io.micrometer.core.instrument.Gauge;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.execution.transport.TypeRegistry;
 import io.nop.stream.core.metrics.StreamMetricsRegistries;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.transport.ChannelQueueGauges;
 import io.nop.stream.runtime.transport.RemoteInputChannel;
 import io.nop.stream.runtime.transport.RemoteResultPartition;
@@ -74,13 +75,12 @@ class TestChannelQueueFillRatioGauge {
             assertEquals(0.0, ratio.value(), "empty queue = 0 fill");
 
             // real enqueue path fills the queue: ratio > 0 afterwards
+            // 条件等待（LocalMessageService dispatch 异步落队），上限仅挂死保护。
             for (int i = 0; i < 5; i++) {
                 producer.write(new io.nop.stream.core.streamrecord.StreamRecord<>("msg-" + i));
             }
-            long deadline = System.currentTimeMillis() + 5000L;
-            while (System.currentTimeMillis() < deadline && !(ratio.value() > 0.0)) {
-                Thread.sleep(20L);
-            }
+            TestAwait.until("fill ratio must read > 0 after enqueue (async dispatch landed)",
+                    () -> ratio.value() > 0.0);
             assertTrue(ratio.value() > 0.0 && ratio.value() <= 1.0,
                     "fill ratio must be in (0,1] after enqueue, got " + ratio.value());
 

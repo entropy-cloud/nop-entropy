@@ -8,7 +8,7 @@
 package io.nop.stream.runtime.taskmanager;
 
 import io.nop.stream.runtime.protocol.CheckpointAckMessage;
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
 import io.nop.api.core.message.IMessageSubscription;
@@ -210,18 +210,28 @@ class TestTaskManager {
         long token = 1L;
         smallTm.updateFencingToken(token);
 
-        TaskAssignment assignment = new TaskAssignment(
-                "job-1", "vertex-1", 0,
-                "node", "attempt-1", token,
-                System.currentTimeMillis());
-
-        smallTm.receiveAssignment(assignment);
-
-        Thread.sleep(100);
+        // 负载稳定化（plan 2510 修正）：deployTask + 门控源，先取「源已进入 run()」
+        // 的确定性证据再 cancel。原 receiveAssignment 形态下 cancel 可能先于任务
+        // 线程启动落地——RunningTask.run() 的 canceled-before-execution 早退在 try
+        // 之前返回、不经过 finally、不产生终态记录，条件等待等的是该路径根本不
+        // 产生的证据（全模块运行 60s 超时实测）。deployTask 自动安装 invokable；
+        // cancel 经 mailbox + source.cancel() 让 run() 确定性退出，finally 必然
+        // 执行并记录终态，permit 的 CAS 判定点必已越过，不会二次释放。
+        InterruptInsensitiveGatedSource source = new InterruptInsensitiveGatedSource();
+        smallTm.deployTask(new TaskDeploymentDescriptor(
+                "job-1", "vertex-1", 0, "node",
+                "attempt-1", 1, token,
+                singleSourceJobGraph("job-1", "vertex-1", source), null, null), token);
+        source.awaitRunning(5_000L);
 
         smallTm.cancelTask("job-1", "vertex-1", 0, token);
+        // 该门控源按设计忽略取消中断（fenced-attempt 语义），显式放行退出——
+        // run() 退出后 finally 必然执行并记录终态。
+        source.release();
 
-        Thread.sleep(200);
+        // 确定性信号：被取消任务的线程已执行其 finally（终态结果落盘）。
+        TestAwait.until("canceled task's finally recorded its terminal result",
+                () -> smallTm.getCompletedTaskResults().containsKey("job-1/vertex-1/0"));
 
         Semaphore sem = null;
         int available = smallTm.availablePermits();
@@ -273,21 +283,35 @@ class TestTaskManager {
         long token = 1L;
         smallTm.updateFencingToken(token);
 
-        for (int i = 0; i < 2; i++) {
-            TaskAssignment assignment = new TaskAssignment(
-                    "job-1", "vertex-1", i,
-                    "node", "attempt-" + i, token,
-                    System.currentTimeMillis());
-            smallTm.receiveAssignment(assignment);
-        }
-
-        Thread.sleep(100);
+        // 负载稳定化（plan 2510 修正）：与 testCancelTaskDoesNotDoubleReleaseSemaphore
+        // 同形——deployTask + 门控源 + awaitRunning 确定性证据，避免 cancel 先于
+        // 任务线程启动落地时终态记录永不产生（canceled-before-execution 早退不经过
+        // finally）。
+        InterruptInsensitiveGatedSource source0 = new InterruptInsensitiveGatedSource();
+        smallTm.deployTask(new TaskDeploymentDescriptor(
+                "job-1", "vertex-1", 0, "node",
+                "attempt-0", 1, token,
+                singleSourceJobGraph("job-1", "vertex-1", source0, 2), null, null), token);
+        InterruptInsensitiveGatedSource source1 = new InterruptInsensitiveGatedSource();
+        smallTm.deployTask(new TaskDeploymentDescriptor(
+                "job-1", "vertex-1", 1, "node",
+                "attempt-1", 1, token,
+                singleSourceJobGraph("job-1", "vertex-1", source1, 2), null, null), token);
+        source0.awaitRunning(5_000L);
+        source1.awaitRunning(5_000L);
 
         smallTm.cancelTask("job-1", "vertex-1", 0, token);
         smallTm.cancelTask("job-1", "vertex-1", 1, token);
+        // 门控源按设计忽略取消中断，显式放行退出（finally 必然执行并记录终态）。
+        source0.release();
+        source1.release();
 
-        // 确定性信号：等两次 cancel 的释放落地（available 回升）
+        // 确定性信号：等两次 cancel 的释放落地（available 回升）且被取消任务的
+        // 线程已各自执行 finally（终态结果落盘，permit CAS 判定点必已越过）
         TestAwait.until("cancels release permits", () -> smallTm.availablePermits() >= 2);
+        TestAwait.until("canceled tasks' finally blocks recorded their terminal results",
+                () -> smallTm.getCompletedTaskResults().containsKey("job-1/vertex-1/0")
+                        && smallTm.getCompletedTaskResults().containsKey("job-1/vertex-1/1"));
 
         int available = smallTm.availablePermits();
         assertTrue(available <= 2,
@@ -551,12 +575,11 @@ class TestTaskManager {
                     System.currentTimeMillis());
             taskManager.receiveAssignment(assignment);
 
-            // Never install the invokable — wait for the timeout to fire.
-            long deadline = System.currentTimeMillis() + 5_000;
-            while (taskManager.getCompletedTaskResults().isEmpty()
-                    && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
+            // Never install the invokable — wait for the timeout to fire. 条件等待
+            // 观测其结果（RunningTask 内部的 invokable-latch 超时等待属生产实现
+            // 内部的真实时长语义，测试侧以确定性条件观测其终态）。
+            TestAwait.until("task terminated after the invokable-install timeout",
+                    () -> !taskManager.getCompletedTaskResults().isEmpty());
 
             String key = "job-1/vertex-1/0";
             TaskResult result = taskManager.getCompletedTaskResults().get(key);
@@ -747,13 +770,20 @@ class TestTaskManager {
             staleSource.release();
             assertTrue(staleSource.awaitExited(5_000L), "stale attempt 1 must exit its run()");
             // Deterministic wait for the stale attempt's FINALLY block: it records
-            // the task in completedTaskResults right before the registry remove.
+            // the task in completedTaskResults as its first action, and the rest of
+            // the finally (conditional registry remove + permit CAS) is non-blocking
+            // — 观测到终态落盘即 finally 已越过 remove 决策点（结构性证据，替代
+            // 旧的固定观察窗）。
             String staleKey = "job-race/vertex-race/0";
             waitForCondition(() -> tm.getCompletedTaskResults().containsKey(staleKey), 5_000L);
-            // ... and let any post-remove effects settle (registry visibility).
-            // 负向窗口：陈旧 attempt 的退出不得影响替换任务（循环维持不变量）
-            TestAwait.staysTrue("replacement registry entry survives stale exit",
-                    () -> tm.getRunningTaskCount() == 1, 200L);
+            // 负向断言：陈旧 attempt 的退出不得影响替换任务 —— 其 finally 的
+            // 条件 remove 是 no-op（非 owner），替换任务的注册表项存活。
+            assertEquals(1, tm.getRunningTaskCount(),
+                    "the replacement's registry entry must survive the stale attempt's exit "
+                            + "(before the fix the stale finally removed it — the fresh task became "
+                            + "invisible to triggerCheckpoint/cancelTask)");
+            assertEquals(1, tm.availablePermits(),
+                    "stale attempt exit must not double-release its semaphore permit");
 
             assertEquals(1, tm.getRunningTaskCount(),
                     "the replacement's registry entry must survive the stale attempt's exit "
@@ -978,10 +1008,11 @@ class TestTaskManager {
             releaseBuild.countDown();
             deployF.join(10_000L);
             assertFalse(deployF.isAlive(), "deploy F thread must terminate after its failed build");
+            // deployTask 的失败回滚（条件 remove + permit 归还）在 deployF 线程内
+            // 同步完成后才向外抛出 —— join 返回即回滚已完成（确定性结构证据，
+            // 替代旧的固定观察窗）。
 
-            // 负向窗口：F 的回滚不得删除 S 的注册表项（循环维持不变量）
-            TestAwait.staysTrue("S registry entry survives F rollback",
-                    () -> tm.getRunningTaskCount() == 1, 200L);
+            // 负向断言：F 的回滚不得删除 S 的注册表项。
             assertEquals(1, tm.getRunningTaskCount(),
                     "S's registry entry must survive F's failed-build rollback "
                             + "(legacy unconditional remove deleted the successor's mapping)");
@@ -1000,6 +1031,12 @@ class TestTaskManager {
 
     private static JobGraph singleSourceJobGraph(String jobId, String vertexId,
                                                  io.nop.stream.core.common.functions.source.SourceFunction<Integer> source) {
+        return singleSourceJobGraph(jobId, vertexId, source, 1);
+    }
+
+    private static JobGraph singleSourceJobGraph(String jobId, String vertexId,
+                                                 io.nop.stream.core.common.functions.source.SourceFunction<Integer> source,
+                                                 int parallelism) {
         io.nop.stream.core.operators.StreamSourceOperator<Integer> sourceOp =
                 new io.nop.stream.core.operators.StreamSourceOperator<>(source);
         io.nop.stream.core.jobgraph.OperatorChain chain =
@@ -1018,30 +1055,37 @@ class TestTaskManager {
                 new io.nop.stream.core.execution.task.StreamTaskInvokable(sinkChain);
         JobGraph graph = new JobGraph(jobId);
         graph.addVertex(new io.nop.stream.core.jobgraph.JobVertex(
-                vertexId, "Source", 1, java.util.Collections.singletonList(chain), invokable));
+                vertexId, "Source", parallelism, java.util.Collections.singletonList(chain), invokable));
         graph.addVertex(new io.nop.stream.core.jobgraph.JobVertex(
-                vertexId + "-sink", "Sink", 1, java.util.Collections.singletonList(sinkChain), sinkInvokable));
+                vertexId + "-sink", "Sink", parallelism, java.util.Collections.singletonList(sinkChain), sinkInvokable));
         graph.addEdge(new io.nop.stream.core.jobgraph.JobEdge(
                 vertexId, vertexId + "-sink", io.nop.stream.core.jobgraph.ResultPartitionType.PIPELINED));
         return graph;
     }
 
-    /** Gated source that ignores interrupts: models a fenced attempt's slow wind-down. */
+    /**
+     * Gated source that ignores interrupts: models a fenced attempt's slow wind-down.
+     * 时间确定化（plan 2510）：run() 以 latch 阻塞等待 release（显式同步，无
+     * sleep 轮询）；latch 的 await 被取消中断打断时按设计吞掉中断继续等待
+     * （fenced attempt 的缓慢退出语义），直到 release 真正到来。
+     */
     static final class InterruptInsensitiveGatedSource
             implements io.nop.stream.core.common.functions.source.SourceFunction<Integer> {
         private volatile boolean released = false;
         private volatile boolean running = false;
         private volatile boolean exited = false;
+        private final java.util.concurrent.CountDownLatch releaseLatch =
+                new java.util.concurrent.CountDownLatch(1);
 
         @Override
         public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<Integer> ctx) throws Exception {
             running = true;
             while (!released) {
                 try {
-                    Thread.sleep(20L);
+                    releaseLatch.await();
                 } catch (InterruptedException e) {
-                    // Fenced-attempt wind-down: ignore the cancel interrupt.
-                    Thread.currentThread().interrupt();
+                    // Fenced-attempt wind-down: ignore the cancel interrupt and
+                    // keep waiting until the explicit release.
                 }
             }
             exited = true;
@@ -1050,44 +1094,27 @@ class TestTaskManager {
         @Override
         public void cancel() {
             released = true;
+            releaseLatch.countDown();
         }
 
         void release() {
             released = true;
+            releaseLatch.countDown();
         }
 
-        boolean awaitRunning(long timeoutMs) throws InterruptedException {
-            long deadline = System.currentTimeMillis() + timeoutMs;
-            while (System.currentTimeMillis() < deadline) {
-                if (running) {
-                    return true;
-                }
-                Thread.sleep(10L);
-            }
+        boolean awaitRunning(long timeoutMs) {
+            TestAwait.until("gated source entered its run()", () -> running, timeoutMs);
             return running;
         }
 
-        boolean awaitExited(long timeoutMs) throws InterruptedException {
-            long deadline = System.currentTimeMillis() + timeoutMs;
-            while (System.currentTimeMillis() < deadline) {
-                if (exited) {
-                    return true;
-                }
-                Thread.sleep(10L);
-            }
+        boolean awaitExited(long timeoutMs) {
+            TestAwait.until("gated source exited its run()", () -> exited, timeoutMs);
             return exited;
         }
     }
 
-    private static void waitForCondition(java.util.function.BooleanSupplier condition, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(20L);
-        }
+    private static void waitForCondition(java.util.function.BooleanSupplier condition, long timeoutMs) {
+        TestAwait.until("condition met", condition, timeoutMs);
     }
 
     // ==================== Mocks ====================

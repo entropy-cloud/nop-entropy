@@ -51,6 +51,19 @@ class TestE2EBoundedJobCheckpointAfterPartialCompletion {
     private static final String JOB_ID = "bounded-c3-e2e";
     private static final String PIPELINE_ID = "1";
 
+    /**
+     * Harness linger signal (plan 2510): highest durable epoch id observed by the
+     * slow branch's CheckpointListener callback + abort count + heartbeat bound.
+     * The executed source is the graph-template instance (StreamSourceOperator
+     * shares the UDF for plain functions), so statics are visible to the test.
+     */
+    private static final java.util.concurrent.atomic.AtomicLong PARK_MAX_COMPLETED_ID =
+            new java.util.concurrent.atomic.AtomicLong(-1);
+    private static final java.util.concurrent.atomic.AtomicLong PARK_ABORTS =
+            new java.util.concurrent.atomic.AtomicLong();
+    /** Linger bound: max heartbeats (100µs service interval each ⇒ ~5s wall). */
+    private static final long PARK_MAX_HEARTBEATS = 50_000L;
+
     private LocalFileCheckpointStorage storage;
 
     @AfterEach
@@ -60,23 +73,71 @@ class TestE2EBoundedJobCheckpointAfterPartialCompletion {
         }
     }
 
-    private JobVertex sourceVertex(String id, long emitPeriodMs, int count) {
-        StreamSourceOperator<Integer> sourceOp = new StreamSourceOperator<>(
-                new SourceFunction<Integer>() {
+    /**
+     * Listener variant of the slow-branch source: emits the values, then lingers —
+     * draining checkpoint control mails via heartbeat records (the no-op sink
+     * ignores them) — until at least 6 periodic epochs have completed durably
+     * (ids 0..5, i.e. latest id ≥ 5: the exact quantity the post-execute
+     * assertion pins), the deterministic form of the old fixed emit pacing.
+     * Observes epoch completions via the coordinator's UDF listener notification.
+     */
+    private static final class FiveEpochLingerSource
+            implements SourceFunction<Integer>, io.nop.stream.core.common.state.CheckpointListener {
+        private static final long serialVersionUID = 1L;
+
+        private final int count;
+
+        FiveEpochLingerSource(int count) {
+            this.count = count;
+        }
+
+        @Override
+        public void run(SourceContext<Integer> ctx) {
+            PARK_MAX_COMPLETED_ID.set(-1);
+            PARK_ABORTS.set(0);
+            for (int i = 1; i <= count; i++) {
+                ctx.collect(i);
+            }
+            for (long i = 0; i < PARK_MAX_HEARTBEATS
+                    && PARK_MAX_COMPLETED_ID.get() < 5 && PARK_ABORTS.get() < 3; i++) {
+                ctx.collect(0);
+                java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+            }
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            PARK_MAX_COMPLETED_ID.accumulateAndGet(checkpointId, Math::max);
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+            PARK_ABORTS.incrementAndGet();
+        }
+    }
+
+    private JobVertex sourceVertex(String id, int count, boolean lingerForFiveEpochs) {
+        SourceFunction<Integer> fn = lingerForFiveEpochs
+                ? new FiveEpochLingerSource(count)
+                : new SourceFunction<Integer>() {
                     private static final long serialVersionUID = 1L;
 
                     @Override
-                    public void run(SourceContext<Integer> ctx) throws Exception {
+                    public void run(SourceContext<Integer> ctx) {
                         for (int i = 1; i <= count; i++) {
                             ctx.collect(i);
-                            Thread.sleep(emitPeriodMs);
                         }
                     }
 
                     @Override
                     public void cancel() {
                     }
-                });
+                };
+        StreamSourceOperator<Integer> sourceOp = new StreamSourceOperator<>(fn);
         OperatorChain chain = new OperatorChain(Collections.singletonList(sourceOp));
         StreamTaskInvokable invokable = new StreamTaskInvokable(chain);
         return new JobVertex(id, id, 1, Collections.singletonList(chain), invokable);
@@ -100,13 +161,15 @@ class TestE2EBoundedJobCheckpointAfterPartialCompletion {
         storage = new LocalFileCheckpointStorage(tempDir.toString());
 
         JobGraph jobGraph = new JobGraph(JOB_ID);
-        // Fast branch: source1 (5 × 10ms) → sink1 — completes within ~100ms.
-        jobGraph.addVertex(sourceVertex("source-1", 10L, 5));
+        // Fast branch: source1 emits 5 records and finishes immediately — sink1
+        // completes early, creating the partial-completion state.
+        jobGraph.addVertex(sourceVertex("source-1", 5, false));
         jobGraph.addVertex(sinkVertex("sink-1"));
         jobGraph.addEdge(new JobEdge("source-1", "sink-1", ResultPartitionType.PIPELINED));
-        // Slow branch: source2 (10 × 130ms ≈ 1.3s) → sink2 — keeps the job alive
-        // while periodic checkpoints are triggered.
-        jobGraph.addVertex(sourceVertex("source-2", 130L, 10));
+        // Slow branch: source2 emits 10 records then lingers (drain-servicing
+        // heartbeats) until the 6th periodic epoch is durable — keeps the job alive
+        // while periodic checkpoints are triggered and complete.
+        jobGraph.addVertex(sourceVertex("source-2", 10, true));
         jobGraph.addVertex(sinkVertex("sink-2"));
         jobGraph.addEdge(new JobEdge("source-2", "sink-2", ResultPartitionType.PIPELINED));
 

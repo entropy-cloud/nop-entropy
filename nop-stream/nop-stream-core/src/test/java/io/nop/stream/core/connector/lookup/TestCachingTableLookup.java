@@ -7,8 +7,14 @@
  */
 package io.nop.stream.core.connector.lookup;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -20,8 +26,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicIntegerArray;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ERR_STREAM_INVALID_ARG;
@@ -36,10 +40,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * TTL/penetration-guard cache, scan/execute background refresh with a REAL bounded
  * concurrency (dual assertion: overlap observed AND capped), refresh-failure keep-old
  * semantics, maxEntries victim eviction, idempotent typed close, and serialization
- * lazy re-init. All time control uses stub latches + deadline polling (no bare sleeps
- * deciding pass/fail).
+ * lazy re-init.
+ *
+ * <p>时间确定化（plan 2510）：TTL 判定经 {@code CoreMetrics.nanoTime()}，测试注册
+ * {@link ManualClock} 推进过期；后台扫描调度经注入的 {@link ManualScheduler} 推进触发，
+ * 不再等待真实毫秒定时器；跨线程交接用 latch / 条件等待。
  */
 class TestCachingTableLookup {
+
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     /** Versioned stub: per-key current value, load counter, optional failure injection. */
     static class StubLookup implements ITableLookup {
@@ -58,9 +78,9 @@ class TestCachingTableLookup {
             int now = inFlight.incrementAndGet();
             maxInFlight.accumulateAndGet(now, Math::max);
             try {
-                long deadline = System.currentTimeMillis() + 5000L;
-                while (holdKeys.contains(key) && System.currentTimeMillis() < deadline) {
-                    Thread.sleep(20L);
+                // 显式同步：held lookup 等 release latch（超时仅作挂死保护），不再轮询墙钟。
+                if (holdKeys.contains(key)) {
+                    holdRelease.await(5, TimeUnit.SECONDS);
                 }
                 if (failing) {
                     failCount.incrementAndGet();
@@ -77,17 +97,15 @@ class TestCachingTableLookup {
         }
     }
 
-    private static CachingTableLookup newLookup(StubLookup stub, long ttlMs, long refreshMs,
-                                                int concurrency, int maxEntries) {
-        return new CachingTableLookup(stub, ttlMs, refreshMs, concurrency, maxEntries);
+    private CachingTableLookup newLookup(StubLookup stub, long ttlMs, long refreshMs,
+                                         int concurrency, int maxEntries) {
+        return newLookup(stub, ttlMs, refreshMs, concurrency, maxEntries, null);
     }
 
-    /** Polls until the condition holds or the deadline expires (no bare sleeps). */
-    private static void awaitTrue(AtomicReference<Boolean> observed, long timeoutMs) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline && !Boolean.TRUE.equals(observed.get())) {
-            Thread.sleep(10L);
-        }
+    private CachingTableLookup newLookup(StubLookup stub, long ttlMs, long refreshMs,
+                                         int concurrency, int maxEntries,
+                                         ManualScheduler scanScheduler) {
+        return new CachingTableLookup(stub, ttlMs, refreshMs, concurrency, maxEntries, scanScheduler);
     }
 
     @Test
@@ -101,14 +119,8 @@ class TestCachingTableLookup {
         assertEquals("v1", lookup.lookup("k"), "within TTL the cached value is served");
         assertEquals(1, stub.loadCount.get(), "cache hit must not requery");
 
-        // TTL expiry: poll (never a bare sleep deciding the outcome) until age > ttl
-        long deadline = System.currentTimeMillis() + 2000L;
-        while (System.currentTimeMillis() - deadline < 0 || System.currentTimeMillis() < deadline) {
-            if (lookup.lookup("k").equals("v2")) {
-                break;
-            }
-            Thread.sleep(20L);
-        }
+        // TTL 过期由虚拟时钟推进触发：推进越过 ttl 后下一次 lookup 必然回源
+        clock.advance(200);
         assertEquals("v2", lookup.lookup("k"), "expired entry must fall back to a synchronous requery");
         lookup.close();
     }
@@ -128,18 +140,19 @@ class TestCachingTableLookup {
     @Test
     void backgroundRefreshUpdatesValueWithoutSyncRequery() throws Exception {
         StubLookup stub = new StubLookup();
+        ManualScheduler scan = new ManualScheduler(clock);
         stub.values.put("k", "v1");
-        CachingTableLookup lookup = newLookup(stub, 60_000L, 80L, 1, 100);
+        CachingTableLookup lookup = newLookup(stub, 60_000L, 80L, 1, 100, scan);
 
         assertEquals("v1", lookup.lookup("k"));
         int loadsAfterSync = stub.loadCount.get();
 
         stub.values.put("k", "v2"); // only the background refresh sees this
-        long deadline = System.currentTimeMillis() + 5000L;
-        while (System.currentTimeMillis() < deadline && !"v2".equals(lookup.lookup("k"))) {
-            Thread.sleep(20L);
-        }
-        assertEquals("v2", lookup.lookup("k"), "background refresh must renew the cached value");
+        // 扫描调度由虚拟时间推进触发（不再等真实 80ms 周期）；刷新本体仍在有界线程池异步执行，
+        // 以条件等待观测其完成。
+        scan.advance(200);
+        TestAwait.until("background refresh renewed the cached value",
+                () -> "v2".equals(lookup.lookup("k")));
         assertTrue(stub.loadCount.get() > loadsAfterSync, "refresh performs real delegate calls");
         lookup.close();
     }
@@ -151,13 +164,14 @@ class TestCachingTableLookup {
      * probe for the roadmap's "bounded concurrent async mode".
      *
      * <p>Deterministic: two keys are pre-loaded synchronously (no parking), THEN marked
-     * as hold keys; the next refresh scan parks both workers, the observer confirms
-     * inFlight = 2, and release lets them finish.
+     * as hold keys; the scan (advanced on the manual scheduler) parks both workers, the
+     * observer confirms inFlight = 2, and release lets them finish.
      */
     @Test
     void refreshConcurrencyOverlapsAndStaysCapped() throws Exception {
         StubLookup stub = new StubLookup();
-        CachingTableLookup lookup = newLookup(stub, 60_000L, 50L, 2, 100);
+        ManualScheduler scan = new ManualScheduler(clock);
+        CachingTableLookup lookup = newLookup(stub, 60_000L, 50L, 2, 100, scan);
 
         stub.values.put("b0", "v0");
         stub.values.put("b1", "v1");
@@ -171,15 +185,6 @@ class TestCachingTableLookup {
         CountDownLatch bothInFlight = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         Thread observer = new Thread(() -> {
-            long deadline = System.currentTimeMillis() + 5000L;
-            while (System.currentTimeMillis() < deadline && stub.inFlight.get() < 2) {
-                try {
-                    Thread.sleep(5L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    return;
-                }
-            }
             try {
                 if (stub.inFlight.get() >= 2) {
                     bothInFlight.countDown();
@@ -189,10 +194,11 @@ class TestCachingTableLookup {
                 release.countDown();
             }
         });
+        scan.advance(100);
         observer.start();
-        assertTrue(bothInFlight.await(6, TimeUnit.SECONDS),
-                "refresh delegate calls must genuinely overlap (inFlight reached 2) — "
-                        + "a serial implementation cannot pass this");
+        TestAwait.until("refresh workers parked in the stub (inFlight reached 2)",
+                () -> stub.inFlight.get() >= 2);
+        bothInFlight.countDown();
         release.countDown();
         observer.join(3000L);
         assertTrue(stub.maxInFlight.get() <= 2,
@@ -203,27 +209,25 @@ class TestCachingTableLookup {
     @Test
     void refreshFailureKeepsStaleValueAndRecovers() throws Exception {
         StubLookup stub = new StubLookup();
+        ManualScheduler scan = new ManualScheduler(clock);
         stub.values.put("k", "stable");
-        CachingTableLookup lookup = newLookup(stub, 60_000L, 60L, 1, 100);
+        CachingTableLookup lookup = newLookup(stub, 60_000L, 60L, 1, 100, scan);
         assertEquals("stable", lookup.lookup("k"));
 
         // the failing mode stays on until we have VERIFIED staleness — no recovery race
         stub.failing = true;
         stub.values.put("k", "updated");
-        long deadline = System.currentTimeMillis() + 5000L;
-        while (System.currentTimeMillis() < deadline && stub.failCount.get() == 0) {
-            Thread.sleep(20L);
-        }
-        assertTrue(stub.failCount.get() >= 1, "the background refresh must have attempted and failed");
+        scan.advance(200);
+        TestAwait.until("the background refresh attempted and failed",
+                () -> stub.failCount.get() >= 1);
         assertEquals("stable", lookup.lookup("k"),
                 "a failed refresh keeps the stale value (cache intact, no sync requery)");
 
-        // recovery: failing off → the next background refresh picks up the new value
+        // recovery: failing off → the next scan picks up the new value
         stub.failing = false;
-        deadline = System.currentTimeMillis() + 5000L;
-        while (System.currentTimeMillis() < deadline && !"updated".equals(lookup.lookup("k"))) {
-            Thread.sleep(20L);
-        }
+        scan.advance(200);
+        TestAwait.until("recovered refresh delivers the new value",
+                () -> "updated".equals(lookup.lookup("k")));
         assertEquals("updated", lookup.lookup("k"), "recovered refresh delivers the new value");
         lookup.close();
     }
@@ -236,10 +240,11 @@ class TestCachingTableLookup {
         stub.values.put("c", "3");
         CachingTableLookup lookup = newLookup(stub, 60_000L, 60_000L, 1, 2);
 
+        // 虚拟时钟制造不同的 load 时刻（最老 victim 排序），不再用真实 sleep 间隔
         lookup.lookup("a");
-        Thread.sleep(5L); // distinct load times (oldest-victim ordering)
+        clock.advance(1);
         lookup.lookup("b");
-        Thread.sleep(5L);
+        clock.advance(1);
         lookup.lookup("c");
         assertEquals(2, lookup.materializedSize(), "over capacity → oldest victim evicted");
 

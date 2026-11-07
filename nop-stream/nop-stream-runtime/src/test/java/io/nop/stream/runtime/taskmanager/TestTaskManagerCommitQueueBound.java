@@ -18,6 +18,7 @@ import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.metrics.TaskNodeMetrics;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
@@ -80,10 +81,10 @@ class TestTaskManagerCommitQueueBound {
             // return immediately (not the first), so the notify loop cannot
             // race the queue drain.
             tm.notifyCheckpointComplete(1L, token);
-            long parkedDeadline = System.currentTimeMillis() + 2000;
-            while (participant.commits.get() < 1 && System.currentTimeMillis() < parkedDeadline) {
-                Thread.sleep(10);
-            }
+            // 确定性信号：commit #1 已在阻塞的 commit 线程上进入 finishCommit
+            // （条件等待，超时仅作挂死保护）
+            TestAwait.until("commit #1 entered finishCommit on the blocked commit thread",
+                    () -> participant.commits.get() >= 1, 5000);
             assertEquals(1, participant.commits.get(),
                     "commit #1 must be in flight on the blocked commit thread");
 
@@ -131,7 +132,9 @@ class TestTaskManagerCommitQueueBound {
             CountingParticipant participant = new CountingParticipant(blocker);
             tm.installInvokable("job-cc10-b", "v-sink", 0, new CommitSinkInvokable(participant));
             awaitTaskRunning(tm);
-            startDelayedReleaser(blocker, 1500);
+            // 阻塞的 commit 由 finally 的 blocker.countDown() + stop() 收口释放；
+            // 不再用定时释放线程制造 1.5s 固定窗口——本用例的断言（队列上界 +
+            // gauge 追踪）在阻塞期间即可确定性判定。
 
             // With the commit thread blocked, 2 notifications fit the queue; a
             // third runs on the caller thread (CallerRuns). Depth must never
@@ -179,33 +182,14 @@ class TestTaskManagerCommitQueueBound {
 
     // ==================== helpers & stubs ====================
 
-    private static void awaitTaskRunning(TaskManager tm) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 2000;
-        while (tm.getRunningTaskCount() != 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20);
-        }
+    private static void awaitTaskRunning(TaskManager tm) {
+        TestAwait.until("task is running before notifications fire",
+                () -> tm.getRunningTaskCount() == 1, 5000);
         assertEquals(1, tm.getRunningTaskCount(), "task must be running before notifications fire");
     }
 
-    private static void startDelayedReleaser(CountDownLatch blocker, long delayMs) {
-        Thread releaser = new Thread(() -> {
-            try {
-                Thread.sleep(delayMs);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
-            }
-            blocker.countDown();
-        }, "cc10-blocker-releaser");
-        releaser.setDaemon(true);
-        releaser.start();
-    }
-
-    private static void awaitAllCommits(CountingParticipant participant, int expected)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 8000;
-        while (participant.commits.get() < expected && System.currentTimeMillis() < deadline) {
-            Thread.sleep(50);
-        }
+    private static void awaitAllCommits(CountingParticipant participant, int expected) {
+        TestAwait.until("every commit eventually ran", () -> participant.commits.get() >= expected, 10_000);
         assertEquals(expected, participant.commits.get(), "every commit must eventually run");
     }
 

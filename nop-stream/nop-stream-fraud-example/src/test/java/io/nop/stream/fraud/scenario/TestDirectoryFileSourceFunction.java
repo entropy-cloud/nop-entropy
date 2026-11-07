@@ -18,6 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -233,12 +234,7 @@ public class TestDirectoryFileSourceFunction {
         });
         first.start();
         // 确定性信号：等 first 真正进入读取阻塞点后再启动 second（子任务互斥语义）
-        long deadline = System.currentTimeMillis() + 60_000;
-        while (first.isAlive() && first.getState() != Thread.State.WAITING
-                && first.getState() != Thread.State.TIMED_WAITING
-                && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20);
-        }
+        TestAwait.untilThreadSettles("first subtask entered the reader blocking point", first);
         secondReader.start();
         secondReader.join(3000);
         first.join(3000);

@@ -7,17 +7,16 @@ import io.nop.api.core.message.MessageSendOptions;
 import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * Tests resource-management behavior for the base-connector MessageSourceFunction.
@@ -62,7 +61,7 @@ class TestConnectorResourceManagement {
         assertTrue(subscribed.await(30, TimeUnit.SECONDS));
 
         source.cancel();
-        awaitUntil("source thread must exit after cancel", () -> !runner.isAlive());
+        TestAwait.until("source thread must exit after cancel", () -> !runner.isAlive());
     }
 
     @Test
@@ -86,7 +85,8 @@ class TestConnectorResourceManagement {
             }
         });
         runner.start();
-        awaitUntil("runner must exit after collect failure sets failed flag", () -> !runner.isAlive());
+        TestAwait.until("runner must exit after collect failure sets failed flag",
+                () -> !runner.isAlive());
     }
 
     private static final IMessageSubscription STUB_SUBSCRIPTION = new IMessageSubscription() {
@@ -96,18 +96,6 @@ class TestConnectorResourceManagement {
         @Override public void suspend() {}
         @Override public void resume() {}
     };
-
-    /** Event-driven wait: returns as soon as the condition holds; the deadline only guards against hangs. */
-    private static void awaitUntil(String message, BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 30_000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(10);
-        }
-        fail(message + " (condition not met within 30s)");
-    }
 
     private static class SimpleTestMessageService implements IMessageService {
         @Override

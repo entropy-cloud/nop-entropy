@@ -8,12 +8,15 @@
 package io.nop.stream.runtime.launch;
 
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
+
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.commons.util.StringHelper;
 import io.nop.core.initialize.CoreInitialization;
@@ -24,6 +27,7 @@ import io.nop.stream.runtime.taskmanager.TaskManager;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -172,7 +176,11 @@ class TestJobCoordinatorMain {
     @Test
     void coordinatorWaitsForTaskManagerRegistration() throws Exception {
         // Coordinator starts BEFORE the TaskManager; nodeRegistrationTimeoutMs
-        // must be honored. Start a TaskManager after a short delay.
+        // must be honored. 时间确定化（plan 2510）：不再用固定 500ms 延后启动
+        // TaskManager——先把 start() 放到独立线程并以「线程已到达注册等待阻塞点」
+        // （untilThreadParked，pollIntervalMs 轮询下的 TIMED_WAITING）为结构证据
+        // 确认协调器确实在等待注册、且尚未返回，再启动 TaskManager 放行，
+        // 启动顺序由显式同步而非时间窗决定。
         ClusterLaunchConfig jcConfig = ClusterLaunchConfig.parse(new String[]{
                 "jobId=" + jobId,
                 "jdbcUrl=" + jdbcUrl,
@@ -182,39 +190,52 @@ class TestJobCoordinatorMain {
                 "nodeRegistrationTimeoutMs=8000",
                 "pollIntervalMs=20"});
 
-        // Spawn the TaskManager asynchronously after 500ms.
-        Thread async = new Thread(() -> {
+        AtomicReference<JobCoordinator> started = new AtomicReference<>(null);
+        Thread startThread = new Thread(() -> {
+            JobCoordinatorMain main = new JobCoordinatorMain(jcConfig);
             try {
-                Thread.sleep(500L);
-            } catch (InterruptedException ignored) {
-                return;
+                started.set(main.start());
+            } catch (Exception e) {
+                // surfaced via the started reference below
+            } finally {
+                mains.add(main);
             }
+        }, "jc-registration-wait-start");
+        startThread.setDaemon(true);
+        startThread.start();
+
+        try {
+            // 结构证据：start() 线程已进入注册等待阻塞点，且尚未返回协调器。
+            TestAwait.untilThreadParked("coordinator start() blocked on registration wait", startThread);
+            assertNull(started.get(),
+                    "start() must not return before the expected TaskManager registers");
+
+            // 放行：TaskManager 注册 → start() 返回。
             ClusterLaunchConfig tmConfig = ClusterLaunchConfig.parse(new String[]{
                     "nodeId=" + nodeId,
                     "jdbcUrl=" + jdbcUrl,
                     "topicNamespace=" + topicNamespace,
                     "pollIntervalMs=20"});
             taskMain = new TaskManagerMain(tmConfig);
-            try {
-                taskMain.start();
-            } catch (Exception e) {
-                // surfaced via taskMain null-check below
-            }
-        }, "async-tm-launch");
-        async.setDaemon(true);
-        async.start();
+            taskMain.start();
 
-        JobCoordinatorMain main = new JobCoordinatorMain(jcConfig);
-        try {
-            JobCoordinator coordinator = main.start();
-            assertNotNull(coordinator, "Coordinator must start after the TaskManager registers within timeout");
+            TestAwait.until("coordinator start() returned after the TaskManager registered",
+                    () -> started.get() != null);
+            assertNotNull(started.get(),
+                    "Coordinator must start after the TaskManager registers within timeout");
         } finally {
-            main.shutdown();
-            try {
-                async.join(2000L);
-            } catch (InterruptedException ignored) {
-                Thread.currentThread().interrupt();
+            for (JobCoordinatorMain main : mains) {
+                try {
+                    main.shutdown();
+                } catch (Exception ignored) {
+                    // best-effort teardown
+                }
             }
+            mains.clear();
         }
     }
+
+    /** Mains created on the start thread (shutdown from the test thread in finally). */
+    private final java.util.List<JobCoordinatorMain> mains =
+            java.util.Collections.synchronizedList(new java.util.ArrayList<>());
 }

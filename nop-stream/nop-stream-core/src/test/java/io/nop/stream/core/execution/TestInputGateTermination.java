@@ -61,10 +61,13 @@ public class TestInputGateTermination {
         });
         reader.start();
 
-        // 负向窗口：慢生产者不导致 gate 终止（循环维持不变量）
-        TestAwait.staysTrue("gate does not terminate on slow producer",
-                () -> !finished.get(), 500);
+        // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——gate 终止是
+        // 事件驱动（全通道 EOS），p1 未 close 时结构性不可能终止；reader 线程已
+        // 到达其读取循环阻塞点（settled：阻塞于 read 轮询）且未退出，即「慢生产者
+        // 未导致 gate 终止」的结构证明，不再用 500ms 墙钟不变量窗口。
+        TestAwait.untilThreadSettles("reader reached its read-loop blocking point", reader);
         assertFalse(finished.get(), "Gate should not terminate just because of slow producer");
+        assertTrue(reader.isAlive(), "Reader must still be cycling while the producer is slow");
 
         p1.write(new StreamRecord<>("b"));
         p1.close();

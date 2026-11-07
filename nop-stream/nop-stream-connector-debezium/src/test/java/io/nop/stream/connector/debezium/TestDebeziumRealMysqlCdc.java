@@ -10,6 +10,7 @@ import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
 import io.nop.stream.core.checkpoint.TaskLocation;
 import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -122,20 +123,16 @@ class TestDebeziumRealMysqlCdc {
     /**
      * MySQL 官方镜像初始化会经历「临时 server → SHUTDOWN → 正式 server」自重启窗口，
      * 容器就绪探测可能落在临时 server 上——Debezium 的连接横跨重启窗口即 EOF。
-     * 引擎启动前等待 server 稳定（uptime 40s + 双间隔探测成功）。
+     * 引擎启动前条件等待 server 稳定（gated 真库面，虚拟时钟不适用）：轮询探测直到
+     * 可连通且可执行查询，并以连续两次成功探测确认稳定；等待时长由真实容器就绪决定，
+     * 超时上限只作挂死保护。
      */
     private static void awaitStableMySql() {
-        long startedAt = System.currentTimeMillis();
         try {
-            while (System.currentTimeMillis() - startedAt < 40_000L) {
-                Thread.sleep(2_000L);
-            }
-            for (int i = 0; i < 2; i++) {
-                try (Connection conn = dbConn(); Statement st = conn.createStatement()) {
-                    st.execute("SELECT 1");
-                }
-                Thread.sleep(5_000L);
-            }
+            TestAwait.until("MySQL container accepts and executes a probe query",
+                    TestDebeziumRealMysqlCdc::probeQueryOk, 120_000L);
+            TestAwait.until("MySQL container serves a second consecutive probe (stable)",
+                    TestDebeziumRealMysqlCdc::probeQueryOk, 60_000L);
             // 观测辅助（gated 调试）：general_log 落表，失败时可从服务器视角还原连接行为
             try (Connection conn = dbConn(); Statement st = conn.createStatement()) {
                 st.execute("SET GLOBAL general_log = 'ON'");
@@ -143,6 +140,15 @@ class TestDebeziumRealMysqlCdc {
             }
         } catch (Exception e) {
             throw new IllegalStateException("MySQL container not stable after startup window", e);
+        }
+    }
+
+    private static boolean probeQueryOk() {
+        try (Connection conn = dbConn(); Statement st = conn.createStatement()) {
+            st.execute("SELECT 1");
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -307,14 +313,13 @@ class TestDebeziumRealMysqlCdc {
 
     private static void waitUntil(List<ChangeEvent> events, int minCount, long timeoutMs,
                                   String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (events.size() < minCount && System.currentTimeMillis() < deadline) {
-            Thread.sleep(100);
-        }
-        if (events.size() < minCount) {
+        try {
+            TestAwait.until("collected at least " + minCount + " events",
+                    () -> events.size() >= minCount, timeoutMs);
+        } catch (AssertionError e) {
             dumpServerStateOnTimeout();
+            assertTrue(events.size() >= minCount, message + " (collected=" + events.size() + ")");
         }
-        assertTrue(events.size() < minCount ? false : true, message + " (collected=" + events.size() + ")");
     }
 
     /**
@@ -337,16 +342,19 @@ class TestDebeziumRealMysqlCdc {
 
     private static void waitUntilKey(List<ChangeEvent> events, String key, long timeoutMs,
                                      String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            for (ChangeEvent e : events) {
-                if (key.equals(keyString(e))) {
-                    return;
-                }
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("event with key " + key + " delivered",
+                    () -> {
+                        for (ChangeEvent e : events) {
+                            if (key.equals(keyString(e))) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            fail(message + " (key=" + key + ", collected=" + events.size() + ")");
         }
-        fail(message + " (key=" + key + ", collected=" + events.size() + ")");
     }
 
     /**

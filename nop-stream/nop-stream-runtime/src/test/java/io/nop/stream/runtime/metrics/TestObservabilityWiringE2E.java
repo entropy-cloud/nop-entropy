@@ -61,7 +61,12 @@ class TestObservabilityWiringE2E {
         List<Integer> sinkResults = Collections.synchronizedList(new ArrayList<>());
         int recordCount = 12;
 
-        JobGraph jobGraph = buildSourceToSinkGraph(jobId, sinkResults, recordCount, 60L);
+        // 时间确定化（plan 2510）：不再用 60ms/条 pacing 把运行拉过真实 200ms
+        // 周期 checkpoint——运行终止路径的 final checkpoint（CANCEL 模式
+        // triggerFinalCheckpoint）确定性完成并持久化，满足「at least one
+        // checkpoint completes」与 checkpoints.completed >= 1 断言，无真实
+        // 时间依赖（周期 200 保留为生产默认调度形态）。
+        JobGraph jobGraph = buildSourceToSinkGraph(jobId, sinkResults, recordCount);
 
         CheckpointConfig config = new CheckpointConfig();
         config.setJobId(jobId);
@@ -153,7 +158,7 @@ class TestObservabilityWiringE2E {
     }
 
     private JobGraph buildSourceToSinkGraph(String jobId, List<Integer> sinkResults,
-                                            int recordCount, long emitDelayMs) {
+                                            int recordCount) {
         SourceFunction<Integer> sourceFn = new SourceFunction<Integer>() {
             private static final long serialVersionUID = 1L;
 
@@ -161,7 +166,6 @@ class TestObservabilityWiringE2E {
             public void run(SourceContext<Integer> ctx) throws Exception {
                 for (int i = 1; i <= recordCount; i++) {
                     ctx.collect(i);
-                    Thread.sleep(emitDelayMs);
                 }
             }
 

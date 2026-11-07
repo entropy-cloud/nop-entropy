@@ -13,9 +13,10 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
 import io.nop.core.lang.sql.SQL;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -235,13 +236,20 @@ class TestMultiJvmExactlyOnceRecovery {
         }
     }
 
-    private static long waitForInitialAssignment(MiniStreamCluster cluster, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
+    /**
+     * 条件等待共享 DB 中的首个初始分配（外部可观测状态）；coordinator 进程死亡即抛错
+     * （fail-fast 携带日志路径），超时上限仅挂死保护。跨 spawned-JVM 边界无法虚拟时钟，
+     * 等待时长 = 协调器启动 + 首次分配的真实时长（plan 2510 gated 边界口径）。
+     */
+    private static long waitForInitialAssignment(MiniStreamCluster cluster, long timeoutMs) {
+        AtomicLong epochRef = new AtomicLong(0L);
+        TestAwait.until("initial assignment to appear at a positive fencing epoch "
+                + "(coordinator start → CoreInitialization → connect DB → wait for TMs "
+                + "→ build JobGraph → assignTasks)", () -> {
             long epoch = readLatestFencingEpoch(cluster);
             if (epoch > 0L && countTaskAssignments(cluster, epoch) >= 2) {
-                return epoch;
+                epochRef.set(epoch);
+                return true;
             }
             // Fail-fast if the coordinator died.
             if (!cluster.coordinatorAlive()) {
@@ -249,28 +257,31 @@ class TestMultiJvmExactlyOnceRecovery {
                         "Coordinator process exited before assigning tasks. Log: "
                                 + cluster.logFileFor(COORDINATOR_LABEL));
             }
-            TimeUnit.MILLISECONDS.sleep(500L);
-        }
-        return 0L;
+            return false;
+        }, timeoutMs);
+        return epochRef.get();
     }
 
-    private static long waitForEpochRotation(MiniStreamCluster cluster, long baselineEpoch, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        long lastSeen = baselineEpoch;
-        while (System.currentTimeMillis() < deadline) {
-            long current = readLatestFencingEpoch(cluster);
-            if (current > baselineEpoch) {
-                // Confirm the new epoch has assignments (recovery deployTask fired).
-                int count = countTaskAssignments(cluster, current);
-                if (count >= 2) {
-                    return current;
-                }
-                lastSeen = current;
-            }
-            TimeUnit.MILLISECONDS.sleep(500L);
-        }
-        return lastSeen;
+    /**
+     * 条件等待恢复路径触发：fencing epoch 严格递增且新 epoch 的分配行 >= 2（恢复的
+     * deployTask 已发出）。超时上限（RECOVERY_TIMEOUT_MS）仅挂死保护；等待时长 =
+     * failure-detector tick + 租约/失败判定 + 恢复的真实时长。
+     */
+    private static long waitForEpochRotation(MiniStreamCluster cluster, long baselineEpoch, long timeoutMs) {
+        AtomicLong recoveredRef = new AtomicLong(-1L);
+        TestAwait.until("recovery rotated the fencing epoch with >= 2 assignments at the new epoch",
+                () -> {
+                    long current = readLatestFencingEpoch(cluster);
+                    if (current > baselineEpoch) {
+                        // Confirm the new epoch has assignments (recovery deployTask fired).
+                        if (countTaskAssignments(cluster, current) >= 2) {
+                            recoveredRef.set(current);
+                            return true;
+                        }
+                    }
+                    return false;
+                }, timeoutMs);
+        return recoveredRef.get();
     }
 
     private static String readLogDelta(java.nio.file.Path logFile, long fromOffset) throws java.io.IOException {

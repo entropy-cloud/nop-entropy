@@ -25,6 +25,7 @@ import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.cluster.TaskAssignment;
@@ -85,28 +86,24 @@ class TestCheckpointBarrierFanoutAsync {
         elector.grantLeadership(1L);
 
         // Two triggers back-to-back while tm-0's FIRST send is still blocked.
+        // 条件等待：barrier 经 per-node 异步 fan-out 送达 mock（外部可观测计数），
+        // 上限仅挂死保护。
         coordinator.triggerCheckpoint();
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (rpc1.triggers.get() < 1 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20L);
-        }
+        TestAwait.until("tm-1 must receive its barrier while tm-0 is still blocked "
+                + "(fan-out is off the trigger thread)", () -> rpc1.triggers.get() >= 1);
         assertTrue(rpc1.triggers.get() >= 1,
                 "tm-1 must receive its barrier while tm-0 is still blocked (fan-out is off the trigger thread)");
 
         coordinator.triggerCheckpoint();
-        deadline = System.currentTimeMillis() + 10_000L;
-        while (rpc1.triggers.get() < 2 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20L);
-        }
+        TestAwait.until("the SECOND trigger must proceed "
+                + "(trigger thread not stalled by the blocked send)", () -> rpc1.triggers.get() >= 2);
         assertTrue(rpc1.triggers.get() >= 2,
                 "the SECOND trigger must proceed (trigger thread not stalled by the blocked send)");
 
         // Release node 0: both of its barriers deliver.
         blockNode0.countDown();
-        deadline = System.currentTimeMillis() + 10_000L;
-        while (rpc0.delivered.get() < 2 && System.currentTimeMillis() < deadline) {
-            Thread.sleep(20L);
-        }
+        TestAwait.until("blocked node's barriers deliver after release (no loss)",
+                () -> rpc0.delivered.get() >= 2);
         assertTrue(rpc0.delivered.get() >= 2,
                 "blocked node's barriers deliver after release (no loss)");
     }

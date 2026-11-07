@@ -177,6 +177,9 @@ class TestSourcePullBarrierInjection {
         List<String> collected = Collections.synchronizedList(new ArrayList<>());
         AtomicBoolean barrierInjected = new AtomicBoolean(false);
 
+        // 确定性交接：source 发完第 5 条后暂停，等主线程注入 checkpoint 后再放行。
+        CountDownLatch pausedAtFive = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
         SourceFunction<Integer> source = new SourceFunction<Integer>() {
             private static final long serialVersionUID = 1L;
 
@@ -185,7 +188,8 @@ class TestSourcePullBarrierInjection {
                 for (int i = 1; i <= 10; i++) {
                     ctx.collect(i);
                     if (i == 5) {
-                        Thread.sleep(20);
+                        pausedAtFive.countDown();
+                        release.await(2, TimeUnit.SECONDS);
                     }
                 }
             }
@@ -263,11 +267,14 @@ class TestSourcePullBarrierInjection {
         });
         sourceThread.start();
 
-        // 确定性信号：等 source 线程到达稳态（有界 source 发完即退出，也会阻塞于等待）
-        TestAwait.untilThreadSettles("source thread settled in run", sourceThread);
+        // 确定性信号：source 已发完 5 条并暂停 —— checkpoint 确定性地注入在运行中段。
+        assertTrue(pausedAtFive.await(5, TimeUnit.SECONDS),
+                "source must pause after the 5th record");
 
         tracker.triggerCheckpoint(1L, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
 
+        // 放行 source：下一次 collect() 在任务线程 drain trigger mail。
+        release.countDown();
         sourceThread.join(5000);
 
         assertEquals(10, collected.size(), "All 10 records must be collected even after barrier injection");
@@ -287,6 +294,9 @@ class TestSourcePullBarrierInjection {
         List<Long> barrierIds = Collections.synchronizedList(new ArrayList<>());
         CountDownLatch allBarriers = new CountDownLatch(3);
 
+        // 确定性交接：source 发完前 5 条后暂停，3 个 trigger 全部注入于 source 存活期间。
+        CountDownLatch pausedAtFive = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
         SourceFunction<String> source = new SourceFunction<String>() {
             private static final long serialVersionUID = 1L;
 
@@ -294,7 +304,10 @@ class TestSourcePullBarrierInjection {
             public void run(SourceContext<String> ctx) throws Exception {
                 for (int i = 0; i < 10; i++) {
                     ctx.collect("record-" + i);
-                    Thread.sleep(20);
+                    if (i == 4) {
+                        pausedAtFive.countDown();
+                        release.await(2, TimeUnit.SECONDS);
+                    }
                 }
             }
 
@@ -355,13 +368,19 @@ class TestSourcePullBarrierInjection {
         });
         sourceThread.start();
 
-        // Trigger 3 sequential checkpoints; each must complete (ack) before the next is
-        // accepted (tracker operatorsToAck guard prevents overlap).
+        // 确定性信号：source 已发完前 5 条并暂停。
+        assertTrue(pausedAtFive.await(5, TimeUnit.SECONDS),
+                "source must pause after the 5th record before the triggers");
+
+        // Trigger 3 sequential checkpoints while the source is alive mid-run; each
+        // trigger-checkpoint mail is a CONTROL mail (FIFO in trigger order) drained at
+        // the source's next collect() emission point on the task thread.
         for (long id = 1; id <= 3; id++) {
-            Thread.sleep(60);
             tracker.triggerCheckpoint(id, System.currentTimeMillis(), CheckpointType.CHECKPOINT);
         }
 
+        // Release the source: collect(6) drains the three mails in order.
+        release.countDown();
         sourceThread.join(5000);
 
         assertTrue(barrierIds.size() >= 1, "At least one barrier should be injected. Got: " + barrierIds);

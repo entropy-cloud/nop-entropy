@@ -35,6 +35,136 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class TestLegacyCheckpointFixtureGenerator {
 
+    /**
+     * Deterministic fixture source (plan 2510 时间确定化 rework of the legacy
+     * pacing source). The fixture is the cross-version FORMAT pin: regeneration
+     * must reproduce the same manifest/ledger family (structure, not a
+     * byte-identical value multiset). Emission is driven by COMMIT EVIDENCE
+     * instead of real time: the source streams the input cyclically until the
+     * sink's shared committed list shows >= 2 committed epochs (each commit
+     * rides a real completed checkpoint), then one final full pass guarantees
+     * every input value landed (early sends before the downstream subscription
+     * was live are dropped by the in-process transport and re-covered by the
+     * cyclic re-emission + final pass). The legacy 750ms subscribe window,
+     * 25ms/record pacing and 1500ms finish linger are all gone — the waits are
+     * condition waits on the committed-evidence counter (bounded hang
+     * protection only).
+     */
+    public static final class LegacyPacingInput<T>
+            implements io.nop.stream.core.common.functions.source.SourceFunction<T> {
+        private static final long serialVersionUID = 1L;
+
+        private static final int MIN_COMMITTED_EPOCHS = 2;
+        private static final int BATCH = 8;
+        /** EOS-gate heartbeat sentinel; dropped by the pipeline filter before keyBy. */
+        public static final int HEARTBEAT = -1;
+
+        private final List<T> input;
+        /**
+         * Shared committed-evidence mirror (the sink fixture's committed list).
+         * {@code null} = immediate single-pass mode (each input value emitted once,
+         * no commit gating).
+         */
+        private final List<T> committedMirror;
+        /**
+         * Single-pass-with-commit-evidence mode (plan 2510 load-stability fix):
+         * emit the input list once, in order, in batches of {@link #BATCH}; after
+         * each batch wait until the mirror shows the whole batch committed before
+         * emitting the next. Each value is emitted exactly once and is committed
+         * before the next batch starts, so the committed sequence equals the
+         * input order — the deterministic form of the legacy paced replay, used
+         * by the fixture RESTORE test. Requires a non-null mirror.
+         */
+        private final boolean singlePass;
+        private volatile boolean running = true;
+
+        public LegacyPacingInput(List<T> input, List<T> committedMirror) {
+            this(input, committedMirror, false);
+        }
+
+        public LegacyPacingInput(List<T> input, List<T> committedMirror, boolean singlePass) {
+            this.input = input;
+            this.committedMirror = committedMirror;
+            this.singlePass = singlePass;
+        }
+
+        @Override
+        public void run(io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<T> ctx)
+                throws Exception {
+            if (singlePass && committedMirror != null) {
+                runSinglePassWithCommitEvidence(ctx);
+                return;
+            }
+            if (committedMirror == null) {
+                for (T value : input) {
+                    if (!running) {
+                        return;
+                    }
+                    ctx.collect(value);
+                }
+                return;
+            }
+            int baseline = committedMirror.size();
+            int emitted = 0;
+            while (running && committedMirror.size() - baseline < MIN_COMMITTED_EPOCHS) {
+                ctx.collect(input.get(emitted % input.size()));
+                emitted++;
+                if (emitted % BATCH == 0) {
+                    long before = committedMirror.size();
+                    io.nop.stream.core.testsupport.TestAwait.until(
+                            "next checkpoint epoch committed (fixture evidence)",
+                            () -> committedMirror.size() > before, 30_000L);
+                }
+            }
+            // final full pass: subscription is live by now — every input value lands
+            for (T value : input) {
+                if (!running) {
+                    return;
+                }
+                ctx.collect(value);
+            }
+        }
+
+        private void runSinglePassWithCommitEvidence(
+                io.nop.stream.core.common.functions.source.SourceFunction.SourceContext<T> ctx)
+                throws Exception {
+            for (int batchStart = 0; batchStart < input.size(); batchStart += BATCH) {
+                int end = Math.min(batchStart + BATCH, input.size());
+                for (int i = batchStart; i < end; i++) {
+                    if (!running) {
+                        return;
+                    }
+                    ctx.collect(input.get(i));
+                }
+                // 邮箱排水型证据等待（负载稳定化修正）：barrier 注入是任务控制邮箱里的
+                // 控制邮件，只在 collect 点被处理——阻塞式等待会让下一个周期 barrier
+                // 无法注入、提交证据永不出现（30s 挂死实测）。心跳哨兵（HEARTBEAT）
+                // 经管线 filter 在 keyBy 前丢弃，不进入提交流；100µs park 为邮箱服务
+                // 节拍。30s 上限仅挂死保护。
+                long deadline = System.currentTimeMillis() + 30_000L;
+                while (running && committedMirror.size() < end) {
+                    if (System.currentTimeMillis() >= deadline) {
+                        throw new IllegalStateException(
+                                "batch commit evidence did not converge within 30s (batchEnd="
+                                        + end + ", committed=" + committedMirror.size() + ")");
+                    }
+                    ctx.collect(heartbeat());
+                    java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+                }
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        private T heartbeat() {
+            return (T) (Integer) HEARTBEAT;
+        }
+
+        @Override
+        public void cancel() {
+            running = false;
+        }
+    }
+
     @TempDir
     Path tempDir;
 
@@ -65,8 +195,8 @@ class TestLegacyCheckpointFixtureGenerator {
         environment.enableCheckpointing(150L);
         environment.getCheckpointConfig().setProcessingGuarantee(ProcessingGuarantee.AT_LEAST_ONCE);
         environment.addSource(
-                new TestCheckpointDualRunDifferential.PacingInput<>(
-                        TestCheckpointDualRunDifferential.firstInput(), 25L), "paced-source")
+                new LegacyPacingInput<>(
+                        TestCheckpointDualRunDifferential.firstInput(), committed), "paced-source")
                 .map(v -> v)
                 .keyBy(v -> v % 2)
                 .reduce((a, b) -> a + b)

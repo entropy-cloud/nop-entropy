@@ -1,6 +1,6 @@
 package io.nop.stream.runtime.transport;
 
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageService;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.execution.transport.TypeRegistry;
@@ -80,8 +80,11 @@ class TestRemoteResultPartition {
         }
 
         startLatch.countDown();
-        // 时间窗（让写线程进入并发写）——循环形式
-        TestAwait.elapsed("writers in-flight window", 50);
+        // 时间确定化（plan 2510）：以「首条数据消息已发出」这一确定性结构证据替代
+        // 固定 50ms in-flight 窗口——写线程确实已进入并发写阶段后再 close()，
+        // close 与并发写的重叠由数据驱动而非墙钟窗。
+        TestAwait.until("writers entered the concurrent write phase (first data message sent)",
+                () -> sent.size() > 0);
         partition.close();
         executor.shutdown();
         assertTrue(executor.awaitTermination(5, TimeUnit.SECONDS));

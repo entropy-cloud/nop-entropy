@@ -7,6 +7,7 @@
  */
 package io.nop.stream.connector.debezium;
 
+import io.nop.api.core.time.CoreMetrics;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -351,7 +352,7 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
 
         @Override
         public long getProcessingTime() {
-            return System.currentTimeMillis();
+            return CoreMetrics.currentTimeMillis();
         }
 
         @Override

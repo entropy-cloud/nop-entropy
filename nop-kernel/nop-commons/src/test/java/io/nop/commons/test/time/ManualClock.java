@@ -20,6 +20,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class ManualClock implements IClock {
     private final AtomicLong millis;
+    private final AtomicLong totalReads = new AtomicLong();
     private final Map<Thread, AtomicLong> readsByThread = new ConcurrentHashMap<>();
 
     public ManualClock(long initialMillis) {
@@ -46,8 +47,14 @@ public final class ManualClock implements IClock {
         return count == null ? 0 : count.get();
     }
 
+    /** 全线程 {@link #currentTimeMillis()} 读取总次数：线程句柄不可达时（如驱动线程按名创建）以增量观测其轮询进度。 */
+    public long totalReads() {
+        return totalReads.get();
+    }
+
     @Override
     public long currentTimeMillis() {
+        totalReads.incrementAndGet();
         readsByThread.computeIfAbsent(Thread.currentThread(), t -> new AtomicLong()).incrementAndGet();
         return millis.get();
     }

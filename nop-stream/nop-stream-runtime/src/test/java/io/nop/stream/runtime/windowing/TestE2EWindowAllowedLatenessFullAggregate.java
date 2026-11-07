@@ -65,7 +65,9 @@ class TestE2EWindowAllowedLatenessFullAggregate {
                 ctx.emitWatermark(1999);
                 ctx.collectWithTimestamp(new IntEvent("k1", 1500, 7), 1500);
                 ctx.emitWatermark(6999);
-                Thread.sleep(200);
+                // 时间确定化（plan 2510）：两次 fire（首 fire + allowedLateness 内的
+                // 迟到重 fire）都在 watermark 元素被下游任务处理时同步发生——EOS 排空
+                // 先于 execute() 返回，断言在作业完成后执行，无需真实时间缓冲窗。
             }
 
             @Override

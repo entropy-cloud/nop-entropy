@@ -66,6 +66,12 @@ public class BlockingSourcePipelineFactory implements ClusterPipelineFactory {
             long n = 0;
             while (running) {
                 ctx.collect(n++);
+                // NAMED RESIDUAL（plan 2510 batch B，逐处裁定）：source 发射节奏的
+                // 真实时长语义。该 sleep 位于 spawned 子 JVM 的 source 函数内部 ——
+                // 虚拟时钟无法跨进程边界注入，run() 也不被测试线程同步等待；其作用是
+                // 让 source 持续处于 RUNNING（kill 才有 RUNNING 任务可打断），发射间隔
+                // 本身不是任何断言的被测条件。等价的 Object.wait/park 改写只改变守卫
+                // 正则命中形态，不改变真实时长语义，故保留并具名登记。
                 Thread.sleep(emitIntervalMs);
             }
         }

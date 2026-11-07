@@ -17,6 +17,7 @@ import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.source.SimpleVersionedSerializer;
 import io.nop.stream.core.source.SourceReaderContext;
 import io.nop.stream.core.source.SplitAssignmentProxy;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -87,17 +88,10 @@ public class TestMessageSource {
         }
     }
 
-    /** The runner thread subscribes asynchronously — wait until it is live. */
+    /** The runner thread subscribes asynchronously — wait until it is live (条件等待；上限仅挂死保护). */
     static void awaitSubscribed(FakeMessageService service) {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (service.consumer.get() == null && System.currentTimeMillis() < deadline) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
+        TestAwait.until("the source subscribed to the fake service",
+                () -> service.consumer.get() != null, 5_000L);
     }
 
     static SourceReaderContext readerContext() {
@@ -180,10 +174,26 @@ public class TestMessageSource {
         assertEquals(Optional.of("m1"), reader.pollNext());
         assertEquals(Optional.of("m2"), reader.pollNext());
         // idle poll: bounded wait, no records, not finished (UNBOUNDED)
-        long start = System.currentTimeMillis();
         assertEquals(Optional.empty(), reader.pollNext());
-        assertTrue(System.currentTimeMillis() - start >= 50,
-                "the idle poll must block (bounded), not busy-spin");
+        // 结构判据替代旧的 elapsed>=50 阈值断言：探针线程进入 TIMED_WAITING（阻塞在
+        // 有界队列等待上）即证明空闲 poll「阻塞而非忙旋」；单次有界等待自然返回空
+        // 即证明有界空闲语义。推进后仍有数据可取（m1/m2 已消费）由上面两次 poll 钉住。
+        java.util.concurrent.atomic.AtomicReference<Optional<String>> idleResult =
+                new java.util.concurrent.atomic.AtomicReference<>();
+        Thread idleProbe = new Thread(() -> {
+            try {
+                idleResult.set(reader.pollNext());
+            } catch (Exception e) {
+                // no failure expected on the idle path
+            }
+        }, "idle-poll-probe");
+        idleProbe.setDaemon(true);
+        idleProbe.start();
+        TestAwait.until("idle poller parked in the bounded queue wait (blocked, not busy-spin)",
+                () -> idleProbe.getState() == Thread.State.TIMED_WAITING);
+        idleProbe.join(5_000);
+        assertFalse(idleProbe.isAlive(), "idle poll must be bounded, not a permanent block");
+        assertEquals(Optional.empty(), idleResult.get(), "idle poll with no records returns empty");
         assertFalse(reader.isFinished());
         assertEquals(1, reader.snapshotState(1L).size(), "the token participates in checkpoints");
     }

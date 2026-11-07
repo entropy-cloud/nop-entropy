@@ -43,6 +43,19 @@ public class TestManualClock {
     }
 
     @Test
+    public void testTotalReadsAggregatesAllThreads() throws Exception {
+        ManualClock clock = new ManualClock(0);
+        assertEquals(0, clock.totalReads());
+        clock.currentTimeMillis();
+        Thread worker = new Thread(clock::currentTimeMillis);
+        worker.start();
+        worker.join(10000);
+        assertEquals(2, clock.totalReads());
+        clock.peekMillis();
+        assertEquals(2, clock.totalReads());
+    }
+
+    @Test
     public void testCannotMoveBackwards() {
         ManualClock clock = new ManualClock(0);
         assertThrows(IllegalArgumentException.class, () -> clock.advance(-1));

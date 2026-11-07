@@ -43,6 +43,11 @@ public final class ThrottledScenarioSinks {
     private ThrottledScenarioSinks() {
     }
 
+    /**
+     * RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：per-record 节流延迟是 C3
+     * 背压单元的被测条件本身（「限速 sink：sink bean 内节流」，非等待手段）——延迟
+     * 由驱动端写入 release marker 文件释放，虚拟时钟不可跨越 spawned TM JVM 边界。
+     */
     private static void awaitThrottleStep(long throttleMs, String releaseMarkerPath)
             throws InterruptedException {
         Path marker = Paths.get(releaseMarkerPath);
@@ -106,6 +111,8 @@ public final class ThrottledScenarioSinks {
 
         @Override
         public void invoke(IN value) throws Exception {
+            // RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：与 awaitThrottleStep 同族——
+            // BP-1 步进节流的被测条件本身，由驱动端改写 level 文件（0 = 释放）实时解除。
             long level = currentThrottleLevel(levelFilePath);
             if (level > 0) {
                 Thread.sleep(level);

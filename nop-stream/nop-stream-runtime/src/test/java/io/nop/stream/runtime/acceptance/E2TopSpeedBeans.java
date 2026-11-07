@@ -62,7 +62,9 @@ public final class E2TopSpeedBeans {
                 // apply its horizon (untimestamped elements are evicted as a whole)
                 ctx.collectWithTimestamp(Map.of("car", "cab-1", "speed", speed), ts);
                 ts += 1000;
-                Thread.sleep(10);
+                // 时间确定化（plan 2510）：原发射 pacing sleep 不承载语义（DeltaTrigger
+                // 数据驱动、TimeEvictor 走元素事件时间戳），串行 local runner 下顺序
+                // 确定，测试不依赖真实时间流逝。
             }
         }
 

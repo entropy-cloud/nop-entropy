@@ -1,6 +1,6 @@
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -259,26 +259,26 @@ class TestCheckpointCoexistenceViaCoordinator {
             CheckpointCoordinator c = shortCoord.coordinator;
             c.setTasksToAcknowledge(Arrays.asList(LOC_1, LOC_2));
 
-            // Trigger cp1 at t=0; its timeout (300ms) fires at t=300.
+            // 时间确定化（plan 2510）：超时隔离改为事件驱动顺序——先等 cp1 被其
+            // 自身 timeout abort（首个可观察事件，真实 300ms 生产超时语义保留），
+            // 再触发 cp2 并立即断言其 RUNNING：cp2 的 scheduleTimeout 从触发时刻起
+            // 独立计时（+300ms），此刻结构上不可能到点。不再需要 150ms 真实错峰窗。
             PendingCheckpoint cp1 = c.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
             assertNotNull(cp1);
 
-            // Stagger: 使 cp1 剩余时间短于 cp2（时间语义需流逝，用循环形式）
-            TestAwait.elapsed("stagger cp1/cp2 timeout window", 150);
-
-            // Trigger cp2 at t=150; its timeout (300ms) fires at t=450.
-            PendingCheckpoint cp2 = c.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-            assertNotNull(cp2);
-
-            // 确定性信号：等 cp1 被 timeout abort（首个可观察事件），此刻 cp2 的
-            // timeout（更晚）尚未到点
-            TestAwait.until("cp1 aborted by its earlier timeout",
+            TestAwait.until("cp1 aborted by its own timeout",
                     () -> cp1.getStatus().get() == PendingCheckpoint.Status.ABORTED);
 
             assertEquals(PendingCheckpoint.Status.ABORTED, cp1.getStatus().get(),
-                    "cp1 must be aborted by its scheduleTimeout at t=300");
+                    "cp1 must be aborted by its scheduleTimeout");
             assertNull(c.getPendingCheckpoint(cp1.getCheckpointId()),
                     "cp1 must be removed from pendingCheckpoints after timeout-abort");
+
+            // Trigger cp2 after cp1's timeout event: its per-pending timeout runs
+            // independently from its own trigger instant.
+            PendingCheckpoint cp2 = c.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+            assertNotNull(cp2);
+
             assertEquals(PendingCheckpoint.Status.RUNNING, cp2.getStatus().get(),
                     "cp2 must NOT be aborted by cp1's timeout — scheduleTimeout is per-pending");
             assertSame(cp2, c.getPendingCheckpoint(cp2.getCheckpointId()),

@@ -10,6 +10,7 @@ import io.nop.stream.core.jobgraph.JobVertex;
 import io.nop.stream.core.jobgraph.OperatorChain;
 import io.nop.stream.core.operators.StreamMap;
 import io.nop.stream.core.operators.StreamSinkOperator;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -125,7 +126,9 @@ class TestTaskLifecycle {
         });
         t.setDaemon(true);
 
-        // Use an invokable that signals "running" then blocks until interrupted
+        // Use an invokable that signals "running" then blocks until interrupted.
+        // 允许形态（testing.md「由测试主动中断结束的模拟耗时」）：sleep 模拟长时间运行的
+        // 任务，测试在下方主动 interrupt 结束它——不作等待手段。
         JobVertex blockingVertex = createVertex(() -> {
             runningLatch.countDown();
             try {
@@ -275,15 +278,13 @@ class TestTaskLifecycle {
         t.setDaemon(true);
         t.start();
 
-        // Wait until the task reaches RUNNING (it will then block in InputGate.read).
-        long deadline = System.currentTimeMillis() + 5_000;
-        while (task.getState() != SubtaskTask.State.RUNNING
-                && task.getState() != SubtaskTask.State.FAILED
-                && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+        // Wait until the task reaches RUNNING (it will then block in InputGate.read)
+        // — 条件等待（确定性状态事实），超时仅作挂死保护。
+        TestAwait.until("task reached RUNNING or FAILED",
+                () -> task.getState() == SubtaskTask.State.RUNNING
+                        || task.getState() == SubtaskTask.State.FAILED);
         assertEquals(SubtaskTask.State.RUNNING, task.getState(),
-                "task should reach RUNNING within 5s (state=" + task.getState() + ")");
+                "task should reach RUNNING (state=" + task.getState() + ")");
 
         // cancel() from RUNNING → CANCELING + interrupt the task thread.
         assertTrue(task.cancel(), "cancel() from RUNNING must return true");

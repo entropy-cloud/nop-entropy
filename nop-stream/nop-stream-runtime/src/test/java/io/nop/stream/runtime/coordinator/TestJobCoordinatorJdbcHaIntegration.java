@@ -25,6 +25,7 @@ import io.nop.stream.core.checkpoint.TaskStateSnapshot;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.CheckpointCoordinator;
 import io.nop.stream.runtime.checkpoint.PendingCheckpoint;
 import io.nop.stream.runtime.checkpoint.storage.JdbcCheckpointStorage;
@@ -166,10 +167,9 @@ class TestJobCoordinatorJdbcHaIntegration {
             assertEquals("host-ha-1", granted.getLeaderId());
 
             // Wait for the becomeLeader callback to activate the coordinator.
-            long deadline = System.currentTimeMillis() + 3000;
-            while (!coordinator.isActive() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(50);
-            }
+            // 条件等待激活状态（外部可观测状态），上限仅挂死保护。
+            TestAwait.until("JdbcLeaderElector grant must drive the coordinator to ACTIVE",
+                    coordinator::isActive);
             assertTrue(coordinator.isActive(),
                     "JdbcLeaderElector grant must drive the coordinator to ACTIVE");
 

@@ -1,10 +1,15 @@
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.streamrecord.StreamElement;
+import io.nop.stream.core.testsupport.TestAwait;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -40,14 +45,29 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * abort path uses) so barrier N+1 IS consumed while align(N) is still
  * in-flight — both alignments end up missing only the finished channel, and the
  * channel-finish completes both in one markFinishedChannel round.
+ *
+ * <p>时间确定化（plan 2510）：barrier 对齐超时门经 {@code CoreMetrics} 读取，测试注册
+ * {@link ManualClock} 显式推进越过对齐 deadline 触发；其余等待全部为确定性条件等待。
  */
 class TestInputGateMarkFinishedChannelRace {
 
-    private static void waitForInFlight(InputGate gate, long id) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000L;
-        while (System.currentTimeMillis() < deadline && !gate.getInFlightBarrierIds().contains(id)) {
-            Thread.sleep(10);
-        }
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
+
+    private static void waitForInFlight(InputGate gate, long id) {
+        // 条件等待（确定性事实：barrier 已被 reader 收进 in-flight 集合），超时仅作挂死保护。
+        TestAwait.until("barrier " + id + " in-flight",
+                () -> gate.getInFlightBarrierIds().contains(id));
         assertTrue(gate.getInFlightBarrierIds().contains(id),
                 "Barrier " + id + " must be in-flight before continuing");
     }
@@ -175,25 +195,25 @@ class TestInputGateMarkFinishedChannelRace {
         waitForInFlight(gate, 6L);
         p2.close();
 
-        // Wait for both barriers to be emitted (post-fix). Pre-fix this poll fails:
-        // barrier 6 is dropped and the leaked alignment masks the timeout gate.
-        long deadline = System.currentTimeMillis() + 3000L;
-        while (System.currentTimeMillis() < deadline
-                && !(emitted.contains(5L) && emitted.contains(6L))) {
-            Thread.sleep(10);
-        }
+        // Wait for both barriers to be emitted (post-fix). Pre-fix this condition
+        // never turns true: barrier 6 is dropped and the leaked alignment masks the
+        // timeout gate.
+        TestAwait.until("both barriers 5 and 6 emitted",
+                () -> emitted.contains(5L) && emitted.contains(6L));
         assertTrue(emitted.contains(5L) && emitted.contains(6L),
                 "Both barriers must be emitted before the timeout-gate check (pre-fix the "
                         + "second one leaks and is never emitted): " + emitted);
 
         // Fresh barrier 7 on p0 only: p1 never delivers it and never finishes, so
         // alignment cannot complete — the timeout gate must fire (and must not be
-        // masked by any leaked alignment).
+        // masked by any leaked alignment). 对齐超时是虚拟时间语义：显式推进时钟越过
+        // 2000ms deadline，reader 线程下一次 read 入口求值即抛超时。
         p0.write(new CheckpointBarrier(7, 0, CheckpointType.CHECKPOINT));
-        deadline = System.currentTimeMillis() + 8000L;
-        while (System.currentTimeMillis() < deadline && err.get() == null) {
-            Thread.sleep(10);
-        }
+        TestAwait.until("alignment of barrier 7 timed out after the virtual clock crossed the deadline",
+                () -> {
+                    clock.advance(500);
+                    return err.get() != null;
+                });
         assertNotNull(err.get(), "Alignment of barrier 7 must time out (ERR_STREAM_BARRIER_ALIGNMENT_TIMEOUT)");
         assertTrue(err.get() instanceof StreamException
                         && ((StreamException) err.get()).getErrorCode() != null

@@ -18,10 +18,13 @@ import java.util.List;
 import java.util.Map;
 
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.common.functions.sink.PrintSinkFunction;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -56,7 +59,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 class TestOpsRestLifecycleE2E {
 
-    /** Slow bounded source (long enough to stay RUNNING until the test stops it). */
+    /**
+     * Slow bounded source (stays RUNNING until the test stops the job).
+     * 时间确定化（plan 2510）NAMED RESIDUAL：源是「被测系统主动取消才结束」的
+     * 长驻模拟——stop 路径（OpsJobManager.stop → coordinator abort → TM cancel →
+     * future.cancel(true) 线程中断）是它的唯一结束信号，发射间隔 sleep 即可中断
+     * 阻塞点本身（testing.md「由测试主动中断结束的模拟耗时」允许形态）。发射
+     * 频率不承载任何断言语义。
+     */
     public static final class SlowSourceFunction
             implements io.nop.stream.core.common.functions.source.SourceFunction<Long> {
         private static final long serialVersionUID = 1L;
@@ -295,51 +305,68 @@ class TestOpsRestLifecycleE2E {
 
     @Test
     void governanceSweepPrunesExpiredHistoryAndTerminalRecords() throws Exception {
-        // tight governance: history cap 2, zero retention, real deploy path so the
-        // checkpoint coordinator has registered tasks (trigger gate)
-        StreamGovernanceConfig gov = new StreamGovernanceConfig();
-        gov.setCheckpointHistoryMaxEntries(2);
-        gov.setCheckpointHistoryRetentionMinutes(0);
-        gov.setJobRecordRetentionMinutes(0);
-        ClusterRegistry govRegistry = new InMemoryClusterRegistry();
-        TaskManager govTm = new TaskManager("gov-node", "localhost:0", 4,
-                new LocalMessageService(), govRegistry, "gov-control");
-        govTm.start();
-        OpsJobManager manager = new OpsJobManager(new LocalMessageService(), govRegistry,
-                new LocalFileCheckpointStorage(tempDir.resolve("gov").toString()),
-                Map.of("gov-node", govTm), gov);
+        // 时间确定化（plan 2510）：terminalAt 老化经 CoreMetrics（OpsJobManager 侧
+        // 判定读取），测试注册 ManualClock 显式推进虚拟时间越过 0 分钟 retention
+        // 截止——不再用真实 10ms 观察窗。时钟逐用例注册、finally 恢复默认时钟。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            // submit → record history entries via the real abort path → stop → sweep
-            submitViaManager(manager, "gov-job");
+            // tight governance: history cap 2, zero retention, real deploy path so the
+            // checkpoint coordinator has registered tasks (trigger gate)
+            StreamGovernanceConfig gov = new StreamGovernanceConfig();
+            gov.setCheckpointHistoryMaxEntries(2);
+            gov.setCheckpointHistoryRetentionMinutes(0);
+            gov.setJobRecordRetentionMinutes(0);
+            ClusterRegistry govRegistry = new InMemoryClusterRegistry();
+            TaskManager govTm = new TaskManager("gov-node", "localhost:0", 4,
+                    new LocalMessageService(), govRegistry, "gov-control");
+            govTm.start();
+            OpsJobManager manager = new OpsJobManager(new LocalMessageService(), govRegistry,
+                    new LocalFileCheckpointStorage(tempDir.resolve("gov").toString()),
+                    Map.of("gov-node", govTm), gov);
+            try {
+                // submit → record history entries via the real abort path → stop → sweep
+                submitViaManager(manager, "gov-job");
 
-            io.nop.stream.runtime.coordinator.JobCoordinator coordinator =
-                    manager.coordinator("gov-job");
-            int recorded = 0;
-            for (int i = 0; i < 10 && recorded < 3; i++) {
-                var pending = coordinator.getCheckpointCoordinator()
-                        .tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
-                if (pending != null) {
-                    coordinator.getCheckpointCoordinator()
-                            .abortPendingCheckpoint(pending, "governance-test-" + i);
-                    recorded++;
-                } else {
-                    Thread.sleep(50);
-                }
+                io.nop.stream.runtime.coordinator.JobCoordinator coordinator =
+                        manager.coordinator("gov-job");
+                // 条件驱动触发循环：每次条件求值尝试一次触发（生产侧门控拒绝即
+                // 下一轮重试），abort 记入历史；本地计数满 3 次即止（历史条目受
+                // checkpointHistoryMaxEntries=2 封顶，不能以历史尺寸为条件）。
+                // 上限仅挂死保护。
+                java.util.concurrent.atomic.AtomicInteger recorded =
+                        new java.util.concurrent.atomic.AtomicInteger();
+                TestAwait.until("3 aborted checkpoint epochs recorded via the real abort path",
+                        () -> {
+                            if (recorded.get() < 3) {
+                                var pending = coordinator.getCheckpointCoordinator()
+                                        .tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
+                                if (pending != null) {
+                                    coordinator.getCheckpointCoordinator()
+                                            .abortPendingCheckpoint(pending, "governance-test");
+                                    recorded.incrementAndGet();
+                                }
+                            }
+                            return recorded.get() >= 3;
+                        });
+                assertTrue(coordinator.getCheckpointCoordinator().getCheckpointHistory().size() >= 2,
+                        "abort path recorded >=2 history entries");
+
+                manager.stop("gov-job", io.nop.stream.core.checkpoint.JobTerminationMode.CANCEL);
+                // 虚拟时钟推进越过 retention 截止：terminalAt（CoreMetrics 读取）
+                // 相对 sweep 的 now 已老化过期。
+                clock.advance(60_000L);
+
+                int pruned = manager.governanceSweep();
+                assertTrue(pruned > 0, "sweep must prune expired history entries / records");
+                assertTrue(manager.coordinator("gov-job") == null,
+                        "terminal job record past retention is pruned");
+            } finally {
+                manager.close();
+                govTm.stop();
             }
-            assertTrue(coordinator.getCheckpointCoordinator().getCheckpointHistory().size() >= 2,
-                    "abort path recorded >=2 history entries");
-
-            manager.stop("gov-job", io.nop.stream.core.checkpoint.JobTerminationMode.CANCEL);
-            // 时间语义：terminalAt 需老化越过 0 分钟 retention 截止（循环形式等待）
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("terminalAt ages past retention cutoff", 10);
-
-            int pruned = manager.governanceSweep();
-            assertTrue(pruned > 0, "sweep must prune expired history entries / records");
-            assertTrue(manager.coordinator("gov-job") == null,
-                    "terminal job record past retention is pruned");
         } finally {
-            manager.close();
-            govTm.stop();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 

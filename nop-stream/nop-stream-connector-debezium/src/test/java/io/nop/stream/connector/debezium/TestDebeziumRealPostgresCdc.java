@@ -7,6 +7,7 @@ import io.nop.core.initialize.CoreInitialization;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.DebeziumConfig;
 import io.nop.stream.core.common.functions.source.SourceFunction;
+import io.nop.stream.core.testsupport.TestAwait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -230,29 +231,35 @@ class TestDebeziumRealPostgresCdc {
 
     private static void waitUntilOp(List<ChangeEvent> events, String operation, long timeoutMs,
                                     String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            for (ChangeEvent e : events) {
-                if (operation.equals(e.getOperation())) {
-                    return;
-                }
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("event with operation " + operation + " delivered",
+                    () -> {
+                        for (ChangeEvent e : events) {
+                            if (operation.equals(e.getOperation())) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            fail(message + " (op=" + operation + ", collected=" + events.size() + ")");
         }
-        fail(message + " (op=" + operation + ", collected=" + events.size() + ")");
     }
 
     private static void waitUntilOpKey(List<ChangeEvent> events, String operation, String key,
                                        long timeoutMs, String message) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            for (ChangeEvent e : events) {
-                if (operation.equals(e.getOperation()) && key.equals(keyString(e))) {
-                    return;
-                }
-            }
-            Thread.sleep(100);
+        try {
+            TestAwait.until("event with operation " + operation + " and key " + key + " delivered",
+                    () -> {
+                        for (ChangeEvent e : events) {
+                            if (operation.equals(e.getOperation()) && key.equals(keyString(e))) {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            fail(message + " (op=" + operation + ", key=" + key + ", collected=" + events.size() + ")");
         }
-        fail(message + " (op=" + operation + ", key=" + key + ", collected=" + events.size() + ")");
     }
 }

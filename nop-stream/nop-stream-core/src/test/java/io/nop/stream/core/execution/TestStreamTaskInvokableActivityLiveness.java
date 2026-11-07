@@ -1,5 +1,7 @@
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
 import io.nop.stream.core.jobgraph.OperatorChain;
@@ -37,45 +39,59 @@ public class TestStreamTaskInvokableActivityLiveness {
 
     @Test
     void idleSinkLoopKeepsActivityFreshWhileDataProgressFrozen() throws Exception {
-        StreamTaskInvokable inv = new StreamTaskInvokable(
-                buildEmptyOperatorChain(), (RecordWriter<Object>) null, new IdleInputGate());
-        long progressAtStart = inv.getLastProgressTime();
-        long activityAtStart = inv.getLastActivityTime();
-
-        AtomicReference<Throwable> taskError = new AtomicReference<>();
-        CountDownLatch exited = new CountDownLatch(1);
-        Thread taskThread = new Thread(() -> {
-            try {
-                inv.invoke();
-            } catch (Throwable t) {
-                taskError.set(t);
-            } finally {
-                exited.countDown();
-            }
-        });
-        taskThread.start();
-
+        // 时间确定化（plan 2510）：activity/progress 时间戳经 CoreMetrics，测试
+        // 注册 ManualClock——「activity 持续推进」由虚拟时钟推进 + 任务线程推进后
+        // 重读时钟的结构证据（读取计数增长）确定性验证；负向断言（空闲多轮不失败）
+        // 以「任务线程已多轮重评」为结构判据，替代 600ms 墙钟观察窗与真实耗时阈值。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            // Idle long enough for several idle-return cycles.
-            // 负向窗口：空闲多轮期间任务不得失败（循环维持不变量）
-            TestAwait.staysTrue("idle task stays alive",
-                    () -> taskError.get() == null, 600);
+            StreamTaskInvokable inv = new StreamTaskInvokable(
+                    buildEmptyOperatorChain(), (RecordWriter<Object>) null, new IdleInputGate());
+            long progressAtStart = inv.getLastProgressTime();
+            long activityAtStart = inv.getLastActivityTime();
 
-            assertNull(taskError.get(), "idle task must not fail: " + taskError.get());
-            long progressAfter = inv.getLastProgressTime();
-            long activityAfter = inv.getLastActivityTime();
+            AtomicReference<Throwable> taskError = new AtomicReference<>();
+            CountDownLatch exited = new CountDownLatch(1);
+            Thread taskThread = new Thread(() -> {
+                try {
+                    inv.invoke();
+                } catch (Throwable t) {
+                    taskError.set(t);
+                } finally {
+                    exited.countDown();
+                }
+            });
+            taskThread.start();
 
-            assertEquals(progressAtStart, progressAfter,
-                    "data progress must stay frozen while no data flows");
-            assertTrue(activityAfter >= activityAtStart + 300,
-                    "task-thread activity must keep advancing during idle (loop top tick), "
-                            + "activityAtStart=" + activityAtStart + " activityAfter=" + activityAfter);
-            assertTrue(activityAfter >= System.currentTimeMillis() - 200,
-                    "activity must be fresh (within the last idle cycle), got " + activityAfter);
+            try {
+                // 结构证据：任务线程在空闲循环中多轮重评（loop top tick 读时钟），
+                // 且期间任务不得失败。
+                TestAwait.until("idle task re-ticked its loop several times without failing",
+                        () -> clock.readsBy(taskThread) >= 3 && taskError.get() == null);
+
+                assertNull(taskError.get(), "idle task must not fail: " + taskError.get());
+                long progressAfter = inv.getLastProgressTime();
+                assertEquals(progressAtStart, progressAfter,
+                        "data progress must stay frozen while no data flows");
+
+                // 推进虚拟时钟越过阈值：任务线程下一次 loop-top tick 读到新时刻 →
+                // activity 在虚拟线上确定性前进（替代真实 300ms 耗时阈值断言）。
+                long readsBeforeAdvance = clock.readsBy(taskThread);
+                clock.advance(300L);
+                TestAwait.until("task loop re-read the clock after the virtual advance",
+                        () -> clock.readsBy(taskThread) > readsBeforeAdvance);
+                long activityAfter = inv.getLastActivityTime();
+                assertTrue(activityAfter >= activityAtStart + 300,
+                        "task-thread activity must keep advancing during idle (loop top tick), "
+                                + "activityAtStart=" + activityAtStart + " activityAfter=" + activityAfter);
+            } finally {
+                inv.getMailboxExecutor().signalCancel();
+                assertTrue(exited.await(3, TimeUnit.SECONDS), "task must exit after cooperative cancel");
+                taskThread.join(1_000);
+            }
         } finally {
-            inv.getMailboxExecutor().signalCancel();
-            assertTrue(exited.await(3, TimeUnit.SECONDS), "task must exit after cooperative cancel");
-            taskThread.join(1_000);
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 

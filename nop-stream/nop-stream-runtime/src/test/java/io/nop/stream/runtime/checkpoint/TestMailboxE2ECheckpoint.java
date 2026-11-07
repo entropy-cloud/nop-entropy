@@ -54,11 +54,23 @@ class TestMailboxE2ECheckpoint {
     Path tempDir;
 
     /**
-     * Builds a two-vertex topology: source task → sink task (cross-task via
-     * ResultPartition/InputGate). The source emits records slowly so at least one
-     * checkpoint can be triggered mid-run and its barrier can flow through the data path.
+     * Linger bound: max heartbeat records (100µs service interval each ⇒ ~10s wall),
+     * hang protection only — normal runs exit as soon as the first checkpoint is
+     * durable in the run's storage.
      */
-    private JobGraph buildSourceToSinkGraph(List<Integer> sinkResults, int recordCount, long emitDelayMs) {
+    private static final long LINGER_MAX_HEARTBEATS = 100_000L;
+
+    /**
+     * Builds a two-vertex topology: source task → sink task (cross-task via
+     * ResultPartition/InputGate). The source emits all records, then lingers —
+     * draining checkpoint control mails via heartbeat records that the sink
+     * filters out — until at least one checkpoint has completed durably in the
+     * run's storage (deterministic condition, plan 2510; no fixed emit pacing),
+     * so a checkpoint is guaranteed to be triggered mid-run and its barrier
+     * flows through the data path before EOS.
+     */
+    private JobGraph buildSourceToSinkGraph(List<Integer> sinkResults, int recordCount,
+                                            LocalFileCheckpointStorage storage, String jobId) {
         SourceFunction<Integer> sourceFn = new SourceFunction<Integer>() {
             private static final long serialVersionUID = 1L;
 
@@ -66,7 +78,18 @@ class TestMailboxE2ECheckpoint {
             public void run(SourceContext<Integer> ctx) throws Exception {
                 for (int i = 1; i <= recordCount; i++) {
                     ctx.collect(i);
-                    Thread.sleep(emitDelayMs);
+                }
+                // Linger: heartbeat records (0, filtered out by the sink) keep the
+                // task thread servicing the control mailbox (checkpoint trigger
+                // mails are drained at the collect() emission point) while the
+                // storage-visible completion count provides the deterministic exit
+                // (probed every 16 heartbeats to amortize the directory scan).
+                for (long i = 0; i < LINGER_MAX_HEARTBEATS; i++) {
+                    ctx.collect(0);
+                    java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+                    if ((i & 0xF) == 0 && storage.getCheckpointCount(jobId) > 0) {
+                        return;
+                    }
                 }
             }
 
@@ -81,7 +104,9 @@ class TestMailboxE2ECheckpoint {
 
             @Override
             public void consume(Integer value) {
-                sinkResults.add(value);
+                if (value > 0) {
+                    sinkResults.add(value);
+                }
             }
         });
 
@@ -123,10 +148,12 @@ class TestMailboxE2ECheckpoint {
         String pipelineId = "1";
         List<Integer> sinkResults = Collections.synchronizedList(new ArrayList<>());
 
-        // Source emits 15 records with 100ms delay (~1.5s); checkpoint interval 300ms
-        // gives ~4-5 trigger opportunities, at least one of which must complete.
+        // Source emits 15 records then lingers (drain-servicing heartbeats) until at
+        // least one checkpoint is durable in the run's storage — the checkpoint
+        // trigger at the 300ms interval is therefore guaranteed to fire mid-run.
         int recordCount = 15;
-        JobGraph jobGraph = buildSourceToSinkGraph(sinkResults, recordCount, 100L);
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        JobGraph jobGraph = buildSourceToSinkGraph(sinkResults, recordCount, storage, jobId);
 
         CheckpointConfig config = new CheckpointConfig();
         config.setJobId(jobId);
@@ -152,7 +179,6 @@ class TestMailboxE2ECheckpoint {
         // NOTE: the framework's CheckpointIDCounter is 0-based (first checkpoint id = 0),
         // so we only assert a valid non-negative id here. The assertNotNull above is the
         // real "at least one checkpoint completed" gate.
-        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         CompletedCheckpoint completed = storage.getLatestCheckpoint(jobId, pipelineId);
         assertNotNull(completed, "At least one checkpoint must complete (no hang) for " + guarantee);
         assertTrue(completed.getCheckpointId() >= 0, "Completed checkpoint must have a valid non-negative id");

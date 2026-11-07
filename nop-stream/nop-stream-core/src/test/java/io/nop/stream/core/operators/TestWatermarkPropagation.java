@@ -7,12 +7,14 @@
  */
 package io.nop.stream.core.operators;
 
-import io.nop.stream.core.testsupport.TestAwait;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.common.eventtime.WatermarkStrategy;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.test.TestOutput;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -23,12 +25,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * Watermark propagation tests (plan 2510 时间确定化)：processElement 的 inline 周期 emit
+ * 门经 {@code CoreMetrics} 读取，测试注册 {@link ManualClock}——相邻元素的处理时刻错开由
+ * 显式 {@code clock.advance(delta)} 完成，不再等待真实时间流逝。
+ */
 public class TestWatermarkPropagation {
 
     static final long OUT_OF_ORDERNESS_MS = 10;
 
     private TimestampsAndWatermarksOperator<Event> tsOperator;
     private TestOutput<Event> output;
+    private ManualClock clock;
 
     static class Event {
         final String key;
@@ -56,7 +64,14 @@ public class TestWatermarkPropagation {
         tsOperator = new TimestampsAndWatermarksOperator<>(strategy, 1);
         output = new TestOutput<>();
         tsOperator.setOutput((Output) output);
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         tsOperator.open();
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
     }
 
     @Test
@@ -74,13 +89,14 @@ public class TestWatermarkPropagation {
 
     @Test
     void testWatermarkForwardedToDownstream() throws Exception {
-        // 处理时间语义：相邻元素的处理时刻需错开，循环形式等待 2ms 间隔
+        // 处理时间语义：相邻元素的处理时刻错开由虚拟时钟推进完成（inline emit 门读
+        // CoreMetrics，时钟不推进则间隔门必然关闭），不再等待真实时间流逝。
         tsOperator.processElement(new StreamRecord<>(new Event("a", 100)));
-        TestAwait.elapsed("processing-time gap", 2);
+        clock.advance(2);
         tsOperator.processElement(new StreamRecord<>(new Event("b", 200)));
-        TestAwait.elapsed("processing-time gap", 2);
+        clock.advance(2);
         tsOperator.processElement(new StreamRecord<>(new Event("c", 300)));
-        TestAwait.elapsed("processing-time gap", 2);
+        clock.advance(2);
 
         List<Watermark> watermarks = output.getWatermarks();
         assertFalse(watermarks.isEmpty(), "Should have emitted at least one watermark");

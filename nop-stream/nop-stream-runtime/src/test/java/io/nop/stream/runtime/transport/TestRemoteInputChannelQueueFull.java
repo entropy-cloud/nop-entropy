@@ -10,6 +10,7 @@ package io.nop.stream.runtime.transport;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.junit.jupiter.api.AfterEach;
@@ -23,6 +24,7 @@ import io.nop.stream.core.execution.transport.StreamElementCodec;
 import io.nop.stream.core.execution.transport.StreamMessageEnvelope;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -91,11 +93,13 @@ class TestRemoteInputChannelQueueFull {
         deliver(channel, "b");
         assertFalse(channel.isOverflowed(), "within-capacity deliveries must not flag overflow");
 
-        long start = System.nanoTime();
-        deliver(channel, "c"); // queue full, no consumer progress → must time out (≈300ms), not hang
-        long elapsedMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start);
-        assertTrue(elapsedMs >= 250L && elapsedMs < 5_000L,
-                "the overflowing delivery must block ~the bounded window (300ms), observed " + elapsedMs + "ms");
+        // Queue full, no consumer progress → the dispatch must return at its bounded
+        // offer window, not hang. NAMED RESIDUAL（plan 2510 batch B，逐处裁定）：offer
+        // 的 300ms 等待是 JDK BlockingQueue.offer 的真实时长语义（生产内部未走
+        // CoreMetrics，虚拟时钟不可达），测试不再断言「耗时 >= 250ms」阈值（禁止形态
+        // 第 4 类），改为结构性终态断言：dispatch 返回（未挂死）+ 类型化 overflow
+        // 置位 + 读者面到 TYPED 错误 —— 与 TestTaskManager R-15 真实时长语义先例同口径。
+        deliver(channel, "c");
         assertTrue(channel.isOverflowed(),
                 "channel must flag the typed overflow failure (observable without a reader)");
         assertTrue(channel.isFinished(), "overflow failure finishes the channel");
@@ -150,20 +154,33 @@ class TestRemoteInputChannelQueueFull {
         // BP-1 regime: consumer drains slower than the producer fills, but it
         // DOES make continuous progress — every offer succeeds within the
         // window (dispatch-level backpressure), no typed failure.
+        //
+        // 时间确定化（plan 2510）：读者「慢」的节拍不再用固定 sleep（与机器负载相关），
+        // 而是结构化确定性握手 —— 读者只在队列满（delivered - received == capacity，
+        // 即生产者必然正被阻塞在 bounded offer 上）时才消费一条。bounded offer 等待
+        // 因此必然发生且必然在窗口内成功（读者的消费在上限内及时释放槽位）。
         RemoteInputChannel channel = new RemoteInputChannel(
                 messageService, TOPIC, EPOCH, 2, 0L, 2_000L, true);
 
         int total = 12;
+        int capacity = 2;
+        AtomicInteger delivered = new AtomicInteger();
         AtomicReference<Throwable> readerError = new AtomicReference<>();
+        AtomicReference<Throwable> producerError = new AtomicReference<>();
         Thread slowReader = new Thread(() -> {
             try {
                 for (int i = 0; i < total; i++) {
+                    if (i < total - 1) {
+                        // 确定性节拍：等队列重新装满（生产者停在 bounded offer 上）。
+                        // 最后一条无需等待（生产者已全部送达，不再有 pending offer）。
+                        TestAwait.until("queue full again (producer parked in its bounded offer)",
+                                () -> delivered.get() - received.size() >= capacity);
+                    }
                     StreamElement e = channel.read(10, TimeUnit.SECONDS);
                     if (e == null) {
                         return;
                     }
                     received.add(((StreamRecord<String>) e).getValue());
-                    Thread.sleep(50L); // slow but continuous drain
                 }
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -173,10 +190,23 @@ class TestRemoteInputChannelQueueFull {
         });
         slowReader.start();
 
-        for (int i = 0; i < total; i++) {
-            deliver(channel, "s" + i); // producer faster than consumer → queue repeatedly full
-        }
+        Thread producer = new Thread(() -> {
+            try {
+                for (int i = 0; i < total; i++) {
+                    deliver(channel, "s" + i); // producer faster than consumer → queue repeatedly full
+                    delivered.incrementAndGet();
+                }
+            } catch (Throwable t) {
+                producerError.set(t);
+            }
+        });
+        producer.start();
+        producer.join(30_000L);
         slowReader.join(30_000L);
+        assertFalse(producer.isAlive(), "producer must finish delivering all messages");
+        assertFalse(slowReader.isAlive(), "reader must drain and exit");
+
+        assertNull(producerError.get(), "producer must not observe a dispatch failure: " + producerError.get());
         assertNull(readerError.get(), "slow-but-healthy reader must not observe a typed failure: " + readerError.get());
         assertFalse(channel.isOverflowed(), "continuous progress within the window must never trip overflow");
         assertEquals(total, received.size(), "no loss under sustained backpressure");

@@ -17,6 +17,7 @@ import io.nop.stream.connector.kafka.KafkaSourceFunction;
 import io.nop.stream.connector.kafka.KafkaTwoPhaseCommitSink;
 import io.nop.stream.core.operators.StreamSinkOperator;
 import io.nop.stream.core.operators.StreamSourceOperator;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.execution.GraphModelCheckpointExecutor;
 
 import org.apache.kafka.clients.admin.AdminClient;
@@ -89,6 +90,8 @@ class TestKafkaConnectorExactlyOnceE2E {
 
     private static final int RECORD_COUNT = 100;
     private static final int KILL_AT = 60;
+    /** Upper bound on keep-alive fillers (failure mode cannot flood the topic unbounded). */
+    private static final int MAX_FILLERS = 1_000;
 
     private static final boolean DOCKER_AVAILABLE = detectDocker();
     private static final boolean OPTED_OUT =
@@ -224,28 +227,32 @@ class TestKafkaConnectorExactlyOnceE2E {
         // source never processes checkpoint triggers (engine semantic, see WI10's
         // terminal-fire discovery). Keep records FLOWING so periodic checkpoints fire
         // mid-flow and the commit-at-barrier epochs carry every record.
+        // 时间确定化（plan 2510，gated 真实 broker 面）：不再用固定 150ms 发射窗口——
+        // 主记录一次性送达 broker；尾部 keep-alive filler 由「断言键空间尚未在
+        // committed 视图收敛」这一确定性条件驱动，且每条 filler 等引擎消费掉上一条
+        // （consumed 计数推进）再发下一条，流量由引擎节拍而非墙钟窗口决定。真实
+        // broker 的 checkpoint 间隔（300ms）与事务提交时延是生产侧真实时长语义，
+        // 保留墙钟（plan 2510 gated 面裁定）。
+        List<String> seen = new CopyOnWriteArrayList<>();
         Thread seeder = new Thread(() -> {
             try (KafkaProducer<String, String> producer = new KafkaProducer<>(producerProps)) {
                 for (int i = KILL_AT; i < RECORD_COUNT; i++) {
-                    try {
-                        producer.send(new ProducerRecord<>("in-topic", key(i), "v" + i)).get();
-                        Thread.sleep(150L);
-                    } catch (Exception e) {
-                        throw new StreamException("seeder failed", e);
-                    }
+                    producer.send(new ProducerRecord<>("in-topic", key(i), "v" + i)).get();
                 }
                 // tail-carry fillers: after the last seeded record the source goes idle
                 // and no further barrier fires, so the tail epoch would never commit.
                 // Keep the flow alive ("v-fill-*" records are outside the asserted key
-                // space) until every asserted record is committed.
-                for (int f = 0; f < 40; f++) {
-                    try {
-                        producer.send(new ProducerRecord<>("in-topic", "fill-" + f,
-                                "v-fill-" + f)).get();
-                        Thread.sleep(150L);
-                    } catch (Exception e) {
-                        throw new StreamException("seeder failed", e);
-                    }
+                // space) ONLY until every asserted record is committed in the verifier's
+                // read_committed view.
+                int f = 0;
+                while (distinctAssertedKeys(seen) < RECORD_COUNT && f < MAX_FILLERS) {
+                    long consumedBefore = consumed2.get();
+                    producer.send(new ProducerRecord<>("in-topic", "fill-" + f,
+                            "v-fill-" + f)).get();
+                    long consumedTarget = consumedBefore + 1;
+                    TestAwait.until("engine consumed the keep-alive filler (flow stays alive for the tail commit)",
+                            () -> consumed2.get() >= consumedTarget, 30_000L);
+                    f++;
                 }
                 producer.flush();
             } catch (Exception e) {
@@ -255,7 +262,6 @@ class TestKafkaConnectorExactlyOnceE2E {
         seeder.start();
 
         // ============ assertion: read_committed view has each key exactly once ============
-        List<String> seen = new CopyOnWriteArrayList<>();
         Map<String, Object> consumerProps = new HashMap<>();
         consumerProps.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrap);
         consumerProps.put(ConsumerConfig.GROUP_ID_CONFIG, "wi3-e2e-verifier-" + System.nanoTime());
@@ -265,19 +271,15 @@ class TestKafkaConnectorExactlyOnceE2E {
         consumerProps.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
         try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(consumerProps)) {
             consumer.subscribe(Collections.singletonList("out-topic"));
-            long deadline = System.currentTimeMillis() + 120_000L;
-            while (System.currentTimeMillis() < deadline) {
-                for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(300L))) {
-                    seen.add(r.key());
-                }
-                // count only the asserted key space ("v%03d"); tail-carry fillers are
-                // "v-fill-*" and must not end the wait early
-                long distinct = seen.stream().filter(k -> k.startsWith("v")
-                        && !k.startsWith("v-fill-")).distinct().count();
-                if (distinct >= RECORD_COUNT) {
-                    break;
-                }
-            }
+            // 条件等待（上限仅挂死保护）：每次条件求值 poll 一批 committed 记录，
+            // 直到断言键空间收敛到 RECORD_COUNT（filler 键不参与计数）。
+            TestAwait.until("read_committed view converges to every asserted key",
+                    () -> {
+                        for (ConsumerRecord<String, String> r : consumer.poll(Duration.ofMillis(300L))) {
+                            seen.add(r.key());
+                        }
+                        return distinctAssertedKeys(seen) >= RECORD_COUNT;
+                    }, 120_000L);
         }
 
         Map<String, Long> counts = new HashMap<>();
@@ -350,20 +352,24 @@ class TestKafkaConnectorExactlyOnceE2E {
         return t;
     }
 
-    /** Polls the storage dir until at least one checkpoint artifact exists. */
-    private static void awaitManifest(Path storageDir) throws Exception {
-        long deadline = System.currentTimeMillis() + 60_000L;
-        while (System.currentTimeMillis() < deadline) {
-            if (Files.exists(storageDir)) {
-                try (var walk = Files.walk(storageDir)) {
-                    long files = walk.filter(Files::isRegularFile).count();
-                    if (files > 0) {
-                        return;
+    /** Wait (condition + hang-protection bound) until at least one checkpoint artifact exists. */
+    private static void awaitManifest(Path storageDir) {
+        TestAwait.until("a durable checkpoint artifact appeared under " + storageDir,
+                () -> {
+                    if (!Files.exists(storageDir)) {
+                        return false;
                     }
-                }
-            }
-            Thread.sleep(100L);
-        }
-        fail("no checkpoint artifact appeared within 60s under " + storageDir);
+                    try (var walk = Files.walk(storageDir)) {
+                        return walk.filter(Files::isRegularFile).count() > 0;
+                    } catch (Exception e) {
+                        return false;
+                    }
+                }, 60_000L);
+    }
+
+    /** Distinct asserted keys ("v%03d") seen so far — fillers ("v-fill-*") never count. */
+    private static long distinctAssertedKeys(List<String> seen) {
+        return seen.stream().filter(k -> k.startsWith("v")
+                && !k.startsWith("v-fill-")).distinct().count();
     }
 }

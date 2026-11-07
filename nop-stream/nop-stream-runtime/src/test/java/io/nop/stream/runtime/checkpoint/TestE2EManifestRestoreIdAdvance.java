@@ -52,32 +52,57 @@ class TestE2EManifestRestoreIdAdvance {
     private static final String PIPELINE_ID = "1";
 
     /**
-     * Deterministic slow source: same element count + pacing in every run, so
-     * each run completes the same number of periodic checkpoints plus the
-     * final termination checkpoint. The source must outlive at least one
-     * checkpoint interval so multiple manifests are stored per run.
+     * Deterministic bounded source (plan 2510): emits the elements, then lingers —
+     * draining checkpoint control mails via heartbeat records (the sink ignores
+     * them) — until at least two periodic checkpoints have completed durably
+     * (same multiple-manifests-per-run contract the old fixed pacing provided),
+     * observed via the source's CheckpointListener callback. Counters are static:
+     * the executed source is the graph-template instance (StreamSourceOperator
+     * shares the UDF for plain functions), reset at each run's start.
      */
+    private static final java.util.concurrent.atomic.AtomicLong PARK_COMPLETIONS =
+            new java.util.concurrent.atomic.AtomicLong();
+    private static final java.util.concurrent.atomic.AtomicLong PARK_ABORTS =
+            new java.util.concurrent.atomic.AtomicLong();
+    /** Linger bound: max heartbeats (100µs service interval each ⇒ ~5s wall). */
+    private static final long PARK_MAX_HEARTBEATS = 50_000L;
+
     private static SourceFunction<Integer> slowSource() {
-        return new SourceFunction<>() {
-            private static final long serialVersionUID = 1L;
+        return new ParkTwoEpochsSource();
+    }
 
-            @Override
-            public void run(SourceContext<Integer> ctx) {
-                for (int i = 1; i <= 10; i++) {
-                    ctx.collect(i);
-                    try {
-                        Thread.sleep(60);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                }
-            }
+    /** Linger source observing epoch completions via the coordinator's UDF listener notification. */
+    private static final class ParkTwoEpochsSource
+            implements SourceFunction<Integer>, io.nop.stream.core.common.state.CheckpointListener {
+        private static final long serialVersionUID = 1L;
 
-            @Override
-            public void cancel() {
+        @Override
+        public void run(SourceContext<Integer> ctx) {
+            PARK_COMPLETIONS.set(0);
+            PARK_ABORTS.set(0);
+            for (int i = 1; i <= 10; i++) {
+                ctx.collect(i);
             }
-        };
+            for (long i = 0; i < PARK_MAX_HEARTBEATS
+                    && PARK_COMPLETIONS.get() < 2 && PARK_ABORTS.get() < 3; i++) {
+                ctx.collect(0);
+                java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+            }
+        }
+
+        @Override
+        public void cancel() {
+        }
+
+        @Override
+        public void notifyCheckpointComplete(long checkpointId) {
+            PARK_COMPLETIONS.incrementAndGet();
+        }
+
+        @Override
+        public void notifyCheckpointAborted(long checkpointId) {
+            PARK_ABORTS.incrementAndGet();
+        }
     }
 
     private JobGraph buildJobGraph() {

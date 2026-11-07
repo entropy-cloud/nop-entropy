@@ -170,6 +170,13 @@ class TestRecalculateBackfillE2E {
      * Bounded replay source per the RECALCULATE commit contract: emits the history with
      * event timestamps, then an explicit terminal watermark past the last window end,
      * then lingers so a periodic checkpoint commits the fired windows before EOS.
+     *
+     * <p>时间确定化（plan 2510）：linger 不再固定 sleep，而是持续以 heartbeat 记录
+     * （value &lt; 0，被管线哨兵 filter 在 keyBy 前丢弃）驱动任务线程排水 checkpoint
+     * 控制邮箱，直到该 run 的 checkpoint 存储目录出现首个 {@code .epoch} manifest
+     * （确定性事实 = 至少一个 epoch 已持久化，其 commit 随完成路径入队并在
+     * shutdown 宽限内落库）。heartbeat 时间戳取第二个窗口内（90s），保证任何
+     * 回放区间（[0,∞) / [60s,120s)）都不被 TimeRangeReplayableSource 的区间过滤丢弃。
      */
     static final class BoundedHistorySource implements
             io.nop.stream.core.common.functions.source.ReplayableSourceFunction<RecEvent> {
@@ -177,13 +184,17 @@ class TestRecalculateBackfillE2E {
 
         private final List<RecEvent> data;
         private final long terminalWatermark;
-        private final long lingerMs;
+        /** This run's checkpoint storage dir: ≥1 ".epoch" file = a durable epoch exists. */
+        private final String storagePath;
+        /** Heartbeat cadence bound: max heartbeats (100µs service interval each). */
+        private static final int LINGER_MAX_HEARTBEATS = 50_000;
+
         private long offset;
 
-        BoundedHistorySource(List<RecEvent> data, long terminalWatermark, long lingerMs) {
+        BoundedHistorySource(List<RecEvent> data, long terminalWatermark, String storagePath) {
             this.data = data;
             this.terminalWatermark = terminalWatermark;
-            this.lingerMs = lingerMs;
+            this.storagePath = storagePath;
         }
 
         @Override
@@ -203,12 +214,36 @@ class TestRecalculateBackfillE2E {
                 ctx.collectWithTimestamp(e, e.ts);
             }
             ctx.emitWatermark(terminalWatermark);
-            Thread.sleep(lingerMs);
+            for (int i = 0; i < LINGER_MAX_HEARTBEATS; i++) {
+                java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
+                ctx.collectWithTimestamp(new RecEvent("hb", 90_000L, -1), 90_000L);
+                if ((i & 0xF) == 0 && anyEpochManifest(new java.io.File(storagePath))) {
+                    return;
+                }
+            }
         }
 
         @Override
         public void cancel() {
         }
+    }
+
+    /** Recursive scan: does any ".epoch" manifest file exist under the run's storage dir? */
+    private static boolean anyEpochManifest(java.io.File dir) {
+        java.io.File[] children = dir.listFiles();
+        if (children == null) {
+            return false;
+        }
+        for (java.io.File f : children) {
+            if (f.isDirectory()) {
+                if (anyEpochManifest(f)) {
+                    return true;
+                }
+            } else if (f.getName().endsWith(".epoch")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     // ==================== RECALCULATE ====================
@@ -255,13 +290,18 @@ class TestRecalculateBackfillE2E {
         cfg.setStorageProperty("path", storageDir.toString());
 
         TimeRangeReplayableSource<RecEvent> source = new TimeRangeReplayableSource<>(
-                // terminal watermark 120s (past both window ends) + 800ms linger (> 200ms
-                // checkpoint interval): windows fire mid-run and a periodic barrier commits
-                // the 2PC epoch — see the commit-contract note in the class javadoc
-                new BoundedHistorySource(events, 120_000L, 800L), (e, recTs) -> e.ts, from, to);
+                // terminal watermark 120s (past both window ends) + deterministic
+                // linger (drain-servicing heartbeats until the run's first durable
+                // ".epoch" manifest): windows fire mid-run and a periodic barrier
+                // commits the 2PC epoch — see the commit-contract note in the class
+                // javadoc and BoundedHistorySource's 时间确定化 note
+                new BoundedHistorySource(events, 120_000L, storageDir.toString()), (e, recTs) -> e.ts, from, to);
 
         KeyedStream<RecEvent, String> keyed = env
                 .addSource(source, "recalc-src")
+                // Sentinel filter: linger heartbeats (value < 0) are dropped before
+                // the keyed operators so window/sink state sees exactly the history.
+                .filter(e -> e.value >= 0)
                 .keyBy((KeySelector<RecEvent, String>) e -> e.key);
 
         StreamComponents components = new StreamComponents();

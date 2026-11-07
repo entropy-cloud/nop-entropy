@@ -27,6 +27,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.nop.stream.core.testsupport.TestAwait;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,6 +51,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * cannot see the injecting thread).
  */
 public class TestMultiInputBarrierAlignment {
+
+    /**
+     * collect-loop cap so a broken checkpoint-trigger path still EOS's (hang
+     * protection only — the green path releases within the first trigger window).
+     */
+    static final int PAD_CAP = 20_000;
 
     /** Replayable base: offset-checkpointed so STRICT_EXACTLY_ONCE accepts it. */
     abstract static class ReplayableBase implements CheckpointedSourceFunction<String> {
@@ -82,18 +90,34 @@ public class TestMultiInputBarrierAlignment {
         }
     }
 
-    /** Slow source: emits 3 elements with pauses; barriers align against this channel. */
+    /** Slow source: emits 3 elements, then holds the vertex open on a collect loop. */
     static class SlowSource extends ReplayableBase {
+        /** Set by the observing operator on the first downstream barrier. */
+        final AtomicBoolean barrierSeen;
+        final MultiInputTestSupport.Observation observation;
+
+        SlowSource(AtomicBoolean barrierSeen, MultiInputTestSupport.Observation observation) {
+            this.barrierSeen = barrierSeen;
+            this.observation = observation;
+        }
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
             for (int i = emitted + 1; i <= 3 && running; i++) {
                 ctx.collect("s-" + i);
                 emitted = i;
-                Thread.sleep(120);
             }
-            // hold the vertex open so EOS does not race the aligned barrier
-            Thread.sleep(600);
+            // 时间确定化（plan 2510）：barrier 只能在 source 的 collect 边界注入，故
+            // 保持 vertex 打开并持续制造 collect 边界，直到第一个 barrier 被观察到。
+            // pad 以「上一个 pad 已被下游观察到」为节奏（往返条件等待，不依赖固定
+            // pacing/sleep），保证 checkpoint 触发时 source 仍有 collect 边界可用；
+            // pad 元素用独立前缀，不进入 e:s- / e:f- 计数断言。上限仅作挂死保护。
+            for (int p = 0; running && !barrierSeen.get() && p < PAD_CAP; p++) {
+                int before = observation.sequence.size();
+                ctx.collect("pad-slow-" + p);
+                int expected = before + 1;
+                TestAwait.until("pad observed downstream", () -> observation.sequence.size() >= expected);
+            }
         }
 
         @Override
@@ -102,17 +126,28 @@ public class TestMultiInputBarrierAlignment {
         }
     }
 
-    /** Fast source: emits many elements; its barrier lands while it is still emitting. */
+    /** Fast source: emits many elements, then holds the vertex open on a collect loop. */
     static class FastSource extends ReplayableBase {
+        final AtomicBoolean barrierSeen;
+        final MultiInputTestSupport.Observation observation;
+
+        FastSource(AtomicBoolean barrierSeen, MultiInputTestSupport.Observation observation) {
+            this.barrierSeen = barrierSeen;
+            this.observation = observation;
+        }
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
             for (int i = emitted + 1; i <= 40 && running; i++) {
                 ctx.collect("f-" + i);
                 emitted = i;
-                Thread.sleep(10);
             }
-            Thread.sleep(600);
+            for (int p = 0; running && !barrierSeen.get() && p < PAD_CAP; p++) {
+                int before = observation.sequence.size();
+                ctx.collect("pad-fast-" + p);
+                int expected = before + 1;
+                TestAwait.until("pad observed downstream", () -> observation.sequence.size() >= expected);
+            }
         }
 
         @Override
@@ -172,14 +207,17 @@ public class TestMultiInputBarrierAlignment {
             implements OneInputStreamOperator<String, String> {
         private static final long serialVersionUID = 1L;
         final MultiInputTestSupport.Observation observation;
+        /** Set on the first downstream barrier — the sources' collect-loop release signal. */
+        final AtomicBoolean barrierSeen;
 
-        ObservingOperator(MultiInputTestSupport.Observation observation) {
+        ObservingOperator(MultiInputTestSupport.Observation observation, AtomicBoolean barrierSeen) {
             this.observation = observation;
+            this.barrierSeen = barrierSeen;
         }
 
         @Override
         public ObservingOperator copyForSubtask() {
-            return new ObservingOperator(observation);
+            return new ObservingOperator(observation, barrierSeen);
         }
 
         @Override
@@ -201,6 +239,7 @@ public class TestMultiInputBarrierAlignment {
         @Override
         public void processBarrier(io.nop.stream.core.checkpoint.CheckpointBarrier barrier) {
             observation.addBarrier(barrier.getId());
+            barrierSeen.set(true);
             output.emitBarrier(barrier);
         }
     }
@@ -208,6 +247,7 @@ public class TestMultiInputBarrierAlignment {
     @Test
     public void multiInputBarrierFlowDeliversIntactUnderStrictGuarantee() throws Exception {
         MultiInputTestSupport.Observation observation = new MultiInputTestSupport.Observation();
+        AtomicBoolean barrierSeen = new AtomicBoolean(false);
 
         // STRICT_EXACTLY_ONCE (default constructor) — createTestEnvironment() forces
         // AT_LEAST_ONCE, which disables alignment entirely (barrier forwarded
@@ -216,10 +256,10 @@ public class TestMultiInputBarrierAlignment {
         env.enableCheckpointing(50);
 
         List<String> sinkValues = new java.util.concurrent.CopyOnWriteArrayList<>();
-        env.addSource(new SlowSource(), "slow")
-                .union(env.addSource(new FastSource(), "fast"))
+        env.addSource(new SlowSource(barrierSeen, observation), "slow")
+                .union(env.addSource(new FastSource(barrierSeen, observation), "fast"))
                 .transform("observe", null,
-                        new ObservingOperator(observation))
+                        new ObservingOperator(observation, barrierSeen))
                 .sink(new Buffering2pcSink(sinkValues));
 
         env.execute("wi7-barrier-alignment");
@@ -249,12 +289,19 @@ public class TestMultiInputBarrierAlignment {
     @Test
     public void barrierOnlyInjectsOnSourceReadThreadDuringCollect() throws Exception {
         // §八 4: the barrier offer is processed inside the source's collect call on the
-        // source read thread. Behavioral probe: a source that pauses (pause ≫ interval)
-        // must not observe snapshotState during the pause, and the downstream barrier
-        // can only appear after collection resumes.
+        // source read thread. Behavioral probe: a source that pauses (pause spans at
+        // least one checkpoint trigger — deterministically awaited below) must not
+        // observe snapshotState during the pause, and the downstream barrier can only
+        // appear at a collect boundary.
+        //
+        // 时间确定化（plan 2510）：不再用固定 sleep 制造「pause ≫ interval」时间窗——
+        // driver 条件等待「第一个 barrier 已在下游出现」（该 barrier 只能来自 filler
+        // 在 pause 期间的 collect 边界注入，即 trigger 已在 pause 窗口内真实触发），
+        // 然后才 resume probe；filler 以条件等待保持 collect 边界直到 barrier 出现。
         AtomicBoolean snapshotSeen = new AtomicBoolean(false);
         AtomicBoolean barrierSeenDownstream = new AtomicBoolean(false);
         AtomicBoolean barrierBeforeElement = new AtomicBoolean(false);
+        CountDownLatch barrierSeenLatch = new CountDownLatch(1);
         List<String> seq = new java.util.concurrent.CopyOnWriteArrayList<>();
         CountDownLatch paused = new CountDownLatch(1);
         CountDownLatch resume = new CountDownLatch(1);
@@ -272,10 +319,12 @@ public class TestMultiInputBarrierAlignment {
                 readThread = Thread.currentThread();
                 ctx.collect("p-1");
                 paused.countDown();
-                resume.await(5, TimeUnit.SECONDS);
-                Thread.sleep(30);
+                // paused 窗口由 driver 在观察到 barrier 后关闭（显式交接，无固定窗口）
+                resume.await(10, TimeUnit.SECONDS);
                 ctx.collect("p-2");
-                Thread.sleep(400);
+                // hold the vertex open until a barrier has flowed downstream
+                // (its own p-2 collect may have just injected it)
+                barrierSeenLatch.await(10, TimeUnit.SECONDS);
             }
 
             @Override
@@ -291,9 +340,14 @@ public class TestMultiInputBarrierAlignment {
             @Override
             public void run(SourceContext<String> ctx) throws Exception {
                 int i = 0;
-                while (running && i < 60) {
-                    ctx.collect("x-" + (i++));
-                    Thread.sleep(15);
+                // 保持 collect 边界直到 barrier 被观察到（barrier 只能在 collect
+                // 边界注入）；以「上一个元素已被下游观察到」为节奏（往返条件等待），
+                // 保证 checkpoint 触发时本源仍有 collect 边界可用。上限仅作挂死保护。
+                while (running && !barrierSeenDownstream.get() && i < PAD_CAP) {
+                    int before = seq.size();
+                    ctx.collect("x-" + i++);
+                    int expected = before + 1;
+                    TestAwait.until("filler element observed downstream", () -> seq.size() >= expected);
                 }
             }
 
@@ -309,18 +363,28 @@ public class TestMultiInputBarrierAlignment {
         env.addSource(probingSource, "probe")
                 .union(env.addSource(fillerSource, "filler"))
                 .transform("observe2", null,
-                        new SequencedObserver(seq, barrierSeenDownstream, barrierBeforeElement))
+                        new SequencedObserver(seq, barrierSeenDownstream, barrierBeforeElement,
+                                barrierSeenLatch))
                 .sink(v -> {
                 });
 
-        // drive the pause/resume from another thread while the job runs
+        // drive the pause/resume from another thread while the job runs: resume only
+        // after a barrier has been observed downstream (a trigger fired and injected
+        // during the pause), otherwise proceed via the hang-protection timeout —
+        // the downstream barrier assertion below then fails deterministically.
         Thread driver = new Thread(() -> {
             try {
-                paused.await(5, TimeUnit.SECONDS);
-                Thread.sleep(150); // ≫ checkpoint interval
-                resume.countDown();
+                paused.await(10, TimeUnit.SECONDS);
+                try {
+                    TestAwait.until("a checkpoint barrier flowed downstream during the probe pause",
+                            barrierSeenDownstream::get, 10_000);
+                } catch (AssertionError timedOut) {
+                    // 挂死保护上限触发：仍 resume probe，让最终 barrier 断言给出确定性 RED
+                }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
+            } finally {
+                resume.countDown();
             }
         });
         driver.start();
@@ -350,16 +414,19 @@ public class TestMultiInputBarrierAlignment {
         private final List<String> seq;
         private final AtomicBoolean barrierSeen;
         private final AtomicBoolean anomaly;
+        private final CountDownLatch barrierSeenLatch;
 
-        SequencedObserver(List<String> seq, AtomicBoolean barrierSeen, AtomicBoolean anomaly) {
+        SequencedObserver(List<String> seq, AtomicBoolean barrierSeen, AtomicBoolean anomaly,
+                          CountDownLatch barrierSeenLatch) {
             this.seq = seq;
             this.barrierSeen = barrierSeen;
             this.anomaly = anomaly;
+            this.barrierSeenLatch = barrierSeenLatch;
         }
 
         @Override
         public SequencedObserver copyForSubtask() {
-            return new SequencedObserver(seq, barrierSeen, anomaly);
+            return new SequencedObserver(seq, barrierSeen, anomaly, barrierSeenLatch);
         }
 
         @Override
@@ -376,6 +443,7 @@ public class TestMultiInputBarrierAlignment {
         @Override
         public void processBarrier(CheckpointBarrier barrier) {
             barrierSeen.set(true);
+            barrierSeenLatch.countDown();
             // barrier can only follow the probe's first element (injection happens on
             // the source read thread inside collect, so it cannot precede it)
             if (!seq.contains("e:p-1")) {

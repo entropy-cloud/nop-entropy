@@ -109,10 +109,13 @@ class TestFileSourceReaderRecovery {
                         // Under the fixed monitor discipline every observed cursor is a
                         // line boundary (multiple of 3); a torn write could expose an
                         // arbitrary byte value (e.g. 1 or 2).
-                        if (observedCursors.add(split.getCurrentOffset()))
+                        if (observedCursors.add(split.getCurrentOffset())) {
                             firstObserved.countDown();
+                        }
                     }
-                    Thread.sleep(0, 200);
+                    // CPU 节流（非等待手段，上限无语义）：快照线程与游标推进并发竞争的
+                    // 观测循环，与 plan 2510 Phase 3 支撑线程节流同形态
+                    java.util.concurrent.locks.LockSupport.parkNanos(100_000L);
                 }
                 snapshotterDone.countDown();
             } catch (Exception e) {

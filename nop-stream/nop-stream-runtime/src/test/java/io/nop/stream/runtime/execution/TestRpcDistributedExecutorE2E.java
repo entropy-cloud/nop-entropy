@@ -14,7 +14,11 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.junit.jupiter.api.Test;
 
+import io.nop.api.core.message.IMessageConsumer;
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.message.IMessageSubscription;
+import io.nop.api.core.message.MessageSendOptions;
+import io.nop.api.core.message.MessageSubscribeOptions;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.environment.StreamExecutionEnvironment;
@@ -27,6 +31,7 @@ import io.nop.stream.core.jobgraph.JobGraph;
 import io.nop.stream.runtime.cluster.TaskAssignment;
 import io.nop.stream.runtime.coordinator.JobCoordinator;
 import io.nop.stream.runtime.protocol.JobStatus;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -86,12 +91,17 @@ class TestRpcDistributedExecutorE2E {
      * <p>Timing: taskTimeoutMs is shrunk to 8s (above the 5s heartbeat interval)
      * and maxRestarts to 1 so a single false stall FAILs the job within one
      * detect cycle. detectFailures() is driven manually (in addition to the
-     * automatic 5s detector) for deterministic assertions.
+     * automatic 5s detector) for deterministic assertions. The detection windows
+     * are gated on OBSERVED heartbeat uplinks (counted at the IMessageService
+     * boundary), not on fixed sleeps — see the in-test comment for the named
+     * real-cadence residual (plan 2510).
      */
     @Test
     void idleJobWithNoDataIsNotKilledByStallDetection() throws Exception {
-        LocalMessageService messageService = new LocalMessageService();
-        IdleProbeDispatcher dispatcher = new IdleProbeDispatcher(messageService);
+        // 计数包装的 message service：观测 task→coordinator uplink（心跳 liveness
+        // 经控制面 RPC 走 IMessageService）——「心跳确实到达」的确定性可观测证据。
+        CountingMessageService countingService = new CountingMessageService(new LocalMessageService());
+        IdleProbeDispatcher dispatcher = new IdleProbeDispatcher(countingService);
 
         StreamExecutionEnvironment env = StreamExecutionEnvironment.createTestEnvironment();
         env.setParallelism(1);
@@ -105,6 +115,10 @@ class TestRpcDistributedExecutorE2E {
         // (the probe dispatcher does not wait for completion — the job is idle).
         env.execute("rpc-distributed-idle-not-stalled");
 
+        // 基线取启动静默后的计数：之后的 uplink 增量 ≈ 周期心跳（idle 作业无其他
+        // 周期性 task→coordinator 流量）。
+        int uplinkBaseline = countingService.uplinkSends.get();
+
         RpcDistributedExecutor.DistributedJobHandle handle = dispatcher.handle;
         assertNotNull(handle, "probe dispatcher must have started the job");
         JobCoordinator coordinator = handle.getCoordinator();
@@ -115,22 +129,26 @@ class TestRpcDistributedExecutorE2E {
         coordinator.setMaxRestarts(1);
 
         try {
-            // t≈9s: manual detect tick. Pre-fix the idle source's frozen
-            // data-progress (9s old) exceeds the 8s cutoff → recovery #1
-            // (restartCount=1). Post-fix the heartbeat-refreshed aliveness is
+            // 第一个检测窗：等 3 次心跳 uplink 在启动静默后落地（条件等待——每次
+            // uplink 即一次真实心跳经 RPC 到达 coordinator；3 次 ≈ 15s 真实节奏，
+            // pre-fix 的冻结 data-progress 年龄已确定性越过 8s 截止值）。
+            // Pre-fix: frozen data-progress exceeds the 8s cutoff → recovery #1
+            // (restartCount=1). Post-fix: the heartbeat-refreshed aliveness is
             // fresh → no stall.
-            // 时间语义：stall 检测需要 data-progress 年龄超过 8s 截止值，
-            // 9s 老化必须真实流逝（循环形式等待）
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("progress ages past 8s stall cutoff", 9_000);
+            // 时间语义残余（具名裁定）：TM 心跳节奏（真实 5s 调度器，不可注入）与
+            // 8s 截止比较是本用例的被测语义本身；测试侧等待的是「心跳确实到达」
+            // 的可观测计数，不再是固定时间流逝窗。
+            TestAwait.until("three post-startup heartbeat uplinks observed",
+                    () -> countingService.uplinkSends.get() >= uplinkBaseline + 3, 60_000);
             coordinator.detectFailures();
             assertEquals(0, coordinator.getRestartCount(),
                     "idle job must not trigger stall-driven recovery (restartCount stays 0)");
 
-            // t≈18s: second manual detect tick. Pre-fix the redeployed attempt's
-            // frozen progress ages past the cutoff again → recovery #2 → restart
-            // cap (1) exceeded → failJob. Post-fix: still healthy.
-            // 时间语义：第二个 9s 老化窗（循环形式等待）
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("second 9s aging window", 9_000);
+            // 第二个检测窗：再等 2 次心跳 uplink（累计 5 次 ≈ 25s）。Pre-fix the
+            // redeployed attempt's frozen progress ages past the cutoff again →
+            // recovery #2 → restart cap (1) exceeded → failJob. Post-fix: healthy.
+            TestAwait.until("five post-startup heartbeat uplinks observed",
+                    () -> countingService.uplinkSends.get() >= uplinkBaseline + 5, 60_000);
             coordinator.detectFailures();
             assertEquals(0, coordinator.getRestartCount(),
                     "idle job must not trigger repeated stall-driven recovery");
@@ -201,21 +219,49 @@ class TestRpcDistributedExecutorE2E {
 
     /**
      * A source that never emits: the job stays healthy but data-idle forever.
+     * 时间确定化（plan 2510）：以 latch 显式阻塞直到 cancel（无 sleep 轮询）。
      */
     static class IdleBlockingSource implements SourceFunction<String> {
         private static final long serialVersionUID = 1L;
-        private transient volatile boolean running = true;
+        private final java.util.concurrent.CountDownLatch stopped = new java.util.concurrent.CountDownLatch(1);
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
-            while (running) {
-                Thread.sleep(100);
-            }
+            stopped.await();
         }
 
         @Override
         public void cancel() {
-            running = false;
+            stopped.countDown();
+        }
+    }
+
+    /**
+     * IMessageService decorator counting task→coordinator control-plane sends
+     * (heartbeat liveness uplink travels over the coordinator RPC topic). Pure
+     * delegation otherwise — the transport behavior is unchanged.
+     */
+    static class CountingMessageService implements IMessageService {
+        private final IMessageService delegate;
+        final java.util.concurrent.atomic.AtomicInteger uplinkSends = new java.util.concurrent.atomic.AtomicInteger();
+
+        CountingMessageService(IMessageService delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public java.util.concurrent.CompletionStage<Void> sendAsync(String topic, Object message,
+                                                                    MessageSendOptions options) {
+            if (topic != null && topic.startsWith("nop-stream.rpc.coordinator.")) {
+                uplinkSends.incrementAndGet();
+            }
+            return delegate.sendAsync(topic, message, options);
+        }
+
+        @Override
+        public IMessageSubscription subscribe(String topic, IMessageConsumer listener,
+                                              MessageSubscribeOptions options) {
+            return delegate.subscribe(topic, listener, options);
         }
     }
 }

@@ -7,7 +7,10 @@
  */
 package io.nop.stream.runtime.checkpoint;
 
-import io.nop.stream.runtime.testsupport.TestAwait;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.checkpoint.CheckpointConfig;
 import io.nop.stream.core.checkpoint.CheckpointIDCounter;
 import io.nop.stream.core.checkpoint.CheckpointType;
@@ -29,8 +32,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Path;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -133,10 +134,10 @@ class TestCheckpointCoordinator {
         coordinator.acknowledgeTask(LOC_1, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_1));
         coordinator.acknowledgeTask(LOC_2, pending.getCheckpointId(), TaskStateSnapshot.empty(LOC_2));
 
-        // 等待信号：listener 收到 notifyCheckpointComplete 通知（checkpointId 被写入）
-        long notifyDeadline = System.currentTimeMillis() + 30_000;
-        while (notifiedCheckpointId.get() < 0 && System.currentTimeMillis() < notifyDeadline)
-            Thread.sleep(20);
+        // 等待信号：listener 收到 notifyCheckpointComplete 通知（checkpointId 被写入，
+        // 确定性条件；通知经提交扇出执行器异步送达）
+        TestAwait.until("listener notified of checkpoint completion",
+                () -> notifiedCheckpointId.get() >= 0);
 
         CompletedCheckpoint completed = pending.getCompletableFuture().get();
         assertNotNull(completed);
@@ -270,9 +271,14 @@ class TestCheckpointCoordinator {
      * injector — which repeatedly calls tryTriggerCheckpointWithReason. This test mirrors
      * that driver at the coordinator level: repeated trigger calls at the configured
      * interval produce pending checkpoints, and stopping the driver stops the triggering.
+     *
+     * <p>时间确定化（plan 2510）：驱动器用注入的 {@link ManualScheduler}（与
+     * {@link ManualClock} 共享一条虚拟时间线），tick 全部由测试推进触发——不再等真实
+     * 毫秒定时器；「停止后不再触发」以调度器关停 + 队列清空的结构性事实断言，
+     * 不再使用墙钟观察窗。
      */
     @Test
-    void testPeriodicTriggerViaExternalDriverLoop() throws Exception {
+    void testPeriodicTriggerViaExternalDriverLoop() {
         CheckpointConfig shortIntervalConfig = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointInterval(50L)
@@ -284,11 +290,10 @@ class TestCheckpointCoordinator {
         CheckpointCoordinator coord = new CheckpointCoordinator("1", "1", idCounter, storage, shortIntervalConfig);
         coord.setTasksToAcknowledge(java.util.Arrays.asList(LOC_1, LOC_2));
         AtomicInteger triggeredCount = new AtomicInteger(0);
-        ScheduledExecutorService driver = Executors.newSingleThreadScheduledExecutor(r -> {
-            Thread t = new Thread(r, "test-periodic-checkpoint-driver-1");
-            t.setDaemon(true);
-            return t;
-        });
+        // ManualScheduler 与 ManualClock 共享同一条虚拟时间线（任务只在 advance() 时于
+        // 推进线程上执行）；本测试的触发路径不依赖墙钟（minPause=0），时钟无需注册到
+        // CoreMetrics。
+        ManualScheduler driver = new ManualScheduler(new ManualClock(1_000_000L));
         try {
             // Same tick shape as JobCoordinator.startPeriodicCheckpoints: fixed-rate
             // tryTriggerCheckpointWithReason calls at the configured interval.
@@ -300,18 +305,19 @@ class TestCheckpointCoordinator {
                 }
             }, 50L, 50L, TimeUnit.MILLISECONDS);
 
-            long deadline = System.currentTimeMillis() + 60_000;
-            while (triggeredCount.get() < 3 && System.currentTimeMillis() < deadline) {
-                Thread.sleep(10);
-            }
+            // 7 个 tick（50ms..350ms）由测试显式推进触发——确定性，与机器快慢无关
+            driver.advance(350L);
             assertTrue(triggeredCount.get() >= 3,
-                    "Driver loop should have triggered at least 3 checkpoints within 1 minute");
+                    "Driver loop should have triggered at least 3 checkpoints (got "
+                            + triggeredCount.get() + ")");
 
-            // Stop the driver: triggering must stop with it.
+            // Stop the driver: triggering must stop with it. shutdownNow 清空待执行
+            // 队列；此后 advance() 无任务可执行——结构性证明不会再有 TRIGGERED 结果。
             driver.shutdownNow();
-            assertTrue(driver.awaitTermination(5, TimeUnit.SECONDS));
+            assertEquals(0, driver.pendingTaskCount(),
+                    "Stopped driver must hold no pending tick");
             int frozen = triggeredCount.get();
-            Thread.sleep(200); // 4 intervals — no further TRIGGERED outcomes may arrive
+            driver.advance(1000L); // far past several intervals — nothing may run
             assertEquals(frozen, triggeredCount.get(),
                     "No further checkpoints may be triggered after the driver loop stops");
         } finally {

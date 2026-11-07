@@ -1,6 +1,5 @@
 package io.nop.stream.runtime.transport;
 
-import io.nop.stream.runtime.testsupport.TestAwait;
 import io.nop.api.core.message.IMessageService;
 import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
@@ -204,13 +203,22 @@ class TestRemoteDataExchange {
         try {
             staleProducer.write(new StreamRecord<>("stale"));
 
-            // 负向窗口：fencing 拒绝后陈旧消息不得到达消费端。
-            // 无可观察的"未到达"状态，循环形式等窗口；下方 read(200ms) 带超时兜底验证
-            TestAwait.elapsed("stale delivery rejection window", 100);
+            // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——向同一 topic
+            // 发送一条携带合法 fencing token（epoch 2）的后续记录；LocalMessageService
+            // 按 topic 顺序投递，「合法后续记录已到达消费端」即结构证明分发器已处理
+            // （并按 fencing 拒绝）过先前的陈旧消息——陈旧消息不能穿越到消费端。
+            RemoteResultPartition freshProducer = new RemoteResultPartition(
+                    messageService, topic, typeRegistry, "edge-1", 2L);
+            freshProducer.write(new StreamRecord<>("fresh"));
 
-            // Consumer should not have received the stale message
+            StreamElement freshElem = consumer.read(5, TimeUnit.SECONDS);
+            assertNotNull(freshElem, "the valid post-stale record must arrive (dispatcher ran past the stale one)");
+            assertEquals("fresh", freshElem.asRecord().getValue(),
+                    "the arriving record must be the valid one, not the stale message");
+
+            // Consumer received only the valid record — the stale message was rejected.
             StreamElement elem = consumer.read(200, TimeUnit.MILLISECONDS);
-            assertNull(elem); // timeout, no valid messages
+            assertNull(elem); // timeout, no further messages
             assertEquals(0, consumer.queueSize());
         } finally {
             consumer.close();

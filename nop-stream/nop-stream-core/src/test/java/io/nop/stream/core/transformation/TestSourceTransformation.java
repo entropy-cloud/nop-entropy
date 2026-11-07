@@ -10,10 +10,13 @@ package io.nop.stream.core.transformation;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.common.typeinfo.TypeInformation;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -146,7 +149,8 @@ public class TestSourceTransformation {
         });
 
         sourceThread.start();
-        sourceThread.join(1000); // Wait up to 1 second
+        // 确定性信号：source 已开始运行（wasRun 置位）——条件等待，超时仅作挂死保护
+        TestAwait.until("source function started running", sourceFunction::wasRun);
 
         // Cancel the source
         transformation.getSourceFunction().cancel();
@@ -295,20 +299,19 @@ public class TestSourceTransformation {
 
     private static class CollectingSourceFunction implements SourceFunction<String> {
         private static final long serialVersionUID = 1L;
-        private boolean run = false;
-        private volatile boolean cancelled = false;
+        private volatile boolean run = false;
+        private final CountDownLatch cancelLatch = new CountDownLatch(1);
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
             run = true;
-            while (!cancelled) {
-                Thread.sleep(10);
-            }
+            // 显式跨线程交接：阻塞等待 cancel()，不再轮询 sleep。
+            cancelLatch.await(5, TimeUnit.SECONDS);
         }
 
         @Override
         public void cancel() {
-            cancelled = true;
+            cancelLatch.countDown();
         }
 
         public boolean wasRun() {
@@ -319,17 +322,18 @@ public class TestSourceTransformation {
     private static class CancellableSourceFunction implements SourceFunction<String> {
         private static final long serialVersionUID = 1L;
         private volatile boolean cancelled = false;
+        private final CountDownLatch cancelLatch = new CountDownLatch(1);
 
         @Override
         public void run(SourceContext<String> ctx) throws Exception {
-            while (!cancelled) {
-                Thread.sleep(10);
-            }
+            // 显式跨线程交接：阻塞等待 cancel()，不再轮询 sleep。
+            cancelLatch.await(5, TimeUnit.SECONDS);
         }
 
         @Override
         public void cancel() {
             cancelled = true;
+            cancelLatch.countDown();
         }
 
         public boolean isCancelled() {

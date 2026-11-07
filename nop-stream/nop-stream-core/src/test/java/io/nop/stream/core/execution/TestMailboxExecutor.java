@@ -1,5 +1,7 @@
 package io.nop.stream.core.execution;
 
+import io.nop.stream.core.testsupport.TestAwait;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
@@ -64,11 +66,9 @@ class TestMailboxExecutor {
         loop.start();
         assertTrue(entered.await(1, TimeUnit.SECONDS));
 
-        // Seed mail should be processed quickly
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-        while (runs.get() == 0 && System.nanoTime() < deadline) {
-            Thread.sleep(10);
-        }
+        // Seed mail should be processed quickly — 条件等待（确定性事实：runLoop 已执行 seed mail），
+        // 超时仅作挂死保护。
+        TestAwait.until("runLoop processed the seed mail", () -> runs.get() > 0);
         assertEquals(1, runs.get(), "seed mail must be processed by runLoop");
 
         // Cancel from another thread; loop must exit

@@ -248,13 +248,12 @@ class TestCheckpointCoordinatorIncrementalPersistRollback {
                 "buildAndMaterializeSegments must have materialized SST segments before the persist");
 
         // Every materialized SST must have been physically discarded on rollback.
-        // Give the inline discard (still on the persist executor thread, but
-        // completes before the abort notification) a brief grace window.
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline
-                && !recording.stored.equals(recording.discarded)) {
-            Thread.sleep(50);
-        }
+        // The inline discard (still on the persist executor thread, but completes
+        // before the abort notification) is awaited via a deterministic condition
+        // wait (plan 2510), not a fixed grace window.
+        io.nop.stream.core.testsupport.TestAwait.until(
+                "every materialized SST discarded after the persist rollback",
+                () -> recording.stored.equals(recording.discarded));
         assertEquals(recording.stored, recording.discarded,
                 "every SST materialized before the failed persist must be discarded; "
                         + "stored=" + recording.stored + " discarded=" + recording.discarded);
@@ -376,11 +375,9 @@ class TestCheckpointCoordinatorIncrementalPersistRollback {
         assertFalse(recording.stored.isEmpty(),
                 "segments must be materialized before the manifest persist");
 
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline
-                && !recording.stored.equals(recording.discarded)) {
-            Thread.sleep(50);
-        }
+        io.nop.stream.core.testsupport.TestAwait.until(
+                "every SST discarded after manifest-persist rollback",
+                () -> recording.stored.equals(recording.discarded));
         assertEquals(recording.stored, recording.discarded,
                 "every SST must be discarded after manifest-persist rollback");
 

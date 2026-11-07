@@ -20,6 +20,7 @@ import io.nop.message.core.local.LocalMessageService;
 import io.nop.stream.core.common.functions.SinkFunction;
 import io.nop.stream.core.common.functions.source.SourceFunction;
 import io.nop.stream.core.execution.task.StreamTaskInvokable;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.execution.plan.DeploymentPlan;
 import io.nop.stream.core.execution.plan.PartitionPolicy;
 import io.nop.stream.core.execution.plan.PartitionedPlan;
@@ -64,7 +65,24 @@ class TestAlertFaultInjectionE2E {
     /** Gate released by the harness after wiring; the source idles until then. */
     static volatile CountDownLatch gate = new CountDownLatch(1);
 
-    /** Source idling until the gate opens, then feeding records (hits the failing sink). */
+    /**
+     * Reset per test: opened by the sink fixture the moment a record ARRIVES
+     * (records sent before the sink's subscription is live are silently dropped
+     * by the in-process LocalMessageService — the source's emit loop keys off
+     * this latch instead of a fixed emission window).
+     */
+    static volatile CountDownLatch firstRecordSeen = new CountDownLatch(1);
+
+    /**
+     * Source idling until the gate opens, then feeding records until one ARRIVES
+     * at the failing sink (the failure chain under test starts exactly there),
+     * then staying alive until the job's cancel path ends the task.
+     * 时间确定化（plan 2510）：不再用固定 20ms 发射循环——发射节奏由「sink 已
+     * 观察到记录」这一确定性条件驱动（重发间隔 = 可中断条件等待轮询，上限仅
+     * 挂死保护），存活期由可中断阻塞点承载，结束信号 = 被测系统的真实取消路径
+     * （RunningTask.cancel → future.cancel(true) 线程中断），测试不依赖真实
+     * 时间流逝。
+     */
     public static final class GatedSourceFunction implements SourceFunction<Long> {
         private static final long serialVersionUID = 1L;
         private volatile boolean running = true;
@@ -72,11 +90,19 @@ class TestAlertFaultInjectionE2E {
         @Override
         public void run(SourceContext<Long> ctx) throws Exception {
             gate.await();
-            long i = 0;
-            while (running) {
-                ctx.collect(i++);
-                Thread.sleep(20);
+            for (int i = 0; i < 500 && firstRecordSeen.getCount() != 0; i++) {
+                ctx.collect(0L);
+                try {
+                    firstRecordSeen.await(10L, java.util.concurrent.TimeUnit.MILLISECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
             }
+            firstRecordSeen.await();
+            // 驻留到取消路径打断（abort → task cancel → interrupt）；此阻塞点
+            // 永不自行返回，唯一出口是线程中断。
+            new CountDownLatch(1).await();
         }
 
         @Override
@@ -91,6 +117,7 @@ class TestAlertFaultInjectionE2E {
 
         @Override
         public void consume(Long value) {
+            firstRecordSeen.countDown();
             throw new IllegalStateException("injected sink failure (alert fault-injection test)");
         }
     }
@@ -143,6 +170,7 @@ class TestAlertFaultInjectionE2E {
     @BeforeEach
     void setUp() {
         gate = new CountDownLatch(1);
+        firstRecordSeen = new CountDownLatch(1);
         InMemoryClusterRegistry registry = new InMemoryClusterRegistry();
         IMessageService messageService = new LocalMessageService();
         taskManager = new TaskManager("node-1", "localhost:0", 4, messageService,
@@ -182,14 +210,11 @@ class TestAlertFaultInjectionE2E {
         // REAL async failure chain (FAILED report → recovery → cap → failJob)
         gate.countDown();
 
-        long deadline = System.currentTimeMillis() + 30_000L;
-        while (System.currentTimeMillis() < deadline) {
-            if (coordinator.getHealth() == StreamJobHealth.FAILED
-                    && recordingChannel.received.size() >= 2) {
-                break;
-            }
-            TimeUnit.MILLISECONDS.sleep(100L);
-        }
+        // 条件等待（上限仅挂死保护）：job 进入 FAILED 且两条告警都已送达。
+        TestAwait.until("job FAILED with RECOVERY_STARTED + JOB_FAILED alerts delivered",
+                () -> coordinator.getHealth() == StreamJobHealth.FAILED
+                        && recordingChannel.received.size() >= 2,
+                30_000L);
 
         assertEquals(StreamJobHealth.FAILED, coordinator.getHealth(),
                 "injected sink failure must drive the job to FAILED (health=" + coordinator.getHealth()

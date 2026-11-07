@@ -7,11 +7,15 @@
  */
 package io.nop.stream.core.execution;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.stream.core.exceptions.StreamException;
 import io.nop.stream.core.testsupport.TestAwait;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import io.nop.stream.core.operators.HeapInternalTimerService;
@@ -27,31 +31,49 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * Phase 1, Rule #25): mail-based delivery (callbacks run on the consuming task thread),
  * due-check suppression of no-op mails, daemon semantics, and shutdown race (no firing
  * after shutdown).
+ *
+ * <p>时间确定化（plan 2510）：driver 的时间读取经 {@code CoreMetrics}，测试注册
+ * {@link ManualClock} 显式推进虚拟时间触发 fire；「仍未发生」类断言前先以时钟读取计数
+ * 增长确认 driver 线程已重新求值，不再使用墙钟观察窗。
  */
 public class TestProcessingTimeServiceDriver {
+
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     @Test
     void testCallbackRunsOnTaskThreadViaMail() throws Exception {
         TaskMailbox mailbox = new TaskMailbox();
         TaskProcessingTimeService pts = new TaskProcessingTimeService();
         ProcessingTimeServiceDriver driver =
-                new ProcessingTimeServiceDriver(mailbox, pts, null, 20);
+                new ProcessingTimeServiceDriver(mailbox, pts, null, 10);
         AtomicReference<Thread> callbackThread = new AtomicReference<>();
         AtomicInteger fires = new AtomicInteger();
 
-        pts.registerTimer(System.currentTimeMillis() + 30, time -> {
+        pts.registerTimer(clock.peekMillis() + 30, time -> {
             callbackThread.set(Thread.currentThread());
             fires.incrementAndGet();
         });
 
         driver.start();
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (fires.get() == 0 && System.currentTimeMillis() < deadline) {
+            // 推进虚拟时间越过截止点：driver 线程下一个 tick 读到 due 并投递 fire mail，
+            // 任务（测试）线程 drain 执行回调。
+            clock.advance(100);
+            TestAwait.until("timer fire mail drained and callback ran", () -> {
                 mailbox.drainAndRun();
-                Thread.sleep(10);
-            }
-            assertTrue(fires.get() > 0, "Timer fired within timeout");
+                return fires.get() > 0;
+            });
             assertEquals(Thread.currentThread(), callbackThread.get(),
                     "Callback executes on the mail-consuming (task) thread, not the driver thread");
         } finally {
@@ -67,15 +89,13 @@ public class TestProcessingTimeServiceDriver {
                 new ProcessingTimeServiceDriver(mailbox, pts, null, 10);
         AtomicInteger fires = new AtomicInteger();
 
-        pts.registerTimer(System.currentTimeMillis() + 10, time -> fires.incrementAndGet());
+        pts.registerTimer(clock.peekMillis() + 10, time -> fires.incrementAndGet());
 
         driver.start();
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (mailbox.isEmpty() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(5);
-            }
-            assertFalse(mailbox.isEmpty(), "Driver delivered a fire mail once the timer was due");
+            clock.advance(100);
+            TestAwait.until("driver delivered a fire mail once the timer was due",
+                    () -> !mailbox.isEmpty());
             mailbox.drainAndRun();
             assertEquals(1, fires.get(), "Draining the mail on the task thread fires the timer");
         } finally {
@@ -92,8 +112,9 @@ public class TestProcessingTimeServiceDriver {
 
         driver.start();
         try {
-            // 负向窗口：无 timer 注册时不得产生 fire mail（循环维持不变量）
-            TestAwait.staysTrue("no fire mail without timer", mailbox::isEmpty, 60);
+            // 负向断言的结构性证据：driver 线程已多次读过时钟（活着并反复求值），mailbox 仍空。
+            TestAwait.until("driver polled the clock at least 3 times",
+                    () -> clock.totalReads() >= 3);
             assertTrue(mailbox.isEmpty(), "No fire mail when no timer is registered");
         } finally {
             driver.shutdown();
@@ -107,12 +128,14 @@ public class TestProcessingTimeServiceDriver {
         ProcessingTimeServiceDriver driver =
                 new ProcessingTimeServiceDriver(mailbox, pts, null, 10);
 
-        pts.registerTimer(System.currentTimeMillis() + 60_000, time -> {
+        pts.registerTimer(clock.peekMillis() + 60_000, time -> {
         });
 
         driver.start();
         try {
-            Thread.sleep(60);
+            // 时钟未推进（截止点在虚拟时间线上远未到达），driver 已多次重新求值后 mailbox 仍空。
+            TestAwait.until("driver re-evaluated the due-check after start",
+                    () -> clock.totalReads() >= 3);
             assertTrue(mailbox.isEmpty(), "No fire mail while the earliest timer is far in the future");
         } finally {
             driver.shutdown();
@@ -128,10 +151,7 @@ public class TestProcessingTimeServiceDriver {
 
         driver.start();
         try {
-            long deadline = System.currentTimeMillis() + 3000;
-            while (!driver.isRunning() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(5);
-            }
+            TestAwait.until("driver thread started", driver::isRunning);
             assertTrue(driver.isRunning(), "Driver thread started");
         } finally {
             driver.shutdown();
@@ -146,16 +166,13 @@ public class TestProcessingTimeServiceDriver {
                 new ProcessingTimeServiceDriver(mailbox, pts, null, 10);
         AtomicInteger fires = new AtomicInteger();
 
-        pts.registerTimer(System.currentTimeMillis() + 10_000, time -> fires.incrementAndGet());
+        pts.registerTimer(clock.peekMillis() + 10_000, time -> fires.incrementAndGet());
 
         driver.start();
         driver.shutdown();
-        long deadline = System.currentTimeMillis() + 3000;
-        while (driver.isRunning() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(5);
-        }
+        // 驱动线程终止后，投递方（driver）不复存在——mailbox 必然保持空，无需墙钟观察窗。
+        TestAwait.until("driver thread terminated after shutdown", () -> !driver.isRunning());
         assertFalse(driver.isRunning(), "Driver thread terminated after shutdown");
-        Thread.sleep(60);
         assertTrue(mailbox.isEmpty(), "No fire mail delivered after shutdown");
         assertEquals(0, fires.get(), "No callback fires after shutdown");
     }
@@ -170,12 +187,8 @@ public class TestProcessingTimeServiceDriver {
         driver.start();
         driver.start(); // second start is a no-op
         driver.shutdown();
-        long deadline = System.currentTimeMillis() + 3000;
-        while (driver.isRunning() && System.currentTimeMillis() < deadline) {
-            Thread.sleep(5);
-        }
+        TestAwait.until("driver thread terminated", () -> !driver.isRunning());
         driver.start(); // start after shutdown is a no-op
-        Thread.sleep(30);
         assertFalse(driver.isRunning(), "Driver cannot be restarted after shutdown");
     }
 
@@ -201,17 +214,16 @@ public class TestProcessingTimeServiceDriver {
         };
         HeapInternalTimerService<String, String> service = new HeapInternalTimerService<>(triggerable);
         tsm.registerTimerService(service);
-        service.registerProcessingTimeTimer("ns", System.currentTimeMillis() + 20);
+        service.registerProcessingTimeTimer("ns", clock.peekMillis() + 20);
 
         driver.start();
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (fires.get() == 0 && System.currentTimeMillis() < deadline) {
-                mailbox.drainAndRun();
-                Thread.sleep(10);
-            }
-            assertTrue(fires.get() > 0,
-                    "TimerServiceManager-registered timer fired via driver + mailbox drain");
+            clock.advance(100);
+            TestAwait.until("TimerServiceManager-registered timer fired via driver + mailbox drain",
+                    () -> {
+                        mailbox.drainAndRun();
+                        return fires.get() > 0;
+                    });
             assertEquals(0, service.numProcessingTimeTimers(), "Fired timer removed from service");
         } finally {
             driver.shutdown();
@@ -251,25 +263,23 @@ public class TestProcessingTimeServiceDriver {
         };
         HeapInternalTimerService<String, String> service = new HeapInternalTimerService<>(triggerable);
         tsm.registerTimerService(service);
-        service.registerProcessingTimeTimer("ns", System.currentTimeMillis() + 20);
+        service.registerProcessingTimeTimer("ns", clock.peekMillis() + 20);
 
-        StreamException propagated = null;
+        AtomicReference<StreamException> propagated = new AtomicReference<>();
         driver.start();
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (System.currentTimeMillis() < deadline) {
-                try {
-                    mailbox.drainAndRun();
-                } catch (StreamException e) {
-                    propagated = e;
-                    break;
-                }
-                Thread.sleep(10);
+            clock.advance(100);
+            TestAwait.until("fire mail delivered after the timer became due",
+                    () -> !mailbox.isEmpty());
+            try {
+                mailbox.drainAndRun();
+            } catch (StreamException e) {
+                propagated.set(e);
             }
         } finally {
             driver.shutdown();
         }
-        assertTrue(propagated != null,
+        assertTrue(propagated.get() != null,
                 "manager timer failure must propagate through the driver's mail action (fail-fast, P1-6.7-007)");
     }
 }

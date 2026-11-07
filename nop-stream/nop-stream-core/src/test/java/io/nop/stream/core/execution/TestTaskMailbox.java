@@ -100,9 +100,10 @@ class TestTaskMailbox {
         consumer.start();
 
         // Give consumer a moment to enter take()
-        // 负向窗口：mailbox 空时 consumer 必须持续阻塞（循环维持不变量）
-        TestAwait.staysTrue("consumer stays blocked on empty mailbox",
-                () -> taken.getCount() == 1, 50);
+        // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——consumer 线程
+        // 已到达 take() 的阻塞点（PARKED 于空 mailbox 等待），「仍阻塞」由线程
+        // 状态结构性证明，不再用 50ms 墙钟不变量窗口。
+        TestAwait.untilThreadParked("consumer blocked on empty mailbox take()", consumer);
         assertEquals(1, taken.getCount(), "consumer must still be blocked while mailbox empty");
 
         mailbox.put(Mail.control(() -> {
@@ -132,9 +133,10 @@ class TestTaskMailbox {
         }, "mailbox-consumer-close");
         consumer.start();
 
-        // 负向窗口：consumer 运行期间 mailbox 不得被其关闭
-        TestAwait.staysTrue("mailbox not closed while consumer runs",
-                () -> !mailbox.isClosed(), 50);
+        // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——mailbox 只会
+        // 被测试显式 close()，consumer 已到达 take() 阻塞点（PARKED）且测试尚未
+        // close，「未关闭」为结构事实，不再用 50ms 墙钟不变量窗口。
+        TestAwait.untilThreadParked("consumer parked in take() before close", consumer);
         assertFalse(mailbox.isClosed());
         mailbox.close();
         assertTrue(mailbox.isClosed());

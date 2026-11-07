@@ -130,9 +130,10 @@ public class TestResultPartitionOverflowBypass {
             }
         });
         producer.start();
-        // 负向窗口：未物化时写满后 write() 必须持续阻塞（循环维持不变量）
-        TestAwait.staysTrue("producer stays blocked without materialization",
-                () -> completed.get() == null && producer.isAlive(), 300);
+        // 时间确定化（plan 2510）：负向断言以结构判据替代观察窗——producer 线程已
+        // 到达写满队列的阻塞点（PARKED 于 put 内部条件等待）且未完成写入，
+        // 「仍阻塞」由线程状态结构性证明，不再用 300ms 墙钟不变量窗口。
+        TestAwait.untilThreadParked("producer blocked on the materialization-full queue write", producer);
         // The producer should still be blocked (legacy blocking behavior).
         assertNull(completed.get(), "Without materialization, write() must block when queue is full");
         assertTrue(producer.isAlive(), "Producer thread should still be blocked");

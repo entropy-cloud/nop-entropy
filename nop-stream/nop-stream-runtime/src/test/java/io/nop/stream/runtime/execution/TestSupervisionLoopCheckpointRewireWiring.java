@@ -72,19 +72,22 @@ class TestSupervisionLoopCheckpointRewireWiring {
         List<String> sinkResults = Collections.synchronizedList(new ArrayList<>());
         AtomicBoolean hasFailedOnce = new AtomicBoolean(false);
 
+        // 时间确定化（plan 2510）：不再用固定 pacing 分隔记录——源发出 s1..s3 后在
+        // latch 上显式阻塞（分区保持打开，重启必发生在源仍存活时），直到重启后的
+        // 消费者已回放出这 3 条记录（结构性证据），随后发出 s4..s20 实时数据。
+        java.util.concurrent.CountDownLatch replayed = new java.util.concurrent.CountDownLatch(3);
         SourceFunction<String> sourceFn = new SourceFunction<>() {
             private static final long serialVersionUID = 1L;
 
             @Override
-            public void run(SourceContext<String> ctx) {
-                for (int i = 1; i <= 20; i++) {
+            public void run(SourceContext<String> ctx) throws Exception {
+                for (int i = 1; i <= 3; i++) {
                     ctx.collect("s" + i);
-                    try {
-                        Thread.sleep(20);
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
+                }
+                // latch 上限仅作挂死保护
+                replayed.await(60, java.util.concurrent.TimeUnit.SECONDS);
+                for (int i = 4; i <= 20; i++) {
+                    ctx.collect("s" + i);
                 }
             }
 
@@ -93,7 +96,7 @@ class TestSupervisionLoopCheckpointRewireWiring {
             }
         };
 
-        SinkFunction<String> sinkFn = new ParticipatingSinkFunction(sinkResults, hasFailedOnce);
+        SinkFunction<String> sinkFn = new ParticipatingSinkFunction(sinkResults, hasFailedOnce, replayed);
 
         StreamSourceOperator<String> sourceOp = new StreamSourceOperator<>(sourceFn);
         StreamSinkOperator<String> sinkOp = new StreamSinkOperator<>(sinkFn);
@@ -234,10 +237,13 @@ class TestSupervisionLoopCheckpointRewireWiring {
 
         private final List<String> sinkResults;
         private final AtomicBoolean hasFailedOnce;
+        private final java.util.concurrent.CountDownLatch replayed;
 
-        ParticipatingSinkFunction(List<String> sinkResults, AtomicBoolean hasFailedOnce) {
+        ParticipatingSinkFunction(List<String> sinkResults, AtomicBoolean hasFailedOnce,
+                                  java.util.concurrent.CountDownLatch replayed) {
             this.sinkResults = sinkResults;
             this.hasFailedOnce = hasFailedOnce;
+            this.replayed = replayed;
         }
 
         @Override
@@ -246,6 +252,7 @@ class TestSupervisionLoopCheckpointRewireWiring {
                 throw new io.nop.stream.core.exceptions.StreamException("Injected first-consume failure (rewire wiring)");
             }
             sinkResults.add(value);
+            replayed.countDown();
         }
 
         @Override

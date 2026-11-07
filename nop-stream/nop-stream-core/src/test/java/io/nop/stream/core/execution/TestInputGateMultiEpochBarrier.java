@@ -4,6 +4,7 @@ import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
 import io.nop.stream.core.streamrecord.StreamElement;
 import io.nop.stream.core.streamrecord.StreamRecord;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -96,11 +97,10 @@ class TestInputGateMultiEpochBarrier {
         reader.setDaemon(true);
         reader.start();
 
-        // Wait until barrier 1 is observed in-flight by the reader loop.
-        long deadline = System.currentTimeMillis() + 5000L;
-        while (System.currentTimeMillis() < deadline && !gate.getInFlightBarrierIds().contains(1L)) {
-            Thread.sleep(10);
-        }
+        // Wait until barrier 1 is observed in-flight by the reader loop
+        // (确定性条件等待，超时仅作挂死保护).
+        TestAwait.until("barrier 1 in-flight before abort",
+                () -> gate.getInFlightBarrierIds().contains(1L));
         assertTrue(gate.getInFlightBarrierIds().contains(1L),
                 "Barrier 1 must be in-flight before abort");
 

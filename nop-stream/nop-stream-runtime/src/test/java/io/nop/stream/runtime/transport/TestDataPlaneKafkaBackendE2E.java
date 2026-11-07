@@ -90,16 +90,21 @@ class TestDataPlaneKafkaBackendE2E {
         RemoteInputChannel consumer = new RemoteInputChannel(dataPlane, topic, EPOCH);
 
         try {
-            // Give the subscription a moment to register with the broker before sending.
-            // 订阅注册时间窗（broker 侧无可见信号），循环形式等待
-            io.nop.stream.runtime.testsupport.TestAwait.elapsed("kafka subscription registers", 2_000);
-
-            producer.write(new StreamRecord<>("kafka-record"));
+            // 时间确定化（plan 2510，gated 真实 broker 面）：订阅注册在 broker 侧
+            // 无可见信号——以「收到首条记录」的重发握手替代固定 2s 订阅窗：订阅
+            // 建立前的发送被 broker 丢弃，首条记录重发至消费端收到为止（每轮以
+            // 30s read 超时为界，30s 未达 = 真丢失而非慢达，重发无重复风险）；
+            // 首条到达即订阅已建立，其余发送确定性投递。真实 broker 时延语义
+            // 保留墙钟（plan 2510 gated 面裁定）。
+            StreamElement recordElem = null;
+            for (int attempt = 0; attempt < 3 && recordElem == null; attempt++) {
+                producer.write(new StreamRecord<>("kafka-record"));
+                recordElem = consumer.read(30, TimeUnit.SECONDS);
+            }
             producer.write(new Watermark(1234L));
             CheckpointBarrier barrier = new CheckpointBarrier(7L, 2000L, CheckpointType.CHECKPOINT);
             producer.write(barrier);
 
-            StreamElement recordElem = consumer.read(30, TimeUnit.SECONDS);
             assertNotNull(recordElem, "record must arrive over the Kafka broker");
             assertTrue(recordElem.isRecord());
             assertEquals("kafka-record", recordElem.asRecord().getValue());

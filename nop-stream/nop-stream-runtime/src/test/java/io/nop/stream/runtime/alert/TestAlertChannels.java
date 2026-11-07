@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.event.StreamJobEvent;
 
 import org.junit.jupiter.api.AfterEach;
@@ -141,8 +142,8 @@ class TestAlertChannels {
             channel.send(new AlertEvent("job-w", AlertEvent.Severity.ERROR,
                     "JOB_FAILED", "JOB_FAILED job=job-w cause=boom", System.currentTimeMillis()));
 
-            await(() -> !channel.getDelivered().isEmpty());
-            await(() -> receivedBodies.size() >= 1);
+            TestAwait.until("webhook delivery completed (retry path)", () -> !channel.getDelivered().isEmpty());
+            TestAwait.until("receiver recorded the retried webhook body", () -> receivedBodies.size() >= 1);
 
             String body = receivedBodies.get(0);
             assertTrue(body.contains("\"jobId\":\"job-w\""), body);
@@ -164,8 +165,8 @@ class TestAlertChannels {
             String tricky = "msg with " + '"' + "quotes" + '"' + " tab \\u0001 ctrl";
             channel.send(new AlertEvent("job-w2", AlertEvent.Severity.WARN,
                     "JOB_DEGRADED", tricky, System.currentTimeMillis()));
-            await(() -> !channel.getDelivered().isEmpty());
-            await(() -> receivedBodies.size() >= 1);
+            TestAwait.until("escaped webhook delivery completed", () -> !channel.getDelivered().isEmpty());
+            TestAwait.until("receiver recorded the escaped webhook body", () -> receivedBodies.size() >= 1);
 
             String body = receivedBodies.get(0);
             // 必须可被标准 JSON 解析器解析（合法 JSON 即转义正确）
@@ -215,15 +216,5 @@ class TestAlertChannels {
         assertEquals("logging", channel.getName());
         channel.send(new AlertEvent("job-l", AlertEvent.Severity.WARN,
                 "JOB_DEGRADED", "JOB_DEGRADED job=job-l", System.currentTimeMillis()));
-    }
-
-    private static void await(java.util.function.BooleanSupplier condition) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            TimeUnit.MILLISECONDS.sleep(50L);
-        }
     }
 }

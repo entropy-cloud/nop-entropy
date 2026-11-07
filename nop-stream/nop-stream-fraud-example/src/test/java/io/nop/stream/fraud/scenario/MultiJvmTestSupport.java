@@ -11,10 +11,13 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import io.nop.core.lang.sql.SQL;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.CheckpointType;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.runtime.checkpoint.storage.LocalFileCheckpointStorage;
 import io.nop.stream.runtime.launch.PollingJdbcMessageService;
 import io.nop.stream.runtime.multijvm.MiniStreamCluster;
@@ -100,7 +103,14 @@ final class MultiJvmTestSupport {
         return count == null ? 0 : count;
     }
 
-    /** Waits until the fencing epoch strictly exceeds {@code baseline} with assignments. */
+    /**
+     * Waits until the fencing epoch strictly exceeds {@code baseline} with assignments.
+     *
+     * <p>RESIDUAL（gated multi-JVM 面，plan 2510 具名裁定）：fencing epoch 由 spawned
+     * coordinator JVM 写入共享 DB——虚拟时钟不可跨越进程边界，轮询间隔（300ms）是对
+     * 跨 JVM 收敛节奏的主动节流而非等待手段。超时返回 lastSeen（不抛）是演练语义：
+     * 轮次结果按 recorded-evidence 记入事件序列，由调用方在循环后裁决。
+     */
     static long waitForEpochRotation(MiniStreamCluster cluster, long baselineEpoch, long timeoutMs)
             throws InterruptedException {
         long deadline = System.currentTimeMillis() + timeoutMs;
@@ -124,26 +134,30 @@ final class MultiJvmTestSupport {
     // storage observable) — the plan's "恢复断言不得退化为从零重跑" guard
     // ----------------------------------------------------------------
 
-    static long waitForDurableManifest(MiniStreamCluster cluster, String jobId, long timeoutMs)
-            throws InterruptedException {
+    static long waitForDurableManifest(MiniStreamCluster cluster, String jobId, long timeoutMs) {
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(
                 cluster.getCheckpointDir().toString());
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            try {
-                var manifest = storage.loadLatestEpochManifest(jobId, "pipeline-0");
-                if (manifest != null) {
-                    return manifest.getEpochId();
+        AtomicLong epoch = new AtomicLong(-1L);
+        try {
+            TestAwait.until("durable EpochManifest appeared for job " + jobId, () -> {
+                try {
+                    var manifest = storage.loadLatestEpochManifest(jobId, "pipeline-0");
+                    if (manifest != null) {
+                        epoch.set(manifest.getEpochId());
+                        return true;
+                    }
+                } catch (Exception ignored) {
+                    // storage may not exist yet on the very first poll
                 }
-            } catch (Exception ignored) {
-                // storage may not exist yet on the very first poll
-            }
-            TimeUnit.MILLISECONDS.sleep(300L);
+                return false;
+            }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new AssertionError("No durable EpochManifest appeared within " + timeoutMs
+                    + "ms for job " + jobId + " at " + cluster.getCheckpointDir()
+                    + " — checkpoints are not completing in multi-JVM mode. Coordinator log: "
+                    + readLogTail(cluster, COORDINATOR_LABEL), e);
         }
-        throw new AssertionError("No durable EpochManifest appeared within " + timeoutMs
-                + "ms for job " + jobId + " at " + cluster.getCheckpointDir()
-                + " — checkpoints are not completing in multi-JVM mode. Coordinator log: "
-                + readLogTail(cluster, COORDINATOR_LABEL));
+        return epoch.get();
     }
 
     static long currentDurableManifestEpoch(MiniStreamCluster cluster, String jobId) {
@@ -192,21 +206,34 @@ final class MultiJvmTestSupport {
                 // transport failure, not the fencing rejection itself.
                 throw new AssertionError("stale-epoch probe transport failed: " + e, e);
             }
-            // The rejection is processed asynchronously by the target TM's poller.
-            long deadline = System.currentTimeMillis() + 15_000L;
-            while (System.currentTimeMillis() < deadline) {
-                String delta = readLogDelta(cluster.logFileFor(nodeId), logSizeBefore);
-                if (delta.contains("ERR_STREAM_FENCING_TOKEN_MISMATCH")
-                        || delta.contains("fencing-token-mismatch")
-                        || delta.contains("process-request-fail")) {
-                    return delta;
-                }
-                TimeUnit.MILLISECONDS.sleep(200L);
+            // The rejection is processed asynchronously by the target TM's poller —
+            // 条件等待 log 增量出现拒绝标记（上限仅挂死保护）。
+            AtomicReference<String> observed = new AtomicReference<>();
+            try {
+                TestAwait.until("target TaskManager's log records the stale-epoch rejection",
+                        () -> {
+                            String delta;
+                            try {
+                                delta = readLogDelta(cluster.logFileFor(nodeId), logSizeBefore);
+                            } catch (java.io.IOException e) {
+                                // log file not flushed/readable yet — keep waiting
+                                return false;
+                            }
+                            if (delta.contains("ERR_STREAM_FENCING_TOKEN_MISMATCH")
+                                    || delta.contains("fencing-token-mismatch")
+                                    || delta.contains("process-request-fail")) {
+                                observed.set(delta);
+                                return true;
+                            }
+                            return false;
+                        }, 15_000L);
+            } catch (AssertionError e) {
+                throw new AssertionError("Stale-epoch mutation (epoch=" + staleEpoch + ") to " + nodeId
+                        + " was not observably rejected within 15s. Log delta: "
+                        + readLogDelta(cluster.logFileFor(nodeId), logSizeBefore).substring(0,
+                        (int) Math.min(2000, readLogDelta(cluster.logFileFor(nodeId), logSizeBefore).length())), e);
             }
-            throw new AssertionError("Stale-epoch mutation (epoch=" + staleEpoch + ") to " + nodeId
-                    + " was not observably rejected within 15s. Log delta: "
-                    + readLogDelta(cluster.logFileFor(nodeId), logSizeBefore).substring(0,
-                    (int) Math.min(2000, readLogDelta(cluster.logFileFor(nodeId), logSizeBefore).length())));
+            return observed.get();
         } finally {
             proxy.stop();
             messageService.close();
@@ -286,45 +313,63 @@ final class MultiJvmTestSupport {
                 "Coordinator log must capture the recovery event after the kill");
     }
 
+    /** 条件等待（上限仅挂死保护）：条件异常按「尚未成立」处理并在超时原样抛出。 */
     static void waitFor(BooleanCondition condition, long timeoutMs, String message)
             throws Exception {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.eval()) {
-                return;
+        AtomicReference<Exception> lastError = new AtomicReference<>();
+        try {
+            TestAwait.until(message, () -> {
+                try {
+                    return condition.eval();
+                } catch (Exception e) {
+                    lastError.set(e);
+                    return false;
+                }
+            }, timeoutMs);
+        } catch (AssertionError e) {
+            if (lastError.get() != null) {
+                throw lastError.get();
             }
-            TimeUnit.MILLISECONDS.sleep(500L);
+            throw e;
         }
-        assertTrue(condition.eval(), message);
     }
 
     /**
-     * Item 14 (shared by the S2 multi-JVM tests): polls the file sink's output
-     * directory until {@code assertExactlyOnceOutput} passes (convergence wait for
-     * exactly-once output). A not-yet-created output directory means "no committed
-     * output yet" (the running sink is the deserialized bean in a TM JVM — directory
-     * creation does not cross the JVM boundary) and keeps waiting.
+     * Item 14 (shared by the S2 multi-JVM tests): waits for the file sink's output
+     * convergence — {@code assertExactlyOnceOutput} must pass (条件等待，上限仅挂死
+     * 保护；收敛节奏由 spawned TM JVM 的真实落盘决定). A not-yet-created output
+     * directory means "no committed output yet" (the running sink is the deserialized
+     * bean in a TM JVM — directory creation does not cross the JVM boundary) and
+     * keeps waiting.
      */
-    @SuppressWarnings("BusyWait")
     static void waitForExactlyOnceOutput(java.nio.file.Path outputDir,
                                          Set<TxSummaryRow> expected,
-                                         long timeoutMs, String context) throws Exception {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        AssertionError last = null;
-        while (System.currentTimeMillis() < deadline) {
+                                         long timeoutMs, String context) {
+        AtomicReference<AssertionError> last = new AtomicReference<>();
+        try {
+            TestAwait.until("exactly-once output converged to the expected set", () -> {
+                try {
+                    TestS2FileAggregationE2E.assertExactlyOnceOutput(outputDir, expected);
+                    return true;
+                } catch (AssertionError e) {
+                    last.set(e);
+                } catch (Exception e) {
+                    // NoSuchFileException 等 IO 未就绪态：输出目录尚未创建/尚未落盘——继续等待
+                    last.set(new AssertionError("output not readable/converged yet: " + outputDir, e));
+                }
+                return false;
+            }, timeoutMs);
+        } catch (AssertionError timeout) {
+            String outputRows;
             try {
-                TestS2FileAggregationE2E.assertExactlyOnceOutput(outputDir, expected);
-                return;
-            } catch (AssertionError e) {
-                last = e;
-            } catch (java.nio.file.NoSuchFileException e) {
-                last = new AssertionError("output directory not created yet: " + outputDir, e);
+                outputRows = String.valueOf(TestS2FileAggregationE2E.readOutputRows(outputDir));
+            } catch (Exception e) {
+                outputRows = "(unavailable: " + e + ")";
             }
-            TimeUnit.MILLISECONDS.sleep(500L);
+            throw new AssertionError(context + " — output did not converge to the expected set within "
+                    + timeoutMs + "ms. Last assertion: " + last.get()
+                    + " outputRows=" + outputRows, timeout);
         }
-        throw new AssertionError(context + " — output did not converge to the expected set within "
-                + timeoutMs + "ms. Last assertion: " + last
-                + " outputRows=" + TestS2FileAggregationE2E.readOutputRows(outputDir));
     }
 
     /**
@@ -332,29 +377,37 @@ final class MultiJvmTestSupport {
      * ADVANCES at least once while {@code throttleStillEngaged} holds — the C3
      * acceptance「背压期间 checkpoint 仍推进（无死锁）」via the design's observation
      * proxy (checkpoint storage progress). Returns the last observed epoch.
+     * 条件等待（上限仅挂死保护；推进节奏由 spawned JVM 的真实 checkpoint 决定）。
      */
     static long waitForDurableEpochAdvanceUnderThrottle(MiniStreamCluster cluster, String jobId,
                                                         java.util.function.BooleanSupplier throttleStillEngaged,
-                                                        long timeoutMs) throws InterruptedException {
-        long first = currentDurableManifestEpoch(cluster, jobId);
-        if (first < 0) {
+                                                        long timeoutMs) {
+        long firstObserved = currentDurableManifestEpoch(cluster, jobId);
+        if (firstObserved < 0) {
             // First durable epoch must also appear within the window.
-            first = waitForDurableManifest(cluster, jobId, timeoutMs);
+            firstObserved = waitForDurableManifest(cluster, jobId, timeoutMs);
         }
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        long lastSeen = first;
-        while (System.currentTimeMillis() < deadline) {
-            long current = currentDurableManifestEpoch(cluster, jobId);
-            if (current > first && throttleStillEngaged.getAsBoolean()) {
-                return current;
-            }
-            lastSeen = Math.max(lastSeen, current);
-            TimeUnit.MILLISECONDS.sleep(300L);
+        final long first = firstObserved;
+        AtomicLong advanced = new AtomicLong(-1L);
+        AtomicLong lastSeen = new AtomicLong(first);
+        try {
+            TestAwait.until("durable checkpoint epoch advanced while the sink throttle was engaged",
+                    () -> {
+                        long current = currentDurableManifestEpoch(cluster, jobId);
+                        if (current > first && throttleStillEngaged.getAsBoolean()) {
+                            advanced.set(current);
+                            return true;
+                        }
+                        lastSeen.accumulateAndGet(current, Math::max);
+                        return false;
+                    }, timeoutMs);
+        } catch (AssertionError e) {
+            throw new AssertionError("Durable checkpoint epoch did not advance while the sink throttle "
+                    + "was engaged within " + timeoutMs + "ms (first=" + first + " lastSeen=" + lastSeen.get()
+                    + ") — checkpoint loop stalled under backpressure. Coordinator log: "
+                    + readLogTail(cluster, COORDINATOR_LABEL), e);
         }
-        throw new AssertionError("Durable checkpoint epoch did not advance while the sink throttle "
-                + "was engaged within " + timeoutMs + "ms (first=" + first + " lastSeen=" + lastSeen
-                + ") — checkpoint loop stalled under backpressure. Coordinator log: "
-                + readLogTail(cluster, COORDINATOR_LABEL));
+        return advanced.get();
     }
 
     @FunctionalInterface

@@ -22,6 +22,7 @@ import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
 import io.nop.stream.core.connector.ConnectivityProbeOutcome;
 import io.nop.stream.core.connector.StreamConnectivityProber;
 import io.nop.stream.core.exceptions.StreamException;
+import io.nop.stream.core.testsupport.TestAwait;
 
 import org.junit.jupiter.api.Test;
 
@@ -282,11 +283,8 @@ public class TestDebeziumCredentialIntegration {
             }
         });
         runner.start();
-        long deadline = System.currentTimeMillis() + 5000;
-        while (engineConfig.get() == null && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
-        assertTrue(engineConfig.get() != null, "engine must be created with the decrypted config");
+        TestAwait.until("engine must be created with the decrypted config",
+                () -> engineConfig.get() != null, 5_000L);
     }
 
     private static final class NopContext implements io.nop.stream.core.common.functions.source

@@ -7,7 +7,6 @@
  */
 package io.nop.stream.connector.batch;
 
-import io.nop.stream.connector.batch.testsupport.TestAwait;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.stream.core.checkpoint.CheckpointBarrier;
 import io.nop.stream.core.checkpoint.OperatorSnapshotResult;
@@ -21,6 +20,7 @@ import io.nop.stream.core.streamrecord.LatencyMarker;
 import io.nop.stream.core.streamrecord.StreamRecord;
 import io.nop.stream.core.streamrecord.watermark.Watermark;
 import io.nop.stream.core.streamrecord.watermark.WatermarkStatus;
+import io.nop.stream.core.testsupport.TestAwait;
 import io.nop.stream.core.util.OutputTag;
 
 import org.junit.jupiter.api.Test;
@@ -247,10 +247,10 @@ public class TestBatchLoaderSourceFunction {
             }
         });
         runner.start();
-        while (collected1.size() < 2) {
-            Thread.sleep(5);
-        }
-        Thread.sleep(50); // let the runner park on the gate
+        TestAwait.until("two records emitted before the cancellation point", () -> collected1.size() >= 2);
+        // 确定性信号：runner 已停在第三条记录的门上（WAITING 阻塞态）——结构判据
+        // 替代旧的固定 sleep(50) 等停车
+        TestAwait.untilThreadParked("runner parked on the third-record gate", runner);
         // Region restart Phase 1: cancel interrupts the in-flight run after a,b.
         source.cancel();
         thirdRecordGate.countDown();
