@@ -419,7 +419,7 @@ operator state 的 rescale 支持矩阵（plan 369 Phase 3 NEW-A 落地裁定，
 | 扩容且旧子任务带非空 operator state | **fail-fast**（`ERR_STREAM_OPERATOR_STATE_SCALE_UP_UNSUPPORTED`，plan 369 NEW-A；消除静默置空） |
 | UNDISTRIBUTED/UNION/BROADCAST 重分布原语 | 后端能力在位（含 plan 369 NEW-B 的 BROADCAST 并集语义），但**未接入生产 rescale 路径**——生产接线归 backlog successor（nop-stream-r5-successors.md），接线前不改变生产行为 |
 
-`restoreBroadcast` 为并集语义（全部非空快照并集发所有实例，对照 Flink RoundRobinOperatorStateRepartitioner）；TTL 清理挂 `setCurrentKey` 周期 sweep（默认 60s[**8.43→8.44 兑现**：RocksDB 后端已于 CRA 8.44 R4-04 W-11 移植本形态——nanotime 门控+可配置间隔，`nop.stream.rocksdb.ttl.sweep-interval-millis` 缺省 60000/≤0 关闭]，`setTtlSweepIntervalMillis(≤0)` 关闭，plan 369 ST-12 部分），RocksDB sidecar 无界增长仍属资源上界专项。
+`restoreBroadcast` 为并集语义（全部非空快照并集发所有实例，对照 Flink RoundRobinOperatorStateRepartitioner）；TTL 清理挂 `setCurrentKey` 周期 sweep（默认 60s[**8.43→8.44 兑现**：RocksDB 后端已于 CRA 8.44 R4-04 W-11 移植本形态——nanotime 门控+可配置间隔，`setTtlSweepIntervalMillis(long)` setter 注入缺省 60000/≤0 关闭[2537 closure audit Major-1 订正——setter 形态非配置键]]，`setTtlSweepIntervalMillis(≤0)` 关闭，plan 369 ST-12 部分），RocksDB sidecar 无界增长仍属资源上界专项。
 
 ### 10.5 与 Keyed State 的关系
 

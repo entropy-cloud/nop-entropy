@@ -129,7 +129,7 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 - **kafka/batch 取消时延声明（W-01/W-03）**：kafka cancel 单发 `wakeup()`——启动期元数据拉取阻塞的取消时延从 ≤max.block.ms 收敛为即时；稳态 ≤ poll 间隔 200ms（限速切片窗与 seek/assign 窗同受 wakeup 覆盖）。batch loader cancel 单发 interrupt——响应 interrupt 的 loader 在预算内退出，不响应的实现取消时延上界 = 单次 `loader.load` 时长（声明边界）；reader 面取消时延上界 = 单次 load 时长。
 - **RocksDB native 清理与恢复残留（W-06/W-07/W-10）**：openDB 失败路径逆序关闭全部 native 句柄（不再依赖不可靠的 GC finalizer）；restore 恢复先关增量句柄后关源库；restore 入口清扫「id 严格小于当前恢复 id」的陈旧恢复目录（跨部署回滚残留 id 前移后自愈收敛——watch-only）。
 - **file 2PC 孤儿清扫（W-08）**：beginTransaction（恢复链末位）扫描本 subtask 后缀的孤儿 epoch temp——manifest∪pending 双白名单之外的残留按 WARN 删除（磁盘包络从「失败次数×全量 epoch」收敛为在途上限×单 epoch）；他 subtask 在途 temp 结构性不命中；manifest 损坏时保守跳过清扫。
-- **RocksDB TTL sweep（W-11）**：`setCurrentKey` 挂 nanotime 门控周期 sweep（`nop.stream.rocksdb.ttl.sweep-interval-millis`，缺省 60000，≤0 关闭）——设计文档声明的形态在生产后端兑现；keyed TTL 的过期状态不再依赖 checkpoint 节奏回收。
+- **RocksDB TTL sweep（W-11）**：`setCurrentKey` 挂 nanotime 门控周期 sweep（`setTtlSweepIntervalMillis(long)` setter 注入（缺省 60000，≤0 关闭——**无配置键**[2537 closure audit Major-1 订正：初版文档误写配置键，实现为裁定 D.4 明文的 setter 形态]））——设计文档声明的形态在生产后端兑现；keyed TTL 的过期状态不再依赖 checkpoint 节奏回收。
 
 ## 2PC 双旋钮与语句/锁超时（CRA 8.43 R4-03 W-04/W-06/W-11）
 
