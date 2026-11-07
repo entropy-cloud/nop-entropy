@@ -192,7 +192,7 @@ Exit Criteria:
 
 ### Phase 2 - 10 工单实现 + 回归测试（按组 A–C）
 
-Status: in progress〔2026-11-07 实施启动〕
+Status: completed〔2026-11-07：组 A/B/C 三组全落地（10 工单+红①–红⑩ 先红后绿+C10-005/006/008 三验收前置+三模块签名 flow 325/sql 185/fraud 135 EXIT=0+分解通道已知面③⑤等价验收）〕
 Targets: nop-stream-flow（3 main+测试树）+ nop-stream-sql（3 main+测试树）+ nop-stream-fraud-example（2 main+测试树）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（10 工单均为已确认 live 缺陷——merge-adjudication §2.1/§2.2 判级权威，不得写成 Feature；C10-005 缺保护收口随 W-02/C10-008 搭车随 W-03/W-10 为已确认伴生面随批同 diff 收敛）、`Proof`（工单测试 + E2 泛在钉）
@@ -219,8 +219,8 @@ Exit Criteria:
 - [x] 必红证据（E2）：红①–红⑩ 均先红后绿（总册 `_tmp/red-green-ledger-2538.md` 三组节+逐钉形态标注；红④ 结构红诚实留痕/红⑧ 变异四相 md5 相等链/红⑥ 缝腿编译红+行为红双形态——原始日志 red2538-*/green2538-* 全保留）；C10-005 同 diff 落地留证（注入用例 FAILED 断言+`:130` 零改写——git diff 为空亲证）；C10-006 反向钉零回退留证（TestDirectoryFileSourceFunction 14 用例 git diff 为空亲证）；8.18 承接面零改写核对留证（复位块/merge-max/snapshotState 并回/metadata 契约/resolver 三产物——main diff 分组核对）
 - [x] 零回退实证：三站点模块 solo 通道 BUILD SUCCESS（签名=勘误 5 基线+新钉比对：**flow 325 0F0E 0S**[315+10]/ **sql 185 0F0E 0S**[176+9]/ **fraud-example 135 0F0E 16S**[126+9，16S=gated 多 JVM 与基线同源]）；点名钉族零回退（2512 五钉全绿——resolver 12 用例+反向钉+`:130`；8.41 受害侧钉不在本批站点零涉；既有锚全绿）；8.18 产物面（裁定①④ 落地 diff）零回退
 - [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 组内留痕：组内 focused 全绿（三模块 solo 通道）+ `./mvnw test -pl nop-stream` 分解通道验收；批行 `-am` 通道与等价分解通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（`_` 生成物/orm/平台设施/批外模块——git 过滤核对）；owner doc 更新需求登记归 Phase 3
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E3 组内留痕：组内 focused 全绿（三模块 solo 通道——flow 325/sql 185/fraud-example 135 各 EXIT=0）+ 分解通道 `./mvnw test -pl nop-stream` 执行留痕（`_tmp/green2538-aggregator.log`——BUILD FAILURE=已知面③⑤ 与基线同形：runtime **1253 0F0E 13S** 结果面完整[docker 双 E2E 慢跳过触发 fork teardown 超时]+format-avro/sql/fraud-example 反应器跳过[三模块 solo 补齐已在本轮完成]——按勘误 5 判据等价验收处置，禁静默重跑）；批行 `-am` 通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（条件申报核对项——git 过滤亲证）；owner doc 更新需求登记归 Phase 3（已落账——E5 四文件）
+- [x] `ai-dev/logs/` 对应日期条目已更新（2026-11-07 三组节+Phase 2 收尾节）
 
 ### Phase 3 - 全量验证 + owner doc 落账
 

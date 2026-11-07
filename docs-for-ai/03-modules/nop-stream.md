@@ -298,6 +298,16 @@ nop-stream 两条 DB 账本由 `LedgerRetentionConfig`（`io.nop.stream.runtime.
 - **UDF RuntimeContext per-subtask（裁定③）**：`ProcessOperator` 对 RichFunction 形态 UDF 在 `copyForSubtask` 做序列化 round-trip 私有化（core util `SerializationRoundTripCopy`）——每 subtask 私有 UDF 实例与 RuntimeContext/keyed backend，parallelism ≥2 不再收敛单一 backend（有状态 keyed UDF 跨键零污染）；**非 Serializable 的 RichFunction UDF 部署期 typed 失败**（指引实现 Serializable，无静默共享回退——与跨进程部署序列化约束同源，属声明过的行为变更面）；非 RichFunction UDF 维持引用透传（无 context 写入面，零回归）。
 - **REPLAYABLE 目录文件源跨 run 复用（裁定②④）**：`DirectoryFileSourceFunction` 为共享实例契约（runtime 跨 subtask/跨 region 重启复用同一实例）——run 入口 CAS 成功后复位 `cancelled`（上一 run 的取消位不再静默饿死重启 run 的零事件假成功；并行双入落败者仍早退）；位点恢复为 per-file **max 增量合并**（不 REPLACE 清零），checkpoint 位点不回退、恢复重放不丢不重。详细语义归设计文档，REPLAYABLE 声明以此两半边（复位完整 + 位点单调）为成立前提。
 
+### 编排薄层并发契约扩展（CRA 8.45 R4-05，plan 2538 裁定 A–E 使用面投影）
+
+> 行为变更面（10 工单）的用户/运维可见契约落点；SQL 静态缓存与 UDF 生命周期面（W-04/W-08/W-09）见 `nop-stream-sql.md` §3a。
+
+- **sideInput 快照冻结机制强制（W-01）**：WI11「构建期冻结只读快照」由声明升格为机制——`materializeSideInputs` 对 Supplier 返回值做结构化递归冻结（顶层防御拷贝脱离应用活引用 + 嵌套 Map/List 逐层拷贝并只读包装；`sideInputs` union map 本身同为只读面）。xpl 体对快照的任何写（`sideInputs['dict'].put(...)`、嵌套值写、顶层 put）运行期 typed `UnsupportedOperationException`（诊断指向写点），不再静默污染后续记录。值契约=数据型结构（Map/List/标量）；自定义可变 POJO 的深层写面为声明不支持用法（拷贝后 POJO 实例仍共享，零 typed 强制——诚实边界）。`Supplier.get()` 按 build 粒度恰一次（二次 build 重新物化——显式语义）。
+- **eval 根作用域 fresh-root 纪律（W-05）**：`XplFunctionSupport` 不再持有 JVM 级静态共享 ROOT_SCOPE——`newCallScope()`/`newCallScope(bindings)` 每调用经 `EvalExprProvider.newEvalScope()` 新建独立根作用域（bindings 非空=fresh root + adopt child，零每记录拷贝）。**bindings 须为构建期冻结只读快照（W-01 契约互引）**。单点误用（跨记录持有 scope）的污染半径从「全 JVM 全算子」收敛为「该调用方自身」；分配画像 ≤ 既有 tolerated 登记包络（fresh-root 增量 ≈+1 scope，仅 WI11 bindings 三路径；双跳站点计数不变）。
+- **build() 零消耗契约（W-07）**：`StreamModelDslBuilder.build()` 不再改写调用方持有的已解析模型——build 首行做防御性结构拷贝（生成 `cloneInstance` 壳 + 集合属性独立复制；字符串/枚举/编译产物叶值共享），全部展开（`<sql>` 展开、`<sqlTransform>` 拼接、edge 重定向）作用于副本。输入模型的 sql/transforms/edges post-build 保持原值与原对象引用；`of(model).build()` 幂等可重入，多 builder 可共持同一模型。拷贝失败 typed 失败（`ERR_STREAM_INVALID_ARG`）。
+- **S1 replay 失败/取消/订阅语义（W-02/W-03/W-10）**：`ReplayableCdcSourceFunction` 的重放引擎失败不再伪装 EOS——失败经子类 volatile 通道记录，`run()` 在父类等待循环退出后 typed 重抛（任务 FAILED，恢复语义接管；父异常优先、replay 失败以 suppressed 保全；外部 cancel 与失败并发不洗掉失败信号）。取消回调注册表委托平台 `Cancellable`（cancel 幂等 check-and-set、回调列表同步、单回调异常不阻断其余——逐回调隔离），`stop()` 对称驱动注册表（与外部 cancel 同驱、回调恰一次；cancelReason 返回实际 reason——kill=外部取消路径、stop=stop 路径，机制归因）。replay 引擎为**一次性订阅语义**：二次 subscribe typed 拒绝（detail 指引新建 engine），拒绝后首订阅不受扰。声明残窗：run() 已返回后到达的重放失败仅 LOG（watch-only 登记——强传播需 cancel-后-join 编排语义）。
+- **目录源守卫 typed 语义（W-06）**：`DirectoryFileSourceFunction` 并行首入落败者从「静默零事件完成（假 EOS）」改为 typed 失败（`ERR_STREAM_STATE_ERROR`，detail 含 re-entered 判别）——守卫不再把检测到的并发异常翻译为静默成功；被拒线程不触任何清理面（守卫所有权归在途 run），恢复路径拥有重试权（守卫释放后同实例重入成功）。守卫持有窗内任意重入（含 finish-linger 窗）均 typed；落败者零读取语义维持（并行首入互斥契约不变）。
+
 ## 运维手册（分布式模式操作）
 
 > 本节是 nop-stream 运维操作的权威速查（与 live 行为一致性由 gated 测试矩阵背书：REST 生命周期/指标暴露/重置重放/健康告警 e2e）。
