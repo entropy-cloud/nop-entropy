@@ -160,6 +160,22 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
         }
     }
 
+    // CRA 8.47 R4-07 W-02 (1.4-C5-004, adjudication G.2): JVM 在途软上限（默认 0=
+    // 禁用——backlog 消化期望行为不受损，2496 observe-only 先例同形；>0 启用）。
+    // 正交声明：max-concurrency=DB 在途认领行数上限（claim 前），max-inflight-promises
+    // =JVM 内在途 promise 上限（claim 后 executeTask 在途数）——两闸门口径/生效点不同。
+    private int maxInflightPromises;
+
+    @InjectValue("@cfg:nop.job.worker.max-inflight-promises|0")
+    public void setMaxInflightPromises(int max) {
+        // <0 = config error (0=disabled is a legitimate opt-in face)
+        if (max < 0) {
+            throw new NopException(io.nop.job.core.JobCoreErrors.ERR_JOB_INVALID_CONFIG_VALUE)
+                    .param("configName", "maxInflightPromises").param("value", max);
+        }
+        this.maxInflightPromises = max;
+    }
+
     @InjectValue("@cfg:nop.job.worker.max-concurrency|0")
     public void setMaxConcurrency(int maxConcurrency) {
         this.maxConcurrency = maxConcurrency;
@@ -248,6 +264,18 @@ public class JobWorkerScannerImpl extends AbstractBatchScanner implements IJobWo
             // from the no-candidates case above (which is normal idle).
             LOG.warn("nop.job.worker.no-fitting-candidate:candidateCount={},remainingCpu={},remainingMem={}",
                     candidates.size(), myRemaining.getCpu(), myRemaining.getMemory());
+            workerMetrics.onRejected(0);
+            return false;
+        }
+
+        // CRA 8.47 R4-07 W-02 (adjudication G.2): JVM 在途软上限闸门——复用 2496
+        // MA-06 inFlightInvokeStartMillis registry（其 size=JVM 在途 invoke 数——
+        // 零新 ledger）。超阈 → WARN + workerMetrics.onRejected + return false
+        // （本周期提前收尾，下周期继续——drain 提前收尾形态）。默认 0=禁用。
+        if (maxInflightPromises > 0
+                && inFlightInvokeStartMillis.size() >= maxInflightPromises) {
+            LOG.warn("nop.job.worker.inflight-cap-reached:inFlight={},max={}",
+                    inFlightInvokeStartMillis.size(), maxInflightPromises);
             workerMetrics.onRejected(0);
             return false;
         }

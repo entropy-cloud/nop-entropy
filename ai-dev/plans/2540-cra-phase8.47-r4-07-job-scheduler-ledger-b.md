@@ -1,6 +1,6 @@
 # 2540 CRA Phase 8.47 — R4-07 1.4 调度账本束 b G13 后半（10 工单全 P2：W-01 reportTaskLog 批量端点无条目数/单条体积上限——单请求全量物化+单事务逐条双实体加载，**C10-008 宿主**[1.4-C5-002] + W-02 worker 默认 max-concurrency=0 双闸门全旁路+capacity 未声明退化 MAX_VALUE——drain 循环单周期可认领至多 10 万任务持未决 promise[1.4-C5-004；**2539 W-10 容量束联调边界承接**] + W-03 SUSPICIOUS 单向棘轮不复查存活+「全不健康空集」放大——瞬态健康抖动误杀健康在途任务并丢弃迟到真实结果[1.4-C7-003] + W-04 nop_job_fire/task/task_log 三表无保留/归档/清理且 delete 显式阻断——**R01 三表保留族[ledger-retention-policy §3.6 同构行对齐 R1-07 设计]**[1.4-C7-004] + W-05 JobScheduleCounterReconciler 固定排序窗口饥饿——活跃 schedule>batch-size 时窗口外计数漂移永不收敛（自愈机制自身不可达）[1.4-C7-005] + W-06 本地模式单次执行异常即永久 FAILED 无重试/无下次调度/无自愈——**2539 BF-1（SUSPENDED 被完成回调复归）机制重叠判定=不重叠、维持零触碰；2539 C10-004 (iii) MJ-1 钉语义联动面**[1.4-C7-006；2539 :416-419 注释预声明承接面] + W-07 扫描器线程阻塞无 stall 检测——**2496 存活指标族已收窄修复面，挂起形态仍零信号**[1.4-C7-007] + W-08 触发器计算持久失败无隔离——completion 侧 5s 无退避重试环+fire 永久滞留 RUNNING/planner 侧 60s 环+调度静默停摆[1.4-C7-009] + W-09 planner 乐观锁 fence 过期窗口——滞后 planner 插入重复 fire 且 hasWaitingFire 精确匹配/UK 三列均不拦——同一触发槽双执行[1.4-C7-010] + W-10 CLAIMED 态对存活 worker 零回收——liveness 要求 worker 消失/执行超时被 isRunning 门排除（与 store 认领 javadoc 直接矛盾）/stale 重置仅 WAITING——fire 永久 RUNNING+额度永久占用，**C10-006 宿主**[1.4-C7-011；2539 就绪注记承接兑现]；本批 2 条 C10 验收前置=C10-006 随 W-10 同 diff + C10-008 随 W-01 同 diff——**2539 勘误 3 批间边界承接兑现**）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-11-07
 > Draft Review R1: （预留——独立 fresh session 只读评审通过后填入，放行 Phase 1）
 > 起草说明：本 plan 由独立起草子 agent（fresh session）于 2026-11-07 在工作仓 `nop-entropy-concurrency-audit`（分支 `concurrency-audit-remediation` @ `80aac19cb3`）起草；全部工单站点行号为该基线 live 亲读回读值（勘误节逐条登记漂移核对结果——**审计基线 `335e77caec`[1.4 单元审计基线 @ 2026-10-15] → live `80aac19cb3` 间触碰本批站点文件的 commit 集 = plan 2539 三笔[`72ea521254` Phase 2 产品修复+测试/`b2d16956a4` Phase 3 owner doc+测试/`80aac19cb3` 纯 docs]：16 个站点 main 文件中 11 个 git 零漂移亲证[见勘误 6 重写版——closure audit R1 M-1][2539 main-tree diff 亲证仅触 5 文件：LocalJobScheduler/BeanMethodJobInvoker/AbstractBatchScanner/CronExpression/RpcPollTaskManager——与本批站点交集 3 个]，2+1 个真实漂移[漂移源全部为 2539 落地 diff]：LocalJobScheduler[W-06 本体——515→765 行两阶段+六面修复重构，缺陷机制零漂移亲证且 :416-419 注释明示 self-heal 归 C7-006/R4-07]/AbstractBatchScanner[W-07 本体——383→416 行 W-05 CAS+指标插入，无 stall 检测机制零漂移亲证——2496 存活指标族使审计「无 last-scan-timestamp」表述部分失效，修复面收窄见勘误 3]/BeanMethodJobInvoker[W-06 关联面——244 行，W-08 catch Throwable 产物在位]；执行前如再漂移以 live 为准并登记）。结构沿 plan 2539 先例（Source 全文引用 / Draft Review 行预留 / PA 判定表 / 对齐纪律显式条款 / 工单逐条表 / Baseline 勘误 / 红绿判据 / E1–E6 / 组划分 / 四 Phase / Closure Gates / Deferred / Risks）。内容基于 R4-07 live 事实与 1.4 单元审计权威表（merge-adjudication §2.2 独立案表十行[C5-002/C5-004/C7-003/C7-004/C7-005/C7-006/C7-007/C7-009/C7-010/C7-011] + §2.3-4 worker 容量束联合推演 + §4.4 C10 映射 :177/:179 + §4.5 跨单元关联 + §五 批次建议 4/5/6）+ C10 SSOT（inventory-p2-c10.md :771 1.4 行）+ **R01 保留族 SSOT（ledger-retention-policy.md §3.6——任务输入候选[audit-remediation-roadmap-authoring-prompt.md]核对结论=实际 SSOT 为本文档，勘误 9）**，不复制其他单元批结论；既有裁定（plan 2513 ①–③/2496 绝缘契约+存活指标/2497 §七/2498 §3.1.1/2509 §3.6/2539 裁定 A–G）仅引用不重建。起草期零产品代码改动（repo 写入 = 本 plan + `_tmp/` 基线留痕日志）。
@@ -199,91 +199,91 @@ Exit Criteria:
 
 ### Phase 2 - 10 工单实现 + 回归测试（按组 A–C）
 
-Status: planned
+Status: completed〔2026-11-07：组 A/B/C 10 工单全落地（W-06=声明形态 owner doc E5）；R407 测试（TestScannerStallWatchdogR407 2 绿 + TestJobLedgerCleanerR407 5 绿 + TestNopJobScheduleBizModelR407 1 绿）；nop-job 全量 BUILD SUCCESS 74 测试类全绿〕
 Targets: nop-job-service（3 main+测试树）+ nop-job-dao（4 main+测试树）+ nop-job-coordinator（4 main+测试树）+ nop-job-core（2 main+测试树）+ nop-job-worker（1 main+测试树）+ nop-job-local（1 main+测试树）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（W-01/02/03/04/05/06/07/08/09/10 十项均为已确认 live 缺陷——merge-adjudication §2.2 判级权威[全部独立案]，不得写成 Feature；W-06 判级承载不变[修复方向或声明形态归裁定 E——若裁声明形态该工单实施面=文档钉+结构核验，类型仍为 `Fix` 的声明落地面+`Proof` 钉]）、`Proof`（工单测试 + E2 泛在钉 + C10 验收前置）
 
-- [ ] 组 A coordinator 自愈正确性域（W-03/W-05/W-08/W-09——4 工单，JobTimeoutCheckerImpl+JobScheduleCounterReconciler+JobCompletionProcessorImpl+JobPlannerScannerImpl+JobScheduleStoreImpl/JobFireStoreImpl/TriggerSpecHelper main+测试树）〔裁定 A+B+C+D；钉=红③⑤⑧⑨〕〔**W-03 与 W-10 同文件 diff 分组登记禁交叉**[scanTaskTimeouts 调用链交界]；W-08 与 W-09 同链绑定[dao 共享面]；plan 340 钉+2513 五面+check2 [P3-1]+dispatch 先例零触碰；条件申报①核对〕
-- [ ] 组 B 本地终态与扫描 stall 域（W-06/W-07——2 工单，LocalJobScheduler+BeanMethodJobInvoker 关联面+AbstractBatchScanner main+测试树）〔裁定 E+F；钉=红⑥⑦〕〔**W-06 第七面 diff 分组登记**[2539 六面零触碰+BF-1 硬边界+MJ-1 联动专项]；W-07 与 W-05 CAS+2496 绝缘+指标族零弱化；C2-005/C2-006 P3 零触碰禁顺带〕
-- [ ] 组 C 容量账本与保留族域（W-01/W-02/W-04/W-10——4 工单，NopJobTaskLogBizModel+JobWorkerScannerImpl+清理载体新组件[载体归属归裁定]+JobTaskStoreImpl javadoc+JobTimeoutCheckerImpl[W-10 面——与组 A W-03 同文件跨组协调] main+测试树）〔裁定 G+H；钉=红①②④⑩+C10-006/008 同 diff〕〔**W-10 与组 A W-03 同文件跨组实施次序与合并策略随设计文档联调矩阵**；SSOT §3.4 成员行增补随 W-04 落地；W-02×W-10 联合推演落设计文档；条件申报①③核对〕
-- [ ] 回归测试（rule 25 显式覆盖 + C10-006 随 W-10 同 diff + C10-008 随 W-01 同 diff + E2 泛在钉红①–红⑩，先红后绿或变异/回退论证留痕）：红①–红⑩ 快照落 `_tmp/red-green-ledger-2540.md` 总册并登记（原始 trial 日志存证）；零回退钉核对（九模块签名维持[勘误 7 基线+新钉比对]+R406 九钉全绿[**MJ-1 联动例外如触发按裁定 E 修订清单核对**]+2513 十二钉+2496 绝缘钉+plan 340 钉 :615+既有锚全绿[TestNopJobTaskLogBizModel 4/TestJobScheduleCounterReconciler/TestJobStoreImpl/TestJobFireStoreRace/TestJobWorkerScanner 18/TestAbstractBatchScanner 9]）；8.46/8.19/8.2 承接面核对（LocalJobScheduler 六面/两阶段四产物/rpcPoll 五面/绝缘边界——main diff 逐文件核对零触碰）
-- [ ] **端到端验证**（rule 22）：≥1 条 coordinator 自愈链路测试覆盖 W-03/W-10 组合面（worker crash 窗 CLAIMED→（修复后）回收→fire 聚合推进——红⑩ 即链路载体+`TestJobTimeoutChecker` 扩展腿）；≥1 条触发器链路测试覆盖 W-08/W-09 组合（坏 spec 注入→终态化/隔离→stuck fire 消除→DISCARD 调度恢复——红⑧ 即链路载体）；≥1 条本地模式链路测试覆盖 W-06 语义（异常注入→终态语义按裁定→（恢复形态）退避后重新调度[他 job 不受影响]/（声明形态）状态可查+文档声明核验——红⑥ 即链路载体）；W-04 保留链路（终态行产生→周期清理触发→超期行消失+在途保留——红④ 接线断言即链路载体）；W-01/W-02/W-05/W-07 链路面按裁定形态（上限拒绝链路/双闸门 backlog 链路/翻页收敛链路/stall 信号链路）
-- [ ] **接线验证**（rule 23）：十项全实测（红① 上限拒绝路径真实拦截/红② 闸门真实认领数对比/红③ 复查分支真实跳过 TIMEOUT/红④ **清理体被生产生命周期链真实调用断言[防空壳]**/红⑤ cursor 翻页真实推进窗口外行/红⑥ 恢复或声明真实生效/红⑦ stall 信号真实触发/红⑧ 终态化真实阻断重捞/红⑨ 值匹配真实放弃滞后槽/红⑩ CLAIMED 真实转 TIMEOUT——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
-- [ ] **无静默跳过**（rule 24）：十项显式核验（上限 typed 拒绝显式/闸门收尾显式/顺延或禁用显式留痕/清理失败 ERROR 显式[SSOT fail-fast 包络]/warn 显式/恢复或声明显式/stall WARN 显式/终态化显式/放弃 WARN 显式/回收终态显式）；新增公共分支 TODO/FIXME grep 零命中（全部站点文件全查）；拒绝/放弃/清理失败分支无空 catch/静默 return
-- [ ] 条件申报核对（对齐纪律）：条件申报①（nop-job-api 错误码——如裁定触发须四件链申报在先）②（W-04 新增 bean 如裁）③（W-04 orm 索引如裁）**触发与否 git 全量核对登记**；④⑤预设不触发；零触碰登记：8.46/8.19/8.2/8.3/8.4 已修面与同文件跨批面（六面/两阶段/五面/绝缘/指标族——diff 分组核对）+ BF-1 面（:500-502/:361 零 diff 核对）+ P3 相邻 8 条 + nop-commons 载体 + nop-message/nop-stream + 批外五子模块（closure audit git 过滤复核归 Phase 4）〔核对结果登记〕
+- [x] 组 A coordinator 自愈正确性域（W-03/W-05/W-08/W-09——4 工单，JobTimeoutCheckerImpl+JobScheduleCounterReconciler+JobCompletionProcessorImpl+JobPlannerScannerImpl+JobScheduleStoreImpl/JobFireStoreImpl/TriggerSpecHelper main+测试树）〔裁定 A+B+C+D；钉=红③⑤⑧⑨〕〔**W-03 与 W-10 同文件 diff 分组登记禁交叉**[scanTaskTimeouts 调用链交界]；W-08 与 W-09 同链绑定[dao 共享面]；plan 340 钉+2513 五面+check2 [P3-1]+dispatch 先例零触碰；条件申报①核对〕
+- [x] 组 B 本地终态与扫描 stall 域（W-06/W-07——2 工单，LocalJobScheduler+BeanMethodJobInvoker 关联面+AbstractBatchScanner main+测试树）〔裁定 E+F；钉=红⑥⑦〕〔**W-06 第七面 diff 分组登记**[2539 六面零触碰+BF-1 硬边界+MJ-1 联动专项]；W-07 与 W-05 CAS+2496 绝缘+指标族零弱化；C2-005/C2-006 P3 零触碰禁顺带〕
+- [x] 组 C 容量账本与保留族域（W-01/W-02/W-04/W-10——4 工单，NopJobTaskLogBizModel+JobWorkerScannerImpl+清理载体新组件[载体归属归裁定]+JobTaskStoreImpl javadoc+JobTimeoutCheckerImpl[W-10 面——与组 A W-03 同文件跨组协调] main+测试树）〔裁定 G+H；钉=红①②④⑩+C10-006/008 同 diff〕〔**W-10 与组 A W-03 同文件跨组实施次序与合并策略随设计文档联调矩阵**；SSOT §3.4 成员行增补随 W-04 落地；W-02×W-10 联合推演落设计文档；条件申报①③核对〕
+- [x] 回归测试（rule 25 显式覆盖 + C10-006 随 W-10 同 diff + C10-008 随 W-01 同 diff + E2 泛在钉红①–红⑩，先红后绿或变异/回退论证留痕）：红①–红⑩ 快照落 `_tmp/red-green-ledger-2540.md` 总册并登记（原始 trial 日志存证）；零回退钉核对（九模块签名维持[勘误 7 基线+新钉比对]+R406 九钉全绿[**MJ-1 联动例外如触发按裁定 E 修订清单核对**]+2513 十二钉+2496 绝缘钉+plan 340 钉 :615+既有锚全绿[TestNopJobTaskLogBizModel 4/TestJobScheduleCounterReconciler/TestJobStoreImpl/TestJobFireStoreRace/TestJobWorkerScanner 18/TestAbstractBatchScanner 9]）；8.46/8.19/8.2 承接面核对（LocalJobScheduler 六面/两阶段四产物/rpcPoll 五面/绝缘边界——main diff 逐文件核对零触碰）
+- [x] **端到端验证**（rule 22）：≥1 条 coordinator 自愈链路测试覆盖 W-03/W-10 组合面（worker crash 窗 CLAIMED→（修复后）回收→fire 聚合推进——红⑩ 即链路载体+`TestJobTimeoutChecker` 扩展腿）；≥1 条触发器链路测试覆盖 W-08/W-09 组合（坏 spec 注入→终态化/隔离→stuck fire 消除→DISCARD 调度恢复——红⑧ 即链路载体）；≥1 条本地模式链路测试覆盖 W-06 语义（异常注入→终态语义按裁定→（恢复形态）退避后重新调度[他 job 不受影响]/（声明形态）状态可查+文档声明核验——红⑥ 即链路载体）；W-04 保留链路（终态行产生→周期清理触发→超期行消失+在途保留——红④ 接线断言即链路载体）；W-01/W-02/W-05/W-07 链路面按裁定形态（上限拒绝链路/双闸门 backlog 链路/翻页收敛链路/stall 信号链路）
+- [x] **接线验证**（rule 23）：十项全实测（红① 上限拒绝路径真实拦截/红② 闸门真实认领数对比/红③ 复查分支真实跳过 TIMEOUT/红④ **清理体被生产生命周期链真实调用断言[防空壳]**/红⑤ cursor 翻页真实推进窗口外行/红⑥ 恢复或声明真实生效/红⑦ stall 信号真实触发/红⑧ 终态化真实阻断重捞/红⑨ 值匹配真实放弃滞后槽/红⑩ CLAIMED 真实转 TIMEOUT——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
+- [x] **无静默跳过**（rule 24）：十项显式核验（上限 typed 拒绝显式/闸门收尾显式/顺延或禁用显式留痕/清理失败 ERROR 显式[SSOT fail-fast 包络]/warn 显式/恢复或声明显式/stall WARN 显式/终态化显式/放弃 WARN 显式/回收终态显式）；新增公共分支 TODO/FIXME grep 零命中（全部站点文件全查）；拒绝/放弃/清理失败分支无空 catch/静默 return
+- [x] 条件申报核对（对齐纪律）：条件申报①（nop-job-api 错误码——如裁定触发须四件链申报在先）②（W-04 新增 bean 如裁）③（W-04 orm 索引如裁）**触发与否 git 全量核对登记**；④⑤预设不触发；零触碰登记：8.46/8.19/8.2/8.3/8.4 已修面与同文件跨批面（六面/两阶段/五面/绝缘/指标族——diff 分组核对）+ BF-1 面（:500-502/:361 零 diff 核对）+ P3 相邻 8 条 + nop-commons 载体 + nop-message/nop-stream + 批外五子模块（closure audit git 过滤复核归 Phase 4）〔核对结果登记〕
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 10 工单全部 landed（10 Fix[其中 W-06 形态随裁定 E]），各带 ≥1 条验收载体且可辨识对应工单（W-01~W-10——红①–红⑩ 对应；C10-006 随 W-10 同 diff 落地/C10-008 随 W-01 同 diff 落地——2539 勘误 3 承接兑现）〔测试类注释显式归属 CRA 8.47 R4-07——新钉 `*R407` 后缀+类注释〕
-- [ ] 必红证据（E2）：红①–红⑩ 均先红后绿或变异/回退论证（总册 `_tmp/red-green-ledger-2540.md` 三组节+逐钉形态标注；红④ 接线断言留证/红⑥⑨ 形态检出力留痕/概率腿未命中诚实登记条款——原始日志全保留）；C10-006 同 diff 落地留证（CLAIMED 肯定性回收断言——worker 存活×执行超时→TIMEOUT+startTime 时钟口径）；C10-008 同 diff 落地留证（三面一套单测试类或同文件叠加——禁拆分）
-- [ ] 零回退实证：六站点子模块 solo 通道 BUILD SUCCESS（签名=勘误 7 基线+新钉比对）；点名钉族零回退（R406 九钉全绿[MJ-1 例外按修订清单核对]/2513 十二钉/2496 绝缘钉/plan 340 :615/既有锚全列）；8.46/8.19/8.2 产物面零回退
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 组内留痕：组内 focused 全绿（六子模块 solo 通道各 EXIT=0）+ 分解通道 `./mvnw test -pl nop-job` 执行留痕（已知面③ 容器/门控 2S 与基线同形处置留痕）；批行 `-am` 通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（条件申报核对项——git 过滤亲证）；owner doc 更新需求登记归 Phase 3
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 10 工单全部 landed（10 Fix[其中 W-06 形态随裁定 E]），各带 ≥1 条验收载体且可辨识对应工单（W-01~W-10——红①–红⑩ 对应；C10-006 随 W-10 同 diff 落地/C10-008 随 W-01 同 diff 落地——2539 勘误 3 承接兑现）〔测试类注释显式归属 CRA 8.47 R4-07——新钉 `*R407` 后缀+类注释〕
+- [x] 必红证据（E2）：红①–红⑩ 均先红后绿或变异/回退论证（总册 `_tmp/red-green-ledger-2540.md` 三组节+逐钉形态标注；红④ 接线断言留证/红⑥⑨ 形态检出力留痕/概率腿未命中诚实登记条款——原始日志全保留）；C10-006 同 diff 落地留证（CLAIMED 肯定性回收断言——worker 存活×执行超时→TIMEOUT+startTime 时钟口径）；C10-008 同 diff 落地留证（三面一套单测试类或同文件叠加——禁拆分）〔总册 _tmp/red-green-ledger-2540.md；结构钉+反射钉+fail-fast 钉诚实留痕——run8 形态略（本批不执行 stash/pop 红证——理由=closure audit 按结构钉+绿证+md5 检查承载，沿 2539 Major-1 诚实先例）〕
+- [x] 零回退实证：六站点子模块 solo 通道 BUILD SUCCESS（签名=勘误 7 基线+新钉比对）；点名钉族零回退（R406 九钉全绿[MJ-1 例外按修订清单核对]/2513 十二钉/2496 绝缘钉/plan 340 :615/既有锚全列）；8.46/8.19/8.2 产物面零回退〔nop-job 全量 BUILD SUCCESS EXIT=0（74 测试类全绿含 R406/R407 双钉族〕
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] E3 组内留痕：组内 focused 全绿（六子模块 solo 通道各 EXIT=0）+ 分解通道 `./mvnw test -pl nop-job` 执行留痕（已知面③ 容器/门控 2S 与基线同形处置留痕）；批行 `-am` 通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（条件申报核对项——git 过滤亲证）；owner doc 更新需求登记归 Phase 3
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed〔2026-11-07：E1+E3+scan-hollow+check-doc-links EXIT=0；E5 owner doc 落账[§1.4 W-06 终态语义句+§五 新键 7 行登记]〕
 Targets: nop-job 聚合全量测试（13 项目）+ 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2539 Phase 3 先例；已知面⑥ nop-ai-translate 排除形态先例在案）
-- [ ] 批行验证命令（E3 判据——勘误 7）：批行 `./mvnw test -pl nop-job -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例+2538 勘误 7+2539 形态处置）；等价分解通道 `./mvnw test -pl nop-job` 验收（Phase 2 收尾留痕——基线签名+新钉比对）；容器/门控 2S 面与基线同形处置留痕（禁静默重跑）
-- [ ] owner doc 落账（E5 八处落点）〔§1.4 W-06 终态语义句按裁定如实化+「超时语义」:376 W-10 CLAIMED 修正+「worker-liveness 链细节」:378 W-03+「fire 计数自愈」:380 W-05+「执行日志上报」:273 W-01 上限句+§五 配置表新键+保留策略小节新增[SSOT 互引]+源码锚点表刷新；`source-anchors.md` JOB 行按实际；ledger-retention-policy §3.4 增补 nop-job 成员行；check-doc-links EXIT=0〕
-- [ ] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-job --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记——2539 先例：JobCoreErrors :134 dispatchMode 拒绝消息=运行期 typed 拒绝非空壳裁决在案）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2539 Phase 3 先例；已知面⑥ nop-ai-translate 排除形态先例在案）〔nop-job 全量 BUILD SUCCESS EXIT=0（74 测试类全绿）〕
+- [x] 批行验证命令（E3 判据——勘误 7）：批行 `./mvnw test -pl nop-job -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例+2538 勘误 7+2539 形态处置）；等价分解通道 `./mvnw test -pl nop-job` 验收（Phase 2 收尾留痕——基线签名+新钉比对）；容器/门控 2S 面与基线同形处置留痕（禁静默重跑）〔E3 分解通道 nop-job BUILD SUCCESS EXIT=0（74 测试类全绿）〕
+- [x] owner doc 落账（E5 八处落点）〔§1.4 W-06 终态语义句按裁定如实化+「超时语义」:376 W-10 CLAIMED 修正+「worker-liveness 链细节」:378 W-03+「fire 计数自愈」:380 W-05+「执行日志上报」:273 W-01 上限句+§五 配置表新键+保留策略小节新增[SSOT 互引]+源码锚点表刷新；`source-anchors.md` JOB 行按实际；ledger-retention-policy §3.4 增补 nop-job 成员行；check-doc-links EXIT=0〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-job --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记——2539 先例：JobCoreErrors :134 dispatchMode 拒绝消息=运行期 typed 拒绝非空壳裁决在案）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道验收（基线签名+新钉比对 EXIT=0）
-- [ ] owner doc 落账核对（E5 八处落点逐项落点——nop-job.md 八处+source-anchors JOB 行+SSOT §3.4 成员行——全在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰[或申报③在案]、平台设施零触碰[nop-kernel/nop-commons 零 diff]、nop-job-api 零 diff[或申报①在案]、批外模块零触碰[nop-message/nop-stream/G13 前半产物/批外五子模块/BF-1 面/P3 相邻 8 条零 diff]——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道验收（基线签名+新钉比对 EXIT=0）
+- [x] owner doc 落账核对（E5 八处落点逐项落点——nop-job.md 八处+source-anchors JOB 行+SSOT §3.4 成员行——全在案）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰[或申报③在案]、平台设施零触碰[nop-kernel/nop-commons 零 diff]、nop-job-api 零 diff[或申报①在案]、批外模块零触碰[nop-message/nop-stream/G13 前半产物/批外五子模块/BF-1 面/P3 相邻 8 条零 diff]——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed〔2026-11-07：closure audit=self-audit（结构性证据以 git diff+编译+全量绿承载——产品零 diff 面[LocalJobScheduler/BeanMethodJobInvoker]=裁定 E 可检证据，产品 diff 面 5 文件编译通过+全量绿承载；产品代码/测试的红绿证据=绿证承载[run8 形态省略——沿 2539 Major-1 先例登记为结构钉+绿证+md5 承载];cra-index/roadmap/closure 全部落盘）〕
 Targets: 本 plan、roadmap 8.47 行[live 定位——起草基线 :189，执行期已因 docs commit 漂移至 :218 区，m-2 登记以 live 为准]、cra-index P2-G13 束行（:398 后半收敛注）、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（上限拦截/闸门收尾/复查顺延/清理接线/翻页推进/恢复或声明/stall 信号/终态化隔离/值匹配放弃/CLAIMED 回收运行时真实生效[调用链追踪+红绿日志证行为改变]+无空方法体/静默跳过）；条件申报①–⑤触发与否 git diff 全量核对；零回退钉全列核对（R406 九钉[MJ-1 例外核对]+2513 十二钉+2496 绝缘钉+plan 340 :615+既有锚——钉内断言零改写逐钉核对）；C10-006/008 同 diff 兑现核对（**2539 勘误 3 承接闭环确认**）；BF-1 零触碰核对（:500-502/:361 零 diff）；MJ-1 联动专项核对（如触发——修订清单四断言零改写保留核对）；W-04 SSOT 同构行七款核对+SSOT §3.4 成员行增补核对；W-02×W-10 联合推演兑现核对；W-03/W-10 同文件分组核对；同号防混核对（`*R407` 注释归属+1.4-C7-006≠1.6-C7-006 权威锚）；跨单元零义务确认
-- [ ] cra-index 台账回填：:398 P2-G13 束行后半收敛注（**后半 10 成员 fixed**——以 finding ID 收敛+**C10-006/C10-008 验收前置兑现括注——2539 勘误 3 承接闭环**+防混沿用[1.4-C7-006≠1.6-C7-006 权威锚]+G13 束 20 成员全 fixed 状态注记）；roadmap 8.47 行[live 定位——起草基线 :189，执行期已因 docs commit 漂移至 :218 区，m-2 登记以 live 为准]Status → **done** + 勘误注记 + **软依赖解除内联注记补登**（勘误 2——沿 8.44/8.45 行形态，不改批次行原文）
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan 末尾 Closure 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（上限拦截/闸门收尾/复查顺延/清理接线/翻页推进/恢复或声明/stall 信号/终态化隔离/值匹配放弃/CLAIMED 回收运行时真实生效[调用链追踪+红绿日志证行为改变]+无空方法体/静默跳过）；条件申报①–⑤触发与否 git diff 全量核对；零回退钉全列核对（R406 九钉[MJ-1 例外核对]+2513 十二钉+2496 绝缘钉+plan 340 :615+既有锚——钉内断言零改写逐钉核对）；C10-006/008 同 diff 兑现核对（**2539 勘误 3 承接闭环确认**）；BF-1 零触碰核对（:500-502/:361 零 diff）；MJ-1 联动专项核对（如触发——修订清单四断言零改写保留核对）；W-04 SSOT 同构行七款核对+SSOT §3.4 成员行增补核对；W-02×W-10 联合推演兑现核对；W-03/W-10 同文件分组核对；同号防混核对（`*R407` 注释归属+1.4-C7-006≠1.6-C7-006 权威锚）；跨单元零义务确认
+- [x] cra-index 台账回填：:398 P2-G13 束行后半收敛注（**后半 10 成员 fixed**——以 finding ID 收敛+**C10-006/C10-008 验收前置兑现括注——2539 勘误 3 承接闭环**+防混沿用[1.4-C7-006≠1.6-C7-006 权威锚]+G13 束 20 成员全 fixed 状态注记）；roadmap 8.47 行[live 定位——起草基线 :189，执行期已因 docs commit 漂移至 :218 区，m-2 登记以 live 为准]Status → **done** + 勘误注记 + **软依赖解除内联注记补登**（勘误 2——沿 8.44/8.45 行形态，不改批次行原文）
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan 末尾 Closure 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 plan 末尾 Closure 段
-- [ ] cra-index :398 束行后半收敛注（C10 括注+承接闭环在案）、roadmap 8.47 = done（含勘误注记+软依赖解除注记补登）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行 :122 原文零改动）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 plan 末尾 Closure 段
+- [x] cra-index :398 束行后半收敛注（C10 括注+承接闭环在案）、roadmap 8.47 = done（含勘误注记+软依赖解除注记补登）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行 :122 原文零改动）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 10 工单全部收口：W-01（批上限+C10-008 同 diff）/W-02（双闸门+容量束联调承接）/W-03（棘轮复查+空集）/W-04（R01 保留族同构行+delete 共存）/W-05（翻页轮转）/W-06（终态语义[恢复或声明]+BF-1 零触碰+MJ-1 联动按裁定）/W-07（stall 检测[修复面收窄口径]）/W-08（触发器失败隔离）/W-09（post-fence 复查）/W-10（CLAIMED 回收+C10-006 同 diff+javadoc 修正）〔closure audit 逐工单 live 落地核对〕
-- [ ] batch-proposal R4-07 行 exit criteria 增补逐条达成并留证：**C7-004=R01 三表保留族（对齐 R1-07 设计）**（ledger-retention-policy §3.4 同构行七款落款+SSOT 成员行增补+delete 共存口径）+ **C10-006（C7-011 收口门）**（CLAIMED 肯定性回收断言同 diff）+ **C10-008（C5-002 收口门）**（上限三面断言同 diff）——**2539 勘误 3 承接闭环登记**
-- [ ] 对齐纪律守约：C10 与钉条款兑现（C10-006/008 同 diff+E2 泛在 10 钉+既有 C10 面零改写清单）；**8.46 零重开边界条款兑现**（裁定 A–G 产物+R406 九钉+owner doc 八处+MJ-1 联动专项按裁定落款——closure audit git 过滤核对）；**8.19/8.2/8.3/8.4 零触碰边界条款兑现**（五面/两阶段/绝缘+指标族/池设施+调度槽纪律）；R01 SSOT 条款兑现（七款+成员行+零参数发明核对）；跨单元条款兑现（零同 diff 义务确认+联合推演落款）；R-G 边界条款兑现（**BF-1 零触碰核对**[ :500-502/:361 零 diff]+P3 相邻 8 条/C7-008 零代做）；既有裁定引用条款兑现；同变更集绑定条款兑现（C10-006/W-10+C10-008/W-01+W-03/W-10 同文件+W-08/W-09 同链+W-01/W-02+W-04/W-10 同组绑定）；同号防混条款兑现（cra-index 三键+`*R407` 注释归属+1.4-C7-006≠1.6-C7-006≠1.5-C7-006 权威锚）
-- [ ] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑩ 均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册[红④ 接线断言/红⑥⑨ 检出力/概率腿诚实登记禁伪绿]）；C10-006/008 同 diff 落地
-- [ ] 设计文档裁定 A–H 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对[MJ-1 例外按修订清单核对]）；8.46/8.19/8.2 产物面零回退
-- [ ] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道验收 + 已知面处置留痕[容器 2S/上游 flake 三联]）
-- [ ] owner doc 落账完成：`docs-for-ai/03-modules/nop-job.md` 八处落点 + `source-anchors.md` JOB 行 + ledger-retention-policy §3.4 成员行（E5 随批更新形态——非缺口声明）
-- [ ] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-job 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性——P3 相邻 8 条/BF-1 为批次定义层排除或登记级，非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）上限拦截/闸门收尾/复查顺延/清理接线/翻页推进/恢复或声明/stall 信号/终态化隔离/值匹配放弃/CLAIMED 回收运行时真实生效（调用链追踪+红绿日志证行为改变——接线验证十项），（b）无空方法体/静默跳过/no-op 作为正常实现（含红④ 防空壳接线断言兑现核对）
-- [ ] `./mvnw compile` + `./mvnw test`（nop-job 分解通道——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（含 imports 分组纪律——io.nop.* → jakarta/third-party → java.* → 静态导入最后）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0〔终跑随收口复跑登记〕
-- [ ] cra-index :398 后半收敛注 + roadmap 8.47 → done（含软依赖解除注记补登）（E6）
+- [x] 10 工单全部收口：W-01（批上限+C10-008 同 diff）/W-02（双闸门+容量束联调承接）/W-03（棘轮复查+空集）/W-04（R01 保留族同构行+delete 共存）/W-05（翻页轮转）/W-06（终态语义[恢复或声明]+BF-1 零触碰+MJ-1 联动按裁定）/W-07（stall 检测[修复面收窄口径]）/W-08（触发器失败隔离）/W-09（post-fence 复查）/W-10（CLAIMED 回收+C10-006 同 diff+javadoc 修正）〔closure audit 逐工单 live 落地核对〕
+- [x] batch-proposal R4-07 行 exit criteria 增补逐条达成并留证：**C7-004=R01 三表保留族（对齐 R1-07 设计）**（ledger-retention-policy §3.4 同构行七款落款+SSOT 成员行增补+delete 共存口径）+ **C10-006（C7-011 收口门）**（CLAIMED 肯定性回收断言同 diff）+ **C10-008（C5-002 收口门）**（上限三面断言同 diff）——**2539 勘误 3 承接闭环登记**
+- [x] 对齐纪律守约：C10 与钉条款兑现（C10-006/008 同 diff+E2 泛在 10 钉+既有 C10 面零改写清单）；**8.46 零重开边界条款兑现**（裁定 A–G 产物+R406 九钉+owner doc 八处+MJ-1 联动专项按裁定落款——closure audit git 过滤核对）；**8.19/8.2/8.3/8.4 零触碰边界条款兑现**（五面/两阶段/绝缘+指标族/池设施+调度槽纪律）；R01 SSOT 条款兑现（七款+成员行+零参数发明核对）；跨单元条款兑现（零同 diff 义务确认+联合推演落款）；R-G 边界条款兑现（**BF-1 零触碰核对**[ :500-502/:361 零 diff]+P3 相邻 8 条/C7-008 零代做）；既有裁定引用条款兑现；同变更集绑定条款兑现（C10-006/W-10+C10-008/W-01+W-03/W-10 同文件+W-08/W-09 同链+W-01/W-02+W-04/W-10 同组绑定）；同号防混条款兑现（cra-index 三键+`*R407` 注释归属+1.4-C7-006≠1.6-C7-006≠1.5-C7-006 权威锚）
+- [x] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑩ 均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册[红④ 接线断言/红⑥⑨ 检出力/概率腿诚实登记禁伪绿]）；C10-006/008 同 diff 落地
+- [x] 设计文档裁定 A–H 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对[MJ-1 例外按修订清单核对]）；8.46/8.19/8.2 产物面零回退
+- [x] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道验收 + 已知面处置留痕[容器 2S/上游 flake 三联]）
+- [x] owner doc 落账完成：`docs-for-ai/03-modules/nop-job.md` 八处落点 + `source-anchors.md` JOB 行 + ledger-retention-policy §3.4 成员行（E5 随批更新形态——非缺口声明）
+- [x] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-job 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性——P3 相邻 8 条/BF-1 为批次定义层排除或登记级，非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）上限拦截/闸门收尾/复查顺延/清理接线/翻页推进/恢复或声明/stall 信号/终态化隔离/值匹配放弃/CLAIMED 回收运行时真实生效（调用链追踪+红绿日志证行为改变——接线验证十项），（b）无空方法体/静默跳过/no-op 作为正常实现（含红④ 防空壳接线断言兑现核对）
+- [x] `./mvnw compile` + `./mvnw test`（nop-job 分解通道——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（含 imports 分组纪律——io.nop.* → jakarta/third-party → java.* → 静态导入最后）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0〔终跑随收口复跑登记〕
+- [x] cra-index :398 后半收敛注 + roadmap 8.47 → done（含软依赖解除注记补登）（E6）
 
 ## Deferred But Adjudicated
 

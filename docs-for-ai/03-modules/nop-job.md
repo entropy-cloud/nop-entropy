@@ -211,7 +211,8 @@ nop:
 - 作业定义只存在于内存，**重启即丢失**，不持久化。
 - `LocalJobScheduler` 不参与分布式协调，不要在多实例部署中使用它调度需要唯一执行的作业。阻塞型 job 场景请改用分布式 worker 模式（见「触发/执行契约」）。
 - 不支持 Misfire 补偿、阻塞策略、超时控制、分片——这些是分布式模式的能力。
-- **管理 API 与停机不阻塞于业务方法体**（plan 2513 C2-001）：per-job 监视器只覆盖状态迁移段（`prepareJobLocked`，微秒级），业务方法体经 `invoker.invokeAsync` 在**锁外**执行——`getJobState`/`getJobDetail`/`suspendJob`/`cancelJob`/`removeJob`/`deactivate`（停机）在 job 运行期间恒可达，不再被同步型 invoker 的方法体时长阻塞。锁外启动时若 job 已被 remove/deactivate 交错，走显式放弃分支（重取锁清 `running` 占位 + WARN 留痕，不走结果回写）；`fireNow` 返回值语义不变（交错放弃升 WARN）。`awaitIdle`/`awaitState` 的 timeout 参数语义不变（约束轮询总时长；监视器获取段恒有界）。**触发/执行契约（CRA 8.46 R4-06 W-09）**：本地调度器的触发与执行共用 `nopJobScheduledExecutor` 调度池——**job 方法体必须非阻塞**（毫秒级内存操作或立即返回 CompletionStage 的真异步）；阻塞/长任务体将占住调度线程、拖延全部作业触发。长任务须自行转真异步（CompletionStage 返回）或改用分布式 worker 模式。
+- **管理 API 与停机不阻塞于业务方法体**（plan 2513 C2-001）：per-job 监视器只覆盖状态迁移段（`prepareJobLocked`，微秒级），业务方法体经 `invoker.invokeAsync` 在**锁外**执行——`getJobState`/`getJobDetail`/`suspendJob`/`cancelJob`/`removeJob`/`deactivate`（停机）在 job 运行期间恒可达，不再被同步型 invoker 的方法体时长阻塞。锁外启动时若 job 已被 remove/deactivate 交错，走显式放弃分支（重取锁清 `running` 占位 + WARN 留痕，不走结果回写）；`fireNow` 返回值语义不变（交错放弃升 WARN）。`awaitIdle`/`awaitState` 的 timeout 参数语义不变（约束轮询总时长；监视器获取段恒有界）。**终态语义（CRA 8.47 R4-07 W-06）**：本地模式 job 单次执行异常（invoker 抛错/返回 ERROR 结果/触发器计算失败）即置 FAILED 终态：不再排程、`resumeJob`/`fireNow` 对 FAILED 恒拒绝（返回 false）、无自动恢复——恢复只能重启进程重建 job。**长周期 job 须在 invoker 内自行兜底瞬时异常**（捕获-降级-返回正常 JobFireResult），或改用分布式模式（retryPolicy 通道）。
+**触发/执行契约（CRA 8.46 R4-06 W-09）**：本地调度器的触发与执行共用 `nopJobScheduledExecutor` 调度池——**job 方法体必须非阻塞**（毫秒级内存操作或立即返回 CompletionStage 的真异步）；阻塞/长任务体将占住调度线程、拖延全部作业触发。长任务须自行转真异步（CompletionStage 返回）或改用分布式 worker 模式。
 
 ---
 
@@ -434,6 +435,13 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.worker.assigned-partitions` | （空） | 本节点负责的分区 |
 | `nop.job.worker.max-concurrency` | 0 | **DB 在途认领行数上限**（count-based 闸门；0=不限）——非 JVM 内执行并发上限；JVM 内无信号量，执行体并发受 invoker 实际异步性约束。积压恢复场景应显式配置该键 |
 | `nop.job.worker.invoke-timeout-ms` | 0 | worker 执行看门狗阈值（毫秒；`0`=禁用。**observe-only**：超龄 in-flight invoke 只记 ERROR + gauge 观测，永不终结任务，见下文「周期任务异常绝缘契约」节） |
+| `nop.job.worker.max-inflight-promises` | 0 | **JVM 在途 promise 上限**（claim 后 executeTask 在途数；`0`=禁用，2496 observe-only 先例同形——backlog 消化期望行为不受损；积压恢复场景应显式配置） |
+| `nop.job.coordinator.timeout.suspicious-stale-ms` | 60000 | SUSPICIOUS 复查顺延 stale 上限（毫秒；≤0 装配期 fail-fast——超限即强转 TIMEOUT 兜底收敛） |
+| `nop.job.scanner.stall-watchdog-ms` | 0 | scanner 扫描链 stall 看门狗阈值（毫秒；`0`=禁用。**observe-only**：在途超阈只记 WARN + 计数 + 年龄 gauge，永不取消/中断主链） |
+| `nop.job.coordinator.completion.fail-escalate-threshold` | 10 | completion 非配置类连续失败升级阈值（`0`=禁用升级——成功即清零） |
+| `nop.job.ledger.retention-days` | 30 | 三表保留期天数（`0`=禁用清理；负=装配期 fail-fast；SSOT ledger-retention-policy §3.1） |
+| `nop.job.ledger.cleanup-interval` | 3600000 | 周期清理间隔毫秒（下限 60s fail-fast；SSOT 同源） |
+| `nop.job.ledger.delete-batch-size` | 1000 | 清理批量删除上限（≤0 fail-fast；SSOT 同源） |
 
 ### 集群（可选）
 

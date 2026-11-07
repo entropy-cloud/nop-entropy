@@ -3,6 +3,8 @@ package io.nop.job.service.entity;
 import io.nop.api.core.annotations.biz.BizModel;
 import io.nop.api.core.annotations.biz.BizMutation;
 import io.nop.api.core.annotations.core.Name;
+import io.nop.api.core.annotations.ioc.InjectValue;
+import static io.nop.job.core.JobCoreErrors.ERR_JOB_LOG_BATCH_EXCEED_LIMIT;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.biz.crud.CrudBizModel;
 import io.nop.core.context.IServiceContext;
@@ -43,6 +45,10 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
             "ERROR", 50
     );
 
+    // CRA 8.46 R4-07 W-01 (adjudication G.1): batch/entry caps (config injectable)
+    private int reportMaxBatchSize = 1000;
+    private int entryMaxChars = 65536;
+
     public NopJobTaskLogBizModel() {
         setEntityName(NopJobTaskLog.class.getName());
     }
@@ -69,16 +75,55 @@ public class NopJobTaskLogBizModel extends CrudBizModel<NopJobTaskLog> implement
      * groupId 从 task 快照冗余填充。返回接收条数（校验失败的条目抛错——显式失败可观测）。
      * 与任务状态机完全解耦：本方法不修改任何 task/fire/schedule 状态。
      */
+    // CRA 8.46 R4-07 W-01 (1.4-C5-002, adjudication G.1): batch size cap (default 1000
+    // — SSOT delete-batch-size|1000 same magnitude precedent) + single entry char cap
+    // (default 64KB). Both @InjectValue, ≤0 fail-fast. C10-008 三面同 diff。
+    @InjectValue("@cfg:nop.job.log.report-max-batch-size|1000")
+    public void setReportMaxBatchSize(int max) {
+        if (max <= 0) {
+            throw new NopException(ERR_JOB_LOG_INVALID_ENTRY)
+                    .param(ARG_TASK_LOG_ID, "report-max-batch-size must be > 0, got: " + max);
+        }
+        this.reportMaxBatchSize = max;
+    }
+
+    @InjectValue("@cfg:nop.job.log.entry-max-chars|65536")
+    public void setEntryMaxChars(int max) {
+        if (max <= 0) {
+            throw new NopException(ERR_JOB_LOG_INVALID_ENTRY)
+                    .param(ARG_TASK_LOG_ID, "entry-max-chars must be > 0, got: " + max);
+        }
+        this.entryMaxChars = max;
+    }
+
     @BizMutation
     public int reportTaskLog(@Name("entries") List<TaskLogEntry> entries, IServiceContext context) {
         if (entries == null || entries.isEmpty()) {
             return 0;
         }
-        Set<String> loadedTaskIds = new HashSet<>();
+        // W-01: batch size cap — reject BEFORE any save (transaction semantic: zero
+        // partial writes on validation failure)
+        if (entries.size() > reportMaxBatchSize) {
+            throw new NopException(ERR_JOB_LOG_BATCH_EXCEED_LIMIT)
+                    .param(ARG_TASK_LOG_ID, "batch size " + entries.size()
+                            + " exceeds max " + reportMaxBatchSize);
+        }
         for (TaskLogEntry entry : entries) {
             validate(entry);
-            if (!loadedTaskIds.contains(entry.getJobTaskId())) {
-                loadedTaskIds.add(entry.getJobTaskId());
+            // W-01: single entry char cap (logMessage + serialized logPayload)
+            if (entry.getLogMessage() != null
+                    && entry.getLogMessage().length() > entryMaxChars) {
+                throw new NopException(ERR_JOB_LOG_INVALID_ENTRY)
+                        .param(ARG_TASK_LOG_ID, entry.getJobTaskId()
+                                + " logMessage exceeds " + entryMaxChars + " chars");
+            }
+            if (entry.getLogPayload() != null) {
+                String payload = io.nop.core.lang.json.JsonTool.stringify(entry.getLogPayload());
+                if (payload != null && payload.length() > entryMaxChars) {
+                    throw new NopException(ERR_JOB_LOG_INVALID_ENTRY)
+                            .param(ARG_TASK_LOG_ID, entry.getJobTaskId()
+                                    + " logPayload exceeds " + entryMaxChars + " chars");
+                }
             }
             saveEntry(entry);
         }
