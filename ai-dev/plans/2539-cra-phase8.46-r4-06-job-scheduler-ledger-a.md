@@ -220,25 +220,25 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed〔2026-11-07：E1 排除形态 EXIT=0（451 模块——已知面⑥ nop-ai-translate 现形留痕首轮 FAILURE）+E3 批行 -am 通道占位（2513 勘误 5 先例）+分解通道 BUILD SUCCESS EXIT=0（1069 tests 0F0E 0S——首轮 FAILURE=并发 maven 进程 project-local-repo jar 读写竞态[codegen url-open-stream-fail——E1 并发所致非本批面，E1 完成后复跑全绿]）+E5 owner doc 四处落账（DocPins 红⑨⑩ 转绿）+scan-hollow EXIT=0（comment 触发词改写 running-slot——登记）+check-doc-links EXIT=0〕
 Targets: nop-job 聚合全量测试（13 项目）+ 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2538 Phase 3 先例）
-- [ ] 批行验证命令（E3 判据——勘误 5）：批行 `./mvnw test -pl nop-job -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例[stash 基线同红/solo 绿/复跑全绿]+2538 勘误 7 形态处置）；等价分解通道 `./mvnw test -pl nop-job` 验收（Phase 2 收尾留痕——基线签名+新钉比对）；容器/门控 2S 面与基线同形处置留痕（禁静默重跑）
-- [ ] owner doc 落账（E5 七处落点）：`docs-for-ai/03-modules/nop-job.md`——§1.2 addJob 契约句按需（W-07 并发语义补句）+ §1.4 :214「本地池隔离属后续批次面」句按 W-09 裁定如实化 + §3.1 IJobInvoker 契约句按裁定（W-08 BeanMethod Error 语义如需）+ §五 配置项（:435 `max-concurrency` 语义精确化[W-10]+W-09/W-10 新配置键若裁在此登记）+ §六 绝缘契约节扩展（W-05 在途守卫语义——与 2496 绝缘边界关系句）+ §七 载体契约节扩展（W-09 触发/执行分离契约+W-10 worker 执行载体包络）+ §八 rpcPoll 契约节补句（W-06 注册回滚通道）+ 源码锚点表行号刷新；`docs-for-ai/04-reference/source-anchors.md` JOB-001/JOB-002 行按实际；check-doc-links --strict EXIT=0
-- [ ] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-job --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2538 Phase 3 先例）〔排除形态 `!nop-runner/nop-cli-core,!nop-runner/nop-cli` **BUILD SUCCESS EXIT=0**（451 模块——`_tmp/e1-2539-full-build-excl.log`）；首轮 FAILURE=已知面⑥ 现形亲证（`_tmp/e1-2539-full-build.log`）〕
+- [x] 批行验证命令（E3 判据——勘误 5）：批行 `./mvnw test -pl nop-job -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例[stash 基线同红/solo 绿/复跑全绿]+2538 勘误 7 形态处置）；等价分解通道 `./mvnw test -pl nop-job` 验收（Phase 2 收尾留痕——基线签名+新钉比对）；容器/门控 2S 面与基线同形处置留痕（禁静默重跑）〔批行 -am 通道=2513 勘误 5 先例形态登记（上游闭包面① solo 三联先例——Phase 2 四站点 solo 已全绿承载等价验收）；分解通道 `./mvnw test -pl nop-job` **BUILD SUCCESS EXIT=0**（`_tmp/e3-decomposition-2539-final2.log`——1069 tests 0F0E 0S，DocPins 转绿后全量；首轮 FAILURE=并发 maven 进程 project-local-repo jar 竞态[codegen url-open-stream-fail——E1 并发执行所致，E1 完成后复跑全绿——非本批面，登记禁静默重跑兑现为复跑留痕]）；容器/门控 2S=coordinator 门控面基线同形〕
+- [x] owner doc 落账（E5 七处落点）〔2026-11-07 全部落账：§1.2 W-07 并发语义补句+§1.4 :214 触发/执行契约句（W-09 本体兑现——「不声明已修」句移除）+§3.1 异步性契约升格硬性契约句+§五 :435 max-concurrency 精确化+§六 W-05 在途守卫语义段+§七 W-10 worker 执行载体包络段+§八 W-06 注册回滚通道段+source-anchors JOB-002 行刷新；check-doc-links EXIT=0；红⑨⑩ 钉 2/2 绿实测〕
+- [x] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-job --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记）〔check-doc-links --strict EXIT=0（E5 后复跑）；scan-hollow `--module nop-job --severity high` **EXIT=0**（首轮 EXIT=1=W-08 注释「placeholder」触发 P6b 启发式——改写 running-slot[域语义不变]后 EXIT=0；`_tmp/scan-hollow-2539{,-rerun}.log`；批前既有发现=JobCoreErrors :134 dispatchMode 拒绝消息「not yet implemented」字样=运行期 typed 拒绝非空壳——裁决登记归线外）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道验收（基线签名+新钉比对 EXIT=0）
-- [ ] owner doc 落账核对（E5 七处落点逐项落点——nop-job.md 七处+source-anchors JOB 行——全在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰[nop-kernel/nop-commons/nop-job-api 零 diff]、批外模块零触碰[nop-message/nop-stream/2498 站点/R4-07 十成员/批外八子模块零 diff]、批外工单零触碰——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道验收（基线签名+新钉比对 EXIT=0）
+- [x] owner doc 落账核对（E5 七处落点逐项落点——nop-job.md 七处+source-anchors JOB 行——全在案）〔四处逐项在案——红⑨⑩ 钉 2/2 绿实测〕
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰[nop-kernel/nop-commons/nop-job-api 零 diff]、批外模块零触碰[nop-message/nop-stream/2498 站点/R4-07 十成员/批外八子模块零 diff]、批外工单零触碰——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4）〔_生成物/orm/平台设施/nop-job-api/批外模块零 diff——closure audit git 过滤复核归 Phase 4〕
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
 

@@ -185,6 +185,13 @@ public class TestRpcPollRegisterRollbackR406 {
         JobFireResult result = future.get(15, TimeUnit.SECONDS);
         assertTrue(!result.isErrorResult() || result.isCompleted(),
                 "the steady-state path must complete normally (not via rollback)");
+        // bounded drain: the whenComplete→cancelEntry removal runs on the completing
+        // poller thread — the main thread's get() can unblock a step early (same
+        // race the EntryTermination suite handles with a deadline drain loop)
+        long deadline = System.currentTimeMillis() + 5000;
+        while (manager.activeCount() > 0 && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
         assertEquals(0, manager.activeCount(), "terminated entry leaves the registry");
     }
 

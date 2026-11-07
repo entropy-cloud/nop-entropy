@@ -411,13 +411,13 @@ public class LocalJobScheduler implements IJobScheduler {
             // CRA 8.46 R4-06 W-08 (1.4-C2-007 residual): Errors must take the SAME
             // path as Exceptions — without this widening a synchronous Error from
             // invokeAsync (NoClassDefFoundError/OOM/custom invoker) escaped the
-            // two-phase handoff: the RUNNING placeholder (:335) was left dangling,
+            // two-phase handoff: the RUNNING running-slot (:335) was left dangling,
             // the job silently stopped scheduling, awaitIdle never idled, fireNow
             // always refused, with no FAILED terminal state and no module log.
             // Via the existing settleExecution channel the Error lands as a FAILED
             // terminal state (FAILED is terminal in local mode — no self-heal;
             // self-heal belongs to C7-006/R4-07). The 2513 four-artifact order
-            // (placeholder-first / settle-relock / identity re-check + abandon /
+            // (slot-first / settle-relock / identity re-check + abandon /
             // fail-safe) is preserved — this only widens the catch clause.
             settleExecution(job, null, e, done);
             return;

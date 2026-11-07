@@ -90,7 +90,7 @@ ts.setCronExpr("0 */5 * * * ?");   // 每 5 分钟
 ts.setMaxExecutionCount(0);        // 0 = 无限执行
 spec.setTriggerSpec(ts);
 
-scheduler.addJob(spec, false);     // false = 已存在则抛 already-exists
+scheduler.addJob(spec, false);     // false = 已存在则抛 already-exists（含并发首注册窗口——两线程同时 add 同名 job 时恰一方胜出，败方 typed already-exists；不静默改写胜方 spec，CRA 8.46 R4-06 W-07）
 
 // 4. 运行期管理
 scheduler.suspendJob("demo-cron"); // 暂停（保留在调度器中）
@@ -209,9 +209,9 @@ nop:
 ### 1.4 注意事项
 
 - 作业定义只存在于内存，**重启即丢失**，不持久化。
-- `LocalJobScheduler` 不参与分布式协调，不要在多实例部署中使用它调度需要唯一执行的作业。
+- `LocalJobScheduler` 不参与分布式协调，不要在多实例部署中使用它调度需要唯一执行的作业。阻塞型 job 场景请改用分布式 worker 模式（见「触发/执行契约」）。
 - 不支持 Misfire 补偿、阻塞策略、超时控制、分片——这些是分布式模式的能力。
-- **管理 API 与停机不阻塞于业务方法体**（plan 2513 C2-001）：per-job 监视器只覆盖状态迁移段（`prepareJobLocked`，微秒级），业务方法体经 `invoker.invokeAsync` 在**锁外**执行——`getJobState`/`getJobDetail`/`suspendJob`/`cancelJob`/`removeJob`/`deactivate`（停机）在 job 运行期间恒可达，不再被同步型 invoker 的方法体时长阻塞。锁外启动时若 job 已被 remove/deactivate 交错，走显式放弃分支（重取锁清 `running` 占位 + WARN 留痕，不走结果回写）；`fireNow` 返回值语义不变（交错放弃升 WARN）。`awaitIdle`/`awaitState` 的 timeout 参数语义不变（约束轮询总时长；监视器获取段恒有界）。注意：阻塞型 invoker 仍占用调度线程（本地池隔离属后续批次面，此处不声明已修）。
+- **管理 API 与停机不阻塞于业务方法体**（plan 2513 C2-001）：per-job 监视器只覆盖状态迁移段（`prepareJobLocked`，微秒级），业务方法体经 `invoker.invokeAsync` 在**锁外**执行——`getJobState`/`getJobDetail`/`suspendJob`/`cancelJob`/`removeJob`/`deactivate`（停机）在 job 运行期间恒可达，不再被同步型 invoker 的方法体时长阻塞。锁外启动时若 job 已被 remove/deactivate 交错，走显式放弃分支（重取锁清 `running` 占位 + WARN 留痕，不走结果回写）；`fireNow` 返回值语义不变（交错放弃升 WARN）。`awaitIdle`/`awaitState` 的 timeout 参数语义不变（约束轮询总时长；监视器获取段恒有界）。**触发/执行契约（CRA 8.46 R4-06 W-09）**：本地调度器的触发与执行共用 `nopJobScheduledExecutor` 调度池——**job 方法体必须非阻塞**（毫秒级内存操作或立即返回 CompletionStage 的真异步）；阻塞/长任务体将占住调度线程、拖延全部作业触发。长任务须自行转真异步（CompletionStage 返回）或改用分布式 worker 模式。
 
 ---
 
@@ -328,7 +328,7 @@ public interface IJobInvoker {
 
 `IJobExecutionContext` 提供：`getJobName()`、`getJobParams()`、`getInstanceId()`、`getExecCount()`（从 1 开始）、`getScheduledExecTime()`、`getExecFailCount()`、`getAttribute(name)`/`setAttribute(name, val)` 等。
 
-> **异步性契约**（plan 2513 裁定②）：`invokeAsync` 应尽快返回 `CompletionStage`（真异步）；内置 `BeanMethodJobInvoker` 对非 CompletionStage 返回值在调用线程同步执行完毕后包 `completedFuture`——这是合法实现，但调度器已把 invoker 调用放在 per-job 监视器**之外**（见 1.4 节），同步执行只影响调度线程占用，不再影响管理 API/停机响应性。自定义 invoker 的长耗时方法体同理：不会阻塞管理 API，但会占住调度线程，建议自行真异步化。
+> **异步性契约**（plan 2513 裁定②）：`invokeAsync` 应尽快返回 `CompletionStage`（真异步）；内置 `BeanMethodJobInvoker` 对非 CompletionStage 返回值在调用线程同步执行完毕后包 `completedFuture`——这是合法实现，但调度器已把 invoker 调用放在 per-job 监视器**之外**（见 1.4 节），同步执行只影响调度线程占用，不再影响管理 API/停机响应性。**invokeAsync 的实现要么真异步（快速返回未完成 CompletionStage）要么方法体非阻塞——同步阻塞方法体违反本地模式触发及时性契约**（CRA 8.46 R4-06 W-09）：自定义 invoker 的长耗时方法体不会阻塞管理 API，但会占住调度线程拖延全部作业触发。
 
 ### 3.2 JobFireResult（返回值约定）
 
@@ -432,7 +432,7 @@ Coordinator (协调器)                    Worker (工作者)
 | `nop.job.worker.batch-size` | 100 | Worker 每次认领的任务数 |
 | `nop.job.worker.lock-timeout-ms` | 60000 | Worker 锁超时 |
 | `nop.job.worker.assigned-partitions` | （空） | 本节点负责的分区 |
-| `nop.job.worker.max-concurrency` | 0 | 最大并发执行数（0=不限） |
+| `nop.job.worker.max-concurrency` | 0 | **DB 在途认领行数上限**（count-based 闸门；0=不限）——非 JVM 内执行并发上限；JVM 内无信号量，执行体并发受 invoker 实际异步性约束。积压恢复场景应显式配置该键 |
 | `nop.job.worker.invoke-timeout-ms` | 0 | worker 执行看门狗阈值（毫秒；`0`=禁用。**observe-only**：超龄 in-flight invoke 只记 ERROR + gauge 观测，永不终结任务，见下文「周期任务异常绝缘契约」节） |
 
 ### 集群（可选）
@@ -448,6 +448,7 @@ Coordinator (协调器)                    Worker (工作者)
 ## 六、周期任务异常绝缘契约（plan 2496 R1-01）
 
 nop-job 的全部周期调度链（本地模式触发循环、coordinator 各 scanner、worker scanner）运行在平台周期任务异常绝缘设施之上（设施本体锚点见 `../04-reference/source-anchors.md` 的 `INSUL-001`；语义权威 = 平台设计文档 periodic-task-insulation.md，位于 AI 开发记录区 concurrency 设计集，按边界规则此处不直接链接）：任务体抛出任何 `Throwable`（含 `Error`）由设施边界捕获 → 观测（日志抑制 + 连续失败计数 + listener + metric）→ 重臂续排；链只在调用方显式 cancel 或设施提交拒绝时终止。**返回 future 是失败/取消/拒绝信号，不是链存活指标**（失败完结 ≠ 链死亡）。**层级区分**（plan 2513）：绝缘层管**周期链存活**（失败不杀调度链），与 coordinator 侧业务 future 的**终结仲裁**（rpcPoll 条目终结驱动，见下文第八节）正交不互替——预算/兜底/回传计数属 coordinator 业务层，非设施层。
+**在途守卫（CRA 8.46 R4-06 W-05）**：各 scanner 的公开 `scanOnce` 入口带 `scanningInFlight` CAS 在途守卫——并发第二 entrant 以 WARN（`nop.job.scan-cycle-conflict`）+ 冲突计数（`getScanCycleConflictCount`）拒绝返回，不触任何 cursor/链状态；拒绝**不算周期失败**（不入绝缘失败计数与失败观测流——守卫拒绝 ≠ 链失败），跳过的窗口由下轮 fixed-delay tick 以 cursor 语义自然覆盖。守卫位于绝缘边界**之内**：周期体 Throwable 边界/失败计数/重臂语义零变化。
 
 ### 模块侧 fail-safe 语义（MA-05）
 
@@ -476,12 +477,13 @@ nop-job 的调度载体与平台全局池设施（锚点见 `../04-reference/sou
 - **容量语义（ScheduledThreadPoolExecutor 固有）**：模块两个专用调度载体 `nopJobScheduledExecutor`（nop-job-local，见 1.3 节）与 `nopRpcPollScheduledExecutor`（nop-job-coordinator，见 REST Worker 模式节，大小由 `nop.job.remote.poll-threads` 配置）均为 `DefaultScheduledExecutor`——容量唯一旋钮 = corePoolSize，STPE 的 maxPoolSize 是惰性展示字段。globalTimer fallback 的容量由平台权威键 `nop.commons.concurrent.global-timer.corePoolSize`（默认 4）驱动；旧键 `global-timer.maxPoolSize` 已废弃，仅在旧键显式配置且新键未配置时回读生效并记单次 WARN，不存在「配了不认」的静默断档。
 - **热更语义**：上述 `DefaultScheduledExecutor` bean 的运行期热更走 scheduled 专用路径 = core-only 对齐（无 max 钳制、core ≤ 0 类型化异常）；queueCapacity/daemon 为 init-only，热更不生效。
 - **调度槽使用纪律**：globalTimer（含 `RpcPollTaskManager` 的 globalTimer fallback——任务体 pollOnce 仍只做内存信号检查与轻量 RPC 读，不承载阻塞 I/O 卸载义务；其条目终结驱动契约见下文第八节）只承载触发与轻量内存操作；阻塞 I/O 或时长无上界的任务体一律经 `executeOn(globalWorker())` 卸载到 worker 池。周期任务的失败/存活语义（重臂、绝缘）见上文第六节。
+- **worker 执行载体包络（CRA 8.46 R4-06 W-10）**：worker 认领任务的 `invokeAsync` 在平台 `globalWorker` 池线程触发（`AbstractBatchScanner.getExecutor` = `globalTimer().executeOn(globalWorker())`，scanner 扫描体与任务执行体同池）——**invoker 实现必须非阻塞**（同 3.1 节本地模式契约的分布式投影）：阻塞执行体占住 globalWorker，拖垮全平台后台任务与全部 scanner。时长无上界的执行体须自行真异步化，或经模块专用载体承载（先例 = `nopRpcPollScheduledExecutor`；专用载体判定按 2498 §3.1.1 四要素：独立容量预算/关闭归属/不经 globalTimer 执行任务体/豁免判据）。**invoker 实现必须非阻塞**为本节硬性契约；`nop.job.worker.max-concurrency` 语义见第五节配置表（DB 在途认领行数上限，非 JVM 内并发上限）。
 
 ---
 
 ## 八、rpcPoll 条目终结驱动契约（plan 2513 R2-10，MA-01）
 
-`RpcPollTaskManager` 的 rpcPoll 在途条目（entry）在默认装配下保证**有限时间到达终态**——四终结通道（plan 2513 前仅 future 终态单通道，远程失联即无界驻留）：
+`RpcPollTaskManager` 的 rpcPoll 在途条目（entry）在默认装配下保证**有限时间到达终态**——四终结通道（plan 2513 前仅 future 终态单通道，远程失联即无界驻留）：**注册回滚通道（CRA 8.46 R4-06 W-06）**：`register` 的 post-insert 步骤（取消监听挂接/轮询调度/终结钩子注册）任一抛出（典型 = 轮询执行器停机窗口的 RejectedExecutionException）时，条目经幂等 `cancelEntry` 全链回滚（摘监听+两参条件移除注册表）并以既有 `ERR_JOB_REMOTE_INVOKE_FAILED` 码完结调用方 future（WARN `nop.job.remote.register-rollback` 留痕）——条目/监听器泄漏与 promise 悬挂面闭合，任务行走既有失败终态链。
 
 | 通道 | 语义 |
 |------|------|
