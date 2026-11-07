@@ -45,12 +45,7 @@ class TestPulsarConsumeTask {
 
         task.start();
 
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
-
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(task::isActive, 5000L), "task must reach active state after start");
         assertTrue(task.isActive());
 
         task.stop();
@@ -71,11 +66,7 @@ class TestPulsarConsumeTask {
         assertFalse(task.isActive());
 
         task.start();
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(task::isActive, 5000L), "task must reach active state after start");
         assertTrue(task.isActive());
 
         task.stop();
@@ -495,10 +486,9 @@ class TestPulsarConsumeTask {
         long firstReceiveAt = System.nanoTime();
         task.start();
         try {
-            long deadline = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-            while (failures.isEmpty() && System.nanoTime() < deadline) {
-                Thread.sleep(20L);
-            }
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    io.nop.api.core.util.FutureHelper.waitUntil(() -> !failures.isEmpty(), 5_000L),
+                    "consume failure must be reported");
             org.junit.jupiter.api.Assertions.assertEquals(1, failures.size());
             io.nop.api.core.message.ConsumeFailure failure = failures.get(0);
             org.junit.jupiter.api.Assertions.assertSame(boom, failure.getThrowable());
@@ -506,10 +496,9 @@ class TestPulsarConsumeTask {
                     failure.getLocation());
             org.junit.jupiter.api.Assertions.assertEquals("payload", failure.getMessage());
             org.junit.jupiter.api.Assertions.assertEquals(1, failure.getAttempt());
-            long deadline2 = System.nanoTime() + java.util.concurrent.TimeUnit.SECONDS.toNanos(5);
-            while (secondReceiveAt.get() == 0L && System.nanoTime() < deadline2) {
-                Thread.sleep(20L);
-            }
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    io.nop.api.core.util.FutureHelper.waitUntil(() -> secondReceiveAt.get() != 0L, 5_000L),
+                    "second receive attempt must happen after backoff");
             long gapMs = (secondReceiveAt.get() - firstReceiveAt) / 1_000_000L;
             org.junit.jupiter.api.Assertions.assertTrue(gapMs >= backoffMs,
                     "backoff sleep must delay the next receive attempt, gap=" + gapMs + "ms");
@@ -590,10 +579,13 @@ class TestPulsarConsumeTask {
         PulsarMessageService service = mock(PulsarMessageService.class);
         ExecutorService executor = daemonExecutor();
         Consumer<Object> consumer = mock(Consumer.class);
-        // Behave like the real idle API: sleep the FULL requested timeout, then null.
+        // Behave like the real idle API: block the FULL requested timeout (latch.await
+        // 定界、可中断，时长由被测 receive 语义决定), then null.
         when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
                 org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
-                    Thread.sleep(Math.max(1, inv.getArgument(0, Integer.class)));
+                    new java.util.concurrent.CountDownLatch(1).await(
+                            Math.max(1, inv.getArgument(0, Integer.class)),
+                            java.util.concurrent.TimeUnit.MILLISECONDS);
                     return null;
                 });
         MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-stop",
@@ -601,8 +593,22 @@ class TestPulsarConsumeTask {
         PulsarConsumeTask task = new PulsarConsumeTask(service, executor, consumer, config);
         task.setReceiveTimeoutMs(100);
 
+        java.util.concurrent.atomic.AtomicInteger receiveCalls = new java.util.concurrent.atomic.AtomicInteger();
+        // re-stub to count invocations (evidence that the task entered a receive round)
+        org.mockito.Mockito.reset(consumer);
+        when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
+                org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
+                    receiveCalls.incrementAndGet();
+                    new java.util.concurrent.CountDownLatch(1).await(
+                            Math.max(1, inv.getArgument(0, Integer.class)),
+                            java.util.concurrent.TimeUnit.MILLISECONDS);
+                    return null;
+                });
         task.start();
-        Thread.sleep(50); // the task is now inside a receive round with no message in sight
+        // 重新求值证据：receive 已被调用 ⇒ 任务已进入 receive 轮次（无消息在望）
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> receiveCalls.get() >= 1, 5_000L),
+                "task must be inside a receive round before stop");
         task.stop();
         executor.shutdown(); // no new submissions; the RUNNING task must still finish itself
 
@@ -619,8 +625,11 @@ class TestPulsarConsumeTask {
         Consumer<Object> consumer = mock(Consumer.class);
         // A batch request that never completes: the loop can only exit via the timeout
         // round noticing active == false.
-        when(consumer.batchReceiveAsync())
-                .thenReturn(new java.util.concurrent.CompletableFuture<>());
+        java.util.concurrent.atomic.AtomicInteger batchCalls = new java.util.concurrent.atomic.AtomicInteger();
+        when(consumer.batchReceiveAsync()).thenAnswer(inv -> {
+            batchCalls.incrementAndGet();
+            return new java.util.concurrent.CompletableFuture<>();
+        });
         MessageSubscribeOptions options = new MessageSubscribeOptions();
         options.setBatchReceiveCount(10); // allowBatchConsume() == true
         MessageSubscriptionConfig config = new MessageSubscriptionConfig("t-stop-batch",
@@ -629,7 +638,10 @@ class TestPulsarConsumeTask {
         task.setReceiveTimeoutMs(100);
 
         task.start();
-        Thread.sleep(50);
+        // 重新求值证据：batchReceiveAsync 已被调用 ⇒ 任务已进入批式接收轮次
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> batchCalls.get() >= 1, 5_000L),
+                "task must have issued a batch receive before stop");
         task.stop();
         executor.shutdown();
 
@@ -892,15 +904,16 @@ class TestPulsarConsumeTask {
         TestPulsarService svc = preparedService(options);
         try {
             String prefix = "nop-msg-pulsar-consume-sub-thread-model-";
-            long deadline = System.currentTimeMillis() + 5000;
-            Thread consumeThread = null;
-            while (consumeThread == null && System.currentTimeMillis() < deadline) {
-                consumeThread = Thread.getAllStackTraces().keySet().stream()
-                        .filter(t -> t.getName().startsWith(prefix))
-                        .findFirst().orElse(null);
-                if (consumeThread == null)
-                    Thread.sleep(20);
-            }
+            Thread consumeThread = Thread.getAllStackTraces().keySet().stream()
+                    .filter(t -> t.getName().startsWith(prefix))
+                    .findFirst().orElse(null);
+            org.junit.jupiter.api.Assertions.assertTrue(
+                    io.nop.api.core.util.FutureHelper.waitUntil(() -> Thread.getAllStackTraces().keySet().stream()
+                            .anyMatch(t -> t.getName().startsWith(prefix)), 5_000L),
+                    "named consume thread must appear");
+            consumeThread = Thread.getAllStackTraces().keySet().stream()
+                    .filter(t -> t.getName().startsWith(prefix))
+                    .findFirst().orElse(null);
             org.junit.jupiter.api.Assertions.assertNotNull(consumeThread,
                     "doSubscribe must start a named consume thread with prefix " + prefix);
             assertTrue(consumeThread.isDaemon(), "consume thread must be daemon (F-24)");

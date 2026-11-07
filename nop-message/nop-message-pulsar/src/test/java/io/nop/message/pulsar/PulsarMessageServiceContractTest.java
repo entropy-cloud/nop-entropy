@@ -67,7 +67,9 @@ class PulsarMessageServiceContractTest extends AbstractMessageServiceContractTes
                     when(builder.subscribe()).thenReturn(consumer);
                     when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
                             org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
-                        Thread.sleep(50);
+                        // bounded idle receive（latch.await 定界 50ms，可中断）
+                        new java.util.concurrent.CountDownLatch(1)
+                                .await(50, java.util.concurrent.TimeUnit.MILLISECONDS);
                         return null;
                     });
                     return builder;

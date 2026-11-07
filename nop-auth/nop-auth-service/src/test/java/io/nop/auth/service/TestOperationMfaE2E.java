@@ -663,27 +663,20 @@ public class TestOperationMfaE2E extends JunitBaseTestCase {
 
     /** 轮询取指定 operation 的审计行，直到全部期望事件可见（批处理分批落库容忍，最多 ~10s）。 */
     private List<NopAuthOpLog> pollAuditEvents(String operation, List<String> expectedEvents) {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        List<NopAuthOpLog> events = List.of();
-        while (System.currentTimeMillis() < deadline) {
-            final List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
+        FutureHelper.waitUntil(() -> {
+            List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
                 NopAuthOpLog example = new NopAuthOpLog();
                 example.setOperation(operation);
                 return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
             });
-            boolean allPresent = expectedEvents.stream().allMatch(expected ->
+            return expectedEvents.stream().allMatch(expected ->
                     found.stream().anyMatch(l -> String.valueOf(l.getDescription()).contains(expected)));
-            events = found;
-            if (allPresent)
-                return events;
-            try {
-                Thread.sleep(200L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return events;
+        }, 10_000L);
+        return ContextProvider.runWithTenant(TENANT_ID, () -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setOperation(operation);
+            return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+        });
     }
 
     private static String argQuote(String value) {

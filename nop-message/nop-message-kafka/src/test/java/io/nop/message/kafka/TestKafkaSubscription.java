@@ -119,7 +119,9 @@ class TestKafkaSubscription {
     @Test
     void concurrentCancelsRunCleanupBodyExactlyOnce() throws Exception {
         doAnswer(inv -> {
-            Thread.sleep(50); // widen the check-then-act window
+            // widen the check-then-act window（latch.await 定界，可中断、时长确定）
+            new java.util.concurrent.CountDownLatch(1)
+                    .await(50, java.util.concurrent.TimeUnit.MILLISECONDS);
             return null;
         }).when(task).stop();
         doAnswer(inv -> null).when(consumer).close();
@@ -166,7 +168,9 @@ class TestKafkaSubscription {
         when(realBehaviorConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
             consumeThread.set(Thread.currentThread());
             pollStarted.countDown();
-            Thread.sleep(300);
+            // bounded idle poll round（可中断定界等待，cancel 的 shutdownNow 以中断结束）
+            new java.util.concurrent.CountDownLatch(1)
+                    .await(300, java.util.concurrent.TimeUnit.MILLISECONDS);
             return ConsumerRecords.EMPTY;
         });
         when(realBehaviorConsumer.assignment()).thenReturn(Collections.emptySet());
@@ -229,8 +233,12 @@ class TestKafkaSubscription {
         KafkaMessageService.KafkaMessageSubscription sub = service.new KafkaMessageSubscription(consumer, executor, task);
         Thread cancelThread = new Thread(sub::cancel);
         cancelThread.start();
-        // 给 cancel 足够时间走到 close（若顺序错误，此时 close 已在 worker 运行中触发）
-        Thread.sleep(300);
+        // 重新求值证据：等待 cancel 进入 executor.awaitTermination（TIMED_WAITING）——
+        // 若 close 先于 worker 退出被错误触发，此刻 closedWhileWorkerRunning 必已为 true
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> cancelThread.getState() == Thread.State.TIMED_WAITING
+                        || !cancelThread.isAlive(), 10_000L),
+                "cancel thread must be awaiting executor termination while worker is blocked");
         boolean closeDuringRun = closedWhileWorkerRunning.get();
         releaseWorker.countDown();
         cancelThread.join(10_000);

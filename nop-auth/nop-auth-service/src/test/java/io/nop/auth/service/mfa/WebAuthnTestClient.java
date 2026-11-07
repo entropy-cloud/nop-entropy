@@ -66,7 +66,7 @@ public class WebAuthnTestClient {
         }
     }
 
-    /** EC 初始化偶发失败（JVM crypto provider 竞态）——短暂退避重试。 */
+    /** EC 初始化偶发失败（JVM crypto provider 竞态）——立即重试（本地 crypto 初始化无退避必要）。 */
     private static KeyMaterial generateKeyMaterial() {
         IllegalStateException failure = null;
         for (int attempt = 0; attempt < 3; attempt++) {
@@ -80,12 +80,6 @@ public class WebAuthnTestClient {
             } catch (Exception e) {
                 failure = new IllegalStateException(
                         "cannot init webauthn test client (attempt " + (attempt + 1) + ")", e);
-                try {
-                    Thread.sleep(50L);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
             }
         }
         throw failure;

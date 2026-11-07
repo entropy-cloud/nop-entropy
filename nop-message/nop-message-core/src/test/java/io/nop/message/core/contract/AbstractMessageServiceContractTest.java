@@ -366,15 +366,8 @@ public abstract class AbstractMessageServiceContractTest {
         };
     }
 
-    private boolean awaitCallCount(AtomicInteger counter, int expected, long timeoutMs)
-            throws InterruptedException {
-        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
-        while (System.nanoTime() < deadline) {
-            if (counter.get() >= expected) {
-                return true;
-            }
-            Thread.sleep(20L);
-        }
-        return counter.get() >= expected;
+    /** 条件等待消费计数到位（上限仅作挂死保护，轮询由 FutureHelper 生产侧执行）。 */
+    private boolean awaitCallCount(AtomicInteger counter, int expected, long timeoutMs) {
+        return io.nop.api.core.util.FutureHelper.waitUntil(() -> counter.get() >= expected, timeoutMs);
     }
 }

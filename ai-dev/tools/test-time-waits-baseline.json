@@ -3,50 +3,14 @@
   "generator": "ai-dev/tools/check-test-time-waits.mjs --update",
   "updatedAt": "2026-11-07",
   "totals": {
-    "OTHER": 76,
-    "POLL_LOOP": 41,
-    "SIMULATED_WORK": 8,
-    "SLEEP_THEN_ASSERT": 49
+    "OTHER": 57,
+    "POLL_LOOP": 35,
+    "SIMULATED_WORK": 1,
+    "SLEEP_THEN_ASSERT": 29
   },
   "entries": {
     "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestResponsesDialectIntegration.java": {
       "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestGraphQLLogger.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestLoginApi.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaCrudLockdownE2E.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaRestrictedSessionE2E.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaSensitiveSurfaceE2E.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestMfaVerificationHardeningE2E.java": {
-      "OTHER": 2
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestOperationMfaE2E.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/TestXMetaPropDefaultValue.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/login/TestLoginAttemptWiring.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/WebAuthnTestClient.java": {
-      "OTHER": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/store/TestRedisEmailCodeStore.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-auth/nop-auth-service/src/test/java/io/nop/auth/service/mfa/store/TestRedisStoreWiring.java": {
-      "SLEEP_THEN_ASSERT": 4
     },
     "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestResourceRecordConsumerConcurrentWrite.java": {
       "OTHER": 1,
@@ -167,39 +131,6 @@
     "nop-kernel/nop-xlang/src/test/java/model/ExprAST.java": {
       "OTHER": 2
     },
-    "nop-message/nop-message-core/src/test/java/io/nop/message/core/contract/AbstractMessageServiceContractTest.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/KafkaBrokerE2ETest.java": {
-      "OTHER": 1,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaConsumeTask.java": {
-      "OTHER": 1,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaServiceLifecycle.java": {
-      "POLL_LOOP": 2,
-      "SIMULATED_WORK": 3
-    },
-    "nop-message/nop-message-kafka/src/test/java/io/nop/message/kafka/TestKafkaSubscription.java": {
-      "OTHER": 1,
-      "SIMULATED_WORK": 2
-    },
-    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/PulsarBrokerE2ETest.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/PulsarMessageServiceContractTest.java": {
-      "OTHER": 1
-    },
-    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/TestPulsarConsumeTask.java": {
-      "POLL_LOOP": 3,
-      "SIMULATED_WORK": 1,
-      "SLEEP_THEN_ASSERT": 4
-    },
-    "nop-message/nop-message-pulsar/src/test/java/io/nop/message/pulsar/TestPulsarServiceLifecycle.java": {
-      "SIMULATED_WORK": 1
-    },
     "nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaQualityCheckpointBizModel.java": {
       "POLL_LOOP": 1,
       "SLEEP_THEN_ASSERT": 1
@@ -230,13 +161,6 @@
     },
     "nop-network/nop-socket/src/test/java/io/nop/socket/TestSocketServerRestart.java": {
       "OTHER": 2
-    },
-    "nop-persistence/nop-nosql/nop-nosql-lettuce/src/test/java/io/nop/nosql/lettuce/TestLettuceClusterService.java": {
-      "OTHER": 2
-    },
-    "nop-persistence/nop-nosql/nop-nosql-lettuce/src/test/java/io/nop/nosql/lettuce/TestLettuceNosqlService.java": {
-      "OTHER": 4,
-      "SLEEP_THEN_ASSERT": 6
     },
     "nop-persistence/nop-orm-data/src/test/java/io/nop/orm/data/source/TestDaoEntityBlockingSource.java": {
       "OTHER": 1

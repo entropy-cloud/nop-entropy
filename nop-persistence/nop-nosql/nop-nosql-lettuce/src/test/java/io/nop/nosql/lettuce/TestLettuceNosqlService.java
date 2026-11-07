@@ -111,11 +111,10 @@ public class TestLettuceNosqlService {
         assertTrue(lock1.tryLock(100));
         assertTrue(lock1.isHeld());
 
-        Thread.sleep(150);
-
+        // Redis 服务端 TTL：条件等待 lock 真正过期（tryLock 成功即过期已发生），上限仅作挂死保护
         INosqlLock lock2 = service.lock("test:lock:timeout");
-        assertTrue(lock2.tryLock(5000));
-        assertTrue(lock2.isHeld());
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> lock2.tryLock(5000), 10_000L),
+                "lock must become acquirable after server-side TTL expiry");
     }
 
     @Test
@@ -413,13 +412,16 @@ public class TestLettuceNosqlService {
         Map<String, Object> data = new HashMap<>();
         data.put("user", "alice");
 
+        long setAt = System.currentTimeMillis();
         store.set("s1", data, 200);
 
-        Thread.sleep(100);
         assertTrue(store.touch("s1", 5000));
 
-        Thread.sleep(150);
-        assertTrue(store.exists("s1"));
+        // 残余（具名，plan 2512 WI-6）：Redis 服务端 TTL——touch 续命断言需真实时间越过原 200ms
+        // TTL 才有意义；条件等待真实时钟越过原 TTL 后键仍存活，上限仅作挂死保护
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> System.currentTimeMillis() - setAt > 250, 10_000L));
+        assertTrue(store.exists("s1"), "touched session must survive past its original TTL");
     }
 
     @Test
@@ -597,17 +599,26 @@ public class TestLettuceNosqlService {
         });
 
         msgService.send(topic, "first");
-        Thread.sleep(200);
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> counter.get() > 0, 10_000L),
+                "subscriber should receive before cancel");
         int afterFirst = counter.get();
 
         sub.cancel();
 
+        // 重新求值证据：cancel 后再发一条，用同 topic 的新订阅者证明投递通路仍活跃，
+        // 再断言被取消订阅者计数不变
+        AtomicInteger probe = new AtomicInteger(0);
+        IMessageSubscription probeSub = msgService.subscribe(topic, new IMessageConsumer() {
+            @Override
+            public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                probe.incrementAndGet();
+                return null;
+            }
+        });
         msgService.send(topic, "second");
-        Thread.sleep(200);
-        int afterSecond = counter.get();
-
-        assertEquals(afterFirst, afterSecond, "Should not receive after cancel");
-        assertTrue(afterFirst >= 1, "Should receive at least one before cancel");
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> probe.get() > 0, 10_000L),
+                "fresh subscriber must receive the post-cancel message (delivery path live)");
+        assertEquals(afterFirst, counter.get(), "Should not receive after cancel");
     }
 
     @Test
@@ -634,10 +645,9 @@ public class TestLettuceNosqlService {
         });
 
         msgService.send(topic, "msg");
-        Thread.sleep(500);
-
-        assertTrue(count1.get() >= 1, "Subscriber 1 should receive");
-        assertTrue(count2.get() >= 1, "Subscriber 2 should receive");
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> count1.get() >= 1 && count2.get() >= 1, 10_000L),
+                "both subscribers should receive");
 
         sub1.cancel();
         sub2.cancel();
@@ -706,12 +716,15 @@ public class TestLettuceNosqlService {
         IMessageService msgService = service.getMessageService();
         String topicA = "test:pubsub:topic-a";
         String topicB = "test:pubsub:topic-b";
+        // 两轮投递：第二轮以计数增长作为「投递通路仍活跃」的重新求值证据（B topic 仍应零收到）
         CountDownLatch latchA = new CountDownLatch(1);
+        AtomicInteger receivedACount = new AtomicInteger(0);
         List<String> receivedB = new ArrayList<>();
 
         IMessageSubscription subA = msgService.subscribe(topicA, new IMessageConsumer() {
             @Override
             public Object onMessage(String topic, Object msg, IMessageConsumeContext ctx) {
+                receivedACount.incrementAndGet();
                 latchA.countDown();
                 return null;
             }
@@ -727,7 +740,11 @@ public class TestLettuceNosqlService {
         msgService.send(topicA, "hello-a");
 
         assertTrue(latchA.await(5, TimeUnit.SECONDS), "topic A subscriber should receive its own message");
-        Thread.sleep(500);
+        // 重新求值证据：再来一轮投递（latch 再计数一轮）确认投递通路持续活跃后，
+        // topic B 订阅者仍未收到 topic A 的消息
+        msgService.send(topicA, "hello-a-2");
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> receivedACount.get() >= 2, 5_000L),
+                "second delivery round to topic A must land");
         assertTrue(receivedB.isEmpty(),
                 "topic B subscriber must not receive messages published to topic A, but got: " + receivedB);
 
@@ -768,12 +785,15 @@ public class TestLettuceNosqlService {
     void testPubSub_ResumeAfterCancelDoesNotResurrect() throws Exception {
         IMessageService msgService = service.getMessageService();
         String topic = "test:pubsub:cancel-resume";
+        // 两轮投递：第二轮以计数增长作为「投递通路仍活跃」的重新求值证据（cancelled 订阅者仍应零收到）
         CountDownLatch latch2 = new CountDownLatch(1);
+        AtomicInteger received2Count = new AtomicInteger(0);
         AtomicInteger count1 = new AtomicInteger(0);
 
         IMessageSubscription sub2 = msgService.subscribe(topic, new IMessageConsumer() {
             @Override
             public Object onMessage(String t, Object msg, IMessageConsumeContext ctx) {
+                received2Count.incrementAndGet();
                 latch2.countDown();
                 return null;
             }
@@ -793,7 +813,10 @@ public class TestLettuceNosqlService {
         assertTrue(sub1.isCancelled(), "subscription must stay cancelled after resume()");
         msgService.send(topic, "msg");
         assertTrue(latch2.await(5, TimeUnit.SECONDS), "other subscriber should receive messages");
-        Thread.sleep(300);
+        // 重新求值证据：再一轮投递确认投递通路仍活跃后，已取消+resume 的订阅者仍未收到
+        msgService.send(topic, "msg-2");
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> received2Count.get() >= 2, 5_000L),
+                "second delivery round must land on live subscriber");
         assertEquals(0, count1.get(), "cancelled subscription must not receive messages after resume()");
 
         sub2.cancel();
@@ -949,7 +972,9 @@ public class TestLettuceNosqlService {
         data.put("user", "alice");
         store.set("s1", data, 200);
 
-        Thread.sleep(400); // wait for the session TTL to expire
+        // Redis 服务端 TTL：条件等待会话键真正过期（服务器可观测状态），上限仅作挂死保护
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> !store.exists("s1"), 10_000L),
+                "session key must expire server-side");
 
         store.setField("s1", "email", "alice@example.com");
         assertFalse(store.exists("s1"), "setField on an expired session must not resurrect a TTL-less key");
@@ -970,7 +995,10 @@ public class TestLettuceNosqlService {
             leakProvider.start();
             leakProvider.stop();
         }
-        Thread.sleep(300);
+        // 条件等待 lettuce 线程真正退出（结果可观测），上限仅作挂死保护
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> lettuceThreadCount() <= base, 10_000L),
+                "lettuce threads must terminate after stop");
         long after = lettuceThreadCount();
         assertTrue(after <= base,
                 "DefaultClientResources threads must be shut down on stop, leaked threads: base=" + base + ", after=" + after);

@@ -14,6 +14,7 @@ import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.config.IConfigProvider;
 import io.nop.api.core.context.ContextProvider;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.auth.core.login.UserContextImpl;
 import io.nop.auth.core.mfa.store.SmsCodeStore;
 import io.nop.auth.core.totp.TOTPAuthenticator;
@@ -322,47 +323,29 @@ public class TestMfaVerificationHardeningE2E extends JunitBaseTestCase {
 
     /** 轮询取指定 description 的审计行 requestData（批处理分批落库容忍，最多 ~10s）。 */
     private List<String> pollAuditRequests(String description) {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (System.currentTimeMillis() < deadline) {
-            List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
-                NopAuthOpLog example = new NopAuthOpLog();
-                example.setDescription(description);
-                return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
-            });
-            if (!found.isEmpty()) {
-                return found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
-            }
-            try {
-                Thread.sleep(200L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return List.of();
+        FutureHelper.waitUntil(() -> !auditRequestsOf(description).isEmpty(), 10_000L);
+        return auditRequestsOf(description);
     }
 
-    private static void sleep(long millis) {
-        try {
-            Thread.sleep(millis);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+    private List<String> auditRequestsOf(String description) {
+        return ContextProvider.runWithTenant(TENANT_ID, () -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setDescription(description);
+            List<NopAuthOpLog> found = daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+            return found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
+        });
     }
 
     /**
      * 等待 CoreMetrics 逻辑时钟推进至少 millis（TestClock 保证单调且向前，但超前墙钟——
-     * 固定墙钟 sleep 可能只推进逻辑时钟 ~0ms，冷却窗口过期断言必须按逻辑时钟等待）。
+     * 冷却窗口过期断言必须按逻辑时钟等待；上限仅作挂死保护，条件由 FutureHelper 生产侧轮询复查）。
      */
     private static void waitForLogicalMillis(long millis) {
         long start = io.nop.api.core.time.CoreMetrics.currentTimeMillis();
-        long deadline = System.currentTimeMillis() + millis + 30_000;
-        while (io.nop.api.core.time.CoreMetrics.currentTimeMillis() - start < millis) {
-            if (System.currentTimeMillis() > deadline) {
-                throw new IllegalStateException("logical clock did not advance within deadline");
-            }
-            sleep(50);
-        }
+        org.junit.jupiter.api.Assertions.assertTrue(
+                FutureHelper.waitUntil(
+                        () -> io.nop.api.core.time.CoreMetrics.currentTimeMillis() - start >= millis, 60_000L),
+                "logical clock must advance " + millis + "ms within hang-protection cap");
     }
 
     // ===================== Helpers：数据准备 / TOTP =====================

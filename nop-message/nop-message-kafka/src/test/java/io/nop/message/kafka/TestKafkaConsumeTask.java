@@ -1114,8 +1114,10 @@ class TestKafkaConsumeTask {
         java.util.concurrent.atomic.AtomicInteger handled = new java.util.concurrent.atomic.AtomicInteger();
         IMessageConsumer slowHandler = (topic, message, context) -> {
             handled.incrementAndGet();
+            // 模拟慢 handler（latch.await 定界 100ms > pollTimeoutMs 50，时长确定、可中断）
             try {
-                Thread.sleep(100L); // > pollTimeoutMs (50)
+                new java.util.concurrent.CountDownLatch(1)
+                        .await(100L, java.util.concurrent.TimeUnit.MILLISECONDS);
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
@@ -1147,7 +1149,7 @@ class TestKafkaConsumeTask {
 
         assertFalse(task.isActive());
         task.start();
-        Thread.sleep(200);
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(task::isActive, 5000L), "task must reach active state after start");
         assertTrue(task.isActive());
         task.stop();
         assertFalse(task.isActive());

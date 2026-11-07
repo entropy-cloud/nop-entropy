@@ -176,21 +176,10 @@ class KafkaBrokerE2ETest {
         return "e2e-" + scenario.toLowerCase(Locale.ROOT);
     }
 
-    /** Polls until the condition holds or the deadline passes (no bare Thread.sleep gates). */
+    /** Condition wait on server-observable state; the cap is hang protection only. */
     private static void awaitUntil(BooleanSupplier condition, long timeoutMs, String what) {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("interrupted while waiting for " + what, e);
-            }
-        }
-        assertTrue(condition.getAsBoolean(), "timed out after " + timeoutMs + "ms waiting for " + what);
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(condition, timeoutMs),
+                "timed out after " + timeoutMs + "ms waiting for " + what);
     }
 
     @Test
@@ -340,8 +329,12 @@ class KafkaBrokerE2ETest {
                 // Block past maxPollIntervalMs: the client heartbeat thread leaves the
                 // group, the post-handler commit fails (swallowed), the offset stays
                 // uncommitted and auto.offset.reset=earliest forces a fresh delivery.
+                // 残余（具名，plan 2512 WI-6）：真实 Kafka broker 的 maxPollIntervalMs 驱逐
+                // 语义要求 handler 真实阻塞超过配置间隔（2500ms）才触发——虚拟时钟不可跨
+                // broker 边界，latch.await 定界阻塞 + 中断响应
                 try {
-                    Thread.sleep(6_000);
+                    new java.util.concurrent.CountDownLatch(1)
+                            .await(6_000, java.util.concurrent.TimeUnit.MILLISECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                 }

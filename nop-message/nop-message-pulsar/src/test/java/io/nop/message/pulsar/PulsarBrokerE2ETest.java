@@ -196,20 +196,10 @@ class PulsarBrokerE2ETest {
         return BASE + "/e2e-" + scenario.toLowerCase(Locale.ROOT);
     }
 
+    /** Condition wait on broker-observable state; the cap is hang protection only. */
     private static void awaitUntil(BooleanSupplier condition, long timeoutMs, String what) {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean()) {
-                return;
-            }
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("interrupted while waiting for " + what, e);
-            }
-        }
-        assertTrue(condition.getAsBoolean(), "timed out after " + timeoutMs + "ms waiting for " + what);
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(condition, timeoutMs),
+                "timed out after " + timeoutMs + "ms waiting for " + what);
     }
 
     @Test

@@ -8,6 +8,7 @@
 package io.nop.auth.service.mfa.store;
 
 import io.nop.api.core.message.IMessageService;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.nosql.core.INosqlCounter;
 import io.nop.nosql.core.INosqlHashOperations;
 import io.nop.nosql.core.INosqlListOperations;
@@ -71,7 +72,7 @@ public class FakeNosqlService implements INosqlService {
         Slot s = store.get(key);
         if (s == null)
             return null;
-        if (s.expireAtMillis > 0 && System.currentTimeMillis() >= s.expireAtMillis) {
+        if (s.expireAtMillis > 0 && CoreMetrics.currentTimeMillis() >= s.expireAtMillis) {
             store.remove(key);
             return null;
         }
@@ -83,7 +84,7 @@ public class FakeNosqlService implements INosqlService {
     @Override
     public CompletionStage<Void> putExAsync(String key, Object value, long timeout) {
         record("putExAsync");
-        long expireAt = timeout > 0 ? System.currentTimeMillis() + timeout : 0L;
+        long expireAt = timeout > 0 ? CoreMetrics.currentTimeMillis() + timeout : 0L;
         store.put(key, new Slot(value, expireAt));
         return CompletableFuture.completedFuture(null);
     }
@@ -152,10 +153,10 @@ public class FakeNosqlService implements INosqlService {
         record("setTimeoutAsync");
         Slot s = store.get(key);
         if (s != null && timeout > 0) {
-            store.put(key, new Slot(s.value, System.currentTimeMillis() + timeout));
+            store.put(key, new Slot(s.value, CoreMetrics.currentTimeMillis() + timeout));
         }
         if (counters.containsKey(key) && timeout > 0) {
-            counterTtl.put(key, System.currentTimeMillis() + timeout);
+            counterTtl.put(key, CoreMetrics.currentTimeMillis() + timeout);
         }
         return CompletableFuture.completedFuture(true);
     }
@@ -191,7 +192,7 @@ public class FakeNosqlService implements INosqlService {
         record("putIfAbsentExAsync");
         if (rawGet(key) != null)
             return CompletableFuture.completedFuture(Boolean.FALSE);
-        long expireAt = timeout > 0 ? System.currentTimeMillis() + timeout : 0L;
+        long expireAt = timeout > 0 ? CoreMetrics.currentTimeMillis() + timeout : 0L;
         store.putIfAbsent(key, new Slot(value, expireAt));
         return CompletableFuture.completedFuture(Boolean.TRUE);
     }

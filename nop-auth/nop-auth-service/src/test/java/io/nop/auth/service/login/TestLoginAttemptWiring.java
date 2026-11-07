@@ -148,11 +148,12 @@ public class TestLoginAttemptWiring {
         cache2.setVerifyCode("secret-2", "5678");
         org.junit.jupiter.api.Assertions.assertNotNull(cache2.getVerifyCode("secret-2"),
                 "fresh write must be readable");
-        try {
-            Thread.sleep(120);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // 条件等待写入项真正过期（Caffeine ticker 为裸墙钟，无虚拟时钟 seam；上限仅作挂死保护，
+        // 真实 50ms TTL 为具名残余）。等待的是「过期已发生」这一确定结果，而非固定时长的猜测。
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> cache2.getVerifyCode("secret-2") == null, 10_000L),
+                "injected cache must expire writes (TTL-preserving contract, no permanent codes)");
         org.junit.jupiter.api.Assertions.assertNull(cache2.getVerifyCode("secret-2"),
                 "injected cache must expire writes (TTL-preserving contract, no permanent codes)");
     }

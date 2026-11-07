@@ -102,7 +102,9 @@ public class TestLettuceClusterService {
                     "redis-cli cluster addslots $(seq 0 16383)");
             sole.execInContainer("redis-cli", "cluster", "meet",
                     "127.0.0.1", String.valueOf(CLUSTER_PORT));
-            Thread.sleep(5000);
+            // 条件等待集群进入 ok 状态（服务器可观测状态），上限仅作挂死保护
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                    () -> clusterStateOk(sole), 30_000L), "cluster must reach ok state after addslots+meet");
             sole.execInContainer("redis-cli", "cluster", "set-config-epoch", "1");
         } else {
             StringBuilder clusterCreateCmd = new StringBuilder();
@@ -123,7 +125,9 @@ public class TestLettuceClusterService {
             }
         }
 
-        Thread.sleep(5000);
+        // 条件等待集群进入 ok 状态（服务器可观测状态），上限仅作挂死保护
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> clusterStateOk(nodes.get(0)), 30_000L), "cluster must reach ok state");
 
         List<String> clusterNodeUris = new ArrayList<>();
         for (int i = 0; i < NUM_MASTERS; i++) {
@@ -361,4 +365,14 @@ public class TestLettuceClusterService {
             poolProvider.stop();
         }
     }
+    /** 服务器可观测状态：cluster info 的 cluster_state 是否为 ok。 */
+    private static boolean clusterStateOk(GenericContainer<?> node) {
+        try {
+            String info = node.execInContainer("redis-cli", "cluster", "info").getStdout();
+            return info != null && info.contains("cluster_state:ok");
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
 }

@@ -672,26 +672,19 @@ public class TestMfaRestrictedSessionE2E extends JunitBaseTestCase {
                 () -> daoProvider.daoFor(NopAuthMfaSetting.class).getEntityById(userId));
     }
 
-    /** 轮询取指定 operation 的审计行 description（批处理分批落库容忍，最多 ~10s）。 */
+    /** 条件等待取指定 operation 的审计行 description（批处理分批落库容忍；上限仅作挂死保护）。 */
     private List<String> pollAuditDescriptions(String operation) {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (System.currentTimeMillis() < deadline) {
-            List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
-                NopAuthOpLog example = new NopAuthOpLog();
-                example.setOperation(operation);
-                return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
-            });
-            if (!found.isEmpty()) {
-                return found.stream().map(l -> String.valueOf(l.getDescription())).collect(Collectors.toList());
-            }
-            try {
-                Thread.sleep(200L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return List.of();
+        FutureHelper.waitUntil(() -> !auditDescriptions(operation).isEmpty(), 10_000L);
+        return auditDescriptions(operation);
+    }
+
+    private List<String> auditDescriptions(String operation) {
+        return ContextProvider.runWithTenant(TENANT_ID, () -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setOperation(operation);
+            List<NopAuthOpLog> found = daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+            return found.stream().map(l -> String.valueOf(l.getDescription())).collect(Collectors.toList());
+        });
     }
 
     // ===================== TOTP code computation =====================

@@ -15,13 +15,17 @@ import io.nop.api.core.audit.IAuditService;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.auth.dao.entity.NopAuthOpLog;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.dao.api.IDaoProvider;
 import io.nop.autotest.junit.JunitAutoTestCase;
 import io.nop.graphql.core.IGraphQLExecutionContext;
 import io.nop.graphql.core.IGraphQLLogger;
 import io.nop.graphql.core.ast.GraphQLOperationType;
 import io.nop.graphql.core.engine.IGraphQLEngine;
 import jakarta.inject.Inject;
+
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -39,6 +43,9 @@ public class TestGraphQLLogger extends JunitAutoTestCase {
     @Inject
     IGraphQLLogger graphQLLogger;
 
+    @Inject
+    IDaoProvider daoProvider;
+
     @Test
     public void testAudit() {
         long beginTime = CoreMetrics.currentTimeMillis();
@@ -48,12 +55,14 @@ public class TestGraphQLLogger extends JunitAutoTestCase {
         ApiResponse<?> result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
         output("response.json5", result);
         graphQLLogger.onRpcExecute(context, beginTime, result, null);
-        FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 10000);
-        try {
-            Thread.sleep(500);
-        } catch (InterruptedException e) {
-            Thread.interrupted();
-        }
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 10000));
+        // 重新求值证据：批次处理计数清零不保证审计事务已提交——条件等待审计行带主键
+        // 实际落库可读，再交由快照校验；上限仅作挂死保护
+        assertTrue(FutureHelper.waitUntil(() -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setDescription("保存数据");
+            List<NopAuthOpLog> rows = daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+            return !rows.isEmpty() && rows.stream().allMatch(l -> l.getLogId() != null);
+        }, 10000));
     }
 }

@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.nop.api.core.util.FutureHelper;
 import static io.nop.api.core.util.FutureHelper.syncGet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -309,26 +310,20 @@ public class TestMfaSensitiveSurfaceE2E extends JunitBaseTestCase {
 
     /** 轮询取指定 description 的审计行 requestData（批处理分批落库容忍；until 谓词满足或 ~10s 止）。 */
     private List<String> pollAuditRequests(String description, java.util.function.Predicate<List<String>> until) {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        List<String> result = List.of();
-        while (System.currentTimeMillis() < deadline) {
-            List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
-                NopAuthOpLog example = new NopAuthOpLog();
-                example.setDescription(description);
-                return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
-            });
-            result = found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
-            if (!result.isEmpty() && until.test(result)) {
-                return result;
-            }
-            try {
-                Thread.sleep(200L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return result;
+        FutureHelper.waitUntil(() -> {
+            List<String> current = auditRequestsOf(description);
+            return !current.isEmpty() && until.test(current);
+        }, 10_000L);
+        return auditRequestsOf(description);
+    }
+
+    private List<String> auditRequestsOf(String description) {
+        return ContextProvider.runWithTenant(TENANT_ID, () -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setDescription(description);
+            List<NopAuthOpLog> found = daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+            return found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
+        });
     }
 
     private void saveUser(String userId) {

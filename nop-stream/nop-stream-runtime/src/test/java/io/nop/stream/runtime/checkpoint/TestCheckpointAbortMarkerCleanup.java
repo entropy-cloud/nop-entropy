@@ -107,8 +107,15 @@ class TestCheckpointAbortMarkerCleanup {
 
         // R6 CC-01 (plan 2326): await the async fan-out; the failing participant
         // lands in the retry cycle inside the fan-out task.
+        // 确定性（plan 2512 门暴露）：fan-out 线程先建 map 条目后向集合 add 参与者——
+        // containsKey 只证明条目存在，get→contains 可能赛跑在 add 之前；等集合真正
+        // 含该参与者（参与者的 finishCommit 恒失败，重试环不会移除条目，无移除竞态）。
         TestAwait.until("failing participant registered for retry cycle",
-                () -> coordinator.failedCommitParticipants.containsKey(checkpointId));
+                () -> {
+                    java.util.Set<CheckpointParticipant> retry =
+                            coordinator.failedCommitParticipants.get(checkpointId);
+                    return retry != null && retry.contains(participant);
+                });
         assertTrue(coordinator.checkpointSuccessMap.containsKey(checkpointId),
                 "marker must stay while failed-commit retries may still replay it "
                         + "(pre-fix removal would make the retry default to success=true)");

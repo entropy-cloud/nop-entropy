@@ -59,11 +59,13 @@ class TestPulsarServiceLifecycle {
         }
 
         private void stubBrokerFaces() throws org.apache.pulsar.client.api.PulsarClientException {
-            // Bounded idle receive (WI19 form): each round sleeps briefly and returns null,
-            // so subscription.cancel() does not wait out the full 5s await budget.
+            // Bounded idle receive (WI19 form): each round is a latch-bounded (30ms,
+            // 可中断定界) wait and returns null, so subscription.cancel() does not wait
+            // out the full 5s await budget.
             when(consumer.receive(org.mockito.ArgumentMatchers.anyInt(),
                     org.mockito.ArgumentMatchers.any())).thenAnswer(inv -> {
-                        Thread.sleep(30);
+                        new java.util.concurrent.CountDownLatch(1)
+                                .await(30, java.util.concurrent.TimeUnit.MILLISECONDS);
                         return null;
                     });
             when(builder.topic(org.mockito.ArgumentMatchers.anyString())).thenReturn(builder);

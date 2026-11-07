@@ -8,7 +8,11 @@
 package io.nop.auth.service.mfa.store;
 
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.core.mfa.store.EmailCodeStoreConfig;
+import io.nop.commons.test.time.ManualClock;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -20,6 +24,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * VALID→removeIfMatch 原子消费、MISMATCH→counter.increment、超限作废、TTL 到期）。
  */
 public class TestRedisEmailCodeStore {
+
+    // 时间确定化（plan 2512 WI-6）：RedisEmailCodeStore 过期判定走 CoreMetrics（FakeNosqlService
+    // 的 TTL 同样经 CoreMetrics），测试注册 ManualClock 显式推进虚拟时间越过 TTL 截止点。
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     @Test
     public void testSendUsesPutExAndValidConsumesAtomically() {
@@ -67,11 +86,11 @@ public class TestRedisEmailCodeStore {
     }
 
     @Test
-    public void testRedisTtlExpiry() throws InterruptedException {
+    public void testRedisTtlExpiry()  {
         FakeNosqlService nosql = new FakeNosqlService();
         RedisEmailCodeStore store = new RedisEmailCodeStore(nosql, cfg(1, 5));
         String code = store.send("proof-email:user-4");
-        Thread.sleep(1100L);
+        clock.advance(1001L);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("proof-email:user-4", code));
     }
 

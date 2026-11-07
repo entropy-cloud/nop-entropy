@@ -135,8 +135,11 @@ class TestKafkaServiceLifecycle {
         // Gentle bounded poll loop (50ms rounds, empty records) so the threads stay alive
         // until cancel; wakeup() on a mock is a no-op, so exit is driven by the active flag
         // within one poll round — which is exactly the bounded-shutdown property under test.
+        // Bounded idle poll round（WI19 形态）：以 latch.await 定界一轮 poll 时长（可中断、
+        // 时长确定），保持线程存活直至 cancel
+        java.util.concurrent.CountDownLatch roundGate = new java.util.concurrent.CountDownLatch(1);
         when(mockConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
-            Thread.sleep(50);
+            roundGate.await(50, java.util.concurrent.TimeUnit.MILLISECONDS);
             return ConsumerRecords.EMPTY;
         });
         org.mockito.Mockito.doReturn(mockConsumer).when(spyService).createConsumer(
@@ -152,15 +155,15 @@ class TestKafkaServiceLifecycle {
         io.nop.api.core.message.IMessageSubscription subscription =
                 spyService.subscribe("t-threads", (t, m, c) -> null, options);
         try {
-            long deadline = System.currentTimeMillis() + 5000;
-            while (threadNames.size() < 2 && System.currentTimeMillis() < deadline) {
-                threadNames = Thread.getAllStackTraces().keySet().stream()
-                        .map(Thread::getName)
-                        .filter(n -> n.startsWith("nop-msg-kafka-consume-sub-threads-"))
-                        .collect(Collectors.toSet());
-                if (threadNames.size() < 2)
-                    Thread.sleep(20);
-            }
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                    () -> {
+                        threadNames.clear();
+                        threadNames.addAll(Thread.getAllStackTraces().keySet().stream()
+                                .map(Thread::getName)
+                                .filter(n -> n.startsWith("nop-msg-kafka-consume-sub-threads-"))
+                                .collect(Collectors.toSet()));
+                        return threadNames.size() >= 2;
+                    }, 5000L), "two named consume threads must appear");
             assertEquals(2, threadNames.size(),
                     "fan-out members must run on distinct named threads, got: " + threadNames);
         } finally {
@@ -169,15 +172,13 @@ class TestKafkaServiceLifecycle {
 
         // Shutdown sequencing: after cancel returns (executor awaited inside), the consume
         // threads are gone — bounded, no lingering poller.
-        long deadline = System.currentTimeMillis() + 5000;
-        long remaining = 1;
-        while (remaining > 0 && System.currentTimeMillis() < deadline) {
-            remaining = Thread.getAllStackTraces().keySet().stream()
-                    .filter(t -> t.getName().startsWith("nop-msg-kafka-consume-sub-threads-"))
-                    .count();
-            if (remaining > 0)
-                Thread.sleep(20);
-        }
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> Thread.getAllStackTraces().keySet().stream()
+                        .noneMatch(t -> t.getName().startsWith("nop-msg-kafka-consume-sub-threads-")),
+                5000L), "cancel must terminate the fan-out consume threads");
+        long remaining = Thread.getAllStackTraces().keySet().stream()
+                .filter(t -> t.getName().startsWith("nop-msg-kafka-consume-sub-threads-"))
+                .count();
         assertEquals(0, remaining, "cancel must terminate the fan-out consume threads");
     }
 
@@ -209,8 +210,9 @@ class TestKafkaServiceLifecycle {
         service.config.setBootstrapServers("localhost:9092");
         Consumer<String, String> mockConsumer = mock(Consumer.class);
         service.consumerForTest = mockConsumer;
+        java.util.concurrent.CountDownLatch destroyRoundGate = new java.util.concurrent.CountDownLatch(1);
         when(mockConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
-            Thread.sleep(50);
+            destroyRoundGate.await(50, java.util.concurrent.TimeUnit.MILLISECONDS);
             return ConsumerRecords.EMPTY;
         });
         when(mockConsumer.assignment()).thenReturn(java.util.Collections.emptySet());
@@ -245,8 +247,9 @@ class TestKafkaServiceLifecycle {
         Set<TopicPartition> assignment = java.util.Collections.singleton(
                 new TopicPartition("t-suspend", 0));
         when(mockConsumer.assignment()).thenReturn(assignment);
+        java.util.concurrent.CountDownLatch suspendRoundGate = new java.util.concurrent.CountDownLatch(1);
         when(mockConsumer.poll(any(Duration.class))).thenAnswer(inv -> {
-            Thread.sleep(20);
+            suspendRoundGate.await(20, java.util.concurrent.TimeUnit.MILLISECONDS);
             return ConsumerRecords.EMPTY;
         });
 

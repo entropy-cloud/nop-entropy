@@ -57,12 +57,6 @@ public class TestLoginApi extends JunitAutoTestCase {
         Object result = FutureHelper.syncGet(graphQLEngine.executeRpcAsync(context));
         output("response.json5", result);
         assertTrue(FutureHelper.waitUntil(() -> auditService.isAllProcessed(), 1000));
-
-        try {
-            Thread.sleep(200);
-        } catch (InterruptedException e) {
-            Thread.interrupted();
-        }
     }
 
     @Test

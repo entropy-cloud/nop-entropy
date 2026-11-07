@@ -43,6 +43,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import io.nop.api.core.util.FutureHelper;
 import static io.nop.api.core.util.FutureHelper.syncGet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -284,26 +285,19 @@ public class TestMfaCrudLockdownE2E extends JunitBaseTestCase {
         });
     }
 
-    /** 轮询取指定 description 的审计行 requestData（批处理分批落库容忍，最多 ~10s）。 */
+    /** 条件等待取指定 description 的审计行 requestData（批处理分批落库容忍；上限仅作挂死保护）。 */
     private List<String> pollAuditRequests(String description) {
-        long deadline = System.currentTimeMillis() + 10_000L;
-        while (System.currentTimeMillis() < deadline) {
-            List<NopAuthOpLog> found = ContextProvider.runWithTenant(TENANT_ID, () -> {
-                NopAuthOpLog example = new NopAuthOpLog();
-                example.setDescription(description);
-                return daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
-            });
-            if (!found.isEmpty()) {
-                return found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
-            }
-            try {
-                Thread.sleep(200L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-        }
-        return List.of();
+        FutureHelper.waitUntil(() -> !auditRequests(description).isEmpty(), 10_000L);
+        return auditRequests(description);
+    }
+
+    private List<String> auditRequests(String description) {
+        return ContextProvider.runWithTenant(TENANT_ID, () -> {
+            NopAuthOpLog example = new NopAuthOpLog();
+            example.setDescription(description);
+            List<NopAuthOpLog> found = daoProvider.daoFor(NopAuthOpLog.class).findAllByExample(example);
+            return found.stream().map(l -> String.valueOf(l.getOpRequest())).collect(Collectors.toList());
+        });
     }
 
     private ApiResponse<?> rpcMutation(String operation, Map<String, Object> data, UserContextImpl user) {

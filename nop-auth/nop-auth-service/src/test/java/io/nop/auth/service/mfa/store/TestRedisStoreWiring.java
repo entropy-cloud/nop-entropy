@@ -9,8 +9,12 @@ package io.nop.auth.service.mfa.store;
 
 import io.nop.auth.core.mfa.store.CodeVerifyResult;
 import io.nop.auth.core.mfa.store.MfaChallenge;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.auth.core.mfa.store.MfaChallengeStoreConfig;
 import io.nop.auth.core.mfa.store.SmsCodeStoreConfig;
+import io.nop.commons.test.time.ManualClock;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +34,21 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * control flow, key construction, TTL handling, CAS consume, and primitive selection.
  */
 public class TestRedisStoreWiring {
+
+    // 时间确定化（plan 2512 WI-6）：store 过期判定与 FakeNosqlService 的 TTL 均走 CoreMetrics，
+    // 测试注册 ManualClock 显式推进虚拟时间越过 TTL 截止点，不再用固定墙钟 sleep。
+    private ManualClock clock;
+
+    @BeforeEach
+    void registerManualClock() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+    }
+
+    @AfterEach
+    void restoreDefaultClock() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
+    }
 
     @Test
     public void testChallengeCreatePeekConsumeAndPrimitiveSelection() {
@@ -71,12 +90,12 @@ public class TestRedisStoreWiring {
     }
 
     @Test
-    public void testChallengeRedisTtlExpiry() throws InterruptedException {
+    public void testChallengeRedisTtlExpiry()  {
         FakeNosqlService nosql = new FakeNosqlService();
         RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(1));
         String token = store.create("user-3", "sms", 5, "t", "13800000000");
 
-        Thread.sleep(1100L);
+        clock.advance(1001L);
         assertNull(store.peek(token), "challenge must be gone after Redis TTL expiry");
     }
 
@@ -117,11 +136,11 @@ public class TestRedisStoreWiring {
     }
 
     @Test
-    public void testSmsCodeRedisTtlExpiry() throws InterruptedException {
+    public void testSmsCodeRedisTtlExpiry()  {
         FakeNosqlService nosql = new FakeNosqlService();
         RedisSmsCodeStore store = new RedisSmsCodeStore(nosql, smsCfg(1, 3));
         String code = store.send("login:13900000000");
-        Thread.sleep(1100L);
+        clock.advance(1001L);
         assertEquals(CodeVerifyResult.EXPIRED, store.verify("login:13900000000", code));
     }
 
@@ -184,7 +203,7 @@ public class TestRedisStoreWiring {
     }
 
     @Test
-    public void testTicketKeyExpiryDropsVerifiedAtRedis() throws InterruptedException {
+    public void testTicketKeyExpiryDropsVerifiedAtRedis()  {
         MfaChallengeStoreConfig c = new MfaChallengeStoreConfig();
         c.setExpireSeconds(60);
         c.setOpTicketExpireSeconds(1);
@@ -194,7 +213,7 @@ public class TestRedisStoreWiring {
 
         assertTrue(store.markVerified(token));
         assertNotNull(store.peek(token).getVerifiedAt());
-        Thread.sleep(1200L);
+        clock.advance(1001L);
         // 票键 TTL 到期：peek 不再报 verifiedAt（票失效；challenge 自身仍在其 TTL 内）
         MfaChallenge after = store.peek(token);
         assertNotNull(after, "challenge itself survives its own TTL (Redis)");
@@ -232,11 +251,11 @@ public class TestRedisStoreWiring {
     }
 
     @Test
-    public void testMarkVerifiedOnExpiredChallengeReturnsFalseRedis() throws InterruptedException {
+    public void testMarkVerifiedOnExpiredChallengeReturnsFalseRedis()  {
         FakeNosqlService nosql = new FakeNosqlService();
         RedisMfaChallengeStore store = new RedisMfaChallengeStore(nosql, cfg(1));
         String token = store.create(MfaChallenge.SCENE_OPERATION, "exp-user", "totp", 1, "t0", null, "{}");
-        Thread.sleep(1100L);
+        clock.advance(1001L);
         assertFalse(store.markVerified(token), "markVerified on expired challenge must return false (Redis)");
     }
 
