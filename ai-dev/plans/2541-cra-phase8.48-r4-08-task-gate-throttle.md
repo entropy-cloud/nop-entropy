@@ -1,6 +1,6 @@
 # 2541 CRA Phase 8.48 — R4-08 1.5 闸门/throttle 束 G14（12 工单全 P2 MA 族：W-01 扫描失败/跳过不收敛残留面[MA-06←C7-002+C8-002+C7-003+C8-011——**2514 裁定④已收敛 due 半区主面，残留面收窄登记**] + W-02 transferActorsAsync 批量转办无上限[MA-07←C5-002+C8-003] + W-03 全局闸门配置冻结零失效路径残留面[MA-10←C8-008+C7-017——**2514 裁定⑤键空间治理已落 idle 逐出+周期 WARN+gauge，残留面收窄登记**] + W-04 throttle 非重入信号量嵌套同 key[MA-11←C2-005+C2-011；**C10-002 宿主**] + W-05 throttle 参数构建期校验缺口[MA-12←C8-007+C2-013] + W-06 catch(Exception) 漏 Error 三站点[MA-13←C8-006+C8-013+C8-016；**C10-013 宿主**] + W-07 timeout/kill 与 body 生命周期解耦四面[MA-14←C3-005+C7-011+C8-014+C4-009] + W-08 step 级 first-terminal-wins 守卫非原子[MA-15←C1-004+C2-003+C3-006] + W-09 sleep 同步阻塞+无上限校验[MA-16←C7-012+C8-010] + W-10 fork-n/loop-n 计数无上界[MA-18←C5-004+C5-007] + W-11 addStepCleanup/runStepCleanups 锁纪律不对称[MA-20←C1-007+C2-004] + W-12 wf retry Thread.sleep 阻塞请求事务+封顶缺失[MA-22←C3-007+C7-005]；本批 2 条 C10 验收前置=C10-002 随 W-04 同 diff + C10-013 随 W-06 同 diff）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-08
 > Draft Review R1: **PASS-with-revisions**（agent_58b8e37b @ 2026-11-07——机制层零翻案；修订=行号锚勘正[TaskStepEnhancer 五组锚/TaskStepHelper 写点矩阵/nop-wf.md 行数/四处 Minor off-by-N]+登记于勘误 10）+ **Draft Review R2 PASS-with-revisions**（agent_0ef1d49b @ 2026-11-07——四项修订：W-09/W-10 校验路线二选一义务/W-02 站点清单补 IWorkflowStore+AbstractWorkflowStore/零回退钉补 TestWfScanQueryShape/裁定 A 补 W-04 检测时点契约——随勘误 10+裁定义务清单落款）；双评审修订落款后放行 Phase 1
 > 设计评审 R1（设计文档）: **PASS-with-revisions**（agent_dce02a69 fresh session 只读 @ `c4aafeb481` @ 2026-11-07，60+ 锚点亲验——0 Blocker+3 Major+5 Minor 全部落盘，放行 Phase 2：**R1-M1** W-04 inherited 集改存 taskName 限定键[异名任务同 raw key 误报类消解]/ **R1-M2** W-02 改「保留三参+四参 default 重载」投影[两测试桩 InMemoryWfStore:243/MockWorkflowStore:217 编译面零触碰——MockWorkflowStore 位于批外 nop-wf-service 测试树，初稿签名变更形态会破坏批外零触碰声明]/ **R1-M3** 裁定 E 零 diff 边界改语义口径[gauge 埋点纯新增行允许——消解与红① 的互斥]+Minor 四条[A-2 WfConfigs 先例失实/B-1 :360 锚/B-2 插入位理由/D-2 loop 公式 floor+1]+F-1 txnGroup 定名=querySpace——修订落款见设计文档第十三节+勘误 11）
@@ -268,42 +268,42 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.48 行（live 定位——起草基线 8.48 行 Status=todo，执行期行号如漂移以 live 为准登记）、cra-index P2-G14 束行收敛注、batch-proposal 勘误注记（不回写原文——roadmap 行内注记形态）
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（退避退出/上限拦截/告警触发/重入拒绝/校验 fail-fast/permit 回满/取消传导/守卫互斥/计数拒绝/并发 drain/封顶生效运行时真实生效[调用链追踪+红绿日志证行为改变]+无空方法体/静默跳过）；条件申报①②触发与否 git diff 全量核对；零回退钉全列核对（R211 钉族+364/349/2498 钉+既有锚——钉内断言零改写逐钉核对）；C10-002/013 同 diff 兑现核对；2514 键空间治理约束兑现核对（逐出判据/permit 池完整性零破坏）；W-01×2514 分组禁交叉核对；W-08 锁序评审兑现核对；同号防混核对（`*R408` 注释归属+1.5-C2-005≠1.4-C2-005 权威锚）；跨单元零义务确认
-- [ ] cra-index 台账回填：P2-G14 束行收敛注（**12 成员 fixed**——以 finding ID 收敛+**C10-002/C10-013 验收前置兑现括注**+防混沿用）；roadmap 8.48 行 Status → **done** + 勘误注记 + **软依赖解除内联注记补登**（勘误 2——沿 8.44/8.45 行形态，不改批次行原文）+ 8.49 行软依赖就绪注记兑现登记
-- [ ] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan 末尾 Closure 段（rule 27）；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session，不复用实现 session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow 检查（退避退出/上限拦截/告警触发/重入拒绝/校验 fail-fast/permit 回满/取消传导/守卫互斥/计数拒绝/并发 drain/封顶生效运行时真实生效[调用链追踪+红绿日志证行为改变]+无空方法体/静默跳过）；条件申报①②触发与否 git diff 全量核对；零回退钉全列核对（R211 钉族+364/349/2498 钉+既有锚——钉内断言零改写逐钉核对）；C10-002/013 同 diff 兑现核对；2514 键空间治理约束兑现核对（逐出判据/permit 池完整性零破坏）；W-01×2514 分组禁交叉核对；W-08 锁序评审兑现核对；同号防混核对（`*R408` 注释归属+1.5-C2-005≠1.4-C2-005 权威锚）；跨单元零义务确认
+- [x] cra-index 台账回填：P2-G14 束行收敛注（**12 成员 fixed**——以 finding ID 收敛+**C10-002/C10-013 验收前置兑现括注**+防混沿用）；roadmap 8.48 行 Status → **done** + 勘误注记 + **软依赖解除内联注记补登**（勘误 2——沿 8.44/8.45 行形态，不改批次行原文）+ 8.49 行软依赖就绪注记兑现登记
+- [x] 双门禁：`node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0（Closure Evidence 写入后复跑见 Closure 段登记）+ scan-hollow 复核登记（Phase 3 产物）；Closure Evidence 写入本 plan 末尾 Closure 段（rule 27）；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 plan 末尾 Closure 段
-- [ ] cra-index P2-G14 束行收敛注（C10 括注+承接闭环在案）、roadmap 8.48 = done（含勘误注记+软依赖解除注记补登+8.49 就绪注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行原文零改动）
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据（Reviewer/Agent 标识、每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源）已写入 plan 末尾 Closure 段
+- [x] cra-index P2-G14 束行收敛注（C10 括注+承接闭环在案）、roadmap 8.48 = done（含勘误注记+软依赖解除注记补登+8.49 就绪注记）、batch-proposal 勘误注记完成（roadmap 行内注记形态——批次行原文零改动）
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
 > **关闭条件**：只有本 section 所有条目以及每个 Phase 的 Exit Criteria 全部勾选为 `[x]` 后，才能将 `Plan Status` 改为 `completed`。关闭流程详见 plan guide 的 `When Closing The Plan` 和 `Closure Audit Rule`。
 
-- [ ] 12 工单全部收口：W-01（扫描残留四项+零 DDL 落款）/W-02（转办上限+部分成功保留）/W-03（冻结残留三项+键空间约束零破坏）/W-04（重入检测+C10-002 同 diff+双缺省路径）/W-05（参数校验同码同位）/W-06（Throwable 边界+C10-013 同 diff+349 零弱化）/W-07（四面+2498 载体对齐）/W-08（监视器收敛+锁序评审）/W-09（sleep 治理二选一）/W-10（计数清单+预分配）/W-11（cleanup 三选一）/W-12（封顶+事务解耦）〔closure audit 逐工单 live 落地核对〕
-- [ ] batch-proposal R4-08 行 exit criteria 增补逐条达成并留证：**C10-002（MA-11 收口门）**（嵌套获取测试同 diff）+ **C10-013（MA-13 收口门）**（Error 注入测试同 diff）——承接闭环登记
-- [ ] 对齐纪律守约：C10 与钉条款兑现（C10-002/013 同 diff+E2 泛在 12 钉+既有 C10 面零改写清单）；**8.20 零重开边界条款兑现**（裁定①–⑦ 产物+R211 钉族+键空间约束联动+锁序评审——closure audit git 过滤核对）；**2498/2497/364/349 零触碰边界条款兑现**（载体裁定/调度槽纪律/校验链/守卫/取消兜底）；throttle 整体裁决条款兑现（§3-D 批次层面三工单一次设计+MA-09/C2-012/C8-017 顺带评审零本体）；取消/清理契约域绑定兑现（W-06+W-07+W-09 一次设计）；R-G 边界条款兑现（G16 组+P3 相邻零触碰）；既有裁定引用条款兑现；同变更集绑定条款兑现（C10-002/W-04+C10-013/W-06+三域绑定+校验链同位+W-01 分组禁交叉）；同号防混条款兑现（cra-index 三键+`*R408` 注释归属+1.5-C2-005≠1.4-C2-005 权威锚）
-- [ ] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑫ 均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册[红⑪ 真实并发构造/红③(iii)红⑦(iii)红⑫ 腿检出力/概率腿诚实登记禁伪绿]）；C10-002/013 同 diff 落地
-- [ ] 设计文档裁定 A–F 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对）；2514/2498/364/349 产物面零回退
-- [ ] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道双聚合器验收 + 已知面处置留痕[容器 5S/上游 flake 三联]）
-- [ ] owner doc 落账完成：`docs-for-ai/03-modules/nop-task.md` 各落点 + `nop-wf.md` 按需 + `workflow-configuration.md` 按需 + `source-anchors.md`（E5 随批更新形态——非缺口声明）
-- [ ] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-task/nop-wf 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
-- [ ] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性——G16 组/P3 相邻为批次定义层排除或登记级，非本批降级）
-- [ ] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
-- [ ] **Anti-Hollow Check**：closure audit 已验证（a）退避退出/上限拦截/告警触发/重入拒绝/校验 fail-fast/permit 回满/取消传导/守卫互斥/计数拒绝/并发 drain/封顶生效运行时真实生效（调用链追踪+红绿日志证行为改变——接线验证十二项），（b）无空方法体/静默跳过/no-op 作为正常实现（含 W-06 catch(Throwable) rethrow 必然性核验）
-- [ ] `./mvnw compile` + `./mvnw test`（nop-task/nop-wf 分解通道——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（含 imports 分组纪律——io.nop.* → jakarta/third-party → java.* → 静态导入最后）
-- [ ] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0〔终跑随收口复跑登记〕
-- [ ] cra-index P2-G14 收敛注 + roadmap 8.48 → done（含软依赖解除注记补登+8.49 就绪注记）（E6）
+- [x] 12 工单全部收口：W-01（扫描残留四项+零 DDL 落款）/W-02（转办上限+部分成功保留）/W-03（冻结残留三项+键空间约束零破坏）/W-04（重入检测+C10-002 同 diff+双缺省路径）/W-05（参数校验同码同位）/W-06（Throwable 边界+C10-013 同 diff+349 零弱化）/W-07（四面+2498 载体对齐）/W-08（监视器收敛+锁序评审）/W-09（sleep 治理二选一）/W-10（计数清单+预分配）/W-11（cleanup 三选一）/W-12（封顶+事务解耦）〔closure audit 逐工单 live 落地核对〕
+- [x] batch-proposal R4-08 行 exit criteria 增补逐条达成并留证：**C10-002（MA-11 收口门）**（嵌套获取测试同 diff）+ **C10-013（MA-13 收口门）**（Error 注入测试同 diff）——承接闭环登记
+- [x] 对齐纪律守约：C10 与钉条款兑现（C10-002/013 同 diff+E2 泛在 12 钉+既有 C10 面零改写清单）；**8.20 零重开边界条款兑现**（裁定①–⑦ 产物+R211 钉族+键空间约束联动+锁序评审——closure audit git 过滤核对）；**2498/2497/364/349 零触碰边界条款兑现**（载体裁定/调度槽纪律/校验链/守卫/取消兜底）；throttle 整体裁决条款兑现（§3-D 批次层面三工单一次设计+MA-09/C2-012/C8-017 顺带评审零本体）；取消/清理契约域绑定兑现（W-06+W-07+W-09 一次设计）；R-G 边界条款兑现（G16 组+P3 相邻零触碰）；既有裁定引用条款兑现；同变更集绑定条款兑现（C10-002/W-04+C10-013/W-06+三域绑定+校验链同位+W-01 分组禁交叉）；同号防混条款兑现（cra-index 三键+`*R408` 注释归属+1.5-C2-005≠1.4-C2-005 权威锚）
+- [x] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑫ 均有先红后绿或变异/回退论证证据（E2；形态标注逐钉在 red-green 总册[红⑪ 真实并发构造/红③(iii)红⑦(iii)红⑫ 腿检出力/概率腿诚实登记禁伪绿]）；C10-002/013 同 diff 落地
+- [x] 设计文档裁定 A–F 成文且经独立 draft review；既有裁定引用核对节在案；零回退钉全列零回退实证（closure audit git diff 零改动核对）；2514/2498/364/349 产物面零回退
+- [x] 全量构建绿：E1 留痕 + 批行验证命令按 E3 判据验收（`-am` 通道至阻断面留痕 + 分解通道双聚合器验收 + 已知面处置留痕[容器 5S/上游 flake 三联]）
+- [x] owner doc 落账完成：`docs-for-ai/03-modules/nop-task.md` 各落点 + `nop-wf.md` 按需 + `workflow-configuration.md` 按需 + `source-anchors.md`（E5 随批更新形态——非缺口声明）
+- [x] 受影响 Maven 模块 `scan-hollow-implementations.mjs --severity high` 触达面 high=0（nop-task/nop-wf 聚合或逐子模块 EXIT=0 真实退出码或归因登记）
+- [x] 不存在被静默降级到 deferred / follow-up 的 in-scope live defect 或 contract drift（closure audit Deferred 诚实性——G16 组/P3 相邻为批次定义层排除或登记级，非本批降级）
+- [x] 独立子 agent closure-audit 已完成并记录证据（rule 12/27，fresh session）
+- [x] **Anti-Hollow Check**：closure audit 已验证（a）退避退出/上限拦截/告警触发/重入拒绝/校验 fail-fast/permit 回满/取消传导/守卫互斥/计数拒绝/并发 drain/封顶生效运行时真实生效（调用链追踪+红绿日志证行为改变——接线验证十二项），（b）无空方法体/静默跳过/no-op 作为正常实现（含 W-06 catch(Throwable) rethrow 必然性核验）
+- [x] `./mvnw compile` + `./mvnw test`（nop-task/nop-wf 分解通道——E3 等价验收）+ 批行 `-am` 通道留痕；checkstyle / 代码规范检查通过（含 imports 分组纪律——io.nop.* → jakarta/third-party → java.* → 静态导入最后）
+- [x] `node ai-dev/tools/check-plan-checklist.mjs <plan-file> --strict` 退出码 0；`node ai-dev/tools/check-doc-links.mjs --strict` 退出码 0〔终跑随收口复跑登记〕
+- [x] cra-index P2-G14 收敛注 + roadmap 8.48 → done（含软依赖解除注记补登+8.49 就绪注记）（E6）
 
 ## Deferred But Adjudicated
 
@@ -353,16 +353,27 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （Phase 4 closure audit 后填写）
-Completed:
+Status Note: 12 工单全 landed（34 钉先红后绿+C10-002/013 同 diff 兑现）；独立 closure audit APPROVED（0 Blocker/0 Major/3 Minor 文档级随收口落盘）；E1 授权支路 EXIT=0（面① solo 三联绿归因）；双聚合器签名 334/256；cra-index P2-G14 收敛注+roadmap 8.48 done 回填同批完成。
+Completed: 2026-11-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent，fresh session——Phase 4 填写）
-- Audit Session: （Phase 4 填写）
-- Evidence: （每条 Exit Criterion 与 Closure Gate 的 PASS/FAIL + 证据来源——Phase 4 填写）
+- Reviewer / Agent: 独立子 agent（fresh session，agent_0cf1f159，67 次工具调用，HEAD=3804cc8aa8 只读亲验 60+ 处）
+- Audit Session: agent_0cf1f159-2b57-4091-9742-d238b526088f
+- Evidence:
+  - A 12 工单 live 落地 PASS 12/12（逐工单读码：W-01 postponeFailedRemindTask :407-425+gauge :132-147 / W-02 :240-256+buildTransferScanQuery :219-251 / W-03 warnConfigFrozen :301-310 / W-04 :39-70+keyRegistered 门控 / W-05 :160-167 / W-06 五站点 / W-07 :343-353+:397-401 / W-08 三守卫锁内 / W-09 :44-52 / W-10 :49-57+:175-183 / W-11 :58+:230-244 / W-12 :1046-1053+:1004-1011）
+  - B Anti-Hollow PASS（TODO/FIXME/空 catch 零命中+四条调用链真实：重入检测←wrapper :49/:57/:65、gauge←init :124、hasOpenedTransaction←runSourceWithRetry :1004、postponeStepRemindTime←scanRemindTask catch）
+  - C 零触碰 PASS（43 文件全集核对：批外模块零 diff、`_` 生成物/orm/xdef 零触碰=条件申报①②零触发亲证、五枚点名钉+两测试桩+AbstractWorkflowStore diff 0 行、E-2541-7 两用例改形=加强非弱化逐字亲证、2514 三产物面 diff 逐块纯新增零重开）
+  - D 红绿诚实性 PASS（17/23+6/8+compile-red 与总册一致、md5 三组逐字节 IDENTICAL、红⑪ 未命中诚实登记）
+  - E C10 兑现 PASS（C10-002 四腿/C10-013 三断言一套，与裁定 F 附红钉总表逐项吻合，同 diff 亲证）
+  - F 文本一致性 PASS（Phase 1/2/3 40 项全勾+双门禁 live 复跑 EXIT=0×2+scan-hollow Total=0×2）
+  - G owner doc PASS（四文件落点在案+source-anchors 行号锚 10 处抽验全对齐）
+  - H 同号防混 PASS（`*R408` 归属+模型前缀+评审记录节在案）
+  - Minor 3 条随收口落盘：M-1 设计文档 §6.1 补「maxBatch<=0 请求期 typed 拒绝」勘误注记（实现形态与 §6.1「装配期 fail-fast」措辞偏差——功能保护等价，owner doc 已按实现成文）；M-2 日log nop-wf 拆分「meta 4」→「ai 4」标注订正；M-3 总册绿证「5/3」→「5/5」记法订正
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict` 退出码 0（本 Closure 段写入后复跑确认）
+  - Deferred 项分类检查：G16 组/P3 相邻条目/C8-010(b) 均为批次定义层排除（Non-Goals 预设），非本批降级
 
 Follow-up:
 
-- （Non-Blocking Follow-ups 维持——见上节）
-- （Phase 4 收口时确认 no remaining plan-owned work 或登记 successor）
+- Non-Blocking Follow-ups 维持（见上节——W-09 异步化候选/W-07 XPL token 注入候选/W-02 防重入增强/W-03 失效钩子强化/W-12 定时器统一候选/上游 -am 噪声治理归 R-G）
+- no remaining plan-owned work（8.49 软依赖已就绪，其立项归下一批 plan 2542）
