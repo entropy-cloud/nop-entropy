@@ -136,7 +136,7 @@
 
 ## Goals
 
-- Phase 1 设计裁定文档一次裁决 11 工单修复形态（**新增裁定 A–F 按主题域分组**：裁定 A=取消响应域[W-01/W-03——wakeup 通道+runThread interrupt 形态+face② 声明]；裁定 B=debezium 信号与重入域[W-02/W-04——in-scope 守卫形态与 R4-24 接缝+CAS typed+C10-015 改写方案]；裁定 C=停机链域[W-05——close clear-first+interrupt 兜底三 face 形态+face③ typed 对齐]；裁定 D=rocksdb native 生命周期域[W-06/W-07/W-10/W-11——失败清理 helper+两段关闭+残留清扫+TTL sweep 时钟缝]；裁定 E=磁盘残留域[W-08/W-09——孤儿清扫挂点+manifest tmp face②+TWR 双点+fd 腿形态]；裁定 F=红①–红⑪ 驱动器总表+零回退钉全列[勘误 4 签名+2511/2536 钉+既有锚清单]+C10 关联面注记表[C10-015 同 diff 绑定+同步配测侧记]）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-connectors-cancel-reentrancy-stop-chain-rocksdb-native-cleanup-and-failure-path-residue-concurrency-contract.md`（Phase 1 产出物；沿 2536 文件命名裁定先例；与既有 `stream-connectors-concurrency-and-envelope.md`[2511]/`...-metrics-identity-avro-lifecycle-cepbounds-and-2pc-guards-...`[2536] 命名序列衔接）。**既有裁定①–⑧（2511）与裁定 A–E（2536）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（Backend 三批同文件零回退红线+停止契约语义+R5-CON-02/03 零弱化）。
+- Phase 1 设计裁定文档一次裁决 11 工单修复形态（**新增裁定 A–F 按主题域分组**：裁定 A=取消响应域[W-01/W-03——wakeup 通道+runThread interrupt 形态+face② 声明]；裁定 B=debezium 信号与重入域[W-02/W-04——in-scope 守卫形态与 R4-24 接缝+CAS typed+C10-015 改写方案]；裁定 C=停机链域[W-05——close clear-first+interrupt 兜底三 face 形态+face③ typed 对齐]；裁定 D=rocksdb native 生命周期域[W-06/W-07/W-10/W-11——失败清理 helper+两段关闭+残留清扫+TTL sweep 时钟缝]；裁定 E=磁盘残留域[W-08/W-09——孤儿清扫挂点+manifest tmp face②+TWR 双点+fd 腿形态]；裁定 F=红①–红⑪ 驱动器总表+零回退钉全列[勘误 4 签名+2511/2536 钉+既有锚清单]+C10 关联面注记表[C10-015 同 diff 绑定+同步配测侧记]）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-connectors-concurrency-guards-failure-paths-and-resource-hygiene-concurrency-contract.md`（Phase 1 产出物；沿 2536 文件命名裁定先例；与既有 `stream-connectors-concurrency-and-envelope.md`[2511]/`...-metrics-identity-avro-lifecycle-cepbounds-and-2pc-guards-...`[2536] 命名序列衔接；**Phase 1 起草登记[2026-11-07]：文件命名由 plan 拟名 `...-cancel-reentrancy-stop-chain-rocksdb-native-cleanup-and-failure-path-residue-...` 调整为现名[guards=守卫与取消面 W-01–W-05/failure-paths=失败路径语义面 W-04/W-06/W-07/resource-hygiene=资源卫生面 W-08–W-11]，裁定分组 A–F 并为 A–E[W-06/W-07/W-09 并入裁定 C、W-08/W-10/W-11 并为裁定 D、钉总表=裁定 E——11 工单内容一一全覆盖]，本节预设分组文字保留为历史拟名、以设计文档「工单→裁定映射与分组登记」节为分组权威，Exit Criteria 项「裁定 A–F 全部项」经该映射表验收**）。**既有裁定①–⑧（2511）与裁定 A–E（2536）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（Backend 三批同文件零回退红线+停止契约语义+R5-CON-02/03 零弱化）。
 - 11 工单全部修复并各带 ≥1 条验收载体（红①–红⑪）；C10-015 验收前置随 W-04 同 diff 落地（E2）。
 - 关键工单先红后绿留证（E2）：红①–红⑪ 确定性当前即红（红①②③④⑤⑧⑨⑩⑪ 确定性构造；红⑥ 编译/结构红腿+行为校准腿；红⑦ 结构钉+变异探针回退论证——全部禁伪绿）；全部钉落 `_tmp/` 总册+逐 trial 日志（2536 Major-D1 灭失教训——原始日志存证纪律）。
 - E5 owner doc 落账：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（取消时延/同名守卫/重入 typed/close 终止契约精化/native 清理/关闭顺序/孤儿清扫/恢复清扫/TTL sweep——归 Phase 3 统一落账）+ `ai-dev/design/nop-stream/state-management-design.md` :422[m2-6 订正] 声明兑现核对（W-11）+ `docs-for-ai/03-modules/nop-stream.md` 按实际 + `docs-for-ai/04-reference/source-anchors.md` 按实际。
@@ -167,7 +167,7 @@
 - `nop-stream/nop-stream-connector/src/main/java/io/nop/stream/connector/`：`MessageSourceReader`（W-05 face①）+ `file/FileTwoPhaseCommitSink`（W-08）+ `file/FileSplitEnumerator`（W-09 面①）+ `file/FileSource`（W-09 面②）。
 - `nop-stream/nop-stream-rocksdb/src/main/java/io/nop/stream/rocksdb/`：`RocksDBKeyedStateBackend`（W-06+W-10 接线锚+W-11——同文件三工单 diff 分组登记）+ `incremental/RocksDBIncrementalRestore`（W-07+W-10——同文件联动评估归裁定）。
 - 测试树：五模块 src/test（红①–红⑪ 落点+C10-015 same-diff 改写+`TestRocksDBStateTtl` 同步配测——包位随裁定；`TestBatchLoaderSourceFunction` 零触碰；`TestRocksDBKeyedStateBackendCrossThreadOps`/`*R403` 全列零触碰）。
-- 设计文档：`ai-dev/design/concurrency/stream-connectors-cancel-reentrancy-stop-chain-rocksdb-native-cleanup-and-failure-path-residue-concurrency-contract.md`（新建；裁定 A–F+既有裁定引用核对节[2511 ①–⑧+2536 A–E 引用面]+测试缝与零回退钉总表，最终状态写法）。
+- 设计文档：`ai-dev/design/concurrency/stream-connectors-concurrency-guards-failure-paths-and-resource-hygiene-concurrency-contract.md`（新建[命名调整登记见 Goals 节 Phase 1 起草登记]；裁定 A–E[分组权威=其「工单→裁定映射与分组登记」节]+既有裁定引用核对节[2511 ①–⑧+2536 A–E 引用面]+测试缝与零回退钉总表，最终状态写法）。
 - owner doc：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面（Phase 3）+ `ai-dev/design/nop-stream/state-management-design.md` :422[m2-6 订正] 兑现核对（W-11）+ `docs-for-ai/03-modules/nop-stream.md`（按实际）+ `docs-for-ai/04-reference/source-anchors.md`（按实际）。
 - roadmap 8.44 行（:186——立项注记与批末 done 回写归 Phase 4）+ cra-index :392/:393 双束行收敛注（Phase 4）。
 
@@ -179,12 +179,12 @@
 
 ### Phase 1 - 连接器取消响应/停机链/native 生命周期/失败路径残留设计裁定文档 + 独立评审
 
-Status: planned
-Targets: `ai-dev/design/concurrency/stream-connectors-cancel-reentrancy-stop-chain-rocksdb-native-cleanup-and-failure-path-residue-concurrency-contract.md`（新建——裁定 A–F 分组见 Goals，映射表见设计文档）
+Status: completed〔2026-11-07：设计文档落档（405 行，命名裁定+分组裁定登记）+ 设计评审 R1（agent_28bc9798）PASS-with-revisions 3 Major+7 Minor 全落盘放行 Phase 2〕
+Targets: `ai-dev/design/concurrency/stream-connectors-concurrency-guards-failure-paths-and-resource-hygiene-concurrency-contract.md`（新建——文件命名与分组 A–F→A–E 调整已登记见 Goals 节 Phase 1 起草登记；裁定 A–E 分组映射见设计文档「工单→裁定映射与分组登记」节）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
   - [ ] **「既有裁定引用核对」节**（起草期义务——软依赖 8.17 解除+紧邻前批 8.43 收口）：逐条确认 2511 裁定①–⑧ 引用边界（裁定⑤ 基线/裁定⑥ 位点链/裁定⑧ 钉惯例——Backend 三批同文件零回退红线全集）+ 2536 裁定 A–E 引用面（byte-bound 守卫段/seed 面/锁预算/旋钮族零触碰锚+红绿驱动器形态参照）+ 2503 停止契约语义零弱化落款 + R5-CON-02/03 语义锚落款。
   - [ ] **裁定 A 取消响应域**（W-01/W-03）：kafka wakeup 通道形态（run 内 consumer 字段化[volatile vs AtomicReference]——cancel 顺序/wakeup-before-partitionsFor 保护/probe 面 :376-386 守卫归裁定）+ batch runThread interrupt 形态（入口记录/finally 清空/interrupt 递送语义——driver 响应差异声明[E5]）+ face② owner doc 取消时延上界声明文案（mailbox 同线程无解除原语）+ 测试缝（探针 consumer subclass seam/stub loader latch——零 broker 依赖）。
   - [ ] **裁定 B debezium 信号与重入域**（W-02/W-04）：in-scope 守卫形态（静态 live-name 注册表 typed fail-fast[预设——AR-03 口径对齐] vs 注册键实例限定 vs 声明兜底；**载体零 diff 红线落款**+与 R4-24 接缝兼容性注记）+ 注册/注销生命周期守卫（finally unregister 语义保持——**须按所有权判定收窄[draft R1 M1 约束]：被拒实例的 finally 禁止按名移除第一实例（健康管线）的 listener——仅移除自注册引用/注册令牌配对；否则守卫自身失败路径复活 W-02 同型缺陷，红② 现形态对此有盲区[增补「守卫拒绝后第一实例 listener 存活」反例断言]**）+ CAS 失败 typed 拒绝形态（错误码落点/param）+ **C10-015 same-diff 改写方案**（`TestDebeziumResourceManagement` :64 断言反转——终态形态断言设计+旧断言消号理由）+ 测试缝（双 function 并发 run 探针引擎 seam——复用 `TestDebeziumCdcSourceFunction` 既有 seam 形态）。
@@ -192,16 +192,16 @@ Targets: `ai-dev/design/concurrency/stream-connectors-cancel-reentrancy-stop-cha
   - [ ] **裁定 D rocksdb native 生命周期域**（W-06/W-07/W-10/W-11）：openDB 失败清理形态（逆序 helper[handles→options→preset]+suppressed 收集——可白盒钉 helper 签名归裁定）+ restore 两段关闭形态（TWR 改形 vs 手工序——handles 先 src 后）+ 红⑦ 变异探针模板（还原-红-复修-绿留痕）+ 残留清扫形态（入口列举 id 比较窗 vs reconstruct 移入边界——与 W-07 联动归裁定[同组单 diff 登记]）+ TTL sweep hook 形态（Memory 形态移植[nanotime 门控+缺省 60s+≤0 关闭]+时钟缝[可注入门控 vs 反射推进——测试语义归裁定]）+ seed 面/prune 面/缺省值/接线锚零触碰落款。
   - [ ] **裁定 E 磁盘残留域**（W-08/W-09）：孤儿清扫挂点（恢复入口[首次 commit 前/恢复链]manifest+pending 双白名单判定 vs beginTransaction mtime 窗——与 R6 CON-01 provenance 判别同址；如挂 commit 链经既有锁通道归裁定）+ manifest tmp face② 形态 + walk TWR 双点写法（SnapshotStrategy :189 对齐）+ fd 计数腿形态（R07 先例复用声明+CI perm 注入受限降级预案）+ 保留载体/旋钮/锁预算/P3 相邻面零触碰落款。
   - [ ] **裁定 F 测试缝与红①–红⑪ 驱动器总表+零回退钉清单**：红①–红⑪ 逐钉形态定夺（确定性标注+前置构造路径[wakeup 探针/同名双 run/阻塞 stub loader/并发第二 run/队列满+join 超时/helper 白盒/结构+变异/孤儿注入+合法在途 temp 反例腿[m2-8 对齐 Risks]/perm 注入/陈旧目录注入/TTL 时钟推进]+伪绿防线——orTimeout 类假绿通道排查+闩带上界 ≤30s 防测试自身挂死+红⑥⑦ 结构/变异腿诚实留痕纪律[2536 E-2536-7/Major-D1 教训——原始日志存证]）；零回退钉全列（勘误 4 签名+2511 全部钉[挂死三件/压窗/保留双钉/驻留/last-emitted/裕度]+2536 全部钉[全部 `*R403` 类 10 个[m2-7 订正]+E-2536-1/4 适配]+8.41 受害侧钉+既有锚点名[TestKafkaSourceFunctionSharding/TestBatchLoaderSource/TestMessageSourceFunctionLifecycle/Restart/ThreadSafety/TestFileTwoPhaseCommitSink/ManifestPrune/TestFileSourceSample/TestDebeziumCdcSourceFunction/TestDebeziumCdcStopVerification_C3_014/TestDebeziumCdcSourceErrorPropagation/TestRocksDBIncrementalRestoreFailFast/TestRocksDBStateTtl/TestRocksDBSnapshotRestore/TestRocksDBMemoryControl 等]）+ C10 关联面注记表（C10-015 同 diff 绑定+C7-003/C7-010 同步配测侧记兑现+零改写清单）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档独立 draft review〔agent_28bc9798 PASS-with-revisions 修订闭环〕（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动；记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–F 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2511 ①–⑧+2536 A–E 引用面+停止契约零弱化落款），独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定 A 含 wakeup/runThread 唯一分支+face② 声明文案；裁定 B 含 in-scope 守卫+CAS typed 唯一分支+载体零 diff 红线+C10-015 改写方案；裁定 C 含 close clear-first+interrupt 唯一分支+三 face 形态+零触碰落款；裁定 D 含 helper/两段关闭/清扫/sweep hook 唯一分支+时钟缝+零触碰落款；裁定 E 含清扫挂点+TWR 唯一分支+fd 腿形态；裁定 F 含红①–红⑪ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–F 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2511 ①–⑧+2536 A–E 引用面+停止契约零弱化落款），独立 draft review 记录在案（文件命名如调整已登记裁定）
+- [x] 裁定 A〔评审亲证〕 含 wakeup/runThread 唯一分支+face② 声明文案；裁定 B 含 in-scope 守卫+CAS typed 唯一分支+载体零 diff 红线+C10-015 改写方案；裁定 C 含 close clear-first+interrupt 唯一分支+三 face 形态+零触碰落款；裁定 D 含 helper/两段关闭/清扫/sweep hook 唯一分支+时钟缝+零触碰落款；裁定 E 含清扫挂点+TWR 唯一分支+fd 腿形态；裁定 F 含红①–红⑪ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 11 工单实现 + 回归测试（按组 A–D）
