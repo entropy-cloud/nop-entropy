@@ -321,4 +321,89 @@ class TestRocksDBStateTtl {
         }
         backend.close();
     }
+
+    // ==================== CRA 8.44 R4-04 (plan 2537) W-11 red⑪ ====================
+    // (finding 1.2-C7-010; adjudication D.4 / seam S11 — appended, zero rewriting of
+    // the pre-existing cases above: the manual sweep faces stay untouched and are
+    // reused here as the observation probe. The auto sweep trigger moves to
+    // setCurrentKey behind the nanotime gate, so "checkpoint closed / long interval"
+    // deployments stop relying on snapshotState as the only sweep point.)
+
+    /** red⑪ core leg: with the gate open (1ms micro-interval, the in-repo seam shape of
+     *  TestMemoryStateTtlSweep), setCurrentKey alone must fire the sweep — no
+     *  snapshotState, no explicit cleanup. Pre-fix: only snapshotState sweeps, so the
+     *  expired entry is still there when the manual probe runs = red. */
+    @Test
+    void autoSweepFiresOnCurrentKeyWithoutCheckpointR404() throws Exception {
+        FakeClock clock = new FakeClock();
+        RocksDBKeyedStateBackend<String> backend = newBackend(clock);
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("v", Integer.class, 0);
+        desc.setTtlConfig(ttl(Duration.ofMillis(100)));
+        backend.setTtlSweepIntervalMillis(1L); // smallest positive interval: gate open
+
+        ValueState<Integer> state = backend.getState(desc);
+        backend.setCurrentKey("k1"); // first gate-open sweep fires here (nothing expired yet)
+        state.update(42);
+        clock.advance(150); // k1 expired; no checkpoint, no access to the state after this
+        try {
+            Thread.sleep(5); // let the nanotime gate elapse (deterministic in practice —
+            // the same seam shape TestMemoryStateTtlSweep uses)
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        backend.setCurrentKey("k2"); // key switch = the periodic sweep trigger point
+        assertEquals(0, backend.cleanupExpiredEntries(),
+                "setCurrentKey must have auto-swept the expired entry (manual probe finds "
+                        + "nothing left) — pre-fix only snapshotState sweeps and the probe "
+                        + "still reclaims 1 entry (CRA 8.44 R4-04 W-11 red⑪)");
+        backend.close();
+    }
+
+    /** ≤0 disable leg: the hook must be switchable off and the manual entry point must
+     *  keep working (the manual sweep semantics are NOT weakened — C10 side-note duty). */
+    @Test
+    void zeroIntervalDisablesAutoSweepManualStillWorksR404() throws Exception {
+        FakeClock clock = new FakeClock();
+        RocksDBKeyedStateBackend<String> backend = newBackend(clock);
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("v", Integer.class, 0);
+        desc.setTtlConfig(ttl(Duration.ofMillis(100)));
+        backend.setTtlSweepIntervalMillis(0L); // explicit opt-out
+
+        ValueState<Integer> state = backend.getState(desc);
+        backend.setCurrentKey("k1");
+        state.update(42);
+        clock.advance(150);
+
+        backend.setCurrentKey("k2");
+        assertEquals(1, backend.cleanupExpiredEntries(),
+                "with the hook disabled the expired entry must survive setCurrentKey");
+        assertEquals(0, backend.cleanupExpiredEntries(),
+                "the manual sweep must still reclaim it (manual semantics untouched)");
+        backend.close();
+    }
+
+    /** default-interval gating leg: the 60s nanotime gate must SKIP the sweep right
+     *  after a previous one (one boolean + one long compare on the hot path), proving
+     *  the trigger is gated — not an unconditional per-call sweep. */
+    @Test
+    void defaultIntervalGatesTheAutoSweepR404() throws Exception {
+        FakeClock clock = new FakeClock();
+        RocksDBKeyedStateBackend<String> backend = newBackend(clock); // default 60s interval
+        ValueStateDescriptor<Integer> desc = new ValueStateDescriptor<>("v", Integer.class, 0);
+        desc.setTtlConfig(ttl(Duration.ofMillis(100)));
+        assertEquals(60_000L, backend.getTtlSweepIntervalMillis(),
+                "the Memory-form default (60s) must be wired through the getter");
+
+        ValueState<Integer> state = backend.getState(desc);
+        backend.setCurrentKey("k1");
+        state.update(42);
+        clock.advance(150);
+        backend.setCurrentKey("k2"); // gate still closed (default 60s not elapsed)
+        assertEquals(1, backend.cleanupExpiredEntries(),
+                "the default gate must skip the auto sweep immediately after startup");
+        assertEquals(0, backend.cleanupExpiredEntries(),
+                "the manual sweep must stay effective");
+        backend.close();
+    }
 }

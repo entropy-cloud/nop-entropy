@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -409,6 +410,76 @@ public class TestDebeziumCdcSourceFunction {
         source.cancel();
         runner2.join(5000);
         assertFalse(runner2.isAlive());
+    }
+
+    /**
+     * CRA 8.44 R4-04 (plan 2537) red④ parallel typed leg (adjudication B.2, seam S4):
+     * while a first run holds the guard, a concurrent second run must fail TYPED
+     * (StreamException naming the re-entry) — never silently return as fake EOS.
+     * Hermetic via the NoEngine stub; complements the same-diff rewrite in
+     * {@code TestDebeziumResourceManagement} (the C10-015 carrier inversion).
+     */
+    @Test
+    void testR404_W04_ReEntrantGuardFailsTypedNeverSilentFakeEos() throws Exception {
+        DebeziumConfig config = new DebeziumConfig();
+        config.setName("test-r404-typed-reentry");
+        config.setConnectorType("mysql");
+        config.setDatabaseHost("localhost");
+
+        java.util.concurrent.atomic.AtomicInteger engineCreated = new java.util.concurrent.atomic.AtomicInteger();
+        DebeziumCdcSourceFunction source = new DebeziumCdcSourceFunction(config) {
+            @Override
+            protected DebeziumMessageSource createMessageSource(
+                    DebeziumConfig cfg, NopStreamOffsetBackingStore store) {
+                engineCreated.incrementAndGet();
+                return new NoEngineMessageSource(cfg);
+            }
+        };
+
+        SourceFunction.SourceContext<ChangeEvent> ctx = new SourceFunction.SourceContext<>() {
+            @Override public void collect(ChangeEvent element) {}
+            @Override public void collectWithTimestamp(ChangeEvent element, long timestamp) {}
+            @Override public void emitWatermark(long mark) {}
+            @Override public void markAsTemporarilyIdle() {}
+            @Override public long getProcessingTime() { return System.currentTimeMillis(); }
+        };
+
+        AtomicReference<Throwable> secondFailure = new AtomicReference<>();
+        Thread runner1 = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Exception e) {
+                // expected on cancel
+            }
+        });
+        runner1.start();
+        awaitUntil(() -> engineCreated.get() >= 1, "first run must create the CDC engine");
+
+        Thread runner2 = new Thread(() -> {
+            try {
+                source.run(ctx);
+            } catch (Throwable t) {
+                secondFailure.set(t);
+            }
+        });
+        runner2.start();
+        runner2.join(5000);
+        assertFalse(runner2.isAlive(), "the rejected run must terminate promptly");
+        assertTrue(secondFailure.get() instanceof StreamException,
+                "the second run() must fail typed, never silently return as fake EOS "
+                        + "(CRA 8.44 R4-04 W-04), got: " + secondFailure.get());
+        assertTrue(String.valueOf(secondFailure.get()).contains("re-entered"),
+                "the typed rejection must name the re-entry condition, got: "
+                        + secondFailure.get());
+        // runEntered ownership leg: the in-flight run is untouched by the rejection
+        assertTrue(runner1.isAlive(),
+                "the first run must keep owning the guard (the rejection touched nothing)");
+        assertTrue(engineCreated.get() == 1,
+                "the rejected run must not create a second engine");
+
+        source.cancel();
+        runner1.join(5000);
+        assertFalse(runner1.isAlive());
     }
 
     private static void awaitUntil(java.util.function.BooleanSupplier condition,

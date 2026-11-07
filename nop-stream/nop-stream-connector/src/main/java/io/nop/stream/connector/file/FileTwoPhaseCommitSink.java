@@ -775,6 +775,108 @@ public class FileTwoPhaseCommitSink<IN> extends TwoPhaseCommitSinkFunction<IN>
     @Override
     public void beginTransaction() throws Exception {
         // No per-epoch transaction resource to initialize (NIO file handles are per-call).
+        // CRA 8.44 R4-04 W-08: orphan temps sweep here — begin is the recovery chain's
+        // LAST step, so the restore whitelist is settled and fresh runs are covered too;
+        // between this point and the first saveState there is no concurrent writer for
+        // this subtask's suffix.
+        sweepOrphanTempFiles();
+    }
+
+    /**
+     * CRA 8.44 R4-04 W-08 (C6-007; adjudication D.1): deletes this subtask's orphaned
+     * epoch temp files — temps whose checkpoint never went durable and whose in-memory
+     * {@code pendingCommits} registration died with the process. Only files matching
+     * THIS subtask's temp-name shape are scanned ({@code .epoch-{id}{suffix}.tmp} plus
+     * the {@code manifest.properties{suffix}.tmp} ATOMIC_MOVE-failure residue, face②),
+     * so parallel subtasks on the same directory never touch each other's in-flight
+     * temps (AR-14 isolation, no lock protocol involved).
+     *
+     * <p>A temp is deleted iff it is NOT whitelisted by the manifest (the epoch already
+     * committed/durable — conservative skip) and NOT referenced by any
+     * {@code pendingCommits} entry (the commit-failure-retained temps the next commit
+     * still subsumes). The manifest is READ-ONLY here (no lock protocol, no write
+     * path); retention-window constants and the prune chain are untouched. Any sweep
+     * failure is WARN-only: the recovery chain it serves must never be blocked, and a
+     * kept file is simply retried by the next run's sweep (fail-safe: conservative
+     * keep).
+     */
+    private void sweepOrphanTempFiles() {
+        java.util.regex.Pattern epochPattern = subtaskIndex > 0
+                ? java.util.regex.Pattern.compile("^\\.epoch-(\\d+)\\.s" + subtaskIndex + "\\.tmp$")
+                : java.util.regex.Pattern.compile("^\\.epoch-(\\d+)\\.tmp$");
+        Properties manifest;
+        try {
+            manifest = loadManifest();
+        } catch (IOException | RuntimeException e) {
+            // corrupt content throws IllegalArgumentException from Properties.load —
+            // same fail-safe as an IO failure: whitelist untrustworthy → keep everything
+            LOG.warn("File 2PC orphan sweep skipped: the manifest of {} cannot be read "
+                    + "(whitelist untrustworthy — nothing deleted, the next run retries)",
+                    outputDirPath, e);
+            return;
+        }
+        java.util.Set<String> pendingTempPaths = new java.util.HashSet<>();
+        for (Object raw : getPendingCommits().values()) {
+            if (raw instanceof FilePendingCommit pending) {
+                pendingTempPaths.add(Paths.get(pending.getTempPath())
+                        .toAbsolutePath().normalize().toString());
+            }
+        }
+        String manifestTempName = MANIFEST_FILE + subtaskSuffix(subtaskIndex) + TEMP_SUFFIX;
+        int removed = 0;
+        try (java.nio.file.DirectoryStream<Path> listing =
+                     Files.newDirectoryStream(outputDirPath)) {
+            for (Path child : listing) {
+                if (!Files.isRegularFile(child)) {
+                    continue;
+                }
+                String name = child.getFileName().toString();
+                if (name.equals(manifestTempName)) {
+                    // face②: a manifest temp never enters manifest content, and at the
+                    // begin hook this subtask has no commit in flight — pure residue
+                    removed += deleteOrphanTemp(child, "manifest temp");
+                    continue;
+                }
+                java.util.regex.Matcher matcher = epochPattern.matcher(name);
+                if (!matcher.matches()) {
+                    continue;
+                }
+                long orphanEpoch = Long.parseLong(matcher.group(1));
+                // manifest whitelist (main): the epoch is durable/committed — keep
+                if (manifest.containsKey(orphanEpoch + subtaskSuffix(subtaskIndex))) {
+                    continue;
+                }
+                // pending whitelist: a commit-failure-retained temp the next commit
+                // still subsumes — keep (MJ-3)
+                if (pendingTempPaths.contains(
+                        child.toAbsolutePath().normalize().toString())) {
+                    continue;
+                }
+                removed += deleteOrphanTemp(child, "epoch temp");
+            }
+        } catch (IOException e) {
+            LOG.warn("File 2PC orphan sweep failed listing {} (fail-safe: nothing further "
+                    + "deleted; the next run retries)", outputDirPath, e);
+        }
+        if (removed > 0) {
+            LOG.info("File 2PC orphan sweep removed {} orphaned temp file(s) for subtask {}",
+                    removed, subtaskIndex);
+        }
+    }
+
+    /** Deletes one swept candidate; a failed delete is WARN-visible, never fatal. */
+    private static int deleteOrphanTemp(Path child, String kind) {
+        try {
+            if (Files.deleteIfExists(child)) {
+                LOG.warn("File 2PC orphan sweep removed orphaned {} {}",
+                        kind, child.getFileName());
+                return 1;
+            }
+        } catch (IOException e) {
+            LOG.warn("File 2PC orphan sweep failed to delete {} (kept; the next run "
+                    + "retries)", child, e);
+        }
+        return 0;
     }
 
     /**

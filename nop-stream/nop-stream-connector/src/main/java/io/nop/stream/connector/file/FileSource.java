@@ -24,6 +24,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_ARG_NAME;
 import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
@@ -404,7 +405,13 @@ public final class FileSource implements Source<String, FileSplit, FileSplitEnum
         List<Object> records = new ArrayList<>();
         List<Path> files;
         try {
-            files = Files.walk(dir).filter(Files::isRegularFile).collect(Collectors.toList());
+            // CRA 8.44 R4-04 W-09 (C6-011; adjudication C.4): the walk Stream is
+            // TWR-owned — sample is ops-callable in a failure loop, and a mid-walk
+            // failure (unreadable subdir) leaked one directory fd per call on the
+            // bare shape (no finalizer/Cleaner backs UnixDirectoryStream).
+            try (Stream<Path> walkStream = Files.walk(dir)) {
+                files = walkStream.filter(Files::isRegularFile).collect(Collectors.toList());
+            }
             for (Path file : files) {
                 if (records.size() >= limit) {
                     break;

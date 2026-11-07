@@ -8,6 +8,7 @@
 package io.nop.stream.rocksdb;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -208,6 +209,23 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     private TtlTimeProvider ttlClock = SystemTtlTimeProvider.INSTANCE;
 
     /**
+     * CRA 8.44 R4-04 W-11 (C7-010; adjudication D.4): default nanotime distance between
+     * two automatic sweeps — the Memory backend's default (60s), transplanted verbatim.
+     * {@code <= 0} disables the automatic sweep; the explicit
+     * {@link #cleanupExpiredEntries()} entry point is unaffected.
+     */
+    public static final long DEFAULT_TTL_SWEEP_INTERVAL_MILLIS = 60_000L;
+
+    /** Minimum distance (nanotime) between two automatic sweeps; ≤0 disables them. */
+    private long ttlSweepIntervalMillis = DEFAULT_TTL_SWEEP_INTERVAL_MILLIS;
+
+    /** Last automatic-sweep nanotime (0 = never swept). Single-threaded mailbox model. */
+    private transient long lastTtlSweepNanos;
+
+    /** Set once any TTL config binds successfully — the gate's cheap first check. */
+    private transient boolean anyTtlBound;
+
+    /**
      * Target key-group range for partial (per-subtask) restore on the
      * full-JSON snapshot path. When non-null, {@link RocksDBSnapshotSerDe#restoreState}
      * only writes entries whose key-group id falls inside this range — the
@@ -299,8 +317,19 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         try {
             db = RocksDB.open(dbOptions, dbPath, cfDescriptors, handles);
         } catch (RocksDBException e) {
-            throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+            // CRA 8.44 R4-04 W-06 (C6-005; adjudication C.3): the failed open leaves
+            // EVERY allocated native handle orphaned (options, the memory-control preset
+            // trio, the half-filled handles list). Close them in the close() order
+            // (handles → WBM → cache → bloom → cfOptions → dbOptions) before rethrowing;
+            // cleanup failures ride the typed exception as suppressed —附加不替换, the
+            // primary failure keeps the exact same code/message/param as before.
+            List<RuntimeException> cleanupErrors = closeResourcesAfterFailedOpen(handles);
+            StreamException typed = (StreamException) new StreamException(ERR_STREAM_STATE_ERROR, e)
                     .param(ARG_DETAIL, "Failed to open RocksDB at " + dbPath);
+            for (RuntimeException cleanupError : cleanupErrors) {
+                typed.addSuppressed(cleanupError);
+            }
+            throw typed;
         }
 
         defaultCF = handles.get(0);
@@ -322,6 +351,77 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
 
     /** Retained strongly for gauge lifetime (weak-gauge semantics). */
     private io.nop.stream.rocksdb.metrics.RocksDBMetricsRecorder metricsRecorder;
+
+    /**
+     * CRA 8.44 R4-04 W-06 (C6-005; adjudication C.3): release every native handle the
+     * failed open already allocated — the half-filled handles list first (they hang off
+     * nothing yet), then the memory-control preset trio in the close() order
+     * (WBM → cache it charges → bloom), then the option objects. Each close's
+     * RuntimeException is collected so one failure never breaks the sequence; every
+     * closed field is nulled with the close() idempotence discipline. Package-private
+     * on purpose: the red⑥ white-box pin calls it directly (2510-⑪ in-package seam
+     * convention, no {@code *ForTest} double-hop).
+     *
+     * @return the collected cleanup failures (empty on a clean run) — the caller
+     *         attaches them as suppressed to the typed open failure (attach, never
+     *         replace)
+     */
+    List<RuntimeException> closeResourcesAfterFailedOpen(List<ColumnFamilyHandle> handles) {
+        List<RuntimeException> errors = new ArrayList<>();
+        if (handles != null) {
+            for (ColumnFamilyHandle handle : handles) {
+                if (handle != null) {
+                    try {
+                        handle.close();
+                    } catch (RuntimeException e) {
+                        errors.add(e);
+                    }
+                }
+            }
+            handles.clear();
+        }
+        if (writeBufferManager != null) {
+            try {
+                writeBufferManager.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            writeBufferManager = null;
+        }
+        if (blockCache != null) {
+            try {
+                blockCache.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            blockCache = null;
+        }
+        if (bloomFilter != null) {
+            try {
+                bloomFilter.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            bloomFilter = null;
+        }
+        if (cfOptions != null) {
+            try {
+                cfOptions.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            cfOptions = null;
+        }
+        if (dbOptions != null) {
+            try {
+                dbOptions.close();
+            } catch (RuntimeException e) {
+                errors.add(e);
+            }
+            dbOptions = null;
+        }
+        return errors;
+    }
 
     /**
      * Build and attach the plan 369 memory-control preset: a shared LRU block
@@ -483,6 +583,45 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
     @Override
     public void setCurrentKey(K key) {
         this.currentKey = key;
+        // CRA 8.44 R4-04 W-11 (C7-010; adjudication D.4): periodic sweep trigger outside
+        // the checkpoint path — without this hook the ONLY automatic sweep point was
+        // snapshotState(), so a checkpoint-closed or long-interval job never reclaimed
+        // keys written once and never revisited (the primary TTL use case). Cost for a
+        // TTL-free job or between sweeps = one boolean + one long comparison (Memory
+        // backend isomorph; core file untouched). Expiry decisions keep using ttlClock.
+        maybeSweepExpiredEntries();
+    }
+
+    /**
+     * Time-gated automatic sweep (Memory form verbatim): at most once per
+     * {@link #ttlSweepIntervalMillis} of nanotime, skipped entirely while no TTL config
+     * is bound or the hook is disabled ({@code ttlSweepIntervalMillis <= 0}).
+     */
+    private void maybeSweepExpiredEntries() {
+        if (!anyTtlBound || ttlSweepIntervalMillis <= 0) {
+            return;
+        }
+        long now = System.nanoTime();
+        if (lastTtlSweepNanos != 0
+                && now - lastTtlSweepNanos < ttlSweepIntervalMillis * 1_000_000L) {
+            return;
+        }
+        lastTtlSweepNanos = now;
+        cleanupExpiredEntries();
+    }
+
+    /**
+     * CRA 8.44 R4-04 W-11: minimum {@link System#nanoTime()} distance between two
+     * automatic sweeps ({@link #setCurrentKey} trigger) — the Memory backend's knob
+     * transplanted verbatim. {@code <= 0} disables the automatic sweep; the explicit
+     * {@link #cleanupExpiredEntries()} entry point is unaffected.
+     */
+    public void setTtlSweepIntervalMillis(long ttlSweepIntervalMillis) {
+        this.ttlSweepIntervalMillis = ttlSweepIntervalMillis;
+    }
+
+    public long getTtlSweepIntervalMillis() {
+        return ttlSweepIntervalMillis;
     }
 
     @Override
@@ -828,6 +967,9 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
             return;
         }
         aware.bindTtl(new TtlContext<>(cfg, ttlClock));
+        // W-11 (CRA 8.44 R4-04; adjudication D.4, MN-7 anchor): after the successful
+        // bind, open the sweep gate — one boolean compare on the hot path afterwards.
+        this.anyTtlBound = true;
     }
 
     /**
@@ -1143,6 +1285,13 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         }
         Path baseDir = Paths.get(checkpointBaseDir != null ? checkpointBaseDir : (dbPath + "-restore"));
         Files.createDirectories(baseDir);
+        // CRA 8.44 R4-04 W-10 (C7-003; adjudication D.3): sweep stale restore dirs left
+        // by OLDER failed restores before the new reconstruction starts. The id window
+        // is STRICTLY BELOW the current restore id — the same id is owned by
+        // restoreRangeInto's own pre-clean, and ids >= current are conservatively kept
+        // (cross-deployment rollback; they self-heal once the restore id moves past
+        // them). Sweep failures are WARN-only (fail-safe: conservative, nothing deleted).
+        sweepStaleRestoreRangeDirs(baseDir, result.getCheckpointId());
         int copied = RocksDBIncrementalRestore.restoreRangeInto(
                 this, result, segmentStore, targetKeyGroupRange, baseDir);
         // CRA 8.43 R4-03 W-09: seed the SST hash-reuse index from the restored
@@ -1150,6 +1299,57 @@ public class RocksDBKeyedStateBackend<K> implements IInternalStateBackend<K> {
         // previous hashes for unchanged files (new-only policy).
         ensureIncrementalStrategy().seedIndexFromHandles(result.getSstHandles());
         LOG.debug("Incremental range restore copied {} entries into RocksDB at {}", copied, dbPath);
+    }
+
+    /**
+     * CRA 8.44 R4-04 W-10 (C7-003): deletes every {@code rocksdb-restore-range-{id}}
+     * directory under {@code baseDir} whose id is strictly below {@code currentRestoreId}
+     * (each one is a full-size partial reconstruction left by an older failed restore —
+     * nothing else scans this name pattern). WARN-only on failure: the sweep must never
+     * block the recovery chain it serves.
+     */
+    private static void sweepStaleRestoreRangeDirs(Path baseDir, long currentRestoreId) {
+        try (var children = Files.list(baseDir)) {
+            for (Path child : (Iterable<Path>) children::iterator) {
+                if (!Files.isDirectory(child)) {
+                    continue;
+                }
+                String name = child.getFileName().toString();
+                if (!name.startsWith("rocksdb-restore-range-")) {
+                    continue;
+                }
+                String digits = name.substring("rocksdb-restore-range-".length());
+                long staleId;
+                try {
+                    staleId = Long.parseLong(digits);
+                } catch (NumberFormatException e) {
+                    continue;
+                }
+                if (staleId < currentRestoreId) {
+                    LOG.info("Sweeping stale incremental-restore dir {} (id {} < restore id {})",
+                            child, staleId, currentRestoreId);
+                    deleteRecursivelyQuietly(child);
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to sweep stale restore-range dirs under {} (fail-safe: nothing "
+                    + "deleted; the next restore retries the sweep)", baseDir, e);
+        }
+    }
+
+    private static void deleteRecursivelyQuietly(Path dir) {
+        try (var walk = Files.walk(dir)) {
+            walk.sorted(java.util.Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException e) {
+                            LOG.warn("Failed to delete stale restore file {}", p, e);
+                        }
+                    });
+        } catch (IOException e) {
+            LOG.warn("Failed to walk stale restore dir {}", dir, e);
+        }
     }
 
     /**

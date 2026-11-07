@@ -228,17 +228,37 @@ public class MessageSourceReader<T> implements SourceReader<T, MessageTopicSplit
     public void close() throws Exception {
         running = false;
         embeddedFunction.cancel();
+        // CRA 8.44 R4-04 W-05 (C3-012; adjudication C.1, three segments per MJ-2):
+        // 1) bounded detection — join the runner with the unchanged 5s budget;
         Thread thread = runnerThread;
+        boolean joinTimedOut = false;
         if (thread != null) {
             thread.join(CLOSE_JOIN_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
+            joinTimedOut = thread.isAlive();
+        }
+        // 2) single-shot interrupt on the RUNNER (best-effort: it breaks the runner's
+        // own interruptible waits; the production dispatcher/sender threads blocked in
+        // queue.put are released by the clear below — see the adjudication's
+        // attribution re-anchoring). This makes the collect() InterruptedException
+        // branch reachable again; that branch's body is untouched.
+        if (joinTimedOut) {
+            thread.interrupt();
+        }
+        // 3) clear BEFORE/INDEPENDENT of the typed failure (R03 projection: the
+        // side-effect-free action can never be skipped by the throw) — the queue is
+        // abandoned after close, and its parked records sit beyond the last-emitted
+        // boundary, so dropping them is the declared at-least-once replay semantics.
+        try {
+            if (queue != null) {
+                queue.clear();
+            }
+        } finally {
+            if (joinTimedOut) {
+                // unchanged timeout signal: same code, same message, same shape
                 throw (StreamException) new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED)
                         .param(ARG_DETAIL, "message source runner did not terminate within "
                                 + CLOSE_JOIN_TIMEOUT_MILLIS + "ms of close()");
             }
-        }
-        if (queue != null) {
-            queue.clear();
         }
         LOG.info("MessageSourceReader closed (subtask={})",
                 context == null ? "?" : context.getSubtaskIndex());

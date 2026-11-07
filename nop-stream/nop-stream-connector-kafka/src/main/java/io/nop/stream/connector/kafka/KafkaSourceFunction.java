@@ -22,6 +22,7 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.PartitionInfo;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.WakeupException;
 import org.apache.kafka.common.serialization.ByteArrayDeserializer;
 import org.apache.kafka.common.serialization.StringDeserializer;
 
@@ -110,6 +111,17 @@ public class KafkaSourceFunction<T> implements SubtaskShardedSourceFunction<T>,
      */
     private int totalParallelism = 1;
     private final int subtaskIndex;
+
+    /**
+     * CRA 8.44 R4-04 W-01 (C3-005; adjudication A.1): the consumer held by the current
+     * {@code run()}, published after creation and cleared in the run's finally. Volatile:
+     * single writer (the run thread) + cross-thread reader ({@link #cancel()}) — a stale
+     * or null read is harmless by design (wakeup on a closed consumer is a no-op; a null
+     * read means the armed self-protection in run() covers the early-cancel window).
+     * KafkaConsumer does not respond to thread interruption, so wakeup() is the ONLY
+     * cancellation primitive that can break a blocking {@code partitionsFor}/{@code poll}.
+     */
+    private volatile KafkaConsumer<String, byte[]> consumer;
 
     /** Partition -> next offset to consume; String keys survive the JSON checkpoint round-trip. */
     private volatile TreeMap<Integer, Long> restoredOffsets;
@@ -221,6 +233,17 @@ public class KafkaSourceFunction<T> implements SubtaskShardedSourceFunction<T>,
         return shard;
     }
 
+    /**
+     * CRA 8.44 R4-04 W-01 (C3-005; adjudication A.1 decision 5): consumer creation seam —
+     * protected so the red① probe subclass can inject a no-network consumer (same family
+     * as {@code DebeziumCdcSourceFunction.createMessageSource} and the existing
+     * package-private {@code *ForTest} hooks). The default delegates to the unchanged
+     * private {@link #newConsumer()} factory (auto-commit typed guard etc. untouched).
+     */
+    protected KafkaConsumer<String, byte[]> createConsumer() {
+        return newConsumer();
+    }
+
     private KafkaConsumer<String, byte[]> newConsumer() {
         Map<String, Object> props = new LinkedHashMap<>();
         props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, bootstrapServers);
@@ -243,7 +266,19 @@ public class KafkaSourceFunction<T> implements SubtaskShardedSourceFunction<T>,
     @Override
     public void run(SourceContext<T> ctx) throws Exception {
         this.running = true;
-        try (KafkaConsumer<String, byte[]> consumer = newConsumer()) {
+        // W-01 (CRA 8.44 R4-04; adjudication A.1 decision 1): two-step resource binding —
+        // the consumer is published on the field BEFORE the try-with-resources takes
+        // ownership, so cancel() can reach it; the resource is still TWR-closed.
+        KafkaConsumer<String, byte[]> consumer = createConsumer();
+        this.consumer = consumer;
+        try (consumer) {
+            if (!running) {
+                // W-01 armed self-protection (adjudication A.1 decision 3): a cancel that
+                // landed while the consumer was being created had no target for its
+                // wakeup — arm the first blocking call instead of blocking up to
+                // max.block.ms.
+                consumer.wakeup();
+            }
             List<PartitionInfo> partitions = consumer.partitionsFor(topic);
             if (partitions == null || partitions.isEmpty()) {
                 throw new StreamException(ERR_STREAM_STATE_ERROR)
@@ -290,6 +325,20 @@ public class KafkaSourceFunction<T> implements SubtaskShardedSourceFunction<T>,
                     return;
                 }
             }
+        } catch (WakeupException e) {
+            if (running) {
+                // W-01 (adjudication A.1 decision 4): an unexpected wakeup while the
+                // source is still running surfaces typed — never silently swallowed.
+                throw new StreamException(ERR_STREAM_STATE_ERROR)
+                        .param(ARG_DETAIL, "unexpected Kafka consumer wakeup while the source "
+                                + "is still running (no cancel in flight)");
+            }
+            // cancel-initiated wakeup: graceful stop (cancellation = stop, not failure)
+        } finally {
+            // the consumer is closed by the try-with-resources; drop the published
+            // reference so a late cancel() wakeup hits a null (harmless no-op) instead
+            // of a closed consumer
+            this.consumer = null;
         }
     }
 
@@ -327,6 +376,16 @@ public class KafkaSourceFunction<T> implements SubtaskShardedSourceFunction<T>,
     @Override
     public void cancel() {
         running = false;
+        // W-01 (CRA 8.44 R4-04; adjudication A.1 decision 2): single-shot wakeup on the
+        // held consumer — KafkaConsumer ignores thread interruption, so wakeup() is the
+        // only primitive that breaks a blocking partitionsFor/poll immediately (bounded
+        // by wakeup propagation) instead of max.block.ms (default 60s, user-enlargeable).
+        // A null/stale read is benign: the armed self-protection in run() covers the
+        // early-cancel window, and wakeup on a closed consumer is a no-op.
+        KafkaConsumer<String, byte[]> held = this.consumer;
+        if (held != null) {
+            held.wakeup();
+        }
     }
 
     @Override

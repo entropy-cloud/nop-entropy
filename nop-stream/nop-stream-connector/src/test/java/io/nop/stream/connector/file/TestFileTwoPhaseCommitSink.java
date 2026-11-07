@@ -312,12 +312,17 @@ public class TestFileTwoPhaseCommitSink {
         // Recovery: a fresh sink instance restores pendingCommits and re-commits durable epoch 2
         FileTwoPhaseCommitSink<String> recovered =
                 new FileTwoPhaseCommitSink<>(outputDir.toString(), StandardCharsets.UTF_8);
-        recovered.beginTransaction();
+        // CRA 8.44 R4-04 W-08 drive-order adaptation (E-2537-4): beginTransaction runs
+        // at the recovery chain's LAST step (setPendingCommits → restoreFromEpoch →
+        // beginTransaction, base-class order) — the pre-fix placement before the
+        // whitelist was populated is an order the real chain never produces; every
+        // assertion below is byte-identical.
         // R6 plan 2325 (closure audit M1): restore through the HONEST entry so the
         // provenance guard marks epoch 2 recover-safe (a bare put would make a
         // future collision look like a this-run fresh-run collision).
         recovered.setPendingCommits(java.util.Map.of(2L, epoch2Pending));
         recovered.restoreFromEpoch(2L, null);
+        recovered.beginTransaction();
 
         // Assertions: no dupes, no loss
         // Epoch 1 final file: 3 lines (committed once, not re-committed by restore since ledger/manifest guards)

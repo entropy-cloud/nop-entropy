@@ -170,15 +170,33 @@ public final class RocksDBIncrementalRestore {
                                        KeyGroupRange targetRange,
                                        Path tempDir) throws IOException, RocksDBException {
         Path reconstructed = tempDir.resolve("rocksdb-restore-range-" + result.getCheckpointId());
-        deleteRecursively(reconstructed);
         Path nonSstDir = Path.of(result.getNonSstDir());
-        reconstructRocksdbDir(segmentStore, nonSstDir, reconstructed);
 
         // The reconstructed SST files were produced by the Stage 34 v2 encoder
         // (key-group id as big-endian sortable prefix), so the range scan is safe.
         int copied;
+        // CRA 8.44 R4-04 W-07 (C6-006; adjudication C.2): the read-only source DB is NO
+        // LONGER closed by try-with-resources — the TWR shape auto-closed src BEFORE the
+        // trailing finally disposed the handles, violating the rocksdbjni contract
+        // ("close every ColumnFamilyHandle before the DB") with a use-after-free window.
+        // src now closes MANUALLY in the single finally below: phase 1 = all handles,
+        // phase 2 = src (only if the open succeeded). An open failure releases its
+        // half-built handles through phase 1 while src stays null (structurally closing
+        // the C6-005 sibling face audit-side). Outer options TWR is untouched — the
+        // effective order is handles → src → options.
+        RocksDB src = null;
+        List<ColumnFamilyHandle> handles = new ArrayList<>();
+        Throwable bodyFailure = null;
         try (ColumnFamilyOptions cfOpts = new ColumnFamilyOptions();
              DBOptions dbOptions = new DBOptions().setCreateIfMissing(false)) {
+            // CRA 8.44 R4-04 W-10 (C7-003; adjudication D.3, same-diff group with W-07):
+            // the reconstruct block moved INSIDE the guarded boundary — a mid-reconstruct
+            // failure is now covered by the same finally deleteRecursively that used to
+            // guard only the post-open phase (the pre-fix shape left a full-size partial
+            // rocksdb-restore-range-{id} dir behind on every failure).
+            deleteRecursively(reconstructed);
+            reconstructRocksdbDir(segmentStore, nonSstDir, reconstructed);
+
             List<byte[]> cfNames;
             try (Options listOpts = new Options(dbOptions, cfOpts)) {
                 cfNames = RocksDB.listColumnFamilies(listOpts, reconstructed.toAbsolutePath().toString());
@@ -205,31 +223,65 @@ public final class RocksDBIncrementalRestore {
             for (byte[] cfName : cfNames) {
                 descriptors.add(new ColumnFamilyDescriptor(cfName, cfOpts));
             }
-            List<ColumnFamilyHandle> handles = new ArrayList<>();
-            try (RocksDB src = openReadOnlyTyped(dbOptions, reconstructed, descriptors, handles)) {
-                copied = 0;
-                for (ColumnFamilyHandle srcCf : handles) {
-                    String cfName = cfNameOf(srcCf);
-                    // Keyed state lives only in state-name column families; the RocksDB
-                    // default CF holds no user data and re-creating it on the live backend
-                    // conflicts with the built-in default CF, so skip it.
-                    if (isDefaultCf(cfName)) {
-                        continue;
-                    }
-                    try {
-                        copied += backend.copyColumnFamilyRange(src, srcCf, cfName, targetRange);
-                    } catch (RocksDBException e) {
-                        throw new StreamException(ERR_STREAM_STATE_ERROR, e)
-                                .param(ARG_DETAIL, "Failed to copy range entry during incremental restore");
-                    }
+            src = openReadOnlyTyped(dbOptions, reconstructed, descriptors, handles);
+            copied = 0;
+            for (ColumnFamilyHandle srcCf : handles) {
+                String cfName = cfNameOf(srcCf);
+                // Keyed state lives only in state-name column families; the RocksDB
+                // default CF holds no user data and re-creating it on the live backend
+                // conflicts with the built-in default CF, so skip it.
+                if (isDefaultCf(cfName)) {
+                    continue;
                 }
-            } finally {
-                for (ColumnFamilyHandle h : handles) {
-                    if (h != null) h.close();
+                try {
+                    copied += backend.copyColumnFamilyRange(src, srcCf, cfName, targetRange);
+                } catch (RocksDBException e) {
+                    throw new StreamException(ERR_STREAM_STATE_ERROR, e)
+                            .param(ARG_DETAIL, "Failed to copy range entry during incremental restore");
                 }
             }
+        } catch (IOException | RuntimeException e) {
+            bodyFailure = e;
+            throw e;
         } finally {
-            deleteRecursively(reconstructed);
+            List<RuntimeException> closeFailures = new ArrayList<>();
+            // W-07 phase 1 (C6-006): every column-family handle closes FIRST — any single
+            // close failure is collected and never breaks the contract order.
+            for (ColumnFamilyHandle h : handles) {
+                if (h != null) {
+                    try {
+                        h.close();
+                    } catch (RuntimeException e) {
+                        closeFailures.add(e);
+                    }
+                }
+            }
+            // W-07 phase 2: the DB closes only after every handle, and only when the
+            // open succeeded.
+            if (src != null) {
+                try {
+                    src.close();
+                } catch (RuntimeException e) {
+                    closeFailures.add(e);
+                }
+            }
+            try {
+                deleteRecursively(reconstructed);
+            } catch (IOException cleanupIo) {
+                LOG.warn("Failed to delete the reconstructed restore dir {}", reconstructed, cleanupIo);
+            }
+            if (bodyFailure != null) {
+                // the body failure stays primary; close failures ride as suppressed
+                for (RuntimeException closeFailure : closeFailures) {
+                    bodyFailure.addSuppressed(closeFailure);
+                }
+            } else if (!closeFailures.isEmpty()) {
+                RuntimeException first = closeFailures.get(0);
+                for (int i = 1; i < closeFailures.size(); i++) {
+                    first.addSuppressed(closeFailures.get(i));
+                }
+                throw first;
+            }
         }
         return copied;
     }

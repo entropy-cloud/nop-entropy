@@ -355,10 +355,31 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
         if (embeddedFunction != null) {
             embeddedFunction.cancel();
         }
+        // CRA 8.44 R4-04 W-05 (C3-012; adjudication C.1, three segments per MJ-2):
+        // 1) bounded detection — join the runner with the unchanged 5s budget;
         Thread thread = runnerThread;
+        boolean joinTimedOut = false;
         if (thread != null) {
             thread.join(CLOSE_JOIN_TIMEOUT_MILLIS);
-            if (thread.isAlive()) {
+            joinTimedOut = thread.isAlive();
+        }
+        // 2) single-shot interrupt on the RUNNER (best-effort; the engine dispatch
+        // thread blocked in queue.put is released by the clear below — the
+        // adjudication's attribution re-anchoring). This makes the collect()
+        // InterruptedException branch reachable again; its body is untouched.
+        if (joinTimedOut) {
+            thread.interrupt();
+        }
+        // 3) clear BEFORE/INDEPENDENT of the typed failure — the queue is abandoned
+        // after close and its parked events sit beyond the last-emitted boundary
+        // (at-least-once replay covers the drop).
+        try {
+            if (queue != null) {
+                queue.clear();
+            }
+        } finally {
+            if (joinTimedOut) {
+                // unchanged timeout signal: same code, same message, same shape
                 throw (StreamException) new StreamException(ERR_STREAM_JOB_EXECUTE_FAILED)
                         .param(ARG_DETAIL, "debezium cdc runner did not terminate within "
                                 + CLOSE_JOIN_TIMEOUT_MILLIS + "ms of close()");
@@ -368,11 +389,10 @@ public class DebeziumCdcSourceReader implements SourceReader<ChangeEvent, Debezi
             // C3-014 ② (plan 2503 Phase 3): the close contract requires the embedded engine
             // TERMINATED, not merely asked to stop — the pre-fix「join 成功 ≠ 引擎终止」window
             // (runner exited via latch while the ghost engine survived) is closed with a
-            // typed failure on ghost risk.
+            // typed failure on ghost risk. K2 boundary: this verify stays on the
+            // join-SUCCESS path — the timeout path already typed out above (a timed-out
+            // runner means the verify would ghost-fail anyway; no signal is lost).
             embeddedFunction.verifyEmbeddedEngineTerminated("reader-close", true);
-        }
-        if (queue != null) {
-            queue.clear();
         }
     }
 
