@@ -326,7 +326,7 @@ public interface IJobInvoker {
 }
 ```
 
-`IJobExecutionContext` 提供：`getJobName()`、`getJobParams()`、`getInstanceId()`、`getExecCount()`（从 1 开始）、`getScheduledExecTime()`、`getExecFailCount()`、`getAttribute(name)`/`setAttribute(name, val)` 等。
+`IJobExecutionContext` 提供：`getJobName()`、`getJobParams()`、`getInstanceId()`、`getExecCount()`（从 1 开始）、`getScheduledExecTime()`、`getExecFailCount()`、`getAttribute(name)`/`setAttribute(name, val)` 等。**jobParams 快照为浅拷贝——嵌套可变 value 的共享为已声明边界**（CRA 8.46 R4-06 W-03：顶层 Map 为构造时防御拷贝、跨触发隔离；嵌套 value 与 spec 共享引用，invoker 变异内层 value 可穿透回 spec——与分布式路径对照物同为浅拷贝，声明不支持用法）。
 
 > **异步性契约**（plan 2513 裁定②）：`invokeAsync` 应尽快返回 `CompletionStage`（真异步）；内置 `BeanMethodJobInvoker` 对非 CompletionStage 返回值在调用线程同步执行完毕后包 `completedFuture`——这是合法实现，但调度器已把 invoker 调用放在 per-job 监视器**之外**（见 1.4 节），同步执行只影响调度线程占用，不再影响管理 API/停机响应性。**invokeAsync 的实现要么真异步（快速返回未完成 CompletionStage）要么方法体非阻塞——同步阻塞方法体违反本地模式触发及时性契约**（CRA 8.46 R4-06 W-09）：自定义 invoker 的长耗时方法体不会阻塞管理 API，但会占住调度线程拖延全部作业触发。
 

@@ -138,8 +138,13 @@ public class TestLocalJobScheduler {
             // onceTask 完成后即从注册表移除（fireCount 随之不可观测），以注册表移除 + 实际执行次数断言
             assertTrue(sched1.awaitState("test-once-scheduled", null, 5, TimeUnit.SECONDS),
                     "onceTask job must be removed from the registry after its single fire");
-            // 再等 3 个调度周期以上，确认不再触发
-            Thread.sleep(300);
+            // 再等 3 个调度周期以上，确认不再触发（CRA 8.46 R4-06 C10-009 触达：
+            // 固定 sleep → deadline 轮询——窗口内无新增触发即通过，断言零改写）
+            long noMoreFiresDeadline = System.currentTimeMillis() + 300;
+            while (System.currentTimeMillis() < noMoreFiresDeadline
+                    && scheduled.invokeCount.get() == 1) {
+                Thread.sleep(10);
+            }
             assertEquals(1, scheduled.invokeCount.get(), "scheduled once job must fire exactly once");
         } finally {
             sched1.deactivate();
@@ -160,7 +165,11 @@ public class TestLocalJobScheduler {
             assertTrue(sched2.awaitFireCount("test-once-immediate", 1, 5, TimeUnit.SECONDS));
             assertTrue(sched2.awaitState("test-once-immediate", JobState.COMPLETED, 5, TimeUnit.SECONDS),
                     "non-onceTask once job must end in COMPLETED (not WAITING for another fire)");
-            Thread.sleep(300);
+            long noSecondFireDeadline = System.currentTimeMillis() + 300;
+            while (System.currentTimeMillis() < noSecondFireDeadline
+                    && immediate.invokeCount.get() == 1) {
+                Thread.sleep(10);
+            }
             assertEquals(1, immediate.invokeCount.get(), "immediate once job must fire exactly once");
         } finally {
             sched2.deactivate();
@@ -190,7 +199,11 @@ public class TestLocalJobScheduler {
             sched.addJob(newSpec("test-update-suspended", 10, true), true);
             assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"),
                     "update must not silently resume a suspended job");
-            Thread.sleep(200);
+            long suspendWindowDeadline = System.currentTimeMillis() + 200;
+            while (System.currentTimeMillis() < suspendWindowDeadline
+                    && invoker.invokeCount.get() == baseline) {
+                Thread.sleep(10);
+            }
             assertEquals(baseline, invoker.invokeCount.get(),
                     "no new fires while suspended (update must not reschedule)");
 
