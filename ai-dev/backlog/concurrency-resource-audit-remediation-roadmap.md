@@ -63,10 +63,10 @@
   - 实施与 closure audit 仍分离，但 closure audit 只抽验 30% 锚点 + 全量 exit criteria 核对。
 - **声明面钉通道**：仅改文档声明、注释、LOG 语义、Javadoc 的工单（如 W-09/W-10 类），随宿主 Fix 工单同 diff 落地即可，不独立立项、不单独评审；在 plan 中以工单行登记 + closure audit 抽验一句即可。
 
-### 并行执行
+### 串行执行与批次合并
 
-- 束内互不依赖（Deps 列互指为空）的工单允许并行 subagent 实施；共享文件（同一 Java 类、同一测试类）的工单必须串行，避免 diff 冲突。
-- 软依赖批次（如 8.46→8.47）在评审资源允许时可合并为一个 plan 立项，R1/R2/closure audit 的固定开销一次覆盖两批；合并须在 plan 标题与 roadmap 两行状态中互相 cross-reference。
+- **全部工单一律串行实施**，禁止并行 subagent 实施工单；束内工单按 plan 列出的顺序逐个落地。并发修复共享同一测试面与构建产物，串行是默认安全形态。
+- 软依赖批次（如 8.46→8.47）在评审资源允许时可合并为一个 plan 立项，R1/R2/closure audit 的固定开销一次覆盖两批；合并须在 plan 标题与 roadmap 两行状态中互相 cross-reference。合并仍是串行执行，只是减少仪式次数。
 
 ### 证据写作压缩
 
