@@ -124,7 +124,7 @@
 
 ## Goals
 
-- Phase 1 设计裁定文档一次裁决 10 工单修复形态（**新增裁定 A–G 按主题域分组**：裁定 A=快照冻结与 eval 根作用域域[W-01/W-05——同经 newCallScope 漏斗：MA-02 两落点缺一不闭合+C1-002 每次新建根预设（write-guard=nop-core PA 禁选）]；裁定 B=模型构建契约域[W-07——深拷贝 vs alreadyBuilt fail-fast 二选一]；裁定 C=SQL 静态缓存域[W-04/W-08——双载体包络闭合+两段式锁外 compute+同文件联动归裁定]；裁定 D=UDF resolver 生命周期域[W-09——close 解绑+替换传播语义+2512 三产物零触碰落款+E5 §3a 文案]；裁定 E=replay 引擎失败/取消/订阅域[W-02/W-03/W-10——同文件三工单联调：MA-03 零父类缝预设（failSource 缝=禁选）+C10-005 同 diff 注入用例设计+MA-04 组合 Cancellable 形态+C6-005 subscribed 门+C10-008 搭车裁定+三工单组合行为联调矩阵]；裁定 F=目录源守卫域[W-06——尝试身份守卫三形态+C10-006 反向钉零回退红线落款+2512 裁定④复位块交互论证+重叠窗口测试缝形态]；裁定 G=红①–红⑩ 驱动器总表[S-1 补：登记「run() 已返回后迟到重放失败仅 LOG 不传播」边界声明——teardown-cancel×emitter 失败交叠固有残窗]+零回退钉全列[勘误 5 签名+2512 五钉+8.41 受害侧钉+既有锚清单]+C10 关联面注记表[C10-005 同 diff 绑定/C10-006 反向钉/C10-008 搭车两半边/C10-007 已消号/既有零改写清单]）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-orchestration-replay-semantics-scope-freeze-and-registry-lifecycle-concurrency-contract.md`（Phase 1 产出物；沿 2536/2537 文件命名裁定先例；与既有 `stream-orchestration-thin-concurrency.md`[2512] 命名序列衔接；**分组如调整以设计文档「工单→裁定映射与分组登记」节为分组权威**）。**既有裁定①–⑤（2512）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（resolver 三产物零改写红线+复位块零触碰红线+C10-006 反向钉零回退红线）。
+- Phase 1 设计裁定文档一次裁决 10 工单修复形态（**新增裁定 A–G 按主题域分组**：裁定 A=快照冻结与 eval 根作用域域[W-01/W-05——同经 newCallScope 漏斗：MA-02 两落点缺一不闭合+C1-002 每次新建根预设（write-guard=nop-core PA 禁选）]；裁定 B=模型构建契约域[W-07——深拷贝 vs alreadyBuilt fail-fast 二选一]；裁定 C=SQL 静态缓存域[W-04/W-08——双载体包络闭合+两段式锁外 compute+同文件联动归裁定]；裁定 D=UDF resolver 生命周期域[W-09——close 解绑+替换传播语义+2512 三产物零触碰落款+E5 §3a 文案]；裁定 E=replay 引擎失败/取消/订阅域[W-02/W-03/W-10——同文件三工单联调：MA-03 零父类缝预设（failSource 缝=禁选）+C10-005 同 diff 注入用例设计+MA-04 组合 Cancellable 形态+C6-005 subscribed 门+C10-008 搭车裁定+三工单组合行为联调矩阵]；裁定 F=目录源守卫域[W-06——尝试身份守卫三形态+C10-006 反向钉零回退红线落款+2512 裁定④复位块交互论证+重叠窗口测试缝形态]；裁定 G=红①–红⑩ 驱动器总表[S-1 补：登记「run() 已返回后迟到重放失败仅 LOG 不传播」边界声明——teardown-cancel×emitter 失败交叠固有残窗]+零回退钉全列[勘误 5 签名+2512 五钉+8.41 受害侧钉+既有锚清单]+C10 关联面注记表[C10-005 同 diff 绑定/C10-006 反向钉/C10-008 搭车两半边/C10-007 已消号/既有零改写清单]）+ 独立 draft review 通过，无临场发明空间。设计文档定名 `ai-dev/design/concurrency/stream-orchestration-replay-scope-and-sql-semantics-concurrency-contract.md`（Phase 1 产出物；沿 2536/2537 文件命名裁定先例；与既有 `stream-orchestration-thin-concurrency.md`[2512] 命名序列衔接；**分组如调整以设计文档「工单→裁定映射与分组登记」节为分组权威**。**2026-11-07 Phase 1 起草登记**：文件命名按 Phase 1 起草指令调整为本行文件名 `stream-orchestration-replay-scope-and-sql-semantics-concurrency-contract.md`（「replay-scope」覆盖 W-02/W-03/W-10 replay 域与 W-05 根作用域域、「sql-semantics」覆盖 W-04/W-08/W-09 SQL 静态生命周期面）；分组按同一指令并为五组裁定 A–E，plan 预设 A–G 各内容项的承载节在设计文档映射表逐项可定位[W-01 归裁定 A 依据=同变更集绑定条款「W-01 与 W-05 同域绑定——同组实施」+工单表 W-01 行「两落点缺一不闭合（裁定 A）」指名；S-2 waiting-loser 片段按归属订正至裁定 B[W-06] 承载；分组权威条款兑现）。**既有裁定①–⑤（2512）仅引用不重建**——设计文档设「既有裁定引用核对」节逐条确认引用边界（resolver 三产物零改写红线+复位块零触碰红线+C10-006 反向钉零回退红线）。
 - 10 工单全部修复并各带 ≥1 条验收载体（红①–红⑩）；C10-005 验收前置随 W-02 同 diff 落地（E2）+C10-006 反向钉零回退实证；C10-008 两半边搭车（若裁定搭车——对齐纪律第六条预设）随 W-03/W-10 同批落地。
 - 关键工单先红后绿留证（E2）：红①②③⑤⑥⑦⑨⑩ 确定性当前即红（红⑥ 需测试缝/概率替代形态——检出力口径随裁定）；红④⑧ 结构/变异形态（诚实留痕禁伪绿——红⑧ 变异探针必留还原-红证据）；全部钉落 `_tmp/` 总册+逐 trial 日志（2536 Major-D1/2534 组 A 灭失教训——原始日志存证纪律）。
 - E5 owner doc 落账：`docs-for-ai/03-modules/nop-stream.md`「编排薄层并发契约」节扩展（W-01 快照冻结强制/W-02 失败语义/W-03 取消回调契约/W-05 根作用域纪律/W-06 守卫语义/W-10 订阅门——归 Phase 3 统一落账）+ `docs-for-ai/03-modules/nop-stream-sql.md` §3a 生命周期句（W-09 close 解绑语义）+ 缓存包络精确化（W-04/W-08）+ `docs-for-ai/03-modules/nop-stream-user-guide.md` WI11 行按实际 + `docs-for-ai/04-reference/source-anchors.md` 按实际。
@@ -152,7 +152,7 @@
 - `nop-stream/nop-stream-sql/src/main/java/io/nop/stream/sql/eval/`：`RecordColumnAccess`（W-04 载体①+W-08——同文件联动评估归裁定）+ `SqlRowAggregateOps`（W-04 载体②）+ `StreamScalarFunctionResolver`（W-09）。
 - `nop-stream/nop-stream-fraud-example/src/main/java/io/nop/stream/fraud/scenario/`：`ReplayableCdcSourceFunction`（W-02+W-03+W-10——同文件三工单 diff 分组登记禁顺带禁交叉）+ `DirectoryFileSourceFunction`（W-06——2512 产物面零触碰）。
 - 测试树：三模块 src/test（红①–红⑩ 落点+C10-005 新用例+C10-008 搭车两半边[若裁定搭车]——包位随裁定；既有钉全列零改写；gated 多 JVM 套件零触碰）。
-- 设计文档：`ai-dev/design/concurrency/stream-orchestration-replay-semantics-scope-freeze-and-registry-lifecycle-concurrency-contract.md`（新建；裁定 A–G[分组权威=其「工单→裁定映射与分组登记」节]+既有裁定引用核对节[2512 ①–⑤ 引用面+三红线落款]+测试缝与零回退钉总表，最终状态写法）。
+- 设计文档：`ai-dev/design/concurrency/stream-orchestration-replay-scope-and-sql-semantics-concurrency-contract.md`（新建；裁定 A–G[分组权威=其「工单→裁定映射与分组登记」节]+既有裁定引用核对节[2512 ①–⑤ 引用面+三红线落款]+测试缝与零回退钉总表，最终状态写法）。
 - owner doc：`docs-for-ai/03-modules/nop-stream.md` 编排薄层契约节扩展（Phase 3）+ `docs-for-ai/03-modules/nop-stream-sql.md` §3a（Phase 3）+ `docs-for-ai/03-modules/nop-stream-user-guide.md`（按实际）+ `docs-for-ai/04-reference/source-anchors.md`（按实际）。
 - roadmap 8.45 行（:187——立项注记与批末 done 回写+软依赖解除注记补登归 Phase 4）+ cra-index :396 束行收敛注+G91 行消号注（Phase 4）。
 
@@ -164,12 +164,12 @@
 
 ### Phase 1 - 快照冻结/eval 根作用域/模型构建契约/SQL 缓存包络/resolver 生命周期/replay 失败取消订阅/目录源守卫设计裁定文档 + 独立评审
 
-Status: planned
-Targets: `ai-dev/design/concurrency/stream-orchestration-replay-semantics-scope-freeze-and-registry-lifecycle-concurrency-contract.md`（新建——裁定 A–G 分组映射见其「工单→裁定映射与分组登记」节）
+Status: completed〔2026-11-07：设计文档落档（388 行，命名裁定+分组裁定登记）+ 设计评审 R1（agent_ef449f36）PASS-with-revisions 1 Major+5 Minor 全落盘放行 Phase 2〕
+Targets: `ai-dev/design/concurrency/stream-orchestration-replay-scope-and-sql-semantics-concurrency-contract.md`（新建——裁定 A–E 分组映射见其「工单→裁定映射与分组登记」节[2026-11-07 起草登记：分组并为五组，plan 预设 A–G 内容项承载节在该表可定位；分组权威条款兑现]）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
   - [ ] **「既有裁定引用核对」节**（起草期义务——软依赖 8.18 解除+同单元前批 2512 收口）：逐条确认 2512 裁定①–⑤ 引用边界（裁定① resolver 三产物零改写红线 = W-09 同文件基线/裁定④ 复位块+「复位先于循环首读」判据零触碰 = W-06 同文件基线/裁定⑤ 零回退钉清单惯例）+ 2511 fixture 契约零触碰锚 + 2503 生产契约 typed 风格对齐落款 + 2537 站点文件 `DebeziumCdcSourceFunction` 零触碰红线落款。
   - [ ] **裁定 A 快照冻结与 eval 根作用域域**（W-01/W-05）：MA-02 两落点形态（materializeSideInputs 冻结[unmodifiableMap 浅冻结 vs 深拷贝——嵌套 value 写面论证] + newCallScope(bindings) 绑定隔离[scope 内 overlay 拷贝 vs 直接绑定冻结引用——merge-adjudication :43「缺一不闭合」两落点约束落款]）+ 三失效面（写污染/UOE 写穿透/跨线程撕裂）逐一闭合映射 + C1-002 每次新建根作用域形态（newCallScope 每调用 fresh root——热路径分配对比论证[S-3 结论性落款：fresh-root 画像对齐已 tolerated 的 C9-001 登记画像[复核 :245 keyBy/join/tap 每记录 2 scope+2 map P3 在案]——当前形态 1 scope+1 map，增量 ≈+1；write-guard 禁选后三选一收敛为唯一合规范形态]；**write-guard 方案=nop-core plan-first 禁选落款**）+ 测试缝（xpl 体写快照探针/反射根作用域误用探针）。
   - [ ] **裁定 B 模型构建契约域**（W-07）：深拷贝（of() 幂等可重入——XNode 拷贝成本论证）vs alreadyBuilt fail-fast（最小 diff——消费方兼容性核对[单元内调用方全 fresh parse——审计复核证据引用]）二选一判据一次定夺 + javadoc 契约声明文案。
@@ -178,16 +178,16 @@ Targets: `ai-dev/design/concurrency/stream-orchestration-replay-semantics-scope-
   - [ ] **裁定 E replay 引擎失败/取消/订阅域**（W-02/W-03/W-10——同文件三工单联调）：MA-03 零父类缝形态（子类 override run()+volatile pendingReplayError→super.run 返回后 typed 重抛——**父类 failSource 缝=条件申报④禁选落款**；父异常 vs 重放异常优先级/suppressed 论证；InterruptedException 与正常完成路径语义保持声明）+ C10-005 同 diff 注入用例设计（REPLAY_INDEX_KEY 包级缝+NopStreamOffsetBackingStore.set 公开——`:130` cancel 不抛锚零改写红线落款）+ MA-04 修复形态（组合平台 `Cancellable` 转发[audit 预设建议] vs 最小三改+stop 对称——stop() 路径回调语义一次定夺）+ C6-005 subscribed 门 typed 形态（对齐生产 :148-152 风格 vs 登记语义）+ C10-008 搭车裁定（两半边形态+C3-007 半边维持 R-G 落款）+ **三工单组合行为联调矩阵**（emitter 生命周期×订阅门×失败通道——cancel 与失败并发/replay 失败后 subscription 状态/double-subscribe 拒绝后首订阅存活）。
   - [ ] **裁定 F 目录源守卫域**（W-06）：守卫修复形态三选一（attempt/generation 身份守卫 vs 自旋等待在跑尝试退出后仍拒绝[身份判定非时序判定] vs 锁+完成标志——「重叠窗口不假 EOS」与「并行首入落败者静默」**两契约同时满足**的构造证明成文）+ **C10-006 反向钉零回退红线落款**（`runEnteredGuardPreventsDoubleEmission` 零改写；如语义确需变更须同步修订并明示——预设保持）+ **2512 裁定④复位块交互论证**（:117-123 零触碰+复位先于循环首读判据在重排时序下的保持证明）+ 重叠窗口测试缝形态（包级「finally 复位前」钩子/子类 barrier vs cancel 后同实例重跑 ×100 概率 trip-wire 替代——检出力口径随裁定）。
   - [ ] **裁定 G 测试缝与红①–红⑩ 驱动器总表[S-1 补：登记「run() 已返回后迟到重放失败仅 LOG 不传播」边界声明——teardown-cancel×emitter 失败交叠固有残窗]+零回退钉清单**：红①–红⑩ 逐钉形态定夺（确定性标注+前置构造路径[快照写探针/NFE 注入/双 cancel 探针/结构+bound/反射误用/重叠缝/二次 build/变异四相/close 后 call/双订阅线程枚举]+伪绿防线——闩带上界 ≤30s 防测试自身挂死[S-2 补：三形态若生产侧落 waiting-loser 须裁定等待上界与 interrupt 响应性声明]+红④⑧ 结构/变异腿诚实留痕纪律[2536 E-2536-7/Major-D1+2537 教训——原始日志存证]）；零回退钉全列（勘误 5 三模块签名+2512 五钉[resolver 12 用例含 closeIsIdempotent/TestDirectoryFileSourceFunction 既有断言/C10-003 归属注记/C10-007 三探针]+8.41 受害侧钉+既有锚点名[TestWi11SideInputDeclaration/TestStreamModelDslBuilderE2E/FailFast/TestSqlModelExpansion/TestSqlTransformExpansion/TestStreamSqlExprCompiler/TestStreamSqlAggregations/TestReplayableCdcSourceFunction 全用例含 `:130`/TestDirectoryFileSourceFunction 全用例含反向钉/TestS1CdcPipelineE2E/TestS1CdcRecoveryE2E/TestS2FileAggregationE2E/TestS2RecoveryAndRescaleE2E/TestUdfE2E 等]）+ C10 关联面注记表（C10-005 同 diff 绑定+C10-006 反向钉+C10-008 搭车两半边[若裁]+C10-007 已消号[2512]+既有零改写清单）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档独立 draft review〔agent_ef449f36 PASS-with-revisions 修订闭环〕（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–G 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2512 ①–⑤ 引用面+三红线落款[resolver 三产物/复位块/C10-006 反向钉]+父类缝与 write-guard 两禁选落款），独立 draft review 记录在案（文件命名如调整已登记裁定）
-- [ ] 裁定 A 含两落点唯一分支+三失效面闭合映射+禁选落款；裁定 B 含深拷贝/fail-fast 唯一分支；裁定 C 含包络闭合+两段式唯一分支+联动归裁定；裁定 D 含 close 解绑唯一分支+传播语义+E5 文案；裁定 E 含零父类缝唯一分支+C10-005 设计+MA-04/C6-005 形态+C10-008 搭车裁定+联调矩阵；裁定 F 含守卫形态唯一分支+C10-006 红线+复位交互论证+缝形态；裁定 G 含红①–红⑩ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–G 全部项且每条有唯一预设默认分支+既有裁定引用核对节（2512 ①–⑤ 引用面+三红线落款[resolver 三产物/复位块/C10-006 反向钉]+父类缝与 write-guard 两禁选落款），独立 draft review 记录在案（文件命名与分组调整已于 2026-11-07 起草登记——设计文档实际分组=A–E，本条 plan 预设 A–G 内容项与其承载节对照见设计文档「工单→裁定映射与分组登记」表）
+- [x] 裁定 A〔评审亲证〕 含两落点唯一分支+三失效面闭合映射+禁选落款；裁定 B 含深拷贝/fail-fast 唯一分支；裁定 C 含包络闭合+两段式唯一分支+联动归裁定；裁定 D 含 close 解绑唯一分支+传播语义+E5 文案；裁定 E 含零父类缝唯一分支+C10-005 设计+MA-04/C6-005 形态+C10-008 搭车裁定+联调矩阵；裁定 F 含守卫形态唯一分支+C10-006 红线+复位交互论证+缝形态；裁定 G 含红①–红⑩ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 10 工单实现 + 回归测试（按组 A–C）
