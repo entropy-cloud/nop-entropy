@@ -170,32 +170,32 @@
 
 ### Phase 1 - SUSPICIOUS/窗口/触发器隔离/fence/本地终态/stall/边界上限/保留族与回收设计裁定文档 + 独立评审
 
-Status: planned
+Status: completed〔2026-11-07：设计文档落档（385 行，裁定 A–H+H 附[m-5 联调矩阵交付锚]）+设计评审 R2（agent_1e8b33f5 fresh session，~150+ 锚点+三风险专项）PASS-with-revisions 0 Blocker+2 Major+8 Minor 全落盘放行 Phase 2[F-M1 裁定 A null 轮语义矛盾勘正取决策 2 不变式+F-M2 红② 红判据改挂软上限启用腿[默认观察降格缺陷演示记录]+F-m1~m-8 随批落盘]；draft review R1（agent_34fe5d6e）PASS-with-revisions 0B+1M+8m 先行落盘〔M-1 勘误 6 重写版经评审 git 亲证完全一致〕〕
 Targets: `ai-dev/design/concurrency/job-scheduler-ledger-selfheal-capacity-and-retention-concurrency-contract.md`（新建——裁定 A–H 分组映射见其「工单→裁定映射与分组登记」节[分组权威]）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
-  - [ ] **「既有裁定引用核对」节**（起草期义务——软依赖 8.46 解除+同单元前批 2496/2513/2539 收口）：逐条确认 2539 承接三指向兑现（C10-006/008 宿主同 diff 承接闭环/W-10 容量束联调边界传导消费[W-02/W-10 联合推演引用 2539 裁定 G 记录]/C7-004 R01 SSOT §3.6 指向落地）+ BF-1 判定落款（不重叠零触碰硬边界）+ **MJ-1 钉联动定夺**（W-06 恢复形态→ReentrancyR406 :249-257 区[m-8 订正——修订义务覆盖全部 FAILED 自愈相关断言腿含 sleep 后腿] 修订清单[四断言零改写保留]vs 声明形态→零改写声明）+ 2513 五面/两阶段四产物零触碰落款 + 2496 绝缘+指标族零弱化落款 + 2497 §七 调度槽纪律（W-04 周期链硬约束）+ 2498 §3.1.1 对齐落款（W-02）+ ledger-retention-policy 七款对齐落款（W-04）+ plan 340 钉兼容论证（W-10）。
-  - [ ] **裁定 A SUSPICIOUS/liveness 域**（W-03）：复查形态唯一分支（markSuspiciousAsTimeout 前复查+顺延[SUSPICIOUS stale 上限口径]）+ 空集语义唯一分支（返回 null 禁用本轮 vs 恢复后才判定的等价形态）+ metric 候选 + 两轮确认窗语义保持论证（防矫枉过整——真实 worker 消失仍须两轮回收）+ namingService 桩 seam 设计（红③ 检出力）+ plan 340 钉零回退落款 + 2513 五面零触碰落款。
-  - [ ] **裁定 B reconciler 窗口域**（W-05）：翻页轮转唯一分支（cursor 语义+周期推进）+ limit-hit warn 形态（对齐 findActiveFires 先例）+ 淘汰策略候选取舍 + javadoc「最终一致」声明一致性核对（E5 联动）+ 红⑤ 确定性构造设计（batch-size 调小）。
-  - [ ] **裁定 C 触发器失败隔离域**（W-08）：终态化 vs PAUSED 唯一分支（配置类错误判定口径——`ERR_JOB_TRIGGER_*`/坏 JSON 白名单 vs 全异常宽度论证）+ 计数升级阈值 + 保存路径试构建校验形态 + 错误码归属申报核对（条件申报①——复用 vs JobCoreErrors vs JobApiErrors）+ FIXED_DELAY 首次暴露路径处置 + 与 W-05 停摆交互注记 + plan 340 §2.7 既有 catch 零弱化落款。
-  - [ ] **裁定 D planner fence 域**（W-09）：post-fence 值匹配复查唯一分支（requireEntityById+nextFireTime==lockDeadline 值匹配——对齐 dispatch 先例[insertTasksAndMarkFireDispatching :103-115 形态投影]）+ 放弃分支语义（WARN+本槽放弃不重排论证——与 misfire 语义交界）+ 红⑨ seam 检出力口径（lock-timeout 调小+停顿 latch）+ C7-008 时钟源零代做落款 + 租约语义文档声明（E5）。
-  - [ ] **裁定 E 本地终态语义域**（W-06）：恢复 vs 声明二选一唯一分支 + 恢复形态子分支（退避策略/failedCount 语义/resumeJob·fireNow·:500 guard 联动修订清单/**MJ-1 钉同 diff 修订断言清单[四断言零改写保留]**）或声明形态子分支（owner doc 句措辞+红⑥ 结构钉形态）+ **BF-1 零触碰硬边界落款**（:500-502/:361 不得触碰）+ 2539 六面产物+两阶段四产物零回退落款。
-  - [ ] **裁定 F scanner stall 域**（W-07）：stall 判定 vs 看门狗唯一分支（在途时长阈值口径/观察形态——2496 observe-only 先例投影）+ 误报防线（合法长批次 vs 真挂起判定）+ 2496 绝缘+指标族+守卫零弱化落款 + 修复面收窄基线引用（勘误 3）+ JDBC 超时文档建议（E5）。
-  - [ ] **裁定 G 边界上限域**（W-01/W-02）：W-01 批上限键+单条校验形态+错误码归属申报核对+loadedTaskIds 处置+C10-008 三面断言设计（batch=2 最小对照检出力）；W-02 三候选组合唯一分支（软上限/文档提示/语义联动核对——2539 裁定 G 联合推演记录引用落款+2498 §3.1.1 判定适用结论+默认值选择论证[默认关闭=零行为变更 vs 默认开启]）+ W-02×W-10 联合推演记录（CLAIMED×countInFlightTasks 交集口径）。
-  - [ ] **裁定 H 保留族与回收域**（W-04/W-10）+ **裁定 H 附：红钉总表与 C10 注记**：W-04 R01 同构行七款落款（三键/锚列逐表落名[fire=endTime/task=endTime/task_log=logTime 候选定夺]/形态 A 载体与生命周期钩子/delete 共存口径/回归钉四件套含接线断言/SSOT §3.4 成员行增补义务/orm 零触碰或申报③）+ W-10 墙钟扩展 vs 租约唯一分支（startTime 语义论证[R7 口径]/plan 340 钉兼容论证落款/仅作用已配超时形态边界）+ javadoc 修正文案（JobTaskStoreImpl :88-96）+ per-status 年龄 gauge + 红钉总表（红①–红⑩ 逐钉形态定夺[确定性标注+前置构造路径+伪绿防线——闩带上界 ≤30s 防测试自身挂死+概率腿未命中诚实登记条款]+零回退钉全列[勘误 7 九模块签名+R406 九钉+2513 十二钉+2496 绝缘钉+plan 340 钉+既有锚全列+MJ-1 联动例外标注]+C10 关联面注记表[C10-006/008 同 diff 绑定兑现+2539 勘误 3 闭环+既有 C10 面零改写清单]）。
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法，rule 14），含以下裁定+测试缝，每条唯一预设默认分支：
+  - [x] **「既有裁定引用核对」节**（起草期义务——软依赖 8.46 解除+同单元前批 2496/2513/2539 收口）：逐条确认 2539 承接三指向兑现（C10-006/008 宿主同 diff 承接闭环/W-10 容量束联调边界传导消费[W-02/W-10 联合推演引用 2539 裁定 G 记录]/C7-004 R01 SSOT §3.6 指向落地）+ BF-1 判定落款（不重叠零触碰硬边界）+ **MJ-1 钉联动定夺**（W-06 恢复形态→ReentrancyR406 :249-257 区[m-8 订正——修订义务覆盖全部 FAILED 自愈相关断言腿含 sleep 后腿] 修订清单[四断言零改写保留]vs 声明形态→零改写声明）+ 2513 五面/两阶段四产物零触碰落款 + 2496 绝缘+指标族零弱化落款 + 2497 §七 调度槽纪律（W-04 周期链硬约束）+ 2498 §3.1.1 对齐落款（W-02）+ ledger-retention-policy 七款对齐落款（W-04）+ plan 340 钉兼容论证（W-10）。
+  - [x] **裁定 A SUSPICIOUS/liveness 域**（W-03）：复查形态唯一分支（markSuspiciousAsTimeout 前复查+顺延[SUSPICIOUS stale 上限口径]）+ 空集语义唯一分支（返回 null 禁用本轮 vs 恢复后才判定的等价形态）+ metric 候选 + 两轮确认窗语义保持论证（防矫枉过整——真实 worker 消失仍须两轮回收）+ namingService 桩 seam 设计（红③ 检出力）+ plan 340 钉零回退落款 + 2513 五面零触碰落款。
+  - [x] **裁定 B reconciler 窗口域**（W-05）：翻页轮转唯一分支（cursor 语义+周期推进）+ limit-hit warn 形态（对齐 findActiveFires 先例）+ 淘汰策略候选取舍 + javadoc「最终一致」声明一致性核对（E5 联动）+ 红⑤ 确定性构造设计（batch-size 调小）。
+  - [x] **裁定 C 触发器失败隔离域**（W-08）：终态化 vs PAUSED 唯一分支（配置类错误判定口径——`ERR_JOB_TRIGGER_*`/坏 JSON 白名单 vs 全异常宽度论证）+ 计数升级阈值 + 保存路径试构建校验形态 + 错误码归属申报核对（条件申报①——复用 vs JobCoreErrors vs JobApiErrors）+ FIXED_DELAY 首次暴露路径处置 + 与 W-05 停摆交互注记 + plan 340 §2.7 既有 catch 零弱化落款。
+  - [x] **裁定 D planner fence 域**（W-09）：post-fence 值匹配复查唯一分支（requireEntityById+nextFireTime==lockDeadline 值匹配——对齐 dispatch 先例[insertTasksAndMarkFireDispatching :103-115 形态投影]）+ 放弃分支语义（WARN+本槽放弃不重排论证——与 misfire 语义交界）+ 红⑨ seam 检出力口径（lock-timeout 调小+停顿 latch）+ C7-008 时钟源零代做落款 + 租约语义文档声明（E5）。
+  - [x] **裁定 E 本地终态语义域**（W-06）：恢复 vs 声明二选一唯一分支 + 恢复形态子分支（退避策略/failedCount 语义/resumeJob·fireNow·:500 guard 联动修订清单/**MJ-1 钉同 diff 修订断言清单[四断言零改写保留]**）或声明形态子分支（owner doc 句措辞+红⑥ 结构钉形态）+ **BF-1 零触碰硬边界落款**（:500-502/:361 不得触碰）+ 2539 六面产物+两阶段四产物零回退落款。
+  - [x] **裁定 F scanner stall 域**（W-07）：stall 判定 vs 看门狗唯一分支（在途时长阈值口径/观察形态——2496 observe-only 先例投影）+ 误报防线（合法长批次 vs 真挂起判定）+ 2496 绝缘+指标族+守卫零弱化落款 + 修复面收窄基线引用（勘误 3）+ JDBC 超时文档建议（E5）。
+  - [x] **裁定 G 边界上限域**（W-01/W-02）：W-01 批上限键+单条校验形态+错误码归属申报核对+loadedTaskIds 处置+C10-008 三面断言设计（batch=2 最小对照检出力）；W-02 三候选组合唯一分支（软上限/文档提示/语义联动核对——2539 裁定 G 联合推演记录引用落款+2498 §3.1.1 判定适用结论+默认值选择论证[默认关闭=零行为变更 vs 默认开启]）+ W-02×W-10 联合推演记录（CLAIMED×countInFlightTasks 交集口径）。
+  - [x] **裁定 H 保留族与回收域**（W-04/W-10）+ **裁定 H 附：红钉总表与 C10 注记**：W-04 R01 同构行七款落款（三键/锚列逐表落名[fire=endTime/task=endTime/task_log=logTime 候选定夺]/形态 A 载体与生命周期钩子/delete 共存口径/回归钉四件套含接线断言/SSOT §3.4 成员行增补义务/orm 零触碰或申报③）+ W-10 墙钟扩展 vs 租约唯一分支（startTime 语义论证[R7 口径]/plan 340 钉兼容论证落款/仅作用已配超时形态边界）+ javadoc 修正文案（JobTaskStoreImpl :88-96）+ per-status 年龄 gauge + 红钉总表（红①–红⑩ 逐钉形态定夺[确定性标注+前置构造路径+伪绿防线——闩带上界 ≤30s 防测试自身挂死+概率腿未命中诚实登记条款]+零回退钉全列[勘误 7 九模块签名+R406 九钉+2513 十二钉+2496 绝缘钉+plan 340 钉+既有锚全列+MJ-1 联动例外标注]+C10 关联面注记表[C10-006/008 同 diff 绑定兑现+2539 勘误 3 闭环+既有 C10 面零改写清单]）。
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析——按 plan guide「迭代对抗性审查」模板）通过后，Phase 2 方可启动——记录于本 plan 头部 Draft Review 行或 daily log
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 行为变更面更新归 Phase 3 统一落账——显式登记该去向）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–H 全部项+裁定 H 附红钉总表且每条有唯一预设默认分支+既有裁定引用核对节（2539 承接三指向+BF-1 落款+MJ-1 定夺+四红线落款+ledger 七款+条件申报①③核对），独立 draft review 记录在案（文件命名与分组调整如发生——调整记录登记于本 plan 与设计文档映射表）
-- [ ] 裁定 A 含复查唯一分支+空集语义+两轮窗保持；裁定 B 含翻页唯一分支+limit-hit warn；裁定 C 含隔离唯一分支+错误码申报核对；裁定 D 含 post-fence 唯一分支+seam 口径+C7-008 零代做；裁定 E 含二选一唯一分支+MJ-1 定夺+BF-1 硬边界；裁定 F 含 stall 形态唯一分支+零弱化落款；裁定 G 含 W-01/W-02 唯一分支+联合推演引用落款；裁定 H 含 W-04 七款+W-10 唯一分支+plan 340 兼容论证；裁定 H 附含红①–红⑩ 驱动器表[伪绿防线+零回退钉全列+C10 注记]
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档存在于 `ai-dev/design/concurrency/`、为最终状态写法、含裁定 A–H 全部项+裁定 H 附红钉总表且每条有唯一预设默认分支+既有裁定引用核对节（2539 承接三指向+BF-1 落款+MJ-1 定夺+四红线落款+ledger 七款+条件申报①③核对），独立 draft review 记录在案（文件命名与分组调整如发生——调整记录登记于本 plan 与设计文档映射表）〔评审 R2 PASS-with-revisions 0B+2M+8m——F-M1/F-M2 采证前已落盘〕
+- [x] 裁定 A 含复查唯一分支+空集语义+两轮窗保持；裁定 B 含翻页唯一分支+limit-hit warn；裁定 C 含隔离唯一分支+错误码申报核对；裁定 D 含 post-fence 唯一分支+seam 口径+C7-008 零代做；裁定 E 含二选一唯一分支+MJ-1 定夺+BF-1 硬边界；裁定 F 含 stall 形态唯一分支+零弱化落款；裁定 G 含 W-01/W-02 唯一分支+联合推演引用落款；裁定 H 含 W-04 七款+W-10 唯一分支+plan 340 兼容论证；裁定 H 附含红①–红⑩ 驱动器表[伪绿防线+零回退钉全列+C10 注记]〔F-M1 null 轮语义取决策 2 不变式勘正〕
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 2 - 10 工单实现 + 回归测试（按组 A–C）
 
