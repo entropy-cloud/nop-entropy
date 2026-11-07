@@ -121,6 +121,16 @@ ConnectorProbeResult result = catalog.probe(ConnectorDirection.SINK, "file",
 - **已知边界**：同 subject 多 schema 演进时 encoder 侧 schemaId 缓存不感知换版（首版边界；真实多 schema 写入诉求出现时升级缓存策略）。
 - 锚点：`TestAvroWireFormat`（fake registry 真 HttpServer 用例：round trip / v1→v2 演进 / schemaId 缓存 / magic typed 拒绝 / registry 不可达 typed / 挂死注入请求级超时 typed + 并发 encode 不互阻 / 工厂注入）。
 
+## 并发守卫与失败路径契约（CRA 8.44 R4-04）
+
+- **Debezium 同名守卫（W-02）**：同名双管线（`totalParallelism<=1` 裸名共驻 JVM）第二个 `run()` 以 typed `ERR_STREAM_CONFIG_ERROR` 拒绝（AR-03 同口径）——不再静默覆盖第一实例的失败 listener；被拒实例不注册、无 finally 副作用，修复后可重试。载体（`DebeziumEngineWrapper.FAILURE_LISTENERS`）零改动。
+- **Debezium 重入 typed（W-04）**：`run()` 重入 CAS 失败从静默假 EOS 改为 typed `ERR_STREAM_STATE_ERROR`（恢复路径负责重试）。
+- **双桥 close 终止契约精化（W-05）**：join 超时路径依次——runner 单发 interrupt（best-effort）→ `queue.clear()` 释放在途 put（生产分发线程解除的真实通道）→ typed `ERR_STREAM_JOB_EXECUTE_FAILED` 抛出（信号零弱化）；batch loader reader close 对 loader close 异常 typed 上抛（不再 WARN 吞掉）。
+- **kafka/batch 取消时延声明（W-01/W-03）**：kafka cancel 单发 `wakeup()`——启动期元数据拉取阻塞的取消时延从 ≤max.block.ms 收敛为即时；稳态 ≤ poll 间隔 200ms（限速切片窗与 seek/assign 窗同受 wakeup 覆盖）。batch loader cancel 单发 interrupt——响应 interrupt 的 loader 在预算内退出，不响应的实现取消时延上界 = 单次 `loader.load` 时长（声明边界）；reader 面取消时延上界 = 单次 load 时长。
+- **RocksDB native 清理与恢复残留（W-06/W-07/W-10）**：openDB 失败路径逆序关闭全部 native 句柄（不再依赖不可靠的 GC finalizer）；restore 恢复先关增量句柄后关源库；restore 入口清扫「id 严格小于当前恢复 id」的陈旧恢复目录（跨部署回滚残留 id 前移后自愈收敛——watch-only）。
+- **file 2PC 孤儿清扫（W-08）**：beginTransaction（恢复链末位）扫描本 subtask 后缀的孤儿 epoch temp——manifest∪pending 双白名单之外的残留按 WARN 删除（磁盘包络从「失败次数×全量 epoch」收敛为在途上限×单 epoch）；他 subtask 在途 temp 结构性不命中；manifest 损坏时保守跳过清扫。
+- **RocksDB TTL sweep（W-11）**：`setCurrentKey` 挂 nanotime 门控周期 sweep（`nop.stream.rocksdb.ttl.sweep-interval-millis`，缺省 60000，≤0 关闭）——设计文档声明的形态在生产后端兑现；keyed TTL 的过期状态不再依赖 checkpoint 节奏回收。
+
 ## 2PC 双旋钮与语句/锁超时（CRA 8.43 R4-03 W-04/W-06/W-11）
 
 2PC 双载体（JDBC/file）新增上界旋钮：`maxEpochRecords`/`maxEpochLines`（缺省 100000）与 `maxPendingEpochs`（缺省 8）——invoke 监视器内 add 前判定 + saveState 转存前判定，超限 typed `ERR_STREAM_STATE_ERROR`（携带当前水位/上限/epochId 与处置指引）；≤0 构造期 `ERR_STREAM_INVALID_ARG`；连接器 descriptor `optional` 声明 + builder fluent 承载，不入 ledger face 空间。JDBC 提交链全部 5 语句创建点统一 `statement-timeout-seconds`（缺省 60）——闭合 checkpointTimeout 盲区。file manifest 双级锁（JVM+OS）统一 60s 期限（JVM `tryLock` 可中断 + OS `tryLock` 200ms 轮询，超时 typed；OverlappingFileLockException 按被占轮询处理）。保留策略语义零回退。

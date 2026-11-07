@@ -235,24 +235,24 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed〔2026-11-07：E1 排除形态 EXIT=0[已知面⑥ 维持]+批行 -am 面① 3F→solo 三联 3/3 绿+分解等价验收[实现轮七模块签名]+owner doc E5 落账+双工具门禁 EXIT=0〕
 Targets: nop-stream 聚合全量测试（13 子模块）+ 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`；在线模式下如 nop-ai-translate 面现形按 2526/2534/2535/2536 排除形态先例处置留痕）
-- [ ] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（已知面集处置——面① solo 三联裁定先例/面② F1 solo 三联绿归因[baseline 留痕在案]/面③⑤ 先例形态/面④ debezium docker 门控）+ 等价分解通道 `./mvnw test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——签名 = 勘误 4 基线+新钉比对+已知面处置留痕[F1 并发通道复现→solo 三联绿归因维持，禁静默重跑；docker 慢跳过/fork 超时按 2534/2535/2536 先例归因留痕]）
-- [ ] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（11 工单逐项落点——取消时延声明[W-01/W-03]/同名守卫与重入 typed[W-02/W-04]/close 终止契约精化[W-05]/RocksDB 节扩展[W-06/W-07/W-10/W-11]/2PC 与磁盘残留[W-08]/能力矩阵）+ `ai-dev/design/nop-stream/state-management-design.md` :422[m2-6 订正] 兑现核对（W-11——声明兑现注记或精确化）+ `docs-for-ai/03-modules/nop-stream.md` 按实际 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C -DskipTests` EXIT=0 留痕（`_tmp/`；在线模式下如 nop-ai-translate 面现形按 2526/2534/2535/2536 排除形态先例处置留痕）
+- [x] 批行验证命令（E3 判据——勘误 1/5）：`./mvnw test -pl nop-stream -am` 执行至首个上游阻断面留痕（已知面集处置——面① solo 三联裁定先例/面② F1 solo 三联绿归因[baseline 留痕在案]/面③⑤ 先例形态/面④ debezium docker 门控）+ 等价分解通道 `./mvnw test -pl nop-stream` BUILD SUCCESS 全量验收（13 子模块全绿——签名 = 勘误 4 基线+新钉比对+已知面处置留痕[F1 并发通道复现→solo 三联绿归因维持，禁静默重跑；docker 慢跳过/fork 超时按 2534/2535/2536 先例归因留痕]）
+- [x] owner doc 落账（E5）：`docs-for-ai/03-modules/nop-stream-connectors.md` 行为变更面更新（11 工单逐项落点——取消时延声明[W-01/W-03]/同名守卫与重入 typed[W-02/W-04]/close 终止契约精化[W-05]/RocksDB 节扩展[W-06/W-07/W-10/W-11]/2PC 与磁盘残留[W-08]/能力矩阵）+ `ai-dev/design/nop-stream/state-management-design.md` :422[m2-6 订正] 兑现核对（W-11——声明兑现注记或精确化）+ `docs-for-ai/03-modules/nop-stream.md` 按实际 + `docs-for-ai/04-reference/source-anchors.md` 按实际；`No owner-doc update required` 不适用（本批有行为变更面——逐项登记落点）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow 高=0——`--module nop-stream` EXIT=0（或逐子模块通道按实测路径）〔check-doc-links EXIT=0；scan-hollow EXIT=0（`_tmp/scan-hollow-2537.log`）〕
+- [x] `ai-dev/logs/` 对应日期条目已更新〔2026-11-07 Phase 3 收口条〕
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿；基线签名+新钉比对+已知面处置留痕）
-- [ ] owner doc 落账核对（E5 11 工单行为变更面逐项落点+设计文档 :420 核对+owner doc/nop-stream.md/source-anchors 按实际——逐项在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[载体红线/禁选形态含]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（面处置归因）+ 分解通道 BUILD SUCCESS（13 子模块全绿；基线签名+新钉比对+已知面处置留痕）
+- [x] owner doc 落账核对（E5 11 工单行为变更面逐项落点+设计文档 :420 核对+owner doc/nop-stream.md/source-anchors 按实际——逐项在案）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰、平台设施零触碰、批外模块零触碰[载体红线/禁选形态含]、批外工单零触碰——Phase 2 条件申报核对条目全量 git status 核对在案，closure audit 复核归 Phase 4）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口
