@@ -1,0 +1,12 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- CRA 8.48 R4-08 W-09（MA-16 裁定 B）红⑨：sleep 时长运行期超限拒绝
+         （sleep 500ms；测试将 nop.task.step.max-sleep-ms 设为 100） -->
+    <steps>
+        <sleep name="sleepStep" sleepMillisExpr="500"/>
+    </steps>
+    <output name="RESULT">
+        <source>
+            return "OK"
+        </source>
+    </output>
+</task>

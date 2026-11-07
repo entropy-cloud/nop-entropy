@@ -45,8 +45,17 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
                         }
                     });
                 }
-            } catch (Exception e) {
-                ret.completeExceptionally(e);
+            } catch (Throwable t) {
+                // W-06（CRA 8.48 R4-08，MA-13 裁定 B）：catch 收宽为 Throwable——executor 派发
+                // 回调抛出的 Error 也保证 ret promise 必然终结（修复前 Error 穿透 → ret 无终结
+                // 路径 → 任务永驻非终态、清理/终态 driver 全跳过零信号）。Error 原样 rethrow
+                // （池 worker 线程语义：Error 属 JVM 级信号，complete 仅保证 promise 终结，
+                // 不豁免线程侧传播；不 adapt 包装防 OOM/SOE 期再分配）。
+                // plan 349 取消兜底（下方 onCancel/bindCancelToken）零弱化——本腿补 Error 残余，
+                // 两腿叠加语义独立
+                ret.completeExceptionally(t);
+                if (t instanceof Error)
+                    throw (Error) t;
             }
             return null;
         });

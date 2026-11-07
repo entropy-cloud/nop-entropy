@@ -18,10 +18,13 @@ import io.nop.task.TaskStepReturn;
 import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
+import static io.nop.task.TaskConfigs.CFG_TASK_STEP_MAX_LOOP_COUNT;
 import static io.nop.task.TaskErrors.ARG_BEGIN;
 import static io.nop.task.TaskErrors.ARG_END;
+import static io.nop.task.TaskErrors.ARG_REASON;
 import static io.nop.task.TaskErrors.ARG_STEP;
 import static io.nop.task.TaskErrors.ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR;
+import static io.nop.task.TaskErrors.ERR_TASK_STEP_CONFIG_INVALID;
 import static io.nop.task.TaskStepReturn.RETURN;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT;
 import static io.nop.task.TaskStepReturn.RETURN_RESULT_END;
@@ -164,6 +167,21 @@ public class LoopNTaskStep extends AbstractTaskStep {
                 throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_LOOP_STEP_INVALID_LOOP_VAR)
                         .param(ARG_BEGIN, begin).param(ARG_END, end).param(ARG_STEP, step);
 
+            // W-10（CRA 8.48 R4-08，MA-18 裁定 D，运行期上限路线 β）：迭代数上界校验（long 域
+            // 防 int 溢出误判）。含端点语义（current<=end / current>=end）：迭代数 =
+            // floor(|end-begin|/|step|)+1，begin=end 实跑 1 次迭代天然放行；超上界运行期显式拒绝
+            //（消除负 step 反向计数/整数回绕导致的失控循环面——极端 step 值跨越 int 边界由
+            // incLoopStepChecked 运行期兜底硬失败）
+            long iterationCount = Math.abs((long) end - (long) begin) / Math.abs((long) step) + 1;
+            long maxLoopCount = CFG_TASK_STEP_MAX_LOOP_COUNT.get().longValue();
+            if (iterationCount > maxLoopCount) {
+                throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_STEP_CONFIG_INVALID)
+                        .param(ARG_BEGIN, begin).param(ARG_END, end).param(ARG_STEP, step)
+                        .param(ARG_REASON, "loop iteration count " + iterationCount
+                                + " (floor(|end-begin|/|step|)+1) exceeds nop.task.step.max-loop-count="
+                                + maxLoopCount);
+            }
+
             stateBean.setCurrent(begin);
             stateBean.setEnd(end);
             stateBean.setStep(step);
@@ -190,7 +208,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
             if (stepResult.isDone()) {
                 stepResult = stepResult.sync();
 
-                stateBean.incStep();
+                incLoopStepChecked(stepRt, stateBean);
                 stepRt.setBodyStepIndex(0);
                 stepRt.saveState();
 
@@ -205,7 +223,7 @@ public class LoopNTaskStep extends AbstractTaskStep {
                     if (ret.isSuspend())
                         return ret;
 
-                    stateParam.incStep();
+                    incLoopStepChecked(stepRt, stateParam);
                     stepRt.setBodyStepIndex(0);
                     stepRt.saveState();
 
@@ -230,5 +248,23 @@ public class LoopNTaskStep extends AbstractTaskStep {
                 return TaskStepReturn.RETURN_RESULT(stepRt.getResult());
             }
         } while (true);
+    }
+
+    /**
+     * W-10（CRA 8.48 R4-08，MA-18 裁定 D (ii)）：incStep 运行期下溢/溢出兜底——current 跨越
+     * int 边界符号翻转（如 step 值极大导致 begin+step 溢出）即硬失败。常态越界由初始化段的
+     * 迭代数上界前置拦截，本兜底仅承载极端 step 值的运行期断言义务（禁静默回绕续跑）。
+     */
+    private void incLoopStepChecked(ITaskStepRuntime stepRt, LoopStateBean stateBean) {
+        int before = stateBean.getCurrent();
+        stateBean.incStep();
+        int now = stateBean.getCurrent();
+        int step = stateBean.getStep();
+        boolean overflow = step > 0 ? now < before : now > before;
+        if (overflow) {
+            throw TaskStepHelper.newError(getLocation(), stepRt, ERR_TASK_STEP_CONFIG_INVALID)
+                    .param(ARG_BEGIN, before).param(ARG_END, now).param(ARG_STEP, step)
+                    .param(ARG_REASON, "loop current overflowed int range (underflow guard, CRA 8.48 R4-08 W-10)");
+        }
     }
 }

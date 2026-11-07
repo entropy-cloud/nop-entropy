@@ -70,6 +70,12 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
     // 超限 WARN 改周期性（60s 间隔，plan 2514 MA-08；WARN-once 不可操作）
     private final AtomicLong rateLimiterCapWarnAt = new AtomicLong();
     private final AtomicLong semaphoreCapWarnAt = new AtomicLong();
+    // W-03（CRA 8.48 R4-08，MA-10 裁定 A）：配置固化告警全局周期化（同 60s 间隔形态复用——
+    // 修复前 rate-limiter 侧每调用打印无抑制；semaphore 侧补对称告警）。失效路径裁定为
+    // owner doc 文档声明形态（「global 闸门限流参数变更需重启生效」——模型热更新不触注册表，
+    // 2514 键空间治理产物零重开），frozen WARN 即其可操作信号
+    private final AtomicLong rateLimiterFrozenWarnAt = new AtomicLong();
+    private final AtomicLong semaphoreFrozenWarnAt = new AtomicLong();
 
     private static final long CAP_WARN_INTERVAL_MS = 60_000L;
 
@@ -236,10 +242,11 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
                 return new GlobalGate<>(new DefaultRateLimiter(requestPerSecond));
             }).gate;
             // 全局限流器首配置固化告警（plan 349 Phase 5，check2 P3）：同 key 二次配置不同速率时
-            // 旧参数继续生效（缓存命中即返回），此处告警提示，避免参数调优静默不生效
+            // 旧参数继续生效（缓存命中即返回）。W-03（CRA 8.48 R4-08，MA-10 裁定 A）：告警全局
+            // 周期化（60s 间隔，复用 warnIfOverCap 同形态）——修复前每调用打印无抑制
             if (Math.abs(limiter.getPermitsPerSecond() - requestPerSecond) > 1e-9) {
-                LOG.warn("nop.task.global-rate-limiter-config-frozen:cacheKey={},configuredPerSecond={},activePerSecond={}",
-                        cacheKey, requestPerSecond, limiter.getPermitsPerSecond());
+                warnConfigFrozen(rateLimiterFrozenWarnAt, "rate-limiter", cacheKey,
+                        "configuredPerSecond=" + requestPerSecond + ",activePerSecond=" + limiter.getPermitsPerSecond());
             }
             return limiter;
         }
@@ -250,8 +257,8 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
 
     @Override
     public ISemaphore getSemaphore(ITaskRuntime taskRt, String key, int maxPermits, boolean global) {
-        if (global)
-            return globalSemaphores.compute(taskRt.getTaskName() + ":" + key, (k, existing) -> {
+        if (global) {
+            GlobalGate<ISemaphore> gate = globalSemaphores.compute(taskRt.getTaskName() + ":" + key, (k, existing) -> {
                 long now = System.currentTimeMillis();
                 if (existing != null) {
                     long idleMs = now - existing.lastAccess;
@@ -270,10 +277,36 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
                 warnIfOverCap(semaphoreCapWarnAt, CFG_TASK_GLOBAL_GATE_MAX_ENTRIES.get(),
                         globalSemaphores.size(), "global-semaphore");
                 return new GlobalGate<>(new DefaultSemaphore(maxPermits));
-            }).gate;
+            });
+            // W-03（CRA 8.48 R4-08，MA-10 裁定 A）：semaphore 侧对称「配置固化」告警（修复前
+            // 侧零信号）——同 key 二次配置不同 permits 时旧配置静默沿用，全局周期化 WARN 提示
+            ISemaphore sem = gate.gate;
+            if (sem.maxPermits() != maxPermits) {
+                warnConfigFrozen(semaphoreFrozenWarnAt, "semaphore", taskRt.getTaskName() + ":" + key,
+                        "configuredPermits=" + maxPermits + ",activePermits=" + sem.maxPermits()
+                                + ",availablePermits=" + sem.availablePermits());
+            }
+            return sem;
+        }
         return (ISemaphore) taskRt.computeAttributeIfAbsent("semaphore:" + key, k -> {
             return new DefaultSemaphore(maxPermits);
         });
+    }
+
+    /**
+     * W-03（CRA 8.48 R4-08，MA-10 裁定 A）：闸门配置固化告警全局周期化（60s 间隔，2514
+     * AtomicLong 形态复用）。否决 per-key 一次性去重：per-key 去重=新动态 key 无界增长面，
+     * 与 2514 键空间治理同构矛盾。
+     */
+    private void warnConfigFrozen(AtomicLong lastWarnAt, String registry, String cacheKey, String detail) {
+        long now = System.currentTimeMillis();
+        long last = lastWarnAt.get();
+        if (now - last >= CAP_WARN_INTERVAL_MS && lastWarnAt.compareAndSet(last, now)) {
+            LOG.warn("nop.task.global-gate-config-frozen:registry={},cacheKey={},{}; "
+                            + "config frozen (global gate params require restart to take effect) "
+                            + "-- WARN throttled to once per {}ms (plan 2541 W-03 MA-10)",
+                    registry, cacheKey, detail, CAP_WARN_INTERVAL_MS);
+        }
     }
 
     /**

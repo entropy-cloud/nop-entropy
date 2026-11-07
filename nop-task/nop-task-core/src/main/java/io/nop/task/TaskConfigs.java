@@ -30,4 +30,19 @@ public interface TaskConfigs {
     @Description("sync 步骤同步等待时限（毫秒）；0=不限时（仅取消唤醒），负值非法")
     IConfigReference<Integer> CFG_TASK_STEP_SYNC_WAIT_TIMEOUT_MS =
             AppConfig.varRef(s_loc, "nop.task.step.sync-wait-timeout-ms", Integer.class, 600000);
+
+    // plan 2541 W-09/W-10（CRA 8.48 R4-08，MA-16/MA-18 裁定 B/D）：运行期表达式上界（路线 β）。
+    // sleep/fork-n count/loop-n 迭代数为运行期求值表达式，构建期校验不可判定（R2 Major-1 义务）；
+    // 超上界运行期 typed 拒绝，消除外部输入驱动的 OOM 通道与长时占线程面
+    @Description("sleep 步骤时长上限（毫秒）；sleep 为运行期表达式，超上限在执行期显式拒绝")
+    IConfigReference<Integer> CFG_TASK_STEP_MAX_SLEEP_MS =
+            AppConfig.varRef(s_loc, "nop.task.step.max-sleep-ms", Integer.class, 600000);
+
+    @Description("forkN 步骤分支数上限；count 为运行期表达式，超上限在执行期显式拒绝")
+    IConfigReference<Integer> CFG_TASK_STEP_MAX_FORK_COUNT =
+            AppConfig.varRef(s_loc, "nop.task.step.max-fork-count", Integer.class, 1000);
+
+    @Description("loopN 步骤迭代数上限（含端点：floor(|end-begin|/|step|)+1）；超上限在执行期显式拒绝")
+    IConfigReference<Integer> CFG_TASK_STEP_MAX_LOOP_COUNT =
+            AppConfig.varRef(s_loc, "nop.task.step.max-loop-count", Integer.class, 10000);
 }

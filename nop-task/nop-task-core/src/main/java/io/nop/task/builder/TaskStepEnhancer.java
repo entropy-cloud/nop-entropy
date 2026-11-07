@@ -153,6 +153,18 @@ public class TaskStepEnhancer implements ITaskStepEnhancer {
 
         if (stepModel.getThrottle() != null) {
             TaskThrottleModel throttleModel = stepModel.getThrottle();
+            // W-05（CRA 8.48 R4-08，MA-12 裁定 A）：throttle 参数构建期校验（同码同位——对齐
+            // timeout/sync×executor/rateLimit 硬失败先例）。maxConcurrency<=0 先等待后必拒绝、
+            // 负值崩在首次执行期、maxWait<0 有空位仍成功——均在装配期显式拒绝。
+            // 破坏性构建期约束：存量模型须先修正再升级（owner doc 升级注记落 Phase 3）
+            if (throttleModel.getMaxConcurrency() <= 0) {
+                throw invalidStepConfig(stepModel, "throttle.maxConcurrency", throttleModel.getMaxConcurrency(),
+                        "must be > 0 when throttle is configured");
+            }
+            if (throttleModel.getMaxWait() < 0) {
+                throw invalidStepConfig(stepModel, "throttle.maxWait", throttleModel.getMaxWait(),
+                        "must be >= 0");
+            }
             step = new ThrottleTaskStepWrapper(step, throttleModel.isGlobal(),
                     throttleModel.getMaxConcurrency(), throttleModel.getMaxWait(),
                     throttleModel.getKeyExpr());

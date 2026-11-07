@@ -21,6 +21,7 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.core.utils.IVarSet;
 import io.nop.dao.api.IDaoProvider;
 import io.nop.dao.api.IEntityDao;
+import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.IOrmEntitySet;
 import io.nop.orm.IOrmTemplate;
 import io.nop.orm.kv.KvTableVarSet;
@@ -215,6 +216,52 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
     }
 
     @Override
+    public List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds,
+                                                                         int batchSize, String cursorStepId) {
+        // plan 2541 W-02（1.5-MA-07，裁定 D）：游标分页投影 2514 findDueActivatedSteps 分批范式
+        //（transfer 场景无时间序字段，以稳定主键 stepId 作游标）——大 owner 全量载入改按批消费
+        if (batchSize <= 0)
+            throw new IllegalArgumentException("batchSize must be positive, got " + batchSize);
+        return stepDao().findAllByQuery(buildTransferScanQuery(ownerId, wfIds, batchSize, cursorStepId));
+    }
+
+    /**
+     * plan 2541 W-02（裁定 D）：transfer 分页查询形状——limit(batchSize) + orderBy(stepId asc)
+     * + 游标谓词（stepId &gt; cursor）。C10-008 查询形状钉同族载体（包内可见供测试核验；
+     * 2514 buildDueScanQuery/buildRemindScanQuery 形状零触碰）。
+     */
+    QueryBean buildTransferScanQuery(String ownerId, Set<String> wfIds, Integer batchSize, String cursorStepId) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_ownerId, ownerId));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_status, NopWfCoreConstants.WF_STEP_STATUS_ACTIVATED));
+        if (wfIds != null && !wfIds.isEmpty()) {
+            query.addFilter(FilterBeans.in(NopWfStepInstance.PROP_NAME_wfId, wfIds));
+        }
+        if (!StringHelper.isEmpty(cursorStepId)) {
+            // 分页游标：上批末条 stepId 为下批下界谓词（严格大于），无全量物化
+            query.addFilter(FilterBeans.gt(NopWfStepInstance.PROP_NAME_stepId, cursorStepId));
+        }
+        if (batchSize != null) {
+            query.setLimit(batchSize);
+        }
+        query.addOrderField(NopWfStepInstance.PROP_NAME_stepId, false);
+        return query;
+    }
+
+    @Override
+    public boolean hasOpenedTransaction(String txnGroup) {
+        // plan 2541 W-12（1.5-MA-22，裁定 F）：txnGroup 语义=querySpace（JdbcEntityPersistDriver
+        // isTransactionOpened(querySpace) 先例）——wf 持久化实体所属 querySpace 即其事务组；
+        // 经既有注入 ormTemplate（getSessionFactory().txn()）取模板，零新增注入
+        ITransactionTemplate txn = ormTemplate.getSessionFactory().txn();
+        String group = txnGroup;
+        if (StringHelper.isEmpty(group)) {
+            group = ormTemplate.getOrmModel().getEntityModel(NopWfStepInstance.class.getName()).getQuerySpace();
+        }
+        return txn.isTransactionOpened(group);
+    }
+
+    @Override
     public List<? extends IWorkflowStepRecord> findDueActivatedSteps() {
         return stepDao().findAllByQuery(buildDueScanQuery(null, null));
     }
@@ -317,6 +364,19 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         SQL sql = SQL.begin()
                 .update(NopWfStepInstance.class.getName())
                 .sql(" set dueTime=").param(newDueTime)
+                .where().eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId())
+                .end();
+        ormTemplate.executeUpdate(sql);
+    }
+
+    @Override
+    public void postponeStepRemindTime(IWorkflowStepRecord stepRecord, Timestamp newRemindTime) {
+        // plan 2541 W-01（MA-06 残留面，裁定 E）：remind 半区毒步骤退避——限定列集的直发
+        // UPDATE（与 postponeStepDueTime 同形态；裁定⑥实体写路径列集约束守约——只 SET
+        // remindTime 单列，防陈旧实体全字段 save 覆写他节点抢占列）
+        SQL sql = SQL.begin()
+                .update(NopWfStepInstance.class.getName())
+                .sql(" set remindTime=").param(newRemindTime)
                 .where().eq(NopWfStepInstance.PROP_NAME_stepId, stepRecord.getStepId())
                 .end();
         ormTemplate.executeUpdate(sql);

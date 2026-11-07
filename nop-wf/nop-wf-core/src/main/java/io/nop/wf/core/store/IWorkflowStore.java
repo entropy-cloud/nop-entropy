@@ -114,6 +114,29 @@ public interface IWorkflowStore {
 
     List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds);
 
+    /**
+     * plan 2541 W-02（1.5-MA-07，裁定 D）：游标分页重载——批量转办按批消费（请求级 maxBatch
+     * 上界）。返回按 stepId 升序的至多 batchSize 条 ACTIVATED 步骤；cursorStepId 非空时只返回
+     * stepId 严格大于该值的步骤（分页游标推进，transfer 场景以稳定主键 stepId 作游标）。
+     * 缺省实现委派三参全量形态（保留旧签名——既有实现/测试桩零触碰，R1-M2 投影形态），
+     * 由支持分批的 store（DaoWorkflowStore）覆盖。
+     */
+    default List<? extends IWorkflowStepRecord> findActivatedStepsByOwner(String ownerId, Set<String> wfIds,
+                                                                          int batchSize, String cursorStepId) {
+        return findActivatedStepsByOwner(ownerId, wfIds);
+    }
+
+    /**
+     * plan 2541 W-12（1.5-MA-22，裁定 F）：接口投影（core 定义/dao 实现，依赖方向合法——
+     * nop-wf-core 不依赖 nop-dao）。当前线程在 wf 持久化事务组上是否存在已开启事务；
+     * wf step retry 的延迟等待仅在无活动事务上下文生效（事务内 sleep 持连接/行锁为更劣形态）。
+     * 缺省 false = 无事务上下文（stub/内存实现缺省语义——重试等待可用），DaoWorkflowStore
+     * 以 ORM querySpace 实测（txnGroup 语义=querySpace，JdbcEntityPersistDriver 先例）。
+     */
+    default boolean hasOpenedTransaction(String txnGroup) {
+        return false;
+    }
+
     List<? extends IWorkflowStepRecord> findDueActivatedSteps();
 
     List<? extends IWorkflowStepRecord> findRemindActivatedSteps();
@@ -183,6 +206,19 @@ public interface IWorkflowStore {
      */
     default void postponeStepDueTime(IWorkflowStepRecord stepRecord, Timestamp newDueTime) {
         stepRecord.setDueTime(newDueTime);
+        saveStepRecord(stepRecord);
+    }
+
+    /**
+     * plan 2541 W-01（1.5-MA-06 残留面，裁定 E）：remind 半区毒步骤退避——remind listener
+     * 执行失败后按指数退避推进该步骤的 remindTime，使其真正退出本轮扫描集（与 due 半区
+     * postponeStepDueTime 持久化收敛语义等价；否决内存 failCounts-only 抑制——只抑制重复
+     * ERROR 不退出工作集，语义不等价）。scanner 从此为 remindTime 的引擎侧唯一写入点。
+     * 缺省实现经实体保存，DaoWorkflowStore 以限定列集的直发 UPDATE 覆盖（裁定⑥实体写路径
+     * 列集约束同款）。
+     */
+    default void postponeStepRemindTime(IWorkflowStepRecord stepRecord, Timestamp newRemindTime) {
+        stepRecord.setRemindTime(newRemindTime);
         saveStepRecord(stepRecord);
     }
 

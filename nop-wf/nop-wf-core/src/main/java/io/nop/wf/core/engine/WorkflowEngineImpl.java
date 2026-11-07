@@ -996,6 +996,18 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
                     throw e;
                 long delay = computeRetryDelay(retry, attempt);
                 if (delay > 0) {
+                    // W-12（CRA 8.48 R4-08，MA-22 裁定 F）：活动事务上下文中延迟等待降级不重试——
+                    // Thread.sleep 内联于请求事务（连接/行锁全程持有、不可取消）为更劣形态；
+                    // 显式 WARN 留痕后抛原业务异常（定时器异步退避否决——2497 §七 timer 只触发
+                    // 约束以「不新增定时器面」守约落款；事务检测经 IWorkflowStore 接口投影，
+                    // txnGroup=null 时由 DaoWorkflowStore 解析 wf 实体 querySpace）
+                    if (wfRt.getWf().getStore().hasOpenedTransaction(null)) {
+                        LOG.warn("nop.wf.retry-degraded-in-transaction:wfName={},wfId={},stepName={},maxRetryCount={}; "
+                                        + "step retry delay skipped inside an open transaction "
+                                        + "(retry semantics require a non-transactional context)",
+                                step.getWfName(), step.getWfId(), stepModel.getName(), maxRetryCount);
+                        throw e;
+                    }
                     try {
                         Thread.sleep(delay);
                     } catch (InterruptedException ie) {
@@ -1032,10 +1044,13 @@ public class WorkflowEngineImpl extends WfActorAssignSupport implements IWorkflo
             return 0;
         if (retry.isExponentialDelay()) {
             delay = delay * (1L << Math.min(attempt, 30));
-            int maxRetryDelay = retry.getMaxRetryDelay();
-            if (maxRetryDelay > 0)
-                delay = Math.min(delay, maxRetryDelay);
         }
+        // W-12（CRA 8.48 R4-08，MA-22 裁定 F）：封顶统一对固定 delay 与 exponential 两分支生效
+        //（对齐 task 侧 RetryPolicy 两分支均封顶先例——修复前固定 delay 路径不应用 maxRetryDelay）；
+        // maxRetryDelay<=0 维持不封顶（未配置语义，存量长退避行为零变更——E5 显式声明）
+        int maxRetryDelay = retry.getMaxRetryDelay();
+        if (maxRetryDelay > 0)
+            delay = Math.min(delay, maxRetryDelay);
         return delay;
     }
 

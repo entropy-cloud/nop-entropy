@@ -1,0 +1,19 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- CRA 8.48 R4-08 W-04（MA-11 裁定 A）/C10-002 红④ 腿2：global×自递归 call-task（C2-011
+         路径 A）——同名任务注册表键同为 taskName:main；外层持 permit 后子任务 main 同 key
+         嵌套获取。maxConcurrency=2 使子任务 tryAcquire 成功后命中 inherited 检测；
+         timeout=2000 限定 pre-fix 缺陷形态的递归深度（permit 池在深度 2 耗尽即超时失败） -->
+    <steps>
+        <sequential name="main" timeout="2000">
+            <throttle global="true" maxConcurrency="2" maxWait="100"/>
+            <steps>
+                <call-task name="callSelf" taskName="test/r408-throttle-selfcall"/>
+            </steps>
+        </sequential>
+    </steps>
+    <output name="RESULT">
+        <source>
+            return "OK"
+        </source>
+    </output>
+</task>

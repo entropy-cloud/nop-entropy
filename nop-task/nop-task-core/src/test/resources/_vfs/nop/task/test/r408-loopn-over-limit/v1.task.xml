@@ -1,0 +1,25 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- CRA 8.48 R4-08 W-10（MA-18 裁定 D）红⑩：loopN 迭代数超上界运行期拒绝
+         （begin=0,end=6,step=1 → floor(6/1)+1=7 次迭代；测试将 max-loop-count 设为 5） -->
+    <steps>
+        <loop-n name="test" varName="a" beginExpr="0" endExpr="6">
+            <steps>
+                <xpl name="bodyStep">
+                    <source>
+                        return a;
+                    </source>
+                </xpl>
+            </steps>
+            <output name="RESULT">
+                <source>
+                    return 'OK'
+                </source>
+            </output>
+        </loop-n>
+    </steps>
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

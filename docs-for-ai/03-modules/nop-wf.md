@@ -65,7 +65,15 @@ due/remind 扫描以 **DB 条件 UPDATE 抢占**为事前 fencing：`NopWfStepIn
 
 ### 扫描分批与毒步骤收敛
 
-due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推进（无全量载入），单轮扫描受时间预算约束；键 `nop.wf.scheduler.scan-batch-size`（缺省 500，`<=0` 装配期 fail-fast）、`nop.wf.scheduler.scan-time-budget-ms`（缺省 30000，`<0` fail-fast，`0`=单批即止）。due action 执行失败的毒步骤按指数退避推进 dueTime（`now + min(60s × 2^n, 1h)`）退出本轮扫描集，扫描集有界收敛；**`dueTime` 兼作「下次重试时间」字段（退避记账载体）——显式失败计数字段/隔离标记/due-backlog gauge 等毒步骤治理本体归后续 R4-08 批，消费同一字段语义**。
+due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推进（无全量载入），单轮扫描受时间预算约束；键 `nop.wf.scheduler.scan-batch-size`（缺省 500，`<=0` 装配期 fail-fast）、`nop.wf.scheduler.scan-time-budget-ms`（缺省 30000，`<0` fail-fast，`0`=单批即止）。due action 执行失败的毒步骤按指数退避推进 dueTime（`now + min(60s × 2^n, 1h)`）退出本轮扫描集，扫描集有界收敛；**`dueTime` 兼作「下次重试时间」字段（退避记账载体）**。
+
+**remind 半区退避与扫描观测（plan 2541 W-01，MA-06 残留面裁定 E）**：remind listener 执行失败同样按指数退避推进 `remindTime`（`now + min(60s × 2^n, 1h)`，直发限定列集 UPDATE）**持久化退出工作集**（与 due 半区收敛语义等价）；`remindTime` 的引擎侧唯一写入点=scanner 退避推进（业务侧写入仍可注入扫描集）。due 扫描观测：gauge `nop.wf.scheduler.due-scan-scanned`（最近一轮消费条数）/`nop.wf.scheduler.due-scan-failures`（最近一轮失败条数）。`dueTimeExpr` 配置存在而 `dueAction` 缺失的步骤在扫描期 WARN 显式化（每轮一次——部署盲区/VFS 热更新漂移可见；不做模型加载期硬失败）。测试锚点：`nop-wf-scheduler` `TestCraR408ScannerRemindBackoff`。
+
+**批量转办请求级上界（plan 2541 W-02，MA-07 裁定 D）**：`transferActors` 按批取 `maxBatch+1` 条发现超限即 typed 拒绝（`ERR_WF_TRANSFER_BATCH_EXCEED`，不静默截断）——键 `nop.wf.transfer.max-batch`（缺省 200，`<=0` typed 配置错误）；查询走 `findActivatedStepsByOwner` 四参游标分页重载（stepId 升序 + 游标谓词；三参全量形态保留兼容）。部分成功语义（`successCount`+`failedItems`）保留。测试锚点：`nop-wf-core` `TestCraR408TransferAndRetry`。
+
+**wf step retry 语义（plan 2541 W-12，MA-22 裁定 F）**：`computeRetryDelay` 对固定 delay 与 exponential 两分支统一应用 `maxRetryDelay` 封顶（对齐 task 侧 RetryPolicy）；`maxRetryDelay<=0` 维持不封顶（未配置语义，存量长退避零变更）。**活动事务上下文中延迟等待降级不重试**——事务内 sleep 持连接/行锁为更劣形态，检测到已开启事务时显式 WARN（`nop.wf.retry-degraded-in-transaction`）后抛原业务异常（事务检测经 `IWorkflowStore.hasOpenedTransaction` 接口投影，DaoWorkflowStore 以 ORM querySpace 实测）；升级注记：存量依赖事务内重试的模型升级后该场景改为显式失败。测试锚点：`TestCraR408TransferAndRetry`（封顶两分支 + 事务降级 execCount 断言）。
+
+**扫描 job 部署盲区声明（plan 2541 W-01(d)）**：due/remind 扫描由调度 job 驱动，**该 job 缺省 disabled**——未启用扫描 job 的部署中 due/remind 扫描零执行（毒步骤退避/gauge/自动 dueAction 均不生效）。启用扫描 job 为运维动作；部署时若依赖到期自动推进，须确认扫描 job 已按 cron 配置启用。
 
 ## 源码锚点
 
@@ -75,7 +83,8 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 | 引擎（五站点条带锁消费点） | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/engine/WorkflowEngineImpl.java` |
 | store 接口（`withWfLock`/`tryClaimScanLease` 契约） | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/store/IWorkflowStore.java` |
 | store 实现（64 槽锁体/条件 UPDATE 抢占/分批查询族） | `nop-wf/nop-wf-dao/src/main/java/io/nop/wf/dao/store/DaoWorkflowStore.java` |
-| 调度扫描器（fencing 接线/分批/退避） | `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java` |
+| 调度扫描器（fencing 接线/分批/退避/remind 退避/gauge） | `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java` |
+| 转办批量配置键 | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/WfConfigs.java` |
 
 ## 相关文档
 

@@ -282,4 +282,15 @@ public interface NopWfCoreErrors {
     ErrorCode ERR_WF_APPROVAL_FLOW_ACTIVE_LOCK = define("nop.err.wf.approval-flow-active-lock",
             "实体绑定的审批流尚未结束，不允许绕过工作流直接修改审批状态: wfId={wfId},bizObjName={bizObjName},bizObjId={bizObjId}",
             ARG_WF_ID, ARG_BIZ_OBJ_NAME, "bizObjId");
+
+    // plan 2541 W-02（1.5-MA-07，裁定 D）：批量转办请求级上界——分页消费发现超限即 typed
+    // 拒绝（不静默截断：截断外步骤被静默滞留比全量载入更危险）
+    String ARG_MAX_BATCH = "maxBatch";
+
+    ErrorCode ERR_WF_TRANSFER_BATCH_EXCEED = define("nop.err.wf.transfer-batch-exceed",
+            "批量转办待处理步骤数超过请求级上限: ownerId={ownerId},maxBatch={maxBatch}",
+            ARG_OWNER_ID, ARG_MAX_BATCH);
+
+    ErrorCode ERR_WF_INVALID_TRANSFER_CONFIG = define("nop.err.wf.invalid-transfer-config",
+            "Invalid workflow transfer config: {configName}={configValue}", ARG_CONFIG_NAME, ARG_CONFIG_VALUE);
 }

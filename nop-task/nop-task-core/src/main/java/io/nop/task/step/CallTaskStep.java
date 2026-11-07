@@ -14,6 +14,7 @@ import io.nop.task.ITaskFlowManager;
 import io.nop.task.ITaskRuntime;
 import io.nop.task.ITaskStepRuntime;
 import io.nop.task.TaskStepReturn;
+import io.nop.task.utils.TaskStepHelper;
 import jakarta.annotation.Nonnull;
 
 import java.util.Set;
@@ -93,6 +94,13 @@ public class CallTaskStep extends AbstractTaskStep {
         for (String name : inputNames) {
             subRt.getEvalScope().setLocalValue(name, scope.getValue(name));
         }
+
+        // W-04（CRA 8.48 R4-08，MA-11 裁定 A）：跨任务链 global throttle 持有键传播——子任务经
+        // newChildRuntime 产生独立 runtime（无父引用），重入检测以 inherited-keys 显式传递
+        // （taskName 限定键，与注册表键形态一致；resume 重建的子任务 runtime 同样回填）。
+        // 仅 global 语义键参与（非 global 信号量为 taskRt attribute 私有，跨任务不共享池）
+        subRt.setAttribute(TaskStepHelper.ATTR_THROTTLE_INHERITED_KEYS,
+                TaskStepHelper.snapshotInheritedThrottleKeys(stepRt));
 
         return task.execute(subRt, outputNames);
     }

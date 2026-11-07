@@ -357,16 +357,19 @@ public class TaskStepExecution implements ITaskStepExecution {
                     return ret;
                 }
             });
-        } catch (Exception e) {
+        } catch (Throwable t) {
+            // W-06（CRA 8.48 R4-08，MA-13 裁定 B / C8-016 矩阵腿 ii）：sync 出口 catch 收宽为
+            // Throwable——同步抛出的 Error 亦进 driveStepFailure 既有通道（meter/seam cleanup/
+            // 终态 driver 对 Error 可达；Error 原样传播见 driveStepFailure 内 W-06 passthrough）
             LOG.info("nop.task.step.run-fail:usedTime={},taskName={},taskInstanceId={},stepPath={},runId={},nextStepNameOnError={},loc={}",
                     CoreMetrics.currentTimeMillis() - beginTime, taskRt.getTaskName(), taskRt.getTaskInstanceId(),
-                    stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), e);
+                    stepRt.getStepPath(), stepRt.getRunId(), nextStepNameOnError, step.getLocation(), t);
 
             if (meter != null)
                 metrics.endStep(meter, false);
 
             // plan 364 [维度02-02]：sync 出口失败驱动统一（与 async 出口共用 driveStepFailure）
-            return driveStepFailure(stepRt, taskRt, parentScope, e);
+            return driveStepFailure(stepRt, taskRt, parentScope, t);
         }
     }
 
@@ -400,6 +403,12 @@ public class TaskStepExecution implements ITaskStepExecution {
         stepRt.getState().setStepStatus(_NopTaskCoreConstants.TASK_STEP_STATUS_FAILED);
         capturePersistVars(stepRt);
         saveTerminalStateIfDone(stepRt);
+
+        // W-06（CRA 8.48 R4-08，MA-13 裁定 B / C8-016 矩阵腿 ii）：Error 不经 adapt 包装、
+        // 不入 nextOnError 错误交接（致命错误转业务失败禁选）——终态 driver/meter 已在上方
+        // 执行，Error 原样传播（防 OOM/SOE 期再分配；取消分类逻辑零改动——Error 非 cancel 类）
+        if (err instanceof Error)
+            throw (Error) err;
 
         if (nextStepNameOnError != null)
             return buildErrorResult(stepRt, parentScope, err);

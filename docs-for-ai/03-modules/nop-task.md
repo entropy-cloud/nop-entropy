@@ -31,6 +31,9 @@
 - **`secret` 标记脱敏契约（plan 2380）**：task 模型的 `<input>`/`<output>` 属性支持 `secret="true"`——`DaoTaskStateStore` 序列化落库（taskInputs/remark/stateBeanData/errorBeanData 五锚点）时按声明名集递归排除同名键（任意层级、宁过滤勿漏）。语义要点：①无 secret 声明的任务落库行为字节级零变化；②**secret 属性不持久化 → 中断恢复（resume）时该属性不可用**（输出可由步骤体重算的才适合标记）；③过滤失败的异常路径 fail-open 返回原文（resume 数据完整性优先，warn 可见）；④落库加密（encrypted-at-rest）为正交补充手段，平台不翻 persist 缺省、不内置加密。
 - 任务实例表族**无租户列**（tenantId/namespaceId）：多租户场景的行级隔离需应用层自行过滤（数据权限按租户过滤对本模块不可下推）。
 - `global="true"` 的限流器/信号量以 `taskName:key` 为共享单元，**刻意跨租户共享**（一个租户的高频执行会消耗同名任务的全局限额）。注册表为强引用，plan 364 [05-04] 的「永不驱逐」边界之上已落**键空间治理**（plan 2514 MA-08）：entry 持 `lastAccess`，逐出为同 key 复访时内联执行（空闲超阈且 permits 满额才逐出，permit 池不分裂；无独立清扫位/无后台线程）；键 `nop.task.global-gate.idle-evict-ms`（缺省 300000）、`nop.task.global-gate.max-entries`（缺省 10000，超限周期 WARN + 渐进收敛，冷 key 驻留 ≤ 历史取值域）、gauge `nop.task.global-gate.registry-size`。**旧容量键 `nop.task.max-global-rate-limiters` / `nop.task.max-global-semaphores` 已退役**（定义保留、主代码不再引用）。动态 keyExpr（如 `${input.*}` 直通）为合法用法，受上述逐出治理约束；包络 fail-fast 面 = 配置负值/非法值装配期拒绝。
+**配置固化语义（plan 2541 W-03，MA-10 裁定 A）**：global 闸门的限流参数（requestPerSecond/maxConcurrency/maxWait）**变更需重启生效**——模型热更新不触注册表（cacheKey 无版本维度，钩子清除分支已裁定否决），首配置固化后同 key 二次配置不同值时旧参数继续生效；同 key 二次配置不同值触发「配置固化」告警（`nop.task.global-gate-config-frozen:registry=rate-limiter/semaphore`），告警全局周期化（60s 间隔，rate-limiter 与 semaphore 两侧对称）。测试锚点：`nop-task-core` `TestCraR408ThrottleGate`（frozen WARN 周期化 + semaphore 对称告警钉）。
+
+**throttle 重入禁用（plan 2541 W-04，MA-11 裁定 A）**：同一执行链对同一 throttle key 的嵌套获取（显式共享 keyExpr 嵌套、call-task 自递归同名任务、call-step 同 stepRt 二次进入）**一律运行期确定性硬失败**（`ERR_TASK_STEP_CONFIG_INVALID` 族）——非重入信号量按深度耗 permit 的嵌套从未是合法契约，「有意嵌套限流」不支持；fork 兄弟分支并发同 key 为合法并发不误报（held 键集按分支隔离）。检测时点 = permit 获取成功之后（不误报合法并发兄弟），held 键移除与 permit 归还同点成对。**升级注记：存量模型若依赖共享 key 嵌套，升级后运行期确定性报错，须改用不同 key 或移除内层 throttle**。maxConcurrency=1 时内层在获取处以既有超时失败（信号量语义正确呈现，非缺陷）。测试锚点：`TestCraR408ThrottleGate`（C10-002 三缺省形态 + 合法并发兄弟腿）。
 
 **并行语义（plan 364 [03-06]**）：`parallel`/`fork`/`fork-n`/`graph` 只做 promise 聚合——子步骤默认在调用线程内联串行执行，仅当子步骤显式配置 `executor` 时才提交线程池真正并行。把耗时同步步骤放入 `parallel` 而不配 executor 不会获得并行加速。
 
@@ -160,6 +163,14 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 
 **`sync` × `executor` 组合构建期禁止（plan 2514 MA-03）**：`sync="true"` 与 `executor` 同步配置为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` 族，与上述校验链同位）——sync 包装（外层，调用线程阻塞等待）× executor 包装（内层，池上执行）同池嵌套时池饱和即全体永久互等。**部署期行为变更：存量模型若存在该组合，升级后装配即 fail-fast，须先移除组合再升级**（无静默兼容降级）。`sync` 等待本身有界：取消 token 可唤醒，时限键 `nop.task.step.sync-wait-timeout-ms`（缺省 600000，`0`=不限时仅取消唤醒，负值装配期 fail-fast），超时显式抛错。
 
+**throttle 参数校验（plan 2541 W-05，MA-12 裁定 A）**：`<throttle>` 节点存在时 `maxConcurrency<=0` / `maxWait<0` 构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` 同码同位——对齐 timeout/rateLimit 校验链）。**升级注记：存量模型非法值升级后装配即 fail-fast，须先修正再升级。**
+
+**运行期表达式上界（plan 2541 W-09/W-10，MA-16/MA-18 裁定 B/D）**：`sleep` 时长、`fork-n` count、`loop-n` 迭代数为运行期求值表达式（构建期不可判定），超上界在执行期 typed 拒绝（`ERR_TASK_STEP_CONFIG_INVALID` 族）——键：`nop.task.step.max-sleep-ms`（缺省 600000）、`nop.task.step.max-fork-count`（缺省 1000，fork-n 预分配同步改增量消除 OOM 通道）、`nop.task.step.max-loop-count`（缺省 10000，迭代数公式=floor(|end-begin|/|step|)+1 含端点；负 step 反向计数合法语义保留，int 边界回绕运行期兜底硬失败）。count<=0/sleep<=0 维持既有 no-op 语义不拒绝。**长时等待指引：优先用 `<delay>`（异步释放线程）；`<sleep>` 为同步轮询占线程形态（100ms 粒度），仅限短时等待。**
+
+**取消/清理契约（plan 2541 W-06/W-07，MA-13/MA-14 裁定 B）**：①步骤包装层的同步抛出边界为 `catch(Throwable)`——Error（OOM/StackOverflowError 等致命错误）不吞不包装、原样传播，且 permit 归还/promise 终结/终态 driver 对 Error 同样可达（修复前 Error 泄漏 permit → 该 key 永久全拒、executor/runOnContext 回调 promise 悬挂）。②`maxConcurrency` 保护的是步骤**进入并发度**，不是 executor 线程占用上界（winner 终结即归还 permit——早释为裁定语义；僵尸 body 的线程占用由池自身 max 配置承接）。③**同步体必须自行响应 cancel token 或自带超时**——不配合取消的同步步骤体会钉死调用线程直到自身完成；timeout 竞速任何 winner 完成路径后向 body seam 施加协作式取消信号（不引入中断式取消），延迟重试段接 cancel token（cancel/timeout 触发时延迟载体上的步骤体不执行）。测试锚点：`nop-task-core` `TestCraR408ErrorBoundaryLifecycle`（C10-013 Error 注入三断言一套 + 幽灵 body/延迟撤回行为腿）。
+
+**step cleanup 扩展点并发契约（plan 2541 W-11，MA-20 裁定 C）**：`ITaskStepRuntime.addStepCleanup` / `runStepCleanups` 为无锁并发安全（`ConcurrentLinkedQueue` + 单消费者 drain）——生产者与 drain 可并发，已提交的 cleanup 恰执行一次。
+
 **延迟重试执行载体（1.5-C4-001/MA-04，plan 2498）**：`<retry>` 延迟轮次采用「定时器只触发 + 载体执行」形态——调度器（未注入 scheduledExecutor 时的回退面为平台 globalTimer）仅承载延迟唤醒，重试步骤体与完成回调链（含 `saveState` 簿记）在步骤显式 `executor` 指定的池执行；未配置 executor 时回落平台 `globalWorker` 池。**重试业务体不在共享 globalTimer 定时器线程执行**，且 `executor` 隔离配置对延迟路径真实生效（与首次尝试的 executor 包装同一池语义）。测试锚点：`nop-task-core` `TestTaskStepHelperRetryDelayOffload_C4_001`（延迟体/簿记线程断言 worker 非 timer；显式 executor 池隔离钉）。
 
 | step 类型 | 说明 | 适用 |
@@ -278,7 +289,7 @@ nop-task 与 nop-wf 是**两个相互独立的引擎**。nop-wf 并非基于 nop
 | xbiz 绑定属性 | `nop/schema/biz/xbiz.xdef`（`BizActionModel.task:name/task:version`） |
 | 管理器 | `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskFlowManagerImpl.java` |
 | 状态监视器（SUSPENDED 原子化/四终态 driver） | `nop-task/nop-task-core/src/main/java/io/nop/task/impl/TaskImpl.java` |
-| step 装配校验链（sync×executor fail-fast） | `nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskStepEnhancer.java` |
+| step 装配校验链（sync×executor fail-fast + throttle 参数校验） | `nop-task/nop-task-core/src/main/java/io/nop/task/builder/TaskStepEnhancer.java` |
 | step 接口 | `nop-task/nop-task-core/src/main/java/io/nop/task/ITaskStep.java` |
 | 事务 decorator | `nop-task/nop-task-ext/src/main/java/io/nop/task/ext/dao/TransactionTaskStepDecorator.java` |
 | xlib 例子 | `nop-task/nop-task-core/src/main/resources/_vfs/nop/task/xlib/task.xlib` |

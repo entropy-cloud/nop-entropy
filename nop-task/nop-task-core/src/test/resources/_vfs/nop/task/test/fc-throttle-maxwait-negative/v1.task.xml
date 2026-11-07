@@ -1,0 +1,16 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <!-- CRA 8.48 R4-08 W-05（MA-12 裁定 A）红⑤：throttle.maxWait<0 装配期硬失败 -->
+    <steps>
+        <xpl name="step1">
+            <throttle maxConcurrency="2" maxWait="-1"/>
+            <source>
+                return "OK";
+            </source>
+        </xpl>
+    </steps>
+    <output name="RESULT">
+        <source>
+            return RESULT
+        </source>
+    </output>
+</task>

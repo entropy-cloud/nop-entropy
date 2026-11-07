@@ -1,9 +1,12 @@
 package io.nop.wf.scheduler;
 
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
+import io.nop.commons.metrics.GlobalMeterRegistry;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.orm.IOrmTemplate;
@@ -30,6 +33,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * 到期/提醒任务扫描器。
@@ -58,6 +63,14 @@ public class WfTaskScanner {
      * 只损退避精度不损收敛性。
      */
     static final int FAIL_COUNT_MAP_CAP = 10_000;
+
+    // W-01(b)（CRA 8.48 R4-08，MA-06 残留面裁定 E / C8-015 协同半面最小落地）：due 扫描
+    // 观测 gauge——最近一轮消费条数/失败条数。载体为静态 AtomicLong（扫描器生产形态为单例
+    // bean；多实例测试共享载体），注册以静态守卫防 Micrometer 同 id 重复注册。
+    // MA-09 全量观测治理归 R-G 零触碰（本两枚不扩 stats 面）
+    private static final AtomicLong DUE_SCAN_SCANNED = new AtomicLong();
+    private static final AtomicLong DUE_SCAN_FAILURES = new AtomicLong();
+    private static final AtomicBoolean GAUGES_REGISTERED = new AtomicBoolean();
 
     private IWorkflowStore workflowStore;
     private IWorkflowManager workflowManager;
@@ -108,7 +121,24 @@ public class WfTaskScanner {
             throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_SCHEDULER_CONFIG)
                     .param(NopWfCoreErrors.ARG_CONFIG_NAME, "nop.wf.scheduler.scan-time-budget-ms")
                     .param(NopWfCoreErrors.ARG_CONFIG_VALUE, getScanTimeBudgetMs());
+        registerScanGauges();
         resolveNodeId();
+    }
+
+    /**
+     * W-01(b)（MA-06 残留面裁定 E）：due 扫描 backlog gauge 注册（静态载体一次注册）。
+     * 命名沿 2514 gauge「前缀.对象.指标」纪律。
+     */
+    private void registerScanGauges() {
+        if (GAUGES_REGISTERED.compareAndSet(false, true)) {
+            MeterRegistry registry = GlobalMeterRegistry.instance();
+            Gauge.builder("nop.wf.scheduler.due-scan-scanned", DUE_SCAN_SCANNED, AtomicLong::get)
+                    .description("Steps consumed by the most recent due scan round (plan 2541 W-01 MA-06)")
+                    .register(registry);
+            Gauge.builder("nop.wf.scheduler.due-scan-failures", DUE_SCAN_FAILURES, AtomicLong::get)
+                    .description("Failed steps in the most recent due scan round (plan 2541 W-01 MA-06)")
+                    .register(registry);
+        }
     }
 
     private static <T> T cfg(IConfigReference<T> ref) {
@@ -173,6 +203,9 @@ public class WfTaskScanner {
         Map<String, Integer> failCounts = new HashMap<>();
         Timestamp cursor = null;
         int scanned = 0;
+        // W-01(b)（MA-06 残留面裁定 E）：最近一轮 due 扫描观测（每轮重置）
+        DUE_SCAN_SCANNED.set(0);
+        DUE_SCAN_FAILURES.set(0);
 
         while (true) {
             if (System.currentTimeMillis() >= deadline) {
@@ -187,6 +220,7 @@ public class WfTaskScanner {
             for (IWorkflowStepRecord stepRecord : batch) {
                 scanDueTask(stepRecord, failCounts);
                 scanned++;
+                DUE_SCAN_SCANNED.incrementAndGet();
             }
 
             if (batch.size() < batchSize)
@@ -221,8 +255,14 @@ public class WfTaskScanner {
             try {
                 dueAction = getDueAction(stepRecord);
                 if (dueAction == null || dueAction.isBlank()) {
-                    LOG.debug("nop.wf.scheduler.skip-due-task-without-due-action:wfId={},stepId={}",
-                            stepRecord.getWfId(), stepRecord.getStepId());
+                    // W-01(c)（CRA 8.48 R4-08，MA-06 残留面裁定 E）：dueTimeExpr 配置存在而
+                    // dueAction 缺失——VFS 热更新漂移路径/部署盲区显式化（WARN 周期性语义：每轮
+                    // 该步骤一次，量级受分批上界约束；否决硬失败——模型加载期校验触批外模块且
+                    // 存量升级破坏风险真实，缺 dueAction 步骤本身无副作用）
+                    LOG.warn("nop.wf.scheduler.skip-due-task-without-due-action:wfId={},stepId={},stepName={}; "
+                            + "dueTimeExpr is configured but dueAction is missing - "
+                            + "the step will never be auto-driven, check the workflow model",
+                            stepRecord.getWfId(), stepRecord.getStepId(), stepRecord.getStepName());
                     return;
                 }
 
@@ -280,17 +320,24 @@ public class WfTaskScanner {
         LOG.warn("nop.wf.scheduler.due-task-backoff-postpone:wfId={},stepId={},failures={},backoffMs={},newDueTime={}",
                 stepRecord.getWfId(), stepRecord.getStepId(), failures, backoff, newDueTime);
         workflowStore.postponeStepDueTime(stepRecord, newDueTime);
+        // W-01(b)：最近一轮失败条数观测
+        DUE_SCAN_FAILURES.incrementAndGet();
     }
 
     /**
      * MA-05（裁定④）：remind 扫描主循环，与 due 半区同构同修（分批游标 + 时间预算）。
-     * 精度备注：remindTime 引擎侧无写入点（remind 半区当前恒空集），同构同修不豁免。
+     * 精度备注（W-01 更新，MA-06 残留面裁定 E）：remindTime 引擎侧唯一写入点=本类失败退避
+     * 推进（postponeFailedRemindTask）；业务侧写入仍可注入扫描集。remind 半区失败退避与
+     * due 半区语义等价（持久化推进退出工作集），remindTime 注入行为空集时退避自然空转。
      */
     void scanRemindTasksInCurrentSession() {
         int batchSize = getScanBatchSize();
         long budgetMs = getScanTimeBudgetMs();
         long deadline = budgetMs <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + budgetMs;
 
+        // W-01(a)（MA-06 残留面裁定 E）：remind 半区毒步骤连续失败轮次计数（与 due 半区
+        // failCounts 同构，有界 cap 同款）
+        Map<String, Integer> failCounts = new HashMap<>();
         Timestamp cursor = null;
         int scanned = 0;
 
@@ -305,7 +352,7 @@ public class WfTaskScanner {
                 break;
 
             for (IWorkflowStepRecord stepRecord : batch) {
-                scanRemindTask(stepRecord);
+                scanRemindTask(stepRecord, failCounts);
                 scanned++;
             }
 
@@ -323,7 +370,8 @@ public class WfTaskScanner {
      * incrementRemindCount 原子自增（DaoWorkflowStore 直发 COALESCE+1 UPDATE，消除
      * 双会话读-改-写丢失更新），不再经实体逐字段落盘。
      */
-    private void scanRemindTask(IWorkflowStepRecord stepRecord) {
+    private void scanRemindTask(IWorkflowStepRecord stepRecord, Map<String, Integer> failCounts) {
+        String stepKey = stepRecord.getWfId() + "/" + stepRecord.getStepId();
         String holderId = resolveNodeId() + ":" + UUID.randomUUID();
         Timestamp leaseUntil = new Timestamp(System.currentTimeMillis() + getScanLeaseMs());
         if (!workflowStore.tryClaimScanLease(stepRecord, holderId, leaseUntil)) {
@@ -337,14 +385,42 @@ public class WfTaskScanner {
             reminderListeners.forEach(listener -> listener.onRemind(step));
 
             workflowStore.incrementRemindCount(stepRecord);
+            // 成功路径退出失败计数（与 due 半区对称）
+            failCounts.remove(stepKey);
         } catch (Exception e) {
-            // 单条提醒失败（实例被删除、listener抛错）不中断整批；失败的记录不更新提醒计数，
-            // 下一轮扫描可重试
-            LOG.error("nop.wf.scheduler.remind-task-failed:wfId={},stepId={}",
-                    stepRecord.getWfId(), stepRecord.getStepId(), e);
+            // W-01(a)（CRA 8.48 R4-08，MA-06 残留面裁定 E）：单条提醒失败不中断整批，但不再
+            // 仅 LOG.error 滞留工作集每轮重扫——同构 due 半区毒步骤退避，remindTime 持久化推进
+            // 退出本轮扫描集（与 due 半区收敛语义等价；修复前失败记录不退出工作集、每轮重放 ERROR）
+            postponeFailedRemindTask(stepRecord, failCounts, stepKey, e);
         } finally {
             workflowStore.releaseScanLease(stepRecord, holderId);
         }
+    }
+
+    /**
+     * W-01(a)（MA-06 残留面裁定 E）remind 半区毒步骤退避：remindTime 推进
+     * now + min(60s × 2^n, 1h)（与 due 半区 postponeFailedDueTask 同构；退避载体=
+     * remindTime 持久化推进——真正退出扫描集，否决内存 failCounts-only 抑制分支）。
+     * 计数为扫描器内存同构 map（有界 cap=10000 整体清空 WARN 一次），重启归零按基准重启
+     * 退避，可接受。
+     */
+    private void postponeFailedRemindTask(IWorkflowStepRecord stepRecord, Map<String, Integer> failCounts,
+                                          String stepKey, Exception e) {
+        LOG.error("nop.wf.scheduler.remind-task-failed:wfId={},stepId={}",
+                stepRecord.getWfId(), stepRecord.getStepId(), e);
+
+        if (failCounts.size() >= FAIL_COUNT_MAP_CAP) {
+            LOG.warn("nop.wf.scheduler.remind-fail-count-map-cap-reached:cap={},map-cleared",
+                    FAIL_COUNT_MAP_CAP);
+            failCounts.clear();
+        }
+        int failures = failCounts.merge(stepKey, 1, Integer::sum);
+        long backoff = Math.min(BACKOFF_BASE_MS * (1L << Math.min(failures - 1, BACKOFF_MAX_SHIFT)), BACKOFF_MAX_MS);
+        Timestamp newRemindTime = new Timestamp(System.currentTimeMillis() + backoff);
+        // 失败退避路径显式可见（ERROR + 退避量留痕，非空 catch）
+        LOG.warn("nop.wf.scheduler.remind-task-backoff-postpone:wfId={},stepId={},failures={},backoffMs={},newRemindTime={}",
+                stepRecord.getWfId(), stepRecord.getStepId(), failures, backoff, newRemindTime);
+        workflowStore.postponeStepRemindTime(stepRecord, newRemindTime);
     }
 
     private String getDueAction(IWorkflowStepRecord stepRecord) {
