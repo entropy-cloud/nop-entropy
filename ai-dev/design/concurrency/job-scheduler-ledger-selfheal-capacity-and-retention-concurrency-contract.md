@@ -382,4 +382,4 @@ W-03 触及 :255-295 循环级（复查分流+顺延分支）+ :297-324（空集
 
 ## 评审记录
 
-- **设计评审 R1**（待独立 fresh session 只读评审——记录于本节与 plan 头部 Draft Review 行/对应日期 daily log，放行 Phase 2）
+- **设计评审 R1**（2026-11-07，agent_1e8b33f5 fresh session 只读 @ `bd7432c618`，live 抽验 ~150+ 锚点）：**PASS-with-revisions——0 Blocker + 2 Major + 8 Minor，放行 Phase 2**。三风险专项全部 PASS（裁定 A SUSPICIOUS 全空间推演[附 F-M1 null 轮语义矛盾勘正——取决策 2 不变式]/裁定 D fence 时序逐步重构+槽位承载论证[无双执行无双漏]/裁定 E 声明形态 MJ-1 兼容平凡成立+BF-1 硬边界自动满足+恢复否决充分）。M-1+m-1~m-8 九项 9/9 吸收落款（M-1 重写版经评审 git 亲证完全一致）。**F-M1**（裁定 A 决策 1/2 null 轮语义矛盾——采决策 2 不变式勘正，红③ 补可选腿）/**F-M2**（红② 默认「无闸门」断言不可红——红判据改挂软上限启用腿[配置>0+构造在途≥阈值→pre-fix 突破上限=红]，默认观察降格缺陷演示记录、默认禁用腿=双侧绿回归锚——plan :56 同步）——两项采证前已落盘。F-m1 ABS getters 锚漂移订正/F-m2 handleExecutionResult 锚订正/F-m3 §4.4 :179→:180 残余/F-m4 看门狗判定谓词 conflation 声明/F-m5 红③ 腿(i) 两相构造稳定化/F-m6 PAUSED 写路径载体点名/F-m7 计数重分类补明/F-m8 交界 commit 表述补全——随批落盘。K1–K8/BF-1~5 诚实性亲证（BF-1 第 17 文件触碰面扩登记诚实）。rule 14 合规+引用存在性 PASS。
