@@ -112,7 +112,19 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
         // Parallel-subtask guard: the shared UDF must be read by exactly one subtask,
         // otherwise every subtask would re-emit the whole directory (duplicates).
         if (!runEntered.compareAndSet(false, true)) {
-            return;
+            // CRA 8.45 R4-05 W-06 (1.3-C1-003): typed rejection, NOT a silent
+            // zero-event return. A loser inside the guard-held window (deployTask
+            // slot replacement does not wait for the old thread) used to end as a
+            // fake EOS and truncate a bounded-source recovery attempt — the guard
+            // must never translate a DETECTED concurrency anomaly into silent
+            // success (the same doctrine as the parent-family typed guards). The
+            // rejected thread never held the guard, so it enters no cleanup path
+            // and performs no reset; the in-flight run keeps ownership and the
+            // recovery path owns the retry (attempt-3 re-enters after attempt-1
+            // releases). Mirrors DebeziumCdcSourceFunction's run-entry guard form.
+            throw new StreamException(ERR_STREAM_STATE_ERROR).param(ARG_DETAIL,
+                    "run() re-entered while a previous run is still active — refusing silent "
+                            + "zero-event EOS (typed rejection, recovery path owns the retry)");
         }
         // Plan 2512 C6-007 (design adjudication 4): the runtime may reuse the same
         // source-function instance across region restarts, so a stale cancellation
@@ -155,7 +167,13 @@ public class DirectoryFileSourceFunction implements SourceFunction<String>,
      * (LF, CRLF and lone CR are all recognized; the fixture line format is ASCII —
      * one byte per character, matching the {@code userId,amount,eventTime} format).
      */
-    private void emitRemaining(File file, SourceContext<String> ctx) throws Exception {
+    /**
+     * CRA 8.45 R4-05 W-06 test seam (design B.2 seam ruling): widened from private
+     * to protected with zero logic change so a test subclass can hold the guard-held
+     * window deterministically (park AFTER the super call = reads done, finally
+     * reset not yet run).
+     */
+    protected void emitRemaining(File file, SourceContext<String> ctx) throws Exception {
         long cursor = currentCursor(file);
         if (cursor >= file.length()) {
             return;
