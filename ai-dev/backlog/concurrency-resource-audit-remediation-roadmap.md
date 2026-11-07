@@ -48,6 +48,35 @@
 - **P2 裁决通道**：P2 默认不在修复范围；7.1 逐项裁决为「修（in-scope）/ deferred（必须带 Why Not Blocking + successor 指针）」，结果写回 cra-index 台账。已确认 live 的 must-fix P2 不得降级 deferred。
 - **P3**：记录在审计报告，不立项。
 
+## 执行加速指导（分级仪式，2026-11-07 起）
+
+> 本节是本 roadmap 内部的执行效率指导，**不修改 AGENTS.md 与 plan guide 的任何硬规则**；冲突时以 AGENTS.md 为准。
+> 两条底线在任何等级下都**不可省略**：① 并发缺陷修复必须先红后绿（红用例或结构钉 + 变异验证至少抽一条链）；② plan 收口必须独立 fresh-session closure audit（禁止自审）。
+
+### 仪式分级
+
+修复 plan 按工单风险定级，按级套用仪式：
+
+- **全仪式（默认）**：改产品代码语义的 Fix 工单、跨模块改动、涉及 Protected Area。完整五 phase：起草 + R1 + R2 + 先红后绿实施 + 独立 closure audit。
+- **轻量通道**：同时满足①不改产品代码语义（纯测试加强、断言加固、sleep→deadline 轮询改造、声明面钉）、②单模块内、③不触 Protected Area 的工单束，可合并为：
+  - 起草 + 单轮评审（R1 与 R2 合并为一次 fresh-session 评审）；
+  - 实施与 closure audit 仍分离，但 closure audit 只抽验 30% 锚点 + 全量 exit criteria 核对。
+- **声明面钉通道**：仅改文档声明、注释、LOG 语义、Javadoc 的工单（如 W-09/W-10 类），随宿主 Fix 工单同 diff 落地即可，不独立立项、不单独评审；在 plan 中以工单行登记 + closure audit 抽验一句即可。
+
+### 并行执行
+
+- 束内互不依赖（Deps 列互指为空）的工单允许并行 subagent 实施；共享文件（同一 Java 类、同一测试类）的工单必须串行，避免 diff 冲突。
+- 软依赖批次（如 8.46→8.47）在评审资源允许时可合并为一个 plan 立项，R1/R2/closure audit 的固定开销一次覆盖两批；合并须在 plan 标题与 roadmap 两行状态中互相 cross-reference。
+
+### 证据写作压缩
+
+- roadmap 状态单元格只写：状态 + plan 指针 + 一行关键结论（如「10 工单全修，closure audit APPROVED，详见 plan 2539」）。勘误、三方互证、变异链 md5、测试签名等细粒度证据一律留在 plan 文件与审计归档内，roadmap 不复写。
+- owner doc 落账保持现状（这是 owner doc 的职责），但同一事实只在一处展开，其余位置用指针。
+
+### 效果基线
+
+以 plan 2539（全仪式、串行、重证据写作）为基线对照；首个按本节执行的批次应在 plan 中记录耗时对比，连续两批无显著改善则本节回炉。
+
 ## Work Item Status
 
 > **这是唯一的动态状态块。仅在此处更新状态。**
