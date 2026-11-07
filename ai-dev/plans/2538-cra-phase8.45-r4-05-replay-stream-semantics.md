@@ -192,7 +192,7 @@ Exit Criteria:
 
 ### Phase 2 - 10 工单实现 + 回归测试（按组 A–C）
 
-Status: planned
+Status: in progress〔2026-11-07 实施启动〕
 Targets: nop-stream-flow（3 main+测试树）+ nop-stream-sql（3 main+测试树）+ nop-stream-fraud-example（2 main+测试树）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（10 工单均为已确认 live 缺陷——merge-adjudication §2.1/§2.2 判级权威，不得写成 Feature；C10-005 缺保护收口随 W-02/C10-008 搭车随 W-03/W-10 为已确认伴生面随批同 diff 收敛）、`Proof`（工单测试 + E2 泛在钉）
