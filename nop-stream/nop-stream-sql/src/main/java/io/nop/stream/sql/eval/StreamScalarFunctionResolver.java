@@ -97,9 +97,23 @@ public class StreamScalarFunctionResolver implements IScalarFunctionResolver, Au
         return new ArrayList<>(functions.keySet());
     }
 
+    /**
+     * CRA 8.45 R4-05 W-09 (1.3-C6-003): identity-guarded unbind of the static
+     * default. Only THIS instance being the registered default is unbound — a
+     * non-default instance's close is a legal lifecycle event (bean-container
+     * propagation, owner doc §3a) and must not touch someone else's registration.
+     * The unbind goes through {@link #setDefault(null)} so the rebinding WARN
+     * channel leaves the trail; late {@link #call} lookups afterwards hit the
+     * pre-existing null fail-fast (plan 2512 channel). Replacement does NOT
+     * propagate close: {@code setDefault(A → B)} leaves A untouched — ownership of
+     * closing A stays with A's registrant (the WindowedStreamImpl.setDefaultFactory
+     * precedent). Close is idempotent; re-registration after close is legal.
+     */
     @Override
     public void close() {
-        // no owned resources; subclass hook
+        if (defaultResolver == this) {
+            setDefault(null);
+        }
     }
 
     /** bootstrap hook — the app-beans bean registers itself as the compile-time default. */

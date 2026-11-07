@@ -28,6 +28,13 @@ import static io.nop.stream.core.exceptions.NopStreamErrors.ARG_DETAIL;
  *
  * <p>The column key is the LAST segment of a (possibly qualified) name, matching
  * {@code StreamSqlExprCompiler}'s compiled form.
+ *
+ * <p>CRA 8.45 R4-05 W-04 (1.3-MA-05) bound declaration for {@code GETTER_CACHE}: the
+ * entry universe is the set of record classes whose getters the SQL compiler resolves
+ * at compile time — one entry per class, insert-only, no eviction; the cache lives for
+ * the JVM/classloader domain. Rejected usage: dynamic classloader redeploy of record
+ * classes is a declared-unsupported scenario (stale entries would pin the old
+ * classloader); restarting the job's JVM is the sanctioned cache reset.
  */
 public final class RecordColumnAccess implements Serializable {
 
@@ -80,8 +87,22 @@ public final class RecordColumnAccess implements Serializable {
     }
 
     private static java.lang.reflect.Method getterFor(Class<?> clazz, String column) {
-        Map<String, java.lang.reflect.Method> getters =
-                GETTER_CACHE.computeIfAbsent(clazz, RecordColumnAccess::collectGetters);
+        // CRA 8.45 R4-05 W-08 (1.3-C3-005): two-phase lookup — the reflective
+        // introspection (collectGetters triggers lazy loading of parameter/return
+        // types) must never run while holding a ConcurrentHashMap bin lock (the
+        // method-reference callback form), or a class-loading lock inversion
+        // (JDK-8161372 family) becomes reachable. A miss computes OUTSIDE the lock
+        // and backfills with putIfAbsent; a concurrent double computation is
+        // idempotent (same public getter set) and the loser adopts the winner.
+        Map<String, java.lang.reflect.Method> getters = GETTER_CACHE.get(clazz);
+        if (getters == null) {
+            getters = collectGetters(clazz);
+            Map<String, java.lang.reflect.Method> existing =
+                    GETTER_CACHE.putIfAbsent(clazz, getters);
+            if (existing != null) {
+                getters = existing;
+            }
+        }
         return getters.get(column);
     }
 
