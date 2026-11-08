@@ -3,6 +3,7 @@
 > Plan Status: active
 > Last Reviewed: 2026-11-08
 > Draft Review R1: **PASS-with-revisions**（独立子 agent fresh session，只读 @ `7d97f12b3e`，57 次工具调用——**2 Blocker + 8 Major + 5 Minor**，全部随轮落盘：B-1 W-01 误标「2515 已闭合」被 `2515:80` 原文推翻→改 14 项全 Fix；B-2 C10-002/004/009 验收前置被误判为「无」→ 三宿主同 diff 入批；M 组：W-02 computeIfAbsent 需 api-core（改模块内载体）/W-03 缺孤儿分支恢复腿/W-07 缺 suppressed+恢复方向/W-10 接线验证不可满足（零生产调用方）/W-12 时长腿缺时钟 seam/W-13 无界重载=api 面决策/W-09 装载期需 BizModel（改运行期 depth）/零重开须含裁定②③⑥+5 项部分缓解钉须对基线先红。放行 Phase 1）
+> Design Draft Review R1（Phase 1 设计文档）: **PASS-with-revisions**（独立子 agent fresh session，只读 @ `3005ae8afa`，119 次工具调用——**2 Blocker + 9 Major + 6 Minor**，全部随轮落盘：B-1 W-06「未到终态一律 FAILED」会误判 KILLED/CONFIRM_SUCCESS → 父事务永不进 finished、反向摧毁 2515 裁定⑧ 清理链 → 改**逐状态结算表**（§3.1.6）；B-2 红⑥「折叠 CONFIRM_SUCCESS」在 2515 基线**不可复现**（裁定③ err==null 门控已阻断）→ 红⑥ 缺陷态红改为「后续分支零派发」（§4.1）；M1 W-05 只包 lambda 捕不到 `begin*Async()` 同步抛 → 外层 try + lambda try + `exceptionally` 三通道；M2 W-10 仅连续超时熔断不构成耗时有界 → 增单轮总时长预算；M3 W-03 腿2 缺方向筛/隔离且「变体B不可达」过强 → 复用 cancelAll/confirmAll + 残余窗诚实声明；M4 W-13 自调用事务传播 → 私有批助手 + 单事务显式裁定；M5 W-02 `synchronized(context)` 对 wrapper 上下文不互斥 → 锁 `getAttrs()` + 加包级 `instance(IContext)` 测试 seam；M6 W-04 `endDriving` 与「纪元只增」矛盾、缺条目语义未定义 → 显式「条目缺失=inactive」+ 不变式；M7 W-08 写侧无 seam 且 `nextCheckTime` 混源 → `nowForRead`/`nowForWrite` 双 seam；M8 W-01 非 UK 异常重读判据不可靠 → 非 UK 分支退为纯失败传播（不死信）；M9 plan Non-Goals 与 W-01= Fix 自相矛盾 → 本行下方 Non-Goals 已改。Minor m1 锚点 ~15 处漂移 + `fetchPendingRecords` 锚点错（改方法级锚点）/m2 depth 按 `(_callback)+$` 计/m3 批数口径 = 非空批/m5 C10-004 口径降为「保护力就位、生产接线缺位」/m6 错误码落 `TccCoreErrors`）
 > Source: roadmap 工作项 8.50（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` live :221，Status=**todo**；Owner Doc 列=`docs-for-ai/03-modules/nop-retry.md`；`docs-for-ai/03-modules/nop-tcc.md`；Deps=「batch-proposal.md §二 R4-10（14 项）；硬依赖 8.21——**8.21 已 done（plan 2515），硬依赖解除**，裁定①–⑩可引用为既有裁定（R2-12）；硬依赖 8.8（R1-07）」；Skill=none）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 :125 R4-10 行（14 finding ID / 模块 nop-retry+nop-tcc / 验证命令 `./mvnw test -pl nop-retry -am` / owner doc 两份 / **PA=无**）+ §二.5 :172 G17 组行「15 | R4-10（14）+ R4-32（C7-011）」；成员发现详情 = `ai-dev/audits/2026-10/2026-10-15-1400-deep-audit-nop-retry-nop-tcc-concurrency/`（C1-shared-mutable-state.md C1-002 :121/C1-004 :211；C1-round2.md C1-007 :13；C3-async-chains.md C3-008 :225/C3-009 :248/C3-010 :274；C6-round2.md C6-015 :57；C7-long-running.md C7-007 :225/C7-008 :252/C7-010 :299；C7-round2.md C7-014 :158/C7-015 :190；C8-backpressure.md C8-003 :83；C8-round2.md C8-013 :74）+ 判级权威 = 同目录 merge-adjudication.md §3.1（**14 项全 P2**）+ inventory-p2-c10.md §二 WI 1.6 节（C10 映射：C1-002→C10-005 / C1-004→C10-009 / C8-003→CL-005 同位点主处置 / C3-008→条件面捆绑 CL-004）+ cra-index live :402 **P2-G17 束行**（15 成员=14+C7-011；状态「修→R4+」=open）
 > Related: **plan 2515（completed @ 2026-10-31，closure audit APPROVED[agent_526666b9]）——同单元前批+零重开边界权威**：①**裁定① CAS 传播与补偿门控**（C3-008 接缝：2515 只封双驱动源 `future.cancel(true)` 已落，「弃链追踪本体」显式归 R4-10）；②**裁定④ A2 执行令牌语义**（C7-015 租约跨窗可引用）；③**裁定⑤ OVERWRITE 原子替换+代际号**（**C1-002 机制已由 2515 `replaceRecord`+deadletter 闭合**——本批 W-01 仅为核验登记，非重开）；④**裁定⑦ 终态化**（C7-003 僵尸终态化已落，C7-014 仅剩 per-record 批次隔离）；⑤**裁定⑧**（清理有界批删形态已提供 `removeCompletedRecords(...,batchSize)`，C8-003 剩余面=unbounded `cleanCompletedTransactions` 仍可达）。2515 Deferred 节明文「R4-10 成员（G17 十四项）…Successor Path: R4-10 批 plan（roadmap 8.50）」为本批承接依据。**零重开面为 2515 裁定①–⑨ 全部九条**（draft review R1-C3 勘误：初稿仅列①④⑤⑦⑧；②CAS 权威聚合/③终态写/⑥future 拓扑与簿记隔离三条直接压在 W-04/W-07/W-11 回归面上）。**既有裁定**（2515 裁定①④⑤⑦⑧ / plan 2502 R1-07 / merge-adjudication §3.1）仅引用不重建。
 > Protected Area 授权：批次 PA=「无」（batch-proposal R4-10 行授权列）——普通修复 plan（非 plan-first/ask-first）。站点面 = `nop-retry-engine`（RetryEngineImpl/RetryScannerImpl/RetryRecordStoreImpl）+`nop-retry-dao`（NopRetryPolicy）+`nop-tcc-core`（TccEngine/TccTransaction/TccRunner/TccTransactionRegistry/TccBranchTransaction）+`nop-tcc-dao`（TccRecordStore）+ 测试树 + 文档面。**零 orm 模型改动预设**（C7-007 时钟改用既有 `getDbEstimatedClock` 投影；C8-013 参数校验在 Java setter）；**零 `_` 生成物**；**零 xdef**；**零平台设施改动**（`DbEstimatedClock` 为既有投影只读引用）。
@@ -54,7 +55,7 @@
 
 ## Non-Goals
 
-- **不重开 plan 2515 已修面**（13 成员 + **裁定①–⑨ 全部九条**产物 + 既有钉族）；C1-002 仅核验不改码（若核验发现 2515 修复不完整则按 Fix 登记，但不得回改其裁定体裁）。
+- **不重开 plan 2515 已修面**（13 成员 + **裁定①–⑨ 全部九条**产物 + 既有钉族）；**C1-002（W-01）经 draft review R1-B1 与设计 R1 勘误确认为「部分缓解 + 本体归本批」，按 Fix 改码**（撤销初稿「仅核验不改码」表述）——改动限于 `handleBlockStrategy` 的 catch 分支分流，不回改 2515 裁定⑤ 的原子包络、代际号与 `replaceRecord` 本体。
 - **不做 C7-011 本体**（G17 第 15 成员——R4-32 墙钟批次单列；本批 W-08 的 tcc 侧时钟改用为独立面，不与 C7-011 的跨单元单调时钟注入合并）。
 - **不做 R4-32 全部墙钟注入**（本批 W-08 仅 tcc 期限/租约改 `getDbEstimatedClock`，不引入 IClock 平台注入）。
 - **不做 orm 模型改动 / 新列 / 新索引**（C8-003 分页依赖既有 beginTime 列）。
@@ -81,27 +82,27 @@ Non-Goals 所列全部；C7-011 与 R4-32 其余成员；2515 十三成员修复
 
 ### Phase 1 - 设计裁定文档（分组 A–D）+ 独立评审
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/design/concurrency/retry-tcc-compensation-ring-guard-and-scan-bound-concurrency-contract.md`（新建）
 
 - Item Types: `Decision`、`Proof`
 
-- [ ] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法），含：
-  - [ ] **既有裁定引用核对节**：2515 **裁定①–⑨ 全部九条**逐条核对落款（①C3-008 接缝/②CAS 权威聚合/③终态写/④A2 令牌/⑤OVERWRITE 原子替换+代际/**C1-002 本体归本批明文核对（2515:80）**/⑥future 拓扑与簿记隔离/⑦C7-003 终态化/⑧清理有界批删形态/⑨）+ 2502 R1-07 + 零重开清单
-  - [ ] **裁定 A 补偿链韧性域**（W-01/W-02/W-03/W-04/W-05/W-06/W-07）：**W-01 C1-002 OVERWRITE 输家 blockStrategy 分流唯一形态**（输家撞 UK 后按 blockStrategy 处理 vs 对 stale 行跳过死信——须与 2515 裁定⑤原子替换包络共存）+ **W-02 载体可行性裁决（draft review R1-C2：`IContext` 只有 get/set/removeAttribute，无原子 compute；api-core 改动=plan-first，故 `computeIfAbsent 式` 分支须改为模块内可行载体——`TccTransactionRegistry` 自身可加 synchronized 静态 holder，或文档钉「同 IContext 禁并发进入」；设计须明确选定一个并说明为何不动 api-core）** + put/restore 叠放语义 + **W-03 双腿完整裁决：①分支创建守卫 DB 复核形态（含 DB 读失败 fail-open/close 决策）；②「终态父事务下非终态分支」的对账/恢复入口形态（draft review R1-W03）** + 弃链 driving-epoch/abandoned 标记形态 + W-05 response==null 分支 + **`runBranch{Confirm,Cancel,Try}Async` 三处回调体是否都包 try/catch 的明确裁决** + **W-06 逐分支隔离 + 聚合前 DB 重载（防「折叠误报 CONFIRM_SUCCESS」——draft review R1-W06）** + W-07 **三件套：CANCELLING 落库有限重试 + 短路处业务异常 addSuppressed/LOG.error 保证据 + 「TRYING+全 TRY_SUCCESS 恢复默认方向」显式决策**
-  - [ ] **裁定 B 时钟与期限域**（W-08）：tcc 期限/租约 `getDbEstimatedClock` 投影唯一形态（含 expireTime 写入侧一致性推演与 DB 时钟回退语义）
-  - [ ] **裁定 C 扫描与批量上界域**（W-10/W-11/W-12/W-13/W-14）：**W-10 页内并行 vs 熔断二选一须给定缺省（不得二选一悬空）+ 接线验证替代口径（draft review R1-W10：`checkExpiredTransactions` 零生产调用方，C6-005 dormant/G19 批外——rule 23 改为「单元测试直调 + 生产接线可行性声明」）+ `fetchExpiredRecords` try/catch** + retry scanner per-record 隔离形态（含 W-11 剩余同步抛点 :364/:371 点名）+ **单轮批次数/时长上界键名与缺省（时长腿须指定可注入时钟/调度 seam，否则钉不可确定性——draft review R1-W12）** + **W-13 无界两参重载处置裁决（deprecate / 内部分页 / 保留但文档声明；禁改 api 签名）** + retry 参数校验范围与 fail-fast 时点 + 0 值/负值的存量升级注记
-  - [ ] **裁定 D 回调环护栏域**（W-09）：callbackPolicyId 链环检测唯一形态——**draft review R1-W09：装载期校验需 policy-save hook（nop-retry-service BizModel，不在本批 Scope），故须选定引擎侧运行期方案（payload 传 depth / idempotentId 后缀计数上限）+ depth 上限值 + 超限行为（拒孵/死信/失败）三件套明确**
-  - [ ] **裁定 E 附：红钉总表（红①–红⑭，红①=W-01…红⑭=W-14 一一对应）+ 零回退钉全列 + C10/CL 注记表**——**每条钉须指定可构造 seam（draft review R1-C5：红② Registry 需 `TccTransactionRegistry` 可测 holder、红⑩/红⑫ 时长腿需注入时钟/scheduler，无 seam 即不可确定性）；禁止 blanket「概率腿未命中诚实登记」兜底——仅真正并发竞速腿（红①）允许**
-- [ ] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后 Phase 2 方可启动
-- [ ] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 归 Phase 3）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] 设计文档落 `ai-dev/design/concurrency/`（最终状态写法），含：
+  - [x] **既有裁定引用核对节**：2515 **裁定①–⑨ 全部九条**逐条核对落款（①C3-008 接缝/②CAS 权威聚合/③终态写/④A2 令牌/⑤OVERWRITE 原子替换+代际/**C1-002 本体归本批明文核对（2515:80）**/⑥future 拓扑与簿记隔离/⑦C7-003 终态化/⑧清理有界批删形态[新增与 W-06 结算表的对齐条款]/⑨）+ 2502 R1-07 + 零重开清单
+  - [x] **裁定 A 补偿链韧性域**（W-01/W-02/W-03/W-04/W-05/W-06/W-07）：W-01 四分支判据（UK×重读身份 + 非 UK 纯失败传播）/ W-02 `synchronized(getAttrs())` + 包级 `instance(IContext)` seam + 条件恢复 / W-03 双腿（DB 复核 fail-close 三拒绝面 + 孤儿收敛复用批量助手 + 残余窗诚实声明）/ W-04 纪元双 API + 条目缺失=inactive 不变式 + 写点闸残余 / W-05 三通道兜底 + null 判空 / W-06 **逐状态结算表**（KILLED/CONFIRM_SUCCESS 为已结算）+ 逐分支隔离 / W-07 三件套（有限重试 + suppressed + 超时恢复默认 cancel）
+  - [x] **裁定 B 时钟与期限域**（W-08）：`nowForRead`(min)/`nowForWrite`(max) 双 seam、9 个调用点全覆盖、`nextCheckTime` 归写侧
+  - [x] **裁定 C 扫描与批量上界域**（W-10/W-11/W-12/W-13/W-14）：单轮总预算 + 连续超时熔断双上界 + 双计数 + protected seam / 显式 for 循环 per-record 隔离 / 批数与时长双上界（非空批口径 + 可覆写 `currentTimeMillis`）/ W-13 私有批助手 + 单事务显式裁定 / 参数 fail-fast 三面 + 存量升级注记
+  - [x] **裁定 D 回调环护栏域**（W-09）：`(_callback)+$` 尾部计数 + max-depth 缺省 3 + 拒孵三动作（ERROR/计数/return）
+  - [x] **裁定 E 附：红钉总表（红①–红⑭，一一对应）+ 零回退钉全列 + C10/CL 注记表**——每条钉指定可构造 seam；红①允「确定性分支腿为主 + 并发腿为辅」；**红⑥ 缺陷态红已按设计 R1-B2 改为「后续分支零派发」**（聚合严格化断言另记为直接调 `TccRunner.aggregate*` 的单元钉）
+- [x] 设计文档独立 draft review（独立子 agent，含想象性分析）通过后 Phase 2 方可启动 —— R1 PASS-with-revisions，2B+9M+6m 全落盘，设计文档已按全部条目修订，**0 Blocker**
+- [x] `No owner-doc update required`（本 Phase 仅设计文档；owner doc 归 Phase 3）
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
-- [ ] 设计文档存在、最终状态写法、含裁定 A–D+E 附且每项唯一预设分支 + 既有裁定引用核对节 + C1-002 已修核验在案
-- [ ] 独立 draft review 记录在案（0 Blocker）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 设计文档存在、最终状态写法、含裁定 A–D+E 附且每项唯一预设分支 + 既有裁定引用核对节 + C1-002 已修核验在案
+- [x] 独立 draft review 记录在案（0 Blocker）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 14 工单实现 + 回归测试（按组 A–D）
 
@@ -117,7 +118,7 @@ Targets: nop-retry-engine/dao + nop-tcc-core/dao + 测试树
 - [ ] 组 A' 合流：W-01（C1-002 OVERWRITE 输家 blockStrategy 分流）并入组 A 补偿链韧性域〔裁定 A；钉=红①〕
 - [ ] 回归测试（rule 25 + 红①–红⑭ 先红后绿/变异论证，落 `_tmp/red-green-ledger-2543.md`）；零回退钉核对（`TestTccCasPropagation_C10_003`/`TestTccLedgerCleanup_C10_007`/`TestTccLedgerHygiene_C7_005`/`TestTccStoreCasConflict_C10_003`/`TestTccTransactionEndStates`/`TestRetryScannerInsulation`/`TestRetryLedgerRetention_C7_001` 全绿）
 - [ ] **端到端验证**（rule 22）：≥1 条 tcc 补偿链端到端（异常→CANCELLING→分支补偿→终态）；≥1 条 retry 扫描端到端（积压→单轮上界→下一轮继续）
-- [ ] **接线验证**（rule 23）：十三项逐项断言修复真实被消费链调用
+- [ ] **接线验证**（rule 23）：十四项逐项断言修复真实被消费链调用（W-10 例外口径：单测直调 + 生产接线可行性声明，`checkExpiredTransactions` 现零生产调用方）
 - [ ] **无静默跳过**（rule 24）：新增分支显式失败/留痕；无空 catch/静默 return
 - [ ] 零触碰核对（git diff：orm/_/xdef/平台设施零改动；2515 产物面零重开）
 
