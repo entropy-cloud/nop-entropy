@@ -214,8 +214,9 @@ Completed: 2026-11-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: agent_518b3883-3b31-4006-a36a-41055816d452（独立 fresh session，只读 + 自行变异复核，133 次工具调用）
-- Audit Session: 首轮 **REJECTED — 2 Blocker / 1 Major / 2 Minor**，全部随收口闭环（见下「R1 发现处置」）；修复后本 session 复跑全部门禁与双聚合器验收。
+- Reviewer / Agent: agent_518b3883-3b31-4006-a36a-41055816d452（独立 fresh session；R1 133 次工具调用 / R2 34 次）
+- Audit Session: **R1 REJECTED — 2 Blocker / 1 Major / 2 Minor** → 全部修复 → **R2 APPROVED-with-corrections — 0 Blocker / 0 Major / 2 Minor**。R2 独立复现了全部关键变异（含旧失败模式已消失、KILLED 孤儿已结算、跨轮到达的第二孤儿可收敛、写侧 min/max 混源回归可捕获）。
+- R2 Minor 处置：m-1 取消方向孤儿筛的冗余判定已删（`isBranchCancellable` 已覆盖）；m-2 共享 worktree 过程注记 → 本批 `nop-batch/` 未提交改动属并发 plan 2545 工作流，非本 plan 范围，已在本日志与 plan 中交叉说明。
 - Evidence:
   - **A 工单落地（14/14 PASS）**：W-01 `RetryEngineImpl:386-424` 四分支分流（非 UK 分支 :391 纯失败传播、不造死信）；W-02 `TccTransactionRegistry:47-77`（锁 `getAttrs()` + 双检 + 条件恢复 + 包级 `instance(IContext)`）；W-03 腿1 `TccEngine:461-490` 三拒绝面（读失败 fail-close `:472` / 缺失 `:478` / 状态非 TRYING `:483`）、腿2 `TccTransaction:247-350` 孤儿收敛；W-04 `TccTransaction:228-233` 写点闸 + `TccEngine:514-533` 纪元（缺失=inactive `:525`）；W-05 `TccBranchTransaction:158-167` null 判空 + `TccRunner:47-187` 三处三通道兜底；W-06 `TccRunner:215-332` 逐分支隔离 + **结算表（KILLED/CONFIRM_SUCCESS 计已结算 `:286/:323`——B-1 blocker 修复面）**；W-07 `TccTransaction:139-211`（有限重试非 CAS `:198-206`）+ `TccEngine:406-414` suppressed + `:96-99` 超时默认 cancel；W-08 `TccRecordStore:402-423` 双 seam 覆盖全部时钟点（`nextCheckTime` 归写侧 `:363-364`）；W-09 `RetryEngineImpl:890-942` 尾部 `_callback` 计数；W-10 `TccEngine:558-638` 预算+熔断+双计数+`checkExpiredAsync` protected；W-11 `RetryEngineImpl:1035-1054` 显式循环（`doStart:1017` 真实接线）；W-12 `RetryScannerImpl:261-338`（非空批口径 `:317`、时长 `:279`、RoundEndReason、时钟 seam）；W-13 `TccRecordStore:435-480` 私有批助手分页；W-14 `RetryScannerImpl:85-144` + `RetryRecordStoreImpl:236-240`。
   - **R1 发现处置（5/5 闭环）**：

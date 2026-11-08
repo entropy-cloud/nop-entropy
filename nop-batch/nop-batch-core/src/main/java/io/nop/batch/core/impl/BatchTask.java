@@ -132,6 +132,9 @@ public class BatchTask<S> implements IBatchTask {
         IBatchTaskMetrics metrics = context.getMetrics();
         Object meter = metrics == null ? null : metrics.beginTask();
 
+        // 1.7-C1-001（plan 2545 W-01）：保存外层上下文——嵌套批任务（processor 内同步执行子任务）
+        // 在此覆盖并 remove 会确定性清空外层 TL，使外层后半程 xpl 监听助手 NPE/失聪。
+        Object prevTaskContext = BatchTaskGlobals.saveTaskContext();
         BatchTaskGlobals.provideTaskContext(context);
         try {
             // 如果context中已经设置，则以context中的值为准
@@ -196,7 +199,7 @@ public class BatchTask<S> implements IBatchTask {
             return future;
 
         } finally {
-            BatchTaskGlobals.removeTaskContext();
+            BatchTaskGlobals.restoreTaskContext(prevTaskContext);
         }
     }
 
@@ -286,9 +289,12 @@ public class BatchTask<S> implements IBatchTask {
             ContextProvider.runWithContext(ctx -> {
                 // C6-010（plan 2496，与 C6-001 同 diff）：守卫起点上移到 lambda 首行——propagateContext /
                 // provideTaskContext 等守卫生效前的段抛出的异常也必须被结算管线捕获
+                Object prevTaskContext = null;
                 try {
                     propagateContext(ctx, context);
 
+                    // 1.7-C1-001（plan 2545 W-01）：同 executeAsync——保存/恢复而非裸 provide/remove
+                    prevTaskContext = BatchTaskGlobals.saveTaskContext();
                     BatchTaskGlobals.provideTaskContext(context);
 
                     do {
@@ -317,7 +323,7 @@ public class BatchTask<S> implements IBatchTask {
                     if (!context.isCancelled())
                         context.cancel(ICancellable.CANCEL_REASON_STOP);
                 } finally {
-                    BatchTaskGlobals.removeTaskContext();
+                    BatchTaskGlobals.restoreTaskContext(prevTaskContext);
                 }
                 return null;
             });

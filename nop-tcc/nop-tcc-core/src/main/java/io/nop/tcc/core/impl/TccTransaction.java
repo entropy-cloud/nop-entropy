@@ -338,11 +338,10 @@ public class TccTransaction implements ITccTransaction {
 
             TccStatus status = view.getBranchStatus();
             if (cancel) {
-                if (!TccRunner.isBranchCancellable(status))
-                    continue;
-                if (status == TccStatus.CANCEL_SUCCESS || status == TccStatus.TIMEOUT_SUCCESS)
-                    continue;
-                pending.add(view);
+                // isBranchCancellable 已排除已 cancel/已 confirm/KILLED/TRY_FAILED（含
+                // CANCEL_SUCCESS/TIMEOUT_SUCCESS 的 isCancelled 面）——无需二次判定
+                if (TccRunner.isBranchCancellable(status))
+                    pending.add(view);
             } else {
                 if (status == null || status == TccStatus.CONFIRM_SUCCESS || status == TccStatus.KILLED)
                     continue;

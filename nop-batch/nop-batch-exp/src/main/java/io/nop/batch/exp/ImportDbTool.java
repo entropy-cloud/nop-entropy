@@ -223,24 +223,28 @@ public class ImportDbTool {
             }
         }
 
-        syncConfigWithDb();
-
-        this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
-
-        IThreadPoolExecutor executor;
-        if (config.getThreadCount() > 1) {
-            // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
-            executor = DefaultThreadPoolExecutor.newExecutor("import-db", config.getThreadCount(), 10000);
-        } else {
-            executor = SyncThreadPoolExecutor.INSTANCE;
-        }
-
-        IEvalScope scope = XLang.newEvalScope();
-
-        if (config.getBeforeImport() != null)
-            config.getBeforeImport().invoke(scope);
-
+        // 1.7-C6-003/C6-007（plan 2545 W-07/W-08）：资源段全部纳入 try——原实现
+        // syncConfigWithDb（内部创建 HikariDataSource 并置 needClose=true）与 beforeImport
+        // 均在 try 之外，任一抛出即 finally 不可达 → 整个连接池（连接/socket FD/housekeeping
+        // 线程）泄漏，常驻进程内每次失败累积一个池。
+        IThreadPoolExecutor executor = null;
         try {
+            syncConfigWithDb();
+
+            this.inputResourceLoader = new FileResource(new File(config.getInputDir()));
+
+            if (config.getThreadCount() > 1) {
+                // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
+                executor = DefaultThreadPoolExecutor.newExecutor("import-db", config.getThreadCount(), 10000);
+            } else {
+                executor = SyncThreadPoolExecutor.INSTANCE;
+            }
+
+            IEvalScope scope = XLang.newEvalScope();
+
+            if (config.getBeforeImport() != null)
+                config.getBeforeImport().invoke(scope);
+
             List<CompletableFuture<?>> futures = new ArrayList<>();
             for (ImportTableConfig tableConfig : config.getTables()) {
                 if (!isImportable(tableConfig))
@@ -260,12 +264,36 @@ public class ImportDbTool {
             if (stateStore != null)
                 stateStore.complete();
         } finally {
-            executor.destroy();
+            if (executor != null) {
+                // 1.7-C6-004（plan 2545 W-09）：destroy=shutdown 不等待——失败路径返回后兄弟表任务
+                // 仍在后台运行会并发续写状态文件，而 CLI 已返回错误码。有界等待使「返回即已停」成立。
+                executor.destroy();
+                waitTerminated(executor);
+            }
             if (needClose) {
                 IoHelper.safeClose(dataSource);
                 dataSource = null;
             }
         }
+    }
+
+    /**
+     * 1.7-C6-004（plan 2545 W-09）：destroy 后的有界等待（上限 30s，超时放弃并留痕）。
+     * SyncThreadPoolExecutor.INSTANCE 为无 worker 的同步池，等待立即返回。
+     */
+    private static void waitTerminated(IThreadPoolExecutor executor) {
+        long deadline = System.currentTimeMillis() + 30_000L;
+        while (System.currentTimeMillis() < deadline) {
+            if (executor.getThreadPool().isTerminated())
+                return;
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        LOG.warn("nop.import-db.executor-terminate-timeout");
     }
 
     private boolean isImportable(ImportTableConfig tableConfig) {
