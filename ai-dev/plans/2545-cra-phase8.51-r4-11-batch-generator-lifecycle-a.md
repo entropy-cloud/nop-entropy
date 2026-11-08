@@ -1,7 +1,7 @@
 # 2545 CRA Phase 8.51 — R4-11 1.7 generator/生命周期束 a（G23 前半，11 工单）
 
-> Plan Status: active
-> Last Reviewed: 2026-11-08
+> Plan Status: completed
+> Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.51（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` live :222，Status=**todo**；Owner Doc=`docs-for-ai/03-modules/nop-batch.md`；Deps=「batch-proposal.md §二 R4-11（11 项）；硬依赖 8.22——已 done（plan 2516），硬依赖解除」）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 :126 R4-11 行（11 finding ID / 模块 nop-batch / 验证命令 `./mvnw test -pl nop-batch -am` / PA=无）+ §二.5 :178 G23 组行「22 | R4-11 + R4-12 | 拆分 11/11」；成员发现详情 = `ai-dev/audits/2026-10/2026-10-16-1258-deep-audit-nop-batch-concurrency/`（C1-shared-mutable-state.md C1-001/C1-002/C1-003；C1-round2.md C1-006；C5-memory-bounds.md C5-003/C5-004；C6-resource-lifecycle.md C6-003/C6-004；C6-round2.md C6-007/C6-008；C7-long-running.md C7-004）
 > Related: plan 2516（R2-13，completed）为本批同模块前批；C5-004 与 5.4-C5-004 双轨联动（R3-04）不双计；C10-001/002 为验收前置
 
@@ -141,7 +141,7 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.51 行、cra-index P2-G23 束行
 
 - Item Types: `Proof`
@@ -151,27 +151,27 @@ Targets: 本 plan、roadmap 8.51 行、cra-index P2-G23 束行
 - [x] Minor 修复：m-1 测试数订正（core 87 / 总 185）；m-2 验证命令改子模块枚举；m-3 死方法 `checkRetry` 删除；m-4 `ExportDbTool.syncConfigWithDb` 移入 try；m-5 `pin04` 保护力诚实登记；m-6 异步 `size()` → `AtomicInteger`
 - [x] **R3 复审 Major-1 修复**：能力标记的包装安全性——`ModelBasedBatchTaskBuilderFactory` 的 `<adapter>` 包装与 `IBatchLoaderProvider.withHook()` 缺省方法原为裸 lambda（静默擦除 `hasChunkCompaction()`），改为匿名类转发；`AdaptedBatchLoaderProvider`（零使用）同步补透传；新增 `pin10` 双形态钉；顺带订正 C6-008 工单号误标 W-06→W-07（四处）与 builder 内"唯一漏斗"措辞
 - [x] **R2 复审 REJECTED 后修复**：BL-1 守卫判定轴从 `stateStore` 改为 **loader chunk 压实能力**（新增 `IBatchLoaderProvider.hasChunkCompaction()`，`ResourceRecordLoaderProvider` 按 saveState 覆写，`PostProcessBatchLoaderProvider` 透传）——同时覆盖 loader 级 `saveState` 轴并消除 MJ-4 的过宽拒绝；MJ-1 抽 `DbToolTerminationHelper` + 三腿行为钉；MJ-2 负值 fail-fast 行为钉；MJ-3 orm-writer 旁路独立接线同一配置键 + 订正"唯一漏斗"表述
-- [ ] cra-index 台账回填：P2-G23 束行（R4-11 半边收敛注）+ roadmap 8.51 → done
-- [ ] 双门禁 + Closure Evidence 写入本 plan
+- [x] cra-index 台账回填：P2-G23 束行（R4-11 半边收敛注）+ roadmap 8.51 → done
+- [x] 双门禁 + Closure Evidence 写入本 plan
 
 Exit Criteria:
 
-- [ ] closure audit 证据写入 Closure 段（R2 复审仍需一轮 fresh session）
-- [ ] cra-index + roadmap 在案
-- [ ] 双门禁 EXIT=0
+- [x] closure audit 证据写入 Closure 段（R4 复审 APPROVED-with-corrections，agent_dcff3a78）
+- [x] cra-index + roadmap 在案
+- [x] 双门禁 EXIT=0
 
 ## Closure Gates
 
-- [ ] 11 工单全部收口（10 项 nop-batch Fix + C1-003 batch 侧半边）
-- [ ] 每工单 ≥1 条验收载体
-- [ ] `./mvnw -o test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-batch/nop-batch-gen,nop-batch/nop-batch-orm,nop-batch/nop-batch-jdbc,nop-batch/nop-batch-dsl,nop-batch/nop-batch-exp,nop-batch/nop-batch-biz,nop-batch/nop-batch-sys` BUILD SUCCESS
-- [ ] owner doc 落账完成
-- [ ] scan-hollow nop-batch `--severity high` EXIT=0
-- [ ] 不存在被静默降级的 in-scope live defect（C1-003 平台半边为 PA 未授权 successor，非降级）
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**
-- [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
-- [ ] cra-index P2-G23 收敛注 + roadmap 8.51 → done
+- [x] 11 工单全部收口（10 项 nop-batch Fix + C1-003 batch 侧半边）
+- [x] 每工单 ≥1 条验收载体
+- [x] `./mvnw -o test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-batch/nop-batch-gen,nop-batch/nop-batch-orm,nop-batch/nop-batch-jdbc,nop-batch/nop-batch-dsl,nop-batch/nop-batch-exp,nop-batch/nop-batch-biz,nop-batch/nop-batch-sys` BUILD SUCCESS
+- [x] owner doc 落账完成
+- [x] scan-hollow nop-batch `--severity high` EXIT=0
+- [x] 不存在被静默降级的 in-scope live defect（C1-003 平台半边为 PA 未授权 successor，非降级）
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**
+- [x] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+- [x] cra-index P2-G23 收敛注 + roadmap 8.51 → done
 
 ## Deferred But Adjudicated
 
@@ -188,19 +188,34 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 11 工单（10 nop-batch Fix + C1-003 batch 侧半边）全部落地，逐工单 ≥1 验收载体；C1-003 平台半边按 Protected Area 未授权登记 successor。四轮独立 fresh-session closure audit：R1 REJECTED(2B+5M+6m) → R2 REJECTED(BL-1+MJ-1..4) → R3 REJECTED(Major-1 包装擦除) → R4 APPROVED-with-corrections(0B/0M/4m)。R3 Major-1 经 `withHook` / `<adapter>` / `AdaptedBatchLoaderProvider` 三处匿名类转发 + `pin10` 双形态（true 保持 + 普通 provider 仍 false）真闭环；穷举全部 `IBatchLoaderProvider` 实现与包装点，规范装配路径无第四个静默降级点。
+Completed: 2026-11-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent fresh session）
-- Audit Session: （session ID）
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session，未参与实现）
+- Audit Session: agent_dcff3a78-4ea5-4a80-b186-90d841923b8e（R4）；前序 R1 agent_5b478355 / R2 agent_d957ce00 / R3 agent_887e0078
 - Evidence:
-  - （每条 Exit Criterion / Closure Gate 的 PASS/FAIL）
-  - `check-plan-checklist --strict` 退出码
-  - Anti-Hollow 结果 + scan-hollow 退出码
-  - Deferred 分类检查
+  - Phase 1 Exit Criteria：PASS（裁定表在案，11 项唯一形态）
+  - Phase 2 Exit Criteria：PASS（九模块 BUILD SUCCESS；**185 tests 0F/0E**，签名 core 87/dao 23/gen 2/orm 9/jdbc 5/dsl 25/exp 25/biz 3/sys 6；零触碰核对 NONE）
+  - Phase 3 Exit Criteria：PASS（E3 逐模块登记；owner doc `nop-batch.md:330-345` 九节；双门禁 EXIT=0）
+  - Phase 4 Exit Criteria：PASS
+  - Gate 11 工单收口：PASS（live code + 载体表）
+  - Gate 每工单 ≥1 载体：PASS（pin01..pin10 / TestDbToolTerminationHelper / TestBatchRetryPolicyModelNegative / TestImportDbTool）
+  - Gate 九模块 BUILD SUCCESS：PASS（185 tests 0F/0E）
+  - Gate owner doc 落账：PASS
+  - Gate scan-hollow `--module nop-batch --severity high`：PASS（EXIT=0，Total=0）
+  - Gate 无静默降级 in-scope defect：PASS（C1-003 平台半边=out-of-scope improvement + PA plan-first，successor 已登记）
+  - Gate 独立 closure-audit 证据：PASS（本段）
+  - Anti-Hollow：PASS。调用链 `BatchTask.executeAsync` → `ModelBasedBatchTaskBuilderFactory.buildLoader` → `builder.loader(loader)` → `BatchTaskBuilder.buildLoader` 守卫 → `ResourceRecordLoaderProvider.hasChunkCompaction`；包装链 `withHook`/`<adapter>`/`PostProcess`/`Adapted` 均转发；pin06/07/08/09/10 经真实 builder→executeAsync 端到端。无空方法体/静默跳过（rule 24）。
+  - `node ai-dev/tools/check-plan-checklist.mjs <本 plan> --strict` → EXIT=0
+  - `node ai-dev/tools/check-doc-links.mjs --strict` → EXIT=0（0 errors）
+  - Deferred 分类检查：PASS。仅 C1-003 平台半边（PA 未授权，successor）与 `ListBatchLoader` 非 fail-fast（契约变更需 owner doc，属 non-blocking follow-up）；无 in-scope live defect / contract drift 被降级。
+  - 变异红证（累计五条）：pin06（移除 builder 注入）、pin07/08（删守卫）、pin09（回退 stateStore 轴）、pin10（移除 withHook 转发）——逐条复原后 md5 一致。
 
 Follow-up:
 
-- （仅 non-blocking）
+- [non-blocking m-1] 为 `ModelBasedBatchTaskBuilderFactory.buildLoader` 的 `<adapter>` 分支补一条装配级钉（当前仅由等价 class 载体 pin10 覆盖）。
+- [non-blocking m-2] 在 owner doc 声明「派发 provider 仅由 `BatchTaskBuilder` 构造，不得手工作为 task loader 注入」（两个派发 provider 不转发能力标记，非规范注入面）。
+- [non-blocking m-3] C1-003 的 `nop.err.execution-task-begin-already-fired` 未声明为 `ErrorCode`（`BatchTaskContextImpl` 为裸 `IllegalStateException`），与既有 `nop.err.execution-already-completed` 同形；随后续批次统一为类型化异常。
+- [non-blocking] `ListBatchLoader` 的超大 List 目前只 WARN 不拒绝；若后续出现 OOM 实例，考虑加 fail-fast 开关（需 owner doc 契约变更）。
