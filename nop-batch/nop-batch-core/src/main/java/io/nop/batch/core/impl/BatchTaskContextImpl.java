@@ -74,7 +74,6 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
      * 却永不触发（静默丢弃）。标记为 true 时注册端显式失败（与 isDone 同型响亮）。
      */
     private boolean taskBeginFired;
-    private List<Consumer<Throwable>> onTaskEnds;
     private final List<Consumer<IBatchChunkContext>> onChunkBegins = new CopyOnWriteArrayList<>();
     private final List<Consumer<IBatchChunkContext>> onBeforeChunkEnds = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<IBatchChunkContext, Throwable>> onChunkEnds = new CopyOnWriteArrayList<>();

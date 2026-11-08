@@ -130,10 +130,17 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
                                 }
                                 queue.addBatch(list);
                             }
+                            // 1.7-C6-008（plan 2545 W-06）：底层 loader 在本线程自建的一次性 chunk ctx 上
+                            // 注册 chunk 级 afterComplete（如 ResourceRecordLoaderProvider 的压实回调，
+                            // 它标记 processingItems 完成并推进 completedIndex）。原实现丢弃该 ctx 且从不
+                            // complete —— 回调永不执行 → completedIndex 永不推进、任务必以
+                            // ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败（saveState + dispatcher 组合 100% 失败）。
+                            ctx.complete();
                         } catch (Exception e) {
                             LOG.error("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
                             // 保留第一个异常作为根因，避免被后续线程的次要异常覆盖
                             exception.compareAndSet(null, e);
+                            ctx.completeExceptionally(e);
                             return;
                         }
                     }

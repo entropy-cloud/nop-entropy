@@ -25,4 +25,11 @@ public interface BatchConfigs {
     @Description("concurrency/fetchThreadCount的装配期上界，超界构造期报错")
     IConfigReference<Integer> CFG_BATCH_MAX_CONCURRENCY_CAP = varRef(s_loc, "nop.batch.max-concurrency-cap",
             Integer.class, 200);
+
+    /**
+     * 1.7-C5-004（plan 2545 W-04）：provider 返回 List 时该 List 常驻任务全程——
+     * 规模达此阈值即 WARN（可观测）。&lt;=0 = 关闭告警。
+     */
+    IConfigReference<Integer> CFG_BATCH_LIST_LOADER_WARN_SIZE = varRef(s_loc,
+            "nop.batch.list-loader.warn-size", Integer.class, 1_000_000);
 }

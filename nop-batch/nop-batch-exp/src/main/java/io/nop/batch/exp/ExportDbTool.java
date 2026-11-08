@@ -25,6 +25,7 @@ import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
+import io.nop.commons.concurrent.executor.ThreadPoolStats;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -143,23 +144,25 @@ public class ExportDbTool {
             }
         }
 
-        this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
-
-        IThreadPoolExecutor executor;
-        if (config.getThreadCount() > 1) {
-            // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
-            executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), 10000);
-        } else {
-            executor = SyncThreadPoolExecutor.INSTANCE;
-        }
-
-        IEvalScope scope = XLang.newEvalScope();
-
-        if (config.getBeforeExport() != null) {
-            config.getBeforeExport().invoke(scope);
-        }
-
+        // 1.7-C6-003（plan 2545 W-07）：executor 创建与 beforeExport 全部纳入 try——原实现二者在
+        // try 之外，beforeExport 抛出即 destroy 不可达（executor 被 GlobalMeterRegistry 强引用滞留）。
+        IThreadPoolExecutor executor = null;
         try {
+            this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
+
+            if (config.getThreadCount() > 1) {
+                // 有界队列10000（与globalWorker TaskQueue容量一致，池工厂契约要求queueSize>=1），恢复背压
+                executor = DefaultThreadPoolExecutor.newExecutor("export-db", config.getThreadCount(), 10000);
+            } else {
+                executor = SyncThreadPoolExecutor.INSTANCE;
+            }
+
+            IEvalScope scope = XLang.newEvalScope();
+
+            if (config.getBeforeExport() != null) {
+                config.getBeforeExport().invoke(scope);
+            }
+
             List<CompletableFuture<?>> futures = new ArrayList<>();
 
             for (ExportTableConfig tableConfig : config.getTables()) {
@@ -185,8 +188,32 @@ public class ExportDbTool {
             if (stateStore != null)
                 stateStore.complete();
         } finally {
-            executor.destroy();
+            if (executor != null) {
+                // 1.7-C6-004（plan 2545 W-09）：destroy=shutdown 不等待，失败路径返回后兄弟表任务
+                // 仍在后台续写输出与状态文件
+                executor.destroy();
+                waitTerminated(executor);
+            }
         }
+    }
+
+    /**
+     * 1.7-C6-004（plan 2545 W-09）：destroy 后的有界等待（stats 活跃/队列双零即视为已停，上限 30s）。
+     */
+    private static void waitTerminated(IThreadPoolExecutor executor) {
+        long deadline = System.currentTimeMillis() + 30_000L;
+        while (System.currentTimeMillis() < deadline) {
+            ThreadPoolStats stats = executor.stats();
+            if (stats == null || (stats.getActiveCount() <= 0 && stats.getQueueSize() <= 0))
+                return;
+            try {
+                Thread.sleep(50L);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+        LOG.warn("nop.export-db.executor-terminate-timeout");
     }
 
     private boolean isExportable(ExportTableConfig tableConfig) {
