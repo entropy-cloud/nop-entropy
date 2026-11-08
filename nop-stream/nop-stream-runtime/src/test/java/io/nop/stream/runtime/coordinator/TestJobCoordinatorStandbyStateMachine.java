@@ -394,7 +394,20 @@ class TestJobCoordinatorStandbyStateMachine {
             assertNull(rpcA.getLastBarrier());
 
             electorA.grantLeadership(1L);
-            PendingCheckpoint activePending = coordinator.triggerCheckpoint();
+            // 确定性（plan 2514 门暴露）：领导权激活经异步 assignment fan-out，激活窗口内
+            // recoveryPending 会抑制 trigger（返回 null）——有界重试直至激活完成
+            // （超时仅挂死保护）；barrier/fencing 断言保持不变。
+            java.util.concurrent.atomic.AtomicReference<PendingCheckpoint> activeRef =
+                    new java.util.concurrent.atomic.AtomicReference<>();
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+                PendingCheckpoint p = coordinator.triggerCheckpoint();
+                if (p != null) {
+                    activeRef.set(p);
+                    return true;
+                }
+                return false;
+            }, 5000), "ACTIVE leader must be able to trigger checkpoints (activation settled)");
+            PendingCheckpoint activePending = activeRef.get();
             assertNotNull(activePending, "ACTIVE leader must be able to trigger checkpoints");
             assertNotNull(rpcA.getLastBarrier(), "ACTIVE leader must send the barrier");
             assertEquals(coordinator.getFencingEpoch(), rpcA.getLastFencingEpoch());

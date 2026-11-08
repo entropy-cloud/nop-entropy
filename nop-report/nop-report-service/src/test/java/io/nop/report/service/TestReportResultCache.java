@@ -52,6 +52,9 @@ public class TestReportResultCache extends JunitAutoTestCase {
     @Inject
     IJdbcTemplate jdbcTemplate;
 
+    @Inject
+    io.nop.orm.IOrmTemplate ormTemplate;
+
     AtomicInteger renderCount = new AtomicInteger();
 
     @AfterEach
@@ -176,11 +179,16 @@ public class TestReportResultCache extends JunitAutoTestCase {
     }
 
     @Test
-    public void testTtlExpiry() throws InterruptedException {
+    public void testTtlExpiry() {
         init();
-        AppConfig.getConfigProvider().updateConfigValue(NopReportConfigs.CFG_REPORT_RESULT_CACHE_TTL, 1L);
+        AppConfig.getConfigProvider().updateConfigValue(NopReportConfigs.CFG_REPORT_RESULT_CACHE_TTL, 60L);
         NopReportResultFile first = resultCache.getOrGenerate(TEMPLATE, "html", Map.of(), null);
-        Thread.sleep(3000);
+        // TTL 以 createTime 判定：直接把 createTime 回拨到 TTL 之外（确定性，不依赖真实时间等待）
+        jdbcTemplate.executeUpdate(SQL.begin()
+                .append("update nop_report_result_file set CREATE_TIME = ")
+                .param(new java.sql.Timestamp(System.currentTimeMillis() - 120_000L))
+                .append(" where SID = ").param(first.getSid()).end());
+        ormTemplate.clearSession();
         NopReportResultFile second = resultCache.getOrGenerate(TEMPLATE, "html", Map.of(), null);
         assertTrue(!first.getSid().equals(second.getSid()), "expired record must not be reused");
     }
@@ -216,17 +224,26 @@ public class TestReportResultCache extends JunitAutoTestCase {
     }
 
     @Test
-    public void testAsyncGenerateAndPoll() throws InterruptedException {
+    public void testAsyncGenerateAndPoll() {
         init();
         String cacheKey = resultCache.generateAsync(TEMPLATE, "html", Map.of(), null);
-        long deadline = System.currentTimeMillis() + 5000;
-        NopReportResultFile record;
-        do {
-            Thread.sleep(100);
-            record = resultCache.findByStatus("rpt-cache-1", cacheKey, NopReportResultCache.STATUS_DONE);
-        } while (record == null && System.currentTimeMillis() < deadline);
+        NopReportResultFile record = findByStatusDoneWithWait("rpt-cache-1", cacheKey);
         assertNotNull(record, "async generation should complete within 5s");
         assertEquals(NopReportResultCache.STATUS_DONE, record.getStatus());
+    }
+
+    /**
+     * 条件等待异步生成完成（FutureHelper.waitUntil 轮询由等待工具内部处理，超时返回 null）。
+     */
+    NopReportResultFile findByStatusDoneWithWait(String rptId, String cacheKey) {
+        java.util.concurrent.atomic.AtomicReference<NopReportResultFile> found = new java.util.concurrent.atomic.AtomicReference<>();
+        io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+            NopReportResultFile r = resultCache.findByStatus(rptId, cacheKey, NopReportResultCache.STATUS_DONE);
+            if (r != null)
+                found.set(r);
+            return r != null;
+        }, 5000);
+        return found.get();
     }
 
     int countRecords() {

@@ -578,8 +578,11 @@ class TestTaskManager {
             // Never install the invokable — wait for the timeout to fire. 条件等待
             // 观测其结果（RunningTask 内部的 invokable-latch 超时等待属生产实现
             // 内部的真实时长语义，测试侧以确定性条件观测其终态）。
-            TestAwait.until("task terminated after the invokable-install timeout",
-                    () -> !taskManager.getCompletedTaskResults().isEmpty());
+            // 终态的两个可观测面（completedTaskResults + coordinator status report）同源于
+            // 一次 terminate；折叠进同一收敛等待，避免 report 晚于 task-results 落地被漏计。
+            TestAwait.until("task terminated after the invokable-install timeout (results + status report)",
+                    () -> !taskManager.getCompletedTaskResults().isEmpty()
+                            && !mockRpc.statusReports.isEmpty());
 
             String key = "job-1/vertex-1/0";
             TaskResult result = taskManager.getCompletedTaskResults().get(key);

@@ -103,6 +103,17 @@ class TestChatServiceFailoverAdapterStreaming {
         return StreamScenario.failing(FailoverTestSupport.streamError(401, FailoverTestSupport.authBody()));
     }
 
+    /**
+     * 时间确定化（plan 2514，deterministic-handoff）：fake 的发射由 gate 挂起，测试在
+     * {@code subscribe(sub)} 返回后放行。subscribe() 的同步链保证返回时 FailoverStreamFlow 已把
+     * AttemptSubscriber 挂上 ChatServiceImpl 的 SubmissionPublisher——此前的竞态是 fake 异步发射
+     * 早于该订阅落地：JDK SubmissionPublisher 在无订阅者时直接丢弃 submit 的元素，且 close 后
+     * 迟到订阅只收到裸 onComplete（已实证），表现为 0 chunk 却 completed。
+     */
+    private static CountDownLatch subscriptionGate() {
+        return new CountDownLatch(1);
+    }
+
     // ======================= 端到端全链（Minimum Rules #22）+ Major-1 + 接线 =======================
 
     @Test
@@ -119,19 +130,23 @@ class TestChatServiceFailoverAdapterStreaming {
             return null;
         };
         adapter.setStrategy(recording);
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("a1"),
                         FailoverTestSupport.streamChunkJson("a2"))
-                        .error(FailoverTestSupport.streamError(429, FailoverTestSupport.quotaBody())))
+                        .error(FailoverTestSupport.streamError(429, FailoverTestSupport.quotaBody()))
+                        .gate(gate))
                 .queueStream(StreamScenario.success(
                         FailoverTestSupport.streamChunkJson("b1"), FailoverTestSupport.streamChunkJson("b2"),
                         FailoverTestSupport.streamChunkJson("b3"), FailoverTestSupport.streamChunkJson("b4"),
                         FailoverTestSupport.streamChunkJson("b5"), FailoverTestSupport.streamChunkJson("b6"),
                         FailoverTestSupport.streamChunkJson("b7"), FailoverTestSupport.streamChunkJson("b8"),
                         FailoverTestSupport.streamChunkJson("b9"), FailoverTestSupport.streamChunkJson("b10"),
-                        FailoverTestSupport.streamChunkJson("b11"), FailoverTestSupport.streamChunkJson("b12")));
+                        FailoverTestSupport.streamChunkJson("b11"), FailoverTestSupport.streamChunkJson("b12"))
+                        .gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         // 端到端（#22）：callStream 入口 → 缓冲 → 窗口内失败 → 重订阅新账号 → 越窗透传 → 正常终止。
         sub.awaitAndAssertSuccess("b1", "b2", "b3", "b4", "b5", "b6", "b7", "b8", "b9", "b10", "b11", "b12");
@@ -154,11 +169,13 @@ class TestChatServiceFailoverAdapterStreaming {
     void streamAuthInvalidSwitchesAccount() {
         // M-3：流式 onError 携带 NopException ARG_HTTP_STATUS/ARG_BODY → 经 parseErrorResponse
         // 恢复响应级分类 AUTH_INVALID（裸 LlmErrorClassifier 会判 NON_TRANSIENT 不切换）。
-        fake.queueStream(authFailure())
-                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+        CountDownLatch gate = subscriptionGate();
+        fake.queueStream(authFailure().gate(gate))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("ok");
         assertEquals(2, fake.streamCallCount(), "AUTH_INVALID must trigger account switch");
@@ -171,12 +188,14 @@ class TestChatServiceFailoverAdapterStreaming {
     @Test
     void streamTransientFailureSwitchesAccount() {
         // 503 响应级 server_error → parseErrorResponse → TRANSIENT → 切换重订阅（新账号）。
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.failing(
-                        FailoverTestSupport.streamError(503, FailoverTestSupport.serverErrorBody())))
-                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+                        FailoverTestSupport.streamError(503, FailoverTestSupport.serverErrorBody())).gate(gate))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("ok");
         assertEquals(2, fake.streamCallCount(), "TRANSIENT must trigger account switch");
@@ -209,12 +228,14 @@ class TestChatServiceFailoverAdapterStreaming {
     void streamCacheStateLostResubscribesSameCandidate() {
         // CACHE_STATE_LOST（经 gw-cache.llm.xml errorMappings 由 classifyStreamError 可达）：
         // 不触发账号切换，重发同一候选一次（预算计数）；成功 → 无熔断记账（CLOSED）。
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.failing(
-                        FailoverTestSupport.streamError(409, FailoverTestSupport.cacheLostBody())))
-                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")));
+                        FailoverTestSupport.streamError(409, FailoverTestSupport.cacheLostBody())).gate(gate))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("ok")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-cache", "gw-cache-model", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("ok");
         assertEquals(2, fake.streamCallCount(), "CACHE_STATE_LOST must resend the same candidate once");
@@ -255,11 +276,13 @@ class TestChatServiceFailoverAdapterStreaming {
 
     @Test
     void streamingNoRoutingGroupPassthrough() {
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("a1"),
-                FailoverTestSupport.streamChunkJson("a2")));
+                FailoverTestSupport.streamChunkJson("a2")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "no-such-model", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("a1", "a2");
         assertEquals(1, fake.streamCallCount(), "no routing group → single passthrough stream");
@@ -292,12 +315,13 @@ class TestChatServiceFailoverAdapterStreaming {
     @Test
     void outOfWindowFailureBreaksStreamWithoutSwitch() {
         // 12 元素越窗（N=2）后失败 → 不切换，交付已转发内容后断流报错（需求 §3.2）。
-        // 注：被包装的 ChatServiceImpl 经 SubmissionPublisher 转发，closeExceptionally 与同线程
-        // submit 存在 JDK 竞态（实证：12 连发仅前 4 到达订阅者，tail 丢弃）——适配器对该行为
-        // 的响应是正确的（已转发 → 断流报错；未转发 → 窗口内透明重订阅），故本测试用
-        // bufferSize=2 + interEventDelayMs=1 让消费者在每个 submit 之间有时间把元素从
-        // SubmissionPublisher 缓冲抽出，避免 tail 被丢弃（plan 2026-08-15-1116-2 W6）。
+        // 时间确定化（plan 2514）：历史上此测试偶发 tail 丢弃，当时归因于 SubmissionPublisher
+        // 同线程 submit/closeExceptionally 竞态并以 interEventDelayMs=1 逐 event 延时规避；
+        // 真实根因 = fake 异步发射早于适配器把 AttemptSubscriber 挂上 SubmissionPublisher
+        // （无订阅者时 submit 元素被 JDK 直接丢弃）。gate 在 subscribe() 同步链返回后放行，
+        // 发射严格后于订阅落地 → 竞态关闭，逐 event 延时残余同步移除（2511 具名裁定消号）。
         adapter.setBufferSize(2);
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.success(
                         FailoverTestSupport.streamChunkJson("c1"), FailoverTestSupport.streamChunkJson("c2"),
                         FailoverTestSupport.streamChunkJson("c3"), FailoverTestSupport.streamChunkJson("c4"),
@@ -306,10 +330,11 @@ class TestChatServiceFailoverAdapterStreaming {
                         FailoverTestSupport.streamChunkJson("c9"), FailoverTestSupport.streamChunkJson("c10"),
                         FailoverTestSupport.streamChunkJson("c11"), FailoverTestSupport.streamChunkJson("c12"))
                         .error(FailoverTestSupport.streamError(429, FailoverTestSupport.quotaBody()))
-                        .interEventDelayMs(1));
+                        .gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.await();
         assertTrue(sub.texts.size() >= 3,
@@ -326,11 +351,13 @@ class TestChatServiceFailoverAdapterStreaming {
     @Test
     void completionDuringWindowDeliversBufferedItems() {
         // 短流（3 元素 < N=10，未越窗）正常完成 → 缓冲元素必须全量交付（窗口只延迟转发不吞数据）。
+        CountDownLatch gate = subscriptionGate();
         fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("x1"),
-                FailoverTestSupport.streamChunkJson("x2"), FailoverTestSupport.streamChunkJson("x3")));
+                FailoverTestSupport.streamChunkJson("x2"), FailoverTestSupport.streamChunkJson("x3")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("x1", "x2", "x3");
         assertEquals(1, fake.streamCallCount());
@@ -345,10 +372,12 @@ class TestChatServiceFailoverAdapterStreaming {
         // onComplete recordSuccess → CLOSED（探活成功 → CLOSED 恢复，需求 §3.3）。
         tripOpen("gw-test:gw-model-1");
         tripOpen("gw-test2:gw-model-2");
-        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("probe-ok")));
+        CountDownLatch gate = subscriptionGate();
+        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("probe-ok")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("probe-ok");
         assertEquals(1, fake.streamCallCount(), "probe must admit the primary candidate directly");
@@ -365,11 +394,13 @@ class TestChatServiceFailoverAdapterStreaming {
         // attempt1 = gw-rl 主账号（限流首次通过）→ 窗口内 QUOTA 失败；attempt2 = gw-rl-b1
         // （同 provider 同一限流器 → 同步抛 RATE_LIMITED）；attempt3 = 类内耗尽 → provider 链
         // 扩展 → gw-sat 主账号 → 成功。
-        fake.queueStream(quotaFailure())
-                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("recovered")));
+        CountDownLatch gate = subscriptionGate();
+        fake.queueStream(quotaFailure().gate(gate))
+                .queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("recovered")).gate(gate));
 
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-rl", "gw-rl-model", true), null).subscribe(sub);
+        gate.countDown();
 
         sub.awaitAndAssertSuccess("recovered");
         assertEquals(2, fake.streamCallCount(),
@@ -558,11 +589,13 @@ class TestChatServiceFailoverAdapterStreaming {
 
     @Test
     void secondSubscriberRejectedExplicitly() {
-        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("only")));
+        CountDownLatch gate = subscriptionGate();
+        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("only")).gate(gate));
         CollectingSubscriber first = new CollectingSubscriber();
         Flow.Publisher<ChatStreamChunk> publisher =
                 adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null);
         publisher.subscribe(first);
+        gate.countDown();
         first.awaitAndAssertSuccess("only");
 
         // 第二个订阅者：显式失败（不静默吞）。
@@ -579,12 +612,14 @@ class TestChatServiceFailoverAdapterStreaming {
     void concurrencyCountHooksAtCallStreamInvocation() {
         // +1 挂钩 delegate callStream 调用时刻：subscribe() 返回（同步）时计数已 +1；
         // 终止后 -1 归零。
-        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("hook")));
+        CountDownLatch gate = subscriptionGate();
+        fake.queueStream(StreamScenario.success(FailoverTestSupport.streamChunkJson("hook")).gate(gate));
         CollectingSubscriber sub = new CollectingSubscriber();
         adapter.callStream(FailoverTestSupport.request("gw-test", "gw-model-1", true), null).subscribe(sub);
 
         assertEquals(1, registry.currentCount("gw-test", null),
                 "count must be +1 at callStream invocation time (W1 spike input)");
+        gate.countDown();
         sub.awaitAndAssertSuccess("hook");
         assertEquals(0, registry.currentCount("gw-test", null), "count must return to 0 after terminal");
     }

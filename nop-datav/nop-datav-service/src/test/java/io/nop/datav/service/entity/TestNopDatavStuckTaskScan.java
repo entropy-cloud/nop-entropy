@@ -382,38 +382,21 @@ public class TestNopDatavStuckTaskScan extends AbstractNopDatavTest {
     }
 
     private NopDatavReportDelivery pollDeliveryFailed(String deliveryId) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        NopDatavReportDelivery d = null;
-        while (System.currentTimeMillis() < deadline) {
-            d = delivery(deliveryId);
-            if (d != null && NopDatavReportDeliveryStatus.isTerminal(d.getStatus())) {
-                return d;
-            }
-            sleepQuietly();
-        }
-        return d;
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+            NopDatavReportDelivery d = delivery(deliveryId);
+            return d != null && NopDatavReportDeliveryStatus.isTerminal(d.getStatus());
+        }, POLL_TIMEOUT_MS), "delivery " + deliveryId + " did not reach terminal state within "
+                + POLL_TIMEOUT_MS + "ms");
+        return delivery(deliveryId);
     }
 
     private NopDatavExportTask pollExportTaskFailed(String taskId) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        NopDatavExportTask t = null;
-        while (System.currentTimeMillis() < deadline) {
-            t = exportTask(taskId);
-            if (t != null && NopDatavExportTaskStatus.isTerminal(t.getStatus())) {
-                return t;
-            }
-            sleepQuietly();
-        }
-        return t;
-    }
-
-    private static void sleepQuietly() {
-        try {
-            Thread.sleep(POLL_INTERVAL_MS);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException("interrupted while polling", e);
-        }
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
+            NopDatavExportTask t = exportTask(taskId);
+            return t != null && NopDatavExportTaskStatus.isTerminal(t.getStatus());
+        }, POLL_TIMEOUT_MS), "task " + taskId + " did not reach terminal state within "
+                + POLL_TIMEOUT_MS + "ms");
+        return exportTask(taskId);
     }
 
     private void seedDelivery(String deliveryId, String reportTaskId, int status,

@@ -92,7 +92,12 @@ public class TestPollingRpcClientFix {
         assertTrue(done instanceof Throwable, "should complete exceptionally, got: " + done);
     }
 
-    @Test
+    /**
+     * 时间确定化（plan 2514-WI8）：轮询定时器注入 {@link ManualScheduledExecutor}（虚拟时间），
+     * 轮询触发与「取消后停止轮询」的复核均在显式推进的虚拟时间线上确定性发生，
+     * 替代原 sleep 自旋 + 墙钟观察窗。
+     */
+    @org.junit.jupiter.api.Test
     public void testPollingStopsAfterCancel() throws Exception {
         MutableCancelToken cancelToken = new MutableCancelToken();
         AtomicInteger statusCalls = new AtomicInteger();
@@ -105,21 +110,30 @@ public class TestPollingRpcClientFix {
             return CompletableFuture.completedFuture(runningResponse());
         };
 
-        PollingRpcClient client = new PollingRpcClient(rpcService, "getStatus", timer, 20, 100000);
-        CompletableFuture<ApiResponse<?>> future = client.callAsync("start", new ApiRequest<>(), cancelToken)
-                .toCompletableFuture();
+        try {
+            io.nop.commons.test.time.ManualClock manualClock = new io.nop.commons.test.time.ManualClock(2_000_000L);
+            io.nop.api.core.time.CoreMetrics.registerClock(manualClock);
+            io.nop.commons.test.time.ManualScheduler scheduler = new io.nop.commons.test.time.ManualScheduler(manualClock);
+            ManualScheduledExecutor exec = new ManualScheduledExecutor(scheduler);
+            PollingRpcClient client = new PollingRpcClient(rpcService, "getStatus", exec, 20, 100000);
+            CompletableFuture<ApiResponse<?>> future = client.callAsync("start", new ApiRequest<>(), cancelToken)
+                    .toCompletableFuture();
 
-        // 等轮询开始后取消
-        for (int i = 0; i < 100 && statusCalls.get() == 0; i++) {
-            Thread.sleep(20);
+            // 轮询开始（虚拟时间推进触发确定性轮询）
+            scheduler.advance(100);
+            int callsBeforeCancel = statusCalls.get();
+            assertTrue(callsBeforeCancel >= 1, "poll must have started before cancel");
+
+            cancelToken.cancelNow();
+            future.cancel(false);
+
+            // 推进远超轮询间隔的虚拟时间窗：取消后不得再有任何 status 调用
+            scheduler.advance(400);
+            assertTrue(statusCalls.get() == callsBeforeCancel,
+                    "status calls must stop after cancel: before=" + callsBeforeCancel
+                            + " after=" + statusCalls.get());
+        } finally {
+            io.nop.api.core.time.CoreMetrics.registerClock(io.nop.api.core.time.CoreMetrics.defaultClock());
         }
-        cancelToken.cancelNow();
-        future.cancel(false);
-
-        Thread.sleep(100);
-        int callsAfterCancel = statusCalls.get();
-        Thread.sleep(400);
-        assertTrue(statusCalls.get() <= callsAfterCancel + 1,
-                "status calls must stop after cancel: before=" + callsAfterCancel + " after=" + statusCalls.get());
     }
 }

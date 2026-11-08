@@ -1,7 +1,6 @@
 package io.nop.cluster.elector;
 
 import io.nop.api.core.exceptions.NopException;
-import io.nop.commons.concurrent.executor.DefaultScheduledExecutor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,33 +76,35 @@ public class TestAbstractLeaderElector {
         return new LeaderEpoch(leaderId, epochNo, new Timestamp(System.currentTimeMillis() + 30_000));
     }
 
-    private static final java.util.concurrent.atomic.AtomicInteger TIMER_SEQ =
-            new java.util.concurrent.atomic.AtomicInteger();
-
-    private DefaultScheduledExecutor timer;
+    // 时间确定化（plan 2514-WI8）：首轮 checkElection 经注入 ManualScheduler（虚拟时间）
+    // 由显式推进触发，不再依赖真实定时器毫秒窗。
+    private io.nop.commons.test.time.ManualClock clock;
+    private io.nop.commons.test.time.ManualScheduler timer;
+    private ManualScheduledExecutor timerExecutor;
     private TestElector elector;
 
     @BeforeEach
     public void setUp() {
-        // 每个用例独立命名 timer，避免 micrometer 同名 gauge 重复注册的跨用例串扰
-        timer = DefaultScheduledExecutor.newSingleThreadTimer("test-elector-timer-" + TIMER_SEQ.incrementAndGet());
+        clock = new io.nop.commons.test.time.ManualClock(1_000_000L);
+        io.nop.api.core.time.CoreMetrics.registerClock(clock);
+        timer = new io.nop.commons.test.time.ManualScheduler(clock);
+        timerExecutor = new ManualScheduledExecutor(timer);
         elector = new TestElector();
-        elector.setScheduledExecutor(timer);
+        elector.setScheduledExecutor(timerExecutor);
     }
 
     @AfterEach
     public void tearDown() {
         elector.stop();
-        timer.destroy();
+        timerExecutor.destroy();
+        io.nop.api.core.time.CoreMetrics.registerClock(io.nop.api.core.time.CoreMetrics.defaultClock());
     }
 
     @Test
     public void testStartTriggersPollingCheckElection() throws Exception {
         elector.start();
-        // 自旋 + 短 sleep 等待调度器触发首轮 checkElection（防挂起规则）
-        for (int i = 0; i < 200 && elector.electionCount.get() == 0; i++) {
-            Thread.sleep(10);
-        }
+        // 显式推进虚拟时间触发首轮 checkElection（schedule(delay=0) 在推进时确定性执行）
+        timer.advance(0);
         assertTrue(elector.electionCount.get() >= 1,
                 "start must schedule at least one checkElection run");
         assertTrue(elector.isActive(), "elector must be active after start");

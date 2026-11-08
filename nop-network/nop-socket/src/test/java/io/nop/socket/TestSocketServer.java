@@ -92,10 +92,11 @@ public class TestSocketServer {
                 client.close();
 
                 // 客户端断开后服务端应清理 connections 表，不允许残留已关闭的 socket
-                long deadline = System.currentTimeMillis() + 10_000;
-                while (server.getConnection(key) != null && System.currentTimeMillis() < deadline) {
-                    Thread.sleep(100);
-                }
+                // （条件等待，超时上限仅挂死保护）
+                org.junit.jupiter.api.Assertions.assertTrue(
+                        io.nop.api.core.util.FutureHelper.waitUntil(
+                                () -> server.getConnection(key) == null, 10_000),
+                        "client disconnect should remove connection entry");
                 assertNull(server.getConnection(key), "client disconnect should remove connection entry");
 
                 assertEquals(expectedPublicKey, publicKey);

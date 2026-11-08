@@ -111,20 +111,16 @@ public class TestCancellableRpcClient {
         java.util.concurrent.CompletableFuture<ApiResponse<?>> future =
                 client.callAsync("doIt", request, token).toCompletableFuture();
 
-        // 自旋等待下游调用登记后触发取消（防挂起规则：短 sleep 自旋）
-        for (int i = 0; i < 100 && base.methods.isEmpty(); i++) {
-            Thread.sleep(10);
-        }
+        // 条件等待下游调用登记后触发取消（超时上限仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> !base.methods.isEmpty(), 5000),
+                "downstream call must be registered before cancel");
         token.cancelNow("user");
 
-        // 自旋等待 cancelMethod 被调用
-        AtomicBoolean cancelled = new AtomicBoolean(false);
-        for (int i = 0; i < 200 && !cancelled.get(); i++) {
-            cancelled.set(base.methods.contains("cancelRpc"));
-            if (!cancelled.get())
-                Thread.sleep(10);
-        }
-        assertTrue(cancelled.get(), "cancel must invoke the configured cancelMethod");
+        // 条件等待 cancelMethod 被调用（超时上限仅挂死保护）
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> base.methods.contains("cancelRpc"), 5000),
+                "cancel must invoke the configured cancelMethod");
         future.cancel(false);
     }
 

@@ -64,11 +64,6 @@ public class TestXplBean extends BaseTestCase {
         // updator.setValue("test.config.int2", "3");
         // updator.endUpdate();
 
-        try {
-            Thread.sleep(1000);
-        } catch (Exception e) {
-        }
-
         assertEquals(1, service.getStartCount());
         assertEquals("aaa", service.getConfig().getStr1());
         assertEquals(3, service.getConfig().getInt2());

@@ -134,7 +134,6 @@ public class TestRebuildFromCommit extends JunitAutoTestCase {
     private void commit(String msg) throws Exception {
         execGit("add", ".");
         execGit("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", msg);
-        Thread.sleep(50);
     }
 
     private void setupRepo() throws Exception {

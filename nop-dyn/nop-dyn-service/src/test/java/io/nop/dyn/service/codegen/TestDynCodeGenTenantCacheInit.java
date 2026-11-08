@@ -13,6 +13,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 租户缓存并发首次访问时 initTenantCache（全模块DB查询+代码生成）必须只执行一次：
@@ -53,13 +54,13 @@ public class TestDynCodeGenTenantCacheInit {
     static class CountingInitDynCodeGen extends DynCodeGen {
         final NoopHook hook = new NoopHook();
         final AtomicInteger initCount = new AtomicInteger();
-        volatile CountDownLatch entered;
+        volatile CountDownLatch aEntered;
         volatile CountDownLatch release;
 
         @Override
         InMemoryCodeCache initTenantCache(String tenantId) {
             initCount.incrementAndGet();
-            entered.countDown();
+            aEntered.countDown();
             try {
                 release.await();
             } catch (InterruptedException e) {
@@ -72,8 +73,8 @@ public class TestDynCodeGenTenantCacheInit {
     @Test
     public void testConcurrentTenantInitExecutedOnce() throws Exception {
         CountingInitDynCodeGen codeGen = new CountingInitDynCodeGen();
-        // 两个线程都"进入init"才算双双执行（修复后第二个线程在锁上等待，不会进入）
-        codeGen.entered = new CountDownLatch(2);
+        // A 进入 init 后即发信号（修复后第二个线程在锁上等待，不会进入）
+        codeGen.aEntered = new CountDownLatch(1);
         codeGen.release = new CountDownLatch(1);
 
         AtomicReference<InMemoryCodeCache> refA = new AtomicReference<>();
@@ -82,11 +83,9 @@ public class TestDynCodeGenTenantCacheInit {
         Thread threadB = new Thread(() -> refB.set(codeGen.getTenantCodeCache("t1")), "tenant-init-b");
 
         threadA.start();
-        // A已进入init并阻塞在latch上，此时B发起同一租户的首次访问
-        Thread.sleep(100);
+        // A已进入init并阻塞在latch上，此时B发起同一租户的首次访问（显式同步，不依赖时间等待）
+        assertTrue(codeGen.aEntered.await(5, TimeUnit.SECONDS), "A必须先进入init");
         threadB.start();
-
-        boolean bothEntered = codeGen.entered.await(1, TimeUnit.SECONDS);
 
         codeGen.release.countDown();
         threadA.join(5000);
@@ -95,7 +94,5 @@ public class TestDynCodeGenTenantCacheInit {
         assertEquals(1, codeGen.initCount.get(),
                 "并发首次访问时initTenantCache必须只执行一次，修复前两个线程都读到null会各自执行一遍");
         assertSame(refA.get(), refB.get(), "竞争线程必须复用先完成初始化的缓存实例");
-        // bothEntered为true说明修复前行为：两个线程都重复执行了init
-        assertEquals(false, bothEntered, "第二个线程不应进入init，而是在锁上等待后直接复用");
     }
 }

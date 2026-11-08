@@ -183,7 +183,6 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         Files.createDirectories(projectDir);
         writeJavaFile(projectDir, "Gamma.java", "public class Gamma { int g; }");
         writeJavaFile(projectDir, "Delta.java", "public class Delta { String d; }");
-        Thread.sleep(50);
 
         String indexId = "idem-incr";
         String dirPath = projectDir.toAbsolutePath().toString();
@@ -225,7 +224,6 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
                 "public class Alpha { public int run(String s) { return s.length(); } }");
         writeJavaFile(projectDir.resolve("a"), "Beta.java",
                 "public class Beta { public String echo(String s) { return new Alpha().run(s) + s; } }");
-        Thread.sleep(50);
 
         String indexId = "idem-metric";
         codeIndexService.indexDirectory(indexId, projectDir.toAbsolutePath().toString(), "**/*.java");
@@ -274,7 +272,6 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         writeJavaFile(projectDir, "Sigma.java", "public class Sigma { public String id(String s) { return s; } }");
         execGit(projectDir, "add", ".");
         execGit(projectDir, "-c", "user.name=t", "-c", "user.email=t@t", "commit", "-m", "c2");
-        Thread.sleep(50);
         String target = execGit(projectDir, "rev-parse", "HEAD");
 
         setDebounce(0);
@@ -353,7 +350,6 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         Files.createDirectories(projectDir);
         writeJavaFile(projectDir, "Eta.java", "public class Eta { int e; }");
         writeJavaFile(projectDir, "Theta.java", "public class Theta { String t; }");
-        Thread.sleep(50);
 
         String indexId = "idem-indexdir";
         String dirPath = projectDir.toAbsolutePath().toString();
@@ -385,7 +381,6 @@ public class TestNopCodeIndexIdempotencyInvariant extends JunitAutoTestCase {
         Files.createDirectories(projectDir);
         writeJavaFile(projectDir, "Kappa.java", "public class Kappa { int k; }");
         writeJavaFile(projectDir, "Lambda.java", "public class Lambda { String l; }");
-        Thread.sleep(50);
 
         String indexId = "idem-fileset";
         String dirPath = projectDir.toAbsolutePath().toString();

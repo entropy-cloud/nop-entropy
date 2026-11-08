@@ -145,7 +145,11 @@ public class TestDaoEntityBlockingSource {
         });
         worker.start();
         assertTrue(started.await(2, TimeUnit.SECONDS));
-        Thread.sleep(300);
+        // 确定性同步：等 worker 已进入 drainTo 内部的等待循环（FutureHelper.waitUntil 的 TIMED_WAITING
+        // 轮询挂起态）再中断，不依赖时间猜测
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                () -> worker.getState() == Thread.State.TIMED_WAITING, 5000),
+                "worker must be parked in drainTo wait loop");
         worker.interrupt();
         worker.join(5000);
 

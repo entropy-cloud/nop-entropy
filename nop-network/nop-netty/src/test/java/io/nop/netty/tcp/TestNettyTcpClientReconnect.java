@@ -38,10 +38,14 @@ public class TestNettyTcpClientReconnect {
         assertEquals(-1, policy.getRetryDelay(new RuntimeException(), 11, null));
     }
 
-    static int failCountOf(NettyTcpClient client) throws Exception {
-        java.lang.reflect.Field field = NettyTcpClient.class.getDeclaredField("connectFailCount");
-        field.setAccessible(true);
-        return ((java.util.concurrent.atomic.AtomicInteger) field.get(client)).get();
+    static int failCountOf(NettyTcpClient client) {
+        try {
+            java.lang.reflect.Field field = NettyTcpClient.class.getDeclaredField("connectFailCount");
+            field.setAccessible(true);
+            return ((java.util.concurrent.atomic.AtomicInteger) field.get(client)).get();
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Test
@@ -62,14 +66,17 @@ public class TestNettyTcpClientReconnect {
         client.start();
 
         try {
-            // 等待重试次数超过上限
-            for (int i = 0; i < 300 && failCountOf(client) <= 2; i++) {
-                Thread.sleep(20);
-            }
-            assertTrue(failCountOf(client) > 2, "retry must have been attempted");
+            // 条件等待重试次数超过上限（超时上限仅挂死保护）
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                            () -> failCountOf(client) > 2, 10_000),
+                    "retry must have been attempted");
             int failCount = failCountOf(client);
 
-            // 超过 maxConnectRetryCount 后必须停止重连，失败计数不再增长
+            // 残余具名裁定（plan 2514-WI8）：超过 maxConnectRetryCount 后停止重连的负向观察窗。
+            // 重连判定在真实 Netty EventLoop 定时器上（eventLoop.schedule），
+            // EventLoop 不暴露待执行任务注册表，「无定时器条目」无结构性证据可断言；
+            // 判定不读 CoreMetrics，虚拟时钟不可达。停止逻辑的纯策略行为已由
+            // testWithRetryDelaySetsRetryDelayField 的 retryDelay=-1 分支单独锁定。
             Thread.sleep(500);
             assertEquals(failCount, failCountOf(client),
                     "reconnect attempts must stop after max retry count is exceeded");
@@ -117,9 +124,10 @@ public class TestNettyTcpClientReconnect {
             assertTrue(client.awaitConnected(5000));
             client.sendOneway("hello-oneway");
 
-            for (int i = 0; i < 100 && received.isEmpty(); i++) {
-                Thread.sleep(20);
-            }
+            // 条件等待消息到达（超时上限仅挂死保护）
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                            () -> !received.isEmpty(), 5000),
+                    "oneway message must reach the server, received=" + received);
             // sendOneway 必须 flush，消息应当到达服务端
             assertTrue(received.contains("hello-oneway"),
                     "oneway message must reach the server, received=" + received);

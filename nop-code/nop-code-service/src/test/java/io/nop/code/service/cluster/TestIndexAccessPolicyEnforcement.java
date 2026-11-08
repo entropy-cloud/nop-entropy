@@ -89,10 +89,14 @@ public class TestIndexAccessPolicyEnforcement extends JunitAutoTestCase {
         // allowedLocalRoot validation is reachable via triggerIncrementalIndex on a directory
         Path projectDir = tempDir.resolve("root-check/app");
         Files.createDirectories(projectDir);
-        Files.writeString(projectDir.resolve("A.java"), "public class A { int x; }");
+        Path javaFile = projectDir.resolve("A.java");
+        Files.writeString(javaFile, "public class A { int x; }");
+        java.nio.file.attribute.FileTime firstWrite =
+                Files.getLastModifiedTime(javaFile);
+        Files.writeString(javaFile, "public class A { int y; }");
         // make mtime/size differ so the incremental path runs validation
-        Thread.sleep(20);
-        Files.writeString(projectDir.resolve("A.java"), "public class A { int y; }");
+        Files.setLastModifiedTime(javaFile,
+                java.nio.file.attribute.FileTime.fromMillis(firstWrite.toMillis() + 1));
 
         ((CodeIndexService) codeIndexService).setAccessPolicy(new IndexAccessPolicy() {
             @Override

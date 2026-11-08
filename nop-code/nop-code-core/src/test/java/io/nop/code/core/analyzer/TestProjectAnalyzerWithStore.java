@@ -133,7 +133,6 @@ class TestProjectAnalyzerWithStore {
                 analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(first);
 
-        Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
         ProjectAnalysisResult second =
@@ -166,7 +165,6 @@ class TestProjectAnalyzerWithStore {
                 analyzer.analyzeIncremental(vfsPath(), "test-idx", fingerprintStore);
         assertNotNull(first);
 
-        Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
         Files.delete(tempDir.resolve("Bar.java"));
         Files.writeString(tempDir.resolve("Baz.java"), "public class Baz { }");

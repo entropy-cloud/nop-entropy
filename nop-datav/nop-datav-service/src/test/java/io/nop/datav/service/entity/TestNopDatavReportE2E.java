@@ -760,22 +760,13 @@ public class TestNopDatavReportE2E extends AbstractNopDatavTest {
     // ==================== Helpers ====================
 
     private NopDatavReportDelivery pollUntilTerminal(String deliveryId) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        while (System.currentTimeMillis() < deadline) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
             NopDatavReportDelivery d = daoProvider.daoFor(NopDatavReportDelivery.class)
                     .getEntityById(deliveryId);
-            if (d != null && NopDatavReportDeliveryStatus.isTerminal(d.getStatus())) {
-                return d;
-            }
-            try {
-                Thread.sleep(POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-        }
-        throw new AssertionError("delivery " + deliveryId + " did not reach terminal state within "
+            return d != null && NopDatavReportDeliveryStatus.isTerminal(d.getStatus());
+        }, POLL_TIMEOUT_MS), "delivery " + deliveryId + " did not reach terminal state within "
                 + POLL_TIMEOUT_MS + "ms");
+        return daoProvider.daoFor(NopDatavReportDelivery.class).getEntityById(deliveryId);
     }
 
     private IServiceContext ownerContext(String userName) {

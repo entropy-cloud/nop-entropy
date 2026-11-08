@@ -54,9 +54,10 @@ public class TestConcatenatedBodyPublisherFix {
         publisher.subscribe(subscriber);
         subscriber.subscription.request(Long.MAX_VALUE);
 
-        for (int i = 0; i < 100 && subscriber.completeCount.get() == 0; i++) {
-            Thread.sleep(10);
-        }
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> subscriber.completeCount.get() > 0, 5000),
+                "publisher must complete all subscribed chunks");
 
         // Flow 契约：onSubscribe 只能被调用一次（JDK HttpClient 对重复 onSubscribe 抛 IllegalStateException）
         assertEquals(1, subscriber.onSubscribeCount.get());

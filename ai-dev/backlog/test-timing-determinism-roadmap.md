@@ -36,7 +36,7 @@ SLEEP_THEN_ASSERT 集中模块（处数 / 该模块 sleep 总数）：nop-ai-age
 | WI-5 | nop-ai（agent / core / gateway；shell / toolkit 同族面由 2511 一并承接） | done | `ai-dev/plans/2511-nop-ai-test-time-determinism.md` |
 | WI-6 | nop-auth、nop-persistence（nosql-*）、nop-message（pulsar / kafka） | done | `ai-dev/plans/2512-auth-nosql-message-test-time-determinism.md` |
 | WI-7 | nop-kernel（commons / xlang / xlang-truffle）、nop-service-framework（graphql-core / gateway） | done | `ai-dev/plans/2513-kernel-serviceframework-test-time-determinism.md` |
-| WI-8 | 其余模块（nop-code、nop-network、nop-datav、nop-metadata、nop-report-service、nop-sys、nop-job 等） | todo | — |
+| WI-8 | 其余模块（nop-code、nop-network、nop-datav、nop-metadata、nop-report-service、nop-sys、nop-job 等） | done | `ai-dev/plans/2514-remaining-modules-test-time-determinism.md` |
 
 ## Status values
 

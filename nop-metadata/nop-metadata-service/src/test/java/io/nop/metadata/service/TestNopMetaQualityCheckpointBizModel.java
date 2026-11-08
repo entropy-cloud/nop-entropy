@@ -1,6 +1,7 @@
 package io.nop.metadata.service;
 
 import io.nop.api.core.annotations.autotest.NopTestConfig;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.annotations.core.OptionalBoolean;
 import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.graphql.GraphQLRequestBean;
@@ -8,6 +9,7 @@ import io.nop.api.core.beans.graphql.GraphQLResponseBean;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.autotest.junit.JunitBaseTestCase;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
@@ -985,36 +987,44 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         saveRule("r-er-vol", "volume", "table", tableId, null, null, "{\"minRows\":1}"); // PASS
         saveCheckpoint("cp-er", "ACTIVE", "[{\"tableIds\":[\"" + tableId + "\"]}]", null);
 
-        // run 1：PASS + score=100
-        GraphQLResponseBean resp1 = exec("cp-er");
-        assertFalse(resp1.hasError(), "run 1 must succeed: " + resp1);
-        assertEquals(1, countResults("r-er-vol"), "run 1 must write 1 result row");
-        assertEquals("PASS", findResult("r-er-vol").getStatus(), "run 1 result must be PASS");
-        assertEquals(1, countScores(tableId), "run 1 must auto-score once");
-        assertEquals(100.0, findLatestScore(tableId).getOverallScore(), 0.001, "run 1 score = 100");
+        // executeTime 走 CoreMetrics.currentTimestamp：注册 ManualClock 显式推进虚拟时间，
+        // 保证 run 2 行严格晚于 run 1 行（findLatestResult 确定性），不依赖真实时间等待
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            // run 1：PASS + score=100
+            GraphQLResponseBean resp1 = exec("cp-er");
+            assertFalse(resp1.hasError(), "run 1 must succeed: " + resp1);
+            assertEquals(1, countResults("r-er-vol"), "run 1 must write 1 result row");
+            assertEquals("PASS", findResult("r-er-vol").getStatus(), "run 1 result must be PASS");
+            assertEquals(1, countScores(tableId), "run 1 must auto-score once");
+            assertEquals(100.0, findLatestScore(tableId).getOverallScore(), 0.001, "run 1 score = 100");
 
-        // 破坏物理表（规则仍挂载于 NopMetaEntity）→ run 2 规则执行抛 SQLException
-        Thread.sleep(10); // executeTime 毫秒精度，保证 run 2 行严格晚于 run 1 行（findLatestResult 确定性）
-        dropExternalTable(dbUrl, "EXT_ER");
+            // 破坏物理表（规则仍挂载于 NopMetaEntity）→ run 2 规则执行抛 SQLException
+            clock.advance(10_000); // executeTime 毫秒精度，保证 run 2 行严格晚于 run 1 行（findLatestResult 确定性）
+            dropExternalTable(dbUrl, "EXT_ER");
 
-        GraphQLResponseBean resp2 = exec("cp-er");
-        assertFalse(resp2.hasError(), "exception rule must be isolated (no global error): " + resp2);
-        String data = String.valueOf(resp2.getData());
-        assertTrue(data.contains("errorCount=1"), "exception rule must count in errorCount: " + data);
-        assertTrue(data.contains("totalRuleCount=1"), "DTO must fill totalRuleCount=1: " + data);
+            GraphQLResponseBean resp2 = exec("cp-er");
+            assertFalse(resp2.hasError(), "exception rule must be isolated (no global error): " + resp2);
+            String data = String.valueOf(resp2.getData());
+            assertTrue(data.contains("errorCount=1"), "exception rule must count in errorCount: " + data);
+            assertTrue(data.contains("totalRuleCount=1"), "DTO must fill totalRuleCount=1: " + data);
 
-        // ERROR 结果行落盘（clearSession 后存活）+ 最新行为 ERROR（不再是旧 PASS）
-        assertEquals(2, countResults("r-er-vol"),
-                "exception rule must append an ERROR result row (before AR-14 only errors list, no row)");
-        NopMetaQualityResult latest = findLatestResult("r-er-vol");
-        assertNotNull(latest, "latest result row must exist");
-        assertEquals("ERROR", latest.getStatus(), "latest result row must be ERROR");
-        assertNotNull(latest.getRunId(), "ERROR row must carry runId (composite UK reconcile)");
+            // ERROR 结果行落盘（clearSession 后存活）+ 最新行为 ERROR（不再是旧 PASS）
+            assertEquals(2, countResults("r-er-vol"),
+                    "exception rule must append an ERROR result row (before AR-14 only errors list, no row)");
+            NopMetaQualityResult latest = findLatestResult("r-er-vol");
+            assertNotNull(latest, "latest result row must exist");
+            assertEquals("ERROR", latest.getStatus(), "latest result row must be ERROR");
+            assertNotNull(latest.getRunId(), "ERROR row must carry runId (composite UK reconcile)");
 
-        // 本次 run autoScore 用 ERROR 行重算（affectedTableIds 含该表）→ 评分从 100 降至 0
-        assertEquals(2, countScores(tableId), "run 2 must auto-score again (table in affectedTableIds)");
-        assertEquals(0.0, findLatestScore(tableId).getOverallScore(), 0.001,
-                "score must reflect ERROR row (was stale 100 from old PASS before AR-14)");
+            // 本次 run autoScore 用 ERROR 行重算（affectedTableIds 含该表）→ 评分从 100 降至 0
+            assertEquals(2, countScores(tableId), "run 2 must auto-score again (table in affectedTableIds)");
+            assertEquals(0.0, findLatestScore(tableId).getOverallScore(), 0.001,
+                    "score must reflect ERROR row (was stale 100 from old PASS before AR-14)");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     /**
@@ -1354,17 +1364,10 @@ public class TestNopMetaQualityCheckpointBizModel extends JunitBaseTestCase {
         dao.saveEntity(row);
     }
 
-    /** 轮询等待条件成立（超时抛断言失败）。 */
-    private static void awaitTrue(java.util.function.BooleanSupplier cond, long timeoutMs, String message)
-            throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (System.currentTimeMillis() < deadline) {
-            if (cond.getAsBoolean()) {
-                return;
-            }
-            Thread.sleep(50);
-        }
-        throw new AssertionError("timeout waiting for: " + message);
+    /** 条件等待成立（超时抛断言失败）。 */
+    private static void awaitTrue(java.util.function.BooleanSupplier cond, long timeoutMs, String message) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(cond, timeoutMs),
+                "timeout waiting for: " + message);
     }
 
     private long countScores(String metaEntityId) {

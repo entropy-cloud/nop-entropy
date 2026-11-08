@@ -155,12 +155,20 @@ public class TestNopDatavDashboardParallelQuery extends AbstractNopDatavTest {
 
         AtomicInteger inFlight = new AtomicInteger();
         AtomicInteger maxInFlight = new AtomicInteger();
+        // 确定性并发会合：任一任务观测到 inFlight 达到并行度上限即放行，
+        // 串行执行将在此超时（挂死保护上限，不承载时间语义）——替代原 sleep 放大重叠窗口。
+        CountDownLatch boundReached = new CountDownLatch(1);
         dashboardBizModel.setPanelQueryTaskDecorator((panel, task) -> () -> {
             int current = inFlight.incrementAndGet();
             maxInFlight.accumulateAndGet(current, Math::max);
             try {
-                // 放大重叠窗口，使并行度约束可观测（decorator 体在 Semaphore 许可区内执行）
-                Thread.sleep(100);
+                if (current >= 2) {
+                    boundReached.countDown();
+                }
+                if (!boundReached.await(30, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException(
+                            "queries never reached the parallelism bound concurrently");
+                }
                 return task.call();
             } finally {
                 inFlight.decrementAndGet();

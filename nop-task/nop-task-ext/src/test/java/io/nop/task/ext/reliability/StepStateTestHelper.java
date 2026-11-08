@@ -35,6 +35,10 @@ public class StepStateTestHelper {
      * 触发 TaskStepHelper.retry 的 primary async 路径（:172-173 thenCompose → doRetry）。
      * delayMs > 0 确保 isDone() 在 retry 检查时返回 false（future 尚未完成），
      * 从而走 thenCompose 路径而非 already-done 快捷路径。
+     *
+     * <p>残余具名裁定（plan 2514-WI8）：sleep 仅为制造确定性的「future 未完成」初态（xpl 内联调用，
+     * 测试线程在 step 执行与 retry 的 isDone 检查之间无注入点，latch 释放无生产可见钩子）；
+     * 断言不依赖经过时长数值。</p>
      */
     public CompletableFuture<String> asyncSuccess(String value, long delayMs) {
         counter.incrementAndGet();

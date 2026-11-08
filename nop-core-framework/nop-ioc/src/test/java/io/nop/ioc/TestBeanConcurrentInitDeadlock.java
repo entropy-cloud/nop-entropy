@@ -6,6 +6,7 @@
  */
 package io.nop.ioc;
 
+import io.nop.api.core.util.FutureHelper;
 import io.nop.core.initialize.CoreInitialization;
 import io.nop.core.unittest.BaseTestCase;
 import io.nop.ioc.api.IBeanContainerImplementor;
@@ -77,12 +78,9 @@ public class TestBeanConcurrentInitDeadlock extends BaseTestCase {
             }, "t2-p-init-owner");
             t2.start();
 
-            // 等待 T2 进入 D 的构造函数（D 构造内先置标志再阻塞，test 线程轮询确认）
-            long deadline = System.currentTimeMillis() + 10000;
-            while (!TestConcurrentD.isEntered() && System.currentTimeMillis() < deadline) {
-                Thread.sleep(5);
-            }
-            assertTrue(TestConcurrentD.isEntered(), "T2 must enter D constructor");
+            // 等待 T2 进入 D 的构造函数（D 构造内先置标志再阻塞，条件等待确认）
+            assertTrue(FutureHelper.waitUntil(TestConcurrentD::isEntered, 10000),
+                    "T2 must enter D constructor");
 
             // Step 3: T1 以 ctxA 获取 P，进入 flushInit(ctxA) 并阻塞于 runUntil(P)
             AtomicReference<Throwable> t1Error = new AtomicReference<>();
@@ -98,14 +96,9 @@ public class TestBeanConcurrentInitDeadlock extends BaseTestCase {
             t1.start();
 
             // 等待 T1 阻塞于 P 的 monitor（旧代码 BLOCKED/WAITING；新代码 WAITING），确认已进入 flushInit 并持锁/等待
-            deadline = System.currentTimeMillis() + 10000;
-            while (System.currentTimeMillis() < deadline) {
-                Thread.State state = t1.getState();
-                if (state == Thread.State.BLOCKED || state == Thread.State.WAITING)
-                    break;
-                Thread.sleep(5);
-            }
-            assertTrue(t1.getState() == Thread.State.BLOCKED || t1.getState() == Thread.State.WAITING,
+            assertTrue(FutureHelper.waitUntil(
+                            () -> t1.getState() == Thread.State.BLOCKED || t1.getState() == Thread.State.WAITING,
+                            10000),
                     "T1 must be blocked on P monitor, but was " + t1.getState());
 
             // Step 4: 放开门闩，T2 继续 newObject(D) → flushInit(ctxA)。旧代码死锁，新代码通过

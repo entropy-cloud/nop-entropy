@@ -178,7 +178,6 @@ class TestProjectAnalyzerIncremental {
         ProjectAnalysisResult first = analyzer.analyzeProject(vfsPath());
         assertEquals(2, first.getFileResults().size());
 
-        Thread.sleep(50);
         Files.writeString(tempDir.resolve("Foo.java"), "public class Foo { int x; }");
 
         ProjectAnalysisResult second =

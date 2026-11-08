@@ -128,22 +128,27 @@ public class TestAutoRegistration {
         registration.setAutoUpdateInterval(java.time.Duration.ofMillis(20));
 
         registration.start();
+        // 结构性证据（plan 2514-WI8，替代 sleep(100) 墙钟观察窗）：刷新已发生后、
+        // stop 之前捕获定时器 future（stop 会将字段置 null——AutoRegistration:224）；
+        // stop 后该 future 必为 done（cancel）——「定时器条目已从调度器移除」的确定性判据。
+        java.lang.reflect.Field timerField = AutoRegistration.class.getDeclaredField("autoUpdateTimerFuture");
+        timerField.setAccessible(true);
+        java.util.concurrent.Future<?> timerFuture;
         try {
-            // 自旋等待后台刷新发生（防挂起规则：短 sleep 自旋，不无限阻塞）
-            AtomicBoolean refreshed = new AtomicBoolean(false);
-            for (int i = 0; i < 200 && !refreshed.get(); i++) {
-                refreshed.set(naming.updateCount.get() > 0);
-                if (!refreshed.get())
-                    Thread.sleep(10);
-            }
-            assertTrue(refreshed.get(), "autoUpdate must periodically refresh registration");
+            // 条件等待后台刷新发生（超时上限仅挂死保护）；刷新发生即证明定时器已排程
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                            () -> naming.updateCount.get() > 0, 5000),
+                    "autoUpdate must periodically refresh registration");
+            timerFuture = (java.util.concurrent.Future<?>) timerField.get(registration);
+            assertNotNull(timerFuture, "autoUpdate start must have scheduled the refresh timer");
         } finally {
             registration.stop();
         }
+        assertTrue(timerFuture.isDone(),
+                "stop must cancel the auto-update timer entry (scheduled task no longer pending)");
         int updatesAtStop = naming.updateCount.get();
         assertEquals(1, naming.unregisterCount.get(), "stop must unregister");
 
-        Thread.sleep(100);
         assertEquals(updatesAtStop, naming.updateCount.get(),
                 "stop must cancel the auto-update timer");
     }

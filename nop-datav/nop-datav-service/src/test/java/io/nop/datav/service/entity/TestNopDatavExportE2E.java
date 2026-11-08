@@ -422,15 +422,11 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
     /**
      * 等待 cancelFlags[taskId] 被清除（执行体完成的确定性信号）。
      */
-    private void awaitCancelFlagCleared(String taskId, long timeoutMs) throws InterruptedException {
-        long deadline = System.currentTimeMillis() + timeoutMs;
-        while (exportBizModel.isCancelFlagged(taskId)) {
-            if (System.currentTimeMillis() >= deadline) {
-                throw new AssertionError("cancelFlag for task " + taskId
+    private void awaitCancelFlagCleared(String taskId, long timeoutMs) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> !exportBizModel.isCancelFlagged(taskId), timeoutMs),
+                "cancelFlag for task " + taskId
                         + " was not cleared within " + timeoutMs + "ms (executor did not complete)");
-            }
-            Thread.sleep(20);
-        }
     }
 
     /**
@@ -495,21 +491,11 @@ public class TestNopDatavExportE2E extends AbstractNopDatavTest {
     // ==================== Helpers ====================
 
     private NopDatavExportTask pollUntilTerminal(String taskId, IServiceContext ctx) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        while (System.currentTimeMillis() < deadline) {
-            NopDatavExportTask task = exportBiz.getExportTask(taskId, ctx);
-            if (NopDatavExportTaskStatus.isTerminal(task.getStatus())) {
-                return task;
-            }
-            try {
-                Thread.sleep(POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-        }
-        throw new AssertionError("task " + taskId + " did not reach terminal state within "
-                + POLL_TIMEOUT_MS + "ms");
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                        () -> NopDatavExportTaskStatus.isTerminal(exportBiz.getExportTask(taskId, ctx).getStatus()),
+                        POLL_TIMEOUT_MS),
+                "task " + taskId + " did not reach terminal state within " + POLL_TIMEOUT_MS + "ms");
+        return exportBiz.getExportTask(taskId, ctx);
     }
 
     private IServiceContext ownerContext(String userName) {

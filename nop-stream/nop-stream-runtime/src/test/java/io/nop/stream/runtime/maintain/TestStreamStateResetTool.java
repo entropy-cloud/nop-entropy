@@ -107,11 +107,36 @@ class TestStreamStateResetTool {
         return sinkResults;
     }
 
+    /**
+     * 时间确定化（plan 2510/WI-8）：executeWithCheckpoint 返回后 CANCEL 模式 final
+     * checkpoint 的持久化完成仍是异步的（triggerFinalCheckpoint javadoc 明示
+     * "Completion of the triggered checkpoint itself remains asynchronous"，持久化
+     * 写盘由 coordinator 的 persist executor 带 grace window 收敛）。全 reactor 负载下
+     * runJob() 返回时 durable 工件可能尚未落盘——任何「durable state 存在」断言必须先
+     * 等待到确定性证据（latest checkpoint 可读），禁止把「恰好来得及写完」当前提。
+     */
+    private void awaitDurableCheckpointState() throws InterruptedException {
+        LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
+        long deadline = System.nanoTime() + 10_000_000_000L;
+        while (System.nanoTime() < deadline) {
+            if (storage.getLatestCheckpoint(JOB_ID, "1") != null
+                    && Files.exists(tempDir.resolve(JOB_ID))) {
+                return;
+            }
+            // RESIDUAL（gated 异步持久化收敛面，plan 2514 具名裁定）：checkpoint 落盘经
+            // persist executor 异步收敛，无同步钩子可等；轮询间隔 10ms 仅作条件等待的
+            // 节拍，判定条件是确定性产物（manifest + 目录），超时即失败——非 sleep 断言。
+            Thread.sleep(10);
+        }
+        throw new AssertionError("durable checkpoint state did not appear within 10s after runJob()");
+    }
+
     @Test
     void resetThenReplayFromStart() throws Exception {
         // run 1: full output + durable state on disk
         List<Integer> run1 = runJob();
         assertEquals(10, run1.size(), "run 1 processes all records");
+        awaitDurableCheckpointState();
         LocalFileCheckpointStorage storage = new LocalFileCheckpointStorage(tempDir.toString());
         assertNotNull(storage.getLatestCheckpoint(JOB_ID, "1"),
                 "durable checkpoint state exists after run 1");
@@ -137,6 +162,7 @@ class TestStreamStateResetTool {
     @Test
     void refusesNonReplayableSource() throws Exception {
         runJob(); // ensure state dir exists
+        awaitDurableCheckpointState();
         StreamException ex = assertThrows(StreamException.class,
                 () -> StreamStateResetTool.reset(JOB_ID, tempDir.toString(), false, null));
         assertTrue(ex.getMessage().contains("NON-REPLAYABLE"),
@@ -164,6 +190,7 @@ class TestStreamStateResetTool {
     @Test
     void refusesActiveCoordinator() throws Exception {
         runJob();
+        awaitDurableCheckpointState();
         InMemoryClusterRegistry registry = new InMemoryClusterRegistry();
         registry.registerCoordinator(JOB_ID, "coordinator-live", 42L);
         StreamException ex = assertThrows(StreamException.class,
@@ -184,6 +211,7 @@ class TestStreamStateResetTool {
     @Test
     void refusesDotDotJobIdAndPreservesSiblingState() throws Exception {
         runJob(); // own state dir exists
+        awaitDurableCheckpointState();
         // a sibling job's state that the traversal WOULD have deleted
         Path sibling = tempDir.resolve("other-job");
         Files.createDirectories(sibling.resolve("checkpoints"));
@@ -204,6 +232,7 @@ class TestStreamStateResetTool {
     @Test
     void refusesEncodedAndAbsolutePathJobIds() throws Exception {
         runJob();
+        awaitDurableCheckpointState();
         // Encoded variants still contain illegal characters ('%', '/', ':') — the charset
         // guard rejects them before any path arithmetic.
         for (String hostile : new String[]{"..%2Fother-job", "%2e%2e/other-job", "/abs/path",

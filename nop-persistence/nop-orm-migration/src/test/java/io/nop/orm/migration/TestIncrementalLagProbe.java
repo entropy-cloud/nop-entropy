@@ -8,6 +8,8 @@
 package io.nop.orm.migration;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.message.debezium.ChangeEvent;
 import io.nop.message.debezium.ChangeEventMetadata;
 import io.nop.message.debezium.engine.NopStreamOffsetBackingStore;
@@ -51,18 +53,24 @@ public class TestIncrementalLagProbe extends AbstractMigrationE2ETestCase {
         insertLedgerRow("mig", 1L, 0);
         IncrementalLagProbe probe = new IncrementalLagProbe(jdbcTemplate, "",
                 "stream_epoch_ledger_v2");
-        // 后台线程在静默窗口内追加 ledger 提交行 → 观测量变化 → lag!=0
-        Thread committer = new Thread(() -> {
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            insertLedgerRow("mig", 2L, 0);
-        });
-        committer.setDaemon(true);
-        committer.start();
-        assertFalse(probe.awaitLagZero(null, 1), "ledger committed within quiesce → lag != 0");
+        // 静默窗口走 CoreMetrics.currentTimeMillis：注册 ManualClock 虚拟化窗口时钟——
+        // 提交线程先追加 ledger 行再推进虚拟时间越过窗口截止，保证提交确定性地落在窗口内
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            // 结构同步门：只统计探针线程（main）对时钟的读取次数（详见 CDC 测试内注释）
+            Thread probeThread = Thread.currentThread();
+            Thread committer = new Thread(() -> {
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> clock.readsBy(probeThread) >= 2, 5000);
+                insertLedgerRow("mig", 2L, 0);
+                clock.advance(1000);
+            });
+            committer.setDaemon(true);
+            committer.start();
+            assertFalse(probe.awaitLagZero(null, 1), "ledger committed within quiesce → lag != 0");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     @Test
@@ -70,21 +78,29 @@ public class TestIncrementalLagProbe extends AbstractMigrationE2ETestCase {
         NopStreamOffsetBackingStore store = NopStreamOffsetBackingStore.forConnector(CONNECTOR);
         IncrementalLagProbe probe = new IncrementalLagProbe(jdbcTemplate, "",
                 "stream_epoch_ledger_v2");
-        // 后台线程在静默窗口内推进 CDC offset → offset 指纹变化 → lag!=0
-        Thread advancer = new Thread(() -> {
-            try {
-                Thread.sleep(300);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-            Map<java.nio.ByteBuffer, java.nio.ByteBuffer> offsets = new LinkedHashMap<>();
-            offsets.put(java.nio.ByteBuffer.wrap("p".getBytes()),
-                    java.nio.ByteBuffer.wrap("advanced".getBytes()));
-            store.setOffsets(offsets);
-        });
-        advancer.setDaemon(true);
-        advancer.start();
-        assertFalse(probe.awaitLagZero(CONNECTOR, 1), "CDC offset advanced within quiesce → lag != 0");
+        // 静默窗口走 CoreMetrics.currentTimeMillis：注册 ManualClock 虚拟化窗口时钟——
+        // 推进线程先推 CDC offset 再推进虚拟时间越过窗口截止，保证变更确定性地落在窗口内
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            // 结构同步门：只统计探针线程（main）对时钟的读取次数——若用 totalReads，
+            // 本推进线程自身 waitUntil 的轮询读取会提前满足门条件（残窗 1ms 永不流逝的死锁根因）。
+            // 探针读到 2 次 = 已算出窗口截止并进入静默循环，此后变更+推进必然落在窗口内。
+            Thread probeThread = Thread.currentThread();
+            Thread advancer = new Thread(() -> {
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> clock.readsBy(probeThread) >= 2, 5000);
+                Map<java.nio.ByteBuffer, java.nio.ByteBuffer> offsets = new LinkedHashMap<>();
+                offsets.put(java.nio.ByteBuffer.wrap("p".getBytes()),
+                        java.nio.ByteBuffer.wrap("advanced".getBytes()));
+                store.setOffsets(offsets);
+                clock.advance(1000);
+            });
+            advancer.setDaemon(true);
+            advancer.start();
+            assertFalse(probe.awaitLagZero(CONNECTOR, 1), "CDC offset advanced within quiesce → lag != 0");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     @Test

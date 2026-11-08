@@ -1,5 +1,7 @@
 package io.nop.integration.feishu.bind;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
 import io.nop.integration.api.bind.BindTicket;
 import io.nop.integration.api.bind.BindTicketStatus;
 import io.nop.integration.api.bind.ChannelBindResult;
@@ -184,26 +186,30 @@ class TestFeishuBindProvider {
     @Test
     void onCallbackWithExpiredTicketFailsExplicitly() {
         provider.setTicketTtlMs(1L); // 1ms TTL
-        BindTicket ticket = provider.createBindTicket("feishu", "user-1");
+        // TTL 判定走 CoreMetrics.currentTimeMillis：注册 ManualClock 显式推进虚拟时间让票据过期，
+        // 不依赖真实时间等待。回调断言必须在虚拟时钟仍注册的窗口内执行（否则落到真实时钟语义）。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            Thread.sleep(20L); // let it expire
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
+            BindTicket ticket = provider.createBindTicket("feishu", "user-1");
+            clock.advance(20L); // let it expire
+
+            ChannelScanCallback callback = new ChannelScanCallback();
+            callback.setChannelType("feishu");
+            callback.setTicketId(ticket.getTicketId());
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("code", "auth-code-1");
+            callback.setRawPayload(payload);
+
+            NopFeishuException ex = assertThrows(NopFeishuException.class,
+                    () -> provider.onChannelScanCallback(callback));
+            assertTrue(ex.getMessage().contains("unknown or expired") || ex.getMessage().contains("expired"),
+                    "expired ticket must fail explicitly: " + ex.getMessage());
+            assertEquals(0, oauthApi.exchangeCalls,
+                    "expired tickets must not trigger any Feishu identity exchange");
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
-
-        ChannelScanCallback callback = new ChannelScanCallback();
-        callback.setChannelType("feishu");
-        callback.setTicketId(ticket.getTicketId());
-        Map<String, Object> payload = new HashMap<>();
-        payload.put("code", "auth-code-1");
-        callback.setRawPayload(payload);
-
-        NopFeishuException ex = assertThrows(NopFeishuException.class,
-                () -> provider.onChannelScanCallback(callback));
-        assertTrue(ex.getMessage().contains("unknown or expired") || ex.getMessage().contains("expired"),
-                "expired ticket must fail explicitly: " + ex.getMessage());
-        assertEquals(0, oauthApi.exchangeCalls,
-                "expired tickets must not trigger any Feishu identity exchange");
     }
 
     @Test

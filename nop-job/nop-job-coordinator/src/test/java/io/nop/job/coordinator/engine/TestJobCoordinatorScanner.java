@@ -1438,23 +1438,11 @@ public class TestJobCoordinatorScanner extends JunitBaseTestCase {
     }
 
     private NopJobTask waitForStatus(String jobTaskId, int expectedStatus) {
-        long deadline = System.currentTimeMillis() + 15000;
-        while (System.currentTimeMillis() < deadline) {
+        assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(() -> {
             NopJobTask fresh = taskStore.loadTask(jobTaskId);
-            if (fresh != null && fresh.getTaskStatus() == expectedStatus) {
-                return fresh;
-            }
-            try {
-                Thread.sleep(200);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new IllegalStateException("interrupted while waiting for task status", e);
-            }
-        }
-        NopJobTask last = taskStore.loadTask(jobTaskId);
-        assertEquals(expectedStatus, last != null ? last.getTaskStatus() : -1,
-                "task did not reach expected status in time");
-        return last;
+            return fresh != null && fresh.getTaskStatus() == expectedStatus;
+        }, 15000), "task " + jobTaskId + " did not reach expected status " + expectedStatus + " in time");
+        return taskStore.loadTask(jobTaskId);
     }
 
     private void runWorkerScanner(MockPollWorker worker) {

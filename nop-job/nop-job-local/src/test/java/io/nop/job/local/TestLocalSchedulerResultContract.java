@@ -1,7 +1,10 @@
 package io.nop.job.local;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.job.api.JobState;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
@@ -88,44 +91,54 @@ public class TestLocalSchedulerResultContract {
     void testNextScheduleTimeFromResultOverridesTrigger() throws Exception {
         FixedResultInvoker[] holder = new FixedResultInvoker[1];
         CountDownLatch firstFire = new CountDownLatch(1);
-        // resolver按名字返回同一个invoker实例
-        LocalJobScheduler sched = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> {
-            if (holder[0] == null) {
-                holder[0] = new FixedResultInvoker(null) {
-                    @Override
-                    public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
-                        invokeCount.incrementAndGet();
-                        long override = System.currentTimeMillis() + 300;
-                        firstFire.countDown();
-                        return CompletableFuture.completedFuture(JobFireResult.CONTINUE(override));
-                    }
-                };
-            }
-            return holder[0];
-        });
-        sched.activate();
+        // 时间确定化（plan 2514-WI8）：触发判定走 CoreMetrics 虚拟时钟 + ManualScheduler 显式推进，
+        // 第二次触发是否遵循 nextScheduleTime 在虚拟时间线上确定性发生（若按 trigger 10s，
+        // 2s 推进窗口内不会有第二次触发）。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            JobSpec spec = new JobSpec();
-            spec.setJobName("override-next");
-            spec.setJobInvoker("mock");
-            TriggerSpec ts = new TriggerSpec();
-            ts.setRepeatInterval(10_000); // trigger节奏10s
-            ts.setRepeatFixedDelay(true);
-            spec.setTriggerSpec(ts);
-            sched.addJob(spec, false);
+            // resolver按名字返回同一个invoker实例
+            ManualScheduler timer = new ManualScheduler(clock);
+            LocalJobScheduler sched = new LocalJobScheduler(new ManualScheduledExecutor(timer), name -> {
+                if (holder[0] == null) {
+                    holder[0] = new FixedResultInvoker(null) {
+                        @Override
+                        public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                            invokeCount.incrementAndGet();
+                            long override = clock.peekMillis() + 300;
+                            firstFire.countDown();
+                            return CompletableFuture.completedFuture(JobFireResult.CONTINUE(override));
+                        }
+                    };
+                }
+                return holder[0];
+            });
+            sched.activate();
+            try {
+                JobSpec spec = new JobSpec();
+                spec.setJobName("override-next");
+                spec.setJobInvoker("mock");
+                TriggerSpec ts = new TriggerSpec();
+                ts.setRepeatInterval(10_000); // trigger节奏10s
+                ts.setRepeatFixedDelay(true);
+                spec.setTriggerSpec(ts);
+                sched.addJob(spec, false);
 
-            assertTrue(firstFire.await(5, TimeUnit.SECONDS), "first fire should happen immediately");
-            // 首次触发后，若尊重nextScheduleTime，第二次触发应在约300ms后（<=2s内）；
-            // 若忽略（按trigger 10s），2s内不会有第二次
-            long deadline = System.currentTimeMillis() + 2000;
-            while (System.currentTimeMillis() < deadline && holder[0].invokeCount.get() < 2) {
-                Thread.sleep(20);
+                // 首次触发经显式推进落地
+                timer.advance(1);
+                assertTrue(firstFire.await(5, TimeUnit.SECONDS), "first fire should happen immediately");
+                assertEquals(1, holder[0].invokeCount.get(), "first fire should happen immediately");
+                // 首次触发后，若尊重nextScheduleTime（now+300ms 虚拟），2s 推进窗口内必发生第二次；
+                // 若忽略（按trigger 10s），2s 内不会有第二次
+                timer.advance(2000);
+                assertTrue(holder[0].invokeCount.get() >= 2,
+                        "second fire must follow result.nextScheduleTime (~300ms), not trigger interval (10s). fires="
+                                + holder[0].invokeCount.get());
+            } finally {
+                sched.deactivate();
             }
-            assertTrue(holder[0].invokeCount.get() >= 2,
-                    "second fire must follow result.nextScheduleTime (~300ms), not trigger interval (10s). fires="
-                            + holder[0].invokeCount.get());
         } finally {
-            sched.deactivate();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 

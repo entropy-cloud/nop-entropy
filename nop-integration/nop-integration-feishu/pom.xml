@@ -17,6 +17,15 @@
             <artifactId>nop-integration-api</artifactId>
         </dependency>
 
+        <!-- 共享确定性时间测试工具（io.nop.commons.test.time，plan 2514-WI8）经 test-jar 导出 -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-commons</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.junit.jupiter</groupId>
             <artifactId>junit-jupiter</artifactId>

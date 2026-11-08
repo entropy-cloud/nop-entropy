@@ -270,20 +270,12 @@ public class TestNopDatavAsyncSubmitTransactionPath extends AbstractNopDatavTest
                         || NopDatavExportTaskStatus.isTerminal(status),
                 "task row visible with plausible status, got " + status);
 
-        // worker 消费至终态
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        do {
-            status = readTaskStatusRaw(taskId);
-            if (NopDatavExportTaskStatus.isTerminal(status)) {
-                break;
-            }
-            try {
-                Thread.sleep(POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-        } while (System.currentTimeMillis() < deadline);
+        // worker 消费至终态（条件等待，超时仅挂死保护）
+        assertTrue(FutureHelper.waitUntil(
+                        () -> NopDatavExportTaskStatus.isTerminal(readTaskStatusRaw(taskId)),
+                        POLL_TIMEOUT_MS),
+                "worker must reach a terminal state within " + POLL_TIMEOUT_MS + "ms");
+        status = readTaskStatusRaw(taskId);
         assertEquals(NopDatavExportTaskStatus.SUCCEEDED, status,
                 "worker must consume the committed row to SUCCEEDED (AR-2: no eternal PENDING)");
     }
@@ -322,39 +314,22 @@ public class TestNopDatavAsyncSubmitTransactionPath extends AbstractNopDatavTest
     }
 
     private NopDatavExportTask pollUntilTerminal(String taskId) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        while (System.currentTimeMillis() < deadline) {
-            NopDatavExportTask task = daoProvider.daoFor(NopDatavExportTask.class).getEntityById(taskId);
-            if (task != null && NopDatavExportTaskStatus.isTerminal(task.getStatus())) {
-                return task;
-            }
-            try {
-                Thread.sleep(POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-        }
-        throw new AssertionError("task " + taskId + " did not reach terminal state within " + POLL_TIMEOUT_MS + "ms");
+        assertTrue(FutureHelper.waitUntil(() -> {
+            NopDatavExportTask t = daoProvider.daoFor(NopDatavExportTask.class).getEntityById(taskId);
+            return t != null && NopDatavExportTaskStatus.isTerminal(t.getStatus());
+        }, POLL_TIMEOUT_MS), "task " + taskId + " did not reach terminal state within "
+                + POLL_TIMEOUT_MS + "ms");
+        return daoProvider.daoFor(NopDatavExportTask.class).getEntityById(taskId);
     }
 
     private NopDatavReportDelivery pollDeliveryUntilTerminal(String deliveryId) {
-        long deadline = System.currentTimeMillis() + POLL_TIMEOUT_MS;
-        while (System.currentTimeMillis() < deadline) {
-            NopDatavReportDelivery delivery = daoProvider.daoFor(NopDatavReportDelivery.class)
+        assertTrue(FutureHelper.waitUntil(() -> {
+            NopDatavReportDelivery d = daoProvider.daoFor(NopDatavReportDelivery.class)
                     .getEntityById(deliveryId);
-            if (delivery != null && NopDatavReportDeliveryStatus.isTerminal(delivery.getStatus())) {
-                return delivery;
-            }
-            try {
-                Thread.sleep(POLL_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw NopException.adapt(e);
-            }
-        }
-        throw new AssertionError("delivery " + deliveryId + " did not reach terminal state within "
+            return d != null && NopDatavReportDeliveryStatus.isTerminal(d.getStatus());
+        }, POLL_TIMEOUT_MS), "delivery " + deliveryId + " did not reach terminal state within "
                 + POLL_TIMEOUT_MS + "ms");
+        return daoProvider.daoFor(NopDatavReportDelivery.class).getEntityById(deliveryId);
     }
 
     private void setUserContext(String userName) {

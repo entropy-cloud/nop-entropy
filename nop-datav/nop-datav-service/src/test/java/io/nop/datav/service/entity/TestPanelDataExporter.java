@@ -145,6 +145,33 @@ public class TestPanelDataExporter extends AbstractNopDatavTest {
     }
 
     /**
+     * 看板导出 sheet 顺序必须跟随 sortOrder 升序（与看板渲染/getDashboardData 一致）。
+     */
+    @Test
+    public void testDashboardExportSheetsFollowSortOrderAscending() {
+        setupSalesData();
+        String dashboardId = setupDashboard("dash-order");
+
+        NopDatavPanel second = saveChartPanelWithDataset("panel-order-b", dashboardId,
+                "ref-order-b", "ds-order-b", "Second");
+        second.setSortOrder(2);
+        daoProvider.daoFor(NopDatavPanel.class).updateEntityDirectly(second);
+
+        NopDatavPanel first = saveChartPanelWithDataset("panel-order-a", dashboardId,
+                "ref-order-a", "ds-order-a", "First");
+        first.setSortOrder(1);
+        daoProvider.daoFor(NopDatavPanel.class).updateEntityDirectly(first);
+
+        PanelDataExporter exporter = new PanelDataExporter(daoProvider, jdbcTemplate);
+        PanelDataExporter.ExportFile file = exporter.exportDashboard(dashboardId, null, 1000);
+
+        List<ExcelSheetData> sheets = ExcelHelper.readAllSheets(file.getResource());
+        assertEquals(2, sheets.size());
+        assertEquals("First", sheets.get(0).getName(), "sortOrder 小的面板在前（升序）");
+        assertEquals("Second", sheets.get(1).getName());
+    }
+
+    /**
      * 看板无 needsDataset 面板时显式拒绝（非静默空文件）。
      */
     @Test

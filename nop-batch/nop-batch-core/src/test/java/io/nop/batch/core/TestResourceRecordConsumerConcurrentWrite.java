@@ -1,5 +1,6 @@
 package io.nop.batch.core;
 
+import io.nop.api.core.util.FutureHelper;
 import io.nop.batch.core.IBatchConsumerProvider.IBatchConsumer;
 import io.nop.batch.core.consumer.ResourceRecordConsumerProvider;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
@@ -13,6 +14,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,6 +33,8 @@ public class TestResourceRecordConsumerConcurrentWrite {
         final AtomicBoolean inWrite = new AtomicBoolean();
         final AtomicInteger overlaps = new AtomicInteger();
         volatile boolean writeStarted;
+        // 写入中途门闩：放大并发窗口（确定性——用同步阻塞而非时间等待）
+        final CountDownLatch goLatch = new CountDownLatch(1);
 
         @Override
         public IRecordInput<String> openInput(IResource resource, String encoding) {
@@ -44,9 +49,8 @@ public class TestResourceRecordConsumerConcurrentWrite {
                     if (!inWrite.compareAndSet(false, true))
                         overlaps.incrementAndGet();
                     writeStarted = true;
-                    // 模拟慢速IO，放大并发窗口
                     try {
-                        Thread.sleep(200);
+                        goLatch.await(1, TimeUnit.SECONDS);
                     } catch (InterruptedException e) {
                         Thread.currentThread().interrupt();
                     }
@@ -90,11 +94,10 @@ public class TestResourceRecordConsumerConcurrentWrite {
         Thread t2 = new Thread(write, "writer-2");
         t1.start();
         // 确保t1已进入writeBatch后再启动t2，若consume无同步则t2必然与t1交错
-        long deadline = System.currentTimeMillis() + 5000;
-        while (!io.writeStarted && System.currentTimeMillis() < deadline)
-            Thread.sleep(10);
-        assertTrue(io.writeStarted, "writer-1 should have entered writeBatch");
+        assertTrue(FutureHelper.waitUntil(() -> io.writeStarted, 5000),
+                "writer-1 should have entered writeBatch");
         t2.start();
+        io.goLatch.countDown();
 
         t1.join(10000);
         t2.join(10000);

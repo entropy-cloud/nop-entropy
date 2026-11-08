@@ -5,6 +5,7 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.core.context.IServiceContext;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.dao.api.IDaoProvider;
+import io.nop.dao.api.IEntityDao;
 import io.nop.datav.dao.entity.NopDatavChatMessage;
 import io.nop.datav.dao.entity.NopDatavChatSession;
 import io.nop.datav.service.chatbi.ChatBiResult;
@@ -12,6 +13,7 @@ import io.nop.datav.service.chatbi.ChatBiSessionManager;
 import jakarta.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+import java.sql.Timestamp;
 import java.util.List;
 
 import static io.nop.datav.service.NopDatavErrors.ERR_DATAV_CHATBI_NOT_SESSION_OWNER;
@@ -66,6 +68,25 @@ public class TestNopDatavChatBiSessionManagement extends AbstractNopDatavTest {
 
         List<NopDatavChatSession> bobSessions = bizModel.listChatSessions(newContext("bob"));
         assertEquals(1, bobSessions.size(), "bob sees only his own session");
+    }
+
+    @Test
+    public void testListSessionsOrdersByUpdateTimeDesc() {
+        NopDatavChatBiBizModel bizModel = newBizModel();
+        NopDatavChatSession older = bizModel.createChatSession("older", newContext("alice"));
+        NopDatavChatSession newer = bizModel.createChatSession("newer", newContext("alice"));
+
+        IEntityDao<NopDatavChatSession> dao = daoProvider.daoFor(NopDatavChatSession.class);
+        older.setUpdateTime(new Timestamp(1_000_000_000_000L));
+        dao.updateEntityDirectly(older);
+        newer.setUpdateTime(new Timestamp(2_000_000_000_000L));
+        dao.updateEntityDirectly(newer);
+
+        List<NopDatavChatSession> sessions = bizModel.listChatSessions(newContext("alice"));
+        assertEquals(2, sessions.size());
+        assertEquals(newer.getSessionId(), sessions.get(0).getSessionId(),
+                "按 updateTime 降序：最近活跃会话在前");
+        assertEquals(older.getSessionId(), sessions.get(1).getSessionId());
     }
 
     @Test

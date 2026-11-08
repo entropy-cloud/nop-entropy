@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import java.nio.ByteBuffer;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -69,9 +71,11 @@ public class TestSocketServerRestart {
         SocketServer server = newEchoServer(port);
 
         AtomicInteger calls = new AtomicInteger();
+        CountDownLatch rejectedLatch = new CountDownLatch(1);
         Executor rejectingOnce = command -> {
             // 第一次 execute 是 accept 循环本身；第二个调用（首个连接的处理任务）被拒绝
             if (calls.incrementAndGet() == 2) {
+                rejectedLatch.countDown();
                 throw new java.util.concurrent.RejectedExecutionException("queue full (simulated)");
             }
             Thread thread = new Thread(command, "socket-worker");
@@ -82,10 +86,11 @@ public class TestSocketServerRestart {
         server.start();
 
         try {
-            // 第一个连接触发 executor 拒绝
+            // 第一个连接触发 executor 拒绝：以拒绝发生的 latch 为显式同步点，替代原 sleep(200)
             SocketClient rejected = connect(port);
             rejected.ping();
-            Thread.sleep(200);
+            assertTrue(rejectedLatch.await(5, TimeUnit.SECONDS),
+                    "first connection's dispatch must have been rejected by the executor");
             rejected.close();
 
             // 第二个连接必须仍能被接受并正常工作（accept 循环不能被第一次拒绝杀死）
@@ -135,7 +140,6 @@ public class TestSocketServerRestart {
                 for (int i = 0; i < 100; i++) {
                     server.broadcast(new BinaryCommand(client.getClientConfig().getMasks(), (short) 0x2,
                             (short) 1, (short) 0, new String(payload)));
-                    ThreadHelperSleep.sleep(2);
                 }
             });
             broadcaster.start();
@@ -148,13 +152,11 @@ public class TestSocketServerRestart {
             }
             broadcaster.join(5000);
 
-            // 等待全部响应与广播到达
-            for (int i = 0; i < 500; i++) {
-                long responses = received.stream().filter(d -> d.startsWith("req-")).count();
-                if (responses >= 100)
-                    break;
-                ThreadHelperSleep.sleep(10);
-            }
+            // 条件等待全部响应与广播到达（超时上限仅挂死保护）
+            assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                            () -> received.stream().filter(d -> d.startsWith("req-")).count() >= 100, 5000),
+                    "all responses must arrive, got "
+                            + received.stream().filter(d -> d.startsWith("req-")).count());
 
             assertTrue(!recvError.get(), "no frame parse error is allowed");
             long responses = received.stream().filter(d -> d.startsWith("req-")).count();
@@ -169,13 +171,4 @@ public class TestSocketServerRestart {
         }
     }
 
-    static class ThreadHelperSleep {
-        static void sleep(long ms) {
-            try {
-                Thread.sleep(ms);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }
-    }
 }

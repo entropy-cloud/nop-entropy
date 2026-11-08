@@ -1,71 +1,18 @@
 {
   "formatVersion": 1,
   "generator": "ai-dev/tools/check-test-time-waits.mjs --update",
-  "updatedAt": "2026-11-07",
+  "updatedAt": "2026-11-08",
   "totals": {
-    "OTHER": 44,
-    "POLL_LOOP": 31,
-    "SIMULATED_WORK": 1,
-    "SLEEP_THEN_ASSERT": 18
+    "OTHER": 11,
+    "POLL_LOOP": 16,
+    "SIMULATED_WORK": 0,
+    "SLEEP_THEN_ASSERT": 7
   },
   "entries": {
     "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestResponsesDialectIntegration.java": {
       "OTHER": 1
     },
-    "nop-batch/nop-batch-core/src/test/java/io/nop/batch/core/TestResourceRecordConsumerConcurrentWrite.java": {
-      "OTHER": 1,
-      "SIMULATED_WORK": 1
-    },
-    "nop-cluster/nop-cluster-core/src/test/java/io/nop/cluster/elector/TestAbstractLeaderElector.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-cluster/nop-cluster-core/src/test/java/io/nop/cluster/naming/TestAutoRegistration.java": {
-      "OTHER": 1,
-      "POLL_LOOP": 1
-    },
-    "nop-code/nop-code-core/src/test/java/io/nop/code/core/analyzer/TestProjectAnalyzerIncremental.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-code/nop-code-core/src/test/java/io/nop/code/core/analyzer/TestProjectAnalyzerWithStore.java": {
-      "SLEEP_THEN_ASSERT": 2
-    },
-    "nop-code/nop-code-service/src/test/java/io/nop/code/service/TestIncrementalIndexWithDb.java": {
-      "OTHER": 4
-    },
-    "nop-code/nop-code-service/src/test/java/io/nop/code/service/TestRebuildFromCommit.java": {
-      "OTHER": 1
-    },
-    "nop-code/nop-code-service/src/test/java/io/nop/code/service/cluster/TestIndexAccessPolicyEnforcement.java": {
-      "OTHER": 1
-    },
-    "nop-code/nop-code-service/src/test/java/io/nop/code/service/invariant/TestNopCodeIndexIdempotencyInvariant.java": {
-      "OTHER": 3,
-      "SLEEP_THEN_ASSERT": 2
-    },
-    "nop-core-framework/nop-ioc/src/test/java/io/nop/ioc/TestBeanConcurrentInitDeadlock.java": {
-      "POLL_LOOP": 2
-    },
-    "nop-core-framework/nop-ioc/src/test/java/io/nop/ioc/TestXplBean.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavAsyncSubmitTransactionPath.java": {
-      "OTHER": 2,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavDashboardParallelQuery.java": {
-      "OTHER": 1
-    },
     "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavDashboardQueryCache.java": {
-      "OTHER": 1
-    },
-    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavExportE2E.java": {
-      "OTHER": 1,
-      "POLL_LOOP": 1
-    },
-    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavReportE2E.java": {
-      "OTHER": 1
-    },
-    "nop-datav/nop-datav-service/src/test/java/io/nop/datav/service/entity/TestNopDatavStuckTaskScan.java": {
       "OTHER": 1
     },
     "nop-dev-tools/nop-xlang-debug-web/src/test/java/io/nop/xlang/debug/web/AbstractDebugGatewayTest.java": {
@@ -89,67 +36,11 @@
     "nop-dev-tools/nop-xlang-debugger/src/test/java/io/nop/xlang/debugger/session/TestSessionIsolation.java": {
       "POLL_LOOP": 1
     },
-    "nop-dyn/nop-dyn-service/src/test/java/io/nop/dyn/service/codegen/TestDynCodeGenTenantCacheInit.java": {
-      "OTHER": 1
-    },
-    "nop-dyn/nop-dyn-service/src/test/java/io/nop/dyn/service/codegen/TestInMemoryCodeCacheDeadlock.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-integration/nop-integration-feishu/src/test/java/io/nop/integration/feishu/bind/TestFeishuBindProvider.java": {
-      "OTHER": 1
-    },
-    "nop-job/nop-job-coordinator/src/test/java/io/nop/job/coordinator/engine/TestJobCoordinatorScanner.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalJobScheduler.java": {
-      "OTHER": 4
-    },
-    "nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalSchedulerResultContract.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaQualityCheckpointBizModel.java": {
-      "POLL_LOOP": 1,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-network/nop-http/nop-http-client-jdk/src/test/java/io/nop/http/client/jdk/TestConcatenatedBodyPublisherFix.java": {
-      "POLL_LOOP": 1
-    },
     "nop-network/nop-http/nop-http-client-jdk/src/test/java/io/nop/http/client/jdk/TestServerEventPublisherStreamFix.java": {
-      "OTHER": 2,
       "SLEEP_THEN_ASSERT": 1
     },
     "nop-network/nop-netty/src/test/java/io/nop/netty/tcp/TestNettyTcpClientReconnect.java": {
-      "POLL_LOOP": 2,
       "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-network/nop-netty/src/test/java/io/nop/netty/tcp/TestNettyTcpServerFix.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-network/nop-rpc/nop-rpc-core/src/test/java/io/nop/rpc/core/composite/TestCancellableRpcClient.java": {
-      "POLL_LOOP": 2
-    },
-    "nop-network/nop-rpc/nop-rpc-core/src/test/java/io/nop/rpc/core/composite/TestPollingRpcClientFix.java": {
-      "OTHER": 2,
-      "POLL_LOOP": 1
-    },
-    "nop-network/nop-socket/src/test/java/io/nop/socket/TestSocketServer.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-network/nop-socket/src/test/java/io/nop/socket/TestSocketServerRestart.java": {
-      "OTHER": 2
-    },
-    "nop-persistence/nop-orm-data/src/test/java/io/nop/orm/data/source/TestDaoEntityBlockingSource.java": {
-      "OTHER": 1
-    },
-    "nop-persistence/nop-orm-migration/src/test/java/io/nop/orm/migration/TestIncrementalLagProbe.java": {
-      "OTHER": 2
-    },
-    "nop-report/nop-report-service/src/test/java/io/nop/report/service/TestReportResultCache.java": {
-      "POLL_LOOP": 1,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-search/nop-search-lucene/src/test/java/io/nop/search/TestLuceneSearchEngine.java": {
-      "OTHER": 1
     },
     "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumRealMysqlParallel.java": {
       "SLEEP_THEN_ASSERT": 1
@@ -175,6 +66,9 @@
     },
     "nop-stream/nop-stream-fraud-example/src/test/java/io/nop/stream/fraud/scenario/ThrottledScenarioSinks.java": {
       "OTHER": 2
+    },
+    "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/maintain/TestStreamStateResetTool.java": {
+      "POLL_LOOP": 1
     },
     "nop-stream/nop-stream-runtime/src/test/java/io/nop/stream/runtime/multijvm/BlockingSourcePipelineFactory.java": {
       "POLL_LOOP": 1

@@ -82,21 +82,24 @@ public class TestServerEventPublisherStreamFix {
 
     @Test
     public void testNoEventsAfterCancel() throws Exception {
+        // 服务端事件节流门闩：写首事件后阻塞，取代原 sleep(20) 节奏控制（确定性）
+        CountDownLatch serverGate = new CountDownLatch(1);
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/sse", exchange -> {
             exchange.getResponseHeaders().set("Content-Type", "text/event-stream");
             exchange.sendResponseHeaders(200, 0);
             OutputStream os = exchange.getResponseBody();
-            for (int i = 0; i < 200; i++) {
-                os.write(("data: event-" + i + "\n\n").getBytes(StandardCharsets.UTF_8));
-                os.flush();
-                try {
-                    Thread.sleep(20);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
+            os.write(("data: event-0\n\n").getBytes(StandardCharsets.UTF_8));
+            os.flush();
+            try {
+                serverGate.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
+            for (int i = 1; i < 200; i++) {
+                os.write(("data: event-" + i + "\n\n").getBytes(StandardCharsets.UTF_8));
+            }
+            os.flush();
             os.close();
         });
         server.start();
@@ -133,9 +136,18 @@ public class TestServerEventPublisherStreamFix {
                         });
 
                 assertTrue(firstEvent.await(10, TimeUnit.SECONDS));
-                Thread.sleep(200);
+                // 条件等待首事件已派发（超时上限仅挂死保护）
+                assertTrue(io.nop.api.core.util.FutureHelper.waitUntil(
+                                () -> events.size() >= 1, 10_000),
+                        "first event must be dispatched before cancel, got " + events.size());
                 subRef.get().cancel();
                 int sizeAfterCancel = events.size();
+                // 放开门闩：服务端瞬时写出剩余事件——若取消后派发未停止，后续事件会大量涌入
+                serverGate.countDown();
+                // 残余具名裁定（plan 2514-WI8）：取消后「事件数不再增长」为真实远程 SSE 流上的
+                // 负向观察窗——客户端取消路径经 JDK HttpClient 内部线程关闭响应体，无测试可见的
+                // 结构性终止信号（订阅取消后不再有 onComplete/onError 回调），虚拟时钟不可达
+                // （数据到达由真实 socket IO 决定），故保留 sleep 观察窗为具名残余。
                 Thread.sleep(600);
                 // 取消后事件数不应明显增长（parseEvents 在取消后必须停止派发）
                 assertTrue(events.size() <= sizeAfterCancel + 1,

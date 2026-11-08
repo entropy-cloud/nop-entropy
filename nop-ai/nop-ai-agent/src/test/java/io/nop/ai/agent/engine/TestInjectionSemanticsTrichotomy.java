@@ -175,12 +175,17 @@ public class TestInjectionSemanticsTrichotomy {
         // execution 2 merges the staged injection into its queue
         engine.sendMessage(new AgentMessageRequest("test-react-agent", "second",
                 "s-inj-1", Collections.emptyMap())).getStatus();
-        // 条件等待：execution 2 真正完成（会话回到 completed）再断言——
-        // 原轮询为尽力等待；合并后的 INJECT 在 steering checkpoint 消费，
-        // 不强制第三次 LLM 调用（实测 calls=2 即完成合并与历史落账）。
+        // 条件等待（WI-8 时间确定化修正）：不能以「status == completed」作为 execution 2
+        // 完成的证据——execution 1 的终态也是 completed，waitUntil 会被旧终态立即满足，
+        // 而 execution 2 经 supplyAsync 异步派发，负载下 worker 尚未起跑（历史失败形态：
+        // calls==1 即在 exec-2 仍未执行时断言）。这里等待 execution 2 的确定性产物：
+        // 「second done」回复只可能来自 exec-2 消费的脚本第 2 项——它出现在会话历史即
+        // 证明 exec-2 的 LLM 回合已落账。
         assertTrue(FutureHelper.waitUntil(
-                () -> AgentExecStatus.completed.equals(engine.getSessionStatus("s-inj-1")), 10_000),
-                "second execution should complete");
+                () -> store.get("s-inj-1").getMessages().stream().anyMatch(m ->
+                        m.getContent() != null && m.getContent().contains("second done")),
+                10_000),
+                "second execution should have landed its LLM reply in session history");
         assertTrue(chat.calls.get() >= 2,
                 "second execution should have made its LLM calls, got " + chat.calls.get());
 
@@ -201,23 +206,24 @@ public class TestInjectionSemanticsTrichotomy {
         InMemorySessionStore store = new InMemorySessionStore();
         ScriptedChatService chat = new ScriptedChatService();
         chat.enqueue(ChatResponseFixtures.assistantText("answer"));
-        // the final LLM call itself injects a followup — after this response
-        // there is no further boundary, only the terminal residual drain
-        chat.onCall(() -> {
-            if (chat.calls.get() == 1) {
-                // injected from inside the chat call (worker thread context)
-                // via the engine — a real caller could do this concurrently
-            }
-        });
         DefaultAgentEngine engine = new DefaultAgentEngine.Builder(chat, new NoTools()).sessionStore(store).permissionProvider(new AllowAllPermissionProvider()).toolAccessChecker(new DefaultToolAccessChecker()).pathAccessChecker(new DefaultPathAccessChecker()).contentGuardrail(NoOpContentGuardrail.noOp()).modelRouter(PassThroughModelRouter.passThrough()).contextCompactor(new MicroCompressionCompactor()).build();
 
-        // enqueue a FOLLOWUP right after the execute future is returned —
-        // the async execution may still be in its final round
+        // 时间确定化（WI-8）：不能在 execute() 返回后由主线程补 inject——
+        // 单轮执行（脚本即时完成）可在主线程 enqueue 前整个跑完并越过
+        // terminal residual drain，注入即丢失（间歇失败形态）。改为在 LLM
+        // 调用内部（worker 线程上下文）注入——确定性落在「final LLM call
+        // 期间到达」这一被测窗口内，之后只剩 terminal residual drain 一个
+        // 边界可以捕获它。
+        chat.onCall(() -> {
+            if (chat.calls.get() == 1) {
+                engine.injectInput("s-term", new ChatUserMessage("late followup input"),
+                        InjectionSemantics.FOLLOWUP);
+            }
+        });
+
         AgentMessageRequest req = new AgentMessageRequest("test-react-agent", "ask",
                 "s-term", Collections.emptyMap());
         CompletableFuture<AgentExecutionResult> future = engine.execute(req);
-        engine.injectInput("s-term", new ChatUserMessage("late followup input"),
-                InjectionSemantics.FOLLOWUP);
         AgentExecutionResult result = future.join();
 
         assertEquals(AgentExecStatus.completed, result.getStatus());

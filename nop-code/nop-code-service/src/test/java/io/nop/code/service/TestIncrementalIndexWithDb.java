@@ -81,7 +81,6 @@ public class TestIncrementalIndexWithDb extends JunitAutoTestCase {
 
         writeJavaFile(projectDir, "Foo.java", FOO_JAVA);
         writeJavaFile(projectDir, "Bar.java", BAR_JAVA);
-        Thread.sleep(50);
 
         String indexId = "incr-e2e";
         String dirPath = projectDir.toAbsolutePath().toString();
@@ -105,11 +104,9 @@ public class TestIncrementalIndexWithDb extends JunitAutoTestCase {
                 .findFirst().orElse(null);
         assertNotNull(fooHashBefore, "Foo should have a file hash after first index");
 
-        Thread.sleep(50);
         writeJavaFile(projectDir, "Foo.java", FOO_JAVA_MODIFIED);
         writeJavaFile(projectDir, "Baz.java", BAZ_JAVA);
         Files.delete(projectDir.resolve("Bar.java"));
-        Thread.sleep(50);
 
         // Delete old index to avoid duplicate-key, then re-index
         codeIndexService.deleteIndex(indexId);
@@ -153,7 +150,6 @@ public class TestIncrementalIndexWithDb extends JunitAutoTestCase {
 
         writeJavaFile(projectDir, "Alpha.java", "public class Alpha { }");
         writeJavaFile(projectDir, "Beta.java", "public class Beta { }");
-        Thread.sleep(50);
 
         String indexId = "no-changes";
         String dirPath = projectDir.toAbsolutePath().toString();

@@ -164,13 +164,8 @@ public class TestNettyTcpServerFix {
 
             server.stop();
             // 客户端 channel 应当被服务端 stop 关闭
-            boolean closed = false;
-            for (int i = 0; i < 250 && !closed; i++) {
-                closed = !client.getConnectFuture().channel().isActive();
-                if (!closed) {
-                    Thread.sleep(20);
-                }
-            }
+            boolean closed = io.nop.api.core.util.FutureHelper.waitUntil(
+                    () -> !client.getConnectFuture().channel().isActive(), 5000);
             assertTrue(closed, "accepted connections must be closed when server stops");
         } finally {
             client.stop();

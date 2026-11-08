@@ -98,6 +98,10 @@ public class TestSysCodeRuleGeneratorCache extends JunitBaseTestCase {
      * <p>Note: Caffeine cache uses System.nanoTime() internally, which cannot be mocked
      * via CoreMetrics. We rely on a short TTL (1s) + generous sleep margin (2s) for
      * deterministic expiry.</p>
+     *
+     * <p>残余具名裁定（plan 2514-WI8）：静态 Caffeine 缓存的过期判定读 {@code System.nanoTime()}，
+     * 无 ticker seam（生产零改动硬门禁止加 seam），虚拟时钟不可达；等待仅为让 Caffeine 内部
+     * 时钟越过 TTL，断言不依赖经过时长数值。</p>
      */
     @Test
     public void testExpiredRuleReloadedAfterTtl() throws Exception {

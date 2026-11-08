@@ -205,10 +205,15 @@ class TestE2EJdbcTwoPhaseCommitSink {
 
         // R6 CC-01 (plan 2326): coordinator→participant commit fan-out is async
         // (off-monitor) — await the JDBC commit landing instead of asserting inline.
-        TestAwait.until("coordinator finishCommit drives the JDBC commit (5 rows)",
+        // R6 CC-01 follow-up: rows/ledger/pendingCommits-cleanup are all deterministic
+        // observables of the same completed finishCommit; fold all three into the converge
+        // wait so no single observable can lag the others past the wait.
+        TestAwait.until("coordinator finishCommit drives the JDBC commit (5 rows, 1 ledger entry, pendingCommits cleared)",
                 () -> {
                     try {
-                        return countRows("target_data") == 5;
+                        return countRows("target_data") == 5
+                                && countRows("stream_epoch_ledger_v2") == 1
+                                && sink.getPendingCommits().isEmpty();
                     } catch (Exception e) {
                         return false;
                     }

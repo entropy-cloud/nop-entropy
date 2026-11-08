@@ -1,5 +1,6 @@
 package io.nop.dyn.service.codegen;
 
+import io.nop.api.core.util.FutureHelper;
 import io.nop.core.module.ModuleModel;
 import io.nop.graphql.core.reflection.GraphQLBizModel;
 import io.nop.orm.model.OrmModel;
@@ -104,10 +105,8 @@ public class TestInMemoryCodeCacheDeadlock {
         loader.start();
 
         // 等待A进入monitor等待（两种实现下都是BLOCKED状态）
-        long deadline = System.currentTimeMillis() + 5000;
-        while (loader.getState() != Thread.State.BLOCKED && System.currentTimeMillis() < deadline) {
-            Thread.sleep(10);
-        }
+        assertTrue(FutureHelper.waitUntil(() -> loader.getState() == Thread.State.BLOCKED, 5000),
+                "getOrmModel线程应进入monitor等待");
 
         // 释放B：B继续执行到 ormModels.remove（修复前在bin锁上被A卡死）并释放this
         hook.releaseUnload.countDown();

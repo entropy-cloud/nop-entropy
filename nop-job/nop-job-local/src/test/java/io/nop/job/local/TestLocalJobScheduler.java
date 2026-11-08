@@ -1,7 +1,10 @@
 package io.nop.job.local;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
 import io.nop.job.api.JobState;
 import io.nop.job.api.execution.IJobExecutionContext;
 import io.nop.job.api.execution.IJobInvoker;
@@ -120,50 +123,81 @@ public class TestLocalJobScheduler {
      * 覆盖两种形态：指定 minScheduleTime（到点触发一次）与未指定（立即触发一次）。
      * 触发后 job 必须 COMPLETED（onceTask 时从注册表移除），且等待期内不再产生第二次执行。
      */
+    /**
+     * check2 [P0] timer 路径契约：once 型 job（无 cron、repeatInterval<=0）只触发一次。
+     * 覆盖两种形态：指定 minScheduleTime（到点触发一次）与未指定（立即触发一次）。
+     * 触发后 job 必须 COMPLETED（onceTask 时从注册表移除），且等待期内不再产生第二次执行。
+     *
+     * <p>时间确定化（plan 2514-WI8）：注入 {@link ManualScheduler} + 注册 {@link ManualClock}，
+     * 触发经显式推进虚拟时间发生；「不再触发」以结构性证据断言（定时器条目已清空 + 注册表已移除），
+     * 再推进多个调度周期复核执行计数不变，替代原 sleep(300) 墙钟观察窗。</p>
+     */
     @Test
     void testOnceJobFiresExactlyOnce() throws Exception {
-        MockInvoker scheduled = new MockInvoker();
-        LocalJobScheduler sched1 = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> scheduled);
-        sched1.activate();
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            JobSpec spec = new JobSpec();
-            spec.setJobName("test-once-scheduled");
-            spec.setJobInvoker("mock");
-            spec.setOnceTask(true);
-            TriggerSpec ts = new TriggerSpec();
-            ts.setMinScheduleTime(System.currentTimeMillis() + 100);
-            spec.setTriggerSpec(ts);
-            sched1.addJob(spec, false);
+            MockInvoker scheduled = new MockInvoker();
+            ManualScheduler timer1 = new ManualScheduler(clock);
+            LocalJobScheduler sched1 = new LocalJobScheduler(new ManualScheduledExecutor(timer1), name -> scheduled);
+            sched1.activate();
+            try {
+                JobSpec spec = new JobSpec();
+                spec.setJobName("test-once-scheduled");
+                spec.setJobInvoker("mock");
+                spec.setOnceTask(true);
+                TriggerSpec ts = new TriggerSpec();
+                ts.setMinScheduleTime(clock.peekMillis() + 100);
+                spec.setTriggerSpec(ts);
+                sched1.addJob(spec, false);
 
-            // onceTask 完成后即从注册表移除（fireCount 随之不可观测），以注册表移除 + 实际执行次数断言
-            assertTrue(sched1.awaitState("test-once-scheduled", null, 5, TimeUnit.SECONDS),
-                    "onceTask job must be removed from the registry after its single fire");
-            // 再等 3 个调度周期以上，确认不再触发
-            Thread.sleep(300);
-            assertEquals(1, scheduled.invokeCount.get(), "scheduled once job must fire exactly once");
+                // 推进虚拟时间越过 minScheduleTime：到点触发一次
+                timer1.advance(200);
+                assertEquals(1, scheduled.invokeCount.get(),
+                        "scheduled once job must fire exactly once at its minScheduleTime");
+                // onceTask 完成后即从注册表移除（fireCount 随之不可观测），以注册表移除 + 定时器清空作结构性证据
+                assertFalse(sched1.getJobNames().contains("test-once-scheduled"),
+                        "onceTask job must be removed from the registry after its single fire");
+                assertEquals(0, timer1.pendingTaskCount(),
+                        "no timer entry may remain after the single fire");
+                // 再推进 3 个调度周期以上（虚拟时间），确认不再触发
+                timer1.advance(300);
+                assertEquals(1, scheduled.invokeCount.get(),
+                        "scheduled once job must fire exactly once");
+            } finally {
+                sched1.deactivate();
+            }
+
+            MockInvoker immediate = new MockInvoker();
+            ManualScheduler timer2 = new ManualScheduler(clock);
+            LocalJobScheduler sched2 = new LocalJobScheduler(new ManualScheduledExecutor(timer2), name -> immediate);
+            sched2.activate();
+            try {
+                JobSpec spec = new JobSpec();
+                spec.setJobName("test-once-immediate");
+                spec.setJobInvoker("mock");
+                TriggerSpec ts = new TriggerSpec();
+                // no cron, no repeatInterval, no minScheduleTime → fire immediately, once
+                spec.setTriggerSpec(ts);
+                sched2.addJob(spec, false);
+
+                // 立即型触发经一次推进落地
+                timer2.advance(1);
+                assertEquals(1, immediate.invokeCount.get(),
+                        "immediate once job must fire exactly once");
+                assertEquals(JobState.COMPLETED, sched2.getJobState("test-once-immediate"),
+                        "non-onceTask once job must end in COMPLETED (not WAITING for another fire)");
+                assertEquals(0, timer2.pendingTaskCount(),
+                        "no timer entry may remain after the single fire");
+                // 再推进 3 个调度周期以上（虚拟时间），确认不再触发
+                timer2.advance(300);
+                assertEquals(1, immediate.invokeCount.get(),
+                        "immediate once job must fire exactly once");
+            } finally {
+                sched2.deactivate();
+            }
         } finally {
-            sched1.deactivate();
-        }
-
-        MockInvoker immediate = new MockInvoker();
-        LocalJobScheduler sched2 = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> immediate);
-        sched2.activate();
-        try {
-            JobSpec spec = new JobSpec();
-            spec.setJobName("test-once-immediate");
-            spec.setJobInvoker("mock");
-            TriggerSpec ts = new TriggerSpec();
-            // no cron, no repeatInterval, no minScheduleTime → fire immediately, once
-            spec.setTriggerSpec(ts);
-            sched2.addJob(spec, false);
-
-            assertTrue(sched2.awaitFireCount("test-once-immediate", 1, 5, TimeUnit.SECONDS));
-            assertTrue(sched2.awaitState("test-once-immediate", JobState.COMPLETED, 5, TimeUnit.SECONDS),
-                    "non-onceTask once job must end in COMPLETED (not WAITING for another fire)");
-            Thread.sleep(300);
-            assertEquals(1, immediate.invokeCount.get(), "immediate once job must fire exactly once");
-        } finally {
-            sched2.deactivate();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 
@@ -174,32 +208,45 @@ public class TestLocalJobScheduler {
      */
     @Test
     void testUpdateWhileSuspendedStaysSuspended() throws Exception {
-        MockInvoker invoker = new MockInvoker();
-        LocalJobScheduler sched = new LocalJobScheduler(GlobalExecutors.globalTimer(), name -> invoker);
-        sched.activate();
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         try {
-            JobSpec spec = newSpec("test-update-suspended", 10, true);
-            sched.addJob(spec, false);
-            assertTrue(sched.awaitIdle("test-update-suspended", 2, TimeUnit.SECONDS));
-            int baseline = invoker.invokeCount.get();
+            MockInvoker invoker = new MockInvoker();
+            ManualScheduler timer = new ManualScheduler(clock);
+            LocalJobScheduler sched = new LocalJobScheduler(new ManualScheduledExecutor(timer), name -> invoker);
+            sched.activate();
+            try {
+                JobSpec spec = newSpec("test-update-suspended", 10, true);
+                sched.addJob(spec, false);
+                // 推进虚拟时间让自动首触发落地并取基线（挂起后 fireCount 不再增长的对照）
+                timer.advance(50);
+                int baseline = invoker.invokeCount.get();
+                assertTrue(baseline >= 1, "initial auto-fire must have landed before sampling the baseline");
 
-            sched.suspendJob("test-update-suspended");
-            assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"));
+                sched.suspendJob("test-update-suspended");
+                assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"));
 
-            // hot update while suspended: spec/trigger replaced, state must stay SUSPENDED
-            sched.addJob(newSpec("test-update-suspended", 10, true), true);
-            assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"),
-                    "update must not silently resume a suspended job");
-            Thread.sleep(200);
-            assertEquals(baseline, invoker.invokeCount.get(),
-                    "no new fires while suspended (update must not reschedule)");
+                // hot update while suspended: spec/trigger replaced, state must stay SUSPENDED
+                sched.addJob(newSpec("test-update-suspended", 10, true), true);
+                assertEquals(JobState.SUSPENDED, sched.getJobState("test-update-suspended"),
+                        "update must not silently resume a suspended job");
+                // 结构性证据：挂起 job 无任何待触发定时器条目；再推进多个调度周期复核计数不变
+                assertEquals(0, timer.pendingTaskCount(),
+                        "suspended job must have no pending scheduled fire");
+                timer.advance(200);
+                assertEquals(baseline, invoker.invokeCount.get(),
+                        "no new fires while suspended (update must not reschedule)");
 
-            // resume restores scheduling with the replaced trigger
-            assertTrue(sched.resumeJob("test-update-suspended"));
-            assertTrue(sched.awaitFireCount("test-update-suspended", baseline + 1, 5, TimeUnit.SECONDS),
-                    "resume after update must resume scheduling");
+                // resume restores scheduling with the replaced trigger
+                assertTrue(sched.resumeJob("test-update-suspended"));
+                timer.advance(1000);
+                assertTrue(invoker.invokeCount.get() >= baseline + 1,
+                        "resume after update must resume scheduling");
+            } finally {
+                sched.deactivate();
+            }
         } finally {
-            sched.deactivate();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 
@@ -477,6 +524,89 @@ public class TestLocalJobScheduler {
         NopException ex = assertThrows(NopException.class,
                 () -> scheduler.addJob(newSpec("dup-job", 10, true), false));
         assertEquals("nop.err.job.already-exists", ex.getErrorCode());
+    }
+
+    @Test
+    void testRemovedRunningJobDoesNotResurrectWhenNameReadded() throws Exception {
+        CountDownLatch executionStarted = new CountDownLatch(1);
+        CountDownLatch allowComplete = new CountDownLatch(1);
+        AtomicInteger oldInvokeCount = new AtomicInteger();
+        AtomicInteger newInvokeCount = new AtomicInteger();
+
+        IJobInvoker oldInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                oldInvokeCount.incrementAndGet();
+                executionStarted.countDown();
+                return CompletableFuture.supplyAsync(() -> {
+                    try {
+                        allowComplete.await(5, TimeUnit.SECONDS);
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                    }
+                    return JobFireResult.CONTINUE;
+                });
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        IJobInvoker newInvoker = new IJobInvoker() {
+            @Override
+            public CompletionStage<JobFireResult> invokeAsync(IJobExecutionContext ctx) {
+                newInvokeCount.incrementAndGet();
+                return CompletableFuture.completedFuture(JobFireResult.CONTINUE);
+            }
+
+            @Override
+            public CompletionStage<Boolean> cancelAsync(IJobExecutionContext ctx) {
+                return CompletableFuture.completedFuture(true);
+            }
+        };
+
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        try {
+            ManualScheduler timer = new ManualScheduler(clock);
+            LocalJobScheduler sched = new LocalJobScheduler(
+                    new ManualScheduledExecutor(timer),
+                    name -> "old".equals(name) ? oldInvoker : newInvoker
+            );
+            sched.activate();
+            try {
+                JobSpec oldSpec = newSpec("test-resurrect", 10, true);
+                oldSpec.setJobInvoker("old");
+                sched.addJob(oldSpec, false);
+                // 推进虚拟时间触发旧实例首火（进入阻塞执行的异步段）
+                timer.advance(1);
+                assertTrue(executionStarted.await(2, TimeUnit.SECONDS));
+
+                assertTrue(sched.removeJob("test-resurrect"));
+
+                JobSpec reAddedSpec = newSpec("test-resurrect", 100000, true);
+                reAddedSpec.setJobInvoker("new");
+                sched.addJob(reAddedSpec, false);
+                // 新实例自动首触发经显式推进落地（100000ms 周期，推进窗口内不再重排）
+                timer.advance(50);
+                assertEquals(1, newInvokeCount.get());
+
+                allowComplete.countDown();
+
+                // 旧实例完成后若因同名新实例存在而自我重排程，会以 oldInvoker 反复并行执行：
+                // 在虚拟时间线上推进远超旧实例 10ms 周期的窗口——若复活，oldInvokeCount 必然增长。
+                timer.advance(60_000);
+                assertEquals(1, oldInvokeCount.get(),
+                        "removed instance must not be rescheduled after completion");
+                assertEquals(1, newInvokeCount.get());
+            } finally {
+                sched.deactivate();
+            }
+        } finally {
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
+        }
     }
 
     private JobSpec newSpec(String name, long interval, boolean fixedDelay) {
