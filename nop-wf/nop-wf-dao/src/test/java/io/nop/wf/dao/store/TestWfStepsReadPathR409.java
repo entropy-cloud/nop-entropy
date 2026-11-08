@@ -77,7 +77,8 @@ public class TestWfStepsReadPathR409 {
      */
     @Test
     public void readPaths_areOverriddenInDaoStore() throws Exception {
-        for (String name : new String[]{"getLatestStepRecordByName", "getStepRecords", "getStepRecordsByName"}) {
+        for (String name : new String[]{"getLatestStepRecordByName", "getStepRecords", "getStepRecordsByName",
+                "getJoinWaitStepRecords", "getNextJoinStepRecord"}) {
             boolean declaredHere = false;
             for (java.lang.reflect.Method m : DaoWorkflowStore.class.getDeclaredMethods()) {
                 if (m.getName().equals(name)) {

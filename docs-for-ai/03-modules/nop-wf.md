@@ -79,7 +79,7 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 
 **入口异常边界（W-06(a)，1.5-C4-007 形态 B 使用面）**：`scanDueTasks`/`scanRemindTasks` 方法体异常**不再外泄至 job fire 层**——单轮失败以 ERROR 留痕 + gauge `nop.wf.scheduler.scan-round-failures`（累计）反映后正常返回，fire 以成功收尾、下一轮 cron 自补偿。`Error` 不拦截（直传宿主）：job fire 线程无 promise 终结义务，Error 转业务成功=致命降级。**宿主侧终态语义（fire FAILED 永久停摆 / resumeJob 只认 SUSPENDED / fireNow 拒绝 FAILED / cancelRunning 空实现）归 nop-job 单元工单 nop-job-C7-006，本模块不含该修复**。测试锚点：`TestWfScanJobResilienceContractR409`（C10-012，使用面限定）。
 
-**逐项 action deadline（W-06(b)×W-09，1.5-C7-004）**：due action 以带 deadline 的等待执行——键 `nop.wf.scheduler.action-deadline-ms`（缺省 30000，负值装配期 fail-fast，**`0`=禁用**即恢复无界 `syncGet` 语义，供合法长动作部署逃生）。超时条目记 error、跳过该条并走既有毒步骤退避推进 `dueTime` 退出本轮扫描集；`InterruptedException` 恢复中断位后同超时形态处理，`CancellationException`（任务侧取消）直接跳条。**诚实登记**：deadline 不终止底层 action 执行（宿主无 cancel 设施——`cancelRunning` 空实现属 nop-job-C7-006），僵尸动作残留以「每挂死条目至多一个、fire 正常收尾、退避退出扫描集」为收敛声明。修复前单条挂死使扫描线程永久滞留，pool-size=4 共享调度池四条即全冻结。测试锚点：`TestWfScanJobResilienceContractR409`。
+**逐项 action deadline（W-06(b)×W-09，1.5-C7-004）**：due action 以带 deadline 的等待执行——键 `nop.wf.scheduler.action-deadline-ms`（缺省 60000，负值装配期 fail-fast，**`0`=禁用**即恢复无界 `syncGet` 语义，供合法长动作部署逃生）。超时条目记 error、跳过该条并走既有毒步骤退避推进 `dueTime` 退出本轮扫描集；`InterruptedException` 恢复中断位后同超时形态处理，`CancellationException`（任务侧取消）直接跳条。**诚实登记**：deadline 不终止底层 action 执行（宿主无 cancel 设施——`cancelRunning` 空实现属 nop-job-C7-006），僵尸动作残留以「每挂死条目至多一个、fire 正常收尾、退避退出扫描集」为收敛声明。修复前单条挂死使扫描线程永久滞留，pool-size=4 共享调度池四条即全冻结。测试锚点：`TestWfScanJobResilienceContractR409`。
 
 **共享调度池挤压（W-06(c)）**：due/remind 扫描与其他 local job 共享 `nopJobScheduledExecutor`（core=max=4）。deadline 已把单条挂死的占用上界收窄到 `action-deadline-ms`；部署中若有多个长耗时 local job，应为其配置独立 executor（本批不做代码层池拆分，归优化轮）。
 

@@ -31,10 +31,14 @@ public class LoopTaskStep extends AbstractTaskStep {
     private int maxCount;
 
     /**
-     * W-07（裁定 D）：items 进程内持有键（不跨 resume——resume 每次 newMainStepRuntime 重建
-     * stepRt，缺失时以 itemsExpr 重算）。itemsExpr 须为确定性/纯函数以支持跨进程断点续跑。
+     * W-07（裁定 D）：items 进程内持有键前缀——运行时按 <b>stepPath 限定</b>（不跨 resume：
+     * resume 每次 newMainStepRuntime 重建 stepRt，缺失时以 itemsExpr 重算）。itemsExpr 须为
+     * 确定性/纯函数以支持跨进程断点续跑。
+     *
+     * <p>键必须含 stepPath：同一 task 内可有多个 loop（顺序/嵌套），loop 体内亦可嵌 fork；
+     * 若用类级常量作全 task 共享键，第二个 loop / 下一轮迭代会复用上一步骤的 items。
      */
-    static final String ITEMS_ATTR = "nop.task.loop.items";
+    static final String ITEMS_ATTR_PREFIX = "nop.task.loop.items.";
     private ITaskStep body;
     private IEvalPredicate untilExpr;
     private IEvalPredicate whileExpr;
@@ -133,12 +137,27 @@ public class LoopTaskStep extends AbstractTaskStep {
      * 缺失时经 itemsExpr 重算（resume 路径确定性重建）。
      */
     private List<Object> resolveItems(ITaskStepRuntime stepRt) {
-        Object cached = stepRt.getTaskRuntime().getAttribute(ITEMS_ATTR);
+        String key = itemsAttrKey(stepRt);
+        Object cached = stepRt.getTaskRuntime().getAttribute(key);
         if (cached instanceof List)
             return (List<Object>) cached;
         List<Object> items = CollectionHelper.toList(itemsExpr.invoke(stepRt));
-        stepRt.getTaskRuntime().setAttribute(ITEMS_ATTR, items);
+        stepRt.getTaskRuntime().setAttribute(key, items);
         return items;
+    }
+
+    /**
+     * items 缓存键：前缀 + stepPath（含该步骤在 task 内的完整路径与 runId 无关部分），
+     * 保证同 task 内多个 loop 步骤互不串用。
+     */
+    static String itemsAttrKey(ITaskStepRuntime stepRt) {
+        String stepPath = stepRt.getStepPath();
+        if (stepPath == null)
+            return ITEMS_ATTR_PREFIX;
+        // runId 区分「同一 stepPath 的多次实例化」——loop 体内步骤每轮新建 stepRt（新 runId），
+        // 因此本步骤在每轮迭代都会重算 items；而同一 runtime 的多次 execute 重入（异步续跑
+        // 递归）runId 不变，复用已算结果，语义正确。
+        return ITEMS_ATTR_PREFIX + stepPath + ":" + stepRt.getRunId();
     }
 
     @Nonnull

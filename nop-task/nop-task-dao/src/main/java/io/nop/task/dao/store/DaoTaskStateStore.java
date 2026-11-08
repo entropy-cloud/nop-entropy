@@ -709,9 +709,6 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
     }
 
     /**
-     * plan 259: task 级终态判定（基于 {@link TaskConstants} 状态常量，与 step 级不同的状态码体系）。
-     */
-    /**
      * 节点身份（W-11 裁定 B）：配置优先，缺省主机名+8 位随机后缀，实例内一次生成——
      * 同进程内属主必匹配、崩溃重启后必不匹配（属主活性判定无需心跳列）。
      */
@@ -844,6 +841,9 @@ public class DaoTaskStateStore extends AbstractDaoHandler implements ITaskStateS
         return query;
     }
 
+    /**
+     * plan 259: task 级终态判定（基于 {@link TaskConstants} 状态常量，与 step 级不同的状态码体系）。
+     */
     protected boolean isTerminalTaskStatus(int status) {
         return status == TaskConstants.TASK_STATUS_COMPLETED
                 || status == TaskConstants.TASK_STATUS_KILLED

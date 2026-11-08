@@ -563,6 +563,60 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         return stepDao().findAllByQuery(query);
     }
 
+    /**
+     * W-08(iv)：join 等待集——可翻译部分（stepNames 集合谓词 + status 上限）下推 SQL；
+     * joinGroup 判定依赖调用方传入的 {@code joinGroupGetter}（函数不可翻译）与
+     * {@code stepRecord.getJoinGroup()}，保持内存判定。
+     */
+    @Override
+    public Collection<? extends IWorkflowStepRecord> getJoinWaitStepRecords(
+            IWorkflowStepRecord stepRecord, java.util.function.Function<IWorkflowStepRecord, String> joinGroupGetter,
+            java.util.Set<String> stepNames) {
+        IWorkflowRecord wfRecord = getWfRecord(stepRecord);
+        if (stepsLoaded(wfRecord) || stepNames == null || stepNames.isEmpty())
+            return super.getJoinWaitStepRecords(stepRecord, joinGroupGetter, stepNames);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_wfId, wfRecord.getWfId()));
+        query.addFilter(FilterBeans.lt(NopWfStepInstance.PROP_NAME_status,
+                NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND));
+        query.addFilter(FilterBeans.in(NopWfStepInstance.PROP_NAME_stepName, stepNames));
+
+        String joinGroup = stepRecord.getJoinGroup();
+        List<IWorkflowStepRecord> ret = new ArrayList<>();
+        for (NopWfStepInstance step : stepDao().findAllByQuery(query)) {
+            if (step == stepRecord)
+                continue;
+            if (java.util.Objects.equals(joinGroup, joinGroupGetter.apply(step)))
+                ret.add(step);
+        }
+        return ret;
+    }
+
+    /**
+     * W-08(v)：下一个 join 步骤——可翻译部分（stepName 等值 + status 上限）下推 SQL；
+     * joinGroup 等值保持内存判定。
+     */
+    @Override
+    public IWorkflowStepRecord getNextJoinStepRecord(IWorkflowStepRecord stepRecord, String joinGroup,
+                                                     String stepName, io.nop.wf.api.actor.IWfActor actor) {
+        IWorkflowRecord wfRecord = getWfRecord(stepRecord);
+        if (stepsLoaded(wfRecord))
+            return super.getNextJoinStepRecord(stepRecord, joinGroup, stepName, actor);
+
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_wfId, wfRecord.getWfId()));
+        query.addFilter(FilterBeans.lt(NopWfStepInstance.PROP_NAME_status,
+                NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_stepName, stepName));
+
+        for (NopWfStepInstance prev : stepDao().findAllByQuery(query)) {
+            if (java.util.Objects.equals(joinGroup, prev.getJoinGroup()))
+                return prev;
+        }
+        return null;
+    }
+
     @Override
     public IWorkflowStepRecord getStepRecordById(IWorkflowRecord wfRecord, String stepId) {
         if (StringHelper.isEmpty(stepId) || stepId.startsWith(NopWfCoreConstants.SPECIAL_STEP_ID_PREFIX))

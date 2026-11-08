@@ -60,22 +60,39 @@ public class ForkTaskStep extends AbstractForkTaskStep {
     }
 
     /**
-     * W-07（裁定 D）：items 进程内持有键（不跨 resume——缺失时以 producer 重算）。
+     * W-07（裁定 D）：items 进程内持有键前缀——运行时按 <b>stepPath 限定</b>（不跨 resume：
+     * 缺失时以 producer 重算）。同一 task 内可有多个 fork（含 loop 体内每轮 re-entry），
+     * 类级常量作全 task 共享键会让后续步骤复用上一份 items。
      */
-    static final String ITEMS_ATTR = "nop.task.fork.items";
+    static final String ITEMS_ATTR_PREFIX = "nop.task.fork.items.";
 
     /**
      * W-07（裁定 D）：items 解析——优先 task attribute，缺失时经 producer 重算
      * （producer 求值为 null 视为空集合，plan 349 Phase 5 空守卫零回退）。
      */
     private List<Object> resolveItems(ITaskStepRuntime stepRt) {
-        Object cached = stepRt.getTaskRuntime().getAttribute(ITEMS_ATTR);
+        String key = itemsAttrKey(stepRt);
+        Object cached = stepRt.getTaskRuntime().getAttribute(key);
         if (cached instanceof List)
             return (List<Object>) cached;
         List<Object> produced = CollectionHelper.toList(producer.invoke(stepRt));
         List<Object> items = produced == null ? new ArrayList<>() : produced;
-        stepRt.getTaskRuntime().setAttribute(ITEMS_ATTR, items);
+        stepRt.getTaskRuntime().setAttribute(key, items);
         return items;
+    }
+
+    /**
+     * items 缓存键：前缀 + stepPath（同 task 内多个 fork 步骤互不串用；loop 体内每轮
+     * stepPath 相同则复用本轮已算 items，语义正确）。
+     */
+    static String itemsAttrKey(ITaskStepRuntime stepRt) {
+        String stepPath = stepRt.getStepPath();
+        if (stepPath == null)
+            return ITEMS_ATTR_PREFIX;
+        // runId 区分「同一 stepPath 的多次实例化」——loop 体内步骤每轮新建 stepRt（新 runId），
+        // 因此本步骤在每轮迭代都会重算 items；而同一 runtime 的多次 execute 重入（异步续跑
+        // 递归）runId 不变，复用已算结果，语义正确。
+        return ITEMS_ATTR_PREFIX + stepPath + ":" + stepRt.getRunId();
     }
 
     @Nonnull
