@@ -8,7 +8,8 @@
 **Draft Review 记录**
 
 - R1（fresh session 独立评审，2026-11-09）：**REJECT**，6 Blocker + 7 Major + 10 Minor。全部随本版落盘（见下方「Draft Review R1 修订清单」）。
-- 修订后待 R2 复审。
+- R2（fresh session 独立评审，2026-11-09）：**REJECT**，4 Blocker（B1 新增 / B2 R1-B-6 未真闭环 / B3 新增 / B4 新增）+ 7 Major + 6 Minor。全部随本版落盘（见下方「Draft Review R2 修订清单」）。
+- 修订后待 R3 复审。
 
 ### Draft Review R1 修订清单（逐条已闭环）
 
@@ -28,6 +29,23 @@
 | M-6 C7-012 WHERE 谓词改动是空操作 | 删除谓词改动（`taskStatus>RUNNING` 已含 KILLED=60）；只做 `:135` 早退旁路 |
 | M-7 C7-007 `newEntity()` 语义未说明 | 补：cursor 实体复用（非每 chunk 新建）、TRANSIENT 不入 cache 不 flush、列名=属性名假设与 `dao.getPkColumnNames()` 来源 |
 | m-1..m-10 | `Plan Status: draft`；撤无证据 log 勾选；`toPolicy`→`buildSkipPolicy`；行号订正；基线测试数订正为实测（core 87/总 185）；`-pl nop-batch` 命令**保留**（Maven 4 下确覆盖 16 模块）；Goals 口径改「9 完整 + 2 半修」；C8-010 concurrency 归一注明双保险；C8-007 增 `getProcessItemCount` 同型错源 residual；W-09 载体重命名 `SimpleMeterRegistry.find(...)` |
+
+### Draft Review R2 修订清单（逐条已闭环）
+
+| R2 项 | 结论与修订 |
+|---|---|
+| **B1** C7-009 白名单漏 `ERR_SQL_UNCATEGORIZED_FAILURE`（PG 连接失效永不计 broken） | 判定改为**双轨**：① `NopException.getCause()` 中取 `SQLException`，按 SQLState 前缀 `08` 或 `instanceof SQLRecoverableException/SQLTransientConnectionException/SQLNonTransientConnectionException` 判连接级失效；② 同时保留 `DaoErrors` 三码白名单（方言映射）+ `ERR_SQL_UNCATEGORIZED_FAILURE` 兜底码。载体新增 **PG 形态** `pin05d`（`SQLException("connection closed","08006")`）。FQN 全部写全（`io.nop.dao.DaoErrors`） |
+| **B2** C8-004 只搬「创建」未搬 `beginTask` → task Timer 恒 0 | 明确三件事：(a) 创建点在 `setTaskName/setTaskVersion` **之后**并立即 `context.setMetrics(created)`；(b) `beginTask()` 随之移到创建之后（外部已注入 metrics 分支保持原语义：注入者在 `executeAsync` 前设好，创建逻辑跳过，`beginTask` 照旧调用）；(c) `pin08a` **断言 `timer.count() > 0`**（不是"能 find 到"），`pin08b` 用计数 stub `IBatchTaskMetrics` 断言 `beginTask/endTask` 落在注入实例上 |
+| **B3** C7-012 透传链缺 `BatchTaskContextImpl` 与 `BatchTaskBuilder` | 五节点写全：`IBatchTaskContext`（新方法给 **default `null`**，不破坏外部实现）+ `BatchTaskContextImpl` 字段+getter/setter + `BatchTask` 字段/构造/**新增重载**（保留既有 11 参构造器签名不变，2 处既有测试零改）+ `executeAsync` 缺省注入（对齐 `allowStartIfComplete` 模式）+ `BatchTaskBuilder` 字段/setter/构造调用 + `DaoBatchStateStore` 旁路 |
+| **B4** C8-008 Gauge tag 含 `taskId` → 无 stateStore 时 null NPE；同名并发互删 | **每执行唯一键**：`exec.id` tag = `taskId`（非空）→ `taskKey`（非空）→ `"anon-" + System.identityHashCode(queue)`；与 `task.name` 组成唯一 meter id。注销按注册时持有的 `Meter` 引用 `registry.remove(meter)`（因 id 唯一，不会误删他人）。`pin07b` 覆盖 **taskId==null** 形态 |
+| **M1** C7-005 死信账本被整体降级，违反 rule 15/16 | 明确**范围裁定**（非"改不动所以不做"）：本批把跳过做成**可观测**（WARN + 计数 + 终态汇总），死信账本为独立能力（新表/新契约）→ `out-of-scope improvement` + **触发条款**（生产出现跳过数据丢失导致业务对账失败 → 升 P1 立即立项）+ successor |
+| **M2** C8-004 metrics 默认全任务生效、无开关、无基数裁定 | 新增配置键 `nop.batch.metrics.enabled`（缺省 `true`，保持本批交付可观测）；owner doc 记「metric 基数上界 = 不同 taskName 数 × 12 meter」；与 C8-008 registry 生命周期裁定合并叙述 |
+| **M3** C7-007 「detached」表述不实；列名/属性名误导 | 改为「`newEntity()` 在 `newLoaderState` **创建一次并复用**；实体为 **TRANSIENT**（`orm_attach` 指向 setup 时 session，可能已关闭；置脏为无害 side-effect；**不入 cache、不 flush**）」；「列名」改「**属性名（prop name）**」，来源 `dao.getPkColumnNames()`（返回 prop 名）。`pin03b` 改可观测断言：`orm_state()==TRANSIENT` + `IDaoProvider` 零 INSERT/UPDATE 调用计数 |
+| **M4** C7-006 pin02 不可实现 | 抽出**纯判定** `isSaveStateUnsupportedReader(Boolean taskSaveState, BatchLoaderModel loader)`（静态、无 bean 依赖），装配处调用后打 WARN；pin02 直测该函数。裁定 `bean`/`provider`/`adapter` 形态同样 WARN（无法判定压实能力，保守告警） |
+| **M5** C8-010 exp 半边缺落点与表级 override | 新增**纯静态** `validateExecutorConfig(ExportDbConfig/ImportDbConfig)`（无 DB），在 `execute()` 资源段之前调用；`product = max(各表 getConcurrency, 缺省 concurrencyPerTable, 1) × max(threadCount,1)`；`threadCount<=1`（Sync）短路；cap 复用 `CFG_BATCH_MAX_CONCURRENCY_CAP`；`concurrencyPerTable == null` 归 1 |
+| **M6** C8-009 「0=哨兵」与 pin10b 矛盾 + 负值静默丢弃 | 二分裁定落地：`BatchDispatchConfig.setX(int)` 内 **`<0` → 类型化 fail-fast（`ERR_BATCH_DISPATCH_FACTOR_INVALID`）；`==0` → 哨兵；`>0` → 值**；builder 仅 `>0` 透传。pin10b 改为「config 设负值 → fail-fast」「Provider/Queue setter 设 0 → fail-fast」两条，不再自相矛盾 |
+| **M7** 端到端 Exit Criteria 不可定位 | 裁定 A 写入：meter 名 `nop.batch.task`（Timer）与 `nop.batch.dispatch.backlog`（Gauge，value=积压条数，tags=`task.name`+`exec.id`）；新增测试资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + `provider` loader）、以及「首败后成功的 consumer」制造一次 retry |
+| m-1..m-6 | 行号订正（6 处）；基线数求和 `186`（core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6）；Phase 2 增 `No owner-doc update required`（归 Phase 3）；`getProcessItemCount` follow-up 补 Why Not Blocking；C7-008 一次性 WARN 状态放 `LoaderState`；pin03b/pin11c/d 类型列诚实标「结构钉」 |
 
 ## Purpose
 
@@ -103,16 +121,16 @@ Targets: 本 plan 的裁定表（模块内小批次，无跨模块契约变更�
 | 工单 | 唯一形态 |
 |---|---|
 | C7-005 | `BatchSkipPolicy.setMaxSkipCount` 负值 fail-fast（新增 `ERR_BATCH_SKIP_COUNT_INVALID`），**0 = 显式无限**（javadoc + owner doc）；`BatchSkipPolicyModel.buildSkipPolicy` 在 `maxSkipCount<=0` 时打装配期 WARN `nop.warn.batch.skip-policy-unbounded`；`BatchTask.onTaskComplete` 终态对 `skipItemCount>0` 打汇总 WARN `nop.warn.batch.task-skipped-items`（使跳过可审计）。死信账本判 out-of-scope improvement（改 `saveProcessed` 语义会破坏 historyStore 幂等面），Deferred |
-| C7-006 | **任务级**判定：`ModelBasedBatchTaskBuilderFactory.newTaskBuilder`（可见 task 级与 loader 级两轴）对 `batchTaskModel.getSaveState()==TRUE && reader ∈ {jdbc,orm,generator}` 打 WARN `nop.warn.batch.save-state-unsupported-reader`（声明面钉，不阻断装配）；owner doc「断点续传」节显式化适用范围。cursor 恢复实现 Deferred |
-| C7-007 | `OrmQueryBatchLoaderProvider` 锚点改**排序键值快照**：`LoaderState` 增 `cursor`（复用同一 detached 实体，每次仅覆盖值，避免每 chunk `newEntity`）；快照列 = `query.getOrderBy()` 列名 + PK 列名（`dao.getPkColumnNames()`；Nop 约定列名=属性名，plan 显式声明该假设）；`load` 时不再保留活实体引用。detached 实体为 TRANSIENT（不入 cache、不 flush、不触发 DB 装载）。NULL 排序值仍由平台 keyset 契约抛 `ERR_ORM_CURSOR_SORT_VALUE_NULL`。owner doc 增「orderBy 列运行期不可变 + NULL 排序列确定性失败」 |
-| C7-008 | `JdbcPageBatchLoaderProvider.load(...)` 内 `batchSize<=0` 类型化 fail-fast（loader 先于 `BatchChunkProcessor.adjustBatchSize` 钳位，故必须在 load 侧拦）；首次 `load` 打一次性 WARN `nop.warn.batch.jdbc-page-offset-paging`（offset 语义 + 静态快照假设）；owner doc 增适用面 + O(N²/2B)。keyset 重写 Deferred |
-| C7-009 | `JdbcBatchLoaderProvider.LoaderState` 增 `broken` + `brokenError`；`load` 外层 try 包住 `RecordInputImpls.defaultReadBatch`，捕获 `NopException` 且 `ErrorCode ∈ {ERR_SQL_TRANSIENT_CONNECTION_FAIL, ERR_SQL_RECOVERABLE_DATA_ACCESS, ERR_SQL_DATA_ACCESS}` → `close()` + `broken=true` 存原始异常后**重新抛出**；后续 `load` 若 `broken` 则抛同一异常（不返回空列表）。**判定次序：broken 检查先于 `isClosed()` 早退**（EOF 面仍返回空列表）。owner doc 增「streaming loader 任务时长 ≤ 连接最大空闲/存活时长」 |
-| C7-012 | `IBatchTaskContext` 增 `allowRestartIfKilled`（`Boolean`，**仅程序化 API**，无 DSL 键）；`BatchTask` 构造链透传；`DaoBatchStateStore.startExistingTask` 的 `:135` KILLED 早退在 `allowRestartIfKilled==TRUE` 时**旁路**（其余闸门 startLimit/COMPLETED/stale 语义不动；fencing 由 execCount 递增天然承接，**不改 WHERE 谓词**——`taskStatus>RUNNING` 已含 KILLED=60）。owner doc 状态机表增「KILLED 撤离门（程序化）」。xmeta 收紧 + DSL 面 Deferred |
-| C8-004 | **单漏斗**：metrics 解析/创建移入 `BatchTask.executeAsync` 的 `setTaskName/setTaskVersion` **之后**（`context.getMetrics()==null` 时自建 `BatchTaskMetricsImpl(GlobalMeterRegistry.instance(), null, null, taskName)`），一处覆盖 DSL/exp/biz 三链；`BizExportTaskBuilder` 补 `builder.taskName(bizObjName)`。删除「jobName 取 taskName / 延后重绑」表述（构造器即绑 tag，不可延后） |
+| C7-006 | **任务级**判定：抽出**纯静态** `isSaveStateUnsupportedReader(Boolean taskSaveState, BatchLoaderModel loader)`（无 bean 依赖，可直测），`ModelBasedBatchTaskBuilderFactory.newTaskBuilder` 调用后在 `saveState==TRUE` 且 reader ∈ {jdbc,orm,generator}（含 `bean`/`provider`/`adapter` 形态——无法判定压实能力时保守告警）打 WARN `nop.warn.batch.save-state-unsupported-reader`（声明面钉，不阻断装配）；owner doc「断点续传」节显式化适用范围。cursor 恢复实现 Deferred |
+| C7-007 | `OrmQueryBatchLoaderProvider` 锚点改**排序键值快照**：`LoaderState` 增 `cursor`（`dao.newEntity()` 在 `newLoaderState` **创建一次并复用**，每次仅覆盖值）；快照键 = `query.getOrderBy()` 列名 + PK 列名（来源 `dao.getPkColumnNames()`，**返回 prop 名**，与 `appendCursorCmp` 的 `field.getName()` 同域；Nop 约定 prop 名=列名，plan 显式声明该假设）；`load` 时不再保留活实体引用。该实体为 **TRANSIENT**（`orm_attach` 指向 setup 时 session、可能已关闭；置脏为无害 side-effect；**不入 cache、不 flush**）。NULL 排序值仍由平台 keyset 契约抛 `ERR_ORM_CURSOR_SORT_VALUE_NULL`。owner doc 增「orderBy 列运行期不可变 + NULL 排序列确定性失败」 |
+| C7-008 | `JdbcPageBatchLoaderProvider.load(...)` 内 `batchSize<=0` 类型化 fail-fast（loader 先于 `BatchChunkProcessor.adjustBatchSize` 钳位，故必须在 load 侧拦）；`LoaderState` 级一次性布尔打 WARN `nop.warn.batch.jdbc-page-offset-paging`（offset 语义 + 静态快照假设；状态放 `LoaderState` 而非 Provider 字段，避免多任务串扰）；owner doc 增适用面 + O(N²/2B)。keyset 重写 Deferred |
+| C7-009 | `JdbcBatchLoaderProvider.LoaderState` 增 `broken` + `brokenError`；`load` 外层 try 包住 `RecordInputImpls.defaultReadBatch`，**双轨判定**连接级失效：① `NopException.getCause()` 链中取 `SQLException`，SQLState 前缀 `08` 或 `instanceof SQLRecoverableException/SQLTransientConnectionException/SQLNonTransientConnectionException`；② 或 `ErrorCode ∈ {io.nop.dao.DaoErrors.ERR_SQL_TRANSIENT_CONNECTION_FAIL, ERR_SQL_RECOVERABLE_DATA_ACCESS, ERR_SQL_DATA_ACCESS, ERR_SQL_UNCATEGORIZED_FAILURE}`（后者为 `DialectSQLExceptionTranslator` 兜底码，PG 连接被杀走此路径）→ `close()` + `broken=true` 存原始异常后**重新抛出**；后续 `load` 若 `broken` 则抛同一异常（不返回空列表）。**判定次序：broken 检查先于 `isClosed()` 早退**（EOF 面仍返回空列表）。owner doc 增「streaming loader 任务时长 ≤ 连接最大空闲/存活时长」 |
+| C7-012 | **五节点全链**：① `IBatchTaskContext` 增 `default Boolean getAllowRestartIfKilled(){return null;}` + `default void setAllowRestartIfKilled(Boolean v){}`（default 不破坏外部实现）；② `BatchTaskContextImpl` 字段 + 覆写 getter/setter；③ `BatchTask` 字段 + **新增重载构造器**（既有 11 参签名不变，2 处既有测试零改）+ `executeAsync` 缺省注入（对齐 `allowStartIfComplete` 模式）；④ `BatchTaskBuilder` 字段 + `@PropertySetter` + 构造调用；⑤ `DaoBatchStateStore.startExistingTask` 的 KILLED 早退在 `TRUE` 时**旁路**（其余闸门 startLimit/COMPLETED/stale 语义不动；fencing 由 `incExecCount()` + 条件 UPDATE 承接，**不改 WHERE 谓词**——`taskStatus>RUNNING` 已含 KILLED=60）。**仅程序化 API，无 DSL 键**。owner doc 状态机表增「KILLED 撤离门（程序化）」。xmeta 收紧 + DSL 面 Deferred |
+| C8-004 | **单漏斗（含 beginTask）**：`BatchTask.executeAsync` 把 `metrics` 解析/创建**与 `beginTask()` 一并**移到 `setTaskName/setTaskVersion` **之后**：`if (context.getMetrics()==null && CFG_BATCH_METRICS_ENABLED.get()) { metrics = new BatchTaskMetricsImpl(GlobalMeterRegistry.instance(), null, null, context.getTaskName()); context.setMetrics(metrics); } meter = metrics==null?null:metrics.beginTask();`——一处覆盖 DSL/exp/biz 三链；外部已注入 metrics 时跳过创建但仍 `beginTask()`。`onTaskComplete` 读 `context.getMetrics()` 故拿到同一实例。新增配置键 `nop.batch.metrics.enabled`（缺省 true）。`BizExportTaskBuilder` 补 `builder.taskName(bizObjName)` |
 | C8-007 | `RetryConsumeHelper.checkRetry` 在 `incRetryCount()` 同点补 `metrics.retry(1)`（null 安全短路，与 `SkipConsumeHelper` 同型）；`BatchTaskMetricsImpl.getLoadItemCount()` 改 `loadCounter.count()`。**与 C8-004 同一 plan 项绑定**。`getProcessItemCount()` 同型错源登记 residual（C10-010 面） |
-| C8-008 | `PartitionDispatchQueue` 增只读水位出口 `getCount()`/`getAvailablePermits()`/`getPartitionCount()`（`lock` 内快照）；两 Provider `setup` 增加 Gauge 注册：tag = `task.name`(+`taskId`)，capacity 只作 description/值域说明不作 tag；**`context.onAfterComplete(err -> registry.remove(gauge))` 注销**（防 meter-id 复用陈旧读数 + 逐任务累积）。平台池重绑面 Deferred（事实已改写，见 Deferred） |
-| C8-009 | `BatchDispatchConfig` 增 `loadBatchMultiplyFactor`/`maxLockQueueCountPerThread`（缺省 0 = **未配置哨兵**）；`BatchTaskBuilder.buildLoader` 仅 `>0` 时 setter 透传，否则保留 Provider 缺省 30/100；Guard（`>=1`，`ERR_BATCH_DISPATCH_FACTOR_INVALID`）落 Provider setter 与 `PartitionDispatchQueue.setMaxLockQueueCountPerThread`。DSL 暴露 Deferred |
-| C8-010 | `DefaultBizEntityExporter` 钳制补**下界**（`batchSize<=0 → maxBatchSize`；`concurrency<=0 → 1`，与 `BatchTask.normalizeConcurrency` 为**双保险**）；**exp 半边**：`ExportDbTool`/`ImportDbTool` 对 `config.getThreadCount()` 增上界（读 `nop.batch.max-concurrency-cap`）与 `threadCount × concurrencyPerTable` 乘积校验，超界 fail-fast。owner doc 增两套 executor 形态对照表 + 30× 内存公式 |
+| C8-008 | `PartitionDispatchQueue` 增只读水位出口 `getCount()`/`getAvailablePermits()`/`getPartitionCount()`（`lock` 内快照）；`AsyncFetchPartitionDispatchLoaderProvider.setup` 注册 Gauge `nop.batch.dispatch.backlog`（value=积压条数）与 `nop.batch.dispatch.available-permits`。**meter id 唯一化**：tags = `task.name` + `exec.id`，其中 `exec.id` = `taskId`（非空）→ 否则 `taskKey`（非空）→ 否则 `"anon-"+System.identityHashCode(queue)`（**避免 Tag.of null NPE 与同名并发互删**）。注册时持有 `Meter` 引用，`context.onAfterComplete(err -> registry.remove(meter))` 精确注销。capacity 只作 description。平台池重绑面 Deferred |
+| C8-009 | `BatchDispatchConfig` 增 `loadBatchMultiplyFactor`/`maxLockQueueCountPerThread`（int 缺省 0 = 未配置哨兵）。**语义二分**：`setX(int)` 内 `<0` → 类型化 fail-fast（`ERR_BATCH_DISPATCH_FACTOR_INVALID`）；`==0` → 哨兵；`>0` → 赋值。`BatchTaskBuilder.buildLoader` 仅 `>0` 时透传给 Provider（需把 `new Provider(...).setup()` 拆为两步）；Provider/`PartitionDispatchQueue` setter 另有 `>=1` Guard。DSL 暴露 Deferred |
+| C8-010 | `DefaultBizEntityExporter` 钳制补**下界**（`batchSize<=0 → maxBatchSize`；`concurrency<=0 → 1`，与 `BatchTask.normalizeConcurrency` 为**双保险**）；**exp 半边**：新增**纯静态** `validateExecutorConfig(...)`（无 DB）在两个 `execute()` 资源段之前调用——`product = max(各表 getConcurrency, concurrencyPerTable 非空则用之, 1) × max(threadCount,1)`，`threadCount<=1`（Sync）短路，超 `CFG_BATCH_MAX_CONCURRENCY_CAP` fail-fast（`ERR_BATCH_CONCURRENCY_EXCEEDS_CAP`）。owner doc 增两套 executor 对照表 + 30× 公式 |
 
 Exit Criteria:
 
@@ -148,15 +166,15 @@ Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 |---|---|---|
 | C7-005 | `TestCraR412BatchPins#pin01`（负值 fail-fast 错误码）/ `pin01b`（0=无限不抛，仅 WARN）/ `pin01c`（终态汇总 WARN 触发路径可达） | 行为钉 |
 | C7-006 | `pin02`（任务级 saveState + orm/jdbc/generator → WARN 判定函数返回 true；file/excel → false） | 结构/契约钉 |
-| C7-007 | `TestOrmQueryBatchLoaderCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（快照实体为 TRANSIENT、不 flush） | 行为钉（fake `IDaoProvider`/`IEntityDao`） |
+| C7-007 | `TestOrmQueryBatchLoaderCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（`orm_state()==TRANSIENT` + `IDaoProvider` 零 INSERT/UPDATE 调用计数） | pin03a 行为钉；pin03b **结构钉**（诚实登记） |
 | C7-008 | `pin04`（`load(batchSize<=0)` fail-fast）/ `pin04b`（首次 load WARN 一次性，第二次不重复） | 行为钉 |
-| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken） | 行为钉（Proxy/桩 dialect） |
-| C7-012 | `TestDaoBatchStateStore#pin06a`（KILLED + allowRestart=true → 可启动）/ `pin06b`（allowRestart=false/null → 仍响亮拒绝）/ `pin06c`（启动后 execCount 递增，旧实例写被 fencing 丢弃） | 行为钉（既有基建） |
-| C8-008 | `TestPartitionDispatchQueueWatermark#pin07a`（`getCount/getAvailablePermits/getPartitionCount` 三出口读数正确）/ `pin07b`（Gauge 注册后在 `SimpleMeterRegistry.find(...)` 可读）/ `pin07c`（任务完成注销后不再可查） | 行为钉（`SimpleMeterRegistry`） |
-| C8-004 | `pin08a`（`executeAsync` 后 `SimpleMeterRegistry.find("nop.batch.task")` 的 `task.name` tag = 真实任务名，非 default）/ `pin08b`（`context.getMetrics()!=null` 时尊重外部注入，不覆盖） | 行为钉（端到端） |
+| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken）/ **`pin05d`（PG 形态：`SQLException("connection closed","08006")` → 兜底码 `uncategorized-failure` 也计 broken）** | 行为钉（Proxy/桩 dialect） |
+| C7-012 | `TestDaoBatchStateStore#pin06a`（KILLED + allowRestart=true → 可启动）/ `pin06b`（allowRestart=false/null → 仍响亮拒绝）/ `pin06c`（启动后 execCount 递增，旧实例写被 fencing 丢弃）/ **`pin06d`（`BatchTaskBuilder` 设值经重载构造器到 context 的透传链）** | 行为钉（既有基建） |
+| C8-008 | `TestPartitionDispatchQueueWatermark#pin07a`（三出口读数正确）/ `pin07b`（Gauge 可读，**含 taskId==null 形态不 NPE**）/ `pin07c`（注销后不再可查）/ **`pin07d`（同名并发两任务 meter id 互不相同，互不覆盖）** | 行为钉（`SimpleMeterRegistry`） |
+| C8-004 | `pin08a`（`executeAsync` 后 `find("nop.batch.task")` 的 `task.name` tag = 真实任务名**且 `timer.count() > 0`**）/ `pin08b`（外部注入计数 stub `IBatchTaskMetrics` 时 `beginTask/endTask` 落在注入实例上、不被覆盖）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端） |
 | C8-007 | `pin09a`（重试发生后 `metrics.getRetryItemCount()` > 0，与 `context.getRetryItemCount()` 一致）/ `pin09b`（`getLoadItemCount()` = 条数而非 chunk 次数） | 行为钉 |
-| C8-009 | `pin10a`（`BatchDispatchConfig` 未设 → Provider 保留 30/100）/ `pin10b`（设 0/负 → setter Guard fail-fast）/ `pin10c`（设正值 → 透传给 Provider 并生效） | 行为钉 |
-| C8-010 | `pin11a`（biz `batchSize=0/负 → maxBatchSize`）/ `pin11b`（biz `concurrency<=0 → 1`）/ `pin11c`（exp `threadCount` 超 cap fail-fast）/ `pin11d`（乘积超界 fail-fast） | 行为钉 |
+| C8-009 | `pin10a`（未设 → Provider 保留 30/100）/ `pin10b`（config 设负值 → fail-fast；Provider/Queue setter 设 0 → fail-fast）/ `pin10c`（设正值 → 透传并生效） | 行为钉 |
+| C8-010 | `pin11a`（biz `batchSize=0/负 → maxBatchSize`）/ `pin11b`（biz `concurrency<=0 → 1`）/ `pin11c`（`validateExecutorConfig`：threadCount 超 cap fail-fast）/ `pin11d`（乘积超界 fail-fast） | pin11a/b 行为钉；pin11c/d **结构钉**（纯静态判定，DB 无关） |
 
 Exit Criteria:
 
@@ -165,8 +183,10 @@ Exit Criteria:
 - [ ] 关键项先红后绿或变异论证（至少抽 3 条：C7-007 快照、C7-009 broken、C8-007 retry 计数）
 - [ ] `./mvnw test -pl nop-batch` BUILD SUCCESS
 - [ ] 零触碰核对：`nop-kernel`（nop-commons + nop-xdefs）零改动；orm 模型/`_` 生成物零改动
-- [ ] **端到端验证**：一次真实任务执行（DSL 装配）能读到 `nop.batch.task` Timer 与 `nop.batch.dispatch.backlog` Gauge，且 `task.name` tag 为真实任务名
-- [ ] **接线验证**：C8-008→C8-004→C8-007 三层在同一次执行中同时可见
+- [ ] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实任务 → 能读到 `nop.batch.task` Timer（**count>0**）与 `nop.batch.dispatch.backlog` Gauge（value=积压条数，tags=`task.name`+`exec.id`），`task.name` 为真实任务名
+- [ ] **接线验证**：同一次执行中用「首败后成功的 consumer」制造一次 retry → C8-008（Gauge）/C8-004（Timer）/C8-007（retry counter>0）三层同时可见
+- [ ] **无静默跳过**（rule 24）：C8-009 负值必须 fail-fast 而非被 `>0` 过滤静默忽略；C7-009 broken 不得退化为空列表
+- [ ] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
 - [ ] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
@@ -176,7 +196,7 @@ Targets: nop-batch 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [ ] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（预填实测基线：core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6）
+- [ ] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（实测基线：core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6 = **186**）
 - [ ] owner doc 落账：`nop-batch.md`（断点续传适用范围 / orderBy 不可变契约 / jdbc 页模式与 streaming 时长约束 / 状态机 KILLED 撤离门 / metrics 与 dispatch 水位观测项 / 两套 executor 对照表 + 30× 公式）
 - [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-batch --severity high` EXIT=0
 - [ ] `ai-dev/logs/` 已更新
@@ -266,14 +286,16 @@ Exit Criteria:
 ### C7-005 跳过条目死信账本
 
 - Classification: `out-of-scope improvement`
-- Why Not Blocking Closure: 需新增「跳过即记录」账本语义（`IBatchRecordHistoryStore.saveProcessed` 现契约「仅成功写入」，改语义会破坏 filterProcessed 幂等面）；本批已使跳过规模在任务终态显式汇总并在 owner doc 声明为已知边界。
+- **范围裁定（非"改不动所以不做"）**：本批职责边界 = 把「跳过」从**完全不可见**变为**可观测**（负值 fail-fast + 无限语义显式声明 + 终态汇总 WARN + 计数）。死信账本是**独立能力**（新表 / 新契约），不属于"让跳过可见"这一修复目标；`saveProcessed` 的"仅成功写入"契约是 historyStore 幂等面的基础，改它会破坏既有语义，故必须新建独立账本而非改既有接口。
+- Why Not Blocking Closure: 已确认 live defect（跳过无持久化记录）的**可观测性半边**已由本批闭合（运维可从终态 WARN + skipItemCount 得知规模）；剩余半边（逐条持久化死信）是新增能力，不影响 supported baseline 的数据正确性（at-least-once 仍成立）。
+- **触发条款（升 P1）**：生产出现「跳过数据丢失导致业务对账失败」或「需要按记录追溯被跳过的行」→ 升 P1 立即立项死信账本。
 - Successor Required: `yes`
 - Successor Path: 独立批次（batch 死信/跳过账本能力）。
 
 ## Non-Blocking Follow-ups
 
 - `PartitionDispatchQueue.removePartition` 生产调用方为零（死代码）——本轮不清理，登记待后续死代码治理。
-- `BatchTaskMetricsImpl.getProcessItemCount()` 与已修的 `getLoadItemCount()` 为**同型错源**（返回 Timer 次数而非条目数）；本批只修 load 侧，process 侧留 residual（C10-010 面），避免"部分失真观测面"被误认为已全修。
+- `BatchTaskMetricsImpl.getProcessItemCount()` 与已修的 `getLoadItemCount()` 为**同型错源**（返回 Timer 次数而非条目数）。**Why Not Blocking Closure**：正确修复需扩 `IBatchTaskMetrics.endProcess(meter, count, success)` 的签名（公共接口 API 变更，影响全部实现者），属独立契约变更；本批只修 load 侧，process 侧留 residual（C10-010 面），并在 owner doc 显式声明该指标语义偏差，避免"部分失真观测面"被误认为已全修。
 - 两个派发 provider（`PartitionDispatchLoaderProvider` / `AsyncFetchPartitionDispatchLoaderProvider`）不转发 `hasChunkCompaction()`（2545 R4 m-2）；owner doc 应声明「仅由 `BatchTaskBuilder` 构造，不得手工作为 task loader 注入」。
 
 ## Closure
