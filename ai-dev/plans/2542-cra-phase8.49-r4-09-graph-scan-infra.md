@@ -67,7 +67,7 @@
   - **红⑤（W-05）**：解析链治理断言——(i) 错类型腿（executorBean 指向非 IThreadPoolExecutor bean → typed NopException 含 bean 名断言——**当前即红[确定性]**——pre-fix 裸 CCE）；(ii) 遮蔽腿（同名保留名 IoC bean 存在 → WARN 存在性断言——appender 捕获形态）。
   - **红⑥（W-06）**：见 C10-012（红钉本体即 C10-012 同 diff 钉）+异常外泄腿（注入失败→无状态残留可再次触发断言）+挂死腿与红⑨ 共享载体（同簇拆腿禁重复计数）。
   - **红⑦（W-07）**：items 物化治理断言——大 items 注入 → saveState 持久化 wrapper 体积/结构断言（不含全量 items 或游标形态）（**当前即红[确定性——体积/结构断言]**；post-fix 白名单/剥离/游标=绿；形态随裁定 D）。
-  - **红⑧（W-08）**：读路径下推断言——(i) 查询形状腿（getLatestStepRecordByName/getActivatedSteps 族 QueryBean 含 SQL 过滤/orderBy+limit 断言——对齐 TestWfScanQueryShape 形态**新增 getSteps 族腿非改写**）；(ii) 载入行数腿（N 行含历史→断言载入行数有界）（**当前即红[确定性]**；形态随裁定 D）。
+  - **红⑧（W-08）**：读路径下推断言——(i) 查询形状腿（getLatestStepRecordByName/getActivatedSteps 族 QueryBean 含 SQL 过滤/orderBy+limit 断言——对齐 TestWfScanQueryShape 形态**新增 getSteps 族腿非改写**）；(ii) 接线腿（五读方法在 DaoWorkflowStore override，防「下推未接线」）。**红⑧ 形态=结构钉（查询形状+接线）**——执行期勘误 E-2542-12：初稿「载入行数腿（N 行含历史→断言载入行数有界）」未落地，行为等价性由 `TestDaoWorkflowEngine` 28 例承载（含 join/cosign 全链）。
   - **红⑨（W-09）**：逐项 deadline 断言——dueAction never-complete stub → 断言扫描轮在 deadline 内返回+该条跳过+显式留痕（**当前即红[latch 30s 上界确定性构造]**——pre-fix 无限阻塞由测试闩带上界证伪；post-fix=绿）。
   - **红⑩（W-10）**：归档/保留策略断言——归档 job 形态：终态过期行注入→归档执行断言（行为钉）；文档声明形态：结构钉诚实留痕（2537 红⑥ 形态禁伪绿）——形态随裁定 E。
   - **红⑪（W-11）**：滞留检测断言——ACTIVE 行注入（模拟崩溃残留）→ workerId 赋值断言+滞留扫描告警存在性/值断言（**当前即红**——pre-fix workerId null+零告警；形态随裁定 B 基建设计）。
@@ -251,7 +251,7 @@ Targets: nop-task-core（6-8 main+测试树）+ nop-task-dao（1 main+测试树�
 - [x] 组 E 账本与滞留观测域（W-10/W-12——写入口族+SuspendTaskStep+新 job.yaml 如裁 main+测试树）〔裁定 E；钉=红⑩⑫〕〔W-10×W-08 归档联动落款兑现；W-12×2497 §七 约束落款；缺省关闭义务〕
 - [x] 回归测试（rule 25 显式覆盖 + C10-010 随 W-04 同 diff + C10-012 随 W-06 同 diff + C10-014 随 W-13 同 diff + E2 泛在钉红①–红⑬，先红后绿或变异/回退论证留痕）：红①–红⑬ 快照落 `_tmp/red-green-ledger-2542.md` 总册并登记（原始 trial 日志存证）；零回退钉核对（双聚合器签名维持[勘误 8 基线+新钉比对]+R211/R408 钉族全绿[TestPhase4TerminalAndConcurrency/TestWfTaskScanner 全列[含 ContinuesAfter* 三用例]/TestWfTaskScannerFencing/TestCraR408ScannerRemindBackoff/TestCraR408ErrorBoundaryLifecycle/TestFirstClassConfigValidation]+**TestWfScanQueryShape（2514 C10-008 查询形状钉——W-08 点名零改写）**+364/349/2498/344 钉[TestTaskStepHelperRetryDelayOffload_C4_001 等]+既有锚全绿[TestGraphDrainRace 族/TestGraphErrorSuccessRace/TestSuspendSemantics/TestExecutorTaskStepWrapperAsyncBranch 全列]）；2514/2541/2498/364/349 承接面核对（监视器收敛/分批退避 fencing/Throwable 边界/键空间治理/载体裁定——main diff 逐文件核对零触碰）
 - [x] **端到端验证**（rule 22）：≥1 条扫描链路测试覆盖 W-04/W-06/W-09 组合面（yaml 装配→bean 解析成功→单条 action 挂死→deadline 跳条→失败注入→无状态残留可再次触发——红④/红⑥/红⑨ 即链路载体）；≥1 条并发 resume 链路测试覆盖 W-13/W-11（挂起→双路并发 resume→单执行+输家 typed 失败→workerId 赋值可追溯——红⑬/红⑪ 即链路载体）；≥1 条图执行链路测试覆盖 W-02（enter∩wait 模型→装配拒绝或单次执行断言——红② 即链路载体）；≥1 条 executor 链路测试覆盖 W-03（executor 步骤→body 内 context 值断言→Error 注入不回归——红③ 即链路载体）；W-01/W-05/W-07/W-08/W-10/W-12 链路面按裁定形态（saveTaskState 交错链路/解析链拒绝链路/物化治理链路/下推链路/归档链路/滞留指标链路）
-- [x] **接线验证**（rule 23）：十三项全实测（红① 收敛真实生效+裸 ORM 错误零冒泡/红② 单次执行真实断言/红③ context 真实到达/红④ bean 真实解析/红⑤ typed 拒绝+WARN 真实触发/红⑥ 无状态残留真实可再触发/红⑦ 序列化真实有界/红⑧ 下推真实生效[SQL 形状/载入行数]/红⑨ deadline 真实跳条/红⑩ 归档真实执行或声明落账/红⑪ workerId 真实赋值+告警真实触发/红⑫ 指标真实注册/红⑬ 单执行真实保证——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
+- [x] **接线验证**（rule 23）：十三项全实测（红① 收敛真实生效+裸 ORM 错误零冒泡/红② 单次执行真实断言/红③ context 真实到达/红④ bean 真实解析/红⑤ typed 拒绝+WARN 真实触发/红⑥ 无状态残留真实可再触发/红⑦ 序列化真实有界/红⑧ 下推真实生效[SQL 形状+五方法接线；行为等价性由 TestDaoWorkflowEngine 28 例承载]/红⑨ deadline 真实跳条/红⑩ 归档真实执行或声明落账/红⑪ workerId 真实赋值+告警真实触发/红⑫ 指标真实注册/红⑬ 单执行真实保证——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
 - [x] **无静默跳过**（rule 24）：十三项显式核验（收敛显式/守卫显式/投递显式/改名显式/拒绝显式/留痕显式/白名单显式/下推显式/超时跳条显式/归档显式或声明落账/告警显式/指标显式/fencing 拒绝显式）；新增公共分支 TODO/FIXME grep 零命中（全部站点文件全查）；拒绝/失败分支无空 catch/静默 return（**W-06 异常边界收敛后 catch-all 不吞异常——ERROR 留痕必然性核验**）
 - [x] 条件申报核对（对齐纪律）：条件申报①（W-11 心跳列——如裁定触发须四件链申报在先）②（xdef 触碰——如裁定触发须批内闭环申报在先）**触发与否 git 全量核对登记**；③④预设不触发；零触碰登记：2514/2541/2498/364/349/344 已修面与同文件跨批面（监视器收敛/Throwable 边界/键空间治理/扫描治理/retry 封装——diff 分组核对）+ nop-job 本体零 diff+C7-006 零触碰+G16 组+P3 相邻条目+批外子模块（closure audit git 过滤复核归 Phase 4）〔核对结果登记〕
 
@@ -277,7 +277,7 @@ Targets: nop-task+nop-wf 聚合全量测试 + 批行 `-am` 通道；owner doc �
 - [x] 批行验证命令（E3 判据——勘误 8）：批行 `./mvnw test -pl nop-task -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例+2540/2541 形态处置）；等价分解通道 `./mvnw test -pl nop-task`+`./mvnw test -pl nop-wf` 验收（基线签名+新钉比对）；容器/门控 5S 面与基线同形处置留痕（禁静默重跑）
 - [x] owner doc 落账（E5 落点清单）：nop-task.md（:38 W-03 句+:62-73 挂起与恢复节 W-01/W-11/W-12/W-13 句+:164 区 W-05 解析链句+源码锚点表刷新）+nop-wf.md（:56-76 W-04 修复注记/W-06 韧性句/W-09 deadline 句+W-08/W-10 句按裁定）+workflow-configuration.md 按需+`source-anchors.md` 按实际；check-doc-links EXIT=0
 - [x] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-task --severity high`+`--module nop-wf --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记——2539 先例）
-- [ ] `ai-dev/logs/` 对应日期条目已更新
+- [x] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 

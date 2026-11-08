@@ -585,6 +585,8 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         String joinGroup = stepRecord.getJoinGroup();
         List<IWorkflowStepRecord> ret = new ArrayList<>();
         for (NopWfStepInstance step : stepDao().findAllByQuery(query)) {
+            // identity 跳过为防御性二等公民：self 的 stepName 通常不在 stepNames 内（SQL 已滤），
+            // 且 ORM 会话 identity map 保证同 id 返回同实例——不要依赖跨会话实例同一性
             if (step == stepRecord)
                 continue;
             if (java.util.Objects.equals(joinGroup, joinGroupGetter.apply(step)))

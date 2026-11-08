@@ -123,9 +123,24 @@ public class LoopTaskStep extends AbstractTaskStep {
         }
 
         /**
+         * W-07：items 进程内载体——{@code @JsonIgnore} 使该属性不参与持久化（W-07 的
+         * 有界化目标），生命周期随 stateBean（即本 stepRt）自动释放，不会跨迭代累积。
+         */
+        private java.util.List<Object> transientItems;
+
+        @com.fasterxml.jackson.annotation.JsonIgnore
+        public List<Object> getTransientItems() {
+            return transientItems;
+        }
+
+        public void setTransientItems(List<Object> transientItems) {
+            this.transientItems = transientItems;
+        }
+
+        /**
          * W-07 向后兼容只写属性：修复前的持久化行把全量 items 写在 wrapper 内。保留该 setter
          * 使旧行仍可反序列化（无对应 getter，故新序列化结果不再含 items）；值直接丢弃——
-         * items 一律经 {@link #resolveItems} 由 task attribute/itemsExpr 重算。
+         * items 一律经 {@link #resolveItems} 重算。
          */
         public void setItems(List<Object> ignoredLegacyItems) {
             // no-op：仅为旧持久化行反序列化兼容
@@ -133,43 +148,42 @@ public class LoopTaskStep extends AbstractTaskStep {
     }
 
     /**
-     * W-07（裁定 D）：items 解析——优先 task attribute（同一次 execute 调用内存活），
-     * 缺失时经 itemsExpr 重算（resume 路径确定性重建）。
+     * W-07（裁定 D）：items 解析——进程内缓存挂在<b>本步骤的 stateBean</b>（{@code @JsonIgnore}
+     * 不持久化），生命周期随 stepRt 自动释放；缺失时经 itemsExpr 重算（resume 路径确定性重建）。
+     *
+     * <p>执行期勘误 E-2542-11：初版挂在 task 级 runtime 的类级常量子键上（跨步骤串用）；
+     * 改用 {@code stepPath+runId} 限定后虽隔离正确，但条目永不释放（每轮迭代留一份
+     * items,内存 O(Σ各轮)）。最终形态回到 stepRt 作用域载体，两问题同时闭合。
      */
     private List<Object> resolveItems(ITaskStepRuntime stepRt) {
-        String key = itemsAttrKey(stepRt);
-        Object cached = stepRt.getTaskRuntime().getAttribute(key);
-        if (cached instanceof List)
-            return (List<Object>) cached;
+        LoopStateBean bean = ensureStateBean(stepRt);
+        if (bean.getTransientItems() != null)
+            return bean.getTransientItems();
+
         List<Object> items = CollectionHelper.toList(itemsExpr.invoke(stepRt));
-        stepRt.getTaskRuntime().setAttribute(key, items);
+        bean.setTransientItems(items);
         return items;
     }
 
     /**
-     * items 缓存键：前缀 + stepPath（含该步骤在 task 内的完整路径与 runId 无关部分），
-     * 保证同 task 内多个 loop 步骤互不串用。
+     * 取（必要时创建）本步骤 stateBean——单一入口，避免 resolveItems 与 execute 各自新建
+     * 导致 transient 载体被覆盖。
      */
-    static String itemsAttrKey(ITaskStepRuntime stepRt) {
-        String stepPath = stepRt.getStepPath();
-        if (stepPath == null)
-            return ITEMS_ATTR_PREFIX;
-        // runId 区分「同一 stepPath 的多次实例化」——loop 体内步骤每轮新建 stepRt（新 runId），
-        // 因此本步骤在每轮迭代都会重算 items；而同一 runtime 的多次 execute 重入（异步续跑
-        // 递归）runId 不变，复用已算结果，语义正确。
-        return ITEMS_ATTR_PREFIX + stepPath + ":" + stepRt.getRunId();
+    private LoopStateBean ensureStateBean(ITaskStepRuntime stepRt) {
+        LoopStateBean bean = stepRt.getStateBean(LoopStateBean.class);
+        if (bean == null) {
+            bean = new LoopStateBean();
+            bean.setIndex(0);
+            stepRt.setStateBean(bean);
+        }
+        return bean;
     }
 
     @Nonnull
     @Override
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
-        LoopStateBean stateBean = stepRt.getStateBean(LoopStateBean.class);
+        LoopStateBean stateBean = ensureStateBean(stepRt);
         List<Object> items = resolveItems(stepRt);
-        if (stateBean == null) {
-            stateBean = new LoopStateBean();
-            stateBean.setIndex(0);
-            stepRt.setStateBean(stateBean);
-        }
 
         if (CollectionHelper.isEmpty(items))
             return RETURN_RESULT_END(stepRt.getResult());

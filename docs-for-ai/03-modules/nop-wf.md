@@ -85,7 +85,7 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 
 ### wf 步骤账本读路径下推（W-08，1.5-C5-006 裁定 D）
 
-`DaoWorkflowStore` override 三个高频读方法，把可翻译谓词下推为 SQL：`getLatestStepRecordByName`（`eq(wfId)+eq(stepName)+orderBy(createTime desc)+limit 1`）、`getStepRecords`（`includeHistory=false` 腿补 `status < HISTORY_BOUND` 预滤）、`getStepRecordsByName`（再补 `eq(stepName)`）。任意 `Predicate` 不可翻译 → 保持全集语义（静默截断比全集载入更危险）。
+`DaoWorkflowStore` override 三个高频读方法，把可翻译谓词下推为 SQL：`getLatestStepRecordByName`（`eq(wfId)+eq(stepName)+orderBy(createTime desc)+limit 1`）、`getStepRecords`（`includeHistory=false` 腿补 `status < HISTORY_BOUND` 预滤）、`getStepRecordsByName`（再补 `eq(stepName)`）。任意 `Predicate` 不可翻译 → 保持全集语义（静默截断比全集载入更危险）。join 两腿（`getJoinWaitStepRecords` / `getNextJoinStepRecord`）把 `in(stepNames)` / `eq(stepName)` + `status < HISTORY_BOUND` 下推，`joinGroup` 判定保留内存；**同 joinGroup 多行的返回顺序未定义**（修复前内存实现同样无序，不可依赖其排序）。
 
 **语义等价前提（关键）**：下推仅在步骤集合处于 **proxy（未加载）态**——即跨请求冷读的放大场景——生效；集合**已加载**时回落到内存视图。原因是引擎在同一 ORM 会话内「先建/迁移步骤、随即读回」，已加载的 `wfRecord.getSteps()` 是权威视图（含未 flush 行与未落库状态），此时等价 SQL 会读到陈旧 DB 视图。该保护由 `nop-wf-service` 的 `TestDaoWorkflowEngine` 全 28 例作为回归门（执行期实测：无条件下推时 21 例全红）。测试锚点：`TestWfStepsReadPathR409`（查询形状 + 接线腿）；`TestWfScanQueryShape`（2514 C10-008）零改写。
 
