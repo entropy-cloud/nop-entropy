@@ -130,17 +130,19 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
                                 }
                                 queue.addBatch(list);
                             }
-                            // 1.7-C6-008（plan 2545 W-06）：底层 loader 在本线程自建的一次性 chunk ctx 上
-                            // 注册 chunk 级 afterComplete（如 ResourceRecordLoaderProvider 的压实回调，
-                            // 它标记 processingItems 完成并推进 completedIndex）。原实现丢弃该 ctx 且从不
-                            // complete —— 回调永不执行 → completedIndex 永不推进、任务必以
-                            // ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败（saveState + dispatcher 组合 100% 失败）。
-                            ctx.complete();
+                            // 1.7-C6-008（plan 2545 W-06；closure audit B-1 修正）：这里**不得**对 fetch 线程
+                            // 自建的一次性 ctx 调用 complete()。底层 loader（如 ResourceRecordLoaderProvider）
+                            // 在本 ctx 上注册的 chunk 压实回调依赖 ctx.getChunkItems()，而 chunkItems 仅由
+                            // 消费线程的 BatchChunkProcessor.loadItems 写入；fetch ctx 的 chunkItems 恒为 null，
+                            // 调用 complete() 只会触发一个读不到 items 的空转压实（no-op）——回调看似执行、
+                            // completedIndex 仍不推进，且掩盖了真实语义缺口。若将来为该 ctx 填入 chunkItems，
+                            // 又会在数据尚未消费时就推进 completedIndex，把 at-least-once 降级为 at-most-once。
+                            // 因此该组合（saveState + fetchThreadCount>0）在装配期即 fail-fast
+                            // （见 BatchTaskBuilder.buildLoader），本循环不承担压实职责。
                         } catch (Exception e) {
                             LOG.error("nop.batch.exit-fetch-thread-when-fail:threadIndex={}", threadIndex, e);
                             // 保留第一个异常作为根因，避免被后续线程的次要异常覆盖
                             exception.compareAndSet(null, e);
-                            ctx.completeExceptionally(e);
                             return;
                         }
                     }

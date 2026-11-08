@@ -49,6 +49,7 @@ import java.util.function.Consumer;
 import static io.nop.batch.core.BatchErrors.ARG_FETCH_THREAD_COUNT;
 import static io.nop.batch.core.BatchErrors.ARG_LOAD_BATCH_SIZE;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_LOAD_BATCH_SIZE_INVALID;
+import static io.nop.batch.core.BatchErrors.ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED;
 
 /**
  * 负责创建{@link IBatchTask}的工厂类。它负责组织skip/retry/transaction/process/listener的处理顺序
@@ -352,6 +353,16 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
                         .param(ARG_LOAD_BATCH_SIZE, loadBatchSize)
                         .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 
+            // 1.7-C6-008（plan 2545 W-06；closure audit B-1 修正）：saveState + 异步 fetch 派发是**不支持**的组合。
+            // fetch 线程与消费线程在时间/线程上解耦，reader 的 chunk 级压实回调（标记 processingItems 完成、
+            // 推进 completedIndex）只能附着在 fetch 线程自建的一次性 ctx 上，而该 ctx 的 chunkItems 恒为 null
+            // ——压实必然空转，completedIndex 永不推进，任务 100% 以 ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败。
+            // 装配期响亮失败，不给运维留下"跑 60 秒后报一条指向错误根因的异常"的排障陷阱。
+            // 同步派发（fetchThreadCount<=0）的 fetcher 闭包捕获消费线程 ctx，压实正常，不受本守卫影响。
+            if (stateStore != null && fetchThreadCount > 0)
+                throw new NopException(ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED)
+                        .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
+
             if (fetchThreadCount > 0) {
                 loader = new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
                         dispatchConfig.getPartitionFn()).setup(context);
@@ -412,7 +423,13 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
             if (useBatchRequestGenerator) {
                 processor = new BatchSequentialProcessor(processor);
             }
-            consumer = new BatchProcessorConsumer<>(processor, (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
+            BatchProcessorConsumer<S, R> processorConsumer = new BatchProcessorConsumer<>(processor,
+                    (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
+            // 1.7-C5-003（plan 2545 W-05；closure audit B-2 修正）：输出集上界接线——原实现只提供
+            // setter 而无生产调用方，导致上界恒为 0（不限制），护栏在生产路径上不可达。
+            // 本处为全部装配路径（DSL/程序化/biz）构造 BatchProcessorConsumer 的唯一漏斗。
+            processorConsumer.setMaxOutputItemsPerChunk(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK.get());
+            consumer = processorConsumer;
         }
 
         // 保存处理历史，避免重复处理

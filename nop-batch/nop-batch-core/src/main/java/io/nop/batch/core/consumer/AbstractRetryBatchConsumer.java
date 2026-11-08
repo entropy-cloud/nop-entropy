@@ -77,10 +77,6 @@ public abstract class AbstractRetryBatchConsumer<R> implements IBatchConsumer<R>
         }
     }
 
-    protected void checkRetry(Throwable e, int retryTimes, IBatchChunkContext context) {
-        RetryConsumeHelper.checkRetry(retryPolicy, e, retryTimes, context);
-    }
-
     protected abstract void retryConsume(IBatchRecordSnapshotBuilder.ISnapshot<R> snapshot,
                                          Collection<R> items, IBatchChunkContext context);
 }

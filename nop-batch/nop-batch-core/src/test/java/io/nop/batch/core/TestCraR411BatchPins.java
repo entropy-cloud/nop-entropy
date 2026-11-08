@@ -1,6 +1,8 @@
 package io.nop.batch.core;
 
+import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.FutureHelper;
 import io.nop.batch.core.consumer.BatchProcessorConsumer;
 import io.nop.batch.core.impl.BatchTaskContextImpl;
 import io.nop.batch.core.loader.ListBatchLoader;
@@ -142,6 +144,106 @@ public class TestCraR411BatchPins {
 
         consumer.consume(List.of(new Object()), newTaskChunkContext());
         assertEquals(100, emitted.get());
+    }
+
+    // ==================== 红⑥（C5-003 接线，closure audit B-2）：配置键真实接线 ====================
+
+    /**
+     * 红⑥（closure audit B-2）：上界必须在**生产接线**上生效——`BatchTaskBuilder.buildChunkProcessor`
+     * 从 `nop.batch.max-output-items-per-chunk` 读取并注入 `BatchProcessorConsumer`。
+     * <p>
+     * 缺陷态（审计实测）：唯一设置入口 `setMaxOutputItemsPerChunk` 在生产代码零调用方，
+     * 该上界在全部装配路径恒为 0（不限制）——"接口存在 ≠ 行为完成"。
+     * <p>
+     * 本钉走**真实 builder → 真实 executeAsync**：只设置配置键（不碰 setter），任务必须因超限失败。
+     */
+    @Test
+    public void pin06_outputBoundConfigKeyWiredThroughBuilder() {
+        int prev = BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK.get();
+        AppConfig.getConfigProvider().updateConfigValue(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK, 10);
+        try {
+            BatchTaskBuilder<Object, Object> builder = new BatchTaskBuilder<>();
+            builder.taskName("c5-003-pin");
+            // 一次性 loader：只在首 chunk 返回 1 条，之后返回空（避免变异时无限循环）
+            java.util.concurrent.atomic.AtomicBoolean loaded = new java.util.concurrent.atomic.AtomicBoolean();
+            builder.loader(ctx -> (batchSize, chunkCtx) -> loaded.compareAndSet(false, true)
+                    ? new ArrayList<>(java.util.Collections.singletonList(new Object()))
+                    : new ArrayList<>());
+            builder.processor(ctx -> (item, consumer, chunkCtx) -> {
+                for (int i = 0; i < 100; i++)
+                    consumer.accept("out-" + i);
+            });
+            builder.consumer(ctx -> (items, chunkCtx) -> {
+            });
+            builder.concurrency(1);
+
+            IBatchTask task = builder.buildTask();
+            Throwable thrown = assertThrows(Throwable.class,
+                    () -> FutureHelper.syncGet(task.executeAsync(newTaskTaskContext())));
+            // 注意：loader 返回同一对象后需停止——用一次性 loader 避免无限循环
+            assertTrue(containsErrorCode(thrown, "nop.err.batch.too-many-processing-items"),
+                    "配置键 10 必须经 builder 接线生效并 fail-fast，实际: " + thrown);
+        } finally {
+            AppConfig.getConfigProvider().updateConfigValue(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK, prev);
+        }
+    }
+
+    // ==================== 红⑦（C6-008，closure audit B-1）：saveState + 异步派发 fail-fast ====================
+
+    /**
+     * 红⑦（closure audit B-1）：saveState + fetchThreadCount>0 是**不支持**的组合，必须装配期响亮失败。
+     * <p>
+     * 缺陷态（审计实测）：原实现只对 fetch 线程自建的一次性 ctx 调 `complete()`，但该 ctx 的
+     * `getChunkItems()` 恒为 null，压实回调只是空转——completedIndex 永不推进，任务 100% 以
+     * ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败，且错误信息不指向真实根因（dispatcher 组合）。
+     */
+    @Test
+    public void pin07_saveStateWithAsyncDispatchFailsFast() {
+        BatchTaskBuilder<String, String> builder = new BatchTaskBuilder<>();
+        builder.taskName("c6-008-pin");
+        builder.loader(ctx -> (batchSize, chunkCtx) -> new ArrayList<String>());
+        builder.consumer(ctx -> (items, chunkCtx) -> {
+        });
+        // 非 null state store 表达 saveState=true 语义
+        builder.stateStore(new StateStoreStub());
+
+        BatchDispatchConfig<String> dispatch = new BatchDispatchConfig<>();
+        dispatch.setLoadBatchSize(10);
+        dispatch.setFetchThreadCount(1);
+        dispatch.setPartitionFn((item, ctx) -> 0);
+        builder.dispatchConfig(dispatch);
+
+        IBatchTask task = builder.buildTask();
+        // 守卫在 buildLoader（setup 期）而非构造期，故经 executeAsync 触发；
+        // 异常经 onTaskComplete → future 异常终态 → syncGet 重抛（CompletionException 包裹），故走 cause 链。
+        Throwable thrown = assertThrows(Throwable.class,
+                () -> FutureHelper.syncGet(task.executeAsync(newTaskTaskContext())));
+        assertTrue(containsErrorCode(thrown, "nop.err.batch.save-state-with-dispatcher-unsupported"),
+                "saveState + 异步派发必须以专属错误码响亮失败，实际: " + thrown);
+    }
+
+    private static boolean containsErrorCode(Throwable e, String code) {
+        while (e != null) {
+            if (e instanceof NopException && code.equals(((NopException) e).getErrorCode()))
+                return true;
+            e = e.getCause();
+        }
+        return false;
+    }
+
+    private static IBatchTaskContext newTaskTaskContext() {
+        return new io.nop.batch.core.impl.BatchTaskContextImpl();
+    }
+
+    /** 最小 state store 桩：仅用于表达 saveState=true（不参与本钉断言）。 */
+    static class StateStoreStub implements IBatchStateStore {
+        @Override
+        public void loadTaskState(IBatchTaskContext context) {
+        }
+
+        @Override
+        public void saveTaskState(boolean complete, Throwable err, IBatchTaskContext context) {
+        }
     }
 
     // ==================== 测试载体 ====================

@@ -47,4 +47,15 @@ public interface BatchDslErrors {
 
     ErrorCode ERR_BATCH_INPUT_MANDATORY_NOT_PROVIDED =
             ErrorCode.define("nop.err.batch.input-mandatory-not-provided", "批处理任务的input参数{inputName}是必需的，但未提供", ARG_BATCH_TASK_NAME, ARG_INPUT_NAME);
+
+    /**
+     * 1.7-C7-004（plan 2545 W-10；closure audit M-3 修正）：负 maxRetryCount 在 RetryPolicy 中的语义是
+     * 「无限重试」（{@code isExceedRetryCount} max<0 恒 false），与多数框架 -1=禁用的惯例相反；
+     * 毒记录叠加负配置会让 chunk 线程永久自旋。装配期类型化 fail-fast。
+     */
+    ErrorCode ERR_BATCH_RETRY_MAX_COUNT_NEGATIVE =
+            ErrorCode.define("nop.err.batch.retry-max-count-negative",
+                    "批处理重试策略的maxRetryCount={value}非法：负值在底层RetryPolicy中语义为无限重试（与-1=禁用的惯例相反），"
+                            + "装配期拒绝。如需禁止重试请不配置retryPolicy",
+                    ARG_VALUE);
 }

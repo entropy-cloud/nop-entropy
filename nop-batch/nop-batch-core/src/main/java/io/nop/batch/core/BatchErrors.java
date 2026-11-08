@@ -69,4 +69,14 @@ public interface BatchErrors {
                     + "AsyncFetch缺省×30）退化为0，orm-reader全表单页加载将对Semaphore(0)永久阻塞，"
                     + "其他reader会静默产出空任务导致数据丢失",
             ARG_LOAD_BATCH_SIZE, ARG_FETCH_THREAD_COUNT);
+
+    ErrorCode ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED = define(
+            "nop.err.batch.save-state-with-dispatcher-unsupported",
+            "批处理任务同时配置saveState（断点续传）与dispatcher.fetchThreadCount>0是不支持的组合："
+                    + "fetchThreadCount={fetchThreadCount}。分区派发下load与consume在时间与线程上解耦，"
+                    + "reader的chunk级压实回调（标记processingItems完成并推进completedIndex）无法附着到"
+                    + "实际消费该批数据的chunk上下文，会导致completedIndex永不推进、任务必然以"
+                    + "nop.err.batch.processing-items-not-empty失败。请改用concurrency（不配置dispatcher）"
+                    + "或关闭saveState。",
+            ARG_FETCH_THREAD_COUNT);
 }

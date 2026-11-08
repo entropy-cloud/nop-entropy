@@ -134,8 +134,6 @@ public class ExportDbTool {
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
-        syncConfigWithDb();
-
         if (stateFile != null) {
             stateStore = new EtlTaskStateStore(stateFile);
             if (stateStore.isCompleted()) {
@@ -144,10 +142,13 @@ public class ExportDbTool {
             }
         }
 
-        // 1.7-C6-003（plan 2545 W-07）：executor 创建与 beforeExport 全部纳入 try——原实现二者在
-        // try 之外，beforeExport 抛出即 destroy 不可达（executor 被 GlobalMeterRegistry 强引用滞留）。
+        // 1.7-C6-003（plan 2545 W-07；closure audit m-4 修正）：executor 创建、syncConfigWithDb 与
+        // beforeExport 全部纳入 try——原实现 try 之外（syncConfigWithDb 在 :137）时抛出即 destroy 不可达
+        // （executor 被 GlobalMeterRegistry 强引用滞留）。owner doc「全部纳入 try」的表述与本处对齐。
         IThreadPoolExecutor executor = null;
         try {
+            syncConfigWithDb();
+
             this.outputResourceLoader = new FileResource(new File(config.getOutputDir()));
 
             if (config.getThreadCount() > 1) {

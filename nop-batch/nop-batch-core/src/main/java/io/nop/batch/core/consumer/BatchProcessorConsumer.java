@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static io.nop.batch.core.BatchConfigs.CFG_BATCH_ASYNC_PROCESS_TIMEOUT;
 import static io.nop.batch.core.BatchErrors.ERR_BATCH_CANCEL_PROCESS;
@@ -78,6 +79,9 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
 
         // 假定为同步处理模型。这里缓存所有输出数据，至于当整个列表中的元素都被成功消费以后，才会处理输出数据
         Collection<R> outputs = newOutputs();
+        // 1.7-C5-003（plan 2545 W-05）：输出计数独立维护——异步路径 outputs 是 ConcurrentLinkedQueue，
+        // 其 size() 为 O(n)，在每个输出热路径上调用会退化为 O(n²)。
+        AtomicInteger outputCount = new AtomicInteger();
 
         for (S item : items) {
             Object meter = metrics == null ? null : metrics.beginProcess();
@@ -88,8 +92,9 @@ public class BatchProcessorConsumer<S, R> implements IBatchConsumer<S> {
                 // processor内部可能异步执行。如果是异步执行，执行完毕后需要调用batchChunkCtx.countDown()
                 processor.process(item, output -> {
                     // 1.7-C5-003（plan 2545 W-05）：输出集上界——超限即 fail-fast，不静默膨胀
-                    if (maxOutputItemsPerChunk > 0 && outputs.size() >= maxOutputItemsPerChunk)
+                    if (maxOutputItemsPerChunk > 0 && outputCount.get() >= maxOutputItemsPerChunk)
                         throw new NopException(ERR_BATCH_TOO_MANY_PROCESSING_ITEMS);
+                    outputCount.incrementAndGet();
                     outputs.add(output);
                 }, batchChunkCtx);
                 success = true;

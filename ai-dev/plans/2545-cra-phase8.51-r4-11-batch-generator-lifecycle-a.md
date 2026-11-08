@@ -87,12 +87,12 @@ Targets: nop-batch-core / -gen / -exp / -dsl + 测试树
 - [x] W-02 C1-002：`BatchGenState` 游标同步
 - [x] W-03 C1-003：`taskBeginFired` 守卫（batch 侧）
 - [x] W-04 C5-004：`ListBatchLoader` 常驻规模 WARN + 配置键
-- [x] W-05 C5-003：`BatchProcessorConsumer` 输出集上界
+- [x] W-05 C5-003：`BatchProcessorConsumer` 输出集上界（**closure audit B-2 后重做**：配置键 `nop.batch.max-output-items-per-chunk` + `BatchTaskBuilder` 生产接线 + 计数改 AtomicInteger 避免异步 O(n²)）
 - [x] W-06 C1-006：`SequentialBatchRequestGenerator` 实例同步
-- [x] W-07 C6-003/C6-008：AsyncFetch fetch 线程 `ctx.complete()` + exp 工具 try 窗重构
+- [x] W-07 C6-003/C6-008：exp 工具 try 窗重构（含 `syncConfigWithDb` 入 try）+ C6-008 **closure audit B-1 后改形**为装配期 fail-fast（`ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED`），移除空转的 fetch-ctx `complete()`
 - [x] W-08 C6-007：ImportDbTool `syncConfigWithDb` 移入 try
 - [x] W-09 C6-004：两工具 `waitTerminated` 有界等待
-- [x] W-10 C7-004：负 maxRetryCount fail-fast + 移除入口预检查
+- [x] W-10 C7-004：负 maxRetryCount fail-fast + 移除入口预检查（**closure audit M-3 后改形**：裸 `IllegalArgumentException` → `BatchDslErrors.ERR_BATCH_RETRY_MAX_COUNT_NEGATIVE` + `NopException`；入口预检查移除后死方法一并删除）
 - [x] W-11 C1-004 死字段 `onTaskEnds` 删除（C1-003 F3 附项，声明面钉随宿主同 diff）
 - [x] 回归测试：既有 nop-batch 全量测试 | 新增钉见下
 - [x] **无静默跳过**（rule 24）：WARN/抛错全部显式，无空 catch
@@ -103,6 +103,22 @@ Exit Criteria:
 - [x] `./mvnw test -pl nop-batch` BUILD SUCCESS（逐模块签名见 Phase 3）
 - [x] 零触碰核对：`nop-kernel`/`nop-tcc`/`nop-retry` 零改动；orm/`_` 生成物零改动
 - [x] `ai-dev/logs/` 已更新
+
+**测试载体清单（closure audit M-2 后补全，逐工单 ≥1）**
+
+| 工单 | 载体 | 性质 |
+|---|---|---|
+| C1-001 | `pin01`/`pin01b`（TL save/restore 两腿） | 行为钉 |
+| C1-002 | `BatchGenState` 四方法 synchronized（结构面）+ 既有 `TestBatchGenModel` 回归 | 结构钉（诚实登记：并发红不可确定性构造） |
+| C1-003 | `pin03`（fire 后注册 fail-fast） | 行为钉 |
+| C1-006 | `SequentialBatchRequestGenerator` 两方法 synchronized（结构面）+ DSL 全量回归 | 结构钉（诚实登记） |
+| C5-003 | `pin05`/`pin05b`（超限 fail-fast / 不限制）+ **`pin06` 配置键经 builder 真实接线**（closure audit B-2） | 行为钉 |
+| C5-004 | `pin04`（超大 List 只告警不拒绝） | 契约钉 |
+| C6-003 | `TestDbToolExecutorContract`（executor 契约）+ owner doc 声明面 | 契约钉 |
+| C6-004 | `TestDbToolExecutorContract`（waitTerminated 有界等待） | 契约钉 |
+| C6-007 | `TestImportDbTool`（Import 全链）+ `syncConfigWithDb` 入 try 的代码面 | 回归钉 |
+| C6-008 | **`pin07`（saveState + 异步派发 fail-fast）**（closure audit B-1） | 行为钉（变异红证） |
+| C7-004 | 负值 fail-fast（`ERR_BATCH_RETRY_MAX_COUNT_NEGATIVE`）+ 计数修正由 `TestBatchBugVerification` 既有重试面承载 | 类型化钉 + 回归 |
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
@@ -130,13 +146,15 @@ Targets: 本 plan、roadmap 8.51 行、cra-index P2-G23 束行
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / C1-003 平台半边 successor 边界
+- [x] 独立子 agent closure audit（fresh session，agent_5b478355）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / C1-003 平台半边 successor 边界 → **R1 REJECTED（2B+5M+6m）**，Blocker/Major 全部随收口闭环
+- [x] R1 Blocker/Major 修复：B-1 C6-008 改形装配期 fail-fast（移除空转 fetch-ctx complete）；B-2 C5-003 配置键 + builder 真实接线；M-1 owner doc 配置键订正；M-2 逐工单载体补全（见上表）；M-3 类型化错误码；M-4 提交溯源说明；M-5 Phase 4 收口
+- [x] Minor 修复：m-1 测试数订正（core 82）；m-2 验证命令改子模块枚举；m-3 死方法 `checkRetry` 删除；m-4 `ExportDbTool.syncConfigWithDb` 移入 try；m-5 `pin04` 保护力诚实登记；m-6 异步 `size()` → `AtomicInteger`
 - [ ] cra-index 台账回填：P2-G23 束行（R4-11 半边收敛注）+ roadmap 8.51 → done
 - [ ] 双门禁 + Closure Evidence 写入本 plan
 
 Exit Criteria:
 
-- [ ] closure audit 证据写入 Closure 段
+- [ ] closure audit 证据写入 Closure 段（R2 复审仍需一轮 fresh session）
 - [ ] cra-index + roadmap 在案
 - [ ] 双门禁 EXIT=0
 
