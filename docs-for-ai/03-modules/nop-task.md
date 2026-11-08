@@ -37,6 +37,8 @@
 
 **并行语义（plan 364 [03-06]**）：`parallel`/`fork`/`fork-n`/`graph` 只做 promise 聚合——子步骤默认在调用线程内联串行执行，仅当子步骤显式配置 `executor` 时才提交线程池真正并行。把耗时同步步骤放入 `parallel` 而不配 executor 不会获得并行加速。
 
+**executor 步骤的上下文传播（plan 2542 W-03，CRA 8.49 R4-09 裁定 C）**：`executor` 包装的步骤体默认以 **task runtime 构造时捕获的 `IContext` 重投递执行**——池线程上 `ContextProvider.currentLocale()` / 用户 / 租户等 ThreadLocal 依赖与调用线程一致，不再静默失效或串号（修复前 body 在池线程直跑，编程式构造 `newTaskRuntime(task,false,null)` 路径下 `getLocale` 回退 ThreadLocal 必错）。无捕获 context 的极端路径（无会话上下文）保持直跑语义、不静默丢执行。**升级注记**：依赖「池线程无 context」旧行为的边缘模型会观察到 context 有值。body 抛 `Error` 时 promise 必然终结且 Error 原样 rethrow（2541 W-06 不变量零弱化）。
+
 ## 任务状态
 
 定义状态：`UNPUBLISHED` → `PUBLISHED` → `DEPRECATED` → `ARCHIVED`
@@ -66,11 +68,19 @@
 - `TaskStepReturn.isSuspend()` 按返回值中的哨兵名（`@suspend`）判断，任何包装层（BuildOutput/retry 等）重建返回值都不会丢失挂起语义。
 - 挂起发生时：task 状态置为 `SUSPENDED`（非终态）、挂起点保存 stateBean 与 bodyStepIndex；**不**驱动为 COMPLETED、**不**清理任务级 bean 容器（保留给进程内 resume）。
 - 挂起传播：sequential/selector（同步与异步）、loop/loop-n、fork/fork-n、parallel、graph 中的分支挂起都会向上传播 SUSPEND，不会被当作成功聚合项或静默跳过。
-- 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
+- 恢复：`ITaskFlowManager.getTaskRuntime(taskInstanceId, ...)` → 重新 `execute`。
+
+  **loop/fork items 不持久化（plan 2542 W-07，1.5-C5-005 裁定 D）**：`loop`/`fork` 的 items 集合已移出持久化面——stateBean 只承载游标（loop `index` / fork `itemCount`），items 在一次执行内经 task attribute 进程内持有、跨 resume 由 `itemsExpr`（loop）/ `producer`（fork）**重算**。收益：每迭代 `saveState` 的 stateBean 序列化量 O(1)（修复前含全量 items = 单请求 O(N) 驻留 + 累计 O(N²) 序列化）。**契约要求：`itemsExpr`/`producer` 必须是确定性/纯函数**，否则断点续跑恢复出的集合与原集合不一致（语义漂移）。旧持久化行（wrapper 内含 items 键）由只写兼容 setter 吸收，可正常读回、零迁移。`persistVars` 声明的变量、stateBean（循环下标/分支决策/suspend first 标记）、outputs 导出变量、动态 nextStepName 随 `saveState` 持久化（plan 349 起 `DaoTaskStateStore` 经 `stateBeanData` 版本化 wrapper 持久化，向后兼容旧格式）。
 - 挂起任务的 kill（plan 364 [05-03]）：`cancel()` 对处于 `SUSPENDED`（无驱动在飞）的任务直接驱动 KILLED 终态并落盘，不再等待 resume；执行中（ACTIVE）任务的取消仍走 cancel token → step driver 路径。
 - **SUSPENDED 转移原子化（plan 2514 MA-01）**：执行线程的 SUSPENDED 写入与落盘纳入 `synchronized(taskState)` 监视器（与四个终态 driver 同一监视器），块内做终态前置检查——任务已终态（如 cancel 先驱动 KILLED）则拒绝 SUSPENDED 裸覆写，**KILLED 不会被挂起转移复活**；cancel 判定块对「刚转入 SUSPENDED 尚在保存中」的任务同样即时驱动 KILLED。挂起任务被 timeout-cancel 归类记 **KILLED 非 TIMEOUT**（TIMEOUT 语义保留给在飞步骤的 step-timeout）。resume 在非终态确认后显式重置 ACTIVE 并落盘，终态任务 resume 显式拒绝。
 
+- **执行级 fencing（plan 2542 W-13，1.5-C7-014 裁定 B）**：`TaskFlowManagerImpl.getTaskRuntime` 维护 per-`taskInstanceId` **在途注册表**（`ConcurrentHashMap.putIfAbsent` 抢占 + runtime 终态移除）——同一 taskInstanceId 并发 resume 时第二路以 typed `ERR_TASK_INSTANCE_ALREADY_RUNNING` 快速失败，mainStep 业务体不会双执行（修复前进程内双击/重复投递即可让副作用翻倍）。claim/release 为 Throwable-safe（同步 Error 逃逸不会永久泄漏 fence）；合法顺序 resume（先路退出后再 resume）不误伤。与 C1-009（SUSPENDED 写者守卫）为**分立裁定**，2514 MA-01 监视器语义零重开。测试锚点：`TestConcurrentResumeSingleExecutionR409`（50 轮竞速 + 顺序对照腿）。
+- **滞留可观测（plan 2542 W-11，1.5-C7-009 裁定 B）**：`DaoTaskStateStore.newTaskState` 写入节点身份 `workerId`（配置 `nop.task.node-id`，缺省=主机名+8 位随机后缀，实例内一次生成）；`loadTaskState` 对「ACTIVE 且属主非本节点」的行 WARN 留痕并累加 gauge `nop.task.stale-active-loaded`——崩溃残留 ACTIVE 行由此可判定、可计数。**只读不自动恢复**（恢复仍唯一经显式 resume，与跨进程 resume 完整性暂缓裁定兼容）。同节点 ACTIVE 行不告警（防误报）。
+- **SUSPENDED 滞留监控（plan 2542 W-12，1.5-C7-010 裁定 E）**：gauge `nop.task.suspended-tasks`，`kind=all` 计全部 SUSPENDED 行、`kind=stale` 计 `updateTime` 早于 `nop.task.suspended.stale-ms`（缺省 86400000）的行——「等人工」与「条件已满足但被遗忘」两类滞留由此可区分。scrape 期执行索引聚合查询（status+updateTime 既有列，零 DDL）；查询失败返回 NaN 表示诚实缺席（非静默 0）。**「等人工」声明语义零触碰**：gauge 为纯观测面，resume-when 仍唯一经显式 resume 求值。
+
 **已知边界**：fork/fork-n 的并发分支共享同一 stepPath 行（无 (taskInstanceId, stepPath) 唯一索引），跨进程 fork+DB-resume 场景尚不可靠（已裁定为 DB 断点续跑完整性设计主题，暂缓实施）；步骤业务副作用与终态保存之间无事务原子性，**步骤体必须幂等**或使用 `TransactionTaskStepDecorator` 并接受该窗口。进程内同 stepPath 行的并发 `saveStepState` 已由 `DaoTaskStateStore` 条带锁串行化（plan 364 [05-02]，不再冒泡乐观锁异常），跨进程并发写仍属上述边界。
+
+**task 行写对称串行化（plan 2542 W-01，1.5-C1-006 裁定 B）**：`DaoTaskStateStore.saveTaskState` 与 `saveStepState` 对称置于同一 64 槽条带锁内，并以**锁内 fresh-read 终态守卫**承载 first-terminal-wins——同 `taskInstanceId` 双 runtime 并发终态保存时先到终态赢单、输家内存 bean 向 DB 真值收敛（修复前仅 DB 乐观锁收敛：裸 `ERR_ORM_UPDATE_ENTITY_NOT_FOUND` 冒泡且输家内存永久漂移）。残余跨进程版本冲突映射为 typed `ERR_TASK_STATE_SAVE_CONFLICT`（不再冒泡裸 ORM 错误码）。**锁序**：全部生产调用点在 `synchronized(taskState)` 临界区内（TaskImpl 六处终态 driver + TaskRuntimeImpl SUSPENDED→KILLED），获取序恒为 `monitor → rowLock` 单向无环；**禁则**——`ITaskState.beforeSave` 实现禁止回调 taskRt/taskState 的同步方法（反向序即 ABBA）。测试锚点：`TestTaskStateFencingR409`。
 
 **查找索引（plan 364 [03-01]**）：`nop_task_step_instance` 声明单列索引 `IX_TASK_STEP_TASK_ID (TASK_INSTANCE_ID)`（`findStepEntity` 的 eq(taskInstanceId) AND eq(stepPath) 查询此前全表扫描；stepPath VARCHAR(2000) 参与 MySQL utf8mb4 复合索引超键长上限，故单列）。新建部署经 ORM `<indexes>` 自动生效（`_app.orm.xml`）；**存量库需执行** `nop-task/deploy/sql/{mysql,postgresql,oracle}/upgrade-nop-task-step-instance-index.sql`（CREATE TABLE DDL 不产出二级索引）。
 
@@ -82,6 +92,8 @@ graph 内 `nextOnError` / `waitErrorSteps` / `STEP_RESULTS.x.error` 数据依赖
 - 被依赖步骤**成功**：错误分支节点按"跳过"处理——不执行 body，但正常级联其后续节点，图继续推进（修复前图会永久挂死）。
 - 失败节点若无任何错误消费者（waitError/waitComplete 依赖），图维持 fail-fast 整图失败；全部路径死端时以 `ERR_TASK_GRAPH_NO_ACTIVE_STEP` 报错（不挂死）。
 - 图内构建期校验：enterSteps/exitSteps/waitSteps/waitErrorSteps 引用不存在的步骤、步骤重名（`ERR_TASK_DUPLICATE_STEP_IN_GRAPH`）在模型加载期报错。
+
+**enter∩wait 双调度禁止（plan 2542 W-02，1.5-C3-003 裁定 C）**：同一 graph 步骤同时出现在 `enterSteps`（直跑循环）与 `waitSteps`/`waitErrorSteps`（等待调度循环）构成两条独立 `runStep` 调度路径——步骤体双执行、结果覆写。`GraphTaskStep` 的调度入口另有 `stepFuture.isDone()` 一次性守卫（完成窗闭合）兜底；两者叠加。**升级注记**：`GraphStepAnalyzer` 现对此配置**构建期硬失败**（`ERR_TASK_GRAPH_ENTER_WAIT_OVERLAP`，含 `overlapStepNames` 参数）——存量模型若存在该重叠，升级后装配即 fail-fast，须先移除任一侧声明（`next` 会自动派生 waitStep，误配门槛很低）。残余「在飞窗」为已知边界。测试锚点：`TestGraphScanR409Contract` + `TestGraphDrainRace` 族。
 
 ## 子模块
 
@@ -160,6 +172,8 @@ public class ErpSalOrderBizModel extends CrudBizModel<ErpSalOrder> {
 每个 step 是一个一等公民，声明 input/output，可选 `when/validator/retry/catch/timeout` 等。step 的执行体有几种形态：
 
 **可靠性属性取值约束（plan 364）**：`timeout` 负值、`retry` 负值（maxRetryCount/retryDelay/maxRetryDelay）、`rate-limit` 节点存在但 `requestPerSecond<=0`，在 first-class 属性与 `<decorator>` 两条路径上均为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` / `ERR_TASK_DECORATOR_INVALID_CONFIG`）；`timeout=0`/缺省在 first-class 路径表示"未配置"。per-step `saveState="false"` 表示该步骤自身状态行不落盘（跳过 ACTIVE/挂起/终态保存，挂起恢复对该步骤退化为重新执行），未配置时行为不变（任务级 `defaultSaveState` 开启即落盘）。
+
+**executor bean 解析链（plan 2542 W-05，1.5-C4-004 裁定 C）**：`getThreadPoolExecutor` 的解析顺序为 `GlobalExecutors` 三保留名（`nop-global-timer` / `nop-cached-thread-pool` / `nop-global-worker`）→ IoC bean。解析结果做 **instanceof `IThreadPoolExecutor` 检查**，类型不符抛 typed `ERR_TASK_EXECUTOR_BEAN_INVALID`（含 `executorBean` / `actualType`；修复前裸 `ClassCastException` 无 bean 名与模型位置上下文）。保留名命中且容器内存在同名自定义 bean 时 WARN 留痕（部署方同名定制池被静默遮蔽、线程转储不可诊断）。**保留名清单**：`nop-global-timer`（定时器池，禁放阻塞任务）、`nop-cached-thread-pool`（弹性缓存池）、`nop-global-worker`（通用 worker 池）。
 
 **`sync` × `executor` 组合构建期禁止（plan 2514 MA-03）**：`sync="true"` 与 `executor` 同步配置为构建期硬失败（`ERR_TASK_STEP_CONFIG_INVALID` 族，与上述校验链同位）——sync 包装（外层，调用线程阻塞等待）× executor 包装（内层，池上执行）同池嵌套时池饱和即全体永久互等。**部署期行为变更：存量模型若存在该组合，升级后装配即 fail-fast，须先移除组合再升级**（无静默兼容降级）。`sync` 等待本身有界：取消 token 可唤醒，时限键 `nop.task.step.sync-wait-timeout-ms`（缺省 600000，`0`=不限时仅取消唤醒，负值装配期 fail-fast），超时显式抛错。
 

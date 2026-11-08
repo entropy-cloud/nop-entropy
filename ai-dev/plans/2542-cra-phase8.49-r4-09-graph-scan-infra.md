@@ -252,24 +252,24 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-task+nop-wf 聚合全量测试 + 批行 `-am` 通道；owner doc 行为变更面落账
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2541 Phase 3 先例；已知面 nop-ai-translate 排除形态先例在案）
-- [ ] 批行验证命令（E3 判据——勘误 8）：批行 `./mvnw test -pl nop-task -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例+2540/2541 形态处置）；等价分解通道 `./mvnw test -pl nop-task`+`./mvnw test -pl nop-wf` 验收（基线签名+新钉比对）；容器/门控 5S 面与基线同形处置留痕（禁静默重跑）
-- [ ] owner doc 落账（E5 落点清单）：nop-task.md（:38 W-03 句+:62-73 挂起与恢复节 W-01/W-11/W-12/W-13 句+:164 区 W-05 解析链句+源码锚点表刷新）+nop-wf.md（:56-76 W-04 修复注记/W-06 韧性句/W-09 deadline 句+W-08/W-10 句按裁定）+workflow-configuration.md 按需+`source-anchors.md` 按实际；check-doc-links EXIT=0
-- [ ] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-task --severity high`+`--module nop-wf --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记——2539 先例）
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` 快速通道 + 聚焦测试组合覆盖，支路理由随执行记录声明——沿 plan 2497–2541 Phase 3 先例；已知面 nop-ai-translate 排除形态先例在案）
+- [x] 批行验证命令（E3 判据——勘误 8）：批行 `./mvnw test -pl nop-task -am` 至阻断面留痕（上游闭包=nop-kernel/nop-persistence 面——已知面集按 2513 勘误 5 三联裁定先例+2540/2541 形态处置）；等价分解通道 `./mvnw test -pl nop-task`+`./mvnw test -pl nop-wf` 验收（基线签名+新钉比对）；容器/门控 5S 面与基线同形处置留痕（禁静默重跑）
+- [x] owner doc 落账（E5 落点清单）：nop-task.md（:38 W-03 句+:62-73 挂起与恢复节 W-01/W-11/W-12/W-13 句+:164 区 W-05 解析链句+源码锚点表刷新）+nop-wf.md（:56-76 W-04 修复注记/W-06 韧性句/W-09 deadline 句+W-08/W-10 句按裁定）+workflow-configuration.md 按需+`source-anchors.md` 按实际；check-doc-links EXIT=0
+- [x] 工具门禁：check-doc-links --strict EXIT=0（E5 落账后复跑）；scan-hollow `--module nop-task --severity high`+`--module nop-wf --severity high` EXIT=0（触达面 high=0 或批前既有发现逐条裁定登记——2539 先例）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道双聚合器验收（基线签名+新钉比对 EXIT=0）
-- [ ] owner doc 落账核对（E5 落点逐项落点——nop-task.md 各处+nop-wf.md 各处+source-anchors——全在案）
-- [ ] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰[或申报①在案]、xdef 零触碰[或申报②在案]、平台设施与 nop-job 本体零触碰[nop-kernel/nop-commons/nop-core/nop-job 零 diff]、批外模块零触碰[R4-32 成员/G16 组/P3 相邻/批外子模块/2514/2541 产物面零 diff——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4]）
+- [x] E1 + 批行验证命令验收且逐条登记——批行 `-am` 通道至阻断面留痕（三联裁定/已知面处置留痕）+ 分解通道双聚合器验收（基线签名+新钉比对 EXIT=0）
+- [x] owner doc 落账核对（E5 落点逐项落点——nop-task.md 各处+nop-wf.md 各处+source-anchors——全在案）
+- [x] 零触碰确认登记（git diff：`_` 生成物零触碰、orm 零触碰[或申报①在案]、xdef 零触碰[或申报②在案]、平台设施与 nop-job 本体零触碰[nop-kernel/nop-commons/nop-core/nop-job 零 diff]、批外模块零触碰[R4-32 成员/G16 组/P3 相邻/批外子模块/2514/2541 产物面零 diff——Phase 2 条件申报核对在案，closure audit 复核归 Phase 4]）
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 4 - closure audit + 收口

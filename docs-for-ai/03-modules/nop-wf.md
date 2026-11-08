@@ -73,7 +73,34 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 
 **wf step retry 语义（plan 2541 W-12，MA-22 裁定 F）**：`computeRetryDelay` 对固定 delay 与 exponential 两分支统一应用 `maxRetryDelay` 封顶（对齐 task 侧 RetryPolicy）；`maxRetryDelay<=0` 维持不封顶（未配置语义，存量长退避零变更）。**活动事务上下文中延迟等待降级不重试**——事务内 sleep 持连接/行锁为更劣形态，检测到已开启事务时显式 WARN（`nop.wf.retry-degraded-in-transaction`）后抛原业务异常（事务检测经 `IWorkflowStore.hasOpenedTransaction` 接口投影，DaoWorkflowStore 以 ORM querySpace 实测）；升级注记：存量依赖事务内重试的模型升级后该场景改为显式失败。测试锚点：`TestCraR408TransferAndRetry`（封顶两分支 + 事务降级 execCount 断言）。
 
-**扫描 job 部署盲区声明（plan 2541 W-01(d)）**：due/remind 扫描由调度 job 驱动，**该 job 缺省 disabled**——未启用扫描 job 的部署中 due/remind 扫描零执行（毒步骤退避/gauge/自动 dueAction 均不生效）。启用扫描 job 为运维动作；部署时若依赖到期自动推进，须确认扫描 job 已按 cron 配置启用。
+### 扫描 job 装配与韧性（plan 2542 R4-09，CRA 8.49）
+
+**invoker bean 装配（W-04，1.5-C4-003）**：`wf-due-task-scan.job.yaml` / `wf-remind-task-scan.job.yaml` 的 `invoker.bean` 必须为容器内实际 bean id **`nopWfTaskScanner`**（`app-scheduler.beans.xml` 定义）。修复前两文件写 `wfTaskScanner`（全仓零命中）——一旦启用 `nop.job.wf-*-task-scan.enabled=true`，每次 fire 在 `requireBean` 处同步抛 `ERR_JOB_BEAN_NOT_FOUND` → job FAILED 永久停摆，到期升级与提醒能力 100% 失效。**已部署环境若持有外部覆盖副本（delta/自定义 conf），须同步改名**。测试锚点：`TestWfScanJobWiringR409`（C10-010 装配三腿：yaml 解析 → bean id 集 → method 反射）。
+
+**入口异常边界（W-06(a)，1.5-C4-007 形态 B 使用面）**：`scanDueTasks`/`scanRemindTasks` 方法体异常**不再外泄至 job fire 层**——单轮失败以 ERROR 留痕 + gauge `nop.wf.scheduler.scan-round-failures`（累计）反映后正常返回，fire 以成功收尾、下一轮 cron 自补偿。`Error` 不拦截（直传宿主）：job fire 线程无 promise 终结义务，Error 转业务成功=致命降级。**宿主侧终态语义（fire FAILED 永久停摆 / resumeJob 只认 SUSPENDED / fireNow 拒绝 FAILED / cancelRunning 空实现）归 nop-job 单元工单 nop-job-C7-006，本模块不含该修复**。测试锚点：`TestWfScanJobResilienceContractR409`（C10-012，使用面限定）。
+
+**逐项 action deadline（W-06(b)×W-09，1.5-C7-004）**：due action 以带 deadline 的等待执行——键 `nop.wf.scheduler.action-deadline-ms`（缺省 30000，负值装配期 fail-fast，**`0`=禁用**即恢复无界 `syncGet` 语义，供合法长动作部署逃生）。超时条目记 error、跳过该条并走既有毒步骤退避推进 `dueTime` 退出本轮扫描集；`InterruptedException` 恢复中断位后同超时形态处理，`CancellationException`（任务侧取消）直接跳条。**诚实登记**：deadline 不终止底层 action 执行（宿主无 cancel 设施——`cancelRunning` 空实现属 nop-job-C7-006），僵尸动作残留以「每挂死条目至多一个、fire 正常收尾、退避退出扫描集」为收敛声明。修复前单条挂死使扫描线程永久滞留，pool-size=4 共享调度池四条即全冻结。测试锚点：`TestWfScanJobResilienceContractR409`。
+
+**共享调度池挤压（W-06(c)）**：due/remind 扫描与其他 local job 共享 `nopJobScheduledExecutor`（core=max=4）。deadline 已把单条挂死的占用上界收窄到 `action-deadline-ms`；部署中若有多个长耗时 local job，应为其配置独立 executor（本批不做代码层池拆分，归优化轮）。
+
+### wf 步骤账本读路径下推（W-08，1.5-C5-006 裁定 D）
+
+`DaoWorkflowStore` override 三个高频读方法，把可翻译谓词下推为 SQL：`getLatestStepRecordByName`（`eq(wfId)+eq(stepName)+orderBy(createTime desc)+limit 1`）、`getStepRecords`（`includeHistory=false` 腿补 `status < HISTORY_BOUND` 预滤）、`getStepRecordsByName`（再补 `eq(stepName)`）。任意 `Predicate` 不可翻译 → 保持全集语义（静默截断比全集载入更危险）。
+
+**语义等价前提（关键）**：下推仅在步骤集合处于 **proxy（未加载）态**——即跨请求冷读的放大场景——生效；集合**已加载**时回落到内存视图。原因是引擎在同一 ORM 会话内「先建/迁移步骤、随即读回」，已加载的 `wfRecord.getSteps()` 是权威视图（含未 flush 行与未落库状态），此时等价 SQL 会读到陈旧 DB 视图。该保护由 `nop-wf-service` 的 `TestDaoWorkflowEngine` 全 28 例作为回归门（执行期实测：无条件下推时 21 例全红）。测试锚点：`TestWfStepsReadPathR409`（查询形状 + 接线腿）；`TestWfScanQueryShape`（2514 C10-008）零改写。
+
+### wf/task 账本保留策略（W-10，1.5-C7-007 裁定 E）
+
+五张 `nop_wf_*` 表与两张 `nop_task_*` 表**只增不删，平台不内置归档/purge/TTL**（唯一删除入口是显式 kill 后 `removeWfRecord`）。随业务量线性膨胀会导致索引退化、扫描查询变慢。**保留策略归属 DBA 侧执行**：
+
+- 建议按**终态时间戳**（`nop_wf_instance`/`nop_wf_step_instance`/`nop_wf_status_history` 的结束/创建时间；`nop_task_instance`/`nop_task_step_instance` 的 `END_TIME`/`UPDATE_TIME`）划分保留期；
+- 建议**两段式**：先备份/归档到冷存储，确认后再清理，禁止直接 DELETE 不具备可恢复性；
+- 终态白名单建议：wf 侧 `COMPLETED`/`EXPIRED`/`KILLED`（含 `wf_status_history` 归属实例），task 侧 `COMPLETED`/`TIMEOUT`/`FAILED`/`KILLED`；**非终态行永不清理**；
+- 单 wf 实例内步骤数同样无上界——设计期应控制循环/并签展开规模（与读路径下推联动）。
+
+内置归档 job（含保留期键、缺省关闭）为优化轮候选，本批不提供。
+
+****扫描 job 部署盲区声明（plan 2541 W-01(d)）**：due/remind 扫描由调度 job 驱动，**该 job 缺省 disabled**——未启用扫描 job 的部署中 due/remind 扫描零执行（毒步骤退避/gauge/自动 dueAction 均不生效）。启用扫描 job 为运维动作；部署时若依赖到期自动推进，须确认扫描 job 已按 cron 配置启用。
 
 ## 源码锚点
 
@@ -84,6 +111,8 @@ due/remind 查询为 `limit(batchSize)` + `orderBy(dueTime asc)` 分页游标推
 | store 接口（`withWfLock`/`tryClaimScanLease` 契约） | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/store/IWorkflowStore.java` |
 | store 实现（64 槽锁体/条件 UPDATE 抢占/分批查询族） | `nop-wf/nop-wf-dao/src/main/java/io/nop/wf/dao/store/DaoWorkflowStore.java` |
 | 调度扫描器（fencing 接线/分批/退避/remind 退避/gauge） | `nop-wf/nop-wf-scheduler/src/main/java/io/nop/wf/scheduler/WfTaskScanner.java` |
+| 扫描 job 装配（invoker.bean 指向 `nopWfTaskScanner`） | `nop-wf/nop-wf-scheduler/src/main/resources/_vfs/nop/job/conf/wf-due-task-scan.job.yaml`、`wf-remind-task-scan.job.yaml` |
+| 扫描器 bean 定义 | `nop-wf/nop-wf-scheduler/src/main/resources/_vfs/nop/wf/beans/app-scheduler.beans.xml` |
 | 转办批量配置键 | `nop-wf/nop-wf-core/src/main/java/io/nop/wf/core/WfConfigs.java` |
 
 ## 相关文档
