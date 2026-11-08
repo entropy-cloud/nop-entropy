@@ -84,4 +84,13 @@ public interface NopRetryErrors {
     ErrorCode ERR_RETRY_ATTEMPT_TIMEOUT_INVALID = define("nop.err.retry.attempt-timeout-invalid",
             "attempt 超时上界必须小于租约: attemptTimeoutMs={configValue}, leaseTimeoutMs="
                     + NopRetryApiConstants.DEFAULT_RETRYING_TIMEOUT_MS, ARG_CONFIG_VALUE);
+
+    // 1.6-C1-002（plan 2543 W-01）：OVERWRITE 输家判定为重读行已消失（键位被并发删除），
+    // 既非「已被合法替换」也非「旧行存活」——不造死信，纯失败传播
+    ErrorCode ERR_RETRY_OVERWRITE_RACE_LOST = define("nop.err.retry.overwrite-race-lost",
+            "OVERWRITE 竞争败方且键位已空: {recordId}", ARG_RECORD_ID);
+
+    // 1.6-C8-013（plan 2543 W-14）：扫描/批处理参数越界，装配期 fail-fast
+    ErrorCode ERR_RETRY_SCANNER_CONFIG_INVALID = define("nop.err.retry.scanner-config-invalid",
+            "扫描器配置非法: {configKey}={configValue}", ARG_CONFIG_KEY, ARG_CONFIG_VALUE);
 }

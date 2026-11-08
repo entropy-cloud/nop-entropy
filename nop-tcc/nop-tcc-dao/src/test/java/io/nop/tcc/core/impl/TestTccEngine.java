@@ -110,7 +110,10 @@ public class TestTccEngine extends AbstractTccTest {
         tccEngine.checkExpiredTransactions(30000, 5, null);
 
         NopTccRecord loaded = dao.getEntityById(record.getTxnId());
-        assertEquals(TccStatus.CONFIRM_SUCCESS.getCode(), loaded.getStatus());
+        // plan 2543 W-07-3（E-2543-1 契约校正，非弱化）：超时恢复的未定向态一律回滚——
+        // 原预期 CONFIRM_SUCCESS 锚住的是「无回滚证据 → 确认」这一缺陷缺省方向（会确认
+        // 一条没跑完的业务链，以 confirm 方向释放参与方预留资源）。
+        assertEquals(TccStatus.CANCEL_SUCCESS.getCode(), loaded.getStatus());
     }
 
     @Test
@@ -483,8 +486,10 @@ public class TestTccEngine extends AbstractTccTest {
         assertTrue(elapsed < 15000, "checkExpiredTransactions should not block on hanging compensation");
 
         // 补偿超时停在中间态，分支retryTimes已计一次补偿尝试
+        // plan 2543 W-07-3（E-2543-1 契约校正，非弱化）：超时恢复方向改 cancel，
+        // 原预期 CONFIRMING 锚住的是旧缺省 confirm 方向
         NopTccBranchRecord loadedBranch = branchDao.getEntityById(branch.getBranchId());
-        assertEquals(TccStatus.CONFIRMING.getCode(), loadedBranch.getStatus());
+        assertEquals(TccStatus.BEFORE_TIMEOUT.getCode(), loadedBranch.getStatus());
         assertEquals(Integer.valueOf(1), loadedBranch.getRetryTimes());
     }
 

@@ -9,6 +9,7 @@ package io.nop.tcc.core.impl;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.rpc.IRpcServiceInvoker;
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.IApiResponseNormalizer;
 import io.nop.api.core.util.ICancelToken;
@@ -36,6 +37,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +54,7 @@ import static io.nop.tcc.core.TccCoreErrors.ARG_SERVICE_NAME;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TCC_STATUS;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_GROUP;
 import static io.nop.tcc.core.TccCoreErrors.ARG_TXN_ID;
+import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_BRANCH_GUARD_CHECK_FAILED;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_LEDGER_CONFIG_INVALID;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_MISSING_TRANSACTION_RECORD;
 import static io.nop.tcc.core.TccCoreErrors.ERR_TCC_TRANSACTION_ALREADY_FINISHED;
@@ -248,7 +251,7 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
     @Override
     public ITccTransaction newTransaction(String txnGroup) {
         txnGroup = normalizeTxnGroup(txnGroup);
-        return new TccTransaction(true, repository.newTccRecord(txnGroup), this);
+        return new TccTransaction(true, repository.newTccRecord(txnGroup), this, 0L);
     }
 
     @Override
@@ -266,7 +269,7 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
     private TccTransaction newTccTransaction(ITccRecord record) {
         if (record == null)
             return null;
-        return new TccTransaction(false, record, this);
+        return new TccTransaction(false, record, this, 0L);
     }
 
     /**
@@ -345,14 +348,14 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
             // task同步抛异常/Error时whenComplete不会挂接，必须显式恢复registry。
             // 参与已有事务路径Error不在此执行endAsync补偿（事务不属于本调用方，与同步版runTaskWithExitingTxn一致），
             // Error原样重抛（不包装成NopException）
-            registry.put(txnGroup, old);
+            registry.restore(txnGroup, txn, old);
             if (e instanceof Error)
                 throw (Error) e;
             throw NopException.adapt(e);
         }
         CompletionStage<T> f = future;
         return thenOnContext(f).whenComplete((ret, err) -> {
-            registry.put(txnGroup, old);
+            registry.restore(txnGroup, txn, old);
         });
     }
 
@@ -364,7 +367,7 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
         try {
             return task.apply(txn);
         } finally {
-            registry.put(txnGroup, old);
+            registry.restore(txnGroup, txn, old);
         }
     }
 
@@ -396,13 +399,24 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
             } catch (Throwable e) {
                 // task同步抛异常/Error时必须显式执行endAsync补偿，否则record残留TRYING
                 // 只能等超时扫描兜底（对比同步版本runTaskWithNewTxn的catch）。Error补偿后原样传播
+                // plan 2543 W-07-2：业务异常优先传播、补偿链异常以 suppressed 保留证据——
+                // 原 thenCompose(v2 -> failedFuture(e)) 在补偿链失败时整段跳过，调用方收到的是
+                // 补偿链异常而业务异常丢失（C6-015 链 B 的证据不可得面）。handle 先吞补偿异常
+                // 并挂 suppressed，再由末段统一重抛业务异常。
                 return txn.endAsync(false, null, e)
+                        .handle((v2, compensateErr) -> {
+                            if (compensateErr != null) {
+                                e.addSuppressed(compensateErr);
+                                LOG.error("nop.tcc.end-compensate-fail", compensateErr);
+                            }
+                            return null;
+                        })
                         .thenCompose(v2 -> CompletableFuture.<T>failedFuture(e));
             }
             return completeAsyncOnContext(taskFuture,
                     (ret, err) -> txn.endAsync(false, apiResponseNormalizer.toApiResponse(ret), err).thenApply(v2 -> ret));
         }).whenComplete((ret, err) -> {
-            registry.put(txnGroup, old);
+            registry.restore(txnGroup, txn, old);
         });
     }
 
@@ -435,25 +449,52 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
             txn.end(false, null, e);
             throw NopException.adapt(e);
         } finally {
-            registry.put(txnGroup, old);
+            registry.restore(txnGroup, txn, old);
         }
     }
 
     @Override
     public <T> CompletionStage<T> runBranchTransactionAsync(ITccTransaction txn,
                                                             TccBranchRequest branchRequest, Function<ITccBranchTransaction, CompletionStage<T>> task) {
-        // 如果事务已经结束，则不能执行分支
+        // 1.6-C1-007（plan 2543 W-03 腿1）：内存守卫保留为事前快路径——但调用方链私有副本
+        // 自 begin 起从不刷新，恢复链翻转 DB 状态后该副本仍为 TRYING（陈旧放行）。
         if (txn.getTccStatus() != TccStatus.TRYING)
-            return FutureHelper.reject(new NopException(ERR_TCC_TRANSACTION_NOT_ALLOW_START_BRANCH)
-                    .param(ARG_TXN_ID, txn.getTxnId()).param(ARG_TXN_GROUP, txn.getTxnGroup())
-                    .param(ARG_TCC_STATUS, txn.getTccStatus()).param(ARG_SERVICE_NAME, branchRequest.getServiceName())
-                    .param(ARG_SERVICE_METHOD, branchRequest.getServiceMethod()));
+            return FutureHelper.reject(notAllowStartBranch(txn, branchRequest, txn.getTccStatus()));
 
-        ITccBranchRecord branchRecord = getTccRecordRepository().newBranchRecord(txn.getTccRecord(), branchRequest);
+        // 1.6-C1-007（plan 2543 W-03 腿1）：DB 复核。放行「向已回滚事务写入预留资源」的代价
+        // 不可逆，而拒绝只让调用方在父事务不可用的明确信号下失败——故读失败按 fail-close 处理。
+        // handle 只包住读阶段（不吞下游运行分支的异常）。
+        return getTccRecordRepository().getTccRecordAsync(txn.getTxnGroup(), txn.getTxnId())
+                .handle((latest, readErr) -> {
+                    if (readErr != null) {
+                        LOG.error("TccEngine.runBranchTransactionAsync guard check failed:txnId={}",
+                                txn.getTxnId(), readErr);
+                        throw new NopException(ERR_TCC_BRANCH_GUARD_CHECK_FAILED, readErr)
+                                .param(ARG_TXN_GROUP, txn.getTxnGroup()).param(ARG_TXN_ID, txn.getTxnId());
+                    }
+                    return latest;
+                }).thenCompose(latest -> {
+                    if (latest == null)
+                        return FutureHelper.reject(new NopException(ERR_TCC_MISSING_TRANSACTION_RECORD)
+                                .param(ARG_TXN_GROUP, txn.getTxnGroup()).param(ARG_TXN_ID, txn.getTxnId()));
 
-        TccBranchTransaction txnBranch = new TccBranchTransaction(branchRecord, this);
+                    TccStatus dbStatus = latest.getTccStatus();
+                    if (dbStatus != TccStatus.TRYING)
+                        return FutureHelper.reject(notAllowStartBranch(txn, branchRequest, dbStatus));
 
-        return TccRunner.runBranchTryAsync(txnBranch, apiResponseNormalizer, task);
+                    ITccBranchRecord branchRecord = getTccRecordRepository()
+                            .newBranchRecord(txn.getTccRecord(), branchRequest);
+                    TccBranchTransaction txnBranch = new TccBranchTransaction(branchRecord, this);
+                    return TccRunner.runBranchTryAsync(txnBranch, apiResponseNormalizer, task);
+                });
+    }
+
+    private static NopException notAllowStartBranch(ITccTransaction txn, TccBranchRequest branchRequest,
+                                                    TccStatus status) {
+        return new NopException(ERR_TCC_TRANSACTION_NOT_ALLOW_START_BRANCH)
+                .param(ARG_TXN_ID, txn.getTxnId()).param(ARG_TXN_GROUP, txn.getTxnGroup())
+                .param(ARG_TCC_STATUS, status).param(ARG_SERVICE_NAME, branchRequest.getServiceName())
+                .param(ARG_SERVICE_METHOD, branchRequest.getServiceMethod());
     }
 
     @Override
@@ -462,13 +503,85 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
         return FutureHelper.syncGet(runBranchTransactionAsync(txn, branchRequest, t -> FutureHelper.futureApply(task, t)));
     }
 
+    // 1.6-C3-008（plan 2543 W-04）：弃链 driving-epoch——恢复扫描超时后推进纪元使在飞旧链令牌失效，
+    // 旧链苏醒后不得争写终态。存活调用方链不参与纪元管理（令牌 0）。
+    private final ConcurrentHashMap<String, AtomicLong> drivingEpochs = new ConcurrentHashMap<>();
+
+    // 1.6-C7-010（plan 2543 W-10）：恢复轮观测计数
+    private final AtomicLong recoveryTimeoutCount = new AtomicLong();
+    private final AtomicLong recoveryCircuitBreakCount = new AtomicLong();
+
+    /** 1.6-C3-008（plan 2543 W-04）：推进 txnId 的驱动纪元并返回新纪元。 */
+    protected long beginDriving(String txnId) {
+        return drivingEpochs.computeIfAbsent(txnId, k -> new AtomicLong()).incrementAndGet();
+    }
+
+    /**
+     * 1.6-C3-008（plan 2543 W-04）：指定纪元是否仍是当前活跃纪元。
+     * 条目缺失时返回 false（inactive）——安全性依据（owner doc 不变式）：条目只在终态写成功后
+     * 移除，而终态父事务不再被 fetchExpiredRecords（status &lt; CONFIRM_SUCCESS）拾取，且 TCC txnId
+     * 一次性（同一 txnId 不会复活），故条目消失后不会再有合法恢复链携带该 txnId 的纪元到达写点。
+     */
+    protected boolean isActiveDriving(String txnId, long epoch) {
+        AtomicLong current = drivingEpochs.get(txnId);
+        return current != null && current.get() == epoch;
+    }
+
+    /** 1.6-C3-008（plan 2543 W-04）：终态写成功后回收纪元条目（内存有界）。 */
+    protected void endDriving(String txnId) {
+        drivingEpochs.remove(txnId);
+    }
+
+    /** 1.6-C7-010（plan 2543 W-10）：超时的补偿条数。 */
+    public long getRecoveryTimeoutCount() {
+        return recoveryTimeoutCount.get();
+    }
+
+    /** 1.6-C7-010（plan 2543 W-10）：因连续超时熔断而提前结束的恢复轮数。 */
+    public long getRecoveryCircuitBreakCount() {
+        return recoveryCircuitBreakCount.get();
+    }
+
+    protected long currentTimeMillis() {
+        return CoreMetrics.currentTimeMillis();
+    }
+
+    protected int resolveRecoveryMaxConsecutiveTimeouts() {
+        return TccEngineConfigs.CFG_TCC_RECOVERY_MAX_CONSECUTIVE_TIMEOUTS.get();
+    }
+
+    protected long resolveRecoveryMaxRoundDurationMs() {
+        return TccEngineConfigs.CFG_TCC_RECOVERY_MAX_ROUND_DURATION_MS.get();
+    }
+
     @Override
     public void checkExpiredTransactions(long expireGap, int maxRetryCount, ICancelToken canceller) {
         int pageSize = 100;
         long checkInterval = expireGap;
+        int maxConsecutiveTimeouts = resolveRecoveryMaxConsecutiveTimeouts();
+        long maxRoundDurationMs = resolveRecoveryMaxRoundDurationMs();
+        long roundBegin = currentTimeMillis();
+        int consecutiveTimeouts = 0;
+        int processed = 0;
 
         while (canceller == null || !canceller.isCancelled()) {
-            List<? extends ITccRecord> records = repository.fetchExpiredRecords(pageSize, expireGap, checkInterval, maxRetryCount);
+            // 1.6-C7-010（plan 2543 W-10）：单轮总时长预算——每页开始前检查。原实现页内逐条
+            // get(expireGap) 串行，单轮耗时 = 页数 × 100 × expireGap（慢成功路径同样无界）。
+            if (currentTimeMillis() - roundBegin >= maxRoundDurationMs) {
+                recoveryCircuitBreakCount.incrementAndGet();
+                LOG.info("nop.tcc.recovery.round-max-duration:processed={},elapsedMs={},maxDurationMs={}",
+                        processed, currentTimeMillis() - roundBegin, maxRoundDurationMs);
+                return;
+            }
+
+            List<? extends ITccRecord> records;
+            try {
+                records = repository.fetchExpiredRecords(pageSize, expireGap, checkInterval, maxRetryCount);
+            } catch (Exception e) {
+                // 原实现无 try/catch：一次 DB 异常静默终止整轮恢复（若驱动无重试则本轮恢复静默缺失）
+                LOG.error("nop.tcc.recovery.fetch-expired-failed: 本轮恢复结束", e);
+                return;
+            }
             if (records.isEmpty())
                 break;
 
@@ -481,24 +594,46 @@ public class TccEngine extends LifeCycleSupport implements ITccEngine {
                     // 单条记录的补偿等待加上限，取expireGap作为超时时间：
                     // 单个补偿挂死时跳过该记录继续处理下一条，不再永久阻塞整个调度循环
                     future.toCompletableFuture().get(expireGap, TimeUnit.MILLISECONDS);
+                    consecutiveTimeouts = 0;
+                    processed++;
                 } catch (TimeoutException e) {
                     // plan 2515 裁定①（幽灵双驱动源封堵）：超时后必须取消在飞补偿链，
                     // 否则挂死的补偿链苏醒后与下一轮恢复扫描双驱动（C3-008 弃链追踪本体归 R4-10）
                     future.toCompletableFuture().cancel(true);
+                    // plan 2543 W-04：推进纪元——旧链令牌即刻失效，其终态写将被写点闸拒绝
+                    beginDriving(record.getTxnId());
+                    recoveryTimeoutCount.incrementAndGet();
                     LOG.error("TccEngine.checkExpiredTransactions compensation timeout for txnId={}",
                             record.getTxnId(), e);
+
+                    // plan 2543 W-10：连续超时熔断——一批参与方同时挂死（网络分区黑洞）时
+                    // 页内串行等待会把恢复 RTO 从分钟级拉向小时级；达阈值即结束本轮
+                    if (maxConsecutiveTimeouts > 0 && ++consecutiveTimeouts >= maxConsecutiveTimeouts) {
+                        recoveryCircuitBreakCount.incrementAndGet();
+                        LOG.error("nop.tcc.recovery.circuit-break:consecutiveTimeouts={},processed={}",
+                                consecutiveTimeouts, processed);
+                        return;
+                    }
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     return;
                 } catch (Exception e) {
                     LOG.error("TccEngine.checkExpiredTransactions failed for txnId={}", record.getTxnId(), e);
+                    consecutiveTimeouts = 0;
+                    processed++;
                 }
             }
         }
     }
 
-    private CompletionStage<Void> checkExpiredAsync(ITccRecord record) {
-        TccTransaction txn = new TccTransaction(false, record, this);
+    /**
+     * 1.6-C7-010（plan 2543 W-10）：单条恢复的驱动。测试 seam 由 private 提升为 protected
+     * （仅可见性，无签名变化）——熔断/预算/条数需在单测确定性驱动。
+     * <p>
+     * 1.6-C3-008（plan 2543 W-04）：恢复链携带当前纪元作为驱动令牌（存活调用方链令牌 0，不受闸门影响）。
+     */
+    protected CompletionStage<Void> checkExpiredAsync(ITccRecord record) {
+        TccTransaction txn = new TccTransaction(false, record, this, beginDriving(record.getTxnId()));
         return txn.endAsync(true, null, null);
     }
 

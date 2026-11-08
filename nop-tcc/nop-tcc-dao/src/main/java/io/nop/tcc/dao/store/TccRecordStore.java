@@ -26,6 +26,7 @@ import io.nop.dao.api.IEntityDao;
 import io.nop.dao.txn.ITransactionTemplate;
 import io.nop.orm.dao.IOrmEntityDao;
 import io.nop.tcc.api.*;
+import io.nop.tcc.core.TccEngineConfigs;
 import io.nop.tcc.dao.entity.NopTccBranchRecord;
 import io.nop.tcc.dao.entity.NopTccRecord;
 import jakarta.inject.Inject;
@@ -60,6 +61,14 @@ public class TccRecordStore implements ITccRecordStore {
     private int defaultTxnTimeout;
 
     private int defaultMaxRetryTimes;
+
+    // 1.6-C8-003（plan 2543 W-13）：两参清理形态的内部分页批大小（null = 回退配置键）
+    private Integer cleanupBatchSize;
+
+    /** 1.6-C8-003（plan 2543 W-13）：测试/装配侧批大小覆盖。 */
+    public void setCleanupBatchSize(Integer cleanupBatchSize) {
+        this.cleanupBatchSize = cleanupBatchSize;
+    }
 
     @InjectValue("@cfg:nop.tcc.default-branch-timeout-ms|10000")
     public void setDefaultBranchTimeout(int defaultBranchTimeoutMs) {
@@ -101,7 +110,7 @@ public class TccRecordStore implements ITccRecordStore {
         NopTccRecord record = dao.newEntity();
         record.setTxnGroup(txnGroup);
         record.setAppId(AppConfig.appName());
-        Timestamp beginTime = CoreMetrics.currentTimestamp();
+        Timestamp beginTime = nowTimestampForWrite(dao);
         record.setBeginTime(beginTime);
         record.setExpireTime(new Timestamp(beginTime.getTime() + defaultTxnTimeout));
         record.setStatus(TccStatus.CREATED.getCode());
@@ -115,7 +124,7 @@ public class TccRecordStore implements ITccRecordStore {
 
         NopTccBranchRecord branchRecord = dao.newEntity();
         branchRecord.setTxnId(record.getTxnId());
-        branchRecord.setBeginTime(CoreMetrics.currentTimestamp());
+        branchRecord.setBeginTime(nowTimestampForWrite(branchDao()));
         branchRecord.setCancelMethod(request.getCancelMethod());
         branchRecord.setConfirmMethod(request.getConfirmMethod());
         branchRecord.setServiceMethod(request.getServiceMethod());
@@ -214,7 +223,7 @@ public class TccRecordStore implements ITccRecordStore {
             props.put(NopTccRecord.PROP_NAME_status, status.getCode());
 
             if (status.isFinished()) {
-                Timestamp endTime = CoreMetrics.currentTimestamp();
+                Timestamp endTime = nowTimestampForWrite(recordDao());
                 props.put(NopTccRecord.PROP_NAME_endTime, endTime);
                 tccRecord.setEndTime(endTime);
             }
@@ -259,7 +268,7 @@ public class TccRecordStore implements ITccRecordStore {
         return FutureHelper.futureCall(() -> {
             NopTccBranchRecord record = (NopTccBranchRecord) branchRecord;
             record.setStatus(initStatus.getCode());
-            record.setBeginTime(CoreMetrics.currentTimestamp());
+            record.setBeginTime(nowTimestampForWrite(branchDao()));
             if (record.getExpireTime() == null)
                 record.setExpireTime(new Timestamp(record.getBeginTime().getTime() + defaultBranchTimeout));
             branchDao().saveEntityDirectly(record);
@@ -289,7 +298,7 @@ public class TccRecordStore implements ITccRecordStore {
             }
 
             if (status.isFinished()) {
-                Timestamp endTime = CoreMetrics.currentTimestamp();
+                Timestamp endTime = nowTimestampForWrite(branchDao());
                 props.put(NopTccBranchRecord.PROP_NAME_endTime, endTime);
                 record.setEndTime(endTime);
             }
@@ -350,8 +359,9 @@ public class TccRecordStore implements ITccRecordStore {
     public List<NopTccRecord> fetchExpiredRecords(int pageSize, long expireGap, long checkInterval, int maxRetryCount) {
         IOrmEntityDao<NopTccRecord> dao = recordDao();
 
-        Timestamp minTime = new Timestamp(getCurrentTime(dao) - expireGap);
-        Timestamp nextCheckTime = new Timestamp(minTime.getTime() + checkInterval);
+        // W-08：判定用下界时钟（只有确定已过期才触发恢复）；推进 expireTime 是写入，用上界时钟
+        Timestamp minTime = new Timestamp(nowForRead(dao) - expireGap);
+        Timestamp nextCheckTime = new Timestamp(nowForWrite(dao) + checkInterval);
 
         QueryBean query = new QueryBean();
         // 已经超时
@@ -384,33 +394,95 @@ public class TccRecordStore implements ITccRecordStore {
         return Collections.emptyList();
     }
 
-    protected long getCurrentTime(IOrmEntityDao<NopTccRecord> dao) {
-        return CoreMetrics.currentTimeMillis();
+    /**
+     * 1.6-C7-007（plan 2543 W-08）：读侧时钟 seam——过期判定/清理窗口的**下界**。
+     * 用 DB 估算时钟的 min 值：只有「确定已过期」才触发恢复，与 {@code expireTime < minTime}
+     * 谓词同向；本地墙钟 NTP 步进不再直接改写过期判定基准。
+     */
+    protected long nowForRead(IOrmEntityDao<NopTccRecord> dao) {
+        return dao.getDbEstimatedClock().getMinCurrentTimeMillis();
     }
 
+    /**
+     * 1.6-C7-007（plan 2543 W-08）：写侧时钟 seam——所有落库时间戳（beginTime/expireTime/
+     * endTime/检查点推进）的**上界**。写入偏后是保守方向，绝不提前触发恢复。
+     */
+    protected long nowForWrite(IOrmEntityDao<NopTccRecord> dao) {
+        return dao.getDbEstimatedClock().getMaxCurrentTimeMillis();
+    }
+
+    protected Timestamp nowTimestampForWrite(IEntityDao<?> dao) {
+        return new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis());
+    }
+
+    /**
+     * 1.6-C7-007（plan 2543 W-08）遗留 seam（保留兼容）：等价于 {@link #nowForRead}。
+     */
+    protected long getCurrentTime(IOrmEntityDao<NopTccRecord> dao) {
+        return nowForRead(dao);
+    }
+
+    /**
+     * 1.6-C8-003（plan 2543 W-13）：两参形态保留公共签名（零 api 变更），实现改为**内部按批分页**——
+     * 原 `findAllByQuery` 无 limit 会一次性物化保留期窗口内的全部完结事务实体，再构造等长 txnIds
+     * 与巨型 IN 子句（百万行级 → OOM/ORM 会话膨胀/单语句压力，清理自身失败后账本继续增长）。
+     * <p>
+     * 事务形态显式裁定（设计 §3.3.4）：整个调用仍在**单一事务**内（不逐批独立事务）——两参是公共
+     * 契约，调用方期望「一次调用全删或全不删」的原子性；循环体是私有非注解助手，故不触发
+     * 2515 记录的「自调用绕过事务拦截器」陷阱。生产清理走三参形态（TccEngine.runLedgerCleanup），
+     * 长事务面不在生产路径上。
+     */
     @Override
     @Transactional
     public void removeCompletedRecords(long retentionTime, boolean onlyCompleted) {
+        int batchSize = resolveCleanupBatchSize();
+        int totalDeleted = 0;
+        while (true) {
+            int deleted = doRemoveCompletedBatch(retentionTime, onlyCompleted, batchSize);
+            if (deleted <= 0)
+                break;
+            totalDeleted += deleted;
+            LOG.info("nop.tcc.ledger.remove-completed-progress:batchSize={},deleted={},total={}",
+                    batchSize, deleted, totalDeleted);
+        }
+    }
+
+    /**
+     * 1.6-C8-003（plan 2543 W-13）：批助手（私有、非注解）——按锚列 beginTime 有界拾取后
+     * 分支随父级联删除，返回本批删除的主记录行数。
+     */
+    private int doRemoveCompletedBatch(long retentionTime, boolean onlyCompleted, int batchSize) {
         QueryBean query = new QueryBean();
-        Timestamp minTime = new Timestamp(CoreMetrics.currentTimeMillis() - retentionTime);
+        Timestamp minTime = new Timestamp(nowForRead(recordDao()) - retentionTime);
         query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_beginTime, minTime));
         if (onlyCompleted)
             query.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));
+        query.setLimit(batchSize);
 
         // 分支记录随父记录生命周期清理：按已完结父记录的txnId集合删除分支。
         // 此前分支按自身status+beginTime独立删除，父已删而分支非终态时（如BIZ_CANCEL_FAILED
         // 全局配CANCEL_FAILED分支）产生永不清理的孤儿分支
         List<NopTccRecord> records = recordDao().findAllByQuery(query);
-        if (!records.isEmpty()) {
-            List<String> txnIds = new ArrayList<>(records.size());
-            for (NopTccRecord record : records) {
-                txnIds.add(record.getTxnId());
-            }
-            QueryBean branchQuery = new QueryBean();
-            branchQuery.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_txnId, txnIds));
-            branchDao().deleteByQuery(branchQuery);
+        if (records.isEmpty())
+            return 0;
+
+        List<String> txnIds = new ArrayList<>(records.size());
+        for (NopTccRecord record : records) {
+            txnIds.add(record.getTxnId());
         }
-        recordDao().deleteByQuery(query);
+        QueryBean branchQuery = new QueryBean();
+        branchQuery.addFilter(FilterBeans.in(NopTccBranchRecord.PROP_NAME_txnId, txnIds));
+        branchDao().deleteByQuery(branchQuery);
+
+        QueryBean deleteQuery = new QueryBean();
+        deleteQuery.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_txnId, txnIds));
+        return (int) recordDao().deleteByQuery(deleteQuery);
+    }
+
+    private int resolveCleanupBatchSize() {
+        Integer configured = cleanupBatchSize;
+        return configured != null && configured > 0 ? configured
+                : TccEngineConfigs.CFG_TCC_LEDGER_DELETE_BATCH_SIZE.get();
     }
 
     /**
@@ -423,7 +495,7 @@ public class TccRecordStore implements ITccRecordStore {
     public int killExhaustedRecords(int maxRetryCount, int batchSize) {
         IOrmEntityDao<NopTccRecord> dao = recordDao();
 
-        Timestamp now = new Timestamp(CoreMetrics.currentTimeMillis());
+        Timestamp now = nowTimestampForWrite(dao);
         QueryBean query = new QueryBean();
         // 已过期
         query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_expireTime, now));
@@ -463,7 +535,7 @@ public class TccRecordStore implements ITccRecordStore {
     @Transactional
     public int removeCompletedRecords(long retentionTime, boolean onlyCompleted, int batchSize) {
         QueryBean query = new QueryBean();
-        Timestamp minTime = new Timestamp(CoreMetrics.currentTimeMillis() - retentionTime);
+        Timestamp minTime = new Timestamp(nowForRead(recordDao()) - retentionTime);
         query.addFilter(FilterBeans.lt(NopTccRecord.PROP_NAME_beginTime, minTime));
         if (onlyCompleted)
             query.addFilter(FilterBeans.in(NopTccRecord.PROP_NAME_status, TccStatus.getFinishedStatus()));

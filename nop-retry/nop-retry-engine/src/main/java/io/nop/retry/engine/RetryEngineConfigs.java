@@ -42,4 +42,12 @@ public interface RetryEngineConfigs {
      */
     IConfigReference<Long> CFG_RETRY_ATTEMPT_TIMEOUT_MS = varRef(s_loc, "nop.retry.attempt.timeout-ms",
             Long.class, NopRetryConstants.DEFAULT_RETRYING_TIMEOUT_MS / 2);
+
+    /**
+     * 1.6-C7-008（plan 2543 W-09）：回调链深度上限。回调记录 idempotentId 逐环追加 "_callback"，
+     * 策略成环（A→A / A→B→A）时每环孵化一条新记录且永不撞 UK——深度护栏在孵化前拒孵，
+     * 使「自维持无限副作用 + 无界记录增长」不可达。&lt;=0 = 显式不限制（已知无环的回调链）。
+     */
+    IConfigReference<Integer> CFG_RETRY_CALLBACK_MAX_DEPTH = varRef(s_loc, "nop.retry.callback.max-depth",
+            Integer.class, 3);
 }

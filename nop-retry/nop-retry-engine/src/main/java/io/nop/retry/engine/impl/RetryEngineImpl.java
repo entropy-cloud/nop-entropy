@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,6 +80,16 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
     // 1.6-C3-006/C8-012（plan 2515 裁定⑥）：两层簿记失败计数（ERROR 通道 + 计数可观测）
     private final AtomicLong attemptBookkeepFailureCount = new AtomicLong();
     private final AtomicLong recordBookkeepFailureCount = new AtomicLong();
+
+    /** 1.6-C7-008（plan 2543 W-09）：回调 idempotentId 逐环追加的后缀（回调链深度载体）。 */
+    static final String CALLBACK_ID_SUFFIX = "_callback";
+
+    // 1.6-C7-008（plan 2543 W-09）：回调深度上限。null = 未显式注入，回退 RetryEngineConfigs 键值。
+    private Integer maxCallbackDepth;
+    private final AtomicLong callbackDepthExceededCount = new AtomicLong();
+
+    // 1.6-C7-014（plan 2543 W-11）：扫描批内单条记录派发失败计数（同步抛被隔离，非静默）
+    private final AtomicLong scannerDispatchFailureCount = new AtomicLong();
 
     @Inject
     public void setRpcServiceInvoker(IRpcServiceInvoker rpcServiceInvoker) {
@@ -121,6 +132,20 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
 
     public long getRecordBookkeepFailureCount() {
         return recordBookkeepFailureCount.get();
+    }
+
+    /** 1.6-C7-008（plan 2543 W-09）：回调深度超限被拒孵化的次数。 */
+    public long getCallbackDepthExceededCount() {
+        return callbackDepthExceededCount.get();
+    }
+
+    public void setMaxCallbackDepth(Integer maxCallbackDepth) {
+        this.maxCallbackDepth = maxCallbackDepth;
+    }
+
+    /** 1.6-C7-014（plan 2543 W-11）：扫描批内单条记录派发失败（同步抛）的次数。 */
+    public long getScannerDispatchFailureCount() {
+        return scannerDispatchFailureCount.get();
     }
 
     /** 裁定⑤：读取 record 当前进程内代际号（无记录返回 0）。 */
@@ -336,13 +361,11 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                     // 替换失败整体回滚 → 旧记录存活
                     recordStore.replaceRecord(existingRecord, newRecord);
                 } catch (Exception e) {
-                    // 替换失败：旧记录已回滚存活 → 死信快照（对齐「死信保留全量快照」可恢复性
-                    // 设计），failedStage 显式失败——半个成功任务蒸发不可达（C6-003/R10）
-                    LOG.error("nop.retry.overwrite-replace-failed:recordId={}", existingRecord.getSid(), e);
-                    moveToDeadLetter(existingRecord, "OVERWRITE_REPLACE_FAILED",
-                            "OVERWRITE atomic replacement failed (see nop.retry.overwrite-replace-failed log for cause)", null);
-                    return CompletableFuture.failedStage(new NopException(ERR_RETRY_RECORD_OVERWRITTEN, e)
-                            .param(ARG_RECORD_ID, existingRecord.getSid()));
+                    // 1.6-C1-002（plan 2543 W-01）：替换失败必须按「异常类型 × 重读行身份」分流，
+                    // 不得一律对 existingRecord 造死信——2026 并发 OVERWRITE 输家的垂败面是
+                    // 「旧行已被对端合法替换、我方 delete 0 行后撞 UK」，此时对 stale 行造死信
+                    // （含删除动作）即误删赢家刚写入的键位语义并暴露裸约束冲突给调用方。
+                    return handleOverwriteReplaceFailure(existingRecord, e);
                 }
                 return executeWithRetry(newRecord, policy, request, cancelToken, task);
 
@@ -350,6 +373,54 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
                 LOG.info("nop.retry.block-strategy-discard:recordId={}", existingRecord.getSid());
                 return FutureHelper.success(ApiResponse.success(null));
         }
+    }
+
+    /**
+     * 1.6-C1-002（plan 2543 W-01）：OVERWRITE 替换失败的四分支分流（设计 §3.1.1）。
+     * <p>
+     * 判据 = 异常类型（UK 冲突与否）× 重读行的 sid 身份。UK 冲突是「冲突行必已提交可见」的强信号，
+     * 故只有它能区分「键已被对端合法替换」（不造死信）与「旧行真实存活」（造死信）。
+     * 非 UK 异常（瞬时 DB 故障/锁超时/序列化失败）下无法判定是否存在并发赢家——死信含删除动作，
+     * 禁止以猜测驱动破坏性操作，退为纯失败传播（调用方可重试）。
+     */
+    private CompletionStage<ApiResponse<?>> handleOverwriteReplaceFailure(NopRetryRecord existingRecord,
+                                                                          Exception replaceError) {
+        String recordId = existingRecord.getSid();
+        LOG.error("nop.retry.overwrite-replace-failed:recordId={}", recordId, replaceError);
+
+        if (!isDuplicateKeyError(replaceError)) {
+            // 非 UK 异常：无法判定并发赢家 → 不造死信、不删除旧行，纯失败传播
+            LOG.warn("nop.retry.overwrite-replace-failed-non-uk:recordId={}", recordId);
+            return CompletableFuture.failedStage(new NopException(ERR_RETRY_RECORD_OVERWRITTEN, replaceError)
+                    .param(ARG_RECORD_ID, recordId));
+        }
+
+        // UK 冲突：重读该幂等键当前占位行，按 sid 身份判定输赢
+        NopRetryRecord current = recordStore.findRecordByIdempotentId(
+                existingRecord.getNamespaceId(), existingRecord.getGroupId(), existingRecord.getIdempotentId());
+
+        if (current == null) {
+            // 行在读取前被并发删除（如死信迁移）：键位已空，不属「已被替换」也不属「旧行存活」
+            LOG.warn("nop.retry.overwrite-race-lost-no-row:recordId={},idempotentId={}",
+                    recordId, existingRecord.getIdempotentId());
+            return CompletableFuture.failedStage(new NopException(ERR_RETRY_OVERWRITE_RACE_LOST)
+                    .param(ARG_RECORD_ID, recordId));
+        }
+
+        if (!Objects.equals(current.getSid(), existingRecord.getSid())) {
+            // 并发 OVERWRITE 输家：键已被对端合法替换——OVERWRITE 的语义结果（键位上是一条新记录）
+            // 已由赢家满足；不造死信、不暴露裸约束冲突，按幂等重放语义返回成功
+            LOG.info("nop.retry.overwrite-loser-conceded:recordId={},winnerSid={},idempotentId={}",
+                    recordId, current.getSid(), existingRecord.getIdempotentId());
+            return FutureHelper.success(ApiResponse.success(null));
+        }
+
+        // 同一行仍在场：事务确实整体回滚、旧记录真实存活 → 死信快照 + 显式失败
+        // （对齐「死信保留全量快照」可恢复性设计，半个成功任务蒸发不可达 C6-003/R10）
+        moveToDeadLetter(existingRecord, "OVERWRITE_REPLACE_FAILED",
+                "OVERWRITE atomic replacement failed (see nop.retry.overwrite-replace-failed log for cause)", null);
+        return CompletableFuture.failedStage(new NopException(ERR_RETRY_RECORD_OVERWRITTEN, replaceError)
+                .param(ARG_RECORD_ID, recordId));
     }
 
     CompletionStage<ApiResponse<?>> executeRetryFromScanner(NopRetryRecord record, ICancelToken cancelToken) {
@@ -812,6 +883,19 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
             return;
         }
 
+        // 1.6-C7-008（plan 2543 W-09）：回调链环护栏。policy 的 callbackPolicyId 若成环
+        // （A→A 或 A→B→A），每条回调记录终态又孵化下一条、idempotentId 逐环追加 "_callback"
+        // 永不撞 UK —— 自维持的无限副作用调用 + 无界记录增长。深度护栏：孵化前统计 idempotentId
+        // 尾部的 "_callback" 重复次数，达到上限拒绝孵化（主业务结论已定，回调只是旁路）。
+        int depth = callbackDepth(record.getIdempotentId());
+        int maxDepth = resolveMaxCallbackDepth();
+        if (maxDepth > 0 && depth >= maxDepth) {
+            callbackDepthExceededCount.incrementAndGet();
+            LOG.error("nop.retry.callback-depth-exceeded:recordId={},depth={},maxDepth={},idempotentId={}",
+                    record.getSid(), depth, maxDepth, record.getIdempotentId());
+            return;
+        }
+
         // 创建回调任务，使用 callbackPolicyId 作为策略
         IRetryTask callbackTask = newRetryTask(callbackService, callbackMethod)
                 .withPolicyId(policy.getCallbackPolicyId())
@@ -837,6 +921,29 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         } catch (Throwable t) {
             LOG.error("nop.retry.callback-submit-failed:recordId={}", record.getSid(), t);
         }
+    }
+
+    /**
+     * 1.6-C7-008（plan 2543 W-09）：回调深度 = idempotentId 尾部连续 "_callback" 后缀的重复次数。
+     * 只匹配紧贴末尾的重复段（不统计业务键中间恰巧出现 "_callback" 的情形，避免假阳性）；
+     * 环检测充分性：每经过一环回调记录 idempotentId 增长一次该后缀，故后缀次数即环深上界。
+     */
+    static int callbackDepth(String idempotentId) {
+        if (idempotentId == null)
+            return 0;
+        int depth = 0;
+        int idx = idempotentId.length();
+        String suffix = CALLBACK_ID_SUFFIX;
+        while (idx >= suffix.length() && idempotentId.startsWith(suffix, idx - suffix.length())) {
+            depth++;
+            idx -= suffix.length();
+        }
+        return depth;
+    }
+
+    private int resolveMaxCallbackDepth() {
+        return maxCallbackDepth != null ? maxCallbackDepth
+                : RetryEngineConfigs.CFG_RETRY_CALLBACK_MAX_DEPTH.get();
     }
 
     private Object buildCallbackData(NopRetryRecord record, boolean success, Throwable error) {
@@ -907,27 +1014,43 @@ public class RetryEngineImpl extends LifeCycleSupport implements IRetryEngine {
         }
 
         if (retryScanner != null) {
-            retryScanner.startScanning(records -> {
-                // 内部并发执行每个 record
-                CompletableFuture<?>[] futures = records.stream()
-                        .map(record -> executeRetryFromScanner(record, null)
-                                .whenComplete((resp, ex) -> {
-                                    if (ex != null) {
-                                        LOG.error("nop.retry.scanner.execute-failed:recordId={}", record.getSid(), ex);
-                                    }
-                                })
-                                .toCompletableFuture())
-                        .toArray(CompletableFuture[]::new);
-
-                // 等待所有 record 执行完成
-                CompletableFuture.allOf(futures).join();
-            });
+            retryScanner.startScanning(this::dispatchScannerBatch);
             LOG.info("nop.retry.scanner-started");
         }
 
         // 1.6-C7-001（plan 2502）：三账本表保留期清理周期链接线（生产可达生命周期钩子，
         // 防 C7-005「清理 API 零生产装配」空壳形态）。retention-days=0 为显式禁用。
         startLedgerCleanup();
+    }
+
+    /**
+     * 1.6-C7-014（plan 2543 W-11）：扫描批内 per-record 隔离派发（设计 §3.3.2）。
+     * <p>
+     * 原实现为 {@code records.stream().map(executeRetryFromScanner...).toArray()}——惰性流的
+     * map 在 toArray 时逐条求值，第 k 条同步抛出即中断，第 k+1..N 条的 future 根本不会被创建；
+     * 且被锁定的记录已置 RETRYING（租约 +10min），下一周期同页排序不变时永久顺延（确定性饿死）。
+     * 改为显式循环 + 单条 try/catch：单条同步抛不再中断本批其余记录，失败显式 ERROR + 计数
+     * （非静默），其租约到期后由扫描器重新拾取。
+     */
+    protected void dispatchScannerBatch(java.util.List<NopRetryRecord> records) {
+        java.util.List<CompletableFuture<?>> futures = new java.util.ArrayList<>(records.size());
+        for (NopRetryRecord record : records) {
+            try {
+                futures.add(executeRetryFromScanner(record, null)
+                        .whenComplete((resp, ex) -> {
+                            if (ex != null) {
+                                LOG.error("nop.retry.scanner.execute-failed:recordId={}", record.getSid(), ex);
+                            }
+                        })
+                        .toCompletableFuture());
+            } catch (Throwable t) {
+                scannerDispatchFailureCount.incrementAndGet();
+                LOG.error("nop.retry.scanner.record-dispatch-failed:recordId={}", record.getSid(), t);
+            }
+        }
+
+        // 等待本批所有已派发的 record 执行完成（join 拓扑零改动——每条 future 必有终态）
+        CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     }
 
     @Override

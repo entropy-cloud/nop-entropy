@@ -43,4 +43,12 @@ public interface TccEngineConfigs {
      * 清理触发周期下限（R01 SSOT §3.1 第2项包络）：低于该值启动期 fail-fast，防高频清理冲击业务库。
      */
     long TCC_LEDGER_MIN_CLEANUP_INTERVAL_MILLIS = 60_000L;
+
+    @Description("tcc恢复扫描单轮总时长预算（毫秒）。每页开始前检查，超出即结束本轮（plan 2543 W-10）")
+    IConfigReference<Long> CFG_TCC_RECOVERY_MAX_ROUND_DURATION_MS = varRef(s_loc,
+            "nop.tcc.recovery.max-round-duration-ms", Long.class, 60_000L);
+
+    @Description("tcc恢复扫描连续超时熔断阈值。一条成功即清零，达到即结束本轮（plan 2543 W-10）。<=0=禁用熔断")
+    IConfigReference<Integer> CFG_TCC_RECOVERY_MAX_CONSECUTIVE_TIMEOUTS = varRef(s_loc,
+            "nop.tcc.recovery.max-consecutive-timeouts", Integer.class, 3);
 }

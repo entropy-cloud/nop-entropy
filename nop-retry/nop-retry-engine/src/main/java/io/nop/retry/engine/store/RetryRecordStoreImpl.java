@@ -37,6 +37,9 @@ import java.util.Arrays;
 import java.util.List;
 
 import static io.nop.retry.dao.entity._gen._NopRetryRecord.*;
+import static io.nop.retry.engine.NopRetryErrors.ARG_CONFIG_KEY;
+import static io.nop.retry.engine.NopRetryErrors.ARG_CONFIG_VALUE;
+import static io.nop.retry.engine.NopRetryErrors.ERR_RETRY_SCANNER_CONFIG_INVALID;
 
 import io.nop.api.core.beans.IntRangeBean;
 import io.nop.api.core.beans.IntRangeSet;
@@ -228,6 +231,14 @@ public class RetryRecordStoreImpl implements IRetryRecordStore {
 
     @Override
     public List<NopRetryRecord> fetchPendingRecords(int limit, IntRangeSet partitions) {
+        // 1.6-C8-013（plan 2543 W-14）：limit<=0 透传会使查询恒返回空（扫描器静默空转）
+        // 或触发方言 SQL 错误（每轮报错但永久退化）。仓储层防御，不依赖装配期 setter 校验。
+        if (limit <= 0) {
+            throw new NopException(ERR_RETRY_SCANNER_CONFIG_INVALID)
+                    .param(ARG_CONFIG_KEY, "nop.retry.scanner.batch-size")
+                    .param(ARG_CONFIG_VALUE, limit);
+        }
+
         IOrmEntityDao<NopRetryRecord> dao = getRecordDao();
         long now = dao.getDbEstimatedClock().getMinCurrentTimeMillis();
 

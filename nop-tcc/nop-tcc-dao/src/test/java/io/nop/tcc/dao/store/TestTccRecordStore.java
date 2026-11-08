@@ -188,4 +188,37 @@ public class TestTccRecordStore extends AbstractTccTest {
         assertEquals("test-header-group", ApiHeaders.getTxnGroup(snapshot));
         assertEquals(branch.getBranchNo(), ApiHeaders.getTxnBranchNo(snapshot, -1));
     }
+
+    /**
+     * 红⑬（plan 2543 W-13）：两参无界清理形态改为内部按批分页。
+     * 缺陷态：单次 findAllByQuery 无 limit 全量物化保留期窗口内全部完结事务 + 同长 txnIds
+     * + 巨型 IN（百万行级 → OOM/会话膨胀）。修复后：每批只物化 ≤ batchSize 行，多批删尽。
+     */
+    @Test
+    public void testRemoveCompletedRecords_pagedInsteadOfMaterializingAll() {
+        IEntityDao<NopTccRecord> dao = daoProvider.daoFor(NopTccRecord.class);
+
+        int total = 7;
+        Timestamp oldBegin = new Timestamp(System.currentTimeMillis() - 90L * 24 * 3600_000L);
+        for (int i = 0; i < total; i++) {
+            NopTccRecord record = dao.newEntity();
+            record.setTxnGroup("test-cleanup-paged");
+            record.setAppId("test");
+            record.setStatus(TccStatus.CONFIRM_SUCCESS.getCode());
+            record.setBeginTime(oldBegin);
+            record.setExpireTime(oldBegin);
+            record.setRetryTimes(0);
+            dao.saveEntity(record);
+        }
+
+        // 单批物化上限 2 行 → 7 行需 4 批，每批不得超过 2 行
+        tccRecordStore.setCleanupBatchSize(2);
+        // 保留期 30 天：上述 90 天前的行全部命中
+        tccRecordStore.removeCompletedRecords(30L * 24 * 3600_000L, true);
+
+        io.nop.api.core.beans.query.QueryBean query = new io.nop.api.core.beans.query.QueryBean();
+        query.addFilter(io.nop.api.core.beans.FilterBeans.eq(NopTccRecord.PROP_NAME_txnGroup, "test-cleanup-paged"));
+        assertEquals(0, dao.findAllByQuery(query).size(),
+                "分页形态必须删尽全部超期完结行（不因单批上限残留）");
+    }
 }
