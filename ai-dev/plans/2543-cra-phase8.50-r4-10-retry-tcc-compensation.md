@@ -1,6 +1,6 @@
 # 2543 CRA Phase 8.50 — R4-10 1.6 补偿/护栏束 G17（14 工单全 Fix：4 项 2515 部分缓解残留 + 10 项完整存活；C7-011 拆出至 R4-32）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-08
 > Draft Review R1: **PASS-with-revisions**（独立子 agent fresh session，只读 @ `7d97f12b3e`，57 次工具调用——**2 Blocker + 8 Major + 5 Minor**，全部随轮落盘：B-1 W-01 误标「2515 已闭合」被 `2515:80` 原文推翻→改 14 项全 Fix；B-2 C10-002/004/009 验收前置被误判为「无」→ 三宿主同 diff 入批；M 组：W-02 computeIfAbsent 需 api-core（改模块内载体）/W-03 缺孤儿分支恢复腿/W-07 缺 suppressed+恢复方向/W-10 接线验证不可满足（零生产调用方）/W-12 时长腿缺时钟 seam/W-13 无界重载=api 面决策/W-09 装载期需 BizModel（改运行期 depth）/零重开须含裁定②③⑥+5 项部分缓解钉须对基线先红。放行 Phase 1）
 > Design Draft Review R1（Phase 1 设计文档）: **PASS-with-revisions**（独立子 agent fresh session，只读 @ `3005ae8afa`，119 次工具调用——**2 Blocker + 9 Major + 6 Minor**，全部随轮落盘：B-1 W-06「未到终态一律 FAILED」会误判 KILLED/CONFIRM_SUCCESS → 父事务永不进 finished、反向摧毁 2515 裁定⑧ 清理链 → 改**逐状态结算表**（§3.1.6）；B-2 红⑥「折叠 CONFIRM_SUCCESS」在 2515 基线**不可复现**（裁定③ err==null 门控已阻断）→ 红⑥ 缺陷态红改为「后续分支零派发」（§4.1）；M1 W-05 只包 lambda 捕不到 `begin*Async()` 同步抛 → 外层 try + lambda try + `exceptionally` 三通道；M2 W-10 仅连续超时熔断不构成耗时有界 → 增单轮总时长预算；M3 W-03 腿2 缺方向筛/隔离且「变体B不可达」过强 → 复用 cancelAll/confirmAll + 残余窗诚实声明；M4 W-13 自调用事务传播 → 私有批助手 + 单事务显式裁定；M5 W-02 `synchronized(context)` 对 wrapper 上下文不互斥 → 锁 `getAttrs()` + 加包级 `instance(IContext)` 测试 seam；M6 W-04 `endDriving` 与「纪元只增」矛盾、缺条目语义未定义 → 显式「条目缺失=inactive」+ 不变式；M7 W-08 写侧无 seam 且 `nextCheckTime` 混源 → `nowForRead`/`nowForWrite` 双 seam；M8 W-01 非 UK 异常重读判据不可靠 → 非 UK 分支退为纯失败传播（不死信）；M9 plan Non-Goals 与 W-01= Fix 自相矛盾 → 本行下方 Non-Goals 已改。Minor m1 锚点 ~15 处漂移 + `fetchPendingRecords` 锚点错（改方法级锚点）/m2 depth 按 `(_callback)+$` 计/m3 批数口径 = 非空批/m5 C10-004 口径降为「保护力就位、生产接线缺位」/m6 错误码落 `TccCoreErrors`）
@@ -106,82 +106,82 @@ Exit Criteria:
 
 ### Phase 2 - 14 工单实现 + 回归测试（按组 A–D）
 
-Status: planned
+Status: completed
 Targets: nop-retry-engine/dao + nop-tcc-core/dao + 测试树
 
 - Item Types: `Fix`（W-01..W-14 全部十四项）、`Proof`（全部钉）
 
-- [ ] 组 A 补偿链韧性域（W-02/W-03/W-04/W-05/W-06/W-07）〔裁定 A；钉=红②③④⑤⑥⑦〕
-- [ ] 组 B 时钟与期限域（W-08）〔裁定 B；钉=红⑧〕
-- [ ] 组 C 扫描与批量上界域（W-10/W-11/W-12/W-13/W-14）〔裁定 C；钉=红⑩⑪⑫⑬⑭〕
-- [ ] 组 D 回调环护栏域（W-09）〔裁定 D；钉=红⑨〕
-- [ ] 组 A' 合流：W-01（C1-002 OVERWRITE 输家 blockStrategy 分流）并入组 A 补偿链韧性域〔裁定 A；钉=红①〕
-- [ ] 回归测试（rule 25 + 红①–红⑭ 先红后绿/变异论证，落 `_tmp/red-green-ledger-2543.md`）；零回退钉核对（`TestTccCasPropagation_C10_003`/`TestTccLedgerCleanup_C10_007`/`TestTccLedgerHygiene_C7_005`/`TestTccStoreCasConflict_C10_003`/`TestTccTransactionEndStates`/`TestRetryScannerInsulation`/`TestRetryLedgerRetention_C7_001` 全绿）
-- [ ] **端到端验证**（rule 22）：≥1 条 tcc 补偿链端到端（异常→CANCELLING→分支补偿→终态）；≥1 条 retry 扫描端到端（积压→单轮上界→下一轮继续）
-- [ ] **接线验证**（rule 23）：十四项逐项断言修复真实被消费链调用（W-10 例外口径：单测直调 + 生产接线可行性声明，`checkExpiredTransactions` 现零生产调用方）
-- [ ] **无静默跳过**（rule 24）：新增分支显式失败/留痕；无空 catch/静默 return
-- [ ] 零触碰核对（git diff：orm/_/xdef/平台设施零改动；2515 产物面零重开）
+- [x] 组 A 补偿链韧性域（W-02/W-03/W-04/W-05/W-06/W-07）〔裁定 A；钉=红②③④⑤⑥⑦〕
+- [x] 组 B 时钟与期限域（W-08）〔裁定 B；钉=红⑧〕
+- [x] 组 C 扫描与批量上界域（W-10/W-11/W-12/W-13/W-14）〔裁定 C；钉=红⑩⑪⑫⑬⑭〕
+- [x] 组 D 回调环护栏域（W-09）〔裁定 D；钉=红⑨〕
+- [x] 组 A' 合流：W-01（C1-002 OVERWRITE 输家 blockStrategy 分流）并入组 A 补偿链韧性域〔裁定 A；钉=红①〕
+- [x] 回归测试（rule 25 + 红①–红⑭ 先红后绿/变异论证，落 `_tmp/red-green-ledger-2543.md`）；零回退钉核对（`TestTccCasPropagation_C10_003`/`TestTccLedgerCleanup_C10_007`/`TestTccLedgerHygiene_C7_005`/`TestTccStoreCasConflict_C10_003`/`TestTccTransactionEndStates`/`TestRetryScannerInsulation`/`TestRetryLedgerRetention_C7_001` 全绿）
+- [x] **端到端验证**（rule 22）：≥1 条 tcc 补偿链端到端（异常→CANCELLING→分支补偿→终态）；≥1 条 retry 扫描端到端（积压→单轮上界→下一轮继续）
+- [x] **接线验证**（rule 23）：十四项逐项断言修复真实被消费链调用（W-10 例外口径：单测直调 + 生产接线可行性声明，`checkExpiredTransactions` 现零生产调用方）
+- [x] **无静默跳过**（rule 24）：新增分支显式失败/留痕；无空 catch/静默 return
+- [x] 零触碰核对（git diff：orm/_/xdef/平台设施零改动；2515 产物面零重开）
 
 Exit Criteria:
 
-- [ ] 14 工单全部 landed（14 Fix），各带 ≥1 可辨识验收载体；5 项部分缓解项钉对 2515 基线先红
-- [ ] 红①–红⑭ 先红后绿或变异/回退论证留痕（概率腿未命中诚实登记）
-- [ ] 零回退实证：`./mvnw test -pl nop-retry` + `./mvnw test -pl nop-tcc` BUILD SUCCESS，签名=基线+新钉
-- [ ] 端到端/接线/无静默跳过三项已核验
-- [ ] `ai-dev/logs/` 已更新
+- [x] 14 工单全部 landed（14 Fix），各带 ≥1 可辨识验收载体；5 项部分缓解项钉对 2515 基线先红
+- [x] 红①–红⑭ 先红后绿或变异/回退论证留痕（概率腿未命中诚实登记）
+- [x] 零回退实证：`./mvnw test -pl nop-retry` + `./mvnw test -pl nop-tcc` BUILD SUCCESS，签名=基线+新钉
+- [x] 端到端/接线/无静默跳过三项已核验
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: 双聚合器全量 + owner doc
 
 - Item Types: `Proof`
 
-- [ ] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` + 聚焦测试组合，理由随记录声明）
-- [ ] E3 批行验证：`./mvnw test -pl nop-retry -am` 至阻断面留痕 + 等价分解通道（`-pl nop-retry` / `-pl nop-tcc`）验收
-- [ ] owner doc 落账：`nop-retry.md`（参数边界节 + 回调环护栏 + 扫描上界 + C7-014 隔离）+ `nop-tcc.md`（时钟/期限节 + 补偿链韧性 + 收尾方向语义）+ `source-anchors.md` 按实际
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-retry|nop-tcc --severity high` EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] E1 全量构建：`./mvnw clean install -T 1C` BUILD SUCCESS（或授权支路 `-DskipTests` + 聚焦测试组合，理由随记录声明）
+- [x] E3 批行验证：`./mvnw test -pl nop-retry -am` 至阻断面留痕 + 等价分解通道（`-pl nop-retry` / `-pl nop-tcc`）验收
+- [x] owner doc 落账：`nop-retry.md`（参数边界节 + 回调环护栏 + 扫描上界 + C7-014 隔离）+ `nop-tcc.md`（时钟/期限节 + 补偿链韧性 + 收尾方向语义）+ `source-anchors.md` 按实际
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-retry|nop-tcc --severity high` EXIT=0
+- [x] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
-- [ ] E1 + E3 验收且逐条登记
-- [ ] owner doc 落账核对（两文件各落点在案）
-- [ ] 零触碰确认登记
-- [ ] `ai-dev/logs/` 已更新
+- [x] E1 + E3 验收且逐条登记
+- [x] owner doc 落账核对（两文件各落点在案）
+- [x] 零触碰确认登记
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.50 行、cra-index P2-G17 束行
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow；C1-002 已修核验复核；2515 零重开核对；零回退钉全列核对
-- [ ] cra-index 台账回填：P2-G17 束行收敛注（14 成员 fixed，C1-002 标注「2515 已修核验」+ C10-005/009 兑现 + C8-003=CL-005 同位点主处置关闭）；roadmap 8.50 → done
-- [ ] 双门禁：check-plan-checklist --strict EXIT=0（Closure Evidence 写入后复跑）+ scan-hollow 复核登记；Closure Evidence 写入本 plan 末尾；`ai-dev/logs/` 收口条目已更新
+- [x] 独立子 agent closure audit（fresh session）：逐条核对全部 Phase Exit Criteria 与 Closure Gates 对 live repo 成立性，含 Anti-Hollow；C1-002 已修核验复核；2515 零重开核对；零回退钉全列核对
+- [x] cra-index 台账回填：P2-G17 束行收敛注（14 成员 fixed，C1-002 标注「2515 已修核验」+ C10-005/009 兑现 + C8-003=CL-005 同位点主处置关闭）；roadmap 8.50 → done
+- [x] 双门禁：check-plan-checklist --strict EXIT=0（Closure Evidence 写入后复跑）+ scan-hollow 复核登记；Closure Evidence 写入本 plan 末尾；`ai-dev/logs/` 收口条目已更新
 
 Exit Criteria:
 
-- [ ] closure audit 证据已写入 plan 末尾 Closure 段
-- [ ] cra-index P2-G17 收敛注、roadmap 8.50 = done 在案
-- [ ] 双门禁退出码 0 登记在案
-- [ ] `ai-dev/logs/` 收口条目已更新
+- [x] closure audit 证据已写入 plan 末尾 Closure 段
+- [x] cra-index P2-G17 收敛注、roadmap 8.50 = done 在案
+- [x] 双门禁退出码 0 登记在案
+- [x] `ai-dev/logs/` 收口条目已更新
 
 ## Closure Gates
 
-- [ ] 14 工单全部收口（W-01..W-14 全 Fix）〔closure audit 逐工单 live 核对〕
-- [ ] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑭ 均有先红后绿或变异/回退论证
-- [ ] 2515 零重开：裁定①–⑨ 产物与 13 成员修复面零回退（git diff 核对）；既有钉族全绿
-- [ ] 全量构建绿：E1 留痕 + E3 双聚合器验收
-- [ ] owner doc 落账完成（`nop-retry.md` + `nop-tcc.md` + `source-anchors.md`）
-- [ ] scan-hollow nop-retry/nop-tcc `--severity high` EXIT=0
-- [ ] 不存在被静默降级的 in-scope live defect（C7-011 为批次定义层排除）
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**：修复真实生效 + 无空方法体/静默跳过
-- [ ] `./mvnw compile` + `./mvnw test`（双聚合器）；checkstyle/imports 纪律
-- [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
-- [ ] cra-index P2-G17 收敛注 + roadmap 8.50 → done
+- [x] 14 工单全部收口（W-01..W-14 全 Fix）〔closure audit 逐工单 live 核对〕
+- [x] 每工单 ≥1 条验收载体（rule 25，工单号可辨识）；红①–红⑭ 均有先红后绿或变异/回退论证
+- [x] 2515 零重开：裁定①–⑨ 产物与 13 成员修复面零回退（git diff 核对）；既有钉族全绿
+- [x] 全量构建绿：E1 留痕 + E3 双聚合器验收
+- [x] owner doc 落账完成（`nop-retry.md` + `nop-tcc.md` + `source-anchors.md`）
+- [x] scan-hollow nop-retry/nop-tcc `--severity high` EXIT=0
+- [x] 不存在被静默降级的 in-scope live defect（C7-011 为批次定义层排除）
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**：修复真实生效 + 无空方法体/静默跳过
+- [x] `./mvnw compile` + `./mvnw test`（双聚合器）；checkstyle/imports 纪律
+- [x] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+- [x] cra-index P2-G17 收敛注 + roadmap 8.50 → done
 
 ## Deferred But Adjudicated
 
@@ -209,19 +209,33 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: R4-10 批 14 工单全按 Fix 收口（W-01..W-14），四项 2515 部分缓解残留本体（W-01/W-04/W-06/W-11/W-13）全部落地且钉对缓解后基线先红；红①–红⑭ 十三条以「单点变异 → 钉确定性 FAIL → `git checkout` 恢复 → md5 一致」逐条留证（红⑬ 为结构/语义钉，诚实登记无 H2 行为差异）。2515 裁定①–⑨ 与十三成员修复面零重开（`git diff 3005ae8afa..HEAD -- '*/src/main/*'` 逐块核对：`RetryRecordStoreImpl` 纯新增 limit 防御、`TccRecordStore` 两参重载改写即 W-13 目标本体）。所有 in-scope live defect 已修，无降级 deferred。
+Completed: 2026-11-08
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent fresh session）
-- Audit Session: （session ID）
+- Reviewer / Agent: agent_518b3883-3b31-4006-a36a-41055816d452（独立 fresh session，只读 + 自行变异复核，133 次工具调用）
+- Audit Session: 首轮 **REJECTED — 2 Blocker / 1 Major / 2 Minor**，全部随收口闭环（见下「R1 发现处置」）；修复后本 session 复跑全部门禁与双聚合器验收。
 - Evidence:
-  - （每条 Exit Criterion / Closure Gate 的 PASS/FAIL + live code path 或 test name）
-  - `check-plan-checklist --strict` 退出码（必须为 0）
-  - Anti-Hollow 结果 + scan-hollow 退出码
-  - Deferred 分类检查
+  - **A 工单落地（14/14 PASS）**：W-01 `RetryEngineImpl:386-424` 四分支分流（非 UK 分支 :391 纯失败传播、不造死信）；W-02 `TccTransactionRegistry:47-77`（锁 `getAttrs()` + 双检 + 条件恢复 + 包级 `instance(IContext)`）；W-03 腿1 `TccEngine:461-490` 三拒绝面（读失败 fail-close `:472` / 缺失 `:478` / 状态非 TRYING `:483`）、腿2 `TccTransaction:247-350` 孤儿收敛；W-04 `TccTransaction:228-233` 写点闸 + `TccEngine:514-533` 纪元（缺失=inactive `:525`）；W-05 `TccBranchTransaction:158-167` null 判空 + `TccRunner:47-187` 三处三通道兜底；W-06 `TccRunner:215-332` 逐分支隔离 + **结算表（KILLED/CONFIRM_SUCCESS 计已结算 `:286/:323`——B-1 blocker 修复面）**；W-07 `TccTransaction:139-211`（有限重试非 CAS `:198-206`）+ `TccEngine:406-414` suppressed + `:96-99` 超时默认 cancel；W-08 `TccRecordStore:402-423` 双 seam 覆盖全部时钟点（`nextCheckTime` 归写侧 `:363-364`）；W-09 `RetryEngineImpl:890-942` 尾部 `_callback` 计数；W-10 `TccEngine:558-638` 预算+熔断+双计数+`checkExpiredAsync` protected；W-11 `RetryEngineImpl:1035-1054` 显式循环（`doStart:1017` 真实接线）；W-12 `RetryScannerImpl:261-338`（非空批口径 `:317`、时长 `:279`、RoundEndReason、时钟 seam）；W-13 `TccRecordStore:435-480` 私有批助手分页；W-14 `RetryScannerImpl:85-144` + `RetryRecordStoreImpl:236-240`。
+  - **R1 发现处置（5/5 闭环）**：
+    - **B-1（plan 未收口）** → 本段 + Phase 1–4 状态/勾选/Closure Gates/roadmap/cra-index 全部落盘。
+    - **B-2（W-03 腿2 语义破损 + 钉伪绿）** → `findOrphanBranches` 以入口快照求差且不扣已结算孤儿，导致孤儿每轮都被当孤儿重驱动、3 轮后必 `CONVERGENCE_EXHAUSTED`（终态永不折叠）；且聚合输入 `authoritative` 完全不含孤儿。重构为 `buildAllViews`（聚合输入覆盖 DB 全部行）+ `findUnsettledOrphans`（只挑「快照外 ∧ 本方向仍可驱动」）+ `RowOnlyBranchTxnView`；钉 `pin03b` 改为**第 2 次装载**才注入孤儿并双断言（孤儿被驱动为 CANCEL_SUCCESS **且** 终态折叠为 CANCEL_SUCCESS）。变异复核：把 pending 置空 → `expected: <CANCEL_SUCCESS> but was: <TRY_SUCCESS>` **RED**。
+    - **M-1（W-08/红⑧ 无钉子）** → 新增 `TestCraR410TccClockPins`（nop-tcc-dao）：**不覆写 seam**，用 stub `IOrmEntityDao`（`getDbEstimatedClock()` 返回已知 min/max）断言基类取哪个时钟；变异 `nowForRead` 回退本地墙钟 → `expected: <1111111> but was: <1794139417974>` **RED**。
+    - **m-1（未用 import）** → 删除 `TccRecordStore` 的 `CoreMetrics` import。**m-2（死 seam）** → 删除遗留 `getCurrentTime(dao)`。
+  - **B Anti-Hollow PASS**：diff 内无空方法体 / 静默 `continue` / `return null` 占位 / 吞异常；`dispatchScannerBatch` ← `doStart:1017` 与 `nowForRead` ← `fetchExpiredRecords:363` 真实接线；`scan-hollow-implementations --module nop-retry --severity high` **EXIT=0**、`--module nop-tcc` **EXIT=0**。
+  - **C 2515 零重开 PASS**：产物零删除零弱化；两个改动测试文件为**契约正确性更新非弱化**——`TestTccEngine` 两处期望值按 W-07 新契约校正（`CONFIRM_SUCCESS→CANCEL_SUCCESS`、`CONFIRMING→BEFORE_TIMEOUT`，E-2543-1 登记，断言强度保持精确状态+retryTimes）；`FakeTccRecordStore` 构造器仅放宽可见性以支持跨包 seam。既有钉族全绿（`TestTccRunner` 10 / `TestTccTransactionEndStates` 6 / `TestTccCasPropagation_C10_003` 3 / `TestTccStoreCasConflict_C10_003` 2 / `TestTccLedgerCleanup_C10_007` 4 / `TestTccLedgerHygiene_C7_005` 3 / `TestRetryScannerInsulation` 3 / `TestRetryLedgerRetention_C7_001` 7）。
+  - **D 红绿诚实性 PASS**：审计方独立复现 4 条变异（结算表回退 / null 判空删除 / 批数上界关闭 / 连续超时熔断关闭）全部 **RED**；红⑬ 无 H2 行为差异的诚实声明经其复核**确认准确**。红③b 与红⑧ 的伪绿/缺钉已按 B-2/M-1 重做并单独变异复核。
+  - **E 文本一致性 PASS**：Plan Status=completed；Phase 1–4 全 completed；全部 Exit Criteria 与 12 条 Closure Gates 已勾；roadmap 8.50=**done**；cra-index P2-G17=**fixed** 含收敛注。
+  - **F 测试实况**：`./mvnw -o test -pl nop-retry,nop-tcc` **BUILD SUCCESS**——nop-retry 20/76/4/1、nop-tcc 87（core）/41（dao，含新增 2 钉）/2（service）/1（web），全部 **0F 0E 0S**。
+  - `node ai-dev/tools/check-plan-checklist.mjs ai-dev/plans/2543-...md --strict` → **EXIT=0**（本段写入后复跑）。
+  - `node ai-dev/tools/check-doc-links.mjs --strict` → **EXIT=0**。
+  - **Deferred 分类检查**：C7-011 为批次定义层拆分（G17 = R4-10 14 + R4-32 C7-011），successor = roadmap 8.72，非降级；无非 blocking 化处理的 in-scope live defect。
 
 Follow-up:
 
-- （仅 non-blocking）
+- W-03 腿2 残余窗（分支在终态 CAS 之后才提交）需 DB 级约束才能彻底闭合 → watch-only，归 ORM 扩面治理（R-G）。
+- W-04 弃链闸不阻止已发起的分支补偿 RPC（由 CAS 短路 + 参与方幂等性承接）→ watch-only。
+- W-10 `checkExpiredTransactions` 零生产调用方（C6-005 dormant，G19 批外）→ 恢复扫描宿主装配归后续批次。
+- C7-011 跨单元单调时钟注入 → successor roadmap 8.72（R4-32）。
+

@@ -249,29 +249,33 @@ public class TccTransaction implements ITccTransaction {
         // 注意：不可用 thenApply+thenCompose(identity) 展平——ResolvedPromise 的 thenApply
         // 会把内层 stage 解包为结果值，identity 展平将把内层 result（null）当 stage 返回（NPE 源）
         return getRepository().getBranchRecordsAsync(tccRecord).thenCompose(rows -> {
-            List<ITccBranchTransaction> authoritative = buildAuthoritativeViews(branchTxns, rows);
-            List<ITccBranchTransaction> orphans = findOrphanBranches(branchTxns, rows, tccEngine);
+            // 聚合输入必须覆盖 DB 中的**全部**分支行（含入口快照之外的孤儿）——
+            // 否则孤儿的结算状态不参与终态判定，终态折叠会忽略它（closure audit B-2）
+            List<ITccBranchTransaction> views = buildAllViews(branchTxns, rows, tccEngine);
+            // 待收敛 = 入口快照之外、且在本方向上仍可驱动（未结算）的分支。
+            // 已结算的孤儿不再计入——这是每轮收敛能单调收敛（而非永远非空）的关键。
+            List<ITccBranchTransaction> pending = findUnsettledOrphans(views, cancel);
 
-            if (orphans.isEmpty() || round > MAX_CONVERGENCE_ROUNDS) {
-                // 收敛轮次耗尽后孤儿仍未排空 → 不折叠终态，保持 CANCELLING/CONFIRMING
-                // 交恢复扫描续跑（变体 B 的永久悬挂面由此闭合）
-                if (!orphans.isEmpty()) {
-                    LOG.error("nop.tcc.branch-convergence-exhausted:txn={},cancel={},orphans={}",
-                            this, cancel, orphans.size());
+            if (pending.isEmpty() || round > MAX_CONVERGENCE_ROUNDS) {
+                if (!pending.isEmpty()) {
+                    // 收敛轮次耗尽后仍有未结算孤儿 → 不折叠终态，保持 CANCELLING/CONFIRMING
+                    // 交恢复扫描续跑（变体 B 的永久悬挂面由此闭合）
+                    LOG.error("nop.tcc.branch-convergence-exhausted:txn={},cancel={},unsettled={}",
+                            this, cancel, pending.size());
                     return FutureHelper.reject(new NopException(TccCoreErrors.ERR_TCC_BRANCH_CONVERGENCE_EXHAUSTED)
                             .param(TccCoreErrors.ARG_TXN_GROUP, getTxnGroup())
                             .param(TccCoreErrors.ARG_TXN_ID, getTxnId()));
                 }
                 TccStatus status = cancel
-                        ? TccRunner.aggregateCancelBranchStatus(authoritative)
-                        : TccRunner.aggregateConfirmBranchStatus(authoritative);
+                        ? TccRunner.aggregateCancelBranchStatus(views)
+                        : TccRunner.aggregateConfirmBranchStatus(views);
                 return writeFinalStatusAndReleaseEpoch(status);
             }
 
-            LOG.info("nop.tcc.branch-convergence:txn={},round={},orphans={}", this, round, orphans.size());
+            LOG.info("nop.tcc.branch-convergence:txn={},round={},unsettled={}", this, round, pending.size());
             CompletionStage<Void> drive = cancel
-                    ? TccRunner.cancelAllAsync(orphans, timeout, tccEngine.getServiceInvoker())
-                    : TccRunner.confirmAllAsync(orphans, tccEngine.getServiceInvoker());
+                    ? TccRunner.cancelAllAsync(pending, timeout, tccEngine.getServiceInvoker())
+                    : TccRunner.confirmAllAsync(pending, tccEngine.getServiceInvoker());
 
             return drive.handle((v, driveErr) -> {
                 if (driveErr != null) {
@@ -283,25 +287,71 @@ public class TccTransaction implements ITccTransaction {
         });
     }
 
-    /** 1.6-C1-007（plan 2543 W-03 腿2）：入口快照之外、DB 中实际存在的分支行。 */
-    private static List<ITccBranchTransaction> findOrphanBranches(List<ITccBranchTransaction> branchTxns,
-                                                                  List<ITccBranchRecord> rows,
-                                                                  TccEngine engine) {
-        if (rows == null || rows.isEmpty())
-            return java.util.Collections.emptyList();
-
-        java.util.Set<String> known = new java.util.HashSet<>();
+    /**
+     * 1.6-C1-007（plan 2543 W-03 腿2）：聚合与收敛的统一视图集——DB 行优先（裁定②权威输入），
+     * DB 中缺席的分支（清理竞态）保留内存副本。入口快照之外的 DB 行（孤儿）以
+     * {@link RowOnlyBranchTxnView} 参与聚合与驱动。
+     */
+    private static List<ITccBranchTransaction> buildAllViews(List<ITccBranchTransaction> branchTxns,
+                                                             List<ITccBranchRecord> rows, TccEngine engine) {
+        Map<String, ITccBranchTransaction> byId = new HashMap<>();
         for (ITccBranchTransaction branchTxn : branchTxns) {
-            known.add(branchTxn.getBranchId());
+            byId.put(branchTxn.getBranchId(), branchTxn);
         }
 
-        List<ITccBranchTransaction> orphans = new ArrayList<>();
-        for (ITccBranchRecord row : rows) {
-            if (!known.contains(row.getBranchId())) {
-                orphans.add(new OrphanBranchTxnView(row, engine));
+        List<ITccBranchTransaction> views = new ArrayList<>();
+        java.util.Set<String> covered = new java.util.HashSet<>();
+        if (rows != null) {
+            for (ITccBranchRecord row : rows) {
+                covered.add(row.getBranchId());
+                ITccBranchTransaction known = byId.get(row.getBranchId());
+                if (known == null) {
+                    // 入口快照之外的孤儿分支
+                    views.add(new RowOnlyBranchTxnView(row, engine));
+                } else if (known.getBranchRecord() == row) {
+                    views.add(known);
+                } else {
+                    views.add(new AuthoritativeBranchTxnView(known, row));
+                }
             }
         }
-        return orphans;
+        // DB 中已不存在、但入口快照仍持有的分支（清理竞态）保留内存副本
+        for (ITccBranchTransaction branchTxn : branchTxns) {
+            if (!covered.contains(branchTxn.getBranchId())) {
+                views.add(branchTxn);
+            }
+        }
+        return views;
+    }
+
+    /**
+     * 1.6-C1-007（plan 2543 W-03 腿2）：**入口快照之外**且在本方向上**仍可驱动**的分支。
+     * 已结算的孤儿不再计入——否则每轮都会把它当孤儿重驱动，循环永不收敛（closure audit B-2）。
+     * 可驱动判据与 {@link TccRunner} 的批量筛条件严格对齐。
+     */
+    private static List<ITccBranchTransaction> findUnsettledOrphans(List<ITccBranchTransaction> views,
+                                                                   boolean cancel) {
+        List<ITccBranchTransaction> pending = new ArrayList<>();
+        for (ITccBranchTransaction view : views) {
+            if (!(view instanceof RowOnlyBranchTxnView))
+                continue;
+
+            TccStatus status = view.getBranchStatus();
+            if (cancel) {
+                if (!TccRunner.isBranchCancellable(status))
+                    continue;
+                if (status == TccStatus.CANCEL_SUCCESS || status == TccStatus.TIMEOUT_SUCCESS)
+                    continue;
+                pending.add(view);
+            } else {
+                if (status == null || status == TccStatus.CONFIRM_SUCCESS || status == TccStatus.KILLED)
+                    continue;
+                if (status.isCancelled() || status == TccStatus.CONFIRM_FAILED)
+                    continue;
+                pending.add(view);
+            }
+        }
+        return pending;
     }
 
     private CompletionStage<Void> writeFinalStatusAndReleaseEpoch(TccStatus status) {
@@ -321,11 +371,11 @@ public class TccTransaction implements ITccTransaction {
      * 驱动方法经 TccBranchTransaction 走 store，但孤儿行来自重载快照，
      * 故此处以独立包装提供最小驱动面：状态读取 + 委托式驱动。
      */
-    private static final class OrphanBranchTxnView implements ITccBranchTransaction {
+    private static final class RowOnlyBranchTxnView implements ITccBranchTransaction {
         private final ITccBranchRecord row;
         private final TccEngine engine;
 
-        OrphanBranchTxnView(ITccBranchRecord row, TccEngine engine) {
+        RowOnlyBranchTxnView(ITccBranchRecord row, TccEngine engine) {
             this.row = row;
             this.engine = engine;
         }
@@ -368,34 +418,6 @@ public class TccTransaction implements ITccTransaction {
         public CompletionStage<Void> finishCancelAsync(boolean timeout, ApiResponse<?> response, Throwable ex) {
             return delegate().finishCancelAsync(timeout, response, ex);
         }
-    }
-
-    /**
-     * 按 branchId 将重载的 DB 权威分支行对齐到聚合输入：DB 行在场的分支用权威行视图
-     * （内存副本仅作调度判定），不在场的分支（清理竞态等）保留内存副本。
-     */
-    private static List<ITccBranchTransaction> buildAuthoritativeViews(List<ITccBranchTransaction> branchTxns,
-                                                                       List<ITccBranchRecord> rows) {
-        if (rows == null || rows.isEmpty())
-            return branchTxns;
-
-        Map<String, ITccBranchRecord> rowsByBranchId = new HashMap<>();
-        for (ITccBranchRecord row : rows) {
-            rowsByBranchId.put(row.getBranchId(), row);
-        }
-
-        List<ITccBranchTransaction> views = new ArrayList<>(branchTxns.size());
-        for (ITccBranchTransaction branchTxn : branchTxns) {
-            ITccBranchRecord row = rowsByBranchId.get(branchTxn.getBranchId());
-            if (row == null) {
-                views.add(branchTxn);
-            } else if (row == branchTxn.getBranchRecord()) {
-                views.add(branchTxn);
-            } else {
-                views.add(new AuthoritativeBranchTxnView(branchTxn, row));
-            }
-        }
-        return views;
     }
 
     /** 聚合输入的 DB 权威视图：状态与标识取自重载行，其余能力委托原分支事务 */

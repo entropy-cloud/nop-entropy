@@ -213,28 +213,34 @@ public class TestCraR410TccPins {
     }
 
     /**
-     * 红③b：补偿期间新插入的孤儿分支必须被收敛驱动（入口快照不含它）。
-     * 缺陷态：孤儿分支零驱动、终态仍折叠成功（变体 B 永久悬挂）。
+     * 红③b：补偿期间新插入的孤儿分支必须被收敛驱动、且收敛后终态能正常折叠。
+     * <p>
+     * 构造要点（子 agent closure audit B-2 勘误）：孤儿必须在**入口快照装载之后**（第 2 次及以后的
+     * `getBranchRecordsAsync`）才出现——若在第 1 次装载时注入，它就在入口快照里，收敛代码路径不被
+     * 触发（旧钉即因此为伪绿）。同时断言终态为 CANCEL_SUCCESS（而非 CONVERGENCE_EXHAUSTED），
+     * 以证明「收敛后能折叠」而非「永不收敛」。
      */
     @Test
-    public void pin03b_orphanBranchIsConvergedBeforeTerminalFold() {
+    public void pin03b_orphanBranchIsConvergedThenTerminalFolded() {
         FakeTccRecordStore store = new FakeTccRecordStore() {
-            private boolean orphanInjected;
+            private int loadCount;
 
             @Override
             public CompletionStage<List<ITccBranchRecord>> getBranchRecordsAsync(ITccRecord record) {
-                List<ITccBranchRecord> rows = new ArrayList<>(
-                        branches.getOrDefault(record.getTxnId(), List.of()));
-                // 第二次重载时注入一条不在入口快照中的孤儿分支（补偿期新插入）
-                if (!orphanInjected) {
-                    orphanInjected = true;
-                    FakeBranchRecord orphan = new FakeBranchRecord(record.getTxnGroup(), record.getTxnId(),
-                            "orphan-branch", "svc", "try", "confirm", "cancel", new ApiRequest<>());
-                    orphan.status = TccStatus.TRY_SUCCESS;
-                    addBranch(orphan);
-                    rows.add(orphan);
+                // 第 1 次调用 = endAsync 入口快照（此时还没有孤儿）
+                loadCount++;
+                if (loadCount >= 2) {
+                    boolean present = branches.getOrDefault(record.getTxnId(), List.of()).stream()
+                            .anyMatch(b -> "orphan-branch".equals(b.getBranchId()));
+                    if (!present) {
+                        FakeBranchRecord orphan = new FakeBranchRecord(record.getTxnGroup(), record.getTxnId(),
+                                "orphan-branch", "svc", "try", "confirm", "cancel", new ApiRequest<>());
+                        orphan.status = TccStatus.TRY_SUCCESS;
+                        addBranch(orphan);
+                    }
                 }
-                return CompletableFuture.completedFuture(new ArrayList<>(rows));
+                return CompletableFuture.completedFuture(
+                        new ArrayList<>(branches.getOrDefault(record.getTxnId(), List.of())));
             }
         };
         TccEngine engine = newEngine(store);
@@ -242,7 +248,7 @@ public class TestCraR410TccPins {
         record.status = TccStatus.TRYING;
 
         TccTransaction txn = new TccTransaction(true, record, engine, 0L);
-        // 业务失败 → cancel；孤儿分支（TRY_SUCCESS）必须被驱动到 CANCEL_SUCCESS
+        // 业务失败 → cancel；孤儿分支（TRY_SUCCESS）必须被驱动到 CANCEL_SUCCESS 且终态折叠成功
         txn.endAsync(false, ApiResponse.error(new io.nop.api.core.beans.ErrorBean("E")), null)
                 .toCompletableFuture().join();
 
@@ -250,6 +256,8 @@ public class TestCraR410TccPins {
                 .filter(b -> "orphan-branch".equals(b.getBranchId())).findFirst().orElseThrow();
         assertEquals(TccStatus.CANCEL_SUCCESS, orphan.getBranchStatus(),
                 "收敛轮必须驱动入口快照之外的孤儿分支");
+        assertEquals(TccStatus.CANCEL_SUCCESS, record.status,
+                "孤儿收敛后终态必须能折叠（不得以 CONVERGENCE_EXHAUSTED 拒绝）");
     }
 
     // ==================== 红④（W-04）：弃链写点闸 ====================

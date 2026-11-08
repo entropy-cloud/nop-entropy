@@ -16,7 +16,6 @@ import io.nop.api.core.beans.FilterBeans;
 import io.nop.api.core.beans.query.QueryBean;
 import io.nop.api.core.config.AppConfig;
 import io.nop.api.core.exceptions.NopException;
-import io.nop.api.core.time.CoreMetrics;
 import io.nop.api.core.util.ApiHeaders;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.core.exceptions.ErrorMessageManager;
@@ -413,13 +412,6 @@ public class TccRecordStore implements ITccRecordStore {
 
     protected Timestamp nowTimestampForWrite(IEntityDao<?> dao) {
         return new Timestamp(dao.getDbEstimatedClock().getMaxCurrentTimeMillis());
-    }
-
-    /**
-     * 1.6-C7-007（plan 2543 W-08）遗留 seam（保留兼容）：等价于 {@link #nowForRead}。
-     */
-    protected long getCurrentTime(IOrmEntityDao<NopTccRecord> dao) {
-        return nowForRead(dao);
     }
 
     /**
