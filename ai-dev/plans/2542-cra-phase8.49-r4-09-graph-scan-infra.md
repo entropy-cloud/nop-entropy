@@ -136,6 +136,22 @@
 
 ### Baseline 勘误（输入不一致登记）
 
+**执行期勘误（E-2542-1..10，逐条详见 `_tmp/red-green-ledger-2542.md` 与 `ai-dev/logs/2026/11-08.md`）**：
+
+1. **E-2542-1（W-07 向后兼容声明证伪）**：初稿「旧行 items 键经 Map 转换自然忽略」不成立——`parseBeanFromText` 对未知属性抛 `unknown-bean-prop`。修复：Loop/ForkStateBean 增只写兼容 `setItems`（无 getter）。
+2. **E-2542-2（W-12 gauge 注册幂等）**：静态 AtomicBoolean 在 registry 重置后导致 gauge 永久缺席 → 改「registry 已有 + 属主为当前实例」双条件，换属主两枚一并摘除重绑。
+3. **E-2542-3（W-12 计数路径）**：`orm().runInSession` 在手工装配 store（`setDaoProvider`）下 NPE → 直读 `taskDao().countByQuery`，失败仍 NaN。
+4. **E-2542-4（W-08 下推语义不等价）**：无条件 SQL 下推使 `TestDaoWorkflowEngine` 21/28 红（同会话未 flush 写不可见）→ 窄化为仅 proxy（未加载）态下推，已加载回落内存视图。
+5. **E-2542-5（W-07 词汇面改形）**：移除 `getItems()` 使 `TestDaoTaskStateStoreStateDataWrapperRoundTrip` 断言失效 → 按新契约改形（非弱化）。
+6. **E-2542-6（已知 flake）**：`nop-task` 聚合偶发 `TestExecutorTaskStepWrapperAsyncBranch` 单发错误，solo 三联绿归因（共享 GlobalExecutors 时序）。
+7. **E-2542-7（harness 补全 1）**：`TestPhase4TerminalAndConcurrency` +2 行补 `TaskFlowManagerImpl` 构造参数（W-13 接口新增导致）。零断言弱化。
+8. **E-2542-8（harness 补全 2）**：`TestExecutorTaskStepWrapperAsyncBranch` +4 行 `getContext` 桩返回 null（W-03 新增调用点），保持原两腿断言面零改写。
+9. **E-2542-9（W-05 错误参数面）**：`getThreadPoolExecutor(IBeanProvider, String)` 接口不携带 stepPath/模型位置 → typed 错误仅 executorBean+actualType 两参（设计文档 §5.3 已回填勘误注记）。
+10. **E-2542-10（W-01 收敛面）**：锁内守卫仅收敛 status（exception 需从 DB entity 反序列化回 ITaskState，超出本工单边界）→ 设计文档 §4.1 已回填勘误注记，exception 残留登记 watch-only。
+
+**Closure audit R1（agent_44192b09）修复登记**：Blocker-1（W-07 items 键空间 = 类级常量挂 task runtime，导致同 task 多 loop 互相复用 + loop 内 fork 跨轮复用）→ 键改为 `前缀+stepPath+":"+runId` + 两条真实 execute 链行为钉（`TestLoopItemsKeyScopeR409`）；Major-2（W-08 补 `getJoinWaitStepRecords`/`getNextJoinStepRecord`）已落地；Major-5（`action-deadline-ms` 缺省 60000）已订正；Major-3（红⑧ 载入行数腿）诚实改标结构钉；Major-4=E-2542-7/8。
+
+
 1. **判级权威核对记录（无勘误——任务书预设修正登记）**：批次行 13 findings 在 merge-adjudication 中**全部为 §2.2 独立立案**（:78-104 十三行——无一 §2.1 族成员、无一 P3 判级，全 P2 亲证）；inventory-p2-c10 §二 WI 1.5 节 :138-151 十三行「P2」列同口径亲证；任务书「judge 判级以 §2.1 族表为准（可能含 P3 成员——族内承载）」预设不成立——本批以 §2.2 表为判级权威，零族内承载条款需求（各工单「绑定/承接注记」列的 cross-ref MA-xx 关系为关联引用非族吸收）。**附带核对**：§2.2 C7-014 行内「见 §3-C」指向有误——分立裁定实际位于 §3-B「开放问题裁定」第二条（:135 亲证「C7-014 与 C1-009 → 分立」）；本 plan 引用采纳 §3-B（2514 引用同），audit 文件自身指向瑕疵零回写（rule 20）。**C10-010/012/014 三宿主均为本批成员**——零「禁造无本体红」承接/搭车裁定需求（三 C10 直接随本体同 diff）。
 2. **漂移登记总表（git 亲证）**：审计基线 `83052aa1ff` → live `0d1c4ef5e7`；交界 commit 集 = plan 2514 两笔[`a958b00d96` 组 task/`abfd9dfa9b` 组 wf]+plan 2541 一笔[`3804cc8aa8` Phase 2+3]。**2541 产物漂移源 6 文件**：TaskFlowManagerImpl[getThreadPoolExecutor :83-89→**:131-137**/getTaskRuntime :121-134→**:168-182**——机制零漂移亲证]/WfTaskScanner[syncGet :96→**:274**，364→440 行——机制零漂移亲证]/ExecutorTaskStepWrapper[:33-36 submit 区——2541 W-06 catch(Throwable) 已落同方法，C3-004 缺陷本体残留亲证]/DaoWorkflowStore[getSteps :305-307→**:494**，审计行数→533 行]/WorkflowEngineImpl[runAutoTransitions :811-818→**:918-922**]/CallTaskStep[:87-89→**:90**——2541 W-04 key 回填触碰，传播面机制零漂移亲证]。**2514 产物漂移源 1 文件**：DaoWorkflowStore[findDueActivatedSteps 分批游标——C4-007「扫描集无界」半面收敛依据，勘误 3]。**零漂移亲证文件集**：GraphTaskStep/GraphStepAnalyzer/GraphStepBuilder/LoopTaskStep/ForkTaskStep/SuspendTaskStep/TaskImpl/AbstractWorkflowStore/DaoTaskStateStore/ITaskRuntime/TaskStepEnhancer[2541 触碰该文件但 :126-128 runOnContext wrap 点行号未漂移亲证]/task.xdef/app-scheduler.beans.xml/两 job.yaml/DefaultWorkflowExecutor[:52/:56 微漂移 ±1 勘正]/NopWfInstance。执行前如再漂移以 live 为准并登记。
 3. **C4-007 残留面收窄勘误（2514 MA-05+MA-23 产物）**：审计 C4-007/C10-012「DaoWorkflowStore.findDueActivatedSteps（:181-187）findAllByQuery 无 limit，扫描集无界」表述基于审计基线；live 2514 已落 limit(batchSize)+orderBy(dueTime) 分页游标+时间预算（:265-321 区亲证）+fencing——**「扫描集无界」半面已收敛**；C4-007 残留缺陷面收窄为三项：scanner 异常外泄面（形态 A 的使用面半边）/形态 B 挂死面（逐项 syncGet 无超时——与 C7-004 同点）/共享池挤压面。机制主面（挂死占位+异常外泄）存活亲证（:274 syncGet 单参在位）；修复设计与红⑥ 断言面按收窄后口径成文；2514/2541 产物零弱化。**形态 A（FAILED 终态永久停摆宿主机制）=nop-job-C7-006 跨单元单列**——本批零触碰（merge-adjudication §4.4-2 纪律）。
