@@ -40,8 +40,9 @@ public interface BatchConfigs {
      * 本键是该路径的内存护栏：超过即 fail-fast（{@code ERR_BATCH_TOO_MANY_PROCESSING_ITEMS}），
      * 不静默膨胀。
      * <p>
-     * 缺省 0 = 不限制（保持既有部署行为，上界为 opt-in）。设为正值即对全部
-     * {@code BatchProcessorConsumer} 实例生效——接线点在 {@code BatchTaskBuilder.buildChunkProcessor}。
+     * 缺省 0 = 不限制（保持既有部署行为，上界为 opt-in）。设为正值即生效于：
+     * ① {@code BatchTaskBuilder.buildChunkProcessor}（主装配链）；
+     * ② {@code OrmBatchConsumerProvider.setup}（自建 {@code BatchProcessorConsumer} 的旁路，须独立接线）。
      */
     @Description("单chunk输出集上界（processor展开面护栏），<=0表示不限制")
     IConfigReference<Integer> CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK = varRef(s_loc,

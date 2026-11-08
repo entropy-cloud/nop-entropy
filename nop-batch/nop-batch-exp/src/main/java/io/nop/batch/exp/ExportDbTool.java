@@ -25,7 +25,6 @@ import io.nop.batch.jdbc.loader.JdbcBatchLoaderProvider;
 import io.nop.commons.concurrent.executor.DefaultThreadPoolExecutor;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
-import io.nop.commons.concurrent.executor.ThreadPoolStats;
 import io.nop.commons.concurrent.executor.SyncThreadPoolExecutor;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.lang.eval.IEvalScope;
@@ -193,29 +192,11 @@ public class ExportDbTool {
                 // 1.7-C6-004（plan 2545 W-09）：destroy=shutdown 不等待，失败路径返回后兄弟表任务
                 // 仍在后台续写输出与状态文件
                 executor.destroy();
-                waitTerminated(executor);
+                DbToolTerminationHelper.waitTerminated(executor, "nop.export-db.executor-terminate-timeout");
             }
         }
     }
 
-    /**
-     * 1.7-C6-004（plan 2545 W-09）：destroy 后的有界等待（stats 活跃/队列双零即视为已停，上限 30s）。
-     */
-    private static void waitTerminated(IThreadPoolExecutor executor) {
-        long deadline = System.currentTimeMillis() + 30_000L;
-        while (System.currentTimeMillis() < deadline) {
-            ThreadPoolStats stats = executor.stats();
-            if (stats == null || (stats.getActiveCount() <= 0 && stats.getQueueSize() <= 0))
-                return;
-            try {
-                Thread.sleep(50L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-        LOG.warn("nop.export-db.executor-terminate-timeout");
-    }
 
     private boolean isExportable(ExportTableConfig tableConfig) {
         if (config.getCheckExportable() == null)

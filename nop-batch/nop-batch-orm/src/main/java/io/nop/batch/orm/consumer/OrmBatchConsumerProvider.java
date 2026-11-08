@@ -1,5 +1,6 @@
 package io.nop.batch.orm.consumer;
 
+import io.nop.batch.core.BatchConfigs;
 import io.nop.batch.core.IBatchConsumerProvider;
 import io.nop.batch.core.IBatchTaskContext;
 import io.nop.batch.core.consumer.BatchProcessorConsumer;
@@ -71,7 +72,15 @@ public class OrmBatchConsumerProvider<R> implements IBatchConsumerProvider<R> {
         IOrmEntityDao<IOrmEntity> dao = (IOrmEntityDao<IOrmEntity>) daoProvider.<IOrmEntity>dao(entityName);
 
         if (keyFields == null || keyFields.isEmpty()) {
-            return new BatchProcessorConsumer<>(new OrmEntityBatchProcessor<>(dao), new OrmInsertBatchConsumer<>(ormTemplate));
+            @SuppressWarnings("unchecked")
+            BatchProcessorConsumer<R, Object> processorConsumer =
+                    new BatchProcessorConsumer(new OrmEntityBatchProcessor<>(dao),
+                            new OrmInsertBatchConsumer<>(ormTemplate));
+            // 1.7-C5-003（plan 2545 W-05；closure audit R2 MJ-3）：本处自建 BatchProcessorConsumer 绕过
+            // BatchTaskBuilder.buildChunkProcessor 漏斗，必须独立接线同一配置键，否则「上界对全部装配路径
+            // 生效」的契约句在 orm-writer 路径上不成立。
+            processorConsumer.setMaxOutputItemsPerChunk(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK.get());
+            return processorConsumer;
         } else {
             return new OrmBatchConsumer<>(dao, keyFields, allowInsert, allowUpdate);
         }

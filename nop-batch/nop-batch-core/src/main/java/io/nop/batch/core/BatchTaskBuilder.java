@@ -353,13 +353,20 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
                         .param(ARG_LOAD_BATCH_SIZE, loadBatchSize)
                         .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 
-            // 1.7-C6-008（plan 2545 W-06；closure audit B-1 修正）：saveState + 异步 fetch 派发是**不支持**的组合。
-            // fetch 线程与消费线程在时间/线程上解耦，reader 的 chunk 级压实回调（标记 processingItems 完成、
-            // 推进 completedIndex）只能附着在 fetch 线程自建的一次性 ctx 上，而该 ctx 的 chunkItems 恒为 null
-            // ——压实必然空转，completedIndex 永不推进，任务 100% 以 ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败。
-            // 装配期响亮失败，不给运维留下"跑 60 秒后报一条指向错误根因的异常"的排障陷阱。
+            // 1.7-C6-008（plan 2545 W-06；closure audit R1 B-1 + R2 BL-1/MJ-4 修正）：**chunk 压实 + 异步 fetch
+            // 派发**是不支持的组合。fetch 线程与消费线程在时间/线程上解耦，reader 的 chunk 级压实回调
+            // （标记 processingItems 完成、推进 completedIndex）只能附着在 fetch 线程自建的一次性 ctx 上，
+            // 而该 ctx 的 chunkItems 恒为 null —— 压实必然空转，completedIndex 永不推进，任务 100% 以
+            // ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY 失败。装配期响亮失败，不给运维留下"跑 60 秒后报一条
+            // 指向错误根因的异常"的排障陷阱。
+            // <p>
+            // 判定轴 = loader 的 **chunk 压实能力**（{@link IBatchLoaderProvider#hasChunkCompaction()}），
+            // 不是 task 级 stateStore：saveState 有两条独立轴——任务级（接 stateStore）与
+            // loader 级（DSL &lt;loader saveState="true"&gt; → ResourceRecordLoaderProvider.saveState）。
+            // 只判 stateStore 会漏掉 loader 级轴（R2 BL-1）；反过来，jdbc/orm 的 task 级 saveState 只有
+            // 「任务结束关连接/存计数」语义、无 chunk 压实，本可正常工作，不应被拒（R2 MJ-4）。
             // 同步派发（fetchThreadCount<=0）的 fetcher 闭包捕获消费线程 ctx，压实正常，不受本守卫影响。
-            if (stateStore != null && fetchThreadCount > 0)
+            if (fetchThreadCount > 0 && this.loader != null && this.loader.hasChunkCompaction())
                 throw new NopException(ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED)
                         .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 

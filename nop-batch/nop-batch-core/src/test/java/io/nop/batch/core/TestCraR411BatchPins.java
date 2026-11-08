@@ -199,12 +199,17 @@ public class TestCraR411BatchPins {
      */
     @Test
     public void pin07_saveStateWithAsyncDispatchFailsFast() {
+        // 压实 loader（saveState=true 的 ResourceRecord）+ task 级 stateStore 双轴同时成立
+        io.nop.batch.core.loader.ResourceRecordLoaderProvider<String> provider =
+                new io.nop.batch.core.loader.ResourceRecordLoaderProvider<>();
+        provider.setSaveState(true);
+
         BatchTaskBuilder<String, String> builder = new BatchTaskBuilder<>();
         builder.taskName("c6-008-pin");
-        builder.loader(ctx -> (batchSize, chunkCtx) -> new ArrayList<String>());
+        builder.loader(provider);
         builder.consumer(ctx -> (items, chunkCtx) -> {
         });
-        // 非 null state store 表达 saveState=true 语义
+        // 非 null state store 表达 task 级 saveState=true 语义
         builder.stateStore(new StateStoreStub());
 
         BatchDispatchConfig<String> dispatch = new BatchDispatchConfig<>();
@@ -220,6 +225,61 @@ public class TestCraR411BatchPins {
                 () -> FutureHelper.syncGet(task.executeAsync(newTaskTaskContext())));
         assertTrue(containsErrorCode(thrown, "nop.err.batch.save-state-with-dispatcher-unsupported"),
                 "saveState + 异步派发必须以专属错误码响亮失败，实际: " + thrown);
+    }
+
+    @Test
+    public void pin08_loaderLevelSaveStateWithAsyncDispatchFailsFast() {
+        // R2 BL-1：saveState 有两条独立轴——任务级（stateStore）与 loader 级
+        // （ResourceRecordLoaderProvider.setSaveState(true)，DSL <loader saveState="true">）。
+        // 本钉只置 loader 级、**不**设 stateStore，证明守卫判定轴是压实能力而非 stateStore。
+        io.nop.batch.core.loader.ResourceRecordLoaderProvider<String> provider =
+                new io.nop.batch.core.loader.ResourceRecordLoaderProvider<>();
+        provider.setSaveState(true);
+        assertTrue(provider.hasChunkCompaction(), "saveState=true 的 ResourceRecord 必须声明 chunk 压实能力");
+
+        BatchTaskBuilder<String, String> builder = new BatchTaskBuilder<>();
+        builder.taskName("c6-008-pin-loader-level");
+        builder.loader(provider);
+        builder.consumer(ctx -> (items, chunkCtx) -> {
+        });
+        // 关键：不设 stateStore（缺陷态守卫只判 stateStore 时本用例不会失败）
+
+        BatchDispatchConfig<String> dispatch = new BatchDispatchConfig<>();
+        dispatch.setLoadBatchSize(10);
+        dispatch.setFetchThreadCount(1);
+        dispatch.setPartitionFn((item, ctx) -> 0);
+        builder.dispatchConfig(dispatch);
+
+        IBatchTask task = builder.buildTask();
+        Throwable thrown = assertThrows(Throwable.class,
+                () -> FutureHelper.syncGet(task.executeAsync(newTaskTaskContext())));
+        assertTrue(containsErrorCode(thrown, "nop.err.batch.save-state-with-dispatcher-unsupported"),
+                "loader 级 saveState + 异步派发同样必须响亮失败（R2 BL-1），实际: " + thrown);
+    }
+
+    /**
+     * R2 MJ-4：守卫不得过宽——不承担 chunk 压实能力的 loader（jdbc/orm/列表等）在 task 级
+     * saveState + 异步派发下是合法组合，不得被拒。
+     */
+    @Test
+    public void pin09_nonCompactingLoaderWithAsyncDispatchIsAllowed() {
+        BatchTaskBuilder<String, String> builder = new BatchTaskBuilder<>();
+        builder.taskName("c6-008-pin-allowed");
+        // ArrayList 返回的普通 provider：hasChunkCompaction() 缺省 false
+        builder.loader(ctx -> (batchSize, chunkCtx) -> new ArrayList<String>());
+        builder.consumer(ctx -> (items, chunkCtx) -> {
+        });
+        builder.stateStore(new StateStoreStub());
+
+        BatchDispatchConfig<String> dispatch = new BatchDispatchConfig<>();
+        dispatch.setLoadBatchSize(10);
+        dispatch.setFetchThreadCount(1);
+        dispatch.setPartitionFn((item, ctx) -> 0);
+        builder.dispatchConfig(dispatch);
+
+        // 守卫必须放行：装配成功即证明未过宽（任务随后正常跑完空数据）
+        IBatchTask task = builder.buildTask();
+        FutureHelper.syncGet(task.executeAsync(newTaskTaskContext()));
     }
 
     private static boolean containsErrorCode(Throwable e, String code) {

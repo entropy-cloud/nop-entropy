@@ -100,7 +100,7 @@ Targets: nop-batch-core / -gen / -exp / -dsl + 测试树
 Exit Criteria:
 
 - [x] 11 工单全部 landed
-- [x] `./mvnw test -pl nop-batch` BUILD SUCCESS（逐模块签名见 Phase 3）
+- [x] `./mvnw -o test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-batch/nop-batch-gen,nop-batch/nop-batch-orm,nop-batch/nop-batch-jdbc,nop-batch/nop-batch-dsl,nop-batch/nop-batch-exp,nop-batch/nop-batch-biz,nop-batch/nop-batch-sys` BUILD SUCCESS（**184 tests** 0F/0E；逐模块签名见 Phase 3。注：`-pl nop-batch` 聚合模块只跑 6 个 sys 面测试，不能作有效覆盖——closure audit R1 m-2 结论）
 - [x] 零触碰核对：`nop-kernel`/`nop-tcc`/`nop-retry` 零改动；orm/`_` 生成物零改动
 - [x] `ai-dev/logs/` 已更新
 
@@ -115,10 +115,10 @@ Exit Criteria:
 | C5-003 | `pin05`/`pin05b`（超限 fail-fast / 不限制）+ **`pin06` 配置键经 builder 真实接线**（closure audit B-2） | 行为钉 |
 | C5-004 | `pin04`（超大 List 只告警不拒绝） | 契约钉 |
 | C6-003 | `TestDbToolExecutorContract`（executor 契约）+ owner doc 声明面 | 契约钉 |
-| C6-004 | `TestDbToolExecutorContract`（waitTerminated 有界等待） | 契约钉 |
+| C6-004 | **`TestDbToolTerminationHelper`（空闲即返/同步池即返/忙池有界超时三腿）**——R2 MJ-1 补；`DbToolTerminationHelper` 为可测共享载体 | 行为钉 |
 | C6-007 | `TestImportDbTool`（Import 全链）+ `syncConfigWithDb` 入 try 的代码面 | 回归钉 |
-| C6-008 | **`pin07`（saveState + 异步派发 fail-fast）**（closure audit B-1） | 行为钉（变异红证） |
-| C7-004 | 负值 fail-fast（`ERR_BATCH_RETRY_MAX_COUNT_NEGATIVE`）+ 计数修正由 `TestBatchBugVerification` 既有重试面承载 | 类型化钉 + 回归 |
+| C6-008 | **`pin07`（task 级 + loader 级双轴 fail-fast）/`pin08`（loader 级独立轴）/`pin09`（非压实 loader 不被误拒）**——R1 B-1 + R2 BL-1/MJ-4；判定轴=`hasChunkCompaction()` | 行为钉（两向变异红证：删守卫→pin07/08 红；改回 stateStore 轴→pin09 红） |
+| C7-004 | **`TestBatchRetryPolicyModelNegative`（负值 → `ERR_BATCH_RETRY_MAX_COUNT_NEGATIVE` 两腿）**——R2 MJ-2 补；计数修正由 `TestBatchBugVerification` 既有重试面承载 | 类型化行为钉 + 回归 |
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
@@ -127,7 +127,7 @@ Targets: nop-batch 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [x] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录
+- [x] E3 分解通道：`./mvnw -o test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-batch/nop-batch-gen,nop-batch/nop-batch-orm,nop-batch/nop-batch-jdbc,nop-batch/nop-batch-dsl,nop-batch/nop-batch-exp,nop-batch/nop-batch-biz,nop-batch/nop-batch-sys` BUILD SUCCESS + 逐模块签名记录（core 86/dao 23/gen 2/orm 9/jdbc 5/dsl 25/exp 25/biz 3/sys 6 = **184**）
 - [x] owner doc 落账：`nop-batch.md`（TL 嵌套语义 / 生成器并发语义 / 输出集上界键 / List 常驻包络 / exp 工具优雅停机 / 重试语义边界）
 - [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-batch --severity high` EXIT=0
 - [x] `ai-dev/logs/` 已更新
@@ -148,7 +148,8 @@ Targets: 本 plan、roadmap 8.51 行、cra-index P2-G23 束行
 
 - [x] 独立子 agent closure audit（fresh session，agent_5b478355）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / C1-003 平台半边 successor 边界 → **R1 REJECTED（2B+5M+6m）**，Blocker/Major 全部随收口闭环
 - [x] R1 Blocker/Major 修复：B-1 C6-008 改形装配期 fail-fast（移除空转 fetch-ctx complete）；B-2 C5-003 配置键 + builder 真实接线；M-1 owner doc 配置键订正；M-2 逐工单载体补全（见上表）；M-3 类型化错误码；M-4 提交溯源说明；M-5 Phase 4 收口
-- [x] Minor 修复：m-1 测试数订正（core 82）；m-2 验证命令改子模块枚举；m-3 死方法 `checkRetry` 删除；m-4 `ExportDbTool.syncConfigWithDb` 移入 try；m-5 `pin04` 保护力诚实登记；m-6 异步 `size()` → `AtomicInteger`
+- [x] Minor 修复：m-1 测试数订正（core 86 / 总 184）；m-2 验证命令改子模块枚举；m-3 死方法 `checkRetry` 删除；m-4 `ExportDbTool.syncConfigWithDb` 移入 try；m-5 `pin04` 保护力诚实登记；m-6 异步 `size()` → `AtomicInteger`
+- [x] **R2 复审 REJECTED 后修复**：BL-1 守卫判定轴从 `stateStore` 改为 **loader chunk 压实能力**（新增 `IBatchLoaderProvider.hasChunkCompaction()`，`ResourceRecordLoaderProvider` 按 saveState 覆写，`PostProcessBatchLoaderProvider` 透传）——同时覆盖 loader 级 `saveState` 轴并消除 MJ-4 的过宽拒绝；MJ-1 抽 `DbToolTerminationHelper` + 三腿行为钉；MJ-2 负值 fail-fast 行为钉；MJ-3 orm-writer 旁路独立接线同一配置键 + 订正"唯一漏斗"表述
 - [ ] cra-index 台账回填：P2-G23 束行（R4-11 半边收敛注）+ roadmap 8.51 → done
 - [ ] 双门禁 + Closure Evidence 写入本 plan
 
@@ -162,7 +163,7 @@ Exit Criteria:
 
 - [ ] 11 工单全部收口（10 项 nop-batch Fix + C1-003 batch 侧半边）
 - [ ] 每工单 ≥1 条验收载体
-- [ ] `./mvnw test -pl nop-batch` BUILD SUCCESS
+- [ ] `./mvnw -o test -pl nop-batch/nop-batch-core,nop-batch/nop-batch-dao,nop-batch/nop-batch-gen,nop-batch/nop-batch-orm,nop-batch/nop-batch-jdbc,nop-batch/nop-batch-dsl,nop-batch/nop-batch-exp,nop-batch/nop-batch-biz,nop-batch/nop-batch-sys` BUILD SUCCESS
 - [ ] owner doc 落账完成
 - [ ] scan-hollow nop-batch `--severity high` EXIT=0
 - [ ] 不存在被静默降级的 in-scope live defect（C1-003 平台半边为 PA 未授权 successor，非降级）
