@@ -1,0 +1,44 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef" defaultUseParentScope="true">
+    <steps>
+        <loop name="outer" varName="d" itemsExpr="[1,2,3]">
+            <output name="lastD">
+                <source>d</source>
+            </output>
+            <steps>
+                <fork name="inner" varName="x" indexName="i">
+                    <input name="d"/>
+                    <producer>
+                        return [d, d * 10]
+                    </producer>
+                    <steps>
+                        <xpl name="s1">
+                            <input name="x"/>
+                            <output name="RESULT">
+                                <source>x</source>
+                            </output>
+                        </xpl>
+                    </steps>
+                    <aggregator>
+                        return aggResults.sum("RESULT")
+                    </aggregator>
+                </fork>
+
+                <xpl name="verify">
+                    <input name="d"/>
+                    <input name="RESULT"/>
+                    <source>
+                        if (RESULT != d + d * 10)
+                            throw "stale fork items: d=" + d + ", forkSum=" + RESULT;
+                    </source>
+                </xpl>
+            </steps>
+        </loop>
+
+        <xpl name="check">
+            <input name="lastD"/>
+            <output name="RESULT">
+                <source>lastD == 3 ? 'OK' : 'FAIL'</source>
+            </output>
+        </xpl>
+    </steps>
+</task>
