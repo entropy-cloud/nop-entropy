@@ -216,6 +216,8 @@ task steps:
 | `skipPolicy` | 跳过策略（maxSkipCount/exceptionFilter） |
 | `transactionScope` | 事务范围 none/chunk/process/consume（builder 默认 consume；配置 historyStore 时 consume 自动提升为 process 包装） |
 | `historyStore` | 记录级处理历史（去重 + 与 consume 同事务写入） |
+| `nop.batch.list-loader.warn-size` | provider 返回 List 时的常驻规模 WARN 阈值（缺省 1000000，`<=0` 关闭告警） |
+| `nop.batch.max-output-items-per-chunk` | 单 chunk 输出集上界（`useBatchRequestGenerator` 展开面护栏；`<=0` = 不限制，保持既有行为） |
 
 ## 任务异常终态契约（executeChunkLoop，plan 2496）
 
@@ -326,3 +328,14 @@ sys-event 普通事件触发链（`non-broadcast-consumer.batch.xml`）已配置
 - `../reusable-modules-overview.md`
 - `docs/dev-guide/batch/batch-task.md`（DSL 详细指南）
 - `docs/theory/why-springbatch-is-bad.md`（设计理念）
+
+## 生成器并发与生命周期契约（plan 2545 R4-11）
+
+- **嵌套批任务上下文（1.7-C1-001）**：`BatchTaskGlobals` 的 ThreadLocal 在 `BatchTask` 的两处 provide 站点改为**保存/恢复**语义（`saveTaskContext()` / `restoreTaskContext(prev)`）。原裸 `provide + remove` 在「processor 内同步执行子批任务」的嵌套组合下会确定性清空外层上下文（xpl 侧 `onChunkBegin` 等助手随后 NPE 或静默失聪）。**语义**：批任务可嵌套执行，内层结束后外层上下文自动恢复；外层本无上下文时恢复为无上下文。
+- **生成器游标并发（1.7-C1-002 / 1.7-C1-006）**：`BatchGenState` 的 `hasNext/getGenCount/getSubIndex/next` 与 `SequentialBatchRequestGenerator` 的 `nextRequest/onResponse` 全部**实例级 synchronized**。前者是共享游标（`sequential` + `useBatchRequestGenerator` + `concurrency>1` 时多 chunk 线程在 loader 锁外共享同一组 subCases），后者在 `asyncProcessor=true` 下 `nextRequest`（chunk 线程）与 `onResponse`（异步回调线程）并发驱动同一实例的 `subIndex/subContext`。锁粒度 = 载体本身，不跨 chunk。
+- **swap-on-fire 注册守卫（1.7-C1-003，batch 侧）**：`onTaskBegin` 在 `fireTaskBegin` 之后注册将**显式抛错**（`nop.err.execution-task-begin-already-fired`），不再静默接受后永不触发。平台 `ExecutionContextImpl.onBeforeComplete/onAfterComplete` 有同型缺口，但属 Protected Area，登记为后续 plan-first 批次（见 plan 2545 Deferred）。
+- **单 chunk 输出集上界（1.7-C5-003）**：`BatchProcessorConsumer` 的输出累积受 `maxOutputItemsPerChunk` 约束（`<=0` = 不限制以保既有行为），超限 fail-fast 为 `ERR_BATCH_TOO_MANY_PROCESSING_ITEMS`。`useBatchRequestGenerator` 路径下单个 chunk item 会循环展开 `totalCount` 条输出——`batchSize` 只约束输入条数，不约束展开数，本上界是该路径的内存护栏。
+- **provider 返回 List 的常驻包络（1.7-C5-004）**：`ListBatchLoader` 持有该 List 直至任务结束（常驻时长 = 任务全程，内存 = 整表）。规模达 `nop.batch.list-loader.warn-size` 即 WARN（只告警不拒绝——拒绝会破坏既有合法大表导出）。大表场景应改用分页 loader。
+- **exp 工具资源窗与优雅停机（1.7-C6-003/C6-004/C6-007）**：`ExportDbTool`/`ImportDbTool` 的 executor 创建、`beforeExport`/`beforeImport`、`syncConfigWithDb` 全部纳入 try——任一抛出都能到达 finally 的释放段（Import 侧的 HikariDataSource 不再泄漏）。`finally` 在 `destroy()` 后做**有界等待**（stats 活跃/队列双零即视为已停，上限 30s，超时 WARN），使「`execute()` 返回即已停」成立，避免返回后兄弟表任务仍并发续写状态文件。
+- **AsyncFetch chunk 上下文结算（1.7-C6-008）**：`AsyncFetchPartitionDispatchLoaderProvider` 的 fetch 线程自建的一次性 chunk context 在每次 `load` 后 `complete()`（异常路径 `completeExceptionally(e)`）。原实现丢弃该 ctx 且从不结算，使底层 loader 注册的 chunk 级 `afterComplete`（如压实回调推进 `completedIndex`）永不执行——`saveState` + `dispatcher` 组合下任务必然以 `ERR_BATCH_PROCESSING_ITEMS_NOT_EMPTY` 失败。
+- **重试语义边界（1.7-C7-004）**：`maxRetryCount` 负值在 `RetryPolicy` 中语义为「无限重试」（与多数框架 `-1=禁用` 惯例相反），属配置陷阱——现于 `BatchRetryPolicyModel` 装配期显式失败。同时移除 `AbstractRetryBatchConsumer` 入口处的 `checkRetry(e, 0)` 预检查（它只 sleep 并消耗一次计数却不消费，使实到尝试次数比声明多 2 次且与加载链计数不一致）；重试次数统一由 `retryConsume` 循环承载。
