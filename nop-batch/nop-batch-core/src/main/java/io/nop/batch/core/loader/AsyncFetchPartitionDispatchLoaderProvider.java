@@ -130,7 +130,7 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
                                 }
                                 queue.addBatch(list);
                             }
-                            // 1.7-C6-008（plan 2545 W-06；closure audit B-1 修正）：这里**不得**对 fetch 线程
+                            // 1.7-C6-008（plan 2545 W-07；closure audit B-1 修正）：这里**不得**对 fetch 线程
                             // 自建的一次性 ctx 调用 complete()。底层 loader（如 ResourceRecordLoaderProvider）
                             // 在本 ctx 上注册的 chunk 压实回调依赖 ctx.getChunkItems()，而 chunkItems 仅由
                             // 消费线程的 BatchChunkProcessor.loadItems 写入；fetch ctx 的 chunkItems 恒为 null，

@@ -353,7 +353,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
                         .param(ARG_LOAD_BATCH_SIZE, loadBatchSize)
                         .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 
-            // 1.7-C6-008（plan 2545 W-06；closure audit R1 B-1 + R2 BL-1/MJ-4 修正）：**chunk 压实 + 异步 fetch
+            // 1.7-C6-008（plan 2545 W-07；closure audit R1 B-1 + R2 BL-1/MJ-4 修正）：**chunk 压实 + 异步 fetch
             // 派发**是不支持的组合。fetch 线程与消费线程在时间/线程上解耦，reader 的 chunk 级压实回调
             // （标记 processingItems 完成、推进 completedIndex）只能附着在 fetch 线程自建的一次性 ctx 上，
             // 而该 ctx 的 chunkItems 恒为 null —— 压实必然空转，completedIndex 永不推进，任务 100% 以
@@ -434,7 +434,8 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
                     (IBatchConsumer<R>) consumer, asyncProcessor, asyncProcessTimeout);
             // 1.7-C5-003（plan 2545 W-05；closure audit B-2 修正）：输出集上界接线——原实现只提供
             // setter 而无生产调用方，导致上界恒为 0（不限制），护栏在生产路径上不可达。
-            // 本处为全部装配路径（DSL/程序化/biz）构造 BatchProcessorConsumer 的唯一漏斗。
+            // 本处是主装配链的接线点；OrmBatchConsumerProvider.setup 自建 BatchProcessorConsumer 为旁路，
+            // 已独立接线同一配置键（closure audit R2 MJ-3）。
             processorConsumer.setMaxOutputItemsPerChunk(BatchConfigs.CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK.get());
             consumer = processorConsumer;
         }

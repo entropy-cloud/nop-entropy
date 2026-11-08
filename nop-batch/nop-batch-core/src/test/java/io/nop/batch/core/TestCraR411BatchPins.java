@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -280,6 +281,33 @@ public class TestCraR411BatchPins {
         // 守卫必须放行：装配成功即证明未过宽（任务随后正常跑完空数据）
         IBatchTask task = builder.buildTask();
         FutureHelper.syncGet(task.executeAsync(newTaskTaskContext()));
+    }
+
+    /**
+     * R3 Major-1：包装 provider 必须转发 chunk 压实能力——`withHook` 与 adapter 形态的裸 lambda
+     * 会静默把 `hasChunkCompaction()` 打回 false，使装配期 fail-fast 守卫失效。
+     */
+    @Test
+    public void pin10_wrapperProvidersPreserveChunkCompaction() {
+        io.nop.batch.core.loader.ResourceRecordLoaderProvider<String> provider =
+                new io.nop.batch.core.loader.ResourceRecordLoaderProvider<>();
+        provider.setSaveState(true);
+        assertTrue(provider.hasChunkCompaction(), "真实压实 provider 必须返回 true");
+
+        // withHook 缺省方法形态
+        IBatchLoaderProvider<String> hooked = provider.withHook(loader -> loader);
+        assertTrue(hooked.hasChunkCompaction(),
+                "withHook 包装必须转发压实能力（裸 lambda 会擦除 → 守卫失效）");
+
+        // adapter 形态（等价 class 载体）
+        IBatchLoaderProvider<String> adapted =
+                new io.nop.batch.core.loader.AdaptedBatchLoaderProvider<>((loader, ctx) -> loader, provider);
+        assertTrue(adapted.hasChunkCompaction(), "AdaptedBatchLoaderProvider 必须转发压实能力");
+
+        // 非压实 provider 经包装后仍为 false（不得反向误标）
+        IBatchLoaderProvider<String> plain = ctx -> (batchSize, chunkCtx) -> new ArrayList<String>();
+        assertFalse(plain.hasChunkCompaction(), "普通 provider 缺省必须为 false");
+        assertFalse(plain.withHook(loader -> loader).hasChunkCompaction(), "包装不得凭空制造压实能力");
     }
 
     private static boolean containsErrorCode(Throwable e, String code) {

@@ -414,9 +414,23 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (loaderModel.getAdapter() == null)
             return provider;
 
-        return context -> {
-            IBatchLoaderProvider.IBatchLoader<Object> loader = provider.setup(context);
-            return (IBatchLoaderProvider.IBatchLoader<Object>) loaderModel.getAdapter().call1(null, loader, context.getEvalScope());
+        // 1.7-C6-008（plan 2545 W-07；closure audit R3 Major-1）：包装 provider 必须转发
+        // hasChunkCompaction()——否则 <loader saveState="true"><adapter/></loader> 形态会把
+        // ResourceRecordLoaderProvider 的压实能力静默擦除，装配期 fail-fast 守卫失效，
+        // C6-008 原缺陷在该合法 DSL 形态上复现。
+        return new IBatchLoaderProvider<Object>() {
+            @Override
+            public IBatchLoaderProvider.IBatchLoader<Object> setup(
+                    io.nop.batch.core.IBatchTaskContext context) {
+                IBatchLoaderProvider.IBatchLoader<Object> loader = provider.setup(context);
+                return (IBatchLoaderProvider.IBatchLoader<Object>) loaderModel.getAdapter()
+                        .call1(null, loader, context.getEvalScope());
+            }
+
+            @Override
+            public boolean hasChunkCompaction() {
+                return provider.hasChunkCompaction();
+            }
         };
     }
 

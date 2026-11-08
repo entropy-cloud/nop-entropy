@@ -129,7 +129,7 @@ public class ResourceRecordLoaderProvider<S> extends AbstractBatchResourceHandle
     }
 
     /**
-     * 1.7-C6-008（plan 2545 W-06；closure audit R2 BL-1）：saveState=true 时本 loader 在 chunk 级
+     * 1.7-C6-008（plan 2545 W-07；closure audit R2 BL-1）：saveState=true 时本 loader 在 chunk 级
      * afterComplete 上承担 processingItems 压实与 completedIndex 推进——该职责读取消费 chunk 的
      * chunkItems，故异步 fetch 派发下不成立（装配期 fail-fast，见 BatchTaskBuilder.buildLoader）。
      */

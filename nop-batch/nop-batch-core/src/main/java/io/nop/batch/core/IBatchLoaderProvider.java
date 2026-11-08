@@ -10,7 +10,7 @@ public interface IBatchLoaderProvider<S> {
     IBatchLoader<S> setup(IBatchTaskContext context);
 
     /**
-     * 1.7-C6-008（plan 2545 W-06；closure audit R2 BL-1 修正）：本 provider 的 loader 是否在
+     * 1.7-C6-008（plan 2545 W-07；closure audit R2 BL-1 修正）：本 provider 的 loader 是否在
      * <b>chunk 级</b> {@code onAfterComplete} 上承担状态压实职责（标记 processingItems 完成、
      * 推进 completedIndex）。
      * <p>
@@ -28,8 +28,19 @@ public interface IBatchLoaderProvider<S> {
     }
 
     default <R> IBatchLoaderProvider<R> withHook(Function<IBatchLoader<S>, IBatchLoader<R>> hook) {
-        return ctx -> {
-            return hook.apply(setup(ctx));
+        // 1.7-C6-008（plan 2545 W-07；closure audit R3 Major-1）：必须转发 hasChunkCompaction()——
+        // 裸 lambda 会静默擦除压实能力标记，使装配期 fail-fast 守卫失效。
+        IBatchLoaderProvider<S> self = this;
+        return new IBatchLoaderProvider<R>() {
+            @Override
+            public IBatchLoader<R> setup(IBatchTaskContext context) {
+                return hook.apply(self.setup(context));
+            }
+
+            @Override
+            public boolean hasChunkCompaction() {
+                return self.hasChunkCompaction();
+            }
         };
     }
 
