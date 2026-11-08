@@ -12,10 +12,13 @@ import io.nop.xlang.xmeta.impl.SchemaImpl;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 草稿测量 fixture（时间确定化 plan 2513-WI7）：GC 稳定等待不再依赖真实时间流逝——
+ * 显式清空引用并连续调用 System.gc() 后按确定步骤读取内存。
+ */
 public class ExprAST {
     public static void main(String[] args) throws Exception {
         System.gc();
-        Thread.sleep(1000);
         System.gc();
         System.gc();
         long m1 = Runtime.getRuntime().freeMemory();
@@ -23,8 +26,9 @@ public class ExprAST {
         for (int i = 0; i < 1000000; i++) {
             list.add(new SchemaImpl());
         }
+        // 显式解除引用后 GC：内存测量不依赖 sleep 等待
+        list = null;
         System.gc();
-        Thread.sleep(1000);
         System.gc();
         System.gc();
         long m2 = Runtime.getRuntime().freeMemory();

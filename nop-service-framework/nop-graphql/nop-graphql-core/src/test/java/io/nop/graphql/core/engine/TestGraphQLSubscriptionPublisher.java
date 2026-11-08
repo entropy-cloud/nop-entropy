@@ -27,6 +27,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -147,6 +148,7 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
         AtomicInteger receivedCount = new AtomicInteger(0);
         AtomicReference<Flow.Subscription> subscriptionRef = new AtomicReference<>();
         CountDownLatch subscribeLatch = new CountDownLatch(1);
+        CountDownLatch cancelLatch = new CountDownLatch(1);
 
         publisher.subscribe(new Flow.Subscriber<GraphQLResponseBean>() {
             @Override
@@ -160,6 +162,7 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
             public void onNext(GraphQLResponseBean item) {
                 receivedCount.incrementAndGet();
                 subscriptionRef.get().cancel();
+                cancelLatch.countDown();
             }
 
             @Override
@@ -172,13 +175,14 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
         });
 
         assertTrue(subscribeLatch.await(5, TimeUnit.SECONDS));
+        // 时间确定化（plan 2513-WI7）：以取消闩为确定性交接——onNext 内 cancel() 同步返回后
+        // 才提交后续事件，Flow 协议保证已取消订阅不再收到 onNext，不用墙钟窗口。
         sourcePublisher.submit("first");
-        Thread.sleep(100);
+        assertTrue(cancelLatch.await(5, TimeUnit.SECONDS), "onNext must run and cancel synchronously");
         sourcePublisher.submit("second");
         sourcePublisher.submit("third");
         sourcePublisher.close();
 
-        Thread.sleep(200);
         assertEquals(1, receivedCount.get(), "Should receive only 1 item after cancellation");
     }
 
@@ -395,11 +399,13 @@ public class TestGraphQLSubscriptionPublisher extends BaseTestCase {
     }
 
     private void awaitUntilContextDone() throws InterruptedException {
-        long deadline = System.currentTimeMillis() + 5000;
-        while (System.currentTimeMillis() < deadline) {
-            if (context.getServiceContext().isDone())
-                return;
-            Thread.sleep(10);
+        // 时间确定化（plan 2513-WI7）：条件等待上下文完成这一事实，parkNanos 仅作等待背压，
+        // 超时上限只作挂死保护；不用固定 sleep 轮询。
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        while (!context.getServiceContext().isDone()) {
+            if (System.nanoTime() > deadline)
+                throw new IllegalStateException("execution context not completed within 5s");
+            LockSupport.parkNanos(1_000_000L);
         }
     }
 }

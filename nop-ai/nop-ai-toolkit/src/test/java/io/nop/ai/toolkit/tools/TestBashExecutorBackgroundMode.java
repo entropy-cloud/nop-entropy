@@ -180,6 +180,11 @@ public class TestBashExecutorBackgroundMode {
         }
 
         assertTrue(registry.awaitTerminal(taskId, 15_000), "task must complete");
+        // 确定性（plan 2513 门暴露）：终态写入与 onTerminal 回调投递非原子——
+        // awaitTerminal 观察到终态时回调可能仍在投递线程上；以回调证据为条件等待。
+        org.junit.jupiter.api.Assertions.assertTrue(
+                io.nop.api.core.util.FutureHelper.waitUntil(() -> notifiedStatus.get() != null, 15_000L),
+                "terminal callback must be delivered");
         assertEquals(IBackgroundTaskRegistry.STATUS_COMPLETED, notifiedStatus.get());
         assertEquals(IBackgroundTaskRegistry.STATUS_COMPLETED, registry.snapshot(taskId).getStatus());
         assertTrue(registry.readOutput(taskId).contains("Hello Background"),

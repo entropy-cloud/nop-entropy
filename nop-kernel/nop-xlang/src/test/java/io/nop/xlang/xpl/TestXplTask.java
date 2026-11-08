@@ -29,6 +29,8 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -48,7 +50,7 @@ public class TestXplTask extends BaseTestCase {
 
     @DisplayName("监控xtask文件发生改变的时候自动重新运行")
     @Test
-    public void testWatch() {
+    public void testWatch() throws Exception {
         DefaultScheduledExecutor scheduledExecutor = DefaultScheduledExecutor.newSingleThreadTimer("test");
         IRateLimitExecutor executor = new RateLimitExecutorImpl(scheduledExecutor);
         NioFileWatchService watchService = new NioFileWatchService();
@@ -108,23 +110,24 @@ public class TestXplTask extends BaseTestCase {
         assertNotEquals(lastModified, resource.lastModified());
         System.out.println("modify b.xpl：" + new Timestamp(resource.lastModified()));
 
-        try {
-            Thread.sleep(500);
-        } catch (Exception e) {
-        }
+        // 时间确定化（plan 2513-WI7）：xtask 经 WatchService 事件触发重跑存在 OS 与 debounce
+        // 延迟，用条件等待「重跑输出已变化」这一事实，超时上限只作挂死保护；不用固定 sleep。
+        awaitResultChanged(resultResource, value.toString());
 
         // 依赖文件修改导致xtask自动重新运行，产生不同的输出文件
         String text = ResourceHelper.readText(resultResource);
-        if(text.equals(value.toString())){
-            try {
-                Thread.sleep(1000);
-            } catch (Exception e) {
-            }
-            text = ResourceHelper.readText(resultResource);
-        }
         assertNotEquals(text, value.toString());
 
         watchService.stop();
         scheduledExecutor.destroy();
+    }
+
+    private static void awaitResultChanged(IResource resultResource, String oldValue) throws Exception {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (oldValue.equals(ResourceHelper.readText(resultResource))) {
+            if (System.nanoTime() > deadline)
+                throw new IllegalStateException("xtask rerun did not produce a new result within 10s");
+            LockSupport.parkNanos(10_000_000L);
+        }
     }
 }

@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Flow;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
@@ -69,6 +70,32 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
         if (handler != null) {
             handler.onClose();
         }
+        // 时间确定化：复位 mock 流闸门，避免静态闩泄漏影响同 fork 后续测试
+        releaseContinuousGate();
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousGate = null;
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousProducerDone = null;
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.testEventDone = null;
+    }
+
+    private void armContinuousGate() {
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousGate = new CountDownLatch(1);
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousProducerDone = new CountDownLatch(1);
+        SubscriptionMockSchemaLoader.TestSubscriptionBizModel.testEventDone = new CountDownLatch(1);
+    }
+
+    private void releaseContinuousGate() {
+        CountDownLatch gate = SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousGate;
+        if (gate != null)
+            gate.countDown();
+    }
+
+    private int countMessages(String fragment) {
+        int count = 0;
+        for (String m : session.getSentMessages()) {
+            if (m.contains(fragment))
+                count++;
+        }
+        return count;
     }
 
     private JsonRpcWebSocketHandler createHandler() {
@@ -146,20 +173,30 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
 
     @Test
     public void testUnsubscribe() throws Exception {
+        // 时间确定化（plan 2513-WI7）：continuous 流为闸门控制的有限流——首条事件证明订阅建立，
+        // unsubscribe 的 ack 证明取消已完成（onMessage 同步处理），放行闸后生产者提交的剩余
+        // 事件发生在订阅取消之后，被 Flow 协议确定性丢弃；不再使用墙钟观察窗。
+        armContinuousGate();
         JsonRpcWebSocketHandler handler = createHandler();
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onContinuousEvent\",\"params\":{},\"selection\":\"id\",\"id\":\"sub-1\"}");
 
-        TimeUnit.MILLISECONDS.sleep(100);
+        assertTrue(session.waitForMessageContaining("continuous_0", 10000),
+                "first continuous event must be delivered");
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"unsubscribe\",\"params\":{\"id\":\"sub-1\"},\"id\":\"cancel-1\"}");
 
-        int countBefore = session.getSentMessages().size();
-        TimeUnit.MILLISECONDS.sleep(500);
-        int countAfter = session.getSentMessages().size();
+        assertTrue(session.waitForMessageContaining("\"cancelled\":true", 10000),
+                "unsubscribe must be answered synchronously with a cancel ack, messages="
+                        + session.getSentMessages());
 
-        assertTrue(countAfter <= countBefore + 5, 
-                "Should not receive many more after cancel. Before: " + countBefore + ", After: " + countAfter);
+        // 取消已完成后再放行：后续提交全部被丢弃
+        releaseContinuousGate();
+        assertTrue(SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousProducerDone
+                .await(10, TimeUnit.SECONDS), "gated producer must finish after release");
+
+        int events = countMessages("continuous_");
+        assertEquals(1, events, "no events must be forwarded after unsubscribe, messages=" + session.getSentMessages());
     }
 
     @Test
@@ -167,7 +204,7 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
         JsonRpcWebSocketHandler handler = createHandler();
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"ping\",\"id\":\"ping-1\"}");
-        TimeUnit.MILLISECONDS.sleep(100);
+        assertTrue(session.waitForMessageContaining("\"pong\":true", 10000), "pong must be delivered");
 
         List<String> messages = session.getSentMessages();
         boolean hasPong = messages.stream().anyMatch(m -> m.contains("\"pong\":true"));
@@ -194,19 +231,25 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
 
     @Test
     public void testOnClose() throws Exception {
+        // 时间确定化（plan 2513-WI7）：onClose 同步取消全部订阅并关闭会话；放行闸后生产者
+        // 提交的剩余事件发生在取消之后，被 Flow 协议确定性丢弃，不再使用墙钟观察窗。
+        armContinuousGate();
         JsonRpcWebSocketHandler handler = createHandler();
 
         handler.onMessage("{\"jsonrpc\":\"2.0\",\"method\":\"TestSubscription__onContinuousEvent\",\"params\":{},\"selection\":\"id\",\"id\":\"sub-1\"}");
 
-        TimeUnit.MILLISECONDS.sleep(100);
+        assertTrue(session.waitForMessageContaining("continuous_0", 10000),
+                "first continuous event must be delivered");
 
         handler.onClose();
+        assertTrue(session.isClosed(), "handler onClose must close the session synchronously");
 
-        int countAfterClose = session.getSentMessages().size();
-        TimeUnit.MILLISECONDS.sleep(300);
-        int countLater = session.getSentMessages().size();
+        releaseContinuousGate();
+        assertTrue(SubscriptionMockSchemaLoader.TestSubscriptionBizModel.continuousProducerDone
+                .await(10, TimeUnit.SECONDS), "gated producer must finish after release");
 
-        assertEquals(countAfterClose, countLater, "No more messages after close");
+        int events = countMessages("continuous_");
+        assertEquals(1, events, "No more messages after close, messages=" + session.getSentMessages());
     }
 
     private static class MockWebSocketSession implements IWebSocketSession {
@@ -260,6 +303,30 @@ public class TestGraphQLEngineWithWebSocket extends BaseTestCase {
                 }
                 return sentMessages.size() >= minCount;
             }
+        }
+
+        /**
+         * 时间确定化（plan 2513-WI7）：keepAlive 会周期性发送 ping 消息，按条数等待会被
+         * ping 噪声提前满足；等待「包含指定片段的消息已到达」这一确定事实。
+         */
+        public boolean waitForMessageContaining(String fragment, long timeoutMs) throws InterruptedException {
+            long deadline = System.currentTimeMillis() + timeoutMs;
+            synchronized (lock) {
+                while (!containsFragment(fragment) && System.currentTimeMillis() < deadline) {
+                    long remaining = deadline - System.currentTimeMillis();
+                    if (remaining <= 0) break;
+                    lock.wait(remaining);
+                }
+                return containsFragment(fragment);
+            }
+        }
+
+        private boolean containsFragment(String fragment) {
+            for (String m : sentMessages) {
+                if (m.contains(fragment))
+                    return true;
+            }
+            return false;
         }
     }
 }

@@ -28,6 +28,8 @@ import java.util.concurrent.SubmissionPublisher;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,18 +57,15 @@ public class TestJsonRpcWebSocketHandler extends BaseTestCase {
      * 事件驱动等待（不依赖固定 sleep）：轮询条件直至满足，30s 仅为防挂起护栏。
      */
     private static void awaitUntil(String message, BooleanSupplier condition) {
-        long deadline = System.currentTimeMillis() + 30000;
-        while (System.currentTimeMillis() < deadline) {
-            if (condition.getAsBoolean())
-                return;
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+        // 时间确定化（plan 2513-WI7）：条件等待用 parkNanos 背压（等待的事实是事件已发生），
+        // 超时上限只作挂死保护；不用固定 sleep 轮询。
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (!condition.getAsBoolean()) {
+            if (System.nanoTime() > deadline) {
                 fail(message);
             }
+            LockSupport.parkNanos(1_000_000L);
         }
-        fail(message);
     }
 
     private MockWebSocketSession session;

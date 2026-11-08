@@ -7,6 +7,7 @@ import io.nop.gateway.core.context.GatewayContextImpl;
 import io.nop.gateway.core.context.IGatewayContext;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Field;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -135,7 +136,7 @@ class AiRateLimitGatewayInterceptorTest {
     }
 
     @Test
-    void idleBuckets_expiredAfterIdleTtl() {
+    void idleBuckets_expiredAfterIdleTtl() throws Exception {
         // TTL = ceil(capacity/refillRate)*refillIntervalMs；此处 1ms，静置后应被清扫回收
         AiRateLimitGatewayInterceptor interceptor = new AiRateLimitGatewayInterceptor();
         interceptor.setCapacity(1);
@@ -147,12 +148,25 @@ class AiRateLimitGatewayInterceptorTest {
         interceptor.onRequest(request, ctxWithXff("203.0.113.31"));
         assertTrue(interceptor.trackedKeyCount() > 0);
 
-        try {
-            Thread.sleep(50);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-        }
+        // 时间确定化（plan 2513-WI7）：expireAfterAccess 由 Caffeine 内部单调 ticker 判定，
+        // 不经 CoreMetrics 时钟；用 Caffeine Policy API 把剩余空闲过期时间置零后触发清扫，
+        // 淘汰为确定步骤，不再等待真实时间流逝。
+        setAccessExpiryToZero(interceptor);
         interceptor.cleanUpBuckets();
         assertEquals(0, interceptor.trackedKeyCount(), "空闲超过 TTL 的桶必须被淘汰回收");
+    }
+
+    private static void setAccessExpiryToZero(AiRateLimitGatewayInterceptor interceptor) throws Exception {
+        Field bucketsField = AiRateLimitGatewayInterceptor.class.getDeclaredField("buckets");
+        bucketsField.setAccessible(true);
+        io.nop.commons.cache.LocalCache<?, ?> localCache = (io.nop.commons.cache.LocalCache<?, ?>) bucketsField
+                .get(interceptor);
+        Field cacheField = io.nop.commons.cache.LocalCache.class.getDeclaredField("cache");
+        cacheField.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        com.github.benmanes.caffeine.cache.Cache<Object, Object> caffeine = (com.github.benmanes.caffeine.cache.Cache<Object, Object>) cacheField
+                .get(localCache);
+        caffeine.policy().expireAfterAccess()
+                .ifPresent(policy -> policy.setExpiresAfter(java.time.Duration.ZERO));
     }
 }

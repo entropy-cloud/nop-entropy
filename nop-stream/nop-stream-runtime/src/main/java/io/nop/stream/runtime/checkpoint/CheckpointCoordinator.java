@@ -202,7 +202,7 @@ public class CheckpointCoordinator {
      */
     private volatile long lastCompletedTimestamp = 0L;
 
-    private final ScheduledExecutorService timeoutScheduler;
+    private volatile ScheduledExecutorService timeoutScheduler;
 
     /**
      * Dedicated executor for checkpoint persistence (storeCheckPoint + storeEpochManifest).
@@ -322,6 +322,17 @@ public class CheckpointCoordinator {
                 NopStreamThreadFactory.named("checkpoint-timeout-" + jobId));
         this.retentionCleaner = new RetentionCleaner(this, config, checkpointStorage, jobId, pipelineId,
                 checkpointSegments);
+    }
+
+    /**
+     * Additive test seam (plan 2513 时间确定化): lets tests inject a deterministic
+     * (virtual-time) scheduler for checkpoint timeout firing. Default behavior is
+     * unchanged — the constructor still creates the real single-thread scheduler and
+     * every non-test path uses it. Must be called before any checkpoint trigger.
+     */
+    void setTimeoutSchedulerForTest(ScheduledExecutorService scheduler) {
+        this.timeoutScheduler = java.util.Objects.requireNonNull(scheduler,
+                "timeout scheduler must not be null");
     }
 
     public void addListener(CheckpointListener listener) {

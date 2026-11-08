@@ -3,10 +3,10 @@
   "generator": "ai-dev/tools/check-test-time-waits.mjs --update",
   "updatedAt": "2026-11-07",
   "totals": {
-    "OTHER": 57,
-    "POLL_LOOP": 35,
+    "OTHER": 44,
+    "POLL_LOOP": 31,
     "SIMULATED_WORK": 1,
-    "SLEEP_THEN_ASSERT": 29
+    "SLEEP_THEN_ASSERT": 18
   },
   "entries": {
     "nop-ai/nop-ai-core/src/test/java/io/nop/ai/core/service/TestResponsesDialectIntegration.java": {
@@ -107,30 +107,6 @@
     "nop-job/nop-job-local/src/test/java/io/nop/job/local/TestLocalSchedulerResultContract.java": {
       "POLL_LOOP": 1
     },
-    "nop-kernel/nop-api-core/src/test/java/io/nop/api/core/context/TestContextTaskQueue.java": {
-      "POLL_LOOP": 1
-    },
-    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/executor/TestRateLimitExecutor.java": {
-      "OTHER": 3,
-      "SLEEP_THEN_ASSERT": 2
-    },
-    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/executor/TestSequentialTaskExecutor.java": {
-      "OTHER": 1
-    },
-    "nop-kernel/nop-commons/src/test/java/io/nop/commons/concurrent/lock/TestLocalLockManager.java": {
-      "OTHER": 2,
-      "SLEEP_THEN_ASSERT": 2
-    },
-    "nop-kernel/nop-xlang-truffle/src/test/java/io/nop/xlang/truffle/TestXLangContextPool.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-kernel/nop-xlang/src/test/java/io/nop/xlang/xpl/TestXplTask.java": {
-      "OTHER": 1,
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-kernel/nop-xlang/src/test/java/model/ExprAST.java": {
-      "OTHER": 2
-    },
     "nop-metadata/nop-metadata-service/src/test/java/io/nop/metadata/service/TestNopMetaQualityCheckpointBizModel.java": {
       "POLL_LOOP": 1,
       "SLEEP_THEN_ASSERT": 1
@@ -174,23 +150,6 @@
     },
     "nop-search/nop-search-lucene/src/test/java/io/nop/search/TestLuceneSearchEngine.java": {
       "OTHER": 1
-    },
-    "nop-service-framework/nop-gateway/src/test/java/io/nop/gateway/core/interceptor/AiRateLimitGatewayInterceptorTest.java": {
-      "SLEEP_THEN_ASSERT": 1
-    },
-    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/SubscriptionMockSchemaLoader.java": {
-      "POLL_LOOP": 2
-    },
-    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/TestGraphQLEngineWithWebSocket.java": {
-      "OTHER": 2,
-      "SLEEP_THEN_ASSERT": 3
-    },
-    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/engine/TestGraphQLSubscriptionPublisher.java": {
-      "OTHER": 2,
-      "POLL_LOOP": 1
-    },
-    "nop-service-framework/nop-graphql/nop-graphql-core/src/test/java/io/nop/graphql/core/ws/TestJsonRpcWebSocketHandler.java": {
-      "SLEEP_THEN_ASSERT": 1
     },
     "nop-stream/nop-stream-connector-debezium/src/test/java/io/nop/stream/connector/debezium/TestDebeziumRealMysqlParallel.java": {
       "SLEEP_THEN_ASSERT": 1

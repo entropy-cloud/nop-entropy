@@ -13,11 +13,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.test.time.ManualClock;
+import io.nop.commons.test.time.ManualScheduler;
+
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -147,14 +152,22 @@ class TestCheckpointParticipantContraction {
 
         // Explicit terminal action: the epoch is assembled from the inherited
         // terminal states and completes inline (immediate, no live ACKs).
-        long start = System.currentTimeMillis();
-        PendingCheckpoint terminal = coordinator.triggerCheckpointBounded(
-                CheckpointType.COMPLETED_POINT_TYPE, 5000L);
-        assertNotNull(terminal, "The explicit terminal trigger still produces its epoch");
-        CompletedCheckpoint completed = terminal.getCompletableFuture().get(5, TimeUnit.SECONDS);
-        assertNotNull(completed, "The all-terminal epoch completes (no hanging, no job fail)");
-        assertTrue(System.currentTimeMillis() - start < 2000L,
-                "The all-terminal epoch completes immediately (nothing live to wait for)");
+        // 时间确定化（plan 2513）：注入与 ManualClock 共线的手动调度器——虚拟时间
+        // 从未推进，超时任务不可能被触发；future 仍然完成即结构性证明「无需等待」
+        // （替代墙钟 elapsed < 2000 阈值断言，禁止形态第 4 类）。
+        io.nop.commons.test.time.ManualClock manualClock = new io.nop.commons.test.time.ManualClock(1_000_000L);
+        io.nop.api.core.time.CoreMetrics.registerClock(manualClock);
+        CompletedCheckpoint completed;
+        try {
+            coordinator.setTimeoutSchedulerForTest(new io.nop.commons.test.time.ManualScheduler(manualClock));
+            PendingCheckpoint terminal = coordinator.triggerCheckpointBounded(
+                    CheckpointType.COMPLETED_POINT_TYPE, 5000L);
+            assertNotNull(terminal, "The explicit terminal trigger still produces its epoch");
+            completed = terminal.getCompletableFuture().get(5, TimeUnit.SECONDS);
+            assertNotNull(completed, "The all-terminal epoch completes (no hanging, no job fail)");
+        } finally {
+            io.nop.api.core.time.CoreMetrics.registerClock(io.nop.api.core.time.CoreMetrics.defaultClock());
+        }
         assertEquals("e1-v1", completed.getTaskState(LOC_1).getOperatorState("op"),
                 "The epoch carries the inherited state of terminal task v1");
         assertEquals("e1-v2", completed.getTaskState(LOC_2).getOperatorState("op"),
@@ -211,6 +224,13 @@ class TestCheckpointParticipantContraction {
      */
     @Test
     void testUncontractedCompletedTaskStallsEpochUntilTimeout() throws Exception {
+        // 时间确定化（plan 2513）：超时触发器用与 ManualClock 共享虚拟时间线的
+        // ManualScheduler 注入（plan 2512/2513 式附加 seam，默认路径不变）；
+        // 「等满超时才中止」的契约由精确虚拟时刻的 (a)+(b) 结构性证明，
+        // 不再用墙钟 elapsed 阈值断言。
+        ManualClock clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
+        ManualScheduler timeoutScheduler = new ManualScheduler(clock);
         CheckpointConfig config = CheckpointConfig.builder()
                 .checkpointEnabled(true)
                 .checkpointTimeout(400L)
@@ -220,6 +240,7 @@ class TestCheckpointParticipantContraction {
                 .build();
         CheckpointCoordinator stall = new CheckpointCoordinator("j2", "p",
                 new CheckpointIDCounter(), storage, config);
+        stall.setTimeoutSchedulerForTest(timeoutScheduler);
         stall.setTasksToAcknowledge(Arrays.asList(LOC_1, LOC_2));
         try {
             PendingCheckpoint p1 = stall.tryTriggerPendingCheckpoint(CheckpointType.CHECKPOINT);
@@ -229,18 +250,29 @@ class TestCheckpointParticipantContraction {
                     TaskStateSnapshot.builder(LOC_1).checkpointId(p1.getCheckpointId())
                             .putOperatorState("op", "v1").build());
 
-            long start = System.currentTimeMillis();
+            // (a) Not yet due: the timeout task is scheduled (structural, count == 1)
+            // but 399 virtual ms short of its 400ms deadline — the epoch future must
+            // still be pending. This proves the coordinator does NOT abort early.
+            assertEquals(1, timeoutScheduler.pendingTaskCount(),
+                    "The timeout task is scheduled for the epoch");
+            timeoutScheduler.advance(399L);
+            assertFalse(p1.getCompletableFuture().isDone(),
+                    "Before the timeout deadline the epoch must still be pending (no early abort)");
+            assertEquals(1, timeoutScheduler.pendingTaskCount(),
+                    "The timeout task has not fired before its deadline");
+
+            // (b) At the deadline the timeout task fires and aborts the epoch.
+            timeoutScheduler.advance(1L);
             java.util.concurrent.ExecutionException blocked = assertThrows(
                     java.util.concurrent.ExecutionException.class,
                     () -> p1.getCompletableFuture().get(5, TimeUnit.SECONDS),
                     "The epoch can only end in the timeout abort (the pre-fix defect mechanism)");
-            assertTrue(System.currentTimeMillis() - start >= 350L,
-                    "The epoch waited for the full checkpoint timeout before aborting");
             assertTrue(String.valueOf(blocked.getCause()).contains("Timeout")
                             || String.valueOf(blocked.getCause()).contains("abort"),
                     "The abort is the timeout abort: " + blocked.getCause());
         } finally {
             stall.shutdown();
+            CoreMetrics.registerClock(CoreMetrics.defaultClock());
         }
     }
 }

@@ -24,6 +24,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -117,27 +118,46 @@ public class TestXLangContextPool {
     public void testPoolExhaustionBlocksUntilReturn() throws Exception {
         pool = XLangContextPool.open(1);
         ExecutorService executor = Executors.newSingleThreadExecutor();
+        AtomicReference<Thread> waiterThread = new AtomicReference<>();
         XLangContextPool.Lease first = pool.lease();
         try {
             assertEquals(11, evalValue(first, "/pool-block.xpl", literal(11)));
             CountDownLatch started = new CountDownLatch(1);
             AtomicReference<Object> secondResult = new AtomicReference<>();
             Future<?> waiter = executor.submit(() -> {
+                waiterThread.set(Thread.currentThread());
                 started.countDown();
                 try (XLangContextPool.Lease second = pool.lease()) {
                     secondResult.set(evalValue(second, "/pool-blocked.xpl", literal(22)));
                 }
             });
             assertTrue(started.await(5, TimeUnit.SECONDS));
-            Thread.sleep(200);
+            // 时间确定化（plan 2513-WI7）：借出阻塞的确定性证据 = 租借者线程已阻塞在池的
+            // idle.take() 上（WAITING）且池内无可用 Context；条件等待，超时只作挂死保护。
+            awaitThreadWaiting(waiterThread, "second borrower must block in pool.lease() "
+                    + "while the pool is exhausted");
             assertFalse(waiter.isDone(), "second borrower must block while the pool is exhausted");
             assertEquals(1, pool.leasedCount());
+            assertEquals(0, pool.availableCount(), "no context available while leased");
             first.close();
             waiter.get(10, TimeUnit.SECONDS);
             assertEquals(22, secondResult.get(), "blocked borrower must complete after the lease is returned");
         } finally {
             assertThrows(IllegalStateException.class, first::close, "double return must fail fast");
             executor.shutdownNow();
+        }
+    }
+
+    private static void awaitThreadWaiting(AtomicReference<Thread> threadRef, String message)
+            throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        Thread t = threadRef.get();
+        while (t == null || t.getState() != Thread.State.WAITING) {
+            if (System.nanoTime() > deadline)
+                throw new IllegalStateException(message + ", state="
+                        + (t == null ? "not-started" : t.getState()));
+            LockSupport.parkNanos(1_000_000L);
+            t = threadRef.get();
         }
     }
 

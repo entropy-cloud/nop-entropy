@@ -74,29 +74,65 @@ public class TestTeamExecuteFlowAsyncWiring {
     }
 
     /**
-     * Recording agent engine that counts execute() invocations and completes
-     * each call after a small async delay (so a true-async wiring is
-     * distinguishable from a sync-then-wrap pattern).
+     * Recording agent engine that counts execute() invocations and parks each
+     * returned future until {@link #releaseAll()} (so a true-async wiring is
+     * deterministically distinguishable from a sync-then-wrap pattern).
      */
     static final class RecordingAgentEngine implements IAgentEngine {
         final AtomicInteger executeCount = new AtomicInteger();
         final List<AgentMessageRequest> capturedRequests = Collections.synchronizedList(new ArrayList<>());
+
+        private final List<ParkedCall> parkedCalls = new ArrayList<>();
+        private boolean released;
 
         @Override
         public AgentMessageAck sendMessage(AgentMessageRequest request) {
             throw new UnsupportedOperationException();
         }
 
+        // 时间确定化（plan 2513）：每个 execute() 返回一个真正挂起的 future——
+        // 在 releaseAll() 之前没有任何线程会完成它，因此「future 未同步完成」
+        // 的断言是结构性的，不再依赖异步完成与断言之间的赛跑。
         @Override
         public CompletableFuture<AgentExecutionResult> execute(AgentMessageRequest request) {
             executeCount.incrementAndGet();
             capturedRequests.add(request);
             String taskId = (String) request.getMetadata().get("teamTaskId");
-            // Real async: complete on a worker thread (supplyAsync already
-            // guarantees a different thread — 时间确定化：无需真实延迟).
-            return CompletableFuture.supplyAsync(() ->
-                new AgentExecutionResult(AgentExecStatus.completed, "ok:" + taskId,
-                        Collections.emptyList(), 1, 10L, 1L, null));
+            CompletableFuture<AgentExecutionResult> future = new CompletableFuture<>();
+            synchronized (parkedCalls) {
+                if (released) {
+                    future.complete(result(taskId));
+                } else {
+                    parkedCalls.add(new ParkedCall(future, taskId));
+                }
+            }
+            return future;
+        }
+
+        /** Complete every parked engine future with the recorded task's result. */
+        void releaseAll() {
+            synchronized (parkedCalls) {
+                released = true;
+                for (ParkedCall call : parkedCalls) {
+                    call.future.complete(result(call.taskId));
+                }
+                parkedCalls.clear();
+            }
+        }
+
+        private static AgentExecutionResult result(String taskId) {
+            return new AgentExecutionResult(AgentExecStatus.completed, "ok:" + taskId,
+                    Collections.emptyList(), 1, 10L, 1L, null);
+        }
+
+        private static final class ParkedCall {
+            final CompletableFuture<AgentExecutionResult> future;
+            final String taskId;
+
+            ParkedCall(CompletableFuture<AgentExecutionResult> future, String taskId) {
+                this.future = future;
+                this.taskId = taskId;
+            }
         }
     }
 
@@ -169,11 +205,16 @@ public class TestTeamExecuteFlowAsyncWiring {
                 .executeAsync(buildCall(), ctx)
                 .toCompletableFuture();
 
-        // The tool's future is initially incomplete (engine's future is parked).
+        // The tool's future is initially incomplete: the engine futures are genuinely
+        // parked (nothing completes them until releaseAll), so this is structural
+        // anti-hollow evidence — real async wiring, not a pre-241 completedFuture wrap.
         assertFalse(future.isDone(),
                 "tool future must not be done synchronously — real async wiring "
                         + "(pre-241 hollow would wrap a completedFuture)");
 
+        // Release the parked engine futures explicitly (deterministic cross-thread
+        // handoff): the DAG's task results drive task A → task B to completion.
+        engine.releaseAll();
         AiToolCallResult result = future.get(5, TimeUnit.SECONDS);
 
         // Anti-Hollow #23: the engine was actually invoked twice.

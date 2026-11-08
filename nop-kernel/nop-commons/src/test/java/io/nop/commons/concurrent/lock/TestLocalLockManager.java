@@ -7,25 +7,34 @@
  */
 package io.nop.commons.concurrent.lock;
 
+import io.nop.api.core.time.CoreMetrics;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.commons.concurrent.executor.IScheduledExecutor;
 import io.nop.commons.concurrent.lock.impl.LocalResourceLockManager;
+import io.nop.commons.test.time.ManualClock;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.ThreadLocalRandom;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+/**
+ * 时间确定化（plan 2513-WI7）：LocalResourceLockManager 的租约判定读 {@code CoreMetrics.currentTimeMillis()}，
+ * 测试注册 ManualClock 虚拟时钟；租约过期由测试显式推进虚拟时间触发，不再等待真实墙钟流逝。
+ */
 public class TestLocalLockManager {
     IScheduledExecutor timer;
 
     LocalResourceLockManager lockManager;
 
+    private ManualClock clock;
+
     @BeforeEach
     public void setUp() {
+        clock = new ManualClock(1_000_000L);
+        CoreMetrics.registerClock(clock);
         lockManager = new LocalResourceLockManager();
         lockManager.setCleanupTimer(GlobalExecutors.globalTimer());
         lockManager.init();
@@ -33,6 +42,7 @@ public class TestLocalLockManager {
 
     @AfterEach
     public void tearDown() {
+        CoreMetrics.registerClock(CoreMetrics.defaultClock());
         if (lockManager != null)
             lockManager.destroy();
     }
@@ -62,17 +72,11 @@ public class TestLocalLockManager {
                         try {
                             if (lock.tryLockWithLease(200L, 50)) {
                                 try {
-                                    Thread.sleep(100 + ThreadLocalRandom.current().nextInt(300));
+                                    lock.unlock();
                                 } catch (Exception e) {
                                     e.printStackTrace();
                                 }
-                                lock.unlock();
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                        }
-                        try {
-                            Thread.sleep(ThreadLocalRandom.current().nextInt(50));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -109,23 +113,23 @@ public class TestLocalLockManager {
     }
 
     @Test
-    public void testTryResetLeaseOnExpired() throws InterruptedException {
+    public void testTryResetLeaseOnExpired() {
         IResourceLockState state = lockManager.tryLockWithLease("reset-b", "h1", 100, 100, null);
         assertTrue(state != null);
-        Thread.sleep(250);
 
-        // 租约已过期，续租应失败
+        // 推进虚拟时间越过租约到期点：租约已过期，续租应失败
+        clock.advance(250);
         assertTrue(!lockManager.tryResetLease(state, 10000));
         assertTrue(lockManager.getLockState("reset-b") == null);
     }
 
     @Test
-    public void testIsHoldingLockOnExpired() throws InterruptedException {
+    public void testIsHoldingLockOnExpired() {
         IResourceLockState state = lockManager.tryLockWithLease("hold-b", "h1", 100, 100, null);
         assertTrue(state != null);
-        Thread.sleep(250);
 
-        // 已过期的锁不应被报告为持有
+        // 推进虚拟时间越过租约到期点：已过期的锁不应被报告为持有
+        clock.advance(250);
         assertTrue(!lockManager.isHoldingLock(state));
         assertTrue(lockManager.getLockState("hold-b") == null);
     }

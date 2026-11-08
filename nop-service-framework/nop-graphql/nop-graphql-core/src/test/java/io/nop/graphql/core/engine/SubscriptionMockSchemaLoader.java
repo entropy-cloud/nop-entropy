@@ -37,6 +37,9 @@ import io.nop.graphql.core.schema.TypeRegistry;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.LockSupport;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -135,24 +138,53 @@ public class SubscriptionMockSchemaLoader implements IGraphQLSchemaLoader {
 
     @BizModel("TestSubscription")
     public static class TestSubscriptionBizModel {
+        /**
+         * 时间确定化（plan 2513-WI7）：continuous 流的测试侧放行闩。测试在订阅前置入非 null 闩，
+         * 生产者提交首条事件后挂起，测试确认取消/关闭完成后再放行——放行后的提交发生在
+         * 订阅已取消之后，事件被 Flow 协议确定性丢弃。未置闩时（其他测试）直接连续提交。
+         */
+        static volatile CountDownLatch continuousGate;
+        /** 生产者提交完闸门后剩余事件并 close 后 countDown，作为「流已终结」的确定性证据。 */
+        static volatile CountDownLatch continuousProducerDone;
+        /** onTestEvent 生产者线程终结证据。 */
+        static volatile CountDownLatch testEventDone;
+
+        /**
+         * 时间确定化（plan 2513-WI7）：SubmissionPublisher 只向已接入的订阅者投递事件——
+         * 提交前先等「订阅者已接入」这一确定性事实（条件等待，超时只作挂死保护），
+         * 避免生产者抢先 submit 导致首条事件被静默丢弃。
+         */
+        private static void awaitSubscriber(SubmissionPublisher<?> publisher)
+                throws InterruptedException {
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+            while (publisher.getNumberOfSubscribers() == 0) {
+                if (System.nanoTime() > deadline)
+                    throw new IllegalStateException("no subscriber attached to mock publisher within 10s");
+                LockSupport.parkNanos(1_000_000L);
+            }
+        }
 
         @BizSubscription
         @GraphQLReturn(bizObjName = "TestEvent")
         public Flow.Publisher<TestEvent> onTestEvent(@Name("filter") String filter) {
             SubmissionPublisher<TestEvent> publisher = new SubmissionPublisher<>();
             
+            // 时间确定化（plan 2513-WI7）：有限事件流一次性提交后 close，事件推进由
+            // 订阅方 request(1) 拉动，不依赖真实时间流逝。
             new Thread(() -> {
                 try {
+                    awaitSubscriber(publisher);
                     for (int i = 0; i < 3; i++) {
                         TestEvent event = new TestEvent();
                         event.setId("event_" + i);
                         event.setMessage("Test message " + i + (filter != null ? " filter:" + filter : ""));
                         publisher.submit(event);
-                        Thread.sleep(50);
                     }
                     publisher.close();
-                } catch (InterruptedException e) {
+                } catch (Throwable e) {
                     publisher.closeExceptionally(e);
+                } finally {
+                    testEventDone.countDown();
                 }
             }).start();
             
@@ -164,18 +196,27 @@ public class SubscriptionMockSchemaLoader implements IGraphQLSchemaLoader {
         public Flow.Publisher<TestEvent> onContinuousEvent() {
             SubmissionPublisher<TestEvent> publisher = new SubmissionPublisher<>();
             
+            // 时间确定化（plan 2513-WI7）：continuous 流改为测试侧闸门控制的有限流——
+            // 首条事件提交后（证明订阅已建立）挂起等待测试放行，放行后提交其余事件并 close。
+            // 不再依赖真实时间流逝产生事件节奏。
             new Thread(() -> {
                 try {
-                    for (int i = 0; i < 100; i++) {
+                    awaitSubscriber(publisher);
+                    for (int i = 0; i < 3; i++) {
                         TestEvent event = new TestEvent();
                         event.setId("continuous_" + i);
                         event.setMessage("Continuous event " + i);
                         publisher.submit(event);
-                        Thread.sleep(10);
+                        if (i == 0 && continuousGate != null) {
+                            continuousGate.await();
+                        }
                     }
                     publisher.close();
-                } catch (InterruptedException e) {
+                } catch (Throwable e) {
                     publisher.closeExceptionally(e);
+                } finally {
+                    if (continuousProducerDone != null)
+                        continuousProducerDone.countDown();
                 }
             }).start();
             

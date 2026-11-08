@@ -14,6 +14,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -82,12 +83,14 @@ public class TestContextTaskQueue {
 
     private static void awaitFlusherParked(Thread flusher, AtomicBoolean markerRun) throws InterruptedException {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+        // 条件等待（时间确定化 plan 2513-WI7）：marker任务已执行 + flusher已阻塞在内部锁的
+        // lock.lock() 上——我们持有锁，flusher 必然到达该临界区并阻塞，条件必然成立；
+        // parkNanos 仅作等待背压，超时上限只作挂死保护，不用固定 sleep 轮询。
         while (!(markerRun.get() && flusher.getState() == Thread.State.WAITING)) {
             if (System.nanoTime() > deadline)
                 throw new IllegalStateException("flusher not parked at exit critical section, state="
                         + flusher.getState() + ", markerRun=" + markerRun.get());
-            // noinspection BusyWait
-            Thread.sleep(5);
+            LockSupport.parkNanos(1_000_000L);
         }
     }
 
