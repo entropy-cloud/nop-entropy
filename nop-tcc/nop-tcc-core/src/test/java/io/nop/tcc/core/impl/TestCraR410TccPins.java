@@ -55,7 +55,22 @@ public class TestCraR410TccPins {
     public void pin02a_concurrentInstanceReturnsSameRegistry() throws Exception {
         IContext context = new BaseContext();
         int threads = 16;
-        CyclicBarrier barrier = new CyclicBarrier(threads);
+        // 确定性交错：前 N 个线程都必须先读到 null（= 都过了快路径）再继续创建，
+        // 使「非原子 get→new→set」必现身份分裂（否则纯竞速腿概率性未命中）
+        int rendezvous = threads;
+        CountDownLatch bothSawNull = new CountDownLatch(rendezvous);
+        AtomicInteger hookCalls = new AtomicInteger();
+        TccTransactionRegistry.raceProbeHook = () -> {
+            if (hookCalls.incrementAndGet() <= rendezvous) {
+                bothSawNull.countDown();
+                try {
+                    bothSawNull.await(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        };
+
         ExecutorService pool = Executors.newFixedThreadPool(threads);
         List<TccTransactionRegistry> results = new ArrayList<>();
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -65,7 +80,6 @@ public class TestCraR410TccPins {
                 futures.add(f);
                 pool.submit(() -> {
                     try {
-                        barrier.await(5, TimeUnit.SECONDS);
                         TccTransactionRegistry registry = TccTransactionRegistry.instance(context);
                         synchronized (results) {
                             results.add(registry);
@@ -76,8 +90,9 @@ public class TestCraR410TccPins {
                     }
                 });
             }
-            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(30, TimeUnit.SECONDS);
+            CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).get(60, TimeUnit.SECONDS);
         } finally {
+            TccTransactionRegistry.raceProbeHook = null;
             pool.shutdownNow();
         }
 
@@ -123,13 +138,19 @@ public class TestCraR410TccPins {
      */
     @Test
     public void pin03a_guardRejectsWhenDbStatusNotTrying() {
-        FakeTccRecordStore store = new FakeTccRecordStore();
+        // DB 侧已回滚终态，调用方链持有的内存副本仍 TRYING（陈旧放行面）——
+        // 必须是两个不同对象，否则内存副本与 DB 行同体，测不到「只读内存副本」的缺陷。
+        FakeTccRecordStore.FakeTccRecord dbRow = new FakeTccRecordStore.FakeTccRecord("g", "txn-db-divergent");
+        dbRow.status = TccStatus.CANCEL_SUCCESS;
+        FakeTccRecordStore store = new FakeTccRecordStore() {
+            @Override
+            public CompletionStage<ITccRecord> getTccRecordAsync(String txnGroup, String txnId) {
+                return CompletableFuture.completedFuture(dbRow);
+            }
+        };
         TccEngine engine = newEngine(store);
-        FakeTccRecordStore.FakeTccRecord record = (FakeTccRecordStore.FakeTccRecord)
-                store.newTccRecord("g");
-        // DB 侧已回滚终态，内存副本仍 TRYING（陈旧放行面）
+        FakeTccRecordStore.FakeTccRecord record = new FakeTccRecordStore.FakeTccRecord("g", "txn-db-divergent");
         record.status = TccStatus.TRYING;
-        store.records.get(record.getTxnId()).status = TccStatus.CANCEL_SUCCESS;
 
         TccTransaction txn = new TccTransaction(true, record, engine, 0L);
         Throwable err = assertThrows(Throwable.class, () -> engine.runBranchTransactionAsync(txn,

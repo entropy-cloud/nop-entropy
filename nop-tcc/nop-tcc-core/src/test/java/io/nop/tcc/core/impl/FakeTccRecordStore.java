@@ -30,7 +30,7 @@ public class FakeTccRecordStore implements ITccRecordStore {
         volatile TccStatus status = TccStatus.CREATED;
         final Timestamp expireAt = new Timestamp(System.currentTimeMillis() + 60_000);
 
-        FakeTccRecord(String txnGroup, String txnId) {
+        public FakeTccRecord(String txnGroup, String txnId) {
             this.txnGroup = txnGroup;
             this.txnId = txnId;
         }

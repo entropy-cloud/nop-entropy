@@ -37,11 +37,22 @@ public class TccTransactionRegistry extends ContextualizedRegistry<String, ITccT
      * 多线程。公共 {@link #instance()} 经 ContextProvider 的 ThreadLocal 取上下文，N 线程天然各持
      * 独立上下文，无法构造竞态。
      */
+    /**
+     * 测试 seam（plan 2543 红②确定性）：首次查询为 null 与进入临界区之间插入交错点。
+     * 生产为 null（零行为影响）；测试设置后可在该点强制「多线程都已读到 null」再继续，
+     * 使「非原子创建 → 身份分裂」的缺陷态可确定性复现（否则多线程竞速腿是概率性的）。
+     */
+    static volatile Runnable raceProbeHook;
+
     static TccTransactionRegistry instance(IContext context) {
         Map<String, Object> attrs = context.getAttrs();
         TccTransactionRegistry registry = (TccTransactionRegistry) attrs.get(CONTEXT_KEY);
         if (registry != null)
             return registry;
+
+        Runnable hook = raceProbeHook;
+        if (hook != null)
+            hook.run();
 
         synchronized (attrs) {
             registry = (TccTransactionRegistry) attrs.get(CONTEXT_KEY);

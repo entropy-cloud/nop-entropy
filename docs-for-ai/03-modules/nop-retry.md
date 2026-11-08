@@ -31,10 +31,30 @@
 - **覆盖**（OVERWRITE）：以原子替换包络删除已有未完成记录并以新请求替换（store 层 `replaceRecord` 单事务 delete+save，失败整体回滚、旧记录存活并死信化全量快照，任务零蒸发）；替换成功时递增该记录的进程内代际号，旧链（在途回调/已调度续跑定时器）每次回调/续跑/回写前校验「代际一致 ∧ DB 行仍在」，任一不满足即短路中止（INFO 留痕）；旧链回写命中已删行（0 行）同样显式短路——覆盖重提后幽灵旧链双执行不可达
 - **查重范围**：提交去重覆盖全部生命周期状态——已有 PENDING/RETRYING/SUSPENDED 记录按上述策略阻塞（SUSPENDED 是运维暂停，重复提交不偷偷恢复执行）；已有 COMPLETED 记录时重提交按幂等重放直接返回成功，不重新执行副作用、不撞唯一键
 - **并发首提兜底**：两方同时以同一幂等键首发时由 `UK_RETRY_IDEMPOTENT_ID` 唯一键裁决，输家按 blockStrategy 处理，不以裸约束冲突暴露
+- **OVERWRITE 输家分流（plan 2543 W-01）**：原子替换失败后按「异常类型 × 重读行身份」四分支处置——(a) UK 冲突且重读行 sid 不同（键已被对端合法替换）→ 让步返回成功、**不造死信**；(b) UK 冲突且重读为同一行（事务已回滚、旧行真实存活）→ 死信快照 + `ERR_RETRY_RECORD_OVERWRITTEN`；(c) UK 冲突且重读行为空（键位被并发删除）→ `ERR_RETRY_OVERWRITE_RACE_LOST`、不造死信；(d) **非 UK 异常**（瞬时 DB 故障/锁超时）→ 纯失败传播、**不造死信也不删除旧行**——此类异常下无法判定是否存在并发赢家，而死信含删除动作，禁止以猜测驱动破坏性操作
 
 ## 回调
 
 由 policy 驱动（`callbackEnabled` + `callbackTriggerType` + `callbackPolicyId`），仅在 `callbackEnabled=true` 且存在 `callbackPolicyId` 时触发。当前实现仍回调原任务 service/method，payload 含 `recordId`/`idempotentId`/`success`/`retryCount`/`errorCode`/`errorMessage`；回调任务 idempotentId 追加 `_callback` 后缀。
+
+**回调链环护栏（plan 2543 W-09）**：回调记录的策略是 `callbackPolicyId`，其终态又在同一策略下孵化下一条回调记录、idempotentId 逐环追加 `_callback`——若策略链成环（A→A 或 A→B→A），每环真实调用一次业务且记录数无界增长。孵化前统计 idempotentId **尾部连续 `_callback` 后缀**的重复次数作为环深，达到 `nop.retry.callback.max-depth`（缺省 3，`<=0` = 显式不限制）即**拒绝孵化**：ERROR 留痕（`nop.retry.callback-depth-exceeded`）+ 计数（`getCallbackDepthExceededCount()`）+ 不创建回调记录、不写死信、不改主记录结论（主业务结果已定，回调是旁路）。装载期策略环校验需 policy-save hook（属 `nop-retry-service`），不在本引擎范围。
+
+## 配置边界（plan 2543 W-12/W-14）
+
+扫描器参数在**装配期 fail-fast**（越界抛 `ERR_RETRY_SCANNER_CONFIG_INVALID`，不静默回落缺省）：
+
+| 配置键 | 缺省 | 合法域 / 语义 |
+|--------|------|--------------|
+| `nop.retry.scanner.batch-size` | 100 | `[1, 1000]`。`0` 会使每轮 fetch 恒空（扫描器「运行中」但永不处理记录，与「无积压」不可区分）；负值透传 SQL 致每轮报错；巨值单批物化无上界 |
+| `nop.retry.scanner.scan-interval-ms` | 5000 | `>= 100`。负/零使调度退化为零间隔紧循环（上一轮返回后立即重扫），DB 满频敲击 |
+| `nop.retry.scanner.retrying-timeout-ms` | 600000 | `> 0`。非正使 tryLock 写出的锁过期时间落在过去，记录被立即重拾（租约语义失效） |
+| `nop.retry.scanner.max-batches-per-round` | 10 | `>= 1`。单次 `doScan` 最多处理的**非空批**数（锁竞争的 `continue` 轮不耗预算） |
+| `nop.retry.scanner.max-round-duration-ms` | 60000 | `>= 1`。单次 `doScan` 时长上界（每批开始前检查） |
+| `nop.retry.callback.max-depth` | 3 | `<=0` = 不限制；见「回调链环护栏」 |
+
+仓储层另有防御：`fetchPendingRecords(limit<=0, …)` 直接抛 `ERR_RETRY_SCANNER_CONFIG_INVALID`，不透传查询。
+
+**升级注记**：既有部署若配置了 `0`/负值/超上限的扫描参数，升级后**启动失败**（fail-fast 而非静默降级）——这是有意的契约变更，须在升级前校正配置。
 
 ## 关键字段
 
@@ -96,6 +116,8 @@
 - **链存活**：任务体任何 Throwable（含 Error）由绝缘设施捕获、观测并重臂——单轮扫描失败（含 DB 瞬时异常/Error）不会永久停摆扫描器；Exception 级失败由站点自身 catch 兜底记 `nop.retry.scanner.scan-failed`，Error 级失败由设施守卫观测（`nop.err.periodic-task.fail` + `nop.retry.scanner.round-failed`）。
 - **链终止**：仅两条路径——调用方 `stopScanning()`（cancel）或设施级提交拒绝（timer/worker 池关闭，`nop.retry.scanner.chain-rejected`）；拒绝后 `isRunning()` 真实化为 `false`，链不复活。
 - **存活指标**：`getScanCount()` / `getLastScanTimeMillis()` / `getLastScanDurationMillis()`（每轮扫描结束刷新，含异常路径）与 `getScanFailureCount()` / `getLastScanFailureTimeMillis()`——`lastScanTimeMillis` 停止增长即扫描链停摆的可判别信号。
+- **单轮上界（plan 2543 W-12）**：`doScan` 的排水式 `do-while` 原先无上界——单轮时长 = 批次数 × 最慢批耗时（下游批量超时时可达小时级），期间扫描心跳不推进、租约语义被间接破坏。现加**批次数与时长双上界**（先到先断）：达 `max-batches-per-round`（非空批口径）或 `max-round-duration-ms` 即结束本轮，余量交下一 fixedDelay 轮。上界只控本轮起点，**不打断在途批**（保 future 终态完备）。结束原因经 `getLastRoundEndReason()` 可观测（`BACKLOG_DRAINED`/`MAX_BATCHES`/`MAX_DURATION`/`STOPPED`/`FETCH_ERROR`）。
+- **批内 per-record 隔离（plan 2543 W-11）**：批处理由惰性 `stream().map(...).toArray()` 改为显式循环 + 单条 try/catch——原形态下第 k 条记录同步抛出即中断整个 `toArray`，第 k+1..N 条的 future 根本不会创建，且这些记录已被 `tryLockRecordsForProcess` 置 RETRYING（租约 +10min），下周期同页排序不变（`nextTriggerTime asc + sid asc`）时**确定性顺延**（饿死）。现单条同步抛不再中断本批其余记录，失败显式 ERROR（`nop.retry.scanner.record-dispatch-failed`）+ 计数（`getScannerDispatchFailureCount()`），其租约到期后由扫描器重新拾取。
 - **积压兜底**：扫描停摆的直接后果是 `nop_retry_record` 表积压；绝缘层消除「单次 Throwable 即永久停摆」后，表积压回归瞬态可自愈。
 
 ## 账本保留策略（1.6-C7-001，plan 2502）
@@ -136,7 +158,7 @@
 | ORM 模型 | `nop-retry/model/nop-retry.orm.xml` |
 | 扫描链 | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/scanner/RetryScannerImpl.java` |
 | 账本保留清理（1.6-C7-001） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/store/RetryRecordStoreImpl.java`（`purgeExpiredLedgerRows` 三通道清理面；保留参数 `RetryEngineConfigs`，引擎生命周期链接线 `RetryEngineImpl`） |
-| 并发契约（plan 2515 R2-12） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java`（续租+被抢中止 `executeImmediateRetry` :457/:465、代际校验 `finishImmediateRetry` :488/:500、两层簿记隔离 `runRecordBookkeeping` :565/:665/:723、僵尸死信化 `executeRetryFromScanner` :355/:377-388、join 兜底 :923）；`RetryRecordStoreImpl`（store/）（原子替换 `replaceRecord` :339、续租 CAS `renewLease` :349、遗留 RUNNING 对账 `reconcileStaleRunningAttempts` :203、namespace 放宽 `fetchPendingRecords` :230-241）；`RetryTaskImpl`（impl/）（提交面 failedStage 契约 `callAsync` :101）；attempt 超时上界键 `nop.retry.attempt.timeout-ms` = `RetryEngineConfigs` |
+| 并发契约（plan 2515 R2-12 + plan 2543 R4-10） | `nop-retry/nop-retry-engine/src/main/java/io/nop/retry/engine/impl/RetryEngineImpl.java`（续租+被抢中止 `executeImmediateRetry` :457/:465、代际校验 `finishImmediateRetry` :488/:500、两层簿记隔离 `runRecordBookkeeping` :565/:665/:723、僵尸死信化 `executeRetryFromScanner` :355/:377-388、join 兜底 :923、**OVERWRITE 输家四分支** `handleOverwriteReplaceFailure` :353+、**回调深度护栏** `triggerCallback`/`callbackDepth` :849/:936+、**per-record 派发隔离** `dispatchScannerBatch` :1035+）；`RetryRecordStoreImpl`（store/）（原子替换 `replaceRecord` :339、续租 CAS `renewLease` :349、遗留 RUNNING 对账 `reconcileStaleRunningAttempts` :203、namespace 放宽 `fetchPendingRecords` :230-241、**limit 防御** :230）；`RetryScannerImpl`（scanner/）（**单轮双上界 + RoundEndReason + 时钟 seam** `doScan` :255+、**参数 fail-fast** setter :66-140）；`RetryTaskImpl`（impl/）（提交面 failedStage 契约 `callAsync` :101）；attempt 超时上界键 `nop.retry.attempt.timeout-ms` = `RetryEngineConfigs`；新增覆盖键 `nop.retry.callback.max-depth` / `nop.retry.scanner.max-batches-per-round` / `nop.retry.scanner.max-round-duration-ms` = `RetryEngineConfigs` / `RetryScannerImpl` setter |
 
 ## 相关文档
 

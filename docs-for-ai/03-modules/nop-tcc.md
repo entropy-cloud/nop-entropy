@@ -82,6 +82,20 @@ TCC 链路的多跳传播机制分三层：
 - **恢复扫描/清理索引（裁定⑧）**：`nop_tcc_record` 两索引——`(expire_time, status, retry_times)` 复合索引（恢复扫描谓词）与 `begin_time` 索引（清理排序）。新装环境由 orm 源模型 `<indexes>` 段经生成链建索引；存量库升级执行迁移脚本 `nop-tcc/deploy/sql/postgresql/2026-10-add-tcc-record-indexes.sql`（PostgreSQL 幂等方言 `CREATE INDEX IF NOT EXISTS`，可重复执行；其他方言按语义等价转写）。
 - **崩溃恢复与耗尽排除边界**：超时扫描对称续跑语义（上节）零回退；分支补偿计数耗尽（默认 100）的记录此前被扫描窗永久排除——现经每轮清理前置终态化为 KILLED 后进入保留期清理（保留审计窗内可观测；耗尽行的观测/干预工具本体归后续批次）。
 
+## 补偿链韧性与收尾方向（plan 2543 R4-10）
+
+- **超时恢复默认回滚（W-07）**：`endAsync(true, null, null)` 在记录处于**未定向态**（`TRYING`/`TRY_SUCCESS`/`CREATED`/`null`）时一律走 cancel 方向。原缺省是「既无回滚证据也无失败响应 → confirm」，会把一条没跑完的业务链以**确认方向**释放参与方预留资源——这是最严重的错误方向。进入 confirm/cancel 半区后仍走上节的对称续跑路由（`CONFIRMING`/`CONFIRM_FAILED` → confirm，`CANCELLING`/`CANCEL_FAILED` → cancel，零改动）。记录仍为未定向态时不存在「confirm 已经开始」的证据，故不违反 TCC「confirm 开始后不可回滚」。
+- **首跳标记落库有限重试（W-07）**：`CANCELLING`/`CONFIRMING` 标记写是「业务失败/补偿方向」的唯一持久化证据。原实现一次失败即短路 → 记录滞留 TRYING 且无方向证据 → 后续恢复按缺省方向收敛。现对**非 CAS 冲突**错误最多重试 3 次（CAS 冲突是语义冲突，重试必然再失败），耗尽后 ERROR（`nop.tcc.status-write-retry-exhausted`）并显式失败。
+- **证据保留（W-07）**：`runTaskWithNewTxnAsync` 的同步抛出补偿路径上，业务异常**优先**传播、补偿链异常以 `addSuppressed` 保留（原 `thenCompose(v2 -> failedFuture(e))` 在补偿链失败时整段跳过，调用方只看到补偿异常而业务异常丢失）。
+- **分支创建守卫改 DB 复核（W-03）**：`runBranchTransactionAsync` 的内存守卫（`txn.getTccStatus() != TRYING`）保留为快路径，其后以 `getTccRecordAsync` 重载父记录复核。复核读失败按 **fail-close** 拒绝（`ERR_TCC_BRANCH_GUARD_CHECK_FAILED`）——放行可能向已回滚事务写入预留资源（不可逆），拒绝只让调用方在父事务不可用的明确信号下失败；父记录不存在 → `ERR_TCC_MISSING_TRANSACTION_RECORD`。
+- **补偿期孤儿分支收敛（W-03）**：`endAsync` 末段（聚合前）按 branchId 求「DB 重载行 − 入口快照」差集，非空则以既有的 `cancelAllAsync`/`confirmAllAsync`（自带方向筛 + per-branch 隔离）驱动一轮再重读，最多 3 轮；仍未排空则不折叠终态（`ERR_TCC_BRANCH_CONVERGENCE_EXHAUSTED`），全局保持中间态交恢复扫描。**残余窗（诚实声明）**：腿 1 的 DB 复核与分支插入之间仍有 TOCTOU——分支在终态 CAS 之后才提交的场景需 DB 级约束才能彻底闭合（ORM 扩面，本批不做），登记为 watch-only。
+- **弃链 driving-epoch（W-04）**：恢复扫描超时 `future.cancel(true)` 后推进该 txnId 的进程内驱动纪元；旧链苏醒到终态写点校验令牌，失配即 `ERR_TCC_DRIVING_ABANDONED` 拒绝折叠（传输层无法真正中止在途 RPC，故闸设在写点）。条目缺失按 inactive 判定（不变式：条目只在终态写成功后移除，而终态父事务不再被恢复扫描拾取、txnId 一次性）。**残余**：闸不阻止弃链已发起的分支补偿 RPC，由 CAS 短路（裁定①）+ 参与方幂等性承接。
+- **逐分支隔离与聚合结算表（W-06）**：`confirmAllAsync`/`cancelAllAsync` 循环体内单分支 begin/finish 同步抛不再中断整批（失败分支进 `waitAll`，后续分支照常驱动）。聚合改为**逐状态结算表**——「成功」当且仅当每个分支在本方向已结算（已到本方向终态，或本方向本就不驱动它：`isBranchCancellable` 为假）；`KILLED` 与 `CONFIRM_SUCCESS` **计为已结算**（否则含这两类分支的父事务永不进 `getFinishedStatus()`，反向摧毁清理链）；未驱动的 `TRY_SUCCESS`/`TRYING`/`TRY_UNKNOWN`/`CONFIRMING` 计为未结算 → 折叠为本方向 FAILED 交恢复重试。
+- **注册表作用域（W-02）**：`TccTransactionRegistry.instance()` 的惰性创建以**属性 Map 本体**为锁（`context.getAttrs()`；租户/委托包装下两线程可持不同 wrapper 而共享同一 Map，锁 wrapper 不互斥）做双重检查；档位恢复改为**条件恢复**（仅当我方事务仍是当前值时才放回旧值），消除并发交错下清掉对端注册。注册表作用域 = `IContext`；同上下文并发进入被防御性支持，但非推荐调用形态。
+- **恢复轮双上界（W-10）**：`checkExpiredTransactions` 加**单轮总时长预算**（`nop.tcc.recovery.max-round-duration-ms`，缺省 60s；每页开始前检查）+ **连续超时熔断**（`nop.tcc.recovery.max-consecutive-timeouts`，缺省 3；一条成功即清零）。原形态单轮耗时 = 页数 × 页内条数 × `expireGap`（慢成功路径同样无界）；`fetchExpiredRecords` 亦补 try/catch，一次 DB 异常不再静默终止整轮。观测：`getRecoveryTimeoutCount()` / `getRecoveryCircuitBreakCount()`。**注**：`checkExpiredTransactions` 现零生产调用方（C6-005 dormant，归后续批次），故本项交付的是「保护力就位」，不是端到端恢复已接线。
+- **账本清理分页（W-13）**：两参 `removeCompletedRecords(retention, onlyCompleted)` 保留公共签名，实现改为**内部按批分页**（批大小 = `nop.tcc.ledger.delete-batch-size`），消除「无 limit 的 `findAllByQuery` 全量物化 + 等长 txnIds + 巨型 IN」。事务形态显式裁定：整个调用仍是**单一事务**（公共契约的原子性不变；循环体是私有非注解助手，不触发自调用绕过事务拦截器）。
+- **时钟源（W-08）**：tcc 期限/租约改走 DB 估算时钟的两个 seam——**读侧**（过期判定/清理窗口）用 `getMinCurrentTimeMillis()`（只有确定已过期才触发恢复，与 `expireTime < minTime` 谓词同向），**写侧**（所有落库时间戳，含 `fetchExpiredRecords` 推进的 `nextCheckTime`）用 `getMaxCurrentTimeMillis()`（保守偏后，绝不提前恢复）。任意两库/本地时钟偏差都不再造成「写入早→立即过期」或「写入晚→永不判过期」的夹逼错误。跨单元 `IClock` 单调时钟注入仍归后续批次。
+
 
 
 ## 源码锚点
@@ -89,7 +103,7 @@ TCC 链路的多跳传播机制分三层：
 | 组件 | 路径 |
 |------|------|
 | ORM 模型 | `nop-tcc/model/nop-tcc.orm.xml` |
-| 并发契约（plan 2515 R2-12） | `nop-tcc/nop-tcc-dao/src/main/java/io/nop/tcc/dao/store/TccRecordStore.java`（全局/分支 CAS 异常完成 :238/:333、afterCommit 配对 :184、耗尽终态化 `killExhaustedRecords` :423、有界批删 `removeCompletedRecords(long,boolean,int)` :464）；`nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccEngine.java`（生命周期链 `doStart`/`startLedgerCleanup` :136-212、超时 `cancel(true)` :487）；`TccTransaction`（impl/）（挂点 err==null 门控 doCancelAsync/doConfirmAsync :100/:122）；`TccRunner`（impl/）（DB 权威聚合 :178/:198）；错误码 `nop-tcc/nop-tcc-api/src/main/java/io/nop/tcc/api/TccErrors.java`（`ERR_TCC_STATUS_CAS_CONFLICT` :27）；清理参数 `TccEngineConfigs`（`nop.tcc.ledger.*`）；索引迁移脚本 `nop-tcc/deploy/sql/postgresql/2026-10-add-tcc-record-indexes.sql` |
+| 并发契约（plan 2515 R2-12） | `nop-tcc/nop-tcc-dao/src/main/java/io/nop/tcc/dao/store/TccRecordStore.java`（全局/分支 CAS 异常完成、afterCommit 配对、耗尽终态化 `killExhaustedRecords` :422、有界批删三参 `removeCompletedRecords(long,boolean,int)` :463、**时钟双 seam** `nowForRead`/`nowForWrite` :386-405、**两参清理内部分页** :392-431）；`nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/impl/TccEngine.java`（生命周期链 `doStart`/`startLedgerCleanup` :136/:158、**守卫 DB 复核** `runBranchTransactionAsync` :443、**恢复轮预算/熔断/纪元** `checkExpiredTransactions` :466 / `checkExpiredAsync` :500 / `beginDriving`/`isActiveDriving`/`endDriving`）；`TccTransaction`（impl/）（挂点 err==null 门控 `doCancelAsync`/`doConfirmAsync` :100/:122、**孤儿收敛** `convergeAndAggregate` :149+、**探测器写点闸** + `retryStatusWrite`）；`TccRunner`（impl/）（DB 权威聚合 :178/:198、**逐分支隔离** :133/:164、**三通道 future 兜底** :40/:72/:98）；`TccTransactionRegistry`（impl/）（**原子身份 + 条件恢复** :18-60）；错误码 `nop-tcc/nop-tcc-core/src/main/java/io/nop/tcc/core/TccCoreErrors.java`（`ERR_TCC_BRANCH_GUARD_CHECK_FAILED`/`ERR_TCC_BRANCH_CONVERGENCE_EXHAUSTED`/`ERR_TCC_DRIVING_ABANDONED`）+ `nop-tcc-api` 的 `TccErrors`（`ERR_TCC_STATUS_CAS_CONFLICT`）；清理参数 `TccEngineConfigs`（`nop.tcc.ledger.*` + `nop.tcc.recovery.*`）；索引迁移脚本 `nop-tcc/deploy/sql/postgresql/2026-10-add-tcc-record-indexes.sql` |
 
 ## 相关文档
 
