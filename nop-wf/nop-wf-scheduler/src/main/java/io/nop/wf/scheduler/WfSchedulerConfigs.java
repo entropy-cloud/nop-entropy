@@ -27,4 +27,12 @@ public interface WfSchedulerConfigs {
     @Description("扫描节点标识（holderId 归因前缀；缺省=主机名+启动随机后缀，装配期一次生成）")
     IConfigReference<String> CFG_WF_SCHEDULER_NODE_ID =
             AppConfig.varRef(s_loc, "nop.wf.scheduler.node-id", String.class, null);
+
+    // plan 2542 W-09（CRA 8.49 R4-09，1.5-C7-004 裁定 A）：逐项 dueAction 带超时等待的
+    // deadline——挂死动作使扫描线程永久占位（pool-size=4 共享调度器 4 条即冻结）的面收敛为
+    // ≤deadline。0=禁用（长动作部署显式逃生门，沿 scan-time-budget-ms 既有约定）；
+    // <0 装配期 fail-fast（init() 校验链同位新分支）
+    @Description("单条到期动作同步等待时限（毫秒）；0=禁用（不设超时），<0 装配期 fail-fast")
+    IConfigReference<Integer> CFG_WF_ACTION_DEADLINE_MS =
+            AppConfig.varRef(s_loc, "nop.wf.scheduler.action-deadline-ms", Integer.class, 60000);
 }

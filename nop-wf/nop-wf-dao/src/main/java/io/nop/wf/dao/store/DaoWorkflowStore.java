@@ -495,6 +495,74 @@ public class DaoWorkflowStore extends AbstractWorkflowStore {
         return ((NopWfInstance) wfRecord).getSteps();
     }
 
+    // ===== W-08（CRA 8.49 R4-09，1.5-C5-006 裁定 D）：读路径 SQL 下推 =====
+    // 缝 = AbstractWorkflowStore.getSteps protected abstract——此处 override 既有 IWorkflowStore
+    // 签名（零签名新增），谓词可翻译腿下推，不可翻译路径（includeHistory=true + 自定义 filter）
+    // 保持全集（语义边界显式登记）。
+    //
+    // 语义前提（执行期实测回归修正）：引擎在同一会话内「先建/改步骤记录、随即读回」，此时
+    // wfRecord.getSteps() 已被加载且是权威内存视图（含尚未 flush 的行与未落库的状态迁移）。
+    // 直接用等价 SQL 读 DB 会丢这些写，因此下推仅在步骤集合「未加载（proxy 态）」——
+    // 即跨请求冷读的放大场景——生效；已加载时回落到内存语义（与修复前逐字等价）。
+
+    QueryBean buildLatestStepRecordQuery(String wfId, String stepName) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_wfId, wfId));
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_stepName, stepName));
+        query.addOrderField(NopWfStepInstance.PROP_NAME_createTime, true);
+        query.setLimit(1);
+        return query;
+    }
+
+    QueryBean buildStepRecordsQuery(String wfId, boolean includeHistory) {
+        QueryBean query = new QueryBean();
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_wfId, wfId));
+        if (!includeHistory)
+            query.addFilter(FilterBeans.lt(NopWfStepInstance.PROP_NAME_status,
+                    NopWfCoreConstants.WF_STEP_STATUS_HISTORY_BOUND));
+        return query;
+    }
+
+    /**
+     * 步骤集合是否已加载（非 proxy）。已加载=内存视图权威，必须走内存语义；未加载=冷读，
+     * 可以安全下推 SQL（W-08 的读放大场景）。
+     */
+    private static boolean stepsLoaded(IWorkflowRecord wfRecord) {
+        if (!(wfRecord instanceof NopWfInstance))
+            return false;
+        IOrmEntitySet<NopWfStepInstance> steps = ((NopWfInstance) wfRecord).getSteps();
+        return !steps.orm_proxy();
+    }
+
+    @Override
+    public IWorkflowStepRecord getLatestStepRecordByName(IWorkflowRecord wfRecord, String stepName) {
+        if (stepsLoaded(wfRecord))
+            return super.getLatestStepRecordByName(wfRecord, stepName);
+        List<NopWfStepInstance> list = stepDao().findAllByQuery(
+                buildLatestStepRecordQuery(wfRecord.getWfId(), stepName));
+        return list.isEmpty() ? null : list.get(0);
+    }
+
+    @Override
+    public Collection<? extends IWorkflowStepRecord> getStepRecords(IWorkflowRecord wfRecord, boolean includeHistory,
+                                                                    java.util.function.Predicate<? super IWorkflowStepRecord> filter) {
+        if (filter != null || stepsLoaded(wfRecord))
+            // 任意 Predicate 不可翻译为 SQL；已加载集合是权威内存视图（含未 flush 写）
+            return super.getStepRecords(wfRecord, includeHistory, filter);
+
+        return stepDao().findAllByQuery(buildStepRecordsQuery(wfRecord.getWfId(), includeHistory));
+    }
+
+    @Override
+    public Collection<? extends IWorkflowStepRecord> getStepRecordsByName(IWorkflowRecord wfRecord, String stepName,
+                                                                          boolean includeHistory) {
+        if (stepsLoaded(wfRecord))
+            return super.getStepRecordsByName(wfRecord, stepName, includeHistory);
+        QueryBean query = buildStepRecordsQuery(wfRecord.getWfId(), includeHistory);
+        query.addFilter(FilterBeans.eq(NopWfStepInstance.PROP_NAME_stepName, stepName));
+        return stepDao().findAllByQuery(query);
+    }
+
     @Override
     public IWorkflowStepRecord getStepRecordById(IWorkflowRecord wfRecord, String stepId) {
         if (StringHelper.isEmpty(stepId) || stepId.startsWith(NopWfCoreConstants.SPECIAL_STEP_ID_PREFIX))

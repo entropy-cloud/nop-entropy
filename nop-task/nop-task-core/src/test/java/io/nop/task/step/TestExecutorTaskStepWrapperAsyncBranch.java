@@ -269,6 +269,10 @@ public class TestExecutorTaskStepWrapperAsyncBranch {
                         return GlobalExecutors.globalTimer();
                     case "isRecoverMode":
                         return Boolean.FALSE;
+                    // plan 2542 W-03：wrapper 缺省 context 重投递读取 getContext；本类既有两腿
+                    // 语义为「无 context 捕获 → 池线程直跑」，返回 null 保持原断言面零改写
+                    case "getContext":
+                        return null;
                     case "toString":
                         return "FakeTaskRuntime";
                     default:

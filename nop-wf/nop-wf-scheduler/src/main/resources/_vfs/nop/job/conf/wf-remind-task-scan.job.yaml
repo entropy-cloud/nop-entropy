@@ -5,5 +5,5 @@ jobGroup: nop-wf
 trigger:
   cronExpr: "@cfg:nop.job.wf-remind-task-scan.cron-expr|0 0/5 * * * ?"
 invoker:
-  bean: wfTaskScanner
+  bean: nopWfTaskScanner
   method: scanRemindTasks

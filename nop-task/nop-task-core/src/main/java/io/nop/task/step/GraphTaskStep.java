@@ -258,6 +258,16 @@ public class GraphTaskStep extends AbstractTaskStep {
             return;
         }
 
+        // W-02(b)（CRA 8.49 R4-09，1.5-C3-003 裁定 C）：一次性调度守卫——同节点二次调度
+        // （enter 直跑歧路与 wait 回调并发窗）跳过；完成窗由 isDone 闭合（构建期校验已前置
+        // 排除重叠模型的常驻面——GraphStepAnalyzer.validateEnterWaitOverlap），在飞窗
+        // （第二次到达于首跑完成前）为已知残余（程序化绕过模型校验方可触达）。
+        // 不级联不计数——首次执行已完成 bookkeeping
+        if (stepFuture.isDone()) {
+            LOG.debug("nop.task.graph-step-reschedule-skipped:stepName={}", stepName);
+            return;
+        }
+
         // waitError 触发检查（plan 349 Phase 3）：声明的错误触发步骤全部成功完成（无一失败）时，
         // 错误分支前提不成立——跳过本节点 body，但完成 stepFuture 以级联后继
         if (!errorTriggerFired(node, stepResults)) {

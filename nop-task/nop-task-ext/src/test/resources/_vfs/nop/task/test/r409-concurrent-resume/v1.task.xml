@@ -1,0 +1,17 @@
+<task x:schema="/nop/schema/task/task.xdef" xmlns:x="/nop/schema/xdsl.xdef">
+    <steps>
+        <!-- CRA 8.49 R4-09（plan 2542）W-13 红⑬/C10-014 模型：
+             挂起 → resume 后执行计数步骤；并发双路 resume 断言 mainStep 业务体恒执行一次 -->
+        <suspend name="wait"/>
+        <xpl name="counted">
+            <source>
+                const counter = inject("testExecutionCounter");
+                counter.incrementAndGet();
+                return 42
+            </source>
+        </xpl>
+    </steps>
+    <output name="RESULT">
+        <source>return RESULT</source>
+    </output>
+</task>

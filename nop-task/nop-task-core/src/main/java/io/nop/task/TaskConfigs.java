@@ -45,4 +45,14 @@ public interface TaskConfigs {
     @Description("loopN 步骤迭代数上限（含端点：floor(|end-begin|/|step|)+1）；超上限在执行期显式拒绝")
     IConfigReference<Integer> CFG_TASK_STEP_MAX_LOOP_COUNT =
             AppConfig.varRef(s_loc, "nop.task.step.max-loop-count", Integer.class, 10000);
+
+    // ===== CRA 8.49 R4-09（plan 2542）新增键（裁定 B/E 一次成文，禁散落）=====
+
+    @Description("节点身份标识（task 行 workerId 属主归因；缺省=主机名+启动随机后缀，实例内一次生成）")
+    IConfigReference<String> CFG_TASK_NODE_ID =
+            AppConfig.varRef(s_loc, "nop.task.node-id", String.class, null);
+
+    @Description("SUSPENDED 任务滞留判定阈值（毫秒）；updateTime 早于 now-threshold 记入 stale 指标")
+    IConfigReference<Integer> CFG_TASK_SUSPENDED_STALE_MS =
+            AppConfig.varRef(s_loc, "nop.task.suspended.stale-ms", Integer.class, 86400000);
 }

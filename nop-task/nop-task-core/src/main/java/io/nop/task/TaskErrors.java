@@ -58,6 +58,12 @@ public interface TaskErrors {
 
     String ARG_KEY = "key";
 
+    String ARG_OVERLAP_STEP_NAMES = "overlapStepNames";
+
+    String ARG_EXECUTOR_BEAN = "executorBean";
+
+    String ARG_ACTUAL_TYPE = "actualType";
+
     String ARG_ACTION = "action";
 
     String ARG_BIZ_OBJ_NAME = "bizObjName";
@@ -183,4 +189,20 @@ public interface TaskErrors {
 
     ErrorCode ERR_TASK_CRUD_WRITE_DISABLED = define("nop.err.task.crud-write-disabled",
             "实体[{bizObjName}]为引擎独占数据，禁止CRUD写操作[{action}]", ARG_BIZ_OBJ_NAME, ARG_ACTION);
+
+    // ===== CRA 8.49 R4-09（plan 2542）新增码族（裁定 B/C 一次成文，禁散落） =====
+
+    ErrorCode ERR_TASK_GRAPH_ENTER_WAIT_OVERLAP = define("nop.err.task.graph-enter-wait-overlap",
+            "流程图[{graphStepName}]的步骤[{overlapStepNames}]同时被声明为 enterSteps 与等待步骤——"
+                    + "双调度将导致步骤体重复执行，请修正模型", ARG_GRAPH_STEP_NAME, ARG_OVERLAP_STEP_NAMES);
+
+    ErrorCode ERR_TASK_INSTANCE_ALREADY_RUNNING = define("nop.err.task.instance-already-running",
+            "任务实例[{taskInstanceId}]正在执行中，并发重复执行已被拒绝", ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_STATE_SAVE_CONFLICT = define("nop.err.task.state-save-conflict",
+            "任务实例[{taskInstanceId}]的状态保存发生并发冲突", ARG_TASK_INSTANCE_ID);
+
+    ErrorCode ERR_TASK_EXECUTOR_BEAN_INVALID = define("nop.err.task.executor-bean-invalid",
+            "executor bean[{executorBean}]的实际类型[{actualType}]不是 IThreadPoolExecutor",
+            ARG_EXECUTOR_BEAN, ARG_ACTUAL_TYPE);
 }

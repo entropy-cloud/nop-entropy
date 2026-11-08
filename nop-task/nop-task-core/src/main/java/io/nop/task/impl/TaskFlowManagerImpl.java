@@ -25,6 +25,7 @@ import io.nop.task.ITaskState;
 import io.nop.task.ITaskStateStore;
 import io.nop.task.ITaskStepLib;
 import io.nop.task.TaskConstants;
+import io.nop.task.TaskErrors;
 import io.nop.task.builder.ITaskFlowBuilder;
 import io.nop.task.builder.ITaskStepLibBuilder;
 import io.nop.task.builder.TaskFlowBuilder;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -127,12 +129,41 @@ public class TaskFlowManagerImpl implements ITaskFlowManagerImplementor {
         return scheduledExecutor;
     }
 
+    // W-13（裁定 B）：执行级 fencing 在途注册表（进程生命周期=注册表生命周期）
+    private final Set<String> activeExecutions = ConcurrentHashMap.newKeySet();
+
+    @Override
+    public boolean tryBeginExecution(String taskInstanceId) {
+        return activeExecutions.add(taskInstanceId);
+    }
+
+    @Override
+    public void endExecution(String taskInstanceId) {
+        if (taskInstanceId != null)
+            activeExecutions.remove(taskInstanceId);
+    }
+
     @Override
     public IThreadPoolExecutor getThreadPoolExecutor(IBeanProvider beanProvider, String executorBean) {
         IThreadPoolExecutor executor = GlobalExecutors.getExecutor(executorBean);
-        if (executor == null)
-            executor = (IThreadPoolExecutor) beanProvider.getBean(executorBean);
-        return executor;
+        if (executor != null) {
+            // W-05（CRA 8.49 R4-09，1.5-C4-004 裁定 C）：保留名遮蔽显式化——同名 IoC bean
+            // 存在时被 GlobalExecutors 保留名静默遮蔽（线程名与意图一致、线程转储不可诊断）；
+            // containsBean 判存在零实例化。per-call WARN（非逐调用高频路径，不引入 per-name 去重状态）
+            if (beanProvider != null && beanProvider.containsBean(executorBean)) {
+                LOG.warn("nop.task.executor-reserved-name-shadowing:executorBean={},containerBeanExists=true; "
+                        + "IoC bean is shadowed by GlobalExecutors reserved name", executorBean);
+            }
+            return executor;
+        }
+
+        Object bean = beanProvider.getBean(executorBean);
+        // W-05（裁定 C）：错类型 typed 拒绝——修复前裸 CCE 无 bean 名/实际类型上下文
+        if (!(bean instanceof IThreadPoolExecutor))
+            throw new NopException(TaskErrors.ERR_TASK_EXECUTOR_BEAN_INVALID)
+                    .param(TaskErrors.ARG_EXECUTOR_BEAN, executorBean)
+                    .param(TaskErrors.ARG_ACTUAL_TYPE, bean == null ? "null" : bean.getClass().getName());
+        return (IThreadPoolExecutor) bean;
     }
 
     @Inject

@@ -33,6 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -71,6 +76,11 @@ public class WfTaskScanner {
     private static final AtomicLong DUE_SCAN_SCANNED = new AtomicLong();
     private static final AtomicLong DUE_SCAN_FAILURES = new AtomicLong();
     private static final AtomicBoolean GAUGES_REGISTERED = new AtomicBoolean();
+
+    // plan 2542 W-06(a)（CRA 8.49 R4-09，1.5-C4-007 裁定 A）：扫描轮失败计数 gauge 载体——
+    // 入口异常边界收敛后（catch(Exception) 留痕+正常返回），单轮瞬态故障以本 gauge 反映，
+    // fire 以成功收尾、下一轮 cron 自补偿。Error 不拦截（直传宿主）
+    private static final AtomicLong SCAN_ROUND_FAILURES = new AtomicLong();
 
     private IWorkflowStore workflowStore;
     private IWorkflowManager workflowManager;
@@ -121,6 +131,10 @@ public class WfTaskScanner {
             throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_SCHEDULER_CONFIG)
                     .param(NopWfCoreErrors.ARG_CONFIG_NAME, "nop.wf.scheduler.scan-time-budget-ms")
                     .param(NopWfCoreErrors.ARG_CONFIG_VALUE, getScanTimeBudgetMs());
+        if (getActionDeadlineMs() < 0)
+            throw new NopException(NopWfCoreErrors.ERR_WF_INVALID_SCHEDULER_CONFIG)
+                    .param(NopWfCoreErrors.ARG_CONFIG_NAME, "nop.wf.scheduler.action-deadline-ms")
+                    .param(NopWfCoreErrors.ARG_CONFIG_VALUE, getActionDeadlineMs());
         registerScanGauges();
         resolveNodeId();
     }
@@ -138,6 +152,10 @@ public class WfTaskScanner {
             Gauge.builder("nop.wf.scheduler.due-scan-failures", DUE_SCAN_FAILURES, AtomicLong::get)
                     .description("Failed steps in the most recent due scan round (plan 2541 W-01 MA-06)")
                     .register(registry);
+            // W-06(a)（裁定 A）：扫描轮失败次数（累计）——入口异常边界收敛后的观测载体
+            Gauge.builder("nop.wf.scheduler.scan-round-failures", SCAN_ROUND_FAILURES, AtomicLong::get)
+                    .description("Failed scan rounds since startup (plan 2542 W-06 entry exception boundary)")
+                    .register(registry);
         }
     }
 
@@ -151,6 +169,10 @@ public class WfTaskScanner {
 
     long getScanTimeBudgetMs() {
         return cfg(WfSchedulerConfigs.CFG_WF_SCAN_TIME_BUDGET_MS);
+    }
+
+    long getActionDeadlineMs() {
+        return cfg(WfSchedulerConfigs.CFG_WF_ACTION_DEADLINE_MS);
     }
 
     long getScanLeaseMs() {
@@ -176,18 +198,40 @@ public class WfTaskScanner {
         return nodeId;
     }
 
+    /**
+     * W-06(a)（CRA 8.49 R4-09，1.5-C4-007 裁定 A）：入口异常边界收敛——单轮扫描失败
+     * （分批查询 DB 异常/租约释放异常/会话级异常）不再外泄至 job fire 层，以 ERROR 留痕
+     * + 轮失败 gauge 反映后正常返回，fire 以成功收尾、下一轮 cron 自补偿。
+     *
+     * <p>Error 不拦截（catch(Exception) 而非 Throwable）：job fire 线程无 promise 终结义务，
+     * Error 直传宿主由其失败路径呈现——Error 转业务成功=致命降级；宿主侧 FAILED 终态语义
+     * 归 nop-job-C7-006（跨单元，零触碰）。
+     */
     public void scanDueTasks() {
-        ormTemplate.runInNewSession(session -> {
-            scanDueTasksInCurrentSession();
-            return null;
-        });
+        try {
+            ormTemplate.runInNewSession(session -> {
+                scanDueTasksInCurrentSession();
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.error("nop.wf.scheduler.scan-round-failed:half=due", e);
+            SCAN_ROUND_FAILURES.incrementAndGet();
+        }
     }
 
+    /**
+     * W-06(a)（裁定 A）：remind 半区入口异常边界收敛，与 due 半区同构。
+     */
     public void scanRemindTasks() {
-        ormTemplate.runInNewSession(session -> {
-            scanRemindTasksInCurrentSession();
-            return null;
-        });
+        try {
+            ormTemplate.runInNewSession(session -> {
+                scanRemindTasksInCurrentSession();
+                return null;
+            });
+        } catch (Exception e) {
+            LOG.error("nop.wf.scheduler.scan-round-failed:half=remind", e);
+            SCAN_ROUND_FAILURES.incrementAndGet();
+        }
     }
 
     /**
@@ -271,7 +315,7 @@ public class WfTaskScanner {
                 request.setStepId(stepRecord.getStepId());
                 request.setActionName(dueAction);
 
-                FutureHelper.syncGet(workflowService.invokeActionAsync(request, null, newSchedulerContext()));
+                invokeDueActionWithDeadline(request, stepRecord, dueAction);
             } catch (NopException e) {
                 if (NopWfCoreErrors.ERR_WF_NOT_ALLOW_ACTION_IN_CURRENT_STEP_STATUS.getErrorCode()
                         .equals(e.getErrorCode())) {
@@ -296,6 +340,61 @@ public class WfTaskScanner {
             failCounts.remove(stepKey);
         } finally {
             workflowStore.releaseScanLease(stepRecord, holderId);
+        }
+    }
+
+    /**
+     * W-06(b)×W-09（CRA 8.49 R4-09，1.5-C7-004 裁定 A，同簇一次设计）：单条 dueAction 带
+     * deadline 同步等待——挂死动作不再永久占位扫描线程（共享调度池 pool-size=4 全冻结面
+     * 收敛为 ≤action-deadline-ms）；超时条目经既有毒步骤退避路径推进 dueTime 退出本轮
+     * 扫描集（60s×2^n 封顶 1h）。
+     *
+     * <p>契约：{@code ExecutionException} 解包 cause 后原样抛回，由调用方既有分类链
+     * （race-skip / allowCallByUser / postpone）逐字处理；{@code TimeoutException} 走
+     * deadline 跳条+退避；{@code InterruptedException} 恢复中断位后同超时形态退避；
+     * {@code CancellationException} 为任务侧取消，直接跳条。
+     *
+     * <p>诚实登记：deadline 不终止底层 action 执行（宿主无 cancel 设施——cancelRunning
+     * 空实现=形态 A 宿主面归 nop-job-C7-006），僵尸动作残留以「每挂死条目至多一个、
+     * fire 正常收尾、退避退出扫描集」为收敛声明。
+     */
+    private void invokeDueActionWithDeadline(WfActionRequestBean request, IWorkflowStepRecord stepRecord,
+                                             String dueAction) {
+        CompletionStage<Object> stage = workflowService.invokeActionAsync(request, null, newSchedulerContext());
+        long deadlineMs = getActionDeadlineMs();
+        if (deadlineMs <= 0 || stage == null) {
+            // 0=禁用（长动作部署显式逃生门）；null stage 与既有 syncGet(null)=null 语义一致
+            FutureHelper.syncGet(stage);
+            return;
+        }
+
+        try {
+            stage.toCompletableFuture().get(deadlineMs, TimeUnit.MILLISECONDS);
+        } catch (TimeoutException e) {
+            LOG.warn("nop.wf.scheduler.due-action-deadline-exceeded:wfId={},stepId={},dueAction={},deadlineMs={}",
+                    stepRecord.getWfId(), stepRecord.getStepId(), dueAction, deadlineMs);
+            // 交由调用方既有分类链的 postponeFailedDueTask 统一退避（保持 failCounts 指数递增语义）
+            throw NopException.adapt(e);
+        } catch (InterruptedException e) {
+            // 恢复中断位后归入跳条退避（同 TimeoutException 形态）
+            Thread.currentThread().interrupt();
+            LOG.warn("nop.wf.scheduler.due-action-wait-interrupted:wfId={},stepId={},dueAction={}",
+                    stepRecord.getWfId(), stepRecord.getStepId(), dueAction, e);
+            throw NopException.adapt(e);
+        } catch (CancellationException e) {
+            // 任务侧取消：直接跳条（非失败，不推进退避）
+            LOG.info("nop.wf.scheduler.skip-due-task-action-cancelled:wfId={},stepId={},dueAction={}",
+                    stepRecord.getWfId(), stepRecord.getStepId(), dueAction);
+        } catch (ExecutionException e) {
+            // 解包 cause 后按既有分类链处理（race-skip / allowCallByUser / postpone 逐字复用）
+            Throwable cause = e.getCause() == null ? e : e.getCause();
+            if (cause instanceof NopException)
+                throw (NopException) cause;
+            if (cause instanceof RuntimeException)
+                throw (RuntimeException) cause;
+            if (cause instanceof Error)
+                throw (Error) cause;
+            throw NopException.adapt(cause);
         }
     }
 

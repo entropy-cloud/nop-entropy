@@ -160,7 +160,9 @@ public class TestPhase4TerminalAndConcurrency {
      */
     @Test
     public void c1_001_c1_009_lateSuspendWrite_mustNotReviveKilledTask() {
-        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(null, DefaultTaskStateStore.INSTANCE,
+        // plan 2542 W-13：execute 入口 claim 需要真实 manager（生产构造恒非 null）；
+        // 本类测试挂起/终态语义，补足 manager 步为 harness 完整性非断言弱化
+        TaskRuntimeImpl taskRt = new TaskRuntimeImpl(new TaskFlowManagerImpl(), DefaultTaskStateStore.INSTANCE,
                 null, io.nop.xlang.api.XLang.newEvalScope(), false);
         ITaskState state = DefaultTaskStateStore.INSTANCE.newTaskState("t", 0, taskRt);
         taskRt.setTaskState(state);

@@ -197,7 +197,7 @@
 
 ### Phase 1 - 扫描 job 韧性/task 状态与 fencing/图执行与上下文/边界规模/账本滞留观测 设计裁定文档 + 独立评审
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/design/concurrency/graph-scan-resilience-task-fencing-and-ledger-concurrency-contract.md`（新建——裁定 A–E 分组映射见其「工单→裁定映射与分组登记」节[分组权威]）
 
 - Item Types: `Decision`（设计文档，本批唯一设计裁决权威）、`Proof`（独立评审记录）
@@ -223,31 +223,31 @@ Exit Criteria:
 
 ### Phase 2 - 13 工单实现 + 回归测试（按组 A–E）
 
-Status: planned
+Status: completed
 Targets: nop-task-core（6-8 main+测试树）+ nop-task-dao（1 main+测试树）+ nop-wf-core（2-3 main+测试树）+ nop-wf-dao（2 main）+ nop-wf-scheduler（1 main+2 yaml）（完整路径见 Scope In Scope 节）
 
 - Item Types: `Fix`（W-01/02/03/04/05/06/07/08/09/10/11/12/13 十三项均为已确认 live 缺陷——merge-adjudication §2.2 判级权威[全部 P2 独立立案]，不得写成 Feature；族内/同路径顺带评审成员为零本体的评审记录项非 Fix+`Proof` 钉）、`Proof`（工单测试 + E2 泛在钉 + C10 验收前置）
 
-- [ ] 组 A 扫描 job 韧性域（W-04/W-06/W-09——两 job.yaml+WfTaskScanner main+测试树）〔裁定 A；钉=红④⑥⑨+C10-010/012〕〔**W-04×同案对齐一处修复**；W-06/W-09×2514/2541 产物 diff 分组禁交叉；形态 A 宿主面禁触〕
-- [ ] 组 B task 状态与 fencing 域（W-01/W-11/W-13——DaoTaskStateStore+TaskImpl+TaskFlowManagerImpl+CallTaskStep 传播面 main+测试树）〔裁定 B；钉=红①⑪⑬+C10-014〕〔**W-01×2514 裁定② 锁序评审兑现**；W-13×C1-009 分立零重开；W-05 同文件（TaskFlowManagerImpl）与组 C/E 跨组协调实施次序〕
-- [ ] 组 C 图执行/上下文/解析链域（W-02/W-03/W-05——GraphTaskStep+GraphStepAnalyzer+GraphStepBuilder+ExecutorTaskStepWrapper main+测试树）〔裁定 C；钉=红②③〕〔**W-03×2541 W-06 同方法 diff 分组禁弱化**；升级注记义务面登记〕
-- [ ] 组 D 边界与规模域（W-07/W-08——LoopTaskStep+ForkTaskStep+DaoTaskStateStore 序列化面+DaoWorkflowStore+AbstractWorkflowStore+WorkflowEngineImpl runAutoTransitions 分支 main+测试树）〔裁定 D；钉=红⑦⑧〕〔**W-08×TestWfScanQueryShape/due/remind/transfer 查询形状零改写点名**；W-08×2541 W-12 同文件 diff 分组；W-07×DaoTaskStateStore 与组 B 跨组协调〕
-- [ ] 组 E 账本与滞留观测域（W-10/W-12——写入口族+SuspendTaskStep+新 job.yaml 如裁 main+测试树）〔裁定 E；钉=红⑩⑫〕〔W-10×W-08 归档联动落款兑现；W-12×2497 §七 约束落款；缺省关闭义务〕
-- [ ] 回归测试（rule 25 显式覆盖 + C10-010 随 W-04 同 diff + C10-012 随 W-06 同 diff + C10-014 随 W-13 同 diff + E2 泛在钉红①–红⑬，先红后绿或变异/回退论证留痕）：红①–红⑬ 快照落 `_tmp/red-green-ledger-2542.md` 总册并登记（原始 trial 日志存证）；零回退钉核对（双聚合器签名维持[勘误 8 基线+新钉比对]+R211/R408 钉族全绿[TestPhase4TerminalAndConcurrency/TestWfTaskScanner 全列[含 ContinuesAfter* 三用例]/TestWfTaskScannerFencing/TestCraR408ScannerRemindBackoff/TestCraR408ErrorBoundaryLifecycle/TestFirstClassConfigValidation]+**TestWfScanQueryShape（2514 C10-008 查询形状钉——W-08 点名零改写）**+364/349/2498/344 钉[TestTaskStepHelperRetryDelayOffload_C4_001 等]+既有锚全绿[TestGraphDrainRace 族/TestGraphErrorSuccessRace/TestSuspendSemantics/TestExecutorTaskStepWrapperAsyncBranch 全列]）；2514/2541/2498/364/349 承接面核对（监视器收敛/分批退避 fencing/Throwable 边界/键空间治理/载体裁定——main diff 逐文件核对零触碰）
-- [ ] **端到端验证**（rule 22）：≥1 条扫描链路测试覆盖 W-04/W-06/W-09 组合面（yaml 装配→bean 解析成功→单条 action 挂死→deadline 跳条→失败注入→无状态残留可再次触发——红④/红⑥/红⑨ 即链路载体）；≥1 条并发 resume 链路测试覆盖 W-13/W-11（挂起→双路并发 resume→单执行+输家 typed 失败→workerId 赋值可追溯——红⑬/红⑪ 即链路载体）；≥1 条图执行链路测试覆盖 W-02（enter∩wait 模型→装配拒绝或单次执行断言——红② 即链路载体）；≥1 条 executor 链路测试覆盖 W-03（executor 步骤→body 内 context 值断言→Error 注入不回归——红③ 即链路载体）；W-01/W-05/W-07/W-08/W-10/W-12 链路面按裁定形态（saveTaskState 交错链路/解析链拒绝链路/物化治理链路/下推链路/归档链路/滞留指标链路）
-- [ ] **接线验证**（rule 23）：十三项全实测（红① 收敛真实生效+裸 ORM 错误零冒泡/红② 单次执行真实断言/红③ context 真实到达/红④ bean 真实解析/红⑤ typed 拒绝+WARN 真实触发/红⑥ 无状态残留真实可再触发/红⑦ 序列化真实有界/红⑧ 下推真实生效[SQL 形状/载入行数]/红⑨ deadline 真实跳条/红⑩ 归档真实执行或声明落账/红⑪ workerId 真实赋值+告警真实触发/红⑫ 指标真实注册/红⑬ 单执行真实保证——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
-- [ ] **无静默跳过**（rule 24）：十三项显式核验（收敛显式/守卫显式/投递显式/改名显式/拒绝显式/留痕显式/白名单显式/下推显式/超时跳条显式/归档显式或声明落账/告警显式/指标显式/fencing 拒绝显式）；新增公共分支 TODO/FIXME grep 零命中（全部站点文件全查）；拒绝/失败分支无空 catch/静默 return（**W-06 异常边界收敛后 catch-all 不吞异常——ERROR 留痕必然性核验**）
-- [ ] 条件申报核对（对齐纪律）：条件申报①（W-11 心跳列——如裁定触发须四件链申报在先）②（xdef 触碰——如裁定触发须批内闭环申报在先）**触发与否 git 全量核对登记**；③④预设不触发；零触碰登记：2514/2541/2498/364/349/344 已修面与同文件跨批面（监视器收敛/Throwable 边界/键空间治理/扫描治理/retry 封装——diff 分组核对）+ nop-job 本体零 diff+C7-006 零触碰+G16 组+P3 相邻条目+批外子模块（closure audit git 过滤复核归 Phase 4）〔核对结果登记〕
+- [x] 组 A 扫描 job 韧性域（W-04/W-06/W-09——两 job.yaml+WfTaskScanner main+测试树）〔裁定 A；钉=红④⑥⑨+C10-010/012〕〔**W-04×同案对齐一处修复**；W-06/W-09×2514/2541 产物 diff 分组禁交叉；形态 A 宿主面禁触〕
+- [x] 组 B task 状态与 fencing 域（W-01/W-11/W-13——DaoTaskStateStore+TaskImpl+TaskFlowManagerImpl+CallTaskStep 传播面 main+测试树）〔裁定 B；钉=红①⑪⑬+C10-014〕〔**W-01×2514 裁定② 锁序评审兑现**；W-13×C1-009 分立零重开；W-05 同文件（TaskFlowManagerImpl）与组 C/E 跨组协调实施次序〕
+- [x] 组 C 图执行/上下文/解析链域（W-02/W-03/W-05——GraphTaskStep+GraphStepAnalyzer+GraphStepBuilder+ExecutorTaskStepWrapper main+测试树）〔裁定 C；钉=红②③〕〔**W-03×2541 W-06 同方法 diff 分组禁弱化**；升级注记义务面登记〕
+- [x] 组 D 边界与规模域（W-07/W-08——LoopTaskStep+ForkTaskStep+DaoTaskStateStore 序列化面+DaoWorkflowStore+AbstractWorkflowStore+WorkflowEngineImpl runAutoTransitions 分支 main+测试树）〔裁定 D；钉=红⑦⑧〕〔**W-08×TestWfScanQueryShape/due/remind/transfer 查询形状零改写点名**；W-08×2541 W-12 同文件 diff 分组；W-07×DaoTaskStateStore 与组 B 跨组协调〕
+- [x] 组 E 账本与滞留观测域（W-10/W-12——写入口族+SuspendTaskStep+新 job.yaml 如裁 main+测试树）〔裁定 E；钉=红⑩⑫〕〔W-10×W-08 归档联动落款兑现；W-12×2497 §七 约束落款；缺省关闭义务〕
+- [x] 回归测试（rule 25 显式覆盖 + C10-010 随 W-04 同 diff + C10-012 随 W-06 同 diff + C10-014 随 W-13 同 diff + E2 泛在钉红①–红⑬，先红后绿或变异/回退论证留痕）：红①–红⑬ 快照落 `_tmp/red-green-ledger-2542.md` 总册并登记（原始 trial 日志存证）；零回退钉核对（双聚合器签名维持[勘误 8 基线+新钉比对]+R211/R408 钉族全绿[TestPhase4TerminalAndConcurrency/TestWfTaskScanner 全列[含 ContinuesAfter* 三用例]/TestWfTaskScannerFencing/TestCraR408ScannerRemindBackoff/TestCraR408ErrorBoundaryLifecycle/TestFirstClassConfigValidation]+**TestWfScanQueryShape（2514 C10-008 查询形状钉——W-08 点名零改写）**+364/349/2498/344 钉[TestTaskStepHelperRetryDelayOffload_C4_001 等]+既有锚全绿[TestGraphDrainRace 族/TestGraphErrorSuccessRace/TestSuspendSemantics/TestExecutorTaskStepWrapperAsyncBranch 全列]）；2514/2541/2498/364/349 承接面核对（监视器收敛/分批退避 fencing/Throwable 边界/键空间治理/载体裁定——main diff 逐文件核对零触碰）
+- [x] **端到端验证**（rule 22）：≥1 条扫描链路测试覆盖 W-04/W-06/W-09 组合面（yaml 装配→bean 解析成功→单条 action 挂死→deadline 跳条→失败注入→无状态残留可再次触发——红④/红⑥/红⑨ 即链路载体）；≥1 条并发 resume 链路测试覆盖 W-13/W-11（挂起→双路并发 resume→单执行+输家 typed 失败→workerId 赋值可追溯——红⑬/红⑪ 即链路载体）；≥1 条图执行链路测试覆盖 W-02（enter∩wait 模型→装配拒绝或单次执行断言——红② 即链路载体）；≥1 条 executor 链路测试覆盖 W-03（executor 步骤→body 内 context 值断言→Error 注入不回归——红③ 即链路载体）；W-01/W-05/W-07/W-08/W-10/W-12 链路面按裁定形态（saveTaskState 交错链路/解析链拒绝链路/物化治理链路/下推链路/归档链路/滞留指标链路）
+- [x] **接线验证**（rule 23）：十三项全实测（红① 收敛真实生效+裸 ORM 错误零冒泡/红② 单次执行真实断言/红③ context 真实到达/红④ bean 真实解析/红⑤ typed 拒绝+WARN 真实触发/红⑥ 无状态残留真实可再触发/红⑦ 序列化真实有界/红⑧ 下推真实生效[SQL 形状/载入行数]/红⑨ deadline 真实跳条/红⑩ 归档真实执行或声明落账/红⑪ workerId 真实赋值+告警真实触发/红⑫ 指标真实注册/红⑬ 单执行真实保证——每钉断言其修复真实被消费链调用，非仅字段/分支存在）
+- [x] **无静默跳过**（rule 24）：十三项显式核验（收敛显式/守卫显式/投递显式/改名显式/拒绝显式/留痕显式/白名单显式/下推显式/超时跳条显式/归档显式或声明落账/告警显式/指标显式/fencing 拒绝显式）；新增公共分支 TODO/FIXME grep 零命中（全部站点文件全查）；拒绝/失败分支无空 catch/静默 return（**W-06 异常边界收敛后 catch-all 不吞异常——ERROR 留痕必然性核验**）
+- [x] 条件申报核对（对齐纪律）：条件申报①（W-11 心跳列——如裁定触发须四件链申报在先）②（xdef 触碰——如裁定触发须批内闭环申报在先）**触发与否 git 全量核对登记**；③④预设不触发；零触碰登记：2514/2541/2498/364/349/344 已修面与同文件跨批面（监视器收敛/Throwable 边界/键空间治理/扫描治理/retry 封装——diff 分组核对）+ nop-job 本体零 diff+C7-006 零触碰+G16 组+P3 相邻条目+批外子模块（closure audit git 过滤复核归 Phase 4）〔核对结果登记〕
 
 Exit Criteria:
 
 > 每个 Phase 完成后，必须逐条勾选本节。所有 `[x]` 后才能将 Phase Status 改为 `completed`。
 
-- [ ] 13 工单全部 landed（13 Fix），各带 ≥1 条验收载体且可辨识对应工单（W-01~W-13——红①–红⑬ 对应；C10-010 随 W-04 同 diff 落地/C10-012 随 W-06 同 diff 落地/C10-014 随 W-13 同 diff 落地）〔测试类注释显式归属 CRA 8.49 R4-09——新钉 `*R409` 后缀+类注释〕
-- [ ] 必红证据（E2）：红①–红⑬ 均先红后绿或变异/回退论证（总册 `_tmp/red-green-ledger-2542.md` 五组节+逐钉形态标注；红⑥ 使用面限定/红⑩红⑫ 腿形态检出力留痕/红⑬ 概率腿未命中诚实登记条款——原始日志全保留）；C10-010 同 diff 落地留证（装配断言）；C10-012 同 diff 落地留证（韧性契约——宿主面禁造）；C10-014 同 diff 落地留证（50 轮竞速+确定性异常断言）
-- [ ] 零回退实证：双聚合器 solo 通道 BUILD SUCCESS（签名=勘误 8 基线+新钉比对）；点名钉族零回退（R211/R408 钉族全绿/364 校验链与条带锁/349 取消兜底/2498 载体钉/TestWfScanQueryShape/既有锚全列）；2514/2541/2498/364/349 产物面零回退
-- [ ] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
-- [ ] E3 组内留痕：组内 focused 全绿（nop-task/nop-wf 分解通道各 EXIT=0）+ 分解通道执行留痕（已知面 5S 容器/门控与基线同形处置留痕）；批行 `-am` 通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（条件申报核对项——git 过滤亲证）；owner doc 更新需求登记归 Phase 3
+- [x] 13 工单全部 landed（13 Fix），各带 ≥1 条验收载体且可辨识对应工单（W-01~W-13——红①–红⑬ 对应；C10-010 随 W-04 同 diff 落地/C10-012 随 W-06 同 diff 落地/C10-014 随 W-13 同 diff 落地）〔测试类注释显式归属 CRA 8.49 R4-09——新钉 `*R409` 后缀+类注释〕
+- [x] 必红证据（E2）：红①–红⑬ 均先红后绿或变异/回退论证（总册 `_tmp/red-green-ledger-2542.md` 五组节+逐钉形态标注；红⑥ 使用面限定/红⑩红⑫ 腿形态检出力留痕/红⑬ 概率腿未命中诚实登记条款——原始日志全保留）；C10-010 同 diff 落地留证（装配断言）；C10-012 同 diff 落地留证（韧性契约——宿主面禁造）；C10-014 同 diff 落地留证（50 轮竞速+确定性异常断言）
+- [x] 零回退实证：双聚合器 solo 通道 BUILD SUCCESS（签名=勘误 8 基线+新钉比对）；点名钉族零回退（R211/R408 钉族全绿/364 校验链与条带锁/349 取消兜底/2498 载体钉/TestWfScanQueryShape/既有锚全列）；2514/2541/2498/364/349 产物面零回退
+- [x] **端到端验证 / 接线验证 / 无静默跳过**（rule 22/23/24）：本 Phase checklist 内对应三项已逐条核验并勾选
+- [x] E3 组内留痕：组内 focused 全绿（nop-task/nop-wf 分解通道各 EXIT=0）+ 分解通道执行留痕（已知面 5S 容器/门控与基线同形处置留痕）；批行 `-am` 通道全量验收归 Phase 3 统一执行；实际触达模块以 closure audit git diff 核对为准；零触碰确认（条件申报核对项——git 过滤亲证）；owner doc 更新需求登记归 Phase 3
 - [ ] `ai-dev/logs/` 对应日期条目已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账

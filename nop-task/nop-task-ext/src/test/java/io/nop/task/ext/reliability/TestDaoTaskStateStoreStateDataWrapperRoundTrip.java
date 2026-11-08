@@ -68,7 +68,7 @@ public class TestDaoTaskStateStoreStateDataWrapperRoundTrip extends JunitBaseTes
     }
 
     /**
-     * stateBean（LoopStateBean：items+index）/outputs/nextStepName/persistVars 经版本化 wrapper
+     * stateBean（LoopStateBean：游标 index；W-07 后 items 不再持久化）/outputs/nextStepName/persistVars 经版本化 wrapper
      * round-trip 后恢复；typed getStateBean(LoopStateBean.class) 从 Map 形态还原为精确类型，
      * 使 loop 恢复能从持久化 index 续跑而非从 0 重跑。
      */
@@ -78,7 +78,6 @@ public class TestDaoTaskStateStoreStateDataWrapperRoundTrip extends JunitBaseTes
 
         TaskStepStateBean state = (TaskStepStateBean) stepRt.getState();
         LoopTaskStep.LoopStateBean loopState = new LoopTaskStep.LoopStateBean();
-        loopState.setItems(Arrays.<Object>asList("a", "b", "c"));
         loopState.setIndex(2);
         state.setStateBean(loopState);
         state.setResultValue("result-v1");
@@ -106,7 +105,8 @@ public class TestDaoTaskStateStoreStateDataWrapperRoundTrip extends JunitBaseTes
         LoopTaskStep.LoopStateBean restored = loaded.getStateBean(LoopTaskStep.LoopStateBean.class);
         assertNotNull(restored, "typed stateBean must be restored from wrapper map");
         assertEquals(2, restored.getIndex(), "loop index must survive round-trip (pre-fix: never persisted, resume restarted from 0)");
-        assertEquals(3, restored.getItems().size());
+        // W-07（plan 2542 裁定 D）：items 移出持久化面——wrapper 内只承载游标，resume 由 itemsExpr 重算。
+        // 该契约由 TestLoopItemsPersistenceR409 正向断言承载，此处仅确认 typed 恢复仍可用。
     }
 
     /**

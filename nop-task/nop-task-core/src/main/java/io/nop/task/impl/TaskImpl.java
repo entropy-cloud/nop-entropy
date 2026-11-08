@@ -31,6 +31,7 @@ import static io.nop.task.TaskErrors.ARG_TASK_NAME;
 import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_FAILED;
 import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_KILLED;
 import static io.nop.task.TaskErrors.ERR_TASK_ALREADY_TIMEOUT;
+import static io.nop.task.TaskErrors.ERR_TASK_INSTANCE_ALREADY_RUNNING;
 import static io.nop.task.TaskErrors.ERR_TASK_MANDATORY_INPUT_NOT_ALLOW_EMPTY;
 
 public class TaskImpl implements ITask {
@@ -116,6 +117,30 @@ public class TaskImpl implements ITask {
             }
         }
 
+        // W-13（CRA 8.49 R4-09，1.5-C7-014 裁定 B）：执行级 fencing claim——位于 resume 终态短路
+        // 之后（纯终态短路读不被 fence 拒绝）、监视器块之前；并发第二者于 claim 点 typed 快速失败。
+        // claim/release 必须 Throwable-safe：同步 Error 逃逸（装配段/body 同步 Error）时无 stage 可挂
+        // whenComplete，须由 finally 腿兜底 release，否则 fence 进程内永久泄漏
+        String taskInstanceId = taskRt.getTaskInstanceId();
+        if (!taskRt.getTaskManager().tryBeginExecution(taskInstanceId))
+            throw new NopException(ERR_TASK_INSTANCE_ALREADY_RUNNING)
+                    .param(ARG_TASK_INSTANCE_ID, taskInstanceId);
+
+        try {
+            return executeClaimed(taskRt, taskState, outputNames, taskInstanceId);
+        } catch (Throwable t) {
+            // W-13（裁定 B）：同步 Throwable 逃逸的 release 腿——无 stage 可挂 whenComplete
+            taskRt.getTaskManager().endExecution(taskInstanceId);
+            throw t;
+        }
+    }
+
+    /**
+     * W-13（裁定 B）：claim 之后的执行体；返回 stage 挂 whenComplete 释放 fence
+     * （成功/异常/SUSPENDED 完成全路径覆盖——挂起任务的下次 resume 为新 claim）。
+     */
+    private TaskStepReturn executeClaimed(ITaskRuntime taskRt, ITaskState taskState,
+                                          Set<String> outputNames, String taskInstanceId) {
         // plan 2514 MA-01（1.5-C1-009 resume 半边）：恢复执行在 taskState 监视器内做非终态确认后
         // 显式重置 ACTIVE 并落盘——挂起任务恢复后不再滞留 SUSPENDED 快照（cancel 判定块据此驱动 KILLED，
         // 滞留 SUSPENDED 会让恢复执行中的任务被误判为可 kill 挂起态）；终态任务不重置（first-terminal-wins 保持）。
@@ -163,7 +188,7 @@ public class TaskImpl implements ITask {
             throw NopException.adapt(e);
         }
 
-        return stepReturn.thenCompose((ret, err) -> {
+        TaskStepReturn staged = stepReturn.thenCompose((ret, err) -> {
             if (err == null && ret != null && ret.isSuspend()) {
                 // SUSPEND 不是终态（check2 P0-2 / plan 349 Phase 1）：任务进入 SUSPENDED 等待恢复，
                 // 不能驱动为 COMPLETED——否则 resume 被 isTerminal 短路，挂起恢复语义端到端断裂。
@@ -197,6 +222,7 @@ public class TaskImpl implements ITask {
             driveTaskTerminal(taskRt, taskState, err);
             throw NopException.adapt(err);
         });
+        return staged.whenComplete((v, e) -> taskRt.getTaskManager().endExecution(taskInstanceId));
     }
 
     /**

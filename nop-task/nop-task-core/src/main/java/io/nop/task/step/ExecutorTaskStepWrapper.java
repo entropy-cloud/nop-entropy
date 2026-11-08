@@ -1,5 +1,6 @@
 package io.nop.task.step;
 
+import io.nop.api.core.context.IContext;
 import io.nop.api.core.util.FutureHelper;
 import io.nop.api.core.util.ICancelToken;
 import io.nop.commons.concurrent.executor.IThreadPoolExecutor;
@@ -29,21 +30,46 @@ public class ExecutorTaskStepWrapper extends DelegateTaskStep {
     public TaskStepReturn execute(ITaskStepRuntime stepRt) {
         IThreadPoolExecutor executor = stepRt.getTaskRuntime().getThreadPoolExecutor(executorBean);
 
+        // W-03（CRA 8.49 R4-09，1.5-C3-004 裁定 C）：缺省上下文重投递——body 在池线程直跑时
+        // ThreadLocal 依赖（ContextProvider.currentLocale 等）静默失效或串号；以 runtime 构造时
+        // 已捕获的 context 重投递（RunOnContextTaskStepWrapper 同构先例），无 opt-out 键。
+        // 2541 W-06 Throwable 收宽产物零弱化：包裹位于 try 块内首行，catch(Throwable) 边界随之
+        // 外扩；Error rethrow/onCancel/bindCancelToken 三点语义零触碰。
+        IContext context = stepRt.getContext();
+
         CompletableFuture<TaskStepReturn> ret = new CompletableFuture<>();
         CompletableFuture<?> future = executor.submit(() -> {
             // LOG.info("in thread");
             try {
-                TaskStepReturn result = getTaskStep().execute(stepRt);
-                if (result.isDone()) {
-                    ret.complete(result.sync());
-                } else {
-                    result.whenComplete((data, err) -> {
-                        if (err != null) {
-                            ret.completeExceptionally(err);
+                // body 与内层终结守卫（设计评审 R1-F-1）：BaseContext.execute 为双派发腿
+                // （inline / 排队 enqueue）——生产请求下池线程调用走排队腿，body 异常发生在
+                // context 线程、不经本池线程 catch(Throwable)；lambda 内自带 catch 保证两腿
+                // 派发下 ret 均必然终结（无新悬挂路径）
+                Runnable body = () -> {
+                    try {
+                        TaskStepReturn result = getTaskStep().execute(stepRt);
+                        if (result.isDone()) {
+                            ret.complete(result.sync());
                         } else {
-                            ret.complete(data);
+                            result.whenComplete((data, err) -> {
+                                if (err != null) {
+                                    ret.completeExceptionally(err);
+                                } else {
+                                    ret.complete(data);
+                                }
+                            });
                         }
-                    });
+                    } catch (Throwable t) {
+                        ret.completeExceptionally(t);
+                        if (t instanceof Error)
+                            throw (Error) t;
+                    }
+                };
+                if (context != null) {
+                    context.execute(body);
+                } else {
+                    // 无 context 捕获（编程式构造极端路径）：保持直跑语义，不静默丢执行
+                    body.run();
                 }
             } catch (Throwable t) {
                 // W-06（CRA 8.48 R4-08，MA-13 裁定 B）：catch 收宽为 Throwable——executor 派发
