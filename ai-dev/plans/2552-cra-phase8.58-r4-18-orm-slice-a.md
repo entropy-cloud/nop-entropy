@@ -74,7 +74,7 @@ Targets: nop-persistence/nop-orm / nop-orm-eql / nop-orm-model / nop-dao + 测�
 - [x] 关键项先红后绿或变异论证（≥3）：红① C1-004 decRef 去锁→pin_c Failure；红② C1-013 setName 去 checkFrozen→pin_b Failure；红③ C1-027 围栏擦除→pin_c Failure——总册 `_tmp/red-green-ledger-2552.md`
 - [x] **C1-016 零弱化义务**：TestLazyLoadOrmModel 断言零改动（本批 diff 无该测试文件）且 E3 反应堆复绿
 - [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0，证据 `_tmp/e1-2552-full-build.log`）
-- [x] E3：`./mvnw -o test -pl nop-persistence -am` **归因绿**（四模块全量 0F/0E；唯一失败面 nop-core TestResourceCacheInvalidationChain 3F=已知 flake[2549 m1 登记]——solo 4/4 绿 + 本批 nop-core 零 diff 归因确认）
+- [x] E3：`./mvnw -o test -pl nop-persistence -am` **归因绿（R1 closure audit Major-1 证据表述勘正）**：本批四模块（nop-orm/orm-eql/orm-model/dao）全量 0F/0E 由逐模块通道承载（t2552-1f/2b/3h/4c + auditor 独立复跑 16/16 含 TestCra2517 全族）；`-am` 反应堆闭包含数十上游模块，其共享 fork flake 族群逐轮轮换阻断（run1 nop-core 3F/run2 nop-config 1F/run3 nop-stream 1F/run4 nop-ioc 1F——**四处均零本批 diff，各自 solo 绿**[solo-config2.log 等]，2549 m1 同族登记；排除形态追一处出一处=whack-a-mole，登记为上游 flake 族群面而非本批回归）
 - [x] **不回退 2517/2518**：TestCra2517* 全族 + TestLazyLoadOrmModel 全绿（E3 反应堆通道含）
 - [x] owner doc 落账：`model-first-development.md`「ORM 模型运行期可见性与发布安全契约（plan 2552）」节 + `source-anchors.md` `ORM-A`
 - [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 四叶子模块全 EXIT=0
@@ -103,10 +103,11 @@ Completed: 2026-11-10
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立 closure audit 填写）
+- Reviewer / Agent: agent_8b07fafd（fresh session 独立 closure audit R1 APPROVED-with-corrections——Major-1 E3 证据表述勘正[已按选项 1 修正]/Minor-2 载体类名表意性/Minor-3 结构钉脆弱性已披露；15 工单 live 逐一 PASS + auditor 独立复跑 16/16）
+- Audit Session: agent_8b07fafd-740b-4caf-9f8c-d21c4b39800e
 - Evidence:
   - 15 工单 live 逐一核验 + 载体复跑 + Anti-Hollow + Deferred 分类（见 closure audit 记录）
-  - E1 BUILD SUCCESS（`_tmp/e1-2552-full-build.log`）；E3 -am 反应堆归因绿（`_tmp/e3-2552.log` + solo `_tmp/e3-2552-solo.log`）；check-doc-links EXIT=0；scan-hollow 四叶子 EXIT=0
+  - E1 BUILD SUCCESS（`_tmp/e1-2552-full-build.log`）；E3 证据=四模块逐模块绿（t2552-1f/2b/3h/4c + audit 复跑 16/16）+ `-am` 闭包上游 flake 族群四处 solo 绿归因（e3-2552{,-rerun,-rerun2,-rerun3,-rerun4}.log；closure audit Major-1 勘正表述）；check-doc-links EXIT=0；scan-hollow 四叶子 EXIT=0
   - `node ai-dev/tools/check-plan-checklist.mjs --strict` 见收口提交
 
 Follow-up:
