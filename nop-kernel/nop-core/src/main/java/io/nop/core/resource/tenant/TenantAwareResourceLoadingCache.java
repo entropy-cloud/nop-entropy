@@ -2,6 +2,7 @@ package io.nop.core.resource.tenant;
 
 import io.nop.api.core.config.IConfigReference;
 import io.nop.api.core.context.ContextProvider;
+import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.ICache;
 import io.nop.commons.cache.LocalCache;
@@ -28,8 +29,13 @@ public class TenantAwareResourceLoadingCache<V> implements IResourceLoadingCache
 
     public TenantAwareResourceLoadingCache(String name, IResourceObjectLoader<V> loader, ICreationListener<V> listener,
                                            IConfigReference<Integer> cacheMaxSize, IConfigReference<Duration> cacheTimeout) {
+        // C6-012（plan 2548 裁定 D）：容器开启 destroyOnRemove——租户缓存被驱逐/清理时执行其
+        // destroy()（ResourceLoadingCache 已 implements IDestroyable，见 C6-005 ②），
+        // 使租户缓存的 entry 销毁回调在容器驱逐路径可达
+        CacheConfig containerConfig = newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get());
+        containerConfig.setDestroyOnRemove(true);
         this.tenantCaches = LocalCache.newCache(name,
-                newConfig(CFG_COMPONENT_RESOURCE_CACHE_TENANT_CACHE_CONTAINER_SIZE.get()),
+                containerConfig,
                 k -> new ResourceLoadingCache<>("tenant-" + name, loader, listener, cacheMaxSize, cacheTimeout));
         this.shareCache = new ResourceLoadingCache<>(name, loader, listener, cacheMaxSize, cacheTimeout);
     }

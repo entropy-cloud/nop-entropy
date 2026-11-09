@@ -167,9 +167,9 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G2 C4-005：`GlobalExecutors.destroyAndUnregister(String)` + residual 登记
 - [x] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 roadmap 8.55 / R4-15）
 - [x] G4 C6-004：`registerMetrics` 返回 `AutoCloseable` 句柄 + destroy 时 close + `tenant-` meter 去重
-- [ ] G5 C5-003：`CacheConfig` 拷贝构造补两字段
-- [ ] G6 C6-005（三项）：① `createCache` 加 `setDestroyOnRemove(true)`；② `ResourceLoadingCache implements IDestroyable`（`destroy = invalidateAll + cleanUp`）；③ `LocalCache.destroy()` 改 `invalidateAll() + cleanUp()`
-- [ ] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 `setDestroyOnRemove(true)`（**依赖 G6 ②**：值类型须实现 `IDestroyable`）
+- [x] G5 C5-003：`CacheConfig` 拷贝构造补两字段
+- [x] G6 C6-005（三项）：① `createCache` 加 `setDestroyOnRemove(true)`；② `ResourceLoadingCache implements IDestroyable`（`destroy = invalidateAll + cleanUp`）；③ `LocalCache.destroy()` 改 `invalidateAll() + cleanUp()`
+- [x] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 `setDestroyOnRemove(true)`（**依赖 G6 ②**：值类型须实现 `IDestroyable`）
 - [ ] G8 C6-006：`FileWatchEntry` unwatch 摘父 + 重复 watch 复用
 - [ ] G9 C6-007：`NioFileWatchService` daemon 化 + awaitTermination
 - [ ] G10 C7-008：`ResourceDependsManager` 逐条淘汰

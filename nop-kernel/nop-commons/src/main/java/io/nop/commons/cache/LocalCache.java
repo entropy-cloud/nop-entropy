@@ -75,6 +75,9 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
                 LOG.warn("nop.warn.commons.cache.metrics-close-fail", e);
             }
         }
+        // C6-005（plan 2548 裁定 D）：invalidateAll 先触发 destroyOnRemove 回调（entry.destroy()），
+        // 再 cleanUp 等待异步 removal 完成；原仅 cleanUp() 会跳过销毁回调
+        cache.invalidateAll();
         cache.cleanUp();
     }
 

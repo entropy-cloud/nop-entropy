@@ -15,6 +15,7 @@ import io.nop.commons.cache.CacheConfig;
 import io.nop.commons.cache.CacheStats;
 import io.nop.commons.cache.LocalCache;
 import io.nop.commons.lang.ICreationListener;
+import io.nop.commons.lang.IDestroyable;
 import io.nop.commons.util.MathHelper;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.resource.IResourceObjectLoader;
@@ -48,7 +49,7 @@ import static io.nop.core.CoreErrors.ERR_COMPONENT_RESOURCE_CACHE_RETURN_NULL;
  *
  * @param <V>
  */
-public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
+public class ResourceLoadingCache<V> implements IResourceLoadingCache<V>, IDestroyable {
     static final SourceLocation s_loc = SourceLocation.fromClass(ResourceLoadingCache.class);
     private final String name;
     private final LocalCache<String, ResourceCacheEntry<V>> cache;
@@ -109,6 +110,9 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
         Duration timeout = cacheTimeout.get();
         if (timeout != null && !timeout.isNegative())
             config.setExpireAfterWrite(timeout);
+        // C6-005（plan 2548 裁定 D）：驱逐/失效路径必须执行 entry 的 destroy 回调
+        // （ResourceCacheEntry 已 implements IDestroyable，LocalCache 的 removalListener 依此触发）
+        config.setDestroyOnRemove(true);
         return LocalCache.newCache(getName(), config, this::newCacheEntry);
     }
 
@@ -157,6 +161,15 @@ public class ResourceLoadingCache<V> implements IResourceLoadingCache<V> {
     @Override
     public void clear() {
         cache.clear();
+    }
+
+    /**
+     * C6-005（plan 2548）：缓存关闭路径——invalidateAll 触发 destroyOnRemove 回调（entry.destroy()，
+     * 模型对象的销毁在驱逐/关闭时可达）+ cleanUp 等待异步 removal 完成。
+     */
+    @Override
+    public void destroy() {
+        this.cache.destroy();
     }
 
     /**

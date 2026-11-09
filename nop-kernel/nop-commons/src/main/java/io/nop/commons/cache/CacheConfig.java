@@ -62,6 +62,11 @@ public class CacheConfig implements Serializable {
         this.expireAfterAccess = config.expireAfterAccess;
         this.async = config.async;
         this.useMetrics = config.useMetrics;
+        // C5-003（plan 2548 裁定 D）：拷贝构造必须带上生命周期语义字段，否则克隆路径上
+        // destroyOnRemove 恒 false（驱逐回调结构性失效）
+        this.destroyOnRemove = config.destroyOnRemove;
+        this.refreshAfterWrite = config.refreshAfterWrite;
+        // executor 为 transient 池引用：克隆把池引用带出通常不是期望行为，显式不拷贝（Deferred 裁定）
     }
 
     public CacheConfig cloneInstance() {
