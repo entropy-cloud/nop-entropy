@@ -60,7 +60,23 @@ public class BindScheduledExecutor implements IScheduledExecutor {
             return null;
         }, delay, unit);
         FutureHelper.bindCancel(future, timerFuture);
+        // C6-001（plan 2548）：底层 timer 销毁时内层 future 异常终态，传播到外层，否则外层永不完成
+        // （executeOn 永不触达）。适用边界：仅当底层 timer 能终态化内层 future（如 DefaultScheduledExecutor）
+        propagateInnerFailure(timerFuture, future);
         return future;
+    }
+
+    /**
+     * C6-001（plan 2548）：内层 timer future 异常完结时传播到外层 future。bindCancel 只传播
+     * 「外层取消 → 内层取消」方向；本方法补「内层设施拒绝 → 外层异常终态」的另一半。
+     */
+    private void propagateInnerFailure(Future<?> timerFuture, CompletableFuture<?> future) {
+        if (!(timerFuture instanceof CompletableFuture))
+            return;
+        ((CompletableFuture<?>) timerFuture).whenComplete((result, error) -> {
+            if (error != null && !future.isDone())
+                future.completeExceptionally(error);
+        });
     }
 
     @Override
@@ -124,6 +140,8 @@ public class BindScheduledExecutor implements IScheduledExecutor {
             executeOn(callable, future);
         }, null);
         FutureHelper.bindCancel(future, timerFuture);
+        // C6-001（plan 2548）：同 schedule——底层 timer 销毁时传播异常终态到外层
+        propagateInnerFailure(timerFuture, future);
         return future;
     }
 

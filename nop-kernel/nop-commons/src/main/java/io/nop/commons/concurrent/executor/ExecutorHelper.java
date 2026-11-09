@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
@@ -193,53 +194,86 @@ public class ExecutorHelper {
     }
 
     public static <T> CompletableFuture<T> submit(ExecutorService executor, Callable<T> task) {
+        return submitTracked(executor, task, null);
+    }
+
+    /**
+     * C6-001（plan 2548）：带「待结算登记表」的提交入口。future 在提交前登记到 {@code pending}，完结（正常 /
+     * 异常 / 取消）时自动摘除；底层 {@code executor.submit} 抛 REE 时先摘除再原样抛出（不泄漏）。
+     * {@code pending == null} 等价于不登记（原语义）。destroy 侧由持有该表的执行器统一终态化。
+     */
+    public static <T> CompletableFuture<T> submitTracked(ExecutorService executor, Callable<T> task,
+                                                         Set<CompletableFuture<?>> pending) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        Future<?> f = executor.submit(new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-                try {
-                    T result = task.call();
-                    future.complete(result);
-                    return result;
-                } catch (Throwable e) {
-                    LOG.error("nop.executor.execute-fail", e);
-                    future.completeExceptionally(e);
-                    throw e;
-                } finally {
-                    // 确保ThreadLocal上的IContext被清除
-                    ContextProvider.instance().detachContext();
-                    // C3-016：complete之后清除真取消路径注入的残留中断标志，不依赖载体TPE
-                    // getTask吸收中断（shutdownNow窗口内的中断被清除可接受：worker退出由队列排空保证）
-                    Thread.interrupted();
+        trackPending(pending, future);
+        Future<?> f;
+        try {
+            f = executor.submit(new Callable<Object>() {
+                @Override
+                public Object call() throws Exception {
+                    try {
+                        T result = task.call();
+                        future.complete(result);
+                        return result;
+                    } catch (Throwable e) {
+                        LOG.error("nop.executor.execute-fail", e);
+                        future.completeExceptionally(e);
+                        throw e;
+                    } finally {
+                        // 确保ThreadLocal上的IContext被清除
+                        ContextProvider.instance().detachContext();
+                        // C3-016：complete之后清除真取消路径注入的残留中断标志，不依赖载体TPE
+                        // getTask吸收中断（shutdownNow窗口内的中断被清除可接受：worker退出由队列排空保证）
+                        Thread.interrupted();
+                    }
                 }
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            untrackPending(pending, future);
+            throw e;
+        }
 
         FutureHelper.bindCancel(future, f);
         return future;
     }
 
     public static <T> CompletableFuture<T> submit(ExecutorService executor, Runnable task, T result) {
+        return submitTracked(executor, task, result, null);
+    }
+
+    /**
+     * C6-001（plan 2548）：同 {@link #submitTracked(ExecutorService, Callable, Set)} 的 Runnable 形态
+     * （4 参，与 Callable 版 3 参不同 arity，避免重载解析歧义）。
+     */
+    public static <T> CompletableFuture<T> submitTracked(ExecutorService executor, Runnable task, T result,
+                                                         Set<CompletableFuture<?>> pending) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        Future<?> f = executor.submit(new Callable<Object>() {
-            @Override
-            public Object call() {
-                try {
-                    task.run();
-                    future.complete(result);
-                    return result;
-                } catch (Throwable e) {
-                    LOG.error("nop.executor.execute-fail", e);
-                    future.completeExceptionally(e);
-                    throw e;
-                } finally {
-                    // 确保ThreadLocal上的IContext被清除
-                    ContextProvider.instance().detachContext();
-                    // C3-016：同上，清除残留中断标志
-                    Thread.interrupted();
+        trackPending(pending, future);
+        Future<?> f;
+        try {
+            f = executor.submit(new Callable<Object>() {
+                @Override
+                public Object call() {
+                    try {
+                        task.run();
+                        future.complete(result);
+                        return result;
+                    } catch (Throwable e) {
+                        LOG.error("nop.executor.execute-fail", e);
+                        future.completeExceptionally(e);
+                        throw e;
+                    } finally {
+                        // 确保ThreadLocal上的IContext被清除
+                        ContextProvider.instance().detachContext();
+                        // C3-016：同上，清除残留中断标志
+                        Thread.interrupted();
+                    }
                 }
-            }
-        });
+            });
+        } catch (RejectedExecutionException e) {
+            untrackPending(pending, future);
+            throw e;
+        }
 
         FutureHelper.bindCancel(future, f);
         return future;
@@ -247,29 +281,58 @@ public class ExecutorHelper {
 
     public static <T> CompletableFuture<T> schedule(ScheduledThreadPoolExecutor executor, Callable<T> task, long delay,
                                                     TimeUnit timeUnit) {
+        return scheduleTracked(executor, task, delay, timeUnit, null);
+    }
+
+    /**
+     * C6-001（plan 2548）：同 {@link #submitTracked(ExecutorService, Callable, Set)} 的定时形态。
+     */
+    public static <T> CompletableFuture<T> scheduleTracked(ScheduledThreadPoolExecutor executor, Callable<T> task,
+                                                           long delay, TimeUnit timeUnit,
+                                                           Set<CompletableFuture<?>> pending) {
         CompletableFuture<T> future = new CompletableFuture<>();
-        Future<?> f = executor.schedule(new Callable<Object>() {
-            @Override
-            public Object call() throws Exception {
-                try {
-                    T result = task.call();
-                    future.complete(result);
-                    return result;
-                } catch (Throwable e) {
-                    LOG.error("nop.executor.execute-fail", e);
-                    future.completeExceptionally(e);
-                    throw e;
-                } finally {
-                    // 确保ThreadLocal上的IContext被清除
-                    ContextProvider.instance().detachContext();
-                    // C3-016：同上，清除残留中断标志
-                    Thread.interrupted();
+        trackPending(pending, future);
+        Future<?> f;
+        try {
+            f = executor.schedule(new Callable<Object>() {
+                @Override
+                public Object call() throws Exception {
+                    try {
+                        T result = task.call();
+                        future.complete(result);
+                        return result;
+                    } catch (Throwable e) {
+                        LOG.error("nop.executor.execute-fail", e);
+                        future.completeExceptionally(e);
+                        throw e;
+                    } finally {
+                        // 确保ThreadLocal上的IContext被清除
+                        ContextProvider.instance().detachContext();
+                        // C3-016：同上，清除残留中断标志
+                        Thread.interrupted();
+                    }
                 }
-            }
-        }, delay, timeUnit);
+            }, delay, timeUnit);
+        } catch (RejectedExecutionException e) {
+            untrackPending(pending, future);
+            throw e;
+        }
 
         FutureHelper.bindCancel(future, f);
         return future;
+    }
+
+    private static void trackPending(Set<CompletableFuture<?>> pending, CompletableFuture<?> future) {
+        if (pending == null)
+            return;
+        pending.add(future);
+        future.whenComplete((result, error) -> pending.remove(future));
+    }
+
+    private static void untrackPending(Set<CompletableFuture<?>> pending, CompletableFuture<?> future) {
+        if (pending == null)
+            return;
+        pending.remove(future);
     }
 
     public static void registerMetrics(ExecutorService executor, ThreadPoolConfig config) {

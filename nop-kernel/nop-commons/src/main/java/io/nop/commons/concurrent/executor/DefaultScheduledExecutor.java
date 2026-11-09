@@ -39,6 +39,13 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
      */
     private final Set<InsulatedPeriodicTask> periodicTasks = ConcurrentHashMap.newKeySet();
 
+    /**
+     * C6-001（plan 2548）：尚无终态的一次性提交 future 登记表。submit/schedule 经
+     * {@code ExecutorHelper.*Tracked} 登记至此，完结时自动摘除；destroy() 对残余项统一异常终态，
+     * 消除「排队任务被丢弃 → 调用方 future 永不完成」的悬挂面。
+     */
+    private final Set<CompletableFuture<?>> pendingFutures = ConcurrentHashMap.newKeySet();
+
     public boolean isEnabled() {
         return enabled;
     }
@@ -123,11 +130,21 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
             executor = null;
         }
         // timer 销毁时给所有尚无终态的绝缘链统一走拒绝终态：底层一次性触发器被 shutdownNow
-        // 批量取消后不会向包装 future 传播完结，这里统一收口（关闭竞态下 future 有终态、不悬挂）
+        // 批量取消后不会向包装 future 传播完结，这里统一收口（关闭竞态下 future 有终态、不悬挂）。
+        // C6-001 顺序约束（plan 2548 §四.1）：必须先于 pendingFutures 结算——链先获得拒绝终态后，
+        // watchNativeHandle 的 !chain.isDone() 守卫短路，避免 listener 双触发。
         for (InsulatedPeriodicTask guard : periodicTasks) {
             guard.rejectChain(new NopException(ERR_SERVICE_NOT_ACTIVE).param("service", "DefaultScheduledExecutor"));
         }
         periodicTasks.clear();
+        // C6-001：对尚无终态的一次性提交 future 统一异常终态（排队任务已被 shutdownNow 丢弃、
+        // 其 wrapper 永不执行；completeExceptionally 幂等，与在飞任务并发安全——在飞任务随后
+        // 成功的结果被丢弃，这是「即时停机 + future 必有终态」的显式取舍）。
+        for (CompletableFuture<?> future : pendingFutures) {
+            future.completeExceptionally(
+                    new NopException(ERR_SERVICE_NOT_ACTIVE).param("service", "DefaultScheduledExecutor"));
+        }
+        pendingFutures.clear();
     }
 
     /**
@@ -174,7 +191,8 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     public <T> CompletableFuture<T> submit(Callable<T> task) {
         ScheduledThreadPoolExecutor exec = snapshotExecutor();
         try {
-            return ExecutorHelper.submit(exec, task);
+            // C6-001：登记到 pendingFutures，destroy() 时统一终态
+            return ExecutorHelper.submitTracked(exec, task, pendingFutures);
         } catch (RejectedExecutionException e) {
             throw adaptRejected(e);
         }
@@ -184,7 +202,8 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     public <V> CompletableFuture<V> submit(Runnable task, V result) {
         ScheduledThreadPoolExecutor exec = snapshotExecutor();
         try {
-            return ExecutorHelper.submit(exec, task, result);
+            // C6-001：登记到 pendingFutures，destroy() 时统一终态
+            return ExecutorHelper.submitTracked(exec, task, result, pendingFutures);
         } catch (RejectedExecutionException e) {
             throw adaptRejected(e);
         }
@@ -194,7 +213,8 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     public <V> CompletableFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
         ScheduledThreadPoolExecutor exec = snapshotExecutor();
         try {
-            return ExecutorHelper.schedule(exec, callable, delay, unit);
+            // C6-001：登记到 pendingFutures，destroy() 时统一终态
+            return ExecutorHelper.scheduleTracked(exec, callable, delay, unit, pendingFutures);
         } catch (RejectedExecutionException e) {
             throw adaptRejected(e);
         }

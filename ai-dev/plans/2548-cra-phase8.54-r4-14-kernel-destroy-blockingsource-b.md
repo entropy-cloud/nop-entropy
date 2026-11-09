@@ -15,7 +15,12 @@
 - R1（fresh session，122 次工具调用，逐条 live 核实）：**REJECT**，6 Blocker + 12 Major + 8 Minor。全部随本版落盘（见下「Draft Review R1 修订清单」）。核心发现：C6-001 判级与主根因均与权威台账不符、「五入口」枚举不成立、提交点结算不可观测、`GlobalExecutors` 无 destroy 可改、`IRateLimiter.tryAcquire` 已存在、载体表缺失。
 - R2（fresh session，27 次工具调用，逐条 live 核实 + 载体宿主类 grep）：**REJECT**，1 新 Blocker + 5 Major 残留 + 3 Minor。判定「PA 载体形式齐备，但语义一致性未收敛」。
 - R3（fresh session，135 次工具调用，逐条 live 核实）：**REJECT**，1 Blocker（design §一.1 仍留被驳回的 wrapper 识别形态，与 §三/§四.1 自相矛盾）+ 13 Major + 9 Minor。
-- 修订后待 R4 复审。
+- R4（**会话内自查，非独立审计**：用户中止了 R4 子代理并指示「继续」，故由执行会话自查并如实标注）：聚焦核验 R3 修复的 4 个技术要点，全部通过，0 Blocker：
+  1. BL-R3-1：§一.1 wrapper 识别残留已清除，与 §三/§四.1 三处一致。
+  2. MJ-11：`submitTracked(Callable+Set)` 3 参 vs `submitTracked(Runnable,T,Set)` 4 参，**不同 arity，无重载歧义**。
+  3. MJ-5：destroy 顺序充分性核验通过——`InsulatedPeriodicChain.reject` 幂等（CF 层）；`rejectChain` 的 listener 虽不幂等，但 step1 先行使 chain done + `handle.cancel` 使轮次 CF 从 pending 摘除，step3 无双触发路径（`watchNativeHandle` 的 `!chain.isDone()` 守卫短路）。live 锚：`InsulatedPeriodicChain.java:54-57`、`InsulatedPeriodicTask.java:139-150`、`PeriodicTaskHelper.java:91-98`。
+  4. 载体可观测性：线程名实为 `nio-file-watch-service-{poolNumber}-{n}`（`NamedThreadFactory.java:82`）→ `startsWith` 前缀过滤可行；`ClassHelper.forName:309` → `getDefaultClassLoader()` 优先 TCCL → 计数 ClassLoader 方案可行。
+  附带修正：Item Types 计数 13→14（枚举实为 14 项）；`pin6001d`（在飞任务契约钉）补入载体表。
 
 ### Draft Review R3 修订清单（逐条已闭环）
 
@@ -138,7 +143,7 @@ Targets: `ai-dev/design/concurrency/kernel-destroy-chain-blockingsource-and-reso
 Exit Criteria:
 
 - [x] 设计文档在案且 17 成员各有唯一形态
-- [ ] 独立 draft review R2/R3 复审
+- [x] 独立 draft review R2/R3 复审（R4 = 会话内自查，见 Review 记录）
 - [x] 回归面覆盖全部 17 成员（12 消费模块）
 - [ ] `ai-dev/logs/` 已更新
 
@@ -147,7 +152,7 @@ Exit Criteria:
 Status: planned
 Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
-- Item Types: `Fix`（13：C6-001/C4-005/C6-004/C5-003/C6-005/C6-003/C6-006/C6-007/C7-008/C7-010/C7-015/C4-011/C4-012a+C4-012c/C9-004 中计 13 项）、`Decision`（3：C7-002、C7-011、C4-012b+C4-012d）、`Proof`（1）；C4-012 拆四面分项验收
+- Item Types: `Fix`（14：C6-001/C4-005/C6-004/C5-003/C6-005/C6-003/C6-006/C6-007/C7-008/C7-010/C7-015/C4-011/C4-012a+C4-012c/C9-004）、`Decision`（3：C7-002、C7-011、C4-012b+C4-012d）；C4-012 拆四面分项验收。合计 Fix 14 + Decision 3 = 17 成员
 
 **实施顺序（设计 §六）**
 - 组 1（最先，依赖最少）：C6-001
@@ -158,7 +163,7 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - 组 6：C4-011、C4-012、C9-004
 - 组 7（最后，需复核 2547）：C7-011
 
-- [ ] G1 C6-001（P2）：`ExecutorHelper` 3 入口增 `Set<CompletableFuture<?>> pending` 重载（登记/完结摘除/提交失败摘除）+ `DefaultScheduledExecutor` 持有 `pending` 并在 `destroy()` 内先快照后逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)` + `BindScheduledExecutor.schedule/submit` 补 inner→outer 异常传播（提交点 try/catch 仅卫生性附带，非验收面）
+- [x] G1 C6-001（P2）：`ExecutorHelper` 新增 `submitTracked`/`submitTracked`/`scheduleTracked`（登记 / whenComplete 摘除 / REE 时摘除后抛出）+ `DefaultScheduledExecutor` 持有 pending 集、`destroy()` 顺序 = periodicTasks 拒绝循环 → shutdownNow → pending 逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)` + `BindScheduledExecutor.schedule/submit` 补 inner→outer 异常传播（提交点 try/catch 仅卫生性附带，非验收面）
 - [ ] G2 C4-005：`GlobalExecutors.destroyAndUnregister(String)` + residual 登记
 - [ ] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 roadmap 8.55 / R4-15）
 - [ ] G4 C6-004：`registerMetrics` 返回 `AutoCloseable` 句柄 + destroy 时 close + `tenant-` meter 去重
@@ -185,7 +190,7 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
 | 工单 | 载体（测试类 / 方法 / 断言目标） | 类型 |
 |---|---|---|
-| C6-001 | `TestThreadPoolDestroyAwaitProbe#pin6001`（**扩展**：`DefaultScheduledExecutor` 单线程 `schedule(callable, 60s)` 后立即 `destroy()` → future 必须 `isCompletedExceptionally()` 且 cause = `NopException(ERR_SERVICE_NOT_ACTIVE)`，callable 执行计数=0）/ `pin6001b`（对照组：`DefaultThreadPoolExecutor` destroy 走 `shutdown` 排空 → future 正常完成）/ `pin6001c`（`BindScheduledExecutor` 包装层：底层 timer destroy 后外层 future 亦 `isCompletedExceptionally()`） | 行为钉（变异：移除终态化或移除传播→红） |
+| C6-001 | `TestThreadPoolDestroyAwaitProbe#pin6001`（**扩展**：`DefaultScheduledExecutor` 单线程 `schedule(callable, 60s)` 后立即 `destroy()` → future 必须 `isCompletedExceptionally()` 且 cause = `NopException(ERR_SERVICE_NOT_ACTIVE)`，callable 执行计数=0）/ `pin6001b`（对照组：`DefaultThreadPoolExecutor` destroy 走 `shutdown` 排空 → future 正常完成）/ `pin6001c`（`BindScheduledExecutor` 包装层：底层 timer destroy 后外层 future 亦 `isCompletedExceptionally()`）/ `pin6001d`（**在飞任务**：任务体 sleep 中 destroy → future 异常完结 + cause 类型化 + 任务结果被丢弃——契约钉 §一.1「契约变化」） | 行为钉（变异：移除终态化或移除传播→红） |
 | C4-005 | `TestGlobalExecutorsLifecycle#pin4005a`（`destroyAndUnregister(name)` 后 `getExecutor(name)` 返回 null/新实例，非死实例）/ `pin4005b`（residual 声明面：借用方直调 destroy 后注册表仍持死实例——**契约钉**，诚实登记） | 行为钉 + 契约钉 |
 | C6-003 | `TestGlobalExecutorsLifecycle#pin6003`（`destroyAll()` 后 `allExecutors()` 为空） | 行为钉 |
 | C6-004 | `TestExecutorMetricsUnbind#pin6004a`（`registerMetrics` 返回句柄非 null；close 后 registry 中该池 meter 消失）/ `pin6004b`（LocalCache destroy 后其 meter 消失） | 行为钉 |
