@@ -27,9 +27,26 @@ public class LocalFileLock implements Lock {
     private final int pollIntervalMs;
     private final int timeoutMs;
 
-    private FileLock lock;
-    private RandomAccessFile randomAccessFile = null;
-    private FileChannel channel = null;
+    /**
+     * 1.7-C1-011（plan 2547 裁定 H）：锁成功会话。原先 (lock, randomAccessFile, channel) 三个
+     * 实例字段无同步（违反 Lock 接口的线程安全契约），且 {@code tryLock(0)} 在 lock==null 的 break
+     * 路径上不释放已打开的句柄（泄漏 → 其他进程永远无法获锁）。
+     * 收敛为单个 volatile 会话对象：成功路径整体发布，unlock 只关闭该会话，失败/超时/异常路径统一释放。
+     */
+    private volatile Handle held;
+
+    /** 锁成功会话：一个 RandomAccessFile/FileChannel/FileLock 三件套的生命周期载体。 */
+    private static final class Handle {
+        final FileLock fileLock;
+        final FileChannel channel;
+        final RandomAccessFile file;
+
+        Handle(FileLock fileLock, FileChannel channel, RandomAccessFile file) {
+            this.fileLock = fileLock;
+            this.channel = channel;
+            this.file = file;
+        }
+    }
 
     public LocalFileLock(File lockFile, int pollIntervalMs, int timeoutMs) {
         this.lockFile = lockFile;
@@ -45,18 +62,25 @@ public class LocalFileLock implements Lock {
 
         long expireNanos = CoreMetrics.nanoTime() + TimeUnit.MILLISECONDS.toNanos(timeoutMs);
 
+        RandomAccessFile file = null;
+        FileChannel channel = null;
+        FileLock fileLock = null;
         try {
             do {
-                randomAccessFile = new RandomAccessFile(lockFile, "rw");
-                channel = randomAccessFile.getChannel();
-                lock = channel.tryLock();
+                // 1.7-C1-011：每次轮询先释放上一轮未成功的句柄，避免轮询间累积打开的文件
+                releaseHandles(fileLock, channel, file);
+                fileLock = null;
+                channel = null;
+                file = null;
 
-                if(timeoutMs <= 0)
+                file = new RandomAccessFile(lockFile, "rw");
+                channel = file.getChannel();
+                fileLock = channel.tryLock();
+
+                if (timeoutMs <= 0)
                     break;
 
-                if (lock == null) {
-                    IoHelper.safeCloseObject(channel);
-                    IoHelper.safeCloseObject(randomAccessFile);
+                if (fileLock == null) {
                     try {
                         Thread.sleep(pollIntervalMs);
                     } catch (InterruptedException e) { //NOSONAR
@@ -64,19 +88,27 @@ public class LocalFileLock implements Lock {
                             throw e;
                     }
                 }
-            } while (lock == null && !CoreMetrics.isExpiredNanos(expireNanos));
+            } while (fileLock == null && !CoreMetrics.isExpiredNanos(expireNanos));
+
+            if (fileLock != null) {
+                // 成功：整体发布会话
+                this.held = new Handle(fileLock, channel, file);
+                return true;
+            }
+
+            // 失败（含 tryLock(0) 的 break 路径）：必须释放本轮已打开的句柄，否则泄漏
+            releaseHandles(fileLock, channel, file);
+            return false;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            releaseHandles();
+            releaseHandles(fileLock, channel, file);
             throw e;
         } catch (Exception e) {
             // 异常路径上关闭已打开的文件句柄，避免泄漏导致其他进程永远无法获锁
-            releaseHandles();
+            releaseHandles(fileLock, channel, file);
             throw new NopException(ERR_FILE_ACQUIRE_LOCK_FAIL, e).param(ARG_WAIT_TIME, timeoutMs).param(ARG_PATH,
                     lockFile.getAbsolutePath());
         }
-
-        return lock != null;
     }
 
     @Override
@@ -118,16 +150,17 @@ public class LocalFileLock implements Lock {
     }
 
     public void unlock() {
-        releaseHandles();
+        // 1.7-C1-011：只关闭「锁成功会话」；未持锁时为空操作
+        Handle handle = this.held;
+        if (handle == null)
+            return;
+        this.held = null;
+        releaseHandles(handle.fileLock, handle.channel, handle.file);
     }
 
-    private void releaseHandles() {
-        IoHelper.safeCloseObject(lock);
-        lock = null;
-
+    private static void releaseHandles(FileLock fileLock, FileChannel channel, RandomAccessFile file) {
+        IoHelper.safeCloseObject(fileLock);
         IoHelper.safeCloseObject(channel);
-        channel = null;
-        IoHelper.safeCloseObject(randomAccessFile);
-        randomAccessFile = null;
+        IoHelper.safeCloseObject(file);
     }
 }

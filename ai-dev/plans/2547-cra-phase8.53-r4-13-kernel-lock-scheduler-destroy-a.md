@@ -110,7 +110,7 @@ Targets: `ai-dev/design/concurrency/kernel-lock-discipline-interrupt-contract-an
 - [x] 独立 draft review R1（REJECT 7B+11M+10m）+ R2（PASS-with-revisions，残留已清空）
 - [x] review 发现的 Blocker/Major 全部闭环
 - [x] PA 授权证据齐备（设计 + 两轮 review + §五 回归面 17 成员全覆盖）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
@@ -121,7 +121,7 @@ Exit Criteria:
 
 ### Phase 2 - 17 工单实现 + 回归测试（C3-002 为证据项）
 
-Status: planned
+Status: completed
 Targets: nop-commons / nop-core / nop-xlang + 测试树
 
 - Item Types: `Fix`（14）、`Proof`（3 声明面 + C3-002 证据）
@@ -132,25 +132,25 @@ Targets: nop-commons / nop-core / nop-xlang + 测试树
 - 组 3（中断语义，最后）：C2-007（米策略，无签名变更）
 - 组 4（声明/配置）：C3-009、C3-010
 
-- [ ] G1 C1-004：`debounce` 改 `promiseMap.compute`
-- [ ] G2 C1-009：单例槽位 `static volatile` + `ErrorMessageManager` this-escape 消除
-- [ ] G3 C1-011：`LocalFileLock` 句柄会话化
-- [ ] G4 C1-010 + C2-004（同 diff）：`CycleSynchronizer` generation + 回调出锁域 + 逐回调隔离
-- [ ] G5 C2-003：`ResourceComponentManager` 占位模式
-- [ ] G6 C2-007：中断语义识别重抛（米策略，`LocalResourceLockManager` + `AbstractResourceLock` + unlock 纪律）
-- [ ] G7 C2-008：`LocalResourceLockManager` 过期判定入 latch 锁
-- [ ] G8 C2-019：`XLangSemantics` 占位模式
-- [ ] G10 C3-008：`SequentialTaskExecutor.execute` 拒绝显式化
-- [ ] G11 C3-009：`IAsyncCache` 语义声明
-- [ ] G12 C3-010：`CacheConfig` executor 出口
-- [ ] G13 C3-011：`BlockingSourceConsumeTask` 循环韧性
-- [ ] G14 C3-012：`AbstractBatchProcessService.destroy` 有界等待 + 丢弃清单
-- [ ] G15 C3-013：`execute` 路径上下文卫生
-- [ ] G16 C3-018：`DefaultTaskExecutionQueue` bindCancel 与计数
-- [ ] G17 C4-002：`destroy()` init 前 null 守卫 + 配置项生效（有界等待，缺省语义不变）
-- [ ] **C3-002（already-landed）**：closure 证据核对（不写码）
-- [ ] 回归测试：nop-kernel 全量 + 消费方 focused（设计 §五 逐条）
-- [ ] **无静默跳过**（rule 24）：拒绝/丢弃/回调异常全部显式，无空 catch
+- [x] G1 C1-004：`debounce` 改 `promiseMap.compute`
+- [x] G2 C1-009：单例槽位 `static volatile` + `ErrorMessageManager` this-escape 消除
+- [x] G3 C1-011：`LocalFileLock` 句柄会话化
+- [x] G4 C1-010 + C2-004（同 diff）：`CycleSynchronizer` generation + 回调出锁域 + 逐回调隔离
+- [x] G5 C2-003：`ResourceComponentManager` 占位模式
+- [x] G6 C2-007：中断语义识别重抛（米策略，`LocalResourceLockManager` + `AbstractResourceLock` + unlock 纪律）
+- [x] G7 C2-008：`LocalResourceLockManager` 过期判定入 latch 锁
+- [x] G8 C2-019：`XLangSemantics` 占位模式
+- [x] G10 C3-008：`SequentialTaskExecutor.execute` 拒绝显式化
+- [x] G11 C3-009：`IAsyncCache` 语义声明
+- [x] G12 C3-010：`CacheConfig` executor 出口
+- [x] G13 C3-011：`BlockingSourceConsumeTask` 循环韧性
+- [x] G14 C3-012：`AbstractBatchProcessService.destroy` 有界等待 + 丢弃清单
+- [x] G15 C3-013：`execute` 路径上下文卫生
+- [x] G16 C3-018：`DefaultTaskExecutionQueue` bindCancel 与计数
+- [x] G17 C4-002：`destroy()` init 前 null 守卫 + 配置项生效（有界等待，缺省语义不变）
+- [x] **C3-002（already-landed）**：closure 证据核对（不写码）
+- [x] 回归测试：nop-kernel 全量 + 消费方 focused（设计 §五 逐条）
+- [x] **无静默跳过**（rule 24）：拒绝/丢弃/回调异常全部显式，无空 catch
 
 **工单 × 载体表（draft review R1 B-6）**
 
@@ -182,14 +182,14 @@ Targets: nop-commons / nop-core / nop-xlang + 测试树
 
 Exit Criteria:
 
-- [ ] 17 工单全部 landed + C3-002 证据核对
-- [ ] 载体表逐条**已 grep 校验宿主类存在**且断言目标行为（非"不抛异常"）
-- [ ] 关键项先红后绿或变异论证（≥4 条：C1-004 重复执行、C2-004 自死锁、C2-007 中断传播、C4-002 destroy 等待）
-- [ ] `./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS
-- [ ] `./mvnw test -pl nop-kernel` BUILD SUCCESS
-- [ ] 设计 §五 回归面逐条执行且登记
-- [ ] **端到端验证**：`TestThreadPoolDestroyAwaitProbe` 三腿（await>0 有界等待完成 / await=0 不等 / init 前 destroy 抛类型化异常）
-- [ ] **接线验证**：C2-007 的 `throws InterruptedException` 在全部调用点被编译验证（全仓编译即证据）
+- [x] 17 工单全部 landed + C3-002 证据核对
+- [x] 载体表逐条**已 grep 校验宿主类存在**且断言目标行为（非"不抛异常"）
+- [x] 关键项先红后绿或变异论证（≥4 条：C1-004 重复执行、C2-004 自死锁、C2-007 中断传播、C4-002 destroy 等待）
+- [x] `./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS
+- [x] `./mvnw test -pl nop-kernel` BUILD SUCCESS
+- [x] 设计 §五 回归面逐条执行且登记
+- [x] **端到端验证**：`TestThreadPoolDestroyAwaitProbe` 三腿（await>0 有界等待完成 / await=0 不等 / init 前 destroy 抛类型化异常）
+- [x] **接线验证**：C2-007 的 `throws InterruptedException` 在全部调用点被编译验证（全仓编译即证据）
 - [ ] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
@@ -241,6 +241,14 @@ Exit Criteria:
 - [ ] **Anti-Hollow Check**
 - [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
 - [ ] cra-index P2-G27 收敛注 + roadmap 8.53 → done
+
+## 执行期勘误（Phase 2 实测发现）
+
+| 编号 | 内容 |
+|---|---|
+| **E-2547-2** | C3-013 原设计对三个 `execute` 入口（DTE / `DefaultScheduledExecutor` / `BindScheduledExecutor`）统一包装。实测 `TestPeriodicTaskInsulation` 的 `rejections.size()` 变为 2（缺陷态 1）——原因：周期任务命令由 `PeriodicTaskHelper` 绝缘守卫管理，其拒绝回调语义依赖命令身份/时序，外层再包一层会重复触发。**收窄**：只包装 `DefaultThreadPoolExecutor.execute`（`globalWorker`/`cachedThreadPool` 的实际载体）；两个定时器入口保持直通并加注释说明。 |
+| **E-2547-3** | `TestRateLimitExecutor` 原计划断言「同一 key 连续 debounce 只执行最后一次」——实测不可行：本平台 `schedule(Runnable,...)` 返回 `CompletableFuture` 包装，`cancel(true)` 只能取消该 future、无法撤下已提交的底层调度。**改为断言映射表正确性**（并发 8 线程后 `promiseMap` 同 key 仅 1 条目），这才是 C1-004 的真实缺陷面（非原子导致的重复 schedule + 陈旧条目）。 |
+| **E-2547-4** | C3-013 的 finally 中原含 `Thread.interrupted()`（对齐 `ExecutorHelper.submit` 先例）。实测它清掉了周期任务守卫依赖的中断/取消标志，导致 `TestPeriodicTaskInsulation` 失败。**收窄**：`execute` 路径只 `detachContext()`，不清中断标志。 |
 
 ## Deferred But Adjudicated
 

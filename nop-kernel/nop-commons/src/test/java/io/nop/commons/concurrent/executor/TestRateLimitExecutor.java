@@ -104,4 +104,58 @@ public class TestRateLimitExecutor {
         field.setAccessible(true);
         return (ConcurrentMap<Object, ? extends Future<?>>) (Map<?, ?>) field.get(limiter);
     }
+
+    /**
+     * plan 2547 R4-13（C1-004）pin0104a：并发 debounce 同一 key 后，{@code promiseMap} 最终
+     * 只保留一个条目（不累积、不因 holder[0]=null 而残留陈旧项）。
+     * <p>
+     * <b>边界（执行期勘误 E-2547-3）</b>：本平台 {@code schedule(Runnable,...)} 返回的是
+     * {@code CompletableFuture} 包装，{@code cancel(true)} 只能取消该 future、不能撤下已提交的
+     * 底层调度，故「旧任务不再执行」在当前调度设施下不可断言。本钉验证的是**映射表正确性**
+     * （C1-004 的真实缺陷面：非原子导致的重复 schedule + 陈旧条目）。
+     */
+    @Test
+    public void pin0104a_concurrentDebounceKeepsSingleEntry() throws Exception {
+        int n = 8;
+        CountDownLatch all = new CountDownLatch(1);
+        java.util.List<Thread> threads = new java.util.ArrayList<>();
+        for (int i = 0; i < n; i++) {
+            Thread t = new Thread(() -> {
+                try {
+                    all.await();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+                limiter.debounce("k1", 200, () -> {
+                });
+            });
+            threads.add(t);
+            t.start();
+        }
+        all.countDown();
+        for (Thread t : threads)
+            t.join(5000);
+
+        java.lang.reflect.Field f = RateLimitExecutorImpl.class.getDeclaredField("promiseMap");
+        f.setAccessible(true);
+        java.util.Map<?, ?> map = (java.util.Map<?, ?>) f.get(limiter);
+        assertEquals(1, map.size(), "并发去抖后 map 中同 key 只应有一个条目，实际=" + map.size());
+    }
+
+    /**
+     * plan 2547 R4-13（C1-004）pin0104b：delay=0 时任务结束后 promiseMap 无陈旧条目。
+     * 缺陷态：holder[0] 提交后写，delay=0 时定时线程读到 null → CHM.remove(key,null) NPE 被吞，
+     * 条目永久残留。
+     */
+    @Test
+    public void pin0104b_noStaleEntryAfterZeroDelayTask() throws Exception {
+        CountDownLatch done = new CountDownLatch(1);
+        limiter.debounce("k0", 0, done::countDown);
+        assertTrue(done.await(5, TimeUnit.SECONDS));
+
+        // 再触发一次，验证不会被上一次的陈旧条目错误取消
+        CountDownLatch done2 = new CountDownLatch(1);
+        limiter.debounce("k0", 0, done2::countDown);
+        assertTrue(done2.await(5, TimeUnit.SECONDS), "第二次 debounce 必须能正常执行");
+    }
 }

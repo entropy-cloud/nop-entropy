@@ -248,6 +248,8 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
     public void execute(Runnable command) {
         ScheduledThreadPoolExecutor exec = snapshotExecutor();
         try {
+            // 1.7-C3-013（plan 2547 裁定 F；执行期勘误 E-2547-2）：不包装——周期任务命令
+            // 由 PeriodicTaskHelper 守卫管理，外层包装会使拒绝回调重复触发。载体限定 DTE。
             exec.execute(command);
         } catch (RejectedExecutionException e) {
             throw adaptRejected(e);

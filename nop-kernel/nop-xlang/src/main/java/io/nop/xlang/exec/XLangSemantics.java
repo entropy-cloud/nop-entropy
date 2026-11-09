@@ -72,6 +72,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.xlang.XLangErrors.ARG_ARG_COUNT;
@@ -1088,13 +1089,39 @@ public final class XLangSemantics {
     // 覆盖 A（I3）：对象/集合构造族（NewObject/NewList/NewMap spread 分支）
     // ------------------------------------------------------------------
 
-    private static final Map<String, IClassModel> CLASS_MODELS = new ConcurrentHashMap<>();
+    /**
+     * 1.7-C2-019（plan 2547 裁定 A）：值类型为 CompletableFuture（占位-完成模式）。
+     * 原实现把 {@code ClassHelper.forName} + 全量 ClassModel 反射构建放在 computeIfAbsent 内
+     * （CHM bin 锁内类加载，生成代码 new 首触路径的锁内重活）。
+     */
+    private static final Map<String, CompletableFuture<IClassModel>> CLASS_MODELS = new ConcurrentHashMap<>();
 
     /** NewObjectExecutable 完整语义（生成代码入口；按 className 缓存 classModel）。 */
     public static Object newInstance(SourceLocation loc, String display, String className,
                                      Object[] argValues, IEvalScope scope) {
-        IClassModel classModel = CLASS_MODELS.computeIfAbsent(className, k ->
-                ReflectionManager.instance().getClassModel(resolveClass(k)));
+        // 1.7-C2-019：占位在锁内、类加载与反射构建在锁外；用 boolean[] 判定本次新建
+        // （computeIfAbsent 返回值区分不出既有/新建，见设计 §四.1）。
+        final boolean[] created = new boolean[1];
+        CompletableFuture<IClassModel> future = CLASS_MODELS.computeIfAbsent(className, k -> {
+            created[0] = true;
+            return new CompletableFuture<>();
+        });
+        if (created[0]) {
+            try {
+                future.complete(ReflectionManager.instance().getClassModel(resolveClass(className)));
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        }
+        IClassModel classModel;
+        try {
+            classModel = future.join();
+        } catch (java.util.concurrent.CompletionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException)
+                throw (RuntimeException) cause;
+            throw NopException.adapt(cause == null ? e : cause);
+        }
         return newInstance(loc, display, classModel, argValues, scope);
     }
 

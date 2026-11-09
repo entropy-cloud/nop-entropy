@@ -158,6 +158,10 @@ public class BindScheduledExecutor implements IScheduledExecutor {
 
     @Override
     public void execute(Runnable command) {
+        // 1.7-C3-013（plan 2547 裁定 F；执行期勘误 E-2547-2）：本入口**不包装**——周期任务的命令
+        // 由 PeriodicTaskHelper 的绝缘守卫管理（其 rejectChain 语义依赖命令身份/时序），
+        // 外层再包一层会导致拒绝回调重复触发（TestPeriodicTaskInsulation 实测 rejections=2）。
+        // 上下文卫生的载体限定为 DefaultThreadPoolExecutor（globalWorker/cached 的实际载体）。
         executor.execute(command);
     }
 }

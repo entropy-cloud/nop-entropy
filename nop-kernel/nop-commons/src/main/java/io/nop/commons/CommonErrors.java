@@ -234,6 +234,11 @@ public interface CommonErrors {
 
     ErrorCode ERR_CONCURRENT_UNKNOWN_THREAD_POOL = define("nop.err.commons.concurrent.unknown-thread-pool", "未知的线程池[{name}]", ARG_NAME);
 
+    /** 1.7-C4-002（plan 2547 裁定 D）：destroy 时池尚未初始化（原为裸 NPE）。 */
+    ErrorCode ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED = define(
+            "nop.err.commons.concurrent.thread-pool-not-initialized",
+            "线程池[{name}]尚未初始化，不能执行destroy", ARG_NAME);
+
     ErrorCode ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM = define("nop.err.commons.concurrent.invalid-thread-pool-param",
             "线程池[{name}]的参数[{paramName}]取值非法:{value}", ARG_NAME, ARG_PARAM_NAME, ARG_VALUE);
 

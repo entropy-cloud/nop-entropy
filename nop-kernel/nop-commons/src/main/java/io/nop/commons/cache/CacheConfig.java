@@ -37,6 +37,19 @@ public class CacheConfig implements Serializable {
 
     private boolean useMetrics = false;
 
+    /**
+     * 1.7-C3-010（plan 2547 裁定 F）：异步加载/刷新所用的 Executor。
+     * <p>
+     * 缺省 {@code null} = 沿用 Caffeine 默认的 {@code ForkJoinPool.commonPool()}（**保持既有行为**）；
+     * 设为非 null 时 {@code LocalCache} 会把该 executor 装配到 Caffeine builder。
+     * 定位说明：async 缓存加载通常是 I/O 型，若与 CPU 型短任务共用 commonPool 会互相干扰，
+     * 生产环境建议显式指定独立池（如 {@code GlobalExecutors.globalWorker()}）。
+     * <p>
+     * 注意：本次只提供出口、不改缺省——改缺省会改变既有并发形态（globalWorker 已被长任务占用
+     * 面投诉过，存在死锁风险）。
+     */
+    private transient java.util.concurrent.Executor executor;
+
     public CacheConfig() {
     }
 
@@ -137,6 +150,14 @@ public class CacheConfig implements Serializable {
     public CacheConfig destroyOnRemove() {
         this.setDestroyOnRemove(true);
         return this;
+    }
+
+    public java.util.concurrent.Executor getExecutor() {
+        return executor;
+    }
+
+    public void setExecutor(java.util.concurrent.Executor executor) {
+        this.executor = executor;
     }
 
     public boolean isUseMetrics() {

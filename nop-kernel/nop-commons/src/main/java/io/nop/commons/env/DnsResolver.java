@@ -14,7 +14,7 @@ import java.net.InetAddress;
 public class DnsResolver {
     public static IDnsResolver DEFAULT = InetAddress::getByName;
 
-    private static IDnsResolver _instance = DEFAULT;
+    private static volatile IDnsResolver _instance = DEFAULT;
 
     public static IDnsResolver instance() {
         return Guard.notNull(_instance, "DnsResolver not initialized");

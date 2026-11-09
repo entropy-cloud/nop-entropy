@@ -11,7 +11,7 @@ import io.nop.core.lang.json.JsonWhitelist;
 import io.nop.core.reflect.bean.IBeanModel;
 
 public class JsonWhitelistChecker {
-    private static JsonWhitelistChecker _instance = new JsonWhitelistChecker();
+    private static volatile JsonWhitelistChecker _instance = new JsonWhitelistChecker();
 
     public static void registerInstance(JsonWhitelistChecker checker) {
         _instance = checker;

@@ -40,7 +40,7 @@ import static io.nop.core.CoreErrors.ERR_RESOURCE_MODULE_PATH_RESOLVE_TO_MULTI_F
 public class ModuleManager {
     private static final Logger LOG = LoggerFactory.getLogger(ModuleManager.class);
 
-    private static ModuleManager _instance = new ModuleManager();
+    private static volatile ModuleManager _instance = new ModuleManager();
 
     private final AtomicReference<Map<String, ModuleModel>> dynamicModules = new AtomicReference<>();
 

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 public class XSchemaToJsonSchema {
-    static XSchemaToJsonSchema _instance = new XSchemaToJsonSchema();
+    static volatile XSchemaToJsonSchema _instance = new XSchemaToJsonSchema();
 
     public static void registerInstance(XSchemaToJsonSchema instance) {
         _instance = instance;

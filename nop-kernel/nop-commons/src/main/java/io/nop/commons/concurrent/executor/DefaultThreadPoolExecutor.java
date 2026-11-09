@@ -16,11 +16,13 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
 import static io.nop.commons.CommonErrors.ARG_NAME;
 import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM;
+import static io.nop.commons.CommonErrors.ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED;
 
 public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
     static final Logger LOG = LoggerFactory.getLogger(DefaultThreadPoolExecutor.class);
@@ -120,13 +122,57 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
         return ExecutorHelper.submit(executor, task, result);
     }
 
+    /**
+     * 1.7-C4-002（plan 2547 裁定 D）：
+     * <ul>
+     *   <li><b>init 前 null 守卫</b>：原实现直接 {@code executor.shutdown()}，未调用 {@code init()}
+     *       时抛裸 NPE——改为类型化异常。</li>
+     *   <li><b>配置项生效</b>：{@code waitForTasksToCompleteOnShutdown} 与
+     *       {@code awaitTerminationSeconds} 从死值变为生效。**仅当 二者同时满足（true && >0）
+     *       才有界等待**；否则保持原 {@code shutdown()} 语义——避免 {@code awaitTerminationSeconds=0}
+     *       退化成「shutdown + 立即 shutdownNow」而更激进地中断在飞任务。</li>
+     * </ul>
+     */
     @Override
     public void destroy() {
-        executor.shutdown();
+        ThreadPoolExecutor pool = this.executor;
+        if (pool == null)
+            throw new NopException(ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED)
+                    .param(ARG_NAME, config == null ? null : config.getName());
+
+        boolean waitForCompletion = config != null
+                && config.isWaitForTasksToCompleteOnShutdown()
+                && config.getAwaitTerminationSeconds() > 0;
+
+        if (!waitForCompletion) {
+            pool.shutdown();
+            return;
+        }
+
+        pool.shutdown();
+        try {
+            if (!pool.awaitTermination(config.getAwaitTerminationSeconds(), TimeUnit.SECONDS)) {
+                pool.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            pool.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 
     @Override
     public void execute(Runnable command) {
-        executor.execute(command);
+        // 1.7-C3-013（plan 2547 裁定 F）：execute 直通原先不做上下文卫生，池线程上的
+        // getOrCreateContext 创建的 IContext 会永久驻留在 worker 线程（跨任务泄漏）。
+        // 补与 ExecutorHelper.submit/schedule 一致的 finally detach（唯一行为改动，理由=已确认泄漏面）。
+        executor.execute(() -> {
+            try {
+                command.run();
+            } finally {
+                // 仅 detach，不清中断标志——周期任务的绝缘守卫依赖中断/取消标志的传递，
+                // 清理中断会改变其语义（执行期勘误 E-2547-4）。
+                io.nop.api.core.context.ContextProvider.instance().detachContext();
+            }
+        });
     }
 }

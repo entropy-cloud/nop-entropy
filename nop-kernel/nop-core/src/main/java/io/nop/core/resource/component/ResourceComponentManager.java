@@ -42,6 +42,8 @@ import org.slf4j.LoggerFactory;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -340,7 +342,30 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         if (StringHelper.isEmpty(transform) || modelType.equals(transform))
             return entry.model;
 
-        return entry.transformed.computeIfAbsent(transform, k -> transformer.transform(entry.model));
+        // 1.7-C2-003（plan 2547 裁定 A）：原实现把 transformer.transform（编译级重计算）放在
+        // ConcurrentHashMap.computeIfAbsent 的 mapping function 内执行——CHM bin 锁内重活，且
+        // transformer 若再入同一 map 会触发递归 compute。改为「CompletableFuture 占位 + 锁外构建」。
+        // 判定「是否本次新建」必须用 boolean[]（computeIfAbsent 的返回值区分不出既有/新建，
+        // 见设计 §四.1 / draft review R1 B-4）。
+        final boolean[] created = new boolean[1];
+        CompletableFuture<Object> future = entry.transformed.computeIfAbsent(transform, k -> {
+            created[0] = true;
+            return new CompletableFuture<>();
+        });
+        if (created[0]) {
+            try {
+                Object value = transformer.transform(entry.model);
+                future.complete(value);
+            } catch (Throwable e) {
+                future.completeExceptionally(e);
+            }
+        }
+        try {
+            return future.join();
+        } catch (CompletionException e) {
+            Throwable cause = e.getCause();
+            throw NopException.adapt(cause == null ? e : cause);
+        }
     }
 
     private IComponentTransformer<Object, Object> getTransformer(String modelType, String transform) {
@@ -417,7 +442,8 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
 
     static class ComponentCacheEntry implements IObjectChangeDetectable {
         Object model;
-        Map<String, Object> transformed = new ConcurrentHashMap<>();
+        /** 1.7-C2-003：值类型为 CompletableFuture（占位-完成模式），见 loadComponentModel。 */
+        Map<String, CompletableFuture<Object>> transformed = new ConcurrentHashMap<>();
 
         @Override
         public boolean isObjectChanged() {

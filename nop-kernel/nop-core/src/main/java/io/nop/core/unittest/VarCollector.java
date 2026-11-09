@@ -11,7 +11,7 @@ package io.nop.core.unittest;
  * 为自动化测试提供支持。通过此类来收集系统运行过程中产生的不确定性的变量，从而在录制/重放测试可以把随机值替换为变量名。
  */
 public class VarCollector {
-    static VarCollector _instance = new VarCollector();
+    static volatile VarCollector _instance = new VarCollector();
 
     public static void registerInstance(VarCollector collector) {
         _instance = collector;

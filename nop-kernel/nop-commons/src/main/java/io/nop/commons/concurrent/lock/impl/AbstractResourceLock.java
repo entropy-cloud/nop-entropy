@@ -53,9 +53,24 @@ public abstract class AbstractResourceLock implements IResourceLock {
                     getHolderId());
     }
 
+    /**
+     * 1.7-C2-007（plan 2547 裁定 B，米策略）：{@code tryLockWithLease} 不抛受检异常（保持源兼容），
+     * 但中断被 {@code LocalResourceLockManager} 转为 {@code NopException} 时保留了
+     * {@code InterruptedException} 作为 cause。此处识别该 cause 并**重抛为 InterruptedException**，
+     * 恢复 {@link java.util.concurrent.locks.Lock#lockInterruptibly()} 的可中断语义。
+     */
     @Override
-    public void lockInterruptibly() {
-        lock();
+    public void lockInterruptibly() throws InterruptedException {
+        try {
+            lock();
+        } catch (NopException e) {
+            InterruptedException ie = extractInterrupt(e);
+            if (ie != null) {
+                Thread.currentThread().interrupt();
+                throw ie;
+            }
+            throw e;
+        }
     }
 
     @Override
@@ -64,8 +79,32 @@ public abstract class AbstractResourceLock implements IResourceLock {
     }
 
     @Override
-    public boolean tryLock(long time, TimeUnit unit) {
-        return tryLockWithLease(unit.toMillis(time), defaultLeaseTime);
+    public boolean tryLock(long time, TimeUnit unit) throws InterruptedException {
+        // 1.7-C2-007（米策略）：同 lockInterruptibly，识别中断 cause 并重抛
+        try {
+            return tryLockWithLease(unit.toMillis(time), defaultLeaseTime);
+        } catch (NopException e) {
+            InterruptedException ie = extractInterrupt(e);
+            if (ie != null) {
+                Thread.currentThread().interrupt();
+                throw ie;
+            }
+            throw e;
+        }
+    }
+
+    /**
+     * 1.7-C2-007：从异常 cause 链中提取 {@link InterruptedException}（深入 3 层足够覆盖
+     * {@code NopException.adapt(e)} 的单层包装）。
+     */
+    static InterruptedException extractInterrupt(Throwable err) {
+        Throwable cur = err;
+        for (int i = 0; i < 3 && cur != null; i++) {
+            if (cur instanceof InterruptedException)
+                return (InterruptedException) cur;
+            cur = cur.getCause();
+        }
+        return null;
     }
 
     @Override

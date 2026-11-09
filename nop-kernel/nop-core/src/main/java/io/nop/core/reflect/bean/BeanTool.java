@@ -34,7 +34,7 @@ import static io.nop.core.CoreErrors.ERR_REFLECT_UNKNOWN_BEAN_CLASS;
 
 @GlobalInstance
 public class BeanTool {
-    private static IBeanTool _instance = new BeanToolImpl(ReflectionManager.instance());
+    private static volatile IBeanTool _instance = new BeanToolImpl(ReflectionManager.instance());
 
     public static IBeanTool instance() {
         return _instance;

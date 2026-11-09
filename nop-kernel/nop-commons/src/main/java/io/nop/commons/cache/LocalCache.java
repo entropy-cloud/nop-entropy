@@ -79,6 +79,9 @@ public class LocalCache<K, V> implements ICache<K, V>, IConfigRefreshable, IDest
 
     private void buildCache(CacheConfig config, ICacheLoader<K, V> loader) {
         Caffeine builder = Caffeine.newBuilder();
+        // 1.7-C3-010（plan 2547 裁定 F）：显式 executor 出口——缺省仍走 Caffeine 默认 commonPool
+        if (config.getExecutor() != null)
+            builder.executor(config.getExecutor());
         if (config.getMaximumSize() > 0) {
             builder.maximumSize(config.getMaximumSize());
         }

@@ -166,10 +166,17 @@ public class LocalResourceLockManager implements IResourceLockManager, IResource
                 return null;
             }
 
-            if (existingLock.getExpireTime() < CoreMetrics.currentTimeMillis()) {
-                removeExpiredLock(existingLock);
-                continue;
+            // 1.7-C2-008（plan 2547 裁定 A）：过期判定 + 删除必须与 checkTimeout/续租使用同一把
+            // latch 监视器——原实现绕过监视器直接读 expireTime 再删，与 tryResetLease 竞争时
+            // 可能读到旧值误删刚续租的锁（违反同文件注释声明的不变式）。
+            boolean expired;
+            synchronized (existingLock.getLatch()) {
+                expired = existingLock.getExpireTime() < CoreMetrics.currentTimeMillis();
+                if (expired)
+                    removeExpiredLock(existingLock);
             }
+            if (expired)
+                continue;
 
             LOG.debug("nop.lock.acquire-wait:resourceId={},lock={},existingLock={},wait={}", resourceId, lock,
                     existingLock, waitTime - usedTime);
