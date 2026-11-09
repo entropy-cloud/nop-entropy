@@ -39,8 +39,8 @@
 5. **裁定 E（提交/拒绝必须显式，不得静默丢弃）**：成员 C3-008（`SequentialTaskExecutor.execute` 忽略 offer 返回值）、C3-011（`BlockingSourceConsumeTask` 循环死亡不可感知）、C3-012（`AbstractBatchProcessService.destroy` 丢弃队列）、C3-018（`DefaultTaskExecutionQueue` 取消绑定参数反接）、C3-002（`BindScheduledExecutor` 重排失败 future 永不完成）。
    - C3-008：`execute` 检查 offer 返回值，false 时按 `QueueOverflowPolicy` 处理（block/throw），至少 `LOG.warn` + 计数；**禁止静默丢任务**。
    - C3-011：循环体最外层 `catch (Throwable)` + ERROR 日志 + `continue`（仅 cancel/中断退出）；保存 submit future 并在死亡时告警。
-   - C3-012（**次序已按 draft review R1 B-5 勘正**）：原设计「cancel 后等 `isAllProcessed`」**逻辑不成立**——`BlockingSourceConsumeTask.run` 是 `do { drainTo } while (!isCancelled())`，cancel 后下一轮即退出、不再 drain，`isAllProcessed` 永不真。正确次序 = **① 置「停止接收」位（拒绝新入队）→ ② 让消费循环继续 drain 至队列空（`isAllProcessed` 变真）→ ③ 再 `task.cancel()` → ④ 销毁 executor**。若超时未 drain 完，则 `drainTo(list)` 显式取残量并**逐条记录丢弃清单**后告警（`IBlockingQueue` 无快照 API，只有 `size/isEmpty/poll/take/clear`，故用 drain）。
-   - C3-018：`bindCancel(state.getPromise(), future)` 对齐注释语义；`whenComplete` 按 `state.isCancelled()` 分流 `cancelled++`（而非 `completed++`）。
+   - C3-012（**次序已按 draft review R1 B-5 勘正**）：原设计「cancel 后等 `isAllProcessed`」**逻辑不成立**——`BlockingSourceConsumeTask.run` 是 `do { drainTo } while (!isCancelled())`，cancel 后下一轮即退出、不再 drain，`isAllProcessed` 永不真。正确次序 = **① 置「停止接收」位（`AbstractBatchProcessService` 新增 `volatile boolean accepting`，由经该服务的入队路径检查）→ ② 让消费循环继续 drain 至队列空（`isAllProcessed` 变真）→ ③ 再 `task.cancel()` → ④ 销毁 executor**。**边界**：绕过该服务直调 `getQueue().send()` 的外部生产方不在本机制覆盖内，须显式登记。若超时未 drain 完，则 `drainTo(list)` 显式取残量并**逐条记录丢弃清单**后告警（`IBlockingQueue` 无快照 API，只有 `size/isEmpty/poll/take/clear`，故用 drain）。
+   - C3-018：`bindCancel(state.getPromise(), future.toCompletableFuture())` 对齐注释语义（live `future` 是 `CompletionStage`，`bindCancel(CompletionStage, Future)` 需转换）；`whenComplete` 按 `state.isCancelled()` 分流 `cancelled++`（而非 `completed++`）。
    - C3-002：重排调用纳入 `try/catch(Throwable)`，失败时 `future.completeExceptionally(e)`。
    - **拒绝方案**：把 C3-013（异步上下文卫生，审计自注「理论风险未具体化」）与 C3-009/C3-010（缓存语义分叉/executor 固化）升格为行为改造——三者均为**声明/配置面**，按裁定 F 处理。
 
@@ -85,12 +85,12 @@ R4-13 的 18 成员同属一个系统性形态：**平台并发原语在「复�
 | Finding | 文件（live 锚） | 唯一形态 | 拒绝方案 |
 |---|---|---|---|
 | C1-004 | `nop-commons/.../executor/RateLimitExecutorImpl.java:50-67` | `debounce` 改 `promiseMap.compute(key, ...)`；**lambda 捕获机制（draft review R1 M-7）**：不能写 `Future<?> f = schedule(() -> promiseMap.remove(key, f))`（`f` 创建时未初始化，编译不过）。正确形态 = 在 `compute` 内先 `CompletableFuture<Void> cf = new CompletableFuture<>()`，把它放进 map 并在 schedule 的 lambda 里捕获**该 effectively-final 变量**；或先建 `FutureTask` 再提交，remove 时用 `(Future) task` 自比较 | 双 check + 局部锁（仍非原子） |
-| C1-009 | `nop-core/.../module/ModuleManager.java:43-50`；`exceptions/ErrorMessageManager.java:42-45,172-17x`；`resource/VirtualFileSystem` | 槽位 `static volatile`；`ErrorMessageManager` 构造器 this-escape → 静态工厂/惰性注册；`unregisterInstance` 先摘引用再销毁 | `AtomicReference` 化（过度） |
+| C1-009 | 9 个槽位（nop-commons/nop-core/nop-xlang 内）：`VarCollector`/`ModuleManager:43-50`/`BeanTool`/`JsonWhitelistChecker`/`VirtualFileSystem`/`DictProvider`/`XSchemaToJsonSchema`/`RegisterModelDiscovery`/`DnsResolver`；`exceptions/ErrorMessageManager:114-116`（this-escape，**非槽位族**） | 槽位 `static volatile`；`ErrorMessageManager` 构造器 this-escape → 静态工厂/惰性注册；**`VirtualFileSystem.registerInstance:31-34` 改为「先发布新（volatile）再 destroy 旧」** | `AtomicReference` 化（过度） |
 | C1-010 | `nop-commons/.../CycleSynchronizer.java:36-46,66-102` | 引入 `cycleGeneration`；旧周期 finish 不更新周期状态 | 全局锁 |
 | C1-011 | `nop-commons/.../lock/LocalFileLock.java:31-37,45-90,118-128` | 句柄会话化（`volatile FileLockHandle held`）+ 统一 `finally releaseHandles()` | 仅文档契约 + owner 守卫（不修泄漏） |
 | C2-003 | `nop-core/.../resource/component/ResourceComponentManager.java:334-344` | per-(entry,transform) `CompletableFuture` 占位，锁外 transform | compute 内直接 transform |
 | C2-004 | `nop-commons/.../CycleSynchronizer.java:48-53,74-101` | 回调快照出锁域 + 逐回调 try/catch + 先 complete 再回调 | 异步 submit 回调 |
-| C2-007 | `nop-commons/.../lock/impl/AbstractResourceLock.java:50-69`；`ResourceLock.java:78-84`；`ResourceMultiLock` | 中断重抛 `InterruptedException` + 接口补 `throws` + 全仓调用点同步修 + `unlock` 纪律统一 | 中断转 `NopException` |
+| C2-007 | `LocalResourceLockManager.tryLockWithLease:182-184`（throw 源）；`AbstractResourceLock:57-59,67-69`（识别重抛）；`ResourceLock.unlock`/`ResourceMultiLock.unlock`（纪律统一） | **米策略**：`tryLockWithLease` 签名**不变**（零调用点改造）；`lockInterruptibly`/`tryLock(time,unit)` 内识别 `cause instanceof InterruptedException` 重抛；`unlock` 对齐 `synchronized` | 让 `tryLockWithLease` 抛受检异常（跨 nop-sys-dao 编译断） |
 | C2-008 | `nop-commons/.../lock/impl/LocalResourceLockManager.java:169-171` | 判定+删除包入 `synchronized (existingLock.getLatch())` | 注释声明脆弱性 |
 | C2-019 | `nop-xlang/.../exec/XLangSemantics.java:1094-1098,631-637` | 同 C2-003 占位模式；`computeIfAbsent` 内不做 `ClassHelper.forName` | 预热批量预载（仅缓解） |
 | C3-002 | **already-landed（plan 2496 / `646673a90e`）**：`BindScheduledExecutor.scheduleWithFixedDelay` 现委托 `PeriodicTaskHelper`，其 `scheduleRound`/`dispatchRound` 均 `try/catch(Throwable) → guard.rejectChain(e)` | **本批不做代码改动**；计入 closure 的「证据项」而非 Fix 工单 | — |
@@ -98,15 +98,15 @@ R4-13 的 18 成员同属一个系统性形态：**平台并发原语在「复�
 | C3-009 | `nop-commons/.../cache/LocalCache.java:280-299`；`IAsyncCache.java:39-93` | **声明面**：javadoc + owner doc 显式化各分支语义；不重写行为 | 改成真加载（破坏契约） |
 | C3-010 | `nop-commons/.../cache/LocalCache.java:80-136`；`CacheConfig.java:20-52` | `CacheConfig` 增 executor 配置项，缺省仍 commonPool（只给出口）；owner doc 声明定位 | 缺省改 globalWorker（改变并发形态，有死锁风险） |
 | C3-011 | `nop-commons/.../batch/BlockingSourceConsumeTask.java:48-76` | 循环最外层 `catch(Throwable)`+ERROR+continue；保存 future 死亡告警 | 无 |
-| C3-012 | `nop-commons/.../batch/AbstractBatchProcessService.java:71-78` | 停接收 → 有界等待 `isAllProcessed`（超时记丢弃清单+告警）→ 销毁 executor | 立即 destroy（现状） |
+| C3-012 | `nop-commons/.../batch/AbstractBatchProcessService.java:71-78`；`IBlockingQueue`（无 close/reject API） | 次序 = **①新增 `volatile boolean accepting`（`AbstractBatchProcessService` 字段）由生产方检查 → ②消费循环 drain 至空（`isAllProcessed` 可达）→ ③`task.cancel()` → ④销毁 executor**；超时用 `IBlockingSource.drainTo(list)` 取残量逐条记丢弃。**边界裁定**：`accepting` 位只覆盖经 `AbstractBatchProcessService` 的入队路径；绕过它直调 `getQueue().send()` 的外部生产方（如 `AuditServiceImpl.saveAudit`）须显式登记为「不在本机制覆盖内」 | 立即 destroy（现状） |
 | C3-013 | `nop-commons/.../executor/ExecutorHelper.java:141-144,165-168,190-193`；`DefaultThreadPoolExecutor` | `execute` 路径补 finally detach；新增 `getContextIfPresent`（只读）供等待点 | 保留现状（泄漏面） |
 | C3-018 | `nop-core/.../execution/DefaultTaskExecutionQueue.java:236-240`；`State.cancel:110-113` | `bindCancel(state.getPromise(), future.toCompletableFuture())`——**第二参必须转 `CompletableFuture`**（`bindCancel(CompletionStage, Future)`，而 live `future` 是 `CompletionStage`，直接传不编译）；`whenComplete` 按 `isCancelled()` 分流计数 | 无 |
-| C4-002 | `nop-commons/.../executor/BaseThreadPoolConfig.java:17-35`；`DefaultThreadPoolExecutor.java:91-93`；`DefaultScheduledExecutor.java:88-9x` | destroy 有界等待（`ThreadHelper.shutdownAndAwaitTermination`）+ 配置生效 + `stats()` 类型化 fail-fast | 文档声明差异 |
+| C4-002 | `BaseThreadPoolConfig.java:17-35`（两死配置）；`DefaultThreadPoolExecutor.java:124`（`destroy()`，缺 `init` 前 null 守卫） | `destroy` 补 null 守卫 + 配置项生效（**仅 `true && await>0` 才有界等待**，否则保持 `shutdown()`）；`DefaultScheduledExecutor.stats` 的 fail-fast **已由 C1-003 landed，本批不重做** | 文档声明差异 |
 
 ## 四、跨成员共享机制（防各修一半）
 
-1. **`CompletableFuture` 占位模式**（C2-003 / C2-019 共用）：`computeIfAbsent(k, x -> new CompletableFuture<>())` 的返回值身份判定「是否本次新建」——新建者负责锁外计算并 `complete`/`completeExceptionally`，非新建者 `join`。该模式必须**同一形态**在两处落地（禁止一处 join 一处轮询）。参照 `LocalCache.computeIfAbsentAsync` 既有实现。
-2. **`InterruptedException` 传播链**（C2-007）：接口 → 实现（`AbstractResourceLock`/`LocalFileLock`/`ResourceMultiLock`）→ 全仓调用点。三者必须同 diff，否则编译即断——这是本批最强的原子性约束。
+1. **`CompletableFuture` 占位模式**（C2-003 / C2-019 共用）：`computeIfAbsent(k, x -> new CompletableFuture<>())` 后，**用 `boolean[] created` / `AtomicBoolean` 标记「是否本次新建」**（`computeIfAbsent` 的返回值**区分不出**既有与新建，这是 draft review R1 B-4 的勘正）；新建者负责锁外计算并 `complete`/`completeExceptionally`，非新建者 `join`。字段值类型由 `V` 改为 `CompletableFuture<V>`，`join` 后须解包 `ExecutionException` 转 `NopException`。该模式必须**同一形态**在两处落地（禁止一处 join 一处轮询）。**不得参照 `LocalCache.computeIfAbsentAsync`**——那是 Caffeine 原生异步去重，不是占位-完成形态。
+2. **中断语义识别点**（C2-007，米策略）：**不引入签名变更**。三处必须同 diff 的只有「识别 + 重抛」链：`LocalResourceLockManager`（保留 `InterruptedException` 为 cause）→ `AbstractResourceLock.lockInterruptibly()/tryLock(time,unit)`（识别 cause 并重抛）→ `ResourceLock`/`ResourceMultiLock` 的 `unlock` 纪律对齐。`LocalFileLock` **不在本链内**（它 `implements java.util.concurrent.locks.Lock` 且已正确声明 `throws InterruptedException`）。
 3. **`destroy` 有界等待**（C4-002 与 C3-012 共用）：统一用 `ThreadHelper.shutdownAndAwaitTermination`（若不存在则本批新增，作为**共享设施**而非两处各写一遍）。
 4. **回调链异常隔离**（C2-004 / C3-011 / C3-013）：统一为「快照 → 逐项 try/catch(Throwable) → ERROR 记日志并继续」三段式。
 
@@ -140,9 +140,9 @@ R4-13 的 18 成员同属一个系统性形态：**平台并发原语在「复�
 
 ## 六、实施顺序（依赖驱动）
 
-1. **组 1（无兼容性破坏，可并行）**：C1-004、C1-009、C1-011、C2-003、C2-008、C2-019、C3-002、C3-008、C3-011、C3-012、C3-018
+1. **组 1（无兼容性破坏，可并行）**：C1-004、C1-009、C1-011、C2-003、C2-008、C2-019、C3-008、C3-011、C3-012、C3-018（C3-002 已 landed，不在此列）
 2. **组 2（行为语义变化，需回归面）**：C1-010 + C2-004（同文件，必须同 diff）、C3-013、C4-002
-3. **组 3（源兼容性破坏，最后）**：C2-007（全仓调用点改造）
+3. **组 3（中断语义，最后）**：C2-007（米策略，无签名变更、无全仓调用点改造）
 4. **组 4（纯声明/配置）**：C3-009、C3-010
 
 ## 七、拒绝方案汇总（25 条已在各裁定内联标注）

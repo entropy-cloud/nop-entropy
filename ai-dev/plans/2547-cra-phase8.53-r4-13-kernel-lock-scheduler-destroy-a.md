@@ -1,4 +1,4 @@
-# 2547 CRA Phase 8.53 — R4-13 2.1 锁纪律/调度器/destroy 束 a（G27 前半，18 工单）
+# 2547 CRA Phase 8.53 — R4-13 2.1 锁纪律/调度器/destroy 束 a（G27 前半，17 实施 + 1 already-landed）
 
 > Plan Status: draft
 > Last Reviewed: 2026-11-09
@@ -13,7 +13,19 @@
 **Draft Review 记录**
 
 - R1（fresh session，125 次工具调用，逐条 live 核实）：**REJECT**，7 Blocker + 11 Major + 10 Minor。全部随本版落盘（见下「Draft Review R1 修订清单」）。核心发现：C3-002 已修复（基线陈旧）、C2-007 锚点/传播面错、`computeIfAbsent` 返回值判定语义上不可行、C3-012 cancel-then-drain 逻辑不可能成立、载体表缺失、回归面漏 7 个模块。
-- 修订后待 R2 复审。
+- R2（fresh session，收敛轮）：**PASS-with-revisions**——R1 的实质裁定全部正确；剩余为设计 §三/§四 的**旧表述残留**（7 处文本）+ 1 个 B-5 机制缺口（「停止接收位」无承载）。全部已清空（见下「Draft Review R2 修订清单」）。**PA 授权齐备。**
+
+### Draft Review R2 修订清单
+
+| R2 项 | 修订 |
+|---|---|
+| B-3 残留（设计 §三 C2-007 行 / §四.2 / plan Goals / G6） | 统一为米策略（签名不变、零调用点改造、`LocalFileLock` 不在链内） |
+| B-4 残留（设计 §四.1） | 删除「返回值身份判定」与 `LocalCache.computeIfAbsentAsync` 先例；锁定 `boolean[]`/`AtomicBoolean` + `Map<K,CompletableFuture<V>>` + join 解包 |
+| M-1 残留（§三 C4-002 行） | 改为「init 前 null 守卫」，锚点订正 `:91-93 → :124`；`ScheduledExecutor.stats` fail-fast 标 already-landed |
+| M-5/M-6 残留（§三 C1-009 行） | `ErrorMessageManager:114-116` 单列 this-escape；`VirtualFileSystem.registerInstance:31-34` |
+| M-3 残留（§一.5） | `bindCancel(..., future.toCompletableFuture())` |
+| **B-5 机制缺口** | 明确「停止接收位」= `AbstractBatchProcessService` 新增 `volatile boolean accepting`（生产方检查）；绕过直调 `getQueue().send()` 的外部生产方显式登记为不覆盖 |
+| 计数/文本 | 标题、Item Types（Fix 14 + Proof 3 + 证据 1）、组 1 清单去 C3-002 |
 
 ### Draft Review R1 修订清单（逐条已闭环）
 
@@ -59,7 +71,7 @@
 
 ## Goals
 
-- 18 工单收口（裁定 A–H 八组）。
+- **17 工单**收口（裁定 A–H 八组）+ C3-002 证据核对。
 - 每条工单 ≥1 可被回归捕获的载体；**PA 批次额外要求**：每条都标明消费方回归面（设计 §五）。
 - C2-007 的接口签名变更须**同 diff 完成全仓调用点改造**（否则编译断）。
 - owner doc 落账（`source-anchors.md` + `ioc-and-config.md`）。
@@ -89,35 +101,35 @@ Non-Goals 所列。
 
 ### Phase 1 - 设计裁定
 
-Status: in progress
+Status: completed
 Targets: `ai-dev/design/concurrency/kernel-lock-discipline-interrupt-contract-and-executor-destroy-semantics.md`
 
 - Item Types: `Decision`
 
 - [x] 设计文档落盘（八条裁定 A–H + 18 成员逐条唯一形态 + 25 条拒绝方案 + 回归面清单）
-- [ ] 独立 draft review（fresh session，逐条到 live 代码核实可执行性）
-- [ ] review 发现的 Blocker/Major 全部闭环
-- [ ] PA 授权证据齐备（设计 + review + 回归面）
+- [x] 独立 draft review R1（REJECT 7B+11M+10m）+ R2（PASS-with-revisions，残留已清空）
+- [x] review 发现的 Blocker/Major 全部闭环
+- [x] PA 授权证据齐备（设计 + 两轮 review + §五 回归面 17 成员全覆盖）
 - [ ] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
-- [ ] 设计文档在案且 18 成员各有唯一形态
-- [ ] 独立 draft review PASS（或 PASS-with-revisions 且修订全闭环）
-- [ ] 回归面清单覆盖全部 18 成员
+- [x] 设计文档在案且 17 成员各有唯一形态（+ C3-002 证据项）
+- [x] 独立 draft review R2 PASS-with-revisions 且修订全闭环
+- [x] 回归面清单覆盖全部成员（含 12 个消费模块）
 - [ ] `ai-dev/logs/` 已更新
 
-### Phase 2 - 18 工单实现 + 回归测试
+### Phase 2 - 17 工单实现 + 回归测试（C3-002 为证据项）
 
 Status: planned
 Targets: nop-commons / nop-core / nop-xlang + 测试树
 
-- Item Types: `Fix`（15）、`Proof`（3 声明面）
+- Item Types: `Fix`（14）、`Proof`（3 声明面 + C3-002 证据）
 
 **实施顺序（设计 §六，依赖驱动）**
-- 组 1（无兼容性破坏）：C1-004、C1-009、C1-011、C2-003、C2-008、C2-019、C3-002、C3-008、C3-011、C3-012、C3-018
+- 组 1（无兼容性破坏）：C1-004、C1-009、C1-011、C2-003、C2-008、C2-019、C3-008、C3-011、C3-012、C3-018
 - 组 2（语义变化）：C1-010 + C2-004（同 diff）、C3-013、C4-002
-- 组 3（源兼容性破坏，最后）：C2-007
+- 组 3（中断语义，最后）：C2-007（米策略，无签名变更）
 - 组 4（声明/配置）：C3-009、C3-010
 
 - [ ] G1 C1-004：`debounce` 改 `promiseMap.compute`
@@ -125,7 +137,7 @@ Targets: nop-commons / nop-core / nop-xlang + 测试树
 - [ ] G3 C1-011：`LocalFileLock` 句柄会话化
 - [ ] G4 C1-010 + C2-004（同 diff）：`CycleSynchronizer` generation + 回调出锁域 + 逐回调隔离
 - [ ] G5 C2-003：`ResourceComponentManager` 占位模式
-- [ ] G6 C2-007：`InterruptedException` 传播链（**同 diff 全仓调用点**）
+- [ ] G6 C2-007：中断语义识别重抛（米策略，`LocalResourceLockManager` + `AbstractResourceLock` + unlock 纪律）
 - [ ] G7 C2-008：`LocalResourceLockManager` 过期判定入 latch 锁
 - [ ] G8 C2-019：`XLangSemantics` 占位模式
 - [ ] G10 C3-008：`SequentialTaskExecutor.execute` 拒绝显式化
