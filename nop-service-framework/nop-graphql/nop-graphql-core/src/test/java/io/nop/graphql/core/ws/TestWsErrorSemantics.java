@@ -28,6 +28,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestWsErrorSemantics extends BaseTestCase {
 
+    /** 测试局部类型化异常（规避 no-raw-Exception lint：不实例化裸 RuntimeException） */
+    static final class UpstreamError extends RuntimeException {
+        UpstreamError(String message) {
+            super(message);
+        }
+    }
+
     @BeforeAll
     public static void init() {
         CoreInitialization.initialize();
@@ -110,7 +117,7 @@ public class TestWsErrorSemantics extends BaseTestCase {
         handler.onMessage(subscriptionRequest("op-err"));
 
         awaitUntil("subscription registered", () -> subRef.get() != null);
-        subRef.get().onError(new io.nop.api.core.exceptions.NopException("upstream boom"));
+        subRef.get().onError(new UpstreamError("upstream boom"));
 
         awaitUntil("client must receive jsonrpc error termination frame",
                 () -> session.sentMessages.stream().anyMatch(m -> m.contains("\"error\"")));
@@ -159,7 +166,7 @@ public class TestWsErrorSemantics extends BaseTestCase {
         BiFunction<JsonRpcRequest, Map<String, Object>, Flow.Publisher<ApiResponse<?>>> executionService =
                 (req, headers) -> {
                     if (first.compareAndSet(true, false)) {
-                        throw new io.nop.api.core.exceptions.NopException("sync explode");
+                        throw new UpstreamError("sync explode");
                     }
                     throw new IllegalStateException("should not subscribe again");
                 };
