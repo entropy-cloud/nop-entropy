@@ -72,15 +72,22 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
     /**
      * Returns the future of a map of the values associated with {@code keys}.
      * <p>
-     * <b>契约（1.7-C3-009 / plan 2547 裁定 F，收窄声明）</b>：未命中的 key <b>不会触发加载</b>——
-     * 返回的 map 只包含已缓存的条目；未命中的 key 在结果 map 中<b>缺席</b>（{@code map.get(k)==null}）。
-     * 需要「miss 即加载」语义时请使用 {@link #computeIfAbsentAsync} 或同步
-     * {@link ICache#getAll(Collection)}。
+     * <b>契约（1.7-C3-009 / plan 2547 裁定 F，**按 live 实况收窄**）</b>：未命中的 key
+     * <b>不支持</b>——本方法<b>不做部分命中/缺席语义</b>。{@code LocalCache} 的异步实现以
+     * {@code k -> null} 调用底层 {@code AsyncCache.getAll}，而 Caffeine 拒绝 null 值映射，
+     * 因此**只要存在任一未命中 key，整个调用即以 {@code NullMapCompletionException}（包装后为
+     * {@code ExecutionException}）失败**，不会返回"部分结果"。
      * <p>
-     * <b>契约变更说明</b>：原 javadoc 声称 "creating or retrieving those values if necessary"，与
-     * {@code LocalCache} 的异步实现（以 {@code k -> null} 调用底层）不符——本声明为<b>契约收窄</b>
-     * （承认实现现状），不是行为变更。拒绝方案：改实现为真加载（会改变既有 async 缓存语义，
-     * 且与 Caffeine {@code AsyncCache} 的「不存在即缺席」模型冲突）。
+     * **调用方用法**：
+     * <ul>
+     *   <li>只取已缓存条目：先用 {@link #getIfPresent} 过滤，或使用同步 {@link ICache#getAll(Collection)}；</li>
+     *   <li>需要 miss 即加载：使用 {@link #computeIfAbsentAsync}（逐 key）或 {@link #getAsync}。</li>
+     * </ul>
+     * <p>
+     * <b>契约变更说明</b>：原 javadoc 声称 "creating or retrieving those values if necessary"，
+     * 与实现相反（既不加载、也不返回缺席 map，而是整体失败）。本声明为**按实况订正**（不是行为变更）。
+     * 拒绝了两个备选：①改实现为真加载（改变既有 async 契约）；
+     * ②改实现为「返回缺席 map」（需换 {@code getAllPresent} 语义，属行为变更，需另立判定）。
      * <p>
      * Note that duplicate elements in {@code keys}, as determined by {@link Object#equals}, will be ignored.
      *

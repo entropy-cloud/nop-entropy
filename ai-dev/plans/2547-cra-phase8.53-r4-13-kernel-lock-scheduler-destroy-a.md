@@ -247,7 +247,7 @@ Exit Criteria:
 | 编号 | 内容 |
 |---|---|
 | **E-2547-2** | C3-013 原设计对三个 `execute` 入口（DTE / `DefaultScheduledExecutor` / `BindScheduledExecutor`）统一包装。实测 `TestPeriodicTaskInsulation` 的 `rejections.size()` 变为 2（缺陷态 1）——原因：周期任务命令由 `PeriodicTaskHelper` 绝缘守卫管理，其拒绝回调语义依赖命令身份/时序，外层再包一层会重复触发。**收窄**：只包装 `DefaultThreadPoolExecutor.execute`（`globalWorker`/`cachedThreadPool` 的实际载体）；两个定时器入口保持直通并加注释说明。 |
-| **E-2547-3** | `TestRateLimitExecutor` 原计划断言「同一 key 连续 debounce 只执行最后一次」——实测不可行：本平台 `schedule(Runnable,...)` 返回 `CompletableFuture` 包装，`cancel(true)` 只能取消该 future、无法撤下已提交的底层调度。**改为断言映射表正确性**（并发 8 线程后 `promiseMap` 同 key 仅 1 条目），这才是 C1-004 的真实缺陷面（非原子导致的重复 schedule + 陈旧条目）。 |
+| **E-2547-3**（**closure audit R1 B-1 + R2 M-6 订正，原结论作废**） | 曾误判为「`cancel(true)` 无法撤下已提交的底层调度」，据此把载体降级为「映射表条目数」。**实测证伪**：`ExecutorHelper.schedule:271` 明确 `FutureHelper.bindCancel(future, f)`，把返回的 CF 与底层 `ScheduledFuture` 绑定——`cancel(true)` **能**撤销底层调度（独立探针：`RAW_RAN=0`；旧实现 `OLD_EXECUTED_COUNT=1`）。首版修复误把**本地新建的 CF** 存进 map（无下层绑定）→ debounce 退化为「两次都执行」（功能回归）。**已重做**：改存 `schedule` 返回的 future；载体 `pin0104a_debounceExecutesOnlyLastTask` 断言「只执行最后一次」，**变异（改回本地 CF）红证成立**。 |
 | **E-2547-4** | C3-013 的 finally 中原含 `Thread.interrupted()`（对齐 `ExecutorHelper.submit` 先例）。实测它清掉了周期任务守卫依赖的中断/取消标志，导致 `TestPeriodicTaskInsulation` 失败。**收窄**：`execute` 路径只 `detachContext()`，不清中断标志。 |
 
 ## Deferred But Adjudicated

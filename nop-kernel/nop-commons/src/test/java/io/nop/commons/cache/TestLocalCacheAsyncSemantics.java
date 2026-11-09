@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -22,33 +24,42 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class TestLocalCacheAsyncSemantics {
 
     /**
-     * pin0309（C3-009，**契约事实钉**）：async 分支对未命中 key 的现实行为是
-     * **不加载**（以 `k -> null` 调用 Caffeine），Caffeine 因此抛
-     * `NullMapCompletionException`（不得返回 null 值 map）。
+     * pin0309（C3-009，**判别性契约钉**）：async 分支遇未命中 key 时**不加载、且整体失败**
+     * （Caffeine 拒绝 `k -> null` → `NullMapCompletionException`）。
      * <p>
-     * 本钉钉住「不加载」这一事实（区别于同步 `getAll` 的加载语义），与收窄后的 javadoc
-     * （未命中不触发加载）一致；调用方按契约应改用 `computeIfAbsentAsync` 或同步 `getAll`。
-     * 若未来实现改为真加载，本钉会红并促使同步更新 javadoc 契约。
+     * 判别面（三者同时断言，任一变化即红）：
+     * <ol>
+     *   <li>调用以 {@code ExecutionException} 失败（不是返回缺席 map）；</li>
+     *   <li>cause 是 Caffeine 的 {@code NullMapCompletionException}（不加载的直接证据）；</li>
+     *   <li><b>loader 调用计数 == 0</b>（证明"未命中未触发加载"——这是契约收窄的核心）。</li>
+     * </ol>
      */
     @Test
     public void pin0309_missDoesNotLoad() throws Exception {
         CacheConfig config = new CacheConfig();
         config.setAsync(true);
 
+        java.util.concurrent.atomic.AtomicInteger loaderCalls = new java.util.concurrent.atomic.AtomicInteger();
         LocalCache<String, String> cache = LocalCache.newCache("cra309-" + System.nanoTime(),
-                config, key -> key + "-loaded");
+                config, key -> {
+                    loaderCalls.incrementAndGet();
+                    return key + "-loaded";
+                });
         try {
             CompletionStage<Map<String, String>> stage =
                     cache.getAllAsync(List.of("missing-1", "missing-2"));
-            try {
-                Map<String, String> result = stage.toCompletableFuture().get(5, TimeUnit.SECONDS);
-                // 若将来改为"返回缺席 map"，也应满足：未命中 key 不在结果中
-                assertFalse(result != null && result.containsKey("missing-1"),
-                        "契约：未命中 key 不得被加载出来；实际=" + result);
-            } catch (java.util.concurrent.ExecutionException e) {
-                // 现状：Caffeine 对 k->null 抛 NullMapCompletionException ——「不加载」的等价证据
-                assertTrue(true, "async 分支未命中不加载（Caffeine null-map 拒绝）—— 契约事实");
-            }
+
+            java.util.concurrent.ExecutionException ex = assertThrows(
+                    java.util.concurrent.ExecutionException.class,
+                    () -> stage.toCompletableFuture().get(5, TimeUnit.SECONDS),
+                    "未命中 key 必须使整体调用失败（不得返回缺席 map）：契约按 live 实况收窄");
+
+            String causeName = ex.getCause() == null ? "" : ex.getCause().getClass().getName();
+            assertTrue(causeName.contains("NullMapCompletionException"),
+                    "失败原因必须是 Caffeine 的 NullMapCompletionException（k->null 拒绝），实际=" + causeName);
+
+            assertEquals(0, loaderCalls.get(),
+                    "核心契约：未命中**不得触发加载**，实际 loader 调用=" + loaderCalls.get());
         } finally {
             cache.destroy();
         }
