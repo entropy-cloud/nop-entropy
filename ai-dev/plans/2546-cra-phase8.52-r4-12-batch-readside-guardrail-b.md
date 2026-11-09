@@ -1,6 +1,6 @@
 # 2546 CRA Phase 8.52 — R4-12 1.7 读侧/护栏束 b（G23 后半，11 工单）
 
-> Plan Status: draft
+> Plan Status: active
 > Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.52（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :223，Status=**todo**；Owner Doc=`docs-for-ai/03-modules/nop-batch.md`；Deps=「batch-proposal.md §二 R4-12（11 项）；硬依赖 8.22——已 done（plan 2516），硬依赖解除」）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 R4-12 行（11 finding ID / 模块 nop-batch / 验证命令 `./mvnw test -pl nop-batch -am` / PA=无 / exit criteria 增补：「C8-007 与 C8-004 绑定、**C8-008 为 C8-004 前置**（三面一次接线）」）+ §二.5 G23 组行「22 | R4-11 + R4-12 | 拆分 11/11」；成员发现详情 = `ai-dev/audits/2026-10/2026-10-16-1258-deep-audit-nop-batch-concurrency/`（C7-long-running.md C7-005/C7-006/C7-007/C7-008/C7-009；C7-round2.md C7-012；C8-backpressure.md C8-004；C8-round2.md C8-007/C8-008/C8-009/C8-010）
 > Related: plan 2545（R4-11，**completed @ 2026-11-09，closure audit R4 APPROVED**）为本批同模块前批——本批**复用其教训**：接口存在 ≠ 行为完成、每条工单必须有可被回归捕获的载体、owner doc 与代码必须一致；plan 2516（R2-13）关闭 C8-001 Guard 与 C8-002 钳位共享位点，本批 C8-009 的「C8-001 Guard 先于参数化」次序前置已满足；C10-005/006/007/008/009/012 为本批验收前置
@@ -10,7 +10,8 @@
 - R1（fresh session 独立评审，2026-11-09）：**REJECT**，6 Blocker + 7 Major + 10 Minor。全部随本版落盘（见下方「Draft Review R1 修订清单」）。
 - R2（fresh session 独立评审，2026-11-09）：**REJECT**，4 Blocker（B1 新增 / B2 R1-B-6 未真闭环 / B3 新增 / B4 新增）+ 7 Major + 6 Minor。全部随本版落盘（见下方「Draft Review R2 修订清单」）。
 - R3（fresh session，聚焦 8 判定点）：**REJECT**，1 Blocker（pin08a meter 选错）+ 5 Major + 5 Minor。全部随本版落盘（见下方「Draft Review R3 修订清单」）。
-- 修订后待 R4 复审。
+- R4（fresh session，收敛轮）：**PASS-with-revisions**，0 Blocker + 2 Major（pin05d 与裁定 A 矛盾、ImportDbTool 断言缺载体）+ 3 Minor。已全部订正（pin05d 改为「SQLState 轨命中 + 反向断言兜底码不得置 broken」、补 `pin08d`、Exit Criteria 口径改 8+3、pin03b 升级计数钉、调用点计数订正）。
+- **Draft review 结论：通过，进入实施。**
 
 ### Draft Review R1 修订清单（逐条已闭环）
 
@@ -35,7 +36,7 @@
 
 | R2 项 | 结论与修订 |
 |---|---|
-| **B1** C7-009 白名单漏 `ERR_SQL_UNCATEGORIZED_FAILURE`（PG 连接失效永不计 broken） | 判定改为**双轨**：① `NopException.getCause()` 中取 `SQLException`，按 SQLState 前缀 `08` 或 `instanceof SQLRecoverableException/SQLTransientConnectionException/SQLNonTransientConnectionException` 判连接级失效；② 同时保留 `DaoErrors` 三码白名单（方言映射）+ `ERR_SQL_UNCATEGORIZED_FAILURE` 兜底码。载体新增 **PG 形态** `pin05d`（`SQLException("connection closed","08006")`）。FQN 全部写全（`io.nop.dao.DaoErrors`） |
+| **B1** C7-009 白名单漏 `ERR_SQL_UNCATEGORIZED_FAILURE`（PG 连接失效永不计 broken） | 判定改为**双轨**：① `NopException.getCause()` 中取 `SQLException`，按 SQLState 前缀 `08` 或 `instanceof SQLRecoverableException/SQLTransientConnectionException/SQLNonTransientConnectionException` 判连接级失效；② 同时保留 `DaoErrors` 方言映射码。载体新增 **PG 形态** `pin05d`（`SQLException("connection closed","08006")`）。FQN 全部写全（`io.nop.dao.DaoErrors`）。**（本条后被 R3 M-1 收窄：删除兜底码 `ERR_SQL_UNCATEGORIZED_FAILURE`，正文裁定 A 以 R3 为准）** |
 | **B2** C8-004 只搬「创建」未搬 `beginTask` → task Timer 恒 0 | 明确三件事：(a) 创建点在 `setTaskName/setTaskVersion` **之后**并立即 `context.setMetrics(created)`；(b) `beginTask()` 随之移到创建之后（外部已注入 metrics 分支保持原语义：注入者在 `executeAsync` 前设好，创建逻辑跳过，`beginTask` 照旧调用）；(c) `pin08a` **断言 `timer.count() > 0`**（不是"能 find 到"），`pin08b` 用计数 stub `IBatchTaskMetrics` 断言 `beginTask/endTask` 落在注入实例上 |
 | **B3** C7-012 透传链缺 `BatchTaskContextImpl` 与 `BatchTaskBuilder` | 五节点写全：`IBatchTaskContext`（新方法给 **default `null`**，不破坏外部实现）+ `BatchTaskContextImpl` 字段+getter/setter + `BatchTask` 字段/构造/**新增重载**（保留既有 11 参构造器签名不变，2 处既有测试零改）+ `executeAsync` 缺省注入（对齐 `allowStartIfComplete` 模式）+ `BatchTaskBuilder` 字段/setter/构造调用 + `DaoBatchStateStore` 旁路 |
 | **B4** C8-008 Gauge tag 含 `taskId` → 无 stateStore 时 null NPE；同名并发互删 | **每执行唯一键**：`exec.id` tag = `taskId`（非空）→ `taskKey`（非空）→ `"anon-" + System.identityHashCode(queue)`；与 `task.name` 组成唯一 meter id。注销按注册时持有的 `Meter` 引用 `registry.remove(meter)`（因 id 唯一，不会误删他人）。`pin07b` 覆盖 **taskId==null** 形态 |
@@ -58,7 +59,7 @@
 | **M-3** `pin02` 无法落在 core（`BatchLoaderModel` 在 dsl，依赖单向 core←dsl） | 载体表明确 `pin02` 落 **`nop-batch-dsl`** 侧 `TestCraR412DslPins`；`isSaveStateUnsupportedReader(Boolean, BatchLoaderModel)` 放 dsl 模块 |
 | **M-4** `ImportDbTool` 未设 `builder.taskName` → import 表任务全落 `task.name=default` | W-07(C8-004) 增 `ImportDbTool.runTask` 补 `builder.taskName(tableConfig.getName())`；载体表加断言 |
 | **M-5** C7-005 口径矛盾（Goals 计为完整 Fix，Deferred 又推迟死信账本半边） | Goals 改「**8 完整 + 3 半修**」（C7-005/C7-012/C8-008 为半修）；Closure Gates 同步为三处半修并列出 C7-005 死信账本半边 |
-| 5 Minor | SQLState 判定显式 `!= null`；meter 基数 **14**（10 Timer + 4 Counter）；构造器既有调用点 **3 处/2 文件**；`pin07c` 按 `Search.gauge()` 语义写；`pin03b` 改「`newEntity()` 调用 1 次 + 零 save/flush」计数钉 |
+| 5 Minor | SQLState 判定显式 `!= null`；meter 基数 **14**（10 Timer + 4 Counter）；构造器既有调用点 **3 处/3 文件**（`BatchTaskBuilder:333` + 测试 2 处/2 文件）；`pin07c` 按 `Search.gauge()` 语义写；`pin03b` 改「`newEntity()` 调用 1 次 + 零 save/flush」计数钉 |
 
 ## Purpose
 
@@ -179,19 +180,19 @@ Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 |---|---|---|
 | C7-005 | `TestCraR412BatchPins#pin01`（负值 fail-fast 错误码）/ `pin01b`（0=无限不抛，仅 WARN）/ `pin01c`（终态汇总 WARN 触发路径可达） | 行为钉 |
 | C7-006 | **`nop-batch-dsl` 侧 `TestCraR412DslPins#pin02`**（直测 `isSaveStateUnsupportedReader(Boolean, BatchLoaderModel)`：orm/jdbc/generator/bean/provider/adapter → true；file/excel → false）——`BatchLoaderModel` 在 dsl，core 测试树不可 import | 结构钉 |
-| C7-007 | `TestOrmQueryBatchLoaderCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（`orm_state()==TRANSIENT` + `IDaoProvider` 零 INSERT/UPDATE 调用计数） | pin03a 行为钉；pin03b **结构钉**（诚实登记） |
+| C7-007 | `TestOrmQueryBatchLoaderCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（**`newEntity()` 调用恰 1 次**（复用不重建）+ **零 save/flush 调用**——计数钉，比 `orm_state()` 自证式断言更强） | pin03a 行为钉；pin03b **结构计数钉**（诚实登记） |
 | C7-008 | `pin04`（`load(batchSize<=0)` fail-fast）/ `pin04b`（首次 load WARN 一次性，第二次不重复） | 行为钉 |
-| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken）/ **`pin05d`（PG 形态：`SQLException("connection closed","08006")` → 兜底码 `uncategorized-failure` 也计 broken）** | 行为钉（Proxy/桩 dialect） |
+| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken）/ **`pin05d`（PG 形态：`SQLException("connection closed","08006")` → 经**轨道① SQLState `08`** 命中 broken；**并反向断言**未映射的业务 SQL 错误（如 `22012 division by zero` → `uncategorized-failure`）**不得**置 broken）** | 行为钉（Proxy/桩 dialect） |
 | C7-012 | `TestDaoBatchStateStore#pin06a`（KILLED + allowRestart=true → 可启动）/ `pin06b`（allowRestart=false/null → 仍响亮拒绝）/ `pin06c`（启动后 execCount 递增，旧实例写被 fencing 丢弃）/ **`pin06d`（`BatchTaskBuilder` 设值经重载构造器到 context 的透传链）** | 行为钉（既有基建） |
 | C8-008 | `TestPartitionDispatchQueueWatermark#pin07a`（三出口读数正确）/ `pin07b`（Gauge 可读，**含 taskId==null 形态不 NPE**）/ `pin07c`（注销后不再可查）/ **`pin07d`（同名并发两任务 meter id 互不相同，互不覆盖）** | 行为钉（`SimpleMeterRegistry`） |
-| C8-004 | `pin08a`（**唯一 taskName** + `registry.find("nop.batch.task").tags("task.name", <unique>, "status", "SUCCESS").timer().count() > 0`——必须带 `status=SUCCESS`，否则 `Search.timer()`=findAny 会命中 count=0 的 failure Timer）/ `pin08b`（外部注入计数 stub 时 `beginTask/endTask` 落在注入实例上）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端；唯一 taskName 防单例残留） |
+| C8-004 | **`pin08d`（`ImportDbTool.runTask` 装配后 `context.getTaskName()` = 表名，不落 `default`）**；`pin08a`（**唯一 taskName** + `registry.find("nop.batch.task").tags("task.name", <unique>, "status", "SUCCESS").timer().count() > 0`——必须带 `status=SUCCESS`，否则 `Search.timer()`=findAny 会命中 count=0 的 failure Timer）/ `pin08b`（外部注入计数 stub 时 `beginTask/endTask` 落在注入实例上）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端；唯一 taskName 防单例残留） |
 | C8-007 | `pin09a`（重试发生后 `metrics.getRetryItemCount()` > 0，与 `context.getRetryItemCount()` 一致）/ `pin09b`（`getLoadItemCount()` = 条数而非 chunk 次数） | 行为钉 |
 | C8-009 | `pin10a`（未设 → Provider 保留 30/100）/ `pin10b`（config 设负值 → fail-fast；Provider/Queue setter 设 0 → fail-fast）/ `pin10c`（设正值 → 透传并生效） | 行为钉 |
 | C8-010 | `pin11a`（biz `batchSize=0/负 → maxBatchSize`）/ `pin11b`（biz `concurrency<=0 → 1`）/ `pin11c`（`validateExecutorConfig`：threadCount 超 cap fail-fast）/ `pin11d`（乘积超界 fail-fast） | pin11a/b 行为钉；pin11c/d **结构钉**（纯静态判定，DB 无关） |
 
 Exit Criteria:
 
-- [ ] 11 工单全部 landed（9 完整 + 2 半修，半修半边各有 Deferred 登记）
+- [ ] 11 工单全部 landed（**8 完整 + 3 半修**：C7-005 死信账本 / C7-012 DSL 键 / C8-008 平台池面，各有 Deferred 登记），口径与 Goals / Closure Gates 一致
 - [ ] 载体表 11/11 落地，每条形为钉均真实断言目标行为（非仅"不抛异常"）
 - [ ] 关键项先红后绿或变异论证（至少抽 3 条：C7-007 快照、C7-009 broken、C8-007 retry 计数）
 - [ ] `./mvnw test -pl nop-batch` BUILD SUCCESS
