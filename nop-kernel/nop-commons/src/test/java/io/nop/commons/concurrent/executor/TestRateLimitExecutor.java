@@ -106,16 +106,38 @@ public class TestRateLimitExecutor {
     }
 
     /**
-     * plan 2547 R4-13（C1-004）pin0104a：并发 debounce 同一 key 后，{@code promiseMap} 最终
-     * 只保留一个条目（不累积、不因 holder[0]=null 而残留陈旧项）。
+     * plan 2547 R4-13（C1-004）pin0104a：同一 key 连续两次 debounce（delay 足够长）→
+     * <b>只执行最后一次</b>（debounce 的核心契约）。
      * <p>
-     * <b>边界（执行期勘误 E-2547-3）</b>：本平台 {@code schedule(Runnable,...)} 返回的是
-     * {@code CompletableFuture} 包装，{@code cancel(true)} 只能取消该 future、不能撤下已提交的
-     * 底层调度，故「旧任务不再执行」在当前调度设施下不可断言。本钉验证的是**映射表正确性**
-     * （C1-004 的真实缺陷面：非原子导致的重复 schedule + 陈旧条目）。
+     * <b>closure audit R1 B-1 / M-6 勘误</b>：首版修复把本地新建的 {@code CompletableFuture} 存进
+     * map，而底层调度实际上可被 cancel（{@code ExecutorHelper.schedule:271}
+     * {@code bindCancel(future, f)}）——因此首版使 debounce 退化为「两次都执行」。
+     * 本钉是该回归的**判别性载体**：首版实现下必红。
      */
     @Test
-    public void pin0104a_concurrentDebounceKeepsSingleEntry() throws Exception {
+    public void pin0104a_debounceExecutesOnlyLastTask() throws Exception {
+        AtomicInteger executed = new AtomicInteger();
+        CountDownLatch done = new CountDownLatch(1);
+
+        limiter.debounce("k-debounce", 250, () -> {
+            executed.incrementAndGet();
+            done.countDown();
+        });
+        Thread.sleep(60);   // 确保第一次已提交、尚未触发
+        limiter.debounce("k-debounce", 250, () -> {
+            executed.incrementAndGet();
+            done.countDown();
+        });
+
+        assertTrue(done.await(5, TimeUnit.SECONDS), "第二次任务必须执行");
+        Thread.sleep(400);  // 等过第一次的原定触发时刻
+        assertEquals(1, executed.get(),
+                "debounce 必须只执行最后一次（缺陷/首版回归态=2），实际=" + executed.get());
+    }
+
+    /** pin0104a2：并发 debounce 同一 key 后 map 只保留一个条目（非原子缺陷面）。 */
+    @Test
+    public void pin0104a2_concurrentDebounceKeepsSingleEntry() throws Exception {
         int n = 8;
         CountDownLatch all = new CountDownLatch(1);
         java.util.List<Thread> threads = new java.util.ArrayList<>();

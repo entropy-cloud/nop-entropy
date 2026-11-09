@@ -1110,6 +1110,8 @@ public final class XLangSemantics {
             try {
                 future.complete(ReflectionManager.instance().getClassModel(resolveClass(className)));
             } catch (Throwable e) {
+                // 1.7-C2-019（closure audit R1 M-1）：失败后移除占位，保留重试语义
+                CLASS_MODELS.remove(className, future);
                 future.completeExceptionally(e);
             }
         }

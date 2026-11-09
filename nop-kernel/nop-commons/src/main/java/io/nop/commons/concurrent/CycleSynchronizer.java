@@ -77,11 +77,16 @@ public class CycleSynchronizer {
     }
 
     public void finish() {
-        resolvePromise(true);
+        resolvePromise(true, snapshotGeneration());
     }
 
     public void completeCycle() {
-        resolvePromise(false);
+        resolvePromise(false, snapshotGeneration());
+    }
+
+    /** 1.7-C1-010：取发起收尾时的周期代号快照（收尾可能在锁外延迟执行）。 */
+    private synchronized long snapshotGeneration() {
+        return cycleGeneration;
     }
 
     /**
@@ -96,12 +101,18 @@ public class CycleSynchronizer {
      *   <li><b>隔离</b>：每个回调独立 try/catch，一个抛异常不影响其余回调，也不以异常完成 promise。</li>
      * </ul>
      */
-    private CompletableFuture<Boolean> resolvePromise(boolean finished) {
+    private CompletableFuture<Boolean> resolvePromise(boolean finished, long expectedGeneration) {
         CompletableFuture<Boolean> promise;
         List<Runnable> callbacks = null;
         long generation;
         synchronized (this) {
             generation = this.cycleGeneration;
+            // 1.7-C1-010 守卫（closure audit R1 B-2：原实现只取值不比较 = 死字段）：
+            // 收尾请求携带「发起时的代号」expectedGeneration；若期间 beginCycle 已把
+            // cycleGeneration 递增（新周期已开始），则本次收尾属旧周期，**直接忽略**——
+            // 不得清掉新周期的 processing / cyclePromise / 回调列表。
+            if (expectedGeneration != generation)
+                return cyclePromise;
             promise = cyclePromise;
             if (promise != null) {
                 cyclePromise = null;
@@ -130,6 +141,6 @@ public class CycleSynchronizer {
     }
 
     public void restart() {
-        resolvePromise(false);
+        resolvePromise(false, snapshotGeneration());
     }
 }

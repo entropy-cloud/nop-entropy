@@ -357,6 +357,10 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
                 Object value = transformer.transform(entry.model);
                 future.complete(value);
             } catch (Throwable e) {
+                // 1.7-C2-003（closure audit R1 M-1）：失败后**移除占位**——避免把瞬态错误
+                //（类加载器竞态、磁盘抖动）永久固化在缓存里，使后续调用永远拿到同一失败。
+                // 下次调用会重新尝试（与旧 computeIfAbsent 语义一致）。
+                entry.transformed.remove(transform, future);
                 future.completeExceptionally(e);
             }
         }

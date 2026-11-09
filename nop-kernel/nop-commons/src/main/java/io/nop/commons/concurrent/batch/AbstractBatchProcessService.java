@@ -55,6 +55,13 @@ public abstract class AbstractBatchProcessService<T> {
         this.specialMessageProcessor = specialMessageProcessor;
     }
 
+    /**
+     * 1.7-C3-012（plan 2547 裁定 E）：底层队列访问口。
+     * <p>
+     * <b>注意</b>：直调 {@code getQueue().send(...)} 会**绕过** {@link #send(Object)} 的
+     * `accepting` 位检查——destroy 期间仍可能入队，使 drain 收敛变慢（有界等待会耗满超时）。
+     * 调用方应先检查 {@link #isAccepting()}，或直接改用 {@link #send(Object)}。
+     */
     public IBlockingQueue<T> getQueue() {
         return queue;
     }

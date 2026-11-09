@@ -240,6 +240,16 @@
 | `META-005` | `nop-metadata/nop-metadata-service/src/main/java/io/nop/metadata/service/quality/MetaQualityCheckpointScheduler.java` (`init` + `registerCheckpoint` + `executeScheduledCheckpoint`) | cron 调度器：启动 scanner 全量注册 ACTIVE 检查点的 cron job（D4）；运行时增量（save/delete override 调用 register/unregister）；BeanMethodJobInvoker 反射调用 `executeScheduledCheckpoint` 委托 raw impl `NopMetaQualityCheckpointBizModel.executeCheckpoint`（D3 path b，绕过 BizProxy 事务隔离问题） |
 | `PERSIST-001` | `nop-sys/nop-sys-dao/src/main/java/io/nop/sys/dao/lock/SysDaoResourceLockManager.java` (`tryResetLease` / `releaseLock`) + `nop-auth/nop-auth-service/src/main/java/io/nop/auth/service/mfa/store/DbMfaChallengeStore.java` + `nop-persistence/nop-orm/src/main/java/io/nop/orm/loader/JdbcQueryExecutor.java`（`eql.isAllowUnderscoreName()`） | **直接 SQL 使用边界的规范锚点**（plan 2255）：EQL 条件更新/删除规范样例（实体名 + `session.executeUpdate` 返回 affected rows，带 version/holderId 条件）；raw SQL 豁免样例（单语句原子计数/一次性消费/绕过会话缓存读）；`orm()` 执行的文本一律按 EQL 编译（物理表名需 `allowUnderscoreName`，否则 `ERR_EQL_UNKNOWN_ENTITY_NAME`）。判定规则见 `../02-core-guides/model-first-development.md`「直接 SQL 的使用边界」 |
 
+## 平台并发原语锚点（plan 2547 R4-13）
+
+| Anchor | 载体 | 契约 |
+|---|---|---|
+| `COMMONS-LOCK-001` | `nop-kernel/nop-commons/src/main/java/io/nop/commons/concurrent/lock/LocalFileLock.java`（`volatile Handle held` 会话化 :36/:99-101/:70-74） + `.../lock/impl/LocalResourceLockManager.java`（过期判定入 latch 监视器 :166-176、中断 cause 保留 :182-184） + `.../lock/impl/AbstractResourceLock.java`（`lockInterruptibly`/`tryLock(time,unit)` 识别 cause 重抛 :63-108 / `extractInterrupt` 3 层） | 锁族纪律（CRA 8.53 R4-13）：文件锁句柄会话化（失败路径不泄漏）+ Lock 中断语义米策略（`tryLockWithLease` 签名不变、上层识别 `InterruptedException` cause 重抛）+ 过期判定与 `checkTimeout` 同 latch 监视器。见 `../02-core-guides/ioc-and-config.md`「平台并发原语纪律」 |
+| `COMMONS-EXEC-001` | `.../concurrent/executor/RateLimitExecutorImpl.java`（`debounce` 改 `promiseMap.compute`，存 **schedule 返回的 future** 以便 cancel 真撤销 :60-100） + `.../executor/DefaultThreadPoolExecutor.java`（`destroy()` init 前 null 守卫 + 仅 `true&&await>0` 有界等待 :135-165；`execute` 补 `detachContext` 而不清中断 :164-177） + `.../executor/SequentialTaskExecutor.java`（offer 失败抛 REE :79-95） + `.../executor/BindScheduledExecutor`/`DefaultScheduledExecutor`（`execute` 不包装，周期守卫管理） | 调度/池纪律：debounce 必须保存绑定底层的 future、`destroy` 配置项生效且有界等待、拒绝显式化、`execute` 上下文卫生边界。见 owner doc 同名节 |
+| `COMMONS-CYCLE-001` | `.../concurrent/CycleSynchronizer.java`（`cycleGeneration` 守卫 `expectedGeneration != generation` :MUTATION 已核、回调快照出锁域 + 逐回调 try/catch + 先 complete 再回调 :96-135） | 周期同步纪律：旧周期延迟收尾不得清新周期状态；回调出锁域且逐回调隔离。 |
+| `COMMONS-BATCH-001` | `.../concurrent/batch/AbstractBatchProcessService.java`（`volatile accepting` + `send()` :37/:66、`destroy` 次序 停接收→drain→cancel→destroy :113-160） + `.../batch/BlockingSourceConsumeTask.java`（最外层 `catch(Throwable)` + continue :48-90） | 批处理关停纪律：先停止接收再 drain 至空才 cancel（否则 `isAllProcessed` 永不真）；消费循环对 Error 韧性。 |
+| `XLANG-EXEC-001` | `nop-kernel/nop-xlang/src/main/java/io/nop/xlang/exec/XLangSemantics.java`（`CLASS_MODELS` 值类型 `CompletableFuture<IClassModel>`、`boolean[] created` 占位、失败移除占位 :1090-1130） + `nop-kernel/nop-core/.../resource/component/ResourceComponentManager.java`（同形 :350-375） | 锁内重活纪律：`computeIfAbsent` 只占位、构建在锁外；判定新建用 `boolean[]`；失败移除占位保留重试语义。 |
+
 ## 周期任务异常绝缘锚点（plan 2496 R1-01）
 
 | 规则 ID | 锚点 | 说明 |

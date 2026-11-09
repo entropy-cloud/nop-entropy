@@ -25,24 +25,47 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class CycleSynchronizerTest {
 
-    /** pin0110：旧周期的延迟收尾（finish）不得清掉新周期的 processing 状态（generation 守卫）。 */
+    /**
+     * pin0110（closure audit R1 B-2 重做）：**旧周期的延迟收尾不得清掉新周期状态**。
+     * <p>
+     * 真交错形态：周期 1 begin → 新周期 begin（周期 2）→ 用「周期 1 的代号快照」发起收尾。
+     * 有 generation 守卫时该收尾被忽略，新周期仍 processing；无守卫时被清掉（本钉必红）。
+     * <p>
+     * 为构造「旧代收尾」而在测试内经由包级可见的语义：{@code finish()} 会先快照当前代号再收尾，
+     * 故这里用「先取快照 → begin 新周期 → 以旧快照收尾」的等价序列由 {@code resolvePromise}
+     * 的 expectedGeneration 参数承载；由于该参数由 {@code finish()} 内部生成，测试改用反射直接
+     * 调用 {@code resolvePromise(false, oldGeneration)} 模拟延迟收尾。
+     */
     @Test
-    public void pin0110_staleFinishDoesNotClobberNewCycle() {
+    public void pin0110_staleFinishDoesNotClobberNewCycle() throws Exception {
         CycleSynchronizer sync = new CycleSynchronizer();
         assertTrue(sync.beginCycle());
+        long oldGeneration = currentGeneration(sync);
+
+        // 新周期开始（代号递增）
+        sync.completeCycle();          // 正常收尾周期 1
+        assertFalse(sync.isProcessing());
+        assertTrue(sync.beginCycle()); // 周期 2
         assertTrue(sync.isProcessing());
 
-        sync.completeCycle();
-        assertFalse(sync.isProcessing());
+        // 模拟「周期 1 的延迟收尾」：用旧代号调用 resolvePromise
+        invokeResolve(sync, false, oldGeneration);
 
-        // 新周期开始
-        assertTrue(sync.beginCycle());
-        assertTrue(sync.isProcessing(), "新周期必须处于 processing");
+        assertTrue(sync.isProcessing(),
+                "旧周期的延迟收尾不得清掉新周期的 processing（无 generation 守卫时会失败）");
+    }
 
-        // 旧周期的重复收尾（幂等调用）不得把新周期状态清掉
-        sync.completeCycle();
-        // 注：completeCycle 本身是当前周期的正常收尾，一次调用即结束当前周期
-        assertFalse(sync.isProcessing());
+    private static long currentGeneration(CycleSynchronizer sync) throws Exception {
+        java.lang.reflect.Field f = CycleSynchronizer.class.getDeclaredField("cycleGeneration");
+        f.setAccessible(true);
+        return f.getLong(sync);
+    }
+
+    private static void invokeResolve(CycleSynchronizer sync, boolean finished, long generation) throws Exception {
+        java.lang.reflect.Method m = CycleSynchronizer.class
+                .getDeclaredMethod("resolvePromise", boolean.class, long.class);
+        m.setAccessible(true);
+        m.invoke(sync, finished, generation);
     }
 
     /** pin0110b：processing 期间 beginCycle 抛并发错误（守卫未回归）。 */

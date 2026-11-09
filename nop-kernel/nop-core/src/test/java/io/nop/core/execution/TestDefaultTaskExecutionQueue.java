@@ -310,4 +310,49 @@ public class TestDefaultTaskExecutionQueue {
         assertNotNull(state.getQueueTime());
         assertEquals("d", state.getDescription());
     }
+
+    /**
+     * plan 2547 R4-13（C3-018）pin0318a：取消 state.promise → 任务 future 必须被取消。
+     * 缺陷态：`bindCancel(future, state.getPromise())` 实参反接 → 该链路从未接线。
+     */
+    @Test
+    @Timeout(10)
+    public void pin0318a_cancellingPromiseCancelsTaskFuture() throws Exception {
+        ManualExecutor executor = new ManualExecutor();
+        DefaultTaskExecutionQueue queue = new DefaultTaskExecutionQueue();
+        queue.setExecutor(executor);
+
+        CompletableFuture<Object> longRunning = new CompletableFuture<>();
+        ITaskExecutionState state = queue.addTaskIfAbsent("t318", "task318", "src", "desc",
+                cancelToken -> longRunning);
+        executor.drainPending();
+
+        state.cancel("test-cancel");
+
+        assertTrue(longRunning.isCancelled(),
+                "state.promise 取消后任务 future 必须被取消（缺陷态=实参反接、从未接线）；"
+                        + "isDone=" + longRunning.isDone() + " isCancelled=" + longRunning.isCancelled());
+    }
+
+    /**
+     * plan 2547 R4-13（C3-018）pin0318b：被取消的任务必须计入 cancelled 而非 completed。
+     */
+    @Test
+    @Timeout(10)
+    public void pin0318b_cancelledTaskCountedAsCancelled() throws Exception {
+        ManualExecutor executor = new ManualExecutor();
+        DefaultTaskExecutionQueue queue = new DefaultTaskExecutionQueue();
+        queue.setExecutor(executor);
+
+        CompletableFuture<Object> pending = new CompletableFuture<>();
+        ITaskExecutionState state = queue.addTaskIfAbsent("t318b", "task318b", "src", "desc",
+                cancelToken -> pending);
+        executor.drainPending();
+
+        state.cancel("test-cancel");
+        Thread.sleep(50);
+
+        assertTrue(queue.getCancelledTaskCount() >= 1,
+                "取消的任务必须计入 cancelled，实际=" + queue.getCancelledTaskCount());
+    }
 }

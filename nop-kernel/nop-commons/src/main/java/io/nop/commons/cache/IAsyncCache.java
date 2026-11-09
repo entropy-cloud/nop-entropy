@@ -70,24 +70,24 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
     CompletionStage<V> computeIfAbsentAsync(@Nonnull K key, @Nonnull Function<? super K, ? extends V> mappingFunction);
 
     /**
-     * Returns the future of a map of the values associated with {@code keys}, creating or retrieving those values if
-     * necessary. The returned map contains entries that were already cached, combined with newly loaded entries; it
-     * will never contain null keys or values. If the any of the asynchronous computations fail, those entries will be
-     * automatically removed from this cache.
+     * Returns the future of a map of the values associated with {@code keys}.
      * <p>
-     * A single request to the {@code mappingFunction} is performed for all keys which are not already present in the
-     * cache. If another call to {@link #get} tries to load the value for a key in {@code keys}, that thread retrieves a
-     * future that is completed by this bulk computation. Note that multiple threads can concurrently load values for
-     * distinct keys.
+     * <b>契约（1.7-C3-009 / plan 2547 裁定 F，收窄声明）</b>：未命中的 key <b>不会触发加载</b>——
+     * 返回的 map 只包含已缓存的条目；未命中的 key 在结果 map 中<b>缺席</b>（{@code map.get(k)==null}）。
+     * 需要「miss 即加载」语义时请使用 {@link #computeIfAbsentAsync} 或同步
+     * {@link ICache#getAll(Collection)}。
+     * <p>
+     * <b>契约变更说明</b>：原 javadoc 声称 "creating or retrieving those values if necessary"，与
+     * {@code LocalCache} 的异步实现（以 {@code k -> null} 调用底层）不符——本声明为<b>契约收窄</b>
+     * （承认实现现状），不是行为变更。拒绝方案：改实现为真加载（会改变既有 async 缓存语义，
+     * 且与 Caffeine {@code AsyncCache} 的「不存在即缺席」模型冲突）。
      * <p>
      * Note that duplicate elements in {@code keys}, as determined by {@link Object#equals}, will be ignored.
      *
      * @param keys the keys whose associated values are to be returned
-     * @return the future containing an unmodifiable mapping of keys to values for the specified keys in this cache
-     * @throws NullPointerException if the specified collection is null or contains a null element, or if the future returned by the
-     *                              {@link AsyncCacheLoader} is null
-     * @throws RuntimeException     or Error if the {@link AsyncCacheLoader} does so, if {@link AsyncCacheLoader#asyncLoadAll} returns
-     *                              {@code null}, or fails when constructing the future, in which case the mapping is left unestablished
+     * @return the future containing an unmodifiable mapping of the <b>already-cached</b> keys to values;
+     *         uncached keys are absent from the map
+     * @throws NullPointerException if the specified collection is null or contains a null element
      */
     @Nonnull
     CompletionStage<Map<K, V>> getAllAsync(Collection<? extends K> keys);
