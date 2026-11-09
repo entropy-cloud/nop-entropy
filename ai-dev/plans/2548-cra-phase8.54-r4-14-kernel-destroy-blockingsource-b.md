@@ -170,9 +170,9 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G5 C5-003：`CacheConfig` 拷贝构造补两字段
 - [x] G6 C6-005（三项）：① `createCache` 加 `setDestroyOnRemove(true)`；② `ResourceLoadingCache implements IDestroyable`（`destroy = invalidateAll + cleanUp`）；③ `LocalCache.destroy()` 改 `invalidateAll() + cleanUp()`
 - [x] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 `setDestroyOnRemove(true)`（**依赖 G6 ②**：值类型须实现 `IDestroyable`）
-- [ ] G8 C6-006：`FileWatchEntry` unwatch 摘父 + 重复 watch 复用
-- [ ] G9 C6-007：`NioFileWatchService` daemon 化 + awaitTermination
-- [ ] G10 C7-008：`ResourceDependsManager` 逐条淘汰
+- [x] G8 C6-006：`FileWatchEntry` unwatch 摘父 + 重复 watch 复用
+- [x] G9 C6-007：`NioFileWatchService` daemon 化 + awaitTermination
+- [x] G10 C7-008：`ResourceDependsManager` 逐条淘汰
 - [ ] G11 C7-010：`throttleExecute` `tryAcquire(timeout)` + 新配置键缺省 60s + 类型化超时异常
 - [ ] G12 C7-015：`acquire()/acquire(permits)` 默认上界可配置（新键缺省 5min）+ Guava 不可中断面 watch-only 登记
 - [ ] G13 C7-002（**Decision**）：`scheduleAtFixedRate` 补偿语义 javadoc + source-anchors 声明（不改行为）

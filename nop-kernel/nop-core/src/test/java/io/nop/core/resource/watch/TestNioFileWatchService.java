@@ -19,6 +19,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class TestNioFileWatchService {
@@ -109,5 +111,110 @@ public class TestNioFileWatchService {
         } finally {
             service.stop();
         }
+    }
+
+
+    /** pin6006：unwatch 递归摘除后父的 subEntries 不再单调累积（C6-006）。 */
+    @Test
+    public void pin6006_unwatchRemovesFromParentSubEntries(@TempDir File subDir) throws Exception {
+        NioFileWatchService service = startService();
+        try {
+            Files.createDirectory(subDir.toPath().resolve("child"));
+            FileWatchEntry[] holder = new FileWatchEntry[1];
+            Runnable cleanup = service.watch(subDir.toPath(), null, true, new IFileWatchListener() {
+                @Override
+                public void onFileChange(Path root, Path file) {
+                }
+
+                @Override
+                public void onFileCreate(Path root, Path file) {
+                }
+
+                @Override
+                public void onFileDelete(Path root, Path file) {
+                }
+            });
+            // watch 是包私有 map：经反射拿根 entry（测试同包可直接用包私有 API）
+            FileWatchEntry rootEntry = null;
+            for (java.util.Map.Entry<java.nio.file.WatchKey, FileWatchEntry> e : serviceEntryMap(service).entrySet()) {
+                if (e.getValue().getPath().equals(subDir.toPath().toAbsolutePath())) {
+                    rootEntry = e.getValue();
+                    break;
+                }
+            }
+            assertNotNull(rootEntry, "根 entry 应已注册");
+            int before = rootEntry.getSubEntries().size();
+            assertTrue(before >= 1, "递归 watch 应产生 subEntry");
+
+            cleanup.run();
+            assertEquals(0, rootEntry.getSubEntries().size(),
+                    "缺陷态：unwatch 后父的 subEntries 单调累积");
+        } finally {
+            service.stop();
+        }
+    }
+
+    private java.util.Map<java.nio.file.WatchKey, FileWatchEntry> serviceEntryMap(NioFileWatchService service)
+            throws Exception {
+        java.lang.reflect.Field f = NioFileWatchService.class.getDeclaredField("watchKeyMap");
+        f.setAccessible(true);
+        @SuppressWarnings("unchecked")
+        java.util.Map<java.nio.file.WatchKey, FileWatchEntry> map =
+                (java.util.Map<java.nio.file.WatchKey, FileWatchEntry>) f.get(service);
+        return map;
+    }
+
+    /** pin6006b：同路径重复 watch 复用同一 entry、返回可用的幂等句柄（C6-006）。 */
+    @Test
+    public void pin6006b_duplicateWatchReusesEntry() throws Exception {
+        NioFileWatchService service = startService();
+        try {
+            Runnable h1 = service.watch(tempDir.toPath(), null, false, null);
+            Runnable h2 = service.watch(tempDir.toPath(), null, false, null);
+            assertEquals(1, serviceEntryMap(service).size(),
+                    "缺陷态：重复 watch 注册第二个 WatchKey → 注销交叉误伤");
+            h1.run();
+            assertEquals(0, serviceEntryMap(service).size(), "旧句柄仍可注销整个 entry");
+            h2.run(); // 幂等：已注销，不应抛错
+        } finally {
+            service.stop();
+        }
+    }
+
+    /** pin6007：watcher 线程 daemon 化（C6-007，观测路径=线程名前缀扫描）。 */
+    @Test
+    public void pin6007_watcherThreadIsDaemon() throws Exception {
+        NioFileWatchService service = startService();
+        try {
+            Thread watcher = findWatcherThread();
+            assertNotNull(watcher, "启动后应存在 nio-file-watch-service 线程");
+            assertTrue(watcher.isDaemon(), "缺陷态：watcher 线程非 daemon → 阻止 JVM 退出");
+        } finally {
+            service.stop();
+        }
+    }
+
+    /** pin6007b：doStop 有界返回（<5s）且 watcher 线程消失（C6-007）。 */
+    @Test
+    public void pin6007b_stopIsBoundedAndThreadGone() throws Exception {
+        NioFileWatchService service = startService();
+        assertNotNull(findWatcherThread());
+        long begin = System.currentTimeMillis();
+        service.stop();
+        long elapsed = System.currentTimeMillis() - begin;
+        assertTrue(elapsed < 5000, "doStop 应在 5s 内返回，实际 " + elapsed + "ms");
+        long deadline = System.currentTimeMillis() + 3000;
+        while (findWatcherThread() != null && System.currentTimeMillis() < deadline) {
+            Thread.sleep(20);
+        }
+        assertTrue(findWatcherThread() == null, "stop 后 watcher 线程应终止");
+    }
+
+    private Thread findWatcherThread() {
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+            if (t.getName().startsWith("nio-file-watch-service"))
+                return t;
+        }
+        return null;
     }
 }

@@ -160,6 +160,11 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
             oldObj = this.object;
             this.object = null;
         }
+        // C7-008（plan 2548）：条目失效时逐条淘汰依赖集，消除 dependencyMap 单调增长
+        ResourceDependencySet d = this.deps;
+        if (d != null) {
+            ResourceComponentManager.instance().removeDependency(d.getResourcePath());
+        }
         retireDestroyedObject(oldObj);
     }
 

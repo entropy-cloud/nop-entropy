@@ -50,6 +50,10 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
 
     private final Map<String, ResourceDependencySet> dependencyMap = new ConcurrentHashMap<>();
 
+    // C7-008（plan 2548）：容量告警水位（同水位去重）
+    static final int DEPENDS_MAP_WARN_SIZE = 10_000;
+    final java.util.concurrent.atomic.AtomicLong warnSizeWatermark = new java.util.concurrent.atomic.AtomicLong();
+
     private final IResourceLoadingCache<Object> cache = new ResourceLoadingCache<>("depends-with-cache", null, null);
 
     public ResourceDependsManager(IResourceChangeChecker changeChecker) {
@@ -63,6 +67,10 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
     }
 
     @Override
+    public void removeDependency(String resourcePath) {
+        dependencyMap.remove(resourcePath);
+    }
+
     public void clearDependencies() {
         dependencyMap.clear();
     }
@@ -195,6 +203,12 @@ public class ResourceDependsManager implements IResourceDependencyManager, Close
         IResourceReference resource = changeChecker.resolveResource(path);
         if (resource == null)
             return null;
+        // C7-008（plan 2548）：容量告警——removeDependency 逐条淘汰机制存在，但若调用方长期不淘汰，
+        // dependencyMap 仍会单调增长；跨阈值时 WARN 提示（同阈值去重，不刷屏）
+        int size = dependencyMap.size();
+        if (size >= DEPENDS_MAP_WARN_SIZE && size > warnSizeWatermark.getAndSet(size)) {
+            LOG.warn("nop.warn.core.resource.depends-map-large: size={} threshold={}", size, DEPENDS_MAP_WARN_SIZE);
+        }
         return stack.make(resource);
     }
 

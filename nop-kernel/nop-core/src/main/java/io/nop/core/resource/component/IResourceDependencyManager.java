@@ -16,6 +16,13 @@ public interface IResourceDependencyManager {
 
     void clearDependencies();
 
+    /**
+     * C7-008（plan 2548）：逐条淘汰——条目失效/清理时移除该 path 的依赖集，消除 dependencyMap 单调增长。
+     * 默认 no-op（不强制所有实现支持）。
+     */
+    default void removeDependency(String resourcePath) {
+    }
+
     boolean isDependencyChanged(String resourcePath);
 
     /**

@@ -144,7 +144,14 @@ public class ResourceComponentManager implements IResourceComponentManager, ICon
         }
 
         // 清空资源文件的依赖关系缓存
-        this.dependsManager.clearDependencies();
+        dependsManager.clearDependencies();
+    }
+
+    /**
+     * C7-008（plan 2548）：条目失效/清理时的逐条淘汰入口（委托 dependsManager）。
+     */
+    public void removeDependency(String resourcePath) {
+        this.dependsManager.removeDependency(resourcePath);
     }
 
     public void setChangeChecker(IResourceChangeChecker changeChecker) {
