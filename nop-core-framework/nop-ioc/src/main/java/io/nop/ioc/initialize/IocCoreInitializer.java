@@ -61,8 +61,10 @@ public class IocCoreInitializer implements ICoreInitializer {
         if (this.appContainer != null) {
             IBeanContainerImplementor container = this.appContainer;
             this.appContainer = null;
-            BeanContainer.registerInstance(parentContainer);
+            // C6-008（plan 2549 裁定 A）：先 stop 后切注册表指针——原顺序先 registerInstance(parent)
+            // 再 stop，销毁期内解析会落 parent/新建孤儿 singleton
             container.stop();
+            BeanContainer.registerInstance(parentContainer);
         }
     }
 }

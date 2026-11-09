@@ -295,6 +295,15 @@ public class BeanDefinition implements IBeanDefinition {
         for (BeanProperty prop : props.values()) {
             prop.getValueResolver().collectDepends(deps);
         }
+
+        // C2-013（plan 2549 裁定 E）：AOP 拦截器 bean 依赖边入拓扑图——concurrentStart 下
+        // setupInstance 会注入拦截器实例，拦截器未 init 时宿主不得先建（环入口 +1 面）
+        List<BeanInterceptorModel> interceptors = beanModel.getIocInterceptors();
+        if (interceptors != null) {
+            for (BeanInterceptorModel interceptor : interceptors) {
+                deps.add(interceptor.getBean());
+            }
+        }
     }
 
     public boolean isIocAllowOverride() {
@@ -592,7 +601,9 @@ public class BeanDefinition implements IBeanDefinition {
             }
 
             return producedBeanInstance;
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C2-009（plan 2549 裁定 E）：Error 也走失败广播——不广播会使实例滞留 STATUS_CREATED，
+            // 后续获取者只能走有界等待超时（得超时而非根因）
             if (producedBeanInstance != null) {
                 producedBeanInstance.markPropSetFailed(e);
             }
@@ -639,7 +650,8 @@ public class BeanDefinition implements IBeanDefinition {
             addInterceptors(bean, scope, container, beanCtx);
 
             producedBeanInstance.markPropSet();
-        } catch (Exception e) {
+        } catch (Throwable e) {
+            // C2-009：同口径——Error 进失败广播（markPropSetFailed notifyAll + initError）
             producedBeanInstance.markPropSetFailed(e);
             if (e instanceof NopException) {
                 NopException nopErr = (NopException) e;
@@ -736,9 +748,33 @@ public class BeanDefinition implements IBeanDefinition {
                     subscriptionCleanup = null;
                 }
             }
-            if (destroyMethod != null)
-                destroyMethod.call0(bean, DisabledEvalScope.INSTANCE);
-            runXpl(beanModel.getIocDestroy(), bean, container, beanScope);
+            // C6-007（plan 2549 裁定 F，执行期勘正）：destroyMethod 与 ioc:destroy 逐方法隔离
+            // ——一个抛错不再跳过另一个；**首异常在末尾重抛**（No-Silent 契约：插件 deactivate 等
+            // 调用方依赖 destroy 抛错落定 FAILED 态；容器 stop 层已有 try/catch 收集，此处吞掉会
+            // 破坏 TestPluginStateRecovery 的失败传播契约）
+            Throwable firstError = null;
+            if (destroyMethod != null) {
+                try {
+                    destroyMethod.call0(bean, DisabledEvalScope.INSTANCE);
+                } catch (Throwable ex) {
+                    LOG.error("nop.err.ioc.destroy-method-fail:bean={}", getId(), ex);
+                    if (firstError == null)
+                        firstError = ex;
+                }
+            }
+            try {
+                runXpl(beanModel.getIocDestroy(), bean, container, beanScope);
+            } catch (Throwable ex) {
+                LOG.error("nop.err.ioc.ioc-destroy-fail:bean={}", getId(), ex);
+                if (firstError == null)
+                    firstError = ex;
+            }
+            if (firstError instanceof RuntimeException)
+                throw (RuntimeException) firstError;
+            if (firstError instanceof Error)
+                throw (Error) firstError;
+            if (firstError != null)
+                throw NopException.adapt(firstError);
         }
     }
 

@@ -164,7 +164,7 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 // classLoader 与注册表状态，保证 unload 可重试
                 plugins.remove(pluginId);
                 // unload 失败路径（ERR_PLUGIN_NOT_DEACTIVATED）不得清除 name 索引/订阅
-                unregisterNameIndex(pluginId);
+                unregisterNameIndex(pluginId, nameOf(holder.plugin));
                 unsubscribeGlobalConfig(pluginId);
                 IoHelper.safeCloseObject(holder.classLoader);
                 reconcile();
@@ -261,7 +261,7 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                         .param(ARG_PLUGIN_STATE, PluginState.ACTIVATED.name());
             }
             plugins.remove(pluginId);
-            unregisterNameIndex(pluginId);
+            unregisterNameIndex(pluginId, nameOf(holder.plugin));
             unsubscribeGlobalConfig(pluginId);
             IoHelper.safeCloseObject(holder.classLoader);
             // 诊断留痕：pluginId、前态、lastActivationError（保留值；逐段清理异常已由定义层
@@ -625,12 +625,29 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
         namesToPluginIds.computeIfAbsent(name, k -> ConcurrentHashMap.newKeySet()).add(plugin.getPluginId());
     }
 
-    private void unregisterNameIndex(String pluginId) {
-        for (Map.Entry<String, Set<String>> entry : namesToPluginIds.entrySet()) {
-            if (entry.getValue().remove(pluginId) && entry.getValue().isEmpty()) {
-                namesToPluginIds.remove(entry.getKey());
-            }
+    /**
+     * C1-018（plan 2549 裁定 D）：签名改 `(pluginId, name)`（调用方 reload/unload/uninstall 均持有
+     * definition 可传 name）；移除+判空清理在单 map `compute` 域内原子完成——原「全表遍历
+     * remove→isEmpty→remove」三步与 registerNameIndex 的 computeIfAbsent 并发时产生孤儿索引集，
+     * requires 门控静默失效。
+     */
+    /**
+     * C1-018 辅助：仅 VfsPluginDefinition 持有 name 索引（jar 轨不登记）。
+     */
+    private String nameOf(IPlugin plugin) {
+        return plugin instanceof VfsPluginDefinition ? ((VfsPluginDefinition) plugin).getName() : null;
+    }
+
+    private void unregisterNameIndex(String pluginId, String name) {
+        if (name == null) {
+            return;
         }
+        namesToPluginIds.compute(name, (k, ids) -> {
+            if (ids == null)
+                return null;
+            ids.remove(pluginId);
+            return ids.isEmpty() ? null : ids;
+        });
     }
 
     /**
@@ -659,49 +676,60 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
 
     private IPlugin loadPluginFromJar(ArtifactCoordinates coords) {
         String id = coords.toString();
-        return plugins.computeIfAbsent(id, k -> {
-            // resolvePluginResource 留 try 外（裁定③）：其失败时无 classLoader 可释放
-            // （HttpPluginResourceResolver.download 自带 finally 清理，审计 F3⑥ 配对成立）
-            List<URL> urls = resourceResolver.resolvePluginResource(coords);
-            // try 边界上移至 PluginClassLoader 构造点前（裁定③）：构造器 loadPluginConfig /
-            // loadPlugin / getPluginConfig / plugin.load·start 全部映射前失败点纳入单一 finally
-            // 释放——lambda 局部引用确定性 safeCloseObject，不建映射、重试重建（泄漏线性累积
-            // 链断开）。释放条件 = 仅失败路径（成功路径 classLoader 归 holder 持有，无条件释放
-            // 会关闭在用 classLoader）
-            PluginClassLoader classLoader = null;
-            IPlugin plugin = null;
-            boolean holderMapped = false;
-            try {
-                classLoader = newPluginClassLoader(urls);
-                plugin = classLoader.loadPlugin();
-                Map<String, Object> config = pluginConfigProvider.getPluginConfig(coords);
+        // C2-005（plan 2549 裁定 D）双检①：已装载直接返回（bin 锁外）
+        PluginHolder existing = plugins.get(id);
+        if (existing != null) {
+            return existing.plugin;
+        }
+
+        // 锁外构建（原 computeIfAbsent lambda 体搬移）：HTTP 下载 + SHA256 + 类加载 + plugin
+        // start 全部不在 CHM bin 锁临界区内——消除「同 bin 串行化/长临界区」面。
+        // 2506 裁定③的 try 收窄 + 失败释放语义原样保留（N2 钉零回改义务继承）
+        List<URL> urls = resourceResolver.resolvePluginResource(coords);
+        PluginClassLoader classLoader = null;
+        IPlugin plugin = null;
+        boolean mapped = false;
+        try {
+            classLoader = newPluginClassLoader(urls);
+            plugin = classLoader.loadPlugin();
+            Map<String, Object> config = pluginConfigProvider.getPluginConfig(coords);
+            if (plugin.isStateMachineAware()) {
+                plugin.load(config);
+            } else {
+                plugin.start(coords.getGroupId(), coords.getArtifactId(), coords.getVersion(), config);
+            }
+
+            // C2-005 双检②：putIfAbsent 回写（构建全程在锁外）。竞争失败方（另一线程先映射）
+            // 按 2506 catch 语义回收插件（aware→unload / 非 aware→stop）后再关自建 classLoader
+            // ——只关 classLoader 会丢弃已 start 的插件（R1 MJ-3）
+            PluginHolder winner = plugins.putIfAbsent(id, new PluginHolder(plugin, classLoader));
+            if (winner != null) {
                 if (plugin.isStateMachineAware()) {
-                    plugin.load(config);
+                    plugin.unload();
                 } else {
-                    plugin.start(coords.getGroupId(), coords.getArtifactId(), coords.getVersion(), config);
+                    plugin.stop();
                 }
-                PluginHolder holder = new PluginHolder(plugin, classLoader);
-                holderMapped = true;
-                return holder;
-            } catch (RuntimeException e) {
-                // 插件级兜底保留（既有 :585-589 形态，裁定③「只合并 classLoader 释放位」）：
-                // 非 aware 插件 stop 兼容路径清理 / aware 插件 unload 幂等；映射后失败（holder
-                // 已入 map）不经过本路径——unloadPlugin 失败保留 holder+classLoader 的可重试
-                // 语义不变（N2 钉零回改）
-                if (plugin != null) {
-                    if (plugin.isStateMachineAware()) {
-                        plugin.unload();
-                    } else {
-                        plugin.stop();
-                    }
-                }
-                throw e;
-            } finally {
-                if (!holderMapped) {
-                    IoHelper.safeCloseObject(classLoader);
+                IoHelper.safeCloseObject(classLoader);
+                return winner.plugin;
+            }
+            mapped = true;
+            return plugin;
+        } catch (RuntimeException e) {
+            // 构建期失败：插件级兜底（非 aware stop / aware unload 幂等）+ classLoader 释放
+            // （2506 形态：不建映射、重试重建；N2「映射后失败」腿不经本路径，语义不变）
+            if (plugin != null) {
+                if (plugin.isStateMachineAware()) {
+                    plugin.unload();
+                } else {
+                    plugin.stop();
                 }
             }
-        }).plugin;
+            throw e;
+        } finally {
+            if (!mapped) {
+                IoHelper.safeCloseObject(classLoader);
+            }
+        }
     }
 
     /**
@@ -794,18 +822,21 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
                 newDef = loadVfsDefinition(pluginId);
             } catch (RuntimeException e) {
                 plugins.remove(pluginId);
-                unregisterNameIndex(pluginId);
+                unregisterNameIndex(pluginId, oldDef.getName());
                 unsubscribeGlobalConfig(pluginId);
                 LOG.error("nop.plugin.reload-load-fail:pluginId={}", pluginId, e);
                 throw e;
             }
-            plugins.remove(pluginId);
-            unregisterNameIndex(pluginId);
+            // C1-019（plan 2549 裁定 D）：成功路径消除「remove→put 窗口」——plugins map 用单
+            // `compute` 原子替换（无 null 窗口对无锁 loadPlugin 开放产生双活定义）。name 索引/
+            // 订阅沿用原「先摘旧后登新」顺序（reconcile 门控评估依赖正确索引；先登后摘会误删
+            // 同 pluginId 的新索引）。
+            unregisterNameIndex(pluginId, oldDef.getName());
             unsubscribeGlobalConfig(pluginId);
             newDef.load(definitionConfig);
             registerNameIndex(newDef);
             subscribeGlobalConfig(newDef);
-            plugins.put(pluginId, new PluginHolder(newDef, null));
+            plugins.compute(pluginId, (k, oldHolder) -> new PluginHolder(newDef, null));
 
             // 4. reconcile（重新门控激活；reconcileLock 可重入）
             reconcile();

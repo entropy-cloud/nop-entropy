@@ -90,7 +90,17 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     private IClassLoader classLoader = ClassHelper.getSafeClassLoader();
     private volatile IBeanClassIntrospection classIntrospection;
 
-    private IBeanScope singletonScope;
+    // C1-001（plan 2549 裁定 A）：volatile——restart 窗口内并发 getBean 不得读到半初始化引用
+    private volatile IBeanScope singletonScope;
+
+    /**
+     * C4-009（plan 2549 裁定 A）：启动代际令牌。start/restart 递增；handleStartError 携带启动时快照，
+     * 代际不匹配 = 旧图失败收敛撞上新生代 → 放弃自毁 stop（否则旧图 stop 会摧毁新生代）。
+     */
+    private volatile long startGeneration;
+
+    /** C4-009：startFuture 配对的启动代际（joinStart 侧快照来源）。 */
+    private volatile long startFutureGeneration;
 
     private BeanContainerStartMode startMode = BeanContainerStartMode.DEFAULT;
     private Map<String, AliasName> aliases;
@@ -552,7 +562,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         return started;
     }
 
-    public void restart() {
+    public synchronized void restart() {
         stop();
         start();
     }
@@ -576,7 +586,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     @Override
-    public void start() {
+    public synchronized void start() {
         if (running)
             throw new NopException(ERR_IOC_CONTAINER_ALREADY_STARTED).param(ARG_CONTAINER_ID, id);
 
@@ -585,6 +595,9 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         startFailed = false;
         LOG.info("nop.ioc.start-container:containerId={}", getId());
 
+        // C4-009：新启动轮次开启新代际（restart 旧图失败收敛以此识别「新生代已接管」）
+        startGeneration++;
+        startFutureGeneration = startGeneration;
         running = true;
         singletonScope = new BeanScopeImpl(ApiConstants.BEAN_SCOPE_SINGLETON, XLang.newEvalScope(), this);
 
@@ -605,9 +618,11 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             }
 
             if (concurrentStart) {
+                // C4-009：快照本代际——whenComplete 回调线程据此与当前代际比对
+                final long gen = startGeneration;
                 startFuture = asyncStartBeans(startBeans).whenComplete((ret, err) -> {
                     if (err != null) {
-                        handleStartError(err);
+                        handleStartError(err, gen);
                     } else if (!startFailed) {
                         try {
                             runLazyProperties();
@@ -615,7 +630,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                             started = true;
                         } catch (RuntimeException | Error e) {
                             // C4-008 F5：成功回调异常不再静默，统一落失败终态并向 startFuture 传播
-                            handleStartError(e);
+                            handleStartError(e, gen);
                             throw e;
                         }
                     }
@@ -629,7 +644,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             }
         } catch (Exception e) {
             // dumpCreations();
-            handleStartError(e);
+            handleStartError(e, startGeneration);
             throw e;
         }
     }
@@ -641,9 +656,23 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
      * （stop 不置空 singletonScope，二次调用会重复 destroy）。
      */
     void handleStartError(Throwable e) {
+        handleStartError(e, startGeneration);
+    }
+
+    /**
+     * 启动失败终态汇聚点。C4-009（plan 2549 裁定 A）：携带启动时快照的代际——
+     * 当前代际已推进（restart/new start 已接管）时放弃自毁 stop，仅记录旧图失败
+     * （否则旧图 whenComplete → stop() 会摧毁新生代的 singletonScope 与已建 bean）。
+     */
+    void handleStartError(Throwable e, long generation) {
         if (startFailed)
             return;
         startFailed = true;
+        if (generation != startGeneration) {
+            LOG.warn("nop.warn.ioc.stale-start-error:containerId={},gen={},currentGen={}",
+                    getId(), generation, startGeneration, e);
+            return;
+        }
         LOG.error("nop.err.ioc.start-failed", e);
         try {
             stop();
@@ -681,7 +710,7 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                     return;
                 } catch (CompletionException | CancellationException e) {
                     Throwable cause = e.getCause() == null ? e : e.getCause();
-                    // 失败终态应已由 whenComplete → handleStartError 落定；此处幂等兜底
+                    // 失败终态应已由 whenComplete → handleStartError 落定；此处幂等兜底（携带 startFuture 配对代际）
                     handleStartError(cause);
                     throw NopException.adapt(cause);
                 }
@@ -709,10 +738,11 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
                 throw NopException.adapt(e);
             } catch (ExecutionException e) {
                 Throwable cause = e.getCause() == null ? e : e.getCause();
-                handleStartError(cause);
+                // C4-009：joinStart 侧快照取 startFuture 配对代际（不读当前代际——restart 可能已推进）
+                handleStartError(cause, startFutureGeneration);
                 throw NopException.adapt(cause);
             } catch (CancellationException e) {
-                handleStartError(e);
+                handleStartError(e, startFutureGeneration);
                 throw e;
             }
         }
@@ -772,15 +802,10 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     }
 
     @Override
-    public void stop() {
+    public synchronized void stop() {
         LOG.info("nop.ioc.stop-container:containerId={}", getId());
-        running = false;
-        started = false;
-        if (cancellable != null) {
-            cancellable.cancel(ICancellable.CANCEL_REASON_STOP);
-            cancellable = null;
-        }
-
+        // C6-008（plan 2549 裁定 A）：先执行销毁回调（scope close + 容器停止回调），再清 running/started——
+        // 原顺序先灭状态，销毁回调内的 checkStarted 抛错使销毁链中断
         RuntimeException ex = null;
         if (singletonScope != null) {
             try {
@@ -791,6 +816,13 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             }
         }
         BeanScopeContext.instance().onContainerStop(this);
+
+        running = false;
+        started = false;
+        if (cancellable != null) {
+            cancellable.cancel(ICancellable.CANCEL_REASON_STOP);
+            cancellable = null;
+        }
 
         if (ex != null)
             throw ex;

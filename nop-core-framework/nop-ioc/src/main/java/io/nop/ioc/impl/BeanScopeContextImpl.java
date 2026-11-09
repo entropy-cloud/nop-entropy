@@ -39,10 +39,18 @@ public class BeanScopeContextImpl implements IBeanScopeContext {
     }
 
     private BeanContainerScope makeContainerScope(IBeanContainer container) {
+        // C1-005（plan 2549 裁定 A/E 残余面收口）：null→setContextAttr 覆写窗收进 synchronized——
+        // 共享 IContext 双线程同时初始化时后者覆写前者（前者已放入的 scope 失联泄漏）。
+        // computeIfAbsent 已原子化 per-container 映射，此处仅收口 context attr 初始化半边
         Map<IBeanContainer, BeanContainerScope> containerScopes = getContainerScopes();
         if (containerScopes == null) {
-            containerScopes = new ConcurrentHashMap<>();
-            ContextProvider.setContextAttr(CONTEXT_KEY, containerScopes);
+            synchronized (this) {
+                containerScopes = getContainerScopes();
+                if (containerScopes == null) {
+                    containerScopes = new ConcurrentHashMap<>();
+                    ContextProvider.setContextAttr(CONTEXT_KEY, containerScopes);
+                }
+            }
         }
         return containerScopes.computeIfAbsent(container, k -> new BeanContainerScope());
     }
@@ -91,6 +99,13 @@ public class BeanScopeContextImpl implements IBeanScopeContext {
                     LOG.error("nop.err.ioc.container-stop-fail:containerId={}", container.getId(), e2);
                     ex = e2;
                 }
+            }
+            // C6-009（plan 2549 裁定 F）：close 后摘除 scopes 条目 + 清 containerScopes——
+            // 原实现只 close 不摘：restart 后自定义 scope 永久 ALREADY_CLOSED + 死容器强引用滞留
+            containerScope.scopes.clear();
+            Map<IBeanContainer, BeanContainerScope> containerScopes = getContainerScopes();
+            if (containerScopes != null) {
+                containerScopes.remove(container, containerScope);
             }
         }
         if (ex != null)

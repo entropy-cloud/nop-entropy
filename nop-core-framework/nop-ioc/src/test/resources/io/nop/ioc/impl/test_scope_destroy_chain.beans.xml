@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<beans xmlns:x="/nop/schema/xdsl.xdef" x:schema="/nop/schema/beans.xdef"
+       xmlns:ioc="ioc">
+    <!-- pin11：依赖方(depA) 先于 被依赖方(depB) 销毁（拓扑降序） -->
+    <bean id="depB" class="io.nop.ioc.impl.DestroyOrderBean" lazy-init="false" destroy-method="destroy">
+        <property name="name" value="depB"/>
+    </bean>
+    <bean id="depA" class="io.nop.ioc.impl.DestroyOrderBean" lazy-init="false" depends-on="depB" destroy-method="destroy">
+        <property name="name" value="depA"/>
+    </bean>
+
+    <!-- pin12：destroyMethod 抛错后 ioc:destroy 仍执行 -->
+    <bean id="chainBean" class="io.nop.ioc.impl.BrokenDestroyBean" lazy-init="false"
+          destroy-method="brokenDestroy">
+        <ioc:destroy>
+            this.markIocDestroyRan();
+        </ioc:destroy>
+    </bean>
+</beans>
