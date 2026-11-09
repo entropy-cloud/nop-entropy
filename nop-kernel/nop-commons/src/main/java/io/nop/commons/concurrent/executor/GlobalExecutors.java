@@ -137,4 +137,27 @@ public class GlobalExecutors {
     public static IThreadPoolExecutor unregister(String name) {
         return g_executors.remove(name);
     }
+
+    /**
+     * C4-005（plan 2548）：平台池唯一受支持的销毁入口——先从注册表移除再 destroy（原子序）。
+     * 消除「借用方 destroy 后注册表仍持死实例 → 后续 getExecutor 返回已销毁对象」的 use-after-destroy 面。
+     * residual：借用方绕过本入口直调 {@code executor.destroy()} 仍会留下死实例（watch-only，owner doc 声明）。
+     */
+    public static IThreadPoolExecutor destroyAndUnregister(String name) {
+        IThreadPoolExecutor executor = g_executors.remove(name);
+        if (executor != null) {
+            executor.destroy();
+        }
+        return executor;
+    }
+
+    /**
+     * C6-003（plan 2548）：平台级关闭入口——遍历注册表逐个 unregister + destroy。
+     * 宿主（nop-boot）接线归 roadmap 8.55（R4-15），本批只提供 API。
+     */
+    public static void destroyAll() {
+        for (String name : g_executors.keySet().toArray(new String[0])) {
+            destroyAndUnregister(name);
+        }
+    }
 }

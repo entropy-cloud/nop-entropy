@@ -99,12 +99,18 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
         }
     }
 
+    /**
+     * C6-004（plan 2548）：本池绑定的 meter 句柄，destroy 时 close 注销（绑定/注销对称）。
+     */
+    private volatile AutoCloseable metricsHandle;
+
     @PostConstruct
     public void init() {
         Guard.checkState(executor == null);
         if (config == null)
             config = new ThreadPoolConfig();
         this.executor = ExecutorHelper.newThreadPoolExecutor(config);
+        this.metricsHandle = ExecutorHelper.registerMetrics(this.executor, config);
     }
 
     @Override
@@ -139,6 +145,17 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
         if (pool == null)
             throw new NopException(ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED)
                     .param(ARG_NAME, config == null ? null : config.getName());
+
+        // C6-004：先停新任务提交路径，最后注销本池的 meter（绑定/注销对称）
+        AutoCloseable handle = this.metricsHandle;
+        this.metricsHandle = null;
+        this.executor = null;
+        try {
+            if (handle != null)
+                handle.close();
+        } catch (Exception e) {
+            LOG.warn("nop.warn.commons.thread-pool.metrics-close-fail", e);
+        }
 
         boolean waitForCompletion = config != null
                 && config.isWaitForTasksToCompleteOnShutdown()

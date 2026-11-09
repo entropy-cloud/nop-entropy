@@ -9,6 +9,8 @@ package io.nop.commons.concurrent.executor;
 
 import io.nop.api.core.exceptions.NopException;
 import io.nop.api.core.util.Guard;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import jakarta.annotation.PostConstruct;
 
 import java.util.Set;
@@ -27,6 +29,7 @@ import static io.nop.commons.CommonErrors.ERR_CONCURRENT_INVALID_THREAD_POOL_PAR
 import static io.nop.commons.CommonErrors.ERR_SERVICE_NOT_ACTIVE;
 
 public class DefaultScheduledExecutor implements IScheduledExecutor {
+    static final Logger LOG = LoggerFactory.getLogger(DefaultScheduledExecutor.class);
     private ScheduledThreadPoolExecutor executor;
 
     private ThreadPoolConfig config;
@@ -45,6 +48,11 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
      * 消除「排队任务被丢弃 → 调用方 future 永不完成」的悬挂面。
      */
     private final Set<CompletableFuture<?>> pendingFutures = ConcurrentHashMap.newKeySet();
+
+    /**
+     * C6-004（plan 2548）：本池绑定的 meter 句柄，destroy 时 close 注销（绑定/注销对称）。
+     */
+    private volatile AutoCloseable metricsHandle;
 
     public boolean isEnabled() {
         return enabled;
@@ -115,6 +123,7 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         if (config == null)
             config = new ThreadPoolConfig();
         this.executor = ExecutorHelper.newScheduledExecutor(config);
+        this.metricsHandle = ExecutorHelper.registerMetrics(this.executor, config);
     }
 
     @Override
@@ -128,6 +137,16 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         if(executor != null) {
             executor.shutdownNow();
             executor = null;
+        }
+        // C6-004：注销本池的 meter（绑定/注销对称）
+        AutoCloseable handle = this.metricsHandle;
+        this.metricsHandle = null;
+        if (handle != null) {
+            try {
+                handle.close();
+            } catch (Exception e) {
+                LOG.warn("nop.warn.commons.thread-pool.metrics-close-fail", e);
+            }
         }
         // timer 销毁时给所有尚无终态的绝缘链统一走拒绝终态：底层一次性触发器被 shutdownNow
         // 批量取消后不会向包装 future 传播完结，这里统一收口（关闭竞态下 future 有终态、不悬挂）。

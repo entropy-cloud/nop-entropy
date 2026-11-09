@@ -7,6 +7,7 @@
  */
 package io.nop.commons.concurrent.executor;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 import io.nop.api.core.context.ContextProvider;
@@ -19,7 +20,10 @@ import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
@@ -75,7 +79,7 @@ public class ExecutorHelper {
         ThreadFactory factory = new NamedThreadFactory(name, config.isThreadDaemon());
 
         ScheduledThreadPoolExecutor executor = new ScheduledThreadPoolExecutor(config.getCorePoolSize(), factory);
-        registerMetrics(executor, config);
+        // C6-004（plan 2548）：指标注册移交给池实例（DefaultScheduledExecutor.init）持有句柄，destroy 时注销
         return executor;
     }
 
@@ -110,7 +114,7 @@ public class ExecutorHelper {
                     config.getKeepAliveSeconds(), TimeUnit.SECONDS, queue, factory);
         }
 
-        registerMetrics(executor, config);
+        // C6-004（plan 2548）：指标注册移交给池实例（DefaultThreadPoolExecutor.init）持有句柄，destroy 时注销
         return executor;
     }
 
@@ -335,13 +339,33 @@ public class ExecutorHelper {
         pending.remove(future);
     }
 
-    public static void registerMetrics(ExecutorService executor, ThreadPoolConfig config) {
-        if (config.isEnableMetrics() && !StringHelper.isEmpty(config.getName())) {
-            MeterRegistry registry = GlobalMeterRegistry.instance();
-            if (registry != null) {
-                new ExecutorServiceMetrics(executor, config.getName(), Collections.emptyList()).bindTo(registry);
-            }
+    /**
+     * C6-004（plan 2548 裁定 C）：指标绑定注销对称。注册后返回 {@link AutoCloseable} 句柄，由池实例持有，
+     * {@code destroy()} 时 {@code close()} 注销本次绑定的全部 meter。返回值永不为 null
+     * （未启用指标或无 registry 时为 no-op 句柄）。不做「换 registry 自动重绑」（R-G 范围）。
+     */
+    public static AutoCloseable registerMetrics(ExecutorService executor, ThreadPoolConfig config) {
+        if (!(config.isEnableMetrics() && !StringHelper.isEmpty(config.getName()))) {
+            return () -> {
+            };
         }
+        MeterRegistry registry = GlobalMeterRegistry.instance();
+        if (registry == null) {
+            return () -> {
+            };
+        }
+        Set<Meter> before = new HashSet<>(registry.getMeters());
+        new ExecutorServiceMetrics(executor, config.getName(), Collections.emptyList()).bindTo(registry);
+        List<Meter> added = new ArrayList<>();
+        for (Meter meter : registry.getMeters()) {
+            if (!before.contains(meter))
+                added.add(meter);
+        }
+        return () -> {
+            for (Meter meter : added) {
+                registry.remove(meter);
+            }
+        };
     }
 
     public static <T> CompletableFuture<T> scheduleWithRandomDelay(

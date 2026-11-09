@@ -164,9 +164,9 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - 组 7（最后，需复核 2547）：C7-011
 
 - [x] G1 C6-001（P2）：`ExecutorHelper` 新增 `submitTracked`/`submitTracked`/`scheduleTracked`（登记 / whenComplete 摘除 / REE 时摘除后抛出）+ `DefaultScheduledExecutor` 持有 pending 集、`destroy()` 顺序 = periodicTasks 拒绝循环 → shutdownNow → pending 逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)` + `BindScheduledExecutor.schedule/submit` 补 inner→outer 异常传播（提交点 try/catch 仅卫生性附带，非验收面）
-- [ ] G2 C4-005：`GlobalExecutors.destroyAndUnregister(String)` + residual 登记
-- [ ] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 roadmap 8.55 / R4-15）
-- [ ] G4 C6-004：`registerMetrics` 返回 `AutoCloseable` 句柄 + destroy 时 close + `tenant-` meter 去重
+- [x] G2 C4-005：`GlobalExecutors.destroyAndUnregister(String)` + residual 登记
+- [x] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 roadmap 8.55 / R4-15）
+- [x] G4 C6-004：`registerMetrics` 返回 `AutoCloseable` 句柄 + destroy 时 close + `tenant-` meter 去重
 - [ ] G5 C5-003：`CacheConfig` 拷贝构造补两字段
 - [ ] G6 C6-005（三项）：① `createCache` 加 `setDestroyOnRemove(true)`；② `ResourceLoadingCache implements IDestroyable`（`destroy = invalidateAll + cleanUp`）；③ `LocalCache.destroy()` 改 `invalidateAll() + cleanUp()`
 - [ ] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 `setDestroyOnRemove(true)`（**依赖 G6 ②**：值类型须实现 `IDestroyable`）
