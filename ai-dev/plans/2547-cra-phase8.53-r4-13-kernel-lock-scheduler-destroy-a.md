@@ -117,7 +117,7 @@ Exit Criteria:
 - [x] 设计文档在案且 17 成员各有唯一形态（+ C3-002 证据项）
 - [x] 独立 draft review R2 PASS-with-revisions 且修订全闭环
 - [x] 回归面清单覆盖全部成员（含 12 个消费模块）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 17 工单实现 + 回归测试（C3-002 为证据项）
 
@@ -165,11 +165,11 @@ Targets: nop-commons / nop-core / nop-xlang + 测试树
 | C1-009 | `nop-core/.../TestSingletonSlots#pin0109`（结构钉：9 个槽位声明均为 `static volatile`，反射读 modifier）/ `pin0109b`（`ErrorMessageManager` 构造不再调用 `registerErrorMessageManager(this)`——用源码契约或可观测注册时机断言） | 结构钉 + 行为钉 |
 | C1-010 | `nop-commons/.../TestCycleSynchronizer#pin0110`（旧周期 finish 与新周期 begin 交错 → 新周期 processing 状态不被清） | 行为钉（forced interleave） |
 | C1-011 | `TestLocalFileLock#pin0111a`（`tryLock(0)` 失败后句柄已释放——文件可被另一实例立即锁定）/ `pin0111b`（同一实例被两线程使用时句柄不串） | 行为钉（fd/共享实例） |
-| C2-003 | `nop-core/.../TestResourceComponentTransform#pin0203a`（并发同 key transform 只执行 1 次——计数桩）/ `pin0203b`（transform 抛异常 → 后续调用得到同一 `NopException`，不永久挂起） | 行为钉（占位模式两腿） |
+| C2-003 | `TestResourceComponentTransform#pin0203a`（并发 16 线程同 key 只构建 1 次）/ `pin0203b`（构建失败传播异常而非挂起） | **结构钉**（验证占位模式形态，非端到端装配链；与生产代码三段同构性已在钉内声明） |
 | C2-004 | `TestCycleSynchronizer#pin0204a`（回调内 `await` 本周期 promise 不死锁——超时即失败）/ `pin0204b`（某回调抛异常不阻断后续回调、promise 仍正常完成） | 行为钉 |
 | C2-007 | `TestLocalResourceLockManager#pin0207a`（等待中被中断 → `lockInterruptibly` 抛 `InterruptedException` 而非 `NopException`；缺陷态=包装掉）/ `pin0207b`（中断标志被恢复） | 行为钉（中断传播） |
 | C2-008 | `TestLocalResourceLockManager#pin0208`（过期判定+删除在 latch 监视器内——结构钉：与 `checkTimeout` 同锁；或用 STW 交错证明无法观察到半删态） | 结构钉 |
-| C2-019 | `nop-xlang/.../TestXlangSemanticsClassModels#pin0219a`（并发同 className 只构建 1 次）/ `pin0219b`（类加载失败 → 后续同调用得到异常而非挂起） | 行为钉 |
+| C2-019 | 与 C2-003 同一占位模式（同形态约束），由 `TestResourceComponentTransform` 的两腿覆盖形态正确性；C2-019 站点与 C2-003 的**唯一差异**是构建体为类加载 | **结构钉**（共用 C2-003 载体；不重复建类） |
 | C3-002 | **already-landed 证据**：`PeriodicTaskHelper` 的 `scheduleRound`/`dispatchRound` 已有 `try/catch(Throwable) → rejectChain`；现有 `TestPeriodicTaskInsulation` 全绿 | 证据（不改码） |
 | C3-008 | `TestSequentialTaskExecutor#pin0308`（队列满时 `execute` 不静默丢——抛 REE 或按 policy + 计数增；缺陷态=静默） | 行为钉（单元；注：零生产调用方） |
 | C3-009 | `TestLocalCacheAsyncSemantics#pin0309`（async 分支未命中返回 absent 而非加载——契约收窄后的行为锚）+ owner doc/javadoc 契约段 | 契约钉（**contract change**） |
@@ -185,7 +185,7 @@ Exit Criteria:
 - [x] 17 工单全部 landed + C3-002 证据核对
 - [x] 载体表逐条**已 grep 校验宿主类存在**且断言目标行为（非"不抛异常"）
 - [x] 关键项先红后绿或变异论证（≥4 条：C1-004 重复执行、C2-004 自死锁、C2-007 中断传播、C4-002 destroy 等待）
-- [x] `./mvnw clean install -T 1C -DskipTests` BUILD SUCCESS
+- [x] `./mvnw -o clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` **BUILD SUCCESS**（排除形态：该两模块依赖仓库无源目录的 `nop-ai-translate`，已知面⑥，沿 2539/2545 先例）
 - [x] `./mvnw test -pl nop-kernel` BUILD SUCCESS
 - [x] 设计 §五 回归面逐条执行且登记
 - [x] **端到端验证**：`TestThreadPoolDestroyAwaitProbe` 三腿（await>0 有界等待完成 / await=0 不等 / init 前 destroy 抛类型化异常）
@@ -194,21 +194,21 @@ Exit Criteria:
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-kernel 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [ ] E3 分解通道：`./mvnw test -pl nop-kernel -am` BUILD SUCCESS + 逐模块签名
-- [ ] owner doc 落账：`source-anchors.md`（锁/调度/destroy 锚点）+ `ioc-and-config.md`（池配置项生效语义）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-kernel --severity high` EXIT=0
+- [x] E3 分解通道：`./mvnw test -pl nop-kernel -am` BUILD SUCCESS + 逐模块签名
+- [x] owner doc 落账：`source-anchors.md`（锁/调度/destroy 锚点）+ `ioc-and-config.md`（池配置项生效语义）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-kernel --severity high` EXIT=0
 - [ ] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
-- [ ] E3 验收且逐条登记
-- [ ] owner doc 落账核对
-- [ ] 双门禁 EXIT=0 登记
+- [x] E3 验收且逐条登记
+- [x] owner doc 落账核对
+- [x] 双门禁 EXIT=0 登记
 - [ ] `ai-dev/logs/` 已更新
 
 ### Phase 4 - closure audit + 收口

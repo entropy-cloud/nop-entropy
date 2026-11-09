@@ -306,6 +306,21 @@ IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化�
 - **残余风险（显式接受）**：若租约在 VERIFY 中段到期而迁移未完成，写直达旧分片路由（双写窗）。硬条款：租约默认值必须 ≥ 迁移全程预期时长；收到到期 WARN 须人工介入（abort 或延长）。
 - 编排器 `runVerify`/`confirmSwitch` 在关键窗口复核门态：窗口内门被翻开（含 fail-open）→ 迁移状态行记 `gateFailed` + 类型化失败，不静默继续。多实例操作顺序：先在全部实例观察到 closed（配置源刷新到位）再进入 VERIFY；`completeSwitch`/`abort` 开门经配置源传播。
 
+
+## 平台并发原语纪律（plan 2547 R4-13）
+
+本平台并发原语（`nop-commons` 的锁 / 调度 / 池 / 缓存）遵循以下纪律；触及这些原语时须遵守。
+
+- **复合操作必须单原子域**：`ConcurrentHashMap` 的「读-判-改」多步操作一律改 `compute`/`computeIfAbsent`，禁止裸 `get` + 后续 `put/remove`（`RateLimitExecutorImpl.debounce` 修复为此形态）。**但 `computeIfAbsent` 内不得做重活**（编译 / 类加载 / 大对象构建）——需要时用 `CompletableFuture` 占位：`computeIfAbsent` 只放占位，构建在锁外完成后 `complete`/`completeExceptionally`。**判定「是否本次新建」必须用 `boolean[]`/`AtomicBoolean`**——`computeIfAbsent` 的返回值区分不出既有与新建。
+- **中断语义透传**：`IResourceLock` 家族的 `lockInterruptibly()` / `tryLock(time,unit)` 在等待中被中断时抛 `InterruptedException`（不是 `NopException`）。底层 `tryLockWithLease` 保持不抛受检异常（源兼容），中断信息以 `InterruptedException` 作为 cause 保留，由上层识别重抛。
+- **回调不得在监视器内执行**：`CycleSynchronizer` 的回调列表在锁内**快照**、锁外逐个执行，且每个回调独立 `try/catch`（一个失败不中断其余、不改写 promise 终态）。周期代号（generation）保证旧周期的延迟收尾不会清掉新周期状态。
+- **线程池 `destroy()` 语义**：`waitForTasksToCompleteOnShutdown` 与 `awaitTerminationSeconds` 已生效——**仅当二者同时满足（true && >0）**才「停止接收 → 有界等待 → 超时强制终止」；否则保持 `shutdown()`（不等待、不中断在飞任务）。未 `init()` 就 `destroy()` 抛 `nop.err.commons.concurrent.thread-pool-not-initialized`（不再裸 NPE）。
+  - **注意**：`GlobalExecutors.register()` 会 destroy 旧池；若该池配置了有界等待，注册热更新路径可能阻塞——配置热更新场景请避免在该池上开启 `waitForTasksToCompleteOnShutdown`。
+- **拒绝与丢弃必须显式**：`SequentialTaskExecutor.execute` 在队列满时抛 `RejectedExecutionException` 并 WARN（不静默丢任务）；`AbstractBatchProcessService.destroy` 先置 `accepting=false`、等消费循环把队列 drain 空、再 cancel；超时残量逐条记录丢弃清单后告警。**绕过 `AbstractBatchProcessService.send()` 直调 `getQueue().send()` 的生产方不在 drain 契约覆盖内。**
+- **`execute` 路径的上下文卫生**：`DefaultThreadPoolExecutor.execute` 在任务结束后 `detachContext()`，防止池线程上的 `IContext` 跨任务驻留。**不清中断标志**（周期任务守卫依赖中断传递）。`DefaultScheduledExecutor` / `BindScheduledExecutor` 的 `execute` 不包装——其命令由 `PeriodicTaskHelper` 绝缘守卫管理，外层包装会让拒绝回调重复触发。
+- **异步缓存 executor**：`CacheConfig.executor` 可指定异步加载/刷新所用 executor；缺省 `null` 沿用 Caffeine 的 `ForkJoinPool.commonPool()`。I/O 型 async 缓存建议显式指定独立池。
+- **`IAsyncCache.getAllAsync` 契约（收窄声明）**：未命中的 key **不触发加载**，结果中对应位置为 `null`（absent）；需要「miss 即加载」请用 `getAsync` 或同步 `getAll`。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。
