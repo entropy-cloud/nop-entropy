@@ -176,8 +176,8 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G11 C7-010：`throttleExecute` `tryAcquire(timeout)` + 新配置键缺省 60s + 类型化超时异常
 - [x] G12 C7-015：`acquire()/acquire(permits)` 默认上界可配置（新键缺省 5min）+ Guava 不可中断面 watch-only 登记
 - [x] G13 C7-002（**Decision**）：`scheduleAtFixedRate` 补偿语义 javadoc + source-anchors 声明（不改行为）
-- [ ] G14 C4-011：`ThreadPoolConfig` 删 2 字段（`threadPriority`/`allowCoreThreadTimeOut`）+ owner doc 声明
-- [ ] G15 C4-012：(a) `Jdk21CommonsCoreInitializer.destroy()` 覆写(Fix)；(b) 默认值不翻转(Decision+doc)
+- [x] G14 C4-011：`ThreadPoolConfig` 删 2 字段（`threadPriority`/`allowCoreThreadTimeOut`）+ owner doc 声明
+- [x] G15 C4-012：(a) `Jdk21CommonsCoreInitializer.destroy()` 覆写(Fix)；(b) 默认值不翻转(Decision+doc)
 - [ ] G16 C9-004：`XLangSemantics` **新增独立** `(className+funcName)→IMethodModelCollection` 缓存 + `ClassHelper.forName`
 - [ ] G17 C7-011（**Decision**）：`beginCycle` 抛错路径 + javadoc 声明「由 `restart()` 解除，无自动超时」（**不回退 2547 generation**）
 - [ ] 回归测试：nop-kernel 全量 + 设计 §五 逐条

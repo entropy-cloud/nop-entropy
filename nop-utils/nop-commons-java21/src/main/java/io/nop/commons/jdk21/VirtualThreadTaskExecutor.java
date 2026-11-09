@@ -36,9 +36,13 @@ public class VirtualThreadTaskExecutor implements IThreadPoolExecutor {
         return config;
     }
 
+    /**
+     * C4-012(c)（plan 2548）：虚拟线程 per-task 模型无固定池，无池统计可报——
+     * 返回零值统计（名称如实标注），不返回 null（调用方判空负担）。
+     */
     @Override
     public ThreadPoolStats stats() {
-        return null;
+        return ThreadPoolStats.ZERO;
     }
 
     @Override
@@ -51,6 +55,9 @@ public class VirtualThreadTaskExecutor implements IThreadPoolExecutor {
         return ExecutorHelper.submit(executor, task, result);
     }
 
+    /**
+     * C4-012(d)（plan 2548 Decision）：虚拟线程 per-task 模型无容量旋钮，热更为 no-op（不给假承诺）。
+     */
     @Override
     public void refreshConfig() {
 
