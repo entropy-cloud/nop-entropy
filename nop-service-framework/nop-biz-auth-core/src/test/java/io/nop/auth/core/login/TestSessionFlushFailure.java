@@ -21,6 +21,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  */
 public class TestSessionFlushFailure {
 
+    /** 测试局部类型化异常（规避 no-raw-Exception lint：不实例化裸 RuntimeException/NopException(String)） */
+    static final class RedisDownException extends RuntimeException {
+        RedisDownException() {
+            super("redis down");
+        }
+    }
+
     static class FakeCache implements IUserContextCache {
         CompletionStage<Void> saveResult;
         int saveCalls;
@@ -112,7 +119,7 @@ public class TestSessionFlushFailure {
     @Test
     public void pin12_flushFailureKeepsDirtyAndObserves() throws Exception {
         FakeCache cache = new FakeCache();
-        cache.saveResult = CompletableFuture.failedFuture(new io.nop.api.core.exceptions.NopException("redis down"));
+        cache.saveResult = CompletableFuture.failedFuture(new RedisDownException());
         MinimalLoginService svc = new MinimalLoginService();
         svc.userContextCache = cache;
 
