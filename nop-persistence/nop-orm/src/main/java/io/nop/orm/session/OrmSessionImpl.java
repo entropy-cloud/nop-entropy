@@ -134,7 +134,10 @@ public class OrmSessionImpl implements IOrmSessionImplementor {
     public OrmSessionImpl(boolean stateless, IPersistEnv env, List<IOrmInterceptor> interceptors) {
         this.env = env;
         this.loadedOrmModel = env.getLoadedOrmModel();
-        this.loadedOrmModel.incRef();
+        // 2.3-C1-004（plan 2552 裁定 B）：引用计数递增与关闭判定原子化——close 后放弃会话创建
+        if (!this.loadedOrmModel.tryIncRefIfOpen()) {
+            throw new IllegalStateException("orm model already closed: cannot create session");
+        }
         this.cache = stateless ? new StatelessOrmSessionEntityCache(this) :
                 (loadedOrmModel.isAnyEntityUseTenant() ? new TenantOrmSessionEntityCache(this) : new OrmSessionEntityCache(this));
         this.interceptors = CollectionHelper.toNotNull(interceptors);

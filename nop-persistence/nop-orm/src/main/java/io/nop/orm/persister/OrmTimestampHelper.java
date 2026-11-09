@@ -18,7 +18,8 @@ import static io.nop.orm.OrmConfigs.CFG_ORM_SYS_USER_NAME;
 import static io.nop.orm.OrmConfigs.CFG_ORM_USE_ASSIGNED_USER_TIMESTAMP;
 
 public class OrmTimestampHelper {
-    static OrmTimestampHelper _instance = new OrmTimestampHelper();
+    // 2.3-C1-006（plan 2552 裁定 D，静态槽收紧切片）：volatile 安全发布
+    static volatile OrmTimestampHelper _instance = new OrmTimestampHelper();
 
     public static OrmTimestampHelper instance() {
         return _instance;

@@ -8,7 +8,8 @@
 package io.nop.dao.api;
 
 public class DaoProvider {
-    private static IDaoProvider _instance;
+    // 2.3-C1-024（plan 2552 裁定 D，静态槽收紧切片）：volatile 安全发布（早启 NPE 面消除）
+    private static volatile IDaoProvider _instance;
 
     public static IDaoProvider instance() {
         return _instance;

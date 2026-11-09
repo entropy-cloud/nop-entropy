@@ -170,15 +170,22 @@ public class LazyLoadOrmModel implements ILazyLoadOrmModel {
      */
     void putEntityModel(IEntityModel entityModel) {
         synchronized (this.entityModelMap) {
-            entityModelByTableMap.put(normalizeTableName(entityModel.getTableName()), entityModel);
-
-            entityModelMap.put(entityModel.getName(), entityModel);
+            // 2.3-C1-018（plan 2552 裁定 K）：只读预检短名冲突——先检后写（预检-写入间隙由本锁
+            // 覆盖，99abdf8f28 落地的机制锁面），消除「先写 table/name 索引再因短名冲突抛出」
+            // 的半注册残留面；同名重复注册静默覆盖 name 键的第二形态=范围外（plan 2552 closure 注记）。
             if (entityModel.isRegisterShortName()) {
-                IEntityModel oldModel = entityModelMap.put(entityModel.getShortName(), entityModel);
+                IEntityModel oldModel = entityModelMap.get(entityModel.getShortName());
                 if (oldModel != null && oldModel != entityModel)
                     throw new NopException(ERR_ORM_MODEL_DUPLICATE_ENTITY_SHORT_NAME).source(entityModel)
                             .param(ARG_ENTITY_NAME, entityModel.getName()).param(ARG_OTHER_LOC, oldModel.getLocation())
                             .param(ARG_OTHER_ENTITY_NAME, oldModel.getName());
+            }
+
+            entityModelByTableMap.put(normalizeTableName(entityModel.getTableName()), entityModel);
+
+            entityModelMap.put(entityModel.getName(), entityModel);
+            if (entityModel.isRegisterShortName()) {
+                entityModelMap.put(entityModel.getShortName(), entityModel);
             }
 
             if (entityModel.isRegisterShortName()) {

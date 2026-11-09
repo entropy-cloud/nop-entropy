@@ -1,6 +1,6 @@
 # 2552 CRA Phase 8.58 — R4-18 2.4 ORM 切片束 a（G45 前半，15 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-10
 > Source: roadmap 工作项 8.58；批次定义 = batch-proposal.md §二 :133 R4-18 行；成员发现 = `ai-dev/audits/2026-10/2026-10-18-1521-deep-audit-nop-persistence-rw-concurrency/`
 > Related: plan 2517（R2-14，done——裁定④⑥⑨ 为 SSOT 消费）、plan 2518（R2-15，done）；设计文档 = `ai-dev/design/concurrency/persistence-orm-slice-a.md`
@@ -33,11 +33,11 @@ Status: completed（设计十四裁定 A-N + C10 前置落位 + C1-016 零弱化
 
 - [x] 设计文档（十四裁定 + 15 成员唯一形态 + 回归面 + PA 零 orm 触碰声明）
 - [x] 成员取证（fresh session：12 原样 / 2 部分覆盖 / 1 已修）
-- [ ] 独立 draft review
+- [x] 独立 draft review（R1 must-fix-first：Major-1 裁定 B 锁域[close/decRef 同监视器]+Major-2 裁定 N 机制钉定[局部 epoch]+Medium-3 setDependByOtherEntity 豁免+Medium-4 EqlCompiler 冻结点+Low/Info 5 项——全闭环；R2 ready-to-execute）
 
 ### Phase 2 - 15 工单实现 + 回归测试
 
-Status: planned
+Status: completed
 Targets: nop-persistence/nop-orm / nop-orm-eql / nop-orm-model / nop-dao + 测试树
 
 - Item Types: `Fix`（13）、`Proof`（1：C1-002）、`Fix+Decision`（1：C1-027 含世代围栏消费决策）
@@ -57,7 +57,7 @@ Targets: nop-persistence/nop-orm / nop-orm-eql / nop-orm-model / nop-dao + 测�
 | C1-006+C1-024 | `TestStaticSlotVisibility`（OrmTimestampHelper/DaoProvider `_instance` volatile 反射结构钉——承载 C10-011） | nop-orm + nop-dao | 结构钉 |
 | C1-007 | `TestBatchLoadQueueVisibility`（loadQueue/afterFlushCallbacks volatile 结构钉 + 捕获-清空同锁域结构断言） | nop-orm | 结构钉 |
 | C1-008 | `TestReloadModelClearsQueryPlan`（reloadModel 后 queryPlanCache 空——承载 C10-003 残面补钉） | nop-orm | 行为钉 |
-| C1-012 | `TestEqlParserEncapsulation`（instance() 不可达结构钉：public 静态入口移除） | nop-orm-eql | 结构钉 |
+| C1-012 | `TestOrmEqlSliceA#pin_a`（**裁定 G 改道**：instance() 为共享 xgen 模板生成物[__XGEN_FORCE_OVERRIDE__]，移除=全解析器 API 变更超范围——改审计第二选项「契约钉定」：单线程契约面 + 全仓生产调用方为零的结构断言） | nop-orm-eql | 结构钉 |
 | C1-013 | `TestCompiledSqlFreeze`（freeze 后全 setter 抛 NopException；freeze 后入缓存发布——承载 C10-012） | nop-orm-eql | 行为钉 |
 | C1-016 | 既有钉 `TestLazyLoadOrmModel.java:61` 零弱化复绿 + `dependByOtherEntity` volatile 结构钉（承载 HB 补钉） | nop-orm-model | 行为钉+结构钉 |
 | C1-017 | `TestFrozenModelGuardFamily`（addProp 守卫前置：冻结后 addProp 抛且 props 未污染；mutator 族逐一 checkAllowChange——承载 C10-012） | nop-orm-model | 行为钉 |
@@ -69,16 +69,16 @@ Targets: nop-persistence/nop-orm / nop-orm-eql / nop-orm-model / nop-dao + 测�
 
 ## Exit Criteria
 
-- [ ] 15 工单全部实施（含 C1-002 Proof 登记）
-- [ ] 载体表逐条存在且断言目标行为
-- [ ] 关键项先红后绿或变异论证（≥3：C1-004 TOCTOU、C1-013 冻结、C1-027 世代围栏）
-- [ ] **C1-016 零弱化义务**：`testConcurrentAddAndTopoRebuildKeepsAllEntities` 断言零改动且复绿
-- [ ] E1 全量编译门禁 BUILD SUCCESS
-- [ ] E3：`./mvnw -o test -pl nop-persistence -am` 四模块全量 0F/0E
-- [ ] **不回退 2517/2518**：TestCra2517* 全族 + TestLazyLoadOrmModel 全绿
-- [ ] owner doc 落账：`model-first-development.md` + `source-anchors.md`
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 逐叶子模块 EXIT=0（nop-orm / nop-orm-eql / nop-orm-model / nop-dao）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 15 工单全部实施（含 C1-002 Proof 登记；C1-012 裁定 G 按 codegen 纪律改道契约钉定形态——设计/plan 勘正）
+- [x] 载体表逐条存在且断言目标行为（6 载体类 17 钉：orm 4+3、orm-eql 3、orm-model 4、dao 3 全绿；C4-004 类比：C1-004 载体 ProxyStub 布景）
+- [x] 关键项先红后绿或变异论证（≥3）：红① C1-004 decRef 去锁→pin_c Failure；红② C1-013 setName 去 checkFrozen→pin_b Failure；红③ C1-027 围栏擦除→pin_c Failure——总册 `_tmp/red-green-ledger-2552.md`
+- [x] **C1-016 零弱化义务**：TestLazyLoadOrmModel 断言零改动（本批 diff 无该测试文件）且 E3 反应堆复绿
+- [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0，证据 `_tmp/e1-2552-full-build.log`）
+- [x] E3：`./mvnw -o test -pl nop-persistence -am` **归因绿**（四模块全量 0F/0E；唯一失败面 nop-core TestResourceCacheInvalidationChain 3F=已知 flake[2549 m1 登记]——solo 4/4 绿 + 本批 nop-core 零 diff 归因确认）
+- [x] **不回退 2517/2518**：TestCra2517* 全族 + TestLazyLoadOrmModel 全绿（E3 反应堆通道含）
+- [x] owner doc 落账：`model-first-development.md`「ORM 模型运行期可见性与发布安全契约（plan 2552）」节 + `source-anchors.md` `ORM-A`
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 四叶子模块全 EXIT=0
+- [x] `ai-dev/logs/2026/11-10.md` 已更新
 
 ## Deferred But Adjudicated
 
@@ -98,5 +98,17 @@ Targets: nop-persistence/nop-orm / nop-orm-eql / nop-orm-model / nop-dao + 测�
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 15 工单全修（6 载体类 17 钉全绿 + 三链变异红证；E1/E3 归因绿 + scan-hollow 四叶子 EXIT=0）。C1-016 零弱化钉断言零改动复绿；C1-012 按 codegen 纪律改道契约钉定形态（设计/plan 勘正登记）。closure audit R1 独立执行中/已完成（见下 Evidence）。
+Completed: 2026-11-10
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: （独立 closure audit 填写）
+- Evidence:
+  - 15 工单 live 逐一核验 + 载体复跑 + Anti-Hollow + Deferred 分类（见 closure audit 记录）
+  - E1 BUILD SUCCESS（`_tmp/e1-2552-full-build.log`）；E3 -am 反应堆归因绿（`_tmp/e3-2552.log` + solo `_tmp/e3-2552-solo.log`）；check-doc-links EXIT=0；scan-hollow 四叶子 EXIT=0
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict` 见收口提交
+
+Follow-up:
+
+- no remaining plan-owned work（C1-016 方向二/C1-008 细粒度世代校验 watch-only 已登记 Deferred）

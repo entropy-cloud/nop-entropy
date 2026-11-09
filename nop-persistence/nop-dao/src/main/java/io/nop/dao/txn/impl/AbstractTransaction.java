@@ -50,13 +50,15 @@ public abstract class AbstractTransaction implements ITransaction {
 
     private final String txnGroup;
 
-    private boolean opened;
+    // 2.3-C1-025（plan 2552 裁定 M）：状态族 volatile——commitAsync/rollbackAsync 回调线程
+    // 与注册线程跨线程读写（2517 裁定⑨已修 subTransactions/listeners 面；主状态字段本批收敛）
+    private volatile boolean opened;
 
     // listener数量少、写少读多；commitAsync/rollbackAsync路径的listener回调发生在executor线程，
     // 与注册线程并发时ArrayList扩容/遍历存在竞态，故用CopyOnWriteArrayList
     private CopyOnWriteArrayList<ITransactionListener> listeners;
-    private boolean rollbackOnly;
-    private Throwable error;
+    private volatile boolean rollbackOnly;
+    private volatile Throwable error;
 
     private Map<String, ITransaction> subTransactions;
 

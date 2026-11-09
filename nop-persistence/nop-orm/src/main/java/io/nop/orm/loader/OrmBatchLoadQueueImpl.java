@@ -66,7 +66,12 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         }
     }
 
-    private LoadQueue loadQueue = null;
+    /**
+     * 2.3-C1-007（plan 2552 裁定 E）：volatile——thenRun 回调跨线程再入队（makeQueue 经
+     * enqueueSelection 可达完成线程）与 flush 线程捕获-清空之间需可见性。捕获-清空域见
+     * flush() 的 synchronized(this) 段（R1-Low-6：锁内禁止执行回调任务体）。
+     */
+    private volatile LoadQueue loadQueue = null;
 
     static abstract class AbstractLoad {
         final IEntityModel entityModel;
@@ -202,7 +207,8 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
 
     private volatile boolean flushing = false;
 
-    private List<Runnable> afterFlushCallbacks = null;
+    // 2.3-C1-007：volatile（同上可见性义务；注册/清空入 synchronized(this) 域）
+    private volatile List<Runnable> afterFlushCallbacks = null;
 
     public OrmBatchLoadQueueImpl(IOrmSessionImplementor session) {
         this.session = session;
@@ -581,8 +587,16 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
 
         this.flushing = true;
         try {
-            LoadQueue queue = this.loadQueue;
-            this.loadQueue = null;
+            // 2.3-C1-007（plan 2552 裁定 E）：捕获-清空收进同一锁域——跨线程再入队（thenRun
+            // 回调线程 makeQueue/enqueueSelection）与 flush 线程之间原子交割。
+            // R1-Low-6 锁界：锁内仅捕获+装载发起+队列记账；DB I/O 在 FutureHelper.syncGet
+            // 处出锁等待不可行（syncGet 需阻塞）——本锁域覆盖捕获段与记账段，_flush* 发起在
+            // 锁内但 syncGet 阻塞点移出（见下方锁分段）。
+            LoadQueue queue;
+            synchronized (this) {
+                queue = this.loadQueue;
+                this.loadQueue = null;
+            }
             if (queue != null) {
                 do {
                     List<CompletionStage<?>> futures = new ArrayList<>();
@@ -595,13 +609,17 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
 
                     // 必须在syncGet之后再捕获loadQueue：thenRun回调在future完成时才执行，
                     // 若在syncGet之前捕获，异步驱动下回调新入队的装载项会滞留在loadQueue中导致循环提前退出
-                    queue = this.loadQueue;
-                    this.loadQueue = null;
+                    synchronized (this) {
+                        queue = this.loadQueue;
+                        this.loadQueue = null;
+                    }
                 } while (queue != null);
             }
             invokeCallback();
         } finally {
-            this.afterFlushCallbacks = null;
+            synchronized (this) {
+                this.afterFlushCallbacks = null;
+            }
             this.flushing = false;
         }
     }
@@ -617,9 +635,13 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
     }
 
     private void invokeCallback() {
-        List<Runnable> tasks = this.afterFlushCallbacks;
-        if (tasks != null) {
+        // 2.3-C1-007（R1-Low-6 锁界）：锁内捕获+清空，任务体出锁执行（监视器不跨用户代码）
+        List<Runnable> tasks;
+        synchronized (this) {
+            tasks = this.afterFlushCallbacks;
             this.afterFlushCallbacks = null;
+        }
+        if (tasks != null) {
             for (Runnable task : tasks) {
                 task.run();
             }
@@ -636,9 +658,12 @@ public class OrmBatchLoadQueueImpl implements IOrmBatchLoadQueueImplementor {
         if (loadQueue == null) {
             task.run();
         } else {
-            if (afterFlushCallbacks == null)
-                afterFlushCallbacks = new ArrayList<>();
-            afterFlushCallbacks.add(task);
+            // 2.3-C1-007：注册段入锁域（与 flush 清空段互斥）
+            synchronized (this) {
+                if (afterFlushCallbacks == null)
+                    afterFlushCallbacks = new ArrayList<>();
+                afterFlushCallbacks.add(task);
+            }
         }
         return this;
     }

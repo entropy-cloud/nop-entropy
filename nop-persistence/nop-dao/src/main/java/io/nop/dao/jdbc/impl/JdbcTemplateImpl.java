@@ -67,6 +67,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
@@ -231,8 +232,21 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         return querySpace;
     }
 
+    /**
+     * 2.3-C1-027（plan 2552 裁定 N，R1-Major-2 机制钉定）：每 cacheName 局部失效世代
+     * （epoch）——GenerationFence（nop-orm 包私有）依赖方向反向不可达，本形态自包含。
+     * clear/evict 时 bump；getCacheData miss 时点捕获（DB 读前），saveCacheData 回填前
+     * 比对：读期间发生失效则放弃回填（陈旧结果不驻留）。跨层围栏=watch-only（R4-19 C2-004 共享设计语义）。
+     */
+    final ConcurrentHashMap<String, AtomicLong> queryCacheEpochs = new ConcurrentHashMap<>();
+
+    private void bumpQueryCacheEpoch(String cacheName) {
+        queryCacheEpochs.computeIfAbsent(cacheName, k -> new AtomicLong()).incrementAndGet();
+    }
+
     @Override
     public void clearQueryCache() {
+        cacheMap.keySet().forEach(this::bumpQueryCacheEpoch);
         Iterator<ICache<Object, DataSetCacheData>> it = cacheMap.values().iterator();
         while (it.hasNext()) {
             it.next().clear();
@@ -242,6 +256,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public void clearQueryCacheFor(String cacheName) {
+        bumpQueryCacheEpoch(cacheName);
         ICache<Object, DataSetCacheData> cache = cacheMap.get(cacheName);
         if (cache != null)
             cache.clear();
@@ -249,6 +264,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
 
     @Override
     public void evictQueryCache(String cacheName, Serializable cacheKey) {
+        bumpQueryCacheEpoch(cacheName);
         ICache<Object, DataSetCacheData> cache = cacheMap.get(cacheName);
         if (cache != null)
             cache.remove(cacheKey);
@@ -344,6 +360,12 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
             return callback.apply(DataSetCacheHelper.toDataSet(cacheData, true));
         }
 
+        // 2.3-C1-027：miss 时点捕获失效世代（DB 读前）——saveCacheData 回填前比对
+        final CacheRef missCacheRef = sql.getCacheRef();
+        final long capturedEpoch = (missCacheRef != null && cacheProvider != null)
+                ? queryCacheEpochs.computeIfAbsent(missCacheRef.getCacheName(), k -> new AtomicLong()).get()
+                : -1L;
+
         IDialect dialect = getDialectForQuerySpace(sql.getQuerySpace());
         SQL pagedSql = buildPagedSql(sql, range, dialect);
 
@@ -362,7 +384,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
                 rs = st.executeQuery();
                 IDataSet ds = new JdbcDataSet(dialect, rs);
                 // 检查是否需要缓存结果集
-                ds = saveCacheData(ds, sql, range);
+                ds = saveCacheData(ds, sql, range, capturedEpoch);
 
                 T ret = callback.apply(ds);
 
@@ -434,7 +456,7 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
      * @param range 数据集的分页参数
      * @return 缓存数据构成的只读数据集
      */
-    private IDataSet saveCacheData(IDataSet ds, SQL sql, LongRangeBean range) {
+    private IDataSet saveCacheData(IDataSet ds, SQL sql, LongRangeBean range, long capturedEpoch) {
         if (cacheProvider == null)
             return ds;
 
@@ -442,6 +464,16 @@ public class JdbcTemplateImpl extends AbstractSqlExecutor implements IJdbcTempla
         if (cacheRef == null)
             // 无cacheRef的查询无需缓存，原样返回数据集
             return ds;
+
+        // 2.3-C1-027：世代围栏——DB 读期间发生失效（世代推进）则放弃回填（陈旧结果不驻留）
+        AtomicLong epoch = queryCacheEpochs.get(cacheRef.getCacheName());
+        long currentEpoch = epoch == null ? 0 : epoch.get();
+        if (currentEpoch != capturedEpoch) {
+
+            LOG.info("nop.dao.query-cache-stale-miss-abandon:cacheName={},capturedEpoch={},currentEpoch={}",
+                    cacheRef.getCacheName(), capturedEpoch, currentEpoch);
+            return ds;
+        }
 
         ICache<Object, DataSetCacheData> cache = cacheMap.computeIfAbsent(cacheRef.getCacheName(),
                 k -> cacheProvider.getCache(cacheRef.getCacheName()));

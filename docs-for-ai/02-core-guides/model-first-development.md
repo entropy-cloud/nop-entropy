@@ -668,6 +668,26 @@ Redis Pub/Sub 为 fire-and-forget 传输（无消费组、无持久化），lett
 
 本节契约的完整裁定（锁序总表、残余窗登记、被拒方案）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
 
+## ORM 模型运行期可见性与发布安全契约（plan 2552，R4-18）
+
+并发审计 C1 束 a（15 工单）落定的模型运行期契约（实现锚点见 `../04-reference/source-anchors.md` `ORM-A`）：
+
+- **LoadedOrmModel 生命周期**：close/decRef/incRef/tryIncRefIfOpen 四侧同监视器——close 后 `tryIncRefIfOpen` 返回 false（会话创建放弃，TOCTOU 闭合）。
+- **工厂可见性**：`SessionFactoryImpl.interceptors` COW volatile；`daoListeners` 常驻 `MultiOrmDaoListener` 容器（读侧恒非 null，消费方 null 检查容忍空容器）。
+- **静态槽**：`OrmTimestampHelper._instance`/`DaoProvider._instance` volatile（安全发布）。
+- **批量装载队列**：`loadQueue`/`afterFlushCallbacks` volatile；捕获-清空同锁域，**任务体出锁执行**（afterFlush 的 task.run 与 invokeCallback 不持监视器）。
+- **模型热刷新**：`reloadModel` 同步清除查询计划缓存（`clearQueryPlanCache`）——旧模型查询计划不跨世代驻留；细粒度计划级世代校验=watch-only。
+- **EQL 解析器**：`EqlParseTreeParser.instance()` 为共享 xgen 模板生成物，**单线程契约面**（勿跨线程共享；仓内零生产调用方）。
+- **CompiledSql 冻结**：`EqlCompiler.compile` 返回前 `freeze()`——19 setter 前置 `checkFrozen()`（frozen 后 `ERR_EQL_FROZEN`）；缓存发布面=冻结点。
+- **C1-016 HB**：`OrmEntityModel.dependByOtherEntity` volatile（运行期 topo 重建写点 ↔ persist 读点）；`setDependByOtherEntity` **豁免冻结守卫**（sanctioned 运行期写点）。零弱化钉：`TestLazyLoadOrmModel:61`。
+- **冻结守卫族**：`addProp` 守卫前置（先污染后守卫面消除）；mutator 族逐项 `checkAllowChange`。
+- **LazyLoadOrmModel.putEntityModel**：短名冲突只读预检先于索引写入（无半注册残留）；同名重复注册覆盖 name 键=范围外。
+- **init 原子化**：`OrmModel`/`OrmEntityModel.inited` volatile 守卫 + 同步块双检。
+- **事务状态**：`AbstractTransaction.opened/rollbackOnly/error` volatile。
+- **查询缓存世代围栏**（`JdbcTemplateImpl`）：每 cacheName 局部 AtomicLong epoch——clear/evict bump，miss 时点捕获，回填前比对（读期间失效→放弃回填，`nop.dao.query-cache-stale-miss-abandon`）。
+
+测试锚点：`TestLoadedOrmModelCloseRace`/`TestOrmSliceAVisibility`（nop-orm）、`TestOrmEqlSliceA`（nop-orm-eql）、`TestOrmModelSliceA`（nop-orm-model）、`TestDaoSliceA`（nop-dao）。
+
 ## 常见误区
 
 1. 先手写 Entity / DAO / Biz 接口，再回头补模型。
