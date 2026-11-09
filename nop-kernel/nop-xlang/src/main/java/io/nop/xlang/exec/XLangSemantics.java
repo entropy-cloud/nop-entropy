@@ -414,14 +414,34 @@ public final class XLangSemantics {
     }
 
     static IMethodModelCollection resolveStaticMethodCollection(String className, String funcName) {
+        // C9-004（plan 2548）：静态方法调用是 XLang 生成代码的热路径，原实现每次 Class.forName。
+        // 独立缓存 key = className + 0 + funcName（不复用 CLASS_MODELS：其值类型只到 IClassModel，
+        // 且 join 语义会引入阻塞）；ClassNotFoundException → null（不缓存失败，保持可重试语义）
+        String key = className.concat("\u0000").concat(funcName);
+        IMethodModelCollection cached = STATIC_METHODS.get(key);
+        if (cached != null)
+            return cached;
+
         Class<?> clazz;
         try {
-            clazz = Class.forName(className);
+            clazz = ClassHelper.forName(className);
         } catch (ClassNotFoundException e) {
             return null;
         }
-        return ReflectionManager.instance().getClassModel(clazz).getStaticMethodsByName(funcName);
+        IMethodModelCollection coll =
+                ReflectionManager.instance().getClassModel(clazz).getStaticMethodsByName(funcName);
+        if (coll != null) {
+            STATIC_METHODS.put(key, coll);
+        }
+        return coll;
     }
+
+    /**
+     * C9-004（plan 2548）：静态方法集合缓存（className+funcName → IMethodModelCollection）。
+     * 与 {@link #CLASS_MODELS} 相互独立：后者值类型只到 IClassModel 且其占位/join 语义不适用于方法级缓存。
+     */
+    private static final java.util.concurrent.ConcurrentHashMap<String, IMethodModelCollection> STATIC_METHODS
+            = new java.util.concurrent.ConcurrentHashMap<>();
 
     // ------------------------------------------------------------------
     // null 守卫（GuardNotNullExecutable）

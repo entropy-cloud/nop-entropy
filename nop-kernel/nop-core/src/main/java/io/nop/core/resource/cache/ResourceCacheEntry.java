@@ -160,11 +160,11 @@ public class ResourceCacheEntry<T> implements IDestroyable, IResourceCacheEntry<
             oldObj = this.object;
             this.object = null;
         }
-        // C7-008（plan 2548）：条目失效时逐条淘汰依赖集，消除 dependencyMap 单调增长
-        ResourceDependencySet d = this.deps;
-        if (d != null) {
-            ResourceComponentManager.instance().removeDependency(d.getResourcePath());
-        }
+        // C7-008（plan 2548 执行期勘误 E-2548-2）：**不在 entry.clear 淘汰依赖集**——
+        // dependencyMap 的条目是「资源 → 依赖它的集合」，条目失效≠驱逐（其它条目可能仍依赖该集
+        // 感知变更）；实测删除会断开 TestResourceCacheInvalidationChain 的失效重载链（3 red）。
+        // 逐条淘汰经 ResourceDependsManager.removeDependency 供显式清理路径使用，entry 生命周期
+        // 内不自动淘汰（容量告警仍在，单调增长风险由告警观测）。
         retireDestroyedObject(oldObj);
     }
 

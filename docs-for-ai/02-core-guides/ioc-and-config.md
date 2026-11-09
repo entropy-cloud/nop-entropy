@@ -325,6 +325,18 @@ IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化�
   `LocalCache` 无 loader / `MapCache` / `ISyncCache` 的默认实现（如 `EhcacheCache`/`HazelcastCache`）：**仅返回已缓存条目**（缺席 map）。
   需要「miss 即加载」用 `computeIfAbsentAsync`/`getAsync`；只要已缓存条目且不希望触发任何加载，**优先用 `getAllPresent`**（语义最明确）。
 
+## 平台销毁链纪律（plan 2548 R4-14）
+
+平台设施在「销毁/驱逐/等待」动作上的对称性纪律；触及以下原语时须遵守。
+
+- **destroy 侧必须有终态化载体**：`ExecutorHelper.submit/schedule` 的 wrapper future 在 `shutdownNow()` 丢弃排队任务后永不完成。排队/在飞任务的 future 终态由**待结算登记表**保证——`submitTracked`/`scheduleTracked` 把返回的 `CompletableFuture` 登记到 `DefaultScheduledExecutor` 的 pending 集合，`destroy()` 按「周期链拒绝循环 → `shutdownNow()` → pending 逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)`」顺序收口。**顺序是语义的一部分**：周期链先拒绝可避免 `watchNativeHandle` 与 `rejectChain` 双触发 listener。**不要**依赖 `shutdownNow()` 返回值识别 wrapper（提交的是匿名 `Callable`，载体不存在）。
+- **平台池销毁唯一入口**：`GlobalExecutors.destroyAndUnregister(name)`（unregister + destroy 原子序）；借用方直调 `executor.destroy()` 会留下死实例（use-after-destroy），owner 约定「平台池不得由借用方直接 destroy」（residual，R-G 裁定）。`destroyAll()` 供宿主关闭（nop-boot 接线归 8.55）。
+- **指标绑定/注销对称**：`ExecutorHelper.registerMetrics` / `LocalCache.registerMetrics` 返回 `AutoCloseable` 句柄，池/缓存实例持有并在 `destroy()` 时 `close()`。`LocalCache` 注册前先移除同名（`cache.` 前缀 + tag `cache`=name）旧 meter——`tenant-` 多实例场景防重复注册。不做「换 registry 自动重绑」（R-G）。
+- **阻塞等待必须有界**：`throttleExecute` 用 `tryAcquire(throttle-acquire-timeout-ms)`（缺省 60s，`<=0`=保持无限），超时抛 `ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT`、中断恢复标志；`IRateLimiter.acquire()/acquire(permits)` 默认上界 `rate-limit-acquire-timeout-ms`（缺省 5min，`<=0`=无限），超时抛 `ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT`。Guava `sleepMicrosUninterruptibly` 的不可中断面 = watch-only（调用方已有 20min 护栏）。新写的阻塞等待原语**禁止** `acquireUninterruptibly` 无限形态。
+- **缓存销毁链双条件**：驱逐/关闭路径执行销毁回调需要「容器/配置 `destroyOnRemove=true`」**且**「值类型 `implements IDestroyable`」——缺一即假阳性。`CacheConfig` 拷贝构造必须带 `destroyOnRemove`/`refreshAfterWrite`（`executor` 为 transient 池引用，不拷贝）。entry 失效≠驱逐：**不在 `ResourceCacheEntry.clear` 淘汰 dependencyMap**（会断开其它条目的变更感知链，E-2548-2）；逐条淘汰用 `ResourceDependsManager.removeDependency` 显式调用，容量水位 10000 告警兜底。
+- **监听器生命周期**：`NioFileWatchService` watcher 线程 daemon 化 + `doStop` 有界 `awaitTermination(5s)`（JVM 退出不再等待 watcher）；递归 `unwatch` 回写摘除父 `subEntries`；同路径重复 `watch` 幂等复用同一 entry。
+- **`scheduleAtFixedRate` 补偿语义**（Decision）：任务超周期后按 JDK 原生 fixed-rate 语义立即补跑（可能突发）；不接受补偿节奏的调用方用 `scheduleWithFixedDelay`。`CycleSynchronizer` 推进者死亡时 `processing` 卡死**无自动超时**，解除入口是外部 `restart()`。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。

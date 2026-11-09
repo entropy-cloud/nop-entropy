@@ -18,7 +18,14 @@ import java.util.concurrent.CompletableFuture;
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_CYCLE_ALREADY_BEGIN;
 
 /**
- * 每个处理周期产生一个Promise，可以通过waitCycleCompleted来等待本次处理周期结束
+ * 每个处理周期产生一个Promise，可以通过waitCycleCompleted来等待本次处理周期结束。
+ *
+ * <p><b>C7-011（plan 2548 Decision，声明面）</b>：若推进者线程在 {@code processing == true} 期间死亡
+ * （任务体抛出未恢复异常、线程终止），{@code processing} 将保持 {@code true}，后续
+ * {@link #beginCycle()} 抛 {@code ERR_CONCURRENT_CYCLE_ALREADY_BEGIN}。本类<b>不提供自动超时清理</b>
+ * （无时钟依赖，且自动清理会与 2547 C1-010 的 generation 守卫语义冲突）；解除入口是外部调用
+ * {@link #restart()}——它终止当前周期并把状态机复位为可重新 beginCycle。使用方需保证
+ * 「推进者死亡 → 调用 restart()」的恢复路径由自身监督机制触发。
  */
 public class CycleSynchronizer {
     static final Logger LOG = LoggerFactory.getLogger(CycleSynchronizer.class);
@@ -45,6 +52,11 @@ public class CycleSynchronizer {
         return processing;
     }
 
+    /**
+     * 开始一个处理周期。若前一周期推进者死亡导致 {@code processing} 卡在 {@code true}，
+     * 本方法抛 {@code ERR_CONCURRENT_CYCLE_ALREADY_BEGIN}——解除入口为外部 {@link #restart()}，
+     * 本类不自动超时（见类 javadoc C7-011 声明）。
+     */
     public synchronized boolean beginCycle() {
         if (finished)
             return false;

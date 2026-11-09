@@ -10,6 +10,10 @@
 > - **C6-001 判级 = P2（条件化），非 P1**——权威台账 `C6-resource-lifecycle.md:83` 已「降级 P1→P2；主根因主张驳回（`ThreadPoolExecutor.shutdown()` 的 JDK 契约为「previously submitted tasks are executed」，排队任务会被排空）」，残余成立面 = **S2 变体**：`DefaultScheduledExecutor.destroy()`= `shutdownNow()` 丢弃排队任务（live `DefaultScheduledExecutor.java:120-131` 已证实）。本批 17 项**全 P2**。
 > - **`ExecutorHelper` 只有 3 个 CF 入口**（`submit(Callable)` / `submit(Runnable,T)` / `schedule(Callable,...)`）；`scheduleAtFixedRate`/`scheduleWithFixedDelay` **不在本文件**（返回 `Future<?>`，已由 R1-01 绝缘链覆盖）。第 4 个同形态入口 = `scheduleWithRandomDelay`（C7-003 幽灵链），**本批显式 out-of-scope**（登记 Deferred）。
 > - **`GlobalExecutors` 无 `destroy()` 方法**（只有 `register`/`unregister`/`allExecutors` + 各池 getter）。C4-005 的真实形态见裁定 B（重写）。
+> - **执行期勘误 E-2548-2（G10 实施中实测）**：C7-008 的「`ResourceCacheEntry` 失效回调里移除依赖集」
+>   **会造成功能回归**——`TestResourceCacheInvalidationChain` 3 red（entry.clear 淘汰 dependencyMap 条目
+>   会断开其它条目经该依赖集的变更感知链）。**唯一形态修正**：`removeDependency` API + 容量告警保留
+>   （供显式清理路径），entry 生命周期内**不自动淘汰**；单调增长风险由水位告警观测。
 > - **`IRateLimiter.tryAcquire(int,long)` 已存在**（`IRateLimiter.java:23`），`acquire()` 默认走 `tryAcquire(1, Long.MAX_VALUE)`——C7-015 的真实可做面见裁定 E（重写）。
 
 ## 一、设计结论（六条裁定）
@@ -141,7 +145,7 @@ R4-14 的 17 成员共同形态：**平台设施在「销毁/驱逐/等待」三
 | C6-006 | `FileWatchEntry`（`addSubEntry`）；`NioFileWatchService`（`watch` / `unwatch` / `checkChange`） | ① `FileWatchEntry` 增 `parent` 字段，`watch()` 与 `checkChange` 的 ENTRY_CREATE 分支传入；`unwatch` 递归时回写父的 `subEntries.remove`；② 同路径重复 `watch` **复用同一 entry 并返回既有 cleanup 句柄**（旧句柄仍有效、幂等） | 安全反注册旧 entry（会产生交叉误伤）；fail-fast（破坏既有调用方） |
 | C6-007 | `NioFileWatchService`（`doStart`/`doStop`）；`ExecutorHelper.newSingleThreadExecutor` 调用点 | 线程 daemon 化 + `doStop` 增有界 `awaitTermination(5s)`；**载体可观测路径（R3 MJ-8）**：`executor` 为 private 无 getter → 测试经**线程名扫描** `Thread.getAllStackTraces()` 过滤 `nio-file-watch-service` 前缀并断言 `isDaemon()`；`pin6007b` 用「`doStop()` 返回耗时 < 5s + 线程名消失」断言有界关闭。**语义变更登记**：JVM 退出不再等待 watcher | 裸 `shutdown()`（现状）；加 getter 仅为测试（污染 API） |
 | C7-002 | `DefaultScheduledExecutor.scheduleAtFixedRate` | **Decision（声明面 + 行为观测）**：javadoc + owner doc 声明「fixed-rate 错过补偿是 JDK 原生语义」；不改行为。**载体 = 行为观测**（单线程 timer、周期 50ms、任务体 sleep 200ms × 3 轮 → 第 2/3 轮 start 不晚于理论时刻 + 一个周期），**不用 `_content` 文本断言** | 改不补偿（影响 nop-stream 5 处节奏） |
-| C7-008 | `ResourceDependsManager`（`dependencyMap` 及相关方法） | 逐条淘汰：`ResourceCacheEntry` 失效/清理回调里移除该 path 的依赖集；`dependencyMap` 增 `remove(path)` 与容量告警 | 前缀批量清（误伤） |
+| C7-008 | `ResourceDependsManager`（`dependencyMap` 及相关方法） | `removeDependency(path)` API + 容量水位告警（10000）；**E-2548-2 勘正**：entry 失效回调**不**自动淘汰（会断开失效重载链，实测 3 red），API 供显式清理路径 | 前缀批量清（误伤）；entry.clear 自动淘汰（E-2548-2 功能回归） |
 | C7-010 | `ExecutorHelper.throttleExecute` | `tryAcquire(timeout)` 循环 + 中断检查；新配置键缺省 60s；超时 `ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT` | `acquireUninterruptibly`（现状） |
 | C7-011 | `CycleSynchronizer`（`beginCycle` / `restart`） | **Decision（声明面 + 行为观测）**：`beginCycle` 抛错路径与 javadoc 写明「由外部 `restart()` 解除，无自动超时」；**拒绝自动超时**（无时钟 + 与 generation 冲突）。**载体 = `pin7011` 行为观测**（抛错后 `processing=true` → `restart()` → 新周期可 `beginCycle`）+ `pin0110`/`pin0110b` 不回退 | 新增超时自动清理（回退 2547 语义） |
 | C7-015 | `IRateLimiter.acquire()` / `acquire(permits)`；`DefaultRateLimiter`（Guava 包装） | (i) `acquire()/acquire(permits)` 默认上界改为可配置有限值（新键缺省 5min，`<=0`=无限）；(ii) Guava 不可中断面 = **watch-only residual + 调用方超时护栏**（不改 Guava 内部） | 「增 tryAcquire(timeout)」（已存在，无事可做）；替换 Guava 实现（设施重写） |

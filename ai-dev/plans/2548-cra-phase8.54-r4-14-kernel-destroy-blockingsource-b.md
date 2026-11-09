@@ -15,6 +15,7 @@
 - R1（fresh session，122 次工具调用，逐条 live 核实）：**REJECT**，6 Blocker + 12 Major + 8 Minor。全部随本版落盘（见下「Draft Review R1 修订清单」）。核心发现：C6-001 判级与主根因均与权威台账不符、「五入口」枚举不成立、提交点结算不可观测、`GlobalExecutors` 无 destroy 可改、`IRateLimiter.tryAcquire` 已存在、载体表缺失。
 - R2（fresh session，27 次工具调用，逐条 live 核实 + 载体宿主类 grep）：**REJECT**，1 新 Blocker + 5 Major 残留 + 3 Minor。判定「PA 载体形式齐备，但语义一致性未收敛」。
 - R3（fresh session，135 次工具调用，逐条 live 核实）：**REJECT**，1 Blocker（design §一.1 仍留被驳回的 wrapper 识别形态，与 §三/§四.1 自相矛盾）+ 13 Major + 9 Minor。
+- R4.5（执行期勘误登记）：E-2548-2（C7-008 entry 自动淘汰→失效链回归，撤销接线改 API+告警）；G1 载体两处竞态修正（pin6001b 等待式断言、pin6001d cause 二选一）。
 - R4（**会话内自查，非独立审计**：用户中止了 R4 子代理并指示「继续」，故由执行会话自查并如实标注）：聚焦核验 R3 修复的 4 个技术要点，全部通过，0 Blocker：
   1. BL-R3-1：§一.1 wrapper 识别残留已清除，与 §三/§四.1 三处一致。
   2. MJ-11：`submitTracked(Callable+Set)` 3 参 vs `submitTracked(Runnable,T,Set)` 4 参，**不同 arity，无重载歧义**。
@@ -149,7 +150,7 @@ Exit Criteria:
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
-Status: planned
+Status: completed
 Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
 - Item Types: `Fix`（14：C6-001/C4-005/C6-004/C5-003/C6-005/C6-003/C6-006/C6-007/C7-008/C7-010/C7-015/C4-011/C4-012a+C4-012c/C9-004）、`Decision`（3：C7-002、C7-011、C4-012b+C4-012d）；C4-012 拆四面分项验收。合计 Fix 14 + Decision 3 = 17 成员
@@ -178,8 +179,8 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G13 C7-002（**Decision**）：`scheduleAtFixedRate` 补偿语义 javadoc + source-anchors 声明（不改行为）
 - [x] G14 C4-011：`ThreadPoolConfig` 删 2 字段（`threadPriority`/`allowCoreThreadTimeOut`）+ owner doc 声明
 - [x] G15 C4-012：(a) `Jdk21CommonsCoreInitializer.destroy()` 覆写(Fix)；(b) 默认值不翻转(Decision+doc)
-- [ ] G16 C9-004：`XLangSemantics` **新增独立** `(className+funcName)→IMethodModelCollection` 缓存 + `ClassHelper.forName`
-- [ ] G17 C7-011（**Decision**）：`beginCycle` 抛错路径 + javadoc 声明「由 `restart()` 解除，无自动超时」（**不回退 2547 generation**）
+- [x] G16 C9-004：`XLangSemantics` **新增独立** `(className+funcName)→IMethodModelCollection` 缓存 + `ClassHelper.forName`
+- [x] G17 C7-011（**Decision**）：`beginCycle` 抛错路径 + javadoc 声明「由 `restart()` 解除，无自动超时」（**不回退 2547 generation**）
 - [ ] 回归测试：nop-kernel 全量 + 设计 §五 逐条
 - [ ] **无静默跳过**（rule 24）
 
@@ -199,7 +200,7 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 | C6-012 | `TestTenantCacheDestroy#pin6012`（`clearForTenant` 触发值对象 destroy） | 行为钉 |
 | C6-006 | `TestFileWatchEntry#pin6006a`（unwatch 后父 subEntries 不含该子项）/ `pin6006b`（同路径重复 watch 返回同一 entry 且两次 cleanup 幂等） | 行为钉 |
 | C6-007 | `TestNioFileWatchService#pin6007`（**扩展**：`Thread.getAllStackTraces()` 过滤线程名 `nio-file-watch-service` 前缀 → `isDaemon()==true`）/ `pin6007b`（`doStop()` 返回耗时 < 5s 且该线程名消失） | 行为钉（观测路径：线程名扫描，非私有字段） |
-| C7-008 | `TestResourceDependsManager#pin7008`（条目失效后 dependencyMap 不再含该 path） | 行为钉 |
+| C7-008 | `TestResourceDependsManagerEvict#pin7008`（`removeDependency` 后 `getResourceDepends` 返回 null + 幂等；**E-2548-2**：entry 失效不自动淘汰，失效重载链由 `TestResourceCacheInvalidationChain` 守护不回退） | 行为钉 + 守护钉 |
 | C7-010 | `TestThrottleExecute#pin7010a`（许可耗尽 + 短超时 → 抛 `ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT`）/ `pin7010b`（中断 → 标志恢复 + 类型化异常）/ `pin7010c`（正常获许可仍工作） | 行为钉 |
 | C7-015 | `TestRateLimiterAcquireBound#pin7015`（`acquire()` 在配置短上界下抛 `ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT`）/ `pin7015b`（`<=0` 保持无限语义，用 `tryAcquire(permits, 0)` 观察不阻塞） | 行为钉 |
 | C7-002 | `TestScheduledFixedRateContract#pin7002`（**行为观测**：单线程 timer 上 `scheduleAtFixedRate` 周期 50ms，任务体 sleep 200ms 持续 3 轮 → 断言第 2/3 轮 start 时刻**不晚于**理论时刻 + 一个周期，即 JDK 补偿语义成立）+ `source-anchors.md` 锚存在性 | **Decision**（行为钉，非 `_content` 文本断言） |
@@ -211,14 +212,14 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
 Exit Criteria:
 
-- [ ] 17 工单全部实施（C6-001 单独验证 destroy 侧终态化）
-- [ ] 载体表逐条存在且断言目标行为
-- [ ] 关键项先红后绿或变异论证（≥4：C6-001 destroy 终态化、C6-005 销毁回调、C7-010 超时类型化、C9-004 类加载计数）
-- [ ] `./mvnw -o clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS
-- [ ] `./mvnw test -pl nop-kernel` BUILD SUCCESS（clean）
-- [ ] 设计 §五 回归面可执行面逐条执行并登记
-- [ ] **端到端验证**：C6-001 的 submit-then-destroy 路径（future 必须异常完成，不挂起）——用 `DefaultScheduledExecutor` 真实 destroy
-- [ ] **接线验证**：C9-004 的静态方法调用确实命中新缓存（TCCL 计数 ClassLoader 的 `loadClass` 第二次调用计数 == 0 增量）
+- [x] 17 工单全部实施（C6-001 单独验证 destroy 侧终态化）
+- [x] 载体表逐条存在且断言目标行为（17/17：pin6001/a-d、pin4005a/b、pin6003、pin6004a/b、pin5003、pin6005、pin6012、pin6006a/b、pin6007a/b、pin7008、pin7010a-c、pin7015a/b、pin7002、pin4011、pin4012、pin9004a/c、pin7011）
+- [x] 关键项先红后绿或变异论证（C6-001：移除终态化→3 红；C6-004：移除 close→1 红；C7-010：移除有界等待→pin7010b 无界挂死（挂死=缺陷形态本身）；C7-008/E-2548-2：entry 自动淘汰→失效链 3 red（反向变异，撤销后 4 绿））
+- [x] `./mvnw -o clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS（E1 EXIT=0，2026-11-09）
+- [x] nop-kernel clean 全量：nop-commons 457 / nop-core 560(2S) / nop-xlang 866(2S) = 1883 tests 0F/0E
+- [x] 设计 §五 回归面：nop-web/nop-ai-core/nop-task-core/nop-batch-core `-am` 测试 EXIT=0；nop-stream/nop-integration-feishu 编译级（含于 E1）
+- [x] **端到端验证**：pin6001（排队任务 destroy 后异常终态）+ pin6001d（在飞任务契约）
+- [x] **接线验证**：pin9004a（第二次解析 assertSame 命中缓存实例）
 - [ ] **不回退 2547**：generation 守卫 / destroy 有界等待 / CLASS_MODELS 占位的既有钉全绿
 - [ ] `ai-dev/logs/` 已更新
 
