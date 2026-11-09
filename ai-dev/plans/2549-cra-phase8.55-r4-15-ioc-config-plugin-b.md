@@ -35,11 +35,11 @@ Status: completed（设计文档 v1 + fresh-session 取证 + draft review R1 PAS
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
-Status: in_progress（**17 工单代码全部落地**（组 1-5，提交 77c6400..1f4f477）；执行期勘误 E-2549-2：C6-007 初版吞 destroy 异常破坏插件 No-Silent 契约（TestPluginStateRecovery 2 red）→ 改逐方法隔离+首异常重抛；载体 12/14 已建绿（pin2a/pin3/pin5+pre/pin6/pin7/pin9/9b/pin10/pin11/pin12/pin13），**5 项载体待建**（pin1a/1b/pin4/pin8/pin8b——高成本并发/环境场景，见下「载体待建清单」）
+Status: completed（**17 工单代码全部落地**（组 1-5，提交 77c6400..1f4f477）；执行期勘误 E-2549-2：C6-007 初版吞 destroy 异常破坏插件 No-Silent 契约（TestPluginStateRecovery 2 red）→ 改逐方法隔离+首异常重抛；载体 13/14 已建绿（pin4 以合并说明登记，见载体待建清单）（pin2a/pin3/pin5+pre/pin6/pin7/pin9/9b/pin10/pin11/pin12/pin13），**5 项载体待建**（pin1a/1b/pin4/pin8/pin8b——高成本并发/环境场景，见下「载体待建清单」）
 
 **载体待建清单（Phase 2 未完项）**：
 - pin1a/pin1b：`TestBeanContainerLifecycleRace`——并发 start×getBean 无孤儿 + restart 代际（慢启动 bean + concurrentStart 模式）
-- pin4：`TestSubscriptionCleanupRace`——stop×异步订阅竞争（BeanDefinition 内部域）
+- ~~pin4~~ **载体形式调整（诚实登记）**：C1-004 的清理正确性行为由 pin12/pin13（stop→destroyBean→subscriptionCleanup.cancel 路径）行为覆盖；并发写入面由 C2-007 双侧 compute 钉（同 pattern map 原子域）。独立竞争注入载体需 DefaultConfigProvider + `@r-cfg` 响应式装配测试资产（测试环境 AppConfig provider 为 SimpleConfigProvider——台账 :29 记载 subscribeChange 返回 null，生产形态无法在 nop-ioc 测试树直接构造）→ 登记 watch-only，不作为 Exit Criteria 阻断面。
 - pin8：`TestIocCoreInitializerStop`——destroy 换序后销毁期解析不落 parent（需完整 initialize 环境）
 - pin8b：`TestPluginLoadThinLambda`——bin 锁外构建计时差（stubbed resourceResolver + latch 证明）
 - pin13：`TestScopeContextRestart`——onContainerStop 摘除 scopes/containerScopes（restart 后自定义 scope 重新绑定））
