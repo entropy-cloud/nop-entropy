@@ -187,7 +187,7 @@ Exit Criteria:
 - [x] 关键项先红后绿或变异论证（≥4 条：C1-004 重复执行、C2-004 自死锁、C2-007 中断传播、C4-002 destroy 等待）
 - [x] `./mvnw -o clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` **BUILD SUCCESS**（排除形态：该两模块依赖仓库无源目录的 `nop-ai-translate`，已知面⑥，沿 2539/2545 先例）
 - [x] `./mvnw test -pl nop-kernel` BUILD SUCCESS
-- [x] 设计 §五 回归面逐条执行且登记
+- [x] 设计 §五 回归面**可执行面逐条执行且登记**（12/12 可执行模块 + `nop-xdefs` 仅编译 + `nop-js`/`nop-graphql-grpc` 编译不可得登记——见 E-2547-5）
 - [x] **端到端验证**：`TestThreadPoolDestroyAwaitProbe` 三腿（await>0 有界等待完成 / await=0 不等 / init 前 destroy 抛类型化异常）
 - [x] **接线验证**：C2-007 的 `throws InterruptedException` 在全部调用点被编译验证（全仓编译即证据）
 - [ ] `ai-dev/logs/` 已更新
@@ -249,6 +249,12 @@ Exit Criteria:
 | **E-2547-2** | C3-013 原设计对三个 `execute` 入口（DTE / `DefaultScheduledExecutor` / `BindScheduledExecutor`）统一包装。实测 `TestPeriodicTaskInsulation` 的 `rejections.size()` 变为 2（缺陷态 1）——原因：周期任务命令由 `PeriodicTaskHelper` 绝缘守卫管理，其拒绝回调语义依赖命令身份/时序，外层再包一层会重复触发。**收窄**：只包装 `DefaultThreadPoolExecutor.execute`（`globalWorker`/`cachedThreadPool` 的实际载体）；两个定时器入口保持直通并加注释说明。 |
 | **E-2547-3**（**closure audit R1 B-1 + R2 M-6 订正，原结论作废**） | 曾误判为「`cancel(true)` 无法撤下已提交的底层调度」，据此把载体降级为「映射表条目数」。**实测证伪**：`ExecutorHelper.schedule:271` 明确 `FutureHelper.bindCancel(future, f)`，把返回的 CF 与底层 `ScheduledFuture` 绑定——`cancel(true)` **能**撤销底层调度（独立探针：`RAW_RAN=0`；旧实现 `OLD_EXECUTED_COUNT=1`）。首版修复误把**本地新建的 CF** 存进 map（无下层绑定）→ debounce 退化为「两次都执行」（功能回归）。**已重做**：改存 `schedule` 返回的 future；载体 `pin0104a_debounceExecutesOnlyLastTask` 断言「只执行最后一次」，**变异（改回本地 CF）红证成立**。 |
 | **E-2547-4** | C3-013 的 finally 中原含 `Thread.interrupted()`（对齐 `ExecutorHelper.submit` 先例）。实测它清掉了周期任务守卫依赖的中断/取消标志，导致 `TestPeriodicTaskInsulation` 失败。**收窄**：`execute` 路径只 `detachContext()`，不清中断标志。 |
+
+## 执行期勘误（补充）
+
+| 编号 | 内容 |
+|---|---|
+| **E-2547-5**（closure audit R2 Major-1 / R3 Major-1-residual） | `nop-js` / `nop-graphql-grpc` **本批未编译**：二者均为 pom 注释掉的 module（`nop-frontend-support/pom.xml:22`、`nop-service-framework/nop-graphql/pom.xml:21`），且**独立编译亦不可用**（缺 `org.graalvm.polyglot:js` / `protobuf-maven-plugin:0.6.1` 离线不可解析）。二者 `git diff` **零触碰**（`git diff --name-only 7176cd614a..HEAD | grep -cE 'nop-js|nop-graphql-grpc'` = 0），**风险接受**。**不得声称"已由 E1 全量编译覆盖"**（该声明为假）。<br>`nop-xdefs` **无测试树**（`src/test` 下 0 个 `.java`），仅编译面验证。 |
 
 ## Deferred But Adjudicated
 

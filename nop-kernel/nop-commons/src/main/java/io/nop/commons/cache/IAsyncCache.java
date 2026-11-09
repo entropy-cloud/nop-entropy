@@ -92,8 +92,9 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
      * Note that duplicate elements in {@code keys}, as determined by {@link Object#equals}, will be ignored.
      *
      * @param keys the keys whose associated values are to be returned
-     * @return the future containing an unmodifiable mapping of the <b>already-cached</b> keys to values;
-     *         uncached keys are absent from the map
+     * @return the future containing the already-cached keys' values; <b>if any requested key is
+     *         uncached the whole call fails</b> with {@code NullMapCompletionException}
+     *         (surfaced as {@code ExecutionException}) — 未命中不支持部分结果
      * @throws NullPointerException if the specified collection is null or contains a null element
      */
     @Nonnull
