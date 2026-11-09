@@ -61,6 +61,10 @@ public class TestThrottleExecute {
             CompletableFuture<Void> future = ExecutorHelper.throttleExecute(DIRECT, semaphore, () -> {
             });
             assertTrue(future.isCompletedExceptionally(), "中断应立即异常终态");
+            ExecutionException ex = assertThrows(ExecutionException.class, () -> future.get(2, TimeUnit.SECONDS));
+            assertTrue(ex.getCause() instanceof NopException, "中断也应类型化，实际 " + ex.getCause());
+            assertEquals(ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT.getErrorCode(),
+                    ((NopException) ex.getCause()).getErrorCode());
             assertTrue(Thread.currentThread().isInterrupted(), "中断标志应恢复");
         } finally {
             Thread.interrupted(); // 清除标志

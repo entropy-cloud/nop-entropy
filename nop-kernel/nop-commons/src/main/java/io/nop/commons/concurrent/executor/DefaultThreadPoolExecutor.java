@@ -146,7 +146,7 @@ public class DefaultThreadPoolExecutor implements IThreadPoolExecutor {
             throw new NopException(ERR_CONCURRENT_THREAD_POOL_NOT_INITIALIZED)
                     .param(ARG_NAME, config == null ? null : config.getName());
 
-        // C6-004：先停新任务提交路径，最后注销本池的 meter（绑定/注销对称）
+        // C6-004：先置空提交路径并注销本池的 meter（绑定/注销对称），再走池关闭流程
         AutoCloseable handle = this.metricsHandle;
         this.metricsHandle = null;
         this.executor = null;

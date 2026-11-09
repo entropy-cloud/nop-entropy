@@ -1,6 +1,6 @@
 # 2548 CRA Phase 8.54 — R4-14 2.1 销毁链/BlockingSource 束 b（G27 后半，17 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.54（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :225，Status=todo；Owner Doc=同 R4-13；Deps=「batch-proposal §二 R4-14（17 项）；软依赖 8.53」）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 :129 R4-14 行 + §二.5 G27 行；成员发现 = `ai-dev/audits/2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency/`
 > Related: plan 2547（R4-13，completed——本批**复用其 C4-002 destroy 语义、C1-010 generation 守卫、C2-019 CLASS_MODELS**，不重建）；设计文档 = `ai-dev/design/concurrency/kernel-destroy-chain-blockingsource-and-resource-lifecycle.md`
@@ -16,6 +16,7 @@
 - R2（fresh session，27 次工具调用，逐条 live 核实 + 载体宿主类 grep）：**REJECT**，1 新 Blocker + 5 Major 残留 + 3 Minor。判定「PA 载体形式齐备，但语义一致性未收敛」。
 - R3（fresh session，135 次工具调用，逐条 live 核实）：**REJECT**，1 Blocker（design §一.1 仍留被驳回的 wrapper 识别形态，与 §三/§四.1 自相矛盾）+ 13 Major + 9 Minor。
 - R4.5（执行期勘误登记）：E-2548-2（C7-008 entry 自动淘汰→失效链回归，撤销接线改 API+告警）；G1 载体两处竞态修正（pin6001b 等待式断言、pin6001d cause 二选一）。
+- Closure audit R1（fresh session 独立审计）：**APPROVED-with-notes**，0 Blocker + 3 Major + 6 Minor。3 Major 全部闭环：(1) C7-010 中断分支改类型化 NopException（cause 保留 InterruptedException）+ pin7010b 补 cause 断言；(2) plan Phase 状态/勾选一致性修正（回归/无静默跳过/不回退 2547 等项按证据补勾）；(3) R3 MJ-9 修订清单失真更正（TCCL 计数对平台类名不可达→assertSame 形态，design/plan 同步）。Minor 闭环：pin7008 静默空转（`if(before!=null)` 掩盖注册失败）→ assertNotNull + 修载体语义（dependencyMap 只登记栈顶资源）；DTE destroy 注释顺序勘正；其余（default no-op 方法、LocalCache 同名去重声明、TestResourceCacheInvalidationChain flaky 收敛）登记为 watch-only。审计复跑：B1 41 tests 绿、B2 clean 下 3 次全绿（flaky 为共享 fork 时序敏感）、B3/B4 绿、变异自证（pin6001 变异 2 红→恢复 7 绿、git diff 空）。
 - R4（**会话内自查，非独立审计**：用户中止了 R4 子代理并指示「继续」，故由执行会话自查并如实标注）：聚焦核验 R3 修复的 4 个技术要点，全部通过，0 Blocker：
   1. BL-R3-1：§一.1 wrapper 识别残留已清除，与 §三/§四.1 三处一致。
   2. MJ-11：`submitTracked(Callable+Set)` 3 参 vs `submitTracked(Runnable,T,Set)` 4 参，**不同 arity，无重载歧义**。
@@ -36,7 +37,7 @@
 | **MJ-6** 在飞任务结果丢弃未声明 | §一.1 增「契约变化」段 + `pin6001d` 载体 |
 | **MJ-7** C4-011 契约变更声明不足 | §五 增「Java 消费方 = 0（编译级证据）+ `Serializable` 向后兼容 + 外部二进制需升级说明」 |
 | **MJ-8** pin6007 不可观测（private 字段） | 改为**线程名扫描** `Thread.getAllStackTraces()` 过滤 `nio-file-watch-service` 前缀 |
-| **MJ-9** pin9004a「类加载计数==1」不可实施 | 改为 TCCL 切至**计数 `ClassLoader`** + 合成类；`pin9004b` 改 `assertSame` 实例；增 `pin9004c` ClassNotFound |
+| **MJ-9** pin9004a「类加载计数==1」不可实施 | **执行期再勘正（closure audit Major-3）**：TCCL 计数方案要求被解析类经计数 loader 加载，但 `resolveStaticMethodCollection` 的入参是任意平台类名（如 `java.lang.String`，已被系统 loader 加载），计数不可达。live 载体改用 `pin9004a` = **assertSame 实例同一性**（第二次解析命中缓存）+ `pin9004c` = ClassNotFound null 语义；无 pin9004b（其断言面已被 pin9004a 覆盖）。行为证据等价：命中缓存 ⇔ 同一实例 |
 | **MJ-10** java21 测试基建缺失 | §五 增前置条件：pom 加 junit + 新建 `src/test` + 显式 `-P java21-modules` |
 | **MJ-11** 新重载同 arity 歧义 | 改为**独立方法名** `submitTracked` / `submitTracked` / `scheduleTracked`（禁止同 arity 重载）；`pending==null` = 不登记 |
 | **MJ-12** plan 基线 C7-011「无逃生门」 | 已改为「`restart()` 已是逃生门（`CycleSynchronizer.java:143-145`）；本批只做声明面」 |
@@ -139,14 +140,14 @@ Targets: `ai-dev/design/concurrency/kernel-destroy-chain-blockingsource-and-reso
 - [x] 独立 draft review R1（REJECT 6B+12M+8m，全闭环）
 - [x] review 发现的 Blocker/Major 全闭环
 - [x] PA 授权证据齐备（设计 + review + 回归面）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新（`ai-dev/logs/2026/11-09.md` 顶部 2548 收口条目）
 
 Exit Criteria:
 
 - [x] 设计文档在案且 17 成员各有唯一形态
 - [x] 独立 draft review R2/R3 复审（R4 = 会话内自查，见 Review 记录）
 - [x] 回归面覆盖全部 17 成员（12 消费模块）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新（`ai-dev/logs/2026/11-09.md` 顶部 2548 收口条目）
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
@@ -181,8 +182,8 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G15 C4-012：(a) `Jdk21CommonsCoreInitializer.destroy()` 覆写(Fix)；(b) 默认值不翻转(Decision+doc)
 - [x] G16 C9-004：`XLangSemantics` **新增独立** `(className+funcName)→IMethodModelCollection` 缓存 + `ClassHelper.forName`
 - [x] G17 C7-011（**Decision**）：`beginCycle` 抛错路径 + javadoc 声明「由 `restart()` 解除，无自动超时」（**不回退 2547 generation**）
-- [ ] 回归测试：nop-kernel 全量 + 设计 §五 逐条
-- [ ] **无静默跳过**（rule 24）
+- [x] 回归测试：nop-kernel clean 全量 1883 tests 0F/0E + 设计 §五 消费方（nop-web/nop-ai-core/nop-task-core/nop-batch-core）EXIT=0 + E1 全量编译
+- [x] **无静默跳过**（rule 24；唯一跳过面 = C7-008 entry 自动淘汰，经 E-2548-2 反向变异证实为功能回归后撤销并登记）
 
 **工单 × 载体表**（draft review R1 B-5；宿主类状态已 grep 实测）
 
@@ -206,7 +207,7 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 | C7-002 | `TestScheduledFixedRateContract#pin7002`（**行为观测**：单线程 timer 上 `scheduleAtFixedRate` 周期 50ms，任务体 sleep 200ms 持续 3 轮 → 断言第 2/3 轮 start 时刻**不晚于**理论时刻 + 一个周期，即 JDK 补偿语义成立）+ `source-anchors.md` 锚存在性 | **Decision**（行为钉，非 `_content` 文本断言） |
 | C4-011 | `TestThreadPoolConfigFields#pin4011`（反射：`ThreadPoolConfig` 无 `threadPriority`/`allowCoreThreadTimeOut` 字段） | 结构钉 |
 | C4-012 | `TestJdk21InitializerDestroy#pin4012`（**前置：pom 加 junit + 新建 src/test，profile `java21-modules`**）（destroy 后注册表无 `nop-virtual-thread`） | 行为钉（`nop-commons-java21`） |
-| C9-004 | `TestXlangStaticMethodCache#pin9004a`（TCCL 切至计数 `ClassLoader`，加载一个未预加载的合成类 → 第 1 次 `loadClass` 计数 1，第 2 次仍为 1）/ `pin9004b`（两次 `assertSame` 同一 `IMethodModelCollection` 实例）/ `pin9004c`（`ClassNotFoundException` 仍返回 null 不抛） | 行为钉 |
+| C9-004 | `TestXlangStaticMethodCache#pin9004a`（两次解析 `assertSame` 同一 `IMethodModelCollection` 实例——命中缓存的可观测面）/ `pin9004c`（`ClassNotFoundException` 仍返回 null 不抛） | 行为钉 |
 | C7-011 | `pin0110`/`pin0110b`（2547 既有，**不回退**）+ `pin7011`（**行为观测**：`beginCycle` 抛错后 `processing=true`，调 `restart()` 后新周期可正常 `beginCycle`——即逃生门真实可用）+ `source-anchors.md` 锚存在性 | Decision + 回归钉 |
 
 
@@ -220,8 +221,8 @@ Exit Criteria:
 - [x] 设计 §五 回归面：nop-web/nop-ai-core/nop-task-core/nop-batch-core `-am` 测试 EXIT=0；nop-stream/nop-integration-feishu 编译级（含于 E1）
 - [x] **端到端验证**：pin6001（排队任务 destroy 后异常终态）+ pin6001d（在飞任务契约）
 - [x] **接线验证**：pin9004a（第二次解析 assertSame 命中缓存实例）
-- [ ] **不回退 2547**：generation 守卫 / destroy 有界等待 / CLASS_MODELS 占位的既有钉全绿
-- [ ] `ai-dev/logs/` 已更新
+- [x] **不回退 2547**：CycleSynchronizerTest(pin0110/pin0110b) 4/4、TestPeriodicTaskInsulation 9/9、TestExecutorHelperCancelContract 全绿（独立审计复跑一致）
+- [x] `ai-dev/logs/` 已更新（`ai-dev/logs/2026/11-09.md` 顶部 2548 收口条目）
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
@@ -230,17 +231,17 @@ Targets: nop-kernel 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [ ] E3 分解通道：`./mvnw test -pl nop-kernel -am` BUILD SUCCESS + 逐模块签名
-- [ ] owner doc 落账：`source-anchors.md`（销毁链/监听锚点）+ `ioc-and-config.md`（池/缓存生命周期）
-- [ ] 工具门禁：check-doc-links EXIT=0；scan-hollow `--module nop-kernel --severity high` EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] E3 分解通道：nop-commons 457 / nop-core 560(2S) / nop-xlang 866(2S) = 1883 tests 0F/0E（clean，EXIT=0）
+- [x] owner doc 落账：`source-anchors.md` 5 新锚（COMMONS-DESTROY-001/WAIT-001/CACHE-DESTROY-001/WATCH-EXIT-001/XLANG-STATIC-001）+ `ioc-and-config.md`「平台销毁链纪律（plan 2548 R4-14）」节
+- [x] 工具门禁：check-doc-links EXIT=0；scan-hollow `--module nop-kernel --severity high` EXIT=0（2026-11-09 实跑）
+- [x] `ai-dev/logs/` 已更新（`ai-dev/logs/2026/11-09.md` 顶部 2548 收口条目）
 
 Exit Criteria:
 
-- [ ] E3 验收且逐条登记
-- [ ] owner doc 落账核对
-- [ ] 双门禁 EXIT=0 登记
-- [ ] `ai-dev/logs/` 已更新
+- [x] E3 验收且逐条登记（见 Exit Criteria 勾选与 Closure Evidence）
+- [x] owner doc 落账核对（closure audit R1 核验四方一致）
+- [x] 双门禁 EXIT=0 登记
+- [x] `ai-dev/logs/` 已更新（`ai-dev/logs/2026/11-09.md` 顶部 2548 收口条目）
 
 ### Phase 4 - closure audit + 收口
 
@@ -249,30 +250,30 @@ Targets: 本 plan、roadmap 8.54 行、cra-index P2-G27 束行
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）
-- [ ] cra-index 台账回填 + roadmap 8.54 → done
-- [ ] 双门禁 + Closure Evidence
+- [x] 独立子 agent closure audit（fresh session，APPROVED-with-notes 0B/3M，3M 已闭环）
+- [x] cra-index 台账回填 + roadmap 8.54 → done
+- [x] 双门禁 + Closure Evidence
 
 Exit Criteria:
 
-- [ ] closure audit 证据写入 Closure 段
-- [ ] cra-index + roadmap 在案
-- [ ] 双门禁 EXIT=0
+- [x] closure audit 证据写入 Closure 段
+- [x] cra-index + roadmap 在案
+- [x] 双门禁 EXIT=0
 
 ## Closure Gates
 
-- [ ] 17 工单全部收口（全 P2）
-- [ ] 每工单 ≥1 可被回归捕获的载体
-- [ ] `./mvnw test -pl nop-kernel` BUILD SUCCESS（clean）
-- [ ] 设计 §五 回归面可执行面逐条执行（PA 硬门禁）
-- [ ] **不回退 2547 语义**（三条既有钉全绿）
-- [ ] owner doc 落账完成
-- [ ] scan-hollow nop-kernel `--severity high` EXIT=0
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**
-- [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
-- [ ] cra-index P2-G27 收敛注 + roadmap 8.54 → done
+- [x] 17 工单全部收口（全 P2）
+- [x] 每工单 ≥1 可被回归捕获的载体（17/17）
+- [x] `./mvnw test -pl nop-kernel` BUILD SUCCESS（clean，1883 tests）
+- [x] 设计 §五 回归面可执行面逐条执行（PA 硬门禁）
+- [x] **不回退 2547 语义**（三条既有钉全绿：CycleSynchronizerTest/PeriodicTaskInsulation/ExecutorHelperCancelContract）
+- [x] owner doc 落账完成
+- [x] scan-hollow nop-kernel `--severity high` EXIT=0
+- [x] 不存在被静默降级的 in-scope live defect（唯一裁定面 = E-2548-2，反向变异证实原裁定为功能回归，非降级）
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**（scan-hollow EXIT=0；no-op 句柄/接口 default 均 javadoc 声明）
+- [x] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+- [x] cra-index P2-G27 收敛注 + roadmap 8.54 → done
 
 ## Deferred But Adjudicated
 
@@ -324,8 +325,10 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 17 工单全部实施并经独立 closure audit R1（APPROVED-with-notes，0 Blocker，3 Major + 6 Minor 已闭环）；nop-kernel clean 全量 1883 tests 0F/0E + 消费方模块 EXIT=0 + E1 全量编译 BUILD SUCCESS；勘误 E-2548-1（C6-001 判级 P2）/E-2548-2（C7-008 entry 自动淘汰撤销）；roadmap 8.54 → done；cra-index P2-G27 R4-14 半边 fixed 注回填；owner doc「平台销毁链纪律」+ source-anchors 5 新锚落盘。
+Reviewer/Agent: closure audit R1 = fresh-session 独立子代理（agent_b9be70ea，39 次工具调用）；draft review R1-R3 = fresh-session 独立子代理；R4 = 会话内自查（用户中止子代理，如实标注）。
+Evidence: 本文件 Review 记录/Exit Criteria 勾选 + 提交系列 7b4d433..HEAD + `_tmp` 外的载体测试（TestThreadPoolDestroyAwaitProbe 等 17 类）+ `ai-dev/logs/2026/11-09.md`。
+Completed: 2026-11-09
 
 Closure Audit Evidence:
 

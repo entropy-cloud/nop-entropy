@@ -418,9 +418,11 @@ public class ExecutorHelper {
                     return future;
                 }
             } catch (InterruptedException e) {
-                // 中断恢复标志（InterruptedException 抛出时标志已清；重新置位供上层判定）
+                // 中断恢复标志（InterruptedException 抛出时标志已清；重新置位供上层判定）；
+                // C7-010 声明面：中断也走类型化 NopException（cause 保留原 InterruptedException）
                 Thread.currentThread().interrupt();
-                future.completeExceptionally(e);
+                future.completeExceptionally(new NopException(ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT)
+                        .param(ARG_TIMEOUT, timeoutMs).initCause(e));
                 return future;
             }
         }
