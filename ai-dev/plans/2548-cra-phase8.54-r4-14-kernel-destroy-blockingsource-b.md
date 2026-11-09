@@ -13,7 +13,46 @@
 **Draft Review 记录**
 
 - R1（fresh session，122 次工具调用，逐条 live 核实）：**REJECT**，6 Blocker + 12 Major + 8 Minor。全部随本版落盘（见下「Draft Review R1 修订清单」）。核心发现：C6-001 判级与主根因均与权威台账不符、「五入口」枚举不成立、提交点结算不可观测、`GlobalExecutors` 无 destroy 可改、`IRateLimiter.tryAcquire` 已存在、载体表缺失。
-- 修订后待 R2 复审。
+- R2（fresh session，27 次工具调用，逐条 live 核实 + 载体宿主类 grep）：**REJECT**，1 新 Blocker + 5 Major 残留 + 3 Minor。判定「PA 载体形式齐备，但语义一致性未收敛」。
+- R3（fresh session，135 次工具调用，逐条 live 核实）：**REJECT**，1 Blocker（design §一.1 仍留被驳回的 wrapper 识别形态，与 §三/§四.1 自相矛盾）+ 13 Major + 9 Minor。
+- 修订后待 R4 复审。
+
+### Draft Review R3 修订清单（逐条已闭环）
+
+| R3 项 | 结论与修订 |
+|---|---|
+| **BL-R3-1** design §一.1 与被驳回形态自相矛盾 | 已重写 §一.1「修复形态」：改为引用 §四.1「待结算登记表」为唯一权威，显式写明「**不得**依赖 `shutdownNow()` 返回值的 wrapper 识别——live 载体不存在（BL-N1）」；§三 C6-001 行同步为 `*Tracked` 方法名 |
+| **MJ-1** §三 缺 C6-012 行（16/17） | 已补：§三 现 17 行（`grep -c "^| C"`=17）；C6-012 形态 = ①容器 `setDestroyOnRemove(true)` ②依赖 RLC `implements IDestroyable`；plan G7 同步 |
+| **MJ-2** G6 欠规格 + `LocalCache.destroy` 被移入 Deferred 标 `landed` | G6 改为三项齐列（① `setDestroyOnRemove` ② `implements IDestroyable` ③ `LocalCache.destroy = invalidateAll+cleanUp`）；Deferred 中该条已删除 |
+| **MJ-3** C6-002 `register` 覆盖不 drain 未裁定 | Deferred 新增 residual 条目（分类 `watch-only residual`，successor = R-G 三态契约裁定） |
+| **MJ-4** C4-012 三面被丢弃 | 拆为**四面** (a) Fix destroy / (b) Decision 默认值 / (c) Fix `getConfig`+`stats` / (d) Decision `refreshConfig` no-op；§三行同步，plan G15 同步 |
+| **MJ-5** destroy 顺序与周期拒绝路径冲突 | §四.1 明确顺序：**periodicTasks 拒绝循环 → shutdownNow → pending 完结**，并解释 `watchNativeHandle` 的 `!chain.isDone()` 守卫因此短路（避免 listener 双触发，`rejections.size()==1` 保持） |
+| **MJ-6** 在飞任务结果丢弃未声明 | §一.1 增「契约变化」段 + `pin6001d` 载体 |
+| **MJ-7** C4-011 契约变更声明不足 | §五 增「Java 消费方 = 0（编译级证据）+ `Serializable` 向后兼容 + 外部二进制需升级说明」 |
+| **MJ-8** pin6007 不可观测（private 字段） | 改为**线程名扫描** `Thread.getAllStackTraces()` 过滤 `nio-file-watch-service` 前缀 |
+| **MJ-9** pin9004a「类加载计数==1」不可实施 | 改为 TCCL 切至**计数 `ClassLoader`** + 合成类；`pin9004b` 改 `assertSame` 实例；增 `pin9004c` ClassNotFound |
+| **MJ-10** java21 测试基建缺失 | §五 增前置条件：pom 加 junit + 新建 `src/test` + 显式 `-P java21-modules` |
+| **MJ-11** 新重载同 arity 歧义 | 改为**独立方法名** `submitTracked` / `submitTracked` / `scheduleTracked`（禁止同 arity 重载）；`pending==null` = 不登记 |
+| **MJ-12** plan 基线 C7-011「无逃生门」 | 已改为「`restart()` 已是逃生门（`CycleSynchronizer.java:143-145`）；本批只做声明面」 |
+| **MJ-13** Bind 传播边界未声明 | §四.1 增「适用边界：仅当底层 timer 能终态化内层 future；本批保证面 = `DefaultScheduledExecutor`」 |
+| **m1-m9** | `successor 8.55` 写死；plan:6 措辞改「不复用」；Deferred `landed` 分类删除；§四.1 移除字段/伪代码（改描述性）；`EmbeddingServiceImpl:288→294`；G3 改写 roadmap 8.55；`Fix+Decision` 组合类型拆分；`_content` 全部替换为**行为断言**（C7-002 用漏拍观测、C7-011 用 `restart()` 逃生门行为）；C4-012 destroy 未注册时 NPE → 要求「非 null 才 destroy」 |
+
+### Draft Review R2 修订清单（逐条已闭环）
+
+| R2 项 | 结论与修订 |
+|---|---|
+| **BL-N1** C6-001 的 destroy 侧终态化在 live 上无载体 | **真缺陷，采纳**。原设计写「对 `shutdownNow()` 返回的 Runnable 逐项识别 wrapper 并结算」，但 live 上 `ExecutorHelper` 提交的是匿名 `Callable<Object>`，CF 仅在闭包内，`DefaultScheduledExecutor` 拿不到任何句柄 → 机制不存在。**改为「待结算登记表」**：`ExecutorHelper` 3 入口各增 `Set<CompletableFuture<?>> pending` 重载（登记 / whenComplete 摘除 / 提交 REE 时摘除后抛出）；`DefaultScheduledExecutor` 持有 `pending`，`destroy()` 先快照 → `shutdownNow()` → 逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)` → `clear()`；`BindScheduledExecutor.schedule/submit` 补 inner→outer 异常传播。`pin6001` 改为**确定性**（不依赖时序）：`schedule(callable,60s)` → `destroy()` → 断言 `isCompletedExceptionally()` + cause 类型 + 执行计数=0；增 `pin6001c`（Bind 层传播） |
+| **B-1 残留** design 3 处 P1 | 已改：§一裁定表 A 行 → P2；§二「本批唯一 P1」→「本批 17 项全 P2」；§六组 1 → 「P2，最先——依赖最少且独立」；plan 组 1 → 「最先，依赖最少」 |
+| **B-2 残留** design §四.1/§六.1「五入口」 | 已改写为「3 个 CF 入口 + 待结算登记表」，并写明真实修复面 = `DefaultScheduledExecutor` + `BindScheduledExecutor` 传播 |
+| **B-4 残留** plan「register 才是 put+destroy，正确」/ design §四.2「register（已正确）」+「新增 destroy 方法」 | 已改：plan live 基线改「**无 destroy/destroyAll**；register = put + old.destroy() **也是缺陷形态**」；design §四.2 同步，删除「新增 destroy 方法」的误述（实为 `destroyAndUnregister`/`destroyAll`） |
+| **M-1 残留** design §四.4「必须同批按依赖序」 | 已改：「**不存在实施依赖**（`cloneInstance()` 零生产调用方）→ 载体可直接构造 `CacheConfig` 并 `setDestroyOnRemove(true)`；C5-003 在前纯为阅读便利」；§六组 3 标「无强依赖」 |
+| **M-4 残留** design §一.6/§四.3「复用 CLASS_MODELS」 | 已改：「**不复用** CLASS_MODELS（值类型只到 IClassModel + join 引入阻塞 + 污染 C2-019 占位契约），新增独立方法级缓存」 |
+| **M-7 残留** design §一.3「或记录 Meter 列表」 | 已改为唯一形态「返回 `AutoCloseable` 句柄」，删除「或」 |
+| **M-8 残留** design §一.6「改默认或显式声明」 | 已拆为 (a) Fix `destroy()` 覆写 / (b) Decision 默认值不翻转，并写明「不混在一项验收」 |
+| **M-6 残留** design 仅写「= successor」 | 已写死 `roadmap 8.55（R4-15）` 三处 |
+| **M-10 残留** allExecutors 活引用未入 Deferred | 已补 Deferred 条目（watch-only residual + `pin6003` 依赖该语义 + successor=R-G） |
+| **B-5 残留** 载体宿主类 2 处事实偏差 | `TestCycleSynchronizer` → `CycleSynchronizerTest`（类名无 Test 前缀）；`TestNioFileWatchService` / `TestThreadPoolDestroyAwaitProbe` 从「新建」改为「扩展」并在宿主类状态行标注 |
+| **m-new** Phase 2 Item Types 与内容不符 | 改为 `Fix`（14）、`Decision`（2：C7-002、C7-011）、`Fix+Decision`（1：C4-012 a/b）、`Proof`（1） |
 
 ### Draft Review R1 修订清单（逐条已闭环）
 
@@ -44,13 +83,13 @@
 - **判级**：**17 项全 P2**（C6-001 经权威台账 `C6-resource-lifecycle.md:83` 复核为「降级 P1→P2（条件化）；主根因主张驳回」，见 E-2548-1）。
 - **依赖**：软依赖 8.53（plan 2547 completed）。
 - **PA 判定**：全部在 nop-kernel/nop-utils = plan-first。
-- **与 2547 的分工**（防冲突）：C7-011 与 2547 的 C1-010 同文件但不同失效面（前者=推进者死亡逃生门，后者=旧周期不污染新周期）；C4-005/C6-003 与 2547 的 C4-002 分工（前者=注册表移除，后者=destroy 内部等待）；C9-004 复用 2547 建好的 CLASS_MODELS。
+- **与 2547 的分工**（防冲突）：C7-011 与 2547 的 C1-010 同文件但不同失效面（前者=推进者死亡逃生门，后者=旧周期不污染新周期）；C4-005/C6-003 与 2547 的 C4-002 分工（前者=注册表移除，后者=destroy 内部等待）；C9-004 **不复用** 2547 的 CLASS_MODELS（值类型只到 IClassModel 且 join 引入阻塞），新增独立方法级缓存。
 - **live 基线事实**（2026-11-09 亲读）：
   - **C6-001（P2 条件化）**：真实残余面 = `DefaultScheduledExecutor.destroy()` 用 `shutdownNow()` **丢弃已排队未执行任务**，其 wrapper future（已返回调用方）永不完成。`DefaultThreadPoolExecutor.destroy()` 用 `shutdown()` 会排空队列（JDK 契约），**不命中**（主根因已驳回）。`ExecutorHelper` 只有 **3 个 CF 入口**。
-  - `GlobalExecutors.destroy` 语义：`getExecutor(name).destroy()` 后 `g_executors` 保留死实例（`register` 才是 put+destroy，正确）。
+  - `GlobalExecutors` 现状：**无 `destroy()`/`destroyAll()`**；`register` = `put` + `old.destroy()`（**也是缺陷形态**，顶替不 drain）；`unregister` 存在但不 destroy。借用方直调 `executor.destroy()` → `g_executors` 保留死实例（use-after-destroy，residual）。
   - `CacheConfig(CacheConfig)` 拷贝构造漏 `destroyOnRemove`/`refreshAfterWrite`。
   - `ThreadPoolConfig` 的 `threadPriority`/`allowCoreThreadTimeOut` 全仓零消费者。
-  - `CycleSynchronizer.beginCycle` 在 `processing==true` 时抛错，无逃生门（C7-011）；2547 已加 generation 守卫（不冲突）。
+  - `CycleSynchronizer.beginCycle` 在 `processing==true` 时抛错；**`restart()` 已是逃生门**（`CycleSynchronizer.java:143-145`），audit 原文即「有入口但无自动触发」——本批 C7-011 只做**声明面**（C7-011 无自动超时）。2547 已加 generation 守卫（不冲突）。
   - `DefaultRateLimiter` 用 `sleepMicrosUninterruptibly`；`IRateLimiter.acquire()` 默认无上界。
   - `ExecutorHelper.throttleExecute` 用 `acquireUninterruptibly`。
 - **基线测试签名**：`nop-kernel` 全量 1856 tests（**引用 2547 closure 值**；Phase 2 起点须 clean 复跑一次确认）。
@@ -99,7 +138,7 @@ Targets: `ai-dev/design/concurrency/kernel-destroy-chain-blockingsource-and-reso
 Exit Criteria:
 
 - [x] 设计文档在案且 17 成员各有唯一形态
-- [ ] 独立 draft review R2 复审
+- [ ] 独立 draft review R2/R3 复审
 - [x] 回归面覆盖全部 17 成员（12 消费模块）
 - [ ] `ai-dev/logs/` 已更新
 
@@ -108,24 +147,24 @@ Exit Criteria:
 Status: planned
 Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
-- Item Types: `Fix`（16）、`Proof`（1）
+- Item Types: `Fix`（13：C6-001/C4-005/C6-004/C5-003/C6-005/C6-003/C6-006/C6-007/C7-008/C7-010/C7-015/C4-011/C4-012a+C4-012c/C9-004 中计 13 项）、`Decision`（3：C7-002、C7-011、C4-012b+C4-012d）、`Proof`（1）；C4-012 拆四面分项验收
 
 **实施顺序（设计 §六）**
-- 组 1（P1 最先）：C6-001
+- 组 1（最先，依赖最少）：C6-001
 - 组 2：C4-005、C6-003、C6-004
-- 组 3（依赖序）：C5-003 → C6-005 → C6-012
+- 组 3（C6-005 ② 是 C6-012 硬前提；C5-003 居首仅阅读便利）：C5-003 → C6-005 → C6-012
 - 组 4：C6-006、C6-007、C7-008
 - 组 5：C7-010、C7-015、C7-002
 - 组 6：C4-011、C4-012、C9-004
 - 组 7（最后，需复核 2547）：C7-011
 
-- [ ] G1 C6-001（P2）：`DefaultScheduledExecutor.destroy()` 对 `shutdownNow()` 返回的排队任务终态化（`ExecutorHelper` 三入口 try/catch 仅作卫生性附带）
+- [ ] G1 C6-001（P2）：`ExecutorHelper` 3 入口增 `Set<CompletableFuture<?>> pending` 重载（登记/完结摘除/提交失败摘除）+ `DefaultScheduledExecutor` 持有 `pending` 并在 `destroy()` 内先快照后逐项 `completeExceptionally(ERR_SERVICE_NOT_ACTIVE)` + `BindScheduledExecutor.schedule/submit` 补 inner→outer 异常传播（提交点 try/catch 仅卫生性附带，非验收面）
 - [ ] G2 C4-005：`GlobalExecutors.destroyAndUnregister(String)` + residual 登记
-- [ ] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 successor 8.55）
+- [ ] G3 C6-003：`GlobalExecutors.destroyAll()` 平台级 API（接线归 roadmap 8.55 / R4-15）
 - [ ] G4 C6-004：`registerMetrics` 返回 `AutoCloseable` 句柄 + destroy 时 close + `tenant-` meter 去重
 - [ ] G5 C5-003：`CacheConfig` 拷贝构造补两字段
-- [ ] G6 C6-005：`ResourceLoadingCache` 驱逐执行 destroy 回调
-- [ ] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 destroyOnRemove
+- [ ] G6 C6-005（三项）：① `createCache` 加 `setDestroyOnRemove(true)`；② `ResourceLoadingCache implements IDestroyable`（`destroy = invalidateAll + cleanUp`）；③ `LocalCache.destroy()` 改 `invalidateAll() + cleanUp()`
+- [ ] G7 C6-012：`TenantAwareResourceLoadingCache` 容器 `setDestroyOnRemove(true)`（**依赖 G6 ②**：值类型须实现 `IDestroyable`）
 - [ ] G8 C6-006：`FileWatchEntry` unwatch 摘父 + 重复 watch 复用
 - [ ] G9 C6-007：`NioFileWatchService` daemon 化 + awaitTermination
 - [ ] G10 C7-008：`ResourceDependsManager` 逐条淘汰
@@ -141,12 +180,12 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 
 **工单 × 载体表**（draft review R1 B-5；宿主类状态已 grep 实测）
 
-> **宿主类状态（2026-11-09）**：`TestExecutorHelperCancelContract`（nop-commons/executor，已存在）、`TestPeriodicTaskInsulation`（已存在）、`TestLocalCacheAsyncSemantics`（2547 新建）、`TestCycleSynchronizer`（2547 新建）、`TestResourceCacheInvalidationChain`（nop-core，已存在）。其余需新建。
+> **宿主类状态（2026-11-09）**：`TestExecutorHelperCancelContract`（nop-commons/executor，已存在）、`TestPeriodicTaskInsulation`（已存在）、`TestLocalCacheAsyncSemantics`（2547 新建）、`CycleSynchronizerTest`（2547 新建，**类名无 Test 前缀**）、`TestResourceCacheInvalidationChain`（nop-core，已存在）、`TestThreadPoolDestroyAwaitProbe`（已存在，含 pin0402a/b/c，**本批加 pin6001**）、`TestNioFileWatchService`（nop-core，已存在，**本批扩方法**）。其余需新建；每行标注「新建 / 扩展」。
 > **实施纪律**：每建一个载体类后立即 `grep -c "class 类名"` 校验，收口前全表扫描。
 
 | 工单 | 载体（测试类 / 方法 / 断言目标） | 类型 |
 |---|---|---|
-| C6-001 | `TestThreadPoolDestroyAwaitProbe#pin6001`（`DefaultScheduledExecutor` 提交 1 个延迟任务后立即 destroy → 该 future 必须 `isCompletedExceptionally()`，缺陷态=永不完成）/ `pin6001b`（`DefaultThreadPoolExecutor` destroy 走 shutdown 排空 → future 正常完成，**对照组**） | 行为钉（变异：移除终态化→红） |
+| C6-001 | `TestThreadPoolDestroyAwaitProbe#pin6001`（**扩展**：`DefaultScheduledExecutor` 单线程 `schedule(callable, 60s)` 后立即 `destroy()` → future 必须 `isCompletedExceptionally()` 且 cause = `NopException(ERR_SERVICE_NOT_ACTIVE)`，callable 执行计数=0）/ `pin6001b`（对照组：`DefaultThreadPoolExecutor` destroy 走 `shutdown` 排空 → future 正常完成）/ `pin6001c`（`BindScheduledExecutor` 包装层：底层 timer destroy 后外层 future 亦 `isCompletedExceptionally()`） | 行为钉（变异：移除终态化或移除传播→红） |
 | C4-005 | `TestGlobalExecutorsLifecycle#pin4005a`（`destroyAndUnregister(name)` 后 `getExecutor(name)` 返回 null/新实例，非死实例）/ `pin4005b`（residual 声明面：借用方直调 destroy 后注册表仍持死实例——**契约钉**，诚实登记） | 行为钉 + 契约钉 |
 | C6-003 | `TestGlobalExecutorsLifecycle#pin6003`（`destroyAll()` 后 `allExecutors()` 为空） | 行为钉 |
 | C6-004 | `TestExecutorMetricsUnbind#pin6004a`（`registerMetrics` 返回句柄非 null；close 后 registry 中该池 meter 消失）/ `pin6004b`（LocalCache destroy 后其 meter 消失） | 行为钉 |
@@ -154,27 +193,27 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 | C6-005 | `TestResourceLoadingCacheDestroy#pin6005`（驱逐条目时 `destroy` 回调被调用——计数桩） | 行为钉 |
 | C6-012 | `TestTenantCacheDestroy#pin6012`（`clearForTenant` 触发值对象 destroy） | 行为钉 |
 | C6-006 | `TestFileWatchEntry#pin6006a`（unwatch 后父 subEntries 不含该子项）/ `pin6006b`（同路径重复 watch 返回同一 entry 且两次 cleanup 幂等） | 行为钉 |
-| C6-007 | `TestNioFileWatchService#pin6007`（线程 isDaemon()==true）/ `pin6007b`（doStop 在 5s 内返回） | 行为钉 |
+| C6-007 | `TestNioFileWatchService#pin6007`（**扩展**：`Thread.getAllStackTraces()` 过滤线程名 `nio-file-watch-service` 前缀 → `isDaemon()==true`）/ `pin6007b`（`doStop()` 返回耗时 < 5s 且该线程名消失） | 行为钉（观测路径：线程名扫描，非私有字段） |
 | C7-008 | `TestResourceDependsManager#pin7008`（条目失效后 dependencyMap 不再含该 path） | 行为钉 |
 | C7-010 | `TestThrottleExecute#pin7010a`（许可耗尽 + 短超时 → 抛 `ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT`）/ `pin7010b`（中断 → 标志恢复 + 类型化异常）/ `pin7010c`（正常获许可仍工作） | 行为钉 |
 | C7-015 | `TestRateLimiterAcquireBound#pin7015`（`acquire()` 在配置短上界下抛 `ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT`）/ `pin7015b`（`<=0` 保持无限语义，用 `tryAcquire(permits, 0)` 观察不阻塞） | 行为钉 |
-| C7-002 | `_content` 断言：`DefaultScheduledExecutor.scheduleAtFixedRate` javadoc 含「补偿」句子 + `source-anchors.md` 有对应锚 | **Decision**（文档断言） |
+| C7-002 | `TestScheduledFixedRateContract#pin7002`（**行为观测**：单线程 timer 上 `scheduleAtFixedRate` 周期 50ms，任务体 sleep 200ms 持续 3 轮 → 断言第 2/3 轮 start 时刻**不晚于**理论时刻 + 一个周期，即 JDK 补偿语义成立）+ `source-anchors.md` 锚存在性 | **Decision**（行为钉，非 `_content` 文本断言） |
 | C4-011 | `TestThreadPoolConfigFields#pin4011`（反射：`ThreadPoolConfig` 无 `threadPriority`/`allowCoreThreadTimeOut` 字段） | 结构钉 |
-| C4-012 | `TestJdk21InitializerDestroy#pin4012`（destroy 后注册表无 `nop-virtual-thread`） | 行为钉（`nop-commons-java21`） |
-| C9-004 | `TestXlangStaticMethodCache#pin9004a`（同 (className,funcName) 连续两次调用 → 类加载计数 == 1）/ `pin9004b`（`ClassNotFoundException` 仍返回 null，不抛） | 行为钉 |
-| C7-011 | `pin0110`（2547 既有，**不回退**）+ `_content` 断言：`beginCycle` javadoc 含「restart()」句子 | Decision + 回归钉 |
+| C4-012 | `TestJdk21InitializerDestroy#pin4012`（**前置：pom 加 junit + 新建 src/test，profile `java21-modules`**）（destroy 后注册表无 `nop-virtual-thread`） | 行为钉（`nop-commons-java21`） |
+| C9-004 | `TestXlangStaticMethodCache#pin9004a`（TCCL 切至计数 `ClassLoader`，加载一个未预加载的合成类 → 第 1 次 `loadClass` 计数 1，第 2 次仍为 1）/ `pin9004b`（两次 `assertSame` 同一 `IMethodModelCollection` 实例）/ `pin9004c`（`ClassNotFoundException` 仍返回 null 不抛） | 行为钉 |
+| C7-011 | `pin0110`/`pin0110b`（2547 既有，**不回退**）+ `pin7011`（**行为观测**：`beginCycle` 抛错后 `processing=true`，调 `restart()` 后新周期可正常 `beginCycle`——即逃生门真实可用）+ `source-anchors.md` 锚存在性 | Decision + 回归钉 |
 
 
 Exit Criteria:
 
-- [ ] 17 工单全部 landed（C6-001 单独验证 destroy 侧终态化）
+- [ ] 17 工单全部实施（C6-001 单独验证 destroy 侧终态化）
 - [ ] 载体表逐条存在且断言目标行为
 - [ ] 关键项先红后绿或变异论证（≥4：C6-001 destroy 终态化、C6-005 销毁回调、C7-010 超时类型化、C9-004 类加载计数）
 - [ ] `./mvnw -o clean install -DskipTests -T 1C -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS
 - [ ] `./mvnw test -pl nop-kernel` BUILD SUCCESS（clean）
 - [ ] 设计 §五 回归面可执行面逐条执行并登记
 - [ ] **端到端验证**：C6-001 的 submit-then-destroy 路径（future 必须异常完成，不挂起）——用 `DefaultScheduledExecutor` 真实 destroy
-- [ ] **接线验证**：C9-004 的静态方法调用确实命中新缓存（类加载计数桩 == 1）
+- [ ] **接线验证**：C9-004 的静态方法调用确实命中新缓存（TCCL 计数 ClassLoader 的 `loadClass` 第二次调用计数 == 0 增量）
 - [ ] **不回退 2547**：generation 守卫 / destroy 有界等待 / CLASS_MODELS 占位的既有钉全绿
 - [ ] `ai-dev/logs/` 已更新
 
@@ -244,6 +283,20 @@ Exit Criteria:
 - Why Not Blocking Closure: 拦截该路径需要分发点返回不可销毁包装（破坏 `IThreadPoolExecutor` 语义）或改动 `IDestroyable` 契约（跨模块面）。本批提供受支持入口 `destroyAndUnregister` + owner doc 声明「平台池不得由借用方直接 destroy」。
 - Successor Required: `yes`；Successor Path: R-G 治理批（契约面）。
 
+### C6-002 `GlobalExecutors.register` 覆盖时不 drain 旧池（R3 MJ-3）
+
+- Classification: `watch-only residual`
+- 内容：`register(executor)` = `g_executors.put(name, new)` + `old.destroy()`；`destroy()` 对 `DefaultScheduledExecutor`/`DefaultThreadPoolExecutor` 都是即时停机，**在飞任务被中断、排队任务被丢弃**（对 DTE 是 `shutdown` 排空，对 DSE 是 `shutdownNow`）。若注册方预期「热替换后旧池自然跑完」，当前形态会静默截断。
+- Why Not Blocking Closure: 改变 `register` 语义（改为「先 drain 再 destroy」或「拒绝覆盖」）会影响既有热更调用方（`VirtualThreadTaskExecutor.registerGlobalWorker` 等）；且本台账 C6-002 已由 family-clustering 并入 C4-005，而 C4-005 的裁定面是「注册表移除对称」，不含「覆盖时 drain 策略」。
+- Successor Required: `yes`；Successor Path: R-G 治理批（与 C4-005 residual / allExecutors 活引用同批裁定 `register` 的三态契约）。
+
+### `GlobalExecutors.allExecutors()` 返回内部 live map
+
+- Classification: `watch-only residual`
+- 内容：`allExecutors()`（`GlobalExecutors.java:40-42`）直接返回 `g_executors` 本体，调用方可 `put/remove` 绕过 `register`/`destroyAndUnregister` 的销毁语义。本批 `pin6003` 断言 `destroyAll()` 后 `allExecutors().isEmpty()` 依赖「活引用」语义。
+- Why Not Blocking Closure: 改为不可变视图会破坏既有 `allExecutors()` 消费方；本批保留活引用并在 owner doc 声明「只读用途，变更请走受支持入口」。
+- Successor Required: `yes`；Successor Path: R-G 治理批（与 C4-005 residual 同批）。
+
 ### `GlobalExecutors.destroyAll()` 的宿主接线
 
 - Classification: `out-of-scope improvement`
@@ -255,11 +308,6 @@ Exit Criteria:
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: `executor` 为 transient 池引用，拷贝进 clone 会把池引用带出（可能不期望）；本批裁定**不拷贝**并在字段 javadoc 注明。
 - Successor Required: `no`。
-
-### `LocalCache.destroy()` 的 `invalidateAll` 语义
-
-- Classification: `landed`（本批 G6 子面）
-- 内容：`LocalCache.destroy()` 由 `cleanUp()` 改为 `invalidateAll() + cleanUp()`，使 `destroyOnRemove` 回调在关闭路径也被执行。
 
 ## Non-Blocking Follow-ups
 
