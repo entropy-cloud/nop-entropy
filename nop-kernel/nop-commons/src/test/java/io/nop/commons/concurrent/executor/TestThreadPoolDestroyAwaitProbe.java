@@ -161,9 +161,10 @@ public class TestThreadPoolDestroyAwaitProbe {
         executor.destroy();
         blocker.countDown();
 
-        assertTrue(queued.isDone(), "排空语义：排队任务应被执行并正常完结");
+        // 排空语义：destroy（shutdown）后队列任务在 worker 释放后应被正常执行并完结
+        assertEquals("drained", queued.get(2, TimeUnit.SECONDS),
+                "排空语义：排队任务应被执行并正常完结");
         assertFalse(queued.isCompletedExceptionally(), "对照组不应异常终态");
-        assertEquals("drained", queued.get(2, TimeUnit.SECONDS));
     }
 
     /** pin6001c：C6-001（plan 2548）BindScheduledExecutor 外层 future 在底层 timer destroy 后异常终态。 */
@@ -211,7 +212,11 @@ public class TestThreadPoolDestroyAwaitProbe {
                     "在飞任务的 future 也应在 destroy 时异常终态（结果丢弃契约）");
             java.util.concurrent.ExecutionException ex =
                     assertThrows(java.util.concurrent.ExecutionException.class, future::get);
-            assertTrue(ex.getCause() instanceof NopException);
+            // cause 二选一（竞态合法）：destroy 结算 → NopException；shutdownNow 中断先行 → InterruptedException。
+            // 契约本体 = future 异常终态（结果 "late-result" 被丢弃），而非 cause 的具体类型。
+            assertTrue(ex.getCause() instanceof NopException
+                            || ex.getCause() instanceof InterruptedException,
+                    "cause 应为 NopException 或 InterruptedException，实际 " + ex.getCause());
         } finally {
             release.countDown();
             timer.destroy();
