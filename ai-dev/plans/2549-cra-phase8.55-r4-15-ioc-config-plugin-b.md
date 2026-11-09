@@ -47,14 +47,14 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 - 组 4（销毁链）：C4-010 → C6-007 → C6-009 → C1-005
 - 组 5（插件，最后）：C1-018 → C1-019 → C2-005
 
-**工单 × 载体表**（新建/扩展现场标注；实施纪律：每建一个载体类后 grep 校验）
+**工单 × 载体表**（**全部 14 个测试类为新建**（R1 grep 全仓 0 命中）；实施纪律：每建一个载体类后 grep 校验）
 
 | 工单 | 载体（测试类 / 方法 / 断言目标） | 类型 |
 |---|---|---|
 | C1-001/C4-009 | `TestBeanContainerLifecycleRace#pin1a`（并发 start×getBean 无孤儿：双线程 barrier 后 start/getBean，断言 getBean 返回实例与 start 后 singleton 一致）/ `pin1b`（restart 代际：启动期抛错的旧图 handleStartError 不 stop 新生代——慢启动任务 + restart 竞争，断言新代 bean 可用） | 行为钉 |
 | C6-008 | `TestIocCoreInitializerStop#pin8`（initializer destroy 后容器 stop 前置：destroy 期间解析不落 parent 新建孤儿——销毁后 require 路径断言） | 行为钉 |
 | C1-008/C2-008 | `TestConfigProviderApplyChange#pin2a`（并发 applyChange×getVar 无撕裂：监听器计数守恒 + 键值对一致） | 行为钉 |
-| C4-007 | `TestConfigListenerObservation#pin3`（慢监听器 >1s → WARN 日志含耗时；串行顺序保持：通知顺序=注册顺序） | 行为钉 + Decision |
+| C4-007 | `TestConfigListenerObservation#pin3`（慢监听器 >1s → WARN 日志含耗时；**同订阅内注册序**断言，跨订阅顺序不声明——live HashSet hash 序，R1 MJ-2） | 行为钉 + Decision |
 | C1-004 | `TestSubscriptionCleanupRace#pin4`（stop 与异步订阅启动竞争：清理后无泄漏订阅——监听器计数=0） | 行为钉 |
 | C2-007 | `TestSubscribeChangeOrphan#pin5`（订阅/退订交错后 map 无孤儿 list：退订最后一个是剩 remove(key,list) 生效） | 行为钉 |
 | C1-018 | `TestPluginNameIndexRace#pin6`（并发 register×unregisterNameIndex 后索引集无孤儿：requires 门控仍生效） | 行为钉 |
@@ -95,7 +95,20 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 
 ## Review 记录
 
-（draft review / closure audit 轮次记录处）
+**Draft Review 记录**
+
+- R1（fresh session，24 次工具调用）：**PASS-with-revisions**，0 Blocker + 4 Major + 5 Minor。全部随本版落盘（见下表）。17 成员锚点全部命中、判级与台账一致、E-2549-1 五条勘误与 live/2506/2507 提交吻合、载体 14 类全仓 0 命中（全新建）、双门禁 EXIT=0。
+- 修订后待 R2 复审。
+
+### Draft Review R1 修订清单
+
+| R1 项 | 结论与修订 |
+|---|---|
+| **MJ-1** C2-007 两参 remove 不闭合窗口 | 改**双侧 `listeners.compute`**（add/remove/isEmpty 清理皆在映射函数内，CHM per-key 原子） |
+| **MJ-2** pin3 注册序断言现状即假（HashSet hash 序） | Decision 收窄：「同订阅内注册序 + 跨订阅顺序不声明」；不改 LinkedHashSet（范围外，显式拒绝） |
+| **MJ-3** C2-005 失败方只关 classLoader 丢弃已 start 插件 | 失败方按 2506 catch 语义回收插件（aware→unload/非 aware→stop）后再关 classLoader，同 diff 共存 |
+| **MJ-4** C4-010「创建时间倒序」无数据结构支撑 | 删回退；查不到定义 → WARN + 哈希序兜底 |
+| m1-m5 | joinStart 侧代际快照存储形态（startFuture 配对 holder）；C6-008 理由链勘正（scope checkClosed 仍拦，换序收益=消除销毁回调 checkStarted 抛错面）；C1-018 签名变化声明 `(pluginId, name)`；C2-009 第二站点措辞勘正（:594/:641）；载体表标注全部新建 |
 
 ## Closure
 
