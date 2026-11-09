@@ -667,12 +667,14 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
     void handleStartError(Throwable e, long generation) {
         if (startFailed)
             return;
-        startFailed = true;
+        // C4-009（执行期勘误 E-2549-3）：代际校验必须先于 startFailed 置位——旧代失败若先污染
+        // startFailed，新代 whenComplete 的 !startFailed 分支会被跳过（started 永不翻转）
         if (generation != startGeneration) {
             LOG.warn("nop.warn.ioc.stale-start-error:containerId={},gen={},currentGen={}",
                     getId(), generation, startGeneration, e);
             return;
         }
+        startFailed = true;
         LOG.error("nop.err.ioc.start-failed", e);
         try {
             stop();
