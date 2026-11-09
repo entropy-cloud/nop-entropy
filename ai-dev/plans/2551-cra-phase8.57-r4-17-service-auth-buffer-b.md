@@ -37,7 +37,7 @@ Status: completed（设计十二裁定 A-L + C10 前置落位表；draft review 
 
 ### Phase 2 - 12 工单实现 + 回归测试
 
-Status: planned
+Status: completed
 Targets: nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-auth-sso / nop-network/nop-rpc/nop-rpc-core / nop-quarkus-web / nop-spring-web-starter + 测试树（R1-Major-6：裁定 J③ 适配器两模块入批）
 
 - Item Types: `Fix`（9）、`Proof`（1：C4-002）、`Fix+Decision`（2：C4-001 含 beans 装配决策、C8-008 含分桶键控语义）
@@ -67,15 +67,15 @@ Targets: nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-auth
 
 ## Exit Criteria
 
-- [ ] 12 工单全部实施（含 C4-002 Proof 登记）
-- [ ] 载体表逐条存在且断言目标行为
-- [ ] 关键项先红后绿或变异论证（≥3：C4-001 缺省 bean、C8-008 分桶、C9-003 锁外快检）
-- [ ] E1 全量编译门禁 BUILD SUCCESS
-- [ ] E3：`./mvnw -f nop-service-framework/pom.xml clean test` 全量 0F/0E + `./mvnw test -pl nop-auth/nop-auth-sso -am` + `./mvnw test -pl nop-network/nop-rpc/nop-rpc-core -am`（R1-Minor-10 勘正路径）+ `./mvnw test -pl nop-quarkus/nop-quarkus-web -am` + `./mvnw test -pl nop-spring/nop-spring-web-starter -am`（J③ 适配器回归）
-- [ ] **不回退 2508/2498/2509/2550**：SSO 刷新链、WS 推送卸载、BoundedWindowBuffer、CL-025 断连链既有钉全绿
-- [ ] owner doc 落账：`service-layer.md` + `source-anchors.md`
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 逐叶子模块 EXIT=0（nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-network/nop-rpc/nop-rpc-core / nop-auth-sso / nop-quarkus-web / nop-spring-web-starter——R2-n-4）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 12 工单全部实施（含 C4-002 Proof 登记；C8-008 裁定 I 按 R1-Blocker-1 改写 resource 分桶形态）
+- [x] 载体表逐条存在且断言目标行为（9 载体类 30 钉：biz 4+4、gateway 2+3+3、graphql-core 3+3、rpc-core 3、biz-auth-core 2、auth-sso 3 全绿）
+- [x] 关键项先红后绿或变异论证（≥3）：红① C4-001 validateExecutors 抹除→pin_b Error；红② C8-008 分桶键抹除→pin_a Failure；红③ C9-003 volatile 抹除→pin_b Failure——总册 `_tmp/red-green-ledger-2551.md`
+- [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0，证据 `_tmp/e1-2551-full-build.log`）
+- [x] E3：`./mvnw -f nop-service-framework/pom.xml clean test` **BUILD SUCCESS**（第 2 轮 0F/0E；第 1 轮抓 LoggingInterceptorTest setAttribute(null) NPE——执行期修正为 removeAttribute，非弱化）+ nop-auth-sso SSO_EXIT=0 + nop-rpc-core RPC_EXIT=0 + nop-quarkus-web QW_EXIT=0 + nop-spring-web-starter SPRING_EXIT=0
+- [x] **不回退 2508/2498/2509/2550**：SSO 刷新链（TestSsoRefreshAsyncChain SSO 通道绿）、WS 推送卸载/BoundedWindowBuffer/CL-025 断连链既有钉全绿（E3 反应堆通道含）
+- [x] owner doc 落账：`service-layer.md`「异步 action 执行器治理与 WS 活性面契约（plan 2551）」节 + `source-anchors.md` `GW-003`
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--severity high` 八叶子模块全 EXIT=0
+- [x] `ai-dev/logs/2026/11-10.md` 已更新
 
 ## Deferred But Adjudicated
 

@@ -24,6 +24,15 @@ public interface IGatewayInvocation {
 
     Object proceedOnStreamElement(Object element, IGatewayContext svcCtx);
 
+    /**
+     * 2.3-C9-005（plan 2551 裁定 L）：流元素链是否存在变换（拦截器 onStreamElement 覆写或
+     * 路由级 onStreamElement/elementMapping）。false = 透传快径档（String 元素免
+     * parse/再 serialize 往返）。缺省 true = 保守档（未知实现保持现路径）。
+     */
+    default boolean hasStreamElementTransform() {
+        return true;
+    }
+
     Object proceedOnStreamError(Throwable exception, IGatewayContext svcCtx);
 
     void proceedOnStreamComplete(IGatewayContext svcCtx);

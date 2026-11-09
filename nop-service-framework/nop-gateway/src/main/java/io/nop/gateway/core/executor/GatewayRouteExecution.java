@@ -18,6 +18,7 @@ import io.nop.core.lang.eval.IEvalFunction;
 import io.nop.gateway.core.context.IGatewayContext;
 import io.nop.gateway.core.interceptor.IGatewayInvocation;
 import io.nop.gateway.model.GatewayRouteModel;
+import io.nop.gateway.model.GatewayStreamingModel;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -114,6 +115,17 @@ public class GatewayRouteExecution implements IGatewayInvocation {
                 onStreamStart.call2(null, request, svcCtx, svcCtx.getEvalScope());
             }
         }
+    }
+
+    /**
+     * 2.3-C9-005（plan 2551 裁定 L）：路由级流元素变换存在性（onStreamElement XPL 或
+     * elementMapping 非空）——透传快径的判定输入之一。
+     */
+    @Override
+    public boolean hasStreamElementTransform() {
+        GatewayStreamingModel streaming = route.getStreaming();
+        return streaming != null
+                && (streaming.getOnStreamElement() != null || streaming.getElementMapping() != null);
     }
 
     @Override

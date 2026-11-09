@@ -8,6 +8,7 @@
 package io.nop.gateway.core.executor;
 
 import io.nop.api.core.time.CoreMetrics;
+import io.nop.commons.concurrent.executor.GlobalExecutors;
 import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.api.core.exceptions.NopException;
@@ -31,6 +32,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.function.DoubleSupplier;
 
+import static io.nop.gateway.GatewayConfigs.CFG_GATEWAY_UPSTREAM_REQUEST_TIMEOUT;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_INVOKE_WITH_NULL_URL;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_HTTP_CLIENT;
 import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_NO_RPC_SUPPORT;
@@ -220,6 +222,13 @@ public class InvokeProcessor {
         } else {
             httpRequest.setMethod(svcCtx.getHttpMethod());
         }
+        // 2.3-C4-003（plan 2551 裁定 C②）：上游 fetch 显式超时（键
+        // CFG_GATEWAY_UPSTREAM_REQUEST_TIMEOUT 缺省 30s；≤0=用客户端缺省）——429/5xx 挂起窗受
+        // 双重上界（Retry-After 30s 钳制 × 请求超时），无超时的上游挂起不再无限占许可与内存。
+        Long configuredTimeout = CFG_GATEWAY_UPSTREAM_REQUEST_TIMEOUT.get();
+        if (configuredTimeout != null && configuredTimeout > 0) {
+            httpRequest.setTimeout(configuredTimeout);
+        }
 
         return httpClient.fetchAsync(httpRequest, null).thenCompose(httpResponse -> {
             int httpStatus = httpResponse.getHttpStatus();
@@ -282,9 +291,18 @@ public class InvokeProcessor {
         });
     }
 
+    /**
+     * 2.3-C4-003（plan 2551 裁定 C①）：重试延迟载体由 JDK delayedExecutor 改平台
+     * {@code globalTimer().executeOn(globalWorker())}——触发入平台 timer 治理面（O(1) 计时器槽），
+     * 完成回调经 executeOn hop 落 worker 池（重试发起——buildHttpRequest + fetch 提交——不得落
+     * timer 线程，否则复刻 C4-002 已修的 timer-pinning 形态；仓内先例
+     * JsonRpcWebSocketHandler.registerKeepAlive）。C4 复核勘误 8 注记：JDK25 delayedExecutor 已改
+     * common pool 多线程，原「单线程 Delayer 钉死」P1 支柱证伪——本改动为治理一致性而非容量修复。
+     */
     private CompletionStage<Void> delayedFuture(long delayMs) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS).execute(() -> future.complete(null));
+        GlobalExecutors.globalTimer().executeOn(GlobalExecutors.globalWorker())
+                .schedule(() -> future.complete(null), delayMs, TimeUnit.MILLISECONDS);
         return future;
     }
 

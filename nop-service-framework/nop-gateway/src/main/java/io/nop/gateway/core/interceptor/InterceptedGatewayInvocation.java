@@ -21,8 +21,32 @@ public class InterceptedGatewayInvocation implements IGatewayInvocation {
     private final IGatewayInvocation invocation;
     private int currentInterceptorIndex = 0;
 
+    /** 2.3-C9-005：拦截器链是否存在 onStreamElement 覆写（构造期一次判定，反射声明类比对） */
+    private final boolean hasStreamElementInterceptor;
+
+    private static boolean overridesOnStreamElement(IGatewayInterceptor interceptor) {
+        try {
+            return interceptor.getClass()
+                    .getMethod("onStreamElement", Object.class, IGatewayContext.class)
+                    .getDeclaringClass() != IGatewayInterceptor.class;
+        } catch (NoSuchMethodException e) {
+            return true; // 不可能：接口方法必然存在；保守档
+        }
+    }
+
     public InterceptedGatewayInvocation(List<IGatewayInterceptor> interceptors, IGatewayInvocation invocation) {
         this.interceptors = interceptors;
+        boolean any = false;
+        if (interceptors != null) {
+            for (IGatewayInterceptor interceptor : interceptors) {
+                if (overridesOnStreamElement(interceptor)) {
+                    any = true;
+                    break;
+                }
+            }
+        }
+        // 2.3-C9-005：委托层（GatewayRouteExecution）的路由级变换同样计入
+        this.hasStreamElementInterceptor = any || invocation.hasStreamElementTransform();
         this.invocation = invocation;
     }
 
@@ -95,6 +119,15 @@ public class InterceptedGatewayInvocation implements IGatewayInvocation {
             interceptor.onStreamStart(request, svcCtx);
         }
         invocation.proceedOnStreamStart(request, svcCtx);
+    }
+
+    /**
+     * 2.3-C9-005（plan 2551 裁定 L）：无任何流元素变换（拦截器无覆写 + 路由无映射）时
+     * 返回 false——StreamingProcessor 据此走透传快径（String 元素免 parse/再 serialize）。
+     */
+    @Override
+    public boolean hasStreamElementTransform() {
+        return hasStreamElementInterceptor;
     }
 
     @Override

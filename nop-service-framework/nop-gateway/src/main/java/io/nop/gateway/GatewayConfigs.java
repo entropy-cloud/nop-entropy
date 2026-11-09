@@ -45,4 +45,20 @@ public interface GatewayConfigs {
     @Description("流式首段重订阅次数上界（≤0=无限；默认 5）")
     IConfigReference<Integer> CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS =
             varRef(s_loc, "nop.graphql.stream.max-resubscribe-attempts", Integer.class, 5);
+
+    /**
+     * 2.3-C4-003（plan 2551 裁定 C②）：上游 HTTP 请求显式超时（缺省 30s；≤0=用客户端缺省）。
+     * 429/5xx 重试挂起窗与请求超时构成双重上界，无响应的上游不再无限占准入许可与内存。
+     */
+    @Description("上游 HTTP 请求超时毫秒（≤0=客户端缺省；默认 30000）")
+    IConfigReference<Long> CFG_GATEWAY_UPSTREAM_REQUEST_TIMEOUT =
+            varRef(s_loc, "nop.gateway.upstream-request-timeout", Long.class, 30_000L);
+
+    /**
+     * 2.3-C8-003（plan 2551 裁定 G）：流式聚合缓冲字节上界（缺省 2MB）——content 与每个
+     * tool-call arguments 缓冲分别受界，超限截断 + 一次性 WARN + 截断标记。
+     */
+    @Description("流式聚合缓冲字节上界（content 与每个 tool-call arguments 分别受界；默认 2MB）")
+    IConfigReference<Long> CFG_GATEWAY_STREAM_ACCUMULATE_MAX_BYTES =
+            varRef(s_loc, "nop.gateway.streaming.accumulate-max-bytes", Long.class, 2_097_152L);
 }

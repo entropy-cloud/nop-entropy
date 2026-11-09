@@ -19,6 +19,8 @@ import io.nop.core.exceptions.ErrorMessageManager;
 import io.nop.core.lang.json.JsonTool;
 import io.nop.core.model.selection.FieldSelectionBeanParser;
 import io.nop.commons.concurrent.executor.GlobalExecutors;
+import io.nop.commons.concurrent.semaphore.HighWatermarkSemaphore;
+import io.nop.graphql.core.GraphQLConfigs;
 import io.nop.commons.util.StringHelper;
 import io.nop.core.reflect.bean.BeanTool;
 import io.nop.graphql.core.jsonrpc.JsonRpcRequest;
@@ -92,7 +94,44 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      */
     protected final WebSocketSendPump sendPump;
 
-    private int maxActiveOperations = 1000;
+    /**
+     * 2.3-C8-007（plan 2551 裁定 H）：单连接订阅上界配置化（键
+     * nop.graphql.ws.max-active-operations，缺省 1000=现行值；setter 保留供测试覆盖）。
+     * 端点为宿主 CDI bean，Nop @InjectValue 不生效——handler 直读静态配置键。
+     */
+    private int maxActiveOperations = readConfiguredMaxActiveOperations();
+
+    /**
+     * 2.3-C8-009（plan 2551 裁定 J）：会话活性记账——lastPongAt（pong 记账，原
+     * METHOD_PONG 空分支）+ 连续发送失败计数（连续 3 次即断连，不再仅 WARN）。
+     * volatile：keepAlive 扫描线程与消息线程跨线程读写。
+     */
+    volatile long lastPongAt = System.currentTimeMillis();
+    volatile int consecutiveSendFailures;
+    volatile long lastKeepAliveAt;
+
+    /**
+     * 2.3-C8-007（plan 2551 裁定 H②）：跨连接全局订阅闸（单一机制）——
+     * HighWatermarkSemaphore（键 nop.graphql.ws.global-max-subscriptions，缺省 10000；
+     * ≤0=null=不设上界档旁路）。validSubscription 前全局 tryAcquire、订阅终止 release。
+     */
+    static final HighWatermarkSemaphore GLOBAL_SUBSCRIPTION_GATE =
+            buildGlobalSubscriptionGate();
+
+    private static HighWatermarkSemaphore buildGlobalSubscriptionGate() {
+        Integer max = GraphQLConfigs.CFG_GRAPHQL_WS_GLOBAL_MAX_SUBSCRIPTIONS.get();
+        if (max == null || max <= 0) {
+            return null; // ≤0：不设上界档（显式语义）
+        }
+        // 高水位=拒绝线，低水位=恢复线（构造约束 high>low>0）；订阅闸无恢复语义，取 max/2
+        return new HighWatermarkSemaphore(max, Math.max(1, max / 2));
+    }
+
+    private static int readConfiguredMaxActiveOperations() {
+        Integer v = GraphQLConfigs.CFG_GRAPHQL_WS_MAX_ACTIVE_OPERATIONS.get();
+        return v == null ? 1000 : v;
+    }
+
     protected volatile Map<String, Object> authHeaders;
     protected volatile String boundUserId;
     protected volatile String boundSessionId;
@@ -147,6 +186,13 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     @Override
     public void onThrowable(Throwable t) {
         LOG.warn("Error in websocket", t);
+        // 2.3-C8-009（plan 2551 裁定 J④）：异常路径补订阅清理——原仅注销 keepAlive，
+        // activeOperations 滞留条目泄漏全局闸名额与订阅执行链。
+        try {
+            activeOperations.forEach((id, operation) -> cancelOperation(id));
+        } catch (Throwable e) {
+            LOG.debug("nop.websocket.on-throwable-cleanup-fail", e);
+        }
         unregisterKeepAlive();
     }
 
@@ -183,6 +229,14 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         }
         // registration handle: cancelled when the session leaves the chain (see unregisterKeepAlive)
         return new CompletableFuture<Void>();
+    }
+
+    /**
+     * 2.3-C8-009：主动断开（idle 超时/连续发送失败）——复用 onClose 全量清理路径
+     * （订阅取消+会话关闭+注册表清扫+pump 关闭），与被动关闭同一收口，无第二套清理逻辑。
+     */
+    protected void closeSession() {
+        onClose();
     }
 
     private void unregisterKeepAlive() {
@@ -227,6 +281,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                     handlePing(id);
                     break;
                 case METHOD_PONG:
+                    // 2.3-C8-009（plan 2551 裁定 J②）：pong 记账——原空分支使 idle 超时判定无依据
+                    lastPongAt = System.currentTimeMillis();
                     break;
                 case METHOD_UNSUBSCRIBE:
                     handleUnsubscribe(request);
@@ -406,18 +462,34 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     }
 
     private boolean validSubscription(String operationId, String method) throws IOException {
+        // 2.3-C8-007：跨连接全局闸——超限拒绝新订阅（单连接上界仍先行）
+        if (GLOBAL_SUBSCRIPTION_GATE != null && !GLOBAL_SUBSCRIPTION_GATE.tryAcquire(1, 0)) {
+            LOG.warn("nop.websocket.too-many-global-subscriptions:opId={}", operationId);
+            sendError(operationId, JsonRpcWebSocketErrorCodes.TOO_MANY_SUBSCRIPTIONS,
+                    "Too many active subscriptions globally");
+            return false;
+        }
         if (activeOperations.size() >= maxActiveOperations) {
+            releaseGlobalSubscriptionSlot();
             LOG.warn("nop.websocket.too-many-active-operations:opId={}", operationId);
             sendError(operationId, JsonRpcWebSocketErrorCodes.TOO_MANY_SUBSCRIPTIONS, "Too many active subscriptions");
             return false;
         }
 
         if (activeOperations.containsKey(operationId)) {
+            releaseGlobalSubscriptionSlot();
             sendError(operationId, JsonRpcWebSocketErrorCodes.SUBSCRIPTION_EXISTS, "Subscription already exists: " + operationId);
             session.close((short) 4409, "Subscriber for " + operationId + " already exists");
             return false;
         }
         return true;
+    }
+
+    /** 2.3-C8-007：订阅失败路径归还全局闸名额（成功路径由订阅终止清理点 release） */
+    private void releaseGlobalSubscriptionSlot() {
+        if (GLOBAL_SUBSCRIPTION_GATE != null) {
+            GLOBAL_SUBSCRIPTION_GATE.release(1);
+        }
     }
 
     private boolean cancelOperation(String operationId) {
@@ -426,6 +498,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
             if (subscriber instanceof SubscriptionSubscriber) {
                 ((SubscriptionSubscriber) subscriber).cancel();
             }
+            // 2.3-C8-007：订阅终止清理点归还全局闸名额（onError/onComplete 同）
+            releaseGlobalSubscriptionSlot();
             return true;
         }
         return false;
@@ -442,6 +516,8 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         Flow.Subscriber<ApiResponse<?>> existing = activeOperations.putIfAbsent(operationId, subscriber);
         if (existing != null) {
             LOG.warn("nop.websocket.subscription-race:opId={}", operationId);
+            // 2.3-C8-007：输家未注册成功，归还 validSubscription 阶段占用的全局闸名额
+            releaseGlobalSubscriptionSlot();
             return;
         }
         stream.subscribe(subscriber);
@@ -460,12 +536,35 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
      * site-level Throwable guard (R1-01 insulation) is preserved over the enqueue path.
      */
     protected void sendKeepAlive() {
+        lastKeepAliveAt = System.currentTimeMillis();
+        // 2.3-C8-009（plan 2551 裁定 J③）：idle 超时判定——超过阈值（键
+        // nop.graphql.ws.idle-timeout，缺省 120s；≤0=关档）未见 pong 即主动断开
+        // （复用 onClose 清理路径：订阅取消+注册表清扫）。共享扫描线程只做判定，不阻塞。
+        Integer idleTimeoutSec = GraphQLConfigs.CFG_GRAPHQL_WS_IDLE_TIMEOUT_SECONDS.get();
+        if (idleTimeoutSec != null && idleTimeoutSec > 0
+                && lastPongAt > 0
+                && lastKeepAliveAt - lastPongAt > idleTimeoutSec * 1000L) {
+            LOG.warn("nop.websocket.idle-timeout:session={},idleMs={}", session,
+                    lastKeepAliveAt - lastPongAt);
+            closeSession();
+            return;
+        }
         try {
             sendPump.submit(() -> {
                 try {
                     session.sendMessage(createNotification(METHOD_PING));
+                    // 发送成功：失败计数复位
+                    consecutiveSendFailures = 0;
                 } catch (IOException e) {
-                    LOG.warn("nop.websocket.send-keep-alive-fail", e);
+                    // 2.3-C8-009（plan 2551 裁定 J①）：连续 3 次 ping 失败 = 会话死链，
+                    // 主动断开（不再仅 WARN 让死会话滞留注册表与订阅链）。
+                    if (++consecutiveSendFailures >= 3) {
+                        LOG.warn("nop.websocket.send-fail-disconnect:session={},failures={}",
+                                session, consecutiveSendFailures);
+                        closeSession();
+                    } else {
+                        LOG.warn("nop.websocket.send-keep-alive-fail", e);
+                    }
                 } catch (Throwable e) {
                     LOG.error("nop.err.websocket.keep-alive-fail:session={}", session, e);
                 }
@@ -612,7 +711,10 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 }
             });
             // 订阅已终止，条目必须清理，否则id复用会触发4409断开整个连接，且滞留条目耗尽maxActiveOperations
-            activeOperations.remove(operationId, this);
+            if (activeOperations.remove(operationId, this)) {
+                // 2.3-C8-007：终止清理点归还全局闸名额
+                releaseGlobalSubscriptionSlot();
+            }
         }
 
         @Override
@@ -630,7 +732,10 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 }
             });
             // 使用双参remove防止误删并发重订阅的新条目
-            activeOperations.remove(operationId, this);
+            if (activeOperations.remove(operationId, this)) {
+                // 2.3-C8-007：终止清理点归还全局闸名额
+                releaseGlobalSubscriptionSlot();
+            }
         }
 
         public void cancel() {

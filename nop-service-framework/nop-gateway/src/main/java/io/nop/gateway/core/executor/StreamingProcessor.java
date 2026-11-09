@@ -167,12 +167,18 @@ public class StreamingProcessor {
             public void onNext(IServerEventResponse item) {
                 try {
                     Object element = item.getData();
-                    if (element instanceof String) {
+                    // 2.3-C9-005（plan 2551 裁定 L）：透传快径——无流元素变换档下 String 元素免
+                    // parse/再 serialize 往返（事件循环线程逐元素 JSON 往返的热路径消除）。
+                    // 带变换（拦截器/路由映射）路由维持现路径，语义零变化。
+                    boolean passthrough = element instanceof String && !invocation.hasStreamElementTransform();
+                    if (element instanceof String && !passthrough) {
                         element = JSON.parse(element.toString());
                     }
 
-                    // 1. 应用拦截器的onStreamElement
-                    element = invocation.proceedOnStreamElement(element, context);
+                    if (!passthrough) {
+                        // 1. 应用拦截器的onStreamElement
+                        element = invocation.proceedOnStreamElement(element, context);
+                    }
 
                     if (element != null) {
                         subscriber.onNext(element);

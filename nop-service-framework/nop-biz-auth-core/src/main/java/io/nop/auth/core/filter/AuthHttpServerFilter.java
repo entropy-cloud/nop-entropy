@@ -151,7 +151,11 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
         IContext ctx = routeContext.getContext();
         Guard.notNull(ctx, "context not inited");
 
-        // 耗时的操作不能在IO线程上执行
+        // 耗时的操作不能在IO线程上执行。
+        // 2.3-C4-004（plan 2551 裁定 D）：blocking 载体仅承载用户上下文加载段（token 解析 +
+        // 缓存读发起）；下游链（userContext 决策 + handleUserContext→next.get()）经 runOnContext
+        // 再入上下文任务队列执行——不在 executeBlocking 载体线程持有整条下游链（与 2508 续段
+        // 介质契约同形；auth 专用隔离池=watch-only residual，见 plan 2551 Deferred）。
         return routeContext.executeBlocking(ctx.wrapWithContext(() -> {
 
             try {
@@ -164,31 +168,58 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
 
                 AuthToken authToken = parseAuthToken(routeContext);
 
-                return getUserContextAsync(authToken, routeContext)
-                        .thenCompose(userContext -> {
-                            if (userContext == null) {
-                                // 如果没有用户上下文，但是是公开服务，则创建一个sys用户上下文
-                                if (config.isServicePublic() && servicePath) {
-                                    userContext = newSysUserContext(routeContext);
-                                }
-                            }
-
-                            if (userContext == null) {
-                                return responseNotLogin(routeContext, servicePath);
-                            } else {
-                                return handleUserContext(userContext, routeContext, next, authToken);
-                            }
-                        }).exceptionally(ex -> {
-                            LOG.error("nop.auth.init-user-context-fail", ex);
-                            handleError(routeContext, ex, servicePath);
-                            throw NopException.adapt(ex);
-                        });
+                CompletableFuture<Void> downstream = new CompletableFuture<>();
+                CompletionStage<IUserContext> loadStage = getUserContextAsync(authToken, routeContext);
+                loadStage.whenComplete((userContext, loadErr) -> {
+                    if (loadErr != null) {
+                        LOG.error("nop.auth.init-user-context-fail", loadErr);
+                        handleError(routeContext, loadErr, servicePath);
+                        downstream.completeExceptionally(NopException.adapt(loadErr));
+                        return;
+                    }
+                    ctx.runOnContext(() -> {
+                        try {
+                            resolveUserContext(userContext, routeContext, next, servicePath, authToken)
+                                    .whenComplete((v, e) -> {
+                                        if (e != null) {
+                                            FutureHelper.complete(downstream, null, e);
+                                        } else {
+                                            downstream.complete(null);
+                                        }
+                                    });
+                        } catch (Throwable t) {
+                            // 再入调用自身同步抛出同样收敛于 downstream 终态（无「永不完成」路径）
+                            downstream.completeExceptionally(NopException.adapt(t));
+                        }
+                    });
+                });
+                return downstream;
             } catch (Exception ex) {
                 LOG.error("nop.auth.init-user-context-fail", ex);
                 handleError(routeContext, ex, servicePath);
                 throw NopException.adapt(ex);
             }
         })).thenApply(v -> null);
+    }
+
+    /**
+     * 2.3-C4-004（plan 2551 裁定 D）：userContext 决策段（从 2508 形态的 thenCompose 体提取，
+     * 语义零变化）——运行在上下文任务队列介质（runOnContext）而非 blocking 载体。
+     */
+    private CompletionStage<Void> resolveUserContext(IUserContext userContext, IHttpServerContext routeContext,
+                                                     Supplier<CompletionStage<Void>> next, boolean servicePath,
+                                                     AuthToken authToken) {
+        if (userContext == null) {
+            // 如果没有用户上下文，但是是公开服务，则创建一个sys用户上下文
+            if (config.isServicePublic() && servicePath) {
+                userContext = newSysUserContext(routeContext);
+            }
+        }
+
+        if (userContext == null) {
+            return responseNotLogin(routeContext, servicePath);
+        }
+        return handleUserContext(userContext, routeContext, next, authToken);
     }
 
     protected CompletionStage<Void> processOAuthCode(IHttpServerContext routeContext, boolean servicePath,

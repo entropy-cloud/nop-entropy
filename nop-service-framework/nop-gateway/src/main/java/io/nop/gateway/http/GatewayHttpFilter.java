@@ -262,6 +262,20 @@ public class GatewayHttpFilter implements IHttpServerFilter {
             return null;
         }
 
+        // 2.3-C9-005（plan 2551 裁定 L）：透传快径半边——String 元素为上游原始 SSE 载荷
+        //（快径档免 parse，此处对称免 serialize），线缆字节与上游输出逐字节一致。
+        // 带变换路由的元素恒为 Map（parse 后形态），不走本分支。
+        if (item instanceof String) {
+            String data = (String) item;
+            if (contentType.contains("event-stream")) {
+                return "data: " + data + "\n\n";
+            }
+            if (contentType.contains("ndjson")) {
+                return data + "\n";
+            }
+            return data;
+        }
+
         if (contentType.contains("event-stream")) {
             String json = JsonTool.serialize(item, false);
             return "data: " + json + "\n\n";

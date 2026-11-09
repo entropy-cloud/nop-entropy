@@ -99,6 +99,12 @@ public interface BizErrors {
 
     ErrorCode ERR_BIZ_NO_OBJ_META = define("nop.err.biz.no-obj-meta", "对象[{bizObjName}]缺少objMeta模型信息");
 
+    // 2.3-C4-001（plan 2551 裁定 A）：xbiz 异步 action 执行器启动期校验
+    ErrorCode ERR_BIZ_UNKNOWN_EXECUTOR = define("nop.err.biz.unknown-executor",
+            "action 声明的 executor bean 不存在[{executors}]");
+    ErrorCode ERR_BIZ_EXECUTOR_NOT_PARTITIONED = define("nop.err.biz.executor-not-partitioned",
+            "bizSequential action 的 executor 不支持分区执行[{actions}]");
+
     ErrorCode ERR_BIZ_STATE_MACHINE_NO_STATE_PROP = define("nop.err.biz.state-machine-no-state-prop",
             "状态机没有设置stateProp属性");
 
