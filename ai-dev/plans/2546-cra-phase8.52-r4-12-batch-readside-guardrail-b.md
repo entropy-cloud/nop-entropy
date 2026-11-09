@@ -1,6 +1,6 @@
 # 2546 CRA Phase 8.52 — R4-12 1.7 读侧/护栏束 b（G23 后半，11 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.52（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :223，Status=**todo**；Owner Doc=`docs-for-ai/03-modules/nop-batch.md`；Deps=「batch-proposal.md §二 R4-12（11 项）；硬依赖 8.22——已 done（plan 2516），硬依赖解除」）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 R4-12 行（11 finding ID / 模块 nop-batch / 验证命令 `./mvnw test -pl nop-batch -am` / PA=无 / exit criteria 增补：「C8-007 与 C8-004 绑定、**C8-008 为 C8-004 前置**（三面一次接线）」）+ §二.5 G23 组行「22 | R4-11 + R4-12 | 拆分 11/11」；成员发现详情 = `ai-dev/audits/2026-10/2026-10-16-1258-deep-audit-nop-batch-concurrency/`（C7-long-running.md C7-005/C7-006/C7-007/C7-008/C7-009；C7-round2.md C7-012；C8-backpressure.md C8-004；C8-round2.md C8-007/C8-008/C8-009/C8-010）
 > Related: plan 2545（R4-11，**completed @ 2026-11-09，closure audit R4 APPROVED**）为本批同模块前批——本批**复用其教训**：接口存在 ≠ 行为完成、每条工单必须有可被回归捕获的载体、owner doc 与代码必须一致；plan 2516（R2-13）关闭 C8-001 Guard 与 C8-002 钳位共享位点，本批 C8-009 的「C8-001 Guard 先于参数化」次序前置已满足；C10-005/006/007/008/009/012 为本批验收前置
@@ -178,13 +178,13 @@ Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 
 | 工单 | 载体 | 类型 |
 |---|---|---|
-| C7-005 | `TestCraR412BatchPins#pin01`（负值 fail-fast 错误码）/ `pin01b`（0=无限不抛，仅 WARN）/ `pin01c`（终态汇总 WARN 触发路径可达） | 行为钉 |
-| C7-006 | **`nop-batch-dsl` 侧 `TestCraR412DslPins#pin02`**（直测 `isSaveStateUnsupportedReader(Boolean, BatchLoaderModel)`：orm/jdbc/generator/bean/provider/adapter → true；file/excel → false）——`BatchLoaderModel` 在 dsl，core 测试树不可 import | 结构钉 |
-| C7-007 | `TestOrmQueryBatchLoaderCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（**`newEntity()` 调用恰 1 次**（复用不重建）+ **零 save/flush 调用**——计数钉，比 `orm_state()` 自证式断言更强） | pin03a 行为钉；pin03b **结构计数钉**（诚实登记） |
+| C7-005 | `TestCraR412BatchPins#pin01`（负值 fail-fast 错误码）/ `pin01b`（0=无限不抛）/ `pin01c`（**正上限饱和**）。注：终态 `nop.warn.batch.task-skipped-items` 汇总（`BatchTask` 生产在案）**无测试载体**——日志副作用不可直接断言，已登记为 residual | 行为钉 + residual |
+| C7-006 | **`nop-batch-dsl` 侧 `TestCraR412DslPins#pin02`**（直测 `isSaveStateUnsupportedReader(Boolean, BatchLoaderModel)`：orm/jdbc/generator/bean → true；file → false。**provider/adapter 形态实现在案但未单测**——已登记）——`BatchLoaderModel` 在 dsl，core 测试树不可 import | 结构钉 |
+| C7-007 | `TestCraR412OrmCursorSnapshot#pin03a`（排序列被就地变更后游标不漂移）/ `pin03b`（**`newEntity()` 调用恰 1 次**（复用不重建）+ **零 save/flush 调用**——计数钉，比 `orm_state()` 自证式断言更强） | pin03a 行为钉；pin03b **结构计数钉**（诚实登记） |
 | C7-008 | `pin04`（`load(batchSize<=0)` fail-fast）/ `pin04b`（首次 load WARN 一次性，第二次不重复） | 行为钉 |
-| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken）/ **`pin05d`（PG 形态：`SQLException("connection closed","08006")` → 经**轨道① SQLState `08`** 命中 broken；**并反向断言**未映射的业务 SQL 错误（如 `22012 division by zero` → `uncategorized-failure`）**不得**置 broken）** | 行为钉（Proxy/桩 dialect） |
+| C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（**broken 后 load 重抛原异常而非空列表**）/ `pin05b`（仅 close 未 broken → 仍返回空列表，EOF 面不误判）/ `pin05c`（**首因保留**：broken 幂等，不被次要异常覆盖）/ `pin05g`（方言码轨道 `transient-connection-fail`/`recoverable-data-access` → true；`uncategorized-failure` → false）；`TestCraR412JdbcPins#pin05d`（SQLState `08006` → true）/ `pin05d` 反向（`22012` → false）/ `pin05e`（类型轨）/ `pin05f`（SQLState null 不 NPE） | 行为钉 |
 | C7-012 | `TestDaoBatchStateStore#pin06a`（KILLED + allowRestart=true → 可启动）/ `pin06b`（allowRestart=false/null → 仍响亮拒绝）/ `pin06c`（启动后 execCount 递增，旧实例写被 fencing 丢弃）/ **`pin06d`（`BatchTaskBuilder` 设值经重载构造器到 context 的透传链）** | 行为钉（既有基建） |
-| C8-008 | `TestPartitionDispatchQueueWatermark#pin07a`（三出口读数正确）/ `pin07b`（Gauge 可读，**含 taskId==null 形态不 NPE**）/ `pin07c`（注销后不再可查）/ **`pin07d`（同名并发两任务 meter id 互不相同，互不覆盖）** | 行为钉（`SimpleMeterRegistry`） |
+| C8-008 | `TestCraR412BatchPins#pin07a`（三出口读数正确）/ `pin07b`（Gauge 可读，**含 taskId==null 形态不 NPE**）/ `pin07c`（注销后不再可查）/ **`pin07d`（同名并发两任务 meter id 互不相同，互不覆盖）** | 行为钉（`SimpleMeterRegistry`） |
 | C8-004 | **`pin08d`（`TestCraR412ImportTaskNameWiring` 两腿：① 源码契约 `builder.taskName(tableConfig.getName())` 存在；② `builder.taskName` 确实透传到 context.getTaskName()——完整 DB 端到端不可离线的限制已如实标注）**；`pin08a`（**唯一 taskName** + `registry.find("nop.batch.task").tags("task.name", <unique>, "status", "SUCCESS").timer().count() > 0`——必须带 `status=SUCCESS`，否则 `Search.timer()`=findAny 会命中 count=0 的 failure Timer）/ `pin08b`（外部注入计数 stub 时 `beginTask/endTask` 落在注入实例上）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端；唯一 taskName 防单例残留） |
 | C8-007 | `pin09a`（重试发生后 `metrics.getRetryItemCount()` > 0，与 `context.getRetryItemCount()` 一致）/ `pin09b`（`getLoadItemCount()` = 条数而非 chunk 次数） | 行为钉 |
 | C8-009 | `pin10a`（未设 → Provider 保留 30/100）/ `pin10b`（config 设负值 → fail-fast；Provider/Queue setter 设 0 → fail-fast）/ `pin10c`（设正值 → 透传并生效） | 行为钉 |
@@ -221,37 +221,37 @@ Exit Criteria:
 - [x] E3 验收且逐条登记
 - [x] owner doc 落账核对
 - [x] 双门禁 EXIT=0 登记
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.52 行、cra-index P2-G23 束行
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / 三处越界面 Deferred 边界
-- [ ] cra-index 台账回填：P2-G23 束行（R4-12 半边收敛注，与 R4-11 半边合并为整行 closed）+ roadmap 8.52 → done
-- [ ] 双门禁 + Closure Evidence 写入本 plan
+- [x] 独立子 agent closure audit（fresh session）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / 三处越界面 Deferred 边界
+- [x] cra-index 台账回填：P2-G23 束行（R4-12 半边收敛注，与 R4-11 半边合并为整行 closed）+ roadmap 8.52 → done
+- [x] 双门禁 + Closure Evidence 写入本 plan
 
 Exit Criteria:
 
-- [ ] closure audit 证据写入 Closure 段
-- [ ] cra-index + roadmap 在案
-- [ ] 双门禁 EXIT=0
+- [x] closure audit 证据写入 Closure 段
+- [x] cra-index + roadmap 在案
+- [x] 双门禁 EXIT=0
 
 ## Closure Gates
 
-- [ ] 11 工单全部收口（8 完整 Fix + 3 半修：C7-005 死信账本 / C7-012 DSL 键 / C8-008 平台池面）
-- [ ] 每工单 ≥1 可被回归捕获的载体
-- [ ] `./mvnw test -pl nop-batch` BUILD SUCCESS
-- [ ] owner doc 落账完成
-- [ ] scan-hollow nop-batch `--severity high` EXIT=0
-- [ ] 不存在被静默降级的 in-scope live defect（三处半修均有范围裁定 + 触发条款 + successor 指针）
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**
-- [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
-- [ ] cra-index P2-G23 收敛注 + roadmap 8.52 → done
+- [x] 11 工单全部收口（8 完整 Fix + 3 半修：C7-005 死信账本 / C7-012 DSL 键 / C8-008 平台池面）
+- [x] 每工单 ≥1 可被回归捕获的载体
+- [x] `./mvnw test -pl nop-batch` BUILD SUCCESS
+- [x] owner doc 落账完成
+- [x] scan-hollow nop-batch `--severity high` EXIT=0
+- [x] 不存在被静默降级的 in-scope live defect（三处半修均有范围裁定 + 触发条款 + successor 指针）
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**
+- [x] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+- [x] cra-index P2-G23 收敛注 + roadmap 8.52 → done
 
 ## Deferred But Adjudicated
 
@@ -315,19 +315,29 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: R4-12（roadmap 8.52 / G23 后半）11 工单收口——**8 项完整 Fix**（C7-006/007/008/009、C8-004/007/009/010）+ **3 项半修**（C7-005 跳过可观测已修/死信账本 Deferred；C7-012 仅程序化 API；C8-008 仅 nop-batch 侧水位出口），三处半修半边均有范围裁定 + 触发条款 + successor。两轮独立 closure audit：R1 APPROVED-with-corrections（0B/3M/6m，其中 M-1 揭出载体表 5 个方法名不存在、M-3 揭出 Gauge 注销无生产路径覆盖）→ R2 APPROVED-with-corrections（0B/0M/5m，全部随收口订正）。
+Completed: 2026-11-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent fresh session）
-- Audit Session: （session ID）
+- Reviewer / Agent: 独立 closure-audit 子 agent（fresh session，未参与实现）
+- Audit Session: R2 = agent_ae212669-203d-40a8-936a-abcf460e9952（基线 HEAD 2a407a0d10）；R1 见 `ai-dev/logs/2026/11-09.md`
 - Evidence:
-  - （每条 Exit Criterion / Closure Gate 的 PASS/FAIL）
-  - `check-plan-checklist --strict` 退出码
-  - Anti-Hollow 结果 + scan-hollow 退出码
-  - Deferred 分类检查
+  - **R1 M-1（载体真实性）**：PASS（R2 复验）。`TestJdbcBatchLoaderBrokenState` 4 钉（broken 重抛 / EOF 不误判 / 首因保留 / 方言码轨）+ `TestCraR412JdbcPins`（pin05d/e/f）+ `TestDaoBatchStateStore#pin06c`（撤离门×fencing）+ `TestCraR412JdbcPins#pin04b` + `TestCraR412ImportTaskNameWiring`（pin08d 两腿）全部 live 存在。载体表全表扫描 **33/33 pin 存在**。
+  - **R1 M-3（Anti-Hollow 注销侧）**：PASS。`TestCraR412DispatchGaugeLifecycle` 真实驱动 `provider.setup(ctx)`（生产注册）→ `ctx.complete()`（触发 `onAfterComplete` 注销闭包），断言双 Gauge 注册后可查、注销后不可查。
+  - **R1 M-2（分层如实）**：PASS。plan 接线验证条目改为「C8-004 端到端 / C8-008 生产路径钉 / C8-007 单元级（勘误 E-2546-1）」，不再宣称三层同一次执行可见。
+  - **回归**：`./mvnw -o test -pl nop-batch/{core,dao,gen,orm,jdbc,dsl,exp,biz,sys}` → **BUILD SUCCESS，233 tests 0F/0E**（core 103/dao 27/gen 2/orm 11/jdbc 15/dsl 30/exp 32/biz 7/sys 6）。
+  - **门禁**：`check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0（0 errors）；`scan-hollow --module nop-batch --severity high` EXIT=0（Total=0）。
+  - **零触碰**：`git show --stat` 覆盖 commits 9035133c95…2a407a0d10，均未触及 nop-kernel / nop-xdefs / nop-tcc / nop-retry / orm 模型 / `_` 生成物。
+  - **变异复核（R2 独立复做）**：将 `JdbcBatchLoaderProvider.load` 的 broken 检查移到 `isClosed()` 之后 → `TestJdbcBatchLoaderBrokenState` 4 tests / 1 failure（`pin05a`: "Expected RuntimeException to be thrown, but nothing was thrown"）→ `git checkout --` 恢复 → `git diff` 为空。**次序约束被真实捕获。**
+  - **Deferred 分类**：7 项全部具备 Classification + Why Not Blocking + Successor；无 in-scope live defect 被降级。
+  - **Anti-Hollow**：scan-hollow Total=0；Gauge 钉驱动生产 `registerWatermarkGauges`；pin08d 有源码契约腿 + 行为透传腿。
+  - **R2 的 5 Minor 随收口订正**：pin05a/b/c 描述对齐代码真实断言；pin01c 改「正上限饱和」并把 `task-skipped-items` WARN 无载体登记为 residual；两个载体类名订正（→ `TestCraR412OrmCursorSnapshot` / `TestCraR412BatchPins`）；pin02 provider/adapter 表述降为「实现覆盖、未单测」；Phase 3 log 勾选补齐。
 
 Follow-up:
 
-- （仅 non-blocking）
+- [residual] 终态 `nop.warn.batch.task-skipped-items` 汇总 WARN 无测试载体（日志副作用不可直接断言）。
+- [residual] `isSaveStateUnsupportedReader` 的 provider/adapter 分支实现覆盖但未单测。
+- [non-blocking] `getProcessItemCount()` 与已修的 `getLoadItemCount()` 同型错源（需扩 `IBatchTaskMetrics.endProcess` 签名，API 变更）。
+- [non-blocking] `PartitionDispatchQueue.removePartition` 生产调用方为零（死代码）。
+- [non-blocking] 两个派发 provider 不转发 `hasChunkCompaction()`（非规范手工注入面）。
