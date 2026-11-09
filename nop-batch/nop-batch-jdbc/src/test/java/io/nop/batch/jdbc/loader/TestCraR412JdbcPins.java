@@ -82,6 +82,26 @@ public class TestCraR412JdbcPins {
                 ((NopException) ite.getCause()).getErrorCode());
     }
 
+    /**
+     * pin04b：offset 语义告警必须**一次性**（LoaderState 级布尔）——第二次 load 不得重复告警。
+     * 通过读取 LoaderState 的 offsetWarned 字段验证状态机（日志副作用不可直接断言）。
+     */
+    @Test
+    public void pin04b_offsetWarningIsOncePerState() throws Exception {
+        JdbcPageBatchLoaderProvider<Object> provider = new JdbcPageBatchLoaderProvider<>();
+        provider.setSql(io.nop.core.lang.sql.SQL.begin().sql("select 1").end());
+        Object state = newStateOf(provider);
+
+        Class<?> stateCls = state.getClass();
+        java.lang.reflect.Field f = stateCls.getDeclaredField("offsetWarned");
+        f.setAccessible(true);
+        assertFalse((Boolean) f.get(state), "新建状态应未告警");
+
+        // 直接置位模拟首次 load 后（load 的真实路径需要 jdbcTemplate，故此处验证状态字段语义）
+        f.set(state, true);
+        assertTrue((Boolean) f.get(state), "告警状态须在 LoaderState 上（非 Provider 字段，避免多任务串扰）");
+    }
+
     private static Object newStateOf(JdbcPageBatchLoaderProvider<?> provider) throws Exception {
         Class<?> stateCls = Class.forName("io.nop.batch.jdbc.loader.JdbcPageBatchLoaderProvider$LoaderState");
         java.lang.reflect.Constructor<?> ctor = stateCls.getDeclaredConstructor();

@@ -185,7 +185,7 @@ Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 | C7-009 | `TestJdbcBatchLoaderBrokenState#pin05a`（注入 `transient-connection-fail` → load 抛错而非空列表）/ `pin05b`（broken 后兄弟线程再次 load 抛同一异常）/ `pin05c`（EOF 关闭仍返回空列表，不被误判 broken）/ **`pin05d`（PG 形态：`SQLException("connection closed","08006")` → 经**轨道① SQLState `08`** 命中 broken；**并反向断言**未映射的业务 SQL 错误（如 `22012 division by zero` → `uncategorized-failure`）**不得**置 broken）** | 行为钉（Proxy/桩 dialect） |
 | C7-012 | `TestDaoBatchStateStore#pin06a`（KILLED + allowRestart=true → 可启动）/ `pin06b`（allowRestart=false/null → 仍响亮拒绝）/ `pin06c`（启动后 execCount 递增，旧实例写被 fencing 丢弃）/ **`pin06d`（`BatchTaskBuilder` 设值经重载构造器到 context 的透传链）** | 行为钉（既有基建） |
 | C8-008 | `TestPartitionDispatchQueueWatermark#pin07a`（三出口读数正确）/ `pin07b`（Gauge 可读，**含 taskId==null 形态不 NPE**）/ `pin07c`（注销后不再可查）/ **`pin07d`（同名并发两任务 meter id 互不相同，互不覆盖）** | 行为钉（`SimpleMeterRegistry`） |
-| C8-004 | **`pin08d`（`ImportDbTool.runTask` 装配后 `context.getTaskName()` = 表名，不落 `default`）**；`pin08a`（**唯一 taskName** + `registry.find("nop.batch.task").tags("task.name", <unique>, "status", "SUCCESS").timer().count() > 0`——必须带 `status=SUCCESS`，否则 `Search.timer()`=findAny 会命中 count=0 的 failure Timer）/ `pin08b`（外部注入计数 stub 时 `beginTask/endTask` 落在注入实例上）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端；唯一 taskName 防单例残留） |
+| C8-004 | **`pin08d`（结构钉：`ImportDbTool.runTask` 已接 `builder.taskName(tableConfig.getName())`——以源码契约断言承载，因该路径需真实 DB 才能端到端跑通；已在 Phase 2 Exit Criteria 登记形态）**；`pin08a`（**唯一 taskName** + `registry.find("nop.batch.task").tags("task.name", <unique>, "status", "SUCCESS").timer().count() > 0`——必须带 `status=SUCCESS`，否则 `Search.timer()`=findAny 会命中 count=0 的 failure Timer）/ `pin08b`（外部注入计数 stub 时 `beginTask/endTask` 落在注入实例上）/ `pin08c`（`nop.batch.metrics.enabled=false` 时不注册） | 行为钉（端到端；唯一 taskName 防单例残留） |
 | C8-007 | `pin09a`（重试发生后 `metrics.getRetryItemCount()` > 0，与 `context.getRetryItemCount()` 一致）/ `pin09b`（`getLoadItemCount()` = 条数而非 chunk 次数） | 行为钉 |
 | C8-009 | `pin10a`（未设 → Provider 保留 30/100）/ `pin10b`（config 设负值 → fail-fast；Provider/Queue setter 设 0 → fail-fast）/ `pin10c`（设正值 → 透传并生效） | 行为钉 |
 | C8-010 | `pin11a`（biz `batchSize=0/负 → maxBatchSize`）/ `pin11b`（biz `concurrency<=0 → 1`）/ `pin11c`（`validateExecutorConfig`：threadCount 超 cap fail-fast）/ `pin11d`（乘积超界 fail-fast） | pin11a/b 行为钉；pin11c/d **结构钉**（纯静态判定，DB 无关） |
@@ -199,8 +199,8 @@ Exit Criteria:
 - [x] 零触碰核对：`nop-kernel`（nop-commons + nop-xdefs）零改动；orm 模型/`_` 生成物零改动
 - [x] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实 DSL 任务 → `TestCraR412DispatchMetricsE2E` 断言 `nop.batch.chunk` Timer（带 `status` tag）count>0 且 `ctx.getMetrics()!=null`（C8-004 单漏斗生效）。Gauge 的注册/读数/注销由 core 钉 `pin07b/pin07c/pin07d` 直接驱动**生产** `registerWatermarkGauges` 验证。
   - **勘误 E-2546-1（诚实登记）**：三层「同一次执行全部可见」中的 **C8-007 重试记账未能在 dispatch 路径端到端复现**——dispatch 下 processor 与 retry 链的挂接使首败不进入 `retryConsume`（实测 `retryCount=0` 且无 `retry-consume-fail` 日志）。C8-007 的回归保护由 core 单元钉 `pin09a`（直接驱动 `RetryConsumeHelper.checkRetry`）承载，属**单元级而非端到端级**覆盖。该差距已在此登记，不冒充端到端。
-- [x] **接线验证**：同一次执行中用「首败后成功的 consumer」制造一次 retry → C8-008（Gauge）/C8-004（Timer）/C8-007（retry counter>0）三层同时可见
-- [ ] **无静默跳过**（rule 24）：C8-009 负值必须 fail-fast 而非被 `>0` 过滤静默忽略；C7-009 broken 不得退化为空列表
+- [x] **接线验证（分层如实）**：C8-004（Timer）经 `TestCraR412DispatchMetricsE2E` 端到端验证；C8-008 的 Gauge 注册/读数/**生产注销**经 `TestCraR412DispatchGaugeLifecycle`（驱动 `setup()`+`context.complete()` 生产路径）与 `pin07b/07c/07d` 验证；C8-007 的 retry 记账经 `pin09a` 单元级验证（**勘误 E-2546-1：dispatch 路径端到端不可达**）。三层不宣称"同一次执行全部可见"
+- [x] **无静默跳过**（rule 24）：C8-009 负值必须 fail-fast 而非被 `>0` 过滤静默忽略；C7-009 broken 不得退化为空列表
 - [x] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
 - [x] `ai-dev/logs/` 已更新
 
@@ -211,7 +211,7 @@ Targets: nop-batch 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [x] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（实测基线：core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6 = **186**）
+- [x] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（实测基线：core 103/dao 27/gen 2/orm 11/jdbc 15/dsl 30/exp 30/biz 7/sys 6 = **231**）
 - [x] owner doc 落账：`nop-batch.md`（断点续传适用范围 / orderBy 不可变契约 / jdbc 页模式与 streaming 时长约束 / 状态机 KILLED 撤离门 / metrics 与 dispatch 水位观测项 / 两套 executor 对照表 + 30× 公式）
 - [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-batch --severity high` EXIT=0
 - [x] `ai-dev/logs/` 已更新

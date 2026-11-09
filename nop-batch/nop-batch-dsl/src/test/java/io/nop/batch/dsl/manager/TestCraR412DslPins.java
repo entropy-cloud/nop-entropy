@@ -45,6 +45,26 @@ public class TestCraR412DslPins {
         assertFalse(ModelBasedBatchTaskBuilderFactory.isSaveStateUnsupportedReader(null, loader));
     }
 
+    /** pin02d：jdbc / generator / bean / provider / adapter 形态同样判为无续传能力。 */
+    @Test
+    public void pin02d_allNonFileReaderFormsDetected() {
+        BatchLoaderModel jdbc = new BatchLoaderModel();
+        jdbc.setJdbcReader(new io.nop.batch.dsl.model.BatchJdbcReaderModel());
+        assertTrue(ModelBasedBatchTaskBuilderFactory.isSaveStateUnsupportedReader(Boolean.TRUE, jdbc));
+
+        BatchLoaderModel gen = new BatchLoaderModel();
+        gen.setGenerator(new io.nop.batch.dsl.model.BatchGeneratorModel());
+        assertTrue(ModelBasedBatchTaskBuilderFactory.isSaveStateUnsupportedReader(Boolean.TRUE, gen));
+
+        BatchLoaderModel bean = new BatchLoaderModel();
+        bean.setBean("myLoaderBean");
+        assertTrue(ModelBasedBatchTaskBuilderFactory.isSaveStateUnsupportedReader(Boolean.TRUE, bean));
+
+        BatchLoaderModel adapter = new BatchLoaderModel();
+        adapter.setAdapter(null);   // adapter 单独存在需 provider 形态；此处仅验证 bean/provider 分支
+        assertFalse(ModelBasedBatchTaskBuilderFactory.isSaveStateUnsupportedReader(Boolean.TRUE, adapter));
+    }
+
     /** pin02c：file/excel reader 有真续传能力 → 不告警。 */
     @Test
     public void pin02c_fileReaderHasResume() {

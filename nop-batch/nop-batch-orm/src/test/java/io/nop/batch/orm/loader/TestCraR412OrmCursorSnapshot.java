@@ -87,6 +87,7 @@ public class TestCraR412OrmCursorSnapshot {
         put(row1, "sid", "s1");
         put(row1, "status", "WAITING");
 
+        NEW_ENTITY_CALLS.set(0);
         OrmQueryBatchLoaderProvider.LoaderState<IDaoEntity> state = new OrmQueryBatchLoaderProvider.LoaderState<>();
         state.dao = stubDao();
         state.query = new io.nop.api.core.beans.query.QueryBean();
@@ -102,6 +103,8 @@ public class TestCraR412OrmCursorSnapshot {
 
         assertEquals(firstCursor, state.cursor, "快照实体必须复用，不得每次重建");
         assertEquals("s2", state.cursor.orm_propValueByName("sid"), "复用时值须被覆盖为新行");
+        assertEquals(1, NEW_ENTITY_CALLS.get(),
+                "同一 state 内 newEntity() 必须恰调用 1 次（复用），实际=" + NEW_ENTITY_CALLS.get());
     }
 
     // ==================== 辅助 ====================

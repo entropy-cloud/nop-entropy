@@ -289,6 +289,37 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
                 ex2.getErrorCode());
     }
 
+    /**
+     * pin06c：撤离门 × fencing 组合——KILLED 撤离重启后 execCount 递增，旧实例（重启前持有的
+     * execCount）的状态写被条件 UPDATE 丢弃（不得覆写新实例已刷新的状态）。
+     */
+    @Test
+    void testKilledEscapeThenStaleWriterFenced() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "killed-escape-fencing-" + System.nanoTime();
+
+        BatchTaskContextImpl ctx = newCtx("direct-killed-fencing", taskKey);
+        store.loadTaskState(ctx);
+
+        NopBatchTask row = queryOneRow(dao, "direct-killed-fencing", taskKey);
+        row.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_KILLED);
+        dao.updateEntityDirectly(row);
+
+        // 撤离门重启：execCount 递增为 2
+        BatchTaskContextImpl restart = newCtx("direct-killed-fencing", taskKey);
+        restart.setAllowRestartIfKilled(Boolean.TRUE);
+        store.loadTaskState(restart);
+        assertEquals(2, queryOneRow(dao, "direct-killed-fencing", taskKey).getExecCount());
+
+        // 旧实例（execCount=1 的 ctx 持有旧 task 记录）尝试写状态 → 必须被 fencing 丢弃
+        store.saveTaskState(true, null, ctx);
+
+        NopBatchTask after = queryOneRow(dao, "direct-killed-fencing", taskKey);
+        assertEquals(2, after.getExecCount(), "旧实例写不得改变 execCount");
+        org.junit.jupiter.api.Assertions.assertNotEquals(NopBatchDaoConstants.TASK_STATUS_COMPLETED,
+                after.getTaskStatus(), "旧实例写不得把行标成 COMPLETED（fencing 必须丢弃）");
+    }
+
     /** pin06d：BatchTaskBuilder → BatchTask 重载构造器 → context 的透传链。 */
     @Test
     void testAllowRestartIfKilledTravelsFromBuilderToContext() {
