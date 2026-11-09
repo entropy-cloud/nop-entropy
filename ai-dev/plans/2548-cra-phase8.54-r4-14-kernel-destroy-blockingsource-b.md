@@ -173,9 +173,9 @@ Targets: nop-commons / nop-core / nop-xlang / nop-commons-java21 + 测试树
 - [x] G8 C6-006：`FileWatchEntry` unwatch 摘父 + 重复 watch 复用
 - [x] G9 C6-007：`NioFileWatchService` daemon 化 + awaitTermination
 - [x] G10 C7-008：`ResourceDependsManager` 逐条淘汰
-- [ ] G11 C7-010：`throttleExecute` `tryAcquire(timeout)` + 新配置键缺省 60s + 类型化超时异常
-- [ ] G12 C7-015：`acquire()/acquire(permits)` 默认上界可配置（新键缺省 5min）+ Guava 不可中断面 watch-only 登记
-- [ ] G13 C7-002（**Decision**）：`scheduleAtFixedRate` 补偿语义 javadoc + source-anchors 声明（不改行为）
+- [x] G11 C7-010：`throttleExecute` `tryAcquire(timeout)` + 新配置键缺省 60s + 类型化超时异常
+- [x] G12 C7-015：`acquire()/acquire(permits)` 默认上界可配置（新键缺省 5min）+ Guava 不可中断面 watch-only 登记
+- [x] G13 C7-002（**Decision**）：`scheduleAtFixedRate` 补偿语义 javadoc + source-anchors 声明（不改行为）
 - [ ] G14 C4-011：`ThreadPoolConfig` 删 2 字段（`threadPriority`/`allowCoreThreadTimeOut`）+ owner doc 声明
 - [ ] G15 C4-012：(a) `Jdk21CommonsCoreInitializer.destroy()` 覆写(Fix)；(b) 默认值不翻转(Decision+doc)
 - [ ] G16 C9-004：`XLangSemantics` **新增独立** `(className+funcName)→IMethodModelCollection` 缓存 + `ClassHelper.forName`

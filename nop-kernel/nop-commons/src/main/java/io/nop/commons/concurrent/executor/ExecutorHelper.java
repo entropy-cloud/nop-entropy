@@ -44,10 +44,13 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.nop.api.core.ApiErrors.ARG_VALUE;
 import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_CACHED_POOL_MAX_POOL_SIZE;
+import static io.nop.commons.CommonConfigs.CFG_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT;
 import static io.nop.commons.CommonErrors.ARG_MAX_POOL_SIZE;
 import static io.nop.commons.CommonErrors.ARG_NAME;
 import static io.nop.commons.CommonErrors.ARG_PARAM_NAME;
+import static io.nop.commons.CommonErrors.ARG_TIMEOUT;
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_CACHED_POOL_SATURATED;
+import static io.nop.commons.CommonErrors.ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT;
 import static io.nop.commons.CommonErrors.ERR_CONCURRENT_INVALID_THREAD_POOL_PARAM;
 
 public class ExecutorHelper {
@@ -401,7 +404,26 @@ public class ExecutorHelper {
     public static CompletableFuture<Void> throttleExecute(Executor executor, Semaphore semaphore, Runnable task) {
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        semaphore.acquireUninterruptibly();
+        // C7-010（plan 2548）：不可中断的无限等待改为可配置上界（缺省 60s，<=0 = 无限保持修复前语义）。
+        // 超时类型化 ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT；中断恢复标志后以 InterruptedException 结算
+        long timeoutMs = CFG_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT.get();
+        if (timeoutMs <= 0) {
+            // <=0 = 无限等待（修复前语义，不可中断）
+            semaphore.acquireUninterruptibly();
+        } else {
+            try {
+                if (!semaphore.tryAcquire(timeoutMs, TimeUnit.MILLISECONDS)) {
+                    future.completeExceptionally(new NopException(ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT)
+                            .param(ARG_TIMEOUT, timeoutMs));
+                    return future;
+                }
+            } catch (InterruptedException e) {
+                // 中断恢复标志（InterruptedException 抛出时标志已清；重新置位供上层判定）
+                Thread.currentThread().interrupt();
+                future.completeExceptionally(e);
+                return future;
+            }
+        }
         try {
             executor.execute(() -> {
                 try {

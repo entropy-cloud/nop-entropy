@@ -81,4 +81,12 @@ public interface CommonConfigs {
             + "≤0为关闭档：退化为同步立即关闭（修复前语义，显式回退通道）")
     IConfigReference<java.time.Duration> CFG_CONCURRENT_RETIREMENT_GRACE_PERIOD = varRef(s_loc,
             "nop.commons.concurrent.retirement.grace-period", java.time.Duration.class, java.time.Duration.ofSeconds(5));
+
+    @Description("C7-010（plan 2548）：throttleExecute 的许可获取上界（毫秒）。<=0 = 无限等待（保持修复前语义）")
+    IConfigReference<Long> CFG_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT = varRef(s_loc,
+            "nop.commons.concurrent.throttle-acquire-timeout-ms", Long.class, 60_000L);
+
+    @Description("C7-015（plan 2548）：IRateLimiter.acquire()/acquire(permits) 的默认等待上界（毫秒）。<=0 = 无限等待（保持修复前语义）")
+    IConfigReference<Long> CFG_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT = varRef(s_loc,
+            "nop.commons.concurrent.rate-limit-acquire-timeout-ms", Long.class, 300_000L);
 }

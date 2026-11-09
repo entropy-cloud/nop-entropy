@@ -239,6 +239,12 @@ public class DefaultScheduledExecutor implements IScheduledExecutor {
         }
     }
 
+    /**
+     * C7-002（plan 2548 Decision，声明面）：fixed-rate 错过补偿是 JDK
+     * {@link ScheduledThreadPoolExecutor#scheduleAtFixedRate} 的原生语义——任务执行超时后，
+     * 后续轮次按原周期节奏立即补跑（可能突发，不累积漂移）。本方法**不改**该语义；
+     * 不接受补偿节奏的调用方应使用 {@link #scheduleWithFixedDelay(Runnable, long, long, TimeUnit)}。
+     */
     @Override
     public Future<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
         // 委托六参直连底层路径，代际快照在六参内统一执行

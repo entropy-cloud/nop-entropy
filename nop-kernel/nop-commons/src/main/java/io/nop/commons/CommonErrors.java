@@ -17,6 +17,8 @@ import static io.nop.api.core.exceptions.ErrorCode.define;
 
 @Locale("zh-CN")
 public interface CommonErrors {
+    String ARG_TIMEOUT = "timeout";
+    String ARG_PERMITS = "permits";
     String ARG_START_LOC = "startLoc";
     String ARG_EXPECTED = "expected";
     String ARG_START = "start";
@@ -247,6 +249,12 @@ public interface CommonErrors {
 
     ErrorCode ERR_CONCURRENT_CYCLE_ALREADY_BEGIN = define("nop.err.concurrent.cycle-already-begin",
             "正在处理过程中，不能再次启动一个处理过程");
+
+    ErrorCode ERR_CONCURRENT_THROTTLE_ACQUIRE_TIMEOUT = define("nop.err.commons.concurrent.throttle-acquire-timeout",
+            "节流许可等待超时（上界[{timeout}]毫秒）", ARG_TIMEOUT);
+
+    ErrorCode ERR_CONCURRENT_RATE_LIMIT_ACQUIRE_TIMEOUT = define("nop.err.commons.concurrent.rate-limit-acquire-timeout",
+            "限流许可等待超时（permits=[{permits}]，上界[{timeout}]毫秒）", ARG_PERMITS, ARG_TIMEOUT);
 
     ErrorCode ERR_SERVICE_NOT_ALLOW_START_AFTER_STOP = define("nop.err.commons.service.not-allow-start-after-stopped",
             "服务[{service}]停止后不允许再次启动", ARG_SERVICE);
