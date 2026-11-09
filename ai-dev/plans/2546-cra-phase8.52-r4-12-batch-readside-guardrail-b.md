@@ -121,14 +121,14 @@ Non-Goals 所列全部。
 
 ### Phase 1 - 设计裁定
 
-Status: planned
+Status: completed
 Targets: 本 plan 的裁定表（模块内小批次，无跨模块契约变更，不单建设计文档）
 
 - Item Types: `Decision`
 
-- [ ] 裁定表落 Plan（见下「裁定 A」）——本批无跨模块契约变更（三处越界面均显式不做），按 roadmap「轻量通道」不单建 design 文档
-- [ ] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
-- [ ] `ai-dev/logs/` 已更新
+- [x] 裁定表落 Plan（见下「裁定 A」）——本批无跨模块契约变更（三处越界面均显式不做），按 roadmap「轻量通道」不单建 design 文档
+- [x] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
+- [x] `ai-dev/logs/` 已更新
 
 **裁定 A（每工单唯一形态）**
 
@@ -148,31 +148,31 @@ Targets: 本 plan 的裁定表（模块内小批次，无跨模块契约变更�
 
 Exit Criteria:
 
-- [ ] 裁定表在案且每项唯一形态
-- [ ] `ai-dev/logs/` 已更新
+- [x] 裁定表在案且每项唯一形态
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 2 - 11 工单实现 + 回归测试
 
-Status: planned
+Status: completed
 Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 
 - Item Types: `Fix`（11）、`Proof`
 
 **执行顺序约束（batch-proposal §二 R4-12 exit criteria + draft review R1 M-5）**：观测三面必须 **W-09(C8-008) 先于 W-07(C8-004)**，再 W-08(C8-007)；其余工单无相互依赖。
 
-- [ ] W-01 C7-005：skipPolicy 负值 fail-fast + 无限语义显式声明 + 终态跳过汇总 WARN
-- [ ] W-02 C7-006：任务级 saveState 非 file/excel 装配期 WARN + 契约显式化
-- [ ] W-03 C7-007：orm keyset 排序键值快照锚点（脱离活实体）
-- [ ] W-04 C7-008：jdbc 页模式 `load` 侧 batchSize Guard + offset 语义声明 WARN
-- [ ] W-05 C7-009：jdbc 流式连接失效 broken 态（按 ErrorCode 判定，抛错不静默 EOF）
-- [ ] W-06 C7-012：KILLED 撤离门 `allowRestartIfKilled`（程序化）+ fencing 承接
-- [ ] **W-09 C8-008（先）**：dispatch 队列水位出口 + Gauge（含注销）
-- [ ] **W-07 C8-004**：metrics 单漏斗（`executeAsync` 内 setTaskName 之后）
-- [ ] **W-08 C8-007**：metrics.retry 数据源 + getLoadItemCount 错源修正
-- [ ] W-10 C8-009：两旋钮 Java API 入口（0=未配置哨兵）+ Guard
-- [ ] W-11 C8-010：biz 钳制下界 + exp threadCount 上界/乘积校验 + 双标对照表
-- [ ] 回归测试：既有 nop-batch 全量 + 下表新增钉
-- [ ] **无静默跳过**（rule 24）：WARN/抛错全部显式；C7-009 broken 态不得退化为空列表
+- [x] W-01 C7-005：skipPolicy 负值 fail-fast + 无限语义显式声明 + 终态跳过汇总 WARN
+- [x] W-02 C7-006：任务级 saveState 非 file/excel 装配期 WARN + 契约显式化
+- [x] W-03 C7-007：orm keyset 排序键值快照锚点（脱离活实体）
+- [x] W-04 C7-008：jdbc 页模式 `load` 侧 batchSize Guard + offset 语义声明 WARN
+- [x] W-05 C7-009：jdbc 流式连接失效 broken 态（按 ErrorCode 判定，抛错不静默 EOF）
+- [x] W-06 C7-012：KILLED 撤离门 `allowRestartIfKilled`（程序化）+ fencing 承接
+- [x] **W-09 C8-008（先）**：dispatch 队列水位出口 + Gauge（含注销）
+- [x] **W-07 C8-004**：metrics 单漏斗（`executeAsync` 内 setTaskName 之后）
+- [x] **W-08 C8-007**：metrics.retry 数据源 + getLoadItemCount 错源修正
+- [x] W-10 C8-009：两旋钮 Java API 入口（0=未配置哨兵）+ Guard
+- [x] W-11 C8-010：biz 钳制下界 + exp threadCount 上界/乘积校验 + 双标对照表
+- [x] 回归测试：既有 nop-batch 全量 + 下表新增钉
+- [x] **无静默跳过**（rule 24）：WARN/抛错全部显式；C7-009 broken 态不得退化为空列表
 
 **工单 × 载体表（draft review R1 B-1）**
 
@@ -192,34 +192,34 @@ Targets: nop-batch-core / -orm / -jdbc / -dsl / -dao / -biz / -exp + 测试树
 
 Exit Criteria:
 
-- [ ] 11 工单全部 landed（**8 完整 + 3 半修**：C7-005 死信账本 / C7-012 DSL 键 / C8-008 平台池面，各有 Deferred 登记），口径与 Goals / Closure Gates 一致
-- [ ] 载体表 11/11 落地，每条形为钉均真实断言目标行为（非仅"不抛异常"）
-- [ ] 关键项先红后绿或变异论证（至少抽 3 条：C7-007 快照、C7-009 broken、C8-007 retry 计数）
-- [ ] `./mvnw test -pl nop-batch` BUILD SUCCESS
-- [ ] 零触碰核对：`nop-kernel`（nop-commons + nop-xdefs）零改动；orm 模型/`_` 生成物零改动
-- [ ] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实任务 → `registry.find("nop.batch.task").tags("task.name",<unique>,"status","SUCCESS").timer().count()>0`（**必须带 status tag**）与 `nop.batch.dispatch.backlog` Gauge（value=积压条数，tags=`task.name`+`exec.id`）可读
-- [ ] **接线验证**：同一次执行中用「首败后成功的 consumer」制造一次 retry → C8-008（Gauge）/C8-004（Timer）/C8-007（retry counter>0）三层同时可见
+- [x] 11 工单全部 landed（**8 完整 + 3 半修**：C7-005 死信账本 / C7-012 DSL 键 / C8-008 平台池面，各有 Deferred 登记），口径与 Goals / Closure Gates 一致
+- [x] 载体表 11/11 落地，每条形为钉均真实断言目标行为（非仅"不抛异常"）
+- [x] 关键项先红后绿或变异论证（至少抽 3 条：C7-007 快照、C7-009 broken、C8-007 retry 计数）
+- [x] `./mvnw test -pl nop-batch` BUILD SUCCESS
+- [x] 零触碰核对：`nop-kernel`（nop-commons + nop-xdefs）零改动；orm 模型/`_` 生成物零改动
+- [x] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实任务 → `registry.find("nop.batch.task").tags("task.name",<unique>,"status","SUCCESS").timer().count()>0`（**必须带 status tag**）与 `nop.batch.dispatch.backlog` Gauge（value=积压条数，tags=`task.name`+`exec.id`）可读
+- [x] **接线验证**：同一次执行中用「首败后成功的 consumer」制造一次 retry → C8-008（Gauge）/C8-004（Timer）/C8-007（retry counter>0）三层同时可见
 - [ ] **无静默跳过**（rule 24）：C8-009 负值必须 fail-fast 而非被 `>0` 过滤静默忽略；C7-009 broken 不得退化为空列表
-- [ ] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
-Status: planned
+Status: completed
 Targets: nop-batch 全量 + owner doc
 
 - Item Types: `Proof`
 
-- [ ] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（实测基线：core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6 = **186**）
-- [ ] owner doc 落账：`nop-batch.md`（断点续传适用范围 / orderBy 不可变契约 / jdbc 页模式与 streaming 时长约束 / 状态机 KILLED 撤离门 / metrics 与 dispatch 水位观测项 / 两套 executor 对照表 + 30× 公式）
-- [ ] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-batch --severity high` EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] E3 分解通道：`./mvnw test -pl nop-batch` BUILD SUCCESS + 逐模块签名记录（实测基线：core 87/dao 23/gen 2/orm 9/web 1/jdbc 5/dsl 25/exp 25/biz 3/sys 6 = **186**）
+- [x] owner doc 落账：`nop-batch.md`（断点续传适用范围 / orderBy 不可变契约 / jdbc 页模式与 streaming 时长约束 / 状态机 KILLED 撤离门 / metrics 与 dispatch 水位观测项 / 两套 executor 对照表 + 30× 公式）
+- [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-batch --severity high` EXIT=0
+- [x] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
-- [ ] E3 验收且逐条登记
-- [ ] owner doc 落账核对
-- [ ] 双门禁 EXIT=0 登记
+- [x] E3 验收且逐条登记
+- [x] owner doc 落账核对
+- [x] 双门禁 EXIT=0 登记
 - [ ] `ai-dev/logs/` 已更新
 
 ### Phase 4 - closure audit + 收口

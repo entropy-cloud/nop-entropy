@@ -23,6 +23,12 @@ public interface BatchErrors {
 
     String ARG_PROCESSING_ITEMS = "processingItems";
 
+    String ARG_SKIP_COUNT = "skipCount";
+
+    String ARG_RETRY_COUNT = "retryCount";
+
+    String ARG_BATCH_SIZE = "batchSize";
+
     String ARG_TASK_NAME = "taskName";
     String ARG_TASK_ID = "taskId";
     String ARG_TASK_KEY = "taskKey";
@@ -69,6 +75,21 @@ public interface BatchErrors {
                     + "AsyncFetch缺省×30）退化为0，orm-reader全表单页加载将对Semaphore(0)永久阻塞，"
                     + "其他reader会静默产出空任务导致数据丢失",
             ARG_LOAD_BATCH_SIZE, ARG_FETCH_THREAD_COUNT);
+
+    /** 1.7-C7-005（plan 2546 W-01）：负 maxSkipCount 在 shouldSkip 中与 0 同义（不设上限），
+     *  与多数惯例（-1=禁用）相反——静默配置陷阱，装配期拒绝。 */
+    ErrorCode ERR_BATCH_SKIP_COUNT_INVALID = define("nop.err.batch.skip-count-invalid",
+            "批处理跳过策略的maxSkipCount={skipCount}非法：负值语义为不设上限（与-1=禁用的惯例相反）。"
+                    + "如需不设上限请显式配置0", ARG_SKIP_COUNT);
+
+    /** 1.7-C7-008（plan 2546 W-04）：loader 收到非正 batchSize（chunk 钳位之前拦截）。 */
+    ErrorCode ERR_BATCH_BATCH_SIZE_INVALID = define("nop.err.batch.batch-size-invalid",
+            "批处理loader收到的batchSize={batchSize}非法：必须大于0", ARG_BATCH_SIZE);
+
+    /** 1.7-C8-009（plan 2546 W-10）：dispatch 流控常数非法（factor/maxLock 必须 >=1）。 */
+    ErrorCode ERR_BATCH_DISPATCH_FACTOR_INVALID = define("nop.err.batch.dispatch-factor-invalid",
+            "批处理dispatch流控参数[{paramName}]的值[{paramValue}]非法：必须>=1。"
+                    + "loadBatchMultiplyFactor<=0会使队列容量退化为0导致挂死", ARG_PARAM_NAME, ARG_PARAM_VALUE);
 
     ErrorCode ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED = define(
             "nop.err.batch.save-state-with-dispatcher-unsupported",

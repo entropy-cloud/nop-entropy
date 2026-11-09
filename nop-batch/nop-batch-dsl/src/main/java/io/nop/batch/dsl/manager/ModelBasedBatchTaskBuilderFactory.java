@@ -191,6 +191,15 @@ public class ModelBasedBatchTaskBuilderFactory {
         if (Boolean.TRUE.equals(batchTaskModel.getSaveState()))
             builder.stateStore(stateStore);
 
+        // 1.7-C7-006（plan 2546 W-02）：任务级 saveState 对非 file/excel reader 无续传能力——
+        // 装配期一次性 WARN 使「配了 saveState 就有断点」这一误解可见（不阻断装配）。
+        if (batchTaskModel.getLoader() != null
+                && isSaveStateUnsupportedReader(batchTaskModel.getSaveState(), batchTaskModel.getLoader()))
+            LOG.warn("nop.warn.batch.save-state-unsupported-reader:taskName={},"
+                            + "reason=completedIndex only advances for file/excel readers; "
+                            + "jdbc/orm/generator saveState persists task-level counters only, restart replays from scratch",
+                    batchTaskName);
+
         if (batchTaskModel.getLoadRetryPolicy() != null) {
             builder.loadRetryPolicy((IRetryPolicy<IBatchChunkContext>) this.batchTaskModel.getLoadRetryPolicy().buildRetryPolicy());
         }
@@ -434,6 +443,31 @@ public class ModelBasedBatchTaskBuilderFactory {
         };
     }
 
+
+    /**
+     * 1.7-C7-006（plan 2546 W-02；纯静态，供单测直测）：任务级 saveState 对非 file/excel reader 的
+     * 续传能力缺口判定——{@code completedIndex} 的推进点全仓仅 file/excel（ResourceRecordLoaderProvider）
+     * 与 exp 自有 store，jdbc/orm/generator 的 saveState 只持久化任务级计数，重启仍全量重跑。
+     * <p>
+     * 判定必须用**任务级** {@code batchTaskModel.getSaveState()}，不是 loader 级
+     * {@code loaderModel.getSaveState()}——后者只控制 file/excel 的 chunk 压实，真实受害配置
+     * （如 sys-event 的 non-broadcast-consumer.batch.xml）把 saveState 写在 task 元素上。
+     * <p>
+     * bean/provider/adapter 形态无法判定底层 reader 能力，保守告警。
+     */
+    public static boolean isSaveStateUnsupportedReader(Boolean taskSaveState, BatchLoaderModel loader) {
+        if (!Boolean.TRUE.equals(taskSaveState) || loader == null)
+            return false;
+        if (loader.getFileReader() != null || loader.getExcelReader() != null)
+            return false;
+        return loader.getJdbcReader() != null
+                || loader.getOrmReader() != null
+                || loader.getGenerator() != null
+                || loader.getBean() != null
+                || loader.getProvider() != null
+                || loader.getSource() != null
+                || loader.getAdapter() != null;
+    }
 
     @SuppressWarnings("unchecked")
     private IBatchLoaderProvider<Object> buildLoader0(BatchLoaderModel loaderModel, IBeanProvider beanProvider) {

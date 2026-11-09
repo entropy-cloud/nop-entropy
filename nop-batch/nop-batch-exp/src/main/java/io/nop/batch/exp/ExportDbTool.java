@@ -133,6 +133,9 @@ public class ExportDbTool {
     public void execute() {
         Guard.notEmpty(config.getJdbcConnection(), "jdbc-connection");
 
+        // 1.7-C8-010（plan 2546 W-11）：线程占用上界校验（纯静态，无 DB；资源段之前）
+        DbToolConcurrencyValidator.validateExportExecutorConfig(config);
+
         if (stateFile != null) {
             stateStore = new EtlTaskStateStore(stateFile);
             if (stateStore.isCompleted()) {

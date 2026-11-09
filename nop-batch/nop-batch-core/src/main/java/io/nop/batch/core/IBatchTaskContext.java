@@ -112,6 +112,23 @@ public interface IBatchTaskContext extends IExecutionContext {
 
     void setAllowStartIfComplete(Boolean allowStartIfComplete);
 
+    /**
+     * 1.7-C7-012（plan 2546 W-06）：KILLED 状态的撤离门（默认 null = 维持既有响亮拒绝）。
+     * <p>
+     * {@code cancel()} 缺省 reason 为 "kill"，故「杀掉失控任务」会让任务行进入 KILLED 且此后
+     * 任何配置组合都无法重启（{@code allowStartIfComplete} 仅豁免 COMPLETED）。置 TRUE 时
+     * {@code DaoBatchStateStore.startExistingTask} 旁路 KILLED 早退，交由既有 execCount fencing
+     * 条件 UPDATE 承接（僵尸写者状态写被丢弃）。
+     * <p>
+     * <b>仅程序化 API</b>：DSL 键面需 nop-xdefs 变更，属 plan-first，登记 Deferred。
+     */
+    default Boolean getAllowRestartIfKilled() {
+        return null;
+    }
+
+    default void setAllowRestartIfKilled(Boolean allowRestartIfKilled) {
+    }
+
     int getStartLimit();
 
     void setStartLimit(int startLimit);

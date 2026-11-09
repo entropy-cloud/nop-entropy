@@ -11,11 +11,17 @@ import io.nop.api.core.exceptions.NopException;
 import io.nop.batch.core.IBatchChunkContext;
 import io.nop.batch.core.IBatchLoaderProvider;
 import io.nop.batch.core.IBatchTaskContext;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tag;
 import io.nop.commons.collections.MapOfInt;
+import io.nop.commons.metrics.GlobalMeterRegistry;
+import io.nop.commons.util.StringHelper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -59,7 +65,13 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
         return loadBatchMultiplyFactor;
     }
 
+    /** 1.7-C8-009（plan 2546 W-10）：factor 必须 >=1——<=0 会使队列容量退化为 0 导致挂死。 */
     public void setLoadBatchMultiplyFactor(int loadBatchMultiplyFactor) {
+        if (loadBatchMultiplyFactor < 1)
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_FACTOR_INVALID)
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_NAME, "loadBatchMultiplyFactor")
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE, loadBatchMultiplyFactor);
         this.loadBatchMultiplyFactor = loadBatchMultiplyFactor;
     }
 
@@ -67,7 +79,13 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
         return maxLockQueueCountPerThread;
     }
 
+    /** 1.7-C8-009（plan 2546 W-10）：maxLock 必须 >=1。 */
     public void setMaxLockQueueCountPerThread(int maxLockQueueCountPerThread) {
+        if (maxLockQueueCountPerThread < 1)
+            throw new io.nop.api.core.exceptions.NopException(
+                    io.nop.batch.core.BatchErrors.ERR_BATCH_DISPATCH_FACTOR_INVALID)
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_NAME, "maxLockQueueCountPerThread")
+                    .param(io.nop.batch.core.BatchErrors.ARG_PARAM_VALUE, maxLockQueueCountPerThread);
         this.maxLockQueueCountPerThread = maxLockQueueCountPerThread;
     }
 
@@ -81,8 +99,23 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
 
         AtomicReference<Exception> exception = new AtomicReference<>();
 
+        // 1.7-C8-008（plan 2546 W-09）：积压/许可水位 Gauge。meter id 必须**唯一**——
+        // Tag.of 对 null 值 NPE（无 stateStore 的任务 taskId 为 null），且 Micrometer 对同 name+tags
+        // 返回已存在的 Gauge（同名并发会串读）→ 用 exec.id 三级回退 + 精确注销。
+        List<Gauge> gauges = registerWatermarkGauges(context, queue);
+
         context.onAfterComplete(err -> {
             queue.finish();
+            // 注销：否则 meter-id 复用会让后续任务读到已结束队列的陈旧 0，且逐任务累积。
+            io.micrometer.core.instrument.MeterRegistry registry =
+                    io.nop.commons.metrics.GlobalMeterRegistry.instance();
+            for (Gauge gauge : gauges) {
+                try {
+                    registry.remove(gauge);
+                } catch (Exception e) {
+                    LOG.warn("nop.warn.batch.dispatch-gauge-remove-fail", e);
+                }
+            }
         });
 
         IBatchLoader<S> resultLoader = (batchSize, ctx) -> {
@@ -153,5 +186,36 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
         }
 
         return resultLoader;
+    }
+
+    /**
+     * 1.7-C8-008（plan 2546 W-09）：注册积压与可用许可 Gauge。
+     * <p>
+     * tags = {@code task.name} + {@code exec.id}；{@code exec.id} 取 taskId（非空）→ taskKey（非空）
+     * → {@code "anon-"+identityHashCode(queue)}，保证 meter id 唯一且不触发 {@code Tag.of} 的
+     * null 校验失败（无 stateStore 的 dispatch 任务 taskId 为 null）。
+     */
+    private List<Gauge> registerWatermarkGauges(IBatchTaskContext context, PartitionDispatchQueue<S> queue) {
+        String taskName = context.getTaskName() == null ? "default" : context.getTaskName();
+        String execId = context.getTaskId();
+        if (StringHelper.isEmpty(execId))
+            execId = context.getTaskKey();
+        if (StringHelper.isEmpty(execId))
+            execId = "anon-" + System.identityHashCode(queue);
+
+        MeterRegistry registry = GlobalMeterRegistry.instance();
+        List<Tag> tags = Arrays.asList(Tag.of("task.name", taskName), Tag.of("exec.id", execId));
+        int capacity = queue.getCapacity();
+
+        Gauge backlog = Gauge.builder("nop.batch.dispatch.backlog", queue, PartitionDispatchQueue::getCount)
+                .description("Pending (not yet dispatched) records in the partition dispatch queue; capacity=" + capacity)
+                .tags(tags)
+                .register(registry);
+        Gauge available = Gauge.builder("nop.batch.dispatch.available-permits", queue,
+                        PartitionDispatchQueue::getAvailablePermits)
+                .description("Available semaphore permits (backpressure headroom); capacity=" + capacity)
+                .tags(tags)
+                .register(registry);
+        return Arrays.asList(backlog, available);
     }
 }

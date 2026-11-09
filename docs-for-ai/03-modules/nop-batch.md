@@ -329,6 +329,21 @@ sys-event 普通事件触发链（`non-broadcast-consumer.batch.xml`）已配置
 - `docs/dev-guide/batch/batch-task.md`（DSL 详细指南）
 - `docs/theory/why-springbatch-is-bad.md`（设计理念）
 
+
+## 读侧语义与过载可观测契约（plan 2546 R4-12）
+
+- **断点续传的适用范围（1.7-C7-006）**：`completedIndex` 的推进点全仓仅在 **file/excel reader**（`ResourceRecordLoaderProvider`，且需 `saveState=true`）与 exp 自有 `EtlTaskStateStore`。**jdbc/orm/generator reader 的 `saveState` 只持久化任务级计数与终态，不推进 `completedIndex`——重启会全量重跑**（正确性由 at-least-once + `historyStore` 幂等承接）。任务级 `saveState=true` 配非 file/excel reader 时，装配期打 `nop.warn.batch.save-state-unsupported-reader`。
+- **orm-reader keyset 契约（1.7-C7-007）**：游标锚点是**排序键值快照**（orderBy 列 + 主键，取自 `dao.getPkColumnNames()` 的 prop 名），不是上一页的活实体引用——因此本任务就地修改 orderBy 列**不会**导致游标漂移。反向约束：orderBy 列在任务运行期应保持不可变（若变更，快照仍按变更前值继续，语义正确但可能重复读变更行，由 historyStore 去重）；排序列为 NULL 时平台 keyset 契约抛 `ERR_ORM_CURSOR_SORT_VALUE_NULL`（任务确定性失败，需通过过滤或列约束规避）。
+- **jdbc-reader 两形态（1.7-C7-008/C7-009）**：`<jdbc-reader>` 页模式以 **offset 翻页**——每页扫描代价随进度线性增长（全任务 O(N²/2B)），且并发删除源表行会导致区间前移**跳行**；仅适用于静态快照表（首次 load 打 `nop.warn.batch.jdbc-page-offset-paging`）。流式模式（`streaming=true`）整任务持有**单条物理连接**，故任务时长必须 ≤ 数据库最大空闲/存活时长；连接级失效（SQLState `08` 前缀、`SQLRecoverableException`/`SQL*ConnectionException`，或方言 `transient-connection-fail`/`recoverable-data-access`）会把 loader 置为 broken 并**重抛**，后续 load 不再返回空列表（避免把故障静默成 EOF）。
+- **跳过语义（1.7-C7-005）**：`skipPolicy.maxSkipCount` 的 **0 = 显式不设上限**（负值装配期 fail-fast）；被跳过的记录**不进** `completedItems`、也**不进** `historyStore`，故任务终态打 `nop.warn.batch.task-skipped-items` 汇总规模。**跳过条目没有死信账本**（属已知边界，见 backlog successor）。
+- **KILLED 撤离门（1.7-C7-012）**：`cancel()` 缺省 reason 为 `kill` → 任务行进入 KILLED 且此后无法重启动。程序化 API 可设 `allowRestartIfKilled=true`（`BatchTaskBuilder.allowRestartIfKilled` / `IBatchTaskContext.setAllowRestartIfKilled`）旁路该拒绝，重启由 `execCount` fencing 承接（旧实例的状态写被丢弃并 ERROR 留痕）。**DSL 键面尚未暴露**（需 nop-xdefs 变更）。
+- **过载可观测（1.7-C8-004/C8-007/C8-008）**：
+  - **任务级 metrics**：`BatchTask.executeAsync` 在 `setTaskName` 之后自动装配 `BatchTaskMetricsImpl`（`nop.batch.metrics.enabled` 缺省 true；外部已 `context.setMetrics(...)` 时不覆盖）。meter 名 `nop.batch.task`/`nop.batch.chunk`/`nop.batch.load`/`nop.batch.item.*` 等 14 个（10 Timer + 4 Counter），tags = `job.name`/`task.name`(+`status`)。基数上界 = 不同 taskName 数 × 14。
+  - **重试与装载计数**：`RetryConsumeHelper` 每次重试调 `metrics.retry(1)`（此前恒 0）；`getLoadItemCount()` 返回**条目数**（此前返回 Timer 采样次数=chunk 次数，错几个数量级）。注意 `getProcessItemCount()` 仍是同型错源（返回 process Timer 次数），已登记 residual。
+  - **dispatch 水位**：`PartitionDispatchQueue` 提供 `getCount()`/`getAvailablePermits()`/`getPartitionCount()`；异步 fetch 派发注册 Gauge `nop.batch.dispatch.backlog`（积压条数）与 `nop.batch.dispatch.available-permits`，tags = `task.name` + `exec.id`（`exec.id` 取 taskId → taskKey → `anon-<identityHashCode>`，保证唯一且不因 taskId 为 null 而失败），任务结束精确注销。capacity 只作 description。
+- **dispatch 流控旋钮（1.7-C8-009）**：`BatchDispatchConfig.loadBatchMultiplyFactor`（队列容量倍数，缺省 30）与 `maxLockQueueCountPerThread`（单次 take 最大认领分区数，缺省 100）现可通过程序化 API 配置：**0 = 未配置（保留缺省）**，负值 fail-fast，正值透传；Provider/队列 setter 另有 `>=1` 守卫。**DSL（xdef）尚未暴露**。
+- **两套 executor 形态与护栏（1.7-C8-010）**：`biz` 导出链为**有界 + 双向钳制**（`concurrency`/`batchSize` 超上界截断、`<=0` 归一到 1/maxBatchSize）；`core`/`exp` 链兜底平台共享 cached 池（上界 `nop.commons.concurrent.cached-pool.maxPoolSize` 缺省 200 + 达界熔断），exp 自建池另加 `threadCount × concurrencyPerTable <= nop.batch.max-concurrency-cap`（缺省 200）装配期校验（`threadCount<=1` 走同步池，短路）。dispatch 队列内存面积 = `loadBatchSize × loadBatchMultiplyFactor`（缺省 30×）。
+
 ## 生成器并发与生命周期契约（plan 2545 R4-11）
 
 - **嵌套批任务上下文（1.7-C1-001）**：`BatchTaskGlobals` 的 ThreadLocal 在 `BatchTask` 的两处 provide 站点改为**保存/恢复**语义（`saveTaskContext()` / `restoreTaskContext(prev)`）。原裸 `provide + remove` 在「processor 内同步执行子批任务」的嵌套组合下会确定性清空外层上下文（xpl 侧 `onChunkBegin` 等助手随后 NPE 或静默失聪）。**语义**：批任务可嵌套执行，内层结束后外层上下文自动恢复；外层本无上下文时恢复为无上下文。

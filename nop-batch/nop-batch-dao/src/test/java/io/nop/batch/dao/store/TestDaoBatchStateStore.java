@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static io.nop.batch.dao.NopBatchDaoConstants.TASK_STATUS_COMPLETED;
 import static io.nop.batch.dao.NopBatchDaoConstants.TASK_STATUS_RUNNING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -236,6 +237,76 @@ public class TestDaoBatchStateStore extends JunitAutoTestCase {
         NopException ex = assertStartThrows("direct-killed", taskKey);
         assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED.getErrorCode(),
                 ex.getErrorCode());
+    }
+
+    // ==================== C7-012（plan 2546 W-06）：KILLED 撤离门 ====================
+
+    /** pin06a：KILLED + allowRestartIfKilled=TRUE → 可启动（不再永久拒绝）。 */
+    @Test
+    void testKilledTask_restartAllowed_entersRunning() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "killed-escape-" + System.nanoTime();
+
+        BatchTaskContextImpl ctx = newCtx("direct-killed-escape", taskKey);
+        store.loadTaskState(ctx);
+
+        NopBatchTask row = queryOneRow(dao, "direct-killed-escape", taskKey);
+        row.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_KILLED);
+        dao.updateEntityDirectly(row);
+
+        BatchTaskContextImpl restart = newCtx("direct-killed-escape", taskKey);
+        restart.setAllowRestartIfKilled(Boolean.TRUE);
+        store.loadTaskState(restart);
+
+        NopBatchTask after = queryOneRow(dao, "direct-killed-escape", taskKey);
+        assertEquals(NopBatchDaoConstants.TASK_STATUS_RUNNING, after.getTaskStatus(),
+                "allowRestartIfKilled=TRUE 时 KILLED 必须可重启（撤离门）");
+        assertEquals(2, after.getExecCount(), "重启必须递增 execCount（fencing token）");
+    }
+
+    /** pin06b：KILLED + allowRestartIfKilled 非 TRUE → 仍响亮拒绝（缺陷面零回退）。 */
+    @Test
+    void testKilledTask_restartNotAllowed_stillRejected() {
+        IEntityDao<NopBatchTask> dao = daoProvider.daoFor(NopBatchTask.class);
+        String taskKey = "killed-noescape-" + System.nanoTime();
+
+        BatchTaskContextImpl ctx = newCtx("direct-killed-noescape", taskKey);
+        store.loadTaskState(ctx);
+
+        NopBatchTask row = queryOneRow(dao, "direct-killed-noescape", taskKey);
+        row.setTaskStatus(NopBatchDaoConstants.TASK_STATUS_KILLED);
+        dao.updateEntityDirectly(row);
+
+        BatchTaskContextImpl restart = newCtx("direct-killed-noescape", taskKey);
+        restart.setAllowRestartIfKilled(Boolean.FALSE);
+        NopException ex = assertThrows(NopException.class, () -> store.loadTaskState(restart));
+        assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED.getErrorCode(),
+                ex.getErrorCode());
+
+        BatchTaskContextImpl restartNull = newCtx("direct-killed-noescape", taskKey);
+        NopException ex2 = assertThrows(NopException.class, () -> store.loadTaskState(restartNull));
+        assertEquals(NopBatchDaoErrors.ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED.getErrorCode(),
+                ex2.getErrorCode());
+    }
+
+    /** pin06d：BatchTaskBuilder → BatchTask 重载构造器 → context 的透传链。 */
+    @Test
+    void testAllowRestartIfKilledTravelsFromBuilderToContext() {
+        BatchTaskContextImpl ctx = newCtx("builder-passthrough", "k-passthrough");
+        io.nop.batch.core.BatchTaskBuilder<String, String> builder = new io.nop.batch.core.BatchTaskBuilder<>();
+        builder.taskName("builder-passthrough");
+        builder.allowRestartIfKilled(Boolean.TRUE);
+        builder.consumer(c -> (items, chunkCtx) -> {
+        });
+        io.nop.batch.core.IBatchTask task = builder.buildTask();
+        // 通过 executeAsync 的缺省注入路径验证（loader 未设会让 setup 失败，但注入在之前）
+        try {
+            task.executeAsync(ctx);
+        } catch (Exception ignored) {
+            // loader 缺失导致的失败不影响本钉关注的注入语义
+        }
+        assertEquals(Boolean.TRUE, ctx.getAllowRestartIfKilled(),
+                "builder 设置的值必须经重载构造器注入到 context");
     }
 
     @Test

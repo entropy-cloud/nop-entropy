@@ -30,6 +30,13 @@ public class RetryConsumeHelper {
             ThreadHelper.sleep(delay);
         }
         context.incRetryCount();
+
+        // 1.7-C8-007（plan 2546 W-08）：重试指标接线——原实现只 incRetryCount，
+        // metrics.retry 全仓零调用点，接线后 retryCounter 仍恒 0（运维按指标判断"无重试"，
+        // 实际重试放大正在发生）。null 安全短路与 SkipConsumeHelper 同型。
+        io.nop.batch.core.IBatchTaskMetrics metrics = context.getTaskContext().getMetrics();
+        if (metrics != null)
+            metrics.retry(1);
     }
 
     public static <R> void retryConsume(IRetryPolicy<IBatchChunkContext> retryPolicy,

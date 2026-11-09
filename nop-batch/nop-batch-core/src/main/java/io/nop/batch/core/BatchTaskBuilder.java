@@ -88,6 +88,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
 
     private IBatchStateStore stateStore;
     private Boolean allowStartIfComplete;
+    private Boolean allowRestartIfKilled;
     private int startLimit;
 
     /**
@@ -132,6 +133,13 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     @PropertySetter
     public BatchTaskBuilder<S, R> startLimit(int startLimit) {
         this.startLimit = startLimit;
+        return this;
+    }
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门（仅程序化 API）。 */
+    @PropertySetter
+    public BatchTaskBuilder<S, R> allowRestartIfKilled(Boolean allowRestartIfKilled) {
+        this.allowRestartIfKilled = allowRestartIfKilled;
         return this;
     }
 
@@ -332,7 +340,7 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
     public IBatchTask buildTask() {
         return new BatchTask<S>(taskName, taskVersion == null ? 0 : taskVersion, taskKeyExpr,
                 executor, concurrency, taskInitializers, this::buildLoader, this::buildChunkProcessor, stateStore,
-                allowStartIfComplete, startLimit);
+                allowStartIfComplete, startLimit, allowRestartIfKilled);
     }
 
     protected IBatchLoader<S> buildLoader(IBatchTaskContext context) {
@@ -370,11 +378,26 @@ public class BatchTaskBuilder<S, R> implements IBatchTaskBuilder {
                 throw new NopException(ERR_BATCH_SAVE_STATE_WITH_DISPATCHER_UNSUPPORTED)
                         .param(ARG_FETCH_THREAD_COUNT, fetchThreadCount);
 
+            // 1.7-C8-009（plan 2546 W-10）：两旋钮透传——仅 >0 时生效（0 = 未配置，保留 Provider 缺省
+            // 30/100）。拆为两步是因为原实现是 `new Provider(...).setup(context)` 单表达式。
             if (fetchThreadCount > 0) {
-                loader = new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor, fetchThreadCount, loadBatchSize,
-                        dispatchConfig.getPartitionFn()).setup(context);
+                AsyncFetchPartitionDispatchLoaderProvider<S> provider =
+                        new AsyncFetchPartitionDispatchLoaderProvider<>(this::buildLoader1, executor,
+                                fetchThreadCount, loadBatchSize, dispatchConfig.getPartitionFn());
+                if (dispatchConfig.getLoadBatchMultiplyFactor() > 0)
+                    provider.setLoadBatchMultiplyFactor(dispatchConfig.getLoadBatchMultiplyFactor());
+                if (dispatchConfig.getMaxLockQueueCountPerThread() > 0)
+                    provider.setMaxLockQueueCountPerThread(dispatchConfig.getMaxLockQueueCountPerThread());
+                loader = provider.setup(context);
             } else {
-                loader = new PartitionDispatchLoaderProvider<>(this::buildLoader1, loadBatchSize, dispatchConfig.getPartitionFn()).setup(context);
+                PartitionDispatchLoaderProvider<S> provider =
+                        new PartitionDispatchLoaderProvider<>(this::buildLoader1, loadBatchSize,
+                                dispatchConfig.getPartitionFn());
+                if (dispatchConfig.getLoadBatchMultiplyFactor() > 0)
+                    provider.setLoadBatchMultiplyFactor(dispatchConfig.getLoadBatchMultiplyFactor());
+                if (dispatchConfig.getMaxLockQueueCountPerThread() > 0)
+                    provider.setMaxLockQueueCountPerThread(dispatchConfig.getMaxLockQueueCountPerThread());
+                loader = provider.setup(context);
             }
         } else {
             loader = buildLoader0(context);

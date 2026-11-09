@@ -47,6 +47,9 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     private IntRangeSet partitionRange;
     private boolean recoverMode;
     private IBatchTaskMetrics metrics;
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门。 */
+    private Boolean allowRestartIfKilled;
     private Boolean allowStartIfComplete;
     private int startLimit;
     private String flowStepId;
@@ -232,6 +235,16 @@ public class BatchTaskContextImpl extends ExecutionContextImpl implements IBatch
     @Override
     public Boolean getAllowStartIfComplete() {
         return allowStartIfComplete;
+    }
+
+    @Override
+    public Boolean getAllowRestartIfKilled() {
+        return allowRestartIfKilled;
+    }
+
+    @Override
+    public void setAllowRestartIfKilled(Boolean allowRestartIfKilled) {
+        this.allowRestartIfKilled = allowRestartIfKilled;
     }
 
     @Override

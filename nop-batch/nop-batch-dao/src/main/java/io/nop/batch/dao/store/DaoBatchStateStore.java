@@ -132,7 +132,11 @@ public class DaoBatchStateStore extends AbstractDaoHandler implements IBatchStat
 
     private void startExistingTask(IOrmSession session, IEntityDao<NopBatchTask> taskDao,
                                    NopBatchTask task, IBatchTaskContext context) {
-        if (task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_KILLED)
+        // 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门——cancel() 缺省 reason="kill" 使「杀失控任务」
+        // 把行打入吸收态。allowRestartIfKilled=TRUE 时旁路本早退，由既有 startLimit/COMPLETED/stale
+        // 闸门与 execCount fencing 条件 UPDATE 承接（僵尸写者状态写被丢弃并 ERROR 留痕）。
+        if (task.getTaskStatus() == NopBatchDaoConstants.TASK_STATUS_KILLED
+                && !Boolean.TRUE.equals(context.getAllowRestartIfKilled()))
             throw new NopException(ERR_BATCH_TASK_NOT_ALLOW_START_WHEN_KILLED)
                     .param(ARG_TASK_NAME, task.getTaskName())
                     .param(ARG_TASK_KEY, task.getTaskKey())

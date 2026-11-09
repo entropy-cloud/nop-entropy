@@ -47,4 +47,14 @@ public interface BatchConfigs {
     @Description("单chunk输出集上界（processor展开面护栏），<=0表示不限制")
     IConfigReference<Integer> CFG_BATCH_MAX_OUTPUT_ITEMS_PER_CHUNK = varRef(s_loc,
             "nop.batch.max-output-items-per-chunk", Integer.class, 0);
+
+    /**
+     * 1.7-C8-004（plan 2546 W-07）：任务级 metrics 开关。
+     * <p>
+     * 缺省 true：每个任务执行都会向 {@code GlobalMeterRegistry} 注册 task 维度 meter。
+     * 基数上界 = 不同 taskName 数 × 14 meter（10 Timer + 4 Counter）。置 false 可整体关闭。
+     */
+    @Description("是否启用批任务级metrics（缺省true）")
+    IConfigReference<Boolean> CFG_BATCH_METRICS_ENABLED = varRef(s_loc,
+            "nop.batch.metrics.enabled", Boolean.class, true);
 }

@@ -65,14 +65,30 @@ public class BatchTask<S> implements IBatchTask {
     private final int concurrency;
 
     private final Boolean allowStartIfComplete;
+
+    /** 1.7-C7-012（plan 2546 W-06）：KILLED 撤离门（null = 保持既有拒绝）。 */
+    private final Boolean allowRestartIfKilled;
     private final int startLimit;
 
+    /**
+     * 1.7-C7-012（plan 2546 W-06）：保留既有 11 参签名（3 处既有调用点零改），转调全参构造器。
+     */
     public BatchTask(String taskName, long taskVersion,
                      IEvalFunction taskKeyExpr, Executor executor, int concurrency,
                      List<Consumer<IBatchTaskContext>> initializers,
                      IBatchLoaderProvider<S> loaderProvider,
                      IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore,
                      Boolean allowStartIfComplete, int startLimit) {
+        this(taskName, taskVersion, taskKeyExpr, executor, concurrency, initializers, loaderProvider,
+                chunkProcessorProvider, stateStore, allowStartIfComplete, startLimit, null);
+    }
+
+    public BatchTask(String taskName, long taskVersion,
+                     IEvalFunction taskKeyExpr, Executor executor, int concurrency,
+                     List<Consumer<IBatchTaskContext>> initializers,
+                     IBatchLoaderProvider<S> loaderProvider,
+                     IBatchChunkProcessorProvider<S> chunkProcessorProvider, IBatchStateStore stateStore,
+                     Boolean allowStartIfComplete, int startLimit, Boolean allowRestartIfKilled) {
         this.taskName = taskName;
         this.taskVersion = taskVersion;
         this.taskKeyExpr = taskKeyExpr;
@@ -82,6 +98,7 @@ public class BatchTask<S> implements IBatchTask {
         this.stateStore = stateStore;
         this.concurrency = normalizeConcurrency(concurrency);
         this.allowStartIfComplete = allowStartIfComplete;
+        this.allowRestartIfKilled = allowRestartIfKilled;
         this.startLimit = startLimit;
         this.executor = getExecutor(executor);
     }
@@ -129,8 +146,15 @@ public class BatchTask<S> implements IBatchTask {
         if (context.getStartLimit() <= 0)
             context.setStartLimit(startLimit);
 
-        IBatchTaskMetrics metrics = context.getMetrics();
-        Object meter = metrics == null ? null : metrics.beginTask();
+        // 1.7-C7-012（plan 2546 W-06）：缺省注入（对齐 allowStartIfComplete 模式）
+        if (context.getAllowRestartIfKilled() == null && allowRestartIfKilled != null)
+            context.setAllowRestartIfKilled(allowRestartIfKilled);
+
+        // 1.7-C8-004（plan 2546 W-07）：metrics 解析/创建与 beginTask 一并放在 setTaskName 之后——
+        // BatchTaskMetricsImpl 构造器即按 tag 建全部 meter，无法"延后重绑"；若在 setTaskName 之前
+        // 建 meters，全部 tag 会落 "default"。单漏斗覆盖 DSL/exp/biz 三链（外部已注入时不覆盖）。
+        // 用单元素数组承载 meter：它必须在 try 内 setTaskName 之后才创建（lambda 捕获要求 effectively-final）
+        Object[] meterRef = new Object[1];
 
         // 1.7-C1-001（plan 2545 W-01）：保存外层上下文——嵌套批任务（processor 内同步执行子任务）
         // 在此覆盖并 remove 会确定性清空外层 TL，使外层后半程 xpl 监听助手 NPE/失聪。
@@ -144,6 +168,15 @@ public class BatchTask<S> implements IBatchTask {
                 context.setTaskVersion(taskVersion);
 
             initTaskKey(context);
+
+            // 1.7-C8-004（plan 2546 W-07）：此处 taskName/taskVersion/taskKey 均已就绪
+            IBatchTaskMetrics metrics = context.getMetrics();
+            if (metrics == null && BatchConfigs.CFG_BATCH_METRICS_ENABLED.get()) {
+                metrics = new io.nop.batch.core.metrics.BatchTaskMetricsImpl(
+                        io.nop.commons.metrics.GlobalMeterRegistry.instance(), null, null, context.getTaskName());
+                context.setMetrics(metrics);
+            }
+            meterRef[0] = metrics == null ? null : metrics.beginTask();
 
             if (stateStore != null) {
                 stateStore.loadTaskState(context);
@@ -168,7 +201,7 @@ public class BatchTask<S> implements IBatchTask {
                 context.fireTaskBegin();
             } catch (Exception e) {
                 // onTaskBegin中有可能分配资源，必须调用onTaskEnd来释放资源
-                onTaskComplete(future, meter, e, context);
+                onTaskComplete(future, meterRef[0], e, context);
                 return future;
             }
 
@@ -188,12 +221,12 @@ public class BatchTask<S> implements IBatchTask {
                     if (submitted != null)
                         submitted.completeExceptionally(e);
                 }
-                onTaskComplete(future, meter, e, context);
+                onTaskComplete(future, meterRef[0], e, context);
                 return future;
             }
 
             CompletableFuture.allOf(futures).whenComplete((ret, err) -> {
-                onTaskComplete(future, meter, err, context);
+                onTaskComplete(future, meterRef[0], err, context);
             });
 
             return future;
@@ -274,6 +307,14 @@ public class BatchTask<S> implements IBatchTask {
                 LOG.error("nop.err.batch.task-metrics-end-fail:taskName={},taskId={}",
                         context.getTaskName(), context.getTaskId(), x);
             }
+
+            // 1.7-C7-005（plan 2546 W-01）：跳过可审计——被跳过的记录不进 completedItems、
+            // 也不进 historyStore（saveProcessed 仅收成功集），故终态必须显式汇总规模，
+            // 否则运维无从得知"实际处理了多少、跳过了多少"（死信账本为独立能力，见 plan Deferred）。
+            long skipped = context.getSkipItemCount();
+            if (skipped > 0)
+                LOG.warn("nop.warn.batch.task-skipped-items:taskName={},taskId={},taskKey={},skipItemCount={}",
+                        context.getTaskName(), context.getTaskId(), context.getTaskKey(), skipped);
 
             FutureHelper.complete(future, null, err);
         }
