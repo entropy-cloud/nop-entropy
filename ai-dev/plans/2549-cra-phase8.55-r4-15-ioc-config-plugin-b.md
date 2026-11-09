@@ -77,16 +77,16 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 
 ## Exit Criteria
 
-- [ ] 17 工单全部实施
-- [ ] 载体表逐条存在且断言目标行为
-- [ ] 关键项先红后绿或变异论证（≥3：C4-009 代际、C2-005 瘦身、C4-010 拓扑序）
-- [ ] E1 全量编译门禁 BUILD SUCCESS
-- [ ] nop-core-framework clean 全量 0F/0E + nop-core + nop-xlang
-- [ ] **端到端验证**：restart 竞争路径（pin1b）真实并发
-- [ ] **不回退 2506/2507**：既有钉全绿（lifecycleLock/释放语义/waitQuietly 有界化）
-- [ ] owner doc 落账：`ioc-and-config.md` + `source-anchors.md`
+- [x] 17 工单全部实施（组 1-5，提交 77c6400..9e597d67）
+- [x] 载体表逐条存在且断言目标行为（13 实施载体全绿 + pin4 合并说明登记[环境限制，watch-only]）
+- [x] 关键项先红后绿或变异论证（C4-009：E-2549-3 载体抓获真缺陷[代际校验顺序]；C2-005：pin8b 变异红[恢复 bin 锁形态→latch 超时红]→恢复 97 绿；C4-010：pin11 对照[共享文件 chainBean 重抛 vs 拓扑序断言]）
+- [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0 @ 2026-11-09）
+- [x] nop-core-framework clean 全量 0F/0E（nop-ioc 90 / plugin-manager 97 / config）+ nop-core 560(2S，flaky solo 4 连绿) + nop-xlang 866(2S) + nop-commons 457
+- [x] **端到端验证**：pin1a/pin1b 真实容器并发（restart×getBean 竞速 + 代际守卫）
+- [x] **不回退 2506/2507**：TestPluginLifecycleLockMigration 5/5、TestPluginStateRecovery 7/7、waitQuietly 有界化未动（回归全绿）
+- [x] owner doc 落账：`ioc-and-config.md`「IoC 生命周期 / 配置刷新链纪律」节 + `source-anchors.md` 4 新锚（IOC-LIFECYCLE-001/IOC-DESTROY-001/CONFIG-REFRESH-001/PLUGIN-INDEX-001）
 - [ ] 工具门禁：check-doc-links EXIT=0；scan-hollow `--module nop-core-framework --severity high` EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
 
