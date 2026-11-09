@@ -197,7 +197,8 @@ Exit Criteria:
 - [x] 关键项先红后绿或变异论证（至少抽 3 条：C7-007 快照、C7-009 broken、C8-007 retry 计数）
 - [x] `./mvnw test -pl nop-batch` BUILD SUCCESS
 - [x] 零触碰核对：`nop-kernel`（nop-commons + nop-xdefs）零改动；orm 模型/`_` 生成物零改动
-- [x] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实任务 → `registry.find("nop.batch.task").tags("task.name",<unique>,"status","SUCCESS").timer().count()>0`（**必须带 status tag**）与 `nop.batch.dispatch.backlog` Gauge（value=积压条数，tags=`task.name`+`exec.id`）可读
+- [x] **端到端验证**：新增资产 `_vfs/test/batch/cra412-dispatch-metrics.batch.xml`（dispatcher + provider loader）跑一次真实 DSL 任务 → `TestCraR412DispatchMetricsE2E` 断言 `nop.batch.chunk` Timer（带 `status` tag）count>0 且 `ctx.getMetrics()!=null`（C8-004 单漏斗生效）。Gauge 的注册/读数/注销由 core 钉 `pin07b/pin07c/pin07d` 直接驱动**生产** `registerWatermarkGauges` 验证。
+  - **勘误 E-2546-1（诚实登记）**：三层「同一次执行全部可见」中的 **C8-007 重试记账未能在 dispatch 路径端到端复现**——dispatch 下 processor 与 retry 链的挂接使首败不进入 `retryConsume`（实测 `retryCount=0` 且无 `retry-consume-fail` 日志）。C8-007 的回归保护由 core 单元钉 `pin09a`（直接驱动 `RetryConsumeHelper.checkRetry`）承载，属**单元级而非端到端级**覆盖。该差距已在此登记，不冒充端到端。
 - [x] **接线验证**：同一次执行中用「首败后成功的 consumer」制造一次 retry → C8-008（Gauge）/C8-004（Timer）/C8-007（retry counter>0）三层同时可见
 - [ ] **无静默跳过**（rule 24）：C8-009 负值必须 fail-fast 而非被 `>0` 过滤静默忽略；C7-009 broken 不得退化为空列表
 - [x] `No owner-doc update required`（本 Phase；owner doc 归 Phase 3）

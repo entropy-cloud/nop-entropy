@@ -94,7 +94,8 @@ public class TestCraR412BatchPins {
             ctx.setTaskKey("key-1");
             assertEquals(null, ctx.getTaskId());
 
-            List<Gauge> gauges = registerGauges(registry, ctx, queue, "pin07b-task");
+            List<Gauge> gauges = io.nop.batch.core.loader.AsyncFetchPartitionDispatchLoaderProvider
+                    .registerWatermarkGauges(ctx, queue);
             assertEquals(2, gauges.size());
             queue.addBatch(java.util.List.of("x", "y"));
             Gauge backlog = registry.find("nop.batch.dispatch.backlog")
@@ -118,7 +119,8 @@ public class TestCraR412BatchPins {
             ctx.setTaskName("pin07c-task");
             ctx.setTaskKey("key-c");
 
-            List<Gauge> gauges = registerGauges(registry, ctx, queue, "pin07c-task");
+            List<Gauge> gauges = io.nop.batch.core.loader.AsyncFetchPartitionDispatchLoaderProvider
+                    .registerWatermarkGauges(ctx, queue);
             for (Gauge g : gauges)
                 registry.remove(g);
             assertEquals(null, registry.find("nop.batch.dispatch.backlog").tag("exec.id", "key-c").gauge(),
@@ -142,8 +144,8 @@ public class TestCraR412BatchPins {
             BatchTaskContextImpl c2 = new BatchTaskContextImpl();
             c2.setTaskName("same"); c2.setTaskKey("e2");
 
-            registerGauges(registry, c1, q1, "same");
-            registerGauges(registry, c2, q2, "same");
+            io.nop.batch.core.loader.AsyncFetchPartitionDispatchLoaderProvider.registerWatermarkGauges(c1, q1);
+            io.nop.batch.core.loader.AsyncFetchPartitionDispatchLoaderProvider.registerWatermarkGauges(c2, q2);
 
             q1.addBatch(java.util.List.of("a"));
             q2.addBatch(java.util.List.of("a", "b", "c"));
@@ -315,24 +317,6 @@ public class TestCraR412BatchPins {
         AtomicInteger n = new AtomicInteger();
         return (batchSize, ctx) -> n.getAndIncrement() == 0
                 ? new ArrayList<>(java.util.List.of(value)) : new ArrayList<>();
-    }
-
-    /** 与 AsyncFetchPartitionDispatchLoaderProvider 的注册语义保持一致的镜像实现（供 core 侧钉）。 */
-    private static List<Gauge> registerGauges(io.micrometer.core.instrument.MeterRegistry registry,
-                                              IBatchTaskContext context, PartitionDispatchQueue<String> queue,
-                                              String taskName) {
-        String execId = context.getTaskId();
-        if (execId == null || execId.isEmpty()) execId = context.getTaskKey();
-        if (execId == null || execId.isEmpty()) execId = "anon-" + System.identityHashCode(queue);
-        List<io.micrometer.core.instrument.Tag> tags = java.util.Arrays.asList(
-                io.micrometer.core.instrument.Tag.of("task.name", taskName),
-                io.micrometer.core.instrument.Tag.of("exec.id", execId));
-        Gauge backlog = Gauge.builder("nop.batch.dispatch.backlog", queue, PartitionDispatchQueue::getCount)
-                .tags(tags).register(registry);
-        Gauge avail = Gauge.builder("nop.batch.dispatch.available-permits", queue,
-                        PartitionDispatchQueue::getAvailablePermits)
-                .tags(tags).register(registry);
-        return java.util.Arrays.asList(backlog, avail);
     }
 
     static class CountingMetrics implements IBatchTaskMetrics {

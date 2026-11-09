@@ -195,7 +195,7 @@ public class AsyncFetchPartitionDispatchLoaderProvider<S>
      * → {@code "anon-"+identityHashCode(queue)}，保证 meter id 唯一且不触发 {@code Tag.of} 的
      * null 校验失败（无 stateStore 的 dispatch 任务 taskId 为 null）。
      */
-    private List<Gauge> registerWatermarkGauges(IBatchTaskContext context, PartitionDispatchQueue<S> queue) {
+    public static <T> List<Gauge> registerWatermarkGauges(IBatchTaskContext context, PartitionDispatchQueue<T> queue) {
         String taskName = context.getTaskName() == null ? "default" : context.getTaskName();
         String execId = context.getTaskId();
         if (StringHelper.isEmpty(execId))
