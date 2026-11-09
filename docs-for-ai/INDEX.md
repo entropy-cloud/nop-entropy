@@ -76,6 +76,7 @@
 | 判断一个业务模块怎么分层 | `01-repo-map/domain-module-pattern.md` |
 | 找模型、页面、测试、模块入口 | `01-repo-map/where-things-live.md` |
 | 从模型开始开发 | `02-core-guides/model-first-development.md` |
+| **开发 Word 文档模型相关能力（OfficeDocModel 模型分层、能力矩阵、docx 解析/生成契约、模板语义内嵌规则、范围硬边界）** | `02-core-guides/word-document-model.md` |
 | **判断业务代码能否直接写 SQL（raw SQL 豁免场景、`orm()` 即 EQL、EQL 算术括号/别名大小写坑）** | `02-core-guides/model-first-development.md`（"直接 SQL 的使用边界"章节） |
 | 理解 ORM 模型设计规范（stdDataType/stdSqlType、主键策略、关系设计） | `02-core-guides/orm-model-design.md` |
 | **分片扩容（N→M）/ 同构机房迁移的数据搬迁编排（五状态机、P0 位点钉定、写停止关、三级校验）** | `02-core-guides/data-migration.md` |

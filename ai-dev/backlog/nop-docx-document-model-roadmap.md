@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-10-17（起草，全部 WI 未启动）
+> Last updated: 2026-11-10（WI0 完成，plan 2515；WI1–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -37,7 +37,7 @@
 
 ### M0 — 基线与验收基础设施
 
-- [ ] WI0 基线梳理、规格固化与 docx 视觉验收工具：把 `ai-dev/design/word-editor/online-word-model-design.md` 提升/收敛为 docs-for-ai owner doc（模型能力矩阵、docx 读写契约、模板语义内嵌规则、边界）；整理 springreport / apache-poi / docx4j / mammoth 参考索引；建立 docx 复杂样本语料 + docx↔pdf 渲染视觉验收（LibreOffice headless 或 PDFBox 渲染对照，复用 nop-pdf roadmap 的图像 diff 工具若可用）（Deliverable: owner doc + 语料 + docx 验收工具 + 参考索引；deps: 无；Item Type: Decision + Proof）
+- [x] WI0 基线梳理、规格固化与 docx 视觉验收工具：把 `ai-dev/design/word-editor/online-word-model-design.md` 提升/收敛为 docs-for-ai owner doc（模型能力矩阵、docx 读写契约、模板语义内嵌规则、边界）；整理 springreport / apache-poi / docx4j / mammoth 参考索引；建立 docx 复杂样本语料 + docx↔pdf 渲染视觉验收（LibreOffice headless 或 PDFBox 渲染对照，复用 nop-pdf roadmap 的图像 diff 工具若可用）（Deliverable: owner doc + 语料 + docx 验收工具 + 参考索引；deps: 无；Item Type: Decision + Proof）
 
 ### M1 — 通用文档结构模型
 
