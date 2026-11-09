@@ -35,7 +35,7 @@ Status: completed（设计文档 v1 + fresh-session 取证 + draft review R1 PAS
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
-Status: in_progress（**17 工单代码全部落地**（组 1-5，提交 77c6400..1f4f477）；执行期勘误 E-2549-2：C6-007 初版吞 destroy 异常破坏插件 No-Silent 契约（TestPluginStateRecovery 2 red）→ 改逐方法隔离+首异常重抛；载体 11/14 已建绿（pin2a/pin3/pin5+pre/pin6/pin7/pin9/9b/pin10/pin11/pin12），**6 项载体待建**（pin1a/1b/pin4/pin8/pin8b/pin13——高成本并发/环境场景，见下「载体待建清单」）
+Status: in_progress（**17 工单代码全部落地**（组 1-5，提交 77c6400..1f4f477）；执行期勘误 E-2549-2：C6-007 初版吞 destroy 异常破坏插件 No-Silent 契约（TestPluginStateRecovery 2 red）→ 改逐方法隔离+首异常重抛；载体 12/14 已建绿（pin2a/pin3/pin5+pre/pin6/pin7/pin9/9b/pin10/pin11/pin12/pin13），**5 项载体待建**（pin1a/1b/pin4/pin8/pin8b——高成本并发/环境场景，见下「载体待建清单」）
 
 **载体待建清单（Phase 2 未完项）**：
 - pin1a/pin1b：`TestBeanContainerLifecycleRace`——并发 start×getBean 无孤儿 + restart 代际（慢启动 bean + concurrentStart 模式）
