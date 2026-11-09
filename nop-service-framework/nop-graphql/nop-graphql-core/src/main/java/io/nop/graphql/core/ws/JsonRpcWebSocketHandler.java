@@ -238,7 +238,12 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                     handleSubscription(request);
             }
         } catch (IOException e) {
+            // 2.3-C3-006（plan 2550 裁定 D）分支三：IOException = 连接级故障（关连接语义）
             LOG.warn("nop.websocket.on-message-error", e);
+        } catch (Throwable e) {
+            // 分支三续：同步 RuntimeException 不穿透——按 keepAlive 绝缘同型（R1-01 契约）
+            // 结构化日志留痕，handler 与下一条消息存活，连接不因单条消息处理异常被杀。
+            LOG.error("nop.err.websocket.on-message-fail:method={}", method, e);
         }
     }
 
@@ -429,8 +434,16 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
     private void sendStreamingMessage(String operationId, Flow.Publisher<ApiResponse<?>> stream) {
         SubscriptionSubscriber subscriber = new SubscriptionSubscriber(session, operationId);
         // 必须先注册再subscribe：同步publisher会在subscribe调用内同步触发onComplete/onError，
-        // 若put在后，清理先于注册执行（remove空跑），滞留条目导致id复用被4409拒绝
-        activeOperations.put(operationId, subscriber);
+        // 若put在后，清理先于注册执行（remove空跑），滞留条目导致id复用被4409拒绝。
+        // 2.3-C1-005（plan 2550 裁定 A）：validSubscription 的 containsKey 检查与注册之间存在
+        // 竞态窗——裸 put 会让并发同 id 注册覆盖首订阅（首订阅的清理路径失效）。putIfAbsent
+        // 保证首订阅唯一所有权；后来者放弃自建 subscriber（冷 publisher 未 subscribe 即未执行，
+        // 无资源回收面），与 validSubscription 的 4409 终态机协同。
+        Flow.Subscriber<ApiResponse<?>> existing = activeOperations.putIfAbsent(operationId, subscriber);
+        if (existing != null) {
+            LOG.warn("nop.websocket.subscription-race:opId={}", operationId);
+            return;
+        }
         stream.subscribe(subscriber);
     }
 
@@ -577,13 +590,27 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
                 });
                 subscription.get().request(1);
             } else {
-                LOG.debug("nop.websocket.ignore-response");
+                // 2.3-C3-006（plan 2550 裁定 D）分支二：session-closed 不再只静默——取消上游
+                // 订阅（SSE/执行链在会话关闭后停止推送，否则上游执行至 EOF 白耗资源）。
+                LOG.debug("nop.websocket.ignore-response:cancel-upstream:opId={}", operationId);
+                cancel();
             }
         }
 
         @Override
         public void onError(Throwable t) {
             LOG.error("nop.websocket.error", t);
+            // 2.3-C3-006（plan 2550 裁定 D）分支一：上游错误必须向客户端发终止信号
+            // （jsonrpc error 帧）后再关流——不发则客户端无从感知订阅已死（悬挂等待）。
+            // 错误帧经同一 sendPump 保持会话内顺序；发送失败按既有 warn 语义，不影响清理。
+            sendPump.submit(() -> {
+                try {
+                    sendError(operationId, JsonRpcWebSocketErrorCodes.INTERNAL_ERROR,
+                            t.getMessage() == null ? t.toString() : t.getMessage());
+                } catch (Exception e) {
+                    LOG.warn("nop.websocket.send-error-fail", e);
+                }
+            });
             // 订阅已终止，条目必须清理，否则id复用会触发4409断开整个连接，且滞留条目耗尽maxActiveOperations
             activeOperations.remove(operationId, this);
         }

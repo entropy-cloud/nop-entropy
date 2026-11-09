@@ -82,6 +82,14 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
         return Math.min(fallbackUrls.size(), Math.max(maxRetries, 0));
     }
 
+    /**
+     * 2.3-C3-010（plan 2550 裁定 E）：CL-025 断连观测检查（不可观测档 = null/false，零破坏）。
+     */
+    private static boolean clientAborted(IGatewayContext svcCtx) {
+        io.nop.http.api.server.IHttpServerContext http = svcCtx.getHttpServerContext();
+        return http != null && http.isClientAborted();
+    }
+
     private CompletionStage<ApiResponse<?>> tryInvokeWithFallback(IGatewayInvocation invocation, ApiRequest<?> request,
                                                                    IGatewayContext svcCtx, int fallbackIndex) {
         CompletableFuture<ApiResponse<?>> future = new CompletableFuture<>();
@@ -105,6 +113,13 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
             }
 
             // 尝试备用 URL（总尝试次数受 maxRetries 限制）
+            // 2.3-C3-010（plan 2550 裁定 E）：failover 决策前断连检查——客户端已断连不再
+            // 向 fallback 域重发（幽灵重试子面，C4-003 同源）。
+            if (clientAborted(svcCtx)) {
+                LOG.warn("nop.gateway.client-aborted-before-failover:attempt={}", fallbackIndex);
+                future.completeExceptionally(err);
+                return;
+            }
             if (fallbackIndex < maxFallbackAttempts()) {
                 String fallbackUrl = fallbackUrls.get(fallbackIndex);
                 LOG.warn("Upstream failed, trying fallback url={}, attempt={}", fallbackUrl, fallbackIndex + 1);
@@ -122,6 +137,11 @@ public class AiFailoverGatewayInterceptor implements IGatewayInterceptor {
 
     private CompletionStage<ApiResponse<?>> tryFallbackUrl(String url, ApiRequest<?> request,
                                                             IGatewayContext svcCtx, int nextFallbackIndex) {
+        // 2.3-C3-010：每腿发起前断连检查（回调体语境：以 failedFuture 收敛，不 throw）
+        if (clientAborted(svcCtx)) {
+            return CompletableFuture.failedFuture(
+                    new java.util.concurrent.CancellationException("client aborted"));
+        }
         HttpRequest httpRequest = HttpRequest.post(url);
         if (request.getHeaders() != null) {
             request.getHeaders().forEach((k, v) -> {

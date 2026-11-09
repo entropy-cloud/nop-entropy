@@ -129,7 +129,9 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
     }
 
     @Override
-    public void setRequest(ParsedGraphQLRequest request) {
+    public synchronized void setRequest(ParsedGraphQLRequest request) {
+        // 2.3-C1-004（plan 2550 裁定 A）：与 getRequest 同监视器——消除读写监视器失配。
+        // 契约残注：本类外其他 serviceContext.setRequest 写入方不在此同步域内。
         serviceContext.setRequest(request);
     }
 
@@ -151,17 +153,23 @@ public class GraphQLExecutionContext implements IGraphQLExecutionContext {
      * P1-2.6-004：dispatchAll由GraphQLExecutor在调度点统一调用（发起时点名+游走回合出口
      * 泵+批次完成递归，见GraphQLExecutor.dispatchAll）。快照并清空loader注册表后逐个
      * dispatch，返回各批完成的聚合promise；注册表为空返回null（本轮调度链终止）。
+     *
+     * <p>2.3-C2-001（plan 2550 裁定 B，←并 C9-007）：loader.dispatch() 涉及批次数据装载
+     * （DB/远程 I/O），必须在本上下文监视器外执行——快照+清空在 synchronized 域内完成，
+     * dispatch 循环出锁。契约：快照后新注册的 loader 归下一轮 dispatchAll（本轮不感知）。
      */
     @Override
-    public synchronized CompletionStage<Void> dispatchAll() {
-        if (loaders.isEmpty())
-            return null;
-
-        Map<String, DataLoader> loaders = new HashMap<>(this.loaders);
-        this.loaders.clear();
+    public CompletionStage<Void> dispatchAll() {
+        Map<String, DataLoader> snapshot;
+        synchronized (this) {
+            if (loaders.isEmpty())
+                return null;
+            snapshot = new HashMap<>(loaders);
+            loaders.clear();
+        }
 
         List<CompletionStage<?>> futures = new ArrayList<>();
-        for (Map.Entry<String, DataLoader> entry : loaders.entrySet()) {
+        for (Map.Entry<String, DataLoader> entry : snapshot.entrySet()) {
             DataLoader loader = entry.getValue();
             LOG.debug("loader.dispatch:{}", entry.getKey());
             futures.add(loader.dispatch());

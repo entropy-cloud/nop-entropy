@@ -21,9 +21,11 @@ import io.nop.gateway.model.GatewayInvokeModel;
 import io.nop.gateway.model.GatewayRouteModel;
 import io.nop.http.api.client.HttpRequest;
 import io.nop.http.api.client.IHttpClient;
+import io.nop.http.api.server.IHttpServerContext;
 import io.nop.rpc.core.utils.RpcHelper;
 
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -45,6 +47,9 @@ import static io.nop.gateway.GatewayErrors.ERR_GATEWAY_UPSTREAM_INFLIGHT_LIMIT;
  * </ul>
  */
 public class InvokeProcessor {
+
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(InvokeProcessor.class);
 
     private final IRpcServiceInvoker invoker;
     private final IHttpClient httpClient;
@@ -97,6 +102,14 @@ public class InvokeProcessor {
             throw new NopException(ERR_GATEWAY_NO_RPC_SUPPORT).source(route);
         }
 
+        // 2.3-C3-010（plan 2550 裁定 E）：转发前断连检查——客户端已断连不发起转发
+        // （非幂等请求的幽灵执行面）。CancellationException 不在 failover 可重试白名单，
+        // 链路就此终止。
+        if (clientAborted(context)) {
+            LOG.warn("nop.gateway.client-aborted-before-invoke:path={}", context.getRequestPath());
+            return CompletableFuture.failedFuture(new CancellationException("client aborted"));
+        }
+
         RpcHelper.setHttpUrl(request, null);
         RpcHelper.setHttpMethod(request, null);
 
@@ -110,6 +123,15 @@ public class InvokeProcessor {
         } else {
             throw new NopException(ERR_GATEWAY_NO_RPC_SUPPORT).source(route);
         }
+    }
+
+    /**
+     * 2.3-C3-010（plan 2550 裁定 E）：CL-025 断连观测检查。底层 IHttpServerContext 缺省
+     * （纯构造语境/不可观测适配器）= 不可观测档，维持既有语义零破坏。
+     */
+    static boolean clientAborted(IGatewayContext context) {
+        IHttpServerContext http = context.getHttpServerContext();
+        return http != null && http.isClientAborted();
     }
 
     /**
@@ -204,6 +226,11 @@ public class InvokeProcessor {
 
             // 429 Too Many Requests — 退避重试
             if (httpStatus == 429 && retriesLeft > 0) {
+                // 2.3-C3-010：重试延迟触发前断连检查——客户端已断连不再重发非幂等 POST
+                if (clientAborted(svcCtx)) {
+                    LOG.warn("nop.gateway.client-aborted-before-retry:status=429,retriesLeft={}", retriesLeft);
+                    return CompletableFuture.failedFuture(new CancellationException("client aborted"));
+                }
                 String retryAfter = httpResponse.getHeaders().get("Retry-After");
                 // equal jitter（裁定②(b)）：施加于 parseRetryAfter 钳制之后——保留 ≥D/2 的上游
                 // 恢复窗并打破同值 Retry-After 的同步重试波；parseRetryAfter 与 30s 钳制零改动
@@ -215,6 +242,11 @@ public class InvokeProcessor {
 
             // 其他服务端错误 — 抛异常供上层拦截器捕获（用于 failover）
             if (httpStatus >= 500 && retriesLeft > 0) {
+                // 2.3-C3-010：同上——断连后不进入 5xx 重试
+                if (clientAborted(svcCtx)) {
+                    LOG.warn("nop.gateway.client-aborted-before-retry:status=5xx,retriesLeft={}", retriesLeft);
+                    return CompletableFuture.failedFuture(new CancellationException("client aborted"));
+                }
                 long delayMs = (long) (Math.pow(2, 3 - retriesLeft) * 1000) + (long) (jitterSource.getAsDouble() * 1000);
                 return delayedFuture(delayMs).thenCompose(v ->
                         invokeUrlWithRetry(url, request, invoke, svcCtx, retriesLeft - 1)

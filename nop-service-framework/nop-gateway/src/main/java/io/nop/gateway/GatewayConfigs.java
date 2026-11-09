@@ -36,4 +36,13 @@ public interface GatewayConfigs {
     @Description("上游主链重试次数上限（≤0=零重试；默认 3=现行行为）")
     IConfigReference<Integer> CFG_GATEWAY_UPSTREAM_MAX_RETRIES =
             varRef(s_loc, "nop.gateway.upstream-max-retries", Integer.class, 3);
+
+    /**
+     * 2.3-C3-004（plan 2550 裁定 C）：流式首段窗口内失败的重订阅次数上界
+     * （BufferedStreamingPublisher 重订阅链）。≤0 = 不设上界（保持现行无限重订阅语义）。
+     * 上界配合指数退避消除「上游恒失败 × 窗口内重订阅无界」的连接/重试放大轨迹。
+     */
+    @Description("流式首段重订阅次数上界（≤0=无限；默认 5）")
+    IConfigReference<Integer> CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS =
+            varRef(s_loc, "nop.graphql.stream.max-resubscribe-attempts", Integer.class, 5);
 }

@@ -27,9 +27,14 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Flow;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.LongUnaryOperator;
+
+import static io.nop.gateway.GatewayConfigs.CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS;
 
 /**
  * 流式首段缓冲 + 重订阅 publisher（W7 机制 A 落地，plan 2026-08-15-1116-3 Phase 1 GW-A7；
@@ -87,6 +92,25 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
     private final long bufferTimeMs;
     private final boolean bufferEnabled;
 
+    /**
+     * 2.3-C3-004（plan 2550 裁定 C）：窗口内失败的重订阅次数上界（含首次 attempt 计数）。
+     * ≤0 = 不设上界（现行无界语义保持）。默认取
+     * {@code GatewayConfigs.CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS}（缺省 5）。
+     */
+    private final int maxAttempts;
+
+    /**
+     * 退避计算缝（确定性注入）：入参 = 已发起 attempt 数（≥1），返回重订阅延迟 ms。
+     * 默认：100ms × 2^(n-1) 封顶 5s。
+     */
+    private final LongUnaryOperator backoffFn;
+
+    /**
+     * 延迟执行缝（确定性注入）：测试注入同步/受控执行器；生产默认
+     * {@code CompletableFuture.delayedExecutor}。
+     */
+    private final DelayedExecutor retryScheduler;
+
     public BufferedStreamingPublisher(IHttpClient httpClient,
                                       GatewayRouteModel route,
                                       ApiRequest<?> request,
@@ -108,6 +132,10 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
         this.bufferSize = streaming.getBufferSize() != null ? streaming.getBufferSize() : 10;
         this.bufferTimeMs = streaming.getBufferTimeMs() != null ? streaming.getBufferTimeMs() : 1000L;
         this.bufferEnabled = Boolean.TRUE.equals(streaming.getBufferEnabled());
+        Integer configuredMax = CFG_GATEWAY_STREAM_MAX_RESUBSCRIBE_ATTEMPTS.get();
+        this.maxAttempts = configuredMax == null ? 5 : configuredMax;
+        this.backoffFn = null;
+        this.retryScheduler = null;
         if (bufferSize < 1) {
             throw new IllegalArgumentException("bufferSize must be >= 1: " + bufferSize);
         }
@@ -115,6 +143,68 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
             throw new IllegalArgumentException("bufferTimeMs must be >= 0: " + bufferTimeMs);
         }
     }
+
+    /**
+     * 2.3-C3-004 注入缝构造（包私有，仅测试）：显式指定重订阅上界、退避函数与延迟执行器，
+     * 供确定性断言（次数钳制 + 退避间隔零真实等待）。
+     */
+    BufferedStreamingPublisher(IHttpClient httpClient,
+                               GatewayRouteModel route,
+                               ApiRequest<?> request,
+                               IGatewayContext context,
+                               GatewayStreamingModel streaming,
+                               IStreamingRetryCallback retryCallback,
+                               IStreamingLifecycleListener lifecycle,
+                               Function<Flow.Publisher<IServerEventResponse>, Flow.Publisher<Object>> mapper,
+                               HttpRequest initialRequest,
+                               int maxAttempts,
+                               LongUnaryOperator backoffFn,
+                               DelayedExecutor retryScheduler) {
+        this.httpClient = Objects.requireNonNull(httpClient, "httpClient");
+        this.route = Objects.requireNonNull(route, "route");
+        this.request = Objects.requireNonNull(request, "request");
+        this.context = Objects.requireNonNull(context, "context");
+        this.streaming = Objects.requireNonNull(streaming, "streaming");
+        this.retryCallback = retryCallback;
+        this.lifecycle = lifecycle;
+        this.mapper = Objects.requireNonNull(mapper, "mapper");
+        this.initialRequest = Objects.requireNonNull(initialRequest, "initialRequest");
+        this.bufferSize = streaming.getBufferSize() != null ? streaming.getBufferSize() : 10;
+        this.bufferTimeMs = streaming.getBufferTimeMs() != null ? streaming.getBufferTimeMs() : 1000L;
+        this.bufferEnabled = Boolean.TRUE.equals(streaming.getBufferEnabled());
+        this.maxAttempts = maxAttempts;
+        this.backoffFn = backoffFn;
+        this.retryScheduler = retryScheduler;
+        if (bufferSize < 1) {
+            throw new IllegalArgumentException("bufferSize must be >= 1: " + bufferSize);
+        }
+        if (bufferTimeMs < 0) {
+            throw new IllegalArgumentException("bufferTimeMs must be >= 0: " + bufferTimeMs);
+        }
+    }
+
+    /** 2.3-C3-004 延迟执行缝：schedule(delayMs, task)。 */
+    interface DelayedExecutor {
+        void schedule(long delayMs, Runnable task);
+    }
+
+    /** 生产默认：CompletableFuture.delayedExecutor（daemon scheduler 池）。 */
+    private static final class JdkDelayedExecutor implements DelayedExecutor {
+        static final JdkDelayedExecutor INSTANCE = new JdkDelayedExecutor();
+
+        @Override
+        public void schedule(long delayMs, Runnable task) {
+            if (delayMs <= 0) {
+                CompletableFuture.runAsync(task);
+            } else {
+                CompletableFuture.delayedExecutor(delayMs, TimeUnit.MILLISECONDS).execute(task);
+            }
+        }
+    }
+
+    /** 默认退避：100ms × 2^(n-1) 封顶 5s（n = 已发起 attempt 数，≥1）。 */
+    static final long BACKOFF_BASE_MS = 100L;
+    static final long BACKOFF_CAP_MS = 5_000L;
 
     /** 当前活跃订阅（C3-007 降级终态交付的委托目标；subscribe 时置位）。 */
     private volatile BufferedSubscription activeSubscription;
@@ -199,6 +289,15 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
         private Attempt attempt;    // guarded by this
         private int attemptCount;
         private volatile Counter overflowCounter; // 溢出计数指标（懒创建，routeId 维度）
+
+        /** 默认退避：100ms × 2^(n-1) 封顶 5s（n = 已发起 attempt 数，≥1）。 */
+        private long computeBackoffMs() {
+            if (backoffFn != null) {
+                return Math.max(0L, backoffFn.applyAsLong(attemptCount));
+            }
+            int n = Math.max(1, attemptCount);
+            return Math.min(BACKOFF_BASE_MS * (1L << Math.min(n - 1, 20)), BACKOFF_CAP_MS);
+        }
 
         private final ArrayDeque<Signal> signalQueue = new ArrayDeque<>(); // guarded by this
         private boolean draining; // guarded by this：单一 drain 守卫（投递串行化）
@@ -525,6 +624,15 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
                 if (terminated || cancelled.get() || state != attempt) {
                     return;
                 }
+                // 2.3-C3-004：重订阅次数上界——attemptCount 含首次；重订阅序号 = attemptCount。
+                // 超上界（maxAttempts>0 且已发起数 ≥ 上界）不再重订阅，原样转发错误终态
+                // （无上界时保持现行无限重订阅语义）。
+                if (maxAttempts > 0 && attemptCount >= maxAttempts + 1) {
+                    LOG.warn("nop.gateway.streaming-resubscribe-exhausted:routeId={},attempts={},maxAttempts={}",
+                            route.getId(), attemptCount, maxAttempts);
+                    terminate(state, throwable);
+                    return;
+                }
                 oldSub = state.upSub;
                 attempt = null;
             }
@@ -534,7 +642,30 @@ public class BufferedStreamingPublisher implements Flow.Publisher<Object> {
             if (lifecycle != null) {
                 lifecycle.onStreamTerminated(throwable);
             }
-            startAttempt(newRequest);
+            // 退避（裁定 C）：指数退避后重订阅——延迟经注入缝（确定性断言零真实等待）；
+            // 延迟到达后复核 cancelled/terminated 再发起（延迟窗内取消不复活流）。
+            long delayMs = computeBackoffMs();
+            if (delayMs > 0 && retryScheduler != null) {
+                retryScheduler.schedule(delayMs, () -> {
+                    synchronized (BufferedSubscription.this) {
+                        if (terminated || cancelled.get()) {
+                            return;
+                        }
+                    }
+                    startAttempt(newRequest);
+                });
+            } else if (delayMs > 0) {
+                JdkDelayedExecutor.INSTANCE.schedule(delayMs, () -> {
+                    synchronized (BufferedSubscription.this) {
+                        if (terminated || cancelled.get()) {
+                            return;
+                        }
+                    }
+                    startAttempt(newRequest);
+                });
+            } else {
+                startAttempt(newRequest);
+            }
         }
 
         /**

@@ -14,10 +14,10 @@ import io.nop.core.lang.json.IJsonHandler;
 import io.nop.core.lang.json.IJsonSerializable;
 
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UserContextImpl extends ExtensibleBean implements IUserContext, IJsonSerializable {
     private String sessionId;
@@ -34,6 +34,11 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     private String deptName;
 
     private int loginType;
+    /**
+     * 2.3-C1-002（plan 2550 裁定 A）：角色集必须为并发 Set——addRole/removeRole 写与
+     * isUserInRole/getRoles/serializeToJson 读跨线程并发（读侧无锁快照一致视图）。
+     * setRoles 入参统一拷贝进并发 Set，保证惰性初始化路径之外的所有赋值入口同样收敛。
+     */
     private Set<String> roles;
 
     private boolean dirty;
@@ -222,8 +227,15 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     }
 
     public void setRoles(Set<String> roles) {
-        if (!Objects.equals(roles, this.roles)) {
-            this.roles = roles;
+        // 2.3-C1-002：拷贝进并发 Set——外部传入的任意 Set（如反序列化产物 HashSet）
+        // 不改造的话，后续 addRole 惰性初始化不会触发，读侧仍暴露裸 HashSet
+        Set<String> copied = null;
+        if (roles != null) {
+            copied = ConcurrentHashMap.newKeySet();
+            copied.addAll(roles);
+        }
+        if (!Objects.equals(copied, this.roles)) {
+            this.roles = copied;
             dirty = true;
         }
     }
@@ -266,7 +278,7 @@ public class UserContextImpl extends ExtensibleBean implements IUserContext, IJs
     @Override
     public synchronized void addRole(String roleId) {
         if (roles == null)
-            roles = new HashSet<>();
+            roles = ConcurrentHashMap.newKeySet();
         if (roles.add(roleId)) {
             dirty = true;
         }

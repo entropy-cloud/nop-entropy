@@ -57,6 +57,18 @@ public class ServletHttpServerContext implements IHttpServerContext {
         return request.getMethod();
     }
 
+    /**
+     * CL-025（plan 2550 裁定 E，能力勘误 E-2550-2）：Servlet 6.0 API 无轮询式客户端断连
+     * 观测（HttpServletRequest.getConnection() 属 Servlet 6.1 Connection API，仓内
+     * servlet-api=6.0 无此能力；写失败 IOException 属响应路径事后感知，非转发前检查）。
+     * 保持 default 不可观测档（false）——网关重试链在本适配器下维持既有重试语义，勘误
+     * 登记 plan 2550；升级 Servlet 6.1 后由 Connection API 承接真实检测。
+     */
+    @Override
+    public boolean isClientAborted() {
+        return false;
+    }
+
     @Override
     public String getRemoteAddr() {
         return request.getRemoteAddr();

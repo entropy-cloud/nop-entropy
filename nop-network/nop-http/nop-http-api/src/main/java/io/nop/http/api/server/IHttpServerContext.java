@@ -75,6 +75,24 @@ public interface IHttpServerContext {
 
     }
 
+    /**
+     * CL-025（plan 2550 裁定 E）：客户端断连观测原语。网关/重试链在转发前与重试延迟触发前
+     * 检查该状态——客户端已断连时不继续重发非幂等请求（幽灵执行）。
+     * <p>默认实现返回 false（不可观测档，保持零破坏）：各 http server 适配器按自身能力实现
+     * （SPI 变更，回归面 = VertxHttpServerContext / ServletHttpServerContext / nop-auth-sso 测试桩）。
+     */
+    default boolean isClientAborted() {
+        return false;
+    }
+
+    /**
+     * CL-025：注册客户端断连回调（在途下游调用的取消钩子）。底层不可观测时为无操作。
+     * 回调可能在任意 I/O 线程触发，实现方必须快速返回、不得阻塞。
+     */
+    default void onClientAbort(Runnable task) {
+        // 默认无操作：不可观测档（零破坏）
+    }
+
     String getCookie(String name);
 
     void addCookie(String sameSite, HttpCookie cookie);

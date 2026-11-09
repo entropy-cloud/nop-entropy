@@ -11,6 +11,7 @@ import io.nop.api.core.beans.ApiRequest;
 import io.nop.api.core.beans.ApiResponse;
 import io.nop.core.context.ServiceContextImpl;
 import io.nop.gateway.model.GatewayRouteModel;
+import io.nop.http.api.server.IHttpServerContext;
 
 import java.util.Map;
 
@@ -132,5 +133,20 @@ public class GatewayContextImpl extends ServiceContextImpl implements IGatewayCo
 
     public void setHttpMethod(String httpMethod) {
         setAttribute(ATTR_HTTP_METHOD, httpMethod);
+    }
+
+    /**
+     * CL-025（plan 2550 裁定 E）：底层 HTTP server 上下文经属性存储（沿用本类「不引入
+     * 新成员变量」约定），供 InvokeProcessor/AiFailover 转发前与重试前的断连检查。
+     */
+    public static final String ATTR_HTTP_SERVER_CONTEXT = "httpServerContext";
+
+    @Override
+    public IHttpServerContext getHttpServerContext() {
+        return (IHttpServerContext) getAttribute(ATTR_HTTP_SERVER_CONTEXT);
+    }
+
+    public void setHttpServerContext(IHttpServerContext httpServerContext) {
+        setAttribute(ATTR_HTTP_SERVER_CONTEXT, httpServerContext);
     }
 }

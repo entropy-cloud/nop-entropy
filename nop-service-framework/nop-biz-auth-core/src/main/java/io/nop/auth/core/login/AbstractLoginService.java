@@ -23,6 +23,9 @@ import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 public abstract class AbstractLoginService implements ILoginService {
+    private static final org.slf4j.Logger LOG =
+            org.slf4j.LoggerFactory.getLogger(AbstractLoginService.class);
+
     @Inject
     @Nullable
     protected IUserContextHook userContextHook;
@@ -56,7 +59,16 @@ public abstract class AbstractLoginService implements ILoginService {
         if (userContextHook != null)
             userContextHook.onUpdate(userContext);
 
-        return userContextCache.saveUserContextAsync(userContext).thenRun(userContext::clearDirty);
+        return userContextCache.saveUserContextAsync(userContext).whenComplete((v, e) -> {
+            // 2.3-C3-011（plan 2550 裁定 F）：原 thenRun(clearDirty) 使保存失败被静默吞掉且
+            // 失败路径无从感知。改为 whenComplete 显式两分支：成功才 clearDirty；失败 WARN
+            // 留痕（nop.warn.auth.session-flush-fail），脏标记保留给下一轮刷新链重试。
+            if (e != null) {
+                LOG.warn("nop.warn.auth.session-flush-fail:sessionId={}", userContext.getSessionId(), e);
+            } else {
+                userContext.clearDirty();
+            }
+        });
 
     }
 

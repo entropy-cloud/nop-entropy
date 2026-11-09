@@ -151,6 +151,20 @@ public class GatewayHttpFilter implements IHttpServerFilter {
                     return next.get();
                 }
 
+                // 2.3-C3-010（plan 2550 裁定 E）：断连注册——CL-025 onClientAbort 钩子收到
+                // 客户端断连事件时关闭在途下游调用（best-effort Future 取消；不可观测适配器
+                // 为无操作，零破坏）。同时注入 server context 供 InvokeProcessor/AiFailover
+                // 的转发前/重试前 isClientAborted() 检查。
+                if (gatewayCtx instanceof io.nop.gateway.core.context.GatewayContextImpl) {
+                    ((io.nop.gateway.core.context.GatewayContextImpl) gatewayCtx).setHttpServerContext(context);
+                }
+                context.onClientAbort(() -> {
+                    LOG.warn("nop.gateway.client-abort:path={}", context.getRequestPath());
+                    if (future instanceof java.util.concurrent.Future<?>) {
+                        ((java.util.concurrent.Future<?>) future).cancel(true);
+                    }
+                });
+
                 return future.thenCompose(ret -> write(context, ret, gatewayCtx));
             }).exceptionally(ex -> {
                 // P1-check-gw-49 (plan 2390): async-segment failures (body read, JSON

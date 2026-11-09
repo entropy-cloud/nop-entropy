@@ -367,6 +367,22 @@ BizModel 异步 action（`callActionAsync` 及其执行链）的线程上下文�
 - **许可纪律**：获取在同步抛出点之后；全出口 finally/whenComplete 释放；重试挂起窗（内存持有窗）**不释放**许可。
 - **时间整形**：429 Retry-After 钳制后施加 equal jitter（delay/2 + U(0, delay/2)）——保留 ≥delay/2 上游恢复窗并打破同值 Retry-After 的同步重试波；`parseRetryAfter` 与 30s 钳制语义零变化。XPL/RPC/流式路由不入池。
 
+## 共享可变状态原子化与断连传播契约（nop-service-framework，2.3-C1/C2/C3 束，plan 2550）
+
+并发审计 12 工单束（R4-16）落定的服务层并发契约，修复面按唯一形态收敛：
+
+- **用户角色集**（`UserContextImpl.roles`）：角色集必须为并发 Set（`ConcurrentHashMap.newKeySet()`）；`setRoles` 入参**拷贝进并发 Set**（外部裸 HashSet 不得透传——惰性初始化不会转换非并发集合）。读侧（`isUserInRole`/`getRoles`/serialize）无锁一致视图。
+- **GraphQL 上下文**：`GraphQLExecutionContext.setRequest` 与 `getRequest` 同监视器（读写对称）；`dispatchAll` 的 loader dispatch（DB I/O）**必须在上下文监视器外**——synchronized 域内仅做快照+清空，快照后新注册的 loader 归下一轮。
+- **biz 引用缓存**（`BizObjHelper.loadByProp`）：`getIfPresent` 双检 + biz invoke（校验链+DB）**锁外执行** + `putIfAbsent` 原子回写（竞争失败方丢弃自建结果）。禁止把 biz invoke 写进缓存映射 lambda（锁内 I/O）。
+- **WS 订阅注册**（`JsonRpcWebSocketHandler`）：`activeOperations` 用 `putIfAbsent`——同 id 并发注册不覆盖首订阅（输家放弃自建 subscriber，冷 publisher 未 subscribe 即未执行）；流终止三路径对称：上游 onError 必发 jsonrpc 终止 error 帧；session-closed 后推送**取消上游订阅**；消息处理同步 RuntimeException 按 keepAlive 绝缘同型（结构化日志、不杀 handler）。
+- **订阅流上下文清理**（`GraphQLSubscriptionPublisher`）：onComplete/onError/**cancel** 三条终止路径都触发执行上下文 `complete()`（取消路径不 complete = 上下文清理回调泄漏）。
+- **gRPC 取消传播**（`GraphQLServerCallHandler`）：`onCancel` → abandoned WARN 记录 + 执行上下文 complete + 对在途 stage 的 best-effort Future 取消。底层 `CompletionStage` 组合链无取消点——真实中断需引擎级取消句柄（登记 watch-only，随引擎演进承接）。
+- **客户端断连传播（CL-025）**：`IHttpServerContext` 增加 `default boolean isClientAborted()`（不可观测档返回 false）与 `default void onClientAbort(Runnable)`（不可观测档无操作）。网关转发前与重试延迟触发前检查断连——已断连以 `CancellationException` 终止（不在 failover 可重试白名单，链路就此终止）；`GatewayHttpFilter` 注册 `onClientAbort` 关闭在途下游调用。实现面：Vertx 适配器真实检测（`request.isClosed()`/`response().closeHandler`）；**Servlet 6.0 无轮询式断连 API**（Connection API 为 6.1 特性），Servlet 适配器维持不可观测档。
+- **流式重订阅上界**（`BufferedStreamingPublisher`，键 `nop.graphql.stream.max-resubscribe-attempts` 默认 5，`≤0`=无限）：窗口内失败重订阅受次数上界 + 指数退避（100ms×2^n 封顶 5s，经注入缝确定性可测）；2509 的溢出终态/attempt-identity 语义零回改。
+- **会话刷新失败可观测**（`AbstractLoginService.flushUserContextAsync`）：保存失败 WARN（`nop.warn.auth.session-flush-fail`）且**不清 dirty**（成功才 clearDirty）——thenRun 形态的失败静默已消除；过滤器侧内层 stage 补失败消费。
+
+测试锚点：`nop-biz-auth-core` `TestUserContextRoles`/`TestMfaChallengeVisibility`/`TestSessionFlushFailure`；`nop-graphql-core` `TestGraphQLContextRequest`/`TestDispatchAllSnapshot`/`TestSubscriptionContextComplete`/`TestJsonRpcSubscriptionRegister`/`TestWsErrorSemantics`；`nop-biz` `TestBizObjHelperDoubleCheck`；`nop-gateway` `TestStreamResubscribeBound`/`TestClientAbortPropagation`。
+
 ## 相关文档
 
 - `./architecture-principles.md` — 聚合根与数据库表的关系、DSL优先等跨切面原则

@@ -394,7 +394,21 @@ public class AuthHttpServerFilter implements IHttpServerFilter {
                                 }
 
                                 CompletionStage<Void> promise = next.get().whenComplete((v, e) -> {
-                                    loginService.flushUserContextAsync(userContext);
+                                    // 2.3-C3-011（plan 2550 裁定 F）：内层 flush stage 原样被丢弃
+                                    // ——失败静默（脏数据丢失直到下轮偶发刷新）。补失败消费：WARN
+                                    // 留痕；脏标记由 AbstractLoginService 的失败分支保留（此处不清）。
+                                    try {
+                                        loginService.flushUserContextAsync(userContext)
+                                                .whenComplete((fv, fe) -> {
+                                                    if (fe != null) {
+                                                        LOG.warn("nop.warn.auth.session-flush-fail:sessionId={}",
+                                                                userContext.getSessionId(), fe);
+                                                    }
+                                                });
+                                    } catch (Throwable tf) {
+                                        LOG.warn("nop.warn.auth.session-flush-fail:sessionId={}",
+                                                userContext.getSessionId(), tf);
+                                    }
                                 });
                                 FutureHelper.bindResult(promise, future);
                             } catch (Throwable t) {
