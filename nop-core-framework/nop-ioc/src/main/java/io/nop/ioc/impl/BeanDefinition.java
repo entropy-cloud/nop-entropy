@@ -152,7 +152,8 @@ public class BeanDefinition implements IBeanDefinition {
 
     private String trace;
 
-    private Cancellable subscriptionCleanup;
+    // C1-004（plan 2549 裁定 C）：volatile——destroyBean 清理与异步 subscribeConfigChange 写入跨线程可见
+    private volatile Cancellable subscriptionCleanup;
 
     private boolean intercepted;
     private boolean removed;
@@ -727,9 +728,13 @@ public class BeanDefinition implements IBeanDefinition {
                 bean = ((ProducedBeanInstance) bean).getCreatedBean();
             }
             LOG.info("ioc.destroy-bean:{}", this);
-            if (subscriptionCleanup != null) {
-                subscriptionCleanup.cancel();
-                subscriptionCleanup = null;
+            // C1-004（plan 2549 裁定 C）：清理与 subscribeConfigChange 写入同 synchronized 域，
+            // 消除锁外 check-then-act（stop 与异步订阅启动竞争 → 配置监听泄漏 + 死 bean 复活）
+            synchronized (this) {
+                if (subscriptionCleanup != null) {
+                    subscriptionCleanup.cancel();
+                    subscriptionCleanup = null;
+                }
             }
             if (destroyMethod != null)
                 destroyMethod.call0(bean, DisabledEvalScope.INSTANCE);
@@ -796,13 +801,16 @@ public class BeanDefinition implements IBeanDefinition {
                     };
 
                     for (String configVar : prop.getReactiveConfigVars()) {
-                        if (subscriptionCleanup == null)
-                            subscriptionCleanup = new Cancellable();
-                        Runnable cleanup = configProvider.subscribeChange(configVar, propChangeListener);
-                        subscriptionCleanup.appendOnCancelTask(cleanup);
-                        if (refreshListener != null)
-                            subscriptionCleanup
-                                    .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
+                        // C1-004：写入与 destroyBean 清理同 synchronized(this) 域（check-then-set 原子化）
+                        synchronized (this) {
+                            if (subscriptionCleanup == null)
+                                subscriptionCleanup = new Cancellable();
+                            Runnable cleanup = configProvider.subscribeChange(configVar, propChangeListener);
+                            subscriptionCleanup.appendOnCancelTask(cleanup);
+                            if (refreshListener != null)
+                                subscriptionCleanup
+                                        .appendOnCancelTask(configProvider.subscribeChange(configVar, refreshListener));
+                        }
                     }
                 }
             }

@@ -27,11 +27,11 @@
 
 ### Phase 1 - 设计与授权载体
 
-Status: completed（设计文档 v1 + fresh-session 取证；draft review 见 Review 记录）
+Status: completed（设计文档 v1 + fresh-session 取证 + draft review R1 PASS-with-revisions 已修订闭环）
 
 - [x] 设计文档（七裁定 A-G + 17 成员唯一形态 + §三 回归面 + E-2549-1）
 - [x] 成员取证（fresh-session Explore：11 条缺陷在、4 条部分覆盖、2 条关联确认）
-- [ ] 独立 draft review 复审
+- [x] 独立 draft review 复审（R1 PASS-with-revisions，0B/4M/5m，修订后授权进入 Phase 2）
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
