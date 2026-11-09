@@ -124,21 +124,24 @@ public class BeanScopeImpl implements IBeanScope {
             return Integer.compare(ib, ia);
         });
 
-        Exception e = null;
+        // C6-007（plan 2549 裁定 F；closure audit MJ-2 勘正）：收集口径 Throwable——
+        // destroy 抛 Error 不得中断其余 bean 的销毁循环（Error 收集后仍向上重抛）
+        Throwable e = null;
         for (Map.Entry<String, ProducedBeanInstance> entry : entries) {
             String beanName = entry.getKey();
             try {
                 remove(beanName, entry.getValue());
-            } catch (Exception ex) {
-                // C6-007（plan 2549 裁定 F）：逐 bean 异常收集后统一汇总（不中断其余 bean 销毁），
-                // 口径 catch Exception→Throwable 由 remove/destroyBean 内部保持
+            } catch (Throwable ex) {
                 LOG.error("nop.err.ioc.destroy-bean-fail:beanName={}", beanName, ex);
-                e = ex;
+                if (e == null)
+                    e = ex;
             }
         }
         if (!beans.isEmpty())
             throw new NopException(ERR_IOC_BEAN_SCOPE_ALREADY_CLOSED).param(ARG_CONTAINER_ID, container.getId())
                     .param(ARG_BEAN_SCOPE, name);
+        if (e instanceof RuntimeException)
+            throw (RuntimeException) e;
         if (e != null)
             throw NopException.adapt(e);
     }

@@ -808,16 +808,24 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
         LOG.info("nop.ioc.stop-container:containerId={}", getId());
         // C6-008（plan 2549 裁定 A）：先执行销毁回调（scope close + 容器停止回调），再清 running/started——
         // 原顺序先灭状态，销毁回调内的 checkStarted 抛错使销毁链中断
-        RuntimeException ex = null;
+        // C6-007（plan 2549；closure audit MJ-2 勘正）：收集口径 Throwable 且**状态清理先于重抛**——
+        // destroy 抛 Error 不得跳过 running/started 清理与 cancellable 取消
+        Throwable ex = null;
         if (singletonScope != null) {
             try {
                 singletonScope.close();
-            } catch (RuntimeException e) {
+            } catch (Throwable e) {
                 LOG.error("nop.err.ioc.singleton-scope-close-fail:containerId={}", getId(), e);
                 ex = e;
             }
         }
-        BeanScopeContext.instance().onContainerStop(this);
+        try {
+            BeanScopeContext.instance().onContainerStop(this);
+        } catch (Throwable e) {
+            LOG.error("nop.err.ioc.container-stop-callback-fail:containerId={}", getId(), e);
+            if (ex == null)
+                ex = e;
+        }
 
         running = false;
         started = false;
@@ -826,8 +834,12 @@ public class BeanContainerImpl implements IBeanContainerImplementor {
             cancellable = null;
         }
 
+        if (ex instanceof RuntimeException)
+            throw (RuntimeException) ex;
+        if (ex instanceof Error)
+            throw (Error) ex;
         if (ex != null)
-            throw ex;
+            throw NopException.adapt(ex);
     }
 
     void checkStarted() {

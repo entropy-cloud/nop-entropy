@@ -626,18 +626,18 @@ public class PluginManagerImpl implements IPluginManager, IPluginContext {
     }
 
     /**
-     * C1-018（plan 2549 裁定 D）：签名改 `(pluginId, name)`（调用方 reload/unload/uninstall 均持有
-     * definition 可传 name）；移除+判空清理在单 map `compute` 域内原子完成——原「全表遍历
-     * remove→isEmpty→remove」三步与 registerNameIndex 的 computeIfAbsent 并发时产生孤儿索引集，
-     * requires 门控静默失效。
-     */
-    /**
      * C1-018 辅助：仅 VfsPluginDefinition 持有 name 索引（jar 轨不登记）。
      */
     private String nameOf(IPlugin plugin) {
         return plugin instanceof VfsPluginDefinition ? ((VfsPluginDefinition) plugin).getName() : null;
     }
 
+    /**
+     * C1-018（plan 2549 裁定 D）：签名改 `(pluginId, name)`（调用方 reload/unload/uninstall 均持有
+     * definition 可传 name）；移除+判空清理在单 map `compute` 域内原子完成——原「全表遍历
+     * remove→isEmpty→remove」三步与 registerNameIndex 的 computeIfAbsent 并发时产生孤儿索引集，
+     * requires 门控静默失效。
+     */
     private void unregisterNameIndex(String pluginId, String name) {
         if (name == null) {
             return;

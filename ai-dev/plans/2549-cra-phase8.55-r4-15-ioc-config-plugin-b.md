@@ -1,6 +1,6 @@
 # 2549 CRA Phase 8.55 — R4-15 2.2 配置刷新/订阅/插件/IoC 启动图/销毁链束（G31，17 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.55（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :226，Status=todo）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 :130 R4-15 行；成员发现 = `ai-dev/audits/2026-10/2026-10-17-1725-deep-audit-nop-core-framework-concurrency/`
 > Related: plan 2506（R2-03，completed——lifecycleLock 全迁移、C6-001 try 收窄+失败释放）；plan 2507（R2-04，completed——per-BD 锁、start join、startFailed 幂等、waitQuietly 有界化）。本批在其上叠修，**不回退**其语义。设计文档 = `ai-dev/design/concurrency/ioc-startup-graph-config-refresh-plugin-lock-b.md`
@@ -81,11 +81,11 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 - [x] 载体表逐条存在且断言目标行为（13 实施载体全绿 + pin4 合并说明登记[环境限制，watch-only]）
 - [x] 关键项先红后绿或变异论证（C4-009：E-2549-3 载体抓获真缺陷[代际校验顺序]；C2-005：pin8b 变异红[恢复 bin 锁形态→latch 超时红]→恢复 97 绿；C4-010：pin11 对照[共享文件 chainBean 重抛 vs 拓扑序断言]）
 - [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0 @ 2026-11-09）
-- [x] nop-core-framework clean 全量 0F/0E（nop-ioc 90 / plugin-manager 97 / config）+ nop-core 560(2S，flaky solo 4 连绿) + nop-xlang 866(2S) + nop-commons 457
+- [x] nop-core-framework clean 全量 0F/0E（nop-ioc 91 / plugin-manager 97 / config）+ nop-core 560(2S，flaky solo 4 连绿) + nop-xlang 866(2S) + nop-commons 457
 - [x] **端到端验证**：pin1a/pin1b 真实容器并发（restart×getBean 竞速 + 代际守卫）
 - [x] **不回退 2506/2507**：TestPluginLifecycleLockMigration 5/5、TestPluginStateRecovery 7/7、waitQuietly 有界化未动（回归全绿）
 - [x] owner doc 落账：`ioc-and-config.md`「IoC 生命周期 / 配置刷新链纪律」节 + `source-anchors.md` 4 新锚（IOC-LIFECYCLE-001/IOC-DESTROY-001/CONFIG-REFRESH-001/PLUGIN-INDEX-001）
-- [ ] 工具门禁：check-doc-links EXIT=0；scan-hollow `--module nop-core-framework --severity high` EXIT=0
+- [x] 工具门禁：check-doc-links EXIT=0；scan-hollow `--module nop-core-framework --severity high` EXIT=0（两项实测 @ 2026-11-09）
 - [x] `ai-dev/logs/` 已更新
 
 ## Deferred But Adjudicated
@@ -105,7 +105,7 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 **Draft Review 记录**
 
 - R1（fresh session，24 次工具调用）：**PASS-with-revisions**，0 Blocker + 4 Major + 5 Minor。全部随本版落盘（见下表）。17 成员锚点全部命中、判级与台账一致、E-2549-1 五条勘误与 live/2506/2507 提交吻合、载体 14 类全仓 0 命中（全新建）、双门禁 EXIT=0。
-- 修订后待 R2 复审。
+- R1 修订后经 closure audit 独立复核闭环（见 Closure），无 R2 轮。
 
 ### Draft Review R1 修订清单
 
@@ -119,5 +119,12 @@ Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 17 工单全部实施并经独立 closure audit R1（**APPROVED-with-notes**，0 Blocker，2 Major + 4 Minor 已闭环——MJ-1 design 勘误 E-2549-2/3 补录 + C6-007 形态勘正；MJ-2 Error 穿透销毁循环修正[收集口径 Throwable + 状态清理先于重抛]；m1 flaky successor 登记、m2 收口前置完成、m3 计数勘正 91、m4 双注释块清理）。回归：nop-ioc 91 / plugin-manager 97 / nop-config 59 全绿 + E1 全量编译 EXIT=0 + scan-hollow EXIT=0；变异红：pin8b（bin 锁形态→红）+ pin1b（代际守卫移除→红，审计独立复跑证实）。载体 13 实施 + pin4 环境限制登记（watch-only，证据真实）。执行期勘误 E-2549-2（No-Silent 契约）/E-2549-3（代际校验顺序——载体抓获真缺陷）。
+Reviewer/Agent: draft review R1 = fresh-session 子代理（PASS-with-revisions）；closure audit R1 = fresh-session 子代理（agent_1008e2d9，38 次工具调用，独立变异复跑）。
+Evidence:
+- 提交系列 4bcc9bb12f..HEAD（Phase 2 全部实施与载体）
+- 载体测试：TestConfigProviderApplyChange / TestConfigListenerObservation / TestSubscribeChangeOrphan / TestPluginIndexAtomicity / TestPluginLoadThinLambda / TestIocGraphAndBroadcast / TestScopeDestroyOrderAndChain / TestScopeContextRestart / TestIocCoreInitializerStop / TestBeanContainerLifecycleRace
+- 回归：nop-ioc 91 / plugin-manager 97 / nop-config 59 全绿；E1 全量编译 EXIT=0；scan-hollow EXIT=0
+- 变异红：pin8b（bin 锁形态→latch 超时红）+ pin1b（代际守卫移除→红，closure audit 独立复跑证实）
+- 每日日志：`ai-dev/logs/2026/11-09.md`
+Completed: 2026-11-09

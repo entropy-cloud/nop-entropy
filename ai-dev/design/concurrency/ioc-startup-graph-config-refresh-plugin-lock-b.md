@@ -13,6 +13,8 @@
 > - **C1-005 部分修复**：makeContainerScope 已 computeIfAbsent；残余 = containerScopes null→setContextAttr 覆写窗（窄窗，本批收口）。
 > - **C1-019 窗口 live 仍在**（2506 提交未点名 reloadPlugin remove→put），按未修复立案。
 > - **C2-005**：2506 C6-001 已落 lambda 内 try 收窄+失败释放；bin 锁长临界区本体未动。
+> - **执行期勘误 E-2549-2（closure audit R1 Major-1 同步）**：裁定 F 的 C6-007 唯一形态修正——destroyBean 逐方法隔离后**首异常在末尾重抛**（初版吞异常破坏插件 deactivate 的 No-Silent 契约，TestPluginStateRecovery 2 red）；容器 stop/close 层已有收集。**裁定 F「不向 stop 调用方抛」的表述作废**，正确口径 = 「销毁回调层逐方法隔离+首异常重抛；容器 stop 层 try/catch 收集汇总」。
+> - **执行期勘误 E-2549-3**：`handleStartError` 的代际校验必须**先于** `startFailed` 置位——顺序颠倒会让旧代失败污染新代终态（`whenComplete` 的 `!startFailed` 分支被跳过，`started` 永不翻转；载体 pin1b 红）。
 
 ## 一、设计结论（七条裁定）
 
@@ -55,7 +57,7 @@
 | C4-007 | `ChangeSubscriptions.trigger`；`BeanDefinition.onRefreshConfig` | 每监听器计时观测，>1s WARN；串行内联保持（Decision：**只声明同订阅内注册序，跨订阅 hash 序不保证**，R1 MJ-2） | 异步化监听器（破坏通知顺序）；每监听器超时强杀（不可中断面）；改 LinkedHashSet（范围外） |
 | C4-009 | `BeanContainerImpl.restart`/`handleStartError` | `volatile long startGeneration` 代际令牌 + handleStartError 代际校验 | 全容器写锁（与裁定 A 重复） |
 | C4-010 | `BeanScopeImpl.close` | beanTopoIndex 降序销毁；查不到定义 WARN+哈希序兜底（无创建序回退，R1 MJ-4） | 运行期重建拓扑（成本/竞态）；「创建时间倒序近似」（无数据结构支撑） |
-| C6-007 | `BeanDefinition`（destroyMethod 调用点）；`BeanScopeImpl.close`；`BeanScopeContextImpl`/`BeanContainerImpl` 三层 | 逐方法 try/catch(Throwable) 收集 + 统一 LOG.error 汇总（不向 stop 调用方抛） | 抛聚合异常（中断其余容器销毁）；静默吞（无汇总观测） |
+| C6-007 | `BeanDefinition`（destroyMethod 调用点）；`BeanScopeImpl.close`；`BeanScopeContextImpl`/`BeanContainerImpl` 三层 | destroyBean 逐方法 try/catch(Throwable) 隔离 + **首异常末尾重抛**（E-2549-2：No-Silent 契约）；容器 stop/close 层 try/catch 收集汇总（口径含 Error——Error 收集后重抛，但**不得中断销毁循环/跳过状态清理**） | 销毁回调层静默吞（破坏插件 No-Silent）；Error 中断其余 bean 销毁 |
 | C6-008 | `BeanContainerImpl.stop`；`IocCoreInitializer.destroy` | stop=先销毁后清状态；initializer=先 stop 后 registerInstance(parent) | 保持现状 |
 | C6-009 | `BeanScopeContextImpl.onContainerStop` | close 后摘 scopes 条目 + 清 containerScopes | 只 close（现状） |
 
