@@ -35,7 +35,7 @@ Status: completed（设计文档 v1 + fresh-session 取证 + draft review R1 PAS
 
 ### Phase 2 - 17 工单实现 + 回归测试
 
-Status: planned
+Status: in_progress（**17 工单代码全部落地**（组 1-5，提交 77c6400..1f4f477）；执行期勘误 E-2549-2：C6-007 初版吞 destroy 异常破坏插件 No-Silent 契约（TestPluginStateRecovery 2 red）→ 改逐方法隔离+首异常重抛；载体 4/14 已建绿（pin2a/pin3/pin5/pin11/pin12），**9 个并发载体待建**（pin1a/1b/4/6/7/8/8b/9/10/13））
 Targets: nop-ioc / nop-config / nop-plugin-manager + 测试树
 
 - Item Types: `Fix`（15）、`Fix+Decision`（1：C4-007 观测+串行声明）、`Proof`（1）
