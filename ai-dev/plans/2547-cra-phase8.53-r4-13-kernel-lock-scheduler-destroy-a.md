@@ -172,9 +172,9 @@ Targets: nop-commons / nop-core / nop-xlang + 测试树
 | C2-019 | 与 C2-003 同一占位模式（同形态约束），由 `TestResourceComponentTransform` 的两腿覆盖形态正确性；C2-019 站点与 C2-003 的**唯一差异**是构建体为类加载 | **结构钉**（共用 C2-003 载体；不重复建类） |
 | C3-002 | **already-landed 证据**：`PeriodicTaskHelper` 的 `scheduleRound`/`dispatchRound` 已有 `try/catch(Throwable) → rejectChain`；现有 `TestPeriodicTaskInsulation` 全绿 | 证据（不改码） |
 | C3-008 | `TestSequentialTaskExecutor#pin0308`（队列满时 `execute` 不静默丢——抛 REE 或按 policy + 计数增；缺陷态=静默） | 行为钉（单元；注：零生产调用方） |
-| C3-009 | `TestLocalCacheAsyncSemantics#pin0309`（async 分支未命中返回 absent 而非加载——契约收窄后的行为锚）+ owner doc/javadoc 契约段 | 契约钉（**contract change**） |
+| C3-009 | `TestLocalCacheAsyncSemantics#pin0309`（async 分支未命中**不加载**——Caffeine 对 `k->null` 抛 `NullMapCompletionException`，为「不加载」的等价事实证据；`pin0309b` 已缓存条目仍返回）+ javadoc 契约段 | 契约钉（**contract change**） |
 | C3-010 | `TestLocalCacheExecutorConfig#pin0310`（`CacheConfig` 设 executor 后 `LocalCache` 实际使用该 executor——桩 executor 计数） | 行为钉 |
-| C3-011 | `TestBlockingSourceConsumeTask#pin0311`（消费体抛 `Error` 后循环仍存活并继续处理后续条目；缺陷态=永久死亡）/ `pin0311b`（死亡时 submit future 可观测） | 行为钉 |
+| C3-011 | `TestBlockingSourceConsumeTask#pin0311`（消费体抛 `Error` 后循环仍存活并继续处理后续条目；缺陷态=永久死亡；**变异红证**）。**第二腿（submit future 可观测）由 `TestAbstractBatchProcessService#pin0312` 的 drain 断言间接承载**——本批未新增 `Future` 字段（M-7 如实登记，非宣称独立覆盖） | 行为钉 |
 | C3-012 | `TestAbstractBatchProcessService#pin0312`（destroy 前已入队条目被 drain 完（`isAllProcessed` 可达）；超时残量逐条记录）/ `pin0312b`（destroy 后有界返回） | 行为钉 |
 | C3-013 | `TestExecutorContextHygiene#pin0313`（`execute` 路径任务结束后池线程上下文已 detach——租户残留断言） | 行为钉 |
 | C3-018 | `TestDefaultTaskExecutionQueue#pin0318a`（取消 promise → 任务 future 被取消；缺陷态=未接线）/ `pin0318b`（被取消任务计入 cancelled 而非 completed） | 行为钉 |

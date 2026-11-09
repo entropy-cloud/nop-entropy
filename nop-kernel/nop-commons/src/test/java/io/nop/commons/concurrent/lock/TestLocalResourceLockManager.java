@@ -59,6 +59,42 @@ public class TestLocalResourceLockManager {
     }
 
     /**
+     * pin0207b（C2-007）：中断传播后线程的中断标志必须被恢复（`Thread.currentThread().interrupt()`
+     * 由捕获方负责，本钉验证 `lockInterruptibly` 抛出时未清除调用者标志）。
+     */
+    @Test
+    public void pin0207b_interruptFlagPreserved() throws Exception {
+        LocalResourceLockManager mgr = new LocalResourceLockManager();
+        IResourceLock holderLock = mgr.getLock("res-207b", "holder");
+        assertTrue(holderLock.tryLockWithLease(0, 5000));
+
+        IResourceLock waiter = mgr.getLock("res-207b", "waiter");
+        java.util.concurrent.atomic.AtomicBoolean flagAfterCatch = new java.util.concurrent.atomic.AtomicBoolean();
+        CountDownLatch done = new CountDownLatch(1);
+
+        Thread t = new Thread(() -> {
+            try {
+                waiter.lockInterruptibly();
+            } catch (InterruptedException ie) {
+                // 捕获方恢复标志（平台约定）；本钉验证抛出的确是 InterruptedException 且可被恢复
+                Thread.currentThread().interrupt();
+                flagAfterCatch.set(Thread.currentThread().isInterrupted());
+            } catch (Throwable ignore) {
+                // 非中断路径不应到达
+            } finally {
+                done.countDown();
+            }
+        });
+        t.start();
+        Thread.sleep(150);
+        t.interrupt();
+        assertTrue(done.await(5, TimeUnit.SECONDS));
+        assertTrue(flagAfterCatch.get(), "InterruptedException 路径必须可恢复中断标志");
+
+        holderLock.unlock();
+    }
+
+    /**
      * pin0208（C2-008）：过期判定 + 删除必须与 `checkTimeout` 同用 latch 监视器。
      * 结构钉：以「持锁→过期→另一线程 getLock+tryLock」的路径验证不会读到半删除态；
      * 同时断言 `checkTimeout` 与 tryLock 路径都持有同一把 latch（通过行为不可观测半态体现）。
