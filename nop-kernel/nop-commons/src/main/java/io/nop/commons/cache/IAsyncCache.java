@@ -83,7 +83,8 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
      *   <tr><td>{@code LocalCache} + {@code async=false} + <b>有</b> loader</td>
      *       <td><b>加载缺失 key</b> 并返回完整 map（{@code Caffeine.getAll} 语义）。</td></tr>
      *   <tr><td>{@code LocalCache} + {@code async=false} + <b>无</b> loader；
-     *           {@code MapCache}；以及本接口的默认实现</td>
+     *           {@code MapCache}；{@code ISyncCache} 的默认实现
+     *           （如 {@code EhcacheCache}/{@code HazelcastCache}）</td>
      *       <td><b>仅返回已缓存条目</b>（缺席 map，未命中 key 不在结果中）。</td></tr>
      * </table>
      * <p>

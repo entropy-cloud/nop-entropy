@@ -1,6 +1,6 @@
 # 2547 CRA Phase 8.53 — R4-13 2.1 锁纪律/调度器/destroy 束 a（G27 前半，17 实施 + 1 already-landed）
 
-> Plan Status: draft
+> Plan Status: completed
 > Last Reviewed: 2026-11-09
 > Source: roadmap 工作项 8.53（`ai-dev/backlog/concurrency-resource-audit-remediation-roadmap.md` :224，Status=todo；Owner Doc=`docs-for-ai/04-reference/source-anchors.md`；`docs-for-ai/02-core-guides/ioc-and-config.md`；Deps=「batch-proposal.md §二 R4-13（18 项）；硬依赖 8.2/8.3/8.10（均已 done）」）；批次定义 = `ai-dev/audits/2026-10/2026-10-23-1400-cra-phase7-cross-module-adjudication/batch-proposal.md` §二 :128 R4-13 行 + §二.5 G27 行「36 | R4-13（18）+ R4-14（17）+ R4-32（C7-004）」；成员发现 = `ai-dev/audits/2026-10/2026-10-16-2316-deep-audit-nop-kernel-concurrency-concurrency/`
 > Related: plan 2468（2.1 审计）、plan 2504（R2-01 kernel 批，C1-010/C2-004 邻接先例）；设计文档 = `ai-dev/design/concurrency/kernel-lock-discipline-interrupt-contract-and-executor-destroy-semantics.md`
@@ -213,34 +213,34 @@ Exit Criteria:
 
 ### Phase 4 - closure audit + 收口
 
-Status: planned
+Status: completed
 Targets: 本 plan、roadmap 8.53 行、cra-index P2-G27 束行
 
 - Item Types: `Proof`
 
-- [ ] 独立子 agent closure audit（fresh session）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / PA 回归面完整性
-- [ ] cra-index 台账回填：P2-G27 束行（R4-13 半边收敛注）+ roadmap 8.53 → done
-- [ ] 双门禁 + Closure Evidence 写入本 plan
+- [x] 独立子 agent closure audit（fresh session）：逐条核对 Exit Criteria / Closure Gates / Anti-Hollow / PA 回归面完整性
+- [x] cra-index 台账回填：P2-G27 束行（R4-13 半边收敛注）+ roadmap 8.53 → done
+- [x] 双门禁 + Closure Evidence 写入本 plan
 
 Exit Criteria:
 
-- [ ] closure audit 证据写入 Closure 段
-- [ ] cra-index + roadmap 在案
-- [ ] 双门禁 EXIT=0
+- [x] closure audit 证据写入 Closure 段
+- [x] cra-index + roadmap 在案
+- [x] 双门禁 EXIT=0
 
 ## Closure Gates
 
-- [ ] 17 工单全部收口 + C3-002 already-landed 证据在案
-- [ ] 每工单 ≥1 可被回归捕获的载体
-- [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS
-- [ ] 设计 §五 回归面**可执行面**逐条执行（PA 硬门禁；`nop-js`/`nop-graphql-grpc` 编译不可得见 E-2547-5）
-- [ ] owner doc 落账完成
-- [ ] scan-hollow nop-kernel `--severity high` EXIT=0
-- [ ] 不存在被静默降级的 in-scope live defect
-- [ ] 独立子 agent closure-audit 完成并记录证据
-- [ ] **Anti-Hollow Check**
-- [ ] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
-- [ ] cra-index P2-G27 收敛注 + roadmap 8.53 → done
+- [x] 17 工单全部收口 + C3-002 already-landed 证据在案
+- [x] 每工单 ≥1 可被回归捕获的载体
+- [x] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS
+- [x] 设计 §五 回归面**可执行面**逐条执行（PA 硬门禁；`nop-js`/`nop-graphql-grpc` 编译不可得见 E-2547-5）
+- [x] owner doc 落账完成
+- [x] scan-hollow nop-kernel `--severity high` EXIT=0
+- [x] 不存在被静默降级的 in-scope live defect
+- [x] 独立子 agent closure-audit 完成并记录证据
+- [x] **Anti-Hollow Check**
+- [x] `check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0
+- [x] cra-index P2-G27 收敛注 + roadmap 8.53 → done
 
 ## 执行期勘误（Phase 2 实测发现）
 
@@ -285,19 +285,35 @@ Exit Criteria:
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 17 实施工单 + C3-002 already-landed 证据项全部收口；PA 授权（设计 + draft review R1/R2 + §五 回归面）齐备；**五轮独立 closure audit 收敛至 0 Blocker / 0 Major**。
+Completed: 2026-11-09
 
 Closure Audit Evidence:
 
-- Reviewer / Agent: （独立子 agent fresh session）
-- Audit Session: （session ID）
-- Evidence:
-  - （每条 Exit Criterion / Closure Gate 的 PASS/FAIL）
-  - `check-plan-checklist --strict` 退出码
-  - Anti-Hollow 结果 + scan-hollow 退出码
-  - Deferred 分类检查
+- Reviewer / Agent: 独立 subagent（fresh session，只读；R1→R5 五轮均为 fresh session，无自审）
+- Audit Sessions: R1 agent_1b3353e9 / R2 agent_f02f5c5e / R3 agent_d0e14fb5 / R4 agent_592e7004 / R5 agent_631b1f4b
+- **五轮审计链（收敛轨迹）**：
+  - R1 **REJECTED**（5B+7M）：C3-002 基线陈旧、C2-007 传播面漏 nop-sys、`computeIfAbsent` 返回值判定不可行、C3-012 cancel-then-drain 不成立、载体表缺失、回归面漏 7 模块 → 全闭环
+  - R2 **REJECTED**（1B+2M）：C3-009 契约写反 + pin0309 恒真断言、E1 覆盖声明不实、E-2547-3 未订正 → 全闭环
+  - R3 **REJECTED**（1B残留+1M+2m）：`@return` 旧句、E-2547-5 未落 plan/design → 全闭环
+  - R4 **REJECTED**（1B+2m）：C3-009 被**过度泛化为接口级承诺**（实为 4 种实现/配置分叉）→ 全闭环（javadoc/owner doc/design/测试注释四处同步为分叉表）
+  - R5 **APPROVED-with-corrections**（0B/0M/1 文本 Minor）：逐实现核对 3 种行为声明与 live 一致；旧普遍句规范面零命中 → 收口
+- **关键变异红证（逐条「变异→载体确定性 FAIL→恢复→diff 为空」）**：
+  - C1-004 `debounce`：改回本地 CF → `pin0104a` 红（两次都执行）；`RAW_RAN=0`/`OLD_EXECUTED_COUNT=1` 证明 `ExecutorHelper.schedule:271 bindCancel` 使 cancel 可撤销底层调度
+  - C1-010：删 generation 守卫 → `pin0110` 红（旧周期清新周期状态）
+  - C3-011：移除 `catch(Throwable)` → `pin0311` 红（循环永久死亡）
+  - C3-018：断接 bindCancel → `pin0318a/b` 红
+  - C4-002：`waitForCompletion=false` → `pin0402a` 红
+  - C3-009：3 条独立变异（走同步 getAll / 逐 key get / 先调 loader）→ `pin0309` 均红（loader 计数判别面成立）
+- **承载面**：27 个 pin 全表 grep 存在；测试类 5 个已存在扩展 + 8 个新建
+- **门禁**：`nop-commons` 439 / `nop-core` 553(2S) / `nop-xlang` 864(2S) = **1856 tests 0F/0E**（clean 重建）；`check-plan-checklist --strict` EXIT=0；`check-doc-links --strict` EXIT=0；`scan-hollow --module nop-kernel --severity high` EXIT=0（Total=0）；E1 `clean install -DskipTests -pl '!nop-runner/nop-cli-core,!nop-runner/nop-cli'` BUILD SUCCESS（400+ 模块）
+- **Anti-Hollow**：0 命中；无空 catch、无恒真断言（pin0309 已三面判别）
+- **Deferred 分类**：C3-002=already-landed 证据项（plan 2496/`646673a90e`）；C1-009 跨模块 2 项（nop-record-mapping/nop-markdown）=out-of-scope→R-G 8.74；C3-019=watch-only→R-G。均非静默降级
+- **E-2547-5 例外**：`nop-js`/`nop-graphql-grpc` 为 pom 注释 module，**本批未编译**（缺 graalvm-js/protobuf-plugin），零 diff 风险接受；`nop-xdefs` 无测试树仅编译
 
 Follow-up:
 
-- （仅 non-blocking）
+- （non-blocking）`IAsyncCache` 分叉表「本接口的默认实现」已精确化为 `ISyncCache` 默认实现；plan 历史行「absent 断言载体」已订正为「整体失败断言载体」
+- （non-blocking，已登记）C1-011 非中断路径中断标志仅恢复不抛出（watch）；`SequentialTaskExecutor.execute` 零生产调用方
+- （non-blocking，测试基建）flaky：`TestPeriodicTaskInsulation` / `TestResourceCacheInvalidationChain` / `TestExecutorHelperCancelContract`（时间敏感，clean 后连跑全绿）→ R-G 候选
+- （non-blocking，流程）PA 批次回归必须 `clean`，不信增量编译残留

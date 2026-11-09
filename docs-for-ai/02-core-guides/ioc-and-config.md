@@ -322,7 +322,7 @@ IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化�
 - **`IAsyncCache.getAllAsync` 契约（按实现分叉，非普遍承诺）**：未命中 key 的行为取决于实现与配置——
   `LocalCache` + `async=true`：**整体失败**（Caffeine 拒 `k->null`，抛 `NullMapCompletionException`，不加载、无部分结果）；
   `LocalCache` + `async=false` + **有 loader**：**加载缺失 key**并返回完整 map；
-  `LocalCache` 无 loader / `MapCache` / 接口默认实现：**仅返回已缓存条目**（缺席 map）。
+  `LocalCache` 无 loader / `MapCache` / `ISyncCache` 的默认实现（如 `EhcacheCache`/`HazelcastCache`）：**仅返回已缓存条目**（缺席 map）。
   需要「miss 即加载」用 `computeIfAbsentAsync`/`getAsync`；只要已缓存条目且不希望触发任何加载，**优先用 `getAllPresent`**（语义最明确）。
 
 ## 配置值加密 `@sec:`
