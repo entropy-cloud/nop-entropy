@@ -337,6 +337,17 @@ IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化�
 - **监听器生命周期**：`NioFileWatchService` watcher 线程 daemon 化 + `doStop` 有界 `awaitTermination(5s)`（JVM 退出不再等待 watcher）；递归 `unwatch` 回写摘除父 `subEntries`；同路径重复 `watch` 幂等复用同一 entry。
 - **`scheduleAtFixedRate` 补偿语义**（Decision）：任务超周期后按 JDK 原生 fixed-rate 语义立即补跑（可能突发）；不接受补偿节奏的调用方用 `scheduleWithFixedDelay`。`CycleSynchronizer` 推进者死亡时 `processing` 卡死**无自动超时**，解除入口是外部 `restart()`。
 
+## IoC 生命周期 / 配置刷新链纪律（plan 2549 R4-15）
+
+- **容器生命周期互斥 + 代际令牌**：`BeanContainerImpl.start/stop/restart` 为 `synchronized`（不嵌套 2506 的 lifecycleLock——锁序契约：容器公开入口不得再入 lifecycleLock）；`singletonScope` volatile。`startGeneration` 代际令牌：**`handleStartError` 的代际校验必须先于 `startFailed` 置位**（顺序颠倒会让旧代失败污染新代终态——`whenComplete` 的 `!startFailed` 分支被跳过，`started` 永不翻转，E-2549-3 由载体 pin1b 抓获）；`joinStart` 侧快照取 `startFuture` 配对代际。
+- **stop 顺序 = 先销毁后清状态**：`BeanContainerImpl.stop` 先执行 scope close + `onContainerStop` 回调，再清 `running/started`；`IocCoreInitializer.destroy` 先 `stop` 后 `registerInstance(parent)`（销毁期解析不落死容器/新建孤儿）。
+- **启动图补边**：`BeanDefinition.collectDepends` 必须包含 `ioc:interceptors` 依赖边——concurrentStart 下拦截器 bean 先于宿主 init（缺边 = 未 init 拦截器被注入 + 环入口 +1）。
+- **失败广播口径**：bean 装配失败（含 Error）必须走 `markPropSetFailed` 广播（`catch Throwable`），否则实例滞留 STATUS_CREATED、后续获取者只能等超时（无根因）。2507 的 waitQuietly 有界化不回退。
+- **销毁序与异常聚合**：`BeanScopeImpl.close` 按 `beanTopoIndex` 降序销毁（依赖方先销毁；查无定义 WARN+哈希序兜底）。`BeanDefinition.destroyBean` 的 destroyMethod 与 `ioc:destroy` **逐方法隔离**（一个抛错不跳过另一个），**首异常在末尾重抛**——不得吞（插件 deactivate 等调用方依赖 destroy 抛错落定 FAILED 态，No-Silent 契约）；容器 stop 层已有 try/catch 收集，不在销毁回调层吞。
+- **scope 上下文摘除**：`BeanScopeContextImpl.onContainerStop` 在 close 后摘除 scopes 条目 + 清 containerScopes（否则 restart 后自定义 scope 永久 ALREADY_CLOSED + 死容器强引用滞留）。
+- **配置刷新链**：`DefaultConfigProvider.applyChange` 为 `synchronized`（复合操作收口，单线程 executor 契约互补）；`configSource` volatile。`ChangeSubscriptions.trigger` 逐监听器计时观测（>1s WARN `nop.warn.config.listener-slow`）；**跨订阅通知顺序不保证**（HashSet hash 序），同订阅内注册序保证——新监听器不得依赖跨订阅顺序。订阅清理一律用 `listeners.compute` 单域（`remove→isEmpty→remove` 三步与 `remove(key,list)` 两参都会留孤儿 → 配置通知永久失聪）。
+- **插件索引/装载原子性**：`unregisterNameIndex(pluginId, name)` 单 map compute（移除+判空清理同域）；`reloadPlugin` 成功路径 `plugins.compute` **原子替换** holder（无 remove→put 窗口），name 索引沿「先摘旧→登新」顺序（**先登后摘会误删同 pluginId 新索引**）；`loadPluginFromJar` 双检+锁外构建（HTTP/SHA256/start 不进 bin 锁临界区）+ `putIfAbsent` 回写，竞争失败方按 aware→unload / 非 aware→stop 回收插件后再关自建 classLoader（只关 classLoader 会丢弃已 start 插件）。2506 的 try 收窄+失败释放语义与「N2 钉零回改」义务继承。
+
 ## 配置值加密 `@sec:`
 
 配置文件中的静态敏感值（数据库密码、第三方密钥等）可用 `@sec:` 前缀加密，启动期自动解密。
