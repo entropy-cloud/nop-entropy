@@ -1,6 +1,6 @@
 # 2551 CRA Phase 8.57 — R4-17 2.3 auth/流缓冲/dispatchAll 束 b（G36 后半，12 工单）
 
-> Plan Status: active
+> Plan Status: completed
 > Last Reviewed: 2026-11-10
 > Source: roadmap 工作项 8.57；批次定义 = batch-proposal.md §二 :132 R4-17 行；成员发现 = `ai-dev/audits/2026-10/2026-10-17-2353-deep-audit-nop-service-framework-hotpath-concurrency/`
 > Related: plan 2550（R4-16，done——CL-025 已落）、plan 2508（R2-05，done）、plan 2509（R2-06，done）、plan 2498（R1-03 C8-001，done）；设计文档 = `ai-dev/design/concurrency/service-auth-buffer-dispatch-b.md`
@@ -33,7 +33,7 @@ Status: completed（设计十二裁定 A-L + C10 前置落位表；draft review 
 
 - [x] 设计文档（十二裁定 + 12 成员唯一形态 + 回归面）
 - [x] 成员取证（fresh session：7 原样 / 4 部分覆盖 / 1 实质已修）
-- [ ] 独立 draft review
+- [x] 独立 draft review（R1 must-fix-first → R2 ready-to-execute，记录见 Review 记录——closure audit 指出此处勾选遗漏，勘误补登）
 
 ### Phase 2 - 12 工单实现 + 回归测试
 
@@ -68,7 +68,7 @@ Targets: nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-auth
 ## Exit Criteria
 
 - [x] 12 工单全部实施（含 C4-002 Proof 登记；C8-008 裁定 I 按 R1-Blocker-1 改写 resource 分桶形态）
-- [x] 载体表逐条存在且断言目标行为（9 载体类 30 钉：biz 4+4、gateway 2+3+3、graphql-core 3+3、rpc-core 3、biz-auth-core 2、auth-sso 3 全绿）
+- [x] 载体表逐条存在且断言目标行为（**10 载体类 33 钉**[closure audit Minor-6 计数勘误 9→10]：biz 4+4、gateway 2+3+3、graphql-core 3+3、rpc-core 3、biz-auth-core 2+3[含 C4-004 补建 TestAuthChainExecutionMedium]、auth-sso 3 全绿）
 - [x] 关键项先红后绿或变异论证（≥3）：红① C4-001 validateExecutors 抹除→pin_b Error；红② C8-008 分桶键抹除→pin_a Failure；红③ C9-003 volatile 抹除→pin_b Failure——总册 `_tmp/red-green-ledger-2551.md`
 - [x] E1 全量编译门禁 BUILD SUCCESS（EXIT=0，证据 `_tmp/e1-2551-full-build.log`）
 - [x] E3：`./mvnw -f nop-service-framework/pom.xml clean test` **BUILD SUCCESS**（第 2 轮 0F/0E；第 1 轮抓 LoggingInterceptorTest setAttribute(null) NPE——执行期修正为 removeAttribute，非弱化）+ nop-auth-sso SSO_EXIT=0 + nop-rpc-core RPC_EXIT=0 + nop-quarkus-web QW_EXIT=0 + nop-spring-web-starter SPRING_EXIT=0
@@ -84,6 +84,11 @@ Targets: nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-auth
 - Why Not Blocking Closure: 下游链已出 executeBlocking 载体（裁定 D），残余仅在「宿主 worker 池仍承载 auth 上下文加载段」——无跨请求互占面；独立池属设施增强。
 - Successor Required: `no`。
 
+### C4-004 logout/OAuth 冷路径的 next.get() 残留
+- Classification: `watch-only residual`
+- Why Not Blocking Closure: 主 token 路径已出 blocking 载体（pin_a 结构钉）；logoutPath/OAuth-code 冷路径频次极低且链长有限——载体 pin_c 诚实登记其可见性。
+- Successor Required: `no`。
+
 ### C9-005 带拦截器路由的序列化共享
 - Classification: `watch-only residual`
 - Why Not Blocking Closure: 快径仅限无拦截器档（事件循环往返主面已消除）；带拦截器路由的 parse→拦截→serialize 语义保持，宽化（序列化结果跨拦截器共享）需语义论证。
@@ -95,5 +100,22 @@ Targets: nop-biz / nop-biz-auth-core / nop-graphql-core / nop-gateway / nop-auth
 
 ## Closure
 
-Status Note: （收口时填写）
-Completed: （YYYY-MM-DD）
+Status Note: 12 工单全修（10 载体类 33 钉全绿 + 三链变异红证；E1/E3/SPI 通道全绿）。closure audit R1 **APPROVED-with-corrections**（2 Major + 3 Minor + 2 计数勘误）→ 全部闭环：M-1 C4-004 载体补建 TestAuthChainExecutionMedium ×3 结构钉；M-2 validateExecutors 生产接线闭环（BizExecutorStartupValidator bean depends-on nopBizObjectManager，InjectValue 容器注入——初版 @Inject 按类型解析失败由 E3 抓获修正）；m-3 J③ 适配器接线（Jakarta/Spring setMaxIdleTimeout + ≤0 档显式 WARN）；m-4 全局闸泄漏路径闭环（handleSubscription 注册段对称归还）；m-5 JWKS 超时配置键（SsoConfig.jwksFetchTimeoutMillis）；计数勘误 9→10 载体类 + draft review 勾选补登。修正后 E3 反应堆第 3 轮 + E1 全量复绿。
+Completed: 2026-11-10
+
+Closure Audit Evidence:
+
+- Reviewer / Agent: agent_c16880a4（fresh session 独立 closure audit R1 APPROVED-with-corrections → 修正清单全闭环，修正后复验 biz-auth-core 5/5 + auth-sso 3/3 + E3/E1 复绿）
+- Audit Session: agent_c16880a4-2b93-4afc-86f0-f1a3b4788864
+- Evidence:
+  - 12 工单 live 逐一核验 PASS（auditor 独立复读全部触点文件）
+  - 载体独立复跑：rpc-core 3/3、biz 8/8、gateway 8/8（auditor 自跑）+ 修正后 biz-auth-core 5/5、auth-sso 3/3
+  - 变异红证：`_tmp/mut2551-{1,2,3}.log` genuine 确认（auditor 核验）
+  - Anti-Hollow：auditor 判定 clean（DefaultWorkExecutor no-op 文档化/UOE 类型化 fail-fast/静态闸+源码钉披露诚实）
+  - Deferred 分类：auditor 判定合法（C4-004 隔离池、C9-005 带变换序列化共享 watch-only；新增 C4-004 冷路径残注）
+  - E1 BUILD SUCCESS（`_tmp/e1-2551-final.log`）；E3 反应堆 BUILD SUCCESS（`_tmp/e3-2551-final3.log`）；check-doc-links EXIT=0；scan-hollow 八叶子 EXIT=0
+  - `node ai-dev/tools/check-plan-checklist.mjs --strict` 见收口提交
+
+Follow-up:
+
+- no remaining plan-owned work（watch-only residuals 已登记于 Deferred 与 owner doc GW-003）

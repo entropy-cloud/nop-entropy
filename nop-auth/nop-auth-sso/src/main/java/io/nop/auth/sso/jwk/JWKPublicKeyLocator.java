@@ -134,7 +134,10 @@ public class JWKPublicKeyLocator implements IPublicKeyLocator {
     }
 
     long getFetchTimeoutMillis() {
-        // 配置键经 SsoConfig 注入面缺失时的保守缺省（5s）；后续可扩 SsoConfig 属性
+        // 2.3-C4-008（closure audit Minor-5 闭环）：经 SsoConfig 配置键（缺省 5s）
+        if (config != null && config.getJwksFetchTimeoutMillis() > 0) {
+            return config.getJwksFetchTimeoutMillis();
+        }
         return DEFAULT_FETCH_TIMEOUT_MILLIS;
     }
 

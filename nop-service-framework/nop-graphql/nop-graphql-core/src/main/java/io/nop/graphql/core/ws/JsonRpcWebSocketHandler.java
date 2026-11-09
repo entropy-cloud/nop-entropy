@@ -325,8 +325,15 @@ public class JsonRpcWebSocketHandler implements IWebSocketHandler {
         }
 
         request.mergeHeaders(authHeaders);
-        Flow.Publisher<ApiResponse<?>> stream = executionService.apply(request, authHeaders);
-        sendStreamingMessage(id, stream);
+        try {
+            Flow.Publisher<ApiResponse<?>> stream = executionService.apply(request, authHeaders);
+            sendStreamingMessage(id, stream);
+        } catch (Throwable e) {
+            // 2.3-C8-007（closure audit Minor-4 泄漏路径闭环）：注册前同步抛出会使全局闸名额
+            // 永久泄漏（无注册条目供终止清理点 release，静态闸无重置）——此处对称归还。
+            releaseGlobalSubscriptionSlot();
+            throw e;
+        }
     }
 
     @SuppressWarnings("unchecked")

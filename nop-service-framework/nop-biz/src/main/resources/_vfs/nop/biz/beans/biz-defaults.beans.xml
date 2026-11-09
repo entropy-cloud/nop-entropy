@@ -171,6 +171,12 @@
           class="io.nop.biz.service.DefaultWorkExecutor"
           ioc:default="true"/>
 
+    <!-- 2.3-C4-001（plan 2551 closure audit Major-2 接线闭环）：执行器启动期校验挂接——
+         depends-on nopBizObjectManager 保证 biz 模型装载后校验。 -->
+    <bean id="nopBizExecutorStartupValidator"
+          class="io.nop.biz.service.BizExecutorStartupValidator"
+          ioc:default="true" depends-on="nopBizObjectManager"/>
+
     <bean id="nopRpcServiceOnGraphQL" class="io.nop.graphql.core.rpc.RpcServiceOnGraphQL">
         <constructor-arg index="0" ref="nopGraphQLEngine"/>
         <constructor-arg index="1" value="ROOT"/>

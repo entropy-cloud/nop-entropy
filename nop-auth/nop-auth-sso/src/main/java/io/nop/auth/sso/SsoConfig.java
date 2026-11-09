@@ -126,6 +126,17 @@ public class SsoConfig {
     }
 
 
+    /** 2.3-C4-008（plan 2551 closure audit Minor-5）：JWKS 拉取显式超时毫秒（缺省 5000；≤0=客户端缺省） */
+    private long jwksFetchTimeoutMillis = 5000L;
+
+    public long getJwksFetchTimeoutMillis() {
+        return jwksFetchTimeoutMillis;
+    }
+
+    public void setJwksFetchTimeoutMillis(long jwksFetchTimeoutMillis) {
+        this.jwksFetchTimeoutMillis = jwksFetchTimeoutMillis;
+    }
+
     public int getMinTimeBetweenJwksRequests() {
         return minTimeBetweenJwksRequests;
     }
