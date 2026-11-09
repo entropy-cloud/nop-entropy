@@ -17,9 +17,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * plan 2547 R4-13（C3-009）载体钉：`IAsyncCache.getAllAsync` 的**契约收窄后**行为锚。
+ * plan 2547 R4-13（C3-009）载体钉：`IAsyncCache.getAllAsync` 在
+ * **`LocalCache` + `async=true`** 下的行为锚。
  * <p>
- * 收窄后契约：未命中的 key **不触发加载**，结果 map 中对应条目缺席。
+ * 实况（closure audit R4 勘正）：该配置下未命中 key 使**整个调用失败**
+ * （Caffeine 拒 `k->null` → `NullMapCompletionException`，以 `ExecutionException` 呈现），
+ * **既不加载、也不返回缺席 map**。其余实现/配置的行为不同（见 `IAsyncCache` 的 javadoc 分叉表）。
  */
 public class TestLocalCacheAsyncSemantics {
 

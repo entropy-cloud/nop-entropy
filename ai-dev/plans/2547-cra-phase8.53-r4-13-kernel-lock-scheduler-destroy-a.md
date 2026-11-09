@@ -190,7 +190,7 @@ Exit Criteria:
 - [x] 设计 §五 回归面**可执行面逐条执行且登记**（12/12 可执行模块 + `nop-xdefs` 仅编译 + `nop-js`/`nop-graphql-grpc` 编译不可得登记——见 E-2547-5）
 - [x] **端到端验证**：`TestThreadPoolDestroyAwaitProbe` 三腿（await>0 有界等待完成 / await=0 不等 / init 前 destroy 抛类型化异常）
 - [x] **接线验证**：C2-007 的 `throws InterruptedException` 在全部调用点被编译验证（全仓编译即证据）
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 3 - 全量验证 + owner doc 落账
 
@@ -202,14 +202,14 @@ Targets: nop-kernel 全量 + owner doc
 - [x] E3 分解通道：`./mvnw test -pl nop-kernel -am` BUILD SUCCESS + 逐模块签名
 - [x] owner doc 落账：`source-anchors.md`（锁/调度/destroy 锚点）+ `ioc-and-config.md`（池配置项生效语义）
 - [x] 工具门禁：check-doc-links --strict EXIT=0；scan-hollow `--module nop-kernel --severity high` EXIT=0
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 Exit Criteria:
 
 - [x] E3 验收且逐条登记
 - [x] owner doc 落账核对
 - [x] 双门禁 EXIT=0 登记
-- [ ] `ai-dev/logs/` 已更新
+- [x] `ai-dev/logs/` 已更新
 
 ### Phase 4 - closure audit + 收口
 
@@ -233,7 +233,7 @@ Exit Criteria:
 - [ ] 17 工单全部收口 + C3-002 already-landed 证据在案
 - [ ] 每工单 ≥1 可被回归捕获的载体
 - [ ] `./mvnw test -pl nop-kernel -am` BUILD SUCCESS
-- [ ] 设计 §五 回归面逐条执行（PA 硬门禁）
+- [ ] 设计 §五 回归面**可执行面**逐条执行（PA 硬门禁；`nop-js`/`nop-graphql-grpc` 编译不可得见 E-2547-5）
 - [ ] owner doc 落账完成
 - [ ] scan-hollow nop-kernel `--severity high` EXIT=0
 - [ ] 不存在被静默降级的 in-scope live defect

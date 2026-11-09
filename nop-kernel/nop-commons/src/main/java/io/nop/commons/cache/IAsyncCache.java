@@ -72,29 +72,35 @@ public interface IAsyncCache<K, V> extends ICacheManagement<K> {
     /**
      * Returns the future of a map of the values associated with {@code keys}.
      * <p>
-     * <b>契约（1.7-C3-009 / plan 2547 裁定 F，**按 live 实况收窄**）</b>：未命中的 key
-     * <b>不支持</b>——本方法<b>不做部分命中/缺席语义</b>。{@code LocalCache} 的异步实现以
-     * {@code k -> null} 调用底层 {@code AsyncCache.getAll}，而 Caffeine 拒绝 null 值映射，
-     * 因此**只要存在任一未命中 key，整个调用即以 {@code NullMapCompletionException}（包装后为
-     * {@code ExecutionException}）失败**，不会返回"部分结果"。
+     * <b>行为依实现/配置分叉（1.7-C3-009 / plan 2547 裁定 F，按 live 实况逐个登记）</b>：
+     * <table>
+     *   <tr><th>实现 + 配置</th><th>未命中 key 的行为</th></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=true}</td>
+     *       <td><b>整体失败</b>：以 {@code k -> null} 调用 Caffeine 的 {@code AsyncCache.getAll}，
+     *           Caffeine 拒绝 null 值映射，抛 {@code NullMapCompletionException}
+     *           （以 {@code CompletionStage} 的 {@code ExecutionException} 呈现）。
+     *           <b>不加载、也不返回部分结果</b>。</td></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=false} + <b>有</b> loader</td>
+     *       <td><b>加载缺失 key</b> 并返回完整 map（{@code Caffeine.getAll} 语义）。</td></tr>
+     *   <tr><td>{@code LocalCache} + {@code async=false} + <b>无</b> loader；
+     *           {@code MapCache}；以及本接口的默认实现</td>
+     *       <td><b>仅返回已缓存条目</b>（缺席 map，未命中 key 不在结果中）。</td></tr>
+     * </table>
      * <p>
-     * **调用方用法**：
-     * <ul>
-     *   <li>只取已缓存条目：先用 {@link #getIfPresent} 过滤，或使用同步 {@link ICache#getAll(Collection)}；</li>
-     *   <li>需要 miss 即加载：使用 {@link #computeIfAbsentAsync}（逐 key）或 {@link #getAsync}。</li>
-     * </ul>
+     * <b>调用方指引</b>：需要「miss 即加载」→ 用 {@link #computeIfAbsentAsync} 或
+     * {@link #getAsync}；只想要已缓存条目且不希望触发任何加载 → 优先用
+     * {@link ICache#getAllPresent(Collection)}（语义最明确，与实现无关）。
      * <p>
      * <b>契约变更说明</b>：原 javadoc 声称 "creating or retrieving those values if necessary"，
-     * 与实现相反（既不加载、也不返回缺席 map，而是整体失败）。本声明为**按实况订正**（不是行为变更）。
-     * 拒绝了两个备选：①改实现为真加载（改变既有 async 契约）；
-     * ②改实现为「返回缺席 map」（需换 {@code getAllPresent} 语义，属行为变更，需另立判定）。
-     * <p>
-     * Note that duplicate elements in {@code keys}, as determined by {@link Object#equals}, will be ignored.
+     * 与 {@code LocalCache} 的 async 分支相反（既不加载、也不返回缺席 map，而是整体失败）。
+     * 本声明**按实况逐实现登记**，不再给出与实现无关的普遍承诺。
+     * 拒绝方案：①统一改为真加载（改变既有 async 契约）；②统一改为缺席 map（需换
+     * {@code getAllPresent} 语义，属行为变更，需另立判定）。
      *
      * @param keys the keys whose associated values are to be returned
-     * @return the future containing the already-cached keys' values; <b>if any requested key is
-     *         uncached the whole call fails</b> with {@code NullMapCompletionException}
-     *         (surfaced as {@code ExecutionException}) — 未命中不支持部分结果
+     * @return a future of the map produced by the concrete implementation per the table above
+     *         (may fail with {@code NullMapCompletionException} on {@code LocalCache}+async for
+     *         any uncached key; may contain fewer entries than {@code keys})
      * @throws NullPointerException if the specified collection is null or contains a null element
      */
     @Nonnull

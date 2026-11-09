@@ -319,7 +319,11 @@ IoC 容器 `concurrent-start` 启动图的失败传导、bean 创建/初始化�
 - **拒绝与丢弃必须显式**：`SequentialTaskExecutor.execute` 在队列满时抛 `RejectedExecutionException` 并 WARN（不静默丢任务）；`AbstractBatchProcessService.destroy` 先置 `accepting=false`、等消费循环把队列 drain 空、再 cancel；超时残量逐条记录丢弃清单后告警。**绕过 `AbstractBatchProcessService.send()` 直调 `getQueue().send()` 的生产方不在 drain 契约覆盖内。**
 - **`execute` 路径的上下文卫生**：`DefaultThreadPoolExecutor.execute` 在任务结束后 `detachContext()`，防止池线程上的 `IContext` 跨任务驻留。**不清中断标志**（周期任务守卫依赖中断传递）。`DefaultScheduledExecutor` / `BindScheduledExecutor` 的 `execute` 不包装——其命令由 `PeriodicTaskHelper` 绝缘守卫管理，外层包装会让拒绝回调重复触发。
 - **异步缓存 executor**：`CacheConfig.executor` 可指定异步加载/刷新所用 executor；缺省 `null` 沿用 Caffeine 的 `ForkJoinPool.commonPool()`。I/O 型 async 缓存建议显式指定独立池。
-- **`IAsyncCache.getAllAsync` 契约（收窄声明）**：未命中的 key **不触发加载**，结果中对应位置为 `null`（absent）；需要「miss 即加载」请用 `getAsync` 或同步 `getAll`。
+- **`IAsyncCache.getAllAsync` 契约（按实现分叉，非普遍承诺）**：未命中 key 的行为取决于实现与配置——
+  `LocalCache` + `async=true`：**整体失败**（Caffeine 拒 `k->null`，抛 `NullMapCompletionException`，不加载、无部分结果）；
+  `LocalCache` + `async=false` + **有 loader**：**加载缺失 key**并返回完整 map；
+  `LocalCache` 无 loader / `MapCache` / 接口默认实现：**仅返回已缓存条目**（缺席 map）。
+  需要「miss 即加载」用 `computeIfAbsentAsync`/`getAsync`；只要已缓存条目且不希望触发任何加载，**优先用 `getAllPresent`**（语义最明确）。
 
 ## 配置值加密 `@sec:`
 

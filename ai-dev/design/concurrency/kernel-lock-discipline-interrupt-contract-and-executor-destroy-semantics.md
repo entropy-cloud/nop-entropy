@@ -45,7 +45,7 @@
    - **拒绝方案**：把 C3-013（异步上下文卫生，审计自注「理论风险未具体化」）与 C3-009/C3-010（缓存语义分叉/executor 固化）升格为行为改造——三者均为**声明/配置面**，按裁定 F 处理。
 
 6. **裁定 F（语义分叉只做声明或配置化，不做行为重写）**：
-   - C3-009（`IAsyncCache.getAsync` vs `getAllAsync` 语义分叉）：**性质 = 公共契约变更（draft review R1 M-9）**，不是普通文档项——`IAsyncCache.getAllAsync` 的 javadoc 现明确承诺 "creating or retrieving those values if necessary"，而 async 路径以 `k -> null` 直接违约。裁定 = **契约收窄**：javadoc 与 owner doc 同步声明「async 路径不加载、返回 absent」，并在 plan 标 `contract change` + 配一条断言 async 分支返回 absent 的载体。**拒绝**真加载方案（改变既有 async 契约）。
+   - C3-009（`IAsyncCache.getAsync` vs `getAllAsync` 语义分叉）：**性质 = 公共契约变更（draft review R1 M-9）**——`IAsyncCache.getAllAsync` 原 javadoc 承诺 "creating or retrieving those values if necessary"，与 async 路径（`k -> null`）相反。裁定 = **按实况逐实现登记**（**不是**「统一声称返回 absent」，该口径经 closure audit R4 证伪：`MapCache`/无 loader 返回缺席 map、非 async+loader **会加载**、async 整体失败，共四种分叉）：javadoc 与 owner doc 声明三种真实行为，plan 标 `contract change`，载体钉住 async 分支（`assertThrows(ExecutionException)` + cause `NullMapCompletionException` + **loader 调用计数 0**）。**拒绝**：①统一真加载；②统一缺席 map；③给出与实现无关的普遍承诺。
    - C3-010（`LocalCache` 异步 executor 固化为 commonPool）：`CacheConfig` 增 executor 配置项，缺省仍 commonPool（**保持既有行为**，只给出口），owner doc 声明 CPU 型短任务定位。
    - C3-013（上下文卫生不一致）：**改点限定（draft review R1 M-10）** = `DefaultThreadPoolExecutor.execute`、`DefaultScheduledExecutor.execute`、`BindScheduledExecutor.execute` 三个直通入口补与 `ExecutorHelper.submit/schedule` 一致的 finally detach。新增只读变体：`IContextProvider`（`nop-api-core` 公开接口）**以 `default` 方法新增**（避免破坏 `BaseContextProvider` 与测试 `RawProvider` 等既有实现）。
    - **拒绝方案**：C3-009 改成真加载（破坏既有 async 契约）；C3-010 缺省改 globalWorker（改变既有并发形态，可能引入死锁——globalWorker 已被长任务占用面投诉过）。
