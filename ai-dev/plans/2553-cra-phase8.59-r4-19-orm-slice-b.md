@@ -34,7 +34,7 @@ Status: completed（设计十三裁定 A-M + 特殊约束落位 + N4/H2 基建�
 
 - [x] 设计文档（十三裁定 + 15 成员唯一形态 + 回归面 + 真大 H2 义务落位）
 - [x] 成员取证（fresh session：12 原样 / 3 部分覆盖 / 0 已修）
-- [ ] 独立 draft review
+- [x] 独立 draft review（R1 must-fix-first：Major-1 close 原语勘正[provider 不持引用]/Major-2 actionMap 槽/Major-3 重入守卫/Major-4 seam 限界/Major-5 DaoErrors+抽取器级/Major-7 语义裁定显式化+Minor 4 项——全闭环；R2 ready-to-execute[3 cosmetic nits 同批清扫]）
 
 ### Phase 2 - 15 工单实现 + 回归测试
 
@@ -67,7 +67,7 @@ Targets: nop-persistence/nop-orm / nop-orm-eql(无) / nop-orm-model / nop-dao + 
 | C4-003 | 声明面：getConnection 语义 javadoc + 慢获取 WARN 随批 diff（closure 抽验） | nop-dao | 声明面钉 |
 | C5-001+C5-005 | `TestFindAllRowLimit`（**真 H2**：AbstractJdbcTestCase——抽取器级超限抛 ERR_DAO_FIND_ALL_ROW_LIMIT_EXCEEDED[R1-Major-5 DaoErrors] + findAllByQuery 尊重 limit 分页语义；承载 C10-014/N4） | nop-orm | 行为钉（真 H2） |
 | C5-002 | `TestQueryCacheEntryLimit`（上限配置 → 超限放弃缓存 WARN） | nop-dao | 行为钉 |
-| C2-007 | `TestModelProviderDelayedClose`（clearCache 后旧代 decRef 归零关闭断言） | nop-orm | 行为钉 |
+| C2-007 | `TestModelProviderDelayedClose`（clearCache 调 close() 后旧代于末 session decRef 归零销毁断言[R2-nit-1 原语勘正]） | nop-orm | 行为钉 |
 | **无静默跳过**（rule 24） | | | |
 
 ## Exit Criteria
@@ -114,7 +114,8 @@ Targets: nop-persistence/nop-orm / nop-orm-eql(无) / nop-orm-model / nop-dao + 
 
 ## Review 记录
 
-（待 draft review）
+**Draft review R1（agent_f03f33a0，2026-11-10，must-fix-first）**：Major-1 裁定 A 原语错误（decRef→close）/Major-2 actionMap 第三捕获槽/Major-3 CF 重入死锁守卫/Major-4 seam 作用域过claim/Major-5 错误码跨模块+抽取器级执行/Major-7 裁定 D 语义变更显式化 + Minor-8/9/10/11——全闭环。
+**Draft review R2（agent_f03f33a0，2026-11-10，ready-to-execute）**：11 项逐一核实 FIXED；残留 3 cosmetic nits（carrier 原语措辞/Deferred 去重/评审记录补登）同批清扫。
 
 ## Closure
 
