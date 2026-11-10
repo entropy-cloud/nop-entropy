@@ -60,13 +60,7 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
-        RedisClusterCommands<String, Object> commands = sync();
-        Object value = commands.get(key);
-        if (value == null) {
-            value = mappingFunction.apply(key);
-            commands.set(key, value);
-        }
-        return value;
+        return FutureHelper.syncGet(computeIfAbsentAsync(key, mappingFunction));
     }
 
     @Override
@@ -154,11 +148,13 @@ public class LettuceMessageService extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Object> computeIfAbsentAsync(String key, Function<? super String, ?> mappingFunction) {
+        // loader runs only on the observed miss; the write-back is an atomic GET/SET NX script
+        // so exactly one concurrent loader result is stored and returned (2.5-MA-09, plan 2554 裁定 C)
         return async().get(key).thenCompose(value -> {
             if (value == null) {
-                value = mappingFunction.apply(key);
-                Object ret = value;
-                return async().set(key, value).thenApply(v -> ret);
+                Object computed = mappingFunction.apply(key);
+                return LettuceExecutor.evalScript(async(), RedisScripts.KV_COMPUTE_IF_ABSENT,
+                        ScriptOutputType.VALUE, new String[]{key}, new Object[]{computed});
             } else {
                 return FutureHelper.success(value);
             }

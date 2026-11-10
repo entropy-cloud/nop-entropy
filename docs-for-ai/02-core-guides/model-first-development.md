@@ -627,6 +627,8 @@ codegen 生成的 XMeta 中会自动设置两个关键属性：
 - **查询缓存单条目行数上界（可选档）**：`nop.dao.query-cache-max-rows`（缺省 0=不设上界）——超限放弃缓存 + WARN；瞬态物化分配不设界（守卫约束持久缓存内存）。
 - **flush 载体隔离可装配点**：`OrmTemplateImpl.setFlushExecutor`（缺省 null=调用线程现行语义）——注入后 `runInNewSessionAsync` finalize 任务投递注入执行器；作用域仅 finalize 路径，用户直调 `session.flush()` 不在 seam 内。
 - **伪异步载体契约**：`JdbcEntityPersistDriver`/`JdbcCollectionPersistDriver`/`AbstractTransaction` 的 Async API 同步执行于调用线程，返回 future 仅作完成信号，调用方不得假设载体切换；`JdbcTransaction.getConnection` 懒取点可能落异步完成线程，池等待 >1s WARN 留痕。
+- **驱动层批写 chunk 化（2.5 切片，plan 2554）**：tdengine 按「行数 × 子表声明 × 估算字节」三因子切分（`nop.orm.td.batch-max-rows`/`-bytes`），同子表 TAGS 分歧显式 WARN（首行 wins 行为保持）；rpc 按 `nop.orm.rpc.batch-size` 拆分并 block-join。**chunk 化后 `batchExecuteAsync` 返回 future 必须同步完成**——两阶段 flush 守卫对未完成 future fail-fast（2553 裁定 H 不变式）。
+- **RPC 载体线程契约**：`RpcEntityPersistDriver` 的装配回调经调用方 context 出口泵投递（显式判空，无 context 内联=同步等待线程）——会话状态变更不落 RPC 传输线程。
 
 ## ORM 迁移编排并发契约
 
@@ -679,6 +681,12 @@ Redis Pub/Sub 为 fire-and-forget 传输（无消费组、无持久化），lett
 - **属主校验**：一个订阅句柄只管理自己注册的 listener，不提供按 topic 取消他方订阅的路径；取消整个 topic = 逐订阅句柄 cancel（最后一个属主 cancel 触发锁内 unsubscribe）。cancel 后对同一句柄的重入为显式 no-op 留痕，resume 对已 cancel 恒拒绝。
 - **停机对账**：服务 stop 时锁内遍历注册表逐 topic unsubscribe 并清空注册表后再关连接——停机后 Redis 侧订阅注册与进程内注册表一致；停机排空投递队列，残余未投递消息逐条经 onConsumeFailure 留痕后丢弃（禁静默消失）。
 - **断线重连恢复可观测**：断线重连后的端点重订阅由 lettuce 自主完成（activated→resubscribe），服务不代做；服务侧职责为可观测——连接激活事件投递专用对账线程后，对注册表快照**锁外**发送幂等确认 SUBSCRIBE（已订阅通道再订阅仅确认语义），确认失败 WARN + 失败计数（`nop.lettuce.pubsub.resubscribe-failed`）。确认只订快照内条目——已 cancel 订阅结构性不复活；断线窗竞态可产生 Redis 侧幽灵通道（无 listener 零回调零双投递，连接 close 兜底），**接受不处置**，实施者不得代清。
+
+### Redis 原子性与重启契约（2.5 切片，plan 2554）
+
+- **写-TTL 原子化（无 TTL 永久键不可达）**：hash 三入口（putEx/putIfAbsentEx/getAndSetEx）与 session 入口的「写→PEXPIRE」两步链收敛为单 Lua 脚本原子执行——第二跳丢失或进程两步间死亡不再产生无 TTL 永久键（string 键 psetex/SET NX PX 原子兄弟面对齐）。
+- **computeIfAbsent 单写者契约**：KV/hash computeIfAbsent 族以 SET NX/HSETNX 原子路径回写——并发加载下「仅有一个结果生效」（ICache 契约），败者回读已生效值，不再无条件 SET 覆盖。
+- **停机即复位连接句柄**：PubSub 服务 stop 时锁内置空 link——stop→start 后首个 subscribe 走新建链路，不复用已关闭连接（消息面不因重启死亡）。
 
 本节契约的完整裁定（锁序总表、残余窗登记、被拒方案）见 AI 开发记录区 concurrency 设计集 pubsub-link-lifecycle-and-chain-orchestration-fencing.md（平台内部文档——按 docs-for-ai 边界规则不直接链接），本节为其使用知识投影，以该文档为权威。
 

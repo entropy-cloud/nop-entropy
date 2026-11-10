@@ -41,11 +41,13 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Object> computeIfAbsentAsync(String field, Function<? super String, ?> mappingFunction) {
+        // loader runs only on the observed miss; the write-back is an atomic HGET/HSETNX script
+        // so exactly one concurrent loader result is stored and returned (2.5-MA-09, plan 2554 裁定 C)
         return async().hget(key, field).thenCompose(value -> {
             if (value == null) {
-                value = mappingFunction.apply(field);
-                Object ret = value;
-                return async().hset(key, field, value).thenApply(v -> ret);
+                Object computed = mappingFunction.apply(field);
+                return LettuceExecutor.evalScript(async(), RedisScripts.HASH_COMPUTE_IF_ABSENT,
+                        ScriptOutputType.VALUE, new String[]{key}, new Object[]{field, computed});
             }
             return CompletableFuture.completedFuture(value);
         });
@@ -113,8 +115,10 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
 
     @Override
     public CompletionStage<Object> getAndSetAsync(String field, Object value) {
-        return async().hget(key, field).thenCompose(oldValue ->
-                async().hset(key, field, value).thenApply(v -> oldValue));
+        // atomic HGET/HSET get-and-set: the previous value and the overwrite cannot interleave
+        // with a concurrent writer (2.5-MA-09, plan 2554 裁定 C)
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_GET_SET,
+                ScriptOutputType.VALUE, new String[]{key}, new Object[]{field, value});
     }
 
     @Override
@@ -190,10 +194,14 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
         return FutureHelper.syncGet(getSizeAsync());
     }
 
+    /**
+     * Atomic HSET + PEXPIRE via Lua script (2.5-MA-08, plan 2554 裁定 B): the value and the key
+     * TTL become visible in one step, never leaving a TTL-less hash window in between.
+     */
     @Override
     public CompletionStage<Void> putExAsync(String field, Object value, long timeout) {
-        return async().hset(key, field, value).thenCompose(v ->
-                async().pexpire(key, timeout).thenApply(Functionals.toVoid()));
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_PUT_EX, ScriptOutputType.INTEGER,
+                new String[]{key}, new Object[]{field, value, timeout}).thenApply(Functionals.toVoid());
     }
 
     @Override
@@ -206,14 +214,16 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
         });
     }
 
+    /**
+     * Atomic HSETNX + PEXPIRE via Lua script (2.5-MA-08, plan 2554 裁定 B). Return contract is
+     * preserved exactly: {@code true} only when the field was absent and has been set (TTL then
+     * applied for timeout >= 0); {@code false} when the field already existed (value and TTL left
+     * untouched).
+     */
     @Override
     public CompletionStage<Boolean> putIfAbsentExAsync(String field, Object value, long timeout) {
-        return async().hsetnx(key, field, value).thenCompose(set -> {
-            if (set && timeout >= 0) {
-                return async().pexpire(key, timeout).thenApply(v -> true);
-            }
-            return CompletableFuture.completedFuture(set);
-        });
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_PUT_IF_ABSENT_EX, ScriptOutputType.BOOLEAN,
+                new String[]{key}, new Object[]{field, value, timeout});
     }
 
     @Override
@@ -225,15 +235,15 @@ public class LettuceHashOperations extends AbstractLettuceOperations implements 
                 .thenApply(v -> (String) v);
     }
 
+    /**
+     * Atomic HGET/HSET/PEXPIRE via Lua script (2.5-MA-08, plan 2554 裁定 B): returns the old
+     * value, writes the new one and refreshes the key TTL in one step (TTL applied only for
+     * timeout >= 0, matching the previous two-step contract).
+     */
     @Override
     public CompletionStage<Object> getAndSetExAsync(String field, Object value, long timeout) {
-        return async().hget(key, field).thenCompose(oldValue ->
-                async().hset(key, field, value).thenCompose(v -> {
-                    if (timeout >= 0) {
-                        return async().pexpire(key, timeout).thenApply(expired -> oldValue);
-                    }
-                    return CompletableFuture.completedFuture(oldValue);
-                }));
+        return LettuceExecutor.evalScript(async(), RedisScripts.HASH_GETSET_EX, ScriptOutputType.VALUE,
+                new String[]{key}, new Object[]{field, value, timeout});
     }
 
     @Override

@@ -84,11 +84,13 @@ public class OrmMigrationOrchestrator {
     private final IJdbcTemplate targetJdbcTemplate;
     private final String ledgerTableName;
 
-    private MigrationJobStateStore stateStore;
-    private TargetShardMapping mapping;
-    private FullCopyBatchJob fullJob;
-    private IncrementalJobManager incrementalManager;
-    private ConsistencyVerifier verifier;
+    // 2.5-C1-008（plan 2554 裁定 G）：五惰性字段 volatile 化——synchronized 访问器 double-check
+    // 的读面在锁外（stop 路径故意直读），非 volatile 发布存在半初始化观测窗
+    private volatile MigrationJobStateStore stateStore;
+    private volatile TargetShardMapping mapping;
+    private volatile FullCopyBatchJob fullJob;
+    private volatile IncrementalJobManager incrementalManager;
+    private volatile ConsistencyVerifier verifier;
     private SourcePositionPinner pinner = new SourcePositionPinner();
     private EncryptKeyConsistencyChecker keyChecker = new EncryptKeyConsistencyChecker();
     /** PREPARE 密钥一致门禁的目标侧覆盖（relocate 跨环境显式声明）。 */
@@ -146,12 +148,13 @@ public class OrmMigrationOrchestrator {
 
     /**
      * 裁定④：单链停止 join 上界注入（stopAll 汇聚等待上界配置化；零新 @cfg: 配置键）。
+     * 2.5-C1-008（plan 2554 裁定 G）：经 synchronized 访问器读惰性字段（锁外直读非 volatile
+     * 发布面的残余收敛；stop 路径 :268/:333/:636 的故意直读豁免面不受影响）。
      */
     public void setChainStopJoinTimeoutMs(long chainStopJoinTimeoutMs) {
         this.chainStopJoinTimeoutMs = chainStopJoinTimeoutMs;
-        IncrementalJobManager manager = this.incrementalManager;
-        if (manager != null)
-            manager.setChainStopJoinTimeoutMs(chainStopJoinTimeoutMs);
+        IncrementalJobManager manager = incrementalManager();
+        manager.setChainStopJoinTimeoutMs(chainStopJoinTimeoutMs);
     }
 
     /**
@@ -369,8 +372,10 @@ public class OrmMigrationOrchestrator {
         // 门禁 2（m6 + 裁定⑨）：lag=0——按链句柄携带的实际 connector 名逐链聚合探测（单静默窗），
         // 不再直传原始 base 名（M>1 键错位使观测量恒空的结构性缺陷闭合）
         String connectorName = null; // 无增量阶段：仅观测 ledger 静止
-        IncrementalLagProbe probe = new IncrementalLagProbe(targetJdbcTemplate, stateQuerySpace,
-                ledgerTableName);
+        // 2.5-C3-010（plan 2554 裁定 H）+ 2.5-C7-008（plan 2554 裁定 L）：观测面接线——
+        // ledger 观测走 target querySpace（与 sink 提交面同源），namespace 过滤按 jobId 前缀收敛
+        IncrementalLagProbe probe = new IncrementalLagProbe(targetJdbcTemplate,
+                targetLedgerQuerySpace(), ledgerTableName, jobId);
         boolean lagZero;
         if (config.isIncrementalEnabled() && chains != null && !chains.isEmpty()) {
             List<String> connectorNames = new ArrayList<>(chains.size());
@@ -503,9 +508,16 @@ public class OrmMigrationOrchestrator {
             return;
         state.getPhase().checkTransition(jobId, MigrationPhase.ABORT);
         if (config.isIncrementalEnabled()) {
-            IncrementalJobManager manager = this.incrementalManager;
-            if (manager != null)
-                manager.stopAll();
+            // 2.5-C1-008（plan 2554 裁定 G）：doAbort 直读点改经 synchronized 访问器
+            IncrementalJobManager manager = incrementalManager();
+            manager.stopAll();
+        }
+        // 2.5-C7-006（plan 2554 裁定 K）：FULL 期 abort 覆盖在飞全量批任务——置停表标志 +
+        // cancel 在飞 chunk context（cancel(STOP) 后 BatchTask chunk 循环 isCancelled 抛
+        // BatchCancelException，在 FULL 复制线程内传播；本线程只发信号不等待复制线程，
+        // 状态行照常落 ABORT，跨实例面由状态行 fencing 承载）
+        if (state.getPhase() == MigrationPhase.FULL) {
+            fullJob().requestStop();
         }
         // 写门若已关闭则恢复（ABORT 路径只发生在 SWITCH 翻转之前——配置未动，开门即回滚）
         if (OrmMigrationWriteGate.isClosed())
@@ -616,6 +628,23 @@ public class OrmMigrationOrchestrator {
         long copied = job.run(jobId);
         LOG.info("nop.orm.migration.full-done:jobId={},taskName={},copied={}", jobId, taskName, copied);
         return jobId;
+    }
+
+    /**
+     * 2.5-C3-010（plan 2554 裁定 H）：lag 观测的 ledger querySpace 与 sink 提交面对齐——
+     * sink 以 {@code target.getQuerySpace()} 提交（jdbc-2pc sink 同源），观测侧必须落在同一
+     * 数据源（relocate 的 stateQuerySpace 错位形态闭合）；stateQuerySpace 仅保留状态行 DDL 面。
+     * 多目标 querySpace 形态（v1 单 ledger 面）回落缺省 querySpace 并显式留痕。
+     */
+    private String targetLedgerQuerySpace() {
+        java.util.Set<String> spaces = new java.util.LinkedHashSet<>();
+        for (PhysicalTable target : mapping().getTargetTables()) {
+            spaces.add(target.getQuerySpace());
+        }
+        if (spaces.size() == 1)
+            return spaces.iterator().next();
+        LOG.info("nop.orm.migration.ledger-queryspace-fallback:spaces={}", spaces);
+        return "";
     }
 
     private SourcePosition pinP0(MigrationJobState state) {

@@ -47,10 +47,10 @@ import io.nop.db.migration.precondition.TableExistsChecker;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.db.migration.DbMigrationErrors.ARG_CHANGE_TYPE;
 import static io.nop.db.migration.DbMigrationErrors.ARG_CHECKSUM;
@@ -65,8 +65,10 @@ public class MigrationEngine {
 
     private final MigrationFileScanner scanner = new MigrationFileScanner();
     private final MigrationExecutor executor = new MigrationExecutor();
-    private final Map<String, IChangeExecutor> changeExecutors = new HashMap<>();
-    private final Map<Class<?>, IPreconditionChecker> preconditionCheckers = new HashMap<>();
+    // 2.5-C1-002（plan 2554 裁定 F）：注册面并发化——裸 HashMap 在并发 registerExecutor 下
+    // 有丢失更新/结构损坏风险，改用 ConcurrentHashMap（构造后配置期调用契约见 registerExecutor）
+    private final Map<String, IChangeExecutor> changeExecutors = new ConcurrentHashMap<>();
+    private final Map<Class<?>, IPreconditionChecker> preconditionCheckers = new ConcurrentHashMap<>();
     private DbTypeFilterExecutor dbTypeFilterExecutor;
 
     public MigrationEngine() {
@@ -110,6 +112,11 @@ public class MigrationEngine {
         preconditionCheckers.put(preconditionClass, checker);
     }
 
+    /**
+     * 2.5-C1-002（plan 2554 裁定 F）：构造后配置期调用契约——本方法仅在引擎构造/初始化阶段
+     * 注册变更执行器，不得与 migrate/rollback 执行期并发调用。注册面本身为 ConcurrentHashMap，
+     * 并发注册不丢失，但执行期变更注册不属于受支持契约。
+     */
     public void registerExecutor(String changeType, IChangeExecutor executor) {
         changeExecutors.put(changeType, executor);
         this.executor.registerExecutor(changeType, executor);

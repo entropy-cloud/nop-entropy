@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -174,6 +175,9 @@ public class IncrementalJobManager {
         String baseConnector = config.getIncrementalConnectorName() != null
                 ? config.getIncrementalConnectorName() : "mig-" + jobId;
         String tableIncludeList = String.join(",", sourceTableNames());
+        // 2.5-C3-012（plan 2554 裁定 J）：链启动前位点三方对齐 fail-fast（seed 表集 ⊆ 订阅清单）
+        CdcOffsetSeedBuilder.checkThreeWayAlignment(jobId, sourceTableNames(),
+                Arrays.asList(tableIncludeList.split(",")));
         // 裁定⑨：connector 名派生单点消费（M>1 = base-i 枚举清单）
         List<String> connectorNames = deriveConnectorNames(baseConnector, targets.size());
 

@@ -16,21 +16,23 @@ import io.nop.db.migration.executor.IChangeExecutor;
 import io.nop.db.migration.model.DbChangeModel;
 import io.nop.db.migration.model.DbMigrationModel;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static io.nop.db.migration.DbMigrationErrors.ARG_CHANGE_TYPE;
 import static io.nop.db.migration.DbMigrationErrors.ERR_DB_MIGRATION_UNKNOWN_CHANGE_TYPE;
 
 public class MigrationExecutor {
-    
-    private Map<String, IChangeExecutor> executors = new HashMap<>();
-    
-    public void setExecutors(Map<String, IChangeExecutor> executors) {
-        this.executors = executors != null ? executors : new HashMap<>();
-    }
-    
+
+    // 2.5-C1-002（plan 2554 裁定 F）：final 化（构造期初始化）+ 并发可见注册面。
+    // 原 setExecutors setter 全库无调用方（仅 IoC 配置期形态，实际经 registerExecutor 注入），
+    // 随 final 化移除。
+    private final Map<String, IChangeExecutor> executors = new ConcurrentHashMap<>();
+
+    /**
+     * 2.5-C1-002（plan 2554 裁定 F）：构造后配置期调用契约——不得与 execute 执行期并发调用。
+     */
     public void registerExecutor(String changeType, IChangeExecutor executor) {
         executors.put(changeType, executor);
     }

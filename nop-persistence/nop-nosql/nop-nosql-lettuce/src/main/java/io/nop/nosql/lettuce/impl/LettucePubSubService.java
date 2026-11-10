@@ -186,6 +186,10 @@ public class LettucePubSubService extends LifeCycleSupport implements IMessageSe
             entries = new ArrayList<>(subscriptions.values());
             subscriptions.clear();
             l = link;
+            // C7-009 (plan 2554 裁定 M): reset the link inside the same locked cleanup block so a
+            // restart rebuilds it via getOrCreateLink; reusing the closed link would leave
+            // stop→start subscriptions message-dead
+            link = null;
         }
         if (l != null) {
             for (SubscriptionEntry entry : entries) {

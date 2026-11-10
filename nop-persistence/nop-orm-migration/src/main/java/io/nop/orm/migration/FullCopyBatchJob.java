@@ -8,6 +8,7 @@
 package io.nop.orm.migration;
 
 import io.nop.api.core.exceptions.NopException;
+import io.nop.api.core.util.ICancellable;
 import io.nop.batch.core.IBatchStateStore;
 import io.nop.batch.core.IBatchTask;
 import io.nop.batch.core.BatchTaskBuilder;
@@ -17,6 +18,8 @@ import io.nop.core.lang.sql.SQL;
 import io.nop.dao.dialect.IDialect;
 import io.nop.dao.jdbc.IJdbcTemplate;
 import io.nop.orm.migration.TargetShardMapping.PhysicalTable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.atomic.LongAdder;
@@ -35,11 +38,23 @@ import static io.nop.orm.migration.MigrationErrors.ERR_MIG_CONFIG_INVALID;
  * 双向追溯）；未注入时任务无跨重启断点，重跑安全由 keyed upsert 幂等覆盖保证（设计 §4.5）。</p>
  */
 public class FullCopyBatchJob {
+    private static final Logger LOG = LoggerFactory.getLogger(FullCopyBatchJob.class);
+
     private final IJdbcTemplate jdbcTemplate;
     private final TargetShardMapping mapping;
     private final MigrationJobConfig config;
     private final List<String> keyColumns;
     private IBatchStateStore stateStore;
+
+    /**
+     * 2.5-C7-006（plan 2554 裁定 K）：abort 停止面——表间停表标志 + 在飞 chunk context 句柄。
+     * 取消原语在 context（{@code BatchTaskContextImpl extends ExecutionContextImpl extends
+     * Cancellable}）：cancel(STOP) 后 BatchTask chunk 循环 isCancelled 抛 BatchCancelException，
+     * 在 copyTable 的同步 execute 内传播；表间缝隙由 {@link #stopRequested} 闭合（cancel 单表
+     * context 不阻止后续表开始）。
+     */
+    private volatile BatchTaskContextImpl runningContext;
+    private volatile boolean stopRequested;
 
     public FullCopyBatchJob(IJdbcTemplate jdbcTemplate, TargetShardMapping mapping,
                             MigrationJobConfig config, List<String> keyColumns) {
@@ -57,15 +72,47 @@ public class FullCopyBatchJob {
     }
 
     /**
+     * 2.5-C7-006（plan 2554 裁定 K）：编排器 abort 入口调用的协作停止原语——置停表标志 +
+     * cancel 在飞 chunk context（幂等；无在飞 context 时仅置标志，表间检查兜底）。
+     */
+    public void requestStop() {
+        stopRequested = true;
+        BatchTaskContextImpl context = this.runningContext;
+        if (context != null)
+            context.cancel(ICancellable.CANCEL_REASON_STOP);
+    }
+
+    /** 停表标志观测（编排器/测试消费）。 */
+    public boolean isStopRequested() {
+        return stopRequested;
+    }
+
+    /**
+     * 2.5-C3-011（plan 2554 裁定 I）：任务键单点派生——taskKey 追加 querySpace 维度
+     * （{@code jobId:qs:table}），多 querySpace 同名物理表任务身份不撞。
+     */
+    static String taskKey(String jobId, PhysicalTable source) {
+        return jobId + ":" + source.getQuerySpace() + ":" + source.getTableName();
+    }
+
+    /**
      * 执行全量复制，返回复制的总行数。任务名/任务键与编排 jobId 绑定：
-     * taskName = batch-task-name，taskKey = {@code <jobId>:<源物理表>}，flowId = jobId。
+     * taskName = batch-task-name，taskKey = {@code <jobId>:<qs>:<源物理表>}，flowId = jobId。
      */
     public long run(String jobId) {
         if (mapping.getSourceTables().isEmpty())
             throw new NopException(ERR_MIG_CONFIG_INVALID).param(ARG_REASON, "no source physical tables");
         long total = 0;
-        for (PhysicalTable source : mapping.getSourceTables()) {
-            total += copyTable(jobId, source);
+        List<PhysicalTable> sources = mapping.getSourceTables();
+        for (int i = 0; i < sources.size(); i++) {
+            // 2.5-C7-006（plan 2554 裁定 K）：表间缝隙检查——cancel 只作用于在飞单表 context，
+            // 不阻止后续表开始；abort 后剩余表显式跳过（WARN 留痕）
+            if (stopRequested) {
+                LOG.warn("nop.orm.migration.full-copy-stop-requested:jobId={},remainingTables={}",
+                        jobId, sources.size() - i);
+                break;
+            }
+            total += copyTable(jobId, sources.get(i));
         }
         return total;
     }
@@ -97,9 +144,12 @@ public class FullCopyBatchJob {
 
         IBatchTask task = builder.buildTask();
         BatchTaskContextImpl context = new BatchTaskContextImpl();
-        context.setTaskKey(jobId + ":" + source.getTableName());
+        // 2.5-C3-011（plan 2554 裁定 I）：taskKey 携带 querySpace 维度
+        context.setTaskKey(taskKey(jobId, source));
         context.setFlowId(jobId);
 
+        // 2.5-C7-006（plan 2554 裁定 K）：在飞 context 句柄发布（abort 可 cancel），finally 清
+        runningContext = context;
         try {
             task.execute(context);
         } catch (Exception e) {
@@ -107,6 +157,8 @@ public class FullCopyBatchJob {
                 throw (RuntimeException) e;
             throw new NopException(MigrationErrors.ERR_MIG_FULL_COPY_FAILED, e)
                     .param(ARG_REASON, "full copy failed for source table " + source);
+        } finally {
+            runningContext = null;
         }
         return copied.sum();
     }

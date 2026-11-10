@@ -49,8 +49,9 @@ public class DbTypeFilterExecutor implements IChangeExecutor {
     }
 
     /**
-     * Allows IoC containers to populate the nested executor table, mirroring
-     * {@code MigrationExecutor#setExecutors}.
+     * Allows IoC containers to populate the nested executor table
+     * ({@code MigrationExecutor} uses {@code registerExecutor} after 2.5-C1-002,
+     * plan 2554 adjudication F, removed its config-time setter).
      */
     public void setExecutors(java.util.Map<String, IChangeExecutor> executors) {
         if (executors == null || executors.isEmpty())

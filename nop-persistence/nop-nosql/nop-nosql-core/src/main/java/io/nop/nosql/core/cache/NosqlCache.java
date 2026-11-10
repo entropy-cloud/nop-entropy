@@ -58,6 +58,13 @@ public class NosqlCache implements ICache<String, Object> {
         return ops.getExAsync(key, expireAfterAccess.toMillis());
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Atomicity contract (2.5-MA-09, plan 2554 裁定 C): this delegation adds no locking of its
+     * own; the "only one computed value wins" guarantee is carried by the implementation layer
+     * (nosql-lettuce executes the write-back as an atomic SET NX Lua script).</p>
+     */
     @Override
     public @Nonnull
     CompletionStage<Object> computeIfAbsentAsync(@Nonnull String key,
@@ -86,6 +93,13 @@ public class NosqlCache implements ICache<String, Object> {
         return ops.get(key);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Atomicity contract (2.5-MA-09, plan 2554 裁定 C): this delegation adds no locking of its
+     * own; the "only one computed value wins" guarantee is carried by the implementation layer
+     * (nosql-lettuce executes the write-back as an atomic SET NX Lua script).</p>
+     */
     @Override
     public Object computeIfAbsent(String key, Function<? super String, ?> mappingFunction) {
         return ops.computeIfAbsent(key, mappingFunction);
