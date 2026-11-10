@@ -52,7 +52,7 @@
 | 模板标注：`expr:`/`xpl:`/`tpl_expr:` 超链接 | 已支持 | `expr:`→run.model.valueExpr；`tpl_expr:`/`xpl:`→templateExpr；`linkExpr` 无标注形态（未使用） |
 | 模板标注：`xpt:table` 批注 | 识别已支持（顶层表） | 首行首单元格批注含标记 → `table.model.renderType="xpt"`；嵌套表在模型链路被拍平为文本不识别；批注其余文本不解析；展开仍经 `nop-report-docx` |
 | 生成端块分派 | 八类块 + 四类行内 | 未识别的块类型显式报错（不输出空段落）；列表编号定义（numbering.xml）不合成，列表字形在生成文档中缺失 |
-| PDF 输出 | 无 | 模型→PDF 渲染器不存在；不经 Aspose/OnlyOffice |
+| PDF 输出 | 已支持 | `OfficeDocPdfRenderer`（`nop-report-pdf` 的 `io.nop.report.pdf.doc` 包）：流式排版（段落按行/表格按行跨页）、每节页面几何与页眉页脚、run 全装饰（粗斜含合成、下划线/删除线/高亮/上下标）、CJK 换行与字体回退、超链接 annotation、背景；列表字形有降级口径；水印 VML 与混排图片不承载不渲染 |
 
 ## 5. docx 解析契约
 
@@ -89,6 +89,14 @@
 - **不引入 springreport 代码或其闭源付费依赖**：springreport（Apache-2.0）只作能力对版参考。
 - **不做前端设计器/编辑器 UI**；不做 PPT/大屏。
 - **不提交大体积 docx 语料入库**：测试语料程序合成或小样本。
+
+## 9. PDF 渲染契约
+
+- 入口：`io.nop.report.pdf.doc.OfficeDocPdfRenderer`（`render(doc)` → byte[]）；渲染器与字体/换行/绘制工具同模块复用，模块对文档模型为 compile 依赖（只做 Word→PDF 的使用方会传递引入报表链）。
+- 排版：layout（纯计算，可单测）与 paint 两阶段共享同一 PDDocument；字体按 (名称,粗,斜) 会话级解析一次，缺字走既有回退。
+- 降级口径：列表无命名样式时项目符号/顺序数字缺省；表格单行超页截断具名告警；水印 VML 与混排图片不渲染。
+- 不支持形态（未识别块、无效页面几何、缺 asset 引用）显式报错。
+- 验收：文本抽取 + 像素探针断言（`TestOfficeDocPdfRender2a/2b`）；端到端 docx→模型→PDF 与 LibreOffice 对照见 `TestOfficeDocPdfRender3E2E`。
 
 ## 相关文档
 

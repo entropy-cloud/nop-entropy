@@ -354,6 +354,7 @@
 | WDM-004 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/parse/OfficeDocModelParser.java`（+ `WordTableParser.java`） | docx 解析入口：八类块/四类行内/多节（每 sectPr 一 page）/styles.xml/图片 assets/模板标注（c:if、c:for、expr:/xpl:/tpl_expr:、xpt:table）；降级项经 `getLastParseSkips()` 具名记录 |
 | WDM-005 | `nop-format/nop-ooxml/nop-ooxml-docx/src/main/java/io/nop/ooxml/docx/output/OfficeDocModelWriter.java`（+ `OfficeDocXmlBuilder.java`） | docx 生成入口：八类块/四类行内/多节 sectPr 与 headerN/footerN/媒体部件/styles.xml/settings；不可生成形态显式报错；round-trip 验收见 `TestDocxRoundTrip` |
 | WDM-006 | `nop-format/nop-office-model/src/main/java/io/nop/office/model/WordRunStyle.java`（+ `WordParagraphStyle`/`WordCellStyle`/`WordTableStyle`/`OfficeFont`/`OfficeBorder`） | Word 样式四类与共享叶子模型（`io.nop.office.model`），独立于 ExcelStyle |
+| WDM-007 | `nop-report/nop-report-pdf/src/main/java/io/nop/report/pdf/doc/OfficeDocPdfRenderer.java`（+ `doc/` 包排版/绘制/断行类） | Word 文档模型 → PDF 渲染器：layout/paint 两阶段共享 PDDocument、字体 (名称,粗,斜) 会话级缓存、段落按行/表格按行跨页、run 全装饰；验收测试 `TestOfficeDocPdfRender2a/2b/3E2E` |
 
 ## 当 `docs-for-ai` 仍有歧义时
 

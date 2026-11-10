@@ -17,6 +17,8 @@ public interface ReportPdfErrors {
     String ARG_FAILED_CHAR = "failedChar";
     String ARG_PRINT_TITLE_RANGE = "printTitleRange";
     String ARG_SCOPE = "scope";
+    String ARG_BLOCK_TYPE = "blockType";
+    String ARG_ASSET_REF = "assetRef";
 
     ErrorCode ERR_PDF_FONT_MISSING_GLYPH = define("nop.err.report.pdf.font-missing-glyph",
             "字体[{fontName}]无法编码文本[{textSample}]中的字符[{failedChar}]，且没有可用的回退字体。请在VFS的/fonts/目录、nop.report.pdf.font-dirs配置的目录或系统字体目录中提供覆盖该字符的CJK字体文件",
@@ -32,4 +34,22 @@ public interface ReportPdfErrors {
 
     ErrorCode ERR_PDF_INVALID_PAGE_NUMBER_SCOPE = define("nop.err.report.pdf.invalid-page-number-scope",
             "无效的页码作用域配置(仅支持global/sheet):scope={scope}", ARG_SCOPE);
+
+    // ---- OfficeDocModel -> PDF renderer (io.nop.report.pdf.doc) ----
+
+    ErrorCode ERR_PDF_DOC_UNKNOWN_BLOCK = define("nop.err.report.pdf.doc.unknown-block",
+            "Unknown OfficeDocModel block type [{blockType}]; the PDF renderer cannot dispatch it",
+            ARG_BLOCK_TYPE);
+
+    ErrorCode ERR_PDF_DOC_UNKNOWN_RUN = define("nop.err.report.pdf.doc.unknown-run",
+            "Unknown OfficeDocModel inline run type [{blockType}]; the PDF renderer cannot dispatch it",
+            ARG_BLOCK_TYPE);
+
+    ErrorCode ERR_PDF_DOC_IMAGE_ASSET_NOT_FOUND = define("nop.err.report.pdf.doc.image-asset-not-found",
+            "Image block references asset [{assetRef}] which is not present in doc assets",
+            ARG_ASSET_REF);
+
+    ErrorCode ERR_PDF_DOC_INVALID_PAGE_GEOMETRY = define("nop.err.report.pdf.doc.invalid-page-geometry",
+            "Section page geometry is invalid (non-positive content area) for section [{blockType}]",
+            ARG_BLOCK_TYPE);
 }

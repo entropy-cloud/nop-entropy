@@ -44,6 +44,7 @@ import io.nop.ooxml.common.constants.TargetMode;
 import io.nop.ooxml.common.model.OfficeRelsPart;
 import io.nop.ooxml.docx.DocxErrors;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
@@ -1112,7 +1113,10 @@ public class OfficeDocXmlBuilder {
             XNode rPr = XNode.make("w:rPr");
             XNode built = buildRunStyle(rs);
             if (built != null) {
-                for (XNode child : built.getChildren()) {
+                // detach during iteration mutates built.getChildren() and throws
+                // ConcurrentModificationException when the style carries a font block;
+                // copy the list first
+                for (XNode child : new ArrayList<>(built.getChildren())) {
                     rPr.appendChild(child.detach());
                 }
             }

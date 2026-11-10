@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-10（WI0–WI5 完成，plan 2515–2520；WI6–WI11 未启动）
+> Last updated: 2026-11-11（WI0–WI6 完成，plan 2515–2521；WI7–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -55,7 +55,7 @@
 
 ### M4 — 模型 → PDF（生成）
 
-- [ ] WI6 PDF 生成：新增 OfficeDocModel→PDF 渲染器，复用 nop-pdf/nop-report-pdf 的字体回退、图片嵌入、表格绘制、分页与页眉页脚能力（对齐 `nop-pdf-report-export-roadmap.md` 已落地的样式/图片/字体 WI），替代 Aspose 方案。含 PDF 渲染断言 + 视觉验收（线宽/颜色/布局）（Deliverable: doc-model PDF 渲染器 + 测试 + 视觉 golden；deps: WI5 + nop-pdf roadmap 相关 WI；Item Type: Feature + Proof）
+- [x] WI6 PDF 生成：新增 OfficeDocModel→PDF 渲染器，复用 nop-pdf/nop-report-pdf 的字体回退、图片嵌入、表格绘制、分页与页眉页脚能力（对齐 `nop-pdf-report-export-roadmap.md` 已落地的样式/图片/字体 WI），替代 Aspose 方案。含 PDF 渲染断言 + 视觉验收（线宽/颜色/布局）（Deliverable: doc-model PDF 渲染器 + 测试 + 视觉 golden；deps: WI5 + nop-pdf roadmap 相关 WI；Item Type: Feature + Proof）
 
 ### M5 — 模板动态展开
 
@@ -73,7 +73,7 @@
 
 - [x] ★ **Milestone: 通用文档模型与样式定稿**（WI1–WI2 完成后勾选）
 - [x] ★ **Milestone: docx 双向转换可用**（WI3–WI5 完成后勾选）
-- ★ **Milestone: Word 文档 PDF 输出可用**（WI6 完成后勾选）
+- [x] ★ **Milestone: Word 文档 PDF 输出可用**（WI6 完成后勾选）
 - ★ **Milestone: Word 模板动态展开可用**（WI7–WI8 完成后勾选）
 - ★ **Milestone: 统一出口与 springreport 能力对齐**（WI9–WI10 完成后勾选）
 - ★ **Milestone: 端到端验收通过**（WI0–WI11 全部完成后勾选）

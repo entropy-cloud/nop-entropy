@@ -751,4 +751,59 @@ public class TestDocxRoundTrip extends BaseTestCase {
         org.junit.jupiter.api.Assertions.assertEquals(
                 "nop.err.ooxml.docx.parse-reserved-style-id", e.getErrorCode());
     }
+
+    /**
+     * Regression: a named run style carrying a font made buildStyleNode detach children
+     * while iterating (ConcurrentModificationException). The writer must emit the style
+     * with its rPr intact.
+     */
+    @Test
+    public void testNamedRunStyleWithFontWritesWithoutFailure() throws Exception {
+        OfficeDocModel doc = new OfficeDocModel();
+        doc.setWidth(11906.0);
+        doc.setHeight(16838.0);
+
+        io.nop.office.model.WordRunStyle runStyle = new io.nop.office.model.WordRunStyle();
+        runStyle.setId("fancy");
+        runStyle.setName("Fancy");
+        runStyle.setType("runStyle");
+        io.nop.office.model.OfficeFont font = new io.nop.office.model.OfficeFont();
+        font.setBold(true);
+        font.setFontName("Calibri");
+        font.setFontSize(12.0f);
+        runStyle.setFont(font);
+        doc.addStyle(runStyle);
+
+        OfficeDocPageModel page = new OfficeDocPageModel();
+        page.setName("p");
+        OfficeParagraphModel p = new OfficeParagraphModel();
+        p.setId("p1");
+        p.setType("p");
+        io.nop.office.model.WordRunStyle inline = new io.nop.office.model.WordRunStyle();
+        inline.setId("p1-r0");
+        inline.setType("r");
+        inline.setFont(font);
+        p.addRun(new io.nop.office.doc.model.OfficeRunModel() {{
+            setId("p1-r0");
+            setType("r");
+            setT("text");
+            setStyle(inline);
+        }});
+        java.util.List<OfficeBlock> blocks = new java.util.ArrayList<>();
+        blocks.add(p);
+        page.setBody(blocks);
+        doc.addPage(page);
+
+        OfficeDocModelWriter writer = new OfficeDocModelWriter();
+        java.nio.file.Path temp = java.nio.file.Files.createTempFile("wi5-style-font", ".docx");
+        writer.writeToResource(doc, new io.nop.core.resource.impl.FileResource(temp.toFile()));
+        byte[] docx = java.nio.file.Files.readAllBytes(temp);
+        java.nio.file.Files.deleteIfExists(temp);
+        OfficeDocModel reparsed = parse(docx);
+        OfficeStyle style = reparsed.getStyle("fancy");
+        assertNotNull(style);
+        io.nop.office.model.WordRunStyle reparsedRun = (io.nop.office.model.WordRunStyle) style;
+        assertTrue(reparsedRun.getFont().isBold(), "named style font survives round-trip");
+        assertEquals("Calibri", reparsedRun.getFont().getFontName());
+    }
 }

@@ -18,6 +18,19 @@
             <artifactId>nop-report-core</artifactId>
         </dependency>
 
+        <!-- OfficeDocModel -> PDF renderer (io.nop.report.pdf.doc) -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-office-doc-model</artifactId>
+        </dependency>
+
+        <!-- test only: docx bytes <-> OfficeDocModel for the end-to-end render tests -->
+        <dependency>
+            <groupId>io.github.entropy-cloud</groupId>
+            <artifactId>nop-ooxml-docx</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.locationtech.jts</groupId>
             <artifactId>jts-core</artifactId>
