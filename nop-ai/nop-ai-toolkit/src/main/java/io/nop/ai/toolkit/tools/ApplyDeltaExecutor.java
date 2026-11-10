@@ -14,6 +14,12 @@ import java.util.concurrent.CompletionStage;
 public class ApplyDeltaExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "apply-delta";
 
+    /**
+     * 3.2-C8-008（plan 2557 裁定 H）：既有 10M 读回帽提为命名常量并补回归钉
+     * （TestFileToolOutputClamps）——帽面不回退。
+     */
+    public static final int MAX_READ_CHARS = 10_000_000;
+
     @Override
     public String getToolName() {
         return TOOL_NAME;
@@ -54,7 +60,7 @@ public class ApplyDeltaExecutor implements IToolExecutor {
                 return AiToolCallResult.errorResult(call.getId(), "Either deltaContent or deltaPath is required");
             }
 
-            String baseContent = fs.readText(path, 10000000).getContent();
+            String baseContent = fs.readText(path, MAX_READ_CHARS).getContent();
             XNode baseNode = XNodeParser.instance().parseFromText(null, baseContent);
 
             DeltaMerger merger = new DeltaMerger(XDslKeys.DEFAULT);
@@ -70,7 +76,7 @@ public class ApplyDeltaExecutor implements IToolExecutor {
                     "Delta applied successfully. File updated: " + path);
             }
         } catch (Exception e) {
-            return AiToolCallResult.errorResult(call.getId(), e.getMessage());
+            return AiToolCallResult.errorResult(call.getId(), String.valueOf(e));
         }
     }
 }

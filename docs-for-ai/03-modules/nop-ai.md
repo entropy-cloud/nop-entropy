@@ -226,6 +226,16 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 - **响应缓存/邮箱包络**：响应缓存 max-entries LRU（逐出删文件）+ 单条字节上界 + promptName 路径穿越守卫（TTL 缺省 0 语义保持）；DeferredAckMailbox deadLetter 有界淘汰最旧 + inFlight 惰性 stale 回放（对齐 DBMessageService 5min 语义；生产缺省 off，显式启用即有界）。
 - **restore 锁序**：restoreSession 状态变更与事件发布在执行槽获取成功之后（对齐 resumeSession 模式；装配失败对称清理）。
 
+
+## 工具执行与输出包络契约（nop-ai-toolkit/tools/shell，3.2 束，plan 2557）
+
+- **pathQueues 生命周期**：`ToolManagerImpl` 路径队列尾完成即两参条件驱逐（ABA 安全）；per-path 深度计数（`nop.ai.tool.path-queue-limit` 缺省 64）超限 fail-loud（QueueOverflowPolicy ERROR 语义），驱逐不影响同 path 串行化语义。
+- **update-todos 原子化**：todoLists clear/write 收敛 compute 单次原子决策（同会话并行不丢更新）；会话条目清理面待 session-lifecycle seam（watch）。
+- **工具文件写原子化**：DeltaVFS newOutputStream/copyToVirtual 与 DslToolImpl/AiFileTool 保存路径均 temp+ATOMIC_MOVE（降级 REPLACE_EXISTING）——失败保旧、读者不见撕裂；VFS virtual-resource 分支保持原样。
+- **后台任务回滚**：BashExecutor registry.run 抛 UOE → taskId 回滚 FAILED（RUNNING 残留消除）。
+- **cancel 可重试**：BashExecutionTracker 销毁段 UOE/SecurityException 守卫；销毁失败注册项保留（putIfAbsent 回填+rethrow），二次 cancel 可重试；remove 顺序外部契约零变化。
+- **thought 存储生命周期**：clearHistory 删文件；TTL 清扫（`nop.ai.tools.thought-retention-days` 缺省 0=off）once-per-date 节流。
+- **工具输出上界族**：http/graphql 响应体截断-续排空（`nop.ai.tool.http-max-response-chars` 缺省 100K+truncated 标记）；七失效面服务端 clamp（grep 命中 ≤1万/read-file 行帽 100K/patch 10M/readFiles 兜底 100K）；shell `>` 重定向阈值分块落盘（append 语义首刷截断保持）+ 字节帽 2MiB 超限命令失败；shell IO readLine 超帽分片可拼接、readAllText 超帽 fail-loud。
 ## 工具配置（nop-ai-tools）
 
 | 配置键 | 默认值 | 语义 |

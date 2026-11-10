@@ -13,14 +13,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.stream.Collectors;
@@ -64,6 +61,16 @@ public class ThoughtStorage {
 
     private final Lock lock = new ReentrantLock();
     private final File storageDir;
+    private final Object sweepLock = new Object();
+
+    /**
+     * plan 2557 C6-007 (ruling E): TTL retention in days for stored session
+     * files. {@code 0} (default) disables sweeping entirely. Sweeping is
+     * hosted at the {@link #saveSession} entry with a once-per-date throttle
+     * so the trigger point is deterministic (no background timer thread).
+     */
+    private volatile int thoughtRetentionDays = 0;
+    private volatile String lastSweepDate;
 
     public ThoughtStorage(String storageDirPath) {
         if (storageDirPath == null || storageDirPath.isEmpty()) {
@@ -95,10 +102,65 @@ public class ThoughtStorage {
     }
 
     private void saveSession(String sessionId, List<ThoughtData> thoughts) {
+        sweepExpiredSessionsIfNeeded();
         File sessionFile = getSessionFile(sessionId);
         ThoughtSession session = new ThoughtSession(thoughts);
         String json = toJson(session);
         atomicWriteText(sessionFile, json);
+    }
+
+    /**
+     * plan 2557 C6-007 (ruling E): retention days setter backing the
+     * {@code nop.ai.tools.thought-retention-days} config. Callable before
+     * first use; default 0 = off.
+     */
+    public void setThoughtRetentionDays(int days) {
+        this.thoughtRetentionDays = days;
+    }
+
+    /**
+     * plan 2557 C6-007 (ruling E): TTL sweep hosted at the {@link #saveSession}
+     * entry (deterministic trigger point, no timer thread). Once-per-date
+     * throttle: a volatile fast path plus a synchronized double-check so
+     * concurrent savers sweep at most once per calendar date. Runs while the
+     * caller holds the storage lock — a single lock guards all operations and
+     * the sweep only deletes stale sibling session files, so no extra locking
+     * is needed.
+     */
+    private void sweepExpiredSessionsIfNeeded() {
+        int retentionDays = this.thoughtRetentionDays;
+        if (retentionDays <= 0) {
+            return;
+        }
+        String today = LocalDate.now().toString();
+        if (today.equals(lastSweepDate)) {
+            return;
+        }
+        synchronized (sweepLock) {
+            if (today.equals(lastSweepDate)) {
+                return;
+            }
+            sweepExpiredSessions(retentionDays);
+            lastSweepDate = today;
+        }
+    }
+
+    private void sweepExpiredSessions(int retentionDays) {
+        long cutoffMillis = System.currentTimeMillis() - retentionDays * 24L * 3600L * 1000L;
+        File[] files = storageDir.listFiles((dir, name) -> name.endsWith(".json"));
+        if (files == null) {
+            return;
+        }
+        for (File file : files) {
+            if (file.lastModified() < cutoffMillis) {
+                try {
+                    Files.deleteIfExists(file.toPath());
+                    LOG.info("ai-tools.thought-session-expired-sweep:file={}", file);
+                } catch (IOException e) {
+                    LOG.warn("ai-tools.thought-session-sweep-delete-failed:file={}", file, e);
+                }
+            }
+        }
     }
 
     public void addThought(String sessionId, ThoughtData thought) {
@@ -136,10 +198,23 @@ public class ThoughtStorage {
         }
     }
 
+    /**
+     * plan 2557 C6-007 (ruling E): clear deletes the session file outright
+     * ({@code Files.deleteIfExists}) instead of persisting an empty session
+     * JSON — a cleared session leaves no residual file, so storage returns to
+     * the pre-session baseline. Existing "clear keeps file" assertions in
+     * {@code TestThoughtStorage} were updated to the delete semantics (C10-021
+     * sanctioned).
+     */
     public void clearHistory(String sessionId) {
         lock.lock();
         try {
-            saveSession(sessionId, new ArrayList<>());
+            File sessionFile = getSessionFile(sessionId);
+            try {
+                Files.deleteIfExists(sessionFile.toPath());
+            } catch (IOException e) {
+                throw NopException.adapt(e);
+            }
         } finally {
             lock.unlock();
         }
@@ -203,34 +278,13 @@ public class ThoughtStorage {
     }
 
     /**
-     * Atomic replace (plan 2026-09-14-1937-1 Phase 2): write to a temp file in
-     * the same directory, then rename over the target, so a partial write or
-     * crash never truncates the previous session content. {@code ATOMIC_MOVE}
-     * is attempted first; plain {@code Files.move} with {@code REPLACE_EXISTING}
-     * is the explicit fallback for filesystems without atomic rename support.
-     * The temp file is always created in the target's directory, so no
-     * cross-filesystem move can occur.
+     * Atomic replace (plan 2026-09-14-1937-1 Phase 2): temp + rename template,
+     * now single-sourced in {@link AiToolsHelper#atomicWriteText} so the
+     * plan 2557 C1-005 extension sites (DslToolImpl / AiFileTool saves) reuse
+     * the exact same template as the session store.
      */
     private static void atomicWriteText(File target, String text) {
-        FileHelper.assureParent(target);
-        File temp = new File(target.getParentFile(), target.getName() + ".tmp" + UUID.randomUUID());
-        try {
-            Files.writeString(temp.toPath(), text, StandardCharsets.UTF_8);
-            try {
-                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(temp.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException e) {
-            throw NopException.adapt(e);
-        } finally {
-            try {
-                Files.deleteIfExists(temp.toPath());
-            } catch (IOException e) {
-                LOG.debug("Failed to delete temp file after write: {}", temp, e);
-            }
-        }
+        AiToolsHelper.atomicWriteText(target, text);
     }
 
     private String toJson(Object obj) {

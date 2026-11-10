@@ -7,12 +7,14 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,9 +163,95 @@ public class DeltaVirtualFileSystem {
         }
 
         LOG.debug("Writing file to delta: {}", deltaFile.getAbsolutePath());
-        return Files.newOutputStream(deltaFile.toPath(),
+        // 3.2-C1-005（plan 2557 裁定 C）：原子写模板（ThoughtStorage.atomicWriteText 同源）
+        // ——写 temp，close 时 flush + ATOMIC_MOVE 换入目标（降级 REPLACE_EXISTING）；
+        // 写/关失败删 temp 保旧目标（partial write/crash 不截断旧内容）。
+        File temp = new File(parentDir, deltaFile.getName() + ".tmp" + UUID.randomUUID());
+        OutputStream out = Files.newOutputStream(temp.toPath(),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
+        return new AtomicMoveOutputStream(out, temp.toPath(), deltaFile.toPath());
+    }
+
+    /**
+     * 3.2-C1-005（plan 2557 裁定 C）：OutputStream 原子换入包装——写 temp，close 时
+     * flush + ATOMIC_MOVE（降级 REPLACE_EXISTING）；写/关失败删 temp（目标保旧）。
+     */
+    private static final class AtomicMoveOutputStream extends OutputStream {
+        private final OutputStream out;
+        private final Path tempPath;
+        private final Path targetPath;
+        private boolean closed;
+        private boolean failed;
+
+        AtomicMoveOutputStream(OutputStream out, Path tempPath, Path targetPath) {
+            this.out = out;
+            this.tempPath = tempPath;
+            this.targetPath = targetPath;
+        }
+
+        @Override
+        public void write(int b) throws IOException {
+            try {
+                out.write(b);
+            } catch (IOException e) {
+                failed = true;
+                throw e;
+            }
+        }
+
+        @Override
+        public void write(byte[] buffer, int offset, int length) throws IOException {
+            try {
+                out.write(buffer, offset, length);
+            } catch (IOException e) {
+                failed = true;
+                throw e;
+            }
+        }
+
+        @Override
+        public void flush() throws IOException {
+            out.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed) {
+                return;
+            }
+            closed = true;
+            try {
+                out.close();
+            } catch (IOException e) {
+                failed = true;
+                deleteTempQuietly();
+                throw e;
+            }
+            if (failed) {
+                deleteTempQuietly();
+                return;
+            }
+            try {
+                try {
+                    Files.move(tempPath, targetPath,
+                            StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+                } catch (AtomicMoveNotSupportedException e) {
+                    Files.move(tempPath, targetPath, StandardCopyOption.REPLACE_EXISTING);
+                }
+            } catch (IOException e) {
+                deleteTempQuietly();
+                throw e;
+            }
+        }
+
+        private void deleteTempQuietly() {
+            try {
+                Files.deleteIfExists(tempPath);
+            } catch (IOException e) {
+                LOG.debug("Failed to delete temp file after write: {}", tempPath, e);
+            }
+        }
     }
 
     /**
@@ -187,8 +275,24 @@ public class DeltaVirtualFileSystem {
             Files.createDirectories(parentDir.toPath());
         }
 
-        Files.copy(sourceFile.toPath(), deltaFile.toPath(),
-                StandardCopyOption.REPLACE_EXISTING);
+        // 3.2-C1-005（plan 2557 裁定 C）：原子写模板——copy 到 temp，ATOMIC_MOVE 换入
+        // （降级 REPLACE_EXISTING）；失败删 temp 保旧目标。
+        File temp = new File(parentDir, deltaFile.getName() + ".tmp" + UUID.randomUUID());
+        try {
+            Files.copy(sourceFile.toPath(), temp.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.move(temp.toPath(), deltaFile.toPath(),
+                        StandardCopyOption.ATOMIC_MOVE, StandardCopyOption.REPLACE_EXISTING);
+            } catch (AtomicMoveNotSupportedException e) {
+                Files.move(temp.toPath(), deltaFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+        } finally {
+            try {
+                Files.deleteIfExists(temp.toPath());
+            } catch (IOException e) {
+                LOG.debug("Failed to delete temp file after copy: {}", temp, e);
+            }
+        }
 
         LOG.info("Copied file to virtual FS: {} -> {}",
                 sourceFile.getAbsolutePath(), deltaFile.getAbsolutePath());

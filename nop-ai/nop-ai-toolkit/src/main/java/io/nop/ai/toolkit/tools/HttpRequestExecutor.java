@@ -39,6 +39,21 @@ public class HttpRequestExecutor implements IToolExecutor {
     private IHttpClient httpClient;
 
     /**
+     * 3.2-C8-007（plan 2557 裁定 G）：响应体字符上界（read-file 100K 帽族对齐），
+     * 截断-续排空（不中断响应读取，超帽截断 + truncated 标记）。
+     */
+    public static final int DEFAULT_MAX_RESPONSE_CHARS = 100_000;
+
+    private int maxResponseChars = DEFAULT_MAX_RESPONSE_CHARS;
+
+    @io.nop.api.core.annotations.ioc.InjectValue("@cfg:nop.ai.tool.http-max-response-chars|100000")
+    public void setMaxResponseChars(int maxResponseChars) {
+        if (maxResponseChars > 0) {
+            this.maxResponseChars = maxResponseChars;
+        }
+    }
+
+    /**
      * Resolution-time SSRF enforcement (DR-4a). Defaults to
      * {@link SsrfGuardDnsResolver} so every request's hostname is resolved
      * through the guard before the transport is reached — a hostname that
@@ -241,9 +256,24 @@ public class HttpRequestExecutor implements IToolExecutor {
         }
     }
 
+    /**
+     * 3.2-C8-007（plan 2557 裁定 G）：响应体超帽截断 + truncated 标记。
+     * 截断-续排空语义——响应已完整读取，仅呈现面截断。
+     */
+    static String capBody(String body, int maxChars) {
+        if (body == null || body.length() <= maxChars) {
+            return body;
+        }
+        return body.substring(0, maxChars)
+                + "\n[TRUNCATED: response body exceeded " + maxChars + " chars; total="
+                + body.length() + " chars]";
+    }
+
     private AiToolCallResult buildSuccessResult(AiToolCall call, IHttpResponse response) {
         int status = response.getHttpStatus();
-        String body = response.getBodyAsString();
+        String rawBody = response.getBodyAsString();
+        boolean truncated = rawBody != null && rawBody.length() > maxResponseChars;
+        String body = capBody(rawBody, maxResponseChars);
         Map<String, String> headers = response.getHeaders();
 
         StringBuilder sb = new StringBuilder();
@@ -260,8 +290,12 @@ public class HttpRequestExecutor implements IToolExecutor {
             }
         }
         sb.append("\n  },\n");
+        if (truncated) {
+            sb.append("  \"truncated\": true,\n");
+        }
         sb.append("  \"body\": ");
-        if (body != null && body.trim().startsWith("{")) {
+        // 3.2-C8-007：截断后 body 可能是残缺 JSON，走字符串分支保证呈现面自洽
+        if (!truncated && body != null && body.trim().startsWith("{")) {
             sb.append(body);
         } else {
             sb.append("\"").append(body != null ? StringHelper.escapeJson(body) : "").append("\"");

@@ -14,6 +14,12 @@ public class ReadFileExecutor implements IToolExecutor {
     public static final String TOOL_NAME = "read-file";
     private static final int DEFAULT_MAX_CHARS = 100000;
 
+    /**
+     * 3.2-C8-008（plan 2557 裁定 H）：行区间总量服务端帽（≤100K 行）——模型可传
+     * 任意大 fromLine/toLine/lastLines 区间，服务端强制收口。
+     */
+    public static final int MAX_LINE_RANGE = 100_000;
+
     @Override
     public String getToolName() {
         return TOOL_NAME;
@@ -46,15 +52,17 @@ public class ReadFileExecutor implements IToolExecutor {
             int actualToLine = 0;
 
             if (lastLines != null && lastLines > 0) {
+                int clampedLastLines = Math.min(lastLines, MAX_LINE_RANGE);
                 totalLines = fs.countLines(path, Integer.MAX_VALUE);
-                actualFromLine = Math.max(1, totalLines - lastLines + 1);
+                actualFromLine = Math.max(1, totalLines - clampedLastLines + 1);
                 actualToLine = totalLines;
                 LineResult lineResult = fs.readLines(path, actualFromLine, actualToLine, 10000);
                 content = lineResult.toLineNumberedContent();
             } else if (fromLine != null && toLine != null && fromLine > 0 && toLine > 0) {
                 actualFromLine = fromLine;
-                actualToLine = toLine;
-                LineResult lineResult = fs.readLines(path, fromLine, toLine, 10000);
+                // 3.2-C8-008：区间总量收口到 MAX_LINE_RANGE
+                actualToLine = Math.min(toLine, fromLine + MAX_LINE_RANGE - 1);
+                LineResult lineResult = fs.readLines(path, actualFromLine, actualToLine, 10000);
                 totalLines = lineResult.getTotalLines();
                 content = lineResult.toLineNumberedContent();
             } else {
@@ -75,7 +83,7 @@ public class ReadFileExecutor implements IToolExecutor {
             }
             return result;
         } catch (Exception e) {
-            return AiToolCallResult.errorResult(call.getId(), e.getMessage());
+            return AiToolCallResult.errorResult(call.getId(), String.valueOf(e));
         }
     }
 }

@@ -213,35 +213,46 @@ public class BashExecutor implements IToolExecutor {
         List<String> argv = buildArgv(command);
         IBashSandbox backend = this.sandbox;
 
-        registry.run(taskId, () -> {
-            int wallSeconds = (int) Math.max(1, (timeoutMs + 999) / 1000);
-            BashSandboxRequest request = BashSandboxRequest.builder()
-                    .command(argv)
-                    .workingDirectory(workingDir)
-                    .environmentVariables(env)
-                    .config(BashSandboxConfig.builder().wallSeconds(wallSeconds).build())
-                    // same callId as the foreground path — the progress
-                    // tracker / registry kill channel address the in-flight
-                    // process by this id
-                    .callId(callId)
-                    .build();
+        try {
+            registry.run(taskId, () -> {
+                int wallSeconds = (int) Math.max(1, (timeoutMs + 999) / 1000);
+                BashSandboxRequest request = BashSandboxRequest.builder()
+                        .command(argv)
+                        .workingDirectory(workingDir)
+                        .environmentVariables(env)
+                        .config(BashSandboxConfig.builder().wallSeconds(wallSeconds).build())
+                        // same callId as the foreground path — the progress
+                        // tracker / registry kill channel address the in-flight
+                        // process by this id
+                        .callId(callId)
+                        .build();
 
-            String status;
-            String output;
-            try {
-                BashSandboxResult sr = backend.execute(request);
-                output = combineOutput(sr);
-                status = sr.isTimedOut() ? IBackgroundTaskRegistry.STATUS_TIMEOUT
-                        : sr.getExitCode() == 0 ? IBackgroundTaskRegistry.STATUS_COMPLETED
-                        : IBackgroundTaskRegistry.STATUS_FAILED;
-            } catch (BashSandboxException e) {
-                LOG.warn("BashExecutor: background task {} sandbox refused call {}: [{}]",
-                        taskId, call.getId(), e.getReason(), e);
-                output = "Sandbox refused execution [" + e.getReason() + "]";
-                status = IBackgroundTaskRegistry.STATUS_FAILED;
-            }
-            registry.complete(taskId, status, output);
-        });
+                String status;
+                String output;
+                try {
+                    BashSandboxResult sr = backend.execute(request);
+                    output = combineOutput(sr);
+                    status = sr.isTimedOut() ? IBackgroundTaskRegistry.STATUS_TIMEOUT
+                            : sr.getExitCode() == 0 ? IBackgroundTaskRegistry.STATUS_COMPLETED
+                            : IBackgroundTaskRegistry.STATUS_FAILED;
+                } catch (BashSandboxException e) {
+                    LOG.warn("BashExecutor: background task {} sandbox refused call {}: [{}]",
+                            taskId, call.getId(), e.getReason(), e);
+                    output = "Sandbox refused execution [" + e.getReason() + "]";
+                    status = IBackgroundTaskRegistry.STATUS_FAILED;
+                }
+                registry.complete(taskId, status, output);
+            });
+        } catch (UnsupportedOperationException runUnsupported) {
+            // 3.2-C4-007（plan 2557 裁定 D）：submit→run 回滚——registry.run 抛 UOE
+            // （IBackgroundTaskRegistry default 契约）时 submit 已建 RUNNING 条目，
+            // 不回滚则永久滞留 RUNNING。回滚为 FAILED 终态（complete 幂等）。
+            LOG.warn("BashExecutor: registry.run unsupported for task {} — rolling back to FAILED", taskId, runUnsupported);
+            registry.complete(taskId, IBackgroundTaskRegistry.STATUS_FAILED,
+                    "Background execution is not supported by this registry (rolled back from RUNNING)");
+            return AiToolCallResult.errorResult(call.getId(),
+                    "Background mode is not available in this runtime (task " + taskId + " rolled back to FAILED)");
+        }
 
         AiToolCallResult result = new AiToolCallResult();
         result.setId(call.getId());

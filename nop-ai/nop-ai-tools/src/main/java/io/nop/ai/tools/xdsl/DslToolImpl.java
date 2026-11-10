@@ -1,5 +1,6 @@
 package io.nop.ai.tools.xdsl;
 
+import io.nop.ai.tools.utils.AiToolsHelper;
 import io.nop.api.core.exceptions.NopException;
 import io.nop.commons.util.FileHelper;
 import io.nop.commons.util.StringHelper;
@@ -78,7 +79,15 @@ public class DslToolImpl implements IDslTool {
 
         DocumentConvertOptions options = DocumentConvertOptions.create().allowChained();
         String result = DocumentConverterManager.instance().convertText(filePath, content, fromFileType, fileType, options);
-        ResourceHelper.writeText(resource, result, null);
+        // plan 2557 C1-005 (ruling C): local FileResource writes go through the
+        // atomic temp+rename template; the virtual-resource branch (VFS resource,
+        // non-local) keeps the original in-place write — the atomic template only
+        // applies to real local files.
+        if (resource instanceof FileResource) {
+            AiToolsHelper.atomicWriteText(resource.toFile(), result);
+        } else {
+            ResourceHelper.writeText(resource, result, null);
+        }
     }
 
     protected IResource getResource(String filePath) {

@@ -24,9 +24,13 @@ public class FileShellInput extends AbstractShellInput {
     public ShellChunk read() {
         if (isClosed()) return null;
         if (position >= content.length()) return null;
-        String remaining = content.substring(position);
-        position = content.length();
-        return ShellChunk.text(remaining);
+        // plan 2557 C8-012 (ruling J): a giant stored file must not surface as
+        // one giant chunk — split into successive bounded chunks so every
+        // downstream consumer sees per-chunk boundedness.
+        int end = Math.min(position + AbstractShellInput.MAX_READ_LINE_CHARS, content.length());
+        String slice = content.substring(position, end);
+        position = end;
+        return ShellChunk.text(slice);
     }
 
     public String getFilePath() {

@@ -10,6 +10,7 @@ import io.nop.core.resource.component.ResourceComponentManager;
 
 import static io.nop.ai.toolkit.NopAiToolkitErrors.ARG_DETAIL;
 import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_INVALID_STATE;
+import static io.nop.ai.toolkit.NopAiToolkitErrors.ERR_AI_TOOLKIT_PATH_QUEUE_OVERFLOW;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,22 @@ public class ToolManagerImpl implements IToolManager {
     private final ConcurrentHashMap<String, CompletableFuture<Void>> pathQueues =
             new ConcurrentHashMap<>();
 
+    /**
+     * 3.2-MA-07（plan 2557 裁定 A）：per-path pending 计数（入队时增，尾落定时减）。
+     * 与 {@link #pathQueues} 同域增减；驱逐（两参条件 remove）复用同一落定钩子，
+     * 生命周期账本不再单调增长。
+     */
+    private final ConcurrentHashMap<String, java.util.concurrent.atomic.AtomicInteger> pathQueueDepths =
+            new ConcurrentHashMap<>();
+
+    /**
+     * 3.2-MA-07（plan 2557 裁定 A）：同 path 排队积压上界（QueueOverflowPolicy ERROR
+     * 语义——超界显式错误而非静默入队）。可配，缺省 64。
+     */
+    public static final int DEFAULT_PATH_QUEUE_LIMIT = 64;
+
+    private int pathQueueLimit = DEFAULT_PATH_QUEUE_LIMIT;
+
     public ToolManagerImpl() {
     }
 
@@ -52,6 +69,30 @@ public class ToolManagerImpl implements IToolManager {
 
     public void setInterceptors(List<IToolCallInterceptor> interceptors) {
         this.interceptors = interceptors != null ? interceptors : Collections.emptyList();
+    }
+
+    /**
+     * 3.2-MA-07（plan 2557 裁定 A）：per-path 排队积压上界（IoC 配置键
+     * {@code nop.ai.tool.path-queue-limit}，缺省 64）。非正值回落缺省——上界永不关闭。
+     */
+    @io.nop.api.core.annotations.ioc.InjectValue("@cfg:nop.ai.tool.path-queue-limit|64")
+    public void setPathQueueLimit(int pathQueueLimit) {
+        this.pathQueueLimit = pathQueueLimit > 0 ? pathQueueLimit : DEFAULT_PATH_QUEUE_LIMIT;
+    }
+
+    public int getPathQueueLimit() {
+        return pathQueueLimit;
+    }
+
+    /**
+     * 3.2-MA-07（plan 2557 裁定 A）：全 path 排队积压总量（指标面）。
+     */
+    public int pathQueueSize() {
+        int total = 0;
+        for (java.util.concurrent.atomic.AtomicInteger depth : pathQueueDepths.values()) {
+            total += depth.get();
+        }
+        return total;
     }
 
     @Override
@@ -154,6 +195,19 @@ public class ToolManagerImpl implements IToolManager {
                 // captured inside the mapping function
                 java.util.concurrent.atomic.AtomicReference<CompletableFuture<Void>> prevRef =
                         new java.util.concurrent.atomic.AtomicReference<>();
+                // 3.2-MA-07（plan 2557 裁定 A）：入队先增 per-path pending 计数；
+                // 超上界 fail-loud（QueueOverflowPolicy ERROR 语义），计数回退
+                java.util.concurrent.atomic.AtomicInteger depth = pathQueueDepths.computeIfAbsent(pathKey, k -> new java.util.concurrent.atomic.AtomicInteger());
+                if (depth.incrementAndGet() > pathQueueLimit) {
+                    depth.decrementAndGet();
+                    removeDepthIfIdle(pathKey, depth);
+                    CompletableFuture<AiToolCallResult> overflow = new CompletableFuture<>();
+                    overflow.completeExceptionally(new NopException(ERR_AI_TOOLKIT_PATH_QUEUE_OVERFLOW)
+                            .param(ARG_DETAIL, "Per-path queued backlog exceeds limit=" + pathQueueLimit
+                                    + " (QueueOverflowPolicy ERROR: fail loud instead of silently queuing)"
+                                    + ": pathKey=" + pathKey + ", tool=" + toolName));
+                    return overflow;
+                }
                 pathQueues.compute(pathKey, (k, oldTail) -> {
                     prevRef.set(oldTail);
                     return tail;
@@ -190,6 +244,11 @@ public class ToolManagerImpl implements IToolManager {
                                     java.util.function.Supplier<CompletableFuture<AiToolCallResult>> executeNow,
                                     String toolName, String pathKey) {
         try {
+            // 3.2-MA-07（plan 2557 裁定 A）：尾落定钩子——所有退出路径都会落定 tail，
+            // 钩在 tail 上即覆盖全部出口。落定时：① per-path pending 计数减；② 该 path
+            // 已无在途/等待项时以两参条件 remove 驱逐尾（防 ABA：compute 已换新尾则不移除），
+            // pathQueues 账本回基线，生命周期不再单调增长。
+            tail.whenComplete((v, e) -> settlePathQueue(pathKey, tail));
             if (result.isCancelled()) {
                 // 排队窗口取消联动：不再派生执行，链剩余段以取消终态短路
                 tail.completeExceptionally(new java.util.concurrent.CancellationException(
@@ -235,6 +294,23 @@ public class ToolManagerImpl implements IToolManager {
             result.completeExceptionally(unguarded);
             tail.completeExceptionally(unguarded);
         }
+    }
+
+    /**
+     * 3.2-MA-07（plan 2557 裁定 A）：尾落定钩子——pending 计数减一；计数归零时
+     * 计数器条目一并驱逐（账本回基线）。两参 {@code remove(pathKey, tail)} 仅在
+     * 本 tail 仍是当前映射时移除（防 ABA：compute 已挂新尾则保留队列）。
+     */
+    private void settlePathQueue(String pathKey, CompletableFuture<Void> tail) {
+        pathQueues.remove(pathKey, tail);
+        java.util.concurrent.atomic.AtomicInteger depth = pathQueueDepths.get(pathKey);
+        if (depth != null && depth.decrementAndGet() <= 0) {
+            removeDepthIfIdle(pathKey, depth);
+        }
+    }
+
+    private void removeDepthIfIdle(String pathKey, java.util.concurrent.atomic.AtomicInteger depth) {
+        pathQueueDepths.remove(pathKey, depth);
     }
 
     private boolean isConcurrencySafe(String toolName) {
