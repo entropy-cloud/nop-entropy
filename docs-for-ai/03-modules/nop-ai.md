@@ -215,6 +215,17 @@ nop-ai-agent 是可嵌入运行时引擎，**不能依赖 nop-ai-dao**。其运�
 - **恢复链路预算**：orphan resume 与 localCancelled 重试带可配置 attempt 上界 + 指数退避 + 结果观测，预算耗尽类型化升级（`nop.ai.agent.resume-max-attempts`/`resume-backoff-base-ms`/`cancel-max-attempts`/`cancel-backoff-base-ms`）。
 - **运行期换装 volatile 纪律**：agentExecutor/lockRenewExecutor 及 C1-022 七组配置字段全部 volatile（换装可见性；旧池生命周期归 close() own 语义）。
 
+
+## AI 可靠性资源包络契约（nop-ai，3.1-C3/C5/C7 束 b，plan 2556）
+
+- **异步入口单异常通道**：`AiCommand.callChat` 前置段（限流/baseUrl/凭证）同步异常收敛为 failed future；缓存写失败不使成功响应 exceptionally（读降级/写隔离对称）。
+- **重试为异常感知形态**：重试单位=callChat（每 attempt 天然复查入口限流器），异常完成经 LlmErrorClassifier 分类可重试，延迟经 StandardRetryPolicy full-jitter（GlobalTimer 轻量 hop，无阻塞体指向 globalTimer）；invalid 响应按 TRANSIENT 取 floor 延迟；adjustTemperature per-attempt、响应后处理循环外一次（语义由载体钉定）。
+- **Retry-After 上限**：`StandardRetryPolicy` shouldRetry 入口单点 normalize（`MAX_RETRY_AFTER_MS`=10min，超限 WARN 记原值）——解析端保持原值。
+- **熔断器 probe 世代回执**：ThresholdBreaker per-key probeGeneration——陈旧逃逸回执 WARN 丢弃不翻转状态（gen=-1 兼容回落档显式声明）；probe timeout 缺省 90s 可配；失败记忆条目带 lastTransition TTL 惰性清除（pristine 即时清理保持）。
+- **LLM 热路径 DB 副作用隔离**：usage 记账/model-switched 写入失败 WARN+计数+阈值升级，不中止主流程；resolveModelId 进程级缓存。
+- **响应缓存/邮箱包络**：响应缓存 max-entries LRU（逐出删文件）+ 单条字节上界 + promptName 路径穿越守卫（TTL 缺省 0 语义保持）；DeferredAckMailbox deadLetter 有界淘汰最旧 + inFlight 惰性 stale 回放（对齐 DBMessageService 5min 语义；生产缺省 off，显式启用即有界）。
+- **restore 锁序**：restoreSession 状态变更与事件发布在执行槽获取成功之后（对齐 resumeSession 模式；装配失败对称清理）。
+
 ## 工具配置（nop-ai-tools）
 
 | 配置键 | 默认值 | 语义 |

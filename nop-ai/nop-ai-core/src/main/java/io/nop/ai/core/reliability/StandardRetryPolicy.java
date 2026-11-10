@@ -3,6 +3,8 @@ package io.nop.ai.core.reliability;
 import io.nop.ai.api.chat.ErrorClassification;
 import io.nop.ai.core.NopAiCoreErrors;
 import io.nop.ai.core.NopAiCoreException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -54,12 +56,25 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class StandardRetryPolicy implements IRetryPolicy {
 
+    private static final Logger LOG = LoggerFactory.getLogger(StandardRetryPolicy.class);
+
     /** Default max total call attempts: 1 initial call + 2 retries. */
     public static final int DEFAULT_MAX_ATTEMPTS = 3;
     /** Default base backoff delay in milliseconds. */
     public static final long DEFAULT_BASE_DELAY_MS = 1000L;
     /** Default backoff cap in milliseconds. */
     public static final long DEFAULT_MAX_DELAY_MS = 30_000L;
+    /**
+     * Sanity cap for the provider-advised {@code retryAfterMs} (3.1-C7-003,
+     * plan 2556 裁定 F): any server hint above 10 minutes is treated as
+     * misbehaving / hostile and clamped to this ceiling. Same order-of-
+     * magnitude family as {@link #OVERLOADED_MAX_DELAY_MS} (60s curve cap;
+     * the Retry-After ceiling is deliberately higher because it is an explicit
+     * server directive). Normalization happens once at the {@link #shouldRetry}
+     * entry point, covering all three consumption paths (overloaded floor,
+     * rate-limited floor, transient floor).
+     */
+    public static final long MAX_RETRY_AFTER_MS = 600_000L;
 
     private final int maxAttempts;
     private final long baseDelayMs;
@@ -140,8 +155,12 @@ public final class StandardRetryPolicy implements IRetryPolicy {
         }
 
         // Retryable + attempts remaining → RETRY with backoff.
+        // 3.1-C7-003 (plan 2556 裁定 F): single-point sanity normalization at
+        // the entry — covers all three consumption paths below (:overloaded
+        // floor / :rate-limited floor / :transient floor). The dialect parsers
+        // keep emitting the original header value; the clamp is policy-level.
         long delay;
-        Long retryAfterMs = context.getRetryAfterMs();
+        Long retryAfterMs = normalizeRetryAfterMs(context.getRetryAfterMs());
         if (classification == ErrorClassification.OVERLOADED) {
             // Plan 2304 (WI22)：overloaded 独立长退避曲线（unattended 场景，
             // unreal retry.go 形态：10s→60s 指数 + ±20% 抖动）。曲线不受
@@ -164,6 +183,19 @@ public final class StandardRetryPolicy implements IRetryPolicy {
             }
         }
         return RetryOutcome.retryAfter(delay);
+    }
+
+    /**
+     * 3.1-C7-003 (plan 2556 裁定 F): clamp an oversized server Retry-After
+     * hint to {@link #MAX_RETRY_AFTER_MS}. A hint at or below the cap (or
+     * absent) passes through untouched.
+     */
+    static Long normalizeRetryAfterMs(Long retryAfterMs) {
+        if (retryAfterMs == null || retryAfterMs <= MAX_RETRY_AFTER_MS) {
+            return retryAfterMs;
+        }
+        LOG.warn("nop.ai.retry-after-capped:original={},cap={}", retryAfterMs, MAX_RETRY_AFTER_MS);
+        return MAX_RETRY_AFTER_MS;
     }
 
     /** Plan 2304 (WI22): overloaded curve floor — 10s first step. */

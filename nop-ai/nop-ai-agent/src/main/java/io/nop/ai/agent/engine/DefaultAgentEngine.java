@@ -164,6 +164,13 @@ public class DefaultAgentEngine implements IAgentEngine {
         private ISkillCurator skillCurator = NoOpSkillCurator.noOp();
         private IToolCallRepairer toolCallRepairer;
         private IAgentMessenger messenger = NoOpAgentMessenger.noOp();
+        /**
+         * 3.1-C5-017（plan 2556 裁定 E）: production default stays null
+         * (default-off — no mailboxes constructed). Integrators enabling
+         * session mailboxes should wire a BOUNDED factory
+         * ({@code DeferredAckMailbox.boundedDefaultFactory()}) so every
+         * constructed mailbox carries the bounded dead-letter retention.
+         */
         private Function<String, IMailbox> mailboxFactory;
         private IPermissionMatrix permissionMatrix = new DefaultPermissionMatrix();
         private ISecurityLevelResolver securityLevelResolver = new DefaultSecurityLevelResolver();
@@ -221,6 +228,8 @@ public class DefaultAgentEngine implements IAgentEngine {
         public Builder skillCurator(ISkillCurator val) { this.skillCurator = val; return this; }
         public Builder toolCallRepairer(IToolCallRepairer val) { this.toolCallRepairer = val; return this; }
         public Builder messenger(IAgentMessenger val) { this.messenger = val; return this; }
+        // 3.1-C5-017（plan 2556 裁定 E）: pass DeferredAckMailbox.boundedDefaultFactory()
+        // for a bounded default (default-off production wiring preserved).
         public Builder mailboxFactory(Function<String, IMailbox> val) { this.mailboxFactory = val; return this; }
         public Builder permissionMatrix(IPermissionMatrix val) { this.permissionMatrix = val; return this; }
         public Builder securityLevelResolver(ISecurityLevelResolver val) { this.securityLevelResolver = val; return this; }

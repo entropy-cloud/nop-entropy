@@ -18,6 +18,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Production {@link IUsageRecorder} that persists each LLM call's usage data
@@ -71,6 +73,22 @@ public class DbUsageRecorder implements IUsageRecorder {
     static final String SQL_RESOLVE_MODEL_ID = ""
             + "SELECT id FROM nop_ai_model"
             + " WHERE provider = ? AND model_name = ?";
+
+    /**
+     * 3.1-C3-029（plan 2556 裁定 C）: process-level (provider, model) → modelId
+     * cache. The model-id lookup used to run a SELECT on EVERY
+     * {@link #record} call; model rows are effectively immutable during a
+     * process lifetime (nop-ai-dao owns the table), so the first lookup result
+     * — including a definitive miss ({@code Optional.empty()}) — is cached.
+     * Transient SQL failures are NOT cached (a later call may succeed).
+     */
+    private static final ConcurrentHashMap<String, Optional<String>> MODEL_ID_CACHE =
+            new ConcurrentHashMap<>();
+
+    static String modelIdCacheKey(String provider, String modelName) {
+        return provider + "|" + modelName;
+    }
+
 
     static final String SQL_INSERT_USAGE = ""
             + "INSERT INTO " + NopAiChatResponseTable.TABLE_NAME
@@ -180,10 +198,20 @@ public class DbUsageRecorder implements IUsageRecorder {
      * Resolve the {@code nop_ai_model} primary key for the given provider +
      * model-name pair. Returns null when no matching row exists (graceful
      * degradation — the usage row is still written with a null model_id).
+     *
+     * <p>3.1-C3-029（plan 2556 裁定 C）: served from the process-level
+     * {@link #MODEL_ID_CACHE} after the first lookup for the (provider, model)
+     * pair — a definitive miss is cached too; a transient SQL failure is not
+     * cached and is retried on the next record call.
      */
     private String resolveModelId(String provider, String modelName) {
         if (provider == null || modelName == null) {
             return null;
+        }
+        String cacheKey = modelIdCacheKey(provider, modelName);
+        Optional<String> cached = MODEL_ID_CACHE.get(cacheKey);
+        if (cached != null) {
+            return cached.orElse(null);
         }
         try (Connection conn = dataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement(SQL_RESOLVE_MODEL_ID)) {
@@ -191,9 +219,14 @@ public class DbUsageRecorder implements IUsageRecorder {
             ps.setString(2, modelName);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    return rs.getString(1);
+                    String id = rs.getString(1);
+                    MODEL_ID_CACHE.putIfAbsent(cacheKey, Optional.ofNullable(id));
+                    return id;
                 }
             }
+            // Definitive miss (no matching row) — cache the empty result.
+            MODEL_ID_CACHE.putIfAbsent(cacheKey, Optional.empty());
+            return null;
         } catch (SQLException e) {
             // The nop_ai_model table may not exist in deployments that do not
             // run the nop-ai-dao schema. This is expected graceful degradation:
@@ -201,6 +234,7 @@ public class DbUsageRecorder implements IUsageRecorder {
             // identity, and model_id is nullable by design. A missing table is
             // logged at debug level (common in test/embedded setups), while a
             // genuine SQL error during a present table is logged at warn.
+            // NOT cached — a transient failure is retried on the next record.
             LOG.debug("DbUsageRecorder.resolveModelId: nop_ai_model lookup failed for "
                     + "provider='{}', model='{}' (table may be absent)", provider, modelName, e);
         }

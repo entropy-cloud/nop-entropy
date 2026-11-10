@@ -14,6 +14,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 /**
  * Thread-safe in-memory {@link IMailbox} implementing the 3-phase reservation
  * protocol (offer → poll → ack/nack) with bounded/unbounded capacity, nack
@@ -48,11 +51,31 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public final class DeferredAckMailbox implements IMailbox {
 
+    private static final Logger LOG = LoggerFactory.getLogger(DeferredAckMailbox.class);
+
     /** Default max delivery attempts before an entry is dead-lettered. */
     public static final int DEFAULT_MAX_DELIVERY_ATTEMPTS = 5;
 
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: default dead-letter capacity bound.
+     * A full dead-letter list evicts its OLDEST entry (FIFO) with a WARN —
+     * the dead-letter list is a diagnostic retention buffer, not an
+     * unbounded ledger.
+     */
+    public static final int DEFAULT_DEAD_LETTER_CAPACITY = 1000;
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: default staleness threshold for in-flight
+     * entries. Aligned with {@code DBMessageService.DEFAULT_STALE_CLAIM_TIMEOUT_MS}
+     * (5 min): a consumer that polled but never acked/nacked within this
+     * window is presumed crashed, and its entry is lazily replayed.
+     */
+    public static final long DEFAULT_STALE_INFLIGHT_TIMEOUT_MS = 5 * 60 * 1000L;
+
     private final int capacity;
     private final int maxDeliveryAttempts;
+    private final int deadLetterCapacity;
+    private volatile long staleInFlightTimeoutMs = DEFAULT_STALE_INFLIGHT_TIMEOUT_MS;
     private final AtomicLong deliveryIdSeq = new AtomicLong(0);
 
     private final Deque<MailboxEntry> pending = new ArrayDeque<>();
@@ -69,7 +92,9 @@ public final class DeferredAckMailbox implements IMailbox {
     private final Object lock = new Object();
 
     /**
-     * Create an unbounded mailbox with the default max delivery attempts.
+     * Create an unbounded mailbox with the default max delivery attempts and
+     * the default bounded dead-letter capacity
+     * ({@link #DEFAULT_DEAD_LETTER_CAPACITY}).
      */
     public DeferredAckMailbox() {
         this(0, DEFAULT_MAX_DELIVERY_ATTEMPTS);
@@ -85,18 +110,34 @@ public final class DeferredAckMailbox implements IMailbox {
      *                            must be {@code >= 1}
      */
     public DeferredAckMailbox(int capacity, int maxDeliveryAttempts) {
+        this(capacity, maxDeliveryAttempts, DEFAULT_DEAD_LETTER_CAPACITY);
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: full-control constructor.
+     *
+     * @param deadLetterCapacity max retained DEAD_LETTERED entries;
+     *                           {@code <= 0} means unbounded. When full, the
+     *                           OLDEST dead-lettered entry is evicted (FIFO)
+     *                           with a WARN.
+     */
+    public DeferredAckMailbox(int capacity, int maxDeliveryAttempts, int deadLetterCapacity) {
         if (maxDeliveryAttempts < 1) {
             throw new NopAiAgentException(NopAiCoreErrors.ERR_AI_AGENT_INVALID_ARG).param(NopAiCoreErrors.ARG_MSG,
                     "DeferredAckMailbox: maxDeliveryAttempts must be >= 1, got " + maxDeliveryAttempts);
         }
         this.capacity = capacity;
         this.maxDeliveryAttempts = maxDeliveryAttempts;
+        this.deadLetterCapacity = deadLetterCapacity;
     }
 
     @Override
     public boolean offer(AgentMessageEnvelope envelope) {
         Objects.requireNonNull(envelope, "envelope");
         synchronized (lock) {
+            // 3.1-C5-017（plan 2556 裁定 E）: lazy stale-inFlight sweep driven
+            // by the critical sections (no scheduler thread).
+            sweepStaleInFlight(CoreMetrics.currentTimeMillis());
             // Plan 2288 (WI7): dedup check BEFORE the capacity check — a
             // duplicate offer is a no-op returning true even when full
             String key = envelope.getCorrelationId();
@@ -120,6 +161,8 @@ public final class DeferredAckMailbox implements IMailbox {
     @Override
     public MailboxEntry poll() {
         synchronized (lock) {
+            // 3.1-C5-017（plan 2556 裁定 E）: lazy stale-inFlight sweep.
+            sweepStaleInFlight(CoreMetrics.currentTimeMillis());
             MailboxEntry entry = pending.pollFirst();
             if (entry == null) {
                 return null;
@@ -157,6 +200,8 @@ public final class DeferredAckMailbox implements IMailbox {
     @Override
     public boolean nack(long deliveryId, boolean requeue) {
         synchronized (lock) {
+            // 3.1-C5-017（plan 2556 裁定 E）: lazy stale-inFlight sweep.
+            sweepStaleInFlight(CoreMetrics.currentTimeMillis());
             MailboxEntry entry = inFlight.remove(deliveryId);
             if (entry == null) {
                 return false;
@@ -171,7 +216,9 @@ public final class DeferredAckMailbox implements IMailbox {
                             entry.getEnvelope(),
                             entry.getOfferedAt(),
                             entry.getPolledAt());
-                    deadLetter.add(dead);
+                    // 3.1-C5-017（plan 2556 裁定 E）: bounded retention — a full
+                    // dead-letter list evicts its OLDEST entry (FIFO) with WARN.
+                    addDeadLetter(dead);
                     // Plan 2288 (WI7): dead-letter releases the dedup key
                     String key = entry.getEnvelope().getCorrelationId();
                     if (key != null && !key.isEmpty()) {
@@ -255,5 +302,137 @@ public final class DeferredAckMailbox implements IMailbox {
      */
     public int getMaxDeliveryAttempts() {
         return maxDeliveryAttempts;
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: append a dead-lettered entry, enforcing
+     * the bounded retention. When the list is at {@link #deadLetterCapacity}
+     * (if {@code > 0}), the OLDEST dead-lettered entry is evicted (FIFO) with
+     * a WARN before the new entry is appended. MUST hold {@link #lock}.
+     */
+    private void addDeadLetter(MailboxEntry dead) {
+        if (deadLetterCapacity > 0 && deadLetter.size() >= deadLetterCapacity) {
+            MailboxEntry evicted = deadLetter.remove(0);
+            LOG.warn("DeferredAckMailbox: dead-letter capacity {} reached — evicted OLDEST "
+                            + "dead-lettered entry (deliveryId={}, offeredAt={}) to retain the newest",
+                    deadLetterCapacity, evicted.getDeliveryId(), evicted.getOfferedAt());
+        }
+        deadLetter.add(dead);
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: lazy stale-inFlight sweep. Called inside
+     * the {@link #lock} critical sections of {@code offer}/{@code poll}/{@code nack}
+     * (no dedicated scheduler thread). Entries polled more than
+     * {@link #staleInFlightTimeoutMs} ago (aligned with
+     * {@code DBMessageService} 5min stale-claim semantics) are presumed to
+     * have lost their consumer and are replayed with the same semantics as
+     * {@code nack(requeue=true)}: deliveryCount below
+     * {@link #maxDeliveryAttempts} → requeue with a fresh deliveryId;
+     * otherwise dead-letter (bounded retention via {@link #addDeadLetter}).
+     *
+     * @return the number of stale entries replayed/dead-lettered
+     */
+    private int sweepStaleInFlight(long now) {
+        if (staleInFlightTimeoutMs <= 0 || inFlight.isEmpty()) {
+            return 0;
+        }
+        List<MailboxEntry> stale = null;
+        for (MailboxEntry e : inFlight.values()) {
+            if (e.getPolledAt() > 0 && now - e.getPolledAt() >= staleInFlightTimeoutMs) {
+                if (stale == null) {
+                    stale = new ArrayList<>();
+                }
+                stale.add(e);
+            }
+        }
+        if (stale == null) {
+            return 0;
+        }
+        for (MailboxEntry e : stale) {
+            inFlight.remove(e.getDeliveryId());
+            String key = e.getEnvelope().getCorrelationId();
+            if (e.getDeliveryCount() >= maxDeliveryAttempts) {
+                MailboxEntry dead = new MailboxEntry(
+                        e.getDeliveryId(),
+                        e.getDeliveryCount(),
+                        MailboxDeliveryState.DEAD_LETTERED,
+                        e.getEnvelope(),
+                        e.getOfferedAt(),
+                        e.getPolledAt());
+                addDeadLetter(dead);
+                if (key != null && !key.isEmpty()) {
+                    keysByCorrelationId.remove(key);
+                }
+                LOG.warn("DeferredAckMailbox: stale in-flight entry (deliveryId={}, polledAt={}, "
+                        + "deliveryCount={}) exceeded stale timeout {}ms after max delivery attempts "
+                        + "— dead-lettered", e.getDeliveryId(), e.getPolledAt(), e.getDeliveryCount(),
+                        staleInFlightTimeoutMs);
+            } else {
+                long newId = deliveryIdSeq.incrementAndGet();
+                pending.addLast(new MailboxEntry(
+                        newId,
+                        e.getDeliveryCount() + 1,
+                        MailboxDeliveryState.PENDING,
+                        e.getEnvelope(),
+                        e.getOfferedAt(),
+                        0L));
+                if (key != null && !key.isEmpty()) {
+                    keysByCorrelationId.put(key, newId);
+                }
+                LOG.warn("DeferredAckMailbox: stale in-flight entry (deliveryId={}, polledAt={}) "
+                                + "exceeded stale timeout {}ms — replayed as deliveryId={} "
+                                + "(deliveryCount={})",
+                        e.getDeliveryId(), e.getPolledAt(), staleInFlightTimeoutMs,
+                        newId, e.getDeliveryCount() + 1);
+            }
+        }
+        return stale.size();
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: test/inspection seam — run the lazy
+     * stale-inFlight sweep with a simulated clock instead of waiting for the
+     * next offer/poll/nack on real time.
+     *
+     * @param nowMs simulated wall-clock millis
+     * @return the number of stale entries replayed/dead-lettered
+     */
+    public int sweepStaleInFlightForTest(long nowMs) {
+        synchronized (lock) {
+            return sweepStaleInFlight(nowMs);
+        }
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: configure the stale-inFlight threshold.
+     * {@code <= 0} disables the sweep. Default is
+     * {@link #DEFAULT_STALE_INFLIGHT_TIMEOUT_MS} (5 min, aligned with
+     * {@code DBMessageService}).
+     */
+    public void setStaleInFlightTimeoutMs(long timeoutMs) {
+        this.staleInFlightTimeoutMs = timeoutMs;
+    }
+
+    /**
+     * 3.1-C5-017（plan 2556 裁定 E）: bounded-default mailbox factory for the
+     * explicit-enable wiring path. Production default remains
+     * {@code mailboxFactory = null} (no mailboxes constructed — default-off
+     * preserved); integrators that enable session mailboxes should wire THIS
+     * factory (or an equivalent bounded one) so every constructed mailbox is
+     * bounded (dead-letter retention capped at
+     * {@link #DEFAULT_DEAD_LETTER_CAPACITY} by the default constructor).
+     * Owner-doc envelope: session mailboxes are opt-in (plan 216).
+     */
+    public static java.util.function.Function<String, IMailbox> boundedDefaultFactory() {
+        return sid -> new DeferredAckMailbox();
+    }
+
+    /**
+     * @return the configured dead-letter retention bound ({@code <= 0} means
+     *         unbounded).
+     */
+    public int getDeadLetterCapacity() {
+        return deadLetterCapacity;
     }
 }

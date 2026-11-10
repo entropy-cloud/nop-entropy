@@ -138,6 +138,19 @@ public class LlmCallCoordinator {
                 : DEFAULT_PROVIDER_FAILOVER_CHAIN_RESOLVER;
     }
 
+    /**
+     * 3.1-C7-005（plan 2556 裁定 G）: after a FALLBACK switch the routed model
+     * key changed — re-capture the breaker generation at the NEW final routed
+     * model key so the eventual {@code recordSuccess}/{@code recordFailure}
+     * receipt carries the final-key generation (capture rule: allowCall /
+     * currentGeneration on the final routed model key). A receipt whose
+     * generation does not match the breaker's current generation is treated
+     * as a stale probe-escape receipt and discarded by the breaker.
+     */
+    private void recaptureBreakerGeneration(RetryState st) {
+        st.breakerGen = circuitBreaker.currentGeneration(ModelKeys.buildModelKey(st.routedOptions));
+    }
+
     // ---- moved verbatim from ReActAgentExecutor (MA4.2-05 split) ----
     /**
      * Plan 304: extract the LLM call with circuit-breaker check and retry
@@ -162,8 +175,10 @@ public class LlmCallCoordinator {
                                              String sessionId,
                                              String agentName,
                                              ChatOptions routedOptions) {
-        ensureCircuitAllowsCall(routedOptions, sessionId);
         RetryState st = new RetryState(routedOptions);
+        // 3.1-C7-005（plan 2556 裁定 G）: capture the generation at allowCall on
+        // the final routed model key; passed back at every record* site.
+        st.breakerGen = ensureCircuitAllowsCall(routedOptions, sessionId);
         st.llmCallStart = CoreMetrics.currentTimeMillis();
         runRetryLoop(request, ctx, agentName, st);
 
@@ -196,15 +211,16 @@ public class LlmCallCoordinator {
                                                String sessionId,
                                                String agentName,
                                                ChatOptions routedOptions) {
+        RetryState st = new RetryState(routedOptions);
         try {
-            ensureCircuitAllowsCall(routedOptions, sessionId);
+            // 3.1-C7-005（plan 2556 裁定 G）: capture generation at the final-key allowCall.
+            st.breakerGen = ensureCircuitAllowsCall(routedOptions, sessionId);
         } catch (NopAiAgentException e) {
             LOG.warn("wakeup LLM call skipped: circuit breaker rejected (session={})", sessionId);
             return new LlmCallResult(ChatResponse.error(ErrorClassification.TRANSIENT, null,
                     "circuit-open", "circuit breaker open for wakeup call", null),
                     routedOptions, CoreMetrics.currentTimeMillis(), false);
         }
-        RetryState st = new RetryState(routedOptions);
         st.llmCallStart = CoreMetrics.currentTimeMillis();
         runRetryLoop(request, ctx, agentName, st);
 
@@ -225,7 +241,8 @@ public class LlmCallCoordinator {
             return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, false);
         }
 
-        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions));
+        // 3.1-C7-005（plan 2556 裁定 G）: gen-aware success receipt.
+        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions), st.breakerGen);
         providerFailoverQueue.recordProviderSuccess(st.routedOptions.getProvider());
         return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, true);
     }
@@ -234,8 +251,20 @@ public class LlmCallCoordinator {
      * AI-12b (plan 355): extracted from doLlmCallWithRetry — the retry
      * loop's OUTER circuit-breaker gate over the primary model (fail fast,
      * no silent skip).
+     *
+     * <p><b>3.1-C7-005（plan 2556 裁定 G）capture rule</b>: the breaker
+     * generation is captured via {@code currentGeneration(key)} at the
+     * allowCall site on the FINAL routed model key (this gate runs on the
+     * post-{@code resolveCircuitAware} options, and is re-captured after every
+     * FALLBACK switch via {@link #recaptureBreakerGeneration}). The captured
+     * generation is passed back at every {@code recordSuccess}/
+     * {@code recordFailure} site so a stale probe-generation receipt can be
+     * discarded by the breaker instead of flipping its state.
+     *
+     * @return the breaker generation observed at allowCall time for the
+     *         final routed model key (stored on {@link RetryState})
      */
-    private void ensureCircuitAllowsCall(ChatOptions routedOptions, String sessionId) {
+    private long ensureCircuitAllowsCall(ChatOptions routedOptions, String sessionId) {
         String primaryModelKey = ModelKeys.buildModelKey(routedOptions);
         if (!circuitBreaker.allowCall(primaryModelKey)) {
             CircuitState rejectedState = circuitBreaker.getState(primaryModelKey);
@@ -247,6 +276,7 @@ public class LlmCallCoordinator {
                             + "an IModelRouter fallback chain or wait for the breaker "
                             + "cooldown before retrying.");
         }
+        return circuitBreaker.currentGeneration(primaryModelKey);
     }
 
     /**
@@ -341,7 +371,9 @@ public class LlmCallCoordinator {
         // 读分类进入重试决策——不再像旧实现那样一律终止。
         // W3-1: veto 路径（skipCall=true）跳过 circuit 记录（veto ≠ 模型失败）。
         if (!skipCall) {
-            circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions));
+            // 3.1-C7-005（plan 2556 裁定 G）: gen-aware failure receipt. Response-level
+            // errors carry no throwable — null err is the documented shape.
+            circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions), st.breakerGen, null);
         }
         ErrorClassification classification = st.attemptResponse.getErrorClassification();
         if (classification == null) {
@@ -394,6 +426,7 @@ public class LlmCallCoordinator {
                         st.routedOptions = nextProvider;
                         st.accountChain = null;
                         st.attempt = 0;
+                        recaptureBreakerGeneration(st);
                         if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
                             return RetryFlow.BREAK;
                         }
@@ -406,6 +439,7 @@ public class LlmCallCoordinator {
                 }
                 st.routedOptions = switched;
                 st.attempt = 0;
+                recaptureBreakerGeneration(st);
                 if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
                     return RetryFlow.BREAK;
                 }
@@ -421,6 +455,7 @@ public class LlmCallCoordinator {
             }
             st.routedOptions = switched;
             st.attempt = 0;
+            recaptureBreakerGeneration(st);
             if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
                 return RetryFlow.BREAK;
             }
@@ -441,7 +476,9 @@ public class LlmCallCoordinator {
         // 传输级错误（无 HTTP 响应）：仍走 LlmErrorClassifier 启发式。
         // 注意分类来源不对称（设计 §6.1）：启发式从不产 QUOTA/AUTH，故传输级
         // FALLBACK 恒走模型 tier（账号链路由只在响应级路径可达）。
-        circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions));
+        // 3.1-C7-005（plan 2556 裁定 G）: gen-aware failure receipt (transport-level,
+        // the thrown cause travels with the receipt).
+        circuitBreaker.recordFailure(ModelKeys.buildModelKey(st.routedOptions), st.breakerGen, ex);
         st.lastError = ex;
         ErrorClassification classification = LlmErrorClassifier.classify(ex);
         st.lastClassification = classification; // W3-1: 供下次 attempt 的 AttemptContext
@@ -472,6 +509,7 @@ public class LlmCallCoordinator {
             }
             st.routedOptions = switched;
             st.attempt = 0;
+            recaptureBreakerGeneration(st);
             st.lastError = null;
             if (checkFallbackStepCap(st) == RetryFlow.BREAK) {
                 return RetryFlow.BREAK;
@@ -502,7 +540,8 @@ public class LlmCallCoordinator {
             return new LlmCallResult(st.response, st.routedOptions, st.llmCallStart, false);
         }
 
-        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions));
+        // 3.1-C7-005（plan 2556 裁定 G）: gen-aware success receipt.
+        circuitBreaker.recordSuccess(ModelKeys.buildModelKey(st.routedOptions), st.breakerGen);
         // 跨 provider failover 成功（或 primary 直接成功）：记录 provider 级成功，重置其失败计数
         // （去重维度，裁定 D——成功说明该 provider 恢复健康，后续调用不应跳过它）。
         providerFailoverQueue.recordProviderSuccess(st.routedOptions.getProvider());
@@ -553,6 +592,11 @@ public class LlmCallCoordinator {
         NopAiAgentException fallbackExhausted = null;
         // 循环退出后的最终响应（= 退出时的 attemptResponse）。
         ChatResponse response;
+        // 3.1-C7-005（plan 2556 裁定 G）: breaker generation captured at the
+        // allowCall site on the final routed model key; re-captured after every
+        // FALLBACK switch (recaptureBreakerGeneration). Passed back at every
+        // recordSuccess/recordFailure site (gen-aware overloads).
+        long breakerGen = -1L;
 
         RetryState(ChatOptions routedOptions) {
             this.routedOptions = routedOptions;

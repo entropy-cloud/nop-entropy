@@ -63,6 +63,24 @@ public interface AiCoreConfigs {
     IConfigReference<Long> CFG_AI_SERVICE_CACHE_TTL =
             varRef(s_loc, "nop.ai.service.cache-ttl", Long.class, 0L);
 
+    @Description("AiChat 响应缓存的磁盘条目数上界（LRU 逐出，逐出回调删除缓存文件），"
+            + "默认1000。0 = 不设上界（不推荐）（3.1-C5-002，plan 2556 裁定 D）")
+    IConfigReference<Integer> CFG_AI_SERVICE_CACHE_MAX_ENTRIES =
+            varRef(s_loc, "nop.ai.service.cache-max-entries", Integer.class, 1000);
+
+    @Description("AiChat 响应缓存的单条磁盘大小上界（字节，序列化后量长，写入前检查）。"
+            + "超限放弃缓存并 WARN；读取时超过本上界的既有条目视为 miss 并删除。"
+            + "默认2MB（3.1-C5-002，plan 2556 裁定 D）")
+    IConfigReference<Long> CFG_AI_SERVICE_CACHE_MAX_ENTRY_BYTES =
+            varRef(s_loc, "nop.ai.service.cache-max-entry-bytes", Long.class, 2_097_152L);
+
+    @Description("熔断器失败记忆条目的惰性 TTL（毫秒），默认1小时。"
+            + "allowCall 临界区内清除超 TTL 的 OPEN / 带失败记忆的 CLOSED 条目"
+            + "（pristine 即时清理保持）；0 = 不启用 TTL（不推荐，无界豁免随本键收窄）"
+            + "（3.1-C7-007，plan 2556 裁定 I）")
+    IConfigReference<Long> CFG_AI_BREAKER_ENTRY_TTL =
+            varRef(s_loc, "nop.ai.breaker.entry-ttl-ms", Long.class, 3_600_000L);
+
     @Description("LLM 调用本地限流（llm.xml 配置了 rateLimit 时）的许可获取超时（毫秒）。"
             + "超时未获许可时抛 ERR_AI_RATE_LIMITED（携带 httpStatus=429，LlmErrorClassifier 判为 "
             + "RATE_LIMITED 可重试）——替换旧的无限阻塞 acquire()，消除挂起风险（MA6.3-AR-6）。"

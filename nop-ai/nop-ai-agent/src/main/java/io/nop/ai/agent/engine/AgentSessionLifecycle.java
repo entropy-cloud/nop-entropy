@@ -843,14 +843,39 @@ public class AgentSessionLifecycle {
         String agentName = session.getAgentName();
         AgentExecStatus currentStatus = session.getStatus();
 
+        // 3.1-C7-015（plan 2556 裁定 J）: verifyLatestCheckpoint is read-only and
+        // may stay pre-lock.
         CheckpointVerification verification = verifyLatestCheckpoint(sessionId, session);
-        transitionToRunningAndPublishRestored(session, sessionId, agentName, approver, reason,
-                currentStatus, verification);
 
         ExecutionWiring wiring = buildExecutionWiring(agentName, session, sessionId);
 
         CancelHandle handle = new CancelHandle(wiring.ctx(), null);
-        acquireRestoreExecutionSlot(sessionId, handle);
+
+        // 3.1-C7-015（plan 2556 裁定 J）: the RUNNING transition + SESSION_RESTORED
+        // event publish moved AFTER acquireRestoreExecutionSlot succeeds —
+        // mirroring resumeSession (:441) lock-gate discipline: a failed slot
+        // acquisition (lock held by another instance / duplicate execution)
+        // must leave the shared live session untouched (no running flip, no
+        // misleading SESSION_RESTORED event). If the transition itself throws
+        // after the slot was acquired, the symmetric cleanup below releases
+        // the slot (same shape as the resumeSession catch block).
+        boolean slotAcquired = false;
+        try {
+            acquireRestoreExecutionSlot(sessionId, handle);
+            slotAcquired = true;
+            transitionToRunningAndPublishRestored(session, sessionId, agentName, approver, reason,
+                    currentStatus, verification);
+        } catch (RuntimeException e) {
+            if (slotAcquired) {
+                // acquireRestoreExecutionSlot succeeded but the transition
+                // threw — release the execution slot symmetrically (see the
+                // resumeSession / M6-P1 lease-release discipline).
+                runningExecutions.remove(sessionId, handle);
+                releaseLockQuietly(sessionId, instanceId);
+                SessionLockRenewal.cancelLockRenewalQuietly(handle.renewHandle);
+            }
+            throw e;
+        }
 
         return dispatchRestoreExecution(sessionId, agentName, session, handle, wiring);
     }

@@ -117,6 +117,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class ReActAgentExecutor implements IAgentExecutor {
 
@@ -153,6 +154,30 @@ public class ReActAgentExecutor implements IAgentExecutor {
      * §5.4 裁定 D).
      */
     public static final int MAX_POST_REASONING_BAILS = 3;
+
+    /**
+     * 3.1-C3-029（plan 2556 裁定 C）: after this many isolated DB side-effect
+     * failures the WARN log escalates to a recurring-failure warning. The
+     * counter is process-level (static) — DB side-effect infrastructures
+     * (usage recorder / model-switched writer) are process-wide resources.
+     */
+    static final int DB_SIDE_EFFECT_ESCALATION_THRESHOLD = 10;
+
+    /**
+     * 3.1-C3-029（plan 2556 裁定 C）: process-level counter of isolated DB
+     * side-effect failures (usage-record / model-switched writes that threw).
+     * Isolation contract: the ReAct main flow continues; the failure is
+     * observable via WARN logs and this counter only.
+     */
+    static final AtomicInteger DB_SIDE_EFFECT_FAILURES = new AtomicInteger();
+
+    /**
+     * 3.1-C3-029（plan 2556 裁定 C）: count of escalated WARNs (failures
+     * observed beyond {@link #DB_SIDE_EFFECT_ESCALATION_THRESHOLD}). Test
+     * assertion seam for the escalation branch (the branch itself is log
+     * output only).
+     */
+    static final AtomicInteger DB_SIDE_EFFECT_ESCALATIONS = new AtomicInteger();
 
     /**
      * P1-6.7-006: single resolution point for the context-window size used by
@@ -993,11 +1018,17 @@ public class ReActAgentExecutor implements IAgentExecutor {
             if (state.lastModelKey != null && !currentModelKey.equals(state.lastModelKey)
                     && sessionId != null) {
                 state.messageSeq[0]++;
-                modelSwitchedMessageWriter.writeModelSwitched(
-                        sessionId, state.lastModelKey, currentModelKey,
-                        routingResult.getRoutingReason(),
-                        routingResult.getComplexity(),
-                        state.messageSeq[0]);
+                // 3.1-C3-029（plan 2556 裁定 C）: DB side-effect isolation — the
+                // model-switched audit write is best-effort observability; a
+                // failing writer (DbModelSwitchedMessageWriter / Orm one) must
+                // never break the ReAct main flow. WARN + failure counter,
+                // escalating past DB_SIDE_EFFECT_ESCALATION_THRESHOLD.
+                isolateDbSideEffect("writeModelSwitched", () ->
+                        modelSwitchedMessageWriter.writeModelSwitched(
+                                sessionId, state.lastModelKey, currentModelKey,
+                                routingResult.getRoutingReason(),
+                                routingResult.getComplexity(),
+                                state.messageSeq[0]));
             }
             state.lastModelKey = currentModelKey;
         }
@@ -1093,12 +1124,51 @@ public class ReActAgentExecutor implements IAgentExecutor {
         usageRecord.setCompletionTokens(completionTokens);
         usageRecord.setResponseDurationMs(CoreMetrics.currentTimeMillis() - llmResult.llmCallStart);
         usageRecord.setResponseTimestamp(CoreMetrics.currentTimeMillis());
-        usageRecorder.record(usageRecord);
+        // 3.1-C3-029（plan 2556 裁定 C）: DB side-effect isolation — a failing
+        // usage recorder (DbUsageRecorder SQL error) must not fail a
+        // successfully completed LLM turn. WARN + failure counter, escalating
+        // past DB_SIDE_EFFECT_ESCALATION_THRESHOLD.
+        isolateDbSideEffect("usageRecorder.record", () -> usageRecorder.record(usageRecord));
 
         if (promptTokens > 0) {
             tokenEstimator.record(request.getMessages(), promptTokens);
         }
     }
+
+    /**
+     * 3.1-C3-029（plan 2556 裁定 C）: DB side-effect call-site isolation. The
+     * usage-record and model-switched audit writes are best-effort
+     * observability side effects: an exception from the recorder/writer is
+     * logged at WARN (with throwable) and counted in the process-level
+     * {@link #DB_SIDE_EFFECT_FAILURES} counter; once the count exceeds
+     * {@link #DB_SIDE_EFFECT_ESCALATION_THRESHOLD} the log escalates to a
+     * recurring-failure warning. The ReAct main flow ALWAYS continues — the
+     * internal {@code throw} statements of {@code DbUsageRecorder} /
+     * {@code DbModelSwitchedMessageWriter} / the ORM writer stay untouched
+     * (isolation at the call sites is the chosen mechanism, per the audit
+     * option).
+     *
+     * <p>Package-visible static helper so the carrier test
+     * ({@code TestUsageRecorderIsolation}) can pin the isolation +
+     * escalation contract directly.
+     */
+    static void isolateDbSideEffect(String op, Runnable action) {
+        try {
+            action.run();
+        } catch (RuntimeException e) {
+            int n = DB_SIDE_EFFECT_FAILURES.incrementAndGet();
+            if (n <= DB_SIDE_EFFECT_ESCALATION_THRESHOLD) {
+                LOG.warn("DB side-effect '{}' failed (isolated, failure #{}) — ReAct main flow continues",
+                        op, n, e);
+            } else {
+                DB_SIDE_EFFECT_ESCALATIONS.incrementAndGet();
+                LOG.warn("DB side-effect '{}' failed (isolated, failure #{} >= escalation threshold {})"
+                                + " — RECURRING DB side-effect failures, inspect DB connectivity/schema",
+                        op, n, DB_SIDE_EFFECT_ESCALATION_THRESHOLD, e);
+            }
+        }
+    }
+
 
     /**
      * AI-1 (plan 355): extracted from execute() — the LLM_TURN checkpoint
