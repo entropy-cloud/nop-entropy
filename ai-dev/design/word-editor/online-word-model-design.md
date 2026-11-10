@@ -362,7 +362,17 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 7. **cloneInstance 为浅拷贝**：生成基类 `copyTo` 只复制标量、子容器按引用共享（与 ExcelWorkbook 等平台模型一致）；深冻结由 `freeze(true)`（FreezeHelper.deepFreeze）承担。测试与文档按此口径，不引入深克隆工具。
 8. **WordTable 无 type 属性**：word-table.xdef 定义不带 `type` 字段（doc.xdef 引用处的 `xdef:bean-tag-prop="type"` 不回写定义类），WordTable 不参与模型 XML 的 union 序列化分派；表格的模型 XML round-trip 契约由后续 docx 生成阶段的 round-trip 测试承载。
 
-## 14. 与 springreport 的分层对比结论
+## 14. 样式体系决策
+
+四类样式完善与命名样式容器落地时的定型决策（拒绝的替代方案一并记录）：
+
+1. **命名样式容器**：doc 级 `styles` 列表，五类样式（run/paragraph/cell/table/list）经 `OfficeStyle` 标记接口分派（接口落 `nop-office-model`——样式类在该模块，接口放 doc-model 会倒置依赖方向），子标签 runStyle/paragraphStyle/cellStyle/tableStyle/listStyle 引用各 style xdef，key-attr=id 且子标签处 `id="!string"` 升级必填。拒绝的替代：单一 style 类 + kind 字符串——失去四类样式的编译期区分与字段校验。
+2. **继承语义**：`basedOn` 沿链合并——标量字段非空覆盖，排除 id/name/basedOn/default 四字段；嵌套对象（font/四向 border/cellStyle）child 非空则整体替换；`default` 每类至多一个缺省样式；环检测与未知 basedOn id fail-fast。拒绝的替代：深逐字段合并嵌套对象——语义复杂且 OOXML styles.xml 接线时可再细化；实现模式先例为 docx 模块 `WordStylesPart.resolveInheritance`（visited 环检测 + 逐字段 inherit），此处为模型层平行实现。补充裁定：primitive 字段（int/boolean 等）永非空，其值等于新构造实例缺省值时视为「未设置」不覆盖父值（xdef 缺省如 start=1、level=0 经生成字段初始化生效）。
+3. **标题级别**：`WordParagraphStyle.titleLevel` Integer 可空——null=正文，0-8=标题级别（语义对齐 OOXML outlineLvl）；拒绝枚举类型——outlineLvl 无封闭枚举集且可空语义用枚举表达不自然。
+4. **列表样式**：`WordListStyle{numFmt, lvlText, start, level, indent}` 独立叶子模型落 nop-office-model；引用点为 styles 容器第五子标签 `listStyle` + `OfficeListModel.styleId`（list.numId 保留为实例级编号绑定）。listStyle 同样支持 basedOn/default 并入统一 resolver。拒绝的替代：把列表样式塞进段落样式——列表语义可被多个列表块共享，段落样式承载会重复。
+5. **resolver 落位**：`OfficeStyleResolver` hand-written 落 nop-office-doc-model（消费 doc 模型中的 named styles），模型层不依赖运行时表达式引擎。
+
+## 15. 与 springreport 的分层对比结论
 
 
 补充对 `springreport` 的实际实现分析后，可以把它的能力拆成三层：
@@ -371,7 +381,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 2. 模板配置层
 3. 产品化编辑层
 
-### 14.1 文档结构层
+### 15.1 文档结构层
 
 `springreport` 的 `DocTplSettings.header/footer/main` 本质上保存的是一组 JSON 块数据，而不是强类型文档对象模型。
 
@@ -388,7 +398,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 1. 当前 nop Word 模型对于 springreport 的基础文档结构表达已经基本够用
 2. 不需要为了对齐 springreport 再退回到“前端 JSON DTO 即最终模型”的做法
 
-### 14.2 模板配置层
+### 15.2 模板配置层
 
 这里需要修正一个表述：
 
@@ -416,7 +426,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 
 `paramMerge` 这类主要影响预览查询参数拼装的策略，更接近报表运行控制，可根据最终实现决定放在文档级 model 还是外层报表定义中，但不应退化成 springreport 式的散乱外部 JSON。
 
-### 14.3 产品化编辑层
+### 15.3 产品化编辑层
 
 `springreport` 前端还提供：
 
@@ -436,7 +446,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 
 混成一个问题。
 
-### 14.4 对当前 nop 方案的直接结论
+### 15.4 对当前 nop 方案的直接结论
 
 如果对比目标是 `springreport` 的基础 Word 文档结构表达：
 
@@ -447,7 +457,7 @@ Nop 当前 Word 模板机制的优势在于它支持完整 `xpl` 标签，而不
 1. 当前 nop 还不完整
 2. 但短板主要在“模板语义尚未内嵌到模型”，而不是 Word 结构对象本身方向错了
 
-### 14.5 后续补充方向
+### 15.5 后续补充方向
 
 下一步如果继续补齐 springreport 风格能力，优先应补：
 

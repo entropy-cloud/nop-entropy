@@ -46,6 +46,13 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: styles
+     * 
+     */
+    private KeyedList<io.nop.office.model.OfficeStyle> _styles = KeyedList.emptyList();
+    
+    /**
+     *  
      * xml name: width
      * 
      */
@@ -181,6 +188,33 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: styles
+     *  
+     */
+    
+    public java.util.List<io.nop.office.model.OfficeStyle> getStyles(){
+      return _styles;
+    }
+
+    
+    public void setStyles(java.util.List<io.nop.office.model.OfficeStyle> value){
+        checkAllowChange();
+        
+        this._styles = KeyedList.fromList(value, io.nop.office.model.OfficeStyle::getId);
+           
+    }
+
+    
+    public java.util.Set<String> keySet_styles(){
+        return this._styles.keySet();
+    }
+
+    public boolean hasStyles(){
+        return !this._styles.isEmpty();
+    }
+    
+    /**
+     * 
      * xml name: width
      *  
      */
@@ -212,6 +246,8 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
             
            this._pages = io.nop.api.core.util.FreezeHelper.deepFreeze(this._pages);
             
+           this._styles = io.nop.api.core.util.FreezeHelper.deepFreeze(this._styles);
+            
         }
     }
 
@@ -223,6 +259,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
         out.putNotNull("height",this.getHeight());
         out.putNotNull("model",this.getModel());
         out.putNotNull("pages",this.getPages());
+        out.putNotNull("styles",this.getStyles());
         out.putNotNull("width",this.getWidth());
     }
 
@@ -239,6 +276,7 @@ public abstract class _OfficeDocModel extends io.nop.core.resource.component.Abs
         instance.setHeight(this.getHeight());
         instance.setModel(this.getModel());
         instance.setPages(this.getPages());
+        instance.setStyles(this.getStyles());
         instance.setWidth(this.getWidth());
     }
 

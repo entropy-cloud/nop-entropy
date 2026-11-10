@@ -46,6 +46,13 @@ public abstract class _OfficeListModel extends io.nop.core.resource.component.Ab
     
     /**
      *  
+     * xml name: styleId
+     * 
+     */
+    private java.lang.String _styleId ;
+    
+    /**
+     *  
      * xml name: 
      * 
      */
@@ -155,6 +162,25 @@ public abstract class _OfficeListModel extends io.nop.core.resource.component.Ab
     
     /**
      * 
+     * xml name: styleId
+     *  
+     */
+    
+    public java.lang.String getStyleId(){
+      return _styleId;
+    }
+
+    
+    public void setStyleId(java.lang.String value){
+        checkAllowChange();
+        
+        this._styleId = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: 
      *  
      */
@@ -195,6 +221,7 @@ public abstract class _OfficeListModel extends io.nop.core.resource.component.Ab
         out.putNotNull("items",this.getItems());
         out.putNotNull("model",this.getModel());
         out.putNotNull("numId",this.getNumId());
+        out.putNotNull("styleId",this.getStyleId());
         out.putNotNull("type",this.getType());
     }
 
@@ -211,6 +238,7 @@ public abstract class _OfficeListModel extends io.nop.core.resource.component.Ab
         instance.setItems(this.getItems());
         instance.setModel(this.getModel());
         instance.setNumId(this.getNumId());
+        instance.setStyleId(this.getStyleId());
         instance.setType(this.getType());
     }
 

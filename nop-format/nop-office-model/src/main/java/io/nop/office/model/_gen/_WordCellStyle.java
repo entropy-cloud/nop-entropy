@@ -25,10 +25,24 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: basedOn
+     * 
+     */
+    private java.lang.String _basedOn ;
+    
+    /**
+     *  
      * xml name: bottomBorder
      * 
      */
     private io.nop.office.model.WordBorderStyle _bottomBorder ;
+    
+    /**
+     *  
+     * xml name: default
+     * 
+     */
+    private boolean _default  = false;
     
     /**
      *  
@@ -74,6 +88,13 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
     
     /**
      *  
+     * xml name: type
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     *  
      * xml name: verticalAlign
      * 
      */
@@ -100,6 +121,25 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: basedOn
+     *  
+     */
+    
+    public java.lang.String getBasedOn(){
+      return _basedOn;
+    }
+
+    
+    public void setBasedOn(java.lang.String value){
+        checkAllowChange();
+        
+        this._basedOn = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: bottomBorder
      *  
      */
@@ -113,6 +153,25 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
         checkAllowChange();
         
         this._bottomBorder = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: default
+     *  
+     */
+    
+    public boolean isDefault(){
+      return _default;
+    }
+
+    
+    public void setDefault(boolean value){
+        checkAllowChange();
+        
+        this._default = value;
            
     }
 
@@ -233,6 +292,25 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
     
     /**
      * 
+     * xml name: type
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: verticalAlign
      *  
      */
@@ -276,13 +354,16 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
         super.outputJson(out);
         
         out.putNotNull("backgroundColor",this.getBackgroundColor());
+        out.putNotNull("basedOn",this.getBasedOn());
         out.putNotNull("bottomBorder",this.getBottomBorder());
+        out.putNotNull("default",this.isDefault());
         out.putNotNull("font",this.getFont());
         out.putNotNull("id",this.getId());
         out.putNotNull("leftBorder",this.getLeftBorder());
         out.putNotNull("name",this.getName());
         out.putNotNull("rightBorder",this.getRightBorder());
         out.putNotNull("topBorder",this.getTopBorder());
+        out.putNotNull("type",this.getType());
         out.putNotNull("verticalAlign",this.getVerticalAlign());
     }
 
@@ -296,13 +377,16 @@ public abstract class _WordCellStyle extends io.nop.core.resource.component.Abst
         super.copyTo(instance);
         
         instance.setBackgroundColor(this.getBackgroundColor());
+        instance.setBasedOn(this.getBasedOn());
         instance.setBottomBorder(this.getBottomBorder());
+        instance.setDefault(this.isDefault());
         instance.setFont(this.getFont());
         instance.setId(this.getId());
         instance.setLeftBorder(this.getLeftBorder());
         instance.setName(this.getName());
         instance.setRightBorder(this.getRightBorder());
         instance.setTopBorder(this.getTopBorder());
+        instance.setType(this.getType());
         instance.setVerticalAlign(this.getVerticalAlign());
     }
 

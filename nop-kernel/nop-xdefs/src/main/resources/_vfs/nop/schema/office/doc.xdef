@@ -2,6 +2,16 @@
      xdef:bean-package="io.nop.office.doc.model" xdef:check-ns="qr"
      xdef:name="OfficeDocModel" width="!double" height="!double">
 
+    <styles xdef:body-type="list" xdef:key-attr="id"
+            xdef:bean-sub-type-prop="type"
+            xdef:bean-body-type="List&lt;io.nop.office.model.OfficeStyle&gt;">
+        <runStyle id="!string" xdef:ref="word-run-style.xdef" xdef:bean-tag-prop="type"/>
+        <paragraphStyle id="!string" xdef:ref="word-paragraph-style.xdef" xdef:bean-tag-prop="type"/>
+        <cellStyle id="!string" xdef:ref="word-cell-style.xdef" xdef:bean-tag-prop="type"/>
+        <tableStyle id="!string" xdef:ref="word-table-style.xdef" xdef:bean-tag-prop="type"/>
+        <listStyle id="!string" xdef:ref="word-list-style.xdef" xdef:bean-tag-prop="type"/>
+    </styles>
+
     <assets xdef:body-type="list" xdef:key-attr="name">
         <asset name="!string" ext="string" xdef:name="OfficeImageAsset">
             <data>base64-bytes</data>
@@ -89,7 +99,7 @@
                         <link id="!string" xdef:ref="OfficeLinkModel" xdef:bean-tag-prop="type"/>
                     </runs>
                 </title>
-                <list id="!string" xdef:name="OfficeListModel" xdef:bean-tag-prop="type" numId="string">
+                <list id="!string" xdef:name="OfficeListModel" xdef:bean-tag-prop="type" numId="string" styleId="string">
                     <model xdef:name="OfficeListTemplateModel">
                         <testExpr>xpl-predicate</testExpr>
                         <visibleExpr>xpl</visibleExpr>

@@ -25,6 +25,20 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
     
     /**
      *  
+     * xml name: basedOn
+     * 
+     */
+    private java.lang.String _basedOn ;
+    
+    /**
+     *  
+     * xml name: default
+     * 
+     */
+    private boolean _default  = false;
+    
+    /**
+     *  
      * xml name: firstLineIndent
      * 
      */
@@ -80,6 +94,20 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
     private java.lang.Double _spaceBefore ;
     
     /**
+     *  
+     * xml name: titleLevel
+     * 
+     */
+    private java.lang.Integer _titleLevel ;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
      * 
      * xml name: align
      *  
@@ -94,6 +122,44 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
         checkAllowChange();
         
         this._align = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: basedOn
+     *  
+     */
+    
+    public java.lang.String getBasedOn(){
+      return _basedOn;
+    }
+
+    
+    public void setBasedOn(java.lang.String value){
+        checkAllowChange();
+        
+        this._basedOn = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: default
+     *  
+     */
+    
+    public boolean isDefault(){
+      return _default;
+    }
+
+    
+    public void setDefault(boolean value){
+        checkAllowChange();
+        
+        this._default = value;
            
     }
 
@@ -250,6 +316,44 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
     }
 
     
+    /**
+     * 
+     * xml name: titleLevel
+     *  
+     */
+    
+    public java.lang.Integer getTitleLevel(){
+      return _titleLevel;
+    }
+
+    
+    public void setTitleLevel(java.lang.Integer value){
+        checkAllowChange();
+        
+        this._titleLevel = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -266,6 +370,8 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
         super.outputJson(out);
         
         out.putNotNull("align",this.getAlign());
+        out.putNotNull("basedOn",this.getBasedOn());
+        out.putNotNull("default",this.isDefault());
         out.putNotNull("firstLineIndent",this.getFirstLineIndent());
         out.putNotNull("id",this.getId());
         out.putNotNull("leftIndent",this.getLeftIndent());
@@ -274,6 +380,8 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
         out.putNotNull("rightIndent",this.getRightIndent());
         out.putNotNull("spaceAfter",this.getSpaceAfter());
         out.putNotNull("spaceBefore",this.getSpaceBefore());
+        out.putNotNull("titleLevel",this.getTitleLevel());
+        out.putNotNull("type",this.getType());
     }
 
     public WordParagraphStyle cloneInstance(){
@@ -286,6 +394,8 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
         super.copyTo(instance);
         
         instance.setAlign(this.getAlign());
+        instance.setBasedOn(this.getBasedOn());
+        instance.setDefault(this.isDefault());
         instance.setFirstLineIndent(this.getFirstLineIndent());
         instance.setId(this.getId());
         instance.setLeftIndent(this.getLeftIndent());
@@ -294,6 +404,8 @@ public abstract class _WordParagraphStyle extends io.nop.core.resource.component
         instance.setRightIndent(this.getRightIndent());
         instance.setSpaceAfter(this.getSpaceAfter());
         instance.setSpaceBefore(this.getSpaceBefore());
+        instance.setTitleLevel(this.getTitleLevel());
+        instance.setType(this.getType());
     }
 
     protected WordParagraphStyle newInstance(){

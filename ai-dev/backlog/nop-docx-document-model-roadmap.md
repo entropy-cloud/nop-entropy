@@ -1,6 +1,6 @@
 # Word 文档模型 Roadmap — docx ↔ 通用文档结构（OfficeDocModel）↔ docx/pdf
 
-> Last updated: 2026-11-10（WI0/WI1 完成，plan 2515/2516；WI2–WI11 未启动）
+> Last updated: 2026-11-10（WI0–WI2 完成，plan 2515/2516/2517；WI3–WI11 未启动）
 > 位置：按仓库 roadmap 惯例存放于 ai-dev/backlog/。书写约定：未来交付物路径用普通文本书写、不加反引号；已存在的文档路径用反引号，持续受 check-doc-links 保护。
 > Sources:
 > - `ai-dev/design/word-editor/online-word-model-design.md`（**主设计输入**；含模型分层、内嵌模板语义、与 springreport 的三层对比结论 §13）
@@ -42,7 +42,7 @@
 ### M1 — 通用文档结构模型
 
 - [x] WI1 结构模型定稿：在 `doc.xdef`/`word-table.xdef` 补齐块级与行内类型——块级 `paragraph/title/list/table/image/hyperlink/separator/pageBreak`，行内 `text/tab/br/hyperlink` run；页面设置（宽高/方向/页边距）、节（section）、多节页眉页脚、资产（图片资源）；`makeXxx()`/clone/freeze 与 `ExcelSheet/ExcelCell` 体验对齐。含模型单测（Deliverable: 结构模型 + 便捷方法 + 测试；deps: WI0；Item Type: Feature）
-- [ ] WI2 样式体系：WordRunStyle/WordParagraphStyle/WordCellStyle/WordTableStyle 完善（粗体/斜体/下划线/删除线/高亮/上下标/字体/字号/颜色/对齐/行距/缩进/标题级别/列表样式）；命名样式/默认样式/基样式继承解析；叶子模型沉淀到 `nop-office-model`。含样式往返单测（Deliverable: 样式体系 + 测试；deps: WI1；Item Type: Feature）
+- [x] WI2 样式体系：WordRunStyle/WordParagraphStyle/WordCellStyle/WordTableStyle 完善（粗体/斜体/下划线/删除线/高亮/上下标/字体/字号/颜色/对齐/行距/缩进/标题级别/列表样式）；命名样式/默认样式/基样式继承解析；叶子模型沉淀到 `nop-office-model`。含样式往返单测（Deliverable: 样式体系 + 测试；deps: WI1；Item Type: Feature）
 
 ### M2 — docx → 模型（解析）
 

@@ -1,0 +1,4 @@
+<style x:schema="/nop/schema/xdef.xdef" xmlns:x="/nop/schema/xdsl.xdef" xmlns:xdef="/nop/schema/xdef.xdef"
+       xdef:name="WordListStyle" xdef:bean-package="io.nop.office.model"
+       id="string" name="string" type="string" basedOn="string" default="!boolean=false"
+       numFmt="string" lvlText="string" start="!int=1" level="!int=0" indent="double-pt"/>

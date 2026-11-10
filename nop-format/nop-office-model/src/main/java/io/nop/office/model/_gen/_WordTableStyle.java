@@ -25,10 +25,24 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
     
     /**
      *  
+     * xml name: basedOn
+     * 
+     */
+    private java.lang.String _basedOn ;
+    
+    /**
+     *  
      * xml name: cellStyle
      * 
      */
     private io.nop.office.model.WordCellStyle _cellStyle ;
+    
+    /**
+     *  
+     * xml name: default
+     * 
+     */
+    private boolean _default  = false;
     
     /**
      *  
@@ -43,6 +57,13 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private java.lang.String _type ;
     
     /**
      *  
@@ -72,6 +93,25 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: basedOn
+     *  
+     */
+    
+    public java.lang.String getBasedOn(){
+      return _basedOn;
+    }
+
+    
+    public void setBasedOn(java.lang.String value){
+        checkAllowChange();
+        
+        this._basedOn = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: cellStyle
      *  
      */
@@ -85,6 +125,25 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
         checkAllowChange();
         
         this._cellStyle = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: default
+     *  
+     */
+    
+    public boolean isDefault(){
+      return _default;
+    }
+
+    
+    public void setDefault(boolean value){
+        checkAllowChange();
+        
+        this._default = value;
            
     }
 
@@ -129,6 +188,25 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
     
     /**
      * 
+     * xml name: type
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
+    /**
+     * 
      * xml name: width
      *  
      */
@@ -164,9 +242,12 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
         super.outputJson(out);
         
         out.putNotNull("align",this.getAlign());
+        out.putNotNull("basedOn",this.getBasedOn());
         out.putNotNull("cellStyle",this.getCellStyle());
+        out.putNotNull("default",this.isDefault());
         out.putNotNull("id",this.getId());
         out.putNotNull("name",this.getName());
+        out.putNotNull("type",this.getType());
         out.putNotNull("width",this.getWidth());
     }
 
@@ -180,9 +261,12 @@ public abstract class _WordTableStyle extends io.nop.core.resource.component.Abs
         super.copyTo(instance);
         
         instance.setAlign(this.getAlign());
+        instance.setBasedOn(this.getBasedOn());
         instance.setCellStyle(this.getCellStyle());
+        instance.setDefault(this.isDefault());
         instance.setId(this.getId());
         instance.setName(this.getName());
+        instance.setType(this.getType());
         instance.setWidth(this.getWidth());
     }
 

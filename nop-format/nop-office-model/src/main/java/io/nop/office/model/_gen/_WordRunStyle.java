@@ -18,6 +18,20 @@ public abstract class _WordRunStyle extends io.nop.core.resource.component.Abstr
     
     /**
      *  
+     * xml name: basedOn
+     * 
+     */
+    private java.lang.String _basedOn ;
+    
+    /**
+     *  
+     * xml name: default
+     * 
+     */
+    private boolean _default  = false;
+    
+    /**
+     *  
      * xml name: font
      * 
      */
@@ -43,6 +57,51 @@ public abstract class _WordRunStyle extends io.nop.core.resource.component.Abstr
      * 
      */
     private java.lang.String _name ;
+    
+    /**
+     *  
+     * xml name: type
+     * 
+     */
+    private java.lang.String _type ;
+    
+    /**
+     * 
+     * xml name: basedOn
+     *  
+     */
+    
+    public java.lang.String getBasedOn(){
+      return _basedOn;
+    }
+
+    
+    public void setBasedOn(java.lang.String value){
+        checkAllowChange();
+        
+        this._basedOn = value;
+           
+    }
+
+    
+    /**
+     * 
+     * xml name: default
+     *  
+     */
+    
+    public boolean isDefault(){
+      return _default;
+    }
+
+    
+    public void setDefault(boolean value){
+        checkAllowChange();
+        
+        this._default = value;
+           
+    }
+
     
     /**
      * 
@@ -120,6 +179,25 @@ public abstract class _WordRunStyle extends io.nop.core.resource.component.Abstr
     }
 
     
+    /**
+     * 
+     * xml name: type
+     *  
+     */
+    
+    public java.lang.String getType(){
+      return _type;
+    }
+
+    
+    public void setType(java.lang.String value){
+        checkAllowChange();
+        
+        this._type = value;
+           
+    }
+
+    
 
     @Override
     public void freeze(boolean cascade){
@@ -137,10 +215,13 @@ public abstract class _WordRunStyle extends io.nop.core.resource.component.Abstr
     protected void outputJson(IJsonHandler out){
         super.outputJson(out);
         
+        out.putNotNull("basedOn",this.getBasedOn());
+        out.putNotNull("default",this.isDefault());
         out.putNotNull("font",this.getFont());
         out.putNotNull("highlightColor",this.getHighlightColor());
         out.putNotNull("id",this.getId());
         out.putNotNull("name",this.getName());
+        out.putNotNull("type",this.getType());
     }
 
     public WordRunStyle cloneInstance(){
@@ -152,10 +233,13 @@ public abstract class _WordRunStyle extends io.nop.core.resource.component.Abstr
     protected void copyTo(WordRunStyle instance){
         super.copyTo(instance);
         
+        instance.setBasedOn(this.getBasedOn());
+        instance.setDefault(this.isDefault());
         instance.setFont(this.getFont());
         instance.setHighlightColor(this.getHighlightColor());
         instance.setId(this.getId());
         instance.setName(this.getName());
+        instance.setType(this.getType());
     }
 
     protected WordRunStyle newInstance(){

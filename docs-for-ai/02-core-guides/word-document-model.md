@@ -41,13 +41,14 @@
 | 行内：文本 run | 已支持 | `OfficeRunModel.t` |
 | 行内：tab/br/hyperlink 独立类型 | 模型已定稿，解析/生成未接线 | `OfficeRun` 标记接口 + runs 包装节点分派 `OfficeTabModel`/`OfficeBreakModel`/`OfficeLinkModel`（递归嵌套 runs） |
 | 图片资产 | 模型已定稿，解析/生成未接线 | doc 级 `assets:OfficeImageAsset{name,ext,data}`（`base64-bytes`/ByteString） |
-| run 样式 | 部分已支持 | `WordRunStyle`（`OfficeFont` + `highlightColor` + id/name）；上下标/删除线/字符间距等以 `OfficeFont`/`WordRunStyle` 字段为准 |
-| 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/标题级别等以字段为准） |
+| run 样式 | 部分已支持 | `WordRunStyle`（`OfficeFont` 粗/斜/删/下划线/上下标/字体/字号/颜色 + `highlightColor`）；上下标/删除线/字符间距等以 `OfficeFont`/`WordRunStyle` 字段为准 |
+| 段落样式 | 部分已支持 | `WordParagraphStyle`（`align`/`firstLineIndent`/`leftIndent`/行距/`titleLevel` 0-8 等） |
 | 表格：横纵合并/列宽/行高 | 已支持 | `WordTableCell.mergeAcross/mergeDown`、`WordTableColumnConfig`；行高经 `w:trHeight` 解析（`WordTableParser`）与生成（`OfficeDocXmlBuilder`） |
 | 表格：边框/底纹/单元格背景 | 未支持 | |
 | 图片/绘图/媒体部件 | 未支持 | |
 | 背景/水印 | 未支持 | |
 | 批注 | 部分 | `WordTableCell.comment` 承载单元格批注字符串 |
+| 命名样式/默认样式/基样式继承 | 模型已定稿，styles.xml 解析/生成未接线 | doc 级 `styles` 容器五类样式分派（run/paragraph/cell/table/list）；`basedOn` 链合并 + `default` 回退经 `OfficeStyleResolver`（样式往返测试覆盖）；`WordListStyle` 经 `OfficeListModel.styleId` 引用 |
 | 模板标注：`c:if`/`c:for` 段落标记 | 已支持 | 解析映射为 `testExpr`/loop 字段并含嵌套合并（`OfficeDocModelParser` test/for 表达式编译路径） |
 | 模板标注：`expr:`/`xpl:` 超链接 | 已支持 | `WordTemplateParser`/`WordHyperlinkTransformer` |
 | 模板标注：`xpt:table` 批注 | 经 `nop-report-docx` | `XptWordTemplateParser`/`XptWordTableParser` |
